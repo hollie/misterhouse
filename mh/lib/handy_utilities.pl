@@ -77,6 +77,11 @@ sub main::fileit {              # Same as file_write
     close LOG;
 }
 
+sub main::file_default {
+    my ($file, $default) = @_;
+    return ($file and -f $file) ? $file : $default;
+}
+
 sub main::file_head {
     my ($file, $records) = @_;
     my @head;
@@ -213,6 +218,10 @@ sub main::find_pgm_path {
         my $perl_code = $1;
         my $pgm_interp;
         if ($pgm_interp = &main::which('mh.exe')) {
+            $pgm_args = "-run $perl_code $pgm_args";
+            $pgm_path = $pgm_interp;
+        }
+        elsif ($pgm_interp = &main::which('mhe.exe')) {
             $pgm_args = "-run $perl_code $pgm_args";
             $pgm_path = $pgm_interp;
         }
@@ -605,30 +614,53 @@ sub main::randomize_list {
     }
 }
 
+# Set 3rd parameter to 1 to return the last record if the index is out of
+# range.  Otherwise, the first record will be returned.
 sub main::read_record {
-    my($file, $index) = @_;
-    my(@records);
+    my($file, $index, $last_when_out_of_range) = @_;
 
-                                # Note, we could be more clever here and use the trick on page 284 of the
-                                # perl cookbook to read a random line without saving all records from
-                                # the file.
-
-    open(DATA, $file) or print "Error, could not open read_record file: $file\n";
-    @records = <DATA>;
-    close DATA;
-
+    my $record = '';
     if (lc($index) eq 'random') {
-                                # Perl 5.004+ will self-randomize
-#       srand(time);
-        $index = 1 + int((@records) * rand);
+       my(@records);
+       open(DATA, $file) or print "Error, could not open read_record file: $file\n";
+       @records = <DATA>;
+       close DATA;
+       $index = 1 + int(($#records) * rand);
+       $record = $records[$index - 1];
     }
     else {
-        $index = 1 if $index > @records;
+       open(DATA, $file) or print "Error, could not open read_record file: $file\n";
+       my $line;
+       my $count = 0;
+       my $first;
+       while ($line = <DATA>) {
+         $count++;
+         if (not $last_when_out_of_range and ($count == 1)) {
+            $first = $line;
+         }
+         if ($count == $index) {
+            $record = $line;
+            last;
+         }
+       }
+       close DATA;
+       # Default to the last record if index wasn't found
+       unless ($record) {
+          if ($last_when_out_of_range) {
+             $record = $line;
+             $index = $count;
+          } else {
+             $record = $first;
+             $index = 1;
+          }
+       }
     }
-    my $record = $records[$index - 1];
     chomp $record;
     return ($record, $index);
 }
+
+
+
 
 #---------------------------------------------------------------------------
 #   Win32 Registry
@@ -1166,7 +1198,7 @@ sub main::which {
     my ($pgm) = @_;
                                 # Not sure if ; is allow for in unix paths??
     my @paths = ($main::OS_win) ?  split(';', $ENV{PATH}) :  split(/[\:\;]/, $ENV{PATH});
-    for my $path (".", "$main::Pgm_Path", @paths) {
+    for my $path ($main::config_parms{bin_dir}, ".", "$main::Pgm_Path", @paths) {
         chop $path if $path =~ /\\$/; # Drop trailing slash
         my $pgm_path = "$path/$pgm";
         if ($main::OS_win) {
@@ -1252,6 +1284,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.75  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.74  2004/09/25 20:01:19  winter
 # *** empty log message ***
 #

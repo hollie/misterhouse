@@ -4535,12 +4535,13 @@ strip haiopeis
 	provides latest
 end
 
+
 strip grimmy
-	name Mother Goose and Grimm
-	homepage http://www.grimmy.com/daycartoon.asp
-	type generate
-	imageurl http://www.grimmy.com/images/%Y/MGG%m%d%y.gif
-	provides any
+    name Mother Goose and Grimm
+    homepage http://www.grimmy.com/comics.php
+    type generate
+    imageurl http://www.grimmy.com/images/MGG_Archive/MGG_%Y/MGG%m%d.gif
+    provides any
 end
 
 strip biloynano

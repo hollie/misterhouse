@@ -22,15 +22,15 @@ Quick Install Instructions
 
   Windows users
      - Download the the misterhouse_src_###.zip and misterhouse_win_###.zip files
-       from  http://misterhouse.net:81/download
+       from  http://misterhouse.net/download
 
-     - cd to where you want the mh directory created in (e.g. c:\misterhouse). 
+     - cd to where you want the mh directory created in (e.g. c:\misterhouse).
        Avoid directories with spaces in the name (e.g. \program files\)
 
      - unzip \downloads\misterhouse_src_###.zip (wherever you downloaded it to)
 
      - unzip \downloads\misterhouse_win_###.zip (wherever you downloaded it to)
- 
+
      - cd mh\bin
 
      - mh.bat (this will call mhe.exe if it exists or 'perl mh')
@@ -39,8 +39,8 @@ Quick Install Instructions
     names. This program works ok: http://misterhouse.net/public/unzip.exe
 
   Unix users
-     - Download the the latest rpm, tar, or zip file 
-       from http://misterhouse.net:81/download
+     - Download the the latest rpm, tar, or zip file
+       from http://misterhouse.net/download
 
      - If using the rpm file:
          rpm -i misterhouse-#.##-1.noarch.rpm
@@ -52,7 +52,7 @@ Quick Install Instructions
 
      - If using the zip file:
          cd to where you want it the mh directory created in (e.g. cd /projects/misterhouse)
-         unzip -aU /downloads/misterhouse_src_###.zip (wherever you downloaded it to) 
+         unzip -aU /downloads/misterhouse_src_###.zip (wherever you downloaded it to)
 
      - Run Configure to convert C serial headers to perl headers:
         - cd mh/bin
@@ -65,9 +65,9 @@ Quick Install Instructions
 
      - If are running with a recent Linux which has a recent libc.so
          (ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
-         and don't want to bother with installing the various optional perl modules, 
+         and don't want to bother with installing the various optional perl modules,
          download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin
-         dir and run mhe instead.  Note: one of the above files are still required, 
+         dir and run mhe instead.  Note: one of the above files are still required,
          as they have the documentation and support files.
 
      - If you are running rh 8 or rh 9, you may see a memory leak which you can avoid with
@@ -100,7 +100,7 @@ Windows Detailed Install Instructions
     misterhouse_src_###.zip package. If you do not have perl installed, you
     will also need to download the compiled mhe.exe file, which is in the
     misterhouse_win_###.zip package. Both are available from
-    http://misterhouse.net:81/download .
+    http://misterhouse.net/download .
 
     The 2 MB misterhouse_src_###.zip file installs into 5 MB of disk space.
     The misterhouse_win_###.zip takes an additional 3 MB of disk space. The
@@ -114,7 +114,7 @@ Windows Detailed Install Instructions
     file(s) using your un-zipper of choice (use the -d if using pkunzip to
     preserve the directory structure). Look in the mh/lib directory to make
     sure long file names were preserved (e.g. http_server.pl). If not, you
-    can download unzip from http://misterhouse.net:81/public/unzip.exe .
+    can download unzip from http://misterhouse.net/public/unzip.exe .
 
   Windows Step 2, Download and Install Perl
     You can skip this step if you downloaded the compiled version of Mister
@@ -137,14 +137,14 @@ Windows Detailed Install Instructions
 
        > cd \perl\bin (modify to match your directory)
        > ppm
-       ppm > repository add http://theoryx5.uwinnipeg.ca/ppms 
+       ppm > repository add http://theoryx5.uwinnipeg.ca/ppms
        ppm> install GD
        ppm> install DB_File
        ppm> install Tk-JPEG
        ppm> install Tk-CursorControl
        ppm> install Win32-Setupsup
        ppm> install DBI        (if you want to interface to a database server)
-       ppm> install DBD-mysql  (if you want to interface with a mysql server) 
+       ppm> install DBD-mysql  (if you want to interface with a mysql server)
        ppm> exit
 
     The DB_File post-install script doesn't seem to work for most people, so
@@ -160,7 +160,7 @@ Windows Detailed Install Instructions
     Tk package:
 
       download and unzip Tk.zip from http://www.activestate.com/PPMPackages/zips to c:\temp
-      ppm install c:\temp\Tk.ppd 
+      ppm install c:\temp\Tk.ppd
 
     All other required packages should either be in the mh distribution or
     is now installed by default in the standard Activestate distribution,
@@ -197,7 +197,7 @@ Windows Detailed Install Instructions
 
     If you install the above SDK, you can skip the reset of this section.
     You can avoid the installing the whole SDK by downloading just the
-    required files from here: http://misterhouse.net:81/public/speech Avoid
+    required files from here: http://misterhouse.net/public/speech Avoid
     downloading with Netscape, as for some reason it does not load the file
     as a binary file. Verify the file sizes match these:
 
@@ -249,8 +249,12 @@ Windows Detailed Install Instructions
 
 UNIX Detailed Install Instructions
   UNIX Step 1, Download and Install Mister House
-    Download the rpm, tar, or zip file from
-    http://misterhouse.net:81/download .
+    If you are running Debian, Russ Knize created a Debian package,
+    available here:
+    http://www.knizefamily.net/russ/software/misterhouse.html .
+
+    Otherwise, download the rpm, tar, or zip file from
+    http://misterhouse.net/download .
 
     Install the file as detailed in the quick install instructions.
 
@@ -301,7 +305,7 @@ UNIX Detailed Install Instructions
       cpan> install GD
       cpan> install Text::LevenshteinXS
       cpan> install DBI        (if you want to interface to a database server)
-      cpan> install DBD::mysql  (if you want to interface with a mysql server) 
+      cpan> install DBD::mysql  (if you want to interface with a mysql server)
       cpan> exit
 
     The first time you run the CPAN code, it creates a configuration file.
@@ -333,7 +337,7 @@ UNIX Detailed Install Instructions
     http://www.speech.cs.cmu.edu/flite . After compiling, point to where the
     flite binary is with the voice_text_file parm and set voice_text =
     flite. If on linux, you can pick up a copy (3 meg, 7 meg unziped) here:
-    http://misterhouse.net:81/public/flite.gz
+    http://misterhouse.net/public/flite.gz
 
     The Festival Speech engine is available from
     http://www.cstr.ed.ac.uk/projects/festival/download.html . There are
@@ -344,7 +348,7 @@ UNIX Detailed Install Instructions
     Once you have downloaded in and installed or compiled Festival, you can
     test it with the following commands:
 
-      echo 'Hello from Festival' | ./festival --tts 
+      echo 'Hello from Festival' | ./festival --tts
       ./festival --tts ../examples/example.sable
 
       ./festival --server &
@@ -362,7 +366,7 @@ UNIX Detailed Install Instructions
 
      (Parameter.set 'Audio_Method 'Audio_Command)
      (Parameter.set 'Audio_Command "/usr/bin/esdcat -m -r $SR $FILE")
- 
+
     Making sure that /usr/bin/esdcat points to the right spot for the esdcat
     program.
 
@@ -445,11 +449,11 @@ UNIX Detailed Install Instructions
     /usr/lib/ViaVoice/samples. /usr/doc/ViaVoice/rt.readme.txt suggests
     creating a new userid with this java app:
 
-     /usr/bin/vvstartuserguru 
+     /usr/bin/vvstartuserguru
 
     If that doesn't work, you can add a user with this command:
 
-      source /usr/bin/vvsetenv 
+      source /usr/bin/vvsetenv
       /usr/lib/ViaVoice/bin/vvuser -userid winter -setdefault
 
     To enable viavoice from mh, review the viavoice_* parms in the mh.ini
@@ -573,7 +577,7 @@ Installing Hardware
     and CM17 (aka Firecracker) interfaces and all the Weeder kits (analog,
     digital, x10, phone, available from from http://www.weedtech.com ).
     Other supported hardware is listed in
-    http://misterhouse.net:81/mh.html#List_of_supported_hardware_inter .
+    http://misterhouse.net/mh.html#List_of_supported_hardware_inter .
 
     Currently, the X10 guys have a $50 deal for an ActiveHome kit, which
     includes the CM11 interface. Check it out at http://www.x10.com . See
@@ -610,7 +614,7 @@ Coding your own events
     example:
 
        c:--+
-           +--misterhouse--+       
+           +--misterhouse--+
                            +--mh.private.ini  <--- my private mh.ini parms
                            +--code       <--- my code
                            +--data       <--- my data
@@ -623,7 +627,7 @@ Coding your own events
                                      +--lib
                                      +--sounds
                                      +--web
-                           +--mh_123-+   <--- Old mh 123 version 
+                           +--mh_123-+   <--- Old mh 123 version
                                      +--bin
                                      +--code
                                      +--data
@@ -636,7 +640,7 @@ Coding your own events
     looks something like this (using the DOS commands, as I think unix guys
     can make the translation :):
 
-     mkdir c:\misterhouse\code 
+     mkdir c:\misterhouse\code
      mkdir c:\misterhouse\data
      mkdir c:\misterhouse\sounds
 
@@ -646,14 +650,14 @@ Coding your own events
 
      edit  c:\misterhouse\mh.private.ini
 
-       - Delete all the records from your mh.private.ini that you don't change 
+       - Delete all the records from your mh.private.ini that you don't change
          since the default mh\bin\mh.ini will also be read.
 
        - Change these entries (note: Forward slashes are best in perl)
           code_dir         = C:/misterhouse/code
           data_dir         = C:/misterhouse/data
           sound_dir        = C:/misterhouse/sounds
-       
+
      Note that you should use /, not \, on paths, on Windows, just like Unix.
 
      On windows, add this to your autoexec.bat:

@@ -127,6 +127,7 @@ sub im_status {
     $msg = "changed from $status_old to $status" if $status ne $status_old;
     $msg = "is now $status" unless $status_old;
     print_log "IM: pgm=$pgm status $user $msg" if $msg ne "";
+    &net_im_process_queue($pgm,$user) if $status eq "on" and $config_parms{net_queue_im};
 }
 
 sub im_message {

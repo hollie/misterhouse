@@ -97,8 +97,10 @@ sub new {
             $self-> add ($id . $hc . 'K' . $hc . 'K', 'double off');
             $self-> add ($id . $hc . 'J' . $hc . 'J' . $hc . 'J',  'triple on');
             $self-> add ($id . $hc . 'K' . $hc . 'K' . $hc . 'K',  'triple off');
-            $self-> add ($id . $hc . 'L', 'brighten');
-            $self-> add ($id . $hc . 'M', 'dim');
+            $self-> add ($id . $hc . '+34', 'brighten');
+            $self-> add ($id . $hc . '-34', 'dim');
+#            $self-> add ($id . $hc . 'L', 'brighten');
+#            $self-> add ($id . $hc . 'M', 'dim');
             $self-> add ($id . $hc . '+5',  '+5');
             $self-> add ($id . $hc . '+10', '+10');
             $self-> add ($id . $hc . '+15', '+15');
@@ -139,10 +141,10 @@ sub new {
             $self-> add ($id . $hc . '-90', '-90');
             $self-> add ($id . $hc . '-95', '-95');
             $self-> add ($id . $hc . '-100', '-100');
-            
+
             $self-> add ($id . $hc . 'STATUS', 'status');
             $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
-            
+
         }
     }
 
@@ -225,7 +227,7 @@ sub set_x10_level {
 
     return unless defined $state;
 
-    $state = '+34' if $state =~ /bright/i;   # From CM11.pm 
+    $state = '+34' if $state =~ /bright/i;   # From CM11.pm
     $state = '-34' if $state =~ /dim/i;
 
     if ($state =~ /^([\+\-]?)(\d+)$/) {
@@ -238,20 +240,20 @@ sub set_x10_level {
         $level = $1;
     }
     else {
-        $level = 100   if $state eq 'on' and !defined $level; # Only if we used to be off. 
+        $level = 100   if $state eq 'on' and !defined $level; # Only if we used to be off.
                                 # Dimming from off starts at 100%, unless it is presetable
-        $level = undef if $state eq 'off' and 
+        $level = undef if $state eq 'off' and
           !($self->{type} and $self->{type} =~ /(lm14|preset)/i);
     }
 #   print "db setting level for $self $$self{object_name} state=$state level=$level\n";
     $$self{level} = $level;
-}        
+}
 
                                 # This returns current brightness level ... see above
 sub level {
 #   print "db2 l=$_[0]->{level} s=$_[0]->{state}\n";
     return $_[0]->{level};
-} 
+}
 
 sub state_level {
     my $state = $_[0]->{state};
@@ -290,7 +292,7 @@ sub set_by_housecode {
         print "Setting X10 House code $hc appliance $object to $state\n" if $main::Debug{x10};
         $object->set_receive($state, 'housecode');
     }
-        
+
 }
 
 package X10_Appliance;
@@ -349,12 +351,12 @@ package X10_Garage_Door;
 sub new {
     my ($class, $id, $interface) = @_;
     my $self = {};
-    $$self{state} = ''; 
+    $$self{state} = '';
 
     bless $self, $class;
 
     print "\n\nWarning: X10_Garage_Door object should not specify unit code; ignored\n\n" if length($id) > 1;
-    my $hc = substr($id, 0, 1); 
+    my $hc = substr($id, 0, 1);
     $id = "X$hc" . 'Z';
 #   print "\n\nWarning: duplicate ID codes on different X10_Garage_Door objects: id=$id\n\n" if $serial_item_by_id{$id};
     $self->{x10_id} = $id;
@@ -366,7 +368,7 @@ sub new {
 
     $self-> add ($id . '00001d',   '0000CCC');    # Only on initial power up of receiver; no doors enrolled.
 
-    $self-> add ($id . '01101d',   '1001CCC'); 
+    $self-> add ($id . '01101d',   '1001CCC');
     $self-> add ($id . '01111d',   '1001OCC');
     $self-> add ($id . '01121d',   '1001COC');
     $self-> add ($id . '01131d',   '1001OOC');
@@ -391,7 +393,7 @@ sub new {
     $self-> add ($id . '01461d',   '1003COO');
     $self-> add ($id . '01471d',   '1003OOO');
 
-    $self-> add ($id . '02101d',   '0101CCC'); 
+    $self-> add ($id . '02101d',   '0101CCC');
     $self-> add ($id . '02111d',   '0101OCC');
     $self-> add ($id . '02121d',   '0101COC');
     $self-> add ($id . '02131d',   '0101OOC');
@@ -416,7 +418,7 @@ sub new {
     $self-> add ($id . '02461d',   '0103COO');
     $self-> add ($id . '02471d',   '0103OOO');
 
-    $self-> add ($id . '03101d',   '1101CCC'); 
+    $self-> add ($id . '03101d',   '1101CCC');
     $self-> add ($id . '03111d',   '1101OCC');
     $self-> add ($id . '03121d',   '1101COC');
     $self-> add ($id . '03131d',   '1101OOC');
@@ -441,7 +443,7 @@ sub new {
     $self-> add ($id . '03461d',   '1103COO');
     $self-> add ($id . '03471d',   '1103OOO');
 
-    $self-> add ($id . '04101d',   '0011CCC'); 
+    $self-> add ($id . '04101d',   '0011CCC');
     $self-> add ($id . '04111d',   '0011OCC');
     $self-> add ($id . '04121d',   '0011COC');
     $self-> add ($id . '04131d',   '0011OOC');
@@ -466,7 +468,7 @@ sub new {
     $self-> add ($id . '04461d',   '0013COO');
     $self-> add ($id . '04471d',   '0013OOO');
 
-    $self-> add ($id . '05101d',   '1011CCC'); 
+    $self-> add ($id . '05101d',   '1011CCC');
     $self-> add ($id . '05111d',   '1011OCC');
     $self-> add ($id . '05121d',   '1011COC');
     $self-> add ($id . '05131d',   '1011OOC');
@@ -491,7 +493,7 @@ sub new {
     $self-> add ($id . '05461d',   '1013COO');
     $self-> add ($id . '05471d',   '1013OOO');
 
-    $self-> add ($id . '06101d',   '0111CCC'); 
+    $self-> add ($id . '06101d',   '0111CCC');
     $self-> add ($id . '06111d',   '0111OCC');
     $self-> add ($id . '06121d',   '0111COC');
     $self-> add ($id . '06131d',   '0111OOC');
@@ -516,7 +518,7 @@ sub new {
     $self-> add ($id . '06461d',   '0113COO');
     $self-> add ($id . '06471d',   '0113OOO');
 
-    $self-> add ($id . '07101d',   '1111CCC'); 
+    $self-> add ($id . '07101d',   '1111CCC');
     $self-> add ($id . '07111d',   '1111OCC');
     $self-> add ($id . '07121d',   '1111COC');
     $self-> add ($id . '07131d',   '1111OOC');
@@ -559,7 +561,7 @@ package X10_IrrigationController;
 sub new {
     my ($class, $id, $interface) = @_;
     my $self = {};
-    $$self{state} = ''; 
+    $$self{state} = '';
 
     bless $self, $class;
 
@@ -743,11 +745,11 @@ sub zone_delay
 }
 
 
- 
+
 
 package X10_Switchlinc;
 
-@X10_Switchlinc::ISA = ('X10_Item'); 
+@X10_Switchlinc::ISA = ('X10_Item');
 
 =begin comment
 
@@ -787,7 +789,7 @@ sub new {
     for (my $percent=1; $percent<=99; $percent++)
     {
       my $index = int(($percent - 1) * 30 / 99) + 1;
-      my $state2  = $id . ( ($index < 16 ) ? 
+      my $state2  = $id . ( ($index < 16 ) ?
                   $preset_dim_levels[$index] . 'PRESET_DIM1' :
                   $preset_dim_levels[$index - 16] . 'PRESET_DIM2');
       $self-> add( $state2, $percent . "%" );
@@ -916,7 +918,7 @@ sub new {
 ## it, and your house will notice when your sensor hasn't been tripped in 24 hours,
 ## allowing you to check on the batteries.
 ##
-## Sensor Item can be created with a type to specify the sensors properties. 
+## Sensor Item can be created with a type to specify the sensors properties.
 ## Ex:
 ##	X10MS,      CA,    work_room_motion,       Sensors|Motion_Sensors,      Motion
 ##	X10MS,      CB,    work_room_brightness,   Sensors|Brighness_Sensors,   Brightness
@@ -938,11 +940,11 @@ sub new {
 ##	print_log "state of work_room_motion = ", 	state $work_room_motion;
 ## 	print_log "state of work_room_brightness = ",   state $work_room_brightness;
 
- 
+
 
 
 ##
-## Todo: 
+## Todo:
 ##      + make the countdown time configurable per sensor
 ##      + make the action configurable per sensor
 
@@ -961,7 +963,7 @@ sub init {
 sub new {
     my ($class, $id, $name, $type) = @_;
     my $self = &Serial_Item::new('Serial_Item');
-    
+
     $$self{state} = '';
     bless $self, $class;
 
@@ -972,7 +974,7 @@ sub new {
     restore_data $self ('dark'); # Save dark flag between restarts
 
     $self->set_interface();
-    
+
     return $self;
 }
 
@@ -987,20 +989,20 @@ sub add {
         $id = $1 . substr 'ABCDEFG', $2, 1;
     }
 
-                                # Allow for A1 and XA1AJ 
+                                # Allow for A1 and XA1AJ
     if (length $id < 3) {
         my $hc = substr $id, 0, 1;
         $id = 'X' . $id . $hc . 'J';
     }
 
-    &::print_log("Adding X10_Sensor timer for $id, name=$name type=$type")   
+    &::print_log("Adding X10_Sensor timer for $id, name=$name type=$type")
       if $main::Debug{x10_sensor};
 
                                 #24 hour countdown Timer
     $self->{battery_timer} = new Timer;
-    $self->{battery_timer}-> set(24*60*60, 
+    $self->{battery_timer}-> set(24*60*60,
 	      ( ($main::config_parms{MS13_Battery_action}) ? $main::config_parms{MS13_Battery_action} : "print_log")
-				 .  " \"rooms=all Battery timer for $name expired\"", 7);  
+				 .  " \"rooms=all Battery timer for $name expired\"", 7);
 
     my ($hc, $id1) = $id =~ /X(\S)(\S+)(\S)\S/i;
     my $id2 = $id1;
@@ -1046,25 +1048,25 @@ sub sensorhook {
     return unless $ref->{battery_timer};
 
     ($ref->{dark} = 0) if $state eq 'light';
-    ($ref->{dark} = 1) if $state eq 'dark'; 
+    ($ref->{dark} = 1) if $state eq 'dark';
 
-    &::print_log("X10_Sensor::sensorhook: resetting $ref->{name}") 
+    &::print_log("X10_Sensor::sensorhook: resetting $ref->{name}")
       if $main::Debug{x10_sensor};
 
-# If I received something from this battery-powered transmitter, the battery 
+# If I received something from this battery-powered transmitter, the battery
 # must still be good, so reset the countdown timer $main::config_parms{MS13_Battery_Timer} hours
 # default is 12 more hours if not specified:
-    $ref->{battery_timer}->set(($main::config_parms{MS13_Battery_timer}) ? $main::config_parms{MS13_Battery_Timer} : 12 *60*60, 
-                              (($main::config_parms{MS13_Battery_action}) ? 
+    $ref->{battery_timer}->set(($main::config_parms{MS13_Battery_timer}) ? $main::config_parms{MS13_Battery_Timer} : 12 *60*60,
+                              (($main::config_parms{MS13_Battery_action}) ?
                                 $main::config_parms{MS13_Battery_action} : "print_log")
-                               .  " \"rooms=all Battery timer for $name expired\"", 7); 
-}  
+                               .  " \"rooms=all Battery timer for $name expired\"", 7);
+}
 
 
 sub light {
     return !$_[0]->{dark};
 }
-sub dark { 
+sub dark {
     return  $_[0]->{dark};
 }
 
@@ -1072,6 +1074,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.46  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.45  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #

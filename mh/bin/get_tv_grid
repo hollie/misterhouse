@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2004-09-25 13:56:51 winter>
+#  Last change Time-stamp: <2004-10-11 19:03:04 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -146,9 +146,10 @@ Creates a DBM for use by get_tv_info.
                     than todays date
    -debug        => turn on debug info
 
-   -mail_to      xyz => Will email the charts to xyz
-   -mail_server  xyz => xyz is the SMTP host.  Default is localhost
-   -mail_baseref xyz => xyz is the http address of your mh server.  Needed if
+   -mail_to       xyz => Will email the charts to xyz
+   -mail_server   xyz => xyz is the SMTP host.  Default is localhost
+   -mail_password xyz => xyz is the SMTP password, if needed.
+   -mail_baseref  xyz => xyz is the http address of your mh server.  Needed if
                         you want to control mh from the emailed web page
   Example:
    $Pgm_Name -zip 55901 -get_provider

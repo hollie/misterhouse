@@ -1,4 +1,6 @@
 use strict;
+use FileHandle;
+use IPC::Open2;
 
 package Process_Item;
 
@@ -124,7 +126,7 @@ sub start_next {
     }
 
     if ($main::OS_win and $type ne 'eval') {
-                                # A blank cflag will result in stdout to mh window. 
+                                # A blank cflag will result in stdout to mh window.
                                 # Also, this runs beter, without as much problem with 'out ov env space' problems.
                                 # Also, with DETACH, console window is generated and it does not close, so 'done' does not work.
                                 #  ... unless we run with command /c pgm
@@ -142,7 +144,7 @@ sub start_next {
 
         &Win32::Process::Create($pid, $cmd_path, $cmd, 0, $cflag , '.') or
             warn "Process_Item Warning, start Process error: cmd_path=$cmd_path\n -  cmd=$cmd   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
-        
+
         open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
         open( STDERR, ">&STDERR_REAL" ) if $$self{errlog};
 
@@ -150,12 +152,16 @@ sub start_next {
 #       $pid->Wait(10000) if $run_mode eq 'inline'; # Wait for process
     }
     else {
-        $pid = fork;
+#       $pid = fork;
+        my ($stdout,$stdin);
+        $pid = &main::open2($stdout, $stdin, "$cmd_path $cmd_args") or die "Error in start Process exec for cmd=$cmd\n";
         if ($pid) {
             print "Process start: parent pid=$pid type=$type cmd=$cmd\n" if $main::Debug{process};
             open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
             open( STDERR, ">&STDERR_REAL" ) if $$self{errlog};
             $$self{pid} = $pid;
+            $$self{stdin} = $stdin;
+            $$self{stdout} = $stdout;
         }
         elsif (defined $pid) {
             print "Process start: child type=$type cmd=$cmd\n" if $main::Debug{process};
@@ -164,7 +170,7 @@ sub start_next {
                 eval $cmd;
                 print "Process Eval results: $@\n";
                                 # Exit with a do nothing exec, rather than exit.
-                                # If we call exit, objects DESTROY methods get called and might 
+                                # If we call exit, objects DESTROY methods get called and might
                                 # mess up the parent process (e.g. CM11 Serial_Port objects
                                 # have a DESTROY method that will close the port
                                 # which will then revert to its pre-mh values).
@@ -189,12 +195,12 @@ sub start_next {
     $$self{runtime} = 0;
     undef $$self{timed_out};
     undef $$self{done};
-}    
+}
 
 sub done {
     my ($self) = @_;
     return ($$self{pid}) ? 0 : 1;
-}    
+}
 
 
 sub pid {
@@ -205,17 +211,17 @@ sub pid {
 sub timed_out {
     my ($self) = @_;
     return ($$self{timed_out}) ? 1 : 0;
-}    
+}
 
 sub runtime {
     my ($self) = @_;
     return $$self{runtime};
-}    
+}
 
 sub done_now {
     $main::Respond_Target = $_[0]->{target};
     return $_[0]->{done_now};
-}    
+}
 
                                 # Check for processes that just finished
 sub harvest {
@@ -238,7 +244,7 @@ sub harvest {
             $process->stop();
         }
         $$process{runtime} = time - $$process{started};
-        if (($main::OS_win and $pid->Wait(0)) or 
+        if (($main::OS_win and $pid->Wait(0)) or
             (!$main::OS_win and waitpid($pid, 1)) or
             ($$process{timed_out})) {
                                 # Mark as done or start the next cmd?
@@ -266,7 +272,7 @@ sub stop {
     my @process_list  = @_;
                                 # If none specified, kill em all!
     @process_list = @active_processes unless @process_list;
-    
+
     for my $process (@process_list) {
         next if ref $process eq 'SCALAR'; # In case a non ref was passed in
         my $pid = $$process{pid};
@@ -293,11 +299,35 @@ sub stop {
                                 # Not implemented yet
 sub results {
     my ($self) = @_;
-}    
+}
 
+# Read from Process STDOUT
+sub said {
+    my ($self) = @_;
+    my $stdout = $$self{stdout};
+    my $data;
+    if (defined $stdout and !eof $stdout) {
+	$data = <$stdout>;
+#       print "Process_Item::said $data\n" if $main::Debug{process};
+    }
+    return $data;
+}
+
+# Write to Process STDIN
+sub put {
+    my ($self, $data) = @_;
+    my $stdin = $$self{stdin};
+    if (defined $stdin) {
+      print $stdin $data;
+#      print "Process_Item::put $data\n" if $main::Debug{process};
+    }
+}
 
 #
 # $Log$
+# Revision 1.28  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.27  2004/04/25 18:19:57  winter
 # *** empty log message ***
 #

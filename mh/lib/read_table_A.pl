@@ -56,7 +56,7 @@ sub read_table_A {
     }
     elsif($type eq "X10SL") {
         ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); 
+        $other = join ', ', (map {"'$_'"} @other);
         $object = "X10_Switchlinc('$address', $other)";
     }
     elsif($type eq "X10G") {
@@ -145,8 +145,8 @@ sub read_table_A {
         $object = "Musica('$name')";
     }
     elsif($type eq "MUSICA_ZONE") {
-        ($name, $object, $other, $grouplist, @other) = @item_info;
-        $object = "Musica::Zone(\$$object, $other)";
+        ($name, $object, $address, $other, $grouplist, @other) = @item_info;
+        $object = "Musica::Zone(\$$object, $address, $other)";
     }
     elsif($type eq "MUSICA_SOURCE") {
         ($name, $object, $other, $grouplist, @other) = @item_info;
@@ -375,7 +375,7 @@ sub read_table_A {
         print "\nUnrecognized .mht entry: $record\n";
         return;
     }
-    
+
     if ($object) {
         my $code2 = sprintf "\n\$%-35s =  new %s;\n", $name, $object;
         $code2 =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
@@ -407,12 +407,15 @@ sub read_table_A {
     }
 
     return $code;
-}   
+}
 
 1;
 
 #
 # $Log$
+# Revision 1.25  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.24  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #
@@ -480,4 +483,3 @@ sub read_table_A {
 # - 2.29 release
 #
 #
-

@@ -69,6 +69,7 @@ sub compress_track {
    $track =~ s/^0+//;
    $cmd = &do_substitution($cmd, 'track', $track);
    $cmd = &do_substitution($cmd, 'genre', $data{'genre'});
+   $cmd = &do_substitution($cmd, 'genrestr', $data{'genrestr'});
    $cmd = &do_substitution($cmd, 'input', $input);
    $cmd = &do_substitution($cmd, 'output', "$output.tmp");
    print "Compressing track $track to $output (length: $length seconds)\n";

@@ -5,7 +5,7 @@
 
 iniedit.pl - a CGIish script for editing Misterhouse configuration parameters
 
-10/12/2001  Created by David Norwood and Bruce Winter 
+10/12/2001  Created by David Norwood and Bruce Winter
 Modified by Steve Switzer on Dec 4, 2002 (edit_list sub added to support links from select_code*.pl. Added alternating bgcolors for table rows, removed table borders.)
 
 =cut
@@ -122,11 +122,11 @@ elsif (!-e "$Pgm_Path/mh.private.ini" and !-e $ENV{mh_parms} ) {
 else {
     return edit();
 }
-        
+
 sub commit {
                                 # Backup old parms file
     &file_backup($private_parms);
-#   rename $private_parms, "$private_parms.${Year_Month_Now}_${Hour}_${Minute}_${Second}"  or 
+#   rename $private_parms, "$private_parms.${Year_Month_Now}_${Hour}_${Minute}_${Second}"  or
 #     print_log "Error in backup up parms file $private_parms: $!";
 
     open (PRIVATE, ">$private_parms") or return $head . "\nError, could not open $private_parms for writing.<p>\n" . $tail;
@@ -179,10 +179,8 @@ sub edit {
 
     $data .= '
         </select>';
-    $data .= '
-        <input type=submit name="Switch" value="Switch">&nbsp;&nbsp;
-        <input type=submit name="Commit" value="Commit">
-        <input type=reset name="Reset Values" value="Reset Values">' if $Authorized eq 'admin';
+    $data .= '<input type=submit name="Switch" value="Switch">&nbsp;&nbsp;';
+    $data .= '<input type=submit name="Commit" value="Commit"><input type=submit name="Reset Values" value="Reset Values">' if $Authorized eq 'Admin';
     $data .= '
         </td></tr>
     ';
@@ -247,7 +245,7 @@ sub edit_list {
         <TABLE WIDTH="98%" CELLSPACING=0 CELLPADDING=0 BORDER=0>
         <tr bgcolor="#AAAAAA"><td colspan="2"><b>INI Parms for: <em>';
     $data .= $args{file};
-    $data .= '</b></em> 
+    $data .= '</b></em>
         <input type=submit name="Commit" value="Commit">
         <input type=reset name="Reset Values" value="Reset Values"></td></tr>
     ';
@@ -293,7 +291,7 @@ Cache-control: no-cache
 <head>
 <title>INIEdit Help: $parm</title>
 <SCRIPT>
-function ontop() 
+function ontop()
 {self.focus(); //setTimeout('turnback()',200);
 }
 ontop();
@@ -409,7 +407,7 @@ sub localize {
     $file =~ s/\.ini//i;
     # $file = ucfirst($file);
     # print "File: $Pgm_Root/data/ini/$file\n";
-     
+
     #  Look for notes in line beginning with @
     my @lines = file_read("$Pgm_Root/data/ini/mh.$file.ini");
     foreach my $line (@lines) {
@@ -425,15 +423,15 @@ sub localize {
     }
     my $data = qq|
 
-You currently have no file of ini settings. 
-If one of the options in the box below is appropriate for you, 
-you can use it to start a mh.private.ini file containing settings suitable 
-for your own location - you can amend this using the pages which follow. 
-Otherwise select 'None of the above'.<BR> 
+You currently have no file of ini settings.
+If one of the options in the box below is appropriate for you,
+you can use it to start a mh.private.ini file containing settings suitable
+for your own location - you can amend this using the pages which follow.
+Otherwise select 'None of the above'.<BR>
 
 <form method=post>
 <select name="Location">
-$local_opts     
+$local_opts
      <option value='example'>None of the above
 </select>
 <input type=submit name="Select" value="Select">&nbsp;&nbsp;
@@ -466,18 +464,18 @@ sub advice {
            </form>
         </td>
         <td>
-            A private .ini file has been created for you in /mh/bin, called mh.private.ini. 
-            You will need to modify this from time to time to customize your own 
+            A private .ini file has been created for you in /mh/bin, called mh.private.ini.
+            You will need to modify this from time to time to customize your own
             configuration settings. <BR>
-            It is recommended that you should move your mh.private.ini file to 
-            a folder outside the mh distribution folders, and point to it with 
-            an environment variable, mh_parms. This will make it easier 
+            It is recommended that you should move your mh.private.ini file to
+            a folder outside the mh distribution folders, and point to it with
+            an environment variable, mh_parms. This will make it easier
             when you come to install Misterhouse upgrades in the future.<BR>
         </td>
     </tr>
-</table>    
+</table>
 Further guidance on setting up your own customized version of Misterhouse
-is given in 'Coding your own events', in 
+is given in 'Coding your own events', in
 <A HREF='../docs/install.html#coding_your_own_events' TARGET='_blank'>
 mh/docs/install.html</A>.<BR>
 ];

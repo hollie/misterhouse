@@ -11,7 +11,7 @@ Description:
 
    Basically, this module changes how you look at your whole-house audio
    system.  Currently, you probably think of your system as having 2, 4, or 6
-   sources.  Source 1 is your FM tuner, source 2 is your CD player, etc.  
+   sources.  Source 1 is your FM tuner, source 2 is your CD player, etc.
 
    With this module you have to have another way of selecting sources,
    since you will have more than your current number.  In my case, I have arrow
@@ -21,25 +21,25 @@ Description:
    stations.
 
    Your user interface may be different, but the important thing is that you
-   provide to the user more sources than the system physically supports.  
+   provide to the user more sources than the system physically supports.
    The user just requests a source an this module does the dirty work of
    connecting the requested source to a real source input.
 
 Hardware Requirements:
-   - You need some sort of whole-house audio system, with any number of 
+   - You need some sort of whole-house audio system, with any number of
    source inputs and any number of zone outputs.  You must have limited
-   control over the system from Misterhouse as described next and I think 
+   control over the system from Misterhouse as described next and I think
    a RS232 interface is your only option at this point.
 
    - You need to be able to control the whole-house audio system to the
-   extent that you must be able to tell any specific zone to listen to 
-   any specific source.  In other words, you need to be able to tell 
-   zone 2 to listen to source 3.  
+   extent that you must be able to tell any specific zone to listen to
+   any specific source.  In other words, you need to be able to tell
+   zone 2 to listen to source 3.
 
    - You need to be able to watch for zones being turned on or off or being
-   manually tuned to a specific source.  These activities need to be 
+   manually tuned to a specific source.  These activities need to be
    reported to the virtual audio router.
-   
+
    - You need to be able to provide some way for the user to select or scroll
    through virtual sources, such as a keypad whose activity you can monitor,
    or an IR or even X10 remote, or voice interface, etc.
@@ -58,7 +58,7 @@ License:
 Definitions:
    Virtual Audio Router: you need one of these for each whole-house audio
       system.  It decides when and to which inputs to connect virtual sources.
-      Virtual sources are sometimes referred to by their name which is 
+      Virtual sources are sometimes referred to by their name which is
       defined when the object is created.
    Virtual Source: An audio source that can be connected to one or more
       real source inputs to your whole-house audio system.  It may always
@@ -82,7 +82,7 @@ Usage:
    .MHT Entries
 
       To begin with, you can define these objects in your .mht files:
-    
+
          VIRTUAL_AUDIO_ROUTER, audio_router, 6, 4
          VIRTUAL_AUDIO_SOURCE, v_voice,        audio_router
          VIRTUAL_AUDIO_SOURCE, v_classical,    audio_router
@@ -96,19 +96,19 @@ Usage:
          VIRTUAL_AUDIO_SOURCE, v_dvd,          audio_router, 3|4
          VIRTUAL_AUDIO_SOURCE, v_tuner,        audio_router, 3|4
          VIRTUAL_AUDIO_SOURCE, v_internet,     audio_router, 3|4
-    
+
       So, I have defined one audio router ($audio_router) to be used with a
       whole-house audio system with 6 zones and 4 sources.  Even if you did not
       read my web page above, you'll need to know that I have an IR-controlled
       switch box in front of the source 3 and 4 inputs.
-    
+
       Next, I have defined 12 virtual sources.  The first I use in Misterhouse for
       voice only and to play MP3s through the existing MP3 jukebox functionality.
       The next six virtual sources are all MP3 sources with five different
       playlists.  The next four sources are devices connected through the
       zone2/zone3 outputs of my home theater receiver, and the last source goes
-      directly into the switch boxes. 
-    
+      directly into the switch boxes.
+
       The last five sources have an extra parameter specifying that they can
       only be attached to the real source inputs 3 and 4 of my whole-house
       audio system, since those are the inputs with the switch boxes in front
@@ -121,7 +121,7 @@ Usage:
       sources and are not required to have any specific ones.  The
       set_data() function can be used to set arbitrary name/value pairs
       for the object and is only to be used by your user code.  This
-      data is ignored by the Virtual Audio router.  I have chosen a 
+      data is ignored by the Virtual Audio router.  I have chosen a
       select few of my sources' initialization code to include below.
       The only thing you are required to do is specify a valid
       function using set_action_function() as shown below.
@@ -154,7 +154,7 @@ Usage:
          $v_pvr->set_data('label', 'SAT2');
          $v_pvr->set_data('switch_input', 'SOURCE2');
          $v_pvr->set_data('receiver_input', 'CBL-SAT');
-       
+
          # Setup all MP3 playlists
          $pl_kirk_mp3s->randomize();
          $v_kirk_mp3s->set_data('playlist', $pl_kirk_mp3s);
@@ -167,8 +167,8 @@ Usage:
       }
 
    Action Function
-      All of your virtual sources must have a action function for it 
-      specified with set_action_function().  I use one function for 
+      All of your virtual sources must have a action function for it
+      specified with set_action_function().  I use one function for
       all of my virtual sources, but you could use different functions
       for different sources.  This function must accept three arguments:
          1) The virtual source object being acted upon
@@ -189,9 +189,9 @@ Usage:
       pausing playback or turning on/off sources.
 
       Here is my attach function which is of course very specific to my
-      particular setup.  Please note that I have cut out a some stuff such as 
-      code that automatically turns off my zone2/zone3 outputs when not in 
-      use.  You can get the full function from the musica.pl file available 
+      particular setup.  Please note that I have cut out a some stuff such as
+      code that automatically turns off my zone2/zone3 outputs when not in
+      use.  You can get the full function from the musica.pl file available
       from my web site above.
 
          sub handle_virtual_source {
@@ -254,15 +254,15 @@ Usage:
               }
               &check_zones_off($obj, $source);
            }
-        } 
+        }
 
    User Interface
       Well, the above is about it when it comes to creating and using virtual
-      audio sources.  But you'll also need to provide a way for the user of 
+      audio sources.  But you'll also need to provide a way for the user of
       your audio system to select the virtual source they want to listen to.
       Since this module is not specific to any hardware, your interface can
-      be whatever you choose.  In my case, I use the Netstreams Musica 
-      keypads and my Home Theater Master MX-500 remote controls.  
+      be whatever you choose.  In my case, I use the Netstreams Musica
+      keypads and my Home Theater Master MX-500 remote controls.
 
       The virtual audio router provides a set of functions to allow you to
       select a virtual source for a zone.
@@ -307,7 +307,7 @@ Usage:
       You must watch for zones being turned on or off or being manually
       changed to other sources and notify the virtual audio router of
       these activities.  If the zone is turned on, you need to tell
-      the virtual audio router which source it is listening to.  If a 
+      the virtual audio router which source it is listening to.  If a
       zone is turned off you tell the virtual audio router that it is
       listening to source 0.  On a source change, just report the new
       physical source.
@@ -317,8 +317,8 @@ Usage:
          next unless $_;
          if ($state = state_now $_) {
             if (($state eq 'zone_on') or ($state eq 'zone_off') or ($state eq 'source_changed')) {
-               # With the Musica system, get_source() will always return the current 
-               # source or 0 if the zone is off, so I just call this funciton in all cases 
+               # With the Musica system, get_source() will always return the current
+               # source or 0 if the zone is off, so I just call this funciton in all cases
                my $source = $_->get_source();
                if ($source eq 'E') {
                   # 'E' is the local zone-specific source so listening to this source
@@ -340,15 +340,22 @@ Usage:
          if the zone is off.
 
       get_virtual_source_name_for_zone(zone_num): Returns the name of the
-         virtual source that zone 'zone_num' is currently listening to, or 
+         virtual source that zone 'zone_num' is currently listening to, or
          undefined if the zone is off.
 
       get_virtual_source_obj_for_real_source(source_num): Returns the virtual
-         source object that is currently connected to the real source input 
+         source object that is currently connected to the real source input
          'source_num'.
 
       get_zones_listening_to_vsource(vsource_name): Returns an array of zone
          numbers for each zone currently listening to 'vsource_name'.
+      get_zones_listening_to_vsource(vsource): Returns an array of zone
+         numbers for each zone currently listening to object 'vsource'.
+
+      get_zones_listening_to_source(source): Returns an array of zone
+         numbers for each zone currently listening to source number 'source'.
+
+
 
       get_real_source_number_for_vsource(vsource_name): Returns the real
          source input number that 'vsource_name' is attached to.
@@ -363,7 +370,7 @@ TODO:
      but the source currently connected to it could be moved to a different
      real source input.
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - Misterhouse
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -543,21 +550,23 @@ sub remove_virtual_sources {
 }
 
 sub _is_source_being_used {
-   my ($self, $source) = @_;
+   my ($self, $source, $ignore_zone) = @_;
    my $used = 0;
    for (my $i = 1; $i <= $$self{'num_zones'}; $i++) {
-      if ($$self{'zones'}->[$i] == $source) {
-         $used++;
-      }
+       unless ($ignore_zone and ($i == $ignore_zone)) {
+           if ($$self{'zones'}->[$i] == $source) {
+               $used++;
+           }
+       }
    }
-   &::print_log("VirtualAudio::Router::_is_source_being_used($source): returning $used");
+   &::print_log("VirtualAudio::Router::_is_source_being_used($source, $ignore_zone): returning $used");
    return $used;
 }
 
 sub _zone_started_using_source {
 	my ($self, $zone, $source) = @_;
    &::print_log("VirtualAudio::Router::_zone_started_using_source($zone, $source)");
-   unless ($self->_is_source_being_used($source)) {
+   unless ($self->_is_source_being_used($source, $zone)) {
       # Unless it was already being used, notify that it is in use
       if ($$self{'sources'}->[$source]) {
          &::print_log("VirtualAudio::Router::_zone_started_using_source($zone, $source): Calling _in_use");
@@ -607,7 +616,7 @@ sub _find_unattached_preferred_source {
                next REATTACH;
             }
          }
-         # The source is not in use, try to attach 
+         # The source is not in use, try to attach
          return $vsource;
       }
    }
@@ -636,7 +645,7 @@ sub _rate_source_potential {
    my ($self, $source) = @_;
    my $rating = 0;
 
-   # First, figure out how many virtual sources can connect to 
+   # First, figure out how many virtual sources can connect to
    # this source... the fewer sources that can connect, the
    # lower the score.
    foreach (@{$$self{'virtual_source_order'}}) {
@@ -825,6 +834,18 @@ sub get_real_source_number_for_vsource {
    return 0;
 }
 
+sub get_zones_listening_to_source {
+	my ($self, $source) = @_;
+    my @ret;
+    for (my $i = 1; $i <= $$self{'num_zones'}; $i++) {
+        if ($$self{'zones'}->[$i] == $source) {
+            push @ret, $i;
+        }
+    }
+    return (@ret);
+}
+
+
 sub get_zones_listening_to_vsource {
 	my ($self, $vsource) = @_;
    my $source = $self->get_real_source_number_for_vsource($vsource);
@@ -872,4 +893,3 @@ sub get_virtual_source_obj_for_zone {
 }
 
 1;
-

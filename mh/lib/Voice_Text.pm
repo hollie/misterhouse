@@ -435,7 +435,7 @@ sub speak_text {
         }
     }
     elsif ($vtxt_card) {
-        print "Voice_Text.pm ms_tts: comp=$parms{compression} async=$parms{async} to_file=$parms{to_file} VTxt=$vtxt_card text=$parms{'text'}\n"
+        print "Voice_Text.pm ms_tts: v=$VTxt_version comp=$parms{compression} async=$parms{async} to_file=$parms{to_file} VTxt=$vtxt_card text=$parms{'text'}\n"
           if $main::Debug{voice};
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
@@ -454,6 +454,7 @@ sub speak_text {
 # SAFTGSM610_11kHzMono        = 65 (3k .. not useable on CE3 CompaQ IA1)
 # SAFTGSM610_22kHzMono        = 66 (5k .. not choppy like above 11kHz mode)
 # SAFTGSM610_44kHzMono        = 67 (9k)
+
                 $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
                 $VTxt_stream2->{Format}->{Type} = 4;
                 $VTxt_stream2->{Format}->{Type} = $parms{compression} if $parms{compression} =~ /^\d+$/;
@@ -461,6 +462,7 @@ sub speak_text {
                 $VTxt_stream2->{Format}->{Type} = 66 if $parms{compression} eq 'high';
                 $VTxt_stream2->Open($parms{to_file}, 3, 0);
                 $VTxt_stream1->{AudioOutputStream} = $VTxt_stream2;
+
                 if ($parms{async}) {
                     $VTxt_stream1->Speak($parms{text}, 1 + 8); # Flags: 1=async 8=XML
                 }
@@ -524,15 +526,28 @@ sub speak_text {
 sub is_speaking {
     my ($card) = @_;
     $card = 0 unless $card;
+    $card = $VTxt_cards{$card} if $VTxt_cards{$card};  # Allow for text card name
+
+                                # Allow for a check of all cards
+    if (lc $card eq 'any') {
+        my $speaking_flag = 0;
+        for my $cardn (1 .. $#VTxt) {
+            next unless $VTxt[$cardn];
+            $speaking_flag++ if &is_speaking($cardn);
+        }
+        return $speaking_flag;
+    }
+
+
 #   print "db c=$card vt=$VTxt[$card] vt=@VTxt\n";
     if (@VTxt and $VTxt[$card]) {
         if ($VTxt_version eq 'msv5') {
-                                # I think these are the same??  I did not benchmark for speed.
-#           return $VTxt[$card]->WaitUntilDone(0);
-            return 2 == ($VTxt[$card]->Status->{RunningState});
+                                # Either of these methods work. Benchmark show both use little cpu time.
+#           return      $VTxt[$card]->WaitUntilDone(0);
+            return 2 == $VTxt[$card]->Status->{RunningState};
         }
         else {
-            return $VTxt[$card]->{IsSpeaking};
+            return $VTxt[$card]->{IsSpeaking};  # I think this is slow
         }
     }
     elsif ($VTxt_pid) {
@@ -702,7 +717,8 @@ sub set_volume {
 
                                # If text is given, set for just this text with XML.  Otherwise change the default
         if ($text) {
-            return "<volume level='$volume'/> " . $text;
+#           return "<volume level='$volume'/> " . $text;
+            return "<volume level='$volume'> $text </volume>";
         }
         else {
             $vtxt_card->{Volume} = $volume;
@@ -821,6 +837,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.54  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.53  2004/09/25 20:01:19  winter
 # *** empty log message ***
 #

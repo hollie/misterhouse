@@ -6,7 +6,7 @@ Use this module to send text to the Alpha LED signs using a serial port.  Signs 
   http://www.ams-i.com/
   http://alpha-american.com/
 
-I picked up the Alpha 213C (a.k.a. BetaBrite, 2" x 30", 14 character) from the local Sam's Club for $150.  
+I picked up the Alpha 213C (a.k.a. BetaBrite, 2" x 30", 14 character) from the local Sam's Club for $150.
 It displays in multiple colors, in either scrolling or fixed text.
 SamsClub.com only lists a bigger version, but info on BetaBrite I have can be seen here:
 
@@ -14,7 +14,7 @@ SamsClub.com only lists a bigger version, but info on BetaBrite I have can be se
 
 The Alpha protocol is documented here:
   http://www.ams-i.com/Pages/97088061.htm
-  http://dens-site.net/betabrite/betabrite.htm 
+  http://dens-site.net/betabrite/betabrite.htm
 
 Use these mh.ini parameters to enable this code:
 
@@ -42,29 +42,33 @@ sub startup {
 
 sub main::display_alpha {
     my (%parms) = @_;
-    
-    print "Alpha display: $parms{text}\n" if $::Debug{display_alpha};
+
+    print "Alpha display: @_\n" if $::Debug{display_alpha};
+
+    my %mode  = ( rotate   => "\x61", hold     => "\x62", flash    => "\x63", auto      => "\x64",
+                  rollup   => "\x65", rolldown => "\x66", rollleft => "\x67", rollright => "\x68",
+                  wipeup   => "\x69", wipedown => "\x6A", wipeleft => "\x6B", wiperight => "\x6C",
+                  rollup2  => "\x6D", rainbow  => "\x6E", auto2    => "\x6F",
+                  wipein2  => "\x70", wipeout2 => "\x71", wipein   => "\x72", wipeout   => "\x73",
+                  rotates  => "\x74",
+                );
+    my %color = (      red => "\x31",    green => "\x32",  amber => "\x33", darkred => "\x34",
+                 darkgreen => "\x35",    brown => "\x36", orange => "\x37",  yellow => "\x38",
+                  rainbow1 => "\x39", rainbow2 => "\x41",    mix => "\x42",    auto => "\x43",   off => "\x30",);
 
 # [COMMAND CODE][FILE LABEL] <esc> [Display Position][Mode Code] Special Specifier [ASCII MESSAGE]
 #  Command Code AA ->  write (A) to label A
 
-    $parms{color}   = 'green' unless $parms{color};
-    $parms{wipeout} = 'hold'  unless $parms{mode};
+    $parms{color}   = lc $parms{color} if $parms{color};
+    $parms{color}   = 'green' unless $parms{color} or !$color{$parms{color}};
+
+    $parms{mode}    = lc $parms{mode} if $parms{mode};
+    $parms{mode}    = 'hold'  unless $parms{mode}  or !$mode{$parms{mode}};
 
     my $init  = "\0\0\0\0\0\001" . "Z00" . "\002";  # Nul, StartOfHeader=01, Type=Z, Address=00, StartOfText=02
     my $cmd   = "AA";          # Write to Lable A
     my $pos   = "\x1B\x20";    # Middle is best. Top=\x22, Bottom=\x26, Fill=\x30
-    my %mode  = ( rotate   => "\x61", hold     => "\x62", flash    => "\x63", auto      => "\x64", 
-                  rollup   => "\x65", rolldown => "\x66", rollleft => "\x67", rollright => "\x68",
-                  wipeup   => "\x69", wipedown => "\x6A", wipeleft => "\x6B", wiperight => "\x6C",
-                  rollup2  => "\x6D", rainbow  => "\x6E", auto2    => "\x6F",
-                  wipein2  => "\x70", wipeou2  => "\x71", wipein   => "\x72", wipeout   => "\x73",
-                  rotates  => "\x74", 
-                );
-    my %color = (      red => "\x31",    green => "\x32",  amber => "\x33", darkred => "\x34", 
-                 darkgreen => "\x35",    brown => "\x36", orange => "\x37",  yellow => "\x38",
-                  rainbow1 => "\x39", rainbow2 => "\x41",    mix => "\x42",    auto => "\x43",   off => "\x30",);
-    my $data = $init . $cmd . $pos . $mode{lc $parms{mode}} . "\x1c" . $color{lc $parms{color}} . $parms{text} . "\004";
+    my $data = $init . $cmd . $pos . $mode{$parms{mode}} . "\x1c" . $color{$parms{color}} . $parms{text} . "\004";
 
     print "Display_Alpha: parms=@_ data=$data\n" if $::Debug{display_alpha} == 2;
 

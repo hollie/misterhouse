@@ -446,14 +446,15 @@ sub transmit_pronto {
 		my @raw;
 		push @raw, $frequency;
 		push @raw, $both ? 1 : $repeat;
-		push @raw, ($bytes[$length - 1] >> 8) * $units / 51.2, ($bytes[$length - 1] & 0xff) * $units / 51.2;
-		$length--;
+		push @raw, 0, 0;
+#		push @raw, ($bytes[$length - 1] >> 8) * $units / 51.2, ($bytes[$length - 1] & 0xff) * $units / 51.2;
+#		$length--;
 		while ($length > 0) {
 			my $word = shift @bytes;
 			if ($word > 0x7f) {
 				push @raw, ($word >> 8) | 0x80;
 			}
-			push @raw, $word;
+   			push @raw, $word & 0xff;
 			$length--;
 		}
 		splice @raw, 4, 0, $#raw - 3;

@@ -338,8 +338,9 @@ sub main::net_ftp {
     return "was successful";
 }
 
-my ($aim_connection, $icq_connection, $jabber_connection, $msn_connection, %msn_connections, %msn_queue);
+use vars qw($aim_connection $icq_connection $jabber_connection $msn_connection %msn_connections %msn_queue %im_queue);
 
+eval 'use Net::Jabber qw (Client)';
 
 sub main::net_jabber_signon {
     return if $jabber_connection;  # Already signed on
@@ -357,7 +358,6 @@ sub main::net_jabber_signon {
 
     print "Logging onto $server $port with name=$name resource=$resource\n";
 
-    eval 'use Net::Jabber qw (Client)';
     print "Error in Net::Jabber: $@\n" if $@;
     $jabber_connection = new Net::Jabber::Client;
 #   $jabber_connection = Net::Jabber::Client->new(debuglevel => 2, debugtime  => 1 , debugfile  =>  "/tmp/jabber.log");
@@ -807,21 +807,61 @@ sub icq::process {
     }
 }
 
+sub main::net_im_process_queue {
+    my $pgm = shift;
+    my $recipient = shift;
+
+    $pgm = lc $pgm;
+    $recipient ||= 'default';
+
+    return unless $im_queue{$pgm};
+
+    my $parms;
+    my $num_items = scalar @{$im_queue{$pgm}};
+    while (defined($parms = shift @{$im_queue{$pgm}}) && $num_items) {
+	&main::print_log("Trying again to send $pgm message to " . $$parms{to});
+	if ($$parms{to} eq $recipient) {
+	    &main::net_im_send(%$parms);
+	} else {
+	    push (@{$im_queue{$pgm}}, $parms);
+	}
+	$num_items--;
+    }
+
+} #  main::net_im_process_queue()
+
 
 sub main::net_im_send {
+    my %parms = @_;
+                                # Default is aol aim (only because it was first)
+    my $pgm = lc $parms{pgm};
+    my $to = $parms{to};
+
+    return if &main::net_im_do_send(%parms) != 0;
+
+    return unless $main::config_parms{net_queue_im};
+
+    # Queue the msg!
+    $to ||= 'default';
+    $parms{to} = $to;
+    push (@{$im_queue{$pgm}}, \%parms);
+    &main::print_log("Unable to send $pgm message to $to, queued for later..");
+}
+
+sub main::net_im_do_send {
+
     my %parms = @_;
 
     undef $parms{to} if lc($parms{to}) eq 'default';
 
-                                # Default is aol aim (only because it was first)
     my $pgm = lc $parms{pgm};
     if ($pgm eq 'jabber') {
         &main::net_jabber_send(%parms);
-        return;
+        return 1;
     }
     elsif ($pgm eq 'msn') {
         &main::net_msn_send(%parms);
-        return;
+        return 1;
     }
 
     my ($from, $password, $to, $text, $file, $im_connection);
@@ -843,12 +883,14 @@ sub main::net_im_send {
 
     unless ($from and $password and $to) {
         print "\nError, net_im_send called with a missing argument:  from=$from to=$to password=$password\n";
-        return;
+        return 0;
     }
                                 # This will take a few seconds to connect the first time
     $im_connection = &main::net_im_signon($from, $password, $parms{pgm});
 
-    return unless $im_connection;
+    return 0 unless defined $im_connection;
+
+    return 0 unless ($buddies_status{$to} eq 'on');
 
     print "Sending $parms{pgm} message to $to\n";
 
@@ -860,6 +902,7 @@ sub main::net_im_send {
 # Need this for html based clients??
 #   $text =~ s/\n/<br>/g;
 
+    my $message_sent = 1;
     if (length $text > 900)
     {
 		# Break message into lines for readability
@@ -868,20 +911,24 @@ sub main::net_im_send {
 		my $line = "";
 	    while (scalar(@lines))
         {
-
-		    if (((length $line) + (length $lines[0])) > 900)
-			{
-				$im_connection -> toc_send_im($to, $line) if $line;
-			    $line = "";
-			}
-		    $line = $line . (shift @lines) . "\n";
+            if (((length $line) + (length $lines[0])) > 900)
+              {
+                  $im_connection -> toc_send_im($to, $line) if $line;
+                  $line = "";
+              }
+            $line = $line . (shift @lines) . "\n";
         }
-		$im_connection -> toc_send_im($to, $line) if $line;
+        if ($line) {
+            my $ret = $im_connection -> toc_send_im($to, $line);
+            $message_sent = 0 unless defined $ret;
+        }
     }
     else
     {
-        $im_connection -> toc_send_im($to, $text);
+        my $ret = $im_connection -> toc_send_im($to, $text);
+        $message_sent = 0 unless defined $ret;
     }
+    return $message_sent;
 }
 
 
@@ -1064,16 +1111,16 @@ sub main::net_mail_send {
     }
     else {
         use Net::SMTP_auth;
-	use Net::SMTP;
-	use Authen::SASL;
+        use Net::SMTP;
+        use Authen::SASL;
 
         unless ($smtp = Net::SMTP_auth->new($server, Timeout => $timeout, Port => $port, Debug => $parms{debug})) {
             print "Unable to Authenticate on mail server $server $port: $@\n";
-	    return;
+            return;
         }
-	print 'Authenticating SMTP using encryption ' , $smtpencrypt , " for username ", $smtpusername, "\n" if $parms{debug};
+        print 'Authenticating SMTP using encryption ' , $smtpencrypt , " for username ", $smtpusername, "\n" if $parms{debug};
 				# set SMTP username and password if we have them
-	$smtp->auth($smtpencrypt, $smtpusername, $smtppassword) if ($smtpusername and $smtppassword);
+        $smtp->auth($smtpencrypt, $smtpusername, $smtppassword) if ($smtpusername and $smtppassword);
 
         $smtp->mail($from) if $from;
         $smtp->to($to);
@@ -1383,6 +1430,9 @@ sub main::url_changed {
 
 #
 # $Log$
+# Revision 1.60  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.59  2004/09/25 20:01:19  winter
 # *** empty log message ***
 #

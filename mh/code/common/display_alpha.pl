@@ -1,7 +1,7 @@
 
 # Category = MisterHouse
 
-#@ Display data to Alpha LED signs.  For example, the the Alpha 213C 
+#@ Display data to Alpha LED signs.  For example, the the Alpha 213C
 #@ (a.k.a. BetaBrite, 2" x 24", 14 character, local Sam's Club for $150),
 #@ has multiple colors and either scrolling or fixed text.
 #@ See mh/lib/Display_Alpha.pm for more info.
@@ -12,7 +12,7 @@ $display_alpha_timer = new Timer;
 
 if ($Reread or expired $display_alpha_timer or (new_minute and inactive $display_alpha_timer)) {
 #   my $display = &time_date_stamp(21);  # 12:52 Sun 25
-    my $display = &time_date_stamp(8);   # 12:52 
+    my $display = &time_date_stamp(8);   # 12:52
     $display .= ' ' . int($Weather{TempIndoor}) . ' ' . int($Weather{TempOutdoor});
     $display .= ' ' . substr($Day, 0, 1) . $Mday;
 #   $display .= ' ' . substr($Day, 0, 3);
@@ -61,7 +61,7 @@ if ($state = state_now $xap_monitor_display_alpha) {
     }
 				# Echo new music tracks (e.g. sent by slimserver)
     elsif ($class eq 'xap-audio.playlist.event' and $state =~ /now.playing/) {
-        $text = $$p{'now.playing'}{artist} . ': ' . 
+        $text = $$p{'now.playing'}{artist} . ': ' .
                 $$p{'now.playing'}{title};
         $color = 'orange';
         $duration = 10;
@@ -101,4 +101,3 @@ $display_alpha_test2 = new Voice_Cmd "Test alpha display color [$display_alpha_c
 
 display device => 'alpha', text => "Testing alpha mode $state",  mode  => $state if $state = said $display_alpha_test1;
 display device => 'alpha', text => "Testing alpha color $state", color => $state if $state = said $display_alpha_test2;
-

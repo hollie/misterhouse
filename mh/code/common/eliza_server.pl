@@ -16,11 +16,13 @@
 $eliza_rule   = new Generic_Item;
 $eliza_data   = new Generic_Item;
 $eliza_voice  = new Generic_Item;
+$eliza_card   = new Generic_Item;
 $eliza_wavcomp= new Generic_Item;
 
 $eliza_data   -> set_authority('anyone');
 $eliza_rule   -> set_authority('anyone');
 $eliza_voice  -> set_authority('anyone');
+$eliza_card   -> set_authority('anyone');
 $eliza_wavcomp-> set_authority('anyone');
 
 &tk_entry('Eliza Message', $eliza_data, 'Eliza Rule', $eliza_rule);
@@ -41,6 +43,7 @@ if (defined($state = state_now $eliza_data)) {
 
     my $rule    = state $eliza_rule;
     my $voice   = state $eliza_voice;
+    my $card    = state $eliza_card;
     my $wavcomp = state $eliza_wavcomp;
     if ($rule eq 'none') {
 #	$msg = "$name_short says: $msg";
@@ -64,9 +67,9 @@ if (defined($state = state_now $eliza_data)) {
     }
     print "Speaking eliza data with voice=$voice, compression=$wavcomp\n";
 #   speak card => 3, compression => $wavcomp, text => $msg;
-    speak app => 'chatbot', voice => $voice, compression => $wavcomp, text => $msg;
+    speak app => 'chatbot', card => $card, voice => $voice, compression => $wavcomp, text => $msg, requestor => $name;
 #    speak app => 'chatbot',  compression => $wavcomp, text => $msg;
-    logit("$config_parms{data_dir}/logs/eliza_server.$Year.log", "domain=$name text=$msg"); 
+    logit("$config_parms{data_dir}/logs/eliza_server.$Year.log", "domain=$name text=$msg");
 }
 
 if (my ($name, $name_short) = net_domain_name_done 'eliza_server') {

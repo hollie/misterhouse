@@ -34,12 +34,12 @@
         10 Meg   <- mh -tk 0 mh_control.pl (run just one code file)
         12 Meg   <- mh -tk 0               (run all the default code)
         17 Meg   <- mh                     (run all the default code with tk gui on)
- 
+
       Windows
         18 Meg   <- mh -tk 0 mh_control.pl (run just one code file)
         20 Meg   <- mh -tk 0               (run all the default code)
         27 Meg   <- mh                     (run all the default code with tk gui on)
- 
+
   1.3: How can I easily upgrade to the latest version of mh?
     Point your mh.ini code_dir, data_dir, and html_dir parms to somplace
     other than your mh path. Then you should be able to rename your old mh
@@ -172,8 +172,8 @@
 
     Where xyz can be any of the following:
 
-      x10    
-      serial 
+      x10
+      serial
       socket
       startup
       homebase
@@ -196,7 +196,7 @@
       print "debug2 it is now $Time_Now\n" if time_now "23:59";
       print "debug3 it is now $Time_Now\n" if time_now "12:00 AM";
       print "debug4 it is now $Time_Now\n" if time_now "00:00";
- 
+
     Then run mh using these parameters:
 
       mh -code_dir \temp -tk 0 -time_start '12/15 11:58 pm' -time_start '12/16 12:01 am'
@@ -365,7 +365,7 @@
     messages it displays often point to valid problems. To simplify coding,
     the 'uninitialized value' warnings disabled in the user code processing.
 
-  2.2: How should I code events that should occur only at infrequently, or 
+  2.2: How should I code events that should occur only at infrequently, or
 only at Startup?
     You can use the $Startup or $Reload variables for events that should
     only occur when mh is Started, or when code is Reloaded. Note that
@@ -565,7 +565,7 @@ only at Startup?
       my $doorbell_time;
       if (state_now $doorbell) {
         play 'doorbell' if get_tickcount - $doorbell_time > 250;
-        $doorbell_time = get_tickcount; 
+        $doorbell_time = get_tickcount;
       }
 
     If you are on unix without Time::HiRes, you can use $LoopCount and count
@@ -583,7 +583,7 @@ only at Startup?
         J    - ON
         K    - OFF
         L    - brighten
-        M    - dim 
+        M    - dim
         dd%  - Sets module to this brightness level
         +-dd - Bright/dims by this amount
 
@@ -700,7 +700,7 @@ only at Startup?
 
       ---- clip here -----------------------------------------------
       #!/bin/sh
-      setserial /dev/ttyS16 port 0x180 irq 4 uart 16550A ^fourport 
+      setserial /dev/ttyS16 port 0x180 irq 4 uart 16550A ^fourport
       setserial /dev/ttyS17 port 0x188 irq 4 uart 16550A ^fourport
       setserial /dev/ttyS18 port 0x190 irq 4 uart 16550A ^fourport
       setserial /dev/ttyS19 port 0x198 irq 4 uart 16550A ^fourport
@@ -788,7 +788,7 @@ only at Startup?
 
      0: complete machine stop;
 
-     1: single-user mode; to be used in the event of major 
+     1: single-user mode; to be used in the event of major
         problems or system recovery;
 
      2: multi-user mode, without networking;
@@ -1188,7 +1188,7 @@ only at Startup?
 
      HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MisterHouse\Parameters AppDirectory  REG_SZ    c:\mh\bin
      HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MisterHouse\Parameters Application   REG_SZ    c:\perl\bin\perl.exe -S c:\mh\bin\mh
- 
+
     Rather than call mh as a service, many peopld have Windows do an
     auto-login and add mh to the startup.
 
@@ -1280,7 +1280,7 @@ only at Startup?
      - 05/00 Added voice modem, ISDN modem, and Compool support.
      - 05/00 Article in The Perl Journal #17
      - 06/00 Mailing list reaches 300 members
-     - 06/00 Added support for table item/event input and tie_items/tie_events. 
+     - 06/00 Added support for table item/event input and tie_items/tie_events.
      - 08/00 Enable perl -w checks, .jpg and .gif, and Slinke support.
      - 08/00 Added rpm and tarballs, NetGear router support
      - 09/00 Added ViaVoiceTTS.pm, Jabber, and Applied Digital cpuxad support
@@ -1300,7 +1300,7 @@ only at Startup?
      - 01/02 Xmms, audrey callerid, Linksys rounter, TTS flite engine, standard CGIs.
      - 03/02 GD on-the-fly web buttons, support for comics, xmms, redrat.
      - 04/02 Added web calendar, contact, todo list, and tk photo slideshow
-     - 05/02 Improved TTS support, TWiki web site, and support for DSS units, BX24 interface, and MSN,  
+     - 05/02 Improved TTS support, TWiki web site, and support for DSS units, BX24 interface, and MSN,
      - 05/02 Rewrote web menu interface, added AudioTron support and improved im support.
      - 06/02 Registered misterhouse.com domain name.
      - 08/02 Caddx alarm, iButton humidity sensor, undo, light/dark hawkey sensor
@@ -1315,6 +1315,14 @@ only at Startup?
      - 07/03 Improved web floorplan, DBI interface, xAP news and weather interfaces.
      - 09/03 Cepstral TTS engine support, a new PA room object, improved proxy support.
      - 11/03 Support for Sphinx2 VR, myHTPC tv menus, Asterisk phone interface, SMTP authentication, and a xAP command server.
+     - 12/03 Code for RCS TR40 theormostate, phone xAP.
+     - 01/04 Code for rrd weather graphs, v4lctl.
+     - 04/04 Code for ER1 robot, switched to the par compiler, improved mp3 Jukebox.
+     - 06/04 Code for Musica whole house audio, rss feeds, xAP Slimserver
+     - 07/04 Code for ICQ, vocp, tivo, Alpha LED displays, xAP IR for RedRat, RoboSapien.
+     - 08/04 Mailing list reaches 600 members.
+     - 09/04 Support for SVG floorplans, mp3 ripping, ebay monitoring, siteplayer, irc.
+     - 11/04 Support for servo motors, the ESRA robot, cell phone minutes monitoring, motherboard monitoring.
 
   6.2: Who is that Bruce guy anyway?
     Bruce (Winter) is the the main author of MisterHouse. He has a day job
@@ -1362,11 +1370,11 @@ only at Startup?
       Europeans can get X10 stuff distributers listed here:
         http://www.x10.com/x10euro.htm
       Some examples are:
-        http://www.intellihome.be 
+        http://www.intellihome.be
         http://www.marmitek.com/
 
       Neil Cherry has created a home for linux related Home Automation programs at
-        http://linuxha.sourceforge.net 
+        http://linuxha.sourceforge.net
 
       Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
         http://the-labs.com/HomeNetwork/
@@ -1632,7 +1640,7 @@ only at Startup?
      - PCI ByteRunner 8 port serial card
      - PCI phone modem for callerid logging and announcements
      - Linux box for hosting misterhouse.net
-     - 5 other networked computers for mp3 client/servers, 
+     - 5 other networked computers for mp3 client/servers,
        shoutcast server, games, writing, and work from home
      - Radio Shack PA amp with a PA speaker in each room
      - Wiring closet with 3 DIO weeder cards and 2 analog cards

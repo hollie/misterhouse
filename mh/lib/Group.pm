@@ -41,11 +41,11 @@ sub set {
     my ($self, $state, $set_by) = @_;
     print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::Debug{group};
 
-                                # This means we were called by the above 
+                                # This means we were called by the above
                                 # tie_items when a member changed
     if ($state =~ /member changed/) {
         $state = $set_by->{state};
-       
+
         print "Group member set: set_by=$set_by member=$set_by->{object_name} state=$state\n" if $main::Debug{group};
 
         &Generic_Item::set_states_for_next_pass($self, "member $state", $set_by);
@@ -67,8 +67,8 @@ sub set {
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
                                 # If we are using a CM11 or similar (and not a CM17),
-                                # and they are all X10 objects with the same house code, 
-                                # then we can get fancy and control X10 devices all at once by 
+                                # and they are all X10 objects with the same house code,
+                                # then we can get fancy and control X10 devices all at once by
                                 # defering the set command for the group to the last object
                                 # This will be slightly faster and will result in simultaneous
                                 # rather then sequential results.
@@ -77,7 +77,7 @@ sub set {
     my $hc = substr($$last_ref{x10_id}, 1, 1);
 #   print "db hc=$hc lr=$last_ref x=$$last_ref{x10_id} inter=$$last_ref{interface}\n";
     for my $ref (@group) {
-        if ((ref $ref) !~ /^X10_/ or 
+        if ((ref $ref) !~ /^X10_/ or
             $hc ne substr($$ref{x10_id}, 1, 1) or
             substr($$ref{x10_id}, 2, 1) eq '' or # Can not group set a house code
             $$ref{interface} !~ /cm11|ncpuxa|homebase|stargate/) {
@@ -87,11 +87,12 @@ sub set {
     }
 
     if ($hc) {
+        pop @group;             # No need to set the last item twice
         for my $ref (@group) {
             print "Group1 setting $ref to $state\n" if $main::Debug{group};
             set $ref 'manual';
                                 # Set the real state, rather than 'manual'
-                                #  - the last element of that array 
+                                #  - the last element of that array
 #           $ref->{state_next_pass} = $state;
             ${$ref->{state_next_pass}}[-1] = $state;
         }
@@ -103,7 +104,7 @@ sub set {
             set $ref $state, $set_by if $ref;
         }
     }
-}    
+}
 
 sub list {
     my ($self) = @_;
@@ -129,7 +130,7 @@ sub member_changed_log {
 
 sub remove {
     my ($self, @items) = @_;
-                                                                                
+
     for my $ref(@items) {
 	$ref->untie_items($self, undef);
 		     # this is definitely not the best way to do it...
@@ -141,6 +142,9 @@ sub remove {
 
 #
 # $Log$
+# Revision 1.20  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.19  2004/04/25 18:19:52  winter
 # *** empty log message ***
 #

@@ -193,7 +193,7 @@ if (new_minute 60) {
                                 # Summarize hourly and daily hits
 if (time_cron '1 * * * *') {
     if ($Save{server_clients_hour} > 2) {
-        my $msg = "voice=female3 Notice , there were $Save{server_hits_hour} web hits from $Save{server_clients_hour} clients in the last hour";
+        my $msg = "voice=female3 Notice, there were $Save{server_hits_hour} web hits from $Save{server_clients_hour} clients in the last hour";
         ($config_parms{internet_speak_flag} ne 'none') ?  speak $msg : print_log $msg;
     }
     $Save{server_hits_hour}    = 0;
@@ -207,7 +207,7 @@ elsif (time_cron '1 20 * * *') {
 }
 
 
-                                # Allow for Neatgear router reboot (not sure how to reboot the linksys?)
+                                # Allow for rebooting of various routers
 
 $router_reboot = new Voice_Cmd 'Reboot the router';
 $router_reboot-> set_info('Sends commands to the router telnet port to walk the menus to reboot the router');
@@ -215,6 +215,14 @@ $router_client = new Socket_Item(undef, undef, $config_parms{router_address} . "
 
 if (said $router_reboot) {
     print_log 'Rebooting the router';
+    if (lc $config_parms{server_router_type} eq 'linksys') {
+                               # Press 'Apply' on the harmless Log menu.  Apply on any menu seems to restart the router
+        my $cmd = qq[get_url "http://$config_parms{router_address}/Gozila.cgi?rLog=on&trapAddr3=255&Log=1" ];
+        $cmd   .= qq[-userid admin -password $config_parms{router_password}];
+        run $cmd;
+    }
+    else {
                                 # This walks down the NetGear menu to the reboot option
-    set_expect $router_client (Password => $config_parms{router_password}, Number => 24, Number => 4, Number => 11);
+        set_expect $router_client (Password => $config_parms{router_password}, Number => 24, Number => 4, Number => 11);
+    }
 }

@@ -128,8 +128,10 @@ sub generate_pronto {
 	$vars{F} = shift; 
 	my $modulation = $protocol{'Modulation'};
 	$vars{C} = ($vars{F} < 64) ? 3 : 2 if $modulation eq 'PPM';
+	my $first_length; 
 	my $current_phase = -1; 
 	my $units = $protocol{'Freq Hz'} ? 1000000 / $protocol{'Freq Hz'} : 25;
+#$units = 27.019552;
 	my $frequency = $units / .241246;
 	my $repeat = 2;
 	$repeat = 3 if $tmp eq '00 CA' or $tmp eq 'Sony'; 
@@ -155,7 +157,7 @@ sub generate_pronto {
 		s/([A-Z])/$vars{"$1"}/g;
 		my $length; 
 		foreach my $part (split ',', $_) {
-			#print "part $part\n";
+			print "part $part\n";
 			if (my ($string) = $part =~ /\[(.+)\]/) {
 				# handle [^45000]
 				if (my ($duration) = $string =~ /^\^(\d+)$/) {
@@ -176,28 +178,42 @@ sub generate_pronto {
 					foreach (@data[4 .. $#data - 1]) {$duration -= $_ * $units}
 					$data[$#data] = $duration / $units; 
 				}
-				# handle [1 -4]
+				# handle [1 -4] PPM
+				elsif ($modulation eq 'PPM' and my ($a, $b) = $string =~ /^(-?\d+)\s+(-?\d+)$/) {
+					my $phase = $a > 0;
+#print "db $a $phase $current_phase $time $data[$#data - 1] \n";
+					if ($current_phase == -1) {
+						push @data, 0;
+						$current_phase = 1; 
+					}
+					if ($current_phase == $phase) {
+						$data[$#data] = abs($a * $time);
+					}
+					else {
+						push @data, abs($a * $time);
+#						$data[$#data] += abs($a * $time);
+					}
+					$phase = $b > 0;
+					push @data, abs($b * $time);
+					$current_phase = $phase;
+				}
+				# handle [-189] PPM
+				elsif ($modulation eq 'PPM' and my ($a) = $string =~ /^(-?\d+)$/) {
+					my $phase = $a > 0;
+					if ($current_phase == $phase) {
+						$data[$#data] = abs($a * $time);
+					}
+					else {
+						push @data, abs($a * $time);
+					}
+					$current_phase = $phase;
+				}
+				# handle [1 -4] PWM
 				else {
 					foreach my $a (split ' ', $string) {		
 						my $phase = $a > 0;
-						if ($modulation eq 'PPM') {
-							unless ($current_phase == -1) {
-								if ($current_phase == $phase) {
-									push @data, abs($a * $time);
-									$length++ if $current_phase; 
-								}
-								else {
-									$data[$#data] += abs($a * $time);
-								}
-							}
-							push @data, abs($_ * $time);
-							$current_phase = $phase;
-							$length++ unless $current_phase; 
-						}
-						else {
-							push @data, abs($a * $time);
-							$length++ if $phase; 
-						}
+						push @data, abs($a * $time);
+						$length++ if $phase == 1; 
 					}
 				}
 			}
@@ -209,32 +225,40 @@ sub generate_pronto {
 				foreach my $bit (split '', unpack $format, pack 'C', 0 + $value) {
 					#print "bit $bit\n";
 					if ($modulation eq 'PPM') {
-						unless ($current_phase == -1) {
-							if ($current_phase == $bit) {
+						my $phase = ($bit ? (split ',', $protocol{One})[1] : (split ',', $protocol{Zero})[1]) > 0;
+#print "db $bit ph $phase c $current_phase \n";
+						if (1) {
+							if ($current_phase == $phase) {
 								push @data, $time;
-								$length++ if $current_phase; 
 							}
 							else {
 								$data[$#data] += $time;
 							}
 						}
 						push @data, $time;
-						$current_phase = $bit;
-						$length++ unless $current_phase; 
+						$current_phase = $phase;
 					}
 					else {
 						push @data, ($bit ? @one : @zero);
-						$length++; 
 					}
 				}
 			}
 			else {
 				print "IR_Utils: error parsing form part $part\n";
 			}
+#my $code = join(" ", map { sprintf "%04x", $_ } @data); 
+#print "$code \n";
 		}
-		$data[ $_ eq $first ? 2 : 3 ] = $length; 
+		if ($_ eq $first) { 
+			$first_length = $#data - 3; 
+			$data[2] = $first_length / 2; 
+		}
+		else {
+			$data[3] = ($#data - 3 - $first_length) / 2; 
+		}
 	}
 	my $code = join(" ", map { sprintf "%04x", $_ } @data); 
+	print "$code \n";
 	return ($code, $repeat); 
 }
 
@@ -269,10 +293,10 @@ sub get_function {
 		$function = 63 - $efc2obc[$efc];
 	}
 	elsif ($efc_conv eq 'MSB') {
-		$function = 255 - $efc2obc[$efc];
+		$function = unpack 'C', pack 'b8', unpack 'B8', pack 'C', 0 + $efc2obc[$efc];
 	}
 	elsif ($efc_conv eq '~MSB') {
-		$function = 0xff & ~ (255 - $efc2obc[$efc]);
+		$function = unpack 'C', pack 'b8', unpack 'B8', pack 'C', 0 + (255 - $efc2obc[$efc]);
 	}
 	elsif ($efc_conv eq 'LSB') {
 		$function = $efc2obc[$efc];
@@ -281,6 +305,7 @@ sub get_function {
 		$function = 0xff & ~ $efc2obc[$efc];
 	}
 	else {
+		print "Missing efc conversion key, using default \n";
 		$function = $efc2obc[$efc];
 	}
 	if ($function > 127 and $device2 =~ /^\d+$/) {

@@ -74,7 +74,7 @@ sub is_available {
 
                                 # Use the 2nd parm of '1' to indicate this do a test open
                                 #  - Modified Win32::SerialPort so it does not compilain if New/open fails
-    if (( $main::OS_win and $sp_object = new Win32::SerialPort($port, 1))or 
+    if (( $main::OS_win and $sp_object = new Win32::SerialPort($port, 1))or
         (!$main::OS_win and $sp_object = new Device::SerialPort($port))) {
         print " available\n";
         $sp_object->close;
@@ -121,7 +121,7 @@ sub stop {
         else {
             print "Serial_Item stop failed for port $port_name\n";
         }
-                                # Delete the ports, even if it didn't close, so we can do 
+                                # Delete the ports, even if it didn't close, so we can do
                                 # starts again without a 'port reuse' message.
         delete $main::Serial_Ports{$port_name}{object};
         delete $main::Serial_Ports{object_by_port}{$port};
@@ -135,7 +135,7 @@ sub stop {
 sub said {
     my $port_name = $_[0]->{port_name};
     my $datatype  = $main::Serial_Ports{$port_name}{datatype};
-    
+
     my $data;
     if ($datatype and $datatype eq 'raw') {
         $data = $main::Serial_Ports{$port_name}{data};
@@ -226,7 +226,7 @@ sub set {
     my $interface = $self->{interface};
     $interface = '' unless $interface;
 
-    print "Serial_Item: port=$port_name self=$self state=$state data=$serial_data interface=$$self{interface}\n" 
+    print "Serial_Item: port=$port_name self=$self state=$state data=$serial_data interface=$$self{interface}\n"
         if $main::Debug{serial};
 
     return if     $main::Save{mode} eq 'offline';
@@ -260,7 +260,7 @@ sub set {
         if ($serial_data =~ /^X?[\+\-]?\d+$/) {
             $serial_data = $self->{x10_id} . substr($self->{x10_id}, 1, 1) . $serial_data;
         }
-   
+
         &main::print_log("X10: Outgoing data=$serial_data") if $main::config_parms{x10_errata} >= 4;
 
                                 # Allow for long strings like this: XAGAGAGAG (e.g. SmartLinc control)
@@ -274,8 +274,8 @@ sub set {
                 $serial_data =~ /^([A-P][1][0-6])(\S*)/ or
                 $serial_data =~ /^([A-P][1-9A-W])(\S*)/ or
                 $serial_data =~ /^([A-P]\&P\d+)(\S*)/ or         # Pre Dim Cmds
-                $serial_data =~ /^([A-P]Z\S*)/ or                # Scene Cmds for Switchlinc 
-                $serial_data =~ /^([A-P]\d+\%)(\S*)/ or 
+                $serial_data =~ /^([A-P]Z\S*)/ or                # Scene Cmds for Switchlinc
+                $serial_data =~ /^([A-P]\d+\%)(\S*)/ or
                 $serial_data =~ /^([A-P][\+\-]?\d+)(\S*)/) {
                 $serial_chunk = $1;
                 $serial_data  = $2;
@@ -323,7 +323,7 @@ sub set {
             my $port_name2 = ($ref ->{port_name} or ' ');
             next unless $port_name1 eq $port_name2;
 
-            print "Serial_Item: Setting duplicate state: id=$serial_id item1=$$self{object_name} item2=$$ref{object_name}\n" 
+            print "Serial_Item: Setting duplicate state: id=$serial_id item1=$$self{object_name} item2=$$ref{object_name}\n"
                 if $main::Debug{serial};
             if ($state = $$ref{state_by_id}{$serial_id}) {
                 $ref->set_receive($state, $set_by);
@@ -333,7 +333,7 @@ sub set {
             }
         }
     }
-}    
+}
 
                                 # Avoid sending the same X10 code on consecutive passes.
                                 # It is pretty easy to create a loop with
@@ -341,7 +341,7 @@ sub set {
 sub set_prev_pass_check {
     my ($self, $state);
 #   print "db state=$state, sp=$self->{state_prev},  loop=$main::Loop_Count, lcp==$self->{change_pass}\n";
-    if (defined $state and $state =~ /^X/ and $self->{state_prev} and $state eq $self->{state_prev} and 
+    if (defined $state and $state =~ /^X/ and $self->{state_prev} and $state eq $self->{state_prev} and
         $self->{change_pass} >= ($main::Loop_Count - 1)) {
         my $item_name = $self->{object_name};
         print "X10 item set skipped on consecutive pass.  item=$item_name state=$state id=$state\n";
@@ -378,7 +378,7 @@ sub send_serial_data {
         $serial_data .= "\r" unless $datatype and $datatype eq 'raw';
 
         my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
-           
+
 #      &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::Debug{serial};
         print "serial  port=$port_name out=$serial_data results=$results\n" if $main::Debug{serial};
     }
@@ -402,9 +402,10 @@ sub send_x10_data {
     print "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n" if $main::Debug{x10};
 
     if ($interface eq 'cm11') {
-	
+        print "db1 CM11: Sending x10 data: $serial_data\n" if $main::Debug{cm11};
+
 				# Standard 1-cm11 code
-	if (!$main::config_parms{cm11_bak_port}) {                                                         
+	if (!$main::config_parms{cm11_bak_port}) {
                                 # cm11 wants individual codes without X
 	    &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},
 				    substr($serial_data, 1));
@@ -438,7 +439,7 @@ sub send_x10_data {
     elsif ($interface eq 'bx24') {
         &X10_BX24::SendX10($serial_data);
     }
- 
+
     elsif ($interface eq 'lynx10plc')
     {
                                 # marrick PLC wants XA1AK
@@ -582,6 +583,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.73  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.72  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #

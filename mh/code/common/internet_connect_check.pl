@@ -3,12 +3,12 @@
 #@ Uses ping to monitor if your internet connection is up or down
 #@ Useful for those with cable or dsl modems that often go down for hours at a time
 
-                                # Enable this code (with 'Ping test on') to notify you 
+                                # Enable this code (with 'Ping test on') to notify you
                                 # when your internet connection goes up or down.
                                 # Useful for those with cable or dsl modems that often go
                                 # down for hours at a time.
                                 # Note: we use a process item to 'fork' the ping, as it
-                                #       might hang if the net connection is down.  
+                                #       might hang if the net connection is down.
 
 my $ping_test_results = "$config_parms{data_dir}/ping_results.txt";
 my $ping_test_cmd     = ($OS_win) ? 'ping -n 1 ' : 'ping -c 1 ';
@@ -41,6 +41,9 @@ if (($Save{ping_test_flag} and new_minute($Save{ping_test_results} eq 'up' ? 10 
 #  Failed ping
 #    1 packets transmitted, 0 packets received, 100% packet loss
 
+$internet_connection = new Generic_Item;
+$internet_connection -> set_states('up', 'down');
+
 if (done_now $ping_test) {
     my $ping_results = file_read $ping_test_results;
     $Save{ping_test_results} = 'up' unless $Save{ping_test_results};
@@ -52,9 +55,10 @@ if (done_now $ping_test) {
             $time_diff = time_diff $Save{ping_test_time}, $Time, 'minute';
 #           play file => 'timer', mode => 'unmute'; # Set in event_sounds.pl
             speak "app=notice The internet connection is back up after $time_diff";
-            display text => "The internet connection is back up  (was $Save{ping_test_results}).  Time=$time_diff", 
+            display text => "The internet connection is back up  (was $Save{ping_test_results}).  Time=$time_diff",
               time => 0, window_name => 'Internet Connect Check', append => 'bottom';
         }
+        set $internet_connection    'up';
         $Save{ping_test_results} =  'up';
     }
     else {
@@ -70,6 +74,7 @@ if (done_now $ping_test) {
               time => 0, window_name => 'Internet Connect Check', append => 'bottom';
             logit "$config_parms{data_dir}/logs/internet_down.log", "Net down";
         }
+        set $internet_connection   'down';
         print_log "Internet is $Save{ping_test_results}";
     }
     print_log "Ping results: $Save{ping_test_results} results=$ping_results" if $Debug{ping};

@@ -15,7 +15,8 @@ my (%config_parms, %parms);
 use Getopt::Long;
 #print "get_url: @ARGV\n";
 if (!&GetOptions(\%parms, 'h', 'help',
-                 'quiet', 'cookies=s', 'post=s', 'header=s') or
+                 'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s', 'post=s', 'header=s',
+                 'userid=s', 'password=s') or
     !@ARGV or $parms{h} or $parms{help}) {
 
     print<<eof;
@@ -31,10 +32,17 @@ Usage:
     -cookies 'cookiestr': Uses the specified cookie string for the request.
       The format of 'cookiestr' should be like this: 'name1=val1; name2=val2'.
 
+    -cookie_file_in  'file':  Like the -cookies option, but string is sent via a file.
+    -cookie_file_out 'file':  Generates a cookies string from the resulting web request.
+
+    -userid 'userid'    :  Use these 2 parms if your web page is protected by
+    -password 'password':  'basic credentials' (i.e. you get a browser popup).
+
     -post 'poststr': Makes this a post request with the specified name/value pairs
-      as the form data, such as: 'name1=val1&name2=val2
+      as the form data, such as: 'name1=val1&name2=val2'
 
     -header 'header_file': HTTP headers from the server are stored in this file
+
 
     If local_file is specified, data is stored there.
     If local_file = /dev/null, data is not returned.
@@ -56,7 +64,11 @@ require 'handy_utilities.pl';
                                 # background processes in windows really messes up with > :(
 my $file = shift;
 
-if (($config_parms{get_url} eq 'useragent') or $parms{post} or $parms{header} or $parms{cookies}) {
+$parms{cookies} = &file_read($parms{cookie_file_in}) if $parms{cookie_file_in};
+
+
+if (($config_parms{get_url} eq 'useragent') or $parms{post} or $parms{header} or
+    $parms{cookies} or $parms{cookie_file_out} or $parms{password}) {
     &use_ua;                    # This fails for some people.  Required if using a proxy
 }
 else {
@@ -86,6 +98,12 @@ sub use_ua {
     } else {
       $request = new HTTP::Request('GET', $url);
     }
+
+    if ($parms{userid} or $parms{password}) {
+#       $ua->credentials("192.168.0.1", "Linksys BEFW11S4", $parms{userid}, $parms{password});
+        $request->authorization_basic($parms{userid}, $parms{password});
+    }
+
     if ($parms{cookies}) {
        $request->header('Cookie' => $parms{cookies});
     }
@@ -105,6 +123,16 @@ sub use_ua {
            binmode OUT;
            print OUT $response->headers_as_string();
            close OUT;
+        }
+        if ($parms{cookie_file_out}) {
+            my $cookies;
+            for my $header (split /\n/, $response->headers_as_string()) {
+                if (my ($name, $value) = $header =~ /^Set-Cookie: ([^=]+)=([^;]+)/) {
+                    $cookies .= "$name=$value; ";
+                }
+            }
+            $cookies =~ s/;\s*$//;
+            &file_write($parms{cookie_file_out}, $cookies);
         }
         exit;
     }
@@ -145,6 +173,9 @@ sub use_get {
 
 #
 # $Log$
+# Revision 1.18  2004/11/22 22:57:17  winter
+# *** empty log message ***
+#
 # Revision 1.17  2004/09/25 19:51:50  winter
 # *** empty log message ***
 #

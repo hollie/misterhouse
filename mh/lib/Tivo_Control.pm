@@ -29,7 +29,7 @@ Usage:
    from: ftp://ftp.kaybee.org/pub/linux/ClearScreen.tcl.
 
    Currently all this module does is display text to the screen through TCS.
-   There could be other uses in the future.  
+   There could be other uses in the future.
 
    display('text'): Displays the text to the Tivo, breaking it up into chunks
    of less than 40 characters, and with a delay between each line of text.
@@ -50,7 +50,7 @@ Usage:
          &Speak_parms_add_hook(\&pre_speak_hook);
       }
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - Misterhouse
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -63,7 +63,7 @@ package Tivo_Control;
 @Tivo_Control::ISA = ('Generic_Item');
 
 my $tivo_socket = undef;
-my $default_delay = 5;
+my $default_delay = 4;
 
 sub new {
    my ($class, $port_name) = @_;
@@ -142,6 +142,8 @@ sub display {
    if (@{$$self{'queue'}}) {
       $displaynow = 0;
    }
+   # Make sure there are no dollar-signs in the next (messes up TCS)
+   $text =~ s/\$//g;
    while ($text) {
       #&::print_log("Tivo: breaking down text '$text'");
       if (length($text) <= 40) {
@@ -163,4 +165,3 @@ sub display {
 }
 
 1;
-

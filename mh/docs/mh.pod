@@ -72,8 +72,8 @@ The system requirements and installation instructions are detailed in
 <p>Paul Chamberlain has set up a
 <a href=http://tifster.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
 for other user-supplied documentation.
-Ron Klinkien also has a <a href=http://mrhousefromscratch.tk/> 'MisterHouse from Scratch' weblog site</a>
-with a nice collection of links, resources, notes and commentary.
+
+Gordon Meyer wrote a <a href="get_to_know_mh.html"> nice getting started article</a>.
 
 =end html
 
@@ -2114,7 +2114,7 @@ Calls up the web browser defined my the mh.ini browser parm
 
   Examples:
 
-    browser 'http://misterhouse.net:81';
+    browser 'http://misterhouse.net';
     browser "$config_parms{tracking_dir}/today.html" if said $v_show_tracking;
 
 
@@ -2228,6 +2228,36 @@ If -tk 0 or the data is echoed to the console.
 
 If the data is requested from a web browser, the data is echoed to the browser print_log
 window.  It will be displayed to a local tk window only if the $time parm is specified.
+
+
+=item eval_with_timer
+
+Use this to run some code after some delay.
+
+  Usage:
+
+     eval_with_timer $code, $time;
+
+  Examples:
+
+    eval_with_timer 'print_log "hi from the past"', 60;
+    eval_with_timer '$Misc{insult}{flag} = 1', 2;  # Sets flag after 2 seconds
+
+If you want to do this with an object state, use the set_with_timer method.
+
+
+=item file_default
+
+Checks to see if a file exists, and if not, returns a default file instead.
+
+  Usage:
+
+     file_default $file, $default;
+
+  Examples:
+
+    $f_insult = new  File_Item(&check_default_file($config_parms{speak_insult_file},
+                               "$config_parms{data_dir}/remarks/insults1.txt"));
 
 
 =item file_size
@@ -3719,7 +3749,7 @@ Creates a DBM for use by get_tv_info.
   Example:
     get_tv_grid -day 25 -hour 4pm -outfile my_tv.html
     get_tv_grid -days 7 -hour all
-    get_tv_grid -email bruce@misterhouse.net -mail_baseref misterhouse.net:8080
+    get_tv_grid -email bruce@misterhouse.net -mail_baseref misterhouse.net:8090
 
 
   Usage:
@@ -3765,7 +3795,7 @@ Creates a DBM for use by get_tv_info.
   Examples:
     get_tv_grid -day 25 -hour 4pm -outfile my_tv.html
     get_tv_grid -days 7 -hour all
-    get_tv_grid -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8080
+    get_tv_grid -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8090
 
   Note on finding your provider ID:
    Enter your zip code at http://tvlistings2.zap2it.com/
@@ -3891,7 +3921,9 @@ file, it will read and execute its contents, then delete it.
     house speak hi there
     house display c:\autoexec.bat
     house Turn the backyard light on
-    house XAJAK
+    house XA1AJ
+
+The last example will fire trigger an X10 command, but only if you have an object defined that matches that data (e.g. X10 A1 in the above example).
 
 
 =item ical_load
@@ -4296,11 +4328,11 @@ You can specify the menu group (e.g. default or mh) when calling any of the
 menu interface subroutines.  For the above menu.pl, you can point your WAP phone to:
 
   Either of these will get the 'default' test menu:
-    http://misterhouse.net:8080/sub?menu_wml
-    http://misterhouse.net:8080/sub?menu_wml(default)
+    http://misterhouse.net:8090/sub?menu_wml
+    http://misterhouse.net:8090/sub?menu_wml(default)
 
   This will get the auto-generated 'mh' entry for all voice commands:
-    http://misterhouse.net:8080/sub?menu_wml(mh)
+    http://misterhouse.net:8090/sub?menu_wml(mh)
 
 Something like this could be used to create different menus for different LCD controllers:
 
@@ -4579,7 +4611,7 @@ Or with this:
 
  http://localhost:8080/SET;&web_func2(myarg1,myarg2)
 
-One example of a built in function is html_html, which will return html for one object.  For example:
+One example of a built in function is html_item, which will return html for one object.  For example:
 
   <!--#include code="&html_item('v_what_speed')"-->
   <!--#include code="&html_item('mode_mh')"-->
@@ -4673,11 +4705,11 @@ Here are some examples demonstrating these options:
  This will redirect the browser back to the calling page
  (note the $ from the $camera_light object is optional):
 
-  <a HREF="http://misterhouse.net:8080/SET;Referer?camera_light=on">Light on</a>
+  <a HREF="http://misterhouse.net:8090/SET;Referer?camera_light=on">Light on</a>
 
  This will redirect the browser to mh page ia5/lights/main.shtml page:
 
-  <a HREF="http://misterhouse.net:8080/SET;referer/ia5/lights/main.shtml?$camera_light=on">Light on</a>
+  <a HREF="http://misterhouse.net:8090/SET;referer/ia5/lights/main.shtml?$camera_light=on">Light on</a>
 
 
  This will redirect the browser to misterhouse.net
@@ -4691,7 +4723,7 @@ For example, if you want to get a directory listing, sorted by date (recent on t
 
 Here is an example of using a subroutine to generate html:
 
-   http://misterhouse.net:8080/SUB;tellme_menu(,,html)
+   http://misterhouse.net:8090/SUB;tellme_menu(,,html)
 
 You can also use a separate web server (e.g. Apache or ISS) to serve pages that control MisterHouse.
 For example:
@@ -4850,9 +4882,11 @@ If you are getting the message "Out of environment space" try adding these recor
   config.sys:   shell=command.com /e:8000 /p
   autoexec.bat: set comspec=c:\command.com
 
-If you want to use a program generated list in an Item declaration, you need to use add # noloop=start/stop
-comments before and after the code that should preceed the Item, or add a # noloop comment to the
-end for the record.  For example:
+By default, declaration code like '$object = new ...', or 'my $var = ...' is pulled
+out of the user loop code and put in the startup code, so it is only run once.
+If you want to force additional code out of the loop code, you can use add # noloop=start/stop
+comments before and after the code segment, or you can add a # noloop comment to the
+end of the record.  For example:
 
                  # Example of noloop record comments
   my $weather_wind_gust_threshold=$config_parms{weather_wind_gust_threshold}; # noloop
@@ -4999,7 +5033,7 @@ and <a href="authors.html">a bunch of fellow home hackers</a>
 
 =head1 SEE ALSO
 
-mh can be download from http://misterhouse.net:81
+mh can be download from http://misterhouse.net
 
 Here is a list of articles written about MisterHouse:
 
@@ -5060,6 +5094,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.76  2004/11/22 22:57:22  winter
+# *** empty log message ***
+#
 # Revision 1.75  2004/09/25 20:01:14  winter
 # *** empty log message ***
 #

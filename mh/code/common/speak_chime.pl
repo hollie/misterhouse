@@ -16,12 +16,13 @@ sub speak_chime {
     $Respond_Target = 'unknown' unless $Respond_Target;
     return if $parms{app} eq 'router';
     return if $parms{nolog};
+    return if $parms{no_chime};
     return unless $Respond_Target eq 'unknown';
     if (!$Respond_Target or $Respond_Target eq 'unknown' or $Respond_Target eq 'time') {
         my $file = $config_parms{sound_speak_chime};
         my $vol  = $config_parms{sound_speak_chime_volume};
         $file = 'sound_trek1.wav' unless $file;
         play volume=>$vol, file=>$file;
-        &sleep_time(400);    
+        &sleep_time(400);
     }
 }

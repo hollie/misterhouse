@@ -85,9 +85,15 @@ mp3Rip_eject=eject $config_parms{mp3Rip_cdrom_device}
 @    __comment__: An ID3 comment for the song
 @    __track__: The track number of the song
 @    __genre__: The numerical ID3 genre identifier
+@    __genrestr__: The genre string
 @
 @ If you get other compressors working for mp3Rip, please send me your
 @ mp3Rip_mp3_encoder line at kirk@kaybee.org.
+
+# Ogg Vorbis
+#mp3Rip_mp3_encoder=/usr/bin/oggenc -q 5 -t __song__ -a __artist__ -l __album__ -c YEAR=__year__ -c COMMENT=__comment__ -N __track__ -G __genrestr__ -o __output__ __input__
+
+# Lame MP3 encoder
 mp3Rip_mp3_encoder=/usr/local/bin/lame -V1 -mj -h -b128 -q2 --tt __song__ --ta __artist__ --tl __album__ --ty __year__ --tc __comment__ --tn __track__ --tg __genre__ __input__ __output__
 
 @ This is the default format for your directory names.  mp3Rip assumes you will
@@ -401,10 +407,12 @@ sub mp3Rip_start_ripper_process {
 
 sub mp3Rip_start_rip {
    my $cddbid = '';
+   my $genrestr = '';
    foreach (@_) {
       if (/cddbid=(.+)$/) {
          $cddbid = $1;
       } elsif (/^genre=(.+)$/) {
+         $genrestr = $1;
          for (my $i = 0; $i <= $#id3_genres; $i++) {
             if ($1 eq $id3_genres[$i]) {
                s/^.*$/genre=$i/;
@@ -424,6 +432,9 @@ sub mp3Rip_start_rip {
    }
    foreach (@_) {
       print MP3RIPDATA "$_\n";
+   }
+   if ($genrestr) {
+      print MP3RIPDATA "genrestr=$genrestr\n";
    }
    print MP3RIPDATA "eject=$config_parms{mp3Rip_eject}\n";
    print MP3RIPDATA "wav_dir=$config_parms{mp3Rip_wav_dir}\n";

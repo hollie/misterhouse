@@ -78,6 +78,9 @@ door_monitor_jay.pl
  - Jay Archer's code for using an X10 powerflash and hawkeye motion sensors
    to monitor and control a garage door
 
+dreambox.pl
+- Timo Sariwating's code for interfacing to the the European Dreambox satelite receiver.
+
 froggyrita.pl
  - Gaetan Lord's code for the temp,pressure,humidity sensor from http://www.froggyhome.com
 
@@ -142,6 +145,11 @@ internet_hebcal.pl
 internet_ip_update*.pl
  - Updates IP servers/web pages with IP addresses
 
+internet_internet_usgs.pl
+ - Rick Steeven's code for monitoring the water level of any river or lake in the continental US that
+   is monitored by the USGS.  Whenever that level passes a certain point MH will send notification.
+
+
 internet_speed_check.pl
  - Larry Roudebush's code to time ftp updload and download rates.
 
@@ -185,6 +193,9 @@ monitor_im_status.pl
 monitor_mh.pl
  - An example of on mh box monitoring another and warning when it goes down.
 
+monitor_mbm*.pl
+ - Craig Schaeffer and Danal Estes's code for montioring motherboard temperature data, using mbm.
+
 monitor_sump_pump.pl
  - Craig's code to monitor his sump pump
 
@@ -218,6 +229,7 @@ NetCallerID.pl
 news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
  - Brian Rigsby did news_yahoo.pl
+ - Dan Hoffard did news_star_telegram.pl and news_onion.pl
 
 palm_calendar*
  - Axel Brown's code for copying palm calendar entries to the mh organizer calendar

@@ -29,7 +29,7 @@ sub expired_timers_with_actions {
 #       print "db3 s=$self ex=$self->{expire_time}\n";
         if (!$self->{expire_time}) {
             shift @timers_with_actions; # These timers were 'unset' ... delete them
-        }       
+        }
                                 # Use this method avoids problems with Timer is called from X10_Items
 #       elsif (expired $self) {
         elsif (&Timer::expired($self)) {
@@ -115,11 +115,12 @@ sub set {
     ($self, $state, $action, $repeat) = @_;
 
     my @c = caller;
+    $repeat = 0 unless defined $repeat;
 #   print "db1 $main::Time_Date running set s=$self s=$state a=$action t=$self->{text} c=@c\n";
     return if &main::check_for_tied_filters($self, $state);
 
                                 # Set states for NEXT pass, so expired, active, etc,
-                                # checks are consistent for one pass.  
+                                # checks are consistent for one pass.
     push @sets_from_previous_pass, $self;
     @{$self->{set_next_pass}} = ($state, $action, $repeat);
 }
@@ -127,7 +128,7 @@ sub set {
                                 # This is called from mh
 sub set_from_last_pass {
     my ($self) = @_;
-    
+
     return unless $self->{set_next_pass};
     ($state, $action, $repeat) = @{$self->{set_next_pass}} ;
     undef $self->{set_next_pass};
@@ -141,18 +142,18 @@ sub set_from_last_pass {
                                 # Turn a timer on
     else {
         $self->{expire_time} = ($state * 1000) + main::get_tickcount;
-        $self->{period}      = $state; 
+        $self->{period}      = $state;
         $self->{repeat}      = $repeat;
         if ($action) {
             $self->{action} = $action;
             print "action timer s=$self a=$action s=$state\n" if $main::Debug{timer};
-            &delete_timer_with_action($self); # delete possible previous 
+            &delete_timer_with_action($self); # delete possible previous
             push(@timers_with_actions, $self);
             $resort_timers_with_actions = 1;
         }
     }
     $self->{pass_triggered} = 0;
-        
+
     unshift(@{$$self{state_log}}, "$main::Time_Date $state");
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 }
@@ -166,7 +167,7 @@ sub unset {
     undef $self->{expire_time};
     undef $self->{action};
     &delete_timer_with_action($self);
-}    
+}
 
 sub delete_old_timers {
     undef @timers_with_actions;
@@ -211,7 +212,7 @@ sub expired {
 #       print "db expired1 loop=$self->{pass_triggered} lc= $main::Loop_Count\n";
 
                                 # Reset if we finished the trigger pass
-        if ($self->{pass_triggered} and 
+        if ($self->{pass_triggered} and
             $self->{pass_triggered} < $main::Loop_Count) {
 #           print "db expired2 loop=$self->{pass_triggered}\n";
             $self->{expire_time} = 0;
@@ -226,7 +227,7 @@ sub expired {
     else {
         return 0;
     }
-}    
+}
 
 sub hours_remaining {
     ($self) = @_;
@@ -305,7 +306,7 @@ sub active {
 sub inactive {
     ($self) = @_;
     return !&active($self);
-}   
+}
 
                                 # The reset of these methods apply to a countup/stopwatch type timer
 sub start {
@@ -365,6 +366,9 @@ sub query {
 
 #
 # $Log$
+# Revision 1.32  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.31  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #

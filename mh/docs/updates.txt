@@ -2,6 +2,151 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    Bug Fixes and Other Changes:
+
+  Version 2.96 posted on 11/22/2004
+    Version 2.96 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+
+    New Features:
+
+    - Craig Schaeffer and Danal Estes sent in code/public/monitor_mbm*.pl as
+    examples of montioring motherboard temperature data, using mbm on
+    windows.
+
+    - Kirk Bauer updated lib/Musica.pm to support the new 4602 series and
+    its FM Tuner keypads. Also did other small patches to some of his other
+    audio modules.
+
+    - Dave Hall updated code/public/robot_er1.pl with many improvments,
+    including callerid, speak/play, and new drive commands. See header for
+    the list of changes.
+
+    - Timo Sariwating created code/public/dreambox.pl for interfacing to the
+    the European Dreambox satelite receiver.
+
+    - Russ Knize created a Debian package, available here:
+    http://www.knizefamily.net/russ/software/misterhouse.html
+
+    - Greg Limming update lib/xAP_Items.pm so there are now two separate
+    listeners/senders and hubs, to support xAP and xPL at the same time. He
+    also added xap_disable and xpl_disable options.
+
+    - Axel Brown updated common/internet_im.pl to to queue temporarily
+    undeliverable IMs for all the supported IM protocols.
+
+    - Rick Steeven created code/public/internet_internet_usgs.pl for
+    monitoring the water level of any river or lake in the continental US
+    that is monitored by the USGS. Whenever that level passes a certain
+    point MH will send notification.
+
+    - Created lib/Servo_Item.pm to supports servo motors via the $40 Mini
+    SSC II serial servo control board, available from http://seetron.com .
+
+    - Created code/common/robot_esra.pl to control the $180 Robodyssy ESRA
+    robot head from http://robodyssey.com . It has 5 servos (eye lid, eyes,
+    lip top/bottom, and an optional neck) which are connected via the Mini
+    SSC II serial servo controler. Pictures and a movie are at
+    http://misterhouse.net/public/robot/ .
+
+    - Created code/common/speak_insults.pl. You can use the mh.ini
+    speak_apps parms to alternate the insults between different voices
+    and/or sound cards. I use it so allow my 2 robots to insult each other
+    ;)
+
+    - Created code/common/phone_minutes.pl to check on remaining cell phone
+    minutes. Currently for Sprint only, but could be extended for other
+    services. I also updated get_url to add -cookie_file_in/out options to
+    make navigating web sites that require password logins a bit easier.
+
+    - Added -userid and -password options to get_url, so it can access pages
+    with 'basic authorization' like those popup login menus you get when you
+    access your router. This is now used for Linksys routers in the 'Reboot
+    the router' command in common/monitor_router.pl . I found my new Ambit
+    cable modem about once a week somehow glitches my Linksys router, so I
+    now monitor $internet_connect_check from
+    common/internet_connect_check.pl and run 'Reboot the router' if it goes
+    down (see code/bruce/monitors.pl for an example).
+
+    - Created code/common/xAP_send.pl for sending out various mh source data
+    data as xAP messages, for use with other xAP enabled clients.
+
+    - Gordon Meyer wrote a nice nice intro to mh article, originally
+    published by OReilly ONLamp at
+    http://www.onlamp.com/pub/a/onlamp/2004/11/11/smrthome_hks1.html , now
+    included in the distro with various links from the mh and install docs.
+
+    Bug Fixes and Other Changes:
+
+    - Chris Barrett noticed we missed the 2.95 bin_dir update fix
+
+    - Dan Hoffard create code/public/news_star_telegram.pl (top stories from
+    the Fort Worth Star Telegram) and news_onion (news from
+    mobile.theonion.com)
+
+    - David Norwood updated lib/IR_Utils.pm to work with RC-5 and RC-6
+    protocol signals. Also update USB_UIRT.pm with a minor update.
+
+    - Dominique Benoliel updated lib/X10_W800.pm to support the RF KR21
+    remote.
+
+    - Kirk Bauer updated bin/mh to allow for : in object names.
+
+    - Eric Marti updated the web ini edit option to allow non-admin users to
+    browse different categories.
+
+    - Delete lib/site/Digest/*SHA1.pm, as these older versions were causing
+    problems with Jabber.
+
+    - Kirk Bauer sent in mh/code/examples/mode_party.pl, to show how to set
+    up a party mode object.
+
+    - Added a 'Song and Dance' command to common/robot_robosapien.pl. He
+    speaks random fun words while dancing to the YMCA song!
+
+    - Kirk Bauer re-sent the read_record update that was supposed to be in
+    2.95
+
+    - Craig Schaeffer found that if we updated the MS V5 volume tag in
+    lib/Voice_Cmd.pm to a slightly different syntax, we could fix a problem
+    he was having with left and right volume control.
+
+    - Neil Cherry fixed lib/handy_net_utilites.pl to do a 'use Jabber' only
+    once, to avoide a problem with the Client function he was seeing.
+
+    - Kirk Bauer fixed state_final so it works even if state is not defined.
+
+    - Michael Grabowski noticed that a Group_Item X10 command addressed the
+    last object twice. He also discovered some incoming dim/bright data was
+    not being decoded properly.
+
+    - Axel Brown updated lib/Telephony_Interface.pm to work with NetCallerid
+    hooked to VoIP.
+
+    - David Satterfield fixed a few bugs in lib/Display_Alpha.pm
+
+    - Added the SSLeay module to mhe.exe on windows, so it can do get_url on
+    https (encrypted) web pages.
+
+    - Added a is_speaking 'any' option (i.e.
+    &Voice_Text::is_speaking('any')) so we can test for speaking on all
+    sound cards.
+
+    - Added a file_default function to allow for an easy way to use a
+    default file if an override does not exist.
+
+    - Added a eval_with_timer function to run some code after some delay:
+    eval_with_timer $code, $time. For example: eval_with_timer 'print_log
+    "hi from the past"', 60;
+
+  Version 2.95 posted on 09/25/2004
+    Version 2.95 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+
+    New Features:
+
     - Ant Skelton created mh/code/common/internet_irc.pl which allows
     MrHouse to talk to multiple channels and multiple users on multiple IRC
     servers.

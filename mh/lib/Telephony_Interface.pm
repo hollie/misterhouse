@@ -133,8 +133,8 @@ sub process_cid_data {
 #  ###DATE01061252...NMBR...NAME-UNKNOWN CALLER-+++
 #  ###DATE01061252...NMBR...NAME-PRIVATE CALLER-+++
 #  ###DATE...NMBR...NAME MESSAGE WAITING+++
-        ($date, $time, $number, $name) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.+?)\+*$/;
-        ($name)                        = $data =~ /NAME(.+?)\+*$/ unless $date;
+        ($date, $time, $number, $name) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.*?)\++$/;
+        ($name)                        = $data =~ /NAME(.*?)\++$/ unless $date;
     }
 # NCID data=CID:*DATE*10202003*TIME*0019*NMBR*2125551212*MESG*NONE*NAME*INFORMATION*
 # http://ncid.sourceforge.net/

@@ -967,6 +967,7 @@ sub http_speak_to_wav_start {
     else {
         $webmute = 1 if $config_parms{webmute};
     }
+    $webmute = 1 if $config_parms{webmute} eq 'always';
     return 0 if $webmute;
 
     $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
@@ -1015,7 +1016,7 @@ sub http_speak_to_wav_finish {
 |;
         }
         elsif ($format =~ /link/) {
-            $html .= "<a href='$wav_file'>Listen to wav</a>\n";
+            $html .= "&nbsp;&nbsp;<a href='$wav_file'>Listen to wav</a>\n";
         }
         elsif ($format =~ /bgsound/) {
             $html .= "\n<br><BGSOUND SRC='$wav_file' VOLUME=20>\n";
@@ -2855,6 +2856,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.93  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.92  2004/09/25 20:01:19  winter
 # *** empty log message ***
 #

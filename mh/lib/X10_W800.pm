@@ -75,8 +75,8 @@ sub check_for_data {
     # time.
     $new_data_time = $time unless defined $new_data_time;
 
-    # See if we have at least 4 bytes in the buffer.
-    my ($data, $remainder) = $main::Serial_Ports{W800}{data} =~ /(....)(.*)/;
+    # See if we have at least 4 bytes in the buffer.  (allow for 0x0A with /s)
+    my ($data, $remainder) = $main::Serial_Ports{W800}{data} =~ /(....)(.*)/s;
 
     # A valid command is 4 bytes long.  If we didn't get 4 bytes from the
     # serial stream, then we are not ready to process a command.
@@ -139,7 +139,7 @@ sub check_for_data {
     # 4.  For security data, byte 4 is not a checksum and does contain part of
     # the device ID.  Other devices, such as the Digimax 210, don't seem to
     # have checksums at all.  See X10_RF.pm for more details.
-    my @bytes = $data =~ /^(.)(.)(.)(.)$/;
+    my @bytes = $data =~ /^(.)(.)(.)(.)$/s;
 
     my $state = X10_RF::decode_rf_bytes('w800', @bytes);
 
@@ -168,6 +168,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.6  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.5  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #
@@ -182,4 +185,3 @@ sub check_for_data {
 # vim: sw=4
 
 1;
-

@@ -59,6 +59,8 @@ sub set_now {
 sub set_process {
     my ($self, $state, $set_by, $respond) = @_;
 
+    print "db set_process: s=$state sb=$set_by r=$respond\n" if $::Debug{set};
+
     # Check for tied or repeated states.
     return if &main::check_for_tied_filters($self, $state, $set_by);
 
@@ -255,11 +257,14 @@ sub state_changed {
                                 # be in after all pending states are processed
 sub state_final {
     my ($self) = @_;
-    if (@{$self->{state_next_pass}}) {
-        return $self->{state_next_pass}->[-1];
+    if (ref $self->{state_next_pass} eq 'ARRAY') {
+        if (@{$self->{state_next_pass}}) {
+            return $self->{state_next_pass}->[-1];
+        }
     }
     return $self->state();
 }
+
 
 sub state_log {
     my ($self) = @_;
@@ -309,7 +314,7 @@ sub set_with_timer {
     return if &main::check_for_tied_filters($self, $state);
 
                                 # If blank state, then we wanted the timed return_state only
-    $self->set($state) unless $state eq '';
+    $self->set($state, $self) unless $state eq '';
 
     return unless $time;
                                 # If off, timeout to on, otherwise timeout to off
@@ -329,7 +334,7 @@ sub set_with_timer {
 #   my $action = "set $object '$state_change'";
     my $action = "set $object '$state_change', $object";  # Set set_by to  itself??
 #   my $action = "&X10_Items::set($object, '$state_change')";
-#   print "db Setting x10 timer $x10_timer: self=$self time=$time action=$action\n";
+#   print "db in set_with_timer: state=$state rs=$return_state t=$time self=$self o=$object time=$time action=$action\n";
 #   $x10_timer->set($time, $action);
     &Timer::set($$self{timer}, $time, $action);
 }
@@ -464,6 +469,7 @@ sub set_states_for_this_pass {
 
 sub set_states_for_next_pass {
     my ($self, $state, $set_by, $target) = @_;
+    print "db set_states_for_next_pass: s=$state sb=$set_by t=$target\n" if $::Debug{set};
 
                 # Log states, process set_by and target
     ($set_by, $target) = &set_state_log($self, $state, $set_by, $target);
@@ -676,6 +682,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.41  2004/11/22 22:57:26  winter
+# *** empty log message ***
+#
 # Revision 1.40  2004/09/25 20:01:19  winter
 # *** empty log message ***
 #

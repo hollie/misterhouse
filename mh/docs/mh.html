@@ -121,9 +121,7 @@ The system requirements and installation instructions are detailed in
 <a href="faq.html">mh/docs/faq.html</a>
 <p>Paul Chamberlain has set up a
 <a href=http://tifster.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
-for other user-supplied documentation.
-Ron Klinkien also has a <a href=http://mrhousefromscratch.tk/> 'MisterHouse from Scratch' weblog site</a>
-with a nice collection of links, resources, notes and commentary.<p>
+for other user-supplied documentation.Gordon Meyer wrote a <a href="get_to_know_mh.html"> nice getting started article</a>.<p>
 </p>
 <hr />
 <h1><a name="description">DESCRIPTION</a></h1>
@@ -2682,7 +2680,7 @@ Calls up the web browser defined my the mh.ini browser parm
 </dd>
 <dd>
 <pre>
-    browser '<a href="http://misterhouse.net:81">http://misterhouse.net:81</a>';
+    browser '<a href="http://misterhouse.net">http://misterhouse.net</a>';
     browser &quot;$config_parms{tracking_dir}/today.html&quot; if said $v_show_tracking;</pre>
 </dd>
 <p></p>
@@ -2847,6 +2845,55 @@ If -tk 0 or the data is echoed to the console.</p>
 <dd>
 <p>If the data is requested from a web browser, the data is echoed to the browser print_log
 window.  It will be displayed to a local tk window only if the $time parm is specified.</p>
+</dd>
+<p></p>
+<dt><strong><a name="item_eval_with_timer">eval_with_timer</a></strong><br />
+</dt>
+<dd>
+Use this to run some code after some delay.
+</dd>
+<dd>
+<pre>
+  Usage:</pre>
+</dd>
+<dd>
+<pre>
+     eval_with_timer $code, $time;</pre>
+</dd>
+<dd>
+<pre>
+  Examples:</pre>
+</dd>
+<dd>
+<pre>
+    eval_with_timer 'print_log &quot;hi from the past&quot;', 60;
+    eval_with_timer '$Misc{insult}{flag} = 1', 2;  # Sets flag after 2 seconds</pre>
+</dd>
+<dd>
+<p>If you want to do this with an object state, use the set_with_timer method.</p>
+</dd>
+<p></p>
+<dt><strong><a name="item_file_default">file_default</a></strong><br />
+</dt>
+<dd>
+Checks to see if a file exists, and if not, returns a default file instead.
+</dd>
+<dd>
+<pre>
+  Usage:</pre>
+</dd>
+<dd>
+<pre>
+     file_default $file, $default;</pre>
+</dd>
+<dd>
+<pre>
+  Examples:</pre>
+</dd>
+<dd>
+<pre>
+    $f_insult = new  File_Item(&amp;check_default_file($config_parms{speak_insult_file},
+                               &quot;$config_parms{data_dir}/remarks/insults1.txt&quot;));</pre>
 </dd>
 <p></p>
 <dt><strong><a name="item_file_size">file_size</a></strong><br />
@@ -4930,7 +4977,7 @@ Creates a DBM for use by get_tv_info.
   Example:
     get_tv_grid -day 25 -hour 4pm -outfile my_tv.html
     get_tv_grid -days 7 -hour all
-    get_tv_grid -email bruce@misterhouse.net -mail_baseref misterhouse.net:8080</pre>
+    get_tv_grid -email bruce@misterhouse.net -mail_baseref misterhouse.net:8090</pre>
 </dd>
 <dd>
 <pre>
@@ -5003,7 +5050,7 @@ Creates a DBM for use by get_tv_info.
   Examples:
     get_tv_grid -day 25 -hour 4pm -outfile my_tv.html
     get_tv_grid -days 7 -hour all
-    get_tv_grid -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8080</pre>
+    get_tv_grid -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8090</pre>
 </dd>
 <dd>
 <pre>
@@ -5178,7 +5225,10 @@ file, it will read and execute its contents, then delete it.
     house speak hi there
     house display c:\autoexec.bat
     house Turn the backyard light on
-    house XAJAK</pre>
+    house XA1AJ</pre>
+</dd>
+<dd>
+<p>The last example will fire trigger an X10 command, but only if you have an object defined that matches that data (e.g. X10 A1 in the above example).</p>
 </dd>
 <p></p>
 <dt><strong><a name="item_ical_load">ical_load</a></strong><br />
@@ -5696,11 +5746,11 @@ You can specify the menu group (e.g. default or mh) when calling any of the
 menu interface subroutines.  For the above menu.pl, you can point your WAP phone to:</p>
 <pre>
   Either of these will get the 'default' test menu:
-    <a href="http://misterhouse.net:8080/sub?menu_wml">http://misterhouse.net:8080/sub?menu_wml</a>
-    <a href="http://misterhouse.net:8080/sub?menu_wml">http://misterhouse.net:8080/sub?menu_wml</a>(default)</pre>
+    <a href="http://misterhouse.net:8090/sub?menu_wml">http://misterhouse.net:8090/sub?menu_wml</a>
+    <a href="http://misterhouse.net:8090/sub?menu_wml">http://misterhouse.net:8090/sub?menu_wml</a>(default)</pre>
 <pre>
   This will get the auto-generated 'mh' entry for all voice commands:
-    <a href="http://misterhouse.net:8080/sub?menu_wml">http://misterhouse.net:8080/sub?menu_wml</a>(mh)</pre>
+    <a href="http://misterhouse.net:8090/sub?menu_wml">http://misterhouse.net:8090/sub?menu_wml</a>(mh)</pre>
 <p>Something like this could be used to create different menus for different LCD controllers:</p>
 <pre>
   $menu_standard = file_read 'standard.menu';
@@ -5932,7 +5982,7 @@ For example, add these to any of your code files:</p>
 <p>Or with this:</p>
 <pre>
  <a href="http://localhost:8080/SET;&amp;web_func2">http://localhost:8080/SET;&amp;web_func2</a>(myarg1,myarg2)</pre>
-<p>One example of a built in function is html_html, which will return html for one object.  For example:</p>
+<p>One example of a built in function is html_item, which will return html for one object.  For example:</p>
 <pre>
   &lt;!--#include code=&quot;&amp;html_item('v_what_speed')&quot;--&gt;
   &lt;!--#include code=&quot;&amp;html_item('mode_mh')&quot;--&gt;</pre>
@@ -6016,11 +6066,11 @@ Use '_' to replace blanks in the command string.</p>
  This will redirect the browser back to the calling page
  (note the $ from the $camera_light object is optional):</pre>
 <pre>
-  &lt;a HREF=&quot;<a href="http://misterhouse.net:8080/SET;Referer?camera_light=on">http://misterhouse.net:8080/SET;Referer?camera_light=on</a>&quot;&gt;Light on&lt;/a&gt;</pre>
+  &lt;a HREF=&quot;<a href="http://misterhouse.net:8090/SET;Referer?camera_light=on">http://misterhouse.net:8090/SET;Referer?camera_light=on</a>&quot;&gt;Light on&lt;/a&gt;</pre>
 <pre>
  This will redirect the browser to mh page ia5/lights/main.shtml page:</pre>
 <pre>
-  &lt;a HREF=&quot;<a href="http://misterhouse.net:8080/SET;referer/ia5/lights/main.shtml">http://misterhouse.net:8080/SET;referer/ia5/lights/main.shtml</a>?$camera_light=on&quot;&gt;Light on&lt;/a&gt;</pre>
+  &lt;a HREF=&quot;<a href="http://misterhouse.net:8090/SET;referer/ia5/lights/main.shtml">http://misterhouse.net:8090/SET;referer/ia5/lights/main.shtml</a>?$camera_light=on&quot;&gt;Light on&lt;/a&gt;</pre>
 <pre>
  This will redirect the browser to misterhouse.net</pre>
 <pre>
@@ -6031,7 +6081,7 @@ For example, if you want to get a directory listing, sorted by date (recent on t
   &lt;a href=<a href="http://localhost:8080/RUN;&amp;dir_index">http://localhost:8080/RUN;&amp;dir_index</a>('/pictures','date',1)&gt;List pictures by date &lt;/a&gt;</pre>
 <p>Here is an example of using a subroutine to generate html:</p>
 <pre>
-   <a href="http://misterhouse.net:8080/SUB;tellme_menu">http://misterhouse.net:8080/SUB;tellme_menu</a>(,,html)</pre>
+   <a href="http://misterhouse.net:8090/SUB;tellme_menu">http://misterhouse.net:8090/SUB;tellme_menu</a>(,,html)</pre>
 <p>You can also use a separate web server (e.g. Apache or ISS) to serve pages that control MisterHouse.
 For example:</p>
 <pre>
@@ -6163,9 +6213,11 @@ TaskInfo80, available at <a href="http://www.iarsn.com/index.html">http://www.ia
 <pre>
   config.sys:   shell=command.com /e:8000 /p
   autoexec.bat: set comspec=c:\command.com</pre>
-<p>If you want to use a program generated list in an Item declaration, you need to use add # noloop=start/stop
-comments before and after the code that should preceed the Item, or add a # noloop comment to the
-end for the record.  For example:</p>
+<p>By default, declaration code like '$object = new ...', or 'my $var = ...' is pulled
+out of the user loop code and put in the startup code, so it is only run once.
+If you want to force additional code out of the loop code, you can use add # noloop=start/stop
+comments before and after the code segment, or you can add a # noloop comment to the
+end of the record.  For example:</p>
 <pre>
                  # Example of noloop record comments
   my $weather_wind_gust_threshold=$config_parms{weather_wind_gust_threshold}; # noloop
@@ -6290,7 +6342,7 @@ and <a href="authors.html">a bunch of fellow home hackers</a><p>
 </p>
 <hr />
 <h1><a name="see_also">SEE ALSO</a></h1>
-<p>mh can be download from <a href="http://misterhouse.net:81">http://misterhouse.net:81</a></p>
+<p>mh can be download from <a href="http://misterhouse.net">http://misterhouse.net</a></p>
 <p>Here is a list of articles written about MisterHouse:</p>
 <pre>
   <a href="http://www.hometoys.com/htinews/jun99/articles/winter/winter.htm">http://www.hometoys.com/htinews/jun99/articles/winter/winter.htm</a></pre>

@@ -1,7 +1,7 @@
 
-# Category = Entertainment
+# Category = Robot
 
-#@ This code creates commands for controling the $100 RoboSapien Robot:
+#@ This code creates commands for controling the $80 RoboSapien Robot:
 #@ <a href=http://www.robosapienonline.com>robosapienonline.com</a>.
 #@ Currently setup to send IR signals via xAP (e.g. mh -> xAP -> xAP RedRat connector -> USB RedRat3 -> RoboSapien)
 #@ RedRat3 IR codes for the RoboSapien are available at <a href=http://www.redrat.co.uk/IR_Data.aspx>redrat.co.uk</a>.
@@ -35,13 +35,14 @@ my %robot_cmds1 = (
 
                      # Create other useful arrays
 # noloop=start
-my (%robot_cmds2, %robot_cmds3, %robot_cmds4);
+my (%robot_cmds2, %robot_cmds3, %robot_cmds4, %robot_cmds5);
 for my $cat (sort keys %robot_cmds1) {
     $robot_cmds2{$cat} = join ',', sort keys %{$robot_cmds1{$cat}};
                                     # Gather commands of various types
     for my $cmd (keys %{$robot_cmds1{$cat}}) {
         $robot_cmds3{$cmd} = $robot_cmds1{$cat}{$cmd} if $robot_cmds1{$cat}{$cmd} > 0 and $robot_cmds1{$cat}{$cmd} <= 10;
         $robot_cmds4{$cmd} = $robot_cmds1{$cat}{$cmd} if $cat =~ /(lean|right|left)/  and $robot_cmds1{$cat}{$cmd} <= 3;
+        $robot_cmds5{$cmd} = $robot_cmds1{$cat}{$cmd};
     }
 }
 # noloop=stop
@@ -110,13 +111,13 @@ if ($state = said $robot_sequence1) {
 }
 if (expired $robot_timer1) {
     if (my $cmd = shift @robot_sequence_cmds) {
-        speak $cmd;
+#       speak no_animate => 1, text => $cmd;
         set $robot $cmd;
-        set $robot_timer1 $robot_cmds3{$cmd};
-        print_log "Sending $robot_cmds3{$cmd} second robot cmd: $cmd";
+        set $robot_timer1 $robot_cmds5{$cmd};
+        print_log "Sending $robot_cmds5{$cmd} second robot cmd: $cmd.";
     }
     else {
-        speak "Robot sequence done";
+#       speak "Robot sequence done";
     }
 }
 
@@ -154,13 +155,14 @@ if ($state = state_now $xap_monitor_robot) {
                                 # Move random limbs while speaking
 
 &Speak_pre_add_hook(\&robot_speak_chime) if $Reload;
-my $robot_speaking_flag;
 sub robot_speak_chime {
     my %parms = @_;
     return if $parms{nolog};
+    return if $parms{no_animate};
+    return if $config_parms{robot_robosapien_speak_card} and $config_parms{robot_robosapien_speak_card} ne $parms{card};
     print "db robot speak hook: t=$Respond_Target parms=@_\n" if $Debug{robot};
     set $robot_timer3 .1;
-    $robot_speaking_flag = 1;
+    $Misc{robosapien}{speaking_flag} = 1;
 }
 
 $robot_timer3 = new Timer;
@@ -174,17 +176,51 @@ if (expired $robot_timer3) {
     my $cmd = $cmds[int rand(@cmds)];
 
     set $robot $cmd;
-    print $robot_speaking_flag;
-    set $robot_timer3 $robot_cmds4{$cmd} if $robot_speaking_flag;
+    print $Misc{robosapien}{speaking_flag};
+    set $robot_timer3 $robot_cmds4{$cmd} if $Misc{robosapien}{speaking_flag};
     print_log "Sending $robot_cmds4{$cmd} second robot cmd: $cmd" if $Debug{robot};
 }
 
 
-if ($New_Msecond_250 and $robot_speaking_flag) {
+if ($New_Msecond_250 and $Misc{robosapien}{speaking_flag}) {
     print '.';
-    if (!&Voice_Text::is_speaking() or $robot_speaking_flag++ > 120) {
+    if (!&Voice_Text::is_speaking($config_parms{robot_robosapien_speak_card}) or $Misc{robosapien}{speaking_flag}++ > 120) {
         print "*\n";
-        $robot_speaking_flag = 0;
+        $Misc{robosapien}{speaking_flag} = 0;
         stop $robot_timer3;
     }
+}
+
+
+$robot_song  = new Process_Item;
+$robot_dance = new Voice_Cmd '[start,stop] robot dance';
+if ($state = state_now $robot_dance) {
+    if ($state eq 'stop') {
+        stop $robot_song;
+        stop $robot_timer1;
+        stop $robot_speak_timer;
+        set $robot 'Stop';
+    }
+    else {
+        speak 'no_animate=1 Time to dance!';
+        set $robot_song "mplay32.exe  /play /close c:/misterhouse/sounds/ymca.mid";
+        start $robot_song;
+        @robot_sequence_cmds = qw(DanceDemo BackwardStep Burp BackwardStep High5 Demo2 BackwardStep);
+        set $robot_timer1 2;
+        set $robot_speak_timer 4;
+     }
+}
+
+                                # Speak random fun words while danceing
+$robot_words       = new File_Item "$config_parms{data_dir}/remarks/list_fun_words.txt";
+$robot_speak_timer = new Timer;
+if (expired $robot_speak_timer) {
+   speak no_animate => 1, no_chime => 1, text => read_random $robot_words;
+   if (@robot_sequence_cmds) {
+       set $robot_speak_timer 4;
+   }
+   else {
+       stop $robot_song unless @robot_sequence_cmds;
+       speak "I am tired of dancing."
+   }
 }

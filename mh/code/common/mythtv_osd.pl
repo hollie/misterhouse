@@ -31,14 +31,11 @@ if ($state = said $v_myth_osd) {
 
 
 
+$myth_osd = new  Socket_Item(undef, undef, $config_parms{myth_notify_address}, 'mythtv', 'udp');
 
-my $myth_notify_address = '192.168.0.14:6948';
-
-$myth_osd = new  Socket_Item(undef, undef, $myth_notify_address, 'mythtv', 'udp');
-    
 sub display_mythosd {
   my ($text) = @_;
-   
+
    start $myth_osd unless (active $myth_osd);
    set $myth_osd <<EOT;
 <?xml version="1.0"?>
@@ -46,4 +43,3 @@ sub display_mythosd {
 EOT
 
 }
-

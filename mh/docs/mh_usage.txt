@@ -1284,3 +1284,8 @@ Tue 09/21/04 14:44:41 city=Berlin state=Germany name=Richard Klein
 Thu 09/23/04 17:06:36 city=nchen state=Germany name=
 Thu 09/23/04 19:16:17 city=groningen state=netherlands name=netherlands
 Sat 09/25/04 02:04:15 city=Ft. Myers state=FL name=Joe
+Sat 09/25/04 18:40:26 city=Acoz state=Belgium name=
+Sat 09/25/04 19:49:02 city=sunrise state=fl name=jeff
+Mon 09/27/04 14:34:16 city=Memphis state=TN name=
+Fri 10/01/04 07:14:19 city=Klazienaveen state=Netherlands name=Jasper
+Sat 10/02/04 19:21:38 city=Calgary state=Alberta name=
