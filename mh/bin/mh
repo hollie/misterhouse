@@ -459,7 +459,7 @@ sub setup {
         $datatype = 'buffered' if $port_name eq 'http';
         $datatype = 'buffer'   if $config_parms{$port_name . "_buffer"}; # Grandfathered syntax
 
-        printf " - creating %-15s on %5s %s\n", $port_name, $proto, $port;
+        printf " - creating %-15s on %3s %5s %s\n", $port_name, $proto, $port, $datatype;
 
         $Socket_Ports{$port_name}{protocol} = $proto;
         $Socket_Ports{$port_name}{datatype} = $datatype;
@@ -1125,8 +1125,8 @@ sub check_for_socket_data {
         }
 
         if ($Socket_Ports{$port_name}{datatype} and $Socket_Ports{$port_name}{datatype} eq 'raw') {
-            $Socket_Ports{$port_name}{data} = $data;  # No not break data on newlines
-            return;
+            $Socket_Ports{$port_name}{data_record} = $data;  # No not break data on newlines
+            next;
         }
 
         if (my $echo = $config_parms{"${port_name}_echo"}) {
@@ -3646,6 +3646,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.26  2000/08/11 00:47:46  danal
+# Fix bug in "datatype=raw" socket ports
+#
 # Revision 2.25  2000/08/09 03:38:36  winter
 # - fix $cpu test and improve my_str2time error msg
 #
