@@ -1,0 +1,318 @@
+#!/usr/bin/perl
+#  Last change Time-stamp: <1999-12-31 08:51:39 winter>
+#---------------------------------------------------------------------------
+#  File:
+#      outlook_read
+#  Description:
+#      See help text below
+#  Author:
+#      Bruce Winter    bruce@misterhouse.net   http://misterhouse.net
+#  Latest version:
+#      http://misterhouse.net/mh/bin
+#  Change log:
+#    ??/97  Created.
+#    12/99  Allow for and default to Outlook '98.
+#
+#  Related info:
+#    OLE calls are a trick to figure out.  The methods for 
+#    searching for Calendar entries changed between Outlook '97 and 
+#    Outlook '98.  Here are some links with a few hints:
+#
+#    Outlook 97 links:
+#       hhtp://support.microsoft.com/support/kb/articles/Q182/6/14.ASP
+#       http://support.microsoft.com/support/kb/articles/Q170/2/62.asp
+#       Z:\VALUPACK\MOREHELP\Vbaoutl.hlp
+#
+#    Outlook 98 links:
+#       http://support.microsoft.com/support/kb/articles/Q178/5/08.ASP
+#       http://www.cdolive.com/cdo10.htm 
+#       http://go.to/mailfaq  (Question 8.5)
+#       z:/VALUPACK/CDO/CDO.hlp (search on Calendar and AppointmentItem)
+#
+#    Looks like Outlook 2000 works like Outlook 97 !?!
+#
+#---------------------------------------------------------------------------
+
+use strict;
+my($Pgm_Path, $Pgm_Name, $Version);
+BEGIN {
+    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+}
+
+use Getopt::Long;
+my (%parms);
+if (!&GetOptions(\%parms,
+                 "version=s",
+                 "folder=s",
+                 "quiet",
+                 "debug",
+                 "pl_file=s",
+                 "date=s", "days=s", "date_end=s",
+                 "h", "help") or
+    @ARGV > 0 or $parms{h} or $parms{help}) { 
+    print<<eof;
+   
+$Pgm_Name reads Outlook folder data and optionally creates
+a mh code file to implement calendar events.
+
+  Version: $Version
+
+  Usage:
+    $Pgm_Name [options] 
+
+  Options:
+    -help    -> help text
+
+    -version xyz -> Version of Outlook.  Use 98 if you have Outlook 98.
+
+    -quiet       -> do not echo data to STDOUT
+    -debug       -> print out debug
+
+    -folder xyz  -> Get data from folder xyz.  It can be one of the following:
+                      Deleted, Outbox, SentMail, Inbox, Calendar (default),
+                      Contacts, Journal, Notes, Tasks
+
+    -pl_file xyz -> Write out a mh perl code file.  These are the various
+                    formats of Calendar subjects:
+
+                      vcr channel_num show_name (e.g. VCR 8 Dilbert)
+                      voice_command  (e.g. Christmas lights on)
+                      message_to_speak (e.g. Today is national geek day)
+
+                    Note:  If the text is not a vcr or voice_command, it
+                           will be treated as a messages.
+ 
+    -date xyz    -> Get data with a start_time on date xyz.  Default is today.
+    -date_end xyz-> Get data with a start_time between -date and -date_end
+    -days xyz    -> Look out xyz days from -date.  Default is 1 day.
+
+
+  Examples:
+    $Pgm_Name -help
+    $Pgm_Name -version 98 -date 1/17
+    $Pgm_Name -date 12/25/97 -days 2
+    $Pgm_Name -pl_file /projects/mhcode/outlook_events.pl
+    $Pgm_Name
+
+eof
+  exit;
+}
+
+my($items);                     # Globals
+
+&setup;
+&find_items;
+
+sub setup {
+                                # Use EVENTS to run OLE as a single-threaded apartment, so MAPI.Session works
+    use Win32::OLE qw(EVENTS);
+
+    require 'handy_utilities.pl'; # For misc. functions (e.g. time/date stamp routines)
+
+                                # Apparently the 97 way also works for Outlook 2000, so let that be the default.
+    $parms{version} = '97' unless $parms{version};
+    $parms{version} = '97' if $parms{version} eq '2000';
+
+                                # O97 data, commented out, from help on "Outlook Constants" in  Z:\VALUPACK\MOREHELP\Vbaoutl.hlp
+                                # O98 data, from http://www.cdolive.com/cdo10.htm 
+    my %ol_folder;
+    if ($parms{version} eq '97') {
+        %ol_folder = (Deleted => 3,
+                      Outbox  => 4,
+                      SentMail=> 5,
+                      Inbox   => 6,
+                      Calendar=> 9,
+                      Contacts=> 10,
+                      Journal => 11,
+                      Notes =>   12,
+                      Tasks =>   13);
+    }
+    else {
+        %ol_folder = (Deleted => 4,
+                      Outbox  => 2,
+                      SentMail=> 3,
+                      Inbox   => 1,
+                      Calendar=> 0,
+                      Contacts=> 5,
+                      Journal => 6,
+                      Notes =>   7,
+                      Tasks =>   8);
+    }
+
+
+                                # Setup the defaults
+    $parms{folder} = 'Calendar' unless $parms{folder};
+    my $folder_number = $ol_folder{$parms{folder}};
+    $parms{date} = &time_date_stamp(11) unless $parms{date}; # Returns mm/dd/yy
+    $parms{date_end} = $parms{date} unless $parms{date_end};
+    $parms{date_end} = &time_date_stamp(11, time + 3600*24*$parms{days}) if $parms{days};
+
+    print "Searching $parms{folder} num=$folder_number: Start: $parms{date}  Stop: $parms{date_end}\n\n" unless $parms{quiet};
+
+    my ($Outlook, $folder);
+    if ($parms{version} eq '97') {
+        my $Outlook0 = Win32::OLE->new('Outlook.Application') or 
+            die "Error, could not create Outlook object: \n  ", Win32::OLE->LastError;
+        $Outlook  = $Outlook0->GetNamespace("MAPI") or 
+            die "Error, could not find Outlook MAPI namespace: \n  ", Win32::OLE->LastError;
+    }
+    else {
+        $Outlook = Win32::OLE->new('MAPI.Session') or
+            die "Error, could not create Outlook object:\n  ", Win32::OLE->LastError;
+        $Outlook->Logon;
+    }
+
+    my $folder = $Outlook->GetDefaultFolder($folder_number) or 
+        die "Error, could not find folder $parms{folder} = $folder_number:\n  ", Win32::OLE->LastError;
+
+    if ($parms{version} eq '97') {
+        $items = $folder->Items or die "Error, could not find items in folder $parms{folder}:\n  ",Win32::OLE->LastError;
+        $items->{IncludeRecurrences} = 1; # Lets us see recurring items
+        $items->Sort("[Start]");
+    }
+    else {
+        $items  = $folder->Messages or die "Error, could not find items in folder $parms{folder}:\n  ",Win32::OLE->LastError;
+    }
+
+    print "folder=$parms{folder},folder_number=$folder_number,folder=$folder,items=$items\n\n" if $parms{debug};
+   
+    open (PL, ">$parms{pl_file}") or die "Error, could not open PL_File $parms{pl_file} for output: $!\n" if $parms{pl_file};
+    
+}
+
+sub find_items {
+                                # Find first appointment matching the criteria
+    my ($item);
+    if ($parms{version} eq '97') {
+        my $criteria;
+        if ($parms{folder} eq 'Calendar') {
+            my $criteria = qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
+        }
+        $item = $items->Find($criteria); 
+        print "item=$item items=$items  crit=$criteria\n" if $parms{debug};
+    }
+    else {
+        if ($parms{folder} eq 'Calendar') {
+            my $filter = $items->Filter;
+            $filter->Fields->Add(0x00610040, "$parms{date} 12:00 AM");
+            $filter->Fields->Add(0x00600040, "$parms{date_end} 11:59 PM");
+        }
+        $item = $items->GetFirst;
+    }
+
+                                # Loop thru all matching entries
+    while ($item) {
+        my $subject = $item->Subject;
+
+        my ($start, $end);
+        if ($parms{version} eq '97') {
+            $start = $item->Start;
+            $end   = $item->End;
+        }
+        else {
+            $start = $item->StartTime;
+            $end   = $item->EndTime;
+        }
+                                # Delete seconds off of start and end times
+        $start =~ s/\:\d\d / /;
+        $end   =~ s/\:\d\d / /;
+        
+        printf ("start=%15s end=%15s   subject=%s\n\n", $start, $end, $subject) unless $parms{quiet};
+
+        if (my($channel, $show) = $subject =~ /^ *vcr +(\d+) +(.+)/i) {
+            &create_vcr_event($start, $end, $channel, $show);
+        }
+        else {
+            &create_other_event($start, $subject);
+        }
+
+        if ($parms{version} eq '97') {
+            $item = $items->FindNext;
+        }
+        else {
+            $item = $items->GetNext;
+        }
+    }
+}
+
+sub create_vcr_event {
+    my ($start, $end, $channel, $show) = @_;
+    
+    my $channel_commified;
+    if (length($channel) == 1) {
+        $channel_commified = "0,$channel";
+    }
+    else {
+        $channel_commified = substr($channel,0,1) . "," . substr($channel,1,1);
+    }
+    
+    print "VCR on channel $channel from $start to $end\n" unless $parms{quiet};
+
+    if ($parms{pl_file}) {
+        my $string =<<eof;
+if (time_now '$start - 00:02') {
+   speak "rooms=all \$Time_Now. VCR recording will be started in 2 minutes for $show on channel $channel";
+}
+if (time_now '$start') {
+   run('min', 'IR_cmd VCR,$channel,RECORD');
+}
+if (time_now '$end') {
+   run('min', 'IR_cmd VCR,STOP');
+}
+eof
+        print PL $string;
+    }
+}
+
+sub create_other_event {
+    my ($start, $subject) = @_;
+
+                                # If no time is specified, pick a default ... not midnight :)
+    unless ($start =~ /:/) {
+        $subject = "Today is $subject";
+        $start  .= " 12:00 PM";
+    }
+
+                                # If it is a command, run it, otherwise speak it.
+    my $string =<<eof;
+if (time_now '$start') {
+   if (run_voice_cmd q[$subject]) {
+      print_log q[Running Outlook command: $subject];
+   }
+   else {
+      speak qq[rooms=all Notice: It is \$Time_Now. $subject];
+   }
+}
+                                # Give an early warning of spoken events
+if (time_now '$start - 00:15') {
+   unless (run_voice_cmd q[$subject]) {
+      speak qq[rooms=all Notice: It is \$Time_Now.  In 15 minutes, $subject];
+   }
+}
+
+eof
+    print PL $string;
+}
+
+__END__
+
+
+#
+# $Log$
+# Revision 1.1  2000/01/19 13:59:24  winter
+# Initial revision
+#
+# Revision 1.3  2000/01/02 23:41:30  winter
+# - minor changes.
+#
+# Revision 1.2  1999/12/12 02:03:09  winter
+# - cleaned up the help text and error checking
+#
+# Revision 1.1  1999/12/11 23:28:50  winter
+# - Re-wrote, adding Outlook '98
+#
+# 
+

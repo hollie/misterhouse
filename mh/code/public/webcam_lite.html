@@ -1,0 +1,36 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+ <title>WebCamLite</title>
+</head>
+ 
+<body>
+<h5><FONT COLOR="BLUE">FOLLOWING COMMANDS ONLY WORK WHEN WE ARE ONLINE!</font></h5>
+<MAP NAME="REMOTE"
+>
+<!-- #$GIF:remote.jpg -->
+<AREA SHAPE=RECT COORDS="24,32,40,45" HREF="http://%%IP%%:8080/RUN:light1on.html?WebCam_light_on">
+<AREA SHAPE=RECT COORDS="64,32,82,45" HREF="http://%%IP%%:8080/RUN:light1off.html?WebCam_light_off">
+<AREA SHAPE=RECT COORDS="24,67,38,77" HREF="http://%%IP%%:8080/RUN:light2on.html?WebCam_light2_on">
+<AREA SHAPE=RECT COORDS="67,69,79,83" HREF="http://%%IP%%:8080/RUN:light2off.html?WebCam_light2_off">
+<AREA SHAPE=RECT HREF="webcamlite.html" 
+              coords=0,0,0,0>
+</MAP>
+<img src="remote.jpg" width=104 height=156 alt="" border="0" useMap=#REMOTE>
+<br>
+<p>
+<hr>
+ 
+
+<FORM ACTION="http://%%IP%%:8080/SET_VAR:voice.html"><i>Voice,  Yes Voice a message to us below</i>:
+<br>
+<i><b>Enter Text here:</b></i>
+<br>
+<TEXTAREA rows="5" cols="15" NAME="$Save{web_text1}"></TEXTAREA>
+<br>
+<input type="submit" value="Send Voice Msg">
+</center>
+</form>
+<i><font color="red">Special Note: When we are offline you will probably get an error page so just hit your BACK button to return to normal.</font></i>
+</body>
+</html> 

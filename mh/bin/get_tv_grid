@@ -1,0 +1,464 @@
+#!/usr/bin/perl
+#  Last change Time-stamp: <1999-12-20 19:12:35 winter>
+#---------------------------------------------------------------------------
+#  File:
+#      get_tv_grid
+#  Description:
+#      See help text below
+#  Author:
+#      Bruce Winter    bruce@misterhouse.net   http://misterhouse.net
+#  Latest version:
+#      http://misterhouse.net/mh/bin
+#  Change log:
+#    04/25/98  Created.
+#
+#---------------------------------------------------------------------------
+use strict;
+my($Pgm_Path, $Pgm_Name, $Version);
+BEGIN {
+    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+}
+my %parms;
+use Getopt::Long;
+if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "reget", "redo",
+                 "channels=s", "userid:s", "debug", "label", "keep_old",
+                 "mail_to=s", "mail_server=s", "mail_baseref=s",
+                 "days=s", "day=s", "hour=s") or @ARGV or
+    ($parms{h} or $parms{help})) {
+    print<<eof;
+$Pgm_Name gets a TV grid/schedule from the web (clicktv.com) and changes so
+it to be used by the MisterHouse program to create VCR and TV event reminders.
+Creates a DBM for use by get_tv_info.
+  Version: $Version
+  Usage:
+   $Pgm_Name [options]
+    -h        => This help text
+    -help     => This help text
+    -userid xyz   => xyz is your clicktv userid.  Go to http://clicktv.com  to 
+                     create one, or to find the generic one that matches your
+                     local tv schedule.
+    -day xyz      => xyz is the day  to get/filter.  Default is today.
+    -hour xyz     => xyz is the hour to get/filter.  Default is 6pm.  Can also
+                     be 'all' to get all hours.
+    -days xyz     => xyz is the number of days to get/filter, starting 
+                     with -day.
+    -channels xyz => xyz is the number of channels to filter.  Default is 999.
+    -infile  xyz  => xyz is  original input file.   Default is 
+                     web/tv/clicktv/day_hour.html.  If this file is missing
+                     or old, a new file will be retreived from the web.
+    -outfile xyz  => xyz the filtered output file.  Default is 
+                     web/tv/day_hour.html
+    -label xyz    => Use xyz as the link lable.  Default is "Set the Vcr".
+    -reget        => Re-read  the clicktv web page, even if a recent file it
+                     already exists.
+    -redo         => Re-write -outfile xyz, even if it already exists.
+    -keep_old     => Do NOT delete data from the DBM that is one month older 
+                     than todays date
+    -debug        => turn on debug info
+
+    -mail_to      xyz => Will email the charts to xyz
+    -mail_server  xyz => xyz is the SMTP host.  Default is localhost
+    -mail_baseref xyz => xyz is the http address of your mh server.  Needed if
+                         you want to control mh from the emailed web page
+  Example:
+    $Pgm_Name -day 25 -hour 4pm -outfile my_tv.html
+    $Pgm_Name -days 7 -hour all
+    $Pgm_Name -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8080
+eof
+  exit;
+}
+                                # Globals
+my (@days, @hours, $infile, $outfile, %DBM, %DBM2);
+my %config_parms;
+&setup;
+for my $day_data (@days) {
+    my ($down, $dow, $day, $month, $year, $day_time) = split(' ', $day_data);
+    for my $hour (@hours) {
+        print "Checking day=$day hour=$hour\n" if $parms{debug};
+        $outfile = "$config_parms{html_dir}/tv/${day}_$hour.html" unless $parms{outfile};
+        if ($parms{redo} or !(-e $outfile) or (8 < -M $outfile) or (4000 > -s $outfile)) {
+            &get_url($hour, $day, $month, $year);
+            &filter_url_clicktv($hour, $down, $dow, $day, $month, $year, $day_time);
+        }
+        if ($day == (localtime(time))[3] and $hour >= 17 and $hour < 20) {
+            use File::Copy;
+            copy($outfile, "$config_parms{html_dir}/tv/index.html");
+            if ($parms{mail_to}) {
+                &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "TV Schedule for $dow, $month/$day/$year");
+            }
+        }
+    }
+    &delete_old_data unless $parms{keep_old};
+}
+dbmclose %DBM;
+dbmclose %DBM2;
+sub get_url {
+    my ($hour, $day, $month, $year) = @_;
+# Tv Guide pages now require cookies ... couldn't get it to accept LWP cookies :(
+#        http://www.tvgen.com/tv/listings/editions/mn/g25.sml#premium
+#        http://www.tvgen.com/tv/listings/editions/mn/g25.sml#premium
+#   $request = "$parms{state}/${hour}$day.sml";
+#   my $url="http://www.tvgen.com/tv/listings/editions/$request";
+# clicktv does not require cookies :)
+                                # Format before 8/18/1999
+#                                                userid     m dd yyyy     hh
+#     http://www.clicktv.com/listings.cfm?ctv_user_id=132602&gDY=9A16A1998&gRT=22&gCH=1
+                                # Format after  8/18/1999
+#                                                       userid                   ??          m dd yyyy       hh
+#http://listings.clicktv.com/listings.asp?profileID=%247A%247B%2489%247A&WSN=WSERVER10&gDate=8A31A1999&gHour=20&gChRow=1
+#http://listings.clicktv.com/listings.asp?profileID=%247A%247B%2489%247A&cid=tvd
+    $infile = $parms{infile};
+    $infile = "$config_parms{html_dir}/tv/clicktv/${day}_$hour.html" unless $infile;
+                                # File must exist, be younger than a week old, and have > 1k bytes
+    if ((-e $infile) and (8 > -M $infile) and (4000 < -s $infile) and !$parms{reget}) {
+        print "Reusing file: $infile\n";
+    }
+    else {
+                                # Pre 8/28/1999 request
+#       my $request = "$parms{userid}&gDY=${month}A${day}A${year}&gRT=${hour}&gCH=1";
+#       my $url="http://clicktv.com/listings.cfm?ctv_user_id=$request";
+                                #  - need to see what WSERVER## to pick ??
+        my $request = "$parms{userid}&WSN=WSERVER10&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
+        my $url="http://listings.clicktv.com/listings.asp?profileID=$request";
+        print "Requesting url: $url\n";
+        use LWP::Simple;
+        my $html = get $url;
+        if ($html) {
+            open (FILE, ">$infile") or die "Could not open html output file $infile: $!\n";
+            print FILE $html;
+            close FILE;
+            print "data stored in $infile\n";
+        }
+        else {
+            print "\nError, no data retreived from: $url\n\n";
+        }
+    }
+}
+sub filter_url_clicktv {
+    my ($hour, $down, $dow, $day, $month, $year, $day_time) = @_;
+    my $min = $hour*60;
+    open (IN, "$infile") || die "Error, could not open file $infile: $!\n";
+    open (OUT, ">$outfile") || die "Error, could not open file $outfile: $!\n";
+    print "Reading $infile to $outfile\n" if $parms{debug};
+    print OUT<<eof;
+<HTML>
+<HEAD>
+<TITLE>TV Schedule for $dow, $month/$day.$year</TITLE>
+</HEAD>
+<body bgcolor=gray>
+eof
+    my ($record, $record_prev, $script, $script_flag, $data_flag, $count1, $count2, $count3);
+    $count1 = $count2 = $count3 = 0;
+    while (<IN>) {
+        $count1++;
+#<script language="JavaScript">
+#<!--
+                                # Pull out javascript stuff
+        $script_flag = 1 if /<script language=/i;
+        $_ =~ s|([a-z]+\.asp\?)|http://listings.clicktv.com/$1|g if $script_flag;
+#       $_ =~ s|window.open\("detail.cfm|window.open\("http://clicktv.com/detail.cfm| if $script_flag;
+        $script .= $_ if $script_flag;
+        $script_flag = 0 if /<\/script/i;
+                                # Look for start of good stuff ... looks like this
+#<TABLE CELLSPACING = 1 CELLPADDING =
+#<tr><th colspan = 2  bgcolor="#CCCCC
+        if (!$data_flag and $record_prev =~ /^\<TABLE / and $_ =~ /^\<tr/) {
+            print "Found start of TV grid\n" if $parms{debug};
+            $data_flag = 1;
+            print OUT $script if $script;
+            &make_index($hour, $down, $day, $day_time);
+            print OUT $record_prev;
+            print OUT $_;
+            next;
+        }
+        $record_prev = $_;
+                                # From here on is the TV grid data
+        next unless $data_flag;
+        $record = $_;
+        $count2++;
+                                # Point to local gifs
+#  /ctv30/_images/stars_8.gif
+#  /ctv30/_images/nav/grid_cont1.gif
+        $record =~ s|/ctv.+?([^/]+?.gif)|/tv/clicktv/$1|g;
+#size="1"><a href="javascript: PDetail(2560515,104)">This Old House</a>
+                                # Point to remote tv discriptions
+                                #  - I don't know why we don't get the nifty javascript popups here :(
+                                #    and I don't know how to translate from url to the 2 javascript nubmers.
+#       $record =~ s|(detail\.asp\?)|javascript: PDetail(2560515,104)/$1|g;
+        $record =~ s|([a-z]+\.asp\?)|http://listings.clicktv.com/$1|g;
+                                # Find channel number and name
+#>2&nbsp;<NOBR>KTCA
+        my ($channel_number, $channel_name) = $record =~ /\> *(\d+) *\&nbsp; *<NOBR>(\S*?)\</;
+        last if $channel_number > $parms{channels};
+                                # Loop on each program for this channel
+        my @data_pgm = split('<td', $record);
+        print "channel = $channel_number, $channel_name, programs=", @data_pgm+0, "\n" if $parms{debug};
+        my $first = 1;
+        my $min_start = $min;
+        while (my $pgm = shift @data_pgm) {
+            my ($min_pgm) = $pgm =~ /colspan="(\d+)"/;
+            $min_pgm *= 30;
+            my $min_end = $min_start + $min_pgm;
+# Old pre-8/99 style
+# <font size="2"><a href="Javascript:PDetail(2996015,104)"> Newshour With Jim
+# <font size="2"><a href="detail.cfm?ctv_user_id=132602&Chan_ref=1315&prog_ref=1307500&gDY=7A4A1999&gRT=18&gCH=1"> Newshour With Jim
+# New style
+# <font face="Tahoma, Arial, Helvetica, sans-seri" color="#000000" size="2">
+#   <a href="detail.asp?profileID=%247A%247B%2489%247A&WSN=WSERVER13&gDate=8A31A1999&gHour=18&gChRow=0&gChRef=0&prog_ref=3082829">
+#   48 Hours</a>  <i>On the Edge of Your Seat</i> <font face="Tahoma, Arial, Helvetica, sans-seri" color="000000" size="2">Scheduled: female sky d ...
+            my ($pgm_name, $pgm_desc);
+            ($pgm_name, $pgm_desc) = $pgm =~ /profileID.+> *(.+?) *<\/a> *(.+) *<\/td>/ unless $pgm_name;
+            if ($pgm_name) {
+                $count3++;
+                                # Clean up the program description
+                $pgm_desc =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
+                $pgm_desc =~ s/  / /g;     # Drop extra spaces
+                my $pgm_name_html = $pgm_name;
+                $pgm_name_html =~ tr/ /_/;
+                                # Set program times/dates
+                my $time_start = &min_to_hour($min_start);
+                my $time_end   = &min_to_hour($min_end);
+                my $pgm_date = "$month/$day";
+                print "db $pgm_name, $min_pgm, $min_start, $min_end, $time_start, $time_end, $pgm_date\n" if $parms{debug};
+                                # Insert the mh link
+                my $vcr_ref =
+                    "<a href='/SET:last_spoken?\$tv_grid?channel_${channel_number}_from_${time_start}" .
+                        "_to_${time_end}_on_${pgm_date}_for_${pgm_name_html}'>$parms{label}</a>";
+                $pgm =~ s|<a href=|$vcr_ref for <a href=|;
+                                # Store the data in the DBM
+                my $db_key = join($;, $channel_number, $pgm_date, $time_start);
+                my $db_data= join($;, $time_end, $pgm_name, $pgm_desc);
+                $DBM{$db_key} = $db_data;
+                $DBM2{$channel_number} = $channel_name;
+                print "db key=$db_key\n  data=$db_data\n" if $parms{debug};
+            }
+            print OUT "\n<td" unless $first;
+            $first = 0;
+            print OUT $pgm;
+            $min_start = $min_end;
+        }
+    }
+    print "$count1 records with $count2 grid rows were read.  $count3 programs stored.\n";
+    close IN;
+    close OUT;
+}
+                                # Create the index table, for the next 2 weeks, and for other hours in this day
+sub make_index {
+    my ($hour, $down, $day, $day_time) = @_;
+    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td bgcolor=123456 align=left>\n";
+    print OUT "<font face=arial size=+1 color=white> TV Listings</td><td bgcolor=123456 align=right>";
+    print OUT "<FORM TARGET='mh_main'>";
+    print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'mh_main')>";
+    my $dow_start = -$down - 7;
+    my $dow_stop  = $dow_start + 20;
+    for my $count ($dow_start .. $dow_stop) {
+        my ($dow2n, $dow2, $day2, $month2, $year2) = &days_from_now($day_time, $count);
+        print OUT "<option value='/tv/${day2}_$hour.html'";
+        if ($day2 == $day)  {
+          print OUT " Selected ";
+        }
+        print OUT ">$dow2, $month2/$day2\n";
+    }
+    print OUT "</select>\n";
+    print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'mh_main')>";
+
+#   for my $hour2 (2, 6, 10, 14, 18, 22) {
+    for my $hour2 (@hours) {
+        my $hour2_ampm;
+        if ($hour2 > 11) {
+            $hour2_ampm = $hour2 - 12 . " pm";
+        }
+        else {
+            $hour2_ampm = $hour2 . " am";
+        }
+#       $hour2_24 = '0' . $hour2 if $hour2 < 10;
+
+         print OUT "<option value='/tv/${day}_${hour2}.html'";
+         if ($hour2 == $hour)  {
+           print OUT " Selected ";
+         }
+
+         print OUT ">$hour2_ampm\n";
+
+#        print OUT "<td align=center bgcolor=white><a href=/tv/${day}_${hour2}.html>$hour2_ampm</a><td>\n";
+    }
+    print OUT "</select></td>\n";
+    print OUT "</tr>\n</table></form><center>\n";
+}
+                                # Delete data from 4 weeks ago
+sub delete_old_data {
+    my ($down, $down, $day, $month) = &days_from_now(time, -28);
+    my $pgm_date = "$month/$day";
+    print "Deleteing old data for $pgm_date ...";
+    my @channels = keys %DBM2;
+    for my $channel_number (@channels) {
+        for my $hour (00 .. 23) {
+            for my $min ('00', '30') {
+                my $db_key = join($;, $channel_number, $pgm_date, "$hour:$min");
+                print "deleteing $db_key\n" if $parms{debug};
+                delete $DBM{$db_key};
+            }
+        }
+    }
+    print " data deleted.\n";
+}
+sub min_to_hour {
+    my ($min) = @_;
+    my $hour = int($min / 60);
+    $min = $min - $hour * 60;
+    return sprintf("%d:%02d", $hour, $min);
+}
+sub days_from_now {
+    my ($day_time, $days) = @_;
+#   $day_time = time if $parms{day}; # Need to do a string to time thing here.
+    my $day_time2 = $day_time + $days * 60 * 60 * 24;
+    my ($day, $month, $year, $down) = (localtime($day_time2))[3,4,5,6];
+    my $dow = (qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday))[$down];
+#   $month= (January,February,March,April,May,June,July,August,Septermber,October,November,December)[$month];
+    $month++;
+    $year += 1900;
+    $day = sprintf("%02d", $day);
+    return ($down, $dow, $day, $month, $year, $day_time2);
+}
+                                # Email default page
+sub mail_file {
+    my ($mailto, $mailserver, $file, $subject) = @_;
+    $mailserver = 'localhost' unless $mailserver;
+    $parms{mail_baseref} = 'localhost' unless $parms{mail_baseref};
+    print "Mailing $file to $mailto\n";
+    eval "use MIME::Lite";
+    if ($@) {
+        print "To use email, you need to install MIME::Lite\n";
+        print " - linux: perl -MCPAN -eshell    install MIME::Lite\n";
+        print " - windows: ppm -install MIME-Lite\n";
+        return;
+    }
+    my $date = localtime;
+                                # Modify the html so it has a BASE HREF and the links work in a mail reader
+    my $html = &file_read($file);
+    $html =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{mail_baseref}">|i;
+
+    my $message = MIME::Lite->new(From => $Pgm_Name,
+                                  Subject => $subject,
+                                  Type  => 'text/html',
+                                  Encoding => '8bit',
+                                  Data => $html,
+#                                 Path => $file,
+                                  Filename => 'tv_grid.html',
+                                  To => $mailto);
+    if ($^O eq "MSWin32") {
+        print "Using built in smtp code with server $mailserver\n";
+        MIME::Lite->send('smtp', $mailserver, Timeout => 20);
+    }
+    print "Sending report to $mailto\n";
+    $message->send;
+    return;
+}
+sub setup {
+    require 'handy_utilities.pl';       # For read_mh_opts funcion
+    &main::read_mh_opts(\%config_parms, $Pgm_Path);
+#   $parms{userid} = '132602' unless $parms{userid};
+    $parms{userid} = '%247A%247B%2489%247A' unless $parms{userid};
+    $parms{channels} = '999' unless $parms{channels};
+    $parms{days} = 1 unless $parms{days};
+    $parms{redo} = 1 if $parms{reget};
+#   $parms{label} = "Set the VCR" unless $parms{label} # This can also be an image link
+    $parms{label} = "VCR" unless $parms{label};
+#   $parms{label} = qq[<img src="/tv/vcr.jpg">] unless $parms{label};
+    for my $count (0 .. $parms{days}-1) {
+        my @day_data = &days_from_now(time, $count);
+        push(@days, "@day_data"); # $dow $month $day $year");
+    }
+    $parms{hour} = '6pm' unless $parms{hour};
+    if (lc($parms{hour}) eq 'all') {
+        @hours = qw(02 06 10 14 18 22);
+    }
+    elsif (lc($parms{hour}) eq 'all_by_3') {
+        @hours = qw(02 05 08 11 14 17 20 23);
+    }
+    elsif (1 < (@hours = split(',', $parms{hour}))) {
+    }
+    else {
+        my ($hour, $am_pm) = $parms{hour} =~ /(\d+) *(\S*)/;
+        $hour += 12 unless lc($am_pm) eq 'am' or $hour == 12;
+        @hours = (sprintf("%02d", $hour));
+    }
+    my $dbm_file  = "$config_parms{data_dir}/tv_programs.dbm";
+    my $dbm_file2 = "$config_parms{data_dir}/tv_channels.dbm";
+    use Fcntl;
+    use DB_File;
+    tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
+    tie (%DBM2, 'DB_File',  $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
+}
+#
+# $Log$
+# Revision 1.1  2000/01/19 13:59:22  winter
+# Initial revision
+#
+# Revision 1.21  2000/01/02 23:40:16  winter
+# - added dropbox code for index
+#
+# Revision 1.20  1999/11/17 04:46:32  winter
+# *** empty log message ***
+#
+# Revision 1.19  1999/11/17 04:30:51  winter
+# - allow -hour option to bye all_by_3 or explicit list
+#
+# Revision 1.18  1999/10/02 22:39:55  winter
+# - fix use lib eval
+#
+# Revision 1.17  1999/10/01 00:20:23  winter
+# - delete explicit use lib.
+#
+# Revision 1.16  1999/09/27 03:12:51  winter
+# - add mailto option.  Fix detail.asp links to point back to clicktv.
+#
+# Revision 1.15  1999/09/12 16:16:00  winter
+# - fixed $Version bug
+#
+# Revision 1.14  1999/09/02 13:45:01  winter
+# *** empty log message ***
+#
+# Revision 1.13  1999/09/02 13:40:36  winter
+# - Change to new clicktv.com format.  Add delete_old_data, keep_old.
+#
+# Revision 1.12  1999/07/21 21:08:41  winter
+# - fix typo in pgm_name_html.  Increase -s $outfile size check
+#
+# Revision 1.11  1999/07/05 22:30:15  winter
+# - added DBM store.  added -label.  Fix/keep javascript code.
+#
+# Revision 1.10  1999/07/05 16:49:09  winter
+# - added DBM saves.
+#
+# Revision 1.9  1999/06/20 22:30:16  winter
+# - use last_spoken on SET
+#
+# Revision 1.8  1999/03/21 17:38:31  winter
+# - email change
+#
+# Revision 1.7  1999/03/12 04:35:27  winter
+# - fix time/date check
+#
+# Revision 1.6  1999/02/08 00:37:54  winter
+# - add -redo.  Only re-filter if needed, or -redo.
+#
+# Revision 1.5  1999/02/04 14:35:24  winter
+# - aplit on day_data not day
+#
+# Revision 1.4  1999/02/01 00:09:36  winter
+# - use lib, so mh libs are found
+#
+# Revision 1.3  1999/01/30 21:47:08  winter
+# - add an index.
+#
+# Revision 1.2  1999/01/24 21:00:46  winter
+# - fix Prog_Path
+#
+# Revision 1.1  1999/01/24 20:14:35  winter
+# - created from filter_tv_schedule
+#
+#

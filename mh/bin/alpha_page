@@ -1,0 +1,127 @@
+#!/usr/bin/perl
+# -*- Perl -*-
+
+#---------------------------------------------------------------------
+#
+# File:
+#     alpha_page
+# Description:
+#     A perl script for sending a text string to an alphanumeric pager. 
+#     This script is specific for PageMart pagers, but could be modified
+#     to work with other pager companies.
+# Author:
+#     Craig Schaeffer    cschaeffer@yahoo.com
+# Change log:
+#   - 06/12/99 v 1.0 Created
+#
+#  This software is licensed under the terms of the GNU public license.  
+#  Copyright 1999 Craig Schaeffer 
+#-----------------------------------------------------------------------
+
+use strict;
+
+my ($Pgm_Path, $Pgm_Name, $Version);
+use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
+
+BEGIN {
+    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    $Pgm_Root = "$Pgm_Path/..";
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # Use BEGIN eval to keep perl2exe happy
+}
+
+
+use Getopt::Long;
+my %parms;
+if (!&GetOptions(\%parms, "h", "help", "message=s", "name:s", "pin:i") or 
+    @ARGV or $parms{h} or $parms{help} or !$parms{message}) {  
+    print<<eof; 
+
+$Pgm_Name (version $Version) sends alphanumeric page.
+
+  Usage: 
+
+    $Pgm_Name [options]
+
+      -h              => This help text
+      -help           => This help text
+      -name xxx       => name of recipient (must be defined in mh.ini)
+      -pin xxx        => pin number
+      -message xxx    => text of message to send
+
+  Example:
+    $Pgm_Name -pin 123456 -message 'Bring home bread and milk'
+    $Pgm_Name -name craig -message 'Bring home bread and milk'
+
+eof
+
+  exit; 
+}
+
+my (%pin_numbers);
+
+&setup;
+
+$parms{pin} = $pin_numbers{$parms{name}} unless $parms{pin};
+unless ($parms{pin}) {
+    print "\nYou must specifies mh.ini parm alpha_page_NAME_pin and -name option\n";
+    print "or specify -pin option.\n";
+    exit;
+}
+&send_page ($parms{pin}, "$parms{message}");
+
+use vars "%config_parms";
+sub setup {
+
+    require 'handy_utilities.pl';
+
+    my $private_parms = $Pgm_Path . "/mh.private.ini";
+    &main::read_opts(\%config_parms, $Pgm_Path . "/mh.ini");
+    &main::read_opts(\%config_parms, $private_parms) if -e $private_parms;
+
+                                # Get pager parms
+    for my $parm (keys %config_parms) {
+        next unless $config_parms{$parm}; # Ingore blank parms
+        $pin_numbers{$1} = $config_parms{$parm} if $parm =~ /alpha_page_(\S+)_pin/;
+    }
+
+    for my $name (keys %pin_numbers) {
+        print "$name=$pin_numbers{$name}\n" if $config_parms{debug} eq 'page';
+    }
+}
+
+sub send_page {
+    use LWP::UserAgent;
+    use HTTP::Request::Common;
+    my ($pin, $msg) = @_;
+
+    print "send page: pin=$pin, $msg\n" if $config_parms{debug} eq 'page';
+
+    my $ua = new LWP::UserAgent;
+    $ua->timeout([60]);         # Time out after 60 seconds 
+    $ua->env_proxy();           # use proxy if defined
+    my $request = POST 'http://www2.pagemart.com/cgi-bin/rbox/pglpage-cgi',
+              [ pin2            => $pin,
+                PAGELAUNCHERID  => '2',
+                message1        => $msg,
+              ];
+    my $response = $ua->request($request);
+
+    if ( $response ->is_success ) {
+        print "page sent\n" if $config_parms{debug} eq 'page';
+    }
+    else {
+        printf "page failed, %s\n", $response->status_line;
+    }
+}
+
+#
+# $Log$
+# Revision 1.1  2000/01/19 13:59:18  winter
+# Initial revision
+#
+# Revision 1.1  1999/09/06 16:48:37  winter
+# - Received from Craig.
+#
+#

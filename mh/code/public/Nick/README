@@ -1,0 +1,9 @@
+
+This is code that Bruce's son Nick uses.  He runs without tk, so it takes 
+few resources on his box (wouldn't want to get in the way of his games!),
+and using the trayer utility, it shows up only in the Win98 tray.
+
+On his 400 Mhz PII, it starts in about 3 seconds and uses about 2%
+of his cpu.
+
+It controls mainly stuff in his room ... he like to call it MisterRoom.

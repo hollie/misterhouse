@@ -1,0 +1,519 @@
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+<META NAME="Generator" CONTENT="Microsoft Word 97">
+<TITLE>Mister House Install Instructions</TITLE>
+<META NAME="Template" CONTENT="D:\msOffice\Office\html.dot">
+</HEAD>
+<BODY LINK="#0000ff" VLINK="#800080">
+
+<H1>Mister House Install Instructions </H1>
+
+<p>Note: A change log for this document is at the bottom of this file
+
+<p>This file is for the installation instructions.
+The main Mister House documentation is in <a href="mh.html">mh.html</a>.
+A list of update announcements is in <a href="updates.html">updates.html</a> 
+There is also a <a href="faq.html">faq.html</a> to cover misc. topics.
+
+<UL>
+	<LI><A HREF="#requirements">System Requirements</A>
+
+	<LI><A HREF="#quick_instructions">Quick Install Instructions</A>
+
+	<LI><A HREF="#detailed_instructions">Detailed Install Instructions for Windows users</A>
+	<UL>
+    	<LI><A HREF="#step1">Install MisterHouse</A>
+    	<LI><A HREF="#step2">Install Perl</A>
+    	<LI><A HREF="#step3">Install Speech Engines</A>
+	</UL>
+
+	<LI><A HREF="#detailed_instructions_u">Detailed Install Instructions for UNIX users</A>
+	<UL>
+    	<LI><A HREF="#step1_u">Install MisterHouse</A>
+    	<LI><A HREF="#step2_u">Install Perl</A>
+    	<LI><A HREF="#step3_u">Install Speech Engines</A>
+	</UL>
+
+	<LI><A HREF="#testing">Testing Instructions</A>
+	<LI><A HREF="#hardware">Installing Hardware</A>
+</UL>
+
+<hr>
+
+<H2><I><a name=requirements>System Requirements</a></h2></B></I>
+
+<p>Mister House has been tested on Windows 95, 98, NT, and the unix OSes Linux and AIX.  In theory, much
+of the function should run on any platform that can run Perl.  
+
+<p>The core Mister House code will use between 5 and 15 Megabytes of memory.
+On Windows, the VR (Voice Recognition) function 
+takes about 5 MB and the TTS (Text To Speech) function takes about 15 MB.  On Linux, the Festival TTS engine
+takes about 20-30 MB of memory.  So, with TTS enabled, on Windows you can get by with 32 Meg, but you will 
+need 48 Meg to run with low speech latency.
+
+<p>The cpu time used -vs- loops per second is controllable.  On a 100 MHz Pentium with a 100 ms sleep time,
+mh uses about 20% of the cpu and gets about 8 passes per second.
+
+
+<H2><I><a name=quick_instructions>Quick Install Instructions</a></h2></B></I>
+
+<P>These are the quick instructions for those of you who, like me, don't like to read instructions:</P>
+
+<UL>
+<li> Windows users
+
+<UL>
+<LI>Download the the mh_src_###.zip and mh_win_###.zip files from Mister House from: 
+<A HREF="http://misterhouse.webjump.com">http://misterhouse.webjump.com</A> </LI>
+<LI>cd to where you want it the mh directory created in (e.g. c:\)</LI>
+<LI>unzip \downloads\mh_src_###.zip (wherever you downloaded it to) </LI>
+<LI>unzip \downloads\mh_win_###.zip (wherever you downloaded it to) </LI>
+<LI>cd mh\bin </LI>
+<LI>mh.exe</LI>
+</UL>
+
+<li> Linux users
+
+<UL>
+<LI>Download the the mh_src_###.zip and mh_linux_###.zip files from Mister House from: 
+<A HREF="http://misterhouse.webjump.com">http://misterhouse.webjump.com</A> </LI>
+<LI>cd to where you want it the mh directory created in (e.g. cd /projects)</LI>
+<LI>unzip -aU /downloads/mh_src_###.zip (wherever you downloaded it to) </LI>
+<LI>unzip -aU /downloads/mh_linux_###.zip (wherever you downloaded it to) </LI>
+<LI>cd mh/bin </LI>
+<LI>chmod +x configure
+<li>./configure
+<li>./mhe (or if you have a recent perl, try running ./mh )
+</UL>
+
+</UL>
+
+
+<P>This runs all the test scripts in the mh\code\test directory.  Point your web browser to 
+<A HREF="http://localhost:8080/">http://localhost:8080</A>
+and try out a few commands.  Also try 'telnet localhost 1234' and type one of the commands you saw on the
+web interface (e.g. 'say something good to Bruce').
+
+
+<hr>
+
+<H2><I><a name=detailed_instructions>Detailed Install Instructions for Windows users</a></h2></B></I>
+
+<H3><a name=step1>Step 1, Download and Install Mister House</a></h2></B>
+
+<P>I you already have perl installed, you only need to download the main mh_src_###.zip package.  If you do not have perl
+installed, you will also need to download the compiled mh.exe file, which is in the mh_win_###.zip package.
+Both are available from <A HREF="http://misterhouse.webjump.com">http://misterhouse.webjump.com</A>.</P>
+
+<P>The 1 MB mh_src_###.zip file installs into 3 MB of disk space. The mh_win_###.zip takes an additional 3 MB of disk space.  
+The compiled version is not any faster, it is just more convenient
+if you do not need Perl installed for any other programs.</p>
+
+<P>Change to the drive/directory you want mh installed to (e.g. c:\), and unzip the file(s) using your un-zipper of choice
+(use the -d if using pkunzip to preserve the directory structure).  Look in the mh/lib directory to 
+make sure long file names were preserved (e.g. http_server.pl).  If not, you can download unzip from 
+<a href="http://misterhouse.net/public/unzip.exe">http://misterhouse.net/public/unzip.exe</a>.
+
+<H3><a name=step2>Step 2, Download and Install Perl</a></h3></B>
+
+<P>You can skip this step if you downloaded the compiled version of Mister House.</P>
+
+<P>Download and install Perl version 5.005_02 (or higher) from 
+<A HREF="http://www.activestate.com/ActivePerl">http://www.activestate.com/ActivePerl</A>.
+The 5 MB zip file installs into about 15 MB of disk space. </P>
+
+<P>After installing the core Perl package, you need to install the Tk package.  mh will run
+without Tk, but the Tk gui interface gives it more function.
+Activestate has provided ppm (Perl Package Manager), a nifty new way of automatically downloading
+and installing packages. Do this by logging on to the internet and typing: </P>
+
+<ul>
+<li>cd \perl\bin (modify to match your directory)
+<li>ppm install Tk
+<li>ppm install DB_File
+</ul>
+
+<P>The Tk package is about 2 MB, so it will take a while. If you are behind a www proxy firewall, 
+try setting the environment variable http_proxy=http://&lt;proxy-server&gt;:&lt;port&gt; </P>
+<P>If you have problems installing the files with ppm over the internet, you can download the files 
+and install them from local storage. For example, to install the Tk package: </P>
+
+<UL>
+<LI>download and unzip <A HREF="http://www.activestate.com/packages/zips/Tk.zip">http://www.activestate.com/packages/zips/Tk.zip</A> to c:\temp</LI>
+<LI>ppm install c:\temp\Tk.ppd </LI>
+</UL>
+
+<p>All other required packages should either be in the mh distribution or is now installed by default in the 
+standard Activestate distribution.
+
+
+<H3><a name=step3>Step 3, Download and Install the Speech Engines</a></h3></B>
+</B><P>You can skip this step if you do not want to enable TTS and VR, but much of the fun of
+Mister House comes from the 2-way speech. If you are running NT 5.0, you should be able to skip this step,
+as this function should already be installed. The Creative Labs PhoneBlaster software also installs this function.</P>
+
+<P>If you are running Win95, the Perl OLE interface to the MS speech engines
+require that you have DCOM 1.2 or higher installed.
+The DCOM 1.3 upgrade is 1.2 Meg and available at 
+<A HREF="http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp">http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp</A>.</P>
+
+<p>If you are running Win98, you will need the DCOM 1.3 update, available from:
+<a href="http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp">http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp</A>.
+If you don't have this update, mh will run, but you may occasionally see windows (like control pannel or install shield)
+not start right away, especially if you run without the Tk interface (mh -tk 0).
+
+<P>You can enable the speech functions either by installing the Speech SDK, or by installing the speech engines separately.
+
+<h4>Installing the SKD</h4>
+The current Microsoft Speech Developer Kit (SDK) is Version 4 and weighs in at about about 39 MB!
+To download, go to 
+<a href="http://www.microsoft.com/iit/download/default.htm">http://www.microsoft.com/iit/download/default.htm</a>
+ and pick "Speech SDK 4.0 Suite". 
+Make sure you pick the SUITE version. Since the file is large, you may want to use a program like
+FileHound or GetRight that can resume interrupted downloads.</P>
+
+<P>After downloading, simply run the file to install. The 4.0 SDK requires about 70 MB of disk space to install,
+but after installation is complete, you can delete the "Microsoft Speech SDK" directory if you want to save disk space.
+The files to enable VR and TTS engines are Installed elsewhere.</P>
+
+<h4>Installing the speech engines separately</h4>
+
+<P>With a little more work, you can save download time by installing just the engines, the speech API,
+and the MSVoice application.  The TTS and VR engines from 
+<a href="http://www.microsoft.com/IIT/download/speechengines.htm">http://www.microsoft.com/IIT/download/speechengines.htm</a>
+(between 4 and 15 MB, depending on what and how many engines you pick).  The Speech API and MSVoice
+application are available in <A HREF="http://misterhouse.net/public/speech_api.zip">speech_api.zip</A>.
+To install the speech API, run the SPCHAPI.EXE file.  To install MSVoice, simply unzip MSVOICE.ZIP to a directory of your choice.</P>
+
+<P> After the install, run the "Microsoft Voice" application (available the bottom of your Programs menu if you
+installed the SDK). Once running, you can use the "Voice Command Options" menu to pick your default voice.</P>
+
+
+<hr>
+
+<H2><I><a name=detailed_instructions_u>Detailed Install Instructions for UNIX users</a></h2></B></I>
+
+<H3><a name=step1_u>Step 1, Download and Install Mister House</a></h3></B>
+
+<P>Download a 'Perl source' file mh_src_###.zip from 
+<A HREF="http://misterhouse.webjump.com">http://misterhouse.webjump.com</A>.</P>
+
+<P>The 1 MB zip file installs into 3 MB of disk space.
+
+<p>If you are running on linux and you do not have perl with the latest Tk installed, 
+you may also want to download the linux compiled version, mhe, which is in the mh_linux_###.zip package.
+
+<P>Change to the directory you want mh installed to (e.g. /projects) and unzip the file(s) using your un-zipper of choice
+(use the -d if using pkunzip to preserve the directory structure).   If using 'unzip', you 
+will want to use the -a to Automatically get rid of those pesky /r characters that DOS like to add to newlines
+Also, the unzip -U switch (contrary to what the help text says), will be needed on newer versions of unzip to preserve case on filenames. 
+
+<p>Run the configure script to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
+
+<H3><a name=step2_u>Step 2, Download and Compile Perl</a></h3></B>
+
+<p>If you are on linux and have also downloaded mhe from mh_linux_###.zip, you can skip this step.
+
+<P>Most, if not all, UNIX installations now have perl installed by default.  If for some reason, yours does not
+or if it is an older version of perl, you can downloaded the latest from 
+<A HREF="http://www.perl.com">http://www.perl.com</A>.
+
+<p>Run 'perl -v' to show your version ... anything above 5.005 should be fine. 
+The current Redhat 5.2 version of Linux comes with 5.004.  This works OK, but we have had some problems 
+compiling the current Tk interface with 5.004, so you may want to upgraded to 5.005.
+
+<p>If you want to use
+the Tk interface (used to display logs and various pop-up messages), make sure that the perl Tk package is installed as well.
+If the Tk is not installed, this test will fail:  perl -e "use Tk".   If you need it, you can download perl Tk from 
+<A HREF="http://www.perl.com/CPAN/">http://www.perl.com/CPAN/</A>.  If you can
+also try the CPAN installer like this:
+
+<ul>
+<li> >su root
+<li> >perl -MCPAN -eshell
+<li>  cpan> install Tk
+<li>  cpan> install DB_File
+<li>  cpan> exit
+</ul>
+
+
+<H3><a name=step3_u>Step 3, Download and Install a Speech Engines</a></h3></B>
+</B><P>You can skip this step if you do not want to enable VR or TTS.
+
+<p>The IBM ViaVoice Voice Recognition engine is available at
+<a href=http://www-4.ibm.com/software/speech/dev/sdk_linux.html>http://www-4.ibm.com/software/speech/dev/sdk_linux.html</a>
+Currently the only download available is a large 80 MB tar file, the bulk of which is used for the VR dictation
+engine that we do not need.  The installed/expanded files require about 120 MB of space.
+Hopefully a smaller package with just the Command and Control engine will become available at some point.
+
+<p>After downloading, install viavoice by running (as root) run tar -xf viavoice_sdk_rtk_2.tar and then  
+follow the tar file readme.txt instructions.  Note for our usage, you will not need
+any of the gui menus, so if rpm tells you that you have down level or missing libraries (e.g. libgdk),
+you can probably ignore that by adding the tar --nodeps option.
+
+<p>As the readme.txt instructions state, you should probably run the viavoice code as non-root.
+Here is one way to allow non-root access to the microphone:
+
+<ul>
+<li>chmod go+rw /dev/dsp*
+<li>chmod go+rw /dev/audio*
+</ul>
+
+<p>The viavoice SDK FAQ can be found here at
+a href=http://www-4.ibm.com/software/speech/dev/faq_linux.html>http://www-4.ibm.com/software/speech/dev/faq_linux.html</a>.
+It includes suggestion on what to do if you get rc=90 when you start viavoice_server.
+The faq also covers how you can move training files and non-English from the (non-free) windows version.
+
+<p>After running the rpm commands, you can find other documentation in 
+/usr/doc/Viavoice.  Section 2 of the skreadme.txt file details how to 
+create a speech and entrollment ids.  Here is an example of the commands
+that I used (as user id bruce, not root):
+
+<ul>
+<li>/usr/lib/ViaVoice/bin/vvuseradm -newuser -userid bruce
+<li>/usr/lib/ViaVoice/bin/vvuseradm -newenrollid -userid bruce -enrollid bruceid
+<li>/usr/lib/ViaVoice/bin/vvuseradm -userid bruce -enrollid bruceid -setdefault
+</ul>
+
+<p>Lastly, run the /usr/bin/audiog program (requires motif or lesstif from lesstif.org to be installed)
+to set volume and recording levels, and viavoice is installed.
+You may want to also use a program like xmixer to select what the sound source is if, for example,
+you want to monitor the line input instead of or in addition to the mike input.
+
+<p>To enable viavoice from mh, set the viavoice parms in the mh.ini file, run mh/bin/viavoice_server_start, then 
+start mh.
+
+<p>The IBM ViaVoice Outload TTS engine for Linux can also be downloaded from the above IBM sdk url.
+To use it with mh, enable the vvo_server mh.ini parms and download the vvo_server code from
+<a hrev=http://dittos.penguinpowered.com/automation/index.html#software>http://dittos.penguinpowered.com/automation/index.html#software
+
+<p>The Festival Speech engine is available from
+<a href=http://www.cstr.ed.ac.uk/projects/festival/download.html>http://www.cstr.ed.ac.uk/projects/festival/download.html</a>
+There are various voices and languages available.  Also, they have Linux binaries there, if for whatever reason, you 
+have problems compiling the source code.
+
+<p>Once you have downloaded in and installed or compiled Festival, you can test it with the following commands:
+<ul>
+<li> echo 'Hello from Festival' | festival --tts 
+<li> festival --server &
+<li> echo '(SayText "Hello from the festival client")' | festival_client
+</ul>
+
+<p>You can also run the client, or a simple telnet, from a different box, but you first have to create 
+a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to give authority to.  (e.g. 
+(set! server_access_list '("localhost" "house\\.isl\\.net"))  ).  See the festival documentation for more details.
+
+<p>David L. reports that there is a different engine for festival called MBROLA at
+<a href=http://tcts.fpms.ac.be/synthesis/mbrola.html>http://tcts.fpms.ac.be/synthesis/mbrola.html</a>
+that has a very nice US english male and female voice.
+
+<p>Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.
+
+<hr>
+
+<H2><I><a name=testing>Testing Mister House</a></h2></B></I>
+
+</B><P>Edit x:\mh\bin\mh.ini and change the appropriate parms.   It should run just fine with the 
+default parms,  although your sunrise/sunset times will be for Rochester, MN
+:)
+<p>If you decide to keep/use mh, you will probably want to copy the parms you
+change to your own parm file and point to that with the mh_parm environmental
+variable (see the mh.ini header for details).
+
+<P>If you are not using the compiled mh.exe, edit the last record of the mh.bat file to point to the correct
+directories where Perl and the mh are installed. </P>
+
+<P>Next, cd to x:\mh\bin and then type: mh hello_print.pl. This will load the x:\mh\code\test\hello_print.pl
+file which is a simple event that prints some uptime info every 30 seconds.
+Since we did not include the tk*.pl members, the tk interface will not be displayed</P>
+
+<P>From the console window, hit the ENTER key to bring up a control menu, 
+then select the "Exit menu" item to exit.  Or use Ctl-C.
+
+<P>Next, if you have installed the speech engines, try the hello_speak.pl event (e.g. mh hello_speak.pl). 
+This will speak the time and date once a minute. It also creates one VR command.
+
+If you are a Windows user and have the VR engine installed, make sure
+the green MSVoice V icon is in the "Listening for Voice Commands" mode, try saying, "What time is it?"
+You can list all the available commands by right clicking on the V and picking "What can I say?"
+
+<P>To run all of the sample code in the test directory, do not specify any files (e.g. just type mh).
+Here are a few of the commands enabled by files in the test directory:
+<ul>
+<li>"What is the trivia question?" and "What is the triva answer?"
+<li>"Read the deep thought"
+<li>"Say something bad to Bruce"
+<li>"Say something good to Bruce"
+<li>"Set a timer for 5 minutes"
+<li>"Set a timer for 30 seconds"
+<li>"Show disk space"
+<li>"When will the sun set"
+<li>"How do you pronounce MisterHouse"   ... this a 'play' on Linux :)
+</ul>
+
+<P> If you are logged onto the internet, you can try these commands:
+<ul>
+<li>"Set the clock via the internet" to set your computer's clock according to an atomic clock
+<li>To send a test email to yourself, try "Send test email".  This requires that you fill out the net_mail 
+parms in the mh.ini file.
+<li>To retrieve and display the latest top 10 list from Letterman's Late Night show, try "Get the top 10 list"
+</ul>
+
+<P>You can control any of your serial, X10, and voice items with a frames capable web browser by pointing
+it to <A HREF="http://localhost:8080/">http://localhost:8080</A> . Note, the port number is controllable
+via mh.ini http_port parm. If you do not have any other web server running, you may want to change it
+from the default of 8080 to 80 so that you can use a simpler address of <A HREF="http://localhost/">http://localhost</A> .</P>
+
+<p>You can also tailor the web interface to your liking by creating a new member in the \mh\web\mh directory and changing
+the html_file mh.ini parm.  For example, you can preview an alternate interfaces with
+<A HREF="http://localhost:8080/mh_brian/index_2.html">mh_brian/index_2.html</A>, or
+<A HREF="http://localhost:8080/mh_brian/index_3.html">mh_brian/index_3.html</A>
+
+<p>Windows users can also setup a Windows Active Desktop entry so this interface is available all the time on your desktop!
+
+<P>In addition to the voice and web interfaces, you can type these commands on the Tk "Enter Command" field
+or from the DOS command line using the house command.
+For example, from a DOS command prompt, try typing:  'house Show the top 10 list'
+You can also speak or display any arbitrary phrase or file with the commands
+"Display file" or "Speak phrase" (e.g. 'house speak hi there').   These commands are simple bat files that create 
+commands in the "xcmd_file", whose location is controlled with a mh.ini parm.  You can have your own program put commands
+in this file as well.  Lastly, you can type all these commands via a telnet localhost session or via a socket port, if you have the telnet.pl
+member enabled.
+
+<p>Here is a summary of the different ways you can control mh:
+<ul>
+<li>With a voice command
+<li>Through a web browser and whatever html you want to set up.
+<li>By typing a command on the Tk Control Window
+<li>By typing "house command" from a dos box
+<li>By having whatever program you want create a command in the xcmd_file
+<li>By a TCP socket, for example, using telnet localhost
+</ul>
+
+<P>Use your favorite editor to review and try some changes to any or all test members. On the Mister House
+window, use the F1 key to re-load your changed code. If you introduced an error, it will sound a long beep,
+spit out some errata showing the error, and then it re-loads the old error-free code.
+There is lots of other code you can peruse in the mh\code\Bruce directory. This is all the code that runs our house!</P>
+
+<hr>
+
+<H2><I><a name=hardware>Installing Hardware</a></h2></B></I>
+</B><P>Without any interface hardware, mh is pretty limited. It can do some simple time of day based events
+ and voice based events, but that is about it. Currently, Mister House
+ supports the X10 CM11 (aka ActiveHome) and CM17 (aka Firecracker) 
+interfaces and all the Weeder kits (analog, digital, x10, phone, available from from 
+<A HREF="http://www.weedtech.com/">http://www.weedtech.com</A> ).  Support for the JDS/HomeBase line is currently be debugged.  The code is written,
+but I don't have the interface, so I'm waiting for someone to try it.</P>
+
+<P>Currently, the X10 guys have a $50 deal for an ActiveHome kit, which includes the CM11 interface.
+ Check it out at <A HREF="http://www.x10.com/">http://www.x10.com</A>.</P>
+
+<P>If you want more than just X10, you may want to go with the Weeder X10 Kit, as all of the Weeder kits
+ can share the same serial port. The X10 kit sells for $40, $25 for a WT523 module (if you don't already have that),
+ $10 for a serial and a phone cable, and about an hour with a soldering iron. </P>
+
+<P>After plugging in the Weeder X10 kit or a CM11 interface into a free serial port, update the 
+Weeder_port or cm11_port parm in the mh.ini file to point to that port and try a simple example, like test_x10.pl in the test directory. </P>
+
+<P>Support for any serial port device can be coded by using the generic Serial_Item objects. 
+For example, a ham radio enthusiast has interfaced to his GPS (Global Positioning Satellite)  to keep track of his car's location 
+(see his tracking.pl code in the code/Public directory)</P>
+
+<P>Support for any device that speaks with sockets over your network can be added using the Socket_Item objects.
+
+<P><HR>
+<PRE>
+#
+# Document Change Log
+#
+# $Log$
+# Revision 1.1  2000/01/19 14:00:12  winter
+# Initial revision
+#
+# Revision 1.9  2000/01/13 13:35:30  winter
+# - add some ViaVoice info
+#
+# Revision 1.8  1999/12/12 23:48:50  winter
+# - added unzip -U and viavoice FAQ tips
+#
+# Revision 1.7  1999/11/21 02:52:26  winter
+# - add viavoice instructions
+#
+# Revision 1.6  1999/09/27 03:08:20  winter
+# - add note on dcom 1.3 win98 fix
+#
+# Revision 1.5  1999/09/12 16:10:05  winter
+# - added FAQ pointer.  Change some web addresses.
+#
+# Revision 1.4  1999/08/01 01:15:49  winter
+# - add 'check for long filename'.  add ppm install DB_file.  Change index_# pointers.
+#
+# Revision 1.3  1999/07/05 22:28:04  winter
+# - Change DCOM and MS SDK links.  Other minor changes
+#
+# Revision 1.2  1999/06/20 22:28:44  winter
+# - pint to updated ms speech urls.  Change to _src_ distributions.
+#
+# Revision 1.1  1999/05/30 21:11:30  winter
+# - renamed from README.html
+#
+# Revision 1.18  1999/03/21 17:39:57  winter
+# - email change.
+#
+# Revision 1.17  1999/02/08 00:35:05  winter
+# - add system requirements section.  Add note on linux redhat perl version
+#
+# Revision 1.16  1999/02/04 14:22:24  winter
+# - Take out 'mkdir mh' intstructions, since zip now includes mh
+#
+# Revision 1.15  1999/02/01 00:08:42  winter
+# - add linux configure note.
+#
+# Revision 1.14  1999/01/30 19:59:23  winter
+# - add linux unzip -a tip.
+#
+# Revision 1.13  1999/01/23 23:08:04  winter
+# - add instructions for UNIX/linux users, including how to install the Festival TTS
+#
+# Revision 1.12  1999/01/13 14:15:55  winter
+# - add telent info
+#
+# Revision 1.11  1999/01/08 14:25:05  winter
+# - add pointer to mh.html.  A few more examples.  Change quick instructions
+#   to default to running all the test code.
+#
+# Revision 1.10  1999/01/07 01:53:12  winter
+# - add urls to severl example web interfaces
+#
+# Revision 1.9  1998/12/10 14:33:44  winter
+# - add new web interface info.  List out different command control options.
+#
+# Revision 1.8  1998/12/08 01:58:18  winter
+# - add more internet example code
+#
+# Revision 1.7  1998/11/30 04:41:15  winter
+# - add tips on how to use the web and command interfaces.  Add pointers
+#   to some of the example code.
+#
+# Revision 1.6  1998/11/16 01:18:17  winter
+# - updated instructions on how to use the perl ppm commnad
+# - add instructions on how to install the speech engines without install the SDK
+#
+# Revision 1.5  1998/09/12 22:26:40  winter
+# - add section on how to use a web browser to control items.
+#
+# Revision 1.4  1998/09/02 13:29:08  winter
+# - minor changes.  Move DCOM note to the perl install section.
+#
+# Revision 1.3  1998/08/30 15:01:35  winter
+# - add pointer to DCOM 1.2 upgrade
+#
+# Revision 1.2  1998/08/30 00:05:05  winter
+# - Change to html.  Add info on compile and cm11 options.
+#
+
+</PRE>
+
+</P></BODY>
+</HTML>

@@ -1,0 +1,203 @@
+<html>
+<head>
+<title>Bottom</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<SCRIPT LANGUAGE="JavaScript">
+
+if (document.layers) {n=1;ie=0};
+if (document.all) {n=0;ie=1};
+
+if (document.images) {
+
+	login= new Object();
+	login[0]=  new Image();
+	login[0].src='images/login.gif';
+	login[1]=  new Image();
+	login[1].src='images/login.gif';
+	login.s=false;
+	
+	categ= new Object();
+	categ[0]=  new Image();
+	categ[0].src='images/categ.gif';
+	categ[1]=  new Image();
+	categ[1].src='images/categ_roll.gif';
+	categ.s=false;
+	
+	speak= new Object();
+	speak[0]=  new Image();
+	speak[0].src='images/speak.gif';
+	speak[1]=  new Image();
+	speak[1].src='images/speak_roll.gif';
+	speak.s=false;
+	
+	printy= new Object();
+	printy[0]=  new Image();
+	printy[0].src='images/print.gif';
+	printy[1]=  new Image();
+	printy[1].src='images/print_roll.gif';
+	printy.s=false;
+	
+	tk= new Object();
+	tk[0]=  new Image();
+	tk[0].src='images/tk.gif';
+	tk[1]=  new Image();
+	tk[1].src='images/tk_roll.gif';
+	tk.s=false;
+	
+	about= new Object();
+	about[0]=  new Image();
+	about[0].src='images/about.gif';
+	about[1]=  new Image();
+	about[1].src='images/about_roll.gif';
+	about.s=false;
+
+	button_array = new Array();
+	button_array['login']=login;
+	button_array['categ']=categ;
+	button_array['speak']=speak;
+	button_array['printy']=printy;
+	button_array['tk']=tk;
+	button_array['about']=about;
+
+}
+
+function gifIn(theImage) {
+
+if (document.images) {
+	for (theName in button_array) {
+		if (document[theName].s) {
+			document[theName].src=self.button_array[theName][0].src;
+			document[theName].s=false;
+		}
+	}
+	document[theImage].src=self.button_array[theImage][1].src;
+	document[theImage].s=true;
+	}
+}
+
+function gifOut(theImage) {
+
+if (document.images) {
+	document[theImage].src=self.button_array[theImage][0].src;
+	}
+}
+
+function layerViz() {
+	if (arguments.length >= 2) {
+		zeAction = layerViz.arguments[0];
+		zeLayer = layerViz.arguments[1];
+		if (arguments.length == 3)	{
+			zeContext = layerViz.arguments[2] + ".";
+		}else{
+			zeContext = "";
+		}
+	}else{
+		return false;
+	}
+	
+	if (n) {
+		if (eval(zeContext+ "document.layers." + zeLayer)) {
+			eval(zeContext + "document." + zeLayer +".visibility = '" + zeAction + "'");	
+		}
+	}
+	if (ie) {
+		if (zeAction == 'show') zeAction = 'visible';
+		if (zeAction == 'hide') zeAction = 'hidden';
+		if (eval(zeContext+ "document.all." + zeLayer)) {
+			eval(zeContext + zeLayer + ".style.visibility = '" + zeAction + "'");
+		}
+	}
+	return true;
+}
+
+
+function layerVizAll() {
+	if (arguments.length >= 1) {
+		zeAction = layerVizAll.arguments[0];
+		if (arguments.length == 2) {
+			zeContext = layerVizAll.arguments[1] + ".";
+		}else{
+			zeContext = "";
+		}
+	}else{
+		return false;
+	}
+
+	if (n) {
+		for (i=0; i<(eval(zeContext + "document.layers.length")); i++) 
+			eval(zeContext + "document.layers[" + i + "].visibility = '" + zeAction + "'");
+	}
+		
+	if (ie) {
+		if (zeAction == 'show') 
+			zeAction = 'visible';
+		if (zeAction == 'hide')
+			zeAction = 'hidden';
+		eval ("content_div =" + zeContext + "document.all.tags('DIV')");
+		for (i=0; i<content_div.length; i++)
+			eval("content_div[" + i +"].style.visibility = '" + zeAction + "'");
+	}
+	return true;
+}
+
+
+function stmess(msgStr) {
+	status=msgStr;
+  	document.stmess_val = true;
+		return true;
+}
+
+</SCRIPT> 
+</head>
+<body bgcolor="#FFFFFF">
+<BASE TARGET='control'>
+<form action="list">
+<center><table width="576" border="0" cellspacing="0" cellpadding="0" vspace="0" hspace="0" align="center">
+  <tr> 
+    <td rowspan="3"><img src="images/pix.gif" width="1" height="1"></td>
+        <td colspan="13"><img src="images/pix.gif" width="574" height="5"></td>
+    <td rowspan="3"><img src="images/pix.gif" width="1" height="1"></td>
+  </tr>
+  <tr> 
+	<td width="49">
+	<a href="/SET_PASSWORD">
+	<img src="images/login.gif" width="49" height="22" border="0" name="login"></a></td>
+	<td width="19"><img src="images/tilde.gif" width="19" height="22"></td>
+	<td width="92"><A
+	HREF="main.shtml"
+	target="main"
+	onmouseOver="layerVizAll('hide','top.main');layerViz('show','divCateg','top.main');gifIn('categ');"><img 
+	src="images/categ.gif" width="92" height="22" border="0" name="categ"></a></td>
+	<td width="19"><img src="images/tilde.gif" width="19" height="22"></td>
+	<td width="49">
+	<A HREF="main.shtml"
+	target="main"
+	onmouseOver="layerVizAll('hide','top.main');layerViz('show','divSpeak','top.main');gifIn('speak');">
+	<img src="images/speak.gif" width="49" height="22" border="0" name="speak"></a></td>
+	<td width="19"><img src="images/tilde.gif" width="19" height="22"></td>
+	<td width="49">
+	<A HREF="main.shtml"
+	target="main"
+	onmouseOver="layerVizAll('hide','top.main');layerViz('show','divPrint','top.main');gifIn('printy');">
+	<img src="images/print.gif" width="49" height="22" border="0" name="printy"></a></td>
+	<td width="19"><img src="images/tilde.gif" width="19" height="22"></td>
+	<td width="24">
+	<A HREF="main.shtml"
+	target="main"
+	onmouseOver="layerVizAll('hide','top.main');layerViz('show','divTk','top.main');gifIn('tk');">
+	<img src="images/tk.gif" width="24" height="22" border="0" name="tk"></a></td>
+	<td width="79"><img src="images/search.gif" width="79" height="22"></td>
+	<td width="88"><INPUT SIZE="10" NAME="search"></td>
+	<td width="19"><img src="images/tilde.gif" width="19" height="22"></td>
+	<td width="49">
+	<A HREF="main.shtml"
+	target="main"
+	onmouseOver="layerVizAll('hide','top.main');layerViz('show','divAbout','top.main');gifIn('about');">
+	<img src="images/about.gif" width="49" height="22" border="0" name="about"></a></td>
+  </tr>
+  <tr> 
+        <td colspan="13"><img src="images/pix.gif" width="574" height="5"></td>
+  </tr>
+</table></center></form>
+</body>
+</html>
