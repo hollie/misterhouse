@@ -2,7 +2,7 @@
 package Voice_Text;
 use strict;
 
-my ($VTxt, $VTxt_festival, $VTxt_Outloud, @Spoken_Text, $save_mute_esd, $save_change_volume);
+my ($VTxt, $VTxt_festival, $VTxt_Outloud, $save_mute_esd, $save_change_volume);
 
 sub init {
 
@@ -40,10 +40,6 @@ sub init {
 sub speak_text {
 	my(%parms) = @_;
 	my $pgm_root = $main::Pgm_Root;
-
-	my $time_date = &main::time_date_stamp(13, time);
-	unshift (@Spoken_Text, "$time_date $parms{text}");
-	pop @Spoken_Text if @Spoken_Text > $main::config_parms{max_log_entries};
 
 	unless ($VTxt or $VTxt_festival or $VTxt_Outloud ) {
 		unless ($main::config_parms{voice_text}) {
@@ -129,18 +125,11 @@ sub is_speaking {
     return $VTxt->{IsSpeaking};
 }
 
+                                # This has been moved to mh.  Leave this stub in so 
+                                # we don't break old user code
 sub last_spoken {
-                                # Return the last how_many spoken phrases
     my ($how_many) = @_;
-    my $count = @Spoken_Text;
-#   print "db count=$count hm=$how_many\n";
-    if ($how_many >= $count) {
-        return @Spoken_Text;
-    }
-    else {
-        return (@Spoken_Text[0 .. ($how_many-1)]);
-#	    return (@Spoken_Text[(1 + $how_many - $count) .. -1]);
-    }
+    &main::speak_log_last($how_many);
 }
 
     
@@ -155,6 +144,9 @@ sub set_vvo_option {
 
 #
 # $Log$
+# Revision 1.17  2000/02/20 04:47:55  winter
+# -2.01 release
+#
 # Revision 1.16  2000/01/27 13:44:27  winter
 # - update version number
 #

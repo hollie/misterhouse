@@ -66,10 +66,10 @@ RING
     elsif ($last eq "Private") {
         $caller = "a blocked phone number";
     }
-    elsif ($last eq "Unavailable" or $last eq "Out") {
+    elsif ($last eq "Unavailable") {
         $caller = "number $local_number";
     }
-    elsif ($last eq "Out-of-area" or $last eq "Of") {
+    elsif ($last eq "Out-of-area" or $last eq "Out") {
         $caller = "an out of area number";
     }
     elsif ($last eq "Pay") {
@@ -98,7 +98,7 @@ sub read_areacode_list {
     my %parms = @_;
     
 #   &main::print_log("Reading area code table ... ");
-    print "Reading area code table ... ";
+#   print "Reading area code table ... ";
 
     my ($area_code_file, %city_by_areacode, $city, $state, $areacode, $areacode_cnt);
     open (AREACODE, $parms{area_code_file}) or 
@@ -119,7 +119,7 @@ sub read_areacode_list {
     }
     close AREACODE;
 #   &main::print_log("read in $areacode_cnt area codes from $parms{area_code_file}");
-    print "read in $areacode_cnt area codes from $parms{area_code_file}\n";
+    print "Read in $areacode_cnt area codes from $parms{area_code_file}\n";
     # If in-state, store city name instead of state name.
     $my_areacode = $parms{local_area_code};
     $my_state = $state_by_areacode{$my_areacode};
@@ -141,7 +141,7 @@ sub read_callerid_list {
     my ($number, $name, $callerid_cnt);
 
 #   &main::print_log("Reading override phone list ... ");
-    print "Reading override phone list ... \n";
+#   print "Reading override phone list ... \n";
 
     open (CALLERID, $caller_id_file) or print "\nError, could not find the area code file $caller_id_file: $!\n";
 
@@ -154,13 +154,16 @@ sub read_callerid_list {
 #   print "Callerid names: number=$number  name=$name\n";
     }
 #   &main::print_log("read in $callerid_cnt caller ID override names/numbers from $caller_id_file");
-    print "read in $callerid_cnt caller ID override names/numbers from $caller_id_file\n";
+    print "Read in $callerid_cnt caller ID entries from $caller_id_file\n";
     close CALLERID;
 
 }   
 
 #
 # $Log$
+# Revision 1.12  2000/02/20 04:47:54  winter
+# -2.01 release
+#
 # Revision 1.11  2000/01/27 13:38:24  winter
 # - update version number
 #

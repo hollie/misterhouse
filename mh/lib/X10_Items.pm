@@ -1,6 +1,8 @@
 
 package X10_Item;
 
+my (%items_by_house_code, %appliances_by_house_code);
+
 @X10_Item::ISA = ("Serial_Item");
 
 sub new {
@@ -12,6 +14,7 @@ sub new {
     print "\n\nWarning: duplicate ID codes on different X10_Item objects: id=$id\n\n" if $serial_item_by_id{$id};
 
     my $hc = substr($id, 0, 1);
+    push @{$items_by_house_code{$hc}}, $self;
     $id = "X$id";
     $self->{x10_id} = $id;
 
@@ -21,7 +24,6 @@ sub new {
         $self-> add ($id . 'P', 'off');
     }
     else {
-        $self-> add ($id            , 'none'); # Used in Group.pm
         $self-> add ($id . $hc . 'J', 'on');
         $self-> add ($id . $hc . 'K', 'off');
         $self-> add ($id . $hc . 'L', 'brighten');
@@ -89,7 +91,8 @@ sub new {
 
 
         $self-> add ($id . $hc . 'STATUS', 'status');
-        $self-> add ($id , 'manual');
+        $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
+
 
                                 # We could also allow the following states with normal X10 
                                 # lamp modules if we got smart and tracked the current X10 
@@ -147,6 +150,21 @@ sub set_with_timer {
 
 }
 
+sub set_by_housecode {
+    my ($hc, $state) = @_;
+    for my $object (@{$items_by_house_code{$hc}}) {
+        print "Setting X10 House code $hc item $object to $state\n" if $main::config_parms{debug} eq 'X10';
+        set_receive $object $state;
+    }
+
+    return if $state eq 'on';     # All lights on does not effect appliances
+
+    for my $object (@{$appliances_by_house_code{$hc}}) {
+        print "Setting X10 House code $hc appliance $object to $state\n" if $main::config_parms{debug} eq 'X10';
+        set_receive $object $state;
+    }
+        
+}
 
 package X10_Appliance;
 
@@ -162,10 +180,10 @@ sub new {
     print "\n\nWarning: duplicate ID codes on different X10_Appliance objects: id=$id\n\n" if $serial_item_by_id{$id};
 
     my $hc = substr($id, 0, 1);
+    push @{$appliances_by_house_code{$hc}}, $self;
     $id = "X$id";
     $self->{x10_id} = $id;
 
-    $self-> add ($id            , 'none'); # Used in Group.pm
     $self-> add ($id . $hc . 'J', 'on');
     $self-> add ($id . $hc . 'K', 'off');
     $self-> add ($id , 'manual');
@@ -382,6 +400,9 @@ sub new {
 
 
 # $Log$
+# Revision 1.7  2000/02/20 04:47:55  winter
+# -2.01 release
+#
 # Revision 1.6  2000/01/27 13:45:00  winter
 # - add Garage_Door
 #

@@ -122,7 +122,8 @@ else {
 
 my($old_sec, $old_min, $old_hour, $mday, $mon, $year, $wday) = (localtime(time))[0,1,2,3,4,5,6];
 $mon++;             # Jan = 0
-$date = sprintf("%02d-%02d-%02d", $year, $mon, $mday); # Use local date for logging
+$date = sprintf("%04d-%02d-%02d", 1900 + $year, $mon, $mday); # Use local date for logging
+
 if (defined $sec) {
     printf("Time from NIST   : %02d:%02d:%02d\n", $hour, $min, $sec);
     printf("Time local       : %02d:%02d:%02d\n", $old_hour, $old_min, $old_sec);

@@ -6,6 +6,71 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 mh ver 2.01 posted on 02/19/00
+
+Version 2.01 was just uploaded to:
+
+  http://misterhouse.net/download
+  http://misterhouse.sourceforge.net
+
+
+Mainly a few bug fixes from the 2.00 release.  
+
+B<New Features:>
+
+- The widgets now also show up in the category lists, before the voice commands.
+
+- /widgets now shows widgets listed in code order, as it was before 2.00.
+Added /widgets_type to be the widgets in sorted order like 2.00.
+
+- Added mh.ini html_alias* parms.  This allows you to point to directories that are not under html_dir 
+
+- Added code to monitor All-lights-on and All-off, so mh can correctly track the state of 
+X10_Item and X10_Appliance objects.
+
+- Changed web Items and Groups to auto-refresh, so the state of the items stays current.
+
+- Moved Speak_Log from Voice_Text to mh so the web interface will echo spoken text even when muted.
+
+- Jay A. sent a bunch of new icons.
+
+
+B<Bug Fixes and Minor Changes:>
+
+- Enabled web response from widget commands
+
+- Fixed a bug with the auto-refresh of the speak, log, and widget screens.  
+It no longer will run the last selected commands on every refresh.
+
+- Fixed a bug in set_password, when run directly from perl
+
+- Fixed a bug that would cause + to be inserted instead of blanks for web entered data.
+
+- Re-enable .shtml /list?xyz directives.
+
+- Fixed a bug that caused netscape not to load really small graphics files.
+
+- 'List X10 items' now includes Appliances.  Fixed 'List serial items' to list all ID codes.
+
+- Fixed a bug that would add a suffix of 'nd' instead of 'th' to 11,12, and 13th Date_Now_Speakable dates.
+
+- Fixed mp3_playlist so it does not fail if DB_File is not installed.
+
+- Changed mh.ini to read vvo_speak instead of vvo_server (to enable IBM viavoice outloud)
+
+- Move the get_email_rule.pl from mh/bin to the code_dir.
+This allows you to modify it without changing files in the main distribution directory.
+
+- Added FAQ 2.13: How can I control Command Categories
+
+- Craig S. fixed a set_clock 2k bug.
+
+- Delete X10_Item 'none' state (use manual instead).
+
+- Updated monitor_server.pl to allow for 'web hits per hour'.
+
+
+
 =head2 mh ver 2.00 posted on 02/12/00
 
 Version 2.00 was just uploaded to:

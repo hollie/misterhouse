@@ -5,7 +5,7 @@ package File_Item;
 sub new {
     my ($class, $file) = @_;
     my $self = {file => $file, index => 0};
-    print "Warning, File_Item file does not exist: $file\n\n" unless -f $file;
+    print "Warning, File_Item file does not exist: $file\n\n" if $main::config_parms{debug} and !-f $file;
     bless $self, $class;
     return $self;
 }

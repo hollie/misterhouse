@@ -2241,7 +2241,11 @@ For example, if we had icons names 'clock.gif' and 'internet.gif' (but no 'time.
 'internet.gif' would be used.
 
 In all of the above examples, .gif was used as an example, but any browser compatable graphics file can be used (e.g. .png and .jpg).
-If you want to add new icons, some good sources are at http://www.freegraphicland.com/ and http://www.graphsearch.com/
+If you want to add new icons, some good sources are at
+http://www.freegraphicland.com/ ,
+http://www.graphsearch.com/ ,
+http://www.add-soft.com/icons/index.html , and
+http://www.rad.kumc.edu/icons/icons.htm
 
 Important note:  If you do play with adding/deleteing/renaming icons, you will want to do a reload before 
 refreshing your browser.  The icon directory is cached by mh (for efficiency).  If no code has changed,
@@ -2507,18 +2511,29 @@ Bruce Winter  bruce@misterhouse.net  http://misterhouse.net
 
 mh can be download from http://misterhouse.net
 
-Yuu can suscribe and/or view the mailing list at
+Here is a list of other online mh sites:
+
+  http://www.archer-online.net
+
+
+Here is a list of articles written about MisterHouse:
+
+  http://www.hometoys.com/htinews/jun99/articles/winter/winter.htm
+
+  http://linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html
+
+  http://www.faribault.k12.mn.us/brian/aprs/
+
+  http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf
+
+The Circuit Cellar Ink article includes a diagram of how 
+to set up a house PA system, so you can control which rooms MisterHouse talks to.
+
+You can suscribe and/or view the mailing list at
 http://sourceforge.net/mail/?group_id=1365
 
 An older list with a searchable archive at <a href=http://www.onelist.com/messages/MisterHouse>here</a>).
 
-There is HomeToys article on MisterHouse at http://hometoys.com/htinews/jun99/articles/winter/winter.htm
-
-There was an article titled "Ms Perl meets Mr. House" in the March '99 issue of Popular Home Automation.  Sorry, not available online :(.
-
-There was an article titled "MisterHouse" in the October '99 issue of Circuit Cellar Ink:
-http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf .  It includes a diagram of how 
-to set up a house PA system, so you can control which rooms MisterHouse talks to.
 
 Jan Dubois has a fun page of other ticks you can do with 
 perl at http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.html
@@ -2546,6 +2561,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.19  2000/02/20 04:47:54  winter
+# -2.01 release
+#
 # Revision 1.18  2000/02/13 03:57:27  winter
 #  - 2.00 release.  New web server interface
 #

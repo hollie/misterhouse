@@ -3,7 +3,7 @@
 #  File:
 #     monitor_weblog
 #
-#  Last emacs update Time-stamp: <2000-02-06 09:40:57 winter>
+#  Last emacs update Time-stamp: <2000-02-16 08:16:15 winter>
 #
 #  Description:
 #     See help text below
@@ -113,7 +113,7 @@ while (1) {
             $client =~ s/[\d\.]/ /g; # Get rid of digits and dots
             $client = 'unknown' if $client =~ /^ *$/;
 #           &speak("rooms=all display=600 Web access from $client");
-            &speak("rooms=all Web access from $client");
+            &speak("Web access from $client");
             $clients_hour++;
             $clients_day++;
         }
@@ -170,6 +170,9 @@ sub speak {
 
 #
 # $Log$
+# Revision 1.9  2000/02/20 04:47:54  winter
+# -2.01 release
+#
 # Revision 1.8  2000/02/12 05:33:34  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

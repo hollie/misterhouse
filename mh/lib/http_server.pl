@@ -10,8 +10,31 @@ my ($leave_socket_open_passes, $leave_socket_open_action);
 my($Authorized, $Authorized_html, $set_password_flag, $Browser, $Referer);
 my($html_pointer_cnt, %html_pointers);
 
+
+my (%http_dirs, %html_icons);
+sub http_read_parms {
+    
+                                # html_alias1=/aprs=>e:/misterhouse/web/aprs
+    for my $parm (keys %main::config_parms) {
+        next unless $parm =~ /^html_alias/;
+        next unless $main::config_parms{$parm} =~ /(\S+) +(\S+)/;
+        print " - html alias: $1 => $2\n" if $main::config_parms{debug} eq 'http';
+        if (-d $2) {
+            $http_dirs{$1} = $2;
+        }
+        else {
+            print "   html_alias alias $1 is not a directory: $2\n";
+        }
+    }
+            
+    undef %html_icons;          # Refresh lib/http_server.pl icons
+}
+
+
 sub process_http_request {
     my ($socket, $header) = @_;
+
+    print "db http request: $header\n" if $main::config_parms{debug} eq 'http_get';
 
     $leave_socket_open_passes = 0;
 
@@ -62,7 +85,15 @@ sub process_http_request {
     $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
     $get_req = $main::config_parms{html_file} unless $get_req;
-    $file = "$main::config_parms{html_dir}/$get_req";
+
+    $get_req =~ /^(\/[^\/]+)(.*)/; # Pick dir out of /dir/file
+    if ($file  = $http_dirs{$1}) {
+        $file .= "/$2" if $2;
+    }
+    else {
+        $file = "$main::config_parms{html_dir}/$get_req";
+    }
+
 
     print "db web data requested:  get=$get_req arg=$get_arg file=$file.\n  header=$header\n" if $main::config_parms{debug} eq 'http';
 
@@ -139,13 +170,14 @@ eof
             }
             else {
                 my $msg = "The Web RUN command not found: $get_arg.\n";
+                $msg = "Pick a command state from the pull down on the right" if $get_arg eq 'pick a state msg';
 #               print $socket &html_page("", $msg, undef, undef, "control");
-                print $socket &html_page("", $msg);
+                print $socket &html_page("", "<br><b>$msg</b>");
                 print_log $msg;
             }
         }
         else {
-            my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
+            my $msg = "<a href=/speech>Refresh Recently Spoken Text</a><br>\n";
             $msg .= "<br><B>Unauthorized Mode.</B> Authorization flag was not set, to the following was NOT performed<p>";
             $msg .= "<li>" . $get_arg . "</li>";
             print $socket &html_page("", $msg);
@@ -179,7 +211,7 @@ eof
             # &html_response($socket, $h_response,undef,undef,"speech");
         }
         else {
-            my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
+            my $msg = "<a href=/speech>Refresh Recently Spoken Text</a><br>\n";
             $msg .= "<br><B>Unauthorized Mode.</B> Authorization flag was not set, to the following was NOT performed<p>";
             $msg .= "<li>set $item '$state'</li>";
             print $socket &html_page("", $msg);
@@ -223,7 +255,7 @@ eof
 #               print $socket &html_page("", &widgets ); # Refresh frame
             }
             else {
-                my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
+                my $msg = "<a href=/speech>Refresh Recently Spoken Text</a><br>\n";
                 $msg .= "<br><B>Unauthorized Mode.</B> Authorization flag was not set, to the following was NOT performed<p>";
                 $msg .= "<li>set $get_req $get_arg</li>";
                 print $socket &html_page("", $msg, undef, undef, 'control');
@@ -244,24 +276,27 @@ sub html_mh_generated {
     my ($get_req, $get_arg) = @_;
         my $html;
                                 # .html suffix is grandfathered in
-    if ($get_req =~ /\/widgets(.html)?$/) {
-        $html .= &widgets_checkbutton, $main::config_parms{html_style_tk};
-        $html .= &widgets_radiobutton, $main::config_parms{html_style_tk};
-        $html .= &widgets_entry, $main::config_parms{html_style_tk};
+    if ($get_req =~ /\/widgets$/) {
+        return (&widgets('all'), $main::config_parms{html_style_tk});
+    }
+    elsif ($get_req =~ /\/widgets_type?$/) {
+        $html .= &widgets('checkbutton');
+        $html .= &widgets('radiobutton');
+        $html .= &widgets('entry');
         return ($html, $main::config_parms{html_style_tk});
     }
     elsif ($get_req =~ /\/widgets_label$/) {
-        $html = qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}">\n] if $main::config_parms{html_refresh_rate};
-        return ($html . &widgets_label, $main::config_parms{html_style_tk});
+        $html = qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}; url=/widgets_label">\n] if $main::config_parms{html_refresh_rate};
+        return ($html . &widgets('label'), $main::config_parms{html_style_tk});
     }
     elsif ($get_req =~ /\/widgets_entry$/) {
-        return (&widgets_entry, $main::config_parms{html_style_tk});
+        return (&widgets('entry'), $main::config_parms{html_style_tk});
     }
     elsif ($get_req =~ /\/widgets_radiobutton$/) {
-        return (&widgets_radiobutton, $main::config_parms{html_style_tk});
+        return (&widgets('radiobutton'), $main::config_parms{html_style_tk});
     }
     elsif ($get_req =~ /\/widgets_checkbox$/) {
-        return (&widgets_checkbutton, $main::config_parms{html_style_tk});
+        return (&widgets('checkbutton'), $main::config_parms{html_style_tk});
     }
     elsif ($get_req =~ /\/speech(.html)?$/) {
         return (&html_last_spoken, $main::config_parms{html_style_speak});
@@ -308,7 +343,7 @@ sub html_response {
             $sub_ref = \&{$sub_name};
             if (defined &$sub_ref) {
                 $leave_socket_open_action = "&$sub_name('$sub_arg')";
-                $leave_socket_open_passes = 2; # Assume a display or a speak will reset this??
+                $leave_socket_open_passes = 2; # Probably don't need to wait very long here (e.g. web SET:&html_list)
 #               my $html = &$sub_ref($sub_arg);
 #               print $socket &html_page("", $html);
             }
@@ -318,16 +353,23 @@ sub html_response {
         }
         elsif ($h_response eq 'last_response') {
             undef $Last_Response;
-            $leave_socket_open_passes = 2; # This will get set to 2 when display is run
+                                # Wait for some sort of response ... need a way to 
+                                # specify longer wait times on longer commands.
+                                # By default, we shouldn't put a long time here or
+                                # we way too many passes for the 'no response message'
+                                # from many commands that do not respond
+            $leave_socket_open_passes = 2; 
             $leave_socket_open_action = "&html_last_response";
         }
         elsif ($h_response eq 'last_displayed') {
-            $leave_socket_open_passes = 2; # This will get set to 2 when display is run
+            $leave_socket_open_passes = 2;
             $leave_socket_open_action = "&html_last_displayed";
         }
         elsif ($h_response eq 'last_spoken') {
             $leave_socket_open_passes = 2;
-            $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
+            $leave_socket_open_action = "&html_last_spoken"; # Only show the last spoken text
+#           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
+#           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
         elsif (-e ($file = "$main::config_parms{html_dir}/$h_response")) {
             &html_file($socket, $file);
@@ -339,6 +381,8 @@ sub html_response {
         }
     }
                                 # The default ... show last fews spoken phrases
+                                #  - don't set this big.  Many things will have no response
+                                #    so we don't want to wait for them.
     else {
         $leave_socket_open_passes = 2;
         $leave_socket_open_action = "&html_last_spoken";
@@ -356,17 +400,21 @@ eof
 
 sub html_last_response {
    my $last_response;
-   if ($Last_Response eq 'display') {
+   if ($Last_Response eq 'speak') {
+       $last_response = &html_last_spoken;
+#      $last_response = &speak_log_last(1);
+   }
+   elsif ($Last_Response eq 'display') {
        ($last_response) = &display_log_last(1);
                                 # Add breaks on newlines
        $last_response =~ s/\n/\n<br>/g;
-#      $last_response = "<h4>Last Displayed Text</h3>$last_response";
+       $last_response = "<br><b>$last_response</b>";
    }
-   elsif ($Last_Response eq 'speak') {
-       $last_response = &Voice_Text::last_spoken(1);
+   elsif ($Last_Response eq 'print_log') {
+       ($last_response) = &print_log_last(1);
    }
    else {
-       $last_response = "<h4>No response resulted from the last command</hr>";
+       $last_response = "<br><b>No response resulted from the last command</b>";
    }
 
    return $last_response;
@@ -385,9 +433,10 @@ sub html_last_spoken {
     my $h_response;
 
     if ($Authorized or $main::config_parms{password_protect} !~ /logs/i) {
-        $h_response .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}">\n] if $main::config_parms{html_refresh_rate};
-        $h_response .= "<a href=speech>Refresh Recently Spoken Text</a>\n";
-        my @last_spoken = &Voice_Text::last_spoken($main::config_parms{max_log_entries});
+        $h_response .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}; url=/speech">\n] if $main::config_parms{html_refresh_rate};
+#       $h_response .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}">\n] if $main::config_parms{html_refresh_rate};
+        $h_response .= "<a href=/speech>Refresh Recently Spoken Text</a>\n";
+        my @last_spoken = &speak_log_last($main::config_parms{max_log_entries});
         for my $text (@last_spoken) {
             $h_response .= "<li>$text\n";
         }
@@ -402,8 +451,8 @@ sub html_print_log {
 
     my $h_response;
     if ($Authorized or $main::config_parms{password_protect} !~ /logs/i) {
-        $h_response .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}">\n] if $main::config_parms{html_refresh_rate};
-        $h_response .= "<a href=print_log>Refresh Print Log</a>\n";
+        $h_response .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}; url=/print_log">\n] if $main::config_parms{html_refresh_rate};
+        $h_response .= "<a href=/print_log>Refresh Print Log</a>\n";
         my @last_printed = &main::print_log_last($main::config_parms{max_log_entries});
         for my $text (@last_printed) {
             $h_response .= "<li>$text\n";
@@ -490,6 +539,7 @@ sub html_file {
         while (read(HTML, $buff, 8*2**10)) {
             print $socket $buff;
         }
+        print $socket "\n\n";           # Without this, netscap will not show really short .gif files!
     }
 
     close HTML;
@@ -552,11 +602,6 @@ sub html_items {
     return $h_index;
 }
 
-my %html_icons;
-sub html_reset_icons {
-    print "db icons undefed\n";
-    undef %html_icons;
-}
 sub html_find_icon_image {
     my ($object, $type) = @_;
 
@@ -584,6 +629,7 @@ sub html_find_icon_image {
 
                                 # Allow for set_icon to set the icon directly
     $name = $object->{icon} if $object->{icon};
+    return if $name eq 'none';
 
                                 # Look for exact matches
     if ($icon = $html_icons{"$name-$state"}) {
@@ -637,19 +683,18 @@ sub html_list {
     $h_list .= "<center><b>$webname_or_object_type</b> &nbsp &nbsp &nbsp &nbsp $Authorized_html</center>\n";
     $h_list =~ s/group=\$//;     # Drop the group=$ prefix on group lists
 
-#   $h_list .= qq[<!-- html_list -->\n<BASE TARGET='speech'>];
     $h_list .= qq[<!-- html_list -->\n];
 
     if ($webname_or_object_type =~ /^search=(\S+)/) {
-        $h_list .= "<!-- html_list search -->\n";
+        $h_list .= "<!-- html_list search -->\<BASE TARGET='speech'>\n";
         my @cmd_list = grep /$1/, &list_voice_cmds_match($1);
         for my $cmd (@cmd_list) {
             my ($file, $cmd2) = $cmd =~ /(.+)\:(.+)/;
             my $cmd3 = $cmd2;
             $cmd3 =~ tr/\_/\~/; # Swizzle _ to ~, so we can use _ for blanks
             $cmd3 =~ tr/ /\_/; # Blanks are not allowed in urls
-#           $h_list .= "<li><i>$file</i>: <a href='RUN?$cmd3'>$cmd2</a>\n";
-            $h_list .= "<li><a href='RUN?$cmd3'>$cmd2</a>\n";
+            $h_list .= "<li><i>$file</i>: <a href='RUN?$cmd3'>$cmd2</a>\n";
+#           $h_list .= "<li><a href='RUN?$cmd3'>$cmd2</a>\n";
         }
         $h_list  .= "\n";
         $h_list .= "<!-- html_list return -->\n";
@@ -666,6 +711,7 @@ sub html_list {
     }
 
     if (@object_list = sort &list_objects_by_type($webname_or_object_type)) {
+        $h_list .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}; url=/list?$webname_or_object_type">\n] if $main::config_parms{html_refresh_rate};
         $h_list .= "<!-- html_list list_objects_by_type = $webname_or_object_type -->\n";
         my @objects = map{&get_object_by_name($_)} @object_list;
         my @table_items = map{&html_item_state($_, $webname_or_object_type)} @objects;
@@ -675,6 +721,7 @@ sub html_list {
 
     if (@object_list = &list_objects_by_webname($webname_or_object_type)) {
         $h_list .= "<!-- html_list list_objects_by_webname -->\n";
+        $h_list .= &widgets('all', $webname_or_object_type);
         $h_list .= &html_command_table(sort @object_list);
     }
     $h_list .= "<!-- html_list return -->\n";
@@ -685,23 +732,32 @@ sub html_list {
 sub table_it {
     my ($cols, $border, $space, @items) = @_;
 
-    my $h_list .= qq[<table border='$border' width="100%" cellspacing="$space" cellpadding="0">\n<tr align=center>\n];
+    my $h_list .= qq[<table border='$border' width="100%" cellspacing="$space" cellpadding="0">\n];
+
     my $num = 0;
     for my $item (@items) {
-        if ($num ge $cols) {
-            $h_list .= "</tr>\n\n<tr align=center>\n";
-            $num = 0;
+        if ($num == 0) {
+                                # Check to see if it already specs a row
+            if ($item =~ /^\<tr/) {
+                $h_list .= $item . "\n";
+                next;
+            }
+            $h_list .= qq[<tr align=center>\n];
         }
         $h_list .= $item . "\n";
-        $num++;
+        if (++$num == $cols) {
+            $h_list .= "</tr>\n\n";
+            $num = 0;
+        }
     }
                                 # do this so we don't throw off the table cell sizes if the number of items is not divisable
-    while ($num lt $cols) {
-        $h_list .= qq[<td align="right"></td>];
-        $h_list .= qq[<td> </td>];
-        $num++;
-    }
-    $h_list .= "</tr>\n</table>\n</table>";
+#    while ($num lt $cols) {
+#        $h_list .= qq[<td align="right"></td>];
+#        $h_list .= qq[<td> </td>];
+#        $num++;
+#    }
+#    $h_list .= "</tr>\n</table>\n";
+    $h_list .= "</table>\n";
     return $h_list;
 }
 
@@ -751,7 +807,8 @@ sub html_command_table {
         $h_ret  = qq[<td align='left'>];
         $h_ret .= qq[<b>$prefix</b>] if $prefix;
         if ($states) {
-            $h_ret .= qq[<SELECT name="cmd" onChange="form.submit()">\n<option value="  "> \n];
+            $h_ret .= qq[<SELECT name="cmd" onChange="form.submit()">\n];
+            $h_ret .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
             for my $state (split(',', $states)) {
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
@@ -761,10 +818,11 @@ sub html_command_table {
             $h_ret .= qq[</SELECT>\n];
         }
         else {
-            $text =~ tr/\_/\~/; # Blanks are not allowed in urls
-            $text =~ tr/ /\_/; 
-            $h_ret .= qq[<b>$text</b>];
-            $h_ret .= qq[<input type="hidden" name="cmd" value='$text'>\n];
+            my $text_cmd = $text;
+            $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
+            $text_cmd =~ tr/ /\_/; 
+            $h_ret .= qq[<b>$text_cmd</b>];
+            $h_ret .= qq[<input type="hidden" name="cmd" value='$text_cmd'>\n];
         }
 
         $h_ret .= qq[<b>$suffix</b>] if $suffix;
@@ -774,7 +832,7 @@ sub html_command_table {
 
                                 # Do the state log entry
         if (my ($date, $time, $state) = (state_log $object)[0] =~ /(\S+) (\S+) (.+)/) {
-#           $state = '' if $state eq $label; # This command has not states
+            $state = '' if $state eq $text; # This command has no states
             $h_ret = "<NOBR><a href='/SET:&html_state_log($object_name)' target='speech'>$date $time</a></NOBR> <b>$state</b>";
         }
         else {
@@ -797,7 +855,7 @@ sub html_item_state {
     my $h_ret;
 
                                 # find icon to show state, if not found show state_now in text.
-    $h_ret = qq[<td align="right"><a href='/SET:&html_state_log($object_name)' target='speech'>];
+    $h_ret .= qq[<td align="right"><a href='/SET:&html_state_log($object_name)' target='speech'>];
     if (my $h_icon = &html_find_icon_image($object, $object_type)) {
         $h_ret .= qq[<img src="$h_icon" alt="$h_icon" border="0">];
     } else {
@@ -861,105 +919,106 @@ sub pretty_object_name {
     return $name;
 }
 
-
-sub widgets_label {
+sub widgets {
+    my ($request_type, $request_category) = @_;
     my @table_items;
     for my $ptr (@Tk_widgets) {
         my @data = @$ptr;
-        my $type = shift @data;
+
+        my $category = shift @data;
+        $category =~ s/ /_/;
+        my $type     = shift @data;
+        next unless $type eq $request_type or $request_type eq 'all';
+        next if $request_category and $request_category ne $category;
+
         if ($type eq 'label') {
-            for my $pvar (@data) {
-                my $label = $$pvar;
-                $label =~ s/(.+?\:)/<b>$1<\/b>/; # Bold the lable part
-                next unless $label =~ /\S{3}/; # Drop really short labesl, like tk_eye
-                push @table_items, qq[<td align='left'>$label</td>];
-            }
+            push @table_items, &widget_label(@data);
+        }
+        elsif ($type eq 'entry') {
+            push @table_items, &widget_entry(@data);
+        }
+        elsif ($type eq 'radiobutton') {
+            push @table_items, &widget_radiobutton(@data);
+        }
+        elsif ($type eq 'checkbutton') {
+            push @table_items, &widget_checkbutton(@data);
         }
     }
-    return &table_it(1, 0, 0, @table_items);
+    return &table_it(6, 0, 0, @table_items);
 }
 
-sub widgets_entry {
+sub widget_label {
     my @table_items;
-    for my $ptr (@Tk_widgets) {
-        my @data = @$ptr;
-        my $type = shift @data;
-        if ($type eq 'entry') {
-            my $i;
-            for (@data) {
-                $i++;
+    for my $pvar (@_) {
+        my $label = $$pvar;
+        next unless $label =~ /\S{3}/;   # Drop really short labesl, like tk_eye
+        $label =~ s/(.+?\:)/<b>$1<\/b>/; # Bold the label part
+        push @table_items, qq[<tr><td align='left' colspan=6>$label</td></tr>];
+    }
+    return @table_items;
+}
+
+sub widget_entry {
+    my @table_items;
+    while (@_) {
+        my $label= shift @_;
+        my $pvar = shift @_;
+
+        push @table_items, qq[<td align=left><b>$label:</b></td>];
                                 # Put form outside of td, or else td gets too high
-                my $html = qq[<FORM name="widgets_entry" ACTION="SET_VAR"  target='speech'> <td align='right'>];
-                my $label= shift @data;
-                my $pvar = shift @data;
-                $html .= "<b>$label:</b> ";
-                $html_pointers{++$html_pointer_cnt} = $pvar;
-                $html_pointers{$html_pointer_cnt . "_label"} = $label;
-                $html .= qq[<INPUT SIZE=10 NAME="$html_pointer_cnt" value="$$pvar">];
-                $html .= qq[</td></FORM>\n];
-                push @table_items, $html;
-            }
-#            push @table_items, qq[<td></td>] if $i == 1; # Even up the row
-        }
+        my $html = qq[<FORM name="widgets_entry" ACTION="SET_VAR:last_response"  target='speech'> <td align='left'>];
+        $html_pointers{++$html_pointer_cnt} = $pvar;
+        $html_pointers{$html_pointer_cnt . "_label"} = $label;
+        $html .= qq[<INPUT SIZE=10 NAME="$html_pointer_cnt" value="$$pvar">];
+        $html .= qq[</td></FORM>\n];
+        push @table_items, $html;
     }
-    return &table_it($main::config_parms{html_table_size}, 0, 0, @table_items);
+    while (@table_items < 6) {
+        push @table_items, qq[<td></td>];
+    }
+    return @table_items;
 }
 
-sub widgets_radiobutton {
+sub widget_radiobutton {
     my @table_items;
-    my ($i, $html);
-    for my $ptr (@Tk_widgets) {
-        my @data = @$ptr;
-        my $type = shift @data;
-        if ($type eq 'radiobutton') {
-            my ($label, $pvar, $pvalue, $ptext) = @data;
-            $html = qq[<FORM name="widgets_radiobutton" ACTION="SET_VAR"  target='speech'>\n <td align='left'><b>$label</b></td>];
-            push @table_items, $html;
-            $html_pointers{++$html_pointer_cnt} = $pvar;
-            my @text = @$ptext if $ptext;         # Copy, so do not destroy original with shift
-            $i = 0;
-            for my $value (@$pvalue) {
-                $i++;
-                my $text = shift @text;
-                $text = $value unless defined $text;
-                my $checked = 'CHECKED' if $$pvar eq $value;
-                $html  = qq[<td align='left'><INPUT type="radio" NAME="$html_pointer_cnt" value="$value" $checked ];
-                $html .= qq[$checked onClick="form.submit()">$text</td>];
-                push @table_items, $html;
-            }
-            while ($i++ < 5) {
-                push @table_items, qq[<td></td>];
-            }
-        }
+    my ($label, $pvar, $pvalue, $ptext) = @_;
+    my $html = qq[<FORM name="widgets_radiobutton" ACTION="SET_VAR:last_response"  target='speech'>\n];
+    $html .= qq[<td align='left'><b>$label</b></td>];
+    push @table_items, $html;
+    $html_pointers{++$html_pointer_cnt} = $pvar;
+    my @text = @$ptext if $ptext;         # Copy, so do not destroy original with shift
+    for my $value (@$pvalue) {
+        my $text = shift @text;
+        $text = $value unless defined $text;
+        my $checked = 'CHECKED' if $$pvar eq $value;
+        $html  = qq[<td align='left'><INPUT type="radio" NAME="$html_pointer_cnt" value="$value" $checked ];
+        $html .= qq[$checked onClick="form.submit()">$text</td>];
+        push @table_items, $html;
     }
-    return &table_it(6, 0, 0, @table_items) . qq[</FORM>\n];
+    $table_items[$#table_items] .= qq[</form>\n];
+    while (@table_items < 6) {
+        push @table_items, qq[<td></td>];
+    }
+    return @table_items;
 }
 
-sub widgets_checkbutton {
+sub widget_checkbutton {
     my @table_items;
-    my ($i, $html);
-    for my $ptr (@Tk_widgets) {
-        my @data = @$ptr;
-        my $type = shift @data;
-        if ($type eq 'checkbutton') {
-            $i = 0;
-            while (@data) {
-                $i++;
-                my $text = shift @data;
-                my $pvar = shift @data;
-                $html_pointers{++$html_pointer_cnt} = $pvar;
-                my $checked = 'CHECKED' if $$pvar;
-                $html  = qq[<FORM name="widgets_radiobutton" ACTION="SET_VAR"  target='speech'>\n];
-                $html .= qq[<INPUT type="hidden" name="$html_pointer_cnt" value='0'>\n]; # So we can uncheck buttons
-                $html .= qq[<td><INPUT type="checkbox" NAME="$html_pointer_cnt" value="1" $checked onClick="form.submit()">$text</td></FORM>\n];
-                push @table_items, $html;
-            }
-            while ($i++ < 4) {
-                push @table_items, qq[<td></td>];
-            }
-        }
+                                # One form per button??
+    while (@_) {
+        my $text = shift @_;
+        my $pvar = shift @_;
+        $html_pointers{++$html_pointer_cnt} = $pvar;
+        my $checked = 'CHECKED' if $$pvar;
+        my $html = qq[<FORM name="widgets_radiobutton" ACTION="SET_VAR:last_response"  target='speech'>\n];
+        $html .= qq[<INPUT type="hidden" name="$html_pointer_cnt" value='0'>\n]; # So we can uncheck buttons
+        $html .= qq[<td align='left'><INPUT type="checkbox" NAME="$html_pointer_cnt" value="1" $checked onClick="form.submit()">$text</td></FORM>\n];
+        push @table_items, $html;
     }
-    return &table_it(6, 0, 0, @table_items) . qq[</FORM>\n];
+    while (@table_items < 6) {
+        push @table_items, qq[<td></td>];
+    }
+    return @table_items;
 }
 
 
@@ -990,6 +1049,9 @@ Cookie: w3ibmID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.37  2000/02/20 04:47:55  winter
+# -2.01 release
+#
 # Revision 1.36  2000/02/15 04:38:59  winter
 # - fix list?xyz shtml include.  Fix + -> ' ' on entry bug
 #

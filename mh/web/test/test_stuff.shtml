@@ -15,6 +15,12 @@
 <p>This is an example of generating html on the fly using cgi .pl programs
 <!--#include file="/test/test1.pl"-->
 
+<p> Test list?group
+<!--#include file="/list?Group"-->
+
+<p> Test list
+<!--#include file="/list"-->
+
 <p>This is an example of running a command using RUN with html reponse of 'last_displayed'
 
    &function(arg): The results of &function(arg) will be returned

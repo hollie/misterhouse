@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-02-12 21:58:40 winter>
+#  Last change Time-stamp: <2000-02-19 22:00:25 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -72,12 +72,12 @@ use vars qw($Time_Sunrise $Time_Sunset %Moon $Time_Now $Time_Date $Date_Now $Dat
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Holiday);
-use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response);
+use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
 
 my ($Pgm_PathU);
 my (@Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
 my ($Loop_Speed, $Loop_Speed2, $Loop_Speed3);
-my (@Requested_Files, @Print_Log, @Display_Log);
+my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_change_times);
 my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, @Item_Code, @Item_Code_Objects, $user_code);
@@ -165,6 +165,9 @@ BEGIN {
         $Pgm_Root = "$Pgm_PathU/..";
        
         $OS_win = ($^O eq "MSWin32") ? 1 : 0;
+
+# Win95:  MSWin32 Win95  B 4 0 67306684 1 FAT32
+# Win98:  MSWin32 Win95    4 10 67766222 1 FAT
 
         if ($OS_win) {
             $Info{OS_version} = join(' ', Win32::GetOSVersion);
@@ -1050,7 +1053,7 @@ sub display {
     }
 
     unshift (@Display_Log, $text);
-    pop @Display_Log if @Display_Log > 100;
+    pop @Display_Log if @Display_Log >  $main::config_parms{max_log_entries};
 
                                 # Assume we were waiting for this and reset http server counter so almost 0 
     $Last_Response = 'display';
@@ -1059,7 +1062,7 @@ sub display {
 }
 
 sub display_log_last {
-                                # Return the last how_many spoken phrases
+                                # Return the last how_many displayed phrases
     my ($how_many) = @_;
     my $count = @Display_Log;
     if ($how_many >= $count) {
@@ -1623,11 +1626,13 @@ sub print_log {
     unshift (@Print_Log, "$Time_Date $data");
     pop @Print_Log if @Print_Log > $main::config_parms{max_log_entries};
 
+    $Last_Response = 'print_log';
+
     print PRINTLOG "$Time_Date: $data\n";
 }
 
 sub print_log_last {
-                                # Return the last how_many spoken phrases
+                                # Return the last how_many print_log phrases
     my ($how_many) = @_;
     my $count = @Print_Log;
     if ($how_many == 1) {
@@ -1651,10 +1656,14 @@ sub print_msg {
     else {
         print "$time: $data\n";
     }
+    $Last_Response = 'print_msg';
 }
 
 sub print_speaklog {
     my ($data) = @_;
+
+    unshift (@Speak_Log, $data);
+    pop @Speak_Log if @Speak_Log > $main::config_parms{max_log_entries};
 
     if ($Tk_objects{speak_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
@@ -1720,8 +1729,8 @@ sub process_serial_data {
     ($event_type) = $event_data =~ /^(\S)/;
     print "Serial data: event_type=$event_type, event_data=$event_data\n" if $config_parms{debug} eq 'serial';
 
-                                # Check for multi-key X10 commands (e.g. XA1 XAJ -> XA1AJ)
     if ($event_type eq 'X') {
+                                # Check for multi-key X10 commands (e.g. XA1 XAJ -> XA1AJ)
         if (((&get_tickcount) - $config_parms{x10_multikey_delay}) < $prev_serial_event{$event_type}{time}) {
             my $event_data2 = $prev_serial_event{$event_type}{event} . substr($event_data, 1);
             print "Serial data: X10 merged string=$event_data2\n" if $config_parms{debug} eq 'X10';
@@ -1731,6 +1740,14 @@ sub process_serial_data {
                                 # Track previous key so we can do multi-key sequences
         $prev_serial_event{$event_type}{time} = &get_tickcount;
         $prev_serial_event{$event_type}{event} = $event_data;
+
+                                # Check for codes All-on All-off
+        if ($event_data =~ /^X(\S)([OP])$/) {
+            print "Turning all x10 items in house $1 to $2\n" if $config_parms{debug} eq 'X10';
+            my $state = ($2 eq 'O') ? ON : OFF;
+            &X10_Item::set_by_housecode($1, $state);
+        }
+
     }
 
     if ($ref = &Serial_Item::serial_item_by_id($event_data)) {
@@ -1829,7 +1846,7 @@ sub read_code {
 
     my $debug_old = $config_parms{debug};
     read_parms unless $Startup; # Re-read .ini parms, in case they changed
-    &html_reset_icons;          # Refresh lib/http_server.pl icons
+    &http_read_parms;           # Refresh lib/http_server.pl stuff
 
     $config_parms{debug} = $debug_old unless $config_parms{debug};
     
@@ -1944,7 +1961,10 @@ sub read_user_code {
                                 # No need to keep subroutines out of the loop code ... no speed advantage ?!?
 #           $subroutine_flag = 1 if $record =~ /^ *sub /; # Assume the rest of the file is subroutine!
             $noloop_flag = 1 if $record =~ /#\s*noloop=start/i;
-            $webname = $1 if $record =~ /\#\s*category\s*=\s*(.+?)\s*\r?$/i;
+            if ($record =~ /\#\s*category\s*=\s*(.+?)\s*\r?$/i) {
+                $webname = $1;
+                $record .= "\n\$Category = '$1';\n"; # Used in tk_widgets
+            }
             $webname =~ tr/ /\_/;    # Blanks are not allowed in urls
             $member_sort_order{$member_name} = $1 if $record =~ /\#\s*position\s*=\s*(\S+)/i;
 
@@ -2376,7 +2396,7 @@ sub set_sun_time {
     push @ARGV, "-time_zone", $config_parms{time_zone} if defined $config_parms{time_zone};
     push @ARGV, "-latitude",  $config_parms{latitude}  if defined $config_parms{latitude};
     push @ARGV, "-longitude", $config_parms{longitude} if defined $config_parms{longitude};
-    print "running: $Pgm_PathU/sun_time @ARGV: ";
+    print "sun_time @ARGV:   ";
     my ($results) = do "$Pgm_PathU/sun_time";
     ($Time_Sunrise, $Time_Sunset) = $results =~ /Sunrise=([\S ]+) +Sunset=([\S ]+)/;
     print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
@@ -2423,7 +2443,12 @@ sub socket_close {
     my ($port_name) = @_;
     my $sock = $Socket_Ports{$port_name}{socka};
     print "Closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
-    close $sock;
+    unless ($sock) {
+        print "Error, sock undefined for port $port_name\n";
+    }
+    else {
+        close $sock;
+    }
     delete $Socket_Ports{$port_name}{socka};
     delete $Socket_Ports{$port_name}{sock} if $port_name =~ /\:/; # Client, not server, socket
 #   print "\n\ndb stop closing socket $port_name.\n";
@@ -2539,6 +2564,18 @@ sub speak {
         &Voice_Text::speak_text('text' => $phrase);
     }
 
+}
+
+sub speak_log_last {
+                                # Return the last how_many spoken phrases
+    my ($how_many) = @_;
+    my $count = @Speak_Log;
+    if ($how_many >= $count) {
+        return @Speak_Log;
+    }
+    else {
+        return (@Speak_Log[0 .. ($how_many-1)]);
+    }
 }
 
 
@@ -2837,8 +2874,7 @@ sub tk_checkbutton {
     return unless $Reload;
 
                                 # Allow web widgets, even with -no_tk
-    push(@Tk_widgets, ['checkbutton', @_]);
-
+    push(@Tk_widgets, [$Category, 'checkbutton', @_]);
 
     return unless $MW;
     my @data = @_;
@@ -2893,7 +2929,7 @@ sub tk_entry {
     return unless $Reload;
 
                                 # Allow web widgets, even with -no_tk
-    push(@Tk_widgets, ['entry', @_]);
+    push(@Tk_widgets, [$Category, 'entry', @_]);
 
     return unless $MW;
     my @data = @_;
@@ -2929,7 +2965,7 @@ sub tk_label {
     return unless $Reload;
 
                                 # Allow web widgets, even with -no_tk
-    push(@Tk_widgets, ['label', @_]);
+    push(@Tk_widgets, [$Category, 'label', @_]);
 
     return unless $MW;
     my @data = @_;
@@ -2954,7 +2990,7 @@ sub tk_label {
 sub tk_mlabel {
     return unless $Reload;
 
-    push(@Tk_widgets, ['label', @_]);
+    push(@Tk_widgets, [$Category, 'label', @_]);
 
     return unless $MW;
     my ($pvar) = @_;
@@ -2968,8 +3004,10 @@ sub tk_mlabel {
 sub tk_radiobutton {
     return unless $Reload;
 
+#   print "db5 Debug doing the radiobuon thing, l=@_[0], r=$Reload\n";
+
                                 # Allow web widgets, even with -no_tk
-    push(@Tk_widgets, ['radiobutton', @_]);
+    push(@Tk_widgets, [$Category, 'radiobutton', @_]);
 
     return unless $MW;
     my ($label, $pvar, $pvalue, $ptext) = @_;
@@ -3026,6 +3064,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.1  2000/02/20 04:47:54  winter
+# -2.01 release
+#
 # Revision 2.00  2000/02/13 04:00:08  winter
 # - change Version to 2.00
 #

@@ -250,7 +250,8 @@ sub main::my_use {
     my($module) = @_;
     eval "use $module";
     if ($@) {
-        print "\nError in loading module=$module:\n  $@\n";
+        print "\nError in loading module=$module:\n  $@";
+        print " - See install.html for instructions on how to install perl module $module\n\n";
     }
     return $@;
 }
@@ -286,7 +287,11 @@ sub main::plural2 {
     my($value) = @_;
     my $suffix;
 	my $r = $value % 10;
-    if ($r == 1) {
+                                # 11,12,13 are excptions.  th-ify them
+    if ($value > 10 and $value < 21) {
+        $suffix = 'th';
+    }        
+    elsif ($r == 1) {
         $suffix = 'st';
     }
     elsif ($r == 2) {
@@ -869,6 +874,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.35  2000/02/20 04:47:55  winter
+# -2.01 release
+#
 # Revision 1.34  2000/02/12 06:11:37  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

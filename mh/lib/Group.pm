@@ -47,7 +47,7 @@ sub set {
     if ($hc and $main::config_parms{cm11_port}) {
         for my $ref (@group) {
             print "Group 1 setting $ref to $state\n" if $main::config_parms{debug};
-            set $ref 'none';
+            set $ref 'manual';
             $ref->{state_next_pass} = $state; # Set the real state, rather than none
         }
         set $last_ref $state;
@@ -77,6 +77,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.6  2000/02/20 04:47:54  winter
+# -2.01 release
+#
 # Revision 1.5  2000/02/12 06:11:37  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

@@ -332,9 +332,9 @@ sub voice_items {
     for my $cmd (@cmd_list) {
         my ($ref, $said, $vocab_cmd) = &voice_item_by_text($cmd);
         next unless $vocab eq $vocab_cmd;
-        my $filename  = $ref->{filename};
-#       my $category  = $ref->{category};
-        push(@cmd_list2, "$filename: $cmd");
+#       my $filename  = $ref->{filename};
+        my $category  = $ref->{category};
+        push(@cmd_list2, "$category: $cmd");
     }
     return @cmd_list2;
 }
@@ -599,6 +599,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.19  2000/02/20 04:47:54  winter
+# -2.01 release
+#
 # Revision 1.18  2000/02/12 06:11:37  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #
