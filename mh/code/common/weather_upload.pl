@@ -49,6 +49,10 @@ if (new_minute 15 or $state eq 'Run') {
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =  gmtime();
     my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec;
 
+# wx200 stores in millibars, 968 stores in Hg
+    $Weather{BaromSea_hg} = $Weather{BaromSea} unless $Weather{BaromSea_hg};
+    $Weather{BaromSea_hg} *= 0.029529987508 if $Weather{BaromSea_hg} > 100;  # hg should be around 29.
+
     my $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&PASSWORD=%s&dateutc=%s&winddir=%s&windspeedmph=%d&windgustmph=%d&tempf=%.1f&rainin=%.2f&baromin=%.2f&dewptf=%.2f&humidity=%s&weather=&clouds=%s&softwaretype=%s&action=updateraw',
 	$stationid, $passwd, $utc,
 	$Weather{WindAvgDir},
@@ -59,7 +63,7 @@ if (new_minute 15 or $state eq 'Run') {
 # To set your sea level pressure, add one millibar to your station pressure for every 10 meters of altitude.
 #   - lets do this in Weather_wx200.pm instead, as other devices are smarter :)
 #	($Weather{Barom} + $altitude/10) * 0.029529987508, # convert millibars to inches Hg
-	$Weather{BaromSea} * 0.029529987508, # convert millibars to inches Hg
+	$Weather{BaromSea_hg},
 	$Weather{DewOutdoor},
 	$Weather{HumidOutdoor},
     $clouds,

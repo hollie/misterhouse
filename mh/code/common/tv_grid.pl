@@ -2,7 +2,8 @@
 
 #@ This code will download TV schedules from the Internet and
 #@ optionally create events to remind you or your vcr to watch shows
-#@ See mh.ini on how to set the tv_provider parm
+#@ Use <a href=/bin/set_parm_tv_provider.pl>/bin/set_parm_tv_provider.pl</a>,
+#@ or edit your mh.ini file, to set the mh.ini tv_provider parm.
 
                                 # Note: This $tv_grid is a special name, used by the get_tv_grid program.  
                                 #       Do not change it.

@@ -82,8 +82,8 @@ my %table_fcodes2 = qw(0010 J  0011 K  0100 L  0101 M  0001 O  0000 P
 sub receive_buffer {
     my ($serial_port) = @_;
 
-    if (exists $main::config_parms{debug}) {
-        $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
+    if (exists $main::Debug{x10}) {
+        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
     }
 
     my $pc_ready = pack('C', 0xc3);
@@ -94,7 +94,6 @@ sub receive_buffer {
     # let the 0xc3 ack take hold ... emperically derived ... 1/2 misses at 20 ms
     #   - increase from 40 to 80, based on other CM11s.
     select undef, undef, undef, 80 / 1000;
-
 
     my $data;
     return undef unless $data = &read($serial_port, 1); 
@@ -267,9 +266,8 @@ sub format_data {
 sub send {
     my ($serial_port, $house_code) = @_;
 
-    if (exists $main::config_parms{debug}) {
-        $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
-#       &Win32::SerialPort::debug(1) if $DEBUG;
+    if (exists $main::Debug{x10}) {
+        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
     }
 
     my ($data_snd, $checksum) = &format_data($house_code);
@@ -317,10 +315,6 @@ sub send {
         goto RETRY if $retry_cnt++ < 3;
     }
 
-    if (exists $main::config_parms{debug}) {
-#       &Win32::SerialPort::debug(0) if $DEBUG;
-    }
-
     return $data_d;
 }
 
@@ -331,8 +325,8 @@ sub read {
                                 # No harm done, but we would rather not wait :)
     my $tries = ($no_block) ? 1 : 30;
 
-    if (exists $main::config_parms{debug}) {
-        $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
+    if (exists $main::Debug{x10}) {
+        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
     }
 
     while ($tries--) {
@@ -380,8 +374,8 @@ sub dim_level_decode {
                           9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
                           A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
 
-    if (exists $main::config_parms{debug}) {
-        $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
+    if (exists $main::Debug{x10}) {
+        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
     }
 
                                 # Convert bit string to decimal
@@ -737,6 +731,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.18  2003/03/09 19:34:42  winter
+#  - 2.79 release
+#
 # Revision 2.17  2002/11/10 01:59:57  winter
 # - 2.73 release
 #

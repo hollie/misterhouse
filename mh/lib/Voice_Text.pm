@@ -12,14 +12,15 @@ my $is_speaking_timer = new Timer;
 sub init {
     my ($engine) = @_;
 
-    if ($main::Info{OS_name}=~ /darwin/i) {
-        &main::my_use("Mac::Sound");
-		&main::my_use("Mac::Speech");
-        my $voice = $main::config_parms{speak_voice};
-        $voice = 'Albert' unless $voice;
-        my $Mac_voice = $Mac::Speech::Voice{$voice};
-        $VTxt_mac = NewSpeechChannel($Mac_voice); # Need a default voice here?
-    }
+# The darwin hook is currently done in the main bin/mh code
+#    if ($main::Info{OS_name}=~ /darwin/i) {
+#        &main::my_use("Mac::Sound");
+#		&main::my_use("Mac::Speech");
+#        my $voice = $main::config_parms{speak_voice};
+#        $voice = 'Albert' unless $voice;
+#        my $Mac_voice = $Mac::Speech::Voice{$voice};
+#        $VTxt_mac = NewSpeechChannel($Mac_voice); # Need a default voice here?
+#    }
     
     if (($main::config_parms{voice_text} =~ /festival/i or $engine and $engine eq 'festival') and
         $main::config_parms{festival_host}) {
@@ -126,17 +127,22 @@ sub speak_text {
     $speak_pgm = "$^X $main::Pgm_Path/vv_tts.pl"        if $speak_engine =~ /vv_tts/i;
     $speak_pgm = "$^X $main::Pgm_Path/vv_tts_simple.pl" if $speak_engine =~ /viavoice/i;
 
-    if ($speak_engine =~ /NaturalVoice/i) {
+
+    if($speak_engine =~ /NaturalVoiceWine/i) {
+        my $wine_path = $main::config_parms{wine_path};
+        $wine_path = 'wine' unless -e $wine_path;
+        my $nv_path = $main::config_parms{voice_text_naturalvoice}; # DOS path to NatVox stuff
+        $speak_pgm = "$wine_path '$nv_path/bin/ttsstandaloneplayer.exe' -- -data '$nv_path/data' -xml";
+    }
+    elsif ($speak_engine =~ /NaturalVoice/i) {
         my $path = $main::config_parms{voice_text_naturalvoice};
         $speak_pgm = "$path/bin/TTSStandalonePlayerDT -data $path/data -xml";
 #       $speak_pgm = "$path/bin/TTSDesktopPlayer      -data $path/data -xml";
     }
-
     elsif ($main::Info{OS_name}=~ /darwin/i) {
         $speak_pgm = 'MacSpeech' unless $speak_pgm;
 #       $speak_pgm = 'osascript' unless $speak_pgm;
     }
-
     elsif ($speak_engine =~ /viavoice/i or $speak_engine =~ /vv_tts/i) {
         $parms{voice} = $main::config_parms{viavoice_voice} unless $parms{voice};
         $parms{voice} = $voice_names{lc $parms{voice}} if $voice_names{lc $parms{voice}};
@@ -176,7 +182,7 @@ sub speak_text {
     $parms{text} =~ s/\"//g unless $parms{no_mod};
 
                                 # Drop XML speech tags unless supported
-    $parms{text} =~ s/<\/?voice.*?>//g unless ($VTxt_version and $VTxt_version eq 'msv5') or $speak_engine =~ /naturalvoice/;
+    $parms{text} =~ s/<\/?voice.*?>//g unless ($VTxt_version and $VTxt_version eq 'msv5') or $speak_engine =~ /naturalvoice/i;
     
     return unless $parms{text} or $parms{play};
 
@@ -307,8 +313,10 @@ sub speak_text {
                 $speak_pgm_arg .= qq[ -text "$parms{text}"];
             }
             elsif ($speak_engine =~ /viavoice/) {
-                $speak_pgm_arg .= ' -voice '        . "'$parms{voice}'"    if $parms{voice};
-                $speak_pgm_arg .= ' -to_file '      . $parms{to_file}      if $parms{to_file};
+                $speak_pgm_arg .= ' -voice '     . "'$parms{voice}'"  if $parms{voice};
+                $speak_pgm_arg .= ' -to_file '   . $parms{to_file}    if $parms{to_file};
+                $speak_pgm_arg .= ' -right '     . $parms{right}      if $parms{right};
+                $speak_pgm_arg .= ' -left '      . $parms{left}       if $parms{left};
                 $speak_pgm_arg .= qq[ "$parms{text}"];
             }
             elsif ($speak_pgm =~ /flite/) {
@@ -317,8 +325,10 @@ sub speak_text {
             }
             elsif ($speak_engine =~ /naturalvoice/i) {
                 if ($parms{to_file}) {
-                    $speak_pgm  =~ s/Player/File/;
-                    $speak_pgm  .= " -o $parms{to_file}";
+                    $speak_pgm  =~ s/Player/File/i;
+                    my $file = $parms{to_file};
+#                   $file = "$main::config_parms{wine_path_temp}/mh_voice_text.wav" if $speak_engine =~ /naturalvoicewine/i;
+                    $speak_pgm  .= " -o $file";
                 }
 
 # Use either of these ... use_stdin has problems with mh -tk 1
@@ -326,7 +336,7 @@ sub speak_text {
                 $speak_pgm   = qq[echo "$parms{text}" | $speak_pgm];
 #               $speak_pgm_use_stdin = 1;    
 
-                $speak_pgm .= "> /dev/null";
+                $speak_pgm .= " > /dev/null" unless $main::Debug{voice} and $main::Debug{voice} > 1;
             }
             elsif ($speak_pgm eq 'MacSpeech') {
                 my $volume_reset = GetDefaultOutputVolume();
@@ -368,6 +378,10 @@ sub speak_text {
             elsif ($fork) {
                 exec qq[$speak_pgm $speak_pgm_arg];
                 die 'cant exec $speak_pgm';
+#                system qq[$speak_pgm $speak_pgm_arg];
+#                &main::copy("$main::config_parms{wine_path_temp}/mh_voice_text.wav", $parms{to_file})
+#                  if $parms{to_file} and $speak_engine =~ /naturalvoicewine/i;
+#                exit 0;
             }
             else {
                 system qq[$speak_pgm $speak_pgm_arg];
@@ -719,7 +733,7 @@ sub set_voice {
             $spec = "Name=$voice";
         }
 
-        print "Setting ms voice ($voice) to spec=$spec\n" if $main::Debug{voice};
+        print "Setting xml voice ($voice) to spec=$spec\n" if $main::Debug{voice};
 
                                 # If text is given, set for just this text with XML.  Otherwise change the default
         if ($text) {
@@ -757,6 +771,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.46  2003/03/09 19:34:41  winter
+#  - 2.79 release
+#
 # Revision 1.45  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

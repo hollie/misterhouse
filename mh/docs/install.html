@@ -169,18 +169,21 @@ The also have older vesions older versions available while will work, but 5.6 ha
 <p>After installing the core Perl package, you will likely want to install a few optional packages.
 mh will run without them, but they are easy to install and give it more function.
 Activestate has provided ppm (Perl Package Manager), a nifty way of automatically downloading and installing packages. 
-Unfortunatly, the 3 packages we need are not yet avaliable from ActiveState for perl version 5.8,
+Unfortunatly, some of the packages we need are not yet avaliable from ActiveState for perl version 5.8,
 but Randy Kobes has kindly made them available at his site. You can install them with the following:</p>
 <pre>
    &gt; cd \perl\bin (modify to match your directory)
    &gt; ppm
-   ppm &gt; repository add <a href="http://theoryx5.uwinnipeg.ca/cgi-bin/ppmserver?urn:/PPMServer58">http://theoryx5.uwinnipeg.ca/cgi-bin/ppmserver?urn:/PPMServer58</a>
+   ppm &gt; repository add <a href="http://theoryx5.uwinnipeg.ca/ppms">http://theoryx5.uwinnipeg.ca/ppms</a> 
    ppm&gt; install GD
    ppm&gt; install DB_File
    ppm&gt; install Tk-JPEG
-   ppm&gt; install Win32-Setupsup</pre>
-<p>If the DB_File post-install script doesn't run to install the included libdb.dll, you can extract the dll
-from <a href="http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz">http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz</a> and copy it to a dir in your path.</p>
+   ppm&gt; install Win32-Setupsup
+   ppm&gt; exit</pre>
+<p>If the DB_File post-install script doesn't run to install the included libdb.dll 
+(the DB_File.dll should already be copied ok), you can extract the dll
+from <a href="http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz">http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz</a> and copy it to your 
+ \perl\site\lib\auto direcotory, or some other directory in your path.</p>
 <p>If you are behind a www proxy firewall, try setting the environment variable http_proxy=http://proxy-server:port
 If you have problems installing the files with ppm over the internet, you can download the files 
 and install them from local storage. For example, to install the Tk package:</p>
@@ -260,6 +263,9 @@ will be needed on newer versions of unzip to preserve case on filenames.</p>
 <p>Make sure you run the configure script, even if you used the rpm file.
 This will convert C serial headers to perl headers and (if you used the zip file)
 delete dos/windows only files, and 'chmod +x' on the files in the bin directory.</p>
+<p>To allow non-root users to run the bin/set_clock function, run this command:</p>
+<pre>
+ chmod ug+s /bin/date</pre>
 <p>There are various examples of how to start/stop mh in mh/bin/misterhouse*.rc</p>
 <p>
 </p>
@@ -317,8 +323,13 @@ that has a very nice US english male and female voice.</p>
  <a href="http://www.naturalvoices.com">http://www.naturalvoices.com</a> (additional voices cost $70), but for some reason, they no longer sell them from there.
 Now the only supplier we have found is from <a href="http://www.nextup.com/attnv.html,">http://www.nextup.com/attnv.html,</a> where additional voices are $35.
 But this site only offers the Windows engine, although the voice data files can be used with either engine.
-If you find a source for the linux engine, let me know.  
-Use the voice_text_naturalvoice parm to point to where you have it installed and set voice_text=naturalvoice.</p>
+If you find a source for the linux engine, let me know.</p>
+<p>If you have the linux binary, use the voice_text_naturalvoice parm to point to 
+where you have it installed and set voice_text=naturalvoice.</p>
+<p>If you only have the windows binary, you can now use Wine to run it from linux. 
+On my 1.2 GHz Celeron, time-to-speech is about 1 second, -vs- about .4 seconds for the native Linux binary.
+See bin/mh.ini for examples on these parms: voice_text=NaturalVoiceWine,  voice_text_naturalvoice=windows_path_to_voices, 
+wine_path=path_to_wine, and wine_path_temp=windows_path_to_temp_dir.</p>
 <p>The IBM ViaVoice TTS and Voice Recognition engines is no longer available (as of 05/2002) 
 from the IBM site ( <a href="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</a> ), but can still be found here: 
 <a href="http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/">http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/</a>

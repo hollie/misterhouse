@@ -269,7 +269,7 @@ sub set {
     $respond = $main::Respond_Target unless $respond; # Pass default target along
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by, $respond);
     &main::print_log("Running: $self->{text_by_state}{$state}") unless $no_log;
-    print "db1 set voice cmd $self to $state\n" if $main::Debug{voice};
+    print "db1 set voice cmd $self to $state set_by=$set_by r=$respond\n" if $main::Debug{voice};
 }
 
 sub remove_voice_cmds {
@@ -613,6 +613,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.43  2003/03/09 19:34:41  winter
+#  - 2.79 release
+#
 # Revision 1.42  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

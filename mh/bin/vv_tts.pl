@@ -190,17 +190,18 @@ sub speak_text() {
 		}
 		printf ("%s: text = $parms{text}\n",$Pgm_Name) if $parms{debug};
 	
+        $parms{text} = "`v" . $parms{voice} . " " . $parms{text} if $parms{voice};
 		if ($parms{to_file}) {
 		    unlink $parms{to_file};
 		    my $h=eciNew() or die "ViaVoice: Unable to connect";
 		    eciSetOutputFilename($h, $parms{to_file}) or warn "ViaVoice: Unable to set output file: $parms{to_file}";
+            eciSetParam($h,eciInputType,1);
 		    eciAddText($h, $parms{text}) or warn "ViaVoice Unable to add text";
 		    eciSynthesize($h) or warn "ViaVoice Unable to synthesize text";
 		    while (eciSpeaking($h)){};
 		    eciDelete($h);
 		}
 		else {
-		    $parms{text} = "`v" . $parms{voice} . " " . $parms{text} if $parms{voice}; # Does not work with to_file??
 		    ViaVoiceTTS::eciSpeakText($parms{text},1);
 		}
 	}

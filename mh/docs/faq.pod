@@ -1142,7 +1142,6 @@ On the other hand, it means that MH will restart itself automatically
 even if it exits due to bad code, which does happen to me occaisionally.
 
 
-
 =head1 4: Windows specific questions
 
 =head2 4.1: mh seems to cause some windows to hang
@@ -1307,6 +1306,7 @@ Here is a rough timeline of MisterHouse development:
  - 11/02 UIRT2 control, better im control, web interface for triggers and items
  - 12/02 Improved callerID, new respond and Text_Item functions, xAP support.
  - 01/03 Mailing list reaches 500 members.
+ - 02/03 Addex xPL support, stacked and overloaded states, and multi-user logon.
 
 
 Audrey support, more MS TTS controls, call waiting callerid
@@ -1656,6 +1656,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.39  2003/03/09 19:34:38  winter
+#  - 2.79 release
+#
 # Revision 1.38  2003/02/08 05:29:19  winter
 #  - 2.78 release
 #

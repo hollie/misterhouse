@@ -7,7 +7,7 @@ use strict;
 
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
-use vars qw(%Http %Cookies $Authorized %Included_HTML);
+use vars qw(%Http %Cookies %Included_HTML);
 $Authorized = 0;
 
 my($leave_socket_open_passes, $leave_socket_open_action);
@@ -74,6 +74,7 @@ sub http_read_parms {
     &read_parm_hash(\%http_agent_sizes,    $main::config_parms{html_browser_sizes}, 1);
 
     undef %html_icons;          # Refresh lib/http_server.pl icons
+    undef %Included_HTML;       # These should get re-created on $Reload
 
     %password_protect_dirs = map {$_, 1} split ',', $main::config_parms{password_protect_dirs};
 
@@ -129,7 +130,8 @@ sub http_process_request {
         }
     }
     unless ($header) {
-        print "http: Error, not header request.  header=$temp\n" if $main::Debug{http};
+                                # Ignore empty requests, like from 'check the http server' command
+        print "http: Error, not header request.  header=$temp\n" if $main::Debug{http} and $temp;
         return;
     }
     
@@ -264,7 +266,7 @@ sub http_process_request {
                                 # Store so that include files have access to parent args
     $ENV{HTTP_QUERY_STRING}  = $get_arg;
 
-                                # Prompt for password or unset the password
+                                # Prompt for password (SET_PASSWORD) and allow for UNSET_PASSWORD
     if ($get_req =~ /SET_PASSWORD$/) {
         if ($config_parms{password_menu} eq 'html') {
             if ($get_req =~ /^\/UNSET_PASSWORD$/) {
@@ -280,8 +282,8 @@ sub http_process_request {
             my $html = &html_authorized;
             $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
 #           $html .= &html_reload_link('/', 'Refresh Main Page');   # Does not force reload?
+            my ($name, $name_short) = &net_domain_name('http');
             if ($Authorized and $get_req =~ /\/SET_PASSWORD$/) {
-                my ($name, $name_short) = &net_domain_name('http');
                 &print_log("Password was just set by browser $name");
                 &speak("$Authorized password set by $name_short");
                 $html .= "<br><b>$Authorized password accepted</b>";
@@ -289,7 +291,9 @@ sub http_process_request {
             }
             else {
                                 # No good way to un-Authorized here, so just re-do the pop-up window till it gives up?
+                print "dbx requestor=$name, get_req=$get_req, Authorized=$Authorized\n";
                 print $socket &html_password('');
+                print $socket &html_page(undef, "requestor=$name, get_req=$get_req, Authorized=$Authorized");
             }
         }
         return;
@@ -1125,18 +1129,13 @@ sub html_file {
                                 #       the results, rather than print them to stdout.
     elsif ($file =~ /\.pl$/) {
         my $code = join('', <HTML>);
-                                # Check if authorized
-        $code =~ /^# *authority: *(\S+) *$/smi;
-        my $user_required = lc $1 if $1;
 
-        $file =~ s/.*\///;
+                                # Check if authorized
+        my $user_required = lc $1 if $code =~ /^# *authority: *(\S+) *$/smi;
+        $file =~ s/.*\///;      # Drop path to file
         $user_required = $Password_Allow{$file} if $Password_Allow{$file};
 
-        my $authorized_flag = 0;
-        $authorized_flag = 1 if $user_required eq 'anyone';
-        $authorized_flag = 1 if $Authorized and !$user_required;
-        $authorized_flag = 1 if $Authorized and $user_required and $Authorized eq $user_required;
-        unless ($authorized_flag) {
+        unless (&authority_check($user_required)) {
             my $whoisit = &net_domain_name('http');
             &print_log("$whoisit made an unauthorized request for $file");
             return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
@@ -2112,6 +2111,19 @@ sub html_reload_link {
     ];
 }
 
+                                # html -> text, without memory leak!
+sub html_to_text {
+    my ($tree, $format, $text);
+                                # This leaks memory!
+#   $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($_[0]));
+
+    $tree   = HTML::TreeBuilder->new();
+    $format = HTML::FormatText->new(leftmargin => 0, rightmargin => 150);
+    $tree -> parse($_[0]);
+    $text = $format -> format($tree);
+    $tree -> delete;  # Avoid a memory leak!
+    return $text;
+}
 
 sub pretty_object_name {
     my ($name) = @_;
@@ -2687,6 +2699,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.79  2003/03/09 19:34:42  winter
+#  - 2.79 release
+#
 # Revision 1.78  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

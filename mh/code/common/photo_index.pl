@@ -5,9 +5,9 @@
 #@
 #@ Review and update the photo_* parameters in your mh.private.ini 
 #@ file, then run the command 'Reindex the photo album'.  Then point 
-#@ your web browser to
-#@  
-#@  http://localhost:8080/bin/photos.pl
+#@ your web browser to <a href=/bin/photos.pl> http://localhost:8080/bin/photos.pl</a>.
+#@ You can also use <a href="SUB;photo_html">this link</a> to set the photo_dirs parm to a specific dir.
+
 
 
 # Example mh.ini parms
@@ -53,7 +53,9 @@ sub photo_index {
     elsif ($sequence eq 'date') {
         @photos = sort {my ($a1) = (stat $a)[9]; my ($a2) = (stat $b)[9];  $a1 <=> $a2} @photos;
     }
-    print_log "Read a list of " . scalar(@photos) . " photos, sorted by $sequence";
+    my $count = @photos;
+    speak "Indexed $count photos";
+    print_log "Read a list of $count photos, sorted by $sequence";
     file_write $config_parms{photo_index}, join "\n", @photos;
 }
 
@@ -90,12 +92,63 @@ if (my $string = quotemeta $Tk_results{'Photo Search'}) {
                                 # Resize new photos using image_resize
 $photo_resize  = new Voice_Cmd 'Resize new photo album pictures';
 $photo_resize  ->set_info("Re-sizes any new photos in the photo album directories");
-$photo_resizep = new Process_Item '/pictures/resize_images.bat';
+$photo_resizep = new Process_Item 'd:/pictures/resize_images.bat';
 start $photo_resizep if said $photo_resize;
 speak 'Photo resizing done' if done_now $photo_resizep;
 
 # My resize_images.bat file has entries like this:
 #   call image_resize -r 0 -p sm2 --size 800x600 -d school
 #   call image_resize -r 0 -p sm2 --size 800x600 -d home
+
+
+
+                                # Add a small form to the Entertainment category page to pick a subdirectory to index 
+my @subdirs; 
+$photo_subdir = new Generic_Item;
+
+sub photo_html {
+    my $dir = '/photos';
+                                # TODO, Add support for multiple subdirectories 
+    my $selected = (split ',', $config_parms{photo_dirs})[0] or $dir;
+    @subdirs = ();
+    &photo_subdirs($dir, '');
+    return '' unless @subdirs > 1;
+    my $html; 
+                                # Create a form to pick which photo subdirectories to index 
+    $html .= '<table border><tr><form action="SET;referer" target=control><td>Pick which photo subdirectory to index' . "\n";
+    $html .= &html_form_select('$photo_subdir', 1, $selected, @subdirs) . "</td></form></tr></table>\n";
+    return $html; 
+}
+
+                                # Process form submit 
+if (my $state = state_now $photo_subdir) {
+    &write_mh_opts({'photo_dirs' => $state}, undef, 1);
+    &photo_index;
+}
+
+                                # Recurse through subdirectories 
+sub photo_subdirs {
+    my ($dir, $subdir) = @_;
+    my ($dir2) = &http_get_local_file($dir);
+    push @subdirs, "$dir$subdir";
+    return unless $dir2;
+    opendir(DIR, "$dir2/$subdir") or print "Error in opening $dir2/$subdir\n";
+    for (sort readdir(DIR)) {
+        next if /^\.+$/;
+        next unless -d "$dir2/$subdir/$_";
+        print "Reading photo dir $subdir/$_\n";
+        &photo_subdirs($dir, "$subdir/$_"); # Recurse through subdirs
+    }
+    close DIR;
+}
+
+                                # Add form to Entertainment page 
+# The include will take too long if there are lots of files/dirs, so use a link instead
+#$Included_HTML{Entertainment} .= '<!--#include code="&photo_html"-->' . "\n" if $Reload;
+$Included_HTML{Entertainment} .= '<br><a href="SUB;photo_html" target=control>Pick a photo subdirectory to index</a>' . "\n" if $Reload;
+
+
+ 
+
 
 

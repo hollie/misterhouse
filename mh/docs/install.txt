@@ -109,23 +109,25 @@ Windows Detailed Install Instructions
     a few optional packages. mh will run without them, but they are easy to
     install and give it more function. Activestate has provided ppm (Perl
     Package Manager), a nifty way of automatically downloading and
-    installing packages. Unfortunatly, the 3 packages we need are not yet
-    avaliable from ActiveState for perl version 5.8, but Randy Kobes has
+    installing packages. Unfortunatly, some of the packages we need are not
+    yet avaliable from ActiveState for perl version 5.8, but Randy Kobes has
     kindly made them available at his site. You can install them with the
     following:
 
        > cd \perl\bin (modify to match your directory)
        > ppm
-       ppm > repository add http://theoryx5.uwinnipeg.ca/cgi-bin/ppmserver?urn:/PPMServer58
+       ppm > repository add http://theoryx5.uwinnipeg.ca/ppms 
        ppm> install GD
        ppm> install DB_File
        ppm> install Tk-JPEG
        ppm> install Win32-Setupsup
+       ppm> exit
 
     If the DB_File post-install script doesn't run to install the included
-    libdb.dll, you can extract the dll from
-    http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz and copy it to a
-    dir in your path.
+    libdb.dll (the DB_File.dll should already be copied ok), you can extract
+    the dll from http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz and
+    copy it to your \perl\site\lib\auto direcotory, or some other directory
+    in your path.
 
     If you are behind a www proxy firewall, try setting the environment
     variable http_proxy=http://proxy-server:port If you have problems
@@ -235,6 +237,11 @@ UNIX Detailed Install Instructions
     zip file) delete dos/windows only files, and 'chmod +x' on the files in
     the bin directory.
 
+    To allow non-root users to run the bin/set_clock function, run this
+    command:
+
+     chmod ug+s /bin/date
+
     There are various examples of how to start/stop mh in
     mh/bin/misterhouse*.rc
 
@@ -315,8 +322,17 @@ UNIX Detailed Install Instructions
     http://www.nextup.com/attnv.html, where additional voices are $35. But
     this site only offers the Windows engine, although the voice data files
     can be used with either engine. If you find a source for the linux
-    engine, let me know. Use the voice_text_naturalvoice parm to point to
-    where you have it installed and set voice_text=naturalvoice.
+    engine, let me know.
+
+    If you have the linux binary, use the voice_text_naturalvoice parm to
+    point to where you have it installed and set voice_text=naturalvoice.
+
+    If you only have the windows binary, you can now use Wine to run it from
+    linux. On my 1.2 GHz Celeron, time-to-speech is about 1 second, -vs-
+    about .4 seconds for the native Linux binary. See bin/mh.ini for
+    examples on these parms: voice_text=NaturalVoiceWine,
+    voice_text_naturalvoice=windows_path_to_voices, wine_path=path_to_wine,
+    and wine_path_temp=windows_path_to_temp_dir.
 
     The IBM ViaVoice TTS and Voice Recognition engines is no longer
     available (as of 05/2002) from the IBM site (

@@ -298,6 +298,7 @@ sub new {
     $self-> add ($id . $hc . 'J', 'on');
     $self-> add ($id . $hc . 'K', 'off');
     $self-> add ($id , 'manual');
+    $self-> add ($id . $hc . 'STATUS', 'status');
 
     $self->set_interface($interface);
 
@@ -848,7 +849,7 @@ sub add {
     $self->{name} = $name;
 
                                 # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
-    if ($id =~ /^X?(\S)1(\d)/) {
+    if ($id =~ /^X?(\S)1(\d)/i) {
         $id = $1 . substr 'ABCDEFG', $2, 1;
     }
 
@@ -866,7 +867,7 @@ sub add {
     $self->{battery_timer}-> set(24*60*60, 
                        "speak \"rooms=all Battery timer for $name expired\"", 7);  
 
-    my ($hc, $id2) = $id =~ /X(\S)(\S+)(\S)\S/;
+    my ($hc, $id2) = $id =~ /X(\S)(\S+)(\S)\S/i;
 
 #   print "dbx2 id=$id hc=$hc id=$id2 X$hc${id2}${hc}J \n";
 
@@ -919,6 +920,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.37  2003/03/09 19:34:41  winter
+#  - 2.79 release
+#
 # Revision 1.36  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

@@ -240,6 +240,40 @@ if (said $v_list_serial_items) {
 }
 
 
+                               # Find a list of debug options code for $Debug{xyz}
+$v_list_debug_options  = new Voice_Cmd 'List debug options';
+$v_list_debug_options -> set_info('Generates a list of the various -debug options you can use to get debug errata');
+
+if (said $v_list_debug_options) {
+
+    my (%debug_options, $debug_string, $prev_index);
+
+    my %files = &file_read_dir('../lib/');
+    my @files = grep(/\.(pl|pm)$/i, values %files);
+
+    for my $file ('mh', @files) {
+        print "reading $file\n";
+        for (&file_read($file, 2)) {
+            $debug_options{$1}++ if /Debug\{['"]?(\S+?)['"]?\}/;
+        }
+    }    
+
+    print "reading user code\n";
+    for (@Sub_Code) {
+       $debug_options{$1}++ if /Debug\{['"]?(\S+?)['"]?\}/;
+    } 
+
+    for my $key (sort keys %debug_options) {
+        if ($prev_index ne substr($key, 0, 1)) {
+            $prev_index  = substr($key, 0, 1);
+            $debug_string .= "\n";
+        }
+        $debug_string .= "$key ";
+    }
+    display "List of debug options:\n$debug_string";
+}
+
+
                                 # Echo serial matches
 &Serial_match_add_hook(\&serial_match_log) if $Reload;
 

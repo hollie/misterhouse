@@ -268,6 +268,7 @@ sub read_in_call_log {
             $calls{in}{$count}{line}   = $line;  
             
         } 
+        close DATA;
     }
 }
 
@@ -315,6 +316,7 @@ sub read_out_call_log {
             $calls{out}{$count}{name}   = $name; 
             $calls{out}{$count}{name2}  = $name2; 
         } 
+        close DATA;
     } 
 }
 #10:28 AM Sat, Dec 27 O2 
@@ -586,6 +588,9 @@ sub phone_list2 {
 
 #
 # $Log$
+# Revision 1.21  2003/03/09 19:34:31  winter
+#  - 2.79 release
+#
 # Revision 1.20  2003/02/08 05:29:07  winter
 #  - 2.78 release
 #

@@ -30,7 +30,7 @@ my $Country = $config_parms{country};
 my $StateProvince = $config_parms{state};
 my $CityPage = $config_parms{city};
 my $Locality = $config_parms{wunderground_locality};
-my ($text, $log_text, $log_html, $WeatherURL, $textshort, $update_time, $temp_F);
+my ($text, $log_text, $log_html, $WeatherURL, $update_time, $temp_F);
 my $textshort = $log_text;
 my $HtmlFindFlag=0;
 $WeatherURL = ($Locality) ? "http://www.wunderground.com/$Locality.html" : "http://www.wunderground.com/$Country/$StateProvince/$CityPage";  
@@ -89,7 +89,11 @@ if (said $v_weather_page eq 'Get') {
 if (done_now $p_weather_page) {
     my $html = file_read $f_weather_html;
 
-    $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
+# This leaks memory!
+#   $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
+
+# This does not.
+    $text = &html_to_text($html);
 
     # chop off stuff we don't care to hear read
 

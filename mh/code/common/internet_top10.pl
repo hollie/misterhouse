@@ -62,7 +62,8 @@ if (said $v_top10_list eq 'Get') {
 if (done_now $p_top10_list) {
     my $html = file_read $f_top10_html;
 
-    my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
+#   my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
+    my $text = &html_to_text($html);
 
                                 # Delete &nbsb
     $text =~ s/\240/ /g;

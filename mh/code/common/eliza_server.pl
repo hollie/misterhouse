@@ -58,7 +58,7 @@ if (defined($state = state_now $eliza_data)) {
     }
     print "Speaking eliza data with voice=$voice, compression=$wavcomp\n";
 #   speak card => 3, compression => $wavcomp, text => $msg;
-    speak app => 'chatbot', compression => $wavcomp, text => $msg;
+    speak app => 'chatbot', voice => $voice, compression => $wavcomp, text => $msg;
     logit("$config_parms{data_dir}/logs/eliza_server.$Year.log", "domain=$name text=$msg"); 
 }
 

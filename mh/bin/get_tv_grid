@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2003-01-25 15:37:37 winter>
+#  Last change Time-stamp: <2003-02-11 07:43:07 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -73,9 +73,10 @@ my  (%DBM, %DBM2);
 %channels_keep = ();
 #url      = 'http://tvlistings2.zap2it.com/';
 $url      = 'http://tvlistings.zap2it.com/';
+
 $ua       = new RedirAgent();
-$ua -> proxy(['http', 'ftp'] => $parms{proxy}) if $parms{proxy};
 #$ua       = new SMSAgent();
+
 
 #======================================================================
 # Temporary Debug variables
@@ -229,7 +230,8 @@ sub setup
    $parms{outdir}  ="$config_parms{html_dir}/$parms{db}" 
       unless $parms{outdir};
    $parms{zip}     = $config_parms{zip_code} unless $parms{zip};
-   $parms{proxy}   = $ENV{HTTP_PROXY}      unless $parms{proxy};
+   $parms{proxy}   = $ENV{http_proxy}      unless $parms{proxy};
+   $parms{proxy}   = $ENV{HTTP_PROXY}      unless $parms{proxy}; # Just in case (lc is the standard)
    $parms{proxy}   = $config_parms{proxy}  unless $parms{proxy};
    $parms{provider}= $config_parms{$parms{db}.'_provider'} 
       unless $parms{provider};
@@ -301,6 +303,9 @@ sub setup
 
    # Initialize other global variables
    $didLogIn = 0;
+
+   $ua -> proxy(['http', 'ftp'] => $parms{proxy}) if $parms{proxy};
+
 }
 
 #======================================================================
@@ -316,6 +321,7 @@ sub setup_web_client
    #  autosave => 1, ignore_discard => 1  );
 
    $ua -> cookie_jar( $cookie_jar ); 
+
 }
 
 #======================================================================

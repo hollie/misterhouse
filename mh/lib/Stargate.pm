@@ -109,6 +109,7 @@ sub init
     print "Sending Stargate echo init string\n" if $main::Debug{stargate};
     print "Bad Stargate init echo command transmition\n" unless 6 == $serial_port->write("##%1d\r");
 
+    #$serial_port->write("##%07\r");
     # Set default values
     $last_variable_load = undef;
 
@@ -164,6 +165,7 @@ sub UserCodePreHook
             print "db Stargate serial data2=$serial_data...\n" if $main::Debug{stargate};
             while (my($record, $remainder) = $serial_data =~ /(.+?)[\r\n]+(.*)/s) 
             {
+                #print "** $record\n";
 		$parse_packet=1;
                 $serial_data = $remainder; # Might have part of the next record left over
 
@@ -263,13 +265,13 @@ sub ParseEchoCommand
         next if $main::config_parms{Stargate_DisableX10Receive};
 	
         my ($house, $device);
-        unless ($house = $table_hcodes{lc($bytes[3])}) 
+        if (($house = $table_hcodes{lc($bytes[3])}) eq undef) 
         {
             print "Error, not a valid Stargate house code: $bytes[3]\n";
             next;
         }
         my $code = $bytes[1] . $bytes[2];
-        unless ($device = $table_dcodes{lc($code)}) 
+        if (($device = $table_dcodes{lc($code)}) eq undef) 
         {
             print "Error, not a valid Stargate device code: $code\n";
             next;
@@ -1179,7 +1181,7 @@ sub send_X10
                           I e  J f  K c  L d  M 0  N 1  O 2  P 3);
     my %table_dcodes = qw(1 06  2 07  3 04  4 05  5 08  6 09  7 0a  8 0b
                           9 0e  A 0f  B 0c  C 0d  D 00  E 01  F 02  G 03
-                          J 14  K 1c  L 12  M 1a
+                          J 14  K 1c  L 12  M 1a O 18 P 10
                           ON 14  OFF 1c  BRIGHT 12  DIM 1a
                           ALL_OFF 10  ALL_ON 18
                           ALL_OFF_LIGHTS 16);
@@ -1187,13 +1189,13 @@ sub send_X10
 
     my ($house_bits, $code_bits, $function, $header);
 
-    unless ($house_bits = $table_hcodes{uc($house)}) 
+    if (($house_bits = $table_hcodes{uc($house)}) eq undef) 
     {
         print "Error, invalid Stargate X10 house code: $house\n";
         return;
     }
 
-    unless ($code_bits = $table_dcodes{uc($code)}) 
+    if (($code_bits = $table_dcodes{uc($code)}) eq undef) 
     {
         print "Error, invalid Stargate x10 code: $code\n";
         return;

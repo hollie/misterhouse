@@ -42,7 +42,7 @@ sub menu_parse {
 #               print "\nWarning, duplicate menu: $menu\n\n";
             }
             else {
-                push @{$menus{menu_list}}, $menu;
+                push @{$menus{_menu_list}}, $menu;
             }
         }
         elsif ($type) {
@@ -71,10 +71,10 @@ sub menu_parse {
 
                                 # Create a states menu for each unique set of states
             if ($type eq 'D') {
-                unless ($menus{menu_list_states}{$states}) {
-                    $menus{menu_list_states}{$states} = ++$menu_states_cnt;
+                unless ($menus{_menu_list_states}{$states}) {
+                    $menus{_menu_list_states}{$states} = ++$menu_states_cnt;
                     $menus{$menu_states_cnt}{states}  = $states;
-                    push @{$menus{menu_list}}, $menu_states_cnt;
+                    push @{$menus{_menu_list}}, $menu_states_cnt;
                     my $i = 0;
                     for my $state (split ',', $states) {
                         $menus{$menu_states_cnt}{items}[$i]{D}    = $state;
@@ -89,7 +89,7 @@ sub menu_parse {
     }
                                 # Setup actions and goto for each state
     my %unused_menus = %menus;
-    for $menu (@{$menus{menu_list}}) {
+    for $menu (@{$menus{_menu_list}}) {
         for my $ptr (@{$menus{$menu}{items}}) {
 
                                 # Default action = display if no action and the display matches a voice command
@@ -147,13 +147,13 @@ sub menu_parse {
         }
     }
 
-    delete $unused_menus{menu_list_states};
-    delete $unused_menus{menu_list};
-    delete $unused_menus{$menus{menu_list}[0]};
+    delete $unused_menus{_menu_list_states};
+    delete $unused_menus{_menu_list};
+    delete $unused_menus{$menus{_menu_list}[0]};
     for (sort keys %unused_menus) {print "\nWarning, these menus were unused: $_\n\n" unless /^states\d+$/};
 
                                 # Do a depth first level count
-    my @menus_list = &menu_submenus($menu_group, $menus{menu_list}[0], 99, 1);
+    my @menus_list = &menu_submenus($menu_group, $menus{_menu_list}[0], 99, 1);
     my $level = 0;
     for my $ptr (@menus_list) {
         for my $menu (@{$ptr}) {
@@ -162,7 +162,7 @@ sub menu_parse {
         $level++;
     }
                                 # Create a sorted menu list
-    @{$menus{menu_list_sorted}} = sort {$menus{$a}{level} <=> $menus{$b}{level}} @{$menus{menu_list}};
+    @{$menus{_menu_list_sorted}} = sort {$menus{$a}{level} <=> $menus{$b}{level}} @{$menus{_menu_list}};
 
     return $Menus{$menu_group}; 
 }
@@ -295,7 +295,7 @@ sub menu_run {
 #   print "$msg\n";
     logit "$config_parms{data_dir}/logs/menu_run.log", $msg;
 
-    unless ($Authorized or $authority or $format eq 'l') {
+    unless (&authority_check($authority)) {
         if ($format eq 'v') {
             my $vxml = qq|<form><block><audio>Sorry, authorization required to run $action</audio><goto next='_lastanchor'/></block></form>|;
             return &vxml_page($vxml);
@@ -305,6 +305,9 @@ sub menu_run {
             unless ($Http{'x-up-subno'} and grep $Http{'x-up-subno'} eq $_, split(/[, ]/, $config_parms{password_allow_phones})) {
                 return &html_password('browser'); # wml requires browser login ... no form/cookies for now
             }
+        }
+        elsif ($format eq 'l') {
+            return 'Not authorized';
         }
         else {
             return &html_password(''); # Html can take cookies or browser ... default to mh.ini password_menu
@@ -409,7 +412,7 @@ sub menu_run_response {
 sub menu_html {
     my ($menu_group, $menu) = split ',', $_[0] if $_[0];
     $menu_group = 'default' unless $menu_group;
-    $menu       = $Menus{$menu_group}{menu_list}[0] unless $menu;
+    $menu       = $Menus{$menu_group}{_menu_list}[0] unless $menu;
 
     my @k = keys %main::Menus;
 
@@ -457,7 +460,7 @@ sub menu_html {
 sub menu_wml {
     my ($menu_group, $menu_start) = split ',', $_[0] if $_[0];
     $menu_group = 'default' unless $menu_group;
-    $menu_start = $Menus{$menu_group}{menu_list}[0] unless $menu_start;
+    $menu_start = $Menus{$menu_group}{_menu_list}[0] unless $menu_start;
     logit "$config_parms{data_dir}/logs/menu_wml.log", 
           "ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu_start";
 
@@ -564,7 +567,7 @@ sub menu_wml_cards {
 sub menu_vxml {
     my ($menu_group, $menu_start) = split ',', $_[0] if $_[0];
     $menu_group = 'default'                         unless $menu_group;
-    $menu_start = $Menus{$menu_group}{menu_list}[0] unless $menu_start;
+    $menu_start = $Menus{$menu_group}{_menu_list}[0] unless $menu_start;
     logit "$config_parms{data_dir}/logs/menu_vxml.log",
           "ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu_start";
 
@@ -645,7 +648,7 @@ sub menu_vxml_forms {
 sub menu_lcd_load {
     my ($lcd, $menu) = @_;
     $menu = $$lcd{menu_name}                        unless $menu;
-    $menu = $Menus{$$lcd{menu_group}}{menu_list}[0] unless $menu;
+    $menu = $Menus{$$lcd{menu_group}}{_menu_list}[0] unless $menu;
     return unless $menu;
 
                                 # Reset menu only if it is a new one (keep old cursor and state)
@@ -751,6 +754,7 @@ sub menu_lcd_navigate {
         $Menus{menu_data}{last_response_object} = $lcd;
 
                                 # Run an action
+        $Authorized = 'family'; # So &authority_check passes
         if ($ptr and $$ptr{A}) {
             my $response = &menu_run("$$lcd{menu_group},$menu,$$lcd{cy},$$lcd{menu_state},l");
             if ($response) {
@@ -852,6 +856,9 @@ return 1;
 
 #
 # $Log$
+# Revision 1.13  2003/03/09 19:34:42  winter
+#  - 2.79 release
+#
 # Revision 1.12  2002/11/10 01:59:57  winter
 # - 2.73 release
 #

@@ -327,6 +327,8 @@ He used a couple of the four packs.  Work like a charm, have been in an attic
 for over a year, no problems. Smarthome carries these for $38 a four-pack,
 you can probably find them cheaper, lots of alarm system places carry them.
 Search on ``ELK-924''.</p>
+<p>Nico wrote an interface to the Velleman k8000 board: <a href="http://www.velleman.be/Product.asp?lan=1&id=9383,">http://www.velleman.be/Product.asp?lan=1&id=9383,</a> 
+available from his site at <a href="http://yow.be">http://yow.be</a></p>
 <p>The HomeBase.pm module to supports the JDS interfaces, <a href="http://www.jdstechnologies.com">http://www.jdstechnologies.com</a> .
 See member mh/code/public/test_homebase.pl for example code.</p>
 <p>The Homevison.pm module to supports HomeVision controller, <a href="http://www.csi3.com/homevis2.htm">http://www.csi3.com/homevis2.htm</a> .
@@ -917,7 +919,7 @@ You can use this object to group and operate on groups of items:
 </dd>
 <dd>
 <pre>
-     member_changed:      Returns a member object whenever one changes
+     member_changed:      Returns a member object name whenever one changes
      member_changed_log:  Returns a list of recenty changed members.
                           The first one was the most recently changed.</pre>
 </dd>
@@ -937,8 +939,9 @@ You can use this object to group and operate on groups of items:
 </dd>
 <dd>
 <pre>
-     if (my $member = member_changed $outside_lights) {
-        print_log &quot;Outside light $member-&gt;{object_name} changed&quot;
+     if (my $member_name = member_changed $outside_lights) {
+        my $member = &amp;get_object_by_name($member_name);
+        print_log &quot;Group member $member_name changed to $member-&gt;{state}&quot;
      }</pre>
 </dd>
 <dd>
@@ -3282,7 +3285,7 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
 </dd>
 <dd>
 <pre>
-       to_file =&gt; xyz.  Saves speech to file xyz, then plays the file.</pre>
+       to_file =&gt; xyz.  Saves speech to file xyz.</pre>
 </dd>
 <dd>
 <pre>
@@ -5770,11 +5773,9 @@ using the mh.ini/mh.proxy.ini code_dir and load_code parms.  For example:</p>
 see mh/code/public/speak_proxy.pl for example code.</p>
 <p>Here are some small $400-&gt;$500 computers that might be good for distributed speech and/or ports:</p>
 <pre>
- <a href="http://www.cappuccinopc.com/espressopc.asp">http://www.cappuccinopc.com/espressopc.asp</a>  (6&quot;x5&quot;x1.5&quot;)  (0.9Lbs) .
- <a href="http://www.enpc.com/cgi-bin/enpc/ESPRESSO.html?mv_pc=Dealnews">http://www.enpc.com/cgi-bin/enpc/ESPRESSO.html?mv_pc=Dealnews</a></pre>
+ <a href="http://www.cappuccinopc.com/espressopc.asp">http://www.cappuccinopc.com/espressopc.asp</a>  (6&quot;x5&quot;x1.5&quot;)  (0.9Lbs) .</pre>
 <pre>
- <a href="http://216.136.224.156/hoct12/minpcpeniii1.html">http://216.136.224.156/hoct12/minpcpeniii1.html</a>  2.2 Ibs Dimensions: 6&quot; x 5.75&quot; x 2.25&quot;
- <a href="http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=N52-1042">http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=N52-1042</a></pre>
+ <a href="http://216.136.224.156/hoct12/minpcpeniii1.html">http://216.136.224.156/hoct12/minpcpeniii1.html</a>  2.2 Ibs Dimensions: 6&quot; x 5.75&quot; x 2.25&quot;</pre>
 <p>
 </p>
 <hr />

@@ -16,6 +16,7 @@ sub new {
 
                                 # Create other sub objects
     $$self{keypad} = new  main::Generic_Item;
+    $$self{keypad}-> set_casesensitive();
     $$self{timer}  = new  main::Timer;
 
     if ($type eq 'lcdproc') {
@@ -214,6 +215,9 @@ sub process {
 
 #
 # $Log$
+# Revision 1.7  2003/03/09 19:34:41  winter
+#  - 2.79 release
+#
 # Revision 1.6  2002/05/28 13:07:51  winter
 # - 2.68 release
 #

@@ -50,7 +50,9 @@ if (done_now $starshine_check_p or $state eq 'list') {
     $html =~ s|</head>|\n<BASE href='http://www.heavens-above.com/'>|i;
     file_write $starshine_check_f, $html;
 
-    my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
+#   my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
+    my $text = &html_to_text($html);
+
     open(MYCODE, ">$starshine_check_e") or print_log "Error in writing to $starshine_check_e";
     print MYCODE "\n#@ Auto-generated from code/common/internet_starshine.pl\n\n";
     for (split "\n", $text) {

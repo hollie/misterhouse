@@ -4,6 +4,7 @@
 #       by editing the serialx parms in mh.ini (or mh.private.ini)
 
                                 # Examples on how to send data to a generic serial port 
+                                # You can rename serial1* to serial_xyz*
 $init_strings  = new  Serial_Item('your init string 1', 'init1', 'serial1');
 set $init_strings 'init1' if $Startup;
 

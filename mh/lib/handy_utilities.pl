@@ -1151,12 +1151,81 @@ sub main::which {
     return;                     # Didn't find it
 }
 
+                                # Update ini parameters without changing order or removing comments 
+sub main::write_mh_opts {
+    my($ref_parms, $pgm_root, $debug, $parm_file) = @_;
+    $debug = 0 unless $debug;
+    $pgm_root = $main::Pgm_Root unless $pgm_root;
+
+    unless ($parm_file) {
+        ($parm_file) = split ',', $ENV{mh_parms} if $ENV{mh_parms};
+        $parm_file = "$pgm_root/mh.private.ini" unless $parm_file;
+    }
+                                # If debug == 0 (instead of undef) this is disabled
+    print "Reading config_file $parm_file\n" unless defined $debug and $debug == 0;
+    open (INI_PARMS, "$parm_file") or print "\nError, could not read config file: $parm_file\n";
+
+    my ($key, @parms, @done, $in_multiline);
+    while (my $line = <INI_PARMS>) {
+                                # Remove old continuation lines from edited entries 
+        if ($in_multiline) {
+            if ($line =~ /^\s+[^#@\s]/) {
+                next;
+            }
+            else {
+                $in_multiline = 0;
+            }
+        }
+                                # Remove any repeats of edited entries 
+        foreach $key (@done) {
+            if ($line =~ /^$key\s*=/) {
+                $in_multiline = 1;
+                next;
+            }
+        }
+                                # Update changed entries 
+        foreach $key (keys %$ref_parms) {
+            if ($line =~ s/^$key\s*=.*/$key=$$ref_parms{$key}/) {
+                delete $$ref_parms{$key};
+                push @done, $key;
+                $in_multiline = 1;
+            }
+        }
+                                # Compile new file entries 
+        push @parms, $line; 
+    }
+    close INI_PARMS;
+
+                                # Re-write entire file if changes effect existing entries 
+    &main::file_backup($parm_file);
+    if (@done) {
+        print "Writing config_file $parm_file\n" unless defined $debug and $debug == 0;
+        open (INI_PARMS, ">$parm_file") or print "\nError, could not write config file: $parm_file\n";
+        print INI_PARMS @parms; 
+        close INI_PARMS;
+    }
+                                # Append any new parameters 
+    if (%$ref_parms) {
+        print "Appending to config_file $parm_file\n" unless defined $debug and $debug == 0;
+        open (INI_PARMS, ">>$parm_file") or print "\nError, could not append to config file: $parm_file\n";
+        foreach $key (keys %$ref_parms) {
+            print INI_PARMS "$key=$$ref_parms{$key}\n";
+        }
+        close INI_PARMS;
+    }
+}
+
+
+
 #print " done\n";
 
 1;
 
 #
 # $Log$
+# Revision 1.65  2003/03/09 19:34:42  winter
+#  - 2.79 release
+#
 # Revision 1.64  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

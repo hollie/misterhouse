@@ -211,7 +211,7 @@ sub set {
     else {
         $serial_id = $state;
     }
-    my $serial_data = $serial_id;
+    my $serial_data = uc $serial_id;  # uc since other mh processing can lc it to avoid state sensitivity
 
     return if &set_prev_pass_check($self, $serial_id);
 
@@ -536,6 +536,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.63  2003/03/09 19:34:41  winter
+#  - 2.79 release
+#
 # Revision 1.62  2003/02/08 05:29:23  winter
 #  - 2.78 release
 #

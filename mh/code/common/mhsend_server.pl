@@ -72,7 +72,9 @@ if (my $header = said $mhsend_server) {
     elsif ($action eq 'run') {
         $msg =~ s/\n|\r//g;
 #       if (&run_voice_cmd($msg)) {
-        my $respond = "object_set name=mhsend_server";
+#       my $respond = "object_set name=mhsend_server";
+        my $respond = "mhsend name=mhsend_server ";
+		$respond .= "proxyip=" . $Socket_Ports{'server_mhsend'}{client_ip_address};
         if (&process_external_command($msg, 0, 'mhsend', $respond)) {
             $response = "Command was run: $msg";
         }
@@ -95,6 +97,13 @@ if (my $header = said $mhsend_server) {
     print "mhsend_server: $response\n" unless $config_parms{no_log} =~ /mhsend_server/;
     print $handle $response;
 
+}
+
+sub respond_mhsend {
+#   my $handle = handle $mhsend_server;
+#   print $handle $response;
+#   print_log "mhsend response: @_";
+	&respond_default(@_);
 }
 
 

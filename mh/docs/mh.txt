@@ -293,6 +293,10 @@ DESCRIPTION
     you can probably find them cheaper, lots of alarm system places carry
     them. Search on "ELK-924".
 
+    Nico wrote an interface to the Velleman k8000 board:
+    http://www.velleman.be/Product.asp?lan=1&id=9383, available from his
+    site at http://yow.be
+
     The HomeBase.pm module to supports the JDS interfaces,
     http://www.jdstechnologies.com . See member
     mh/code/public/test_homebase.pl for example code.
@@ -776,7 +780,7 @@ DESCRIPTION
              state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
                             time_date stamped states.
 
-             member_changed:      Returns a member object whenever one changes
+             member_changed:      Returns a member object name whenever one changes
              member_changed_log:  Returns a list of recenty changed members.
                                   The first one was the most recently changed.
 
@@ -790,8 +794,9 @@ DESCRIPTION
                  print "member = $item->{object_name}\n";
              }
 
-             if (my $member = member_changed $outside_lights) {
-                print_log "Outside light $member->{object_name} changed"
+             if (my $member_name = member_changed $outside_lights) {
+                my $member = &get_object_by_name($member_name);
+                print_log "Group member $member_name changed to $member->{state}"
              }
 
              my @members = member_changed_log $sensors;
@@ -2430,7 +2435,7 @@ DESCRIPTION
 
                card   => d (d = 1,2,3...) Picks which sound card to used (V5 only)
 
-               to_file => xyz.  Saves speech to file xyz, then plays the file.
+               to_file => xyz.  Saves speech to file xyz.
 
            With the MS TTS V4 engine, the rate parm effects all subsequent
            spoken text (volume and voice parms do nothing).
@@ -4392,10 +4397,8 @@ DESCRIPTION
     distributed speech and/or ports:
 
      http://www.cappuccinopc.com/espressopc.asp  (6"x5"x1.5")  (0.9Lbs) .
-     http://www.enpc.com/cgi-bin/enpc/ESPRESSO.html?mv_pc=Dealnews
 
      http://216.136.224.156/hoct12/minpcpeniii1.html  2.2 Ibs Dimensions: 6" x 5.75" x 2.25"
-     http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=N52-1042
 
 NOTES
     This section has info that doesn't fit well anywhere else. Probably be

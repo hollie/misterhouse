@@ -365,6 +365,9 @@ weeder_init.pl
 winamp_control.pl
  - Evan Graham's code for controling and querying winamp using messaging via Win32::GUI. 
 
+winlirc_clietn.pl
+ - Robert Rozman's example of reading winlirc IR data: http://winlirc.sourceforge.net/
+
 wintvpvr_grid.pl
  - Jeff Ferris's code for controlling a Hauppage WinTV PVR USB to record TV
    shows using the tv_grid web pages.

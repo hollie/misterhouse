@@ -16,6 +16,8 @@
 	<ul>
 
 		<li><a href="#changes_in_the_current_test_version">Changes in the current test version</a></li>
+		<li><a href="#version_2.79_posted_on_03/08/2003">Version 2.79 posted on 03/08/2003</a></li>
+		<li><a href="#version_2.78_posted_on_02/07/2003">Version 2.78 posted on 02/07/2003</a></li>
 		<li><a href="#version_2.77_posted_on_01/17/2003">Version 2.77 posted on 01/17/2003</a></li>
 		<li><a href="#version_2.76_posted_on_01/12/2003">Version 2.76 posted on 01/12/2003</a></li>
 		<li><a href="#version_2.75_posted_on_12/23/2002">Version 2.75 posted on 12/23/2002</a></li>
@@ -109,7 +111,84 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 <a href=http://misterhouse.net/public/misterhouse_src_test.zip>current test release</a>
 (updated nightly) can be found
 <a href=http://misterhouse.net:81/mh/docs/updates.html>here, in the test release updates file</a>.<p><strong>New Features:</strong></p>
-<p>- xPL support and hub ...</p>
+<p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>
+</p>
+<h2><a name="version_2.79_posted_on_03/08/2003">Version 2.79 posted on 03/08/2003</a></h2>
+<p>Version 2.79 was just uploaded to:</p>
+<pre>
+  <a href="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</a>
+  <a href="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</a></pre>
+<p><strong>New Features:</strong></p>
+<p>- Ant Skelton patched lib/Voice_Text.pm to allow Linux users to use Wine to run the AT&amp;T windows NaturalVoices binary.
+On my 1.2 GHz Celeron, time-to-speech is about 1 second, -vs- about .4 seconds for the native Linux binary.
+See bin/mh.ini for examples on these parms: voice_text=NaturalVoiceWine,  voice_text_naturalvoice=windows_path_to_voices, 
+wine_path=path_to_wine, and wine_path_temp=windows_path_to_temp_dir.</p>
+<p>- Chin Lee suggested we have mh default to 'catch up' mode when restarting, setting the
+start time equal to when mh last exited.   To do this, set the
+mh.ini of parm time_startup=resume.  You can also now test when mh is in either
+mh_pause or startup catchup mode by monitoring a new $Catchup_Mode object.</p>
+<p>- Nico ? wrote an interface to the Velleman k8000 board ( <a href="http://www.velleman.be/Product.asp?lan=1&id=9383">http://www.velleman.be/Product.asp?lan=1&id=9383</a> ),
+available from his site at <a href="http://yow.be">http://yow.be</a></p>
+<p>- Steve Switzer updated status_line.pl and the web/bin/clock2.js javascript clock to reflect 
+mh time, not local browser time.  He also got it to work for Netscape,
+so I changed mh.ini status_line3 default from clock to jclock2.</p>
+<p>- Steve Switzer suggested we enumerate the various -debug options, 
+so I create a 'List debug options' command in common/mh_control.pl.</p>
+<p>- David Norwood created a smart &amp;write_mh_opts function that can update .ini files without changing order or
+comments and called it with a nifty new web interface for updating the tv_provider parm.</p>
+<p>- David Norwood also updated common/photo_index.pl to add another web based mh.ini selector for picking
+which photo dir you want active for the photo slide show.  
+Added this option, along with the tv_provider one above, to the web setup menu 
+and to the help text you see in the common code selector.</p>
+<p>- Joe Blecher updated lib/Lynx10PLC.pm, which supports the Marrick Lynx10-PLC X10 interface
+to add logging to linux syslog, parms for transmit/receive gains, new $Debug support, and 2 way module support.
+He reports using it for over two years now without a single lockup!</p>
+<p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>- Bob Hughes updated the unix bin/house script to use the mh.ini xcmd_file parm.</p>
+<p>- Bob Hughes noticed we were not passing the voice name from the eliza chatbox speech web page.</p>
+<p>- Jason Comander updated the X10 Status request code to work better with the Leviton DHC 2-way switches</p>
+<p>- James Derrick fixed a 2.78 problem with MR26 data not being relayed correctly due to the data being lower-cased.</p>
+<p>- Floyd Moore fixed a couple of proxy related problems in bin/get_tv_grid.</p>
+<p>- Robert Rozman sent code/public/winlirc_client.pl an an example of reading winlirc IR data ( <a href="http://winlirc.sourceforge.net/">http://winlirc.sourceforge.net/</a> ).</p>
+<p>- Dominique Benoliel prompted an update to the latest Date/Language.pm, adding French as well as a few other languages.</p>
+<p>- Steve Switzer fixed mh/lib/caddx.pm to be compatable with the 2.78 update for case insensitivity and $Debug control.</p>
+<p>- David Satterfield fixed the viavoice -voice option when used with -to_file in bin/vv_tts.pl.</p>
+<p>- Walter Leemput and Harald Koch discovered and fixed a memory leak when using HTML::Treebuilder in code/public/weather.pl.
+Also updated the same fix in internet_iridium.pl, internet_starshine.pl, internet_top10.pl, news_onthisday.pl, and weather_upload.pl,
+by calling a new &amp;html_to_text function with the same non-leaking html parsing code.</p>
+<p>- Bill Sobel fixed Startgate.pm to support house code M.</p>
+<p>- Tom Vanderpool noticed that common/weather_upload.pl had the wrong units for barometric pressure from Weather_wmr968.pm (hg -vs- mb).</p>
+<p>- Thomas Bleau noted that the speak function would filter out many foreign languange phrases
+due to characters not in the common ascii code range, so we out the 'Data is unspeakable' check.</p>
+<p>- Tom Vanderpool added callerid_type=motorola to Telelphony_Interface.pm, for use with Motorola Power 28.8  modems.</p>
+<p>- Brian Paulsen sent in his web based hvac code: mh/code/public/hvac_brian*.pl</p>
+<p>- Jason Sharpee added -left and -right speak options for the viavoice engine.</p>
+<p>- Sean Walker added proxyip to common/mhsend_server.pl and public/speak_proxy.pl,
+so speech can be directed to the box that send the mhsend request.</p>
+<p>- Jason Sharpee made some updates to lib/CID_Announce.pm  and CID_Log.pm</p>
+<p>- Harald Koch updated bin/get_weather_ec (Canadian weather data) to work with with current data.</p>
+<p>- Peter Woodall noticed we sometimes got the previous, not next, full/new moon dates.</p>
+<p>- David Satterfield noticed that some tk and web triggered commands were getting bogus respond states set.</p>
+<p>- Harald Koch updated bin/weather_ca.pl for Canadian weather.</p>
+<p>- Clive Freedman made some caller ID updates for the UK.</p>
+<p>
+</p>
+<h2><a name="version_2.78_posted_on_02/07/2003">Version 2.78 posted on 02/07/2003</a></h2>
+<p>Version 2.78 was just uploaded to:</p>
+<pre>
+  <a href="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</a>
+  <a href="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</a></pre>
+<p><strong>New Features:</strong></p>
+<p>- Improved xAP support and added xPL support.  
+A few of the original xAP ( <a href="http://www.xapautomation.org">http://www.xapautomation.org</a> ) developers 
+developed a lighter version of the protocol they called xPL ( <a href="http://www.wintermute-ltd.com/picxap/xpl.htm">http://www.wintermute-ltd.com/picxap/xpl.htm</a> ).
+The protocols are similar enough that I decided to support them both with the common code, so I 
+renamed lib/xAP.pm to lib/xAP_Items.pm and added various xAP and xPL items and methods.
+Also added code so mh can be an xAP and/or xPL hub, so we can 
+now read and write to both xAP and xPL clients and/or bridge between them if needed.
+Updated code/common/test_xap.pl to include new xPL examples, including calls
+to a windows TTS client and a Rio Audio Receiver client, both available from <a href="http://www.xaphal.com/xap.htm">http://www.xaphal.com/xap.htm</a> .</p>
 <p>- Bill Sobel made a bunch of changes to enable stacked and overloaded states.
 This is best explained with an example:</p>
 <pre>
@@ -135,17 +214,18 @@ Or you can run from the command line like this:</p>
   set_password -user family -password xyz1
   set_password -user admin  -password xyz2</pre>
 <p>A separate record will be created for each user in the password_file (by default, data_dir/.password).
-By default, the mh setup web pages can only be controled with the admin logon,
-but you can add/delete other commands by adding authority=admin to the password_allow_file.
+By default, the mh setup web pages can only be controlled with the admin logon,
+but you can enable/disable other commands by adding authority=admin to the password_allow_file.
 You can also specify authority with the set_authority object method, 
 or by adding it to your web/bin xyz.pl file # Authority=user  comment.
 The ia5 logout button now has different icons for admin, family, and guest.</p>
-<p>- Made menu.pl generic (it now reads all .menu files in your code dirs) and moved it to code/common.</p>
+<p>- Made menu.pl generic (it now reads all .menu files in your code dirs) and moved it to code/common.
+If you have a menyu.pl file in your own user code file, delete it before you enable the code/common one.</p>
 <p>- Andrew Drummond created mh/code/public/tivo_direct.* code for controling his Direct Tivo.</p>
 <p><strong>Bug Fixes and Other Changes:</strong></p>
 <p>- Timothy Spaulding added a MS13_Battery_Timer parm to set the X10_Sensor timeout value.</p>
 <p>- Added a web_status_line option to web/status_line.pl, to allow for more user specific data on the status line.</p>
-<p>- David ? noticed a 2.76 bug where the web status line was not reflecting current email counts.</p>
+<p>- David Satterfield noticed a 2.76 bug where the web status line was not reflecting current email counts.</p>
 <p>- Amauri Viguera found a 2.76 bug in lib/audrey_cid.pm</p>
 <p>- Pete Flaherty  updated the tk widgets in weather_iB_OWW_client.pl</p>
 <p>- Steve Switzer updated Voice_Text.pm to allow for volume=##%, where volume will be scaled to a percentage of the default mh volume.</p>
