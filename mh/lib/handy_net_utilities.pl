@@ -991,7 +991,7 @@ sub main::net_mail_summary {
     while ($msgnum) {
         print "getting msg $msgnum\n" if $main::Debug{net};
         my $msg_ptr = $pop->top($msgnum, $main::config_parms{net_mail_scan_size});
-        my ($date, $date_received, $from, $from_name, $to, $cc, $replyto, $subject, $header, $header_flag, $body);
+        my ($date, $date_received, $from, $from_name, $sender, $to, $cc, $replyto, $subject, $header, $header_flag, $body);
         $header_flag = 1;
         my $i = 0;
         for (@$msg_ptr) {
@@ -1001,6 +1001,7 @@ sub main::net_mail_summary {
 #               chomp;
                 $date    = $1 if !$date    and /^Date:(.+)/;
                 $from    = $1 if !$from    and /^From:(.+)/;
+                $sender  = $1 if !$sender  and /^Sender:(.+)/;
                 $to      = $1 if !$to      and /^To:(.+)/;
                 $cc      = $1 if !$cc      and /^Cc:(.+)/;
                 $replyto = $1 if !$replyto      and /^Reply-To:(.+)/;
@@ -1033,7 +1034,7 @@ sub main::net_mail_summary {
         my $age_msg = int((time -  str2time($date_received)) / 60);
         print "Warning, net_mail_summary: age is negative: age=$age_msg, date=$date_received\n" if $age_msg < 0;
 
-        print "msgnum=$msgnum  age=$age_msg date=$date_received from=$from to=$to subject=$subject\n" if $parms{debug} or $main::Debug{net};
+        print "msgnum=$msgnum  age=$age_msg date=$date_received from=$from sender=$sender to=$to subject=$subject\n" if $parms{debug} or $main::Debug{net};
 
 #       print "db m=$msgnum mf=$parms{first} a=$age_msg a=$parms{age} d=$date_received from=$from \n";
         last if $age_msg > $parms{age};
@@ -1043,6 +1044,7 @@ sub main::net_mail_summary {
         push(@{$msgdata{to}},        $to);
         push(@{$msgdata{cc}},        $cc);
         push(@{$msgdata{replyto}},   $replyto);
+        push(@{$msgdata{sender}},    $sender);
         push(@{$msgdata{from}},      $from);
         push(@{$msgdata{from_name}}, $from_name);
         push(@{$msgdata{subject}},   $subject);
@@ -1106,6 +1108,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.51  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.50  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #

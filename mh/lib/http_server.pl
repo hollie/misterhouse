@@ -285,8 +285,8 @@ sub http_process_request {
 #           $html .= &html_reload_link('/', 'Refresh Main Page');   # Does not force reload?
             my ($name, $name_short) = &net_domain_name('http');
             if ($Authorized and $get_req =~ /\/SET_PASSWORD$/) {
-                &print_log("Password was just set by browser $name");
-                &speak("$Authorized password set by $name_short");
+                &print_log("Password was just accepted for User [$Authorized] browser $name");
+                &speak("$Authorized password accepted for $name_short");
                 $html .= "<br><b>$Authorized password accepted</b>";
                 print $socket &html_page(undef, $html);
             }
@@ -316,8 +316,8 @@ sub http_process_request {
             $html .= "<b>$user password accepted</b>";
 #           $html = $Http{Referer}; # &html_page will use referer if only a url is given
             $html =~ s/\/SET_PASSWORD.*//;
-            &print_log("Password was just set by $name");
-            &speak("$user password set by $name_short");
+            &print_log("Password was just accepted for User [$user] browser $name");
+            &speak("$user password accepted for $name_short");
         }
         else {
             $Authorized = 0;
@@ -1155,7 +1155,7 @@ sub html_file {
                                 # Allow for .pl cgi programs
                                 # Note: These differ from classic .cgi in that they return 
                                 #       the results, rather than print them to stdout.
-    elsif ($file =~ /\.pl$/) {
+    elsif ($file =~ /\.(pl|cgi)$/) {
         my $code = join('', <HTML>);
 
                                 # Check if authorized
@@ -2731,6 +2731,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.82  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.81  2003/07/06 17:55:12  winter
 #  - 2.82 release
 #

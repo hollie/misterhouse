@@ -374,6 +374,11 @@ UNIX Detailed Install Instructions
     voices are don_diphone, kal_diphone, ked_diphone, rab_diphone,
     us1_mbrola, us2_mbrola, and us3_mbrola
 
+    Another good TTS engine is now available from Cepstral:
+    http://www.cepstral.com . $30 per voice, for either Linux or Windows
+    (only tested on Linux so far). Set mh.ini parm voice_text=theta and
+    modify voice_text_theta to point to the theta binary.
+
     Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural
     Voices TTS linux engine here: http://www.naturalvoices.com (additional
     voices cost $70), but for some reason, they no longer sell them from
@@ -420,6 +425,11 @@ UNIX Detailed Install Instructions
 
       chmod go+rw /dev/dsp*
       chmod go+rw /dev/audio*
+
+    Make sure your microphone is selected as the recording source with this
+    command:
+
+     aumix -m R  (-l R for line,  -c R for CDROM)
 
     Documentation is in /usr/doc/ViaVoice and test and example code is in
     /usr/lib/ViaVoice/samples. /usr/doc/ViaVoice/rt.readme.txt suggests

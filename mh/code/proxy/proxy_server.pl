@@ -3,7 +3,7 @@
 
 =begin comment
 
-Use this to run a proxy mh, to process only serial events.
+Use this to run a proxy mh.
 
 The reasons you might want to run this are:
 
@@ -14,6 +14,8 @@ The reasons you might want to run this are:
 
  - Sharing of interfaces between different mh boxes
 
+ - Speaking or playing sounds on a remote box
+
 Run with mh/bin/mh_proxy
 
 See 'Using distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
@@ -23,6 +25,20 @@ See 'Using distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
 $proxy_server  = new  Socket_Item(undef, undef, 'server_proxy', undef, undef, undef, "\035");
 
 #print '.';                      # A heartbeat
+
+                                # Allow for proxy regstration to the main mh (optional)
+                                # If you want this, add these mh.ini parms: mh_proxyreg_port, mh_server, and proxy_name
+                                # And run code like in bruce/speak_proxy.pl
+$v_proxy_init = new Voice_Cmd("Reconnect proxy");
+if ($config_parms{mh_proxyreg_port} and 
+    ($Startup or said $v_proxy_init)) {
+    print "Connecting to server\n";
+    my $s_proxy_init = new Socket_Item(undef, undef,
+                                       $config_parms{mh_server} . ":" . $config_parms{mh_proxyreg_port});
+    start $s_proxy_init;
+    set $s_proxy_init
+      "$config_parms{password},$config_parms{proxy_name},$config_parms{server_proxy_port}";
+}
 
                                 # Process incoming requests from the real mh
 if ($state = said $proxy_server) {

@@ -368,6 +368,9 @@ that has a very nice US english male and female voice.</p>
   (set! voice_female  'voice_kal_diphone)</pre>
 <p>This depends upon which voices you have installed on your system.  Some voices are
 don_diphone, kal_diphone, ked_diphone, rab_diphone, us1_mbrola, us2_mbrola, and us3_mbrola</p>
+<p>Another good TTS engine is now available from Cepstral: <a href="http://www.cepstral.com">http://www.cepstral.com</a> .  
+$30 per voice, for either Linux or Windows (only tested on Linux so far).
+Set mh.ini parm voice_text=theta and modify voice_text_theta to point to the theta binary.</p>
 <p>Prior to 11/2002, for $150, you can get 2 nice voices with AT&amp;T Natural Voices TTS linux engine here:
  <a href="http://www.naturalvoices.com">http://www.naturalvoices.com</a> (additional voices cost $70), but for some reason, they no longer sell them from there.
 Now the only supplier we have found is from <a href="http://www.nextup.com/attnv.html,">http://www.nextup.com/attnv.html,</a> where additional voices are $35.
@@ -403,6 +406,9 @@ Here is one way to allow non-root access to the microphone:</p>
 <pre>
   chmod go+rw /dev/dsp*
   chmod go+rw /dev/audio*</pre>
+<p>Make sure your microphone is selected as the recording source with this command:</p>
+<pre>
+ aumix -m R  (-l R for line,  -c R for CDROM)</pre>
 <p>Documentation is in /usr/doc/ViaVoice and test and example code is in /usr/lib/ViaVoice/samples.
 /usr/doc/ViaVoice/rt.readme.txt suggests creating a new userid with this java app:</p>
 <pre>

@@ -59,15 +59,16 @@ sub read_phone_logs2 {
         my @a = reverse <PLOG>;
         while ($_ = shift @a) { 
             tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up 
-            my($time_date, $number, $name);
+            my($time_date, $number, $name, $line, $type);
                                 # Incoming
 #Tue 04/03/01 11:11:37 507-252-5976 COLVIN ELIZABET
 #Mon 11/12/01 19:11:28  name=-UNKNOWN CALLER- data=###DATE11121911...NMBR...NAME-UNKNOWN CALLER-+++ line=W
 
             if ($log_file =~ /callerid/) {
-                ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\-?\d\d\d\d) name=(.+)/; 
-                ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\d\d\d\d\d\d\d)(\s\w+\s\w+\s)/ unless $name;
-                ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\d) name=(.+)/ unless $name; # AC is optional
+                ($time_date, $number, $name, $line, $type) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\-?\d\d\d\d)\s+name=(.+)\s+line=(.+)\s+type=(.+)/; 
+                ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\-?\d\d\d\d) name=(.+)/ unless $name;
+                ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\d\d\d\d\d\d\d)(\s\w+\s\w+\s\w+\s)/ unless $name;
+                ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\d)/ unless $name; # AC is optional
 
                                 # Deal with "private, 'out of area', and bad data" calls 
                 unless ($name) { 
@@ -112,12 +113,7 @@ sub read_phone_logs2 {
             my $name2 = $Caller_ID::name_by_number{$number};
             $name2 = $name unless $name2;
             $name2 = '' unless $name2;
-            if ($count1 < 10) {
-                push @calls, sprintf("%s %s\n %s\n %s",  $day, $time, $number, $name2);
-            }
-            else {
-                push @calls, sprintf("%20s %-12s %s",  $time_date, $number, $name2);
-            }
+            push @calls, sprintf("date=%20s number=%-12s name=%s line=%s type=%s",  $time_date, $number, $name2, $line, $type);
             last if ++$count2 > $count1;
         } 
         close PLOG;

@@ -26,9 +26,8 @@ if (said  $v_get_internet_weather_data) {
         $city = $config_parms{nws_city} if defined $config_parms{nws_city};
         run qq|get_weather -city "$city" -zone "$config_parms{zone}" -state $config_parms{state}|;
 
-
         set_watch $f_weather_forecast;
-        print_log "Weather data requested";
+        print_log "Weather data requested for $city, $config_parms{state} zone=$config_parms{zone}";
     }
     else {
 	    speak "Sorry, you must be logged onto the net";

@@ -366,6 +366,11 @@ This depends upon which voices you have installed on your system.  Some voices a
 don_diphone, kal_diphone, ked_diphone, rab_diphone, us1_mbrola, us2_mbrola, and us3_mbrola
 
 
+Another good TTS engine is now available from Cepstral: http://www.cepstral.com .  
+$30 per voice, for either Linux or Windows (only tested on Linux so far).
+Set mh.ini parm voice_text=theta and modify voice_text_theta to point to the theta binary.
+
+
 Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural Voices TTS linux engine here:
  http://www.naturalvoices.com (additional voices cost $70), but for some reason, they no longer sell them from there.
 Now the only supplier we have found is from http://www.nextup.com/attnv.html, where additional voices are $35.

@@ -190,7 +190,7 @@ Where xyz can be any of the following:
 
 You can also stack debug flags, using ; as a separator.  fro example:
 
-  mh -debug serial;x10
+  mh -debug "serial;x10"
 
 
 =head2 1.12: How can I debug time event problem?
@@ -1850,6 +1850,9 @@ modify.
 
 #
 # $Log$
+# Revision 1.42  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.41  2003/07/06 17:55:10  winter
 #  - 2.82 release
 #

@@ -124,6 +124,7 @@ sub speak_text {
 
     $speak_pgm = $1                                     if $speak_engine =~ /program (\S+)/;
     $speak_pgm = $main::config_parms{voice_text_flite}  if $speak_engine eq 'flite';
+    $speak_pgm = $main::config_parms{voice_text_theta}  if $speak_engine eq 'theta';
     $speak_pgm = "$^X $main::Pgm_Path/vv_tts.pl"        if $speak_engine =~ /vv_tts/i;
     $speak_pgm = "$^X $main::Pgm_Path/vv_tts_simple.pl" if $speak_engine =~ /viavoice/i;
 
@@ -170,6 +171,9 @@ sub speak_text {
     }
     $parms{volume} = 100 if $parms{volume} and $parms{volume} > 100;
 
+                                # These mess up -text "text" calls and not useful when speaking?
+    $parms{text} =~ s/\"//g unless $parms{no_mod};
+    $parms{text} =~ s/\'//g unless $parms{no_mod};
 
     $parms{text} = &set_rate($parms{rate},     $parms{text}) if $parms{rate}; # Allow for slow,normal,fast,wpm:###
     $parms{text} = &set_voice($parms{voice},   $parms{text}, $speak_engine) if $parms{voice};
@@ -178,8 +182,6 @@ sub speak_text {
 
     $parms{text} = force_pronounce($parms{text}) if %pronouncable;
 
-                                # These mess up -text "text" calls and not useful when speaking?
-    $parms{text} =~ s/\"//g unless $parms{no_mod};
 
                                 # Drop XML speech tags unless supported
     $parms{text} =~ s/<\/?voice.*?>//g unless ($VTxt_version and $VTxt_version eq 'msv5') or $speak_engine =~ /naturalvoice/i;
@@ -287,10 +289,12 @@ sub speak_text {
             $speak_pgm_arg .= " -play $parms{play} " if $parms{play};
 
             if ($speak_engine =~ /vv_tts/i) {
+                $speak_pgm_arg .= " -engine "         . $main::config_parms{vv_tts_engine} if $main::config_parms{vv_tts_engine};
                 $speak_pgm_arg .= " -prescript "      . $main::config_parms{vv_tts_prescript} if $main::config_parms{vv_tts_prescript};
                 $speak_pgm_arg .= " -postscript "     . $main::config_parms{vv_tts_postscript} if $main::config_parms{vv_tts_postscript};
                 $speak_pgm_arg .= " -playcmd "        . $main::config_parms{vv_tts_playcmd} if $main::config_parms{vv_tts_playcmd};
                 $speak_pgm_arg .= " -default_sound "  . $main::config_parms{vv_tts_default_sound} if $main::config_parms{vv_tts_default_sound};
+                $speak_pgm_arg .= " -default_volume " . $main::config_parms{sound_volume} if $main::config_parms{sound_volume};
                 if ($main::config_parms{vv_tts_pa_control} and $main::config_parms{xcmd_file}) {
                 	$speak_pgm_arg .= ' -pa_control -xcmd_file ' . $main::config_parms{xcmd_file};
                 	if ($parms{rooms}) {
@@ -305,6 +309,7 @@ sub speak_text {
                 $parms{volume} = '75'  if $parms{volume} eq 'soft';
                 $parms{volume} = '100' if $parms{volume} eq 'loud';
 
+                $speak_pgm_arg .= ' -text_first'                           if $parms{text_first};
                 $speak_pgm_arg .= ' -volume '       . $parms{volume}       if $parms{volume};
                 $speak_pgm_arg .= ' -play_volume '  . $parms{play_volume}  if $parms{play_volume};
                 $speak_pgm_arg .= ' -voice_volume ' . $parms{voice_volume} if $parms{voice_volume};
@@ -358,6 +363,14 @@ sub speak_text {
                     $speak_pgm_arg .= qq[ -e 'set $parms{volume_reset}'];
                 }
             }
+            elsif ($speak_engine eq 'theta') {
+	    
+                $speak_pgm_arg .= " -S $parms{pitch}"   if $parms{pitch};
+                $speak_pgm_arg .= " -r $parms{rate}"    if $parms{rate};
+                $speak_pgm_arg .= ' -N '     . "'$parms{voice}'"  if $parms{voice};
+                $speak_pgm_arg .= ' -o '   . $parms{to_file}    if $parms{to_file}; # Not working yet??
+                $speak_pgm_arg .= qq[ "$parms{text}"];
+            }
                 # Not sure what other programs are being used here
             else {
                 $speak_pgm_arg .= qq[ "$parms{text}"];
@@ -367,7 +380,7 @@ sub speak_text {
                 $speak_pgm_arg .= " -voice   '$parms{voice}'" if $parms{voice};
                 $speak_pgm_arg .= " -to_file $parms{to_file}" if $parms{to_file};
             }
-            
+
             print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg\n" if $main::Debug{voice};
 
             if ($speak_pgm_use_stdin) {
@@ -438,7 +451,7 @@ sub speak_text {
                 &main::print_log("speak -to_file not supported with tts engine msv4.  Text=$parms{text}");
                 return;
             }
-        
+
         # Turn off vr while speaking ... SB live card will listen while speaking!
         #  - this doesn't work.  TTS does not start right away.  Best to poll in Voice_Cmd
 #           &Voice_Cmd::deactivate;
@@ -451,17 +464,17 @@ sub speak_text {
             $parms{speed} = 170         unless $parms{'speed'};
             $parms{priority} = 'normal' unless $parms{priority};
             $priority{$parms{'priority'}} = $parms{'priority'} if $parms{'priority'} =~ /\d+/; # allow for direct parm
-            
+
 #           $VTxt[0]->{'Speed'} = $parms{'speed'} if defined $parms{'speed'};
             my ($priority, $type, $voice);
             $priority = $priority{$parms{'priority'}};
             $type = $type{$parms{'type'}};
 #           $voice = qq[\\Vce=Speaker="$parms{voice}"\\] if $parms{voice};
             $voice = '' unless $voice;
-            
+
             print "Voice_Text.pm ms_tts: VTxt=$VTxt[0] text=$parms{'text'}\n" if $main::Debug{voice};
             $VTxt[0]->Speak($voice . $parms{'text'}, $priority);
-            
+
 #           $VTxt[0]->Speak($parms{'text'}, ($priority | $type));
 #           $VTxt[0]->Speak('Hello \Chr="Angry"\ there. Bruce is \Vce=Speaker=Biff\ a very smart idiot guy.', hex('201'));
         }
@@ -470,9 +483,9 @@ sub speak_text {
     else {
         print "Can not speak for engine=$speak_engine: Phrase=$parms{text}\n" if $speak_engine;
     }
-    
+
     $VTxt[0] = $vtxt_default if $vtxt_default;
-    
+
 }
 
 sub is_speaking {
@@ -773,6 +786,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.48  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.47  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #

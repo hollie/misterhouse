@@ -214,10 +214,10 @@ if (state $Windy and
     if ($Weather{WindGustSpeed} > ($Save{WindGustMax} + 5)) {
         $Save{WindGustMax} = $Weather{WindGustSpeed};
         respond "app=notice Weather alert.  The wind is now gusting at " . round($Weather{WindGustSpeed}) . " MPH.";
-        set $timer_wind_gust 120*60;
+        set $timer_wind_gust 20*60;
     }
     elsif (inactive $timer_wind_gust) {
-        set $timer_wind_gust 120*60;
+        set $timer_wind_gust 20*60;
         respond "app=notice Weather alert.  A wind gust of " . round($Weather{WindGustSpeed}) . " MPH was just recorded.";
     }
 }
@@ -228,6 +228,8 @@ if (my $rain = state_now $RainTotal) {
     $Weather{RainRecent} = round(($rain - $raintotal_prev), 2) if $raintotal_prev > 0;
     if ($Weather{RainRecent} > 0) {
         respond "Notice, it just rained $Weather{RainRecent} inches";
+        dbm_write "$config_parms{data_dir}/rain.dbm", $Time, $Weather{RainRecent};
+#       logit "$config_parms{data_dir}/rain.dbm", "$Time_Now $Weather{RainRecent}"
         $Weather{IsRaining}++;
     }
     else {

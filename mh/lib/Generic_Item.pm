@@ -402,6 +402,7 @@ sub set_states_for_next_pass {
 
                                 # Else set to Usercode [calling code file]
     $set_by = &main::get_calling_sub() unless $set_by;
+    $set_by = $main::Set_By if !$set_by and $main::Set_By;
 
                                 # Reset this (used to detect which tied item triggered the set)
                                 #  - Default to self if not specified ... naw, not sure why we would need it set to self??
@@ -581,6 +582,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.29  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.28  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #

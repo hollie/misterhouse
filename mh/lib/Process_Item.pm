@@ -248,6 +248,7 @@ sub stop {
     @process_list = @active_processes unless @process_list;
     
     for my $process (@process_list) {
+        next if ref $process eq 'SCALAR'; # In case a non ref was passed in
         my $pid = $$process{pid};
         next unless $pid;
         delete $$process{pid};
@@ -272,6 +273,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.24  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.23  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #

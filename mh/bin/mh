@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-07-06 11:58:18 winter>
+#  Last change Time-stamp: <2003-09-01 17:17:32 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -77,7 +77,7 @@ use vars qw($Time_Sunrise $Time_Sunrise_Twilight $Time_Sunset $Time_Sunset_Twili
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
-use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category $Respond_Target);
+use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category $Respond_Target $Set_By);
 use vars qw($Version_tk $DelayOccured %Debug $Authorized);
 use vars qw(%User_Code @Code_Dirs @Generic_Serial_Ports);
 
@@ -427,7 +427,7 @@ BEGIN {
         if ($config_parms{gd}) {
             eval "use GD";
             if ($@) {
-                print "Error in use GD: $@\n\nTo disable this error, set mh.ini parm GD=0\n\n";
+                print "Error in use GD: $@\n\nTo disable this error, set mh.ini parm gd=0\n\n";
             }
             elsif ($GD::VERSION and $GD::VERSION < 1.19) {
                 print "GD version needs to be > 1.18. Version=$GD::VERSION\n";
@@ -530,6 +530,7 @@ sub setup {
     use Generic_Item;
     use Group;
     use IR_Item;
+    use RF_Item;
 #   &my_use("Serial_Item");  # So we can add debug to Serial_Item.pm when running mh.exe
     use Serial_Item;
     use vars '%Weather';
@@ -665,7 +666,8 @@ sub setup {
         &serial_port_create($port_name, $config_parms{$port_name . "_port"},
                             $config_parms{$port_name . "_baudrate"},
                             $config_parms{$port_name . "_handshake"},
-                            $config_parms{$port_name . "_datatype"});
+                            $config_parms{$port_name . "_datatype"},
+                            $config_parms{$port_name . "_prefix"});
         $Serial_Ports{$port_name}{process_data} = 1 if $config_parms{$port_name . "_process_data"};
     }
 
@@ -922,7 +924,7 @@ sub setup {
 
     @Requested_Files = @ARGV;
     
-    &password_read;
+    &password_read(1);  ## force initial read
 
                                 # Perl 5.004+ will self-randomize
 #   srand(time() ^ ($$ + ($$ << 15)) ); # Set the randum number seed, used in time_random;
@@ -1378,7 +1380,44 @@ sub toggle_pause {
 }
 
 
+sub add_proxy {
+    my $my_address = $_[0];
+    &print_log("Adding proxy server: " . $_[0]);
+    unless ($proxy_servers{$_[0]}) {
+        $proxy_servers{$_[0]} = new Socket_Item(undef, undef, $_[0], undef, undef, undef, "\035");
+        $proxy_servers{$_[0]}->start;
+    }
+}
+
+sub drop_proxy {
+    if (defined $proxy_servers{$_[0]}) {
+        delete $proxy_servers{$_[0]};
+        &print_log("Removed proxy server: " . $_[0]);
+    }
+}
+
+
 sub check_for_proxy_data {
+
+                   # Check if proxies are still alive.
+                   # If one is down, a start attempt can be slow (1-2 seconds), so don't do it too often
+    if (new_second(15)) {
+        for my $address (keys %proxy_servers) {
+            my $proxy = $proxy_servers{$address};
+            if (!$proxy->active) {
+                unless ($proxy->start) {
+                    &print_log("Proxy is dead: $address");
+                    $address =~ s/\:\d+$//; # Shorten up name for speaking
+                    $address =~ s/.+\.(\d+)$/$1/;
+                    &speak("proxy $address is dead") if &new_minute(2);
+#                   delete $proxy_by_room{$address};
+                    &drop_proxy($address);
+                    next;
+                }
+            }
+        }
+    }
+
     for my $address (keys %proxy_servers) {
         my $proxy = $proxy_servers{$address};
         if (my $data = $proxy->said) {
@@ -1744,7 +1783,9 @@ sub check_for_tied_events {
                 print "Event link: eval event=$event\n" if $Debug{events};
                 my $state = $state1; # So eval can substitue $state
                 my $object=$object1;
+                $Set_By = $object1->{object_name};  # Checed in Generic_Item set method
                 eval $event;
+                $Set_By = '';
                 print "tie_events eval error: $@" if $@;
             }
         }
@@ -2141,7 +2182,7 @@ sub exit_pgm {
     &Voice_Cmd::remove_voice_cmds if $config_parms{voice_cmd};
     &Exit_hooks();              # Allow user code exits
     &run_kill_processes;        # From handy_utilities ... kills anybody that isn't done yet
-    &Process_Item::stop;
+    &Process_Item::stop();
 
                                 # Used in mh/code/common/mh_control to
                                 # display a auto-restarted window
@@ -2644,32 +2685,48 @@ sub persistent_restore {
     }
 }
 
-
+###########################################################
+##  password_read will populate password related data.
+##    it was originally called once during mh initialization,
+##    but is now called during EVERY password_check().
+##    
+##  if we're requested by force_read to re-process the pw files,
+##    we will.  normally, we'll only re-process the file(s) if 
+##    they've changed since last time we read them.
+##
+###########################################################
 sub password_read {
+    my($force_read)=@_;   ## allow caller to force re-read (on startup)
+	
     my $pw_file = $config_parms{password_file};
     $pw_file = "$config_parms{data_dir}/.password" unless $pw_file;
-    if (-e $pw_file) {
-        print "Reading password from $pw_file\n";
-        if (open (PASSWD, $pw_file)) {
-            while (<PASSWD>) {
-                if (/User: (\S+) (.+)/) {
-                    $Passwords{$1} = $2;
-                }
-                else {
-                    $Passwords{family} = $_;  # Grandfathter old single-user file
-                }
-            }
-        }
-        close PASSWD;
-    }
-    else {
-        print "\nWarning:  password_file $pw_file not found.  Run mh/bin/set_password\n\n";
+    if($force_read || &file_changed($pw_file)){
+	    %Passwords=();  ## reset to allow deletion of users
+	    if (-e $pw_file){
+		print "Reading password from $pw_file\n" if $Debug{password};
+		if (open (PASSWD, $pw_file)) {
+		    while (<PASSWD>) {
+			if (/User: (\S+) (.+)/) {
+			    $Passwords{$1} = $2;
+			}
+			else {
+			    $Passwords{family} = $_;  # Grandfathter old single-user file
+			}
+		    }
+		}
+		close PASSWD;
+	    }
+	    else {
+		print "\nWarning:  password_file $pw_file not found.  Run mh/bin/set_password\n\n";
+	    }
     }
     
                                 # This disables password protection for the specified commands/items
-    if ($pw_file = $config_parms{password_allow_file}) { 
+    if ($pw_file = $config_parms{password_allow_file}
+    && ($force_read || &file_changed($pw_file))){
+        %Password_Allow=();
         my @records = grep !(/^\#/ or /^\s*$/), &file_read($pw_file);
-        print "Read in ", scalar @records, " items from $pw_file\n";
+        print "Read in ", scalar @records, " items from $pw_file\n" if $Debug{password};
 #       %Password_Allow = map {$_, 1} @records;
         for my $cmd (@records) {
             my $user = 'anyone';
@@ -2684,12 +2741,15 @@ sub password_read {
 
                                 # This allows for disabling commands without modifing code
                                 # - for example, 'reboot the computer' in mh/code/common/mh_control.pl
-    if ($pw_file = $config_parms{disabled_commands}) { 
+    if ($pw_file = $config_parms{disabled_commands}
+    && ($force_read || &file_changed($pw_file))){
+        %Disabled_Commands=();
         my @records = grep !(/^\#/ or /^\s*$/), &file_read($pw_file);
-        print "Read in ", scalar @records, " commands from from $pw_file\n";
+        print "Read in ", scalar @records, " commands from from $pw_file\n" if $Debug{password};
         %Disabled_Commands = map {lc $_, 1} @records;
     }
 }
+
 
 sub authority_check {
     my ($user_required) = @_;
@@ -2707,6 +2767,8 @@ sub password_check {
     my ($password, $port, $type) = @_;
 
 #   return 0;  # disable remote access
+
+    &password_read(0);   ## reload if anything changed
 
     if (%Passwords) {
         if ($password) {
@@ -2745,6 +2807,9 @@ sub password_check {
                                 # If valid, return the crypted password
 sub password_check2 {
     my ($password) = @_;
+
+    &password_read(0);   ## reload if anything changed
+
     if (%Passwords and $password) {
         for my $user (sort keys %Passwords) {
             my $passwordc = $Passwords{$user};
@@ -2805,7 +2870,7 @@ sub play {
     if (my $app = $parms{app}) {
         if ($speak_apps{$app}) {
             for my $temp (split ' ', $speak_apps{$app}) {
-                my ($key, $value) = $temp =~ /(\S+)=(\S+)/;
+                my ($key, $value) = $temp =~ /(\S+)=(\S*)/;
                 $parms{$key} = $value unless $parms{$key};
                 print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $Debug{play};
             }
@@ -4291,7 +4356,7 @@ sub set_global_vars {
 }
 
 sub serial_port_create {
-    my ($name, $port, $baudrate, $handshake, $datatype) = @_;
+    my ($name, $port, $baudrate, $handshake, $datatype, $prefix) = @_;
 
     if ($port =~ /proxy/i) {
         $Serial_Ports{$name}{object} = 'proxy';
@@ -4313,6 +4378,8 @@ sub serial_port_create {
     $Serial_Ports{$name}{baudrate}  = $baudrate;
     $Serial_Ports{$name}{port}      = $port;
     $Serial_Ports{$name}{datatype}  = $datatype;
+    $Serial_Ports{$name}{prefix}    = $prefix;
+
     &serial_port_open($name);
 #   &serial_port_open($name)  || delete $Serial_Ports{$name};
 }
@@ -4543,7 +4610,7 @@ sub parse_func_parms {
 
 sub parse_func_parms2 {
     my ($ref, $text) = @_;
-    while (my ($key, $value, $text_new) = $text =~ /^\s*(\S+?)=(\S+)\s*(.*)/s) {
+    while (my ($key, $value, $text_new) = $text =~ /^\s*(\S+?)=(\S*)\s*(.*)/s) {
         $text = $text_new;
                                  # If value has leading but not trailing quote, grab till next quote
         if ($value =~ /^[\'\"]([^\'\"]+)$/) {
@@ -4682,7 +4749,7 @@ sub speak {
     if (my $app = $parms{app}) {
         if ($speak_apps{$app}) {
             for my $temp (split ' ', $speak_apps{$app}) {
-                my ($key, $value) = $temp =~ /(\S+)=(\S+)/;
+                my ($key, $value) = $temp =~ /(\S+)=(\S*)/;
                 $parms{$key} = $value unless $parms{$key};
                 print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $Debug{voice};
             }
@@ -5474,6 +5541,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.83  2003/09/02 02:43:43  winter
+#  - 2.83 release
+#
 # Revision 2.82  2003/07/06 17:49:41  winter
 #  - 2.82 release
 #

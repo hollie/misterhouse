@@ -25,10 +25,11 @@ if ($state = said $dailystrip_update) {
         run $cmd;
     }
     else {
-        run "mh -run dailystrips-clean -dir comics_dir 14";
+        run "mh -run dailystrips-clean --dir $comics_dir 14";
     }
 }
 
 run_voice_cmd 'Update the daily comic strips' if time_now '4 am';
-run_voice_cmd  'Clean the daily comic strips' if $New_Week;
+run_voice_cmd  'Clean the daily comic strips' if time_now '5 am';
+
 

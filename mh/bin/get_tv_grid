@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2003-05-19 21:00:49 winter>
+#  Last change Time-stamp: <2003-09-01 16:50:06 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -626,6 +626,9 @@ sub processRawFile
 <HTML>
 <HEAD>
 <TITLE>$parms{name} Schedule for $dow, $month/$day/$year</TITLE>
+<meta http-equiv="Expires" content="Fri, Jun 12 1981 08:20:00 GMT">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache">
 </HEAD>
 <body bgcolor=gray>
 eof
@@ -1189,6 +1192,11 @@ sub fetchLoop
    # - Minimal invocation is for 1 day (some hour subset), increments by day
    # - Most common invocation is presumably for entire day, not subset.
 
+   #-------------------------------------------------------
+   # Blow away the old data
+   #-------------------------------------------------------
+   &delete_old_data unless $parms{keep_old};
+
    #------------------------------------------------------------
    # For each number of days we're asked to retrieve...
    #------------------------------------------------------------
@@ -1265,10 +1273,6 @@ sub fetchLoop
       }
    }
 
-   #-------------------------------------------------------
-   # Blow away the old data
-   #-------------------------------------------------------
-   &delete_old_data unless $parms{keep_old};
    return 1;
 }
 

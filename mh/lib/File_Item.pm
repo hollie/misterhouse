@@ -32,6 +32,7 @@ sub set_watch {
     $self->{time} = (stat $file)[9];
     $self->{time} = time unless $self->{time}; # In case the file does not exist yet.
     $self->{flag} = $flag;
+    $self->{target} = $main::Respond_Target if $main::Respond_Target; # Pass default target along
     print "File watch set for $file, flag=$flag. time=$self->{time}\n" if $main::Debug{file};
 }
 
@@ -144,6 +145,9 @@ sub set_index {
 
 #
 # $Log$
+# Revision 1.11  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.10  2003/02/08 05:29:22  winter
 #  - 2.78 release
 #

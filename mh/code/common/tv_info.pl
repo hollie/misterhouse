@@ -83,18 +83,18 @@ if ($state = changed $f_tv_file or said $v_tv_results) {
     $msg .= plural($show_count, 'favorite show');
     if ($state eq 'favorites today') {
         if ($show_count > 0) {
-            speak "$msg on today. @data";
+            respond "$msg on today. @data";
         }
         else {
-            speak "There are no favorite shows on today";
+            respond "There are no favorite shows on today";
         }
     }
     elsif ($state eq 'favorites now') {
-        speak "app=tv Notice, $msg starting now.  @data" if $show_count > 0;
+        respond "app=tv Notice, $msg starting now.  @data" if $show_count > 0;
     }
     else {
         chomp $summary;         # Drop the cr
-        speak "$summary @data ";
+        respond "$summary @data ";
     }
     display $f_tv_info2 if $show_count;
 }

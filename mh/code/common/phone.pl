@@ -22,7 +22,7 @@ sub search_phone_calls {
     my ($count1, $count2, %results) = &dbm_search("$config_parms{data_dir}/phone/callerid.dbm", $string);
                                 # Also search in array created from mh.ini caller_id_file data
     while (my($key, $value) = each %Caller_ID::name_by_number) {
-        if ($key =~ /$Save{phone_search}/i or $value =~ /$Save{phone_search}/i) {
+        if ($key =~ /$string/i or $value =~ /$string/i) {
             $value = &dbm_read("$config_parms{data_dir}/phone/callerid.dbm", $key); # Use dbm data for consistency
             $results{$key} = $value;
         }
@@ -61,7 +61,7 @@ if (said  $v_phone_log_tk) {
                                 # Do monthly phone cleanup chores
 if ($New_Month) {
 
-    speak "Backup on phone logs";
+    print_log "Backup on phone logs";
 
     my $dbm_file = "$config_parms{data_dir}/phone/callerid.dbm";
     $dbm_file =~ s|/|\\|g if $OS_win; # System calls need dos pathnames :(

@@ -151,10 +151,12 @@ sub check_accounts {
                     my $to      = $$msgptr{to}[$cnt];
                     my $cc      = $$msgptr{cc}[$cnt];
                     my $replyto = $$msgptr{replyto}[$cnt];
+                    my $sender  = $$msgptr{sender}[$cnt];
                     my $from    = $$msgptr{from}[$cnt];
                     my $body    = $$msgptr{body}[$cnt];
 
-                    $to .= ", $cc";
+                    $to   .= ", $cc"     if $cc;
+                    $from .= ", $sender" if $sender;
 
                                 # Delete attachements
                                 # I think the g in gsm will do this without the while loop
@@ -310,6 +312,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.34  2003/09/02 02:48:43  winter
+#  - 2.83 release
+#
 # Revision 1.33  2003/06/01 21:54:39  winter
 #  - 2.81 release
 #

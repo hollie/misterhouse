@@ -30,7 +30,7 @@ if (active_now $telnet_server) {
     my $client = $Socket_Ports{server_telnet}{socka};
     $telnet_flags{$client}{auth} = 0;
 
-                                # This will return false if the telnet ip is not in the password_allow_list
+                                # This will return false if the telnet ip is not in the password_allow_clients list
     if (my $user = password_check undef, 'server_telnet') {
         if (-e $config_parms{password_file}) {
             set $telnet_server 'Authorized by IP address match.';

@@ -183,7 +183,7 @@
 
     You can also stack debug flags, using ; as a separator. fro example:
 
-      mh -debug serial;x10
+      mh -debug "serial;x10"
 
   1.12: How can I debug time event problem?
     One way is to create a code member that contains just the event you are

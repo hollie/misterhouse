@@ -4,7 +4,8 @@
 #@ This module adds functionality to obtain various categories of
 #@ news from yahoo.com, then read or display it.
 
-my $f_all_news_html = "$config_parms{data_dir}/web/all_news.html";
+#my $f_all_news_html = "$config_parms{data_dir}/web/all_news.html";
+my $f_all_news_html = "$Pgm_Root/web/ia5/news/news.html";
 my $f_Top_news = "$config_parms{data_dir}/web/Top_news.txt";
 my %news_files;
 $news_files{"US"} = "$config_parms{data_dir}/web/US_news.txt";

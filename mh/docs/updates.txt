@@ -2,10 +2,107 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    - Thomas Vogl has started a MisterHouse Journal' at
+    http://www.trvonthe.net/mh-journal/ where he cronicles his experiences
+    of setting up MisterHouse on Linux Redhat.
+
+    - David Norwood created code/common/mp3.pl, mp3_winamp.pl, and
+    mp3_xmms.pl. He reorganized the winamp and xmms mp3 scripts to be easier
+    to setup and maintain. There was a lot of duplication in the winamp and
+    xmms code and some things like playlists were handled differently.
+
+    - Sean Walker added an option to have proxies regsiter themselves with
+    the main mh, to allow for an optional security, and for better starting
+    and stopping of proxies.
+
+    - Gregg Liming enabled support for a new TTS engine from Cepstral:
+    http://www.cepstral.com . $30 per voice, for either Linux or Windows
+    (only tested on Linux so far). Set mh.ini parm voice_text=theta and
+    modify voice_text_theta to point to the theta binary.
+
+    - David Lounsberry modified his vv_tts wrapper to wrap around either
+    viavoice, festival, or the new Cepstral TTS engine. Use
+    vv_tts_engine=festival or vv_tts_engine=theta.
+
+    - Steve Switzer created lib/PAobj.pm and common/pa_control.pl to enable
+    the rooms= speak and play parm to target specific rooms via a relay
+    controled PA system. See comment at the end of pa_control.pl for example
+    .mht entries.
+
     Bug Fixes and Other Changes:
 
+    - Ross Towbin updated lib/X10_W800RF.pm to fix a case typo and increased
+    a delay so a single press from a remote isn't processed multiple times.
+
+    - Steve Haehnichen fixed lib/Lynx10PLC.pm to work correctly with
+    Lynx10PLC_XMIT_PWR values of 94 -> 100.
+
+    - Robert Mann added line 1/2/etc support to common/phone_logs.pl and
+    web/bin/phone_in.pl
+
+    - Wally Kissel noted the File_Item method index should have been
+    get_index in doc/mh.pod
+
+    - Brian McKissick fixed the web code browser on linux and noted a
+    missing frameset tag in the new my_mh/index.html file.
+
+    - Chris Witte updated the 'password accepted' message.
+
+    - Chris Witte updated mh so it no longer has to be re-started to
+    activate a password change.
+
+    - Chris Witte and I updated the tie_event method to correctly enable
+    get_set_by for objects set by tied events.
+
+    - Jaco Botha updated common/internet_irridium.pl to work with
+    date_format=ddmm, rather than the default of mmdd.
+
+    - Steve Switzer added a link to results of web/bin/phone_search.pl
+
+    - David Norwood added info and links on IR interfaces to the hardware
+    section of docs/mh.pod.
+
+    - Sean Walker and I updated enabled the File_Item set_watch method to
+    set the respond target field and updated common/tv_info.pl to use
+    respond instead of speak so we can better query tv show info from other
+    locations.
+
+    - Gregg Liming noticed that 2.82 could cause volume to muted on startup.
+
+    - Richard Phillips updated code/public/mp3_control_xmms.pl to auto-start
+    xmms if it isn't already running.
+
+    - Craig Schaeffer fixed a cleanup problem in
+    common/comic_dailystrips.pl.
+
+    - Jon Boehm sent in common/speak_mac.pl, to enable speech on the Mac
+    (support was there since 2.76, but I forgot to include this file).
+
+    - Steve Switzer updated the setup menus with logon menus if accessed by
+    non-admin users.
+
+    - Scott Johnson updated lib/Stargate.pm to echo Stargate generated X10
+    commands to MisterHouse.
+
+    - Steve Switzer updated lib/Telephony_Interface.pm to allow 'call from
+    number' instead of 'call from unknown' for NetCallID calls of known
+    numbers, but unknown names.
+
+    - Gregg Liming suggested we update lib/Telephony_Interface.pm to ignore
+    callerid data that has neither name or number.
+
+    - Steve Switzer added 'Get AWS weather data' to common/weather_aws.pl
+
+    - Richard Phillips discovered a case where an mh restart would fail if a
+    "Can't use string ("1") as a HASH ref" error.
+
+    - David Norwood and Steve Switzer updated bin/get_tv_grid to create
+    non-cachable 'TV today' pages.
+
+    - Moved the 'proxy is dead' check into bin/mh.
+
   Version 2.82 posted on 07/06/2003
-    Version 2.81 was just uploaded to:
+    Version 2.82 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
       http://misterhouse.net:81/download.html
@@ -61,6 +158,14 @@ Mister House Announcement List
     the program (e.g. weather.exe krst). If you don't specify a code it will
     default to London, Heathrow (EGLL).
 
+    - Lincoln Foreman sent in mh/code/public/pha_k256.pl as an example of
+    reading data from Phanderson's K256 kit which can monitor 256 DS1820
+    temperature sensors, 8 bits digital IO, and 11 bits of analog IO.
+    Available for $50 from http://www.phanderson.com/t64.html
+
+    - Bill Young sent in code/public/weeder_doorbell.pl as an example of
+    monitoring and controlling a doorbell with a weeder board.
+
     Bug Fixes and Other Changes:
 
     - James Derrick fixed deleting of temp festival sable files.
@@ -94,9 +199,6 @@ Mister House Announcement List
     common/tk_photo.pl. You can install that Tk module with "ppm install
     Tk-CursorControl" (windows) or "perl -MCPAN -e 'install
     Tk::CursorControl'" (unix).
-
-    - Bill Young sent in code/public/weeder_doorbell.pl as an example of
-    monitoring and controlling a doorbell with a weeder board.
 
     - Andrew Drummond spotted a 2.81 problem with browsers (like Audrey)
     that do not pass http port data with their requests.

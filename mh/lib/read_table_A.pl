@@ -28,7 +28,6 @@ sub read_table_A {
     my ($record) = @_;
 
     my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy);
-    
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
 
@@ -277,7 +276,56 @@ sub read_table_A {
             $code .= "use caddx;\n";
         }
     }
-    else {
+    elsif ($type eq "PA") {
+        require 'PAobj.pm';
+        my $pa_type;
+        ($address, $name, $grouplist, $other, $pa_type, @other) = @item_info;
+        # $other is being used as the serial name
+        $pa_type = 'wdio' unless $pa_type;
+
+        if( ! $packages{PAobj}++ ) {   # first time for this object type?
+            $code .= "my (%pa_weeder_max_port,%pa_zone_types,%pa_zone_type_by_zone);\n";
+        }
+
+        if ($config_parms{pa_type} ne $pa_type) {
+            print "ERROR! INI parm \"pa_type\"=$config_parms{pa_type}, but PA item $name is a type of $pa_type. Skipping PA zone.\n";
+            return;
+        } else {
+            $name = "pa_$name";
+
+            $grouplist = "|$grouplist|allspeakers";
+            $grouplist =~ s/\|\|/\|/g;
+            $grouplist =~ s/\|/\|pa_/g;
+            $grouplist =~ s/^\|//;
+            $grouplist .= '|hidden';
+
+            if ($pa_type =~ /^wdio/i) {
+                   # AHB / ALB  or DBH / DBL
+                $address =~ s/^(\S)(\S)$/$1H$2/;# if $pa_type eq 'wdio';
+                $address = "D$address" if $pa_type eq 'wdio_old';
+#                $address =~ s/^(\S)(\S)$/DBH$2/ if $pa_type eq 'wdio_old';
+                $code .= sprintf "\n\$%-35s = new Serial_Item('%s','on','%s');\n",$name,$address,$other;
+#                $code .= sprintf "\n\$\$%s{pa_type} = '%s';\n",$name,$pa_type;
+
+#                $code .= sprintf "\$pa_zone_types{%s}++ unless \$pa_zone_types{%s};\n",$pa_type,$pa_type;
+#                $code .= sprintf "\$pa_zone_type_by_zone{%s} = '%s';\n",$name,$pa_type;
+
+                $address =~ s/^(\S{1,2})H(\S)$/$1L$2/;
+#                $address =~ s/^(\S)H(\S)$/$1L$2/ if $pa_type eq 'wdio';
+#                $address =~ s/^D(\S)H(\S)$/D$1L$2/ if $pa_type eq 'wdio_old';
+                $code .= sprintf "\$%-35s -> add ('%s','off');\n",$name,$address;
+
+                $object = '';
+            } elsif (lc $pa_type eq 'x10') {
+                $other = join ', ', (map {"'$_'"} @other); # Quote data
+                $object = "X10_Appliance('$address', $other)";
+            } else {
+                print "\nUnrecognized .mht entry for PA: $record\n";
+                return;
+            }
+        }
+
+    } else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
     }
@@ -293,8 +341,7 @@ sub read_table_A {
         $group =~ s/ *$//;
         if ($name eq $group) {
             print_log "mht object and group name are the same: $name  Bad idea!";
-        }
-        else {
+        } else {
                                 # Allow for floorplan data:  Bedroom(5,15)|Lights
             if ($group =~ /(\S+)\((\S+?)\)/) {
                 $group = $1;
@@ -308,8 +355,7 @@ sub read_table_A {
             $groups{$group}{$name}++;
         }
 
-        if(lc($group) eq 'hidden')
-        {
+        if(lc($group) eq 'hidden') {
             $code .= sprintf "\$%-35s -> hidden(1);\n", $name;
         }
     }
@@ -321,6 +367,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.19  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.18  2003/07/06 17:55:12  winter
 #  - 2.82 release
 #

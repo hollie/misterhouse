@@ -15,8 +15,6 @@ use strict;
 
 my ($Pgm_Path, $Pgm_Name, $Version, $Pgm_Root);
 #use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
-use ViaVoiceTTS;
-package ViaVoiceTTS;
 
 BEGIN {
     ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
@@ -33,7 +31,7 @@ my $cmd;
 if (!&GetOptions(\%parms, "h", "help", "debug", "nomixer", "text=s", "voice=s", "text_first",
 		 "volume=s", "play_volume=s", "voice_volume=s", "default_volume=s",
 		 "prescript=s", "postscript=s", "play=s", "playcmd=s", "default_sound=s", 'to_file=s',
-		 "pa_control", "xcmd_file=s", "rooms=s", "default_room=s") or
+		 "pa_control", "xcmd_file=s", "rooms=s", "default_room=s", "engine=s") or
     @ARGV or $parms{h} or $parms{help} ) {
     print<<eof;
 
@@ -46,6 +44,7 @@ $Pgm_Name (version $Version) perl wrapper for TTS
       -h                    => This help text
       -help                 => This help text
       -text "xxx"           => text to speak
+      -engine xxx           => backend TTS engine (viavoice | festival | theta)
       -playcmd xxx          => full path to play command
       -default_sound xxx    => default sound file 
       -default_volume xxx   => default volume when -volume not set
@@ -76,6 +75,17 @@ eof
 
 my $lockfile = "/tmp/.vv_tts-lock";
 my $cnt = 0;
+unless ($parms{engine}) {
+	$parms{engine} = 'festival';
+}
+if ($parms{engine} eq 'viavoice') {
+	eval "use ViaVoiceTTS";
+	if ($@) {
+		printf ("\n%s: ViaVoiceTTS not installed, exiting.\n\n",$Pgm_Name);
+	} else {
+		package ViaVoiceTTS;
+	}
+}
 while ( stat($lockfile) && $cnt < 120) {
 	# printf("%s: lockfile exists, sleep ($cnt of 60)\n",$Pgm_Name,$cnt);
 	sleep(1);
@@ -190,19 +200,29 @@ sub speak_text() {
 		}
 		printf ("%s: text = $parms{text}\n",$Pgm_Name) if $parms{debug};
 	
-        $parms{text} = "`v" . $parms{voice} . " " . $parms{text} if $parms{voice};
 		if ($parms{to_file}) {
 		    unlink $parms{to_file};
 		    my $h=eciNew() or die "ViaVoice: Unable to connect";
 		    eciSetOutputFilename($h, $parms{to_file}) or warn "ViaVoice: Unable to set output file: $parms{to_file}";
-            eciSetParam($h,eciInputType,1);
 		    eciAddText($h, $parms{text}) or warn "ViaVoice Unable to add text";
 		    eciSynthesize($h) or warn "ViaVoice Unable to synthesize text";
 		    while (eciSpeaking($h)){};
 		    eciDelete($h);
 		}
 		else {
-		    ViaVoiceTTS::eciSpeakText($parms{text},1);
+		    if ($parms{engine} =~ /viavoice/i) {
+			printf ("%s: running viavoice tts engine\n",$Pgm_Name) if $parms{debug};
+		        $parms{text} = "`v" . $parms{voice} . " " . $parms{text} if $parms{voice}; # Does not work with to_file??
+		    	ViaVoiceTTS::eciSpeakText($parms{text},1);
+		    } elsif ($parms{engine} =~ /festival/i) {
+			printf ("%s: running festival tts engine\n",$Pgm_Name) if $parms{debug};
+			open(FEST, "| festival --tts");
+			print FEST qq[$parms{text}];
+			close(FEST);
+		    } elsif ($parms{engine} =~ /theta/i) {
+			printf ("%s: running theta tts engine\n",$Pgm_Name) if $parms{debug};
+			system("theta \'$parms{text}\'");
+		    }
 		}
 	}
 	return;
@@ -216,9 +236,8 @@ sub set_vol {
 		Audio::Mixer::set_cval('vol', $level);
 		Audio::Mixer::set_cval('pcm', $level);
 		my ($svol)=&check_vol;
-                              # Some drivers round off, so allow for +- 1 variance
-                              # so we don't re-adjust the volume on every call
-        return if ($svol <= $level + 1) && ($svol >= $level - 1);
+		#return if ($svol == $level);
+		return if ($svol <= $level + 1) && ($svol >= $level - 1);
 		printf ("%s: current vol($svol) != level($level)\n",$Pgm_Name) if $parms{debug};
 		sleep(1);
 	}

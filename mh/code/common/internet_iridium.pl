@@ -75,7 +75,9 @@ eof
             my @a = split;
 #           print "db t=$text\na=@a\n";
 #           print "db testing time: $a[1]/$a[0] $a[2]\n";
-            $time = my_str2time("$a[1]/$a[0] $a[2]") + 3600*$config_parms{time_zone};
+            $time = my_str2time($config_parms{date_format} =~ /ddmm/ ? 
+                                "$a[0]/$a[1] $a[2]" : "$a[1]/$a[0] $a[2]") +
+                                  3600*$config_parms{time_zone};
             $time += 3600 if (localtime)[8]; # Adjust for daylight savings time
             ($time_sec)   = time_date_stamp(6, $time) . ' ' . time_date_stamp(16, $time);
             ($time, $sec) = time_date_stamp(9, $time);

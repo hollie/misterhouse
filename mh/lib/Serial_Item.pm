@@ -368,12 +368,15 @@ sub send_serial_data {
     }
     else {
         my $datatype  = $main::Serial_Ports{$port_name}{datatype};
+        my $prefix    = $main::Serial_Ports{$port_name}{prefix};
+
+        $serial_data = $prefix . $serial_data if $prefix ne '';
         $serial_data .= "\r" unless $datatype and $datatype eq 'raw';
-        
+
         my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
            
 #      &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::Debug{serial};
-        print "serial port=$port_name out=$serial_data results=$results\n" if $main::Debug{serial};
+        print "serial  port=$port_name out=$serial_data results=$results\n" if $main::Debug{serial};
     }
 }
 
@@ -546,6 +549,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.66  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.65  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #

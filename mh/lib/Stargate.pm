@@ -259,7 +259,7 @@ sub ParseEchoCommand
     if($command == 0x00)
     {
         #return undef unless $bytes[0] eq '0'; # Only look at x10 data for now
-        next unless $bytes[1] eq '0' or $bytes[1] eq '1'; # Only look at receive data for now
+        next unless $bytes[1] eq '0' or $bytes[1] eq '1' or $bytes[1] eq '8' or $bytes[1] eq '9'; # Only look at receive data for now
         # Disable using the Stargate for X10 receive if so configured.  I am using the CM11a and just use
         # the stargate for I/O and phone control (bsobel@vipmail.com)
         next if $main::config_parms{Stargate_DisableX10Receive};
@@ -270,6 +270,7 @@ sub ParseEchoCommand
             print "Error, not a valid Stargate house code: $bytes[3]\n";
             next;
         }
+	  $bytes[1] = $bytes[1] &1;
         my $code = $bytes[1] . $bytes[2];
         if (($device = $table_dcodes{lc($code)}) eq undef) 
         {

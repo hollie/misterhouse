@@ -293,17 +293,24 @@ sub receiver_sensitivity
 	&send(NETID_X10, pack('C3', X10_RECEIVERSENSITIVITY, X10_EOL, $level));
 }
 
+
 sub transmit_power
 {
-	return 0 unless ( 1 == @_ );
-	my ($level) = @_;
+    return 0 unless ( 1 == @_ );
+    my ($level) = @_;
+    
+    $level = (256 * $level) / 100;
 
-	$level = (256 * $level) / 100;
-	$level = 255 if ($level > 255);
-	$level = 0   if ($level < 0);
-	
-	&send(NETID_X10, pack('C3', X10_TRANSMITPOWER, X10_EOL, $level));
+# The maximum output power is around 3.6v at Transmitter Level 93% (0xEE#= 238)
+# This is the highest output power I've measured from the LynX-10 PLC.
+#	$level = 255 if ($level > 255);
+    $level = 239 if ($level > 239);
+
+    $level = 0   if ($level < 0);
+    
+    &send(NETID_X10, pack('C3', X10_TRANSMITPOWER, X10_EOL, $level));
 }
+
 
 sub configure_plc
 {

@@ -350,6 +350,23 @@ windows, and linux software for it.
 The schematics that it is built from are also posted on the net (elsewhere), but
 for $30, it hardly seems worth building it from scratch.
 
+There is an X10 product called IR Commander that works with the Firecracker
+and sends infrared.  It's not a learning remote and most people who try it
+are disapointed.  The RedRat2 is supported by misterhouse, but doesn't seem
+too popular.  I wrote the module for the UIRT2 and it is being used by a few
+on both Windows and Linux.  I'm also working on a module for the USB-UIRT,
+but haven't finished it yet (sorry Jason and Bill).  I've only gotten it to
+work on Linux.  The Ocelot is another option.
+
+  FireCracker: http://www.x10.com/products/ux17a_bj2.htm
+
+  RedRat: http://www.redrat.co.uk/
+
+  UIRT: http://www.fukushima.us/UIRT2/
+
+  UIRT USB: http://home.earthlink.net/~jrhees/USBUIRT/index.htm
+
+
 Here are 2 LCD displays with programmable serial interfaces:
 
   http://www.crystalfontz.com/products/634/index.html  $60
@@ -405,6 +422,10 @@ Here are some URLs and prices:
       Note:  The DS9097, DS9097E, or parallel port adapters will not work with mh
     -  $3 DS1990A-F5  for 64 bit ID buttons.
  
+  http://www.ibuttonlink.com
+    - The $35 LINK interface has been reported as more reliable and 
+      is more flexable than the DS9097 listed above.
+
   http://www.pointsix.com
     - They also sell the $15 interface (under iButton Products) 
     - $10 for a 1 port relay card
@@ -608,7 +629,7 @@ Note:  These methods currently read the entire file, so if have big files (say, 
      read_next    : Reads the next record, according to the index.
      read_current : Reads the current record, according to the index.
 
-     index        : Which record was last read.  A couple of notes:
+     get_index    : Which record was last read.  A couple of notes:
                       - The index is saved between mh sessions.
                       - If you use a File_Item that does not yet have 
                         an index set, a random index will be used and stored.
@@ -1210,6 +1231,9 @@ More examples are in mh/code/examples/test_process.pl
 An RF_item is created to receive states from X10 security devices and RF
 TV style remote through a W800RF32 module or an MR26A module (the MR26A
 only passes TV remote style data through, it does not pass security data).
+
+To configure the W800 or MR26 interfaces, see the comments at the top of
+mh/lib/X10_MR26.pm  and mh/lib/X10_W800.pm.
 
 RF items can be created in the items.mht in the following manner:
 
@@ -2308,6 +2332,8 @@ Use this to play wave or system sound files.  There are 2 modes of calling it:
 
        mode   => 'unmuted'     Forces speech, even in mute and offline mode
 
+       nolog   => 1      Does not log $file_name to the speech log.
+
        app    => 'xyz'   This uses the parms defined in the xyz section of
                          the mh.ini speak_app parm.  This allows us to use custom
                          parms with generic, common code.  
@@ -2570,6 +2596,8 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
 
        mode    => 'unmuted' Forces speech, even in mute and offline mode
 
+       nolog   => 1       Does not log the spoken text to the speech log.
+
        app     => 'xyz'   This uses the speak parms defined in the xyz section of
                           the mh.ini speak_app parm.  This allows us to use custom
                           speak parms with generic, common code.  
@@ -2819,6 +2847,11 @@ Frequency is the average number of minutes between occurrences.
       $state = (ON eq state $bedroom_light) ? OFF : ON;
       set $bedroom_light $state;
     }
+
+    print 'test value=2'  if time_random '* * * * *',  2; # Fires every other minute;
+    print 'test value=10' if time_random '* * * * *', 10; # Fires every other 10th minute;
+    print 'test value=1'  if time_random '* * * * *',  1; # Fires every minute (not useful)
+
 
 =back 
 
@@ -4862,6 +4895,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.67  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
 # Revision 1.66  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #
