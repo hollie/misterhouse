@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-09-23 14:25:53 winter>
+#  Last change Time-stamp: <2001-10-19 08:17:56 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -432,7 +432,6 @@ sub setup {
     use Weather_Item;   &Weather_Item::Init();
     use X10_Items;
     use iButton;
-    use Hardware::iButton::Connection;
     use LCD;
 
     use Socket_Item;
@@ -545,15 +544,22 @@ sub setup {
                             $config_parms{$port_name . "_datatype"});
     }
 
+                                # Grandfather in old ibutton parms
+    $config_parms{iButton_serial_port} = $config_parms{ibutton_port} if $config_parms{ibutton_port};
+    $config_parms{iButton_tweak}       = $config_parms{ibutton_tweak};
+
                                 # Look for user specified modules
                                 # This makes it easy to add new modules
                                 # for new serial/socket devices.  
                                 # Manager must be available in lib directory
     for my $parm (keys %config_parms) {
                                 # Check for serial and server ports modules (e.g. Compool.pm)
-                                #  Alow for: Stargate485_serial_port=COM9 
+                                #  Allow for:   DSC_Alarm_serial_port = COMx
+                                #             DSC_Alarm:1_serial_port = COMx
+                                #               iButton_1_serial_port = COMx
+
         next unless $config_parms{$parm};
-        if ($parm =~ /^([^:]+)(:?\d*)_(serial|server)_port/) {
+        if ($parm =~ /^(.+?)([:_]?\d*)_(serial|server)_port/) {
             if (-e "$Pgm_PathU/../lib/$1.pm") {
                 print "Found managed $3 port=$1$2\nMH will now require $1.pm and call $1::$3_startup($1$2)\n" 
                     if $config_parms{debug} eq 'startup';
@@ -565,6 +571,7 @@ sub setup {
                 print "No $1.pm file found for $parm\n";
             }
         }
+
                                 # Check for other mh.ini specified modules (e.g. Weather_vw.pm)
                                 # weather_vwlog_module=Weather_vw
         if ($parm =~ /^(\S+?)_module/) {
@@ -630,10 +637,6 @@ sub setup {
         &ncpuxa_mh::init($config_parms{ncpuxa_port}); # Create socket connection
     }
 
-    if ($config_parms{ibutton_port}) {
-        &my_use("Hardware::iButton::Connection;");
-        &iButton::connect($config_parms{ibutton_port});
-    }
                                 # Do this one last, as it can share a serial port.
     if ($config_parms{cm17_port}) {
         require 'ControlX10/CM17.pm';
@@ -765,7 +768,7 @@ my (%hook_pointers, %hook_locations);
 sub add_hook_code {
 
     %hook_locations = ( MainLoop_pre => 1, MainLoop_post => 1,
-                        Serial_match => 1,
+                        Serial_match => 1, State_change => 1,
                         Reload_pre   => 1, Reload_post  => 1,
                         Play_pre => 1,     Play_post => 1,
                         Speak_pre => 1,    Speak_post => 1
@@ -849,6 +852,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
        my $i = 0;
        for my $ptr (&get_hooks_($location)){
            my ($hook, $type, @parms) = @$ptr;
+#          print "dbx hook l=$location p=$ptr h=$hook t=$type p=@parms.\n" unless $location eq 'MainLoop_pre';
                                 # Allow for parms passed in mh, and parms specified
                                 # with addhook.
            &$hook(@_, @parms); 
@@ -1217,8 +1221,6 @@ sub check_for_serial_data {
     for my $port_name (@Generic_Serial_Ports) {
         &check_for_generic_serial_data($port_name) if $Serial_Ports{$port_name}{object};
     }
-                                # Leave this under user control?
-#   &iButton::monitor if $config_parms{ibutton_port} and if $New_Second;
 }
 
 my ($leave_socket_open_passes, $leave_socket_open_action);
@@ -1371,7 +1373,7 @@ sub check_for_socket_data {
             $Socket_Ports{$port_name}{data}        = $remainder;
             
             if ($port_name eq 'http') {
-                if ($record =~ /^ *GET /) {
+                if ($record =~ /^ *(GET|POST) /) {
                     my $sock = $Socket_Ports{$port_name}{socka};
                     ($leave_socket_open_passes, $leave_socket_open_action) = &process_http_request($sock, $record);
                     print "http lso=$leave_socket_open_passes sock=$sock.\n" if $config_parms{debug} eq $port_name;
@@ -1414,9 +1416,11 @@ sub check_for_socket_data {
 sub check_for_tied_events {
     my @objects = @_;
     for my $object1 (@objects) {
+        next unless  $object1 -> isa('Generic_Item'); # Safeguard ... should not need this
+        my $state1 = $object1 -> state;
 #       my $state1 = lc $object1 -> state;
-        next unless $object1->isa('Generic_Item'); # Safeguard ... should not need this
-        my $state1 =    $object1 -> state;
+
+        &State_change_hooks($object1, $state1); # Created by &add_hooks
 
         print "Object link: starting enumeration for object=$object1 state=$state1\n" if $config_parms{debug} eq 'events';
 
@@ -1704,8 +1708,8 @@ sub eval_user_code_loop {
             $usercode_error_flag++;
             my $error = &eval_user_code_error($@, $user_code);
             print $error;
-            &display($error, 0) unless !$config_parms{tk};
-            &speak("Error found in user code.  Check the error log.");
+            &display($error, 0) unless $config_parms{tk};
+            &speak("Error found in user code.  Check the error log.") unless $config_parms{no_speak_errors} =~ /error/i;
 
                                 # Log these errors for review
             print ERRORLOG (&time_date_stamp(1), $Time)[0], ":\n  $error\n";
@@ -1911,6 +1915,7 @@ sub list_objects_by_type {
     return @{$object_names_by_type{$object_type}};
 }
 sub list_objects_by_webname {
+    return unless $_[0]; 
     return @{$object_names_by_webname{$_[0]}} if $object_names_by_webname{$_[0]};
 }
 sub list_object_types {
@@ -1962,11 +1967,15 @@ sub my_str2time {
                                 #  Dec/25   7:00 pm (Dec 25 7:00 pm would be tricky)
     ($monthf, $mdayf, $yearf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\/(\S+)\s+(.+)/;
     ($monthf, $mdayf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\s+(.+)/ unless $time_date_time; # Year is optional
+                                # Allow for dd/mm format
+    ($mdayf, $monthf) = ($monthf, $mdayf) if $config_parms{date_format} =~ /ddmm/;
+
     $monthf = $table_month{lc $monthf} if $monthf and $monthf !~ /\d+/;
     $monthf = $Month unless $monthf;
     $mdayf  = $Mday  unless $mdayf;
     $yearf  = $Year  unless $yearf;
     $monthf--;          # Jan = 0;
+
 
     $time_date = $time_date_time if $time_date_time;
     ($hourf, $minf, $secf, $am_pm) = $time_date =~ /(\d+):?(\d*):?(\d*)\s*([AaPp]?[Mm]?)/;
@@ -2089,7 +2098,7 @@ sub object_states_restore {
 sub object_states_save {
     my ($object_type, $var, $expire_time, $state);
 
-    print "$Time_Date: Saving object states\n" unless $config_parms{no_log} =~ /save_state/;
+    print "$Time_Date: Saving object states ..." unless $config_parms{no_log} =~ /save_state/;
     my ($restore_state, $restore_string);
                                 # Save states on user specifed Save keys
     for $var (keys %Save) {
@@ -2123,6 +2132,7 @@ sub object_states_save {
                                 # Save Persistent data
     file_write "$restore_state_file.persistent", Data::Dumper->Dump([\%Persistent], [qw(*Persistent)]);
    
+    print " done\n";
 }
 
 
@@ -2159,23 +2169,24 @@ sub object_states_save_check {
 sub password_read {
     my $pw_file = $config_parms{password_file};
     $pw_file = "$config_parms{data_dir}/.password" unless $pw_file;
-    if ($pw_file) {
-        print "Checking for password file: $pw_file\n";
-        if (-e $pw_file) {
-            print "Reading password from $pw_file\n";
-            if (open (PASSWD, $pw_file)) {
-                $Password = <PASSWD>;
-            }
-            close PASSWD;
+    if (-e $pw_file) {
+        print "Reading password from $pw_file\n";
+        if (open (PASSWD, $pw_file)) {
+            $Password = <PASSWD>;
         }
-
-                                # This disables password protection for the specified commands/items
-        if ($pw_file = $config_parms{password_allow_file}) { 
-            my @records = grep !(/^\#/ or /^\s*$/), &file_read($pw_file);
-            print "Read in ", scalar @records, " items from $pw_file\n";
-            %Password_Allow = map {$_, 1} @records;
-        }
+        close PASSWD;
     }
+    else {
+        print "\nWarning:  password_file $pw_file not found.  Run mh/bin/set_password\n\n";
+    }
+    
+                                # This disables password protection for the specified commands/items
+    if ($pw_file = $config_parms{password_allow_file}) { 
+        my @records = grep !(/^\#/ or /^\s*$/), &file_read($pw_file);
+        print "Read in ", scalar @records, " items from $pw_file\n";
+        %Password_Allow = map {$_, 1} @records;
+    }
+
                                 # This allows for disabling commands without modifing code
                                 # - for example, 'reboot the computer' in mh/code/common/mh_control.pl
     if ($pw_file = $config_parms{disabled_commands}) { 
@@ -2187,6 +2198,7 @@ sub password_read {
 
 sub password_check {
     my ($password, $port) = @_;
+
     if ($Password) {
                                 # Allow us to bypass password protection on select clients
         if ($password) {
@@ -3043,7 +3055,7 @@ sub read_user_code {
                 "#-------------------------------------------------\n\n" .
                 "sub ${member_name}_loopcode {\n" .
                 "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
-                "        speak 'Multiple eval errors in $member_name.  Code was disabled';" .
+                "        display('Multiple eval errors in $member_name.  Code was disabled', 0);" .
                 "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
                 "   my \$benchmark_tickcount = &get_tickcount if \$Benchmark_Members{on_off_flag};\n" .
 #               " print 'db running ${member_name}';" .
@@ -3671,7 +3683,7 @@ sub speak {
         $key = lc $key;
                                 # Not all TTS engines have all these options ... this is a superset
         print "Warning, speak control not recognized: key=$key value=$value\n"
-            unless grep $key eq $_, qw(room display play volume time voice pitch);
+            unless grep $key eq $_, qw(room rooms mode display play volume time voice pitch);
         
         if ($key =~ /room[s]?/) {
             $rooms = $value;
@@ -3723,7 +3735,8 @@ sub speak {
         }
     }
 
-    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
+    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and
+        !($parms{mode} =~ /unmute/i or $parms{to_file});
 
                                 # Lowercase all uppercase text ... 
                                 #  if it > 4 characters (don't want to mess up acronyms)
@@ -3869,6 +3882,7 @@ sub tk_setup_windows {
     $MW->iconname('Mr. House'); # Does nothing??
 #   $MW->iconbitmap('c:\\utils\\4dos\\4dos.ico'); 
 #   $MW->optionAdd('*font' => 'systemfixed');  
+    $MW->optionAdd('*font' => $config_parms{tk_font_menus}) if $config_parms{tk_font_menus};
 
                                 # This doesn't work :(
     $MW->bind('Alt-Key-r'   => \&read_code);
@@ -4367,6 +4381,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.60  2001/10/21 01:08:38  winter
+# - 2.60 release
+#
 # Revision 2.59  2001/09/23 19:26:53  winter
 # - 2.59 release
 #
