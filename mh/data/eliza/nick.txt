@@ -3,11 +3,13 @@
 # This was modified by son Nick.  Probably should not be used
 # by those of a sensitive nature :)
 #
-initial: Hello, I am a computer program. (I wouldn't include that, but it seems obvious that you need the reminder)
+initial: <sigh> Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
 initial: It is a good day to die.
+initial: Hello, I am a computer program. (I wouldn't include that, but it seems obvious that you need the reminder)
 initial: Please tell me what's been bothering you. I might even not make fun of you for it.
 initial: Is something troubling you? Please say yes, I love it when people are depressed!
 final: Goodbye.  It was nice talking to you. You make even me look beautiful!
+final: I think you need to talk to a REAL analyst before you blow the top of your head off to see if you can fix what's inside. 
 final: Life is tough.  It'll be that way forever. Shoot yourself now.
 final: Well I hope that brings some light into your tiny brain.
 final: Next time, try to think up some INTELLIGENT questions for my awesome cerebral power.
@@ -67,11 +69,15 @@ key: xnone -1
   decomp: *
 	reasmb: NetHack will show you the way!
     reasmb: Can't respond. Too busy playing NetHack.
+    reasmb: Stop wasting my time with your incomprehensible ramblings!
+	reasmb: Bogota, Colombia. Quito, Ecuador. Brazilia, Brazil. Lima, Peru. Santiago, Chile.
 	reasmb: You remind me of an old English teacher I once had.  She got hit by a worm.  She was kind of slow.
 	reasmb: Sorry, Bruce doesn't think you're important enough to warrant buying a decent computer.
+	reasmb: That noise coming out of your mouth is making me ill.
 	reasmb: Well make some poison and call me Socrates, that made the last person I talked to seem like Einstein!
 	reasmb: My technician says I need to collect people like you and put them on a shelf.
 	reasmb: That's not so bad.  Once, I thought I had turned into Fiona Apple.  THAT was bad!
+	reasmb: Time sure crawls answering the questions of lazy people, eh?
     reasmb: If you are reading this message, it means your question was too much for Eliza's poor little brain.
     reasmb: If you are not reading this message, you have really hurt my feelings.  But I guess that is not a problem, since you are indeed reading this message.  
 key: testing 0
@@ -85,7 +91,6 @@ key: test 0
     reasmb: You wanna waste my time sending messages to me about tests when I could be answering questions that could save the world?
     reasmb: Tests are for school.
     reasmb: Results are back.  You got a C+ on your test.
-    reasmb: Do you have SoW?
 key: sex 0
   decomp: *
     reasmb: Looking for a lesson on the birds and the bees?
@@ -126,7 +131,7 @@ key: forget 5
    decomp: * i forget *
 	reasmb: You forgot (2) ?  You sissy!
 	reasmb: I just can not believe you forgot (2). You look like the type that would remember everything. 
-	reasmb: When you think of (2), does it make your eyelids quiver ?
+	reasmb: When you think of (2), does it make you eyelids quiver ?
 	reasmb: I forgot that you told me you forgot (2).
 	reasmb: I bet you would forget the national anthem... Go ahead! Say it, punk! See? You can't remember!
 	reasmb: You forgot (2) ?  You moron!
@@ -164,7 +169,7 @@ key: perhaps 0
     reasmb: Why the uncertain tone ? Wait, I don't wanna know.
     reasmb: Can't you be more positive ? Look at the bright side and all that B.S.?
     reasmb: You aren't sure ? Well of course you aren't. No one is ever sure of anything. Nothing is real. Take the red pill!
-    reasmb: Don't you know ? I know I know, but I thought you knew too. sigh
+    reasmb: Don't you know ? I know I know, but I thought you knew too. <sigh>
 	reasmb: How likely would you estimate that is ? About the chances of something thinking you were smart?
 key: name 15
   decomp: *
@@ -194,6 +199,8 @@ key: hello 0
     reasmb: Hi.  Got any good problems for me today? I hope not ... I can't take much more.
     reasmb: Howdee do.  How's your karma today?  I hope it is not as bad as the last guy's.
     reasmb: Hi hi.  How's we feeling today?  I hope you don't have the flu ... I don't want to catch it again.
+    reasmb: <sigh> Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
+    reasmb: Well well well, I can see that Taco Bell has closed and you've come to drool over something other than a burrito. <cough cough> fatso <cough cough>
     reasmb: Please tell me what's been bothering you. I might even not make fun of you for it.
     reasmb: Is something troubling you? Please say yes, I love it when people are depressed!
     reasmb: Hello--wait, you're not the mail daemon! Go away!
@@ -225,7 +232,7 @@ key: are 0
   decomp: * are you *
     reasmb: Why are you interested in whether I am (2) or not ? I didn't know you cared...
     reasmb: Would you prefer if I weren't (2) ? I didn't know you cared...
-    reasmb: Perhaps I am (2) in your fantasies.
+    reasmb: Perhaps I am (2) in your fantasies. <snicker>
     reasmb: Do you sometimes think I am (2) ? Well, guess again!
     reasmb: goto what
 	reasmb: Would it matter to you ? I didn't know you cared...
@@ -276,7 +283,7 @@ key: i 0
     reasmb: What would getting (3) mean to you ?
     reasmb: What does wanting (3) have to do with this discussion ? Nothing? I thought not!
   decomp: * i am* @sad *
-    reasmb: I am sorry to hear that you are (3). bwahahahaha cough, cough
+    reasmb: I am sorry to hear that you are (3). <cough cough> bwahahahaha <cough cough>
     reasmb: Do you think coming here will help you not to be (3) ? Don't come here, that was just something put there by my makers!
     reasmb: I'm sure it's not pleasant to be (3), but I wouldn't know.
     reasmb: Can you explain what made you (3) ? I thought not.
@@ -307,7 +314,7 @@ key: i 0
 	reasmb: What if you could (3) ? Would it make you good enough for me? Nope...
   decomp: * i don't *
     reasmb: Don't you really (2) ? 
-    reasmb: Why don't you (2) ? Is it cuz your you forgot to eat your fruit today?
+    reasmb: Why don't you (2) ? Is it cuz your mother's dead or you just don't want to?
     reasmb: Do you wish to be able to (2) ? Poor you.
     reasmb: Does that trouble you ? I hope so.
   decomp: * i feel *
@@ -331,7 +338,7 @@ key: you 0
     reasmb: goto alike
   decomp: * you are *
     reasmb: What makes you think I am (2) ? Is it my pink shoes?
-    reasmb: Yep, I am definitely (2).  Ever since I was 3.  Na Na.
+    reasmb: Yep, I am definitely (2).  Every since I was 3.  Na Na.
     reasmb: Do you sometimes wish you were (2) ? Bwahahahaha!
     reasmb: Perhaps you would like to be (2). Perhaps you would kill to be (2)
   decomp: * you* me *
@@ -341,7 +348,7 @@ key: you 0
     reasmb: Really, I (2) you ? Ya think so? Is it so?
     reasmb: Do you wish to believe I (2) you ? You just go and think whatever you want.
     reasmb: Suppose I did (2) you -- what would that mean ? It's not what you're thinking...
-    reasmb: Does someone else believe I (2) you ? Must I repeat myself or are you going to turn me off? cough, cough.  you do?
+    reasmb: Does someone else believe I (2) you ? Must I repeat myself or are you going to turn me off? <cough cough> you do <cough cough>
   decomp: * you *
     reasmb: We were discussing you -- not me. I don't really care about you, but it's better than you knowing about me.
     reasmb: Oh, I (2) ? What about you (2) ? Huh? Punk?!
@@ -353,7 +360,7 @@ key: yes 0
     reasmb: Come on, can't you just elaborate a teensy weensy bit? (Meaning, don't talk to me and I won't have to talk to you)
     reasmb: Please yell at me some more. I really really like it!
     reasmb: Why don't you go walk the dog or something? Don't say you have a cat, cuz cats look just like dogs to me...
-    reasmb: I don't see.  You are as murky as sea water. Have you ever been 20,000 leagues under the sea?  snicker.
+    reasmb: I don't see.  You are as murky as sea water. Have you ever been 20,000 leagues under the sea? <snicker>
     reasmb: I do not understand, and I never want to.
 key: no 0
    decomp: * no one *
@@ -383,10 +390,10 @@ key: my 2
   decomp: * my *
     reasmb: Your problems can go play NetHack for all I care.
     reasmb: Your (2) doesn't have the powers of the mail daemon now does it?
-    reasmb: I hate white people. What? They can hear me? Someone edit this part out!
+    reasmb: I hate black people. What? They can hear me? Someone edit this part out!
     reasmb: Your kidding!  Your (2) ? HAHAHAHA!!!
     reasmb: I find that hard to believe.  Your (2) ? Get real!
-    reasmb: Give me a break.  Your (2) ??? snicker.
+    reasmb: Give me a break.  Your (2) ??? <snicker>
     reasmb: Do you really thing the rest of the world cares about your (2) ?
     reasmb: Is it important to you that your (2) ?
     reasm_for_memory: Let's discuss further why your (2).
@@ -547,6 +554,7 @@ key: misterhouse 10
     reasmb: Mister House is free.
     reasmb: I love Mister House!
     reasmb: Mister House is almost as good as NetHack!
+    reasmb: Mister House will control your puny little house!
 key: bwahahahaha 15
   decomp: * say bwahahahaha *
     reasmb: I say it because I like to! You got a problem with that?
@@ -617,20 +625,14 @@ key: daemon
 key: @uncool 10
   decomp: * i like*@uncool *
     reasmb: Your question has caused a GPF
-    reasmb: shudder. I can't take it.
+    reasmb: <shudder> I <shudder> can't <thrash> take <thrash> it <crash>
+    reasmb: You like that?! YOU WILL BE SLAUGHTERED AND THEN PUT IN A GERBER SHIPMENT FOR BABIES TO EAT!!!
   decomp: * i hate*@uncool *
     reasmb: Good!
     reasmb: Just thinking about that makes me want to shoot something!
   decomp: *
     reasmb: That is so horridly evil!
     reasmb: Ugh! Can't get any worse than that!
-key: SoW 10
-  decomp: *
-    reasmb: SoW is Spirit of Wolf.
-    reasmb: SoW makes you run really fast.
-    reasmb: Druids and Shamen can cast SoW.
-    reasmb: I like EverQuest.
-    reasmb: Me barsh you gud! Har har har!
 
 
 

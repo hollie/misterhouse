@@ -39,7 +39,7 @@ $proxy_from_env = 0;
 # Preloaded methods go here.
 
 sub print_forecast {
-	my ($city, $state, $filename, $fileopt, $UA) = @_;
+	my ($city, $state, $filename, $fileopt, $UA, $no_wrap) = @_;
 	my $in = get_city_zone($city,$state,$filename,$fileopt,$UA);
 
 	my $out;
@@ -51,10 +51,14 @@ sub print_forecast {
 
 	$out .= "As of $date:\n";
 	foreach my $warning (@$warnings) {
-		$out .= wrap('WARNING: ','    ',"$warning\n");
+        $warning = "WARNING: $warning\n";
+        $warning = wrap('', '    ', $warning) unless $no_wrap;
+		$out .= $warning;
 	}
 	foreach my $key (keys %$forecast) {
-        	$out .= wrap('','    ',"$key: $forecast->{$key}\n");
+        $key = "$key: $forecast->{$key}\n";
+        $key = wrap('', '    ', $key) unless $no_wrap;
+        $out .= $key;
 	}
 	return $out
 }
@@ -123,43 +127,31 @@ sub process_city_zone {
 		next if ($key =~ /EXTENDED/);
 
 
-		$warnings_done = 1 if ( ($key) and ($value) );
-		#print "WARN_DONE: $warnings_done\n";
+		$warnings_done = 1 if ( ($key) && ($value) );
+		#print "\n\nWARN_DONE: $warnings_done\n";
 
 		if ($warnings_done) {
-			if ( ($key =~ s/^\.//) and ($value) and ($key) ) {
+			if ( ($key =~ s/^\.//) && ($value) && ($key) ) {
 				# Add VALUE to KEY (new key)
 				$key =~ s/^\.//;
 				$key = ucfirst_words($key);
 				$forecast_item = $key;
 				$forecast{$forecast_item} .= $value;
 			}
-			elsif ( $forecast_item ) {
+			else {
 				# Add KEY (with data) to OLD KEY (FORECAST_ITEM)
 				$forecast{$forecast_item} .= ' ' . $key;
 				$forecast{$forecast_item} .= ', ' . $value if $value;
 			}
-			else {
-				# print "LINE IGNORED\n";
-			}
 		}
-		elsif (! $warnings_done ) {                                     
-			if ( (!$key) and ($value) ) {                           
-					$value = ucfirst lc $value;                     
-					push @warnings, $value;                         
-			}                                                       
-			elsif ( ($key) and (!$value) ) {                        
-					$key = ucfirst lc $key;                         
-					push @warnings, $key;                           
-			}
-		}
-		else {
-			# line ignored
+		elsif ( (!$key) && ($value) ) {
+			$value = ucfirst lc $value;
+			push @warnings, $value;
 		}
 	}
 
 	foreach my $key ( keys %forecast ) {
-		$forecast{$key} =~ tr/\012//d;			# Remove newlines
+		$forecast{$key} =~ tr/\n//d;			# Remove newlines
 		#$forecast{$key} = lc($forecast{$key});	# No all CAPS
 		$forecast{$key} =~ s/\s+/ /g;			# Rid of multi-spaces
 		$forecast{$key} = sent_caps($forecast{$key});	# Proper sentance caps
@@ -203,7 +195,7 @@ sub get_city_zone {
 		# Iterate though section and get coverage
 		my $coverage_ended = 0;
 		foreach my $line (split /\012/, $section) {
-			$line =~ tr/\015//d; # \r
+			$line =~ tr/\r//d;
 			$coverage .= $line . "\n" if (! $coverage_ended);
 			if ($line !~ /^\w/) {
 				$coverage_ended = 1;
@@ -234,7 +226,7 @@ sub make_noaa_table {
 
 	$fileopt ||= 'get';
 	$max_items && $max_items--;
-	$max_items ||= 4;
+	$max_items ||= 3;
 	
 	my $med_bg   = $main::med_bg || '#ddddff';
 	my $light_bg = $main::light_bg || '#eeeeff';
@@ -366,7 +358,7 @@ sub get_data {
 sub format_date {
 	my $in = shift;
 	$in =~ s/^(\d+)(\d\d)\s(AM|PM)\s(\w+)\s(\w+)\s(\w+)\s0*(\d+)/$1:$2\L$3\E ($4) \u\L$5\E\E \u\L$6 $7,/;
-	$in =~ tr/\015//d; # \r
+	$in =~ tr/\r//d;
 	return $in;
 }
 sub sent_caps {
@@ -403,9 +395,7 @@ sub get_city_hourly {
 	# Get data
 	#
 	my $URL = $URL_BASE . lc $state . '/hourly.html';
-	#print STDERR "Getting data\n";
 	my $data = get_data($URL,$filename,$fileopt,$UA);
-	#print STDERR "Got data\n";
 
 	# Return error if there's an error
 	if ($data =~ /Error/) {
@@ -414,11 +404,11 @@ sub get_city_hourly {
 		return \%retHash;
 	}
 
-	$data =~ s/\015//g; # \r
+	$data =~ s/\r//g;
 
 	# Get line for our city from Data
 	#
-	foreach (split /\012/, $data) {
+	foreach (split /\n/, $data) {
 		chomp;
 		$date   = $_ if /^\s*(\d+)(\d\d)\s+(AM|PM)\s+(\w+)/;
 		$time = "$1:$2 $3" if (($1) && ($2) && ($3));
@@ -430,50 +420,39 @@ sub get_city_hourly {
 	}
 	$date = format_date($date);
 
-	# Set pack strings
-	#
-	my $fields_pack_str;
-	my $values_pack_str;
-	if ( ($fields =~ /TMP/) and ($fields =~ /\sDP\s/) ) {
-		#print STDERR "NEW FORMAT!\n";
-		$fields_pack_str = 
-        	'@0 A15 @15 A9 @25 A3 @29 A2 @33 A2 @36 A8 @47 A5 @54 A7';
-		$values_pack_str = 
-			'@0 A15 @15 A8 @24 A4 @28 A4 @32 A3 @36 A8 @46 A7 @53 A8';
-	}
-	else {
-		#print STDERR "OLD FORMAT!\n";
-		$fields_pack_str = 
-        	'@0 A15 @15 A9 @24 A5 @29 A5 @35 A4 @39 A8 @47 A8 @55 A8';
-		$values_pack_str = 
-			'@0 A15 @15 A9 @24 A5 @29 A5 @34 A4 @39 A8 @47 A8 @55 A8';
-	}
-
 	# unpack gives error of the string is smaller than the unpack string
 	$line .= ' ' x (64 - length($line)) if length($line) < 64;
+
+    print "field=$fields\n line=$line\n" if $main::opt_v;
 	
 	return { } unless ( ($line) && ($fields) ); # Return ref to empty hash
 
-	my @fields;
-	push @fields, 'DATE', 'TIME', unpack $fields_pack_str, $fields if $fields;
-        #'@0 A15 @15 A9 @24 A5 @29 A5 @35 A4 @39 A8 @47 A8 @55 A8', $fields if $fields;
-	my @values;
-	push @values, $date, $time, unpack $values_pack_str, $line;
-	#print STDERR "$line\n";
-		#'@0 A15 @15 A9 @24 A5 @29 A5 @34 A4 @39 A8 @47 A8 @55 A8', $line;
+#CITY           SKY/WX   TEMP DEWPT RH  WIND    PRES    REMARKS
+#WASH NATIONAL  PTSUNNY   53   30   41  NW9     30.29F  
 
-	
+#CITY           SKY/WX    TMP DP  RH WIND       PRES   REMARKS
+#TWIN CITIES    MOSUNNY   53  24  32 S10       30.31F                  
 
-	return { } if $values[3] eq 'NOT AVBL'; # Return ref to empty hash
+#	my @fields;
+#	push @fields, 'DATE', 'TIME', unpack
+#        '@0 A15 @15 A9 @24 A5 @29 A5 @35 A4 @39 A8 @47 A8 @55 A8', $fields if $fields;
+    my @fields = ('DATE', 'TIME', split(' ', $fields));
+
+#	my @values;
+#	push @values, $date, $time, unpack 
+#		'@0 A15 @15 A9 @24 A5 @29 A5 @34 A4 @39 A8 @47 A8 @55 A8', $line;
+    $city = substr($line, 0, 15);
+    $line = substr($line, 15);
+    my @values = ($date, $time, $city, split(' ', $line));
+
+	return { } if $values[3] eq 'NOT'; # 'NOT AVAIL' Return ref to empty hash
 
 	my %retValue;
-	foreach my $i (0..$#fields) {
-		# Convert odd fieldnames to standard
-		$fields[$i] = 'DEWPT' if $fields[$i] eq 'DP';
-		$fields[$i] = 'TEMP' if $fields[$i] eq 'TMP';
-
-		# Assign value
-		$retValue{$fields[$i]} = $values[$i];
+    my $i = 0;
+	for my $field (@fields) {
+        $field = 'TEMP' if $field eq 'TMP';
+        $field = 'DEWPT' if $field eq 'DP';
+		$retValue{$field} = $values[$i++];
 	}
 
 	return \%retValue;
@@ -481,9 +460,10 @@ sub get_city_hourly {
 } # get_city_hourly()
 
 sub print_current {
-	my ($city,$state,$filename,$fileopt,$UA) = @_;
+	my ($city,$state,$filename,$fileopt,$UA,$no_wrap) = @_;
 	my $in = process_city_hourly($city, $state, $filename, $fileopt,$UA);
-	return wrap('','    ',$in)
+	$in =  wrap('','    ',$in) unless $no_wrap;
+    return $in;
 }
 
 	
@@ -507,7 +487,6 @@ sub process_city_hourly {
                'MOCLDY'         => 'mostly cloudy skies',
                'PTCLDY'         => 'partly cloudy skies',
                'LGT RAIN'       => 'light rain',
-			   'FRZ DRZL'		=> 'freezing drizzle',
                'FLURRIES'       => 'flurries',
                'LGT SNOW'       => 'light snow',
                'SNOW'           => 'snow',
@@ -518,8 +497,7 @@ sub process_city_hourly {
 	# Format the wind direction and speed
 	#
 	my %compass = qw/N north S south E east W west/;
-#	my $direction = join '',map $compass{$_},split(/(\w)\d/g, $in->{WIND});
-	my $direction = join '',map $compass{$_},split(/(\w)\d/,  $in->{WIND}); # Drop /g to avoid perl 5.8 warning
+	my $direction = join '',map $compass{$_},split(/(\w)\d/g, $in->{WIND});
 	my ($speed) = ($in->{WIND} =~ /(\d+)/);
 	my ($gusts) = ($in->{WIND} =~ /G(\d+)/);
 
@@ -531,7 +509,7 @@ sub process_city_hourly {
 		$in->{WIND} .= ", gusts up to ${gusts} mph" if $gusts;
 	}
 
-	# Format relative humidity and ibarometric pressure
+	# Format relative hudity and ibarometric pressure
 	#
 	my $rh_pres;
     	if ($in->{RH}) {
@@ -539,9 +517,7 @@ sub process_city_hourly {
     	}
 	if ($in->{PRES}) {
           my %rise_fall = qw/R rising S steady F falling/;
-# bbw Avoide a perl 5.8 warning
-#         my $direction = join '',map $rise_fall{$_},split(/\d(\w)/g, $in->{PRES});
-          my $direction = join '',map $rise_fall{$_},split(/\d(\w)/, $in->{PRES});
+          my $direction = join '',map $rise_fall{$_},split(/\d(\w)/g, $in->{PRES});
           $in->{PRES} =~ tr/RSF//d;
           if ($rh_pres) {
                 $rh_pres .= ", and b";
@@ -556,7 +532,7 @@ sub process_city_hourly {
 	# Format output sentence
 	#
 	my $out;
-	$out  = "At $in->{TIME}, $in->{CITY}, $state conditions were ";
+	$out  = "At $in->{TIME}, $in->{CITY}, $state was experiencing ";
 	$out .= $sky{$in->{'SKY/WX'}} . " ";
 	$out .= "at $in->{TEMP}&deg;F, wind was $in->{WIND}. $rh_pres\n";
 	return $out;

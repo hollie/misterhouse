@@ -1,40 +1,59 @@
-# Category=MisterHouse
 
-#@ Monitors other mh boxes
+# Category=Internet
+
+# Monitor mh running on other boxes, speaking out when they go down
+# for whatever reason.
 
                                 # Update a file once a minute so another box
                                 # can do the watchdog thing
-my $watchdog_file1 = "$config_parms{data_dir}/monitor_mh.time"; 
-file_write $watchdog_file1 , $Time if new_second 30;
+my $watchdog_file1 = "$config_parms{data_dir}/mh.time"; 
+file_write $watchdog_file1 , $Time if $New_Minute;
 
-                                # Keep an eye on another box on the network
-#y $watchdog_file2 = '//c2/c/misterhouse/data/monitor_mh.time';
-my $watchdog_file2 = '//c1/c/misterhouse/data/monitor_mh.time';
-#my $watchdog_file3 = '//warp/c/mh/data/monitor_mh.time';
+#return;                         # Turn off till Nick's computer is fixed
 
-                                # Set file_change flag at startup
-file_change $watchdog_file2 if $Reload;
-#file_change $watchdog_file3 if $Reload;
+                                # Declare various things to keep an eye on
+my $watchdog_file2 = '//dm/d/misterhouse/mh/data/mh.time';
+my $watchdog_file3 = '//c2/g/misterhouse/mh/data/mh.time';
 
-                                # Periodically check other mh boxes
-if (new_minute 90) {
-    my $msg;
-    if (!file_change $watchdog_file2) {
-        $msg = 'Bruce, MisterHouse is not running C1';
+my $watchdog_socket_address = 'misterhouse.net';
+$watchdog_socket = new  Socket_Item(undef, undef, $watchdog_socket_address);
+
+$watchdog_light = new X10_Item('O7');
+
+                                # Periodically check stuff
+#if ($New_Minute and !($Minute % 15)) {
+if ($New_Hour) {
+
+                                # Check to see if Nick's MisterHouse is running
+                                #  - note: file_change undef means we don't know (startup)
+    if (file_unchanged $watchdog_file2) {
+        my $msg = 'Nick, MisterHouse is not running on D M';
+        display $msg, 5;
+        speak "rooms=all $msg";
+        print_log $msg;
+        set_with_timer $watchdog_light '10%', 3;
     }
-#    if (!file_change $watchdog_file3) {
-#        $msg = 'Bruce, MisterHouse is not running on Warp';
-#    }
-    if ($msg) {
-        speak $msg;
-        get "http://kitchen/cgi-bin/SetLEDState?2";
-        logit("$config_parms{data_dir}/logs/monitor_mh.log", $msg); 
+
+    if (file_unchanged $watchdog_file3) {
+        my $msg = 'MisterHouse has stopped running on the C2 box';
+        display $msg, 5;
+        speak "rooms=all $msg";
+        print_log $msg;
+        set_with_timer $watchdog_light '20%', 5;
     }
-    else {
-        get "http://kitchen/cgi-bin/SetLEDState?0";
+
+                                # Check to make sure misterhouse.net port redirection is working
+#    for my $port ('8080', '8082', '9000') {
+    for my $port ('8080', '8082') {
+        set_port $watchdog_socket "$watchdog_socket_address:$port";
+        unless (is_available $watchdog_socket) {
+            my $msg = "Notice, MisterHouse port $port is down";
+            speak "rooms=all $msg";
+            display $msg, 5;
+        }
     }
+
 }
 
 
-# We now do this every 10 minutes in mh_control.pl
-#run_voice_cmd 'Check the http server' if new_minute 1;
+

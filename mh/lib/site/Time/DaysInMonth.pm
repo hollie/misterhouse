@@ -56,7 +56,7 @@ __DATA__
 Time::DaysInMonth -- simply report the number of days in a month
 
 =head1 SYNOPSIS
-
+	
 	use Time::DaysInMonth;
 	$days = days_in($year, $month_1_to_12);
 	$leapyear = is_leap($year);
@@ -69,7 +69,3 @@ a month.  That's all it does.  Really!
 =head1 AUTHOR
 
 David Muir Sharnoff <muir@idiom.com>
-
-Copyright (C) 1996-1999 David Muir Sharnoff.  All Rights Reserved.
-Use and redistribution allowed at user's own risk.
-

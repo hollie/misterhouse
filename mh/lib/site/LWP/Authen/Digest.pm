@@ -1,7 +1,7 @@
 package LWP::Authen::Digest;
 use strict;
 
-require Digest::MD5;
+require MD5;
 
 sub authenticate
 {
@@ -12,13 +12,7 @@ sub authenticate
                                                   $request->url, $proxy);
     return $response unless defined $user and defined $pass;
 
-    my $nc = sprintf "%08X", ++$ua->{authen_md5_nonce_count}{$auth_param->{nonce}};
-    my $cnonce = sprintf "%8x", time;
-
-    my $uri = $request->url->path_query;
-    $uri = "/" unless length $uri;
-
-    my $md5 = Digest::MD5->new;
+    my $md5 = new MD5;
 
     my(@digest);
     $md5->add(join(":", $user, $auth_param->{realm}, $pass));
@@ -27,11 +21,7 @@ sub authenticate
 
     push(@digest, $auth_param->{nonce});
 
-    if ($auth_param->{qop}) {
-	push(@digest, $nc, $cnonce, $auth_param->{qop});
-    }
-
-    $md5->add(join(":", $request->method, $uri));
+    $md5->add(join(":", $request->method, $request->url->path));
     push(@digest, $md5->hexdigest);
     $md5->reset;
 
@@ -40,13 +30,9 @@ sub authenticate
     $md5->reset;
 
     my %resp = map { $_ => $auth_param->{$_} } qw(realm nonce opaque);
-    @resp{qw(username uri response algorithm)} = ($user, $uri, $digest, "MD5");
+    @resp{qw(username uri response)} = ($user, $request->url->path, $digest);
 
-    if (($auth_param->{qop} || "") eq "auth") {
-	@resp{qw(qop cnonce nc)} = ("auth", $cnonce, $nc);
-    }
-
-    my(@order) = qw(username realm qop algorithm uri nonce nc cnonce response);
+    my(@order) = qw(username realm nonce uri response);
     if($request->method =~ /^(?:POST|PUT)$/) {
 	$md5->add($request->content);
 	my $content = $md5->hexdigest;
@@ -65,12 +51,12 @@ sub authenticate
 
     my $auth_header = $proxy ? "Proxy-Authorization" : "Authorization";
     my $auth_value  = "Digest " . join(", ", @pairs);
-
+    
     # Need to check this isn't a repeated fail!
     my $r = $response;
     while ($r) {
-	my $u = $r->request->{digest_user_pass};
-	if ($u && $u->[0] eq $user && $u->[1] eq $pass) {
+	my $auth = $r->request->header($auth_header);
+	if ($auth && $auth eq $auth_value) {
 	    # here we know this failed before
 	    $response->header("Client-Warning" =>
 			      "Credentials for '$user' failed before");
@@ -81,9 +67,6 @@ sub authenticate
 
     my $referral = $request->clone;
     $referral->header($auth_header => $auth_value);
-    # we shouldn't really do this, but...
-    $referral->{digest_user_pass} = [$user, $pass];
-
     return $ua->request($referral, $arg, $size, $response);
 }
 

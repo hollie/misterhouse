@@ -4,20 +4,12 @@
 package Display;
 use strict;
 
-my %Windows;
-
 sub new {
-    my ($class, @parms) = @_;
-    my %parms;
-    %parms = @parms unless @parms %2;
-    unless ($parms{text}) {
-        ($parms{text}, $parms{time}, $parms{title}, $parms{font},
-         $parms{window_name}, $parms{append}) = @parms;
-    }
-    $parms{time} = 120 unless defined $parms{time};
-    $parms{auto_quit} = 1 unless $parms{time} == 0; 
-    $parms{title} = 'Display Text' unless $parms{title};
-    my $self = {%parms};
+    my ($class, $text, $time, $title, $font) = @_;
+    $time = 120 unless defined $time;
+    my $auto_quit = 1 unless $time == 0; 
+    $title = 'Display Text' unless $title;
+    my $self = {text => $text, time => $time, title => $title, auto_quit => $auto_quit, font => $font};
     bless $self, $class;
     &display($self);
     return $self;
@@ -30,36 +22,33 @@ sub read_text {
     return unless $$self{text};
 
                                 # Gather text to display and find out how wide and tall it is 
-    my $file;
-    my @data;
-    if ($$self{text} =~ /^\S+$/ and -e $$self{text}) { 
-        $file = $$self{text};
+    my $file = $$self{text};
+    if ($file =~ /^\S+$/ and -e $file) { 
         if ($file =~ /\.gif$/i or $file =~ /\.jpg$/i or $file =~ /\.png$/i) {
             $$self{type} = 'photo';
-            $$self{title} = "Image: $file";
+            $$self{title} = "Image: $$self{text}";
             return;
         }
         $$self{text} = '';
         open IN, $file or die "Error, could not open file $file:$!\n"; 
-        @data = <IN>;
+        while (<IN>) { 
+            my $length = length;
+            $$self{width} = $length if $length > $$self{width}; 
+            $$self{height}++; 
+            $$self{height} += int($length/80); # Add more rows if we are line wrapping
+            $$self{text} .= $_; 
+        } 
         close IN;
     }
     else { 
-        @data = split /\n/, $$self{text};
+        my $length = length($$self{text});
+        $$self{width}  = $length;    # Not fair if we have \n, but good enough
+        $$self{height} = $$self{text} =~ tr/\n//; # Count number of lines
+        $$self{height} += int($length/80); # Add more rows if we are line wrapping
     }
-                                # Find width and height of text
-    my ($width, $height);
-    while (@data) {
-        $_ = shift @data;
-        my $length = length;
-        $width = $length if !$width or $length > $width; 
-        $height++; 
-        $height += int($length/100); # Add more rows if we are line wrapping
-        $$self{text} .= $_ if $file;
-    } 
-
-    $$self{height} = $height + 2 unless $$self{height};
-    $$self{width}  = $width  + 2 unless $$self{width};
+    
+    $$self{height} += 2;           # Allow for some margin
+    $$self{width}  += 2;
 
     if ($$self{height} < 5) { 
         $$self{height} = 5; 
@@ -67,73 +56,49 @@ sub read_text {
     if ($$self{width} < 20) { 
         $$self{width} = 20; 
     }
-
-    $$self{scroll} = 'oe' unless defined $$self{scroll};
-
-    if ($$self{width} > 150) { 
-        $$self{width} = 150; 
+    
+    if ($$self{height} > 40) { 
+        $$self{height} = 40; 
+        $$self{scroll} = 'e'; 
     }
-    if ($$self{append}) {
-#       $$self{width} = 100;
-        $$self{scroll} = 'se';
+    else { 
+        $$self{scroll} = 0; 
     }
-
+    if ($$self{width} > 80) { 
+        $$self{width} = 80; 
+    }
 }
+
 
 sub display {
     
     my ($self) = @_;
+
                                 # Do these in the calling pgm, so we can conditionally use in mh.bat
     use Tk; 
-    eval "use Tk::JPEG";        # Might not have Tk::JPEG installed
+    eval "use Tk::JPEG";            # Might not have Tk::JPEG installed
 #   print "\nTk::JPEG not installed\n" if $@;
 
     &read_text($self);
 
-                                # Reuse existing window if present
-    my $reuse_flag;
-    if ($$self{window_name} and $Windows{$$self{window_name}}) {
-        $$self{MW} = $Windows{$$self{window_name}}{mw}; 
-        $$self{loop} = 0;
-        $reuse_flag++;
-    }
-                                # New window from main tk 
-    elsif ($main::MW) { 
+    if ($main::MW) { 
         $$self{MW} = $main::MW->Toplevel; 
         $$self{loop} = 0;
-        $Windows{$$self{window_name}}{mw} = $$self{MW} if $$self{window_name};
     } 
-                                # Stand alone use (not from mh tk window)
     else { 
         $$self{MW} = MainWindow->new;  
         $$self{loop} = 1;
     } 
+    $$self{MW}->withdraw;       # Hide until we are resized
+    $$self{MW}->title($$self{title});
 
-    if (lc $$self{font} eq 'biggest') {
-        $$self{geometry} = '+0+0';
-        my $w = $$self{MW}->screenwidth;
-                                # Heurstic numbers (e.g. screen=1280 -> font=25)
-        my $l = length $$self{text};
-#       my $fsize = int($w / 50);
-        my $fsize = int($w / ($l / 18));
-        $$self{font}     = "Times $fsize bold";
-        $$self{width}    = 72;
-        $$self{height}   = 24;
-    }
+    my $f1 = $$self{MW}->Frame->pack; 
+    my $b1 = $f1->Button(qw/-text Quit(ESC) -command/ => sub{$self->destroy})->pack(-side => 'left'); 
+    my $l  = $f1->Label(-relief       => 'sunken', -width        => 5,
+                        -textvariable => \$$self{time})->pack(-side => 'left'); 
 
-    my $l;
-    unless ($reuse_flag) {
-        $$self{MW}->withdraw;       # Hide until we are resized
-        $$self{MW}->title($$self{title});
-
-        my $f1 = $$self{MW}->Frame->pack; 
-        my $b1 = $f1->Button(qw/-text Quit(ESC) -command/ => sub{$self->destroy})->pack(-side => 'left'); 
-           $l  = $f1->Label(-relief       => 'sunken', -width        => 5,
-                            -textvariable => \$$self{time})->pack(-side => 'left'); 
-
-        my $b2 = $f1->Button(qw/-text Pause(F1) 
-                             -command/ => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1})->pack(-side => 'left'); 
-    }
+    my $b2 = $f1->Button(qw/-text Pause(F1) 
+                         -command/ => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1})->pack(-side => 'left'); 
 
     if ($$self{type} and $$self{type} eq 'photo') {
         $$self{photo1} = $$self{MW}->Photo(-file => $$self{text});
@@ -153,98 +118,55 @@ sub display {
         $$self{font} = 'Courier 10 bold'  if    $$self{font} eq 'fixed';
 
                                 # Valid fonts can be listed with xlsfonts 
-        my $t1;
+        my $t1 = $$self{MW}->Scrolled('Text', -setgrid => 'true',  
+                                      -width => $$self{width}, -height => $$self{height}, 
+                                      -font => $$self{font},
+#                                     -font => 'systemfixed',
+                                      -wrap => 'word', -scrollbars => $$self{scroll}); 
 
-        if ($reuse_flag) {
-            $t1 = $Windows{$$self{window_name}}{t1};
-            if ($$self{append} eq 'bottom') {
-                                # If we put at end, tk does not auto-scroll :(
-                $t1->insert(('end', $$self{text})); 
-            }
-            elsif ($$self{append}) {
-                $t1->insert(('0.0', $$self{text})); 
-            }
-            else {
-                $t1->delete(('0.0', 'end')); 
-                $t1->insert(('0.0', $$self{text})); 
-            }
-        }
-        else {
-            $t1 = $$self{MW}->Scrolled('Text', -setgrid => 'true',  
-                                          -width => $$self{width}, -height => $$self{height}, 
-                                          -font => $$self{font},
-#                                         -font => 'systemfixed',
-                                          -wrap => 'word', -scrollbars => $$self{scroll}); 
-            $Windows{$$self{window_name}}{t1} = $t1;
-
-            $t1->insert(('0.0', $$self{text})); 
-            $t1->pack(qw/-expand yes -fill both -side bottom/); 
-        }
+        $t1->insert(('0.0', $$self{text})); 
+        $t1->pack(qw/-expand yes -fill both -side bottom/); 
     }
 
     $$self{MW}->repeat(1000, sub {return unless $$self{auto_quit}; 
                                   $$self{time}--;  
-                                  $l->configure(-textvariable => \$$self{time}); # Shouldn't have to do this
+                                  $l->configure(textvariable => \$$self{time}); # Shouldn't have to do this
 #                                 print "$$self{time} mw=$$self{MW}\n";
                                   $self->destroy unless $$self{time} > 0; 
-#                                 $b->configure(-text => "Quit (or ESC) auto-quit in $$self{time} seconds (F1 to toggle auto-quit)");; 
-#                                   $$self{MW}->withdraw if $$self{time} % 2;   ... test to hide and unhide a window
-#                                     $$self{MW}->deiconify unless $$self{time} % 2;
-                                  }); 
-    
+#                 $b->configure(-text => "Quit (or ESC) auto-quit in $$self{time} seconds (F1 to toggle auto-quit)");; 
+#                 $$self{MW}->withdraw if $$self{time} % 2;   ... test to hide and unhide a window
+#                                 $$self{MW}->deiconify unless $$self{time} % 2;
+                              }); 
+
     $$self{MW}->bind('<q>'         => sub{$self->destroy});
     $$self{MW}->bind('<Escape>'    => sub{$self->destroy});
     $$self{MW}->bind('<F3>'        => sub{$self->destroy});
     $$self{MW}->bind('<Control-c>' => sub{$self->destroy});
-    
+
     $$self{MW}->bind('<F1>' => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1}); 
 
-                                # Set optional geometry
-    &set_geometry($self);
-
                                 # Try everything to get focus
-    unless ($reuse_flag) {
-#       $$self{MW}->tkwait('visibility', $$self{MW}); 
-        $$self{MW}->deiconify;
-        $$self{MW}->raise;
-        $$self{MW}->focusForce;
-        $$self{MW}->focus('-force');
-#       $$self{MW}->grabGlobal; 
-#       $$self{MW}->grab("-global");  # This will disable the minimize-maximize-etc controls
-    }
+#   $$self{MW}->tkwait('visibility', $$self{MW}); 
+    $$self{MW}->deiconify;
+    $$self{MW}->raise;
+    $$self{MW}->focusForce;
+    $$self{MW}->focus('-force');
+#   $$self{MW}->grabGlobal; 
+#   $$self{MW}->grab("-global");  # This will disable the minimize-maximize-etc controls
 
     MainLoop if $$self{loop};
 
 }
 
-
-sub set_geometry {
-    my ($self) = @_;
-    my $window = $$self{MW};
-    if (lc $$self{geometry} eq 'center') {
-#       $window->idletasks;
-        my $width  = $window->reqwidth;
-        my $height = $window->reqheight;
-        my $x = int(($window->screenwidth  / 2) - ($width  / 2));
-        my $y = int(($window->screenheight / 2) - ($height / 2));
-        $window->geometry($width . "x" . $height . "+" . $x . "+" . $y);
-    }
-    else {
-        $window->geometry($$self{geometry});
-    }
-} 
-
 sub destroy {
     my ($self) = @_;
     # Normal exit IF Mainloop is local AND we were not called externally
 
-                                # Try to avoid a memory leak with photo objects. 
-                                # Destroy does not clean up the Photo memory, only delete.
-    $$self{photo1}->delete  if $$self{photo1};
+                                # Try to avoid a memory leak with photo objects ... doesn't work :(
     $$self{photo2}->destroy if $$self{photo2};
+    $$self{photo1}->destroy if $$self{photo1};
     delete $$self{photo1};
     delete $$self{photo2};
-    delete $Windows{$$self{window_name}} if $$self{window_name};
 
     if ($$self{loop} and $0 =~ /display/) {
         $$self{MW}->destroy;
@@ -287,33 +209,6 @@ while (1) {
 
 #
 # $Log$
-# Revision 1.25  2003/11/23 20:26:01  winter
-#  - 2.84 release
-#
-# Revision 1.24  2002/12/24 03:05:08  winter
-# - 2.75 release
-#
-# Revision 1.23  2002/05/28 13:07:51  winter
-# - 2.68 release
-#
-# Revision 1.22  2002/03/31 18:50:36  winter
-# - 2.66 release
-#
-# Revision 1.21  2001/12/16 21:48:41  winter
-# - 2.62 release
-#
-# Revision 1.20  2001/09/23 19:28:11  winter
-# - 2.59 release
-#
-# Revision 1.19  2001/05/28 21:14:38  winter
-# - 2.52 release
-#
-# Revision 1.18  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 1.17  2001/01/20 17:47:50  winter
-# - 2.41 release
-#
 # Revision 1.16  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

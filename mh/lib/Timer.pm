@@ -1,46 +1,35 @@
+
 use strict;
 package Timer;
 
-my ($class, $self, $id, $state, $action, $repeat, @timers_with_actions, $resort_timers_with_actions, @sets_from_previous_pass);
-
-
-                                # This is called from mh each pass
-sub check_for_timer_actions {
-    my $ref;
-    while ($ref = shift @sets_from_previous_pass) {
-        &set_from_last_pass($ref);
-    }
-    for $ref (&expired_timers_with_actions) {
-        &run_action($ref);
-    }
-}
+my ($class, $self, $id, $state, $action, $repeat, @timers_with_actions, $resort_timers_with_actions, $timer_loop_count);
 
 sub expired_timers_with_actions {
     my @expired_timers = ();
-                                # Keep the timers in order for effecient checking
+    # Keep the timers in order for effecient checking
     if ($resort_timers_with_actions) {
         @timers_with_actions = sort { $a->{expire_time} <=> $b->{expire_time} } @timers_with_actions;
         $resort_timers_with_actions = 0;
     }
 
-#   print "db twa=@timers_with_actions\n";
     while (@timers_with_actions) {
         $self = $timers_with_actions[0];
-#       print "db3 s=$self ex=$self->{expire_time}\n";
+#   print "db3 s=$self ex=$self->{expire_time}\n";
         if (!$self->{expire_time}) {
             shift @timers_with_actions; # These timers were 'unset' ... delete them
-        }
+        }       
                                 # Use this method avoids problems with Timer is called from X10_Items
 #       elsif (expired $self) {
         elsif (&Timer::expired($self)) {
+#       print "db4 s=$self\n";
             push(@expired_timers, $self);
             shift @timers_with_actions;
-            if (($self->{repeat} == -1) or (--$self->{repeat} > 0)) {
+            if (--$self->{repeat} > 0) {
                 set $self $self->{period}, $self->{action}, $self->{repeat};
             }
         }
         else {
-            last;               # The first timer has not expired yet, so don't check the others
+            last;       # The first timer has not expired yet, so don't check the others
         }
     }
     return @expired_timers;
@@ -50,7 +39,7 @@ sub delete_timer_with_action {
     my ($timer) = @_;
     my $i = 0;
     while ($i <= $#timers_with_actions) {
-        print "testing i=$i timer=$timer\n" if $main::Debug{timer};
+        print "testing i=$i timer=$timer\n" if $main::config_parms{debug} eq 'misc';
         if ($timers_with_actions[$i] eq $timer) {
 #           print "db deleting timer $timer\n";
             splice(@timers_with_actions, $i, 1);
@@ -69,38 +58,6 @@ sub new {
     return $self;
 }
 
-sub restore_string {
-    my ($self) = @_;
-
-    my $expire_time = $self->{expire_time};
-    return unless $self->{time} or ($expire_time and $expire_time > main::get_tickcount);
-
-    my $restore_string  = "set $self->{object_name} $self->{period} " if $self->{period};
-    $restore_string .= ", q|$self->{action}|"  if $self->{action};
-    $restore_string .= ", $self->{repeat}"     if $self->{repeat};
-    $restore_string .= ";  ";
-    $restore_string .= $self->{object_name} . "->{expire_time} = $expire_time;"  if $expire_time;
-    $restore_string .= $self->{object_name} . "->{time}        = $self->{time};" if $self->{time};
-    $restore_string .= $self->{object_name} . "->{time_pause}  = $self->{time_pause};"  if $self->{time_pause};
-    $restore_string .= $self->{object_name} . "->{time_adjust} = $self->{time_adjust};" if $self->{time_adjust};
-
-    return $restore_string;
-}
-
-                                # Use this to re-start dynamic timers after reload
-sub restore_self_set {
-    my ($self) = @_;
-    my $expire_time = $self->{expire_time};
-                                # Announced expired timers on restart/reload
-#   return if !$expire_time or $expire_time < main::get_tickcount;
-    return if !$expire_time;
-                                # Need to set NOW, not on next pass, so expire_time can be set
-#   set $self $self->{period}, $self->{action}, $self->{repeat};
-    @{$self->{set_next_pass}} = ($self->{period}, $self->{action}, $self->{repeat});
-    &set_from_last_pass($self);
-    $self->{expire_time} = $expire_time;
-}
-
 sub state {
     ($self) = @_;
     return $self->{state};
@@ -114,25 +71,6 @@ sub state_log {
 sub set {
     ($self, $state, $action, $repeat) = @_;
 
-    my @c = caller;
-    $repeat = 0 unless defined $repeat;
-#   print "db1 $main::Time_Date running set s=$self s=$state a=$action t=$self->{text} c=@c\n";
-    return if &main::check_for_tied_filters($self, $state);
-
-                                # Set states for NEXT pass, so expired, active, etc,
-                                # checks are consistent for one pass.
-    push @sets_from_previous_pass, $self;
-    @{$self->{set_next_pass}} = ($state, $action, $repeat);
-}
-
-                                # This is called from mh
-sub set_from_last_pass {
-    my ($self) = @_;
-
-    return unless $self->{set_next_pass};
-    ($state, $action, $repeat) = @{$self->{set_next_pass}} ;
-    undef $self->{set_next_pass};
-
                                 # Turn a timer off
     if ($state == 0) {
         $self->{expire_time} = undef;
@@ -142,12 +80,12 @@ sub set_from_last_pass {
                                 # Turn a timer on
     else {
         $self->{expire_time} = ($state * 1000) + main::get_tickcount;
-        $self->{period}      = $state;
+        $self->{period}      = $state; 
         $self->{repeat}      = $repeat;
         if ($action) {
             $self->{action} = $action;
-            print "action timer s=$self a=$action s=$state\n" if $main::Debug{timer};
-            &delete_timer_with_action($self); # delete possible previous
+            print "action timer s=$self a=$action s=$state\n" if $main::config_parms{debug} eq 'misc';
+            &delete_timer_with_action($self); # delete possible previous 
             push(@timers_with_actions, $self);
             $resort_timers_with_actions = 1;
         }
@@ -156,7 +94,8 @@ sub set_from_last_pass {
 
     unshift(@{$$self{state_log}}, "$main::Time_Date $state");
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
-}
+
+}    
 
 sub resort_timers_with_actions {
     $resort_timers_with_actions = 1;
@@ -167,7 +106,7 @@ sub unset {
     undef $self->{expire_time};
     undef $self->{action};
     &delete_timer_with_action($self);
-}
+}    
 
 sub delete_old_timers {
     undef @timers_with_actions;
@@ -177,57 +116,50 @@ sub delete_old_timers {
 sub run_action {
     ($self) = @_;
     if (my $action = $self->{action}) {
+        # Passing a subroutine ref to a timer is not tested ... probably not useful
         my $action_type = ref $action;
-        print "Executing timer subroutine ref=$action_type   action=$action\n"  if $main::Debug{timer};
-# Note: passing in a sub ref will cause problems on code reloads.
-# So the 2nd of these 2 would be the better choice:
-#    set $kids_bedtime_timer 10, \&kids_bedtime2;
-#    set $kids_bedtime_timer 10, '&kids_bedtime2';
-
-        if ($action_type eq 'CODE') {
+        print "Executing timer subroutine ref=$action_type   action=$action\n";
+        if ($action_type eq 'REF') {
             &{$action};
         }
-        elsif ($action_type eq '') {
-#       &::print_log("Action");
+        else {
+            print "Executing timer eval $action\n" if $main::config_parms{debug} eq 'misc';
             package main;   # Had to do this to get the 'speak' function recognized without having to &main::speak() it
-            my $timer_name = $self->{object_name};  # So we can use this in the timer action eval
-            $state = $self->{object_name};  # So we can use this in the timer action eval
             eval $action;
             package Timer;
             print "\nError in running timer action: action=$action\n error: $@\n" if $@;
         }
-    else
-    {
-        $action->set('off',$self);
     }
+}
 
-    }
+sub increment_timer_loop {
+    # Hmmm, might be safer / more efficient to set an expired flag here
+    $timer_loop_count++;
 }
 
 sub expired {
     ($self) = @_;
-#   print "db $self->{expire_time} $self->{pass_triggered}\n";
+#   print "db $self-{expire_time} $self{pass_triggered} $loop_count\n";
     if ($self->{expire_time} and
         $self->{expire_time} < main::get_tickcount) {
-#       print "db expired1 loop=$self->{pass_triggered} lc= $main::Loop_Count\n";
-
-                                # Reset if we finished the trigger pass
-        if ($self->{pass_triggered} and
-            $self->{pass_triggered} < $main::Loop_Count) {
-#           print "db expired2 loop=$self->{pass_triggered}\n";
+        # Reset if we finished the trigger pass
+        # Note: $timer_loop_count must be set by calling loop.
+        if ($self->{pass_triggered} and 
+            $self->{pass_triggered} < $timer_loop_count) {
+#       print "db expired loop=$self->{pass_triggered}\n";
             $self->{expire_time} = 0;
             $self->{pass_triggered} = 0;
             return 0;
         }
         else {
-            $self->{pass_triggered} = $main::Loop_Count;
+            $self->{pass_triggered} = $timer_loop_count;
             return 1;
         }
     }
     else {
         return 0;
     }
-}
+}    
 
 sub hours_remaining {
     ($self) = @_;
@@ -294,9 +226,8 @@ sub seconds_remaining_now {
 
 sub active {
     ($self) = @_;
-    if (($self->{expire_time} and
-         $self->{expire_time} >= main::get_tickcount) or
-        ($self->{set_next_pass})) {
+    if ($self->{expire_time} and
+        $self->{expire_time} >= main::get_tickcount) {
         return 1;
     }
     else {
@@ -305,118 +236,24 @@ sub active {
 }
 sub inactive {
     ($self) = @_;
-    return !&active($self);
-}
-
-                                # The reset of these methods apply to a countup/stopwatch type timer
-sub start {
-    ($self) = @_;
-    if ($self->{time}) {
-        &main::print_log("Timer is already running");
-        return;
+    if ($self->{expire_time}) {
+        if ($self->{expire_time} < main::get_tickcount) {
+#       $self->{expire_time} = 0;   ... this could disable a expire timer test??
+            return 1;
+        }
+        else {
+            return 0;
+        }
     }
-    $self->{time} = time;
-    $self->{time_adjust} = 0;
-}
-
-sub restart {
-    ($self) = @_;
-    $self->{time} = time;
-    $self->{time_adjust} = 0;
-    $self->{time_pause}  = 0;
-    if ( $$self{expire_time} ) { # If this timer is countdown type then restart it instead
-#           $self->{expire_time} = ($$self{period} * 1000) + main::get_tickcount;
-#       push @sets_from_previous_pass, $self;
-#       @{$self->{set_next_pass}} = ($$self{period}, $$self{action}, $$self{repeat});
-        $self->set($$self{period},$$self{action},$$self{repeat});
+    else {
+        return 1;
     }
-
-}
-
-sub stop {
-    ($self) = @_;
-    $self->{time} = undef;
-    $self->{expire_time} = undef;
-}
-
-sub pause {
-    ($self) = @_;
-    return if $self->{time_pause}; # Already paused
-    $self->{time_pause} = time;
-}
-
-sub resume {
-    ($self) = @_;
-    return unless $self->{time_pause}; # Not paused
-    $self->{time_adjust} += (time - $self->{time_pause});
-    $self->{time_pause} = 0;
-}
-
-sub query {
-    ($self) = @_;
-    my $time = $self->{time};
-    return undef unless $time;
-    my $time_ref = ($self->{time_pause}) ? $self->{time_pause} : time;
-    $time  = $time_ref - $time;
-    $time -= $self->{time_adjust} if $self->{time_adjust};
-    return $time;
-}
+}   
 
 1;
 
 #
 # $Log$
-# Revision 1.32  2004/11/22 22:57:26  winter
-# *** empty log message ***
-#
-# Revision 1.31  2004/07/18 22:16:37  winter
-# *** empty log message ***
-#
-# Revision 1.30  2004/07/05 23:36:37  winter
-# *** empty log message ***
-#
-# Revision 1.29  2004/03/23 01:58:08  winter
-# *** empty log message ***
-#
-# Revision 1.28  2003/12/22 00:25:06  winter
-#  - 2.86 release
-#
-# Revision 1.27  2003/11/23 20:26:01  winter
-#  - 2.84 release
-#
-# Revision 1.26  2003/02/08 05:29:23  winter
-#  - 2.78 release
-#
-# Revision 1.25  2002/08/22 13:45:50  winter
-# - 2.70 release
-#
-# Revision 1.24  2002/05/28 13:07:51  winter
-# - 2.68 release
-#
-# Revision 1.23  2001/12/16 21:48:41  winter
-# - 2.62 release
-#
-# Revision 1.22  2001/02/24 23:26:40  winter
-# - 2.45 release
-#
-# Revision 1.21  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 1.20  2001/01/20 17:47:50  winter
-# - 2.41 release
-#
-# Revision 1.19  2000/12/21 18:54:15  winter
-# - 2.38 release
-#
-# Revision 1.18  2000/11/12 21:02:38  winter
-# - 2.34 release
-#
-# Revision 1.17  2000/10/22 16:48:29  winter
-# - 2.32 release
-#
-# Revision 1.16  2000/09/09 21:19:11  winter
-# - 2.28 release
-#
 # Revision 1.15  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

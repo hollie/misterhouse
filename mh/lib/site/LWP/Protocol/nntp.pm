@@ -48,7 +48,7 @@ sub request
     }
 
     # extract the identifier and check against posting to an article
-    my $groupart = $url->_group;
+    my $groupart = $url->groupart;
     my $is_art = $groupart =~ /@/;
 
     if ($is_art && $method eq 'POST') {

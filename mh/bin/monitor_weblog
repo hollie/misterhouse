@@ -3,7 +3,7 @@
 #  File:
 #     monitor_weblog
 #
-#  Last emacs update Time-stamp: <2003-04-30 08:13:53 winter>
+#  Last emacs update Time-stamp: <2000-08-13 14:41:31 winter>
 #
 #  Description:
 #     See help text below
@@ -36,9 +36,9 @@ if (!&GetOptions(\%parms, "h", "help",
     print<<eof;
 
 
-monitor_weblog is a stand alone daemon that monitors a Apache web log file.
-When the server logs hits, this code will summarize them and pass them
-onto the MisterHouse mhsend_server.pl code via a tcp/ip socket.
+monitor_weblog monitors a Apache web log file.  When the server logs hits,
+this code will summarize them and pass them onto the MisterHouse
+speak_server.pl code via a tcp/ip socket.
 
 Usage:
 
@@ -67,7 +67,6 @@ my %ignore_list = map{$_, 1} split(',', $parms{ignore});
 
 my $log_file = shift;
 $log_file = "/var/log/httpd/access_log" unless $log_file;
-#log_file = "/usr/local/apache/logs/misterhouse.net.ws-access_log" unless $log_file;
 my $log_pos  = &open_log($log_file);
 
 print "Current log position=$log_pos\n";
@@ -158,19 +157,8 @@ sub open_log {
     while (<LOG>) {}
     return tell(LOG);           # On startup, point pointer to the tail of the file
 }
-
-
-                                # This works with the mhsend server
-sub speak {
-    my ($text) = @_;
-    use IO::Socket;
-    use Cwd;
-    my $Pgm_Path = cwd();
-    system("$Pgm_Path/mhsend -speak '$text'");
-}
     
-                                # This only works with the old speak_server.pl code
-sub speak_old {
+sub speak {
     use IO::Socket;
     my ($text) = @_;
     my $socket = new IO::Socket::INET (PeerAddr => $parms{mh_server},
@@ -192,12 +180,6 @@ sub speak_old {
 
 #
 # $Log$
-# Revision 1.14  2003/06/01 21:54:40  winter
-#  - 2.81 release
-#
-# Revision 1.13  2000/12/21 18:54:14  winter
-# - 2.38 release
-#
 # Revision 1.12  2000/08/19 01:20:42  winter
 # - 2.27 release
 #

@@ -1,8 +1,5 @@
 # Category=Test
 
-#@ This has simple examples for controling and monitoring X10 data.
-
- 
 my $light_states = 'on,brighten,dim,off';
 my $state;
 
@@ -19,9 +16,16 @@ my $state;
 #    $test_light_1 = new X10_Item('A1', 'CM11');
 #    $test_light_1 = new X10_Item('B1', 'CM17');
 
-$v_test_light2 = new  Voice_Cmd("Turn test light 2 [$light_states]");
-#set $test_light2 $state if $state = said $v_test_light_2;
-tie_items $v_test_light2 $test_light2;
+$v_test_light1 = new  Voice_Cmd("Test light 1 [$light_states]");
+#set $test_light2 $state if $state = said $v_test_light1;
+tie_items $v_test_light1 $test_light1;
+#$v_test_light1 -> tie_items($test_light1);
+
+$v_test_light2 = new  Voice_Cmd("Test light 2 [$light_states]");
+set $test_light2 $state if $state = said $v_test_light2;
+
+$v_test_appliance = new  Voice_Cmd("Test appliance [ON,OFF]");
+set $test_appliance $state if $state = said $v_test_appliance;
 
 $v_test_lights = new  Voice_Cmd("All lights [$light_states]");
 set $All_Lights $state if $state = said $v_test_lights;

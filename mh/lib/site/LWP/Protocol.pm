@@ -42,13 +42,13 @@ $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 use strict;
 use Carp ();
-use HTTP::Status ();
-use HTTP::Response;
+use HTTP::Status 'RC_INTERNAL_SERVER_ERROR';
+require HTML::HeadParser;
 
 my %ImplementedBy = (); # scheme => classname
 
 
-=item $prot = LWP::Protocol->new()
+=item $prot = new HTTP::Protocol;
 
 The LWP::Protocol constructor is inherited by subclasses. As this is a
 virtual base class this method should B<not> be called directly.
@@ -57,22 +57,17 @@ virtual base class this method should B<not> be called directly.
 
 sub new
 {
-    my($class, $scheme, $ua) = @_;
+    my($class) = @_;
 
     my $self = bless {
-	scheme => $scheme,
-	ua => $ua,
-
-	# historical/redundant
-        parse_head => $ua->{parse_head},
-        max_size => $ua->{max_size},
+	'timeout' => 0,
+	'parse_head' => 1,
     }, $class;
-
     $self;
 }
 
 
-=item $prot = LWP::Protocol::create($scheme)
+=item $prot = LWP::Protocol::create($url)
 
 Create an object of the class implementing the protocol to handle the
 given scheme. This is a function, not a method. It is more an object
@@ -83,14 +78,12 @@ use to access protocols.
 
 sub create
 {
-    my($scheme, $ua) = @_;
+    my $scheme = shift;
     my $impclass = LWP::Protocol::implementor($scheme) or
 	Carp::croak("Protocol scheme '$scheme' is not supported");
 
     # hand-off to scheme specific implementation sub-class
-    my $protocol = $impclass->new($scheme, $ua);
-
-    return $protocol;
+    return $impclass->new($scheme);
 }
 
 
@@ -120,11 +113,11 @@ sub implementor
     $ic = "LWP::Protocol::nntp" if $scheme eq 'news'; #XXX ugly hack
     no strict 'refs';
     # check we actually have one for the scheme:
-    unless (@{"${ic}::ISA"}) {
+    unless (defined @{"${ic}::ISA"}) {
 	# try to autoload it
 	eval "require $ic";
 	if ($@) {
-	    if ($@ =~ /Can't locate/) { #' #emacs get confused by '
+	    if ($@ =~ /^Can't locate/) { #' #emacs get confused by '
 		$ic = '';
 	    } else {
 		die "$@\n";
@@ -155,7 +148,18 @@ sub request
 }
 
 
-# legacy
+=item $prot->timeout($seconds)
+
+Get and set the timeout value in seconds
+
+
+=item $prot->parse_head($yesno)
+
+Should we initialize response headers from the <head> section of HTML
+documents.
+
+=cut
+
 sub timeout    { shift->_elem('timeout',    @_); }
 sub parse_head { shift->_elem('parse_head', @_); }
 sub max_size   { shift->_elem('max_size',   @_); }
@@ -188,11 +192,11 @@ sub collect
 {
     my ($self, $arg, $response, $collector) = @_;
     my $content;
-    my($parse_head, $max_size) = @{$self}{qw(parse_head max_size)};
+    my($parse_head, $timeout, $max_size) =
+      @{$self}{qw(parse_head timeout max_size)};
 
     my $parser;
     if ($parse_head && $response->content_type eq 'text/html') {
-	require HTML::HeadParser;
 	$parser = HTML::HeadParser->new($response->{'_headers'});
     }
     my $content_size = 0;
@@ -206,11 +210,10 @@ sub collect
 	    LWP::Debug::debug("read " . length($$content) . " bytes");
 	    $response->add_content($$content);
 	    $content_size += length($$content);
-	    if (defined($max_size) && $content_size > $max_size) {
+	    if ($max_size && $content_size > $max_size) {
 		LWP::Debug::debug("Aborting because size limit exceeded");
-		$response->push_header("Client-Aborted", "max_size");
-		#my $tot = $response->header("Content-Length") || 0;
-		#$response->header("X-Content-Range", "bytes 0-$content_size/$tot");
+		my $tot = $response->header("Content-Length") || 0;
+		$response->header("X-Content-Range", "bytes 0-$content_size/$tot");
 		last;
 	    }
 	}
@@ -218,8 +221,8 @@ sub collect
     elsif (!ref($arg)) {
 	# filename
 	open(OUT, ">$arg") or
-	    return HTTP::Response->new(&HTTP::Status::RC_INTERNAL_SERVER_ERROR,
-			  "Cannot write to '$arg': $!");
+	    return new HTTP::Response RC_INTERNAL_SERVER_ERROR,
+			  "Cannot write to '$arg': $!";
         binmode(OUT);
         local($\) = ""; # ensure standard $OUTPUT_RECORD_SEPARATOR
 	while ($content = &$collector, length $$content) {
@@ -229,11 +232,10 @@ sub collect
 	    LWP::Debug::debug("read " . length($$content) . " bytes");
 	    print OUT $$content;
 	    $content_size += length($$content);
-	    if (defined($max_size) && $content_size > $max_size) {
+	    if ($max_size && $content_size > $max_size) {
 		LWP::Debug::debug("Aborting because size limit exceeded");
-		$response->push_header("Client-Aborted", "max_size");
-		#my $tot = $response->header("Content-Length") || 0;
-		#$response->header("X-Content-Range", "bytes 0-$content_size/$tot");
+		my $tot = $response->header("Content-Length") || 0;
+		$response->header("X-Content-Range", "bytes 0-$content_size/$tot");
 		last;
 	    }
 	}
@@ -251,15 +253,14 @@ sub collect
 	    };
 	    if ($@) {
 	        chomp($@);
-		$response->push_header('X-Died' => $@);
-		$response->push_header("Client-Aborted", "die");
+		$response->header('X-Died' => $@);
 		last;
 	    }
 	}
     }
     else {
-	return HTTP::Response->new(&HTTP::Status::RC_INTERNAL_SERVER_ERROR,
-				  "Unexpected collect argument  '$arg'");
+	return new HTTP::Response RC_INTERNAL_SERVER_ERROR,
+				  "Unexpected collect argument  '$arg'";
     }
     $response;
 }
@@ -294,7 +295,7 @@ for examples of usage.
 
 =head1 COPYRIGHT
 
-Copyright 1995-2001 Gisle Aas.
+Copyright 1995-1997 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

@@ -14,10 +14,10 @@ HTTP::Response - Class encapsulating HTTP Responses
 
 =head1 DESCRIPTION
 
-The C<HTTP::Response> class encapsulates HTTP style responses.  A
-response consists of a response line, some headers, and (potentially
-empty) content. Note that the LWP library also uses HTTP style
-responses for non-HTTP protocol schemes.
+The C<HTTP::Response> class encapsulate HTTP style responses.  A
+response consist of a response line, some headers, and a (potential
+empty) content. Note that the LWP library will use HTTP style
+responses also for non-HTTP protocol schemes.
 
 Instances of this class are usually created and returned by the
 C<request()> method of an C<LWP::UserAgent> object:
@@ -31,8 +31,8 @@ C<request()> method of an C<LWP::UserAgent> object:
  }
 
 C<HTTP::Response> is a subclass of C<HTTP::Message> and therefore
-inherits its methods.  The inherited methods most often used are header(),
-push_header(), remove_header(), and content().
+inherits its methods.  The inherited methods often used are header(),
+push_header(), remove_header(), headers_as_string(), and content().
 The header convenience methods are also available.  See
 L<HTTP::Message> for details.
 
@@ -48,6 +48,7 @@ require HTTP::Message;
 $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 use HTTP::Status ();
+use URI::URL ();
 use strict;
 
 
@@ -89,11 +90,11 @@ sub clone
 
 =item $r->previous([$previousResponse])
 
-These methods provide public access to the object attributes.  The
-first two contain respectively the response code and the message
+These methods provide public access to the member variables.  The
+first two containing respectively the response code and the message
 of the response.
 
-The request attribute is a reference the request that caused this
+The request attribute is a reference the request that gave this
 response.  It does not have to be the same request as passed to the
 $ua->request() method, because there might have been redirects and
 authorization retries in between.
@@ -127,10 +128,10 @@ sub status_line
 
 =item $r->base
 
-Returns the base URI for this response.  The return value will be a
-reference to a URI object.
+Returns the base URL for this response.  The return value will be a
+reference to a URI::URL object.
 
-The base URI is obtained from one the following sources (in priority
+The base URL is obtained from one the following sources (in priority
 order):
 
 =over 4
@@ -147,18 +148,19 @@ A "Content-Base:" or a "Content-Location:" header in the response.
 For backwards compatability with older HTTP implementations we will
 also look for the "Base:" header.
 
+
 =item 3.
 
-The URI used to request this response. This might not be the original
-URI that was passed to $ua->request() method, because we might have
+The URL used to request this response. This might not be the original
+URL that was passed to $ua->request() method, because we might have
 received some redirect responses first.
 
 =back
 
 When the LWP protocol modules produce the HTTP::Response object, then
-any base URI embedded in the document (step 1) will already have
+any base URL embedded in the document (step 1) will already have
 initialized the "Content-Base:" header. This means that this method
-only performs the last 2 steps (the content is not always available
+only perform the last 2 steps (the content is not always available
 either).
 
 =cut
@@ -166,18 +168,18 @@ either).
 sub base
 {
     my $self = shift;
-    my $base = $self->header('Content-Base')     ||  # used to be HTTP/1.1
+    my $base = $self->header('Content-Base')     ||  # HTTP/1.1
                $self->header('Content-Location') ||  # HTTP/1.1
-               $self->header('Base');                # HTTP/1.0
-    return $HTTP::URI_CLASS->new_abs($base, $self->request->uri);
-    # So yes, if $base is undef, the return value is effectively
-    # just a copy of $self->request->uri.
+               $self->header('Base')             ||  # backwards compatability HTTP/1.0
+               $self->request->url;
+    $base = URI::URL->new($base) unless ref $base;
+    $base;
 }
 
 
 =item $r->as_string
 
-Returns a textual representation of the response.  Mainly
+Method returning a textual representation of the response.  Mainly
 useful for debugging purposes. It takes no arguments.
 
 =cut
@@ -228,7 +230,7 @@ sub is_error    { HTTP::Status::is_error    (shift->{'_rc'}); }
 
 =item $r->error_as_HTML()
 
-Returns a string containing a complete HTML document indicating what
+Return a string containing a complete HTML document indicating what
 error occurred.  This method should only be called when $r->is_error
 is TRUE.
 
@@ -243,7 +245,7 @@ sub error_as_HTML
 <HTML>
 <HEAD><TITLE>$title</TITLE></HEAD>
 <BODY>
-<H1>$title</H1>
+<H1>$title</h1>
 $body
 </BODY>
 </HTML>
@@ -253,7 +255,7 @@ EOM
 
 =item $r->current_age
 
-Calculates the "current age" of the response as
+This function will calculate the "current age" of the response as
 specified by E<lt>draft-ietf-http-v11-spec-07> section 13.2.3.  The
 age of a response is the time since it was sent by the origin server.
 The returned value is a number representing the age in seconds.
@@ -296,7 +298,7 @@ sub current_age
 
 =item $r->freshness_lifetime
 
-Calculates the "freshness lifetime" of the response
+This function will calculate the "freshness lifetime" of the response
 as specified by E<lt>draft-ietf-http-v11-spec-07> section 13.2.4.  The
 "freshness lifetime" is the length of time between the generation of a
 response and its expiration time.  The returned value is a number
@@ -355,7 +357,7 @@ sub freshness_lifetime
 =item $r->is_fresh
 
 Returns TRUE if the response is fresh, based on the values of
-freshness_lifetime() and current_age().  If the response is no longer
+freshness_lifetime() and current_age().  If the response is not longer
 fresh, then it has to be refetched or revalidated by the origin
 server.
 
@@ -386,7 +388,7 @@ sub fresh_until
 
 =head1 COPYRIGHT
 
-Copyright 1995-2001 Gisle Aas.
+Copyright 1995-1997 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

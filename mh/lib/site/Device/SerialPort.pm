@@ -1,6 +1,6 @@
 # Note: This is a POSIX version of the Win32::Serialport module
-#       ported by Joe Doss, Kees Cook 
-#       for use with the MisterHouse and Sendpage programs
+#       ported by Joe Doss 
+#       for use with the MisterHouse program
 
 # Prototypes for ioctl constants do not match POSIX constants
 # so put them into implausible namespace and call them there
@@ -10,43 +10,17 @@
 # AUTOPROTO to go with your AUTOLOAD." POSIX.pm was his example.
 
 package SerialJunk;
-use POSIX qw(uname);
-$DEBUG=0; # turn this on to debug the termios.ph hunting...
 
-# Auto-ioctl settings are now hunted down and verified.
-#  - Kees Cook, Sep 2000
+# this is the linux path. Need to determine location on other OSs
 
 use vars qw($ioctl_ok);
-$ioctl_ok = 0;
-
-# Needed on some misbehaving Solaris machines... (h2ph's fault...) -Kees
-($sysname, $nodename, $release, $version, $machine) = POSIX::uname();
-if ($sysname eq "SunOS" && $machine =~ /^sun/) {
-	eval "sub __sparc () {1;}";
+eval { require 'asm/termios.ph'; };
+if ($@) {
+   $ioctl_ok = 0;
+##   print "error message: $@\n"; ## DEBUG ##
 }
-
-# Need to determine location (Linux, Solaris, AIX, BSD known & working)
-@LOCATIONS=('sys/ttycom.ph', 'termios.ph','sys/termios.ph','asm/termios.ph');
-foreach $loc (@LOCATIONS) {
-   warn "trying '$loc'...\n" if ($DEBUG);
-   eval { require "$loc"; };
-   if ($@) {
-      warn "Device::Serial error: $@\n" if ($DEBUG);
-   }
-   else {
-      # pick routines to test...
-      if (defined(&SerialJunk::TIOCMBIS) &&
-	  defined(&SerialJunk::TIOCMBIC) &&
-	  defined(&SerialJunk::TIOCMGET) &&
-	  (defined(&SerialJunk::TIOCSDTR) || defined(&SerialJunk::TIOCM_DTR))) {
-		$ioctl_ok = 1;
-		warn "Using '$loc'\n" if ($DEBUG);
-		last;
-      }
-   }
-}
-if ($ioctl_ok == 0) {
-   warn "Device::Serial could not find ioctl definitions!\n";
+else {
+   $ioctl_ok = 1;
 }
 
 package Device::SerialPort;
@@ -55,16 +29,14 @@ use POSIX qw(:termios_h);
 use IO::Handle;
 
 use vars qw($bitset $bitclear $rtsout $dtrout $getstat $incount $outcount
-	    $txdone $dtrset $dtrclear);
+	    $txdone);
 if ($SerialJunk::ioctl_ok) {
     $bitset = &SerialJunk::TIOCMBIS;
     $bitclear = &SerialJunk::TIOCMBIC;
     $getstat = &SerialJunk::TIOCMGET;
-    $incount = defined(&SerialJunk::TIOCINQ) ? &SerialJunk::TIOCINQ : 0;
-    $outcount = defined(&SerialJunk::TIOCOUTQ) ? &SerialJunk::TIOCOUTQ : 0;
-    $txdone = defined(&SerialJunk::TIOCSERGETLSR)?&SerialJunk::TIOCSERGETLSR:0;
-    $dtrset = defined(&SerialJunk::TIOCSDTR) ? &SerialJunk::TIOCSDTR : 0;
-    $dtrclear=defined(&SerialJunk::TIOCCDTR) ? &SerialJunk::TIOCCDTR : 0;
+    $incount = &SerialJunk::TIOCINQ;
+    $outcount = &SerialJunk::TIOCOUTQ;
+    $txdone = &SerialJunk::TIOCSERGETLSR;
     $rtsout = pack('L', &SerialJunk::TIOCM_RTS);
     $dtrout = pack('L', &SerialJunk::TIOCM_DTR);
 }
@@ -75,8 +47,6 @@ else {
     $incount = 0;
     $outcount = 0;
     $txdone = 0;
-    $dtrset = 0;
-    $dtrclear = 0;
     $rtsout = pack('L', 0);
     $dtrout = pack('L', 0);
 }
@@ -136,7 +106,7 @@ use Carp;
 use strict;
 
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-$VERSION = '0.09';
+$VERSION = '0.07';
 
 require Exporter;
 
@@ -310,8 +280,7 @@ sub new {
                                 # 
     my $quiet = shift;
 
-    unless ($quiet or ($bitset && $bitclear && $rtsout &&
-	    (($dtrset && $dtrclear) || $dtrout)) ) {
+    unless ($quiet or ($bitset && $bitclear && $rtsout && $dtrout) ) {
        nocarp or warn "disabling ioctl methods - constants not found\n";
     }
 
@@ -359,7 +328,7 @@ sub new {
             $self->{LOCK} = "";
         }
         return 0 if ($quiet);
-	return undef;
+	return;
     }
 
     $self->{TERMIOS} = POSIX::Termios->new();
@@ -637,7 +606,7 @@ sub start {
 sub can_baud			{ return 1; }
 sub can_databits		{ return 1; }
 sub can_stopbits		{ return 1; }
-sub can_dtrdsr			{ return 1; }
+sub can_dtrdsr			{ return 0; } # currently
 sub can_handshake		{ return 1; }
 sub can_parity_check		{ return 1; }
 sub can_parity_config		{ return 1; }
@@ -657,18 +626,7 @@ sub binary			{ return 1; }
 sub reset_error			{ return 0; } # for compatibility
 
 sub can_ioctl {
-    return 0 unless ($bitset && $bitclear && $rtsout && 
-	    (($dtrset && $dtrclear) || $dtrout));
-    return 1;
-}
-
-sub can_status {
-    return 0 unless ($incount && $outcount);
-    return 1;
-}
-
-sub can_write_done {
-    return 0 unless ($txdone && TIOCM_LE && $outcount);
+    return 0 unless ($bitset && $bitclear && $rtsout && $dtrout);
     return 1;
 }
   
@@ -1779,22 +1737,16 @@ sub status {
 
 sub dtr_active {
     return unless (@_ == 2);
+    return unless ($bitset && $bitclear && $dtrout);
     my $self = shift;
-    return unless $self->can_ioctl();
-    my $on = shift;
-    my $rc;
-
-    # if we have set DTR and clear DTR, we should use it (OpenBSD)
-    if ($dtrset && $dtrclear) {
-#        warn "SDTR/CDTR\n";
-	$rc=ioctl($self->{HANDLE}, $on ? $dtrset : $dtrclear, 0);
+    my $onoff = shift;
+    # returns ioctl result
+    if ($onoff) {
+        ioctl($self->{HANDLE}, $bitset, $dtrout);
     }
     else {
-#        warn "BIS/BIC\n";
-        $rc=ioctl($self->{HANDLE}, $on ? $bitset : $bitclear, $dtrout);
+        ioctl($self->{HANDLE}, $bitclear, $dtrout);
     }
-    warn "dtr_active($on) ioctl: $!\n"    if (!$rc);
-    return $rc;
 }
 
 sub rts_active {
@@ -1817,7 +1769,7 @@ sub pulse_break_on {
     my $delay = (shift)/1000;
     my $length = 0;
     my $ok = POSIX::tcsendbreak($self->{FD}, $length);
-    warn "could not pulse break on: $!\n" unless ($ok);
+    warn "could not pulse break on" unless ($ok);
     select (undef, undef, undef, $delay);
     return $ok;
 }
@@ -1827,10 +1779,10 @@ sub pulse_rts_on {
     return unless ($bitset && $bitclear && $rtsout);
     my $self = shift;
     my $delay = (shift)/1000;
-    $self->rts_active(1) or warn "could not pulse rts on\n";
+    $self->rts_active(1) or warn "could not pulse rts on";
 ##    print "rts on\n"; ## DEBUG
     select (undef, undef, undef, $delay);
-    $self->rts_active(0) or warn "could not restore from rts on\n";
+    $self->rts_active(0) or warn "could not restore from rts on";
 ##    print "rts_off\n"; ## DEBUG
     select (undef, undef, undef, $delay);
     1;
@@ -1838,13 +1790,13 @@ sub pulse_rts_on {
 
 sub pulse_dtr_on {
     return unless (@_ == 2);
+    return unless ($bitset && $bitclear && $dtrout);
     my $self = shift;
-    return unless $self->can_ioctl();
     my $delay = (shift)/1000;
-    $self->dtr_active(1) or warn "could not pulse dtr on\n";
+    $self->dtr_active(1) or warn "could not pulse dtr on";
 ##    print "dtr on\n"; ## DEBUG
     select (undef, undef, undef, $delay);
-    $self->dtr_active(0) or warn "could not restore from dtr on\n";
+    $self->dtr_active(0) or warn "could not restore from dtr on";
 ##    print "dtr_off\n"; ## DEBUG
     select (undef, undef, undef, $delay);
     1;
@@ -1855,10 +1807,10 @@ sub pulse_rts_off {
     return unless ($bitset && $bitclear && $rtsout);
     my $self = shift;
     my $delay = (shift)/1000;
-    $self->rts_active(0) or warn "could not pulse rts off\n";
+    $self->rts_active(0) or warn "could not pulse rts off";
 ##    print "rts off\n"; ## DEBUG
     select (undef, undef, undef, $delay);
-    $self->rts_active(1) or warn "could not restore from rts off\n";
+    $self->rts_active(1) or warn "could not restore from rts off";
 ##    print "rts on\n"; ## DEBUG
     select (undef, undef, undef, $delay);
     1;
@@ -1866,13 +1818,13 @@ sub pulse_rts_off {
 
 sub pulse_dtr_off {
     return unless (@_ == 2);
+    return unless ($bitset && $bitclear && $dtrout);
     my $self = shift;
-    return unless $self->can_ioctl();
     my $delay = (shift)/1000;
-    $self->dtr_active(0) or warn "could not pulse dtr off\n";
+    $self->dtr_active(0) or warn "could not pulse dtr off";
 ##    print "dtr off\n"; ## DEBUG
     select (undef, undef, undef, $delay);
-    $self->dtr_active(1) or warn "could not restore from dtr off\n";
+    $self->dtr_active(1) or warn "could not restore from dtr off";
 ##    print "dtr on\n"; ## DEBUG
     select (undef, undef, undef, $delay);
     1;
@@ -2248,7 +2200,7 @@ Device::SerialPort - Linux/POSIX emulation of Win32::SerialPort functions.
   $PortObj->can_baud;			# 1
   $PortObj->can_databits;		# 1
   $PortObj->can_stopbits;		# 1
-  $PortObj->can_dtrdsr;			# 1
+  $PortObj->can_dtrdsr;			# 0 currently
   $PortObj->can_handshake;		# 1
   $PortObj->can_parity_check;		# 1
   $PortObj->can_parity_config;		# 1
@@ -2264,8 +2216,6 @@ Device::SerialPort - Linux/POSIX emulation of Win32::SerialPort functions.
   $PortObj->can_interval_timeout;	# 0 currently
   $PortObj->can_total_timeout;		# 1 currently
   $PortObj->can_ioctl;			# automatically detected by eval
-  $PortObj->can_status;			# automatically detected by eval
-  $PortObj->can_write_done;		# automatically detected by eval
 
 =head2 Operating Methods
 
@@ -2285,13 +2235,11 @@ Device::SerialPort - Linux/POSIX emulation of Win32::SerialPort functions.
   ($BlockingFlags, $InBytes, $OutBytes, $ErrorFlags) = $PortObj->status;
       # same format for compatibility. Only $InBytes and $OutBytes are
       # currently returned (on linux). Others are 0.
-      # Check return value of "can_status" to see if this call is valid.
 
   ($done, $count_out) = $PortObj->write_done(0);
      # POSIX defaults to background write. Currently $count_out always 0.
      # $done set when hardware finished transmitting and shared line can
-     # be released for other use. Ioctl may not work on all OSs.
-     # Check return value of "can_write_done" to see if this call is valid.
+     # be released for other use. Ioctl may not work on all OSs
 
   $PortObj->write_drain;  # POSIX alternative to Win32 write_done(1)
                           # set when software is finished transmitting
@@ -2935,11 +2883,9 @@ omissions should be considered bugs and reported to the maintainer.
 Based on Win32::SerialPort.pm, Version 0.8, by Bill Birthisel
 
 Ported to linux/POSIX by Joe Doss for MisterHouse
-Ported to Solaris/POSIX by Kees Cook for Sendpage
-Ported to BSD/POSIX by Kees Cook for Sendpage
 
 Currently maintained by:
-Kees Cook, cook@cpoint.net, http://outflux.net/
+Bill Birthisel, wcbirthisel@alum.mit.edu, http://members.aol.com/Bbirthisel/
 
 =head1 SEE ALSO
 
@@ -2954,6 +2900,6 @@ Perltoot.xxx - Tom (Christiansen)'s Object-Oriented Tutorial
 Copyright (C) 1999, Bill Birthisel. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+under the same terms as Perl itself. 7 Sepember 1999.
 
 =cut

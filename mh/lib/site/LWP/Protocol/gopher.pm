@@ -68,7 +68,7 @@ sub request
 				   "$method for 'gopher:' URLs");
     }
 
-    my $gophertype = $url->gopher_type;
+    my $gophertype = $url->gtype;
     unless (exists $gopher2mimetype{$gophertype}) {
 	return HTTP::Response->new(&HTTP::Status::RC_NOT_IMPLEMENTED,
 				   'Library does not support gophertype ' .
@@ -126,7 +126,6 @@ EOT
     # Ok, lets make the request
     my $socket = IO::Socket::INET->new(PeerAddr => $host,
 				       PeerPort => $port,
-				       Proto    => 'tcp',
 				       Timeout  => $timeout);
     die "Can't connect to $host:$port" unless $socket;
     my $sel = IO::Select->new($socket);
@@ -176,11 +175,11 @@ sub gopher2url
 
     if ($gophertype eq '8' || $gophertype eq 'T') {
 	# telnet session
-	$url = $HTTP::URI_CLASS->new($gophertype eq '8' ? 'telnet:':'tn3270:');
+	$url = URI::URL->new($gophertype eq '8' ? 'telnet:' : 'tn3270:');
 	$url->user($path) if defined $path;
     } else {
 	$path = URI::Escape::uri_escape($path);
-	$url = $HTTP::URI_CLASS->new("gopher:/$gophertype$path");
+	$url = URI::URL->new("gopher:/$gophertype$path");
     }
     $url->host($host);
     $url->port($port);

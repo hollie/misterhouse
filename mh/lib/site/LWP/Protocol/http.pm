@@ -1,68 +1,40 @@
-# $Id$
 #
+# $Id$
 
 package LWP::Protocol::http;
-
-use strict;
 
 require LWP::Debug;
 require HTTP::Response;
 require HTTP::Status;
-require Net::HTTP;
-
-use vars qw(@ISA @EXTRA_SOCK_OPTS);
+require IO::Socket;
+require IO::Select;
 
 require LWP::Protocol;
 @ISA = qw(LWP::Protocol);
 
-my $CRLF = "\015\012";
+use strict;
+my $CRLF         = "\015\012";     # how lines should be terminated;
+				   # "\r\n" is not correct on all systems, for
+				   # instance MacPerl defines it to "\012\015"
 
 sub _new_socket
 {
     my($self, $host, $port, $timeout) = @_;
-    my $conn_cache = $self->{ua}{conn_cache};
-    if ($conn_cache) {
-	if (my $sock = $conn_cache->withdraw("http", "$host:$port")) {
-	    return $sock if $sock && !$sock->can_read(0);
-	    # if the socket is readable, then either the peer has closed the
-	    # connection or there are some garbage bytes on it.  In either
-	    # case we abandon it.
-	    $sock->close;
-	}
-    }
 
     local($^W) = 0;  # IO::Socket::INET can be noisy
-    my $sock = $self->socket_class->new(PeerAddr => $host,
-					PeerPort => $port,
-					Proto    => 'tcp',
-					Timeout  => $timeout,
-					KeepAlive => !!$conn_cache,
-					SendTE    => 1,
-					$self->_extra_sock_opts($host, $port),
-				       );
-
+    my $sock = IO::Socket::INET->new(PeerAddr => $host,
+				     PeerPort => $port,
+				     Proto    => 'tcp',
+				     Timeout  => $timeout,
+				    );
     unless ($sock) {
 	# IO::Socket::INET leaves additional error messages in $@
 	$@ =~ s/^.*?: //;
 	die "Can't connect to $host:$port ($@)";
     }
-
-    # perl 5.005's IO::Socket does not have the blocking method.
-    eval { $sock->blocking(0); };
-
     $sock;
 }
 
-sub socket_class
-{
-    my $self = shift;
-    (ref($self) || $self) . "::Socket";
-}
-
-sub _extra_sock_opts  # to be overridden by subclass
-{
-    return @EXTRA_SOCK_OPTS;
-}
 
 sub _check_sock
 {
@@ -72,49 +44,10 @@ sub _check_sock
 sub _get_sock_info
 {
     my($self, $res, $sock) = @_;
-    if (defined(my $peerhost = $sock->peerhost)) {
-        $res->header("Client-Peer" => "$peerhost:" . $sock->peerport);
-    }
+    $res->header("Client-Peer" =>
+		 $sock->peerhost . ":" . $sock->peerport);
 }
 
-sub _fixup_header
-{
-    my($self, $h, $url, $proxy) = @_;
-
-    # Extract 'Host' header
-    my $hhost = $url->authority;
-    $hhost =~ s/^([^\@]*)\@//;  # get rid of potential "user:pass@"
-    $h->init_header('Host' => $hhost);
-
-    # add authorization header if we need them.  HTTP URLs do
-    # not really support specification of user and password, but
-    # we allow it.
-    if (defined($1) && not $h->header('Authorization')) {
-	require URI::Escape;
-	$h->authorization_basic(map URI::Escape::uri_unescape($_),
-				split(":", $1, 2));
-    }
-
-    if ($proxy) {
-	# Check the proxy URI's userinfo() for proxy credentials
-	# export http_proxy="http://proxyuser:proxypass@proxyhost:port"
-	my $p_auth = $proxy->userinfo();
-	if(defined $p_auth) {
-	    require URI::Escape;
-	    $h->proxy_authorization_basic(map URI::Escape::uri_unescape($_),
-					  split(":", $p_auth, 2))
-	}
-    }
-}
-
-sub hlist_remove {
-    my($hlist, $k) = @_;
-    $k = lc $k;
-    for (my $i = @$hlist - 2; $i >= 0; $i -= 2) {
-	next unless lc($hlist->[$i]) eq $k;
-	splice(@$hlist, $i, 2);
-    }
-}
 
 sub request
 {
@@ -139,271 +72,181 @@ sub request
 	# $proxy is an URL to an HTTP server which will proxy this request
 	$host = $proxy->host;
 	$port = $proxy->port;
-	$fullpath = $method eq "CONNECT" ?
-                       ($url->host . ":" . $url->port) :
-                       $url->as_string;
+	$fullpath = $url->as_string;
     }
     else {
 	$host = $url->host;
 	$port = $url->port;
-	$fullpath = $url->path_query;
-	$fullpath = "/" unless length $fullpath;
+	$fullpath = $url->full_path;
     }
 
     # connect to remote site
     my $socket = $self->_new_socket($host, $port, $timeout);
     $self->_check_sock($request, $socket);
+	    
+    my $sel = IO::Select->new($socket) if $timeout;
 
-    my @h;
-    my $request_headers = $request->headers->clone;
-    $self->_fixup_header($request_headers, $url, $proxy);
+    my $request_line = "$method $fullpath HTTP/1.0$CRLF";
 
-    $request_headers->scan(sub {
-			       my($k, $v) = @_;
-			       $v =~ s/\n/ /g;
-			       push(@h, $k, $v);
-			   });
+    my $h = $request->headers->clone;
+    my $cont_ref = $request->content_ref;
+    $cont_ref = $$cont_ref if ref($$cont_ref);
+    my $ctype = ref($cont_ref);
 
-    my $content_ref = $request->content_ref;
-    $content_ref = $$content_ref if ref($$content_ref);
-    my $chunked;
-    my $has_content;
-
-    if (ref($content_ref) eq 'CODE') {
-	my $clen = $request_headers->header('Content-Length');
-	$has_content++ if $clen;
-	unless (defined $clen) {
-	    push(@h, "Transfer-Encoding" => "chunked");
-	    $has_content++;
-	    $chunked++;
-	}
+    # If we're sending content we *have* to specify a content length
+    # otherwise the server won't know a messagebody is coming.
+    if ($ctype eq 'CODE') {
+	die 'No Content-Length header for request with dynamic content'
+	    unless defined($h->header('Content-Length')) ||
+		   $h->content_type =~ /^multipart\//;
+	# For HTTP/1.1 we could have used chunked transfer encoding...
     } else {
-	# Set (or override) Content-Length header
-	my $clen = $request_headers->header('Content-Length');
-	if (defined($$content_ref) && length($$content_ref)) {
-	    $has_content++;
-	    if (!defined($clen) || $clen ne length($$content_ref)) {
-		if (defined $clen) {
-		    warn "Content-Length header value was wrong, fixed";
-		    hlist_remove(\@h, 'Content-Length');
-		}
-		push(@h, 'Content-Length' => length($$content_ref));
-	    }
-	}
-	elsif ($clen) {
-	    warn "Content-Length set when there is not content, fixed";
-	    hlist_remove(\@h, 'Content-Length');
-	}
+	$h->header('Content-Length' => length $$cont_ref)
+	        if defined($$cont_ref) && length($$cont_ref);
+    }
+    
+    # HTTP/1.1 will require us to send the 'Host' header, so we might
+    # as well start now.
+    my $hhost = $url->netloc;
+    $hhost =~ s/^([^\@]*)\@//;  # get rid of potential "user:pass@"
+    $h->header('Host' => $hhost) unless defined $h->header('Host');
+
+    # add authorization header if we need them.  HTTP URLs do
+    # not really support specification of user and password, but
+    # we allow it.
+    if (defined($1) && not $h->header('Authorization')) {
+	$h->authorization_basic($url->user, $url->password);
     }
 
-    my $req_buf = $socket->format_request($method, $fullpath, @h);
-    #print "------\n$req_buf\n------\n";
+    my $buf = $request_line . $h->as_string($CRLF) . $CRLF;
+    my $n;  # used for return value from syswrite/sysread
 
-    # XXX need to watch out for write timeouts
-    {
-	my $n = $socket->syswrite($req_buf, length($req_buf));
+    die "write timeout" if $timeout && !$sel->can_write($timeout);
+    $n = $socket->syswrite($buf, length($buf));
+    die $! unless defined($n);
+    die "short write" unless $n == length($buf);
+    LWP::Debug::conns($buf);
+
+    if ($ctype eq 'CODE') {
+	while ( ($buf = &$cont_ref()), defined($buf) && length($buf)) {
+	    die "write timeout" if $timeout && !$sel->can_write($timeout);
+	    $n = $socket->syswrite($buf, length($buf));
+	    die $! unless defined($n);
+	    die "short write" unless $n == length($buf);
+	    LWP::Debug::conns($buf);
+	}
+    } elsif (defined($$cont_ref) && length($$cont_ref)) {
+	die "write timeout" if $timeout && !$sel->can_write($timeout);
+	$n = $socket->syswrite($$cont_ref, length($$cont_ref));
 	die $! unless defined($n);
-	die "short write" unless $n == length($req_buf);
-	#LWP::Debug::conns($req_buf);
+	die "short write" unless $n == length($$cont_ref);
+	LWP::Debug::conns($buf);
     }
+    
+    # read response line from server
+    LWP::Debug::debug('reading response');
 
-    my($code, $mess, @junk);
-    my $drop_connection;
+    my $response;
+    $buf = '';
 
-    if ($has_content) {
-	my $write_wait = 0;
-	$write_wait = 2
-	    if ($request_headers->header("Expect") || "") =~ /100-continue/;
-
-	my $eof;
-	my $wbuf;
-	my $woffset = 0;
-	if (ref($content_ref) eq 'CODE') {
-	    my $buf = &$content_ref();
-	    $buf = "" unless defined($buf);
-	    $buf = sprintf "%x%s%s%s", length($buf), $CRLF, $buf, $CRLF
-		if $chunked;
-	    $wbuf = \$buf;
+    # Inside this loop we will read the response line and all headers
+    # found in the response.
+    while (1) {
+	{
+	    die "read timeout" if $timeout && !$sel->can_read($timeout);
+	    $n = $socket->sysread($buf, $size, length($buf));
+	    die $! unless defined($n);
+	    die "unexpected EOF before status line seen" unless $n;
+	    LWP::Debug::conns($buf);
 	}
-	else {
-	    $wbuf = $content_ref;
-	    $eof = 1;
-	}
+	if ($buf =~ s/^(HTTP\/\d+\.\d+)[ \t]+(\d+)[ \t]*([^\012]*)\012//) {
+	    # HTTP/1.0 response or better
+	    my($ver,$code,$msg) = ($1, $2, $3);
+	    $msg =~ s/\015$//;
+	    LWP::Debug::debug("$ver $code $msg");
+	    $response = HTTP::Response->new($code, $msg);
+	    $response->protocol($ver);
 
-	my $fbits = '';
-	vec($fbits, fileno($socket), 1) = 1;
-
-	while ($woffset < length($$wbuf)) {
-
-	    my $time_before;
-	    my $sel_timeout = $timeout;
-	    if ($write_wait) {
-		$time_before = time;
-		$sel_timeout = $write_wait if $write_wait < $sel_timeout;
+	    # ensure that we have read all headers.  The headers will be
+	    # terminated by two blank lines
+	    until ($buf =~ /^\015?\012/ || $buf =~ /\015?\012\015?\012/) {
+		# must read more if we can...
+		LWP::Debug::debug("need more header data");
+		die "read timeout" if $timeout && !$sel->can_read($timeout);
+		$n = $socket->sysread($buf, $size, length($buf));
+		die $! unless defined($n);
+		die "unexpected EOF before all headers seen" unless $n;
+		#LWP::Debug::conns($buf);
 	    }
 
-	    my $rbits = $fbits;
-	    my $wbits = $write_wait ? undef : $fbits;
-	    my $nfound = select($rbits, $wbits, undef, $sel_timeout);
-	    unless (defined $nfound) {
-		die "select failed: $!";
-	    }
+	    # now we start parsing the headers.  The strategy is to
+	    # remove one line at a time from the beginning of the header
+	    # buffer ($res).
+	    my($key, $val);
+	    while ($buf =~ s/([^\012]*)\012//) {
+		my $line = $1;
 
-	    if ($write_wait) {
-		$write_wait -= time - $time_before;
-		$write_wait = 0 if $write_wait < 0;
-	    }
+		# if we need to restore as content when illegal headers
+		# are found.
+		my $save = "$line\012"; 
 
-	    if (defined($rbits) && $rbits =~ /[^\0]/) {
-		# readable
-		my $buf = $socket->_rbuf;
-		my $n = $socket->sysread($buf, 1024, length($buf));
-		unless ($n) {
-		    die "EOF";
-		}
-		$socket->_rbuf($buf);
-		if ($buf =~ /\015?\012\015?\012/) {
-		    # a whole response present
-		    ($code, $mess, @h) = $socket->read_response_headers(laxed => 1,
-									junk_out => \@junk,
-								       );
-		    if ($code eq "100") {
-			$write_wait = 0;
-			undef($code);
-		    }
-		    else {
-			$drop_connection++;
+		$line =~ s/\015$//;
+		last unless length $line;
+
+		if ($line =~ /^([a-zA-Z0-9_\-]+)\s*:\s*(.*)/) {
+		    $response->push_header($key, $val) if $key;
+		    ($key, $val) = ($1, $2);
+		} elsif ($line =~ /^\s+(.*)/) {
+		    unless ($key) {
+			$response->header("Client-Warning" =>
+					 => "Illegal continuation header");
+			$buf = "$save$buf";
 			last;
-			# XXX should perhaps try to abort write in a nice way too
 		    }
+		    $val .= " $1";
+		} else {
+		    $response->header("Client-Warning" =>
+				      "Illegal header '$line'");
+		    $buf = "$save$buf";
+		    last;
 		}
 	    }
-	    if (defined($wbits) && $wbits =~ /[^\0]/) {
-		my $n = $socket->syswrite($$wbuf, length($$wbuf), $woffset);
-		unless ($n) {
-		    die "syswrite: $!" unless defined $n;
-		    die "syswrite: no bytes written";
-		}
-		$woffset += $n;
+	    $response->push_header($key, $val) if $key;
+	    last;
 
-		if (!$eof && $woffset >= length($$wbuf)) {
-		    # need to refill buffer from $content_ref code
-		    my $buf = &$content_ref();
-		    $buf = "" unless defined($buf);
-		    $eof++ unless length($buf);
-		    $buf = sprintf "%x%s%s%s", length($buf), $CRLF, $buf, $CRLF
-			if $chunked;
-		    $wbuf = \$buf;
-		    $woffset = 0;
-		}
-	    }
+	} elsif ((length($buf) >= 5 and $buf !~ /^HTTP\//) or
+		 $buf =~ /\012/ ) {
+	    # HTTP/0.9 or worse
+	    LWP::Debug::debug("HTTP/0.9 assume OK");
+	    $response = HTTP::Response->new(&HTTP::Status::RC_OK, "OK");
+	    $response->protocol('HTTP/0.9');
+	    last;
+
+	} else {
+	    # need more data
+	    LWP::Debug::debug("need more status line data");
 	}
-    }
-
-    ($code, $mess, @h) = $socket->read_response_headers(laxed => 1, junk_out => \@junk)
-	unless $code;
-    ($code, $mess, @h) = $socket->read_response_headers(laxed => 1, junk_out => \@junk)
-	if $code eq "100";
-
-    my $response = HTTP::Response->new($code, $mess);
-    my $peer_http_version = $socket->peer_http_version;
-    $response->protocol("HTTP/$peer_http_version");
-    while (@h) {
-	my($k, $v) = splice(@h, 0, 2);
-	$response->push_header($k, $v);
-    }
-    $response->push_header("Client-Junk" => \@junk) if @junk;
-
+    };
     $response->request($request);
     $self->_get_sock_info($response, $socket);
 
-    if ($method eq "CONNECT") {
-	$response->{client_socket} = $socket;  # so it can be picked up
-	return $response;
-    }
 
-    if (my @te = $response->remove_header('Transfer-Encoding')) {
-	$response->push_header('Client-Transfer-Encoding', \@te);
-    }
-    $response->push_header('Client-Response-Num', $socket->increment_response_count);
-
-    my $complete;
+    my $usebuf = length($buf) > 0;
     $response = $self->collect($arg, $response, sub {
-	my $buf = ""; #prevent use of uninitialized value in SSLeay.xs
-	my $n;
-      READ:
-	{
-	    $n = $socket->read_entity_body($buf, $size);
-	    die "Can't read entity body: $!" unless defined $n;
-	    redo READ if $n == -1;
+        if ($usebuf) {
+	    $usebuf = 0;
+	    return \$buf;
 	}
-	$complete++ if !$n;
-        return \$buf;
-    } );
-    $drop_connection++ unless $complete;
+	die "read timeout" if $timeout && !$sel->can_read($timeout);
+	my $n = $socket->sysread($buf, $size);
+	die $! unless defined($n);
+	#LWP::Debug::conns($buf);
+	return \$buf;
+	} );
 
-    @h = $socket->get_trailers;
-    while (@h) {
-	my($k, $v) = splice(@h, 0, 2);
-	$response->push_header($k, $v);
-    }
-
-    # keep-alive support
-    unless ($drop_connection) {
-	if (my $conn_cache = $self->{ua}{conn_cache}) {
-	    my %connection = map { (lc($_) => 1) }
-		             split(/\s*,\s*/, ($response->header("Connection") || ""));
-	    if (($peer_http_version eq "1.1" && !$connection{close}) ||
-		$connection{"keep-alive"})
-	    {
-		LWP::Debug::debug("Keep the http connection to $host:$port");
-		$conn_cache->deposit("http", "$host:$port", $socket);
-	    }
-	}
-    }
+    $socket->close;
 
     $response;
 }
-
-
-#-----------------------------------------------------------
-package LWP::Protocol::http::SocketMethods;
-
-sub sysread {
-    my $self = shift;
-    if (my $timeout = ${*$self}{io_socket_timeout}) {
-	die "read timeout" unless $self->can_read($timeout);
-    }
-    else {
-	# since we have made the socket non-blocking we
-	# use select to wait for some data to arrive
-	$self->can_read(undef) || die "Assert";
-    }
-    sysread($self, $_[0], $_[1], $_[2] || 0);
-}
-
-sub can_read {
-    my($self, $timeout) = @_;
-    my $fbits = '';
-    vec($fbits, fileno($self), 1) = 1;
-    my $nfound = select($fbits, undef, undef, $timeout);
-    die "select failed: $!" unless defined $nfound;
-    return $nfound > 0;
-}
-
-sub ping {
-    my $self = shift;
-    !$self->can_read(0);
-}
-
-sub increment_response_count {
-    my $self = shift;
-    return ++${*$self}{'myhttp_response_count'};
-}
-
-#-----------------------------------------------------------
-package LWP::Protocol::http::Socket;
-use vars qw(@ISA);
-@ISA = qw(LWP::Protocol::http::SocketMethods Net::HTTP);
 
 1;

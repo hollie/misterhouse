@@ -45,26 +45,17 @@ sub choose ($;$)
 
     $request->scan(sub {
 	my($key, $val) = @_;
-
-	my $type;
-	if ($key =~ s/^Accept-//) {
-	    $type = lc($key);
-	}
-	elsif ($key eq "Accept") {
-	    $type = "type";
-	}
-	else {
-	    return;
-	}
-
+	return unless $key =~ s/^Accept-?//;
+	my $type = lc $key;
+	$type = "type" unless length $key;
 	$val =~ s/\s+//g;
-	my $default_q = 1;
-	for my $name (split(/,/, $val)) {
+	my $name;
+	for $name (split(/,/, $val)) {
 	    my(%param, $param);
 	    if ($name =~ s/;(.*)//) {
 		for $param (split(/;/, $1)) {
 		    my ($pk, $pv) = split(/=/, $param, 2);
-		    $param{lc $pk} = $pv;
+		    $param{$pk} = $pv;
 		}
 	    }
 	    $name = lc $name;
@@ -72,18 +63,16 @@ sub choose ($;$)
 		$param{'q'} = 1 if $param{'q'} > 1;
 		$param{'q'} = 0 if $param{'q'} < 0;
 	    } else {
-		$param{'q'} = $default_q;
-
-		# This makes sure that the first ones are slightly better off
-		# and therefore more likely to be chosen.
-		$default_q -= 0.0001;
+		$param{'q'} = 1;
 	    }
+
+	    $param{'q'} = 1 unless defined $param{'q'};
 	    $accept{$type}{$name} = \%param;
 	}
     });
 
     # Check if any of the variants specify a language.  We do this
-    # because it influences how we treat those without (they default to
+    # because it influence how we treat those without (they default to
     # 0.5 instead of 1).
     my $any_lang = 0;
     for $var (@$variants) {
@@ -94,7 +83,7 @@ sub choose ($;$)
     }
 
     if ($DEBUG) {
-	print "Negotiation parameters in the request\n";
+	print "Netgotiantion parameters in the request\n";
 	for $type (keys %accept) {
 	    print " $type:\n";
 	    for $name (keys %{$accept{$type}}) {
@@ -109,15 +98,13 @@ sub choose ($;$)
     my @Q = ();  # This is where we collect the results of the
 		 # quality calcualtions
 
-    # Calculate quality for all the variants that are available.
+    # Calculate quality for all the variant's that are available.
     for (@$variants) {
 	my($id, $qs, $ct, $enc, $cs, $lang, $bs) = @$_;
 	$qs = 1 unless defined $qs;
-        $ct = '' unless defined $ct;
 	$bs = 0 unless defined $bs;
-	$lang = lc($lang) if $lang; # lg tags are always case-insensitive
 	if ($DEBUG) {
-	    print "\nEvaluating $id (ct='$ct')\n";
+	    print "\nEvaluating $id ($ct)\n";
 	    printf "  qs   = %.3f\n", $qs;
 	    print  "  enc  = $enc\n"  if $enc && !ref($enc);
 	    print  "  enc  = @$enc\n" if $enc && ref($enc);
@@ -154,7 +141,7 @@ sub choose ($;$)
 	# If the variant's media-type has not charset parameter,
 	# or the variant's charset is US-ASCII, or if no Accept-Charset
 	# field is present, then the value assigned is "qc=1".  If the
-	# variant's charset is listed in the Accept-Charset field,
+	# variantæs charset is listed in the Accept-Charset field,
 	# then the value assigned is "qc=1.  Otherwise, if the variant's
 	# charset is not listed in the provided Accept-Encoding field,
 	# then the value assigned is "qc=0".
@@ -177,26 +164,17 @@ sub choose ($;$)
 		$q = $this_q unless defined $q;
 		$q = $this_q if $this_q > $q;
 	    }
-	    if(defined $q) {
-	        $DEBUG and print " -- Exact language match at q=$q\n";
-	    } else {
+	    unless (defined $q) {
 		# If there was no exact match and at least one of
 		# the Accept-Language field values is a complete
 		# subtag prefix of the content language tag(s), then
 		# the "q" parameter value of the largest matching
 		# prefix is used.
-		$DEBUG and print " -- No exact language match\n";
 		my $selected = undef;
 		for $al (keys %{ $accept{'language'} }) {
-		    if (substr($lang, 0, 1 + length($al)) eq "$al-") {
-		        # $lang starting with $al isn't enough, or else
-		        #  Accept-Language: hu (Hungarian) would seem
-		        #  to accept a document in hup (Hupa)
-		        $DEBUG and print " -- $lang ISA $al\n";
+		    if (substr($lang, 0, length($al)) eq $al) {
 			$selected = $al unless defined $selected;
 			$selected = $al if length($al) > length($selected);
-		    } else {
-		        $DEBUG and print " -- $lang  isn't a $al\n";
 		    }
 		}
 		$q = $accept{'language'}{$selected}{'q'} if $selected;
@@ -280,7 +258,7 @@ sub choose ($;$)
 
 	if ($DEBUG) {
 	    $mbx = "undef" unless defined $mbx;
-	    printf "Q=%.4f", $Q;
+	    printf "Q=%.3f", $Q;
 	    print "  (q=$q, mbx=$mbx, qe=$qe, qc=$qc, ql=$ql, qs=$qs)\n";
 	}
 
@@ -321,7 +299,7 @@ choose - choose a variant of a document to serve (HTTP content negotiation)
 
 =head1 DESCRIPTION
 
-This module provides a complete implementation of the HTTP content
+This module provide a complete implementation of the HTTP content
 negotiation algorithm specified in F<draft-ietf-http-v11-spec-00.ps>
 chapter 12.  Content negotiation allows for the selection of a
 preferred content representation based upon attributes of the
@@ -331,31 +309,32 @@ in the request.
 The variants are ordered by preference by calling the function
 choose().
 
-The first parameter is reference to an array of the variants to
-choose among.
+The first parameter is a description of the variants that we can
+choose among.  The variants are described by a reference to an array.
 Each element in this array is an array with the values [$id, $qs,
 $content_type, $content_encoding, $charset, $content_language,
-$content_length] whose meanings are described
+$content_length].  The meaning of these values are described
 below. The $content_encoding and $content_language can be either a
 single scalar value or an array reference if there are several values.
 
-The second optional parameter is either a HTTP::Headers or a HTTP::Request
-object which is searched for "Accept*" headers.  If this
+The second optional parameter is a reference to the request headers.
+This is used to look for "Accept*" headers.  You can pass a reference
+to either a HTTP::Request or a HTTP::Headers object.  If this
 parameter is missing, then the accept specification is initialized
 from the CGI environment variables HTTP_ACCEPT, HTTP_ACCEPT_CHARSET,
 HTTP_ACCEPT_ENCODING and HTTP_ACCEPT_LANGUAGE.
 
-In an array context, choose() returns a list of [variant
-identifier, calculated quality, size] tuples.  The values are sorted by
+In array context, choose() returns a list of variant
+identifier/calculated quality pairs.  The values are sorted by
 quality, highest quality first.  If the calculated quality is the same
 for two variants, then they are sorted by size (smallest first). I<E.g.>:
 
-  (['var1', 1, 2000], ['var2', 0.3, 512], ['var3', 0.3, 1024]);
+  (['var1' => 1], ['var2', 0.3], ['var3' => 0]);
 
 Note that also zero quality variants are included in the return list
 even if these should never be served to the client.
 
-In a scalar context, it returns the identifier of the variant with the
+In scalar context, it returns the identifier of the variant with the
 highest score or C<undef> if none have non-zero quality.
 
 If the $HTTP::Negotiate::DEBUG variable is set to TRUE, then a lot of
@@ -371,8 +350,8 @@ C<undef> instead.
 
 =item identifier
 
-This is a string that you use as the name for the variant.  This
-identifier for the preferred variants returned by choose().
+This is just some string that you use as a name for the variant.  The
+identifier of the preferred variant is returned by choose().
 
 =item qs
 
@@ -413,8 +392,8 @@ content media type.  The most common content encodings are:
 
 =item content-charset
 
-This is the character set used when the variant contains text.
-The charset value should generally be C<undef> or one of these:
+This is the character set used when the variant contains textual
+content.  The charset value should generally be C<undef> or one of these:
 
   us-ascii
   iso-8859-1 ... iso-8859-9
@@ -433,7 +412,7 @@ language is in this context a natural language spoken, written, or
 otherwise conveyed by human beings for communication of information to
 other human beings.  Computer languages are explicitly excluded.
 
-The language tags are defined by RFC 3066.  Examples
+The language tags are the same as those defined by RFC-1766.  Examples
 are:
 
   no               Norwegian
@@ -499,8 +478,8 @@ Accept-Encoding means that no content encoding is acceptable.  Example:
 
 =item Accept-Language
 
-This field is similar to Accept, but restricts the set of natural
-languages that are preferred in a response.  Each language may be
+This field is similar to Accept, but restrict the set of natural
+languages that are preferred as a response.  Each language may be
 given an associated quality value which represents an estimate of the
 user's comprehension of that language.  For example:
 
@@ -514,13 +493,13 @@ would mean: "I prefer Norwegian, but will accept British English (with
 
 =head1 COPYRIGHT
 
-Copyright 1996,2001 Gisle Aas.
+Copyright 1996, Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
 =head1 AUTHOR
 
-Gisle Aas <gisle@aas.no>
+Gisle Aas <aas@sn.no>
 
 =cut

@@ -3,22 +3,22 @@
 #  File:
 #     report_weblog
 #
-#  Last emacs update Time-stamp: <2003-09-21 21:42:53 winter>
+#  Last emacs update Time-stamp: <1999-12-06 07:39:17 winter>
 #
 #  Description:
 #     See help text below
 #
 #  Author:
-#      Bruce Winter    bruce@misterhouse.net 
+#      Bruce Winter    brucewinter@home.net  http://members.home.net/winters
 #
 #  Latest version:
-#      http://misterhouse.net
+#      http://members.home.net/winters/house/programs
 #
 #  Inspired by: 
 #     http://www.itknowledge.com/tpj/programs/Issue_14/On_The_Fly_Plots/tally_hourly.pl
 #
 #  Requires Gnuplot, available from:
-#     http://www.gnuplot.org
+#     http://www.geocities.com/SiliconValley/Foothills/6647/index.html
 #
 #  Change log:
 #    07/27/99  Created.  CVS log at bottom.
@@ -115,17 +115,14 @@ sub read_data {
 #Sat, Jul 31  9:15 AM server_speak 200.200.200.5
 #Fri, Nov  5  9:39 PM server_speak 200.200.200.5
 #Fri 11/05/99 21:47:48 server_speak 200.200.200.5
-#Sun 09/21/03 20:29:07 192.168.0.81 /ia5/images/wind.gif 
+
                                 # Read Apache log
             my ($client, $day, $hour, $min) = $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):(\d+):\d+ [\d+-]+\]!;
-                                # Alternate form of Apache log
-            ($day, $hour, $min,  $client) = $_ =~ /([a-z|A-Z]*) \d+\/\d+\/\d+(\d+):(\d+):\d+ ([a-z|A-Z|0-9|\.]*)/  unless $client;
                                 # Read Misterhouse log
             unless (defined $hour) {
                 my $ampm;
                 ($day, $hour, $min, $ampm, $client) = $_ =~ m!^\S+, +\S+ +(\d+) +(\d+):(\d+) (\S+) \S+ (\S+)!;
                 ($day, $hour, $min, $ampm, $client) = $_ =~ m!^\S+ +\S+ +(\d+) +(\d+):(\d+):\d+ +\S+ (\S+)! unless $client;
-                ($day, $hour, $min, $client)        = $_ =~ m!^\S+ +\S+ +(\d+):(\d+):\d+ (\S+)! unless $client; # Current format
 #                print "db d=$day h=$hour ap=$ampm m=$min c=$client r=$_\n";
                 $hour += 12 if $ampm eq 'PM' and $hour != 12;
             }
@@ -307,18 +304,6 @@ sub mail_report {
 }
 #
 # $Log$
-# Revision 1.12  2003/11/23 20:25:51  winter
-#  - 2.84 release
-#
-# Revision 1.11  2003/06/01 21:54:40  winter
-#  - 2.81 release
-#
-# Revision 1.10  2000/10/22 16:48:28  winter
-# - 2.32 release
-#
-# Revision 1.9  2000/10/01 23:35:25  winter
-# - 2.29 release
-#
 # Revision 1.8  2000/01/27 13:30:39  winter
 # - update version number
 #

@@ -1,8 +1,10 @@
-# Net::Cmd.pm $Id$
+# Net::Cmd.pm
 #
-# Copyright (c) 1995-1997 Graham Barr <gbarr@pobox.com>. All rights reserved.
+# Copyright (c) 1995-1997 Graham Barr <gbarr@ti.com>. All rights reserved.
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
+
+# 11/27/98 bwinter Comment out cmd->close ... otherwise we loop forever in carp 'unexpected EOF ' message!?!
 
 package Net::Cmd;
 
@@ -12,16 +14,8 @@ require Exporter;
 use strict;
 use vars qw(@ISA @EXPORT $VERSION);
 use Carp;
-use Symbol 'gensym';
 
-BEGIN {
-  if ($^O eq 'os390') {
-    require Convert::EBCDIC;
-#    Convert::EBCDIC->import;
-  }
-}
-
-$VERSION = "2.24";
+$VERSION = "2.0801";
 @ISA     = qw(Exporter);
 @EXPORT  = qw(CMD_INFO CMD_OK CMD_MORE CMD_REJECT CMD_ERROR CMD_PENDING);
 
@@ -33,32 +27,6 @@ sub CMD_ERROR	{ 5 }
 sub CMD_PENDING { 0 }
 
 my %debug = ();
-
-my $tr = $^O eq 'os390' ? Convert::EBCDIC->new() : undef;
-
-sub toebcdic
-{
- my $cmd = shift;
-
- unless (exists ${*$cmd}{'net_cmd_asciipeer'})
-  {
-   my $string = $_[0];
-   my $ebcdicstr = $tr->toebcdic($string);
-   ${*$cmd}{'net_cmd_asciipeer'} = $string !~ /^\d+/ && $ebcdicstr =~ /^\d+/;
-  }
-
-  ${*$cmd}{'net_cmd_asciipeer'}
-    ? $tr->toebcdic($_[0])
-    : $_[0];
-}
-
-sub toascii
-{
-  my $cmd = shift;
-  ${*$cmd}{'net_cmd_asciipeer'}
-    ? $tr->toascii($_[0])
-    : $_[0];
-}
 
 sub _print_isa
 {
@@ -73,6 +41,7 @@ sub _print_isa
  my @do   = ($pkg);
  my %spc = ( $pkg , "");
 
+ print STDERR "\n";
  while ($pkg = shift @do)
   {
    next if defined $done{$pkg};
@@ -84,14 +53,16 @@ sub _print_isa
                 : "";
 
    my $spc = $spc{$pkg};
-   $cmd->debug_print(1,"${spc}${pkg}${v}\n");
+   print STDERR "$cmd: ${spc}${pkg}${v}\n";
 
-   if(@{"${pkg}::ISA"})
+   if(defined @{"${pkg}::ISA"})
     {
      @spc{@{"${pkg}::ISA"}} = ("  " . $spc{$pkg}) x @{"${pkg}::ISA"};
      unshift(@do, @{"${pkg}::ISA"});
     }
   }
+
+ print STDERR "\n";
 }
 
 sub debug
@@ -190,29 +161,14 @@ sub command
 {
  my $cmd = shift;
 
- unless (defined fileno($cmd))
-  {
-    $cmd->set_status("599", "Connection closed");
-    return $cmd;
-  }
-
-
  $cmd->dataend()
-    if(exists ${*$cmd}{'net_cmd_need_crlf'});
+    if(exists ${*$cmd}{'net_cmd_lastch'});
 
  if (scalar(@_))
   {
-   local $SIG{PIPE} = 'IGNORE' unless $^O eq 'MacOS';
+   my $str =  join(" ",@_) . "\015\012";
 
-   my $str =  join(" ", map { /\n/ ? do { my $n = $_; $n =~ tr/\n/ /; $n } : $_; } @_);
-   $str = $cmd->toascii($str) if $tr;
-   $str .= "\015\012";
-
-   my $len = length $str;
-   my $swlen;
-
-   $cmd->close
-	unless (defined($swlen = syswrite($cmd,$str,$len)) && $swlen == $len);
+   syswrite($cmd,$str,length $str);
 
    $cmd->debug_print(1,$str)
 	if($cmd->debug);
@@ -250,15 +206,10 @@ sub getline
  return shift @{${*$cmd}{'net_cmd_lines'}}
     if scalar(@{${*$cmd}{'net_cmd_lines'}});
 
- my $partial = defined(${*$cmd}{'net_cmd_partial'})
-		? ${*$cmd}{'net_cmd_partial'} : "";
- my $fd = fileno($cmd);
-
- return undef
-	unless defined $fd;
+ my $partial = ${*$cmd}{'net_cmd_partial'} || "";
 
  my $rin = "";
- vec($rin,$fd,1) = 1;
+ vec($rin,fileno($cmd),1) = 1;
 
  my $buf;
 
@@ -270,37 +221,33 @@ sub getline
     {
      unless (sysread($cmd, $buf="", 1024))
       {
-       carp(ref($cmd) . ": Unexpected EOF on command channel")
+	  carp ref($cmd) . ": Unexpected EOF on command channel"
 		if $cmd->debug;
-       $cmd->close;
+#      $cmd->close;
        return undef;
       } 
 
      substr($buf,0,0) = $partial;	## prepend from last sysread
 
-     my @buf = split(/\015?\012/, $buf, -1);	## break into lines
+     my @buf = split(/\015?\012/, $buf);	## break into lines
 
-     $partial = pop @buf;
+     $partial = length($buf) == 0 || substr($buf, -1, 1) eq "\012"
+		? ''
+	  	: pop(@buf);
 
-     push(@{${*$cmd}{'net_cmd_lines'}}, map { "$_\n" } @buf);
+     map { $_ .= "\n" } @buf;
+
+     push(@{${*$cmd}{'net_cmd_lines'}},@buf);
 
     }
    else
     {
-     carp("$cmd: Timeout") if($cmd->debug);
+     carp "$cmd: Timeout" if($cmd->debug);
      return undef;
     }
   }
 
  ${*$cmd}{'net_cmd_partial'} = $partial;
-
- if ($tr) 
-  {
-   foreach my $ln (@{${*$cmd}{'net_cmd_lines'}}) 
-    {
-     $ln = $cmd->toebcdic($ln);
-    }
-  }
 
  shift @{${*$cmd}{'net_cmd_lines'}};
 }
@@ -331,9 +278,6 @@ sub response
   {
    my $str = $cmd->getline();
 
-   return CMD_ERROR
-	unless defined($str);
-
    $cmd->debug_print(0,$str)
      if ($cmd->debug);
 
@@ -357,12 +301,11 @@ sub response
 sub read_until_dot
 {
  my $cmd = shift;
- my $fh  = shift;
  my $arr = [];
 
  while(1)
   {
-   my $str = $cmd->getline() or return undef;
+   my $str = $cmd->getline();
 
    $cmd->debug_print(0,$str)
      if ($cmd->debug & 4);
@@ -371,14 +314,7 @@ sub read_until_dot
 
    $str =~ s/^\.\././o;
 
-   if (defined $fh)
-    {
-     print $fh $str;
-    }
-   else
-    {
-     push(@$arr,$str);
-    }
+   push(@$arr,$str);
   }
 
  $arr;
@@ -390,70 +326,6 @@ sub datasend
  my $arr = @_ == 1 && ref($_[0]) ? $_[0] : \@_;
  my $line = join("" ,@$arr);
 
- return 0 unless defined(fileno($cmd));
-
- unless (length $line) {
-   # Even though we are not sending anything, the fact we were
-   # called means that dataend needs to be called before the next
-   # command, which happens of net_cmd_need_crlf exists
-   ${*$cmd}{'net_cmd_need_crlf'} ||= 0;
-   return 1;
- }
-
- if($cmd->debug) {
-   foreach my $b (split(/\n/,$line)) {
-     $cmd->debug_print(1, "$b\n");
-   }
-  }
-
- $line =~ s/\r?\n/\r\n/sg;
- $line =~ tr/\r\n/\015\012/ unless "\r" eq "\015";
-
- $line =~ s/(\012\.)/$1./sog;
- $line =~ s/^\./../ unless ${*$cmd}{'net_cmd_need_crlf'};
-
- ${*$cmd}{'net_cmd_need_crlf'} = substr($line,-1,1) ne "\012";
-
- my $len = length($line);
- my $offset = 0;
- my $win = "";
- vec($win,fileno($cmd),1) = 1;
- my $timeout = $cmd->timeout || undef;
-
- local $SIG{PIPE} = 'IGNORE' unless $^O eq 'MacOS';
-
- while($len)
-  {
-   my $wout;
-   if (select(undef,$wout=$win, undef, $timeout) > 0)
-    {
-     my $w = syswrite($cmd, $line, $len, $offset);
-     unless (defined($w))
-      {
-       carp("$cmd: $!") if $cmd->debug;
-       return undef;
-      }
-     $len -= $w;
-     $offset += $w;
-    }
-   else
-    {
-     carp("$cmd: Timeout") if($cmd->debug);
-     return undef;
-    }
-  }
-
- 1;
-}
-
-sub rawdatasend
-{
- my $cmd = shift;
- my $arr = @_ == 1 && ref($_[0]) ? $_[0] : \@_;
- my $line = join("" ,@$arr);
-
- return 0 unless defined(fileno($cmd));
-
  return 1
     unless length($line);
 
@@ -463,122 +335,49 @@ sub rawdatasend
    print STDERR $b,join("\n$b",split(/\n/,$line)),"\n";
   }
 
- my $len = length($line);
- my $offset = 0;
- my $win = "";
- vec($win,fileno($cmd),1) = 1;
- my $timeout = $cmd->timeout || undef;
+ $line =~ s/\n/\015\012/sgo;
 
- local $SIG{PIPE} = 'IGNORE' unless $^O eq 'MacOS';
- while($len)
-  {
-   my $wout;
-   if (select(undef,$wout=$win, undef, $timeout) > 0)
-    {
-     my $w = syswrite($cmd, $line, $len, $offset);
-     unless (defined($w))
-      {
-       carp("$cmd: $!") if $cmd->debug;
-       return undef;
-      }
-     $len -= $w;
-     $offset += $w;
-    }
-   else
-    {
-     carp("$cmd: Timeout") if($cmd->debug);
-     return undef;
-    }
-  }
+ ${*$cmd}{'net_cmd_lastch'} ||= " ";
+ $line = ${*$cmd}{'net_cmd_lastch'} . $line;
 
- 1;
+ $line =~ s/(\012\.)/$1./sog;
+
+ ${*$cmd}{'net_cmd_lastch'} = substr($line,-1,1);
+
+ my $len = length($line) - 1;
+
+ return $len == 0 ||
+	syswrite($cmd, $line, $len, 1) == $len;
 }
 
 sub dataend
 {
  my $cmd = shift;
 
- return 0 unless defined(fileno($cmd));
-
  return 1
-    unless(exists ${*$cmd}{'net_cmd_need_crlf'});
+    unless(exists ${*$cmd}{'net_cmd_lastch'});
 
- local $SIG{PIPE} = 'IGNORE' unless $^O eq 'MacOS';
- syswrite($cmd,"\015\012",2)
-    if ${*$cmd}{'net_cmd_need_crlf'};
+ if(${*$cmd}{'net_cmd_lastch'} eq "\015")
+  {
+   syswrite($cmd,"\012",1);
+   print STDERR "\n"
+    if($cmd->debug);
+  }
+ elsif(${*$cmd}{'net_cmd_lastch'} ne "\012")
+  {
+   syswrite($cmd,"\015\012",2);
+   print STDERR "\n"
+    if($cmd->debug);
+  }
 
- $cmd->debug_print(1, ".\n")
+ print STDERR "$cmd>>> .\n"
     if($cmd->debug);
 
  syswrite($cmd,".\015\012",3);
 
- delete ${*$cmd}{'net_cmd_need_crlf'};
+ delete ${*$cmd}{'net_cmd_lastch'};
 
  $cmd->response() == CMD_OK;
-}
-
-# read and write to tied filehandle
-sub tied_fh {
-  my $cmd = shift;
-  ${*$cmd}{'net_cmd_readbuf'} = '';
-  my $fh = gensym();
-  tie *$fh,ref($cmd),$cmd;
-  return $fh;
-}
-
-# tie to myself
-sub TIEHANDLE {
-  my $class = shift;
-  my $cmd = shift;
-  return $cmd;
-}
-
-# Tied filehandle read.  Reads requested data length, returning
-# end-of-file when the dot is encountered.
-sub READ {
-  my $cmd = shift;
-  my ($len,$offset) = @_[1,2];
-  return unless exists ${*$cmd}{'net_cmd_readbuf'};
-  my $done = 0;
-  while (!$done and length(${*$cmd}{'net_cmd_readbuf'}) < $len) {
-     ${*$cmd}{'net_cmd_readbuf'} .= $cmd->getline() or return;
-     $done++ if ${*$cmd}{'net_cmd_readbuf'} =~ s/^\.\r?\n\Z//m;
-  }
-
-  $_[0] = '';
-  substr($_[0],$offset+0) = substr(${*$cmd}{'net_cmd_readbuf'},0,$len);
-  substr(${*$cmd}{'net_cmd_readbuf'},0,$len) = '';
-  delete ${*$cmd}{'net_cmd_readbuf'} if $done;
-
-  return length $_[0];
-}
-
-sub READLINE {
-  my $cmd = shift;
-  # in this context, we use the presence of readbuf to
-  # indicate that we have not yet reached the eof
-  return unless exists ${*$cmd}{'net_cmd_readbuf'};
-  my $line = $cmd->getline;
-  return if $line =~ /^\.\r?\n/;
-  $line;
-}
-
-sub PRINT {
-  my $cmd = shift;
-  my ($buf,$len,$offset) = @_;
-  $len    ||= length ($buf);
-  $offset += 0;
-  return unless $cmd->datasend(substr($buf,$offset,$len));
-  ${*$cmd}{'net_cmd_sending'}++;  # flag that we should call dataend()
-  return $len;
-}
-
-sub CLOSE {
-  my $cmd = shift;
-  my $r = exists(${*$cmd}{'net_cmd_sending'}) ? $cmd->dataend : 1; 
-  delete ${*$cmd}{'net_cmd_readbuf'};
-  delete ${*$cmd}{'net_cmd_sending'};
-  $r;
 }
 
 1;
@@ -593,7 +392,7 @@ Net::Cmd - Network Command class (as used by FTP, SMTP etc)
 =head1 SYNOPSIS
 
     use Net::Cmd;
-
+    
     @ISA = qw(Net::Cmd);
 
 =head1 DESCRIPTION
@@ -614,8 +413,10 @@ Set the level of debug information for this object. If C<VALUE> is not given
 then the current state is returned. Otherwise the state is changed to 
 C<VALUE> and the previous state returned. 
 
-Different packages
-may implement different levels of debug but a non-zero value results in 
+Set the level of debug information for this object. If no argument is
+given then the current state is returned. Otherwise the state is
+changed to C<$value>and the previous state returned.  Different packages
+may implement different levels of debug but, a  non-zero value result in
 copies of all commands and responses also being sent to STDERR.
 
 If C<VALUE> is C<undef> then the debug level will be set to the default
@@ -717,11 +518,6 @@ some C<debug_print> calls into your method.
 
 Unget a line of text from the server.
 
-=item rawdatasend ( DATA )
-
-Send data to the remote server without performing any conversions. C<DATA>
-is a scalar.
-
 =item read_until_dot ()
 
 Read data from the remote server until a line consisting of a single '.'.
@@ -729,36 +525,22 @@ Any lines starting with '..' will have one of the '.'s removed.
 
 Returns a reference to a list containing the lines, or I<undef> upon failure.
 
-=item tied_fh ()
-
-Returns a filehandle tied to the Net::Cmd object.  After issuing a
-command, you may read from this filehandle using read() or <>.  The
-filehandle will return EOF when the final dot is encountered.
-Similarly, you may write to the filehandle in order to send data to
-the server after issuing a commmand that expects data to be written.
-
-See the Net::POP3 and Net::SMTP modules for examples of this.
-
 =back
 
 =head1 EXPORTS
 
 C<Net::Cmd> exports six subroutines, five of these, C<CMD_INFO>, C<CMD_OK>,
-C<CMD_MORE>, C<CMD_REJECT> and C<CMD_ERROR>, correspond to possible results
+C<CMD_MORE>, C<CMD_REJECT> and C<CMD_ERROR> ,correspond to possible results
 of C<response> and C<status>. The sixth is C<CMD_PENDING>.
 
 =head1 AUTHOR
 
-Graham Barr <gbarr@pobox.com>
+Graham Barr <gbarr@ti.com>
 
 =head1 COPYRIGHT
 
 Copyright (c) 1995-1997 Graham Barr. All rights reserved.
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
-
-=for html <hr>
-
-I<$Id$>
 
 =cut

@@ -9,9 +9,6 @@
 #    bsobel@vipmail.com
 #    July 19, 2000
 #
-#    Modified for use on ZPR68-10 by lou@montulli.org
-#    Sept 6, 2004
-#    Added a bunch of setstate methods
 #
 
 use strict;
@@ -32,12 +29,8 @@ sub serial_startup
         if (&::serial_port_create('Xantech', $::config_parms{Xantech_serial_port}, $speed, 'none')) 
         {
             init($::Serial_Ports{Xantech}{object}); 
-
-            # Add to the generic list so check_for_generic_serial_data is called for us automatically
-            push(@::Generic_Serial_Ports, 'Xantech');
-
-            &::Reload_pre_add_hook(\&Xantech::reload_reset, 'persistent');
-            &::MainLoop_pre_add_hook(\&Xantech::check_for_data, 'persistent');
+            &::MainLoop_pre_add_hook( \&Xantech::UserCodePreHook,   1);
+            &::MainLoop_post_add_hook( \&Xantech::UserCodePostHook, 1 );
         }
     }
 }
@@ -59,22 +52,21 @@ sub init
     $serial_port->dtr_active(1);		
     $serial_port->rts_active(0);		
     select (undef, undef, undef, .100); 	# Sleep a bit
-    ::print_log "Xantech init\n" if $main::Debug{xantech};
+    ::print_log "Xantech init\n";
 
     $trasnmitok = 1;
 }
 
-sub check_for_data
+sub UserCodePreHook
 {
+    # Check for input from the unit and update the internal objects as needed
+    &::check_for_generic_serial_data('Xantech');
     if (my $data = $::Serial_Ports{Xantech}{data_record}) 
     {
-        $main::Serial_Ports{Xantech}{data_record} = undef;
-        print "Xantech data=$data\n" if $main::Debug{xantech};
-
         my ($f1,$f2,$f3,$f4,$f5,$f6,$f7,$f8,$f9,$f10,$f11,$f12,$f13) = $data =~ /\s*(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)/;
 
-        #        ::print_log "Xantech Data: " . $data . "\n";
-        #        print "Xantech Decode: " . $f1 . $f2 . $f3 . " etc.\n";
+        ::print_log "Xantech Data: " . $data . "\n";
+        print "Xantech Decode: " . $f1 . $f2 . $f3 . " etc.\n";
 
         # Check for numeric response and all 13 fields decoded
         if($f1 > 0 and $f13 ne undef)
@@ -83,19 +75,6 @@ sub check_for_data
             for my $current_zone_object (@xantech_zone_object_list) 
             {
                 next unless $current_zone_object->{zone} == $f1;
-
-                $current_zone_object->set_states_for_next_pass("input:$f2") if($current_zone_object->{current_input} ne $f2);
-                $current_zone_object->set_states_for_next_pass("trim:$f3") if($current_zone_object->{current_trim} ne $f3);
-                $current_zone_object->set_states_for_next_pass("volume:$f4") if($current_zone_object->{current_volume} ne $f4);
-                $current_zone_object->set_states_for_next_pass("presetbalance:$f5") if($current_zone_object->{preset_balance} ne $f5);
-                $current_zone_object->set_states_for_next_pass("balance:$f6") if($current_zone_object->{current_balance} ne $f6);
-                $current_zone_object->set_states_for_next_pass("presettreble:$f7") if($current_zone_object->{preset_treble} ne $f7);
-                $current_zone_object->set_states_for_next_pass("treble:$f8") if($current_zone_object->{current_treble} ne $f8);
-                $current_zone_object->set_states_for_next_pass("presetbass:$f9") if($current_zone_object->{preset_bass} ne $f9);
-                $current_zone_object->set_states_for_next_pass("bass:$f10") if($current_zone_object->{current_bass} ne $f10);            
-                $current_zone_object->set_states_for_next_pass($f11 == 1 ? 'on' : 'off') if($current_zone_object->{current_status} ne $f11);
-                $current_zone_object->set_states_for_next_pass($f12 == 1 ? 'mute:on' : 'mute:off') if($current_zone_object->{current_mute} ne $f12);
-                $current_zone_object->set_states_for_next_pass("maximumvolume:$f13") if($current_zone_object->{maximum_volume} ne $f13);
 
                 # Apply settings for this zone
                 $current_zone_object->{current_input}   = $f2;
@@ -115,12 +94,12 @@ sub check_for_data
     }
 
     # Let's send any pending commands to the unit now.
-    if(@xantech_command_list > 0 && $trasnmitok && !$::Serial_Ports{Xantech}{data})
+    if(@xantech_command_list > 0 && $trasnmitok && !$::Serial_Ports{'Xantech'}{data})
     {
-        if(@xantech_command_list > 0)
+        while(@xantech_command_list > 0)
         {
             (my $output) = shift @xantech_command_list;
-            print "Xantech Output: " .$output . "\n" if($main::Debug{xantech});
+            print "Xantech Output: " .$output . "\n";
             $::Serial_Ports{Xantech}{object}->write($output . "\r");
         }
     }
@@ -133,19 +112,13 @@ sub check_for_data
     }
 }
 
-#sub UserCodePostHook
-#{
-#    #
-#    # Reset data for _now functions
-#    #
-#    $::Serial_Ports{Xantech}{data_record} = '';
-#}
-
-sub reload_reset 
+sub UserCodePostHook
 {
-    #undef @xantech_zone_object_list;
+    #
+    # Reset data for _now functions
+    #
+    $::Serial_Ports{Xantech}{data_record} = '';
 }
-
 
 1;
 
@@ -153,21 +126,12 @@ sub reload_reset
 # Item object version (this lets us use object links and events)
 #
 package Xantech_Zone;
-@Xantech_Zone::ISA = ('Generic_Item');
+
+#@Xantech_Zone::ISA = ('Generic_Item');
 
 sub new 
 {
     my ($class, $zone) = @_;
-
-    # see if this zone is already in the object list
-    # if it is then return the exiting one
-    for my $current_zone_object (@xantech_zone_object_list)
-    {
-       if ($current_zone_object->{zone} == $zone)
-       {
-	  return $current_zone_object;
-       }
-    }
 
     my $self = {zone => $zone};
     bless $self, $class;
@@ -177,7 +141,7 @@ sub new
     #
     # This is data we get from the zone query, default it here and then fill it in
     #
-    $self->{current_input}   = "00";
+    $self->{current_input}   = "01";
     $self->{current_trim}    = "00";
     $self->{current_volume}  = "00";
     $self->{preset_balance}  = "00C";
@@ -201,35 +165,71 @@ sub new
 sub NextInput
 {
     my ($self) = @_;
-    my $Return = $self->{current_input} + 1;
+    my $Return = $self->{current_input}++;
     return $Return > 8 ? 1 : $Return;
 }
 
 sub PrevInput
 {
     my ($self) = @_;
-    my $Return = $self->{current_input} - 1;
+    my $Return = $self->{current_input}--;
     return $Return < 1 ? 8 : $Return;
 }
 
-sub getstate_mute
+sub set
 {
-    my ($self, $substate) = @_;
+    my ($self, $state) = @_;
 
-    return $self->{current_mute};
-}
+    print "Set called: " . $state . "\n";
 
-sub ToggleMute
-{
-    my ($self) = @_;
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
+    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
-    print "mute is : $self" . $self->{current_mute} . "\n";
-    return $self->{current_mute} > 0 ? 'N' : 'Y';
-}
+    my $command;
 
-sub SendCommand()
-{
-    my ($self,$command) = @_;
+    SWITCH: for( $state )
+    {
+        /off/i             && do { $command = "CN"; last SWITCH;};
+        /on/i              && do { $command = sprintf("I%1.1d",$self->{current_input}); last SWITCH;};
+
+        /volume:up/i       && do { $command = "VU"; last SWITCH;};
+        /\Qvolume:+/i      && do { $command = "VU"; last SWITCH;};
+        /up/i              && do { $command = "VU"; last SWITCH;};
+        /\+/i              && do { $command = "VU"; last SWITCH;};
+
+        /volume:down/i     && do { $command = "VD"; last SWITCH;};
+        /\Qvolume:-/i      && do { $command = "VD"; last SWITCH;};
+        /down/i            && do { $command = "VD"; last SWITCH;};
+        /\-/i              && do { $command = "VD"; last SWITCH;};
+
+        /volume:max/i     && do { $command = "V40"; last SWITCH;};
+        /volume:min/i     && do { $command = "V00"; last SWITCH;};
+        /volume:normal/i  && do { $command = "V30"; last SWITCH;};
+
+        /input:next/i      && do { $command = "I" . NextInput(); last SWITCH;};
+        /\Qinput:+/i       && do { $command = "I" . NextInput(); last SWITCH;};
+        /next/i            && do { $command = "I" . NextInput(); last SWITCH;};
+
+        /input:prev/i      && do { $command = "I" . PrevInput(); last SWITCH;};
+        /\Qinput:-/i       && do { $command = "I" . PrevInput(); last SWITCH;};
+        /prev/i            && do { $command = "I" . PrevInput(); last SWITCH;};
+
+        /quiet/i           && do { $command = "QY"; last SWITCH;};
+        /unquiet/i         && do { $command = "QN"; last SWITCH;};
+    }
+
+    my ($target,$param) = $state =~ /\s*(\w+)\s*:*\s*(\d*)/;
+
+    if($command eq undef)
+    {
+        SWITCH: for( $target ) 
+        {
+            /volume/i          && do { $command = sprintf("V%2.2d",$param); last SWITCH;};
+            /input/i           && do { $command = sprintf("I%1.1d",$param); last SWITCH;};
+            /treble/i          && do { $command = sprintf("T%2.2d",$param); last SWITCH;};
+            /bass/i            && do { $command = sprintf("B%2.2d",$param); last SWITCH;};
+        }
+    }
 
     # Queue command
     my $output = "!" . sprintf("%2.2d" , $self->{zone}) . $command . "+";
@@ -238,197 +238,7 @@ sub SendCommand()
     # Queue query for zone settings so object is updated
     $output = "Z" . sprintf("%2.2d" , $self->{zone});
     push(@xantech_command_list, $output);
-}
-
-
-#
-# Set functions...
-#
-
-sub getstate_zone
-{
-    my ($self, $substate) = @_;
-
-    return $self->{zone};
-}
-
-sub setstate_off
-{
-    my ($self, $substate) = @_;
-    print "Xantech received set_off with '$substate' substate\n";
-    $self->SendCommand("CN");
-}
-
-sub setstate_on
-{
-    my ($self, $substate) = @_;
-    print "Xantech received set_on with '$substate' substate\n";
-    $self->SendCommand(sprintf("I%1.1d",$self->{current_input}));
-}
-
-sub setstate_mute
-{
-    my ($self, $substate) = @_;
-    print "Xantech received set_on with '$substate' substate\n";
-    $self->SendCommand("Q" . $self->ToggleMute());
-}
-
-sub setstate_quiet
-{
-    my ($self, $substate) = @_;
-    print "Xantech received set_on with '$substate' substate\n";
-    $self->SendCommand("QY");
-}
-
-sub setstate_unquiet
-{
-    my ($self, $substate) = @_;
-    print "Xantech received set_on with '$substate' substate\n";
-    $self->SendCommand("QN");
-}
-
-sub getstate_volume
-{
-    my ($self, $substate) = @_;
-
-    return $self->{current_volume};
-}
-
-sub setstate_volume
-{
-    my ($self, $substate) = @_;
-    if($substate eq 'up' or $substate eq '+')
-    {
-        $self->SendCommand("LU");
-    }
-    elsif ($substate eq 'down' or $substate eq '-')
-    {
-        $self->SendCommand("LD");
-    }
-    elsif ($substate eq 'max')
-    {
-        $self->SendCommand("V40");
-    }
-    elsif ($substate eq 'min')
-    {
-        $self->SendCommand("V00");
-    }
-    elsif ($substate eq 'normal')
-    {
-        $self->SendCommand("V30");
-    }
-    else
-    {
-        # Presume this is a volume command (check for numeric in substate?)
-        $self->SendCommand(sprintf("V%2.2d",$substate));
-    }
-}
-
-sub setstate_up
-{
-    my ($self, $substate) = @_;
-    $self->set_volume('up');
-}
-
-sub setstate_down
-{
-    my ($self, $substate) = @_;
-    $self->set_volume('up');
-}
-
-sub getstate_input
-{
-    my ($self, $substate) = @_;
-
-    return $self->{current_input};
-}
-
-sub setstate_input
-{
-    my ($self, $substate) = @_;
-    if($substate eq 'next' or $substate eq '+')
-    {
-        $self->SendCommand("I" . $self->NextInput());
-    }
-    elsif ($substate eq 'prev' or $substate eq '-')
-    {
-        $self->SendCommand("I" . $self->PrevInput());
-    }
-    else
-    {
-        $self->SendCommand(sprintf("I%1.1d",$substate));
-    }
-}
-
-sub setstate_next
-{
-    my ($self, $substate) = @_;
-    $self->set_input('next');
-}
-
-sub setstate_prev
-{
-    my ($self, $substate) = @_;
-    $self->set_input('prev');
-}
-
-sub getstate_treble
-{
-    my ($self, $substate) = @_;
-
-    return $self->{current_treble};
-}
-
-sub setstate_treble
-{
-    my ($self, $substate) = @_;
-    $self->SendCommand(sprintf("T%2.2d",$substate));
-}
-sub getstate_bass
-{
-    my ($self, $substate) = @_;
-
-    return $self->{current_bass};
-}
-
-
-sub setstate_bass
-{
-    my ($self, $substate) = @_;
-    $self->SendCommand(sprintf("B%2.2d",$substate));
-}
-
-sub default_setstate
-{
-    my ($self, $state) = @_;
-    if($state eq '+')
-    {
-        $self->set_volume('up');
-    }
-    elsif($state eq '-')
-    {
-        $self->set_volume('down');
-    }
-    else
-    {
-        print "$self unknown state request $state\n";
-    }
-}
-
-sub default_getstate
-{
-    my ($self, $state) = @_;
-    return $self->{state} if $state eq undef;
-    return undef if($self->{zone} == 0);
-
-    if($self->{current_status} == 1)
-    {
-        return 'on';
-    }
-    else
-    {
-        return 'off';
-    }
+    return;
 }
 
 1;

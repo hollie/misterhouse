@@ -1,18 +1,8 @@
 
-# Simple example of sending email on motion:
-
-$motion_sensor1  = new  Serial_Item 'XA1AJ', 'garage';   
-$motion_sensor1 -> add             ('XA2AJ', 'deck');
-$motion_sensor1 -> tie_event('&net_mail_send(subject => "$state motion at $Time_Date")');
-
-# Detects motion from an 2 X10 motion sensors, one on the stairs 
-# and one in the hallway.  
-# A timer is used so it doesn't report more often than once a minute. 
-# Random 'creaky stair' wave files are played.
-
-# Note:  This will not work if you have X10_Item's defined on these
-#        codes, as a XA2AJ will match the X10 item before it
-#        matches the movemen_sensor items
+                                # Detects motion from an 2 X10 motion sensors, one on the stairs 
+                                # and one in the hallway.  
+                                # A timer is used so it doesn't report more often than once a minute. 
+                                # Random 'creaky stair' wave files are played.
 
 $movement_sensor      = new  Serial_Item('XAJ', ON);
 $movement_sensor ->     add             ('XAK', OFF);

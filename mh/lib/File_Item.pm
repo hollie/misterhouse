@@ -5,7 +5,7 @@ package File_Item;
 sub new {
     my ($class, $file) = @_;
     my $self = {file => $file, index => 0};
-    print "Warning, File_Item file does not exist: $file\n\n" if $main::Debug{file} and !-f $file;
+    print "Warning, File_Item file does not exist: $file\n\n" if $main::config_parms{debug} and !-f $file;
     bless $self, $class;
     return $self;
 }
@@ -17,23 +17,13 @@ sub name {
     return $filename;
 }
 
-sub restore_string {
-    my ($self) = @_;
-
-    my $index = $self->{index};
-    my $restore_string = $self->{object_name} . "->{index} = $index" if $index;
-
-    return $restore_string;
-}
-
 sub set_watch {
     my ($self, $flag) = @_;
     my $file = $self->{file};
     $self->{time} = (stat $file)[9];
     $self->{time} = time unless $self->{time}; # In case the file does not exist yet.
     $self->{flag} = $flag;
-    $self->{target} = $main::Respond_Target if $main::Respond_Target; # Pass default target along
-    print "File watch set for $file, flag=$flag. time=$self->{time}\n" if $main::Debug{file};
+    print "File watch set for $file, flag=$flag. time=$self->{time}\n" if $main::config_parms{debug};
 }
 
 sub changed {
@@ -42,7 +32,7 @@ sub changed {
     my $file = $self->{file};
     return 0 unless -e $file;   # Ignore non-existant or deleted files
     if (my $diff = (stat $file)[9] - $self->{time} ) {
-        print "File changed for $file. diff=$diff\n" if $main::Debug{file};
+        print "File changed for $file. diff=$diff\n" if $main::config_parms{debug};
         $self->{time} = 0;      # Reset;
         if ($self->{flag}) {
             return $self->{flag};
@@ -55,28 +45,6 @@ sub changed {
         return 0;
     }
 }
-
-sub exist {
-    my ($self) = @_;
-    my $file = $self->{file};
-    return -e $file;
-}
-
-sub exist_now {
-    my ($self) = @_;
-    my $file = $self->{file};
-    if (-e $file) {
-	unless ($self->{exist}) {
-	    $self->{exist} = 1;
-	    return 1;
-	}
-    }
-    elsif ($self->{exist}) {
-	$self->{exist} = 0;
-    }
-    return 0;
-}
-
 
 sub read_all {
     my ($self) = @_;
@@ -97,7 +65,7 @@ my $file_handle_cnt = 0;
 sub said {
     my ($self) = @_;
 
-    no strict 'refs';           # Because of dynamic handle ref
+    no strict 'refs';           # Because of dynamic handle ref 
                                 # Could/should use object IO package here?
     my $handle = $$self{handle};
     unless ($handle) {
@@ -123,7 +91,7 @@ sub read_random {
     my ($self) = @_;
     my $record;
                                 # Note, random read will write over index
-                                #   ... lets us init to random spots in a file.
+                                #   ... lets us init to random spots in a file. 
     ($record, $$self{index}) = &main::read_record($$self{file}, 'random'); # From handy_utilities.pl
     return $record;
 }
@@ -132,20 +100,9 @@ sub read_next {
     my ($self) = @_;
     my $record;
                                 # If there is no index (e.g. startup), start with a random record.
-    return read_random $self unless defined $$self{index};
+    return read_random $self unless $$self{index};
 
     ($record, $$self{index}) = &main::read_record($$self{file}, $$self{index} + 1);
-    return $record;
-}
-
-sub read_next_tail {
-    my ($self) = @_;
-    my $record;
-    unless(defined $$self{index}) {
-        # If there is no index (e.g. startup), start with the first record
-        $$self{index} = 0;
-    }
-    ($record, $$self{index}) = &main::read_record($$self{file}, $$self{index} + 1, 1);
     return $record;
 }
 
@@ -159,12 +116,7 @@ sub read_current {
     return $record;
 }
 
-                                # This was a bad name for an object method ... perl already uses index!
 sub index {
-	return $_[0]->{index};
-}
-
-sub get_index {
 	return $_[0]->{index};
 }
 
@@ -174,26 +126,3 @@ sub set_index {
 }
 
 1;
-
-
-#
-# $Log$
-# Revision 1.13  2004/09/25 20:01:19  winter
-# *** empty log message ***
-#
-# Revision 1.12  2004/06/06 21:38:44  winter
-# *** empty log message ***
-#
-# Revision 1.11  2003/09/02 02:48:46  winter
-#  - 2.83 release
-#
-# Revision 1.10  2003/02/08 05:29:22  winter
-#  - 2.78 release
-#
-# Revision 1.9  2002/12/24 03:05:08  winter
-# - 2.75 release
-#
-# Revision 1.8  2001/08/12 04:02:58  winter
-# - 2.57 update
-#
-#

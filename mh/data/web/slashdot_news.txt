@@ -1,30 +1,30 @@
-Title: Linuxconf.Au Needs Papers &amp;amp; Join In
-2001-10-28 11:30:23 by Hemos  in dept: i-come-from-a-land-down-under  (106   16)
+Title: Old Atari Design Docs Online
+2000-08-18 08:44:25 by Hemos  in dept: what-the-hell  (games   50)
 
-Title: Be-Alike: BlueOS Uses Linux For Its Kernel
-2001-10-28 07:56:51 by timothy  in dept: must-ipso-facto-half-not-be  (87   72)
+Title: Armed Robot Guards - Sorta
+2000-08-18 04:33:14 by Hemos  in dept: put-your-heads-in-the-air  (tech   213)
 
-Title: Undercover Hacking, For Money
-2001-10-28 03:30:26 by timothy  in dept: nice-work-if-you-can-get-it  (172   153)
+Title: Groening Says The Simpsons Movie Planned
+2000-08-17 23:45:17 by Hemos  in dept: ralph-jesus-does-not-have-wheels  (movies   191)
 
-Title: Sony Uses DCMA To Shut Down Aibo Hack Site
-2001-10-28 01:13:55 by timothy  in dept: what-are-they-thinking  (159   265)
+Title: NASA To Build Laser Space Broom For ISS
+2000-08-17 22:25:20 by Hemos  in dept: fun-with-accelerated-light  (space   175)
 
-Title: Teragrid: Massive Grid Computing
-2001-10-27 22:42:29 by timothy  in dept: pocket-calculator-of-the-future  (134   99)
+Title: Transmeta Files For IPO
+2000-08-17 21:30:19 by Hemos  in dept: it-was-inevitable  (transmeta   142)
 
-Title: OS Emulation Extravaganza, OS X On Down
-2001-10-27 20:34:53 by timothy  in dept: top-this-if-you-have-the-ram  (107   166)
+Title: On Microsoft Porting to Linux/Unix
+2000-08-17 21:23:08 by Hemos  in dept: the-left-hand-knows-not-what-the-right-hand-does  (microsoft   363)
 
-Title: Self-Improving Systems
-2001-10-27 19:03:34 by Hemos  in dept: bigger-better-faster  (156   123)
+Title: Star Wars Episode 2 Title Leaked
+2000-08-17 20:17:41 by Hemos  in dept: but-what-i-wanted-to-go-to-tashi-station!  (starwars   253)
 
-Title: Pot Calls Kettle Censor
-2001-10-27 18:50:00 by jamie  in dept: pass-the-popcorn  (153   155)
+Title: IBM Open Sourcing AFS
+2000-08-17 19:35:41 by Hemos  in dept: opening-it-to-the-world  (ibm   147)
 
-Title: Advanced Filesystem Implementors Guide Continues
-2001-10-27 17:54:48 by timothy  in dept: keeping-track-of-things  (106   53)
+Title: Ask The DeCSS Legal Team
+2000-08-17 18:37:39 by michael  in dept: pro-bono  (news   284)
 
-Title: Making Strategy Games with...Strategy?
-2001-10-27 16:40:00 by Cliff  in dept: doing-away-with-the-RTS-blitz-crap  (127   370)
+Title: DVD/DeCSS: MPAA Wins In New York
+2000-08-17 18:26:30 by michael  in dept: good-guys-finish-last  (doj   653)
 

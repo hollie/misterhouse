@@ -6,7 +6,7 @@ use strict;
 my ($cmd_num);
 my (%cmd_by_num, %cmd_state_by_num, %cmd_num_by_text, %cmd_text_by_num, %cmd_text_by_vocab);
 my (%cmd_word_list, %cmd_vocabs);
-my ($Vcmd_ms, $Vmenu_ms, $Vcmd_viavoice, $Vcmd_sphinx2);
+my ($Vcmd_ms, $Vmenu_ms, $Vcmd_viavoice);
 my ($last_cmd_time, $last_cmd_num, $last_cmd_num_confirm, $last_cmd_flag, $noise_this_pass );
 
 my $confirm_timer = &Timer::new();
@@ -34,13 +34,6 @@ sub init {
         &disablevocab('mh_confirm');
         &mic('on');
     }
-    if ($main::config_parms{voice_cmd} =~ /sphinx2/i) {
-        my $port = $main::config_parms{sphinx2_host} . ':' . $main::config_parms{sphinx2_port};
-        print "Creating Sphinx2 command object on $port\n";
-        #$Vcmd_sphinx2 = new  Socket_Item(undef, undef, 'server_sphinx2');
-        $Vcmd_sphinx2 = new  main::Socket_Item(undef, undef, $port, 'sphinx2');
-		start $Vcmd_sphinx2;
-	}
 
 }
 
@@ -55,7 +48,7 @@ sub reset {
     else {
         undef %cmd_num_by_text;
         undef %cmd_by_num;
-        &remove_voice_cmds;     # Must reload here, or cmd_by_num gets messed up
+#       &remove_voice_cmds;  No need ... only reloading code here
     }
 }
 
@@ -66,7 +59,6 @@ sub is_active {
 sub activate {
     if ($Vcmd_ms) {
         $Vmenu_ms->{Active} = 1;	# Called after all voice commands are added
-#       print "\n\nError in Speech VR object.  ", Win32::OLE->LastError(), "\n\n";
         $Vcmd_ms->{CommandSpoken} = 0;	# In case any lingering command was there
     }
     if ($Vcmd_viavoice) {
@@ -89,15 +81,6 @@ sub activate {
             &disablevocab($vocab);  # Disabled by default
         }
     }
-	if ($Vcmd_sphinx2 and $Vcmd_sphinx2->active){
-		$Vcmd_sphinx2->set('NEWVOCAB');
-		for my $phrase (&voice_items('mh', 'no_category'))
-		{
-            select undef, undef, undef, .001; #Don't know if necessary
-			$Vcmd_sphinx2->set($phrase);
-		}
-		$Vcmd_sphinx2->set('ENDNEWVOCAB');
-	}
 }
 
 sub deactivate {
@@ -125,7 +108,7 @@ sub create_voice_command_object {
         return;
     }
 
-    print "Awakeing speech command.  Currently it is at ", $Vcmd_ms->{Awake}, "\n" if $main::Debug{voice};
+    print "Awakeing speech command.  Currently it is at ", $Vcmd_ms->{Awake}, "\n" if $main::config_parms{debug} eq 'voice';
     $Vcmd_ms->{Awake} = 1;
     return $Vcmd_ms;
 }
@@ -183,10 +166,6 @@ sub check_for_voice_cmd {
 
         $text = substr($text, 1); # Drop the leading 00 byte (not sure why we get that)
 
-                                # Drop the prefix, if present
-        my $prefix  = $main::config_parms{voice_cmd_prefix};
-        $text =~ s/Said: $prefix /Said: / if $prefix;
-
         $noise_this_pass = $text;
 #       ($cmd_heard) = $text =~ /^Said: (.+)/;
         ($cmd_heard) = $text =~ /Said: (.+)/; # Patch from the list ... not sure why this is needed
@@ -229,13 +208,7 @@ sub check_for_voice_cmd {
             }
 
         }
-        print "db vv: n=$number cmd=$cmd_heard text=$text.\n" if $main::Debug{voice};
-    }
-    if ($Vcmd_sphinx2 and my $text = said $Vcmd_sphinx2) {
-	$text =~ s/\n//g;#For some odd reason we get the odd \n stuck here.
-	$cmd_heard = lc $text;
-	$number = $cmd_num_by_text{$cmd_heard};
-        print "db sphinx2: n=$number cmd=$cmd_heard text=$text.\n" if $main::config_parms{debug} eq 'voice';
+        print "db vv: n=$number cmd=$cmd_heard text=$text.\n" if $main::config_parms{debug} eq 'voice';
     }
 
                                 # Set states, if a command was triggered
@@ -245,11 +218,11 @@ sub check_for_voice_cmd {
         $said  = $cmd_state_by_num{$number};
         $cmd = $ref->{text};
         $cmd = 'unknown command' unless $cmd;
-        print "Voice cmd num=$number ref=$ref said=$said cmd=$cmd\n" if $main::Debug{voice};
-        $said  = 1 if !defined $said; # Some Voice_Cmds have blank saids.  But allow for 0 state
+        print "Voice cmd num=$number ref=$ref said=$said cmd=$cmd\n" if $main::config_parms{debug} eq 'voice';
+        $said  = 1 unless defined $said; 
 
                                 # This could be set for either the current or next pass ... next pass is easier
-        &Generic_Item::set_states_for_next_pass($ref, $said, 'vr');
+        &Generic_Item::set_states_for_next_pass($ref, $said);
 #       $ref->{said}  = $said;
 #       $ref->{state} = $said;
 
@@ -260,16 +233,17 @@ sub check_for_voice_cmd {
 
                                 # Echo command response
         my $response = $cmd_by_num{$number}->{response};
-        $response = $main::config_parms{voice_cmd_response} unless defined $response;
         if (defined $response) {
                                 # Allow for something like: 'Ok, I turned it %STATE%'
             $response =~ s/%STATE%/$said/g;
-            $response =~ s/%HEARD%/$cmd_heard/g;
                                 # Allow for something like: 'Ok, I turned it $v_indoor_fountain->{said}'
             package main;       # Avoid having to prefix vars with main::
             eval "\$response  = qq[$response]";
             package Voice_Cmd;
             &main::speak($response) if $response;
+        }
+        else {
+            &main::speak("I heard " . $cmd_heard) if $cmd_heard;
         }
 
 
@@ -279,17 +253,9 @@ sub check_for_voice_cmd {
                                 # This will set voice items for the NEXT pass ... do not want it active
                                 # for the current pass, because we do not know where we are in the user code loop
 sub set {
-    my ($self, $state, $set_by, $no_log, $respond) = @_;
-    $set_by = 'unknown' unless $set_by;
-    if ($$self{disabled}) {
-        &main::print_log("Disabled command not run: $self->{text_by_state}{$state}");
-        return;
-    }
-    return if &main::check_for_tied_filters($self, $state);
-    $respond = $main::Respond_Target unless $respond; # Pass default target along
-    &Generic_Item::set_states_for_next_pass($self, $state, $set_by, $respond);
-    &main::print_log("Running: $self->{text_by_state}{$state}") unless $no_log;
-    print "db1 set voice cmd $self to $state set_by=$set_by r=$respond\n" if $main::Debug{voice};
+    my ($self, $state) = @_;
+    &Generic_Item::set_states_for_next_pass($self, $state);
+    print "db1 set voice cmd $self to $state\n" if $main::config_parms{debug} eq 'voice';
 }
 
 sub remove_voice_cmds {
@@ -298,7 +264,7 @@ sub remove_voice_cmds {
         $Vmenu_ms->{Active} = 0;
         my ($vitems_removed, $number);
         $vitems_removed = 0;
-        print "Removing MS voice items ... ";
+        print "Removing voice items ... ";
         foreach $number (keys %cmd_by_num) {
             $Vmenu_ms->Remove($number);
             $vitems_removed++;
@@ -308,7 +274,7 @@ sub remove_voice_cmds {
         print "$vitems_removed voice command were removed\n";
     }
     if ($Vcmd_viavoice) {
-        print "Undefineing the misterhouse viavoice vocabulary ... ";
+        print "Undefineing the misterhouse viavoice vocabulary\n";
         &mic('off');
         $Vcmd_viavoice->set("undefinevocab");
         select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
@@ -316,8 +282,8 @@ sub remove_voice_cmds {
         select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
         undef %cmd_by_num;
         undef %cmd_num_by_text;
-        print "done\n";
     }
+
 }
 
 #    $Vmenu_ms->{Active} = 0;
@@ -339,16 +305,11 @@ sub voice_item_by_text {
 }
 
 sub voice_items {
-    my ($vocab, $list) = @_;
+    my ($vocab) = @_;
 
     $vocab = 'mh' unless $vocab; # Default
 
-#   my @cmd_list = sort {$cmd_num_by_text{$a} <=> $cmd_num_by_text{$b}} keys %cmd_num_by_text;
-    my @cmd_list =                                                      keys %cmd_num_by_text;
-
-    if ($list and $list eq 'no_category') {
-        return @cmd_list;
-    }
+    my @cmd_list = sort {$cmd_num_by_text{$a} <=> $cmd_num_by_text{$b}} keys %cmd_num_by_text;
                                 # Add the filename to the list, so we can do better grep searches
     my @cmd_list2;
     for my $cmd (@cmd_list) {
@@ -356,20 +317,14 @@ sub voice_items {
         next unless $vocab eq $vocab_cmd;
 #       my $filename  = $ref->{filename};
         my $category  = $ref->{category};
-        $category = '' unless $category; # Avoid unint warning
         push(@cmd_list2, "$category: $cmd");
     }
-    return sort {uc $a cmp uc $b} @cmd_list2;
+    return @cmd_list2;
 }
-
 
 sub new {
     my ($class, $text, $response, $confirm, $vocab) = @_;
     $vocab = 'mh' unless $vocab; # default
-
-                                # Avoid ? ... they are a pain in html and vxml
-    $text =~ s/\?//g;
-
     my $self = {text => $text, response => $response, confirm => $confirm, vocab => $vocab, state => ''};
     &_register($self);
     bless $self, $class;
@@ -395,7 +350,7 @@ sub _register {
         my ($l, $m, $r) = ($1, $2, $3);
         print "Warning, unmatched brackets in Voice_Cmd text: text=$text l=$l m=$m r=$r\n" if
             $l and !$r or !$l and $r;
-        @{$data[$i]{text}} = ($l) ? split(/ *, */, $m, 999) : ($m);
+        @{$data[$i]{text}} = ($l) ? split(',', $m) : ($m);
         $data[$i]{last}    = scalar @{$data[$i]{text}} - 1;
         if ($l eq '[') {
             print "Warning, more than one [] state bracket in Voice_Cmd text: i=$i l=$l r=$r text=$text\n" if $index_state;
@@ -414,22 +369,16 @@ sub _register {
             $data[$j]{index} = 0 unless $data[$j]{index};
             $cmd .= $data[$j]{text}[$data[$j]{index}];
         }
-        $cmd =~ s/ +/ /g;       # Delete double blanks so 'set {the,} light on' works
-
         my $state = $data[$index_state]{text}[$data[$index_state]{index}] if defined $index_state;
 
                                 # These commands have no real states ... there is no enumeration
                                 #  - avoid saving the whole name as state.  Too much for state_log displays
-                                # Leave state=0 alone!
-        $state = 1 if !defined $state or $state eq '' or $state eq $text;
+        $state = 1 if !$state or $state eq $cmd;
 
         my $cmd_num = &_register2($self, $cmd, $vocab, $description);
-        $self->{text_by_state}{$state} = $cmd;
         $cmd_state_by_num{$cmd_num} = $state;
 
-        $self->{disabled} = 1 if $main::Disabled_Commands{lc $cmd};
-
-	    print "cmd_num=$cmd_num cmd=$cmd state=$state\n" if $main::Debug{voice};
+#	    print "cmd_num=$cmd_num cmd=$cmd state=$state\n";
         last if &_increment_indexes > $index_last;
     }
 }
@@ -477,13 +426,13 @@ sub _increment_indexes {
 sub _register2 {
     my($self, $text, $vocab, $des) = @_;
     $text = &_clean_text_string($text);
-    push(@{$self->{texts}}, $text); # e.g. tellme_menu.pl
+    push(@{$self->{texts}}, $text);
 
                                 # With viavoice, only add at startup or when adding a new command
                                 #  - point to new Voice_Cmd object pointer
     if ($Vcmd_viavoice and $cmd_num_by_text{$text}) {
         $cmd_by_num{$cmd_num_by_text{$text}} = $self;
-        return $cmd_num_by_text{$text};
+        return;
     }
 
 #   return $cmd_num_by_text{$text} if $cmd_num_by_text{$text};
@@ -492,32 +441,28 @@ sub _register2 {
         my $cmd = $cmd_by_num{$cmd_num_by_text{$text}};
         print "\n\nWarning, duplicate Voice_Cmd Text: $text   Cmd: $$cmd{text}\n\n";
     }
-    print "db cmd=$cmd_num text=$text vocab=$vocab.\n" if $main::Debug{voice};
+    print "db cmd=$cmd_num text=$text vocab=$vocab.\n" if $main::config_parms{debug} eq 'voice';
 
 #   $cmd_file_by_text{$main::item_file_name} = $cmd_num;	# Yuck!
 #   if ($Vmenu_ms and $Vmenu_ms->Add($cmd_num, $text, $vocab, $des)) {
 
-                                # Allow for a prefix word
-    my $prefix  = $main::config_parms{voice_cmd_prefix};
-    my $text_vr = ($prefix) ? "$prefix $text" : $text;
-
                                 # Always re-add the ms voice cmd
     if ($Vmenu_ms) {
 #	    print "Voice cmd num=$cmd_num text=$text v=$vocab des=$des\n";
-        $Vmenu_ms->Add($cmd_num, $text_vr, $vocab, $des) if $text;
+        $Vmenu_ms->Add($cmd_num, $text, $vocab, $des) if $text;
         print Win32::OLE->LastError() if Win32::OLE->LastError(0);
     }
                                 # If it is not in the default vocabulary, save it and add it later
     if ($Vcmd_viavoice and $Vcmd_viavoice->active) {
         if ($vocab eq '' or $vocab eq 'mh') {
-            $Vcmd_viavoice->set($text_vr);
-                                # We need beter handshaking here ... not a delay!
-            select undef, undef, undef, .0002; # Need this for now to avoid viavoice_server 'no data' error
-#           select undef, undef, undef, .0001; # Need this for now to avoid viavoice_server 'no data' error
+            $Vcmd_viavoice->set($text);
+            select undef, undef, undef, .01; # Need this for now to avoid viavoice_server 'no data' error
         }
         else {
-            push(@{$cmd_text_by_vocab{$vocab}}, $text_vr);
+            push(@{$cmd_text_by_vocab{$vocab}}, $text);
         }
+                                # We need beter handshaking here ... not a delay!
+#       select undef, undef, undef, .05;
     }
 
     $cmd_num_by_text{$text} = $cmd_num;
@@ -581,14 +526,12 @@ sub mic {
         &main::print_log("Error, Voice_Cmd::mic must be set to on or off: $state");
         return;
     }
-    select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set("mic" . $state);
 }
 
 sub definevocab {
     return unless $Vcmd_viavoice;
     my($vocab, @phrases) = @_;
-    select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set("definevocab");
     select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set($vocab);
@@ -603,12 +546,12 @@ sub addtovocab {
     return unless $Vcmd_viavoice;
     my($vocab, @phrases) = @_;
     $Vcmd_viavoice->set("addtovocab");
-    select undef, undef, undef, .5; # Need this for now to avoid viavoice_server 'no data' error
+    select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set($vocab);
     for my $phrase (@phrases) {
         $Vcmd_viavoice->set($phrase);
-        select undef, undef, undef, .001; # Need this for now to avoid viavoice_server 'no data' error
     }
+    select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set('');
 }
 sub enablevocab {
@@ -635,78 +578,6 @@ sub disablevocab {
 
 #
 # $Log$
-# Revision 1.47  2004/07/18 22:16:37  winter
-# *** empty log message ***
-#
-# Revision 1.46  2003/11/23 20:26:01  winter
-#  - 2.84 release
-#
-# Revision 1.45  2003/07/06 17:55:11  winter
-#  - 2.82 release
-#
-# Revision 1.44  2003/04/20 21:44:08  winter
-#  - 2.80 release
-#
-# Revision 1.43  2003/03/09 19:34:41  winter
-#  - 2.79 release
-#
-# Revision 1.42  2003/02/08 05:29:24  winter
-#  - 2.78 release
-#
-# Revision 1.41  2003/01/12 20:39:20  winter
-#  - 2.76 release
-#
-# Revision 1.40  2002/12/24 03:05:08  winter
-# - 2.75 release
-#
-# Revision 1.39  2002/03/31 18:50:39  winter
-# - 2.66 release
-#
-# Revision 1.38  2002/03/02 02:36:51  winter
-# - 2.65 release
-#
-# Revision 1.37  2002/01/23 01:50:33  winter
-# - 2.64 release
-#
-# Revision 1.36  2002/01/19 21:11:12  winter
-# - 2.63 release
-#
-# Revision 1.35  2001/12/16 21:48:41  winter
-# - 2.62 release
-#
-# Revision 1.34  2001/11/18 22:51:43  winter
-# - 2.61 release
-#
-# Revision 1.33  2001/10/21 01:22:32  winter
-# - 2.60 release
-#
-# Revision 1.32  2001/05/28 21:14:38  winter
-# - 2.52 release
-#
-# Revision 1.31  2001/04/15 16:17:21  winter
-# - 2.49 release
-#
-# Revision 1.30  2001/03/24 18:08:38  winter
-# - 2.47 release
-#
-# Revision 1.29  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 1.28  2001/01/20 17:47:50  winter
-# - 2.41 release
-#
-# Revision 1.27  2000/12/21 18:54:15  winter
-# - 2.38 release
-#
-# Revision 1.26  2000/12/03 19:38:55  winter
-# - 2.36 release
-#
-# Revision 1.25  2000/10/22 16:48:29  winter
-# - 2.32 release
-#
-# Revision 1.24  2000/09/09 21:19:11  winter
-# - 2.28 release
-#
 # Revision 1.23  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

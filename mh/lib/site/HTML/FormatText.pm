@@ -54,11 +54,7 @@ Gisle Aas <aas@sn.no>
 use strict;
 use vars qw(@ISA $VERSION);
 
-                                # Make sure we override any local Formatter with our modified one
-                                #   - the default one does not look into tables
-#equire HTML::Formatter;
-require "../lib/site/HTML/Formatter.pm";
-
+require HTML::Formatter;
 @ISA = qw(HTML::Formatter);
 
 $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);

@@ -1,7 +1,5 @@
 
-# Category = Test
-
-#@ Test stuff :)
+# Category=Other
 
                                 # These 2 vars are general purpose test vars, used by various
                                 # sections of this testbed code member.
@@ -11,7 +9,7 @@
 my $test_input1;
 &tk_entry('Test 1 (a..z)', \$test_input1, "Test 2", \$Save{test_input2});
 my $test_label = 'Test out:';
-#&tk_label(\$test_label, \$Save{test_output});
+&tk_label(\$test_label, \$Save{test_output});
 
 if ($state = $test_input1) {
 
@@ -54,7 +52,7 @@ if ($state = $test_input1) {
                                 # Note: This will set test_output widget
         speak 'running tk_entry';
         @ARGV = (\$Save{test_output}, "Enter test output data:");
-        do "tk_entry";
+        do "$Pgm_PathU/tk_entry";
     }
                                 # Test str2time
     elsif ($state eq 'h') {
@@ -104,12 +102,12 @@ if ($state = $test_input1) {
         my @ip_address = get_ip_address($Save{test_input2});
         print_log "IP address for $Save{test_input2}: @ip_address";
     }
-                                # This is windows only for now
+                                # This experimental volume control module does not work for me :(
     elsif ($state eq 'n') {
         print_log "Testing volume control";
-#        play(file => "hello_from_bruce.wav", volume => '20%');
-        speak 'volume=100 Hello from Mr. Bruce';
-#        speak volume => 5, text => 'Hello from Mr. Bruce';
+        play(file => "hello_from_bruce.wav");
+        &Win32::SoundEx::auxSetVolumeAll(0x00010001);
+        play(file => "hello_from_bruce.wav");
     }
                                 # Test Setupsup sendkeys
                                 #  - documentaion is in mh/site/Win32/setupsup.html
@@ -139,18 +137,18 @@ if ($state = $test_input1) {
     }
     elsif ($state eq 'q') {
 #       my $test_light_1 = new X10_Item('A1', 'CM17');
-#        my $test_light_1 = new X10_Item('A3');
-#        print "db in test_stuff tl=$test_light_1, ref=", ref $test_light_1, ".\n";
-#        $state = (ON eq state $test_light_1) ? OFF : ON;
-#        print_log "Setting X10 test light 1 to $state";
-#        set $test_light_1 $state;
+        my $test_light_1 = new X10_Item('A3');
+        print "db in test_stuff tl=$test_light_1, ref=", ref $test_light_1, ".\n";
+        $state = (ON eq state $test_light_1) ? OFF : ON;
+        print_log "Setting X10 test light 1 to $state";
+        set $test_light_1 $state;
     }
-#    elsif ($state eq 'r') {
-#        my $test_light_2 = new X10_Item('D5', 'CM11');
-#        print_log "Setting X10 test light 2 to $state";
-#        $state = (ON eq state $test_light_2) ? OFF : ON;
-#        set $test_light_2 $state;
-#    }
+    elsif ($state eq 'r') {
+        my $test_light_2 = new X10_Item('D5', 'CM11');
+        print_log "Setting X10 test light 2 to $state";
+        $state = (ON eq state $test_light_2) ? OFF : ON;
+        set $test_light_2 $state;
+    }
     elsif ($state eq 's') {
         run 'mplayer.exe /play /close c:\win98\media\canyon.mid';
 #        print "Last change:" . (state_log $camera_light)[0] . ".\n";
@@ -163,21 +161,6 @@ if ($state = $test_input1) {
 #       print_log "date=$Date_Now year=$Year time=$Time_Now";
 #       print_log "The camera light is " . state $camera_light;
 #       print time_date_stamp(13) . "\n";
-    }
-    elsif ($state eq 't') {
-        print "Log running display jpg gif test";
-		display "$config_parms{html_dir}/graphics/funny_face.gif";
-		display "$config_parms{html_dir}/graphics/funny_face.jpg";
-    }
-    elsif ($state eq 'u') {
-
-#        set_with_timer $watchdog_light '10%', 3;
-        print_log ("hi bruce\n" x 100);
-
-#        my $rc = net_ftp(file => 'c:/junk1.txt', file_remote => 'incoming/junk1.txt',
-#                         command => 'put', server => 'misterhouse.net',
-#                         user => 'anonymous', password => 'bruce@misterhouse.net');
-#        print_log "net_ftp delete results: $rc";
     }
 
                                 # If we recognized the state, reset it
@@ -203,13 +186,5 @@ if ($Save{test_input2} =~ /load (\S+)/) {
     print "eval results: $@\n";
 }
 
-
-$toggle_gd = new Voice_Cmd 'Toggle GD on/off';
-
-if (said $toggle_gd) {
-    $Info{module_GD} = ($Info{module_GD}) ? 0 : 1;
-    print_log "GD toggled to $Info{module_GD}";
-}
- 
 
 

@@ -26,8 +26,8 @@ There is only one method provided:
 =item _elem($elem [, $val])
 
 Internal method to get/set the value of member variable
-C<$elem>. If C<$val> is present it is used as the new value
-for the member variable.  If it is not present the current
+C<$elem>. If C<$val> is defined it is used as the new value
+for the member variable.  If it is undefined the current
 value is not touched. In both cases the previous value of
 the member variable is returned.
 
@@ -37,10 +37,9 @@ the member variable is returned.
 
 sub _elem
 {
-    my $self = shift;
-    my $elem = shift;
+    my($self, $elem, $val) = @_;
     my $old = $self->{$elem};
-    $self->{$elem} = shift if @_;
+    $self->{$elem} = $val if defined $val;
     return $old;
 }
 

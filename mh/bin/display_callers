@@ -78,8 +78,6 @@ sub setup {
     require 'handy_utilities.pl';       # For read_mh_opts funcion
     &main::read_mh_opts(\%config_parms, $Pgm_Path);
 
-    use Time::ParseDate;
-
     $dir = "$config_parms{data_dir}/phone";
 
 #   use DB_File;  # neede for ocmpiled version??
@@ -113,7 +111,7 @@ sub setup {
         $MW->bind('<Control-c>' => \&my_exit);  
         
         $MW->configure(-bg => 'white');  
-#       $MW->optionAdd('*font' => 'systemfixed');  
+        $MW->optionAdd('*font' => 'systemfixed');  
 
         @pl1 = qw/-expand yes -fill both -side top  -padx 2/;  
         @pl2 = qw/-expand yes -fill both -side left -padx 2/;  
@@ -188,9 +186,6 @@ sub read_dbm_file {
         $dbm_name_by_number{$number} = $name; 
 
         $count++; 
-        $calls{dbm}{$count}{calls} = sprintf("%04d", $calls);
-        $calls{dbm}{$count}{date}  = sprintf("last=%010d calls=%4d", parsedate($date), $calls); 
-
         $calls{dbm}{$count}{'# calls'} = sprintf("%04d", $calls); # Since we do not have a sortable date here, sort on number of calls. 
         $calls{dbm}{$count}{time_date} = sprintf("last=%s calls=%4d", $date, $calls); 
         $calls{dbm}{$count}{number} = $number; 
@@ -224,12 +219,8 @@ sub read_in_call_log {
 
 #Tue, Nov  2  6:46 PM 507-252-8619 SPENCER DARYL
 #Mon 04/14/97 14:28:00 
-
-#Sat 12/15/01 17:37:51 507-281-3888 name=TACINELLI JOHN  data=###DATE12151737...NMBR5072813888...NAMETACINELLI JOHN +++ line=W
      
-            my($time_date, $number, $name) = $_ =~ /(.+?)(\d\d\d\-?\d\d\d\-?\d\d\d\d) (.+)$/;
-            my ($line) = $_ =~ /line=(.+?)/; # Optional ... which incoming line
-            $name =~ s/^name=//;
+            my($time_date, $number, $name) = $_ =~ /(.+?)(\d\d\d\-\d\d\d\-\d\d\d\d) (.+)$/; 
         
                                 # Deal with "private, 'out of area', and bad data" calls 
             unless ($name) { 
@@ -247,16 +238,13 @@ sub read_in_call_log {
                     $name = "  " . substr($_, 21); 
                 } 
             } 
-            $time_date =~ s/ +$//;
-            $name =~ s/data=.+//;
-            $name =~ s/line=.+//;
         
 #          $name =~ s/[\r\n]+$//; # Delete carrage return 
 
             my $name2 = $callerid_name_by_number{$number};
             $name2 = $name unless $name2;
             
-#           my $number_name = sprintf("$line %-12s %s", $number, $name2); 
+            my $number_name = sprintf("%-12s %s", $number, $name2); 
             
             $count++; 
 #           $calls{out}{$count}{date}     =&ParseDate($time_date); # For sorting by date .... MUCH too slow  :( 
@@ -264,11 +252,9 @@ sub read_in_call_log {
             $calls{in}{$count}{time_date}   = $time_date; 
             $calls{in}{$count}{number} = $number; 
             $calls{in}{$count}{name}   = $name; 
-            $calls{in}{$count}{name2}  = $name2; 
-            $calls{in}{$count}{line}   = $line;  
+            $calls{in}{$count}{name2}   = $name2; 
             
         } 
-        close DATA;
     }
 }
 
@@ -314,9 +300,8 @@ sub read_out_call_log {
             $calls{out}{$count}{time_date}   = $time_date; 
             $calls{out}{$count}{number} = $number; 
             $calls{out}{$count}{name}   = $name; 
-            $calls{out}{$count}{name2}  = $name2; 
+            $calls{out}{$count}{name2}   = $name2; 
         } 
-        close DATA;
     } 
 }
 #10:28 AM Sat, Dec 27 O2 
@@ -421,7 +406,7 @@ sub phone_list {
 
         my $search_label = $search_frame->Label(-text => "Search:")->pack(-side => 'left');  
 
-        my $search_entry = $search_frame->Entry(-textvariable => \$search_var, -width => 10)->pack;  
+        my $search_entry = $search_frame->Entry(-textvariable => \$search_var, width => 10)->pack;  
         $search_entry -> bind('<Return>', sub { &search_data($search_var) } );
     }
 
@@ -429,12 +414,12 @@ sub phone_list {
     my $log = $ptr->Scrolled(qw/Text -state normal -width 60 -height 15 -scrollbars e -bg cyan/)->pack(@pl2); 
     $info{$class}{window} = $log; 
 
-    for my $button (qw/name number date calls/) { 
-        my $button2 = $button;
-        $button2 = '# calls' if $class eq 'dbm' and $button eq 'date';
-        $frame->Radiobutton(-text => "Sort by $button",   -variable => \$info{$class}{sort},
-                            -relief => 'flat', -value => $button, 
-                            -command => [\&sort_data, $class])->pack(@pl3); 
+    my $button; 
+    for $button (qw/name number date/) { 
+        $button = '# calls' if $class eq 'dbm' and $button eq 'date';
+        $frame->Radiobutton(text => "Sort by $button",   variable => \$info{$class}{sort},
+                            relief => 'flat', value => $button, 
+                            command => [\&sort_data, $class])->pack(@pl3); 
     } 
     
     &sort_data($class); 
@@ -516,9 +501,8 @@ sub sort_data {
     my $rec; 
     for $rec (sort {$calls{$class}{$b}{$sort_by} cmp $calls{$class}{$a}{$sort_by}} keys %{$calls{$class}}) { 
         $count++; 
-        $data .= sprintf("%s %s %-12s %s\n",  
+        $data .= sprintf("%20s %-12s %s\n",  
                          $calls{$class}{$rec}{time_date}, 
-                         $calls{$class}{$rec}{line}, 
                          $calls{$class}{$rec}{number}, 
                          $calls{$class}{$rec}{name2}); 
     } 
@@ -588,24 +572,6 @@ sub phone_list2 {
 
 #
 # $Log$
-# Revision 1.22  2003/11/23 20:25:50  winter
-#  - 2.84 release
-#
-# Revision 1.21  2003/03/09 19:34:31  winter
-#  - 2.79 release
-#
-# Revision 1.20  2003/02/08 05:29:07  winter
-#  - 2.78 release
-#
-# Revision 1.19  2002/12/24 03:05:04  winter
-# - 2.75 release
-#
-# Revision 1.18  2001/12/16 21:48:40  winter
-# - 2.62 release
-#
-# Revision 1.17  2001/08/12 04:02:57  winter
-# - 2.57 update
-#
 # Revision 1.16  2000/01/27 13:21:37  winter
 # - update version number
 #

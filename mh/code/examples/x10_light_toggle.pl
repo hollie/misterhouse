@@ -1,11 +1,10 @@
 
-$backyard_light       = new X10_Item('C4');
+$backyard_light      = new X10_Item('C4');
 $toggle_backyard_light= new Serial_Item('XM5');
 
 if (state_now $toggle_backyard_light) {
-#   $state = (ON eq state $backyard_light) ? OFF : ON;
-#   set $backyard_light $state;
-    set $backyard_light TOGGLE;
+    $state = (ON eq state $backyard_light) ? OFF : ON;
+    set $backyard_light $state;
     speak("The backyard light was toggled to $state");
 }
 

@@ -15,7 +15,7 @@ use strict;
 
 use vars qw($VERSION);
 
-$VERSION = 99.062401;
+$VERSION = 97.011701;
 
 sub tz2zone
 {
@@ -63,9 +63,9 @@ sub tz_local_offset
 
 	$time = time() unless $time;
 	my (@l) = localtime($time);
-	my $isdst = $l[8] || 0;
+	my $isdst = $l[8];
 
-	if (@Timezone::tz_local && defined($Timezone::tz_local[$isdst])) {
+	if (defined($Timezone::tz_local[$isdst])) {
 		return $Timezone::tz_local[$isdst];
 	}
 

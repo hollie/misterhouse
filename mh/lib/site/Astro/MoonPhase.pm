@@ -289,9 +289,7 @@ sub phasehunt {
 	my $sdate = jtime(shift || time());
 	my ($adate, $k1, $k2, $nt1, $nt2);
 
-#	$adate = $sdate - 45;
-	$adate = $sdate - $Synmonth; # bbw change ... otherwise we get previous month
-
+	$adate = $sdate - 45;
 	$nt1 = meanphase($adate, 0.0, \$k1);
 	while (1) {
 		$adate += $Synmonth;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2002-12-21 22:57:24 winter>
+#  Last change Time-stamp: <2000-04-12 21:42:58 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      outlook_read
@@ -66,7 +66,7 @@ a mh code file to implement calendar events.
   Options:
     -help    -> help text
 
-    -version xyz -> Use 98 if you have Outlook 98, otherwise leave do not use.
+    -version xyz -> Version of Outlook.  Use 98 if you have Outlook 98.
 
     -quiet       -> do not echo data to STDOUT
     -debug       -> print out debug
@@ -108,15 +108,13 @@ my($items);                     # Globals
 
 sub setup {
                                 # Use EVENTS to run OLE as a single-threaded apartment, so MAPI.Session works
-    use Win32::OLE qw(valof EVENTS);
-    use Win32::OLE::Variant;    # Simply including this somehow auto-converts $start and $end times from Win32::OLE::Variant objects ?
+    use Win32::OLE qw(EVENTS);
 
     require 'handy_utilities.pl'; # For misc. functions (e.g. time/date stamp routines)
 
                                 # Apparently the 97 way also works for Outlook 2000, so let that be the default.
-#   $parms{version} = '97' unless $parms{version};
-#   $parms{version} = '97' if $parms{version} eq '2000';
-    $parms{version} = '97' if $parms{version} ne '98';
+    $parms{version} = '97' unless $parms{version};
+    $parms{version} = '97' if $parms{version} eq '2000';
 
                                 # O97 data, commented out, from help on "Outlook Constants" in  Z:\VALUPACK\MOREHELP\Vbaoutl.hlp
                                 # O98 data, from http://www.cdolive.com/cdo10.htm 
@@ -130,9 +128,7 @@ sub setup {
                       Contacts=> 10,
                       Journal => 11,
                       Notes =>   12,
-                      Tasks =>   13,
-                      Calendar2=>13,
-                      Draft =>   16)
+                      Tasks =>   13);
     }
     else {
         %ol_folder = (Deleted => 4,
@@ -154,7 +150,7 @@ sub setup {
     $parms{date_end} = $parms{date} unless $parms{date_end};
     $parms{date_end} = &time_date_stamp(11, time + 3600*24*$parms{days}) if $parms{days};
 
-    print "Searching $parms{folder} num=$folder_number: Start: $parms{date}  Stop: $parms{date_end}\n" unless $parms{quiet};
+    print "Searching $parms{folder} num=$folder_number: Start: $parms{date}  Stop: $parms{date_end}\n\n" unless $parms{quiet};
 
     my ($Outlook, $folder);
     if ($parms{version} eq '97') {
@@ -185,8 +181,6 @@ sub setup {
    
     open (PL, ">$parms{pl_file}") or die "Error, could not open PL_File $parms{pl_file} for output: $!\n" if $parms{pl_file};
     
-    print PL "\n#@ Auto-generated from bin/outlook_read\n\n";
-
 }
 
 sub find_items {
@@ -195,7 +189,7 @@ sub find_items {
     if ($parms{version} eq '97') {
         my $criteria;
         if ($parms{folder} eq 'Calendar') {
-            $criteria = qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
+            my $criteria = qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
         }
         $item = $items->Find($criteria); 
         print "item=$item items=$items  crit=$criteria\n" if $parms{debug};
@@ -215,9 +209,8 @@ sub find_items {
 
         my ($start, $end);
         if ($parms{version} eq '97') {
-            $start = valof $item->{Start};
-            $end   = valof $item->End;
-#           print "db end=", $end->Date("M'/'d'/'yyyy"), "\n";
+            $start = $item->Start;
+            $end   = $item->End;
         }
         else {
             $start = $item->StartTime;
@@ -227,7 +220,7 @@ sub find_items {
         $start =~ s/\:\d\d / /;
         $end   =~ s/\:\d\d / /;
         
-        printf ("start=%-20s end=%-20s  subject=%s\n", $start, $end, $subject) unless $parms{quiet};
+        printf ("start=%15s end=%15s   subject=%s\n\n", $start, $end, $subject) unless $parms{quiet};
 
         if (my($channel, $show) = $subject =~ /^ *vcr +(\d+) +(.+)/i) {
             &create_vcr_event($start, $end, $channel, $show);
@@ -311,24 +304,6 @@ __END__
 
 #
 # $Log$
-# Revision 1.11  2002/12/24 03:05:04  winter
-# - 2.75 release
-#
-# Revision 1.10  2002/09/22 01:33:22  winter
-# - 2.71 release
-#
-# Revision 1.9  2001/10/21 01:22:31  winter
-# - 2.60 release
-#
-# Revision 1.8  2001/09/23 19:26:53  winter
-# - 2.59 release
-#
-# Revision 1.7  2000/12/21 18:54:14  winter
-# - 2.38 release
-#
-# Revision 1.6  2000/10/01 23:35:25  winter
-# - 2.29 release
-#
 # Revision 1.5  2000/05/06 16:39:05  winter
 # - 2.15 release
 #

@@ -17,16 +17,25 @@
 <!--#include code="&web_func2"-->
 
 <p>This is an example of generating html on the fly using cgi .pl programs
-<!--#include file="/test/test1.pl?argument1&argument2"-->
+<!--#include file="/test/test1.pl"-->
 
-<p> Test list:last_response?group
-<!--#include file="/list:last_response?Group"-->
+<p> Test list?group
+<!--#include file="/list?Group"-->
 
 <p> Test widget labels
 <!--#include file="/widgets_label?"-->
 
 <p> Test widget buttons
 <!--#include file="/widgets_radiobutton?"-->
+
+<p>This is an example of running a command using RUN with html reponse of 'last_displayed'
+
+   &function(arg): The results of &function(arg) will be returned
+   last_displayed: The last displayed text will be returned
+   last_spoken:    The last spoken item will be returned
+   filexyz.html:   The contents of filexyz.html will be returned
+   string:         string will be returned
+   blank:          A list of recently spoken text will be returned
 
 <p>Various RUN examples with different html response options
 <li><a href=http://localhost:8080/RUN?what_time_is_it>What time is it -- default(last_spoken)</a>
@@ -35,8 +44,8 @@
 <li><a href=http://localhost:8080/RUN:/graphics/SQGIRL12.JPG?what_time_is_it>What time is it -- file_return</a>
 <li><a href=http://localhost:8080/RUN:last_displayed?Display_the_next_deep_thought>Deep Thought -- last_displayed</a>
 
-<p>This is an example of a form input using SET.  Input 'a-z' (try f).
-<form action="SET:your_data_was_submited">
+<p>This is an example of a form input using SET_VAR.  Input 'a-z' (try f).
+<form action="SET_VAR:your_data_was_submited">
 Test 1:<INPUT SIZE=5 NAME="$Save{test_input1}">
 <input type="submit" value="Submit">
 </form>

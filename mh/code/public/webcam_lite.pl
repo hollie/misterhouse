@@ -1,12 +1,11 @@
-# From Michael Dahms mdahms@carolina.rr.com
+
+# From Mems <mems@bellsouth.net>
 #
 # He has a webcam site set up at:
-#  http://home.carolina.rr.com/blondy/webcam/Sindex.html
+#  http://personal.mem.bellsouth.net/mem/m/e/mems/wcl.html
 #
-# I use mh to allow visitors to flash the light on webcam  and type in voice
-# messages for the TTS system
-
-# Use with mh/web/public/webcam_lite.html
+# I uses mh to allow visitors to flash lights and type in messages
+# for the TTS system
 
 # Category=WebCam
 

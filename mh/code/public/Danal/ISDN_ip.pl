@@ -45,8 +45,6 @@ if (done_now $p_ISDN_addr) {
     # Pick next four table data elements as name/address pairs
     my ($n1, $n2, $a1, $a2) = $text =~ /(?:<td>)(.*?)(?:<\/td>)(?:.*?)(?:<td>)(.*?)(?:<\/td>)(?:.*?)(?:<td>)(.*?)(?:<\/td>)(?:.*?)(?:<td>)(.*?)(?:<\/td>)(?:.*?)/s;
 
-    $n1 = 'No Call' if !$n1;
-    $n2 = 'No Call' if !$n2;
     file_write($f_ISDN_addr, "$n1=$a1, $n2=$a2");
 
     display($f_ISDN_addr);

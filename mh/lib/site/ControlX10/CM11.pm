@@ -8,16 +8,15 @@ package ControlX10::CM11;
 #
 #-----------------------------------------------------------------------------
 use strict;
-use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $POWER_RESET);
+use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 require Exporter;
 
 @ISA = qw(Exporter);
-@EXPORT= qw( send_cm11 receive_cm11 read_cm11 dim_decode_cm11 ping_cm11);
+@EXPORT= qw( send_cm11 receive_cm11 read_cm11 dim_decode_cm11 );
 @EXPORT_OK= qw();
 %EXPORT_TAGS = (FUNC    => [qw( send_cm11   receive_cm11
-				read_cm11   dim_decode_cm11
- 				ping_cm11 )]);
+                                read_cm11   dim_decode_cm11 )]);
 
 Exporter::export_ok_tags('FUNC');
 
@@ -49,12 +48,6 @@ sub dim_decode_cm11 {
     return ControlX10::CM11::dim_level_decode ( shift );
 }
 
-sub ping_cm11 {
-    return unless ( 1 == @_ );
-    return ControlX10::CM11::ping ( shift );
-}
-
-
                                 # These tables are used in sending data
 my %table_hcodes  = qw(A 0110  B 1110  C 0010  D 1010  E 0001  F 1001  G 0101  H 1101
                        I 0111  J 1111  K 0011  L 1011  M 0000  N 1000  O 0100  P 1100);
@@ -62,15 +55,15 @@ my %table_dcodes  = qw(1 0110  2 1110  3 0010  4 1010  5 0001  6 1001  7 0101  8
                        9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
                        A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
 my %table_fcodes  = qw(J 0010  K 0011  M 0100  L 0101  O 0001  P 0000
-                       ALL_OFF 0000  ALL_ON  0001  ON 0010 OFF 0011 DIM 0100 BRIGHT 0101
-                       -10 0100 -20 0100 -30 0100 -40 0100
+                       ALL_OFF 0000  ALL_ON  0001  ON 0010 OFF 0011 DIM 0100 BRIGHT 0101 
+                       -10 0100 -20 0100 -30 0100 -40 0100 
                        -15 0100 -25 0100 -35 0100 -45 0100 -5  0100
-                       -50 0100 -60 0100 -70 0100 -80 0100 -90 0100
-                       -55 0100 -65 0100 -75 0100 -85 0100 -95 0100 -100 0100
-                       +10 0101 +20 0101 +30 0101 +40 0101
+                       -50 0100 -60 0100 -70 0100 -80 0100 -90 0100 
+                       -55 0100 -65 0100 -75 0100 -85 0100 -95 0100 
+                       +10 0101 +20 0101 +30 0101 +40 0101 
                        +15 0101 +25 0101 +35 0101 +45 0101 +5  0101
                        +50 0101 +60 0101 +70 0101 +80 0101 +90 0101
-                       +55 0101 +65 0101 +75 0101 +85 0101 +95 0101 +100 0101
+                       +55 0101 +65 0101 +75 0101 +85 0101 +95 0101
                        ALL_LIGHTS_OFF 0110 EXTENDED_CODE 0111 HAIL_REQUEST 1000 HAIL_ACK 1001
                        PRESET_DIM1 1010 PRESET_DIM2 1011 EXTENDED_DATA 1100
                        STATUS_ON 1101 STATUS_OFF 1110 STATUS 1111);
@@ -81,9 +74,7 @@ my %table_hcodes2 = qw(0110 A  1110 B  0010 C  1010 D  0001 E  1001 F  0101 G  1
                        0111 I  1111 J  0011 K  1011 L  0000 M  1000 N  0100 O  1100 P);
 my %table_dcodes2 = qw(0110 1  1110 2  0010 3  1010 4  0001 5  1001 6  0101 7  1101 8
                        0111 9  1111 A  0011 B  1011 C  0000 D  1000 E  0100 F  1100 G);
-                                # Yikes!  L and M are swapped!   If we fix it here, we also
-                                # have to fix it elsewhere (maybe only in bin/mh, $f_code test)
-my %table_fcodes2 = qw(0010 J  0011 K  0100 L  0101 M  0001 O  0000 P
+my %table_fcodes2 = qw(0010 J  0011 K  0100 L  0101 M  0001 O  0000 P 
                        0111 Z 1010 PRESET_DIM1 1011 PRESET_DIM2
                        1101 STATUS_ON   1110 STATUS_OFF 1111 STATUS);
 
@@ -91,8 +82,8 @@ my %table_fcodes2 = qw(0010 J  0011 K  0100 L  0101 M  0001 O  0000 P
 sub receive_buffer {
     my ($serial_port) = @_;
 
-    if (exists $main::Debug{x10}) {
-        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
+    if (exists $main::config_parms{debug}) {
+        $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
     }
 
     my $pc_ready = pack('C', 0xc3);
@@ -104,9 +95,9 @@ sub receive_buffer {
     #   - increase from 40 to 80, based on other CM11s.
     select undef, undef, undef, 80 / 1000;
 
-    my $data;
-    return undef unless $data = &read($serial_port, 1);
 
+    my $data;
+    return undef unless $data = &read($serial_port, 1); 
 #   my $data = &read($serial_port);
 
     my @bytes = split //, $data;
@@ -123,7 +114,7 @@ sub receive_buffer {
 
     undef $data;
     foreach my $byte (@bytes) {
-              # Send extended data into MH as untranslated hex.
+              # Send extended data into MH as untranslated hex.           
         if ($extended_count) {
            $data .= unpack('H*', $byte);
            --$extended_count;
@@ -182,27 +173,31 @@ sub format_data {
 #    xyz      for Function codes, including +-## for bright/dim
 
                                 # Test for extended code
-                                #  - format is &P## where ## is the preset dim level
-    if (my($extended_data) = $code =~ /&P(\d+)/) {
+                                #  - format is D&P## where D is device code and ## is the preset dim level
+    if (my($dcode, $extended_data) = $code =~ /(\S)&P(\d+)/) {
+        unless ($code_bits = $table_dcodes{$dcode}) {
+            print "CM11 error, invalid device in extended code.  device=$dcode code=$code\n";
+            return;
+        }
         unless (($extended_data >= 0) && ($extended_data < 65)) {
             print "CM11 error, invalid extended code. code=$code\n";
             return;
         }
         $code_bits = '0111';    # Extended code
+#       print "db cb=$code_bits\n";
         $function = '1';        # Extended transmitions are a function
         $extended = '1';
         $dim_level = 0;         # Dim level is not applicable to extended transmitions.
 
-                                # Hard codeded preset for now ...
+                                # Hard codeded preset for now ... 
 
-                                # This is not documented!!  By looking at
-                                # ActiveHome errata, it seems the device code is required
-                                #  - $Last_Dcode is a hack ... assume previous selected device.
-        my $extended_device = '0000' . $table_dcodes{$Last_Dcode};
+        my $extended_junk = '00000101'; # This is not documented, so I have no idea why it is needed! 
+                                        # Emperically derived by looking at ActiveHome errata.
+
         my $extended_code = '00110001'; # Type=3 => Control Modules  Func=1 => Preset Receiver
 
                                 # Convert from bit to string
-        my $b3 = pack('B8', $extended_device);
+        my $b3 = pack('B8', $extended_junk);
         my $b4 = pack('C1', $extended_data);
         my $b5 = pack('B8', $extended_code);
         $extended_string = $b3 . $b4 . $b5;
@@ -210,11 +205,11 @@ sub format_data {
         my $b4c = unpack('C', $b4);
         my $b5c = unpack('C', $b5);
         $extended_checksum = $b3c + $b4c + $b5c;
-        if ($DEBUG) {
+	if ($DEBUG) {
             printf "CM11 ed=%d, b345=0x%0.2x,0x%0.2x,0x%0.2x ex=%s cs=0x%0.2x\n",
-            $extended_data, $b3c, $b4c, $b5c, $extended_string,
-            $extended_checksum;
-        }
+	    $extended_data, $b3c, $b4c, $b5c, $extended_string,
+	    $extended_checksum;
+	}
     }
                                 # Test for device code
     elsif ($code_bits = $table_dcodes{$code}) {
@@ -228,7 +223,7 @@ sub format_data {
         $function = '1';
         $extended = '0';
         if ($code eq 'DIM' or $code eq 'M' or $code eq 'BRIGHT' or $code eq 'L') {
-            $dim_level = 34;    # Lets default to 3 bight/dims to go full swing
+            $dim_level = 50;
         }
         elsif ($code =~ /^[+-]\d\d$/) {
             $dim_level = abs($code);
@@ -248,7 +243,7 @@ sub format_data {
     $header .= '1';             # Bit 2 is always set to a 1 to ensure synchronization
     $header .= $function;       # 0 for address,  1 for function
     $header .= $extended;       # 0 for standard, 1 for extended transmition
-
+    
                                 # Convert from bit to string
     my $b1 = pack('B8', $header);
     my $b2 = pack('B8', $house_bits . $code_bits);
@@ -266,18 +261,19 @@ sub format_data {
     }
 
     printf("CM11 dim=$dim header=$header hb=$house_bits cb=$code_bits " .
-           "bd=0x%0.2x,0x%0.2x checksum=0x%0.2x\n",
+           "bd=0x%0.2x,0x%0.2x checksum=0x%0.2x\n", 
            $b1d, $b2d, $checksum) if $DEBUG;
 
     return $data, $checksum;
-
-}
+    
+}    
 
 sub send {
     my ($serial_port, $house_code) = @_;
 
-    if (exists $main::Debug{x10}) {
-        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
+    if (exists $main::config_parms{debug}) {
+        $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
+#       &Win32::SerialPort::debug(1) if $DEBUG;
     }
 
     my ($data_snd, $checksum) = &format_data($house_code);
@@ -291,9 +287,7 @@ sub send {
 
                                 # Note: Skip the power fail check, because we the
                                 # checksum might be the power fail flag (0xa5)
-    my $data_rcv = &read($serial_port, 0, 1);
-#   my $data_rcv;
-#   return unless $data_rcv = &read($serial_port, 0, 1);
+    my $data_rcv = &read($serial_port, 0, 1); 
 
     my $data_d = unpack('C', $data_rcv);
 
@@ -314,7 +308,7 @@ sub send {
     my $pc_ok    = pack('C', 0x00);
     print "Bad cm11 acknowledge send transmition\n" unless 1 == $serial_port->write($pc_ok);
 
-    return unless $data_rcv = &read($serial_port);
+    $data_rcv = &read($serial_port);
     $data_d = unpack('C', $data_rcv);
 
     if ($data_d == 0x55) {
@@ -327,18 +321,22 @@ sub send {
         goto RETRY if $retry_cnt++ < 3;
     }
 
+    if (exists $main::config_parms{debug}) {
+#       &Win32::SerialPort::debug(0) if $DEBUG;
+    }
+
     return $data_d;
 }
 
 sub read {
     my ($serial_port, $no_block, $no_power_fail_check) = @_;
     my $data;
-                                # Note ... for dim commands > 30, this will time out after 30*50=1.5 seconds
+                                # Note ... for dim commands > 20, this will time out after 20*40=1 seconds 
                                 # No harm done, but we would rather not wait :)
-    my $tries = ($no_block) ? 1 : 30;
+    my $tries = ($no_block) ? 1 : 20;
 
-    if (exists $main::Debug{x10}) {
-        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
+    if (exists $main::config_parms{debug}) {
+        $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
     }
 
     while ($tries--) {
@@ -355,10 +353,47 @@ sub read {
                                 #  - Protocol.txt says to send macros string, but that did not work.
             if ($data_d == 165 and !$no_power_fail_check) {
 
-                print "\nCM11 power fail detected.";
-                &setClock($serial_port);
-                                  # We can use this to detect a power failure
-                $POWER_RESET = 1; # The user code will be responsible for reseting this
+#55 to 48   timer download header (0x9b)
+#47 to 40   Current time (seconds)
+#39 to 32   Current time (minutes ranging from 0 to 119)
+#31 to 23   Current time (hours/2, ranging from 0 to 11)
+#23 to 16   Current year day (bits 0 to 7)
+#15 Current year day (bit 8)
+#14 to 8        Day mask (SMTWTFS)
+#7 to 4     Monitored house code
+#3      Reserved
+#2      Battery timer clear flag
+#1      Monitored status clear flag
+#0      Timer purge flag
+
+                my ($Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday) = localtime time;
+                my $localtime = localtime time;
+                $Wday = 2 ** (7 - $Wday);
+                if ($Yday > 255) {
+                    $Yday -= 256;
+                    $Wday *= 2;
+                }
+                my $power_reset = pack('C7', 0x9b, 
+                                       $Second,
+                                       $Minute,
+                                       $Hour,  
+                                       $Yday,  
+                                       $Wday,
+                                       0x03);    # Not sure what is best here.  x10d.c did this.
+            
+                print "\nCM11 power fail detected.  Resetting the CM11 clock with:\n $localtime\n";
+                my $results = $serial_port->write($power_reset);
+                select undef, undef, undef, 50 / 1000;
+                my $checksum = $serial_port->input; # Receive, but ignore, checksum
+		if ($DEBUG) {
+                    printf "\npower_reset: %s %s %s %s %s %s %s\n",
+			unpack ('H2H2H2H2H2H2H2', $power_reset);
+                    print "  sent $results bytes\n";
+                    printf "  checksum = %x\n", ord($checksum);
+		}
+                my $pc_ok = pack('C', 0x00);
+                print "Bad cm11 checksum acknowledge\n" unless 1 == $serial_port->write($pc_ok);
+#                undef $data;
             }
 
             return $data;
@@ -367,7 +402,7 @@ sub read {
         else {
             $serial_port->reset_error;
         }
-
+        
         if ($tries) {
             select undef, undef, undef, 50 / 1000;
         }
@@ -386,8 +421,8 @@ sub dim_level_decode {
                           9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
                           A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
 
-    if (exists $main::Debug{x10}) {
-        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
+    if (exists $main::config_parms{debug}) {
+        $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
     }
 
                                 # Convert bit string to decimal
@@ -401,156 +436,6 @@ sub dim_level_decode {
     print "CM11 debug: dim_code=$code leveld=$level_d level_p=$level_p\n" if $DEBUG;
     return $level_p;
 }
-
-
-sub reset_cm11 {
-    return unless ( 1 == @_ ) ; # requires port number to reset
-    &enable_RI ( @_ );
-    &setClock ( @_ );
-}
-
-                                # This currently gets bad checksums :(
-                                # On windows, it gives Parity Errors.
-sub enable_RI {
-    my ($serial_port) = @_;
-    my $ri_on = 0xeb;
-    my $ack  = 0x00;
-    my $done = 0x55;
-    my $checksum;
-
-                                # Send RI Enable code to CM11
-    $serial_port->input;
-    $serial_port->write(pack('C',$ri_on));
-    do {
-        $checksum = $serial_port->input;
-    } until $checksum;
-
-    if ( $checksum ne pack('C',$ri_on) ) {
-        print "Checksum error in enabling RI: ", unpack('H2',$checksum),"\n";
-        return $checksum;
-    }
-
-                                # Tell the CM11 to do it
-    $serial_port->write(pack('C',$ack));
-
-    do {
-        $checksum = $serial_port->input;
-    } until $checksum;
-
-    if ( $checksum ne pack('C',$done) ) {
-        print "CM11 failed to properly acknowledge execution of RI_Enable\n";
-    }
-    return $checksum;
-}
-
-#55 to 48   timer download header (0x9b)
-#47 to 40   Current time (seconds)
-#39 to 32   Current time (minutes ranging from 0 to 119)
-#31 to 23   Current time (hours/2, ranging from 0 to 11)
-#23 to 16   Current year day (bits 0 to 7)
-#15 Current year day (bit 8)
-#14 to 8        Day mask (SMTWTFS)
-#7 to 4     Monitored house code
-#3      Reserved
-#2      Battery timer clear flag
-#1      Monitored status clear flag
-#0      Timer purge flag
-
-sub setClock {
-    my ($serial_port) = @_;
-#   $DEBUG=1;
-    my ($Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday) = localtime time;
-    my $localtime = localtime time;
-    print "Reseting time with: $localtime\n" if $DEBUG;
-#    $Wday = 2 ** (7 - $Wday);
-#    if ($Yday > 255) {
-#        $Yday -= 256;
-#        $Wday *= 2;
-#    }
-    # Manipulate Minutes to be 0 - 119 (2 hours) and Hours to be 0 - 11
-    $Minute += (($Hour % 2) * 60);
-    $Hour /= 2;
-    # Must do some weird packing of data for Yday and Wday fields.
-    my $Yday1 = $Yday % 256;        # mantisa of Yday
-    my $Yday2 = ($Yday / 256) << 7; # Radius of Yday shifted over 7 bits
-    my $Dmask = 0x01 << $Wday;      # Day mask of SMTWTFS
-    $Yday2 |= $Dmask;            # OR the two fields together to get one
-    my $CodeF = 0x06 << 4;          # Put "A" housecode in upper nibble
-    $CodeF |= 0x07;              # Put 0b0111 in lower nibble (battery,monitor, & timer cleared)
-    my $power_reset = pack('C7',
-                           0x9b,
-                           $Second,
-                           $Minute,
-                           $Hour,
-                           $Yday1,
-                           $Yday2,
-                           $CodeF);
-#                           $Wday,
-#                           0x03);    # Not sure what is best here.  x10d.c did this.
-
-    my $results = $serial_port->write($power_reset);
-    select undef, undef, undef, 50 / 1000;
-    my $checksum = $serial_port->input; # Receive, but ignore, checksum
-    if ($DEBUG) {
-        printf "\npower_reset: %s %s %s %s %s %s %s\n",
-        unpack ('H2H2H2H2H2H2H2', $power_reset);
-        print "  sent $results bytes\n";
-        printf "  checksum = %x\n", ord($checksum);
-    }
-    my $pc_ok = pack('C', 0x00);
-    print "Bad cm11 checksum acknowledge\n" unless 1 == $serial_port->write($pc_ok);
-}
-
-sub ping {
-    my ($serial_port) = @_;
-    my $ri_on = 0xeb;
-    my $ack   = 0x00;
-    my $done  = 0x55;
-    my $checksum;
-    my $counter;
-    my $maxcounter = 10000;
-
-    # Send RI Enable code to CM11
-    $serial_port->write(pack('C',$ri_on));
-
-    $counter = 0;
-    do {
-        $checksum = $serial_port->input;
-        $counter++;
-    } until (($checksum) || ($counter == $maxcounter));
-
-    return 0 if ($counter == $maxcounter);
-
-    print "cm11::ping - checksum: got: 0x", unpack('H2',$checksum),"\n" if $DEBUG;
-
-    if (($checksum ne pack('C',$ri_on)) && $DEBUG) {
-        print "cm11::ping checksum: expected 0x",unpack('H2',pack('C',$ri_on)),". got: 0x", unpack('H2',$checksum),")\n";
-    }
-
-    # 0x5a is sent by the CM11 if it has data waiting.  If we get this then the CM11 is obviously alive.
-    if ($checksum eq pack('C',0x5a)) {
-        print "cm11::ping - cm11 has data waiting!\n" if $DEBUG;
-        return 1;
-    }
-
-    $serial_port->write(pack('C',$ack));
-
-    $counter = 0;
-    do {
-        $checksum = $serial_port->input;
-        $counter++;
-    } until (($checksum) || ($counter == $maxcounter));
-
-    print "cm11::ping - checksum: got: 0x", unpack('H2',$checksum),"\n" if $DEBUG;
-
-    if (($checksum ne pack('C',$done)) && $DEBUG) {
-        print "cm11::ping - checksum: expected 0x",unpack('H2',pack('C',$done)),". got: 0x", unpack('H2',$checksum),")\n";
-    }
-
-    print "cm11::ping - counter=$counter\n" if $DEBUG;
-    return 1;
-}
-
 
 return 1;           # for require
 __END__
@@ -633,18 +518,17 @@ to a specific brightness level using a Preset Dim extended code.
 The 64 extended X10 Preset Dim codes are commanded by appending C<&##> to
 the unit address where C<##> is a number between 1 and 63.
 
-  ControlX10::CM11::send($serial_port,'A5');   # Address A5
-  ControlX10::CM11::send($serial_port,'A&P16'); # Dim to 25%
+  ControlX10::CM11::send($serial_port,'A5&P16'); # Dim A5 to 25%
 
 A partial translation list for the most important levels:
 
-    &P##     %      &P##     %      &P##     %
-      0   0      13  20      44  70
-      1   2      16  25      47  75
-      2   4      19  30      50  80
-      3   5      25  40      57  90
-      6  10      31  50      61  95
-      9  15      38  60      63 100
+	&P##	 %		&P##	 %		&P##	 %
+	  0	  0		 13	 20		 44	 70
+	  1	  2		 16	 25		 47	 75
+	  2	  4		 19	 30		 50	 80
+	  3	  5		 25	 40		 57	 90
+	  6	 10		 31	 50		 61	 95
+	  9	 15		 38	 60		 63	100
 
 There is another set of Preset Dim commands that are used by some modules
 (e.g. the RCS TX15 thermostat). These 32 non-extended Preset Dim codes can
@@ -733,7 +617,7 @@ may be received from a CM11 and will be properly decoded.
            45    AF        95    P8
 
 =back
-
+    
 =head1 EXPORTS
 
 The B<send_cm11>, B<receive_cm11>, B<read_cm11>, and B<dim_decode_cm11>
@@ -794,36 +678,6 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
-# Revision 2.22  2004/09/25 20:01:20  winter
-# *** empty log message ***
-#
-# Revision 2.21  2004/06/06 21:38:44  winter
-# *** empty log message ***
-#
-# Revision 2.20  2003/12/22 00:25:06  winter
-#  - 2.86 release
-#
-# Revision 2.19  2003/11/23 20:26:02  winter
-#  - 2.84 release
-#
-# Revision 2.18  2003/03/09 19:34:42  winter
-#  - 2.79 release
-#
-# Revision 2.17  2002/11/10 01:59:57  winter
-# - 2.73 release
-#
-# Revision 2.16  2002/03/02 02:36:51  winter
-# - 2.65 release
-#
-# Revision 2.15  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 2.14  2001/01/20 17:47:50  winter
-# - 2.41 release
-#
-# Revision 2.13  2000/10/01 23:29:41  winter
-# - 2.29 release
-#
 # Revision 2.12  2000/08/19 01:25:09  winter
 # - 2.27 release
 #

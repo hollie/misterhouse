@@ -76,8 +76,7 @@ $parms{method} = 'socket' unless $parms{method};
 $parms{ignore} = 10 unless defined $parms{ignore};
 my ($data_logged, $data_returned);
 
-open (LOG,  ">>$parms{log}")    or print "Warning, could not open log file $parms{log}: $!\n";
-open (LOG2, ">$parms{log}.txt") or print "Warning, could not open log file $parms{log}.txt: $!\n";
+open (LOG, ">>$parms{log}") or print "Warning, could not open log file $parms{log}: $!\n";
 
 print "Requesting the time from $parms{server} using $parms{method} method\n";
 
@@ -136,9 +135,7 @@ if (defined $sec) {
         $data_logged = "System clock NOT adjusted because difference of $min_diff minutes > $parms{ignore} minutes (-ignore parm)";
         print $data_logged, "\n";
         printf(LOG "%s %02d:%02d:%02d  %s\n", $date, $old_hour, $old_min, $old_sec, $data_logged);
-        print LOG2 $data_logged;
         close LOG;
-        close LOG2;
         return $data_logged if caller;
         exit;
     }
@@ -163,18 +160,11 @@ if (defined $sec) {
         if ($^O eq "MSWin32") {
             $rc=system("time $time_new");
         }
-        elsif ($^O eq 'freebsd') {
-            $rc=system("date -f %H:%M:%S '$time_new'");
-        }
-        elsif ($^O eq 'solaris' ) {
-            print "Slowly adjusting $sec_diff seconds.\n";
-            $rc=system("date -a  $sec_diff");
-        }
         else {
             $rc=system("date -s '$time_new'");
         }
         if ($rc) {
-            $data_logged = "System clock NOT adjusted due to time command error. rc=$rc.";
+            $data_logged = "System clock NOT adjusted due to time command error.";
         }
         else {
             $data_logged = "System clock adjusted.";
@@ -191,11 +181,8 @@ else {
     $data_returned = "System clock not adjusted due to an internet error";
 }
 
-print LOG2 $data_returned;
 close LOG;
-close LOG2;
 return $data_returned if caller;
-
 
 __END__
 

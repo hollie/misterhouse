@@ -24,27 +24,22 @@ sub serial_item_by_id {
 
 sub new {
     my ($class, $id, $state, $port_name) = @_;
-#   my $self = {state => undef}; # Use undef ... '' will return as defined
-    my $self  = $class->SUPER::new();
-
+    my $self = {state => ''};
 #   print "\n\nWarning: duplicate ID codes on different Serial_Item objects:\n " .
 #         "id=$id state=$state states=@{${$serial_item_by_id{$id}}{states}}\n\n" if $serial_item_by_id{$id};
     $$self{port_name} = $port_name;
     &add($self, $id, $state);
     bless $self, $class;
     $self->set_interface($port_name) if $id and $id =~ /^X/;
-    $self->state_overload('off'); # By default, do not process ~;: strings as substate/multistate
     return $self;
 }
 sub add {
     my ($self, $id, $state) = @_;
-
                                 # Allow for Serial_Item's without states
-#   $state = 'default_state' unless defined $state;
-    $state = $id  unless defined $state;
+    $state = 'default_state' unless defined $state;
 
-    $$self{state_by_id}{$id} = $state if defined $id;
-    $$self{id_by_state}{$state} = $id if defined $state;
+    $$self{state_by_id}{$id} = $state if $id;
+    $$self{id_by_state}{$state} = $id;
     push(@{$$self{states}}, $state);
     push(@{$serial_items_by_id{$id}}, $self) if $id;
 }
@@ -68,13 +63,13 @@ sub is_available {
 
     my $port_name = $self->{port_name};
     my $port = $main::Serial_Ports{$port_name}{port};
-    print "testing port $port_name $port ... ";
+    print "testing port $port ... ";
 
     my $sp_object;
 
                                 # Use the 2nd parm of '1' to indicate this do a test open
                                 #  - Modified Win32::SerialPort so it does not compilain if New/open fails
-    if (( $main::OS_win and $sp_object = new Win32::SerialPort($port, 1))or
+    if (( $main::OS_win and $sp_object = new Win32::SerialPort($port, 1))or 
         (!$main::OS_win and $sp_object = new Device::SerialPort($port))) {
         print " available\n";
         $sp_object->close;
@@ -121,7 +116,7 @@ sub stop {
         else {
             print "Serial_Item stop failed for port $port_name\n";
         }
-                                # Delete the ports, even if it didn't close, so we can do
+                                # Delete the ports, even if it didn't close, so we can do 
                                 # starts again without a 'port reuse' message.
         delete $main::Serial_Ports{$port_name}{object};
         delete $main::Serial_Ports{object_by_port}{$port};
@@ -135,18 +130,25 @@ sub stop {
 sub said {
     my $port_name = $_[0]->{port_name};
     my $datatype  = $main::Serial_Ports{$port_name}{datatype};
-
-    my $data;
+    
     if ($datatype and $datatype eq 'raw') {
-        $data = $main::Serial_Ports{$port_name}{data};
-        $main::Serial_Ports{$port_name}{data} = undef;
+        if (my $data = $main::Serial_Ports{$port_name}{data}) {
+            $main::Serial_Ports{$port_name}{data} = '';
+            return $data;
+        }
+        else {
+            return;
+        }
     }
     else {
-        $data = $main::Serial_Ports{$port_name}{data_record};
-        $main::Serial_Ports{$port_name}{data_record} = undef; # Maybe this should be reset in main loop??
+        if (my $data = $main::Serial_Ports{$port_name}{data_record}) {
+            $main::Serial_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
+            return $data;
+        }
+        else {
+            return;
+        }
     }
-#   print "db serial $port_name data: $data\n" if $main::Debug{$port_name};
-    return $data;
 }
 
 sub set_data {
@@ -162,11 +164,8 @@ sub set_data {
 }
 
 sub set_receive {
-    my ($self, $state, $set_by) = @_;
-#   $set_by = 'serial' unless $set_by;
-    return if &main::check_for_tied_filters($self, $state, $set_by);
-    return if &set_prev_pass_check($self, $state);
-    &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
+    my ($self, $state) = @_;
+    &Generic_Item::set_states_for_next_pass($self, $state);
 }
 
 sub set_dtr {
@@ -174,7 +173,7 @@ sub set_dtr {
     my $port_name = $self->{port_name};
     if (my $serial_port = $main::Serial_Ports{$port_name}{object}) {
         $main::Serial_Ports{$port_name}{object}->dtr_active($state);
-        print "Serial_port $port_name dtr set to $state\n" if $main::Debug{serial};
+        print "Serial_port $port_name dtr set to $state\n" if $main::config_parms{debug} eq 'serial';
     }
     else {
         print "Error, serial port set_dtr for $port_name failed, port has not been set\n";
@@ -185,7 +184,7 @@ sub set_rts {
     my $port_name = $self->{port_name};
     if (my $serial_port = $main::Serial_Ports{$port_name}{object}) {
         $main::Serial_Ports{$port_name}{object}->rts_active($state);
-        print "Serial_port $port_name rts set to $state\n" if $main::Debug{serial};
+        print "Serial_port $port_name rts set to $state\n" if $main::config_parms{debug} eq 'serial';
     }
     else {
         print "Error, serial port set_rts for $port_name failed, port has not been set\n";
@@ -194,359 +193,141 @@ sub set_rts {
 
 
 sub set {
-    my ($self, $state, $set_by) = @_;
-    return if &main::check_for_tied_filters($self, $state, $set_by);
-
+    my ($self, $state) = @_;
                                 # Allow for Serial_Item's without states
-    unless (defined $state) {
-        print "Serial_Item set with an empty state on $$self{object_name}\n";
-        $state = 'default_state';
-    }
+    $state = 'default_state' unless defined $state; 
 
-    my $serial_id;
-                                # Allow for upper/mixed case (e.g. treat ON the same as on ... so X10_Items is simpler)
-    if (defined $self->{id_by_state}{$state}) {
-        $serial_id = $self->{id_by_state}{$state};
-    }
-    elsif (defined $self->{id_by_state}{lc $state}) {
-        $serial_id = $self->{id_by_state}{lc $state};
-    }
-    else {
-        $serial_id = $state;
-    }
-				# uc since other mh processing can lc it to avoid state sensitivity
-    my $serial_data = $serial_id;
-    $serial_data = uc $serial_data unless $self->{states_casesensitive};
+    &Generic_Item::set_states_for_next_pass($self, $state);
 
-    return if &set_prev_pass_check($self, $serial_id);
-
-    &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
-
-    my $port_name = $self->{port_name};
-    my $interface = $self->{interface};
-    $interface = '' unless $interface;
-
-    print "Serial_Item: port=$port_name self=$self state=$state data=$serial_data interface=$$self{interface}\n"
-        if $main::Debug{serial};
-
-    return if     $main::Save{mode} eq 'offline';
     return unless %main::Serial_Ports;
 
-
-                                # First deal with X10 strings.  Assume X10 capable if interface is set.
-                                # Ideally, we would test for specific X10 interfaces, but so far it only
-                                # gets set if it is an X10 interface.
-    if (($serial_data =~ /^X/ and $interface ne '') or $self->isa('X10_Item')) {
-
-                                # allow for xx% (e.g. 1% -> &P1)
-                                #  ... need to allow for multiple X10 commands data here?
-        if ($serial_data =~ /(\d+)%/) {
-            $serial_data = '&P' . int ($1 * 63 / 100 + 0.5);
-        }
-                                # Make sure that &P codes have the house_unit code prefixed
-                                #  - e.g. device A1 -> A&P1
-        if ($serial_data =~ /&P/) {
-            $serial_data = substr($self->{x10_id}, 1, 1) . $serial_data;
-        }
-                                # If code is &P##, prefix with item code.
-                                #  - e.g. A&P1 -> A1A&P1
-        if (substr($serial_data, 1, 1) eq '&') {
-            $serial_data = $self->{x10_id} . $serial_data;
-        }
-
-                                # Make sure that +-\d codes have the house_unit code prefixed
-                                #  - e.g. device +12 -> A1A+12
-                                # Also round of to the nearest 5
-        if ($serial_data =~ /^X?[\+\-]?\d+$/) {
-            $serial_data = $self->{x10_id} . substr($self->{x10_id}, 1, 1) . $serial_data;
-        }
-
-        &main::print_log("X10: Outgoing data=$serial_data") if $main::config_parms{x10_errata} >= 4;
-
-                                # Allow for long strings like this: XAGAGAGAG (e.g. SmartLinc control)
-                                #  - break it into individual codes (XAG  XAG  XAG)
-        $serial_data =~ s/^X//;
-        my $serial_chunk;
-        while ($serial_data) {
-            if ($serial_data =~ /^([A-P]STATUS)(\S*)/ or
-                $serial_data =~ /^([A-P]PRESET_DIM1)(\S*)/ or
-                $serial_data =~ /^([A-P]PRESET_DIM2)(\S*)/ or
-                $serial_data =~ /^([A-P][1][0-6])(\S*)/ or
-                $serial_data =~ /^([A-P][1-9A-W])(\S*)/ or
-                $serial_data =~ /^([A-P]\&P\d+)(\S*)/ or         # Pre Dim Cmds
-                $serial_data =~ /^([A-P]Z\S*)/ or                # Scene Cmds for Switchlinc
-                $serial_data =~ /^([A-P]\d+\%)(\S*)/ or
-                $serial_data =~ /^([A-P][\+\-]?\d+)(\S*)/) {
-                $serial_chunk = $1;
-                $serial_data  = $2;
-
-                                # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
-                $serial_chunk = $1 . substr 'ABCDEFG', $2, 1 if $serial_chunk =~ /^(\S)1(\d)$/;
-
-                &send_x10_data($interface, 'X' . $serial_chunk, $self->{type});
-
-            }
-            else {
-                print "Serial_Item error, X10 string not parsed: $serial_data.\n";
-                return;
-            }
-        }
-        return;
+    my $serial_data;
+    if (defined $self->{id_by_state}{$state}) {
+        $serial_data = $self->{id_by_state}{$state};
     }
     else {
-        $port_name = $interface   if !$port_name;
+        $serial_data = $state;
+    }
+
+    my $port_name = $self->{port_name};
+
+    print "Serial_Item: port=$port_name self=$self state=$state data=$serial_data interface=$$self{interface}\n" 
+        if $main::config_parms{debug} eq 'serial';
+
+    return if $main::Save{mode} eq 'offline';
+
+    my $interface = $$self{interface};
+    $interface = 'none' unless $interface;
+    if ($interface eq 'cm11') {
+                                # If code is &P##, prefix with item code.
+        if (substr($serial_data, 0, 1) eq '&') {
+            $serial_data = $self->{x10_id} . $serial_data;
+        }
+                                # Allow for:
+                                # - Extended data will have & starting the function code 
+                                #   e.g. XO7&P23 -> Device O7 to Preset Dim code 23
+                                # - Bright/dim on house codes: e.g. XA+20 (but not XA1A+20)
+        if (length $serial_data > 3 and substr($serial_data, 3, 1) eq '&' or
+            $serial_data =~ /^\S\S[\+\-]/) {
+            &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 1));
+        }
+                                # Normal data ... call once for the Unit code, once for the Function code
+        else {
+            &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 1, 2));
+            &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 3)) if length($serial_data) > 3;
+        }
+    }
+    elsif ($interface eq 'cm17') {
+                                # cm17 wants XA1K, not XA1AK
+        substr($serial_data, 3, 1) = '';
+        &ControlX10::CM17::send($main::Serial_Ports{cm17}{object}, substr($serial_data, 1));
+    }
+    elsif ($interface eq 'homevision') {
+        print "Using homevision to send: $serial_data\n";
+        &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
+    }
+    elsif ($interface eq 'homebase') {
+        print "Using homebase to send: $serial_data\n";
+        &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 1, 2));
+        &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 3)) if length($serial_data) > 2;
+    }
+    elsif ($interface eq 'houselinc') {
+        print "Using houselinc to send: $serial_data\n";
+        &HouseLinc::send_X10($main::Serial_Ports{HouseLinc}{object}, $serial_data);
+    }
+    elsif ($interface eq 'marrick') {
+        print "Using marrick to send: $serial_data\n";
+        &Marrick::send_X10($main::Serial_Ports{Marrick}{object}, $serial_data);
+    }
+    else {
         $port_name = 'Homevision' if !$port_name and $main::Serial_Ports{Homevision}{object}; #Since it's multifunction, it should be default
-        $port_name = 'weeder'     if !$port_name and $main::Serial_Ports{weeder}{object};
-        $port_name = 'serial1'    if !$port_name and $main::Serial_Ports{serial1}{object};
-        $port_name = 'serial2'    if !$port_name and $main::Serial_Ports{serial2}{object};
+        $port_name = 'weeder'  if !$port_name and $main::Serial_Ports{weeder}{object};
+        $port_name = 'serial1' if !$port_name and $main::Serial_Ports{serial1}{object};
+        $port_name = 'serial2' if !$port_name and $main::Serial_Ports{serial2}{object};
+#       print "\$port_name is $port_name\n\$main::Serial_Ports{Homevision}{object} is $main::Serial_Ports{Homevision}{object}\n";
         unless ($port_name) {
             print "Error, serial set called, but no serial port found: data=$serial_data\n";
             return;
         }
-        &send_serial_data($port_name, $serial_data);
-    }
-
-                                # Check for X10 All-on All-off house codes
-                                #  - If found, set states of all X10_Items on that housecode
-    if ($serial_data =~ /^X(\S)([OP])$/) {
-        print "db l=$main::Loop_Count X10: mh set House code $1 set to $2\n" if $main::Debug{x10};
-        my $state = ($2 eq 'O') ? 'on' : 'off';
-        &X10_Item::set_by_housecode($1, $state);
-    }
-                                # Check for other items with the same codes
-                                #  - If found, set them to the same state
-    if ($serial_items_by_id{$serial_id} and my @refs = @{$serial_items_by_id{$serial_id}}) {
-        for my $ref (@refs) {
-            next if $ref eq $self;
-                                # Only compare between items on the same port
-            my $port_name1 = ($self->{port_name} or ' ');
-            my $port_name2 = ($ref ->{port_name} or ' ');
-            next unless $port_name1 eq $port_name2;
-
-            print "Serial_Item: Setting duplicate state: id=$serial_id item1=$$self{object_name} item2=$$ref{object_name}\n"
-                if $main::Debug{serial};
-            if ($state = $$ref{state_by_id}{$serial_id}) {
-                $ref->set_receive($state, $set_by);
-            }
-            else {
-                $ref->set_receive($serial_id, $set_by);
-            }
+        unless ($main::Serial_Ports{$port_name}{object}) {
+            print "Error, serial port for $port_name has not been set: data=$serial_data\n";
+            return;
         }
-    }
-}
-
-                                # Avoid sending the same X10 code on consecutive passes.
-                                # It is pretty easy to create a loop with
-                                # tied items, groups, house codes, etc.  Just ask Bill S. :)
-sub set_prev_pass_check {
-    my ($self, $state);
-#   print "db state=$state, sp=$self->{state_prev},  loop=$main::Loop_Count, lcp==$self->{change_pass}\n";
-    if (defined $state and $state =~ /^X/ and $self->{state_prev} and $state eq $self->{state_prev} and
-        $self->{change_pass} >= ($main::Loop_Count - 1)) {
-        my $item_name = $self->{object_name};
-        print "X10 item set skipped on consecutive pass.  item=$item_name state=$state id=$state\n";
-        return 1;
-    }
-    return 0;
-}
-
-sub send_serial_data {
-    my ($port_name, $serial_data) = @_;
-
-    return if &main::proxy_send($port_name, 'send_serial_data', $serial_data);
-
-                                # The ncpuxa code works on a socket, not a serial port
-                                # but may be called as a Serial_Item
-    unless ($main::Serial_Ports{$port_name}{object} or lc $port_name eq 'ncpuxa') {
-        print "Error, serial port for $port_name has not been set: data=$serial_data\n";
-        return;
-    }
-
-    if (lc $port_name eq 'homevision') {
-        print "Using homevision to send: $serial_data\n";
-        &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
-    }
-    elsif (lc $port_name eq 'ncpuxa') {
-        &main::print_log("Using ncpuxa to send: $serial_data");
-        &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
-    }
-    else {
-        my $datatype  = $main::Serial_Ports{$port_name}{datatype};
-        my $prefix    = $main::Serial_Ports{$port_name}{prefix};
-
-        $serial_data = $prefix . $serial_data if $prefix and $prefix ne '';
-        $serial_data .= "\r" unless $datatype and $datatype eq 'raw';
-
-        my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
-
-#      &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::Debug{serial};
-        print "serial  port=$port_name out=$serial_data results=$results\n" if $main::Debug{serial};
-    }
-}
-
-my $x10_save_unit;
-sub send_x10_data {
-    my ($interface, $serial_data, $module_type) = @_;
-    my ($isfunc);
-
-                                # Use proxy mh if present (avoids mh pauses for slow X10 xmits)
-    return if &main::proxy_send($interface, 'send_x10_data', $serial_data, $module_type);
-
-    if ($serial_data =~ /^X[A-P][1-9A-G]$/) {
-        $isfunc = 0;
-        $x10_save_unit = $serial_data;
-    }
-    else {
-        $isfunc = 1;
-    }
-    print "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n" if $main::Debug{x10};
-
-    if ($interface eq 'cm11') {
-        print "db1 CM11: Sending x10 data: $serial_data\n" if $main::Debug{cm11};
-
-				# Standard 1-cm11 code
-	if (!$main::config_parms{cm11_bak_port}) {
-                                # cm11 wants individual codes without X
-	    &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},
-				    substr($serial_data, 1));
-	}
-				# Dual cm11 code
-	else {
-				# if both units are active then
-                                #   use the one with the most time left on the counter as it was the most recently found to be active
-				# otherwise use the main one if it's active or the backup if it's active
-	    if (($main::cm11_objects{active}->state() eq 'on') && ($main::cm11_objects{bak_active}->state() eq 'on')) {
-		if ($main::cm11_objects{timer}->seconds_remaining() >= $main::cm11_objects{bak_timer}->seconds_remaining()) {
-		    print "db CM11: using primary cm11\n" if $main::Debug{cm11};
-		    &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},substr($serial_data, 1));
-		} else {
-		    print "db CM11: using backup cm11\n" if $main::Debug{cm11};
-		    &ControlX10::CM11::send($main::Serial_Ports{cm11_bak}{object},substr($serial_data, 1));
-		}
-	    } elsif ($main::cm11_objects{active}->state() eq 'on') {
-		print "db CM11: using primary cm11\n" if $main::Debug{cm11};
-		&ControlX10::CM11::send($main::Serial_Ports{cm11}{object},substr($serial_data, 1));
-	    } elsif ($main::cm11_objects{bak_active}->state() eq 'on') {
-		print "db CM11: using backup cm11\n" if $main::Debug{cm11};
-		&ControlX10::CM11::send($main::Serial_Ports{cm11_bak}{object},substr($serial_data, 1));
-	    } else {
-		print "db CM11: Error - no cm11's are working ...\n" if $main::Debug{cm11};
-	    }
-	}
-    }
-
-
-    elsif ($interface eq 'bx24') {
-        &X10_BX24::SendX10($serial_data);
-    }
-
-    elsif ($interface eq 'lynx10plc')
-    {
-                                # marrick PLC wants XA1AK
-        &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},
-                             "X" . substr($x10_save_unit, 1) .
-                             substr($serial_data, 1), $module_type) if $isfunc;
-    }
-    elsif ($interface eq 'cm17') {
-                                # cm17 wants A1K, not XA1AK
-        &ControlX10::CM17::send($main::Serial_Ports{cm17}{object},
-                                substr($x10_save_unit, 1) . substr($serial_data, 2)) if $isfunc;
-    }
-    elsif ($interface eq 'homevision') {
-                                # homevision wants XA1AK
-        if ($isfunc) {
-            print "Using homevision to send: " .
-                $x10_save_unit . substr($serial_data, 1) . "\n";
-            &Homevision::send($main::Serial_Ports{Homevision}{object},
-                              $x10_save_unit . substr($serial_data, 1));
-        }
-    }
-    elsif ($interface eq 'homebase') {
-                                # homebase wants individual codes without X
-        print "Using homebase to send: $serial_data\n";
-        &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 1));
-    }
-    elsif ($interface eq 'stargate') {
-                                # Stargate wants individual codes without X
-        print "Using stargate to send: $serial_data\n";
-        &Stargate::send_X10($main::Serial_Ports{Stargate}{object}, substr($serial_data, 1));
-    }
-    elsif ($interface eq 'houselinc') {
-                                # houselinc wants XA1AK
-        if ($isfunc) {
-            print "Using houselinc to send: " .
-                $x10_save_unit . substr($serial_data, 1) . "\n";
-            &HouseLinc::send_X10($main::Serial_Ports{HouseLinc}{object},
-                                 $x10_save_unit . substr($serial_data, 1));
-        }
-    }
-    elsif ($interface eq 'marrick') {
-                                # marrick wants XA1AK
-        if ($isfunc) {
-            print "Using marrick to send: " .
-                $x10_save_unit . substr($serial_data, 1) . "\n";
-            &Marrick::send_X10($main::Serial_Ports{Marrick}{object},
-                               $x10_save_unit . substr($serial_data, 1));
-        }
-    }
-    elsif ($interface eq 'ncpuxa') {
-                                # ncpuxa wants individual codes with X
-        &main::print_log("Using ncpuxa to send: $serial_data");
-        &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
-    }
-    elsif ($interface eq 'weeder') {
+        
                                 # Weeder table does not match what we defined in CM11,CM17,X10_Items.pm
                                 #  - Dim -> L, Bright -> M,  AllOn -> I, AllOff -> H
-        my ($device, $house, $command) = $serial_data =~ /^X(\S\S)(\S)(\S+)/;
+        if ($port_name eq 'weeder' and
+            my ($device, $house, $command) = $serial_data =~ /^X(\S\S)(\S)(\S+)/) {
 
                                 # Allow for +-xx%
-        my $dim_amount = 3;
-        if ($command =~ /[\+\-]\d+/) {
-            $dim_amount = int(10 * abs($command) / 100); # about 10 levels to 100%
-            $command = ($command > 0) ? 'L' : 'M';
-        }
-        if ($command eq 'M') {
-            $command =  'L' . (($house . 'L') x $dim_amount);
-        }
-        elsif ($command eq 'L') {
-            $command =  'M' . (($house . 'M') x $dim_amount);
-        }
-        elsif ($command eq 'O') {
-            $command =  'I';
-        }
-        elsif ($command eq 'P') {
-            $command =  'H';
-        }
-        $serial_data = 'X' . $device . $house . $command;
-
-        $main::Serial_Ports{weeder}{object}->write($serial_data);
+            my $dim_amount = 3;
+            if ($command =~ /[\+\-]\d+/) {
+                $dim_amount = int(10 * abs($command) / 100); # about 10 levels to 100%
+                $command = ($command > 0) ? 'L' : 'M';
+            }
+                
+            if ($command eq 'M') {
+                $command =  'L' . (($house . 'L') x $dim_amount);
+            }
+            elsif ($command eq 'L') {
+                $command =  'M' . (($house . 'M') x $dim_amount);
+            }
+            elsif ($command eq 'O') {
+                $command =  'I';
+            }
+            elsif ($command eq 'P') {
+                $command =  'H';
+            }
+            $serial_data = 'X' . $device . $house . $command;
 
 				# Give weeder a chance to do the previous command
 				# Surely there must be a better way!
-        select undef, undef, undef, 1.2;
+            select undef, undef, undef, 1.2;
+        }
+
+        if (lc($port_name) eq 'homevision') {
+            &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
+        }
+        else {
+            my $datatype  = $main::Serial_Ports{$port_name}{datatype};
+            $serial_data .= "\r" unless $datatype and $datatype eq 'raw';
+            my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
+            
+#           &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::config_parms{debug} eq 'serial';
+            print "serial port=$port_name out=$serial_data results=$results\n" if $main::config_parms{debug} eq 'serial';
+        }
     }
-
-    else {
-        print "\nError, X10 interface not found: interface=$interface, data=$serial_data\n";
-    }
-
-    &send_x10_data_hooks($serial_data);   # Created by &add_hooks
-
-}
+}    
 
 sub set_interface {
     my ($self, $interface) = @_;
                                 # Set the default interface
-    unless ($interface and $interface =~ /\S/) {
-
-        if ($main::config_parms{x10_interface}) {
-            $interface = $main::config_parms{x10_interface};
-        }
-        elsif ($main::Serial_Ports{cm11}{object}) {
+    unless ($interface) {
+        if ($main::Serial_Ports{cm11}{object}) {
             $interface = 'cm11';
         }
-        elsif ($main::Serial_Ports{BX24}{object}) {
-            $interface = 'bx24';
+        elsif ($main::Serial_Ports{cm17}{object}) {
+            $interface = 'cm17';
         }
         elsif ($main::Serial_Ports{Homevision}{object}) {
             $interface = 'homevision';
@@ -554,28 +335,12 @@ sub set_interface {
         elsif ($main::Serial_Ports{HomeBase}{object}) {
             $interface = 'homebase';
         }
-        elsif ($main::Serial_Ports{Stargate}{object}) {
-            $interface = 'stargate';
-        }
         elsif ($main::Serial_Ports{HouseLinc}{object}) {
             $interface = 'houselinc';
         }
         elsif ($main::Serial_Ports{Marrick}{object}) {
             $interface = 'marrick';
         }
-        elsif ($main::config_parms{ncpuxa_port}) {
-            $interface = 'ncpuxa';
-        }
-        elsif ($main::Serial_Ports{cm17}{object}) {
-            $interface = 'cm17';
-        }
-        elsif ($main::Serial_Ports{Lynx10PLC}{object}) {
-            $interface = 'lynx10plc';
-        }
-        elsif ($main::Serial_Ports{weeder}{object}) {
-            $interface = 'weeder';
-        }
-
     }
     $$self{interface} = lc($interface) if $interface;
 }
@@ -583,108 +348,6 @@ sub set_interface {
 
 #
 # $Log$
-# Revision 1.73  2004/11/22 22:57:26  winter
-# *** empty log message ***
-#
-# Revision 1.72  2004/07/18 22:16:37  winter
-# *** empty log message ***
-#
-# Revision 1.71  2004/03/23 01:58:08  winter
-# *** empty log message ***
-#
-# Revision 1.70  2004/02/01 19:24:35  winter
-#  - 2.87 release
-#
-# Revision 1.69  2003/12/22 00:25:06  winter
-#  - 2.86 release
-#
-# Revision 1.68  2003/12/01 03:09:52  winter
-#  - 2.85 release
-#
-# Revision 1.67  2003/11/23 20:26:01  winter
-#  - 2.84 release
-#
-# Revision 1.66  2003/09/02 02:48:46  winter
-#  - 2.83 release
-#
-# Revision 1.65  2003/07/06 17:55:11  winter
-#  - 2.82 release
-#
-# Revision 1.64  2003/04/20 21:44:07  winter
-#  - 2.80 release
-#
-# Revision 1.63  2003/03/09 19:34:41  winter
-#  - 2.79 release
-#
-# Revision 1.62  2003/02/08 05:29:23  winter
-#  - 2.78 release
-#
-# Revision 1.61  2003/01/12 20:39:20  winter
-#  - 2.76 release
-#
-# Revision 1.60  2002/12/24 03:05:08  winter
-# - 2.75 release
-#
-# Revision 1.59  2002/10/13 02:07:59  winter
-#  - 2.72 release
-#
-# Revision 1.58  2002/09/22 01:33:23  winter
-# - 2.71 release
-#
-# Revision 1.57  2002/07/01 22:25:28  winter
-# - 2.69 release
-#
-# Revision 1.56  2002/05/28 13:07:51  winter
-# - 2.68 release
-#
-# Revision 1.55  2002/03/31 18:50:39  winter
-# - 2.66 release
-#
-# Revision 1.54  2002/03/02 02:36:51  winter
-# - 2.65 release
-#
-# Revision 1.53  2002/01/19 21:11:12  winter
-# - 2.63 release
-#
-# Revision 1.52  2001/12/16 21:48:41  winter
-# - 2.62 release
-#
-# Revision 1.51  2001/10/21 01:22:32  winter
-# - 2.60 release
-#
-# Revision 1.50  2001/09/23 19:28:11  winter
-# - 2.59 release
-#
-# Revision 1.49  2001/08/12 04:02:58  winter
-# - 2.57 update
-#
-# Revision 1.48  2001/06/27 03:45:14  winter
-# - 2.54 release
-#
-# Revision 1.47  2001/04/15 16:17:21  winter
-# - 2.49 release
-#
-# Revision 1.46  2001/03/24 18:08:38  winter
-# - 2.47 release
-#
-# Revision 1.45  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 1.44  2000/12/03 19:38:55  winter
-# - 2.36 release
-#
-# Revision 1.43  2000/11/12 21:02:38  winter
-# - 2.34 release
-#
-# Revision 1.42  2000/10/22 16:48:29  winter
-# - 2.32 release
-#
-# Revision 1.41  2000/10/01 23:29:40  winter
-# - 2.29 release
-#
-# Revision 1.40  2000/09/09 21:19:11  winter
-# - 2.28 release
-#
 # Revision 1.39  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

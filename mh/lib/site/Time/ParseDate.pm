@@ -12,11 +12,12 @@ require Exporter;
 @EXPORT_OK = qw(pd_raw %mtable %umult %wdays);
 
 use strict;
+use integer;
 
 # constants
 use vars qw(%mtable %umult %wdays $VERSION);
 
-$VERSION = 100.01_03_01;
+$VERSION = 98.06_09_01;
 
 # globals
 use vars qw($debug); 
@@ -24,26 +25,21 @@ use vars qw($debug);
 # dynamically-scoped
 use vars qw($parse);
 
-my %mtable;
-my %umult;
-my %wdays;
-my $y2k;
-
 CONFIG:	{
 
 	%mtable = qw(
-		Jan 1	Jan. 1	January 1
-		Feb 2	Feb. 2	February 2
-		Mar 3	Mar. 3	March 3
-		Apr 4	Apr. 4	April 4
+		Jan 1  January 1
+		Feb 2  February 2
+		Mar 3  March 3
+		Apr 4  April 4
 		May 5 
-		Jun 6	Jun. 6	June 6 
-		Jul 7	Jul. 7	July 7 
-		Aug 8	Aug. 8	August 8 
-		Sep 9	Sep. 9	September 9 
-		Oct 10	Oct. 10	October 10 
-		Nov 11	Nov. 11	November 11 
-		Dec 12	Dec. 12	December 12 );
+		Jun 6  June 6 
+		Jul 7  July 7 
+		Aug 8  August 8 
+		Sep 9  September 9 
+		Oct 10 October 10 
+		Nov 11 November 11 
+		Dec 12 December 12 );
 	%umult = qw(
 		sec 1 second 1
 		min 60 minute 60
@@ -59,8 +55,6 @@ CONFIG:	{
 		fri 5 friday 5
 		sat 6 saturday 6
 		);
-
-	$y2k = 946684800; # turn of the century
 }
 
 sub parsedate
@@ -78,7 +72,7 @@ sub parsedate
 	my $isspec;
 	my $now = $options{NOW} || time;
 	my $passes = 0;
-	my $uk = defined($options{UK}) ? $options{UK} : 0;
+	my $uk = defined($options{UK})?$options{UK}:0;
 
 	local $parse = '';  # will be dynamically scoped.
 
@@ -91,8 +85,9 @@ sub parsedate
 			(?:
 			 [ ]
 			 ([-+] \d\d\d\d)
-			  (?: \(\"?(?:(?:[A-Z]{1,4}[TCW56])|IDLE)\))?
-			 )?##xi) {
+			  (?: \("?(?:(?:[A-Z]{1,4}[TCW56])|IDLE)\))?
+			 )?
+			##xi) { #"emacs
 		# [ \d]/Mon/yyyy:hh:mm:ss [-+]\d\d\d\d
 		# This is the format for www server logging.
 
@@ -126,7 +121,7 @@ sub parsedate
 			}
 			next if $passes == 0 and $options{'TIMEFIRST'};
 			if (! defined $y) {
-				if (&parse_year_only(\$t, \$y, $now, %options)) {
+				if (&parse_year_only(\$t, \$y)) {
 					$parse .= " ".__LINE__ if $debug;
 					next;
 				}
@@ -170,8 +165,6 @@ sub parsedate
 
 		if ($passes == 0) {
 			print "nothing matched\n" if $debug;
-			return (undef, "no match on time/date") 
-				if wantarray();
 			return undef;
 		}
 	}
@@ -200,8 +193,6 @@ sub parsedate
 		# we didn't manage to eat the string
 		print "NOT WHOLE\n" if $debug;
 		return undef if $options{WHOLE};
-		return (undef, "characters left over after parse")
-			if wantarray();
 	}
 
 	# define a date if there isn't one already
@@ -210,31 +201,20 @@ sub parsedate
 		print "no date defined, trying to find one." if $debug;
 		if (defined $rs or defined $H) {
 			# we do have a time.
-			return (undef, "no date specified")
-				if wantarray();
 			return undef if $options{DATE_REQUIRED};
 			if (defined $rs) {
 				print "simple offset: $rs\n" if $debug;
-				my $rv = $now + $rs;
-				return ($rv, $t) if wantarray();
-				return $rv;
+				return $now + $rs 
 			}
 			$rd = 0;
 		} else {
 			print "no time either!\n" if $debug;
-			return (undef, "no time specified")
-				if wantarray();
 			return undef;
 		}
 	}
 
-	if ($options{TIME_REQUIRED} && ! defined($rs) 
-		&& ! defined($H) && ! defined($rd))
-	{
-		return (undef, "no time found")
-			if wantarray();
-		return undef;
-	}
+	return undef if $options{TIME_REQUIRED} && ! defined($rs) 
+		&& ! defined($H) && ! defined($rd);
 
 	my $secs;
 	my $jd;
@@ -253,12 +233,7 @@ sub parsedate
 			#
 			$isdst_now = (localtime($r))[8];
 			$isdst_then = (localtime($now))[8];
-			if (($isdst_now == $isdst_then) || $options{GMT})
-			{
-				return ($r, $t) if wantarray();
-				return $r 
-			}
-				
+			return $r if ($isdst_now == $isdst_then) || $options{GMT};
 			print "localtime changed DST during time period!\n" if $debug;
 		}
 
@@ -285,23 +260,11 @@ sub parsedate
 				print "calc year -this\n" if $debug;
 				$y = (localtime($now))[5];
 			}
-			$y += 1900;
 		}
 
-		$y = expand_two_digit_year($y, $now, %options)
-			if $y < 100;
+		$y += 100  if $y < 70;
+		$y += 1900 if $y < 171;
 
-		if ($options{VALIDATE}) {
-			require Time::DaysInMonth;
-			my $dim = Time::DaysInMonth::days_in($y, $m);
-			if ($y < 1000 or $m < 1 or $d < 1 
-				or $y > 9999 or $m > 12 or $d > $dim)
-			{
-				return (undef, "illegal YMD: $y, $m, $d")
-					if wantarray();
-				return undef;
-			}
-		}
 		$jd = julian_day($y, $m, $d);
 		print "jd($y, $m, $d) = $jd\n" if $debug;
 	}
@@ -317,9 +280,7 @@ sub parsedate
 
 	my $carry;
 
-	print "before ", (defined($rs) ? "$rs" : ""),
-		    " $jd $H $M $S\n" 
-		if $debug;
+	print "before $rs $jd $H $M $S\n" if $debug;
 	#
 	# add in relative seconds.  Do it this way because we want to
 	# preserve the localtime across DST changes.
@@ -329,19 +290,9 @@ sub parsedate
 	$M = 0 unless $M; # -w
 	$H = 0 unless $H; # -w
 
-	if ($options{VALIDATE} and
-		($S < 0 or $M < 0 or $H < 0 or $S > 59 or $M > 59 or $H > 23)) 
-	{
-		return (undef, "illegal HMS: $H, $M, $S") if wantarray();
-		return undef;
-	}
-
 	$S += $rs if defined $rs;
 	$carry = int($S / 60);
-	my($frac) = $S - int($S);
-	$S = int($S);
 	$S %= 60;
-	$S += $frac;
 	$M += $carry;
 	$carry = int($M / 60);
 	$M %= 60;
@@ -378,10 +329,6 @@ sub parsedate
 				print "adjusting secs for $options{ZONE}: $tzadj\n" if $debug;
 				$secs -= $tzadj;
 			} else {
-
-
-# bbw debug
-
 				$tzadj = tz_local_offset($secs);
 				print "adjusting secs for local offset: $tzadj\n" if $debug;
 				# 
@@ -396,7 +343,6 @@ sub parsedate
 
 	print "returning $secs.\n" if $debug;
 
-	return ($secs, $t) if wantarray();
 	return $secs;
 }
 
@@ -405,11 +351,7 @@ sub mkoff
 {
 	my($offset) = @_;
 
-
-
-# bbw debug
-
-	if (defined $offset and $offset =~ s|^([-+])(\d\d)(\d\d)$||) {
+	if (defined $offset and $offset =~ s#^([-+])(\d\d)(\d\d)$##) {
 		return ($1 eq '+' ? 
 			  3600 * $2  + 60 * $3
 			: -3600 * $2 + -60 * $3 );
@@ -506,7 +448,7 @@ sub parse_date_only
 			)?
 			(\d\d?)
 			(\s+ | - | \. | /)
-			(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?
+			(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)
 			(?:
 				\2
 				(\d\d (?:\d\d)? )
@@ -528,12 +470,12 @@ sub parse_date_only
 				(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?
 				\s+
 			)?
-			(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?
-			((\s)+ | - | \. | /)
+			(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)
+			(\s+ | - | \. | /)
 				
 			(\d\d?)
 			(?:
-				(?: \2|\3+)
+				\2
 				(\d\d (?: \d\d)?)
 			)?
 			(?:
@@ -543,14 +485,14 @@ sub parse_date_only
 			)
 			##) {
 		# [Dow,] Mon dd [yyyy]
-		($$yr, $$mr, $$dr) = ($5, $mtable{"\u\L$1"}, $4);
-		printf "%d: %s - %s - %s\n", __LINE__, $1, $2, $4 if $debug;
+		($$yr, $$mr, $$dr) = ($4, $mtable{"\u\L$1"}, $3);
+		printf "%d: %s - %s - %s\n", __LINE__, $1, $2, $3 if $debug;
 		print "y undef\n" if ($debug && ! defined($$yr));
 		return 1;
 	} elsif ($$tr =~ s#^(?xi)
-			(January|Jan\.?|February|Feb\.?|March|Mar\.?|April|Apr\.?|May|
-			    June|Jun\.?|July|Jul\.?|August|Aug\.?|September|Sep\.?|
-			    October|Oct\.?|November|Nov\.?|December|Dec\.?)
+			(January|Jan|February|Feb|March|Mar|April|Apr|May|
+			    June|Jun|July|Jul|August|Aug|September|Sep|
+			    October|Oct|November|Nov|December|Dec)
 			\s+
 			(\d+)
 			(?:st|nd|rd|th)?
@@ -620,9 +562,9 @@ sub parse_date_only
 	} elsif ($$tr =~ s#^(?xi)
 			(\d{1,2})
 			(\s+ | - | \. | /)
-			(January|Jan\.?|February|Feb\.?|March|Mar\.?|April|Apr\.?|May|
-			    June|Jun\.?|July|Jul\.?|August|Aug\.?|September|Sep\.?|
-			    October|Oct\.?|November|Nov\.?|December|Dec\.?)
+			(January|Jan|February|Feb|March|Mar|April|Apr|May|
+			    June|Jun|July|Jul|August|Aug|September|Sep|
+			    October|Oct|November|Nov|December|Dec)
 			(?:
 				\2
 				(
@@ -644,9 +586,9 @@ sub parse_date_only
 			(\d+)
 			(?:st|nd|rd|th)?
 			\s+
-			(January|Jan\.?|February|Feb\.?|March|Mar\.?|April|Apr\.?|May|
-			    June|Jun\.?|July|Jul\.?|August|Aug\.?|September|Sep\.?|
-			    October|Oct\.?|November|Nov\.?|December|Dec\.?)
+			(January|Jan|February|Feb|March|Mar|April|Apr|May|
+			    June|Jun|July|Jul|August|Aug|September|Sep|
+			    October|Oct|November|Nov|December|Dec)
 			(?: 
 				\,?
 				\s+
@@ -694,24 +636,19 @@ sub parse_time_only
 						(?:
 							\:
 							(\d\d)	(?# $7)
-								(
-									(?# don't barf on database sub-second timings)
-									(?:\:|\.)
-									\d{1,6}
-								)?	(?# $8)
 						)?
 					)
 					\s*
-					([apAP][mM])?		(?# $9)
+					([apAP][mM])?		(?# $8)
 				) | (?:
-					(\d{1,2})		(?# $10)
-					([apAP][mM])		(?# ${11})
+					(\d{1,2})		(?# $9)
+					([apAP][mM])		(?# ${10})
 				)
 			)
 			(?:
 				\s+
 				"?
-				(				(?# ${12})
+				(				(?# ${11})
 					(?: [A-Z]{1,4}[TCW56] )
 					|
 					IDLE
@@ -725,17 +662,11 @@ sub parse_time_only
 			!!) { #"emacs
 		# HH[[:]MM[:SS]]meridan [zone] 
 		my $ampm;
-		$$hr = $1 || $5 || $10 || 0; # 10 is undef, but 5 is defined..
+		$$hr = $1 || $5 || $9 || 0; # 9 is undef, but 5 is defined..
 		$$mr = $2 || $6 || 0;
 		$$sr = $3 || $7 || 0;
-		if (defined($8) && exists($options{SUBSECOND}) && $options{SUBSECOND}) {
-			my($frac) = $8;
-			substr($frac,0,1) = '.';
-			$$sr += $frac;
-		}
-		print "S = $$sr\n" if $debug;
-		$ampm = $4 || $9 || $11;
-		$$tzr = $12;
+		$ampm = $4 || $8 || $10;
+		$$tzr = $11;
 		$$hr += 12 if $ampm and "\U$ampm" eq "PM" && $$hr != 12;
 		$$hr = 0 if $$hr == 12 && "\U$ampm" eq "AM";
 		$$hr = 0 if $$hr == 24;
@@ -764,8 +695,10 @@ sub parse_time_offset
 	return 0 if $options{NO_RELATIVE};
 
 	if ($$tr =~ s#^(?xi)
-			([-+]?)
-			\s*
+			(?:
+				(\+ | \-)
+				\s*
+			)?
 			(\d+)
 			\s*
 			(sec|second|min|minute|hour)s?
@@ -783,62 +716,6 @@ sub parse_time_offset
 	} 
 	return 0;
 }
-
-#
-# What to you do with a date that has a two-digit year?
-# There's not much that can be done except make a guess.
-#
-# Some example situations to handle:
-#
-#	now		year 
-#
-#	1999		01
-#	1999		71
-#	2010		71
-#	2110		09
-#
-
-sub expand_two_digit_year
-{
-	my ($yr, $now, %options) = @_;
-
-	return $yr if $yr > 100;
-
-	my ($y) = (&righttime($now, %options))[5];
-	$y += 1900;
-	my $century = int($y / 100) * 100;
-	my $within = $y % 100;
-
-	my $r = $yr + $century;
-
-	if ($options{PREFER_PAST}) {
-		if ($yr > $within) {
-			$r = $yr + $century - 100;
-		}
-	} elsif ($options{PREFER_FUTURE}) {
-		# being strict here would be silly
-		if ($yr < $within+10) {
-			# it's 2019 and the date is '08'
-			$r = $yr + $century + 100;
-		}
-	} elsif ($options{UNAMBIGUOUS}) {
-		# we really shouldn't guess
-		return undef;
-	} else {
-		# prefer the current century in most cases
-
-		if ($within > 80 && $within - $yr > 60) {
-			$r = $yr + $century + 100;
-		}
-
-		if ($within < 30 && $yr - $within > 59) {
-			$r = $yr + $century - 100;
-		}
-	}
-	print "two digit year '$yr' expanded into $r\n" if $debug;
-	return $r;
-}
-
 
 sub calc 
 {
@@ -869,9 +746,10 @@ sub monthoff
 	my ($now, $months, %options) = @_;
 
 	# months are 0..11
-	my ($d, $m11, $y) = (&righttime($now, %options)) [ 3,4,5 ] ;
+	my ($j, $j, $j, $d, $m11, $y) = &righttime($now, %options);
 
-	$y += 1900;
+	$y += 100  if $y < 70;
+	$y += 1900 if $y < 171;
 
 	print "m11 = $m11 + $months, y = $y\n" if $debug;
 
@@ -918,7 +796,7 @@ sub righttime
 
 sub parse_year_only
 {
-	my ($tr, $yr, $now, %options) = @_;
+	my ($tr, $yr) = @_;
 
 	$$tr =~ s#^\s+##;
 
@@ -927,7 +805,7 @@ sub parse_year_only
 		printf "matched at %d.\n", __LINE__ if $debug;
 		return 1;
 	} elsif ($$tr =~ s#\'(\d\d)(?:\s+|$ )##) {
-		$$yr = expand_two_digit_year($1, $now, %options);
+		$$yr = $1;
 		printf "matched at %d.\n", __LINE__ if $debug;
 		return 1;
 	}
@@ -1083,9 +961,6 @@ Date parsing can also use options.  The options are as follows:
 	TIMEFIRST -> try parsing time before date [not default]
 	PREFER_PAST -> when year or day of week is ambigueous, assume past
 	PREFER_FUTURE -> when year or day of week is ambigueous, assume future
-	SUBSECOND -> parse fraction seconds
-	VALIDATE -> only accept normal values for HHMMSS, YYMMDD.  Otherwise
-		days like -1 might give the last day of the previous month.
 
 =head1 DATE FORMATS RECOGNIZED
 
@@ -1132,7 +1007,7 @@ Date parsing can also use options.  The options are as follows:
 
 =head2 Absolute time formats:
 
-	hh:mm:ss[.ddd] 
+	hh:mm:ss 
 	hh:mm 
 	hh:mm[AP]M
 	hh[AP]M
@@ -1169,33 +1044,23 @@ date and a time are specified.  There are numerous options for
 controlling what is recognized and what is not.
 
 The return code is always the time in seconds since January 1st, 1970
-or undef if it was unable to parse the time.
+or zero if it was unable to parse the time.
 
 If a timezone is specified it must be after the time.  Year specifications
 can be tacked onto the end of absolute times.
-
-If C<parsedate()> is called from array contect, then it will return two
-elements.  On sucessful parses, it will return the seconds and what 
-remains of its input string.  On unsucessful parses, it will return
-C<undef> and an error string.
 
 =head1 EXAMPLES
 
 	$seconds = parsedate("Mon Jan  2 04:24:27 1995");
 	$seconds = parsedate("Tue Apr 4 00:22:12 PDT 1995");
 	$seconds = parsedate("04.04.95 00:22", ZONE => PDT);
-	$seconds = parsedate("Jan 1 1999 11:23:34.578", SUBSECOND => 1);
 	$seconds = parsedate("122212 950404", ZONE => PDT, TIMEFIRST => 1);
 	$seconds = parsedate("+3 secs", NOW => 796978800);
 	$seconds = parsedate("2 months", NOW => 796720932);
 	$seconds = parsedate("last Tuesday");
 
-	($seconds, $remaining) = parsedate("today is the day");
-	($seconds, $error) = parsedate("today is", WHOLE=>1);
-
 =head1 AUTHOR
 
-David Muir Sharnoff <muir@idiom.com>.  Copyright (C) 1996-1999 All
-Rights Reserved.  Use and redistribution allowed at user's own
-risk.
+David Muir Sharnoff <muir@idiom.com>
 
+Patch for UK-style dates: Sam Yates <syates@maths.adelaide.edu.au>

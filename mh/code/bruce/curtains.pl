@@ -1,7 +1,5 @@
 # Category=HVAC
 
-#@ Control the hardwired, relay controle, curtains, and an X10 controled curtain
-
                                 # Toggle the x10 curtain controler
 if (!$Save{sleeping_parents}){
     if ($Season eq 'Summer') {
@@ -24,16 +22,16 @@ $v_curtain_living-> set_info("Use change if this X10 toggled curtain gets out of
 $timer_curtain_living = new Timer();
 
 if ($state = said $v_curtain_living or
-    'manual' eq ($state = state_now $curtain_living)) {
+    $state = state_now $curtain_living eq 'manual') {
     if (active $timer_curtain_living) {
         speak "Curtain timer in use";
     }
     elsif ($state eq OPEN  and $Save{curtain_living} eq OPENED or
-           $state eq CLOSE and $Save{curtain_living} eq CLOSED) {
+        $state eq CLOSE and $Save{curtain_living} eq CLOSED) {
         speak "Curtain is already $Save{curtain_living}";
     }
     else {
-        $state = 'do' if $state eq 'manual'; # X10 button
+        $state = 'do' if $state == 1; # X10 button
         speak "I am ${state}ing the living room curtains";
         print_log "Changing curtains from  $Save{curtain_living} to $state";
         unless ($state eq 'change') {
@@ -55,13 +53,6 @@ if ($state =  said $v_family_curtain or
     $state = state_now $family_curtain) {
     &curtain_on('family', $state);
 }
-$v_basement_curtain  = new  Voice_Cmd('[open,close] the basement curtains');
-if ($state =  said $v_basement_curtain or
-    $state = state_now $basement_curtain) {
-    speak "${state}ing the basement curtains";
-#   &curtains_all($state, 'zack', 'family', 'nick');
-    &curtains_all($state,         'family', 'nick');
-}
 
 $v_nick_curtain     = new  Voice_Cmd('[open,close] Nicks curtains');
 if ($state =  said $v_nick_curtain or
@@ -69,7 +60,7 @@ if ($state =  said $v_nick_curtain or
     &curtain_on('nick', $state);
 }
 
-$v_zack_curtain     = new  Voice_Cmd('[open,close] Zacks curtains');
+$v_zack_curtain     = new  Voice_Cmd('[open,close] Zachs curtains');
 if ($state =  said $v_zack_curtain or
     $state = state_now $zack_curtain) {
     &curtain_on('zack', $state);
@@ -85,13 +76,13 @@ if ($state =  said $v_all_curtains) {
                                 # Find average data
                                 # sun_sensor data is percent of max sun 
 if ($New_Minute) {
-#   print "db curtains=$Save{curtains_state} sun=$analog{sun_sensor} temp=$Weather{TempOutdoor}\n";
+#   print "db curtains=$Save{curtains_state} sun=$analog{sun_sensor} temp=$weather{TempOutdoor}\n";
     if ($Save{curtains_state} eq OPEN) {
                                 # Close when it gets dark
-#       if (defined $analog{sun_sensor} and $analog{sun_sensor} < 20 and defined $Weather{TempOutdoor} and $Weather{TempOutdoor} < 50) {
-        if ($analog{sun_sensor} > 0     and $analog{sun_sensor} < 20 and defined $Weather{TempOutdoor} and $Weather{TempOutdoor} < 50) {
+#       if (defined $analog{sun_sensor} and $analog{sun_sensor} < 20 and defined $weather{TempOutdoor} and $weather{TempOutdoor} < 50) {
+        if ($analog{sun_sensor} > 0     and $analog{sun_sensor} < 20 and defined $weather{TempOutdoor} and $weather{TempOutdoor} < 50) {
             speak "Notice, the sun is dim at $analog{sun_sensor} percent, and it is cold outside " .
-                "at " . round($Weather{TempOutdoor}) . " degrees, so I'm closing the curtains at $Time_Now";
+                "at " . round($weather{TempOutdoor}) . " degrees, so I'm closing the curtains at $Time_Now";
             &curtains_all(CLOSE);
         }
                                 # Close at sunset, as a backup
@@ -101,10 +92,10 @@ if ($New_Minute) {
         }
     }
     else {
-#       if ($analog{sun_sensor} > 40 and !$Save{sleeping_parents} and $Season eq 'Winter') {
-        if (!$Save{sleeping_parents} and $analog{sun_sensor} > 50 and defined $Weather{TempOutdoor} and $Weather{TempOutdoor} < 45) {
+#       if ($analog{sun_sensor} > 30 and !$Save{sleeping_parents} and $Season eq 'Winter') {
+        if (!$Save{sleeping_parents} and $analog{sun_sensor} > 30 and defined $weather{TempOutdoor} and $weather{TempOutdoor} < 45) {
             speak "Notice, the sun is bright at $analog{sun_sensor} percent, and it is cold outside " .
-                "at " . round($Weather{TempOutdoor}) . " degrees, so I am opening the curtains at $Time_Now";
+                "at " . round($weather{TempOutdoor}) . " degrees, so I am opening the curtains at $Time_Now";
             &curtains_all(OPEN);
         }
     }
@@ -116,20 +107,14 @@ if ($New_Minute) {
 $timer_curtains = new Timer();
 my @curtains;
 sub curtains_all {
-    my ($action, @list)= @_;
-    if (@list) {
-        @curtains = map {$_, $action} @list;
-    }
-    else {
-                                # Do the X10 curtain
-#       run_voice_cmd "$action the living room curtains";
-#       @curtains = ('bedroom', $action, 'family' , $action, 'zack', $action, 'nick', $action);
-        @curtains = ('bedroom', $action, 'family' , $action,                  'nick', $action);
-    }
-
+    my ($action) = @_;
     print "${action}ing the curtains\n";
-    $Save{curtains_state} = $action unless @list; # Save state if we did all of them
-
+                                # Do the X10 curtain
+    run_voice_cmd "$action the living room curtains";
+                                # Now do all the others
+    $Save{curtains_state} = $action;
+    @curtains = ('bedroom', $action, 'family' , $action, 'zack', $action, 'nick', $action);
+#    @curtains = ('bedroom', $action, 'nick' , $action, 'zack', $action);
     &curtain_on(shift @curtains, shift @curtains);
 #   set $timer_curtains 10, \&curtain_next($action), 3;
     set $timer_curtains 10;
@@ -150,7 +135,7 @@ sub curtain_on {
     speak("$room curtains $action");
 
 #   my %times_open  = qw(bedroom 8.2 nick 6.0 family 6.7 zack 6.5);
-    my %times_open  = qw(bedroom 8.2 nick 6.0 family 3.0 zack 6.5);
+    my %times_open  = qw(bedroom 8.2 nick 6.0 family 1.7 zack 6.5);
     my %times_close = qw(bedroom 6.5 nick 5.0 family 5.5 zack 5.5);
     my $time = ($action eq OPEN) ? $times_open{$room} : $times_close{$room};
 

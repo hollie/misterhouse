@@ -23,11 +23,7 @@ sub Win32::NodeName;
 sub Win32::IsWinNT;
 sub Win32::IsWin95;
 sub Win32::GetTickCount;
-sub Win32::DriveInfo::DrivesInUse();
-sub Win32::Sound::Volume;
-#sub Win32::PerfLib;
-
-#sub gettimeofday { return (scalar time, 0) }; # Used in get_tickcount, in case Time::Hires is not installed
+sub Win32::DriveInfo::DrivesInUse;
 
 package handy_utilities;
 use strict;
@@ -56,30 +52,11 @@ sub main::batch {
 }
 
 
-sub main::file_backup {
-    my ($file, $mode) = @_;
-                                # Back it up if it is older than a few minutes old
-    if ($mode eq 'force' or ($main::Time - (stat $file)[9]) > 60*10) {
-        print  "Backing up file: $file to $file.backup\n";
-        unlink "$file.backup4" if -e "$file.backup4";
-        rename "$file.backup3", "$file.backup4" if -e "$file.backup4";
-        rename "$file.backup2", "$file.backup3" if -e "$file.backup2";
-        rename "$file.backup1", "$file.backup2" if -e "$file.backup1";
-        rename $file, "$file.backup1";
-    }
-}
-
-
 sub main::fileit {              # Same as file_write
     my ($file, $data) = @_;
     open(LOG, ">$file") or print "Warning, could not open fileit file $file: $!\n";
     print LOG $data . "\n";
     close LOG;
-}
-
-sub main::file_default {
-    my ($file, $default) = @_;
-    return ($file and -f $file) ? $file : $default;
 }
 
 sub main::file_head {
@@ -102,49 +79,26 @@ sub main::file_tail {
 
                                 # Get the last few lines of a file
     $records = 3 unless $records;
-    my $bytes = $records * 400; # Guess on where to put the file pointer ... faster
-    seek DATA, -$bytes, 2;
-    my @data = <DATA>;
-    $records = @data if @data < $records;
-    @tail = @data[-$records..-1];
+    seek DATA, -1000, 2;
+    @tail = (<DATA>)[-$records..-1];
     close DATA;
     return wantarray ? @tail : "@tail";
 }
 
-                                # Find full paths to all files in requested dirs
-sub main::file_read_dir {
-    my @dirs = @_;
-    my %files;
-    for my $dir (@dirs) {
-        opendir(DIR, $dir) or print "\nError in file_dir_read, can not open directory:  $dir. $!\n";
-        my @files = readdir(DIR);
-        close DIR;
-                                # Create a hash that shows the full file pathname.  First one wins
-        for my $member (@files) {
-            $files{$member} = "$dir/$member" unless $files{$member};
-        }
-    }
-    return %files;
-}
-
 sub main::file_read {
-    my ($file, $flag, $textmode) = @_;
+    my ($file) = @_;
     open(LOG, "$file") or print "Warning, could not open file_read file $file: $!\n";
-
-# $flag = 1 -> Read as a scalar, even if wantarray is true
-# $flag = 2 -> Read as an array, but drop comment records
-    if (wantarray and !($flag and $flag == 1)) {
+    binmode LOG;
+    
+    if (wantarray) {
         my @data = <LOG>;
-        @data = grep(!/^\#/, @data) if $flag and $flag == 2;
         close LOG;
-        chomp @data;            # Why would we ever want \n here??
         return @data;
     }
                                 # Read is faster than <> (?)
     else {
-        binmode LOG unless $textmode; # Don't use this on wantarray ... chomp will only get \n, not \r\n
         my ($data, $buffer);
-        while (read(LOG, $buffer, 8192)) { # 8*2**10 bytes ... is this optimal??
+        while (read(LOG, $buffer, 8*2**10)) {
             $data .= $buffer;
         }
         close LOG;
@@ -155,41 +109,23 @@ sub main::file_read {
 sub main::file_write {          # Same as fileit
     my ($file, $data) = @_;
     open(LOG, ">$file") or print "Warning, could not open file_write $file: $!\n";
-    binmode LOG;                # Without this, \n newlines get messed up
+    binmode LOG;
     print LOG $data;
 #   print LOG $data . "\n";
     close LOG;
 }
 
 sub main::file_cat {
-    my ($file1, $file2, $position) = @_;
-    if ($position and $position eq 'top') {
-        open(LOG1, $file1)    or print "Warning, could not open file_cat $file1: $!\n";
-        open(LOG2, $file2)    or print "Warning, could not open file_cat $file2: $!\n";
-        binmode LOG1;
-        binmode LOG2;
-        my @data = (<LOG1>, <LOG2>);
-        open(LOG2, ">$file2") or print "Warning, could not open file_cat $file2: $!\n";
-        binmode LOG2;
-        while (@data) {
-            my $r = shift @data;
-            print LOG2 $r;
-        }
-        close LOG1;
-        close LOG2;
+    my ($file1, $file2) = @_;
+    open(LOG1, "$file1")   or print "Warning, could not open file_cat $file1: $!\n";
+    open(LOG2, ">>$file2") or print "Warning, could not open file_cat $file2: $!\n";
+    binmode LOG1;
+    binmode LOG2;
+    while (<LOG1>) {
+        print LOG2 $_;
     }
-                                # Default is to cat to the bottom
-    else {
-        open(LOG1, "$file1")   or print "Warning, could not open file_cat $file1: $!\n";
-        open(LOG2, ">>$file2") or print "Warning, could not open file_cat $file2: $!\n";
-        binmode LOG1;
-        binmode LOG2;
-        while (<LOG1>) {
-            print LOG2 $_;
-        }
-        close LOG1;
-        close LOG2;
-    }
+    close LOG1;
+    close LOG2;
 }
 
                                 # This drops carrage returns and line feeds
@@ -209,19 +145,15 @@ sub main::find_pgm_path {
 #   print "db pgm_path=$pgm_path\n";
 
     unless($pgm_path = &main::which($pgm_path)) {
-        print "Warning, new Process:  Can not find path to pgm=$pgm, pgm_path=$pgm_path arg=$pgm_args\n";
+        print "Warning, new Process:  Can not find path to pgm=$pgm\n";
 #       return;
     }
-                                # This is in desperation ... see notes on &run and &process_item $cflag.
+                                # This is in desperation ... see notes on &run and &process_item $cflag. 
                                 # We must avoid .bat files on order to make processes killable :(
     if ($main::OS_win and $pgm_path =~ /bat$/ and &main::file_head($pgm_path) =~ /mh -run (\S+)/) {
         my $perl_code = $1;
         my $pgm_interp;
         if ($pgm_interp = &main::which('mh.exe')) {
-            $pgm_args = "-run $perl_code $pgm_args";
-            $pgm_path = $pgm_interp;
-        }
-        elsif ($pgm_interp = &main::which('mhe.exe')) {
             $pgm_args = "-run $perl_code $pgm_args";
             $pgm_path = $pgm_interp;
         }
@@ -237,23 +169,17 @@ sub main::find_pgm_path {
     return ($pgm_path, $pgm_args);
 }
 
-                                # Returns milliseconds
+
 sub main::get_tickcount {
-    my $time;
     if ($main::OS_win) {
-        $time = Win32::GetTickCount;
+        my $time = Win32::GetTickCount;
+        $time += 2**32 if $time < 0; # This wraps to negative after 25 days.  Resets after 49 :(
+        return $time;
     }
     else {
-        if ($main::Info{HiRes}) {
-            my ($sec, $usec) = &main::gettimeofday(); # From Time::HiRes
-            $time = 1000 * $sec + $usec / 1000;
-        }
-        else {
-            $time = time * 1000;
-        }
+        my $time = time;
+        return $time * 1000;            # Need subsecond clock on unix!
     }
-    $time += 2**32 if $time < 0; # This wraps to negative after 25 days.  Resets after 49 :(
-    return $time;
 }
 
 
@@ -280,36 +206,11 @@ sub main::logit {
     close LOG;
 }
 
-
-                                # Old names
-sub main::read_dbm {
-    &main::dbm_read(@_);
-}
-sub main::search_dbm {
-    &main::dbm_search(@_);
-}
-
-
-sub main::dbm_write {
-    my ($log_file, $log_key, $log_data) = @_;
-    my ($log_count, %DBM);
-    if ($log_key) {
-                                # Assume we have already done use DB_File in calling program
-                                #  - we want to make sure we can still call this when perl is not installed
-        use Fcntl;
-        tie (%DBM, 'DB_File',    $log_file, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $log_file: $!";
-        ($log_count) = $DBM{$log_key} =~ /^(\S+)/;
-        $DBM{$log_key} = $log_data;
-#       print "Db dbm key=$log_key count=$log_count data=$log_data\n";
-        dbmclose %DBM;
-    }
-}
-
-                                # Like dbm_write, but also keeps a tally of accesses
 sub main::logit_dbm {
     my ($log_file, $log_key, $log_data) = @_;
     my ($log_count, %DBM);
     if ($log_key) {
+
                                 # Assume we have already done use DB_File in calling program
                                 #  - we want to make sure we can still call this when perl is not installed
         use Fcntl;
@@ -322,12 +223,12 @@ sub main::logit_dbm {
     }
 }
 
-sub main::dbm_read {
+sub main::read_dbm {
     my ($dbm_file, $key) = @_;
     use Fcntl;
     my %DBM_search;
     tie (%DBM_search,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or
-        print "\nError in dbm_read, can not open dbm file $dbm_file: $!\n";
+        print "\nError in search_dbm, can not dbm file $dbm_file: $!\n";
     if ($key) {
         my $value = $DBM_search{$key};
         dbmclose %DBM_search;
@@ -338,20 +239,20 @@ sub main::dbm_read {
     }
 }
 
-sub main::dbm_search {
+sub main::search_dbm {
     my ($dbm_file, $string) = @_;
     my @results;
     my ($key, $value);
     use Fcntl;
     my %DBM_search;
     tie (%DBM_search,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or
-        print "\nError in dbm_search, can not open dbm file $dbm_file: $!\n";
+        print "\nError in search_dbm, can not dbm file $dbm_file: $!\n";
 
     my ($count1, $count2);
     $count1 = $count2 = 0;
     while (($key, $value) = each %DBM_search) {
         $count1++;
-        if (!$string or $key =~ /$string/i or $value =~ /$string/i) {
+        if ($key =~ /$string/i or $value =~ /$string/i) {
             $count2++;
             push(@results, $key, $value);
         }
@@ -360,71 +261,12 @@ sub main::dbm_search {
     return ($count1, $count2, @results);
 }
 
-sub main::memory_used {
-    return unless $^O eq 'MSWin32' and Win32::IsWinNT;
-
-#   use Win32::PerfLib;
-#   &main::my_use('Win32::PerfLib');
-                                # Find process ref of ourself (230 is Process counter)
-                                # Note: this changes with time, so we must reget every time
-                                # GetObjectList takes 180 ms :(.  Total find_mem time is 200 ms
-                                # Got the Counter indexes via Win32::PerfLib::GetCounterNames
-    my $perflib = Win32::PerfLib->new('');
-#    my $perflib = new Win32::PerfLib;
-    my $proc_ref = {};
-    $perflib->GetObjectList(230, $proc_ref);
-    $perflib->Close();
-
-    my ($perf_pid, $perf_mem_virt, $perf_mem_real, $perf_cpu);
-    my $instance_ref = $proc_ref->{Objects}->{230}->{Instances};
-    for my $p (keys %{$instance_ref}) {
-        my $counter_ref = $instance_ref->{$p}->{Counters};
-
-                                # Find pointer to ourself
-        for my $i (keys %{$counter_ref})  {
-                                # counter ID Process=784
-            if ($counter_ref->{$i}->{CounterNameTitleIndex} == 784 and
-                $counter_ref->{$i}->{Counter} == $$) {
-                $perf_pid = $p;
-            }
-        }
-                                # Now find pointer to memory counter
-        if ($perf_pid) {
-            for my $i (keys %{$counter_ref})  {
-                                # counter Working Set=180
-                if ($counter_ref->{$i}->{CounterNameTitleIndex} == 180) {
-                    $perf_mem_real = $counter_ref->{$i}->{Counter};
-                }
-                                # counter Page File Bytes=184
-                if ($counter_ref->{$i}->{CounterNameTitleIndex} == 184) {
-                    $perf_mem_virt = $counter_ref->{$i}->{Counter};
-                }
-                                # Could not figure out how to get %cpu used
-# counter % Processor Time=6  (/10**7 for seconds)
-# counter % Privileged Time=144
-# counter % User Time=142
-
-# counter % Total Processor Time=240
-# counter Current % Processor Time=1502
-# counter Total mSec - Processor=1522
-
-                if ($counter_ref->{$i}->{CounterNameTitleIndex} == 6) {
-                    $perf_cpu = $counter_ref->{$i}->{Counter};
-#                   print "db2 p=$p i=$i\n";
-                }
-            }
-        }
-        last if $perf_pid;
-    }
-    return ($perf_mem_virt/1024000, $perf_mem_real/1024000, $perf_cpu/10**7);
-}
-
 sub main::my_use {
     my($module) = @_;
     eval "use $module";
     if ($@) {
         print "\nError in loading module=$module:\n  $@";
-        print "\n - See install.html for instructions on how to install perl module $module\n\n";
+        print " - See install.html for instructions on how to install perl module $module\n\n";
     }
     return $@;
 }
@@ -438,7 +280,7 @@ sub main::parse_arg_string {
 
     # Split command string into arguments, allowing for quoted strings
     while ($arg_string) {
-        ($arg, $arg_string) = $arg_string =~ /(\S+)\s*(.*)/;
+        ($arg, $arg_string) = $arg_string =~ /(\S+) *(.*)/;
         if (substr($arg, 0, 1) eq '"') {
             $i = index($arg_string, '"');
             $arg .= ' ' . substr($arg_string, 0, $i+1);
@@ -463,7 +305,7 @@ sub main::plural2 {
                                 # 11,12,13 are excptions.  th-ify them
     if ($value > 10 and $value < 21) {
         $suffix = 'th';
-    }
+    }        
     elsif ($r == 1) {
         $suffix = 'st';
     }
@@ -482,7 +324,7 @@ sub main::plural2 {
 sub main::plural_check {
     my($text) = @_;
     if ($text =~ /(\d+)/ and abs $1 == 1) {
-        $text =~ s/s(\.?)$/$1/;
+        $text =~ s/s\.?$//;
         $text =~ s/ are / is /;
     }
     return $text;
@@ -490,41 +332,12 @@ sub main::plural_check {
 
 
 sub main::read_mh_opts {
-    my($ref_parms, $pgm_path, $debug, $parm_file) = @_;
+    my($ref_parms, $Pgm_Path, $debug) = @_;
+    my $private_parms = $Pgm_Path . "/mh.private.ini";
+    $private_parms = $ENV{mh_parms} if $ENV{mh_parms};
     $debug = 0 unless $debug;
-
-    my @parm_files;
-    push @parm_files, $parm_file if $parm_file;
-    push @parm_files, "$pgm_path/mh.ini";
-    push @parm_files, "$pgm_path/mh.private.ini";
-    push @parm_files, split ',', $ENV{mh_parms} if $ENV{mh_parms};
-
-    print "Reading parm files: @parm_files\n" if $debug;
-    for my $file (@parm_files) {
-        next unless -e $file;
-        print "  Reading parm file: $file\n" if $debug;
-        &main::read_opts($ref_parms, $file, $debug, $pgm_path . '/..');
-    }
-
-                                # Look for parm values that reference other vars (e.g.  $config_parms{data_dir}/data/email)
-                                # Need to do this AFTER all the parms are read in, so we can eval correctly
-    package main;   # So the evals work ok with main vars
-    for my $parm (keys %$ref_parms) {
-        my $value = $$ref_parms{$parm};
-                                # Just do config parms ... this function is called by lots
-                                # of programs (e.g. get_url), so other mh vars are not always there.
-        if ($value and $value =~ /\$config_parms/) {
-                                # Do this, since %config_parms may be a 'my' var, which can not
-                                # be change directly outside of the main program.
-            $value =~ s/\$config_parms/\$\$ref_parms/g;
-            print "read_mh_opts .ini parm evaled:  parm==$parm\n   value=$value\n" if $debug;
-            eval "\$value = qq[$value]";
-            print "   value=$value\n" if $debug;
-            $$ref_parms{$parm} = $value;
-        }
-    }
-
-    return @parm_files;
+    &main::read_opts($ref_parms, $Pgm_Path . "/mh.ini", $debug, $Pgm_Path . '/..');
+    &main::read_opts($ref_parms, $private_parms, $debug, $Pgm_Path . '/..') if -e $private_parms;
 }
 
 sub main::read_opts {
@@ -533,34 +346,27 @@ sub main::read_opts {
     $pgm_root = $main::Pgm_Root unless $pgm_root;
                                 # If debug == 0 (instead of undef) this is disabled
     print "Reading config_file $config_file\n" unless defined $debug and $debug == 0;
-    open (CONFIG, "$config_file") or print "\nError, could not read config file: $config_file\n";
+    open (CONFIG, "$config_file") or print "\nError, could not read config file $config_file\n";
     while (<CONFIG>) {
-        next if /^\s*[\#\@]/;
+        next if /^ *\#/;
                                 # Allow for multi-line values records
-                                # Allow for key => value continued data
-        if ($key and ($value) = $_ =~ /^\s+([^\#\@]+)/ and $value !~ /^\s*\S+=[^\>]/) {
+        if ($key and ($value) = $_ =~ /^ +([^\#]+)/ and $value !~ /=/) {
             $value_continued = 1;
         }
                                 # Look for normal key=value records
         else {
-            next unless ($key, $value) = $_ =~ /(\S+?)\s*=\s*(.*)/;
-            if ($value) {
-                $value =~ s/^[\#\@].*//; # Delete end of line comments
-                $value =~ s/\s+[\#\@].*//;
-            }
+            ($key, $value) = $_ =~ /(\S+?) *= *([^\#]+)/;
             $value_continued = 0;
             next unless $key;
         }
 
         $value =~ s/\s+$//;     # Delete end of value blanks
 
-                                # substitue in $vars in the .ini file
+         if ($value =~ /\$Pgm_Root/) {
+                                # substitue in $vars in the .ini file 
                                 #  - older perl does not eval to main::value :(
                                 #    so we do it the hard way
-                                #  - We can probably skip this now, as we
-                                #    now do evals above in mh_read_opts.
-        if ($value =~ /\$Pgm_Root/) {
-            $value =~ s/\$Pgm_Root/$pgm_root/g;
+            $value =~ s/\$Pgm_Root/$pgm_root/;
 #           eval "\$value = qq[$value]";
         }
 
@@ -570,100 +376,39 @@ sub main::read_opts {
         }
         else {
             $$ref_parms{$key}  = $value;
-                                # This is the main mh/bin/mh.ini parmfile
-            if ($config_file eq './mh.ini') {
-                delete $$ref_parms{$key . "_MHINTERNAL_filename"};
-            }
-            else {
-                $$ref_parms{$key . "_MHINTERNAL_filename"} = $config_file;
-            }
         }
-        print main::STDOUT "parm vc=$value_continued key=$key value=$$ref_parms{$key} file=$config_file\n" if $debug;
+        print "parm key=$key value=$value\n" if $debug;
     }
     close CONFIG;
     return sort keys %{$ref_parms};
 }
 
-# Read a key/value string into a hass: key1 => value, key2 => value2
-sub main::read_parm_hash {
-    my ($ref, $data, $preserve_case) = @_;
-    for my $temp (split ',', $data) {
-        if (my ($key, $value) = $temp =~ / *(.+?) *=> *(.+)/) {
-            $value =~ s/ *$//;         # Drop trailing blanks
-            $key = lc $key unless $preserve_case;
-            $$ref{$key} = $value;
-#           print "db key=$key, value=$value.\n";
-        }
-        else {
-            print "Error parsing key => value string: t=$temp.\n";
-        }
-    }
-}
-
-sub main::get_parm_file {
-    my ($ref_parms, $param_name) = @_;
-#   print "Test=" . $param_name . ":" . $$ref_parms{$param_name} . ":" . $$ref_parms{$param_name . "_MHINTERNAL_filename"} . "\n";
-    return $$ref_parms{$param_name . '_MHINTERNAL_filename'};
-}
-
-sub main::randomize_list {
-                                # Do a fisher yates shuffle (Perl cookbook 4.17 pg 121)
-    for (my $i = @_; --$i; ) {
-        my $j = int rand($i + 1);
-        @_[$i, $j] = @_[$j, $i];
-    }
-}
-
-# Set 3rd parameter to 1 to return the last record if the index is out of
-# range.  Otherwise, the first record will be returned.
 sub main::read_record {
-    my($file, $index, $last_when_out_of_range) = @_;
+    my($file, $index) = @_;
+    my(@records);
 
-    my $record = '';
+                                # Note, we could be more clever here and use the trick on page 284 of the 
+                                # perl cookbook to read a random line without saving all records from 
+                                # the file.  
+
+    open(DATA, $file) or print "Error, could not open read_record file: $file\n";
+    @records = <DATA>;
+    close DATA;
+
     if (lc($index) eq 'random') {
-       my(@records);
-       open(DATA, $file) or print "Error, could not open read_record file: $file\n";
-       @records = <DATA>;
-       close DATA;
-       $index = 1 + int(($#records) * rand);
-       $record = $records[$index - 1];
+        srand(time);
+        $index = 1 + int((@records) * rand);
     }
     else {
-       open(DATA, $file) or print "Error, could not open read_record file: $file\n";
-       my $line;
-       my $count = 0;
-       my $first;
-       while ($line = <DATA>) {
-         $count++;
-         if (not $last_when_out_of_range and ($count == 1)) {
-            $first = $line;
-         }
-         if ($count == $index) {
-            $record = $line;
-            last;
-         }
-       }
-       close DATA;
-       # Default to the last record if index wasn't found
-       unless ($record) {
-          if ($last_when_out_of_range) {
-             $record = $line;
-             $index = $count;
-          } else {
-             $record = $first;
-             $index = 1;
-          }
-       }
+        $index = 1 if $index > @records;
     }
+    my $record = $records[$index - 1];
     chomp $record;
     return ($record, $index);
 }
 
-
-
-
 #---------------------------------------------------------------------------
-#   Win32 Registry
+#   Win32 Registry 
 #---------------------------------------------------------------------------
 
 sub main::registry_get {
@@ -700,7 +445,7 @@ sub main::registry_set {
 #   Don't know how to pass type in directly :(
 #    $type = 1 if $type eq "REG_SZ";
 #    $type = 3 if $type eq "REG_BINARY";
-#    $type = 4 if $type eq "REG_DWORD";
+#    $type = 4 if $type eq "REG_DWORD"; 
 
     my $rc = $ptr->SetValueEx($subkey, 0, $type, $value);
 
@@ -710,7 +455,7 @@ sub main::registry_set {
 sub main::registry_open {
 
 #   use Win32::Registry;
-
+    
     my($key) = @_;
 
     my ($key1, $key2, $ptr);
@@ -741,17 +486,8 @@ sub main::round {
     my($number, $digits) = @_;
     $digits = 0 unless $digits;
     $number = 0 unless $number;
-    $number =~ s/,//g;
     return $number unless $number =~ /^[\d\. \-\+]+$/;  # Leave none-numeric data alone
-
-                                # If $digits <  10, it means round to that many decimals
-                                # If $digits >= 10, it means round to the nearest $digits
-    if ($digits >= 10) {
-        return $digits * int ($number / $digits);
-    }
-    else {
-        return sprintf("%.${digits}f", $number);
-    }
+    return sprintf("%.${digits}f", $number);
 }
 
 #---------------------------------------------------------------------------
@@ -776,15 +512,10 @@ sub main::run_kill_processes {
 }
 
 
-                                # If you want more control (e.g. detect when done), use Process_Item.pm
+                                # This is depreciated ... use Process_Item.pm instead
 sub main::run {
-    my($mode, $pgm, $no_log) = @_;
-                # Mode is optional ... yuck ... optional parms should be last!
-    unless ($mode eq 'inline') {
-        $no_log = $pgm;
-        $pgm = $mode;
-    }
-
+    my($mode, $pgm) = @_;
+    $pgm = $mode unless $pgm;   # Mode is optional
 
     if ($main::OS_win) {
 
@@ -795,7 +526,7 @@ sub main::run {
             print "Run error, program not found: $pgm\n";
             return;
         }
-        print "Running: pgm=$pgm_path args=$pgm_args\n" unless $main::config_parms{no_log} =~ /run/ or $no_log;
+        print "Running: pgm=$pgm_path args=$pgm_args\n";
 
         my ($cflag, $process);
 
@@ -804,7 +535,6 @@ sub main::run {
 #       $cflag = DETACHED_PROCESS | CREATE_NEW_CONSOLE;
 #       $cflag = DETACHED_PROCESS;
 #       $cflag = NORMAL_PRIORITY_CLASS;
-        $cflag = 0;             # Avoid uninit warnings
 
         my $pid = Win32::Process::Create($process, $pgm_path, "$pgm_path $pgm_args", 0, $cflag, '.') or
             print "Warning, run error: pgm_path=$pgm_path\n  -   pgm=$pgm   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
@@ -814,12 +544,12 @@ sub main::run {
         return $process;
     }
     else {
-                                # This will look for pgms in mh/bin, even if that is
+                                # This will look for pgms in mh/bin, even if that is 
                                 # not not in the path
         my($pgm_path, $pgm_args) = &main::find_pgm_path($pgm);
         $pgm = "$pgm_path $pgm_args";
         $pgm .= " &" unless $mode eq 'inline';
-        print "Running: $pgm\n" unless $main::config_parms{no_log} =~ /run/ or $no_log;
+        print "Running: $pgm\n";
         system($pgm) == 0 or print "Warning, run system error:  pgm=$pgm rc=$?\n";
     }
 }
@@ -834,7 +564,7 @@ sub main::run_old {
                                 # Unless ... you use cmd /c :)
                                 # Need to use cmd with nt??
         $pgm = qq[command "/e:4000 /c $pgm"];   # Do this so the cmd window dissapears after the command is done
-
+                            
         my $start = '';
         $start = 'start /min';
         $start = 'start /max' if $mode eq 'max';
@@ -855,12 +585,12 @@ my $comment_out = <<'eof';
 sub main::run_old_win32_iproc {
     my($mode, $pgm) = @_;
     $pgm = $mode unless $pgm;   # Mode is optional
-
+    
     use Win32::IProc
-        qw( SW_SHOWNORMAL SW_SHOWDEFAULT SW_SHOWMAXIMIZED SW_MINIMIZE SW_HIDE SW_SHOW SW_MAXIMIZE FOREGROUND_RED
+        qw( SW_SHOWNORMAL SW_SHOWDEFAULT SW_SHOWMAXIMIZED SW_MINIMIZE SW_HIDE SW_SHOW SW_MAXIMIZE FOREGROUND_RED 
             FOREGROUND_GREEN FOREGROUND_BLUE BACKGROUND_RED BACKGROUND_GREEN BACKGROUND_BLUE
             FOREGROUND_INTENSITY NORMAL_PRIORITY_CLASS PROCESS_ALL_ACCESS INHERITED NONINHERITED FLOAT
-            DIGITAL NULL CREATE_NEW_CONSOLE CREATE_NEW_PROCESS_GROUP);
+            DIGITAL NULL CREATE_NEW_CONSOLE CREATE_NEW_PROCESS_GROUP);  
     my $cflag = CREATE_NEW_CONSOLE;
     my $obj=new Win32::IProc || warn "Error, could not create process in hand_utilities run: $!\n";
     my $Attributes =FOREGROUND_RED | BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE;
@@ -894,7 +624,7 @@ sub main::run_old2 {
 #       push (@command, substr($command, 0, $i));
 #   $command = substr($command, $i);
 #    }
-
+    
     print "\nrunning command: ", join("", @command), "\n" if $main::opt_verbose;
 #   print `$command`;
 #   print `@command`;
@@ -909,7 +639,7 @@ eof
 #
     sub main::run_perl {
         my($command) = @_;
-
+        
         @ARGV = &main::parse_arg_string($command);
         my $perl_pgm = shift @ARGV;
 
@@ -938,7 +668,7 @@ sub main::speakify_numbers {
     else {
         $suffix = 'th';
     }
-    return $number . $suffix;
+    return $suffix;
 }
 
 sub main::speakify_list {
@@ -958,6 +688,7 @@ sub main::speakify_list {
     }
     return $string;
 }
+
 
 
 sub main::time_date_stamp {
@@ -981,12 +712,6 @@ sub main::time_date_stamp {
 # 13:  13:52:24
 # 14:  Sun 12/25/99 13:52:24
 # 15:  Sunday, December 25th
-# 16:  04/14/97  2:28:00 PM
-# 17:  2001-04-09 14:05:16  (POSIX strftime format)
-# 18:  YYYYMMDD (e.g. 20011201)
-# 19:  Sun, 06 Nov 1994 08:49:37 GMT  (RFC 822 format, needed by web servers)
-# 20:  YYYYMMDDHHMMSS
-# 21:  12:52 Sun 25 (For short time/date displays)
 
     my($style, $time_or_file) = @_;
     my $time;
@@ -1005,15 +730,13 @@ sub main::time_date_stamp {
         $time = time;
     }
 
-    my @time_data = ($style == 19) ? gmtime($time) : localtime($time);
-    my($sec, $min, $hour, $mday, $mon, $year, $wday) = @time_data[0,1,2,3,4,5,6];
-
+    my($sec, $min, $hour, $mday, $mon, $year, $wday) = (localtime($time))[0,1,2,3,4,5,6];
     my($day, $day_long, $month, $month_long, $year_full, $time_date_stamp, $time_ampm, $ampm);
 
     $day        = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[$wday];
     $day_long   = ("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[$wday];
     $month      = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")[$mon];
-    $month_long = ("January", "February", "March", "April", "May", "June",
+    $month_long = ("January", "Febuary", "March", "April", "May", "June",
                   "July", "August", "September", "October", "November", "December")[$mon];
     $mon++;
 
@@ -1021,13 +744,12 @@ sub main::time_date_stamp {
     $year_full += 100 if $year_full < 1970;
 
     $style = 1 unless $style;
-
+    
                                 # Do NOT convert to AMPM if time_format=24
-    $ampm = '';
     unless ($main::config_parms{time_format} == 24 or $style == 2 or $style == 12 or $style == 13 or $style == 14) {
         ($time_ampm, $hour, $min, $ampm) = &main::time_to_ampm("$hour:$min");
     }
-
+    
     my $year_format;
     if ($main::config_parms{date_format} =~ /yyyy/) {
         $year_format = "%04d";
@@ -1041,8 +763,6 @@ sub main::time_date_stamp {
 
     if ($style == 1) {$time_date_stamp = sprintf("%s, %02d/%02d/$year_format  %02d:%02d %s",
                                $day_long, @day_month, $year, $hour, $min, $ampm) }
-    elsif ($style == 19) {$time_date_stamp = sprintf("%s, %2d %s %4d %02d:%02d:%02d GMT",
-                               $day, $mday, $month, $year_full, $hour, $min, $sec) }
     elsif ($style == 2) {$time_date_stamp = sprintf("%s %s %02d %02d:%02d %s",
                                $day_long, $month, $mday, $hour, $min, $year_full) }
     elsif ($style == 3) {$time_date_stamp = sprintf("%s, %s %02d at %2d %s",
@@ -1069,29 +789,8 @@ sub main::time_date_stamp {
                                $day, @day_month, $year, $hour, $min, $sec) }
     elsif ($style == 15) {$time_date_stamp = sprintf("%s, %s %s",
                                $day_long, $month_long, &main::plural2($mday)) }
-    elsif ($style == 16) {$time_date_stamp = sprintf("%02d/%02d/$year_format %02d:%02d:%02d %s",
-                               @day_month, $year, $hour, $min, $sec, $ampm) }
-    elsif ($style == 17) {$time_date_stamp = sprintf("%s-%02d-%02d %02d:%02d:%02d",
-                          $year_full, $mon, $mday, $hour, $min, $sec) }
-    elsif ($style == 18)  {$time_date_stamp = sprintf("%04d%02d%02d",
-                                                      $year_full, $mon, $mday) }
-    elsif ($style == 20)  {$time_date_stamp = sprintf("%04d%02d%02d%02d%02d%02d",
-                                                      $year_full, $mon, $mday, $hour, $min, $sec) }
-    elsif ($style == 21) {$time_date_stamp = sprintf("%2d:%02d $day $mday",
-                               $hour, $min) }
-    else {
-	$time_date_stamp = "time_date_stamp format=$style not recognized";
-    }
 
     return wantarray ? ($time_date_stamp, $sec, $min, $hour, $ampm, $day_long, $mon, $mday, $year) : $time_date_stamp;
-}
-
-sub main::time_add {
-    my ($time_date) = @_;
-    my $time2 = &main::my_str2time($time_date);
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($time2);
-    $time_date = sprintf("%d:%02d", $hour, $min);
-    return $time_date;
 }
 
 sub main::time_diff {
@@ -1151,7 +850,7 @@ sub main::time_diff {
         push(@diff, &main::plural($hours,   "hour"))   if $hours   and $nu < 4;
         push(@diff, &main::plural($minutes, "minute")) if $minutes and $nu < 3;
         push(@diff, &main::plural($seconds, "second")) if $seconds and $nu < 2;
-
+        
         $last = pop @diff;
         if (@diff > 0) {
             $string = join(', ', @diff) . " and $last";
@@ -1165,8 +864,7 @@ sub main::time_diff {
 #   $string .= ($time2 > $time1) ? ' ago' : ' from now';
     $string = "unknown time.  time2=$time2 time1=$time1 diff=$diff" unless $string;  # debug
     return $string;
-}
-
+} 
 
 sub main::time_to_ampm {
     my($time) = @_;
@@ -1175,13 +873,7 @@ sub main::time_to_ampm {
     $hour -= 12 if $hour > 12;
     $hour =  12 if $hour == 0;
     return wantarray ? ("$hour:$min $ampm", $hour, $min, $ampm) : "$hour:$min $ampm";
-}
-
-sub main::uniqify {
-    my %list = map {$_, 1} @_;
-    return sort keys %list;
-}
-
+} 
 
                                 # Magic from pg. 237 of Programing Perl
                                 #  - Probably better to use uuencode_base64 from Mime::Base64
@@ -1196,87 +888,17 @@ sub main::uudecode {
 
 sub main::which {
     my ($pgm) = @_;
-                                # Not sure if ; is allow for in unix paths??
-    my @paths = ($main::OS_win) ?  split(';', $ENV{PATH}) :  split(/[\:\;]/, $ENV{PATH});
-    for my $path ($main::config_parms{bin_dir}, ".", "$main::Pgm_Path", @paths) {
+    for my $path (".", "$main::Pgm_Path", split(';', $ENV{PATH})) {
         chop $path if $path =~ /\\$/; # Drop trailing slash
         my $pgm_path = "$path/$pgm";
-        if ($main::OS_win) {
-            return "$pgm_path.bat" if -x "$pgm_path.bat";
-            return "$pgm_path.exe" if -x "$pgm_path.exe";
-            return "$pgm_path.com" if -x "$pgm_path.com";
-        }
-        return $pgm_path if -x $pgm_path;
+        return "$pgm_path.bat" if -e "$pgm_path.bat";
+        return "$pgm_path.exe" if -e "$pgm_path.exe";
+        return "$pgm_path.com" if -e "$pgm_path.com";
+        return $pgm_path if -e $pgm_path;
     }
-    return $pgm if -x $pgm;     # Covers the fully qualified $pgm name
+    return $pgm if -e $pgm;     # Covers the fully qualified $pgm name
     return;                     # Didn't find it
 }
-
-                                # Update ini parameters without changing order or removing comments
-sub main::write_mh_opts {
-    my($ref_parms, $pgm_root, $debug, $parm_file) = @_;
-    $debug = 0 unless $debug;
-    $pgm_root = $main::Pgm_Root unless $pgm_root;
-
-    unless ($parm_file) {
-        ($parm_file) = split ',', $ENV{mh_parms} if $ENV{mh_parms};
-        $parm_file = "$pgm_root/mh.private.ini" unless $parm_file;
-    }
-                                # If debug == 0 (instead of undef) this is disabled
-    print "Reading config_file $parm_file\n" unless defined $debug and $debug == 0;
-    open (INI_PARMS, "$parm_file") or print "\nError, could not read config file: $parm_file\n";
-
-    my ($key, @parms, @done, $in_multiline);
-    while (my $line = <INI_PARMS>) {
-                                # Remove old continuation lines from edited entries
-        if ($in_multiline) {
-            if ($line =~ /^\s+[^#@\s]/) {
-                next;
-            }
-            else {
-                $in_multiline = 0;
-            }
-        }
-                                # Remove any repeats of edited entries
-        foreach $key (@done) {
-            if ($line =~ /^$key\s*=/) {
-                $in_multiline = 1;
-                next;
-            }
-        }
-                                # Update changed entries
-        foreach $key (keys %$ref_parms) {
-            if ($line =~ s/^$key\s*=.*/$key=$$ref_parms{$key}/) {
-                delete $$ref_parms{$key};
-                push @done, $key;
-                $in_multiline = 1;
-            }
-        }
-                                # Compile new file entries
-        push @parms, $line;
-    }
-    close INI_PARMS;
-
-                                # Re-write entire file if changes effect existing entries
-    &main::file_backup($parm_file);
-    if (@done) {
-        print "Writing config_file $parm_file\n" unless defined $debug and $debug == 0;
-        open (INI_PARMS, ">$parm_file") or print "\nError, could not write config file: $parm_file\n";
-        print INI_PARMS @parms;
-        close INI_PARMS;
-    }
-                                # Append any new parameters
-    if (%$ref_parms) {
-        print "Appending to config_file $parm_file\n" unless defined $debug and $debug == 0;
-        open (INI_PARMS, ">>$parm_file") or print "\nError, could not append to config file: $parm_file\n";
-        foreach $key (keys %$ref_parms) {
-            print INI_PARMS "$key=$$ref_parms{$key}\n";
-        }
-        close INI_PARMS;
-    }
-}
-
-
 
 #print " done\n";
 
@@ -1284,120 +906,6 @@ sub main::write_mh_opts {
 
 #
 # $Log$
-# Revision 1.76  2005/01/23 23:21:45  winter
-# *** empty log message ***
-#
-# Revision 1.75  2004/11/22 22:57:26  winter
-# *** empty log message ***
-#
-# Revision 1.74  2004/09/25 20:01:19  winter
-# *** empty log message ***
-#
-# Revision 1.73  2004/07/18 22:16:37  winter
-# *** empty log message ***
-#
-# Revision 1.72  2004/07/05 23:36:37  winter
-# *** empty log message ***
-#
-# Revision 1.71  2004/06/06 21:38:44  winter
-# *** empty log message ***
-#
-# Revision 1.70  2004/05/02 22:22:17  winter
-# *** empty log message ***
-#
-# Revision 1.69  2004/04/25 18:20:16  winter
-# *** empty log message ***
-#
-# Revision 1.68  2004/03/23 01:58:08  winter
-# *** empty log message ***
-#
-# Revision 1.67  2003/11/23 20:26:01  winter
-#  - 2.84 release
-#
-# Revision 1.66  2003/07/06 17:55:12  winter
-#  - 2.82 release
-#
-# Revision 1.65  2003/03/09 19:34:42  winter
-#  - 2.79 release
-#
-# Revision 1.64  2003/02/08 05:29:24  winter
-#  - 2.78 release
-#
-# Revision 1.63  2003/01/18 03:32:42  winter
-#  - 2.77 release
-#
-# Revision 1.62  2003/01/12 20:39:21  winter
-#  - 2.76 release
-#
-# Revision 1.61  2002/12/24 03:05:08  winter
-# - 2.75 release
-#
-# Revision 1.60  2002/12/02 04:55:20  winter
-# - 2.74 release
-#
-# Revision 1.59  2002/09/22 01:33:24  winter
-# - 2.71 release
-#
-# Revision 1.58  2002/08/22 04:33:20  winter
-# - 2.70 release
-#
-# Revision 1.57  2002/07/01 22:25:28  winter
-# - 2.69 release
-#
-# Revision 1.56  2002/05/28 13:07:52  winter
-# - 2.68 release
-#
-# Revision 1.55  2002/03/02 02:36:51  winter
-# - 2.65 release
-#
-# Revision 1.54  2001/12/16 21:48:41  winter
-# - 2.62 release
-#
-# Revision 1.53  2001/11/18 22:51:43  winter
-# - 2.61 release
-#
-# Revision 1.52  2001/10/21 01:22:32  winter
-# - 2.60 release
-#
-# Revision 1.51  2001/09/23 19:28:11  winter
-# - 2.59 release
-#
-# Revision 1.50  2001/06/27 03:45:14  winter
-# - 2.54 release
-#
-# Revision 1.49  2001/05/28 21:14:38  winter
-# - 2.52 release
-#
-# Revision 1.48  2001/04/15 16:17:21  winter
-# - 2.49 release
-#
-# Revision 1.47  2001/02/24 23:26:40  winter
-# - 2.45 release
-#
-# Revision 1.46  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 1.45  2001/01/20 17:47:50  winter
-# - 2.41 release
-#
-# Revision 1.44  2000/12/03 19:38:55  winter
-# - 2.36 release
-#
-# Revision 1.43  2000/11/12 21:02:38  winter
-# - 2.34 release
-#
-# Revision 1.42  2000/10/22 16:48:29  winter
-# - 2.32 release
-#
-# Revision 1.41  2000/10/09 02:31:13  winter
-# - 2.30 update
-#
-# Revision 1.40  2000/10/01 23:29:40  winter
-# - 2.29 release
-#
-# Revision 1.39  2000/09/09 21:19:11  winter
-# - 2.28 release
-#
 # Revision 1.38  2000/08/19 01:25:08  winter
 # - 2.27 release
 #

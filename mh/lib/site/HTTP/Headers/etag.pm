@@ -1,4 +1,4 @@
-package HTTP::Headers::ETag;
+package HTTP::Header::ETag;
 
 use strict;
 use vars qw($VERSION);

@@ -6,7 +6,6 @@ rm -f RasDial.txt rasdial.*
 rm -f *.bat *.exe *.EXE *.wbt
 rm -rf ../lib/site/Win32*
 rm -rf ../lib/site/auto/Win32*
-rm -rf ../lib/site_win*
 
 echo Chmod scripts to executables...
 chmod +x *
@@ -27,35 +26,14 @@ case `uname -a` in
    h2ph asm/ioctls.h
    h2ph asm/ioctl.h
    h2ph linux/posix_types.h
-   h2ph linux/stddefs.h
-   h2ph linux/stddef.h
  ;;
  FreeBSD*)
-   h2ph sys/termios.h
-   h2ph sys/ioctl.h
- ;;
- BSD/OS*)
    h2ph sys/termios.h
    h2ph sys/ioctl.h
  ;;
  *) echo "Warning: Untested platform! Check this script first."
  ;;
 esac
-
-if [ `uname -m` = 'sparc' ] ; then                                            
-  h2ph asm-sparc64/termios.h                                                  
-  h2ph asm-sparc/termios.h                                                    
-  h2ph asm-sparc64/termbits.h                                                 
-  h2ph asm-sparc/termbits.h                                                   
-  h2ph asm-sparc64/posix_types.h                                              
-  h2ph asm-sparc/posix_types.h                                                
-  h2ph asm-sparc64/ioctls.h                                                   
-  h2ph asm-sparc/ioctls.h                                                     
-  h2ph asm-sparc64/ioctl.h                                                    
-  h2ph asm-sparc/ioctl.h                                                      
-  h2ph asm-sparc64/stddefs.h
-  h2ph asm-sparc/stddefs.h
-fi                                                                            
 
 cd $curdir
 

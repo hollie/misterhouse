@@ -11,13 +11,10 @@
 
 
 # Make sure xcmd_file matches with the mh.ini parm
+
 cmd_file=/tmp/house_cmd.txt
-if ([ -n "$mh_parms" ] && (test -e $mh_parms))
-  then
-    if grep "^xcmd_file" $mh_parms > /dev/null
-      then
-        cmd_file=`grep "^xcmd_file" $mh_parms | awk '{print $3}'`
-    fi
-fi
 
 echo $* > $cmd_file
+
+
+

@@ -1,77 +1,39 @@
-# Category = Time
+# Category=Timed Events
 
-#@ Wakeup events
-
-$Save{heat_temp} = 66 if time_now '10:30 pm';
-$Save{heat_temp} = 68 if time_now '7 am';
-
-
-# Wake up Zack for Saturday job
-
-#if (time_cron '0 8 * * 6' or
-#    time_now '8:01 am' and $Day eq 'Sat') {
-#  speak "room=zack Zack, time to wake up.  Really.   Time to wake up now.  Ok?  Ok!";
-#  run_voice_cmd 'open Zacks curtains';
-#}
-
-$wakeup_bypass = new Voice_Cmd 'Skip next wakeup time';
-if (state_now $wakeup_bypass) {
-    speak 'Ok, no alarm today';
-}
-
-
-#$config_parms{sound_volume} =  40 if time_now '11 pm';
-#$config_parms{sound_volume} = 100 if time_now '7 am';
-
+&pa_sleep_mode('kids', 1) if time_cron '* 21 * * * ';
 
 				# If in normal mode, auto-go to mute mode
-speak 'I am going to mute mode now.  Nite nite' if time_now eq '10 pm';
-if ((time_cron '00 23,0-4 * * * ' or time_now '10:30 pm') and
+if (time_cron '0 22,23,0-4 * * * ' and
     $Save{mode} eq 'normal') {
+    print "db set to mute\n";
     $Save{mode_set} = 'auto';
     $Save{mode} = 'mute';
     $Save{sleeping_parents} = 1;
-    $Save{sleeping_nick} = 1;
-    $Save{sleeping_zack} = 1;
-    $Save{heat_temp} = 65;
-}
+    $Save{sleeping_kids} = 1;
+    &pa_sleep_mode('all', 1);
 
+    $Save{heat_temp} = 64;
+
+}
 				# If in auto-went to mute mode, go to normal mode (don't mess with manually overides)
-if ($Save{mode} eq 'mute' and
+if ($Save{mode} eq 'mute' and    
     $Save{mode_set} eq 'auto' and
-    (time_cron '0 10-21 * * 1-5' or
-     time_cron '0 10-21 * * 0,6')) {
+    (time_cron '0 8-21 * * 1-5' or
+     time_cron '0 9-21 * * 0,6')) {
     $Save{mode} = 'normal';
     $Save{mode_set} = '';
     $Save{sleeping_parents} = 0;
-    $Save{sleeping_nick} = 0;
-    $Save{sleeping_zack} = 0;
-    $Save{heat_temp} = 68;
+    $Save{sleeping_kids} = 1;
+    &pa_sleep_mode('all', 0);
 }
-
-$Save{sleeping_parents} = 0 if time_now '11:00 am';
-$Save{sleeping_nick}    = 0 if time_now '11:00 am';
-$Save{sleeping_zack}    = 0 if time_now '11:00 am';
 
 #return;                         # Summertime!
 
-#&tk_entry('Wakeup Time', \$Save{wakeup_time});
-#&tk_radiobutton('Wakeup Time',  \$Save{wakeup_time}, ['6 am', '6:20 am', '6:40 am', '7 am', ' ']);
+&tk_entry('Wakeup Time', \$Save{wakeup_time});
+&tk_radiobutton('Wakeup Time',  \$Save{wakeup_time}, ['6 am', '6:20 am', '6:40 am', '7 am', ' ']);
 
 
-                                # Allow for keypad control of wakeup time
-$mh_toggle_wakeup_time = new  Serial_Item('XPF', 'cycle');
-if ('cycle' eq state_now $mh_toggle_wakeup_time) {
-    my $time = $Save{wakeup_time};
-    $time = '6 am' unless $time;
-    my ($second, $minute, $hour) = localtime(&my_str2time($time) + 20*60);
-    ($hour = 6, $minute = 0) if ($hour + $minute/60) > 8;
-    $Save{wakeup_time} = sprintf("%d:%02d am", $hour, $minute);
-    &speak(mode => 'unmuted', rooms => 'bedroom', text => "$Save{wakeup_time}");
-}
-
-
-$Save{wakeup_time} = '6:00 am' unless $Save{wakeup_time};
+$Save{wakeup_time} = '6 am' unless $Save{wakeup_time};
 $v_wakeup_parents = new  Voice_Cmd('Wakeup the parents');
 $v_wakeup_parents-> set_info("Do not do this!  Parents like to sleep.");
 
@@ -79,51 +41,41 @@ $v_wakeup_parents-> set_info("Do not do this!  Parents like to sleep.");
 #if ((!$Holiday and time_cron('00 6 * * 1-5') and $Save{mode} ne 'offline') or 
 #if ((time_cron('45 6 * * 1-5') and $Save{mode} ne 'offline') or 
 #if ((time_cron('00 6 * * 1-5') and $Save{mode} ne 'offline') or 
-if ((time_now($Save{wakeup_time}) and $Weekday and $Save{mode} ne 'offline' and 
-     $Save{wakeup_time} and time_greater_than('6 am')) or
+if ((time_now($Save{wakeup_time}) and $Weekday and $Save{mode} ne 'offline') or
     said $v_wakeup_parents) {
-    if (state $wakeup_bypass) {
-        print_log 'Wakeup alarm was bypassed, so no alarm today!';
-        set $wakeup_bypass 0;
-    }
-    else {
-        $Save{mode} = 'normal';
-        $Save{mode_set} = '';
-#       $Save{sleeping_parents} = 0;
-        $Save{sleeping_nick} = 0;
-#       $Save{sleeping_zack} = 0;
-        speak "rooms=bedroom mode=unmute Good morning Parents.  It is now $Time_Now on $Date_Now_Speakable.";
-        speak "rooms=bedroom mode=unmute The outside temperature is " . round($Weather{TempOutdoor}) . " degrees";
-        
-        run_voice_cmd 'Check for school closing';
+    $Save{mode} = 'normal';
+    $Save{mode_set} = '';
+    $Save{sleeping_parents} = 0;
+    $Save{sleeping_kids} = 0;
+    &pa_sleep_mode('all', 0);
+    speak "rooms=all Good morning everybody.  It is now $Time_Now on $Date_Now_Speakable.";
+    speak "rooms=all The outside temperature is " . round($weather{TempOutdoor}) . " degrees";
+#   speak "rooms=all The outside temperature is " . convert_k2f((state $temp_outside)/10) . "degrees";
+#   speak "rooms=all Sunrise today is at $Time_Sunrise, sunset is at $Time_Sunset";
+#   speak "\\house\c\data\weather_conditions.txt";
+#   speak "-rooms bedroom //house/c/homepage/mail/mail.txt";
 
-        set $left_bedroom_light  ON;
-        set $right_bedroom_light ON;
-        
-#        set $TV 'power,12';
-#       set $TV 'power,51';
-#       run "ir_cmd TV,POWER,5,1";
+    set $left_bedroom_light ON;
+    sleep 4;			# Need a way to send 2 x10 items simultaneously or get weeder to work OK.
+    set $right_bedroom_light ON;
 
-#       &curtain_on('bedroom', OPEN) if time_greater_than("$Time_Sunrise + 0:15");
+    set $TV 'power,51';
+#   run "ir_cmd TV,POWER,5,1";
 
-        $Save{heat_temp} = 68;
-    }
+    &curtain_on('bedroom', OPEN) if time_greater_than("$Time_Sunrise + 0:15");
+
+    $Save{heat_temp} = 68;
 
 }
 
-if ($Save{wakeup_time} and $Weekday) {
-
-    speak $Time_Now if time_cron '0,15,30,45 6,7,8 * * 1-5';
-    speak voice => 'next', text => read_next $house_tagline    if time_now "$Save{wakeup_time} + 11";
-    run_voice_cmd  'What is the forecasted chance of rain'     if time_now "$Save{wakeup_time} + 14";
-    run_voice_cmd  'Read the top 10 list'                      if time_now "$Save{wakeup_time} + 17";
-    run_voice_cmd  'Read the next deep thought'                if time_now "$Save{wakeup_time} + 20";
-
-#    run_voice_cmd  'What is the next Random trivia question'   if time_cron '38 6 * * 1-5';
-#    run_voice_cmd  'What is the trivia answer'                 if time_cron '40 6 * * 1-5';
+unless ($Save{sleeping_parents}) {
+    speak $Time_Now          if time_cron '0,15,30,45 6,7,8 * * 1-5';
+    run_voice_cmd  'Read the top 10 list'                      if time_cron '20 6 * * 1-5';
+    run_voice_cmd  'Read the next deep thought'                if time_cron '22 6 * * 1-5';
+    run_voice_cmd  'What is the next Mixed trivia question?'   if time_cron '23 6 * * 1-5';
+    run_voice_cmd  'What is the trivia answer?'                if time_cron '24 6 * * 1-5';
 #   set $living_curtain ON   if time_cron '0  7 * * 1-5';
 #   speak "My Thought for the day: " . read_next $house_tagline if time_cron '12 7 * * 1-5';
-
 }
 
 

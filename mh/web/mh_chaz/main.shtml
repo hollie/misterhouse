@@ -1,0 +1,50 @@
+<html>
+<head>
+<title>MisterHouse Categories</title>
+
+<SCRIPT LANGUAGE="JavaScript">
+function popupWin(theName, theUrl, width, height) {
+	if((width==null)||(height==null)) {
+		newWin=window.open("",theName,'scrollbars,width=320,height=240,resizable');
+	}else{
+		newWin=window.open("",theName,'scrollbars,resizable,width=' + width + ',height=' + height);
+	}
+	newWin.location.href=theUrl;
+	newWin.focus();
+	if(newWin.focus){newWin.focus()};
+//	newWin.onBlur=newWin.self.close;
+}
+</SCRIPT>
+<STYLE>
+.normal  {position: absolute; visibility:hidden; left:10px; top:5px;}
+</STYLE>
+</head>
+<body>
+<DIV id="divAbout" style="position:absolute; left:10; top:5; visibility: hidden">
+<BASE TARGET='control'>
+	<li><a href="http://chaz.code.qc.ca/" target="_blank">My Personal Web Site</a>
+	<li><a href="http://misterhouse.net/house/programs/index.html" target="_blank">MisterHouse info</a>
+	<li><a href="javascript:void(0);" 
+	target="categ"
+	onMouseOver="window.status='Show the next deep thought'; return true;"
+	onMouseOut="window.status=' ';"
+	onClick="popupWin('deepThoughts','http://chaz.code.qc.ca:6464/mh_default/RUN:last_displayed?Display_the_next_deep_thought',300,200);return false;">
+	Display the next deep thought</a>
+<!--
+<li><a href=/tv>TV Grid</a>
+-->
+</DIV>
+<DIV id="divTk" class="normal">
+<!--#include file="widgets"-->
+</DIV>
+<DIV id="divSpeak" style="position:absolute; left:10; top:5; visibility: hidden">
+<!--#include file="speech"-->
+</DIV>
+<DIV id="divPrint" style="position:absolute; left:10; top:5; visibility: hidden">
+<!--#include file="print_log"-->
+</DIV>
+<DIV id="divCateg" style="position:absolute; left:10; top:5; visibility: hidden">
+<!--#include file="category"-->
+</DIV>
+</body>
+</html>

@@ -1,9 +1,9 @@
 
-# This is a test event for showing 2 ways of dealing with multi-event X10 strings
+# This is a test event for showing 2 ways of dealing with muilt-event X10 strings
 # mh will test for "XD1DJ" and for "XD1 XDJ", for incoming strings of "XD1 XDJ" and "XD1DJ"
 
 # Note: you can test this event by typing in the test strings into the tk "Enter command" window
-#       or from the command line with the house command (e.g. house XD1DJ)
+#       or from the command line with the house command (e.g. house XD2DJ)
 
 # These sensors will be triggered by any of the following combinations of data from the X10 interface:
 
@@ -30,14 +30,14 @@ print_log "Test sensor1 was triggered to $state" if $state = state_now $test_sen
 print_log "Test sensor2 was triggered to $state" if $state = state_now $test_sensor2;
 
 
-# Here is an example of detecting multi-key input from X10 controllers
+# Here is an example of detecting multi-key input from X10 controlers
 
 # This detects a double push of A1-ON (code=A1, on=AJ) with Palm remote.
 $test_button2 = new Serial_Item 'XA1AJA1AJ';
 speak "Palm A1 key was pressed twice" if state_now $test_button2;
 
 
-# This would detect O1 button on a X10 maxi-controler was pushed twice.
+# This would detect O1 button on a X10 maxi-contoler was pushed twice.
 $test_button3 = new Serial_Item 'XO1O1';
 tie_event $test_button3 "speak 'Button O1 was just pressed twice'";
 

@@ -653,9 +653,7 @@ sub new {
      $CP_ProvChar_start,
      $CP_Filler)= unpack($CP_format1, $CommProperties);
 
-# 03/21/2001 bwinter :: changed when we saw a win 2k port with 64 on it.  Pick 256 randomly :)
-#   if (($CP_Length > 64) and ($self->{"_TYPE"} == PST_RS232)) {
-    if (($CP_Length > 256) and ($self->{"_TYPE"} == PST_RS232)) {
+    if (($CP_Length > 64) and ($self->{"_TYPE"} == PST_RS232)) {
         carp "invalid COMMPROP block length= $CP_Length";
         undef $self;
         return;
@@ -1966,10 +1964,8 @@ sub update_timeouts {
     return unless (@_ == 1);
     my $self = shift;
     unless ( GetCommTimeouts($self->{"_HANDLE"}, $self->{"_TIMEOUT"}) ) {
-        my @caller = caller;
-        carp "Error in GetCommTimeouts in update_timeouts, called from @caller\n";
-                                # If we return 0, we loop somewhere and hang mh :(
-        return 1;
+        carp "Error in GetCommTimeouts";
+        return;
     }
 
     ($self->{RINT},

@@ -14,7 +14,7 @@ HTTP::Daemon - a simple http server class
   use HTTP::Daemon;
   use HTTP::Status;
 
-  my $d = HTTP::Daemon->new || die;
+  my $d = new HTTP::Daemon;
   print "Please contact me at: <URL:", $d->url, ">\n";
   while (my $c = $d->accept) {
       while (my $r = $c->get_request) {
@@ -32,25 +32,21 @@ HTTP::Daemon - a simple http server class
 =head1 DESCRIPTION
 
 Instances of the I<HTTP::Daemon> class are HTTP/1.1 servers that
-listen on a socket for incoming requests. The I<HTTP::Daemon> is a
-sub-class of I<IO::Socket::INET>, so you can perform socket operations
+listens on a socket for incoming requests. The I<HTTP::Daemon> is a
+sub-class of I<IO::Socket::INET>, so you can do socket operations
 directly on it too.
 
 The accept() method will return when a connection from a client is
-available.  In a scalar context the returned value will be a reference
-to a object of the I<HTTP::Daemon::ClientConn> class which is another
-I<IO::Socket::INET> subclass.  In a list context a two-element array
-is returned containing the new I<HTTP::Daemon::ClientConn> reference
-and the peer address; the list will be empty upon failure.  Calling
-the get_request() method on the I<HTTP::Daemon::ClientConn> object
-will read data from the client and return an I<HTTP::Request> object
-reference.
+available. The returned value will be a reference to a object of the
+I<HTTP::Daemon::ClientConn> class which is another I<IO::Socket::INET>
+subclass. Calling the get_request() method on this object will read
+data from the client and return an I<HTTP::Request> object reference.
 
 This HTTP daemon does not fork(2) for you.  Your application, i.e. the
 user of the I<HTTP::Daemon> is reponsible for forking if that is
 desirable.  Also note that the user is responsible for generating
-responses that conform to the HTTP/1.1 protocol.  The
-I<HTTP::Daemon::ClientConn> class provides some methods that make this easier.
+responses that conforms to the HTTP/1.1 protocol.  The
+I<HTTP::Daemon::ClientConn> provide some methods that make this easier.
 
 =head1 METHODS
 
@@ -66,17 +62,17 @@ use vars qw($VERSION @ISA $PROTO $DEBUG);
 
 $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
-use IO::Socket qw(AF_INET INADDR_ANY inet_ntoa);
+use IO::Socket ();
 @ISA=qw(IO::Socket::INET);
 
 $PROTO = "HTTP/1.1";
 
 =item $d = new HTTP::Daemon
 
-The constructor takes the same parameters as the
-I<IO::Socket::INET> constructor.  It can also be called without specifying
+The object constructor takes the same parameters as the
+I<IO::Socket::INET> constructor.  It can be called without specifying
 any parameters. The daemon will then set up a listen queue of 5
-connections and allocate some random port number.  A server that wants
+connections and allocate some random port number.  A server that want
 to bind to some specific address on the standard HTTP port will be
 constructed like this:
 
@@ -91,21 +87,25 @@ sub new
     my($class, %args) = @_;
     $args{Listen} ||= 5;
     $args{Proto}  ||= 'tcp';
-    return $class->SUPER::new(%args);
+    my $self = $class->SUPER::new(%args);
+    return undef unless $self;
+
+    my $host = $args{LocalAddr};
+    unless ($host) {
+	require Sys::Hostname;
+	$host = Sys::Hostname::hostname();
+    }
+    ${*$self}{'httpd_server_name'} = $host;
+    $self;
 }
 
 
 =item $c = $d->accept([$pkg])
 
-This method is the same as I<IO::Socket::accept> but returns an
-I<HTTP::Daemon::ClientConn> reference by default.  It returns undef if
-you specify a timeout and no connection is made within that time.  In
-a scalar context the returned value will be a reference to a object of
-the I<HTTP::Daemon::ClientConn> class which is another
-I<IO::Socket::INET> subclass.  In a list context a two-element array
-is returned containing the new I<HTTP::Daemon::ClientConn> reference
-and the peer address; the list will be empty upon failure.
-
+Same as I<IO::Socket::accept> but will return an
+I<HTTP::Daemon::ClientConn> reference by default.  It will return
+undef if you have specified a timeout and no connection is made within
+that time.
 
 =cut
 
@@ -113,13 +113,9 @@ sub accept
 {
     my $self = shift;
     my $pkg = shift || "HTTP::Daemon::ClientConn";
-    my ($sock, $peer) = $self->SUPER::accept($pkg);
-    if ($sock) {
-        ${*$sock}{'httpd_daemon'} = $self;
-        return wantarray ? ($sock, $peer) : $sock;
-    } else {
-        return;
-    }
+    my $sock = $self->SUPER::accept($pkg);
+    ${*$sock}{'httpd_daemon'} = $self if $sock;
+    $sock;
 }
 
 
@@ -133,14 +129,7 @@ sub url
 {
     my $self = shift;
     my $url = "http://";
-    my $addr = $self->sockaddr;
-    if (!$addr || $addr eq INADDR_ANY) {
- 	require Sys::Hostname;
- 	$url .= lc Sys::Hostname::hostname();
-    }
-    else {
-	$url .= gethostbyaddr($addr, AF_INET) || inet_ntoa($addr);
-    }
+    $url .= ${*$self}{'httpd_server_name'};
     my $port = $self->sockport;
     $url .= ":$port" if $port != 80;
     $url .= "/";
@@ -174,6 +163,7 @@ use HTTP::Request  ();
 use HTTP::Response ();
 use HTTP::Status;
 use HTTP::Date qw(time2str);
+use URI::URL qw(url);
 use LWP::MediaTypes qw(guess_media_type);
 use Carp ();
 
@@ -185,21 +175,21 @@ my $HTTP_1_1 = _http_version("HTTP/1.1");
 
 The I<HTTP::Daemon::ClientConn> is also a I<IO::Socket::INET>
 subclass. Instances of this class are returned by the accept() method
-of I<HTTP::Daemon>.  The following additional methods are
+of the I<HTTP::Daemon>.  The following additional methods are
 provided:
 
 =over 4
 
 =item $c->get_request([$headers_only])
 
-Read data from the client and turn it into an
+This method will read data from the client and turn it into a
 I<HTTP::Request> object which is then returned.  It returns C<undef>
 if reading of the request fails.  If it fails, then the
 I<HTTP::Daemon::ClientConn> object ($c) should be discarded, and you
 should not call this method again.  The $c->reason method might give
-you some information about why $c->get_request returned C<undef>.
+you some information on why $c->get_request returned C<undef>.
 
-The $c->get_request method supports HTTP/1.1 request content bodies,
+The $c->get_request method support HTTP/1.1 request content bodies,
 including I<chunked> transfer encoding with footer and self delimiting
 I<multipart/*> content types.
 
@@ -210,9 +200,9 @@ chunked transfer encoding HTTP can even support infinite request
 messages - uploading live audio for instance).  If you pass a TRUE
 value as the $headers_only argument, then $c->get_request will return
 immediately after parsing the request headers and you are responsible
-for reading the rest of the request content.  If you are going to
+for reading the rest of the request content (and if you are going to
 call $c->get_request again on the same connection you better read the
-correct number of bytes.
+correct number of bytes).
 
 =cut
 
@@ -227,7 +217,7 @@ sub get_request
     $self->reason("");
     my $buf = ${*$self}{'httpd_rbuf'};
     $buf = "" unless defined $buf;
-
+    
     my $timeout = $ {*$self}{'io_socket_timeout'};
     my $fdset = "";
     vec($fdset, $self->fileno, 1) = 1;
@@ -257,18 +247,13 @@ sub get_request
 	print STDERR "Need more data for complete header\n" if $DEBUG;
 	return unless $self->_need_more($buf, $timeout, $fdset);
     }
-    if ($buf !~ s/^(\S+)[ \t]+(\S+)(?:[ \t]+(HTTP\/\d+\.\d+))?[^\012]*\012//) {
-	${*$self}{'httpd_client_proto'} = _http_version("HTTP/1.0");
+    if ($buf !~ s/^(\w+)[ \t]+(\S+)(?:[ \t]+(HTTP\/\d+\.\d+))?[^\012]*\012//) {
 	$self->send_error(400);  # BAD_REQUEST
-	$self->reason("Bad request line: $buf");
+	$self->reason("Bad request line");
 	return;
     }
-    my $method = $1;
-    my $uri = $2;
     my $proto = $3 || "HTTP/0.9";
-    $uri = "http://$uri" if $method eq "CONNECT";
-    $uri = $HTTP::URI_CLASS->new($uri, $self->daemon->url);
-    my $r = HTTP::Request->new($method, $uri);
+    my $r = HTTP::Request->new($1, url($2, $self->daemon->url));
     $r->protocol($proto);
     ${*$self}{'httpd_client_proto'} = $proto = _http_version($proto);
 
@@ -446,7 +431,7 @@ unconsumed bytes here.  You also need this buffer if you implement
 services like I<101 Switching Protocols>.
 
 This method always return the old buffer content and can optionally
-replace the buffer content if you pass it an argument.
+update the buffer content if you pass it an argument.
 
 =cut
 
@@ -481,7 +466,7 @@ sub reason
 
 =item $c->proto_ge($proto)
 
-Return TRUE if the client announced a protocol with version number
+Returns TRUE if the client announced a protocol with version number
 greater or equal to the given argument.  The $proto argument can be a
 string like "HTTP/1.1" or just "1.1".
 
@@ -502,7 +487,7 @@ sub _http_version
 
 =item $c->antique_client
 
-Return TRUE if the client speaks the HTTP/0.9 protocol.  No status
+Returns TRUE if the client speaks the HTTP/0.9 protocol.  No status
 code and no headers should be returned to such a client.  This should
 be the same as !$c->proto_ge("HTTP/1.0").
 
@@ -521,7 +506,7 @@ Make sure that $c->get_request will not try to read more requests off
 this connection.  If you generate a response that is not self
 delimiting, then you should signal this fact by calling this method.
 
-This attribute is turned on automatically if the client announces
+This attribute is turned on automatically if the client announce
 protocol HTTP/1.0 or worse and does not include a "Connection:
 Keep-Alive" header.  It is also turned on automatically when HTTP/1.1
 or better clients send the "Connection: close" request header.
@@ -537,7 +522,7 @@ sub force_last_request
 
 =item $c->send_status_line( [$code, [$mess, [$proto]]] )
 
-Send the status line back to the client.  If $code is omitted 200 is
+Sends the status line back to the client.  If $code is omitted 200 is
 assumed.  If $mess is omitted, then a message corresponding to $code
 is inserted.  If $proto is missing the content of the
 $HTTP::Daemon::PROTO variable is used.
@@ -570,7 +555,7 @@ sub send_crlf
 
 =item $c->send_basic_header( [$code, [$mess, [$proto]]] )
 
-Send the status line and the "Date:" and "Server:" headers back to
+Sends the status line and the "Date:" and "Server:" headers back to
 the client.  This header is assumed to be continued and does not end
 with an empty CRLF line.
 
@@ -589,17 +574,17 @@ sub send_basic_header
 
 =item $c->send_response( [$res] )
 
-Write a I<HTTP::Response> object to the
-client as a response.  We try hard to make sure that the response is
+Takes a I<HTTP::Response> object as parameter and write it back to the
+client as the response.  We try hard to make sure that the response is
 self delimiting so that the connection can stay persistent for further
 request/response exchanges.
 
 The content attribute of the I<HTTP::Response> object can be a normal
 string or a subroutine reference.  If it is a subroutine, then
-whatever this callback routine returns is written back to the
+whatever this callback routine returns will be written back to the
 client as the response content.  The routine will be called until it
 return an undefined or empty value.  If the client is HTTP/1.1 aware
-then we will use chunked transfer encoding for the response.
+then we will use the chunked transfer encoding for the response.
 
 =cut
 
@@ -656,9 +641,9 @@ sub send_response
 
 =item $c->send_redirect( $loc, [$code, [$entity_body]] )
 
-Send a redirect response back to the client.  The location ($loc) can
-be an absolute or relative URL. The $code must be one the redirect
-status codes, and defaults to "301 Moved Permanently"
+Sends a redirect response back to the client.  The location ($loc) can
+be an absolute or a relative URL. The $code must be one the redirect
+status codes, and it defaults to "301 Moved Permanently"
 
 =cut
 
@@ -668,9 +653,8 @@ sub send_redirect
     $status ||= RC_MOVED_PERMANENTLY;
     Carp::croak("Status '$status' is not redirect") unless is_redirect($status);
     $self->send_basic_header($status);
-    my $base = $self->daemon->url;
-    $loc = $HTTP::URI_CLASS->new($loc, $base) unless ref($loc);
-    $loc = $loc->abs($base);
+    $loc = url($loc, $self->daemon->url) unless ref($loc);
+    $loc = $loc->abs;
     print $self "Location: $loc$CRLF";
     if ($content) {
 	my $ct = $content =~ /^\s*</ ? "text/html" : "text/plain";
@@ -716,7 +700,8 @@ EOT
 =item $c->send_file_response($filename)
 
 Send back a response with the specified $filename as content.  If the
-file is a directory we try to generate an HTML index of it.
+file happen to be a directory we will try to generate an HTML index
+of it.
 
 =cut
 
@@ -730,7 +715,6 @@ sub send_file_response
 	local(*F);
 	sysopen(F, $file, 0) or 
 	  return $self->send_error(RC_FORBIDDEN);
-	binmode(F);
 	my($ct,$ce) = guess_media_type($file);
 	my($size,$mtime) = (stat _)[7,9];
 	unless ($self->antique_client) {
@@ -759,7 +743,7 @@ sub send_dir
 
 =item $c->send_file($fd);
 
-Copy the file to the client.  The file can be a string (which
+Copies the file back to the client.  The file can be a string (which
 will be interpreted as a filename) or a reference to an I<IO::Handle>
 or glob.
 
@@ -807,11 +791,11 @@ sub daemon
 
 RFC 2068
 
-L<IO::Socket::INET>, L<Apache>
+L<IO::Socket>, L<Apache>
 
 =head1 COPYRIGHT
 
-Copyright 1996-2001, Gisle Aas
+Copyright 1996-1998, Gisle Aas
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
