@@ -1,5 +1,9 @@
 # Category=Alarm System
 
+#@ Interface to Alarm System via PowerFlash module.<br>
+#@ See alarm.pl for specifics on how to setup DSC panels for powerflash
+#@ and modify alarm.pl for house/unit code of powerflash.
+
 ##################################################################
 #  Interface to DSC alarm system via PowerFlash X10 module       #
 #                                                                #
@@ -17,7 +21,7 @@
 #                                                                #
 ##################################################################
 
-$alarm = new X10_Appliance('E1'); 
+$alarm = new X10_Appliance('E1');   # Modify for your powerflash here.
 
 if (state_now $alarm) {
    my $state = state $alarm;
@@ -33,9 +37,10 @@ sub alarm_notify {
 
    my $p1 = new Process_Item("send_sprint_pcs -to danal -text \"$text $Date_Now $Time_Now\" ");
    start $p1;      # Run externally so as not to hang MH process
-   my $p2 = new Process_Item("alpha_page -pin 9999999 -message \"$text $Date_Now $Time_Now\" ");
+   my $p2 = new Process_Item("alpha_page -pin 1488774 -message \"$text $Date_Now $Time_Now\" ");
    start $p2;      # Run externally so as not to hang MH process
       net_mail_send(account => 'DanalHome', to => 'danal@earthling.net', subject => $text, text => "$text $Date_Now $Time_Now"); 
+      net_mail_send(account => 'DanalHome', to => 'destes@rosewalker.com', subject => $text, text => "$text $Date_Now $Time_Now"); 
    print_log "Alarm notification sent, text = $text";
    speak "Djeeni says: $text";
 }
