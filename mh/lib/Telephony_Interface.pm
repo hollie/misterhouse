@@ -198,6 +198,17 @@ sub process_cid_data {
 }
 
 
+sub set {
+    my ($self, $p_state, $p_setby) = @_;
+    if ($p_state =~ /^offhook/i) {
+	&Serial_Item::send_serial_data($self->{name}, 'ATA');
+    }
+    elsif ($p_state =~ /^onhook/i) {
+	&Serial_Item::send_serial_data($self->{name}, 'ATH');
+    }
+    $self->SUPER::set($p_state, $p_setby);
+}
+
 sub set_test {
     my ($self, $data) = @_;
     my $name = $$self{name};

@@ -38,15 +38,20 @@ $html .= ".  <a href='/misc/photo_search.html'>Search Again</a>.  Back to <a hre
 my $i;
 my ($index, $photos);
 my $href = '00001';
+$index = "<table align=\"center\"><tr><td>";
 for my $photo (@match) {
-    last if $i++ > 20;
+    last if $i++ >= 20;
     my $name = $photo;
     $name =~ s/%20/ /g;
     $photo     =~  s/ /%20/g;
     $photo     =~  s/\#/%23/g;
     $index .= "<br><a href='#$href'>$name</a>\n";
+	$index .= "</td><td>" if ($i == 10);
     $photos .= "<hr><br><a name='$href' href='#top'>Back to top</a>.  <b>$name</b><br><img src='$photo'>\n";
     $href++;
 }
+$index .= "</tr></table>";
+
+$photos = "<div align=\"center\">" . $photos . "</div>";
 
 return &html_page('', $html . $index . $photos, ' ');

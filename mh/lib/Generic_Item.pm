@@ -42,7 +42,7 @@ sub new {
 
 sub property_changed {
     my ($self, $property, $new_value, $old_value) = @_;
-#   print "s=$self: property_changed: $property ='$new_value' (was '$old_value')\n";
+    print "s=$self: property_changed: $property ='$new_value' (was '$old_value')\n" if $::Debug{store};
 }
 
 sub set {
@@ -630,6 +630,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.36  2004/06/06 21:38:44  winter
+# *** empty log message ***
+#
 # Revision 1.35  2004/05/02 22:22:17  winter
 # *** empty log message ***
 #

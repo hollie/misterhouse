@@ -159,13 +159,13 @@ sub read_table_A {
     }
     elsif($type eq "VIRTUAL_AUDIO_ROUTER") {
         require 'VirtualAudio.pm';
-        ($name, $address, $other, $grouplist, @other) = @item_info;
+        ($name, $address, $other, $grouplist) = @item_info;
         $object = "VirtualAudio::Router($address, $other)";
     }
     elsif($type eq "VIRTUAL_AUDIO_SOURCE") {
         require 'VirtualAudio.pm';
-        ($name, $object, $grouplist, @other) = @item_info;
-        $object = "VirtualAudio::Source('$name', \$$object)";
+        ($name, $object, $other, $grouplist) = @item_info;
+        $object = "VirtualAudio::Source('$name', \$$object, '$other')";
     }
    elsif($type eq "MP3PLAYER") {
         require 'Mp3Player.pm';
@@ -408,6 +408,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.23  2004/06/06 21:38:44  winter
+# *** empty log message ***
+#
 # Revision 1.22  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

@@ -72,6 +72,21 @@ sub set
             }
                                 # Service Acid clients
             &Acid::write(&Acid::CID_TYPE_INCOMING_CALL(), $p_setby->cid_name(), $p_setby->formated_number());
+
+				# Send xAP/xPL data, if xAP/xPL port is opened
+	    if ($main::Socket_Ports{'xap_send'}) {
+#		my $caller = $cid_announce->parse_format($p_setby, '$format1', $::config_parms{local_area_code});
+		&xAP::send('xAP', 'CID.Incoming', 'CID.Incoming' => 
+			   {Type => 'Voice', DateTime => &::time_date_stamp(20), 
+			    Phone => $p_setby->formated_number(), Name => $p_setby->cid_name(),
+			    RNNumber => 'Available', RNName => 'Available', 
+			    Formatted_Date => $::Date_Now, Formatted_Time => $::Time_Now});
+		&xAP::send('xPL', '*.*', 'CID.BASIC' => 
+			   {CallType => 'INBOUND',
+			    Phone => $p_setby->formated_number(), CLN => $p_setby->cid_name()
+			    });
+	    }
+
         }
 
     }
@@ -134,6 +149,9 @@ sub setstate_cid
 
 #
 # $Log$
+# Revision 1.4  2004/06/06 21:38:44  winter
+# *** empty log message ***
+#
 # Revision 1.3  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

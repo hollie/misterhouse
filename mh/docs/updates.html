@@ -16,6 +16,7 @@
 	<ul>
 
 		<li><a href="#changes_in_the_current_test_version">Changes in the current test version</a></li>
+		<li><a href="#version_2_90_posted_on_05_02_2004">Version 2.90 posted on 05/02/2004</a></li>
 		<li><a href="#version_2_89_posted_on_04_25_2004">Version 2.89 posted on 04/25/2004</a></li>
 		<li><a href="#version_2_88_posted_on_03_21_2004">Version 2.88 posted on 03/21/2004</a></li>
 		<li><a href="#version_2_87_posted_on_01_31_2004">Version 2.87 posted on 01/31/2004</a></li>
@@ -121,6 +122,41 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 <a href=http://misterhouse.net/public/misterhouse_src_test.zip>current test release</a>
 (updated nightly) can be found
 <a href=http://misterhouse.net:81/mh/docs/updates.html>here, in the test release updates file</a>.<p><strong>New Features:</strong></p>
+<p>- Kirk Bauer created code/public/whole_house_audio_speech.pl and whole_house_audio_musica.pl for
+for distributing speech and music using multiple sources and multiple destinations.
+Lots of good documentation here:  <a href="http://www.linux.kaybee.org:81/tabs/whole_house_audio/">http://www.linux.kaybee.org:81/tabs/whole_house_audio/</a></p>
+<p>- Dominique Benoliel created web/bin/weather_graph_zoom.pl and added a ia5 Weather -&gt; Weather Station -&gt; Weather Zoom
+option for creating custom sized graphs for any date range.</p>
+<p>- Steven Lee created lib/Logger.pm.   See the top of the file for examples.</p>
+<p>- Amauri Viguera and I created mh/web/bin/rss_logs.pl for creating RSS feeds from various mh logs.
+For example, here is my speech log feed:  <a href="http://misterhouse.net:8080/bin/rss_logs.pl?speak">http://misterhouse.net:8080/bin/rss_logs.pl?speak</a> . 
+RSS feeds are a popular way for various 'news aggregators' to track multiple sources of info.
+To allow access from external readers, add rss_logs.pl to your data_dir/password_allow file.
+See the rss_logs.pl header for more info.</p>
+<p>- Updated lib/CID_Server.pm to enable sending of caller ID data to xAP and xPL clients.
+This will be enabled if you enable code/common/test_xap.pl and callerid.pl.
+Tested with the nifty new xAP desktop application which displays various bits of data 
+on windows desktops, available via <a href="http://www.xapautomation.org">http://www.xapautomation.org</a> .</p>
+<p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>- Brian Ujvary updated lib/USB_UIRT.pm to close cleanly on mh exit/restart.</p>
+<p>- Chris Barrett noticed a problem with common/telnet.pl closing a client connection.</p>
+<p>- Brian McKissick updated bin/alpha_page to support Arch Wireless (one-way and two-way) pagers.</p>
+<p>- Kirk Bauer updated lib/AlsaPlayer.pm, PlayList.pm, and common/mp3_alsaplayer.pl.  
+Added the ability to stop/restart alsaplayer process and set the volume better.</p>
+<p>- Sean Walker tweaked web/bin/photo_search.pl .</p>
+<p>- Doug Nakakihara and Larry Roudebush noticed a commented out line in common/callerid.pl caused rejected calls not to get hung up.</p>
+<p>- Kirk Bauer added a ``Create'' button to the USB-UIRT Learning web interface,
+which lets you select an exiting function, modify one or more parts of it,
+type in the new name, and then click ``Create''.  David Norwood fixed a bug in
+USB_UIRT.pm that was corrupting two part UIRT codes imported from Girder.</p>
+<p>- Switched str2time from the HTTP version to the Date::Parse version, so we can parse more time/date strings more reliably.</p>
+<p>- Added offhook/onhook set options to lib/Telephony_Interface.pm 
+and switched to these from direct serial port calls in code/common/callerid.pl.</p>
+<p>- Chris Barrett added File_Item exist and exist_now methods for detecting if files exist.</p>
+<p>
+</p>
+<h2><a name="version_2_90_posted_on_05_02_2004">Version 2.90 posted on 05/02/2004</a></h2>
+<p><strong>New Features:</strong></p>
 <p>- Added slimserver_protocol=xAP option for common/display_slimserver.pl. 
 This uses the xAP SlimServer Connector from: <a href="http://www.xapframework.net">http://www.xapframework.net</a>
 to display data to Slim devices.  This program allows for big and brightness controls, 
@@ -139,6 +175,7 @@ trigger.pl, outlook.pl, and internet_irridium.pl).</p>
 <p>- Chris Barrett fixed Holiday notices for different date_formats and fixed year based Holidays.</p>
 <p>- Chris Barrett also noticed a 2.89 bug in new_minute.</p>
 <p>- Chris Barrett added an auto-refresh to the rrd weather graphs.</p>
+<p>- Steven Lee updated Generic_Item property_changed to also trigger if the old or new value was undefined.</p>
 <p>
 </p>
 <h2><a name="version_2_89_posted_on_04_25_2004">Version 2.89 posted on 04/25/2004</a></h2>

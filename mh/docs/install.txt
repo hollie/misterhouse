@@ -243,6 +243,10 @@ Windows Detailed Install Instructions
     abour $40 ($25 for the voices, $15 for a nextup product, required to
     qualify for the voices). Additional voices are $35.
 
+    Another new source of greate voices is from Cepstral at
+    http://www.cepstral.com . Lots of voices for Windows and linux for $30
+    each.
+
 UNIX Detailed Install Instructions
   UNIX Step 1, Download and Install Mister House
     Download the rpm, tar, or zip file from
@@ -383,9 +387,9 @@ UNIX Detailed Install Instructions
     us1_mbrola, us2_mbrola, and us3_mbrola
 
     Another good TTS engine is now available from Cepstral:
-    http://www.cepstral.com . $30 per voice, for either Linux or Windows
-    (only tested on Linux so far). Set mh.ini parm voice_text=theta and
-    modify voice_text_theta to point to the theta binary.
+    http://www.cepstral.com . $30 per voice, for either Linux or Windows.
+    Set mh.ini parm voice_text=theta and modify voice_text_theta to point to
+    the theta binary.
 
     Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural
     Voices TTS linux engine here: http://www.naturalvoices.com (additional

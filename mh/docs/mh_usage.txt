@@ -815,7 +815,7 @@ Fri 05/23/03 01:35:31 city=melbourne state=victoria name=
 Sat 05/24/03 09:50:52 city=Chicago state=IL name=Victor Ramirez
 Sat 05/24/03 21:37:21 city=Perth state=Australia name=mockid
 Sun 05/25/03 00:17:35 city=Burlington state=NC name=
-Sun 05/25/03 07:17:36 city=wINNIPEG state=MANITOBA name=GERRY
+Sun 05/25/03 07:17:36 city=WINNIPEG state=MANITOBA name=GERRY
 Sun 05/25/03 08:46:28 city=breda state=netherlands name=
 Sun 05/25/03 22:30:46 city= state=Virginia name=
 Mon 05/26/03 08:31:15 city=Saarbrücken state=Germany name=sx
@@ -969,7 +969,6 @@ Wed 10/29/03 21:25:03 city=adelaide state=australia name=
 Thu 10/30/03 12:18:08 city=Lecco state=Italy name=Enrico
 Fri 10/31/03 22:24:40 city=Philadelphia state=PA name=MaxRISC
 Sat 11/01/03 04:03:22 city=k.lumpur state=malaysia name=mash
-Sat 11/01/03 20:23:09 city=Canby state=OR name=
 Sat 11/01/03 20:23:15 city=Canby state=OR name=
 Sun 11/02/03 09:30:10 city=Austin state=TX name=
 Mon 11/03/03 15:30:15 city=stockholm state=sweden name=
@@ -997,7 +996,6 @@ Mon 11/24/03 15:40:37 city=London state=ON, Canada name=Richard Sleegers
 Tue 11/25/03 04:18:02 city=Houston state=TX name=
 Sat 11/29/03 10:31:49 city=Portland state=oR name=
 Mon 12/01/03 23:49:32 city=durham state=NC name=
-Tue 12/02/03 00:50:23 city=bellingham state=wa name=
 Tue 12/02/03 00:57:09 city=bellingham state=wa name=
 Tue 12/02/03 14:12:05 city=montreal state=qc name= 
 Wed 12/03/03 12:25:13 city=Barcelona state=Spain name=
@@ -1030,7 +1028,6 @@ Mon 12/22/03 13:12:36 city=boise state=ID name=
 Mon 12/22/03 13:14:33 city=Mentor state=OH name=Orlando
 Mon 12/22/03 19:20:39 city=toronto state=canada name=
 Tue 12/23/03 07:59:47 city=PARMA state=ITALIA name=
-Tue 12/23/03 08:04:57 city=REGGIO EMILIA state=ITALIA name=
 Tue 12/23/03 08:05:16 city=REGGIO EMILIA state=ITALIA name=DINO
 Wed 12/24/03 09:13:42 city=Lincoln state=VT name=Paul Webb
 Thu 12/25/03 04:45:38 city=fox river grove state=il name=
@@ -1097,7 +1094,6 @@ Sun 02/08/04 17:32:42 city=Montreal state=Canada name=Jan
 Sun 02/08/04 20:45:37 city=Auckland state=New Zealand name=
 Mon 02/09/04 06:44:53 city=Katowice state=Polska name=
 Mon 02/09/04 13:09:23 city=Porto Alegre state=brazil name=Charles
-Mon 02/09/04 13:09:42 city=Porto Alegre state=brazil name=Charles
 Tue 02/10/04 02:16:36 city=Austin state=TX name=Jeff Wherrett
 Wed 02/11/04 01:44:11 city=kingsport state=TN name=
 Thu 02/12/04 10:50:59 city=Gainesville state=FL name=
@@ -1171,9 +1167,25 @@ Mon 04/26/04 15:22:23 city=Boise state=ID name=83702
 Mon 04/26/04 16:28:52 city=Nantes state=France name=
 Mon 04/26/04 19:04:19 city=Phenix City state=AL name=
 Mon 04/26/04 20:36:56 city=Topeka state=ks name=tim
-Mon 04/26/04 20:37:15 city=Topeka state=ks USA name=tim
-Mon 04/26/04 20:37:43 city=Topeka state=ks\USA name=tim
 Tue 04/27/04 07:55:59 city=Collegeville state=PA name=
 Tue 04/27/04 12:13:24 city=gilbert state=az name=
 Fri 04/30/04 05:56:49 city=Berlin state=GE name=
 Fri 04/30/04 10:43:01 city=Lewis Center state=OH name=Steve Newman
+Mon 05/03/04 12:35:29 city=Aliso Viejo state=CA name=Robert
+Tue 05/04/04 10:24:58 city=elkridge state=md name=
+Thu 05/06/04 14:46:22 city=hickory state=nc name=
+Fri 05/07/04 00:46:03 city=madison state=wi name=
+Fri 05/07/04 14:18:42 city=columbia state=mo name=
+Mon 05/10/04 09:20:57 city=Donegal state=Ireland name=
+Wed 05/12/04 12:47:13 city=Uppsala state=SE name=SteveG
+Thu 05/13/04 12:09:33 city=fort worth state=tx name=
+Sun 05/16/04 04:41:42 city=london state=united kingdom name=
+Thu 05/20/04 19:44:32 city=Grand Rapids state=MI name=
+Wed 05/26/04 03:03:18 city=Paris state=France name=SUPAD
+Wed 05/26/04 06:55:09 city=cardiiff state=United kingdom name=
+Sat 05/29/04 01:14:15 city=minneapolis state=MN name=
+Sat 05/29/04 11:58:22 city=forest hill state=md name=
+Wed 06/02/04 12:26:31 city=Wake Forest state=NC name=Rick Denatale
+Thu 06/03/04 03:40:44 city=antwerp state=belgium name=
+Sat 06/05/04 16:26:14 city=martinsburg state=wv name=
+Sat 06/05/04 21:20:51 city=Calgary state=AB name=JeffN

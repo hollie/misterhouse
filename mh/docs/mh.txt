@@ -609,6 +609,9 @@ DESCRIPTION
                              - If 'flag' was specified in the new method, 'flag' is returned.
                              - Otherwise, it returns the number of seconds since a set_watch call.
 
+             exist        : Returns 1 if the file exists
+             exist_now    : Returns 1 if the file was created since the last exist_now test.
+
              said         : Returns data added to a file since the last call.
                             Only one record is returned per call.
                             This is useful for monitoring log files.

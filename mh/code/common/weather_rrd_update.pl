@@ -23,6 +23,14 @@
 # If you use the graphs on an Internet Web site, please add a link
 # to www.misterhouse.net and www.domotix.net for your contribution
 #--------------------------------------------------------------------
+# In input, mh variables $Weather{...} are in the unit of measure :
+#    Temperature	°F
+#    Humidity		%
+#    Wind dir		degree
+#    Rain rate		in/hr
+#    Total rainfall	in
+#    Pressure		inhg
+#    Wind speed		mph
 #  MH.ini parameters :
 #  - Unit of measure of weather data
 #    weather_uom_temp = C		(C, F)
@@ -78,6 +86,13 @@
 # - add start date, step size, data points
 # - extend to a maximum of 11 sensors (indoor temperature and humidity)
 # - new mh.ini parameter weather_graph_sensor_names
+#    04/04   1.2   Bruce Winter
+# - Allow for sending graphs via email
+# 15/05/04   1.3   Dominique Benoliel
+# - change default labels for $config_parms{weather_graph_sensor_names}
+# 18/05/04   1.4   Dominique Benoliel
+# - Change min/max value for RRD DS press (Thanks to Clive Freedman)
+# - add comment : unit of neasure of mh variable $Weather{...} in input
 #####################################################################
 use RRDs;
 
@@ -97,7 +112,7 @@ if ($Reload) {
     $config_parms{weather_graph_dir} = "$config_parms{data_dir}/rrd" unless $config_parms{weather_graph_dir};
     $config_parms{weather_graph_footer} = 'Last updated $Time_Date, Dominique Benoliel, www.domotix.net' unless $config_parms{weather_graph_footer};
     mkdir $config_parms{weather_graph_dir} unless -d $config_parms{weather_graph_dir};
-    $config_parms{weather_graph_sensor_names} = "intemp => Sensor name 0, tempspare1 => Sensor name 1, tempspare2 => Sensor name 2, tempspare3 => Sensor name 3, tempspare4 => Sensor name 4, tempspare5 => Sensor name 5, tempspare6 => Sensor name 6, tempspare7 => Sensor name 7, tempspare8 => Sensor name 8, tempspare9 => Sensor name 9, tempspare10 => Sensor name 10, inhumid => Sensor name 0, humidspare1 => Sensor name 1, humidspare2 => Sensor name 2, humidspare3 => Sensor name 3, humidspare4 => Sensor name 4, humidspare5 => Sensor name 5, humidspare6 => Sensor name 6, humidspare7 => Sensor name 7, humidspare8 => Sensor name 8, humidspare9 => Sensor name 9, humidspare10 => Sensor name 10" unless $config_parms{weather_graph_sensor_names};
+    $config_parms{weather_graph_sensor_names} = "temp => Temperature outdoor, humid => Humidity outdoor, dew => Temperature dewpoint outdoor, press => Pressure outdoor, dir => Wind direction, avgdir => Wind average direction, speed => Wind speed, avgspeed => Wind average speed, chill => Temperature windchill, rate => Rain rate, rain => Rain total, intemp => Temperature indoor, inhumid => Humidity indoor, indew => Temperature dewpoint indoor, tempspare1 => Temperature extra sensor 1, humidspare1 => Humidity extra sensor 1, dewspare1 => Temperature dewpoint extra sensor 1, tempspare2 => Temperature extra sensor 2, humidspare2 => Humidity extra sensor 2, dewspare2 => Temperature dewpoint extra sensor 2, tempspare3 => Temperature extra sensor 3, humidspare3 => Humidity extra sensor 3, dewspare3 => Temperature dewpoint extra sensor 3, tempspare4 => Temperature extra sensor 4, humidspare4 => Humidity extra sensor 4, tempspare5 => Temperature extra sensor 5, humidspare5 => Humidity extra sensor 5, tempspare6 => Temperature extra sensor 6, humidspare6 => Humidity extra sensor 6, tempspare7 => Temperature extra sensor 7, humidspare7 => Humidity extra sensor 7, tempspare8 => Temperature extra sensor 8, humidspare8 => Humidity extra sensor 8, tempspare9 => Temperature extra sensor 9, humidspare9 => Humidity extra sensor 9, tempspare10 => Temperature extra sensor 10, humidspare10 => Humidity extra sensor 10 " unless $config_parms{weather_graph_sensor_names};
    }
 
 # Debug mode
@@ -200,7 +215,7 @@ sub create_rrd {
     "DS:temp:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:humid:GAUGE:$RRD_HEARTBEAT:0:100",
     "DS:dew:GAUGE:$RRD_HEARTBEAT:0:150",
-    "DS:press:GAUGE:$RRD_HEARTBEAT:0:1500",
+    "DS:press:GAUGE:$RRD_HEARTBEAT:23:33",
     "DS:dir:GAUGE:$RRD_HEARTBEAT:0:360",
     "DS:avgdir:GAUGE:$RRD_HEARTBEAT:0:360",
     "DS:speed:GAUGE:$RRD_HEARTBEAT:0:100",

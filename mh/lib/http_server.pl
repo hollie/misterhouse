@@ -7,8 +7,6 @@ use strict;
 
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
-use HTTP::Date qw(time2str str2time);
-
 use vars qw(%Http %Cookies %Included_HTML);
 $Authorized = 0;
 
@@ -20,9 +18,12 @@ my %mime_types = (
                   'html'  => 'text/html',
                   'shtml' => 'text/html',
                   'sht'   => 'text/html',
-                  'vxml'  => 'text/html',
                   'pl'    => 'text/html',
+                  'vxml'  => 'text/html',
+                  'xml'   => 'text/xml',
+                  'xsl'   => 'text/xml',
                   'txt'   => 'text/plain',
+		  'css'   => 'text/css',
                   'png'   => 'image/png',
                   'gif'   => 'image/gif',
                   'jpg'   => 'image/jpeg',
@@ -31,9 +32,11 @@ my %mime_types = (
                   'bmp'   => 'image/bmp',
                   'au'    => 'audio/basic',
                   'pls'   => 'audio/x-scpls',
+                  'm3u'   => 'audio/x-scpls',
                   'snd'   => 'audio/basic',
                   'wav'   => 'audio/x-wav',
                   'mp3'   => 'audio/x-mp3',
+		  'ogm'   => 'application/ogg',
 		  'mjpg'  => 'video/x-motion-jpeg',
                   'wml'   => 'text/vnd.wap.wml',
                   'wmls'  => 'text/vnd.wap.wmlscript',
@@ -1349,12 +1352,20 @@ sub html_cgi {
 }
 
 sub mime_header {
-    my ($file, $cache, $length) = @_;
-    my ($extention) = $file =~ /.+\.(\S+)$/;
-    my $mime = $mime_types{lc $extention} || 'text/html';
-    my $time = (stat($file))[9];
-    my $date = &time2str($time);
-#   my $date = &time_date_stamp(19, $time);
+    my ($file_or_type, $cache, $length) = @_;
+				# Allow for passing filename or filetype
+    my ($mime, $date);
+    if ($mime = $mime_types{$file_or_type}) {
+	$date = &time2str();
+    }
+    else {
+	my ($extention) = $file_or_type =~ /.+\.(\S+)$/;
+	$mime = $mime_types{lc $extention} || 'text/html';
+	my $time = (stat($file_or_type))[9];
+	$date = &time2str($time);
+#       $date = &time_date_stamp(19, $time);
+    }
+#   print "dbx2 m=$mime f=$file_or_type\n";
 
     my $header = "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n";
 #   $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
@@ -1397,7 +1408,7 @@ sub html_page {
     my $date=time2str(time);
 
                                 # Allow for fully formated html
-    if ($body =~ /^\s*<html/i) {
+    if ($body =~ /^\s*<(html|\?xml)/i) {
         $body =~ s/\n/\n\r/g;   # Bill S. says this is required to be standards compiliant
 
 # Content-Length is only for binary data!
@@ -2828,6 +2839,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.90  2004/06/06 21:38:44  winter
+# *** empty log message ***
+#
 # Revision 1.89  2004/05/02 22:22:17  winter
 # *** empty log message ***
 #

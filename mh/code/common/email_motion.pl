@@ -14,9 +14,10 @@ if (done_now $p_get_email and -e $get_email_scan_file) {
     print "email_motion: checking $get_email_scan_file\n" if $Debug{email};
     my @msgs;
     for my $line (file_read $get_email_scan_file) {
-	print "email_motion: mail=$line\n" if $Debug{email};
+	print "email_motion: mail =$line\n" if $Debug{email};
         my ($msg, $from, $to, $subject, $body) = $line =~ /Msg: (\d+) From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
-        if ($subject =~ /^Motion /i ) {
+        if ($subject =~ /^ *Motion\:? /i ) {
+	    print "email_motion: Found mail: $subject\n" if $Debug{email};
             push @msgs, $msg;
         }
     }

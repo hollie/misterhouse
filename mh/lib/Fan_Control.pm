@@ -118,38 +118,38 @@ sub new
 	my $self={};
 	bless $self,$class;
    $$self{'name'} = $name;
-   $$self{'timer'} = new Timer();
+   $$self{'off_timer'} = new Timer();
    push(@{$$self{states}}, 'off', 'low', 'med', 'high');
 	return $self;
 }
 
 sub delay_off {
    my ($self, $delay) = @_;
-   $$self{'timer'}->set($delay, $self);
+   $$self{'off_timer'}->set($delay, $self);
 }
 
 sub setstate_off {
-   my ($self, $substate) = @_;
-   $$self{'timer'}->stop();
+   my ($self) = @_;
    set $fan_socket "fan $$self{'name'} motor off";
+   $$self{'off_timer'}->stop();
 }
 
 sub setstate_low {
-   my ($self, $substate) = @_;
-   $$self{'timer'}->stop();
+   my ($self) = @_;
    set $fan_socket "fan $$self{'name'} motor low";
+   $$self{'off_timer'}->stop();
 }
 
 sub setstate_med {
-   my ($self, $substate) = @_;
-   $$self{'timer'}->stop();
+   my ($self) = @_;
    set $fan_socket "fan $$self{'name'} motor med";
+   $$self{'off_timer'}->stop();
 }
 
 sub setstate_high {
-   my ($self, $substate) = @_;
-   $$self{'timer'}->stop();
+   my ($self) = @_;
    set $fan_socket "fan $$self{'name'} motor high";
+   $$self{'off_timer'}->stop();
 }
 
 1;

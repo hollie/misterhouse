@@ -225,11 +225,11 @@ sub send {
 
     my ($parms, $msg);
     if ($protocol eq 'xAP') {
-        $msg  = "xap-header\n{\nv=12\nhop=1\nuid=$uid\nsource=MrHouse.mh.$instance\n";
+        $msg  = "xap-header\n{\nv=12\nhop=1\nuid=$uid\nsource=MHOUSE.mh.$instance\n";
         $msg .= "class=$class_address\n}\n";
     }
     elsif ($protocol eq 'xPL') {
-        $msg  = "xpl-cmnd\n{\nhop=1\nsource=MrHouse.mh.$instance\n";
+        $msg  = "xpl-cmnd\n{\nhop=1\nsource=MHOUSE.mh.$instance\n";
         $msg .= "target=$class_address\n}\n";
     }
 
@@ -264,10 +264,10 @@ sub send_heartbeat {
     my $msg;
     if ($protocol eq 'xAP') {
         $msg = "xap-hbeat\n{\nv=12\nhop=1\nuid=$uid\nclass=xap-hbeat.alive\n";
-        $msg .= "source=MrHouse.mh.$instance\ninterval=60\nport=$port\npid=$$\n}\n";
+        $msg .= "source=MHOUSE.mh.$instance\ninterval=60\nport=$port\npid=$$\n}\n";
     }
     elsif ($protocol eq 'xPL') {
-        $msg  = "xpl-stat\n{\nhop=1\nsource=MrHouse.mh.$instance\n}\n";
+        $msg  = "xpl-stat\n{\nhop=1\nsource=MHOUSE.mh.$instance\n}\n";
         $msg .= "hbeat.app\n{\ninterval=1\nport=$port\nremote-ip=$ip_address\npid=$$\n}\n";
     }
     $xap_send->set($msg);

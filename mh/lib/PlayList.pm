@@ -112,18 +112,22 @@ sub _get_m3u {
 sub _get_dir {
    my ($dir) = @_;
    my @ret = ();
+   my @dirs = ();
    if (opendir (DIR, $dir)) {
       while (my $entry = readdir(DIR)) {
          next if $entry =~ /^\./;
          if (-d $dir . '/' . $entry) {
-            push @ret, &_get_dir($dir . '/' . $entry);
+            push @dirs, $dir . '/' . $entry;
          } elsif ($entry =~ /\.m3u$/) {
             push @ret, &_get_m3u($dir . '/' . $entry);
-         } else {
+         } elsif ($entry =~ /\.mp3$/) {
             push @ret, "$dir/$entry";
          }
       }
       close(DIR);
+   }
+   foreach (@dirs) {
+      push @ret, &_get_dir($_);
    }
    return (@ret);
 }

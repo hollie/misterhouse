@@ -943,8 +943,9 @@ sub main::time_date_stamp {
 # 15:  Sunday, December 25th
 # 16:  04/14/97  2:28:00 PM
 # 17:  2001-04-09 14:05:16  (POSIX strftime format)
-# 18:  20011201 (i.e. YYYYMMDD)
+# 18:  YYYYMMDD (e.g. 20011201)
 # 19:  Sun, 06 Nov 1994 08:49:37 GMT  (RFC 822 format, needed by web servers)
+# 20:  YYYYMMDDHHMMSS
 
     my($style, $time_or_file) = @_;
     my $time;
@@ -1033,6 +1034,8 @@ sub main::time_date_stamp {
                           $year_full, $mon, $mday, $hour, $min, $sec) }
     elsif ($style == 18)  {$time_date_stamp = sprintf("%04d%02d%02d",
                                                       $year_full, $mon, $mday) }
+    elsif ($style == 20)  {$time_date_stamp = sprintf("%04d%02d%02d%02d%02d%02d",
+                                                      $year_full, $mon, $mday, $hour, $min, $sec) }
     else {
 	$time_date_stamp = "time_date_stamp format=$style not recognized";
     }
@@ -1232,6 +1235,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.71  2004/06/06 21:38:44  winter
+# *** empty log message ***
+#
 # Revision 1.70  2004/05/02 22:22:17  winter
 # *** empty log message ***
 #

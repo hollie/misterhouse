@@ -80,7 +80,7 @@ if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
 
     my $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&PASSWORD=%s&dateutc=%s&winddir=%s&windspeedmph=%d&windgustmph=%d&tempf=%.1f&rainin=%.2f&baromin=%.2f&dewptf=%.2f&humidity=%s&weather=%s&clouds=%s&softwaretype=%s&action=updateraw',
 	$stationid, $passwd, $utc,
-	$Weather{WindAvgDir},
+	$Weather{WindAvgDir}?$Weather{WindAvgDir}:$Weather{WindGustDir},
 	$Weather{WindAvgSpeed},
 	$Weather{WindGustSpeed},
 	$Weather{TempOutdoor},

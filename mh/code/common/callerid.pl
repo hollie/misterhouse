@@ -33,7 +33,7 @@ use Telephony_Item;
                                 # Use this for each of your cid hardware interfaces
 $cid_interface1 = new Telephony_Interface($config_parms{callerid_name},  $config_parms{callerid_port},  $config_parms{callerid_type});
 $cid_interface2 = new Telephony_Interface($config_parms{callerid2_name}, $config_parms{callerid2_port}, $config_parms{callerid2_type});
-$PhoneKillerPort = new  Telephony_Item($config_parms{callerid_port});
+#$PhoneKillerPort = new  Telephony_Item($config_parms{callerid_port});
 
 # Examples of other interfaces
 #cid_interface3 = new Telephony_Identifier('Identifier', $config_parms{identifier_port});
@@ -43,7 +43,7 @@ $cid_item       = new CID_Lookup($cid_interface1);
 $cid_item      -> add           ($cid_interface2);
 
 $cid_log        = new CID_Log($cid_item);    # Enables logging
-$cid_server     = new CID_Server($cid_item); # Enables YAC and Acid callerid clients
+$cid_server     = new CID_Server($cid_item); # Enables YAC, Acid, and xAP/xPL callerid clients
 
 # Add one of these for each YAC client:  http://www.sunflowerhead.com/software/yac
 #$cid_client1 = new CID_Server_YAC('localhost');
@@ -67,7 +67,8 @@ if (defined($state = state_now $cid_interface_test)) {
     if ($state == 'offhook'){
 	#start $PhoneKillerPort;
 	set $PhoneKillTimer 3;
-	&Serial_Item::send_serial_data($config_parms{callerid_name}, 'ATA');
+#	&Serial_Item::send_serial_data($config_parms{callerid_name}, 'ATA');
+	set $cid_interface1 'offhook';
 	#stop $PhoneKillerPort;
     }
     set_test $cid_interface1 'DATE TIME=12/27 15:14 NBR=100 END MSG'         if $state eq 'UK known'; # 100 needs to be set as a recognised number
@@ -86,13 +87,15 @@ sub phonestopper{
 		print_log "Ending Incomimg Phone Call.";
 		speak "This call should be rejected";
 		set $PhoneKillTimer 3;
-		#&Serial_Item::send_serial_data($config_parms{callerid_name}, 'ATA');
+#		&Serial_Item::send_serial_data($config_parms{callerid_name}, 'ATA');
+		set $cid_interface1 'offhook';
 	}
 }
 
 if (expired $PhoneKillTimer){
-	&Serial_Item::send_serial_data($config_parms{callerid_name}, 'ATH');
-	print_log "Setting Phone Back To Hook";
+#   &Serial_Item::send_serial_data($config_parms{callerid_name}, 'ATH');
+    set $cid_interface1 'onhook';
+    print_log "Setting Phone Back To Hook";
 }
 
 sub cid_handler {

@@ -56,6 +56,28 @@ sub changed {
     }
 }
 
+sub exist {
+    my ($self) = @_;
+    my $file = $self->{file};
+    return -e $file;
+}
+
+sub exist_now {
+    my ($self) = @_;
+    my $file = $self->{file};
+    if (-e $file) {
+	unless ($self->{exist}) {
+	    $self->{exist} = 1;
+	    return 1;
+	}
+    }
+    elsif ($self->{exist}) {
+	$self->{exist} = 0;
+    }
+    return 0;
+}
+
+
 sub read_all {
     my ($self) = @_;
     return &main::file_read($$self{file});
@@ -145,6 +167,9 @@ sub set_index {
 
 #
 # $Log$
+# Revision 1.12  2004/06/06 21:38:44  winter
+# *** empty log message ***
+#
 # Revision 1.11  2003/09/02 02:48:46  winter
 #  - 2.83 release
 #

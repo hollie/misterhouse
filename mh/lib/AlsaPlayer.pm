@@ -29,7 +29,7 @@ Alsaplayer:
    (owned by root and mode 4555).  You can help improve performance by telling
    alsaplayer to not load ID3 tags from MP3s by modifying its configuration
    file (.alsaplayer/config in your home directory) and setting 'mad.parse_id3'
-   to false.  
+   to false.  I do this when I'm running MP3s off of a network drive.
 
    You can change the default binary location and options by copying the
    following lines into your mh.private.ini:
@@ -110,6 +110,10 @@ Usage Details:
       clear(): Removes all playlists and MP3s
       get_playlist(): Returns current playlist
       get_playlist_length(): Returns length current playlist
+      quit(): Shuts down the player (restart by calling start())
+      restart(): Restarts the player (I use this on my voice output channel...
+         once I play MP3s on that output, until I restart alsaplayer aplay
+         does not produce very good quality audio)
 
 TODO:
    - Have not implemented seeking/jumping to points in a MP3 (--seek and --relative)
@@ -163,6 +167,7 @@ sub new {
    $$self{'channel'} = $channel;
    $$self{'session_name'} = $name;
    $$self{'replace'} = 1;
+   $$self{'volume'} = '1.00';
    @{$$self{'queue'}} = ();
    @{$$self{'pending_playlist'}} = ();
 	bless $self,$class;
@@ -260,7 +265,11 @@ sub _get_status {
                $sessions[$id]->{'title'} = '';
             }
          } elsif ($key eq 'volume') {
-            $sessions[$id]->{'volume'} = $val if $sessions[$id];
+            if ($sessions[$id]) {
+               unless ($sessions[$id]->{'volume'} == $val) {
+                  $sessions[$id]->_queue_cmd('volume', $sessions[$id]->{'volume'});
+               }
+            }
          } elsif ($key eq 'speed') {
             $sessions[$id]->{'speed'} = $val if $sessions[$id];
          } elsif ($key eq 'artist') {
@@ -295,8 +304,8 @@ sub _get_status {
 
 sub _rebuild_playlist {
    my ($self) = @_;
-   &::print_log("AlsaPlayer($$self{session_name}): _rebuild_playlist()") if $main::Debug{alsaplayer};
    if (keys %{$$self{'playlist'}}) {
+      &::print_log("AlsaPlayer($$self{session_name}): _rebuild_playlist()") if $main::Debug{alsaplayer};
       $$self{'replace'} = 1;
       foreach (keys %{$$self{'playlist'}}) {
          #&::print_log("AlsaPlayer($$self{session_name}): _rebuild_playlist(): $_") if $main::Debug{alsaplayer};
@@ -317,14 +326,17 @@ sub _died {
    my ($self) = @_;
    &::print_log("AlsaPlayer($$self{session_name}): _died(): session=$$self{'session'}, pending=$$self{'pending'}") if $main::Debug{alsaplayer};
    if ($$self{'session'} >= 0) {
-      &::print_log("AlsaPlayer($$self{session_name}): ERROR: process died..."); 
+      unless ($$self{'halted'} or $$self{'restarted'}) {
+         &::print_log("AlsaPlayer($$self{session_name}): ERROR: process died..."); 
+      }
+      $$self{'restarted'} = 0;
       $sessions[$$self{'session'}] = undef;
       # Delete old socket file...
       system("rm -f /tmp/alsaplayer_*_$$self{session}");
       $$self{'control'}->stop();
       $$self{'session'} = -1;
       $$self{'pending'} = 0;
-      if ($$self{'object_name'}) {
+      if ($$self{'object_name'} and not $$self{'halted'}) {
          &::print_log("AlsaPlayer($$self{session_name}): Scheduling a restart..."); 
          $$self{'reconnect_timer'} = new Timer;
          $$self{'reconnect_timer'}->set(5, "$$self{object_name}->_reconnect()");
@@ -651,6 +663,7 @@ sub previous_song {
 sub stop {
    my ($self) = @_;
    $self->_queue_cmd('stop');
+   $$self{'paused'} = 1;
 }
 
 sub volume {
@@ -737,6 +750,18 @@ sub get_playlist_length {
    return $$self{'playlist_length'};
 }
 
+sub halt {
+   my ($self) = @_;
+   $$self{'halted'} = 1;
+   $self->_queue_cmd('quit');
+}
+
+sub restart {
+   my ($self) = @_;
+   $$self{'restarted'} = 1;
+   $self->_queue_cmd('quit');
+}
+
 sub start {
    my ($self) = @_;
    &::print_log("AlsaPlayer($$self{session_name}): start(): session=$$self{'session'}, pending=$$self{'pending'}") if $main::Debug{alsaplayer};
@@ -747,6 +772,7 @@ sub start {
       &::print_log("AlsaPlayer($$self{session_name}): setting paused to 0 in start()") if $main::Debug{alsaplayer};
       return;
    }
+   $$self{'halted'} = 0;
    for (my $k = 0; $k <= $#check_once; $k++) {
       if ($self eq $check_once[$k]) {
          # Wait to check if the process is already running...

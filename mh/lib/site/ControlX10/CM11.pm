@@ -353,7 +353,7 @@ sub read {
                                 #  - Protocol.txt says to send macros string, but that did not work.
             if ($data_d == 165 and !$no_power_fail_check) {
 
-                print "\nCM11 power fail detected.  Resetting the CM11 clock with";
+                print "\nCM11 power fail detected.";
                 &setClock($serial_port);
                                   # We can use this to detect a power failure
                 $POWER_RESET = 1; # The user code will be responsible for reseting this
@@ -792,6 +792,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.21  2004/06/06 21:38:44  winter
+# *** empty log message ***
+#
 # Revision 2.20  2003/12/22 00:25:06  winter
 #  - 2.86 release
 #

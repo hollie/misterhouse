@@ -50,7 +50,7 @@ sub read_phone_logs2 {
                                 # Sort by date, so most recent file is first
     my (@calls);
     my $count2 = 1;
-    print "Reading @files\n";
+#   print "Reading @files\n";
     for my $log_file (@files) { 
 #       print "db lf=$log_file\n";
         $log_file = "$phone_dir/logs/$log_file";
@@ -118,6 +118,6 @@ sub read_phone_logs2 {
         } 
         close PLOG;
     }
-    print "Read ", scalar @calls, " calls\n";
+#   print "Read ", scalar @calls, " calls\n";
     return @calls;
 }

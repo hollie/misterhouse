@@ -658,6 +658,11 @@ Note:  These methods currently read the entire file, so if have big files (say, 
 </dd>
 <dd>
 <pre>
+     exist        : Returns 1 if the file exists
+     exist_now    : Returns 1 if the file was created since the last exist_now test.</pre>
+</dd>
+<dd>
+<pre>
      said         : Returns data added to a file since the last call.
                     Only one record is returned per call.
                     This is useful for monitoring log files.

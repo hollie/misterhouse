@@ -40,25 +40,30 @@ if (defined($state = state_now $eliza_data)) {
 
     my $rule    = state $eliza_rule;
     my $voice   = state $eliza_voice;
+    my $name    = ($voice) ? $voice : 'Eliza';
     my $wavcomp = state $eliza_wavcomp;
     if ($rule eq 'none') {
-        $msg = &Voice_Text::set_voice($voice, "$name_short says: $msg");
+	$msg = "$name_short says: $msg";
+#       $msg = &Voice_Text::set_voice($voice, "$name_short says: $msg");
     }
     elsif ($rule =~ 'thought') {
         my $response = read_current $eliza_deep_thoughts;
         $response    = read_next    $eliza_deep_thoughts if $rule eq 'thought2';
-        $response = "$name_short says: $msg.  Jack says: $response" if $msg;
-        $msg = &Voice_Text::set_voice($voice, $response);
+        $response = "$name_short says: $msg.  $name says: $response" if $msg;
+        $msg = $response;
+#        $msg = &Voice_Text::set_voice($voice, $response);
     }
     else {
         $eliza = new Chatbot::Eliza "Eliza", "../data/eliza/$rule.txt" unless $eliza;
         my $response = $eliza->transform($msg);
-        $msg  = "$name_short said: " . &Voice_Text::set_voice($voice, $msg);
-        $msg .= "  Eliza says: "     . &Voice_Text::set_voice($voice, $response);
+        $msg  = "$name_short said: $msg.  $name says: $response";
+#        $msg  = "$name_short said: " . &Voice_Text::set_voice($voice, $msg);
+#        $msg .= "  Eliza says: "     . &Voice_Text::set_voice($voice, $response);
     }
     print "Speaking eliza data with voice=$voice, compression=$wavcomp\n";
 #   speak card => 3, compression => $wavcomp, text => $msg;
     speak app => 'chatbot', voice => $voice, compression => $wavcomp, text => $msg;
+#    speak app => 'chatbot',  compression => $wavcomp, text => $msg;
     logit("$config_parms{data_dir}/logs/eliza_server.$Year.log", "domain=$name text=$msg"); 
 }
 

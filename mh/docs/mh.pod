@@ -649,6 +649,9 @@ Note:  These methods currently read the entire file, so if have big files (say, 
                      - If 'flag' was specified in the new method, 'flag' is returned.
                      - Otherwise, it returns the number of seconds since a set_watch call.
 
+     exist        : Returns 1 if the file exists
+     exist_now    : Returns 1 if the file was created since the last exist_now test.
+
      said         : Returns data added to a file since the last call.
                     Only one record is returned per call.
                     This is useful for monitoring log files.
@@ -5013,6 +5016,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.73  2004/06/06 21:38:41  winter
+# *** empty log message ***
+#
 # Revision 1.72  2004/04/25 18:16:03  winter
 # *** empty log message ***
 #

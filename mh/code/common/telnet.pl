@@ -8,12 +8,17 @@
 #@ want to use a different port (e.g. 1234):   telnet localhost 1234
 #@ This code is a good example of how to use mh as a socket_server. 
 
+# set the banners
+$config_parms{telnet_welcome_banner} = "Welcome to Mister House Socket Port 1" unless $config_parms{telnet_welcome_banner};
+$config_parms{telnet_exit_banner} = "Bye for now.  Y'all come back now, ya hear!  Type exit to exit." unless $config_parms{telnet_exit_banner};
+
                 # Examples on how to read and write data to a tcp socket port
-$telnet_server = new  Socket_Item("Welcome to Mister House Socket Port 1\n\r", 'Welcome1', 'server_telnet');
+$telnet_server = new  Socket_Item($config_parms{telnet_welcome_banner}."\n\r", 'Welcome1', 'server_telnet');
 $telnet_server ->add             ("Hi, thanks for dropping by!\n\r", 'hi');
-$telnet_server ->add             ("Bye for now.  Y'all come back now, ya hear!  Type exit to exit.\n\r", 'bye');
+$telnet_server ->add             ($config_parms{telnet_exit_banner}."\n\r", 'bye');
 $telnet_server ->add             ("\n\r", 'cr');
 $telnet_server ->add             ("\rmh> ", 'prompt');
+$telnet_server ->add             ("\rmh# ", 'prompt_admin');
 #$telnet_server ->add             ("\rmh $Time_Now> ", 'prompt');
 
                                 # To avoid CR on set, so we can have a prompt
@@ -26,36 +31,40 @@ my $reponse_loop_telnet;
 if (active_now $telnet_server) { 
     set $telnet_server 'Welcome1';
     set_echo $telnet_server 0;
-#   my $client = $Socket_Ports{'server_telnet'}{client_ip_address};
+    my $client_ip = $Socket_Ports{server_telnet}{client_ip_address};
     my $client = $Socket_Ports{server_telnet}{socka};
     $telnet_flags{$client}{auth} = 0;
+    $telnet_flags{$client}{auth_orig} = 0;
 
                                 # This will return false if the telnet ip is not in the password_allow_clients list
     if (my $user = password_check undef, 'server_telnet') {
         if (-e $config_parms{password_file}) {
             set $telnet_server 'Authorized by IP address match.';
-            set $telnet_server 'cr';
         } else {
             set $telnet_server 'Run set_password to create a password.  Global authorization enabled until then';
-            set $telnet_server 'cr';
         }
+        set $telnet_server 'cr';
         $telnet_flags{$client}{auth} = $user;
+        $telnet_flags{$client}{auth_orig} = $user;
+        print_log "Telnet: connection from $user\@$client_ip ($client)";
     }
     else {
-        print_log "Telnet active on server_telnet for $client";
+        print_log "Telnet: connection from $client_ip ($client)";
         set $telnet_server 'Type "login" to authenticate. Type "help" for a quick list of options.';
         set $telnet_server 'cr';
     }
     set $telnet_server 'cr';
-    set $telnet_server 'prompt';
+    set $telnet_server ($telnet_flags{$client}{auth} eq "admin") ? 'prompt_admin' : 'prompt';
 }
 
 if (inactive_now $telnet_server) {
-    my $client = $Socket_Ports{'server_telnet'}{client_ip_address};
+    my $client_ip = $Socket_Ports{server_telnet}{client_ip_address};
+    my $client = $Socket_Ports{server_telnet}{socka};
     $telnet_flags{$client}{auth} = 0;
+    $telnet_flags{$client}{auth_orig} = 0;
     $telnet_flags{$client}{data} = '';
     delete $log_to_telnet_list{"$client"};
-    print_log "Telnet session closed for $client";
+    print_log "Telnet: session closed from $client_ip";
 }
 
                                 # Code all the various code hooks
@@ -99,7 +108,7 @@ if ($state = said $telnet_client_set) {
 my $datapart;
 if (defined($datapart = said $telnet_server)) {
 
-#   my $client = $Socket_Ports{'server_telnet'}{client_ip_address};
+    my $client_ip = $Socket_Ports{server_telnet}{client_ip_address};
     my $client = $Socket_Ports{server_telnet}{socka};
 
     $telnet_flags{$client}{data} .= $datapart;
@@ -109,14 +118,14 @@ if (defined($datapart = said $telnet_server)) {
         $telnet_flags{$client}{data} =~ s/ *\r\n?$//;
         
         if ($telnet_flags{$client}{auth} eq 'set_password') {
-            print_log "password data: $telnet_flags{$client}{data}";
+            print_log "Telnet: password data: $telnet_flags{$client}{data}";
             if (my $user = password_check $telnet_flags{$client}{data}, 'server_telnet') {
-                print_log "Telnet session authorized\n";
+                print_log "Telnet: session authorized for $user from $client_ip";
                 $msg = "$user password accepted\r\n";
                 $telnet_flags{$client}{auth} = $user;
             }
             else {
-                print_log "Telnet password bad: password=$telnet_flags{$client}{data}";
+                print_log "Telnet: password bad: password=$telnet_flags{$client}{data}";
                 $msg = "password bad\r\n";
                 $telnet_flags{$client}{auth} = 0;
             }
@@ -124,7 +133,7 @@ if (defined($datapart = said $telnet_server)) {
         }
         elsif ($telnet_flags{$client}{data} ne '') {
 
-            print_log "Telnet port data ($client): $telnet_flags{$client}{data}";
+            print_log "Telnet: port data ($client): $telnet_flags{$client}{data}";
 
             if ($telnet_flags{$client}{data} =~ /^log[io]n/i) {
                 $msg = "Enter Password: ";
@@ -140,7 +149,7 @@ if (defined($datapart = said $telnet_server)) {
             }    
             elsif ($telnet_flags{$client}{data} =~ /^find:(.+)/) {
                 my $search = $1;
-                $search =~ s/^ +//; $search =~ s/ +$//;
+                $search =~ s/^\s*(.*?)\s*$/$1/;  # remove any whitespace before and after the search term
                 my @cmds = list_voice_cmds_match $search;
                 my @cmds2;
                 for my $cmd (@cmds) {
@@ -166,16 +175,31 @@ if (defined($datapart = said $telnet_server)) {
                 else {
                     $log_to_telnet_list{"$client"} = lc $1;
                 }
-                print_log "TELNET: logging $1 to $client";
+                print_log "Telnet: logging $1 to $client";
             }
             
+            elsif (lc($telnet_flags{$client}{data}) eq 'whoami') {
+                my $whoami = $telnet_flags{$client}{auth};
+                $whoami = "guest" if $whoami eq 0;
+                set $telnet_server $whoami."\n\r";
+            }
             elsif (lc($telnet_flags{$client}{data}) eq 'hi') {
                 set $telnet_server 'hi';
             }
             elsif (lc($telnet_flags{$client}{data}) eq 'exit' || lc($telnet_flags{$client}{data}) eq 'bye') {
-                set $telnet_server 'bye';
-                sleep 1;
-                stop $telnet_server;
+                if ($telnet_flags{$client}{auth} eq $telnet_flags{$client}{auth_orig}) {
+                    set $telnet_server 'bye';
+                    sleep 1;
+                    stop $telnet_server;
+                }
+                elsif ($telnet_flags{$client}{auth} eq "admin") {
+                    $telnet_flags{$client}{auth} = $telnet_flags{$client}{auth_orig};
+                    print_log "Telnet: user from $client_ip has exited from admin back to $telnet_flags{$client}{auth}";
+                } 
+                elsif ($telnet_flags{$client}{auth} eq "family") {
+                    $telnet_flags{$client}{auth} = $telnet_flags{$client}{auth_orig};
+                    print_log "Telnet: user from $client_ip has exited from family back to $telnet_flags{$client}{auth}";
+                } 
             }
             else {
                                         # This will allow us to type in any command
@@ -210,7 +234,7 @@ if (defined($datapart = said $telnet_server)) {
         set $telnet_server $msg if defined $msg;
         unless ($telnet_flags{$client}{auth} eq 'set_password') {
             set $telnet_server 'cr';
-            set $telnet_server 'prompt';
+            set $telnet_server ($telnet_flags{$client}{auth} eq "admin") ? 'prompt_admin' : 'prompt';
         }
         $telnet_flags{$client}{data} = '';
     }
@@ -219,9 +243,9 @@ if (defined($datapart = said $telnet_server)) {
 
                                 # Show the reponse the the previous command
 if (active $telnet_server and $reponse_loop_telnet == $Loop_Count) {
-    set $telnet_server 'cr';
-    set $telnet_server 'cr';
-    set $telnet_server 'prompt';
+#    set $telnet_server 'cr';
+    my $client = $Socket_Ports{server_telnet}{socka};
+    set $telnet_server ($telnet_flags{$client}{auth} eq "admin") ? 'prompt_admin' : 'prompt';
 }
 
                                 # Example of how enable inputing random data from a telnet session

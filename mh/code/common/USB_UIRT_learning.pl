@@ -111,6 +111,7 @@ sub usb_uirt_update_html {
       Function Name<br>
       <input value="" size="30" name=$usb_uirt_function_text>
       <input type=submit value="Learn" name=$usb_uirt_function_learn><br>
+      <input type=submit value="Create" name=$usb_uirt_function_new><br>
       <input type=submit name=$usb_uirt_function_delete value="Delete"><br>
       <input type=submit name=$usb_uirt_function_rename value="Rename"><br>
       <input type=submit name=$usb_uirt_function_send value="Send"><br>
@@ -193,6 +194,7 @@ if (state_now $usb_uirt_device_rename) {
 
 $usb_uirt_function_list = new Generic_Item;
 $usb_uirt_function_learn = new Generic_Item;
+$usb_uirt_function_new = new Generic_Item;
 $usb_uirt_function_text = new Generic_Item;
 $usb_uirt_function_load = new Generic_Item;
 $usb_uirt_function_delete = new Generic_Item;
@@ -272,6 +274,20 @@ if (state_now $usb_uirt_function_import) {
 	USB_UIRT::set_ir_code($device, $function, '', state $usb_uirt_function_repeat, $usb_uirt_function_pcode);
 }
 
+if (state_now $usb_uirt_function_new) {
+	my $device = $current_device;
+	my $code1 = state $usb_uirt_function_code1;
+	my $code2 = state $usb_uirt_function_code2;
+	my $frequency = state $usb_uirt_function_frequency;
+	my $repeat = state $usb_uirt_function_repeat;
+	$repeat = 1 unless $repeat =~ /^\d+$/;
+	my $funcnew;
+	$funcnew = uc state $usb_uirt_function_text if state $usb_uirt_function_text;
+	$current_function = $funcnew if $funcnew;
+	print_log "Creating device $device function $funcnew";
+	USB_UIRT::set_ir_code($device, $funcnew, $frequency, $repeat, $code1, $code2);
+}
+
 if (state_now $usb_uirt_function_modify) {
 	my $device = $current_device;
 	my $function = $current_function;
@@ -280,7 +296,7 @@ if (state_now $usb_uirt_function_modify) {
 	my $frequency = state $usb_uirt_function_frequency;
 	my $repeat = state $usb_uirt_function_repeat;
 	$repeat = 1 unless $repeat =~ /^\d+$/;
-	print_log "Modlfying device $device function $function";
+	print_log "Modifying device $device function $function";
 	USB_UIRT::set_ir_code($device, $function, $frequency, $repeat, $code1, $code2);
 }
 

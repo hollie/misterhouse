@@ -154,9 +154,9 @@ sub new {
 
 sub property_changed {
     my ($self, $property, $new_value, $old_value) = @_;
-#   print "x10 s=$self: property_changed: $property ='$new_value' (was '$old_value')\n";
+#   print "x10 s=$self: property_changed: $property='$new_value' (was '$old_value')\n";
     if ($property eq 'state') {
-	&set_x10_level($self, $state);
+	&set_x10_level($self, $new_value);
     }
 }
 
@@ -1070,6 +1070,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.44  2004/06/06 21:38:44  winter
+# *** empty log message ***
+#
 # Revision 1.43  2004/05/02 22:22:17  winter
 # *** empty log message ***
 #

@@ -118,6 +118,8 @@ if ($^O eq 'MSWin32') {
 	Win32::API->Import('uuirtdrv', 'BOOL UUIRTClose(HUUHANDLE hHandle)');
 }
 
+END {if ($^O eq 'MSWin32') {UUIRTClose($DrvHandle);}}
+
 sub startup {
 	&::MainLoop_pre_add_hook(  \&USB_UIRT::check_for_data, 1 );
 	$db = tie (%DBM,  'DB_File', $dbm_file) or print "\nError, can not open dbm file $dbm_file: $!";
@@ -730,7 +732,7 @@ sub set_ir_code {
 		$frequency = 40 unless $frequency; 
 		$frequency = round(2500 / $frequency); 
 		$code = (unpack 'H4', pack 'CC', $frequency, ($code2 ? 0 : $repeat)) . $code1 if $code1;
-		$code .= (unpack 'H4', pack 'CC', $frequency, $repeat) . $code2 if $code2;
+		$code .= (unpack 'H2', pack 'C', $repeat) . $code2 if $code2;
 	}
 	$DBM{"$device$;$function"} = $code;
 	$db->sync; 
@@ -761,7 +763,7 @@ sub get_ir_code {
 		$repeat1 = unpack 'c', pack 'H2', $repeat1;
 	}
 	else {
-		($frequency1, $repeat1, $code1, $frequency2, $repeat2, $code2) = unpack 'a2a2a50a2a2a42', $code;
+		($frequency1, $repeat1, $code1, $repeat2, $code2) = unpack 'a2a2a50a2a42', $code;
 		$frequency1 = unpack 'C', pack 'H2', $frequency1;
 		$frequency1 = $frequency1 ? round(2500 / $frequency1) : 0; 
 		$repeat1 = unpack 'C', pack 'H2', $repeat1;

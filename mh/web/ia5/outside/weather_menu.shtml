@@ -8,6 +8,9 @@
       <TD align="center"></TD>
     </TR>
     <tr>
+      <TD align="center"><a href="/bin/weather_graph_zoom.pl"><img src="images/weather-zoom.gif" alt='Weather zoom' border="0" name="Weather zoom"></a></TD>
+    </tr>
+    <tr>
       <TD align="center"><a href="/bin/weather_graph.pl?tempout"><img src="images/weather-tempout.gif" alt='Outdoor temp' border="0" name="Outdoor temp"></a></TD>
     </tr>
     <tr>

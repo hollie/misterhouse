@@ -282,6 +282,12 @@ RCSs.pl
 rcstx15_old.pl          
  - Old rcs code for running a RCS TX15 Thermostat.  Use rcs.pl instead.
 
+school_clock.pl
+ - A simple clock for announcing time till school bus
+
+school_closing.pl
+ - Screen scrapes tv/radio web pages for school closings (e.g. snow days).
+
 send_numeric_page.pl
  - Jeff's code for paging via modem
 
@@ -428,6 +434,10 @@ weeder_doorbell.pl
 
 weeder_init.pl
  - Jeff Pagel's code for initializing weeder DIO cards.
+
+whole_house_audio_speech.pl
+whole_house_audio_musica.pl
+ - Kirk Bauer's code for distributing speech and music using multiple sources and multiple destinations.
 
 winamp_control.pl
  - Evan Graham's code for controling and querying winamp using messaging via Win32::GUI. 

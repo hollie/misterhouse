@@ -5,6 +5,11 @@
 #                 (Misterhouse 2.87)
 # AUTHOR        : Dominique Benoliel (www.domotix.net)
 # REMARKS       :
+# Use this script only if mh parameter weather_data_csv is enable,
+# for example :
+#    weather_data_csv = F:/Misterhouse286/data/rrd/wmr928_hist.csv
+#    Archive weather data in flat file (type csv), blank to disable
+#    This File is suffixed by $Year_Month_Now
 # Input :
 #    source CSV files
 #    important : before launch, update variables :
@@ -20,6 +25,9 @@
 #   DATE   REVISION    AUTHOR	        DESCRIPTION
 #--------------------------------------------------------------------
 # 14/03/04   1.0   Dominique Benoliel	Creation
+# 18/05/04   1.1   Dominique Benoliel
+# - Change min/max value for RRD DS press (Thanks to Clive Freedman)
+# - local variable row_header not declared
 #####################################################################
 use Time::Local;
 use RRDs;
@@ -218,7 +226,7 @@ sub convert_csv {
 
     	# Historiser les données dans un fichier plat
     	unless (-e $filecsv2 or !$RRD2CSV) {
-	 $row_header = join(";",
+	 my $row_header = join(";",
 	  'Epoch','Annee','Mois','Jour','Heure','Minute','Seconde',
 	  'Outdoor Temp', 'Outdoor Humidity', 'Temperature dewpoint',
 	  'Pression', 'Direction wind', 'Direction average wind',
@@ -303,7 +311,7 @@ sub create_rrd {
     "DS:temp:GAUGE:$HEARTBEAT:-150:150",
     "DS:humid:GAUGE:$HEARTBEAT:0:100",
     "DS:dew:GAUGE:$HEARTBEAT:0:150",
-    "DS:press:GAUGE:$HEARTBEAT:0:1500",
+    "DS:press:GAUGE:$HEARTBEAT:23:33",
     "DS:dir:GAUGE:$HEARTBEAT:0:360",
     "DS:avgdir:GAUGE:$HEARTBEAT:0:360",
     "DS:speed:GAUGE:$HEARTBEAT:0:100",

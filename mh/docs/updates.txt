@@ -2,6 +2,70 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    - Kirk Bauer created code/public/whole_house_audio_speech.pl and
+    whole_house_audio_musica.pl for for distributing speech and music using
+    multiple sources and multiple destinations. Lots of good documentation
+    here: http://www.linux.kaybee.org:81/tabs/whole_house_audio/
+
+    - Dominique Benoliel created web/bin/weather_graph_zoom.pl and added a
+    ia5 Weather -> Weather Station -> Weather Zoom option for creating
+    custom sized graphs for any date range.
+
+    - Steven Lee created lib/Logger.pm. See the top of the file for
+    examples.
+
+    - Amauri Viguera and I created mh/web/bin/rss_logs.pl for creating RSS
+    feeds from various mh logs. For example, here is my speech log feed:
+    http://misterhouse.net:8080/bin/rss_logs.pl?speak . RSS feeds are a
+    popular way for various 'news aggregators' to track multiple sources of
+    info. To allow access from external readers, add rss_logs.pl to your
+    data_dir/password_allow file. See the rss_logs.pl header for more info.
+
+    - Updated lib/CID_Server.pm to enable sending of caller ID data to xAP
+    and xPL clients. This will be enabled if you enable
+    code/common/test_xap.pl and callerid.pl. Tested with the nifty new xAP
+    desktop application which displays various bits of data on windows
+    desktops, available via http://www.xapautomation.org .
+
+    Bug Fixes and Other Changes:
+
+    - Brian Ujvary updated lib/USB_UIRT.pm to close cleanly on mh
+    exit/restart.
+
+    - Chris Barrett noticed a problem with common/telnet.pl closing a client
+    connection.
+
+    - Brian McKissick updated bin/alpha_page to support Arch Wireless
+    (one-way and two-way) pagers.
+
+    - Kirk Bauer updated lib/AlsaPlayer.pm, PlayList.pm, and
+    common/mp3_alsaplayer.pl. Added the ability to stop/restart alsaplayer
+    process and set the volume better.
+
+    - Sean Walker tweaked web/bin/photo_search.pl .
+
+    - Doug Nakakihara and Larry Roudebush noticed a commented out line in
+    common/callerid.pl caused rejected calls not to get hung up.
+
+    - Kirk Bauer added a "Create" button to the USB-UIRT Learning web
+    interface, which lets you select an exiting function, modify one or more
+    parts of it, type in the new name, and then click "Create". David
+    Norwood fixed a bug in USB_UIRT.pm that was corrupting two part UIRT
+    codes imported from Girder.
+
+    - Switched str2time from the HTTP version to the Date::Parse version, so
+    we can parse more time/date strings more reliably.
+
+    - Added offhook/onhook set options to lib/Telephony_Interface.pm and
+    switched to these from direct serial port calls in
+    code/common/callerid.pl.
+
+    - Chris Barrett added File_Item exist and exist_now methods for
+    detecting if files exist.
+
+  Version 2.90 posted on 05/02/2004
+    New Features:
+
     - Added slimserver_protocol=xAP option for common/display_slimserver.pl.
     This uses the xAP SlimServer Connector from: http://www.xapframework.net
     to display data to Slim devices. This program allows for big and
@@ -40,6 +104,9 @@ Mister House Announcement List
     - Chris Barrett also noticed a 2.89 bug in new_minute.
 
     - Chris Barrett added an auto-refresh to the rrd weather graphs.
+
+    - Steven Lee updated Generic_Item property_changed to also trigger if
+    the old or new value was undefined.
 
   Version 2.89 posted on 04/25/2004
     Version 2.89 was just uploaded to:

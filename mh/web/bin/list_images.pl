@@ -1,5 +1,5 @@
 #
-# List recent images in a given dir
+# List recent images in a given dir.  Pick images 10 minutes apart.
 #
 # Call like this:  http://localhost:8080/bin/list_images.pl?/web/motion
 # or this from an .shtml file:  <!--#include file="/bin/list_images.pl?/web/motion" -->
@@ -25,7 +25,7 @@ for my $file (sort {$file_data{$b}{date} <=> $file_data{$a}{date}} keys %file_da
     if (!$files_picked{$root} or 
 	$files_picked{$root} > ($file_data{$file}{date} + 60*10)) {
 	$files_picked{$root} = $file_data{$file}{date};
-	print "r=$root f=$file d=$file_data{$file}{date}\n";
+#	print "r=$root f=$file d=$file_data{$file}{date}\n";
 	$html .= qq|<img src="$url/$file">\n|;
 	last if ++$i >= 12;
     }
