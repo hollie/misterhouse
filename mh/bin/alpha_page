@@ -118,8 +118,8 @@ sub send_page {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 13:59:18  winter
-# Initial revision
+# Revision 1.2  2000/01/27 13:11:40  winter
+# update version
 #
 # Revision 1.1  1999/09/06 16:48:37  winter
 # - Received from Craig.
