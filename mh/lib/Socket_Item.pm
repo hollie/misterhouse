@@ -117,26 +117,21 @@ sub inactive_now {
 sub said {
     my $port_name = @_[0]->{port_name};
     
-    if (my $data = $main::Socket_Ports{$port_name}{data_record}) {
-        $main::Socket_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
-                                                           # Should also add said to serial item
-        return $data;
-#       print "db socket_data: $data.\n";
+    my $data;
+    if ($main::Serial_Ports{$port_name}{datatype} eq 'raw') {
+        $data = $main::Socket_Ports{$port_name}{data};
+        $main::Socket_Ports{$port_name}{data} = '';
     }
     else {
-        return;
+        $data = $main::Socket_Ports{$port_name}{data_record};
+        $main::Socket_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
     }
+    return $data;
 }
 
 sub handle {
     my $port_name = @_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{socka}; 
-}
-
-sub buffer {
-    my ($self, $buffer) = @_;
-    my $port_name = $self->{port_name};
-    $main::Socket_Ports{$port_name}{buffer} = $buffer;
 }
 
 sub set_echo {
@@ -191,6 +186,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.11  2000/05/14 16:19:20  winter
+# - add check for datatype raw
+#
 # Revision 1.10  2000/01/27 13:43:00  winter
 # - update version number
 #
