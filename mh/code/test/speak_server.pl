@@ -34,7 +34,7 @@ use Eliza;
 my ($chatbot, $chatbot_rule);
 
 $speak_server  = new  Socket_Item(undef, undef, 'server_speak');
-$internet_light= new X10_Item('O6');
+$internet_light= new X10_Item('F1');
 
 my $speak_server_data;
 if ($state = said $speak_server) {

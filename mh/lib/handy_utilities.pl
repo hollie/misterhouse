@@ -103,7 +103,7 @@ sub main::file_read {
     else {
         binmode LOG unless $textmode; # Don't use this on wantarray ... chomp will only get \n, not \r\n
         my ($data, $buffer);
-        while (read(LOG, $buffer, 8*2**10)) {
+        while (read(LOG, $buffer, 8192)) { # 8*2**10 bytes ... is this optimal??
             $data .= $buffer;
         }
         close LOG;
@@ -488,8 +488,11 @@ sub main::read_opts {
         }
                                 # Look for normal key=value records
         else {
-            ($key, $value) = $_ =~ /(\S+?)\s*=\s*([^\#]+)/;
-
+            next unless ($key, $value) = $_ =~ /(\S+?)\s*=\s*(.*)/;
+            if ($value) {
+                $value =~ s/^#.*//; # Delete end of line comments
+                $value =~ s/\s+\#.*//;
+            }
             $value_continued = 0;
             next unless $key;
         }
@@ -1068,6 +1071,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.50  2001/06/27 03:45:14  winter
+# - 2.54 release
+#
 # Revision 1.49  2001/05/28 21:14:38  winter
 # - 2.52 release
 #

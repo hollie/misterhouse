@@ -6,7 +6,12 @@
 
 # Requires cpuxad, part of the XALIB package by Mark A. Day available 
 # here: http://members.home.net/ncherry/common/cpuxad
-# The cpuxad daemon only runs on Unix/Linux.
+
+# The cpuxad daemon runs nativly on Unix/Linux, but 
+# you can run xalib on Windows using the Cygwin Unix
+# emulation software.  I have a copy modified to run
+# under Cygwin.
+#   http://www.geocities.com/dnorwood2/xalib-cygwin/
 
 
 package ncpuxa;

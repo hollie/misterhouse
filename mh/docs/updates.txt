@@ -3,9 +3,9 @@ Mister House Announcement List
     MisterHouse mailing list (an archive of all the list messages is
     at http://sourceforge.net/mail/?group_id=1365 )
 
-  Version 2.5? posted on 05/??/2001
+  Version 2.52 posted on 05/28/2001
 
-    Version 2.5? was just uploaded to:
+    Version 2.52 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
       http://misterhouse.net/download.html
@@ -46,7 +46,8 @@ Mister House Announcement List
     example.
 
     - Added mh/lib/xml_server.pl, so other xml based programs can
-    get data from mh. With IE, try: http://localhost:8080/sub?xml
+    get data from mh. Point am XML browser (e.g. IE) to:
+    http://localhost:8080/sub?xml
 
     Bug Fixes and Other Changes:
 
@@ -59,6 +60,9 @@ Mister House Announcement List
 
     - Wally Kissel noticed that display file.gif (or .jpg) was no
     longer worked. Turns out it was busted way back in 2.41!
+
+    - Clive Freedman added an time_cron option to allow it to test
+    on all passes, not just New_Minute passes.
 
     - Kieran Ames send in mh/code/public/phone_logs.pl.
 

@@ -126,6 +126,8 @@ sub main::net_domain_name {
             if $main::Socket_Ports{$address} and
                $main::Socket_Ports{$address}{client_ip_address};
 
+    return if &main::is_local_address($address);
+
     my $result;
     if ($main::DNS_resolver) {
         print "Searching for Domain Name of $address ...";
@@ -784,6 +786,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.32  2001/06/27 03:45:14  winter
+# - 2.54 release
+#
 # Revision 1.31  2001/05/28 21:14:38  winter
 # - 2.52 release
 #

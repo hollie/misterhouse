@@ -5,7 +5,7 @@
                                 # Example on how to send an email command
                                 # - This string can be in either the subject or the body of the email
                                 #      Subject line is:  command:x y z  code:xyz
-$v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9]', 'Ok, will do');
+$v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10]', 'Ok, will do');
 $v_send_email_test-> set_info('Send commands to test remote email commands');
 if ($state = $v_send_email_test->{said}) {
     if (&net_connect_check) {
@@ -40,6 +40,9 @@ if ($state = $v_send_email_test->{said}) {
 
         &net_mail_send(subject => 'test an html file',
                        file    => '../docs/faq.html') if $state == 9;
+
+                                # Test a request file via email
+        &net_mail_send(subject => "command:request $config_parms{caller_id_file}  code:$config_parms{net_mail_command_code}") if $state == 10;
 
         speak "Test message has been sent";
     }
@@ -112,23 +115,38 @@ sub speak_unread_mail {
     speak "rooms=all $text" if $text;
 }
 
-                                # Allow for email send commands, if the secret command code matches 
+                                # Allow for email send commands, IF the secret command code matches 
+                                #  - someday we need to allow for better, more secure mail commands
 sub scan_subjects {
     my ($file) = @_;
     return unless -e $file;
     for my $line (file_read $file) {
         my ($from, $to, $subject_body) = $line =~ /From:(.+) To:(.+) Subject:(.*)/;
-        if (my($command, $code) = $subject_body =~ /command:(.+?)\s+code:(\S+)/) {
+        if (my($command, $code) = $subject_body =~ /command:(.+?)\s+code:(\S+)/i) {
             my $results;
              if ($config_parms{net_mail_command_code} and $config_parms{net_mail_command_code} eq $code) {
-                speak "Running email command: $command";
-                if (run_voice_cmd $command) {
-                    $results = "Command was run: $command";
-                }
-                else {
-                    speak "Command not found";
-                    $results = "Command not found: $command";
-                }
+                 if (my ($file_request) = $command =~ /request_file\s(.+)/i) {
+                     $file_request =~ s|\\|\/|g;
+                     if (-e $file_request) {
+                         speak "Sending email request file: $file_request";
+                         $results = "Sending $file_request";
+                         &net_mail_send(to => $from, subject => $results, file => $file_request, mime => 'bin');
+                     }
+                     else {
+                         speak "Email requested file not found:$file_request";
+                         $results = "$file_request not found";
+                     }
+                 }
+                 else {
+                     if (run_voice_cmd $command) {
+                         speak "Running email command: $command";
+                         $results = "Command was run: $command";
+                     }
+                     else {
+                         speak "Email command not found: $command";
+                         $results = "Command not found: $command";
+                     }
+                 }
             }
             else {
                 speak "An unauthorized email command received: $command";

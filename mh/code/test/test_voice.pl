@@ -1,6 +1,8 @@
 
 # Category=Test
 
+# This currently only works for Viavoice (not MS Voice)
+
 $test_voice0 = new Voice_Cmd "Say something with a default voice";
 $test_voice1 = new Voice_Cmd "Say something with a [loud,soft] voice";
 $test_voice2 = new Voice_Cmd "Say something at a [fast,slow] speed";

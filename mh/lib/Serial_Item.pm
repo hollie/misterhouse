@@ -344,6 +344,9 @@ sub send_x10_data {
     my ($self, $serial_data, $interface) = @_;
     my ($isfunc);
 
+                                # Use proxy mh if present (avoids mh pauses for slow X10 xmits)
+    return if &main::proxy_send($interface, 'send_x10_data', $serial_data, $interface);
+
     if ($serial_data =~ /^X[A-P][1-9A-G]$/) {
         $isfunc = 0;
         $x10_save_unit = $serial_data;
@@ -478,6 +481,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.48  2001/06/27 03:45:14  winter
+# - 2.54 release
+#
 # Revision 1.47  2001/04/15 16:17:21  winter
 # - 2.49 release
 #

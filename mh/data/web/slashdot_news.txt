@@ -1,30 +1,30 @@
-Title: Compaq's Laptop/Desktop Concepts
-2001-05-28 08:17:24 by timothy  in dept: eyecandy-or-eyesore?  (compaq   45)
+Title: Hyperion Robot Follows the Sun
+2001-06-26 17:48:58 by michael  in dept: you-make-me-happy-when-skies-are-grey  (space   24)
 
-Title: The Inside Scoop on Yopy
-2001-05-28 06:14:05 by CmdrTaco  in dept: little-color-better  (pilot   78)
+Title: Napster Signs Indie Deal
+2001-06-26 16:56:19 by Hemos  in dept: good-deal  (music   93)
 
-Title: Mandrake For PowerPC Is Coming
-2001-05-28 03:46:21 by timothy  in dept: the-answer-is-*yes*  (mandrake   111)
+Title: Dept. of Defense Adopts StarOffice
+2001-06-26 14:36:20 by CmdrTaco  in dept: i-almost-care  (linux   152)
 
-Title: Google Owns Your UseNet Post
-2001-05-28 01:08:59 by timothy  in dept: boiling-boilerplate  (internet   215)
+Title: Galeon At A Glance
+2001-06-26 11:46:05 by Hemos  in dept: looking-under-the-hood  (internet   168)
 
-Title: Voyager Eulogy
-2001-05-27 22:56:35 by timothy  in dept: so-long-farewell-now-beam-down-my-clothes  (tv   332)
+Title: Round Table On Approaches To Source Code
+2001-06-26 07:56:23 by timothy  in dept: deep-thoughts-thought-deeply  (announce   158)
 
-Title: Monitoring What Files Your Applications Leave Behind?
-2001-05-27 21:07:40 by Cliff  in dept: package-manifests-GOOOOOD!  (Privacy   178)
+Title: Jordan Hubbard (of FreeBSD Fame) Hired by Apple
+2001-06-26 03:13:32 by Roblimo  in dept: sometimes-a-paycheck-is-nice-to-have  (bsd   305)
 
-Title: 2001 Book Author Responds
-2001-05-27 18:18:18 by timothy  in dept: laaaaaaast-word  (space   192)
+Title: PGP/GnuPG June Key Analysis
+2001-06-26 00:53:12 by timothy  in dept: what-lies-beneath  (encryption   95)
 
-Title: Review: Pearl Harbor
-2001-05-27 16:30:47 by JonKatz  in dept: -bloated-epic-(war-is-hell-but-pretty)-  (movies   538)
+Title: Are Computer Graphics A Fine Art?
+2001-06-25 22:48:10 by timothy  in dept: tricky-question-even-without-the-computer  (graphics   521)
 
-Title: Actionscript: The Definitive Guide
-2001-05-27 14:15:46 by timothy  in dept: make-it-work-in-lynx  (programming   110)
+Title: More Trouble With AOL And GAIM
+2001-06-25 21:12:30 by timothy  in dept: we-own-all-words-with-the-letter-a  (aol   260)
 
-Title: Stallman To Respond To Mundie Tuesday
-2001-05-27 12:12:12 by timothy  in dept: wednesday  (gnu   184)
+Title: Caldera Per Seat Licensing
+2001-06-25 20:46:27 by CmdrTaco  in dept: now-that-seems-a-little-fishy  (caldera   316)
 

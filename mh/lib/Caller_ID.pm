@@ -54,6 +54,14 @@ FM:07656283xx TO:86733xx
 )
 ***************************************
 
+Format=3  ZyXEL u1496 
+
+RING
+TIME: MM-DD HH:MM
+CALLER NUMBER: <PHONE NUMBER>
+CALLER NAME: <CALLER NAME>
+
+
 =cut end
 
 
@@ -64,7 +72,6 @@ FM:07656283xx TO:86733xx
 
 # Last First M
 # Last M First
-
 
     if ($format == 2) {
         ($date)   = $data =~ /DATE *= *(\S+)/s;
@@ -77,7 +84,7 @@ FM:07656283xx TO:86733xx
 
         ($number) = $data =~ /FM:(\S+)/s unless $number;
         ($numberTo) = $data =~ /TO:(\S+)/s;
-
+        
         print "phone number=$number numberTo=$numberTo name=$name\n";
 
 
@@ -87,20 +94,33 @@ FM:07656283xx TO:86733xx
         $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/; # Chaz's exception
         ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
 
-		if ( $local_area_code_language =~ /swiss-german/gi )
-		{
+		if ( $local_area_code_language =~ /swiss-german/gi ) {
 			# Switzerland's phone#s are reported without the area code if in the same area
 	        substr($number, length($number)-2, 0) = '-' if length($number) > 6 ;
     	    substr($number, length($number)-5, 0) = '-' if length($number) > 6 ;
 	        substr($number, length($number)-9, 0) = '-' if length($number) > 8 ;
 		}
-		else
-		{
+		else {
 	        substr($number, 6, 0) = '-' if length $number > 7;
     	    substr($number, 3, 0) = '-' if length $number > 3;
 		}
+                                # This is used for ZyXEL u1496 (see format at top)
+    } elsif ($format == 3) {
+        $time = "$date $time";
+        ($date)   = $data =~ /TIME: *(\S+)\s\S+/s;
+        ($time)   = $data =~ /TIME: *\S+\s(\S+)/s;
+        ($name)   = $data =~ /CALLER NAME: *([^\n]+)/s;
+        ($name)   = $data =~ /REASON FOR NO CALLER NAME: *(\S+)/s if (!$name);
+        ($number) = $data =~ /CALLER NUMBER: *(\S+)/s;
+        ($number) = $data =~ /REASON FOR NO CALLER NUMBER: *(\S+)/s if (!$number);
 
-
+        print "phone number=$number name=$name\n";
+        $name = substr($name, 0, 15);
+        $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/; # Chaz's exception
+        ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
+        substr($number, 6, 0) = '-' if length $number > 7;
+        substr($number, 3, 0) = '-' if length $number > 3;
+                                #### End format 3
     }
     else {
         ($time, $number, $name) = unpack("A13A13A15", $data);
@@ -255,6 +275,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.22  2001/06/27 03:45:14  winter
+# - 2.54 release
+#
 # Revision 1.21  2001/05/06 21:07:26  winter
 # - 2.51 release
 #

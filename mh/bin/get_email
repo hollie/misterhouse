@@ -139,7 +139,8 @@ sub check_accounts {
                     my $from    = $$msgptr{from}[$cnt];
                     my $body    = $$msgptr{body}[$cnt];
 
-                    $name = &get_email_rule($name, $to, $subject, $from) if $email_rule;
+                    $name = &get_email_rule($name, $to, $subject, $from, $body) if $email_rule;
+
                     $name = 'filtered' unless $name;
 
                     next if $name =~ /no store/; # Do not index/store
@@ -268,6 +269,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.25  2001/06/27 03:45:11  winter
+# - 2.54 release
+#
 # Revision 1.24  2001/03/24 18:08:37  winter
 # - 2.47 release
 #

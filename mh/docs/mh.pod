@@ -1312,6 +1312,7 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
                              will cause said to return any data read immediately, 
                              rather than buffering up data until a newline is read.
 
+     said_next    : Reads and returns the next record from the socket handle
 
      handle       : Returns the socket handle, so you can loop on reading/writing data
                     to it directly.
@@ -3321,8 +3322,11 @@ Here is an example call from mh.  Since this is typically quick, we do it here w
 =item set_password
 
 set_password creates and/or queries the mh password file, using the crypt function.
-If this password is set, then web and telnet access will prompt for it.  To reset
-the password, delete the mh/data/.password file.
+If this password is set, then various menus (e.g. web, telnet, wap) will prompt for it.
+
+The crypt function limits the password to 8 characters.
+To reset the password, delete the mh/data/.password file.
+
 
   Usage:
     set_password [options] 
@@ -4087,6 +4091,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.44  2001/06/27 03:45:13  winter
+# - 2.54 release
+#
 # Revision 1.43  2001/05/28 21:22:46  winter
 # - 2.52 release
 #

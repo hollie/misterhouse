@@ -143,6 +143,7 @@ sub compute_time {
 
     BEGIN { eval "use lib '$Pgm_Path/../lib'" } # Use BEGIN eval to keep perl2exe happy
     require 'handy_utilities.pl';      # Has time_to_ampm
+    print "db t=$time\n";
     return(&main::time_to_ampm($time));
 }
            
@@ -169,6 +170,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.13  2001/06/27 03:45:11  winter
+# - 2.54 release
+#
 # Revision 1.12  2001/02/24 23:18:40  winter
 # - 2.45 release
 #

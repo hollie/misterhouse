@@ -166,11 +166,14 @@ sub set_x10_level {
     my ($self, $state) = @_;
     my $level;
     $level = $$self{level};
-    if ($state =~ /([\+\-]?)(\d+)/) {
+    if ($state =~ /^([\+\-]?)(\d+)$/) {
         $level = 100 unless defined $level; # bright and dim from on or off will start at 100%
         $level += $state;
         $level =   0 if $level <   0;
         $level = 100 if $level > 100;
+    }
+    elsif ($state =~ /^(\d+)\%$/) {
+        $level = $1;
     }
     else {
         $level = 100   if $state eq 'on' and !defined $level; # Only if we used to be off. 
@@ -807,6 +810,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.20  2001/06/27 03:45:14  winter
+# - 2.54 release
+#
 # Revision 1.19  2001/05/28 21:14:38  winter
 # - 2.52 release
 #

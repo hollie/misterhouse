@@ -123,6 +123,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.3  2001/06/27 03:45:14  winter
+# - 2.54 release
+#
 # Revision 1.2  2001/05/06 21:12:01  winter
 # - 2.51 release
 #
@@ -132,7 +135,7 @@ sub check_for_data {
 
 From Ray Dzek on 05/2001:
 
-I found this link that is speciffically for the MR26a.
+I found this link that is specifically for the MR26a.
   http://www.shed.com/tutor/mr26ant.html
 
 

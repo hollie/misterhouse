@@ -78,8 +78,8 @@ sub set {
             $command = $mapped_ir;
         }
         if ($$self{interface} eq 'CM17') {
-            &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object},
-                "$device $command");
+            return if &main::proxy_send('CM17', 'send_ir', "$device $command");
+            &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, "$device $command");
         } elsif ($$self{interface} eq 'Homevision') {
             &Homevision::send($main::Serial_Ports{Homevision}{object}, $command);
         } elsif ($$self{interface} eq 'ncpuxa') {
@@ -93,6 +93,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.9  2001/06/27 03:45:14  winter
+# - 2.54 release
+#
 # Revision 1.8  2001/05/06 21:07:26  winter
 # - 2.51 release
 #

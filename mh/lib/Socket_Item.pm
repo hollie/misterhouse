@@ -133,6 +133,14 @@ sub said {
     return $data;
 }
 
+sub said_next {
+    my $port_name = $_[0]->{port_name};
+    my $handle = $main::Socket_Ports{$port_name}{socka};
+    my $data = <$handle>;
+    chomp $data;
+    return $data;
+}
+
 sub handle {
     my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{socka}; 
@@ -232,6 +240,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.19  2001/06/27 03:45:14  winter
+# - 2.54 release
+#
 # Revision 1.18  2001/02/24 23:26:40  winter
 # - 2.45 release
 #

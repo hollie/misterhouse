@@ -2,7 +2,7 @@
                                 # Modify this rule for use with get_email
                                 #  - $from_full has the full email address, not just the name portion.
 sub get_email_rule {
-    my ($from, $to, $subject, $from_full) = @_;
+    my ($from, $to, $subject, $from_full, $body) = @_;
 
 #   print "Debug in get_email_rule: to=$to from=$from subject=$subject\n";
 

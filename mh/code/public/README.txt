@@ -84,6 +84,11 @@ monitor_server.pl
 monitor_ipchainlog.pl
  - Use to a linux ipchain log for web traffic
 
+NetCallerID.pl
+ - Timothy Spaulding's code to interface with the $30 NetCallerID box.  
+   In addition to normal CallerID, it supports Call Waiting CallerID
+   (callerid while you are on the phone).
+
 news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
  - Brian Rigsby did news_yahoo.pl
@@ -179,8 +184,12 @@ webcam_lite.pl
  - Mike's code for allowing visitors to his webcam site to flash lights and
    type in TTS messages.
 
+winamp_control.pl
+ - Evan Graham's code for controling and querying winamp using messaging via Win32::GUI. 
+
 x10_video_security.pl
  - Mark Holm's code for a video surveillance system using X10 XCAM cameras and motion sensors.
+
 
 ------------
 
@@ -198,6 +207,7 @@ pageme.pl
 tracking.pl         
 tracking.pos        
  - Brian's code for tracking car location/speed and weather station info with a ham radio TNC.
+   Bruce has a modified/subseted version he uses in mh/code/bruce/tracking_aprs.pl
 
 ---------
 

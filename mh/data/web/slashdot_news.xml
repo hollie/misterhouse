@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Compaq's Laptop/Desktop Concepts</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/28/0513211</url>
-		<time>2001-05-28 08:17:24</time>
-		<author>timothy</author>
-		<department>eyecandy-or-eyesore?</department>
-		<topic>compaq</topic>
-		<comments>45</comments>
-		<section>articles</section>
-		<image>topiccompaq.gif</image>
-	</story>
-
-	<story>
-		<title>The Inside Scoop on Yopy</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/28/068201</url>
-		<time>2001-05-28 06:14:05</time>
-		<author>CmdrTaco</author>
-		<department>little-color-better</department>
-		<topic>pilot</topic>
-		<comments>78</comments>
-		<section>articles</section>
-		<image>topicpilot.gif</image>
-	</story>
-
-	<story>
-		<title>Mandrake For PowerPC Is Coming</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/28/0334216</url>
-		<time>2001-05-28 03:46:21</time>
-		<author>timothy</author>
-		<department>the-answer-is-*yes*</department>
-		<topic>mandrake</topic>
-		<comments>111</comments>
-		<section>articles</section>
-		<image>topicmandrake.gif</image>
-	</story>
-
-	<story>
-		<title>Google Owns Your UseNet Post</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/28/0122213</url>
-		<time>2001-05-28 01:08:59</time>
-		<author>timothy</author>
-		<department>boiling-boilerplate</department>
-		<topic>internet</topic>
-		<comments>215</comments>
-		<section>yro</section>
-		<image>topicinternet.gif</image>
-	</story>
-
-	<story>
-		<title>Voyager Eulogy</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/27/2255228</url>
-		<time>2001-05-27 22:56:35</time>
-		<author>timothy</author>
-		<department>so-long-farewell-now-beam-down-my-clothes</department>
-		<topic>tv</topic>
-		<comments>332</comments>
-		<section>articles</section>
-		<image>topictv.jpg</image>
-	</story>
-
-	<story>
-		<title>Monitoring What Files Your Applications Leave Behind?</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/27/2022223</url>
-		<time>2001-05-27 21:07:40</time>
-		<author>Cliff</author>
-		<department>package-manifests-GOOOOOD!</department>
-		<topic>Privacy</topic>
-		<comments>178</comments>
-		<section>askslashdot</section>
-		<image>topicprivacy.gif</image>
-	</story>
-
-	<story>
-		<title>2001 Book Author Responds</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/27/1821227</url>
-		<time>2001-05-27 18:18:18</time>
-		<author>timothy</author>
-		<department>laaaaaaast-word</department>
+		<title>Hyperion Robot Follows the Sun</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/1717239</url>
+		<time>2001-06-26 17:48:58</time>
+		<author>michael</author>
+		<department>you-make-me-happy-when-skies-are-grey</department>
 		<topic>space</topic>
-		<comments>192</comments>
-		<section>articles</section>
+		<comments>24</comments>
+		<section>science</section>
 		<image>topicspace.gif</image>
 	</story>
 
 	<story>
-		<title>Review: Pearl Harbor</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/27/1622202</url>
-		<time>2001-05-27 16:30:47</time>
-		<author>JonKatz</author>
-		<department>-bloated-epic-(war-is-hell-but-pretty)-</department>
-		<topic>movies</topic>
-		<comments>538</comments>
-		<section>features</section>
-		<image>topicmovies.gif</image>
-	</story>
-
-	<story>
-		<title>Actionscript: The Definitive Guide</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/14/1233255</url>
-		<time>2001-05-27 14:15:46</time>
-		<author>timothy</author>
-		<department>make-it-work-in-lynx</department>
-		<topic>programming</topic>
-		<comments>110</comments>
-		<section>books</section>
-		<image>topicprogramming.gif</image>
-	</story>
-
-	<story>
-		<title>Stallman To Respond To Mundie Tuesday</title>
-		<url>http://slashdot.org/article.pl?sid=01/05/27/0626242</url>
-		<time>2001-05-27 12:12:12</time>
-		<author>timothy</author>
-		<department>wednesday</department>
-		<topic>gnu</topic>
-		<comments>184</comments>
+		<title>Napster Signs Indie Deal</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/174210</url>
+		<time>2001-06-26 16:56:19</time>
+		<author>Hemos</author>
+		<department>good-deal</department>
+		<topic>music</topic>
+		<comments>93</comments>
 		<section>articles</section>
-		<image>topicgnu.jpg</image>
+		<image>topicmusic.gif</image>
+	</story>
+
+	<story>
+		<title>Dept. of Defense Adopts StarOffice</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/1416241</url>
+		<time>2001-06-26 14:36:20</time>
+		<author>CmdrTaco</author>
+		<department>i-almost-care</department>
+		<topic>linux</topic>
+		<comments>152</comments>
+		<section>articles</section>
+		<image>topiclinux.gif</image>
+	</story>
+
+	<story>
+		<title>Galeon At A Glance</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/1155204</url>
+		<time>2001-06-26 11:46:05</time>
+		<author>Hemos</author>
+		<department>looking-under-the-hood</department>
+		<topic>internet</topic>
+		<comments>168</comments>
+		<section>articles</section>
+		<image>topicinternet.gif</image>
+	</story>
+
+	<story>
+		<title>Round Table On Approaches To Source Code</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/0240244</url>
+		<time>2001-06-26 07:56:23</time>
+		<author>timothy</author>
+		<department>deep-thoughts-thought-deeply</department>
+		<topic>announce</topic>
+		<comments>158</comments>
+		<section>articles</section>
+		<image>topicannouncements.gif</image>
+	</story>
+
+	<story>
+		<title>Jordan Hubbard (of FreeBSD Fame) Hired by Apple</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/0137236</url>
+		<time>2001-06-26 03:13:32</time>
+		<author>Roblimo</author>
+		<department>sometimes-a-paycheck-is-nice-to-have</department>
+		<topic>bsd</topic>
+		<comments>305</comments>
+		<section>articles</section>
+		<image>topicbsd.gif</image>
+	</story>
+
+	<story>
+		<title>PGP/GnuPG June Key Analysis</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/25/2225206</url>
+		<time>2001-06-26 00:53:12</time>
+		<author>timothy</author>
+		<department>what-lies-beneath</department>
+		<topic>encryption</topic>
+		<comments>95</comments>
+		<section>articles</section>
+		<image>topicencryption.gif</image>
+	</story>
+
+	<story>
+		<title>Are Computer Graphics A Fine Art?</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/25/2244214</url>
+		<time>2001-06-25 22:48:10</time>
+		<author>timothy</author>
+		<department>tricky-question-even-without-the-computer</department>
+		<topic>graphics</topic>
+		<comments>521</comments>
+		<section>askslashdot</section>
+		<image>topicgraphics3.gif</image>
+	</story>
+
+	<story>
+		<title>More Trouble With AOL And GAIM</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/25/2115200</url>
+		<time>2001-06-25 21:12:30</time>
+		<author>timothy</author>
+		<department>we-own-all-words-with-the-letter-a</department>
+		<topic>aol</topic>
+		<comments>260</comments>
+		<section>yro</section>
+		<image>topicaol.jpg</image>
+	</story>
+
+	<story>
+		<title>Caldera Per Seat Licensing</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/25/1939235</url>
+		<time>2001-06-25 20:46:27</time>
+		<author>CmdrTaco</author>
+		<department>now-that-seems-a-little-fishy</department>
+		<topic>caldera</topic>
+		<comments>316</comments>
+		<section>articles</section>
+		<image>topiccaldera.gif</image>
 	</story>
 
 </backslash>

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-05-31 20:33:52 winter>
+#  Last change Time-stamp: <2001-06-24 21:42:19 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -393,8 +393,8 @@ sub setup {
     &add_hook_code;
 
     use Astro::MoonPhase;
-    use Astro::SunTime;
-    use SunriseHL;
+#   use Astro::SunTime; The cpan one is downlevel (no twilight, and -time_zone 0 bug)
+    use SunTime_mh;
 #   use Barcode;
     use File::Basename;
     use File::Copy;             # So we copy files
@@ -532,12 +532,6 @@ sub setup {
         $Socket_Ports{$port_name}{break}    = $break;
 
         &socket_open($port_name);
-    }
-                                # Create a mh proxy object
-    if ($config_parms{mh_proxy_server}) {
-        use vars '$mh_proxy_server', '%mh_proxy_interfaces';
-        $mh_proxy_server = new Socket_Item(undef, undef, $config_parms{mh_proxy_server});
-        %mh_proxy_interfaces = map {lc $_, 1} split ',', $config_parms{mh_proxy_interfaces};
     }
 
     
@@ -1212,6 +1206,8 @@ sub check_for_serial_data {
 }
 
 my ($leave_socket_open_passes, $leave_socket_open_action);
+use vars '%socket_fork_processes';
+
 sub check_for_socket_data {
 
                                 # Time to finish the http GET from 2 passes ago with a list of spoken data
@@ -1222,6 +1218,16 @@ sub check_for_socket_data {
         my $html = &html_page("", @data);
         print $sock $html;
         &socket_close('http');
+    }
+                                # These must be closed only AFTER the 'forked' process is done
+    for my $pid (keys %socket_fork_processes) {
+        my ($process, $socket) = @{$socket_fork_processes{$pid}};
+        if (($main::OS_win and $process->Wait(0)) or 
+            (!$main::OS_win and waitpid($pid, 1))) {
+#           print "closing socket for pid=$pid p=$process s=$socket\n";
+            $socket->close;
+            delete $socket_fork_processes{$pid};
+        }
     }
 
     my (@active_ports, @ports_with_data, $recheck_flag);
@@ -1360,6 +1366,11 @@ sub check_for_socket_data {
                         select undef, undef, undef, .010;
                         &socket_close($port_name);
                         $recheck_flag = 1;
+                    }
+                                # forked socket needs no closing
+                    if ($leave_socket_open_passes < 0) {
+                        $recheck_flag = 1;
+                        $leave_socket_open_passes = 0;
                     }
                 }
                 else {
@@ -1983,7 +1994,7 @@ sub my_str2time {
         $yearf += 100 if $yearf < 70;
     }
 
-    if ($secf > 59 or $minf > 59 or $hourf > 24 or $mdayf > 31 or $monthf > 12) {
+    if ($secf > 59 or $minf > 59 or $hourf > 23 or $mdayf > 31 or $monthf > 11) {
         my @caller = caller;    # This is not useful in user_code eval :(
         print "Bad time format:  $time_date   caller=@caller\n";
         print "db mday=$Mday mdayf=$mdayf min=$Minute minf=$minf secf=$secf " .
@@ -2482,6 +2493,7 @@ sub process_serial_data {
         for my $i (0 .. 4) {
             my $time_diff = $loop_tickcount1 - $prev_x10_events[$i]{time} if $prev_x10_events[$i]{time};
             last unless defined($time_diff) and $time_diff < $config_parms{x10_multireceive_delay};
+#           print "dbx $event_data1 eq $prev_x10_events[$i]{data}\n";
             if ($event_data1 eq $prev_x10_events[$i]{data}) {
                 print "X10: Duplicate data ignored data=$event_data time=$time_diff\n";
                 return;
@@ -2617,6 +2629,10 @@ sub process_serial_data {
     return $matched;
 }
 
+sub proxy_send {
+    return 0;                   # Overriden by proxy_client.pl code member
+}
+
 sub process_x10_chunks {
     my ($event_data, $event_type) = @_;
     return 0 if $event_data =~ /PRESET_DIM/ or $event_data =~ /STATUS/;
@@ -2663,29 +2679,13 @@ sub process_x10_chunks {
     return $flag_found;
 }
 
-sub proxy_send {
-    my ($type, @data) = @_;
-    if (my $proxy = $mh_proxy_server) {
-        $proxy->start unless $proxy->active;
-        if ($proxy->active) {
-            $proxy->set(join $;, $type, @data);
-            my $response = $proxy->said_next;
-            return 1 if $response =~ /data sent/;
-            &print_log("mh proxy data not not sent: $response.  type=$type data=@data");
-        }
-        else {
-            &print_log('mh proxy not active');
-        }
-    }
-    return 0;
-}
 
 sub read_code {
     my (@files, $file, $file_dir, $file_dir2, $file_path, $file_path2, @files_read, @files_changed, @files_changed2, $file_time, %noload_files);
 
     $Reread = 1;
 
-    print_log "Re-reading mh.private.ini and mh.ini";
+    print_log "Re-reading $ENV{mh_parms} and mh.ini";
 
     my $debug_old = $config_parms{debug};
     read_parms unless $Startup; # Re-read .ini parms, in case they changed
@@ -3002,6 +3002,8 @@ sub read_user_code {
     for my $member_name (sort {$member_sort_order{$a} <=> $member_sort_order{$b} or 
                                $a cmp $b} keys %Run_Members) {
 
+        $member_name =~ s/ /_/g;     # Crazy people use blanks in member names
+
         push @Sub_Code, 
                 "#-------------------------------------------------\n\n" .
                 "sub ${member_name}_loopcode {\n" .
@@ -3049,6 +3051,7 @@ sub read_user_code {
 sub do_user_file {
     my ($file) = @_;
     my ($member_name) = $file =~ /([^\\\/]+)\.pl$/i;
+    $member_name =~ s/ /_/g;     # Crazy people use blanks in member names
     my $code = "#-------------------------------------------------\n\n";
     $code .= "sub ${member_name}_loopcode {\n";
     open(CODE, "<$file") or print "\nError, can not open do_user_file $file:$!\n";
@@ -3282,7 +3285,6 @@ sub set_global_vars {
                     $Year = $year_unix + 1900;
                     $Year += 100 if $Year < 1970;
                     &set_sun_time; # Get new sunrise/sunset times for the new day
-#                   &set_sun_time_new; # Get new sunrise/sunset times for the new day
                     &set_moon_data; # Get new sunrise/sunset times for the new day
 
                                 # Calander info at: http://www.pip.dknet.dk/~pip10160/cal/calendar20.txt
@@ -3473,24 +3475,6 @@ sub serial_port_open {
 #   my @serial_parms = $serial_port->set_test_mode_active;
 #   print "np=@serial_parms\n";
 }
-
-
-
-sub set_sun_time_new {
-    print "Latitude: $config_parms{latitude},  Longitude:  $config_parms{longitude},  Time Zone: $config_parms{time_zone}\n";
-    my ($year, $month, $day, $dst) = (localtime(time))[5,4,3,8];
-    $month++;
-    my @parms = ($year,$month,$day,$config_parms{longitude},$config_parms{latitude},$config_parms{time_zone},$dst);
-    ($Time_Sunrise, $Time_Sunset) = sunrise(@parms, -0.833);
-    ($Time_Sunrise_Twilight, $Time_Sunset_Twilight) =  sunrise(@parms, -6);
-    local $_;
-    for ($Time_Sunrise, $Time_Sunset, $Time_Sunrise_Twilight, $Time_Sunset_Twilight) {
-        $_ = time_to_ampm($_);
-    }
-    print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
-    print "sunrise twilight=$Time_Sunrise_Twilight sunset twilight=$Time_Sunset_Twilight\n";
-}
-
 
 sub set_sun_time {
                                 # Use abs to allow for negative longitude and time_zone
@@ -4330,6 +4314,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.54  2001/06/27 03:45:11  winter
+# - 2.54 release
+#
 # Revision 2.53  2001/06/01 12:54:00  winter
 # - test release
 #

@@ -3231,6 +3231,12 @@ The cron time format matches the unix cron format.
 </PRE>
 </P>
 <P>
+By default time_cron only operates on the pass when a new minute starts.
+This can be overridden if the parameter 1 is added - this may be useful if
+a movement sensor is to trigger different events at different times.
+
+</P>
+<P>
 <PRE>   Examples:
 </PRE>
 </P>
@@ -3242,6 +3248,14 @@ The cron time format matches the unix cron format.
 <P>
 <PRE>                 # Change PA speaker mode at 9 pm, every day
     pa_sleep_mode('kids', 1) if time_cron '* 21 * * * ';
+</PRE>
+</P>
+<P>
+<PRE>    if (state_now $movement_sensor eq ON and !$Save{woken_up} and
+        time_cron('* 6-9 * * 1', 1) )  {
+       speak &quot;It is Monday morning. Remember to put the rubbish out.&quot;;
+       $Save{woken_up} = 1;
+    }
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_time_greater_than">time_greater_than</A></STRONG><DD>

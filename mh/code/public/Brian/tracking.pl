@@ -1,18 +1,29 @@
 
 ######################################################
 # Klier Home Automation - Tracking Module            #
-# Version 4.8 ALPHA (release for MH 1.91)            #
+# Version 4.92 (release for MH 2.??)                 #
 # By: Brian J. Klier, N0QVC                          #
-# January 1, 2000                                    #
-# E-Mail: klier@lakes.com                            #
-# Webpage: http://www.faribault.k12.mn.us/brian      #
+# June 16, 2001                                      #
+# E-Mail: brian@kliernetwork.net                     #
+# Webpage: http://www.kliernetwork.net               #
 ######################################################
 
 # For more information on hardware needed for this system to function:
-#   - Check out http://www.faribault.k12.mn.us/brian/aprs    and
-#               http://www.faribault.k12.mn.us/brian/aprs/mine
+#   - Check out http://www.kliernetwork.net/aprs    and
+#               http://www.kliernetwork.net/aprs/mine
 #
-# New in Version 4.8:
+# New in Version 4.92:
+#   - Added Roger Bille's "Longitude Hundreds" Fix
+#
+# New in Version 4.91:
+#   - Fixed bugs in "EMAIL2" Procedure
+#   - Added ALPHA Procedure to take data from Telnet Port and transmit
+#     on the air (for WinAPRS Connectivity)
+#
+# New in Version 4.9:
+#   - Fixed bugs in the HTML Based Logging System.
+#
+# New in Version 4.8 and 4.8a:
 #   - Added HTML Based Logging (from Bruce's tracking_bruce.pl) for GPS's.
 #
 # New in Version 4.7:
@@ -43,14 +54,15 @@
 # Next Version Wishlist:
 #   - Check for duplicate messages in a row (like when they pass through
 #     a digipeater to make sure an X10 command isn't sent twice)
+#   - System to execute X-10 commands when a station is a certain distance from home
 
 # Declare Variables
 
-use vars '$GPSSpeakString', '$GPSSpeakString2', '$WXSpeakString', '$WXSpeakString2', '$CurrentTemp', '$WXWindDirVoice', '$WXWindSpeed', '$WXHrPrecip';
+use vars '$GPSSpeakString', '$GPSSpeakString2', '$WXSpeakString', '$WXSpeakString2', '$CurrentTemp', '$CurrentChill', '$WXWindDirVoice', '$WXWindSpeed', '$WXHrPrecip';
 
 my ($APRSFoundAPRS, $APRSPacketDigi, $GPSTime, $APRSStatus, $MsgLine);
 my ($GPSLatitudeDegrees, $GPSLatitudeMinutes, $GPSLongitudeDegrees, $GPSCallsign);
-my ($GPSLongitudeMinutes, $GPSLatitude, $GPSLongitude, $GPSDistance);
+my ($GPSLongitudeMinutes, $GPSLatitude, $GPSLongitude, $GPSDistance, $GPSLongitudeMinutes100);
 my ($GPSLstBr, $GPSLstBrLat, $GPSLstBrLon);
 
 my (@gpscomplines, $GPSTempCompPlace, $GPSTempCompDist, $GPSTempCompLine);
@@ -81,7 +93,7 @@ my ($WXTime, $WXLatitudeDegrees, $WXLatitudeMinutes, $WXLongitudeDegrees);
 my ($WXLongitudeMinutes, $WXLatitude, $WXLongitude, $WXDistance, $WXTemp);
 my ($WXLstBr, $WXLstBrLat, $WXLstBrLon);
 my ($WXCallsign, $WXWindDir, $WX24HrPrecip, $RealAPRSCallsign);
-my ($CurrentTempDist, $WXWindChill, $CurrentChill);
+my ($CurrentTempDist, $WXWindChill);
 my ($LastWXCallsign, $LastWXTemp, $LastWXDistance, $LastWXWindDir);
 my ($LastWXWindSpeed, $LastWXWindChill, $APRSCallsignNoSSID);
 my ($LastWXHrPrecip, $LastWX24HrPrecip, $CurrentHrPrecip, $Current24HrPrecip);
@@ -93,11 +105,17 @@ $server2 = new Socket_Item('#Welcome to MisterHouse APRS Tracking!', 'APRSWelcom
 set $server2 'APRSWelcome' if active_now $server2;
 set $server2 'APRSERVE>APRS:javaTITLE:N0QVC MisterHouse - tracking.pl - Brian Klier, N0QVC' if active_now $server2;
 
+my $socket_speak_loop;
+if (my $telnetdata = said $server2) {
+    print_log "Data Transmitted from Telnet Port: $telnetdata";
+    set $tnc_output $telnetdata;
+}
+
 # TNC Output Lines
 
 $tnc_output = new Serial_Item ('CONV','converse','serial1');
 $tnc_output -> add            ('?WX?','wxquery','serial1');
-$tnc_output -> add            (sprintf("=%2d%05.02fN/0%2d%05.02fW- *** %s MisterHouse Tracking System ***",
+$tnc_output -> add            (sprintf("=%2d%05.02fN/0%2d%05.02fW- *** %s MisterHouse Tracking System - ICQ#659962 ***",
                                        int($config_parms{latitude}),
                                        ($config_parms{latitude} - int($config_parms{latitude}))*60,
                                        int($config_parms{longitude}),
@@ -147,7 +165,7 @@ if ($state = said $v_send_position) {
 $v_send_status = new Voice_Cmd("Send my Status Report");
 
 if ($state = said $v_send_status) {
-    $APRSStatus = ">Frnt Move $motion_detector_frontdoor->{state}-Bck Move $motion_detector_backdoor->{state}-Kitc Move $motion_detector_kitchen->{state}-Temp: $CurrentTemp";
+    $APRSStatus = ">Frnt Move $motion_detector_frontdoor->{state}-Bck Move $motion_detector_backdoor->{state}-Kitc Move $motion_detector_kitchen->{state}-Garg Move $motion_detector_garage->{state}-Temp: $CurrentTemp";
     set $tnc_output $APRSStatus;
     print_log "Status Sent.";
     speak "Status Sent.";
@@ -342,8 +360,9 @@ if (time_cron('15 * * * *') or $Startup or $Reload or $state = said $v_make_grap
 # Procedure to occasionally send out APRS Position Report and Status String
 
 if (time_cron('0,30 * * * *')) {
+    set $tnc_output 'converse';
     set $tnc_output 'position';
-    $APRSStatus = ">Frnt Move $motion_detector_frontdoor->{state}-Bck Move $motion_detector_backdoor->{state}-Kitc Move $motion_detector_kitchen->{state}-Temp: $CurrentTemp";
+    $APRSStatus = ">Frnt Move $motion_detector_frontdoor->{state}-Bck Move $motion_detector_backdoor->{state}-Kitc Move $motion_detector_kitchen->{state}-Garg Move $motion_detector_garage->{state}-Temp: $CurrentTemp";
     set $tnc_output $APRSStatus;
 }
 
@@ -387,11 +406,11 @@ if ($APRSString = said $tnc_output) {
     # MAIN LOOP
 
     if ($APRSFoundAPRS != 1) {
-
         # If it's a $GPRMC, $GPGGA, or Mic-E statement for GPS,
         if ((substr($PacketPart, 0, 6) eq '$GPRMC') ||
             (substr($PacketPart, 0, 6) eq '$GPGGA') ||
-            (substr($PacketPart, 0, 1) eq '`')) {
+            (substr($PacketPart, 0, 1) eq '`') ||
+            (substr($PacketPart, 0, 1) eq "'")) {
             $APRSFoundAPRS = 1;                         # Found an APRS String
             $GPSCallsign = $APRSCallsign;               # Reset Variables
             $GPSTime = "";
@@ -462,7 +481,9 @@ if ($APRSString = said $tnc_output) {
                 $GPSSpeed = ($GPSSpeed * 1.853248) / 1.609344;
             }
 
-            if (substr($PacketPart, 0, 1) eq '`') {            # If a Mic-E,
+            if ((substr($PacketPart, 0, 1) eq '`') ||            # If a Mic-E,
+                (substr($PacketPart, 0, 1) eq "'")) {
+
                 $GPSLongitudeDegrees = (substr($PacketPart, 1, 1));
                 $GPSLongitudeDegrees = (unpack('C', $GPSLongitudeDegrees)) - 28;
                 if ($GPSLongitudeDegrees >= 180 and $GPSLongitudeDegrees <= 189) {$GPSLongitudeDegrees = $GPSLongitudeDegrees - 80};
@@ -472,7 +493,13 @@ if ($APRSString = said $tnc_output) {
                 $GPSLongitudeMinutes = (unpack('C', $GPSLongitudeMinutes)) - 28;
                 if ($GPSLongitudeMinutes > 60) {$GPSLongitudeMinutes = $GPSLongitudeMinutes - 60};
 
-                $GPSLongitude = ($GPSLongitudeDegrees + ($GPSLongitudeMinutes / 60));
+                # Added Lines from Roger
+                $GPSLongitudeMinutes100 = (substr($PacketPart, 3, 1));
+                $GPSLongitudeMinutes100 = (unpack('C', $GPSLongitudeMinutes100)) - 28;
+                #
+
+                $GPSLongitude = ($GPSLongitudeDegrees + ($GPSLongitudeMinutes / 60)+ ($GPSLongitudeMinutes100 / 6000));
+                # old -> $GPSLongitude = ($GPSLongitudeDegrees + ($GPSLongitudeMinutes / 60));
 
                 $GPSSpeed = (substr($PacketPart, 4, 1));
                 $GPSSpeed = ((unpack('C', $GPSSpeed)) - 28) * 10;
@@ -596,7 +623,26 @@ if ($APRSString = said $tnc_output) {
             if ((($GPSCallsign ne $LastGPSCallsign) || ($GPSDistance ne $LastGPSDistance)) and ($GPSCompDist ne '9999')) {
                 $GPSSpeakString2 = "Currently $GPSCompDist miles $GPSCompLstBr of $GPSCompPlace.";
                 # and form a special speak string just for on the air
-                $GPSSpeakString3 = ">$GPSCallsign $GPSCompDist mi $GPSCompLstBr of $GPSCompPlace.";
+                $GPSSpeakString3 = ">$RealAPRSCallsign $GPSCompDist mi $GPSCompLstBr of $GPSCompPlace.";
+
+###             # Added in 4.9
+                if ($GPSDistance <= 0.2) {
+                    $GPSSpeakString2 = "Currently near $GPSCompPlace.";
+                    $GPSSpeakString3 = ">$RealAPRSCallsign near $GPSCompPlace.";
+                }
+                if ((substr($PacketPart, 0, 6) eq '$GPRMC') and
+                ($GPSDistance <= 0.1) and
+                ($GPSSpeed <= 1)) {
+                    $GPSSpeakString2 = "Currently parked at $GPSCompPlace.";
+                    $GPSSpeakString3 = ">$RealAPRSCallsign parked at $GPSCompPlace.";
+                }
+                if ((substr($PacketPart, 0, 6) eq '$GPGGA') and
+                ($GPSDistance <= 0.1)) {
+                    $GPSSpeakString2 = "Currently at $GPSCompPlace.";
+                    $GPSSpeakString3 = ">$RealAPRSCallsign at $GPSCompPlace.";
+                }
+##
+
                 set $tnc_output $GPSSpeakString3;
             }
 
@@ -664,11 +710,11 @@ if ($APRSString = said $tnc_output) {
                 if ((($GPSCallsign ne $LastGPSCallsign) || ($GPSDistance ne $LastGPSDistance)) and ($GPSSpeed eq '0')) {
 
                     if ($config_parms{tracking_shortannounce} == 0)
-                        {$GPSSpeakString = "$GPSCallsign is $GPSDistance miles $GPSLstBr of us, and is stationary.  $GPSSpeakString2"};
+                        {$GPSSpeakString = "$GPSCallsign is parked $GPSDistance miles $GPSLstBr of us.  $GPSSpeakString2"};
 
                     if ($config_parms{tracking_shortannounce} == 1) {
                         $GPSSpeakString = "$GPSCallsign is $GPSSpeakString2";
-                        if ($GPSSpeakString2 eq '') {$GPSSpeakString = "$GPSCallsign is $GPSDistance miles $GPSLstBr of us, and is stationary."};
+                        if ($GPSSpeakString2 eq '') {$GPSSpeakString = "$GPSCallsign is parked $GPSDistance miles $GPSLstBr of us."};
                     }
 
                     print_log "$GPSSpeakString";
@@ -721,68 +767,87 @@ if ($APRSString = said $tnc_output) {
 
             $i = -$GPSLongitude;
             $j = $GPSLatitude;
-            $k = qq[<li>$Date_Now $Time_Now: <a href=\"http://www.mapblast.com/mblast/map.mb?];
-            $k .= qq[&GC=X:$i|Y:$j|LT:$j|LN:$i|LS:16000|&IC=$j:$i:100:$GPSCallsign $GPSCourseVoice $GPSSpeed MPH&CMD=MAP\">];
-            $k .= qq[\n$GPSSpeakString</a>\n\n];
-            logit "$config_parms{html_dir}/mh/tracking/today.html", $k, 0;
-            logit "$config_parms{html_dir}/mh/tracking/week1.html", $k, 0;
+            
+            my $html  = qq[<FORM ACTION='/SET:last_response' target='speech';\n];
+            $html .= qq[<tr><td>$Date_Now $Time_Now</td><td>$GPSSpeakString</td>\n];
+            $html .= qq[<td><a href="http://www.mapblast.com/myblast/map.mb?];
+            $html .= qq|CT=$j\%3A$i\%3A10000">$GPSSpeakString2</a></td>\n|;
+            $html .= qq[<td><INPUT name=aprs_location_name type='text' SIZE=10 onChange=submit>\n];
+            $i = -$i;       # For logging form data in .pos 
+            $html .= qq[<INPUT name=aprs_location_loc type='hidden' value='$j,$i'></td></tr></FORM>\n\n];
+
+            #$k = qq[<li>$Date_Now $Time_Now: <a href=\"http://www.mapblast.com/mblast/map.mb?];
+            #$k .= qq[&GC=X:$i|Y:$j|LT:$j|LN:$i|LS:16000|&IC=$j:$i:100:$GPSCallsign $GPSCourseVoice $GPSSpeed MPH&CMD=MAP\">];
+            #$k .= qq[\n$GPSSpeakString</a>\n\n];
+            logit "$config_parms{html_dir}/mh/tracking/today.html", $html, 0;
+            logit "$config_parms{html_dir}/mh/tracking/week1.html", $html, 0;
 
             if ($New_Day) {
-                unlink "$config_parms{html_dir}/mh/tracking/today.html";
+                open(NEWDAY, ">$config_parms{html_dir}/mh/tracking/today.html");
+                close NEWDAY;
+		    my $html = qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n<table>\n];
+                $html .= qq[<tr><td><b>Date Time</b></td><td><b>Vehicle Heading and Speed</b></td><td><b>Location</b></td><td><b>New Location</b></td></tr>\n];
+                logit "$config_parms{html_dir}/mh/tracking/today.html", $html, 0, 1;
+                logit "$config_parms{html_dir}/mh/tracking/week1.html", "<hr>\n", 0, 1;
             }
 
-#            if ($New_Week) {
-#                file_cat "$config_parms{html_dir}/mh/tracking/week2.html", "$config_parms{html_dir}/tracking/old/${Year_Month_Now}.html";
-#                rename "$config_parms{html_dir}/mh/tracking/week1.html", "$config_parms{html_dir}/tracking/week2.html"  or print_log "Error in aprs rename 2: $!";
+            if ($New_Week) {
+                open(NEWWEEK, ">$config_parms{html_dir}/mh/tracking/week1.html");
+                close NEWWEEK;
+                #file_cat "$config_parms{html_dir}/mh/tracking/week2.html", "$config_parms{html_dir}/mh/tracking/old/${Year_Month_Now}.html";
+                #rename "$config_parms{html_dir}/mh/tracking/week1.html", "$config_parms{html_dir}/mh/tracking/week2.html"  or print_log "Error in aprs rename 2: $!";
+                my $html = qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n<table>\n];                
+                $html .= qq[<tr><td><b>Date Time</b></td><td><b>Vehicle Heading and Speed</b></td><td><b>Location</b></td><td><b>New Location</b></td></tr>\n];
+                logit "$config_parms{html_dir}/mh/tracking/week1.html", $html, 1;
+            }
 
-                # Add an index entry for the new months entry in aprs/old
+            # Add an index entry for the new months entry in aprs/old
 
-                if ($New_Month) {
-                   my $html = qq[<li><a href=\"$Year_Month_Now.html\">$Year_Month_Now.html</a>\n];
-                   logit "$config_parms{html_dir}/mh/tracking/old/index.html", $k, 0;
-                }
-#            }
+            #if ($New_Month) {
+            #    my $html = qq[<li><a href=\"$Year_Month_Now.html\">$Year_Month_Now.html</a>\n];
+            #    logit "$config_parms{html_dir}/mh/tracking/old/index.html", $html, 1;
+            #}
         }                                           #  **END** GPS Parse
 
         # Send E-Mail from APRS messages with "EMAIL2"
 
-        if (substr($PacketPart, 0, 6) eq 'EMAIL2') {
+        if (substr($MsgLine, 0, 6) eq 'EMAIL2') {
             $APRSFoundAPRS = 1;
 
-            ($CallsignPart, $MessageAck) = (split('{', $APRSString))[0, 1];
-            $APRSCallsign = (split('>', $CallsignPart))[0];
-            $PacketPart = (split(':', $APRSString))[2];
-            ($CallsignPart, $PacketPart) = split(' ', $PacketPart, 2);
+            ($MsgLine, $MessageAck) = (split('{', $MsgLine))[0, 1];
+            ($CallsignPart, $PacketPart) = (split(':', $MsgLine))[0, 1];
+            ($CallsignPart, $PacketPart) = (split(' ', $PacketPart))[0, 1];
 
             # Let $i equals the number of spaces to put before :ack
-            $i = (9 - length($APRSCallsign));
+            $i = (9 - length($RealAPRSCallsign));
             $k = ' ';
             $k = ($k x $i);
 
-            print_log "Email gateway: Callsign=$APRSCallsign, to=$CallsignPart data=$PacketPart\n";
+            print_log "Email gateway: Callsign=$RealAPRSCallsign, to=$CallsignPart data=$PacketPart\n";
 
             # Send the mail!!
-            if (&net_connect_check) {
-                $i = $APRSCallsign . $k . ":ack" . $MessageAck;
+            #if (&net_connect_check) {
+                $i = $RealAPRSCallsign . $k . ":ack" . $MessageAck;
                 set $tnc_output $i;
                 &net_mail_send(to => $CallsignPart, subject => "APRS Gateway",
                              text => "From $HamCall APRS Gateway\n$PacketPart");
-                $i = ":" . $APRSCallsign . $k . ":Your E-Mail Message has been sent.{7";
+                $i = ":" . $RealAPRSCallsign . $k . ":Your E-Mail Message has been sent.{7";
                 set $tnc_output $i;
-            }
-            else {
-                $i = $APRSCallsign . $k . ":ack" . $MessageAck;
-                set $tnc_output $i;
-                $i = ":" . $APRSCallsign . $k . ":Sorry, Gateway is currently closed.{8";
-                set $tnc_output $i;
-            }
+            #}
+            #else {
+            #    $i = $RealAPRSCallsign . $k . ":ack" . $MessageAck;
+            #    set $tnc_output $i;
+            #    $i = ":" . $RealAPRSCallsign . $k . ":Sorry, Gateway is currently closed.{8";
+            #    set $tnc_output $i;
+            #}
         }
 
         # Speak any incoming APRS Bulletins
 
-        if (substr($PacketPart, 0, 3) eq 'BLN') {
+        if (substr($MsgLine, 0, 3) eq 'BLN') {
             $APRSFoundAPRS = 1;
 
+#            ($CallsignPart, $PacketPart) = (split(':', $MsgLine))[0, 1];
             ($CallsignPart, $CallsignPart, $PacketPart) = (split(':', $APRSString))[0, 1, 2];
             print_log "Incoming Bulletin from $APRSCallsign: $PacketPart";
             ## REMMED THIS NEXT STATEMENT OUT FOR SANITY
@@ -842,7 +907,7 @@ if ($APRSString = said $tnc_output) {
             elsif (substr($PacketPart, 0, 7) eq '?PHONE?') {
                 $i = $RealAPRSCallsign . $k . ":ack" . $MessageAck;
                 set $tnc_output $i;
-                $i = ":" . $RealAPRSCallsign . $k . ": Last Call: $PhoneName ($PhoneNumber){6";
+                $i = ":" . $RealAPRSCallsign . $k . ": Last Call: $PhoneName ($DisplayPhoneNumber){6";
                 set $tnc_output $i;
                 $MsgLine = "";
             }
@@ -854,7 +919,7 @@ if ($APRSString = said $tnc_output) {
                 speak "Incoming Message from $APRSCallsign. $PacketPart";
                 # THIS IS A STATUS PAGE EVENT
                     #if (time_greater_than("22:00") and time_less_than("15:00")) {
-                    $page_icq = "$PacketPart";
+                    #$page_icq = "$PacketPart";
                     #}
 
                 $i = $RealAPRSCallsign . $k . ":ack" . $MessageAck;
@@ -1284,4 +1349,3 @@ if ($APRSString = said $tnc_output) {
 
     }
 }
-

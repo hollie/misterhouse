@@ -103,6 +103,18 @@ if ($state = said  $v_show_internet_weather_data or changed $f_weather_forecast)
     }
     else {
         display name $f_weather_conditions;
+# Parse data.  Here is an example:
+# At 6:00 AM, Rochester, MN conditions were  at  55 degrees , wind was south at
+#    5 mph.  The relative humidity was 100%, and barometric pressure was
+#    rising from 30.06 in.
+        my $conditions = read_all $f_weather_conditions;
+        $conditions =~ s/\n/ /g;
+        $Weather{TempInternet}  = $1 if $conditions =~ /(\d+) degrees/i;
+        $Weather{HumidInternet} = $1 if $conditions =~ /(\d+)\%/;
+        $Weather{BaromInternet} = $1 if $conditions =~ /([\d\.]+) in\./;
+        $Weather{WindInternet}  = $1 if $conditions =~ /wind (.+?)\./;
+        print_log "Internet weather Temp=$Weather{TempInternet} Humid=$Weather{HumidInternet} " . 
+                  "Wind=$Weather{WindInternet} Pres=$Weather{BaromInternet}";
     }
 }
 
