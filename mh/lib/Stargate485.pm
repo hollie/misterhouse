@@ -123,7 +123,7 @@ sub UserCodePreHook
         if(@stargate485_command_list > 0)
         {
             (my $output) = shift @stargate485_command_list;
-            print "Stargate LCD Output: " .$output . "\n";
+            print "Stargate 485bus transmit: " .$output . "\n";
             $::Serial_Ports{Stargate485}{object}->write($output . "\r");
         }
         select (undef, undef, undef, .30); 	# Sleep a bit
@@ -402,8 +402,47 @@ sub new
 
 sub set
 {
-    my ($self, $state) = @_;
-    $self->SUPER::set($state);
+    my ($self, $setstate) = @_;
+    return undef if($self->{zone} == 0);
+
+    my ($device,$state) = $setstate =~ /\s*(\w+)\s*:*\s*(\w*)/;
+    
+    $self->SUPER::set($device);
+    $self->SUPER::set($device . ":" . $state);
+
+    SWITCH: for( $device )
+    {
+        # Valid setpoint $state is a temperature value or +/- to increment/decrement current setpoint by one degree
+        /^setpoint/i        && do { return $self->SendTheromostatCommand("SP", $state) };
+        
+        # Valid setpoint $state is a temperature value or +/- to increment/decrement current setpoint by one degree
+        /^heatpoint/i       && do { return $self->SendTheromostatCommand("SP", $state) if $self->{zonemode} eq 'H' };
+        # Valid setpoint $state is a temperature value or +/- to increment/decrement current setpoint by one degree
+        /^coolpoint/i       && do { return $self->SendTheromostatCommand("SP", $state) if $self->{zonemode} eq 'C' };
+        # Valid setpoint $state is a temperature value or +/- to increment/decrement current setpoint by one degree
+        /^autopoint/i       && do { return $self->SendTheromostatCommand("SP", $state) if $self->{zonemode} eq 'A' };
+
+        # Valid mode $state is 0/O for off 1/H for heat, 2/C for cool, and 3/A for auto
+        /^zonemode/i        && do { return $self->SendTheromostatCommand("M", uc(substr($state,1))) };
+        # Valid mode $state is 0 or 1
+        /^zonefanmode/i     && do { return $self->ReturnCommand("F", ReturnCommand($state)) };
+        # Valid mode $state is 0/O for off 1/H for heat, 2/C for cool, and 3/A for auto
+        /^systemmode/i      && do { return $self->SendTheromostatCommand("SM", uc(substr($state,1))) };
+        # Valid mode $state is 0 or 1
+        /^systemfanmode/i   && do { return $self->ReturnCommand("SF", ReturnCommand($state)) };
+        # Valid mode $state is 0 or 1
+        /^ventdamper/i      && do { return $self->ReturnCommand("V", ReturnCommand($state)) };
+        # Valid mode $state is a temperature value
+        /^outside/i         && do { return $self->ReturnCommand("OT", $state) };
+        # Valid mode $state is a temperature value
+        /^remote/i          && do { return $self->ReturnCommand("RT", $state) };
+        # Valid mode $state is 0 or 1
+        /^setback/i         && do { return $self->ReturnCommand("BF", ReturnCommand($state)) };
+        # Valid mode $state is 0 or 1
+        /^text/i            && do { return $self->ReturnCommand("TM", '"' . $state . '"') };
+    }
+
+    return undef;
 }
 
 sub state
@@ -456,6 +495,28 @@ sub ReturnString
     return "unknown";
 }
 
+sub ReturnCommand
+{
+    my ($data) = @_;
+
+    SWITCH: for ( $data )
+    {
+        /on/i               && do { return "0"};   
+        /0/i                && do { return "0"};   
+        /off/               && do { return "1"};   
+        /1/                 && do { return "1"};   
+    }
+    return undef;
+}
+
+sub SendTheromostatCommand
+{
+    my ($self, $device, $state) = @_;
+    return undef unless defined $state;
+    my $output = sprintf("A=%u Z=%u O=MH %s=%s", $self->{address}, $self->{zone}, $device, $state);
+    push(@stargate485_command_list, $output);
+    return 1;
+}
 
 1;
 

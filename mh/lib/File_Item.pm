@@ -109,7 +109,7 @@ sub read_next {
     my ($self) = @_;
     my $record;
                                 # If there is no index (e.g. startup), start with a random record.
-    return read_random $self unless $$self{index};
+    return read_random $self unless defined $$self{index};
 
     ($record, $$self{index}) = &main::read_record($$self{file}, $$self{index} + 1);
     return $record;

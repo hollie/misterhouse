@@ -45,7 +45,7 @@ These are the quick instructions for those of you who, like me, don't like to re
  
  - cd mh\bin
 
- - mhl.bat (this will call mh.exe or 'perl mh')
+ - mh.bat (this will call mh.exe or 'perl mh')
 
 
 =head2 Unix users
@@ -402,15 +402,17 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
 (using the DOS commands, as I think unix guys can make the translation :):
 
  mkdir c:\misterhouse\code 
+ mkdir c:\misterhouse\data
 
  copy  c:\misterhouse\mh\test\trivia.pl c:\misterhouse\code
-
- copy  c:\misterhouse\mh\bin\mh.ini c:\misterhouse\mh.ini
+ copy  c:\misterhouse\mh\bin\mh.ini     c:\misterhouse\mh.ini
+ xcopy c:\misterhouse\mh\data           c:\misterhouse\data /s
 
  edit  c:\misterhouse\mh.ini
    - Delete all the records from your mh.ini that you don't change 
      since the default mh\bin\mh.ini will also be read.
      Set code_dir=c:\misterhouse\code
+     Set data_dir=c:\misterhouse\data
 
  On windows, add this to your autoexec.bat:
    set mh_parms=c:\MisterHouse\mh.ini

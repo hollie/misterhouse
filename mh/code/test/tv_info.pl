@@ -64,7 +64,7 @@ if ($state = changed $f_tv_file) {
             speak "$msg on tonight. @data";
         }
         else {
-            speak "There are no favorite shows are on tonight";
+            speak "There are no favorite shows on tonight";
         }
     }
     elsif ($state eq 'favorites now') {

@@ -150,7 +150,7 @@ With a 50 millisecond sleep time, mh takes about 2->5% of the cpu and loops abou
 =head2 Perl Info
 
 There is lots of good perl info is at http://www.perl.com .
-The reference book is "Programming Perl, 2nd edition" by Larry Wall, Tom Christensen,
+The reference book is "Programming Perl, 3rd edition" by Larry Wall, Tom Christensen,
 & Randall Schwartz. ISBN 1-56592-149-6. It is available from http://www.oreilly.com .  "The Perl Cookbook" is 
 another good book that has a ton of examples in it.
 
@@ -1275,7 +1275,8 @@ The Timer object can be used to run an action one or more times, at a specified 
 
     set($period, $action, $cycles)
         $period is the timer period in seconds
-        $action (optional) is the command to run when the timer expires
+        $action (optional) is the code (either a string or a code
+                 reference) to run when the timer expires
         $cycles (optional) is how many times to repeat the timer
 
     unset      : Unset the timer.  'set $my_timer 0' has the same effect.
@@ -1309,7 +1310,20 @@ The Timer object can be used to run an action one or more times, at a specified 
        }
     }
 
-    See mh/code/bruce/timer_minutes.pl and timer_seconds.pl for more examples.
+
+                   # This example uses an anonymous subroutine
+    $v_test_delay = new  Voice_Cmd 'Test timer with [1,5,10] seconds';
+    if ($state = said $v_test_delay) {
+       print_log "Starting $state second timer test";
+       my  $timer = new Timer;
+       set $timer $state, sub {
+          print_log "Ending $state second timer test";
+       }
+#      set $timer $state, "print_log 'Ending $state second timer test'";
+    }
+
+
+    See mh/code/bruce/timers.pl for more examples
 
 
 =item Voice_Cmd
@@ -1872,6 +1886,24 @@ mh will pause until the program is done.
      run 'rasdial /disconnect';     # Log off from the net (on Windows)
      run 'inline', 'some_fast_command_here';
      run 'mplayer.exe /play /close c:\win98\media\canyon.mid'; # Play a midi file
+
+
+=item run_after_delay
+
+You can use this to create events with built in delays without causing mh to pause
+
+   Example:
+
+                   # After 2 seconds, this evals the print_log string
+     run_after_delay 2, "print_log 'Ending delay test 1'";
+
+                   # This runs anonymous subs to print after 2 and 3 seconds.
+     run_after_delay 2, sub {
+       print_log "Printed after 2 seconds";
+       run_after_delay 1, sub {
+         print_log "Printed after 1 more second seconds";
+       }
+     }
 
 
 =item run_voice_cmd
@@ -2860,10 +2892,11 @@ See outlook_read for a Windows solution.
 
 =item mhl
 
-You can use mhl to start mh (rather than calling mh directly) to help ensure that mh
+A unix script you can use mhl to start mh (rather than calling mh directly) to help ensure that mh
 will always be running.  This is a simple shell will restart mh if it detects
 that mh exited abnormally.  You can pass in the same startup parms to mhl as you us for mh.
 
+On windows, this function is built into the mh.bat script.
 
 =item net_ftp
 
@@ -3638,7 +3671,7 @@ http://the-labs.com/HomeAppliance/
 
 =head1 COPYRIGHT
 
-Copyright (C) 1998-2000 Bruce Winter. All rights reserved.
+Copyright (C) 1998-2001 Bruce Winter. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify it under the 
 terms of the GNU public license. 
@@ -3654,6 +3687,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.38  2001/02/24 23:26:39  winter
+# - 2.45 release
+#
 # Revision 1.37  2001/02/07 01:18:10  danal
 # Documented "mode" method for DSC_Alarm objects
 #

@@ -381,7 +381,12 @@ sub cpuxa_process_monitor {
 	my $ret;
 	my $data = '';
 
-	if ($ret = recv($s, $data, LEN_PAG(),  MSG_DONTWAIT() )) {
+	my ($rin, $rout);
+	$rin = '';
+	vec($rin,fileno($s),1) = 1;
+
+	if (select($rout=$rin, undef, undef, 0)) {
+		$ret = recv($s, $data, LEN_PAG(), MSG_DONTWAIT());
 		($data) = $data =~ /([^\000]*)/;
 	}
 	return $data;

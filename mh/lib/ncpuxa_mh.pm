@@ -28,6 +28,26 @@ use ControlX10::CM11;		# required for dim_level_convert
 my %controlsock;
 my %monitorsock;
 my $save_unit = 1;
+my %funcs = (
+	ALL_OFF,	H,	# aka All Units OFF
+	ALL_ON,		I,	# aka All Lights ON
+	ON,		J,
+	OFF,		K,
+	DIM,		L,
+	BRIGHT,		M,
+	ALL_LIGHTS_OFF,	N,
+	EXTENDED_CODE,	O,
+	HAIL_REQUEST,	P,
+	HAIL_ACK,	Q,
+	PRESET_DIM1,	R,	# aka Preset Dim 0
+	EXTENDED_DATA,	S,
+	STATUS_ON,	T,
+	STATUS_OFF,	U,
+	STATUS,		V,
+	PRESET_DIM2,	W,	# aka Preset Dim 1
+	L,	M,		# Misterhouse has L and M backwards
+	M,	L,
+);
 
 sub init {
 	my $hostport = shift;
@@ -41,6 +61,10 @@ sub init {
 sub send {
 	my $hostport = shift;
 	my $data = shift;
+
+	if (my ($house, $action) = $data =~ /^X([A-P])(.+)$/) {
+		$data = "X" . $house . $funcs{$action} if $funcs{$action};
+	}
 
 	#Preset dim level for LM14A and Leviton units
 	if (my ($house, $level) = $data =~ /^X([A-P])&P(\d+)$/) {
@@ -63,12 +87,6 @@ sub send {
 	
 	#Standard X10 function
 	if (my ($house, $func) = $data =~ /^X([A-P])([H-W])$/) {
-		if    ($func eq 'L') {
-			$func = 'M';
-		}
-		elsif ($func eq 'M') {
-			$func = 'L';
-		}
 		$house = unpack('C', $house) - 65; #Get code from ASCII
 		$func  = unpack('C', $func ) - 72 + 16; #Get code from ASCII
 		ncpuxa::send_x10($controlsock{$hostport}, $house, $func, 1);

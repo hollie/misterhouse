@@ -3,8 +3,10 @@
 $v_reload_code = new  Voice_Cmd("{Reload,re load} code");
 $v_reload_code-> set_info('Load new mh.ini, icon, and/or code changes');
 if (state_now $v_reload_code) {
-    read_code();
-    $Run_Members{mh_control} = 2; # Reset, so the mh_temp.user_code decrement works
+                                # Must be done before the user code eval
+    push @Nextpass_Actions, \&read_code;
+#   read_code();
+#   $Run_Members{mh_control} = 2; # Reset, so the mh_temp.user_code decrement works
 }
 
 $v_read_tables = new Voice_Cmd 'Read table files';
@@ -22,19 +24,35 @@ $v_uptime-> set_authority('anyone');
 
 if (said $v_uptime) {
     my $uptime_pgm      = &time_diff($Time_Startup_time, time);
-    my $uptime_computer = &time_diff($Time_Boot_time, (get_tickcount)/1000);
+    my $uptime_computer = &time_diff($Time_Boot_time, $Time);
 #   speak("I was started on $Time_Startup\n");
     speak("I was started $uptime_pgm ago. The computer was booted $uptime_computer ago.");
 }
 
-$v_restart_http = new Voice_Cmd '[Open,Close,Restart] the http server';
-
-if ($state = said $v_restart_http) {
-    print_log "${state}ing the http server";
+                                # Control and monitor the http server
+$v_http_control = new Voice_Cmd '[Open,Close,Restart,Check] the http server';
+if ($state = said $v_http_control) {
+#   print_log "${state}ing the http server";
     socket_open    'http' if $state eq 'Open';
     socket_close   'http' if $state eq 'Close';
     socket_restart 'http' if $state eq 'Restart';
 }
+
+                                # Check the http port frequently, so we can restart it if down.
+$http_monitor   = new  Socket_Item(undef, undef, "$config_parms{http_server}:$config_parms{http_port}");
+if ((said $v_http_control eq 'Check') or new_minute 1) {
+    unless (start $http_monitor) {
+        print_log 'The http server is down.  Restarting';
+        display text => 'The http server is down.  Restarting', time => 0;
+        socket_close   'http';  # Somehow this gets it going again?
+        stop $http_monitor if active $http_monitor; # Need this?
+    }
+    else {
+        print_log "The http server is up" if said $v_http_control;
+        stop $http_monitor;
+    }
+}
+
         
 
 $v_restart_mh = new Voice_Cmd 'Restart Mister House';
@@ -237,8 +255,8 @@ if (my $member = said $v_toggle_run_member) {
 if ($Keyboard) {    
     if ($Keyboard eq 'F1') {
         print "Key F1 pressed.  Reloading code\n";
-        read_code();
-        $Run_Members{mh_control} = 2; # Reset, so the mh_temp.user_code decrement works
+                                # Must be done before the user code eval
+        push @Nextpass_Actions, \&read_code;
     }
     elsif ($Keyboard eq 'F2') {
         print "Key F2 pressed.  Toggle pause mode.\n";

@@ -3,13 +3,11 @@
 # This was modified by son Nick.  Probably should not be used
 # by those of a sensitive nature :)
 #
-initial: Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
-initial: It is a good day to die.
 initial: Hello, I am a computer program. (I wouldn't include that, but it seems obvious that you need the reminder)
+initial: It is a good day to die.
 initial: Please tell me what's been bothering you. I might even not make fun of you for it.
 initial: Is something troubling you? Please say yes, I love it when people are depressed!
 final: Goodbye.  It was nice talking to you. You make even me look beautiful!
-final: I think you need to talk to a REAL analyst before you blow the top of your head off to see if you can fix what's inside. 
 final: Life is tough.  It'll be that way forever. Shoot yourself now.
 final: Well I hope that brings some light into your tiny brain.
 final: Next time, try to think up some INTELLIGENT questions for my awesome cerebral power.
@@ -69,15 +67,11 @@ key: xnone -1
   decomp: *
 	reasmb: NetHack will show you the way!
     reasmb: Can't respond. Too busy playing NetHack.
-    reasmb: Stop wasting my time with your incomprehensible ramblings!
-	reasmb: Bogota, Colombia. Quito, Ecuador. Brazilia, Brazil. Lima, Peru. Santiago, Chile.
 	reasmb: You remind me of an old English teacher I once had.  She got hit by a worm.  She was kind of slow.
 	reasmb: Sorry, Bruce doesn't think you're important enough to warrant buying a decent computer.
-	reasmb: That noise coming out of your mouth is making me ill.
 	reasmb: Well make some poison and call me Socrates, that made the last person I talked to seem like Einstein!
 	reasmb: My technician says I need to collect people like you and put them on a shelf.
 	reasmb: That's not so bad.  Once, I thought I had turned into Fiona Apple.  THAT was bad!
-	reasmb: Time sure crawls answering the questions of lazy people, eh?
     reasmb: If you are reading this message, it means your question was too much for Eliza's poor little brain.
     reasmb: If you are not reading this message, you have really hurt my feelings.  But I guess that is not a problem, since you are indeed reading this message.  
 key: testing 0
@@ -200,8 +194,6 @@ key: hello 0
     reasmb: Hi.  Got any good problems for me today? I hope not ... I can't take much more.
     reasmb: Howdee do.  How's your karma today?  I hope it is not as bad as the last guy's.
     reasmb: Hi hi.  How's we feeling today?  I hope you don't have the flu ... I don't want to catch it again.
-    reasmb: Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
-#   reasmb: Well well well, I can see that Taco Bell has closed and you've come to drool over something other than a burrito. 
     reasmb: Please tell me what's been bothering you. I might even not make fun of you for it.
     reasmb: Is something troubling you? Please say yes, I love it when people are depressed!
     reasmb: Hello--wait, you're not the mail daemon! Go away!
@@ -555,7 +547,6 @@ key: misterhouse 10
     reasmb: Mister House is free.
     reasmb: I love Mister House!
     reasmb: Mister House is almost as good as NetHack!
-    reasmb: Mister House will control your puny little house!
 key: bwahahahaha 15
   decomp: * say bwahahahaha *
     reasmb: I say it because I like to! You got a problem with that?
@@ -627,7 +618,6 @@ key: @uncool 10
   decomp: * i like*@uncool *
     reasmb: Your question has caused a GPF
     reasmb: shudder. I can't take it.
-    reasmb: You like that?! YOU WILL BE SLAUGHTERED AND THEN PUT IN A GERBER SHIPMENT FOR BABIES TO EAT!!!
   decomp: * i hate*@uncool *
     reasmb: Good!
     reasmb: Just thinking about that makes me want to shoot something!

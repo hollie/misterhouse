@@ -1,6 +1,6 @@
 # Category=MisterHouse
 
-# This member does 3 things:
+# Here is what this code does:
 #  - Controls volume and sets a object whenever speak or play is called
 #    Currenly this is for Windows only (unix suggestions welcome!)
 #  - Sets the mh_speakers object, which can be used to control relay
@@ -9,6 +9,7 @@
 #  - Plays the mh.ini sound_pre wav file before all sounds.
 #    Useful if you want to add delay, or an activation noise for things
 #    like VOX (Voice Activated) Radios .
+#  - Allows for restarting voice engines
 
 $mh_speakers       = new Generic_Item;
 $mh_speakers_timer = new Timer;
@@ -74,13 +75,23 @@ sub set_volume {
 
 
                                 # Allow for a pre-speak/play wav file
+&Speak_pre_add_hook(\&sound_pre_speak) if $Reload and $config_parms{sound_pre_speak};
+&Play_pre_add_hook (\&sound_pre_play)  if $Reload and $config_parms{sound_pre_play};
 
-&Speak_pre_add_hook(\&sound_pre) if $Reload and $config_parms{sound_pre};
-&Play_pre_add_hook (\&sound_pre) if $Reload and $config_parms{sound_pre};
-
-sub sound_pre {
+sub sound_pre_speak {
     my %parms = @_;
-    return if !$config_parms{sound_pre} or $parms{no_pre};
-    play mode => 'wait', no_pre => 1, no_post => 1, file => $config_parms{sound_pre};
+    return if $parms{no_pre};
+    play mode => 'wait', no_pre => 1, file => $config_parms{sound_pre_speak};
+}
+sub sound_pre_play {
+    my %parms = @_;
+    return if $parms{no_pre};
+    play mode => 'wait', no_pre => 1, file => $config_parms{sound_pre_play};
 }
 
+
+                                # Allow for restarting of TTS engine
+$restart_tts = new Voice_Cmd 'Restart the TTS engine';
+$restart_tts-> set_info('This will restart the voice Text To Speech engine, in case it died for some reason');
+
+&Voice_Text::init if said $restart_tts;

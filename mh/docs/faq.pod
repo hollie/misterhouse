@@ -116,10 +116,14 @@ correctly ;-)
 
 Copy mh\code\test\test_x10.pl into your own code dir (e.g. c:\mh_code).  Then run:
 
-mh -code_dir c:\mh_code
+  mh -code_dir c:\mh_code
 
-You can then use http://localhost:8080 for control.  If you also want the local Tk
-windows, also copy the tk* code files.
+You can then use http://localhost:8080 for control.  This will also run all the
+code in mh/code/common.  To run JUST a specific code member(s), specify 
+it on the command line.  For example:
+
+  mh test_x10.pl
+
 
 
 =head2 1.8: Is there a way I can have direct X10 control with a simple perl script?
@@ -129,6 +133,7 @@ running mh is probably overkill.  You can send X10 commands using either the Act
 interface (CM11) or the cheaper Firecracker interface (CM17) using the modules
 and documentation found in mh/lib/site/ControlX10 or download them from CPAN.
 Examples can be found in mh/lib/site/test_cm11.pl and test_cm17.pl.
+
 
 =head2 1.9: Can I send mh commands from other programs?
 
@@ -689,7 +694,7 @@ in his boyhood state of Montana, and playing a digital piano.
 
 =head2 6.3: Why open source?
 
-Because open source only has 2 syllables, and proprietary has 5. 
+Because open source only has 3 syllables, and proprietary has 5. 
 
 That and MisterHouse has developed much faster with the help of a wider user base
 and help from other coders than it would have if it were proprietary.  
@@ -858,6 +863,36 @@ that are much more expense.
   http://www.x10.com/products/x10_lm465.htm  one way lamp module from X10, $13
   http://www.x10.com/products/x10_lm14a.htm  two way lamp module from X10, $33
 
+Bill Bass sent in these links to a bunch of links from
+Phil Kingery's great series of X10 articles at http://hometoys.com
+
+  Which One Should I Use?
+  http://www.hometoys.com/htinews/dec96/articles/kingery/kingery.htm
+
+  Controlling Motors and Transformers
+  http://www.hometoys.com/htinews/apr97/articles/kingery/kingery2.htm
+
+  120/240v Residential Coupling
+  http://www.hometoys.com/htinews/jun97/articles/kingery/kingery3.htm
+
+  Complex Residential Coupling with Considerations for Dim/Bright
+  http://www.hometoys.com/htinews/aug97/articles/kingery/kingery4.htm
+
+  Dim/Bright Commands and Coupler-Repeaters
+  http://www.hometoys.com/htinews/oct97/articles/kingery/kingery5.htm
+
+  Three-Way Switch Circuits
+  http://www.hometoys.com/htinews/dec97/articles/kingery/kingery6.htm
+
+  More Three-Way and Four-Way Switch Circuits
+  http://www.hometoys.com/htinews/feb98/articles/kingery/kingery7.htm
+
+  Troubleshooting Three-Way and Four-Way Switch Circuits
+  http://www.hometoys.com/htinews/apr98/articles/kingery/kingery8.htm
+
+  Noise and Filtering
+  http://www.hometoys.com/htinews/jun98/articles/kingery/kingery9.htm
+
 
 =head2 6.7 What do I need to use the iButtons?
 
@@ -896,6 +931,9 @@ else on the list, the ThermoCRON iButton is different yet again.
 
 #
 # $Log$
+# Revision 1.22  2001/02/24 23:26:39  winter
+# - 2.45 release
+#
 # Revision 1.21  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

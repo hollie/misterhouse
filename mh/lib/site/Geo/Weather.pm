@@ -3,6 +3,8 @@
 ##
 ## weather.com code originally from hawk@redtailedhawk.net
 
+## 2/01 local change: Allow for negative temps
+
 package Geo::Weather;
 
 use strict;
@@ -17,7 +19,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw();
 @EXPORT = qw( $OK $ERROR_UNKNOWN $ERROR_QUERY $ERROR_PAGE_INVALID $ERROR_CONNECT $ERROR_NOT_FOUND );
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 $OK = 1;
 $ERROR_UNKNOWN = 0;
@@ -34,7 +36,7 @@ sub new {
 	$self->{version} = $VERSION;
 	$self->{server} = 'www.weather.com';
 	$self->{port} = 80;
-	$self->{base} = 'http://www.weather.com/weather/';
+	$self->{base} = '/search/search';
  
 	bless $self, $class;
 	return $self;
@@ -50,13 +52,13 @@ sub get_weather {
 	my $page = '';
 	if ($city =~ /^\d+$/) {
 		# Use zip code
-		$page = $self->{base}.'us/zips/'.$city.'.html';
+		$page = $self->{base}.'?where='.$city;
 	} else {
 		# Use state_city
 		$state = lc($state);
 		$city = lc($city);
-		$city =~ s/ /_/g;
-		$page = $self->{base}.'cities/us_'.$state.'_'.$city.'.html';
+		$city =~ s/ /+/g;
+		$page = $self->{base}.'?where='.$city.','.$state;
 	}
 
 	$self->{results} = $self->lookup($page);
@@ -76,13 +78,11 @@ sub report {
 	$output .= "<font size=+3>$results->{cond}</font><br>\n";
 	$output .= "<table border=0>\n";
 	$output .= "<tr><td><b>Temp</b></td><td>$results->{temp}&deg F</td>\n";
-	$output .= "<tr><td><b>Wind</b></td><td>From the $results->{wind} mph</td>\n" if $results->{wind};
+	$output .= "<tr><td><b>Wind</b></td><td>$results->{wind}</td>\n" if $results->{wind};
 	$output .= "<tr><td><b>Dew Point</b></td><td>$results->{dewp}&deg F</td>\n";
 	$output .= "<tr><td><b>Rel. Humidity</b></td><td>$results->{humi}</td>\n";
 	$output .= "<tr><td><b>Visibility</b></td><td>$results->{visb}</td>\n";
-	$output .= "<tr><td><b>Barometer</b></td><td>$results->{baro} inches</td>\n" if $results->{baro};
-	$output .= "<tr><td><b>Sunrise</b></td><td>$results->{rise} am</td>\n";
-	$output .= "<tr><td><b>Sunset</b></td><td>$results->{set} pm</td>\n";
+	$output .= "<tr><td><b>Barometer</b></td><td>$results->{baro}</td>\n" if $results->{baro};
 	$output .= "</table>\n";
 
 	return $output;
@@ -92,14 +92,18 @@ sub report {
 sub lookup {
 	my $self = shift;
 	my $page = shift || '';
+	my $redir = shift || 0;
 
 	return $ERROR_PAGE_INVALID unless $page;
 
 	my %results = ();
 
-	my $marker='<!-- start of obs';
-	my $not_found_marker = 'zip and city search';
+	my $marker='<!-- Begin Main Content Here';
+	my $end_report_marker='UV Index';
+	my $not_found_marker = 'could not be found';
 	my $lines =90;
+	my $lines_read = 0;
+	my $line = '';
 
 	print STDERR __LINE__, ": Geo::Weather: Attempting to connect to $self->{server}:$self->{port}\n" if $self->{debug};
 
@@ -107,123 +111,154 @@ sub lookup {
 
 	print STDERR __LINE__, ": Geo::Weather: Getting $page from $self->{server}:$self->{port}\n" if $self->{debug};
 	$results{page} = $page;
-	print $remote "GET $page\n";
-	while($page !~ /$marker/i) {
-		$page=<$remote>;
-		return $ERROR_NOT_FOUND if ($page =~ /$not_found_marker/i);
-		if ($page =~ /\<TITLE\>The Weather Channel - (.*)\<\/TITLE\>/) {
+	print $remote "GET $page HTTP/1.0\n\n";
+
+	if (!$redir) {
+		while ($line = <$remote>) {
+			chop($line);
+			chomp($line);
+			return $ERROR_NOT_FOUND if ($line =~ /$not_found_marker/i);
+			if ($line =~ /location: http:\/\/.*?\/(.*)/) {
+				$page = '/'.$1;
+				close($remote);
+				return $self->lookup($page, 1);
+			} elsif ($line =~ /categoryTitle/) {
+				$line = <$remote>;
+				$line = <$remote>;
+				chop($line);
+				chomp($line);
+				close($remote);
+				if ($line =~ /\"(.*?)\"/) {
+					print STDERR __LINE__, ": Geo::Weather: Found search result $1\n" if $self->{debug};
+					return $self->lookup($1, 1);
+				}
+			}
+		}
+		return $ERROR_NOT_FOUND;
+	}
+
+	while($line !~ /$marker/) {
+		$lines_read++;
+		$line=<$remote>;
+		print STDERR __LINE__, ": Geo::Weather: recv_line: $line" if $self->{debug} > 1;
+		if ($line =~ /\<TITLE\>weather.com - Local Weather - (.*?)\<\/TITLE\>/) {
 			my ($city, $state) = split(/\,[\s+]/, $1);
 			$results{city} = $city;
-			if ($state =~ /(.*)\s+\((\d+)\)/) {
-				$results{state} = $1;
-				$results{zip} = $2;
-			} else {
-				$results{state} = $state;
-			}
-			
+			$results{state} = $state;
 		}
 	}
-	my @page = ();
-	while($lines) {
-		$page=<$remote>;
-		push (@page,$page);
-		$lines--;
-	}
-	close $remote;
 
 	my $x = '';
-	while(@page) {
-		my $line=shift(@page);
-		$line=~ s/\<.{1,65}\>//g;
+
+	print STDERR __LINE__, ": Geo::Weather: Marker found, parsing report\n" if $self->{debug};
+	while($line = <$remote>) {
+
+		chop($line);
+		chomp($line);
+		$lines_read++;
+
+		if ($line =~ /$end_report_marker/) {
+			print STDERR __LINE__, ": Geo::Weather: End of report\n" if $self->{debug};
+			last;
+		}
+
 		if(!($results{pic})) {
-			if($line =~ /\/\/i/){
-				($x,$results{pic}) = split(/C=\"/,$line);
-				($results{pic}) = split(/\" W/,$results{pic});
+			if($line =~ /wxicons/) {
+				if ($line =~ /\"(.*?)\"/) {
+					$results{pic} = $1;
+					next;
+				}
 			}
 		}
-		if (!$results{cond} && $results{pic} && !$results{temp}) {
-			if ($line =~ /\s+([A-Za-z \/\-\\]{1,15})\s+$/) {
-				$results{cond} = $1;
+		if (!($results{cond})) {
+			if ($line =~ /Feels Like/) {
+				if ($line =~ /\<.*?>(.*?)\<BR\>Feels Like&nbsp;(.*)/) {
+					$results{cond} = $1;
+					$results{heat} = $2;
+					if ($results{heat} =~ /(\-?\d+).*/) {
+						$results{heat} = $1;
+					}
+					next;
+				}
 			}
 		}
 		if(!($results{temp})){
-			if($line=~/\&deg/) {
-				($results{temp})=split(/\&deg/,$line);
-				($x,$results{temp})=split(/ \D*/,$results{temp});
-				next;
-			}
-		}
-
-		if($line=~/Heat Index/i) {
-			$line.=shift(@page).shift(@page);
-			$line=~ s/\<.{1,80}\>//g;
-			if(!($results{heat})) {
-				if($line=~/\&deg/) {
-					($results{heat})=split(/\&deg/,$line);
-					($x,$results{heat})=split(/ \D*/,$results{heat});
+			if($line =~ /obsTempText/) {
+				if ($line =~ /\<.*?\>.*?(\-?\d+)\<.*\>/) {
+					$results{temp} = $1;
 					next;
 				}
 			}
 		}
 
 		if(!($results{wind})) {
-			if($line=~/mph/)  {
-				($x,$results{wind})=split(/from the /i,$line);
-				($results{wind})=split(/ mph/,$results{wind});
+			if($line=~/Wind:/)  {
+				$line = <$remote>;
+				$line = <$remote>;
+				chop($line);
+				chomp($line);
+				if ($line =~ /\<.*?\>(.*?)\<.*\>/) {
+					$results{wind} = $1;
+				}
+				next;
 			}
 		}
+
 		if(!($results{dewp})) {
-			if($line=~/\&deg/) {
-				($results{dewp})=split(/\&deg/,$line);
-				($x,$results{dewp})=split(/ \D*/,$results{dewp});
+			if($line=~/Dew Point:/) {
+				$line = <$remote>;
+				$line = <$remote>;
+				chop($line);
+				chomp($line);
+				if ($line =~ /\<.*?\>(\d+).*\<.*\>/) {
+					$results{dewp} = $1;
+				}
 				next;
 			}
 		}
 		if(!($results{humi})) {
-			if($line=~/\%/)    {
-				($x,$results{humi})=split(/ \D*/,$line);
-				chomp($results{humi});
+			if($line=~/Humidity:/)    {
+				$line = <$remote>;
+				$line = <$remote>;
+				chop($line);
+				chomp($line);
+				if ($line =~ /\<.*?\>(\d+) %\<.*\>/) {
+					$results{humi} = $1;
+				}
 				next;
 			}
 		}
 		if(!($results{visb})) {
-			if($line=~/miles|unlimited/i) {
-				($x,$results{visb})=split(/ \D*/,$line);
-				if($line=~/unlimited/){
-					$results{visb}='unlimited';
+			if($line=~/Visibility:/) {
+				$line = <$remote>;
+				$line = <$remote>;
+				chop($line);
+				chomp($line);
+				if ($line =~ /\<.*?\>(.*?)\<.*\>/) {
+					$results{visb} = $1;
 				}
 				next;
 			}
 		}
 		if(!($results{baro})) {
-			if($line=~/inches/i) {
-				($x,$results{baro})=split(/ \D*/,$line);
+			if($line=~/Barometer:/) {
+				$line = <$remote>;
+				$line = <$remote>;
+				chop($line);
+				chomp($line);
+				if ($line =~ /\<.*?\>(.*?)\<.*\>/) {
+					$results{baro} = $1;
+				}
 				next;
 			}
 		}
-		if(!($results{rise})) {
-#			if(($line=~/am/i)&&($results{baro})) {
-			if(($line=~/am/i)&&($results{visb})) {
-				($x,$results{rise})=split(/ \D*/,$line);
-				next;
-			}
-		}
-		if(!($results{set})) {
-			if(($line=~/pm/i)&&($results{rise})) {
-				($x,$results{set} )=split(/ \D*/,$line);
-				last;
-			}
-		}
 	}
-	if(!($results{heat})) {
-		$results{heat}='Not Available';
+
+	if (!($results{visb})) {
+		$results{visb} = 'Not Available';
 	}
-	if(!($results{dewp})) {
-		$results{dewp}='Not Available';
-	}
-	if(!($results{visb})) {
-		$results{visb}='Not Available';
-	}
+
+	close($remote);
 
 	return \%results;
 }
@@ -299,10 +334,9 @@ B<Returns>
 	wind		- Current wind speed
 	dewp		- Current dew point (degrees F)
 	humi		- Current rel. humidity
-	visb		- Current visibility (miles)
+	visb		- Current visibility
 	baro		- Current barometric pressure
-	rise		- Sunrise time
-	set		- Sunset time
+	heat		- Current heat index
 
 	On error, it returns the following exported error variables
 

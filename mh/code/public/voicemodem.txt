@@ -1,3 +1,14 @@
+Feb 2001 update:
+  There is a new module on cpan that does lots of stuff with voice modems
+  using perl.   Currently looks like unix only, but there was mention
+  of a windows effort also:
+
+        http://search.cpan.org/doc/MUKUND/Ivrs-0.06/Ivrs.pm
+
+
+-------------
+Got this from Brian Klier
+
 MNBryGuy: AT#SPK=<mute>,<spkr>,<mic> 
 
 The #SPK command can be used to control the microphone state (mute or on),

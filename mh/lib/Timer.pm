@@ -1,8 +1,19 @@
-
 use strict;
 package Timer;
 
-my ($class, $self, $id, $state, $action, $repeat, @timers_with_actions, $resort_timers_with_actions, $timer_loop_count);
+my ($class, $self, $id, $state, $action, $repeat, @timers_with_actions, $resort_timers_with_actions, @sets_from_previous_pass);
+
+
+                                # This is called from mh each pass
+sub check_for_timer_actions {
+    my $ref;
+    while ($ref = shift @sets_from_previous_pass) {
+        &set_from_last_pass($ref);
+    }
+    for $ref (&expired_timers_with_actions) {
+        &run_action($ref);
+    }
+}
 
 sub expired_timers_with_actions {
     my @expired_timers = ();
@@ -22,7 +33,6 @@ sub expired_timers_with_actions {
                                 # Use this method avoids problems with Timer is called from X10_Items
 #       elsif (expired $self) {
         elsif (&Timer::expired($self)) {
-#       print "db4 s=$self\n";
             push(@expired_timers, $self);
             shift @timers_with_actions;
             if (--$self->{repeat} > 0) {
@@ -96,7 +106,21 @@ sub state_log {
 sub set {
     ($self, $state, $action, $repeat) = @_;
 
+    my @c = caller;
+#   print "db1 $main::Time_Date running set s=$self s=$state c=@c\n";
     return if &main::check_for_tied_filters($self, $state);
+
+                                # Set states for NEXT pass, so expired, active, etc,
+                                # checks are consistent for one pass.
+    push @sets_from_previous_pass, $self;
+    @{$self->{set_next_pass}} = ($state, $action, $repeat);
+}
+
+                                # This is called from mh
+sub set_from_last_pass {
+    my ($self) = @_;
+
+    ($state, $action, $repeat) = @{$self->{set_next_pass}} ;
 
                                 # Turn a timer off
     if ($state == 0) {
@@ -118,11 +142,10 @@ sub set {
         }
     }
     $self->{pass_triggered} = 0;
-
+        
     unshift(@{$$self{state_log}}, "$main::Time_Date $state");
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
-
-}    
+}
 
 sub resort_timers_with_actions {
     $resort_timers_with_actions = 1;
@@ -162,27 +185,23 @@ sub run_action {
     }
 }
 
-sub increment_timer_loop {
-    # Hmmm, might be safer / more efficient to set an expired flag here
-    $timer_loop_count++;
-}
-
 sub expired {
     ($self) = @_;
-#   print "db $self-{expire_time} $self{pass_triggered} $loop_count\n";
+#   print "db $self->{expire_time} $self->{pass_triggered}\n";
     if ($self->{expire_time} and
         $self->{expire_time} < main::get_tickcount) {
-        # Reset if we finished the trigger pass
-        # Note: $timer_loop_count must be set by calling loop.
+#       print "db expired1 loop=$self->{pass_triggered} lc= $main::Loop_Count\n";
+
+                                # Reset if we finished the trigger pass
         if ($self->{pass_triggered} and 
-            $self->{pass_triggered} < $timer_loop_count) {
-#       print "db expired loop=$self->{pass_triggered}\n";
+            $self->{pass_triggered} < $main::Loop_Count) {
+#           print "db expired2 loop=$self->{pass_triggered}\n";
             $self->{expire_time} = 0;
             $self->{pass_triggered} = 0;
             return 0;
         }
         else {
-            $self->{pass_triggered} = $timer_loop_count;
+            $self->{pass_triggered} = $main::Loop_Count;
             return 1;
         }
     }
@@ -284,6 +303,9 @@ sub inactive {
 
 #
 # $Log$
+# Revision 1.22  2001/02/24 23:26:40  winter
+# - 2.45 release
+#
 # Revision 1.21  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

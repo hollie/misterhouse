@@ -26,9 +26,9 @@ sub set {
             $state = 'off';
         }
         else {
-            &main::print_log("Toggling $self->{object_name} from $$self{state} to ON") unless $$self{state} eq 'off';
             $state = 'on';
         }
+        &main::print_log("Toggling X10_Item object $self->{object_name} from $$self{state} to $state");
     }
     &set_states_for_next_pass($self, $state);
 }
@@ -192,10 +192,11 @@ sub reset_states {
 sub tie_items {
 #   return unless $main::Reload;
     my ($self, $object, $state, $desiredstate, $log_msg) = @_;
-    $state   = 'all_states' unless defined $state;
+    $state         = 'all_states' unless defined $state;
+    $desiredstate  = $state       unless defined $desiredstate;
     $log_msg = 1            unless $log_msg;
     return if $$self{tied_objects}{$object}{$state};
-    $$self{tied_objects}{$object}{$state} = [$object, $desiredstate, $log_msg];
+    $$self{tied_objects}{$object}{$state}{$desiredstate} = [$object, $log_msg];
 }
 
 sub tie_event {
@@ -280,6 +281,9 @@ sub delete_old_tied_times {
 
 #
 # $Log$
+# Revision 1.12  2001/02/24 23:26:40  winter
+# - 2.45 release
+#
 # Revision 1.11  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

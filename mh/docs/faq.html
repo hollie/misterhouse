@@ -47,6 +47,7 @@
 		<LI><A HREF="#2_11_How_do_I_get_mh_to_stop_te">2.11: How do I get mh to stop telling the time each minute?</A></LI>
 		<LI><A HREF="#2_12_Can_do_I_send_mh_comands_v">2.12: Can do I send mh comands via email?</A></LI>
 		<LI><A HREF="#2_13_How_can_I_control_Command_">2.13: How can I control Command Categories</A></LI>
+		<LI><A HREF="#2_14_Common_Perl_and_mh_coding_">2.14: Common Perl and mh coding errors</A></LI>
 	</UL>
 
 	<LI><A HREF="#3_Linux_specific_questions">3: Linux specific questions</A></LI>
@@ -76,7 +77,7 @@
 		<LI><A HREF="#6_2_Who_is_that_Bruce_guy_anywa">6.2: Who is that Bruce guy anyway?</A></LI>
 		<LI><A HREF="#6_3_Why_open_source_">6.3: Why open source?</A></LI>
 		<LI><A HREF="#6_4_Misc_Home_Automation_links">6.4: Misc Home Automation links</A></LI>
-		<LI><A HREF="#6_5_How_can_I_use_cvs_to_co_dev">6.5: How can I use cvs to co-develop core mh code?</A></LI>
+		<LI><A HREF="#6_5_How_do_I_contribute_additio">6.5: How do I contribute additions or updates to the mh code?</A></LI>
 		<LI><A HREF="#6_6_What_is_X10_">6.6 What is X10?</A></LI>
 		<LI><A HREF="#6_7_What_do_I_need_to_use_the_iB">6.7 What do I need to use the iButtons?</A></LI>
 	</UL>
@@ -872,6 +873,12 @@ If a file does not have a # Category record, the file name will be used.
 </P>
 <P>
 <HR>
+<H2><A NAME="2_14_Common_Perl_and_mh_coding_">2.14: Common Perl and mh coding errors</A></H2>
+Clive Freedman sent in some useful tips on common coding errors in 
+<a href="faq_damnblast.html">mh/docs/faq_damnblast.html</a>
+
+<P>
+<HR>
 <H1><A NAME="3_Linux_specific_questions">3: Linux specific questions</A></H1>
 <P>
 <HR>
@@ -1108,6 +1115,9 @@ Here is a rough timeline of MisterHouse development:
  - 09/00 Added ViaVoiceTTS.pm, Jabber, and Applied Digital cpuxad support
  - 10/00 Added barcode scanner and MS Agent support
  - 11/00 Support for ical, rrd, html email access, WAP, and VXML for phone access via tellme.com
+ - 12/00 wx200d and wunderground personal weather project support, new add_sound function.
+ - 01/00 SMS and snnp messaging, improved iButton and benchmarking support.
+ - 01/01 Mailing list reaches 400 members
 </PRE>
 </P>
 <P>
@@ -1202,9 +1212,37 @@ Here are some useful/related Home Automation links:
 </P>
 <P>
 <HR>
-<H2><A NAME="6_5_How_can_I_use_cvs_to_co_dev">6.5: How can I use cvs to co-develop core mh code?</A></H2>
+<H2><A NAME="6_5_How_do_I_contribute_additio">6.5: How do I contribute additions or updates to the mh code?</A></H2>
 <P>
-To get started with cvs, there are instructions at:
+If you want to contribute new code or fixes/updates, you have 3 options:
+
+</P>
+<OL>
+<LI>
+<P>
+Bet a sourceforge.net account and check it in to the CVS repository there.
+
+</P>
+<LI>
+<P>
+You send Bruce a pointer to a web page for the new code (e.g. Brad does
+that with the viavoice tts code).
+
+</P>
+<LI>
+<P>
+You Bruce and/or the mailing list a copy via email. Either full source or a
+diff patch file is fine.
+
+</P>
+</OL>
+<P>
+By far most people choose option 3, which is probably easiest for all, but
+any of the above is fine.
+
+</P>
+<P>
+If you choose the cvs option, you can get started with instructions at:
 
 </P>
 <P>

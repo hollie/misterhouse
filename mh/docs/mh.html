@@ -814,7 +814,8 @@ Time/Date Variables
 <PRE>  $Time_Startup, $Time_Startup_time, $Time_Now, $Date_Now, $Year_Month_Now
   $Time_Sunrise, $Time_Sunset, $Time_Sunrise_Twilight, $Time_Sunset_Twilight
   $Second, $Minute, $Hour, $Mday, $Wday, $Day, $Month, $Year, $Holiday
-  $New_Second, $New_Minute, $New_Hour, $New_Day, $New_Month, $New_Year
+  $New_Msecond_100, $New_Msecond_250, $New_Msecond_500, $New_Second, $New_Minute,
+  $New_Hour, $New_Day, $New_Month, $New_Year
   $Season, $Weekday, $Weekend, $Time_Of_Day, $Dark
   %Moon
 </PRE>
@@ -836,8 +837,9 @@ formated time and date.
 </P>
 <P>
 The $New_* variables are true only on the pass that we enter a new Second,
-Minute, Hour, etc. There are also new_* functions if you want to test on
-every nth second/minute/hour (see new_second function).
+Minute, Hour, etc. $New_Msecond_100/250 are true every .1 and .25 seconds.
+There are also new_* functions if you want to test on every nth
+second/minute/hour (see new_second function).
 
 </P>
 <P>
@@ -966,24 +968,36 @@ Voice_Cmd, Group) inherit all Generic_Item methods.
 </PRE>
 </P>
 <P>
-<PRE>     hidden(1/0)        :  If set to 1, the object will not show up on Tk or Web menus.
+<PRE>     hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.
 </PRE>
 </P>
 <P>
-<PRE>     tie_items($item)   :  If the state of the generic_item changes, then 
+<PRE>     tie_items($item)    : If the state of the generic_item changes, then 
                            the state of $item will be set to that same state
-     untie_items($item) :  Untie $item
+     untie_items($item)  : Untie $item
 </PRE>
 </P>
 <P>
-<PRE>     tie_events($code)  :  It the state of the generic_item changes, then
+<PRE>     tie_events($code)   : It the state of the generic_item changes, then
                            Code string $code will trigger, with the variable
                            $state getting expanded.
-     untie_items($code) :  Untie $code
+     untie_items($code)  : Untie $code
 </PRE>
 </P>
 <P>
-<PRE>     get_chaged_by      :  Returns which tied object caused this objects state to change.
+<PRE>     tie_filter($filter) : Use this to disable control of the item whenever
+                           $filter returns true.  
+     untie_filter($filter):Untie $filter
+</PRE>
+</P>
+<P>
+<PRE>     tie_time($time,$state): Sets item to $state if the $time string evaluates true.
+                           $time can be in either time_cron or time_now format.
+     untie_time($time)   : Untie $time
+</PRE>
+</P>
+<P>
+<PRE>     get_chaged_by       : Returns which tied object caused this objects state to change.
 </PRE>
 </P>
 <P>
@@ -1004,8 +1018,19 @@ Voice_Cmd, Group) inherit all Generic_Item methods.
 <P>
 The tie/untie methods can be done conditionally, so you can change what is
 tied to what on the fly. If you do this, however, you need to also make
-sure you also make the tie* methode call on $Reload, as the objects tie
+sure you also make the tie* method call on $Reload, as the objects tie
 items/events are currently not stored between reloads.
+
+</P>
+<P>
+The tie_* methods can also take 2 optional arguments. The first is the
+state you want the tie to apply to. If not specified, it defaults to all
+states. This is required for tie_time.
+
+</P>
+<P>
+The 2nd optional tie_* argument is a print_log message you want whenever
+the tie_ event triggers.
 
 </P>
 <P>
@@ -1054,6 +1079,16 @@ items/events are currently not stored between reloads.
     $Test-&gt;{junk_data1} = $Time_Now if $Reload;
     $Test-&gt;{junk_data2} = $Month    if $Reload;
     $Test-&gt;restore_data('junk_data1', 'junk_data2');
+</PRE>
+</P>
+<P>
+<PRE>                           # Here are some tie* examples
+    $fountain -&gt; tie_filter('state $windy eq ON', ON,
+                            'Overriding item1 ON command because of wind');
+</PRE>
+</P>
+<P>
+<PRE>    $fountain -&gt; tie_time('10PM', OFF, 'Fountain turned off');
 </PRE>
 </P>
 <P>
@@ -2382,7 +2417,7 @@ Displays the specified text string, text file contents, or bitmap (.gif or
 </P>
 <P>
 <PRE>  Simple mode:
-     display $file_or_text, $time, $title, $font, $window_name;
+     display $file_or_text, $time, $title, $font, $window_name, $append;
 </PRE>
 </P>
 <P>
@@ -2397,6 +2432,7 @@ Displays the specified text string, text file contents, or bitmap (.gif or
       $title is the title of the display box.
       $font  is the font (default is mh.ini parm tk_font).
       $window_name will re-use an exisiting display window of the same name.
+      $append can be top or bottom.  Only meaningful with $window_name.
  
   Examples:
 </PRE>
@@ -2406,6 +2442,7 @@ Displays the specified text string, text file contents, or bitmap (.gif or
     display $f_trivia_answer;
     display '/pictures/photo.jpg';
     display text =&gt; $log, time =&gt; 0, font =&gt; 'fixed', window_name =&gt; 'log';
+    display text =&gt; $text, time =&gt; 0, window_name =&gt; 'AIM', append =&gt; 'top';
 </PRE>
 </P>
 <P>
@@ -2608,8 +2645,8 @@ it:
 </P>
 <P>
 <PRE>     Options are:
-       rooms =&gt; 'room_names'  You need to code a pa_stub.pl routine to allow this
-                              to work with your PA relays.
+       rooms =&gt; 'room_names'  You need to code a &amp;Play_pre_add_hook to enable this.
+                              See mh/code/bruce/pa_control for an example.
        volume=&gt; dd            How loud (dd = 0-&gt;100).  
        time  =&gt; $time         The amount of time to leave the PA speakers on for rooms
        mode  =&gt; $mode         $mode can be:
@@ -2690,11 +2727,18 @@ frames.
 </P>
 <P>
 print_log is typically used for fairly frequent, not too important
-messages.
+messages. If you want the message logged to a specific file (in the
+directory pointed to by mh.ini parm data_dir), you can prefix the text with
+log=my_logfile. For example:
 
 </P>
 <P>
+<PRE>  print_log 'log=test1.log This message is logged in test1.log';
+</PRE>
+</P>
+<P>
 print_msg is typically used for less frequent, more important messages.
+This is not currently shown on the default web windows.
 
 </P>
 <P>
@@ -2866,8 +2910,8 @@ Passes specified text to the TTS program. There are 2 modes of calling it:
      speak(option =&gt; 'value', text =&gt; 'text to speak');
     
      Options are:
-       rooms  =&gt; 'room_name'   You need to code a pa_stub.pl routine to allow this
-                               to work with your PA relays.
+       rooms  =&gt; 'room_names'  You need to code a &amp;Speak_pre_add_hook to enable
+                               this.  See mh/code/bruce/pa_control for an example.
        volume =&gt; dd            How loud (dd = 0-&gt;100).  
        mode   =&gt; 'unmuted'     Forces speech, even in mute and offline mode
 </PRE>
@@ -2909,7 +2953,12 @@ offsets allowed for in time_now.
 </PRE>
 </P>
 <P>
-<PRE>    $Save{setback_off} = time_add &quot;$Save{wakeup_time} - 1:20&quot;;
+<PRE>    my $fishtank_light_on_time,$fishtank_light_off_time,$fishtank_light_duration;
+    if ($Startup) {
+      $fishtank_light_on_time  = time_add &quot;$Time_Sunrise_Twilight+3:00&quot;;
+      $fishtank_light_off_time = time_add &quot;$Time_Sunset_Twilight+4:00&quot;;
+      $fishtank_light_duration = time_add &quot;$fishtank_light_off_time-$fishtank_light_on_time&quot;;
+    }
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_time_diff">time_diff</A></STRONG><DD>

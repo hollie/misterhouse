@@ -42,7 +42,7 @@ tie_event $item2 'print_log "Item2 set to $state"';
 #   }
 
 $item1 -> tie_time('9:09 PM',   TOGGLE, 'Item1 toggled by time_now test');
-$item1 -> tie_time('0 17 * * * ',   ON, 'log=test1.log Item1 turned on';
+$item1 -> tie_time('0 17 * * * ',   ON, 'log=test1.log Item1 turned on');
 $item1 -> tie_time('* * * * *', TOGGLE, 'Item1 toggled by time_cron test');
 
 

@@ -41,7 +41,7 @@ my @compool_item_list;
 
 package Compool;
 
-my (%Compool_Data,@compool_command_list,$temp);
+my (%Compool_Data,@compool_command_list,$temp,$last_command_time);
 
 #
 # This code create the serial port and registers the callbacks we need
@@ -82,7 +82,7 @@ sub init
 
     # Initial cleared data for _now commands
     $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet}  = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
-
+    $Compool_Data{$serial_port}{Last_Partial_Packet} = "";
     # Debuging setup for equipment less development
     #$Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} = "\xff\xaa\x0f\x16\x02\x10\x04\x14\x0F\x01\x10\x82\x00\x00\x00\x88\x99\x32\x00\x00\xf0\x80\x05\x55";
     #substr($Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},8,1) = pack('C',unpack('C',substr($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},8,1)) ^ 255);
@@ -90,74 +90,149 @@ sub init
 
 sub UserCodePreHook
 {
-    if ($::New_Second) 
+    if ($::New_Msecond_100) 
     {
         if ($::Serial_Ports{Compool}{object})
         {
-            my $data, my $serial_port = $::Serial_Ports{Compool}{object};
-            $serial_port->reset_error;
-            if ($data = &Compool::read_packet($serial_port)) 
+            my $serial_port = $::Serial_Ports{Compool}{object};
+            my $data, my $packetsize=0;
+
+            #$serial_port->reset_error;
+            $serial_port->reset_error unless $data = &Compool::read_packet($serial_port);
+            # Get any left over data and prepend to packet
+            $data = $Compool_Data{$serial_port}{Last_Partial_Packet}  . $data;
+
+            # Check for the minimum packet size
+            if(length($data) >= 9)
             {
+                #print "3:" . unpack('H*', $data) . "\n";
+
+                if($::config_parms{debug} eq 'compool') {print "Compool debug data=" . unpack('H*', $data) . "\n";}
+
                 my $index = index($data,"\xFF\xAA");
-                if($index)
+                if($index >=0)
                 {
-                    $data = substr($data,$index,24);
-                    if(length($data) > 5)		# 5 is the minimum length required
+                    my $packet = substr($data,$index,24);
+                    if(length($packet) > 8)		# 9 is the minimum length required
                     {
-    	   	        my $Checksum = unpack('%16C*', substr($data,0,22)) % 65536;
-                        my $Checksum = pack("CC", (($Checksum >> 8) & 0xFF), ($Checksum & 0xFF));
+	                if(substr($packet,4,1) eq "\x02" && substr($packet,5,1) eq "\x10" && length($packet) >= 24)
+                        {
+                            print "BAP packet detected\n" if $::config_parms{debug} eq 'compool';
+                            # Remove bytes from the received data to account for this packet
+                            $packetsize = 24;
 
-  		        #
-		        # Check if this is tagged as a basic acknowledge packet (Opcode == 2 && InfoFieldLengh == 10h)
-                        #
-	                if(substr($data,4,1) eq "\x02" && substr($data,5,1) eq "\x10" && length($data) >= 24 && $Checksum eq substr($data,22,2))
-		        {
-	                    if($::config_parms{debug} eq 'compool') {print "Compool BAP data : " . unpack('H*', $data) . "\n";}
+                            my $Checksum = unpack('%16C*', substr($packet,0,22)) % 65536;
+                            my $Checksum = pack("CC", (($Checksum >> 8) & 0xFF), ($Checksum & 0xFF));
 
-			    # If first packet then we must initialize the Next_ data for the equipment to be in the opposite bit states
-                            # as the data inidicates so we fire the first get_device_now triggers.
-
-			    if ($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} eq undef)
-			    {
-			        if($::config_parms{debug} eq 'compool') {print "Compool initializing _now data bit fields\n";}
-        		        substr($Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},8,1) = pack('C',(unpack('C',substr($data,8,1)) ^ 255));
-        		        substr($Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},9,1) = pack('C',(unpack('C',substr($data,9,1)) ^ 255));
-			    }
-		            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} = $data;
-
-                            if(substr($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},8,10) ne substr($Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},8,10))
+                            #
+                            # Check if this is tagged as a basic acknowledge packet (Opcode == 2 && InfoFieldLengh == 10h)
+                            #
+                            if($Checksum eq substr($packet,22,2))
                             {
-                                # WES handle object invocation.  Loop thru all current commands and
-                                # set tied objects to the corosponding state.
-                                my $object;
-                                my @tied_item_activation_list;
-                                foreach $object (@compool_item_list)
+                                if($::config_parms{debug} eq 'compool') {print "Compool BAP data : " . unpack('H*', $packet) . "\n";}
+
+                                # If first packet then we must initialize the Next_ data for the equipment to be in the opposite bit states
+                                # as the data inidicates so we fire the first get_device_now triggers.
+
+                                if ($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} eq undef)
                                 {
-                                    if($object->state_now)
-                                    {
-                                        push(@tied_item_activation_list, $object);
-                                    }
+                                    if($::config_parms{debug} eq 'compool') {print "Compool initializing _now data bit fields\n";}
+                                    substr($Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},8,1) = pack('C',(unpack('C',substr($packet,8,1)) ^ 255));
+                                    substr($Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},9,1) = pack('C',(unpack('C',substr($packet,9,1)) ^ 255));
                                 }
-                                &main::check_for_tied_events(@tied_item_activation_list);
+                                $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} = $packet;
+
+                                if(substr($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},8,10) ne substr($Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},8,10))
+                                {
+                                    # WES handle object invocation.  Loop thru all current commands and
+                                    # set tied objects to the corosponding state.
+                                    my $object;
+                                    my @tied_item_activation_list;
+                                    foreach $object (@compool_item_list)
+                                    {
+                                        if($object->state_now)
+                                        {
+                                            push(@tied_item_activation_list, $object);
+                                        }
+                                    }
+                                    &main::check_for_tied_events(@tied_item_activation_list);
+                                }
                             }
+                            else
+                            {
+                                if($::config_parms{debug} eq 'compool') {print "Compool BAP packet recieved with invalid checksum, ignoring\n";}
+                            }
+                        }
+                        # Another controllers command packet
+                        elsif(substr($packet,4,1) eq "\x82" && substr($packet,5,1) eq "\x09" && length($packet) >= 17)
+                        {
+	                    # Remove bytes from the received data to account for this packet
+                            $packetsize = 9;
+                            if($::config_parms{debug} eq 'compool') {print "Compool command packet recieved\n";}
+                        }
+                        # Ack packet received
+                        elsif(substr($packet,4,1) eq "\x01" && substr($packet,5,1) eq "\x01" && length($packet) >= 9)
+                        {
+	                    # Remove bytes from the received data to account for this packet
+                            $packetsize = 9;
+                            if($::config_parms{debug} eq 'compool') {print "Compool ACK packet recieved\n";}
+                            # Remove any command at the head of the queue (but only if it's been sent)
+                            if(@compool_command_list[2] > 0)
+                            {
+                                remove_command();
+                            }
+                        }
+                        # Nak packet received
+                        elsif(substr($packet,4,1) eq "\x00" && substr($packet,5,1) eq "\x01" && length($packet) >= 9)
+                        {
+	                    # Remove bytes from the received data to account for this packet
+                            $packetsize = 9;
+                            # Reset the last command time to we resend immediately
+                            $last_command_time = 0;
+
+                            if($::config_parms{debug} eq 'compool') {print "Compool NAK packet recieved\n";}
                         }
                         else
 	                {	
-                            if($::config_parms{debug} eq 'compool') {print "Unchecked data   : " . unpack('H*', $data) . "\n";}
+                            # Default packetsize to 2 so we move pass the found FFAA if no packet match is performed (next
+                            # pass will jump to the next start of packet detected).  Only do this if we've read enough bytes
+                            # to account for the largest packet we can handle.
+                            if(length($packet) >= 24)
+                            {
+                                $packetsize = 2;
+                            }
+                            if($::config_parms{debug} eq 'compool') {print "Compool unchecked data   : " . unpack('H*', $packet) . "\n";}
                         }
 	            }
+
+                    # Adjust the packetsize to account for where the found packet started
+                    $packetsize = $index + $packetsize;
                 }
+
+                # Store remaining data for next pass
+                if($::config_parms{debug} eq 'compool') { print "Packetsize=$packetsize Length1=" . length($data) . " Length2=" . length(substr($data,$packetsize)) . "\n"; }
+                $Compool_Data{$serial_port}{Last_Partial_Packet} = substr($data,$packetsize);
             }
-            $serial_port->reset_error;
         }
 
-        if(@compool_command_list > 0)
+        # Require at least 2 seconds between commands to avoide blowing any circuit breakers by turning on 
+        # too many items at once.
+        if((@compool_command_list > 0) && (time - $last_command_time > 2))
         {
-            my ($serial_port, $targetdevice, $targetstate);
-            ($serial_port) = shift @compool_command_list;
-            ($targetdevice) = shift @compool_command_list;
-            ($targetstate) = shift @compool_command_list;
-            _set_device($serial_port, $targetdevice, $targetstate);
+            # Increment our retry count
+            @compool_command_list[2]++;
+
+            # If we've already attempted to turn this item on 4 times, it's time to abort
+            if(@compool_command_list[2] > 4)
+            {
+                remove_command();
+            }
+            else
+            {
+                send_command(@compool_command_list[0], @compool_command_list[1]);
+                # We are about to get a new BAP packet, nuke any holdover data
+                $Compool_Data{@compool_command_list[0]}{Last_Partial_Packet} = "";
+            }
         }
     }
 }
@@ -179,7 +254,7 @@ sub set_time
     my ($serial_port) = @_;
     my ($Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst) = localtime time;
     my $Compool_Time = pack("CC",$Minute,$Hour);
-    return send_command($serial_port, $Compool_Time . "\x00\x00\x00\x00\x00\x00\x03");
+    return queue_command($serial_port, $Compool_Time . "\x00\x00\x00\x00\x00\x00\x03");
 }
 
 sub get_time 
@@ -211,12 +286,12 @@ sub set_temp
 
     SWITCH: for($targetdevice)
     {
-    /pooldesiredtemp/i && do { return send_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
-    /pooldesired/i     && do { return send_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
-    /pool/i	       && do { return send_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
-    /spadesiredtemp/i  && do { return send_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
-    /spadesired/i      && do { return send_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
-    /spa/i	       && do { return send_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
+    /pooldesiredtemp/i && do { return queue_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
+    /pooldesired/i     && do { return queue_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
+    /pool/i	       && do { return queue_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
+    /spadesiredtemp/i  && do { return queue_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
+    /spadesired/i      && do { return queue_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
+    /spa/i	       && do { return queue_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
     ::print_log "Compool set_temp unknown device\n";
     }
     return -1;
@@ -308,14 +383,6 @@ sub get_temp_now
 
 sub set_device
 {
-    my ($serial_port) = @_;
-    unless (length($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}) == 24) {if($::config_parms{debug} eq 'compool'){::print_log "Compool set_device no status packet received\n";} return 0;};
-    push(@compool_command_list, @_);
-    return 1; # All we can do is queue and return true
-}
-
-sub _set_device
-{
     my ($serial_port, $targetdevice, $targetstate) = @_;
 
     # Handle 'toggle' state
@@ -373,15 +440,15 @@ sub _set_device
     #
     if(($targetstate == 0) && (($currentstate & $targetbit) == 0))
     {
-        return 1;
+        return 0;
     }
     elsif(($targetstate == 1) && (($currentstate & $targetbit) == $targetbit))
     {
-        return 1;
+        return 0;
     }
 
     # Sending to primary equipment field or secondary equipment field?
-    ($targetprimary == 8) ? return send_command($serial_port, "\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x00\x04") : return send_command($serial_port, "\x00\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x08");
+    ($targetprimary == 8) ? return queue_command($serial_port, "\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x00\x04") : return queue_command($serial_port, "\x00\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x08");
 }
 
 sub set_device_with_timer 
@@ -601,6 +668,29 @@ sub get_heatsource_now
 }   
 
 
+sub queue_command
+{
+    my ($serial_port, $command) = @_;
+    push(@compool_command_list, $serial_port);
+    push(@compool_command_list, $command);
+    # Add a retry count to the list
+    push(@compool_command_list, 0);
+    return 1;
+}
+
+
+sub remove_command
+{
+    if(@compool_command_list > 0)
+    {
+        # Pop the serial port, command, and retry count off the list
+        shift @compool_command_list;
+        shift @compool_command_list;
+        shift @compool_command_list;
+    }
+}
+
+
 sub send_command
 {
     my ($serial_port, $command) = @_;
@@ -624,15 +714,19 @@ sub send_command
     select (undef, undef, undef, .100); # Sleep a bit
     if (17 == ($temp = $serial_port->write($Compool_Command_Header . $command . $Checksum))) 
     {
-        select (undef, undef, undef, .100); # Sleep a bit
+        select (undef, undef, undef, .02); # Sleep a bit
         $serial_port->dtr_active(1);
         $serial_port->rts_active(0);
         if($::config_parms{debug} eq 'compool'){print "Compool send command ok\n";}
+
+        # Store the last time that we actually sent data to the wire so we don't do it more than every X seconds.
+        $last_command_time = time;
+
         return 1;
     }
     else 
     {
-        select (undef, undef, undef, .100); # Sleep a bit
+        select (undef, undef, undef, .02); # Sleep a bit
         $serial_port->dtr_active(1);
         $serial_port->rts_active(0);
         print "Compool send command failed sent " . $temp. " bytes\n";

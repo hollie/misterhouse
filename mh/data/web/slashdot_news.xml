@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Openly Published e-Commerce Security Precautions?</title>
-		<url>http://slashdot.org/article.pl?sid=01/01/29/104236</url>
-		<time>2001-02-04 11:03:54</time>
-		<author>Cliff</author>
-		<department>knowing-how-secure-your-merchant's-data-is</department>
-		<topic>internet</topic>
-		<comments>76</comments>
-		<section>askslashdot</section>
-		<image>topicinternet.gif</image>
-	</story>
-
-	<story>
-		<title>Microsoft Ties DRM Technology To Windows</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/04/0536200</url>
-		<time>2001-02-04 08:34:29</time>
-		<author>timothy</author>
-		<department>what-about-my-analog-rights?</department>
-		<topic>microsoft</topic>
-		<comments>175</comments>
+		<title>Physics of Billiards</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/24/0457216</url>
+		<time>2001-02-24 08:55:52</time>
+		<author>michael</author>
+		<department>pocket-pool</department>
+		<topic>science</topic>
+		<comments>68</comments>
 		<section>articles</section>
-		<image>topicms.gif</image>
+		<image>topicscience.gif</image>
 	</story>
 
 	<story>
-		<title>Linux Running On Intel XScale CPU</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/03/2328241</url>
-		<time>2001-02-04 03:11:09</time>
-		<author>timothy</author>
-		<department>small-packages</department>
-		<topic>news</topic>
-		<comments>112</comments>
+		<title>Python Painfully Ported to Palm; Plan is "Peer-to-Peer"</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/24/0430220</url>
+		<time>2001-02-24 05:26:25</time>
+		<author>michael</author>
+		<department>proactive-PDA-programming</department>
+		<topic>programming</topic>
+		<comments>91</comments>
 		<section>articles</section>
-		<image>topicnews.gif</image>
+		<image>topicprogramming.gif</image>
 	</story>
 
 	<story>
-		<title>Ethics In Computer Consulting</title>
-		<url>http://slashdot.org/article.pl?sid=01/01/29/101209</url>
-		<time>2001-02-03 23:58:05</time>
-		<author>Cliff</author>
-		<department>stuff-to-think-about</department>
-		<topic>news</topic>
-		<comments>242</comments>
-		<section>askslashdot</section>
-		<image>topicnews.gif</image>
-	</story>
-
-	<story>
-		<title>Apple Moves Again To Squash Look-Alikes</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/03/1926203</url>
-		<time>2001-02-03 21:43:03</time>
-		<author>timothy</author>
-		<department>hey-you-can't-do-that!</department>
-		<topic>apple</topic>
-		<comments>481</comments>
+		<title>Turn-Based Games: What Happened?</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/24/0056212</url>
+		<time>2001-02-24 02:53:16</time>
+		<author>michael</author>
+		<department>itchy-trigger-finger</department>
+		<topic>games</topic>
+		<comments>211</comments>
 		<section>articles</section>
-		<image>topicapple.gif</image>
+		<image>topicgames.jpg</image>
 	</story>
 
 	<story>
-		<title>Vixie And Others On Members-Only BIND Info</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/03/1656243</url>
-		<time>2001-02-03 19:21:20</time>
-		<author>timothy</author>
-		<department>putting-a-fork-in-it?</department>
-		<topic>internet</topic>
-		<comments>180</comments>
+		<title>OpenNaps Targeted; Gnutella "Validated"</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/23/1959235</url>
+		<time>2001-02-23 23:15:00</time>
+		<author>jamie</author>
+		<department>gnu-complete-me</department>
+		<topic>music</topic>
+		<comments>374</comments>
+		<section>yro</section>
+		<image>topicmusic.gif</image>
+	</story>
+
+	<story>
+		<title>IBM CPRM Plan Replaced with Similar Copy-Prevention Plan</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/23/2134255</url>
+		<time>2001-02-23 22:15:47</time>
+		<author>michael</author>
+		<department>old-wine-in-new-bottles</department>
+		<topic>ibm</topic>
+		<comments>228</comments>
+		<section>yro</section>
+		<image>topicibm.gif</image>
+	</story>
+
+	<story>
+		<title>Yamauchi Puts the Game Industry In Its Place</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/23/2050213</url>
+		<time>2001-02-23 21:19:32</time>
+		<author>Hemos</author>
+		<department>letting-people-know-how-he-thinks</department>
+		<topic>games</topic>
+		<comments>241</comments>
 		<section>articles</section>
-		<image>topicinternet.gif</image>
+		<image>topicgames.jpg</image>
 	</story>
 
 	<story>
-		<title>Sonicblue Acquires ReplayTV</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/03/1740256</url>
-		<time>2001-02-03 18:19:05</time>
-		<author>timothy</author>
-		<department>convergence</department>
-		<topic>news</topic>
-		<comments>52</comments>
+		<title>Linux.com Chats with BioWare Regarding "Neverwinter Nights"</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/23/1647254</url>
+		<time>2001-02-23 19:32:03</time>
+		<author>Hemos</author>
+		<department>please-let-me-be-a-beta-tester</department>
+		<topic>games</topic>
+		<comments>167</comments>
 		<section>articles</section>
-		<image>topicnews.gif</image>
+		<image>topicgames.jpg</image>
 	</story>
 
 	<story>
-		<title>ORBS Lookup Entries Undergo Major Revamping</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/03/1546201</url>
-		<time>2001-02-03 16:41:35</time>
-		<author>timothy</author>
-		<department>lovely-spam-wonderful-spam-</department>
-		<topic>spam</topic>
-		<comments>136</comments>
-		<section>features</section>
-		<image>topicspam.jpg</image>
+		<title>CowboyNeal Speaks</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/23/1532251</url>
+		<time>2001-02-23 18:00:06</time>
+		<author>Roblimo</author>
+		<department>greatful-dead-fans-need-love-too</department>
+		<topic>slashdot</topic>
+		<comments>279</comments>
+		<section>interviews</section>
+		<image>topicslashdot.gif</image>
 	</story>
 
 	<story>
-		<title>Indigo Magic Desktop, Now On Linux</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/03/1358223</url>
-		<time>2001-02-03 14:07:52</time>
-		<author>timothy</author>
-		<department>a-pigment-of-your-imagination</department>
-		<topic>sgi</topic>
-		<comments>219</comments>
+		<title>ESR's Art of Unix Programming Updated</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/23/1721202</url>
+		<time>2001-02-23 17:30:48</time>
+		<author>CmdrTaco</author>
+		<department>stuff-to-read</department>
+		<topic>programming</topic>
+		<comments>156</comments>
 		<section>articles</section>
-		<image>topicsgi.gif</image>
+		<image>topicprogramming.gif</image>
 	</story>
 
 	<story>
-		<title>NetBSD Supports SEGA's Broadband Adapter</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/03/0217244</url>
-		<time>2001-02-03 10:12:55</time>
-		<author>timothy</author>
-		<department>why-is-inoshiro-in-my-apartment?</department>
-		<topic>bsd</topic>
-		<comments>150</comments>
+		<title>N2H2 Drops Plans to Sell Student Web-Browsing Information</title>
+		<url>http://slashdot.org/article.pl?sid=01/02/23/1451251</url>
+		<time>2001-02-23 16:42:11</time>
+		<author>michael</author>
+		<department>N2H2-does-not-drop-plans-to-censor-those-students</department>
+		<topic>Privacy</topic>
+		<comments>101</comments>
 		<section>articles</section>
-		<image>topicbsd.gif</image>
+		<image>topicprivacy.gif</image>
 	</story>
 
 </backslash>

@@ -59,6 +59,7 @@ sub start {
             $main::Socket_Ports{$port_name}{sock}  = $sock;
             $main::Socket_Ports{$port_name}{socka} = $sock;
             $sock->autoflush(1);
+            return $sock;
         }
         else {
             print "Socket_Item client start error:  could not start a tcp client socket\n";
@@ -68,6 +69,7 @@ sub start {
     else {
         print "Socket_Item client start error:  address is not in the form host:port.  open failed.  port=$port_name address=$host_port\n";
     }
+    return 0;
 }
 sub stop {
     my ($self) = @_;
@@ -230,6 +232,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.18  2001/02/24 23:26:40  winter
+# - 2.45 release
+#
 # Revision 1.17  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

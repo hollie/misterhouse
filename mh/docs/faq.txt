@@ -532,6 +532,8 @@ only at Startup?
     If a file does not have a # Category record, the file name will
     be used.
 
+  2.14: Common Perl and mh coding errors
+
 3: Linux specific questions
   3.1: When I run Viavoice and festival at the same time I get "Can't open output file '/dev/dsp'"
 
@@ -701,6 +703,9 @@ only at Startup?
      - 09/00 Added ViaVoiceTTS.pm, Jabber, and Applied Digital cpuxad support
      - 10/00 Added barcode scanner and MS Agent support
      - 11/00 Support for ical, rrd, html email access, WAP, and VXML for phone access via tellme.com
+     - 12/00 wx200d and wunderground personal weather project support, new add_sound function.
+     - 01/00 SMS and snnp messaging, improved iButton and benchmarking support.
+     - 01/01 Mailing list reaches 400 members
 
   6.2: Who is that Bruce guy anyway?
 
@@ -761,9 +766,25 @@ only at Startup?
       And this mult-platform web server:
         http://www.xitami.com
 
-  6.5: How can I use cvs to co-develop core mh code?
+  6.5: How do I contribute additions or updates to the mh code?
 
-    To get started with cvs, there are instructions at:
+    If you want to contribute new code or fixes/updates, you have 3
+    options:
+
+    1   Bet a sourceforge.net account and check it in to the CVS
+        repository there.
+
+    2   You send Bruce a pointer to a web page for the new code (e.g.
+        Brad does that with the viavoice tts code).
+
+    3   You Bruce and/or the mailing list a copy via email. Either full
+        source or a diff patch file is fine.
+
+    By far most people choose option 3, which is probably easiest
+    for all, but any of the above is fine.
+
+    If you choose the cvs option, you can get started with
+    instructions at:
 
      http://sfdocs.sourceforge.net/sfdocs/site/cvs.php
 

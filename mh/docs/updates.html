@@ -13,6 +13,7 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#Version_2_43_posted_on_02_03_200">Version 2.43 posted on 02/03/2001</A></LI>
 		<LI><A HREF="#Version_2_41_posted_on_01_20_01">Version 2.41 posted on 01/20/01</A></LI>
 		<LI><A HREF="#Version_2_39_posted_on_12_21_00">Version 2.39 posted on 12/21/00</A></LI>
 		<LI><A HREF="#Version_2_36_posted_on_12_03_00">Version 2.36 posted on 12/03/00</A></LI>
@@ -75,6 +76,247 @@
 list (an archive of all the list messages is at <A
 HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A>
 )
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_43_posted_on_02_03_200">Version 2.43 posted on 02/03/2001</A></H2>
+<P>
+Version 2.43 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net/download.html">http://misterhouse.sourceforge.net/download.html</A>
+  <A HREF="http://misterhouse.net/download.html">http://misterhouse.net/download.html</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Switched to a new AOL AIM module from CPAN, so mh/test/internet_im.pl
+works better. Like internet_jabber.pl (which is currently not working), we
+can now send and receive messages.
+
+</P>
+<P>
+- Add a restart option to <CODE>&amp;exit_pgm</CODE> and modified mhl.bat
+(unix mhl did not need any updates) so we can have mh restart itself with
+the new mh/code/common/mh_control 'Restart Mister House' command. This will
+only work if you start mh with mh/bin/mhl (l stands for loop).
+
+</P>
+<P>
+- Bill Sobel suggested adding new Generic_Item methods tie_time and
+tie_filter. tie_time will set the item if the specified time_cron or
+time_now string is true. tie_filter will disable control of the item if the
+specified filter returns true. Examples are in
+mh/code/examples/test_tie.pl. Here are 2 examples:
+
+</P>
+<P>
+<PRE>   $fountain -&gt; tie_time('10PM', OFF);
+   $fountain -&gt; tie_filter('state $windy eq ON', ON);
+</PRE>
+</P>
+<P>
+- Bill had 2 other ideas to help in event logging. All the tie_* methods
+now support an optional log message. We also can now specify a specific
+logfile using a log=logfile prefix to any print_log text. For example:
+
+</P>
+<P>
+<PRE>  print_log 'log=test1.log Logged in code_dir/test1.log';
+  $fountain -&gt; tie_time('0 17 * * * ', ON, 'log=fountain Fountain turned on';
+</PRE>
+</P>
+<P>
+These will go into the data_dir directory. We also moved the default print,
+speak, and error logs from the code_dir to the data_dir directory.
+
+</P>
+<P>
+- Added a print_log ``Running: xyz'' when Voice_Cmd xyz is run
+
+</P>
+<P>
+- Clive Freedman sent in a FAQ of common Perl and mh coding errors in
+mh/doc/faq_damnblast.html (also linke in faq.html).
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Kees Cook updated the Unix SerialPort module to work better with fast
+I/O, Solaris, AIX, and OpenBSD.
+
+</P>
+<P>
+- Mike Pearce found a bug in $Season.
+
+</P>
+<P>
+- Craig Schaeffer had a patch for iButton.pm read_dir and read_windspeed.
+
+</P>
+<P>
+- Roy Thompson updated X10_IrrigationController to support 16 modules.
+
+</P>
+<P>
+- Bill Sobel suggested adding the .5, .25, and .1 second flags
+$New_Msecond_500/250/100. He added these to a few of hist modules in mh/lib
+to improve mh efficiency.
+
+</P>
+<P>
+- Brad Reed fixed CM11.pm to correctly reset the internal CM11 clock to the
+right time. We also changed mh to set the CM11 clock and reset the buffer
+on mh startup.
+
+</P>
+<P>
+- Fenghua Zong found the periodic 'Saving object states' would start
+working only after an mh pause.
+
+</P>
+<P>
+- Scott Johnston discovered we inadvertantly changed the unix mh.ini
+sound_program default from play.
+
+</P>
+<P>
+- Scott Johnston also sent in a fix for a new clicktv.com url in
+get_tv_grid.
+
+</P>
+<P>
+- Timothy Spaulding suggested we have a -no_log speak option to avoid
+printing spoken text to the console if -tk 0.
+
+</P>
+<P>
+- Brian Paulsen made some more improvements to the iButton code.
+
+</P>
+<P>
+- Brad Reed, through painstaking testing, discovered the cause of the cause
+of his CM11 errors. It turns out the fork we were doing when
+voice_text=viavoice caused the child process to reset all the serial ports!
+We also merged in his voice_text=viavoice patch from his website.
+
+</P>
+<P>
+- Evan Grahaet noticed a problem when setting timers with the web
+interface. Now the timer will start only when the time field (not the text
+field) has changed.
+
+</P>
+<P>
+- Bill Sobel sent in these updates:
+
+</P>
+<P>
+<PRE>  Compool: fixed solar and air temp calculations (turns out
+  they are calculated differently then pool and spa temps)
+</PRE>
+</P>
+<P>
+<PRE>  Read_table_A: added support for stargate thermostat items
+</PRE>
+</P>
+<P>
+<PRE>  Stargate485.pm: added support for stargate thermostats 
+  (RCS 485 thermostats, should be able to be used even
+  without the stargate eventually).  Also fixed RTS bug
+  that caused it to hog the serial line.
+</PRE>
+</P>
+<P>
+<PRE>  Xantech.pm: string comparison fix (!= changed to ne)
+</PRE>
+</P>
+<P>
+<PRE>  HomeBase.pm  Added a send_telephone function and a .ini
+  setting to disable receiving x10 events from the homebase
+</PRE>
+</P>
+<P>
+- Stuart Grimshaw removed mh/lib/SMS_Item.pm (for sending SMS messages to
+mobile phones in Europe) at the request of the <A
+HREF="http://www.smsboy.com">http://www.smsboy.com</A> guys.
+
+</P>
+<P>
+- Clive Freedman update get_tv_info to add hypertext links for setting VCR,
+highlighting the selected key-word, early morning searching, debugged
+searching for shows in progress, UK dates, and changed plural and
+upper-case recognition.
+
+</P>
+<P>
+- Tony Drumm noticed that he could not get his CM17 firecracker to work
+under linux until he did h2ph linux/posix_types.h. We added that to
+mh/bin/configure.
+
+</P>
+<P>
+- Chris Witte suggested we reuse and expose the X10_Item set_with_timer
+timer object.
+
+</P>
+<P>
+- Fixed a Time::HiRes error on restoring a timer on Unix.
+
+</P>
+<P>
+- Added a <CODE>$Power_Supply</CODE> object to
+mh/code/common/mh_control.pl. Currently only detects a power reset from a
+CM11.
+
+</P>
+<P>
+- Added File_Item get_index to replace a poorly named index method.
+
+</P>
+<P>
+- Updated the mh SNPP.pm module so snpp_pager would work.
+
+</P>
+<P>
+- Added a tk_startup_cmd option. Useful for debugging when you want to have
+the tk command list start with a specfic set of commands.
+
+</P>
+<P>
+- Added a display append option (e.g. appending messages to the AOL AIM
+chat window).
+
+</P>
+<P>
+- Added Generic_Item toggle state so we toggle devices ON/OFF like this: 
+
+</P>
+<P>
+<PRE>     set $light TOGGLE   if new_second 10;
+or 
+     set $light 'toggle' if new_second 10;
+</PRE>
+</P>
+<P>
+- mh.ini parm html_select_length (controls when drop down select forms are
+used) now also applies to the Items web menus.
+
+</P>
+<P>
+- Fixed a problem with unix computer uptime with uptimes &gt; 40 days.
 
 </P>
 <P>

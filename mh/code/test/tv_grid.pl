@@ -57,12 +57,14 @@ eof
 }
 
                                 # This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
-$v_get_tv_grid_data = new  Voice_Cmd('Get tv grid data for [today,the next week]');
-$v_get_tv_grid_data-> set_info('Updates the TV database with the next 7 days of programing via the internet');
-if ($state = said  $v_get_tv_grid_data) {
+$v_get_tv_grid_data1 = new  Voice_Cmd('[Get,reget,redo] tv grid data for today');
+$v_get_tv_grid_data7 = new  Voice_Cmd('[Get,reget,redo] tv grid data for the next week');
+$v_get_tv_grid_data1-> set_info('Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.');
+if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data7) {
     if (&net_connect_check) {
-        my $pgm = "get_tv_grid -userid $config_parms{clicktv_id} ";
-        $pgm .= ($state eq 'today') ? '-redo -days 1 ' : '-days 7 ';
+        my $days = (said $v_get_tv_grid_data7) ? 7 : 1;
+        $state = ($state eq 'Get') ? '' : "-$state";
+        my $pgm = "get_tv_grid -userid $config_parms{clicktv_id} $state -days $days";
         $pgm .= qq[ -hour   "$config_parms{clicktv_hours}"] if $config_parms{clicktv_hours};
 
                                 # Allow data to be stored wherever the alias points to
@@ -82,5 +84,16 @@ if ($state = said  $v_get_tv_grid_data) {
     }
     else {
 	    speak "Sorry, you must be logged onto the net";
+    }
+}
+
+                                # Set the default page to the current time
+if (time_cron "0 $config_parms{clicktv_hours} * * *") {
+    my $tvfile = sprintf "%02d_%02d.html", $Mday, $Hour;
+    my $tvdir = "$config_parms{html_dir}/tv";
+    if ( -e  "$tvdir/$tvfile" ) {
+        copy "$tvdir/$tvfile", "$tvdir/index.html";
+#       my $tvhtml = file_read "$tvdir/$tvfile";
+#       file_write "$tvdir/index.html", $tvhtml;
     }
 }

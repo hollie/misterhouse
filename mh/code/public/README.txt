@@ -7,6 +7,15 @@ more complex, functioning code.
 
 -----------
 
+alarmclock_evan.pl
+ - Evan Grahaet's alarm clock with snooze.
+
+alarmclock_david.pl
+ - David McLellan's alarm clock
+
+alarmclock_doug.pl
+ - Doug Nakakihara's alarm clock for for  file based timed reminders.
+
 AudioControl.pl
  - Bill Sobel's example of using Mp3Player.pm object
 
@@ -35,6 +44,9 @@ ical.pl
    Similar to mh/code/bruce/outlook.pl and mh/bin/outlook_read (for windows).
    Set this mh.ini parm: calendar_file=/home/dbl/.calendar
 
+internet_earthquake.pl
+ - Tim Doyle's script for monitoring earthquakes.
+
 internet_ip_update.p
  - Updates IP servers/web pages with IP addresses
 
@@ -62,6 +74,11 @@ monitor_ipchainlog.pl
 news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
  - Brian Rigsby did news_yahoo.pl
+
+pa_control_evan.pl
+pa_control_evan_test.pl
+ - Evan Graham's code for controling which rooms hear the sound 
+   spoken or played by mh, using weeder DIO controled relays.
 
 rrd_graph
 rrd_create.sh

@@ -114,7 +114,7 @@ sub speak_text {
             if ($parms{text}) {
                 $vv_tts_arg .= " -text '$parms{text}'";
             }
-            print "db start TTS: $VV_TTS $vv_tts_arg\n" if $main::config_parms{debug};
+            print "db start TTS: $VV_TTS $vv_tts_arg\n" if $main::config_parms{debug} eq 'voice';
             exec qq[$VV_TTS $vv_tts_arg];
             die 'cant exec $VV_TTS';
         }
@@ -184,6 +184,7 @@ ProgCode
 #           $VTxt->Speak($voice . $parms{'text'}, $priority);
 #           $VTxt->Speak($voice . $parms{'text'}, $type, $priority);
 
+        print "Voice_Text.pm ms_tts: VTxt=$VTxt text=$parms{'text'}\n" if $main::config_parms{debug} eq 'voice';
         $VTxt->Speak($voice . $parms{'text'}, $priority);
 
 #           $VTxt->Speak($parms{'text'}, ($priority | $type));
@@ -250,6 +251,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.23  2001/02/24 23:26:40  winter
+# - 2.45 release
+#
 # Revision 1.22  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

@@ -393,7 +393,7 @@ sub main::parse_arg_string {
 
     # Split command string into arguments, allowing for quoted strings
     while ($arg_string) {
-        ($arg, $arg_string) = $arg_string =~ /(\S+) *(.*)/;
+        ($arg, $arg_string) = $arg_string =~ /(\S+)\s*(.*)/;
         if (substr($arg, 0, 1) eq '"') {
             $i = index($arg_string, '"');
             $arg .= ' ' . substr($arg_string, 0, $i+1);
@@ -452,6 +452,25 @@ sub main::read_mh_opts {
     &main::read_opts($ref_parms, $parm_file, $debug, $Pgm_Path . '/..') if $parm_file and -e $parm_file;
     &main::read_opts($ref_parms, $Pgm_Path . "/mh.ini", $debug, $Pgm_Path . '/..') if $Pgm_Path . "/mh.ini";
     &main::read_opts($ref_parms, $private_parms, $debug, $Pgm_Path . '/..') if -e $private_parms;
+
+                                # Look for parm values that reference other vars (e.g.  $config_parms{data_dir}/data/email)
+                                # Need to do this AFTER all the parms are read in, so we can eval correctly
+    package main;   # So the evals work ok with main vars
+    for my $parm (keys %$ref_parms) {
+        my $value = $$ref_parms{$parm};
+                                # Just do config parms ... this function is called by lots
+                                # of programs (e.g. get_url), so other mh vars are not always there.
+        if ($value =~ /\$config_parms/) {
+                                # Do this, since %config_parms may be a 'my' var, which can not
+                                # be change directly outside of the main program.
+            $value =~ s/\$config_parms/\$\$ref_parms/g;
+            print "read_mh_opts .ini parm evaled:  parm==$parm\n   value=$value\n" if $debug;
+            eval "\$value = qq[$value]";
+            print "   value=$value\n" if $debug;
+            $$ref_parms{$parm} = $value;
+        }
+    }
+
 }
 
 sub main::read_opts {
@@ -462,27 +481,30 @@ sub main::read_opts {
     print "Reading config_file $config_file\n" unless defined $debug and $debug == 0;
     open (CONFIG, "$config_file") or print "\nError, could not read config file: $config_file\n";
     while (<CONFIG>) {
-        next if /^ *\#/;
+        next if /^\s*\#/;
                                 # Allow for multi-line values records
-        if ($key and ($value) = $_ =~ /^ +([^\#]+)/ and $value !~ /=/) {
+        if ($key and ($value) = $_ =~ /^\s+([^\#]+)/ and $value !~ /=/) {
             $value_continued = 1;
         }
                                 # Look for normal key=value records
         else {
-            ($key, $value) = $_ =~ /(\S+?) *= *([^\#]+)/;
+            ($key, $value) = $_ =~ /(\S+?)\s*=\s*([^\#]+)/;
+
             $value_continued = 0;
             next unless $key;
         }
 
         $value =~ s/\s+$//;     # Delete end of value blanks
 
-         if ($value =~ /\$Pgm_Root/) {
                                 # substitue in $vars in the .ini file 
                                 #  - older perl does not eval to main::value :(
                                 #    so we do it the hard way
+                                #  - We can probably skip this now, as we 
+                                #    now do evals above in mh_read_opts.
+        if ($value =~ /\$Pgm_Root/) {
             $value =~ s/\$Pgm_Root/$pgm_root/;
 #           eval "\$value = qq[$value]";
-        }
+        }        
 
                                 # Last parm wins (in case we reload parm file)
         if ($value_continued) {
@@ -814,7 +836,6 @@ sub main::speakify_list {
 }
 
 
-
 sub main::time_date_stamp {
 
 # This could be done much easier with use Date ... but here we have more flexablilty
@@ -1043,6 +1064,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.47  2001/02/24 23:26:40  winter
+# - 2.45 release
+#
 # Revision 1.46  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

@@ -158,6 +158,22 @@ sub new {
     return $self;
 }
 
+                                # Check for toggle data
+sub set {
+    my ($self, $state) = @_;
+
+    if ($state eq 'toggle') {
+        if ($$self{state} eq 'on') {
+            $state = 'off';
+        }
+        else {
+            $state = 'on';
+        }
+        &main::print_log("Toggling X10_Item object $self->{object_name} from $$self{state} to $state");
+    }
+    $self->SUPER::set($state);
+}
+
 sub set_with_timer {
     my ($self, $state, $time) = @_;
     return if &main::check_for_tied_filters($self, $state);
@@ -674,7 +690,34 @@ sub set {
 }
 
 
+
+package X10_Ote;
+@X10_Ote::ISA = ('X10_Item');
+sub new {
+    my ($class, $id, $interface) = @_;
+    my $self = {};
+    $$self{state} = '';
+    bless $self, $class;
+    #   print "\n\nWarning: duplicate ID codes on different X10_Appliance  objects: id=$id\n\n" if $serial_item_by_id{$id};
+    my $hc = substr($id, 0, 1);
+    push @{$items_by_house_code{$hc}}, $self;
+    $id = "X$id";
+    $self->{x10_id} = $id;
+    $self-> add ($id . $hc . 'J', 'on');
+    $self-> add ($id . $hc . 'K', 'off');
+    $self-> add ($id . $hc . 'M', 'C+1');
+    $self-> add ($id . $hc . 'N', 'C-1');
+    $self-> add ($id . $hc . 'L', 'JN');
+    $self-> add ($id , 'manual');
+    $self->set_interface($interface);
+    return $self;
+}
+
+
 # $Log$
+# Revision 1.17  2001/02/24 23:26:40  winter
+# - 2.45 release
+#
 # Revision 1.16  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

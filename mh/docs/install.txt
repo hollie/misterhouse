@@ -34,7 +34,7 @@ Quick Install Instructions
      
      - cd mh\bin
 
-     - mh.exe
+     - mhl.bat (this will call mh.exe or 'perl mh')
 
   Unix users
 
@@ -60,7 +60,7 @@ Quick Install Instructions
         - ./configure
         - exit (to switch back from root)
 
-     - ./mh (if that doesn't work, try: perl mh)
+     - ./mhl (if that doesn't work, try: mh or perl mh)
 
     If you have graphics related errors, turn of the local graphics
     interface with: ./mh -tk 0
@@ -222,12 +222,9 @@ Detailed Install Instructions for UNIX users
     You can skip this step if you do not want to enable VR or TTS.
 
     The IBM ViaVoice Voice Recognition engine is available at
-    http://www-4.ibm.com/software/speech/dev/sdk_linux.html .
-    Currently the only download available is a large 80 MB tar file,
-    the bulk of which is used for the VR dictation engine that we do
-    not need. The installed/expanded files require about 120 MB of
-    space. Hopefully a smaller package with just the Command and
-    Control engine will become available at some point.
+    http://www-4.ibm.com/software/speech/dev/sdk_linux.html . You
+    don't need the VR dictation, so just download the smaller
+    'Command & Control Run Time Kit'.
 
     After downloading, install viavoice by running (as root) run tar
     -xf viavoice_sdk_rtk_2.tar and then follow the tar file
