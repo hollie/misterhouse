@@ -26,10 +26,9 @@ sub process_http_request {
             $Referer = $1 if /^Referer: (\S+)/;
             if (/^Authorization: Basic (\S+)/) {
                 ($user, $password) = split(':', &uudecode($1));
-#               ($user, $password) = split(':', decode_base64 $1);
             }
-#User-Agent: Mozilla/4.0 (compatible; MSIE 5.0; Windows 98)
-#User-Agent: Mozilla/4.6 [en] (Win98; I)
+                #User-Agent: Mozilla/4.0 (compatible; MSIE 5.0; Windows 98)
+                #User-Agent: Mozilla/4.6 [en] (Win98; I)
             if (/^User-Agent:/) {
                 $Browser = (/MSIE/) ? "IE" : "Netscape";
                 print "db Browser=$Browser  $_\n" if $main::config_parms{debug} eq 'http';
@@ -48,22 +47,20 @@ sub process_http_request {
         else {
                                 # Lets default to not authorized and use SET_PASSWORD to set authorization
             $Authorized = 0;
-#            print $socket "HTTP/1.0 401 Unauthorized\nServer: MisterHouse\n\n"; # Request password
-#            return;
         }
     }
     else {
         $Authorized = 1;
     }
 
-#   $Authorized_html  = "<BASE TARGET='control'>\n";
     $Authorized_html  = "Status: <B><a href=/SET_PASSWORD>" . (($Authorized) ? "Authorized" : "Not Authorized") . "</B></a><br>";
 
     my ($get_req, $get_arg) = $header =~ m|^GET (\/[^ \?]+)\??(\S+)? HTTP|;
 
     $get_req = $main::config_parms{html_file} unless $get_req;
     $file = "$main::config_parms{html_dir}/$get_req";
-    print "web data requested:  get=$get_req arg=$get_arg file=$file.\n  header=$header\n" if $main::config_parms{debug} eq 'http';
+
+    print "db web data requested:  get=$get_req arg=$get_arg file=$file.\n  header=$header\n" if $main::config_parms{debug} eq 'http';
 
     if ($get_req =~ /\/SET_PASSWORD$/) {
         if ($set_password_flag) {
@@ -103,8 +100,7 @@ eof
         print "db gr=$get_req,\n";
                                 # Don't allow bad guys to go up the directory chain
         if ($get_req =~ /^\/\.\./) {
-            print $socket &html_page("Error", 
-                                     "Access denied: $file");
+            print $socket &html_page("Error", "Access denied: $file");
         }            
         for my $default (split(',', $main::config_parms{html_default})) {
             $file2 = "$file/$default";
@@ -114,8 +110,7 @@ eof
             &html_file($socket, $file2, $get_arg);
         }
         else {
-            print $socket &html_page("Error", 
-                                     "No index found for directory: $file");
+            print $socket &html_page("Error", "No index found for directory: $file");
         }
     }
     elsif (-e $file) {
@@ -125,17 +120,27 @@ eof
         print $socket &html_page("", $html, $style);
     }        
     elsif  ($get_req =~ /\/RUN$/ or
+            $get_req =~ /\/RUN_ARGS$/ or
             $get_req =~ /\/RUN\:(\S*)$/) {
         $h_response = $1;
-        $get_arg =~ tr/\_/ /;       # Put blanks back
+
+        my $cmd;
+        if ($get_req =~ /\/RUN_ARGS$/) {
+            ($cmd) = $get_arg =~ /cmd=(\S+)$/;
+            $get_arg=$cmd;
+        }
+        $get_arg =~ tr/\_/ /;      # Put blanks back
         $get_arg =~ tr/\~/_/;      # Put _ back
+
         print "db a=$Authorized RUN get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
+
         if ($Authorized or $Password_Allow{$get_arg}) {
             if (&run_voice_cmd($get_arg)) {
                 &html_response($socket, $h_response);
             }
             else {
                 my $msg = "The Web RUN command not found: $get_arg.\n";
+#               print $socket &html_page("", $msg, undef, undef, "control");
                 print $socket &html_page("", $msg);
                 print_log $msg;
             }
@@ -147,16 +152,29 @@ eof
             print $socket &html_page("", $msg);
         }
     }
-    elsif ($get_req =~ /\/SET$/ or
+    elsif ($get_req =~ /\/SET$/ or 
+           $get_req =~ /\/SET_ARGS$/ or 
            $get_req =~ /\/SET\:(\S*)$/) {
         $h_response = $1;
-        ($item, $state) = $get_arg =~ /^(\S+)\?(\S+)$/;
+        if ($get_req =~ /\/SET_ARGS$/) {
+            $get_arg =~ tr/+/ /;
+            $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+            ($item) = $get_arg =~ /item=(\S\w+)\&/;  # damn dollar sign
+            ($state) = $get_arg =~ /state=(\S+)\&/;
+            my ($dim) = $get_arg =~ /dim=(\S+)$/;
+            $state = $dim unless $state;
+            print "item=$item\n";
+            print "state=$state\n";
+            print "dim=$dim\n";
+        } else {
+            ($item, $state) = $get_arg =~ /^(\S+)\?(\S+)$/;
+        }
 
         print "db SET item=$item state=$state response=$h_response\n" if $main::config_parms{debug} eq 'http';
         my $item_speakable = substr($item, 1); # Drop the $ off the object name
         $item_speakable =~ s/\_/ /g;
         $item_speakable =~ s/\~/_/g;
-        $state =~ s/\_/ /g;      # No blanks were allowed in a url ... assume for now that states do not have '_' in them ??
+        $state =~ s/\_/ /g;      # No blanks were allowed in a url 
         $state =~ s/\~/_/g;      # Put _ back
 
         my $object = &get_object_by_name($item);
@@ -171,7 +189,8 @@ eof
 
         if ($Authorized or $Password_Allow{$item}) {
             eval "set $item '$state'";
-            &html_response($socket, $h_response);
+            &html_response($socket, $h_response,undef,undef);
+            # &html_response($socket, $h_response,undef,undef,"speech");
         }
         else {
             my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
@@ -232,11 +251,9 @@ eof
                 my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
                 $msg .= "<br><B>Unauthorized Mode.</B> Authorization flag was not set, to the following was NOT performed<p>";
                 $msg .= "<li>set $get_req $get_arg</li>";
-                print $socket &html_page("", $msg, undef, undef, 'speech');
+                print $socket &html_page("", $msg, undef, undef, 'control');
             }
         }
-
-#       print $socket &html_page("UnAuthorized Mode", "Variables set: $get_req");
 
     }
     else {
@@ -246,8 +263,6 @@ eof
     }
 
     return ($leave_socket_open_passes, $leave_socket_open_action);
-#   print $socket &html_page("Mister House Server", $h_response . $h_index . $h_list);
-
 }
 
 sub html_mh_generated {
@@ -267,7 +282,6 @@ sub html_mh_generated {
     }
     elsif ($get_req =~ /\/category$/) {
         return (&html_category, $main::config_parms{html_style_category});
-#       return (&html_category, &html_style_color);
     }
     elsif ($get_req  =~ /\/?list$/) {
         $get_arg =~ /^([^\? ]+)\??(\S*)$/;
@@ -278,10 +292,9 @@ sub html_mh_generated {
         $category_name = &pretty_object_name($category_name);
 
         my $html = $Authorized_html . "\n";
-        $html .= "Category: $category_name";
+        $html .= "<h1>Category: $category_name</h1>";
         $html .= &html_list($category, $category_arg);
         return ($html, $main::config_parms{html_style_list});
-#       return ($html, &html_style_color);
     }
     elsif ($get_req =~ /\/results$/) {
         return ("<h2>Click on any item\n");
@@ -338,6 +351,7 @@ sub html_response {
     else {
         $leave_socket_open_passes = 2;
         $leave_socket_open_action = "&html_last_spoken";
+
     }
 }
 
@@ -391,17 +405,6 @@ sub tk_widgets {
 
 }
 
-sub html_control_old {
-    return <<eof;
-  <form name="controls" method="post" action=/house_menu_scripts/cgi_house_menu.pl>
-  <INPUT TYPE='hidden' NAME='selected_item' VALUE='none'>
-  <input type="radio" name="voice_mute" value="off" CHECKED
-      onclick="document.controls.selected_item.value = 'unmute house menu'; document.controls.submit()">Mute Off<br>
-  <input type="radio" name="voice_mute" value="on" 
-      onclick="document.controls.selected_item.value = 'mute house menu'; document.controls.submit()">Mute On<br>
-eof
-}
-
 sub html_last_displayed {
     my ($last_displayed) = &display_log_last(1);
 
@@ -412,19 +415,8 @@ sub html_last_displayed {
 }
 
 sub html_last_spoken {
-#   my ($run_loop_code) = @_;
-
-    # Run a pass of user code we can find what was spoken
-    # Naw, lets let the main mh loop run, and print last_spoken html after 2 loops
-    # Since run_voice_cmd deffers execution for one loop, we must wait for 2 loops
-#    if ($run_loop_code) {
-#   &main::eval_user_code("&loop_code()", 2);
-#   $leave_socket_open_passes = 1;
-#    }
-
     my $h_response;
 
-#   my $h_response = "<H2>Recently Spoken List</H2>\n\n";
     if ($Authorized or $main::config_parms{password_protect} !~ /logs/i) {
         $h_response .= "<a href=speech>Refresh Recently Spoken Text</a>\n";
         my @last_spoken = &Voice_Text::last_spoken($main::config_parms{max_log_entries});
@@ -559,6 +551,9 @@ $frame
 $script
 <HTML>
 <HEAD>
+<META HTTP-EQUIV=Expires CONTENT="Tue, 01 Jan 1990 00:00:01 GMT">
+
+
 $style
 <TITLE>$title</TITLE>
 </HEAD>
@@ -571,25 +566,6 @@ $body
 </HTML>
 eof
 }
-
-sub html_style_color {
-
-    return <<eof;
-<style> 
-  .over {font-family: "times new roman"; 
-         color: green } 
-  .out {font-family: "times new roman"; 
-         color: blue } 
-  .blue {color: blue}
-  .red {color: red}
-  .yellow {color: yellow}
-  .green {color: green}
-</style> 
-eof
-}
-#  .out {font-family: 
-#  .out {font-family: arial;
-
 
 sub html_javascript_reload {
     my ($html_source) = @_;
@@ -606,10 +582,8 @@ eof
 }
 #<body onload="timer=setTimeout('move()',3000)"></body>
 
-#   &tk_entry('Entry label:', \$variable, 'Entry label2:, \$variable2);
 sub html_entry {
     my @data = @_;
-#   my $html = qq[<FORM ACTION="SET_VAR">\n];
     my $html;
     for (@data) {
         my $label= shift @data;
@@ -618,9 +592,7 @@ sub html_entry {
         $html_pointers{$html_pointer_cnt . "_label"} = $label;
         $html .= qq[$label: <INPUT SIZE=10 NAME="$html_pointer_cnt" value="$$pvar">];
                                 # This will cause a line break :(
-#       $html .= qq[<input type="submit" value="go">\n];
     }
-#   $html .= "<br>\n";
     $html .= "\n";
     return $html;
 }
@@ -683,7 +655,7 @@ sub html_category {
         $h_index    .= "<li>" . &html_active_href("list?group=$group", &pretty_object_name($group)) . "</li>";
     }
                 # Do objects by file
-    $h_index .= "<h4>By Category</h4>\n";
+    $h_index .= "<h1>By Category</h1>\n";
 #   for my $file (&list_code_files) {
     for my $category (&list_code_webnames) {
                                 # Only list a category if it has commands
@@ -700,151 +672,555 @@ sub html_category {
     return $h_index;
 }
 
+#------------------------------------------------------------------------------
+# look through web folder for icons to use for status by name, type and status
+# returning icon filename.
+#------------------------------------------------------------------------------
+sub html_find_icon_image {
+    my ($object, $object_type) = @_;
+    my $object_name  = $object->{object_name};
+    my $filename     = $object->{filename};
+    my $state_now    = $object->{state};
+    my $h_icon = "";
 
+    my $type = lc($object_type);
+    $object_name =~ s/\$//g;        # remove $ at front of objects
+    $object_name =~ s/^v_//g;       # remove v_ in voice commands
 
+    if ($state_now =~ /^[+-]\d+$/ or $state_now =~ /^\d+$/) {
+        $state_now = "dim";
+    }
+
+    my $html_dir = "$main::config_parms{html_dir}";
+    my $html_icon_dir = "images/";      # hard coded for now
+
+    print "****** html_find_icon_image: object_name = $object_name, type = $type , state_now = $state_now *****\n";
+    print "****** html_find_icon_image: html_dir = $html_dir, html_icon_dir = $html_icon_dir *****\n";
+
+    my $t_icon1 = lc($html_icon_dir . $object_name . "-" . $state_now . ".gif");            # images/light-off.gif
+    print "****** $t_icon1\n";
+    my $t_icon2 = lc($html_icon_dir . $object_name . ".gif");                           # images/light.gif
+    print "****** $t_icon2\n";
+    my $t_icon3 = lc($html_icon_dir . $type . "-" . $state_now . ".gif");               # images/x10_item-off.gif
+    print "****** $t_icon3\n";
+    my $t_icon4 = lc($html_icon_dir . $type . ".gif");                                  # images/x10_item.gif
+    print "****** $t_icon4\n";
+    my $t_icon5 = lc($html_icon_dir . $state_now . ".gif");                             # images/off.gif
+    print "****** $t_icon5\n";
+
+    $t_icon1 =~ s/\$//g;
+    $t_icon2 =~ s/\$//g;
+    $t_icon3 =~ s/\$//g;
+    $t_icon4 =~ s/\$//g;
+    $t_icon5 =~ s/\$//g;
+    
+    if (-r ($html_dir . "/" . $t_icon1)) {
+        $h_icon = $t_icon1;
+    } elsif (-r ($html_dir . "/" . $t_icon2)) {
+        $h_icon = $t_icon2;
+    } elsif (-r ($html_dir . "/" . $t_icon3)) {
+        $h_icon = $t_icon3;
+    } elsif (-r ($html_dir . "/" . $t_icon4)) {
+        $h_icon = $t_icon4;
+    } elsif (-r ($html_dir . "/" . $t_icon5)) {
+        $h_icon = $t_icon5;
+    } 
+    print "****** html_find_icon_image: icon found = $h_icon *****\n" if "$h_icon";
+    return "$h_icon";
+}
 
 sub html_list {
 
+    my ($object, $object_name, @object_list);
     my($webname_or_object_type, $option) = @_;
+    my ($h_temp, $num, $h_ret);
 
-    my $h_list = "<BASE TARGET='speech'>\n";
-
-#   $h_list .= "<ul>\n";
+    my $h_list = qq[
+        <!-- html_list -->
+        <BASE TARGET='speech'>
+    ];
 
     # Do other objects by type and alphabetically
-    my ($object, $object_name, @object_list);
-#   for $object_type (&list_object_types) {
-
     if ($webname_or_object_type =~ /^group=(\S+)/) {
+        $h_list .= "<!-- html_list group -->\n";
         my $object = &get_object_by_name($1);
-        $h_list .= &html_item_states($object);
+
+                                # select box for group itself
+#       $h_temp = qq[<table cols=3 width="100%" cellpadding="10" cellspacing="0" border="1" align="center"><tr>\n];
+#       $h_list .= $h_temp;
+#       $h_list .= &html_object_table($object, $webname_or_object_type);
+#       $num=1;
+#   leaving group itself out for now
+
+        $num=0;
 
                                 # Sort by filename first, then object name
         for my $group_member (sort {$a->{filename} cmp $b->{filename} or $a->{object_name} cmp $b->{object_name}} list $object) {
-            $h_list .= &html_item_states($group_member);
+
+            # force new table row
+            if ($num ge 3) {
+                $h_temp = qq[
+                    </tr>
+                    </table>
+                ];
+                $h_list .= $h_temp;
+            }
+
+            if ($num ge 3 or $num eq 0) {
+                    $h_temp = qq[
+                    <center><table cols=1 width="100%" cellpadding="0" cellspacing="0" border="1" align="center">
+                        <tr NOSAVE>
+                        <td NOSAVE>
+                    ];
+                    $h_list .= $h_temp;
+                    $num=0;
+            }
+            $num++;
+
+            $h_list .= "\n<td>\n" unless $num eq 1;
+
+            $h_list .= &html_object_table($group_member, $webname_or_object_type);
+            $num++;
         }
+        $h_temp = qq[
+               </tr>
+               </table>
+               </center>
+               </body>
+        ];
+        $h_list .= $h_temp;
         return $h_list;
     }
 
     if ($webname_or_object_type =~ /^search=(\S+)/) {
+        $h_list .= "<!-- html_list search -->\n";
         my @cmd_list = grep /$1/, &list_voice_cmds_match($1);
         for my $cmd (@cmd_list) {
             my ($file, $cmd2) = $cmd =~ /(.+)\:(.+)/;
             my $cmd3 = $cmd2;
             $cmd3 =~ tr/\_/\~/; # Swizzle _ to ~, so we can use _ for blanks
             $cmd3 =~ tr/ /\_/; # Blanks are not allowed in urls
-            $h_list .= "<li><i>$file</i>: <a href='RUN?$cmd3'>$cmd2</a>\n";
+            $h_list .= "<li><a href='RUN?$cmd3'>$cmd2</a>\n";
         }
-#       $h_list  .= "</ul>\n";
         $h_list  .= "\n";
+        $h_list .= "<!-- html_list return -->\n";
         return $h_list;
     }
 
     if (@object_list = &list_objects_by_type($webname_or_object_type)) {
-#       $h_list .= &html_collapse($webname_or_object_type);
+        $h_list .= "<!-- html_list list_objects_by_type = $webname_or_object_type -->\n";
         
                                 # Sort by filename first, then object name
         my @objects = map{&get_object_by_name($_)} @object_list;
+
+        $h_list .= &html_type_table(@objects);
+        $h_temp = qq[<table border=0 width="100%" cellspacing="2" cellpadding="0">\n<tr align=center>\n];
+        $h_list .= $h_temp;
+        $num=0;
         for my $object (sort {$a->{filename} cmp $b->{filename} or $a->{object_name} cmp $b->{object_name}} @objects) {
-            if ($option eq 'state') {
-                $h_list .= &html_item_state($object);
+            if ($num ge 4) {
+                $h_list .= "</tr>\n\n<tr align=center>\n";
+                $num = 0;
             }
-            else {
-                $h_list .= &html_item_states($object);
-            }
+            $h_list .= &html_item_state($object,$webname_or_object_type);
+            $num++;
         }
-        $h_list  .= "</ul>\n";
+        # do this so we don't throw off the table cell sizes if the number of items is not divisable by 4
+        while ($num lt 4) {
+                $h_temp = qq[<td align="right"></td>];
+                $h_list .= $h_temp;
+                $h_temp = qq[<td> </td>];
+                $h_list .= $h_temp;
+                $num++;
+        }
+        $h_list .= "</tr>\n</table>\n</table>";
         return $h_list;
     }
 
-    my $h_temp = '';
-    my $list_count = 0;
-#   if (@object_list = &list_objects_by_file($file)) {
     if (@object_list = &list_objects_by_webname($webname_or_object_type)) {
-#       $h_temp .= &html_collapse($webname_or_object_type);
-                                # sort by file, then by text;
-        for $object_name (@object_list) {
-            my $object = &get_object_by_name($object_name);
-            my $text = $object->{text};
-            next unless $text;  # Only do voice items
-            my $filename = $object->{filename};
-            $list_count++;
-	    
-				# Pick the first {a,b,c} phrase enumeration
-	    $text =~ s/\{(.+?),.+?\}/$1/g;
-
-            if (my ($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/) { 
-                $h_temp .= "<li><i>$filename</i>: $prefix\n";
-                for my $state (split(',', $states)) {
-                     my $text2 = "$prefix$state$suffix";
-                    $text2 =~ tr/\_/\~/; # Use ~ for _
-                    $text2 =~ tr/ /\_/; # Blanks are not allowed in urls
-                    $state = '_' unless $state; # Gives us something to click on
-                    $h_temp .= "<a href='RUN?$text2'>$state</a>\n";
-                }
-                $h_temp .= "$suffix\n";
-            }
-            else {
-                (my $text2 = $text) =~ tr/\~/\_/;    # Blanks are not allowed in urls
-                (my $text2 = $text) =~ tr/ /\_/;    # Blanks are not allowed in urls
-                $h_temp .= "<li><i>$filename</i>: <a href='RUN?$text2'>$text</a>\n";
-            }
-        }
-        $h_temp .= "</ol> $_\n";
+        $h_list .= "<!-- html_list list_objects_by_webname -->\n";
+        $h_list .= &html_webname_table(@object_list);
     }
-#   $h_list .= $h_temp if $list_count; # Do not create empty lists ... naw, lets just make it non-dynamic if empty lists
-    $h_temp = qq[<li STYLE="color: brown"><a name=$webname_or_object_type>$webname_or_object_type</a>\n] unless $list_count;
-    $h_list .= $h_temp;
-
-    $h_list .= "</ul>\n";
+    $h_list .= "<!-- html_list return -->\n";
     return $h_list;
-#   return $h_list, $h_style;
 
+}
+
+sub html_webname_table {
+    my (@object_list) = @_;
+    my $object_name;
+    my $list_count = 0;
+    my $h_ret;
+    my $h_temp;
+
+
+    my $num=0;
+    for $object_name (@object_list) {
+        my $object = &get_object_by_name($object_name);
+        my $state_now    = $object->{state};
+        my $text = $object->{text};
+    print "****** text = $text *****\n";
+        next unless $text;              # Only do voice items
+        my $filename = $object->{filename};
+        $list_count++;
+
+                # Pick the first {a,b,c} phrase enumeration
+        $text =~ s/\{(.+?),.+?\}/$1/g;
+
+        # force new table row 
+        if ($num ge 3) {
+            $h_temp = qq[
+                </tr>
+                </table>
+            ];
+            $h_ret .= $h_temp;
+        }
+
+        if ($num ge 3 or $num eq 0) {
+            $h_temp = qq[
+                <!-- html_webname_table main level table -->
+                <center><table cols=1 width="100%" cellpadding="0" cellspacing="0" border="1" align="center">
+                <tr NOSAVE>
+                <td NOSAVE>
+            ];
+            $h_ret .= $h_temp;
+            $num=0;
+        }
+        $num++;
+
+        my ($prefix, $states, $suffix);
+        my $multi;
+        my $h_text;
+        my $text_cmd;
+        if (($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/) {
+                $h_text = $prefix . "..." . $suffix;
+                $text_cmd = "$prefix$state_now$suffix";
+                $multi=ON;
+        } else {
+                $h_text = $text;
+                $text_cmd = $text;
+                $multi=OFF;
+        }
+        $text_cmd =~ tr/\~/\_/;    # Blanks are not allowed in urls
+        $text_cmd =~ tr/ /\_/;    # Blanks are not allowed in urls
+        
+        $h_temp = qq[
+            <!-- html_webname_table object level table -->
+        ];
+        $h_ret .= $h_temp;
+
+        $h_ret .= "\n<td>\n" unless $num eq 1;
+
+        $h_temp = qq[
+            <table cols=1 width="100%" cellpadding="0" cellspacing="0" border="0" align="center">
+            <tr>
+              <td>
+        ];
+        $h_ret .= $h_temp;
+
+        #------------------------------------------------------------
+        # icon and object name table
+        #------------------------------------------------------------
+        my $h_icon_field = "";
+        if (my $h_icon = &html_find_icon_image($object,"voice")) {
+            $h_temp = qq[<center><font size="+1"><img src="$h_icon" hspace=5 align=center ><b>$h_text</b></font>\n];
+        } else {
+            $h_temp = qq[<center><font size="+2"><b>$h_text</b></font></center>\n];
+        }
+        $h_ret .= $h_temp;
+
+        $h_temp = qq[
+              </td>
+            </tr>
+            <tr>
+              <td>
+        ];
+        $h_ret .= $h_temp;
+
+        if ($multi eq ON) {
+            #-------------------------------------
+            # voice cmds with more than one state
+            #-------------------------------------
+
+            # Label of button should have $state_now
+
+            $h_temp = qq[
+                <!-- html_webname_table state level table -->
+                <FORM action="RUN_ARGS" method="get" target='speech'>
+                <table cols=2 width="100%" cellpadding="0" cellspacing="0" border="0" align="center">
+                    <tr>
+                    <td>
+                    <center>
+                    <div align=right>
+                        <SELECT name="cmd"><option value="$text_cmd">$state_now
+            ];
+            $h_ret .= $h_temp;
+
+            for my $state (split(',', $states)) {
+                my $text_cmd = "$prefix$state$suffix";
+                $text_cmd =~ tr/\~/\_/;    # Blanks are not allowed in urls
+                $text_cmd =~ tr/ /\_/;    # Blanks are not allowed in urls
+                if ($state ne $state_now) {
+                    $h_temp = qq[<option value="$text_cmd">$state];
+                    $h_ret .= $h_temp;
+                }
+            }
+            $h_temp = qq[
+                        </SELECT>
+                    </div>
+                    </center>
+                    </td>
+                    <td><input type='submit' border='0' value='Go'></td>
+                </tr>
+                </table>
+            ];
+            $h_ret .= $h_temp;
+
+
+        } else {        
+            #-------------------------------------
+            # voice cmds with only one state
+            #-------------------------------------
+            # start form here but close it later
+            $h_temp = qq[
+                    <FORM action="RUN_ARGS" method="get" target='speech'>
+                    <center>
+                    <input type=hidden name=cmd value=$text_cmd>
+                    <input type='submit' border='0' value='Go'>
+                    </center>
+            ];
+            $h_ret .= $h_temp;
+        }
+
+        $h_temp = qq[
+              </FORM>
+              </td>
+            </tr>
+        ];
+        $h_ret .= $h_temp;
+
+        my $h_last = (state_log $object)[0];
+#       my $h_last = "";
+#       print "db o=$object $h_last\n";
+        
+
+        $h_temp = qq[
+            <tr>
+              <td>
+                <center>Last change: $h_last</center>
+              </td>
+            </tr>
+        ];
+        $h_ret .= $h_temp;
+
+        $h_temp = qq[
+            <!-- html_webname_table CLOSE object level table -->
+            </table>
+            </td>
+        ];
+        $h_ret .= $h_temp;
+
+    }
+    $h_temp = qq[
+        </tr>
+        </table>
+        </center>
+        </body>
+    ];
+    $h_ret .= $h_temp;
+    return "$h_ret";
+}
+
+sub html_type_table {
+   my (@objects) = @_;
+   my $h_temp = qq[
+        <!-- html_type_table -->
+        <td valign="top">
+        <FORM action="SET_ARGS" method="get" target='speech'>
+        <div align="center"><center><p>
+        <input type='button' value=' Update Status ' onClick='history.go(0)'>
+        <SELECT name="item">
+        <option value="">Select item];
+   my $h_ret = $h_temp;
+   for my $object (sort {$a->{filename} cmp $b->{filename} or $a->{object_name} cmp $b->{object_name}} @objects) {
+        my $object_name  = $object->{object_name};
+        my $object_name2 = &pretty_object_name($object_name);
+        my $h_temp = qq[
+            <option value="$object_name">$object_name2];
+        $h_ret .= $h_temp;
+   }
+   $h_temp = qq[ 
+        </SELECT>
+        <input type="submit" value="on" name="state">
+        <input type="submit" value="off" name="state">
+    ];
+    $h_ret .= $h_temp;
+#   $h_ret .= &html_dim_option if $object_type =~ /x10_item/i;
+   $h_ret .= &html_dim_option;
+   $h_temp = qq[
+        </center></div>
+        </form>
+        <!-- html_type_table return -->
+    ];
+   $h_ret .= $h_temp;
+   return "$h_ret";
+}
+
+sub html_dim_option {
+    my $h_temp = qq[
+        <SELECT name="dim" border=1>
+            <option value="">No Dim
+            <option value="-25">-25%
+            <option value="-50">-50%
+            <option value="-75">-75%
+            <option value="+25">+25%
+            <option value="+50">+50%
+            <option value="+75">+75%
+            <option value="brighten">Brighten
+            <option value="darken">Darken
+        </SELECT>
+        <input type="submit" border="0" value="Dim">
+    ];
+    return $h_temp;
+}
+
+
+sub html_select_object {
+    my ($object) = @_; 
+    my $object_name  = $object->{object_name};
+    my $object_name2 = &pretty_object_name($object_name);
+    my $ret;
+ 
+    $ret= qq[<option value="$object_name">$object_name2];
+    return $ret;
 }
 
                                 # List current object state
 sub html_item_state {
-    my ($object) = @_;
+    my ($object, $object_type) = @_;
     my $object_name  = $object->{object_name};
     my $filename     = $object->{filename};
     my $state_now    = $object->{state};
     my $object_name2 = &pretty_object_name($object_name);
-    my $h_object;
-    my $count_states;
-    return "<li><i>$filename</i> $object_name2: <b>$state_now</b>\n" if $state_now;
+    my $h_icon_field = "";
+    my $h_ret;
+
+    #
+    # find icon to show state, if not found show state_now in text.
+    #
+    if (my $h_icon = &html_find_icon_image($object,$object_type)) {
+        $h_ret = qq[<td align="right"><img src="/$h_icon" alt="$h_icon" > </td>\n];
+    } else {
+        $h_ret = qq[<td align="right">$state_now</td>\n];
+    }
+
+    my $h_temp .= qq[<td align="left"><b>$object_name2:   </b></td>\n];
+    $h_ret .= $h_temp;
+
+    return "$h_ret";
 }
 
                                 # List all possible object states
-sub html_item_states {
-    my ($object) = @_;
+sub html_object_table {
+    my ($object, $object_type) = @_;
     my $object_name  = $object->{object_name};
     my $filename     = $object->{filename};
     my $state_now    = $object->{state};
     my $object_name2 = &pretty_object_name($object_name);
+    my $h_icon_field = "";
     my $h_object;
     my $count_states;
-    if ($object->{states}) {
-        for my $state (@{$object->{states}}) {
-            next unless $state; # Skip items with non-named states
-            next if $state =~ /^[+-]\d+$/ and $state % 20; # Skip most X10 dim levels
-            $count_states++;
-            my $class = ($state_now eq $state) ? 'class=green' : 'class=blue';
-            $h_object .= qq[  <a onClick="this.className='green'" $class href='SET?$object_name?$state'>$state</a>\n];
-        }
-    }
-    return "<li><i>$filename</i> $object_name2: $h_object\n" if $count_states;
-}
+    my ($h_temp, $h_ret);
 
-sub html_collapse {
-    my($id) = @_;
-    return <<eof;
-<li>  <SPAN id=$id onClick="toggle_section(document.all.${id}_list)"
-           onMouseOver="this.className='over';"
-           onMouseOut="this.className='out';" 
-       style="cursor: hand"
-           class="blue"><a name=$id>$id</a></SPAN>
-           <ol id=${id}_list style="display: none">
-eof
+
+    $h_temp = qq[
+        <table cols=1 width="100%" cellpadding="0" cellspacing="0" border="0" align="center">
+        <tr>
+        <td>
+    ];
+    $h_ret .= $h_temp;
+    #------------------------------------------------------------
+    # icon and object name table
+    #------------------------------------------------------------
+    my $h_icon_field = "";
+    if (my $h_icon = &html_find_icon_image($object,"voice")) {
+        $h_temp = qq[<center><font size="+1"><img src="$h_icon" hspace=5 align=center ><b>$object_name2</b></font>\n];
+    } else {
+        $h_temp = qq[<center><font size="+2"><b>$object_name2</b></font></center>\n];
+    }
+    $h_ret .= $h_temp;
+
+    $h_temp = qq[
+        </td>
+        </tr>
+        <tr>
+        <td>
+    ];
+    $h_ret .= $h_temp;
+
+    $h_temp = qq[
+        <!-- html_webname_table state level table -->
+        <FORM action="SET_ARGS" method="get" target='speech'>
+        <table cols=2 width="100%" cellpadding="0" cellspacing="0" border="0" align="center">
+            <tr>
+            <td>
+                <center>
+                <div align=right>
+                <SELECT name="state">
+                <input type=hidden name=item value='$object_name'>
+                <option value="$state_now">$state_now
+    ];
+    $h_ret .= $h_temp;
+
+
+#   if ($object->{states}) {
+        for my $state (@{$object->{states}}) {
+            next unless $state;                 # Skip items with non-named states
+            next if $state =~ /^[+-]\d+$/ and $state % 20; # Skip most X10 dim levels
+            next if $state eq $state_now;
+            $count_states++;
+            $h_temp = qq[<option value="$state">$state];
+            $h_ret .= $h_temp;
+        }
+        $h_temp = qq[
+            </SELECT>
+            </div>
+            </center>
+            </td>
+            <td><input type='submit' border='0' value='Go'></td>
+            </tr>
+            </table>
+        ];
+        $h_ret .= $h_temp;
+
+        $h_temp = qq[
+            </FORM>
+            </td>
+            </tr>
+        ];
+        $h_ret .= $h_temp;
+
+        my $h_last = (state_log $object)[0];
+
+        $h_temp = qq[
+                        <tr>
+                          <td>
+                        <center>Last change: $h_last</center>
+                          </td>
+                        </tr>
+        ];
+        $h_ret .= $h_temp;
+
+        $h_temp = qq[
+                <!-- html_webname_table CLOSE object level table -->
+                </table>
+                </td>
+        ];
+        $h_ret .= $h_temp;
+
+#   }
+    return "$h_ret";
+
 }
 
 sub html_active_href {
@@ -894,11 +1270,8 @@ Cookie: w3ibmID=19990118162505401224000000
 
 #
 # $Log$
-# Revision 1.32  2000/01/26 14:07:02  winter
-# - reset version number
-#
-# Revision 1.31  2000/01/19 13:23:54  winter
-# - add check for phrase enumeration {}
+# Revision 1.33  2000/02/02 14:10:43  winter
+# - check in Dave Lounsberry's table/icon updates.
 #
 # Revision 1.30  1999/12/13 00:05:45  winter
 # - take out hard coded fonts.  Add my html_style options
@@ -991,5 +1364,3 @@ Cookie: w3ibmID=19990118162505401224000000
 # - created.
 #
 #
-
-
