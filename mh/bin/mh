@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-06-17 15:43:10 winter>
+#  Last change Time-stamp: <2000-06-24 12:47:27 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -379,7 +379,6 @@ sub setup {
 
     require 'handy_net_utilities.pl';   # For misc. net functions (e.g. net_mail_read)
     require 'console_utils.pl';
-    require 'read_table.pl';
     require 'http_server.pl';
 
     if ($OS_win) {
@@ -396,8 +395,8 @@ sub setup {
             $CON_OUT= new Win32::Console STD_OUTPUT_HANDLE; 
             $CON_OUT->Title("Mister House");
             use vars '$FG_WHITE', '$BG_CYAN';
-            &explodeAttr($CON_OUT, $FG_WHITE | $BG_CYAN);
-            $CON_OUT->Attr($FG_WHITE | $BG_CYAN);
+#           &explodeAttr($CON_OUT, $FG_WHITE | $BG_CYAN);
+#           $CON_OUT->Attr($FG_WHITE | $BG_CYAN);
         }
     }
     
@@ -486,7 +485,13 @@ sub setup {
             &Homevision::init($Serial_Ports{Homevision}{object}); # Turn on Echo mode
         }
     }
-
+    if ($config_parms{Marrick_port}) {
+        require 'Marrick.pm';
+        my($speed) = $config_parms{Marrick_baudrate} || 9600;
+        if (&serial_port_create('Marrick', $config_parms{Marrick_port}, $speed, 'none')) {
+            &Marrick::init($Serial_Ports{Marrick}{object}); 
+        }
+    }
     if ($config_parms{HomeBase_port}) {
         require 'HomeBase.pm';
         my($speed) = $config_parms{HomeBase_baudrate} || 9600;
@@ -596,7 +601,7 @@ sub setup {
 }
 
                                 # This code allows us to add dynamic user code hooks at various places.
-my %hook_pointers;
+my (%hook_pointers, %hook_pointers_persistent);
 sub add_hook_code {
 
     my %hook_locations = ( MainLoop_pre => 1, MainLoop_post => 1  );
@@ -613,7 +618,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
   }
 
    sub add_hook_ {
-       my($location, $hook, $first) = @_;
+       my($location, $hook, $persistent) = @_;
     
        unless( defined( $hook_locations{$location} ) ){
            warn "Invalid hook location $location\n";
@@ -627,17 +632,14 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
        
        $hook_pointers{$location} = [] unless defined ($hook_pointers{$location});
        
-       if( $first ){
-           unshift( @{$hook_pointers{$location}}, $hook );
-       } else {
-           push( @{$hook_pointers{$location}}, $hook );
-       }
+       push( @{$hook_pointers{$location}}, $hook );
+       push( @{$hook_pointers_persistent{$location}}, $hook ) if $persistent;
        
        return 1;
    }
 
    sub drop_hook_ {
-       my($location, $hook, $first ) = @_;
+       my($location, $hook ) = @_;
       
        unless( defined( $hook_locations{$location} ) ){
            warn "Invalid hook location $location\n";
@@ -648,15 +650,8 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
            my($h)=$hook_pointers{$location};
            my($i)=-1;
            
-           if( $first ){ # look starting at the front
-               for( $i=0; $i <= $#{$h}; $i++ ) {
-                   last if ($hook == $h->[$i] );
-               }
-           } 
-           else { # look starting at the back
-               for ( $i=$#{$h}; $i >= 0; $i-- ) {
-                   last if ($hook == $h->[$i] );
-               }
+           for ( $i=$#{$h}; $i >= 0; $i-- ) {
+               last if ($hook == $h->[$i] );
            }
 
                                 # delete if the index returned is in range
@@ -671,18 +666,31 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
    }
 
    sub get_hooks_ {
-       my($location) = shift; 
+       my($location) = @_;
        return defined $hook_pointers{$location} ? @{$hook_pointers{$location}} : ();
    }
 
                                 # call all hooks with user specified args, if any
    sub run_hooks_ {
-       my($type, $location) = @_;
-       for my $hook (&get_hooks_($type,$location)){
+       my($location) = @_;
+       for my $hook (&get_hooks_($location)){
            &$hook(@_)
        }
    }
 
+                                # This will keep hook code defined with the persistent
+                                # flag (e.g. module code that is defined on startup).
+                                # All other user code is undefed.
+   sub reset_hook_code {
+       for my $location (keys %hook_locations) {
+           if ($hook_pointers_persistent{$location}) {
+               @{$hook_pointers{$location}} = @{$hook_pointers_persistent{$location}};
+           }
+           else {
+               delete $hook_pointers{$location};
+           }
+       }
+   }
 }
 
 
@@ -2061,7 +2069,7 @@ sub read_code {
         opendir(DIR, $file_dir) or die "Error, can not open directory $file_dir.\n";
         @files_read = readdir(DIR);
         close DIR;
-        @files_read = grep(/^[a-z0-9].*\.pl$/i, @files_read); # Must start with alphanumeric ... emacs edited checkpoints can start with #
+        @files_read = grep(/^[a-z0-9].*\.(pl|mhp)$/i, @files_read); # Must start with alphanumeric ... emacs edited checkpoints can start with #
     }
 #   print "           files: @files_read\n";
     die "\n\nError, no code files found in $file_dir\n\n" unless @files_read;
@@ -2124,7 +2132,7 @@ sub read_table_files {
 
                                 # See if any of the files have changed
     my %noload_files = map {$_, 1} split(',', $config_parms{no_load});
-    my ($changed, @entries);
+    my ($changed);
     for my $file (@files_read) {
         (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
         my $file_path = "$file_dir/$file";
@@ -2133,23 +2141,36 @@ sub read_table_files {
         $file_code_times2{$file} = $file_time;
     }
     return unless $changed;
-                                # Read all the files
+
+                                # Process tables of various, user-defined formats
     for my $file (@files_read) {
         next if $noload_files{$file};
-        my $file_path = "$file_dir/$file";
-        open TABLE, $file_path;
-        push @entries, <TABLE>;
-        close TABLE;
-    }
-                                # Process tables of various, user-defined formats
-    my $code = &read_table(@entries);
+        (my $table_code_file = "$file_dir/$file") =~ s/\.mht$/.mhp/;
+        open  TABLE_IN,  "$file_dir/$file";
+        open  TABLE_OUT, ">$table_code_file" or print_log "Error in writing to $table_code_file";
+        print TABLE_OUT "#\n# Do NOT edit this file.  It was auto-generated from $file.\n#\n\n";
+        my $format;
+        while (<TABLE_IN>) {
+            $format = $1 if / *Format = (\S+)/i;
+                                # These code reading subroutines are in mh/lib/read_table.pl
+            require "read_table_$format.pl" if $format;
 
-                                # Create output table code file
-    my $table_code_file = "$config_parms{code_dir}/mh_temp_table_code.pl";
-    print_log "Writing to $table_code_file";
-    open  TABLE_CODE, ">$table_code_file" or print_log "Error in writing to $table_code_file";
-    print TABLE_CODE $code;
-    close TABLE_CODE;
+            if (/^\s*#/) {      # comment line
+                print TABLE_OUT $_;
+            }
+            elsif ($format) {
+                chomp;          # Drop newline
+                s/\s*$//;       # Drop end of line blanks
+                print "db r=$_...\n";
+                print TABLE_OUT eval "&read_table_$format(\$_)";
+                print "Error in &read_table_$format: $@\n" if $@;
+            }
+        }
+        close TABLE_IN;
+        close TABLE_OUT;
+        print_log "Table format not recognized: $format" unless $format;
+    }
+
 }
 
 sub read_user_code {
@@ -2185,16 +2206,14 @@ sub read_user_code {
     for $file (sort keys %User_Code) {
         print "Reading $file\n" if $config_parms{debug} eq 'misc';
         
-        my ($member_name) = $file =~ /([^\\\/]+).pl$/i;
-        $Run_Members{$member_name}++;
-        push(@Sub_Code, "sub ${member_name}_loopcode {\n");
-#       push(@Sub_Code, " print 'db running ${member_name}';");
+        my ($member_name) = $file =~ /([^\\\/\.]+)\.\S+$/i;
 
         $webname = $member_name;
         $noloop_flag = 0;
         $noloop_statement_flag = 0;
 
 #       push (@Item_Code, "my $item_file_name; # Used to see which files items came from \n");
+        my ($code, $code_flag);
         for $record (@{$User_Code{$file}}) {
 #           push(@Item_Code, "\$item_file_name = '$file';\n");
             
@@ -2256,8 +2275,8 @@ sub read_user_code {
 #               print "item rec=$record\n";
             }
             else {
-#               print "loop rec=$record\n";
-                push(@Sub_Code, $record);
+                $code .= $record;
+                $code_flag++ unless $record =~ /^\s*$/ or $record =~ /^\s*\#/;
             }
 
                                 # Check for the end of a statment ... allow for end of line comments
@@ -2266,7 +2285,16 @@ sub read_user_code {
             $noloop_flag = 0 if $record =~ /#\s*noloop=stop/i;
 
         }
-        push(@Sub_Code, "}   # End of code for member= $member_name\n");
+                                # Only create subroutine if this file had event code
+        if ($code_flag) {
+            $Run_Members{$member_name}++;
+            push @Sub_Code, 
+                "#-------------------------------------------------\n\n" .
+                "sub ${member_name}_loopcode {\n" . 
+                $code . 
+#               " print 'db running ${member_name}';" .
+                "}   # End of code for member= $member_name\n\n\n";
+        }
         $member_sort_order{$member_name} = 99999 unless defined $member_sort_order{$member_name};
         
 #       ($webname =~ /startup/i) ?  unshift(@Loop_Code, $temp) : push(@Loop_Code, $temp);
@@ -2274,7 +2302,7 @@ sub read_user_code {
                                 # Sort Loop_Code into desired order
     for my $member_name (sort {$member_sort_order{$a} <=> $member_sort_order{$b} or 
                                $a cmp $b} keys %Run_Members) {
-        my $temp = "  &${member_name}_loopcode if \$Run_Members{'$member_name'};\n";
+        my $temp = "   &${member_name}_loopcode if \$Run_Members{'$member_name'};\n";
         ($webname =~ /startup/i) ?  unshift(@Loop_Code, $temp) : push(@Loop_Code, $temp);
     }
 
@@ -2302,7 +2330,8 @@ sub read_user_code {
 sub do_user_file {
     my ($file) = @_;
     my ($member_name) = $file =~ /([^\\\/]+)\.pl$/i;
-    my $code = "sub ${member_name}_loopcode {\n";
+    my $code = "#-------------------------------------------------\n\n";
+    $code .= "sub ${member_name}_loopcode {\n";
     open(CODE, "<$file") or print "\nError, can not open do_user_file $file:$!\n";
     $code .= join(' ', <CODE>);
     close CODE;
@@ -3224,9 +3253,15 @@ sub tk_entry {
 #            Label(-text => $label, -anchor => 'w',  -bg => 'white');
             Label(-relief => 'groove', -text => $label, -anchor => 'w');
 #           Label(-relief => 'groove', -text => $label, -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font});
-        $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => $pvar, width => 8);
 
-        $Tk_objects{entry}{$pvar}->bind('<Return>', sub { $Tk_results{$label} = $$pvar } );
+        if (ref $pvar ne 'SCALAR' and $pvar->can('set')) {
+            $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => \$$pvar{state}, width => 8);
+            $Tk_objects{entry}{$pvar}->bind('<Return>', sub { $Tk_results{$label} = $$pvar{state}; $pvar->set($$pvar{state}) } ) ;
+        }
+        else {
+            $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => $pvar, width => 8);
+            $Tk_objects{entry}{$pvar}->bind('<Return>', sub { $Tk_results{$label} = $$pvar } );
+        }
 
         push(@widgets, $Tk_objects{entry}{$label});
         push(@widgets, $Tk_objects{entry}{$pvar});
@@ -3290,14 +3325,25 @@ sub tk_radiobutton {
     push(@Tk_widgets, [$Category, 'radiobutton', @_]);
 
     return unless $MW;
-    my ($label, $pvar, $pvalue, $ptext) = @_;
+    my ($label, $pvar, $pvalue, $ptext, $callback, $widget) = @_;
     $Tk_objects{radiobutton}{$pvar}->destroy if $Tk_objects{radiobutton}{$pvar} and Exists($Tk_objects{radiobutton}{$pvar});
     my @widgets;
     my @text = @$ptext if $ptext;      # Copy, so we can do shift and still have the origial $ptext array available for html widget
     for my $value (@$pvalue) {
         my $text = shift @text;
         $text = $value unless defined $text;
-        push(@widgets, $Tk_objects{grid}->Radiobutton(-text => $text,  -variable => $pvar, value => $value));
+
+                                # Check to see if $pvar is an object with the set method
+                                #  - use set if we can, so state_now works on tk changes
+        if (ref $pvar ne 'SCALAR' and $pvar->can('set')) {
+            $widget = $Tk_objects{grid}->Radiobutton(-text => $text, -variable => \$$pvar{state}, -value => $value,
+                                                     -command => sub {$pvar->set($value) });
+        }
+        else {
+            $widget = $Tk_objects{grid}->Radiobutton(-text => $text,  -variable => $pvar, -value => $value);
+        }
+        push(@widgets, $widget);
+        
     }
     $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(text => $label)->grid(@widgets, -sticky => 'w');
 }
@@ -3306,7 +3352,8 @@ sub tk_radiobutton {
 sub write_user_code {
 
                                 # join with '' so 'eof' markers are in col 1
-    $user_code .= join('', @Item_Code, "\n", @Sub_Code, "\n sub loop_code { \n", @Loop_Code, " }");
+    $user_code .= join('', @Item_Code, "\n", @Sub_Code, 
+                       "#-----------------------------------\n\nsub loop_code { \n", @Loop_Code, "}");
     my $user_code_file = "$config_parms{code_dir}/mh_temp.user_code";
     open(USERCODE, ">$user_code_file") or print "Can not open debug user code file $user_code_file: $!\n";
     print USERCODE $user_code;
@@ -3316,7 +3363,7 @@ sub write_user_code {
     &Socket_Item::reset;        # So we can check for duplicate items
     &Serial_Item::reset;        # So we can check for duplicate items
     &Voice_Cmd::reset;          # So we can check for duplicate voice commands.  Also remove old voice cmds
-    undef %hook_pointers;       # So we only free up old user code hooks
+    &reset_hook_code;           # This frees up old user code hooks
 
     eval_user_code($user_code, 1);     # Look for real bad errors, caught when defining subroutine
     &object_states_restore; # Must be after Item_code variables have been defined
@@ -3345,6 +3392,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.22  2000/06/24 22:10:54  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 2.21  2000/06/17 21:06:24  winter
 # - add read_table_files, for reading optional .mht files
 #

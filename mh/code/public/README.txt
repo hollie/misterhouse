@@ -34,6 +34,10 @@ Garage_Door.txt
 mp3_control_GQmpeg.pl
  - Dave Lounsberry's code for controling the GQmpge.pl player on linux
 
+mp3_control_mrMP3.pl
+ - Douglas Nakakihara's code to control a Windows Media Player based mp3 player
+   he wrote called mrMP3
+
 monitor_sump_pump.pl
  - Craig's code to monitor his sump pump
 

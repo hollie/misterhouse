@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Optical Microchip Breakthrough In Canada?</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/27/0459256</url>
-		<time>2000-05-27 10:38:44</time>
+		<title>Overclocking The AMD Duron</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/24/0428247</url>
+		<time>2000-06-24 09:28:26</time>
 		<author>timothy</author>
-		<department>it's-*never*-a-good-time-to-buy-a-computer</department>
-		<topic>tech</topic>
-		<comments>1</comments>
+		<department>faster-pussycat-kill-kill-kill-</department>
+		<topic>amd</topic>
+		<comments>16</comments>
 		<section>articles</section>
-		<image>topictech2.jpg</image>
+		<image>topicamd.gif</image>
 	</story>
 
 	<story>
-		<title>What Will the Internet of the Future Be Like?</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/23/2035207</url>
-		<time>2000-05-27 10:33:14</time>
-		<author>Cliff</author>
-		<department>peering-into-the-next-century</department>
-		<topic>internet</topic>
-		<comments>1</comments>
-		<section>askslashdot</section>
-		<image>topicinternet.jpg</image>
-	</story>
-
-	<story>
-		<title>Linux On Alpha To Power Streaming Media Boxes</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/27/0227206</url>
-		<time>2000-05-27 05:29:48</time>
-		<author>timothy</author>
-		<department>64-bit-out-the-wazoo</department>
+		<title>LinuxFest 2000 - Show Your Support</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/23/2358250</url>
+		<time>2000-06-24 03:57:36</time>
+		<author>emmett</author>
+		<department>emmett-is-a-keynoter-hide-the-children</department>
 		<topic>linuxbiz</topic>
-		<comments>52</comments>
+		<comments>139</comments>
 		<section>articles</section>
 		<image>topiclinuxbiz.gif</image>
 	</story>
 
 	<story>
-		<title>Advertising Via GPS</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/26/124207</url>
-		<time>2000-05-26 23:59:40</time>
+		<title>Linux Replaces Sun At Weather.com</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/23/2349244</url>
+		<time>2000-06-23 23:57:32</time>
 		<author>emmett</author>
-		<department>if-you-build-it-they-will-shop</department>
-		<topic>hardware</topic>
+		<department>right-on-the-tick</department>
+		<topic>linux</topic>
+		<comments>175</comments>
+		<section>articles</section>
+		<image>topiclinux.gif</image>
+	</story>
+
+	<story>
+		<title>Salon's Free Software Project (Part 2)</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/23/1247236</url>
+		<time>2000-06-23 18:47:20</time>
+		<author>CmdrTaco</author>
+		<department>stuff-to-read</department>
+		<topic>news</topic>
 		<comments>182</comments>
 		<section>articles</section>
-		<image>topichardware.gif</image>
+		<image>topicnews.gif</image>
 	</story>
 
 	<story>
-		<title>Super-Fast Hard Drives</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/26/127220</url>
-		<time>2000-05-26 21:06:24</time>
-		<author>emmett</author>
-		<department>can-you-say-video-production</department>
-		<topic>hardware</topic>
-		<comments>192</comments>
-		<section>articles</section>
-		<image>topichardware.gif</image>
-	</story>
-
-	<story>
-		<title>Best Way to Get Kids Started in Programming?</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/21/1919205</url>
-		<time>2000-05-26 19:18:29</time>
-		<author>Cliff</author>
-		<department>getting-started-at-an-early-age</department>
-		<topic>programming</topic>
-		<comments>914</comments>
-		<section>askslashdot</section>
-		<image>topicprogramming.gif</image>
-	</story>
-
-	<story>
-		<title>Internet-Ready Houses For Sale</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/26/1740258</url>
-		<time>2000-05-26 17:45:21</time>
+		<title>Human Genome Mapping Completion TBA</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/23/1643230</url>
+		<time>2000-06-23 17:13:18</time>
 		<author>Hemos</author>
-		<department>would-you-pay-extra-for-one?</department>
-		<topic>internet</topic>
-		<comments>211</comments>
-		<section>articles</section>
-		<image>topicinternet.jpg</image>
+		<department>better-faster-stronger</department>
+		<topic>science</topic>
+		<comments>266</comments>
+		<section>science</section>
+		<image>topicscience.gif</image>
 	</story>
 
 	<story>
-		<title>At Last And At Length: Lars Speaks</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/26/1251220</url>
-		<time>2000-05-26 16:00:17</time>
-		<author>timothy</author>
-		<department>parental-guidance-suggested</department>
+		<title>Symphony For Dot Matrix Printers</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/23/1641216</url>
+		<time>2000-06-23 16:40:50</time>
+		<author>Hemos</author>
+		<department>what-would-beethoven-think</department>
 		<topic>music</topic>
-		<comments>1151</comments>
-		<section>interviews</section>
+		<comments>203</comments>
+		<section>articles</section>
 		<image>topicmusic.gif</image>
 	</story>
 
 	<story>
-		<title>Smell Of Fresh Cut Grass Trademarked</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/26/1240257</url>
-		<time>2000-05-26 14:40:37</time>
+		<title>XFree86 Enters Wondrous World Of CVS</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/23/1430232</url>
+		<time>2000-06-23 14:39:16</time>
 		<author>Hemos</author>
-		<department>dear-lord</department>
+		<department>tomorrow---walgreens!</department>
+		<topic>x</topic>
+		<comments>150</comments>
+		<section>articles</section>
+		<image>topicx.jpg</image>
+	</story>
+
+	<story>
+		<title>Hitachi Folds, Rambus Keeps On Rolling</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/23/1350213</url>
+		<time>2000-06-23 13:49:10</time>
+		<author>Hemos</author>
+		<department>pass-go-collect-200$</department>
 		<topic>patents</topic>
-		<comments>261</comments>
+		<comments>149</comments>
 		<section>articles</section>
 		<image>topicpatents.gif</image>
 	</story>
 
 	<story>
-		<title>Evil Geniuses In A Nutshell</title>
-		<url>http://slashdot.org/article.pl?sid=00/05/26/0339220</url>
-		<time>2000-05-26 14:00:33</time>
-		<author>timothy</author>
-		<department>funny-"ha-ha"-not-funny-"lithium-time"</department>
-		<topic>humor</topic>
-		<comments>153</comments>
-		<section>books</section>
-		<image>topichumor.gif</image>
+		<title>Cookiegate Explained</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/23/1240214</url>
+		<time>2000-06-23 13:20:07</time>
+		<author>CmdrTaco</author>
+		<department>more-fodder-for-the-conspiracy-theorists</department>
+		<topic>news</topic>
+		<comments>158</comments>
+		<section>articles</section>
+		<image>topicnews.gif</image>
+	</story>
+
+	<story>
+		<title>Microsoft Announces .net</title>
+		<url>http://slashdot.org/article.pl?sid=00/06/23/1226235</url>
+		<time>2000-06-23 12:56:00</time>
+		<author>CmdrTaco</author>
+		<department>submitted-more-times-than-bill-gates-mugshot</department>
+		<topic>microsoft</topic>
+		<comments>533</comments>
+		<section>articles</section>
+		<image>topicms.gif</image>
 	</story>
 
 </backslash>

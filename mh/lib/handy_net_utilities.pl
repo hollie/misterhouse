@@ -16,7 +16,7 @@ package handy_net_utilities;
 use strict;
 
                                 # These are useful for calling from user code directly
-use LWP::Simple; 
+use LWP::Simple;
 use HTML::FormatText;
 use HTML::Parse;
 
@@ -40,7 +40,7 @@ sub main::html_unescape {
                                 # Don't know how to check on non-windows OS
 my ($prev_time, $prev_state);
 sub main::net_connect_check {
-    
+
     return 1 if  !$main::OS_win or lc($main::config_parms{net_connect}) eq 'persistent';
 
                                 # We don't need to check this more than once a second
@@ -59,7 +59,7 @@ sub main::net_connect_check {
                                 # Windows 95/98
     my $status = &main::registry_get('HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\RemoteAccess', 'Remote Connection');
 
- 
+
 #   print "db s=", unpack('H8', $status), ".\n";
     if (unpack('H8', $status) eq '01000000') {
 #       print "Internet connection found\n";
@@ -77,15 +77,15 @@ sub main::net_domain_name {
 
                                 # Allow for port name to be used.
     $address = $main::Socket_Ports{$address}{client_ip_address} if $main::Socket_Ports{$address}{client_ip_address};
-    
+
                                 # Use a DNS server to find the domain name
     if ($main::DNS_resolver) {
         print "Searching for Domain Name of $address\n";
         my $result = $main::DNS_resolver->search($address);
         if ($result) {
             my $answer = ($result->answer)[0]->string;
-                                # answer string looks like this:  
-                                #  33.18.146.204.in-addr.arpa. 36279 IN PTR www.ibm.com. 
+                                # answer string looks like this:
+                                #  33.18.146.204.in-addr.arpa. 36279 IN PTR www.ibm.com.
             print "  DNS Results: $answer\n";
             $domain_name = (split(' ', $answer))[4];
         }
@@ -93,8 +93,8 @@ sub main::net_domain_name {
                                 # If no domain name is found, use the IP address
     $domain_name = $address unless $domain_name;
 
-    my @domain_name  = split('\.', $domain_name); 
-    my $domain_name2 = $domain_name[-2]; 
+    my @domain_name  = split('\.', $domain_name);
+    my $domain_name2 = $domain_name[-2];
     print "ip=$address dn=$domain_name dn2=$domain_name2\n" if $main::config_parms{debug} eq 'net';
     return wantarray ? ($domain_name, $domain_name2) : $domain_name;
 }
@@ -111,6 +111,7 @@ sub main::net_ftp {
     my $file_remote = $parms{file_remote};
     $file_remote    = $file unless $file_remote;
     my $command     = $parms{command};
+    my $type        = $parms{type};
 
     $server   = $main::config_parms{net_www_server} unless $server;
     $user     = $main::config_parms{net_www_user} unless $user;
@@ -124,7 +125,7 @@ sub main::net_ftp {
     return unless $server and $user and $password;
 
     print "Logging into web server $server...\n";
-        
+
     my $ftp;
     unless ($ftp = Net::FTP->new($server)) {
         print "Unable to connect to ftp server $server: $@\n";
@@ -133,10 +134,16 @@ sub main::net_ftp {
     unless ($ftp->login($user, $password)) {
         print "Unable to login to $server as $user: $@\n";
         return "failed on login";
-    }        
+    }
     unless ($ftp->cwd($dir)) {
         print "Unable to chdir to $dir on ftp server $server: $@\n";
         return "failed on change dir";
+    }
+    if ($type eq 'binary') {
+        unless ($ftp->binary()) {
+            print " \x07Unable to set bin mode on $server: $@\n";
+            return "failed on binary";
+        }
     }
     if ($command eq 'put') {
         unless ($ftp->put($file, $file_remote)) {
@@ -176,7 +183,7 @@ sub main::net_im_signon {
 
     print "Logging onto AIM with name=$name\n";
     $aim_connection = $aim->newconn(Screenname => $name, Password   => $password);
-    
+
     print "Error, can not connect to AIM" unless $aim_connection;
     print "aim=$aim ac=$aim_connection";
 
@@ -244,7 +251,7 @@ sub main::net_mail_send_old {
     $smtp->quit;
     print "Message sent\n";
 }
-                        
+
 sub main::net_mail_send {
     my %parms = @_;
     my ($from, $to, $subject, $text, $server, $smtp, $account, $mime, $baseref, $file, $filename);
@@ -290,7 +297,7 @@ sub main::net_mail_send {
 
                                 # Modify the html so it has a BASE HREF and the links work in a mail reader
         $text =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{baseref}">|i;
-        
+
         ($filename) = $file =~ /([^\\\/]+)$/ unless $filename;
 
         my $message = MIME::Lite->new(From => $from,
@@ -368,7 +375,7 @@ sub main::net_mail_login {
 sub main::net_mail_stats {
     my %parms = @_;
     return unless my $pop = &main::net_mail_login(%parms);
-    
+
     my ($msgcnt, $msgsize) = $pop->popstat;
 #   print "There are $msgcnt messages in $msgsize bytes on $server\n";
 
@@ -422,7 +429,7 @@ sub main::net_mail_summary {
                                 # Process 'from' into speakable name
         ($from_name) = $from =~ /\((.+)\)/;
         ($from_name) = $from =~ / *(.+?) *</ unless $from_name;
-        ($from_name) = $from =~ / *(\S+) *@/ unless $from_name; 
+        ($from_name) = $from =~ / *(\S+) *@/ unless $from_name;
         $from_name = $from unless $from_name; # Sometimes @ is carried onto next record
         $from_name =~ tr/_/ /;
 #       $from_name =~ tr/"//;
@@ -480,6 +487,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.19  2000/06/24 22:10:55  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.18  2000/05/27 16:40:10  winter
 # - 2.20 release
 #

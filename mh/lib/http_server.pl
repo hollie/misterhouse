@@ -10,6 +10,16 @@ my ($leave_socket_open_passes, $leave_socket_open_action);
 my($Authorized, $Authorized_html, $set_password_flag, $Browser, $Referer);
 my($html_pointer_cnt, %html_pointers);
 
+my %mime_types = (
+    'htm' => 'text/html',
+    'html' => 'text/html',
+    'shtml' => 'text/html',
+    'pl' => 'text/html',
+    'txt' => 'text/plain',
+    'png' => 'image/png',
+    'gif' => 'image/gif',
+    'jpg' => 'image/jpeg',
+);
 
 my (%http_dirs, %html_icons, $html_info_overlib);
 sub main::http_read_parms {
@@ -58,6 +68,7 @@ sub process_http_request {
             if (/^User-Agent:/) {
                 $Browser = (/MSIE/) ? "IE" : "Netscape";
                 print "db Browser=$Browser  $_\n" if $main::config_parms{debug} eq 'http';
+#               $socket->{browser} = $Browser; #&?? WES
             }
         }
 
@@ -137,22 +148,23 @@ eof
     if (-d $file) {
         my $file2;
                                 # Don't allow bad guys to go up the directory chain
-        if ($get_req =~ /^\/\.\./) {
-            print $socket &html_page("Error", "Access denied: $file");
-        }            
-        for my $default (split(',', $main::config_parms{html_default})) {
-            $file2 = "$file/$default";
-            last if -e $file2;
-        }
-        if (-e $file2) {
-            &html_file($socket, $file2, $get_arg);
-        }
-        else {
-            print $socket &html_page("Error", "No index found for directory: $file");
+        if( &test_req( $socket, $get_req ) ) {
+            for my $default (split(',', $main::config_parms{html_default})) {
+                $file2 = "$file/$default";
+                last if -e $file2;
+            }
+            if (-e $file2) {
+                &html_file($socket, $file2, $get_arg, 1);
+            }
+            else {
+                print $socket &html_page("Error", "No index found for directory");
+            }
         }
     }
     elsif (-e $file) {
-        &html_file($socket, $file, $get_arg);
+        if( &test_req( $socket, $get_req ) ) {
+            &html_file($socket, $file, $get_arg, 1);
+        }
     }
     elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg, 1)) {
         print $socket &html_page("", $html, $style);
@@ -244,7 +256,13 @@ eof
                     $states{$item} = $state;
                     $use_pointers++;
                     my $pvar = $html_pointers{$item};
-                    $$pvar = $states{$item};
+                                # Allow for state objects
+                    if ($pvar and ref $pvar ne 'SCALAR' and $pvar->can('set')) {
+                        $pvar->set($states{$item});
+                    }
+                    else {
+                        $$pvar = $states{$item};
+                    }
                     $Tk_results{$html_pointers{$item . "_label"}} = $states{$item};
                 }
                                 # Otherwise, we are trying to pass var name in directly. 
@@ -277,6 +295,20 @@ eof
     }
 
     return ($leave_socket_open_passes, $leave_socket_open_action);
+}
+
+
+sub test_req {
+    my ($socket, $get_req) = @_;
+    $get_req =~ s#/\./#/#g;                                     # /./ -> /
+    $get_req =~ s#//+#/#g;                                      # // -> /
+    1 while( $get_req =~ s#/(?!\.\.)[^/]+/\.\.(/|$)#$1# );      # /foo/../ -> /
+    # if there is a .. at this point, it's a bad thing. Also stop if path contains exploitable characters
+    if ($get_req =~ m#/\.\.|[\|\`;><\000]# ) {
+        print $socket &html_page("Error", "Access denied: $_[1]");
+        return 0;
+    }
+    return 1;
 }
 
 sub html_mh_generated {
@@ -373,7 +405,15 @@ sub html_response {
                                 # we way too many passes for the 'no response message'
                                 # from many commands that do not respond
             $leave_socket_open_passes = 2; 
-            $leave_socket_open_action = "&html_last_response";
+            #&?? WES
+#            if($socket->{browser} eq "IE")
+#            {
+#                $leave_socket_open_action = "&html_last_response_msagent";
+#            }                                                             
+#            else
+#            {
+                $leave_socket_open_action = "&html_last_response";
+#            }
         }
         elsif ($h_response eq 'last_displayed') {
             $leave_socket_open_passes = 2;
@@ -386,7 +426,7 @@ sub html_response {
 #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
         elsif (-e ($file = "$main::config_parms{html_dir}/$h_response")) {
-            &html_file($socket, $file);
+            &html_file($socket, $file, '', 1);
         }
         else {
             $h_response =~ tr/\_/ /; # Put blanks back
@@ -438,6 +478,92 @@ sub html_last_response {
 #  return $last_response;
 }
 
+#&?? WES
+sub html_last_response_msagent 
+{
+    my $last_response;
+    if ($Last_Response eq 'speak') 
+    {
+        $last_response = &html_last_spoken;
+        (my $speech) = &speak_log_last(1);
+        # Remove line breaks
+        $speech =~ s/\n/  /g;
+        # Remove time/date/status portion of log entry
+        $speech =~ s/^.+?: //s;
+        return qq[<FONT FACE="courier"><b>$last_response</b></FONT>],undef,GenerateMsAgent($speech);
+        #      $last_response = &speak_log_last(1);
+    }
+    else
+    {
+        return html_last_response;
+    }
+}
+
+sub GenerateMsAgent 
+{
+    my ($text) = @_;
+#   return undef unless $socket->{browser} eq 'IE';
+    return undef unless $main::config_parms{html_msagent_character};
+
+    my $Character = $main::config_parms{html_msagent_character};
+    my $IntroAnimation;
+    my $ExitAnimation;
+
+    if($main::config_parms{html_msagent_intro}) { $IntroAnimation="Character." . $main::config_parms{html_msagent_intro}; }
+    if($main::config_parms{html_msagent_exit}) { $ExitAnimation="Character." . $main::config_parms{html_msagent_exit}; }
+
+    return <<eof;
+<OBJECT classid="clsid:D45FD31B-5C6E-11D1-9EC1-00C04FD7081F" height=1 id="Agent" style="LEFT: 0px; TOP: 0px"  width=1>
+<PARAM NAME="_cx" VALUE="847">
+<PARAM NAME="_cy" VALUE="847">
+</OBJECT>
+
+<OBJECT classid="clsid:B8F2846E-CE36-11D0-AC83-00C04FD97575" id=TruVoice CODEBASE="#VERSION=6,0,0,0"> 
+</OBJECT>
+
+<SCRIPT LANGUAGE="VBScript">
+    Dim Character
+    Dim LoadRequestUNC
+    Dim LoadRequestURL
+
+    Sub Window_OnLoad
+        On Error Resume Next
+        LoadCharacter
+
+        ' Turn the word balloon off
+        ' Set the character's language ID
+        Character.LanguageID = &H0409
+        ' Make the character appear
+        Character.MoveTo window.clientX-40,window.clientY-60
+        'Character.MoveTo window.event.screenX-window.event.clientX+400,window.event.screenY-window.event.clientY+50
+        Character.Show
+        $IntroAnimation
+        Character.Speak "$text"
+        $ExitAnimation
+        Character.Hide
+    End Sub
+
+    Sub LoadCharacter
+
+        On Error Resume Next
+        ' Attempt to load the character from the Microsoft Agent Chars directory
+        Set LoadRequestUNC = Agent.Characters.Load ("$Character", "$Character.acs")
+
+        ' If it fails...
+        If LoadRequestUNC.Status <> 0 Then
+            ' Attempt to load the character from the Microsoft Agent site
+            Set LoadRequestURL = Agent.Characters.Load ($Character, "http://agent.microsoft.com/agent2/chars/$Character/$Character.acf") 
+
+        ' It didn't fail so assign Character to loaded character file
+        Else 
+            ' Assign Character to the loaded character
+            Set Character = Agent.Characters("$Character")
+        End If
+    End Sub
+</SCRIPT>
+eof
+}
+
 sub html_last_displayed {
     my ($last_displayed) = &display_log_last(1);
 
@@ -484,7 +610,7 @@ sub html_print_log {
 }
 
 sub html_file {
-    my ($socket, $file, $arg) = @_;
+    my ($socket, $file, $arg, $do_header) = @_;
     print "printing html file $file to $socket\n" if $main::config_parms{debug} eq 'http';
 
     local *HTML;                # Localize, for recursive call to &html_file
@@ -566,13 +692,30 @@ sub html_file {
     else {
         my $buff;
         binmode HTML;
+        my $len;
+        $len = &html_header( $socket, $file ) if $do_header;
         while (read(HTML, $buff, 8*2**10)) {
             print $socket $buff;
+            $len += length($buff);
         }
-        print $socket "\n\n";           # Without this, netscap will not show really short .gif files!
+        print $socket "\n\n" if $len==256 or $len==257; # Without this, netscap will not show really short .gif files!
     }
 
     close HTML;
+}
+
+sub html_header {
+    my $socket = $_[0];
+    my $type = lc($_[1]);
+    $type =~ s/^.*\.//;         # remove everything up to the last .
+    my $mime = $mime_types{$type} or 'text/html';
+    my $header = qq|HTTP/1.0 200 OK
+Server: MisterHouse
+Content-type: $mime
+
+|;
+    print $socket $header;
+    return length($header);
 }
 
 
@@ -586,6 +729,7 @@ sub html_page {
     $style = $main::config_parms{html_style} if $main::config_parms{html_style} and !$style;
     return <<eof;
 HTTP/1.0 200 OK
+Server: MisterHouse
 Content-Type: text/html
 $frame
 
@@ -1176,7 +1320,16 @@ sub widget_entry {
         my $html = qq[<FORM name="widgets_entry" ACTION="SET_VAR:last_response"  target='speech'> <td align='left'>];
         $html_pointers{++$html_pointer_cnt} = $pvar;
         $html_pointers{$html_pointer_cnt . "_label"} = $label;
-        $html .= qq[<INPUT SIZE=10 NAME="$html_pointer_cnt" value="$$pvar">];
+
+                                # Allow for state objects
+        my $value;
+        if (ref $pvar ne 'SCALAR' and $pvar->can('set')) {
+            $value = $pvar->state;
+        }
+        else {
+            $value = $$pvar;
+        }
+        $html .= qq[<INPUT SIZE=10 NAME="$html_pointer_cnt" value="$value">];
         $html .= qq[</td></FORM>\n];
         push @table_items, $html;
     }
@@ -1197,7 +1350,14 @@ sub widget_radiobutton {
     for my $value (@$pvalue) {
         my $text = shift @text;
         $text = $value unless defined $text;
-        my $checked = 'CHECKED' if $$pvar eq $value;
+                                # Allow for state objects
+        my $checked;
+        if ($pvar and ref $pvar ne 'SCALAR' and $pvar->can('set')) {
+            $checked = 'CHECKED' if $pvar->state eq $value;
+        }
+        else {
+            $checked = 'CHECKED' if $$pvar eq $value;
+        }
         $html  = qq[<td align='left'><INPUT type="radio" NAME="$html_pointer_cnt" value="$value" $checked ];
         $html .= qq[$checked onClick="form.submit()">$text</td>];
         push @table_items, $html;
@@ -1242,20 +1402,23 @@ return 1;           # Make require happy
 
 =begin comment
 Examples of browser requests (by running test_http_server.pl)
-GET http://mantis.rchland.ibm.com:8081/ HTTP/1.0
+GET http://house:8081/ HTTP/1.0
 Connection: Keep-Alive
 Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*
 Accept-Charset: iso-8859-1,*,utf-8
 Accept-Language: en
 Authorization: Basic YnJ1Y2Vfd2ludGVyOmFiY2Rl
-Host: mantis.rchland.ibm.com:8081
+Host: house:8081
 User-Agent: Mozilla/4.04 [en] (X11; I; AIX 4.3)
-Cookie: w3ibmID=19990118162505401224000000
+Cookie: xyzID=19990118162505401224000000
 =end comment
 
 
 #
 # $Log$
+# Revision 1.42  2000/06/24 22:10:55  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.41  2000/05/06 16:34:32  winter
 # - 2.15 release
 #

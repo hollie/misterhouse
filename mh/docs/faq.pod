@@ -242,6 +242,21 @@ You can also use something like mh/code/test/mhsend_server.pl
 and then read/write to sockets directly from non-mh web server cgi scripts.
 Or have the web server script simply call mh/bin/mhsend to run mh commands.
 
+=head 1.16 Is there a front-end tool for defining/editing mh items/events?
+
+Not yet, but you can now define items/events in a table-like format.
+This should allow us to enable a gui or web based front end tools for editing.  
+
+Currently we have defined just one format defined, creativly named A,
+but other formats (e.g. xml) should be real easy to implement.
+
+To use, create one or more *.mht (mh table) files in your code directory, specifying the table format with Format=A
+at the top of the table.  Then mh will process (on starup and reload) each record with mh/lib/read_table_A.pl, to create
+*.mhp (mh processed) files, which are then processed with all your other mh *.pl code files.
+
+Examples are in mh/code/bruce/*.mht and mh/code/test/*.mht. 
+If you want to create another table format, all you need to do is create a mh/lib/read_table_xyz.pl member, then set Format=xyz.
+
 
 =head1 2: MisterHouse coding questions
 
@@ -645,6 +660,13 @@ Here are some useful/related Home Automation links:
   Europeans can get X10 stuff from
     http://www.intellihome.be 
 
+  Neil Cherry has created a home for linux related Home Automation programs at
+  http://linuxha.sourceforge.net 
+
+  Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
+  http://the-labs.com/HomeAppliance/
+
+
 =head2 6.5: How can I use cvs to co-develop core mh code?
 
 To get started with cvs, there are instructions at:
@@ -776,6 +798,9 @@ else on the list, the ThermoCRON iButton is different yet again.
 
 #
 # $Log$
+# Revision 1.15  2000/06/24 22:10:54  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.14  2000/05/27 16:40:09  winter
 # - 2.20 release
 #

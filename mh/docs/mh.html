@@ -414,6 +414,12 @@ This is supported via the mh IR_Item object.
 
 </P>
 <P>
+Europeans can get X10 stuff from <A
+HREF="http://www.intellihome.be">http://www.intellihome.be</A> and <A
+HREF="http://www.hwg-telekom.de">http://www.hwg-telekom.de</A>
+
+</P>
+<P>
 Weeder Technologies, <A
 HREF="http://www.weedtech.com">http://www.weedtech.com</A> , offers the
 following kits priced from <CODE>$30</CODE> to <CODE>$50</CODE> each. All
@@ -528,7 +534,9 @@ HREF="http://www.byterunner.com">http://www.byterunner.com</A>
 Good sources of information on the WX200/WM918 weather stations are at <A
 HREF="http://wx200.planetfall.com/">http://wx200.planetfall.com/</A> and <A
 HREF="http://www.weatherwatchers.org/wxstation/WX-200/">http://www.weatherwatchers.org/wxstation/WX-200/</A>
-.
+. $200-&gt;$300 at Radio Shack or <CODE>$200</CODE> from <A
+HREF="http://www.heartlandamerica.com">http://www.heartlandamerica.com</A>
+(search for weather, model WW22- 3350)
 
 </P>
 <P>
@@ -547,6 +555,34 @@ Here are some urls and prices:
     - $10 for a 2 port digital input or ouptut card
     - $6  for a 1820 temperature sensor
 </PRE>
+</P>
+<P>
+If you want more reliable VR without having to use a headset, you can try
+these to digital array microphones:
+
+</P>
+<P>
+<PRE> - Labtec LVA-7280 ClearVoice Digital Microphone ($130)
+   <A HREF="http://www.labtec.com/product/family.cfm?CategoryID=2">http://www.labtec.com/product/family.cfm?CategoryID=2</A>
+</PRE>
+</P>
+<P>
+<PRE> - Andrea Desktop array DA-400 ($150)
+   <A HREF="http://www.andreaelectronics.com">http://www.andreaelectronics.com</A>
+</PRE>
+</P>
+<P>
+The Labtec has a push button on top to turn it on and off and a red/green
+LED that blinks green when sound is heard. The Andrea has a slide switch on
+the side to turn it on and off. The Andrea has a bit clearer sound and is
+about 2/3 the size. Having a hardware switch to disable VR is handy.
+
+</P>
+<P>
+Both of these mikes are ment to be used when you are at the desktop. The
+idea is that they filter out background noise better, so you can use them
+in slightly noise environments, where headsets were normally required.
+
 </P>
 <P>
 <HR>
@@ -947,8 +983,7 @@ the mh.ini parm ibutton_port.
       0B,   64,  32,  40,   8,   1,   3, DS1985,DS2505,16K-bit EPROM
       0C,  256,  32,   0,   0,   1,   1, DS1996,DS2464,64K-bit NVRAM
       0F,  256,  32,  64,   8,   1,   3, DS1986,DS2506,64K-bit EPROM
-      10,    0,   0,   0,   0,   0,   0, DS1920,DS1820,Temperature iButton with
-      Trips
+      10,    0,   0,   0,   0,   0,   0, DS1920,DS1820,Temperature iButton with Trips
       11,    2,  32,   1,   8,   0,   2, DS1981,DS2501,512-bit EPROM
       12,    4,  32,   1,   8,   0,   4, DS2407,,Dual Addressable Switch
       13,   16,  32,  34,   8,   0,   3, DS1983,DS2503,4K-bit EPROM
@@ -968,6 +1003,7 @@ the mh.ini parm ibutton_port.
       20,    3,   8,   0,   0,   1,   9, DS2450,,Quad A-D Converter
       21,   16,  32,   0,   0,   1,   8, DS1921,,Temperature Recorder iButton
       23,   16,  32,   0,   0,   1,   7, DS1973,DS2433,4K-bit EEPROM
+      22                                 DS1822 temperature button   
       40,   16,  32,   0,   0,   0,   1, DS1608,,Battery Pack Clock
 </PRE>
 </P>
@@ -1038,8 +1074,12 @@ to program the IR Commander to use the codes for your various remotes.
 </P>
 <P>
 <PRE>  Methods:
-     new $type    : Creates a new Item.  Here are the valid types:
-         TV, VCR, CAB, CD, SAT, DVD
+     new $type, $code : Creates a new Item.  
+        Here are the valid types:
+           TV, VCR, CAB, CD, SAT, DVD
+        Currently, $code simply controls if 2 or 3 digits are transmited for channels:
+           2digit  (this is the default if $code is not spedified)
+           3digit
 </PRE>
 </P>
 <P>
@@ -1087,7 +1127,7 @@ to program the IR Commander to use the codes for your various remotes.
 </PRE>
 </P>
 <P>
-<PRE>    $VCR = new IR_Item 'vcr';
+<PRE>    $VCR = new IR_Item 'vcr', '3digit';
     set $VCR &quot;12,RECORD&quot; if time_cron('59 19 * * 3');
     set $VCR &quot;STOP&quot;      if time_cron('00 20 * * 3');
 </PRE>
@@ -1302,8 +1342,8 @@ you can tell mh to use the RF CM17 interface, like this:
 </PRE>
 </P>
 <P>
-Note that the X10 device code is numbered 1-&gt;9,A-&gt;F. For example
-device 16 in house code P would be PF.
+Note that the X10 device code is numbered 1-&gt;9,A-&gt;G. For example
+device 16 in house code P would be PG.
 
 </P>
 <P>
@@ -1408,11 +1448,16 @@ ports.
 
 </P>
 <P>
+Server socket ports are specified with mh.ini parms (see 'server options'
+in mh.ini)
+
+</P>
+<P>
 <PRE>  Methods:
 </PRE>
 </P>
 <P>
-<PRE>     new('data_stream', 'state_name', 'host_port', 'name')
+<PRE>     new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol')
      add('data_stream', 'state_name')
 </PRE>
 </P>
@@ -1422,15 +1467,14 @@ ports.
 </PRE>
 </P>
 <P>
+<PRE>        'host_protocol' can be 'tcp' or 'udp'.  Default is 'tcp'
+</PRE>
+</P>
+<P>
 <PRE>        'name' is optional.  If used you can set debug to this string
         to turn on debug for just this socket data.
         
      set_port     : Allows you to change the server_name/port.
-</PRE>
-</P>
-<P>
-<PRE>     buffer       : If set to 1, data will be read one line at a time (faster)
-                    If set to 0, the default, data will be read one character at a time.
 </PRE>
 </P>
 <P>
@@ -1457,9 +1501,10 @@ ports.
 </P>
 <P>
 <PRE>     said         : Returns a data record received by the port.  
-                     - Characters are spooled into one record until a '\n' (newline) is
-                       received.  Only then does 'said $item' become valid, and it is
-                       reset as soon as the said method is executed.  
+                     - Note: If you want to process binary socket data, specify 
+                             server_*_datatype = raw in the mh.ini file.  This
+                             will cause said to return any data read immediately, 
+                             rather than buffering up data until a newline is read.
 </PRE>
 </P>
 <P>
@@ -1979,9 +2024,19 @@ it:
                               to work with your PA relays.
        time  =&gt; $time         The amount of time to leave the PA speakers on for rooms
        mode  =&gt; $mode         $mode can be:
-         wait : mh will pause (hang), until wav file finishes
-         loop : mh will loop on the wav file
-         stop : mh will stop playing the previous file
+         wait  : mh will pause (hang), until wav file finishes
+         loop  : mh will loop on the wav file
+         stop  : mh will stop playing the previous file
+         async : mh will play wave file asynchronously (in the background).  This is the default.
+</PRE>
+</P>
+<P>
+<PRE>       mode   =&gt; 'unmuted'     Forces speech, even in mute and offline mode
+</PRE>
+</P>
+<P>
+<PRE>       You can control the default mode parm with the mh.ini play_mode parm.
+   
 </PRE>
 </P>
 <P>
@@ -2656,6 +2711,14 @@ Used to ftp data to or from an ftp server:
 <PRE>     net_ftp(file =&gt; 'index.html', command =&gt; 'put');
 </PRE>
 </P>
+<P>
+<PRE>     my $rc = net_ftp(
+        file =&gt; 'c:/junk1.txt', file_remote =&gt; 'incoming/junk1.txt',
+        command =&gt; 'put', server =&gt; 'misterhouse.net',  
+        user =&gt; 'anonymous', password =&gt; 'bruce@misterhouse.net');
+     print_log &quot;net_ftp put results: $rc&quot;;
+</PRE>
+</P>
 <DT><STRONG><A NAME="item_net_connect_check">net_connect_check</A></STRONG><DD>
 <P>
 Returns true if connected to the Internet. If the mh.ini parm
@@ -3326,10 +3389,6 @@ mh/code/test/mhsend_server.pl
 
 </P>
 <P>
-Password authorization code hasn't been added yet ...
-
-</P>
-<P>
 <PRE>  mhsend sends data to the MisterHouse program, through the internet/intranet.
 </PRE>
 </P>
@@ -3358,7 +3417,7 @@ Password authorization code hasn't been added yet ...
 </PRE>
 </P>
 <P>
-<PRE>    -pwfile xxx  -&gt; Points to a password file.  If
+<PRE>    -pwfile xxx  -&gt; Points to a password file. 
 </PRE>
 </P>
 <P>
@@ -3858,6 +3917,31 @@ This what is used in the mh 'About' web button to return the mh version.
 
 </P>
 <P>
+You can also define your own functions in your code files to return html,
+and then call them with the code= include directive. For example, add these
+to any of your code files:
+
+</P>
+<P>
+<PRE>  sub web_func1 {
+      return &quot;uptime = &quot; . &amp;time_diff($Time_Startup_time,$Time , undef, 'numeric');
+  }
+  sub web_func2 {
+      return &quot;results from function 2&quot;; 
+  }
+</PRE>
+</P>
+<P>
+Then call them like this:
+
+</P>
+<P>
+<PRE> &lt;p&gt;Test web functions
+ &lt;!--#include code=&quot;&amp;web_func1&quot;--&gt;
+ &lt;!--#include code=&quot;&amp;web_func2&quot;--&gt;
+</PRE>
+</P>
+<P>
 If you want to have only a few specific html controls, you can write your
 own html using the RUN, SET, and SET_VAR url keywords to control mh. Here
 are a few examples:
@@ -4068,6 +4152,33 @@ should preceed the Item. Here is an example:
 </PRE>
 </P>
 <P>
+If you want to have a user defined function called once perl loop, but you
+want it before or after all the other user code has been called, use the
+<CODE>&amp;MainLoop_pre_add_hook</CODE> and
+<CODE>&amp;MainLoop_post_add_hook</CODE> functions to add callbacks to your
+functions. For example:
+
+</P>
+<P>
+<PRE>  $v_hook_pre_add   = new Voice_Cmd 'Add  pre  code hook';
+  $v_hook_pre_drop  = new Voice_Cmd 'Drop pre  code hook';
+  $v_hook_post_add  = new Voice_Cmd 'Add  post code hook';
+  $v_hook_post_drop = new Voice_Cmd 'Drop post code hook';
+</PRE>
+</P>
+<P>
+<PRE>  &amp;MainLoop_pre_add_hook(  \&amp;test_hook_pre)  if said $v_hook_pre_add;
+  &amp;MainLoop_pre_drop_hook( \&amp;test_hook_pre)  if said $v_hook_pre_drop;
+  &amp;MainLoop_post_add_hook( \&amp;test_hook_post) if said $v_hook_post_add;
+  &amp;MainLoop_post_drop_hook(\&amp;test_hook_post) if said $v_hook_post_drop;
+</PRE>
+</P>
+<P>
+<PRE>  sub test_hook_pre  { print &quot;&lt;&quot;; }
+  sub test_hook_post { print &quot;&gt;&quot;; }
+</PRE>
+</P>
+<P>
 <HR>
 <H1><A NAME="KNOWN_LIMITATIONS_AND_BUGS">KNOWN LIMITATIONS AND BUGS</A></H1>
 <P>
@@ -4089,7 +4200,7 @@ HREF="http://www.news.com/News/Item/0,4,33117,00.html?st.ne.ni.rel">http://www.n
 Under windows, TK windows do not get focus and some keys and shortcuts do
 not work. Worse yet, the 'tear off' line (the dashed line on the pull down
 menus) causes mh to hang. Perl/tk on unix does not have either of these
-problems. Hopefully this will get fixed with the next release of perl/Tk.
+problems. Hopefully this will get fixed in a future release of perl/Tk.
 Note: if you have an old perl/tk (older than 8.0012), things are even more
 messed up.
 
@@ -4147,6 +4258,23 @@ The following functions do not work under Unix/Linux:
 <PRE> - Linux KDE users should uncheck &quot;Apply fonts and colors to non-KDE apps&quot;, 
    or the black text on white windows shows up as white text.
 </PRE>
+</P>
+<P>
+Windows Activestate perl 5.6 build 613 leaks memory. On my box about 30 Meg
+a day. 
+
+</P>
+<P>
+Some people are getting CRC errors when running iButton code under Windows
+NT.
+
+</P>
+<P>
+Adding, deleting, or changing Voice commands does is not recognized by the
+Windows MSVoice applicatino while it is running. You have to exit and
+restart MSVoice, then restart mh to get it to recognize new commands.
+Hopefully we can get this to work with release 5.0 of the MS Speech SDK.
+
 </P>
 <P>
 <HR>
@@ -4214,21 +4342,23 @@ href=http://www.onelist.com/messages/MisterHouse&gt;here&lt;/a&gt;).
 
 </P>
 <P>
-Jan Dubois has a fun page of other ticks you can do with perl at <A
+Jan Dubois has a fun page of other ticks you can do with perl on windows at
+<A
 HREF="http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.html">http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.html</A>
-
-
-</P>
-<P>
-Mark Komarinski wrote a fun article showing how to get started with
-MisterHouse on Linux at <A
-HREF="http://www.linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html">http://www.linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html</A>
 
 
 </P>
 <P>
 The comp.home.automation newsgroup is another handy resource, especially
 for X10 related questions.
+
+</P>
+<P>
+Neil Cherry has created a home for linux related Home Automation programs
+at <A
+HREF="http://linuxha.sourceforge.net">http://linuxha.sourceforge.net</A> .
+This project is developing daemons for various interfaces (e.g. ADI Ocelot,
+CPUXA, and HCS II) that hopefully we can then link to with mh.   
 
 </P>
 <P>

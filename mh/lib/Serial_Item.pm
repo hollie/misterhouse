@@ -2,8 +2,9 @@ use strict;
 
 package Serial_Item;
 
+@Serial_Item::ISA = ('Generic_Item');
+
 my (%serial_items_by_id);
-my (@reset_states, @states_from_previous_pass);
 
 sub reset {
     undef %serial_items_by_id;   # Reset on code re-load
@@ -123,20 +124,6 @@ sub stop {
     }
 }
 
-sub state {
-    return @_[0]->{state};
-} 
-
-sub state_now {
-    return @_[0]->{state_now};
-}
-
-sub state_log {
-    my ($self) = @_;
-    return @{$$self{state_log}} if $$self{state_log};
-}
-
-
 sub said {
     my $port_name = @_[0]->{port_name};
     my $datatype  = $main::Serial_Ports{$port_name}{datatype};
@@ -161,12 +148,6 @@ sub said {
     }
 }
 
-sub set_icon {
-    return unless $main::Reload;
-    my ($self, $icon) = @_;
-    $self->{icon} = $icon;
-}
-
 sub set_data {
     my ($self, $data) = @_;
     my $port_name = $self->{port_name};
@@ -182,12 +163,7 @@ sub set_data {
 sub set_receive {
     my ($self, $state) = @_;
                                 # Only add to the list once per pass
-    push(@states_from_previous_pass, $self) unless defined $self->{state_next_pass};
-    $self->{state_next_pass} = $state;
-
-    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
-    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
-
+    &Generic_Item::set_states_for_next_pass($self, $state) unless defined $self->{state_next_pass};
 }
 
 sub set_dtr {
@@ -217,11 +193,7 @@ sub set_rts {
 sub set {
     my ($self, $state) = @_;
                                 # Only add to the list once per pass
-    push(@states_from_previous_pass, $self) unless defined $self->{state_next_pass};
-    $self->{state_next_pass} = $state;
-
-    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
-    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
+    &Generic_Item::set_states_for_next_pass($self, $state) unless defined $self->{state_next_pass};
 
     return unless %main::Serial_Ports;
 
@@ -232,7 +204,6 @@ sub set {
     else {
         $serial_data = $state;
     }
-
 
     my $port_name = $self->{port_name};
 
@@ -274,6 +245,10 @@ sub set {
     elsif ($$self{interface} eq 'houselinc') {
         print "Using houselinc to send: $serial_data\n";
         &HouseLinc::send_X10($main::Serial_Ports{HouseLinc}{object}, $serial_data);
+    }
+    elsif ($$self{interface} eq 'marrick') {
+        print "Using marrick to send: $serial_data\n";
+        &Marrick::send_X10($main::Serial_Ports{Marrick}{object}, $serial_data);
     }
     else {
         $port_name = 'Homevision' if !$port_name and $main::Serial_Ports{Homevision}{object}; #Since it's multifunction, it should be default
@@ -318,7 +293,7 @@ sub set {
 
 				# Give weeder a chance to do the previous command
 				# Surely there must be a better way!
-	    select undef, undef, undef, 1.2;
+            select undef, undef, undef, 1.2;
         }
 
         if (lc($port_name) eq 'homevision') {
@@ -329,26 +304,11 @@ sub set {
             $serial_data .= "\r" unless $datatype eq 'raw';
             my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
             
-            &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::config_parms{debug} eq 'serial';
+#           &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::config_parms{debug} eq 'serial';
+            print "serial port=$port_name out=$serial_data results=$results\n" if $main::config_parms{debug} eq 'serial';
         }
     }
 }    
-
-sub reset_states {
-    my $ref;
-    while ($ref = shift @reset_states) {
-        undef $ref->{state_now};
-    }
-
-    while ($ref = shift @states_from_previous_pass) {
-        $ref->{state}     = $ref->{state_next_pass};
-                                # Ignore $Startup events
-        $ref->{state_now} = $ref->{state_next_pass} unless $main::Loop_Count < 5;
-#       $ref->{state_now} = $ref->{state_next_pass} unless $main::Time_Uptime_Seconds < 20;
-        undef $ref->{state_next_pass};
-        push(@reset_states, $ref);
-    }
-}
 
 sub set_interface {
     my ($self, $interface) = @_;
@@ -369,12 +329,19 @@ sub set_interface {
         elsif ($main::Serial_Ports{HouseLinc}{object}) {
             $interface = 'houselinc';
         }
+        elsif ($main::Serial_Ports{Marrick}{object}) {
+            $interface = 'marrick';
+        }
     }
     $$self{interface} = lc($interface) if $interface;
 }
 
+
 #
 # $Log$
+# Revision 1.38  2000/06/24 22:10:54  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.37  2000/05/27 16:40:10  winter
 # - 2.20 release
 #

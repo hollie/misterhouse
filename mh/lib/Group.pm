@@ -5,18 +5,22 @@ package Group;
 sub new {
     my ($class, @items) = @_;
     my $self = {};
-    $$self{members} = [@items];
+    $$self{members} = [];
+    &add($self, @items) if @items;
     bless $self, $class;
-    my $first_item = $items[0];
-    @{$$self{states}} = @{$$first_item{states}} if $first_item;
-    print "Group states: @{$$self{states}}\n" if $main::config_parms{debug};
     return $self;
 }
 
 sub add {
-	my ($self, @items) = @_;
+    my ($self, @items) = @_;
     push(@{$$self{members}}, @items);
+
                                 # Define group states according to the first item
+    unless ($$self{states}) {
+        my $first_item = ${$$self{members}}[0];
+        @{$$self{states}} = @{$$first_item{states}} if $first_item and $$first_item{states};
+        print "Group states: @{$$self{states}}\n" if $first_item and $main::config_parms{debug}; #&?? WES
+    }
 }
 
 sub set {
@@ -77,6 +81,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.7  2000/06/24 22:10:54  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.6  2000/02/20 04:47:54  winter
 # -2.01 release
 #

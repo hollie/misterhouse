@@ -2,6 +2,8 @@ use strict;
 
 package Socket_Item;
 
+@Serial_Item::ISA = ('Generic_Item');
+
 my (%socket_item_by_id);
 
 sub reset {
@@ -96,14 +98,6 @@ sub is_available {
     }
 }
 
-sub state {
-    return @_[0]->{state};
-} 
-
-sub state_now {
-    return @_[0]->{state_now};
-}
-
 sub active {
     my $port_name = @_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{socka};
@@ -191,6 +185,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.13  2000/06/24 22:10:54  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.12  2000/05/27 16:40:10  winter
 # - 2.20 release
 #

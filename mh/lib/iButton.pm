@@ -4,7 +4,9 @@ use strict;
 
 package iButton;
 
-my ($connection, %objects_by_id, %buttons_active, @states_from_previous_pass, @reset_states);
+@iButton::ISA = ('Generic_Item');
+
+my ($connection, %objects_by_id, %buttons_active);
 
 sub usleep {
     my($usec) = @_;
@@ -47,22 +49,22 @@ sub new {
 
 
     if ($self->{model} eq 'DS1920' ) {
-        @iButton::ISA = ("Hardware::iButton::Device::DS1920");
+        push (@iButton::ISA, "Hardware::iButton::Device::DS1920");
     }
 	elsif ($self->{model} eq 'DS1822' ) {
-        @iButton::ISA = ("Hardware::iButton::Device::DS1822");
+        push (@iButton::ISA, "Hardware::iButton::Device::DS1822");
     }
     elsif ($self->{model} eq 'DS2423') {
-        @iButton::ISA = ("Hardware::iButton::Device::DS2423");
+        push (@iButton::ISA, "Hardware::iButton::Device::DS2423");
     }
     elsif ($self->{model} eq 'DS2406' ) {
-        @iButton::ISA = ("Hardware::iButton::Device");
+        push (@iButton::ISA, "Hardware::iButton::Device");
                                 # Used by Tk items pulldown
         push(@{$$self{states}}, 'on', 'off'); 
 
     }
     else {
-        @iButton::ISA = ("Hardware::iButton::Device");
+        push (@iButton::ISA, "Hardware::iButton::Device");
     }
 
     return $self;
@@ -155,11 +157,11 @@ sub read_temp {
     my ($self) = @_;
     my $temp = 0;
     if ($self->{model} eq 'DS1920' ) {
-        @iButton::ISA = ("Hardware::iButton::Device::DS1920");
+        push (@iButton::ISA, "Hardware::iButton::Device::DS1920");
         $temp = $self->read_temperature_hires();
     }
 	elsif ($self->{model} eq 'DS1822' ) {
-        @iButton::ISA = ("Hardware::iButton::Device::DS1822");
+        push (@iButton::ISA, "Hardware::iButton::Device::DS1822");
         $temp = $self->read_temperature();
     }
 
@@ -221,40 +223,7 @@ sub set {
 sub set_receive {
     my ($self, $state) = @_;
                                 # Only add to the list once per pass
-    push(@states_from_previous_pass, $self) unless defined $self->{state_next_pass};
-    $self->{state_next_pass} = $state;
-
-    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
-    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
-
-}
-
-sub reset_states {
-    my $ref;
-    while ($ref = shift @reset_states) {
-        undef $ref->{state_now};
-    }
-
-    while ($ref = shift @states_from_previous_pass) {
-        $ref->{state}     = $ref->{state_next_pass};
-                                # Ignore $Startup events
-        $ref->{state_now} = $ref->{state_next_pass} unless $main::Loop_Count < 5;
-        undef $ref->{state_next_pass};
-        push(@reset_states, $ref);
-    }
-}
-
-sub state {
-    return @_[0]->{state};
-} 
-
-sub state_now {
-    return @_[0]->{state_now};
-}
-
-sub state_log {
-    my ($self) = @_;
-    return @{$$self{state_log}} if $$self{state_log};
+    &Generic_Item::set_states_for_next_pass($self, $state) unless defined $self->{state_next_pass};
 }
 
 
@@ -342,6 +311,9 @@ memory
 
 
 # $Log$
+# Revision 1.3  2000/06/24 22:10:55  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.2  2000/05/06 16:34:32  winter
 # - 2.15 release
 #

@@ -1,10 +1,12 @@
 
 package Voice_Cmd;
+@Voice_Cmd::ISA = ('Generic_Item');
+
 use strict;
 my ($cmd_num);
 my (%cmd_by_num, %cmd_state_by_num, %cmd_num_by_text, %cmd_text_by_num, %cmd_text_by_vocab);
-my (%cmd_word_list, %cmd_vocabs, @cmds_from_previous_pass);
-my ($Vcmd_ms, $Vmenu_ms, $Vcmd_viavoice, @reset_states);
+my (%cmd_word_list, %cmd_vocabs);
+my ($Vcmd_ms, $Vmenu_ms, $Vcmd_viavoice);
 my ($last_cmd_time, $last_cmd_num, $last_cmd_num_confirm, $last_cmd_flag, $noise_this_pass );
 
 my $confirm_timer = &Timer::new();
@@ -213,14 +215,10 @@ sub check_for_voice_cmd {
         print "Voice cmd num=$number ref=$ref said=$said cmd=$cmd\n" if $main::config_parms{debug} eq 'voice';
         $said  = 1 unless defined $said; 
 
-        $ref->{said}  = $said;
-        $ref->{state} = $said;
-
-        my $log = ($said == 1) ? "$main::Time_Date" : "$main::Time_Date $said";
-        unshift(@{$$ref{state_log}}, $log);
-        pop @{$$ref{state_log}} if @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
-
-        push(@reset_states, $ref);
+                                # This could be set for either the current or next pass ... next pass is easier
+        &Generic_Item::set_states_for_next_pass($ref, $said);
+#       $ref->{said}  = $said;
+#       $ref->{state} = $said;
 
         $Vcmd_ms->{CommandSpoken} = 0 if $Vcmd_ms;
         $last_cmd_time = &main::get_tickcount;
@@ -244,37 +242,14 @@ sub check_for_voice_cmd {
 
 
     }
-
-                                # Run a command from the previous command list
-    while ($ref = shift @cmds_from_previous_pass) {
-        print "db2 set voice cmd $ref to $ref->{said_next_pass}\n" if $main::config_parms{debug} eq 'voice';
-        $ref->{said}  = $ref->{said_next_pass};
-        $ref->{state} = $ref->{said_next_pass};
-        push(@reset_states, $ref);
-
-        my $log = ($ref->{said} == 1) ? "$main::Time_Date" : "$main::Time_Date $ref->{said}";
-        unshift(@{$$ref{state_log}}, "$log");
-        pop @{$$ref{state_log}} if @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
-
-
-    }
 }
 
                                 # This will set voice items for the NEXT pass ... do not want it active
                                 # for the current pass, because we do not know where we are in the user code loop
 sub set {
     my ($self, $state) = @_;
-    $self->{said_next_pass} = $state;
-    push(@cmds_from_previous_pass, $self);
+    &Generic_Item::set_states_for_next_pass($self, $state);
     print "db1 set voice cmd $self to $state\n" if $main::config_parms{debug} eq 'voice';
-}
-
-# Called each pass
-sub reset_states {
-    while (@reset_states) {
-        my $ref = shift @reset_states;
-        undef $ref->{said};
-    }
 }
 
 sub remove_voice_cmds {
@@ -499,35 +474,10 @@ sub _clean_text_string {
     return $text;
 }
 
-sub set_icon {
-    return unless $main::Reload;
-    my ($self, $icon) = @_;
-    $self->{icon} = $icon;
-}
-
 sub set_order {
     return unless $main::Reload;
     my ($self, $order) = @_;
     $self->{order} = $order;
-}
-
-sub set_info {
-    return unless $main::Reload;
-    my ($self, $text) = @_;
-    $self->{info} = $text;
-}
-
-sub said {
-    return @_[0]->{said};
-}
-
-sub state {
-    return @_[0]->{state};
-}
-
-sub state_log {
-    my ($self) = @_;
-    return @{$$self{state_log}} if $$self{state_log};
 }
 
 sub get_last_cmd_time {
@@ -611,12 +561,14 @@ sub disablevocab {
     $Vcmd_viavoice->set('');
 }
 
-
     
 1;
 
 #
 # $Log$
+# Revision 1.22  2000/06/24 22:10:54  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.21  2000/04/09 18:03:19  winter
 # - 2.13 release
 #

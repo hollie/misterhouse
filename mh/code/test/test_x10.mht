@@ -1,0 +1,11 @@
+
+Format = A
+ 
+#
+# Type    Address   Name                   Groups                                      Other Info
+#
+
+X10I,       A1,     test_light1,           All_Lights|Test
+X10A,       B1,     test_light2,           All_Lights|Test
+
+X10A,       B2,     test_appliance,        Appliances|Test

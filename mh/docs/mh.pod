@@ -83,7 +83,7 @@ There is also a FAQ that covers misc topics in
 
 Items and events are defined by using your favorite text editor and creating members
 of perl code in a directory of your choice.  For example, all the code that runs
-my house is in the /mh/code/Bruce directory.  
+my house is in the /mh/code/bruce directory.  
 
 After starting mh, in addition to the timed, serial, or X10 based events that you 
 defined, you can trigger mh actions with any of the following:
@@ -124,6 +124,7 @@ Here are the basic steps of the mh program:
 
    2: Read and evaluate/compile the user event code into the mh_temp.user_code file:
 
+       Optional *.mht files are processed by mh/lib/read_table_*.pl, creating *.mhp files
        Objects are evaluated and created. 
        Everything else is put into a &user_loop function (at the end of mh_temp.user_code file).
 
@@ -260,7 +261,7 @@ Netherlands ($3 shipping):
 
   http://www.evation.com/irman/ 
 
-In addition to the mh/Bruce/irman.html code, there there is free winamp,
+In addition to the mh/code/bruce/irman.html code, there there is free winamp,
 windows, and linux software for it.
 The schematics that it is built from are also posted on the net (elsewhere), but
 for $30, it hardly seems worth building it from scratch.
@@ -279,7 +280,7 @@ keypad from http://www.digikey.com (pn  CKN6011-ND or GH5010-ND).   A
 comparison of the 2, plus some nifty linux software for them, can be found
 at http://lcdproc.omnipotent.net
 
-An example on how to use these displays is in mh/Bruce/lcdproc.pl.  See the 
+An example on how to use these displays is in mh/code/bruce/lcdproc.pl.  See the 
 header of that file for more info.
 
 Using a these devices, and a new MP3 perl module/player, we should be able
@@ -289,8 +290,6 @@ a perl base one at http://aelix.cs.iastate.edu/lcdat/
 Here are a few other devices which look useful, but have not had code written for them:
 
  http://www.nirvis.com/  $180 2-way IR device
-
- http://www.ibutton.com/index.html  Inexpensive 2 wire iButtons
 
  http://www.cc-concepts.com/  iButton DigiLock interface as electronic keychain
 
@@ -318,6 +317,8 @@ Here are some urls and prices:
     - $10 for a 1 port relay card
     - $10 for a 2 port digital input or ouptut card
     - $6  for a 1820 temperature sensor
+    - Info on how to wire up a 1 wire bus: 
+      http://www.pointsix.com/cgi-bin/PointSix.cgi?AppNotes&app010
 
 
 If you want more reliable VR without having to use a headset, you can try these to digital array microphones:
@@ -491,7 +492,7 @@ Note:  These methods currently read the entire file, so if have big files (say, 
      said         : Returns data added to a file since the last call.
                     Only one record is returned per call.
                     This is useful for monitoring log files.
-                    See mh/code/Bruce/shoutcast.pl  for an example.
+                    See mh/code/bruce/shoutcast.pl  for an example.
 
   Examples:
      $f_deep_thoughts = new File_Item("$Pgm_Root/data/remarks/deep_thoughts.txt");
@@ -509,13 +510,23 @@ Note:  These methods currently read the entire file, so if have big files (say, 
 =item Generic_Item
 
 You can use this object to store and query arbitrary data.  This is more useful than 'my' variables, if you need to share data between
-code files, since 'my' variables are local to a code file.  Maybe we should allow/default this data to be saved between mh sessions, like $Save{} entries??
+code files, since 'my' variables are local to a code file.  States of these items are also saved/restored when
+mh is stopped/started.
+
+All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd) inherit all Generic_Item methods.
 
   Methods:
      new
      state        :
      state_now    :
      set          :
+
+     tie_items($item)  :  If the state of the generic_item changes, then 
+                          the state of $item will be set to that same state
+
+     tie_events($code) :  It the state of the generic_item changes, then
+                          Code string $code will trigger, with the variable
+                          $state getting expanded.
 
   Examples:
      $tv_grid = new Generic_Item;
@@ -525,6 +536,14 @@ code files, since 'my' variables are local to a code file.  Maybe we should allo
      $wakeup_time = new Generic_Item;
      speak "Your wakeup time is set for $state" if $state = state_now $wakeup_time;
      speak "Time to wake up" if time_now state $wakeup_time;
+
+   # Since Voice_Cmd objects inherit Generic_Items methods, we can 
+   # use tie_items and tie_event like this:
+
+     $indoor_fountain    = new X10_Appliance('OB');
+     $v_indoor_fountain  = new Voice_Cmd 'Indoor fountain [on,off]';
+     $v_indoor_fountain -> tie_items($indoor_fountain);
+     $v_indoor_fountain -> tie_event('speak "Ok, fountain was turned $state"');
 
 =item Group
 
@@ -1018,8 +1037,8 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
 
     $Vcmd_viavoice = new  main::Socket_Item(undef, undef, 'localhost:3234', 'viavoice');
 
-    More examples are in mh/code/Bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
-    my/code/Bruce/mh_watchdog.pl, and mh/code/test/socket_test.pl
+    More examples are in mh/code/bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
+    my/code/bruce/mh_watchdog.pl, and mh/code/test/socket_test.pl
 
 
 =item Timer
@@ -1066,7 +1085,7 @@ The Timer object can be used to run an action one or more times, at a specified 
        }
     }
 
-    See mh/code/Bruce/timer_minutes.pl and timer_seconds.pl for more examples.
+    See mh/code/bruce/timer_minutes.pl and timer_seconds.pl for more examples.
 
 
 =item Voice_Cmd
@@ -1104,7 +1123,7 @@ this is useful as these commands can also be run from the Tk, web, telnet, and f
              &Voice_Cmd::disablevocab($vocabulary)
 
         Vocabularies are enabled by default.  The default vocabulary
-        is 'misterhouse'.  See code/Bruce/viavoice_control.pl for examples.
+        is 'misterhouse'.  See mh/code/bruce/viavoice_control.pl for examples.
         This code allows you to switch between 'awake', 'asleep', and 'off' VR modes.
 
         NOTE:  
@@ -1153,7 +1172,7 @@ In addition to the said command on a specific object, you can use
       print_log "Noise detected" if $text eq 'Noise';
    }
 
-See mh/code/Bruce/lcdproc.pl for more examples.
+See mh/code/bruce/lcdproc.pl for more examples.
 
 
 =back
@@ -1446,7 +1465,7 @@ Search a dbm file for matches to a string.  It currently searches both key and v
     ($count_searched, $count_matched, %results) = search_dbm($dbm_file, $search_string);
 
 
-  See mh/code/Bruce/phone.pl and mh/bin/display_callers for examples.
+  See mh/code/bruce/phone.pl and mh/bin/display_callers for examples.
 
 
 =item SendKeys WaitForAnyWindow sendkeys_find_window
@@ -1681,6 +1700,7 @@ It will accept multiple variables, displaying them in a row in the grid.
 Use this function to allow for arbitrary data to be entered via the mh tk grid.
 
    Usage:
+    &tk_entry('Entry label:', $state_based_object);
     &tk_entry('Entry label:', \$variable);
     &tk_entry('Entry label:', \$variable, 'Entry label2:, \$variable2);
 
@@ -1693,7 +1713,9 @@ Note:  The $variable reflects the data, as it is being entered.  If you want to 
 only after the RETURN key has been hit, use %Tk_results array.
 The $variable is copied to $Tk_results{'Entry label:'} only after the RETURN key has been entered. 
 
-   Example:
+Now you can now also use a state based object (like Generic_Item) to store/monitor/change the tk_entry text.  
+
+   Examples:
 
     &tk_entry('TV search', \$Save{tv_search});
     if ($state = $Tk_results{'TV search'}) {
@@ -1703,7 +1725,9 @@ The $variable is copied to $Tk_results{'Entry label:'} only after the RETURN key
     }
 
 
-
+   $mp3_search_text =  new Generic_Item;
+   $mp3_search_text -> tie_event('print_log "mp3 search text is now $state"');
+   &tk_entry('mp3 Search', $mp3_search_text);
 
 
 
@@ -1729,16 +1753,29 @@ Use these functions to add a Tk label widget to the mh tk grid (tk_label) or the
 Use this function to create radio buttons in the mh tk grid.  If labels are not specified, the values are displayed.
 
    Usage:
+    &tk_radiobutton('Button label:', $state_based_object, ['value1', 'value2', 'value3']);
     &tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3']);
     &tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3'], 
                                                  ['label1', 'label2', 'label3']);
 
-   Example:
+   Examples:
 
     &tk_radiobutton('Mode',  \$Save{mode}, ['normal', 'mute', 'offline']);
     &tk_radiobutton('Debug', \$config_parms{debug}, [1, 0], ['On', 'Off']);
     &tk_radiobutton('Tracking', \$config_parms{tracking_speakflag}, [0,1,2,3],
                     ['None', 'GPS', 'WX', 'All']);
+
+
+
+    my $alarm_states = "Disarmed,Disarming,Arming,Armed,Violated,Exit Delay,Entry Delay";
+    my @alarm_states = split ',', $alarm_states;
+    $alarm_status    = new Generic_Item;
+    &tk_radiobutton('Security Status', $alarm_status, [@alarm_states]);
+
+    $v_alarm_status  = new Voice_Cmd "Set the alarm to [$alarm_states]";
+    $v_alarm_status -> tie_items($alarm_status);
+
+    print_log "Alarm status changed to $state" if $state = state_now $alarm_status;
 
 
 =back
@@ -1758,7 +1795,7 @@ and mh will not get hung up while waiting.
 
     my $html = get 'http://marketing.cbs.com/lateshow/topten';
 
-    Other examples are in mh/code/Bruce/internet_data.pl
+    Other examples are in mh/code/bruce/internet_data.pl
 
 =item get_ip_addresses
 
@@ -1824,6 +1861,7 @@ Used to ftp data to or from an ftp server:
             file            Name local/remote file to get/put
             file_remote     Name of remote file (if different from local file)
             command         get/put/delete.
+            type            ascii/binary  (default is ascii)
 
    Example:
 
@@ -1996,7 +2034,7 @@ Use this to display a string of text or the contents of a file using a Tk window
 =item display_callers
 
 Use this to display a Tk window with a list of the incoming and outgoing phone logs.
-An example of how to create these logs is in mh/code/Bruce/phone.pl
+An example of how to create these logs is in mh/code/bruce/phone.pl
 
   Usage: 
     display_callers (no argument -> uses latest logs) 
@@ -2066,7 +2104,7 @@ tag data, file names, and playlist files.
 
 get_tv_grid gets a TV grid/schedule from the web (clicktv.com) and changes so
 it to be used by the MisterHouse program to create VCR and TV event reminders.
-See mh/code/Bruce/tv_grid.pl for a mh event example that uses get_tv_grid.
+See mh/code/bruce/tv_grid.pl for a mh event example that uses get_tv_grid.
 
   Usage:
     get_tv_grid [options] 
@@ -2118,7 +2156,7 @@ See mh/code/Bruce/tv_grid.pl for a mh event example that uses get_tv_grid.
 
 get_tv_info returns info about tv programs that match the requested parms.
 It uses a database created by the get_tv_grid program.
-See mh/code/Bruce/tv_info.pl for examples on how to use this from mh.
+See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
 
   Usage:
     get_tv_info [options]
@@ -2443,7 +2481,7 @@ are stored in the $Time_Sunrise and $Time_Sunset variables.
 
 =item trivia
 
-This will update trivia question and answer files from the specified database.  See mh/code/Bruce/trivia.pl
+This will update trivia question and answer files from the specified database.  See mh/code/bruce/trivia.pl
 for an example of how to call it from mh.
 
 =back
@@ -2484,7 +2522,7 @@ tk_xxx subroutines used here will add widgets to either the menu_bar or to the '
 Any change to tk_frame.pl or tk_widgets will be evaluated on a code reload, as will the tk_geometry parm in mh.ini.
 
 tk_xxx widgets can be added anywhere in your mh code, not just the tk_widgets.pl member.  See the weather_monitor.pl, 
-internet_mail.pl, and tk_eye.pl members in code/Bruce for examples.
+internet_mail.pl, and tk_eye.pl members in mh/code/bruce for examples.
 
 The tk_xxx widgets are 'packed' into the menu_bar or grid in the order that they are evaluated.  You can use the
 'Position' directive at the top of your member.pl code to control this.  Position=1 is reserved for the tk_frame.pl
@@ -2731,7 +2769,7 @@ same 'Voice Command Options' dialog.
 
 Need notes on how to use viavoic on linux and how to enable different TTS engines with Festival.
 
-For vr with viavoice, use mh/code/Bruce/viavoice_control.pl
+For vr with viavoice, use mh/code/bruce/viavoice_control.pl
 
 
 =head1 NOTES
@@ -2893,6 +2931,9 @@ Neil Cherry has created a home for linux related Home Automation programs at
 http://linuxha.sourceforge.net .  This project is developing daemons for various interfaces
 (e.g. ADI Ocelot, CPUXA, and HCS II) that hopefully we can then link to with mh.   
 
+Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
+http://the-labs.com/HomeAppliance/
+
 
 =head1 COPYRIGHT
 
@@ -2912,6 +2953,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.24  2000/06/24 22:10:54  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.23  2000/05/27 16:40:09  winter
 # - 2.20 release
 #

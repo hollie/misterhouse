@@ -2,7 +2,7 @@ use strict;
 
 package IR_Item;
 
-my (@reset_states, @states_from_previous_pass);
+@IR_Item::ISA = ('Generic_Item');
 
 sub new {
     my ($class, $device, $code) = @_;
@@ -15,26 +15,11 @@ sub new {
     return $self;
 }
 
-sub state {
-    return @_[0]->{state};
-} 
-
-sub state_now {
-    return @_[0]->{state_now};
-} 
-
-sub state_log {
-    my ($self) = @_;
-    return @{$$self{state_log}} if $$self{state_log};
-}
-
 my $device_prev;
 sub set {
     my ($self, $state) = @_;
-    $self->{state_next_pass} = $state;
-    push(@states_from_previous_pass, $self);
-    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
-    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
+
+    &Generic_Item::set_states_for_next_pass($self, $state);
 
                                 # Since the X10 IR Commander is a bit slow (.5 sec per xmit),
                                 #  lets only send the device code if it is different than last time.
@@ -80,23 +65,11 @@ sub set {
     }
 }
 
-sub reset_states {
-    my $ref;
-    while ($ref = shift @reset_states) {
-        undef $ref->{state_now};
-    }
-
-    while ($ref = shift @states_from_previous_pass) {
-        $ref->{state}     = $ref->{state_next_pass};
-        $ref->{state_now} = $ref->{state_next_pass};
-        undef $ref->{state_next_pass};
-        push(@reset_states, $ref);
-    }
-}
-
-
 #
 # $Log$
+# Revision 1.3  2000/06/24 22:10:54  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.2  2000/05/06 16:34:32  winter
 # - 2.15 release
 #

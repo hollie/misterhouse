@@ -6,6 +6,98 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.22 posted on 06/24/00
+
+Version 2.22 was just uploaded to:
+
+  http://misterhouse.net/download
+  http://misterhouse.sourceforge.net
+
+B<New Features:>
+
+- Updated all items that have states (Voice_Cmd, Serial_Item, X10_Item, iButton, IR_Item) to inherit Generic_Item methods.
+This allows for easier maintance of common methods.
+
+- Bill Sobel and I came up with 2 new methods for Generic_Item: tie_items and tie_event.
+Per the above change, this is inherited by all state items.
+When an item's state changes, so will the state of all items tied to it. For example, if we have this:
+
+  $indoor_fountain   = new X10_Appliance 'C3';
+  $v_indoor_fountain = new Voice_Cmd 'Indoor fountain [on,off]';
+
+Then instead of this:
+
+  set $indoor_fountain $state if $state = state_now $v_indoor_fountain;
+
+We can do this:
+
+  $v_indoor_fountain -> tie_items($indoor_fountain);
+
+or use the indirect object style like this:
+
+  tie_items $v_indoor_fountain $indoor_fountain;
+
+
+- Another Bill Sobel idea was to allow for table based entries for codeing mh objects and events.
+With table data, we should be able to enable gui or web based front end tools for editing.  
+Currently we have defined just one format defined, creativly named A 
+(I suggested we call it Bill, but Bill didn't want the fame), but other formats (e.g. xml) should
+be real easy to implement.
+
+To use, create one or more *.mht (mh table) files in your code directory, specifying the table format with Format=A
+at the top of the table.  Then mh will process (on starup and reload) each record with mh/lib/read_table_A.pl, to create
+*.mhp (mh processed) files, which are then processed with all your other, normal mh code.
+
+Examples are in mh/code/bruce/*.mht and mh/code/test/*.mht. 
+If you want to create another table format, all you need to do is create a mh/lib/read_table_xyz.pl member, then set Format=xyz.
+
+
+- Updated tk_radiobutton and tk_entry so they can now use state objects, like Generic_Item.
+This allows for easier triggering and auto-saving of Tk entered changes.
+Here is an example (from mh/code/examples/tk_examples.pl):
+
+  $mp3_search_text =  new Generic_Item;
+  $mp3_search_text -> tie_event('print_log "mp3 search text is now $state"');
+  &tk_entry('mp3 Search', $mp3_search_text);
+
+
+- Douglas Nakakihara sent in a pointer mrMP3, a mh compatable Windows mp3 player he wrote. 
+The mh code he wrote to control it, along with a download url, is in mh/code/public/mp3_control_mrMP3.pl
+
+
+- Added an example of how to push data from mh to a java applet 
+I got from the Linux Home Automation mailing list (http://linuxha.sourceforge.net)
+called tattler, written by John W. Klar.
+To test, include mh/code/test/tattler.pl
+with your code and point your java enabled browser to http://localhost:8080/tattler
+
+- Bill Sobel added X10_IrrigationController to support the RCI X10 based sprinkler system 
+( http://ourworld.compuserve.com/homepages/rciautomation/p6.htm ).
+
+- Added initial (untested) support for sending X10 commands via the Marrick interface.
+
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Bill Sobel has updated mh/lib/compool.pm and added mh/lib/weather.pm
+
+- Dan Wilga sent in various improvements to http_server.pl, including correctly mime-typing external files.
+
+- Brent Gross added a -type option to ftp, so we can upload/download binary files also.
+
+- Monte Freeman cleaned up and reformated mh/bin/mh.ini
+
+- Fixed get_tv_grid to work with a new clicktv format.
+
+- Fixed a bug in sendkeys_find_window that could cause mh to hang if the program was not able to start.
+
+- Changed mh to not create empty _loopcode subroutines.
+
+- Commented out the Cyan console color change, for win32 mh users.  If anyone wants this as an option, let me know.
+
+
+
+
 =head2 Version 2.20 posted on 05/27/00
 
 Version 2.20 was just uploaded to:

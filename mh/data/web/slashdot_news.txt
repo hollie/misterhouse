@@ -1,30 +1,30 @@
-Title: Optical Microchip Breakthrough In Canada?
-2000-05-27 10:38:44 by timothy  in dept: it's-*never*-a-good-time-to-buy-a-computer  (tech   1)
+Title: Overclocking The AMD Duron
+2000-06-24 09:28:26 by timothy  in dept: faster-pussycat-kill-kill-kill-  (amd   16)
 
-Title: What Will the Internet of the Future Be Like?
-2000-05-27 10:33:14 by Cliff  in dept: peering-into-the-next-century  (internet   1)
+Title: LinuxFest 2000 - Show Your Support
+2000-06-24 03:57:36 by emmett  in dept: emmett-is-a-keynoter-hide-the-children  (linuxbiz   139)
 
-Title: Linux On Alpha To Power Streaming Media Boxes
-2000-05-27 05:29:48 by timothy  in dept: 64-bit-out-the-wazoo  (linuxbiz   52)
+Title: Linux Replaces Sun At Weather.com
+2000-06-23 23:57:32 by emmett  in dept: right-on-the-tick  (linux   175)
 
-Title: Advertising Via GPS
-2000-05-26 23:59:40 by emmett  in dept: if-you-build-it-they-will-shop  (hardware   182)
+Title: Salon's Free Software Project (Part 2)
+2000-06-23 18:47:20 by CmdrTaco  in dept: stuff-to-read  (news   182)
 
-Title: Super-Fast Hard Drives
-2000-05-26 21:06:24 by emmett  in dept: can-you-say-video-production  (hardware   192)
+Title: Human Genome Mapping Completion TBA
+2000-06-23 17:13:18 by Hemos  in dept: better-faster-stronger  (science   266)
 
-Title: Best Way to Get Kids Started in Programming?
-2000-05-26 19:18:29 by Cliff  in dept: getting-started-at-an-early-age  (programming   914)
+Title: Symphony For Dot Matrix Printers
+2000-06-23 16:40:50 by Hemos  in dept: what-would-beethoven-think  (music   203)
 
-Title: Internet-Ready Houses For Sale
-2000-05-26 17:45:21 by Hemos  in dept: would-you-pay-extra-for-one?  (internet   211)
+Title: XFree86 Enters Wondrous World Of CVS
+2000-06-23 14:39:16 by Hemos  in dept: tomorrow---walgreens!  (x   150)
 
-Title: At Last And At Length: Lars Speaks
-2000-05-26 16:00:17 by timothy  in dept: parental-guidance-suggested  (music   1151)
+Title: Hitachi Folds, Rambus Keeps On Rolling
+2000-06-23 13:49:10 by Hemos  in dept: pass-go-collect-200$  (patents   149)
 
-Title: Smell Of Fresh Cut Grass Trademarked
-2000-05-26 14:40:37 by Hemos  in dept: dear-lord  (patents   261)
+Title: Cookiegate Explained
+2000-06-23 13:20:07 by CmdrTaco  in dept: more-fodder-for-the-conspiracy-theorists  (news   158)
 
-Title: Evil Geniuses In A Nutshell
-2000-05-26 14:00:33 by timothy  in dept: funny-"ha-ha"-not-funny-"lithium-time"  (humor   153)
+Title: Microsoft Announces .net
+2000-06-23 12:56:00 by CmdrTaco  in dept: submitted-more-times-than-bill-gates-mugshot  (microsoft   533)
 

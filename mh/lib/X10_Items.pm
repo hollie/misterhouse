@@ -3,7 +3,7 @@ package X10_Item;
 
 my (%items_by_house_code, %appliances_by_house_code);
 
-@X10_Item::ISA = ("Serial_Item");
+@X10_Item::ISA = ('Serial_Item', 'Item');
 
 sub new {
     my ($class, $id, $interface, $module) = @_;
@@ -169,7 +169,7 @@ sub set_by_housecode {
 package X10_Appliance;
 
 #@X10_Appliance::ISA = ("Serial_Item");
-@X10_Appliance::ISA = ("X10_Item");
+@X10_Appliance::ISA = ('X10_Item', 'Item');
 
 sub new {
     my ($class, $id, $interface) = @_;
@@ -196,7 +196,7 @@ sub new {
 
 package X10_Garage_Door;
 
-@X10_Garage_Door::ISA = ("X10_Item");
+@X10_Garage_Door::ISA = ('X10_Item', 'Item');
 
 sub new {
     my ($class, $id, $interface) = @_;
@@ -392,14 +392,175 @@ sub new {
     $self-> add ($id . '07461d',   '1113COO');
     $self-> add ($id . '07471d',   '1113OOO');
 
-      $self->set_interface($interface);
+    $self->set_interface($interface);
 
     return $self;
 }
 
+package X10_IrrigationController;
+
+# More info at: http://ourworld.compuserve.com/homepages/rciautomation/p6.htm
+
+@X10_IrrigationController::ISA = ('Serial_Item', 'Item');
+@X10_IrrigationController::Inherit::ISA = @ISA;
+
+sub new {
+    my ($class, $id, $interface) = @_;
+    my $self = {};
+
+    bless $self, $class;
+
+    my $hc = substr($id, 0, 1);
+    $self->{x10_hc} = $hc;
+
+    $self-> add ("X" . $hc . 'P', 'off');
+
+    $self-> add ("X" . $hc . "1" . $hc . 'J', '1on');
+    $self-> add ("X" . $hc . "2" . $hc . 'J', '2on');
+    $self-> add ("X" . $hc . "3" . $hc . 'J', '3on');
+    $self-> add ("X" . $hc . "4" . $hc . 'J', '4on');
+    $self-> add ("X" . $hc . "5" . $hc . 'J', '5on');
+    $self-> add ("X" . $hc . "6" . $hc . 'J', '6on');
+    $self-> add ("X" . $hc . "7" . $hc . 'J', '7on');
+    $self-> add ("X" . $hc . "8" . $hc . 'J', '8on');
+
+    $self-> add ("X" . $hc . "1" . $hc . 'K', '1off');
+    $self-> add ("X" . $hc . "2" . $hc . 'K', '2off');
+    $self-> add ("X" . $hc . "3" . $hc . 'K', '3off');
+    $self-> add ("X" . $hc . "4" . $hc . 'K', '4off');
+    $self-> add ("X" . $hc . "5" . $hc . 'K', '5off');
+    $self-> add ("X" . $hc . "6" . $hc . 'K', '6off');
+    $self-> add ("X" . $hc . "7" . $hc . 'K', '7off');
+    $self-> add ("X" . $hc . "8" . $hc . 'K', '8off');
+
+    $self->set_interface($interface);
+
+    $self->{zone_runtimes} = [10,10,10,10,10,10,10,10];
+    $self->{zone_runcount} = 8;
+    $self->{zone_delay} = 10;
+    $self->{timer} = &Timer::new();
+
+    return $self;
+}
+
+sub set_runtimes
+{
+    my ($self) = shift @_;
+    my $count = @_;
+
+    if($count < 1)
+    {
+        print "X10_IrrigationController: set_runtimes called without data, ignoring\n";
+    }
+    else
+    {
+        $self->{zone_runtimes} = [@_];
+        $self->{zone_runcount} = $count;
+        print "X10_IrrigationController: setting runtimes for $count zones\n" if $main::config_parms{debug} eq 'X10';
+    }
+}
+
+sub set_rundelay
+{
+    my ($self, $rundelay) = @_;
+
+    if($rundelay < 1)
+    {
+        print "X10_IrrigationController: set_rundelay called without data, ignoring\n";
+    }
+    else
+    {
+        $self->{zone_delay} = $rundelay;
+        print "X10_IrrigationController: rundelay set to $rundelay second(s)\n" if $main::config_parms{debug} eq 'X10';
+    }
+}
+
+sub set
+{
+    my ($self, $state) = @_;
+
+    if(lc($state) eq 'on')
+    {
+        # Start a cascade
+        $self->zone_cascade();
+    }
+    elsif(lc($state) eq 'off')
+    {
+        # Kill any outstanding timer
+        $self->{timer}->unset();
+        # Send all off to shutdown controller
+        $self->X10_IrrigationController::Inherit::set('off');
+    }
+    else
+    {
+        # We don't special handle this command, pass it thru
+        $self->X10_IrrigationController::Inherit::set($state);
+    }
+}
+
+
+sub zone_cascade
+{
+    my ($self, $zone) = @_;
+
+    # Default to zone 1 (start of run)
+    $zone = 1 if $zone eq undef;
+
+    # Turn off last zone
+    $self->X10_IrrigationController::Inherit::set(($zone - 1) . 'off') unless $zone == 1;
+    # Or turn off all is starting from zone 1
+    $self->X10_IrrigationController::Inherit::set('off') if $zone == 1;
+
+    print "Zone $zone of $self->{zone_runcount}\n" if $main::config_parms{debug} eq 'X10';
+
+    # Print start message
+    print "X10_IrrigationController: zone_cascade start\n" if($zone == 1);
+    # Print stop message
+    print "X10_IrrigationController: zone_cascade complete\n" if($zone > $self->{zone_runcount});
+
+    # Stop now if we've run out of zones
+    return if($zone > $self->{zone_runcount});
+
+    my $runtime = $self->{zone_runtimes}[$zone-1];
+    if($runtime ne undef)
+    {
+        # Set a timer to turn it off and turn the next zone on
+        my $sprinkler_timer = $self->{timer};
+        my $object = $self->{object_name};
+        my $action = "$object->zone_delay($zone," . $runtime*60 . ")";
+        &Timer::set($sprinkler_timer, $self->{zone_delay}, $action);
+        print "X10_IrrigationController: Delaying zone $zone start for $self->{zone_delay} seconds\n" if $main::config_parms{debug} eq 'X10';
+    }
+    else
+    {
+        # Recursion is your friend
+        zone_cascade($self,$zone + 1);
+    }
+
+    return;
+}
+
+sub zone_delay
+{
+    my ($self, $zone, $runtime) = @_;
+
+    # Turn the zone on
+    $self->X10_IrrigationController::Inherit::set($zone . 'on');
+
+    # Set a timer to turn it off and turn the next zone on
+    my $sprinkler_timer = $self->{timer};
+    my $object = $self->{object_name};
+    my $action = "$object->zone_cascade(" . ($zone + 1) . ")";
+    &Timer::set($sprinkler_timer, $runtime, $action);
+    print "X10_IrrigationController: Running zone $zone for " . ($runtime/60) . " minute(s)\n" if $main::config_parms{debug} eq 'X10';
+    return;
+}
 
 
 # $Log$
+# Revision 1.9  2000/06/24 22:10:55  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.8  2000/05/27 16:40:10  winter
 # - 2.20 release
 #

@@ -510,6 +510,10 @@ sub main::run {
                                 # Dang, Process::Create needs full path name ... use our handy perl which function
         my($pgm_path, $pgm_args) = &main::find_pgm_path($pgm);
 
+        unless ($pgm_path) {
+            print "Run error, program not found: $pgm\n";
+            return;
+        }
         print "Running: pgm=$pgm_path args=$pgm_args\n";
 
         my ($cflag, $process);
@@ -889,6 +893,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.37  2000/06/24 22:10:55  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
 # Revision 1.36  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #
