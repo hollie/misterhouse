@@ -1,4 +1,0 @@
-/photos/sm1_flowers.jpg
-/photos/sm1_ranier.jpg
-/photos/sm1_art.jpg
-/photos/sm1_granite_peak.jpg
