@@ -1,0 +1,45 @@
+MNBryGuy: AT#SPK=<mute>,<spkr>,<mic> 
+
+The #SPK command can be used to control the microphone state (mute or on),
+ adjust the speaker volume, and microphone gain. The #SPK parameters are are valid only
+ after the modem has entered the Voice Online (VCON) mode while in the #VLS=6 setting 
+(after a VCON during originate or answer). The modem will respond "ERROR" otherwise. 
+
+Parameters: 
+
+<mute> Mute Parameter Number 
+
+0 microphone mute 
+
+1 microphone on (default) 
+
+2 Room Monitor mode (mic on max AGC, speaker off) 
+
+<spkr> Speaker Output Attentuation 
+
+Range: 0 to15 (speaker attenuation in 2 dB steps) 
+
+0 0 dB attneuation 
+
+. 
+
+5 10 dB attenuation (default) 
+
+. 
+
+15 30 dB attentuation 
+
+16 Speaker mute 
+
+<mic> Microphone Gain Parameter 
+
+Range: 0 to 3 
+
+0 0 dB 
+
+1 6 dB gain (default) 
+
+2 9.5 dB gain 
+
+3 12 dB gain 
+
