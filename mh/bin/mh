@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-08-08 22:34:55 winter>
+#  Last change Time-stamp: <2000-08-18 18:48:49 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -82,7 +82,7 @@ my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
 my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, @Item_Code, @Item_Code_Objects);
-my ($user_code, $user_code_last_good, $restore_state);
+my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname);
 my (%prev_serial_event, @Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
@@ -415,8 +415,8 @@ sub setup {
     $SIG{BREAK} = \&sig_handler if  $OS_win;  # Exit cleanly with BREAK
     $SIG{KILL}  = \&sig_handler;              # Exit cleanly with a kill signal
     $SIG{HUP}   = \&read_code   if !$OS_win;  # Reload code (alias mhreload per info in mh.ini file)
-    $SIG{PIPE}  = "IGNORE";                   # Web browsers can shut down sockets while we are sending data 
-
+    $SIG{PIPE}  = 'IGNORE';                   # Web browsers can shut down sockets while we are sending data 
+    $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
     
     $config_parms{code_dir} = $Pgm_PathU . "/../code" unless $config_parms{code_dir};
 
@@ -457,7 +457,8 @@ sub setup {
 
         $proto    = 'tcp'      unless $proto;
         $datatype = 'buffered' if $port_name eq 'http';
-        $datatype = 'buffer'   if $config_parms{$port_name . "_buffer"}; # Grandfathered syntax
+        $datatype = 'buffered' if $config_parms{$port_name . "_buffer"}; # Grandfathered syntax
+        $datatype = '' unless $datatype;
 
         printf " - creating %-15s on %3s %5s %s\n", $port_name, $proto, $port, $datatype;
 
@@ -846,7 +847,7 @@ sub check_for_cm11_data {
                 }
             }
             else {
-                &process_serial_data("X" . $data, 1);
+                &process_serial_data("X" . $data);
             }
         }
     }
@@ -894,7 +895,7 @@ sub check_for_generic_serial_data {
             $Serial_Ports{$port_name}{data_record} = $record;
             $Serial_Ports{$port_name}{data} = $remainder;
             if ($Serial_Ports{$port_name}{process_data}) {
-                &process_serial_data($record, 1);
+                &process_serial_data($record);
             }
             else {
                 last;           # Only process one data_record per user_code loop
@@ -907,7 +908,7 @@ sub check_for_Homevision_data {
     my $data = &Homevision::read($Serial_Ports{Homevision}{object});
     if ($data) {
         print "Homevision data=$data\n" if $config_parms{debug} =~ /homevision|serial/i;
-        &process_serial_data($data, 1);
+        &process_serial_data($data);
     }
 }
 
@@ -915,7 +916,7 @@ sub check_for_HomeBase_data {
     my $data = &HomeBase::read($Serial_Ports{HomeBase}{object});
     if ($data) {
         print "HomeBase x10 data=$data\n" if $config_parms{debug} eq 'homebase';
-        &process_serial_data("X" . $data, 1);
+        &process_serial_data("X" . $data);
     }
 }
 
@@ -1072,6 +1073,7 @@ sub check_for_socket_data {
             }
         }
     }
+
                                 # See if any active ports have data ... this could be rolled into previous loop
     for my $port_name (@active_ports) {
         my $sock = $Socket_Ports{$port_name}{socka};
@@ -1090,16 +1092,13 @@ sub check_for_socket_data {
             }
         }
     }
-
-
-    # Get data from active ports
+                                # Get data from active ports
     for my $port_name (@ports_with_data) {
         my $sock = $Socket_Ports{$port_name}{socka};
-        print "\nchecking port=$port_name sock=$Socket_Ports{$port_name}{socka} lso=$leave_socket_open_passes.\n" if $config_parms{debug} eq $port_name;
-
+ 
         my $data;
 
-                                # Buffer mode means only read one line per pass
+                                # Buffered mode means only read one line per pass
                                 #  - This allows user code the option of reading port with <>
                                 #  - Assumes clients will send a line at a time, so will not block 
         if ($Socket_Ports{$port_name}{datatype} and $Socket_Ports{$port_name}{datatype} eq 'buffered') {
@@ -1108,22 +1107,28 @@ sub check_for_socket_data {
         else {
                                 # 1500 is ethernet packet size
             my $from_saddr = recv($sock, $data, 1500, 0); 
+
+                                # Store udp from_* data
             if ($Socket_Ports{$port_name}{protocol} and $Socket_Ports{$port_name}{protocol} eq 'udp') {
                 (my $from_port, my $from_ip) = sockaddr_in($from_saddr);
                 $Socket_Ports{$port_name}{from_port} = $from_port;
                 $Socket_Ports{$port_name}{from_ip}   = $from_ip;
             }
         }
+
+        print "\n sock=$sock lso=$leave_socket_open_passes data=$data.\n"  if $config_parms{debug} eq $port_name;
+
                                 # Need to do this or the socket never closes!
                                 # For some reason, nfound = 1 (instead of -1) unless we do this.
                                 # In other words, a telnet disconnect will leave nfound=1, but no data.
                                 # When telnet closes, byte IS defined, but is empty, so check on ''
-        
         if (!defined $data or $data eq '') {
             print "closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
             &socket_close($port_name);
         }
 
+
+                                # If raw mode, return data as is
         if ($Socket_Ports{$port_name}{datatype} and $Socket_Ports{$port_name}{datatype} eq 'raw') {
             $Socket_Ports{$port_name}{data_record} = $data;  # No not break data on newlines
             next;
@@ -1153,6 +1158,7 @@ sub check_for_socket_data {
             $Socket_Ports{$port_name}{data_record} = $record;
             $Socket_Ports{$port_name}{data}        = $remainder;
             
+
             if ($port_name eq 'http') {
                 if ($record =~ /^ *GET /) {
                     ($leave_socket_open_passes, $leave_socket_open_action) = &process_http_request($sock, $record);
@@ -1181,7 +1187,6 @@ sub check_for_socket_data {
             }
         }
     }
-
 }    
 
                                 # This is called by mh/lib/Generic_Item.pm
@@ -1189,19 +1194,26 @@ sub check_for_socket_data {
 sub check_for_tied_events {
     my @objects = @_;
     for my $object1 (@objects) {
-        my $state1 = lc $object1 -> state;
-        my $state_key = $state1;
+#       my $state1 = lc $object1 -> state;
+        my $state1 =    $object1 -> state;
 
         print "Object link: starting enumeration for object=$object1 state=$state1\n" if $config_parms{debug} eq 'events';
 
         for my $key (keys %{$$object1{tied_objects}}) {
+
+                                # If the tied object is not tied to that state, 
+                                # see if it is tied to all_states
+            my $state_key = $state1;
             $state_key = 'all_states' unless $$object1{tied_objects}{$key}{$state_key};
+
             if ($$object1{tied_objects}{$key}{$state_key}) {
                 my ($object2, $state2) = @{$$object1{tied_objects}{$key}{$state_key}};
                 $state2 = $state1 unless defined $state2;
                 print "Object link: Setting $object2 to $state2\n" if $config_parms{debug} eq 'events';
                 if ($object2->can('set')) {
                     $object2->set($state2);
+#                   $object2->{changed_by} = $object1->{object_name};
+                    $object2->{changed_by} = $object1;
                 }
                 else {
                     print "tie_items object can not set: $object2\n";
@@ -1210,10 +1222,12 @@ sub check_for_tied_events {
         }
 
         for my $event (keys %{$$object1{tied_events}}) {
+            my $state_key = $state1;
             $state_key = 'all_states' unless $$object1{tied_events}{$event}{$state_key};
+
             if ($$object1{tied_events}{$event}{$state_key}) {
                 print "Event link: eval event=$event\n" if $config_parms{debug} eq 'events';
-                my $state = $state_key; # So eval can substitue $state
+                my $state = $state1; # So eval can substitue $state
                 my $object=$object1;
                 eval $event;
                 print "tie_events eval error: $@" if $@;
@@ -1223,34 +1237,6 @@ sub check_for_tied_events {
     }
 }
 
-sub check_for_tied_events_old {
-    my @objects = @_;
-    for my $object (@objects) {
-        print "Object link: starting enumeration for object=$object\n" if $config_parms{debug} eq 'events';
-        my ($ref, $state);
-        for $ref (@{$object->{'tied_objects'}}) {
-            $state = ($ref->[1]) ? $ref->[1] : $object->state;
-            print "Object link: Setting $ref->[0] to $state\n" if $config_parms{debug} eq 'events';
-            $ref->[0]->set($state);
-        }
-        for $ref (@{$object->{'tied_objects:'.lc($object->state)}}) {
-            $state = ($ref->[1]) ? $ref->[1] : $object->state;
-            print "Object link: Setting $ref->[0] to $state\n" if $config_parms{debug} eq 'events';
-            $ref->[0]->set($state);
-        }
-
-        for $ref (@{$object->{'tied_events'}}) {
-            $state = ($ref->[1]) ? $ref->[1] : $object->state;
-            print "Event link: starting eval\n" if $config_parms{debug} eq 'events';
-            eval "$ref->[0]";
-        }
-        for $ref (@{$object->{'tied_events:'.lc($object->state)}}) {
-            $state = ($ref->[1]) ? $ref->[1] : $object->state;
-            print "Event link: starting eval\n" if $config_parms{debug} eq 'events';
-            eval "$ref->[0]";
-        }
-    }
-}
 
 sub check_for_timer_actions {
     my ($ref);
@@ -1475,7 +1461,7 @@ sub eval_user_code_error {
             $error.="Line $line2:  ". $code[$line2-1]. "\n";
         }
     }
-    return $error;
+    return "$Time_Date: " . $error;
 }
 
 sub eval_user_code_reset {
@@ -1736,7 +1722,7 @@ sub object_states_restore {
 sub object_states_save {
     my ($object_type, $var, $expire_time, $state);
 
-    undef $restore_state;
+    my $restore_state;
                                 # Save states on user specifed Save keys
     for $var (keys %Save) {
         no strict 'refs';
@@ -2085,7 +2071,19 @@ sub process_external_command {
     elsif ($cmd =~ /^display (.+)/i) {
         display($1);
     }
-    elsif ($cmd =~ /[A-Z0-9]+$/ and &process_serial_data($cmd, 0)) {
+                                # Allow for simulated serial data
+#   elsif ($cmd =~ /[A-Z0-9]+$/ and &process_serial_data($cmd)) {
+    elsif ($cmd =~ /[A-Z0-9]+$/ and my @refs = &Serial_Item::serial_items_by_id($cmd)) {
+        for my $ref (@refs) {
+            if (my $state = $$ref{state_by_id}{$cmd}) {
+#               set_receive $ref $state;
+                set         $ref $state;
+                print "Serial event=$cmd state=$state\n" if $config_parms{debug} eq 'serial';
+            }
+            else {
+                set         $ref $cmd;
+            }
+        }
         print_log "Found a matching event for xcmd=$cmd";
     }
 #   elsif ($cmd =~ /[a-zA-Z0-9]+$/) {
@@ -2101,8 +2099,8 @@ sub process_external_command {
 }
 
 sub process_serial_data {
-    my ($event_data, $warning_flag) = @_;
-    my ($event_type, $state, $ref);
+    my ($event_data, $prev_pass) = @_;
+    my ($event_type, $state, $ref, @refs, $matched);
 
     return unless $event_data;
 
@@ -2112,8 +2110,9 @@ sub process_serial_data {
     print "Serial data: event_type=$event_type, event_data=$event_data\n" 
         if $config_parms{debug} eq 'serial' or $config_parms{debug} eq 'X10';
 
-    my @refs;
+                                # Look for a direct match
     if (@refs = &Serial_Item::serial_items_by_id($event_data)) {
+        $matched = 1;
         for $ref (@refs) {
             if ($state = $$ref{state_by_id}{$event_data}) {
                 set_receive $ref $state;
@@ -2124,7 +2123,6 @@ sub process_serial_data {
             }
                                 # Allow for other processing
             &serial_stub($ref, $state, $event_data);
-#           push(@reset_states, $ref);
         }
     }
 
@@ -2134,10 +2132,23 @@ sub process_serial_data {
             set_receive $ref $event_data;
         }
     }
+    else {
+        print_log "Unmatched incoming serial data=$event_data";
+    }
 
-    elsif ($event_type eq 'X') {
+
+                                # Check for merged or broken X10 data
+    if ($event_type eq 'X') {
 
         print_log "X10: Incoming data=$event_data" if $config_parms{x10_errata} >= 4;
+
+                                # Track previous key so we can do multi-key sequences
+        my $prev_x10_time  = $prev_serial_event{$event_type}{time};
+        my $prev_x10_event = $prev_serial_event{$event_type}{event};
+        unless ($prev_pass) {
+            $prev_serial_event{$event_type}{time}  = &get_tickcount;
+            $prev_serial_event{$event_type}{event} = $event_data;
+        }
 
                                 # Check for codes All-on All-off
         if ($event_data =~ /^X(\S)([OP])$/) {
@@ -2147,26 +2158,8 @@ sub process_serial_data {
             return 1;
         }
         
-
-                                # Check for multi-key X10 commands (e.g. XA1 XAJ -> XA1AJ)
-        elsif ($prev_serial_event{$event_type}{time} and 
-               $prev_serial_event{$event_type}{time} > (&get_tickcount - $config_parms{x10_multikey_delay})) {
-            my $event_data2 = $prev_serial_event{$event_type}{event} . substr($event_data, 1);
-            print "X10: Merged string data=$event_data2\n" if $config_parms{debug} eq 'X10' or $config_parms{x10_errata} >= 3;
-                                # See if it matches as one string
-            if (&Serial_Item::serial_items_by_id($event_data2)) {
-                print_log "X10: Event found for merged data=$event_data2\n" if $config_parms{x10_errata} >= 3;
-                push(@serial_data_buffer, $event_data2);
-                return 1;
-            }
-                                # See if the merge string matches as smaller strings.
-            else {
-                return 1 if &process_x10_chunks($event_data2, $warning_flag);
-            }
-        }
-
                                 # Do special X10 data processing on longer X10 strings
-        elsif (3 < (my $length = length($event_data))) {
+        if (!$matched and 3 < (my $length = length($event_data))) {
 
 
             my $f_code = substr($event_data, 2, 1);
@@ -2182,36 +2175,42 @@ sub process_serial_data {
 
                                 # Code incoming bright/dim with the same syntax as outgoing:  e.g XA+20   XB-30
                                 #  - this allows matching with house code items: e.g. new X10_Item('A');
-                &process_serial_data('X' . substr($event_data, 1, 1) . $dim_level, 1);
+                &process_serial_data('X' . substr($event_data, 1) . $dim_level);
                 return 1;
             }
-                
                                 # Check to see if X10 strings got run together (XA1A2 ->  XA1 XA2)
             else {
-                return 1 if &process_x10_chunks($event_data, $warning_flag);
+                return 1 if &process_x10_chunks($event_data);
+            }
+
+        }
+
+                                # Check for multi-key X10 commands (e.g. XA1 XAJ -> XA1AJ)
+        if ($prev_x10_time and 
+            $prev_x10_time > (&get_tickcount - $config_parms{x10_multikey_delay})) {
+            my $event_data2 = $prev_x10_event . substr($event_data, 1);
+            print "X10: Merged string data=$event_data2\n" if $config_parms{debug} eq 'X10' or $config_parms{x10_errata} >= 3;
+                                # See if it matches as one string
+            if (&Serial_Item::serial_items_by_id($event_data2)) {
+                print_log "X10: Event found for merged data=$event_data2\n" if $config_parms{x10_errata} >= 3;
+                push(@serial_data_buffer, $event_data2);
+                return 1;
+            }
+                                # See if the merge string matches as smaller strings ... IF we have not matched yet
+            elsif (!$matched) {
+                return 1 if &process_x10_chunks($event_data2, $event_type)
             }
         }
 
-                                # Track previous key so we can do multi-key sequences
-        $prev_serial_event{$event_type}{time} = &get_tickcount;
-        $prev_serial_event{$event_type}{event} = $event_data;
-
-        print_log "X10: Unmatched incoming data=$event_data" if $warning_flag and $config_parms{x10_errata} >= 2;
-        return 0;
+        print_log "X10: Unmatched incoming data=$event_data" if !$matched and $config_parms{x10_errata} >= 2;
 
     }
 
-    else {
-        print_log "Unmatched incoming serial data=$event_data" if $warning_flag;
-        return 0;
-    }
-
-
-    return 1;                   # Indicate we found a matching event
+    return $matched;
 }
 
 sub process_x10_chunks {
-    my ($event_data, $warning_flag) = @_;
+    my ($event_data, $event_type) = @_;
     my $length = length($event_data);
     my $pos = 1;
     my $flag_found = 0;
@@ -2237,9 +2236,12 @@ sub process_x10_chunks {
         }
         else {
             print "  No match found: $event_data_chunk\n" if $config_parms{debug} eq 'X10';
-            &print_log("X10: Unmatched incoming data_chunk=$event_data_chunk") if $warning_flag and $config_parms{x10_errata} >= 2;
+            &print_log("X10: Unmatched incoming data_chunk=$event_data_chunk") if $config_parms{x10_errata} >= 2;
             $pos += 2;
         }
+    }
+    if ($flag_found and $event_type) {
+        $prev_serial_event{$event_type}{time} = 0;
     }
     return $flag_found;
 }
@@ -2435,8 +2437,9 @@ sub read_user_code {
     my %member_sort_order;
     for $file (sort sort_user_code keys %User_Code) {
         print "Reading $file\n" if $config_parms{debug} eq 'misc';
-        
-        my ($member_name) = $file =~ /([^\\\/\.]+)\.\S+$/i;
+ 
+                                # Allow for . in dir name (e.g. misterhouse-2.26)
+        my ($member_name) = $file =~ /([^\\\/\.]+)\.[^\\\/\.]+$/i;
 
         $webname = $member_name;
         $noloop_flag = 0;
@@ -2591,7 +2594,6 @@ sub run_voice_cmd {
         $said  = 1 unless $said; 
         set $ref $said;
 #       $ref->{said} = $said;
-#       push(@reset_states, $ref);
         return $ref;
     }
     else {
@@ -2703,6 +2705,7 @@ sub set_global_vars {
 
 
         my ($cpu_used, $memory_used_virtual, $memory_used_real);
+        $cpu_used = 0;
 
                                 # Linux info ... maybe should test $O for linux??
         if ($^O eq 'linux') {
@@ -2752,9 +2755,7 @@ sub set_global_vars {
                                                 &time_diff($Time_Boot_time, (&get_tickcount)/1000, undef, 'numeric'));
         $Tk_objects{label_uptime_mh}  = sprintf("Uptime Program:  %s",
                                                 &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
-        $cpu_used = 0 unless $cpu_used;
-        $Tk_objects{label_cpu_used}   = sprintf("Cpu Used: %5.1f%%",
-                                                $cpu_used);
+        $Tk_objects{label_cpu_used}   = sprintf("Cpu Used: %5.1f%%", $cpu_used);
         $Tk_objects{label_cpu_used}  .= sprintf("    Memory Used (virtual/real): %4.1f/%4.1f Meg",
                                                 $memory_used_virtual, $memory_used_real) if $memory_used_virtual;
 
@@ -2941,8 +2942,15 @@ sub set_sun_time {
     push @args, "-time_zone", $config_parms{time_zone} if defined $config_parms{time_zone};
     push @args, "-latitude",  $config_parms{latitude}  if defined $config_parms{latitude};
     push @args, "-longitude", $config_parms{longitude} if defined $config_parms{longitude};
+    my $pgm;
+    if ($OS_win) {
+        $pgm = "$Pgm_Path\\sun_time.bat @args";
+    }
+    else {
+        $pgm = "$Pgm_PathU/sun_time @args";
+    }
     print "sun_time @args: ";
-    my $results = `$Pgm_PathU/sun_time @args`;
+    my $results = `$pgm`;
     ($Time_Sunrise, $Time_Sunset) = $results =~ /Sunrise=([\S ]+) +Sunset=([\S ]+)/;
     print "rise=$Time_Sunrise set=$Time_Sunset\n";
 }
@@ -3628,16 +3636,17 @@ sub write_user_code {
     &Voice_Cmd::mic('on');
 
                                 # Now set usage_name in each object, so they know what they are called.
-    my $var;
+#   my $var;
 #   for $var (keys %main::) { 
 #       no strict 'refs'; 
 #       my $ref = ${$var}; 
-    for (sort keys %file_by_object_name) {
-        for $var (keys %{$file_by_object_name{$_}}) {
-            my $ref = eval "\\$var"; 
-            $$ref->{usage_name} = $var; 
-        }
-    }
+
+#   for (sort keys %file_by_object_name) {
+#       for $var (keys %{$file_by_object_name{$_}}) {
+#           my $ref = eval "\\$var"; 
+#           $$ref->{usage_name} = $var; 
+#       }
+#   }
 
 }
 
@@ -3646,6 +3655,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.27  2000/08/19 00:58:57  winter
+# - 2.27 release.  Lots of small bug fixes.
+#
 # Revision 2.26  2000/08/11 00:47:46  danal
 # Fix bug in "datatype=raw" socket ports
 #
