@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-02-12 08:45:37 winter>
+#  Last change Time-stamp: <2001-02-24 14:36:48 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -119,10 +119,6 @@ sub RRDs::error;
 sub ReadMode {};                # In case Readkey is not installed
 sub ReadKey  {};
 
-&setup;
-&read_code;                     # Load all menus
-&monitor_commands;
-
 BEGIN {
 
     &check_for_run_cmd;
@@ -235,7 +231,7 @@ BEGIN {
         push @parms1, &file_read($Pgm_PathU . "/mh.ini");
         push @parms1, &file_read($ENV{mh_parms}) if $ENV{mh_parms};
         for (@parms1) {
-            push(@parms2, "$1=s") if /^([^\s\#]+) *=/;
+            push(@parms2, "$1=s") if /^([^\s\#]+)\s*=/;
         }
         use Getopt::Long;
         if (!&GetOptions(\%config_parms_startup, "h", "help", "run=s", "run_parms=s", @parms2) or
@@ -309,7 +305,9 @@ BEGIN {
         }
         else {                              # load the mutually-exclusive non-Windows modules
             &my_use("Device::SerialPort");  # Unix Posix verion of Win32 SerialPort
-            eval "use Term::ReadKey"; # Used for $Keyboard
+                                # Used for $Keyboard.  Messes up background mh, so is optional
+                                #  - no way to detect if we are in the foreground??
+            eval "use Term::ReadKey" if $config_parms{term} eq 'readkey';
             print "\nTerm::ReadKey not installed ... keyboard monitoring disabled\n" if $@;
             eval "use Time::HiRes('gettimeofday')";   # Used for gettimeofday for sub-second timing
             if ($@) {
@@ -349,7 +347,8 @@ BEGIN {
     }
 
 }                               # End BEGIN
- 
+
+                                # Declare all subs, then run code at the bottom
 
 sub setup {
 
@@ -454,7 +453,8 @@ sub setup {
     $SIG{HUP}   = \&read_code   if !$OS_win;  # Reload code (alias mhreload per info in mh.ini file)
     $SIG{PIPE}  = \&sig_handler_pipe;         # Web browsers can shut down sockets while we are sending data 
     $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
-    
+#   $SIG{TTIN} = 'IGNORE';                    # This does not help ReadKey in cbreak mode :(
+
     $config_parms{code_dir}         = $Pgm_PathU . "/../code"        unless $config_parms{code_dir};
     $config_parms{code_dir_common } = $Pgm_PathU . "/../code_common" unless $config_parms{code_dir_common};
 
@@ -724,7 +724,6 @@ sub setup {
                                 # The remaining subroutines are in alphabetical order
 
 
-
                                 # This code allows us to add dynamic user code hooks at various places.
 my (%hook_pointers, %hook_pointers_persistent, %hook_locations, %hook_parms);
 sub add_hook_code {
@@ -881,7 +880,7 @@ sub check_for_action {
     &check_for_serial_data if %Serial_Ports;
     &check_for_socket_data if %Socket_Ports;
     &check_for_tied_times  if $New_Minute;
-    &check_for_timer_actions;
+    &Timer::check_for_timer_actions;
     &check_for_external_command_file;
 
     &MainLoop_pre_hooks();      # Created by &add_hooks
@@ -1339,16 +1338,19 @@ sub check_for_tied_events {
             $state_key = 'all_states' unless $$object1{tied_objects}{$key}{$state_key};
 
             if ($$object1{tied_objects}{$key}{$state_key}) {
-                my ($object2, $state2, $log_msg) = @{$$object1{tied_objects}{$key}{$state_key}};
-                &print_log($log_msg) unless $log_msg eq '1';
-                $state2 = $state1 unless defined $state2;
-                if ($object2->can('set')) {
-                    $object2->set($state2);
-#                   $object2->{changed_by} = $object1->{object_name};
-                    $object2->{changed_by} = $object1;
-                }
-                else {
-                    print "tie_items object can not set: $object2\n";
+                for my $state2 (sort keys %{$$object1{tied_objects}{$key}{$state_key}}) {
+                    my ($object2, $log_msg) = @{$$object1{tied_objects}{$key}{$state_key}{$state2}};
+                    &print_log($log_msg) unless $log_msg eq '1';
+#                   $state2 = $state1 unless defined $state2;
+                    $state2 = $state1 if $state2 eq 'all_states';
+                    if ($object2->can('set')) {
+                        $object2->set($state2);
+#                       $object2->{changed_by} = $object1->{object_name};
+                        $object2->{changed_by} = $object1;
+                    }
+                    else {
+                        print "tie_items object can not set: $object2\n";
+                    }
                 }
             }
         }
@@ -1428,17 +1430,6 @@ sub check_for_tied_times {
 }
 
 
-
-sub check_for_timer_actions {
-    my ($ref);
-    for $ref (&Timer::expired_timers_with_actions) {
-                                # Use this method avoids problems with Timer is called from X10_Items
-        &Timer::run_action($ref);
-#       run_action $ref;
-    }
-}
-
-
 sub convert_k2f {       # Convert degrees Kelvin to Farenheight
     sprintf("%3.1f", 32 + (9/5)*($_[0] - 273.15));
 }
@@ -1470,6 +1461,7 @@ sub display {
                   $parms{window_name}, $parms{append});
     }
     my $text = $parms[0];
+    return unless $text;        # No data
 
                                 # If it is a file, read it
     if ($text =~ /^\S+$/ and -e $text) { 
@@ -1828,25 +1820,33 @@ sub monitor_commands {
 
 
                                 # use our own str2time here so we can do arithmitic offsets
+my %table_month = qw(jan 1 feb 2 mar 3 apr 4 may 5 jun 6 jul 7 aug 8 sep 9 oct 10 nov 11 dec 12
+                  january 1 february 2 march 3 april 4 may 5 june 6
+                  july 7 august 8 september 9 october 10 november 11 december 12);
 sub my_str2time {
     my($time_date_arg) = @_;
     return 0 if !defined $time_date_arg or $time_date_arg eq 'none';
-    my ($monthf, $mdayf, $yearf, $time_date_time, $hourf, $minf, $am_pm);
+    my ($monthf, $mdayf, $yearf, $time_date_time, $hourf, $minf, $secf, $am_pm);
     my ($op, $offset, $sec_offset, $hour_offset, $min_offset);
     my $time_date = eval(qq["$time_date_arg"]);   # Use eval for on-the-fly variable substitution
     print "Error in my_str2time: time=$time_date_arg  error=$@\n" if $@;
 
-                                # Date specification is optional
-    ($monthf, $mdayf, $yearf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\/(\S+) +(.+)/;
-    ($monthf, $mdayf, $time_date_time) = $time_date =~ /(\S+)\/(\S+) +(.+)/ unless $time_date_time; # Year is optional
+                                # Date specification is optional.  Allow for:
+                                #  12/25/00 7:00 pm
+                                #  12/25    7:00 pm
+                                #  Dec/25   7:00 pm (Dec 25 7:00 pm would be tricky)
+    ($monthf, $mdayf, $yearf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\/(\S+)\s+(.+)/;
+    ($monthf, $mdayf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\s+(.+)/ unless $time_date_time; # Year is optional
+    $monthf = $table_month{lc $monthf} if $monthf and $monthf !~ /\d+/;
     $monthf = $Month unless $monthf;
     $mdayf  = $Mday  unless $mdayf;
     $yearf  = $Year  unless $yearf;
     $monthf--;          # Jan = 0;
 
     $time_date = $time_date_time if $time_date_time;
-    ($hourf, $minf, $am_pm) = $time_date =~ /(\d+):?(\d*) *([AaPp]?[Mm]?)/;
+    ($hourf, $minf, $secf, $am_pm) = $time_date =~ /(\d+):?(\d*):?(\d*)\s*([AaPp]?[Mm]?)/;
     $minf = 0 unless $minf;
+    $secf = 0 unless $secf;
     unless (defined $hourf) {
 #       my @caller = caller;    # This is not useful in user_code eval :(
         print_log("Warning, bad time record: time=$time_date_arg time_date=$time_date ");
@@ -1878,7 +1878,7 @@ sub my_str2time {
     else {
         $sec_offset += 12 * 3600 if $am_pm eq "PM";
     }
-#   print "db td=$time_date offset=$sec_offset hour=$hourf:$minf\n";
+#   print "db td=$time_date offset=$sec_offset hour=$hourf:$minf $am_pm\n";
 
                                 # Adjust to unix convention
     if (defined $yearf) {
@@ -1886,14 +1886,14 @@ sub my_str2time {
         $yearf += 100 if $yearf < 70;
     }
 
-    if ($minf > 59 or $hourf > 24 or $mdayf > 31 or $monthf > 12) {
+    if ($secf > 59 or $minf > 59 or $hourf > 24 or $mdayf > 31 or $monthf > 12) {
         my @caller = caller;    # This is not useful in user_code eval :(
         print "Bad time format:  $time_date   caller=@caller\n";
-        print "db mday=$Mday mdayf=$mdayf min=$Minute minf=$minf " .
+        print "db mday=$Mday mdayf=$mdayf min=$Minute minf=$minf secf=$secf " .
             "hour=$Hour hourf=$hourf ap=$am_pm m=$Month mf=$monthf y=$Year yf=$yearf\n";
         return;
     }
-    return ($sec_offset + timelocal(0, $minf, $hourf, $mdayf, $monthf, $yearf));
+    return ($sec_offset + timelocal($secf, $minf, $hourf, $mdayf, $monthf, $yearf));
 }
 
 sub new_second { 
@@ -1965,7 +1965,7 @@ sub object_states_save {
     my ($object_type, $var, $expire_time, $state);
 
     print "$Time_Date: Saving object states\n" unless $config_parms{no_log} =~ /save_state/;
-    my $restore_state;
+    my ($restore_state, $restore_string);
                                 # Save states on user specifed Save keys
     for $var (keys %Save) {
         no strict 'refs';
@@ -1979,7 +1979,7 @@ sub object_states_save {
         for $var (keys %{$file_by_object_name{$object_type}}) {
             print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'misc';
             my $ref = $objects_by_object_name{$var};
-            my $restore_string =  &object_states_save_check($ref->restore_string) if $ref->can('restore_string');
+            $restore_string =  &object_states_save_check($ref->restore_string) if $ref->can('restore_string');
             $restore_state .= "if (defined $var) {$restore_string} else {'var not used'}\n" if $restore_string;
         }
     }
@@ -2014,12 +2014,14 @@ sub object_states_save_check {
 #   elsif ($state =~ /^[^\W\d_]+$/) {
 
                                 # This is an effective test
-    eval $save_string;
-    if ($@) {
-        print "\n\nWARNING, Can not save this wierd state: $save_string. \n - Error: $@\n\n" 
-            if $config_parms{debug} eq 'misc';
-        return;
-    }
+                                #  - no, this is a bad think.  evaling a timer $save_string
+                                #    will reset the timer!  Lets skip this check. 
+#    eval $save_string;
+#    if ($@) {
+#        print "\n\nWARNING, Can not save this wierd state: $save_string. \n - Error: $@\n\n" 
+#            if $config_parms{debug} eq 'misc';
+#        return;
+#    }
                                 # Can not restore stuff with carrage returns (for now). 
                                 #  - we pop/eval off of a list array
 
@@ -2633,7 +2635,7 @@ sub read_table_files {
         my $format;
         my %formats_seen;
         while (<TABLE_IN>) {
-            $format = $1 if / *Format *= *(\S+)/i;
+            $format = $1 if /Format\s*=\s*(\S+)/i;
             if (/^\s*#/) {      # comment line
                 print TABLE_OUT $_;
                 next;
@@ -2883,6 +2885,14 @@ sub do_user_file {
     print_log "\nError in running eval on $file: \n error: $@\n" if $@;
 }
 
+sub run_after_delay {
+    my ($delay, $code_ref) = @_;
+    my $timer = new Timer;
+    set $timer $delay, $code_ref;
+                                # Data Dumpper will not anonymous subroutines
+#   push @{$Persistent{timers}}, $timer;
+}
+
 sub run_voice_cmd {
     my ($cmd, $vocab) = @_;
     $vocab = 'mh' unless $vocab; # Default
@@ -2938,7 +2948,6 @@ sub set_global_vars {
                                 # Need to get smart and do this only every second/hour/etc.
     $loop_speed_cnt++;
     $Loop_Count++;
-    &Timer::increment_timer_loop; # Needed so we can have 'expired' work multiple times per pass
     $New_Second      = 0;
     $New_Msecond_500 = 0;
     $New_Msecond_250 = 0;
@@ -3119,7 +3128,7 @@ sub set_global_vars {
                         print "Checking holiday dates $config_parms{holiday_dates}\n";
                         undef $Holiday;
                         for my $date_des (split ',', $config_parms{holiday_dates}) {
-                            my($month, $mday, $des) = $date_des =~ m|(\d+)/(\d+) *(.*)|;
+                            my($month, $mday, $des) = $date_des =~ m|(\d+)/(\d+)\s*(.*)|;
                             if ($month == $Month and $mday == $Mday) {
                                 &print_log("Today is a holiday: $des");
                                 $des = 1 unless $des; # Description is optional
@@ -3283,8 +3292,11 @@ sub serial_port_open {
 
 
 sub set_sun_time {
-    my @parms = (latitude  =>  $config_parms{latitude}, longitude => -$config_parms{longitude},
-                 time_zone => -$config_parms{time_zone});
+                                # Use abs to allow for negative longitude and time_zone
+                                # The silly Astro::Sun_Time module requires negative long and time zone
+    my @parms = (latitude  =>  $config_parms{latitude}, longitude => - abs $config_parms{longitude},
+                 time_zone => - abs $config_parms{time_zone});
+
     print "Latitude: $config_parms{latitude},  Longitude: $config_parms{longitude},  Time Zone: $config_parms{time_zone}\n";
     $Time_Sunrise = time_to_ampm &sun_time(type => 'rise', @parms);
     $Time_Sunset  = time_to_ampm &sun_time(type => 'set',  @parms);
@@ -3970,7 +3982,8 @@ sub tk_label {
         $Tk_objects{label}{$pvar}->destroy if $Tk_objects{label}{$pvar} and Exists($Tk_objects{label}{$pvar});
                                 # Note: Use a fixed font, so label size does not change with changing letters.
         $Tk_objects{label}{$pvar} = $Tk_objects{grid}->
-            Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font_fixed});
+            Label(-relief => 'sunken', -textvariable => $pvar, -justify => 'left',
+                  -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font_fixed});
 #           Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w', -font => $font1);
         push(@widgets, $Tk_objects{label}{$pvar});
     }
@@ -4069,15 +4082,13 @@ sub write_user_code {
 }
 
 
+my %table_hcodes = qw(A 0110  B 1110  C 0010  D 1010  E 0001  F 1001  G 0101  H 1101
+                      I 0111  J 1111  K 0011  L 1011  M 0000  N 1000  O 0100  P 1100);
+my %table_dcodes = qw(1 0110  2 1110  3 0010  4 1010  5 0001  6 1001  7 0101  8 1101
+                      9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
+                      A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
 sub x10_dim_level_decode {
     my ($code) = @_;
-
-    my %table_hcodes = qw(A 0110  B 1110  C 0010  D 1010  E 0001  F 1001  G 0101  H 1101
-                          I 0111  J 1111  K 0011  L 1011  M 0000  N 1000  O 0100  P 1100);
-    my %table_dcodes = qw(1 0110  2 1110  3 0010  4 1010  5 0001  6 1001  7 0101  8 1101
-                          9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
-                          A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
-
                                 # Convert bit string to decimal
     my $level_b = $table_hcodes{substr($code, 0, 1)} . $table_dcodes{substr($code, 1, 1)};
     my $level_d = unpack('C', pack('B8', $level_b));
@@ -4089,12 +4100,25 @@ sub x10_dim_level_decode {
     return $level_p;
 }
 
+#---------------------------------------------------------------------------
+
+                                # Lets do it.  Note, we put this at the bottom so 
+                                # we can delare global arrays like %table_hcodes and %table_month
+&setup;
+&read_code;                     # Load all menus
+&monitor_commands;
+
+#---------------------------------------------------------------------------
+
 
 __END__
 
 
 #
 # $Log$
+# Revision 2.45  2001/02/24 23:18:05  winter
+# - 2.45 release
+#
 # Revision 2.44  2001/02/12 14:50:06  winter
 # - add Nextpass_Actions
 #

@@ -7,7 +7,7 @@ use strict;
 # Uses various flakey heuristics to pick out real names.
 
 my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan 
-                     Memory More On Outlook Preset Radio Random Round Serial Voice Windows Cue Dynamic Festival File Some
+                     Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
                      ViaVoice);
 my @bogus_last  = qw(Homelink House Group Report Programs);
 
