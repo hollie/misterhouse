@@ -17,7 +17,8 @@ See mh/bin/mh.ini for the various photo_* parms
 =cut
 
 use Tk;
-my_use "Tk::JPEG" if $Reload;
+my_use "Tk::JPEG" if $Reload;           # Optional, in case it is not installed
+my_use "Tk::CursorControl" if $Reload;  # Optional, in case it is not installed
 
 $photo_slideshow         = new Voice_Cmd '[Start,Stop,Next,Previous] the photo slideshow';
 
@@ -30,7 +31,8 @@ if ($Reload) {
     $config_parms{photo_time} = 60 unless defined $config_parms{photo_time};
 }
 
-my ($mw_photo, $mw_photo_label, $mw_photo_image);
+my ($mw_photo, $mw_photo_label, $mw_photo_image, $mw_cursor);
+
 if (said $photo_slideshow eq 'Start') {
                                 # Setup TV 
     eval 'set $TV ON; set $AMP ON; set $TV "video1"; set $AMP "vcr"; my $key = "\ct\cd640 480\ct"; system "echo $key |a2x";';
@@ -39,6 +41,7 @@ if (said $photo_slideshow eq 'Start') {
         $MW = MainWindow->new;
         $MW->geometry('0x0+0+0');
     }
+    eval '$mw_cursor = $MW->CursorControl';       # Initialise the CursorControl
     $mw_photo = $MW->Toplevel(-bg => "black");
     $mw_photo->overrideredirect(1);
     geometry $mw_photo $MW->screenwidth . "x" . $MW->screenheight . "+0+0";
@@ -46,6 +49,7 @@ if (said $photo_slideshow eq 'Start') {
     $mw_photo -> bind("<q>", sub { run_voice_cmd 'Stop the photo slideshow' });
     $mw_photo -> bind("<n>", sub { &photo_change('next')                    });
     $mw_photo -> bind("<p>", sub { &photo_change('previous')                });
+    eval '$mw_cursor-> hide($mw_photo)';   # Hide the mouse cursor on this window
 
     $mw_photo_label = $mw_photo -> Label(-border => 0) ->
       pack(-anchor => 'center', -expand => 1);
@@ -54,9 +58,11 @@ if (said $photo_slideshow eq 'Start') {
 }
 
 if (said $photo_slideshow eq 'Stop') {
+    eval '$mw_cursor-> show($mw_photo)';   # Show the cursor
 #   $MW             -> destroy  if $MW and ! $config_parms{tk};
     $mw_photo       -> destroy  if $mw_photo;
     $mw_photo_image -> delete   if $mw_photo_image;
+    undef $mw_cursor;
     undef $mw_photo_image;
     unset $photo_slideshow_timer;
 }
