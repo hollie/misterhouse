@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-10-21 21:24:07 winter>
+#  Last change Time-stamp: <2000-10-28 16:27:58 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -84,7 +84,7 @@ my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, @Item_Code, @Item_Code_Obje
 my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
-my (%prev_serial_event, @Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
+my (@prev_x10_events, @Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
 my ($CON_IN, $CON_OUT);
 #use vars '$CON_IN', '$CON_OUT';
 
@@ -641,7 +641,8 @@ sub setup {
     
     &password_read;
 
-    srand(time() ^ ($$ + ($$ << 15)) ); # Set the randum number seed, used in time_random;
+                                # Perl 5.004+ will self-randomize
+#   srand(time() ^ ($$ + ($$ << 15)) ); # Set the randum number seed, used in time_random;
 
     $config_parms{max_log_entries} = 50 unless defined $config_parms{max_log_entries};
     $config_parms{max_state_log_entries} = 10 unless defined $config_parms{max_state_log_entries};
@@ -1753,7 +1754,7 @@ sub object_states_restore {
 sub object_states_save {
     my ($object_type, $var, $expire_time, $state);
 
-    print "$Time_Date: Saving object states ...";
+    print "$Time_Date: Saving object states\n" unless $config_parms{no_log} =~ /save_state/;
     my $restore_state;
                                 # Save states on user specifed Save keys
     for $var (keys %Save) {
@@ -1783,7 +1784,6 @@ sub object_states_save {
         print_log("Object states saved") if $config_parms{debug} eq 'misc';
         print "Save object states:  restore_state=\n$restore_state\n" if $config_parms{debug} eq 'misc';
     }
-    print " done\n";
    
 }
 
@@ -2147,11 +2147,9 @@ sub process_serial_data {
         print_log "X10: Incoming data=$event_data" if $config_parms{x10_errata} >= 4;
 
                                 # Track previous key so we can do multi-key sequences
-        my $prev_x10_time  = $prev_serial_event{$event_type}{time};
-        my $prev_x10_event = $prev_serial_event{$event_type}{event};
         unless ($prev_pass) {
-            $prev_serial_event{$event_type}{time}  = &get_tickcount;
-            $prev_serial_event{$event_type}{event} = $event_data;
+            pop  @prev_x10_events if @prev_x10_events > 4;
+            unshift @prev_x10_events, {time => &get_tickcount, data => substr($event_data, 1)};
         }
 
                                 # Check for codes All-on All-off
@@ -2181,7 +2179,7 @@ sub process_serial_data {
 
                                 # Code incoming bright/dim with the same syntax as outgoing:  e.g XA+20   XB-30
                                 #  - this allows matching with house code items: e.g. new X10_Item('A');
-                $prev_serial_event{$event_type}{time} = 0; # Disable merging with raw data
+                undef @prev_x10_events; # Disable merging with raw data
                 &process_serial_data('X' . substr($event_data, 1, 1) . $dim_level);
                 return 1;
             }
@@ -2193,9 +2191,14 @@ sub process_serial_data {
         }
 
                                 # Check for multi-key X10 commands (e.g. XA1 XAJ -> XA1AJ)
-        if ($prev_x10_time and 
-            $prev_x10_time > (&get_tickcount - $config_parms{x10_multikey_delay})) {
-            my $event_data2 = $prev_x10_event . substr($event_data, 1);
+        my $prev_x10_event;
+        for my $i (1 .. 4) {
+            my $prev_time = $prev_x10_events[$i]{time};
+            last unless $prev_time and $prev_time > (&get_tickcount - $config_parms{x10_multikey_delay});
+            $prev_x10_event = $prev_x10_events[$i]{data} . $prev_x10_event;
+        }
+        if ($prev_x10_event) {
+            my $event_data2 = 'X' . $prev_x10_event . substr($event_data, 1);
             print "X10: Merged string data=$event_data2\n" if $config_parms{debug} eq 'X10' or $config_parms{x10_errata} >= 3;
                                 # See if it matches as one string
             if (&Serial_Item::serial_items_by_id($event_data2)) {
@@ -2259,7 +2262,7 @@ sub process_x10_chunks {
         }
     }
     if ($flag_found and $event_type) {
-        $prev_serial_event{$event_type}{time} = 0;
+        undef @prev_x10_events;
     }
     return $flag_found;
 }
@@ -3751,6 +3754,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.33  2000/10/28 21:33:38  winter
+# - fix random and x10 string merging
+#
 # Revision 2.32  2000/10/22 16:44:57  winter
 # - 2.32 release
 #
