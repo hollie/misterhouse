@@ -8,7 +8,7 @@ messages is at http://sourceforge.net/mail/?group_id=1365 )
 
 =head2 Version 2.54 posted on 06/26/2001
 
-Version 2.24 was just uploaded to:
+Version 2.54 was just uploaded to:
 
   http://misterhouse.sourceforge.net/download.html
   http://misterhouse.net/download.html

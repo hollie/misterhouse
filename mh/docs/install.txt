@@ -161,9 +161,15 @@ Windows Detailed Install Instructions
     files from the 4.0 SDK from here:
     ftp://misterhouse.sourceforge.net/pub/misterhouse/ . Note: IE
     takes a long time (5 minutes) to list that directory (maybe it
-    is listing the 20,000+ dirs in pub). Netscape or command line
-    ftp work much faster. Or you can also get the files here:
-    http://misterhouse.net/public/speech .
+    is listing the 20,000+ dirs in pub). An ftp program works much
+    faster. Or you can also get the files here:
+    http://misterhouse.net/public/speech Avoid downloading with
+    Netscape, as for some reason it does not load the file as a
+    binary file. Verify the file sizes match these:
+
+       7674104 Aug  6  2000 msttsl.exe
+       6935288 Aug  6  2000 mscsrgl.exe
+       1013356 Aug  6  2000 speech_api.zip
 
     Running msttsl.exe will install the TTS engine. mscsrgl.exe will
     install the VR engine. Unzip speech_api.zip, then run
@@ -495,6 +501,9 @@ Coding your own events
     items in the first code member you use it in. In either case you
     can use the "List X10 items" command created in mh_control.pl to
     review all your X10 items.
+
+    To enabled password protection, run set_password. Note: only the
+    first 8 characters are used.
 
     When you want to upgrade to a newer verion of mh, follow these
     steps:

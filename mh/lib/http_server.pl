@@ -31,8 +31,6 @@ my %mime_types = (
 );
 
 
-        
-
 my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs, %http_agent_formats);
 sub main::http_read_parms {
     
@@ -135,12 +133,12 @@ sub process_http_request {
     elsif ($Http{'User-Agent'} =~ /Mozilla/) {
         $Http{'User-Agent'}    =  'Mozilla';
     }
-    if ($config_parms{web_format} !~ /^\d$/) {
-        $Http{format} = '';
-        $Http{format} = $http_agent_formats{$Http{'User-Agent'}} if $http_agent_formats{$Http{'User-Agent'}};
+    $Http{format} = '';
+    if ($config_parms{web_format} and $config_parms{web_format} =~ /^\d$/) {
+        $Http{format} = $config_parms{web_format};
     }
     else {
-        $Http{format} = $config_parms{web_format};
+        $Http{format} = $http_agent_formats{$Http{'User-Agent'}} if $http_agent_formats{$Http{'User-Agent'}};
     }
 #   print "dbz format=$Http{format} ua=$Http{'User-Agent'} web_format=$config_parms{web_format}\n";
 
@@ -478,7 +476,8 @@ sub get_local_file {
     my ($get_req) = @_;
     my ($http_dir, $http_member) = $get_req =~ /^(\/[^\/]+)(.*)/;
     my $file;
-    if ($http_dir and $file = $http_dirs{$http_dir}) {
+    if ($http_dir and $http_dirs{$http_dir}) {
+        $file  = $http_dirs{$http_dir};
         $file .= "/$http_member" if $http_member;
     }
     else {
@@ -2062,6 +2061,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.59  2001/06/27 13:17:39  winter
+# - 2.55 release
+#
 # Revision 1.58  2001/06/27 03:45:14  winter
 # - 2.54 release
 #

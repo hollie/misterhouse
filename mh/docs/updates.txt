@@ -3,6 +3,99 @@ Mister House Announcement List
     MisterHouse mailing list (an archive of all the list messages is
     at http://sourceforge.net/mail/?group_id=1365 )
 
+  Version 2.54 posted on 06/26/2001
+
+    Version 2.54 was just uploaded to:
+
+      http://misterhouse.sourceforge.net/download.html
+      http://misterhouse.net/download.html
+
+    New Features:
+
+    - mh now forks to a background process when serving large (> 2k)
+    web pages. This avoids pauses in mh when being accessed by slow
+    web browsers. On windows, we play some magic to emulate a fork
+    with a process that inherits the socket port, so this still
+    works on the older pre 5.6 versions of perl. This change also
+    fixes the bug that Damon Hopkins discovered with Netscape haning
+    on browsing big (> 20k) mh web pages.
+
+    - Started work on a mh proxy server, to deal with talking to
+    slow serial port interfaces like the CM11 and CM17, but this is
+    not quite ready for prime time.
+
+    - Craig Schaeffer sent in mh/web/epods files. http_server.pl was
+    updated to allow for local style sheets, so different web
+    directories can have different looks. Updated mh/bin/mh.ini
+    html_*1 parms to use these pages by default when accessed from
+    Windows CE web browsers (e.g. epod web tablets).
+
+    - If you want to simulate different browsers, you can now
+    override the format used with a new mh.ini web_format parm. For
+    example, mh -web_format 1 will use the CE epods pages. Or you
+    can add a tk button to change back and forth with this:
+
+      &tk_radiobutton('Web format',  \$config_parms{web_format}, ['default', 1, 2]);
+
+    - Evan Graham wrote mh/code/public/winamp_control.pl, which
+    allows for direct control of WinAmp through misterhouse without
+    using any special plug-ins. This allows for a larger number of
+    commands available, some of which will allow you to query the
+    status of the playback.
+
+    - Timothy Spaulding wrote mh/code/public/NetCallerID.pl to
+    interface with the $30 NetCallerID box. In addition to normal
+    CallerID, it supports Call Waiting CallerID (callerid while you
+    are on the phone).
+
+    Bug Fixes and Other Changes:
+
+    - Cleber Schereder found a problem parsing mh.ini parms with an
+    embeded # character.
+
+    - Henry Laxen discovered a non-mh version of Astro::SunTime.pm
+    caused problems (bad sunset time and no twilight calculation),
+    so I moved mh/lib/site/Astro/SunTime.pm to mh/lib/SunTime_mh.pm
+
+    - Clive Freedman added a 'request a file' option to
+    internet_mail.pl, so you can send an email request to home and
+    mh will send the requested file back. See 'Send test e mail 10'
+    (in internet_mail.pl) for an example.
+
+    - Kent Noonan added format=3 to mh/lib/Caller_Id.pm for use with
+    ZyXEL u1496 modems.
+
+    - Jean-Marie Martin discovered a 2.52 problem with web pulldown
+    menus.
+
+    - Brian Klier updated mh/code/public/Brian/tracking.pl with lots
+    of fixes, including a fix from Roger Bille that fixed an
+    inaccuracy in MicE longitude data.
+
+    - Kieran Ames found a problem with user code files with blanks
+    in the names.
+
+    - Tom Vanderpool noticed only the first 8 characters of a
+    password are used. This is a crypt limitation we can not easily
+    work around, so I updated the docs to note this.
+
+    - Roger Bille updated mh/bin/get_email to passed $body to
+    get_email_rule.
+
+    - Scott Tisdale created an UltraEdit template:
+    mh/data/mh_template.ultraedit
+
+    - Clive Freedman updated mh/code/public/weather.pl (parses
+    wunderground.com data) to add non-US functionality, simple data
+    variables which can be accessed from other scripts, and logging
+    to a table.
+
+    - Joel Moore escaped & in menu_code.pl for UP wap browsers and
+    added a -no_log mhsend_server option.
+
+    - Moved the web overlib popup window to below, not over, the
+    command.
+
   Version 2.52 posted on 05/28/2001
 
     Version 2.52 was just uploaded to:
@@ -80,7 +173,7 @@ Mister House Announcement List
     point to your own wav files without having to copy the default
     mh/sounds files.
 
-    - Moved the mh_temp files from data_dir to code_dir.
+    - Moved the mh_temp files from code_dir to data_dir.
 
   Version 2.51 posted on 05/06/2001
 

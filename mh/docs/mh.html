@@ -1995,6 +1995,10 @@ in mh.ini)
 </PRE>
 </P>
 <P>
+<PRE>     said_next    : Reads and returns the next record from the socket handle
+</PRE>
+</P>
+<P>
 <PRE>     handle       : Returns the socket handle, so you can loop on reading/writing data
                     to it directly.
 </PRE>
@@ -4847,8 +4851,13 @@ here with a 'do' instead of a call with Process_Item:
 <DT><STRONG><A NAME="item_set_password">set_password</A></STRONG><DD>
 <P>
 set_password creates and/or queries the mh password file, using the crypt
-function. If this password is set, then web and telnet access will prompt
-for it. To reset the password, delete the mh/data/.password file.
+function. If this password is set, then various menus (e.g. web, telnet,
+wap) will prompt for it.
+
+</P>
+<P>
+The crypt function limits the password to 8 characters. To reset the
+password, delete the mh/data/.password file.
 
 </P>
 <P>

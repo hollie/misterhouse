@@ -2,13 +2,109 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
+		<title>Australians to Build Spaceport on Christmas Island</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/1216243</url>
+		<time>2001-06-27 08:05:45</time>
+		<author>michael</author>
+		<department>they-say-that-santa's-on-his-way</department>
+		<topic>space</topic>
+		<comments>78</comments>
+		<section>articles</section>
+		<image>topicspace.gif</image>
+	</story>
+
+	<story>
+		<title>Hacking DirecTV over TCP/IP using Linux</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/27/0029217</url>
+		<time>2001-06-27 03:03:03</time>
+		<author>timothy</author>
+		<department>getting-bits-to-be-just-bits</department>
+		<topic>tv</topic>
+		<comments>242</comments>
+		<section>articles</section>
+		<image>topictv.jpg</image>
+	</story>
+
+	<story>
+		<title>Slashback: Shooters, Ire, Boldness</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/2221214</url>
+		<time>2001-06-26 23:59:18</time>
+		<author>timothy</author>
+		<department>learn-something-new-every-day</department>
+		<topic>slashback</topic>
+		<comments>149</comments>
+		<section>articles</section>
+		<image>topicslashback.gif</image>
+	</story>
+
+	<story>
+		<title>MSDN Subscriber Forced to use Passport</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/2050205</url>
+		<time>2001-06-26 23:33:13</time>
+		<author>CmdrTaco</author>
+		<department>now-thats-nice-and-fair</department>
+		<topic>privacy</topic>
+		<comments>423</comments>
+		<section>yro</section>
+		<image>topicprivacy.gif</image>
+	</story>
+
+	<story>
+		<title>Mandrakesoft To IPO</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/2029221</url>
+		<time>2001-06-26 22:39:44</time>
+		<author>Hemos</author>
+		<department>twist-and-turns-of-the-financial-wind</department>
+		<topic>mandrake</topic>
+		<comments>174</comments>
+		<section>articles</section>
+		<image>topicmandrake.gif</image>
+	</story>
+
+	<story>
+		<title>GeForce3: Real-time RenderMan?</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/2015243</url>
+		<time>2001-06-26 20:37:31</time>
+		<author>CmdrTaco</author>
+		<department>not-anytime-soon</department>
+		<topic>graphics</topic>
+		<comments>253</comments>
+		<section>articles</section>
+		<image>topicgraphics3.gif</image>
+	</story>
+
+	<story>
+		<title>Powerline Networks Finally Viable?</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/204229</url>
+		<time>2001-06-26 19:58:19</time>
+		<author>timothy</author>
+		<department>electrical-excitement</department>
+		<topic>tech</topic>
+		<comments>161</comments>
+		<section>articles</section>
+		<image>topictech2.jpg</image>
+	</story>
+
+	<story>
+		<title>Image Processing By Example</title>
+		<url>http://slashdot.org/article.pl?sid=01/06/26/1818245</url>
+		<time>2001-06-26 18:24:50</time>
+		<author>timothy</author>
+		<department>draw-this-way</department>
+		<topic>graphics</topic>
+		<comments>257</comments>
+		<section>articles</section>
+		<image>topicgraphics3.gif</image>
+	</story>
+
+	<story>
 		<title>Hyperion Robot Follows the Sun</title>
 		<url>http://slashdot.org/article.pl?sid=01/06/26/1717239</url>
 		<time>2001-06-26 17:48:58</time>
 		<author>michael</author>
 		<department>you-make-me-happy-when-skies-are-grey</department>
 		<topic>space</topic>
-		<comments>24</comments>
+		<comments>104</comments>
 		<section>science</section>
 		<image>topicspace.gif</image>
 	</story>
@@ -20,105 +116,9 @@ xmlns:backslash="http://slashdot.org/backslash.dtd">
 		<author>Hemos</author>
 		<department>good-deal</department>
 		<topic>music</topic>
-		<comments>93</comments>
+		<comments>181</comments>
 		<section>articles</section>
 		<image>topicmusic.gif</image>
-	</story>
-
-	<story>
-		<title>Dept. of Defense Adopts StarOffice</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/1416241</url>
-		<time>2001-06-26 14:36:20</time>
-		<author>CmdrTaco</author>
-		<department>i-almost-care</department>
-		<topic>linux</topic>
-		<comments>152</comments>
-		<section>articles</section>
-		<image>topiclinux.gif</image>
-	</story>
-
-	<story>
-		<title>Galeon At A Glance</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/1155204</url>
-		<time>2001-06-26 11:46:05</time>
-		<author>Hemos</author>
-		<department>looking-under-the-hood</department>
-		<topic>internet</topic>
-		<comments>168</comments>
-		<section>articles</section>
-		<image>topicinternet.gif</image>
-	</story>
-
-	<story>
-		<title>Round Table On Approaches To Source Code</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/0240244</url>
-		<time>2001-06-26 07:56:23</time>
-		<author>timothy</author>
-		<department>deep-thoughts-thought-deeply</department>
-		<topic>announce</topic>
-		<comments>158</comments>
-		<section>articles</section>
-		<image>topicannouncements.gif</image>
-	</story>
-
-	<story>
-		<title>Jordan Hubbard (of FreeBSD Fame) Hired by Apple</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/0137236</url>
-		<time>2001-06-26 03:13:32</time>
-		<author>Roblimo</author>
-		<department>sometimes-a-paycheck-is-nice-to-have</department>
-		<topic>bsd</topic>
-		<comments>305</comments>
-		<section>articles</section>
-		<image>topicbsd.gif</image>
-	</story>
-
-	<story>
-		<title>PGP/GnuPG June Key Analysis</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/25/2225206</url>
-		<time>2001-06-26 00:53:12</time>
-		<author>timothy</author>
-		<department>what-lies-beneath</department>
-		<topic>encryption</topic>
-		<comments>95</comments>
-		<section>articles</section>
-		<image>topicencryption.gif</image>
-	</story>
-
-	<story>
-		<title>Are Computer Graphics A Fine Art?</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/25/2244214</url>
-		<time>2001-06-25 22:48:10</time>
-		<author>timothy</author>
-		<department>tricky-question-even-without-the-computer</department>
-		<topic>graphics</topic>
-		<comments>521</comments>
-		<section>askslashdot</section>
-		<image>topicgraphics3.gif</image>
-	</story>
-
-	<story>
-		<title>More Trouble With AOL And GAIM</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/25/2115200</url>
-		<time>2001-06-25 21:12:30</time>
-		<author>timothy</author>
-		<department>we-own-all-words-with-the-letter-a</department>
-		<topic>aol</topic>
-		<comments>260</comments>
-		<section>yro</section>
-		<image>topicaol.jpg</image>
-	</story>
-
-	<story>
-		<title>Caldera Per Seat Licensing</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/25/1939235</url>
-		<time>2001-06-25 20:46:27</time>
-		<author>CmdrTaco</author>
-		<department>now-that-seems-a-little-fishy</department>
-		<topic>caldera</topic>
-		<comments>316</comments>
-		<section>articles</section>
-		<image>topiccaldera.gif</image>
 	</story>
 
 </backslash>
