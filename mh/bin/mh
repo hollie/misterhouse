@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-05-14 11:11:09 winter>
+#  Last change Time-stamp: <2000-05-14 14:00:24 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -995,6 +995,7 @@ sub check_for_socket_data {
             $Socket_Ports{$port_name}{data_record} = $record;
             $Socket_Ports{$port_name}{data}        = $remainder;
             
+            print "dbx r=$record r=$remainder\n";
             if ($port_name eq 'http') {
                 if ($record =~ /^ *GET /) {
                     ($leave_socket_open_passes, $leave_socket_open_action) = &process_http_request($sock, $record);
@@ -1022,6 +1023,7 @@ sub check_for_socket_data {
                 last; 
             }
         }
+        print "dbx done\n";
     }
 
 }    
@@ -3168,6 +3170,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.18  2000/05/14 19:01:02  winter
+# *** empty log message ***
+#
 # Revision 2.17  2000/05/14 16:15:58  winter
 # - add Socket_Item datatype.  Switch from systread to recv on tcp reads
 #
