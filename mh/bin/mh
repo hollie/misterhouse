@@ -375,6 +375,7 @@ BEGIN {
             &my_use("Win32::Process");
             &my_use("Win32::PerfLib"); # Used in &memory_used
             &my_use("Win32::Registry");
+            &my_use("Win32::MemMap") if $config_parms{http_fork} eq 'memmap';
                                 # Note: Must use eval, not my_use, or exported pgms are not seen :(
                                 #  - Loaded from: http://jenda.krynicky.cz/perl/
                                 #  - For some reason, perl2exe binary abends here, so we evaled it earlier
@@ -1411,7 +1412,9 @@ sub check_for_proxy_data {
                 unless ($proxy->start) {
                     &print_log("Proxy is dead: $address");
 #                   delete $proxy_by_room{$address};
-#                   &drop_proxy($address);  ... do not drop it ... keep testing it so we can reconnect when proxy comes back
+                          # Drop only dynamic proxies, like those in common/proxy_client_server.pl.
+                          # Leave static ones, so we can keep testing it so we can reconnect when proxy comes back
+		    &drop_proxy($address) if $config_parms{mh_proxyreg_port};
                     $address =~ s/\:\d+$//; # Shorten up name for speaking
                     $address =~ s/.+\.(\d+)$/$1/;
                     &speak("proxy $address is dead") if &new_minute(2);
@@ -1430,8 +1433,12 @@ sub check_for_proxy_data {
             if ($type eq 'serial') {
                     # If port was named, store in that hash, otherwise process
                 if ($data[1]) {
-#                   $Serial_Ports{$data[1]}{data_record} = $data[0];
-                    $Serial_Ports{$data[1]}{data} = $data[0];
+		    if (defined($Serial_Ports{$data[1]}{datatype}) and $Serial_Ports{$data[1]}{datatype} eq 'raw') {
+			$Serial_Ports{$data[1]}{data} = $data[0];
+		    }
+		    else {
+			$Serial_Ports{$data[1]}{data_record} = $data[0];
+		    }
                     if ($Serial_Ports{$data[1]}{process_data}) {
                         &process_serial_data($data[0]);
                     }
@@ -1489,6 +1496,10 @@ sub check_for_socket_data_http {
     if ($OS_win and $socket_fork_data{process} and $socket_fork_data{process}->Wait(0)) {
         print "http: closing http port after forked process s=$socket_fork_data{socket}\n" if $Debug{http};
         $socket_fork_data{socket}->close if $socket_fork_data{socket};
+	if ($config_parms{http_fork} eq 'memmap') {
+	    my $ret = $socket_fork_data{forkmem}->Close if $socket_fork_data{forkmem};
+	    print "http:************  $ret, UNDEFINED!!!!!\n" if (!defined $ret );
+	}
                                 # Do the next one, if in the que
         if ($socket_fork_data{next} and my $ptr = shift @{$socket_fork_data{next}}) {
 
@@ -1799,7 +1810,7 @@ sub check_for_tied_events {
 }
 
 sub check_for_tied_filters {
-    my ($self, $state) = @_;
+    my ($self, $state, $set_by) = @_;
 
     if ($$self{tied_filters}) {
         my $searchstate = $state;
@@ -3246,7 +3257,9 @@ sub process_external_command {
 
 my (@prev_x10_events, %prev_x10_units, $prev_x10_units_reset);
 sub process_serial_data {
-    my ($event_data, $prev_pass) = @_;
+    my ($event_data, $prev_pass, $source) = @_;
+
+    $source = 'serial' unless $source;
 
     return unless $event_data;
 
@@ -3280,7 +3293,7 @@ sub process_serial_data {
                     if ($state = $$ref{state_by_id}{$event_data}) {
 #                       $ref->{state} = $state;
 #                       set_receive $ref $state;
-                        set_receive $ref $state if $state ne $ref->{state};
+                        set_receive $ref $state, 'status' if $state ne $ref->{state};
                         print "CM11 Status results: data=$event_data1 event_data=$event_data state=$state\n" 
                             if $Debug{x10};
                     }
@@ -3306,7 +3319,7 @@ sub process_serial_data {
                 return;
             }
         }
-        unless ($prev_pass) {
+        unless ($prev_pass or $source eq 'rf') {
             pop  @prev_x10_events if @prev_x10_events > 4;
             unshift @prev_x10_events, {time => $loop_tickcount1, data => $event_data1};
         }
@@ -3319,11 +3332,11 @@ sub process_serial_data {
         for $ref (@refs) {
 #           print "db et=$event_type ed=$event_data o=$ref->{object_name}\n";
             if ($state = $$ref{state_by_id}{$event_data}) {
-                set_receive $ref $state, 'serial';
+                set_receive $ref $state, $source;
                 print "Serial event=$event_data state=$state\n" if $Debug{serial};
             }
             else {
-                set_receive $ref $event_data, 'serial';
+                set_receive $ref $event_data, $source;
             }
                                 # Allow for other processing
             &Serial_match_hooks($ref, $state, $event_data);   # Created by &add_hooks
@@ -3334,7 +3347,7 @@ sub process_serial_data {
         $matched = 1;
         for $ref (@refs) {
 #           print "db et=$event_type ed=$event_data o=$ref->{object_name}\n";
-            set_receive $ref $event_data, 'serial';
+            set_receive $ref $event_data, $source;
         }
     }
 
@@ -3450,10 +3463,13 @@ sub proxy_send {
         $address = $interface;
     }
     else {
-        return 0 unless $Serial_Ports{$interface}{object} eq 'proxy';
+				# Some interfaces (bx24) are case mixed
+	my $ref = $Serial_Ports{$interface} || $Serial_Ports{uc $interface} || $Serial_Ports{lc $interface};
+	print "proxy_send test: int=$interface r=$ref p=$$ref{object}\n" if $Debug{proxy};
+	return 0 unless $$ref{object} eq 'proxy';
         $address = $config_parms{   $interface . '_port'};
-        $address = $config_parms{lc $interface . '_port'} unless $address;
-        $address = $config_parms{uc $interface . '_port'} unless $address;
+        $address = $config_parms{lc($interface) . '_port'} unless $address;
+        $address = $config_parms{uc($interface) . '_port'} unless $address;
     }
     $address =~ s/proxy +//;
     
@@ -3522,6 +3538,14 @@ sub process_x10_chunks {
             push(@serial_data_buffer, $event_data_chunk);
             $flag_found = 1;
             $pos += 2;
+        }
+                                # Look for a 8 character match, like for a Stanley garage door transmitters
+        elsif ($event_data_chunk = 'X' . substr($event_data, $pos, 8) and
+               &Serial_Item::serial_items_by_id($event_data_chunk)) {
+            print "  Found match: $event_data_chunk\n" if $Debug{x10};
+            push(@serial_data_buffer, $event_data_chunk);
+            $flag_found = 1;
+            $pos += 8;
         }
         else {
             print "  No match found: $event_data_chunk\n" if $Debug{x10};
@@ -3697,7 +3721,7 @@ sub read_table_files {
     my $table_type = ($config_parms{table_type} =~ /xml/i) ? 'xml' : 'mht';
 
     if ($table_type eq 'xml') {
-        require "read_table_xml_A.pl";
+        require "read_table_xml.pl";
         &convert_table_files; ## convert any *.mht files that exist. 
     }
 
@@ -3738,20 +3762,26 @@ sub read_table_files {
         print TABLE_OUT "# Category = Other\n\n";
         my $format;
         my %formats_seen;
+	if ($table_type =~/xml/) { $/=undef;$format="xml"; }
+#	print "read_table: table_type [$table_type] format [$format]\n";
         while (<TABLE_IN>) {
-            if (/Format\s*=\s*(\S+)/i) {
-                $format = $1;
-                if ($format =~/xml/) { $/=undef; }
-                next;
-            }
-            if (/^\s*#/) {      # comment line
-                print TABLE_OUT $_;
-                next;
-            }
+#	    print "read_table: read data [$_]\n";
+             	  # only scan for the format tag/comments in mht files, not xml files
+            if ($table_type eq "mht"){
+		if( /Format\s*=\s*(\S+)/i) {
+                    $format = $1;
+                    next;
+	        }
+                if (/^\s*#/) {      # comment line
+                    print TABLE_OUT $_;
+                    next;
+                }
+	    }
             if ($format) {
                                 # These code reading subroutines are in mh/lib/read_table.pl
                                 # Run the Init function on Reload
                 if(!$formats_seen{$format}++){  
+#		    print "read_table: initializing for [$format]\n";
                     require "read_table_$format.pl" ;
                     my $results = eval "&read_table_init_$format(\$_)";
                     print TABLE_OUT "# Init results: $results $@\n";
@@ -4675,6 +4705,7 @@ sub parse_func_parms {
     my %parms;
 
     if (@_ > 1) {               # Fancy way key=value way
+	print "Odd number of parms in in parse_func_parms: @_.\n" if @_ % 2;
         %parms = @_;
         $text = $parms{text};
     }
@@ -5672,6 +5703,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.86  2003/12/22 00:07:41  winter
+#  - 2.86 release
+#
 # Revision 2.85  2003/12/01 03:05:33  winter
 #  - 2.85 release
 #
