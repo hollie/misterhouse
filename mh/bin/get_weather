@@ -93,16 +93,17 @@ $Geo::WeatherNOAA::proxy_from_env = 1;
 
 if ($data{conditions}) {
     print "\nGetting the current weather for $parms{city}, $parms{state}\n";
-#   $conditions = get_currentWX_html($parms{city}, $parms{state}, $parms{refresh}, "$config_parms{data_dir}/web");
     $conditions = print_current($parms{city}, $parms{state},undef,undef,undef,1);
     $conditions =~ s/&deg;F/ degrees /;
+    $conditions =~ s/ in\./ inches. /g;
 }
 
 if ($data{forecast}) {
     print "Getting the forecast for $parms{zone}, $parms{state}\n";
-#   %wx = get_forecast($parms{zone}, $parms{state}, $parms{refresh}, "$config_parms{data_dir}/web");
     $forecast = print_forecast($parms{zone}, $parms{state},undef,undef,undef,1);
     $forecast =~ s/Geo::WeatherNOAA.pm .+\n//; # Drop geo version
+    #$forecast =~ s/\.\.\./\. /g;
+    $forecast =~ s/(\()(EDT|EST|CDT|CST|MDT|MST|PDT|PST)(\) *)//g;
 }
 
 unless ($parms{no_log}) {
@@ -141,6 +142,9 @@ else {
 #	print_forecast
 
 # $Log$
+# Revision 1.11  2003/06/01 21:54:40  winter
+#  - 2.81 release
+#
 # Revision 1.10  2000/12/03 19:38:50  winter
 # - 2.36 release
 #

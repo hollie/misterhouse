@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-04-20 14:59:51 winter>
+#  Last change Time-stamp: <2003-06-01 15:09:05 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -29,11 +29,12 @@ my ($Pgm_Name, $Revision, $usage);
 use vars qw(%config_parms %config_parms_startup $Pgm_Path $Version $Version_date %Info);
 
 BEGIN {
-    $Info{Perl_compiled} = 1 unless $^X =~ /perl/i;  # If built with perl2exe
-    $Info{Perl_compiled} = 1 if $PerlApp::BUILD;     # If built with perlapp
+    $Info{Perl_compiled} = 'perl2exe' unless $^X =~ /perl/i;  # If built with perl2exe
+    $Info{Perl_compiled} = "perlapp $PerlApp::BUILD" if $PerlApp::BUILD;     # If built with perlapp
+    $Info{Perl_compiled} = "PAR $PAR::VERSION" if $PAR::VERSION;       # If built with PAR
 
     ($Version) = q$Revision$ =~ /: (\S+)/; # Auto-updated by CVS
-    $Version .= " (compiled)" if $Info{Perl_compiled};
+    $Version .= " (compiler: $Info{Perl_compiled})" if $Info{Perl_compiled};
 
             # $0=path to mh/bin, $^X=path to perl, unless perl2exe compiled mh.exe
     ($Pgm_Path, $Pgm_Name) = $0  =~ /^(.*)[\\\/]([^.]+)/;
@@ -217,7 +218,7 @@ BEGIN {
         
         print "\nCommand: $Pgm_Name @ARGV\n";
         print "Pgm  path   : $Pgm_Path\n";
-        print "Pgm  version: $Version      Last updated: $Version_date\n";
+        print "Pgm  version: $Version  Last updated: $Version_date\n";
         $Info{Perl_version} = $];
                                 # Use eval to avoid problems with earlier version (e.g. build 502)
         $Info{Perl_version} .= " Build " . eval "&Win32::BuildNumber()" if $OS_win;
@@ -275,7 +276,30 @@ BEGIN {
         }
 
         $config_parms{debug} = $config_parms{debug_old} if defined $config_parms{debug_old};
+        &set_debug_data;                        # Populate %Debug
 
+    }
+
+    sub set_debug_data {
+        if (defined $config_parms{debug}) {
+            if (!defined $Debug{debug_previous} or $config_parms{debug} ne $Debug{debug_previous}) {
+                undef %Debug;
+                $Debug{debug_previous} = $config_parms{debug};
+                                   # Allow for multiple debugs like serial;x10
+                for my $debug (split ';', lc $config_parms{debug}) {
+                                   # Allow for debug level like: x10:4
+                    next unless $debug;
+                    if ($debug =~ /(.+):(.+)/) {
+                        $Debug{$1} = $2;
+                        print "Debug for $1 set to $2\n";
+                    }
+                    else {
+                        $Debug{$debug} = 1;
+                        print "Debug for $debug set on\n";
+                    }
+                }
+            }
+        }
     }
 
     sub use_conditional_modules {
@@ -288,9 +312,18 @@ BEGIN {
         for (@Code_Dirs) { s/^\s*//; s/\s*$//; }; # Drop leading and trailing blanks
         print "Code Directories:\n - ", join("\n - ", @Code_Dirs), "\n";;
                                  # If first time, add default selected modules
-        use File::Copy;             # So we copy files
-        copy "$Pgm_Root/data/select_code_core.txt", "$config_parms{data_dir}/select_code.txt" unless 
-                                                 -e "$config_parms{data_dir}/select_code.txt";
+        use File::Copy;
+                                  # Grandfather old style file
+        move "$config_parms{data_dir}/select_code.txt", "$config_parms{data_dir}/code_select.txt" unless 
+            -e "$config_parms{data_dir}/code_select.txt";
+        move "$config_parms{data_dir}/select_code2.txt", "$config_parms{data_dir}/code_unselect.txt" unless 
+            -e "$config_parms{data_dir}/code_unselect.txt";
+
+                                  # Get default files from the distro if needed
+        copy "$Pgm_Root/data/$config_parms{code_select}", $config_parms{data_dir} unless 
+            -e "$config_parms{data_dir}/$config_parms{code_select}";
+        copy "$Pgm_Root/data/$config_parms{code_unselect}", $config_parms{data_dir} unless 
+            -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
         unshift @INC, @Code_Dirs; # So we can add/override .pm modules locally
                                   # So we can add/override .pl modules locally
@@ -625,6 +658,7 @@ sub setup {
                             $config_parms{$port_name . "_baudrate"},
                             $config_parms{$port_name . "_handshake"},
                             $config_parms{$port_name . "_datatype"});
+        $Serial_Ports{$port_name}{process_data} = 1 if $config_parms{$port_name . "_process_data"};
     }
 
                                 # Grandfather in old ibutton parms
@@ -932,12 +966,12 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
        $type = 'persistent' if $type eq '1'; # Grandfathered syntax
 
        unless( defined( $hook_locations{$location} ) ){
-           warn "Invalid hook location $location\n";
+           print "add_hook: Invalid hook location, loc=$location hook=$hook\n";
            return 0;
        }
        
        unless( ref $hook eq 'CODE' ){
-           warn "Hook must be a code reference: hook=$hook\n";
+           print "add_hook: Hook must be a code reference, loc=$location hook=$hook\n";
            return 0;
        }
        
@@ -957,7 +991,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
        my($location, $hook ) = @_;
       
        unless( defined( $hook_locations{$location} ) ){
-           warn "Invalid hook location $location\n";
+           print "drop_hook: Invalid hook location, loc=$location hook=$hook\n";
            return 0;
        }
        
@@ -976,7 +1010,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
            }
        }
        
-       warn "specified hook not found: $location\n";
+       print "drop_hook: Specified hook not found, loc=$location hook=$hook\n";
        return 0;
    }
 
@@ -2485,6 +2519,7 @@ sub object_states_restore {
 #   &speak("Error, Mr. Bruce, restoring an empty state file!") if !@states and $Info{User} eq 'winter';
 
     print "Restoring object states\n";
+
     # Set unused stats first, so they can get overwritten by a more recent state
     no strict 'vars';       # Do this so eval doesn't choke ... we do defined checks in the $state code
     while (my $state = pop @states) {
@@ -3435,7 +3470,7 @@ sub read_code {
             close DIR;
         }
                                   # Add selected members from code_dir_common
-        push @files_read, &file_read("$config_parms{data_dir}/select_code.txt", 2);
+        push @files_read, &file_read("$config_parms{data_dir}/$config_parms{code_select}", 2);
 
         @files_read = grep(/^[a-z0-9].*\.(pl|mhp)$/i, @files_read); # Must start with alphanumeric ... emacs edited checkpoints can start with #
 
@@ -3451,7 +3486,7 @@ sub read_code {
     undef @files_changed2;
     my %files_deleted = %file_code_times;
     %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
-                                 &file_read("$config_parms{data_dir}/select_code2.txt", 2));
+                                 &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2));
 
     my %files_seen;
     for $file (@files_read) {
@@ -3529,7 +3564,7 @@ sub read_table_files {
 
                                 # See if we are supposed to skip any files
     my %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
-                                    &file_read("$config_parms{data_dir}/select_code2.txt", 2));
+                                    &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2));
 
                                 # See if any of the files have changed
     my ($changed);
@@ -3824,7 +3859,7 @@ sub read_user_code_loopcode {
     my $sub_name = "${member_name}_loopcode";
     $sub_name =~ s/[- ]/_/g;   # Legalize sub name
     my $debug_print = '';
-    $debug_print = "print '   $member_name';\n" if $Debug{user_code};
+    $debug_print = "print '   $member_name' if \$Debug{user_code};\n";
     return ($sub_name, "#-------------------------------------------------\n\n" .
         "sub $sub_name {\n $debug_print" .
         "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
@@ -3949,7 +3984,9 @@ sub set_global_vars {
         unless ($config_parms{no_log} =~ /pause/ or $Reload or $Loop_Count < 10
                 or ($config_parms{time_pause_log} and $config_parms{time_pause_log} > $DelayOccured) ) {
             my $volume = int 100 * $DelayOccured / 30;
-            &play(file => 'mh_pause', volume => $volume); # Defined in event_sounds.pl
+            if (-e ($Sounds{'mh_pause'}) ) {
+                &play(file => 'mh_pause', volume => $volume); # Defined in event_sounds.pl
+            }
             print_log "mh paused for $DelayOccured seconds (volume=$volume)";
         }
         logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  "mh paused for $DelayOccured seconds";
@@ -4223,27 +4260,8 @@ sub set_global_vars {
     # Save object states every 5 minutes, in case mh is aborted without a proper shutdown
 #   &object_states_save if $New_Minute and !($Minute % 5); $Time_Increment
     &object_states_save if $New_Minute and !($Time_Start_time or $Time_Stop_time); # Skip if in accelerated mode
-
-                                # Populate %Debug if debug changed
-    if (defined $config_parms{debug}) {
-        if (!defined $Debug{debug_previous} or $config_parms{debug} ne $Debug{debug_previous}) {
-            undef %Debug;
-            $Debug{debug_previous} = $config_parms{debug};
-                                # Allow for multiple debugs like serial;x10
-            for my $debug (split ';', lc $config_parms{debug}) {
-                                # Allow for debug level like: x10:4
-                next unless $debug;
-                if ($debug =~ /(.+):(.+)/) {
-                    $Debug{$1} = $2;
-                    print "Debug for $1 set to $2\n";
-                }
-                else {
-                    $Debug{$debug} = 1;
-                    print "Debug for $debug set on\n";
-                }
-            }
-        }
-    }
+     
+    &set_debug_data;                        # Populate %Debug if debug changed
 
 }
 
@@ -4321,6 +4339,7 @@ sub serial_port_open {
 #   my @serial_parms = $serial_port->set_test_mode_active;
 #   print "np=@serial_parms\n";
 }
+
 
 sub set_sun_time {
     my @parms = (latitude  =>  $config_parms{latitude}, longitude => $config_parms{longitude},
@@ -5430,6 +5449,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.81  2003/06/01 21:52:49  winter
+#  - 2.81 release
+#
 # Revision 2.80  2003/04/20 21:43:57  winter
 #  - 2.80 release
 #

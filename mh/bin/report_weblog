@@ -3,7 +3,7 @@
 #  File:
 #     report_weblog
 #
-#  Last emacs update Time-stamp: <2000-10-10 08:22:05 winter>
+#  Last emacs update Time-stamp: <2003-05-12 07:31:23 winter>
 #
 #  Description:
 #     See help text below
@@ -118,6 +118,8 @@ sub read_data {
 
                                 # Read Apache log
             my ($client, $day, $hour, $min) = $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):(\d+):\d+ [\d+-]+\]!;
+                                # Alternate form of Apache log
+            ($day, $hour, $min,  $client) = $_ =~ /([a-z|A-Z]*) \d+\/\d+\/\d+(\d+):(\d+):\d+ ([a-z|A-Z|0-9|\.]*)/  unless $client;
                                 # Read Misterhouse log
             unless (defined $hour) {
                 my $ampm;
@@ -304,6 +306,9 @@ sub mail_report {
 }
 #
 # $Log$
+# Revision 1.11  2003/06/01 21:54:40  winter
+#  - 2.81 release
+#
 # Revision 1.10  2000/10/22 16:48:28  winter
 # - 2.32 release
 #

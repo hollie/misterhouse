@@ -149,9 +149,12 @@ sub check_accounts {
                     
                     my $subject = $$msgptr{subject}[$cnt];
                     my $to      = $$msgptr{to}[$cnt];
+                    my $cc      = $$msgptr{cc}[$cnt];
                     my $replyto = $$msgptr{replyto}[$cnt];
                     my $from    = $$msgptr{from}[$cnt];
                     my $body    = $$msgptr{body}[$cnt];
+
+                    $to .= ", $cc";
 
                                 # Delete attachements
                                 # I think the g in gsm will do this without the while loop
@@ -253,7 +256,8 @@ sub check_accounts {
         my $temp = &make_name_list($account, @{$email_prev{$account}});
         $results_unread  .= $temp;
                                 # Create html version with a link
-        $temp =~ s|^a(.+) has |&nbsp;&nbsp;&nbsp;<A HREF='/email/${account}_${day}.shtml'>A$1</A> has |;
+        $temp =~ s|^(.+) has |&nbsp;&nbsp;&nbsp;<A HREF='/email/${account}_${day}.shtml'>$1</A> has |;
+
         $results_unread2 .= $temp . "<br>" if $temp;
 
                                 # Save parsed data, so we don't have to re-read next time
@@ -306,6 +310,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.33  2003/06/01 21:54:39  winter
+#  - 2.81 release
+#
 # Revision 1.32  2003/04/20 21:43:57  winter
 #  - 2.80 release
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2003-04-18 20:46:20 winter>
+#  Last change Time-stamp: <2003-05-19 21:00:49 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -1282,7 +1282,7 @@ sub mail_file {
                                 # From handy_net_utilities
     &net_mail_send(subject => $subject,
                    server  => $mailserver,
-                   from    => $Pgm_Name,
+                   from    => "$Pgm_Name\@$mailserver",
                    to      => $mailto,
                    baseref => $parms{mail_baseref},
                    file    => $file,
