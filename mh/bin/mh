@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-03-22 07:46:28 winter>
+#  Last change Time-stamp: <2000-04-09 12:36:46 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -225,7 +225,12 @@ BEGIN {
                                 #  - can not seem to get perl2exe to honor this.  Guess we have to make sure
                                 #    everything is compile by adding it to lib/mh_perl2exe_list.pl
 #       eval "use lib '$Pgm_PathU/../lib', '$Pgm_PathU/../lib/site', '$Pgm_PathU', '../lib', '../lib/site', '.'";
-        eval "use lib '$Pgm_PathU/../lib', '$Pgm_PathU/../lib/site', '$Pgm_PathU'";
+#       eval "use lib '$Pgm_PathU/../lib', '$Pgm_PathU/../lib/site', '$Pgm_PathU'";
+                                # Use a push instead of a use lib, so we make sure the site perl libs come first, not last
+                                #  - We need to support perl 5.005 and 5.6 at the same time.  5.005 win32 binaries
+                                #    are distributed with mh (so user does not have to install them).
+                                #    5.6 users will be required to install them
+        push (@INC, "$Pgm_PathU/../lib", "$Pgm_PathU/../lib/site", "$Pgm_PathU");
 #       print "Error in use lib: $@\n" if $@;   # Dang .. this error check messes up the compiled version!??  Gives 'can not find lib.pm' message
         print " done\n";
         require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
@@ -267,10 +272,12 @@ BEGIN {
             &my_use("Win32::Process");
             &my_use("Win32::Registry");
                                 # Note: Muse use eval, not my_use, or exported pgms are not seen :(
-            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys)";
+                                #  - setupsup is not yet available for perl 5.6
+            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys)" unless (&Win32::BuildNumber() > 600);
             print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@;
 
-            &my_use("Win32::Sound");        # So we can play wave files
+            eval "use Win32::Sound";
+            print "\nError in loading module=Win32::Sound:\n  $@\n" if $@;
 
             &my_use("Win32::SerialPort");
             &my_use("Win32::SoundEx");      # For Volume control
@@ -284,8 +291,10 @@ BEGIN {
 
 
         if ($config_parms{tk}) {
-            print "Loading Tk modules\n";
+            print "Loading Tk modules ";
             eval "use Tk";
+            print  "Version $Tk::VERSION\n";
+            
             if ($@) {
                 print "\nError, perl Tk module is not installed.\nTk windows will be disabled with the -tk 0 option.\n\n";
                 $config_parms{tk} = 0;
@@ -341,6 +350,7 @@ sub setup {
     use File_Item;
     use Generic_Item;
     use Group;
+    use IR_Item;
 #   &my_use("Serial_Item");  # So we can add debug to Serial_Item.pm when running mh.exe
     use Serial_Item;
     use X10_Items;
@@ -1569,19 +1579,19 @@ sub play {
 
 #   &write_socket("play", "$rooms", $file);
 
+    no strict 'subs';       # For non-win OS
     if (lc($play_parm) eq 'stop') {
         &Win32::Sound::Stop();
     }
     elsif (lc($play_parm) eq 'loop') {
-        $play_parm = 'SND_LOOP | SND_ASYNC';
+        $play_parm = SND_LOOP | SND_ASYNC;
     }
     elsif (lc($play_parm) eq 'wait') {
-        # If we want to wait (e.g. so we can turn speakers off), maybe we should fork
-        $play_parm = 0;     # Or can we test to see if we are still playing??
+                                # If we want to wait (e.g. so we can turn speakers off), maybe we should fork
+        $play_parm = 0;         # Or can we test to see if we are still playing??
     }
     else {
-        no strict 'subs';   # For non-win OS
-        $play_parm = SND_ASYNC;     # Do not wait.
+        $play_parm = SND_ASYNC; # Do not wait.
     }
 
     my $file;
@@ -1589,7 +1599,7 @@ sub play {
     my @files = split(/[, ]/, $parms{file});
 #   $play_parm = 0 if @files > 1; # If more than one file, wait.
     foreach $file (@files) {
-        # Check for SystemXYZ or //server or \file or c:\file
+                                # Check for SystemXYZ or //server or \file or c:\file
         unless ($file =~ /^System/ or $file =~ /^[\\\/]/ or $file =~ /^\S\:/) {
             $file = "$config_parms{sound_dir}/$file";
 
@@ -1599,6 +1609,7 @@ sub play {
                 my $file_cnt = @files_to_pick;
                 if ($file_cnt > 1) {
                     $file = @files_to_pick[int(rand $file_cnt)];
+                    print "Play picked file $file\n";
                 }
                 else {
                     $file = $files_to_pick[0];
@@ -2516,9 +2527,9 @@ sub socket_has_data {
 }
 
 sub speak {
-    my ($phrase) = @_;      # Simple way ... no parms
-
     my ($rooms, $room_to_speak_to, $display_time, $key, $value, $phrase_new,  %parms);
+
+    my ($phrase) = @_;      # Simple way ... no parms
 
     if (@_ > 1) {           # Fancy way key=value way
         %parms = @_;
@@ -2609,7 +2620,8 @@ sub speak {
                 select undef, undef, undef, $delay / 1000;
             }
         }
-        &Voice_Text::speak_text('text' => $phrase);
+        $parms{text} = $phrase;
+        &Voice_Text::speak_text(%parms);
     }
 
 }
@@ -2951,12 +2963,18 @@ sub tk_checkbutton {
 
 sub tk_command_list {
     my ($parent) = @_;
+    my $list;
     my $list = $parent->Scrolled("Listbox", -scrollbars => "se", -bg => 'lightblue');
 
-    $list->Label(text => "Command or Search String")->pack(-side => 'top', -fill => 'x');
-    $Tk_objects{command} = $list->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'top', -fill => 'both');
+                                # These 2 commands give a 'can not find delegate.pl' msg on tk 8.020 (ok on 8.015).
+#   $list->Label(text => "Command or Search String")->pack(-side => 'top', -fill => 'x');
+#   $Tk_objects{command} = $list->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'top', -fill => 'both');
 
-    $list->insert(0, ' ', ' ', ' ', &list_voice_cmds_match('')); # Init with all commands
+    my $f = $parent->Frame->pack(-side => 'top', -fill => 'x');
+    $f->Label(text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
+    $Tk_objects{command} = $f->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'left', -fill => 'x');
+
+    $list->insert(0, &list_voice_cmds_match('')); # Init with all commands
 
     $list->bind('<Double-1>' => sub{
         $list->selectionClear(0, 'end');
@@ -2971,7 +2989,7 @@ sub tk_command_list {
             $list->delete(0, 'end');
             my @cmds = &list_voice_cmds_match($cmd);
             print_log "No matching commands found for string=$cmd" unless @cmds;
-            $list->insert(0, ' ', ' ', ' ', @cmds);
+            $list->insert(0, @cmds);
         }
     });
     return $list;
@@ -3116,6 +3134,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.13  2000/04/09 17:37:23  winter
+# - added IR_Item.  Numerous bug fixes.
+#
 # Revision 2.12  2000/03/22 14:03:47  winter
 # -Fix CM11 delay.  Compile in Serial_Item
 #
