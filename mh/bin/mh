@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-11-25 22:55:28 winter>
+#  Last change Time-stamp: <2004-03-21 17:53:49 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -977,7 +977,7 @@ sub add_hook_code {
     my @hook_locations = qw( MainLoop_pre MainLoop_post
                              Serial_data  Serial_match Serial_Item::send_x10_data
                              State_change iButton_receive
-                             Play_pre Play_post Speak_pre Speak_post
+                             Play_pre Play_post Speak_pre Speak_post Speak_parms
                              Jabber_Message Jabber_IQ Jabber_Presence
                              AOLim_Message AOLim_Status MSNim_Message MSNim_Status
                              Reload_pre Reload_post Log Exit
@@ -1926,7 +1926,7 @@ sub check_for_tied_filters {
         }
     }
 
-    # Check for multi-states.   Here are some examples of the ~ and ; tied together.
+    # Check for stacked multi-states.   Here are some examples of the ~ and ; tied together.
     #
     # State: 'on~10~random:on;repeat:on;play'
     #     We should wind up calling set_with_timer with 'on,10,;random:on;repeat:on;play'.  
@@ -1943,6 +1943,7 @@ sub check_for_tied_filters {
     # Is this a state string with multiple sets in it?  If so we take over and call set on each state found.  
     # If not, we are already in a set call, so don't do any additional processing.
 
+#   print "dbx1 o=$self->{object_name} ms=$self->{states_nomultistate} s=$state\n";
     unless ($self->{states_nomultistate}) {
         if($state =~ /;/) {
             print "Multiple states entry state=$state\n" if $Debug{state};
@@ -2925,7 +2926,7 @@ sub password_check {
         else {
             my $client = $Socket_Ports{$port}{client_ip_address} if $port;
 #           return 'family' if $client and -1 < index $config_parms{password_allow_clients}, $client;
-            my $a = ($client and grep $client =~ /$_/, @Password_Allow_Clients) ? 'family' : 0;
+            my $a = ($client and grep $client =~ /^$_$/, @Password_Allow_Clients) ? 'family' : 0;
             print "db p=$port client=$client pa=@Password_Allow_Clients a=$a\n" if $Debug{password};
             return $a;
         }
@@ -4124,6 +4125,7 @@ sub read_user_code {
                                 # do the 'object_name' reference and do symbolic var manipulation
     for (sort keys %file_by_object_name) {
         my @list = sort keys %{$file_by_object_name{$_}};
+	@list = grep !/\[/, @list;    # Do not 'use vars' objects that are members of pre-declared list arrays
         unshift @Item_Code, "use vars qw(@list);\n\n";
         unshift @Item_Code, "# List of $_ objects\n";
     }
@@ -4437,20 +4439,23 @@ sub set_global_vars {
                                 #  For March Equinox= 365.2421376Y+.0.0679190Y^2-0.0027879Y^3
                                 #  For September Equinox=1721325.6978+365.2425055Y-0.1266890Y^2+0.0019401Y^3
                                 # These season dates are averages
-                    my @seasons = split(',', $config_parms{seasons});
 
-                    if ($Month < 3 or ($Month == 3 and $Mday < 20) or ($Month == 12 and $Mday > 20)) {
+                    my @seasons = split(',', $config_parms{seasons});
+                    my @season_starts = split(',', $config_parms{season_starts});
+
+                    if ($Month < 3 or ($Month == 3 and $Mday < $season_starts[0]) or ($Month == 12 and $Mday > $season_starts[3])) {
                         $Season = $seasons[0];
                     }
-                    elsif ($Month < 6 or ($Month == 6 and $Mday < 21)) {
+                    elsif ($Month < 6 or ($Month == 6 and $Mday < $season_starts[1])) {
                         $Season = $seasons[1];
                     }
-                    elsif ($Month < 9 or ($Month == 9 and $Mday < 22)) {
+                    elsif ($Month < 9 or ($Month == 9 and $Mday < $season_starts[2])) {
                         $Season = $seasons[2];
                     }
                     else {
                         $Season = $seasons[3];
-                    }
+		    }
+
 
                                 # Check/Set the $Holiday var
                     if ($config_parms{holiday_dates}) {
@@ -5074,6 +5079,7 @@ sub speak {
 #    }
     $parms{text} = $phrase;
 
+    &Speak_parms_hooks(\%parms); # Created by &add_hooks
     &Speak_pre_hooks(%parms);   # Created by &add_hooks
 
 				# Do not speak locally if this parm is specified and does not match the rooms parm
@@ -5836,6 +5842,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.88  2004/03/23 01:50:21  winter
+# *** empty log message ***
+#
 # Revision 2.87  2004/02/01 19:24:18  winter
 #  - 2.87 release
 #
