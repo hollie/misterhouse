@@ -211,10 +211,13 @@ eof
             # &html_response($socket, $h_response,undef,undef,"speech");
         }
         else {
-            my $msg = "<a href=/speech>Refresh Recently Spoken Text</a><br>\n";
-            $msg .= "<br><B>Unauthorized Mode.</B> Authorization flag was not set, to the following was NOT performed<p>";
-            $msg .= "<li>set $item '$state'</li>";
-            print $socket &html_page("", $msg);
+                                # Just refresh the screen, don't give a bad boy msg
+                                #  - this way we don't mess up the Items display frame
+#            my $msg = "<a href=/speech>Refresh Recently Spoken Text</a><br>\n";
+#            $msg .= "<br><B>Unauthorized Mode.</B> Authorization flag was not set, to the following was NOT performed<p>";
+#            $msg .= "<li>set $item '$state'</li>";
+#            print $socket &html_page("", $msg);
+            &html_response($socket, $h_response,undef,undef);
         }
     }
     elsif  ($get_req =~ /\/SET_VAR$/ or
@@ -484,10 +487,21 @@ sub html_file {
                                 # Example:  <li>Version: <!--#include var="$Version"--> ...
             if (my ($prefix, $directive, $data, $suffix) = $_ =~ /(.*)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
                  print "db http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
-                print $socket $prefix;
+                 print $socket $prefix;
+                 print $socket "\n<\!-- The following is from include $directive = $data -->\n";
                  my ($get_req, $get_arg) = $data =~ m|(\/[^ \?]+)\??(\S+)?|;
                 if ($directive eq 'file') {
-                    if (-e ($file = "$main::config_parms{html_dir}/$data")) {
+
+                                # Look for file in alias dirs
+                    $get_req =~ /^(\/[^\/]+)(.*)/; # Pick dir out of /dir/file
+                    if ($file  = $http_dirs{$1}) {
+                        $file .= "/$2" if $2;
+                    }
+                    else {
+                        $file = "$main::config_parms{html_dir}/$get_req";
+                    }
+
+                    if (-e $file) {
                         &html_file($socket, $file);
                     }
                     elsif (my ($html) = &html_mh_generated($get_req, $get_arg)) {
@@ -617,8 +631,11 @@ sub html_find_icon_image {
 
     my ($icon, $member);
     unless (%html_icons) {
-        print "Reading html icons directory\n";
-        opendir (ICONS, "$main::config_parms{html_dir}/graphics/");
+
+        my $dir = "$main::config_parms{html_dir}/graphics/";
+        $dir = $http_dirs{'/graphics'} if $http_dirs{'/graphics'};
+        print "Reading html icons from $dir\n";
+        opendir (ICONS, $dir);
         for $member (readdir ICONS) {
             ($icon) = $member =~ /(\S+)\.\S+/;
             next unless $icon;
@@ -645,7 +662,7 @@ sub html_find_icon_image {
             if($name               =~ /$member/i and $l > $l1) { $i1 = $html_icons{$member}; $l1 = $l};
             if($object->{text}     =~ /$member/i and $l > $l2) { $i2 = $html_icons{$member}; $l2 = $l};
             if($object->{filename} =~ /$member/i and $l > $l3) { $i3 = $html_icons{$member}; $l3 = $l};
-#           print "db n=$name t=$object->{text} $i1,$i2,$i3 l=$l m=$member\n" if $name =~ /set_clock/ or $object->{text} =~ /house in /;
+#           print "db n=$name t=$object->{text} $i1,$i2,$i3 l=$l m=$member\n" if $object->{text} =~ /playlist/;
         }
         if    ($i1) {$icon = $i1}
         elsif ($i2) {$icon = $i2} 
@@ -793,10 +810,13 @@ sub html_command_table {
                                 #  - allows the icon to be a submit
         my $form = qq[<FORM action="/RUN:last_response" method="get" target='speech'>\n];
 
+
                                 # Do the icon entry
+        my $des = $object->{description};
         if ($main::config_parms{html_category_icons} and
             my $h_icon = &html_find_icon_image($object, 'voice')) {
-            $h_ret = qq[<input type='image' src="$h_icon" alt="$h_icon" border="0">\n];
+            $des = $h_icon unless $des;
+            $h_ret = qq[<input type='image' src="$h_icon" alt="$des" border="0">\n];
 #           $h_ret = qq[<img src="$h_icon" alt="$h_icon" border="0">];
         }
         else {
@@ -1049,6 +1069,9 @@ Cookie: w3ibmID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.38  2000/02/24 14:02:41  winter
+# - fixed a Category and icon bug.  Add description option.
+#
 # Revision 1.37  2000/02/20 04:47:55  winter
 # -2.01 release
 #
