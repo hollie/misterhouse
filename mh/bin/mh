@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-09-01 17:17:32 winter>
+#  Last change Time-stamp: <2003-09-07 12:30:12 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -100,7 +100,7 @@ use vars '%Tk_objects', '%Tk_results', '@Tk_widgets', '@Object_Types'; # So we c
 use vars '$MW';                 # So that programs that we 'do' can use the top window
 use vars '%Serial_Ports';       # So we can get at it from the Serial_Item package.
 use vars '%Socket_Ports';
-use vars '%Save';
+use vars '%Save', '%Flags';
 use vars '%Persistent';         # Uses Dumper for dynamic objects e.g. timers.pl
 use vars '$OS_win';
 use vars '%Password_Allow';     # So we can see check it from http_server.pl
@@ -303,6 +303,8 @@ BEGIN {
     }
 
     sub use_conditional_modules {
+
+        $ENV{DISPLAY} = $config_parms{display} if $config_parms{display};
 
                                  # Find local code dirs, so we can add to INC path
         $config_parms{code_dir}        = "./../code"        unless $config_parms{code_dir};
@@ -1391,6 +1393,7 @@ sub add_proxy {
 
 sub drop_proxy {
     if (defined $proxy_servers{$_[0]}) {
+        $proxy_servers{$_[0]}->stop;
         delete $proxy_servers{$_[0]};
         &print_log("Removed proxy server: " . $_[0]);
     }
@@ -1407,11 +1410,11 @@ sub check_for_proxy_data {
             if (!$proxy->active) {
                 unless ($proxy->start) {
                     &print_log("Proxy is dead: $address");
+#                   delete $proxy_by_room{$address};
+                    &drop_proxy($address);
                     $address =~ s/\:\d+$//; # Shorten up name for speaking
                     $address =~ s/.+\.(\d+)$/$1/;
                     &speak("proxy $address is dead") if &new_minute(2);
-#                   delete $proxy_by_room{$address};
-                    &drop_proxy($address);
                     next;
                 }
             }
@@ -1422,17 +1425,18 @@ sub check_for_proxy_data {
         my $proxy = $proxy_servers{$address};
         if (my $data = $proxy->said) {
             my ($type, @data) = split $;, $data;
-            print "proxy data received: $type, @data.\n" if $Debug{proxy};
+            print "server proxy data received address: $address, type: $type, data: @data.\n" if $Debug{proxy};
             return unless $type;
             if ($type eq 'serial') {
                     # If port was named, store in that hash, otherwise process
                 if ($data[1]) {
-                    $Serial_Ports{$data[1]}{data_record} = $data[0];
+#                   $Serial_Ports{$data[1]}{data_record} = $data[0];
+                    $Serial_Ports{$data[1]}{data} = $data[0];
                     if ($Serial_Ports{$data[1]}{process_data}) {
                         &process_serial_data($data[0]);
                     }
                     else {
-                        &Serial_data_hooks($data[0], $data[1]);   # Created by &add_hooks
+                        &Serial_data_hooks($data[0], $data[1], 'proxy');   # Created by &add_hooks
                     }
                 }
                 else {
@@ -1783,7 +1787,8 @@ sub check_for_tied_events {
                 print "Event link: eval event=$event\n" if $Debug{events};
                 my $state = $state1; # So eval can substitue $state
                 my $object=$object1;
-                $Set_By = $object1->{object_name};  # Checed in Generic_Item set method
+                $Set_By = $object1->{object_name};        # Checked in Generic_Item set method
+		$Respond_Target = $object1->get_target(); # Pass target along
                 eval $event;
                 $Set_By = '';
                 print "tie_events eval error: $@" if $@;
@@ -2364,6 +2369,19 @@ sub list_files_by_webname {
     return ($files_by_webname{$webname}) ? @{$files_by_webname{$webname}} : $webname;
 }
 
+sub list_groups_by_object {
+    my ($object) = @_;
+    my @groups;
+    for my $group_name (&list_objects_by_type('Group')) {
+      my $group = &get_object_by_name($group_name);
+#     print "testing group=$group_name -> $group\n";
+      for my $object2 (list $group) {
+	push @groups, $group if $object eq $object2;
+      }
+    }
+    return @groups;
+}
+
 sub list_objects_by_file {
     return @{$object_names_by_file{$_[0]}};
 }
@@ -2722,8 +2740,8 @@ sub password_read {
     }
     
                                 # This disables password protection for the specified commands/items
-    if ($pw_file = $config_parms{password_allow_file}
-    && ($force_read || &file_changed($pw_file))){
+    $pw_file = $config_parms{password_allow_file};
+    if ($pw_file and ($force_read or &file_changed($pw_file)) ) {
         %Password_Allow=();
         my @records = grep !(/^\#/ or /^\s*$/), &file_read($pw_file);
         print "Read in ", scalar @records, " items from $pw_file\n" if $Debug{password};
@@ -2741,8 +2759,8 @@ sub password_read {
 
                                 # This allows for disabling commands without modifing code
                                 # - for example, 'reboot the computer' in mh/code/common/mh_control.pl
-    if ($pw_file = $config_parms{disabled_commands}
-    && ($force_read || &file_changed($pw_file))){
+    $pw_file = $config_parms{disabled_commands};
+    if ($pw_file and ($force_read or &file_changed($pw_file) )) {
         %Disabled_Commands=();
         my @records = grep !(/^\#/ or /^\s*$/), &file_read($pw_file);
         print "Read in ", scalar @records, " commands from from $pw_file\n" if $Debug{password};
@@ -2934,6 +2952,12 @@ sub play {
 #   &set_volume($parms{volume});
     &Play_pre_hooks(%parms);# Created by &add_hooks
 
+				# Do not speak locally if this parm is specified and does not match the rooms parm
+    if ($config_parms{speak_mh_room} && $parms{rooms}) {
+        my $mh_room = $config_parms{speak_mh_room};
+        return unless $parms{rooms} =~ /^$mh_room|\,$mh_room|^all/;
+    }
+
     my @files = split(/[, ]/, $parms{file});
 #   $play_parm = 0 if @files > 1; # If more than one file, wait.
     for my $file (@files) {
@@ -2996,7 +3020,11 @@ sub play {
                 last;
             }
             last unless $config_parms{sound_program};
-            print "running: $config_parms{sound_program} $file\n";
+	    my $sound_program = $config_parms{sound_program};
+	    if ($config_parms{mp3_program}) {
+		$sound_program = $config_parms{mp3_program} if ($file =~ /.mp3/);
+	    }
+            print "running: $sound_program $file\n";
 
                                 # Greg Satz had problems with MAC OS X zombies with system call here
                                 # Some linux guys had problems with problems with rc being mis-set
@@ -3004,14 +3032,14 @@ sub play {
             if ($main::Info{OS_name} eq "OSX") {
                 my $pid = fork;
                 if (defined $pid && $pid == 0) {
-                    exec qq[$config_parms{sound_program} $file];
-                    die 'cant exec $config_parms{sound_program}';
+                    exec qq[$sound_program $file];
+                    die 'cant exec $sound_program';
                 }
                 $played_ok = 1 if 0 == $?;  # $? is $SIG_CHILD
             }
             else {
                                 # Perl 5.8 did was setting $? to -1, so use system $rc instead
-                my $rc = system("$config_parms{sound_program} $file &");
+                my $rc = system("$sound_program $file &");
                 $played_ok = 1 if 0 == $rc;
             }
         }
@@ -3222,13 +3250,14 @@ sub process_serial_data {
 
     return unless $event_data;
 
-                                # Allow for other processing
-    &Serial_data_hooks($event_data);   # Created by &add_hooks
+                                # Allow for other processing.  Ignore if this is data munged 
+				# in the crazy X10 serial_data_buffer munging (don't want the proxy to see it)
+    &Serial_data_hooks($event_data) unless $prev_pass;   # Created by &add_hooks
 
     my ($event_type, $event_data1) = $event_data =~ /^(\S)(\S*)/;
     
     print "Serial data: event_type=$event_type, event_data=$event_data\n" 
-        if $Debug{serial} or $Debug{x10};
+        if $Debug{serial} or ($Debug{x10} and $event_type eq 'X');
 
     my ($state, $ref, @refs, $matched);
     if ($event_type eq 'X') {
@@ -3322,7 +3351,8 @@ sub process_serial_data {
         my $length = length $event_data;
         my $pos = 1;
         while ($pos < $length) {
-            my $unit = substr($event_data, $pos, 2);
+	   last if $event_data =~ /PRESET_DIM/;  # The DIM1 and DIM2 strings would get parsed as M1 and M2
+	   my $unit = substr($event_data, $pos, 2);
             if ($unit =~ /([A-P][1-9A-G])/) {
                 undef %prev_x10_units if $prev_x10_units_reset;
                 $prev_x10_units_reset = 0;
@@ -3472,7 +3502,8 @@ sub process_x10_chunks {
                                 #  - also match raw bright/dim commands (XaBcd is a match if B=L or M)
         if ($event_data_chunk = 'X' . substr($event_data, $pos, 4) and
             (&Serial_Item::serial_items_by_id($event_data_chunk)) or
-            (substr($event_data, $pos) =~ /^\S[ML]/)) {
+            ($event_data_chunk =~ /^X\S[ML]\S\S/)) {
+#           (substr($event_data, $pos) =~ /^\S[ML]/)) {
             print "  Found match: $event_data_chunk\n" if $Debug{x10};
                                 # Process this data one pass at a time (e.g. multi keypad entries)
             push(@serial_data_buffer, $event_data_chunk);
@@ -4262,6 +4293,7 @@ sub set_global_vars {
                                 }
                             }
                             elsif (($month, $mday, $year, $des) = $date_des =~ m|(\d+)/(\d+)/?(\d*)\s*(.*)|) {
+			        ($mday, $month) = ($month, $mday) if $config_parms{date_format} =~ /ddmm/;
 #                               print "db1 m=$month y=$year des=$des\n";
                                 next if $year and $year != $Year;
                                 if ($month == $Month and $mday == $Mday) {
@@ -4638,6 +4670,8 @@ sub respond {
         $target = $1;
         &parse_func_parms2(\%parms, $2);
     }
+    $target = 'default' if $target =~ /\$/;	# Ignore goofy target=$object cases
+#   $target =~ s/\$//g;		# Avoid errors from target=$object
 #    my $p = join ',', %parms; print "db2 p=$p.\n";
 
                                 # Call respond_xyz function
@@ -4855,6 +4889,12 @@ sub speak {
 
     &Speak_pre_hooks(%parms);   # Created by &add_hooks
 
+				# Do not speak locally if this parm is specified and does not match the rooms parm
+    if ($config_parms{speak_mh_room}) {
+        my $mh_room = $config_parms{speak_mh_room};
+        return unless $parms{rooms} =~ /^$mh_room|\,$mh_room|^all/;
+    }
+
                         # Do not speak to the default card if muted or offline
     return if $mode and ($mode eq 'mute' or $mode eq 'offline') and
         !($parms{to_file} or $parms{card});
@@ -4870,7 +4910,18 @@ sub speak {
         }
     }
 #   &set_volume($parms{volume});
-    &Voice_Text::speak_text(%parms);
+
+				# Allow for a comma delimited list of cards
+    if (my $cards = $parms{card}) {
+       for my $card (split ',', $cards) {
+       	 $parms{card} = $card;
+	 &Voice_Text::speak_text(%parms);
+       }
+    }
+    else {
+       &Voice_Text::speak_text(%parms);
+    }
+
     &Speak_post_hooks(%parms);   # Created by &add_hooks
 
 }
@@ -4979,6 +5030,40 @@ sub time_now {
     return ($Time >= $time_now and $Time < $time_now+60);
 }
 
+my %random_offsets;
+sub time_random_offset {
+    my ($time_date, $offset) = @_;
+                                # Only on secondboundarys 
+    return unless $New_Second;
+    return unless $time_date =~ /\S/;                 # Ignore empty entries
+    return if     $time_date eq 'none';               # For use in bypassing timed events easily
+
+    my $time_now = &my_str2time($time_date);
+    unless ($time_now) {
+        my @caller = caller;    # This is not useful in user_code eval :(
+        print "Bad time_now format:  $time_date  caller=@caller\n";
+        return 0;
+    }
+
+    my $key = "$time_date$;$offset";
+
+    if ($time_now == $Time) {
+        my ($minutes, undef, $seconds) = $offset =~ /^(\d+)?(:(\d+))?$/;
+        my $random = (defined $minutes or defined $seconds) ? ($minutes * 60 + $seconds) : 3600;
+        $random = int(rand($random));
+        $random_offsets{$key} = $Time + $random;
+#       print "db td=$time_date t=$Time tn=$time_now o=$offset r=$random \n";
+    }
+
+    if ($random_offsets{$key} == $Time) {
+        delete $random_offsets{$key} ;
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
 sub time_random {
     return unless $New_Minute;  # Only on minute boundarys
     my ($time_cron, $time_freq) = @_;
@@ -5017,28 +5102,28 @@ sub tk_setup_windows {
     $MW->title("$config_parms{title} $Version  PID: $$");
 
                                 # Create menu bar and buttons
-    $Tk_objects{menu_bar} = $MW->Frame->pack(-anchor => 'w', -side => 'top', expand => 0, fill => 'x');
+    $Tk_objects{menu_bar} = $MW->Frame->pack(-anchor => 'w', -side => 'top', -expand => 0, -fill => 'x');
 
     $Tk_objects{menu_file} = $Tk_objects{menu_bar}->
-        Menubutton(text => 'File', relief => 'raised', 
-                   borderwidth => 2, underline => 0)->pack(side => 'left', padx => 0);
+        Menubutton(-text => 'File', -relief => 'raised', 
+                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
 
     $Tk_objects{menu_commands} = $Tk_objects{menu_bar}->
-        Menubutton(text => 'Commands', relief => 'raised', 
-                   borderwidth => 2, underline => 0)->pack(side => 'left', padx => 0);
+        Menubutton(-text => 'Commands', -relief => 'raised', 
+                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
     $Tk_objects{menu_items} = $Tk_objects{menu_bar}->
-        Menubutton(text => 'Items', relief => 'raised', 
-                   borderwidth => 2, underline => 0)->pack(side => 'left', padx => 0) if $config_parms{tk_items};
+        Menubutton(-text => 'Items', -relief => 'raised', 
+                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0) if $config_parms{tk_items};
     $Tk_objects{menu_groups} = $Tk_objects{menu_bar}->
-        Menubutton(text => 'Groups', relief => 'raised', 
-                   borderwidth => 2, underline => 0)->pack(side => 'left', padx => 0);
+        Menubutton(-text => 'Groups', -relief => 'raised', 
+                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
 
-    $Tk_objects{menu_file}->command(-label => 'Reload', accelerator => 'Alt+r', underline => 0, command => \&read_code);
-    $Tk_objects{menu_file}->command(-label => 'Exit',   accelerator => 'Alt+x', underline => 1, command => \&sig_handler);
+    $Tk_objects{menu_file}->command(-label => 'Reload', -accelerator => 'Alt+r', -underline => 0, -command => \&read_code);
+    $Tk_objects{menu_file}->command(-label => 'Exit',   -accelerator => 'Alt+x', -underline => 1, -command => \&sig_handler);
     $Tk_objects{menu_file}->separator();
-    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Normal',  -variable => \$Save{mode}, value => 'normal');
-    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, value => 'mute');
-    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, value => 'offline');
+    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Normal',  -variable => \$Save{mode}, -value => 'normal');
+    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, -value => 'mute');
+    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, -value => 'offline');
 
 }
 
@@ -5095,13 +5180,13 @@ sub tk_setup_cascade_menus {
                         my $text2 = "$prefix$state$suffix";
                         my $text3 = "$filename: $text2";
                         $Tk_objects{menu_command_by_cat}{$category}->
-                            add('command', -label => $text3, command => sub{&run_voice_cmd($text2, undef, 'tk')});
+                            add('command', -label => $text3, -command => sub{&run_voice_cmd($text2, undef, 'tk')});
                     }
                 }
                 else {
                     my $text3 = "$filename: $text";
                     $Tk_objects{menu_command_by_cat}{$category}->
-                        add('command', -label => $text3, command => sub{&run_voice_cmd($text, undef, 'tk')});
+                        add('command', -label => $text3, -command => sub{&run_voice_cmd($text, undef, 'tk')});
                 }
             }
         }
@@ -5212,10 +5297,10 @@ sub tk_object_states {
     return unless $states[0];
     
     $menu = $Tk_objects{$menu_parent}->menu->Menu unless $menu; # Create a new menu unless given
-    $menu -> add('command', -label => 'state_log', command => sub{display join("\n", state_log $object)});
+    $menu -> add('command', -label => 'state_log', -command => sub{display join("\n", state_log $object)});
     for my $state (@states) {
         next if $state =~ /^[+-]\d+$/ and $state % 20;
-        $menu -> add('command', -label => $state, command => sub{set $object $state});
+        $menu -> add('command', -label => $state, -command => sub{set $object $state});
     }
     return $menu;
 }
@@ -5235,7 +5320,7 @@ sub tk_button {
         my $label = shift @data;
         my $pvar  = shift @data;
         $Tk_objects{button}{$pvar}->destroy if $Tk_objects{button}{$pvar} and Exists($Tk_objects{button}{$pvar});
-        $Tk_objects{button}{$pvar} = $Tk_objects{grid}->Button(text => $label, command => $pvar);
+        $Tk_objects{button}{$pvar} = $Tk_objects{grid}->Button(-text => $label, -command => $pvar);
         push(@widgets, $Tk_objects{button}{$pvar});
     }
     if (@widgets > 3) {
@@ -5254,7 +5339,7 @@ sub tk_mbutton {
     return unless $MW and $Reload and $Tk_objects{grid};
     my ($label, $pvar) = @_;
     $Tk_objects{mbutton}{$pvar}->destroy if $Tk_objects{mbutton}{$pvar} and Exists($Tk_objects{mbutton}{$pvar});
-    $Tk_objects{mbutton}{$pvar} = $Tk_objects{menu_bar}->Button(text => $label, command => $pvar)->
+    $Tk_objects{mbutton}{$pvar} = $Tk_objects{menu_bar}->Button(-text => $label, -command => $pvar)->
         pack(qw/-side right/); 
 }
 
@@ -5294,7 +5379,7 @@ sub tk_command_list {
 #   $Tk_objects{command} = $list->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'top', -fill => 'both');
 
     my $f = $parent->Frame->pack(-side => 'top', -fill => 'x');
-    $f->Label(text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
+    $f->Label(-text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
     $Tk_objects{command} = $f->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'left', -fill => 'x');
 
     $list->insert(0, &list_voice_cmds_match($config_parms{tk_startup_cmd})); # Init with all commands
@@ -5339,11 +5424,11 @@ sub tk_entry {
 #           Label(-relief => 'groove', -text => $label, -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font});
 
         if (ref $pvar ne 'SCALAR' and $pvar->can('set')) {
-            $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => \$$pvar{state}, width => 8);
+            $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => \$$pvar{state}, -width => 8);
             $Tk_objects{entry}{$pvar}->bind('<Return>', sub { $Tk_results{$label} = $$pvar{state}; $pvar->set($$pvar{state}, 'tk') } ) ;
         }
         else {
-            $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => $pvar, width => 8);
+            $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => $pvar, -width => 8);
             $Tk_objects{entry}{$pvar}->bind('<Return>', sub { $Tk_results{$label} = $$pvar } );
         }
 
@@ -5438,7 +5523,7 @@ sub tk_radiobutton {
         push(@widgets, $widget);
         
     }
-    $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(text => $label)->grid(@widgets, -sticky => 'w');
+    $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(-text => $label)->grid(@widgets, -sticky => 'w');
 }
 
                                 # This sub sleeps, and times how long it slept
@@ -5541,6 +5626,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.84  2003/11/23 20:20:04  winter
+# - 2.84 release
+#
 # Revision 2.83  2003/09/02 02:43:43  winter
 #  - 2.83 release
 #
