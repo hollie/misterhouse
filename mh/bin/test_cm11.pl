@@ -1,19 +1,18 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
 use lib './blib/lib','./lib';
-use vars qw($OS_win $port %config_parms);
 
 ######################### We start with some black magic to print on failure.
 
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..98\n"; }
+BEGIN { $| = 1; print "1..99\n"; }
 
 END {print "not ok 1\n" unless $loaded;}
-use ControlX10::CM11 qw( :FUNC 2.06 );
+use ControlX10::CM11 qw( 2.09 );
 $loaded = 1;
 print "ok 1\n";
 
@@ -67,6 +66,7 @@ sub write {
 	}
 	$response = chr($f_char & 0xff);
 	$self->lookclear($response);
+##        printf "response = %x\n", ord($response);
 	return $ccount;
     }
 }
@@ -255,7 +255,6 @@ is_ok(send_cm11($serial_port, 'C-75'));			# 77
 
 my $data = "";
 my $response = "B6B7BMGE";
-## $main::config_parms{debug} = "X10";
 is_ok($data = receive_cm11($serial_port));		# 78
 is_ok($data eq $response); 				# 79
 is_ok(40 == dim_decode_cm11("GE"));			# 80
@@ -279,13 +278,18 @@ is_ok(95 == dim_decode_cm11("P4"));			# 90
 is_ok(send_cm11($serial_port, 'C1&P25'));		# 91
 is_bad(send_cm11($serial_port, 'C&P05'));		# 92
 is_ok(send_cm11($serial_port, 'M4'));			# 93
-## $main::config_parms{debug} = "X10";
 is_ok(send_cm11($serial_port, 'OPRESET_DIM2'));		# 94
 is_bad(send_cm11($serial_port, 'C1&P'));		# 95
 is_bad(send_cm11($serial_port, 'C1&PA5'));		# 96
 is_ok(send_cm11($serial_port, 'C1&P5'));		# 97
 is_bad(send_cm11($serial_port, 'C1&P105'));		# 98
+is_ok(send_cm11($serial_port, 'D5'));			# 99
 
 undef $serial_port;
 
-print "Failures detected in test\n" if $fail;
+if ($fail) {
+    print "Failures detected in test\n";
+}
+else {
+    print "All tests passed\n";
+}

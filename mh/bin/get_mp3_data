@@ -29,8 +29,8 @@ $Pgm_Name reads mp3 directories and stores the results in a dbm file.
     -dbm  xyz => Stores the data in dbm file xyz.
 
   Examples:
-    $Pgm_Name c:\mp3 d:\mp3
-    $Pgm_Name -dbm e:\mh\data\mp3_dbm c:\mp3
+    $Pgm_Name c:/mp3 d:/mp3
+    $Pgm_Name -dbm e:/mh/data/mp3_dbm c:/mp3
 
 eof
     exit;
@@ -63,8 +63,8 @@ sub read_mp3_dir {
     my $buffer;
     print "  - Reading files in $dir\n";
     $counts{dir}++;
-    opendir(MP3DIR, $dir) or return;
-    my @files = readdir MP3DIR;
+    opendir(MP3DIR, $dir) or do {print "Error in dir open: $!\n"; return};
+    my @files = readdir MP3DIR;  print "db files=@files\n";
     close MP3DIR;
 
     my @mp3_genres = ('Blues', 'Classic Rock', 'Country', 'Dance', 'Disco', 'Funk', 'Grunge', 
@@ -123,6 +123,9 @@ sub read_mp3_dir {
 
 #
 # $Log$
+# Revision 1.2  2000/02/12 05:33:34  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.1  2000/01/27 13:59:25  winter
 # - created
 #

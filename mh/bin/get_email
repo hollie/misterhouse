@@ -120,7 +120,7 @@ sub check_accounts {
                     $name = &get_email_rule($name, $to, $subject) if $email_rule;
 
                                 # See if we want to read the body of the message
-                    print "Reading text for subect=$subject\n";
+                    print "Reading text for subject=$subject\n";
 #                   my $bodyptr = &net_mail_read(account => $account, first => $cnt, last => $cnt);
 
                                 # Log the subject 
@@ -167,6 +167,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.14  2000/02/12 05:33:34  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.13  2000/01/27 13:22:04  winter
 # - update version number
 #

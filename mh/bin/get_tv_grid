@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <1999-12-20 19:12:35 winter>
+#  Last change Time-stamp: <2000-02-10 22:14:35 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -250,8 +250,8 @@ sub make_index {
     my ($hour, $down, $day, $day_time) = @_;
     print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td bgcolor=123456 align=left>\n";
     print OUT "<font face=arial size=+1 color=white> TV Listings</td><td bgcolor=123456 align=right>";
-    print OUT "<FORM TARGET='mh_main'>";
-    print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'mh_main')>";
+    print OUT "<FORM>";
+    print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
     my $dow_start = -$down - 7;
     my $dow_stop  = $dow_start + 20;
     for my $count ($dow_start .. $dow_stop) {
@@ -263,7 +263,7 @@ sub make_index {
         print OUT ">$dow2, $month2/$day2\n";
     }
     print OUT "</select>\n";
-    print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'mh_main')>";
+    print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
 
 #   for my $hour2 (2, 6, 10, 14, 18, 22) {
     for my $hour2 (@hours) {
@@ -358,7 +358,8 @@ sub mail_file {
     return;
 }
 sub setup {
-    require 'handy_utilities.pl';       # For read_mh_opts funcion
+    require 'handy_utilities.pl';      # For read_mh_opts 
+    require 'handy_net_utilities.pl';  # For net_mail_send
     &main::read_mh_opts(\%config_parms, $Pgm_Path);
 #   $parms{userid} = '132602' unless $parms{userid};
     $parms{userid} = '%247A%247B%2489%247A' unless $parms{userid};
@@ -395,6 +396,9 @@ sub setup {
 }
 #
 # $Log$
+# Revision 1.23  2000/02/12 05:33:34  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.22  2000/01/27 13:22:33  winter
 # - update version number
 #

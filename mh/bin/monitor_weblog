@@ -3,7 +3,7 @@
 #  File:
 #     monitor_weblog
 #
-#  Last emacs update Time-stamp: <1999-10-12 07:32:19 winter>
+#  Last emacs update Time-stamp: <2000-02-06 09:40:57 winter>
 #
 #  Description:
 #     See help text below
@@ -62,16 +62,11 @@ my %ignore_list = map{$_, 1} split(',', $parms{ignore});
 
 my $log_file = shift;
 $log_file = "/var/log/httpd/access_log" unless $log_file;
-
-open (LOG, $log_file) or die "Error, could not open log file $log_file: $!\n";
-
-                                # On startup, point pointer to the tail of the file
-while (<LOG>) {}
-my $log_pos  = tell(LOG);
+my $log_pos  = &open_log($log_file);
 
 print "Current log position=$log_pos\n";
 
-my (%clients, %hits, $hits_hour, $hits_day, $clients_hour, $clients_day);
+my (%clients, %hits, $hits_hour, $hits_day, $clients_hour, $clients_day, $last_active);
 my $id_cnt = 'WebGuy1';
 
 while (1) {
@@ -91,10 +86,15 @@ while (1) {
     undef %hits;
     my ($hits);
 
+                                # Restart log if it hasn't changed in a while
+                                #  - This allows us to not get stuck following a rotated log file
+    $log_pos  = &open_log($log_file) if ($last_active + 3600*8) < time;
+
     seek(LOG, $log_pos, 0);     # Reset end of file flag
     while (<LOG>) {
         my ($client, $day, $hour) = $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):\d+:\d+ [\d+-]+\]!;
         next unless defined $hour;
+        $last_active = time;
 
 #       next if grep($client eq $_, @ignore_list);
         next if $ignore_list{$client};
@@ -136,6 +136,17 @@ while (1) {
 #    }
 #    &speak($msg) if $msg;
 }
+
+
+sub open_log {
+    my ($log_file) = @_;
+    $last_active = time;
+    print "Opening log file $log_file\n";
+    close LOG;
+    open (LOG, $log_file) or die "Error, could not open log file $log_file: $!\n";
+    while (<LOG>) {}
+    return tell(LOG);           # On startup, point pointer to the tail of the file
+}
     
 sub speak {
     use IO::Socket;
@@ -159,6 +170,9 @@ sub speak {
 
 #
 # $Log$
+# Revision 1.8  2000/02/12 05:33:34  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.7  2000/01/27 13:29:54  winter
 # - update version number
 #
