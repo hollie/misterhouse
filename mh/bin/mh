@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-01-27 19:43:26 winter>
+#  Last change Time-stamp: <2000-02-10 20:21:30 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -15,7 +15,7 @@
 #    - 03/07/98  Created from house_menu.
 #    - The rest of the change log is at the bottom of this file.
 #
-#  Documentation in mh/docs/mh.html (from mh.pod) and mh/docs/index.html
+#  Documentation is in mh/docs/mh.html (from mh.pod) and mh/docs/install.html
 #
 #  This free software is licensed under the terms of the GNU public license. 
 #  Copyright 1998,1999 Bruce Winter
@@ -24,13 +24,13 @@
  
 use strict;
 
-my ($Pgm_Name, $Revision, $usage, $Version, $Version_date);
+my ($Pgm_Name, $Revision, $usage);
 				# So we can get at it from other packages
-use vars '%config_parms', '%config_parms_startup', '$Pgm_Path';
+use vars qw(%config_parms %config_parms_startup $Pgm_Path $Version $Version_date);
 
 BEGIN {
 
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge
+    ($Version) = q$Revision$ =~ /: (\S+)/; # Auto-updated by CVS
 
     $0 = $ENV{sourceExe} if $ENV{sourceExe}; # perl2exe fills this in
     ($Pgm_Path, $Pgm_Name) = $0 =~ /^(.*)[\\\/]([^.]+)/i;
@@ -68,7 +68,7 @@ eof
 }
                                 # Use var instead of my so we can get these in the http_server.pl scripts
 use vars qw($Time_Start_time $Time_Stop_time $Time_Increment $Time_Startup $Time_Startup_time $Time_Boot_time $Time_Uptime_Seconds);
-use vars qw($Time_Sunrise $Time_Sunset $Time_Now $Date_Now $Date_Now_Speakable $Year_Month_Now);
+use vars qw($Time_Sunrise $Time_Sunset %Moon $Time_Now $Time_Date $Date_Now $Date_Now_Speakable $Year_Month_Now);
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Holiday);
@@ -153,18 +153,14 @@ BEGIN {
 
     sub print_version {
         
-        my ($pgm_ctime) = (stat $0)[9];
-        my $pgm_chg_time= localtime $pgm_ctime;
+        $Version_date= localtime((stat $0)[9]);
         
                                 # perl2exe sets this var
         if ($ENV{sourceExe}) {
-            ($pgm_ctime) = (stat $ENV{sourceExe})[9];
-            $pgm_chg_time= localtime $pgm_ctime;
+            $Version_date= localtime((stat $ENV{sourceExe})[9]);
             $Version .= " (compiled)" unless $Version =~ /compiled/;
         }
         
-        $Version_date = "     Last updated: $pgm_chg_time";
-
         ($Pgm_PathU = $Pgm_Path) =~ tr/\\/\//;
         $Pgm_Root = "$Pgm_PathU/..";
        
@@ -187,7 +183,7 @@ BEGIN {
         
         print "\nCommand: $Pgm_Name @ARGV\n";
         print "Pgm  path   : $Pgm_Path\n";
-        print "Pgm  version: $Version $Version_date\n";
+        print "Pgm  version: $Version      Last updated: $Version_date\n";
         my $perl_version = $];
                                 # BuildNumber doesn't work with perl2exe compile :(
         $perl_version .= " Build " . &Win32::BuildNumber() if $OS_win and !$ENV{sourceExe};
@@ -348,6 +344,8 @@ sub setup {
     use Voice_Text;
 #   use Show_Text;
     use Caller_ID;
+
+    use Astro::MoonPhase;
     use Text::Wrap;
 
     use constant;               # To keep perl2exe happy
@@ -489,6 +487,7 @@ sub setup {
     $Time = time;
 
     ($Second, $Minute, $Hour, $Mday, $Month) = localtime $Time; # Needed in my_str2time;
+    $Time_Date = &time_date_stamp(12, $Time);  # Needed by print_log
 
     $Month++;
 
@@ -540,6 +539,7 @@ sub setup {
     srand(time() ^ ($$ + ($$ << 15)) ); # Set the randum number seed, used in time_random;
 
     $main::config_parms{max_log_entries} = 50 unless defined $main::config_parms{max_log_entries};
+    $main::config_parms{max_state_log_entries} = 10 unless defined $main::config_parms{max_state_log_entries};
 
     print "Done with setup\n\n";
 
@@ -1037,6 +1037,7 @@ sub display {
         new Display(@_);
     }
     else {
+#        &print_log(@_);
         print "display call with -tk 0.  Text=@_\n";
     }
 
@@ -1395,29 +1396,21 @@ sub object_states_save {
         print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'misc';
     }
                                 # Save states of all objects
-    foreach $object_type (qw(Timer Serial_Item X10_Item X10_Appliance X10_Garage_Door File_Item Generic_Item)) {
+    foreach $object_type (qw(File_Item Timer Group Serial_Item X10_Item X10_Appliance X10_Garage_Door Generic_Item Voice_Cmd)) {
         foreach $var (keys %{$file_by_object_name{$object_type}}) {
+            print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'misc';
+
             no strict 'refs';
             my $ref = eval "\\$var";
             my $restore_var;
-            print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'misc';
-            if ($object_type eq 'Serial_Item' or
-                $object_type eq 'Generic_Item' or
-                $object_type eq 'X10_Garage_Door' or
-                $object_type eq 'X10_Appliance' or
-                $object_type eq 'X10_Item') {
-                $state = $$ref->{state};
-                if ($state) {
-                    $restore_var = $var . "->{state} = q~$state~"; # Let hope that ~ is not used in a state string
-                }
-            }
-            elsif ($object_type eq 'File_Item') {
+
+            if ($object_type eq 'File_Item') {
                 my $index = $$ref->{index};
                 if ($index) {
                     $restore_var = $var . "->{index} = $index"; 
                 }
             }
-            else {
+            elsif ($object_type eq 'Timer') {
                 $expire_time = $$ref->{expire_time};
                 next if $expire_time < &get_tickcount;
                 if ($expire_time) {
@@ -1428,13 +1421,24 @@ sub object_states_save {
                     $restore_var .= $var . "->{expire_time} = $expire_time;" if $expire_time;
                 }
             }
+            else {
+                                # Let hope that ~ is not used in a state string
+                $state = $$ref->{state};
+                $restore_var = $var . "->{state} = q~$state~" if $state;
+            }
+
             $restore_state .= "if (defined $var) {$restore_var} else {'var not used'}\n" if $restore_var;
-        }   
+
+                                # Save state_log data, if defined
+            if ($$ref->{state_log} and my $state_log = join($;, @{$$ref->{state_log}})) {
+                my $restore_log = '@{' . $var . "->{state_log}} = split(\$;, q~$state_log~)";
+                $restore_state .= "if (defined $var) {$restore_log} else {'var not used'}\n";
+            }
+        }
     }
 
                                 # Do not write file on startup ($restore_state should be empty)
     if ($restore_state) {
-#       &speak("Error, Mr. Bruce, saving an empty state!") if !$restore_state and $Info{User}  eq 'winter';
         return unless $restore_state;
 
         my $restore_state_file = "$config_parms{code_dir}/mh_temp.saved_states";
@@ -1606,23 +1610,20 @@ sub play {
 sub print_log {
     my ($data) = @_;
 
-#   my $time_date = &time_date_stamp(13, $Time);
-    my $time_date = &time_date_stamp(12, $Time);  # 12 for to include date, 13 without date
-
     if ($Tk_objects{log_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
                                 # move to the bottom, messing up any manual scrolling
-        $Tk_objects{log_window}->insert('0.0', "$time_date: $data\n");
-#       $Tk_objects{log_window}->insert('end', "$time_date: $data\n");
+        $Tk_objects{log_window}->insert('0.0', "$Time_Date: $data\n");
+#       $Tk_objects{log_window}->insert('end', "$Time_Date: $data\n");
 #       $Tk_objects{log_window}->yview('moveto', 30);
     }
     else {
-        print "$time_date: $data\n";
+        print "$Time_Date: $data\n";
     }
-    unshift (@Print_Log, "$time_date $data");
+    unshift (@Print_Log, "$Time_Date $data");
     pop @Print_Log if @Print_Log > $main::config_parms{max_log_entries};
 
-    print PRINTLOG "$time_date: $data\n";
+    print PRINTLOG "$Time_Date: $data\n";
 }
 
 sub print_log_last {
@@ -1645,7 +1646,7 @@ sub print_msg {
     my $time = &time_date_stamp(13, $Time);
     if ($Tk_objects{msg_window}) {
         $Tk_objects{msg_window}->insert('0.0', "$time $data\n");
-#       $Tk_objects{msg_window}->insert('0.0', "$time_date: $data\n");
+#       $Tk_objects{msg_window}->insert('0.0', "$Time_Date: $data\n");
     }
     else {
         print "$time: $data\n";
@@ -1654,17 +1655,16 @@ sub print_msg {
 
 sub print_speaklog {
     my ($data) = @_;
-    my $time_date = &time_date_stamp(12, $Time);
 
     if ($Tk_objects{speak_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
                                 # move to the bottom, messing up any manual scrolling
-        $Tk_objects{speak_window}->insert('0.0', "$time_date: $data\n");
+        $Tk_objects{speak_window}->insert('0.0', "$Time_Date: $data\n");
     }
     else {
         print "$data\n";
     }
-    print PRINTLOG "$time_date: $data\n";
+    print PRINTLOG "$Time_Date: $data\n";
 }
 
 sub process_external_command {
@@ -1829,6 +1829,8 @@ sub read_code {
 
     my $debug_old = $config_parms{debug};
     read_parms unless $Startup; # Re-read .ini parms, in case they changed
+    &html_reset_icons;          # Refresh lib/http_server.pl icons
+
     $config_parms{debug} = $debug_old unless $config_parms{debug};
     
 
@@ -2156,6 +2158,8 @@ sub set_global_vars {
         $Month++;
         $Day = (qw(Sun Mon Tue Wed Thu Fri Sat))[$Wday];
         $prev_sec = $Second;
+        $Time_Date = &time_date_stamp(12, $Time);  # 12 for to include date, 13 without date
+
 
         my ($cpu_used, $memory_used_virtual, $memory_used_real);
 
@@ -2177,6 +2181,7 @@ sub set_global_vars {
         }
         else {
             $cpu_used = 100*$Loop_Speed/$Loop_Speed2 if $Loop_Speed2 > 0;
+            $cpu_used = 100 if $cpu_used > 100;
             
             $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second Current/Max: %4d/%4d/%4d",
                                                     $Loop_Speed, $Loop_Speed2, $Loop_Speed3);
@@ -2209,7 +2214,7 @@ sub set_global_vars {
         unless ($prev_min eq $Minute) {
             $New_Minute = 1;
             $prev_min = $Minute;
-            $Time_Now = &time_date_stamp(5, $Time);
+            $Time_Now  = &time_date_stamp(5, $Time);
                                 # Drop the : so 18:00 is pronounced 1800, not 18
                                 #  - but then 20:00 is proununced 2 thousand, not 20 hundred :(
 #           $Time_Now =~ s/\:// if $config_parms{time_format} == 24 and $Time_Now =~ /^\d+\:0\d$/;
@@ -2237,6 +2242,7 @@ sub set_global_vars {
                     $Year = $year_unix + 1900;
                     $Year += 100 if $Year < 1970;
                     &set_sun_time; # Get new sunrise/sunset times for the new day
+                    &set_moon_data; # Get new sunrise/sunset times for the new day
 
                                 # Calander info at: http://www.pip.dknet.dk/~pip10160/cal/calendar20.txt
                                 # From a anoter web page (no other info though)
@@ -2374,6 +2380,39 @@ sub set_sun_time {
     my ($results) = do "$Pgm_PathU/sun_time";
     ($Time_Sunrise, $Time_Sunset) = $results =~ /Sunrise=([\S ]+) +Sunset=([\S ]+)/;
     print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
+}
+
+sub set_moon_data {
+    my @phase = Astro::MoonPhase::phase($Time);
+    $Moon{phase} = ('New',  'One-Quarter Waxing',   'Half Waxing', 'Three-Quarter Waxing', 
+                    'Full', 'Three-Quarter Waning', 'Half Waning', 'One-Quarter Waning', 'New')[int .5 + 8 * @phase[0]];
+    $Moon{brightness} = int 100 * @phase[1];
+    $Moon{age} = int @phase[2];
+    print "The moon is $Moon{phase}, $Moon{brightness}% bright, and $Moon{age} days old\n";
+
+    my @phases = Astro::MoonPhase::phasehunt($Time);
+    my $month  = 3600 * 24 * 29.53058868;
+
+    $Moon{time_new_prev }  = int $phases[0] - (($phases[0] > $Time) ? $month : 0);
+    $Moon{time_new}        = int $phases[0] + (($phases[0] < $Time) ? $month : 0);
+    $Moon{time_first_prev} = int $phases[1] - (($phases[1] > $Time) ? $month : 0);
+    $Moon{time_first}      = int $phases[1] + (($phases[1] < $Time) ? $month : 0);
+    $Moon{time_full_prev}  = int $phases[2] - (($phases[2] > $Time) ? $month : 0);
+    $Moon{time_full}       = int $phases[2] + (($phases[2] < $Time) ? $month : 0);
+    $Moon{time_last_prev}  = int $phases[3] - (($phases[3] > $Time) ? $month : 0);
+    $Moon{time_last}       = int $phases[3] + (($phases[3] < $Time) ? $month : 0);
+
+    $Moon{new_prev}   = &time_date_stamp(15, $Moon{time_new_prev});
+    $Moon{first_prev} = &time_date_stamp(15, $Moon{time_first_prev});
+    $Moon{full_prev}  = &time_date_stamp(15, $Moon{time_full_prev});
+    $Moon{last_prev}  = &time_date_stamp(15, $Moon{time_last_prev});
+    $Moon{new}        = &time_date_stamp(15, $Moon{time_new});
+    $Moon{first}      = &time_date_stamp(15, $Moon{time_first});
+    $Moon{full}       = &time_date_stamp(15, $Moon{time_full});
+    $Moon{last}       = &time_date_stamp(15, $Moon{time_last});
+
+    print "The next full moon is on $Moon{full}\n";
+
 }
 
 sub sig_handler {
@@ -2640,6 +2679,9 @@ sub tk_setup_cascade_menus {
                     &tk_cascade_entry($category, $Tk_objects{menu_commands}, $Tk_objects{menu_command_by_cat}{$category});
                 }
 
+#                $Tk_objects{menu_command_by_cat}{$category}->
+#                    add('command', -label => 'state_log', command => sub{display join("\n", state_log $object)});
+
                 my $filename = $object->{filename};
                 if (my ($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/) { 
                     foreach my $state (split(',', $states)) { 
@@ -2744,13 +2786,13 @@ sub tk_object_states {
     return unless $states[0];
     
     $menu = $Tk_objects{$menu_parent}->menu->Menu unless $menu; # Create a new menu unless given
+    $menu -> add('command', -label => 'state_log', command => sub{display join("\n", state_log $object)});
     for my $state (@states) {
         next if $state =~ /^[+-]\d+$/ and $state % 20;
         $menu -> add('command', -label => $state, command => sub{set $object $state});
     }
     return $menu;
 }
-
 
 sub tk_cascade_entry {
     my ($label, $menu1, $menu2) = @_;
@@ -2983,6 +3025,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.98  2000/02/12 04:24:36  winter
+# - lots of web changes.
+#
 # Revision 1.97  2000/01/28 02:40:20  winter
 # -add use Fcntl and X10 Garage_Door
 #
