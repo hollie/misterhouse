@@ -156,6 +156,11 @@ sub said {
     }
 }
 
+sub set_icon {
+    my ($self, $icon) = @_;
+    $self->{icon} = $icon;
+}
+
 sub set_data {
     my ($self, $data) = @_;
     my $port_name = $self->{port_name};
@@ -357,6 +362,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.34  2000/02/13 03:57:27  winter
+#  - 2.00 release.  New web server interface
+#
 # Revision 1.33  2000/02/12 06:11:37  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

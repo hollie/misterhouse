@@ -604,6 +604,9 @@ Serial_Item is used whenever you want read or write serial port data.
      is_stopped   : True if the port is not active
      is_available : True if the port is not in used by another program
 
+     set_icon : Point to the icon member you want the web interface to use.
+                See the 'Customizing the web interface' section of this document for details.
+
   Examples:
      $garage_movement = new Serial_Item('XI2');
      speak "Someone is in the garage" if state_now $garage_movement;
@@ -869,6 +872,8 @@ this is useful as these commands can also be run from the Tk, web, telnet, and f
      state : Returns the same thing as said, except it is valid for all passes,
              not just the pass after the command was issued.
  
+     set_icon : Point to the icon member you want the web interface to use.
+                See the 'Customizing the web interface' section of this document for details.
 
   Examples:        
     $v_backyard_light = new  Voice_Cmd 'Backyard Light [on,off]';
@@ -2188,60 +2193,108 @@ For more info on the tk_xxx widgets, see look in the mh functions section of thi
 
 =head2 Customizing the Web Interface
 
-You can write your own Web page interface.  The default page is in mh/web/mh_default.  Look for other examples in mh/web/mh*.
-These examples are frame html files that dictate the shape and positions of various mh-generated html frames.  
+You can write your own Web page interface.
+The examples under mh/web are frame html files that dictate the shape and positions of various mh-generated html frames.  
 
-You can use the html_root and html_file mh.ini parms to point to the directory and default web page.  The default
-is mh/web/mh_default/index.html.  The html_default parm is the member name used when the URL points to a directory.
+You can use the html_root and html_file mh.ini parms to point to the directory and default web page. 
+The html_default parm are the member names used when the URL points to a directory.
 
 The html_style mh.ini parm points to a style sheet that will be loaded for all mh-generated pages.  
 Style sheets allow default control of colors and fonts.
 
+There are other, html_* parms in the mh.ini file to control how the auto-generated html data looks.
+For example, you can control table sizes and auto refresh rates.  See the mh.ini file for more info.
 
-Here is an example index frame:
+The web Items and Groups displays will use icons to indicate the object state.
+Icons will be searched for in the mh/graphics directory according to 
+the objects icon method, the object name, the object state, and the object type.
+For example, given this code:
 
-   <FRAMESET Cols="20%,*">
-     <FRAME SRC=/mh/category.shtml>
-     <FRAMESET Rows="50%,*">
-       <FRAMESET Cols="45%,*">
-         <FRAME SRC=control NAME="control">
-         <FRAME SRC=widgets NAME="widgets">
-       </FRAMESET>
-       <FRAMESET Rows="50%,50%">
-         <FRAME SRC=speech NAME="speech">
-         <FRAME SRC=print_log NAME="print_log">
-       </FRAMESET>
-     </FRAMESET>
-   </FRAMESET>
-   
+    $fountain = new X10_Appliance('C3');
+    set_icon $fountain 'water';
 
-The SRC= keywords point to the following mh-generated lists: 
+The search order for the ON state will be:
 
-  category
-    This will list all the different categories.  Categories are the member names of the 
+    water-on.gif
+    fountain-on.gif
+    x10_appliance-on.gif
+    on.gif  
+
+The web Category display will try to match icons to Voice_Cmd objects using the icon method, object name, 
+voice command text, and filename.
+For example, given this code from the member internet_data.pl:
+
+ $v_set_clock = new  Voice_Cmd('Set the clock via the internet');
+ set_icon $v_set_clock 'time';
+
+The search order will be:
+
+ Look for icons that match time
+ Look for icons that match set_clock
+ Look for icons that match words in 'Set the clock via the internet'
+ Look for icons that match internet_data.pl
+
+All icons in the graphics directory are compared to each of the above.  
+The first match (by search order) is used.  If there are multiple matches, the
+match with the longest word is used. 
+For example, if we had icons names 'clock.gif' and 'internet.gif' (but no 'time.gif'),
+'internet.gif' would be used.
+
+In all of the above examples, .gif was used as an example, but any browser compatable graphics file can be used (e.g. .png and .jpg).
+If you want to add new icons, some good sources are at http://www.freegraphicland.com/ and http://www.graphsearch.com/
+
+Important note:  If you do play with adding/deleteing/renaming icons, you will want to do a reload before 
+refreshing your browser.  The icon directory is cached by mh (for efficiency).  If no code has changed,
+the reload will run very quickly.
+
+You can use the following html addresses to have mh return dynaically generated html:
+
+  /category
+    This will list all the Voice_Cmds, sorted by categories.  Categories are the member names of the 
     user code, or the value in the Category=value field specified in the user code.
     Items are also listed by Group, and Object Type
 
-  list?Category
+  /list?Category
     This can be used to list just the commands in the specified Category.
 
-  control
-    This lists all the commands that match the category chosen in the category frame.
+  /group
+    This will return all the Group Items
 
-  widgets
+  /group?$group_name
+    This will return all the objects in $group_name
+
+  /items
+    This will return all the non Voice Objects (e.g. X10_Items)
+
+  /items?object_type
+    This will return all the objects of type object_type
+
+  /widgets
     This lists all the Tk widgets.
 
-  speech
+  /widgets_label
+    This returns just the label widgets
+
+  /widgets_entry
+    This returns just the entry widgets
+
+  /widgets_radiobutton
+    This returns just the radiobutton widgets
+
+  /widgets_checkbox
+    This returns just the checkbox widgets
+
+  /speech
     This lists the most recently spoken text
 
-  print_log
+  /print_log
     This lists the most recently print_log text.
 
 If you want to generate your own html on-the-fly (like a cgi program would), instead of pointing
 to a .html file or or one of the above pre-defined mh-generated lists,
 point to a .pl file and have that perl code return the desired html.  Note, this
 currently differs from how a classic cgi program would work (they return the html as STDOUT).  
-Some examples of this can be found in the mh/web/mh_default/test/*.pl files.    
+Some examples of this can be found in the mh/web/test/*.pl files.    
 
 One other note on .pl web files.  You can have them use variables you define in your mh user code, but only
 if those variables are defined with "use vars '$my_var1', '$my_var2'".  Variables defined with "my ($my_var1, $my_var2)"
@@ -2261,6 +2314,12 @@ from above.  For example:
   <!--#include file="category"-->
   <!--#include file="/mh_default/test/test1.pl"-->
 
+You can use an #include var= directive, like file= above except it returns the contents
+of an mh variable.  For example:
+
+  <li><b>Version:</b> <!--#include var="$Version"-->
+
+This what is used in the mh 'About' web button to return the mh version.
 
 If you want to have only a few specific html controls, you can write your own html using the
 RUN, SET, and SET_VAR url keywords to control mh.  Here are a few examples:
@@ -2284,6 +2343,7 @@ SET, SET_VAR, and RUN can use an optional response field to decide what html wil
   Where h_response can be one of the following:
    &function:      The results of &function will be returned
    &function(arg): The results of &function(arg) will be returned
+   last_response:  The last displayed or spoken text. 
    last_displayed: The last displayed text will be returned
    last_spoken:    The last spoken item will be returned
    filexyz.html:   The contents of filexyz.html will be returned
@@ -2486,6 +2546,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.18  2000/02/13 03:57:27  winter
+#  - 2.00 release.  New web server interface
+#
 # Revision 1.17  2000/02/12 06:11:36  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

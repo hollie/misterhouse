@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-02-10 20:21:30 winter>
+#  Last change Time-stamp: <2000-02-12 19:38:24 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -72,7 +72,7 @@ use vars qw($Time_Sunrise $Time_Sunset %Moon $Time_Now $Time_Date $Date_Now $Dat
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Holiday);
-use vars qw($Startup $Reload $Reread $Loop_Count);
+use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response);
 
 my ($Pgm_PathU);
 my (@Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
@@ -1053,6 +1053,7 @@ sub display {
     pop @Display_Log if @Display_Log > 100;
 
                                 # Assume we were waiting for this and reset http server counter so almost 0 
+    $Last_Response = 'display';
     $leave_socket_open_passes= 2 if $leave_socket_open_passes;
 
 }
@@ -2483,6 +2484,7 @@ sub speak {
     }
 
     &print_speaklog($Save{mode} . ": " . $phrase);
+    $Last_Response = 'speak';
 
     return if ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} ne 'unmuted';
 
@@ -3025,6 +3027,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.99  2000/02/13 03:57:26  winter
+#  - 2.00 release.  New web server interface
+#
 # Revision 1.98  2000/02/12 04:24:36  winter
 # - lots of web changes.
 #

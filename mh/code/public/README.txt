@@ -14,6 +14,10 @@ calllog.pl
 callerid.pl
  - Another, simpler example on processing modem Caller ID data.
 
+door_monitor_jay.pl
+ - Jay Archers cod for using an X10 powerflash and hawkeye motion sensors
+   to monitor and control a garage door
+
 internet_ip_update.p
  - Updates IP servers/web pages with IP addresses
 

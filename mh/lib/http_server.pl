@@ -57,6 +57,10 @@ sub process_http_request {
 
     my ($get_req, $get_arg) = $header =~ m|^GET (\/[^ \?]+)\??(\S+)? HTTP|;
 
+                                # translate from %## back to real characters
+#   $get_arg =~ tr/+/ /;        #  - not sure why we needed this??
+    $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+
     $get_req = $main::config_parms{html_file} unless $get_req;
     $file = "$main::config_parms{html_dir}/$get_req";
 
@@ -125,6 +129,7 @@ eof
         $get_arg =~ s/^cmd=//;  # Drop the cmd= prefix from form lists.
         $get_arg =~ tr/\_/ /;   # Put blanks back
         $get_arg =~ tr/\~/_/;   # Put _ back
+        $get_arg =~ s/\&x=\d+\&y=\d+$//;    # Drop the &x=n&y=n that is tacked on the end when doing image form submits
 
         print "db a=$Authorized RUN get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
 
@@ -187,8 +192,8 @@ eof
         print "db SET_VAR a=$Authorized hr=$h_response\n get_req=$get_req  get_arg=$get_arg\n  \n" if $main::config_parms{debug} eq 'http';
 
                                 # translate from %## back to real characters
-        $get_arg =~ tr/+/ /;
-        $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+#        $get_arg =~ tr/+/ /;
+#        $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
         if ($Authorized) {
             my %states;
@@ -214,8 +219,8 @@ eof
         else {
                                 # IE does not support the Window-frame flag :(
                                 # So we can not give the 'unauthorized' message without messing up the widget frame.
-            if ($Browser eq 'IE') {
-                print $socket &html_page("", &widgets_all ); # Refresh frame
+            if (0 and $Browser eq 'IE') {
+#               print $socket &html_page("", &widgets ); # Refresh frame
             }
             else {
                 my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
@@ -237,15 +242,15 @@ eof
 
 sub html_mh_generated {
     my ($get_req, $get_arg) = @_;
+        my $html;
                                 # .html suffix is grandfathered in
-    if ($get_req =~ /\/control(.html)?$/) {
-        return (&html_control, $main::config_parms{html_style_control});
-    }
-    elsif ($get_req =~ /\/widgets(.html)?$/) {
-        return ('No longer supported.  Use widgets_type instead', $main::config_parms{html_style_tk});
+    if ($get_req =~ /\/widgets(.html)?$/) {
+        $html .= &widgets_checkbutton, $main::config_parms{html_style_tk};
+        $html .= &widgets_radiobutton, $main::config_parms{html_style_tk};
+        $html .= &widgets_entry, $main::config_parms{html_style_tk};
+        return ($html, $main::config_parms{html_style_tk});
     }
     elsif ($get_req =~ /\/widgets_label$/) {
-        my $html;
         $html = qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}">\n] if $main::config_parms{html_refresh_rate};
         return ($html . &widgets_label, $main::config_parms{html_style_tk});
     }
@@ -274,7 +279,7 @@ sub html_mh_generated {
         return (&html_items, $main::config_parms{html_style_category});
     }
     elsif ($get_req  =~ /\/?list$/) {
-        my $html = &html_list($get_arg);
+        $html = &html_list($get_arg);
         return ($html, $main::config_parms{html_style_list});
     }
     elsif ($get_req =~ /\/results$/) {
@@ -289,8 +294,9 @@ sub html_response {
     my ($socket, $h_response) = @_;
     my $file;
 
-    $h_response =~ tr/+/ /;
-    $h_response =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+                                # This should have been done already?
+#    $h_response =~ tr/+/ /;
+#    $h_response =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
     print "db html responce: $h_response\n" if $main::config_parms{debug} eq 'http';
     if ($h_response) {
@@ -309,6 +315,11 @@ sub html_response {
             else {
                 print $socket &html_page("", "Web html function not found: $sub_name");
             }
+        }
+        elsif ($h_response eq 'last_response') {
+            undef $Last_Response;
+            $leave_socket_open_passes = 2; # This will get set to 2 when display is run
+            $leave_socket_open_action = "&html_last_response";
         }
         elsif ($h_response eq 'last_displayed') {
             $leave_socket_open_passes = 2; # This will get set to 2 when display is run
@@ -343,11 +354,29 @@ sub html_control {
 eof
 }
 
+sub html_last_response {
+   my $last_response;
+   if ($Last_Response eq 'display') {
+       ($last_response) = &display_log_last(1);
+                                # Add breaks on newlines
+       $last_response =~ s/\n/\n<br>/g;
+#      $last_response = "<h4>Last Displayed Text</h3>$last_response";
+   }
+   elsif ($Last_Response eq 'speak') {
+       $last_response = &Voice_Text::last_spoken(1);
+   }
+   else {
+       $last_response = "<h4>No response resulted from the last command</hr>";
+   }
+
+   return $last_response;
+}
+
 sub html_last_displayed {
     my ($last_displayed) = &display_log_last(1);
 
                                 # Add breaks on newlines
-    $last_displayed =~ s/\n/\n<p>/g;
+    $last_displayed =~ s/\n/\n<br>/g;
 
     return "<h3>Last Displayed Text</h3>$last_displayed";
 }
@@ -356,7 +385,7 @@ sub html_last_spoken {
     my $h_response;
 
     if ($Authorized or $main::config_parms{password_protect} !~ /logs/i) {
-$       $h_response .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}">\n] if $main::config_parms{html_refresh_rate};
+        $h_response .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}">\n] if $main::config_parms{html_refresh_rate};
         $h_response .= "<a href=speech>Refresh Recently Spoken Text</a>\n";
         my @last_spoken = &Voice_Text::last_spoken($main::config_parms{max_log_entries});
         for my $text (@last_spoken) {
@@ -553,34 +582,41 @@ sub html_find_icon_image {
     }
 
                                 # Allow for set_icon to set the icon directly
-    $icon = $html_icons{$member} if $member = $object->{icon};
+    $name = $object->{icon} if $object->{icon};
 
                                 # Look for exact matches
-    unless ($icon or
-            $icon = $html_icons{"$name-$state"} or
-            $icon = $html_icons{$name}) {
-
-                                # Look for approximate name matches
-        if ($type eq 'voice') {
-            for my $member (keys %html_icons) {
-                next if $member eq 'on' or $icon eq 'off';
-                if ($name =~ /$member/ or
-                    $object->{text} =~ /$member/i) {
-                    $icon = $html_icons{$member};
-                    last;
-                }
-            }
+    if ($icon = $html_icons{"$name-$state"}) {
+    }
+                                # For voice items, look for approximate name matches
+                                #  - Order of preference: object, text, filename
+                                #    and pick the longest named match
+    elsif ($type eq 'voice') {
+        my ($i1, $i2, $i3, $l1, $l2, $l3);
+        for my $member (sort keys %html_icons) {
+            next if $member eq 'on' or $member eq 'off';
+            my $l = length $member;
+            if($name               =~ /$member/i and $l > $l1) { $i1 = $html_icons{$member}; $l1 = $l};
+            if($object->{text}     =~ /$member/i and $l > $l2) { $i2 = $html_icons{$member}; $l2 = $l};
+            if($object->{filename} =~ /$member/i and $l > $l3) { $i3 = $html_icons{$member}; $l3 = $l};
+#           print "db n=$name t=$object->{text} $i1,$i2,$i3 l=$l m=$member\n" if $name =~ /set_clock/ or $object->{text} =~ /house in /;
+        }
+        if    ($i1) {$icon = $i1}
+        elsif ($i2) {$icon = $i2} 
+        elsif ($i3) {$icon = $i3}
+        else {
+            return;         # No match
         }
     }
-                                # Resort to state or item matches
-    unless ($icon or
-            $icon = $html_icons{"$type-$state"} or
-            $icon = $html_icons{$type}          or
-            $icon = $html_icons{$state}) {
-        return;
+                                # For non-voice items, try State and Item type matches
+    else {
+
+        unless ($icon = $html_icons{"$type-$state"} or
+                $icon = $html_icons{$type}          or
+                $icon = $html_icons{$state}) {
+            return;         # No match
+        }
     }
     return "/graphics/$icon";
-
 
 #    my $h_icon;
 #    if (($h_icon = $icon_dir . $name  . "-" . $state . ".gif") and -r ($html_dir . $h_icon) or # light-off.gif
@@ -632,7 +668,7 @@ sub html_list {
         $h_list .= "<!-- html_list list_objects_by_type = $webname_or_object_type -->\n";
         my @objects = map{&get_object_by_name($_)} @object_list;
         my @table_items = map{&html_item_state($_, $webname_or_object_type)} @objects;
-        $h_list .= &table_it($config_parms{html_table_size}, 0, 0, @table_items);
+        $h_list .= &table_it($main::config_parms{html_table_size}, 0, 0, @table_items);
         return $h_list;
     }
 
@@ -684,36 +720,35 @@ sub html_command_table {
         next unless $text;      # Only do voice items
         $list_count++;
 
-                                # Pick the first {a,b,c} phrase enumeration
+                                # Find the states and create the test label
+                                #  - pick the first {a,b,c} phrase enumeration 
         $text =~ s/\{(.+?),.+?\}/$1/g;
 
-        push @htmls, qq[<td align='left' valign='top'>$filename</td>\n] if $main::config_parms{html_category_filename};
+        my ($prefix, $states, $suffix, $h_text, $text_cmd);
+        ($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/;
 
-                                #---------------------------
-                                # icon and object name table
-                                #---------------------------
-        if (my $h_icon = &html_find_icon_image($object, 'voice')) {
-            $h_ret = qq[<img src="$h_icon" alt="$h_icon" border="0">];
+                                # Do the filename entry
+        push @htmls, qq[<td align='left' valign='center'>$filename</td>\n] if $main::config_parms{html_category_filename};
+
+
+                                # Start the form before the icon
+                                #  - outside of td so the table is shorter
+                                #  - allows the icon to be a submit
+        my $form = qq[<FORM action="/RUN:last_response" method="get" target='speech'>\n];
+
+                                # Do the icon entry
+        if ($main::config_parms{html_category_icons} and
+            my $h_icon = &html_find_icon_image($object, 'voice')) {
+            $h_ret = qq[<input type='image' src="$h_icon" alt="$h_icon" border="0">\n];
+#           $h_ret = qq[<img src="$h_icon" alt="$h_icon" border="0">];
         }
         else {
-            $h_ret  = '';
+            $h_ret = qq[<input type='submit' border='1' value='Run'>\n];
         }
-        push @htmls, qq[<td align='left' valign='top'>$h_ret</td>\n];
+        push @htmls, qq[$form<td align='left' valign='center'>$h_ret</td>\n];
 
-
-        my ($prefix, $states, $suffix, $label, $h_text, $text_cmd);
-        if (($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/) {
-            $label = "$prefix...$suffix";
-        }
-        else {
-            $label = $text;
-        }
-
-        push @htmls, qq[<td align='right' valign='top'><b>$label</b></td>\n];
-
-                                # Put form outside of td so the table is shorter
-        $h_ret = qq[<FORM action="/RUN" method="get" target='speech'><td align='left'>\n];
-        
+        $h_ret  = qq[<td align='left'>];
+        $h_ret .= qq[<b>$prefix</b>] if $prefix;
         if ($states) {
             $h_ret .= qq[<SELECT name="cmd" onChange="form.submit()">\n<option value="  "> \n];
             for my $state (split(',', $states)) {
@@ -727,25 +762,28 @@ sub html_command_table {
         else {
             $text =~ tr/\_/\~/; # Blanks are not allowed in urls
             $text =~ tr/ /\_/; 
+            $h_ret .= qq[<b>$text</b>];
             $h_ret .= qq[<input type="hidden" name="cmd" value='$text'>\n];
-            $h_ret .= qq[<input type='submit' border='1' value='Run'>\n];
         }
 
-        $h_ret .= qq[</td></FORM>\n];
-        push @htmls, $h_ret;
+        $h_ret .= qq[<b>$suffix</b>] if $suffix;
 
+                                # Do the text entry
+        push @htmls, qq[$h_ret</td></FORM>\n];
+
+                                # Do the state log entry
         if (my ($date, $time, $state) = (state_log $object)[0] =~ /(\S+) (\S+) (.+)/) {
-            $state = '' if $state eq $label; # This command has not states
+#           $state = '' if $state eq $label; # This command has not states
             $h_ret = "<NOBR><a href='/SET:&html_state_log($object_name)' target='speech'>$date $time</a></NOBR> <b>$state</b>";
         }
         else {
             $h_ret = "unknown";
         }
         
-        push @htmls, qq[<td align='left' valign='top'>$h_ret</td>\n\n];
+        push @htmls, qq[<td align='left' valign='center'>$h_ret</td>\n\n];
     }
-    my $i = ($main::config_parms{html_category_filename}) ? 5 : 4; 
-    return &table_it($i, 1, 0,  @htmls);
+    my $i = ($main::config_parms{html_category_filename}) ? 4 : 3; 
+    return &table_it($i, $main::config_parms{html_category_border}, 0,  @htmls);
 }
 
                                 # List current object state
@@ -860,10 +898,10 @@ sub widgets_entry {
                 $html .= qq[</td></FORM>\n];
                 push @table_items, $html;
             }
-            push @table_items, qq[<td></td>] if $i == 1; # Even up the row
+#            push @table_items, qq[<td></td>] if $i == 1; # Even up the row
         }
     }
-    return &table_it(2, 0, 0, @table_items);
+    return &table_it($main::config_parms{html_table_size}, 0, 0, @table_items);
 }
 
 sub widgets_radiobutton {
@@ -908,7 +946,6 @@ sub widgets_checkbutton {
                 $i++;
                 my $text = shift @data;
                 my $pvar = shift @data;
-                print "db cb text=$text\n";
                 $html_pointers{++$html_pointer_cnt} = $pvar;
                 my $checked = 'CHECKED' if $$pvar;
                 $html  = qq[<FORM name="widgets_radiobutton" ACTION="SET_VAR"  target='speech'>\n];
@@ -952,6 +989,9 @@ Cookie: w3ibmID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.35  2000/02/13 03:57:27  winter
+#  - 2.00 release.  New web server interface
+#
 # Revision 1.34  2000/02/12 06:11:37  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

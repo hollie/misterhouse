@@ -6,16 +6,33 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
-=head2 mh ver 1.?? posted on 01/27/00
+=head2 mh ver 2.00 posted on 02/12/00
 
-Version 1.97 was just uploaded to:
+Version 2.00 was just uploaded to:
 
   http://misterhouse.net/download
   http://misterhouse.sourceforge.net
 
+We overflowed the mh version number, so rather than go from version 1.99 to 1.100, we 
+decided to use 2.00.
+This isn't a major re-write of mh (except for the web interface),
+but mh has had enough changes since 1.00 that we thought maybe it deserved a new number :)
+
 B<New Features:>
 
-- http server mh3
+- Dave Lounsberry and I re-vamped the web interface.
+There are too many changes to summarize here, but most of it documented in the 
+'Customizing the Web Interface' section of mh.html.
+There are some new parms in mh.ini so you can taylor it somewhat with just parm changes.
+For example, you can turn
+the icons off and you can set the refresh rate of the speak, log, and widget label screens.
+mh uses various search strategies for picking the best icon to match a command
+or item (documented in mh.html), but if you want to manually pick an icon, you can
+use the new set_icon method for various objects.
+
+- Also include in the web overhall is a new last_response html response function,
+which is now used by all the web RUN commands.  This will allow the web interface
+to see all the Display and/or Spoken data, so now you -tk 0 guys can have some fun!
 
 - Added state_log method to various items.  This is used in the Tk Items pull down state_log
 entry and the new web pages.   It shows the time_date stamps of the last 
@@ -29,13 +46,14 @@ More info is in mh/docs/mh.html.
 mh will now send me email or an instant messages whenever it detects our
 cars have gone somewhere.  It is a great way to keep track of the family from work!
 
-- Added -mime option to net_mail_send
-
 - Added a call to the new Astro::MoonPhase module to create,
 $Moon{phase}, $Moon{brightness}, $Moon{age}, and $Moon{new,first,full,last} entries.  
 See mh/code/test/time_info.pl for examples.
 
-- sf survey 
+- I created a survey at http://sourceforge.net/survey/survey.php?group_id=1365&survey_id=10139
+Unfortunatly it seems to only allow me to look at the results, but I'll
+post a summary of the survey in a month or 2 so you can all see the results.
+
 
 B<Bug Fixes and Minor Changes:>
 
@@ -49,6 +67,10 @@ B<Bug Fixes and Minor Changes:>
 
 - Added mh/code/examples/x10_motion_sensors_kevin.pl
 
+- Jay Archer added mh/code/public/door_monitor_jay.pl as an 
+example of using an X10 powerflash and hawkeye motion sensors
+to monitor and control a garage door
+
 - Restored the mh/data/remarks/deep_thoughts.txt database (accidently deleted in the last release)
 
 - Drop the extra "" in mh.ini favorite_tv_shows parm
@@ -56,8 +78,6 @@ B<Bug Fixes and Minor Changes:>
 - Fixed the web server stats report in monitor_server.pl
 
 - Add plural_check to de-pluralize a string (example in monitor_shoutcast.pl).
-
-- Merge timers_*.pl into timer_kitchen.pl
 
 
 
