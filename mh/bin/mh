@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2004-09-25 10:56:05 winter>
+#  Last change Time-stamp: <2004-11-20 22:56:32 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -2096,6 +2096,8 @@ sub display {
     %parms = &parse_func_parms(%parms);  # Allow for key=value embeded in the text
     &set_app_parms(\%parms, 'display');     # Set parms according to an optional app parm
 
+#   print "db display t=$parms{text} d=$parms{device} p=@parms\n";
+
     my $text = $parms{text};
     return unless $text;        # No data
 
@@ -2112,11 +2114,6 @@ sub display {
     pop @Display_Log if @Display_Log >  $config_parms{max_log_entries};
     &Log_hooks('display', $text, %parms);   # Created by &add_hooks
 
-                                # Assume we were waiting for this and reset http server counter.  Speak has precedence
-    $Last_Response = 'display' unless $Last_Response eq 'speak';
-    $leave_socket_open_passes = 1 if $leave_socket_open_passes;
-    return if $Respond_Target =~ /^web/;
-
                                 # Allow for display_device functions (e.g. lib/Display_Alpha.pm display_alpha)
     if ($parms{device}) {
         my $func = "display_$parms{device}";
@@ -2126,6 +2123,10 @@ sub display {
             return;
         }
     }
+                                # Assume we were waiting for this and reset http server counter.  Speak has precedence
+    $Last_Response = 'display' unless $Last_Response eq 'speak';
+    $leave_socket_open_passes = 1 if $leave_socket_open_passes;
+    return if $Respond_Target =~ /^web/;
 
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
@@ -2310,6 +2311,14 @@ sub eval_user_code_reset {
                                 # Since we created new objects, lets de-reference all the old ones
     &Timer::delete_old_timers;
     &Generic_Item::delete_old_tied_times;
+}
+
+sub eval_with_timer {
+    my ($action, $time)= @_;
+    print "eval_with_timer: time=$time action=$action\n" if $Debug{timer};
+    return unless $time;
+    my $timer = &Timer::new();
+    &Timer::set($timer, $time, $action);
 }
 
 sub exit_pgm {
@@ -2529,6 +2538,12 @@ sub list_objects_by_type {
     return unless $object_names_by_type{$object_type};
     return @{$object_names_by_type{$object_type}};
 }
+sub list_objects_by_type2 {
+    my ($object_type) = @_;
+    my @object_list = &list_objects_by_type($object_type);
+    return map{&get_object_by_name($_)} @object_list;
+}
+
 
 sub list_objects_by_group {
     my ($group_name) = @_;
@@ -4074,7 +4089,9 @@ sub read_user_code {
 #           my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+(\S+?)\s*[\(\"\'\;\n]/;
 
 #           my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+([^\s\(\;]+)/; # <- Did not parse on RH 9.0 perl 5.8!  Ok without last \s
-            my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+([A-Za-z0-9\_\-]+)/;
+#           my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+([A-Za-z0-9\_\-]+)/;
+            my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+([A-Za-z0-9:\_\-]+)/;
+
 
                                 # Allow for type->new(..)
             ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*(\S+?) *-> *new/ unless $type;
@@ -5125,9 +5142,8 @@ sub speak {
         return unless $parms{rooms} =~ /^$mh_room|\,$mh_room|^all/;
     }
 
-                        # Do not speak to the default card if muted or offline
-    return if $mode and ($mode eq 'mute' or $mode eq 'offline') and
-        !($parms{to_file} or $parms{card});
+                                # Do not speak muted or offline
+    return if $mode and ($mode eq 'mute' or $mode eq 'offline') and !$parms{to_file};
 
                                 # If we have a 1/2 duplex sound card, we want to wait a bit before speaking
                                 # or else the speech will get qued.
@@ -5884,6 +5900,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.96  2004/11/22 22:42:50  winter
+# *** empty log message ***
+#
 # Revision 2.95  2004/09/25 19:40:18  winter
 # *** empty log message ***
 #
