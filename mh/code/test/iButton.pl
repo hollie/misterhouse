@@ -85,7 +85,7 @@ if ($state = said $v_iButton_readtemp) {
     print_log "Temp for sensor $state: $temp F";
 }
 
-if ($New_Second and !($Minute % 5)) {
+if ($New_Second and !($Minute % 1)) {
     my $device;
 #   run_voice_cmd 'Read the iButton temperature 1' if $Second == 11;
     $device = 1 if $Second == 11;
@@ -95,6 +95,8 @@ if ($New_Second and !($Minute % 5)) {
     if ($device) {
         my $ib = $ib_temps[$device - 1];
         my $temp = read_temp $ib;
+        my $ib_name = substr $$ib{object_name}, 1;
+        update_rrd($ib_name, $temp);
         logit("$config_parms{data_dir}/iButton_temps.log",  "$state: $temp");
     }
 }
@@ -121,4 +123,18 @@ if (said $v_iButton_readtemps) {
 
                                 # List all iButton devices
 print_log "List of ibuttons:\n" . &iButton::scan_report if said $v_iButton_list;
+
+
+
+sub update_rrd {
+    return unless $config_parms{rrd_dir};
+
+	my ($sensor, $temp) = @_;
+    my ($rrd_file, $rrd_error);
+
+	$rrd_file = "$config_parms{rrd_dir}/$sensor.rrd";
+	print "Storing $sensor data=$temp in $rrd_file\n";
+	RRDs::update $rrd_file, "$Time:$temp";
+	print_log "RRD ERROR: $rrd_error\n" if $rrd_error = RRDs::error;
+}
 

@@ -422,6 +422,12 @@ This is supported via the mh IR_Item object.
 
 </P>
 <P>
+A nice summary of the different X10 controlers is here: <A
+HREF="http://www.geocities.com/ido_bartana/Which_controller.html">http://www.geocities.com/ido_bartana/Which_controller.html</A>
+
+
+</P>
+<P>
 Europeans can get X10 stuff from <A
 HREF="http://www.intellihome.be">http://www.intellihome.be</A> , <A
 HREF="http://www.hwg-telekom.de">http://www.hwg-telekom.de</A> , <A
@@ -589,6 +595,11 @@ Here are some urls and prices:
 </PRE>
 </P>
 <P>
+<PRE>  <A HREF="http://weather.henriksens.net">http://weather.henriksens.net</A>  has free 1-Wire Weather station software
+    - It includes a tcp/ip server that (in theory) could talk to mh
+</PRE>
+</P>
+<P>
 If you want more reliable VR without having to use a headset, you can try
 these to digital array microphones:
 
@@ -748,7 +759,7 @@ Time/Date Variables
   $Time_Sunrise, $Time_Sunset, $Time_Sunrise_Twilight, $Time_Sunset_Twilight
   $Second, $Minute, $Hour, $Mday, $Wday, $Day, $Month, $Year, $Holiday
   $New_Second, $New_Minute, $New_Hour, $New_Day, $New_Month, $New_Year
-  $Season, $Weekday, $Weekend $Time_Of_Day
+  $Season, $Weekday, $Weekend, $Time_Of_Day, $Dark
   %Moon
 </PRE>
 </P>
@@ -1025,7 +1036,9 @@ the mh.ini parm ibutton_port.
 </P>
 <P>
 <PRE>  Methods:
-     new $id
+     new $id, $port
+       If $port is not specified, the port of the first iButton::connect
+       will be used.
 </PRE>
 </P>
 <P>
@@ -1050,12 +1063,15 @@ the mh.ini parm ibutton_port.
 </PRE>
 </P>
 <P>
-<PRE>   In addition to the above, all of the methods provided by the Hardware/iButton/Device.pm 
-   module are available (documented in mh/lib/site/Hardware/iButton/Device.pm).
-   
-   
-   These methods are also part of the iButton module, but not associated with an object: 
-</PRE>
+In addition to the above, all of the methods provided by the
+Hardware/iButton/Device.pm module are available (documented in
+mh/lib/site/Hardware/iButton/Device.pm).
+
+</P>
+<P>
+These functions are also part of the iButton module, but not associated
+with an object:
+
 </P>
 <P>
 <PRE>     scan        $family : Returns a object list of iButton devices that match $family 
@@ -1067,7 +1083,8 @@ the mh.ini parm ibutton_port.
 </PRE>
 </P>
 <P>
-<PRE>     connect             : Connect to the one wire bus
+<PRE>     connect $port       : Connect to the one wire bus.  Note you can now have multiple
+                           iButton interfaces on multiple COM ports.
 </PRE>
 </P>
 <P>
@@ -1075,21 +1092,27 @@ the mh.ini parm ibutton_port.
 </PRE>
 </P>
 <P>
-<PRE>   The $id required when creating new iButton_Item is the 16 hex character (64 bit) iButton id that
-   is unique to every device.  This is often printed on the larger devices.  If not, you can use: 
+Note, all of these functions take an optional <CODE>$port</CODE> parm
+(required for connect). If not specified, the port of the first connect
+record will be used.
+
+</P>
+<P>
+The <CODE>$id</CODE> required when creating new iButton_Item is the 16 hex
+character (64 bit) iButton id that is unique to every device. This is often
+printed on the larger devices. If not, you can use: 
+
+</P>
+<P>
+<PRE>    $v_iButton_list      = new Voice_Cmd &quot;List all the iButton buttons&quot;;
+    print_log &amp;iButton::scan_report if said $v_iButton_list;
 </PRE>
 </P>
 <P>
-<PRE>      $v_iButton_list      = new Voice_Cmd &quot;List all the iButton buttons&quot;;
-      print_log &amp;iButton::scan_report if said $v_iButton_list;
-</PRE>
-</P>
-<P>
-<PRE>   The last 2 characters are CRC bits and are optional.  If missing (i.e. you only specify 
-   the first 14 characters), mh will calculate it.
-   
-   The first 2 characters are the iButton family type.  Here is a list of family types:  
-</PRE>
+The last 2 characters are CRC bits and are optional. If missing (i.e. you
+only specify the first 14 characters), mh will calculate it. The first 2
+characters are the iButton family type. Here is a list of family types:  
+
 </P>
 <P>
 <PRE>     Field Index:
@@ -1557,13 +1580,12 @@ goes directly to that level, independent of the existing state.
 
 </P>
 <P>
-To use the #% preset dim states, you need to use a 3rd argument on X10_Item
-to tell it that you have a LM14 lamp module (the only module that currently
-supports Preset Dim). For example:
+If you have a LM14 lamp module (or any other module that supports Preset
+Dims), you can use the #% preset dim states. For example:
 
 </P>
 <P>
-<PRE>  $test_light2 = new X10_Lamp('O7', 'CM11', 'LM14');
+<PRE>  $test_light2 = new X10_Lamp('O7', 'CM11');
   $v_test_light2 = new Voice_Cmd(&quot;Set test light to [on,off,bright,dim,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%]&quot;);
   set $test_light2 $state if $state = said $v_test_light2;
 </PRE>
@@ -2184,6 +2206,10 @@ Displays the specified text string, text file contents, or bitmap (.gif or
     display $f_trivia_answer;
     display '/pictures/photo.jpg';
   
+If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk popup window.
+If -tk 0 or the data is echoed to the console.
+If the data is requested from a web browser, the data is echoed to the browser print_log 
+window.
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_file_changed">file_changed (or older name of file_change)</A></STRONG><DD>
@@ -2264,7 +2290,9 @@ appends to, a file.
 </P>
 <DT><STRONG><A NAME="item_file_cat">file_cat</A></STRONG><DD>
 <P>
-Concatonates data from one file onto another.
+Concatonates data from one file onto another. If an optional 3rd parm of
+'top' is specified, the first files is added to the top of the 2nd file. If
+not, then it is added to the bottom.
 
 </P>
 <P>
@@ -2276,7 +2304,9 @@ Concatonates data from one file onto another.
 </PRE>
 </P>
 <P>
-<PRE>    file_cat &quot;$config_parms{html_dir}/aprs/week2.html&quot;, &quot;$config_parms{html_dir}/aprs/old/${Year_Month_Now}.html&quot;;
+<PRE>    file_cat &quot;$config_parms{html_dir}/aprs/week2.html&quot;,
+             &quot;$config_parms{html_dir}/aprs/old/${Year_Month_Now}.html&quot;,
+             'top';
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_file_head">file_head file_tail</A></STRONG><DD>
@@ -2741,7 +2771,8 @@ best way to see how it works is to look the following examples:
 <P>
 Use time_random to code random events. It uses the same time format as
 time_cron, but includes frequency parameter that specifies how often the
-event should trigger.
+event should trigger. Frequency is the average number of minutes between
+occurrences.
 
 </P>
 <P>
@@ -3195,12 +3226,23 @@ Used to send email. Usage: <CODE>net_mail_send(option</CODE> =&gt; value);
 <P>
 <PRE>        subject     Default is 'Email from Mister House'
         text        Body of the message
-        file        File with the body of the message.
 </PRE>
 </P>
 <P>
-<PRE>        mime        Set to 1 if you want mail sent in mime format (e.g. file has html)
-        baseref     If sending html with mime =&gt; 1, use this to set the BASE HREF
+<PRE>        file        File with the body of the message or a file whose
+                    contents you want attached to the note.
+        filename    Name to give file attachement.  Defaults to file parm.
+</PRE>
+</P>
+<P>
+<PRE>        mime        Set to the mime type (used if a file is attached).
+                    Current recognized types are txt,pl,zip,bin,exe,jpg,gif,png, and html.
+                    If not specified, the extention of the file parm is used.
+                    Use bin for an arbitary binary file.
+</PRE>
+</P>
+<P>
+<PRE>        baseref     If sending html with mime =&gt; 'html', use this to set the BASE HREF
 </PRE>
 </P>
 <P>
@@ -3213,6 +3255,17 @@ Used to send email. Usage: <CODE>net_mail_send(option</CODE> =&gt; value);
 </P>
 <P>
 <PRE>    net_mail_send(account =&gt; 'Bruce', to =&gt; 'winter@misterhouse.net', text =&gt; $msg);
+</PRE>
+</P>
+<P>
+<PRE>    net_mail_send(subject =&gt; 'test an html file attachement',
+                  baseref =&gt; 'localhost:8080',
+                  file    =&gt; '../web/mh4/widgets.html', mime  =&gt; 'html');
+</PRE>
+</P>
+<P>
+<PRE>    net_mail_send(subject =&gt; 'test a gif file attachement',
+                  file    =&gt; '../web/graphics/goofy.gif');
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_net_mail_count">net_mail_count</A></STRONG><DD>
@@ -3410,6 +3463,13 @@ file. It will create the following files:
 <PRE>  mh/data/get_mail.flag
      This has a string of digits, one for each account,
      that shows how much mail is each account.  
+</PRE>
+</P>
+<P>
+<PRE>  mh/data/email
+     This directory will have one weeks worth of html mail files, 
+     by account and day (e.g. winter_tue.html), as well as a
+     latest.html file that just shows the unreceived mail.
 </PRE>
 </P>
 <P>
@@ -3695,6 +3755,66 @@ file, it will read and execute its contents, then delete it.
     house XAJAK
 </PRE>
 </P>
+<DT><STRONG><A NAME="item_ical_load">ical_load</A></STRONG><DD>
+<P>
+ical_load reads an icalendar calendar file from the Unix ical program.
+Optionally creates a mh code file to implement calendar events.
+
+</P>
+<P>
+See outlook_read for a Windows solution.
+
+</P>
+<P>
+<PRE>  Version: 1.0
+</PRE>
+</P>
+<P>
+<PRE>  Usage:
+    ical_load [options]
+</PRE>
+</P>
+<P>
+<PRE>  Options:
+    -help    -&gt; help text
+</PRE>
+</P>
+<P>
+<PRE>    -calendar_file xyz-&gt; Location of .calendar file. It defaults to $HOME/.calendar.
+    -quiet            -&gt; do not echo data to STDOUT
+    -debug            -&gt; print out debug
+</PRE>
+</P>
+<P>
+<PRE>    -pl_file xyz      -&gt; Write out a mh perl code file.  These are the various
+                         formats of Calendar subjects:
+</PRE>
+</P>
+<P>
+<PRE>                         vcr channel_num show_name (e.g. VCR 8 Dilbert)
+                         voice_command  (e.g. Christmas lights on)
+                         message_to_speak (e.g. Today is national geek day)
+</PRE>
+</P>
+<P>
+<PRE>                         Note:  If the text is not a vcr or voice_command, it
+                                will be treated as a messages.
+</PRE>
+</P>
+<P>
+<PRE>    -date mm/dd/yy    -&gt; Get data with a start_time on date.  Default is today.
+    -days ###         -&gt; Look out ### days from -date.  Default is none, today only.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    ical_load -help
+    ical_load -calendar_file /home/dbl/.calendar -pl_file /projects/mhcode/calendar_events.pl
+    ical_load -calendar_file /home/dbl/.calendar -date 11/07/00 -days 2
+    ical_load -calendar_file /home/dbl/mh/data/calendar
+    ical_load
+</PRE>
+</P>
 <DT><STRONG><A NAME="item_mhl">mhl</A></STRONG><DD>
 <P>
 You can use mhl to start mh (rather than calling mh directly) to help
@@ -3739,6 +3859,10 @@ mh.
 <P>
 outlook_read reads MS Outlook (a windows mail/calendar program) folder data
 and optionally creates a mh code file to implement calendar events.
+
+</P>
+<P>
+See ical_load for a Unix solution.
 
 </P>
 <P>
@@ -4249,6 +4373,11 @@ generated html:
 </PRE>
 </P>
 <P>
+<PRE>  /list:h_response?Category
+    As above, but it also passes h_response to the RUN commands (see h_response below)
+</PRE>
+</P>
+<P>
 <PRE>  /group
     This will return all the Group Items
 </PRE>
@@ -4398,47 +4527,50 @@ mh/web/graphics/index.shtml for an example.
 </P>
 <P>
 If you want to have only a few specific html controls, you can write your
-own html using the RUN, SET, and SET_VAR url keywords to control mh. Here
-are a few examples:
+own html using the RUN and SET (or SET_VAR) url keywords to control mh.
+Here are a few examples:
 
 </P>
 <P>
 <PRE> &lt;a href=<A HREF="http://localhost:8080/SET">http://localhost:8080/SET</A>?$test_lights?off &gt;Turn the test light off&lt;/a&gt;
- &lt;a href=<A HREF="http://localhost:8080/SET_VAR">http://localhost:8080/SET_VAR</A>?$Save{test_input1}?abc &gt;Load test_input1 with abc&lt;/a&gt;
+ &lt;a href=<A HREF="http://localhost:8080/SET">http://localhost:8080/SET</A>?$Save{test_input1}?abc &gt;Load test_input1 with abc&lt;/a&gt;
  &lt;a href=<A HREF="http://localhost:8080/RUN?WebCam_light_on">http://localhost:8080/RUN?WebCam_light_on</A> &gt;WebCam light on&lt;/a&gt;
 </PRE>
 </P>
 <P>
-The SET command can set any object defined in your user code to a valid
-state. The SET_VAR command can set a variable or an object (child of
-Generic_Object) to any arbitrary value. The RUN command can run any voice
+The SET (or SET_VAR ... they are now the same) command can set any object
+or variable defined in your user code. The RUN command can run any voice
 command. Use '_' to replace blanks in the command string.
 
 </P>
 <P>
-SET, SET_VAR, and RUN can use an optional response field to decide what
-html will be returned:
+SET and RUN can use an optional response field to decide what html will be
+returned:
 
 </P>
 <P>
 <PRE>  Format:
-   SET_VAR:h_response?$var?value
-   SET:h_response?object?value
+   SET:h_response?$object?value 
    RUN:h_response?command
 </PRE>
 </P>
 <P>
-<PRE>  Where h_response can be one of the following:
-   &amp;function       The results of &amp;function will be returned
-   &amp;function(arg)  The results of &amp;function(arg) will be returned
-   last_response   The last displayed or spoken text. 
-   last_displayed  The last displayed text will be returned
-   last_spoken     The last spoken item will be returned
-   filexyz.html    The contents of filexyz.html will be returned
-   string          string will be returned
-   Referer         The browser will be re-directed back to the calling page
-   <A HREF="http://url">http://url</A>      The browser will be re-directed to url
-   blank:          A list of recently spoken text will be returned
+<PRE>  $var and $object are the variable and object names, with or without the $ prefix.
+</PRE>
+</P>
+<P>
+<PRE>  h_response can be one of the following:
+   &amp;function        The results of &amp;function will be returned
+   &amp;function(arg)   The results of &amp;function(arg) will be returned
+   last_response    The last displayed or spoken text. 
+   last_response_## As above, but only the first ## characters.
+   last_displayed   The last displayed text will be returned
+   last_spoken      The last spoken item will be returned
+   filexyz.html     The contents of filexyz.html will be returned
+   string           string will be returned
+   Referer          The browser will be re-directed back to the calling page
+   <A HREF="http://url">http://url</A>       The browser will be re-directed to url
+   blank:           A list of recently spoken text will be returned
 </PRE>
 </P>
 <P>
@@ -4447,22 +4579,22 @@ Here are some examples demonstrating these options:
 </P>
 <P>
 <PRE> This returns the last spoken line:
-  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN:last_spoken?WebCam_light_on">http://localhost:8080/RUN:last_spoken?WebCam_light_on</A> &gt;Light on&lt;/a&gt;
+  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN:last_spoken?WebCam_light_on&gt">http://localhost:8080/RUN:last_spoken?WebCam_light_on&gt</A>;Light on&lt;/a&gt;
 </PRE>
 </P>
 <P>
 <PRE> This returns the string &quot;Thanks for playing&quot;
-  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN:Thanks_for_playing?WebCam_light_off">http://localhost:8080/RUN:Thanks_for_playing?WebCam_light_off</A> &gt;Light off&lt;/a&gt;
+  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN:Thanks_for_playing?WebCam_light_off&gt">http://localhost:8080/RUN:Thanks_for_playing?WebCam_light_off&gt</A>;Light off&lt;/a&gt;
 </PRE>
 </P>
 <P>
 <PRE> This returns the contents of the mh/web/test/test3.html file:
-  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN:test/test3.html?WebCam_light_+50">http://localhost:8080/RUN:test/test3.html?WebCam_light_+50</A> &gt;+50&lt;/a&gt;
+  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN:test/test3.html?WebCam_light_+50&gt">http://localhost:8080/RUN:test/test3.html?WebCam_light_+50&gt</A>;+50&lt;/a&gt;
 </PRE>
 </P>
 <P>
 <PRE> This returns a list of recently spoken text:
-  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN?WebCam_light_-50">http://localhost:8080/RUN?WebCam_light_-50</A> &gt;-50&lt;/a&gt;
+  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN?WebCam_light_-50&gt">http://localhost:8080/RUN?WebCam_light_-50&gt</A>;-50&lt;/a&gt;
 </PRE>
 </P>
 <P>
@@ -4471,7 +4603,7 @@ Here are some examples demonstrating these options:
 </PRE>
 </P>
 <P>
-<PRE>  &lt;FORM ACTION=&quot;SET_VAR:&amp;my_response&quot;&gt;Test 1&lt;INPUT SIZE=5 NAME=&quot;$Save{test_input1}&quot;&lt;/form&gt;
+<PRE>  &lt;FORM ACTION=&quot;SET:&amp;my_response&quot;&gt;Test 1&lt;INPUT SIZE=5 NAME=&quot;$Save{test_input1}&quot;&lt;/form&gt;
 </PRE>
 </P>
 <P>
@@ -4480,16 +4612,17 @@ Here are some examples demonstrating these options:
 </PRE>
 </P>
 <P>
-<PRE>  &lt;FORM ACTION=&quot;SET_VAR:barcode_search.html&quot;  target='speech'&gt;
+<PRE>  &lt;FORM ACTION=&quot;SET:barcode_search.html&quot;  target='speech'&gt;
   &lt;p&gt;Scan data into here: &lt;INPUT SIZE=60 NAME=&quot;$barcode_scan&quot; value=&quot;&quot;&gt;&lt;/FORM&gt;
 </PRE>
 </P>
 <P>
-<PRE> This will redirect the browser back to the calling page:
+<PRE> This will redirect the browser back to the calling page 
+ (note the $ from the $camera_light object is optional):
 </PRE>
 </P>
 <P>
-<PRE>  &lt;a HREF=&quot;<A HREF="http://misterhouse.net:8080/SET:Referer">http://misterhouse.net:8080/SET:Referer</A>?$camera_light&amp;on&quot;&gt;Light on&lt;/a&gt;
+<PRE>  &lt;a HREF=&quot;<A HREF="http://misterhouse.net:8080/SET:Referer?camera_light=on&quot">http://misterhouse.net:8080/SET:Referer?camera_light=on&quot</A>;&gt;Light on&lt;/a&gt;
 </PRE>
 </P>
 <P>
@@ -4497,7 +4630,7 @@ Here are some examples demonstrating these options:
 </PRE>
 </P>
 <P>
-<PRE>  &lt;a HREF=&quot;<A HREF="http://misterhouse.net:8080/SET:http://misterhouse.net">http://misterhouse.net:8080/SET:http://misterhouse.net</A>?$camera_light&amp;off&quot;&gt;Light off&lt;/a&gt;
+<PRE>  &lt;a HREF=&quot;<A HREF="http://misterhouse.net:8080/SET:http://misterhouse.net">http://misterhouse.net:8080/SET:http://misterhouse.net</A>?$camera_light=off&quot;&gt;Light off&lt;/a&gt;
 </PRE>
 </P>
 <P>
@@ -4753,11 +4886,6 @@ picture size (e.g 10 50k photos -&gt; 5 meg).
 
 </P>
 <P>
-Some people are getting CRC errors when running iButton code under Windows
-NT.
-
-</P>
-<P>
 Adding, deleting, or changing Voice commands does is not recognized by the
 Windows MSVoice applicatino while it is running. You have to exit and
 restart MSVoice, then restart mh to get it to recognize new commands.
@@ -4799,7 +4927,7 @@ or the black text on white windows shows up as white text.
 <P>
 Bruce Winter <A
 HREF="mailto:bruce@misterhouse.net">bruce@misterhouse.net</A> <A
-HREF="http://misterhouse.net">http://misterhouse.net</A>
+HREF="http://misterhouse.net/winters">http://misterhouse.net/winters</A>
 
 </P>
 <P>

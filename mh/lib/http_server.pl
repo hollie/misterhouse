@@ -56,7 +56,6 @@ sub main::http_read_parms {
 
     undef %html_icons;          # Refresh lib/http_server.pl icons
 
-    print "db $main::config_parms{password_protect_dirs}\n";
     %password_protect_dirs = map {$_, 1} split ',', $main::config_parms{password_protect_dirs};
 }
 
@@ -1596,6 +1595,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.49  2000/11/12 21:53:14  winter
+# - 2.34 release
+#
 # Revision 1.48  2000/11/12 21:02:38  winter
 # - 2.34 release
 #

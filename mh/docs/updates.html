@@ -13,6 +13,7 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#Version_2_34_posted_on_11_12_00">Version 2.34 posted on 11/12/00</A></LI>
 		<LI><A HREF="#Version_2_32_posted_on_10_22_00">Version 2.32 posted on 10/22/00</A></LI>
 		<LI><A HREF="#Version_2_29_posted_on_10_01_00">Version 2.29 posted on 10/01/00</A></LI>
 		<LI><A HREF="#Version_2_28_posted_on_09_09_00">Version 2.28 posted on 09/09/00</A></LI>
@@ -71,6 +72,197 @@
 list (an archive of all the list messages is at <A
 HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A>
 )
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_34_posted_on_11_12_00">Version 2.34 posted on 11/12/00</A></H2>
+<P>
+Version 2.34 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net/download">http://misterhouse.sourceforge.net/download</A>
+  <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- David Lounsberry sent in mh/bin/ical_load and mh/code/public/ical.pl.
+This code allows unix users to create mh events based on ical calander
+program entries, like mh/bruce/outlook.pl and mh/bin/outlook_read does on
+Windows.
+
+</P>
+<P>
+- David also sent in an example of how to log and plot data to/from a Round
+Robin Database (rrd), using rrdtool, which is available on both unix and
+Windows. David has plots from is iButton temperature logs at <A
+HREF="http://dittos.yi.org/automation/plots/temps.html">http://dittos.yi.org/automation/plots/temps.html</A>
+. See mh/code/public/README.txt rrd* entries for more info.
+
+</P>
+<P>
+- Kieran Ames came up with the idea of a programable timer. To enable,
+delete the old timers_*.pl members and copy in the new
+mh/code/test/timers.pl member. This will enable tk and web menu fields that
+you can enter timer time and text into.
+
+</P>
+<P>
+- Doug suggested a get_email enhancement that allows for browsing mh
+monitored email from a web browser. One weeks worth of email is stored (by
+day, as html files) for each account in a new data/email dir. In addition
+an html.latest member shows just the email that has not been received yet.
+Added a 'Email Received' link to the default we menu.
+
+</P>
+<P>
+- Added a mh.ini password_protect_dir parm, so that specified web
+directories can only be viewed by browsers logged in with the correct
+password. By default the /data and /email directories are protected.
+
+</P>
+<P>
+- David Norwood sent in an update to support long X10 strings that include
+bright/dim data (e.g. XA1A-100A+40).
+
+</P>
+<P>
+- Bill Sobel added X10_Switchlinc as a child class of X10_Item. We also
+added support for recognizing long incoming X10 strings, like XK1KJKJKJ
+Switchlinc 3 push strings by allowing for &gt; 2 passes in X10 string
+merging.
+
+</P>
+<P>
+- A number of changes to web server to support various browsers (e.g.
+object and vars without $, list:last_response?category). A mh/web/wap
+directory has some wap phone examples.
+
+</P>
+<P>
+- Allow for multiple iButton adaptors on multiple COM ports. If
+<CODE>$port</CODE> is not specified on the methods/functions calls (e.g.
+new, monitor), it will default to the port used on the first
+iButton::connect call.
+
+</P>
+<P>
+- Added a bunch of file attachement mime options to &amp;net_mail_send. See
+internet_mail.pl and/or mh/docs/mh.html for examples.
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- David Lounsberry sent in an iButton Device.pm update to loop on CRC
+errors. Craig Schaeffer sent in a Connection.pm timing adjustment.
+
+</P>
+<P>
+- Wally Kissel discovered File_Item read_random was not random on Windows.
+
+</P>
+<P>
+- Clive Freedman sent in a patch to bypass sendkeys_find_window for perl
+5.6+
+
+</P>
+<P>
+- Brian Rigsby sent in mh/code/public/news_yahoo.pl.
+
+</P>
+<P>
+- Ray Dzek sent in some Caller_ID.pm updates for is number-only callerid
+modem.
+
+</P>
+<P>
+- Benny Miller discovered mh.exe did not run get_tv_grid due to a
+Win32::CopyFile problem.
+
+</P>
+<P>
+- Timothy Spaulding discovered a problem upper case ON/OFF not working in
+X10 Voice_Cmd strings. 
+
+</P>
+<P>
+- Dropped <CODE>$module</CODE> from new X10_Item (not needed anymore). So,
+for example, you no longer need to specify a LM14 module when defining an
+X10_Item.
+
+</P>
+<P>
+- Added mh.ini no_log=save_state option, to turn off the 'Saving object
+states' message.
+
+</P>
+<P>
+- Added mh.ini get_url parm, to choose between simple or useragent LPW
+modules. Changed the default from useragent to simple, since more people
+were having problems with useragent.
+
+</P>
+<P>
+- Added a Testimonials section to the misterhouse.net web page.  
+
+</P>
+<P>
+- Added 'list barcoded inventory' command to barcode_inventory.pl
+
+</P>
+<P>
+- Allow for local module.pm files in the user code_dir directory.
+
+</P>
+<P>
+- Allow for Group_Item X10_Item sets with ncpuxa and HomeBase (like CM11).
+
+</P>
+<P>
+- Change Web pull downs to default to the first item, rather than blank
+
+</P>
+<P>
+- The web SET and SET_VAR directives now do the same thing (can be used for
+mh variables or objects).
+
+</P>
+<P>
+- A minor change to get_tv_grid (tv table format got messed up by a
+javascript).
+
+</P>
+<P>
+- Added a 'top' option to file_cat, for concatenating a file to the top
+(rather than bottom) of another file.
+
+</P>
+<P>
+- Added a <CODE>$Dark</CODE> flag (true before and after twighlight)
+
+</P>
+<P>
+- Set $Info{OS_name} to Win98 (rather than Win95) on Win98 systems.
+
+</P>
+<P>
+- Fixed the mh/code/common/mh_control.pl 'reboot the computer' option.
+
+</P>
+<P>
+- Updated install.html/install.txt (based off of a new install.pod file).
 
 </P>
 <P>

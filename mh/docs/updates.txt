@@ -3,6 +3,133 @@ Mister House Announcement List
     MisterHouse mailing list (an archive of all the list messages is
     at http://sourceforge.net/mail/?group_id=1365 )
 
+  Version 2.34 posted on 11/12/00
+
+    Version 2.34 was just uploaded to:
+
+      http://misterhouse.sourceforge.net/download
+      http://misterhouse.net/download
+
+    New Features:
+
+    - David Lounsberry sent in mh/bin/ical_load and
+    mh/code/public/ical.pl. This code allows unix users to create mh
+    events based on ical calander program entries, like
+    mh/bruce/outlook.pl and mh/bin/outlook_read does on Windows.
+
+    - David also sent in an example of how to log and plot data
+    to/from a Round Robin Database (rrd), using rrdtool, which is
+    available on both unix and Windows. David has plots from is
+    iButton temperature logs at
+    http://dittos.yi.org/automation/plots/temps.html . See
+    mh/code/public/README.txt rrd* entries for more info.
+
+    - Kieran Ames came up with the idea of a programable timer. To
+    enable, delete the old timers_*.pl members and copy in the new
+    mh/code/test/timers.pl member. This will enable tk and web menu
+    fields that you can enter timer time and text into.
+
+    - Doug suggested a get_email enhancement that allows for
+    browsing mh monitored email from a web browser. One weeks worth
+    of email is stored (by day, as html files) for each account in a
+    new data/email dir. In addition an html.latest member shows just
+    the email that has not been received yet. Added a 'Email
+    Received' link to the default we menu.
+
+    - Added a mh.ini password_protect_dir parm, so that specified
+    web directories can only be viewed by browsers logged in with
+    the correct password. By default the /data and /email
+    directories are protected.
+
+    - David Norwood sent in an update to support long X10 strings
+    that include bright/dim data (e.g. XA1A-100A+40).
+
+    - Bill Sobel added X10_Switchlinc as a child class of X10_Item.
+    We also added support for recognizing long incoming X10 strings,
+    like XK1KJKJKJ Switchlinc 3 push strings by allowing for > 2
+    passes in X10 string merging.
+
+    - A number of changes to web server to support various browsers
+    (e.g. object and vars without $, list:last_response?category). A
+    mh/web/wap directory has some wap phone examples.
+
+    - Allow for multiple iButton adaptors on multiple COM ports. If
+    $port is not specified on the methods/functions calls (e.g. new,
+    monitor), it will default to the port used on the first
+    iButton::connect call.
+
+    - Added a bunch of file attachement mime options to
+    &net_mail_send. See internet_mail.pl and/or mh/docs/mh.html for
+    examples.
+
+    Examples, Bug Fixes, and Minor Changes:
+
+    - David Lounsberry sent in an iButton Device.pm update to loop
+    on CRC errors. Craig Schaeffer sent in a Connection.pm timing
+    adjustment.
+
+    - Wally Kissel discovered File_Item read_random was not random
+    on Windows.
+
+    - Clive Freedman sent in a patch to bypass sendkeys_find_window
+    for perl 5.6+
+
+    - Brian Rigsby sent in mh/code/public/news_yahoo.pl.
+
+    - Ray Dzek sent in some Caller_ID.pm updates for is number-only
+    callerid modem.
+
+    - Benny Miller discovered mh.exe did not run get_tv_grid due to
+    a Win32::CopyFile problem.
+
+    - Timothy Spaulding discovered a problem upper case ON/OFF not
+    working in X10 Voice_Cmd strings.
+
+    - Dropped $module from new X10_Item (not needed anymore). So,
+    for example, you no longer need to specify a LM14 module when
+    defining an X10_Item.
+
+    - Added mh.ini no_log=save_state option, to turn off the 'Saving
+    object states' message.
+
+    - Added mh.ini get_url parm, to choose between simple or
+    useragent LPW modules. Changed the default from useragent to
+    simple, since more people were having problems with useragent.
+
+    - Added a Testimonials section to the misterhouse.net web page.
+
+    - Added 'list barcoded inventory' command to
+    barcode_inventory.pl
+
+    - Allow for local module.pm files in the user code_dir
+    directory.
+
+    - Allow for Group_Item X10_Item sets with ncpuxa and HomeBase
+    (like CM11).
+
+    - Change Web pull downs to default to the first item, rather
+    than blank
+
+    - The web SET and SET_VAR directives now do the same thing (can
+    be used for mh variables or objects).
+
+    - A minor change to get_tv_grid (tv table format got messed up
+    by a javascript).
+
+    - Added a 'top' option to file_cat, for concatenating a file to
+    the top (rather than bottom) of another file.
+
+    - Added a $Dark flag (true before and after twighlight)
+
+    - Set $Info{OS_name} to Win98 (rather than Win95) on Win98
+    systems.
+
+    - Fixed the mh/code/common/mh_control.pl 'reboot the computer'
+    option.
+
+    - Updated install.html/install.txt (based off of a new
+    install.pod file).
+
   Version 2.32 posted on 10/22/00
 
     Version 2.32 was just uploaded to:
