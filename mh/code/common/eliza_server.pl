@@ -18,10 +18,10 @@ $eliza_data   = new Generic_Item;
 $eliza_voice  = new Generic_Item;
 $eliza_wavcomp= new Generic_Item;
 
-$eliza_data   -> set_authority('anyweb');
-$eliza_rule   -> set_authority('anyweb');
-$eliza_voice  -> set_authority('anyweb');
-$eliza_wavcomp-> set_authority('anyweb');
+$eliza_data   -> set_authority('anyone');
+$eliza_rule   -> set_authority('anyone');
+$eliza_voice  -> set_authority('anyone');
+$eliza_wavcomp-> set_authority('anyone');
 
 &tk_entry('Eliza Message', $eliza_data, 'Eliza Rule', $eliza_rule);
 

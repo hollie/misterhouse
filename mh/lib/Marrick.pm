@@ -29,7 +29,7 @@ my %table_fcodes = qw(J N0   K F0   L M   M M);
 
 sub send_X10 {
     my ($serial_port, $house_code) = @_;
-    print "\ndb sending Marrick x10 code: $house_code\n" if lc $main::config_parms{debug} eq 'marrick';
+    print "\ndb sending Marrick x10 code: $house_code\n" if lc $main::Debug{marrick};
 
 # Incoming string looks like this:  XA1AK
     my ($house, $device, $code) = $house_code =~ /X(\S)(\S)\S(\S+)/;
@@ -138,6 +138,9 @@ T :	X : Time since power up or RESET. (Returns length of time)
 
 #
 # $Log$
+# Revision 1.3  2003/02/08 05:29:23  winter
+#  - 2.78 release
+#
 # Revision 1.2  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

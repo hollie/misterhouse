@@ -100,7 +100,7 @@ sub start_next {
         return;
     }
 
-    print "Process start: cmd_path=$cmd_path cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
+    print "Process start: cmd_path=$cmd_path cmd=$cmd\n" if $main::Debug{process};
 
                                 # Store STDOUT to a file
     if ($$self{output}) {
@@ -145,13 +145,13 @@ sub start_next {
     else {
         $pid = fork;
         if ($pid) {
-            print "Process start: parent pid=$pid type=$type cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
+            print "Process start: parent pid=$pid type=$type cmd=$cmd\n" if $main::Debug{process};
             open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
             open( STDERR, ">&STDERR_REAL" ) if $$self{errlog};
             $$self{pid} = $pid;
         }
         elsif (defined $pid) {
-            print "Process start: child type=$type cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
+            print "Process start: child type=$type cmd=$cmd\n" if $main::Debug{process};
             if ($type eq 'eval') {
                 package main;   # Had to do this to get the 'speak' function recognized without having to &main::speak() it
                 eval $cmd;
@@ -214,7 +214,7 @@ sub harvest {
         next unless $pid;       # In case somehow we already harvested his pid
                                 # Check if process is done or timed out
         if (defined $$process{timeout} and $time > ($$process{timeout} + $$process{started})) {
-            print "Process timed out process=$$process{object_name} pid=$pid cmd=@{$$process{cmds}} timeout=$$process{timeout}\n" if $main::config_parms{debug} eq 'process';
+            print "Process timed out process=$$process{object_name} pid=$pid cmd=@{$$process{cmds}} timeout=$$process{timeout}\n" if $main::Debug{process};
             $$process{timed_out} = $time;
             $process->stop();
         }
@@ -223,7 +223,7 @@ sub harvest {
             ($$process{timed_out})) {
                                 # Mark as done or start the next cmd?
             if ($$process{cmd_index} < @{$$process{cmds}}) {
-                print "Process starting next cmd process=$$process{object_name} pid=$pid index=$$process{cmd_index}\n" if $main::config_parms{debug} eq 'process';
+                print "Process starting next cmd process=$$process{object_name} pid=$pid index=$$process{cmd_index}\n" if $main::Debug{process};
                 delete $$process{pid};
                 &start_next($process);
             }
@@ -232,7 +232,7 @@ sub harvest {
                 $$process{done_now}++;
                 $$process{done} = $time;
                 delete $$process{pid};
-                print "Process done_now process=$$process{object_name} pid=$pid to=$$process{timed_out} cmd=@{$$process{cmds}}\n" if $main::config_parms{debug} eq 'process';
+                print "Process done_now process=$$process{object_name} pid=$pid to=$$process{timed_out} cmd=@{$$process{cmds}}\n" if $main::Debug{process};
             }
         }
         else {
@@ -251,7 +251,7 @@ sub stop {
         my $pid = $$process{pid};
         next unless $pid;
         delete $$process{pid};
-        print "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n" if $main::config_parms{debug} eq 'process';
+        print "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n" if $main::Debug{process};
         if ($main::OS_win) {
 #           $pid->Suspend() or print "Warning 1, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
 #           $pid->Resume() or print "Warning 1a, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
@@ -272,6 +272,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.22  2003/02/08 05:29:23  winter
+#  - 2.78 release
+#
 # Revision 1.21  2003/01/12 20:39:20  winter
 #  - 2.76 release
 #

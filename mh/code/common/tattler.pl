@@ -5,6 +5,8 @@
 
 # Tattler applet from: http://www.projectplasma.com/tattler/index.html
 
+my $f_deep_thought = "$config_parms{data_dir}/remarks/deep_thought.txt";
+
 $server_tattler  = new  Socket_Item(undef, undef, 'server_tattler');
 
 my $count;

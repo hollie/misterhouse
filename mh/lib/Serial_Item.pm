@@ -65,7 +65,7 @@ sub is_available {
 
     my $port_name = $self->{port_name};
     my $port = $main::Serial_Ports{$port_name}{port};
-    print "testing port $port ... ";
+    print "testing port $port_name $port ... ";
 
     my $sp_object;
 
@@ -142,7 +142,7 @@ sub said {
         $data = $main::Serial_Ports{$port_name}{data_record};
         $main::Serial_Ports{$port_name}{data_record} = undef; # Maybe this should be reset in main loop??
     }
-#   print "db serial $port_name data: $data\n" if $main::config_parms{debug} and $main::config_parms{debug} eq $port_name;
+#   print "db serial $port_name data: $data\n" if $main::Debug{$port_name};
     return $data;
 }
 
@@ -171,7 +171,7 @@ sub set_dtr {
     my $port_name = $self->{port_name};
     if (my $serial_port = $main::Serial_Ports{$port_name}{object}) {
         $main::Serial_Ports{$port_name}{object}->dtr_active($state);
-        print "Serial_port $port_name dtr set to $state\n" if $main::config_parms{debug} eq 'serial';
+        print "Serial_port $port_name dtr set to $state\n" if $main::Debug{serial};
     }
     else {
         print "Error, serial port set_dtr for $port_name failed, port has not been set\n";
@@ -182,7 +182,7 @@ sub set_rts {
     my $port_name = $self->{port_name};
     if (my $serial_port = $main::Serial_Ports{$port_name}{object}) {
         $main::Serial_Ports{$port_name}{object}->rts_active($state);
-        print "Serial_port $port_name rts set to $state\n" if $main::config_parms{debug} eq 'serial';
+        print "Serial_port $port_name rts set to $state\n" if $main::Debug{serial};
     }
     else {
         print "Error, serial port set_rts for $port_name failed, port has not been set\n";
@@ -222,7 +222,7 @@ sub set {
     $interface = '' unless $interface;
 
     print "Serial_Item: port=$port_name self=$self state=$state data=$serial_data interface=$$self{interface}\n" 
-        if $main::config_parms{debug} eq 'serial';
+        if $main::Debug{serial};
 
     return if     $main::Save{mode} eq 'offline';
     return unless %main::Serial_Ports;
@@ -300,7 +300,7 @@ sub set {
                                 # Check for X10 All-on All-off house codes
                                 #  - If found, set states of all X10_Items on that housecode
     if ($serial_data =~ /^X(\S)([OP])$/) {
-        print "db l=$main::Loop_Count X10: mh set House code $1 set to $2\n" if $main::config_parms{debug} eq 'X10';
+        print "db l=$main::Loop_Count X10: mh set House code $1 set to $2\n" if $main::Debug{x10};
         my $state = ($2 eq 'O') ? 'on' : 'off';
         &X10_Item::set_by_housecode($1, $state);
     }
@@ -315,7 +315,7 @@ sub set {
             next unless $port_name1 eq $port_name2;
 
             print "Serial_Item: Setting duplicate state: id=$serial_id item1=$$self{object_name} item2=$$ref{object_name}\n" 
-                if $main::config_parms{debug} eq 'serial';
+                if $main::Debug{serial};
             if ($state = $$ref{state_by_id}{$serial_id}) {
                 $ref->set_receive($state, $set_by);
             }
@@ -367,8 +367,8 @@ sub send_serial_data {
         
         my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
            
-#      &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::config_parms{debug} eq 'serial';
-        print "serial port=$port_name out=$serial_data results=$results\n" if $main::config_parms{debug} eq 'serial';
+#      &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::Debug{serial};
+        print "serial port=$port_name out=$serial_data results=$results\n" if $main::Debug{serial};
     }
 }
 
@@ -387,7 +387,7 @@ sub send_x10_data {
     else {
         $isfunc = 1;
     }
-    print "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n" if $main::config_parms{debug} eq 'X10';
+    print "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n" if $main::Debug{x10};
 
     if ($interface eq 'cm11') {
                                 # cm11 wants individual codes without X
@@ -536,6 +536,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.62  2003/02/08 05:29:23  winter
+#  - 2.78 release
+#
 # Revision 1.61  2003/01/12 20:39:20  winter
 #  - 2.76 release
 #

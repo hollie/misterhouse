@@ -88,6 +88,7 @@ my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
 if ($p_get_email->{done_now}) {
     my $data = file_read "$config_parms{data_dir}/get_email.flag";
     set $email_flag  $data;
+    $Save{email_flag} = $data;  # Used in web/bin/status_line.pl
 
                                 # Turn on an 'new mail indicator'
                                 #  - could be modified for different lights for different accounts.

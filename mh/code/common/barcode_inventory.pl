@@ -4,7 +4,7 @@
 
 
 $v_barcode_inventory =  new Voice_Cmd 'List barcoded inventory';
-$v_barcode_inventory -> set_authority('anyweb');
+$v_barcode_inventory -> set_authority('anyone');
 $v_barcode_inventory -> set_info('List the barcode inventory');
 
 if (said $v_barcode_inventory) {

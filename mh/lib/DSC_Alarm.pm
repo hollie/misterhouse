@@ -62,7 +62,7 @@ sub serial_startup
     {
         # The create call will not succeed for proxies, so we don't enter this case for proxy configsk
         init($::Serial_Ports{$instance}{object});
-        ::print_log "\nDSC_Alarm.pm initialzed $instance on hardware $port at $speed baud\n" if $::config_parms{debug} eq 'DSC';
+        ::print_log "\nDSC_Alarm.pm initialzed $instance on hardware $port at $speed baud\n" if $main::Debug{dsc};
     }
 
     # Add to the generic list so check_for_generic_serial_data is called for us automatically
@@ -78,7 +78,7 @@ sub serial_startup
         #      &::MainLoop_post_add_hook( \&DSC_Alarm::UserCodePostHook, 1 );
         $::Year_Month_Now = &::time_date_stamp(10,time);  # Not yet set when we init.
         &::logit("$::config_parms{data_dir}/logs/$instance.$::Year_Month_Now.log", "DSC_Alarm.pm Initialized");
-        ::print_log "DSC_Alarm.pm adding hooks \n" if $::config_parms{debug} eq 'DSC';
+        ::print_log "DSC_Alarm.pm adding hooks \n" if $main::Debug{dsc};
     }
 }
 
@@ -111,7 +111,7 @@ sub check_for_data
         {
             $main::Serial_Ports{$port_name}{data_record} = undef;
             &::logit("$::config_parms{data_dir}/logs/$port_name.$::Year_Month_Now.log", "$data");
-            ::print_log "DSC_Alarm port $port_name data = $data, $::Loop_Count\n" if $::config_parms{debug} eq 'DSC';
+            ::print_log "DSC_Alarm port $port_name data = $data, $::Loop_Count\n" if $main::Debug{dsc};
             #print "DSC_Alarm port $port_name data = $data, $::Loop_Count\n";
 
             if ($DSC_Alarm_Objects{$port_name}) 

@@ -138,6 +138,7 @@ but Randy Kobes has kindly made them available at his site. You can install them
    ppm> install DB_File
    ppm> install Tk-JPEG
    ppm> install Win32-Setupsup
+   ppm> exit
 
 If the DB_File post-install script doesn't run to install the included libdb.dll, you can extract the dll
 from http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz and copy it to a dir in your path.
@@ -552,7 +553,13 @@ can declare each of your X10_items in any of the code members you use it in.  In
 case you can use the "List X10 items" command created in mh_control.pl to review all
 your X10 items.
 
-To enabled password protection, run set_password.  Note: only the first 8 characters are used.
+To enabled password protection, run mh/bin/set_password command like this:
+
+ set_password -user family -password xyz1
+ set_password -user admin  -password xyz2
+
+Note: only the first 8 characters are used.
+The admin password is required for controling the mh web setup menus (e.g. item and code selection menus).
 
 When you want to upgrade to a newer verion of mh, follow these steps:
 

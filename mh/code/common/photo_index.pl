@@ -10,6 +10,13 @@
 #@  http://localhost:8080/bin/photos.pl
 
 
+# Example mh.ini parms
+#  html_alias_photos     = c:/pictures_small
+#  html_alias_photos_dad = c:/pictures_small/dad/Slides
+#  photo_dirs   = /photos,/photos_dad
+#  photo_index  = /misterhouse/data/photo_index.txt
+
+
 =begin comment
 
 You can use mh/bin/image_resize to resize and pad your photos to fit

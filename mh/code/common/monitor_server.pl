@@ -37,7 +37,7 @@ if (my $data = said $http_server) {
         if (!is_local_address($client_ip)) {
 
 
-            play 'sound_click1.wav' if $time_since_last_visit > 5;
+            play 'sound_trek2.wav'  if $time_since_last_visit > 5;
             $Save{web_hits_day}++ if $time_since_last_visit > 5;
             $Save{web_hits_hour}++ if $time_since_last_visit > 5;
 

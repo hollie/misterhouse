@@ -33,20 +33,20 @@ sub add {
         @{$$self{states}} = @{$$first_item{states}} if $first_item and $$first_item{states};
         @{$$self{states}} = split ',', $main::config_parms{x10_menu_states} if $first_item->isa('X10_Item');
 #       @{$$self{states}} = qw(on off)                                      if $first_item->isa('X10_Appliance');
-        print "Group states: @{$$self{states}}\n" if $first_item and $$self{states} and $main::config_parms{debug} eq 'group';
+        print "Group states: @{$$self{states}}\n" if $first_item and $$self{states} and $main::Debug{group};
     }
 }
 
 sub set {
     my ($self, $state, $set_by) = @_;
-    print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::config_parms{debug} eq 'group';
+    print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::Debug{group};
 
                                 # This means we were called by the above 
                                 # tie_items when a member changed
     if ($state =~ /member changed/) {
         $state = $set_by->{state};
        
-        print "Group member set: set_by=$set_by member=$set_by->{object_name} state=$state\n" if $main::config_parms{debug} eq 'group';
+        print "Group member set: set_by=$set_by member=$set_by->{object_name} state=$state\n" if $main::Debug{group};
 
         &Generic_Item::set_states_for_next_pass($self, "member $state", $set_by);
 
@@ -88,7 +88,7 @@ sub set {
 
     if ($hc) {
         for my $ref (@group) {
-            print "Group1 setting $ref to $state\n" if $main::config_parms{debug} eq 'group';
+            print "Group1 setting $ref to $state\n" if $main::Debug{group};
             set $ref 'manual';
                                 # Set the real state, rather than 'manual'
                                 #  - the last element of that array 
@@ -99,7 +99,7 @@ sub set {
     }
     else {
         for my $ref (@group) {
-            print "Group2 setting $ref to $state\n" if $main::config_parms{debug} eq 'group';
+            print "Group2 setting $ref to $state\n" if $main::Debug{group};
             set $ref $state, $set_by if $ref;
         }
     }
@@ -107,7 +107,7 @@ sub set {
 
 sub list {
     my ($self) = @_;
-    print "Group list: self=$self members=@{$$self{members}}\n" if $main::config_parms{debug} eq 'group';
+    print "Group list: self=$self members=@{$$self{members}}\n" if $main::Debug{group};
     return sort @{$$self{members}};  # Hmmm, to sort or not to sort.
 }
 
@@ -128,6 +128,9 @@ sub member_changed_log {
 
 #
 # $Log$
+# Revision 1.18  2003/02/08 05:29:23  winter
+#  - 2.78 release
+#
 # Revision 1.17  2002/09/22 01:33:23  winter
 # - 2.71 release
 #

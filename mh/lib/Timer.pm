@@ -50,7 +50,7 @@ sub delete_timer_with_action {
     my ($timer) = @_;
     my $i = 0;
     while ($i <= $#timers_with_actions) {
-        print "testing i=$i timer=$timer\n" if $main::config_parms{debug} eq 'timer';
+        print "testing i=$i timer=$timer\n" if $main::Debug{timer};
         if ($timers_with_actions[$i] eq $timer) {
 #           print "db deleting timer $timer\n";
             splice(@timers_with_actions, $i, 1);
@@ -143,7 +143,7 @@ sub set_from_last_pass {
         $self->{repeat}      = $repeat;
         if ($action) {
             $self->{action} = $action;
-            print "action timer s=$self a=$action s=$state\n" if $main::config_parms{debug} eq 'timer';
+            print "action timer s=$self a=$action s=$state\n" if $main::Debug{timer};
             &delete_timer_with_action($self); # delete possible previous 
             push(@timers_with_actions, $self);
             $resort_timers_with_actions = 1;
@@ -175,7 +175,7 @@ sub run_action {
     ($self) = @_;
     if (my $action = $self->{action}) {
         my $action_type = ref $action;
-        print "Executing timer subroutine ref=$action_type   action=$action\n"  if $main::config_parms{debug} eq 'timer';
+        print "Executing timer subroutine ref=$action_type   action=$action\n"  if $main::Debug{timer};
 # Note: passing in a sub ref will cause problems on code reloads.
 # So the 2nd of these 2 would be the better choice:
 #    set $kids_bedtime_timer 10, \&kids_bedtime2;
@@ -359,6 +359,9 @@ sub query {
 
 #
 # $Log$
+# Revision 1.26  2003/02/08 05:29:23  winter
+#  - 2.78 release
+#
 # Revision 1.25  2002/08/22 13:45:50  winter
 # - 2.70 release
 #

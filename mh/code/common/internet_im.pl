@@ -90,7 +90,7 @@ if ($Reload) {
     for my $user (split /[,]+/, $config_parms{password_allow_im}) {
         $user =~ s/^ +//; $user =~ s/ +$//;  # Drop leading/trailing blanks
         $im_data{password_allow}{$user}++;
-        print "Setting im password_allow user: $user.\n" if $main::config_parms{debug} eq 'IM';
+        print "Setting im password_allow user: $user.\n" if $main::Debug{im};
     }
 }
 
@@ -121,21 +121,21 @@ sub im_message {
 
     $authority = $Password_Allow{$text} unless $authority;
 
-    print "IM: RUN a=$authority,$im_data{password_allow}{$from} from=$from text=$text\n"  if $main::config_parms{debug} eq 'IM';
+    print "IM: RUN a=$authority,$im_data{password_allow}{$from} from=$from text=$text\n"  if $main::Debug{im};
     return if $text =~ /^i\'m away/i;
 
     my $msg;
-    print "db t=$text.\n";
     if ($text =~ /^(login|logon): *(\S*)$/i) {
         if ($im_data{password_allow}{$from}) {
             $msg = 'You have global access, and don\'t need to login!';
         }
         else {
-            unless (password_check $1) {
-                run_after_delay 60, "&im_logoff('$pgm', '$from')";
-                $im_data{password_allow_temp}{$from}=1;
-                $msg = 'Login accepted. You will be logged out in 1 minute.';
-                $msg .= "\nRun set_password to create a password.  Global authorization enabled until then" unless $Password;
+            if (my $user = password_check $2) {
+                run_after_delay 120, "&im_logoff('$pgm', '$from')";
+                $im_data{password_allow_temp}{$from} = $user;
+                $msg = "$user login accepted. You will be logged out in 2 minutes.";
+                $msg .= "\nRun set_password to create a password.  Global authorization enabled until then" 
+                  unless -e $config_parms{password_file};
             } else {
                 $msg = 'Invalid Password';
             }
@@ -177,8 +177,11 @@ sub im_message {
         $msg .= "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only sent using current IM program\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
         $msg .= "  any valid MisterHouse voice command(e.g. What time is it)\n";
     }
-    elsif ($authority or $im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from}) {
-        if ($text =~ /^log: (.+)$/i) {
+    elsif ($authority eq 'anyone' or $im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from}) {
+        if ($authority eq 'admin' and $im_data{password_allow_temp}{$from} ne 'admin') {
+            $msg = "Admin logon required";
+        }
+        elsif ($text =~ /^log: (.+)$/i) {
             if (lc $1 eq 'stop') {
                 delete $log_to_im_list{"$pgm $from"};
             }

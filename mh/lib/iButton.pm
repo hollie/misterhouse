@@ -239,13 +239,11 @@ sub scan_report {
 }
 
 
- sub set {
-    my ($self, $state, $set_by) = @_;
+ sub default_setstate {
+    my ($self, $state, $substate, $set_by) = @_;
     my $connection;
-    return if &main::check_for_tied_filters($self, $state);
-    &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
 
-    return unless $connection = $connections{$self->{port}};
+    return -1 unless $connection = $connections{$self->{port}};
 #   $connection->reset;
     $self->select;
     $self->{state} = $state;
@@ -516,6 +514,9 @@ memory
 
 
 # $Log$
+# Revision 1.21  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.20  2002/12/02 04:55:21  winter
 # - 2.74 release
 #

@@ -55,7 +55,7 @@ sub http_read_parms {
             $alias = $1;
             $dir   = $2;
         }
-        print " - html alias: $parm $alias => $dir\n" if $main::config_parms{debug} eq 'http';
+        print " - html alias: $parm $alias => $dir\n" if $main::Debug{http};
                                 # If we have multiple alias, the last one wins
         if (-d $dir) {
             unshift @{$http_dirs{$alias}}, $dir;
@@ -107,8 +107,8 @@ sub http_process_request {
     my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
     $Socket_Ports{http}{client_ip_address} = $client_ip_address;
 
-    $Authorized = &password_check(undef, 'http') ? 0 : 1; # If no $Password or local address, defaults to authorized
-    print "----------\nhttp: client_ip=$Socket_Ports{http}{client_ip_address} a=$Authorized.\n" if $config_parms{debug} eq 'http';
+    $Authorized = &password_check(undef, 'http');  # Returns authorized userid
+    print "----------\nhttp: client_ip=$Socket_Ports{http}{client_ip_address} a=$Authorized.\n" if $main::Debug{http};
 
                                 # Read http header data
     $Cookie = '';  undef %Cookies; undef %Http;
@@ -125,11 +125,11 @@ sub http_process_request {
         }
         elsif (my ($key, $value) = /(\S+?)\: ?(.+?)[\n\r]+/) {
             $Http{$key} = $value;
-            print "http:   header key=$key value=$value.\n" if $main::config_parms{debug} eq 'http2';
+            print "http:   header key=$key value=$value.\n" if $main::Debug{http2};
         }
     }
     unless ($header) {
-        print "http: Error, not header request.  header=$temp\n" if $config_parms{debug} eq 'http';
+        print "http: Error, not header request.  header=$temp\n" if $main::Debug{http};
         return;
     }
     
@@ -150,7 +150,7 @@ sub http_process_request {
     if ($Http{Authorization}) {
         if ($Http{Authorization} =~ /Basic (\S+)/) {
             my ($user, $password) = split(':', &uudecode($1));
-            $Authorized = (&password_check($password, 'http')) ? 0 : 1;
+            $Authorized = &password_check($password, 'http');
         }
     }
 
@@ -169,9 +169,11 @@ sub http_process_request {
 #Audrey:     Mozilla/4.7 (Win98; Audrey)   
 #Compaq IA1: Mozilla/4.0 (compatible; MSIE 4.01; Windows CE; MSN Companion 2.0; 800x600; Compaq).
 #Aquapad:    Mozilla/4.0 (compatible; MSIE 4.01; Windows NT Windows CE)
+#Opera: Mozilla/4.0 (compatible; MSIE 5.0; Linux 2.4.6-rmk1-np2-embedix armv4l; 240x320) Opera 5.0  [en] 
 
 #   print "db ua=$Http{'User-Agent'}\n";
     if ($Http{'User-Agent'}) {
+        $Http{'User-Agent-Size'} = $1 if $Http{'User-Agent'} =~ /\d{2,}x(\d){2,}/;
         if ($Http{'User-Agent'} =~ /Windows CE/i) {
             $Http{'User-Agent'}    =  'MSCE';
         }
@@ -190,6 +192,12 @@ sub http_process_request {
         elsif ($Http{'User-Agent'} =~ /Mozilla/i) {
             $Http{'User-Agent'}    =  'Mozilla';
         }
+        elsif ($Http{'User-Agent'} =~ /embedix/i) {
+            $Http{'User-Agent'}    =  'Zaurus';
+        }
+        elsif ($Http{'User-Agent'} =~ /Opera/i) {
+            $Http{'User-Agent'}    =  'Opera';
+        }
     }
     else {
         $Http{'User-Agent'} = '';
@@ -203,22 +211,24 @@ sub http_process_request {
         $Http{format} = $http_agent_formats{$Http{'User-Agent'}} if $http_agent_formats{$Http{'User-Agent'}};
     }
 
-    if ($config_parms{password_menu} eq 'html' and $Password and $Cookies{password}) {
-        $Authorized = ($Cookies{password} eq $Password) ? 1 : 0
+#   if ($config_parms{password_menu} eq 'html' and $Password and $Cookies{password}) {
+#       $Authorized = ($Cookies{password} eq $Password) ? 1 : 0
+    if ($config_parms{password_menu} eq 'html') {
+        $Authorized = &password_check($Cookies{password}, 'http', 'crypted');
     }
 
     my ($req_typ, $get_req, $get_arg) = $header =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
     $get_arg = '' unless defined $get_arg;
 
     logit "$config_parms{data_dir}/logs/server_header.$Year_Month_Now.log",  "$header data:$temp"
-        if $main::config_parms{debug} eq 'http';
+        if $main::Debug{http};
     print "http: gr=$get_req ga=$get_arg " .
           "A=$Authorized format=$Http{format} ua=$Http{'User-Agent'} h=$header"
-        if $main::config_parms{debug} eq 'http';
+        if $main::Debug{http};
     if ($req_typ eq "POST") {
         $get_arg .= '&' if $get_arg;
         my $cl = $Http{'Content-Length'} || $Http{'Content-length'}; # Netscape uses lower case l
-        print "http POST query has $cl bytes of args\n" if $main::config_parms{debug} eq 'http';
+        print "http POST query has $cl bytes of args\n" if $main::Debug{http};
         my $buf;
         read $socket, $buf, $cl;
         $get_arg .= $buf;
@@ -249,12 +259,12 @@ sub http_process_request {
     $get_req =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
     $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
-#   print "http: gr=$get_req ga=$get_arg\n" if $main::config_parms{debug} eq 'http';
+#   print "http: gr=$get_req ga=$get_arg\n" if $main::Debug{http};
 
                                 # Store so that include files have access to parent args
     $ENV{HTTP_QUERY_STRING}  = $get_arg;
 
-                                # Prompt for password
+                                # Prompt for password or unset the password
     if ($get_req =~ /SET_PASSWORD$/) {
         if ($config_parms{password_menu} eq 'html') {
             if ($get_req =~ /^\/UNSET_PASSWORD$/) {
@@ -262,30 +272,24 @@ sub http_process_request {
                 $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
             }
             my $html = &html_authorized;
-            $html .= &html_password('')  . '<br>' if $config_parms{password_menu} eq 'html';
+            $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
+            $html .= &html_password('')  . '<br>';
             print $socket &html_page(undef, $html, undef, undef, undef);
         }
         else {
             my $html = &html_authorized;
-            if ($Authorized) {
-                                # No good way to un-Authorized here :(
-                if ($get_req =~ /\/UNSET_PASSWORD$/) {
-                    $Authorized = 0;
-                    print $socket &html_password('');
-                    return;
-                }
-                                # Refresh the main page
-                $html = $Http{Referer}; # &html_page will use referer if only a url is given
-                $html =~ s/SET_PASSWORD.*//;
+            $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
+#           $html .= &html_reload_link('/', 'Refresh Main Page');   # Does not force reload?
+            if ($Authorized and $get_req =~ /\/SET_PASSWORD$/) {
+                my ($name, $name_short) = &net_domain_name('http');
+                &print_log("Password was just set by browser $name");
+                &speak("$Authorized password set by $name_short");
+                $html .= "<br><b>$Authorized password accepted</b>";
                 print $socket &html_page(undef, $html);
             }
             else {
-                if ($get_req =~ /\/UNSET_PASSWORD$/) {
-                    print $socket &html_page(undef, $html);
-                }
-                else {
-                    print $socket &html_password('');
-                }
+                                # No good way to un-Authorized here, so just re-do the pop-up window till it gives up?
+                print $socket &html_password('');
             }
         }
         return;
@@ -295,26 +299,29 @@ sub http_process_request {
         my ($password) = $get_arg =~ /password=(\S+)/;
         my ($html);
         my ($name, $name_short) = &net_domain_name('http');
-        if (&password_check($password, 'http')) {
+        my ($user, $password_crypted) = &password_check2($password);
+        $Authorized = $user if $password_crypted;
+        $html .= &html_authorized;
+        $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
+#       $html .= &html_reload_link('/', 'Refresh Main Page');
+        $html .= &html_password('');
+        if ($password_crypted) {
+            $Cookie .= "Set-Cookie: password=$password_crypted; ; path=/\n" if $password_crypted;
+                                # Refresh the main page
+            $html .= "<b>$user password accepted</b>";
+#           $html = $Http{Referer}; # &html_page will use referer if only a url is given
+            $html =~ s/\/SET_PASSWORD.*//;
+            &print_log("Password was just set by $name");
+            &speak("$user password set by $name_short");
+        }
+        else {
             $Authorized = 0;
-            $html =  &html_authorized . &html_password('') . qq[<b>Password was incorrect</b>\n];
+            $html .=  "<b>Password was incorrect</b>\n";
             $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
             $Cookies{password_was_not_valid}++; # So we can monitor from user code
             &print_log("Password was just NOT set; $name");
             &play(file => 'unauthorized'); # Defined in event_sounds.pl
 #           &speak("Password NOT set by $name_short");
-        }
-        else {
-            $Authorized = 1;
-            $Cookie .= "Set-Cookie: password=$Password; ; path=/\n" if $Password;
-#           $html  = &html_authorized . "<h3>Password accepted</h3>";
-#           $html = "$url";   # &html_page will use referer if only a url is given
-#           $html .= "<a href=$url>Refresh Main Page</a>\n";
-                                # Refresh the main page
-            $html = $Http{Referer}; # &html_page will use referer if only a url is given
-            $html =~ s/\/SET_PASSWORD.*//;
-            &print_log("Password was just set; $name");
-            &speak("Password set by $name_short");
         }
         print $socket &html_page(undef, $html);
         return;
@@ -356,9 +363,9 @@ sub http_process_request {
         my $authority = $ref->get_authority if $ref;
         $authority = $Password_Allow{$get_arg} unless $authority;
 
-        print "http: RUN a=$Authorized,$authority get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
+        print "http: RUN a=$Authorized,$authority get_arg=$get_arg response=$h_response\n" if $main::Debug{http};
 
-        if ($Authorized or $authority) {
+        if ($Authorized or $authority eq 'anyone') {
                                 # Allow for RUN;&func  (response function like &dir_sort, with no action)
             if (!$get_arg) {
                 &html_response($socket, $h_response);
@@ -386,6 +393,7 @@ sub http_process_request {
         my($msg, $action) = &html_sub($get_arg, 1);
         if ($msg) {
             print $socket &html_page("", $msg);
+            return;             # No need anything else ?
         }
         elsif ($action) {
             my $response = eval $action;
@@ -442,14 +450,14 @@ sub http_process_request {
                 $item = "\$". $item unless substr($item, 0, 1) eq "\$";
                 my $set_authority = eval qq[$item->get_authority if $item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item');];
                 print "SET authority eval error: $@\n" if $@;
-                unless ($set_authority or $Password_Allow{$item}) {
+                unless ($set_authority eq 'anyone' or $Password_Allow{$item} eq 'anyone') {
                     $authority = 0;
                     last;
                 }
             }
         }
 
-        print "SET a=$Authorized,$authority hr=$h_response get_req=$get_req  get_arg=$get_arg\n" if $main::config_parms{debug} eq 'http';
+        print "SET a=$Authorized,$authority hr=$h_response get_req=$get_req  get_arg=$get_arg\n" if $main::Debug{http};
 
         if ($Authorized or $authority) {
             for my $temp (split('&&', $get_arg)) {
@@ -483,7 +491,7 @@ sub http_process_request {
                     $state =~ tr/\"/\'/; # So we can use "" to quote it
                     my $eval_cmd = qq[($item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item')) ? 
                                       ($item->set("$state", "web [$client_ip_address]")) : ($item = "$state")];
-                    print "SET eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
+                    print "SET eval: $eval_cmd\n" if $main::Debug{http};
                     eval $eval_cmd;
                     print "SET eval error.  cmd=$eval_cmd  error=$@\n" if $@;
                 }
@@ -539,12 +547,11 @@ sub html_password {
     my $html;
     if ($menu eq 'html') {
         $html  = qq[<BODY onLoad="self.focus();document.pw.password.focus()">\n];
-        $html .= qq[<BASE TARGET='_top'>\n];
+#       $html .= qq[<BASE TARGET='_top'>\n];
         $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n];
-
 #       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
-        $html .= qq[<h3>Password:</H3><INPUT size=10 name='password' type='password'>\n];
-        $html .= qq[<INPUT type=submit value='Go'>\n</FORM>\n];
+        $html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
+        $html .= qq[<INPUT type=submit value='Set Password'>\n</FORM>\n];
 
     }
     else {
@@ -558,10 +565,10 @@ sub html_password {
 
 sub html_authorized {
     if ($Authorized) {
-        return "Status: <b><a href=UNSET_PASSWORD>Logged In</a></b><br>";
+        return "Status: <b><a href=UNSET_PASSWORD>Logged In as $Authorized</a></b><br>";
     }
     else {
-        return "Status: <b><a href=SET_PASSWORD yet>Not Logged In</a></b><br>";
+        return "Status: <b><a href=SET_PASSWORD>Not Logged In</a></b><br>";
     }
 }
 
@@ -637,7 +644,7 @@ sub test_for_file {
             $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
             $referer .= "$get_req/";
             print $socket &http_redirect($referer);
-            print "test_for_file redirected to $referer\n" if $main::config_parms{debug} eq 'http';
+            print "test_for_file redirected to $referer\n" if $main::Debug{http};
             return 1;
         }
 
@@ -688,7 +695,7 @@ sub test_file_req {
         return 0;
     }
 
-#   print "test_file_req Clean request=$get_req\n" if $main::config_parms{debug} eq 'http';
+#   print "test_file_req Clean request=$get_req\n" if $main::Debug{http};
     return 1;
 }
 
@@ -789,9 +796,9 @@ sub html_sub {
 
                                 # The %main:: array will have a glob for all subs (and vars)
         if ($main::{$sub_name}) {
-            print "html_sub: a=$Authorized pa=$Password_Allow{'&$sub_name'} data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n" if $main::config_parms{debug} eq 'http';
+            print "html_sub: a=$Authorized pa=$Password_Allow{'&$sub_name'} data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n" if $main::Debug{http};
                                 # Check for authorization
-            if (($Authorized or $Password_Allow{"&$sub_name"})) {
+            if (($Authorized or $Password_Allow{"&$sub_name"} and $Password_Allow{"&$sub_name"} eq 'anyone')) {
                 $sub_arg = "'$sub_arg'" if $sub_arg and $sub_arg !~ /^[\'\"]/; # Add quotes if needed
                 return(undef, "&$sub_name($sub_arg)");
             }
@@ -812,7 +819,7 @@ sub html_response {
     my ($socket, $h_response) = @_;
     my $file;
 
-    print "http: html response: $h_response\n" if $main::config_parms{debug} eq 'http';
+    print "http: html response: $h_response\n" if $main::Debug{http};
     if ($h_response) {
         if ($h_response =~ /^last_response_?(\S*)/) {
             $Last_Response = '';
@@ -1093,7 +1100,7 @@ sub html_form_select_set_var {
 
 sub html_file {
     my ($socket, $file, $arg, $no_header) = @_;
-    print "http: print html file=$file arg=$arg\n" if $main::config_parms{debug} eq 'http';
+    print "http: print html file=$file arg=$arg\n" if $main::Debug{http};
 
     my $html;
     local *HTML;                # Localize, for recursive call to &html_file
@@ -1107,7 +1114,7 @@ sub html_file {
                                 # Allow for 'server side include' directives
                                 #  <!--#include file="whatever"-->
     if ($file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/) {
-        print "Processing server side include file: $file\n" if $main::config_parms{debug} eq 'http';
+        print "Processing server side include file: $file\n" if $main::Debug{http};
         $html = &mime_header($file, 0) unless $no_header;
         while (my $r = <HTML>) {
             $html .= shtml_include($r, $socket);
@@ -1119,13 +1126,20 @@ sub html_file {
     elsif ($file =~ /\.pl$/) {
         my $code = join('', <HTML>);
                                 # Check if authorized
-        unless ($Authorized or $code =~ /^# *authority: *anyone *$/smi) {
-            $file =~ s/.*\///;
-            unless ($Password_Allow{$file}) {
-                my $whoisit = &net_domain_name('http');
-             	&print_log("$whoisit made an unauthorized request for $file");
-            	return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
-            }
+        $code =~ /^# *authority: *(\S+) *$/smi;
+        my $user_required = lc $1 if $1;
+
+        $file =~ s/.*\///;
+        $user_required = $Password_Allow{$file} if $Password_Allow{$file};
+
+        my $authorized_flag = 0;
+        $authorized_flag = 1 if $user_required eq 'anyone';
+        $authorized_flag = 1 if $Authorized and !$user_required;
+        $authorized_flag = 1 if $Authorized and $user_required and $Authorized eq $user_required;
+        unless ($authorized_flag) {
+            my $whoisit = &net_domain_name('http');
+            &print_log("$whoisit made an unauthorized request for $file");
+            return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
         }
 
         @ARGV = '';             # Have to clear previous args
@@ -1133,7 +1147,7 @@ sub html_file {
 
                                 # Allow for regular STDOUT cgi scripts
         if ($code =~ /^\S+perl/) {
-            print "http: running cgi script: $file\n" if $main::config_parms{debug} eq 'http';
+            print "http: running cgi script: $file\n" if $main::Debug{http};
             &html_cgi($socket, $code, $arg);
             return;
         }
@@ -1144,7 +1158,7 @@ sub html_file {
 
                                 # Drop the http header if no_header
         $html =~ s/^HTTP.+?^$//smi if $no_header;
-#       print "Http_server  .pl file results:$html.\n" if $main::config_parms{debug} eq 'http';
+#       print "Http_server  .pl file results:$html.\n" if $main::Debug{http};
     }
     else {
         binmode HTML;
@@ -1163,7 +1177,7 @@ sub shtml_include {
                                 # Example:  <li>Version: <!--#include var="$Version"--> ...
 #   if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=[\"\']([^\"\']+)[\"\'] *--\>(.*)/) {
     if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
-        print "Http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
+        print "Http include: $directive=$data\n" if $main::Debug{http};
         $html .= $prefix;
                                 # tellme vxml does not like comments in the middle of things :(
                                 # - also had problems with comments inside td elements, so lets skip this
@@ -1188,7 +1202,7 @@ sub shtml_include {
             }
         }
         elsif ($directive =~ /^s?var$/ or $directive eq 'code') {
-            print "Processing server side include: var=$data\n" if $main::config_parms{debug} eq 'http';
+            print "Processing server side include: var=$data\n" if $main::Debug{http};
             if ($directive eq 'svar' and !$Authorized) {
                 $html .= $data;
             }
@@ -1219,7 +1233,7 @@ sub html_cgi {
     if ($config_parms{http_cgi_method} == 1) {
         open OLD_HANDLE, ">&STDOUT"  or print "\nhttp .pl error: can not backup STDOUT: $!\n";
         if (my $fileno = $socket->fileno()) {
-            print "http: cgi redirecting socket fn=$fileno s=$socket\n" if $main::config_parms{debug} eq 'http';
+            print "http: cgi redirecting socket fn=$fileno s=$socket\n" if $main::Debug{http};
                                 # This is the step that fails on win98 :(
             open STDOUT, ">&$fileno" or warn "http .pl error: Can not redirect STDOUT to $fileno: $!\n";
         }
@@ -1248,7 +1262,7 @@ sub html_cgi {
     eval '&CGI::initialize_globals';  # Need this or else CGI.pm global vars are not reset
     local $^W = 0;  # Avoid redefined sub msgs
     eval $code;
-    print "Error in http eval: $@" if $@;
+    print "Error in http cgi eval: $@" if $@;
 
     if ($config_parms{http_cgi_method} == 1) {
         $socket->close();
@@ -1303,7 +1317,12 @@ sub html_page {
 
                                 # Allow for fully formated html
     if ($body =~ /^\s*<html/i) {
-        my $length = length $body;
+        $body =~ s/\n/\n\r/g;   # Bill S. says this is required to be standards compiliant
+
+# Content-Length is only for binary data!
+#        my $length = length $body;
+# Content-Length: $length
+
 #Cache-control: max-age=1000000
     return <<eof;
 HTTP/1.0 200 OK
@@ -1311,7 +1330,6 @@ Server: MisterHouse
 Date: $date
 Content-Type: text/html
 Cache-control: no-cache
-Content-Length: $length
 
 $body
 eof
@@ -1335,11 +1353,10 @@ eof
     $title = "<h3>$title</h3>" if $title;
 #Cache-control: max-age=1000000
 
-my $html = "
-$script
-<HTML>
+    my $html;
+    $html = $script . "\n" if $script;
+$html .= "<HTML>
 <HEAD>
-
 $style
 <TITLE>$title</TITLE>
 </HEAD>
@@ -1347,21 +1364,23 @@ $style
 $title
 
 $body
-
 </BODY>
 </HTML>
 ";
 
+    my $extraheaders = '';
+    $extraheaders .= $Cookie . "\n\r" if $Cookie;
+    $extraheaders .= $frame . "\n\r"  if $frame;
+    $extraheaders .= "\n\r"           if $extraheaders;
+
                    # Not sure how important length is, but pretty cheap and easy to do
-    my $length = length $html;
+    $html =~ s/\n/\n\r/g;  # Bill S. says this is required to be standards compiliant
     return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
 Content-Type: text/html
 Cache-control: no-cache
-Content-Length: $length
-$Cookie
-$frame
+$extraheaders
 
 $html
 eof
@@ -1370,7 +1389,7 @@ eof
 
 sub http_redirect {
     my ($url) = @_;
-    print "http_redirect Location: $url\n" if $main::config_parms{debug} eq 'http';
+    print "http_redirect Location: $url\n" if $main::Debug{http};
     return <<eof;
 HTTP/1.0 302 Moved Temporarily
 Location: $url
@@ -1379,8 +1398,11 @@ eof
 }
 
 sub http_agent_size {
-    my $agent = $Http{'User-Agent'};
-    my $size = ($http_agent_sizes{$agent}) ? $http_agent_sizes{$agent} : 1000;
+    my $size  = $Http{'User-Agent-Size'};
+    unless ($size) {
+        my $agent = $Http{'User-Agent'};
+        $size = ($http_agent_sizes{$agent}) ? $http_agent_sizes{$agent} : 1000;
+    }
     return $size;
 }
 
@@ -1465,7 +1487,7 @@ sub html_find_icon_image {
         return '' if $name eq 'none';
     }
 
-    print "Find_icon: object_name=$name, type=$type, state=$state\n" if $main::config_parms{debug} eq 'http';
+    print "Find_icon: object_name=$name, type=$type, state=$state\n" if $main::Debug{http};
 
     unless (%html_icons) {
         undef %html_icons;
@@ -1533,7 +1555,6 @@ sub button_action {
     my ($object_name, $state, $referer, $xy) = split ',', $args;
 	 
     my ($x, $y) = $xy =~ /(\d+)\|(\d+)/;
-    #   print "dbx4 on=$object_name s=$state r=$referer xy=$xy xy=$x,$y\n";
 	     
                                 # Do not dim the dishwasher :)
     unless (eval qq|UNIVERSAL::isa($object_name, 'X10_Appliance')|) {
@@ -2074,8 +2095,23 @@ sub html_active_href {
       onMouseOut="this.className='out';" 
       style="cursor: hand"
       class="blue">$text</SPAN></a>
-    ]
+    ];
 }
+
+                                # This will create a link that forces a code reload
+sub html_reload_link {
+    my ($url, $link_desc) = @_;
+    return qq[
+      <SCRIPT LANGUAGE="JavaScript"><!--
+      function updateLink(filename) {
+        now = new Date();
+      return  filename + '?' + now.getTime();
+      }
+      //--></SCRIPT>
+      <A HREF="$url" onClick="this.href=updateLink('$url')" TARGET="_top">$link_desc</A>
+    ];
+}
+
 
 sub pretty_object_name {
     my ($name) = @_;
@@ -2096,11 +2132,11 @@ sub print_socket_fork {
                                 #  - A few Win98 users had problems, but unix is ok
     if (($main::config_parms{http_fork}) and
         ($length > 3000 and !&is_local_address() or $length > 10000)) {
-        print "http: printing with forked socket: l=$length s=$socket\n" if $main::config_parms{debug} eq 'http';
+        print "http: printing with forked socket: l=$length s=$socket\n" if $main::Debug{http};
         if ($OS_win) {
                                 # This ugly fork can only do one at a time :(
             if ($socket_fork_data{process}) {
-                print "http: defering socket_fork s=$socket\n" if $main::config_parms{debug} eq 'http';
+                print "http: defering socket_fork s=$socket\n" if $main::Debug{http};
                 push @{$socket_fork_data{next}}, [$socket, $html];
                 $leave_socket_open_passes = -1; # This will not close the socket
             }
@@ -2138,7 +2174,7 @@ sub print_socket_fork_win {
                                 # so make sure we only call this once at a time
         open OLD_HANDLE, ">&STDOUT"  or print "\nsocket_fork error: can not backup STDOUT: $!\n";
         if (my $fileno = $socket->fileno()) {
-            print "http: redirecting socket fn=$fileno s=$socket\n" if $main::config_parms{debug} eq 'http';
+            print "http: redirecting socket fn=$fileno s=$socket\n" if $main::Debug{http};
             unless (open STDOUT,  ">&$fileno") {
                 print "http error: Can not redirect STDOUT: $!\n";
                 print "Older windows (like $Info{OS_name}) can not do this.\n" if Win32::IsWin95;
@@ -2421,7 +2457,6 @@ sub widget_label {
     for my $pvar (@_) {
                                 # Allow for state objects
         my $label;
-        print "db pvar=$pvar\n";
         if (ref $pvar ne 'SCALAR' and $pvar->can('set')) {
             $label = $pvar->state;
         }
@@ -2652,6 +2687,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.78  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.77  2003/01/18 03:32:42  winter
 #  - 2.77 release
 #

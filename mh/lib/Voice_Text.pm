@@ -95,7 +95,7 @@ sub speak_text {
             my $address_code = $config_parms{voice_text_address_code};
             $address_code =~ s|\$address|$address|;
             $address_code =~ s|\$url|http://$Info{IPAddress_local}:$config_parms{http_port}/cache/speak_address.$main::Second.wav|;
-            print "Voice_text running address code: $address_code\n" if $main::config_parms{debug} eq 'voice';
+            print "Voice_text running address code: $address_code\n" if $main::Debug{voice};
             eval $address_code;
             print "voice_text_address_code eval error: $@" if $@;
         }
@@ -155,6 +155,16 @@ sub speak_text {
         }
     }
 
+                                # Allow for a percentage volume number - Steve Switzer 1/19/2003
+    my $mh_volume = state $main::mh_volume if $main::mh_volume;
+    print "Voice_Text volume=$parms{volume}, mh_volume=$mh_volume\n" if $main::Debug{voice};
+    if ($parms{volume} =~ /(\d+)\%$/) {
+        $parms{volume} = int($mh_volume * $1 / 100);
+        print "Voice_Text new volume=$parms{volume}\n" if $main::Debug{voice};
+    }
+    $parms{volume} = 100 if $parms{volume} and $parms{volume} > 100;
+
+
     $parms{text} = &set_rate($parms{rate},     $parms{text}) if $parms{rate}; # Allow for slow,normal,fast,wpm:###
     $parms{text} = &set_voice($parms{voice},   $parms{text}, $speak_engine) if $parms{voice};
     $parms{text} = &set_volume($parms{volume}, $parms{text}) if $parms{volume};
@@ -188,7 +198,7 @@ sub speak_text {
             $parms{text} = qq[(utt.save.wave (utt.synth (Utterance Text "$parms{text}")) "$parms{to_file}" "riff")];
             if ($VTxt_festival and active $VTxt_festival) {
                 $parms{text} =~ s/<\/?speaker.*?>//ig; # Server does not do sable
-                print "Voice_text TTS:  Festival saving to file via server: $parms{to_file}\n" if $main::config_parms{debug} eq 'voice';
+                print "Voice_text TTS:  Festival saving to file via server: $parms{to_file}\n" if $main::Debug{voice};
                 set $VTxt_festival $parms{text};
                 unless ($parms{async}) {
                                           # Wait for server to respond that it is done
@@ -206,7 +216,7 @@ sub speak_text {
             else {
                 my $file = "$main::config_parms{data_dir}/mh_temp.festival.txt";
                 &main::file_write($file, $parms{text});
-                print "Voice_text TTS: Festival saving to file: $file\n" if $main::config_parms{debug} eq 'voice';
+                print "Voice_text TTS: Festival saving to file: $file\n" if $main::Debug{voice};
                 system("$main::config_parms{voice_text_festival} -b $file");
             }
             select undef, undef, undef, .2; # Need this ?
@@ -229,13 +239,13 @@ sub speak_text {
             my $random = int rand 1000; # Use random file name so we can talk 2+ at once.
             my $file = "$main::config_parms{data_dir}/mh_temp.festival.$random.sable";
             &main::file_write($file, $text);
-            print "Voice_text TTS: $main::config_parms{voice_text_festival} --tts $file\n" if $main::config_parms{debug} eq 'voice';
+            print "Voice_text TTS: $main::config_parms{voice_text_festival} --tts $file\n" if $main::Debug{voice};
             system("($main::config_parms{voice_text_festival} --tts $file ; ) &");
 #            system("($main::config_parms{voice_text_festival} --tts $file ; rm $file) &");
 #            system("($main::config_parms{voice_text_festival} --tts $file ; cat $file) &");
         }
         else {
-            print "Data sent to festival: $parms{text}\n" if $main::config_parms{debug} eq 'voice';
+            print "Data sent to festival: $parms{text}\n" if $main::Debug{voice};
             set $VTxt_festival qq[(SayText "$parms{text}")];
         }
     }
@@ -282,7 +292,7 @@ sub speak_text {
                 		$speak_pgm_arg .= ' -rooms default';
                     }
                 }
-                $speak_pgm_arg .= ' -debug '   if $main::config_parms{debug} eq 'voice';
+                $speak_pgm_arg .= ' -debug '   if $main::Debug{voice};
                 $speak_pgm_arg .= ' -nomixer ' if $main::config_parms{vv_tts_nomixer};
 
                 $parms{volume} = '75'  if $parms{volume} eq 'soft';
@@ -347,7 +357,7 @@ sub speak_text {
                 $speak_pgm_arg .= " -to_file $parms{to_file}" if $parms{to_file};
             }
             
-            print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg\n" if $main::config_parms{debug} eq 'voice';
+            print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg\n" if $main::Debug{voice};
 
             if ($speak_pgm_use_stdin) {
                 open  VOICE, "| $speak_pgm $speak_pgm_arg";
@@ -366,7 +376,7 @@ sub speak_text {
     }
     elsif ($VTxt[0]) {
         print "Voice_Text.pm ms_tts: comp=$parms{compression} async=$parms{async} to_file=$parms{to_file} VTxt=$VTxt[0] text=$parms{'text'}\n" 
-          if $main::config_parms{debug} eq 'voice';
+          if $main::Debug{voice};
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
             if ($parms{to_file}) {
@@ -433,7 +443,7 @@ sub speak_text {
 #           $voice = qq[\\Vce=Speaker="$parms{voice}"\\] if $parms{voice};
             $voice = '' unless $voice;
             
-            print "Voice_Text.pm ms_tts: VTxt=$VTxt[0] text=$parms{'text'}\n" if $main::config_parms{debug} eq 'voice';
+            print "Voice_Text.pm ms_tts: VTxt=$VTxt[0] text=$parms{'text'}\n" if $main::Debug{voice};
             $VTxt[0]->Speak($voice . $parms{'text'}, $priority);
             
 #           $VTxt[0]->Speak($parms{'text'}, ($priority | $type));
@@ -548,7 +558,7 @@ sub read_parms {
 
 sub set_mode {
     my ($mode) = lc shift;
-    print "Setting mode to $mode\n" if $mode and $main::config_parms{debug} eq 'voice';
+    print "Setting mode to $mode\n" if $mode and $main::Debug{voice};
                                 # Only MS TTS for now
     if (@VTxt) {
         if ($VTxt_version eq 'msv5') {
@@ -654,12 +664,12 @@ sub set_voice {
     if ($voice eq 'random') {
         my $i = int((@voice_names) * rand);
         $voice = $voice_names[$i];
-        print "Setting random voice.  i=$i voice=$voice\n" if $main::config_parms{debug} eq 'voice';
+        print "Setting random voice.  i=$i voice=$voice\n" if $main::Debug{voice};
     }
     elsif ($voice eq 'next') {
         $voice_names_index = 1 if ++$voice_names_index > @voice_names;
         $voice = $voice_names[$voice_names_index - 1];
-        print "Setting next voice.  index=$voice_names_index voice=$voice\n" if $main::config_parms{debug} eq 'voice';
+        print "Setting next voice.  index=$voice_names_index voice=$voice\n" if $main::Debug{voice};
     }
                          # This option is just plain goofy.  Inspired by dictionaraoke.org
                          # Works only for xml enabled engines like MSv5 or linux NaturalVoices
@@ -709,7 +719,7 @@ sub set_voice {
             $spec = "Name=$voice";
         }
 
-        print "Setting ms voice ($voice) to spec=$spec\n" if $main::config_parms{debug} eq 'voice';
+        print "Setting ms voice ($voice) to spec=$spec\n" if $main::Debug{voice};
 
                                 # If text is given, set for just this text with XML.  Otherwise change the default
         if ($text) {
@@ -718,7 +728,7 @@ sub set_voice {
                                 # First voice returned is the best fit
         elsif ($VTxt_version) {
             for my $object (Win32::OLE::in $VTxt[0]->GetVoices($spec)) {
-                print "Setting voice ($voice) to $spec: $object\n" if $main::config_parms{debug} eq 'voice';
+                print "Setting voice ($voice) to $spec: $object\n" if $main::Debug{voice};
                 $VTxt[0]->{Voice} = $object;
                 return;
             }
@@ -735,11 +745,11 @@ sub set_voice {
 
 sub force_pronounce {
     my($phrase) = @_;
-    print "input  phrase is '$phrase'\n" if $main::config_parms{debug} eq 'voice';
+    print "input  phrase is '$phrase'\n" if $main::Debug{voice};
     for my $word (keys %pronouncable) {
         $phrase =~ s/\b$word\b/$pronouncable{$word}/gi;
     }
-    print "output phrase is '$phrase'\n" if $main::config_parms{debug} eq 'voice';
+    print "output phrase is '$phrase'\n" if $main::Debug{voice};
     return $phrase;
 }
     
@@ -747,6 +757,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.45  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.44  2003/01/18 03:32:42  winter
 #  - 2.77 release
 #

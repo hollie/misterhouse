@@ -5,7 +5,7 @@ package File_Item;
 sub new {
     my ($class, $file) = @_;
     my $self = {file => $file, index => 0};
-    print "Warning, File_Item file does not exist: $file\n\n" if $main::config_parms{debug} eq 'file' and !-f $file;
+    print "Warning, File_Item file does not exist: $file\n\n" if $main::Debug{file} and !-f $file;
     bless $self, $class;
     return $self;
 }
@@ -32,7 +32,7 @@ sub set_watch {
     $self->{time} = (stat $file)[9];
     $self->{time} = time unless $self->{time}; # In case the file does not exist yet.
     $self->{flag} = $flag;
-    print "File watch set for $file, flag=$flag. time=$self->{time}\n" if $main::config_parms{debug} eq 'file';
+    print "File watch set for $file, flag=$flag. time=$self->{time}\n" if $main::Debug{file};
 }
 
 sub changed {
@@ -41,7 +41,7 @@ sub changed {
     my $file = $self->{file};
     return 0 unless -e $file;   # Ignore non-existant or deleted files
     if (my $diff = (stat $file)[9] - $self->{time} ) {
-        print "File changed for $file. diff=$diff\n" if $main::config_parms{debug} eq 'file';
+        print "File changed for $file. diff=$diff\n" if $main::Debug{file};
         $self->{time} = 0;      # Reset;
         if ($self->{flag}) {
             return $self->{flag};
@@ -144,6 +144,9 @@ sub set_index {
 
 #
 # $Log$
+# Revision 1.10  2003/02/08 05:29:22  winter
+#  - 2.78 release
+#
 # Revision 1.9  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

@@ -57,8 +57,9 @@ sub state {
     return ($main::Weather{$self->{type}} == ($self->{limit}) ? 1 : 0) if $self->{comparison} eq '=';
 }
 
-sub set {
+sub default_setstate {
     print "Sorry, unable to control the weather.\n";
+    return -1;
 }
 
 1;
@@ -66,6 +67,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.6  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.5  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

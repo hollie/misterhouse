@@ -22,13 +22,39 @@ sub new {
 
 sub set {
     my ($self, $state, $set_by, $respond) = @_;
+
+    # Check for tied or repeated states.
     return if &main::check_for_tied_filters($self, $state);
-    if ($state and $state eq 'toggle') {
-        $state = ($$self{state} eq 'on') ? 'off' : 'on';
+
+    # Some devices may need to see states and substates in a case sensitive manner
+    # this flg allows them to do so.
+    $state = lc($state) unless defined $self->{states_casesensitive};
+
+    if ($state and lc($state) eq 'toggle') {
+        $state = (lc($$self{state}) eq 'on') ? 'off' : 'on';
         &main::print_log("Toggling $self->{object_name} from $$self{state} to $state");
     }
     $respond = $main::Respond_Target unless $respond;
-    &set_states_for_next_pass($self, $state, $set_by, $respond); # Pass default target along
+
+
+                                # Handle overloaded state processing
+    my ($primarystate, $substate) = split(/:/, $state, 2);
+    my $setcall = 'setstate_' . lc($primarystate);
+    if($self->can($setcall)) {
+                          # Some devices may need to wait for the set to occur
+                          # (for example the Compool which doesn't actually change a state
+                          # until the device has confirmed the requested action has been performed)
+        return if $self->$setcall($substate, $set_by, $respond) == -1;
+    }
+    elsif($self->can('default_setstate')) {
+        return if $self->default_setstate($primarystate, $substate, $set_by, $respond) == -1;
+    }
+    elsif($self->can('default_setrawstate')) {
+        return if $self->default_setrawstate($state, $set_by, $respond) == -1;
+    }
+
+    &set_states_for_next_pass($self, $state, $set_by, $respond);
+
 }
 
 sub get_object_name {
@@ -52,6 +78,26 @@ sub get_idle_time {
     return $main::Time - $_[0]->{set_time};
 }
 
+sub time_idle {
+    my ($self, $idle_spec) = @_;
+                                # Defaults to seconds if idletimetype is not specified
+                                # Defaults to all states if currentstate is not given.
+                                # Examples: '10 minutes', '2 seconds off', '24 h', '7 days', '1 hour on'
+    if (my ($idle_time, $idle_type, $idle_state) = $idle_spec =~ /^(\d+)\s*(D|H|M|S)*\w*\s*(\S*)/i) {
+        my $state = $self->state();
+        if ($idle_state eq undef or $idle_state eq $state) {
+            my $scale = 1;
+            $scale = 60       if $idle_type eq 'm';
+            $scale = 60*60    if $idle_type eq 'h';
+            $scale = 60*60*24 if $idle_type eq 'd';
+            if ($idle_time * $scale == $self->get_idle_time()) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
                                 # This is called by mh on exit to save persistant data
 sub restore_string {
     my ($self) = @_;
@@ -62,6 +108,7 @@ sub restore_string {
     $restore_string .= $self->{object_name} . "->{state} = q~$state~;\n" if defined $state;
     $restore_string .= $self->{object_name} . "->{count} = q~$self->{count}~;\n" if $self->{count};
     $restore_string .= $self->{object_name} . "->{set_time} = q~$self->{set_time}~;\n" if $self->{set_time};
+    $restore_string .= $self->{object_name} . "->{states_casesensitive} = 1;\n" if $self->{states_casesensitive};
 
     if ($self->{state_log} and my $state_log = join($;, @{$self->{state_log}})) {
         $state_log =~ s/\n/ /g; # Avoid new-lines on restored vars
@@ -97,10 +144,26 @@ sub hidden {
     }
 }
 
+sub set_casesensitive {
+    return unless $main::Reload;
+    my ($self) = @_;
+    $self->{states_casesensitive} = 1;
+}
+
 sub state {
-    return $_[0]->{state};
-#   my $state = $_[0]->{state}
-#   return ($state) ? $state : ''; # Avoid -w unintialized variable errors
+    my ($self, $state) = @_;
+
+    $state = lc($state) unless defined $self->{states_casesensitive};
+
+    if($state) {
+        my $getcall = 'getstate_' . lc($state);
+        return $self->$getcall() if $self->can($getcall);
+    }
+
+    return $self->default_getstate($state) if $self->can('default_getstate');
+
+    # No need to lc() the state here, we will return what was originally set.
+    return $self->{state};
 } 
 
 sub said {
@@ -148,7 +211,7 @@ sub set_info {
 
 
 sub set_with_timer {
-    my ($self, $state, $time, $return_state) = @_;
+    my ($self, $state, $time, $return_state, $additional_return_states) = @_;
     return if &main::check_for_tied_filters($self, $state);
  
                                 # If blank state, then we wanted the timed return_state only
@@ -160,6 +223,11 @@ sub set_with_timer {
     $state_change = ($state eq 'off') ? 'on' : 'off';
     $state_change = $return_state if defined $return_state;
     $state_change = $self->{state} if $return_state and lc $return_state eq 'previous';
+
+    # Handle additoinal return states if requested (this is done so we don't need to parse for
+    # ; seperators in this function, that work has already been done in MH)
+    $state_change .= ';' . $additional_return_states if $additional_return_states;
+ 
  
                                 # Reuse timer for this object if it exists
     $$self{timer} = &Timer::new() unless $$self{timer};
@@ -431,6 +499,9 @@ sub get_web_style {
 
 #
 # $Log$
+# Revision 1.26  2003/02/08 05:29:23  winter
+#  - 2.78 release
+#
 # Revision 1.25  2003/01/12 20:39:20  winter
 #  - 2.76 release
 #

@@ -106,6 +106,22 @@ sub main::file_tail {
     return wantarray ? @tail : "@tail";
 }
 
+                                # Find full paths to all files in requested dirs
+sub main::file_read_dir {
+    my @dirs = @_;
+    my %files;
+    for my $dir (@dirs) {
+        opendir(DIR, $dir) or print "\nError in file_dir_read, can not open directory:  $dir. $!\n";
+        my @files = readdir(DIR);
+        close DIR;
+                                # Create a hash that shows the full file pathname.  First one wins
+        for my $member (@files) {
+            $files{$member} = "$dir/$member" unless $files{$member};
+        }
+    }
+    return %files;
+}
+
 sub main::file_read {
     my ($file, $flag, $textmode) = @_;
     open(LOG, "$file") or print "Warning, could not open file_read file $file: $!\n";
@@ -1141,6 +1157,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.64  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.63  2003/01/18 03:32:42  winter
 #  - 2.77 release
 #

@@ -281,6 +281,9 @@ tv_info_ge.pl
  - Stoll Thomas's code for tv queries of german stations (uses mh/bin/get_tv_info_ge) 
    via http://www.tvspielfilm.de
 
+tivo_direct.*
+ - Andrew Drummond's code for controling a Direct Tivo dvr.
+
 video_inline.pl
  - Kent Noonan's code for controling the inline video scan doubler
 

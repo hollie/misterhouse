@@ -78,6 +78,8 @@ sub setup {
     require 'handy_utilities.pl';       # For read_mh_opts funcion
     &main::read_mh_opts(\%config_parms, $Pgm_Path);
 
+    use Time::ParseDate;
+
     $dir = "$config_parms{data_dir}/phone";
 
 #   use DB_File;  # neede for ocmpiled version??
@@ -111,7 +113,7 @@ sub setup {
         $MW->bind('<Control-c>' => \&my_exit);  
         
         $MW->configure(-bg => 'white');  
-        $MW->optionAdd('*font' => 'systemfixed');  
+#       $MW->optionAdd('*font' => 'systemfixed');  
 
         @pl1 = qw/-expand yes -fill both -side top  -padx 2/;  
         @pl2 = qw/-expand yes -fill both -side left -padx 2/;  
@@ -186,6 +188,9 @@ sub read_dbm_file {
         $dbm_name_by_number{$number} = $name; 
 
         $count++; 
+        $calls{dbm}{$count}{calls} = sprintf("%04d", $calls);
+        $calls{dbm}{$count}{date}  = sprintf("last=%010d calls=%4d", parsedate($date), $calls); 
+
         $calls{dbm}{$count}{'# calls'} = sprintf("%04d", $calls); # Since we do not have a sortable date here, sort on number of calls. 
         $calls{dbm}{$count}{time_date} = sprintf("last=%s calls=%4d", $date, $calls); 
         $calls{dbm}{$count}{number} = $number; 
@@ -422,7 +427,7 @@ sub phone_list {
     my $log = $ptr->Scrolled(qw/Text -state normal -width 60 -height 15 -scrollbars e -bg cyan/)->pack(@pl2); 
     $info{$class}{window} = $log; 
 
-    for my $button (qw/name number date/) { 
+    for my $button (qw/name number date calls/) { 
         my $button2 = $button;
         $button2 = '# calls' if $class eq 'dbm' and $button eq 'date';
         $frame->Radiobutton(text => "Sort by $button",   variable => \$info{$class}{sort},
@@ -581,6 +586,9 @@ sub phone_list2 {
 
 #
 # $Log$
+# Revision 1.20  2003/02/08 05:29:07  winter
+#  - 2.78 release
+#
 # Revision 1.19  2002/12/24 03:05:04  winter
 # - 2.75 release
 #

@@ -131,7 +131,7 @@ sub triggers_save {
 sub trigger_set {
     my ($trigger, $code, $type, $name, $replace, $triggered) = @_;
 
-    print "trigger: trigger=$trigger code=$code name=$name\n" if $config_parms{debug} eq 'trigger';
+    print "trigger: trigger=$trigger code=$code name=$name\n" if $Debug{'trigger'};
     return unless $trigger and $code; 
 
                                 # Find a uniq name    

@@ -19,6 +19,129 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 =end html
 
+
+B<New Features:>
+
+B<Bug Fixes and Other Changes:>
+
+
+=head2 Version 2.78 posted on 02/07/2003
+
+Version 2.78 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+
+B<New Features:>
+
+- Improved xAP support and added xPL support.  
+A few of the original xAP ( http://www.xapautomation.org ) developers 
+developed a lighter version of the protocol they called xPL ( http://www.wintermute-ltd.com/picxap/xpl.htm ).
+The protocols are similar enough that I decided to support them both with the common code, so I 
+renamed lib/xAP.pm to lib/xAP_Items.pm and added various xAP and xPL items and methods.
+Also added code so mh can be an xAP and/or xPL hub, so we can 
+now read and write to both xAP and xPL clients and/or bridge between them if needed.
+Updated code/common/test_xap.pl to include new xPL examples, including calls
+to a windows TTS client and a Rio Audio Receiver client, both available from http://www.xaphal.com/xap.htm .
+
+- Bill Sobel made a bunch of changes to enable stacked and overloaded states.
+This is best explained with an example:
+
+  set $test_set1 'on~2~random:on;repeat:on;play';
+
+This will set the object to on, then 2 seconds later, sequence through states of 
+random:on, repeat:on, and play.   The overloaded random and repeat states will
+trigger setstate_random/repeat methods if they exist in that object, setting them to on.
+For a complete example, see mh/code/examples/test_state_stacked.pl.  
+His changes also make states case insensitive, unless you use the set_casesensitive method.
+
+- Bill Sobel and I created time_idle Generic_Item method. 
+We also enabled this as a tie_time method time spec, like time_cron and time_now.
+See code/examples/test_idle.pl
+
+- Bill Sobel suggested we get smarter with -debug, so we made it 
+case in-sensitive and allowed for stack debug parms like -debug serial;x10.  To enable this,
+I switched most of the old debug checks like this:
+
+  old: print "debug stuff" if $config_parms{debug} eq 'stuff';
+  new: print "debug stuff" if $Debug{stuff};
+
+- Added support for different user logons.   
+If you use -tk 1, you can use the 'set the admin/family/guest password' command. 
+Or you can run from the command line like this:
+
+  set_password -user family -password xyz1
+  set_password -user admin  -password xyz2
+
+A separate record will be created for each user in the password_file (by default, data_dir/.password).
+By default, the mh setup web pages can only be controlled with the admin logon,
+but you can enable/disable other commands by adding authority=admin to the password_allow_file.
+You can also specify authority with the set_authority object method, 
+or by adding it to your web/bin xyz.pl file # Authority=user  comment.
+The ia5 logout button now has different icons for admin, family, and guest.
+
+- Made menu.pl generic (it now reads all .menu files in your code dirs) and moved it to code/common.
+If you have a menyu.pl file in your own user code file, delete it before you enable the code/common one.
+
+- Andrew Drummond created mh/code/public/tivo_direct.* code for controling his Direct Tivo.
+
+
+B<Bug Fixes and Other Changes:>
+
+- Timothy Spaulding added a MS13_Battery_Timer parm to set the X10_Sensor timeout value.
+
+- Added a web_status_line option to web/status_line.pl, to allow for more user specific data on the status line.
+
+- David ? noticed a 2.76 bug where the web status line was not reflecting current email counts.
+
+- Amauri Viguera found a 2.76 bug in lib/audrey_cid.pm
+
+- Pete Flaherty  updated the tk widgets in weather_iB_OWW_client.pl
+
+- Steve Switzer updated Voice_Text.pm to allow for volume=##%, where volume will be scaled to a percentage of the default mh volume.
+
+- Danal Estes noticed simple meta refresh works better than JavaScript refresh, in status_line.pl and photos.pl.
+
+- David Satterfield noticed we could buffer data in lib/X10_MR26.pm to avoid occasional 'Bad data' errata.
+
+- Sam Levine found a problem with X10_Sensor with ID=x9 (the light/dark id=xA was not created correctly).
+
+- Martin Dolphin allowed for negative temperatures in common/weather_aws.pl
+
+- Kent Noonan updated mh/lib/Ultimeter.pm (renamed from mh/lib/Ultimeter2000.pm) to allow for negative temperatures.
+
+- David Norwood updated bin/get_tv_grid to allow for a -get_provider parm:  get_tv_grid -zip 55091 -get_provider
+
+- Craig Schaeffer updated bin/display_callers to better sort by date and # calls.
+
+- Douglas Parrish sent in bin/misterhouse_Gentoo.rc, a startup script example for Gentoo Linux.
+
+- Richard Morgan noticed the web Squid proxy did not like the http Content-Length data we inserted for html pages a 
+few releases ago.  We took that field out after reading the spec, which says it is only for binary data.
+
+- Paul Estes updated bin/set_clock for Solaris.
+
+- Change code/proxy/proxy_server.pl 'Proxy can not talk to MisterHouse' message 
+from once a minute to once every 5 minutes.
+
+- Parse size from http User-Agent, when provided, for use in &http_agent_size (used in web/bin/photos.pl)/
+Also added Opera and Zaurus to mh.ini parm html_browser_formats.
+
+- I copied a post from Bill Sobel into FAQ qusetion 2.16: How are states set for each pass though the user code loop?
+
+- Steve Switzer updated phone_search.pl file, so that phone_search.shtml is not needed.
+
+
+
+=head2 Version 2.77 posted on 01/17/2003
+
+Version 2.77 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+
 B<New Features:>
 
 - No new features.  Hoping for a fairly stable and bug free release this time :)
@@ -40,6 +163,9 @@ B<Bug Fixes and Other Changes:>
 
 - David Norwood  updated the UIRT2 files, fixing a few problems with
 learning and changed the display of codes to uppercase to be compatible with Girder.  
+
+- Bill Sobel updated lib/Compool.pm (Timing changes to deal with network based serial ports) and
+lib/Stargate.pm (Thermostats where broken, signifigantly updated and now actuallywork).
 
 - Created a smart file_backup function, now used by web iniedit and item edit scripts.  
 

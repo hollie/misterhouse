@@ -27,7 +27,7 @@ $proxy_server  = new  Socket_Item(undef, undef, 'server_proxy', undef, undef, un
                                 # Process incoming requests from the real mh
 if ($state = said $proxy_server) {
     my ($interface, $function, @data) = split $;, $state;
-    print_log "Proxy data received from mh: interface=$interface function=$function data=@data." if $config_parms{debug} eq 'proxy';
+    print_log "Proxy data received from mh: interface=$interface function=$function data=@data." if $Debug{'proxy'};
 
     if ($function eq 'send_serial_data') {
         &Serial_Item::send_serial_data($interface, $data[0]);
@@ -64,7 +64,7 @@ if ($state = said $proxy_server) {
 sub proxy_serial_data {
     my ($data, $interface) = @_;
     return unless $data;
-    print_log "Proxy serial data sent to mh: interface=$interface data=$data." if $config_parms{debug} eq 'proxy';
+    print_log "Proxy serial data sent to mh: interface=$interface data=$data." if $Debug{proxy};
     if ($proxy_server->active()) {
         set $proxy_server join($;, 'serial', $data, $interface), 'all'; # all writes out to all clients
     }
@@ -77,7 +77,7 @@ sub proxy_ibutton_data {
     if ($proxy_server->active()) {
         my ($ref, $data) = @_;
         my $name = $$ref{object_name};
-        print_log "Proxy ibutton data sent:  $name $data." if $config_parms{debug} eq 'proxy';
+        print_log "Proxy ibutton data sent:  $name $data." if $Debug{proxy};
         set $proxy_server join($;, 'set_receive', $name, $data), 'all';
     }
 }
@@ -85,12 +85,12 @@ sub proxy_ibutton_data {
 
 # The rest of this code is similar to mh/code/mh_control.pl
 
-                                # Those with ups devices can set this seperatly
+                                # Those with ups devices can set this separately
                                 # Those without a CM11 ... this will not hurt any
 if ($ControlX10::CM11::POWER_RESET) {
     $ControlX10::CM11::POWER_RESET = 0;
     if ($proxy_server->active()) {
-        print_log "Proxy CM11 power reset sent" if $config_parms{debug} eq 'proxy';
+        print_log "Proxy CM11 power reset sent" if $Debug{proxy};
         set $proxy_server join($;, 'set', '$Power_Supply', 'Restored'), 'all';
     }
 }
@@ -108,7 +108,7 @@ if ($Keyboard) {
         &exit_pgm;
     }
     elsif ($Keyboard) {
-        print "key press: $Keyboard\n" if $config_parms{debug} eq 'misc';
+        print "key press: $Keyboard\n" if $Debug{misc};
     }
 }
 
@@ -117,7 +117,7 @@ $search_code_string = new Generic_Item;
 
 
                                 # Make sure main mh program is still alive
-if ($New_Minute and !active $proxy_server) {
+if (new_minute 5 and !active $proxy_server) {
     speak "Proxy can not talk to Mister House";
 }
 

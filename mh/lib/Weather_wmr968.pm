@@ -61,7 +61,7 @@ sub startup {
 sub update_wmr968_weather {
     return unless my $data = said $wmr968_port;
                                 # Process data, and reset incomplete data not processed this pass
-    my $debug = 1 if $main::config_parms{debug} eq 'weather';
+    my $debug = 1 if $main::Debug{weather};
     my $remainder = &read_wmr968($data, \%main::Weather, $debug);
     set_data $wmr968_port $remainder if $remainder;
 }                             
@@ -431,6 +431,9 @@ return $u968;
 # 2001/11/18 v1.0 of Weather_wmr968.pm based on Bruce's Weather_wx200.pm
 #
 # $Log$
+# Revision 1.3  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.2  2002/08/22 04:33:20  winter
 # - 2.70 release
 #

@@ -33,7 +33,7 @@ sub startup {
 sub update_wx200_weather {
     return unless my $data = said $wx200_port;
                                 # Process data, and reset incomplete data not processed this pass
-    my $debug = 1 if $main::config_parms{debug} eq 'weather';
+    my $debug = 1 if $main::Debug{weather};
     my $remainder = &read_wx200($data, \%main::Weather, $debug);
     set_data $wx200_port $remainder if $remainder;
 
@@ -241,6 +241,9 @@ sub wx_time {
 
 #
 # $Log$
+# Revision 1.10  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.9  2002/10/13 02:07:59  winter
 #  - 2.72 release
 #

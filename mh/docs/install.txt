@@ -579,8 +579,15 @@ Coding your own events
     the code members you use it in. In either case you can use the "List X10
     items" command created in mh_control.pl to review all your X10 items.
 
-    To enabled password protection, run set_password. Note: only the first 8
-    characters are used.
+    To enabled password protection, run mh/bin/set_password command like
+    this:
+
+     set_password -user family -password xyz1
+     set_password -user admin  -password xyz2
+
+    Note: only the first 8 characters are used. The admin password is
+    required for controling the mh web setup menus (e.g. item and code
+    selection menus).
 
     When you want to upgrade to a newer verion of mh, follow these steps:
 

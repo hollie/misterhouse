@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2002-12-23 14:31:11 winter>
+#  Last change Time-stamp: <2003-01-25 15:37:37 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -66,7 +66,7 @@ use vars '%config_parms';  # Not a my, as called from handy_net_utils
 #
 my ( %parms, $didLogIn, $infile, $outfile, %channels_skip, %channels_keep, $channel_data );
 my ($url, $ua, $cookie_jar, $req_get1, $req_get2, $req_post, $logged_in);
-my (@hours );
+my (@hours, %providers);
 my  (%DBM, %DBM2);
 
 %channels_skip = ();
@@ -88,7 +88,8 @@ my $dbgSubmitRequest = 1;  # Set to 0 to turn off URL requests
 if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "outdir=s",
    "reget", "redo", "db=s", "name=s", "preserveRaw",
    "keep=s", "skip=s", "channel_max=s", "channel_min=s",
-   "zip:s", "provider:s", "debug", "label=s", "keep_old", "mail_to=s",
+   "zip:s", "debug", "label=s", "keep_old", "mail_to=s",
+   "provider:s", "provider_name:s", "get_providers", 
    "mail_server=s", "mail_baseref=s",
    "purge=s", "mail_baseref=s",
    "include_footer",
@@ -109,6 +110,8 @@ Creates a DBM for use by get_tv_info.
                      Cable, etc) default is TV
    -zip xyz      => xyz is your zip code
    -provider xyz => xyz is your TV provider ID.  See note below
+   -provider_name xyz => xyz is your TV provider name (overrides ID).
+   -get_providers  => print a list of TV providers in the zip code and exit 
    -day xyz      => xyz is the day  to get/filter.  Default is today.
    -hour xyz     => xyz is the hour to get/filter.  Default is 6pm.  Can also
                     be 'all' to get all hours.
@@ -145,6 +148,7 @@ Creates a DBM for use by get_tv_info.
    -mail_baseref xyz => xyz is the http address of your mh server.  Needed if
                         you want to control mh from the emailed web page
   Example:
+   $Pgm_Name -zip 55901 -get_provider
    $Pgm_Name -day 25 -hour 4pm -outfile my_tv.html
    $Pgm_Name -days 7 -hour all -keep "2,4,8,12,33"
    $Pgm_Name -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8080
@@ -229,6 +233,9 @@ sub setup
    $parms{proxy}   = $config_parms{proxy}  unless $parms{proxy};
    $parms{provider}= $config_parms{$parms{db}.'_provider'} 
       unless $parms{provider};
+   $parms{provider_name} = $config_parms{$parms{db}.'_provider_name'} 
+      unless $parms{provider_name};
+   $parms{get_providers} = 0 unless ( $parms{get_providers} );
    $parms{hour}    = $config_parms{$parms{db}.'_hours'} unless $parms{hour};
    $parms{skip}    = $config_parms{$parms{db}.'_channels_skip'} 
       if ($config_parms{$parms{db}.'_channels_skip'} and !$parms{skip});
@@ -267,12 +274,13 @@ sub setup
       if $config_parms{$parms{db} . '_channel_max'};
 
    $parms{zip} || die "Missing zipcode!";
-   $parms{provider} || die "Missing provider!";
+   $parms{provider} || $parms{provider_name} || $parms{get_providers} ||  die "Missing provider!";
    $parms{channel_min} = '1'     unless $parms{channel_min};
    $parms{channel_max} = '99999' unless $parms{channel_max};
    $parms{label} = "VCR" unless $parms{label};  # This can also be an image link
    $parms{days}  = 1 unless $parms{days};
    $parms{redo}  = 1 if $parms{reget};
+   $parms{reget} = 1 if $parms{get_providers};
    $parms{duration}  = 6 unless $parms{duration};
 
    %channels_keep = map{$_, 1} split(',', $parms{keep}) if $parms{keep};
@@ -425,9 +433,8 @@ sub login
       ."ziptype=new&"
       ."SubmitZipCode=Continue" );
    $req_zip->content_type('application/x-www-form-urlencoded');
-   #submitRequest( $req_zip, "out2.txt" );
    print "2 of 4\n" if $parms{debug};
-   $submitResult = submitRequest( $req_zip );
+   $submitResult = submitRequest( $req_zip, "$config_parms{data_dir}/tv_providers.html" );
    if ( 1 != $submitResult )
    {
       return -1;
@@ -440,6 +447,20 @@ sub login
    # collect the data we actually want. Skipping this step seems
    # to result in an error though, so I guess we're stuck.)
    #------------------------------------------------------------
+
+   if ($parms{provider_name} or $parms{get_providers}) {
+      &get_providers;
+      exit if $parms{get_providers}; 
+      if ($providers{$parms{provider_name}}) {
+         $parms{provider} = $providers{$parms{provider_name}};
+         print "Using TV provider ID $parms{provider} for '$parms{provider_name}'\n";
+      }
+      else {
+         print "Couldn't find TV provider '$parms{provider_name}'\n";
+         return -1;
+      }
+   }
+
    my $req_prov = HTTP::Request->new(POST => $url.'edit_provider_list.asp');
    $req_prov->content( "FormName=edit_provider_list.asp&"
       ."provider=".($parms{provider})."&"
@@ -1204,6 +1225,25 @@ sub mail_file {
                    file    => $file,
                    mime    => 1);
     return;
+}
+
+                                # Get list of tv providers 
+sub get_providers {
+    open PROVIDERS, "$config_parms{data_dir}/tv_providers.html";
+    my ($list, $inlist);
+    while (my $line = <PROVIDERS>) {
+        $inlist = 1 if $line =~ /\<SELECT name="provider"/i;
+        chomp $line; 
+        $list .= $line if $inlist;
+        last if $inlist and $line =~ /<\/SELECT>/i;
+    }
+    close PROVIDERS; 
+    foreach (split /<\/OPTION>/i, $list) {
+        if (/\<OPTION value="(\d+)"\>(.+)/i) {
+            $providers{$2} = $1;
+            print "Provider $1\t$2\n" if $parms{debug} or $parms{get_providers};
+        }
+    }
 }
 
 #======================================================================

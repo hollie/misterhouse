@@ -171,7 +171,7 @@ sub build_srvr_list{
 	$debug && print "audrey_cid: build_srvr_list: starting\n";
 	@srvr_list=();
 	foreach my $key (keys %main::config_parms){
-        next if $parm =~ /_MHINTERNAL_/;
+        next if $key =~ /_MHINTERNAL_/;
 		if($key=~/^audrey_callerid/){
 			my $dest=$main::config_parms{$key};
 			my $port=$dflt_port;

@@ -58,7 +58,7 @@ sub init
     $serial_port->dtr_active(1);		
     $serial_port->rts_active(0);		
     select (undef, undef, undef, .100); 	# Sleep a bit
-    ::print_log "Stargate485 init\n";
+    ::print_log "Stargate485 init\n" if $main::Debug{Stargate485};
 
     $transmitok = 1;
 }
@@ -84,17 +84,17 @@ sub UserCodePreHook
         $::Serial_Ports{'Stargate485'}{data} .= $data if $data;
 
         print "  serial name=Stargate485 type=$::Serial_Ports{'Stargate485'}{datatype} data2=$::Serial_Ports{'Stargate485'}{data}...\n" 
-            if $data and ($::config_parms{debug} eq 'serial' or $::config_parms{debug} eq 'Stargate485');
+            if $data and ($main::Debug{serial} or $main::Debug{Stargate485});
 
         # Check to see if we have a carrage return yet
         if ($::Serial_Ports{'Stargate485'}{data})
         {
             while (my($record, $remainder) = $::Serial_Ports{'Stargate485'}{data} =~ /(.+?)[\r\n]+(.*)/s) 
             {
-                &::print_log("Data from Stargate485: $record.  remainder=$remainder.") if $::config_parms{debug} eq 'Stargate485';
+                &::print_log("Data from Stargate485: $record.  remainder=$remainder.") if $main::Debug{Stargate485};
                 $::Serial_Ports{'Stargate485'}{data_record} = $record;
                 $::Serial_Ports{'Stargate485'}{data} = $remainder;
-                if($::config_parms{debug} eq 'Stargate485')
+                if($main::Debug{Stargate485})
                 {
                     print "Data: " . $record . "\n"  unless substr($record,1,2) eq 'TP' and (substr($record,5,1) eq 'Q' or substr($record,6,1) eq 'A');
                 }
@@ -196,7 +196,7 @@ sub ParseKeypadData
     }
     else
     {
-        print "Unknown keypad response lcd:$TargetLCD data:$record\n" if $record; # if $::config_parms{debug} eq 'Stargate485Keypad';
+        print "Unknown keypad response lcd:$TargetLCD data:$record\n" if $record; # if $main::Debug{Stargate485Keypad};
     }
 }
 
@@ -428,15 +428,14 @@ sub new
     return $self;
 }
 
-sub set
+sub default_setstate
 {
-    my ($self, $setstate) = @_;
-    return undef if($self->{zone} == 0);
+    my ($self, $device, $state) = @_;
+    return -1 if($self->{zone} == 0);
 
-    my ($device,$state) = $setstate =~ /\s*(\w+)\s*:*\s*(\w*)/;
-    
-    $self->SUPER::set($device);
-    $self->SUPER::set($device . ":" . $state);
+    #my ($device,$state) = $setstate =~ /\s*(\w+)\s*:*\s*(\w*)/;
+    #$self->SUPER::set($device);
+    #$self->SUPER::set($device . ":" . $state);
 
     SWITCH: for( $device )
     {
@@ -547,7 +546,7 @@ sub SendTheromostatCommand
     my ($self, $device, $state) = @_;
     return undef unless defined $state;
     my $output = sprintf("A=%u Z=%u O=MH %s=%s", $self->{address}, $self->{zone}, $device, $state);
-    print "StargateThermostat output $output\n" if $::config_parms{debug} eq 'Stargate485';
+    print "StargateThermostat output $output\n" if $main::Debug{Stargate485};
     push(@stargate485_command_list, $output);
     return 1;
 }

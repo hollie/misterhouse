@@ -2,6 +2,125 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    - xPL support and hub ...
+
+    - Bill Sobel made a bunch of changes to enable stacked and overloaded
+    states. This is best explained with an example:
+
+      set $test_set1 'on~2~random:on;repeat:on;play';
+
+    This will set the object to on, then 2 seconds later, sequence through
+    states of random:on, repeat:on, and play. The overloaded random and
+    repeat states will trigger setstate_random/repeat methods if they exist
+    in that object, setting them to on. For a complete example, see
+    mh/code/examples/test_state_stacked.pl. His changes also make states
+    case insensitive, unless you use the set_casesensitive method.
+
+    - Bill Sobel and I created time_idle Generic_Item method. We also
+    enabled this as a tie_time method time spec, like time_cron and
+    time_now. See code/examples/test_idle.pl
+
+    - Bill Sobel suggested we get smarter with -debug, so we made it case
+    in-sensitive and allowed for stack debug parms like -debug serial;x10.
+    To enable this, I switched most of the old debug checks like this:
+
+      old: print "debug stuff" if $config_parms{debug} eq 'stuff';
+      new: print "debug stuff" if $Debug{stuff};
+
+    - Added support for different user logons. If you use -tk 1, you can use
+    the 'set the admin/family/guest password' command. Or you can run from
+    the command line like this:
+
+      set_password -user family -password xyz1
+      set_password -user admin  -password xyz2
+
+    A separate record will be created for each user in the password_file (by
+    default, data_dir/.password). By default, the mh setup web pages can
+    only be controled with the admin logon, but you can add/delete other
+    commands by adding authority=admin to the password_allow_file. You can
+    also specify authority with the set_authority object method, or by
+    adding it to your web/bin xyz.pl file # Authority=user comment. The ia5
+    logout button now has different icons for admin, family, and guest.
+
+    - Made menu.pl generic (it now reads all .menu files in your code dirs)
+    and moved it to code/common.
+
+    - Andrew Drummond created mh/code/public/tivo_direct.* code for
+    controling his Direct Tivo.
+
+    Bug Fixes and Other Changes:
+
+    - Timothy Spaulding added a MS13_Battery_Timer parm to set the
+    X10_Sensor timeout value.
+
+    - Added a web_status_line option to web/status_line.pl, to allow for
+    more user specific data on the status line.
+
+    - David ? noticed a 2.76 bug where the web status line was not
+    reflecting current email counts.
+
+    - Amauri Viguera found a 2.76 bug in lib/audrey_cid.pm
+
+    - Pete Flaherty updated the tk widgets in weather_iB_OWW_client.pl
+
+    - Steve Switzer updated Voice_Text.pm to allow for volume=##%, where
+    volume will be scaled to a percentage of the default mh volume.
+
+    - Danal Estes noticed simple meta refresh works better than JavaScript
+    refresh, in status_line.pl and photos.pl.
+
+    - David Satterfield noticed we could buffer data in lib/X10_MR26.pm to
+    avoid occasional 'Bad data' errata.
+
+    - Sam Levine found a problem with X10_Sensor with ID=x9 (the light/dark
+    id=xA was not created correctly).
+
+    - Martin Dolphin allowed for negative temperatures in
+    common/weather_aws.pl
+
+    - Kent Noonan updated mh/lib/Ultimeter.pm (renamed from
+    mh/lib/Ultimeter2000.pm) to allow for negative temperatures.
+
+    - David Norwood updated bin/get_tv_grid to allow for a -get_provider
+    parm: get_tv_grid -zip 55091 -get_provider
+
+    - Craig Schaeffer updated bin/display_callers to better sort by date and
+    # calls.
+
+    - Douglas Parrish sent in bin/misterhouse_Gentoo.rc, a startup script
+    example for Gentoo Linux.
+
+    - Richard Morgan noticed the web Squid proxy did not like the http
+    Content-Length data we inserted for html pages a few releases ago. We
+    took that field out after reading the spec, which says it is only for
+    binary data.
+
+    - Paul Estes updated bin/set_clock for Solaris.
+
+    - Change code/proxy/proxy_server.pl 'Proxy can not talk to MisterHouse'
+    message from once a minute to once every 5 minutes.
+
+    - Parse size from http User-Agent, when provided, for use in
+    &http_agent_size (used in web/bin/photos.pl)/ Also added Opera and
+    Zaurus to mh.ini parm html_browser_formats.
+
+    - I copied a post from Bill Sobel into FAQ qusetion 2.16: How are states
+    set for each pass though the user code loop?
+
+    - Steve Switzer updated phone_search.pl file, so that phone_search.shtml
+    is not needed.
+
+  Version 2.77 posted on 01/17/2003
+    Version 2.77 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+      http://misterhouse.net:81/download.html
+
+    New Features:
+
+    - No new features. Hoping for a fairly stable and bug free release this
+    time :)
+
     Bug Fixes and Other Changes:
 
     - Kevin Olalde found a 2.76 bug that would ignore user private parms for
@@ -13,19 +132,32 @@ Mister House Announcement List
     - David Norwood updated http_server.pl to allow for multi-line data from
     things like textarea form elements.
 
-    - Created a file_backup function, now used by web iniedit and item edit
-    scripts. Also dropped file= entries from iniedit. and now re-read parms
-    after iniedit changes.
-
     - Bob Hughes updated the clock in status_line.pl to re-align better on
     browser resize.
+
+    - Michael Ryan noticed we were missing the respond function for vr
+    triggered events.
+
+    - Wally Kissel noticed a problem with web SET data (from Eliza) with ?
+    in the string.
 
     - David Norwood updated the UIRT2 files, fixing a few problems with
     learning and changed the display of codes to uppercase to be compatible
     with Girder.
 
-    - Michael Ryan noticed we were missing the respond function for vr
-    triggered events.
+    - Bill Sobel updated lib/Compool.pm (Timing changes to deal with network
+    based serial ports) and lib/Stargate.pm (Thermostats where broken,
+    signifigantly updated and now actuallywork).
+
+    - Created a smart file_backup function, now used by web iniedit and item
+    edit scripts.
+
+    - Fixed the web iniedit script to drop file= entries, not to drop
+    multi-line mh.ini data (e.g. like voice_names), and to re-read parms
+    after iniedit changes.
+
+    - Disabled closing of Tk windows, which would cause mh errors. Now you
+    get a popup that advices to use the File->Exit option.
 
   Version 2.76 posted on 01/12/2003
     Version 2.76 was just uploaded to:

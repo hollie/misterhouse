@@ -48,7 +48,7 @@ sub update_wx200d_weather {
 
     if (select($rout=$rin, undef, undef, 0)) {
         recv $wx200d_socket, $data, 1024, 0;
-        my $debug = 1 if $main::config_parms{debug} eq 'weather';
+        my $debug = 1 if $main::Debug{weather};
         &Weather_wx200::read_wx200($data, \%main::Weather, $debug);
     } 
 }

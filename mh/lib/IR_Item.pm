@@ -25,13 +25,10 @@ sub new {
 }
 
 my $device_prev;
-sub set {
+sub default_setstate {
     my ($self, $state) = @_;
 
-    print "db set=$state pass=$main::Loop_Count\n";
-
-    return if &main::check_for_tied_filters($self, $state);
-    &Generic_Item::set_states_for_next_pass($self, $state);
+#   print "db set=$state pass=$main::Loop_Count\n";
 
     my $device = $$self{device};
     $state = uc $state;
@@ -106,6 +103,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.13  2003/02/08 05:29:23  winter
+#  - 2.78 release
+#
 # Revision 1.12  2002/12/02 04:55:19  winter
 # - 2.74 release
 #

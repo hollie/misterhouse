@@ -526,7 +526,12 @@ all your X10 items (see mh/code/bruce/items.mht for an example).  Alternativly, 
 can declare each of your X10_items in any of the code members you use it in.  In either
 case you can use the ``List X10 items'' command created in mh_control.pl to review all
 your X10 items.</p>
-<p>To enabled password protection, run set_password.  Note: only the first 8 characters are used.</p>
+<p>To enabled password protection, run mh/bin/set_password command like this:</p>
+<pre>
+ set_password -user family -password xyz1
+ set_password -user admin  -password xyz2</pre>
+<p>Note: only the first 8 characters are used.
+The admin password is required for controling the mh web setup menus (e.g. item and code selection menus).</p>
 <p>When you want to upgrade to a newer verion of mh, follow these steps:</p>
 <pre>
  cd \misterhouse

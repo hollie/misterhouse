@@ -169,7 +169,7 @@
 
     Where xyz can be any of the following:
 
-      X10    
+      x10    
       serial 
       socket
       startup
@@ -177,6 +177,10 @@
       misc
       http
       port_name of socket port
+
+    You can also stack debug flags, using ; as a separator. fro example:
+
+      mh -debug serial;x10
 
   1.12: How can I debug time event problem?
     One way is to create a code member that contains just the event you are
@@ -268,6 +272,27 @@
     mh/lib/read_table_xyz.pl member, then set Format=xyz.
 
   1.17: How can I use Family Radios with MisterHouse?
+  1.18: Is there a way to tell if MH is shutdown correctly or not?
+    On windows, mh/bin/mh.bat checks errorlevel and on linux, mh/bin/mhl
+    finds the return code via $?. Both of these shells will restart mh
+    unless they detect a normal exit (rc=1).
+
+    This code in mh/code/common/mh_control.pl will detect an abnormal
+    restart:
+
+     if ($Startup and $Save{mh_exit} ne 'normal') {
+        display "MisterHouse auto restarted: $Save{mh_exit}", 0;
+     }
+
+    If you want to detect a power outage and you have a CM11, code in
+    mh/code/common/mh_control.pl will set $Power_Supply, so you can do
+    something like this:
+
+     if (state_now $Power_Supply eq 'Restored') {
+        speak 'You should have bought a ups';
+     }
+
+  1.19: How can I use an Internet Appliance with MisterHouse?
   1.20: How can I point MisterHouse to a custom web interface?
     From David Norwood on 10/2001
 
@@ -559,7 +584,7 @@ only at Startup?
     If a file does not have a # Category record, the file name will be used.
 
   2.14: Common Perl and mh coding errors
-  2.14 How can I measure time between two nearly spaced events?
+  2.14: How can I measure time between two nearly spaced events?
     If you are on Windows, or on Unix with the Time::HiRes module installed,
     a call to get_tickcount will give sub-second resolution (returns
     milliseconds). For example, to 'debounce' a doorbell button, (i.e. don't
@@ -574,7 +599,7 @@ only at Startup?
     If you are on unix without Time::HiRes, you can use $LoopCount and count
     number of passes through the loop code.
 
-  2.15 What is the format of MisterHouse X10 codes?
+  2.15: What is the format of MisterHouse X10 codes?
     MH sees X10 data in this format:
 
       XM1MK
@@ -592,6 +617,36 @@ only at Startup?
 
     This format was inherited from the weeder interface protocol. For more
     examples, take a look at mh/lib/X10_Items.pm
+
+  2.16: How are states set for each pass though the user code loop?
+    From Bill Sobel on 02/2003:
+
+    Misterhouse works on a multipass system where a state becomes 'new' for
+    one (and only) one pass thru the system. The actually timing of the
+    passes varies (based on the machine, the load, the code, etc) but you
+    generally can presume multiple passes will occur per second (I'm getting
+    about 19 per second with fairly light load on a 400mhz laptop). I ran
+    into an early problem where MH didn't handle multiple states being set
+    during one pass (each subsequent state would 'overwrite' the previous
+    one). As an example if my object read from a device and noticed that
+    both the volume and treble setting on my mixer changed, it would
+    generate a volume state and a treble state. The treble state when
+    overwrite the volume state.
+
+    To fix this Bruce introduced a queue of states. So, when a module sets a
+    state, it gets set for the 'next' *available* pass thru the system. In
+    the example above (presuming no other states are outstanding) the volume
+    state would be 'new' during currentpass+1 and the treble state would be
+    'new' during currentpass+2.
+
+    The reason the 'current' pass is never effected is that you don't always
+    no where you are in the list of code looking at the time you make the
+    change. If your in the 'middle' and set a state, code that already ran
+    during that pass wouldn't have a chance to 'see' it before the pass
+    ended. By making states always start at the beginning of the next pass,
+    we can insure that all modules see a coherent state in the system. When
+    the states becomes valid, if effects the tied_items (that is when they
+    fire) as well as calls to 'state_now'.
 
 3: Linux specific questions
   3.1: When I run Viavoice and festival at the same time I get "Can't open output file '/dev/dsp'"
@@ -662,26 +717,33 @@ only at Startup?
     From Dave Lounsberry on 1/1/2002
 
     First make sure you have the device nodes for the extra serial ports.
-    You should have /dev/ttyS[16..23]. If not: # cd /dev # ./MAKEDEV ttyS16
-    (repeat for each device)
+    You should have /dev/ttyS[16..23]. If not:
+
+      # cd /dev
+      # ./MAKEDEV ttyS16  (repeat for each device)
 
     Next you need to run setserial to setup the board. The kernel defaults
     to only two serial ports. Put the following in a file called
     /etc/rc.serial and make sure it runs each boot.
 
-    ---- clip here ----------------------------------------------- #!/bin/sh
-    setserial /dev/ttyS16 port 0x180 irq 4 uart 16550A ^fourport setserial
-    /dev/ttyS17 port 0x188 irq 4 uart 16550A ^fourport setserial /dev/ttyS18
-    port 0x190 irq 4 uart 16550A ^fourport setserial /dev/ttyS19 port 0x198
-    irq 4 uart 16550A ^fourport setserial /dev/ttyS20 port 0x1a0 irq 4 uart
-    16550A ^fourport setserial /dev/ttyS21 port 0x1a8 irq 4 uart 16550A
-    ^fourport setserial /dev/ttyS22 port 0x1b0 irq 4 uart 16550A ^fourport
-    setserial /dev/ttyS23 port 0x1b8 irq 4 uart 16550A ^fourport setserial
-    /dev/ttyS16 set_multiport port1 0x1c0 mask1 0xff match1 0xff
+      ---- clip here -----------------------------------------------
+      #!/bin/sh
+      setserial /dev/ttyS16 port 0x180 irq 4 uart 16550A ^fourport 
+      setserial /dev/ttyS17 port 0x188 irq 4 uart 16550A ^fourport
+      setserial /dev/ttyS18 port 0x190 irq 4 uart 16550A ^fourport
+      setserial /dev/ttyS19 port 0x198 irq 4 uart 16550A ^fourport
+      setserial /dev/ttyS20 port 0x1a0 irq 4 uart 16550A ^fourport
+      setserial /dev/ttyS21 port 0x1a8 irq 4 uart 16550A ^fourport
+      setserial /dev/ttyS22 port 0x1b0 irq 4 uart 16550A ^fourport
+      setserial /dev/ttyS23 port 0x1b8 irq 4 uart 16550A ^fourport
+      setserial /dev/ttyS16 set_multiport port1 0x1c0 mask1 0xff match1 0xff
 
-    # chown to dbl (runs misterhouse) for a in 16 17 18 19 20 21 22 23 do
-    chown dbl.wheel /dev/ttyS${a} done ----- clip here
-    ----------------------------------------------
+      # chown to dbl (runs misterhouse)
+      for a in 16 17 18 19 20 21 22 23
+      do
+            chown dbl.wheel /dev/ttyS${a}
+      done
+      ----- clip here ----------------------------------------------
 
     Note that I am using irq 4 for my byterunner. Be careful that you don't
     have one of the built in serial ports on the same IRQ.

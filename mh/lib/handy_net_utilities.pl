@@ -177,7 +177,7 @@ sub net_domain_name_parse {
         my $string = '';
         for my $answer ($result->answer) {
             my $temp = $answer->string;
-            print "DNS: $address -> $temp\n" if $main::config_parms{debug} eq 'net';
+            print "DNS: $address -> $temp\n" if $main::Debug{net};
             $string = $temp if $temp =~ /\sPTR\s/;
         }
 #   print "db s=$string ip=$DNS_resolver_address\n";
@@ -195,7 +195,7 @@ sub net_domain_name_parse2 {
     my @domain_name  = split('\.', $domain_name);
     my $domain_name2 = $domain_name[-2];
     $domain_name2 .= ('.' . $domain_name[-1]) if $domain_name[-1] !~ /(net)|(com)|(org)/;
-    print "db dn=$domain_name dn2=$domain_name2\n" if $main::config_parms{debug} eq 'net';
+    print "db dn=$domain_name dn2=$domain_name2\n" if $main::Debug{net};
     return wantarray ? ($domain_name, $domain_name2) : $domain_name;
 }
 
@@ -989,7 +989,7 @@ sub main::net_mail_summary {
 #   foreach my $msgnum ($parms{first} .. $parms{last}) {
     my $msgnum = $parms{last};
     while ($msgnum) {
-        print "getting msg $msgnum\n" if $main::config_parms{debug} eq 'net';
+        print "getting msg $msgnum\n" if $main::Debug{net};
         my $msg_ptr = $pop->top($msgnum, $main::config_parms{net_mail_scan_size});
         my ($date, $date_received, $from, $from_name, $to, $replyto, $subject, $header, $header_flag, $body);
         $header_flag = 1;
@@ -1029,7 +1029,7 @@ sub main::net_mail_summary {
         my $age_msg = int((time -  str2time($date_received)) / 60);
         print "Warning, net_mail_summary: age is negative: age=$age_msg, date=$date_received\n" if $age_msg < 0;
 
-        print "msgnum=$msgnum  age=$age_msg date=$date_received from=$from to=$to subject=$subject\n" if $parms{debug} or $main::config_parms{debug} eq 'net';
+        print "msgnum=$msgnum  age=$age_msg date=$date_received from=$from to=$to subject=$subject\n" if $parms{debug} or $main::Debug{net};
 
 #       print "db m=$msgnum mf=$parms{first} a=$age_msg a=$parms{age} d=$date_received from=$from \n";
         last if $age_msg > $parms{age};
@@ -1101,6 +1101,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.48  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.47  2003/01/12 20:39:21  winter
 #  - 2.76 release
 #

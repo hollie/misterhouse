@@ -109,7 +109,7 @@ sub create_voice_command_object {
         return;
     }
 
-    print "Awakeing speech command.  Currently it is at ", $Vcmd_ms->{Awake}, "\n" if $main::config_parms{debug} eq 'voice';
+    print "Awakeing speech command.  Currently it is at ", $Vcmd_ms->{Awake}, "\n" if $main::Debug{voice};
     $Vcmd_ms->{Awake} = 1;
     return $Vcmd_ms;
 }
@@ -213,7 +213,7 @@ sub check_for_voice_cmd {
             }
 
         }
-        print "db vv: n=$number cmd=$cmd_heard text=$text.\n" if $main::config_parms{debug} eq 'voice';
+        print "db vv: n=$number cmd=$cmd_heard text=$text.\n" if $main::Debug{voice};
     }
 
                                 # Set states, if a command was triggered
@@ -223,7 +223,7 @@ sub check_for_voice_cmd {
         $said  = $cmd_state_by_num{$number};
         $cmd = $ref->{text};
         $cmd = 'unknown command' unless $cmd;
-        print "Voice cmd num=$number ref=$ref said=$said cmd=$cmd\n" if $main::config_parms{debug} eq 'voice';
+        print "Voice cmd num=$number ref=$ref said=$said cmd=$cmd\n" if $main::Debug{voice};
         $said  = 1 if !defined $said; # Some Voice_Cmds have blank saids.  But allow for 0 state
 
                                 # This could be set for either the current or next pass ... next pass is easier
@@ -269,7 +269,7 @@ sub set {
     $respond = $main::Respond_Target unless $respond; # Pass default target along
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by, $respond);
     &main::print_log("Running: $self->{text_by_state}{$state}") unless $no_log;
-    print "db1 set voice cmd $self to $state\n" if $main::config_parms{debug} eq 'voice';
+    print "db1 set voice cmd $self to $state\n" if $main::Debug{voice};
 }
 
 sub remove_voice_cmds {
@@ -407,7 +407,7 @@ sub _register {
 
         $self->{disabled} = 1 if $main::Disabled_Commands{lc $cmd};
 
-	    print "cmd_num=$cmd_num cmd=$cmd state=$state\n" if $main::config_parms{debug} eq 'voice';
+	    print "cmd_num=$cmd_num cmd=$cmd state=$state\n" if $main::Debug{voice};
         last if &_increment_indexes > $index_last;
     }
 }
@@ -470,7 +470,7 @@ sub _register2 {
         my $cmd = $cmd_by_num{$cmd_num_by_text{$text}};
         print "\n\nWarning, duplicate Voice_Cmd Text: $text   Cmd: $$cmd{text}\n\n";
     }
-    print "db cmd=$cmd_num text=$text vocab=$vocab.\n" if $main::config_parms{debug} eq 'voice';
+    print "db cmd=$cmd_num text=$text vocab=$vocab.\n" if $main::Debug{voice};
 
 #   $cmd_file_by_text{$main::item_file_name} = $cmd_num;	# Yuck!
 #   if ($Vmenu_ms and $Vmenu_ms->Add($cmd_num, $text, $vocab, $des)) {
@@ -613,6 +613,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.42  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.41  2003/01/12 20:39:20  winter
 #  - 2.76 release
 #

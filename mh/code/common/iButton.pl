@@ -30,7 +30,7 @@ $v_iButton_connect  -> set_info('Use this to free up the serial port or test the
 
 $v_iButton_list      = new Voice_Cmd "List all the iButton buttons";
 $v_iButton_list     -> set_info('Lists the family and ID codes of all the buttons on the bus');
-$v_iButton_list     -> set_authority('anyweb');
+$v_iButton_list     -> set_authority('anyone');
 
 if ($state = said $v_iButton_connect) {
     print "$state the iButton bus";

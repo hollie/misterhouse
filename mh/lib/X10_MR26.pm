@@ -48,7 +48,9 @@ package X10_MR26;
 @X10_MR26::ISA = ('Generic_Item');
 
 sub startup {
-    &main::serial_port_create('MR26', $main::config_parms{MR26_port}, 9600, 'none', 'raw');
+    $main::config_parms{"MR26_break"} = pack('C', 0xad);
+#   &main::serial_port_create('MR26', $main::config_parms{MR26_port}, 9600, 'none', 'raw');
+    &main::serial_port_create('MR26', $main::config_parms{MR26_port}, 9600, 'none');
                                 # Add hook only if serial port was created ok
     &::MainLoop_pre_add_hook(  \&X10_MR26::check_for_data, 1 ) if $main::Serial_Ports{MR26}{object};
 }
@@ -83,14 +85,15 @@ $prev_data = $prev_time = 0;
 sub check_for_data {
     my ($self) = @_;
     &main::check_for_generic_serial_data('MR26');
-    my $data = $main::Serial_Ports{MR26}{data};
-    $main::Serial_Ports{MR26}{data} = undef;
+    my $data = $main::Serial_Ports{MR26}{data_record};
+    $main::Serial_Ports{MR26}{data_record} = undef;
     return unless $data;
 
     my $hex = unpack "H10", $data;
-    &main::main::print_log("MR26 Data: $hex") if $main::config_parms{debug} eq 'MR26';
+    &main::main::print_log("MR26 Data: $hex") if $main::Debug{mr26};
 
-    if (my ($n1, $n2, $b2) = $hex =~ /^d5aa(.)(.)(..)ad/)  {
+#   if (my ($n1, $n2, $b2) = $hex =~ /^d5aa(.)(.)(..)ad/)  {
+    if (my ($n1, $n2, $b2) = $hex =~ /^d5aa(.)(.)(..)/)  {
         
                                 # Data often gets sent multiple times
                                 #  - check time and loop count.  If mh paused (e.g. sending ir data)
@@ -119,7 +122,7 @@ sub check_for_data {
                 print "MR26 Bad X10 data: n1=$n1 n2=$n2 b2=$b2\n";
             }
         }
-        &main::main::print_log("MR26 Code: $state") if $main::config_parms{debug} eq 'MR26';
+        &main::main::print_log("MR26 Code: $state") if $main::Debug{mr26};
 
                                 # Set state of all MR26 objects
         for my $name (&main::list_objects_by_type('X10_MR26')) {
@@ -136,6 +139,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.8  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.7  2002/12/02 04:55:20  winter
 # - 2.74 release
 #

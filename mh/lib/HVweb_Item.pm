@@ -53,7 +53,7 @@ sub add {
     $self->{desc} = $desc  if ( $desc );                   #Descriptive text for this item
  }
 
-sub set {
+sub default_setstate {
     my ($self, $state) = @_;
     my $url = "$main::config_parms{homevision_url}";
     $state = lc($state);

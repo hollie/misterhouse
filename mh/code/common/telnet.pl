@@ -28,24 +28,23 @@ if (active_now $telnet_server) {
     set_echo $telnet_server 0;
 #   my $client = $Socket_Ports{'server_telnet'}{client_ip_address};
     my $client = $Socket_Ports{server_telnet}{socka};
-    $telnet_flags{$client}{auth}=0;
+    $telnet_flags{$client}{auth} = 0;
 
-                                # If a password has been created (with set_password command), this will return true
-                                # Will return false BOTH if password not defined, AND if the the cliekt IP matched the "password_allow_clients" parm.
-    if (password_check undef, 'server_telnet') {
-        print_log "Telnet active on server_telnet for $client";
-        set $telnet_server 'Type "login" to authenticate. Type "help" for a quick list of options.';
-        set $telnet_server 'cr';
-    }
-    else {
-        if ($Password) {
+                                # This will return false if the telnet ip is not in the password_allow_list
+    if (my $user = password_check undef, 'server_telnet') {
+        if (-e $config_parms{password_file}) {
             set $telnet_server 'Authorized by IP address match.';
             set $telnet_server 'cr';
         } else {
             set $telnet_server 'Run set_password to create a password.  Global authorization enabled until then';
             set $telnet_server 'cr';
         }
-        $telnet_flags{$client}{auth}=1;
+        $telnet_flags{$client}{auth} = $user;
+    }
+    else {
+        print_log "Telnet active on server_telnet for $client";
+        set $telnet_server 'Type "login" to authenticate. Type "help" for a quick list of options.';
+        set $telnet_server 'cr';
     }
     set $telnet_server 'cr';
     set $telnet_server 'prompt';
@@ -109,17 +108,17 @@ if (defined($datapart = said $telnet_server)) {
         my $msg = '';
         $telnet_flags{$client}{data} =~ s/ *\r\n?$//;
         
-        if ($telnet_flags{$client}{auth} == -1) {
+        if ($telnet_flags{$client}{auth} eq 'set_password') {
             print_log "password data: $telnet_flags{$client}{data}";
-            if (my $results = password_check $telnet_flags{$client}{data}, 'server_telnet') {
-                print_log "Telnet password bad: password=$telnet_flags{$client}{data} results=$results";
-                $msg = "$results\r\n";
-                $telnet_flags{$client}{auth}=0;
+            if (my $user = password_check $telnet_flags{$client}{data}, 'server_telnet') {
+                print_log "Telnet session authorized\n";
+                $msg = "$user password accepted\r\n";
+                $telnet_flags{$client}{auth} = $user;
             }
             else {
-                print_log "Telnet session authorized\n";
-                $msg = "Password accepted\r\n";
-                $telnet_flags{$client}{auth}=1;
+                print_log "Telnet password bad: password=$telnet_flags{$client}{data}";
+                $msg = "password bad\r\n";
+                $telnet_flags{$client}{auth} = 0;
             }
             set_echo $telnet_server 0;
         }
@@ -129,12 +128,12 @@ if (defined($datapart = said $telnet_server)) {
 
             if ($telnet_flags{$client}{data} =~ /^log[io]n/i) {
                 $msg = "Enter Password: ";
-                $telnet_flags{$client}{auth}=-1;
+                $telnet_flags{$client}{auth} = 'set_password';
                 set_echo $telnet_server '*';
             }
             elsif ($telnet_flags{$client}{data} =~ /^help/) {
                 $msg  = "Type any of the following:\n\r";
-                $msg .= "  logon  => logon with password\n\r" if $telnet_flags{$client}{auth} == 0 && password_check undef, 'server_telnet';
+                $msg .= "  logon  => logon with password\n\r" if !$telnet_flags{$client}{auth} && !&password_check( undef, 'server_telnet');
                 $msg .= "  find:  xyz  => finds commands that match xyz\n\r";
                 $msg .= "  log:   xyz  => xyz is a filter of what to log.  Can print, speak, play, speak|play, all, and stop\n\r";
                 $msg .= "  any valid MisterHouse voice command(e.g. What time is it)\n\r";
@@ -145,7 +144,7 @@ if (defined($datapart = said $telnet_server)) {
                 my @cmds = list_voice_cmds_match $search;
                 my @cmds2;
                 for my $cmd (@cmds) {
-                    if ($telnet_flags{$client}{auth} == 1) { #if access is given in mh.ini parms, then don't check authority
+                    if ($telnet_flags{$client}{auth}) { #if access is given in mh.ini parms, then don't check authority
                         push @cmds2, $cmd
                     } else {
                         $cmd =~ s/^[^:]+: //; #Trim the category ("Other: ", etc) from the front of the command
@@ -186,8 +185,11 @@ if (defined($datapart = said $telnet_server)) {
                 #set $telnet_server "You said: '$telnet_flags{$client}{data}'\n\r";
 #               my $respond = "object_set name=telnet_server arg1='$client'";
                 my $respond = "telnet client='$client'";
-                if ($telnet_flags{$client}{auth} || $authority) {
-                    if (&process_external_command($telnet_flags{$client}{data}, 0, 'telnet', $respond)) {
+                if ($telnet_flags{$client}{auth} || $authority eq 'anyone') {
+                    if ($authority eq 'admin' and $telnet_flags{$client}{auth} ne 'admin') {
+                        $msg = "Admin logon required for '$telnet_flags{$client}{data}'";
+                    }
+                    elsif (&process_external_command($telnet_flags{$client}{data}, 0, 'telnet', $respond)) {
                         $msg = "Command executed: \"$telnet_flags{$client}{data}\"\n\r";
                         $reponse_loop_telnet = $Loop_Count + 4; # Give us 4 passes to wait for any resulting speech
                     }
@@ -205,9 +207,9 @@ if (defined($datapart = said $telnet_server)) {
             }
             logit("$config_parms{data_dir}/logs/server_telnet.$Year_Month_Now.log",  "$client: $telnet_flags{$client}{data}");
         }
-        set $telnet_server $msg if $msg ne '';
-        if ($telnet_flags{$client}{auth}!=-1 && $reponse_loop_telnet < $Loop_Count) {
-            set $telnet_server 'cr' if $msg ne '';
+        set $telnet_server $msg if defined $msg;
+        unless ($telnet_flags{$client}{auth} eq 'set_password') {
+            set $telnet_server 'cr';
             set $telnet_server 'prompt';
         }
         $telnet_flags{$client}{data} = '';

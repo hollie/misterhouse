@@ -51,10 +51,8 @@ sub check_for_data {
     &main::check_for_generic_serial_data('example_interface');
 }
 
-sub set {
+sub default_setstate {
     my ($self, $state) = @_;
-    return if &main::check_for_tied_filters($self, $state);
-    &Generic_Item::set_states_for_next_pass($self, $state);
 
     my $serial_data;
                                 # Allow for upper/mixed case (e.g. treat ON the same as on ... so X10_Items is simpler)

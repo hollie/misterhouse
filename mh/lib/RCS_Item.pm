@@ -138,13 +138,13 @@ sub last_cmd_type {
 
 sub list {
     my ($self) = @_;
-    print "RCS_item list: self=$self members=@{$$self{members}}\n" if $main::config_parms{debug};
+    print "RCS_item list: self=$self members=@{$$self{members}}\n" if $main::Debug{rcs};
     return sort @{$$self{members}};
 }
 
 sub list_by_type {
     my ($self, $cmd_type) = @_;
-    print "RCS_item list: self=$self members=@{$$self{members_by_type}{$cmd_type}}\n" if $main::config_parms{debug};
+    print "RCS_item list: self=$self members=@{$$self{members_by_type}{$cmd_type}}\n" if $main::Debug{rcs};
     return sort @{$$self{members_by_type}{$cmd_type}};
 }
 

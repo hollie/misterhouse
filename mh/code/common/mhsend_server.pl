@@ -33,11 +33,11 @@ if (my $header = said $mhsend_server) {
             ($user, $password) = split(':', unpack("u", $1));
 #           ($user, $password) = split(':', decode_base64 $1);
         }
-        if (my $results = password_check $password, 'server_mhsend') {
-            $response = "mhsend password bad: $results\n";
+        if ($user = password_check $password, 'server_mhsend') {
+            $authorized = $user;
         }
         else {
-            $authorized = 1;
+            $response = "mhsend password bad\n";
         }
     }
                                 # Now read the data
@@ -45,9 +45,9 @@ if (my $header = said $mhsend_server) {
         $msg .= $_;
     }
 
-    if ($Password_Allow{$action} or 
-        ($action eq 'run' and $Password_Allow{$msg})) {
-        $authorized = 1;
+    if ($Password_Allow{$action} eq 'anyone' or 
+        ($action eq 'run' and $Password_Allow{$msg} eq 'anyone')) {
+        $authorized = 'anyone';
     }
 
     if (!$authorized) {

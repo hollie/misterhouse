@@ -481,7 +481,10 @@ DESCRIPTION
           mh -debug http -log http_socket.log
 
         will turn on socket related debug messages and log all errata to the
-        file http_socket.log
+        file http_socket.log. You can also stack debug flags, using ; as a
+        separator. fro example:
+
+          mh -debug serial;x10
 
     time_start=
     time_stop=
@@ -610,18 +613,23 @@ DESCRIPTION
                               the item is set to the same state it is currently in.
 
              set($state)   :  places the value into the state field (e.g. set $light on)
-
              set_with_timer($state, $time, $return_state)
                            :  Like set, but will return to $return_state after $time.
                               If $return_state is not specified, it toggles $state.
                               If $return_state is previous, it returns to the previous state.
 
-                You can call set_with_timer with sets of states as follows:
+                You can also stack a series of set_with_timer calls with one set call like this:
 
-                   set(s1~t1~s2~t2...sn~tn);
+                   set('s1~t1~s2~t2...sn~tn');
  
                 where s1, s2, ... sn are various states, and t1, t2 ... tn are the times to
                 wait between states.  See example below.                 
+
+                If you want to stack a set of states without delays, you use ; like this:
+
+                   set('on~2~random:on;repeat:on;play');
+
+                See mh/code/examples/test_states_stacked.pl for a complete example.
                           
              hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.
 
@@ -641,6 +649,11 @@ DESCRIPTION
              tie_time($time,$state): Sets item to $state if the $time string evaluates true.
                                    $time can be in either time_cron or time_now format.
              untie_time($time)   : Untie $time
+
+             time_idle($time)    : Returns true when the object has had no state changes 
+                                   since the specified time. $time can be be in seconds, 
+                                   minutes, hours, or days (e.g. '90 s' or '7 days').
+                                   Optionally, $time can also specify a spefic state (e.g. '4 m on')
 
              get_idle_time       : Returns number of seconds since the last state change
 
@@ -737,9 +750,11 @@ DESCRIPTION
             $test_set1 -> set('0%~5~30%~5~60%~5~100%') if new_second 20;
             $test_set1 -> tie_event('print_log "test set $state"');
 
-        See mh/code/examples/generic_item.pl for more examples. See
-        mh/code/examples/test_tie.pl for more examples on how to tie/untie
-        items/events.
+            print 'Item is idle' if $test_set1 -> time_idle('4 seconds');
+
+        See mh/code/examples/generic_item.pl for more examples, test_tie.pl
+        for more examples on how to tie/untie items/events, and test_idle.pl
+        for more examples on testing idle times.
 
     Group
         You can use this object to group and operate on groups of items:
@@ -2003,6 +2018,18 @@ DESCRIPTION
 
              @data = file_read($file);
              $data = file_read($file);
+
+    file_read_dir
+        Returns a member => full_path hash for all members in all dirs
+        passed to it.
+
+          Examples:
+
+            my %file_paths = &file_read_dir(@Code_Dirs);
+            for my $member (keys %file_paths) {
+                next unless $member =~ /(\S+).menu$/i;
+                menu_parse file_read $file_paths{$member}, $1;
+            }        
 
     file_write
         Writes data into a file. Like logit, except it writes over, rather
@@ -3659,10 +3686,15 @@ DESCRIPTION
     set_password
         set_password creates and/or queries the mh password file, using the
         crypt function. If this password is set, then various menus (e.g.
-        web, telnet, wap) will prompt for it.
+        web, telnet, wap) will prompt for it. By default, the mh setup web
+        pages can only be controled with the admin logon, but you can
+        add/delete other commands by adding authority=admin to the
+        password_allow_file. You can also specify authority with the
+        set_authority object method, or by adding it to your web/bin xyz.pl
+        file # Authority=user comment.
 
-        The crypt function limits the password to 8 characters. To reset the
-        password, delete the mh/data/.password file.
+        The crypt function limits the password to 8 characters. If -user is
+        not specified, it defaults to family.
 
           Usage:
             set_password [options] 
@@ -3671,14 +3703,19 @@ DESCRIPTION
             -h         => This help text
             -help      => This help text
 
+            -check     => Will check, not set, the password.  Turned on if -pw_file does not exist.
+
+            -user xyz     => xyz is the user to set the password for.  
+
             -password xyz => xyz is the password to check.
                              If not used, a TK popup window will prompt for it.
 
             -pw_file xyz  => xyz is the file that the crypt-ed password is read/written to.
                              Default is mh/data/.password
 
-          Example:
-            set_password 
+          Examples:
+            set_password  -user admin
+            set_password  -user family -password xyz
 
     speak
         speak will pass the file or text to mh. It simply runs the house

@@ -259,14 +259,14 @@ sub set_by_housecode {
     for my $object (@{$items_by_house_code{$hc}}) {
         next if $object->{type} =~ /transmit/i;  # Do not set transmitters
 #       next if $object->isa('X10_Transmitter'); # This would work also
-        print "Setting X10 House code $hc item $object to $state\n" if $main::config_parms{debug} eq 'X10';
+        print "Setting X10 House code $hc item $object to $state\n" if $main::Debug{x10};
         $object->set_receive($state, 'housecode');
     }
 
     return if $state eq 'on';     # All lights on does not effect appliances
 
     for my $object (@{$appliances_by_house_code{$hc}}) {
-        print "Setting X10 House code $hc appliance $object to $state\n" if $main::config_parms{debug} eq 'X10';
+        print "Setting X10 House code $hc appliance $object to $state\n" if $main::Debug{x10};
         $object->set_receive($state, 'housecode');
     }
         
@@ -597,7 +597,7 @@ sub set_runtimes
     {
         $self->{zone_runtimes} = [@_];
         $self->{zone_runcount} = $count;
-        print "X10_IrrigationController: setting runtimes for $count zones\n" if $main::config_parms{debug} eq 'X10';
+        print "X10_IrrigationController: setting runtimes for $count zones\n" if $main::Debug{x10};
     }
 }
 
@@ -612,7 +612,7 @@ sub set_rundelay
     else
     {
         $self->{zone_delay} = $rundelay;
-        print "X10_IrrigationController: rundelay set to $rundelay second(s)\n" if $main::config_parms{debug} eq 'X10';
+        print "X10_IrrigationController: rundelay set to $rundelay second(s)\n" if $main::Debug{x10};
     }
 }
 
@@ -622,7 +622,7 @@ sub set
 
     if($state =~ /^(\w+):(.*)/)
     {
-        print "X10_IrrigationController set with times found: state=$1 times=$2\n";# if $main::config_parms{debug} eq 'X10';
+        print "X10_IrrigationController set with times found: state=$1 times=$2\n";# if $main::Debug{x10};
         $state = $1;
         return if &main::check_for_tied_filters($self, $state);
 
@@ -666,7 +666,7 @@ sub zone_cascade
     # Or turn off all if starting from zone 1
     $self->X10_IrrigationController::Inherit::set('off') if $zone == 1;
 
-    print "Zone $zone of $self->{zone_runcount}\n" if $main::config_parms{debug} eq 'X10';
+    print "Zone $zone of $self->{zone_runcount}\n" if $main::Debug{x10};
 
     # Print start message
     print "X10_IrrigationController: zone_cascade start\n" if($zone == 1);
@@ -687,7 +687,7 @@ sub zone_cascade
         my $object = $self->{object_name};
         my $action = "$object->zone_delay($zone," . $runtime*60 . ")";
         &Timer::set($sprinkler_timer, $self->{zone_delay}, $action);
-        print "X10_IrrigationController: Delaying zone $zone start for $self->{zone_delay} seconds\n" if $main::config_parms{debug} eq 'X10';
+        print "X10_IrrigationController: Delaying zone $zone start for $self->{zone_delay} seconds\n" if $main::Debug{x10};
     }
     else
     {
@@ -710,7 +710,7 @@ sub zone_delay
     my $object = $self->{object_name};
     my $action = "$object->zone_cascade(" . ($zone + 1) . ")";
     &Timer::set($sprinkler_timer, $runtime, $action);
-    print "X10_IrrigationController: Running zone $zone for " . ($runtime/60) . " minute(s)\n" if $main::config_parms{debug} eq 'X10';
+    print "X10_IrrigationController: Running zone $zone for " . ($runtime/60) . " minute(s)\n" if $main::Debug{x10};
     return;
 }
 
@@ -759,7 +759,7 @@ sub set {
         my $index = int(.5 + $1 * 32 / 100) - 1;   # 32 levels, 100% -> 31
         my $state2  = $self->{x10_id} . $preset_dim_levels[$index];
         $state2 .= ($index < 16) ? 'PRESET_DIM1' : 'PRESET_DIM2';
-        print "Switchlink X10 dim: $state -> $state2\n" if $main::config_parms{debug} eq 'X10';
+        print "Switchlink X10 dim: $state -> $state2\n" if $main::Debug{x10};
 
         $state = $state2;
     }
@@ -859,7 +859,7 @@ sub add {
     }
 
     &::print_log("Adding X10_Sensor timer for $id, name=$name type=$type")   
-      if $main::config_parms{debug} eq 'X10_Sensor';
+      if $main::Debug{x10_sensor};
 
                                 #24 hour countdown Timer
     $self->{battery_timer} = new Timer;
@@ -875,7 +875,8 @@ sub add {
 
     if ($type and $type =~ /ms13/i) {
         $id2++;
-        $id2 = 1 if $id2 eq 'H' or $id2 eq '17';
+        $id2 = 'A' if $id2 eq '10';
+        $id2 = '1' if $id2 eq 'H';    # Not sure if this is true?
         &Serial_Item::add($self, "X$hc${id2}${hc}K", 'light');
         &Serial_Item::add($self, "X$hc${id2}${hc}J", 'dark');
     }
@@ -897,13 +898,15 @@ sub sensorhook {
     ($ref->{dark} = 1) if $state eq 'dark'; 
 
     &::print_log("X10_Sensor::sensorhook: resetting $ref->{battery_timer}") 
-      if $main::config_parms{debug} eq 'X10_Sensor';
+      if $main::Debug{x10_sensor};
 
 # If I received something from this battery-powered transmitter, the battery 
-# must still be good, so reset the countdown timer (12 more hours):
-    $ref->{battery_timer}->set(12*60*60, 
-                     "speak \"Battery timer for $ref->{name} expired\"", 7);  
-}
+# must still be good, so reset the countdown timer $main::config_parms{MS13_Battery_Timer} hours
+# default is 12 more hours if not specified:
+    $ref->{battery_timer}->set(($main::config_parms{MS13_Battery_timer}) ? $main::config_parms{MS13_Battery_Timer} : 12 *60*60, 
+                     "speak \"Battery timer for $ref->{name} expired\"", 7);
+}  
+
 
 sub light {
     return !$_[0]->{dark};
@@ -916,6 +919,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.36  2003/02/08 05:29:24  winter
+#  - 2.78 release
+#
 # Revision 1.35  2003/01/12 20:39:21  winter
 #  - 2.76 release
 #

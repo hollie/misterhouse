@@ -57,7 +57,7 @@ sub start {
     $host_proto = 'tcp' unless $host_proto;
     my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
     if ($port) {
-        print "Socket Item connecting to $host on port $port\n" if $main::config_parms{debug} eq 'socket';
+        print "Socket Item connecting to $host on port $port\n" if $main::Debug{socket};
         if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, 
                                                  PeerPort => $port, Proto => $host_proto)) {
 # Timeout => 0,  # Does not help with 2 second pauses on unavailable  addresses :(
@@ -90,7 +90,7 @@ sub is_available {
     $host_proto = 'tcp' unless $host_proto;
     my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
     if ($port) {
-        print "Socket Item testing to $host on port $port\n" if $main::config_parms{debug} eq 'socket';
+        print "Socket Item testing to $host on port $port\n" if $main::Debug{socket};
         if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, PeerPort => $port, Proto => $host_proto)) {
             return 1;
 #            $main::Socket_Ports{$port_name}{sock}  = $sock;
@@ -189,7 +189,7 @@ sub set {
 
     my $port_name = $self->{port_name};
 
-    print "Socket_Item: self=$self port=$port_name state=$state ip=$ip_address data=$socket_data\n" if $main::config_parms{debug} eq 'socket';
+    print "Socket_Item: self=$self port=$port_name state=$state ip=$ip_address data=$socket_data\n" if $main::Debug{socket};
 
     return if $main::Save{mode} eq 'offline';
 
@@ -212,7 +212,7 @@ sub set {
             else {
                 for my $ptr (@{$main::Socket_Ports{$port_name}{clients}}) {
                     my ($socka, $client_ip_address, $data) = @{$ptr};
-                    print "Testing socket client ip address: $client_ip_address\n" if $main::config_parms{debug} eq 'socket';
+                    print "Testing socket client ip address: $client_ip_address\n" if $main::Debug{socket};
                     push @sockets, $socka if $socka and $client_ip_address =~ /$ip_address/ or
                       $ip_address eq 'all' or $ip_address eq $socka;
                 }
@@ -240,7 +240,7 @@ sub set {
 
     for my $sock (@sockets) {
         next unless $sock; # Shouldn't need this ?
-        print "db print to $sock: $socket_data\n" if $main::config_parms{debug} eq 'socket';
+        print "db print to $sock: $socket_data\n" if $main::Debug{socket};
         print $sock $socket_data;
     }
 
@@ -289,6 +289,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.29  2003/02/08 05:29:23  winter
+#  - 2.78 release
+#
 # Revision 1.28  2003/01/12 20:39:20  winter
 #  - 2.76 release
 #

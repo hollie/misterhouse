@@ -14,10 +14,12 @@ if ($state = state_now $v_reload_code) {
 $v_read_tables = new Voice_Cmd 'Read table files';
 read_table_files if said $v_read_tables;
 
-$v_set_password = new  Voice_Cmd("Set the password");
-if (said $v_set_password) {
-    @ARGV = ();
+$v_set_password = new  Voice_Cmd("Set the [guest,family,admin] password");
+if ($state = said $v_set_password) {
+    @ARGV = (-user => $state);
+    print_log "Setting $state password with: @ARGV";
     do "set_password";
+    &password_read;             # Re-read new password data
 }
 
 $v_uptime = new  Voice_Cmd("What is your up time", 0);
@@ -270,7 +272,7 @@ if ($Keyboard) {
         &toggle_log;
     }
     elsif ($Keyboard) {
-        print "key press: $Keyboard\n" if $config_parms{debug} eq 'misc';
+        print "key press: $Keyboard\n" if $Debug{misc};
     }
 }
 
@@ -370,8 +372,13 @@ if (said $undo_last_change) {
 }
 
                                 # Add a short command for testing
-$test_command_yo = new Text_Cmd 'yo';
+$test_command_yo  = new Text_Cmd 'yo';
 $test_command_yo-> set_info('A short text command for quick tests');
 $test_command_yo-> set_authority('anyone');
+
+$test_command_yo2 = new Text_Cmd 'yo2';
+$test_command_yo2-> set_info('A short text authorization required command for quick tests');
+
 respond "Hi to $test_command_yo->{set_by}, $test_command_yo->{target}." if said $test_command_yo;
+respond "Hi to authorized $test_command_yo2->{set_by}, $test_command_yo2->{target}." if said $test_command_yo2;
 

@@ -508,7 +508,12 @@ For example:
   mh -debug http -log http_socket.log</pre>
 </dd>
 <dd>
-<p>will turn on socket related debug messages and log all errata to the file http_socket.log</p>
+<p>will turn on socket related debug messages and log all errata to the file http_socket.log.  
+You can also stack debug flags, using ; as a separator.  fro example:</p>
+</dd>
+<dd>
+<pre>
+  mh -debug serial;x10</pre>
 </dd>
 <dd>
 <p></p>
@@ -672,10 +677,7 @@ mh is stopped/started.
 </dd>
 <dd>
 <pre>
-     set($state)   :  places the value into the state field (e.g. set $light on)</pre>
-</dd>
-<dd>
-<pre>
+     set($state)   :  places the value into the state field (e.g. set $light on)
      set_with_timer($state, $time, $return_state)
                    :  Like set, but will return to $return_state after $time.
                       If $return_state is not specified, it toggles $state.
@@ -683,14 +685,26 @@ mh is stopped/started.
 </dd>
 <dd>
 <pre>
-        You can call set_with_timer with sets of states as follows:</pre>
+        You can also stack a series of set_with_timer calls with one set call like this:</pre>
 </dd>
 <dd>
 <pre>
-           set(s1~t1~s2~t2...sn~tn);
+           set('s1~t1~s2~t2...sn~tn');
  
         where s1, s2, ... sn are various states, and t1, t2 ... tn are the times to
-        wait between states.  See example below.                 
+        wait between states.  See example below.</pre>
+</dd>
+<dd>
+<pre>
+        If you want to stack a set of states without delays, you use ; like this:</pre>
+</dd>
+<dd>
+<pre>
+           set('on~2~random:on;repeat:on;play');</pre>
+</dd>
+<dd>
+<pre>
+        See mh/code/examples/test_states_stacked.pl for a complete example.
                           
                          
      hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.</pre>
@@ -719,6 +733,13 @@ mh is stopped/started.
      tie_time($time,$state): Sets item to $state if the $time string evaluates true.
                            $time can be in either time_cron or time_now format.
      untie_time($time)   : Untie $time</pre>
+</dd>
+<dd>
+<pre>
+     time_idle($time)    : Returns true when the object has had no state changes 
+                           since the specified time. $time can be be in seconds, 
+                           minutes, hours, or days (e.g. '90 s' or '7 days').
+                           Optionally, $time can also specify a spefic state (e.g. '4 m on')</pre>
 </dd>
 <dd>
 <pre>
@@ -857,8 +878,13 @@ tie to apply to.  If not specified, it defaults to all states.  This is required
     $test_set1 -&gt; tie_event('print_log &quot;test set $state&quot;');</pre>
 </dd>
 <dd>
-<p>See mh/code/examples/generic_item.pl for more examples.
-See mh/code/examples/test_tie.pl for more examples on how to tie/untie items/events.</p>
+<pre>
+    print 'Item is idle' if $test_set1 -&gt; time_idle('4 seconds');</pre>
+</dd>
+<dd>
+<p>See mh/code/examples/generic_item.pl for more examples,
+test_tie.pl for more examples on how to tie/untie items/events, and
+test_idle.pl for more examples on testing idle times.</p>
 </dd>
 <p></p>
 <dt><strong><a name="item_group">Group</a></strong><br />
@@ -2653,6 +2679,24 @@ If used in a list context, a list is returned, otherwise a string of all the lin
 <pre>
      @data = file_read($file);
      $data = file_read($file);</pre>
+</dd>
+<p></p>
+<dt><strong><a name="item_file_read_dir">file_read_dir</a></strong><br />
+</dt>
+<dd>
+Returns a member =&gt; full_path hash for all members in all dirs passed to it.
+</dd>
+<dd>
+<pre>
+  Examples:</pre>
+</dd>
+<dd>
+<pre>
+    my %file_paths = &amp;file_read_dir(@Code_Dirs);
+    for my $member (keys %file_paths) {
+        next unless $member =~ /(\S+).menu$/i;
+        menu_parse file_read $file_paths{$member}, $1;
+    }</pre>
 </dd>
 <p></p>
 <dt><strong><a name="item_file_write">file_write</a></strong><br />
@@ -5128,10 +5172,14 @@ set to.
 <dd>
 set_password creates and/or queries the mh password file, using the crypt function.
 If this password is set, then various menus (e.g. web, telnet, wap) will prompt for it.
+By default, the mh setup web pages can only be controled with the admin logon,
+but you can add/delete other commands by adding authority=admin to the password_allow_file.
+You can also specify authority with the set_authority object method, 
+or by adding it to your web/bin xyz.pl file # Authority=user  comment.
 </dd>
 <dd>
 <p>The crypt function limits the password to 8 characters.
-To reset the password, delete the mh/data/.password file.</p>
+If -user is not specified, it defaults to family.</p>
 </dd>
 <dd>
 <pre>
@@ -5146,6 +5194,14 @@ To reset the password, delete the mh/data/.password file.</p>
 </dd>
 <dd>
 <pre>
+    -check     =&gt; Will check, not set, the password.  Turned on if -pw_file does not exist.</pre>
+</dd>
+<dd>
+<pre>
+    -user xyz     =&gt; xyz is the user to set the password for.</pre>
+</dd>
+<dd>
+<pre>
     -password xyz =&gt; xyz is the password to check.
                      If not used, a TK popup window will prompt for it.</pre>
 </dd>
@@ -5156,8 +5212,9 @@ To reset the password, delete the mh/data/.password file.</p>
 </dd>
 <dd>
 <pre>
-  Example:
-    set_password</pre>
+  Examples:
+    set_password  -user admin
+    set_password  -user family -password xyz</pre>
 </dd>
 <p></p>
 <dt><strong>speak</strong><br />

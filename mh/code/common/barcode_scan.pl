@@ -24,17 +24,17 @@
 $barcode_data   = new Generic_Item;
 $barcode_mode   = new Generic_Item;
 $barcode_mode  -> set_states('web', 'add inventory', 'delete inventory', 'query inventory', 'clear inventory');
-$barcode_mode  -> set_authority('anyweb');
+$barcode_mode  -> set_authority('anyone');
 
 $v_barcode_mode = new Voice_Cmd('Change barcode scan to [web,add inventory,delete inventory,query inventory,clear inventory] mode');
 $v_barcode_mode-> set_info('Controls what you want to do with barcode scans.  Web will create urls, inventory updates a database');
-$v_barcode_mode-> set_authority('anyweb');
+$v_barcode_mode-> set_authority('anyone');
 $v_barcode_mode-> tie_items($barcode_mode);
 $v_barcode_mode-> tie_event('print_log "Scanner set to $state mode"');
 
 
 $barcode_scan   = new Generic_Item;
-$barcode_scan  -> set_authority('anyweb');
+$barcode_scan  -> set_authority('anyone');
 #&tk_entry('Barcode', $barcode_scan);
                                 # Scan starts with Alt-F10
 $MW->bind('<Key-F10>', sub {$Tk_objects{entry}{$barcode_scan}->focus()}) if $MW and $Reload;

@@ -166,6 +166,10 @@ if (defined $sec) {
         elsif ($^O eq 'freebsd') {
             $rc=system("date -f %H:%M:%S '$time_new'");
         }
+        elsif ($^O eq 'solaris' ) {
+            print "Slowly adjusting $sec_diff seconds.\n";
+            $rc=system("date -a  $sec_diff");
+        }
         else {
             $rc=system("date -s '$time_new'");
         }

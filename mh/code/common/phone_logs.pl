@@ -67,6 +67,8 @@ sub read_phone_logs2 {
             if ($log_file =~ /callerid/) {
                 ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\-?\d\d\d\d) name=(.+)/; 
                 ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\d\d\d\d\d\d\d)(\s\w+\s\w+\s)/ unless $name;
+                ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\d) name=(.+)/ unless $name; # AC is optional
+
                                 # Deal with "private, 'out of area', and bad data" calls 
                 unless ($name) { 
                     ($name) = $_ =~ /name=(.+)/;
