@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-05-26 21:22:33 winter>
+#  Last change Time-stamp: <2000-06-17 15:43:10 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -79,7 +79,7 @@ my (@Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
 my ($Loop_Speed, $Loop_Speed2, $Loop_Speed3);
 my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
 
-my ($exit_flag, $xcmd_file, %file_code_times, %file_change_times);
+my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
 my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, @Item_Code, @Item_Code_Objects, $user_code);
 my ($user_code_last_good_candidate_flag, $user_code_last_good, $restore_state);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname, %object_names_by_file, %object_names_by_type, %object_names_by_webname);
@@ -379,6 +379,7 @@ sub setup {
 
     require 'handy_net_utilities.pl';   # For misc. net functions (e.g. net_mail_read)
     require 'console_utils.pl';
+    require 'read_table.pl';
     require 'http_server.pl';
 
     if ($OS_win) {
@@ -585,8 +586,8 @@ sub setup {
 
     srand(time() ^ ($$ + ($$ << 15)) ); # Set the randum number seed, used in time_random;
 
-    $main::config_parms{max_log_entries} = 50 unless defined $main::config_parms{max_log_entries};
-    $main::config_parms{max_state_log_entries} = 10 unless defined $main::config_parms{max_state_log_entries};
+    $config_parms{max_log_entries} = 50 unless defined $config_parms{max_log_entries};
+    $config_parms{max_state_log_entries} = 10 unless defined $config_parms{max_state_log_entries};
 
     &add_hook_code;
 
@@ -707,11 +708,9 @@ sub check_for_action {
 
     &exit_pgm if $exit_flag;
     &set_global_vars;
-    &Voice_Cmd::check_for_voice_cmd; # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
-    &Generic_Item::reset_states;     # Set state_now for generic items
-    &Serial_Item::reset_states;      # Set state_now for serial items
-    &iButton::reset_states if $config_parms{ibutton_port};   # Set state_now for ibutton
     &Process_Item::harvest;          # Check for done processes
+    &Generic_Item::reset_states;     # Reset states for all objects that are 'ISA Item' objects
+    &Voice_Cmd::check_for_voice_cmd; # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
     &check_for_keyboard_input;
     &check_for_serial_data if %Serial_Ports;
     &check_for_socket_data if %Socket_Ports;
@@ -723,17 +722,9 @@ sub check_for_action {
                                 # Use eval to catch minor errors without abending
                                 #  - about 10% slower (170 -> 150)
     eval_user_code("&loop_code()", 2);
-#    &loop_code;
+#   &loop_code;
 
     &MainLoop_post_hooks();     # Created by &add_hooks
-
-                                # Reset the states on the state_now Serial_Items and voice states
-#    while (@reset_states) {
-#        my $ref = shift @reset_states;
-#        undef $ref->{state_now};
-#        undef $ref->{said};
-#    }
-    &Voice_Cmd::reset_states;
 
                                 # Keep track of ticks per pass (average per second)
     my $loop_tickcount3 = (&get_tickcount);
@@ -1122,9 +1113,40 @@ sub check_for_socket_data {
 
 }    
 
+                                # This is called by mh/lib/Generic_Item.pm
+                                #  - it fires tied items/events
+sub check_for_tied_events {
+    my @objects = @_;
+    for my $object (@objects) {
+        print "Object link: starting enumeration for object=$object\n" if $config_parms{debug} eq 'events';
+        my ($ref, $state);
+        for $ref (@{$object->{'tied_objects'}}) {
+            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
+            print "Object link: Setting $ref->[0] to $state\n" if $config_parms{debug} eq 'events';
+            $ref->[0]->set($state);
+        }
+        for $ref (@{$object->{'tied_objects:'.lc($object->state)}}) {
+            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
+            print "Object link: Setting $ref->[0] to $state\n" if $config_parms{debug} eq 'events';
+            $ref->[0]->set($state);
+        }
+
+        for $ref (@{$object->{'tied_events'}}) {
+            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
+            print "Event link: starting eval\n" if $config_parms{debug} eq 'events';
+            eval "$ref->[0]";
+        }
+        for $ref (@{$object->{'tied_events:'.lc($object->state)}}) {
+            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
+            print "Event link: starting eval\n" if $config_parms{debug} eq 'events';
+            eval "$ref->[0]";
+        }
+    }
+}
+
 sub check_for_timer_actions {
     my ($ref);
-    foreach $ref (&Timer::expired_timers_with_actions) {
+    for $ref (&Timer::expired_timers_with_actions) {
                                 # Use this method avoids problems with Timer is called from X10_Items
         &Timer::run_action($ref);
 #       run_action $ref;
@@ -1183,7 +1205,7 @@ sub display {
     }
 
     unshift (@Display_Log, $text);
-    pop @Display_Log if @Display_Log >  $main::config_parms{max_log_entries};
+    pop @Display_Log if @Display_Log >  $config_parms{max_log_entries};
 
                                 # Assume we were waiting for this and reset http server counter so almost 0 
     $Last_Response = 'display';
@@ -1529,7 +1551,7 @@ sub object_states_save {
 
     undef $restore_state;
                                 # Save states on user specifed Save keys
-    foreach $var (keys %Save) {
+    for $var (keys %Save) {
         no strict 'refs';
         if ($state = $Save{$var}) {
             $restore_state .= &object_states_save_check("\$Save{$var} = q~$state~;\n");
@@ -1537,8 +1559,8 @@ sub object_states_save {
         print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'misc';
     }
                                 # Save states of all objects
-    foreach $object_type (qw(File_Item Timer Group Serial_Item X10_Item X10_Appliance X10_Garage_Door Generic_Item Voice_Cmd iButton)) {
-        foreach $var (keys %{$file_by_object_name{$object_type}}) {
+    for $object_type (qw(File_Item Timer Group Serial_Item X10_Item X10_Appliance X10_Garage_Door Generic_Item Voice_Cmd iButton)) {
+        for $var (keys %{$file_by_object_name{$object_type}}) {
             print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'misc';
 
             no strict 'refs';
@@ -1722,7 +1744,7 @@ sub play {
 
     my @files = split(/[, ]/, $parms{file});
 #   $play_parm = 0 if @files > 1; # If more than one file, wait.
-    foreach $file (@files) {
+    for $file (@files) {
                                 # Check for SystemXYZ or //server or \file or c:\file
         unless ($file =~ /^System/ or $file =~ /^[\\\/]/ or $file =~ /^\S\:/) {
             $file = "$config_parms{sound_dir}/$file";
@@ -1788,7 +1810,7 @@ sub print_log {
         print "$Time_Date: $data\n";
     }
     unshift (@Print_Log, "$Time_Date: $data");
-    pop @Print_Log if @Print_Log > $main::config_parms{max_log_entries};
+    pop @Print_Log if @Print_Log > $config_parms{max_log_entries};
 
     $Last_Response = 'print_log';
 
@@ -1828,7 +1850,7 @@ sub print_speaklog {
 
 #   unshift (@Speak_Log, "$Time_Now $data");
     unshift (@Speak_Log, "$Time_Date $data");
-    pop @Speak_Log if @Speak_Log > $main::config_parms{max_log_entries};
+    pop @Speak_Log if @Speak_Log > $config_parms{max_log_entries};
 
     if ($Tk_objects{speak_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
@@ -2026,7 +2048,8 @@ sub read_code {
     @Local_Addresses = split ',', $config_parms{local_addresses};
     @Password_Allow_Clients = split ',', $config_parms{password_allow_clients};
 
-    %noload_files = map {$_, 1} split(',', $config_parms{no_load});
+
+    &read_table_files;           # Re-create table code file, if any table file changed
 
     $file_dir = $config_parms{code_dir};
     print_log "Reading code files in $file_dir";
@@ -2047,7 +2070,8 @@ sub read_code {
     undef @files_changed;
     undef @files_changed2;
     my %files_deleted = %file_code_times;
-    foreach $file (@files_read) {
+    %noload_files = map {$_, 1} split(',', $config_parms{no_load});
+    for $file (@files_read) {
         (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
         $file_path = "$file_dir/$file";
         delete $files_deleted{$file_path};
@@ -2060,7 +2084,7 @@ sub read_code {
     }
                                 # Delete any old files that were deleted
     my $files_deleted = 0;
-    foreach $file_path (keys %files_deleted) {
+    for $file_path (keys %files_deleted) {
         delete $User_Code{$file_path};
         $files_deleted++;
     }
@@ -2087,6 +2111,47 @@ sub read_code {
 
 }
 
+
+                                # Read optional, table formated definitions of mh objects and events
+sub read_table_files {
+                                # Find files
+    my $file_dir = $config_parms{code_dir};
+    print_log "Reading table files in $file_dir";
+    opendir(DIR, $file_dir) or return;
+    my @files_read = readdir DIR;
+    close DIR;
+    return unless @files_read = grep(/^[a-z0-9].*\.mht$/i, @files_read);
+
+                                # See if any of the files have changed
+    my %noload_files = map {$_, 1} split(',', $config_parms{no_load});
+    my ($changed, @entries);
+    for my $file (@files_read) {
+        (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
+        my $file_path = "$file_dir/$file";
+        my $file_time = (stat($file_path))[9];
+        $changed++ if $file_time > $file_code_times2{$file};
+        $file_code_times2{$file} = $file_time;
+    }
+    return unless $changed;
+                                # Read all the files
+    for my $file (@files_read) {
+        next if $noload_files{$file};
+        my $file_path = "$file_dir/$file";
+        open TABLE, $file_path;
+        push @entries, <TABLE>;
+        close TABLE;
+    }
+                                # Process tables of various, user-defined formats
+    my $code = &read_table(@entries);
+
+                                # Create output table code file
+    my $table_code_file = "$config_parms{code_dir}/mh_temp_table_code.pl";
+    print_log "Writing to $table_code_file";
+    open  TABLE_CODE, ">$table_code_file" or print_log "Error in writing to $table_code_file";
+    print TABLE_CODE $code;
+    close TABLE_CODE;
+}
+
 sub read_user_code {
     my(@files) = @_;
     my ($file, $noloop_flag, $noloop_statement_flag, $webname);
@@ -2094,7 +2159,7 @@ sub read_user_code {
     $Reload = 1;
     undef @Tk_widgets;
 
-    foreach $file (@files) {
+    for $file (@files) {
         open(CODE, $file) or die "Error, can not open file $file:$!\n";
         @{$User_Code{$file}} = <CODE>;
         close CODE;
@@ -2117,7 +2182,7 @@ sub read_user_code {
     undef %files_by_webname;
 
     my %member_sort_order;
-    foreach $file (sort keys %User_Code) {
+    for $file (sort keys %User_Code) {
         print "Reading $file\n" if $config_parms{debug} eq 'misc';
         
         my ($member_name) = $file =~ /([^\\\/]+).pl$/i;
@@ -2130,7 +2195,7 @@ sub read_user_code {
         $noloop_statement_flag = 0;
 
 #       push (@Item_Code, "my $item_file_name; # Used to see which files items came from \n");
-        foreach $record (@{$User_Code{$file}}) {
+        for $record (@{$User_Code{$file}}) {
 #           push(@Item_Code, "\$item_file_name = '$file';\n");
             
                                 # No need to keep subroutines out of the loop code ... no speed advantage ?!?
@@ -2169,12 +2234,17 @@ sub read_user_code {
             }
 
                                 # Find global records
+                                #  - Methods can be of either form:
+                                #     $object -> method (parms)
+                                #     method $object parms
+                                #     Can also do a return if $Reload in the method, and leave it in the loop
+
             if ($object or
-                $record =~ /^my\s/ or           # Global 'my'
-                $record =~ /^use vars\s/ or     # Global 'use vars'
-                $record =~ /^\s*set_icon\s/ or  # set_icon  only needs to be done on code load
-                $record =~ /^\s*set_info\s/ or  # set_info  only needs to be done on code load
-                $record =~ /^\s*set_order\s/ or # set_order only needs to be done on code load
+                $record =~ /^my\s/ or                 # Global 'my'
+                $record =~ /^use vars\s/ or           # Global 'use vars'
+                $record =~ /^\s*set_icon\s/ or        # set_icon  only needs to be done on code load
+                $record =~ /^\s*set_info\s/ or        # set_info  only needs to be done on code load
+                $record =~ /^\s*set_order\s/ or       # set_order only needs to be done on code load
                 $record =~ /->\s*add[\s\(]/ or
                 $record =~ /^\s*add\s/) {
                 $noloop_statement_flag = 1; # Allow for multi-record statements
@@ -2216,7 +2286,7 @@ sub read_user_code {
                                 # 'use vars' allows us to keep use strict vars, but also 
                                 # entries in the symbol table (unlike 'my') so we can 
                                 # do the 'object_name' reference and do symbolic var manipulation
-    foreach (sort keys %file_by_object_name) {
+    for (sort keys %file_by_object_name) {
         my @list = sort keys %{$file_by_object_name{$_}};
         unshift @Item_Code, "use vars qw(@list);\n\n";
         unshift @Item_Code, "# List of $_ objects\n";
@@ -2265,12 +2335,11 @@ sub run_voice_cmd {
 sub sendkeys_find_window {
     my ($title, $program) = @_;
     my $window;
-    unless (&WaitForAnyWindow($title, \$window, 1000, 200)) {
+    unless (&WaitForAnyWindow($title, \$window, 100, 200)) {
         print_log "Starting $program";
         run $program;
-        while (!&WaitForAnyWindow($title, \$window, 1000, 200)) {
-            print_log "Waiting for $title";
-        }
+        print     "Waiting for $title\n";
+        &WaitForAnyWindow($title, \$window, 2000, 200); # Wait for 2 seconds
         select undef, undef, undef, 0.5; # Give it a chance to get going
     }
     if ($window) {
@@ -2792,8 +2861,8 @@ sub time_cron {
     
     @cron_now = ($Minute, $Hour, $Mday, $Month, $Wday);
   FIELD:
-    foreach $field (0..4) {
-        foreach $entry (split(',', $cron[$field])) {
+    for $field (0..4) {
+        for $entry (split(',', $cron[$field])) {
             # Go to next field if this field matches the current time_date
             next FIELD if $entry eq '*';
             if (2 == (($low, $high) = split('-', $entry))) {
@@ -2927,7 +2996,7 @@ sub tk_setup_cascade_menus {
 
                 my $filename = $object->{filename};
                 if (my ($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/) { 
-                    foreach my $state (split(',', $states)) { 
+                    for my $state (split(',', $states)) { 
                         my $text2 = "$prefix$state$suffix";
                         my $text3 = "$filename: $text2";
                         $Tk_objects{menu_command_by_cat}{$category}->
@@ -2950,7 +3019,7 @@ sub tk_setup_cascade_menus {
         $Tk_objects{menu_items}->menu->delete(0, 'end'); # Delete old menus
 
                                 # Timers do not have @states (only state), so can not be included
-        for my $object_type ('Serial_Item', 'X10_Item', 'X10_Appliance', 'iButton', 'Group') {
+        for my $object_type ('Serial_Item', 'X10_Item', 'X10_Appliance', 'iButton', 'Compool_Item', 'Group') {
 
                                 # We must delete old ones first, otherwise we get a memory leak!
             $Tk_objects{menu_items_by_type}{$object_type}->delete(0, 'end')if $Tk_objects{menu_items_by_type}{$object_type};
@@ -3258,11 +3327,11 @@ sub write_user_code {
 
                                 # Now set usage_name in each object, so they know what they are called.
     my $var;
-#   foreach $var (keys %main::) { 
+#   for $var (keys %main::) { 
 #       no strict 'refs'; 
 #       my $ref = ${$var}; 
-    foreach (sort keys %file_by_object_name) {
-        foreach $var (keys %{$file_by_object_name{$_}}) {
+    for (sort keys %file_by_object_name) {
+        for $var (keys %{$file_by_object_name{$_}}) {
             my $ref = eval "\\$var"; 
             $$ref->{usage_name} = $var; 
         }
@@ -3276,6 +3345,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.21  2000/06/17 21:06:24  winter
+# - add read_table_files, for reading optional .mht files
+#
 # Revision 2.20  2000/05/27 16:38:46  winter
 # - Allow for regular expresions in local_address check.  Add internet_speak_flag.
 #
