@@ -77,7 +77,6 @@ sub process_http_request {
 
     $Authorized = &password_check(undef, 'http') ? 0 : 1; # If no $Password or local address, defaults to authorized
 
-
                                 # Read http header data (need $Browser parm)
     $Browser = $Host = $Referer = $Cookie = '';  undef %Cookies;
     $H_Response = 'last_response';
@@ -104,10 +103,10 @@ sub process_http_request {
             $Authorized = (&password_check($password, 'http')) ? 0 : 1;
         }
     }
-    if ($config_parms{password_menu} eq 'html' and $Password) {
-        $Authorized = ($Cookies{password} and $Cookies{password} eq $Password) ? 1 : 0
-    }
 
+    if ($config_parms{password_menu} eq 'html' and $Password and $Cookies{password}) {
+        $Authorized = ($Cookies{password} eq $Password) ? 1 : 0
+    }
 
 
     print "Password flag set to $Authorized\n" if $main::config_parms{debug} eq 'http';
@@ -165,15 +164,22 @@ sub process_http_request {
     elsif ($get_req =~ /^\/SET_PASSWORD_FORM$/) {
         my ($password) = $get_arg =~ /password=(\S+)/;
         my ($html);
+        my ($name, $name_short) = net_domain_name 'http';
         if (&password_check($password, 'http')) {
             $Authorized = 0;
             $html =  &html_authorized . $password_html . qq[<b>Password was incorrect</b>\n];
             $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
+            $Cookies{password_was_not_valid}++; # So we can monitor from user code
+            &print_log("Password was just NOT set: $name");
+            &speak("Password NOT set by $name_short");
         }
         else {
             $Authorized = 1;
             $Cookie .= "Set-Cookie: password=$Password; ; path=/\n" if $Password;
             $html = &html_authorized . "<h3>Password accepted</h3>";
+            $Cookies{password_was_valid}++;
+            &print_log("Password was just set: $name");
+            &speak("Password set by $name_short");
         }
         print $socket &html_page(undef, "$html\n", undef, undef, undef);
         return;
@@ -707,6 +713,7 @@ sub vxml_page {
         my $nomatch = qq|What was that again?|;
 # <assign name="document.caller" expr="{session.ani}"/>
         $Cookie = "Set-Cookie: vxml_cookie=$parms{cookie}; path=/\n" if $parms{cookie};
+        $Cookies{password_was_valid}++; # So we can monitor from user code
 
         if ($parms{mode} eq 'html') {
             my $html = "<b>Audio</b>: $audio\n";
@@ -756,6 +763,7 @@ eof
                                 # Simple audio response
     else {
         $Cookie = "Set-Cookie: vxml_cookie=$parms{cookie}; path=/\n" if $parms{cookie};
+        $Cookies{password_was_valid}++; # So we can monitor from user code
         if ($parms{mode} eq 'html') {
             my $html  = $audio;
             $html .= "<br><a href=$goto_vxml>vxml</a> : <a href=$goto_html>Next</a>\n";
@@ -1122,7 +1130,7 @@ sub html_list {
     $h_list .= qq[<!-- html_list -->\n];
 
                                 # This means the form was submited ... check for search keyword
-    if (my $search = $webname_or_object_type =~ /search=(\S*)/) {
+    if (my ($search) = $webname_or_object_type =~ /search=(\S*)/) {
 
                                 # Check for msagent checkbox
         if ($webname_or_object_type =~ /msagent=1/) {
@@ -1650,25 +1658,27 @@ sub widgets {
         my @data = @$ptr;
 
         my $category = shift @data;
-        $category =~ s/ /_/;
         my $type     = shift @data;
+        $category =~ s/ /_/;
 
         next unless $request_type eq 'search' or
             (($request_type eq 'all' or $type eq $request_type) and 
              (!$request_category or $request_category eq $category));
 
+        my $search = $request_category if $request_type eq 'search';
+
         if ($type eq 'label') {
 #            $cols = 2;
-            push @table_items, &widget_label($request_category, @data);
+            push @table_items, &widget_label($search, @data);
         }
         elsif ($type eq 'entry') {
-            push @table_items, &widget_entry($request_category, @data);
+            push @table_items, &widget_entry($search, @data);
         }
         elsif ($type eq 'radiobutton') {
-            push @table_items, &widget_radiobutton($request_category, @data);
+            push @table_items, &widget_radiobutton($search, @data);
         }
         elsif ($type eq 'checkbutton') {
-            push @table_items, &widget_checkbutton($request_category, @data);
+            push @table_items, &widget_checkbutton($search, @data);
         }
     }
     return &table_it($cols, 0, 0, @table_items);
@@ -1679,7 +1689,7 @@ sub widget_label {
     my $search = shift @_;
     for my $pvar (@_) {
         my $label = $$pvar;
-        next unless $label and $label =~ /\S{3}/;   # Drop really short labesl, like tk_eye
+        next unless $label and $label =~ /\S{3}/;   # Drop really short labels, like tk_eye
         next if $search and $label !~ /$search/i;
         my ($key, $value) = $label =~ /(.+?\:)(.*)/;
         $value = '' unless $value;
@@ -1763,8 +1773,8 @@ sub widget_checkbutton {
     my $search = shift @_;
     while (@_) {
         my $text = shift @_;
-        next if $search and $text !~ /$search/i;
         my $pvar = shift @_;
+        next if $search and $text !~ /$search/i;
         $html_pointers{++$html_pointer_cnt} = $pvar;
         my $checked = ($$pvar) ? 'CHECKED' : '';
         my $html = qq[<FORM name="widgets_radiobutton" ACTION="/SET:$H_Response"  target='speech'>\n];
@@ -1871,6 +1881,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.52  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
 # Revision 1.51  2000/12/21 18:54:15  winter
 # - 2.38 release
 #

@@ -15,8 +15,8 @@ use strict;
 
 my ($Pgm_Path, $Pgm_Name, $Version, $Pgm_Root);
 #use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
-use TTSClass;
-package TTSClass;
+use ViaVoiceTTS;
+package ViaVoiceTTS;
 
 BEGIN {
     ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
@@ -80,7 +80,7 @@ if ($parms{playcmd} and $parms{play} ne 'none') {
 	}
 }
 
-TTSClass::eciSpeakText($parms{text},1);
+ViaVoiceTTS::eciSpeakText($parms{text},1);
 
 system($parms{postscript}) if $parms{postscript};
 

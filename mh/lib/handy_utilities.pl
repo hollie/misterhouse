@@ -27,6 +27,8 @@ sub Win32::DriveInfo::DrivesInUse;
 sub Win32::Sound::Volume;
 #sub Win32::PerfLib;
 
+#sub gettimeofday { return (scalar time, 0) }; # Used in get_tickcount, in case Time::Hires is not installed
+
 package handy_utilities;
 use strict;
 
@@ -190,17 +192,23 @@ sub main::find_pgm_path {
     return ($pgm_path, $pgm_args);
 }
 
-
+                                # Returns milliseconds
 sub main::get_tickcount {
+    my $time;
     if ($main::OS_win) {
-        my $time = Win32::GetTickCount;
-        $time += 2**32 if $time < 0; # This wraps to negative after 25 days.  Resets after 49 :(
-        return $time;
+        $time = Win32::GetTickCount;
     }
     else {
-        my $time = time;
-        return $time * 1000;            # Need subsecond clock on unix!
+        if ($main::Info{HiRes}) {
+            my ($sec, $usec) = &main::gettimeofday; # From Time::HiRes
+            $time = 1000 * $sec + $usec / 1000;
+        }
+        else {
+            $time = time * 1000;
+        }
     }
+    $time += 2**32 if $time < 0; # This wraps to negative after 25 days.  Resets after 49 :(
+    return $time;
 }
 
 
@@ -429,7 +437,7 @@ sub main::plural2 {
 sub main::plural_check {
     my($text) = @_;
     if ($text =~ /(\d+)/ and abs $1 == 1) {
-        $text =~ s/s\.?$//;
+        $text =~ s/s(\.?)$/$1/;
         $text =~ s/ are / is /;
     }
     return $text;
@@ -913,6 +921,14 @@ sub main::time_date_stamp {
     return wantarray ? ($time_date_stamp, $sec, $min, $hour, $ampm, $day_long, $mon, $mday, $year) : $time_date_stamp;
 }
 
+sub main::time_add {
+    my ($time_date) = @_;
+    my $time2 = &main::my_str2time($time_date);
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($time2);
+    $time_date = sprintf("%d:%02d", $hour, $min);
+    return $time_date;
+}
+
 sub main::time_diff {
     my($time1, $time2, $nearest_unit, $format) = @_;
     my($diff, $nu, $seconds, $minutes, $hours, $days, $weeks, $years, @diff, $last, $string);
@@ -986,6 +1002,7 @@ sub main::time_diff {
     return $string;
 } 
 
+
 sub main::time_to_ampm {
     my($time) = @_;
     my($hour, $min) = split(":", $time);
@@ -1026,6 +1043,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.45  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
 # Revision 1.44  2000/12/03 19:38:55  winter
 # - 2.36 release
 #

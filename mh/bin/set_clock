@@ -160,6 +160,9 @@ if (defined $sec) {
         if ($^O eq "MSWin32") {
             $rc=system("time $time_new");
         }
+        elsif ($^O eq 'freebsd') {
+            $rc=system("date -f %H:%M:%S '$time_new'");
+        }
         else {
             $rc=system("date -s '$time_new'");
         }

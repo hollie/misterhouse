@@ -1,9 +1,10 @@
 # Category = iButtons
 
-# Fixes in modules
-#  - use     $self->{s}->read_interval(20);          # Time to wait after last byte received
+# Ray Dzek created a nice 'how to get started with iButton guide' at
+#    http://www.solarbugs.com/home/ibutton.htm
 
 # Enable iButton support by using the mh.ini ibutton_port parm.
+# Use this parm to change degrees unit from F to C: default_temp=Celsius 
 #
 # If you have more than one ibutton_port, add something like this:
 #   print_log &iButton::connect($config_parms{ibutton_port2}) if $Startup;
@@ -15,7 +16,6 @@
 # 
 # More info on coding iButton_Item is in mh/docs/mh.html
 #
-
 
 
 $v_iButton_connect   = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
@@ -66,21 +66,17 @@ $ib_temp3  = new iButton '100000002995aa';
 $ib_temp4  = new iButton '1000000029a364';
 my @ib_temps = ($ib_temp1, $ib_temp2, $ib_temp3, $ib_temp4);
 
-$ib_relay1 = new iButton '120000001187d206';
+$ib_relay1   = new iButton '120000001187d206';
 
-$remark_nick = new File_Item("$config_parms{data_dir}/remarks/nick.txt");
-$remark_zach = new File_Item("$config_parms{data_dir}/remarks/zack.txt");
+$remark_nick = new File_Item "$config_parms{data_dir}/remarks/nick.txt";
+$remark_zach = new File_Item "$config_parms{data_dir}/remarks/zack.txt";
+$remark_bad  = new File_Item "$config_parms{data_dir}/remarks/personal_bad.txt", 'Ok';
+$remark_good = new File_Item "$config_parms{data_dir}/remarks/personal_good.txt", 'Ok';
 
-$remark_bad   = new File_Item("$config_parms{data_dir}/remarks/personal_bad.txt", 'Ok');
-$remark_good  = new File_Item("$config_parms{data_dir}/remarks/personal_good.txt", 'Ok');
-
-#peak read_next $remark_nick if ON  eq state_now $ib_nick;
 speak read_random $remark_nick if ON  eq state_now $ib_nick;
-speak read_next $remark_zach if ON  eq state_now $ib_zach;
-speak read_next $remark_bad  if ON  eq state_now $ib_bruce;
-#peak 'bye'                  if OFF eq state_now $ib_bruce;
-#peak read_next $remark_good if ON  eq state_now $ib_laurie;
-play "fun/*.wav"             if ON  eq state_now $ib_laurie;
+speak read_next   $remark_zach if ON  eq state_now $ib_zach;
+speak read_next   $remark_bad  if ON  eq state_now $ib_bruce;
+play "fun/*.wav"               if ON  eq state_now $ib_laurie;
 
 if ($state = said $v_iButton_relay1) {
     print_log "Setting iButton relay1 to $state";
@@ -90,48 +86,37 @@ if ($state = said $v_iButton_relay1) {
 if ($state = said $v_iButton_readtemp) {
     my $ib = $ib_temps[$state - 1];
     my $temp = read_temp $ib;
-    print_log "Temp for sensor $state: $temp F";
+    print_log "Temp for sensor $state: $temp degrees";
 }
-
-if ($New_Second) {
-    my $device;
-#   run_voice_cmd 'Read the iButton temperature 1' if $Second == 11;
-    $device = 1 if $Second == 11;
-    $device = 2 if $Second == 22;
-    $device = 3 if $Second == 33;
-    $device = 4 if $Second == 44;
-    if ($device) {
-        my $ib = $ib_temps[$device - 1];
-        my $temp = read_temp $ib;
-        my $ib_name = substr $$ib{object_name}, 1;
-        update_rrd($ib_name, $temp);
-        logit("$config_parms{data_dir}/iButton_temps.log",  "$state: $temp");
-    }
-}
-
-                                # Pick how often to check the bus ... it takes about 6 ms per device.
-#&iButton::monitor;
-&iButton::monitor if $New_Second;
-
 
                                 # List all iButton temperatures.  This can take a while
 if (said $v_iButton_readtemps) {
     print_log "Reading iButton temperatures";
-    my @ib_list = &iButton::scan('10'); # gets DS1920/DS1820 devices
-    for my $ib (@ib_list) {
-        my $temp = $ib->read_temperature_hires();
-        print_log "ID:" . $ib->serial() . "  Temp: $temp C, " . ($temp*9/5 +32) . " F";
+#   my @ib_list = &iButton::scan('10'); # gets DS1920/DS1820 devices  22 for DS1822 devices
+#   for my $ib (@ib_list) {
+    for my $ib (@ib_temps) {
+#       my $temp = $ib->read_temperature_hires();
+        my $temp = read_temp $ib;
+        print_log "ID:" . $ib->serial() . "  Temp: $temp degrees" if defined $temp;
     }
-    @ib_list = &iButton::scan('22'); # gets DS1822 devices
-    for my $ib (@ib_list) {
-        my $temp = $ib->read_temperature();
-        print_log "ID:" . $ib->serial() . "  Temp: $temp C, " . ($temp*9/5 +32) . " F";
-    }
+}
+
+                                # Log temp sensor periodically ... not too often as this is slow
+my $ibutton_temp_device = 0;
+if (new_minute 2) {
+    $ibutton_temp_device = 1 if ++$ibutton_temp_device > 4;
+    my $ib = $ib_temps[$ibutton_temp_device - 1];
+    my $temp = read_temp $ib;
+    my $ib_name = substr $$ib{object_name}, 1;
+    update_rrd($ib_name, $temp);
+    logit("$config_parms{data_dir}/iButton_temps.log",  "$state: $temp");
 }
 
                                 # List all iButton devices
 print_log "List of ibuttons:\n" . &iButton::scan_report if said $v_iButton_list;
 
+                                # Pick how often to check the bus ... it takes about 6 ms per device.
+&iButton::monitor if $New_Second;
 
 
 sub update_rrd {
@@ -145,4 +130,48 @@ sub update_rrd {
 	RRDs::update $rrd_file, "$Time:$temp";
 	print_log "RRD ERROR: $rrd_error\n" if $rrd_error = RRDs::error;
 }
+
+
+# Here are Brian Paulson's notes on how to connect an iButton weather station.
+
+# Note:  In order for read_windspeed to work on Unix, you will need to
+#        have Time::HiRes installed.   Not needed on Windows.
+
+# Port is the port that your weather station is connected to.  If your
+# weather station is connected to the rest of your 1-wire net, you don't
+# need to specify a port because mh will use that by default
+# The CHIPS are a listing of all of the chips that make up the weather
+# station.  You can get this list by looking at the ini.txt file that
+# is generated by the Dallas Semiconductor Weather Station software
+# I believe that the first 01 chip should be north and then the rest are
+# listed in clockwise order
+# By the way, I currently have the Weather Station sitting on my floor
+# in the home office because I'm waiting for springtime to mount it outside
+# As such, I haven't had a chance to verify that the wind direction and
+# wind speed are accurate.
+
+=begin comment 
+
+Since I do not have one of these, I have to leave this commented out
+
+$weather = new iButton::Weather( CHIPS => [ qw( 01000002C77C1FFE
+01000002C7681465 01000002C77C12B4 01000002C76CD4E5 01000002C77C1EC9
+01000002C76724E7 01000002C761AF69 01000002C7798A76 1D000000010C46AA
+1200000013571545 10000000364A826A ) ]);
+#				 PORT => $port );
+if ($New_Second) {
+    if ( $Second == 29) {
+	my $temp = $weather->read_temp;
+	print "Weather Temp = $temp\n" if defined $temp;
+    }
+    if ( $Second % 5 == 0 ) {
+	my $windspeed = $weather->read_windspeed;
+	print "Speed = $windspeed MPH\n" if defined $windspeed;
+
+	my $dir = $weather->read_dir;
+	print "Direction = $dir\n" if defined $dir;
+    }
+}
+
+=cut
 

@@ -1,124 +1,124 @@
-<?xml version="1.0"?><backslash
+<?xml version="1.0" encoding="ISO-8859-1"?><backslash
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Serial ATA 1.0 Draft Released</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/21/0436235</url>
-		<time>2000-12-21 13:28:36</time>
-		<author>Hemos</author>
-		<department>getting-closer</department>
-		<topic>hardware</topic>
-		<comments>15</comments>
-		<section>articles</section>
-		<image>topichardware.gif</image>
-	</story>
-
-	<story>
-		<title>Number 9, Here We Come?</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/21/1315205</url>
-		<time>2000-12-21 13:14:58</time>
-		<author>Hemos</author>
-		<department>to-complete-the-set</department>
-		<topic>space</topic>
-		<comments>20</comments>
-		<section>science</section>
-		<image>topicspace.gif</image>
-	</story>
-
-	<story>
-		<title>3D GUI Project</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/20/2310213</url>
-		<time>2000-12-21 10:08:21</time>
-		<author>CmdrTaco</author>
-		<department>why-waste-a-perfectly-good-dimension</department>
-		<topic>graphics</topic>
-		<comments>92</comments>
-		<section>articles</section>
-		<image>topicgraphics3.gif</image>
-	</story>
-
-	<story>
-		<title>Beer In Space</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/21/0445210</url>
-		<time>2000-12-21 06:40:08</time>
-		<author>Hemos</author>
-		<department>lost-in-time-lost-in-space-lost-in...meaning</department>
-		<topic>space</topic>
-		<comments>110</comments>
-		<section>articles</section>
-		<image>topicspace.gif</image>
-	</story>
-
-	<story>
-		<title>A Spot For Beagle On Mars</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/20/235234</url>
-		<time>2000-12-21 04:14:14</time>
-		<author>timothy</author>
-		<department>hope-it's-not-a-dog</department>
-		<topic>space</topic>
-		<comments>93</comments>
-		<section>science</section>
-		<image>topicspace.gif</image>
-	</story>
-
-	<story>
-		<title>Princess Mononoke Released on DVD</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/20/1435235</url>
-		<time>2000-12-21 01:35:21</time>
-		<author>CmdrTaco</author>
-		<department>keep-your-eyes-peeled-for-posessed-boars</department>
-		<topic>anime</topic>
-		<comments>152</comments>
-		<section>articles</section>
-		<image>topicanime.gif</image>
-	</story>
-
-	<story>
-		<title>Nazis on Napster</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/20/212235</url>
-		<time>2000-12-20 23:20:00</time>
-		<author>jamie</author>
-		<department>ugly-hate-machine</department>
-		<topic>music</topic>
-		<comments>390</comments>
-		<section>yro</section>
-		<image>topicmusic.gif</image>
-	</story>
-
-	<story>
-		<title>13 Month Calendar?</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/20/1832204</url>
-		<time>2000-12-20 22:31:57</time>
-		<author>CmdrTaco</author>
-		<department>something-to-think-about</department>
+		<title>Will The Real Nupedia Please Stand Up?</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/20/0319231</url>
+		<time>2001-01-20 09:17:48</time>
+		<author>michael</author>
+		<department>you-say-tomato-I-say-gnupedia</department>
 		<topic>news</topic>
-		<comments>416</comments>
+		<comments>61</comments>
 		<section>articles</section>
 		<image>topicnews.gif</image>
 	</story>
 
 	<story>
-		<title>New MPEG 4-Based Open Source Codec</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/20/203228</url>
-		<time>2000-12-20 20:32:52</time>
-		<author>CmdrTaco</author>
-		<department>closer-and-closer-to-streaming-DVD</department>
-		<topic>internet</topic>
-		<comments>258</comments>
+		<title>Wearable Translators</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/19/2222213</url>
+		<time>2001-01-20 04:14:39</time>
+		<author>michael</author>
+		<department>computer-of-girdle-model</department>
+		<topic>tech</topic>
+		<comments>148</comments>
+		<section>science</section>
+		<image>topictech2.jpg</image>
+	</story>
+
+	<story>
+		<title>Sandia, Compaq, and Celera To Build Petaflop Machine</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/19/2212204</url>
+		<time>2001-01-20 02:09:40</time>
+		<author>Hemos</author>
+		<department>dear-lord-that's-a-lot</department>
+		<topic>compaq</topic>
+		<comments>158</comments>
 		<section>articles</section>
+		<image>topiccompaq.gif</image>
+	</story>
+
+	<story>
+		<title>EFF Appeals 2600 Decision</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/19/2145202</url>
+		<time>2001-01-19 23:37:59</time>
+		<author>michael</author>
+		<department>right-to-link</department>
+		<topic>news</topic>
+		<comments>154</comments>
+		<section>yro</section>
+		<image>topicnews.gif</image>
+	</story>
+
+	<story>
+		<title>What Do You Do With 1 Million Atari Games?</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/19/155251</url>
+		<time>2001-01-19 22:05:18</time>
+		<author>CmdrTaco</author>
+		<department>now-that-is-simply-mad</department>
+		<topic>games</topic>
+		<comments>226</comments>
+		<section>articles</section>
+		<image>topicgames.jpg</image>
+	</story>
+
+	<story>
+		<title>ACLU Takes on ICANN</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/19/183248</url>
+		<time>2001-01-19 20:05:31</time>
+		<author>michael</author>
+		<department>steel-cage-match</department>
+		<topic>internet</topic>
+		<comments>188</comments>
+		<section>yro</section>
 		<image>topicinternet.gif</image>
 	</story>
 
 	<story>
-		<title>Shining Light On (And Through) MEMS</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/20/1639229</url>
-		<time>2000-12-20 18:38:12</time>
-		<author>timothy</author>
-		<department>eentsy-weentsie</department>
+		<title>Cringley: Chip Manufacturing To Radically Change</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/19/158241</url>
+		<time>2001-01-19 19:07:52</time>
+		<author>Hemos</author>
+		<department>easy-to-predict</department>
 		<topic>tech</topic>
-		<comments>114</comments>
+		<comments>195</comments>
 		<section>articles</section>
 		<image>topictech2.jpg</image>
+	</story>
+
+	<story>
+		<title>Where Should Company Loyalty End?</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/18/2337213</url>
+		<time>2001-01-19 18:36:58</time>
+		<author>Cliff</author>
+		<department>stuff-to-think-about</department>
+		<topic>internet</topic>
+		<comments>494</comments>
+		<section>askslashdot</section>
+		<image>topicinternet.gif</image>
+	</story>
+
+	<story>
+		<title>Stuffing Junkmail Postage-Paid Envelopes?</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/19/1511233</url>
+		<time>2001-01-19 17:06:09</time>
+		<author>CmdrTaco</author>
+		<department>fun-and-games-for-the-snail-mail-spammers</department>
+		<topic>humor</topic>
+		<comments>654</comments>
+		<section>askslashdot</section>
+		<image>topichumor.gif</image>
+	</story>
+
+	<story>
+		<title>Self-Adaptive Websites</title>
+		<url>http://slashdot.org/article.pl?sid=01/01/19/1519208</url>
+		<time>2001-01-19 16:16:58</time>
+		<author>CmdrTaco</author>
+		<department>stuff-to-think-about</department>
+		<topic>internet</topic>
+		<comments>141</comments>
+		<section>articles</section>
+		<image>topicinternet.gif</image>
 	</story>
 
 </backslash>

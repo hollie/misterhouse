@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-01-15 19:46:35 winter>
+#  Last change Time-stamp: <2001-01-20 11:45:21 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -540,18 +540,20 @@ sub setup {
                                 # weather_vwlog_module=Weather_vw
         if ($parm =~ /^(\S+?)_module/) {
             my $module = "$config_parms{$parm}.pm";
-            if (-e "$Pgm_PathU/../lib/$module") {
-#           if (-e "$Pgm_PathU/../lib/$1.pm") {
+            if (-e "$Pgm_PathU/../lib/$module" or 
+                -e "$config_parms{code_dir}/$module") {
                 my $startup = "&$config_parms{$parm}" . '::startup';
-#               print "Found managed $1 module\nMH will now require $1.pm and call $1::startup\n"
                 print "Found managed $module module\nMH will now require $module and call $startup\n" 
-                     if $config_parms{debug} eq 'startup';
+                    if $config_parms{debug} eq 'startup';
                 require $module;
                 eval    $startup;
                 print "Startup error on $startup: $@\n" if $@;
 #               require "$1.pm";
 #               eval "$1::startup()";
 #               print "Startup error on $1::startup(): $@\n" if $@;
+            }
+            else {
+                print "Warning, mh.ini module not found: $module\n";
             }
         }
         
@@ -1840,7 +1842,7 @@ sub object_states_restore {
         if ($@) {
             print " Error in save: eval $state\n   $@";
         }
-        elsif ($rc) {
+        elsif ($rc eq 'var not used') {
             print SAVE $state;  # These are unused for this call of mh
             print " - Save stated not used:\n rc=$rc  state=$state\n" if $config_parms{debug} eq 'misc';
         }
@@ -2458,6 +2460,7 @@ sub read_code {
 #           print "Warning, duplicate file: $file\n";
             next;
         }
+        next if $file =~ /^read_table/; # Ignore table file readers in the user dir
         (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
         $file_path  = "$file_dir/$file";
         $file_path2 = "$file_dir2/$file";
@@ -3927,6 +3930,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.41  2001/01/20 17:46:19  winter
+# - 2.41 release
+#
 # Revision 2.40  2001/01/16 01:48:31  winter
 # - test release
 #

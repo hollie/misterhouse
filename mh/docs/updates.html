@@ -13,7 +13,7 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
-		<LI><A HREF="#Version_2_38_posted_on_12_21_00">Version 2.38 posted on 12/21/00</A></LI>
+		<LI><A HREF="#Version_2_39_posted_on_12_21_00">Version 2.39 posted on 12/21/00</A></LI>
 		<LI><A HREF="#Version_2_36_posted_on_12_03_00">Version 2.36 posted on 12/03/00</A></LI>
 		<LI><A HREF="#Version_2_34_posted_on_11_12_00">Version 2.34 posted on 11/12/00</A></LI>
 		<LI><A HREF="#Version_2_32_posted_on_10_22_00">Version 2.32 posted on 10/22/00</A></LI>
@@ -78,9 +78,9 @@ HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?g
 </P>
 <P>
 <HR>
-<H2><A NAME="Version_2_38_posted_on_12_21_00">Version 2.38 posted on 12/21/00</A></H2>
+<H2><A NAME="Version_2_39_posted_on_12_21_00">Version 2.39 posted on 12/21/00</A></H2>
 <P>
-Version 2.38 was just uploaded to:
+Version 2.39 was just uploaded to:
 
 </P>
 <P>
@@ -126,10 +126,9 @@ has an example of his use in mh/code/public/tv_info_clive.pl.
 <P>
 - Added mh/bruce/news_email_breaking.pl to announce breaking email stories
 from a news email subscription. Be the first on your block to know the
-aliens have landed :) This subscription sends out about 1-4 items a day: <A
-HREF="http://www.cnn.com/EMAIL">http://www.cnn.com/EMAIL</A> . Anyone know
-of any news service that sends out less frequently for just really big
-news??
+aliens have landed :) This subscription sends out about 0-&gt;3 items a
+day: <A HREF="http://www.cnn.com/EMAIL">http://www.cnn.com/EMAIL</A> .
+Anyone know of other news services that send just the really big news??
 
 </P>
 <P>
@@ -186,6 +185,13 @@ code reload) to mh/code/common/mh_control.pl
 
 </P>
 <P>
+- Moved/split mh/mh.print.log to code_dir/mh_temp.speak/print.log. Read the
+previous logs at startup, so up to max_log_entries previous log entries are
+displayed. If you have your own tk_frames.pl, add the 'seed' records from
+mh/code/common/tk_frames.pl.
+
+</P>
+<P>
 <STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
 
 
@@ -235,8 +241,8 @@ have local web pages with school closing status.
 <P>
 - Added a check for no_log, in mh/code/common/mh_control.pl
 &amp;serial_match_log. If you are getting X10 errata in your print_log file
-that you don't want (e.g. lots of movement sensor data), you can turn it
-off for specific units with this:
+that you don't want (e.g. lots of movement sensor data), rather than
+turning X10 errata off, you can turn it off for specific units with this:
 
 </P>
 <P>
@@ -257,7 +263,8 @@ mh/bruce/tellme_menu.pl for an example.
 </P>
 <P>
 - Use a timer, rather than a sleep, when <CODE>&amp;play</CODE> is waiting
-to play a sound, so mh does not pause.
+to play a sound, so mh does not pause when playing back-to-back sound
+files.
 
 </P>
 <P>
@@ -269,16 +276,9 @@ to play a sound, so mh does not pause.
 
 </P>
 <P>
-- Moved/split mh/mh.print.log to code_dir/mh_temp.speak/print.log. Read the
-previous logs at startup, so up to max_log_entries previous log entries are
-displayed. If you have your own tk_frames.pl, add the 'seed' records from
-mh/code/common/tk_frames.pl.
-
-</P>
-<P>
 - Minor changes to tellme_menu code, including detecting and using local
-host namename and port if debuging with a local browser. I have not gotten
-a PIN login and cookies to work there yet :(
+host namename and port when debuging with a local browser. I have not
+gotten a PIN login and cookies to work there yet :(
 
 </P>
 <P>

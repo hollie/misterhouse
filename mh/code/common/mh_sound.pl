@@ -44,6 +44,9 @@ $test_volume-> tie_event('speak "volume=$state Testing volume at $state%"');
 
 my $volume_previous;
 sub set_volume {
+
+    return if $is_speaking;     # Speaking volume wins over play volume
+
     return unless $OS_win;      # Not sure how to control volume on unix
                                 # Test for win32 sound
     eval "Win32::Sound::Volume";

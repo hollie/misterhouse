@@ -251,6 +251,36 @@ priced from $30 to $50 each.  All of these kits can share the same serial port:
    Caller ID, name and number 
    Outgoing DTMF phone monitor
 
+You can use 1->2 of the weeder IO kits to drive the 
+the 'universal relay kit' from http://jameco.com (do a search for
+'relay card' or 128910).   The $60 gets you 8 relays.  Here is 
+some more info:
+
+=over
+
+1. The board is sold as 8 relays complete, upgradable to 16.  If you only
+want to use 8 relays(in a limited fashion), the kit is all you need.
+
+2. If you want more than 8, you need more than just the extra 8 relays
+themsleves.
+ - you will need 8 extra diodes(1n4148 in my kit)
+ - you will need about 30 extra terminating blocks
+
+3. The board comes with spots for leds to show activity, you will need to
+provide those as well as the resistors to drive them(none are provided).
+
+4. As delivered, the weeder board will not drive the relays, you will need
+to get 2 ULN2803 darligton transistor array chips to do that(The relays
+need 12V, the Weeders give 5V).
+
+5. The board has the ability to be manually driven, you will need to buy 2
+extra 8 pin dip switches to do that.
+
+6. It comes as a bare open board, so think about an enclosure of some type.
+
+7. All of these parts are available from jameco for nominal extra cost. 
+
+=back
 
 The HomeBase.pm module to supports the JDS interfaces, http://www.jdstechnologies.com .
 See member mh/code/public/test_homebase.pl for example code.
@@ -342,6 +372,9 @@ Here are some urls and prices:
 
   http://weather.henriksens.net  has free 1-Wire Weather station software
     - It includes a tcp/ip server that (in theory) could talk to mh
+
+  Ray Dzek has a nice how to get started tutorial here:
+    http://www.solarbugs.com/home/ibutton.htm
 
 If you want more reliable VR without having to use a headset, you can try these to digital array microphones:
 
@@ -1553,21 +1586,27 @@ Search a dbm file for matches to a string.  It currently searches both key and v
 
 Displays the specified text string, text file contents, or bitmap (.gif or .jpg).
 
-  Usage:
+  Simple mode:
+     display $file_or_text, $time, $title, $font, $window_name;
 
-    display($file_or_text, $time, $title, $font);
+  Options mode:
+     display option => 'value', text => $file_or_text;
 
-      $file_or_text can be a file or a text string.
-      $time  (optional) is how long (in seconds) till the box will auto-close.
+  Options:
+      $time is how long (in seconds) till the box will auto-close.
              Defaults to 120.  Use 0 to disable auto-close.
-      $title (optional) is the title of the display box.
-
+      $title is the title of the display box.
+      $font  is the font (default is mh.ini parm tk_font).
+      $window_name will re-use an exisiting display window of the same name.
+ 
   Examples:
 
     display "Internet message: $msg", 300, 'Internet message'; 
     display $f_trivia_answer;
     display '/pictures/photo.jpg';
-  
+    display text => $log, time => 0, font => 'fixed', window_name => 'log';
+
+
 If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk popup window.
 If -tk 0 or the data is echoed to the console.
 
@@ -1902,6 +1941,27 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
     speak 'mode=unmuted  The front door just opened';
 
 
+=item time_add
+
+Use this to add/delete an offset to a time value, using the same syntax as offsets allowed for in time_now.
+
+   Examples:
+
+    $Save{setback_off} = time_add "$Save{wakeup_time} - 1:20";
+
+
+=item time_diff
+
+This function returns the time difference between 2 time values.   The roundoff
+time unit is dependent on how big the difference is between the 2 times.
+For example, if the time difference is > 5 days, the returned value will be in days.
+
+   Examples:
+
+   my $diff = time_diff $Moon{time_full}, $Time;
+   speak "The last full moon was $diff ago";
+
+
 =item time_date_stamp
 
 You can use this function to return a time/date string.
@@ -2195,21 +2255,38 @@ only on the nth second/minute/hour.
 If you pass no argument, it defaults to 1 (i.e. the same as the $New_* variables).
 
 
-=item net_domain_name function
+=item net_domain_name 'address'
 
-This will return the domain_name of the last client to access the specified port.
+=item net_domain_name_start 'search_name', 'address'
+
+=item net_domain_name_done  'search_name'
+
+These functions will return the domain_name of the last client to access the specified port.
 If the mh.ini DNS_server parm is NOT set, it will return the IP address instead.
-You can also pass it a IP address, instead of a server port name.
+You can also pass it an IP address, instead of a server port name.
 
 If used in an array context, it returns the full domain name, and a short version
 of the domain name (e.g. 'www.ibm.com' and 'ibm').
 
+If you call net_domain_name_start, then check for net_domain_name_done,
+it will query the DNS servers as a background task,
+so mh will not pause if the DNS server response takes a while.
+The 'search_name' string must be unique for that part of the code, so
+that the net_domain_name_done test gets the correct results.
+
   Examples:
 
-   my $domain_name = &net_domain_name('http');
-   my ($name, $name_short) = &net_domain_name('server_speak');
-   my ($name, $name_short) = &net_domain_name('204.146.18.33');
-     Restults $name = 'www.ibm.com', $name_short = 'ibm';
+                           # Run in the foreground
+   my $domain_name = net_domain_name 'http';
+   my ($name, $name_short) = net_domain_name 'server_speak';
+   my ($name, $name_short) = net_domain_name '204.146.18.33';
+#  Results: $name = 'www.ibm.com', $name_short = 'ibm';
+
+                           # Run in the background
+  $v_test_dns2  = new Voice_Cmd 'Run the dns test2';
+  $v_test_dns2 -> tie_event("net_domain_name_start 'test', '204.146.18.33'");
+  print_log "Domain=$state" if $state = net_domain_name 'test';
+
 
 =item net_ping
 
@@ -3465,17 +3542,17 @@ or the black text on white windows shows up as white text.
 
 =head1 AUTHORS
 
-Bruce Winter  bruce@misterhouse.net  http://misterhouse.net/winters
+Bruce Winter: bruce@misterhouse.net ,  http://winters.ws 
 
+
+=begin html
+and <a href="authors.html">a bunch of fellow home hackers</a>
+
+=end html
 
 =head1 SEE ALSO
 
 mh can be download from http://misterhouse.net
-
-Here is a list of other online mh sites:
-
-  http://www.archer-online.net
-
 
 Here is a list of articles written about MisterHouse:
 
@@ -3536,6 +3613,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.35  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
 # Revision 1.34  2000/12/21 18:54:15  winter
 # - 2.38 release
 #

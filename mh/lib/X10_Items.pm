@@ -592,17 +592,32 @@ package X10_Switchlinc;
 
 @X10_Switchlinc::ISA = ('X10_Item');
 
+
+=begin comment
+
+ # Example usage
+                                # Just picked this device to use to send the clear
+$Office_Light_Torch->set("clear");
+                                # Send a command to each group member to make it listen
+$SwitchlincDisable->set("off");
+                                # Just picked this device item to send the command
+$Office_Light_Torch->set("disablex10transmit");
+
+=cut
+ 
+
 sub new {
     my $self = &X10_Item::new(@_);
     my $id = $self->{x10_id};
-    $self-> add ($id . 'OGNGMGPGMG', 'clear');
-    $self-> add ($id . 'OGPGNGMGMG', 'setramprate');
-    $self-> add ($id . 'PGNGMGOGMG', 'setonlevel');
-    $self-> add ($id . 'MGNGOGPG',   'addscenemembership');
-    $self-> add ($id . 'OGPGMGNG',   'deletescenemembership');
-    $self-> add ($id . 'NGOGPGMG',   'setsceneramprate');
-    $self-> add ($id . 'MGNGPGOGPG', 'disablex10transmit');
-    $self-> add ($id . 'OGMGNGPGPG', 'enablex10transmit');
+
+    $self-> add ('XOGNGMGPGMG', 'clear');
+    $self-> add ('XOGPGNGMGMG', 'setramprate');
+    $self-> add ('XPGNGMGOGMG', 'setonlevel');
+    $self-> add ('XMGNGOGPG',   'addscenemembership');
+    $self-> add ('XOGPGMGNG',   'deletescenemembership');
+    $self-> add ('XNGOGPGMG',   'setsceneramprate');
+    $self-> add ('XMGNGPGOGPG', 'disablex10transmit');
+    $self-> add ('XOGMGNGPGPG', 'enablex10transmit');
 
     return $self;
 }
@@ -620,12 +635,14 @@ sub set {
         print "Switchlink X10 dim: $state -> $state2\n";
         $state = $state2;
     }
-    $self->SUPER::set($self, $state);
-    
+    $self->SUPER::set($state);
 }
 
 
 # $Log$
+# Revision 1.15  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
 # Revision 1.14  2000/12/21 18:54:15  winter
 # - 2.38 release
 #

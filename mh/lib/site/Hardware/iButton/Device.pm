@@ -1,8 +1,8 @@
 package Hardware::iButton::Device;
-
+		  
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
-
+		  
 require Exporter;
 #require AutoLoader;
 #use Time::HiRes qw(usleep);
@@ -11,7 +11,7 @@ sub usleep {
     print "sleep1 $usec\n";
     select undef, undef, undef, ($usec / 10**6);
 }
-
+	       
 
 @ISA = qw(Exporter);
 # Items to export into callers namespace by default. Note: do not export
@@ -115,6 +115,7 @@ use vars qw(%models);
 		    'memsize' => 1024/8,
 		    'memtype' => "EPROM",
 		    'specialfuncs' => "pio",
+		    'class' => 'Hardware::iButton::Device::DS2406'
 		   },
 	   "0b" => {
 		    'model' => 'DS1985',
@@ -137,6 +138,13 @@ use vars qw(%models);
 		   },
 	   "22" => {
 		    'model' => 'DS1822',
+		    'memsize' => 16/8, # yes, really. two bytes.
+		    'memtype' => "EEPROM",
+		    'specialfuncs' => "thermometer",
+		    'class' => 'Hardware::iButton::Device::DS1822',
+		   },
+	   "28" => {
+		    'model' => 'DS18B20',
 		    'memsize' => 16/8, # yes, really. two bytes.
 		    'memtype' => "EEPROM",
 		    'specialfuncs' => "thermometer",
@@ -267,8 +275,10 @@ command. Returns 1 if it is, 0 if not.
 
 sub is_present {
     my($self) = @_;
+    my $c = $self->{'connection'};
+    return 0 if !$c->connected();
     return 1 
-      if $self->{'connection'}->scan($self->{'family'}, $self->{'serial'});
+      if $c->scan($self->{'family'}, $self->{'raw_id'});
     return 0;
 }
 
@@ -296,7 +306,7 @@ sub specialfuncs {
     return $_[0]->{'specialfuncs'};
 }
 
-
+		  
 # common actions that all buttons can do
 
 =head2 read_memory
@@ -308,7 +318,7 @@ $length)>. If you read beyond the end of the device, you will get all ones
 in the unimplemented addresses.
 
 =cut
-
+		  
 sub read_memory {
     my($self, $addr, $length) = @_;
     my $c = $self->{'connection'};
@@ -321,6 +331,109 @@ sub read_memory {
     $buf = $c->read($length);
     $self->reset();
     return $buf;
+}
+
+
+
+
+
+
+#--------------------------------------------------------------------------
+# Read a Universal Data Packet from a standard NVRAM iButton 
+# and return it in the provided buffer. The page that the 
+# packet resides on is 'start_page'.  Note that this function is limited 
+# to single page packets. The buffer 'read_buf' must be at least 
+# 29 bytes long.  
+#
+# The Universal Data Packet always start on page boundaries but 
+# can end anywhere.  The length is the number of data bytes not 
+# including the length byte and the CRC16 bytes.  There is one 
+# length byte. The CRC16 is first initialized to the starting 
+# page number.  This provides a check to verify the page that 
+# was intended is being read.  The CRC16 is then calculated over 
+# the length and data bytes.  The CRC16 is then inverted and stored 
+# low byte first followed by the high byte. 
+#
+# Supported devices: DS1992, DS1993, DS1994, DS1995, DS1996, DS1982, 
+#                    DS1985, DS1986, DS2407, and DS1971. 
+#
+# 'portnum'    - number 0 to MAX_PORTNUM-1.  This number is provided to
+#                indicate the symbolic port number.
+# 'do_access'  - flag to indicate if an 'owAccess' should be
+#                peformed at the begining of the read.  This may
+#                be FALSE (0) if the previous call was to read the
+#                previous page (start_page-1).
+# 'start_page' - page number to start the read from 
+# 'read_buf'   - pointer to a location to store the data read
+#
+# Returns:  >=0 success, number of data bytes in the buffer
+#           -1  failed to read a valid UDP 
+#     
+#
+sub readpacket {
+    my $this = shift;
+    my $start_page = shift;
+    my $do_access = shift;
+    my $c = $this->{'connection'};
+
+    my $send;
+    my $head_len = 0;
+    # check if access header is done 
+    # (only use if in sequention read with one access at begining)
+    if ($do_access) {
+	# match command
+	$send .= "\x55";
+	my $serial = pack( "b*", $this->{ 'raw_id' } );
+	$send .= $serial;
+
+	# read memory command
+	$send .= "\xF0";
+
+	# write the target address
+	$send .= chr(($start_page << 5) & 0xFF);    
+	$send .= chr($start_page >> 3);
+
+	# check for DS1982 exception (redirection byte)
+	$send .= "\xFF" if substr( $serial, 0, 1 ) eq "\x09";
+
+	# record the header length
+	$head_len = length( $send );
+
+	$c->reset()
+    }
+    # read the entire page length byte
+    $send .= ("\xFF" x 32);
+
+    # send/recieve the transfer buffer   
+    my $result = $c->owBlock($send);
+    if ( $result ) {
+	# seed crc with page number
+	my $crc = $start_page;
+
+	# attempt to read UDP from sendpacket
+	print "head_len = $head_len\n";
+	print join( " ", map { uc(unpack( "H*", $_ )) } split( / */, $result )), "\n";
+	my $length = substr( $result, $head_len, 1 );
+	$crc = $c->docrc16( $crc, $length );
+
+	# verify length is not too large
+	$length = ord( $length );
+	print "Length = $length\n";
+	if ($length <= 29) {
+	    # loop to read packet including CRC
+	    my $ret = substr( $result, 0, $length );
+	    $crc = $c->docrc16( $crc, $ret );
+            
+	    # read and compute the CRC16 
+	    $crc = $c->docrc16( $crc, substr( $result, $length + 1 + $head_len, 2 ) );
+         
+	    # verify the CRC16 is correct           
+	    return $ret if $crc == 0xB001; 
+	}  
+    }
+
+    # failed block or incorrect CRC
+    return undef;
 }
 
 =head2 write_memory
@@ -502,13 +615,6 @@ sub write_eeprom {
 package Hardware::iButton::Device::DS1920;
 
 use Hardware::iButton::Connection;
-#use Time::HiRes qw(usleep);
-sub usleep {
-    my($usec) = @_;
-#   print "sleep2 $usec\n";
-    select undef, undef, undef, ($usec / 10**6);
-}
-
 
 # this is the thermometer button.
 use strict;
@@ -517,52 +623,45 @@ use vars qw(@ISA);
 @ISA = qw(Hardware::iButton::Device);
 
 sub read_temperature_scratchpad {
-    my($self) = @_;
-    my $c = $self->{'connection'};
+    my $this = shift;
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    my $temp;
 
-    my $trys = 6;               # dpl mod
-
-    for (my $loop=1;$loop <= $trys;$loop++) {
-#       print "read_temperature_scratchpad: pass $loop of $trys\n";
-        $c->reset();
-        $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
-        $c->write("\x39"); # set a 524ms pullup
-        $c->read(1); # response to config command
-        $c->reset();
-        $self->select();
-        $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
-        $c->write("\xef"); # arm the pullup
-        $c->write("\xf1"); # terminate pulse (??)
-        $c->read(1); # response to 0xf1
-        $c->mode(&Hardware::iButton::Connection::SET_DATA_MODE);
-        $c->send("\x44"); # start conversion. need to do a 0.5s strong pullup.
-        $c->read(1); # read back 0x44
-                                # wait
-        usleep(750*1000); # wait .75s
-        $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
-        $c->write("\xed"); # disarm pullup
-        $c->write("\xf1"); # terminate pulse
-        $c->read(1); # response??
-
-        $c->reset();
-        $self->select();
-
-                                # read scratchpad, bytes 0 and 1 (LSB and MSB)
-        $c->send("\xbe"); $c->read(1);
-        $c->send("\xff" x 9);
-        my $scratchpad = $c->read(9);
-        $c->reset();
-                                # check CRC in last byte.
-        if (Hardware::iButton::Connection::crc(0, split(//,$scratchpad))) {
-            warn("scratchpadcrc was wrong on pass $loop");
-        }
-        else {
-            print "scratchpad correct on pass $loop of $trys\n" if $loop > 1;
-            return $scratchpad;
-        }
+    # access the device 
+    if ($this->select() ) {
+	# send the convert temperature command
+	$c->owBlock( "\x44" );
+	
+	# set the 1-Wire Net to strong pull-up
+	return undef if $c->level(&Hardware::iButton::Connection::MODE_STRONG5) ne
+	  &Hardware::iButton::Connection::MODE_STRONG5;
+	
+	# sleep to let chip compute the temperature
+	select( undef, undef, undef, $this->read_temperature_time );
+	
+	# turn off the 1-Wire Net strong pull-up
+	return undef if $c->level(&Hardware::iButton::Connection::MODE_NORMAL) ne
+	  &Hardware::iButton::Connection::MODE_NORMAL;
+	
+	# access the device 
+	if ($this->select() ) {
+	    # create a block to send that reads the temperature
+	    # read scratchpad command
+	    # and add the read bytes for data bytes and crc8
+	    my $send = "\xBE" . ( "\xFF" x 9 );
+	    
+	    # now send the block
+	    my $result = $c->owBlock( $send );
+	    if ( $result ) {
+		# perform the CRC8 on the last 8 bytes of packet
+		return $result if !$c->docrc8( substr( $result, 1 ) );
+	    }
+	}
     }
+   
+    return undef;
 }
-
 
 =head2 read_temperature
 
@@ -578,35 +677,40 @@ Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 
 =cut
 
+sub read_temperature_time { return 0.75; }
 
 sub read_temperature {
     my($self) = @_;
-    my $scratchpad = $self->read_temperature_scratchpad($self);
-    my $tempnumber = unpack("v",substr($scratchpad, 0, 2));
-    # now, that's really supposed to be a signed 16-bit little-endian
-    # quantity, but there isn't a pack() code for such things.
-    #printf("tempnumber as read is 0x%04x\n",$tempnumber);
-    printf("tempnumber as read is 0x%04x 0x%04x\n",$tempnumber,$tempnumber>> 4);
-    $tempnumber -= 0x10000 if $tempnumber > 0x8000;
-#   my $temp = $tempnumber / 2;
-    my $temp = $tempnumber >> 4;
-    return $temp;
+    my $data = $self->read_temperature_scratchpad();
+
+    if ( $data ) {
+	my @data = map { ord($_) } split( / */, $data );
+	my $sign = $data[2] > 128 ? -1 : 1;
+	my $temp = (($data[2] & 0x07) * 256 + $data[1]) / 16 * $sign;
+	return $temp;
+    }
+    return undef;
 }
 
 sub read_temperature_hires {
     my($self) = @_;
-    my $scratchpad = $self->read_temperature_scratchpad($self);
-    my $tempnumber = unpack("v",substr($scratchpad, 0, 2));
-    # now, that's really supposed to be a signed 16-bit little-endian
-    # quantity, but there isn't a pack() code for such things.
-    my $count_per_c = ord(substr($scratchpad, 7, 1));
-    my $count_remaining = ord(substr($scratchpad, 6, 1));
-    #printf("tempnumber as read is 0x%04x\n",$tempnumber);
-    $tempnumber &= 0xfffe; # truncate LSB
-    $tempnumber -= 0x10000 if $tempnumber > 0x8000;
-    my $temp = ($tempnumber / 2) - 0.25 + 
-        ($count_per_c - $count_remaining) / $count_per_c if $count_per_c;
-    return $temp;
+
+    my $data = $self->read_temperature_scratchpad();
+
+    if ( $data ) {
+	# calculate the high-res temperature
+	my @data = map { ord($_) } split( / */, $data );
+	my $tmp = int($data[1]/2);
+	$tmp -= 128 if $data[2] & 0x01;
+	my $cr = $data[7];
+	my $cpc = $data[8];
+	return undef if ($cpc == 0);
+	$tmp = $tmp - 0.25 + ($cpc - $cr)/$cpc;
+			    
+	return $tmp;
+    }
+
+    return undef;
 }
 
 
@@ -614,58 +718,11 @@ sub read_temperature_hires {
 package Hardware::iButton::Device::DS1822;
 
 use Hardware::iButton::Connection;
-#use Time::HiRes qw(usleep);
-sub usleep {
-    my($usec) = @_;
-#   print "sleep2 $usec\n";
-    select undef, undef, undef, ($usec / 10**6);
-}
-
-
 # this is the thermometer button.
 use strict;
 use vars qw(@ISA);
 
-@ISA = qw(Hardware::iButton::Device);
-
-sub read_temperature_scratchpad {
-    my($self) = @_;
-    my $c = $self->{'connection'};
-
-    $c->reset();
-    $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
-    $c->write("\x39"); # set a 524ms pullup
-    $c->read(1); # response to config command
-    $c->reset();
-    $self->select();
-    $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
-    $c->write("\xef"); # arm the pullup
-    $c->write("\xf1"); # terminate pulse (??)
-    $c->read(1); # response to 0xf1
-    $c->mode(&Hardware::iButton::Connection::SET_DATA_MODE);
-    $c->send("\x44"); # start conversion. need to do a 0.5s strong pullup.
-    $c->read(1); # read back 0x44
-    # wait
-    usleep(750*1000); # wait .75s
-    $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
-    $c->write("\xed"); # disarm pullup
-    $c->write("\xf1"); # terminate pulse
-    $c->read(1); # response??
-
-    $c->reset();
-    $self->select();
-
-    # read scratchpad, bytes 0 and 1 (LSB and MSB)
-    $c->send("\xbe"); $c->read(1);
-    $c->send("\xff" x 9);
-    my $scratchpad = $c->read(9);
-    $c->reset();
-    # check CRC in last byte.
-    if (Hardware::iButton::Connection::crc(0, split(//,$scratchpad))) {
-	warn("scratchpadcrc was wrong");
-    }
-    return $scratchpad;
-}
+@ISA = qw(Hardware::iButton::Device Hardware::iButton::Device::DS1920 );
 
 =head2 read_temperature
 
@@ -683,32 +740,129 @@ Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 
 =cut
 
+sub read_temperature_time { return 0.75; }
 
-sub read_temperature {
-    my $sign = 0x0;
-    my($self) = @_;
-    my $scratchpad = $self->read_temperature_scratchpad($self);
-    my $tempnumber = unpack("v",substr($scratchpad, 0, 2));
-    # now, that's really supposed to be a signed 16-bit little-endian
-    # quantity, but there isn't a pack() code for such things.
-    #printf("tempnumber as read is 0x%04x 0x%04x\n",$tempnumber,$tempnumber>> 4);
-    # check the sign
-    $sign = 0x1000 if $tempnumber > 0x8000;
-    #printf("returning 0x%04x\n",($tempnumber >> 4) - $sign );
-    return ($tempnumber >> 4) - $sign;
+sub read_temperature_hires {
+    my $this = shift;
+    return $this->read_temperature( @_ );
+}
+
+
+# this is the switch button.
+package Hardware::iButton::Device::DS2406;
+use Hardware::iButton::Connection;
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+
+#----------------------------------------------------------------------
+#  SUBROUTINE - ReadSwitch12
+#
+#	This routine gets the Channel Info Byte and returns it.
+#
+#	'ClearActivity' - To reset the button
+#
+#	Returns: (-1) If the Channel Info Byte could not be read.
+#			 (Info Byte) If the Channel Info Byte could be read.
+#                                                           
+sub read_switch {
+    my $this = shift;
+    my $ClearActivity = shift;
+    $ClearActivity = 1 if !defined $ClearActivity;
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+
+    # access and verify it is there
+    if ($this->select) {
+	# reset CRC 
+	my $crc = 0;
+	
+	# channel access command 
+	my $send = "\xF5";
+	
+	# control bytes                
+	$send .= $ClearActivity ? "\xD5" : "\x55";
+	$send .= "\xFF";
+	
+	$crc = $c->docrc16( $crc, $send );
+   
+	# read the info byte + 3 bytes of dummy data
+	$send .= ("\xFF" x 4 );
+ 
+	my $result = $c->owBlock( $send );
+	if ( $result ) {
+	    # read a dummy read byte and CRC16
+	    $crc = $c->docrc16( $crc, substr( $result, 3 ) );
+	    return ord( substr( $result, 3, 1 ) ) if $crc == 0xB001;
+	}
+    }
+
+    return undef;
+}
+
+#----------------------------------------------------------------------
+#	SUBROUTINE - SetSwitch12
+#
+#  This routine sets the channel state of the specified DS2406
+#
+# 'State'       - Is a type containing what to set A and/or B to.  It 
+#				   also contains the other fields that maybe written later 
+#
+#  Returns: TRUE(1)  State of DS2406 set and verified  
+#           FALSE(0) could not set the DS2406, perhaps device is not
+#                    in contact
+#
+sub set_switch {
+    my $this = shift;
+    my %ARGS = @_;
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+
+    my $crc = 0;
+
+    # access the device 
+    if ( $this->select ) {
+	# write status command
+	my $send = "\x55";
+      
+	# address of switch state
+	$send .= "\x07";
+	$send .= "\x00";
+      
+	# write state
+	my $st = 0x1F;
+	$st |= 0x20 if ( !$ARGS{ CHANNEL_A } );
+	$st |= 0x40 if ( !$ARGS{ CHANNEL_B } );
+
+	# more ifs can be added here for the other fields.
+	   
+	$send .= chr( $st );
+
+	$crc = $c->docrc16( $crc, $send );
+	
+	# read CRC16
+	$send .= ( "\xFF" x 2 );
+	
+	# now send the block
+	my $result = $c->owBlock( $send );
+	if ( $result ) {
+	    # perform the CRC16 on the last 2 bytes of packet
+	    $crc = $c->docrc16( $crc, substr( $result, 4 ) );
+	      
+	    # verify crc16 is correct
+	    return 1 if $crc == 0xB001;
+	}
+    }
+   
+    # return the result flag rt
+    return undef;
 }
 
 
 package Hardware::iButton::Device::DS2423;
 
 use Hardware::iButton::Connection;
-#use Time::HiRes qw(usleep);
-sub usleep {
-    my($usec) = @_;
-#   print "sleep2 $usec\n";
-    select undef, undef, undef, ($usec / 10**6);
-}
-
 
 # this is the 4k RAM w/counter.
 use strict;
@@ -724,25 +878,52 @@ This method can be used to read the counter in DS2423 iButtons.
 
 =cut
 
-sub read_counter{
-    my($self) = @_;
-    my $c = $self->{'connection'};
+sub read_counter {
+    my $this = shift;
+    my $CounterPage = shift;
 
-    $c->reset;
-    $self->select;
-    $c->write(&Hardware::iButton::Connection::EXT_READ_MEMORY);
-    $c->write("\xff\x01\xff\xff\xff\xff\xff\xff\xff\xff\xff");
-    $c->read(4);
+    $CounterPage = 3 if !defined $CounterPage;
+    $CounterPage += 12;
 
-    usleep(25000);              # dpl Needed for reliable counter reads
+    # access the device 
+    if ( $this->select() ) {
+	my $c = $this->{'connection'};
+	return undef if !$c->connected();
 
-    my $buf = $c->read(4);
-    my $counter= unpack("V", $buf);
+	# create a block to send that reads the counter
+	my $send;
 
-    $c->reset();
+	# read memory and counter command
+	$send .= "\xA5";
 
-    return $counter;
-}
+	# address of last data byte before counter
+	my $address = ($CounterPage << 5) + 31;  # (1.02)
+	$send .= chr($address & 0xFF);
+	$send .= chr($address >> 8);
+
+	my $crc = $c->docrc16( 0, $send );
+	# now add the read bytes for data byte,counter,zero bits, crc16
+	$send .= ( "\xFF" x 11 );
+
+	# now send the block
+	my $result = $c->owBlock( $send );
+	if ( $result ) {
+	    # perform the CRC16 on the last 11 bytes of packet
+	    $crc = $c->docrc16( $crc, substr( $result, length( $send ) - 11 ) );
+
+	    # verify CRC16 is correct
+	    if ($crc == 0xB001) {
+		# extract the counter value
+		return unpack( "V", substr( $result, 4, 4 ) );
+            }  
+	}
+    }
+   
+    # return the result flag rt
+    return undef;
+} 
+
+
 
 
 package Hardware::iButton::Device::JavaButton;
@@ -750,14 +931,6 @@ use strict;
 use vars qw(@ISA);
 
 use Hardware::iButton::Connection;
-#use Time::HiRes qw(usleep);
-sub usleep {
-    my($usec) = @_;
-    print "sleep3 $usec\n";
-    select undef, undef, undef, ($usec / 10**6);
-}
-
-
 # this is the Java button.
 @ISA = qw(Hardware::iButton::Device);
 

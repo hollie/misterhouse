@@ -240,3 +240,7 @@ if ($Keyboard) {
         print "key press: $Keyboard\n" if $config_parms{debug} eq 'misc';
     }
 }
+
+                                # Monitor if web password was set or unset
+speak 'rooms=all Web password was just set' if $Cookies{password_was_set};
+speak 'rooms=all Notice, an invalid Web password was just specified' if $Cookies{password_was_not_set};

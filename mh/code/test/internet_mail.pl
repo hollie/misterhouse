@@ -7,7 +7,7 @@
                                 #      Subject line is:  command:x y z  code:xyz
 $v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9]', 'Ok, will do');
 $v_send_email_test-> set_info('Send commands to test remote email commands');
-if ($state = said $v_send_email_test) {
+if ($state = $v_send_email_test->{said}) {
     if (&net_connect_check) {
                                 # Use to => 'user@xyz.com', or default to your own address (from net_mail_user in mh.ini)
         &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date") if $state == 1;
@@ -54,14 +54,14 @@ if ($state = said $v_send_email_test) {
 $p_get_email = new Process_Item('get_email -quiet');
 $v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a second and I will check for new email');
 $v_recent_email-> set_info('Download and summarize new email headers');
-if (said $v_recent_email or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
+if ($v_recent_email->{said} or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
                              new_minute 10 and &net_connect_check)) { 
     start $p_get_email;
 }
 
 # $new_mail_light= new X10_Item('O7');
 my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
-if (done_now $p_get_email) {
+if ($p_get_email->{done_now}) {
     $Save{email_flag} = file_read "$config_parms{data_dir}/get_email.flag";
 
                                 # Turn on an 'new mail indicator'
@@ -79,7 +79,7 @@ if (done_now $p_get_email) {
 }
                                 # Delete file after the done_now pass (gives other code
                                 # like news_email_breaking.pl a changes to scan it)
-if (done $p_get_email and !done_now $p_get_email and -e $get_email_scan_file) {
+elsif ($p_get_email->{done} and -e $get_email_scan_file) {
     unlink $get_email_scan_file;
 }
 
@@ -89,12 +89,9 @@ if (done $p_get_email and !done_now $p_get_email and -e $get_email_scan_file) {
                                 # List or read unread email
 $v_unread_email = new  Voice_Cmd('[List,Read] unread e mail');
 $v_unread_email-> set_info('Summarize unread email headers and optionally call Outlook to read the mail');
-$read_email = new Serial_Item('XOD');
-if ($state = said $v_unread_email or 
-    state_now $read_email) {
-#   time_cron('55 16,17,19,21 * * *')) { 
+if ($state = $v_unread_email->{said}) {
     &speak_unread_mail unless $Save{email_check} eq 'no';
-    if ($state eq 'Read' or state_now $read_email) {
+    if ($state eq 'Read') {
         if (my $window = &sendkeys_find_window('Outlook', 'D:\msOffice\Office\OUTLOOK.EXE')) {
 #           my $keys = '\\alt+\\tss\\alt-\\';  # For Outlook Express
             my $keys = '\\alt\\te\\ret\\';     # For Outlook

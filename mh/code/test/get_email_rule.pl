@@ -8,6 +8,7 @@ sub get_email_rule {
     return 'The S F gals'          if $to =~ /FEM-SF/;
     return                         if $subject =~ /\[TINI\]/;
     return                         if $subject =~ /\[ECS\]/;
+    return                         if $to      =~ /\.NET\@/;
     return 'The HA guys'           if $subject =~ /\[LHA/;
     return                         if $from =~ /InfoBeat/;
     return                         if $from =~ /TipWorld/;

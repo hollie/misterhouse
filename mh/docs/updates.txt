@@ -3,9 +3,9 @@ Mister House Announcement List
     MisterHouse mailing list (an archive of all the list messages is
     at http://sourceforge.net/mail/?group_id=1365 )
 
-  Version 2.38 posted on 12/21/00
+  Version 2.39 posted on 12/21/00
 
-    Version 2.38 was just uploaded to:
+    Version 2.39 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
       http://misterhouse.net/download.html
@@ -35,9 +35,9 @@ Mister House Announcement List
     - Added mh/bruce/news_email_breaking.pl to announce breaking
     email stories from a news email subscription. Be the first on
     your block to know the aliens have landed :) This subscription
-    sends out about 1-4 items a day: http://www.cnn.com/EMAIL .
-    Anyone know of any news service that sends out less frequently
-    for just really big news??
+    sends out about 0->3 items a day: http://www.cnn.com/EMAIL .
+    Anyone know of other news services that send just the really big
+    news??
 
     - Modified internet_mail.pl to not delete the get_email.scan
     file until one full pass after it was created, so other code can
@@ -73,6 +73,12 @@ Mister House Announcement List
     typed on the keyboard, and F1 -> F12). Moved the F1->F5
     processing (e.g. F1 code reload) to mh/code/common/mh_control.pl
 
+    - Moved/split mh/mh.print.log to
+    code_dir/mh_temp.speak/print.log. Read the previous logs at
+    startup, so up to max_log_entries previous log entries are
+    displayed. If you have your own tk_frames.pl, add the 'seed'
+    records from mh/code/common/tk_frames.pl.
+
     Examples, Bug Fixes, and Minor Changes:
 
     - Brent DeShazer fixed the new voice_cmd_prefix for ViaVoice.
@@ -102,7 +108,8 @@ Mister House Announcement List
     - Added a check for no_log, in mh/code/common/mh_control.pl
     &serial_match_log. If you are getting X10 errata in your
     print_log file that you don't want (e.g. lots of movement sensor
-    data), you can turn it off for specific units with this:
+    data), rather than turning X10 errata off, you can turn it off
+    for specific units with this:
 
       $movement_sensor->{no_log} = 1;
 
@@ -116,20 +123,15 @@ Mister House Announcement List
     example.
 
     - Use a timer, rather than a sleep, when &play is waiting to
-    play a sound, so mh does not pause.
+    play a sound, so mh does not pause when playing back-to-back
+    sound files.
 
     - Fixed a 2.36 bug with expired timers in timers.pl
 
     - Move set_authority calls out of the loop code.
 
-    - Moved/split mh/mh.print.log to
-    code_dir/mh_temp.speak/print.log. Read the previous logs at
-    startup, so up to max_log_entries previous log entries are
-    displayed. If you have your own tk_frames.pl, add the 'seed'
-    records from mh/code/common/tk_frames.pl.
-
     - Minor changes to tellme_menu code, including detecting and
-    using local host namename and port if debuging with a local
+    using local host namename and port when debuging with a local
     browser. I have not gotten a PIN login and cookies to work there
     yet :(
 

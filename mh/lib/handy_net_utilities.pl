@@ -71,33 +71,87 @@ sub main::net_connect_check {
     }
 }
 
-sub main::net_domain_name {
-    my ($address) = @_;
-    my $domain_name;
+my ($DNS_resolver_request, $DNS_resolver_address, $DNS_resolver_requester, $DNS_resolver_time);
+
+                                # This is the good, background way
+sub main::net_domain_name_start {
+    ($DNS_resolver_requester, $DNS_resolver_address) = @_;
 
                                 # Allow for port name to be used.
-    $address = $main::Socket_Ports{$address}{client_ip_address} if $main::Socket_Ports{$address}{client_ip_address};
+    $DNS_resolver_address = $main::Socket_Ports{$DNS_resolver_address}{client_ip_address}
+                         if $main::Socket_Ports{$DNS_resolver_address}{client_ip_address};
 
-                                # Use a DNS server to find the domain name
+    if ($main::DNS_resolver) {
+        $DNS_resolver_request = $main::DNS_resolver->bgsend($DNS_resolver_address);
+        $DNS_resolver_time = time;
+#       print "db $main::Time_Date DNS starting search $main::Time, t=$DNS_resolver_time, a=$DNS_resolver_address\n";
+    }
+    else {
+        $DNS_resolver_request++;
+        $DNS_resolver_time = time - 100; # Pretend we time out, so we respond on the next pass
+    }
+}
+sub main::net_domain_name_done {
+    my ($requester) = @_;
+    return unless $DNS_resolver_request and $requester eq $DNS_resolver_requester;
+    my $result;
+#   print "db $DNS_resolver_time, t=$Time r=$requester, r2=$DNS_resolver_requester\n";
+    if ((time - $DNS_resolver_time) > 5) {
+#       print "db $main::Time_Date DNS ending   search $main::Time, t=$DNS_resolver_time, a=$DNS_resolver_address\n";
+        print "DNS search timed out for $DNS_resolver_address\n" if $main::DNS_resolver;
+    }
+    else {
+        return unless $main::DNS_resolver->bgisready($DNS_resolver_request);
+        $result = $main::DNS_resolver->bgread($DNS_resolver_request);
+    }
+    undef $DNS_resolver_request;
+    return &net_domain_name_parse($result, $DNS_resolver_address);
+}
+                                # This is the old, inline way
+sub main::net_domain_name {
+    my ($address) = @_;
+                                # Allow for port name to be used.
+    $address = $main::Socket_Ports{$address}{client_ip_address}
+            if $main::Socket_Ports{$address}{client_ip_address};
+
+    my $result;
     if ($main::DNS_resolver) {
         print "Searching for Domain Name of $address ...";
         my $time = time;
-        my $result = $main::DNS_resolver->search($address);
+        $result = $main::DNS_resolver->search($address);
         print " took ", time - $time, " seconds\n";
-        if ($result) {
-            my $answer = ($result->answer)[0]->string;
+    }
+    return &net_domain_name_parse($result, $address);
+}
+
+sub net_domain_name_parse {
+    my ($result, $address) = @_;
+                                # If no domain name is found, use the IP address
+    my $domain_name = $address;
+
+    if ($result) {
+                                # Use PTR, not CNAME records
+#232.65.86.63.in-addr.arpa.     13240   IN      CNAME   232.224.65.86.63.in-addr.arpa.
+#232.224.65.86.63.in-addr.arpa. 13240   IN      PTR     host232.netwhistle.com.
+#           my $answer = ($result->answer)[0];
+#           my $string = $answer->string if $answer;
+        my $string = '';
+        for my $answer ($result->answer) {
+            my $temp = $answer->string;
+            print "  DNS Results: $address -> $temp\n";
+            $string = $temp if $temp =~ /\sPTR\s/;
+        }
+#   print "db s=$string ip=$DNS_resolver_address\n";
                                 # answer string looks like this:
                                 #  33.18.146.204.in-addr.arpa. 36279 IN PTR www.ibm.com.
-            print "  DNS Results: $answer\n";
-            $domain_name = (split(' ', $answer))[4];
-        }
+                                #  9.37.208.64.in-addr.arpa.   86400 IN PTR crawler1.googlebot.com.
+        $domain_name = (split(' ', $string))[4] if $string;
     }
-                                # If no domain name is found, use the IP address
-    $domain_name = $address unless $domain_name;
 
     my @domain_name  = split('\.', $domain_name);
     my $domain_name2 = $domain_name[-2];
-    print "ip=$address dn=$domain_name dn2=$domain_name2\n" if $main::config_parms{debug} eq 'net';
+    $domain_name2 .= ('.' . $domain_name[-1]) if $domain_name[-1] !~ /(net)|(com)|(org)/;
+    print "db ip=$address dn=$domain_name dn2=$domain_name2\n" if $main::config_parms{debug} eq 'net';
     return wantarray ? ($domain_name, $domain_name2) : $domain_name;
 }
 
@@ -668,6 +722,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.26  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
 # Revision 1.25  2000/12/21 18:54:15  winter
 # - 2.38 release
 #

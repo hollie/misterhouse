@@ -36,44 +36,45 @@ my ($chatbot, $chatbot_rule);
 $speak_server  = new  Socket_Item(undef, undef, 'server_speak');
 $internet_light= new X10_Item('O6');
 
-if (my $data = said $speak_server) {
-
+my $speak_server_data;
+if ($state = said $speak_server) {
+    $speak_server_data = $state;
+                            # Detect where the message is from
+#   my ($name, $name_short) = net_domain_name('server_speak');
+    net_domain_name_start 'server_speak', 'server_speak'; # Background DNS search
+}
+                                # This will be true when the DNS search started above finishes
+if (my ($name, $name_short) = net_domain_name_done 'server_speak') {
+    $name_short = 'local' if is_local_address $name;
     my $msg;
-#   print "db speak_server: $data\n";
-
                                 # Should allow for POST data 
                                 # but GET will work OK for short messages
                                 # Data looks like this:  GET /?message=hi&eliza=1 HTTP/1.1 ...
                                 #                        GET /?internet_light=ON HTTP/1.1
                                 #                        GET /?internet_light=ON/ HTTP/1.1
-    
-                            # Detect where the message is from
-    my ($name, $name_short);
-#   my ($name, $name_short) = net_domain_name('server_speak');
-
-    if ($data =~ /^GET /) {
+    if ($speak_server_data =~ /^GET /) {
                                 # Format the message
-        ($msg) = $data =~ /message=([^\&\/ ]+)/i;
+        ($msg) = $speak_server_data =~ /message=([^\&\/ ]+)/i;
         $msg = html_unescape $1;
-        $msg =~ s/[\r\n]/ /g;     # Drop CR and line feeds
-
+        $msg =~ s/[\r\n]/ /g;   # Drop CR and line feeds
 
                                 # Check to see if this was an internet light request
-        if ($data =~ /internet_light=([^\/ ]+)/i) {
+        if ($speak_server_data =~ /internet_light=([^\/ ]+)/i) {
             $msg = "Internet light set to '$1'";
 #           set_with_timer $internet_light $1, 60 unless $Save{sleeping_parents};
         }
                                 # If textarea name="ELIZA", then call up the psychologist
                                 # using the specified rule. 
-        elsif ($data =~ /eliza=1/i) {
+        elsif ($speak_server_data =~ /eliza=1/i) {
 #           print "db2 chatbot=$chatbot file=$chatbot_rule\n";
-            if ($data =~ /eliza_rule=([^\&\/ ]+)/ and $1 ne $chatbot_rule){
+            if ($speak_server_data =~ /eliza_rule=([^\&\/ ]+)/ and $1 ne $chatbot_rule){
                 $chatbot_rule = $1;
                 undef $chatbot;
             }
             $chatbot_rule = 'doctor' unless $chatbot_rule;
 #           print "db3 chatbot=$chatbot file=$chatbot_rule\n";
-            $chatbot = new Chatbot::Eliza "Eliza", "$config_parms{data_dir}/eliza/$chatbot_rule.txt" unless $chatbot;
+#           $chatbot = new Chatbot::Eliza "Eliza", "$config_parms{data_dir}/eliza/$chatbot_rule.txt" unless $chatbot;
+            $chatbot = new Chatbot::Eliza "Eliza", "../data/eliza/$chatbot_rule.txt" unless $chatbot;
 
             my $response = $chatbot->transform($msg);
             $msg = "$name_short said: $msg.\nEliza says: $response";
@@ -94,21 +95,21 @@ if (my $data = said $speak_server) {
 
     }
                                 # Allow for other program to post display/log data
-    elsif ($data =~ /^DATA /) {
-        display($data, 0, "Internet data from $name");
+    elsif ($speak_server_data =~ /^DATA /) {
+        display($speak_server_data, 0, "Internet data from $name");
         logit("$config_parms{data_dir}/logs/speak_server.$Year_Month_Now.data.log", "domain=$name text=$msg"); 
     }
                                 # Allow for other programs to send speak socket
                                 # data directly (e.g. monitor_weblog)
     else {
-        $msg = $data;
+        $msg = $speak_server_data;
     }
 
     stop $speak_server;     # Tell the client we got the message
 
     $msg = substr $msg, 0, 200;
     if ($config_parms{internet_speak_flag} eq 'all' or
-        $config_parms{internet_speak_flag} eq 'some' and $data =~ /^GET /) {
+        $config_parms{internet_speak_flag} eq 'some' and $speak_server_data =~ /^GET /) {
         speak $msg;
     }
     elsif ($msg and length $msg < 400) {

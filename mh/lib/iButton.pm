@@ -17,13 +17,19 @@ sub usleep {
 sub new {
     my ($class, $id, $port) = @_;
 
+    # add the iButton class as a parent of the Hardware::iButton::Device class
+    my $parentAdded = 0;
+    foreach my $i ( @Hardware::iButton::Device::ISA ) {
+	$parentAdded = 1 if $i eq $class;
+    }
+    push @Hardware::iButton::Device::ISA, $class if !$parentAdded;
 
-                                # iButton::Device needs to see a mucked up binary string
+    # iButton::Device needs to see a mucked up binary string
 
-                                # Allow for a full string, or missing button type and/or missing crc
-#$ib_bruce  = new iButton '0100000546e3fc7a';
-#$ib_bruce  = new iButton '0100000546e3fc';
-#$ib_bruce  = new iButton '00000546e3fc';
+    # Allow for a full string, or missing button type and/or missing crc
+    #$ib_bruce  = new iButton '0100000546e3fc7a';
+    #$ib_bruce  = new iButton '0100000546e3fc';
+    #$ib_bruce  = new iButton '00000546e3fc';
 
     $id = '01' . $id if (length $id) == 12; # Assume a simple button, if prefix is missing
 
@@ -41,37 +47,19 @@ sub new {
     }
     $raw_id .= unpack('b8', $crc);
 
-
     $port = $connections{default} unless $port;
     my $connection = $connections{$port};
 
- 	my $self = Hardware::iButton::Device->new($connection, $raw_id);
+    my $self = Hardware::iButton::Device->new($connection, $raw_id);
 
-    bless $self, $class;
-    $self->{port}  = $port;
-    $id = $self->{id};       # Get the full id
+    $self->{port} = $port;
+    $id = $self->id();       # Get the full id
     $objects_by_id{$id} = $self;
 
     $$self{state}     = '';     # Will only be listed on web page if state is defined
 
-
-    if ($self->{model} eq 'DS1920' ) {
-        push (@iButton::ISA, "Hardware::iButton::Device::DS1920");
-    }
-	elsif ($self->{model} eq 'DS1822' ) {
-        push (@iButton::ISA, "Hardware::iButton::Device::DS1822");
-    }
-    elsif ($self->{model} eq 'DS2423') {
-        push (@iButton::ISA, "Hardware::iButton::Device::DS2423");
-    }
-    elsif ($self->{model} eq 'DS2406' ) {
-        push (@iButton::ISA, "Hardware::iButton::Device");
-                                # Used by Tk items pulldown
+    if ($self->model() eq 'DS2406' ) {
         push(@{$$self{states}}, 'on', 'off'); 
-
-    }
-    else {
-        push (@iButton::ISA, "Hardware::iButton::Device");
     }
 
     return $self;
@@ -83,30 +71,33 @@ sub connect {
                                 # The first port used is the default
     $connections{default} = $port unless $connections{default};
 
-    if ($connections{$port}) {
+    if ($connections{$port} && $connections{$port}->connected() ) {
         return 'iBbutton bus is already connected';
     }
-    printf " - creating %-15s object on port %s\n", 'Ibutton', $port;
-    $connections{$port} = new Hardware::iButton::Connection $port or
-        print "iButton connection error to port $port: $!";
-
-    if ($connections{$port}) {
-#        print "Reseting iButton connection: port=$port $connections{$port}\n";
-        $connections{$port}->reset();
+    elsif ( !$connections{ $port } ) {
+	printf " - creating %-15s object on port %s\n", 'Ibutton', $port;
+	$connections{$port} = new Hardware::iButton::Connection $port or
+	  print "iButton connection error to port $port: $!";
     }
+    else {
+	$connections{$port}->openPort;
+    }
+
     return 'iButton connection has been made';
 }
 
 sub disconnect {
     my ($port) = @_;
     $port = $connections{default} unless $port;
-    if (!$connections{$port}) {
+    
+    if ( !$connections{ $port } ) {
+	return 'Have never connected to iButton bus';
+    }
+    elsif ( !$connections{ $port }->connected() ) {
         return 'iButton bus is already disconnected';
     }
     else {
-        my $serialport = $connections{$port}->{s};
-        $serialport->close;
-        undef $connections{$port};
+        $connections{$port}->closePort();
         return 'iButton bus has been disconnected';
     }
 }
@@ -150,7 +141,7 @@ sub read_switch {
 
 #    $Hardware::iButton::Connection::debug = 1;
 
-    if ($self->{model} eq 'DS2406' ) {			#switch
+    if ($self->model() eq 'DS2406' ) {			#switch
 
         $self->reset;
         $self->select;
@@ -171,27 +162,18 @@ sub read_switch {
 
 sub read_temp {
     my ($self) = @_;
-    my $connection;
-    return unless $connection = $connections{$self->{port}};
+    return unless $connections{$self->{port}};
 
-    my $temp = 0;
-    if ($self->{model} eq 'DS1920' ) {
-        push (@iButton::ISA, "Hardware::iButton::Device::DS1920");
-        $temp = $self->read_temperature_hires();
-    }
-	elsif ($self->{model} eq 'DS1822' ) {
-        push (@iButton::ISA, "Hardware::iButton::Device::DS1822");
-        $temp = $self->read_temperature();
-    }
-
-    return if $temp < -200 or $temp > 200; # Bad data for whatever reason
+    my $temp = $self->read_temperature_hires();
+    return wantarray ? () : undef if !defined $temp;
 
     my $temp_c = sprintf("%3.2f", $temp);
     my $temp_f = sprintf("%3.2f", $temp*9/5 +32);
+    my $temp_def = ($main::config_parms{default_temp} eq 'Celsius') ? $temp_c : $temp_f;                                          
 
-    set_receive $self $temp_f;
+    set_receive $self $temp_def;
 
-    return wantarray ? ($temp_f, $temp_c) : $temp_f;
+    return wantarray ? ($temp_f, $temp_c) : $temp_def;
 }
 
 sub scan {
@@ -208,7 +190,7 @@ sub scan_report {
     my @ib_list = &iButton::scan($family, $port);
     my $report;
     for my $ib (@ib_list) {
-        $report .= "Device type:" . $ib->family . "  ID:" .
+        $report .= "Device type:" . $ib->family() . "  ID:" .
             $ib->serial . "  CRC:" . $ib->crc . ": " . $ib->model() . "\n";
     }
     return $report;
@@ -224,10 +206,7 @@ sub set {
 
 #    $Hardware::iButton::Connection::debug = 1;
 
-    if ($self->{model} eq 'DS2423') {			#counter
-
-    }
-    elsif ($self->{model} eq 'DS2406' ) {			#switch
+    if ($self->model() eq 'DS2406' ) {			#switch
 
         $state = ($state eq 'on') ? "\x00\x00" : "\xff\xff";
         $connection->mode("\xe1");           # DATA_MODE
@@ -243,6 +222,148 @@ sub set_receive {
     my ($self, $state) = @_;
     &Generic_Item::set_states_for_next_pass($self, $state);
 }
+
+sub _connections {
+    return %connections;
+}
+
+package iButton::Weather;
+@iButton::Weather::ISA = ('iButton');
+
+sub new {
+    my $class = shift;
+    my %ARGS = @_;
+
+    my $this;
+
+    my $port = $ARGS{ PORT } ? $ARGS{ PORT } : $iButton::connections{default};
+    $this->{ PORT } = $port;
+
+    # Check to see that we have enough 01 chips
+    my @windsensors;
+    my @windcounters;
+    my @windswitch;
+    my @tempsensors;
+    foreach my $i ( @{$ARGS{ "CHIPS" }} ) {
+	my $ibutton = new iButton( $i, $port );
+
+	push @windsensors,  $ibutton if uc(substr( $i, 0, 2 )) eq "01";
+	push @windswitch,   $ibutton if uc(substr( $i, 0, 2 )) eq "12";
+	push @windcounters, $ibutton if uc(substr( $i, 0, 2 )) eq "1D";
+	push @tempsensors,  $ibutton if uc(substr( $i, 0, 2 )) eq "10";
+    }
+	
+    die "Need 8 01 chips!\n" if $#windsensors != 7;
+    die "Need a 1D counter!\n" if $#windcounters != 0;
+    die "Need a 12 switch!\n" if $#windswitch != 0;
+    die "Need a 10 temperature sensor!\n" if $#tempsensors != 0;
+
+    $this->{ "01" } = [ @windsensors ];
+    $this->{ "1D" } = $windcounters[0];
+    $this->{ "12" } = $windswitch[0];
+    $this->{ "10" } = $tempsensors[0];
+
+    my %dirs;
+    my $count = 0;
+    foreach my $i ( @windsensors ) {
+	$dirs{ $i->id() } = $count;
+	$count += 2;
+    }
+
+    $this->{ "DIRS" } = \%dirs;
+
+    bless $this, $class;
+}    
+
+sub read_temp {
+    my $this = shift;
+
+    my $temp = $this->{ "10" }->read_temperature_hires();
+
+    return if !defined $temp;
+
+    my $temp_c = sprintf("%3.2f", $temp);
+    my $temp_f = sprintf("%3.2f", $temp*9/5 +32);
+    my $temp_def = ($main::config_parms{default_temp} eq 'Celsius') ? $temp_c : $temp_f;                                          
+
+    $this->set_receive( $temp_def );
+
+    return wantarray ? ($temp_f, $temp_c) : $temp_def;
+}
+
+sub read_windspeed {
+    my $this = shift;
+
+    # use these constants to multiply with the revolutions
+    #define METER_PER_SECOND        1.096
+    #define KMS_PER_HOUR                    3.9477
+    #define MILES_PER_HOUR                  2.453
+    #define KNOTS                                   2.130
+
+    if ( !defined $this->{ PREVCOUNT } ) {
+	$this->{ PREVCOUNT } = $this->{ "1D" }->read_counter( 3 );
+	return undef if !defined $this->{ PREVCOUNT };
+	
+	$this->{ PREVTIME } = &main::get_tickcount() / 1000;
+	select undef, undef, undef, 0.5;
+    }
+
+    my $count = $this->{ "1D" }->read_counter( 3 );
+    return undef if !defined $count;
+
+    my $time = &main::get_tickcount() / 1000;
+
+    my $rev = ( ($count - $this->{ PREVCOUNT } ) / ( $time - $this->{ PREVTIME } )) / 2.0;
+    $this->{ PREVTIME } = $time;
+    $this->{ PREVCOUNT } = $count;
+
+    my $speed = $rev * 2.453;  # This is the MPH constant
+    $this->set_receive( $speed );
+    return $speed * 2.453;
+}
+    
+sub read_dir {
+    my $this = shift;
+    my %connections = iButton::_connections();
+
+    $this->{ "12" }->set_switch( CHANNEL_B => 1);
+    my $c = $connections{ $this->{ PORT } };
+
+    my @iButtons = $c->scan( "01" );
+    
+    my @dirs;
+    foreach my $i ( @iButtons ) {
+	my $id = $i->id();
+	push @dirs, $this->{ DIRS }->{ $id } if defined $this->{ DIRS }->{ $id };
+    }
+
+    @dirs = sort @dirs;
+
+    my $dir;
+    if ( $#dirs == 0 ) {
+	$dir = $dirs[0];
+    }
+    elsif ( $#dirs == 1 ) {
+	if ($dirs[0] == 0 && $dirs[1] == 14 ) {
+	    $dir = 15;
+	}
+	else {
+	    $dir = ( $dirs[0] + $dirs[1] ) / 2;
+	}
+    }
+    else {
+	warn "Got $#dirs direction readings\n";
+	return undef;
+    }
+
+    my %DIRS = ( 0 => "N", 1 => "NNE",  2 => "NE",  3 => "ENE", 4  => "E",  5 => "ESE",  6 => "SE", 7  => "SSE",
+		 8 => "S", 9 => "SSW", 10 => "SW", 11 => "WSW", 12 => "W", 13 => "WNW", 14 => "NW", 15 => "NNW",
+	       );
+
+    $this->set_receive( $DIRS{ $dir } );
+    return $DIRS{ $dir };
+}
+
 
 
 return 1;           # for require
@@ -329,6 +450,9 @@ memory
 
 
 # $Log$
+# Revision 1.7  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
 # Revision 1.6  2000/11/12 21:02:38  winter
 # - 2.34 release
 #

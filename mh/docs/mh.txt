@@ -243,6 +243,37 @@ DESCRIPTION
        Caller ID, name and number 
        Outgoing DTMF phone monitor
 
+    You can use 1->2 of the weeder IO kits to drive the the
+    'universal relay kit' from http://jameco.com (do a search for
+    'relay card' or 128910). The $60 gets you 8 relays. Here is some
+    more info:
+
+        1. The board is sold as 8 relays complete, upgradable to 16.
+        If you only want to use 8 relays(in a limited fashion), the
+        kit is all you need.
+
+        2. If you want more than 8, you need more than just the
+        extra 8 relays themsleves. - you will need 8 extra
+        diodes(1n4148 in my kit) - you will need about 30 extra
+        terminating blocks
+
+        3. The board comes with spots for leds to show activity, you
+        will need to provide those as well as the resistors to drive
+        them(none are provided).
+
+        4. As delivered, the weeder board will not drive the relays,
+        you will need to get 2 ULN2803 darligton transistor array
+        chips to do that(The relays need 12V, the Weeders give 5V).
+
+        5. The board has the ability to be manually driven, you will
+        need to buy 2 extra 8 pin dip switches to do that.
+
+        6. It comes as a bare open board, so think about an
+        enclosure of some type.
+
+        7. All of these parts are available from jameco for nominal
+        extra cost.
+
     The HomeBase.pm module to supports the JDS interfaces,
     http://www.jdstechnologies.com . See member
     mh/code/public/test_homebase.pl for example code.
@@ -3447,15 +3478,10 @@ KNOWN LIMITATIONS AND BUGS
     text.
 
 AUTHORS
-    Bruce Winter bruce@misterhouse.net
-    http://misterhouse.net/winters
+    Bruce Winter: bruce@misterhouse.net , http://winters.ws
 
 SEE ALSO
     mh can be download from http://misterhouse.net
-
-    Here is a list of other online mh sites:
-
-      http://www.archer-online.net
 
     Here is a list of articles written about MisterHouse:
 

@@ -29,7 +29,7 @@ if (state_now $timer_time or state_now $timer_text) {
     $timer->{text} = $timer_text;
     $timer->{time} = $time;
     $timer->{unit} = $unit;
-    set $timer $seconds, "&expired_timer( '$time $unit', '$timer_text')";
+    set $timer $seconds, "&expired_timer( '$time $unit', qq|$timer_text|)";
     speak "A $time $unit $timer_text timer has been set." ;
     print_log "$time $unit ($seconds seconds) $timer_text timer started";
 }
@@ -37,7 +37,6 @@ if (state_now $timer_time or state_now $timer_text) {
 sub expired_timer {
     my ($time, $text) = @_;
     play 'timer';               # Set in event_sounds.pl
-    play 'timer';
     my $text2;
     if ($text) {
         $text2 = "Time to $text";
@@ -46,6 +45,7 @@ sub expired_timer {
         $text2 = 'Timer expired';
     }
     speak "rooms=all volume=100 Notice: $text2.  The $time $text timer just expired";
+    play 'timer';
 }    
     
 

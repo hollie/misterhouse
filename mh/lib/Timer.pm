@@ -141,10 +141,14 @@ sub delete_old_timers {
 sub run_action {
     ($self) = @_;
     if (my $action = $self->{action}) {
-        # Passing a subroutine ref to a timer is not tested ... probably not useful
         my $action_type = ref $action;
         print "Executing timer subroutine ref=$action_type   action=$action\n"  if $main::config_parms{debug} eq 'misc';
-        if ($action_type eq 'REF') {
+# Note: passing in a sub ref will cause problems on code reloads.
+# So the 2nd of these 2 would be the better choice:
+#    set $kids_bedtime_timer 10, \&kids_bedtime2;
+#    set $kids_bedtime_timer 10, '&kids_bedtime2';
+
+        if ($action_type eq 'CODE') {
             &{$action};
         }
         else {
@@ -278,6 +282,9 @@ sub inactive {
 
 #
 # $Log$
+# Revision 1.20  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
 # Revision 1.19  2000/12/21 18:54:15  winter
 # - 2.38 release
 #

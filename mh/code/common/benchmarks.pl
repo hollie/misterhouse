@@ -1,7 +1,8 @@
 # Category=MisterHouse
 
 #
-# To turn stuff off, use startup arms.  For example:
+# If you want to run different benchmark with stuff turned off, 
+# you can set parameters with at startup.  For example:
 #    mh -voice_cmd 0 -voice_text 0 -weeder_port none
 #
 
@@ -9,81 +10,47 @@ $v_what_speed = new Voice_Cmd 'What is your speed', 'Calculating';
 $v_what_speed-> set_info('Runs mh at max speed for a few seconds, then reports Passes Per Second');
 
 $timer_speed_check = new  Timer;
-#$request_speed       = new  Serial_Item('XO2');
 if (said $v_what_speed) {
-#   speak("$Loop_Speed and .");
     $Loop_Sleep_Time = 0;
     $Loop_Tk_Passes = .1;	# 0 gets reset to 1, so use .1
     set $timer_speed_check 3;
-    print "Speeds1 = @Loop_Speeds\n";
+    print_log "Speeds1 = @Loop_Speeds";
     print "Note:  tk window is temporily disabled\n";
 }
 if (expired $timer_speed_check) {
-    speak("$Info{loop_speed} mips.");
+    speak "$Info{loop_speed} mips";
     $Loop_Sleep_Time = $config_parms{sleep_time};
     $Loop_Tk_Passes  = $config_parms{tk_passes};
-    print "Speeds2 = @Loop_Speeds\n";
+    print_log "Speeds2 = @Loop_Speeds";
 }
 
-
-$v_speed_benchmark = new Voice_Cmd 'Run speed benchmark';
-$v_speed_benchmark-> set_info('This will suspend normal mh while it benchmarks each code member individually.  It can take few minutes.');
-
-$timer_speed_benchmark = new  Timer;
-my @benchmark_members;
-my $benchmark_member;
-my @original_item_code;
-if (said $v_speed_benchmark) {
-#   or state_now $test_16) {
-    speak("Starting benchmark.");
-    print "Note:  tk window is temporily disabled\n";
-#   logit("$config_parms{data_dir}/logs/benchmarks.$Year_Month_Now.log", "\n");
-    logit("$config_parms{data_dir}/logs/benchmarks.log", "\n");
-    sleep 2;
-
-    @benchmark_members = sort keys %Run_Members;
-    push(@benchmark_members, ' none', '  all');
-    &set_run_flags;
-
-    $Loop_Sleep_Time = 0;
-    $Loop_Tk_Passes = .1;	# 0 gets reset to 1, so use .1
-}
-
-if (expired $timer_speed_benchmark) {
-    my $data = sprintf("Benchmark member=%20s Speeds=%s", $benchmark_member, join(", ", @Loop_Speeds[0..2]));
-    print "$data\n";
-    logit("$config_parms{data_dir}/logs/benchmarks.log", $data);
-
-    if (@benchmark_members) {
-        &set_run_flags;
+my $speed_benchmark_count = 0;
+$v_speed_benchmark = new Voice_Cmd '[Start a by name,Start a by speed,Stop the] speed benchmark';
+$v_speed_benchmark-> set_info ('This will suspend normal mh while it benchmarks each code member individually.  It can take few minutes.');
+if ($state = said $v_speed_benchmark) {
+    print_log "$state speed benchmark";
+    if ($state eq 'Stop the') {
+        $Benchmark_Members{on_off_flag} = $speed_benchmark_count = 0;
+        undef %Benchmark_Members if $state eq 'Stop the';
     }
     else {
-        $Loop_Sleep_Time = $config_parms{sleep_time};
-        $Loop_Tk_Passes  = $config_parms{tk_passes};
-        speak("Benchmark is done and loged in the data directory.");
-        foreach (keys %Run_Members) {
-            $Run_Members{$_} = 1;  # use map here
-        }
+        $Benchmark_Members{on_off_flag} = $speed_benchmark_count = 1 unless $speed_benchmark_count;
     }
 }
+$speed_benchmark_count++ if $speed_benchmark_count;
 
-$v_view_benchmark_log = new Voice_Cmd 'Display the benchmark log';
-$v_view_benchmark_log-> set_info('Display the results of previous benchmarking runs');
-
-display "$config_parms{data_dir}/logs/benchmarks.log" if said $v_view_benchmark_log;
-
-
-sub set_run_flags {
-
-    $benchmark_member = shift @benchmark_members;
-    foreach (keys %Run_Members) {
-        $Run_Members{$_} = ($_ eq $benchmark_member or $benchmark_member eq '  all') ? 1 : 0;
+if ($speed_benchmark_count and (new_second 5 or $state)) {
+    my $log = "Benchmark report.  Loop count=$speed_benchmark_count.  The following is in milliseconds\n";
+    my $by_speed = (state $v_speed_benchmark =~ /speed/) ? 1 : 0;
+    my @log;
+    for my $member (sort {$by_speed and ($Benchmark_Members{$b} <=> $Benchmark_Members{$a}) or $a cmp $b} keys %Run_Members) {
+        push @log, sprintf "  %-22s avg=%5.2f total=%5d", $member, $Benchmark_Members{$member} / $speed_benchmark_count, $Benchmark_Members{$member};
     }
-    $Run_Members{benchmarks} = 1;
-
-    set $timer_speed_benchmark 3;
-
-}    
-
-
-
+                                # Double up columns so it fits on without scrolling when there are lots of members
+    my $i = int $#log/2;
+    for my $j (0 .. $i) {
+        $log .= $log[$j] . " | " . $log[$j+$i] . "\n";
+    }
+    file_write "$config_parms{data_dir}/logs/benchmark.log", $log;
+    display text => $log, time => 0, font => 'fixed', window_name => 'benchmarks';
+}

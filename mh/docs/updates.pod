@@ -6,9 +6,94 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
-=head2 Version 2.38 posted on 12/21/00
+=head2 Version 2.41 posted on 01/20/01
 
-Version 2.38 was just uploaded to:
+Version 2.41 was just uploaded to:
+
+  http://misterhouse.sourceforge.net/download.html
+  http://misterhouse.net/download.html
+
+B<New Features:>
+
+- Brian Paulsen re-wrote the iButton code for much improved reliability.
+He also added iButton::Weather (see example at the end of iButton.pl).
+
+- Brent DeShazer added mh/bin/snpp_page, for doing snpp paging via the internet.
+
+- Added net_domain_name_start and net_domain_name_done, so that we can lookup domain names in
+the background without the danger of mh pausing.
+See mh/docs/mh.* or  mh/code/examples/test_dns.pl and  mh/bruce/monitor_router.pl for examples.
+
+- Re-wrote mh/code/common/benchmarks.pl.  'Run speed benchmark' will now create 
+a tk window with with the average amount of time used (in milliseconds) for each code member.
+If not using tk, the results are also logged to data_dir.
+On Unix, this option will not work too well unless you have Time::HiRes installed.
+Unlike the previous benchmark code, this should allow for a quick and pretty painless
+way to find slow running code members.
+For example, this record in computer_data.pl caused an unneeded slowdown:
+
+  $disk_drives = join(',', Win32::DriveInfo::DrivesInUse()) if $OS_win;
+
+Without a 'and $Reload' added, it made that call on every pass, and the DriveInof function is pretty slow.
+
+- Added a window_name option for the display function, so we can re-use a tk window (e.g. above benchmark code).
+
+- John Snow came up with the idea of using a CM11 to detect power outage.  Here is an example:
+
+  if ($ControlX10::CM11::POWER_RESET) {
+      display time => 0, text => "Detected a CM11 power reset";
+      $ControlX10::CM11::POWER_RESET = 0;
+  }
+
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Anders Baardsgaard sent in a bsd patch to avoid shelling out to find $Time_Boot_time on FreeBSD.
+
+- Ron Klinkien fixed set_clock so it works on FreeBSD.
+
+- Roger Bille sent in code to support a new mh.ini default_temp=Celsius  parm.
+Currently this is only used by mh/lib/iButton.pm
+
+- Ray Dzek created a 'how to get started with iButton guide' at
+http://www.solarbugs.com/home/ibutton.htm (added a link to faq and mh docs).
+
+- Fenghua Zong discovered that we goofed up with a 2.39 update to vv_tts.pl
+(should not have changed ViaVoiceTTS to TTSClass).
+
+- Fenghua Zong also sent in an update to Voice_Cmd.pm that tunes some delays so ViaVoice will work 
+better on some faster computers.  Someday we will need to update the viavoice_server code with 
+better handshaking so it is less dependent on hardcoded delays.
+
+- Tony Drumm created mh/code/public/wxserver_client.pl and wxserver_server.pl.
+The client code populates the mh %weather array with data from a wxserver.
+Tony also has a program on his web site that will serve weather data data from 
+a Peet Brother's weather station (e.g. Ultimeter 2000).
+
+- Jean-Marie Martin found a problem with processing .MHT (rather than .mht) files.
+
+- Clive Freedman fixed $Time_of_Day so it is night rather than afternoon prior to 5 am.
+
+- Brian Paulsen modified mh/code/public/rrd_graph to make it a bit easier to add/remove rooms.
+
+- Ian Davidson sent in a fix so sensors.pl will work with the newer analog weeder boards.
+
+- Brent DeShazer fixed Timer.pm to handler subroutine actions.
+
+- Craig Schaeffer added a time_add function:  $Save{setback_off} = time_add "$Save{wakeup_time} - 1:20";
+
+- Allow for read_table_xxx.pl and user_modules to be in the user_code directory. 
+
+- Fixed the SwitchLinc set method.
+
+- Fixed 2.39 bugs which caused the web parm password_allow_clients to be ignored and a web command search to fail.
+
+- Added a 'password set/not set' voice message in the web server, for notification of web password attempts.
+
+
+=head2 Version 2.39 posted on 12/21/00
+
+Version 2.39 was just uploaded to:
 
   http://misterhouse.sourceforge.net/download.html
   http://misterhouse.net/download.html

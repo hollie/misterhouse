@@ -15,7 +15,7 @@ Here is an example of reading/writing using this object:
  $test_example1 ->add                  ('string_off', OFF); 
 
  print "Example 1 data received: $state\n" if $state = state_now $test_example1;
- set $test_example1 OFF if $New_Second and !($Second % 5);
+ set $test_example1 OFF if new_second 5;
 
 
 Here is another example

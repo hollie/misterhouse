@@ -41,7 +41,7 @@ sub reset {
     if ($Vcmd_viavoice) {
                                 # Allow for new phrases to be added
         $Vcmd_viavoice->set("addtovocab");
-        select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
+        select undef, undef, undef, .5; # Need this for now to avoid viavoice_server 'no data' error
         $Vcmd_viavoice->set("mh");
         undef %cmd_text_by_vocab; # Only add new commands on reload
     }
@@ -469,7 +469,7 @@ sub _register2 {
     if ($Vcmd_viavoice and $Vcmd_viavoice->active) {
         if ($vocab eq '' or $vocab eq 'mh') {
             $Vcmd_viavoice->set($text_vr);
-            select undef, undef, undef, .01; # Need this for now to avoid viavoice_server 'no data' error
+            select undef, undef, undef, .05; # Need this for now to avoid viavoice_server 'no data' error
         }
         else {
             push(@{$cmd_text_by_vocab{$vocab}}, $text_vr);
@@ -559,12 +559,12 @@ sub addtovocab {
     return unless $Vcmd_viavoice;
     my($vocab, @phrases) = @_;
     $Vcmd_viavoice->set("addtovocab");
-    select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
+    select undef, undef, undef, .5; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set($vocab);
     for my $phrase (@phrases) {
         $Vcmd_viavoice->set($phrase);
     }
-    select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
+    select undef, undef, undef, .5; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set('');
 }
 sub enablevocab {
@@ -591,6 +591,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.28  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
 # Revision 1.27  2000/12/21 18:54:15  winter
 # - 2.38 release
 #

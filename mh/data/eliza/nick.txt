@@ -91,6 +91,7 @@ key: test 0
     reasmb: You wanna waste my time sending messages to me about tests when I could be answering questions that could save the world?
     reasmb: Tests are for school.
     reasmb: Results are back.  You got a C+ on your test.
+    reasmb: Do you have SoW?
 key: sex 0
   decomp: *
     reasmb: Looking for a lesson on the birds and the bees?
@@ -131,7 +132,7 @@ key: forget 5
    decomp: * i forget *
 	reasmb: You forgot (2) ?  You sissy!
 	reasmb: I just can not believe you forgot (2). You look like the type that would remember everything. 
-	reasmb: When you think of (2), does it make you eyelids quiver ?
+	reasmb: When you think of (2), does it make your eyelids quiver ?
 	reasmb: I forgot that you told me you forgot (2).
 	reasmb: I bet you would forget the national anthem... Go ahead! Say it, punk! See? You can't remember!
 	reasmb: You forgot (2) ?  You moron!
@@ -200,7 +201,7 @@ key: hello 0
     reasmb: Howdee do.  How's your karma today?  I hope it is not as bad as the last guy's.
     reasmb: Hi hi.  How's we feeling today?  I hope you don't have the flu ... I don't want to catch it again.
     reasmb: Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
-    reasmb: Well well well, I can see that Taco Bell has closed and you've come to drool over something other than a burrito. 
+#   reasmb: Well well well, I can see that Taco Bell has closed and you've come to drool over something other than a burrito. 
     reasmb: Please tell me what's been bothering you. I might even not make fun of you for it.
     reasmb: Is something troubling you? Please say yes, I love it when people are depressed!
     reasmb: Hello--wait, you're not the mail daemon! Go away!
@@ -314,7 +315,7 @@ key: i 0
 	reasmb: What if you could (3) ? Would it make you good enough for me? Nope...
   decomp: * i don't *
     reasmb: Don't you really (2) ? 
-    reasmb: Why don't you (2) ? Is it cuz your mother's dead or you just don't want to?
+    reasmb: Why don't you (2) ? Is it cuz your you forgot to eat your fruit today?
     reasmb: Do you wish to be able to (2) ? Poor you.
     reasmb: Does that trouble you ? I hope so.
   decomp: * i feel *
@@ -633,6 +634,13 @@ key: @uncool 10
   decomp: *
     reasmb: That is so horridly evil!
     reasmb: Ugh! Can't get any worse than that!
+key: SoW 10
+  decomp: *
+    reasmb: SoW is Spirit of Wolf.
+    reasmb: SoW makes you run really fast.
+    reasmb: Druids and Shamen can cast SoW.
+    reasmb: I like EverQuest.
+    reasmb: Me barsh you gud! Har har har!
 
 
 

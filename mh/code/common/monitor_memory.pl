@@ -4,13 +4,28 @@
 # Monitor memory usage (unix and NT/2K only. 
 # Win95/98 have no way to monitor memory :(
 
-if (new_minute 30) {
-    my $memory_diff = round $Info{memory_virtual} - $Info{memory_virtual_prev}, 2;
-    if ($memory_diff >  1) {
-        print_log "Warning, memory leak detected: $memory_diff.  $Info{memory_virtual_prev} -> $Info{memory_virtual}";
-    }
+my $memory_leak_log = "$config_parms{data_dir}/logs/monitor_memory_leak.log";
+if ($Startup) {
+    logit $memory_leak_log, '-- Restarted --';
     $Info{memory_virtual_prev} = $Info{memory_virtual};
 }
+elsif ($Reload) {
+    logit $memory_leak_log, '   ReLoad';
+}
+
+if (new_minute 10) {
+    my $memory_diff = $Info{memory_virtual} - $Info{memory_virtual_prev};
+    if ($memory_diff > .01) {
+        my $msg = sprintf "Warning, memory leak detected: %3.2f.  %4.2f -> %4.2f", 
+                 $memory_diff, $Info{memory_virtual_prev}, $Info{memory_virtual};
+        print_log $msg;
+        logit $memory_leak_log, $msg;
+        $Info{memory_virtual_prev} = $Info{memory_virtual};
+    }
+}
+
+$v_memory_leak_log = new Voice_Cmd 'Display the memory leak log';
+display font => 'fixed', text => $memory_leak_log if said $v_memory_leak_log;
 
 $v_memory_check = new Voice_Cmd '[Start,Stop] the memory leak checker';
 $v_memory_check-> set_info('This will disable each code file for a while, to determine which is causing a memory leak');
@@ -43,7 +58,7 @@ if (expired $t_memory_check) {
     if ($memory_leak_member = $memory_leak_members[$memory_leak_index]) {
         $Run_Members{$memory_leak_member} = 0;
         print_log "Memory leak test: disabled $memory_leak_member";
-        set $t_memory_check 10*60;
+        set $t_memory_check 20*60;
         $Info{memory_virtual_test} = $Info{memory_virtual};
     }
     else {

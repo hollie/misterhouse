@@ -14,6 +14,13 @@ unique code (A,B,C, etc.) instead of the old codes 'D1', 'D2', etc. for
 digital, 'A1', 'A2' for analog, etc. They also run at 9600 baud, so they cannot
 coexist with old kits on the same serial port.
 
+The 2 states 'init' and 'read' are commands SENT to the weeder kit. 'BSJ' sets
+kit 'B', pin 'J' as a switch. 'BRJ' sends a read command to kit 'B', pin 'J'. 
+The other two items 'OPENED' and 'CLOSED' are RECEIVED from the weeder kit and
+represent the high ('BJH') and low ('BJL') states of kit 'B', pin 'J'. They are
+sent to mh each time the switch changes states (in my case, when the kitchen
+motion detector fires, or the sump pump fills/empties). 
+
 =cut
 
 # digital items

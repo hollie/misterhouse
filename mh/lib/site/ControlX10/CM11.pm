@@ -8,7 +8,7 @@ package ControlX10::CM11;
 #
 #-----------------------------------------------------------------------------
 use strict;
-use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $POWER_RESET);
 
 require Exporter;
 
@@ -377,6 +377,9 @@ sub read {
                                        $Wday,
                                        0x03);    # Not sure what is best here.  x10d.c did this.
             
+                                  # We can use this to detect a power failure
+                $POWER_RESET = 1; # The user code will be responsible for reseting this
+
                 print "\nCM11 power fail detected.  Resetting the CM11 clock with:\n $localtime\n";
                 my $results = $serial_port->write($power_reset);
                 select undef, undef, undef, 50 / 1000;
@@ -675,6 +678,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.14  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
 # Revision 2.13  2000/10/01 23:29:41  winter
 # - 2.29 release
 #

@@ -19,19 +19,17 @@ $v_all_news ->set_authority('anyone');
 $v_news     = new  Voice_Cmd('Tell me the [Top,U S,World,Entertainment,Business,Technology,Science,Health,Sports] news');
 $v_news     ->set_authority('anyone');
 
-speak($f_Top_news) if said $v_news eq 'Top';
-speak($f_US_news) if said $v_news eq 'U S';
-speak($f_World_news) if said $v_news eq 'World';
-speak($f_Entertainment_news) if said $v_news eq 'Entertainment';
-speak($f_Business_news) if said $v_news eq 'Business';
-speak($f_Tech_news) if said $v_news eq 'Technology';
-speak($f_Science_news) if said $v_news eq 'Science';
-speak($f_Health_news) if said $v_news eq 'Health';
-speak($f_Sports_news) if said $v_news eq 'Sports';
-
-
-
-#display($f_US_news) if said $v_US_news eq 'Show';
+if ($state = said $v_news) {
+    speak($f_Top_news)           if $state eq 'Top';
+    speak($f_US_news)            if $state eq 'U S';
+    speak($f_World_news)         if $state eq 'World';
+    speak($f_Entertainment_news) if $state eq 'Entertainment';
+    speak($f_Business_news)      if $state eq 'Business';
+    speak($f_Tech_news)          if $state eq 'Technology';
+    speak($f_Science_news)       if $state eq 'Science';
+    speak($f_Health_news)        if $state eq 'Health';
+    speak($f_Sports_news)        if $state eq 'Sports';
+}
 
 if ( said $v_all_news ) {
 

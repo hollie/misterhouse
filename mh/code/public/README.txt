@@ -123,7 +123,15 @@ weather_wrtv.pl
  - Tom K. example on geting weather from his local news web page
 
 weather_upload.pl
- - David Norwood's code for uploading weather data to the wunderground personal weather project.
+ - David Norwood's code for uploading weather data to the
+   wunderground personal weather project.
+
+wxserver_client.pl
+wxserver_server.pl
+ - Tony Drumm's code that supports his wxserver weather protocol.
+   wxserver_client.pl will get data from any wxserver.  wxserver_server.pl
+   will serve the data in the mh %weather array.
+   Tony also has code at his site that will serve data from a Peet Brother's weather station.
 
 aws_weather.pl
 weather_aws.pl
@@ -168,3 +176,4 @@ his version of MisterHouse turn off Nick's music after hours :)
 
 
 
+d
