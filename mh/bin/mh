@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-11-09 11:51:59 winter>
+#  Last change Time-stamp: <2002-11-30 16:04:43 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -29,12 +29,14 @@ my ($Pgm_Name, $Revision, $usage);
 use vars qw(%config_parms %config_parms_startup $Pgm_Path $Version $Version_date %Info);
 
 BEGIN {
-    $Info{Perl_compiled} = 1 unless $^X =~ /perl/i;
+    $Info{Perl_compiled} = 1 unless $^X =~ /perl/i;  # If built with perl2exe
+    $Info{Perl_compiled} = 1 if $PerlApp::BUILD;     # If built with perlapp
+    $Info{Perl_compiled} = 1 if $PerlApp::BUILD;     # (avoid 'only used once' warning).
 
     ($Version) = q$Revision$ =~ /: (\S+)/; # Auto-updated by CVS
     $Version .= " (compiled)" if $Info{Perl_compiled};
 
-            # $0=path to mh/bin, $^X=path to perl, unlessed compiled mh.exe
+            # $0=path to mh/bin, $^X=path to perl, unless perl2exe compiled mh.exe
     ($Pgm_Path, $Pgm_Name) = $0  =~ /^(.*)[\\\/]([^.]+)/;
     ($Pgm_Path, $Pgm_Name) = $^X =~ /^(.*)[\\\/]([^.]+)/ if $Info{Perl_compiled};
                                # $0=mh if we run from mh/bin
@@ -77,21 +79,20 @@ use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
 use vars qw($Version_tk $Password $DelayOccured);
-use vars qw(%User_Code);
+use vars qw(%User_Code @Code_Dirs);
 
 my ($Pgm_PathU);
 my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
 my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
-my (@Loop_Code, @Sub_Code, %Run_Members, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
-my ($user_code, $user_code_last_good, @code_dirs);
+my (@Loop_Code, @Sub_Code, %Sub_Code, %Run_Members, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
+my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
 my (@Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
-my (%proxy_servers);
+my (%proxy_servers, %speak_apps);
 my ($CON_IN, $CON_OUT);
-#use vars '$CON_IN', '$CON_OUT';
 
 my($state, $temp);              # Some generic useful vars
 
@@ -142,7 +143,10 @@ BEGIN {
 #       push (@INC, './../lib', './../lib/site', '.');
 #       push (@INC, './../lib');
         if ($^O eq 'MSWin32') {
-            push @INC, (&Win32::BuildNumber() < 600) ? './../lib/site_win50' : './../lib/site_win56';
+            my $build = &Win32::BuildNumber;
+            if ($build < 800) {
+                push @INC, ($build < 600) ? './../lib/site_win50' : './../lib/site_win56';
+            }
         }
         require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
     }
@@ -248,13 +252,19 @@ BEGIN {
     sub read_parms {
 
         my $debug = 1 if $config_parms_startup{debug} and $config_parms_startup{debug} eq 'startup';
+        $debug = 1 if $config_parms{debug} eq 'parms';
         &main::read_mh_opts(\%config_parms, '.', $debug);
+
+                                # Read in speak parms per application
+        &main::read_parm_hash(\%speak_apps,  $main::config_parms{speak_apps_default});
+        &main::read_parm_hash(\%speak_apps,  $main::config_parms{speak_apps});
 
                                 # We need to honor starup parms, but a total reset messes up the tk debug button interface
 #       %config_parms = (%config_parms, %config_parms_startup); # Last one (startup parms) wins
         for my $parm (keys %config_parms_startup) {
             $config_parms{$parm} = $config_parms_startup{$parm};
         }
+
     }
 
     sub use_conditional_modules {
@@ -262,16 +272,16 @@ BEGIN {
                                  # Find local code dirs, so we can add to INC path
         $config_parms{code_dir}        = "./../code"        unless $config_parms{code_dir};
         $config_parms{code_dir_common} = "./../code_common" unless $config_parms{code_dir_common};
-        @code_dirs = split ',', $config_parms{code_dir};
-        push @code_dirs, $config_parms{code_dir_common};
-        for (@code_dirs) { s/^\s*//; s/\s*$//; }; # Drop leading and trailing blanks
-        print "Code Directories:\n - ", join("\n - ", @code_dirs), "\n";;
+        @Code_Dirs = split ',', $config_parms{code_dir};
+        push @Code_Dirs, $config_parms{code_dir_common};
+        for (@Code_Dirs) { s/^\s*//; s/\s*$//; }; # Drop leading and trailing blanks
+        print "Code Directories:\n - ", join("\n - ", @Code_Dirs), "\n";;
                                  # If first time, add default selected modules
         use File::Copy;             # So we copy files
         copy "$Pgm_Root/data/select_code_core.txt", "$config_parms{data_dir}/select_code.txt" unless 
                                                  -e "$config_parms{data_dir}/select_code.txt";
 
-        unshift @INC, @code_dirs; # So we can add/override .pm modules locally
+        unshift @INC, @Code_Dirs; # So we can add/override .pm modules locally
                                   # So we can add/override .pl modules locally
         if($config_parms{lib_dir}){
             print "User   Lib  Directory: $config_parms{lib_dir}\n";
@@ -416,6 +426,7 @@ sub setup {
     use Data::Dumper;
 #   use Date::Manip;            # This modules takes .5 second to load and uses 3 meg!
 #   use FreezeThaw qw(freeze thaw cmpStr safeFreeze cmpStrHard);
+    use IO::Handle;
     use IO::Socket;
     use LWP::Simple;            # For pgms like set_clock that need to grab data from urls
 #   use MIME::Base64;           # Needed for uudecode/uuencode in http_server and mhsend_server
@@ -425,7 +436,9 @@ sub setup {
     use Time::DaysInMonth;      # For days_in (and is_leap?)
 
                                 # Date::Manip needs it in ISO 8601 form: +-HHMM
-    $ENV{TZ} = (($config_parms{time_zone} < 0) ? '-' : '+' ) . sprintf("%02d00", abs $config_parms{time_zone});
+                                # Hmmm, this messes up str2time from Date::Parse
+                                # used by net_mail_summary :(
+#   $ENV{TZ} = (($config_parms{time_zone} < 0) ? '-' : '+' ) . sprintf("%02d00", abs $config_parms{time_zone});
 
     if ($config_parms{DNS_server}) {
         print "Loading DNS code ...";
@@ -468,23 +481,22 @@ sub setup {
     use constant CLOSED  => 'closed';
 
     require 'handy_net_utilities.pl';   # For misc. net functions (e.g. net_mail_read)
-    require 'console_utils.pl';
+#   require 'console_utils.pl';
     require 'http_server.pl';
     require 'xml_server.pl';
     require 'menu_code.pl';
 
     if ($OS_win) {
         no strict 'subs';   # For non-win OS
-        if (1) {
-            $CON_IN = new Win32::Console STD_INPUT_HANDLE;
-            $CON_OUT= new Win32::Console STD_OUTPUT_HANDLE; 
-            $CON_OUT->Title($config_parms{title});
-#           use vars '$FG_WHITE', '$BG_CYAN';
-#           &explodeAttr($CON_OUT, $FG_WHITE | $BG_CYAN);
-#           $CON_OUT->Attr($FG_WHITE | $BG_CYAN);
-        }
+        $CON_IN = new Win32::Console STD_INPUT_HANDLE;
+        $CON_OUT= new Win32::Console STD_OUTPUT_HANDLE; 
+        $CON_OUT->Title($config_parms{title});
+#       use vars '$FG_WHITE', '$BG_CYAN';
+#       &explodeAttr($CON_OUT, $FG_WHITE | $BG_CYAN);
+#       $CON_OUT->Attr($FG_WHITE | $BG_CYAN);
     }
-    
+
+   
     $SIG{INT}   = \&sig_handler;              # Exit cleanly with CTL-C
     $SIG{BREAK} = \&sig_handler if  $OS_win;  # Exit cleanly with BREAK
     $SIG{KILL}  = \&sig_handler;              # Exit cleanly with a kill signal
@@ -772,6 +784,11 @@ sub setup {
     open PRINTLOG,  ">$print_log" or die "Error, could not open print logfile $print_log: $!\n";
     open SPEAKLOG,  ">$speak_log" or die "Error, could not open speak logfile $speak_log: $!\n";
     open ERRORLOG, ">>$error_log" or die "Error, could not open error logfile $error_log: $!\n";
+
+                                # So we can monitor these files
+    PRINTLOG->autoflush(1);
+    SPEAKLOG->autoflush(1);
+    ERRORLOG->autoflush(1);
 
     print PRINTLOG (join "\n", reverse @Print_Log), "\n";
     print SPEAKLOG (join "\n", reverse @Speak_Log), "\n";
@@ -1135,19 +1152,22 @@ sub check_for_keyboard_input {
             my @event = $CON_IN->Input();
             $Keyboard = $event[3] if $event[1];
         }
-        if ($Keyboard and $Keyboard == 13) {       # Enter Key  -> display simple menu
-            my ($oldX, $oldY, $oldS, $oldV) = $CON_OUT->Cursor(); 
-            my $oldmode = $CON_IN->Mode();
-            my $choice = &choose_menu($CON_IN, $CON_OUT, 
-                                      "F1: Reload", "F2: Pause", "F3: Exit",
-                                      "F4: Debug", "F5: Logging");
-            $CON_IN->Mode($oldmode);
-            $CON_OUT->Cursor($oldX, $oldY, $oldS, $oldV);
-            my %keymap = ('F1: Reload' => 'F1', 'F2: Pause'   => 'F2', 'F3: Exit' => 'F3',
-                          'F4: Debug ' => 'F4', 'F5: Logging' => 'F5');
-            $Keyboard = $keymap{$choice};
-            print "action=$choice key=$Keyboard\n";
+        if ($Keyboard and ($Keyboard == 13 or $Keyboard == 32)) {       # Enter Key  -> display simple menu
+            print "F1->Reload  F2->Pause  F3->Exit  F4->Debug  F5->Logging\n";
         }
+#       if ($Keyboard and $Keyboard == 13) {       # Enter Key  -> display simple menu
+#           my ($oldX, $oldY, $oldS, $oldV) = $CON_OUT->Cursor(); 
+#           my $oldmode = $CON_IN->Mode();
+#           my $choice = &choose_menu($CON_IN, $CON_OUT, 
+#                                     "F1: Reload", "F2: Pause", "F3: Exit",
+#                                     "F4: Debug", "F5: Logging");
+#           $CON_IN->Mode($oldmode);
+#           $CON_OUT->Cursor($oldX, $oldY, $oldS, $oldV);
+#           my %keymap = ('F1: Reload' => 'F1', 'F2: Pause'   => 'F2', 'F3: Exit' => 'F3',
+#                         'F4: Debug ' => 'F4', 'F5: Logging' => 'F5');
+#           $Keyboard = $keymap{$choice};
+#           print "action=$choice key=$Keyboard\n";
+#       }
     }
     else {
         my ($key, $keystring);
@@ -1388,9 +1408,14 @@ sub check_for_socket_data {
                                 #  - could probably use a smarter select check here, rather than loop for each port
     for my $port_name (keys %Socket_Ports) {
         next if $port_name eq 'http'; # Deal with this elsewhere
-        next unless my $sock = $Socket_Ports{$port_name}{sock};
-        $Socket_Ports{$port_name}{active_this_pass}   = 0;
+                                # Need to use _flag var so active/inactive_this_pass is valid for 1 full pass.
+        $Socket_Ports{$port_name}{active_this_pass} = 0;
+        $Socket_Ports{$port_name}{active_this_pass} = 1   if $Socket_Ports{$port_name}{active_this_pass_flag};
         $Socket_Ports{$port_name}{inactive_this_pass} = 0;
+        $Socket_Ports{$port_name}{inactive_this_pass} = 1 if $Socket_Ports{$port_name}{inactive_this_pass_flag};
+        $Socket_Ports{$port_name}{active_this_pass_flag}   = 0;
+        $Socket_Ports{$port_name}{inactive_this_pass_flag} = 0;
+        next unless my $sock = $Socket_Ports{$port_name}{sock};
 
                                 # Check to see if any already open client sockets are active
         my $server_active = 0;
@@ -1426,7 +1451,7 @@ sub check_for_socket_data {
                 my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
                 $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
                 $Socket_Ports{$port_name}{socka} = $new_sock;
-                $Socket_Ports{$port_name}{active_this_pass} = 1;
+                $Socket_Ports{$port_name}{active_this_pass_flag} = 1;
                     
                 push @{$Socket_Ports{$port_name}{clients}}, [$new_sock, $client_ip_address, undef];
                 delete $Socket_Ports{$port_name}{data}; # Delete data from previous session
@@ -2185,7 +2210,10 @@ sub my_str2time {
         $yearf += 100 if $yearf < 70;
     }
 
-    if ($secf > 59 or $minf > 59 or $hourf > 23 or $mdayf > 31 or $monthf > 11) {
+                                # Sill timelocal dies with bad times, and we can not trap
+                                # a $SIG{_DIE_} without exiting, so check for valid times :(
+    if ($secf > 59 or $minf > 59 or $hourf > 23 or $mdayf > 31 or $monthf > 11 or $yearf > 2037 or
+        $secf <  0 or $minf <  0 or $hourf <  0 or $mdayf <  0 or $monthf <  0 or $yearf <    0 ) {
         my @caller = caller;    # This is not useful in user_code eval :(
         print "Bad time format:  $time_date   caller=@caller\n";
         print "db mday=$Mday mdayf=$mdayf min=$Minute minf=$minf secf=$secf " .
@@ -2400,6 +2428,21 @@ sub play {
     else {
         %parms = @_;
     }
+
+                                # Set parms according to an optional app parm
+    if (my $app = $parms{app}) {
+        if ($speak_apps{$app}) {
+            for my $temp (split ' ', $speak_apps{$app}) {
+                my ($key, $value) = $temp =~ /(\S+)=(\S+)/;
+                $parms{$key} = $value unless $parms{$key};
+                print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $config_parms{debug} eq 'voice';
+            }
+        }
+        else {
+            print "Voice_Text: speak -app $app not listed in mh.ini speak_apps parms\n";
+        }
+    }
+
     $parms{mode} = '' unless $parms{mode};
     $parms{retry} = 5 unless $parms{retry};
     $parms{retry}--;
@@ -3017,9 +3060,8 @@ sub read_code {
     $config_parms{debug_old} = $config_parms{debug};
     read_parms unless $Startup; # Re-read .ini parms, in case they changed
     $config_parms{debug} = $config_parms{debug_old};
-    &http_read_parms;           # Refresh lib/http_server.pl stuff
-
     
+    &read_misc_parms();         # Reread misc files/parms
 
                                 # These parms might be twiddled with, so re-set them.
                                 #  - %Local_Addresses is for backward compatibility ... maybe drop it some day
@@ -3027,21 +3069,22 @@ sub read_code {
     @Local_Addresses = split ',', $config_parms{local_addresses};
     @Password_Allow_Clients = split /[, ]+/, $config_parms{password_allow_clients};
 
-    &read_table_files;           # Re-create table code file, if any table file changed
+    &read_table_files();           # Re-create table code file, if any table file changed
 
     push @Requested_Files, split ',', $config_parms{only_load};
 
+#   print " reading @Code_Dirs\n";
     if (@Requested_Files) {
         @files_read = @Requested_Files;
     }
     else {
-        for my $file_dir (@code_dirs) {
+        for my $file_dir (@Code_Dirs) {
             opendir(DIR, $file_dir) or print  "\n\nError, can not open directory $file_dir.\n\n";
             push @files_read, readdir(DIR) unless $file_dir eq $config_parms{code_dir_common};
             close DIR;
         }
                                   # Add selected members from code_dir_common
-        push @files_read, &file_read("$config_parms{data_dir}/select_code.txt");
+        push @files_read, &file_read("$config_parms{data_dir}/select_code.txt", 2);
 
         @files_read = grep(/^[a-z0-9].*\.(pl|mhp)$/i, @files_read); # Must start with alphanumeric ... emacs edited checkpoints can start with #
 
@@ -3049,20 +3092,23 @@ sub read_code {
 #   print "           files: @files_read\n";
     my $count = @files_read;
     print_log "Reading $count code files";
-    die "\n\nError, no code files found in code_dirs: @code_dirs\n\n" unless @files_read;
+    die "\n\nError, no code files found in Code_Dirs: @Code_Dirs\n\n" unless @files_read;
+
 
                                 # Read changed files
     undef @files_changed;
     undef @files_changed2;
     my %files_deleted = %file_code_times;
-    %noload_files = map {$_, 1} split(',', $config_parms{no_load});
+    %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
+                                 &file_read("$config_parms{data_dir}/select_code2.txt", 2));
+
     my %files_seen;
     for $file (@files_read) {
         next if $file =~ /^read_table/; # Ignore table file readers in the user dir
         (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
 
         undef $file_path;
-        for my $code_dir (@code_dirs) {
+        for my $code_dir (@Code_Dirs) {
             next unless -e "$code_dir/$file";
             if ($file_path) {
                 print "Duplicate file. Used:$file_path  Skipped:$code_dir/$file\n";
@@ -3072,7 +3118,7 @@ sub read_code {
             }
         }
         unless ($file_path) {
-            print "\nError, could not find file in code_dirs: $file\n\n";
+            print "\nError, could not find file in Code_Dirs: $file\n\n";
             next;
         }
 
@@ -3100,16 +3146,31 @@ sub read_code {
     &read_user_code(@files_changed) if @files_changed or $files_deleted or $reload_mode eq 'forced';
 #   speak(@files_changed+0 . " files were read.");
 
+    die "\n\nError, no user code found\n\n" unless @Loop_Code;
+
 #   &tk_setup_cascade_menus if $MW;
 
 }
 
+sub read_misc_parms {
+
+    &http_read_parms;           # Refresh lib/http_server.pl stuff
+    &Voice_Text::read_parms();
+
+    &Caller_ID::read_areacode_list('local_area_code' => $config_parms{local_area_code},
+                                   'area_code_file'  => $config_parms{area_code_file})
+        if file_change($config_parms{area_code_file}) or $Startup;
+    
+    &Caller_ID::read_callerid_list($config_parms{caller_id_file}, $config_parms{caller_id_reject_file}) 
+        if file_change($config_parms{caller_id_file}) or file_change($config_parms{caller_id_reject_file}) or $Startup;
+    
+}
 
                                 # Read optional, table formated definitions of mh objects and events
 sub read_table_files {
                                 # Find files
     my (@files_read, %file_paths);
-    for my $file_dir (@code_dirs) {
+    for my $file_dir (@Code_Dirs) {
         opendir(DIR, $file_dir) or die "Error, can not open directory $file_dir.\n";
         my @files = readdir(DIR);
         close DIR;
@@ -3123,8 +3184,11 @@ sub read_table_files {
     my $count = @files_read;
 #   print_log "Reading $count .mht table files: @files_read";
 
+                                # See if we are supposed to skip any files
+    my %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
+                                    &file_read("$config_parms{data_dir}/select_code2.txt", 2));
+
                                 # See if any of the files have changed
-    my %noload_files = map {$_, 1} split(',', $config_parms{no_load});
     my ($changed);
     for my $file (@files_read) {
         (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
@@ -3141,10 +3205,8 @@ sub read_table_files {
         print_log "Translating $file -> $table_code_file";
         open  TABLE_IN,  "$file_paths{$file}";
         open  TABLE_OUT, ">$table_code_file" or print_log "Error in writing to $table_code_file";
-        print TABLE_OUT "#\n# Do NOT edit this file.  It was auto-generated from $file.\n#\n";
-        print TABLE_OUT "#\n# Do NOT edit this file.  It was auto-generated from $file.\n#\n";
-        print TABLE_OUT "#\n# Do NOT edit this file.  It was auto-generated from $file.\n#\n";
-        print TABLE_OUT "# Category = none\n\n";
+        print TABLE_OUT "#\n#@ Do NOT edit this file.  It was auto-generated from $file.\n#\n";
+        print TABLE_OUT "# Category = Other\n\n";
         my $format;
         my %formats_seen;
         while (<TABLE_IN>) {
@@ -3224,6 +3286,7 @@ sub read_user_code {
     my ($record);
     undef @Loop_Code;
     undef @Sub_Code;
+    undef %Sub_Code;
     undef @Item_Code;
     undef @Item_Code_Objects;
     undef %Run_Members;
@@ -3235,7 +3298,7 @@ sub read_user_code {
     undef %object_names_by_type;
     undef %files_by_webname;
 
-    my (%member_sort_order, %sub_code, %object_name_check);
+    my (%member_sort_order, %object_name_check);
     for $file (sort sort_user_code keys %User_Code) {
         print "Reading $file\n" if $config_parms{debug} eq 'misc';
  
@@ -3286,13 +3349,17 @@ sub read_user_code {
                                 # Store a ref-to-name correlation hash
             if ($object) {
                                 # Warn if a duplicate record, but only if it is different
-                                #  - that way we can define identical objects in different members.
-                if ($object_name_check{$object}) {
-                    my ($m2, $r2) = $object_name_check{$object} =~ /(\S+?): (.+)/;
-                    print "\n\nWarning, duplicate object name: $object\n - $object_name_check{$object} - $member_name: $record\n\n\n"
-                        if $record ne "$r2\n";
+                                #  That way we can define identical objects in different members.
+                                #  First drop extra blanks, so records look more similar
+                my $r_test = $record;
+                $r_test =~ s/ +/ /g;
+                if ($object_name_check{$object} and $object_name_check{$object}{record} ne $r_test) {
+                    printf "\n\nWarning, duplicate object name: $object\n";
+                    printf " - %-15s: %s - %-15s: %s\n", $member_name, $r_test,
+                       $object_name_check{$object}{member}, $object_name_check{$object}{record};
                 }
-                $object_name_check{$object} = "$member_name: $record";
+                $object_name_check{$object}{record} = $r_test;
+                $object_name_check{$object}{member} = $member_name;
                 
                 $file_by_object_name{$type}{$object} = $member_name;
                 push @{$object_names_by_file{$member_name}}, $object;
@@ -3316,6 +3383,7 @@ sub read_user_code {
                                 #     Can also do a return if $Reload in the method, and leave it in the loop
 
             if ($object or
+                $record =~ / # *noloop *$/i or        # noloop record comment
                 $record =~ /^my[\s\(]/ or             # Global 'my'
                 $record =~ /^use +vars\s/ or          # Global 'use vars'
                 $record =~  /^\s*hidden\s/ or         # These only needs to be done on code load
@@ -3351,7 +3419,7 @@ sub read_user_code {
         }
                                 # Only create subroutine if this file had event code
         if ($code_flag) {
-            $sub_code{$member_name} = $code;
+            $Sub_Code{$member_name} = $code;
             $Run_Members{$member_name} = 1;
         }
 
@@ -3365,21 +3433,10 @@ sub read_user_code {
     for my $member_name (sort {$member_sort_order{$a} <=> $member_sort_order{$b} or 
                                $a cmp $b} keys %Run_Members) {
 
-        next unless $sub_code{$member_name};
+        next unless $Sub_Code{$member_name};
 
-        my $sub_name = "${member_name}_loopcode";
-        $sub_name =~ s/[- ]/_/g;   # Legalize sub name
-        push @Sub_Code, 
-                "#-------------------------------------------------\n\n" .
-                "sub $sub_name {\n" .
-                "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
-                "        display('Multiple eval errors in $member_name.  Code was disabled', 0);" .
-                "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
-                "   my \$benchmark_tickcount = &get_tickcount if \$Benchmark_Members{on_off_flag};\n" .
-#               " print 'db running ${member_name}';" .
-                $sub_code{$member_name} .
-                "   \$Benchmark_Members{'$member_name'} += &get_tickcount - \$benchmark_tickcount if \$benchmark_tickcount and \$Benchmark_Members{on_off_flag};\n" .
-                "\n} # End of $member_name";
+        my ($sub_name, $sub_code) = &read_user_code_loopcode($member_name, $Sub_Code{$member_name});
+        push @Sub_Code, $sub_code;
 
         $temp = "    \$Run_Members{'$member_name'}++, $sub_name, \$Run_Members{'$member_name'}-- if \$Run_Members{'$member_name'};\n";
                                 # Running eval on each member code is too ineffecient
@@ -3406,24 +3463,43 @@ sub read_user_code {
     @Object_Types = sort keys %object_names_by_type;
 }
 
+sub read_user_code_loopcode {
+    my ($member_name, $code) = @_;
+    my $sub_name = "${member_name}_loopcode";
+    $sub_name =~ s/[- ]/_/g;   # Legalize sub name
+    return ($sub_name, "#-------------------------------------------------\n\n" .
+        "sub $sub_name {\n" .
+        "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
+        "        display('Multiple eval errors in $member_name.  Code was disabled', 0);" .
+        "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
+        "   my \$benchmark_tickcount = &get_tickcount if \$Benchmark_Members{on_off_flag};\n" .
+        $code . 
+        "   \$Benchmark_Members{'$member_name'} += &get_tickcount - \$benchmark_tickcount if \$benchmark_tickcount and \$Benchmark_Members{on_off_flag};\n" .
+        "\n} # End of $member_name");
+}
 
                                 # This allows for a quick replacement of code that has no global items (e.g. tv_grid_program.pl)
                                 # Much quicker than a read_code call.
                                 # Like the 'do' function, except we add sub member_name {} around the code
 sub do_user_file {
     my ($file) = @_;
-    my ($member_name) = $file =~ /([^\\\/]+)\.pl$/i;
-    $member_name =~ s/[ -]/_/g; # Legalize subroutine name
-    my $code = "#-------------------------------------------------\n\n";
-    $code .= "sub ${member_name}_loopcode {\n";
-    open(CODE, "<$file") or print "\nError, can not open do_user_file $file:$!\n";
-    $code .= join(' ', <CODE>);
-    close CODE;
-    $code .= "}\n";
-    print_log "Evaluating code from file $file";
+    my ($member_name) = $file =~ /([^\\\/]+)\.(pl|mhp)$/i;
+    $member_name .= '_table' if $file =~ /mhp$/;
+    my ($sub_name, $code) = &read_user_code_loopcode($member_name, &file_read($file, 1));
+    print_log "Evaluating code $member_name";
     print "\n\n\ndb user_file code:\n", $code, "\n\n" if $config_parms{debug} eq 'misc';
     eval $code;
-    print_log "\nError in running eval on $file: \n error: $@\n" if $@;
+                                 # If error, use previous code if we have it
+    if ($@) {
+        print_log "Error in do_user_file eval on $file";
+        display   "Error in do_user_file eval on $file: \n error: $@\n";
+        if ($Sub_Code{$member_name}) {
+            print_log "Reading in older code for $member_name";
+            $code = &read_user_code_loopcode($member_name, $Sub_Code{$member_name});
+            eval $code;
+            display   "Error in 2nd do_user_file eval $file: \n error: $@\n" if $@;
+        }
+    }
 }
 
 sub run_after_delay {
@@ -3780,17 +3856,6 @@ sub set_global_vars {
 
     }
 
-#   if ($Startup or $New_Minute) {
-    if ($Reload) {
-        &Caller_ID::read_areacode_list('local_area_code' => $config_parms{local_area_code},
-                                       'area_code_file'  => $config_parms{area_code_file})
-            if file_change($config_parms{area_code_file}) or $Startup;
-
-        &Caller_ID::read_callerid_list($config_parms{caller_id_file}, $config_parms{caller_id_reject_file}) 
-            if file_change($config_parms{caller_id_file}) or file_change($config_parms{caller_id_reject_file}) or $Startup;
-        &Voice_Text::read_pronouncable_list($config_parms{pronouncable_list_file}) 
-            if file_change($config_parms{pronouncable_list_file}) or $Startup;
-    }
     # Save object states every 5 minutes, in case mh is aborted without a proper shutdown
 #   &object_states_save if $New_Minute and !($Minute % 5); $Time_Increment
     &object_states_save if $New_Minute and !($Time_Start_time or $Time_Stop_time); # Skip if in accelerated mode
@@ -3959,8 +4024,9 @@ sub socket_close {
     delete $Socket_Ports{$port_name}{sock} if
         $Socket_Ports{$port_name}{host_port} and 
         $Socket_Ports{$port_name}{host_port} =~ /\:/; # Client, not server, socket
-    $Socket_Ports{$port_name}{inactive_this_pass} = 1;
-    $Socket_Ports{$port_name}{active_this_pass} = 0;
+
+    $Socket_Ports{$port_name}{inactive_this_pass_flag} = 1;
+    $Socket_Ports{$port_name}{active_this_pass_flag} = 0;
 }
 
                                 # This opens a server socket (client sockets are done in mh/lib/Socket_Item.pm)
@@ -3975,7 +4041,9 @@ sub socket_open {
         return;
     }
     if ($proto eq 'tcp') {
-        $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
+        $Socket_Ports{$port_name}{sock} = 
+            new IO::Socket::INET->new(LocalPort => $port, LocalAddr => $address,
+                                      Proto => 'tcp', Reuse => 1, Listen => 10) or 
             die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port_name}_port in mh.ini\n";
     } elsif ($proto eq 'udp') {
         if ($address) {
@@ -4031,7 +4099,7 @@ sub speak {
 #       print "Error, no text keyword in speak command.  Parms= @_\n" unless $phrase or $play;
     }
 
-    my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression);
+    my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression app);
 
                                 # Allow for parms in text if done the simple way
     $phrase = '' unless $phrase;
@@ -4042,6 +4110,20 @@ sub speak {
             unless grep $key eq $_, @speak_parms;
         $parms{$key} = $value;
         $phrase      = $phrase_new;
+    }
+
+                                # Set parms according to an optional app parm
+    if (my $app = $parms{app}) {
+        if ($speak_apps{$app}) {
+            for my $temp (split ' ', $speak_apps{$app}) {
+                my ($key, $value) = $temp =~ /(\S+)=(\S+)/;
+                $parms{$key} = $value unless $parms{$key};
+                print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $config_parms{debug} eq 'voice';
+            }
+        }
+        else {
+            print "Voice_Text: speak -app $app not listed in mh.ini speak_apps parms\n";
+        }
     }
 
     $parms{mode}  = '' unless $parms{mode};
@@ -4804,6 +4886,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.74  2002/12/02 04:47:14  winter
+# - 2.74 release
+#
 # Revision 2.73  2002/11/10 01:54:05  winter
 # - 2.73 release
 #

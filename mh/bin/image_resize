@@ -61,6 +61,8 @@ Options are:
 -b, --border      Add a border to pad out to the --size dimentions. 
                   Default is to add the border (i.e. -b 1)
 
+-c, --colorfill   Pad out to the --size dimensions using this color. Default is black.
+
 -r, --replace     Replace exisiting resized image.  Default is -r 0.
 
 -s, --skip xyz    Skip pictures that start with xyz
@@ -87,14 +89,14 @@ use File::Find;
 use Getopt::Long;
 
                                 # Declare parms and defaults
-my($size, $dir, $exts, $border, $replace, $annotate, $prefix, $skip, $help, $verbose) =
-    ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', '', 0, 0);
+my($size, $dir, $exts, $border, $replace, $annotate, $prefix, $skip, $help, $verbose, $colorfill) =
+    ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', '', 0, 0, 'black');
 my (%exts, $rc, %counts, $file_in, $file_out, $outdir);
 $counts{resized} = $counts{existed} = 0;
 
                                 # Changes defaults if specified on command line
 &help if (!GetOptions('size:s' => \$size, 'directory=s' => \$dir, 'outdir=s' => \$outdir,
-                      'file_in=s' => \$file_in, 'file_out=s' => \$file_out,
+                      'file_in=s' => \$file_in, 'file_out=s' => \$file_out, 'colorfill:s' => \$colorfill,
                       'prefix:s' => \$prefix, 'skip:s' => \$skip, 'extensions:s' => \$exts,
                       'border=s' => \$border, 'replace=s' => \$replace, 'anotate=s' => \$annotate,
                       'help' => \$help, 'verbose' => \$verbose) or $help or !($dir or ($file_in and $file_out)));
@@ -161,7 +163,7 @@ sub resize_img{
         my ($w, $h) = $img->Get('columns', 'rows');
         $w = ($size_w - $w) / 2;
         $h = ($size_h - $h) / 2;
-        warn($rc) if $rc = $img->Border(geometry => $size, width => $w, height => $h, fill => 'black');
+        warn($rc) if $rc = $img->Border(geometry => $size, width => $w, height => $h, fill => $colorfill);
     }
                                 # Does not work ... gives Warning 315: no delegates configuration file found (delegates.mgk)
     if ($annotate) {
@@ -174,6 +176,9 @@ sub resize_img{
 
 #
 # $Log$
+# Revision 1.8  2002/12/02 04:49:15  winter
+# - 2.74 release
+#
 # Revision 1.7  2002/08/22 04:33:18  winter
 # - 2.70 release
 #
