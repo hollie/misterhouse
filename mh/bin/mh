@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-02-24 14:36:48 winter>
+#  Last change Time-stamp: <2001-02-26 19:44:02 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -878,7 +878,7 @@ sub check_for_action {
     &Generic_Item::reset_states;     # Reset states for all objects that are 'ISA Item' objects
     &Voice_Cmd::check_for_voice_cmd; # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
     &check_for_serial_data if %Serial_Ports;
-    &check_for_socket_data if %Socket_Ports;
+    while (1) {last unless &check_for_socket_data}; # Allow for multiple http gets per pass, for faster web response
     &check_for_tied_times  if $New_Minute;
     &Timer::check_for_timer_actions;
     &check_for_external_command_file;
@@ -1172,7 +1172,7 @@ sub check_for_socket_data {
         &socket_close('http');
     }
 
-    my (@ports_with_data, @active_ports);
+    my (@ports_with_data, @active_ports, $recheck_flag);
 
                                 # See which ports are active
                                 #  - could probably use a smarter select check here, rather than loop for each port
@@ -1299,6 +1299,7 @@ sub check_for_socket_data {
                                 # says 'Document contains no data'.
                         select undef, undef, undef, .010;
                         &socket_close($port_name);
+                        $recheck_flag = 1;
                     }
                 }
                 else {
@@ -1317,6 +1318,8 @@ sub check_for_socket_data {
             }
         }
     }
+#   print "http rf=$recheck_flag lc=$Loop_Count.  \n";
+    return $recheck_flag;
 }    
 
                                 # These tied subs are called by mh/lib/Generic_Item.pm
@@ -3444,6 +3447,9 @@ sub speak {
         elsif ($key =~ /volume/i) {
             $parms{volume} = $value;
         }
+        elsif ($key =~ /time/i) {
+            $parms{time} = $value;
+        }
         else {
             print "Warning, speak control not recognized: key=$key value=$value\n";
         }
@@ -4116,6 +4122,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.46  2001/02/27 01:45:33  winter
+# - test release with faster http calls
+#
 # Revision 2.45  2001/02/24 23:18:05  winter
 # - 2.45 release
 #
