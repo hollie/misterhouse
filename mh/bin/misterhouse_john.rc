@@ -1,0 +1,71 @@
+This one from John Moore on Feb, 2001.
+
+I created a script to start and stop the
+program when ever I restart my computer.  I am running the Redhat 6.1
+distribution of Linux.  I created the following script in the
+/etc/rc.d/init.d directory.  I then ran the command "chkconfig --add
+misterhouse" to configure it to start on run level 3, 4, 5.  I hope
+this will be a help to some other Linux users.
+
+=============>  Begin Script  <============================
+#!/bin/sh
+# File: /etc/rc.d/init.d/misterhouse
+# Date: Sat Feb 24 14:04:50 EST 2001
+# Last Revised: Time-stamp: <2001-02-24 14:13:11 root> maintained by emacs
+# Description: Startup script for Misterhouse
+# ===================================================================
+# chkconfig: 345 91 35
+# description: This script will activate Misterhouse.
+
+# Where is the program located
+DIR=/opt/misterhouse-2.39/bin
+
+# What is the name of the program
+PGM=./mh
+
+# Where does the program store it's PID
+PIDFILE=/opt/misterhouse-2.39/data/mh.pid
+
+# Any runtime options are listed here
+OPTIONS="x10_lights.pl"
+
+# Does the application exist, if not exit.
+test -x $DIR/$PGM || exit 0
+
+# Start the application with option in its directory
+start () {
+    echo "Starting Misterhouse : mh"
+    cd $DIR
+    $PGM $OPTIONS &
+    return 0
+}
+
+# Stop Misterhouse 
+stop () {
+    echo "Stopping Misterhouse : mh"
+    kill -KILL `/bin/cat $PIDFILE`
+    return 0
+}
+
+case "$1" in
+
+  start)			# Start the application
+    start
+    ;;
+
+  stop)				# Stop the application
+    stop
+    ;;
+
+  restart)			# Reload by stopping and starting
+    stop
+    sleep 5
+    start
+    ;;
+
+  *)				# Display a usage option.
+    echo "Usage: /etc/rc.d/init.d/misterhouse {start|stop|restart}"
+    exit 1
+esac
+
+exit 0
