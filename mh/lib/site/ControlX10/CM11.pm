@@ -24,7 +24,7 @@ $EXPORT_TAGS{ALL} = \@EXPORT_OK;
 
 #### Package variable declarations ####
 
-$VERSION = '2.07';
+($VERSION) = q$Revision$ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge
 $DEBUG = 0;
 my $Last_Dcode;
 
@@ -279,7 +279,11 @@ sub send {
     print "CM11 send: ", unpack('H*', $data_snd), "\n" if $DEBUG;
 
     print "Bad cm11 data send transmition\n" unless length($data_snd) == $serial_port->write($data_snd);
-    my $data_rcv = &read($serial_port);
+
+                                # Note: Skip the power fail check, because we the
+                                # checksum might be the power fail flag (0xa5)
+    my $data_rcv = &read($serial_port, 0, 1); 
+
     my $data_d = unpack('C', $data_rcv);
 
                                 # Unrelated incoming data ... process and re-start
@@ -320,7 +324,7 @@ sub send {
 }
 
 sub read {
-    my ($serial_port, $no_block) = @_;
+    my ($serial_port, $no_block, $no_power_fail_check) = @_;
     my $data;
                                 # Note ... for dim commands > 20, this will time out after 20*40=1 seconds 
                                 # No harm done, but we would rather not wait :)
@@ -342,7 +346,7 @@ sub read {
 
                                 # If we received the power-fail string (0xa5), reset with a blank macro command
                                 #  - Protocol.txt says to send macros string, but that did not work.
-            if ($data_d == 165) {
+            if ($data_d == 165 and !$no_power_fail_check) {
 
 #55 to 48   timer download header (0x9b)
 #47 to 40   Current time (seconds)
@@ -647,3 +651,10 @@ This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself. 20 December 1999.
 
 =cut
+
+#
+# $Log$
+# Revision 2.08  2000/01/29 20:07:01  winter
+# - add $no_power_fail_check.
+#
+#
