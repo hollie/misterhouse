@@ -66,10 +66,13 @@ sub send
 
     if ($data =~ /^X/)
     {
-	if (my($house,$unit,$func) = $data =~ /^X([A-P])([0-9]*).(.*)/)
+	if (my($house,$unit,$func) = $data =~ /^X([A-P])([0-9A-F]).(.*)/)
 	{
 	    $house = unpack('C', $house) - 65; #Get HV code from ASCII
 #           printf("House $house = %s ($house)\n", makehex($house));
+	    print "unit = $unit\n" if lc($main::config_parms{debug}) =~ /homevision/;
+	    $unit = hex($unit) if $unit =~ /[A-F]/;
+	    print "unit = $unit\n" if lc($main::config_parms{debug}) =~ /homevision/;
 
 	    my($code) = &makehex($house*16 + $unit -1);
 
@@ -79,9 +82,14 @@ sub send
 		$cmd .= "X" . $code . "0B", last if $func eq "L"; #Brighten once
 		$cmd .= "X" . $code . "05", last if $func eq "M"; #Dim once
 
-		$cmd .= "P" . $code . "11" . &makehex(int($func/6.5)), last if $func =~ /^[0-9]*/;  #Set to level
-		$cmd .= "P" . $code . "07" . &makehex(int($1/6.5)), last if $func =~ /^\-([0-9]*)/;  #Dim n-times
-		$cmd .= "P" . $code . "0D" . &makehex(int($1/6.5)), last if $func =~ /^\+([0-9]*)/;  #Brighten n-times
+		#Set to level
+		$cmd .= "P" . $code . "11" . &makehex(int($func/6.5)), last if $func =~ /^[0-9]*/;
+
+		#Dim n-times
+		$cmd .= "P" . $code . "07" . &makehex(int($1/6.5)), last if $func =~ /^\-([0-9]*)/;
+
+		#Brighten n-times
+		$cmd .= "P" . $code . "0D" . &makehex(int($1/6.5)), last if $func =~ /^\+([0-9]*)/;
 
 
 		#else (if it falls through to here...
@@ -253,11 +261,14 @@ sub read {
 		
 		if (my($house, $code) = $string =~ /X-10 House\/Unit : ([A-P]) ([0-9]+)$/)
 		{
-		    return "X" . $house . $code;
+		    $code = &makehex($code);
+		    return "X" . $house . chop($code);
 		}
 		elsif ( my($house, $func) = $string =~ /X-10 .* : ([A-P]) (.*)$/ )
 		{
-		    return "X" . $house . $table_dcodes{$func};
+#		    return "X" . $house . $table_dcodes{$func};
+		    #Argh... Misterhouse doesn't like the housecode here
+		    return "X" . $table_dcodes{$func};   
 		}
 		elsif ( my($input, $state) = $string =~ /Input Port Changed.*: \#([0-9A-F]+) (Low|High)/ )
 		{
@@ -340,6 +351,9 @@ return 1;           # for require
 
 
 # $Log$
+# Revision 1.3  2000/04/27 23:28:18  winter
+# - Ingo Dean's latest changes
+#
 # Revision 1.2  2000/01/27 13:42:03  winter
 # - update version number
 #
