@@ -34,7 +34,7 @@ if (my $scan = state_now $barcode_data) {
     }
                                 # If a UPC ...
     else {
-        $html .= "<li><a href=http://www.barpoint.com/frame.cfm?UPCNumber=$code>BarPoint: Most anything</a>\n";
+#       $html .= "<li><a href=http://www.barpoint.com/frame.cfm?UPCNumber=$code>BarPoint: Most anything</a>\n";
         $html .= "<li><a href=http://search.borders.com/fcgi-bin/db2www/search/search.d2w/Details?" . 
                  "code=$code&mediaType=Music&searchType=ISBNUPC>Music search at borders.com</a>";
         $html .= "<li><a href=http://search.borders.com/fcgi-bin/db2www/search/search.d2w/Details?" . 

@@ -69,6 +69,17 @@ You must make certain modifications to your Audrey, as follows:
 #Tell MH to call our routine each time something is spoken
 &Speak_post_add_hook(\&speak_to_Audrey) if $Reload;
 
+
+#Check our file. If it has changed, tell each Audrey to come and get it!
+if (file_changed "$config_parms{html_dir}/toAudrey.wav") {
+#   my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
+    my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
+    for my $ip (split ',', $config_parms{Audrey_IPs}) {
+        $ip =~ s/\S+\-//;
+        run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb/toAudrey.wav /dev/null";
+    }
+}
+
 #MH just said something. Generate the same thing to our file (which is monitored below)
 sub speak_to_Audrey {
     my %parms = @_;
@@ -84,16 +95,6 @@ sub speak_to_Audrey {
 sub play_to_audrey {
     my %parms = @_;
     copy $parms{fileplayed}, "$config_parms{html_dir}/toAudrey.wav";
-}
-
-#Check our file. If it has changed, tell each Audrey to come and get it!
-if (file_changed "$config_parms{html_dir}/toAudrey.wav") {
-#   my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
-    my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
-    for my $ip (split ',', $config_parms{Audrey_IPs}) {
-        $ip =~ s/\S+\-//;
-        run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb/toAudrey.wav /dev/null";
-    }
 }
 
 #if ($Reload) {

@@ -104,6 +104,11 @@ sub read_table_A {
 	($object, $name, $grouplist, @other) = @item_info;
         $object = "Door_Item(\$$object, $other)";
     }
+    elsif($type eq "LTSWITCH") {
+        require 'Light_Switch_Item.pm';
+	($object, $name, $grouplist, @other) = @item_info;
+        $object = "Light_Switch_Item(\$$object, $other)";
+    }
     elsif($type eq "MOTION") {
         require 'Motion_Item.pm';
         ($object, $name, $grouplist, @other) = @item_info;
@@ -129,6 +134,19 @@ sub read_table_A {
         ($name, $grouplist, @other) = @item_info;
         $object = "Occupancy_Monitor( $other)";
     }
+    elsif($type eq "MUSICA") {
+        require 'Musica.pm';
+        ($name, $grouplist, @other) = @item_info;
+        $object = "Musica('$name')";
+    }
+    elsif($type eq "MUSICA_ZONE") {
+        ($name, $object, $other, $grouplist, @other) = @item_info;
+        $object = "Musica::Zone(\$$object, $other)";
+    }
+    elsif($type eq "MUSICA_SOURCE") {
+        ($name, $object, $other, $grouplist, @other) = @item_info;
+        $object = "Musica::Source(\$$object, $other)";
+    }
     elsif($type eq "PRESENCE") {
         require 'Presence_Monitor.pm';
         ($object, $occupancy, $name, $grouplist, @other) = @item_info;
@@ -139,7 +157,17 @@ sub read_table_A {
         $object = "Group" unless $groups{$name}; # Skip new group if we already did this
         $groups{$name}{empty}++;
     }
-    elsif($type eq "MP3PLAYER") {
+    elsif($type eq "VIRTUAL_AUDIO_ROUTER") {
+        require 'VirtualAudio.pm';
+        ($name, $address, $other, $grouplist, @other) = @item_info;
+        $object = "VirtualAudio::Router($address, $other)";
+    }
+    elsif($type eq "VIRTUAL_AUDIO_SOURCE") {
+        require 'VirtualAudio.pm';
+        ($name, $object, $grouplist, @other) = @item_info;
+        $object = "VirtualAudio::Source('$name', \$$object)";
+    }
+   elsif($type eq "MP3PLAYER") {
         require 'Mp3Player.pm';
         ($address, $name, $grouplist) = @item_info;
         $object = "Mp3Player('$address')";
@@ -380,6 +408,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.22  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.21  2003/12/22 00:25:06  winter
 #  - 2.86 release
 #

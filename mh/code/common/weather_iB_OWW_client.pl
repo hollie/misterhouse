@@ -12,9 +12,26 @@
 "
 version 1.02	rel date 1/20/02
  v 101-102 updated i variable declaration, cleaned up tk interface, added menu selection description
+
  v 1.03    added wind chill calclulation, Status bar and TK entries
 	   calculated per NWS 'new' method, Note chill only available < 50F
+
+ v 1.04	   changed wind chill formatting to include (avg/peak) chill calculations
+
+ v 1.05    2/17/04
+           Updated variable names to allow interaction to weather_rrd_update.pl	   
+
+ v 1.06    2/21/04
+	   Found anomilties and a mis alignment in data sent to rrd, also added dummy
+           value for WindGustDir, as rrd wasnt using data.
 	   
+ v 1.07    2/28/04
+	   Found a bug with passing the wind dir to the graph. Looks like it was passing directional
+	   data (eg 0-16 ) and the graph is expecting compass dirs. 
+	   added calculation to ordinal positions position * 22.5 = compass dir
+	   Still need good algorythm to smooth north data when it flopps nne-nnw
+	   
+	   	   
  Modified by Pete Flaherty 05/12/02
  Changes to allow OWW weather station to be standalone using the 
   OWW software by Simon Melhuish available at http://www.simon.melhuish.net/projects/oww/
@@ -60,7 +77,12 @@ where
 	14	min humidity		is minimum humiity percent
 
 Wind directions are enumerated 0 through 15 corresponding to the 16 compass directions
- N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW.
+ N  NNE  NE   ENE  E    ESE  SE   SSE  S    SSW  SW   WSW  W    WNW  NW   NNW.
+ 0  1    2    3    4    5    6    7    8    9    10   11   12   13   14   15 
+
+The positonis equate to 22.5 degrees each starting at North=0 
+so position * 22.5 is the rrd graph direction ( assuming it's linier )
+
 "
 =cut
 
@@ -72,13 +94,15 @@ $ibws   = new  Socket_Item(undef, undef, $owwhost, 'ibws', 'tcp', 'raw');
 $ibws_v = new  Voice_Cmd "[Start,Stop,Speak] the ibutton weather station client";
 $ibws_v-> set_info('Connects to the ibutton weather station server');
 
-my @weather_vars = qw(TempOutdoor TempOutdoorHigh TempOutdoorLow WindSpeed WindSpeedPeak WindSpeedHigh WindDir WindDirAvg RainRate RainToday RainWeek RainMonth);
+# REF var refs        0           1               2              3         4             5             6       7          8        9         10       11        12        13
+my @weather_vars = qw(TempOutdoor TempOutdoorHigh TempOutdoorLow WindSpeed WindGustSpeed WindSpeedHigh WindDir WindAvgDir RainRate RainToday RainWeek RainMonth WindChill WindGustDir);
 # Ref dir nos   0       1                  2            3                 4      5                 6            7                  8       9                  10           11                12     13                14           15           
-my @direction=("North","North North East","North East","East North East","East","East South East","South East","South South East","South","South South West","South West","West South West","West","West North West","North West","North North West");
+my @direction=("North","North North East","North East","East North East","East","East South	 East","South East","South South East","South","South South West","South West","West South West","West","West North West","North West","North North West");
 my @directionshort=("N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW");
 
 my $freezing = new Weather_Item 'TempOutdoor', '<', 32;
 my $chill = 0;
+my $pchill = 0;
 my $chillwthresh = 3; 	# thresholds for calculating wind chill 
 my $chilltthresh = 50;
 my $i = 0 ;
@@ -101,7 +125,7 @@ if (my $data = said $ibws) {
 
 # ----------------------------------------------------------------------------
 #                               ------ COLLECT and Sort the Data -------
-   for ($i = -1; $i < 12; $i++) {			# ???????? -1 ???????????
+   for ($i = -1; $i < 14; $i++) {			# ???????? -1 ???????????
 #     print_log "Processing data at $i which is $weather_vars[$i] value of $data[$i]";
       my $key = $weather_vars[$i];			# Get the Name of the data key
 
@@ -114,9 +138,10 @@ if (my $data = said $ibws) {
         $Weather{$key} = sprintf("%.0f",$Weather{$key});
       }
 
-      if (($i == 6)||($i == 7)) {			# 6-WindDir 7-WindDirAvg
+      if (($i == 6)||($i == 7)) {			# 6-WindDir 7-WindAvgDir
+	    
         $Weather{$key} = $data[$i];
- #  print "key = $Weather{$key},data = $data[$i], i= $i \n" ;
+#       print "key = $Weather{$key},data = $data[$i], i= $i \n" ;
       }
 
       if (($i > 7) && ($i <= 11)) {			# 8-RainRate 9-RainToday 10-RainWeek 11-RainMonth
@@ -126,6 +151,10 @@ if (my $data = said $ibws) {
         $Weather{$key} = sprintf("%.2f",$Weather{$key});
       }
   }
+  
+  $Weather{WindAvgDir} = ( $Weather{WindDir} * 22.5 ); #convert to rrd degrees
+  $Weather{WindGustDir} = $Weather{WindAvgDir} ;	# Because rrd wants this and we dont have it
+#  print "Weather Dir $Weather{WindAvgDir}\n";
 # } else {
 #   print_log "Bad ibws data, $i datapoints";
 #   }
@@ -133,7 +162,7 @@ if (my $data = said $ibws) {
 # ----------------------------------------------------------------------------
 
 #  print  "Out $Weather{TempOutdoor} / Out Hi $Weather{TempOutdoorHigh} / OutLow $Weather{TempOutdoorLow} F";
-#  print  "WindDirAv $direction[$Weather{WindDirAvg}] Wind $Weather{WindSpeed} / Peak $Weather{WindSpeedPeak} mph \n";
+#  print  "WindDirAv $direction[$Weather{WindDirAvg}] Wind $Weather{WindAvgSpeed} / Peak $Weather{WindSpeedPeak} mph \n";
   
   							# Update the Web Page Data
 
@@ -141,34 +170,37 @@ if (my $data = said $ibws) {
 $Weather{Summary_Short} = "$Weather{TempOutdoor} F ";
 
 # Calculate wind chill if applicable
-# print "\n\n Calculating WindChill for $Weather{TempOutdoor} at $Weather{WindSpeed} \n";
+# print "\n\n Calculating WindChill for $Weather{TempOutdoor} at $Weather{WindAvgSpeed} \n";
 $chill = $Weather{TempOutdoor};			# assume no chill to begin with
 
 if ( $Weather{TempOutdoor} <= $chilltthresh ) {
     #print "Temp is low Enough at $Weather{TempOutdoor} \n";
 
-    if  ( $Weather{Wind} >= $chillwthresh ) {
-	#print " Wind Speed is high enough at $Weather{WindSpeed} \n";
+    if  ( $Weather{WindAvgSpeed} >= $chillwthresh ) {
+	#print " Wind Speed is high enough at $Weather{WindAvgSpeed} \n";
 	# REF OLD Formula  T(wc) = 0.0817 (3.71V**0.5 + 5.81 -0.25V) (T - 91.4) + 91.4
 	# the New Formula  = 35.74 + 0.6215T - 35.75V (**0.16) + 0.4275TV(**0.16)
-
-	$chill = ( 35.74 +  0.6215 * $Weather{TempOutdoor} -  35.75 * ( $Weather{WindSpeed} ** 0.16 ) + 0.4275 * $Weather{TempOutdoor} * ( $Weather{WindSpeed} ** 0.16 )) ;
-
+	
+	$pchill = ( 35.74 +  0.6215 * $Weather{TempOutdoor} -  35.75 * ( $Weather{WindGustSpeed} ** 0.16 ) + 0.4275 * $Weather{TempOutdoor} * ( $Weather{WindSpeedPeak} ** 0.16 )) ;
+	$chill  = ( 35.74 +  0.6215 * $Weather{TempOutdoor} -  35.75 * ( $Weather{WindAvgSpeed}     ** 0.16 ) + 0.4275 * $Weather{TempOutdoor} * ( $Weather{WindAvgSpeed}     ** 0.16 )) ;
 	# Update the chill data if we have one
 	$chill = int($chill);
+	$pchill = int($pchill);
 	# print " Wind Chill calculates to be $chill \n";
-	$Weather{Summary_Short} = "$Weather{TempOutdoor} F wc $chill F";
+	$Weather{Summary_Short} = "$Weather{TempOutdoor} F ($chill/$pchill F)";
 
     }
 }
 
+$Weather{WindChill} = $chill;
 
 
-$Weather{Wind} = " $Weather{WindSpeed}/$Weather{WindSpeedPeak} $directionshort[$Weather{WindDirAvg}]";
-
-
+#$Weather{WindAvgDir}=$Weather{WindDir};
+$Weather{Wind} = " $Weather{WindAvgSpeed}/$Weather{WindSpeedHigh} $directionshort[$Weather{WindDir}]";
 
 &tk_entry("temp",\$Weather{TempOutdoor},"Wind ",\$Weather{Wind}, "Wchill ",\$chill );
+
+
   
 if ($state = said $ibws_v) {
   print_log "${state}ing the ibutton weather station client";
@@ -185,7 +217,7 @@ if ($state = said $ibws_v) {
 
   } elsif ($state eq 'Speak') {
     my $msg = "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
-    $msg .= "Current Wind Speed is $Weather{WindSpeed} miles per hour\nGusts of $Weather{WindSpeedPeak}\nHigh of $Weather{WindSpeedHigh}.\nWind Direction is $direction[$Weather{WindDir}]\nWind direction average $direction[$Weather{WindDirAvg}].\n";
+    $msg .= "Current Wind Speed is $Weather{WindAvgSpeed} miles per hour\nGusts of $Weather{WindSpeedPeak}\nHigh of $Weather{WindSpeedHigh}.\nWind Direction is $direction[$Weather{WindDir}]\nWind direction average $direction[$Weather{WindAvgDir}].\n";
 #   $msg .= "The Current Rainfall Rate is $Weather{RainRate} inches per hour.\nToday's total rainfall is $Weather{RainToday} inches\n$Weather{RainWeek} inches for the week\n$Weather{RainMonth} inches for the month.\n";
     if (state_now $freezing) {
       $msg .= "Temperature is below freezing.";

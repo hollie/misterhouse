@@ -1,8 +1,8 @@
 # Category=Internet
 
 #@ This module allows MisterHouse to connect to AOL Instant Messenger,
-#@ MSN Messenger, and/or Jabber. Once connected, you can type any
-#@ normal mh commands.  You can also type
+#@ MSN Messenger (currently broken due to a MS change in protocols), and/or Jabber.
+#@ Once connected, you can type any normal mh commands.  You can also type
 #@  find: xyz to search for command xyz, or
 #@  log: xyz to start sending log data with filter xyz.
 #@  Example filters are print, speak, play, speak|play, all, and stop (to stop).

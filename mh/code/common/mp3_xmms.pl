@@ -53,8 +53,10 @@
  from mp3_control_xmms.pl to mp3_xmms.pl and made more generic, so it can 
  be included in the common code directory.  
 
- Requires this package:  xmms-devel
+ V1.7 - 28 Feb 2004 - Pete Flaherty added mp3_playing to detect running state
 
+ Requires this package:  xmms-devel
+'
 =cut
 
 use Xmms;
@@ -224,6 +226,11 @@ sub mp3_get_output_timestr {
         # return the number of songs in the current playlist 
 sub mp3_get_playlist_length { 
     return $remote->get_playlist_length();
+}
+
+        # return if the player is running  
+sub mp3_playing { 
+    return $remote->is_playing();
 }
 
 sub mp3_running {

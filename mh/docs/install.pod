@@ -87,6 +87,8 @@ This program works ok:  http://misterhouse.net/public/unzip.exe
      dir and run mhe instead.  Note: one of the above files are still required, 
      as they have the documentation and support files.
 
+ - If you are running rh 8 or rh 9, you may see a memory leak which you can avoid with
+   by setting this env var: export LANG=C   (set in the mhl script)
 
 =head2 Tips
 
@@ -355,6 +357,7 @@ Making sure that /usr/bin/esdcat points to the right spot for the esdcat program
 David L. reports that there is a different engine for festival called MBROLA at
 http://tcts.fpms.ac.be/synthesis/mbrola.html 
 that has a very nice US english male and female voice.
+Other source for festival voices can be found here:  http://festvox.org/contrib.html
 
 Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.
 

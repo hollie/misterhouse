@@ -1,11 +1,13 @@
 # Category=Internet
 
 #@ This code will periodically scan and announce when you 
-#@ receive new email.   Set the mh.ini net_mail_account* parms
-#@ for the accounts to monitor.  This code also has some test 
-#@ examples for sending email.
+#@ receive new email. This code also has some test examples for sending email.
 
-# Note: to enable this code, fill in the net_mail parms in the mh.ini or mh.private.ini files
+#@ Point to your accounts with mh.ini net_mail_account* parms.
+#@ You can customize the parms to have other accounts besides the _account_1_ settings.
+#@ For example you can replace the '_account_1_' string with '_my_home_email_'.
+#@ It's a nice way to get MH to announce 'my home email has 3 new messages from ...'
+#@ rather than the gerneric 'account 1 has 3 new messages from ...'
 
                                 # Example on how to send an email command
                                 # - This string can be in either the subject or the body of the email
@@ -79,9 +81,9 @@ $p_get_email = new Process_Item;
 $v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a second and I will check for new email');
 $v_recent_email-> set_info('Download and summarize new email headers');
 if (said $v_recent_email or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
-                             new_minute 10 and &net_connect_check)) { 
+                             new_minute $config_parms{net_mail_scan_interval} and &net_connect_check)) { 
     set $p_get_email 'get_email -quiet';
-    set $p_get_email 'get_email -debug' if $Debug{mail};
+    set $p_get_email 'get_email -debug' if $Debug{email};
     start $p_get_email;
 }
 

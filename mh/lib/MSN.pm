@@ -42,7 +42,7 @@ my (@Calls, $Handle, $Host, $TrID, $Port, $Password, $CustomName, %Ignore, $Stat
 $TrID = 0;
 $Port = 1863;
 
-#$Debug = 1;
+$Debug = 1;
 
 my $Select = IO::Select->new();
 

@@ -1,4 +1,5 @@
 =begin comment
+      $$self{cool_start} = $::Time;
 
 Initial version created by Chris Witte <cwitte@xmlhq.com>
 Expanded for TR40 by Kirk Bauer <kirk@kaybee.org>
@@ -299,6 +300,16 @@ sub _process_off_times {
          }
       }
    }
+}
+
+sub get_system_state {
+   my ($self) = @_;
+   if ($$self{heat_start} and ($$self{heat_start} < $::Time)) {
+      return 'heat';
+   } elsif ($$self{cool_start} and ($$self{cool_start} < $::Time)) {
+      return 'cool';
+   }
+   return 'off';
 }
 
 sub reset_run_times {
@@ -618,7 +629,7 @@ sub _parse_data {
       } elsif ($name eq 'O') {
          # Ignoring the originator ID... since I only have one RS232 device
       } elsif ($name eq 'Z') {
-         # No current support for multi-zone ystems...
+         # No current support for multi-zone systems...
       } elsif ($name eq 'T') {
          if ($$self{'temp'} and ($$self{'temp'} != $val)) {
             $self->set_receive('temp_change');
@@ -721,6 +732,7 @@ sub _parse_data {
          }
          $$self{'schedule_mode'} = $val;
       } elsif ($name eq 'SPH') {
+         print "Examining SPH: $val, $$self{heat_sp_pending}, $$self{heat_sp}, $$self{vacation}\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
          if ($val == 66) {
             $vacation_sph = 1;
          } elsif ($$self{'heat_sp'} == 66) {
@@ -796,9 +808,11 @@ sub _parse_data {
       $self->set_receive('no_vacation');
       $$self{'vacation'} = 'no_vacation';
    } elsif ($vacation_spc) {
-      $self->set_receive('cool_sp_change') unless ($last_sph == $$self{'heat_sp'});
+      print "Vacation_SPC set, $last_spc, $$self{'cool_sp'}))";
+      $self->set_receive('cool_sp_change') unless ($last_spc and ($last_spc == $$self{'cool_sp'}));
    } elsif ($vacation_sph) {
-      $self->set_receive('heat_sp_change') unless ($last_spc == $$self{'cool_sp'});
+      print "Vacation_SPC set, $last_sph, $$self{'heat_sp'}))";
+      $self->set_receive('heat_sp_change') unless ($last_sph and ($last_sph == $$self{'heat_sp'}));
    }
 }
 

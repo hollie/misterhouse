@@ -376,18 +376,19 @@ sub check_for_data
 sub send_plc
 {
 	# Make sure we are passed a pkt
-	return unless ( 2 == @_ ) ;
-	my ($self, $cmd) = @_;
+	return unless ( 3 == @_ );
+	
+	my ($self, $cmd, $module_type) = @_;
 
-    if ($::config_parms{Lynx10PLC_port} =~ 'proxy') {
-    	print "using proxy, calling proxy_send\n" if $main::Debug{proxy};
-        &main::proxy_send('Lynx10PLC', 'lynx10plc', 'send_plc', $cmd);
-        return;
-    }
+   	if ($::config_parms{Lynx10PLC_port} =~ 'proxy') {
+		print "using proxy, calling proxy_send\n" if $main::Debug{proxy};
+		&main::proxy_send('Lynx10PLC', 'lynx10plc', 'send_plc', $cmd, $module_type);
+		return;
+	}
 
-    debugPrint ("--> $cmd") if $main::Debug{lynx10plc};
-    
-	return unless my $payld = &cmd2payld($cmd);
+	debugPrint ("--> $cmd") if $main::Debug{lynx10plc};
+
+	return unless my $payld = &cmd2payld($cmd, $module_type);
 
 	&send(NETID_X10, $payld);
 }
@@ -407,9 +408,11 @@ sub send_plc
 #################################################################
 sub cmd2payld
 {
-	return undef unless ( 1 == @_ );
+	return undef unless ( 2 == @_ );
 
-	my ($cmd) = @_;
+	my ($cmd, $module_type) = @_;
+
+	my $dim_intervals = ($module_type =~ /(lm14|preset)/i) ? 64 : 20;
 
 	# Incoming string looks like this:  XA1AK
 	my ($house, $device, $code) = $cmd =~ /X(\S)(\S)(\S*)/;
@@ -457,14 +460,14 @@ sub cmd2payld
 	# Command "-#" is X10_DIM
 	elsif ($code =~ /^\S-(\d+)$/) 
 	{
-		my $dim = int(($1 / 100) * 64);
+		my $dim = int(($1 / 100) * $dim_intervals);
 		$payld = pack('C5', X10_DIM, $hc, $uc, X10_EOL, $dim);
 	}
 
 	# Command "+#" is X10_BRIGHT
 	elsif ($code =~ /^\S\+(\d+)$/) 
 	{
-		my $dim = int(($1 / 100) * 64);
+		my $dim = int(($1 / 100) * $dim_intervals);
 		$payld = pack('C5', X10_BRIGHT, $hc, $uc, X10_EOL, $dim);
 	}
 

@@ -18,8 +18,10 @@ sub reset {
 
 sub new {
     my ($class, $id, $interface, $type) = @_;
-    my $self = {};
-    $$self{state} = '';     # Only items with state defined are controlable from web interface
+
+#   my $self = {};
+#   $$self{state} = '';     # Only items with state defined are controlable from web interface
+    my $self  = $class->Generic_Item::new();
 
     bless $self, $class;
 
@@ -149,6 +151,15 @@ sub new {
     return $self;
 }
 
+
+sub property_changed {
+    my ($self, $property, $new_value, $old_value) = @_;
+#   print "x10 s=$self: property_changed: $property ='$new_value' (was '$old_value')\n";
+    if ($property eq 'state') {
+	&set_x10_level($self, $state);
+    }
+}
+
                                 # Check for toggle data
 sub set {
     my ($self, $state, $set_by) = @_;
@@ -182,8 +193,16 @@ sub set {
     }
 
     $state = "+$state" if $state =~ /^\d+$/; # In case someone trys a state of 30 instead of +30.
-    &set_x10_level($self, $state);
+#   &set_x10_level($self, $state);
     $self->SUPER::set($state, $set_by);
+
+                                # Some presetable devices, like the 6381, will remain addressed
+                                # after a preset command and will and accept subsequent unrelated
+                                # commands unless they are set to ON.
+    if ($self->{type} =~ /preset2/i and $state =~ /^(\d+)\%/) {
+	&Serial_Item::send_x10_data($self->{interface}, 'X' . $self->{x10_id}) ;
+	&Serial_Item::send_x10_data($self->{interface}, 'X' . substr($self->{x10_id},1,1) . 'J') ;
+    }
 
                                 # Set objects that match House Code commands
     if (length($self->{x10_id}) == 2) {
@@ -222,7 +241,7 @@ sub set_x10_level {
         $level = undef if $state eq 'off' and 
           !($self->{type} and $self->{type} =~ /(lm14|preset)/i);
     }
-#   print "dbx1 l=$level s=$state\n\n";
+#   print "db setting level for $self $$self{object_name} state=$state level=$level\n";
     $$self{level} = $level;
 }        
 
@@ -1049,6 +1068,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.42  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.41  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

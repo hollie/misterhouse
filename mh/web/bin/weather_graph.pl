@@ -11,7 +11,10 @@
 #--------------------------------------------------------------------
 #   DATE   REVISION    AUTHOR	        DESCRIPTION
 #--------------------------------------------------------------------
-# 26/01/04   1.0   Dominique Benoliel	Creation script
+# 26/01/04   1.0   Dominique Benoliel	
+# - Creation script
+# 12/03/04   1.1   Dominique Benoliel
+# - Change html tag, alias to rrd use time() function
 #####################################################################
 
 #==============================================================================
@@ -70,7 +73,8 @@ unless ($config_parms{weather_graph_skip} =~ /$typegraph/) {
      $j=0;
      $html .= "\n" . qq|<A NAME="$periodgraph->[0]"></A><BR>|;
      $html .= "\n<IMG SRC = ";
-     $html .= "\'/weather_graph/weather_" . $typegraph . "_" . $periodgraph->[0] . ".png?" . int(100000*rand);
+#    $html .= "\'/rrd/weather_" . $typegraph . "_" . $periodgraph->[0] . ".png?" . int(100000*rand) . "'>\n";
+     $html .= "\'/rrd/weather_" . $typegraph . "_" . $periodgraph->[0] . ".png?".time().'\' border=0><BR><BR>';
     }
   }
 }

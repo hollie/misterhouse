@@ -328,31 +328,32 @@ print "Pos $pos data $db\n";
 	$learn_timeout = &main::get_tickcount + 2000;
 }
 
+
 sub get_version {
-	my ($firmware_minor, $firmware_major, $protocol_minor, $protocol_major, $firmware_day, $firmware_month, $firmware_year);
-	print "\nGetting UIRT Info...\n";
-	if ($^O eq 'MSWin32') {
-		my $UirtInfo = Win32::API::Struct->new('UUINFO');
-		if (UUIRTGetUUIRTInfo($DrvHandle, $UirtInfo)) {
-			$firmware_major = $UirtInfo->{fwVersion}>>8;
-			$firmware_minor = $UirtInfo->{fwVersion}&0xff;
-			$protocol_major = $UirtInfo->{protVersion}>>8;
-			$$protocol_minor = $UirtInfo->{protVersion}&0xff;
-			$firmware_month = $UirtInfo->{fwDateMonth};
-			$firmware_day = $UirtInfo->{fwDateDay};
-			$firmware_year = $UirtInfo->{fwDateYear}+2000;
-		} else {
-			PrintError();
-		}
-	} else {
-		usb_uirt_send(0x23);
-		my $ret = get_reponse(8);
-		($firmware_minor, $firmware_major, $protocol_minor, $protocol_major, $firmware_day, $firmware_month, $firmware_year)
-			= unpack 'C*', $ret;
-	}
-	printf "USB_UIRT Protocol Version %d.%d\n", $protocol_major, $protocol_minor;
-	printf "USB_UIRT Firmware Version %d.%d  Date %02d/%02d/20%02d\n", 
-		$firmware_major, $firmware_minor, $firmware_month, $firmware_day, $firmware_year;
+    my ($firmware_minor, $firmware_major, $protocol_minor, $protocol_major, $firmware_day, $firmware_month, $firmware_year);
+    print "\nGetting UIRT Info...\n";
+    if ($^O eq 'MSWin32') {
+        my $UirtInfo = Win32::API::Struct->new('UUINFO');
+        if (UUIRTGetUUIRTInfo($DrvHandle, $UirtInfo)) {
+            $firmware_major = $UirtInfo->{fwVersion}>>8;
+            $firmware_minor = $UirtInfo->{fwVersion}&0xff;
+            $protocol_major = $UirtInfo->{protVersion}>>8;
+            $$protocol_minor = $UirtInfo->{protVersion}&0xff;
+            $firmware_month = $UirtInfo->{fwDateMonth};
+            $firmware_day = $UirtInfo->{fwDateDay};
+            $firmware_year = $UirtInfo->{fwDateYear};        # Bruce update this line for correct display on win32 platforms
+        } else {
+	    PrintError();
+        }
+    } else {
+	usb_uirt_send(0x23);
+	my $ret = get_reponse(8);
+	($firmware_minor, $firmware_major, $protocol_minor, $protocol_major, $firmware_day, $firmware_month, $firmware_year)
+	    = unpack 'C*', $ret;
+    }
+    printf "USB_UIRT Protocol Version %d.%d\n", $protocol_major, $protocol_minor;
+    printf "USB_UIRT Firmware Version %d.%d  Date %02d/%02d/20%02d\n", 
+          $firmware_major, $firmware_minor, $firmware_month, $firmware_day, $firmware_year;
 }
 
 sub get_config {

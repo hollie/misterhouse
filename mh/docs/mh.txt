@@ -663,6 +663,8 @@ DESCRIPTION
                    set('on~2~random:on;repeat:on;play');
 
                 See mh/code/examples/test_states_stacked.pl for a complete example.
+                Note, this is turnded off by default for Serial_Item objects.
+                To enable, run:   $object -> state_overload(ON);
                           
              hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.
 
@@ -1730,7 +1732,8 @@ DESCRIPTION
                 $period is the timer period in seconds
                 $action (optional) is the code (either a string or a code
                          reference) to run when the timer expires
-                $cycles (optional) is how many times to repeat the timer
+                $cycles (optional) is how many times to repeat the timer.  
+                         Set to -1 to repeat forever.
 
             unset      : Unset the timer.  'set $my_timer 0' has the same effect.
 
@@ -4681,12 +4684,18 @@ NOTES
 
       MainLoop_pre   => Run before user code 
       MainLoop_post  => Run before user code 
+      Serial_data    => Run on any incoming serial data
       Serial_match   => Run when incoming serial data matches and object
       State_change   => Run when objects change states
       Play_pre       => Run before playing wav files
       Play_post      => Run after  playing wav files
+      Speak_parms    => Run before speaking text files, so you can set speak parms
       Speak_pre      => Run before speaking text files
       Speak_post     => Run after  speaking text files
+      Log            => Run on all print_log, display, speak, and play calls.
+      Reload_pre     => Run before reload
+      Reload_post    => Run after  reload
+      Exit           => Run on exit
 
     For more examples on code hooks, see mh/code/bruce/test_code_hooks.pl
 

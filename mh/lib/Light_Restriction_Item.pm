@@ -113,6 +113,7 @@ sub _check_values {
    if ($main::Startup) {
       foreach (@CheckStartup) {
          if ($$_{'attached_object'}) {
+            &::print_log("$$_{object_name}: Checking attached object after startup") if $main::Debug{occupancy};
             $_->_check_watched_value($$_{'attached_object'}->state());
          }
       }
@@ -142,6 +143,7 @@ sub _check_watched_value ($$) {
          foreach (@{$$self{'ok_values'}}) {
             if ($$self{'last_watched_val'} eq $_) {
                # New scalar value is one of the OK ones
+               &::print_log("$$self{object_name}: New value $value matches ok values: light_ok") if $main::Debug{occupancy};
                unless ($self->state() eq 'light_ok') {
                   $self->SUPER::set('light_ok');
                }
@@ -151,11 +153,13 @@ sub _check_watched_value ($$) {
       } else {
          if ($$self{'last_watched_val'}) {
             unless ($self->state() eq 'light_ok') {
+               &::print_log("$$self{object_name}: New value $value is true: light_ok") if $main::Debug{occupancy};
                $self->SUPER::set('light_ok');
             }
             return;
          }
       }
+      &::print_log("$$self{object_name}: no_light") if $main::Debug{occupancy};
       unless ($self->state() eq 'no_light') {
          $self->SUPER::set('no_light');
       }

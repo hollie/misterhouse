@@ -35,7 +35,10 @@ $v_barcode_mode-> tie_event('print_log "Scanner set to $state mode"');
 
 $barcode_scan   = new Generic_Item;
 $barcode_scan  -> set_authority('anyone');
-#&tk_entry('Barcode', $barcode_scan);
+$barcode_scan  -> set_casesensitive;    # Barcode information is case-sensitive
+
+&tk_entry('Barcode', $barcode_scan);
+
                                 # Scan starts with Alt-F10
 $MW->bind('<Key-F10>', sub {$Tk_objects{entry}{$barcode_scan}->focus()}) if $MW and $Reload;
 
@@ -61,7 +64,43 @@ if ($state = state_now $barcode_scan) {
         set $barcode_data "$type $code $isbn"; # Feed back upc and isbn
     }
     else {
-        print_log "Barcode data: $type $code";
+	      # CheckDigit may not have been transmitted for UPE types
+	if ($type eq 'UPE' and
+            $code =~ /^(\d)(\d)(\d)(\d)(\d)(\d)(\d)$/) {
+              # only do this if missing the CheckDigit (7 digits instead of 8)
+              # some 'newer' scanners have been "fixed" via a software upgrade
+
+#            print_log "UPC-E Digits : SystemNumber=($1) -- a=($2) b=($3) c=($4) d=($5) e=($6) f=($7)";
+
+        # This CheckDigit computation was derived from converting UPC-E to UPC-A
+        # (forumla is different based upon the 7th digit)
+        # then computing the CheckDigit for UPC-A
+        # UPC-A CheckDigit = 10 - ( [((Add Even-positioned Digits)*3) + (Add Odd-positioned Digits)] % 10 )
+        #
+        # the formula was then re-written to remove the extra zeros that the
+        # UPC-E compression added.
+        #
+        # So, the net result is the computation of the CheckDigit without converting to UPC-A
+        #
+        # The "10 - ($cc % 10)" was common code, so it was separated out.       
+
+                        # Compute the CheckDigit (Part 1)
+	    my $cc = 0;
+	    if ($7 <= 2) {
+		$cc = (($1+$3+$4+$6) * 3) + ($2+$7+$5);
+	    } elsif ($7 == 3) {
+		$cc = (($1+$3+$6) * 3) + ($2+$4+$5);
+	    } elsif ($7 == 4) {
+		$cc = (($1+$3+$5+$6) * 3) + ($2+$4);
+	    } else {
+		$cc = (($1+$3+$5+$7) * 3) + ($2+$4+$6);
+	    }
+                        # Compute the CheckDigit (Part 2)
+	    $cc = 10 - ($cc % 10);
+#           print_log "UPE CheckDigit=($cc)";
+	    $code .= $cc;
+	} # only if missing the CheckDigit
+	print_log "Barcode data: $type $code";
         set $barcode_data "$type $code"; # This is what get used elsewhere (e.g. barcode_web.pl)
     }
 }
@@ -78,12 +117,12 @@ sub barcode_decode {
 
                                 # Algorithm detailed at http://www.bisg.org/algorithms.html
 sub ISBN_checksum {
-	my @digits = split //, $_[0];
-	my $sum = 0;		
-	for (2..10) {
-		$sum += $_ * (pop @digits);
+        my @digits = split //, $_[0];
+        my $sum = 0;            
+        for (2..10) {
+                $sum += $_ * (pop @digits);
     }
-	my $checksum = 11 - $sum % 11;
+        my $checksum = 11 - $sum % 11;
     $checksum = 'X' if $checksum == 10;
     return $checksum;
 }

@@ -1089,6 +1089,8 @@ sub scan {
 
     my @raw_ids = $self->FindDevices( %ARGS );
 
+    print "ibutton Connection.pm scan: fc=$family_code s=$serial id=@raw_ids\n" if $self->{ DEBUG };
+
     foreach my $i (@raw_ids) {
 	my $j;
 	foreach my $k ( @{$i}[0,6,5,4,3,2,1,7] ) {

@@ -944,6 +944,8 @@ sub main::time_date_stamp {
 # 16:  04/14/97  2:28:00 PM
 # 17:  2001-04-09 14:05:16  (POSIX strftime format)
 # 18:  20011201 (i.e. YYYYMMDD)
+# 19:  Sun, 06 Nov 1994 08:49:37 GMT  (RFC 822 format, needed by web servers)
+
     my($style, $time_or_file) = @_;
     my $time;
     if ($time_or_file) {
@@ -961,7 +963,9 @@ sub main::time_date_stamp {
         $time = time;
     }
 
-    my($sec, $min, $hour, $mday, $mon, $year, $wday) = (localtime($time))[0,1,2,3,4,5,6];
+    my @time_data = ($style == 19) ? gmtime($time) : localtime($time);
+    my($sec, $min, $hour, $mday, $mon, $year, $wday) = @time_data[0,1,2,3,4,5,6];
+
     my($day, $day_long, $month, $month_long, $year_full, $time_date_stamp, $time_ampm, $ampm);
 
     $day        = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[$wday];
@@ -995,6 +999,8 @@ sub main::time_date_stamp {
 
     if ($style == 1) {$time_date_stamp = sprintf("%s, %02d/%02d/$year_format  %02d:%02d %s",
                                $day_long, @day_month, $year, $hour, $min, $ampm) }
+    elsif ($style == 19) {$time_date_stamp = sprintf("%s, %2d %s %4d %02d:%02d:%02d GMT",
+                               $day, $mday, $month, $year_full, $hour, $min, $sec) }
     elsif ($style == 2) {$time_date_stamp = sprintf("%s %s %02d %02d:%02d %s",
                                $day_long, $month, $mday, $hour, $min, $year_full) }
     elsif ($style == 3) {$time_date_stamp = sprintf("%s, %s %02d at %2d %s",
@@ -1223,6 +1229,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.68  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.67  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

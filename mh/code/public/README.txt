@@ -173,6 +173,15 @@ mp3_control_xmms.pl, mp3_playlist_xmms.pl
 mirror_directory*
  - Larry Roudebush's code mirror directories.
  
+monitor_dj.pl
+ - An example adjust volume on winamp whenever the mh TTS is speaking.
+
+monitor_im_status.pl
+ - Steve Switzer's example of monitoring an im buddy status.
+
+monitor_mh.pl
+ - An example of on mh box monitoring another and warning when it goes down.
+
 monitor_sump_pump.pl
  - Craig's code to monitor his sump pump
 
@@ -421,6 +430,9 @@ winamp_control.pl
 winlirc_clietn.pl
  - Robert Rozman's example of reading winlirc IR data: http://winlirc.sourceforge.net/
 
+wintvcapture.pl
+ - Bazyle Butcher's example using sendkeys to the WinTV program.
+
 wintvpvr_grid.pl
  - Jeff Ferris's code for controlling a Hauppage WinTV PVR USB to record TV
    shows using the tv_grid web pages.
@@ -429,6 +441,9 @@ wintv_radio.pl
  - Mickey Argo's code for controling the radio on a wintv card. 
    Also see mh/web/public/wintv_radio.html
 
+
+x10_battery_charger.pl
+ - An example of using X10 to control a battery charger. 
 
 x10_power_reset.pl
  - Example of how to reset X10 items after a power reset

@@ -73,9 +73,9 @@ sub initialize
 {
 	my ($self) = @_;
    $$self{m_write} = 0;
-	$$self{m_timeout} = new Timer() if $$self{m_timeout} eq '';
+	$$self{m_timeout} = new Timer() unless $$self{m_timeout};
 	$$self{m_timeout}->set(2*60,$self);
-	$$self{m_timerCheck} = new Timer() if $$self{m_timerCheck} eq '';
+	$$self{m_timerCheck} = new Timer() unless $$self{m_timerCheck};
 	$$self{m_timerCheck}->set(24*60*60,$self);
    # Default to a print_log message after 24 hours of inactivity
    $$self{'inactivity_time'} = 24*3600;

@@ -245,6 +245,8 @@ Usage:
       To enable the counting of people in each room:
          $om->room_counts(1);
 
+      NOTE: At this time, I no longer use room counts
+
       IGNORE TIME
 
       Next, I have many Hawkeye motion detectors that are very close together.
@@ -342,11 +344,13 @@ Usage:
          is switched back to "occupied".
          2) Motion from these detectors will never cause predictions nor
          will it remove people from surrounding rooms.
-         3) When a room IS switched back to "occupied" because of one of
-         these sensors, the occupancy count is never increased.  What
-         this means is that the room with the most stale presence has
-         its room count decreased (or simply marked 'vacant' if not
-         using room counts) to account for this new presence.
+         3) When a room IS switched back to "occupied" because of one of these 
+         sensors, the occupancy count is never increased (if you are not using 
+         room counts, this will only happen if there are too many unique rooms 
+         occupied as defined by expected_occupancy).  What this means is that 
+         the room with the most stale presence has its room count decreased 
+         (or simply marked 'vacant' if not using room counts) to account for 
+         this new presence.
 
       You enable this only for the motion detectors you want largely to be
       ignored by the system:
@@ -430,9 +434,10 @@ Usage:
       the people initially.  Besides, errors pretty much always cause too many
       people to be present, not too few.
 
-      So, if you set a maximum here, if too many people are present (again, I
-      recommend enabling room counts with this feature) in the house, then the
-      "stalest" presence will be removed.  
+      So, if you set a maximum here, if too many people are present in the
+      house, then the "stalest" presence will be removed.  Remember, if you
+      are not using room counts (which I don't currently), this will actually
+      just limit the number of unique rooms containing people.
 
          $om->max_occupancy(3);
 
@@ -553,13 +558,14 @@ Usage:
       Just call occupancy_expire() to set an expiration time on any of your
       presence objects (as described in Presence_Monitor.pm).  
 
-      But, if you are using room counts, there can be another problem.  Start
-      with two people in one room.  Now one person goes into an adjoining room.
-      Then the other person goes into the other room.  The problem is that, by 
-      default, the second person will never be moved into the other room.  
-      That's what you can change here -- set an expiration time after which
-      presence will be moved into another room when it detects activity, even
-      if the other room already has one or more people in it.  
+      But, if you are using room counts (or the bounce-prevention code
+      described next), there can be another problem.  Start with two people in
+      one room.  Now one person goes into an adjoining room.  Then the other
+      person also goes into the other room.  The problem is that, by default,
+      the second person will never be moved into the other room.  That's what
+      you can change here -- set an expiration time after which presence will
+      be moved into another room when it detects activity, even if the other
+      room already has one or more people in it.  
 
       The first argument is one of the sensors in the room, and the second
       argument is the expiration time, in seconds.  Be sure that you have
@@ -574,6 +580,36 @@ Usage:
       Remember -- in order for this to affect anything, the presence in one
       room has to be older than the specified time (which means there has been
       no motion detected) AND there has to then be activity in an adjacent room.
+
+      PREVENT BOUNCES
+
+      This option pretty much only makes sense to me when you are NOT using
+      room counts, which I do not use at this time.  Basically, without room
+      counts, there is no way, by default, that two adjoining rooms can both
+      have occupancy at the same time (unless there is a closed door between
+      them and you activate that restriction).
+
+      In my house, the ktichen and family room are adjoining and if one person
+      is in each room, the occupancy will keep bouncing back and forth as 
+      motion detectors are triggered.  This is fine if you have a significantly
+      lengthy delay before the lights turn off, but in my case I have lights or
+      ceiling fans that may turn on only after a room has been continuously
+      occupied for a certain amount of time.  In my case, then, I would like
+      both rooms to be able to be occupied at the same time.  So, what you can
+      do is this:
+
+         $om->prevent_bounces($sensor_room1, $sensor_root2, 60, 2);
+
+      Where $sensor_room1 is any sensor (Motion_Item or Door_Item) that is in one
+      of the rooms, and $sensor_room2 is any sensor that is in the other room.  
+      The rooms must be adjoining (or it wouldn't make much sense to use this
+      feature).  This says that if presence leaves either of the rooms and moves
+      to the other room two times within 60 seconds, then presence should be 
+      allowed in both rooms at the same time.  Also note that this will NEVER 
+      cause the expected occupancy count (which, when not using room counts, is 
+      the expected unique rooms with presence) to be exceeded and will never 
+      cause presence to be taken from elsewhere in the home to account for the 
+      presence in adjoining rooms.
 
 Examples:
    I want to provide some example scenarios here from my house to show how
@@ -983,7 +1019,14 @@ sub check_maintain {
       }
    }
    if ($maintain) {
-      $self->remove_oldest_person();
+      if ($self->{room_counts}) {
+         # If using room counts, always remove one other person from house
+         $self->remove_oldest_person();
+      } else {
+         # Otherwise, remove oldest person only if there are too many unique
+         # rooms occupied
+         $self->reduce_occupancy_count($$self{m_expected_occupancy});
+      }
    }
    return 1;
 }
@@ -1122,6 +1165,59 @@ sub determine_new_count {
    return ($$self{m_objects}{$p_obj}{count} + $presence_value);
 }
 
+# Return 1 to allow the presence to be decreased/removed
+# Return 0 if the decrease has occurred too many times in past X seconds
+sub check_decrease_count {
+   my ($self, $p_obj, $source_edges) = @_;
+   unless ($$self{m_bounce_prevent} and 
+           $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"} and
+           $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"} and
+           ($$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'time'} > 0) and 
+           ($$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'} > 0)) {
+      return 1;
+   }
+   if ($$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[0] == $::Time) {
+      # Same exact time, assume it is another object in the same room
+      return 1;
+   }
+   for (my $i = ($$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'} - 1); $i > 0; $i--) {
+      $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[$i] = $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[$i - 1];
+   }
+   &::print_log("Checking for bouncing in $$self{m_objects}{$p_obj}{object}{object_name} [source @{$source_edges}]: " . $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[$$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'} - 1] . ', ' . ($::Time - $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'time'})) if $main::Debug{occupancy};
+   if ($$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[$$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'} - 1] > ($::Time - $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'time'})) {
+      &::print_log("Checking for bouncing: expected_occupancy=$$self{m_expected_occupancy}, people=$$self{m_people}") if $main::Debug{occupancy};
+      if (($$self{m_expected_occupancy} < 0) or ($$self{m_people} < $$self{m_expected_occupancy})) {
+         # Bounced too many times in the specified amount of time... and we have room to expand without exceeding the expected occupancy
+         foreach (keys %{$$self{m_bounce_prevent}}) {
+            if ($$self{m_bounce_prevent}{$_}{"@{$$self{m_objects}{$p_obj}{edges}}"}) {
+               for (my $i = 0; $i < $$self{m_bounce_prevent}{$_}{"@{$$self{m_objects}{$p_obj}{edges}}"}{'count'}; $i++) {
+                  $$self{m_bounce_prevent}{$_}{"@{$$self{m_objects}{$p_obj}{edges}}"}{'array'}[$i] = 0;
+               }
+            }
+         }
+         for (my $i = 0; $i < $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'}; $i++) {
+            $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[$i] = 0;
+         }
+         &::print_log("Preventing bouncing by leaving presence in $$self{m_objects}{$p_obj}{object}{object_name}: @{$source_edges}") if $main::Debug{occupancy};
+         return 0;
+      }
+   }
+   $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[0] = $::Time;
+   return 1;
+}
+
+sub prevent_bounces {
+   my ($self, $p_obj1, $p_obj2, $p_time, $p_count) = @_;
+	$$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{'time'} = $p_time;
+	$$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{'time'} = $p_time;
+	$$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{'count'} = $p_count;
+	$$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{'count'} = $p_count;
+   for (my $i = 0; $i < $p_count; $i++) {
+	   $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{'array'}[$i] = 0;
+	   $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{'array'}[$i] = 0;
+   }
+}
+
 sub calc_presence
 {
 	my ($self, $p_obj, $presence_value) = @_;
@@ -1160,6 +1256,7 @@ sub calc_presence
 	#decrement any connected nodes
    my $edge;
    my $partial = undef;
+   my %decrease_prevented;
    foreach my $obj (keys %{$$self{m_objects}}) {
 #		&::print_log("checking: " . $$self{m_objects}{$obj}{object}->{object_name});
       if (($edge = $self->compare_array_elements(\@{$$self{m_objects}{$p_obj}{edges}}, \@{$$self{m_objects}{$obj}{edges}})) and (not $self->compare_array(\@{$$self{m_objects}{$p_obj}{edges}}, \@{$$self{m_objects}{$obj}{edges}}))) {
@@ -1175,16 +1272,20 @@ sub calc_presence
             unless ($$self{door_edges} and $$self{door_edges}{$edge} and $self->was_door_closed($edge, @{$$self{m_objects}{$obj}{edges}})) {
                &::print_log("Object " . $$self{m_objects}{$obj}{object}->{object_name} . " no door edge restriction active") if $main::Debug{occupancy};
 	            if (($$self{m_objects}{$p_obj}{count} < 1) or ($$self{m_objects}{$p_obj}{count} eq '') or
-                   ($self->{room_counts} and $self->is_presence_too_old(@{$$self{m_objects}{$obj}{edges}})) or
+                   $self->is_presence_too_old(@{$$self{m_objects}{$obj}{edges}}) or
                    ($$self{door_edges} and $$self{door_edges}{$edge} and 
                     $self->was_door_just_closed($edge, @{$$self{m_objects}{$obj}{edges}}))) {
 	               # only decrement if first entering the node, or if this is a door 
                   # edge and the door was just and there has not been recent activity
                   # inside the other room (was_door_just_closed() tells us that)
-                  if ($self->{room_counts}) {
-                     $$self{m_objects}{$obj}{count}--;
+                  if ((not $decrease_prevented{"@{$$self{m_objects}{$obj}{edges}}"}) and $self->check_decrease_count($obj, \@{$$self{m_objects}{$p_obj}{edges}})) {
+                     if ($self->{room_counts}) {
+                        $$self{m_objects}{$obj}{count}--;
+                     } else {
+                        $$self{m_objects}{$obj}{count} = 0;
+                     }
                   } else {
-                     $$self{m_objects}{$obj}{count} = 0;
+                     $decrease_prevented{"@{$$self{m_objects}{$obj}{edges}}"}++;
                   }
                   unless ($rooms_seen{"@{$$self{m_objects}{$obj}{edges}}"}) {
                      $dec_count++;

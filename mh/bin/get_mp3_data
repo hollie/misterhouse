@@ -114,9 +114,8 @@ sub read_mp3_dir {
                 push @{$data[$i]}, $tag_data[$i];
                 $counts{$i}++ if $tag_data[$i];
             }
-	    print "db1 f=$file -> ";
-	    $file =~ s|/|\\|g if $^O eq 'MSWin32';
-	    print "db2 f=$file\n";
+#	    $file =~ s|/|\\|g if $^O eq 'MSWin32';
+	    $file =~ s|\\|/|g;
             push @{$data[6]}, $file;
         }
     }
@@ -125,6 +124,9 @@ sub read_mp3_dir {
 
 #
 # $Log$
+# Revision 1.6  2004/03/23 01:58:04  winter
+# *** empty log message ***
+#
 # Revision 1.5  2003/12/22 00:20:50  winter
 #  - 2.86 release
 #

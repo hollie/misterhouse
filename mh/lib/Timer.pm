@@ -35,7 +35,7 @@ sub expired_timers_with_actions {
         elsif (&Timer::expired($self)) {
             push(@expired_timers, $self);
             shift @timers_with_actions;
-            if (--$self->{repeat} > 0) {
+            if (($self->{repeat} == -1) or (--$self->{repeat} > 0)) {
                 set $self $self->{period}, $self->{action}, $self->{repeat};
             }
         }
@@ -373,6 +373,9 @@ sub query {
 
 #
 # $Log$
+# Revision 1.29  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.28  2003/12/22 00:25:06  winter
 #  - 2.86 release
 #

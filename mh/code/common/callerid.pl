@@ -53,7 +53,7 @@ $cid_announce  = new CID_Announce($cid_item, 'Call from $format1');
 #cid_announce  = new CID_Announce($cid_item, 'Call from $first $last');
 
                                 # Setup commands we can use to run tests without the modem
-$cid_interface_test = new Voice_Cmd('Test callerid [0,1,2,3,4,5,6,7,offhook,UKknown,UK unknown]');
+$cid_interface_test = new Voice_Cmd('Test callerid [0,1,2,3,4,5,6,7,8,offhook,UKknown,UK unknown]');
 if (defined($state = state_now $cid_interface_test)) {
     set_test $cid_interface1 'RING'                                                             if $state == 0;
     set_test $cid_interface1 'DATE = 1215 TIME = 1249 NMBR = 5071234560 NAME = WINTER LAUREL  ' if $state == 1;
@@ -63,6 +63,7 @@ if (defined($state = state_now $cid_interface_test)) {
     set_test $cid_interface1 'DATE = 1215 TIME = 1249 NAME = BUSH GEORGE W   NMBR = 2021230003' if $state == 5;
     set_test $cid_interface1 'DATE = 1215 TIME = 1249 NAME = BUSH,GEORGE W   NMBR = 2021230003' if $state == 6;
     set_test $cid_interface2 '###DATE01061252...NMBR...NAME-UNKNOWN CALLER-+++'                 if $state == 7;
+    set_test $cid_interface2 '###DATE01061252...NMBR...NAME-PRIVATE CALLER-+++'                 if $state == 8;
     if ($state == 'offhook'){
 	#start $PhoneKillerPort;
 	set $PhoneKillTimer 3;

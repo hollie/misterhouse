@@ -77,8 +77,8 @@ sub initialize
 {
    my ($self) = @_;
    $$self{m_write} = 0;
-   $$self{m_timerCheck} = new Timer() if $$self{m_timerCheck} eq '';
-   $$self{m_timerAlarm} = new Timer() if $$self{m_timerAlarm} eq '';
+   $$self{m_timerCheck} = new Timer() unless $$self{m_timerCheck};
+   $$self{m_timerAlarm} = new Timer() unless $$self{m_timerAlarm};
    $$self{'alarm_action'} = '';
    $$self{last_open} = 0;
    $$self{last_closed} = 0;

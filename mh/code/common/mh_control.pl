@@ -218,7 +218,8 @@ if (said $v_list_x10_items) {
         $results .= sprintf("Address:%-2s  File:%-15s  Object:%-30s State:%s\n",
                             substr($object->{x10_id}, 1), $object->{filename}, $object->{object_name}, $object->{state});
     }
-    display $results, 60, 'X10 Items', 'fixed';
+#   display $results, 60, 'X10 Items', 'fixed';
+    respond text => $results, time => 60, title => 'X10 Items', font => 'fixed';
 }
 
                                 # Create a list by Serial States
@@ -243,7 +244,8 @@ if (said $v_list_serial_items) {
 #                               $first_id, $object->{filename}, $object->{object_name}, $states);
     }
     my $results = join "\n", sort @results;
-    display $results, 60, 'Serial Items', 'fixed';
+#   display $results, 60, 'Serial Items', 'fixed';
+    respond text => $results, time => 60, title => 'Serial Items', font => 'fixed';
 }
 
 
@@ -277,7 +279,8 @@ if (said $v_list_debug_options) {
         }
         $debug_string .= "$key ";
     }
-    display "List of debug options:\n$debug_string";
+#   display "List of debug options:\n$debug_string";
+    respond text => "List of debug options:\n$debug_string";
 }
 
 

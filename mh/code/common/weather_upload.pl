@@ -41,38 +41,39 @@ if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
     my $stationid = $config_parms{wunderground_stationid};
     my $passwd    = $config_parms{wunderground_password};
     my $clouds='';
-	my $weather_conditions='';
-	my $weather_barom;
-	if ($config_parms{serial_wmr968_module} eq "Weather_wmr968") {
-		# ---- CLOUDS ----
+    my $weather_conditions='';
+    my $weather_barom;
+    if ($config_parms{serial_wmr968_module} eq "Weather_wmr968") {
+	        # ---- CLOUDS ----
 		# SKC = Sky Clear
-    		$clouds = 'SKC' if $Weather{WxTendency} eq 'Sunny';
+	$clouds = 'SKC' if $Weather{WxTendency} eq 'Sunny';
 		# SCT = Scattered
-    		$clouds = 'SCT' if $Weather{WxTendency} eq 'Partly Cloudy';
+	$clouds = 'SCT' if $Weather{WxTendency} eq 'Partly Cloudy';
 		# BKN = Broken
-    		$clouds = 'BKN' if $Weather{WxTendency} eq 'Cloudy';
+	$clouds = 'BKN' if $Weather{WxTendency} eq 'Cloudy';
 		# OVC = Overcast
-    		$clouds = 'OVC' if $Weather{WxTendency} eq 'Rain';
+	$clouds = 'OVC' if $Weather{WxTendency} eq 'Rain';
 		# ----CONDITIONS WEATHERS ----
 		# MI = Shallow clouds
-		$weather_conditions = "MI" if $Weather{WxTendency} eq 'Sunny';
+	$weather_conditions = "MI" if $Weather{WxTendency} eq 'Sunny';
 		# BC = Patches clouds
-		$weather_conditions = "BC" if $Weather{WxTendency} eq 'Partly Cloudy';
+	$weather_conditions = "BC" if $Weather{WxTendency} eq 'Partly Cloudy';
 		# PR = Partial clouds
-		$weather_conditions = "PR" if $Weather{WxTendency} eq 'Cloudy';
+	$weather_conditions = "PR" if $Weather{WxTendency} eq 'Cloudy';
 		# RA = Rain
-		$weather_conditions = "RA" if $Weather{WxTendency} eq 'Rain';
+	$weather_conditions = "RA" if $Weather{WxTendency} eq 'Rain';
 		# ---- BAROM ----
-		$weather_barom = $Weather{Barom};
-	}
-	else {
+	$weather_barom = $Weather{Barom};
+    }
+    else {
         $clouds = 'CLR' if $Weather{Conditions} eq 'Clear';
         $clouds = 'OVC' if $Weather{Conditions} eq 'Cloudy';
                                 # wx200 stores in millibars, 968 stores in Hg
-        $Weather{BaromSea_hg} = $Weather{BaromSea} unless $Weather{BaromSea_hg};
-        $Weather{BaromSea_hg}  *= 0.029529987508 if $Weather{BaromSea_hg} > 100;  # hg should be around 29.
-        $weather_barom = $Weather{BaromSea_hg};
+        unless ($weather_barom = $Weather{BaromSea_hg}) {
+	    $weather_barom = $Weather{BaromSea};
+	    $weather_barom  *= 0.029529987508 if $weather_barom > 100;  # hg should be around 29.
 	}
+    }
 
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =  gmtime();
     my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec;

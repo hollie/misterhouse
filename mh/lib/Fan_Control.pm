@@ -70,9 +70,14 @@ sub check_for_data {
    if (my $msg = said $fan_socket) {
       if ($msg =~ /fan (\S+) light (\S+)/) {
          if ($fan_control_lights{$1}) {
-            print STDERR "Setting fan $1 to state", lc $2, "\n";
-            &main::print_log("Setting fan $1 to state" . lc($2));
-            $fan_control_lights{$1}->set_states_for_next_pass(lc($2));
+            #print STDERR "Setting fan $1 to state", lc $2, "\n";
+            #&main::print_log("Setting fan $1 to state" . lc($2));
+            if ($fan_control_lights{$1}->{'already_set'}) {
+               $fan_control_lights{$1}->set_states_for_next_pass(lc($2), 'remote');
+            } else {
+               $fan_control_lights{$1}->{'already_set'} = 1;
+               $fan_control_lights{$1}->set_states_for_next_pass(lc($2));
+            }
          }
       }
    }
@@ -113,27 +118,37 @@ sub new
 	my $self={};
 	bless $self,$class;
    $$self{'name'} = $name;
+   $$self{'timer'} = new Timer();
    push(@{$$self{states}}, 'off', 'low', 'med', 'high');
 	return $self;
 }
 
+sub delay_off {
+   my ($self, $delay) = @_;
+   $$self{'timer'}->set($delay, $self);
+}
+
 sub setstate_off {
    my ($self, $substate) = @_;
+   $$self{'timer'}->stop();
    set $fan_socket "fan $$self{'name'} motor off";
 }
 
 sub setstate_low {
    my ($self, $substate) = @_;
+   $$self{'timer'}->stop();
    set $fan_socket "fan $$self{'name'} motor low";
 }
 
 sub setstate_med {
    my ($self, $substate) = @_;
+   $$self{'timer'}->stop();
    set $fan_socket "fan $$self{'name'} motor med";
 }
 
 sub setstate_high {
    my ($self, $substate) = @_;
+   $$self{'timer'}->stop();
    set $fan_socket "fan $$self{'name'} motor high";
 }
 

@@ -30,7 +30,7 @@ sub edit {
                                 # Create header
     my $html = &html_header('Configure TV Listings Settings');
     $html  = qq|
-	<HTML><HEAD><TITLE>Items Menu</TITLE></HEAD><BODY>\n<a name='Top'></a>$html
+	<HTML><HEAD><TITLE>TV Listings Configuration</TITLE></HEAD><BODY>\n<a name='Top'></a>$html
 	Use this page to review or update your TV listings settings.
 	A backup of your .ini file is made and comments and record order are preserved.<p>
     |;
@@ -45,6 +45,7 @@ sub edit {
 
                                 # Get list of providers 
     my $output = `get_tv_grid -zip $args{zipcode} -get_providers `;
+#   my $output = `./get_tv_grid -zip $args{zipcode} -get_providers `;
     my %providers;
     foreach (split "\n", $output) {
        if (my ($id, $name) = /^Provider (\d+)\s+(.+)/) { 

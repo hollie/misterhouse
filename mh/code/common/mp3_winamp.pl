@@ -16,6 +16,13 @@
 #  Major update to align functions with David's common mp3 code and xmms
 #  Supports a target host or defaults to localhost (Seems to work, but really untested)
 #  
+# V1.02 28 Feb 2004 David Noorwood, 
+#	  Update to add mp playing 
+#
+# V1.03  1 Mar 2004 Pete Flaherty,  
+#	  Updated mp3_output_timestr to deliver consistant data with xmms output of same function
+#         now delivers "mm:ss/MM:SS (xx%)"  where mm:ss is the Elapsed time MM:SS is the Total time
+#         and (xx%) is the elapsed percentage of the total time
 
 # noloop=start      This directive allows this code to be run on startup/reload
 my (%winamp_commands, $mp3_states);
@@ -282,19 +289,38 @@ sub mp3_get_output_timestr {
 	my $type = shift;
 	my $host = shift || $mp3_host;
 	if (&is_httpq) {
-		if ($type == 1 || $type =~ /Len/i) {
-			return get "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=1";
-		}
-		else {
-			my $tPos = get "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=0";
-			return $tPos / 1000;  # Returned as ms convert to sec
-		}
+#		if ($type == 1 || $type =~ /Len/i) {
+			my $songPos = get "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=0";
+			my $songLen = get "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=1";
+			# Format the info in a form consistant with xmms el:tm/to:tm
+
+		        my $tPos = $songPos / 1000;                     #Posintion in miliseconds
+            		my $tLen = $songLen ;                           #Length of song in seconds
+	                my $tPct = int ( ( $tPos / $tLen ) *100) ;       # what ist the % played
+		     
+		        my $tMin = int( $tPos / 60 );                   #Make outputs in mm:ss format
+			my $tSec = int( $tPos - ( $tMin * 60) );                # we don't care about fractions of mins & secs
+			  if ( $tSec < 10 ){ $tSec = "0$tSec"; }
+			$songPos = "$tMin:$tSec";                       # this should be the elapsed time in MM:SS format
+			
+			$tMin = int( $tLen / 60 );
+			$tSec = int( $tLen - ( $tMin * 60) );
+			  if ( $tSec < 10 ){ $tSec = "0$tSec"; }
+			$songLen = "$tMin:$tSec";                       # this should be the Total time in MM:SS format
+
+			return "$songPos/$songLen ($tPct%)"; 
+#		}
+#		else {
+#			my $tPos = get "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=0";
+#			return $tPos / 1000;  # Returned as ms convert to sec
+#		}
 	}
 	else {
     # don't know how to do this 
 		print_log "mp3 get output timestr: Unsupported" if $Debug{winamp};
 	}
 }
+
 
         # return the number of songs in the current playlist 
 sub mp3_get_playlist_length { 
@@ -306,7 +332,18 @@ sub mp3_get_playlist_length {
     # don't know how to do this 
 		print_log "mp3 get playlist length: Unsupported" if $Debug{winamp};
 	}
+}
 
+        # return 0 if the player is stopped, 1 if playing, 3 if paused 
+sub mp3_playing { 
+	my $host = shift || $mp3_host;
+	if (&is_httpq) {
+		return  get "http://$host:$config_parms{mp3_program_port}/isplaying?p=$config_parms{mp3_program_password}";
+	}
+	else {
+    # don't know how to do this 
+		print_log "mp3 playing: Unsupported" if $Debug{winamp};
+	}
 }
 
         # try to start winamp if not running and return the status of the player 

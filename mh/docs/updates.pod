@@ -19,12 +19,117 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 =end html
 
+
 B<New Features:>
+
 
 B<Bug Fixes and Other Changes:>
 
 
+=head2 Version 2.88 posted on 03/21/2004
+
+Version 2.88 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+
+
+B<New Features:>
+
+- Steven Lee and I updated Generic_Item to use Tie::Hash so we can detect changes to any object property. 
+We now use this with a property_changed method in X10_Item that will call set_level to more accuratly set the 
+level attribute whenever the object state is changed.
+
+- Created a large (30 meg) file of optional files (mainly sound files) here: 
+http://misterhouse.sf.net/misterhouse_misc.zip>misterhouse_misc.zip . 
+It currently has the 40 west(minster) and cuckoo chimes, about 60 fun .wav files, and about 65 halloween .wav files.
+
+- Robert Rozman sent code files common/mythtv_osd.pl and xosd.pl as examples of display data to Freevo or Mythtv GUIs using xosd.
+
+- Krik Bauer created lib/Musica.pm to control the Musica whole-house audio system by Netstreams over the RS232 port.
+This system has provides 6 zones and 4 sources with very nice keypads:  http://www.netstreams.com
+
+- Krik Bauer created lib/AlsaPlayer.pm which allows for the creation and control of alsaplayer processes,
+and Playlist.pm which manages lists of music files.  Documentation is at the top of those modules.
+
+- Krik Bauer created lib/Weeder_light.pm which allows you to monitors and controls a light through Weeder boards.
+
+- Pete Flaherty, with some help from David Norwood, updated the MP3 Jukebox page to include a nifty new Song Info popup button.
+
+- Dominique Benoliel updated the common/weather_rrd_update.pl script with a bunch of updates, including a new
+mh.ini parm to allow for labeling of the various graphs.  mh.ini parms are listed at the top of the code file.
+For best results, either delete your old data_dir/rrd/weather.rrd file or rebuild it with code/public/csv2rrd_weather.pl
+
+
+B<Bug Fixes and Other Changes:>
+
+- Brian Ujvary made some minor updates to lib/USB_UIRT.pm and IR_Utils.pm .
+
+- Ross Towbin updated common/barcode_scan.pl to allow for case senstive data and computer checkdigits for UPE codes.
+
+- Nick Maddock fixed a bug in the time_idle method (was true only when the object was idle for the specified time).
+
+- Added a Speak_parms hook, for modifying speak parms before speak calls.
+
+- Scott Reston and I added a X10_Item  preset2 option.  This will add ON after any preset command,
+to de-select the module so it will not be effected by unrelated subsequent X10 commands.
+
+- Pete Flaherty updated weather_iB_OWW_client.pl to update wind chill based on average/peak and to fix find direction data.
+
+- Bill Young updated lib/X10_W800.pm  to work better with noiser RF data.
+
+- Bill Young updated lib/RF_Item.pm to re-organize how devices are coded by breaking it into various lib/X10_RF*.pm modules.
+
+- Kirk Bauer added get_system_state to lib/RCSsTR40.pm and sent in mh/web/bin/hvac.pl as an example of a page to drive it.
+
+- Jeff Pagel noticed un-needed debug errata coming out of internet_mail.pl.
+
+- Pete Flaherty updated common/audreyspeak.pl to avoid doublespeak.
+
+- Pete Flaherty updated weather_iB_OWW_client.pl to align the variables with RRD graphing.
+
+- Fixed a bug with the default sound card gettting lost with the voice_text=MS engines.
+
+- Kirk Bauer allow Timer_Item repeat values of -1, to allow it to repeat forever.
+
+- Updated mh/web/display_map.pl to use map servers from aprsworld.net, since the vicinity.com maps seemed to be disabled now.
+
+- John McCaskey noticed that set_by was not set correctly in events that set the same item more than once in the same pass.
+
+- Chris Barrett add mh.ini parm season_starts, so non-US people can pick the correct local season start date.
+
+- Craig Schaeffer enabled a tv_lable mh.in parm in common/tv_grid.pl
+
+- Paul Estes added some more states to RCS_Item.pm
+
+- Chris Barrett noticed that a mh.ini entry of password_allow_clients = 1.2.3.4  would allow clients of 1.2.3.41 through.
+We fixed the regular expresion test so it is now anchored, so if you had an entry like 
+192.168.0. you will want to change it to 192.168.0..+
+
+- Fixed a bug in barometric pressure in common/weather_upload.pl, when $Weather{BaromSea_hg} was not available.
+
+- Steve Switzer sent in code/public/monitor_im_status.pl as an example of monitoring an im buddy status.
+
+- Lee ? sent in code/public/x10_battery_charger.pl as an example of how to cycle a battery charger with an X10 module.
+
+- Pete Flaherty reformated the web ia5/outside/outside/sunmoon.shtml
+
+- Bazyle Butcher sent in code/public/wintvcapture.pl as an example of using sendkeys to the WinTV program.
+
+- Kirk Bauer updated the occupancy tracking and automatic/predictive lighting modules to fix some bugs and some more timers.
+
+- David Norwood updated Process_Item to kill previous processes if restarted before the previous process was finished.
+
+- Joe Blecher fixed handy_net_utilites.pl to break up longer messages send to AIM clients.  
+He also updated various list commands in common/mh_control.pl to use respond instead of display, so they work ok through im requests.
+
+
+
 =head2 Version 2.87 posted on 01/31/2004
+
+Version 2.87 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+
 
 B<New Features:>
 
@@ -61,6 +166,8 @@ the latest quakes are and to use triggers for scheduling.
 This is useful if you are using the xmms coverviewer plug-in.
 He also updated the winamp mp3_play and mp3_queue routines so they will work remotely and
 and disabled the $Save{NowPlaying} variable because it was a resource hog.
+
+- Chris Witte refreshed the sourceforge cvs repository, so you can now get the full src distro with a cvs checkout.
 
 
 B<Bug Fixes and Other Changes:>

@@ -24,7 +24,9 @@ sub serial_item_by_id {
 
 sub new {
     my ($class, $id, $state, $port_name) = @_;
-    my $self = {state => undef}; # Use undef ... '' will return as defined
+#   my $self = {state => undef}; # Use undef ... '' will return as defined
+    my $self  = $class->SUPER::new();
+
 #   print "\n\nWarning: duplicate ID codes on different Serial_Item objects:\n " .
 #         "id=$id state=$state states=@{${$serial_item_by_id{$id}}{states}}\n\n" if $serial_item_by_id{$id};
     $$self{port_name} = $port_name;
@@ -281,7 +283,7 @@ sub set {
                                 # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
                 $serial_chunk = $1 . substr 'ABCDEFG', $2, 1 if $serial_chunk =~ /^(\S)1(\d)$/;
 
-                &send_x10_data($interface, 'X' . $serial_chunk);
+                &send_x10_data($interface, 'X' . $serial_chunk, $self->{type});
 
             }
             else {
@@ -384,11 +386,11 @@ sub send_serial_data {
 
 my $x10_save_unit;
 sub send_x10_data {
-    my ($interface, $serial_data) = @_;
+    my ($interface, $serial_data, $module_type) = @_;
     my ($isfunc);
 
                                 # Use proxy mh if present (avoids mh pauses for slow X10 xmits)
-    return if &main::proxy_send($interface, 'send_x10_data', $serial_data);
+    return if &main::proxy_send($interface, 'send_x10_data', $serial_data, $module_type);
 
     if ($serial_data =~ /^X[A-P][1-9A-G]$/) {
         $isfunc = 0;
@@ -399,8 +401,6 @@ sub send_x10_data {
     }
     print "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n" if $main::Debug{x10};
 
-    if ($interface eq 'cm11') {
-    }
     if ($interface eq 'cm11') {
 	
 				# Standard 1-cm11 code
@@ -444,7 +444,7 @@ sub send_x10_data {
                                 # marrick PLC wants XA1AK
         &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},
                              "X" . substr($x10_save_unit, 1) .
-                             substr($serial_data, 1)) if $isfunc;
+                             substr($serial_data, 1), $module_type) if $isfunc;
     }
     elsif ($interface eq 'cm17') {
                                 # cm17 wants A1K, not XA1AK
@@ -582,6 +582,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.71  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.70  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

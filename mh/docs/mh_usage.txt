@@ -1084,3 +1084,52 @@ Thu 01/29/04 06:17:47 city=Melbourne state=Australia name=
 Thu 01/29/04 22:57:24 city=redwood city state=ca name=
 Fri 01/30/04 08:41:10 city=Wrens state=Georgia name=Bruce
 Sat 01/31/04 03:14:50 city=Cape Town state=South Africa name=
+Sun 02/01/04 12:05:09 city=marietta state=Georgia name=
+Sun 02/01/04 17:16:36 city=Houston state=TX name=CG
+Sun 02/01/04 19:09:06 city=Singapore state=S'pore name=PK Yong
+Mon 02/02/04 01:18:28 city=London state=OH name=
+Mon 02/02/04 01:53:03 city=Reading state=PA name=
+Wed 02/04/04 19:50:36 city=Kirksville state=MO name=William
+Thu 02/05/04 06:11:12 city=Biloxi state=MS name=Frank
+Thu 02/05/04 16:56:03 city=Salvador state=Brazil name=Victor
+Fri 02/06/04 09:22:18 city=League City state=TX name=
+Sun 02/08/04 17:32:42 city=Montreal state=Canada name=Jan
+Sun 02/08/04 20:45:37 city=Auckland state=New Zealand name=
+Mon 02/09/04 06:44:53 city=Katowice state=Polska name=
+Mon 02/09/04 13:09:23 city=Porto Alegre state=brazil name=Charles
+Mon 02/09/04 13:09:42 city=Porto Alegre state=brazil name=Charles
+Tue 02/10/04 02:16:36 city=Austin state=TX name=Jeff Wherrett
+Wed 02/11/04 01:44:11 city=kingsport state=TN name=
+Thu 02/12/04 10:50:59 city=Gainesville state=FL name=
+Sun 02/15/04 10:04:22 city=portland state=or name=
+Tue 02/17/04 21:36:05 city=atlanta state=ga name=
+Wed 02/18/04 08:28:19 city=MADRID-VALLECAS state=ESPAÑA name=Raul Andres Garcia
+Thu 02/19/04 10:42:34 city=Douai state=FR name=Froissart
+Thu 02/19/04 10:58:49 city=East Coventry Twp state=PA name=
+Thu 02/19/04 12:05:38 city=colorado springs state=co name=
+Thu 02/19/04 12:05:50 city=denver state=co name=
+Fri 02/20/04 12:11:12 city=BATON ROUGE state=LA name=
+Sun 02/22/04 09:15:12 city=atlanta state=ga name=
+Sun 02/22/04 16:05:18 city=Hamburg state=Germany name=
+Mon 02/23/04 09:32:10 city=marburg state=Germany name=
+Mon 02/23/04 14:32:09 city=Haddon Heights state=NJ name=
+Mon 02/23/04 19:09:57 city=Sydney state=Australia name=Bill Coghill
+Tue 02/24/04 15:50:53 city=Greenville state=NC name=Jon Scott
+Wed 02/25/04 21:17:35 city=Boston state=MA name=
+Mon 03/08/04 08:44:34 city=Berlin state=Germany name=Andreas F. Tietz
+Tue 03/09/04 08:11:48 city=lodon state=england name=
+Wed 03/10/04 06:38:57 city=Canberra state=Australia name=Chris Barrett
+Fri 03/12/04 09:56:00 city=Palmdale state=CA name=Bruce Slawson
+Fri 03/12/04 15:45:24 city=ancona state=italia name=andrea
+Sat 03/13/04 19:25:33 city=quebec state=canada name=
+Mon 03/15/04 16:02:10 city=new brunswic state=nj name=
+Mon 03/15/04 21:31:25 city=Searcy state=AR name=Ingle Apt.
+Tue 03/16/04 11:46:05 city=Turkey state=Istanbul name=
+Tue 03/16/04 18:22:03 city=Hobart state=Australia name=
+Wed 03/17/04 05:48:43 city=baltimore state=md name=
+Wed 03/17/04 23:43:05 city=sacramento state=ca name=
+Thu 03/18/04 11:10:53 city=Houston state=Tx name=
+Thu 03/18/04 18:26:21 city=Alta Loma state=CA name=
+Sun 03/21/04 00:12:27 city=Melbourne state=Australia name=
+Sun 03/21/04 01:21:41 city=Grenada state=Ms name=Hollis
+Sun 03/21/04 16:40:54 city=quebec state=canada name=

@@ -728,9 +728,29 @@ sub main::net_im_send {
     $text  = $parms{text};
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
 
-    $aim_connection -> toc_send_im($to, $text);
-#   $aim_connection -> send_im($to, $text);
+    # Chop message up if needed since AIM has a limit of 1024
+    if (length $text > 900)
+    {
+		# Break message into lines for readability
+        my @lines = split /\n/, $text;
 
+		my $line = "";
+	    while (scalar(@lines))
+        {
+		    	
+		    if (((length $line) + (length $lines[0])) > 900)
+			{
+				$aim_connection -> toc_send_im($to, $line) if $line;
+			    $line = "";
+			}
+		    $line = $line . (shift @lines) . "\n"; 
+        }
+		$aim_connection -> toc_send_im($to, $line) if $line;
+    }
+    else
+    {
+        $aim_connection -> toc_send_im($to, $text);
+    }
 }
 
 
@@ -962,7 +982,7 @@ sub main::net_mail_login {
     my $timeout = 20 unless $main::config_parms{$account . "_timeout"};
 
     use Net::POP3;
-    print "Logging into $server\n";
+    print "net_mail_login to $server\n" if $parms{debug};
     unless ($pop = Net::POP3->new($server, Timeout => $timeout, Port => $port, Debug => $parms{debug})) {
         print "Can not open connection to $server $port: $@\n";
         return;
@@ -1140,11 +1160,11 @@ sub main::net_ping {
     my $timeout = $main::config_parms{ping_timeout} || $main::config_parms{net_ping_timeout};
     if (defined $timeout) {
       # use the user-defined timeout
-      print "Using a timeout of $timeout seconds for Net::Ping\n" if $main::Debug{debug};
+      print "Using a timeout of $timeout seconds for Net::Ping\n" if $main::Debug{ping};
       $p = Net::Ping->new($protocol,$timeout);
     } else {
       # use the default timeout of Net::Ping (which is 5 seconds)
-      print "Using Net::Ping's default timeout\n" if $main::Debug{debug};
+      print "Using Net::Ping's default timeout\n" if $main::Debug{ping};
       $p = Net::Ping->new($protocol);
     }
 
@@ -1195,6 +1215,9 @@ sub main::net_socket_check {
 
 #
 # $Log$
+# Revision 1.55  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.54  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

@@ -97,6 +97,8 @@ sub default_setstate {
             &UIRT2::set($device, $command);
 	} elsif ($$self{interface} eq 'usb_uirt') {
             &USB_UIRT::set($device, $command);
+        } elsif ($$self{interface} eq 'ninja') {
+	    &ninja_mh::send($device, $command);
 	} else {
             print "IR_Item::set Interface $$self{interface} not supported.\n";
         }
@@ -105,6 +107,9 @@ sub default_setstate {
 
 #
 # $Log$
+# Revision 1.15  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.14  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

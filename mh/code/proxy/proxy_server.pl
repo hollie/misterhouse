@@ -91,7 +91,7 @@ if ($state = said $proxy_server) {
     elsif ($function eq 'lynx10plc') {
         my $function2 = shift @data;
         if ($function2 eq 'send_plc') {
-	   &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},$data[0]);
+	   &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},$data[0],$data[1]);
         }
         elsif ($function2 eq 'readDeviceInfo') {   
 	   &Lynx10PLC::readDeviceInfo($main::Serial_Ports{Lynx10PLC}{object},$data[0]);

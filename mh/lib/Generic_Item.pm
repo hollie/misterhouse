@@ -1,5 +1,20 @@
 use strict;
 
+package Generic_Item_Hash;
+
+require Tie::Hash;
+@Generic_Item_Hash::ISA = ('Tie::ExtraHash');
+
+sub STORE { 
+  my $oldValue = $_[0][0]{$_[1]};
+  $_[0][0]{$_[1]} = $_[2];
+
+  if(defined $oldValue and defined $_[2] and $oldValue ne $_[2]) {
+    $_[0][1]->property_changed($_[1],$_[2], $oldValue);
+  }
+}
+
+
 # This is the parent object for all state-based mh objects.  
 # It can also be used stand alone.
 
@@ -10,14 +25,22 @@ use vars qw(@items_with_tied_times);
 
 sub new {
     my ($class) = @_;
-    my $self = {};
+    my %myhash;
+    my $self = \%myhash;
+    tie %myhash, 'Generic_Item_Hash', $self;
+    bless $self, $class;
+
                                 # Use undef ... '' will return as defined
     $$self{state}         = undef;
     $$self{said}          = undef;
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
-    bless $self, $class;
     return $self;
+}
+
+sub property_changed {
+    my ($self, $property, $new_value, $old_value) = @_;
+#   print "s=$self: property_changed: $property ='$new_value' (was '$old_value')\n";
 }
 
 sub set {
@@ -124,7 +147,7 @@ sub time_idle {
             $scale = 60       if $idle_type eq 'm';
             $scale = 60*60    if $idle_type eq 'h';
             $scale = 60*60*24 if $idle_type eq 'd';
-            if ($idle_time * $scale == $self->get_idle_time()) {
+            if (($idle_time * $scale) <= $self->get_idle_time()) {
                 return 1;
             }
         }
@@ -225,6 +248,10 @@ sub state_overload {
     if (lc $flag eq 'off') {
         $self->{states_nomultistate} = 1;
         $self->{states_nosubstate}   = 1;
+    }
+    elsif (lc $flag eq 'on') {
+        $self->{states_nomultistate} = 0;
+        $self->{states_nosubstate}   = 0;
     }
 }
         
@@ -418,12 +445,13 @@ sub set_states_for_next_pass {
     $set_by = &main::get_calling_sub() unless $set_by;
     $set_by = $main::Set_By if !$set_by and $main::Set_By;
 
-                                # Reset this (used to detect which tied item triggered the set)
-                                #  - Default to self if not specified ... naw, not sure why we would need it set to self??
-#   $ref->{set_by} = ($set_by) ? $set_by : $ref;
-    $ref->{set_by} = $set_by;
+                                # Store this for use on net pass
+#   $ref->{set_by} = $set_by;
+    push @{$ref->{setby_next_pass}}, $set_by;
+
     $target = $set_by unless defined $target;
-    $ref->{target} = $target;
+#   $ref->{target} = $target;
+    push @{$ref->{target_next_pass}}, $set_by;
 
                                 # Set the state_log ... log non-blank states
                                 # Avoid -w unintialized variable errors
@@ -454,12 +482,16 @@ sub reset_states {
                                 #  - each will get run, one per subsequent pass
     my @items_with_more_states;
     while ($ref = shift @states_from_previous_pass) {
-        my $state = shift @{$ref->{state_next_pass}};
+        my $state  = shift @{$ref->{state_next_pass}};
+        my $set_by = shift @{$ref->{setby_next_pass}};
+        my $target = shift @{$ref->{target_next_pass}};
         $ref->{state_prev}    = $ref->{state};
         $ref->{change_pass}   = $main::Loop_Count;
         $ref->{state}         = $state;
         $ref->{said}          = $state;
         $ref->{state_now}     = $state;
+        $ref->{set_by}        = $set_by;
+        $ref->{target}        = $target;
         push @reset_states, $ref;
         push @items_with_more_states, $ref if @{$ref->{state_next_pass}};
         if (( defined $state and !defined $ref->{state_prev}) or 
@@ -596,6 +628,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.33  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.32  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

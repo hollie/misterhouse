@@ -5,15 +5,18 @@
 #@ Images in emails with a subject of 'Motion: xyz' are extracted to a /web/motion directory.
 #@ Requires internet_mail.pl
 
+# Motion detected on Garage at 8:47 PM on 3/18/2004
+
 $email_motion_p = new Process_Item;
 
                                 # get_email_scan_file and $p_get_email are created by internet_mail.pl
 if (done_now $p_get_email and -e $get_email_scan_file) {
-#   print "email_motion: checking $get_email_scan_file\n";
+    print "email_motion: checking $get_email_scan_file\n" if $Debug{email};
     my @msgs;
     for my $line (file_read $get_email_scan_file) {
+	print "email_motion: mail=$line\n" if $Debug{email};
         my ($msg, $from, $to, $subject, $body) = $line =~ /Msg: (\d+) From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
-        if ($subject =~ /Motion: /i) {
+        if ($subject =~ /^Motion /i ) {
             push @msgs, $msg;
         }
     }

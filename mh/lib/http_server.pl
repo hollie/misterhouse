@@ -32,6 +32,7 @@ my %mime_types = (
                   'snd'   => 'audio/basic',
                   'wav'   => 'audio/x-wav',
                   'mp3'   => 'audio/x-mp3',
+		  'mjpg'  => 'video/x-motion-jpeg',
                   'wml'   => 'text/vnd.wap.wml',
                   'wmls'  => 'text/vnd.wap.wmlscript',
                   'wmlc'  => 'application/vnd.wap.wmlc',
@@ -1338,9 +1339,16 @@ sub mime_header {
 #   use HTTP::Date qw(time2str);
 #   my $date=time2str(time);
     my $header = "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n";
+# Any benifit to the overhead of adding last-modified?
     $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
+#   $header .= "Cache-Control: no-cache\n" unless $cache;
+#   $header .= 'Last-Modified: ' . &time_date_stamp(19, $file) . "\n";
+
                                 # Allow for a length header, as this allows for faster 'persistant' connections
     $header .= "Content-Length: $length\n" if $length;
+
+    print "db h=$header\n" if $main::Debug{http3};
+
     return $header . "\n";
 #Expires: Mon, 01 Jul 2002 08:00:00 GMT 
 }
@@ -2062,7 +2070,7 @@ sub html_item_state {
 
                                 # Add brighten/dim arrows on X10 Items
     $html .= qq[<td align="left"><b>];
-    if ($isa_X10) {
+    if ($isa_X10 and !UNIVERSAL::isa($object, 'X10_Appliance')) {
                                 # Some browsers (e.g. Audrey) do not have full url in Referer :(
         my $referer = ($Http{Referer} =~ /html$/) ? 'referer' : "&html_list($object_type)";
 
@@ -2797,6 +2805,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.87  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.86  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

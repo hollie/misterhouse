@@ -736,6 +736,8 @@ mh is stopped/started.
 <dd>
 <pre>
         See mh/code/examples/test_states_stacked.pl for a complete example.
+        Note, this is turnded off by default for Serial_Item objects.
+        To enable, run:   $object -&gt; state_overload(ON);
                           
                          
      hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.</pre>
@@ -2217,7 +2219,8 @@ The Timer object can be used to run an action one or more times, at a specified 
         $period is the timer period in seconds
         $action (optional) is the code (either a string or a code
                  reference) to run when the timer expires
-        $cycles (optional) is how many times to repeat the timer</pre>
+        $cycles (optional) is how many times to repeat the timer.  
+                 Set to -1 to repeat forever.</pre>
 </dd>
 <dd>
 <pre>
@@ -6118,12 +6121,18 @@ it is run in the order the hooks were added.</p>
 <pre>
   MainLoop_pre   =&gt; Run before user code 
   MainLoop_post  =&gt; Run before user code 
+  Serial_data    =&gt; Run on any incoming serial data
   Serial_match   =&gt; Run when incoming serial data matches and object
   State_change   =&gt; Run when objects change states
   Play_pre       =&gt; Run before playing wav files
   Play_post      =&gt; Run after  playing wav files
+  Speak_parms    =&gt; Run before speaking text files, so you can set speak parms
   Speak_pre      =&gt; Run before speaking text files
-  Speak_post     =&gt; Run after  speaking text files</pre>
+  Speak_post     =&gt; Run after  speaking text files
+  Log            =&gt; Run on all print_log, display, speak, and play calls.
+  Reload_pre     =&gt; Run before reload
+  Reload_post    =&gt; Run after  reload
+  Exit           =&gt; Run on exit</pre>
 <p>For more examples on code hooks, see mh/code/bruce/test_code_hooks.pl</p>
 <p>
 </p>

@@ -94,10 +94,12 @@ sub start_next {
     my ($cflag, $pid);
                                 # Check to see if we have a previous 'start' to this object
                                 # has not finished yet.
-    if ($$self{pid}) {
+    if ($pid = $$self{pid}) {
         print "Warning, a previous 'start' on this process has not finished yet\n";
-        print "  The process will not be restarted:  cmd=$cmd\n";
-        return;
+#        print "  The process will not be restarted:  cmd=$cmd\n";
+#        return;
+        print "Killing unfinished process id $pid\n";
+        &stop($self);
     }
 
     print "Process start: cmd_path=$cmd_path cmd=$cmd\n" if $main::Debug{process};
@@ -279,6 +281,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.26  2004/03/23 01:58:08  winter
+# *** empty log message ***
+#
 # Revision 1.25  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

@@ -2,9 +2,8 @@
 # Category = xAP
 
 #@ This code is used to test and monitor xAP data (see <a href=http://www.xapautomation.org>xapautomation.org</a>)
-#@ and/or xPL data.  See <a href=http://www.wintermute-ltd.com/picxap/>Ian's page</a>
-#@ for an explaination of the difference between the xAP and xAP protocols.
-#@ Rio and TTS xPL clients are available from <a href=http://www.xaphal.com/xap.htm>Tony's page</a>.
+#@ and/or xPL data (see <a href=http://www.xplproject.org.uk/>xplproject.org.uk</a>
+#@ Rio and TTS xPL clients are available from <a href=http://www.xplhal.com>Tony's page</a>.
 
 use xAP_Items;
 &xAP::startup if $Reload;
