@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-01-20 11:45:21 winter>
+#  Last change Time-stamp: <2001-01-21 17:24:37 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -2973,13 +2973,14 @@ sub set_global_vars {
                                 # These season dates are averages
 
                     my @seasons = split(',', $config_parms{seasons});
-                    if (($Month < 4 and $Mday < 20) or ($Month == 12 and $Mday > 20)) {
+
+                    if ($Month < 3 or ($Month == 3 and $Mday < 20) or ($Month == 12 and $Mday > 20)) {
                         $Season = $seasons[0];
                     }
-                    elsif ($Month < 7 and $Mday < 21) {
+                    elsif ($Month < 6 or ($Month == 6 and $Mday < 21)) {
                         $Season = $seasons[1];
                     }
-                    elsif ($Month < 10 and $Mday < 22) {
+                    elsif ($Month < 9 or ($Month == 9 and $Mday < 22)) {
                         $Season = $seasons[2];
                     }
                     else {
@@ -3486,7 +3487,7 @@ sub tk_setup_geometry {
     if ($config_parms{tk_geometry} and
         ($Startup or 
          $config_parms{tk_geometry} ne $config_parms{tk_geometry_startup})) {
-        print "Setting tk geomotry to $config_parms{tk_geometry}\n";
+        print "Setting tk geometry to $config_parms{tk_geometry}\n";
         $MW->geometry($config_parms{tk_geometry});
         $config_parms{tk_geometry_startup} = $config_parms{tk_geometry};
     }
@@ -3930,6 +3931,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.42  2001/01/23 13:32:29  winter
+# - test release
+#
 # Revision 2.41  2001/01/20 17:46:19  winter
 # - 2.41 release
 #
