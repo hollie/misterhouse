@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-05-02 08:59:12 winter>
+#  Last change Time-stamp: <2002-05-27 13:29:12 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -566,13 +566,17 @@ sub setup {
                                 #               iButton_1_serial_port = COMx
 
         next unless $config_parms{$parm};
-        if ($parm =~ /^(.+?)([:_]?\d*)_(serial|server)_port/) {
-            if (-e "./../lib/$1.pm") {
-                print "Found managed $3 port=$1$2\nMH will now require $1.pm and call $1::$3_startup($1$2)\n" 
+#       if ($parm =~ /^(.+?)([:_]?\d*)_(serial|server)_port/) {
+        if (my ($instance, $type) = $parm =~ /^(.+)_(serial|server)_port/) {
+            my $module = $instance;
+            $module =~ s/[:_]\d+$//;        # Drop instance suffix
+#           print "\n\ndb i=$instance m=$module p=$parm\n";
+            if (-e "./../lib/$module.pm") {
+                print "Found managed $type port=$instance\nMH will now require $module.pm and call ${module}::${type}_startup($instance)\n" 
                     if $config_parms{debug} eq 'startup';
-                require "$1.pm";
-                eval "&$1::$3_startup('$1$2')";
-                print "Startup errror on &$1::$3_startup('$1$2'): $@\n" if $@;
+                require "$module.pm";
+                eval "&${module}::${type}_startup('$instance')";
+                print "Startup error on &${module}::${type}_startup('$instance'): $@\n" if $@;
             }
             else {
                 print "No $1.pm file found for $parm\n";
@@ -726,20 +730,18 @@ sub setup {
     my $speak_log = "$config_parms{data_dir}/speak.log";
     my $error_log = "$config_parms{data_dir}/error.log";
     
-    my (@log, $log_cnt);
-    $log_cnt = @log = file_read $print_log;
-    $log_cnt = $config_parms{max_log_entries} if $log_cnt > $config_parms{max_log_entries};
-    @Print_Log = reverse @log[-$log_cnt..-1];
+    my (@log);
+    @log = &file_tail($print_log, $config_parms{max_log_entries});
+    chomp @log;
+    @Print_Log = reverse @log;
     unshift @Print_Log, "$Time_Date ---------- Restart ---------- ";
 
-    $log_cnt = @log = file_read $speak_log;
-    $log_cnt = $config_parms{max_log_entries} if $log_cnt > $config_parms{max_log_entries};
-    @Speak_Log = reverse @log[-$log_cnt..-1];
+    @log = &file_tail($speak_log, $config_parms{max_log_entries});
+    chomp @log;
+    @Speak_Log = reverse @log;
     unshift @Speak_Log, "$Time_Date ---------- Restart ---------- ";
 
                # These files will get archived by mh/code/common/mh_control.pl
-#   rename $print_log, $print_log . ".old";
-#   rename $speak_log, $speak_log . ".old";
     file_cat $print_log, $print_log . ".old";
     file_cat $speak_log, $speak_log . ".old";
     open PRINTLOG,  ">$print_log" or die "Error, could not open print logfile $print_log: $!\n";
@@ -790,7 +792,8 @@ sub add_hook_code {
                         Play_pre => 1,     Play_post => 1,
                         Speak_pre => 1,    Speak_post => 1,
                         Jabber_Message => 1, Jabber_IQ => 1, Jabber_Presence => 1,
-                        AOLim_Message  => 1, MSNim_Message  => 1,
+                        AOLim_Message  => 1,
+                        MSNim_Message  => 1, MSNim_Status => 1,
                         Log       => 1,
                         Exit      => 1
                         );
@@ -1961,6 +1964,8 @@ sub last_response {
     elsif ($Last_Response eq 'print_log') {
         ($last_response) = &print_log_last(1);
     }
+    $Last_Response = '';
+    print "dbx1 LR=$Last_Response lr=$last_response\n";
     return $last_response;
 }
 
@@ -2607,7 +2612,8 @@ sub process_external_command {
     if (&run_voice_cmd(lc($cmd), undef, $set_by)) {
         print_log "Running cmd:$cmd";
     }
-    elsif ($cmd =~ /^set (.+)/i) {
+                                # Limit syntax to protect from dangerous hacks
+    elsif ($cmd =~ /^set +(\$[\_a-z0-9]+) * [\'\" \_a-z0-9]+ *$/i and eval "ref $1") {
         print_log "Running set command: $cmd";
         eval $cmd;
         print_log "\nError in running external set command: cmd=$cmd\n error: $@\n" if $@;
@@ -3606,8 +3612,8 @@ sub set_global_vars {
                                        'area_code_file'  => $config_parms{area_code_file})
             if file_change($config_parms{area_code_file}) or $Startup;
 
-        &Caller_ID::read_callerid_list($config_parms{caller_id_file}) 
-            if file_change($config_parms{caller_id_file}) or $Startup;
+        &Caller_ID::read_callerid_list($config_parms{caller_id_file}, $config_parms{caller_id_reject_file}) 
+            if file_change($config_parms{caller_id_file}) or file_change($config_parms{caller_id_reject_file}) or $Startup;
         &Voice_Text::read_pronouncable_list($config_parms{pronouncable_list_file}) 
             if file_change($config_parms{pronouncable_list_file}) or $Startup;
     }
@@ -3899,20 +3905,22 @@ sub speak {
         &print_speaklog($speaklog);
     }
     
-                                # Assume we were waiting for this and reset http server counter so almost 0 
+    $Last_Response = 'speak';   # Queried by http_server and telnet_server
 
                                 # Check if we want to speak web requested data
     if ($leave_socket_open_passes) {
         $leave_socket_open_passes = 1;
-        $Last_Response = 'speak';   # Queried by http_server
 
+                                           # Intercept speak/log/print/last_response -> web wav
+        if ($leave_socket_open_action =~ /response/) {
                                 # Generate to_wave file unless webmute
-        if (my $wav_file = &http_speak_to_wav_start($phrase, $parms{voice})) {
-            $leave_socket_open_action = "&http_speak_to_wav_finish(qq|$phrase|, qq|$wav_file|)";
-            $leave_socket_open_check  = "!&Voice_Text::is_speaking_wav()";
-            $leave_socket_open_passes = 999;
+            if (my $wav_file = &http_speak_to_wav_start($phrase, $parms{voice}, $parms{compression} )) {
+                $leave_socket_open_action = "&http_speak_to_wav_finish(qq|$phrase|, qq|$wav_file|)";
+                $leave_socket_open_check  = "!&Voice_Text::is_speaking_wav()";
+                $leave_socket_open_passes = 999;
                                  # Skip local speak if speaking via remote wav
-            return;
+                return;
+            }
         }
 
         if (($config_parms{internet_speak_flag} eq 'none') or
@@ -4079,7 +4087,9 @@ sub tk_setup_windows {
                                 # See perl/bin/widget.bat for lots of examples
     print "Setting up tk window\n";
     $MW = MainWindow->new; 
+    print '.';
     $MW->withdraw;              # Hide the window until we are all setup
+    print '.';
 
 
                                 # Keep startup value so we resize only if it has changed since startup,
@@ -4121,6 +4131,7 @@ sub tk_setup_windows {
     $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Normal',  -variable => \$Save{mode}, value => 'normal');
     $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, value => 'mute');
     $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, value => 'offline');
+    print '.';
 
 }
 
@@ -4591,6 +4602,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.68  2002/05/28 13:02:16  winter
+# - 2.68 release
+#
 # Revision 2.67  2002/05/04 06:55:55  winter
 # - 2.67 release
 #
