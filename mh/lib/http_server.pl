@@ -7,6 +7,8 @@ use strict;
 
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
+use HTTP::Date qw(time2str str2time);
+
 use vars qw(%Http %Cookies %Included_HTML);
 $Authorized = 0;
 
@@ -711,7 +713,7 @@ sub test_file_req {
     if ($http_dir and $password_protect_dirs{$http_dir} and !$Authorized) {
         my $html = "<h4>Directory $http_dir requires Login password access</h4>\n";
         $html   .= "<h4><a href=SET_PASSWORD>Login</a></h4>";
-        print $socket &html_page($html);
+        print $socket &html_page('error', $html);
         return 0;
     }
 
@@ -1151,6 +1153,20 @@ sub html_file {
     my ($socket, $file, $arg, $no_header) = @_;
     print "http: print html file=$file arg=$arg\n" if $main::Debug{http};
 
+				# Do not cach shtml files
+    my ($cache) = ($file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/) ? 0 : 1;
+
+				# Return right away if the file has not changed
+#http:   header key=If-Modified-Since value=Sat, 27 Mar 2004 02:49:29 GMT; length=1685.
+    if ($cache and $Http{'If-Modified-Since'} and $Http{'If-Modified-Since'} =~ /(.+? GMT);/) {
+	my $time2 = &str2time($1);
+	my $time3 = (stat($file))[9];
+	print "db web file cache check: f=$file t=$time2/$time3\n"  if $main::Debug{http3};
+	if ($time3 <= $time2) {
+	    return "HTTP/1.0 304 Not Modified\nServer: MisterHouse\n";
+	}
+    }
+
     my $html;
     local *HTML;                # Localize, for recursive call to &html_file
 
@@ -1159,6 +1175,8 @@ sub html_file {
         close HTML;
         return;
     }
+
+
 
                                 # Allow for 'server side include' directives
                                 #  <!--#include file="whatever"-->
@@ -1336,18 +1354,21 @@ sub mime_header {
     my ($file, $cache, $length) = @_;
     my ($extention) = $file =~ /.+\.(\S+)$/;
     my $mime = $mime_types{lc $extention} || 'text/html';
-#   use HTTP::Date qw(time2str);
-#   my $date=time2str(time);
+    my $time = (stat($file))[9];
+    my $date = &time2str($time);
+#   my $date = &time_date_stamp(19, $time);
+
     my $header = "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n";
-# Any benifit to the overhead of adding last-modified?
-    $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
-#   $header .= "Cache-Control: no-cache\n" unless $cache;
-#   $header .= 'Last-Modified: ' . &time_date_stamp(19, $file) . "\n";
+#   $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
+    if ($cache) {
+	$header .= "Last-Modified: $date\n";
+    }
+    else {
+	$header .= "Cache-Control: no-cache\n";
+    }
 
                                 # Allow for a length header, as this allows for faster 'persistant' connections
     $header .= "Content-Length: $length\n" if $length;
-
-    print "db h=$header\n" if $main::Debug{http3};
 
     return $header . "\n";
 #Expires: Mon, 01 Jul 2002 08:00:00 GMT 
@@ -1375,7 +1396,6 @@ eof
 sub html_page {
     my ($title, $body, $style, $script, $frame) = @_;
 
-    use HTTP::Date qw(time2str);
     my $date=time2str(time);
 
                                 # Allow for fully formated html
@@ -2694,7 +2714,9 @@ sub widget_checkbutton {
 
 $Password_Allow{'&dir_index'} = 'anyone';
 sub dir_index {
-    my ($dir_html, $sortby, $reverse, $filter) = @_;
+    my ($dir_html, $sortby, $reverse, $filter, $limit) = @_;
+
+#   print "dbx in dir_index for $dir_html\n";
 
     $filter = '' unless $filter; # Avoid uninit warnings
     $sortby = '' unless $sortby; # Avoid uinit warnings
@@ -2741,6 +2763,7 @@ sub dir_index {
         @files = sort {$file_data{$a}{$sortby} cmp $file_data{$b}{$sortby} or $a cmp $b} @files;
     }
     @files = reverse @files if $reverse;
+    my $i = 0;
     for my $file (@files) {
         my $file_date = localtime $file_data{$file}{date};
         my $file_ref = $file;
@@ -2749,7 +2772,9 @@ sub dir_index {
         $html .= "<td>$file_data{$file}{type}</td>\n";
         $html .= "<td>$file_data{$file}{size}</td>\n";
         $html .= "<td>$file_date</td></tr>\n";
+	last if $limit and $i++ > $limit;
     }
+
     return $html . "</table>\n";
 }
 
@@ -2805,6 +2830,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.88  2004/04/25 18:20:17  winter
+# *** empty log message ***
+#
 # Revision 1.87  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

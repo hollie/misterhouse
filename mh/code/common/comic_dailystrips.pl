@@ -34,6 +34,17 @@ if ($state = said $dailystrip_update) {
 #run_voice_cmd  'Clean the daily comic strips' if time_now '5 am';
 
 
+$dailystrips_email = new Voice_Cmd 'Email daily comics';
+
+if (said $dailystrips_email) {
+    my $comics_dir = &html_alias('/comics');
+    print_log "Sending daily comics email from $comics_dir";
+    &net_mail_send(subject => "Daily Comics for $Date_Now",
+		   baseref => "$config_parms{http_server}:$config_parms{http_port}/comics/",
+		   file => "$comics_dir/index.html", mime  => 'html');
+}
+
+
 # lets allow the user to control via triggers
 
 if ($Reload and $Run_Members{'trigger_code'}) { 

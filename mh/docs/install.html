@@ -25,13 +25,13 @@
 	<li><a href="#windows_detailed_install_instructions">Windows Detailed Install Instructions</a></li>
 	<ul>
 
-		<li><a href="#windows_step_1,_download_and_install_mister_house">Windows Step 1, Download and Install Mister House</a></li>
-		<li><a href="#windows_step_2,_download_and_install_perl">Windows Step 2, Download and Install Perl</a></li>
-		<li><a href="#windows_step_3,_download_and_install_the_speech_engines">Windows Step 3, Download and Install the Speech Engines</a></li>
+		<li><a href="#windows_step_1__download_and_install_mister_house">Windows Step 1, Download and Install Mister House</a></li>
+		<li><a href="#windows_step_2__download_and_install_perl">Windows Step 2, Download and Install Perl</a></li>
+		<li><a href="#windows_step_3__download_and_install_the_speech_engines">Windows Step 3, Download and Install the Speech Engines</a></li>
 		<ul>
 
-			<li><a href="#ms_sdk_4.0_instructions">MS SDK 4.0 instructions</a></li>
-			<li><a href="#ms_sdk_5.1_instructions">MS SDK 5.1 instructions</a></li>
+			<li><a href="#ms_sdk_4_0_instructions">MS SDK 4.0 instructions</a></li>
+			<li><a href="#ms_sdk_5_1_instructions">MS SDK 5.1 instructions</a></li>
 		</ul>
 
 	</ul>
@@ -39,9 +39,9 @@
 	<li><a href="#unix_detailed_install_instructions">UNIX Detailed Install Instructions</a></li>
 	<ul>
 
-		<li><a href="#unix_step_1,_download_and_install_mister_house">UNIX Step 1, Download and Install Mister House</a></li>
-		<li><a href="#unix_step_2,_download_and_compile_perl">UNIX Step 2, Download and Compile Perl</a></li>
-		<li><a href="#unix_step_3,_download_and_install_a_speech_engines">UNIX Step 3, Download and Install a Speech Engines</a></li>
+		<li><a href="#unix_step_1__download_and_install_mister_house">UNIX Step 1, Download and Install Mister House</a></li>
+		<li><a href="#unix_step_2__download_and_compile_perl">UNIX Step 2, Download and Compile Perl</a></li>
+		<li><a href="#unix_step_3__download_and_install_a_speech_engines">UNIX Step 3, Download and Install a Speech Engines</a></li>
 	</ul>
 
 	<li><a href="#testing_mister_house">Testing Mister House</a></li>
@@ -59,7 +59,7 @@ This file (mh/docs/install.html) is for the installation instructions.
 The main Mister House documentation is in <a href="mh.html">mh.html</a>.
 A list of update announcements is in <a href="updates.html">updates.html</a> 
 There is also a <a href="faq.html">faq.html</a> to cover misc. topics and a  
-<a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
+<a href=http://tifster.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
 for other user-supplied documentation.
 Ron Klinkien also has a <a href=http://mrhousefromscratch.tk/> 'MisterHouse from Scratch' weblog site</a>
 with a nice collection of links, resources, notes and commentary.<p>
@@ -98,7 +98,7 @@ mh uses about 20% of the cpu and gets about 8 passes per second.</p>
  
  - cd mh\bin</pre>
 <pre>
- - mh.bat (this will call mh.exe if it exists or 'perl mh')</pre>
+ - mh.bat (this will call mhe.exe if it exists or 'perl mh')</pre>
 <p>Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file names.  
 This program works ok:  <a href="http://misterhouse.net/public/unzip.exe">http://misterhouse.net/public/unzip.exe</a></p>
 <p>
@@ -162,9 +162,9 @@ See <a href="#Coding_your_own_events">Coding your own events</a> for info on how
 <h1><a name="windows_detailed_install_instructions">Windows Detailed Install Instructions</a></h1>
 <p>
 </p>
-<h2><a name="windows_step_1,_download_and_install_mister_house">Windows Step 1, Download and Install Mister House</a></h2>
+<h2><a name="windows_step_1__download_and_install_mister_house">Windows Step 1, Download and Install Mister House</a></h2>
 <p>I you already have perl installed, you only need to download the main misterhouse_src_###.zip package.  If you do not have perl
-installed, you will also need to download the compiled mh.exe file, which is in the misterhouse_win_###.zip package.
+installed, you will also need to download the compiled mhe.exe file, which is in the misterhouse_win_###.zip package.
 Both are available from <a href="http://misterhouse.net:81/download">http://misterhouse.net:81/download</a> .</p>
 <p>The 2 MB misterhouse_src_###.zip file installs into 5 MB of disk space.
 The misterhouse_win_###.zip takes an additional 3 MB of disk space.  
@@ -180,7 +180,7 @@ make sure long file names were preserved (e.g. http_server.pl).  If not, you can
 <a href="http://misterhouse.net:81/public/unzip.exe">http://misterhouse.net:81/public/unzip.exe</a> .</p>
 <p>
 </p>
-<h2><a name="windows_step_2,_download_and_install_perl">Windows Step 2, Download and Install Perl</a></h2>
+<h2><a name="windows_step_2__download_and_install_perl">Windows Step 2, Download and Install Perl</a></h2>
 <p>You can skip this step if you downloaded the compiled version of Mister House.</p>
 <p>Download and install Perl version 5.8 (or higher) from 
 <a href="http://www.activestate.com/ActivePerl">http://www.activestate.com/ActivePerl</a> .
@@ -217,7 +217,7 @@ and install them from local storage. For example, to install the Tk package:</p>
 standard Activestate distribution, including the Tk module (used to be seperate).</p>
 <p>
 </p>
-<h2><a name="windows_step_3,_download_and_install_the_speech_engines">Windows Step 3, Download and Install the Speech Engines</a></h2>
+<h2><a name="windows_step_3__download_and_install_the_speech_engines">Windows Step 3, Download and Install the Speech Engines</a></h2>
 <p>You can skip this step if you do not want to enable TTS and VR, but much of the fun of
 Mister House comes from the 2-way speech.
 If you are running Windows 2000 or XP, the older V4 TTS engine is probably already installed.</p>
@@ -236,7 +236,7 @@ but does not work on Win 95.
 You can have both V4 and V5 TTS engines installed, and select which to use with the voice_text=MSV4 or MSV5 mh.ini parm.</p>
 <p>
 </p>
-<h3><a name="ms_sdk_4.0_instructions">MS SDK 4.0 instructions</a></h3>
+<h3><a name="ms_sdk_4_0_instructions">MS SDK 4.0 instructions</a></h3>
 <p>You can download the required files from the 4.0 SDK Suite from here:   <a href="http://www.microsoft.com/downloads/release.asp?ReleaseID=26299">http://www.microsoft.com/downloads/release.asp?ReleaseID=26299</a> . 
 Get SAPI4SDKSUITE.exe - 40 MB.  Simply run the .exe to install.</p>
 <p>If you install the above SDK, you can skip the reset of this section. 
@@ -258,7 +258,7 @@ Once running, you can use the ``Voice Command Options'' menu from the green V in
 can be downloaded from <a href="http://www.nextup.com/TextAloud/SpeechEngine/voices.html">http://www.nextup.com/TextAloud/SpeechEngine/voices.html</a></p>
 <p>
 </p>
-<h3><a name="ms_sdk_5.1_instructions">MS SDK 5.1 instructions</a></h3>
+<h3><a name="ms_sdk_5_1_instructions">MS SDK 5.1 instructions</a></h3>
 <p>In theory, the 5.1 MS TTS and VR engines can be installed separately, but they are distributed from Microsoft
 only as .msm files, which can only be used by a program that creates .msi install files.  I have not yet found
 an easy and free way to create a .msi file (suggestions welcome).  So for now, the only option is to install the 
@@ -276,7 +276,7 @@ Additional voices are $35.</p>
 <h1><a name="unix_detailed_install_instructions">UNIX Detailed Install Instructions</a></h1>
 <p>
 </p>
-<h2><a name="unix_step_1,_download_and_install_mister_house">UNIX Step 1, Download and Install Mister House</a></h2>
+<h2><a name="unix_step_1__download_and_install_mister_house">UNIX Step 1, Download and Install Mister House</a></h2>
 <p>Download the rpm, tar, or zip file from <a href="http://misterhouse.net:81/download">http://misterhouse.net:81/download</a> .</p>
 <p>Install the file as detailed in the quick install instructions.</p>
 <p>If you choose to use the zip file instead, make sure you 
@@ -292,7 +292,7 @@ delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 <p>There are various examples of how to start/stop mh in mh/bin/misterhouse*.rc</p>
 <p>
 </p>
-<h2><a name="unix_step_2,_download_and_compile_perl">UNIX Step 2, Download and Compile Perl</a></h2>
+<h2><a name="unix_step_2__download_and_compile_perl">UNIX Step 2, Download and Compile Perl</a></h2>
 <p>Most, if not all, UNIX installations now have perl installed by default.  If for some reason, yours does not
 or if it is an older version of perl, you can downloaded the latest from <a href="http://www.perl.com">http://www.perl.com</a> .</p>
 <p>Run 'perl -v' to show your version ... anything above 5.005 should be fine. 
@@ -335,7 +335,7 @@ of perl that has some sort of problem (e.g. memory leak).</p>
 <p>There are some example start/stop/restart .rc files in mh/bin/misterhouse*.rc</p>
 <p>
 </p>
-<h2><a name="unix_step_3,_download_and_install_a_speech_engines">UNIX Step 3, Download and Install a Speech Engines</a></h2>
+<h2><a name="unix_step_3__download_and_install_a_speech_engines">UNIX Step 3, Download and Install a Speech Engines</a></h2>
 <p>You can skip this step if you do not want to enable VR or TTS.</p>
 <p>The simplest and fastest TTS engine is flite, availale from <a href="http://www.speech.cs.cmu.edu/flite">http://www.speech.cs.cmu.edu/flite</a> .
 After compiling, point to where the flite binary is with the voice_text_file parm and set voice_text = flite.
@@ -451,7 +451,7 @@ default parms,  although your sunrise/sunset times will be for Rochester, MN :)<
 <p>If you decide to use mh, you will want to copy the parms you
 change to your own parm file and point to that with the mh_parm environmental
 variable (see the mh.ini header for details).</p>
-<p>If you are on Windows and you are not using the compiled mh.exe,
+<p>If you are on Windows and you are not using the compiled mhe.exe,
 you may need to edit the last record of the mh.bat file to point to the correct
 directories where Perl and the mh are installed.</p>
 <p>Next, cd to \mh\bin and then type: mh hello_print.pl. This will load the \mh\code\common\hello_print.pl

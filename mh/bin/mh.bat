@@ -1,11 +1,11 @@
 @echo off
 
 @rem This is a dos mh loop for restarting mh if mh had an unexpected exit.
-@rem This will call mh.exe (if it exists) or 'perl mh' otherwise.
+@rem This will call mhe.exe (if it exists) or 'perl mh' otherwise.
 @rem It checks exit codes so it can loop if a non-requested exit occured
 @rem Note:  This must be run from the mh\bin directory
 
-@rem Gather up arguments into one var. to pass to mh.exe or mh.pl file
+@rem Gather up arguments into one var. to pass to mhe.exe or mh.pl file
 @rem  shift drops first arg off and moves arg 2 to arg 1, arg 3 to arg 2
 @rem  etc, on each pass of the loop until there are not more args,
 @rem  then program continues from START
@@ -25,7 +25,7 @@ if %noloop% == 1  goto START
 echo mh will delete on startup > mh.startup
 
 :START
-if EXIST mh.exe goto COMPILED
+if EXIST mhe.exe goto COMPILED
 
 echo Starting interpreted perl mh
 perl -S mh %pgmargs%
@@ -37,8 +37,8 @@ if %noloop%     == 1 goto DONE
 goto FAIL
 
 :COMPILED
-echo Starting compiled mh.exe
-mh.exe %pgmargs%
+echo Starting compiled mhe.exe
+mhe.exe %pgmargs%
 if errorlevel 1 if not errorlevel 2 goto DONE
 if %noloop%     == 1 goto DONE
 

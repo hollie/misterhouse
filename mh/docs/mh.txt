@@ -827,6 +827,8 @@ DESCRIPTION
              member_changed_log:  Returns a list of recenty changed members.
                                   The first one was the most recently changed.
 
+             remove       : Remove an item from a group
+
           Examples:
              $outside_lights = new Group($light1, $light2, $light3);
              $outside_lights-> add($light4, $light5);
@@ -843,6 +845,14 @@ DESCRIPTION
              }
 
              my @members = member_changed_log $sensors;
+
+             # turn off all but the bedroom light when we are getting ready for bed
+             if( state_now $bedroom_control eq ON ) {
+                my $all = new Group(list $All_Lights);
+                $all -> remove ( $master_bedroom );
+                set $master_bedroom ON;
+                set $all OFF;
+             }
 
         See mh/code/examples/test_group.pl and
         mh/code/public/monitor_occupancy_jason.pl for more examples.
@@ -2111,6 +2121,9 @@ DESCRIPTION
         the browser print_log window. It will be displayed to a local tk
         window only if the $time parm is specified.
 
+    file_size
+        Returns the size of a file, in bytes.
+
     file_changed (or older name of file_change)
         Returns 1 if the specified file has change since last checked.
         Returns 0 if the file has not changed. Returns undef if we don't
@@ -2339,8 +2352,10 @@ DESCRIPTION
         Examples:
 
            $time_left = round $time_left, 1; Round to nearest tenth
+           $time_left = round $time_left, 2; Round to nearest hundredth
 
-           $rank = round $1, 100; # Round to nearest 100
+           $rank = round $1, 100;  # Round to nearest 100
+           $rank = round $1, 1000; # Round to nearest 1000
 
     run You can use the run function to run a program as a separate process.
         On Windows, the perl Win32::Process function is used, and on Unix,
@@ -3205,6 +3220,8 @@ DESCRIPTION
 
                 file        File with the body of the message or a file whose
                             contents you want attached to the note.
+                            Note: You can not use file and text at the same time, as they will be combined.
+
                 filename    Name to give file attachement.  Defaults to file parm.
 
                 mime        Set to the mime type (used if a file is attached).
@@ -3213,6 +3230,8 @@ DESCRIPTION
                             Use bin for an arbitary binary file.
 
                 baseref     If sending html with mime => 'html', use this to set the BASE HREF
+
+                priority    Can be 1->5 (1 is high, 5 is low).  Default is 3. 
 
           Example:
 
@@ -4687,6 +4706,7 @@ NOTES
       Serial_data    => Run on any incoming serial data
       Serial_match   => Run when incoming serial data matches and object
       State_change   => Run when objects change states
+      Play_parms     => Run before playing wav files, so you can set play parms
       Play_pre       => Run before playing wav files
       Play_post      => Run after  playing wav files
       Speak_parms    => Run before speaking text files, so you can set speak parms
@@ -4697,7 +4717,18 @@ NOTES
       Reload_post    => Run after  reload
       Exit           => Run on exit
 
-    For more examples on code hooks, see mh/code/bruce/test_code_hooks.pl
+    If you want to use a hook to modify parameters for the subsequent mh
+    function, use a _parm hook, which passes parms in by reference rather
+    than by value. For example, this will add a to_file option to all speak
+    calls:
+
+      &Speak_parms_add_hook(\&speak_parm_update) if $Reload;
+      sub speak_parm_update {
+          my ($parms_ref) = @_;
+          $$parms_ref{to_file} = "somename.wav"; 
+      }
+ 
+    For more examples on code hooks, see mh/code/examples/test_code_hooks.pl
 
 KNOWN LIMITATIONS AND BUGS
   General bugs/limitations

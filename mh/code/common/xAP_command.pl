@@ -14,6 +14,7 @@ use xAP_Items;
 $xap_command_external = new xAP_Item('command.external');
 if ($state = $xap_command_external->state_now()) {
 	my $response;	
+	print "s=$state, command=$$xap_command_external{'command.external'}{command}, xap=$xap_command_external\n";
 	$response =&process_external_command(
 		$$xap_command_external{'command.external'}{command},
 		1,

@@ -2,6 +2,9 @@
 <!--#include code="&html_header('How To Customize My MH web pages')" -->
 
 <p>
+
+hi ho!
+
 This space reserved for web pages that you can easily customize. 
 Copy these pages from mh/web/my_mh to a directory of your choice, then add this mh.ini parm to point to it:
 <pre>

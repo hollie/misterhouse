@@ -103,6 +103,9 @@ hvac_david.pl
 HVweb.pl
  - Joseph Gaston's code to control Homevision controller via the Homevision web server 
 
+iButton_temps.pl
+ - Use digitemp to read ibuttons, when the built in mh perl code has problems reading ibutton temps.
+
 iButton_DS2450.pl 
  - Brian Rudy's sample code for communicating with the DS2450 Quad A/D converter
 
@@ -250,6 +253,8 @@ readrat.pl
  - Kent Noonan's code for controling IR devices with the 
    RedRat interface: http://www.dodgies.demon.co.uk/index.html
 
+robot_er1.pl
+ - Dave Hall's code for interacting with the Evolution Robotics ER1 robot: http://www.evolution.com/er1/
 
 rrd.pl
 rrd_graph

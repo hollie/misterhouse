@@ -129,7 +129,11 @@ sub web_trigger_add {
         my $trigger = ($p{trigger1}) ? "$p{trigger1} '$p{trigger2}'" : $p{trigger2};
         my $code;
         if ($p{code1}) {
-            $p{code2} = "'$p{code2}'" unless $p{code1} eq 'set';
+#           $p{code2} = "qq~$p{code2}~" unless $p{code1} eq 'set';
+	    unless ($p{code1} eq 'set') {
+		$p{code2} =~ s/\'/\\'/g;
+		$p{code2} = "'$p{code2}'";
+	    }
             $code = "$p{code1} $p{code2}";
         }
         else {

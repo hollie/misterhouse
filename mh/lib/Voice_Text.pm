@@ -516,6 +516,7 @@ sub speak_text {
 sub is_speaking {
     my ($card) = @_;
     $card = 0 unless $card;
+#   print "db c=$card vt=$VTxt[$card] vt=@VTxt\n";
     if (@VTxt and $VTxt[$card]) {
         if ($VTxt_version eq 'msv5') {
                                 # I think these are the same??  I did not benchmark for speed.
@@ -812,6 +813,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.52  2004/04/25 18:19:58  winter
+# *** empty log message ***
+#
 # Revision 1.51  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

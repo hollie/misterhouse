@@ -7,7 +7,7 @@ This file (mh/docs/install.html) is for the installation instructions.
 The main Mister House documentation is in <a href="mh.html">mh.html</a>.
 A list of update announcements is in <a href="updates.html">updates.html</a> 
 There is also a <a href="faq.html">faq.html</a> to cover misc. topics and a  
-<a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
+<a href=http://tifster.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
 for other user-supplied documentation.
 Ron Klinkien also has a <a href=http://mrhousefromscratch.tk/> 'MisterHouse from Scratch' weblog site</a>
 with a nice collection of links, resources, notes and commentary.
@@ -49,7 +49,7 @@ These are the quick instructions for those of you who, like me, don't like to re
  
  - cd mh\bin
 
- - mh.bat (this will call mh.exe if it exists or 'perl mh')
+ - mh.bat (this will call mhe.exe if it exists or 'perl mh')
 
 Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file names.  
 This program works ok:  http://misterhouse.net/public/unzip.exe
@@ -121,7 +121,7 @@ See <a href="#Coding_your_own_events">Coding your own events</a> for info on how
 =head2 Windows Step 1, Download and Install Mister House
 
 I you already have perl installed, you only need to download the main misterhouse_src_###.zip package.  If you do not have perl
-installed, you will also need to download the compiled mh.exe file, which is in the misterhouse_win_###.zip package.
+installed, you will also need to download the compiled mhe.exe file, which is in the misterhouse_win_###.zip package.
 Both are available from http://misterhouse.net:81/download .
 
 The 2 MB misterhouse_src_###.zip file installs into 5 MB of disk space.
@@ -468,7 +468,7 @@ If you decide to use mh, you will want to copy the parms you
 change to your own parm file and point to that with the mh_parm environmental
 variable (see the mh.ini header for details).
 
-If you are on Windows and you are not using the compiled mh.exe,
+If you are on Windows and you are not using the compiled mhe.exe,
 you may need to edit the last record of the mh.bat file to point to the correct
 directories where Perl and the mh are installed. 
 

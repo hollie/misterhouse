@@ -1033,6 +1033,9 @@ sub main::time_date_stamp {
                           $year_full, $mon, $mday, $hour, $min, $sec) }
     elsif ($style == 18)  {$time_date_stamp = sprintf("%04d%02d%02d",
                                                       $year_full, $mon, $mday) }
+    else {
+	$time_date_stamp = "time_date_stamp format=$style not recognized";
+    }
 
     return wantarray ? ($time_date_stamp, $sec, $min, $hour, $ampm, $day_long, $mon, $mday, $year) : $time_date_stamp;
 }
@@ -1229,6 +1232,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.69  2004/04/25 18:20:16  winter
+# *** empty log message ***
+#
 # Revision 1.68  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

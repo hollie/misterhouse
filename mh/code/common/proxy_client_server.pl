@@ -222,6 +222,17 @@ if ($state = said $proxy_server) {
 	$parms{rooms} = $config_parms{speak_mh_room};
         play %parms;
     }
+    elsif ($function eq 'lynx10plc') {
+        my $function2 = shift @data;
+        if ($function2 eq 'send_plc') {
+            &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},@data);
+        }
+        elsif ($function2 eq 'readDeviceInfo') {   
+	    &Lynx10PLC::readDeviceInfo($main::Serial_Ports{Lynx10PLC}{object},$data[0]);
+        }
+    }
+    
+
 }
 
                                 # Echo incoming serial data back to the real mh

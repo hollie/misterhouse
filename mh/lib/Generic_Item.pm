@@ -451,7 +451,7 @@ sub set_states_for_next_pass {
 
     $target = $set_by unless defined $target;
 #   $ref->{target} = $target;
-    push @{$ref->{target_next_pass}}, $set_by;
+    push @{$ref->{target_next_pass}}, $target;
 
                                 # Set the state_log ... log non-blank states
                                 # Avoid -w unintialized variable errors
@@ -628,6 +628,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.34  2004/04/25 18:19:41  winter
+# *** empty log message ***
+#
 # Revision 1.33  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

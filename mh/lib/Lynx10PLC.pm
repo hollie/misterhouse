@@ -376,7 +376,10 @@ sub check_for_data
 sub send_plc
 {
 	# Make sure we are passed a pkt
-	return unless ( 3 == @_ );
+	#return unless ( 3 == @_ );
+	return unless ( @_ > 1 and @_ < 4);
+
+
 	
 	my ($self, $cmd, $module_type) = @_;
 

@@ -51,9 +51,9 @@ if (done_now $iridium_check_p or $state eq 'list') {
 
     open(MYCODE, ">$iridium_check_e") or print_log "Error in writing to $iridium_check_e";
     print MYCODE "\n#@ Auto-generated from code/common/internet_iridium.pl\n\n";
+    print MYCODE "\n\$iridium_timer = new Timer;\n\n";
 
     print MYCODE <<'eof';
-$iridium_timer = new Timer;
         if ($New_Second and my $time_left = int seconds_remaining $iridium_timer) {
           my %iridium_timer_intervals = map {$_, 1} (15,30,90);
           if ($iridium_timer_intervals{$time_left}) {

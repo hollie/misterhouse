@@ -38,8 +38,8 @@
 		<li><a href="#customizing_the_menu_interfaces">Customizing the Menu interfaces</a></li>
 		<li><a href="#customizing_the_tk_interface">Customizing the Tk Interface</a></li>
 		<li><a href="#customizing_the_web_interface">Customizing the Web Interface</a></li>
-		<li><a href="#voice_recognition_(vr)_and_text_to_speech_(tts)_on_windows">Voice Recognition (VR) and Text To Speech (TTS) on windows</a></li>
-		<li><a href="#voice_recognition_(vr)_and_text_to_speech_(tts)_on_unix">Voice Recognition (VR) and Text To Speech (TTS) on Unix</a></li>
+		<li><a href="#voice_recognition__vr__and_text_to_speech__tts__on_windows">Voice Recognition (VR) and Text To Speech (TTS) on windows</a></li>
+		<li><a href="#voice_recognition__vr__and_text_to_speech__tts__on_unix">Voice Recognition (VR) and Text To Speech (TTS) on Unix</a></li>
 		<li><a href="#using_distributed_misterhouse_proxies">Using distributed MisterHouse proxies</a></li>
 	</ul>
 
@@ -47,9 +47,9 @@
 	<li><a href="#known_limitations_and_bugs">KNOWN LIMITATIONS AND BUGS</a></li>
 	<ul>
 
-		<li><a href="#general_bugs/limitations">General bugs/limitations</a></li>
-		<li><a href="#windows_bugs/limitations">Windows bugs/limitations</a></li>
-		<li><a href="#unix_bugs/limitations">Unix bugs/limitations</a></li>
+		<li><a href="#general_bugs_limitations">General bugs/limitations</a></li>
+		<li><a href="#windows_bugs_limitations">Windows bugs/limitations</a></li>
+		<li><a href="#unix_bugs_limitations">Unix bugs/limitations</a></li>
 	</ul>
 
 	<li><a href="#authors">AUTHORS</a></li>
@@ -120,7 +120,7 @@ The system requirements and installation instructions are detailed in
 <p>There is also a FAQ that covers misc. topics in
 <a href="faq.html">mh/docs/faq.html</a>
 <p>Paul Chamberlain has set up a 
-<a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
+<a href=http://tifster.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
 for other user-supplied documentation.
 Ron Klinkien also has a <a href=http://mrhousefromscratch.tk/> 'MisterHouse from Scratch' weblog site</a>
 with a nice collection of links, resources, notes and commentary.<p>
@@ -475,22 +475,22 @@ the MisterHouse Internet Appliance FAQ here:
 <p>The complete list of valid startup options is in the mh.ini file.  Here are a few of the more
 important ones and their defaults:</p>
 <dl>
-<dt><strong><a name="item_code_dir%3d%5cmh%5ccode%5ctest">code_dir=\mh\code\test</a></strong><br />
+<dt><strong><a name="item_code_dir_3d_5cmh_5ccode_5ctest">code_dir=\mh\code\test</a></strong><br />
 </dt>
 <dd>
 Points to the directory that has the user code files in it.
 This can be a comma delimited set of paths if you want to keep your code files between different directories.
 </dd>
 <p></p>
-<dt><strong><a name="item_html_root%3d%24pgm_root%2fweb">html_root=$Pgm_Root/web</a></strong><br />
+<dt><strong><a name="item_html_root_3d_24pgm_root_2fweb">html_root=$Pgm_Root/web</a></strong><br />
 </dt>
-<dt><strong><a name="item_html_file%3dmh_default%2findex%2ehtml">html_file=mh_default/index.html</a></strong><br />
+<dt><strong><a name="item_html_file_3dmh_default_2findex_2ehtml">html_file=mh_default/index.html</a></strong><br />
 </dt>
 <dd>
 Points to where the web interface html files are.
 </dd>
 <p></p>
-<dt><strong><a name="item_http_port%3d8080">http_port=8080</a></strong><br />
+<dt><strong><a name="item_http_port_3d8080">http_port=8080</a></strong><br />
 </dt>
 <dd>
 Use 80 if you want to use the normal web port (i.e. <a href="http://localhost">http://localhost</a> ).
@@ -498,21 +498,21 @@ If using something other than 80 (because you already have a web server
 running), add :port to URL (e.g.  <a href="http://localhost:8080">http://localhost:8080</a> ).
 </dd>
 <p></p>
-<dt><strong><a name="item_server_telnet_port%3d23">server_telnet_port=23</a></strong><br />
+<dt><strong><a name="item_server_telnet_port_3d23">server_telnet_port=23</a></strong><br />
 </dt>
 <dd>
 Use 23 to enable access via 'telnet localhost', if you are running the mh/code/common/telnet.pl member.
 If you use a different port, you can still get to the port with 'telnet localhost port_number'.
 </dd>
 <p></p>
-<dt><strong><a name="item_diagnostics%3d1">diagnostics=1</a></strong><br />
+<dt><strong><a name="item_diagnostics_3d1">diagnostics=1</a></strong><br />
 </dt>
 <dd>
 Set this (or w=1) to enable perl -w warning messages on potential code errors. 
 mh runs about 10% slower with this option on.
 </dd>
 <p></p>
-<dt><strong><a name="item_run%3dperl_script">run=perl_script</a></strong><br />
+<dt><strong><a name="item_run_3dperl_script">run=perl_script</a></strong><br />
 </dt>
 <dd>
 This parms allow the compile mh.exe to act as a general purpose perl interpreter, so we can run any 
@@ -525,9 +525,9 @@ would be cleaner, but alas, no forks.
 <p></p>
 </dd>
 <p></p>
-<dt><strong><a name="item_debug%3d">debug=</a></strong><br />
+<dt><strong><a name="item_debug_3d">debug=</a></strong><br />
 </dt>
-<dt><strong><a name="item_log%3d">log=</a></strong><br />
+<dt><strong><a name="item_log_3d">log=</a></strong><br />
 </dt>
 <dd>
 You can use the -debug and -log and options to turn on debug and/or log the console errata to a file.
@@ -549,11 +549,11 @@ You can also stack debug flags, using ; as a separator.  fro example:</p>
 <p></p>
 </dd>
 <p></p>
-<dt><strong><a name="item_time_start%3d">time_start=</a></strong><br />
+<dt><strong><a name="item_time_start_3d">time_start=</a></strong><br />
 </dt>
-<dt><strong><a name="item_time_stop%3d">time_stop=</a></strong><br />
+<dt><strong><a name="item_time_stop_3d">time_stop=</a></strong><br />
 </dt>
-<dt><strong><a name="item_time_increment%3d">time_increment=</a></strong><br />
+<dt><strong><a name="item_time_increment_3d">time_increment=</a></strong><br />
 </dt>
 <dd>
 Use time_start and time_stop to run mh in 'fast test mode', useful for debugging events.
@@ -976,6 +976,10 @@ You can use this object to group and operate on groups of items:
 </dd>
 <dd>
 <pre>
+     remove       : Remove an item from a group</pre>
+</dd>
+<dd>
+<pre>
   Examples:
      $outside_lights = new Group($light1, $light2, $light3);
      $outside_lights-&gt; add($light4, $light5);
@@ -998,6 +1002,16 @@ You can use this object to group and operate on groups of items:
 <dd>
 <pre>
      my @members = member_changed_log $sensors;</pre>
+</dd>
+<dd>
+<pre>
+     # turn off all but the bedroom light when we are getting ready for bed
+     if( state_now $bedroom_control eq ON ) {
+        my $all = new Group(list $All_Lights);
+        $all -&gt; remove ( $master_bedroom );
+        set $master_bedroom ON;
+        set $all OFF;
+     }</pre>
 </dd>
 <dd>
 <p>See mh/code/examples/test_group.pl and mh/code/public/monitor_occupancy_jason.pl for more examples.</p>
@@ -1857,13 +1871,13 @@ These 32 non-extended Preset Dim codes can be coded directly, using the followin
 Same as X10_Item, except it has only has pre-defined states 'on' and 'off'
 </dd>
 <p></p>
-<dt><strong><a name="item_x10_garage_door%3b">X10_Garage_Door;</a></strong><br />
+<dt><strong><a name="item_x10_garage_door_3b">X10_Garage_Door;</a></strong><br />
 </dt>
 <dd>
 For the Stanley Garage Door status transmitter.  See mh/code/public/Danal/Garage_Door.pl
 </dd>
 <p></p>
-<dt><strong><a name="item_x10_irrigationcontroller%3b">X10_IrrigationController;</a></strong><br />
+<dt><strong><a name="item_x10_irrigationcontroller_3b">X10_IrrigationController;</a></strong><br />
 </dt>
 <dd>
 For this sprinkler device:  <a href="http://ourworld.compuserve.com/homepages/rciautomation/p6.htm">http://ourworld.compuserve.com/homepages/rciautomation/p6.htm</a>
@@ -1871,7 +1885,7 @@ which looks the same as the IrrMaster 4-zone sprinkler controller
 listed here: <a href="http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027">http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027</a>
 </dd>
 <p></p>
-<dt><strong><a name="item_x10_switchlinc%3b">X10_Switchlinc;</a></strong><br />
+<dt><strong><a name="item_x10_switchlinc_3b">X10_Switchlinc;</a></strong><br />
 </dt>
 <dd>
 For the Switchlinc controllers:
@@ -1886,7 +1900,7 @@ For the Switchlinc controllers:
   $Office_Light_Torch-&gt;set(&quot;disablex10transmit&quot;);</pre>
 </dd>
 <p></p>
-<dt><strong><a name="item_x10_ote%3b">X10_Ote;</a></strong><br />
+<dt><strong><a name="item_x10_ote_3b">X10_Ote;</a></strong><br />
 </dt>
 <dd>
 This supports the OTE X10 themostat from Ouellet Canada.
@@ -2661,7 +2675,7 @@ Converts 0-&gt;360 degrees into north, north east, east, etc
           &quot; from the &quot; . convert_wind_direction($weather{WindAvgDir});</pre>
 </dd>
 <p></p>
-<dt><strong><a name="item_dbm_write_%3ditem_logit_dbm">dbm_write
+<dt><strong><a name="item_dbm_write__3ditem_logit_dbm">dbm_write
 =item logit_dbm</a></strong><br />
 </dt>
 <dd>
@@ -2779,6 +2793,12 @@ If -tk 0 or the data is echoed to the console.</p>
 <dd>
 <p>If the data is requested from a web browser, the data is echoed to the browser print_log 
 window.  It will be displayed to a local tk window only if the $time parm is specified.</p>
+</dd>
+<p></p>
+<dt><strong><a name="item_file_size">file_size</a></strong><br />
+</dt>
+<dd>
+Returns the size of a file, in bytes.
 </dd>
 <p></p>
 <dt><strong><a name="item_file_changed">file_changed (or older name of file_change)</a></strong><br />
@@ -3143,11 +3163,13 @@ Use this function to round off a number.  Usage:
 </dd>
 <dd>
 <pre>
-   $time_left = round $time_left, 1; Round to nearest tenth</pre>
+   $time_left = round $time_left, 1; Round to nearest tenth
+   $time_left = round $time_left, 2; Round to nearest hundredth</pre>
 </dd>
 <dd>
 <pre>
-   $rank = round $1, 100; # Round to nearest 100</pre>
+   $rank = round $1, 100;  # Round to nearest 100
+   $rank = round $1, 1000; # Round to nearest 1000</pre>
 </dd>
 <p></p>
 <dt><strong><a name="item_run">run</a></strong><br />
@@ -4146,11 +4168,11 @@ only on the nth second/minute/hour.
 <p>If you pass no argument, it defaults to 1 (i.e. the same as the $New_* variables).</p>
 </dd>
 <p></p>
-<dt><strong><a name="item_net_domain_name_%27address%27">net_domain_name 'address'</a></strong><br />
+<dt><strong><a name="item_net_domain_name__27address_27">net_domain_name 'address'</a></strong><br />
 </dt>
-<dt><strong><a name="item_net_domain_name_start_%27search_name%27%2c_%27addr">net_domain_name_start 'search_name', 'address'</a></strong><br />
+<dt><strong><a name="item_net_domain_name_start__27search_name_27_2c__27addr">net_domain_name_start 'search_name', 'address'</a></strong><br />
 </dt>
-<dt><strong><a name="item_net_domain_name_done_%27search_name%27">net_domain_name_done  'search_name'</a></strong><br />
+<dt><strong><a name="item_net_domain_name_done__27search_name_27">net_domain_name_done  'search_name'</a></strong><br />
 </dt>
 <dd>
 These functions will return the domain_name of the last client to access the specified port.
@@ -4408,6 +4430,10 @@ causes mh to pause.</p>
 <pre>
         file        File with the body of the message or a file whose
                     contents you want attached to the note.
+                    Note: You can not use file and text at the same time, as they will be combined.</pre>
+</dd>
+<dd>
+<pre>
         filename    Name to give file attachement.  Defaults to file parm.</pre>
 </dd>
 <dd>
@@ -4420,6 +4446,10 @@ causes mh to pause.</p>
 <dd>
 <pre>
         baseref     If sending html with mime =&gt; 'html', use this to set the BASE HREF</pre>
+</dd>
+<dd>
+<pre>
+        priority    Can be 1-&gt;5 (1 is high, 5 is low).  Default is 3.</pre>
 </dd>
 <dd>
 <pre>
@@ -5960,7 +5990,7 @@ For example:</p>
   &lt;img src=<a href="http://localhost:8081/sub?web_icon_state">http://localhost:8081/sub?web_icon_state</a>('$light1')&gt;</pre>
 <p>
 </p>
-<h2><a name="voice_recognition_(vr)_and_text_to_speech_(tts)_on_windows">Voice Recognition (VR) and Text To Speech (TTS) on windows</a></h2>
+<h2><a name="voice_recognition__vr__and_text_to_speech__tts__on_windows">Voice Recognition (VR) and Text To Speech (TTS) on windows</a></h2>
 <p>VR and TTS options are controlled with the Microsoft Voice application.  It shows up as a 'green V' in your icon tray.   Right
 clicking on this icon brings various menus for configuring your VR and TTS options.</p>
 <p>You can pick between 3 VR modes, by right clicking on the MS Voice icon, or toggle between the modes by left clicking on the icon.</p>
@@ -5988,7 +6018,7 @@ on the 'Optional Training' button.</p>
 same 'Voice Command Options' dialog.</p>
 <p>
 </p>
-<h2><a name="voice_recognition_(vr)_and_text_to_speech_(tts)_on_unix">Voice Recognition (VR) and Text To Speech (TTS) on Unix</a></h2>
+<h2><a name="voice_recognition__vr__and_text_to_speech__tts__on_unix">Voice Recognition (VR) and Text To Speech (TTS) on Unix</a></h2>
 <p>Need notes on how to use ViaVoice on linux and how to enable different TTS engines with Festival.</p>
 <p>There is a now also a Festival lite ending that looks promising at
 <a href="http://www.speech.cs.cmu.edu/flite/">http://www.speech.cs.cmu.edu/flite/</a></p>
@@ -6124,6 +6154,7 @@ it is run in the order the hooks were added.</p>
   Serial_data    =&gt; Run on any incoming serial data
   Serial_match   =&gt; Run when incoming serial data matches and object
   State_change   =&gt; Run when objects change states
+  Play_parms     =&gt; Run before playing wav files, so you can set play parms
   Play_pre       =&gt; Run before playing wav files
   Play_post      =&gt; Run after  playing wav files
   Speak_parms    =&gt; Run before speaking text files, so you can set speak parms
@@ -6133,14 +6164,22 @@ it is run in the order the hooks were added.</p>
   Reload_pre     =&gt; Run before reload
   Reload_post    =&gt; Run after  reload
   Exit           =&gt; Run on exit</pre>
-<p>For more examples on code hooks, see mh/code/bruce/test_code_hooks.pl</p>
+<p>If you want to use a hook to modify parameters for the subsequent mh function, use a _parm hook, which passes parms in by reference
+rather than by value.  For example, this will add a to_file option to all speak calls:</p>
+<pre>
+  &amp;Speak_parms_add_hook(\&amp;speak_parm_update) if $Reload;
+  sub speak_parm_update {
+      my ($parms_ref) = @_;
+      $$parms_ref{to_file} = &quot;somename.wav&quot;; 
+  }</pre>
+<p>For more examples on code hooks, see mh/code/examples/test_code_hooks.pl</p>
 <p>
 </p>
 <hr />
 <h1><a name="known_limitations_and_bugs">KNOWN LIMITATIONS AND BUGS</a></h1>
 <p>
 </p>
-<h2><a name="general_bugs/limitations">General bugs/limitations</a></h2>
+<h2><a name="general_bugs_limitations">General bugs/limitations</a></h2>
 <p>The JDS and Marrick interface modules are untested.</p>
 <p>mh also has the 'windows 49.7 day bug' (2**32 milliseconds) that has been in the news lately: 
 <a href="http://www.news.com/News/Item/0,4,33117,00.html?st.ne.ni.rel">http://www.news.com/News/Item/0,4,33117,00.html?st.ne.ni.rel</a> .</p>
@@ -6151,7 +6190,7 @@ Hopefully this will get fixed in a future release of perl/Tk.  Note: if you have
 than 8.0012), things are even more messed up.</p>
 <p>
 </p>
-<h2><a name="windows_bugs/limitations">Windows bugs/limitations</a></h2>
+<h2><a name="windows_bugs_limitations">Windows bugs/limitations</a></h2>
 <p>If 'run' calls give you an 'out of environment memory' error, create a command.pif
 and change the memory, initial environment from auto to 4k.</p>
 <p>Activestate perl 5.6 build 613 and 616 leaks memory on windows.  On my box about 30 Meg, once a day. 
@@ -6167,7 +6206,7 @@ Hopefully we can get this to work with release 5.0 of the MS Speech SDK.</p>
 Do a find in IO.DLL in your perl directory, and rename the one in the tk path.</p>
 <p>
 </p>
-<h2><a name="unix_bugs/limitations">Unix bugs/limitations</a></h2>
+<h2><a name="unix_bugs_limitations">Unix bugs/limitations</a></h2>
 <p>Voice Recognition IS supported under linux using IBM's ViaVoice SDK.
 Potential candidates for VR engines other non-linux Unix platforms are:</p>
 <pre>

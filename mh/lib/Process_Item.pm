@@ -34,6 +34,11 @@ sub set_errlog {
     $$self{errlog} = $file;
 }
 
+sub set_killsig {
+    my ($self, $killsig) = @_;
+    $$self{killsig} = $killsig;
+}
+
 sub add {
     my ($self, @cmds) = @_;
     push @{$$self{cmds}}, @cmds;
@@ -181,6 +186,7 @@ sub start_next {
     }
     push(@active_processes, $self);
     $$self{started} = time;
+    $$self{runtime} = 0;
     undef $$self{timed_out};
     undef $$self{done};
 }    
@@ -199,6 +205,11 @@ sub pid {
 sub timed_out {
     my ($self) = @_;
     return ($$self{timed_out}) ? 1 : 0;
+}    
+
+sub runtime {
+    my ($self) = @_;
+    return $$self{runtime};
 }    
 
 sub done_now {
@@ -226,6 +237,7 @@ sub harvest {
             $$process{timed_out} = $time;
             $process->stop();
         }
+        $$process{runtime} = time - $$process{started};
         if (($main::OS_win and $pid->Wait(0)) or 
             (!$main::OS_win and waitpid($pid, 1)) or
             ($$process{timed_out})) {
@@ -268,7 +280,12 @@ sub stop {
             $pid->Kill(1) or print "Warning 2, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
         }
         else {
-            kill 9, $pid;
+	    if (defined $$process{killsig}) {
+              kill $$process{killsig}, $pid;
+  	    }
+            else {
+              kill 9, $pid;
+  	    }
         }
     }
 }
@@ -281,6 +298,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.27  2004/04/25 18:19:57  winter
+# *** empty log message ***
+#
 # Revision 1.26  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

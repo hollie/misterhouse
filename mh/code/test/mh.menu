@@ -3,6 +3,7 @@ M: mh
   D: MisterHouse
   D: Other
   D: Test
+  D: Time
 M: MisterHouse
   D: Restart the TTS engine                              # $restart_tts                        
   D: Set speech to [stop,pause,resume,rewind,fastforward,fast,normal,slow,-5,5]  # $test_speak_mode                    
@@ -23,7 +24,8 @@ M: MisterHouse
   D: Read table files                                    # $v_read_tables                      
   D: [Reboot,Shut Down] the computer                     # $v_reboot                           
   D: Abort the reboot                                    # $v_reboot_abort                     
-  D: [,Force] Reload code                                # $v_reload_code                      
+  D: Reload code                                         # $v_reload_code                      
+  D: Force Reload code                                   # $v_reload_code2                     
   D: Repeat your last message                            # $v_repeat_last_spoken               
   D: Restart Mister House                                # $v_restart_mh                       
   D: Set the [guest,family,admin] password               # $v_set_password                     
@@ -37,3 +39,5 @@ M: Test
   D: Run test [1,2,3]                                    # $my_test1                           
   D: Turn test light 2 [on,brighten,dim,off]             # $v_test_light2                      
   D: All lights [on,brighten,dim,off]                    # $v_test_lights                      
+M: Time
+  D: Check for new calendar events                       # $organizer_check                    

@@ -72,7 +72,8 @@ my $f_awsweather_html = "$config_parms{data_dir}/web/$AWS_ID.html";
 my $prev_timestamp;
 
 # noloop=start
-my $AWSWeatherURL="http://aws.com/full.asp?id=$AWS_ID";
+#y $AWSWeatherURL="http://aws.com/full.asp?id=$AWS_ID";
+my $AWSWeatherURL=http://www.aws.com/AWS/full.asp?id=$AWS_ID;
 # noloop=stop
 
 $p_awsweather_page = new Process_Item("get_url -quiet \"$AWSWeatherURL\" \"$f_awsweather_html\"");

@@ -279,5 +279,6 @@ sub rain_since {
         }
     }
     eval "untie %rain_dbm";
+    $amount = round $amount, 2;  # Round to nearest 1/100
     return $amount; 
 }

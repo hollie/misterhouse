@@ -126,8 +126,24 @@ sub member_changed_log {
 	return @{$$self{member_changed_log}};
 }
 
+
+sub remove {
+    my ($self, @items) = @_;
+                                                                                
+    for my $ref(@items) {
+	$ref->untie_items($self, undef);
+		     # this is definitely not the best way to do it...
+		     # in fact it is probably the worse way possible
+	@{$$self{members}} = grep { $_ != $ref} @{$$self{members}};
+    }
+}
+
+
 #
 # $Log$
+# Revision 1.19  2004/04/25 18:19:52  winter
+# *** empty log message ***
+#
 # Revision 1.18  2003/02/08 05:29:23  winter
 #  - 2.78 release
 #

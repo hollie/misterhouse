@@ -60,6 +60,7 @@ if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
         my $text     = "$name, $subject. $notes";
         $notes .= ".  Sent: $Date_Now $Time_Now";
         $objDB->MoveNext;
+	next unless $name or $subject;
         next if lc $complete eq 'yes';
         next unless time_less_than("$date + 23:59");  # Skip past and invalid events
         

@@ -585,7 +585,9 @@ sub main::net_im_signon {
     $port = 1234                                       unless $port;  # This is the default
     my $buddies  = $main::config_parms{net_aim_buddies};
 
-    my $timeout = 10 unless $main::config_parms{net_aim_timeout};
+    my $timeout = $main::config_parms{net_aim_timeout};
+    $timeout = 10 unless $timeout;
+
     print "Logging onto AIM with name=$name (timeout=$timeout) ... \n";
 
     eval 'use Net::AOLIM';
@@ -641,7 +643,8 @@ sub main::net_im_signoff {
     }
 }
 
-# IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hi ho</FONT></BODY></HTML>
+my %buddies_status;
+# IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hiho</FONT></BODY></HTML>
 sub aolim::callback {
     my ($type, $name, $arg, $text) = @_;
 #   print "db t=$type, n=$name, a=$arg, t=$text\n";
@@ -665,16 +668,15 @@ sub aolim::callback {
         elsif ($arg eq 'F') {
             $status = 'off';
         } 
-        print "AOL AIM Buddy $name logged $status.\n";
+        if ($buddies_status{$name} ne $status) {
+            print "AOL AIM Buddy $name logged $status.\n";
+            $buddies_status{$name} = $status;
+        }
         &main::AOLim_Status_hooks($name, $status, 'AOL');
     }
-
-                                  # Sometimes name, arg, and text are empty,
-                                  # but type=2 once a minute, so don't print that
-    elsif ($name or $arg or $text) {
-        print "AOL AIM data: t=$type name=$name a=$arg text=$text\n";
-    }
 }
+
+
 
 
 sub aolim::process {
@@ -810,6 +812,9 @@ sub main::net_mail_send {
     $smtppassword= $parms{smtppassword};
     $smtpencrypt= $parms{smtpencrypt};
 
+    my $priority= $parms{priority};
+    $priority = 3 unless $priority;
+
     $account = $main::config_parms{net_mail_send_account}         unless $account;
     $server  = $main::config_parms{"net_mail_${account}_server_send"}       unless $server;
     $server  = $main::config_parms{"net_mail_${account}_server"}  unless $server;
@@ -821,7 +826,8 @@ sub main::net_mail_send {
     $subject = "Email from Mister House"                          unless $subject;
     $baseref = 'localhost'                                        unless $baseref;
 
-    my $timeout = 20 unless $main::config_parms{"net_mail_${account}_server_send_timeout"};
+    my $timeout = $main::config_parms{"net_mail_${account}_server_send_timeout"};
+    $timeout = 20 unless $timeout;
 
     $smtpusername= $main::config_parms{"net_mail_${account}_user"} unless $smtpusername;
     $smtppassword= $main::config_parms{"net_mail_${account}_password"} unless $smtppassword;
@@ -902,7 +908,9 @@ sub main::net_mail_send {
                                 # Default to html
         else {
                                 # Modify the html so it has a BASE HREF and the links work in a mail reader
-            $text =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{baseref}">|i;
+				#  - Seems to work anywhere?  Not all html has <HEAD> like it should
+#           $text =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{baseref}">|i;
+            $text =~ s|<HTML>|<HTML>\n<BASE HREF="http://$parms{baseref}">|i;
             $message = MIME::Lite->new(From => $from,
                                        Subject => $subject,
                                        Type  => 'text/html',
@@ -922,6 +930,7 @@ sub main::net_mail_send {
         elsif ($method) {
           MIME::Lite->send('sendmail', $method);
         }
+	$message->add('X-Priority' => $priority) if ($priority != 3);
         $message->send($server, Timeout => $timeout);
     }
     else {
@@ -939,7 +948,7 @@ sub main::net_mail_send {
 
         $smtp->mail($from) if $from;
         $smtp->to($to);
-        $smtp->data("Subject: $subject\n", "To: $to\n", "From: $from\n\n", $text);
+        $smtp->data("X-Priority: $priority\n", "Subject: $subject\n", "To: $to\n", "From: $from\n\n", $text);
         $smtp->quit;
     }
 }
@@ -979,7 +988,8 @@ sub main::net_mail_login {
       }
     }
 
-    my $timeout = 20 unless $main::config_parms{$account . "_timeout"};
+    my $timeout = $main::config_parms{$account . "_timeout"};
+    $timeout = 20 unless $timeout;
 
     use Net::POP3;
     print "net_mail_login to $server\n" if $parms{debug};
@@ -1215,6 +1225,9 @@ sub main::net_socket_check {
 
 #
 # $Log$
+# Revision 1.56  2004/04/25 18:20:00  winter
+# *** empty log message ***
+#
 # Revision 1.55  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

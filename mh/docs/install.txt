@@ -33,7 +33,7 @@ Quick Install Instructions
  
      - cd mh\bin
 
-     - mh.bat (this will call mh.exe if it exists or 'perl mh')
+     - mh.bat (this will call mhe.exe if it exists or 'perl mh')
 
     Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file
     names. This program works ok: http://misterhouse.net/public/unzip.exe
@@ -98,7 +98,7 @@ Windows Detailed Install Instructions
   Windows Step 1, Download and Install Mister House
     I you already have perl installed, you only need to download the main
     misterhouse_src_###.zip package. If you do not have perl installed, you
-    will also need to download the compiled mh.exe file, which is in the
+    will also need to download the compiled mhe.exe file, which is in the
     misterhouse_win_###.zip package. Both are available from
     http://misterhouse.net:81/download .
 
@@ -484,9 +484,9 @@ Testing Mister House
     your own parm file and point to that with the mh_parm environmental
     variable (see the mh.ini header for details).
 
-    If you are on Windows and you are not using the compiled mh.exe, you may
-    need to edit the last record of the mh.bat file to point to the correct
-    directories where Perl and the mh are installed.
+    If you are on Windows and you are not using the compiled mhe.exe, you
+    may need to edit the last record of the mh.bat file to point to the
+    correct directories where Perl and the mh are installed.
 
     Next, cd to \mh\bin and then type: mh hello_print.pl. This will load the
     \mh\code\common\hello_print.pl file which is a simple event that prints

@@ -19,13 +19,72 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 =end html
 
+B<New Features:>
+
+B<Bug Fixes and Other Changes:>
+
+
+=head2 Version 2.89 posted on 04/25/2004
+
+Version 2.89 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
 
 B<New Features:>
+
+- Dave Hall created code/public/robot_er1.pl for interacting with the Evolution Robotics ER1 robot:
+http://www.evolution.com/er1/
+
+- Created code/public/iButton_temps.pl as an alternative way of reading iButton temperatures if the built
+in mh code is not working reliably.  It uses the digitemp binaries (windows or linux) from http://www.digitemp.com
+
+- Added 'Email daily comics' to common/comic_dailystrips.pl.  
+Also added 'Email xxx weather chart' commands to common/weather_rrd_update.pl.
+These both use html email, so the images are displayed without having to open them, just like in all those pesky spam emails. 
+You can have these sent on a daily basis with something like this:
+
+  run_voice_cmd 'Email daily comics' if time_cron '2 5 * * *';
+
+- Created web/bin/list_images.pl to list recent images from a directory of images (e.g webcam snapshots).  
+Here is an example page:  http://misterhouse.net:8080/ia5/security/index.html
+
+- Updated bin/mh.bat to use the newer, par compiled, mhe.exe.   Dropped the older perl2exe compiled mh.exe from the misterhouse_win_###.zip package.
+Also updated the perl par compiler to version 0.80 on linux and windows.  As a result, perl58.dll is no longer required on windows.
+
 
 
 B<Bug Fixes and Other Changes:>
 
 - Steve Switzer fixed the tv configure script web/bin/set_parm_tv_provider.pl to work on unix boxes without bin/mh it the path var.
+
+- Craig Schaeffer fixed Lynx10PLC when used through an mh proxy.
+
+- Kirk Bauer updated lib/Musica.pm, PlayList.pm, AlsaPlayer.pm, and Weeder_Light.pm.
+
+- Added a Play_parms hook, for modifying play parms before play calls.
+
+- Craig Schaeffer updated aol im buddy logon messages to be less verbose.
+
+- Chris Barrett fixed a security issue with web/bin/browse.pl 
+
+- Jim Duda updated Process_Item to add methods set_killsig and runtime to allow for setting of "kill" level and querying process runtime.
+
+- David Norwood updated common/internet_iridium.pl to work if deactivated/reactivated.
+
+- Craig Schaeffer enabled play nolog => 1.
+
+- Dennis Hennen added a Group remove method.
+
+- Lincoln Foreman noticed that new_second (and new_minute etc) did not work for some intervals like 35.
+
+- Jason Sharpe noticed a 2.88 bug where target was lost in respond commands.
+
+- Clive Freedman enabled the mh.ini mail account_timeout parm.
+
+- Chris Barrett added net_mail_send -priority option.
+
+- Added a no_speak parm to speak, so we can add speak_parm hooks that abort speaking.
+
 
 
 =head2 Version 2.88 posted on 03/21/2004
@@ -1439,6 +1498,7 @@ You can use the default volume widget from common/tk_widgets.pl to control it fr
 - Added mht_item_add/copy/delete functions to bin/mh, so we can write code that can manipulate mht entries.
 Also added help text to the web based item editor.
 
+- Hollis Morrow noticed that web added triggers actions with ' characters would create code errors
 
 
 

@@ -82,9 +82,11 @@ Interface Overview:
       }
 
    Note that when changes are made FROM Misterhouse (using the various
-   controlling functions such as set_volume()) no state will be returned.  In
-   this case, you can see that your command took effect by calling get_volume()
-   and seeing that it returns the volume you set.  Note that this function will
+   controlling functions such as set_volume()) any resulting object state
+   changes will have the set_by set to 'misterhouse'.  By contrast, new states
+   initiated by the keypad or Musica remote control have a set_by of 'keypad'.
+   You can also see that your command took effect by calling get_volume() and
+   seeing that it returns the volume you set.  Note that this function will
    return your new value only after your command has been sent to the Musica
    system and it has confirmed your command.  If there is a large queue of
    pending commands this can take several seconds.
@@ -195,7 +197,7 @@ Monitoring the Musica system object:
 
    error: An error has occurred, call get_last_error() for details.
 
-Controlling the Musica zone objects:
+Controlling the Musica zone objects using functions:
    The following functions allow you to make changes to a specific Musica
    zone from Misterhouse.
    
@@ -206,6 +208,22 @@ Controlling the Musica zone objects:
    turn_off(): Turns off the zone.
    nudge_source_up(): Switches to the next source (must already be on).
    nudge_source_down(): Switches to the previous source (must already be on).
+   delay_off(seconds): Automatically turn the zone off in the specified number
+      of seconds.  Timer is cancelled if the user selects a new source or if
+      this function is called with '0' for the argument.  Also can be reset
+      by calling this function again.
+
+Controlling the Musica zone objects using set()
+   The following input states are recognized by the Musica zone objects:
+      off: Turn zone off
+      1: Turn to source 1
+      2: Turn to source 2
+      3: Turn to source 3
+      4: Turn to source 4
+      E: Turn to external input
+      volumeXX: Set volume where XX ranges from 0 to 35
+      mute: Mutes the zone
+      unmute: Unmutes the zone
 
 Retrieving data from the Musica zone object:
    get_musica_obj(): Returns the main musica object.
@@ -213,7 +231,8 @@ Retrieving data from the Musica zone object:
    get_keypad_version(): Returns the version number returned by the keypad.
    get_last_on_time(): Returns the last time the keypad was turned on
       (in Epoch format, as $::Time expresses it)
-   get_source(): Returns the currently-selected source number.
+   get_source(): Returns the currently-selected source number, or 0 if off.
+   get_source_obj(): Returns the currently-selected source object.
    get_volume(): Returns the volume, from 0 to 35.
    get_bass_level(): Returns the bass level from -14 to 14.
    get_treble_level(): Returns the bass level from -14 to 14.
@@ -224,8 +243,8 @@ Retrieving data from the Musica zone object:
    get_blcolor(): Returns 'green' or 'amber' to indicate backlight color.
    get_brightness(): Returns backlight brightness from 0 to 8 where 0 means
       that the backlight is currently off.
-   get_audioport: Returns 1 if the audioport is connected.
-   get_amp: Returns 'room_amp', 'both', or 'external_amp'.
+   get_audioport(): Returns 1 if the audioport is connected.
+   get_amp(): Returns 'room_amp', 'both', or 'external_amp'.
    get_locked(): Returns 1 if the keypad is locked.
    get_overheat(): Returns 1 if the keypad is overheated.
 
@@ -252,7 +271,7 @@ Monitoring the Musica zone objects:
    backlight_on: The backlight was turned on (not given when the backlight
       comes on when the zone is turned on).
    backlight_off: The backlight was turned off.
-   brightness_changed: The backlight was turned off.
+   brightness_changed: The backlight brightness was changed.
    internal_amp: The user has chosen to use the internal amp only.
    internal_external_amp: The user has chosen to use the internal amp as well
       as an amp connected through the Expansion Interface Module.
@@ -312,6 +331,55 @@ Monitoring the Musica source objects:
    button_held_*: A button was pressed and held (button names can be found 
       after this comment section or by calling get_button_labels()).
 
+Usage Examples:
+   To better understand the following examples, you should know that I have
+   an array of MP3 players defined as:
+
+      my @players;
+      if ($Startup) {
+         push @players, undef;
+         foreach ('channel12', 'channel34', 'channel56', 'channel78') {
+            push @players, new AlsaPlayer($_);
+         }
+      }
+
+   Then I create an array of all of the Musica::Source objects (which 
+   are already defined in my .mht file):
+
+      my @musica_sources = ( $music_source1, $music_source2, $music_source3, 
+                             $music_source4 );
+
+   The 'first_listener' and 'no_listeners' states are handy to start/stop
+   or pause/unpause something like an MP3 player, or even to power on/off
+   sources or send out IR commands.
+
+      foreach (@musica_sources) {
+         if (state_now $_ eq 'first_listener') {
+            $players[$_->get_source_num()]->unpause();
+         }
+         if (state_now $_ eq 'no_listeners') {
+            $players[$_->get_source_num()]->pause();
+         }
+      }
+
+   To watch for button presses on all keypads and all sources and take
+   the appropriate action:
+
+      foreach (@musica_sources) {
+         if (state_now $_ eq 'button_pressed_next') {
+            $players[$_->get_source_num()]->next_song();
+         }
+         if (state_now $_ eq 'button_pressed_previous') {
+            $players[$_->get_source_num()]->previous_song();
+         }
+         if (state_now $_ eq 'button_pressed_pause') {
+            $players[$_->get_source_num()]->pause_toggle();
+         }
+         if (state_now $_ eq 'button_pressed_play') {
+            $players[$_->get_source_num()]->unpause();
+         }
+      }
+
 MUSICA SYSTEM BUGS:
    [ADC Version M30419]
    If I send the ChangeSrc command at least three seconds after the
@@ -325,6 +393,11 @@ MUSICA SYSTEM BUGS:
    [ADC Version M30419]
    ChangeSwOu command is always responded to with ChangeSwOu/1 whether you
    are trying to turn it on or off, and it seems to have no effect?
+
+   [ADC Version M30419/Keypad R30419]
+   The backlight brightness sent in EventData comes in as 0 until you
+   change the backlight from its original value (or at least that is
+   what happened to me).
 
 TODO:
    - Detect door/phone muting by watching for volume changes?
@@ -463,14 +536,14 @@ use vars qw( %source_name_to_number @source_number_to_name
 );
 
 # The version of this Misterhouse object
-use constant OBJECT_VERSION => '1.0';
+use constant OBJECT_VERSION => '1.1';
 # Maximum number of zones and sources in the system
 use constant MAX_ZONES => 6;
 use constant MAX_SOURCES => 4;
 # Maximum amount of time to wait for a response to a command (in seconds)
 use constant MAX_RESPONSE_WAIT => 10;
 # How long after a zone turns on should mute/volume changes not be reported?
-use constant IGNORE_AFTER_ON => 10;
+use constant IGNORE_AFTER_ON => 15;
 
 my %Musica_Systems;
 
@@ -524,21 +597,20 @@ sub new {
 }
 
 sub _store_zone_source {
-   my ($self, $zone, $source, $change_state) = @_;
+   my ($self, $zone, $source, $set_by) = @_;
    my $currsrc = $$self{'zones'}[$zone]->{'source'};
    if ($$self{'zones'}[$zone] and ($source ne 'X')) {
       unless ($currsrc eq $source) {
-         if (defined $currsrc) {
-            if ($currsrc eq '0') {
-               # Currently off
-               $$self{'zones'}[$zone]->set_receive('zone_on') if $change_state;
-               $$self{'zones'}[$zone]->{'on_time'} = $::Time;
+         $$self{'timerOff'}->stop() if $$self{'timerOff'};
+         if ((not defined $currsrc and ($source ne '0')) or ($currsrc eq '0')) {
+            # Currently off
+            $$self{'zones'}[$zone]->set_receive('zone_on', $set_by);
+            $$self{'zones'}[$zone]->{'on_time'} = $::Time;
+         } else {
+            if ($source eq '0') {
+               $$self{'zones'}[$zone]->set_receive('zone_off', $set_by);
             } else {
-               if ($source eq '0') {
-                  $$self{'zones'}[$zone]->set_receive('zone_off') if $change_state;
-               } else {
-                  $$self{'zones'}[$zone]->set_receive('source_changed') if $change_state;
-               }
+               $$self{'zones'}[$zone]->set_receive('source_changed', $set_by);
             }
          }
          $$self{'zones'}[$zone]->{'source'} = $source;
@@ -554,7 +626,6 @@ sub _store_zone_source {
 
 sub _found_response {
    my ($self) = @_;
-   #&::print_log("$self->{'port_name'}: found expected response for command '$$self{'queue'}->[0]'") if $main::Debug{musica};
    shift @{$$self{'queue'}};
    $self->_send_next_cmd();
 }
@@ -570,6 +641,9 @@ sub _parse_data {
       return;
    }
    my ($cmd, $value) = ($data =~ m=^([^/]+)/(.*)$=);
+   unless ($data =~ /\//) {
+      $cmd = $data;
+   }
    my $compare = $$self{'queue'}->[0];
    $compare =~ s/\/.*$//;
    if ($compare) {
@@ -601,68 +675,74 @@ sub _parse_data {
          my $action = 'button_pressed_';
          if ($button > 12) {
             $button -= 12;
-            my $action = 'button_held_';
+            $action = 'button_held_';
          }
          if ($$self{'zones'}[$zone]) {
-            $$self{'zones'}[$zone]->set_receive($action . $button_number_to_name[$button]);
+            $$self{'zones'}[$zone]->set_receive($action . $button_number_to_name[$button], 'keypad');
          }
          if ($$self{'sources'}[$source]) {
-            $$self{'sources'}[$source]->set_receive($action . $button_number_to_name[$button]);
+            $$self{'sources'}[$source]->set_receive($action . $button_number_to_name[$button], 'keypad');
          }
       }
    } elsif ($cmd eq 'ExeLock') {
       my ($zone, $lock) = split /\//, $value;
-      $self->_store_zone_data($zone, 'locked', $lock);
+      $self->_store_zone_data($zone, 'locked', $lock, ($lock ? 'locked' : 'unlocked'));
    } elsif ($cmd eq 'ChangeVol') {
       my ($zone, $volume) = split /\//, $value;
-      $self->_store_zone_data($zone, 'volume', $volume);
+      $self->_store_zone_data($zone, 'volume', $volume, 'volume_changed');
    } elsif ($cmd eq 'NudgeVol') {
       my ($zone, $volume) = split /\//, $value;
-      $self->_store_zone_nudge($zone, 'volume', $volume, 0, 35);
+      $self->_store_zone_nudge($zone, 'volume', $volume, 0, 35, 'volume_changed');
    } elsif ($cmd eq 'ChangeMute') {
       my ($zone, $mute) = split /\//, $value;
-      $self->_store_zone_data($zone, 'mute', $mute);
+      $self->_store_zone_data($zone, 'mute', $mute, ($mute ? 'mute_on' : 'mute_off'));
    } elsif ($cmd eq 'ChangeTreb') {
       my ($zone, $treble) = split /\//, $value;
-      $self->_store_zone_data($zone, 'treble', $treble);
+      $self->_store_zone_data($zone, 'treble', $treble, 'treble_changed');
    } elsif ($cmd eq 'NudgeTreb') {
       my ($zone, $treble) = split /\//, $value;
-      $self->_store_zone_nudge($zone, 'treble', $treble, 1, 15);
+      $self->_store_zone_nudge($zone, 'treble', $treble, 1, 15, 'treble_changed');
    } elsif ($cmd eq 'ChangeBass') {
       my ($zone, $bass) = split /\//, $value;
-      $self->_store_zone_data($zone, 'bass', $bass);
+      $self->_store_zone_data($zone, 'bass', $bass, 'bass_changed');
    } elsif ($cmd eq 'NudgeBass') {
       my ($zone, $bass) = split /\//, $value;
-      $self->_store_zone_nudge($zone, 'bass', $bass, 1, 15);
+      $self->_store_zone_nudge($zone, 'bass', $bass, 1, 15, 'bass_changed');
    } elsif ($cmd eq 'ChangeBal') {
       my ($zone, $balance) = split /\//, $value;
-      $self->_store_zone_data($zone, 'balance', $balance);
+      $self->_store_zone_data($zone, 'balance', $balance, 'balance_changed');
    } elsif ($cmd eq 'NudgeBal') {
       my ($zone, $balance) = split /\//, $value;
-      $self->_store_zone_nudge($zone, 'basance', $balance, 1, 15);
+      $self->_store_zone_nudge($zone, 'basance', $balance, 1, 15, 'balance_changed');
    } elsif ($cmd eq 'ChangeLoud') {
       my ($zone, $loudness) = split /\//, $value;
-      $self->_store_zone_data($zone, 'loudness', $loudness);
+      $self->_store_zone_data($zone, 'loudness', $loudness, ($loudness ? 'loudness_on' : 'loudness_off'));
    } elsif ($cmd eq 'ChangeAmp') {
       my ($zone, $amp) = split /\//, $value;
-      $self->_store_zone_data($zone, 'amp', $amp);
+      my $newstate = 'internal_amp';
+      if ($amp == 1) {
+         $newstate = 'internal_external_amp';
+      } elsif ($amp == 2) {
+         $newstate = 'external_amp';
+      }
+      $self->_store_zone_data($zone, 'amp', $amp, $newstate);
    } elsif ($cmd eq 'ChangeBaCo') {
       my ($zone, $color) = split /\//, $value;
-      $self->_store_zone_data($zone, 'blcolor', $color);
+      $self->_store_zone_data($zone, 'blcolor', $color, ($color ? 'color_amber' : 'color_green'));
    } elsif ($cmd eq 'ChangeBaLi') {
       my ($zone, $level) = split /\//, $value;
-      $self->_store_zone_data($zone, 'brightness', $level);
+      $self->_store_zone_data($zone, 'brightness', $level, 'brightness_changed');
    } elsif ($cmd eq 'NudgeSrc') {
       my ($zone, $source) = split /\//, $value;
-      $self->_store_zone_data($zone, 'source', $source);
+      $self->_store_zone_source($zone, $source, 'misterhouse');
    } elsif ($cmd eq 'ChangeSrc') {
       my ($zone, $source) = split /\//, $value;
       if ($zone == 0) {
          for (my $i = 1; $i <= MAX_ZONES; $i++) {
-            $self->_store_zone_source($i, $source);
+            $self->_store_zone_source($i, $source, 'misterhouse');
          }
       } else {
-         $self->_store_zone_source($zone, $source);
+         $self->_store_zone_source($zone, $source, 'misterhouse');
       }
    } elsif ($cmd eq 'ChangeStore') {
       my ($source, $label) = split /\//, $value;
@@ -675,23 +755,25 @@ sub _parse_data {
       for (my $i = 1; $i <= MAX_SOURCES; $i++) {
          if ($$self{'sources'}[$i]) {
             unless ($$self{'sources'}[$i]->{'label'} eq $sources[$i-1]) {
-               $changed = $i;
-               $$self{'sources'}[$i]->{'label'} = $sources[$i-1];
-               if ($$self{'zones'}[$zone]) {
-                  $$self{'sources'}[$i]->set_receive('label_changed', $$self{'zones'}[$zone]);
-               } else {
-                  $$self{'sources'}[$i]->set_receive('label_changed', undef);
+               if ($$self{'sources'}[$i]->{'label'}) {
+                  $changed = $i;
+                  $$self{'sources'}[$i]->{'label'} = $sources[$i-1];
+                  if ($$self{'zones'}[$zone]) {
+                     $$self{'sources'}[$i]->set_receive('label_changed', $$self{'zones'}[$zone]);
+                  } else {
+                     $$self{'sources'}[$i]->set_receive('label_changed', undef);
+                  }
                }
             }
          }
       }
       if ($$self{'zones'}[$zone]) {
-         $$self{'zones'}[$zone]->set_receive('changed_label_source_' . $changed) if $changed;
+         $$self{'zones'}[$zone]->set_receive('changed_label_source_' . $changed, 'keypad') if $changed;
       }
    } elsif ($cmd eq 'EventSrc') {
       my (@sources) = split /\//, $value;
       for (my $i = 1; $i <= MAX_ZONES; $i++) {
-         $self->_store_zone_source($i, $sources[$i-1], 1);
+         $self->_store_zone_source($i, $sources[$i-1], 'keypad');
       }
    } elsif ($cmd eq 'EventData') {
       my ($zone, $volume, $bass, $treble, $balance, $loudness, $mute, $blcolor, 
@@ -699,91 +781,92 @@ sub _parse_data {
       if ($$self{'zones'}[$zone]) {
          unless ($$self{'zones'}[$zone]->{'volume'} == $volume) {
             if (defined($$self{'zones'}[$zone]->{'volume'}) and (($$self{'zones'}[$zone]->{'on_time'} + IGNORE_AFTER_ON) < $::Time)) {
-               $$self{'zones'}[$zone]->set_receive('volume_changed') 
+               $$self{'zones'}[$zone]->set_receive('volume_changed', 'keypad') 
             }
             $$self{'zones'}[$zone]->{'volume'} = $volume;
          }
          unless ($$self{'zones'}[$zone]->{'bass'} == $bass) {
-            $$self{'zones'}[$zone]->set_receive('bass_changed') if defined $$self{'zones'}[$zone]->{'bass'};
+            $$self{'zones'}[$zone]->set_receive('bass_changed', 'keypad') if defined $$self{'zones'}[$zone]->{'bass'};
             $$self{'zones'}[$zone]->{'bass'} = $bass;
          }
          unless ($$self{'zones'}[$zone]->{'treble'} == $treble) {
-            $$self{'zones'}[$zone]->set_receive('treble_changed') if defined $$self{'zones'}[$zone]->{'treble'};
+            $$self{'zones'}[$zone]->set_receive('treble_changed', 'keypad') if defined $$self{'zones'}[$zone]->{'treble'};
             $$self{'zones'}[$zone]->{'treble'} = $treble;
          }
          unless ($$self{'zones'}[$zone]->{'balance'} == $balance) {
-            $$self{'zones'}[$zone]->set_receive('balance_changed') if defined $$self{'zones'}[$zone]->{'balance'};
+            $$self{'zones'}[$zone]->set_receive('balance_changed', 'keypad') if defined $$self{'zones'}[$zone]->{'balance'};
             $$self{'zones'}[$zone]->{'balance'} = $balance;
          }
          unless ($$self{'zones'}[$zone]->{'loudness'} == $loudness) {
             if ($loudness) {
-               $$self{'zones'}[$zone]->set_receive('loudness_on') if defined $$self{'zones'}[$zone]->{'loudness'};
+               $$self{'zones'}[$zone]->set_receive('loudness_on', 'keypad') if defined $$self{'zones'}[$zone]->{'loudness'};
             } else {
-               $$self{'zones'}[$zone]->set_receive('loudness_off') if defined $$self{'zones'}[$zone]->{'loudness'};
+               $$self{'zones'}[$zone]->set_receive('loudness_off', 'keypad') if defined $$self{'zones'}[$zone]->{'loudness'};
             }
             $$self{'zones'}[$zone]->{'loudness'} = $loudness;
          }
          unless ($$self{'zones'}[$zone]->{'mute'} == $mute) {
             if (defined($$self{'zones'}[$zone]->{'mute'}) and (($$self{'zones'}[$zone]->{'on_time'} + IGNORE_AFTER_ON) < $::Time)) {
                if ($mute) {
-                  $$self{'zones'}[$zone]->set_receive('mute_on');
+                  $$self{'zones'}[$zone]->set_receive('mute_on', 'keypad');
                } else {
-                  $$self{'zones'}[$zone]->set_receive('mute_off');
+                  $$self{'zones'}[$zone]->set_receive('mute_off', 'keypad');
                }
             }
             $$self{'zones'}[$zone]->{'mute'} = $mute;
          }
          unless ($$self{'zones'}[$zone]->{'blcolor'} == $blcolor) {
             if ($blcolor) {
-               $$self{'zones'}[$zone]->set_receive('color_amber') if defined $$self{'zones'}[$zone]->{'blcolor'};
+               $$self{'zones'}[$zone]->set_receive('color_amber', 'keypad') if defined $$self{'zones'}[$zone]->{'blcolor'};
             } else {
-               $$self{'zones'}[$zone]->set_receive('color_green') if defined $$self{'zones'}[$zone]->{'blcolor'};
+               $$self{'zones'}[$zone]->set_receive('color_green', 'keypad') if defined $$self{'zones'}[$zone]->{'blcolor'};
             }
             $$self{'zones'}[$zone]->{'blcolor'} = $blcolor;
          }
          unless ($$self{'zones'}[$zone]->{'brightness'} == $brightness) {
             if (defined $$self{'zones'}[$zone]->{'brightness'}) {
                if ($$self{'zones'}[$zone]->{'brightness'} == 0) {
-                  $$self{'zones'}[$zone]->set_receive('backlight_on')
+                  $$self{'zones'}[$zone]->set_receive('backlight_on', 'keypad')
                } elsif ($brightness == 0) {
-                  $$self{'zones'}[$zone]->set_receive('backlight_off')
+                  $$self{'zones'}[$zone]->set_receive('backlight_off', 'keypad')
                } else {
-                  $$self{'zones'}[$zone]->set_receive('brightness_changed')
+                  $$self{'zones'}[$zone]->set_receive('brightness_changed', 'keypad')
                }
             }
+            &::print_log("$self->{'port_name'}: setting brightness of zone $zone to $brightness") if $main::Debug{musica};
             $$self{'zones'}[$zone]->{'brightness'} = $brightness;
          }
          unless ($$self{'zones'}[$zone]->{'audioport'} == $audioport) {
             if ($audioport) {
-               $$self{'zones'}[$zone]->set_receive('audio_port_connected') if defined $$self{'zones'}[$zone]->{'audioport'};
+               $$self{'zones'}[$zone]->set_receive('audio_port_connected', 'keypad') if defined $$self{'zones'}[$zone]->{'audioport'};
             } else {
-               $$self{'zones'}[$zone]->set_receive('audio_port_disconnected') if defined $$self{'zones'}[$zone]->{'audioport'};
+               $$self{'zones'}[$zone]->set_receive('audio_port_disconnected', 'keypad') if defined $$self{'zones'}[$zone]->{'audioport'};
             }
             $$self{'zones'}[$zone]->{'audioport'} = $audioport;
          }
          unless ($$self{'zones'}[$zone]->{'amp'} == $amp) {
             if ($amp == 0) {
-               $$self{'zones'}[$zone]->set_receive('internal_amp') if defined $$self{'zones'}[$zone]->{'amp'};
+               $$self{'zones'}[$zone]->set_receive('internal_amp', 'keypad') if defined $$self{'zones'}[$zone]->{'amp'};
             } elsif ($amp == 1) {
-               $$self{'zones'}[$zone]->set_receive('internal_external_amp') if defined $$self{'zones'}[$zone]->{'amp'};
+               $$self{'zones'}[$zone]->set_receive('internal_external_amp', 'keypad') if defined $$self{'zones'}[$zone]->{'amp'};
             } else {
-               $$self{'zones'}[$zone]->set_receive('external_amp') if defined $$self{'zones'}[$zone]->{'amp'};
+               $$self{'zones'}[$zone]->set_receive('external_amp', 'keypad') if defined $$self{'zones'}[$zone]->{'amp'};
             }
             $$self{'zones'}[$zone]->{'amp'} = $amp;
          }
          unless ($$self{'zones'}[$zone]->{'locked'} == $locked) {
             if ($locked) {
-               $$self{'zones'}[$zone]->set_receive('locked') if defined $$self{'zones'}[$zone]->{'locked'};
+               $$self{'zones'}[$zone]->set_receive('locked', 'keypad') if defined $$self{'zones'}[$zone]->{'locked'};
             } else {
-               $$self{'zones'}[$zone]->set_receive('unlocked') if defined $$self{'zones'}[$zone]->{'locked'};
+               $$self{'zones'}[$zone]->set_receive('unlocked', 'keypad') if defined $$self{'zones'}[$zone]->{'locked'};
             }
             $$self{'zones'}[$zone]->{'locked'} = $locked;
          }
          unless ($$self{'zones'}[$zone]->{'overheat'} == $overheat) {
             if ($overheat) {
-               $$self{'zones'}[$zone]->set_receive('overheated') if defined $$self{'zones'}[$zone]->{'overheat'};
+               $$self{'zones'}[$zone]->set_receive('overheated', 'keypad') if defined $$self{'zones'}[$zone]->{'overheat'};
             } else {
-               $$self{'zones'}[$zone]->set_receive('heat_normal') if defined $$self{'zones'}[$zone]->{'overheat'};
+               $$self{'zones'}[$zone]->set_receive('heat_normal', 'keypad') if defined $$self{'zones'}[$zone]->{'overheat'};
             }
             $$self{'zones'}[$zone]->{'overheat'} = $overheat;
          }
@@ -814,7 +897,6 @@ sub _send_next_cmd {
 sub _queue_cmd {
    my ($self, $cmd) = @_;
    if ($$self{'port_name'}) {
-      #&::print_log("$self->{'port_name'}: queueing command: [$cmd]") if $main::Debug{musica};
       push @{$$self{'queue'}}, $cmd;
       if ($#{$$self{'queue'}} == 0) {
          # No entries waiting in queue, send right away, and reset data received timer
@@ -860,7 +942,6 @@ sub _report_error {
 
 sub _calc_zone_nudge {
    my ($initial, $direction, $min, $max) = @_;
-   &::print_log("Musica: Nudging $direction from $initial...\n");
    if ($direction == 0) {
       $initial--;
       if ($initial < $min) {
@@ -872,29 +953,31 @@ sub _calc_zone_nudge {
          $initial = $max;
       }
    }
-   &::print_log("Musica: returning $initial...\n");
    return $initial;
 }
 
 sub _store_zone_nudge {
-   my ($self, $zone, $member, $volume, $min, $max) = @_;
+   my ($self, $zone, $member, $value, $min, $max, $newstate) = @_;
    if ($zone == 0) {
       for (my $i = 1; $i <= MAX_ZONES; $i++) {
          if ($$self{'zones'}[$i] and $$self{'zones'}[$i]->{'present'}) {
-            $$self{'zones'}[$i]->{$member} = &Musica::_calc_zone_nudge($$self{'zones'}[$i]->{$member}, $volume, $min, $max);
+            $self->_store_zone_data($zone, $member, &Musica::_calc_zone_nudge($$self{'zones'}[$i]->{$member}, $value, $min, $max), $newstate);
          }
       }
    } else {
-      $self->_store_zone_data($zone, $member, $volume);
+      $self->_store_zone_data($zone, $member, $value, $newstate);
    }
 }
 
 sub _store_zone_data {
-   my ($self, $zone, $member, $value) = @_;
+   my ($self, $zone, $member, $value, $newstate) = @_;
    if ($zone == 0) {
       for (my $i = 1; $i <= MAX_ZONES; $i++) {
          if ($$self{'zones'}[$i] and $$self{'zones'}[$i]->{'present'}) {
-            $$self{'zones'}[$i]->{$member} = $value;
+            if ($$self{'zones'}[$i]->{$member} != $value) {
+               $$self{'zones'}[$i]->{$member} = $value;
+               $$self{'zones'}[$i]->set_receive($newstate, 'misterhouse');
+            }
          }
       }
    } else {
@@ -902,7 +985,10 @@ sub _store_zone_data {
          if ($value eq 'X') {
             $$self{'zones'}[$zone]->_report_error("Zone keypad not detected by ADC (tried to set $member)");
          } else {
-            $$self{'zones'}[$zone]->{$member} = $value;
+            if ($$self{'zones'}[$zone]->{$member} != $value) {
+               $$self{'zones'}[$zone]->{$member} = $value;
+               $$self{'zones'}[$zone]->set_receive($newstate, 'misterhouse');
+            }
          }
       }
    }
@@ -1044,6 +1130,8 @@ sub set_volume {
    unless (($volume >= 0) or ($volume <= 35)) {
       $self->_report_error("set_volume(): volume specified is out of range: $volume");
    }
+   $volume =~ s/^\s+//;
+   $volume =~ s/\s+$//;
    $self->_queue_cmd("ChangeVol/$$self{'zone'}/$volume");
 }
 
@@ -1205,9 +1293,38 @@ sub _report_error {
    &::print_log("ERROR: Musica($self->{'musica_obj'}->{'port_name'}) zone $$self{'object_name'}: $error");
 }
 
+sub set {
+   my ($self, $state) = @_;
+   &::print_log("$$self{'object_name'}: got state: $state") if $main::Debug{musica};
+   if ($state eq 'off') {
+      &::print_log("$$self{'object_name'}: got state off, turning off zone") if $main::Debug{musica};
+      $self->turn_off();
+   } elsif ($state =~ s/^volume//) {
+      &::print_log("$$self{'object_name'}: got state volume change: $state") if $main::Debug{musica};
+      $self->set_volume($state);
+   } elsif ($state eq 'mute') {
+      $self->mute();
+   } elsif ($state eq 'unmute') {
+      $self->unmute();
+   } elsif (($state eq 'E') or (($state =~ /^\d+$/) and ($state >= 1) and ($state <= 4))) {
+      &::print_log("$$self{'object_name'}: got state $state, changing source") if $main::Debug{musica};
+      $self->set_source($state);
+   } else {
+      &::print_log("$$self{'object_name'}: got unknown Musica state: $state");
+   }
+}
+
 ################################################################################
 # Begin public zone-specific Musica functions
 ################################################################################
+
+sub delay_off {
+   my ($self, $delay) = @_;
+   unless ($$self{'timerOff'}) {
+      $$self{'timerOff'} = new Timer();
+   }
+   $$self{'timerOff'}->set($delay, $self);
+}
 
 sub nudge_source_down {
    my ($self) = @_;
@@ -1245,6 +1362,15 @@ sub get_last_on_time() {
 sub get_source() {
    my ($self) = @_;
    return $self->{'source'};
+}
+
+sub get_source_obj() {
+   my ($self) = @_;
+   return $self->{'source'};
+   if ($$self{'sources'}[$self->{'source'}]) {
+      return $$self{'sources'}[$self->{'source'}];
+   }
+   return undef;
 }
 
 sub get_volume() {
@@ -1288,6 +1414,7 @@ sub get_blcolor() {
 
 sub get_brightness() {
    my ($self) = @_;
+   &::print_log("$self->{'zone'}: returning brightness $self->{brightness}") if $main::Debug{musica};
    return $self->{'brightness'};
 }
 
@@ -1483,8 +1610,8 @@ sub set_label {
    $self->_queue_cmd("ChangeStore/$$self{'source'}/$labelnum");
 }
 
-
 ################################################################################
 # End public source-specific Musica functions
 ################################################################################
 
+1;

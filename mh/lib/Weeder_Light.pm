@@ -57,9 +57,9 @@ package Weeder_Light;
 
 my @weeder_lights;
 
-sub check_states {
+sub _check_states {
    foreach (@weeder_lights) {
-      $_->check_state();
+      $_->_check_state();
    }
 }
 
@@ -76,18 +76,22 @@ sub new
    push @weeder_lights, $self;
    push(@{$$self{states}}, 'on', 'off');
    unless ($#weeder_lights > 0) {
-      &::MainLoop_post_add_hook(\&Weeder_Light::check_states, 'persistent');
+      &::MainLoop_post_add_hook(\&Weeder_Light::_check_states, 'persistent');
    }
 	return $self;
 }
 
-sub check_state {
+sub _check_state {
    my ($self) = @_;
-   if ($::Startup) {
+   if ($::New_Minute) {
+      $self->{'control'}->set('status');
+      select(undef, undef, undef, 0.025);
+   }
+   if ($::Startup or $::New_Day) {
       $self->{'toggle'}->set('open');
       select(undef, undef, undef, 0.025);
    }
-   if (($self->{'control'}->state_now eq 'reset') or $::Startup) {
+   if (($self->{'control'}->state_now eq 'reset') or $::Startup or $::New_Day) {
       $self->{'control'}->set('init');
       select(undef, undef, undef, 0.025);
       $self->{'control'}->set('status');

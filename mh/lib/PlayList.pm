@@ -139,8 +139,13 @@ sub _do_remove_files {
 
 sub _register {
    my ($self, $ptr) = @_;
-   push @{$$self{'registrations'}}, $ptr;
    $ptr->_add_playlist_files(@{$$self{'list'}});
+   for (my $i = 0; $i <= $#{$$self{'registrations'}}; $i++) {
+      if ($$self{'registrations'}->[$i] eq $ptr) {
+         return;
+      }
+   }
+   push @{$$self{'registrations'}}, $ptr;
 }
 
 sub _unregister {

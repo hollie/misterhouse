@@ -1914,3 +1914,20 @@ for $celgtime (@$tabgtime) {
   }
 }
 
+
+
+# Allow for sending graphs via email
+
+$weather_graph_email = new Voice_Cmd 'Email [tempout,tempin,windspeed,winddir,raintotal,rainrate,press,humout,humin] weather chart';
+
+if ($state = said $weather_graph_email) {
+    print_log "Sending $state weather charts";
+    my $html = &html_file(undef, '../web/bin/weather_graph.pl', $state);
+    &net_mail_send(subject => "$state weather charts for $Date_Now",
+		   baseref => "$config_parms{http_server}:$config_parms{http_port}/ia5/outside/",
+		   to => $config_parms{weather_graph_email},
+		   text => $html, mime  => 'html');
+#    &net_mail_send(subject => "Weather charts for $Date_Now",
+#		   baseref => "$config_parms{http_server}:$config_parms{http_port}/ia5/outside/",
+#		   file => "../web/ia5/outside/weather_index.shtml", mime  => 'html');
+}
