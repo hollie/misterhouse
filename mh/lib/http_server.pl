@@ -7,7 +7,7 @@ use strict;
 
 my ($leave_socket_open_passes, $leave_socket_open_action);
 
-my($Authorized, $Authorized_html, $set_password_flag, $Browser, $Referer);
+my($Authorized, $password_html, $Browser, $Referer, $MSAgent, $Cookie);
 my($html_pointer_cnt, %html_pointers);
 
 my %mime_types = (
@@ -20,6 +20,20 @@ my %mime_types = (
     'gif' => 'image/gif',
     'jpg' => 'image/jpeg',
 );
+
+if ($config_parms{password_menu} eq 'html') {
+    $password_html  = qq[<BODY onLoad="self.focus();document.pw.password.focus()">\n];
+    $password_html .= qq[<FORM name=pw action="/SET_PASSWORD_FORM" method="get">\n];
+    $password_html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
+}
+else {
+    $password_html  = qq[HTTP/1.0 401 Unauthorized\n];
+    $password_html .= qq[Server: MisterHouse\n];
+    $password_html .= qq[Content-type: text/html\n];
+    $password_html .= qq[WWW-Authenticate: Basic realm="mh_control"\n];
+}
+
+        
 
 my (%http_dirs, %html_icons, $html_info_overlib);
 sub main::http_read_parms {
@@ -56,44 +70,33 @@ sub process_http_request {
     my ($text, $h_response, $h_index, $h_list, $item, $state, $file);
     undef $h_response;
 
-                                # Check for authentication
-    if (&password_check(undef, 'http')) {
-        my ($user, $password);
+    $Authorized = &password_check(undef, 'http') ? 0 : 1; # If no $Password or local address, defaults to authorized
 
-        while (<$socket>) {
-            last unless /\S/;
-            $Referer = $1 if /^Referer: (\S+)/;
-            if (/^Authorization: Basic (\S+)/) {
-                ($user, $password) = split(':', &uudecode($1));
-            }
-                #User-Agent: Mozilla/4.0 (compatible; MSIE 5.0; Windows 98)
-                #User-Agent: Mozilla/4.6 [en] (Win98; I)
-            if (/^User-Agent:/) {
-                $Browser = (/MSIE/) ? "IE" : "Netscape";
-                print "db Browser=$Browser  $_\n" if $main::config_parms{debug} eq 'http';
-#               $socket->{browser} = $Browser; #&?? WES
+
+                                # Read http header data (need $Browser parm)
+    $Browser = $Referer = $MSAgent = $Cookie = '';
+    while (<$socket>) {
+        last unless /\S/;
+        $Referer = $1 if /^Referer: (\S+)/;
+        $MSAgent = 1  if /^Cookie: .*msagent=1/;
+
+        if ($config_parms{password_menu} eq 'html' and $Password) {
+            if (/^Cookie: .*password=([^\s;]+)/) {
+                $Authorized = ($1 eq $Password) ? 1 : 0;
             }
         }
-
-        if ($password) {
-            if (&password_check($password, 'http')) {
-                $Authorized = 0;
-            }
-            else {
-                $Authorized = 1;
-            }
-            print "db Password flag set to $Authorized\n" if $main::config_parms{debug} eq 'http';
+        elsif (/^Authorization: Basic (\S+)/) {
+            my ($user, $password) = split(':', &uudecode($1));
+            $Authorized = (&password_check($password, 'http')) ? 0 : 1;
         }
-        else {
-                                # Lets default to not authorized and use SET_PASSWORD to set authorization
-            $Authorized = 0;
+                               #User-Agent: Mozilla/4.0 (compatible; MSIE 5.0; Windows 98)
+                                #User-Agent: Mozilla/4.6 [en] (Win98; I)
+        if (/^User-Agent:/) {
+            $Browser = (/MSIE/) ? "IE" : "Netscape";
+            print "db Browser=$Browser  $_\n" if $main::config_parms{debug} eq 'http';
         }
     }
-    else {
-        $Authorized = 1;
-    }
-
-    $Authorized_html  = "Status: <B><a href=/SET_PASSWORD>" . (($Authorized) ? "Authorized" : "Not Authorized") . "</B></a><br>";
+    print "db Password flag set to $Authorized\n" if $main::config_parms{debug} eq 'http';
 
                                 # translate from %## back to real characters
     $header =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
@@ -117,29 +120,57 @@ sub process_http_request {
 
     print "db web data requested:  get=$get_req arg=$get_arg file=$file.\n  header=$header\n" if $main::config_parms{debug} eq 'http';
 
-    if ($get_req =~ /\/SET_PASSWORD$/) {
-        if ($set_password_flag) {
-            $set_password_flag = 0;
-            my $msg = $Authorized_html . '<br>';
-            $msg .= ($Authorized) ? "Authorization flag was set" : "Authorization flag was unset";
-            
-            if ($get_arg eq 'redir' and $Referer) {
-                $msg .= qq[<META http-equiv="refresh" content="1; url=$Referer">\n];
-                $msg .= "<br>Go back to <a href=$Referer>$Referer</a>\n";
+                                # Prompt for password
+    if ($get_req =~ /SET_PASSWORD$/) {
+        if ($config_parms{password_menu} eq 'html') {
+            if ($get_req =~ /^\/UNSET_PASSWORD$/) {
+                $Authorized = 0;
+                $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
             }
-            print $socket &html_page("", "$msg\n");
+            my $html = &html_authorized;
+            $html .= $password_html   . '<br>' if $config_parms{password_menu} eq 'html';
+            print $socket &html_page(undef, $html, undef, undef, undef);
         }
         else {
-            $set_password_flag = 1;
-            print $socket <<eof;
-HTTP/1.0 401 Unauthorized
-Server: MisterHouse
-Content-type: text/html
-WWW-Authenticate: Basic realm="mh_control"
-eof
+            my $html = &html_authorized;
+            if ($Authorized) {
+                                # No good way to un-Authorized here :(
+                if ($get_req =~ /^\/UNSET_PASSWORD$/) {
+                    $Authorized = 0;
+                    print $socket $password_html;
+                    return;
+                }
+                print $socket &html_page(undef, $html);
+            }
+            else {
+                if ($get_req =~ /^\/UNSET_PASSWORD$/) {
+                    print $socket &html_page(undef, $html);
+                }
+                else {
+                    print $socket $password_html;
+                }
+            }
         }
         return;
     }
+                                # Process the html password form
+    if ($get_req =~ /^\/SET_PASSWORD_FORM$/) {
+        my ($password) = $get_arg =~ /password=(\S+)/;
+        my ($html);
+        if (&password_check($password, 'http')) {
+            $Authorized = 0;
+            $html =  &html_authorized . $password_html . qq[<b>Password was incorrect</b>\n];
+            $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
+        }
+        else {
+            $Authorized = 1;
+            $Cookie .= "Set-Cookie: password=$Password; ; path=/;\n" if $Password;
+            $html = &html_authorized . "<h3>Password accepted</h3>";
+        }
+        print $socket &html_page(undef, "$html\n", undef, undef, undef);
+        return;
+    }
+
 
     if (!$Authorized and lc $main::config_parms{password_protect} eq 'all') {
         $h_response  = "<center><h3>MisterHouse password_protect set to all.  Password required for all functions</h3>\n";
@@ -193,15 +224,20 @@ eof
         $h_response = $1;
 
         if ($get_arg) {
-            $get_arg =~ s/^cmd=//;  # Drop the cmd= prefix from form lists.
+            $get_arg =~ s/^select_cmd=//;   # Drop the cmd=  prefix from form lists.
             $get_arg =~ tr/\_/ /;   # Put blanks back
             $get_arg =~ tr/\~/_/;   # Put _ back
             $get_arg =~ s/\&x=\d+\&y=\d+$//;    # Drop the &x=n&y=n that is tacked on the end when doing image form submits
         }
 
-        print "db a=$Authorized RUN get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
+        my ($ref) = &Voice_Cmd::voice_item_by_text(lc($get_arg));
+        my $authority = $ref->get_authority if $ref;
+        print "RUN authority eval error: $@\n" if $@;
+        $authority = $Password_Allow{$get_arg} unless $authority;
 
-        if ($Authorized or ($get_arg and $Password_Allow{$get_arg})) {
+        print "db a=$Authorized,$authority RUN get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
+
+        if ($Authorized or $authority) {
                                 # Allow for RUN:&func  (response function like &dir_sort, with no action)
             if (!$get_arg) {
                 &html_response($socket, $h_response);
@@ -227,9 +263,13 @@ eof
     elsif ($get_req =~ /\/SET$/ or 
            $get_req =~ /\/SET\:(\S*)$/) {
         $h_response = $1;
-
+        my $authority;
+        
         if ($get_arg) {
-            ($item, $state) = $get_arg =~ /^(\S+)\?(\S+)$/;
+            $get_arg =~ s/select_item=//;  # Drop the item= prefix from form lists.
+            $get_arg =~ s/select_state=//; # Drop the item= prefix from form lists.
+#           ($item, $state) = $get_arg =~ /^(\S+)\?(\S+)$/;
+            ($item, $state) = $get_arg =~ /^(\S+)[\?\&](\S+)$/;
             my $item_speakable = substr($item, 1); # Drop the $ off the object name
             $item_speakable =~ s/\_/ /g;
             $item_speakable =~ s/\~/_/g;
@@ -246,11 +286,16 @@ eof
             else {
                 $text .= " set to $state";
             }
+        
+            $authority = eval qq[$item->get_authority if $item->isa('Generic_Item');];
+            print "SET authority eval error: $@\n" if $@;
+            $authority = $Password_Allow{$item} unless $authority;
         }
-        print "db a=$Authorized SET get_arg=$get_arg response=$h_response item=$item state=$state\n" if $main::config_parms{debug} eq 'http';
 
-        if ($Authorized or $item and $Password_Allow{$item}) {
-            eval "set $item '$state'" if $item and $state; # May only have a responce with no item
+        print "db a=$Authorized,$authority SET get_arg=$get_arg response=$h_response item=$item state=$state\n" if $main::config_parms{debug} eq 'http';
+
+        if ($Authorized or $authority) {
+            eval "set $item '$state'" if $item and $state; # May only have a response with no item
             &html_response($socket, $h_response,undef,undef);
             # &html_response($socket, $h_response,undef,undef,"speech");
         }
@@ -268,36 +313,53 @@ eof
             $get_req =~ /\/SET_VAR\:(\S*)$/) {
         $h_response = $1;
 #       print "Error, no SET_VAR argument: $header\n" unless $get_arg;
-        print "db SET_VAR a=$Authorized hr=$h_response\n get_req=$get_req  get_arg=$get_arg\n  \n" if $main::config_parms{debug} eq 'http';
 
                                 # translate from %## back to real characters
 #        $get_arg =~ tr/+/ /;
 #        $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
-        if ($Authorized) {
-            my %states;
-            my $use_pointers;
+                                # See if any variables require authorization
+        my $authority = 1;
+        unless ($Authorized) {
+            for my $temp (split('&', $get_arg)) {
+                next unless ($item, $state) = $temp =~ /(\S+)=(.*)/;
+
+                if ($item =~ /^\d+$/) { # Can't do html_pointer yet ... need to switch to Tk objects
+                    $authority = 0;
+                    next;
+                }
+                my $set_authority = eval qq[$item->get_authority if $item->isa('Generic_Item');];
+                print "SET_VAR authority eval error: $@\n" if $@;
+                unless ($set_authority or $Password_Allow{$item}) {
+                    $authority = 0;
+                    last;
+                }
+            }
+        }
+
+        print "db SET_VAR a=$Authorized,$authority hr=$h_response\n get_req=$get_req  get_arg=$get_arg\n  \n" if $main::config_parms{debug} eq 'http';
+
+        if ($Authorized or $authority) {
             for my $temp (split('&', $get_arg)) {
                 ($item, $state) = $temp =~ /(\S+)=(.*)/;
                                 # If item name is only digits, this implies tk_widgets, where we used html_pointer_cnt as an index
                 if ($item =~ /^\d+$/) {
-                    $states{$item} = $state;
-                    $use_pointers++;
                     my $pvar = $html_pointers{$item};
                                 # Allow for state objects
                     if ($pvar and ref $pvar ne 'SCALAR' and $pvar->can('set')) {
-                        $pvar->set($states{$item});
+                        $pvar->set($state);
                     }
                     else {
-                        $$pvar = $states{$item};
+                        $$pvar = $state;
                     }
-                                # This gives uninitilzed errors ... not needed anymore?
-#                   $Tk_results{$html_pointers{$item . "_label"}} = $states{$item};
                 }
                                 # Otherwise, we are trying to pass var name in directly. 
                 else {
-                    print qq[SET_VAR eval $item = "$state"\n] if $main::config_parms{debug} eq 'http';
-                    eval qq[$item = "$state"];
+                                # Can be a scalar or a object
+                    my $eval_cmd =  qq[($item->isa('Generic_Item')) ? (set $item "$state") : ($item = "$state")];
+                    print "SET_VAR eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
+                    eval $eval_cmd;
+                    print "SET_VAR eval error: $@\n" if $@;
                 }
             }            
             &html_response($socket, $h_response);
@@ -334,6 +396,14 @@ eof
     return ($leave_socket_open_passes, $leave_socket_open_action);
 }
 
+sub html_authorized {
+    if ($Authorized) {
+        return "Status: <B><a href=/UNSET_PASSWORD>Authorized</a><br>";
+    }
+    else {
+        return "Status: <B><a href=/SET_PASSWORD>Not Authorized</a><br>";
+    }
+}
 
 sub test_req {
     my ($socket, $get_req) = @_;
@@ -417,7 +487,7 @@ sub html_response {
 #    $h_response =~ tr/+/ /;
 #    $h_response =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
-    print "db html responce: $h_response\n" if $main::config_parms{debug} eq 'http';
+    print "db html response: $h_response\n" if $main::config_parms{debug} eq 'http';
     if ($h_response) {
         my ($sub_name, $sub_arg, $sub_ref);
                                 # Allow for &sub1 and &sub1(args)
@@ -425,15 +495,15 @@ sub html_response {
             (($sub_name)           = $h_response =~ /^\&(\S+)$/)) {
             print "db hr=$h_response sn=$sub_name sa=$sub_arg\n" if $main::config_parms{debug} eq 'http';
             $sub_ref = \&{$sub_name};
-            if (defined &$sub_ref) {
+            if (defined $sub_ref) {
                 $sub_arg = "'$sub_arg'" unless $sub_arg =~ /^[\'\"]/; # Add quotes if needed
                 $leave_socket_open_action = "&$sub_name($sub_arg)";
-                $leave_socket_open_passes = 2; # Probably don't need to wait very long here (e.g. web SET:&html_list)
+                $leave_socket_open_passes = 3; # Wait a few passes, so multi-pass events can settle (e.g. barcode_web.pl)
 #               my $html = &$sub_ref($sub_arg);
 #               print $socket &html_page("", $html);
             }
             else {
-                print $socket &html_page("", "Web html function not found: $sub_name");
+                print $socket &html_page("", "Web html function not found: &$sub_name $sub_ref");
             }
         }
         elsif ($h_response eq 'last_response') {
@@ -443,29 +513,25 @@ sub html_response {
                                 # By default, we shouldn't put a long time here or
                                 # we way too many passes for the 'no response message'
                                 # from many commands that do not respond
-            $leave_socket_open_passes = 2; 
-            #&?? WES
-#            if($socket->{browser} eq "IE")
-#            {
-#                $leave_socket_open_action = "&html_last_response_msagent";
-#            }                                                             
-#            else
-#            {
-                $leave_socket_open_action = "&html_last_response";
-#            }
+            $leave_socket_open_passes = 3; 
+            $leave_socket_open_action = "&html_last_response('$Browser')";
         }
         elsif ($h_response eq 'last_displayed') {
-            $leave_socket_open_passes = 2;
+            $leave_socket_open_passes = 3;
             $leave_socket_open_action = "&html_last_displayed";
         }
         elsif ($h_response eq 'last_spoken') {
-            $leave_socket_open_passes = 2;
+            $leave_socket_open_passes = 3;
             $leave_socket_open_action = "&html_last_spoken"; # Only show the last spoken text
 #           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
 #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
         elsif (-e ($file = "$main::config_parms{html_dir}/$h_response")) {
+                                # Allow for files to be modified on the fly, so wait a pass
+            $leave_socket_open_passes = 3;
             &html_file($socket, $file, '', 1);
+#           $leave_socket_open_action = "&html_file(\$Socket_Ports{http}{socka}, '$file', '', 1)";
+#           $leave_socket_open_action = "file_read '$file')";
         }
         else {
             $h_response =~ tr/\_/ /; # Put blanks back
@@ -477,131 +543,49 @@ sub html_response {
                                 #  - don't set this big.  Many things will have no response
                                 #    so we don't want to wait for them.
     else {
-        $leave_socket_open_passes = 2;
+        $leave_socket_open_passes = 3;
         $leave_socket_open_action = "&html_last_spoken";
 
     }
 }
 
-sub html_control {
-
-    return <<eof;
- $Authorized_html
- <p>Click on a Category for a list of items</p>
-eof
-}
-
 sub html_last_response {
-   my $last_response;
-   $Last_Response = '' unless $Last_Response;
-   if ($Last_Response eq 'speak') {
-       $last_response = &html_last_spoken;
-#      $last_response = &speak_log_last(1);
-   }
-   elsif ($Last_Response eq 'display') {
-       ($last_response) = &display_log_last(1);
-                                # Add breaks on newlines
-       $last_response =~ s/\n/\n<br>/g;
-#      $last_response = "<br>$last_response";
-   }
-   elsif ($Last_Response eq 'print_log') {
-       ($last_response) = &html_print_log;
-#      ($last_response) = &print_log_last(1);
-   }
-   else {
-       $last_response = "<br><b>No response resulted from the last command</b>";
-   }
-
- 
-   return qq[<FONT FACE="courier"><b>$last_response</b></FONT>];
-#  return qq[<FONT SIZE="+2">$last_response</FONT>];
-#  return $last_response;
-}
-
-#&?? WES
-sub html_last_response_msagent 
-{
-    my $last_response;
-    if ($Last_Response eq 'speak') 
-    {
+    my ($browser) = @_;
+    my ($last_response, $script);
+    $Last_Response = '' unless $Last_Response;
+    if ($Last_Response eq 'speak') {
         $last_response = &html_last_spoken;
-        (my $speech) = &speak_log_last(1);
-        # Remove line breaks
-        $speech =~ s/\n/  /g;
-        # Remove time/date/status portion of log entry
-        $speech =~ s/^.+?: //s;
-        return qq[<FONT FACE="courier"><b>$last_response</b></FONT>],undef,GenerateMsAgent($speech);
-        #      $last_response = &speak_log_last(1);
+                                # Allow for MSagent
+        if ($browser eq 'IE' and $MSAgent and $main::config_parms{html_msagent_script}) {
+            (my $speech) = &speak_log_last(1);
+            $script = GenerateMsAgent($speech);
+        }
     }
-    else
-    {
-        return html_last_response;
+    elsif ($Last_Response eq 'display') {
+        ($last_response) = &display_log_last(1);
+        $last_response =~ s/\n/\n<br>/g; # Add breaks on newlines
     }
+    elsif ($Last_Response eq 'print_log') {
+        ($last_response) = &html_print_log;
+    }
+    else {
+        $last_response = "<br><b>No response resulted from the last command</b>";
+    }
+ 
+    return $last_response, undef, $script;
 }
 
-sub GenerateMsAgent 
-{
+sub GenerateMsAgent {
     my ($text) = @_;
-#   return undef unless $socket->{browser} eq 'IE';
-    return undef unless $main::config_parms{html_msagent_character};
 
-    my $Character = $main::config_parms{html_msagent_character};
-    my $IntroAnimation;
-    my $ExitAnimation;
+    $text =~ s/\n/  /g;         # Remove line breaks
+    $text =~ s/^.+?: //s;       # Remove time/date/status portion of log entry
 
-    if($main::config_parms{html_msagent_intro}) { $IntroAnimation="Character." . $main::config_parms{html_msagent_intro}; }
-    if($main::config_parms{html_msagent_exit}) { $ExitAnimation="Character." . $main::config_parms{html_msagent_exit}; }
+    my $script = file_read "$config_parms{html_dir}/$config_parms{html_msagent_script}";
+    $script =~ s/<!-- *speak_text *-->/$text/;
+#   $script =~ s/\<\!\-\-\#include var="\$speech"\-\-\>/$text/;
 
-    return <<eof;
-<OBJECT classid="clsid:D45FD31B-5C6E-11D1-9EC1-00C04FD7081F" height=1 id="Agent" style="LEFT: 0px; TOP: 0px"  width=1>
-<PARAM NAME="_cx" VALUE="847">
-<PARAM NAME="_cy" VALUE="847">
-</OBJECT>
-
-<OBJECT classid="clsid:B8F2846E-CE36-11D0-AC83-00C04FD97575" id=TruVoice CODEBASE="#VERSION=6,0,0,0"> 
-</OBJECT>
-
-<SCRIPT LANGUAGE="VBScript">
-    Dim Character
-    Dim LoadRequestUNC
-    Dim LoadRequestURL
-
-    Sub Window_OnLoad
-        On Error Resume Next
-        LoadCharacter
-
-        ' Turn the word balloon off
-        ' Set the character's language ID
-        Character.LanguageID = &H0409
-        ' Make the character appear
-        Character.MoveTo window.clientX-40,window.clientY-60
-        'Character.MoveTo window.event.screenX-window.event.clientX+400,window.event.screenY-window.event.clientY+50
-        Character.Show
-        $IntroAnimation
-        Character.Speak "$text"
-        $ExitAnimation
-        Character.Hide
-    End Sub
-
-    Sub LoadCharacter
-
-        On Error Resume Next
-        ' Attempt to load the character from the Microsoft Agent Chars directory
-        Set LoadRequestUNC = Agent.Characters.Load ("$Character", "$Character.acs")
-
-        ' If it fails...
-        If LoadRequestUNC.Status <> 0 Then
-            ' Attempt to load the character from the Microsoft Agent site
-            Set LoadRequestURL = Agent.Characters.Load ($Character, "http://agent.microsoft.com/agent2/chars/$Character/$Character.acf") 
-
-        ' It did not fail so assign Character to loaded character file
-        Else 
-            ' Assign Character to the loaded character
-            Set Character = Agent.Characters("$Character")
-        End If
-    End Sub
-</SCRIPT>
-eof
+    return $script;
 }
 
 sub html_last_displayed {
@@ -774,6 +758,7 @@ sub html_page {
 HTTP/1.0 200 OK
 Server: MisterHouse
 Content-Type: text/html
+$Cookie
 $frame
 
 $script
@@ -830,6 +815,7 @@ sub html_items {
     my $h_index;
 #   for my $object_type ('X10_Item', 'X10_Appliance', 'Group', 'iButton', 'Serial_Item') {
     for my $object_type (@Object_Types) {
+        next if $object_type eq 'Voice_Cmd'; # Already covered under Category
         $h_index    .= "<li>" . &html_active_href("list?$object_type", $object_type) . "\n";
     }
     return $h_index;
@@ -845,7 +831,7 @@ sub html_find_icon_image {
     $name =~ s/^\$//;           # remove $ at front of objects
     $name =~ s/^v_//;           # remove v_ in voice commands
 
-    $state = 'dim' if $state =~ /^[+-]?\d+$/;
+    $state = 'dim' if $state =~ /^[+-]?\d+$/ or $state =~ /\d+\%/;
     print "db find_icon: object_name=$name, type=$type, state=$state\n" if $main::config_parms{debug} eq 'http';
 
     my ($icon, $member);
@@ -919,13 +905,30 @@ sub html_list {
     my($webname_or_object_type, $auto_refresh) = @_;
     my ($object, @object_list, $num, $h_list);
     
-    $h_list .= "<center><b>$webname_or_object_type</b> &nbsp &nbsp &nbsp &nbsp $Authorized_html</center>\n";
+    $h_list .= "<b>$webname_or_object_type</b> &nbsp &nbsp &nbsp &nbsp " . &html_authorized . "\n";
     $h_list =~ s/group=\$//;     # Drop the group=$ prefix on group lists
 
     $h_list .= qq[<!-- html_list -->\n];
 
-                                # List Items by search keyword
-    if ($webname_or_object_type =~ /^search=(\S*)/) {
+                                # This means the form was submited ... check for search keyword
+    if ($webname_or_object_type =~ /search=(\S*)/) {
+
+                                # Check for msagent checkbox
+        if ($webname_or_object_type =~ /msagent=1/) {
+            unless ($MSAgent) {
+                $MSAgent = 1;
+                $Cookie .= "Set-Cookie: msagent=1 ; ; path=/;\n";
+                return "<h3>MS agent has been turned On</h3>";
+            }
+        }
+        else {
+            if ($MSAgent) {
+                $MSAgent = 0;
+                $Cookie .= "Set-Cookie: msagent=0 ; ; path=/;\n";
+                return "<h3>MS agent has been turned Off</h3>";
+            }
+        }
+
         $h_list .= "<!-- html_list search -->\<BASE TARGET='speech'>\n";
         my @cmd_list = &list_voice_cmds_match($1);
         for my $cmd (@cmd_list) {
@@ -1016,6 +1019,7 @@ sub html_command_table {
     my (@object_list) = @_;
     my ($html, @htmls);
     my $list_count = 0;
+    my ($msagent_cmd1, $msagent_cmd2, $msagent_script1, $msagent_script2, $msagent_script3 );
 
     my @objects = map{&get_object_by_name($_)} @object_list;
 
@@ -1074,7 +1078,7 @@ sub html_command_table {
             unless ($main::config_parms{html_category_states}) {
                 my @states_log = state_log $object;
                 while (my $state = shift @states_log) {
-                    if (my ($date, $time, $state) = $state =~ /(\S+) (\S+) *(.*)/) {
+                    if (my ($date, $time, $state) = $state =~ /(\S+) (\S+ *[APM]{0,2}) *(.*)/) {
                         $ol_state_log .= "<li>$date $time <b>$state</b> ";
                     }
                 }
@@ -1109,30 +1113,35 @@ sub html_command_table {
                                 #  - allows the icon to be a submit
         my $form = qq[<FORM action="/RUN:last_response" method="get">\n];
 
-
-        push @htmls, qq[$form  <td align='left' valign='center' $ol_state_log>$html</td>\n];
-
+                                # Icon button
+        push @htmls, qq[$form  <td align='left' valign='center' width='0%' $ol_state_log>$html</td>\n];
 
                                 # Now do the main text entry
-        $html  = qq[<td align='left' $ol_info> ];
+        my $width = ($main::config_parms{html_category_cols} == 1) ? "width='100%'" : '';
+        $html  = qq[<td align='left' $width $ol_info> ];
 
         $html .= qq[<b>$prefix</b>] if $prefix;
 
                                 # Use a SELECT dropdown with 4 or more states
         if ($states_with_select) {
-            $html .= qq[<SELECT name="cmd" onChange="form.submit()">\n];
+            $html .= qq[<SELECT name="select_cmd" onChange="form.submit()">\n];
             $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
+            $msagent_cmd1 = "$prefix ( ";
             for my $state (@states) {
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
                 $text_cmd =~ tr/ /\_/;  
                 $html .= qq[<option value="$text_cmd">$state\n];
+                $msagent_cmd1 .= " $state | ";
+                $msagent_cmd2 = $text_cmd;
             }
+            substr($msagent_cmd1, -2, 2) =  " ) $suffix";
             $html .= qq[</SELECT>\n];
         }
                                 # Use hrefs with 2 or 3 states
         elsif ($states) {
             my $hrefs;
+            $msagent_cmd1 = "$prefix ( ";
             for my $state (@states) {
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
@@ -1142,14 +1151,17 @@ sub html_command_table {
                     $hrefs .= qq[, ] if $hrefs;
                 }
                 else {
-                    $html .= qq[<input type="hidden" name="cmd" value='$text_cmd'>\n];
+                    $html .= qq[<input type="hidden" name="select_cmd" value='$text_cmd'>\n];
                 }
 
                                 # We could add ol_info here, so netscape kind of works, but this 
                                 # would be redundant and ineffecient.
                 $hrefs .= qq[<a href='/RUN:last_response?$text_cmd'>$state</a> ];
+                $msagent_cmd1 .= " $state | ";
+                $msagent_cmd2 = $text_cmd;
 #               $hrefs .= qq[<a href='/RUN:last_response?$text_cmd' $ol_info>$state</a> ];
             }
+            substr($msagent_cmd1, -2, 2) =  " ) $suffix";
             $html .= $hrefs;
         }
                                 # Just display the text, when no states
@@ -1158,7 +1170,9 @@ sub html_command_table {
             $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
             $text_cmd =~ tr/ /\_/; 
             $html .= qq[<b>$text</b>];
-            $html .= qq[<input type="hidden" name="cmd" value='$text_cmd'>\n];
+            $html .= qq[<input type="hidden" name="select_cmd" value='$text_cmd'>\n];
+            $msagent_cmd1 = $text;
+            $msagent_cmd2 = $text_cmd;
         }
 
         $html .= qq[<b>$suffix</b>] if $suffix;
@@ -1174,14 +1188,28 @@ sub html_command_table {
             }
             push @htmls, qq[<td align='left' valign='center'>$state_log</td>\n\n];
         }
-        
+
+                                # Include MsAgent VR commands
+#       minijeff.Commands.Add "ltOfficeLight", "Control Office Light","Turn ( on | off ) office light", True, True
+        my $msagent_id = substr $object_name, 1;
+        $msagent_script1 .= qq[minijeff.Commands.Add "$msagent_id", "$text", "$msagent_cmd1", True, True\n];
+        $msagent_script2 .= qq[Case "$msagent_id"\n   $msagent_id\n];
+        $msagent_script3 .= qq[Sub  $msagent_id\n   window.open "/RUN:last_response?$msagent_cmd2","speech"\nEnd Sub\n];
     }
 
                                 # Create final html
     $html = "<BASE TARGET='speech'>\n";
     $html = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] . 
             qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] . 
-            $html if $html_info_overlib;
+                $html if $html_info_overlib;
+
+    if ($Browser eq 'IE' and $MSAgent and $main::config_parms{html_msagent_script_vr}) {
+        my $msagent_file = file_read "$config_parms{html_dir}/$config_parms{html_msagent_script_vr}";
+        $msagent_file =~ s/<!-- *vr_cmds *-->/$msagent_script1/;
+        $msagent_file =~ s/<!-- *vr_select *-->/$msagent_script2/;
+        $msagent_file =~ s/<!-- *vr_subs *-->/$msagent_script3/;
+        $html = $msagent_file . $html;
+    }
 
     my $cols = 2;
     $cols += 1 if $main::config_parms{html_category_filename};
@@ -1189,7 +1217,7 @@ sub html_command_table {
     $cols += 1 if $main::config_parms{html_info} eq 'overlib_link';
     $cols *= 2 if $main::config_parms{html_category_cols} == 2;
 
-    return  $html . &table_it($cols, $main::config_parms{html_category_border}, 0,  @htmls);
+    return  $html . &table_it($cols, $main::config_parms{html_category_border}, $main::config_parms{html_category_cellsp},  @htmls);
 }
 
                                 # List current object state
@@ -1197,6 +1225,7 @@ sub html_item_state {
     my ($object, $object_type) = @_;
     my $object_name  = $object->{object_name};
     my $object_name2 = &pretty_object_name($object_name);
+    my $isa_X10 = $object->isa('X10_Item');
 
                                 # If not a state item, just list it
     return qq[<td></td><td align="left"><b>$object_name2</b></td>\n] unless defined $object->{state};
@@ -1206,37 +1235,71 @@ sub html_item_state {
     my $html;
     $state_now = '' unless $state_now; # Avoid -w uninitialized value msg
 
+                                # If >2 possible states, add a Select pull down form
+    my @states;
+    @states = @{$object->{states}} if $object->{states};
+    @states = split ',', $config_parms{x10_menu_states} if $isa_X10;
+    @states = qw(on off) if $object->isa('X10_Appliance');
+    my $use_select = 1 if @states > 2;
+
+    if ($use_select) {
+        $html .= qq[<FORM action="/SET:&html_list($object_type)?" method="get">\n];
+        $html .= qq[<INPUT type="hidden" name="select_item" value="$object_name">\n]; # So we can uncheck buttons
+    }
+
                                 # Find icon to show state, if not found show state_now in text.
+                                #  - icon is also used to show state log
     $html .= qq[<td align="right"><a href='/SET:&html_state_log($object_name)' target='speech'>];
     if (my $h_icon = &html_find_icon_image($object, $object_type)) {
         $html .= qq[<img src="$h_icon" alt="$h_icon" border="0"></a>];
-    } else {
+    } 
+    elsif ($state_now and 8 > length $state_now) {
         $html .= $state_now . '</a>&nbsp';
+    }
+    else {
+        $html .= qq[<img src="/graphics/nostat.gif" alt="no_state" border="0"></a>];
     }
     $html .= qq[</td>\n];
 
-    my $state_toggle;
-    if ($state_now eq ON) {
-        $state_toggle = OFF;
-#       $state_toggle = '-50%';
-    }
-    elsif ($state_now =~ /^[+-]?\d/) {
-        $state_toggle = OFF;
-    }
-    else {
-        $state_toggle = ON;
-    }
-#    $html .= qq[<td align="left"><b><a onClick='history.go(0)' href='/SET:hi_there?$object_name?$state_toggle'>$object_name2</a></b></td>\n];
+                                # Add brighten/dim arrows on X10 Items
     $html .= qq[<td align="left"><b>];
-    if ($object_type eq 'X10_Item' or $object_type =~ /^group/i) {
-#       $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?+15'>+</a> ];
+    if ($isa_X10) {
                                 # Note:  Use hex 2B = +, as + means spaces in most urls
         $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?%2B15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
         $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?-15'><img src='/graphics/a1-.gif' alt='-' border='0'></a> ];
     }
-    $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?$state_toggle'>$object_name2</a>];
-    $html .= qq[</b></td>\n];
-    return $html;
+
+                                # Add Select states
+    if ($use_select) {
+        $html .= qq[<SELECT name="select_state" onChange="form.submit()">\n];
+        $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
+        for my $state (@states) {
+            my $state_short = substr $state, 0, 5;
+            $html .= qq[<option value="$state">$state_short\n];
+#           $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?$state'>$state</a> ];
+        }
+        $html .= qq[</SELECT>\n];
+    }
+
+                                # Find toggle state
+    my $state_toggle;
+    if ($state_now eq ON or $state_now =~ /^[\+\-]?\d/) {
+        $state_toggle = OFF;
+    }
+    elsif ($state_now eq OFF or grep $_ eq ON, @states) {
+        $state_toggle = ON;
+    }
+    
+    if ($state_toggle) {
+        $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?$state_toggle'>$object_name2</a>];
+    }
+    else {
+        $html .= $object_name2;
+    }
+
+    $html .= qq[</b></td>];
+    $html .= qq[</FORM>] if $use_select;
+    return $html . "\n";
 }
 
 sub html_state_log {
@@ -1335,9 +1398,11 @@ sub widgets {
 
     my @table_items;
     my $cols = 6;
+                                # Note, can not hide tk widgets yet :(
+                                #  - need to make them into a Generic_Object
     for my $ptr (@Tk_widgets) {
-        my @data = @$ptr;
 
+        my @data = @$ptr;
 
         my $category = shift @data;
         $category =~ s/ /_/;
@@ -1531,6 +1596,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.45  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.44  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

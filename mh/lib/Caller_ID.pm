@@ -31,6 +31,21 @@ RING
 
 RING RING DATE=0224 NAME=ONMBR=5072884388 
 
+***************************************
+Canadian (Quebec - Bell Canada) format:
+
+DATE = 0910
+TIME = 0137
+NAME = O
+DDN_NMBR= 9932562
+
+(Notes: 
+- 'O' as a name means 'Unavailable'
+- the phone# doesn'n include the area code if in the same area code than you.
+- instead of 'NMBR', it's 'DDN_NMBR.'. don't ask me why...
+)
+***************************************
+
 =cut end
 
 
@@ -49,9 +64,14 @@ RING RING DATE=0224 NAME=ONMBR=5072884388
         ($number) = $data =~ /NMBR *= *(\S+)/s;
         ($name)   = $data =~ /NAME *= *(.+)/s;
         $name = substr($name, 0, 15);
-        $name = 'Unavailable' if $name =~ /^ONMBR/; # Jay's exception
+
+        $name = 'Unavailable' if $name =~ /^(ONMBR|O$)/; # Jay's & Chaz's exceptions
+        $name = 'Private'     if $name =~ /^P$/; # Chaz's exception
+        $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/; # Chaz's exception
         ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
-        substr($number, 6, 0) = '-' if length $number > 6;
+
+# Canadian phone#s are reported without the area code if in the same area
+        substr($number, 6, 0) = '-' if length $number > 7;
         substr($number, 3, 0) = '-' if length $number > 3;
     }
     else {
@@ -62,8 +82,14 @@ RING RING DATE=0224 NAME=ONMBR=5072884388
     $first = ucfirst(lc($middle)) if length($first) == 1 and $middle; # Last M First format
     $last  = ucfirst(lc($last));
 
-    ($areacode, $local_number) = $number =~ /(\d+)-(\S+)/;
-    
+
+                                # Again, because of the area code not included.
+    if (length $number > 8) {
+        ($areacode, $local_number) = $number =~ /(\d+)-(\S+)/;
+	}else{
+        ($areacode, $local_number) = ($my_areacode,$number);
+	}    
+
 #I03/22 16:13 507-123-4567 OUT OF AREA
 #I03/23 08:35 OUT OF AREA  OUT OF AREA  
 #I03/22 16:17 PRIVATE      PRIVATE 
@@ -179,6 +205,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.16  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.15  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

@@ -14,9 +14,9 @@
  
 # To use this interface, add the following line to your mh.ini file:
 
-# ncpuxa_port=localhost:3000
+# ncpuxa_port=localhost:2000
 
-# Where localhost:3000 is the host and network port where cpuxad is
+# Where localhost:2000 is the host and network port where cpuxad is
 # running.
 
 
@@ -26,12 +26,15 @@ package ncpuxa_mh;
 use ncpuxa;
 
 my %controlsock;
+my %monitorsock;
 
 sub init {
 	my $hostport = shift;
 	my ($host, $port) = split(":", $hostport);
 	$port = int($port);
 	$controlsock{$hostport} = ncpuxa::cpuxa_connect($host, $port);
+	$monitorsock{$hostport} = ncpuxa::cpuxa_connect($host, $port);
+	ncpuxa::cpuxa_monitor($monitorsock{$hostport});
 }
 
 sub send {
@@ -66,7 +69,7 @@ sub send {
 	}
 	elsif (my ($irnum) = $data =~ /^IRSlot([0-9]+)$/) {
 		$irnum = int($irnum);
-		ncpuxa::send_local_ir($controlsock{$hostport}, $irnum);
+		ncpuxa::local_ir($controlsock{$hostport}, $irnum);
 		return;
 	}
 	elsif (my ($relay, $state) = $data =~ /^OUTPUT([0-9]+)(high|low)/i) {
@@ -85,5 +88,31 @@ sub send {
 	# not reached
 	return;
 }
+
+my $ret;
+my $data;
+my $code;
+
+my %funcs = qw (
+	1  1  2  2  3  3  4  4  5  5  6  6  7  7  8  8  9  9  
+	10  A  11  B  12  C  13  D  14  E  15  F  16  G 
+	"All On"  H  "All Off"  I  On  J  Off  K  Bright  L  Dim  M 
+);
+
+sub read {
+	my $hostport = shift;
+	my $data;
+
+	return unless $data = ncpuxa::cpuxa_process_monitor($monitorsock{$hostport});
+	if (my ($house, $func) = $data =~ /^X-10 Rx: ([A-P])\/(.*)/) {
+		$code = "X" . $house . $funcs{$func};
+		return $code;
+	}
+	if (my ($irnum) = $data =~ /^IR Rx: #([0-9]+)/) {
+		$code = "IRSlot" . $irnum;
+		return $code;
+	}
+}
+
 
 1;

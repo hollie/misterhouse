@@ -57,7 +57,20 @@ sub sun_time
    # For     nautical twilight, use R = -.207912
    # For        civil twilight, use R = -.104528
    # For     sunrise or sunset, use R = -.0145439
+
    my $R = -.0145439;
+   if ($params{twilight}) {
+       if($params{twilight} eq 'astronomical') {
+           $R = -.309017;
+       }
+       elsif($params{twilight} eq 'nautical') {
+           $R = -.207912;
+       }
+       elsif($params{twilight} eq 'civil') {
+           $R = -.104528;
+       }
+   }
+
 
    my $J = ($type eq 'rise') ? $A : $C;
    my $K = $yday + (($J - $F) / $D);

@@ -4,13 +4,22 @@ package IR_Item;
 
 @IR_Item::ISA = ('Generic_Item');
 
+my %default_map = qw(
+    ON  POWER
+    OFF POWER
+);
+
 sub new {
-    my ($class, $device, $code) = @_;
+    my ($class, $device, $code, $interface, $mapref) = @_;
     my $self = {};
     $$self{state} = '';
     $device = 'TV' unless $device;
     $$self{device} = uc $device;
     $$self{code} = $code if $code;
+    $interface = 'CM17' unless $interface;
+    $$self{interface} = $interface;
+    $mapref = \%default_map unless $mapref;
+    $$self{mapref} = $mapref;
     bless $self, $class;
     return $self;
 }
@@ -24,7 +33,7 @@ sub set {
                                 # Since the X10 IR Commander is a bit slow (.5 sec per xmit),
                                 #  lets only send the device code if it is different than last time.
     my $device = $$self{device};
-    $device = '' if $device eq $device_prev;
+    $device = '' if device and  $device eq $device_prev;
     $device_prev = $$self{device};
 
     $state = uc $state;
@@ -37,7 +46,7 @@ sub set {
     $state =~ s/^(\d)$/0$1/g;
 
                                 # Lead with another 0 for devices that require 3 digits.
-    if ($$self{code} eq '3digit') {
+    if ($$self{code} and $$self{code} eq '3digit') {
         $state =~ s/^(\d\d),/0$1,/g;
         $state =~ s/,(\d\d),/,0$1,/g;
         $state =~ s/,(\d\d)$/,0$1/g;
@@ -48,25 +57,43 @@ sub set {
                                 # Record must be pressed twice??
     $state =~ s/RECORD/RECORD,RECORD/g;
                                 # Add delay after powering up
-    $state =~ s/POWER,/POWER,PAUSE,/g;
+    $state =~ s/POWER,/POWER,DELAY,/g;
 
     print "Sending IR_Item command $device $state\n";
+    my $mapped_ir;
     for my $command (split(',', $state)) {
         $command  = 'POWER'     if $command eq 'ON';
         $command  = 'POWER'     if $command eq 'OFF';
-                                # This seems to be built into the ir commander
-                                #  - hmmm, PAUSE causes my VCR to play :(   Lets build our own pause
-        if ($command eq 'PAUSE') {
+                                # Lets build our own delay
+        if ($command eq 'DELAY') {
             select undef, undef, undef, 0.3; # Give it a chance to get going before doing other commands
             next;
         }
-        &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, "$device $command");
+                                # IR mapping is mainly for controlers like 
+                                # Homevision and CPU-XA that use learned IR
+                                # slots instead of symbolic commands.
+        if ($mapped_ir = $$self{mapref}->{$command}) {
+            $command = $mapped_ir;
+        }
+        if ($$self{interface} eq 'CM17') {
+            &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object},
+                "$device $command");
+        } elsif ($$self{interface} eq 'Homevision') {
+            &Homevision::send($main::Serial_Ports{Homevision}{object}, $command);
+        } elsif ($$self{interface} eq 'ncpuxa') {
+            &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $command);
+        } else {
+            print "IR_Item::set Interface $$self{interface} not supported.\n";
+        }
         $device = '';           # Use device only on the first command
     }
 }
 
 #
 # $Log$
+# Revision 1.4  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.3  2000/06/24 22:10:54  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

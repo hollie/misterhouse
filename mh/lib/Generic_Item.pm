@@ -38,9 +38,22 @@ sub restore_string {
         $state_log =~ s/\n/ /g; # Avoid new-lines on restored vars
         $restore_string .= '@{' . $self->{object_name} . "->{state_log}} = split(\$;, q~$state_log~);";
     }
+    
+                                # Allow for dynamicaly/user defined save data
+    for my $restore_var (@{$$self{restore_data}}) {
+        my $restore_value = $self->{$restore_var};
+        $restore_string .= $self->{object_name} . "->{$restore_var} = q~$restore_value~;\n" if $restore_value;
+    }
 
     return $restore_string;
 }
+
+sub restore_data {
+    return unless $main::Reload;
+    my ($self, @restore_vars) = @_;
+    push @{$$self{restore_data}}, @restore_vars;
+}
+
 
 sub hidden {
     return unless $main::Reload;
@@ -97,6 +110,31 @@ sub set_info {
     }
 }
 
+sub set_authority {
+    return unless $main::Reload;
+    my ($self, $who) = @_;
+    $self->{authority} = $who;
+}
+sub get_authority {
+    return $_[0]->{authority};
+}
+
+sub set_states {
+    return unless $main::Reload;
+    my ($self, @states) = @_;
+    @{$$self{states}} = @states;
+}
+sub add_states {
+    return unless $main::Reload;
+    my ($self, @states) = @_;
+    push @{$$self{states}}, @states;
+}
+sub get_states {
+    return unless $main::Reload;
+    my ($self) = @_;
+    return @{$$self{states}};
+}
+
 sub set_states_for_next_pass {
     my ($ref, $state) = @_;
     push @states_from_previous_pass, $ref unless $ref->{state_next_pass} and @{$ref->{state_next_pass}};
@@ -104,8 +142,9 @@ sub set_states_for_next_pass {
 
                                 # Set the state_log
     $state  = '' if !$state or $state eq '1';
-    unshift(@{$$ref{state_log}}, "$main::Time_Date $state");
-    pop @{$$ref{state_log}} if @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
+                                # Log non-blank states
+    unshift(@{$$ref{state_log}}, "$main::Time_Date $state") if $state or (ref $ref) eq 'Voice_Cmd';
+    pop @{$$ref{state_log}} if $$ref{state_log} and @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
 
                                 # Reset this (used to detect which tied item triggered the set)
                                 #  - Default to self, rather than blank
@@ -183,6 +222,9 @@ sub untie_event {
 
 #
 # $Log$
+# Revision 1.9  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.8  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

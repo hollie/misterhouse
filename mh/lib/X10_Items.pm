@@ -3,6 +3,14 @@ package X10_Item;
 
 my (%items_by_house_code, %appliances_by_house_code);
 
+#&main::Reload_post_hook(\&X10_Item::reset, 1) if $Startup;
+
+sub reset {
+#   print "\n\nRunning X10_Item reset\n\n\n";
+    undef %items_by_house_code;
+    undef %appliances_by_house_code;
+}
+
 @X10_Item::ISA = ('Serial_Item');
 
 sub new {
@@ -64,6 +72,7 @@ sub new {
         $self-> add ($id . '-95', '-95');
     }
                                 # Setup unit-command  codes:  e.g. XA1AJ, XA1AK, XA1+20
+                                # Note: The 0%->100% states are handled directly in Serial_Item.pm
     else {
         $self-> add ($id . $hc . 'J', 'on');
         $self-> add ($id . $hc . 'K', 'off');
@@ -130,39 +139,8 @@ sub new {
         $self-> add ($id . $hc . '+90', 90);
         $self-> add ($id . $hc . '+95', 95);
 
-
         $self-> add ($id . $hc . 'STATUS', 'status');
         $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
-
-
-                                # We could also allow the following states with normal X10 
-                                # lamp modules if we got smart and tracked the current X10 
-                                # by overriding the set function.
-        if ($module and $module eq 'LM14') {
-            $self-> add ($id . '&P0',   '0%');    # Preset-Dims go from 1 to 63
-            $self-> add ($id . '&P1',   '2%'); 
-            $self-> add ($id . '&P2',   '4%'); 
-            $self-> add ($id . '&P3',   '5%'); 
-            $self-> add ($id . '&P6',  '10%');
-            $self-> add ($id . '&P9',  '15%');
-            $self-> add ($id . '&P13', '20%');
-            $self-> add ($id . '&P16', '25%');
-            $self-> add ($id . '&P19', '30%');
-            $self-> add ($id . '&P22', '35%');
-            $self-> add ($id . '&P25', '40%');
-            $self-> add ($id . '&P28', '45%');
-            $self-> add ($id . '&P31', '50%');
-            $self-> add ($id . '&P34', '55%');
-            $self-> add ($id . '&P38', '60%');
-            $self-> add ($id . '&P31', '65%');
-            $self-> add ($id . '&P44', '70%');
-            $self-> add ($id . '&P47', '75%');
-            $self-> add ($id . '&P50', '80%');
-            $self-> add ($id . '&P53', '85%');
-            $self-> add ($id . '&P57', '90%');
-            $self-> add ($id . '&P61', '95%');
-            $self-> add ($id . '&P63', '100%');
-        }
 
     }
 
@@ -602,6 +580,9 @@ sub zone_delay
 
 
 # $Log$
+# Revision 1.11  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.10  2000/08/19 01:25:08  winter
 # - 2.27 release
 #

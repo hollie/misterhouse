@@ -226,7 +226,7 @@ sub main::net_jabber_signon {
 
 sub jabber::process {
     return unless $main::New_Second;
-    unless (defined $jabber_connection->Process(0)) {
+    if (!defined $jabber_connection or !defined $jabber_connection->Process(0)) {
         print "\nJabber connection died\n";
         undef $jabber_connection;
         &main::MainLoop_post_drop_hook( \&jabber::process, 1 );
@@ -542,6 +542,7 @@ sub main::net_mail_summary {
         $header_flag = 1;
         for (@$msg_ptr) {
             if ($header_flag) {
+#               chomp;
                 $date    = $1 if !$date    and /Date:(.+)/;
                 $from    = $1 if !$from    and /From:(.+)/;
                 $to      = $1 if !$to      and /To:(.+)/;
@@ -614,6 +615,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.22  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.21  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

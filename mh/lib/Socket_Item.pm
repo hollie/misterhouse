@@ -16,7 +16,7 @@ sub socket_item_by_id {
 }
 
 sub new {
-    my ($class, $id, $state, $host_port, $port_name, $host_proto) = @_;
+    my ($class, $id, $state, $host_port, $port_name, $host_proto, $datatype) = @_;
 
     my $self = {state => ''};
 
@@ -25,6 +25,8 @@ sub new {
     $$self{port_name} = $port_name;
     $$self{host_port} = $host_port;
     $$self{host_protocol} = $host_proto;
+    $main::Socket_Ports{$port_name}{host_port} = $host_port if $host_port;
+    $main::Socket_Ports{$port_name}{datatype}  = $datatype  if $datatype;
     &add($self, $id, $state);
     bless $self, $class;
     return $self;
@@ -32,7 +34,6 @@ sub new {
 
 sub set_port {
     my ($self, $host_port) = @_;
-    my $port_name = $$self{port_name};
     $$self{host_port} = $host_port;
 }
 
@@ -118,7 +119,7 @@ sub said {
     my $port_name = $_[0]->{port_name};
     
     my $data;
-    my $datatype  = $main::Serial_Ports{$port_name}{datatype};
+    my $datatype  = $main::Socket_Ports{$port_name}{datatype};
     if ($datatype and $datatype eq 'raw') {
         $data = $main::Socket_Ports{$port_name}{data};
         $main::Socket_Ports{$port_name}{data} = '';
@@ -184,9 +185,52 @@ sub set {
 
 }    
 
+sub set_expect {
+    my ($self, @set_expect_cmds) = @_;
+    if (active $self) {
+        &main::print_log("set_expect: $$self{port_name} is already active");
+    }
+    else {
+        &main::print_log("set_expect: $$self{port_name} start");
+        $self->start;
+        @{$$self{set_expect_cmds}}  = @set_expect_cmds;
+        $$self{set_expect_timer} = new Timer;
+        $$self{set_expect_timer}-> set(10);
+        &::MainLoop_pre_add_hook( \&Socket_Item::set_expect_check, 0, $self );
+    }
+}
+
+sub set_expect_check {
+    my ($self) = @_;
+    if (my $data = said $self) {
+        print "set_expect: $$self{port_name} said $data\n";
+        my $prompt = quotemeta ${$$self{set_expect_cmds}}[0];
+        if ($data =~ /$prompt/i) {
+            my ($prompt, $cmd) =  splice @{$$self{set_expect_cmds}}, 0, 2;
+            &main::print_log("set_expect: $$self{port_name} $prompt");
+            $self->set($cmd . "\n");
+            unless (@{$$self{set_expect_cmds}}) {
+                &main::print_log("set_expect: $$self{port_name} done");
+                $self->stop;
+                $$self{set_expect_timer}->unset;
+                &::MainLoop_pre_drop_hook( \&Socket_Item::set_expect_check );
+            }
+        }
+    }
+    if ($$self{set_expect_timer}->expired) {
+        &main::print_log("set_expect: $$self{port_name} timed out");
+        $self->stop;
+        &::MainLoop_pre_drop_hook( \&Socket_Item::set_expect_check );
+    }
+}
+
+
 
 #
 # $Log$
+# Revision 1.16  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.15  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

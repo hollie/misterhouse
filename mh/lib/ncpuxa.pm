@@ -66,8 +66,10 @@ sub write_int {
 sub read_int {
 	my $s = shift;
 	my $tmp;
-	my $bytes = recv($s, $tmp, 4, 0);
-	return - ERR_SOCKREAD() if $! < 0;
+	recv($s, $tmp, 4, 0);
+	my $status = $!;
+	my $bytes = length($tmp);
+	return - ERR_SOCKREAD() if ($status < 0 || $bytes != 4);
 	my $i = unpack("N", $tmp);
 	$_[0] = $i;
 	$bytes;
@@ -83,9 +85,10 @@ sub read_buf {
 
 sub check_read_error {
 	my $ret = shift; 
-	my $i = shift; 
+	my $i = shift;
 
-	$i != 0;
+	$i = -1 if (! defined($i));
+	printf("ncpuxa read failed: error %d, %d\n", $ret, $i) if $i != 0;
 }
 
 sub check_write_error {
@@ -102,7 +105,7 @@ sub check_buf_error {
 
 sub cpuxa_connect {
 	my $remote = shift || 'localhost';
-	my $port = shift || 3000;
+	my $port = shift || 2000;
 
 	if (! $quiet) {printf("cpuxa connect to %s port %d\n", $remote, $port);}
 	my ($iaddr, $paddr, $proto);
@@ -139,6 +142,34 @@ sub send_x10 {
 	if (check_write_error($ret)) { return; }
 
 	$ret = write_int($s, $repeat);
+	if (check_write_error($ret)) { return; }
+
+	$ret = read_int($s, $result);
+	if (check_read_error($ret, $result)) { return; }
+
+}
+
+sub send_x10_leviton_level {
+	my $s = shift;
+	my $house = shift;
+	my $key = shift;
+	my $level = shift;
+	my $ret;
+	my $result;
+
+	if (! $quiet) {printf("send X-10 leviton level %s/%s %d\n",
+		$houses[$house], $keys[$key], $level);}
+
+	$ret = write_int($s, XA_X10_LEVEL());
+	if (check_write_error($ret)) { return; }
+
+	$ret = write_int($s, $house);
+	if (check_write_error($ret)) { return; }
+
+	$ret = write_int($s, $key);
+	if (check_write_error($ret)) { return; }
+
+	$ret = write_int($s, $level);
 	if (check_write_error($ret)) { return; }
 
 	$ret = read_int($s, $result);
@@ -335,6 +366,25 @@ sub get_x10_buffered {
 		}
 		$empty = 0;
 	}
+}
+
+sub cpuxa_monitor {
+	my $s = shift;
+	my $ret;
+
+	$ret = write_int($s, XA_MONITOR());
+	if (check_write_error($ret)) { return; }
+}
+	
+sub cpuxa_process_monitor {
+	my $s = shift;
+	my $ret;
+	my $data = '';
+
+	if ($ret = recv($s, $data, LEN_PAG(),  MSG_DONTWAIT() )) {
+		($data) = $data =~ /([^\000]*)/;
+	}
+	return $data;
 }
 
 sub cpuxa_close {

@@ -131,24 +131,16 @@ sub said {
     my $port_name = $_[0]->{port_name};
     my $datatype  = $main::Serial_Ports{$port_name}{datatype};
     
+    my $data;
     if ($datatype and $datatype eq 'raw') {
-        if (my $data = $main::Serial_Ports{$port_name}{data}) {
-            $main::Serial_Ports{$port_name}{data} = '';
-            return $data;
-        }
-        else {
-            return;
-        }
+        $data = $main::Serial_Ports{$port_name}{data};
+        $main::Serial_Ports{$port_name}{data} = '';
     }
     else {
-        if (my $data = $main::Serial_Ports{$port_name}{data_record}) {
-            $main::Serial_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
-            return $data;
-        }
-        else {
-            return;
-        }
+        $data = $main::Serial_Ports{$port_name}{data_record};
+        $main::Serial_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
     }
+    return $data;
 }
 
 sub set_data {
@@ -201,13 +193,14 @@ sub set {
 
     return unless %main::Serial_Ports;
 
-    my $serial_data;
+    my $serial_id;
     if (defined $self->{id_by_state}{$state}) {
-        $serial_data = $self->{id_by_state}{$state};
+        $serial_id = $self->{id_by_state}{$state};
     }
     else {
-        $serial_data = $state;
+        $serial_id = $state;
     }
+    my $serial_data = $serial_id;
 
     my $port_name = $self->{port_name};
 
@@ -219,23 +212,33 @@ sub set {
     my $interface = $$self{interface};
     $interface = 'none' unless $interface;
     if ($interface eq 'cm11') {
+                                # Allow for xx% (e.g. 1% -> &P1)
+        if ($serial_data =~ /(\d+)%/) {
+            $serial_data = '&P' . int ($1 * 63 / 100 + 0.5);
+        }
+                                # Make sure that &P codes have the house code prefixed
+                                #  - e.g. device A1 -> A&P1
+        if ($serial_data =~ /^&P/) {
+            $serial_data = substr($self->{x10_id}, 1, 1) . $serial_data;
+        }
                                 # If code is &P##, prefix with item code.
-        if (substr($serial_data, 0, 1) eq '&') {
+                                #  - e.g. A&P1 -> A1A&P1
+        if (substr($serial_data, 1, 1) eq '&') {
             $serial_data = $self->{x10_id} . $serial_data;
         }
                                 # Allow for:
                                 # - Extended data will have & starting the function code 
                                 #   e.g. XO7&P23 -> Device O7 to Preset Dim code 23
                                 # - Bright/dim on house codes: e.g. XA+20 (but not XA1A+20)
-        if (length $serial_data > 3 and substr($serial_data, 3, 1) eq '&' or
-            $serial_data =~ /^\S\S[\+\-]/) {
-            &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 1));
-        }
+#        if (length $serial_data > 3 and substr($serial_data, 3, 1) eq '&' or
+#            $serial_data =~ /^\S\S[\+\-]/) {
+#            &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 1));
+#        }
                                 # Normal data ... call once for the Unit code, once for the Function code
-        else {
+#        else {
             &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 1, 2));
             &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 3)) if length($serial_data) > 3;
-        }
+#        }
     }
     elsif ($interface eq 'cm17') {
                                 # cm17 wants XA1K, not XA1AK
@@ -321,6 +324,34 @@ sub set {
             print "serial port=$port_name out=$serial_data results=$results\n" if $main::config_parms{debug} eq 'serial';
         }
     }
+
+                                # Check for X10 All-on All-off house codes
+    if ($serial_data =~ /^X(\S)([OP])$/) {
+        print "X10: mh set House code $1 set to $2\n" if $main::config_parms{debug} eq 'X10';
+        my $state = ($2 eq 'O') ? 'on' : 'off';
+        &X10_Item::set_by_housecode($1, $state);
+    }
+                                # Check for other items with the same codes
+                                #  - If found, set them to the same state
+    if ($serial_items_by_id{$serial_id} and my @refs = @{$serial_items_by_id{$serial_id}}) {
+        for my $ref (@refs) {
+            next if $ref eq $self;
+                                # Only compare between items on the same port
+            my $port_name1 = ($self->{port_name} or ' ');
+            my $port_name2 = ($ref ->{port_name} or ' ');
+            next unless $port_name1 eq $port_name2;
+
+            print "Serial_Item: Setting duplicate state: id=$serial_id item1=$$self{object_name} item2=$$ref{object_name}\n" 
+                if $main::config_parms{debug} eq 'serial';
+            if ($state = $$ref{state_by_id}{$serial_id}) {
+                $ref->set_receive($state);
+            }
+            else {
+                $ref->set_receive($serial_id);
+            }
+        }
+    }
+
 }    
 
 sub set_interface {
@@ -356,6 +387,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.41  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.40  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

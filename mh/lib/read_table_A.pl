@@ -38,6 +38,11 @@ sub read_table_A {
         ($address, $name, $grouplist) = @item_info;
         $object = "X10_IrrigationController('$address')";
     }
+    elsif($type eq "X10T") {
+        require 'RCS_Item.pm';
+        ($address, $name, $grouplist) = @item_info;
+        $object = "RCS_Item('$address')";
+    }
     elsif($type eq "COMPOOL") {
         ($address, $name, $grouplist) = @item_info;
         ($address, $comparison, $limit) = $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
@@ -49,8 +54,9 @@ sub read_table_A {
         $object = "Generic_Item";
     }
     elsif($type eq "MP3PLAYER") {
+        require 'Mp3Player.pm';
         ($address, $name, $grouplist) = @item_info;
-        $object = "Mp3Player";
+        $object = "Mp3Player('$address')";
     }
     elsif($type eq "WEATHER") {
         ($address, $name, $grouplist) = @item_info;
@@ -83,6 +89,11 @@ sub read_table_A {
         $code .= sprintf "\$%-35s =  new Group;\n", $group unless $groups{$group};
         $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name;
         $groups{$group}++;
+
+        if(lc($group) eq 'hidden')
+        {
+            $code .= sprintf "\$%-35s -> hidden(1);\n", $name;
+        }
     }
 
     return $code;
@@ -92,8 +103,8 @@ sub read_table_A {
 
 #
 # $Log$
-# Revision 1.2  2000/08/19 01:25:08  winter
-# - 2.27 release
+# Revision 1.3  2000/10/01 23:29:40  winter
+# - 2.29 release
 #
 #
 

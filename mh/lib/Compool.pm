@@ -218,7 +218,7 @@ sub set_time
     my ($serial_port) = @_;
     my ($Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst) = localtime time;
     my $Compool_Time = pack("CC",$Minute,$Hour);
-    return send_command($serial_port, $Compool_Time . "\x00\x00\x00\x00\x00\x03");
+    return send_command($serial_port, $Compool_Time . "\x00\x00\x00\x00\x00\x00\x03");
 }
 
 sub get_time 
@@ -246,12 +246,16 @@ sub get_time_now
 sub set_temp
 {
     my ($serial_port, $targetdevice, $targettemp) = @_;
-    my $Compool_Target_Temp = pack("C",int((($targettemp - 32) / 1.8) * 4));
+    my $Compool_Target_Temp = pack("C",int(((($targettemp + .9) - 32) * 4) / 1.8));
 
     SWITCH: for($targetdevice)
     {
-    /pool/i	    && do { return send_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
-    /spa/i	    && do { return send_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
+    /pooldesiredtemp/i && do { return send_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
+    /pooldesired/i     && do { return send_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
+    /pool/i	       && do { return send_command($serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20"); };
+    /spadesiredtemp/i  && do { return send_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
+    /spadesired/i      && do { return send_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
+    /spa/i	       && do { return send_command($serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40"); };
     ::print_log "Compool set_temp unknown device\n";
     }
     return -1;
@@ -266,20 +270,20 @@ sub get_temp
 
     SWITCH: for($targetdevice)
     {
-    /pool/i 	        && do { $PacketOffset = 11; last SWITCH; };
-    /pooltemp/i 	&& do { $PacketOffset = 11; last SWITCH; };
-    /poolsolar/i        && do { $PacketOffset = 12; last SWITCH; };
-    /poolsolartemp/i    && do { $PacketOffset = 12; last SWITCH; };
-    /spa/i 	        && do { $PacketOffset = 13; last SWITCH; };
-    /spatemp/i 	        && do { $PacketOffset = 13; last SWITCH; };
-    /spasolar/i	        && do { $PacketOffset = 14; last SWITCH; };
-    /spasolartemp/i	&& do { $PacketOffset = 14; last SWITCH; };
-    /pooldesired/i      && do { $PacketOffset = 15; last SWITCH; };
     /pooldesiredtemp/i  && do { $PacketOffset = 15; last SWITCH; };
-    /spadesired/i       && do { $PacketOffset = 16; last SWITCH; };
+    /pooldesired/i      && do { $PacketOffset = 15; last SWITCH; };
+    /poolsolartemp/i    && do { $PacketOffset = 12; last SWITCH; };
+    /poolsolar/i        && do { $PacketOffset = 12; last SWITCH; };
+    /pooltemp/i 	&& do { $PacketOffset = 11; last SWITCH; };
+    /pool/i 	        && do { $PacketOffset = 11; last SWITCH; };
     /spadesiredtemp/i   && do { $PacketOffset = 16; last SWITCH; };
-    /air/i 	        && do { $PacketOffset = 17; last SWITCH; };
+    /spadesired/i       && do { $PacketOffset = 16; last SWITCH; };
+    /spasolartemp/i	&& do { $PacketOffset = 14; last SWITCH; };
+    /spasolar/i	        && do { $PacketOffset = 14; last SWITCH; };
+    /spatemp/i 	        && do { $PacketOffset = 13; last SWITCH; };
+    /spa/i 	        && do { $PacketOffset = 13; last SWITCH; };
     /airtemp/i 	        && do { $PacketOffset = 17; last SWITCH; };
+    /air/i 	        && do { $PacketOffset = 17; last SWITCH; };
     ::print_log "Compool get_temp unknown device", return 0;
     }
     
@@ -289,7 +293,7 @@ sub get_temp
     }
     else
     {
-        my $temp = int( ((unpack('C',substr($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},$PacketOffset,1)) / 4) * 1.8) + 32 ); 
+        my $temp = int( ((unpack('C',substr($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},$PacketOffset,1)) * 1.8) / 4 ) + 32 ); 
 
         return $temp if($comparison eq undef);
         return (($temp < $limit) ? 1 : 0) if($comparison eq '<');
@@ -308,20 +312,20 @@ sub get_temp_now
 
     SWITCH: for($targetdevice)
     {
-    /pool/i 	        && do { $PacketOffset = 11; last SWITCH; };
-    /pooltemp/i 	&& do { $PacketOffset = 11; last SWITCH; };
-    /poolsolar/i        && do { $PacketOffset = 12; last SWITCH; };
-    /poolsolartemp/i    && do { $PacketOffset = 12; last SWITCH; };
-    /spa/i 	        && do { $PacketOffset = 13; last SWITCH; };
-    /spatemp/i 	        && do { $PacketOffset = 13; last SWITCH; };
-    /spasolar/i	        && do { $PacketOffset = 14; last SWITCH; };
-    /spasolartemp/i	&& do { $PacketOffset = 14; last SWITCH; };
-    /pooldesired/i      && do { $PacketOffset = 15; last SWITCH; };
     /pooldesiredtemp/i  && do { $PacketOffset = 15; last SWITCH; };
-    /spadesired/i       && do { $PacketOffset = 16; last SWITCH; };
+    /pooldesired/i      && do { $PacketOffset = 15; last SWITCH; };
+    /poolsolartemp/i    && do { $PacketOffset = 12; last SWITCH; };
+    /poolsolar/i        && do { $PacketOffset = 12; last SWITCH; };
+    /pooltemp/i 	&& do { $PacketOffset = 11; last SWITCH; };
+    /pool/i 	        && do { $PacketOffset = 11; last SWITCH; };
     /spadesiredtemp/i   && do { $PacketOffset = 16; last SWITCH; };
-    /air/i 	        && do { $PacketOffset = 17; last SWITCH; };
+    /spadesired/i       && do { $PacketOffset = 16; last SWITCH; };
+    /spasolartemp/i	&& do { $PacketOffset = 14; last SWITCH; };
+    /spasolar/i	        && do { $PacketOffset = 14; last SWITCH; };
+    /spatemp/i 	        && do { $PacketOffset = 13; last SWITCH; };
+    /spa/i 	        && do { $PacketOffset = 13; last SWITCH; };
     /airtemp/i 	        && do { $PacketOffset = 17; last SWITCH; };
+    /air/i 	        && do { $PacketOffset = 17; last SWITCH; };
     ::print_log "Compool get_temp_now unknown device", return 0;
     }
 
@@ -506,12 +510,12 @@ sub get_delay
 
     SWITCH: for($targetdevice)
     {
-    /spa/i 	    && do { $targetbit = 1;   last SWITCH; };
     /spadelay/i     && do { $targetbit = 1;   last SWITCH; };
-    /pool/i 	    && do { $targetbit = 2;   last SWITCH; };
+    /spa/i 	    && do { $targetbit = 1;   last SWITCH; };
     /pooldelay/i    && do { $targetbit = 2;   last SWITCH; };
-    /cleaner/i 	    && do { $targetbit = 4;   last SWITCH; };
+    /pool/i 	    && do { $targetbit = 2;   last SWITCH; };
     /cleanerdelay/i && do { $targetbit = 4;   last SWITCH; };
+    /cleaner/i 	    && do { $targetbit = 4;   last SWITCH; };
     ::print_log "Compool get_delay unknown device", return undef;
     }
 
@@ -527,12 +531,12 @@ sub get_delay_now
 
     SWITCH: for($targetdevice)
     {
-    /spa/i 	    && do { $targetbit = 1;   last SWITCH; };
     /spadelay/i     && do { $targetbit = 1;   last SWITCH; };
-    /pool/i 	    && do { $targetbit = 2;   last SWITCH; };
+    /spa/i 	    && do { $targetbit = 1;   last SWITCH; };
     /pooldelay/i    && do { $targetbit = 2;   last SWITCH; };
-    /cleaner/i 	    && do { $targetbit = 4;   last SWITCH; };
+    /pool/i 	    && do { $targetbit = 2;   last SWITCH; };
     /cleanerdelay/i && do { $targetbit = 4;   last SWITCH; };
+    /cleaner/i 	    && do { $targetbit = 4;   last SWITCH; };
     ::print_log "Compool get_delay_now unknown device", return undef;
     }
 
@@ -568,10 +572,10 @@ sub get_heatsource
     my $targetshift = 0;
     SWITCH: for($targetdevice)
     {
-        /spa/i 	          && do { $targetbyte &= 0xC0; $targetshift = 6;  last SWITCH; };
         /spaheatsource/i  && do { $targetbyte &= 0xC0; $targetshift = 6;  last SWITCH; };
-        /pool/i           && do { $targetbyte &= 0x30; $targetshift = 4;  last SWITCH; };
+        /spa/i 	          && do { $targetbyte &= 0xC0; $targetshift = 6;  last SWITCH; };
         /poolheatsource/i && do { $targetbyte &= 0x30; $targetshift = 4;  last SWITCH; };
+        /pool/i           && do { $targetbyte &= 0x30; $targetshift = 4;  last SWITCH; };
         ::print_log "Compool get_heatsource unknown device\n", return undef;
     }
 
@@ -594,10 +598,10 @@ sub get_heatsource_now
 
     SWITCH: for($targetdevice)
     {
-        /spa/i 	          && do { $targetbit = 0xC0;   last SWITCH; };
         /spaheatsource/i  && do { $targetbit = 0xC0;   last SWITCH; };
-        /pool/i 	  && do { $targetbit = 0x30;   last SWITCH; };
+        /spa/i 	          && do { $targetbit = 0xC0;   last SWITCH; };
         /poolheatsource/i && do { $targetbit = 0x30;   last SWITCH; };
+        /pool/i 	  && do { $targetbit = 0x30;   last SWITCH; };
         ::print_log "Compool get_heatsource_now unknown device", return undef;
     }
 
@@ -768,6 +772,7 @@ sub state
         /spare2/i          && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
         /spare3/i          && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
         /spare4/i          && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
+        /service/i         && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
 
     }
     print "Compool Item: state unknown device $self->{device}\n";
@@ -782,9 +787,9 @@ sub state_now
     {
         /pooltemp/i        && do { return &Compool::get_temp_now($self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit}); };
         /poolsolartemp/i   && do { return &Compool::get_temp_now($self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit}); };
+        /pooldesiredtemp/i && do { return &Compool::get_temp_now($self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit}); };
         /spatemp/i         && do { return &Compool::get_temp_now($self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit}); };
         /spasolartemp/i    && do { return &Compool::get_temp_now($self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit}); };
-        /pooldesiredtemp/i && do { return &Compool::get_temp_now($self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit}); };
         /spadesiredtemp/i  && do { return &Compool::get_temp_now($self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit}); };
         /airtemp/i         && do { return &Compool::get_temp_now($self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit}); };
 
@@ -811,6 +816,7 @@ sub state_now
         /spare2/i          && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
         /spare3/i          && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
         /spare4/i          && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
+        /service/i         && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
     }
     print "Compool Item: state_now device item $self->{device}\n";
     return undef;

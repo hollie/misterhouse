@@ -173,31 +173,27 @@ sub format_data {
 #    xyz      for Function codes, including +-## for bright/dim
 
                                 # Test for extended code
-                                #  - format is D&P## where D is device code and ## is the preset dim level
-    if (my($dcode, $extended_data) = $code =~ /(\S)&P(\d+)/) {
-        unless ($code_bits = $table_dcodes{$dcode}) {
-            print "CM11 error, invalid device in extended code.  device=$dcode code=$code\n";
-            return;
-        }
+                                #  - format is &P## where ## is the preset dim level
+    if (my($extended_data) = $code =~ /&P(\d+)/) {
         unless (($extended_data >= 0) && ($extended_data < 65)) {
             print "CM11 error, invalid extended code. code=$code\n";
             return;
         }
         $code_bits = '0111';    # Extended code
-#       print "db cb=$code_bits\n";
         $function = '1';        # Extended transmitions are a function
         $extended = '1';
         $dim_level = 0;         # Dim level is not applicable to extended transmitions.
 
                                 # Hard codeded preset for now ... 
 
-        my $extended_junk = '00000101'; # This is not documented, so I have no idea why it is needed! 
-                                        # Emperically derived by looking at ActiveHome errata.
-
+                                # This is not documented!!  By looking at
+                                # ActiveHome errata, it seems the device code is required 
+                                #  - $Last_Dcode is a hack ... assume previous selected device.
+        my $extended_device = '0000' . $table_dcodes{$Last_Dcode};
         my $extended_code = '00110001'; # Type=3 => Control Modules  Func=1 => Preset Receiver
 
                                 # Convert from bit to string
-        my $b3 = pack('B8', $extended_junk);
+        my $b3 = pack('B8', $extended_device);
         my $b4 = pack('C1', $extended_data);
         my $b5 = pack('B8', $extended_code);
         $extended_string = $b3 . $b4 . $b5;
@@ -205,11 +201,11 @@ sub format_data {
         my $b4c = unpack('C', $b4);
         my $b5c = unpack('C', $b5);
         $extended_checksum = $b3c + $b4c + $b5c;
-	if ($DEBUG) {
+        if ($DEBUG) {
             printf "CM11 ed=%d, b345=0x%0.2x,0x%0.2x,0x%0.2x ex=%s cs=0x%0.2x\n",
-	    $extended_data, $b3c, $b4c, $b5c, $extended_string,
-	    $extended_checksum;
-	}
+            $extended_data, $b3c, $b4c, $b5c, $extended_string,
+            $extended_checksum;
+        }
     }
                                 # Test for device code
     elsif ($code_bits = $table_dcodes{$code}) {
@@ -308,7 +304,7 @@ sub send {
     my $pc_ok    = pack('C', 0x00);
     print "Bad cm11 acknowledge send transmition\n" unless 1 == $serial_port->write($pc_ok);
 
-    $data_rcv = &read($serial_port);
+    return unless $data_rcv = &read($serial_port);
     $data_d = unpack('C', $data_rcv);
 
     if ($data_d == 0x55) {
@@ -331,9 +327,9 @@ sub send {
 sub read {
     my ($serial_port, $no_block, $no_power_fail_check) = @_;
     my $data;
-                                # Note ... for dim commands > 20, this will time out after 20*40=1 seconds 
+                                # Note ... for dim commands > 30, this will time out after 30*50=1.5 seconds 
                                 # No harm done, but we would rather not wait :)
-    my $tries = ($no_block) ? 1 : 20;
+    my $tries = ($no_block) ? 1 : 30;
 
     if (exists $main::config_parms{debug}) {
         $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
@@ -518,7 +514,8 @@ to a specific brightness level using a Preset Dim extended code.
 The 64 extended X10 Preset Dim codes are commanded by appending C<&##> to
 the unit address where C<##> is a number between 1 and 63.
 
-  ControlX10::CM11::send($serial_port,'A5&P16'); # Dim A5 to 25%
+  ControlX10::CM11::send($serial_port,'A5');   # Address A5
+  ControlX10::CM11::send($serial_port,'A&P16'); # Dim to 25%
 
 A partial translation list for the most important levels:
 
@@ -678,6 +675,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.13  2000/10/01 23:29:41  winter
+# - 2.29 release
+#
 # Revision 2.12  2000/08/19 01:25:09  winter
 # - 2.27 release
 #

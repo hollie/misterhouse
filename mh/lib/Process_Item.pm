@@ -34,7 +34,7 @@ sub start {
     my ($self) = @_;
     $$self{cmd_index} = 0;
     &start_next($self);
-    print "\ndb start total=@{$$self{cmds}}\n";
+#   print "\ndb start total=@{$$self{cmds}}\n";
 }
 
 sub start_next {
@@ -195,6 +195,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.12  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.11  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

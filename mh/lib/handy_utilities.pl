@@ -86,11 +86,11 @@ sub main::file_tail {
 }
 
 sub main::file_read {
-    my ($file) = @_;
+    my ($file, $scalar) = @_;
     open(LOG, "$file") or print "Warning, could not open file_read file $file: $!\n";
     binmode LOG;
     
-    if (wantarray) {
+    if (wantarray and !$scalar) {
         my @data = <LOG>;
         close LOG;
         return @data;
@@ -109,7 +109,7 @@ sub main::file_read {
 sub main::file_write {          # Same as fileit
     my ($file, $data) = @_;
     open(LOG, ">$file") or print "Warning, could not open file_write $file: $!\n";
-    binmode LOG;
+    binmode LOG;                # Without this, \n newlines get messed up
     print LOG $data;
 #   print LOG $data . "\n";
     close LOG;
@@ -206,11 +206,38 @@ sub main::logit {
     close LOG;
 }
 
+
+                                # Old names
+sub main::read_dbm {
+    &main::dbm_read(@_);
+}
+sub main::search_dbm {
+    &main::dbm_search(@_);
+}
+
+
+sub main::dbm_write {
+    my ($log_file, $log_key, $log_data) = @_;
+    my ($log_count, %DBM);
+    my ($log_count, %DBM);
+    if ($log_key) {
+                                # Assume we have already done use DB_File in calling program
+                                #  - we want to make sure we can still call this when perl is not installed
+        use Fcntl;
+        tie (%DBM, 'DB_File',    $log_file, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $log_file: $!";
+        ($log_count) = $DBM{$log_key} =~ /^(\S+)/;
+        $DBM{$log_key} = $log_data;
+#       print "Db dbm key=$log_key count=$log_count data=$log_data\n";
+        dbmclose %DBM;
+    }
+}
+
+                                # Like dbm_write, but also keeps a tally of accesses
 sub main::logit_dbm {
     my ($log_file, $log_key, $log_data) = @_;
     my ($log_count, %DBM);
+    my ($log_count, %DBM);
     if ($log_key) {
-
                                 # Assume we have already done use DB_File in calling program
                                 #  - we want to make sure we can still call this when perl is not installed
         use Fcntl;
@@ -223,7 +250,7 @@ sub main::logit_dbm {
     }
 }
 
-sub main::read_dbm {
+sub main::dbm_read {
     my ($dbm_file, $key) = @_;
     use Fcntl;
     my %DBM_search;
@@ -239,7 +266,7 @@ sub main::read_dbm {
     }
 }
 
-sub main::search_dbm {
+sub main::dbm_search {
     my ($dbm_file, $string) = @_;
     my @results;
     my ($key, $value);
@@ -332,12 +359,17 @@ sub main::plural_check {
 
 
 sub main::read_mh_opts {
-    my($ref_parms, $Pgm_Path, $debug) = @_;
+    my($ref_parms, $Pgm_Path, $debug, $parm_file) = @_;
     my $private_parms = $Pgm_Path . "/mh.private.ini";
     $private_parms = $ENV{mh_parms} if $ENV{mh_parms};
     $debug = 0 unless $debug;
-    &main::read_opts($ref_parms, $Pgm_Path . "/mh.ini", $debug, $Pgm_Path . '/..');
-    &main::read_opts($ref_parms, $private_parms, $debug, $Pgm_Path . '/..') if -e $private_parms;
+    if ($parm_file) {
+        &main::read_opts($ref_parms, $parm_file, $debug, $Pgm_Path . '/..');
+    }
+    else {
+        &main::read_opts($ref_parms, $Pgm_Path . "/mh.ini", $debug, $Pgm_Path . '/..');
+        &main::read_opts($ref_parms, $private_parms, $debug, $Pgm_Path . '/..') if -e $private_parms;
+    }
 }
 
 sub main::read_opts {
@@ -909,6 +941,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.40  2000/10/01 23:29:40  winter
+# - 2.29 release
+#
 # Revision 1.39  2000/09/09 21:19:11  winter
 # - 2.28 release
 #
