@@ -23,7 +23,7 @@ if (my $header = said $mhsend_server) {
     $action = lc $action;
     my ($name, $name_short);
 #   my ($name, $name_short) = net_domain_name('server_data');
-    print_log "Received server_data data: name=$name: action=$action arg=$action_arg";
+    print_log "Received server_data data: name=$name: action=$action arg=$action_arg" unless $config_parms{no_log} =~ /mhsend_server/;
 
                                 # Read header and optional password (until blank record)
     my $handle = handle $mhsend_server;
@@ -89,8 +89,8 @@ if (my $header = said $mhsend_server) {
         $response = "Data was logged $action_arg.log";
     }
 
-    print_log $response;
-    print "mhsend_server: $response\n";
+    print_log $response unless $config_parms{no_log} =~ /mhsend_server/;
+    print "mhsend_server: $response\n" unless $config_parms{no_log} =~ /mhsend_server/;
     print $handle $response;
 
 }
