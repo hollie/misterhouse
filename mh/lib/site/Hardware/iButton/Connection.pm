@@ -295,6 +295,16 @@ sub openPort {
 	$s->handshake( "none" );
 	$s->stopbits( 1 );
 	
+				# From Jukka Br on 6/2004. 
+	if ( $this->{ TWEAK } == 2 ) {
+	    $s->read_interval(100);     # max time between read char (milliseconds)
+	    $s->read_char_time(50);     # avg time between read char
+	    $s->read_const_time(1000);  # total = (avg * bytes) + const 
+	    $s->write_char_time(5);
+	    $s->write_const_time(1000);
+	}
+	
+
 	#    $s->{C_IFLAG} &= ~(BRKINT|ICRNL|IGNCR|INLCR|INPCK|ISTRIP|IXON|IXOFF|PARMRK);
 	#    $s->{C_IFLAG} |= IGNBRK|IGNPAR;
 	#    $s->{C_OFLAG} &= ~(OPOST);

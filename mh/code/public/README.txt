@@ -199,6 +199,10 @@ monitor_occupancy_jason.pl
  - An example of Jason Sharpe's algorithm for monitoring multiple motion
    sensors to determine activity away and sleep status.
 
+mr26_vdr.pl
+ - Norm Dressler's script to send remote control commands to VDR 
+  ( http://www.cadsoft.de/vdr/ ) from an X10 RF remote, via a MR26 interface.
+
 omnistat.pl
  - Kent Noonan's preliminary code for controling HAI Omnistat Communicating 
    thermostats (e.g. RC80).  Kent switched houses before he had a chance
@@ -343,13 +347,19 @@ tv_info_ge.pl
    via http://www.tvspielfilm.de
 
 tivo_direct.*
- - Andrew Drummond's code for controling a Direct Tivo dvr.
+ - Andrew Drummond's code for controling a Tivo dvr.
+
+Tivo_Control.*
+ - Krik Bauer's code for controling a Tivo dvr.
 
 video_inline.pl
  - Kent Noonan's code for controling the inline video scan doubler
 
 vocp_func.pl
  - Dave Lounsberry's code for monitoring linux vocp logs for callerid and voice mail.
+
+vocp_sean.pl
+ - Sean Walker's code for integrating with linux vocp voicemail.
 
 voicemodem.pl
  - Brian Klier's code for interfacing to a voice modem.  

@@ -46,6 +46,17 @@ sub property_changed {
 }
 
 sub set {
+    my ($self, $state, $set_by, $respond) = &set_process(@_);
+    &set_states_for_next_pass($self, $state, $set_by, $respond) if $self;
+}
+
+sub set_now {
+    my ($self, $state, $set_by, $respond) = &set_process(@_);
+    &set_states_for_this_pass($self, $state, $set_by, $respond) if $self;
+    push @reset_states, $self;
+}
+
+sub set_process {
     my ($self, $state, $set_by, $respond) = @_;
 
     # Check for tied or repeated states.
@@ -109,7 +120,7 @@ sub set {
         }
     }
 
-    &set_states_for_next_pass($self, $state, $set_by, $respond);
+    return ($self, $state, $set_by, $respond) = @_;
 
 }
 
@@ -430,41 +441,59 @@ sub get_states {
     return @{$$self{states}};
 }
 
+sub set_states_for_this_pass {
+    my ($self, $state, $set_by, $target) = @_;
+
+				# Log states, process set_by and target
+    ($set_by, $target) = &set_state_log($self, $state, $set_by, $target);
+				# Set state
+    &reset_states2($self, $state, $set_by, $target);
+}
+
+
 sub set_states_for_next_pass {
-    my ($ref, $state, $set_by, $target) = @_;
-    push @states_from_previous_pass, $ref unless $ref->{state_next_pass} and @{$ref->{state_next_pass}};
-    push @{$ref->{state_next_pass}}, $state;
+    my ($self, $state, $set_by, $target) = @_;
+
+				# Log states, process set_by and target
+    ($set_by, $target) = &set_state_log($self, $state, $set_by, $target);
+
+				# Track which objects we need to process next pass
+    push @states_from_previous_pass, $self unless $self->{state_next_pass} and @{$self->{state_next_pass}};
+
+                                # Store this for use on next pass
+    push @{$self->{state_next_pass}},  $state;
+    push @{$self->{setby_next_pass}},  $set_by;
+    push @{$self->{target_next_pass}}, $target;
+}
+
+
+sub set_state_log {
+    my ($self, $state, $set_by, $target) = @_;
 
                                 # Used in get_idle_time
-    $ref->{set_time} = $main::Time;
+    $self->{set_time} = $main::Time;
 
                                 # If set by another object, find/use object name
     my $set_by_type = ref($set_by);
-#   print "dbx1 sb=$set_by r=$set_by_type\n";
     $set_by = $set_by->{object_name} if $set_by_type and $set_by_type ne 'SCALAR';
 
                                 # Else set to Usercode [calling code file]
     $set_by = &main::get_calling_sub() unless $set_by;
     $set_by = $main::Set_By if !$set_by and $main::Set_By;
 
-                                # Store this for use on net pass
-#   $ref->{set_by} = $set_by;
-    push @{$ref->{setby_next_pass}}, $set_by;
-
     $target = $set_by unless defined $target;
-#   $ref->{target} = $target;
-    push @{$ref->{target_next_pass}}, $target;
 
                                 # Set the state_log ... log non-blank states
                                 # Avoid -w unintialized variable errors
     $state  = '' unless defined $state;
     $set_by = '' unless defined $set_by;
     $target = '' unless defined $target;
-    unshift(@{$$ref{state_log}}, "$main::Time_Date $state set_by=$set_by target=$target")
-      if $state or (ref $ref) eq 'Voice_Cmd';
-    pop @{$$ref{state_log}} if $$ref{state_log} and @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state set_by=$set_by target=$target")
+      if $state or (ref $self) eq 'Voice_Cmd';
+    pop @{$$self{state_log}} if $$self{state_log} and @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
 }
+
 
                                 # You can use this for an undo function
 sub recently_changed {
@@ -485,33 +514,40 @@ sub reset_states {
     my @items_with_more_states;
     while ($ref = shift @states_from_previous_pass) {
         my $state  = shift @{$ref->{state_next_pass}};
-        my $set_by = shift @{$ref->{setby_next_pass}};
-        my $target = shift @{$ref->{target_next_pass}};
-        $ref->{state_prev}    = $ref->{state};
-        $ref->{change_pass}   = $main::Loop_Count;
-        $ref->{state}         = $state;
-        $ref->{said}          = $state;
-        $ref->{state_now}     = $state;
-        $ref->{set_by}        = $set_by;
-        $ref->{target}        = $target;
         push @reset_states, $ref;
         push @items_with_more_states, $ref if @{$ref->{state_next_pass}};
-        if (( defined $state and !defined $ref->{state_prev}) or 
-            (!defined $state and  defined $ref->{state_prev}) or 
-            ( defined $state and  defined $ref->{state_prev} and $state ne $ref->{state_prev})) {
-            $ref->{state_changed} = $state;
-        }
-                                # This allows for an 'undo' function
-        unless ($ref->isa('Voice_Cmd')) {
-            unshift @recently_changed, $ref;
-            pop     @recently_changed if @recently_changed > 20;
-        }
+
+        my $set_by = shift @{$ref->{setby_next_pass}};
+        my $target = shift @{$ref->{target_next_pass}};
+
+	&reset_states2($ref, $state, $set_by, $target);
     }
     @states_from_previous_pass = @items_with_more_states;
+}
+
+sub reset_states2 {
+    my ($ref, $state, $set_by, $target) = @_;
+    $ref->{state_prev}    = $ref->{state};
+    $ref->{change_pass}   = $main::Loop_Count;
+    $ref->{state}         = $state;
+    $ref->{said}          = $state;
+    $ref->{state_now}     = $state;
+    $ref->{set_by}        = $set_by;
+    $ref->{target}        = $target;
+    if (( defined $state and !defined $ref->{state_prev}) or 
+	(!defined $state and  defined $ref->{state_prev}) or 
+	( defined $state and  defined $ref->{state_prev} and $state ne $ref->{state_prev})) {
+	$ref->{state_changed} = $state;
+    }
+				# This allows for an 'undo' function
+    unless ($ref->isa('Voice_Cmd')) {
+	unshift @recently_changed, $ref;
+	pop     @recently_changed if @recently_changed > 20;
+    }
 
                                 # Set/fire tied objects/events
                                 #  - do it in main, so eval works ok
-    &main::check_for_tied_events(@reset_states);
+    &main::check_for_tied_events($ref);
 }
 
 sub tie_items {
@@ -630,6 +666,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.37  2004/07/05 23:36:37  winter
+# *** empty log message ***
+#
 # Revision 1.36  2004/06/06 21:38:44  winter
 # *** empty log message ***
 #

@@ -65,7 +65,8 @@ sub check_for_data {
                                 #    then we better also check loop count.
                                 #  - Process data only on the 2nd occurance, to avoid noise
     my $time = &main::get_tickcount;
-    my $repeat_data = ($data eq $prev_data) && ($time < $prev_time + 1500 or $main::Loop_Count < $prev_loop + 7);
+    my $repeat_time = $main::config_parms{MR26_multireceive_delay} or 1500;
+    my $repeat_data = ($data eq $prev_data) && ($time < $prev_time + $repeat_time or $main::Loop_Count < $prev_loop + 7);
     return if $repeat_data and $prev_done;
     $prev_data = $data;
     $prev_time = $time;
@@ -111,6 +112,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.12  2004/07/05 23:36:37  winter
+# *** empty log message ***
+#
 # Revision 1.11  2003/12/22 00:25:06  winter
 #  - 2.86 release
 #

@@ -29,10 +29,13 @@ package xAP;
 #se IO::Socket::INET;           # Gives us the INADDR constants, but not in perl 5.0 :(
 
 my ($started, $xap_listen, $xap_send, $hub_flag, %hub_ports);
+use vars '$xap_data';
 
                                 # Create sockets and add hook to check incoming data
 sub startup {
     return if $started++;       # Allows us to call with $Reload or with xap_module mh.ini parm
+    return if $::config_parms{xap_disable}; # In case you don't want xap for some reason
+
     my ($port);
 
     $port = $::config_parms{xap_port};
@@ -54,7 +57,7 @@ sub startup {
     $xap_listen = new Socket_Item(undef, undef, 'xap_listen');
     $xap_send   = new Socket_Item(undef, undef, 'xap_send');
 
-	&::MainLoop_pre_add_hook(\&xAP::check_for_data, 1 );
+    &::MainLoop_pre_add_hook(\&xAP::check_for_data, 1 );
 
     &xAP::send_heartbeat('xAP');
     &xAP::send_heartbeat('xPL');
@@ -100,24 +103,25 @@ sub open_port {
 
 
 sub check_for_data {
+    undef $xap_data;
     if (my $data = said $xap_listen) {
-        my $d = &parse_data($data);
+        $xap_data = &parse_data($data);
 
         my ($protocol, $source, $class);
-        if ($$d{'xap-header'} or $$d{'xap-hbeat'}) {
+        if ($$xap_data{'xap-header'} or $$xap_data{'xap-hbeat'}) {
             $protocol = 'xAP';
-            $source   = $$d{'xap-header'}{source};
-            $class    = $$d{'xap-header'}{class};
-            $source   = $$d{'xap-hbeat'}{source} unless $source;
-            $class    = $$d{'xap-hbeat'}{class}  unless $class;
+            $source   = $$xap_data{'xap-header'}{source};
+            $class    = $$xap_data{'xap-header'}{class};
+            $source   = $$xap_data{'xap-hbeat'}{source} unless $source;
+            $class    = $$xap_data{'xap-hbeat'}{class}  unless $class;
         }
         else {
             $protocol = 'xPL';
-            $source   = $$d{'xpl-stat'}{source};
-            $source   = $$d{'xpl-cmnd'}{source} unless $source;
-            $source   = $$d{'xpl-trig'}{source} unless $source;
+            $source   = $$xap_data{'xpl-stat'}{source};
+            $source   = $$xap_data{'xpl-cmnd'}{source} unless $source;
+            $source   = $$xap_data{'xpl-trig'}{source} unless $source;
         }
-        print "db1 xap check: p=$protocol s=$source c=$class\n" if $main::Debug{xap} and $main::Debug{xap} == 1;
+        print "db1 xap check: p=$protocol s=$source c=$class d=$data\n" if $main::Debug{xap} and $main::Debug{xap} == 1;
 
         return unless $source;
 
@@ -130,13 +134,13 @@ sub check_for_data {
                 print $sock $data;
             }
                                   # Log hearbeats of other apps
-            if ($protocol eq 'xAP' and $$d{'xap-hbeat'}) {
-                $port   = $$d{'xap-hbeat'}{port};
-                $source = $$d{'xap-hbeat'}{source};
+            if ($protocol eq 'xAP' and $$xap_data{'xap-hbeat'}) {
+                $port   = $$xap_data{'xap-hbeat'}{port};
+                $source = $$xap_data{'xap-hbeat'}{source};
             }
-            elsif ($protocol eq 'xPL' and $$d{'hbeat.app'}) {
-                $port    = $$d{'hbeat.app'}{port};
-                $source  = $$d{'hbeat.app'}{source};
+            elsif ($protocol eq 'xPL' and $$xap_data{'hbeat.app'}) {
+                $port    = $$xap_data{'hbeat.app'}{port};
+                $source  = $$xap_data{'hbeat.app'}{source};
             }
 
                                 # Open/re-open the port on every hbeat if it posts a listening port.
@@ -154,7 +158,7 @@ sub check_for_data {
                                   # Set states in matching xAP objects
         for my $name (&::list_objects_by_type('xAP_Item'), &::list_objects_by_type('xPL_Item')) {
             my $o = &main::get_object_by_name($name);
-	    $o = $name unless $o; # In case we stored object directly (e.g. lib/Telephony_xAP.pm)
+            $o = $name unless $o; # In case we stored object directly (e.g. lib/Telephony_xAP.pm)
             next unless $protocol eq $$o{protocol};
             if ($protocol eq 'xAP') {
                 print "db3 xap test  o=$name s=$source os=$$o{source} c=$class oc=$$o{class}\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
@@ -170,12 +174,15 @@ sub check_for_data {
                                   # Find and set the state variable
             my $state_value;
             $$o{changed} = '';
-            for my $section (keys %{$d}) {
+            for my $section (keys %{$xap_data}) {
                 $$o{sections}{$section} = 'received' unless $$o{sections}{$section};
-                for my $key (keys %{$$d{$section}}) {
-                    my $value = $$d{$section}{$key};
+                for my $key (keys %{$$xap_data{$section}}) {
+                    my $value = $$xap_data{$section}{$key};
                     $$o{$section}{$key} = $value;
-                    $$o{changed} .= "$section : $key = $value | " unless $section eq 'xap-header';
+                                  # Monitor what changed (real data, not hbeat).  
+                    $$o{changed} .= "$section : $key = $value | " 
+                        unless $section eq 'xap-header' or $section eq 'xap-hbeat' or $section eq 'xpl-stat';
+
                     print "db3 xap state check m=$$o{state_monitor} key=$section : $key  value=$value\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
                     if ("$section : $key" eq $$o{state_monitor} and defined $value) {
                         print "db3 xap setting state to $value\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
@@ -184,7 +191,11 @@ sub check_for_data {
                 }
             }
             $state_value = $$o{changed} unless defined $state_value;
-            $o -> SUPER::set($state_value, 'xap');
+	    print "db3 xap set: n=$name to state=$state_value\n\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
+#	    $$o{state} = $$o{state_now} = $$o{said} == $state_value if defined $state_value;
+# Can not use Generic_Item set method, as state_next_path only carries state, not all other $section data, to the next pass
+#           $o -> SUPER::set($state_value, 'xap') if defined $state_value;
+            $o -> SUPER::set_now($state_value, 'xap') if defined $state_value;
         }
     }
 
@@ -200,7 +211,7 @@ sub parse_data {
     for my $r (split /[\r\n]/, $data) {
         next if $r =~ /^[\{\} ]*$/;
                                   # Store xap-header, xap-heartbeat, and other data 
-        if (my ($key, $value) = $r =~ /(.+?)=(.+)/) {
+        if (my ($key, $value) = $r =~ /(.+?)=(.*)/) {
             $key   = lc $key;
             $value = lc $value if $data_type =~ /^xap/; # Do not lc real data;
             $d{$data_type}{$key} = $value;
@@ -212,6 +223,10 @@ sub parse_data {
         }
     }
     return \%d;
+}
+
+sub received_data {
+    return $xap_data;
 }
 
 sub send {

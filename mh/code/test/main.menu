@@ -283,6 +283,10 @@
       A: Read the next deep thought
     D: Trivia [question,answer]
       A: Display the [next science trivia question,trivia answer]
+    D: Bingo [Start,Pause,Resume,Status]
+      A: $state bingo
+    D: Bingo time [2,5,10,15,20]
+      A: Set bingo time to $state
     D: Top 10 list
       A: Display the top 10 list 
     D: Slashdot

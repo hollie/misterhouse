@@ -114,7 +114,7 @@ $SFLAP_TLV_TAG = 1;
 $SFLAP_HEADER_LEN = 6;
 
 # Net::AOLIM version
-$VERSION = "1.4";
+$VERSION = "1.6";
 
 # number of arguments that server messages have:
 %SERVER_MSG_ARGS = ( 'SIGN_ON' => 1,
@@ -158,6 +158,12 @@ argument is stored in $IM_ERR_ARGS.
 
 All methods will return undef on error, and will set $main::IM_ERR and
 $main::IM_ERR_ARGS as appropriate.
+
+It seems that TOC servers won't acknowledge a login unless at least
+one buddy is added before toc_init_done is sent.  Thus, as of version
+1.6, Net::AOLIM will add the current user to group "Me" if you don't
+create your buddy list before calling signon().  Don't bother removing
+this if you have added your buddies; it'll automagically disappear.
 
 =cut
 
@@ -344,6 +350,8 @@ sub signon
 					    Type => SOCK_STREAM)
 	    or die "Couldn't connect to server: $!";
 
+        $$im_socket->autoflush(1);
+
 # add this filehandle to the select loop that we will later use
 	$imsg->{'sel'}->add($$im_socket);
 
@@ -353,13 +361,14 @@ sub signon
 	my $so_toc_ascii;
 	my $so_toc_srv_so;
 	my $so_toc_srv_config;
+        my $so_toc_srv_config_msg;
+        my $so_toc_srv_config_rest;
 	my $so_init_done;
 	
 # send a FLAPON to initiate the connection; this is the only time
 # that stuff should be printed directly to the server without
 # using send_sflap_packet
-	send $$im_socket,"FLAPON\r\n\r\n",0;
-
+	syswrite $$im_socket,"FLAPON\r\n\r\n";
 
 	return undef unless (defined ($so_srv_sflap_signon = $imsg->read_sflap_packet()));
 
@@ -406,13 +415,7 @@ sub signon
 # we can't possibly be paused at this point; make sure $imsg->{'pause'} = 0
     $imsg->{'pause'} = 0;
 
-# now we do the buddy stuff and update our
-# server config
-    return undef unless (defined ($so_toc_srv_config = $imsg->read_sflap_packet()));
-    
-    $imsg->set_srv_buddies($so_toc_srv_config);
-
-    
+# have to call toc_set_config before we finish init
     return undef unless (defined $imsg->toc_set_config());
 
 # now we finish the signon with an init_done
@@ -459,7 +462,7 @@ sub read_sflap_packet
 
 # unless we get a valid read, we return an unknown error
 
-    unless (defined(recv $$im_socket, $rsp_header, $SFLAP_HEADER_LEN, 0) && (length($rsp_header) == $SFLAP_HEADER_LEN))
+    unless (defined(sysread $$im_socket, $rsp_header, $SFLAP_HEADER_LEN, 0) && (length($rsp_header) == $SFLAP_HEADER_LEN))
     {
 	$main::IM_ERR = $SFLAP_ERR_READ;
 	return undef;
@@ -472,7 +475,7 @@ sub read_sflap_packet
 # now we pull down more bytes equal to the length field in
 # the previous read
 
-    unless (defined(recv $$im_socket, $rsp_recv_packet, $rsp_dlen, 0) && (length($rsp_recv_packet) == $rsp_dlen))
+    unless (defined(sysread $$im_socket, $rsp_recv_packet, $rsp_dlen, 0) && (length($rsp_recv_packet) == $rsp_dlen))
     {
 	$main::IM_ERR = $SFLAP_ERR_READ;
 	return undef;
@@ -600,8 +603,9 @@ sub send_sflap_packet
     }
 
 # if we are successful we return 0
-    if (send $$im_socket,$ssp_packet,0)
+    if (syswrite $$im_socket,$ssp_packet)
     {
+        $$im_socket->flush();
 	$imsg->{'client_seq_number'}++;
 	return $SFLAP_SUCCESS;
     }
@@ -1085,7 +1089,6 @@ sub set_srv_buddies
     my $imsg = shift @_;
     my $srv_buddy_list = $_[0];
     
-    
     return unless ($imsg->{'allow_srv_settings'});
 
     $srv_buddy_list =~ s/^CONFIG://;
@@ -1506,6 +1509,12 @@ sub toc_set_config
 # after each call to add_im_buddies 
 # or remove_im_buddies
 #
+# In V1.6, this function was modified so that
+# if there are no currently defined buddies,
+# the current user is set as a buddy in group
+# "Me".  This is necessary because an empty
+# buddy list will cause signon to fail.
+#
 # returns undef on error
 #
     my $imsg = shift @_;
@@ -1514,23 +1523,31 @@ sub toc_set_config
     my $tsc_packet;
     my $tsc_permit_mode = $imsg->{'permit_mode'};
 
-    foreach $group (keys %{$imsg->{'buddies'}})
+    if (scalar(keys %{$imsg->{'buddies'}}))
     {
-	my $aob_message = $imsg->toc_format_msg('toc_add_buddy', $group, @ { $ { $imsg->{'buddies'} } {$group} });
-									     
-	return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $aob_message, 0, 0)));
+        foreach $group (keys %{$imsg->{'buddies'}})
+        {
+            my $aob_message = $imsg->toc_format_msg('toc_add_buddy', $group, @ { $ { $imsg->{'buddies'} } {$group} });
 
-	if ($imsg->{'allow_srv_settings'})
-	{
-	    $tsc_config_info .= "g $group\n";
-	    
-	    foreach $buddy (@ { $ { $imsg->{'buddies'} } {$group} })
-	    {
-		$tsc_config_info .= "b $buddy\n";
-	    }
-	}
+            return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $aob_message, 0, 0)));
+            
+            if ($imsg->{'allow_srv_settings'})
+            {
+                $tsc_config_info .= "g $group\n";
+                
+                foreach $buddy (@ { $ { $imsg->{'buddies'} } {$group} })
+                {
+                    $tsc_config_info .= "b $buddy\n";
+                }
+            }
+        }
     }
-
+    else
+    {
+        my $aob_message = $imsg->toc_format_msg('toc_add_buddy', 'Me', $imsg->{'username'});
+        return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $aob_message, 0, 0)));
+    }
+        
     if (scalar @ { $imsg->{'permit'} })
     {
 	my $aip_message = $imsg->toc_format_msg('toc_add_permit', @ { $imsg->{'permit'} });
@@ -1561,14 +1578,15 @@ sub toc_set_config
 	    }
 	}
     }
-    
+
     if ($imsg->{'allow_srv_settings'})
     {
 	$tsc_config_info .= "m $tsc_permit_mode\n";
+        $tsc_config_info = "{" . $tsc_config_info . "}";
+
+	$tsc_packet = 'toc_set_config ' . $tsc_config_info . "\0";
 	
-	$tsc_packet = $imsg->toc_format_msg('toc_set_config', $tsc_config_info);
-	
-	return undef unless (defined $imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tsc_packet, 0, 0));
+	return undef unless (defined $imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tsc_packet, 1, 1));
     }
 }
 
@@ -2125,8 +2143,9 @@ called with C<ui_dataget()>.  If information is found to be on that
 filehandle, the callback will be executed.  It is the responsibility
 of the callback to read the data off the socket.
 
-B<Please be sure to set autoflushing on all filehandles passed to this
-method!>
+B<As always, the use of buffered IO on filehandles being select()ed
+is unreliable at best.  Avoid the use of read(), E<lt>FHE<gt>, and print();
+instead, use sysread() and syswrite()>
 
 =cut
 
@@ -2364,21 +2383,27 @@ sub ui_dataget
     {
 	if ($rfh == $$im_socket)
 	{
-	   return undef unless defined($recv_buffer = $imsg->read_sflap_packet());
+            return undef unless defined($recv_buffer = $imsg->read_sflap_packet());
 	    ($tp_type, $tp_tmp) = split(/:/, $recv_buffer, 2);
-
+            
 # pause if we've been told to by the server
-	    if ($tp_type eq 'PAUSE')
-	    {
-		$imsg->{'pause'} = 1;
-	    }
+            if ($tp_type eq 'PAUSE')
+            {
+                $imsg->{'pause'} = 1;
+            }
 # re-run signon if we're getting a new SIGN_ON packet
 	    elsif ($tp_type eq 'SIGN_ON')
 	    {
 		$imsg->signon;
 	    }
-
-	    &{$imsg->{'callback'}}($tp_type, split(/:/,$tp_tmp,$SERVER_MSG_ARGS{$tp_type}));
+# handle CONFIG packets from the server, respecting
+# the allow_srv_settings flag from the user
+            elsif ($tp_type eq 'CONFIG')
+            {
+                $imsg->set_srv_buddies($tp_tmp);
+            }
+            
+            &{$imsg->{'callback'}}($tp_type, split(/:/,$tp_tmp,$SERVER_MSG_ARGS{$tp_type}));
 	}
 	else
 	{
@@ -2550,5 +2575,20 @@ B<1.4>
     other end of the connection dies we don't go into an infinite
     loop.  Thanks to Chris Nelson for pointing this out.
 
-=cut
+B<1.5>
 
+    Added a very simple t/use.t test script that just makes sure
+    the module loads properly.
+
+B<1.6>
+
+    Patched around yet another undocumented "feature" of the TOC
+    protocol---namely, in order to successfully sign on, you must have
+    at least one buddy in your buddy list.  At sign-on, in the absence
+    of a real buddy list, Net::AOLIM inserts the current user as a
+    buddy in group "Me."  Don't bother removing this buddy, as it
+    doesn't really exist---as soon as you add any real buddies, this
+    one will go away.  Thanks to Galen Johnson and Jay Luker for
+    emailing with the symptoms.
+
+=cut

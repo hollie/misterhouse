@@ -30,9 +30,7 @@ $timer_net_connect = new Timer;
 $v_get_internet_data = new  Voice_Cmd('Get internet data');
 $v_get_internet_data-> set_info('Download various internet data (e.g weather, time, tv).');
 if (said  $v_get_internet_data) {
-    print     "Getting internet data\n";
     print_log "Getting internet data";
-    speak     "Getting internet data" unless $Save{sleeping_parents};
 
     unless (net_connect_check) {
         run_voice_cmd 'Log onto the net';

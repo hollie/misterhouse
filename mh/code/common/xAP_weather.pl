@@ -8,9 +8,6 @@
 #@ then use that when you start the program (e.g. weather.exe krst).
 #@ If you don't specify a code it will default to London, Heathrow (EGLL).
 
-use xAP_Items;
-&xAP::startup if $Reload;
-
 #xAP_weather = new xAP_Item('weather.report', 'mi4.weather.krst');
 #xAP_weather = new xAP_Item('weather.report', 'mi4.weather.egll');
 $xAP_weather = new xAP_Item('weather.report');

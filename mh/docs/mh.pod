@@ -357,10 +357,9 @@ for $30, it hardly seems worth building it from scratch.
 There is an X10 product called IR Commander that works with the Firecracker
 and sends infrared.  It's not a learning remote and most people who try it
 are disapointed.  The RedRat2 is supported by misterhouse, but doesn't seem
-too popular.  I wrote the module for the UIRT2 and it is being used by a few
-on both Windows and Linux.  I'm also working on a module for the USB-UIRT,
-but haven't finished it yet (sorry Jason and Bill).  I've only gotten it to
-work on Linux.  The Ocelot is another option.
+too popular.  David Norwood wrote the module for the UIRT2 and it is being used by a few
+on both Windows and Linux.  He now also has a module for the USB-UIRT.
+The Ocelot is another option.
 
   FireCracker: http://www.x10.com/products/ux17a_bj2.htm
 
@@ -370,6 +369,9 @@ work on Linux.  The Ocelot is another option.
 
   UIRT USB: http://home.earthlink.net/~jrhees/USBUIRT/index.htm
 
+As of 6/2004, the send/receive USB RedRat3 ($99 from http://www.redrat.co.uk/ ) is supported using the
+windows xAP RedRat Connector: http://www.xapframework.net/modules.php?name=Downloads&d_op=viewdownload&cid=45.
+RedRat3 is a great product with a growing online list of downloadable IR codes.
 
 Here are 2 LCD displays with programmable serial interfaces:
 
@@ -393,6 +395,12 @@ Here are a few other devices which look useful, but have not had code written fo
  http://www.nirvis.com/  $180 2-way IR device
 
  http://www.cc-concepts.com/  iButton DigiLock interface as electronic keychain
+
+Nice big Alpha LED serial connnected signs are supported as of 6/2004.
+I picked up the Alpha 213C (a.k.a. BetaBrite, 2" x 24", 14 character) from the local Sam's Club for $150.
+Their web site only lists a bigger version, but info on BetaBrite I have can be
+seen here: http://www.betabrite.com/Pages/betabrite.htm .   It displays in multiple colors, 
+in either scrolling or fixed text.  See Display_Alpha.pm header for details.
 
 
 The Serial_Item object can read and write to any serially connect device.  There is example code
@@ -687,7 +695,9 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
                       Unlike state_now, state_changed will return undef (false) if
                       the item is set to the same state it is currently in.
 
-     set($state)   :  places the value into the state field (e.g. set $light on)
+     set($state)   :  Places the value into the state field (e.g. set $light on)
+                      Note: states are set at the start of the next mh pass.    	
+     set_now($state) :  Like set, except states are set when called, not on the next pass.
      set_with_timer($state, $time, $return_state)
                    :  Like set, but will return to $return_state after $time.
                       If $return_state is not specified, it toggles $state.
@@ -809,7 +819,7 @@ The 2nd optional tie_* argument is a print_log message you want whenever the tie
     $TV  = new IR_Item 'TV';
     my  $tv_states = 'power,on,off,mute,vol+,vol-,ch+,ch-';
     set_states  $TV split ',', $tv_states;  # causes $tv_states to be split into array
-							   values via the split command deliminated by the ,
+                                                           values via the split command deliminated by the ,
     $v_tv_control = new  Voice_Cmd("tv [$tv_states]");
 
                            # This shows how to save persistant arbitrary data
@@ -1102,6 +1112,7 @@ use the codes for your various remotes.
            homevision: HomeVision
            ncpuxa  : CPU-XA/Ocelot/Leopard
            uirt2   : UIRT2 (http://www.fukushima.us/UIRT2/)
+           xAP     : Sends / receives data via the xAP protocol.
 
         $mapref is a reference to a hash that specifies commands to be
            mapped to other commands.  This is useful for transmitters
@@ -1589,7 +1600,7 @@ Here are some examples:
 
    X10MS,      CA,    work_room_motion,       Sensors|Motion_Sensors,      Motion
    X10MS,      CB,    work_room_brightness,   Sensors|Brighness_Sensors,   Brightness
-   X10MS,      CA,    work_room_sensors,      Sensors,      		MS13    # This detects both motion and brightness
+   X10MS,      CA,    work_room_sensors,      Sensors,                  MS13    # This detects both motion and brightness
 
 With MS13 specified, it will return states named motion,still,light, and dark.
 With Motion specified, it will return only the motion and still states.
@@ -2027,14 +2038,14 @@ to be aware of events that DSC alarm systems log to their event buffers.
 
   Examples:
     mh.ini entry of 'DSC_Alarm_serial_port=com2' 
-	
+        
     $DSC_Alarm = new DSC_Alarm;
     if (my $log = said $DSC_Alarm) {
        print_log "Alarm system data = $log\n";
     }
 
     mh.ini entry of 'DSC_Alarm:2_serial_port=com5' 
-	
+        
     $DSC_test = new DSC_Alarm('DSC_Alarm:2');
     if (my $state = state $DSC_test) {
        print_log "Alarm system state change, state = $state\n";
@@ -2178,6 +2189,10 @@ Displays the specified text string, text file contents, or bitmap (.gif or .jpg)
       $append can be top or bottom.  Only meaningful with $window_name.
       width and height overrides the auto-calculated values based on text
       geomeotry places the window: +X+Y (e.g. +0+0 for upper left)
+      device  Use this to pick a specific display.  For example, 
+              device=alpha will display data with the &display_alpha function.
+      app     This uses the parms defined in the  the mh.ini display_app parm.
+              This allows us to use custom parms with generic, common code.  
  
   Examples:
 
@@ -2189,6 +2204,10 @@ Displays the specified text string, text file contents, or bitmap (.gif or .jpg)
 
     display text => $f_top10_list, time => 300, font => 'Times 25 bold',
             geometry => '+0+0', width => 72, height => 24;
+
+    display "device=alpha $caller";
+    display "app=bingo $bingo_text";
+    display app => 'bingo', text => $bingo_text;
 
 If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk popup window.
 If -tk 0 or the data is echoed to the console.
@@ -2835,6 +2854,7 @@ This may be useful if a movement sensor is to trigger different events at differ
        speak "It is Monday morning. Remember to put the rubbish out.";
        $Save{woken_up} = 1;
     }
+
 
 
 =item time_greater_than
@@ -5016,6 +5036,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.74  2004/07/05 23:36:34  winter
+# *** empty log message ***
+#
 # Revision 1.73  2004/06/06 21:38:41  winter
 # *** empty log message ***
 #

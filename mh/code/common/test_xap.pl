@@ -5,9 +5,6 @@
 #@ and/or xPL data (see <a href=http://www.xplproject.org.uk/>xplproject.org.uk</a>
 #@ Rio and TTS xPL clients are available from <a href=http://www.xplhal.com>Tony's page</a>.
 
-use xAP_Items;
-&xAP::startup if $Reload;
-
 #
 # Examples of how to Monitor generic xAP/xPL data
 #

@@ -2,6 +2,117 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    Bug Fixes and Other Changes:
+
+  Version 2.92 posted on 07/05/2004
+    Version 2.92 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+
+    New Features:
+
+    - Sean Walker sent in code/public/vocp_sean.pl for integrating with
+    linux vocp voicemail ( http://vocp.sourceforge.net/ ).
+
+    - Lincoln Foreman created code/public/x10_video_security2.pl as another
+    example of interfacing with X10 cameras.
+
+    - Krik Bauer created lib/Tivo_Control.pm for displaying text on a Tivo.
+    See header for details.
+
+    - Norm Dressler created code/common/mr26_vdr.pl to send remote control
+    commands to VDR (Video Disk Recorder) ( http://www.cadsoft.de/vdr/ )
+    from an X10 RF remote, via a MR26 interface.
+
+    - Created lib/Display_Alpha.pm and code/common/display_alpha.pl for
+    sending text to an Alpha LED signs using a serial port. I picked up the
+    Alpha 213C (a.k.a. BetaBrite, 2" x 24", 14 character) from the local
+    Sam's Club for $150. Their web site only lists a bigger version, but
+    info on BetaBrite I have can be seen here:
+    http://www.betabrite.com/Pages/betabrite.htm . It displays in multiple
+    colors, in either scrolling or fixed text. See Display_Alpha.pm header
+    for details.
+
+    - Created code/common/games_bingo.pl for playing the game of Bingo by
+    speaking and displaying a randomized set of bingo numbers at a timed
+    interval.
+
+    - Added a xAP interface option to lib/IR_Item.pm. This allows us to send
+    and receive IR data with the USB RedRat3 ($99 from
+    http://www.redrat.co.uk/ ), using the new windows xAP RedRat Connector (
+    http://www.xapframework.net/modules.php?name=Downloads&d_op=viewdownload
+    &cid=45 ).
+
+    - Created code/common/robot_robosapien.pl for using IR to control the
+    RoboSapien Robot: http://www.robosapienonline.com (got mine for $100 at
+    Best Buy). It doesn't do anything practical, but it is a fun toy. I've
+    also sent the 70+ IR codes to the online Redrat3 database.
+
+    - Larry Roudebush created a program that will sync a palm datebook with
+    misterhouse calendar file. Available at ftp://24.210.57.79 with a user
+    name and password of: mhusers/mhusers.
+
+    Bug Fixes and Other Changes:
+
+    - David Norwood sent in mh/code/public/ocelot_*.pl as examples of using
+    Ocelot infrared, digital input, and digital output.
+
+    - Dave Hall updated code/public/robot_er1.pl to fixed bugs, made few
+    things easier/automatic, and added digital and analog input and an angle
+    routine.
+
+    - Joel Davidson updated lib/Omnistat.pm and code/public/omnistat.pl to
+    work with an HAI RC-80 thermostat.
+
+    - Lee Varga added mh.ini parms photo_no_title and photo_no_clock for
+    turning off title and clock on the web photo page.
+
+    - Fixed a bug when receiving xAP/xPL data with a blank value.
+
+    - Added a set_now method to Generic_Item (available to most mh objects).
+    Unlike set, which makes the state change on the next pass, set_now
+    changes the state when called. Used in setting incoming states on xAP
+    and xPL objects, so the various other data fields are in sync with the
+    state field.
+
+    - Updated lib/Timer.pm to have the active/inactive methods immediately
+    reflect that a timer has been set, rather than waiting for the start of
+    the next pass.
+
+    - Jukka Br updated lib/site/hardware/iButton/Connection.pm to set some
+    port timings to improve iButton reliablity. Since this broke things for
+    some people, this is only enabled with parm ibutton_tweak=2.
+
+    - Norm Dressler noticed the 'duplicate key' check in lib/X10_MR26.pm was
+    set to high at 1.5 seconds. Added a mh.ini MR26_multireceive_delay,
+    defaulting it to 400 (.4 seconds).
+
+    - Fixed a windows bug when you have duplicate file names with different
+    cases (e.g. xAP_weather -vs- xap_weather).
+
+    - Added the xAP/xPL module as part of bin/mh, rather than user code. If
+    you don't want the xAP/xPL ports open, use mh.ini parm xap_disable = 1 .
+
+    - Added a device option to the display function, so we can send display
+    data to specific displays. If used, a user definable display_devicename
+    function will be called (e.g. display "device=alpha hi" will call
+    &display_alpha).
+
+    - Enabled display_app parm, like we had for speak_app, so we can control
+    display parms in common code. For example, I can display bingo numbers
+    to our nice big Alpha LED with this parm: display_apps = bingo =>
+    device=alpha
+
+    - Added mh/bin/mhc and mhc.bat, the scripts I use to created the
+    compiled mhe binaries on linux and windows with the Par compiler.
+
+  Version 2.91 posted on 06/06/2004
+    Version 2.91 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+
+    New Features:
+
     - Kirk Bauer created code/public/whole_house_audio_speech.pl and
     whole_house_audio_musica.pl for for distributing speech and music using
     multiple sources and multiple destinations. Lots of good documentation
@@ -62,6 +173,20 @@ Mister House Announcement List
 
     - Chris Barrett added File_Item exist and exist_now methods for
     detecting if files exist.
+
+    - Scott Reston noticed a 2.88 bug that disabled X10_Item level from
+    returning the proper light level.
+
+    - Chris Barrett updated code/common/telnet.pl to add configurable
+    "welcome" and "exit" banners, a built-in "whoami" command that returns
+    either "admin", "family" or "guest", changed the the admin prompt to
+    "mh#" and for the other 2 levels it is "mh>", and changed the "exit"
+    command to now drop you back to your previous level (e.g. guest -> admin
+    -> guest).
+
+    - Updated perl par compiler from 0.80 to 0.83.
+
+    - Updated lib/site/net/AOLIM.pm from 1.4 to the latest 1.6 version.
 
   Version 2.90 posted on 05/02/2004
     New Features:

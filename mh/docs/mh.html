@@ -362,10 +362,9 @@ for $30, it hardly seems worth building it from scratch.</p>
 <p>There is an X10 product called IR Commander that works with the Firecracker
 and sends infrared.  It's not a learning remote and most people who try it
 are disapointed.  The RedRat2 is supported by misterhouse, but doesn't seem
-too popular.  I wrote the module for the UIRT2 and it is being used by a few
-on both Windows and Linux.  I'm also working on a module for the USB-UIRT,
-but haven't finished it yet (sorry Jason and Bill).  I've only gotten it to
-work on Linux.  The Ocelot is another option.</p>
+too popular.  David Norwood wrote the module for the UIRT2 and it is being used by a few
+on both Windows and Linux.  He now also has a module for the USB-UIRT.
+The Ocelot is another option.</p>
 <pre>
   FireCracker: <a href="http://www.x10.com/products/ux17a_bj2.htm">http://www.x10.com/products/ux17a_bj2.htm</a></pre>
 <pre>
@@ -374,6 +373,9 @@ work on Linux.  The Ocelot is another option.</p>
   UIRT: <a href="http://www.fukushima.us/UIRT2/">http://www.fukushima.us/UIRT2/</a></pre>
 <pre>
   UIRT USB: <a href="http://home.earthlink.net/~jrhees/USBUIRT/index.htm">http://home.earthlink.net/~jrhees/USBUIRT/index.htm</a></pre>
+<p>As of 6/2004, the send/receive USB RedRat3 ($99 from <a href="http://www.redrat.co.uk/">http://www.redrat.co.uk/</a> ) is supported using the
+windows xAP RedRat Connector: <a href="http://www.xapframework.net/modules.php?name=Downloads&d_op=viewdownload&cid=45.">http://www.xapframework.net/modules.php?name=Downloads&d_op=viewdownload&cid=45.</a>
+RedRat3 is a great product with a growing online list of downloadable IR codes.</p>
 <p>Here are 2 LCD displays with programmable serial interfaces:</p>
 <pre>
   <a href="http://www.crystalfontz.com/products/634/index.html">http://www.crystalfontz.com/products/634/index.html</a>  $60</pre>
@@ -393,6 +395,11 @@ header of that file for more info.</p>
  <a href="http://www.nirvis.com/">http://www.nirvis.com/</a>  $180 2-way IR device</pre>
 <pre>
  <a href="http://www.cc-concepts.com/">http://www.cc-concepts.com/</a>  iButton DigiLock interface as electronic keychain</pre>
+<p>Nice big Alpha LED serial connnected signs are supported as of 6/2004.
+I picked up the Alpha 213C (a.k.a. BetaBrite, 2`` x 24'', 14 character) from the local Sam's Club for $150.
+Their web site only lists a bigger version, but info on BetaBrite I have can be
+seen here: <a href="http://www.betabrite.com/Pages/betabrite.htm">http://www.betabrite.com/Pages/betabrite.htm</a> .   It displays in multiple colors, 
+in either scrolling or fixed text.  See Display_Alpha.pm header for details.</p>
 <p>The Serial_Item object can read and write to any serially connect device.  There is example code
 in the code/public directory that shows how to interface to a ham radio TNC receiver to decode and track
 a GPS transmitters position.</p>
@@ -712,7 +719,9 @@ mh is stopped/started.
 </dd>
 <dd>
 <pre>
-     set($state)   :  places the value into the state field (e.g. set $light on)
+     set($state)   :  Places the value into the state field (e.g. set $light on)
+                      Note: states are set at the start of the next mh pass.            
+     set_now($state) :  Like set, except states are set when called, not on the next pass.
      set_with_timer($state, $time, $return_state)
                    :  Like set, but will return to $return_state after $time.
                       If $return_state is not specified, it toggles $state.
@@ -1282,7 +1291,8 @@ use the codes for your various remotes.</p>
            cm17    : X10 IR Commander
            homevision: HomeVision
            ncpuxa  : CPU-XA/Ocelot/Leopard
-           uirt2   : UIRT2 (<a href="http://www.fukushima.us/UIRT2/">http://www.fukushima.us/UIRT2/</a>)</pre>
+           uirt2   : UIRT2 (<a href="http://www.fukushima.us/UIRT2/">http://www.fukushima.us/UIRT2/</a>)
+           xAP     : Sends / receives data via the xAP protocol.</pre>
 </dd>
 <dd>
 <pre>
@@ -2775,6 +2785,10 @@ Displays the specified text string, text file contents, or bitmap (.gif or .jpg)
       $append can be top or bottom.  Only meaningful with $window_name.
       width and height overrides the auto-calculated values based on text
       geomeotry places the window: +X+Y (e.g. +0+0 for upper left)
+      device  Use this to pick a specific display.  For example, 
+              device=alpha will display data with the &amp;display_alpha function.
+      app     This uses the parms defined in the  the mh.ini display_app parm.
+              This allows us to use custom parms with generic, common code.  
  
   Examples:</pre>
 </dd>
@@ -2790,6 +2804,12 @@ Displays the specified text string, text file contents, or bitmap (.gif or .jpg)
 <pre>
     display text =&gt; $f_top10_list, time =&gt; 300, font =&gt; 'Times 25 bold',
             geometry =&gt; '+0+0', width =&gt; 72, height =&gt; 24;</pre>
+</dd>
+<dd>
+<pre>
+    display &quot;device=alpha $caller&quot;;
+    display &quot;app=bingo $bingo_text&quot;;
+    display app =&gt; 'bingo', text =&gt; $bingo_text;</pre>
 </dd>
 <dd>
 <p>If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk popup window.

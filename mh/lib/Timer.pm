@@ -291,8 +291,9 @@ sub seconds_remaining_now {
 
 sub active {
     ($self) = @_;
-    if ($self->{expire_time} and
-        $self->{expire_time} >= main::get_tickcount) {
+    if (($self->{expire_time} and
+         $self->{expire_time} >= main::get_tickcount) or
+	($self->{set_next_pass})) {
         return 1;
     }
     else {
@@ -301,18 +302,7 @@ sub active {
 }
 sub inactive {
     ($self) = @_;
-    if ($self->{expire_time}) {
-        if ($self->{expire_time} < main::get_tickcount) {
-#       $self->{expire_time} = 0;   ... this could disable a expire timer test??
-            return 1;
-        }
-        else {
-            return 0;
-        }
-    }
-    else {
-        return 1;
-    }
+    return !&active($self);
 }   
 
                                 # The reset of these methods apply to a countup/stopwatch type timer
@@ -373,6 +363,9 @@ sub query {
 
 #
 # $Log$
+# Revision 1.30  2004/07/05 23:36:37  winter
+# *** empty log message ***
+#
 # Revision 1.29  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

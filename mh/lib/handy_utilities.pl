@@ -597,6 +597,13 @@ sub main::get_parm_file {
     return $$ref_parms{$param_name . '_MHINTERNAL_filename'};
 }
 
+sub main::randomize_list {
+                                # Do a fisher yates shuffle (Perl cookbook 4.17 pg 121)
+    for (my $i = @_; --$i; ) {
+        my $j = int rand($i + 1);
+        @_[$i, $j] = @_[$j, $i];
+    }
+}
 
 sub main::read_record {
     my($file, $index) = @_;
@@ -946,6 +953,7 @@ sub main::time_date_stamp {
 # 18:  YYYYMMDD (e.g. 20011201)
 # 19:  Sun, 06 Nov 1994 08:49:37 GMT  (RFC 822 format, needed by web servers)
 # 20:  YYYYMMDDHHMMSS
+# 21:  12:52 Sun 25 (For short time/date displays)
 
     my($style, $time_or_file) = @_;
     my $time;
@@ -1036,6 +1044,8 @@ sub main::time_date_stamp {
                                                       $year_full, $mon, $mday) }
     elsif ($style == 20)  {$time_date_stamp = sprintf("%04d%02d%02d%02d%02d%02d",
                                                       $year_full, $mon, $mday, $hour, $min, $sec) }
+    elsif ($style == 21) {$time_date_stamp = sprintf("%2d:%02d $day $mday",
+                               $hour, $min) }
     else {
 	$time_date_stamp = "time_date_stamp format=$style not recognized";
     }
@@ -1133,6 +1143,12 @@ sub main::time_to_ampm {
     $hour =  12 if $hour == 0;
     return wantarray ? ("$hour:$min $ampm", $hour, $min, $ampm) : "$hour:$min $ampm";
 } 
+
+sub main::uniqify {
+    my %list = map {$_, 1} @_;
+    return sort keys %list;
+}
+
 
                                 # Magic from pg. 237 of Programing Perl
                                 #  - Probably better to use uuencode_base64 from Mime::Base64
@@ -1235,6 +1251,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.72  2004/07/05 23:36:37  winter
+# *** empty log message ***
+#
 # Revision 1.71  2004/06/06 21:38:44  winter
 # *** empty log message ***
 #

@@ -1139,7 +1139,6 @@ Sat 03/27/04 22:31:59 city=willmar state=mn name=
 Sun 03/28/04 16:05:25 city=Annecy state=France name=
 Mon 03/29/04 08:29:35 city=providence state=ri name=
 Mon 03/29/04 09:40:39 city=St Paul state=MN name=
-Mon 03/29/04 09:42:17 city=St Paul state=MN name=
 Tue 03/30/04 15:07:40 city=Athens state=Greece name=
 Wed 03/31/04 08:55:48 city=Cologne state=ge name=
 Fri 04/02/04 23:40:20 city=Orleans state=Canada name=
@@ -1189,3 +1188,25 @@ Wed 06/02/04 12:26:31 city=Wake Forest state=NC name=Rick Denatale
 Thu 06/03/04 03:40:44 city=antwerp state=belgium name=
 Sat 06/05/04 16:26:14 city=martinsburg state=wv name=
 Sat 06/05/04 21:20:51 city=Calgary state=AB name=JeffN
+Mon 06/07/04 10:05:03 city=dublin state=OH name=
+Tue 06/08/04 12:37:55 city=Floda state=Sweden name=Anders Kihlström
+Tue 06/08/04 23:06:27 city=los angeles state=ca name=
+Thu 06/10/04 15:43:02 city=Atlanta state=GA name=
+Fri 06/11/04 10:27:15 city=Rotterdam state=Nederland name=
+Mon 06/14/04 07:32:19 city=Winnipeg state=Canada name=Warren Wiens
+Mon 06/14/04 09:04:42 city=Canby state=OR name=Beaker
+Tue 06/15/04 22:55:09 city=Big Lake state=MN name=Sandy Wester
+Wed 06/16/04 12:49:53 city=stockholm state=sweden name=
+Wed 06/16/04 12:50:23 city=Kumla state=Sweden name=Andreas
+Thu 06/17/04 16:19:45 city=maumelle state=ar name=bob
+Fri 06/18/04 15:27:15 city=helsinki state=fi name=
+Fri 06/18/04 16:17:34 city=Portola Valley state=CA name=Craig Hughes
+Sun 06/20/04 22:59:18 city=toronto state=canada name=
+Fri 06/25/04 11:41:41 city=Tulsa state=OK name=
+Fri 06/25/04 20:39:21 city=newport beach state=ca name=
+Sun 06/27/04 05:28:33 city=Bristol state=TN name=Roger D
+Sun 06/27/04 08:04:36 city=Dhahran state=DH name=Adam RB
+Mon 06/28/04 10:01:11 city=helsinki state=finland name=
+Mon 06/28/04 17:21:32 city=portland state=or name=
+Sun 07/04/04 00:15:58 city=The Colony state=TX name=Jeff StJohn
+Mon 07/05/04 16:30:31 city=London state=UK name=Richard Sillitto

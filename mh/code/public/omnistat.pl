@@ -2,6 +2,13 @@
 
 =begin comment
 
+Joel Davidson  June 2004
+
+I've updated Omnistat.pm and I think gotten everything working.
+I added a couple of new functions (see below).  See mh/lib/Omnistat.pm
+for more details.
+
+
 From Kent Noonan on Jan 2002
 
 I have another module for misterhouse. But it is not finished. This is a
@@ -20,7 +27,6 @@ think it did..
 
 $omnistat=new Omnistat;
 
-my $omnistat_temperatures="55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96";
 
 #one time settings
 if ($Reload or $Reread) {
@@ -55,4 +61,24 @@ $v_omnistat_heat_sp=new Voice_Cmd("Set Thermostat heat setpoint to [$omnistat_te
 if ($state = said $v_omnistat_heat_sp) {
 	$omnistat->heat_setpoint($state);
 }
+
+
+# note that you have to turn hold mode off to change setpoints
+if (defined ($state = state_changed $mode) && $state eq 'away') {
+  print_log "Setting thermostat to away mode";
+  $omnistat->hold('off');
+  $omnistat->cool_setpoint('83');
+  $omnistat->heat_setpoint('65');
+  $omnistat->hold('on');
+  }
+
+# Read the 2 setpoint registers and translate the values to fahrenheit
+  my ($reg3b, $reg3c) = split ' ', $omnistat->read_reg("0x3b", 2);
+# $omnistat->read_reg("0x3b"); will read just one register.
+# translate_temp will translate from fahrenheit to 'omni' temperature
+# or from a hex 'omni' value back to fahrenheit if the value has a 0x
+# prefix.
+  $reg3b = &Omnistat::translate_temp($reg3b);
+  $reg3c = &Omnistat::translate_temp($reg3c);
+  print "hvac: cool setpoint=$reg3b, heat setpoint=$reg3c\n";
 

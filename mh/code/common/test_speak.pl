@@ -78,6 +78,6 @@ if ($state = said $test_voice12) {
     speak "The default speech engine has been set to $state";
 }
 
-my $speak_app_keys = join ',', sort keys %speak_apps; # noloop
+my $speak_app_keys = join ',', sort keys %{$app_parms{speak}}; # noloop
 $test_speak12 = new Voice_Cmd "Test speech app [$speak_app_keys]";
 speak app => $state, text => "Speaking with with app $state parms" if $state = said $test_speak12;

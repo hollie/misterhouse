@@ -46,6 +46,8 @@ or type something in below.
  <option value=Frank>Cepstral Frank
  <option value=Linda>Cepstral Linda
  <option value=Robin>Cepstral Robin
+ <option value=Paul>NeoSpeech Paul
+ <option value=Kate>NeoSpeech Kate
 </select>
 
 <!--

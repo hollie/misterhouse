@@ -35,28 +35,30 @@ if (defined($state = state_now $eliza_data)) {
     my $msg = $state;
 
                                 # Used cached data from a previous background DSN search, if from the web
-    my ($name, $name_short) = net_domain_name_start 'eliza_server', 'http' if get_set_by $eliza_data =~ /^web/;
-    $name = 'unknown' unless $name;
+#   my ($name, $name_short) = net_domain_name_start 'eliza_server', 'http' if get_set_by $eliza_data =~ /^web/;
+    my $name = $Http{Client_address};
+#   $name = 'unknown' unless $name;
 
     my $rule    = state $eliza_rule;
     my $voice   = state $eliza_voice;
-    my $name    = ($voice) ? $voice : 'Eliza';
     my $wavcomp = state $eliza_wavcomp;
     if ($rule eq 'none') {
-	$msg = "$name_short says: $msg";
+#	$msg = "$name_short says: $msg";
 #       $msg = &Voice_Text::set_voice($voice, "$name_short says: $msg");
     }
     elsif ($rule =~ 'thought') {
         my $response = read_current $eliza_deep_thoughts;
         $response    = read_next    $eliza_deep_thoughts if $rule eq 'thought2';
-        $response = "$name_short says: $msg.  $name says: $response" if $msg;
+#       $response = "$name_short says: $msg.  $name says: $response" if $msg;
+        $response = "You said $msg.  $voice says: $response" if $msg;
         $msg = $response;
 #        $msg = &Voice_Text::set_voice($voice, $response);
     }
     else {
         $eliza = new Chatbot::Eliza "Eliza", "../data/eliza/$rule.txt" unless $eliza;
         my $response = $eliza->transform($msg);
-        $msg  = "$name_short said: $msg.  $name says: $response";
+        $msg  = "You said: $msg.  $voice says: $response";
+#        $msg  = "$name_short said: $msg.  $name says: $response";
 #        $msg  = "$name_short said: " . &Voice_Text::set_voice($voice, $msg);
 #        $msg .= "  Eliza says: "     . &Voice_Text::set_voice($voice, $response);
     }

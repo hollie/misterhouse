@@ -8,9 +8,6 @@
 # Bruce: Feel free to change the command structure to suit your ideas. 
 #        Just let me know when you do so I can update my client
 
-use xAP_Items;
-&xAP::startup if $Reload;
-
 $xap_command_external = new xAP_Item('command.external');
 if ($state = $xap_command_external->state_now()) {
 	my $response;	

@@ -111,8 +111,9 @@ $refresh =~ s/&sync// if $config_parms{photo_nosync};
 $refresh = ' ' if $parm eq 'pause' or $time == 0;
 
                                 # Create header html with optional search
-my $header = "<font size='3' color='#ff0000'><a href=/misc/photo_search.html>$i</a> : 
-<a href=$big_photo>$photo_name</a></font>";
+my $header = '';
+$header="<font size='3' color='#ff0000'><a href=/misc/photo_search.html>$i</a> : 
+<a href=$big_photo>$photo_name</a></font>" unless $config_parms{photo_no_title};
 $header = "<form action='/bin/photo_search.pl'>
 <input size=15 name='search' onChange='form.submit()'>
 $header
@@ -143,6 +144,7 @@ $html .= "</head>\n";
                                 # Audrey does not support layer clock on the status line
                                 # so lets put on on the photo page
 my $clock = ($Http{'User-Agent'} eq 'Audrey') ? 1 : 0;
+$clock = ($config_parms{photo_no_clock}) ? 0 : $clock;
 my $clock_js = &file_read('../web/bin/clock1.js') if $clock;
 
                                 # Show image as a background image with invisible links
@@ -232,6 +234,4 @@ else {
 }
 
 return &html_page('', $html . "</body></html>");
-
-
 

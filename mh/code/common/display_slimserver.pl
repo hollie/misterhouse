@@ -19,20 +19,22 @@ sub slimserver_display {
 
     $parms{text} =~ s/[\n\r ]+/ /gm;
 
+    print "slimserver request: $config_parms{slimserver_protocol} $parms{text}\n" if $Debug{'slimserver'};
+
 				# This requires SlimServer Connector from: http://www.xapframework.net
 				# This program also enables IR -> xAP data, even for non-slim IR data!
     if ($config_parms{slimserver_protocol} eq 'xAP') {
-	&xAP::send('xAP', 'xAP-OSD.Display', 'Display.SliMP3' => 
-		   {Line1 => $parms{text}, Line2 => ' ', Duration => 15, Size => 'Double', Brightness => 'Brightest'});
+        my $duration = $parms{duration} || 15;
+        &xAP::send('xAP', 'xAP-OSD.Display', 'Display.SliMP3' => 
+                   {Line1 => $parms{text}, Line2 => ' ', Duration => $duration, Size => 'Double', Brightness => 'Brightest'});
     }
     else {
 				# Allow for player and/or players parm.  No Big or Brightest option here :(
-	$config_parms{slimserver_players} = $config_parms{slimserver_player} unless $config_parms{slimserver_players};
-	for my $player (split ',', $config_parms{slimserver_players}) {
-	    my $request = "http://$config_parms{slimserver_server}/status?p0=display&p1=MisterHouse Message:&p2=$parms{text}&p3=30&player=$player";
-	    print "slimserver request: $request\n" if $Debug{'slimserver'};
-	    get $request;
-	}
+        $config_parms{slimserver_players} = $config_parms{slimserver_player} unless $config_parms{slimserver_players};
+        for my $player (split ',', $config_parms{slimserver_players}) {
+            my $request = "http://$config_parms{slimserver_server}/status?p0=display&p1=MisterHouse Message:&p2=$parms{text}&p3=30&player=$player";
+            get $request;
+        }
     }
 }
 

@@ -1587,7 +1587,7 @@ sub html_find_icon_image {
         undef %html_icons;
                                 # If we have multiple dirs, the first one wins (last one in mh.ini file)
         for my $dir (@{$http_dirs{'/graphics'}}) {
-            print "Reading html icons from $dir\n";
+            print "Reading html icons from $dir\n" if $main::Debug{http};
             opendir (ICONS, $dir);
             for $member (readdir ICONS) {
                 ($icon, $ext) = $member =~ /(\S+)\.(\S+)/;
@@ -2839,6 +2839,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.91  2004/07/05 23:36:37  winter
+# *** empty log message ***
+#
 # Revision 1.90  2004/06/06 21:38:44  winter
 # *** empty log message ***
 #

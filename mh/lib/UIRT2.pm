@@ -119,7 +119,7 @@ sub receive_code {
 	$prev = $code;
 	$receive_timeout = &main::get_tickcount + 600;
 	
-	&main::main::print_log("UIRT2 Code: $code");
+	&main::main::print_log("UIRT2 Code: $code") if $main::Debug{UIRT2};
 	&main::process_serial_data($code);
 }
 
@@ -203,7 +203,7 @@ sub set {
 }
 
 sub send_ir_code { 
-	print "$transmit_timeout  " . &main::get_tickcount . "\n";
+	print "$transmit_timeout  " . &main::get_tickcount . "\n" if $main::Debug{UIRT2};
 	return if &main::get_tickcount - $transmit_timeout < 0;
 	my $code = $DBM{shift @transmit_queue};
 	if ($code =~ s/^R(.*)/$1/i) {
@@ -217,13 +217,13 @@ sub send_ir_code {
 sub process_raw {
 	my $data = shift; 
  	my $pos = index $data, "\xFF"; 
-	print "Pos $pos\n";
+	print "Pos $pos\n"  if $main::Debug{UIRT2};
 	my ($code, $remainder);
 	$code = unpack 'H*', substr $data, 0, $pos + 1 if $pos != -1;
 	$remainder = substr $data, $pos + 1 unless $pos == -1 or $pos + 1 == length $data; 
 	$remainder = $data if $pos == -1; 
 	$main::Serial_Ports{UIRT2}{data} = $remainder;
-	print "UIRT2: rec length " . length($code) . " code $code\n";
+	print "UIRT2: rec length " . length($code) . " code $code\n" if $main::Debug{UIRT2};
 	return unless $pos > 4;
 	push @learned, $code;
 	$learn_timeout = &main::get_tickcount + 2000;
@@ -300,7 +300,7 @@ sub uirt2_send {
 	$checksum &= 0xff;
 	push @bytes, $checksum;
 	$hex .= sprintf '%02x', $checksum;
-	print "UIRT2 sending $hex\n";
+	print "UIRT2 sending $hex\n" if $main::Debug{UIRT2};
     return if &main::proxy_send('UIRT2', 'uirt2_send', @bytes);
 	$main::Serial_Ports{UIRT2}{object}->write(pack 'C*', @bytes); 
 }
@@ -328,7 +328,7 @@ sub raw_to_struct {
 			($i & 1 ? $big_gap : $big_pulse) = $_ if $_ > ($i & 1 ? $big_gap : $big_pulse);
 			$i++;
 		}
-		print "raw_to_struct code $_\nsmall_gap : $small_gap  small_pulse : $small_pulse big_gap : $big_gap  big_pulse : $big_pulse \n";
+		print "raw_to_struct code $_\nsmall_gap : $small_gap  small_pulse : $small_pulse big_gap : $big_gap  big_pulse : $big_pulse \n" if $main::Debug{UIRT2};
 		$i = 0;
 		foreach (@bytes[4 .. $#bytes - 1]) {
 			my $bit = ($_ > 1.5 * ($i & 1 ? $small_gap : $small_pulse)) ? '1' : '0';
@@ -393,7 +393,7 @@ sub pronto_to_raw {
 	my $first = shift(@bytes) * 2;
 	my $second = shift(@bytes) * 2;	
 	map {$_ = round($_ * $units / 50)} @bytes;
-	print "pronto_to_raw $pronto First $first second $second frequency  " . $frequency . "\n";
+	print "pronto_to_raw $pronto First $first second $second frequency  " . $frequency . "\n"  if $main::Debug{UIRT2};
 	my ($code1, $code2);
 	$code1 = unpack 'H*', pack('C*', $bytes[$first - 1] >> 8, $bytes[$first - 1] & 0xff, 
 		@bytes[0 .. $first - 2], 0xff) if $first;

@@ -9,29 +9,54 @@ my %default_map = qw(
     OFF POWER
 );
 
+my ($hooks_added, @objects_xap);
+
 sub new {
     my ($class, $device, $code, $interface, $mapref) = @_;
     my $self = {};
     $$self{state} = '';
+    $$self{code}  = $code if $code;
+    $$self{interface} = ($interface) ? lc $interface : 'cm17';
+ 
+				# Enable receiving of IR data
+    if ($$self{interface} eq 'xap') {
+	$$self{states_casesensitive} = 1;
+	&::MainLoop_pre_add_hook( \&IR_Item::check_xap, 1) unless $hooks_added++;
+	push @objects_xap, $self;
+    }
+
+    $device = uc $device unless $$self{states_casesensitive};
     $device = 'TV' unless $device;
-    $$self{device} = uc $device;
-    $$self{code} = $code if $code;
-    $interface = 'cm17' unless $interface;
-    $$self{interface} = $interface;
+    $$self{device} =    $device;
+
     $mapref = \%default_map unless $mapref;
     $$self{mapref} = $mapref;
+
     bless $self, $class;
     return $self;
 }
 
+sub check_xap {
+    if (my $xap_data = &xAP::received_data()) {
+	next unless $$xap_data{'xap-header'}{class} eq 'ir.receive';
+        for my $o (@objects_xap) {
+	    print "IR_Item xap: $$xap_data{'ir.signal'}{device} = $$xap_data{'ir.signal'}{signal}\n";
+	    next unless uc $$xap_data{'ir.signal'}{device} eq $$o{device};
+	    $o -> SUPER::set($$xap_data{'ir.signal'}{signal}, 'xap');
+	}
+    }
+}
+
 my $device_prev;
 sub default_setstate {
-    my ($self, $state) = @_;
+    my ($self, $state, $substate, $setby) = @_;
+
+    return if $setby eq 'xap';  # Do not echo incoming data back out
 
 #   print "db set=$state pass=$main::Loop_Count\n";
 
     my $device = $$self{device};
-    $state = uc $state;
+    $state = uc $state unless $$self{states_casesensitive};
 
                                 # Option to make changing channels faster on devices with a timeout
     if ($$self{code} and $$self{code} eq 'addEnter') {
@@ -81,7 +106,7 @@ sub default_setstate {
         if ($mapped_ir = $$self{mapref}->{$command}) {
             $command = $mapped_ir;
         }
-        if (lc $$self{interface} eq 'cm17') {
+        if ($$self{interface} eq 'cm17') {
                                 # Since the X10 IR Commander is a bit slow (.5 sec per xmit),
                                 #  lets only send the device code if it is different than last time.
             $device = '' if $device and  $device eq $device_prev;
@@ -89,7 +114,7 @@ sub default_setstate {
             return if &main::proxy_send('cm17', 'send_ir', "$device $command");
             &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, "$device $command");
             $device = '';       # Use device only on the first command
-        } elsif ($$self{interface} eq 'Homevision') {
+        } elsif ($$self{interface} eq 'homevision') {
             &Homevision::send($main::Serial_Ports{Homevision}{object}, $command);
         } elsif ($$self{interface} eq 'ncpuxa') {
             &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $command);
@@ -99,6 +124,8 @@ sub default_setstate {
             &USB_UIRT::set($device, $command);
         } elsif ($$self{interface} eq 'ninja') {
 	    &ninja_mh::send($device, $command);
+        } elsif ($$self{interface} eq 'xap') {
+	    &xAP::send('xAP', 'IR.Transmit', 'IR.Signal' => {Device => $device, Signal => $command});
 	} else {
             print "IR_Item::set Interface $$self{interface} not supported.\n";
         }
@@ -107,6 +134,9 @@ sub default_setstate {
 
 #
 # $Log$
+# Revision 1.16  2004/07/05 23:36:37  winter
+# *** empty log message ***
+#
 # Revision 1.15  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

@@ -5,9 +5,6 @@
 #@ and store new news stories in a News object.  Set the xAP_news mh.ini parm to control
 #@ if you want the news titles spoken, printed, and/or displayed.
 
-use xAP_Items;
-&xAP::startup if $Reload;
-
 $xAP_news = new xAP_Item('news.report');
 $News     = new Generic_Item;
 $News    -> set_casesensitive();

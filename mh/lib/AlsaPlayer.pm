@@ -286,6 +286,7 @@ sub _get_status {
                if ($sessions[$id]->{'title'} ne $val) {
                   $sessions[$id]->{'title'} = $val;
                   $sessions[$id]->set('new_song');
+                  $sessions[$id]->{'album'} = '';
                }
             }
          }
