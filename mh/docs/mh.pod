@@ -1297,6 +1297,25 @@ format.  The best way to see how it works is to look the following examples:
      run('min', 'IR_cmd VCR,4,RECORD') if time_now '2/07 18:00';
      run('min', 'IR_cmd VCR,STOP') if time_now "$date $stop - 00:02";
 
+=item time_random
+
+Use time_random to code random events.  It uses the same time format as time_cron,
+but includes frequency parameter that specifies how often the event should trigger.
+
+  Usage:
+     time_random($cron_spec, $frequency)
+
+  Examples:
+
+              # Speak something goofy once an hour on weekends
+    speak(read_next $april_fools) if time_random('* 8-22 * * 0,6', 60);
+
+              # Toggle a light on an off randomly every 30 minutes
+    if (time_random('* 18-22 * * *', 30)) {
+      $state = (ON eq state $bedroom_light) ? OFF : ON;
+      set $bedroom_light $state;
+    }
+
 =back 
 
 
@@ -2394,8 +2413,8 @@ you will get too far (grin).
 
 #
 # $Log$
-# Revision 1.2  2000/01/23 04:47:39  winter
-# testing cvs update
+# Revision 1.16  2000/01/27 13:37:14  winter
+# - update version number
 #
 # Revision 1.15  2000/01/19 13:22:16  winter
 # - add file_item said method

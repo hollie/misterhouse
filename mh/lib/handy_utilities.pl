@@ -859,8 +859,8 @@ sub main::which {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:57  winter
-# Initial revision
+# Revision 1.33  2000/01/27 13:52:23  winter
+# - update version number
 #
 # Revision 1.32  2000/01/13 13:41:18  winter
 # - added find_pgm_path to run

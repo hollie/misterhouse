@@ -64,8 +64,8 @@ sub list {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:52  winter
-# Initial revision
+# Revision 1.4  2000/01/27 13:40:26  winter
+# - update version number
 #
 # Revision 1.3  2000/01/09 18:49:02  winter
 # - add set_next_pass to CM11 set

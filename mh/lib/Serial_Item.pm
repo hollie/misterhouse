@@ -344,8 +344,8 @@ sub set_interface {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:50  winter
-# Initial revision
+# Revision 1.32  2000/01/27 13:42:42  winter
+# - update version number
 #
 # Revision 1.31  2000/01/19 13:23:29  winter
 # - add yucky delay to Weeder X10 xmit

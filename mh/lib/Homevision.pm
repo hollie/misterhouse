@@ -340,8 +340,8 @@ return 1;           # for require
 
 
 # $Log$
-# Revision 1.1  2000/01/19 14:00:53  winter
-# Initial revision
+# Revision 1.2  2000/01/27 13:42:03  winter
+# - update version number
 #
 # Revision 1.1  1999/11/11 05:26:10  idean
 # Initial revision

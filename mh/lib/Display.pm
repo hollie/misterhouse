@@ -190,8 +190,8 @@ while (1) {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:44  winter
-# Initial revision
+# Revision 1.13  2000/01/27 13:38:47  winter
+# - update version number
 #
 # Revision 1.12  1999/07/05 22:31:55  winter
 # - refine the width and heigth calculations

@@ -191,8 +191,8 @@ sub set {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:52  winter
-# Initial revision
+# Revision 1.10  2000/01/27 13:43:00  winter
+# - update version number
 #
 # Revision 1.9  1999/12/12 23:59:12  winter
 # - rename $port_name to $host_port, and allow for new $port_name parm.

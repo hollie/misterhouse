@@ -159,8 +159,8 @@ sub speak {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 13:59:24  winter
-# Initial revision
+# Revision 1.7  2000/01/27 13:29:54  winter
+# - update version number
 #
 # Revision 1.6  1999/11/08 02:14:08  winter
 # - keep only last 3 qualifiers of domain name

@@ -43,8 +43,8 @@ sub reset_states {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:52  winter
-# Initial revision
+# Revision 1.4  2000/01/27 13:39:27  winter
+# - update version number
 #
 # Revision 1.3  1999/02/16 02:04:27  winter
 # - add set method

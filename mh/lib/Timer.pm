@@ -237,8 +237,8 @@ sub inactive {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:51  winter
-# Initial revision
+# Revision 1.13  2000/01/27 13:43:19  winter
+# - update version number
 #
 # Revision 1.12  1999/12/12 23:59:55  winter
 # - change elseif (expired) check

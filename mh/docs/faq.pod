@@ -205,6 +205,24 @@ You can apply quick patches to mh, -vs- downloading a larger, less frequently up
 The memory and cpu used, once mh is started, is the same.
 
 
+=head2 1.14: How does mh read and use the user code in code_dir
+
+Each time mh is started or a Reload is done, mh will re-read all the .pl code members 
+in the code_dir directory (this is a mh.ini parm)
+and the file code_dir/mh_temp.user_code is created.
+All of the objects and global variables (see FAQ question 2.4), are put at top
+of this file, and everything else is put in seperate subroutines, one for each file read.
+A &loop_code subroutine is also created (at the very bottom of mh_temp.user_code), that 
+calls each member subroutine.
+
+After creating this file, mh runs the perl eval function on its contents.  This re-creates all the objects,
+global variables, and code_dir member subroutines.  Then mh goes back into its normal loop where
+it queries various input data (e.g. serial, tcp/ip, voice, time), updates objects and variables, 
+evals the &loop_code code (it does an eval, rather then execute it directly, so we can trap errors and 
+not kill mh), sleeps for a bit, then repeats.
+
+
+
 =head1 2: MisterHouse coding questions
 
 =head2 2.1: How do I debug syntax errors in my code?
@@ -264,7 +282,7 @@ If the same object is defined in multiple members, it will still work ok, althou
 some object types (e.g. Voice_Item) will warn about duplicate names.
 
 
-=head2 2.4: Can I create variables that can be shared between code members?
+=head2 2.4: Can I create global variables that can be shared between code members?
 
 Yep.  All objects definitions (e.g. $light = new X10_Item('C5')) are always shared.  They are pulled out of the member loop by mh.
 
@@ -441,6 +459,16 @@ For Windows 95, the update is at:
 
   http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp
   
+=head2 4.2: How do I set setup networking between Windows boxes
+
+You need to have the TCP/IP protocol enabled for your Networking Interface Card (NIC).  
+If you use a modem to reach the internet, you already have TCP/IP enable for the dial up adaptor,
+but you need to seperately enable it for your NIC card, using the control panel Network icon.
+
+You can find instuctions on how to do this at: http://win98central.acauth.com/inside98/networking.htm .  
+
+IP addresses that start with 10. (e.g. 10.0.0.1) are reserved for internal lans, so you can use
+10.0.0.1, 10.0.0.2, etc.
 
 =head1 5: Perl questions
 
@@ -503,13 +531,36 @@ Here are some useful/related Home Automation links:
   Lots of good tutorials and articles are here:
     http://hometoys.com/
 
+=head2 6.5: How can I use cvs to co-develop core mh code?
+
+To get started with cvs, there are instructions at:
+
+ http://sfdocs.sourceforge.net/sfdocs/site/cvs.php
+
+For those on windows, you can find instructions for installing cvs and ssh (the secure shell used at sourceforge) at:
+
+ http://sfdocs.sourceforge.net/sfdocs/site/user/newproject-howto.php
+
+
+Here is the command to check out the mh repository.  Do this someplace other than your main mh directory.  It does not include all the mh code (some of which came from CPAN and is maintained elsewhere), so you will not be able to run out of this directory.
+
+cd \sourceforge
+cvs -dusername@cvs.misterhouse.sourceforge.net:/cvsroot/misterhouse co mh
+
+When you have code you want to check in, you would do it with somethink like this:
+
+cp \mh\lib\http_server.pl \sourceforge\mh\lib
+cd \sourceforge\mh\lib
+cvs commit http_server.pl
+
+
 =cut
 
 
 #
 # $Log$
-# Revision 1.2  2000/01/23 04:47:38  winter
-# testing cvs update
+# Revision 1.8  2000/01/27 13:36:11  winter
+# - update version number
 #
 # Revision 1.7  2000/01/13 13:36:34  winter
 # - add useful links

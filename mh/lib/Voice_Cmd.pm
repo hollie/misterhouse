@@ -577,8 +577,8 @@ sub disablevocab {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:49  winter
-# Initial revision
+# Revision 1.17  2000/01/27 13:43:46  winter
+# - update version number
 #
 # Revision 1.17  2000/01/13 13:39:03  winter
 # - add %STATE% option

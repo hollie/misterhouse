@@ -142,8 +142,8 @@ sub results {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:52  winter
-# Initial revision
+# Revision 1.8  2000/01/27 13:42:24  winter
+# - update version number
 #
 # Revision 1.7  1999/08/30 00:22:58  winter
 # - add set method

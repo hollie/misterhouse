@@ -161,8 +161,8 @@ sub read_callerid_list {
 
 #
 # $Log$
-# Revision 1.2  2000/01/23 04:47:39  winter
-# testing cvs update
+# Revision 1.11  2000/01/27 13:38:24  winter
+# - update version number
 #
 # Revision 1.10  2000/01/02 23:42:27  winter
 # - allow an array to be returned

@@ -155,8 +155,8 @@ sub set_vvo_option {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:51  winter
-# Initial revision
+# Revision 1.16  2000/01/27 13:44:27  winter
+# - update version number
 #
 # Revision 1.15  2000/01/13 13:39:52  winter
 # - added mixer_settings and vvo_stuff (added 2 weeks ago)

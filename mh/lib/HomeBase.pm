@@ -64,18 +64,12 @@ sub read_log {
 }
 
 #HomeBase log record: r call
-
 #09/29 10:03:54 Downstairs Unoccupied
-
 #09/29 11:58:14 Call from Mom
-
 #09/29 15:21:34 Crawl
 #HomeBase log record:  space door opened
-
 #09/29 15:22:13 Downstairs is Occupied
-
 #09/29 15:24:00 Call from Mom
-
 #09/29 15:43:06 
 
 
@@ -293,8 +287,8 @@ return 1;           # for require
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:49  winter
-# Initial revision
+# Revision 1.9  2000/01/27 13:41:38  winter
+# - update version number
 #
 # Revision 1.8  2000/01/19 13:23:03  winter
 # - commit changes from a long time ago.

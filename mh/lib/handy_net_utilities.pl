@@ -342,8 +342,8 @@ sub main::net_ping {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:01:01  winter
-# Initial revision
+# Revision 1.14  2000/01/27 13:45:36  winter
+# - update version number
 #
 # Revision 1.13  1999/12/13 00:03:41  winter
 # - store body text in email read
