@@ -104,8 +104,10 @@ sub display {
 # system,  ansi, device, systemfixed  ansifixed  oemfixed
 
 #   $$self{font} = 'Courier* 10 bold' unless $$self{font};
-    $$self{font} = 'system'           unless $$self{font};
-    $$self{font} = 'systemfixed'      if     $$self{font} eq 'fixed';
+#   $$self{font} = 'system'           unless $$self{font};
+#   $$self{font} = 'systemfixed'      if     $$self{font} eq 'fixed';
+    $$self{font} = 'Times 10 bold'   unless $$self{font};
+    $$self{font} = 'Courier 10 bold'  if    $$self{font} eq 'fixed';
 
     # Valid fonts can be listed with xlsfonts 
     my $t1 = $$self{MW}->Scrolled('Text', -setgrid => 'true',  
@@ -191,6 +193,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.15  2000/05/06 17:22:16  winter
+# - change default fonts
+#
 # Revision 1.14  2000/05/06 16:34:32  winter
 # - 2.15 release
 #
