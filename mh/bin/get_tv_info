@@ -95,6 +95,9 @@ sub find_match {
                 my $db_key = join($;, $channel_number, $pgm_date, $time_start);
                 print "key=$db_key\n" if $parms{debug};
                 if (my $db_data = $DBM{$db_key}) {
+                                # Drop HTML tags
+                    $db_data = HTML::FormatText->new(lm => 0, rm => 500)->format(HTML::TreeBuilder->new()->parse($db_data));
+
                     my($time_end, $pgm_name, $pgm_desc) = split($;, $db_data);
 
                     my $min_start   = &hour_to_min($time_start);
@@ -169,6 +172,11 @@ sub find_match {
 sub setup {
     require 'handy_utilities.pl';       # For read_mh_opts funcion
     &main::read_mh_opts(\%config_parms, $Pgm_Path);
+
+                                # These are needed to drop HTML tag data
+    use HTML::FormatText;
+    use HTML::Parse;
+
 
     my $dbm_file  = "$config_parms{data_dir}/tv_programs.dbm";
     my $dbm_file2 = "$config_parms{data_dir}/tv_channels.dbm";
@@ -323,6 +331,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.10  2000/04/25 12:43:36  winter
+# - add HTML::FormatText to drop html tags
+#
 # Revision 1.9  2000/04/09 18:03:19  winter
 # - 2.13 release
 #
