@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-04-09 12:36:46 winter>
+#  Last change Time-stamp: <2000-04-17 20:51:18 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -273,7 +273,8 @@ BEGIN {
             &my_use("Win32::Registry");
                                 # Note: Muse use eval, not my_use, or exported pgms are not seen :(
                                 #  - setupsup is not yet available for perl 5.6
-            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys)" unless (&Win32::BuildNumber() > 600);
+                                #  - BuildNumber doesn't work with perl2exe compile 
+            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys)" if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
             print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@;
 
             eval "use Win32::Sound";
@@ -296,7 +297,7 @@ BEGIN {
             print  "Version $Tk::VERSION\n";
             
             if ($@) {
-                print "\nError, perl Tk module is not installed.\nTk windows will be disabled with the -tk 0 option.\n\n";
+                print "\nError, perl Tk module is not installed.\nTk windows will be disabled with the -tk 0 option. Error:$@\n\n";
                 $config_parms{tk} = 0;
             }
             else {
@@ -439,7 +440,7 @@ sub setup {
     for my $port_name (@Server_Ports) {
         my $port = $config_parms{$port_name . "_port"};
         $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
-            die "Couldn't start a tcp server on $port_name $port: $@\n";
+            die "Couldn't start a tcp server on $port_name $port: $@.\nTo get mh to run, blank out the ${port}_port in mh.ini\n";
     }
 
     print "Creating serial ports\n";
@@ -704,10 +705,12 @@ sub check_for_generic_serial_data {
 
     $Serial_Ports{$port_name}{data} .= $data if $data;
 
+    print "  serial name=$port_name type=$Serial_Ports{$port_name}{datatype} data2=$Serial_Ports{$port_name}{data}...\n" 
+        if $data and ($config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name);
+
                                 # Check to see if we have a carrage return yet
     if ($Serial_Ports{$port_name}{data} and
         $Serial_Ports{$port_name}{datatype} ne 'raw') {
-        print "           serial name=$port_name data2=$Serial_Ports{$port_name}{data}...\n" if $config_parms{debug} eq 'serial';
         while (my($record, $remainder) = $Serial_Ports{$port_name}{data} =~ /(.+?)[\r\n]+(.*)/s) {
             &print_log("Data from $port_name: $record.  remainder=$remainder.") if $config_parms{debug} eq 'serial';
             $Serial_Ports{$port_name}{data_record} = $record;
@@ -1569,7 +1572,9 @@ sub play {
     &print_speaklog($Save{mode} . ": " . $parms{file}) unless $parms{file} =~ /^sound_/ or $parms{file} =~/^System/;
 
     print "Playing wave file $parms{file}\n" if $config_parms{debug} eq 'misc';
-    return if $Save{mode} eq 'mute' or $Save{mode} eq 'offline';
+
+    return if ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} ne 'unmuted';
+
 
     my $play_parm = $parms{'mode'};
 
@@ -3134,6 +3139,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.14  2000/04/23 01:30:19  winter
+# - enable unmuted in the Play function
+#
 # Revision 2.13  2000/04/09 17:37:23  winter
 # - added IR_Item.  Numerous bug fixes.
 #
