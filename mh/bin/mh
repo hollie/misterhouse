@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2004-03-21 17:53:49 winter>
+#  Last change Time-stamp: <2004-04-21 18:23:54 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -487,7 +487,7 @@ sub setup {
     use File::Basename;
 #   use File::Copy;             # So we copy files
     use Fcntl;                  # To enable O_RDWR|O_CREAT
-#   use Date::Parse;            # For str2time
+#   use Date::Parse;            # For str2time ... currently use HTTP::Date str2time in http_server ... seems smaller
 #   use Data::Dumper qw(Dumper DumperX);
     use Data::Dumper;
 #   use Date::Manip;            # This modules takes .5 second to load and uses 3 meg!
@@ -977,7 +977,7 @@ sub add_hook_code {
     my @hook_locations = qw( MainLoop_pre MainLoop_post
                              Serial_data  Serial_match Serial_Item::send_x10_data
                              State_change iButton_receive
-                             Play_pre Play_post Speak_pre Speak_post Speak_parms
+                             Play_pre Play_post Play_parms Speak_pre Speak_post Speak_parms
                              Jabber_Message Jabber_IQ Jabber_Presence
                              AOLim_Message AOLim_Status MSNim_Message MSNim_Status
                              Reload_pre Reload_post Log Exit
@@ -2354,6 +2354,10 @@ sub file_changed {
     return 1;
 }
 
+sub file_size {
+    return (stat($_[0]))[7];
+}
+
 sub file_unchanged {
     my ($file) = @_;
     my $flag = &file_changed($file);
@@ -2672,13 +2676,16 @@ sub my_str2time {
 sub new_second { 
     return unless $New_Second;
     return 1 unless $_[0];
-    return !($Second % $_[0]);
+    return !($Time % $_[0]);
+#   return !($Second % $_[0]);
 }
 
 sub new_minute { 
     return unless $New_Minute;
     return 1 unless $_[0];
-    return !($Minute % $_[0]);
+    my $minute = int ($Time / 3600);
+    return !($minute % $_[0]);
+#   return !($Minute % $_[0]);
 }
 
 sub new_hour { 
@@ -3030,7 +3037,8 @@ sub play {
 
                                 # Do not log System our sound_ files (these are played frequently)
     &print_speaklog($mode . ": (" . basename($parms{file}) . ")")  unless
-        $parms{file} =~ /sound_/ or $parms{file} =~/^System/;
+        $parms{file} =~ /sound_/ or $parms{file} =~/^System/ or $parms{nolog};
+
 
     print "Playing wave file $parms{file}\n" if $Debug{play};
 
@@ -3064,7 +3072,9 @@ sub play {
 
  
 #   &set_volume($parms{volume});
+    &Play_parms_hooks(\%parms);# Created by &add_hooks
     &Play_pre_hooks(%parms);# Created by &add_hooks
+
 
 				# Do not speak locally if this parm is specified and does not match the rooms parm
     if ($config_parms{speak_mh_room} && $parms{rooms}) {
@@ -3137,6 +3147,9 @@ sub play {
 	    my $sound_program = $config_parms{sound_program};
 	    if ($config_parms{mp3_program}) {
 		$sound_program = $config_parms{mp3_program} if ($file =~ /.mp3/);
+	    }
+	    if ($parms{sound_program} ) {
+		$sound_program = $parms{sound_program};
 	    }
             print "running: $sound_program $file\n";
 
@@ -3708,6 +3721,10 @@ sub read_code {
         @files_read = grep(/^[a-z0-9].*\.(pl|mhp)$/i, @files_read); # Must start with alphanumeric ... emacs edited checkpoints can start with #
 
     }
+				# Uniq-ify the list
+    my %list =map {$_, 1} @files_read;
+    @files_read = sort keys %list;
+
 #   print "           files: @files_read\n";
     my $count = @files_read;
     print_log "Reading $count code files";
@@ -4965,6 +4982,8 @@ sub speak {
     my (%parms) = &parse_func_parms(@_);
     my $phrase = $parms{text};
 
+    print "Voice_Text: speak @_\n" if $Debug{voice};
+
     my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression app);
                                 # Not all TTS engines have all these options ... this is a superset
 #   print "Warning, speak control not recognized: key=$key value=$value\n"
@@ -5080,7 +5099,10 @@ sub speak {
     $parms{text} = $phrase;
 
     &Speak_parms_hooks(\%parms); # Created by &add_hooks
+    return if $parms{no_speak};  # In case hook decided not to speak
+
     &Speak_pre_hooks(%parms);   # Created by &add_hooks
+#   &Speak_pre_hooks(\%parms);   # Created by &add_hooks
 
 				# Do not speak locally if this parm is specified and does not match the rooms parm
     if ($config_parms{speak_mh_room}) {
@@ -5842,6 +5864,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.89  2004/04/25 17:21:46  winter
+# *** empty log message ***
+#
 # Revision 2.88  2004/03/23 01:50:21  winter
 # *** empty log message ***
 #
