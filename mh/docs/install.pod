@@ -409,7 +409,7 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
  mkdir c:\misterhouse\data
 
  copy  c:\misterhouse\mh\test\trivia.pl c:\misterhouse\code
- copy  c:\misterhouse\mh\bin\mh.ini     c:\misterhouse\mh.ini
+ copy  c:\misterhouse\mh\bin\mh.example.ini  c:\misterhouse\mh.ini
  xcopy c:\misterhouse\mh\data           c:\misterhouse\data /s
 
  edit  c:\misterhouse\mh.ini

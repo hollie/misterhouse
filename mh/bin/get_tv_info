@@ -173,7 +173,6 @@ sub find_match {
                     $min_begin = $min_begin + 24 * 60 if ($min_begin < 6 * 60);
 
                     my $show_ended = 1 if ($min_end < $min_begin or $min_end < $min_now);
-
                     unless 	(@lengths and !$match_length or
                              ($show_ended and !$parms{all}) or
                              @keys    and !$match_key) {
@@ -202,11 +201,10 @@ sub find_match {
                         }
                                 # Add 5 minutes to end of vcr recording time in case program starts late
                                 #  - skip for now ... back-to-back recordings would get messed up
-#                       my $vcr_time_end = &min_to_hour(&hour_to_min($time_end) + 5);
+                        my $vcr_time_end = &min_to_hour(&hour_to_min($time_end) + 5);
 
-
-#                       my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$time_end>Set video</a>";
-                        my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$vcr_time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
+                        my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
+#                       my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$vcr_time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
                         $vcr_link =~ s/://g;
                         my $temp = "\n$match_cnt.  $pgm_name.  $channel_name (Channel $channel_number).  ";
 
@@ -485,6 +483,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.18  2001/04/15 17:38:09  winter
+# - 2.49 release
+#
 # Revision 1.17  2001/04/15 16:17:20  winter
 # - 2.49 release
 #
