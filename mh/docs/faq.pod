@@ -508,8 +508,8 @@ Here are some useful/related Home Automation links:
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:23  winter
-# Initial revision
+# Revision 1.2  2000/01/23 04:47:38  winter
+# testing cvs update
 #
 # Revision 1.7  2000/01/13 13:36:34  winter
 # - add useful links

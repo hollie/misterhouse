@@ -6,15 +6,18 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://www.onelist.com/archives.cgi/misterhouse )
 
-=head2 mh ver 1.?? posted on 01/??/00
+=head2 mh ver 1.95 posted on 01/23/00
 
-Version 1.9?? was just uploaded to:
+Version 1.95 was just uploaded to:
 
-  http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
-  http://misterhouse.net/house/programs/index.html
-  http://misterhouse.net/mh (for unziped, individual files)
+  http://misterhouse.net/download
+  http://sourceforge.misterhouse.net/download
+
 
 New Features:
+
+- Moved the mh CVS repository to sourceforge.net.  This doesn't affect most of you, but if anyone
+else wants to get involved in updating core mh code, let me know and I'll send you a howto note.
 
 - Updated internet_slashdot.pl.
 
@@ -27,7 +30,9 @@ This allows us to easily monitor the tail end of log files.
 See shoutcast.pl for an example.
 
 - Updated mh/code/Bruce/shoutcast.pl so it can be used with the newer, web based
-shoutcast servers.  This code will announce when you have new listeners to your broadcasts.
+shoutcast servers.  This code will announce when you have new listeners to your mp3 streamed broadcasts.
+
+- Added mh/code/public/callerid.pl as another, more simple example on how to do callerid with a modem.
 
 
 Bug Fixes and Minor Changes:
@@ -38,6 +43,8 @@ Bug Fixes and Minor Changes:
 
 - Fixed the DNS lookup in monitor_server.pl.  It always said 'web access from unknown',
 even if you had the mh.ini DNS parm enabled.
+
+- Allow display_callers to work with the compiled mh.exe.
 
 
 =head2 mh ver 1.93 posted on 01/05/00

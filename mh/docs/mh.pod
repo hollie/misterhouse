@@ -2355,9 +2355,10 @@ Bruce Winter  bruce@misterhouse.net  http://misterhouse.net
 
 mh can be download from http://misterhouse.net
 
-You can subscribe to the mailing list at http://www.onelist.com/subscribe/misterhouse
+Yuu can suscribe and/or view the mailing list at
+http://sourceforge.net/mail/?group_id=1365
 
-You can view the mailing list archive at http://www.onelist.com/archives/misterhouse
+An older list is at <a href=http://www.onelist.com/messages/MisterHouse>here</a>).
 
 There is HomeToys article on MisterHouse at http://hometoys.com/htinews/jun99/articles/winter/winter.htm
 
@@ -2393,8 +2394,8 @@ you will get too far (grin).
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:18  winter
-# Initial revision
+# Revision 1.2  2000/01/23 04:47:39  winter
+# testing cvs update
 #
 # Revision 1.15  2000/01/19 13:22:16  winter
 # - add file_item said method

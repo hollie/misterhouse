@@ -11,6 +11,9 @@ calllog.pl
  - Caller ID for modem.  Modified from mh/code/public/Brian/calllog.pl
    by Ernie O. to use the CallerID.pm state and names arrays.
 
+callerid.pl
+ - Another, simpler example on processing modem Caller ID data.
+
 internet_ip_update.p
  - Updates IP servers/web pages with IP addresses
 

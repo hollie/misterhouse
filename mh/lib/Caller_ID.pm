@@ -8,14 +8,28 @@ sub make_speakable {
     my($data, $format) = @_;
 
 
-# format=1: Weeder CID data looks like this:
-#I03/18 22:05 507-288-1030 WINTER BRUCE LA
+=cut begin
 
-# format=2: Modem CID data looks like this:
-#DATE = 990308
-#TIME = 1531
-#NMBR = 507-123-4567
-#NAME = KLIER BRIAN J
+format=1: Weeder CID data looks like this:
+I03/18 22:05 507-288-1030 WINTER BRUCE LA
+
+Here are a couple of examples of data from callerid modems
+
+DATE = 990305
+TIME = 1351
+NMBR = 5071234567
+NAME = KLIER BRIAN J
+
+
+RING
+
+DATE=0119
+TIME=2215
+NAME=ARCHER L       NMBR=5071234567
+
+RING
+
+=cut end
 
 
 # Switch name strings so first last, not last first.
@@ -147,8 +161,8 @@ sub read_callerid_list {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:00:43  winter
-# Initial revision
+# Revision 1.2  2000/01/23 04:47:39  winter
+# testing cvs update
 #
 # Revision 1.10  2000/01/02 23:42:27  winter
 # - allow an array to be returned
