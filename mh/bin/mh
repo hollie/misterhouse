@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-05-06 11:27:54 winter>
+#  Last change Time-stamp: <2000-05-14 11:11:09 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -439,23 +439,29 @@ sub setup {
 
     print "Creating socket server ports\n";
     for my $port_name (@Server_Ports) {
-        my $port = $config_parms{$port_name . "_port"};
-        my $proto = $config_parms{$port_name . "_protocol"};
-        $proto = 'tcp' unless $proto;
+        my $port     = $config_parms{$port_name . "_port"};
+        my $proto    = $config_parms{$port_name . "_protocol"};
+        my $datatype = $config_parms{$port_name . "_datatype"};
+
+        $proto    = 'tcp'      unless $proto;
+        $datatype = 'buffered' if $port_name eq 'http';
+        $datatype = 'buffer'   if $config_parms{$port_name . "_buffer"}; # Grandfathered syntax
+
+        $Socket_Ports{$port_name}{protocol} = $proto;
+        $Socket_Ports{$port_name}{datatype} = $datatype;
 
         if ($proto eq 'tcp') {
            $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
-               die "Couldn't start a tcp server on $port_name $port: $@\n";
+               die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port}_port in mh.ini\n";
         } elsif ($proto eq 'udp') {
            $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp') or 
                die "Couldn't start a udp server on $port_name $port: $@\n";
            $Socket_Ports{$port_name}{socka} = $Socket_Ports{$port_name}{sock}; # UDP ports are always "active"
         } else {
-          die "Unknown protocol for $port_name \n";
+            die "Unknown protocol for $port_name \n";
         }
-        $Socket_Ports{$port_name}{proto} = $proto;
     }
-
+    
     print "Creating serial ports\n";
     for my $port_name (@Generic_Serial_Ports) {
         &serial_port_create($port_name, $config_parms{$port_name . "_port"},
@@ -522,6 +528,8 @@ sub setup {
     $config_parms{sleep_time} = 50 unless defined $config_parms{sleep_time};
     $Loop_Sleep_Time = $config_parms{sleep_time};
     $config_parms{tk_passes} = 10 unless $config_parms{tk_passes};
+    $config_parms{tk_font}       = 'Times 10 bold'   unless $config_parms{tk_font};
+    $config_parms{tk_font_fixed} = 'Courier 10 bold' unless $config_parms{tk_font_fixed};
     $Loop_Tk_Passes = $config_parms{tk_passes};
 
     $Time = time;
@@ -933,79 +941,59 @@ sub check_for_socket_data {
         my $sock = $Socket_Ports{$port_name}{socka};
         print "\nchecking port=$port_name sock=$Socket_Ports{$port_name}{socka} lso=$leave_socket_open_passes.\n" if $config_parms{debug} eq $port_name;
 
+        my $data;
 
-                                # There must be a better way to dectect how many bytes to read without blocking??
-                                # If only fcntl work so we could make the port non blocking :(
-        my ($byte, $data);
-
-        if ('udp' eq $config_parms{"${port_name}_protocol"}) {  # UDP Ports do not block
-          my $from_saddr = recv($sock, $data, 1500, undef); 
-          (my $from_port, my $from_ip) = sockaddr_in($from_saddr);
-          $Socket_Ports{$port_name}{data_record} = $data;       # No further processing for UDP...
-          return;
-        }
-                                # Browsers will send a line at a time, so will not block
-        elsif ($port_name eq 'http' or $config_parms{"${port_name}_buffer"} or $Socket_Ports{$port_name}{buffer}) {
-                                # Only one record ... user code must see only one record per pass
+                                # Buffer mode means only read one line per pass
+                                #  - This allows user code the option of reading port with <>
+                                #  - Assumes clients will send a line at a time, so will not block 
+        if ($Socket_Ports{$port_name}{datatype} eq 'buffered') {
             $data = <$sock>;
-#            print "#".$data;
         }
-        # Anything else we can not trust not to block
         else {
-                                # As above, only one record per user pass
-#           my $i = 0;          #  - use $i to avoid infinate loops on data without \n
-#           while (my $nfound = &socket_has_data($sock) and $byte ne "\n" and $i < 1000) {
-            while (my $nfound = &socket_has_data($sock) and $byte ne "\n") {
-                if ($nfound < 0) {
-                    &socket_close($port_name);
-                    last;
-                }
-                sysread($sock, $byte, 1);
-#               $i++;
-#                print "@" .$byte;
-                last if $byte eq ''; # See comment below
-                $data .= $byte if defined $byte;
-
-#       print "db2a byte=$byte..\n" if defined $byte;
-#       print "db2d", unpack('C', $byte), "..\n";
-                my $echo = $config_parms{"${port_name}_echo"};
-                if ($echo) {
-                                # bs = 8, del=127
-                    my $char = unpack('C', $byte);
-#                   print "db byte=$char";
-                                # Allow us to pick our echo character (e.g. '*')
-                    $byte = $echo unless $echo == 1 or $char eq 8;
-                    print $sock $byte unless $char eq 13 or $char eq 10;
-                }
+                                # 1500 is ethernet packet size
+            my $from_saddr = recv($sock, $data, 1500, undef); 
+            if ($Socket_Ports{$port_name}{protocol} eq 'udp') {
+                (my $from_port, my $from_ip) = sockaddr_in($from_saddr);
+                $Socket_Ports{$port_name}{from_port} = $from_port;
+                $Socket_Ports{$port_name}{from_ip}   = $from_ip;
             }
         }
-
-        print "$port_name data=$data..\n" if $config_parms{debug} eq $port_name;
-        
                                 # Need to do this or the socket never closes!
                                 # For some reason, nfound = 1 (instead of -1) unless we do this.
                                 # In other words, a telnet disconnect will leave nfound=1, but no data.
                                 # When telnet closes, byte IS defined, but is empty, so check on ''
-#       unless ($data) {
-#       unless (defined $data) {
         if ($data eq '') {
             print "3 closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
             &socket_close($port_name);
         }
 
-        $Socket_Ports{$port_name}{data} .= $data;
-        substr($Socket_Ports{$port_name}{data}, -2) = '' if unpack('C', $data) eq 8; # delete last character if backspace
+        if ($Socket_Ports{$port_name}{datatype} eq 'raw') {
+            $Socket_Ports{$port_name}{data} = $data;  # No not break data on newlines
+            return;
+        }
 
-        
+        if (my $echo = $config_parms{"${port_name}_echo"}) {
+                                # Need to loop thru $data here, one byte at a time
+            my $byte = $data;
+                                # bs = 8, del=127
+            my $char = unpack('C', $byte);
+                                # Allow us to pick our echo character (e.g. '*')
+            $byte = $echo unless $echo == 1 or $char eq 8;
+            next if $char eq 8;
+            print $sock $byte unless $char eq 13 or $char eq 10;
+        }
+
+        $Socket_Ports{$port_name}{data} .= $data;
         print "$port_name data=$Socket_Ports{$port_name}{data}..\n" if $config_parms{debug} eq $port_name;
-        
+      
+                                # Break data on newlines
         while (my($record, $remainder) = $Socket_Ports{$port_name}{data} =~ /(.+?)[\r\n]+(.*)/) {
             if ($config_parms{debug} eq $port_name) {
                 print "$port_name record=$record.  hex=", unpack('H*', $record), "\n";
                 print "$port_name remainder=$remainder.  hex=", unpack('H*', $remainder), "\n";
             }
             $Socket_Ports{$port_name}{data_record} = $record;
-            $Socket_Ports{$port_name}{data} = $remainder;
+            $Socket_Ports{$port_name}{data}        = $remainder;
             
             if ($port_name eq 'http') {
                 if ($record =~ /^ *GET /) {
@@ -1024,11 +1012,14 @@ sub check_for_socket_data {
 #                   print $sock ">$record";
                 }
             }
-                                # Other socket data is read by 'said' Socket_Item methods
             else {
                                 # 10/99 Comment out \r\n print ... what needed this?? Messed up viavoice server
 #               print $sock "\r\n";
 #               print $sock "You said: $record\n";
+
+                                # non-raw, non-http socket data is usually read by 'said' Socket_Item methods
+                                #  - only 1 per pass, since 'said' only reads one data_record per pass
+                last; 
             }
         }
     }
@@ -3177,6 +3168,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.17  2000/05/14 16:15:58  winter
+# - add Socket_Item datatype.  Switch from systread to recv on tcp reads
+#
 # Revision 2.16  2000/05/11 01:12:45  danal
 # Added support for UDP sockets; must be defined in MH.INI
 #
