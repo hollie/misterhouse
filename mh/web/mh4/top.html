@@ -10,8 +10,6 @@
 
 <BASE TARGET='left'>
 
-<form action="list" target="control">
-
   <table border="0" cellspacing="0">
     <tr>
 
@@ -46,9 +44,15 @@
       </td>
 
       <td width="50" align="center"> 
-        <A HREF="about.shtml"
-         onMouseOver="overlib('About MisterHouse.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
-        <h4>About</h4></a>
+        <A HREF="help.shtml"
+         onMouseOver="overlib('MisterHouse help and documentation.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>Help</h4></a>
+      </td>
+
+      <td width="50" align="center"> 
+        <A HREF="admin.shtml"
+         onMouseOver="overlib('Admin Functions.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>Admin</h4></a>
       </td>
 
       <td width="50" align="center">
@@ -75,19 +79,25 @@
         <h4>Login</h4></a>
       </td>
 
+<form action="list" target="control">
       <td width="90" align="center"
          onMouseOver="overlib('Use MS Agent for remote VR and TTS (IE only).', LEFT, ABOVE, HEIGHT, 1, WIDTH, 350, OFFSETX, 50)" onMouseOut="nd();">
          <h4>MS Agent<input type="checkbox" name="msagent" value="1"  onClick="form.submit()"></h4>
+      </td>
+
+      <td width="90" align="center" 
+         onMouseOver="overlib('Create a play wave files on the browser', LEFT, ABOVE, HEIGHT, 1, WIDTH, 350, OFFSETX, 50)" onMouseOut="nd();">
+         <h4>WebMute<input type="checkbox" name="webmute" value="1" onClick="form.submit()"></h4>
       </td>
 
       <td width="200" align="top"
          onMouseOver="overlib('Search for a Voice Command.', LEFT, ABOVE, HEIGHT, 1, WIDTH, 250, OFFSETX, 50)" onMouseOut="nd();">
         <h4 align='left'> Search: &nbsp; <input align='left' SIZE="7" NAME="search"></h4>
       </td>
+</form>
 
     </tr>
   </table>
-</form>
 </body>
 </html>
 

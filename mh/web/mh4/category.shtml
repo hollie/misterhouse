@@ -7,7 +7,7 @@
 <BASE TARGET='control'>
 
 <b>Open Access</b>
-<li><a href="barcode_scan.shtml">Scan a barcode</a></li>
+<li><a href="/misc/barcode_scan.html">Scan a barcode</a></li>
 <li><A href="http://misterhouse.net:8080/aprs">Track vehicles</A>
 <li><a href="/list?authority=\S">Other</a>
 
