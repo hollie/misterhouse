@@ -27,10 +27,12 @@ if (said $v_send_email_test) {
 
                                 # Check for recent email since last received by mail program
                                 # Do it with a get_email process, so mh will not pause
-$p_get_email = new Process_Item('get_email');
+#&tk_radiobutton('Check email', \$Save{email_check}, ['no', 'yes']);
+$p_get_email = new Process_Item('get_email -quiet');
 $v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a second and I will check for new email');
 $v_recent_email-> set_info('Download and summarize new email headers');
-if (said $v_recent_email or (!$Save{sleeping_parents} and $New_Minute and !($Minute % 10) and &net_connect_check)) { 
+if (said $v_recent_email or ($Save{email_check} eq 'yes' and !$Save{sleeping_parents} and
+                             $New_Minute and !($Minute % 10) and &net_connect_check)) { 
     start $p_get_email;
 }
 
@@ -55,7 +57,7 @@ if ($state = said $v_unread_email or
     state_now $read_email or
     time_cron('55 7-21 * * *')) { 
 #   time_cron('55 16,17,19,21 * * *')) { 
-    &speak_unread_mail;
+    &speak_unread_mail unless $Save{email_check} eq 'no';
     if ($state eq 'Read' or state_now $read_email) {
         if (my $window = &sendkeys_find_window('Outlook', 'D:\msOffice\Office\OUTLOOK.EXE')) {
 #           my $keys = '\\alt+\\tss\\alt-\\';  # For Outlook Express

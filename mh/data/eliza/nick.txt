@@ -4,7 +4,6 @@
 # by those of a sensitive nature :)
 #
 initial: <sigh> Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
-initial: Well well well, I can see that Taco Bell has closed and you've come to drool over something other than a burrito. <cough cough> fatso <cough cough>
 initial: It is a good day to die.
 initial: Hello, I am a computer program. (I wouldn't include that, but it seems obvious that you need the reminder)
 initial: Please tell me what's been bothering you. I might even not make fun of you for it.

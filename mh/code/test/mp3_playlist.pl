@@ -9,7 +9,6 @@ $v_mp3_build_list-> set_info("Builds/loads an mp3 database for these directories
 
 $p_mp3_build_list = new Process_Item;
 
-my $mp3_file = "$config_parms{data_dir}/mp3.dbm";
 my %mp3_dbm;
 if ('Build' eq said $v_mp3_build_list) {
     speak "Ok, rebuilding";
@@ -23,7 +22,7 @@ if ('Build' eq said $v_mp3_build_list) {
 speak "mp3 database build is done" if done_now $p_mp3_build_list;
 
                                 # Search the mp3 database
-&tk_entry('MP3 Search', \$Save{mp3_search}, 'MP3 Genre', \$Save{mp3_Genre});
+#&tk_entry('MP3 Search', \$Save{mp3_search}, 'MP3 Genre', \$Save{mp3_Genre});
 if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
     undef $Tk_results{'MP3 Search'};
     undef $Tk_results{'MP3 Genre'};
@@ -63,7 +62,7 @@ if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
         run "$config_parms{mp3_program} $file";
     }
     else {
-        speak "Sorry, none soungs found";
+        speak "Sorry, no soungs found";
         print_log "$count2 out of $count1 soungs $mp3_search, genre=$mp3_genre";
     }
 }
@@ -71,7 +70,36 @@ if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
                                 # Allow for loading playlists
 
 # noloop=start      This directive allows this code to be run on startup/reload
+my $mp3_file = "$config_parms{data_dir}/mp3.dbm";
 my ($mp3names, %mp3files) = &load_playlist;
+
+sub load_playlist {
+    unless (%mp3_dbm) {
+        print_log "Now Tieing to $mp3_file";
+        my $tie_code = qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
+        eval $tie_code;
+        if ($@) {
+            print_log "\n\nError in tieing to $mp3_file:\n  $@";
+            $mp3_dbm{empty} = 'empty';
+        }
+
+    }
+                                # Find the playlist files
+    my ($mp3names, %mp3files);
+    return '', '', '' unless $mp3_dbm{file};
+    for my $file (split $;, $mp3_dbm{file}) {
+        next unless $file =~ /([^\\\/]+)((\.m3u)|(\.pls))$/i;
+        my $name = ucfirst lc $1;
+        unless ($mp3files{$name}) {
+            $mp3names .= $name . ','; 
+            $mp3files{$name} = $file;
+        }
+    }
+    chop $mp3names;         # Drop last ,
+    print "mp3 playlists: $mp3names \n";
+    return $mp3names, %mp3files;
+}
+
 # noloop=stop
 
 ($mp3names, %mp3files) = &load_playlist if 'Load' eq said $v_mp3_build_list;
@@ -111,31 +139,6 @@ if ($state = said $v_mp3_playlist1 or
     }
 }
 
-sub load_playlist {
-    unless (0 and %mp3_dbm) {
-        print_log "Tieing to $mp3_file";
-        my $tie_code = qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
-        eval $tie_code;
-        if ($@) {
-            print_log "\n\nError in tieing to $mp3_file:\n  $@";
-            $mp3_dbm{empty} = 'empty';
-        }
-
-    }
-                                # Find the playlist files
-    my ($mp3names, %mp3files);
-    for my $file (split $;, $mp3_dbm{file}) {
-        next unless $file =~ /([^\\\/]+)((\.m3u)|(\.pls))$/i;
-        my $name = ucfirst lc $1;
-        unless ($mp3files{$name}) {
-            $mp3names .= $name . ','; 
-            $mp3files{$name} = $file;
-        }
-    }
-    chop $mp3names;         # Drop last ,
-    print "mp3 playlists: $mp3names \n";
-    return $mp3names, %mp3files;
-}
 
 
 #set_order $v_mp3_build_list  1;

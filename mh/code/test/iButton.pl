@@ -1,5 +1,6 @@
 # Category = iButtons
 
+return;
 # Enable iButton support by changing the mh.ini iButton_port parm.
 # You can buy iButton stuff here:
 #    http://www.iButton.com/index.html
@@ -104,6 +105,11 @@ if (said $v_iButton_readtemps) {
     my @ib_list = &iButton::scan('10'); # gets DS1920/DS1820 devices
     for my $ib (@ib_list) {
         my $temp = $ib->read_temperature_hires();
+        print_log "ID:" . $ib->serial() . "  Temp: $temp C, " . ($temp*9/5 +32) . " F";
+    }
+    @ib_list = &iButton::scan('22'); # gets DS1822 devices
+    for my $ib (@ib_list) {
+        my $temp = $ib->read_temperature();
         print_log "ID:" . $ib->serial() . "  Temp: $temp C, " . ($temp*9/5 +32) . " F";
     }
 }

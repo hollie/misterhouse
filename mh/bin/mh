@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-08-05 17:47:58 winter>
+#  Last change Time-stamp: <2000-08-06 16:48:08 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -284,8 +284,7 @@ BEGIN {
                                 #  - setupsup is not yet available for perl 5.6
                                 #  - BuildNumber doesn't work with perl2exe compile 
                                 #  - Loaded from: http://jenda.krynicky.cz/perl/
-            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys)";
-#           eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys)" if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
+            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys)" if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
             print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@;
 
             eval "use Win32::Sound";
@@ -296,12 +295,11 @@ BEGIN {
             &my_use("Win32::SoundEx");      # For Volume control
 
             &my_use("File::DosGlob 'glob'"); # Allow for globbing without perlglob.exe
-    
+
         }
         else {                              # load the mutually-exclusive non-Windows modules
             &my_use("Device::SerialPort");  # Unix Posix verion of Win32 SerialPort
         }
-
 
         if ($config_parms{tk}) {
             print "Loading Tk modules ";
@@ -485,17 +483,24 @@ sub setup {
                             $config_parms{$port_name . "_datatype"});
     }
 
-    #
-    # Create managed serial and server ports (manager must be available in lib directory)
-    #
-    for my $parm (keys %config_parms) 
-    {
-        next unless $config_parms{$parm}; # Ingore blank parms
-        if ($parm =~ /^(\S+)_(serial|server)_port/)
-        {
-            print "Found managed $2 port=$1\nMH will now require $1.pm and call $1::$2_startup($parm)\n" if $config_parms{debug} eq 'startup';
-            require "$1.pm";
-            eval "&$1::$2_startup('$parm')";
+                                # Create managed serial and server ports 
+                                # This makes it easy to add new modules
+                                # for new serial/socket devices.  
+                                # Manager must be available in lib directory
+                                #  (e.g. Compool.pm)
+    for my $parm (keys %config_parms) {
+        next unless $config_parms{$parm};
+        if ($parm =~ /^(\S+)_(serial|server)_port/) {
+            if (-e "$Pgm_PathU/../lib/$1.pm") {
+                print "Found managed $2 port=$1\nMH will now require $1.pm and call $1::$2_startup($parm)\n" 
+                    if $config_parms{debug} eq 'startup';
+                require "$1.pm";
+                eval "&$1::$2_startup('$parm')";
+                print "Startup errror on &$1::$2_startup('$parm'): $@\n" if $@;
+            }
+            else {
+                print "No $1.pm file found for $parm\n";
+            }
         }
     }
 
@@ -540,8 +545,12 @@ sub setup {
         &serial_port_create('cm17', $config_parms{cm17_port});
     }
 
-    require 'Weather.pm';
-    &Weather_Data::Init();
+    if($config_parms{weather_sblog_file} or
+       $config_parms{weather_vwlog_file} or
+       $config_parms{serial_wx200}) {
+        require 'Weather.pm';
+        &Weather_Data::Init();
+    }
 
 
     if ($OS_win) {
@@ -1204,6 +1213,7 @@ sub check_for_tied_events {
             if ($$object1{tied_events}{$event}{$state_key}) {
                 print "Event link: eval event=$event\n" if $config_parms{debug} eq 'events';
                 my $state = $state_key; # So eval can substitue $state
+                my $object=$object1;
                 eval $event;
                 print "tie_events eval error: $@" if $@;
             }
@@ -1456,16 +1466,13 @@ sub eval_user_code_error {
     $error =~ s/\seval .+//s;     # Drop listing of eval-ed code (shown if -diagnostics 1)
     my @code = split("\n", $code);
     if (defined $line2) {
-        $line2-= 5;
-        $line2++; $error.="Line $line2:  ". $code[$line2-1]. "\n";
-        $line2++; $error.="Line $line2:  ". $code[$line2-1]. "\n";
-        $line2++; $error.="Line $line2:  ". $code[$line2-1]. "\n";
-        $line2++; $error.="Line $line2:  ". $code[$line2-1]. "\n";
-        $line2++; $error.="Line $line2:  ". $code[$line2-1]. "\n";
-        $line2++; $error.="Line $line2:  ". $code[$line2-1]. "\n";
-        $line2++; $error.="Line $line2:  ". $code[$line2-1]. "\n";
-        $line2++; $error.="Line $line2:  ". $code[$line2-1]. "\n";
-        $line2++; $error.="Line $line2:  ". $code[$line2-1]. "\n";
+        $line2 -= 6;
+        $line2  = 0 if $line2 < 0;
+        my $i   = 0;
+        while ($i++ < 11) {
+            last if $line2++ > $#code;
+            $error.="Line $line2:  ". $code[$line2-1]. "\n";
+        }
     }
     return $error;
 }
@@ -2188,7 +2195,7 @@ sub process_serial_data {
         $prev_serial_event{$event_type}{time} = &get_tickcount;
         $prev_serial_event{$event_type}{event} = $event_data;
 
-        print_log "X10: Unmatched incoming data=$event_data" if $warning_flag or $config_parms{x10_errata} >= 2;
+        print_log "X10: Unmatched incoming data=$event_data" if $warning_flag and $config_parms{x10_errata} >= 2;
         return 0;
 
     }
@@ -2229,7 +2236,7 @@ sub process_x10_chunks {
         }
         else {
             print "  No match found: $event_data_chunk\n" if $config_parms{debug} eq 'X10';
-            &print_log("X10: Unmatched incoming data_chunk=$event_data_chunk") if $warning_flag or $config_parms{x10_errata} >= 2;
+            &print_log("X10: Unmatched incoming data_chunk=$event_data_chunk") if $warning_flag and $config_parms{x10_errata} >= 2;
             $pos += 2;
         }
     }
@@ -2347,7 +2354,8 @@ sub read_table_files {
         (my $table_code_file = "$file_dir/$file") =~ s/\.mht$/.mhp/;
         open  TABLE_IN,  "$file_dir/$file";
         open  TABLE_OUT, ">$table_code_file" or print_log "Error in writing to $table_code_file";
-        print TABLE_OUT "#\n# Do NOT edit this file.  It was auto-generated from $file.\n#\n\n";
+        print TABLE_OUT "#\n# Do NOT edit this file.  It was auto-generated from $file.\n#\n";
+        print TABLE_OUT "# Category = none\n\n";
         my $format;
         while (<TABLE_IN>) {
             $format = $1 if / *Format = (\S+)/i;
@@ -3241,6 +3249,8 @@ sub tk_setup_cascade_menus {
 
         for my $category (&list_code_webnames) {
 
+            next if $category =~ /^none$/;
+
                                 # We must delete old ones first, otherwise we get a memory leak!
             $Tk_objects{menu_command_by_cat}{$category}->delete(0, 'end') if $Tk_objects{menu_command_by_cat}{$category};
             delete $Tk_objects{menu_command_by_cat}{$category};
@@ -3249,6 +3259,7 @@ sub tk_setup_cascade_menus {
             for my $cmd (&list_objects_by_webname($category)) {
                 my $object = &get_object_by_name($cmd);
                 my $text     = $object->{text};
+
                 next unless $text;  # Only do voice items
 
                                 # Create category menu ... now that we know it will have entries!
@@ -3288,29 +3299,39 @@ sub tk_setup_cascade_menus {
 #       for my $object_type ('Serial_Item', 'X10_Item', 'X10_Appliance', 'iButton', 'Compool_Item', 'Group') {
         for my $object_type (@Object_Types) {
 
+            my @object_list = &list_objects_by_type($object_type);
+            my @objects = map{&get_object_by_name($_)} @object_list;
+
+                                # See if any of these objects have states ... if not skip menu entry
+            my $flag = 0;
+            for my $object (@objects) {
+                if (&tk_object_states($object, 'menu_items')) {
+                    $flag = 1;
+                    last;
+                }
+            }
+            next unless $flag;
+
                                 # We must delete old ones first, otherwise we get a memory leak!
             $Tk_objects{menu_items_by_type}{$object_type}->delete(0, 'end')if $Tk_objects{menu_items_by_type}{$object_type};
 
             $Tk_objects{menu_items_by_type}{$object_type} = $Tk_objects{menu_items}->menu->Menu;
             &tk_cascade_entry($object_type, $Tk_objects{menu_items}, $Tk_objects{menu_items_by_type}{$object_type});
-            if (my @object_list = &list_objects_by_type($object_type)) {
                 
                                 # Sort by filename first, then object name
-                my @objects = map{&get_object_by_name($_)} @object_list;
-                for my $object (sort {$a->{filename} cmp $b->{filename} or $a->{object_name} cmp $b->{object_name}} @objects) {
+            for my $object (sort {$a->{filename} cmp $b->{filename} or $a->{object_name} cmp $b->{object_name}} @objects) {
 
                                 # We must delete old ones first, otherwise we get a memory leak!
                                 #  - this one does not help!  Still leaks about .3 mb per reload with 40 or so items :(
-#                   $Tk_objects{menu_items_by_object}{$object}->delete(0, 'end')if $Tk_objects{menu_items_by_object}{$object};
+#               $Tk_objects{menu_items_by_object}{$object}->delete(0, 'end')if $Tk_objects{menu_items_by_object}{$object};
 
                                 # Only list items with NON-BLANK states
-                    if (my $menu = &tk_object_states($object, 'menu_items')) {
-                        $Tk_objects{menu_items_by_object}{$object} = $menu;
-                        my $filename = $object->{filename};
-                        my $object_name  = "$filename: " . &pretty_object_name($object->{object_name});
-                        &tk_cascade_entry($object_name, $Tk_objects{menu_items_by_type}{$object_type}, 
-                                          $Tk_objects{menu_items_by_object}{$object});
-                    }
+                if (my $menu = &tk_object_states($object, 'menu_items')) {
+                    $Tk_objects{menu_items_by_object}{$object} = $menu;
+                    my $filename = $object->{filename};
+                    my $object_name  = "$filename: " . &pretty_object_name($object->{object_name});
+                    &tk_cascade_entry($object_name, $Tk_objects{menu_items_by_type}{$object_type}, 
+                                      $Tk_objects{menu_items_by_object}{$object});
                 }
             }
         }
@@ -3623,6 +3644,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.24  2000/08/06 21:56:43  winter
+# - See 2.24 release notes.
+#
 # Revision 2.23  2000/08/06 00:59:42  winter
 # - added .gif, jgp support.  Added use diagnostics. Added &dir_index.
 #   Improve error analysis.  Lots of other minor changes.

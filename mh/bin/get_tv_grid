@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2000-06-23 23:48:05 winter>
+#  Last change Time-stamp: <2000-07-30 10:16:34 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -123,7 +123,10 @@ sub get_url {
 #       my $request = "$parms{userid}&gDY=${month}A${day}A${year}&gRT=${hour}&gCH=1";
 #       my $url="http://clicktv.com/listings.cfm?ctv_user_id=$request";
                                 #  - need to see what WSERVER## to pick ??
+                                #  - Not sure what UserID does ... works ok without it.  Different from Profileid?
         my $request = "$parms{userid}&WSN=WSERVER10&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
+#       my $request = "$parms{userid}&UserID=$parms{userid}&WSN=WSERVER10&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
+
         my $url="http://listings.clicktv.com/listings.asp?profileID=$request";
         print "Requesting url: $url\n";
         use LWP::Simple;
@@ -168,9 +171,7 @@ eof
 #<TABLE CELLSPACING = 1 CELLPADDING =
 #<tr><th colspan = 2  bgcolor="#CCCCC
 #<table border=1 cellpadding=2 cellspacing=1 width=600><tr>
-
 #<td bgcolor=#CCCCCC colspan=2>&nbsp;</td><th align=center bgcolor=CCCCCC><font size=1 face="Tahoma, Arial, Helvetica, sans-seri" color=#000000><nobr>10:00 p.m.</nobr></font></td><th align=center bgcolor=CCCCCC><font size=1 face="Tahoma, Arial, Helvetica, sans-seri" color=#000000><nobr>10:30 p.m.</nobr></font></td><th align=center bgcolor=CCCCCC><font size=1 face="Tahoma, Arial, Helvetica, sans-seri" color=#000000><nobr>11:00 p.m.</nobr></font></td><th align=center bgcolor=CCCCCC><font size=1 face="Tahoma, Arial, Helvetica, sans-seri" color=#000000><nobr>11:30 p.m.</nobr></font></td><th align=center bgcolor=CCCCCC><font size=1 face="Tahoma, Arial, Helvetica, sans-seri" color=#000000><nobr>12:00 a.m.</nobr></font></td><th align=center bgcolor=CCCCCC><font size=1 face="Tahoma, Arial, Helvetica, sans-seri" color=#000000><nobr>12:30 a.m.</nobr></font></td><th align=center bgcolor=CCCCCC><font size=1 face="Tahoma, Arial, Helvetica, sans-seri" color=#000000><nobr>1:00 a.m.</nobr></font></td><th align=center bgcolor=CCCCCC><font size=1 face="Tahoma, Arial, Helvetica, sans-seri" color=#000000><nobr>1:30 a.m.</nobr></font></td><td bgcolor=#CCCCCC colspan=2>&nbsp;</td></tr><tr valign=top>
-
 #       print "db $data_flag r=$_" if $record_prev =~ /^\<TABLE /;
         if (!$data_flag and $record_prev =~ /^\<table /i and $_ =~ /^\<t/) {
             print "Found start of TV grid\n" if $parms{debug};
@@ -199,17 +200,22 @@ eof
                                 # Find channel number and name
 #>2&nbsp;<NOBR>KTCA
 #>2&nbsp;KTCA<br>
-        my ($channel_number, $channel_name) = $record =~ /\> *(\d+) *\&nbsp; *<NOBR>(\S*?)\</;
-        my ($channel_number, $channel_name) = $record =~ /\> *(\d+) *\&nbsp; *?(\S*?)\</ unless $channel_number;
+#color=#000000>7&nbsp;<
+        my ($channel_number, $channel_name);
+        ($channel_number, $channel_name) = $record =~ /\> *(\d+) *\&nbsp; *<NOBR>(\S*?)\</;
+        ($channel_number, $channel_name) = $record =~ /\> *(\d+) *\&nbsp; *(\S*?)\</ unless $channel_number;
         last if $channel_number > $parms{channels};
                                 # Loop on each program for this channel
         my @data_pgm = split('<td', $record);
-        print "channel = $channel_number, $channel_name, programs=", @data_pgm+0, "\n" if $parms{debug};
+        my $data_pgm_count = @data_pgm;
+        print "channel = $channel_number, $channel_name, programs=$data_pgm_count\n" if $parms{debug};
+        print "Warning, channel data found, but channel number is blank.  programs=$data_pgm_count\n  data=@data_pgm\n" unless
+            $channel_number or $data_pgm_count < 5;
         my $first = 1;
         my $min_start = $min;
         while (@data_pgm) {
             my $pgm = shift @data_pgm;
-            my ($min_pgm) = $pgm =~ /colspan="(\d+)"/;
+            my ($min_pgm) = $pgm =~ /colspan="?(\d+)"?/;
             $min_pgm *= 30;
             my $min_end = $min_start + $min_pgm;
 # Old pre-8/99 style
@@ -254,7 +260,7 @@ eof
                 my $db_data= join($;, $time_end, $pgm_name, $pgm_desc);
                 $DBM{$db_key} = $db_data;
                 $DBM2{$channel_number} = $channel_name;
-                print "db key=$db_key\n  data=$db_data\n" if $parms{debug};
+                print "db key=$db_key\n  data=$db_data.\n" if $parms{debug};
             }
             print OUT "\n<td" unless $first;
             $first = 0;
@@ -400,6 +406,7 @@ sub setup {
     }
     my $dbm_file  = "$config_parms{data_dir}/tv_programs.dbm";
     my $dbm_file2 = "$config_parms{data_dir}/tv_channels.dbm";
+    print "Tieing to $dbm_file\n";        
     use Fcntl;
     use DB_File;
     tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
@@ -410,6 +417,9 @@ sub setup {
 
 #
 # $Log$
+# Revision 1.27  2000/08/06 21:56:43  winter
+# - See 2.24 release notes.
+#
 # Revision 1.26  2000/06/24 22:10:54  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

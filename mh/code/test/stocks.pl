@@ -41,7 +41,7 @@ if ($state = said $v_stock_quote) {
     display $results, 60, 'Latest Stock Quotes', 'fixed' if $state eq 'Show';
 }
 
-&tk_label(\$Save{stock_data1});
-&tk_label(\$Save{stock_data2});
+#&tk_label(\$Save{stock_data1});
+#&tk_label(\$Save{stock_data2});
 
 

@@ -9,7 +9,7 @@
 my $test_input1;
 &tk_entry('Test 1 (a..z)', \$test_input1, "Test 2", \$Save{test_input2});
 my $test_label = 'Test out:';
-&tk_label(\$test_label, \$Save{test_output});
+#&tk_label(\$test_label, \$Save{test_output});
 
 if ($state = $test_input1) {
 
@@ -137,11 +137,11 @@ if ($state = $test_input1) {
     }
     elsif ($state eq 'q') {
 #       my $test_light_1 = new X10_Item('A1', 'CM17');
-        my $test_light_1 = new X10_Item('A3');
-        print "db in test_stuff tl=$test_light_1, ref=", ref $test_light_1, ".\n";
-        $state = (ON eq state $test_light_1) ? OFF : ON;
-        print_log "Setting X10 test light 1 to $state";
-        set $test_light_1 $state;
+#        my $test_light_1 = new X10_Item('A3');
+#        print "db in test_stuff tl=$test_light_1, ref=", ref $test_light_1, ".\n";
+#        $state = (ON eq state $test_light_1) ? OFF : ON;
+#        print_log "Setting X10 test light 1 to $state";
+#        set $test_light_1 $state;
     }
     elsif ($state eq 'r') {
         my $test_light_2 = new X10_Item('D5', 'CM11');
@@ -161,6 +161,21 @@ if ($state = $test_input1) {
 #       print_log "date=$Date_Now year=$Year time=$Time_Now";
 #       print_log "The camera light is " . state $camera_light;
 #       print time_date_stamp(13) . "\n";
+    }
+    elsif ($state eq 't') {
+
+		display "$config_parms{html_dir}/graphics/funny_face.gif";
+		display "$config_parms{html_dir}/graphics/funny_face.jpg";
+    }
+    elsif ($state eq 'u') {
+
+#        set_with_timer $watchdog_light '10%', 3;
+        print_log ("hi bruce\n" x 100);
+
+#        my $rc = net_ftp(file => 'c:/junk1.txt', file_remote => 'incoming/junk1.txt',
+#                         command => 'put', server => 'misterhouse.net',
+#                         user => 'anonymous', password => 'bruce@misterhouse.net');
+#        print_log "net_ftp delete results: $rc";
     }
 
                                 # If we recognized the state, reset it

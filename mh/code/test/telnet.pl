@@ -1,14 +1,14 @@
 # Category=Other
 
 # This telnet example shows how to use mh as a socket_server.  Specify port number in mh.ini
-# If you set server1_port to 23 (the standard telnet port), you can run:
+# If you set server_telnet_port to 23 (the standard telnet port), you can run:
 #   telnet localhost
 # If you have a real telnet server run (like on linux), you will want to use a different port (e.g. 1234)
 #   telnet localhost 1234
 #
 
 				# Examples on how to read and write data to a tcp socket port
-$telnet_server = new  Socket_Item("Welcome to Mister House Socket Port 1\n", 'Welcome1', 'server1');
+$telnet_server = new  Socket_Item("Welcome to Mister House Socket Port 1\n", 'Welcome1', 'server_telnet');
 $telnet_server ->add             ("Hi, thanks for dropping by!\n", 'hi');
 $telnet_server ->add             ("Bye for now.  Y'all come back now, ya hear!  Type exit to exit.\n", 'bye');
 
@@ -19,9 +19,9 @@ if (active_now $telnet_server) {
     set $telnet_server 'Welcome1';
 
                                 # If password has been set (with set_password command), this will return true
-    if (password_check undef, 'server1') {
+    if (password_check undef, 'server_telnet') {
         $telnet_password_flag = 1;
-        print_log "Telnet active on server1, waiting for password";
+        print_log "Telnet active on server_telnet, waiting for password";
         set_echo $telnet_server '*';
         set $telnet_server 'Enter your password:';
     }
@@ -36,7 +36,7 @@ if ($telnet_password_flag and ($data = said $telnet_server)) {
     print_log "password data: $data";
     $telnet_password_flag = 0;
     set_echo $telnet_server 1;
-    if (my $results = password_check $data, 'server1') {
+    if (my $results = password_check $data, 'server_telnet') {
         print_log "Telnet password bad: password=$data results=$results";
         set $telnet_server $results;
     }
@@ -58,7 +58,7 @@ set $telnet_server "The time is $Time_Now" if $New_Minute and active $telnet_ser
 
 				# Read from the port, then write to it based on what was sent
 my $socket_speak_loop;
-#if (my $data = $Socket_Ports{server1}{data_record}) {
+#if (my $data = $Socket_Ports{server_telnet}{data_record}) {
 if (my $data = said $telnet_server) {
 
     print_log "server port 1 data: $data";
@@ -94,7 +94,7 @@ if (my $data = said $telnet_server) {
         }
     }
     
-    logit("$config_parms{data_dir}/logs/server1.$Year_Month_Now.log",  $data);
+    logit("$config_parms{data_dir}/logs/server_telnet.$Year_Month_Now.log",  $data);
 
 }
 

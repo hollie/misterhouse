@@ -7,6 +7,9 @@ if (said $v_reload_code) {
 #   set $digital_read_port_c;	# No need to reset anymore ... data is saved in -saved_states
 }
 
+$v_read_tables = new Voice_Cmd 'Read table files';
+read_table_files if said $v_read_tables;
+
 $v_set_password = new  Voice_Cmd("Set the password");
 if (said $v_set_password) {
     @ARGV = ();
@@ -88,7 +91,8 @@ if ('toggle' eq state_now $mh_mode) {
 
 
                                 # Search for strings in user code
-&tk_entry('Code Search', \$Save{mh_code_search});
+#&tk_entry('Code Search', \$Save{mh_code_search}, 'Debug flag', \$config_parms{debug});
+
 if (my $string = quotemeta $Tk_results{'Code Search'}) {
     undef $Tk_results{'Code Search'};
     print "Searching for code $string";

@@ -9,8 +9,8 @@ $v_what_speed = new Voice_Cmd 'What is your speed', 'Calculating';
 $v_what_speed-> set_info('Runs mh at max speed for a few seconds, then reports Passes Per Second');
 
 $timer_speed_check = new  Timer;
-$request_speed       = new  Serial_Item('XO2');
-if (said $v_what_speed or state_now $request_speed) {
+#$request_speed       = new  Serial_Item('XO2');
+if (said $v_what_speed) {
 #   speak("$Loop_Speed and .");
     $Loop_Sleep_Time = 0;
     $Loop_Tk_Passes = .1;	# 0 gets reset to 1, so use .1

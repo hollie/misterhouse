@@ -138,7 +138,10 @@ sub iButton_wind_read {
     #
 
     $count = $ib_rain_gauge->Hardware::iButton::Device::DS2423::read_counter();
-    if ($weather{RainTotal} and ($count - $weather{RainTotal} * 100 > 10)) {
+
+                                # Add check for $raintotal_prev, per note from Bill Richman
+    if ($raintotal_prev and
+        $weather{RainTotal} and ($count - $weather{RainTotal} * 100 > 10)) {
         print_log "bad rain gauge count: $count";
     } else {
         $weather{RainTotal} = sprintf("%3.2f", $count * 0.01);

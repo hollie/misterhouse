@@ -33,7 +33,7 @@ BEGIN {
 
 use Getopt::Long;
 use vars qw(%config_parms %config_parms_startup);
-if (!&GetOptions(\%config_parms_startup, 'debug', 'h', 'help') or 
+if (!&GetOptions(\%config_parms_startup, 'quiet', 'debug', 'h', 'help') or 
     @ARGV or $config_parms_startup{h} or $config_parms_startup{help}) {  
     print<<eof; 
 
@@ -42,6 +42,8 @@ if (!&GetOptions(\%config_parms_startup, 'debug', 'h', 'help') or
   Usage: 
     $Pgm_Name 
     $Pgm_Name -h
+    $Pgm_Name -quiet
+    $Pgm_Name -debug
 
 eof
 
@@ -57,10 +59,7 @@ sub setup {
     require 'handy_utilities.pl';
     require 'handy_net_utilities.pl';
 
-    my $private_parms = $Pgm_Path . "/mh.private.ini";
-    $private_parms = $ENV{mh_parms} if $ENV{mh_parms};
-    &main::read_opts(\%config_parms, $Pgm_Path . "/mh.ini");
-    &main::read_opts(\%config_parms, $private_parms) if -e $private_parms;
+    &main::read_mh_opts(\%config_parms, $Pgm_Path);
     for my $parm (keys %config_parms_startup) {
         $config_parms{$parm} = $config_parms_startup{$parm};
     }
@@ -71,7 +70,7 @@ sub setup {
         next if $parm =~ /net_mail_send/; # Ignore the send mail account
         push(@email_accounts, $1) if $parm =~ /net_mail_(\S+)_server$/;
     }
-    print "Email accounts to check: @email_accounts\n";
+    print "Checking email accounts: @email_accounts\n";
 
                                 # Read file with results from last email check
     my @data = &file_read("$config_parms{data_dir}/get_email.data");
@@ -84,10 +83,12 @@ sub setup {
 
     my $rule = "$config_parms{code_dir}/get_email_rule.pl";
     if (-e $rule) {
-        print "Requiring external $rule\n";
+        print "Requiring external $rule\n" unless $config_parms{quiet};
         require $rule;
         $email_rule = 1;
     }
+                                # Setting to 0, instead of undef, disables some errata
+    $config_parms{debug} = 0 if $config_parms{quiet} and !$config_parms{debug};
 }
 
 sub check_accounts {
@@ -95,7 +96,7 @@ sub check_accounts {
     my $email_file_data;
     my $msgcnt_flag = 'Email:';
     for my $account (@email_accounts) {
-        print "checking account=$account ";
+        print "checking account=$account "  unless $config_parms{quiet};
         my $msgcnt = &net_mail_count(account => $account, debug => $config_parms{debug});
 
         $msgcnt_flag .= sprintf("%3d", $msgcnt);
@@ -107,7 +108,7 @@ sub check_accounts {
             delete $email_prev{$account};
         }
         elsif ($msgcnt > $msgcnt_prev) {
-#           print "There are $msgcnt mail messages for $account\n";
+#           print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
             my $msgptr = &net_mail_summary(account => $account, first => $msgcnt_prev+1,
                                            last => $msgcnt, debug => $config_parms{debug});
             
@@ -125,7 +126,7 @@ sub check_accounts {
                     $name = &get_email_rule($name, $to, $subject) if $email_rule;
 
                                 # See if we want to read the body of the message
-                    print "Reading text for subject=$subject\n";
+                    print "Reading text for subject=$subject\n" unless $config_parms{quiet};
 #                   my $bodyptr = &net_mail_read(account => $account, first => $cnt, last => $cnt);
 
                                 # Log the subject 
@@ -154,8 +155,10 @@ sub check_accounts {
     &file_write("$config_parms{data_dir}/get_email.txt",  $results_new);
     &file_write("$config_parms{data_dir}/get_email2.txt",  $results_unread);
     &file_write("$config_parms{data_dir}/get_email.flag", $msgcnt_flag);
-    print "\nNew\n", $results_new;
-    print "\nUnread\n", $results_unread;
+    unless ($config_parms{quiet}) {
+        print "\nNew\n", $results_new;
+        print "\nUnread\n", $results_unread;
+    }
 }
 
 sub make_name_list {
@@ -172,6 +175,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.18  2000/08/06 21:56:43  winter
+# - See 2.24 release notes.
+#
 # Revision 1.17  2000/05/06 16:39:05  winter
 # - 2.15 release
 #

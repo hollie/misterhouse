@@ -66,15 +66,15 @@ eof
                                 # Globals
 my ($A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S, $T, $U, $V, $yday);
 
-&setup;
+&setup_suntime;
 my($sunrise) = &compute_time("rise");
 my($sunset)  = &compute_time("set");
 my $result = "Sunrise=$sunrise Sunset=$sunset";
 
-return $result if caller;       # So we can get results from a 'do' from mh.bat
 print "$result\n";
+return $result if caller;       # So we can get results from a 'do' from mh.bat
 
-sub setup {
+sub setup_suntime {
     $parms{latitude} = 44 +  4.9360/60 unless defined $parms{latitude};
     $parms{longitude}= 92 + 30.2246/60 unless defined $parms{longitude};
     $parms{time_zone} = 6 unless defined $parms{time_zone};
@@ -165,6 +165,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.11  2000/08/06 21:56:43  winter
+# - See 2.24 release notes.
+#
 # Revision 1.10  2000/01/27 13:31:51  winter
 # - update version number
 #

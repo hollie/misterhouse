@@ -34,6 +34,7 @@ if (said  $v_get_internet_data) {
         run_voice_cmd 'Get the top 10 list';                 # From internet_data
         run_voice_cmd 'Get tv grid data';                    # From tv_grid.pl
         run_voice_cmd 'Update stock quotes';                 # From stock.pl
+        run_voice_cmd 'Check for new Ceiva photos';          # From ceiva.pl
 
         print_log "Done with getting internet data";
     }

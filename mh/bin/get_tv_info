@@ -28,7 +28,7 @@ use Getopt::Long;
 if (!&GetOptions(\%parms, "h", "help",
                  "channels=s", "dates=s", "times=s", "lengths=s", "keys=s",
                  "outfile1=s", "outfile2=s",
-                 "debug") or @ARGV or 
+                 "debug", "quiet") or @ARGV or 
     !($parms{channels} or $parms{dates} or $parms{times} or $parms{lengths} or $parms{keys}) or
     ($parms{h} or $parms{help})) {
     print<<eof;
@@ -56,7 +56,7 @@ It uses a database created by the get_tv_grid program.
                      Default is any length.
     -keys     xyz => Will return info only for shows that have keywords     
                      in the xyz list in their title or description.
-                     Note: xyz can be a regular expresion (e.g. -keys "^ER$") 
+                     Note: xyz can be a regular expresion (e.g. -keys "\^ER\$") 
 
       All of the above parms support these formats:
          : comma-seperated values (e.g. -dates 7/4,7/5,7/6)
@@ -65,6 +65,7 @@ It uses a database created by the get_tv_grid program.
            Starting spec is optional (e.g. -dates +2)  
  
     -debug        => turn on debug info
+    -quiet        => turn off normal errata
 
   Examples:
     $Pgm_Name -channels "4-12" -lengths 2
@@ -83,17 +84,24 @@ my %config_parms;
 
 &setup;
 &find_match;
-print "\nFound $match_cnt shows from ", @channels + 0, " channels. Detailed results are in $parms{outfile2}\n";
+print "\nFound $match_cnt shows from ", @channels + 0,
+    " channels. Detailed results are in $parms{outfile2}\n" unless $parms{quiet};
 print $match_list1 if $match_cnt < 10;
 
 sub find_match {
 
     $match_cnt = 0;
+
+#    my @db_keys = %DBM;
+#    my $db_count = @db_keys;
+#    print "db count=$db_count\n";
+
     for my $pgm_date (@dates) {
         for my $channel_number (@channels) {
             for my $time_start (@times) {
                 my $db_key = join($;, $channel_number, $pgm_date, $time_start);
-                print "key=$db_key\n" if $parms{debug};
+                print "key=$db_key.\n" if $parms{debug};
+#               print "key=$db_key.  data=$DBM{$db_key}.\n" if $channel_number == 8 and $time_start eq '18:30';
                 if (my $db_data = $DBM{$db_key}) {
                                 # Drop HTML tags
                     $db_data = HTML::FormatText->new(lm => 0, rm => 500)->format(HTML::TreeBuilder->new()->parse($db_data));
@@ -116,6 +124,7 @@ sub find_match {
                         }
                     }
 
+                    print "name=$pgm_name\n" if $parms{debug};
                     for my $key (@keys) {
                         if ($pgm_name =~ /$key/i or
                             $pgm_desc =~ /$key/i) {
@@ -180,7 +189,7 @@ sub setup {
 
     my $dbm_file  = "$config_parms{data_dir}/tv_programs.dbm";
     my $dbm_file2 = "$config_parms{data_dir}/tv_channels.dbm";
-    print "Using dbm file $dbm_file\n";
+    print "Using dbm file $dbm_file\n" unless $parms{quiet};
 
     use Fcntl;
     use DB_File;
@@ -225,7 +234,8 @@ sub setup {
     $parms{outfile1} = "$config_parms{data_dir}/tv_info1.txt" unless $parms{outfile1};
     $parms{outfile2} = "$config_parms{data_dir}/tv_info2.txt" unless $parms{outfile2};
 
-    print "\nSearching for:\n  channels: @channels\n  times: @times\n  lengths: @lengths\n  dates: @dates\n  keys: @keys\n\n";
+    print "\nSearching for:\n  channels: @channels\n  times: @times\n  " .
+        "lengths: @lengths\n  dates: @dates\n  keys: @keys\n\n" unless $parms{quiet};
 
 }
 
@@ -331,6 +341,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.11  2000/08/06 21:56:43  winter
+# - See 2.24 release notes.
+#
 # Revision 1.10  2000/04/25 12:43:36  winter
 # - add HTML::FormatText to drop html tags
 #

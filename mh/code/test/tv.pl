@@ -1,7 +1,7 @@
 # Category=TV
 
 $TV  = new IR_Item 'TV';
-$VCR = new IR_Item 'VCR';
+$VCR = new IR_Item 'VCR', '3digit';
 
 $v_tv_control = new  Voice_Cmd("tv [power,on,off,mute,vol+,vol-,ch+,ch-]");
 $v_tv_control-> set_info('Controls the bedroom TV.');
@@ -25,7 +25,7 @@ if ($state = said $v_vcr_control) {
 #speak('rooms=all Warning all parents.  Disturbing show of paper idiots on in 1 minute.') if time_cron('59 20 * * 3');
 
 
-&tk_entry('TV key', \$Save{ir_key}, 'VCR key', \$Save{vcr_key});
+#&tk_entry('TV key', \$Save{ir_key}, 'VCR key', \$Save{vcr_key});
 if (my $state = $Tk_results{'TV key'}) {
                                 # Use this to test/tune the placement of your ir xmiters
     if ($state eq 'test') {

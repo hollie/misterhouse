@@ -56,6 +56,11 @@ send_numeric_page.pl
 send_alpha_page.pl
  - David's code for sending alphanumberic pages using the linux bip program
 
+slinke_build_IR_database.pl
+slinke_decode_IR.pl
+ - Brian Paulsen's examples of calling the Slinke.pm module he wrote.
+   We don't have this integrated into mh yet.
+
 test_homebase.pl
  - example code on how to talk to the homebase (JDS star*) interfaces
 
