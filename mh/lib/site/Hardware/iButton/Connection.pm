@@ -438,7 +438,8 @@ sub write {
 	warn( "WROTE: $debugString\n" );
     } 
     my $count = $this->{ SERIALPORT }->write( $string ); 
-    select undef, undef, undef, (11*1000 / 10**6);  # 11ms  added by Thomas Stoll on 10.4.2001 20:50 in Modul Connection.pm
+# This caused problems for several other users :(
+#    select undef, undef, undef, (11*1000 / 10**6);  # 11ms  added by Thomas Stoll on 10.4.2001 20:50 in Modul Connection.pm
     if ( !$count ) { 
         warn "write failed\n"; 
         return undef; 

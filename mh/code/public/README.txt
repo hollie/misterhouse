@@ -80,6 +80,9 @@ pa_control_evan_test.pl
  - Evan Graham's code for controling which rooms hear the sound 
    spoken or played by mh, using weeder DIO controled relays.
 
+printer_control.pl
+ - Paul Wilkinson's example of how to turn a printer on/off based on a unix print spool file.
+
 rrd_graph
 rrd_create.sh
 rrd_create.bat
@@ -159,10 +162,6 @@ webcam_lite.html
 webcam_lite.pl
  - Mike's code for allowing visitors to his webcam site to flash lights and
    type in TTS messages.
-
-x10_ma26*
- - Kevin Olande's and Wally Kissel's code for reading data from an X10
-   wireless mouse receiver.   Also reads normal X10 traffic!
 
 x10_video_security.pl
  - Mark Holm's code for a video surveillance system using X10 XCAM cameras and motion sensors.

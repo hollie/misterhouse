@@ -141,7 +141,6 @@ sub add_states {
     push @{$$self{states}}, @states;
 }
 sub get_states {
-    return unless $main::Reload;
     my ($self) = @_;
     return @{$$self{states}};
 }
@@ -282,6 +281,9 @@ sub delete_old_tied_times {
 
 #
 # $Log$
+# Revision 1.14  2001/05/06 21:07:26  winter
+# - 2.51 release
+#
 # Revision 1.13  2001/04/15 16:17:21  winter
 # - 2.49 release
 #

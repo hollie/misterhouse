@@ -22,8 +22,9 @@ sub new {
         $$self{object} = new  main::Socket_Item(undef, undef, $port, 'lcdproc');
     }
                                 # lcdserial is Ian Davidson's code for talking to his custom
-                                # rf lcd device.  It could be generalized for other serial attached
-                                # lcd devices
+                                # rf lcd device.  It could be generalized for other serial
+                                # attached lcd devices.  More info on Ian's lcd here:
+                                #  http://www.galeforce9.btinternet.co.uk/RF_LCD_REMOTE.htm 
     elsif ($type eq 'lcdserial') {
         $$self{object} = new  main::Serial_Item(undef, undef, $port);
     }

@@ -17,8 +17,18 @@ use strict;
 
                                 # Make sure we override any local Formatter with our modified one
                                 #   - the default one does not look into tables
+                                #   - This is a mess.  Really need to have mh libs first, not last.
+                                #   - The latest code DOES tables, but have no spaces between elements :(
 #use HTML::FormatText;
-BEGIN { require '../lib/site/HTML/FormatText.pm' }
+#BEGIN { require '../lib/site/HTML/FormatText.pm' }
+BEGIN { 
+#    unshift (@INC, "./../lib/site");
+    require './../lib/site/HTML/FormatText.pm';
+#    require './../lib/site/HTML/Formatter.pm';
+#    require './../lib/site/HTML/TableExtract.pm';
+#    require './../lib/site/HTML/TreeBuilder.pm';
+#    shift @INC;
+}
                                 # These are useful for calling from user code directly
 use HTML::Parse;
 use LWP::Simple;
@@ -774,6 +784,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.30  2001/05/06 21:07:26  winter
+# - 2.51 release
+#
 # Revision 1.29  2001/04/15 16:17:21  winter
 # - 2.49 release
 #

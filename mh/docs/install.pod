@@ -82,9 +82,9 @@ and try out a few commands.  Also try 'telnet localhost 1234' and type one of th
 web interface (e.g. 'say something good to Bruce').
 
 
-=head1 Detailed Install Instructions for Windows users
+=head1 Windows Detailed Install Instructions
 
-=head2 Step 1, Download and Install Mister House
+=head2 Windows Step 1, Download and Install Mister House
 
 I you already have perl installed, you only need to download the main misterhouse_src_###.zip package.  If you do not have perl
 installed, you will also need to download the compiled mh.exe file, which is in the misterhouse_win_###.zip package.
@@ -104,7 +104,7 @@ Look in the mh/lib directory to
 make sure long file names were preserved (e.g. http_server.pl).  If not, you can download unzip from 
 http://misterhouse.net/public/unzip.exe .
 
-=head2 Step 2, Download and Install Perl
+=head2 Windows Step 2, Download and Install Perl
 
 You can skip this step if you downloaded the compiled version of Mister House.
 
@@ -120,10 +120,10 @@ Activestate has provided ppm (Perl Package Manager), a nifty new way of automati
 and installing packages. Do this by logging on to the internet and typing:
 
    cd \perl\bin (modify to match your directory)
-   ppm install Win32-API
-   ppm install Tk
-   ppm install Tk-JPEG
-   ppm install DB_File
+   perl ppm install Win32-API
+   perl ppm install Tk
+   perl ppm install Tk-JPEG
+   perl ppm install DB_File
 
 The Tk package is about 2 MB, so it will take a while. If you are behind a www proxy firewall, 
 try setting the environment variable http_proxy=http://proxy-server:port
@@ -137,7 +137,7 @@ All other required packages should either be in the mh distribution or is now in
 standard Activestate distribution.
 
 
-=head2 Step 3, Download and Install the Speech Engines
+=head2 Windows Step 3, Download and Install the Speech Engines
 
 You can skip this step if you do not want to enable TTS and VR, but much of the fun of
 Mister House comes from the 2-way speech. If you are running NT 5.0, you should be able to skip this step,
@@ -167,9 +167,9 @@ Then run msvoice.exe to start the "Microsoft Voice" application.
 Once running, you can use the "Voice Command Options" menu from the green V in your tray to pick your default voice.
 
 
-=head1 Detailed Install Instructions for UNIX users
+=head1 UNIX Detailed Install Instructions
 
-=head2 Step 1, Download and Install Mister House
+=head2 UNIX Step 1, Download and Install Mister House
 
 Download the rpm, tar, or zip file from http://misterhouse.net/download .
 
@@ -182,7 +182,7 @@ will be needed on newer versions of unzip to preserve case on filenames.
 Then run the configure script (as root, see quick install instructions) 
 to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 
-=head2 Step 2, Download and Compile Perl
+=head2 UNIX Step 2, Download and Compile Perl
 
 Most, if not all, UNIX installations now have perl installed by default.  If for some reason, yours does not
 or if it is an older version of perl, you can downloaded the latest from http://www.perl.com .
@@ -204,11 +204,12 @@ also try the CPAN installer like this:
   cpan> install DB_File
   cpan> install Term::ReadKey
   cpan> install Time::HiRes
+  cpan> install Audio::Mixer  (if on Linux)
   cpan> exit
 
 There are some example start/stop/restart .rc files in mh/bin/misterhouse*.rc
 
-=head2 Step 3, Download and Install a Speech Engines
+=head2 UNIX Step 3, Download and Install a Speech Engines
 
 You can skip this step if you do not want to enable VR or TTS.
 

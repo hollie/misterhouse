@@ -5,7 +5,10 @@ sub get_email_rule {
 
 #   print "Debug in get_email_rule: to=$to from=$from subject=$subject\n";
 
+
+    return                         if $from =~ /newsletter/; # Covers [newsletter@x10.com]
     return 'The S F gals'          if $to =~ /FEM-SF/;
+    return 'The S F gals'          if $to =~ /sfpanet/;
     return                         if $subject =~ /\[TINI\]/;
     return                         if $subject =~ /\[ECS\]/;
     return                         if $to      =~ /\.NET\@/;
@@ -22,8 +25,13 @@ sub get_email_rule {
     return 'The perl guys'         if $to =~ /Perl-Win32-Users/;
     return 'The phone guys'        if $to =~ /ktx/ or $subject =~ /kx-t/i;
     return 'filtered - klug'       if $to =~ /klug/;           # filtered -> will not be spoken (like blank)
-    return 'junk mail'             if $from =~ /\S+[0-9]{3,}/; # If we get a joe#### type address, assume it is junk mail.
-    return 'junk mail'             if $from =~ /[0-9]{5,}/;    # If we get a ######  type address, assume it is junk mail.
+    return 'filtered no store'     if $from =~ /\S+[0-9]{3,}/; # If we get a joe#### type address, assume it is junk mail.
+    return 'filtered no store'     if $from =~ /[0-9]{5,}/;    # If we get a ######  type address, assume it is junk mail.
+#   return 'junk mail'             if $from =~ /[0-9]{5,}/;    # If we get a ######  type address, assume it is junk mail.
+
+    $from =~ s/\./ Dot /g ;     # ...change "." to the word "Dot"
+    $from =~ s/\@/ At /g ;      # ...change \@  to the word "At"
+
     return $from;
 }
 

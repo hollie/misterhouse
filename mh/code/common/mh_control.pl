@@ -176,8 +176,8 @@ if (said $v_list_x10_items) {
     my @objects = map{&get_object_by_name($_)} @object_list;
     my $results;
     for my $object (sort {$a->{x10_id} cmp $b->{x10_id}} @objects) {
-        $results .= sprintf("Address:%-2s  File:%-15s  Object:%s\n",
-                            substr($object->{x10_id}, 1), $object->{filename}, $object->{object_name});
+        $results .= sprintf("Address:%-2s  File:%-15s  Object:%-30s State:%s\n",
+                            substr($object->{x10_id}, 1), $object->{filename}, $object->{object_name}, $object->{state});
     }
     display $results, 60, 'X10 Items', 'fixed';
 }
@@ -266,3 +266,12 @@ if (state_now $Power_Supply eq 'Restored') {
     set $Power_Supply 'Normal';
 }
 
+
+                                # Repeat last spoken
+$v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message,What did you say}';
+if (said $v_repeat_last_spoken) {
+    ($temp = $Speak_Log[0]) =~ s/^.+?: //s; # Remove time/date/status portion of log entry
+    speak $temp;
+}
+
+    

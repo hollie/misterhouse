@@ -6,6 +6,80 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.51 posted on 05/06/2001
+
+Version 2.51 was just uploaded to:
+
+  http://misterhouse.sourceforge.net/download.html
+  http://misterhouse.net/download.html
+
+B<New Features:>
+
+- Added mh/lib/X10_MR26.pm and deleted mh/code/public/x10_mr26*.  This $30 RF receiver will process
+X10 data from all house codes of any RF X10 remote, including keys like Play/Stop/Rew/FF from many of the
+universal X10 remotes.  To enable, use the 2 new mh.ini MR26* parms.
+
+- Added mh.ini parm x10_multireceive_delay so we can have mulitiple X10 receivers, but only process
+the data once.  This allows us to process immediate incoming RF X10 data from the MR26 without having
+to wait for the slower power line data.  Defaults to 3 seconds.
+
+- Added menu P: records to allow for bypassing Passwords on specified menus/commands.
+See mh/code/bruce/test.menu and/or mh/docs/mh*.
+Also allow for menu level defaults in the menu code for R: and P: records.
+
+- David Norwood enabled volume control for linux users.  To enable, install the new
+Audio::Mixer module with this:  perl -MCPAN -eshell;  install Audio::Mixer  
+
+
+B<Bug Fixes, and Other Changes:>
+
+- Damon Hopkins discovered that Netscape would hang on browsing big (> 20k) mh web pages.
+Unfortunatly, I have not figured out the fix for this problem yet.
+
+- Scott Johnston dropped () around channel name in get_tv_grid, so Fesitval would work ok.
+
+- Kieran Ames suggested adding the 'What did you say' command, to repeat the last spoken text.
+
+- Clive Freedman spotted a problem with email commands with trailing blanks.
+
+- Thomas Stoll sent in some updates for ibutton (added DS1921 and DS2438 support),
+callerid (for international calls), 
+and voice (so allow for arbitrary key=value options to be passed to the TTS engine).
+
+- Joel Moore suggested a new mh.ini clicktv_label=none parm for disabling tv web page vcr links,
+and added the perl version to the web About menu.
+
+- Paul Wilkinson sent mh/code/public/printer_control.pl as an example of how to turn
+a printer on/off based on a unix print spool file.
+
+- Evan Graham updated the MR26A code for use with the 4 button keycahin remotes (HC40TX).
+
+- Damon Hopkins added state to 'List X10 items'.
+
+- Added a -voice_text 'program xyz' option, so mh can use an arbitrary xyz TTS program. 
+Greg Satz is working on a Max OS X TTS program.
+ 
+- Changed the iButton monitor function parms from $port to $family,$port for consistency.
+Those with 2+ iButton ports will need to update your code.
+
+- Fixed the run commands of the vxml/html menu code.  Bypass authentication check on  set_authority 'anyone' objects.
+
+- Fixed a bug that disabled some VOICE .mht table entries.
+
+- Fixed the previous menu in the vxml tellme menus.
+
+- Fixed a bug that gave no on/off links to groups in the initial web page.
+
+- Fixed the web page state of conditional weather items (e.g.  $freezing = new Weather_Item 'TempOutdoor < 32');
+
+- Fixed get_url call in internet_iridium.pl on windows boxes (DOS needs " not ' quotes).
+
+- Added FAQ 6.8: What sort of hardware do you have in your house?  
+
+- Added a sound event when mh pauses.  Also added a data/logs/mh_pause.*.log file to track mh pauses.
+
+
+
 =head2 Version 2.49 posted on 04/15/2001
 
 Version 2.49 was just uploaded to:

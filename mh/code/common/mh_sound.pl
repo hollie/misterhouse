@@ -2,7 +2,6 @@
 
 # Here is what this code does:
 #  - Controls volume and sets a object whenever speak or play is called
-#    Currenly this is for Windows only (unix suggestions welcome!)
 #  - Sets the mh_speakers object, which can be used to control relay
 #    controled speakers on and off before and after TTS and wave
 #    file sounds (see mh/code/bruce/pa_control.pl).
@@ -34,6 +33,7 @@ if ($is_speaking_flag and !$is_speaking) {
     $is_speaking_flag = 0;
     set $mh_speakers OFF;
     &Win32::Sound::Volume($volume_previous) if $OS_win and defined $volume_previous;
+    Audio::Mixer::set_cval('vol', $volume_previous) if $main::Info{OS_name} eq "linux" and defined $volume_previous;
 #   &Voice_Cmd::activate if $OS_win;
 }
 
@@ -49,10 +49,7 @@ sub set_volume {
 
     return if $is_speaking;     # Speaking volume wins over play volume
 
-    return unless $OS_win;      # Not sure how to control volume on unix
-                                # Test for win32 sound
-    eval "Win32::Sound::Volume";
-    return if $@;               # Older Win32 perls do not have this
+    return unless $Info{Volume_Control}; # Verify we have a volume control module installed
 
     my %parms = @_;
 
@@ -65,12 +62,18 @@ sub set_volume {
 #   print_log "Setting volume to $volume";
     return unless $volume;      # Leave volume at last (manual?) setting
 
+    if ($Info{Volume_Control} eq 'Win32::Sound') {
                                 # Store previous volume
-    $volume_previous = Win32::Sound::Volume;
-
-    $volume = int 255 * $volume / 100;   # (0->100 =>  0->255)
-    $volume = $volume + ($volume << 16); # Hack to fix a bug in Win32::Sound::Volume 
-    &Win32::Sound::Volume($volume);
+        $volume_previous = Win32::Sound::Volume;
+        $volume = int 255 * $volume / 100;   # (0->100 =>  0->255)
+        $volume = $volume + ($volume << 16); # Hack to fix a bug in Win32::Sound::Volume 
+        &Win32::Sound::Volume($volume);
+    }
+    if ($Info{Volume_Control} eq 'Audio::Mixer') {
+        my @vol = Audio::Mixer::get_cval('vol');
+        $volume_previous = ($vol[0] + $vol[1]) / 2;
+        Audio::Mixer::set_cval('vol', $volume);
+    }
 }
 
 

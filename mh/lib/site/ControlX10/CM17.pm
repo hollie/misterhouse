@@ -121,7 +121,10 @@ sub send_ir {
 
                                 # Device is optional
     my ($device, $command) = $device_command =~ /(\S*) +(\S+)/;
-    print "db sending cm17 ir data device=$device command=$command\n" if $main::config_parms{debug} eq 'IR';
+    if (defined $main::config_parms{debug}) {
+        print "db sending cm17 ir data device=$device command=$command\n" if $main::config_parms{debug} eq 'IR';
+        $DEBUG = ($main::config_parms{debug} eq 'IR') ? 1 : 0;
+    }
     my $data;
                                 # Send device code
     if ($device) {

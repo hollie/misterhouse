@@ -232,6 +232,7 @@ sub process_http_request {
                                 # See if request was for an auto-generated page
     elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg, 1)) {
         my $time_check2 = time;
+#        print_socket($socket, &html_page("", $html, $style));
         print $socket &html_page("", $html, $style);
         $time_check2 = time - $time_check2;
         if ($time_check2 > 2) {
@@ -396,8 +397,9 @@ sub process_http_request {
     }
 
     $time_check = time - $time_check;
-    if ($time_check > 2) {
-        my $msg = "http_server time exceeded: time=$time_check, header=$header";
+    if ($time_check > 1) {
+        my $msg = "http_server time exceeded: time=$time_check, ip=$Socket_Ports{http}{client_ip_address}, header=$header";
+        logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  $msg;
         print "\n$Time_Date: $msg\n";
         &print_log($msg);
 #       &speak("web sleep of $time_check seconds");
@@ -596,7 +598,7 @@ sub html_sub {
 #       if (defined $sub_ref) {
                                 # The %main:: array will have a glob for all subs (and vars)
         if ($main::{$sub_name}) {
-            print "html_sub: a=$Authorized data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n" if $main::config_parms{debug} eq 'http';
+            print "html_sub: a=$Authorized pa=$Password_Allow{'&$sub_name'} data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n" if $main::config_parms{debug} eq 'http';
                                 # Check for authorization
             if ($Authorized or $Password_Allow{"&$sub_name"}) {
                 $sub_arg = "'$sub_arg'" if $sub_arg and $sub_arg !~ /^[\'\"]/; # Add quotes if needed
@@ -1211,8 +1213,7 @@ sub html_command_table {
                 $height += 20 * @states;
             }
             my $row = $list_count;
-            $row /= 2 if $main::config_parms{category_cols} == 2;
-#           $row /= 2 if $main::config_parms{'html_category_cols' . $Http{format}} == 2;
+            $row /= 2 if $main::config_parms{'html_category_cols' . $Http{format}} == 2;
             $height = $row * 25 if $row * 25 < $height;
 #           my $ol_pos = ($list_count > 5) ? 'ABOVE, HEIGHT, $height' : 'RIGHT';
             my $ol_pos = "ABOVE, HEIGHT, $height";
@@ -1378,7 +1379,9 @@ sub html_item_state {
     my $isa_X10 = $object->isa('X10_Item');
 
                                 # If not a state item, just list it
-    return qq[<td></td><td align="left"><b>$object_name2</b></td>\n] unless defined $object->{state};
+    unless ($isa_X10 or $object->isa('Group') or defined $object->{state} or $object->{states}) {
+        return qq[<td></td><td align="left"><b>$object_name2</b></td>\n];
+    }
 
     my $filename     = $object->{filename};
     my $state_now    = $object->{state};
@@ -1513,6 +1516,22 @@ sub pretty_object_name {
     $name =~ tr/_/ /;
     $name = ucfirst $name;
     return $name;
+}
+
+                                # Netscape 4.? hangs if we print > 28k bytes all at once to the socket :(
+sub print_socket {
+    my ($socket, $html) = @_;
+#   binmode $socket;
+#    my $old_fh = select($socket);
+#    $| = 1;
+#    select($old_fh);
+    my $length = length $html;
+    print "db l=$length\n";
+    my $pos = 0;
+    while ($pos <= $length) {
+        print $socket substr $html, $pos, 1000;
+        $pos += 1000;
+    }
 }
 
 
@@ -1939,6 +1958,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.56  2001/05/06 21:07:26  winter
+# - 2.51 release
+#
 # Revision 1.55  2001/04/15 16:17:21  winter
 # - 2.49 release
 #

@@ -8,7 +8,7 @@ use strict;
 
 my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan 
                      Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
-                     ViaVoice);
+                     ViaVoice SetWindowText);
 my @bogus_last  = qw(Homelink House Group Report Programs);
 
 undef $/;
@@ -43,13 +43,17 @@ Created by <a href="http://misterhouse.net/mh/bin/authors">mh/bin/authors</a>.
 <hr><table>
 eof
 
-my $cnt = 1;
-$a{'Bruce Winter'} = 'not even once';
+my $cnt = 0;
+$a{'Bruce Winter'} = '-999';
+print "<tr>\n";
 for my $a (sort {$a{$b} <=> $a{$a} or $a cmp $b} keys %a) {
-    $cnt++;
 #   print "\t$a was mentioned $a{$a} times\n";
-    print "<tr><td><b>$a</b></td><td>$a{$a}</td></tr>\n";
+#   print "<tr><td><b>$a</b></td><td>$a{$a}</td></tr>\n";
+    print "</tr><tr>\n"  unless $cnt % 4;
+    print "<td><b>$a</b></td><td align='left'>$a{$a}</td>\n";
+    $cnt++;
 }
+print "</tr>\n" if $cnt % 3;
 print <<eof;
 </table><hr>
 <p>Found $cnt authors

@@ -65,7 +65,8 @@ if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data7) 
         my $days = (said $v_get_tv_grid_data7) ? 7 : 1;
         $state = ($state eq 'Get') ? '' : "-$state";
         my $pgm = "get_tv_grid -userid $config_parms{clicktv_id} $state -days $days";
-        $pgm .= qq[ -hour   "$config_parms{clicktv_hours}"] if $config_parms{clicktv_hours};
+        $pgm .= qq[ -hour  "$config_parms{clicktv_hours}"] if $config_parms{clicktv_hours};
+        $pgm .= qq[ -label "$config_parms{clicktv_label}"] if $config_parms{clicktv_label};
 
                                 # Allow data to be stored wherever the alias points to
         $pgm .= qq[ -outdir "$1"] if $config_parms{html_alias_tv} =~ /\S+\s+(\S+)/;

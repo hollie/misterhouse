@@ -227,6 +227,8 @@ Here are a few of them:
 
 =head2 List of supported hardware interfaces
 
+For a list of the hardware in Bruce's house, see mh/pod/faq.* quesion 6.8.
+
 You can get the ActiveHome kit for $50 from at http://www.x10.com .  This
 includes a 2 way X10 CM11 interface a lamp module and a couple of remote controllers.
 They also sell the CM17 firecracker interface which mh supports, but is a one way interface
@@ -235,6 +237,15 @@ only (does not receive X10 signals).
 X10.com also sells a $50 IR transimiter that works through the CM17 interface.  
 Info is at http://www.x10.com/products/ux17a_bj2.htm.  This is supported
 via the mh IR_Item object.
+
+Another nice interface is the $30 MR26A: http://www.x10.com/products/x10_mr26a.htm 
+This will receive the information coming from most of the X10 
+RF devices (e.g.  motion sensors, keychains, palmpads, remote controls like UR19, UR47, JR20). 
+The advantage to receiving X10 data this way, instead of a powerline device like a CM11,
+is it is much faster as data goes from RF -> MR26A -> serial_port -> mh.   
+Actions can be triggered in milliseconds, 
+without having to wait for the 500+ millisecond time it takes
+to transmit data over the powerline. 
 
 A nice summary of the different X10 controlers is here:
 http://www.geocities.com/ido_bartana/Which_controller.html
@@ -724,10 +735,10 @@ module are available (documented in mh/lib/site/Hardware/iButton/Device.pm).
 
 These functions are also part of the iButton module, but not associated with an object:
 
-     scan        $family : Returns a object list of iButton devices that match $family 
-     scan_report $family : Returns a report of      iButton devices that match $family 
+     scan        $family, $port : Returns a object list of iButton devices that match $family 
+     scan_report $family, $port : Returns a report of      iButton devices that match $family 
 
-     monitor             : Checks the one wire bus for iButton activity
+     monitor $port, $family : Checks the one wire bus for iButton activity
 
      connect $port       : Connect to the one wire bus.  Note you can now have multiple
                            iButton interfaces on multiple COM ports.
@@ -2166,7 +2177,7 @@ The cron time format matches the unix cron format.
 
    Examples:
 
-                 # Speak time every 15 minutes, between 7 am and 8 am on weekdays only  
+                 # Speak time every 15 minutes, between 7 am and 8:45 am on weekdays only  
     speak $Time_Now  if time_cron '0,15,30,45 7,8 * * 1-5';
 
                  # Change PA speaker mode at 9 pm, every day
@@ -2548,6 +2559,8 @@ other possibilites that can be added, since jabber is XML based and very flexabl
 =item net_mail_send
 
 Used to send email.
+To run commands via email, see FAQ question 2.12: Can do I send mh comands via email?
+
  
   Usage:
     net_mail_send(option => value);
@@ -2587,6 +2600,7 @@ Used to send email.
 
     net_mail_send(subject => 'test a gif file attachement',
                   file    => '../web/graphics/goofy.gif');
+
 
 
 =item net_mail_count
@@ -3341,8 +3355,10 @@ Here is an example:
        A: Camera light [on,off,+30,-30]
        R: eval "Light $state" . chr(07) # Ring bell
     D: Bedroom [on,off,+30,-30]
+       P: anyone
     M: Outside
  M: Outside
+    P: anyone
     D: Garage Light [on,off,+30,-30]
     D: Backyard Light [on,off,+30,-30]
 
@@ -3350,6 +3366,7 @@ These are the record types:
 
  M:  Menu screen
  D:  text to Display as a menu choice
+ P:  Password bypass group
  A:  what Action to run (either a voice cmd or code to eval)
  R:  what Response to display. 
      last_response will pick up the last mh response
@@ -3370,11 +3387,16 @@ The 'Humidity' record will also run a Voice_Cmd and default to last_response.
 The 'Camera light' record also runs a Voice_Cmd action.
 To save (LCD) display space, the on,off,+30,-30 Action states were renamed on the Display record to +,-,^,v.    
 
-The 'Bedroom' record matches a Voice_Cmd exactly, so no action record is required.
+The 'Bedroom' record matches a Voice_Cmd exactly, so no action record is required.  
+It specifies a Password bypass group of anyone, meaning anyone can run this command without having to use a password.
 
 The last Outside Light records are a 3rd level menu, nested under the 2nd level Lights menu.
 There are no limits to how deep you can nest menus and they can appear in any order you want in the file.
 The same menu can be a submenu of more than one other parent menu.
+
+The Outside menu
+specifies a P: record before any items are specified, so that is the default for all items on this menu,
+meaning anyone can run the commands on this page without a password.
 
 If you want a starting point to customize your own menus, you can find an auto-generated
 menu for all the mh Voice_Cmds in the mh_temp.menu file in your code directory.
@@ -3997,6 +4019,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.41  2001/05/06 21:07:25  winter
+# - 2.51 release
+#
 # Revision 1.40  2001/04/15 16:17:21  winter
 # - 2.49 release
 #

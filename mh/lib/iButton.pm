@@ -107,13 +107,13 @@ sub disconnect {
 
                                 # Called for each mh loop
 sub monitor {
-    my ($port) = @_;
+    my ($family, $port) = @_;
     $port = $connections{default} unless $port;
     return unless $connections{$port};
     my (@ib_list, $count, $ib, $id, $object, %buttons_dropped);
 #   @ib_list = &scan;
 #   print "db calling scan\n";
-    @ib_list = &scan(01);       # monitor just the button devices
+    @ib_list = &scan($family);       # monitor just the button devices
     $count = @ib_list;
 #   print "ib count=$count l=@ib_list.\n";
     %buttons_dropped = %buttons_active;
@@ -456,6 +456,9 @@ memory
 
 
 # $Log$
+# Revision 1.10  2001/05/06 21:07:26  winter
+# - 2.51 release
+#
 # Revision 1.9  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

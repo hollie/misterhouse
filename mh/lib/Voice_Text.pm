@@ -2,7 +2,7 @@
 package Voice_Text;
 use strict;
 
-my ($VTxt, $VTxt_festival, $VV_TTS, $save_mute_esd, $save_change_volume, %pronouncable);
+my ($VTxt, $VTxt_festival, $speak_pgm, $save_mute_esd, $save_change_volume, %pronouncable);
 my ($ViaVoiceTTS); #mod for ViaVoiceTTS
 
 my $is_speaking_timer = new Timer;
@@ -20,13 +20,19 @@ sub init {
         }
     }
     if ($main::config_parms{voice_text} =~ /vv_tts/i) {
-        my $pgm_root = $main::Pgm_Root;
-        $VV_TTS = qq[$main::Pgm_Path/vv_tts.pl];
-        $VV_TTS .= " -prescript " . $main::config_parms{vv_tts_prescript} if $main::config_parms{vv_tts_prescript};
-        $VV_TTS .= " -postscript " . $main::config_parms{vv_tts_postscript} if $main::config_parms{vv_tts_postscript};
-        $VV_TTS .= " -playcmd " . $main::config_parms{vv_tts_playcmd} if $main::config_parms{vv_tts_playcmd};
-        $VV_TTS .= " -default_sound " . $main::config_parms{vv_tts_default_sound} if $main::config_parms{vv_tts_default_sound};
-        print "VV TTS command string: $VV_TTS\n";
+        $speak_pgm = qq[$main::Pgm_Path/vv_tts.pl];
+        $speak_pgm .= " -prescript "     . $main::config_parms{vv_tts_prescript}     if $main::config_parms{vv_tts_prescript};
+        $speak_pgm .= " -postscript "    . $main::config_parms{vv_tts_postscript}    if $main::config_parms{vv_tts_postscript};
+        $speak_pgm .= " -playcmd "       . $main::config_parms{vv_tts_playcmd}       if $main::config_parms{vv_tts_playcmd};
+        $speak_pgm .= " -default_sound " . $main::config_parms{vv_tts_default_sound} if $main::config_parms{vv_tts_default_sound};
+        print "VV TTS command string: $speak_pgm\n";
+    }
+    if ($main::config_parms{voice_text} =~ /program (\S+)/i) {
+        $speak_pgm = $1;
+        $speak_pgm .= " -volume " . $main::config_parms{speak_volume} if $main::config_parms{speak_volume};
+        $speak_pgm .= " -pitch  " . $main::config_parms{speak_pitch}  if $main::config_parms{speak_pitch};
+        $speak_pgm .= " -voice  " . $main::config_parms{speak_voice}  if $main::config_parms{speak_voice};
+        print "Speak string: $speak_pgm\n";
     }
 
     if ($main::config_parms{voice_text} =~ /viavoice/i) {
@@ -54,7 +60,6 @@ sub init {
 
 sub speak_text {
     my(%parms) = @_;
-    my $pgm_root = $main::Pgm_Root;
     
     $parms{text} = force_pronounce($parms{text}) if %pronouncable;
 
@@ -62,7 +67,7 @@ sub speak_text {
                                 # For all others, set a timer with a rough guess
     set $is_speaking_timer (1 + (length $parms{text}) / 10) unless $VTxt;
 
-    unless ($VTxt or $VV_TTS or $VTxt_festival or $ViaVoiceTTS) {
+    unless ($VTxt or $speak_pgm or $VTxt_festival or $ViaVoiceTTS) {
         unless ($main::config_parms{voice_text}) {
             print "Can not speak.  mh.ini entry for voice_text is disabled. Phrase=$parms{text}\n";
         } else {
@@ -102,27 +107,32 @@ sub speak_text {
         set $VTxt_festival qq[(SayText "$parms{text}")];
     }
 
-    if ($VV_TTS) {
+    if ($speak_pgm) {
         my $self = {};
         my $pid = fork;
         $SIG{CHLD}  = "IGNORE";                   # eliminate zombies created by FORK()
         if ($pid) {
             $$self{pid} = $pid;
         } elsif (defined $pid) {
-            my $vv_tts_arg = "";;
+            my $speak_pgm_arg = '';
             if ($parms{play}) {
                 if ($parms{play} =~ /^System/ or $parms{play} =~ /^[\\\/]/ or $parms{play} =~ /^\S\:/) {
-                    $vv_tts_arg .= " -play $parms{play} ";
+                    $speak_pgm_arg .= " -play $parms{play} ";
                 } else {
-                    $vv_tts_arg .= " -play $main::config_parms{sound_dir}/$parms{play} ";
+                    $speak_pgm_arg .= " -play $main::config_parms{sound_dir}/$parms{play} ";
                 }
             }
+            $speak_pgm .= ' -volume ' . $parms{volume} if $parms{volume};
+            $speak_pgm .= ' -pitch  ' . $parms{pitch}  if $parms{pitch};
+            $speak_pgm .= ' -voice  ' . $parms{voice}  if $parms{voice};
             if ($parms{text}) {
-                $vv_tts_arg .= " -text '$parms{text}'";
+                $speak_pgm_arg .= ' -text' if $main::config_parms{voice_text} =~ /vv_tts/i;
+                $speak_pgm_arg .= " '$parms{text}'";
             }
-            print "db start TTS: $VV_TTS $vv_tts_arg\n" if $main::config_parms{debug} eq 'voice';
-            exec qq[$VV_TTS $vv_tts_arg];
-            die 'cant exec $VV_TTS';
+            
+            print "db start TTS: $speak_pgm $speak_pgm_arg\n" if $main::config_parms{debug} eq 'voice';
+            exec qq[$speak_pgm $speak_pgm_arg];
+            die 'cant exec $speak_pgm';
         }
     }
 
@@ -261,6 +271,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.25  2001/05/06 21:07:26  winter
+# - 2.51 release
+#
 # Revision 1.24  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-04-21 11:07:57 winter>
+#  Last change Time-stamp: <2001-05-06 15:06:08 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -279,6 +279,7 @@ BEGIN {
 
                                 # Not sure what we gain/loose with ole lite
 #           &my_use("Win32::DUN");          # Interface to rasdial
+#           use Win32::API 0.01;            # Used in DriveInfo, SerialPort, etc
             &my_use("Win32::DriveInfo");    # For disk space free/total
             eval "use Win32::Console";
             print "\nError in loading module=Win32::Console:\n  $@\n" if $@;
@@ -289,13 +290,13 @@ BEGIN {
 #           &my_use("Win32::OLE::lite");
             &my_use("Win32::Process");
             &my_use("Win32::PerfLib"); # Used in &memory_used
-
             &my_use("Win32::Registry");
                                 # Note: Must use eval, not my_use, or exported pgms are not seen :(
                                 #  - setupsup is not yet available for perl 5.6
                                 #  - BuildNumber doesn't work with perl2exe compile 
                                 #  - Loaded from: http://jenda.krynicky.cz/perl/
-            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)" if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
+            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)" 
+                if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
 
             print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@;
 
@@ -306,21 +307,40 @@ BEGIN {
 
             &my_use("File::DosGlob 'glob'"); # Allow for globbing without perlglob.exe
 
+                                # Older Win32 perls do not have this
+            eval "Win32::Sound::Volume";
+            if ($@) {
+                print "\nWin32::Sound::Volume not installed ... volume control is disabled\n\n";
+            }
+            else {
+                $Info{Volume_Control} = 'Win32::Sound';
+            }
+
         }
         else {                              # load the mutually-exclusive non-Windows modules
             &my_use("Device::SerialPort");  # Unix Posix verion of Win32 SerialPort
                                 # Used for $Keyboard.  Messes up background mh, so is optional
                                 #  - no way to detect if we are in the foreground??
             eval "use Term::ReadKey" if $config_parms{term} eq 'readkey';
-            print "\nTerm::ReadKey not installed ... keyboard monitoring disabled\n" if $@;
+            print "\nTerm::ReadKey not installed ... keyboard monitoring disabled\n\n" if $@;
             eval "use Time::HiRes('gettimeofday')";   # Used for gettimeofday for sub-second timing
             if ($@) {
-                print "\nTime::HiRes not installed ... benchmark timing is disabled\n";
+                print "\nTime::HiRes not installed ... benchmark timing is disabled\n\n";
                 $Info{HiRes} = 0;
             }
             else {
                 $Info{HiRes} = 1;
             }
+            if ($main::Info{OS_name} eq "linux") {
+                eval "use Audio::Mixer"; # Used in mh/code/common/mh_sound.pl volume control
+                if ($@) {
+                    print "\nAudio::Mixer not installed ... volume control is disabled\n\n";
+                }
+                else {
+                    $Info{Volume_Control} = 'Audio::Mixer';
+                }
+            }
+
         }
 
         if ($config_parms{tk}) {
@@ -2412,14 +2432,11 @@ sub process_external_command {
 my (@prev_x10_events, %prev_x10_units, $prev_x10_units_reset);
 sub process_serial_data {
     my ($event_data, $prev_pass) = @_;
-    my ($event_type, $event_data1, $state, $ref, @refs, $matched);
+    my ($state, $ref, @refs, $matched);
 
     return unless $event_data;
 
-#   print SERIALLOG "$date_now $time_now\n$header\n$event_data\n";
-
-    ($event_type, $event_data1) = $event_data =~ /^(\S)(\S+)/;
-    print "Serial_Item warning: blank event_type: $event_data\n" unless $event_data;
+    my ($event_type, $event_data1) = $event_data =~ /^(\S)(\S*)/;
     
     print "Serial data: event_type=$event_type, event_data=$event_data\n" 
         if $config_parms{debug} eq 'serial' or $config_parms{debug} eq 'X10';
@@ -2432,7 +2449,7 @@ sub process_serial_data {
             my $time_diff = $loop_tickcount1 - $prev_x10_events[$i]{time} if $prev_x10_events[$i]{time};
             last unless defined($time_diff) and $time_diff < $config_parms{x10_multireceive_delay};
             if ($event_data1 eq $prev_x10_events[$i]{data}) {
-                print "X10: Duplicate data ignored time=$time_diff data=$event_data\n";
+                print "X10: Duplicate data ignored data=$event_data time=$time_diff\n";
                 return;
             }
         }
@@ -2819,7 +2836,9 @@ sub read_user_code {
         print "Reading $file\n" if $config_parms{debug} eq 'misc';
  
                                 # Allow for . in dir name (e.g. misterhouse-2.26)
+                                # Add _table suffix, so we can have both items.pl and items.mht
         my ($member_name) = $file =~ /([^\\\/\.]+)\.[^\\\/\.]+$/i;
+        $member_name .= '_table' if $file =~ /mhp$/;
 
         $webname = $member_name;
         $noloop_flag = $noloop_statement_flag = $pod_flag = 0;
@@ -2851,8 +2870,10 @@ sub read_user_code {
 
                                 # Pull it out as an mh object IF:
                                 #  - It has 0 to 3 blanks in front of it (no my, not indented more than 3 blanks)
+                                #    Allow for new XYZ(stuff), new XYZ;, new XYZ qq|stuff|, etc
 #           my ($object, $type) = $record =~ /^\s*(\$\S+)\s*=\s*new\s+(\S+?)\s*[\(\;]/;
-            my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+(\S+?)\s*[\(\"\'\;\n]/;
+#           my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+(\S+?)\s*[\(\"\'\;\n]/;
+            my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+([^\s\(\;]+)/;
 #           print "wn=$webname member=$member_name o=$object type=$type\n";
 
                                 # Store a ref-to-name correlation hash
@@ -3070,7 +3091,12 @@ sub set_global_vars {
                                 # If mh got hung up doing something, lets go to catch up mode
     elsif (!$Time_Start_time and $prev_time < ($time_now - 2)) {
         $DelayOccured = $time_now - $prev_time;
-        print_log "mh paused for $DelayOccured seconds" unless $config_parms{no_log} =~ /pause/;
+        unless ($config_parms{no_log} =~ /pause/) {
+            my $volume = int 100 * $DelayOccured / 30;
+            &play(file => 'mh_problem', volume => $volume); # Defined in event_sounds.pl
+            print_log "mh paused for $DelayOccured seconds (v=$volume)";
+            logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  "mh paused for $DelayOccured seconds";
+        }
         $Time_Start_time = $prev_time;
         $Time_Increment  = 1;
         $config_parms{sleep_time} = $Loop_Sleep_Time; # In case we manually change it after startup
@@ -3518,48 +3544,42 @@ sub socket_has_data {
 sub speak {
     my ($rooms, $display_time, $key, $value, $phrase_new,  %parms, $play, $nolog);
 
+                                # Assume we were waiting for this and reset http server counter so almost 0 
+    $leave_socket_open_passes = 2 if $leave_socket_open_passes;
+
     my ($phrase) = @_;          # Simple way ... no parms
 
     if (@_ > 1) {               # Fancy way key=value way
         %parms = @_;
         $phrase = $parms{text};
-    	$play = $parms{play};
-    	$nolog = $parms{nolog};
+    	$play   = $parms{play};
+    	$nolog  = $parms{nolog};
         print "Error, no text keyword in speak command.  Parms= @_\n" unless $phrase or $play;
     }
-    $parms{mode} = '' unless $parms{mode};
+    $parms{mode}  = '' unless $parms{mode};
+    $rooms        = $parms{rooms}   if $parms{rooms};
+    $display_time = $parms{display} if $parms{display};
 
-
-                                # Assume we were waiting for this and reset http server counter so almost 0 
-    $leave_socket_open_passes = 2 if $leave_socket_open_passes;
-
-    $rooms = $parms{rooms};
-    undef $display_time;
                                 # Allow for parms in text if done the simple way
     while (($key, $value, $phrase_new) = $phrase =~ /^\s*(\S+)=(\S*)\s(.*)/s) {
-        if ($key =~ /room[s]?/i) {
+        $key = lc $key;
+                                # Not all TTS engines have all these options ... this is a superset
+        print "Warning, speak control not recognized: key=$key value=$value\n"
+            unless grep $key, qw(room display play volume time voice pitch);
+        
+        if ($key =~ /room[s]?/) {
             $rooms = $value;
+            $key = 'rooms';     # Allow for room or rooms
         }
-        elsif ($key =~ /display/i) {
+        elsif ($key eq 'display') {
             $display_time = $value;
         }
-        elsif ($key =~ /play/i) {
+        elsif ($key eq 'play') {
             $play = $value;
         }
-        elsif ($key =~ /volume/i) {
-            $parms{volume} = $value;
-        }
-        elsif ($key =~ /time/i) {
-            $parms{time} = $value;
-        }
-        else {
-            print "Warning, speak control not recognized: key=$key value=$value\n";
-        }
-        $phrase = $phrase_new;
+        $parms{$key} = $value;
+        $phrase      = $phrase_new;
     }
-    $parms{rooms} = $rooms;     # For passing to pre_hook
-
-    $display_time = $parms{display} if $parms{display};
 
     if ($phrase =~ /\.wav$/) {
         &play('file' => $phrase, 'rooms' => $rooms);
@@ -4236,6 +4256,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.51  2001/05/06 21:05:42  winter
+# - 2.51 release
+#
 # Revision 2.50  2001/04/21 16:21:06  winter
 # - add x10_mulitireceive_delay check
 #

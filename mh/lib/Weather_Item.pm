@@ -17,8 +17,9 @@ sub check_weather {
     {
         for my $self (@weather_item_list) {
             next unless defined $main::Weather{$self->{type}};
-            if (!defined $self->{state} or $self->{state} ne $main::Weather{$self->{type}}) {
-                &Generic_Item::set_states_for_next_pass($self,  $main::Weather{$self->{type}});
+            my $state = $self->state; # Gets current state
+            if (!defined $self->{state} or $self->{state} ne $state) {
+                &Generic_Item::set_states_for_next_pass($self,  $state);
             }
         }
     }

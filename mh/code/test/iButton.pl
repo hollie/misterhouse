@@ -117,7 +117,7 @@ print_log "List of ibuttons:\n" . &iButton::scan_report if said $v_iButton_list;
                                 # Pick how often to check the bus ... it takes about 6 ms per device.
                                 # You can use the 'start a by name speed benchmark' command
                                 # to see how much time this is taking
-&iButton::monitor if $New_Second;
+&iButton::monitor('01') if $New_Second;
 #iButton::monitor if $New_Msecond_500;
 
 

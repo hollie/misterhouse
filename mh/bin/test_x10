@@ -26,9 +26,9 @@ BEGIN {
     $interface = 'CM11' unless $interface;
 #   $interface = 'CM17';
 
-#   $port = '/dev/ttyS0';
-#   $port = 'COM9';
-    $port = '\\\\.\COM10' unless $port;
+#   $port = '/dev/ttyS0' unless $port;
+    $port = 'COM9' unless $port
+#   $port = '\\\\.\COM10' unless $port;
 
     $house = shift;
     $unit  = shift;

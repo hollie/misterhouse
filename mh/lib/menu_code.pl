@@ -35,10 +35,16 @@ sub menu_parse {
                 push @{$menus{menu_list}}, $menu;
             }
         }
-                                # Pull out 'select,action,response' records:  A: Left bedroom light $state
         elsif ($type) {
-            $index++ if $type eq 'D';
-            $menus{$menu}{items}[$index]{$type} = $data;
+                                # Allow for menu level parms like P: if speced before any items
+            if ($type ne 'D' and $index == -1) {
+                $menus{$menu}{"default:$type"} = $data;
+            }
+                                # Pull out 'select,action,response' records:  A: Left bedroom light $state
+            else {
+                $index++ if $type eq 'D';
+                $menus{$menu}{items}[$index]{$type} = $data;
+            }
 #           print "db m=$menu i=$index type=$type d=$data.\n";
         }
         else {
@@ -161,7 +167,8 @@ sub menu_submenu {
         next unless $menu_sub;
         unless ($menus_seen{$menu_sub}++) {
             push @menus, $menu_sub;
-            $Menus{$menu_group}{$menu_sub}{parent} = $menu; # Track just the first parent ?
+                                # Track just the first parent ?
+            $Menus{$menu_group}{$menu_sub}{parent} = $menu unless $menu eq $menu_sub;
         }
     }
     return @menus;
@@ -229,8 +236,7 @@ sub menu_create {
 sub menu_run {
     my ($menu_group, $menu, $item, $state, $format) = split ',', $_[0] if $_[0];
 
-
-    my $action;
+    my ($action, $cmd);
     my $ptr = $Menus{$menu_group}{$menu}{items}[$item];
     if (defined $state and $$ptr{actions}) {
         $action = $$ptr{actions}[$state];
@@ -238,16 +244,37 @@ sub menu_run {
     else {
         $action = $$ptr{A};
     }
+    my $authority = $$ptr{P};
+    my $display   = $$ptr{D};
+    my $response  = $$ptr{R};
+    $response  = $Menus{$menu_group}{$menu}{'default:R'} unless $response;
 
-    $action = '' unless defined $action;  # Avoid uninit warnings
-    $state  = '' unless defined $state;   # Avoid uninit warnings
-    $format = '' unless defined $format;  # Avoid uninit warnings
+    $action    = '' unless defined $action; # Avoid uninit warnings
+    $state     = '' unless defined $state;
+    $format    = '' unless defined $format;
+    $authority = '' unless defined $authority;
+    $display   = '' unless defined $display; 
+    $response  = '' unless defined $response;
+
+    $Menus{response_format} = $format;
+
+                                # Allow anyone to run set_authority('anyone') commands
+    my $ref;
+    if ($cmd = $action) {
+        $cmd =~ s/\'//g;        # Drop the '' quotes around state if a voice cmd
+        ($ref) = &Voice_Cmd::voice_item_by_text(lc($cmd));
+    }
+    $authority = $ref->get_authority           unless $authority or !$ref;
+    $authority = $Password_Allow{$display}     unless $authority;
+    $authority = $Password_Allow{$cmd}         unless $authority;
+    $authority = $Menus{$menu_group}{$menu}{'default:P'} unless $authority;
+
     $Socket_Ports{http}{client_ip_address} = '' unless $Socket_Ports{http}{client_ip_address};
-    my $msg = "a=$Authorized f=$format ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu i=$item s=$state a=$action";
-#   print "$msg\n";
+    my $msg = "menu_run: a=$Authorized,$authority f=$format ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu i=$item s=$state a=$action r=$response";
+    print "$msg\n";
     logit "$config_parms{data_dir}/logs/menu_run.log", $msg;
 
-    unless ($Authorized or $format eq 'l') {
+    unless ($Authorized or $authority or $format eq 'l') {
         if ($format eq 'v') {
             my $vxml = qq|<form><block><audio>Sorry, authorization required to run $action</audio><goto next='_lastanchor'/></block></form>|;
             return &vxml_page($vxml);
@@ -264,8 +291,6 @@ sub menu_run {
     }
 
     if ($action) {
-        my $cmd = $action;
-        $cmd =~ s/\'//g;        # Drop the '' quotes around state if a voice cmd
         my $msg = "menu_run: g=$menu_group m=$menu i=$item s=$state => action: $action";
         print_log  $msg;
         print     "$msg\n";
@@ -275,7 +300,7 @@ sub menu_run {
             print "Error in menu_run: m=$menu i=$item s=$state action=$action error=$@\n" if $@;
         }
     }
-    my $response = $$ptr{R};
+
     $Menus{last_response_menu}       = $menu;
     $Menus{last_response_menu_group} = $menu_group;
 
@@ -284,7 +309,7 @@ sub menu_run {
     }
 
                                 # Substitute $state
-    if (defined $state and $state >= 0) {
+    if (length($state) > 0 and $state >= 0) {
         my $t_state;
         $t_state  = $$ptr{Dstates}[$state] if $$ptr{Dstates};
         $t_state  = $$ptr{Astates}[$state] if $$ptr{Astates};
@@ -295,6 +320,7 @@ sub menu_run {
     }
 
     if ($response and $response =~ /^eval (.+)/) {
+        print "Running eval on: $1\n";
         $response = eval $1;
     }
     elsif ($response) {
@@ -308,7 +334,7 @@ sub menu_run {
         }
                                 # Everything else comes via http_server
         else {
-            return "menu_run_response($response,$format)"
+            return "menu_run_response('last_response','$format')"
         }
     }
 
@@ -428,7 +454,9 @@ sub menu_wml_cards {
 
     %menus = map {$_, 1} @menus;
 
-    my $template = qq|<template><do type="prev" label="Prev."><prev/></do></template>\n|;
+                                # Dang, can not get a prev button when using select??
+    my $template = qq|<template><do type="prev" label="Prev1"><prev/></do></template>\n|;
+#                            qq|<do type="accept" label="Prev2"><prev/></do></template>\n|;
     push @cards, $template;
 
     for my $menu (@menus) {
@@ -468,7 +496,6 @@ sub menu_wml_cards {
                 else {
                     $wml .= "    <option onpick='/sub?menu_run($menu_group,$menu,$item,,w)'>$$ptr{D}</option>\n";
                 }
-                $item++;
             }
             elsif ($$ptr{R}) {
                 $wml .= "    <option onpick='/sub?menu_run($menu_group,$menu,$item,,w)'>$$ptr{D}</option>\n";
@@ -479,6 +506,7 @@ sub menu_wml_cards {
                 $goto = ($menus{$goto}) ? "#$goto" : "/sub?menu_wml($menu_group,$goto)";
                 $wml .= "    <option onpick='$goto'>$$ptr{D}</option>\n";
             }
+            $item++;
         }
         $wml .= "   </select></p>\n </card>\n";
         push @cards, $wml;
@@ -749,6 +777,21 @@ sub menu_lcd_curser_state {
         $$lcd{cx} = 1 + index $$ptr{D}, $1;
     }
 }
+
+                                # Format a list of things, based on format
+sub menu_format_list {
+    my ($format, @list) = @_;
+
+    if ($format eq 'w') {
+        return '<select><option>' . join("</option>\n<option>", @list) . '</option></select>'; 
+    }
+    elsif ($format eq 'h') {
+        return join("</br>\n", @list);
+    }
+    else {
+        return join("\n", @list);
+    }
+}        
 
 return 1;
 

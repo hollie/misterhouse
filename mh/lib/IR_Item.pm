@@ -28,6 +28,8 @@ my $device_prev;
 sub set {
     my ($self, $state) = @_;
 
+    print "db set=$state pass=$main::Loop_Count\n";
+
     return if &main::check_for_tied_filters($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state);
 
@@ -91,6 +93,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.8  2001/05/06 21:07:26  winter
+# - 2.51 release
+#
 # Revision 1.7  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

@@ -136,12 +136,26 @@ use vars qw(%models);
 		    'specialfuncs' => "thermometer",
 		    'class' => 'Hardware::iButton::Device::DS1920',
 		   },
+	   "21" => {			# STOLL
+		    'model' => 'DS1921',
+		    'memsize' => 2048/8, # yes, really. 2K bytes.
+		    'memtype' => "EEPROM",
+		    'specialfuncs' => "thermometer",
+		    'class' => 'Hardware::iButton::Device::DS1921',
+		   },
 	   "22" => {
 		    'model' => 'DS1822',
 		    'memsize' => 16/8, # yes, really. two bytes.
 		    'memtype' => "EEPROM",
 		    'specialfuncs' => "thermometer",
 		    'class' => 'Hardware::iButton::Device::DS1822',
+		   },
+	   "26" => {			# STOLL
+		    'model' => 'DS2438',
+		    'memsize' => 2048/8, # yes, really. 2K bytes.
+		    'memtype' => "EEPROM",
+		    'specialfuncs' => "Humidity",
+		    'class' => 'Hardware::iButton::Device::DS2438',
 		   },
 	   "28" => {
 		    'model' => 'DS18B20',
@@ -170,6 +184,13 @@ use vars qw(%models);
 		    'memtype' => "??",
 		    'specialfuncs' => "Counter",
 		    'class' => 'Hardware::iButton::Device::DS2423',
+		   },
+	   "96" => {			# STOLL
+		    'model' => 'DS1957B-406 R2.2',
+		    'memsize' => 2048/8, # yes, really. 2K bytes.
+		    'memtype' => "EEPROM",
+		    'specialfuncs' => "cryptoRSA",
+		    'class' => 'Hardware::iButton::Device::DS1957B',
 		   },
 	  );
 
@@ -713,6 +734,200 @@ sub read_temperature_hires {
     return undef;
 }
 
+############## stoll ###############################
+package Hardware::iButton::Device::DS1921;
+
+use Hardware::iButton::Connection;
+
+# this is the thermometer button.
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+
+sub read_temperature_scratchpad {
+    my $this = shift;
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    my $temp;
+
+    # access the device 
+    if ($this->select() ) {
+	# send the convert temperature command
+	$c->owBlock( "\x44" );
+	
+	# set the 1-Wire Net to strong pull-up
+	return undef if $c->level(&Hardware::iButton::Connection::MODE_STRONG5) ne
+	  &Hardware::iButton::Connection::MODE_STRONG5;
+	
+	# sleep to let chip compute the temperature
+	select( undef, undef, undef, $this->read_temperature_time );
+	
+	# turn off the 1-Wire Net strong pull-up
+	return undef if $c->level(&Hardware::iButton::Connection::MODE_NORMAL) ne
+	  &Hardware::iButton::Connection::MODE_NORMAL;
+	
+	# access the device 
+	if ($this->select() ) {
+	    # create a block to send that reads the temperature
+	    # read scratchpad command
+	    # and add the read bytes for data bytes and crc8
+	    my $send = "\xBE" . ( "\xFF" x 9 );
+	    
+	    # now send the block
+	    my $result = $c->owBlock( $send );
+	    if ( $result ) {
+		# perform the CRC8 on the last 8 bytes of packet
+		return $result if !$c->docrc8( substr( $result, 1 ) );
+	    }
+	}
+    }
+   
+    return undef;
+}
+
+=head2 read_temperature
+
+ $temp = $b->read_temperature();
+ $temp = $b->read_temperature_hires();
+
+These methods can be used on DS1820/DS1920 Thermometer iButtons. They return
+a temperature in degrees C. The range is -55C to +100C, the resolution of the
+first is 0.5C, the resolution of the second is about 0.01C. The accuracy is
+about +/- 0.5C.
+
+Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
+
+=cut
+
+sub read_temperature_time { return 0.3; }
+
+sub read_temperature {
+    my($self) = @_;
+    my $data = $self->read_temperature_scratchpad();
+
+    if ( $data ) {
+	my @data = unpack( "C*", $data );
+	my $sign = $data[2] > 128 ? -1 : 1;
+	my $temp = (($data[2] & 0x07) * 256 + $data[1]) / 16 * $sign;
+	return $temp;
+    }
+    return undef;
+}
+
+sub read_temperature_hires {
+    my($self) = @_;
+
+    my $data = $self->read_temperature_scratchpad();
+
+    if ( $data ) {
+	# calculate the high-res temperature
+	my @data = unpack( "C*", $data );
+	my $tmp = int($data[1]/2);
+	$tmp -= 128 if $data[2] & 0x01;
+	my $cr = $data[7];
+	my $cpc = $data[8];
+	return undef if ($cpc == 0);
+	$tmp = $tmp - 0.25 + ($cpc - $cr)/$cpc;
+			    
+	return $tmp;
+    }
+
+    return undef;
+}
+
+############## stoll ###############################
+package Hardware::iButton::Device::DS2438;
+use Hardware::iButton::Connection;
+
+# this is the thermometer button.
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+sub read_humidity
+{
+    my($self) = @_;
+
+    print "\nhumidity\n";
+
+    my $Vdd = $self->Volt_Reading(1);
+    my $Vad = $self->Volt_Reading(0);
+
+
+    my $temp = Get_Temperature();
+
+    my $humid = ((($Vad/$Vdd) - 0.16)/0.0062)/(1.0546 - 0.00216 * $temp);
+
+    print "\n\n";
+
+    my $this = shift;
+    $this->Volt( @_ );
+
+
+}
+
+sub Volt_Reading
+{
+	my($vdd)=@_;
+    my $this = shift;	
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    if (Volt_AD($vdd))
+    {
+    }
+}
+
+sub Volt_AD
+{
+	my($vdd)=@_;
+    my $this = shift;	
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+	# access the device 
+	if ($this->select() ) 
+	{
+	    my $send = "\xB8\x00";
+	    my $result = $c->owBlock( $send );
+
+	    $send = "\xBE\x00" . ( "\xFF" x 9 );
+	    $result = $c->owBlock( $send );
+	    if ( $result ) 
+		{
+			# perform the CRC8 on the last 8 bytes of packet
+			return $result if !$c->docrc8( substr( $result, 1 ) );
+
+			if ( $result ) 
+			{
+				my @data = unpack( "C*", $result );
+				my $sign = substr( $result, 2 ) > 128 ? -1 : 1;
+				my $temp = ((substr( $result, 2 ) & 0x07) * 256 + substr( $result, 1 )) / 16 * $sign;
+				return $temp;
+			}
+
+
+			return $result if !$c->docrc8( substr( $result, 1 ) );
+	    }
+	}
+}
+
+sub Get_Temperature
+{
+}
+
+
+package Hardware::iButton::Device::DS1957B;
+# this is a crypto button.
+use Hardware::iButton::Connection;
+
+# this is the thermometer button.
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+
+
+############## stoll ###############################
 
 
 package Hardware::iButton::Device::DS1822;

@@ -13,12 +13,12 @@ if ($state = $v_send_email_test->{said}) {
         &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date") if $state == 1;
 
                                 # Send a command in the subject
-        &net_mail_send(subject => "command:What time is it  code:$config_parms{net_mail_command_code}",
+        &net_mail_send(subject => "command:What time is it   code:$config_parms{net_mail_command_code}",
                        text => "I have been running for " . &time_diff($Time_Startup_time, time)) if $state == 2;
 
                                 # Send a command in the body
         &net_mail_send(subject => "test command in body of text",
-                       text => "command:What is your up time?  code:$config_parms{net_mail_command_code}") if $state == 3;
+                       text => "command:What is your up time   \ncode:$config_parms{net_mail_command_code}") if $state == 3;
 
                                 # Send attachements of different types
                                 #  - Note mime parm is optional if file ends with that extention
@@ -118,8 +118,7 @@ sub scan_subjects {
     return unless -e $file;
     for my $line (file_read $file) {
         my ($from, $to, $subject_body) = $line =~ /From:(.+) To:(.+) Subject:(.*)/;
-        if (my($command, $code) = $subject_body =~ /command:(.+) code:(\S+)/) {
-            chomp $command;
+        if (my($command, $code) = $subject_body =~ /command:(.+?)\s+code:(\S+)/) {
             my $results;
              if ($config_parms{net_mail_command_code} and $config_parms{net_mail_command_code} eq $code) {
                 speak "Running email command: $command";

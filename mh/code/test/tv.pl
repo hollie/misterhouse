@@ -3,8 +3,8 @@
 $TV  = new IR_Item 'TV';
 $VCR = new IR_Item 'VCR', '3digit';
 
-my  $tv_states = 'power,on,off,mute,vol+,vol-,ch+,ch-';
-my $vcr_states = $tv_states . 'record,play,puase,stop,ff,rew';
+my  $tv_states = 'power,on,off,mute,vol+,vol-,ch+,ch-,recall';
+my $vcr_states = $tv_states . 'record,play,pause,stop,ff,rew';
 
 set_states  $TV split ',', $tv_states;
 set_states $VCR split ',', $vcr_states;

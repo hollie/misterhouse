@@ -4,8 +4,10 @@ use strict;
 use vars '%name_by_number', '%state_by_areacode';
 my ($my_areacode, @my_areacodes, $my_state);
 
+
+
 sub make_speakable {
-    my($data, $format) = @_;
+    my($data, $format,$local_area_code_language) = @_;
 
 
 =cut begin
@@ -39,6 +41,12 @@ TIME = 0137
 NAME = O
 DDN_NMBR= 9932562
 
+***************************************
+Switzerland format:
+
+RING
+FM:07656283xx TO:86733xx
+
 (Notes: 
 - 'O' as a name means 'Unavailable'
 - the phone# doesn'n include the area code if in the same area code than you.
@@ -52,10 +60,11 @@ DDN_NMBR= 9932562
 # Switch name strings so first last, not last first.
 # Use only the 1st two blank delimited fields, as the 3rd, 4th are usually just initials or incomplete
 
-    my ($number, $name, $time, $date, $last, $first, $middle, $areacode, $local_number, $caller);
+    my ($number,$numberTo, $name, $time, $date, $last, $first, $middle, $areacode, $local_number, $caller);
 
 # Last First M
 # Last M First
+
 
     if ($format == 2) {
         ($date)   = $data =~ /DATE *= *(\S+)/s;
@@ -66,15 +75,32 @@ DDN_NMBR= 9932562
 #       ($name)   = $data =~ /NAME *= *(.+)/s;
         ($name)   = $data =~ /NAME *= *([^\n]+)/s;
 
+        ($number) = $data =~ /FM:(\S+)/s unless $number;
+        ($numberTo) = $data =~ /TO:(\S+)/s;
+
+        print "phone number=$number numberTo=$numberTo name=$name\n";
+
+
         $name = substr($name, 0, 15);
         $name = 'Unavailable' if $name =~ /^O$/; # Jay's & Chaz's exceptions
         $name = 'Private'     if $name =~ /^P$/; # Chaz's exception
         $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/; # Chaz's exception
         ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
 
-# Canadian phone#s are reported without the area code if in the same area
-        substr($number, 6, 0) = '-' if length $number > 7;
-        substr($number, 3, 0) = '-' if length $number > 3;
+		if ( $local_area_code_language =~ /swiss-german/gi )
+		{
+			# Switzerland's phone#s are reported without the area code if in the same area
+	        substr($number, length($number)-2, 0) = '-' if length($number) > 6 ;
+    	    substr($number, length($number)-5, 0) = '-' if length($number) > 6 ;
+	        substr($number, length($number)-9, 0) = '-' if length($number) > 8 ;
+		}
+		else
+		{
+	        substr($number, 6, 0) = '-' if length $number > 7;
+    	    substr($number, 3, 0) = '-' if length $number > 3;
+		}
+
+
     }
     else {
         ($time, $number, $name) = unpack("A13A13A15", $data);
@@ -104,15 +130,19 @@ DDN_NMBR= 9932562
     }
     elsif ($last eq "Private"  or $number eq "P") {
         $caller = "a blocked phone number";
+		$caller = "Nummer unterdrückt" if ($local_area_code_language =~ /swiss-german/gi);
     }
     elsif ($last eq "Unavailable" or $name eq '') {
         $caller = "number $local_number";
+		$caller = "Nummer $local_number" if ($local_area_code_language =~ /swiss-german/gi);
     }
     elsif ($last eq "Out-of-area" or $last eq "Out" or $number eq "O") {
         $caller = "an out of area number";
+		$caller = "Vorwahl nicht vorhanden" if ($local_area_code_language =~ /swiss-german/gi);
     }
     elsif ($last eq "Pay") {
         $caller = "a pay phone";
+		$caller = "Telefonkabiene" if ($local_area_code_language =~ /swiss-german/gi)
     }
     elsif ($main::config_parms{caller_id_format} eq 'first last' and $name !~ /,/) {
                                 # no comma from Ameritech means leave the caller ID string alone
@@ -126,11 +156,27 @@ DDN_NMBR= 9932562
     print "ac=$areacode state_by_area_code=$state_by_areacode{$areacode}\n";
 #   unless ($areacode == $my_areacode or !$areacode or $caller =~ /\.wav/) {
     unless (!$areacode or (grep $_ == $areacode, @my_areacodes) or $caller =~ /\.wav/) {
-        if ($state_by_areacode{$areacode}) {
-            $caller .= " from $state_by_areacode{$areacode}";
+        if ($state_by_areacode{$areacode}) 
+		{
+			if ($local_area_code_language =~ /swiss-german/gi)
+			{
+				$caller .= " aus $state_by_areacode{$areacode}" 
+			}
+			else
+			{
+				$caller .= " from $state_by_areacode{$areacode}";
+			}
         }
-        else {
-            $caller .= " from area code $areacode";
+        else 
+		{
+			if ($local_area_code_language =~ /swiss-german/gi)
+			{
+				$caller .= " aus Vorwahl $areacode";
+			}
+			else
+			{
+    	        $caller .= " from area code $areacode";
+			}
         }
     }
 #   $caller = "Call from $caller.  Phone call is from $caller.";
@@ -209,6 +255,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.21  2001/05/06 21:07:26  winter
+# - 2.51 release
+#
 # Revision 1.20  2001/03/24 18:08:38  winter
 # - 2.47 release
 #
