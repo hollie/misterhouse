@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-06-27 08:15:05 winter>
+#  Last change Time-stamp: <2001-06-30 07:36:29 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -3477,10 +3477,8 @@ sub serial_port_open {
 }
 
 sub set_sun_time {
-                                # Use abs to allow for negative longitude and time_zone
-                                # The silly Astro::Sun_Time module requires negative long and time zone
-    my @parms = (latitude  =>  $config_parms{latitude}, longitude => - abs $config_parms{longitude},
-                 time_zone => - abs $config_parms{time_zone});
+    my @parms = (latitude  =>  $config_parms{latitude}, longitude => $config_parms{longitude},
+                 time_zone =>  $config_parms{time_zone});
 
     print "Latitude: $config_parms{latitude},  Longitude: $config_parms{longitude},  Time Zone: $config_parms{time_zone}\n";
     $Time_Sunrise = time_to_ampm &sun_time(type => 'rise', @parms);
@@ -4314,6 +4312,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.56  2001/07/19 03:48:08  winter
+# - add http_fork
+#
 # Revision 2.55  2001/06/27 13:17:36  winter
 # - 2.55 release
 #
