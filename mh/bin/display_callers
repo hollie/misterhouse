@@ -83,7 +83,7 @@ sub setup {
 #   use DB_File;  # neede for ocmpiled version??
 
     if ($parms{cgi}) {
-        use CGI ':all';
+        eval "use CGI ':all';"; # Use eval so we don't fail if CGI not available (e.g. mh.exe)
         print &header(-target => 'New Window');
         print &start_html("Phone Logs");
         print "<center><H2>Phone Logs</H1></center>\n";
@@ -572,8 +572,8 @@ sub phone_list2 {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 13:59:19  winter
-# Initial revision
+# Revision 1.16  2000/01/27 13:21:37  winter
+# - update version number
 #
 # Revision 1.15  1999/11/28 19:48:43  winter
 # - allow for non-digits when parsing out logs

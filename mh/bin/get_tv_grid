@@ -395,8 +395,8 @@ sub setup {
 }
 #
 # $Log$
-# Revision 1.1  2000/01/19 13:59:22  winter
-# Initial revision
+# Revision 1.22  2000/01/27 13:22:33  winter
+# - update version number
 #
 # Revision 1.21  2000/01/02 23:40:16  winter
 # - added dropbox code for index

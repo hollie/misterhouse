@@ -167,8 +167,8 @@ sub make_name_list {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 13:59:20  winter
-# Initial revision
+# Revision 1.13  2000/01/27 13:22:04  winter
+# - update version number
 #
 # Revision 1.12  1999/12/12 23:57:12  winter
 # - add body of mail text to the log.

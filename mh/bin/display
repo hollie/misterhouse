@@ -52,8 +52,8 @@ __END__
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 13:59:18  winter
-# Initial revision
+# Revision 1.9  2000/01/27 13:20:38  winter
+# - update version number
 #
 # Revision 1.8  1999/02/08 00:36:44  winter
 # - use eval use lib, so we can call with mh.exe

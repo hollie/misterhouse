@@ -138,8 +138,8 @@ else {
 #	print_forecast
 
 # $Log$
-# Revision 1.1  2000/01/19 13:59:23  winter
-# Initial revision
+# Revision 1.9  2000/01/27 13:23:38  winter
+# - update version number
 #
 # Revision 1.8  1999/11/08 02:13:21  winter
 # - update to latest Geo::Weather

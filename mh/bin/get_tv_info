@@ -322,8 +322,8 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 13:59:22  winter
-# Initial revision
+# Revision 1.7  2000/01/27 13:23:00  winter
+# - update version number
 #
 # Revision 1.6  2000/01/02 23:40:38  winter
 # - change email address
