@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-05-21 16:31:24 winter>
+#  Last change Time-stamp: <2000-05-26 21:22:33 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -83,7 +83,7 @@ my ($exit_flag, $xcmd_file, %file_code_times, %file_change_times);
 my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, @Item_Code, @Item_Code_Objects, $user_code);
 my ($user_code_last_good_candidate_flag, $user_code_last_good, $restore_state);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname, %object_names_by_file, %object_names_by_type, %object_names_by_webname);
-my (%prev_serial_event, @Generic_Serial_Ports, @Server_Ports);
+my (%prev_serial_event, @Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
 my ($CON_IN, $CON_OUT);
 #use vars '$CON_IN', '$CON_OUT';
 
@@ -94,7 +94,7 @@ my($state, $temp);              # Some generic useful vars
 use vars '%Tk_objects', '%Tk_results', '@Tk_widgets'; # So we can use in http_server
 use vars '$MW';                 # So that programs that we 'do' can use the top window
 use vars '%Serial_Ports';       # So we can get at it from the Serial_Item package.
-use vars '%Socket_Ports', '%Local_Addresses';
+use vars '%Socket_Ports';
 use vars '%Save';
 use vars '%Info', '$OS_win';
 use vars '%Password_Allow';     # So we can see check it from http_server.pl
@@ -205,7 +205,7 @@ BEGIN {
         open (PARMS, $parmfile) or die "Error, could not open parmfile $parmfile: $!\n";
         my @parms;
         while (<PARMS>) {
-            push(@parms, "$1=s") if /^([^\s\#]+)=/;
+            push(@parms, "$1=s") if /^([^\s\#]+) *=/;
         }
         close PARMS;
 #        print "db parms=@parms\n";
@@ -359,12 +359,10 @@ sub setup {
     use iButton;
     use Hardware::iButton::Connection;
 
-
     use Socket_Item;
     use Process_Item;
     use Voice_Cmd;
     use Voice_Text;
-#   use Show_Text;
     use Caller_ID;
 
     use Astro::MoonPhase;
@@ -1367,6 +1365,13 @@ sub help {
     }
 }
 
+sub is_local_address {
+    my ($address) = @_;
+                                # Default to the web client
+    $address = $Socket_Ports{http}{client_ip_address} unless $address;
+    return grep $address =~ /$_/, @Local_Addresses;
+}
+
 sub list_code_files {
     return sort {lc($a) cmp lc($b)} keys %object_names_by_file;    # Case insensitive sort
 }
@@ -1653,7 +1658,9 @@ sub password_check {
         else {
             my $client = $Socket_Ports{$port}{client_ip_address};
 #           print "db client=$client port=$port allowed=$config_parms{password_allow_clients}\n";
-            return if $client and -1 < index $config_parms{password_allow_clients}, $client;
+#           return if $client and -1 < index $config_parms{password_allow_clients}, $client;
+            return if $client and grep $client =~ /$_/, @Password_Allow_Clients;
+
             return "Password required";
         }
     }
@@ -2014,7 +2021,10 @@ sub read_code {
     
 
                                 # These parms might be twiddled with, so re-set them.
+                                #  - %Local_Addresses is for backward compatibility ... maybe drop it some day
     %Local_Addresses = map{$_, 1} split(',', $config_parms{local_addresses});
+    @Local_Addresses = split ',', $config_parms{local_addresses};
+    @Password_Allow_Clients = split ',', $config_parms{password_allow_clients};
 
     %noload_files = map {$_, 1} split(',', $config_parms{no_load});
 
@@ -2660,22 +2670,22 @@ sub socket_has_data {
 }
 
 sub speak {
-    my ($rooms, $room_to_speak_to, $display_time, $key, $value, $phrase_new,  %parms);
+    my ($rooms, $display_time, $key, $value, $phrase_new,  %parms);
 
-    my ($phrase) = @_;      # Simple way ... no parms
+    my ($phrase) = @_;          # Simple way ... no parms
 
-    if (@_ > 1) {           # Fancy way key=value way
+    if (@_ > 1) {               # Fancy way key=value way
         %parms = @_;
         $phrase = $parms{text};
         print "Error, no text keyword in speak command.  Parms= @_\n" unless $phrase;
     }
 
                                 # Assume we were waiting for this and reset http server counter so almost 0 
-    $leave_socket_open_passes= 2 if $leave_socket_open_passes;
+    $leave_socket_open_passes = 2 if $leave_socket_open_passes;
 
     $rooms = $parms{rooms};
     undef $display_time;
-    # Allow for parms in text if done the simple way
+                                # Allow for parms in text if done the simple way
     while (($key, $value, $phrase_new) = $phrase =~ /^\s*(\S+)=(\S*)\s(.+)/s) {
         if ($key =~ /room[s]?/i) {
             $rooms = $value;
@@ -2690,27 +2700,15 @@ sub speak {
     }
     $display_time = $parms{display} if $parms{display};
 
-#    $rooms = "rooms $room_to_speak_to" if !$rooms and $room_to_speak_to;
-#    undef $room_to_speak_to;
-    
     if ($phrase =~ /\.wav$/) {
-#       &play($data, %parms);
         &play('file' => $phrase, 'rooms' => $rooms);
         return;
     }
 
-    &print_speaklog($Save{mode} . ": " . $phrase);
-    $Last_Response = 'speak';
-
-    return if ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} ne 'unmuted';
-
-    &pa_stub($rooms) if $rooms;
-
     $display_time = 120 if -f $phrase;
     &display($phrase, $display_time) if defined $display_time;
-#   &display("-time $display_time", $phrase) if $display_time;
 
-    # If we are dealing with a file, slurp it up into one string
+                                # If we are dealing with a file, slurp it up into one string
     if (-f $phrase or $phrase =~ /\.txt$/) {
         my $file = $phrase;
         $phrase = '';
@@ -2720,21 +2718,31 @@ sub speak {
         }
         close TEXT;
     }
-#   &Show_Text::Display('text' => $file, 'time' => $display_time) if $display_time;
-#   }
-#   else {
-#   &Show_Text::Display('text' => $phrase, 'time' => $display_time) if $display_time;
-#   }
 
+    &print_speaklog($Save{mode} . ": " . $phrase);
 
-    # Lowercase all uppercase text ... if it > 4 characters (don't want to mess up acronyms)
+    $Last_Response = 'speak';
+
+    return if ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} ne 'unmuted';
+
+                                # Check if we want to speak web requested data
+    if ($leave_socket_open_passes) {
+        if (($config_parms{internet_speak_flag} eq 'none') or
+            ($config_parms{internet_speak_flag} eq 'local' and !&is_local_address())) {
+            return;
+        }
+    }
+
+    &pa_stub($rooms) if $rooms;
+
+                                # Lowercase all uppercase text ... 
+                                #  if it > 4 characters (don't want to mess up acronyms)
     $phrase =~ s/([A-Z]{4,})/ucfirst(lc($1))/eg;
 
-    # Ascii codes 030 -> 126 covers normal characters
-    #    anything between ! thru ~
-    # We do this check in case something (like serial_server)
-    # goes out of control ... we don't want to hear garbage!
-
+                                # Ascii codes 030 -> 126 covers normal characters
+                                #    anything between ! thru ~
+                                # We do this check in case something (like serial_server)
+                                # goes out of control ... we don't want to hear garbage!
     if ($phrase !~ /^[\n\r\t !-~]+$/) {
         print "Data is unspeakable!  phrase=$phrase\n";
         print_log "Data is unspeakable!  phrase=", substr($phrase, 0, 40), " ...\n";
@@ -3268,6 +3276,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.20  2000/05/27 16:38:46  winter
+# - Allow for regular expresions in local_address check.  Add internet_speak_flag.
+#
 # Revision 2.19  2000/05/21 22:08:56  winter
 # - add &add_hooks, so we can have user defined callbacks
 #
