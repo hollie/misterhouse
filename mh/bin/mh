@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2005-01-23 16:46:10 winter>
+#  Last change Time-stamp: <2005-03-19 18:55:01 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -585,6 +585,8 @@ sub setup {
     use constant CLOSE   => 'close';
     use constant OPENED  => 'opened';
     use constant CLOSED  => 'closed';
+    use constant MOTION  => 'motion';
+    use constant STILL   => 'still';
 
     require 'handy_net_utilities.pl';   # For misc. net functions (e.g. net_mail_read)
 #   require 'console_utils.pl';
@@ -1897,7 +1899,9 @@ sub check_for_tied_events {
                     $state2 = $state1 if $state2 eq 'all_states';
                     if ($object2->can('set')) {
                                 # Make sure we don't get into a loop with cross-tied objects
-                        unless ($object1->{set_by} and $object1->{set_by} eq $object2) {
+                        unless ($object1->{set_by} and
+                                ($object1->{set_by} eq $object2 or
+                                 $object1->{set_by} eq $$object2{object_name} ) ) {
 #                           $object2->{set_by} = $object1->{object_name};
 #                           $object2->{set_by} = $object1;
                             $Respond_Target = $object1->get_target(); # Pass target along
@@ -1921,7 +1925,7 @@ sub check_for_tied_events {
                 my $state = $state1; # So eval can substitue $state
                 my $object=$object1;
                 $Set_By = $object1->{object_name};        # Checked in Generic_Item set method
-        $Respond_Target = $object1->get_target(); # Pass target along
+                $Respond_Target = $object1->get_target(); # Pass target along
                 eval $event;
                 $Set_By = '';
                 print "tie_events eval error: $@" if $@;
@@ -2502,7 +2506,8 @@ sub is_local_address {
     my ($address) = @_;
                                 # Default to the web client
     $address = $Socket_Ports{http}{client_ip_address} unless $address;
-    return grep $address =~ /$_/, @Local_Addresses;
+#   return grep $address =~ /$_/, @Local_Addresses;
+    return (grep $address =~ /$_/, @Local_Addresses) ? 1 : 0;
 }
 
 sub last_response {
@@ -3231,6 +3236,12 @@ sub play {
                 $played_ok = 1 if 0 == $?;  # $? is $SIG_CHILD
             }
             else {
+                if ($sound_program =~ /play$/) {
+                    if (defined $parms{volume}) {
+                        my $pervol = $parms{volume} / 100;
+                        $sound_program .= " -v $pervol";
+                    }
+                }
                                 # Perl 5.8 did was setting $? to -1, so use system $rc instead
                 my $rc = system("$sound_program $file &");
                 $played_ok = 1 if 0 == $rc;
@@ -3801,14 +3812,14 @@ sub read_code {
     undef @files_changed;
     undef @files_changed2;
     my %files_deleted = %file_code_times;
-    %noload_files = map {$_, 1} (split(',', $config_parms{no_load}),
+    %noload_files = map {lc($_), 1} (split(',', $config_parms{no_load}),
                                  &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2))
     if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
     my %files_seen;
     for $file (@files_read) {
         next if $file =~ /^read_table/; # Ignore table file readers in the user dir
-        (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
+        (print "File skipped due to -noload: $file\n"), next if $noload_files{lc($file)};
 
         undef $file_path;
         for my $code_dir (@Code_Dirs) {
@@ -3882,14 +3893,14 @@ sub convert_table_files {
     @files_read = grep(/^[a-z0-9].*\.mht$/i, @files_read);
 
                                 # See if we are supposed to skip any files
-    my %noload_files = map {$_, 1} (split(',', $config_parms{no_load}),
+    my %noload_files = map {lc($_), 1} (split(',', $config_parms{no_load}),
                                     &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2))
     if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
     ## attempt to convert all *.mht files to xml
     require "table_A2XML.pm";
     foreach my $mht_file (@files_read){
-        (print "File skipped due to -noload: $mht_file\n"), next if $noload_files{$mht_file};
+        (print "File skipped due to -noload: $mht_file\n"), next if $noload_files{lc($mht_file)};
         my $mht_path=$file_paths{$mht_file};  ##
         my $xml_path=$mht_path;
         if( $xml_path =~s/(.*)\.mht/${1}.xml/){
@@ -3925,14 +3936,14 @@ sub read_table_files {
 #   print_log "Reading $count .mht table files: @files_read";
 
                                 # See if we are supposed to skip any files
-    my %noload_files = map {$_, 1} (split(',', $config_parms{no_load}),
+    my %noload_files = map {lc($_), 1} (split(',', $config_parms{no_load}),
                                     &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2))
     if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
                                 # See if any of the files have changed
     my ($changed);
     for my $file (@files_read) {
-        (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
+        (print "File skipped due to -noload: $file\n"), next if $noload_files{lc($file)};
         my $file_time = (stat($file_paths{$file}))[9];
         $changed++ if !$file_code_times2{$file} or $file_time > $file_code_times2{$file};
         $file_code_times2{$file} = $file_time;
@@ -3941,7 +3952,7 @@ sub read_table_files {
 
                                 # Process tables of various, user-defined formats
     for my $file (@files_read) {
-        next if $noload_files{$file};
+        next if $noload_files{lc($file)};
 #       (my $table_code_file = "$file_paths{$file}") =~ s/\.mht$/.mhp/i;
         (my $table_code_file = "$file_paths{$file}") =~ s/\.$table_type$/.mhp/i;
         print_log "Translating $file -> $table_code_file";
@@ -4394,7 +4405,7 @@ sub set_global_vars {
             print_log "mh paused for $DelayOccured seconds (volume=$volume)";
         }
         logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  "mh paused for $DelayOccured seconds";
-        if ($DelayOccured > $config_parms{time_catchup_skip} $config_parms{no_log} =~ /pause/) {
+        if ($DelayOccured > $config_parms{time_catchup_skip} and $config_parms{no_log} =~ /pause/) {
             print_log "Skipping catchup mode. Pause of $DelayOccured > $config_parms{time_catchup_skip} seconds";
         }
         else {
@@ -4972,7 +4983,7 @@ sub respond {
 #    my $p = join ',', %parms; print "db2 p=$p.\n";
 
                                 # Call respond_xyz function
-    $target = 'default' if $target !~ /\S/ or $target eq 'unknown';
+    $target = 'default' if $target !~ /\S/ or $target eq 'unknown' or $target eq 'UserCode';
 
     print "respond target=$target lr=$Last_Response RT=$Respond_Target lso=$leave_socket_open_passes lsa=leave_socket_open_action a=@_\n"
         if $Debug{respond};
@@ -5028,6 +5039,9 @@ sub respond_speak {
     &speak(@_);
 }
 sub respond_serial {
+    &respond_default(@_);
+}
+sub respond_rf {
     &respond_default(@_);
 }
 sub respond_tk {
@@ -5947,6 +5961,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.98  2005/03/20 18:53:39  winter
+# *** empty log message ***
+#
 # Revision 2.97  2005/01/23 23:07:10  winter
 # *** empty log message ***
 #
