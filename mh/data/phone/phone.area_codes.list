@@ -28,6 +28,7 @@
 218 Duluth, (Northern) Minnesota 
 219 Gary, Hammond, Fort Wayne and South Bend, (Northern) Indiana 
 228 Southern Mississippi 
+231 (Northwest) Michigan
 240 Western Maryland 
 242 Bahamas 
 246 Barbados 
@@ -35,6 +36,7 @@
 250 BritishColumbia, Canada 
 253 Kent & Tacoma, Washington (South of Seattle) 
 254 Central Texas, Waco 
+262 Wisconsin
 264 Anguilla 
 268 Amtogia, Antigua and Barbuda 
 281 Houston,TX suburbs 
@@ -197,7 +199,7 @@
 807 Thunder Bay and Fort William, (Northwest) Ontario, CANADA 
 808 All parts of Hawaii 
 809 Bahamas, Bermuda, Puerto Rico, the Virgin Islands, etc. 
-810 future: northern part of present area 313 in Michigan 
+810 (Eastern) Michigan 
 811 [ Reserved - Special Function ] 
 812 Bloomington, Evansville and Terre Haute, (Southern) Indiana 
 813 Fort Myers, St. Petersburg and Tampa, (Southwest) Florida 
@@ -253,3 +255,4 @@
 972 Dallas,TX Suburbs 
 973 Northern New Jersey 
 978 Northern Massachusetts 
+989 (Northeast) Michigan 
