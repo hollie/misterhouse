@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-03-24 11:29:44 winter>
+#  Last change Time-stamp: <2001-03-24 17:30:38 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -980,13 +980,16 @@ sub check_for_generic_serial_data {
         $Serial_Ports{$port_name}{object}->reset_error;
     }
 
-    $Serial_Ports{$port_name}{data} .= $data if defined($data);
+                                # SerialPort input returns a 0x00, which is different than undef !
+    undef $data if length $data == 0;
+
+    $Serial_Ports{$port_name}{data} .= $data if defined $data;
 
     print "  serial name=$port_name type=$Serial_Ports{$port_name}{datatype} data2=$Serial_Ports{$port_name}{data}...\n" 
-        if defined($data) and ($config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name);
+        if defined $data and ($config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name);
 
                                 # Check to see if we have a carrage return yet
-    if (defined($Serial_Ports{$port_name}{data}) and
+    if (defined $Serial_Ports{$port_name}{data} and
         (!defined($Serial_Ports{$port_name}{datatype}) or $Serial_Ports{$port_name}{datatype} ne 'raw')) {
         while (my($record, $remainder) = $Serial_Ports{$port_name}{data} =~ /(.+?)[\r\n]+(.*)/s) {
             &print_log("Data from $port_name: $record.  remainder=$remainder.") if $config_parms{debug} eq 'serial';
@@ -4209,6 +4212,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.48  2001/03/24 23:43:36  winter
+# - add serial undef check with length == 0
+#
 # Revision 2.47  2001/03/24 17:58:33  winter
 # - 2.47 release
 #
