@@ -1400,7 +1400,9 @@ Here is a rough timeline of MisterHouse development:
  - 02/03 Addex xPL support, stacked and overloaded states, and multi-user logon.
  - 03/03 Linux NaturalVoiceWine, web based TV and photo setup, improved Lynx X10 support.
  - 04/03 Compiled mhe for linux, support for X10 W800, CallerID Identifier, USB-UIRT, and more iButton modules.
- - 05/03 Got slashdotted (visted by lots of people from a link on slashdot.org)
+ - 07/03 Improved web floorplan, DBI interface, xAP news and weather interfaces.
+ - 09/03 Cepstral TTS engine support, a new PA room object, improved proxy support.
+ - 11/03 Support for Sphinx2 VR, myHTPC tv menus, Asterisk phone interface, SMTP authentication, and a xAP command server.
 
 
 Audrey support, more MS TTS controls, call waiting callerid
@@ -1478,7 +1480,7 @@ If you want to contribute new code or fixes/updates, you have 3 options:
 
 =item 1
 
-Bet a sourceforge.net account and check it in to the CVS repository there.
+Get a sourceforge.net account and check it in to the CVS repository there.
 
 =item 2
 
@@ -1486,7 +1488,7 @@ You send Bruce a pointer to a web page for the new code (e.g. Brad does that wit
 
 =item 3
 
-You Bruce and/or the mailing list a copy via email.  Either full source or a diff patch file is fine.
+You send Bruce and/or the mailing list a copy via email.  Either full source or a diff patch file is fine.
 
 =back
 
@@ -1850,6 +1852,9 @@ modify.
 
 #
 # $Log$
+# Revision 1.43  2003/12/01 03:09:52  winter
+#  - 2.85 release
+#
 # Revision 1.42  2003/09/02 02:48:46  winter
 #  - 2.83 release
 #

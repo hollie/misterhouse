@@ -5,20 +5,18 @@
 # By David Norwood, dnorwood2@yahoo.com
 
 # Requires cpuxad, part of the XALIB package by Mark A. Day available 
-# here: http://members.home.net/ncherry/common/cpuxad
+# here: http://meltingpot.fortunecity.com/lightsey/52/common/cpuxad/xalib-0.48.tgz
 
 # The cpuxad daemon runs nativly on Unix/Linux, but 
 # you can run xalib on Windows using the Cygwin Unix
-# emulation software.  I have a copy modified to run
-# under Cygwin.
-#   http://www.geocities.com/dnorwood2/xalib-cygwin/
+# emulation software.  
 
 
 package ncpuxa;
 
 
 require "ncpuxa.ph";
-use strict;
+#use strict;
 use Socket;
 
 my @houses = ("A" .. "P");
@@ -56,7 +54,7 @@ my @unittype = (
 	"Speak Easy", "CPU-XA", "Unknown"
 );
 
-my $quiet = 0;
+my $quiet = 1;
 
 
 sub write_int {
@@ -108,6 +106,7 @@ sub check_buf_error {
 	length($buf) != $length;
 }
 
+my $socket_no = 0;
 sub cpuxa_connect {
 	my $remote = shift || 'localhost';
 	my $port = shift || 2000;
@@ -120,11 +119,17 @@ sub cpuxa_connect {
 	$paddr	= sockaddr_in($port, $iaddr);
 
 	$proto	= getprotobyname('tcp');
-	socket(SOCK, PF_INET, SOCK_STREAM, $proto) || die "socket: $!";
-	connect(SOCK, $paddr) || die "connect: $!";
-	read_int(*SOCK);
+#	socket(SOCK, PF_INET, SOCK_STREAM, $proto) || die "socket: $!";
+#	connect(SOCK, $paddr) || die "connect: $!";
+#	read_int(*SOCK);
 
-	return *SOCK; 
+#	return *SOCK; 
+	my $sock = $socket_no++;
+	socket($sock, PF_INET, SOCK_STREAM, $proto) || die "socket: $!";
+	connect($sock, $paddr) || die "connect: $!";
+	read_int($sock);
+
+	return $sock; 
 }
 
 sub send_x10 {
@@ -392,7 +397,7 @@ sub cpuxa_process_monitor {
 
 	if (select($rout=$rin, undef, undef, 0)) {
 		$ret = recv($s, $data, LEN_PAG(), MSG_DONTWAIT());
-		($data) = $data =~ /([^\000]*)/;
+		($data) = $data =~ /([^\000\r\n]*)/;
 	}
 	return $data;
 }

@@ -278,7 +278,6 @@ sub http_process_request {
             my $html = &html_authorized;
             $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
             $html .= &html_password('')  . '<br>';
-	    print "dbx1 tplr\n";
             print $socket &html_page(undef, $html, undef, undef, undef, undef);
         }
         else {
@@ -555,7 +554,8 @@ sub html_password {
     if ($menu eq 'html') {
         $html  = qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n];
 #       $html .= qq[<BASE TARGET='_top'>\n];
-        $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n];
+        $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
+#       $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n]; ... get not secure from browser history list!!
 #       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
         $html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
         $html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
@@ -1617,7 +1617,7 @@ sub html_header {
     $color = '#9999cc' unless $color;
 			 
 return qq[
-<link type="text/css" href="default.css" rel=stylesheet>
+$config_parms{html_style}
 <table width=100% bgcolor='$color'>
 <td><center>
 <font size=3 color="black"><b>
@@ -2739,6 +2739,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.84  2003/12/01 03:09:52  winter
+#  - 2.85 release
+#
 # Revision 1.83  2003/11/23 20:26:02  winter
 #  - 2.84 release
 #

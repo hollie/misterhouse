@@ -8,8 +8,8 @@
 #               by Bruce Winter and many contributors
 
 # Requires cpuxad, part of the XALIB package by Mark A. Day available 
-# here: http://members.home.net/ncherry/common/cpuxad
-# The cpuxad daemon only runs on Unix/Linux. 
+# here: http://meltingpot.fortunecity.com/lightsey/52/common/cpuxad/xalib-0.48.tgz
+# The cpuxad daemon runs on Unix/Linux, and on Windows using cygwin. 
  
 # To use this interface, add the following line to your mh.ini file:
 
@@ -30,7 +30,9 @@ my %monitorsock;
 my $save_unit = 1;
 my %funcs = (
 	ALL_OFF,	H,	# aka All Units OFF
-	ALL_ON,		I,	# aka All Lights ON
+	ALL_ON,	I,	# aka All Lights ON
+	P,		H,	# aka All Units OFF
+	O,		I,	# aka All Lights ON
 	ON,		J,
 	OFF,		K,
 	DIM,		L,
@@ -127,10 +129,14 @@ my $ret;
 my $data;
 my $code;
 
-my %funcs = qw (
-	1  1  2  2  3  3  4  4  5  5  6  6  7  7  8  8  9  9  
-	10  A  11  B  12  C  13  D  14  E  15  F  16  G 
-	"All On"  H  "All Off"  I  On  J  Off  K  Bright  L  Dim  M 
+my %funcs = (
+	'1', '1', '2', '2', '3', '3', '4', '4', '5', '5', '6', '6', '7', '7', '8', '8', '9', '9', 
+	'10', 'A', '11', 'B', '12', 'C', '13', 'D', '14', 'E', '15', 'F', '16', 'G', 
+	'All Lights On', 'O', 'All Units Off', 'P', 'On', 'J', 'Off', 'K', 'Bright', 'L', 'Dim', 'M', 
+	'Preset Dim 0', 'PRESET_DIM1', 'Preset Dim 1', 'PRESET_DIM2', 
+	'All Lights Off', 'ALL_LIGHTS_OFF', 'Extended Code', 'EXTENDED_CODE', 
+	'Hail Request', 'HAIL_REQUEST', 'Hail Ack', 'HAIL_ACK', 'Extended Code', 'EXTENDED_DATA', 
+	'Status On', 'STATUS_ON', 'Status Off', 'STATUS_OFF', 'Status', 'STATUS' 
 );
 
 sub read {
@@ -138,13 +144,21 @@ sub read {
 	my $data;
 
 	return unless $data = ncpuxa::cpuxa_process_monitor($monitorsock{$hostport});
+	#foreach (keys %funcs) {print "db k=$_ v=$funcs{$_} data=$data-\n";}
+	return if $data =~ /^X-10 Rx: no data available/;
+	return if $data =~ /^X-10 Tx:/;
+	return if $data =~ /^IR Tx:/;
 	if (my ($house, $func) = $data =~ /^X-10 Rx: ([A-P])\/(.*)/) {
+		#print "db data=$data h=$house f=$func fs=$funcs{$func}\n";
 		$code = "X" . $house . $funcs{$func};
 		return $code;
 	}
-	if (my ($irnum) = $data =~ /^IR Rx: #([0-9]+)/) {
+	elsif (my ($irnum) = $data =~ /^IR Rx: #([0-9]+)/) {
 		$code = "IRSlot" . $irnum;
 		return $code;
+	}
+	else {
+		return $data;
 	}
 }
 

@@ -18,5 +18,5 @@ if (time_cron "0,15,30,45 * * * *") {
 	else {
 		$suff = $Minute;
 	}
-	play (time => 60, volume => 80, file => "chimes/west" . $suff . ".wav");
+	play (time => 60, volume => 50, file => "chimes/west" . $suff . ".wav");
 }

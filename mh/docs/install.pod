@@ -293,7 +293,7 @@ also try the CPAN installer like this:
   cpan> install GD
   cpan> install Text::LevenshteinXS
   cpan> install DBI        (if you want to interface to a database server)
-  cpan  install DBD::mysql  (if you want to interface with a mysql server) 
+  cpan> install DBD::mysql  (if you want to interface with a mysql server) 
   cpan> exit
 
 The first time you run the CPAN code, it creates a configuration file.  

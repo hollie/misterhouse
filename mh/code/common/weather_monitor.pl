@@ -171,21 +171,13 @@ if (my $period = said $v_what_rain) {
     }
 #   print "db period=$period unit=$unit number=$number days=$days\n";
     
-    my @temp = get_weather_record(time - $days*3600*24);
-
-    if ($Weather{RainTotal} eq 'unknown' or !defined $Weather{RainTotal}) {
-        $temp = "Sorry, I don't have current weather info on rainfall";
-    }
-    elsif (!@temp) {
-        $temp = "Sorry, I don't have a log of the weather from $days days ago.\n";
+    my $rain = rain_since($Time - $days * 3600 * 24);
+    if ($rain == -1) {
+        $temp .= "Sorry, no rainfall data has been collected";
     }
     else {
-        my $rain_total_yesterday = $temp[21];
-        my $rain_diff = $Weather{RainTotal} - $rain_total_yesterday;
-#   print "db rt_previous=$rain_total_yesterday rt_today=$Weather{RainTotal} diff=$rain_diff\n";
-        if ($rain_diff) {
-            $temp  .= "We have had " .
-                round($rain_diff, 2) . " inches of rain ";
+        if ($rain) {
+            $temp  .= "We have had $rain inches of rain ";
         }
         else {
             $temp .= "No rain has fallen ";
@@ -223,20 +215,61 @@ if (state $Windy and
 }
 $Save{WindGustMax} = 0 if $New_Day;
 
-my $raintotal_prev;
+# report the start of the first rain each day 
+# while raining, report hourly totals and remainder when rain stops
+
+my $firstrain = 0;
+$firstrain = 0 if $New_Day;
+
+$israining_timer = new Timer; 
+if (expired $israining_timer) {
+    $Weather{IsRaining} = 0 ;
+    my $minutes = int(60 - minutes_remaining $rain_report_timer);
+    my $rain = rain_since($Time - 60 * $minutes) if $minutes;
+    speak "It rained $rain inches in the past $minutes minutes" if $rain; 
+    set $rain_report_timer 0;
+}
+
+$rain_report_timer = new Timer;  
+if (expired $rain_report_timer and $Weather{IsRaining}) {
+    my $rain = rain_since($Time - 60 * 60);
+    speak "It has rained $rain inches in the past hour" if $rain; 
+    set $rain_report_timer 60 * 60 if $Weather{IsRaining};
+}
+
+my $raintotal_prev = 0;
+my $rain_file = "$config_parms{data_dir}/rain.dbm";
 if (my $rain = state_now $RainTotal) {
-    $Weather{RainRecent} = round(($rain - $raintotal_prev), 2) if $raintotal_prev > 0;
+    $Weather{RainRecent} = 0;
+    $Weather{RainRecent} = $rain - $raintotal_prev if $rain > $raintotal_prev;
+#   print "db r=$rain p=$raintotal_prev w=$Weather{RainRecent} f=$firstrain\n";
     if ($Weather{RainRecent} > 0) {
-        respond "Notice, it just rained $Weather{RainRecent} inches";
-        dbm_write "$config_parms{data_dir}/rain.dbm", $Time, $Weather{RainRecent};
+        respond "Notice, it just started raining" unless $firstrain;
+        dbm_write $rain_file, $Time, $Weather{RainRecent};
 #       logit "$config_parms{data_dir}/rain.dbm", "$Time_Now $Weather{RainRecent}"
+        set $israining_timer 20 * 60;
+        set $rain_report_timer 60 * 60 unless active $rain_report_timer;
+        $firstrain++;
         $Weather{IsRaining}++;
     }
-    else {
-        $Weather{IsRaining} = 0;
-    }
     $raintotal_prev = $rain;
-#   print "Notice, 1 it just rained $Weather{RainRecent} inches (total=$Weather{RainTotal}).\n" if $Weather{RainRecent} > 0;
-#   print "Notice, 2 it just rained $Weather{RainRate} inches\n" if $Weather{RainRate};
-
 }                             
+
+sub rain_since {
+    my $time = shift; 
+    my %rain_dbm = read_dbm $rain_file;
+
+    return -1 unless keys %rain_dbm; 
+    my $amount = 0;
+    foreach my $event (reverse sort keys %rain_dbm) {
+        #print "db e=$event a=$amount r=$rain_dbm{$event}\n";
+        if ($event > $time) {
+            $amount += $rain_dbm{$event};
+        }
+        else {
+            last; 
+        }
+    }
+    eval "untie %rain_dbm";
+    return $amount; 
+}

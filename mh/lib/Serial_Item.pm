@@ -365,7 +365,7 @@ sub send_serial_data {
         &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
     }
     elsif (lc $port_name eq 'ncpuxa') {
-        print "Using ncpuxa to send: $serial_data\n";
+        &main::print_log("Using ncpuxa to send: $serial_data");
         &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
     }
     else {
@@ -459,7 +459,7 @@ sub send_x10_data {
     }
     elsif ($interface eq 'ncpuxa') {
                                 # ncpuxa wants individual codes with X
-        print "Using ncpuxa to send: $serial_data\n";
+        &main::print_log("Using ncpuxa to send: $serial_data");
         &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
     }
     elsif ($interface eq 'weeder') {
@@ -551,6 +551,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.68  2003/12/01 03:09:52  winter
+#  - 2.85 release
+#
 # Revision 1.67  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

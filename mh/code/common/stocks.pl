@@ -61,7 +61,7 @@ if ($Reload and $Run_Members{'trigger_code'}) {
     }
     else {
         eval qq(
-            &trigger_set("time_cron '5 9-13 * * 1-5'", "run_voice_cmd 'Update stock quotes'", 'NoExpire', 'get stocks') 
+            &trigger_set("time_cron '5 9-13 * * 1-5' and net_connect_check", "run_voice_cmd 'Update stock quotes'", 'NoExpire', 'get stocks') 
               unless &trigger_get('get stocks');
         );
     }

@@ -44,7 +44,7 @@ Revision History
 						 Moved stat counter update on the hour to Lynx10PLC.pl (code/common dir)
 						 Added support for Unit Address, and Extended Code 1
 						 Added a number of API methods to allow users to access low level 
-						  commands on the Lynx10PLC without having to understand the device's
+						  commands on the Lynx10PLC without having to understand the devices
 						  API.
 
  Version 1.5 5/4/2003  - Fixed bug with DIM/BRIGHT command where level was parsed incorrectly after
@@ -377,8 +377,16 @@ sub send_plc
 {
 	# Make sure we are passed a pkt
 	return unless ( 2 == @_ ) ;
-	my ($serial_port, $cmd) = @_;
+	my ($self, $cmd) = @_;
 
+    if ($::config_parms{Lynx10PLC_port} =~ 'proxy') {
+    	print "using proxy, calling proxy_send\n" if $main::Debug{proxy};
+        &main::proxy_send('Lynx10PLC', 'lynx10plc', 'send_plc', $cmd);
+        return;
+    }
+
+    debugPrint ("--> $cmd") if $main::Debug{lynx10plc};
+    
 	return unless my $payld = &cmd2payld($cmd);
 
 	&send(NETID_X10, $payld);
@@ -435,26 +443,28 @@ sub cmd2payld
 		$payld = pack('C5', X10_DIM,  $hc, $uc, X10_EOL, 6);
 	}
 
-	# Command "&P#" is X10_DIM_PRESET
+
+	# Command "&P#" is X10_EXTENDED_CODE_1
 	elsif (my($extended_data) = $code =~ /&P(\d+)/)
 	{
-		if (($extended_data >= 0) && ($extended_data < 32)) 
+		if (($extended_data > 0) && ($extended_data <= 64)) 
 		{
-			$payld = pack('C5', X10_DIM_PRESET, $hc, $uc, X10_EOL, $extended_data);
+			--$extended_data;
+			$payld = pack('C6', X10_EXTENDED_CODE_1, $hc, $uc, X10_EOL, $extended_data, X10_EXTENDED_CODE_1);
 		}
 	}
 
 	# Command "-#" is X10_DIM
 	elsif ($code =~ /^\S-(\d+)$/) 
 	{
-		my $dim = int(($1 / 100) * 20);
+		my $dim = int(($1 / 100) * 64);
 		$payld = pack('C5', X10_DIM, $hc, $uc, X10_EOL, $dim);
 	}
 
 	# Command "+#" is X10_BRIGHT
 	elsif ($code =~ /^\S\+(\d+)$/) 
 	{
-		my $dim = int(($1 / 100) * 20);
+		my $dim = int(($1 / 100) * 64);
 		$payld = pack('C5', X10_BRIGHT, $hc, $uc, X10_EOL, $dim);
 	}
 
@@ -468,7 +478,6 @@ sub cmd2payld
 	elsif (my ($dcode,$dim) = $code =~ /(\S)PRESET_DIM(\d)$/)
 	{
 		my $dim_level = $preset_dim_levels2{$dcode} + ($dim-1)*16;;
-		print "($main::Time_Date) PRESET DIM$dim code=$code hc=$hc uc=$uc (${house}$device) dim_level=$dim_level\n" if $main::Debug{lynx10plc};
 		$payld = pack('C5', X10_DIM_PRESET,$hc, $uc, X10_EOL, $dim_level);
 	}
 	# just have house code and unit, no code
@@ -477,9 +486,9 @@ sub cmd2payld
 		$payld = pack('C4', X10_UNITADDRESS, $hc, $uc, X10_EOL);
 	}
 
-	print "($main::Time_Date) cmd2payld: cmd=$cmd, hc=$hc, uc=$uc, payld=" . unpack('H*', $payld) . 
-			"\n" if $main::Debug{lynx10plc};
-
+	debugPrint ("cmd2payld: cmd=$cmd, hc=$hc, uc=$uc, payld=" . unpack('H*', $payld))
+			 if $main::Debug{lynx10plc};
+	&::logit("$::config_parms{data_dir}/logs/x10.log", "out: $cmd", "12");
 	return $payld;
 }
 
@@ -504,9 +513,8 @@ sub processPkt
 
 	&splitPkt($pkt);
 
-	print "($main::Time_Date) processPkt: netid=" . sprintf("%02X", $_netid) . 
-			", payld: len=$_paysz, data=" . 
-	unpack('H*',$_payld) . "\n" if $main::Debug{lynx10plc};
+	debugPrint ("<-- processPkt: netid=" . sprintf("%02X", $_netid) . ", payld: len=$_paysz, data=" . 
+	    unpack('H*',$_payld)) if $main::Debug{lynx10plc};
 
 	&processPkt_X10 if ($_netid == NETID_X10);
 	&processPkt_LYNXNET if ($_netid == NETID_LYNXNET);
@@ -535,10 +543,8 @@ sub processPkt_LYNXNET
 		$msg = "Firmware Rev=" . unpack('H*', substr($_payld,1,2))
 			if $_paysz == 3;
 	}
-	print "($main::Time_Date) LynxNet $msg\n" if $msg;
+	debugPrint ("LynxNet $msg") if $msg;
 }
-
-my $noun = ();
 
 sub processPkt_X10
 {
@@ -548,21 +554,21 @@ sub processPkt_X10
 	# Start by spliting the payld into individual fields
 	my @data = unpack('C*', $_payld);
 
-	printf "($main::Time_Date) paycmd=%02X (%s)\n", $_paycmd, PayCmdName($_paycmd) if $main::Debug{lynx10plc};
+	debugPrint (sprintf "paycmd=%02X (%s)", $_paycmd, PayCmdName($_paycmd)) if $main::Debug{lynx10plc};
 	
 	if ($_paycmd == X10_UNITADDRESS)
 	{
-		$noun = "X" . $table_hcodes{$data[1]} . 
+		$_cmds = "X" . $table_hcodes{$data[1]} . 
 			$table_ucodes{$data[2]} if ($_paysz >= 3);
 	}
 	elsif ($_paycmd == X10_OFF)
 	{
-		$_cmds .= $noun . $table_hcodes{$data[1]} .
+		$_cmds .= "X" . $table_hcodes{$data[1]} .
 			$table_ucodes{OFF} if ($_paysz >= 2);
 	}
 	elsif ($_paycmd == X10_ON)
 	{
-		$_cmds .= $noun . $table_hcodes{$data[1]} .
+		$_cmds .= "X" . $table_hcodes{$data[1]} .
 			$table_ucodes{ON} if ($_paysz >= 2);
 	}
 	elsif ($_paycmd == X10_DIM)
@@ -570,7 +576,7 @@ sub processPkt_X10
 		my $val = unpack('C', substr($_payld,-1,1));
 		if ($val > 0)
 		{
-			$_cmds .= $noun . "-" . $val if ($_paysz >= 2);
+			$_cmds .= "X-" . $val if ($_paysz >= 2);
 		}
 	}
 	elsif ($_paycmd == X10_BRIGHT)
@@ -578,16 +584,16 @@ sub processPkt_X10
 		my $val = unpack('C', substr($_payld,-1,1));
 		if ($val > 0)
 		{
-			$_cmds .= $noun . "+" . $val if ($_paysz >= 2);
+			$_cmds .= "X+" . $val if ($_paysz >= 2);
 		}
 	}
 	elsif ($_paycmd == X10_PRESETDIM_1)
 	{
-		$_cmds .= $noun . $preset_dim_levels{$data[1]} . "PRESET_DIM1";
+		$_cmds .= "X" . $preset_dim_levels{$data[1]} . "PRESET_DIM1";
 	}
 	elsif ($_paycmd == X10_PRESETDIM_2)
 	{
-		$_cmds .= $noun . $preset_dim_levels{$data[1]} . "PRESET_DIM2";
+		$_cmds .= "X" . $preset_dim_levels{$data[1]} . "PRESET_DIM2";
 	}
 	elsif ($_paycmd == X10_RD_STATCOUNTER)
 	{
@@ -684,7 +690,7 @@ sub processPkt_X10
 			$hc = $table_hcodes{$hc};
 			$uc = $table_ucodes{$uc};
 
-			print "($main::Time_Date) paysz=$_paysz, hc=$hc, uc=$uc, data=$data, command=$command\n" 
+			debugPrint ("paysz=$_paysz, hc=$hc, uc=$uc, data=$data, command=$command") 
 				if $main::Debug{lynx10plc};
 
 			#extended output status
@@ -694,8 +700,8 @@ sub processPkt_X10
 				# B6  0=Lamp, 1=appliance
 				# B5-B0 dim level
 				my $dim_level = $data & 0x3f; #bits 0-5
-				printf "($main::Time_Date) dim_level:$dim_level (%d%%)\n", 
-					int(100 * $dim_level / 63) if $main::Debug{lynx10plc};
+				debugPrint (sprintf "dim_level:$dim_level (%d%%)", 
+					int(100 * $dim_level / 63)+1) if $main::Debug{lynx10plc};
 				$_cmds .= "X" . $hc . $uc . "&P" . $dim_level;
 			}
 		}
@@ -705,9 +711,11 @@ sub processPkt_X10
 		printf "LynxNet X10 unhandled command: %02X\n",$_paycmd;
 	}
 
-	print "($main::Time_Date) $msg\n" if $msg; 
-	print "($main::Time_Date) Lynx10PLC::processPkt_X10: _cmds= " . $_cmds . "\n" 
+	debugPrint ($msg) if $msg; 
+	debugPrint ("Lynx10PLC::processPkt_X10: _cmds= " . $_cmds) 
 		if $main::Debug{lynx10plc} && $_cmds;
+
+	&::logit("$::config_parms{data_dir}/logs/x10.log", "in:  $_cmds", "12");
 }
 
 #############################################################
@@ -886,9 +894,10 @@ sub read
 				$status = sprintf("  Chksum Failed, act=%02X", $sum) 
 				if $sum != $_chksum;
 		
-				my $msg = "\"RD pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" . 
-					unpack('H*',$pkt) . ", payld=" . unpack('H*',$_payld) . $status . "\""; 
-				system ("$logger $msg") if $logger; 
+				my $msg = "RD pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" . 
+					unpack('H*',$pkt) . ", payld=" . unpack('H*',$_payld) . $status; 
+				system ("$logger \"$msg\"") if $logger; 
+                #debugPrint ($msg) if $main::Debug{lynx10plc};
 		
 				return $pkt if $sum == $_chksum;
 			}
@@ -935,9 +944,9 @@ sub send
 	&splitPkt($pkt);
 	my ($exp_seqnum, $exp_netid) = ($_seqnum, $_netid);
 
-	my $msg = "\"WR pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" . unpack('H*',$pkt) . 
-		", payld=" . unpack('H*',$payld) . "\"";
-	system("$logger $msg") if $logger; 
+	my $msg = "WR pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" . unpack('H*',$pkt) . 
+		", payld=" . unpack('H*',$payld);
+	system("$logger \"$msg\"") if $logger; 
 
 	# write packet to serial interface
 	if ( length($pkt) != $serial_port->write($pkt) )
@@ -976,6 +985,11 @@ sub send
 	goto RETRY if (unpack('C',$_payld) != LNCMD_SUCCESS);
 
 	return 1;
+}
+
+sub debugPrint {
+    my ($msg) = @_;
+    printf "%02d:%02d:%02d %s\n", $main::Hour, $main::Minute, $main::Second, $msg;
 }
 
 sub StatCntrName

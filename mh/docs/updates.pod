@@ -21,13 +21,72 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 B<New Features:>
 
-- Sean Walker is working interfacing to the Sphinx2 VR engine on linux.  
+B<Bug Fixes and Other Changes:>
+
+
+=head2 Version 2.85 posted on 11/30/2003
+
+Version 2.85 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+
+B<New Features:>
+
+- Chris Witte created lib/table_A2XML.pm  mht -> xml translator and updated lib/read_table_xml_A.pl.
+By default this code is not enabled, so mh will still translate mht files -> mhp files as usual.
+If you use:  mh -table_type xml, it will translate mht files -> xml files, then process xml -> mhp instead. 
+
+- Paul Estes created code/common/mp3_slimserver.pl, to use with mp3.pl with devices from http://www.slimdevices.com.  
+I renamed common/slimp3_display.pl to display_slimserver.pl and renamed the parms it use to be the same as those in mp3_slimserver.pl.
+
+- Lennart Lopin created code/common/internet_weather_metar.pl for getting international weather data from noaa.gov
+
+
+B<Bug Fixes and Other Changes:>
+
+- Included Digest::HMAC_MD5 in the mh/lib/site, used in the new 2.84 mail authentication code.
+
+- Sam Levine noticed the 2.84 windows mh.exe binary would not start.
+
+- Craig Schaeffer noticed a 2.84 bug where dead proxies would not come back to life unless mh was restarted.
+
+- Richard Koch noticed login passwords were being stored in browser history lists.
+
+- Robert Hughes created code/public/sports_score_bball.pl for getting basketball scores.
+
+- Brian Ujvary updated mh/lib/site_win58 with new modules to enable the new USB_UIRT windows support.
+
+- Michael Hughes noticed mh would not start if the new common/mp3.pl was enabled, but mp3_winamp.pl or mp3_xmms.pl was not.
+
+- Sean Walker updated various ia5 web pages to point use a common html_style link.  
+Deleted the duplicate default.css files, changing the default background color from wheat to white.
+
+- Craig Schaeffer updated lib/Lynx10PLC.pm to add proxy support, single X10 commands, and improved extended code support.
+
+- Enabled the common/organizer.pl script by default, since it is needed by the calander web pages.
+
+- Steve Switzer updated bin/misterhouse.steve-fedora.rc, a startup script example for fedora Linux.
+
+
+
+=head2 Version 2.84 posted on 11/23/2003
+
+Version 2.84 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+B<New Features:>
+
+- Sean Walker is working on interfacing to the Sphinx2 VR engine on linux.  
 Instructions are at http://sean.surfmy.net/projects/mh/index.html
 
-- Amauri Viguera added support for integrating mh with HTPC (Home Theater PC menuing program for TVs). 
+- Amauri Viguera added support for integrating mh with myHTPC (Home Theater PC menuing program for TVs). 
 Details are here: http://www.viguera.net/other/projects/myhtpc/myhtpc.readme.html
 
-- Pete Flaherty and Ross Towbin added SMTP authenticaion for email checking.  Set a new net_mail_*_password_encryp mh.ini option.
+- Pete Flaherty and Ross Towbin added SMTP authentication for email checking.  Set a new net_mail_*_password_encryp mh.ini option.
 Pete also added a new net_mail_*_ping option you can set to off if your mail server is not pingable.
 
 - David Norwood created time_random_offset to code a random time around a time_now formated time.  
@@ -35,10 +94,6 @@ For example, to fire a random time within 60 minutes after 1:20 pm:
 
      speak "random test" if  time_random_offset '1:20 pm', 60;
 
-- Sean Walker and I updated common/internet_logon.pl to use a new %Flags hash to control
-what commands to fire when getting internet data.  Now used in stocks.pl.
-
-- David Norwood created a new trigger function, used to control internet data commands ....
 
 - Jim Duda created code/common/proxy_client_server.pl to provide a meshed networking interface between a set of misterhouse computers.
 
@@ -51,6 +106,20 @@ I now have my garage and driveway camera images logged to here:  http://misterho
 - Created code/common/slimp3_display.pl to display spoken text to a list of slimp3 players ( http://www.slimdevices.com )
 
 - Jason Sharpe created code/common/xAP_command.pl, a xAP server that will run requested commands and send respond results back.
+
+- Jason Sharpe created code/public/asterisk_jason* and Robert Mann created code/public/asterisk_robert*.
+These code files interfaces mh to the Asterisk phone system ( http://www.asterisk.org ).
+Jason code uses the xAP protocal to allow you to send commands to the mh via touch tone (DTMF) phone menus.
+Roberts uses a TCP connection  to do CallerID, DTMF, and External Commands.
+
+- Dan Uribe and David Norwood added functionality to the Winamp and XMMS mp3 scripts including a new web interface in mh/web/music.
+
+- Sean Walker and I updated common/internet_logon.pl to use a new %Flags hash to control what commands to fire when getting internet data.  
+
+- David Norwood added a new mechanism for scheduling tasks using triggers that works for both dialup and broadband internet users.  
+He created internet_dialup.pl as a replacement for internet_logon.pl and updated stocks.pl as an example of how
+to create a trigger that is aware of an internet connection.
+If this works ok for everyone, we will update other scripts that grab data from the internet.
 
 
 
@@ -126,13 +195,27 @@ to speak to more than one card at the same time.
 - Timothy Spaulding added X10_TempLinc to lib/X10_Items.pm to support this X10 temperature sensing device:  http://www.smarthome.com/1625.HTML
 
 - Robert Hughes and I updated http_server.pl to add <br> html breaks on new lines by default, for html returned data 
-(e.g. the eartquake and news data displays better now in web browsers).
+(e.g. the eartquake and news data displays better now in web browsers).  
+
+- Robert Hughes and I enabled the no_load parm to also specified menu files.
 
 - Updated bin/get_tv_grid for a recent zap2it change that disabled the -provider_name option
 
 - Craig Schaeffer made some minor updates to RCS_Item.pm
 
 - George Clark updated Tk calls to be compatable with the latest Tk modules (adding a - prefix to option names).
+
+- David Norwood modified run_after_delay routine so you can run it multiple times without stomping on the same timer.
+
+- David Norwood added a new mechanism for specifying your own sound mixer for setting the volume level.
+
+- David Norwood added the ability to report the amount of rainfall in the past X minutes,
+hours, days, weeks, or months.  He also added an option to the aws script to ignore rainfall,  since he has his own raingauge.
+
+- David Norwood fixed a couple problems in the Ocelot code related to receiving X10, IR, and IO signals.
+
+- Brian G. Ujvary and David Norwood updated USB_UIRT to add support for the Windows DLL driver.
+
 
 
 =head2 Version 2.83 posted on 09/01/2003

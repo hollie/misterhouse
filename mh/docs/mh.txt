@@ -21,6 +21,7 @@ SYNOPSIS
        curtain_on('bedroom', $state) if $state = said $v_bedroom_curtain;
 
   Usage Options
+
     mh [options] [files]
 
     options are controlled in the mh\bin\mh.ini file. You can override the
@@ -31,6 +32,7 @@ SYNOPSIS
     default is to run all .pl files.
 
   Usage Examples
+
     These give the help text:
 
        mh -h
@@ -55,8 +57,10 @@ SYNOPSIS
        mh -log_file test1.log -debug serial
 
   Installation
+
 DESCRIPTION
   mh overview
+
     Items and events are defined by using your favorite text editor and
     creating members of perl code in a directory of your choice. For
     example, all the code that runs my house is in the /mh/code/bruce
@@ -125,6 +129,7 @@ DESCRIPTION
     CPU and loops about 18 times per second on our 150 MHz PPro system.
 
   Perl Info
+
     There is lots of good perl info is at http://www.perl.com . The
     reference book is "Programming Perl, 3rd edition" by Larry Wall, Tom
     Christensen, & Randall Schwartz. ISBN 1-56592-149-6. It is available
@@ -202,6 +207,7 @@ DESCRIPTION
        of the DOS convention of \.
 
   List of supported hardware interfaces
+
     For a list of the hardware in Bruce's house, see mh/pod/faq.* question
     6.8.
 
@@ -462,6 +468,7 @@ DESCRIPTION
     http://www.dfwmetrotechs.com/misterhouse/calleridorder.html
 
   List of startup options
+
     The complete list of valid startup options is in the mh.ini file. Here
     are a few of the more important ones and their defaults:
 
@@ -528,6 +535,7 @@ DESCRIPTION
           mh -time_start "5/14 7:10" -time_stop "5/15 10 PM" -time_increment 300
  
   List of global variables
+
     Time/Date Variables
 
       $Time_Startup, $Time_Startup_time, $Time_Now, $Date_Now, $Date_Now_Speakable, $Year_Month_Now
@@ -566,6 +574,7 @@ DESCRIPTION
     only)
 
   List of objects and their methods
+
     File_Item
         You can use File_Item to read a line of data from a file. Note:
         These methods currently read the entire file, so if have big files
@@ -1979,6 +1988,7 @@ DESCRIPTION
         07:38:11 07:38 10/11/00 System Opening by User Code 40
 
   List of functions
+
     add_sound
         Assigns a sound file to an event name. This allows us to create and
         review event sounds. See mh/code/common/event_sounds.pl for an
@@ -2775,6 +2785,7 @@ DESCRIPTION
              speak "random test" if &time_random_offset('1:20 pm', '1:23');
 
   List of tk widget functions
+
     tk_button tk_mbutton
         Use these functions to add a Tk button widget to the mh tk grid
         (tk_button) or the tk menu_bar (tk_mbutton). &tk_button will accept
@@ -2941,6 +2952,7 @@ DESCRIPTION
     See mh/code/examples/tk_examples.pl for more tk_* examples.
 
   List of Internet functions
+
     get This function will retrieve data from the web (http web pages or ftp
         files). If the web page is large or the site is slow, you may want
         to use a Process_Item call to the get_url program, so the request
@@ -3219,6 +3231,7 @@ DESCRIPTION
         Deletes mail from an account. A dangerous, but requested, function.
 
   List of companion programs
+
     These programs are included in mh mh/bin directory. Most of these are
     meant to be called from mh events, as separate processes, but they can
     also be run stand alone. You can get the help text for most of these
@@ -3878,6 +3891,7 @@ DESCRIPTION
             speak "Boo, did I scare you?"
 
   Authentication
+
     A one way crypt-ed password authentication scheme can be enabled for the
     web and telnet.pl interfaces.
 
@@ -3905,6 +3919,7 @@ DESCRIPTION
     be re-started if you want to enter a different password.
 
   Customizing the Menu interfaces
+
     You can nested create menus that let you query mh data or control mh
     items or commands. You can use any or all of these interfaces to walk
     through menus:
@@ -4076,6 +4091,7 @@ DESCRIPTION
        1-800-555-8355  (wait for 'tellme more') 1-yourextention
 
   Customizing the Tk Interface
+
     You can modify what the Tk window displays by modifying the tk_frame.pl
     and tk_widgets.pl members. tk_frame.pl controls the general layout and
     size of the various scrolled lists. Modifying this member takes a little
@@ -4105,6 +4121,7 @@ DESCRIPTION
     section of this document.
 
   Customizing the Web Interface
+
     You can write your own Web page interface. The examples under mh/web are
     frame html files that dictate the shape and positions of various
     mh-generated html frames.
@@ -4438,6 +4455,7 @@ DESCRIPTION
       <img src=http://localhost:8081/sub?web_icon_state('$light1')>
 
   Voice Recognition (VR) and Text To Speech (TTS) on windows
+
     VR and TTS options are controlled with the Microsoft Voice application.
     It shows up as a 'green V' in your icon tray. Right clicking on this
     icon brings various menus for configuring your VR and TTS options.
@@ -4471,6 +4489,7 @@ DESCRIPTION
     Voice' tab on the same 'Voice Command Options' dialog.
 
   Voice Recognition (VR) and Text To Speech (TTS) on Unix
+
     Need notes on how to use ViaVoice on linux and how to enable different
     TTS engines with Festival.
 
@@ -4480,6 +4499,7 @@ DESCRIPTION
     For vr with ViaVoice, use mh/code/bruce/viavoice_control.pl
 
   Using distributed MisterHouse proxies
+
     There are several reasons you might want to run one or more extra proxy
     versions of MisterHouse:
 
@@ -4645,6 +4665,7 @@ NOTES
 
 KNOWN LIMITATIONS AND BUGS
   General bugs/limitations
+
     The JDS and Marrick interface modules are untested.
 
     mh also has the 'windows 49.7 day bug' (2**32 milliseconds) that has
@@ -4659,6 +4680,7 @@ KNOWN LIMITATIONS AND BUGS
     are even more messed up.
 
   Windows bugs/limitations
+
     If 'run' calls give you an 'out of environment memory' error, create a
     command.pif and change the memory, initial environment from auto to 4k.
 
@@ -4681,6 +4703,7 @@ KNOWN LIMITATIONS AND BUGS
     directory, and rename the one in the tk path.
 
   Unix bugs/limitations
+
     Voice Recognition IS supported under linux using IBM's ViaVoice SDK.
     Potential candidates for VR engines other non-linux Unix platforms are:
 

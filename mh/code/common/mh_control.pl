@@ -2,14 +2,20 @@
 
 #@ Core MisterHouse commands e.g. reload code, list x10 items.
 
-$v_reload_code = new  Voice_Cmd("[,Force] {Reload,re load} code");
-$v_reload_code-> set_info('Load new mh.ini, icon, and/or code changes');
-if ($state = state_now $v_reload_code) {
-                                # Must be done before the user code eval
-    push @Nextpass_Actions, ($state eq 'Force') ? \&read_code_forced : \&read_code;
+$v_reload_code = new  Voice_Cmd("{Reload,re load} code");
+$v_reload_code2= new  Voice_Cmd("Force {Reload,re load} code");
+$v_reload_code -> set_info('Load new mh.ini, icon, and/or code changes');
+$v_reload_code2-> set_info('Force a code reload, if if code has not changed');
+
+push(@Nextpass_Actions, \&read_code)        if state_now $v_reload_code;
+push(@Nextpass_Actions, \&read_code_forced) if state_now $v_reload_code2;
+
+#if ($state = state_now $v_reload_code) {
+#                               # Must be done before the user code eval
+#    push @Nextpass_Actions, ($state eq 'Force') ? \&read_code_forced : \&read_code;
 #   read_code();
 #   $Run_Members{mh_control} = 2; # Reset, so the mh_temp.user_code decrement works
-}
+#}
 
 $v_read_tables = new Voice_Cmd 'Read table files';
 read_table_files if said $v_read_tables;

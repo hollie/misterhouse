@@ -21,6 +21,10 @@ audible_menu.txt
    switches (e.g. air sip switches for the disabled), using
    audible feedback to help pick menu items/states.
 
+asterisk_*.*
+ - Jason Sharpe's mh interface to the Asterisk phone system:  http://www.asterisk.org which 
+allow you to send commands (voice, etc) to the MH via touch tone menus.
+
 AudioControl.pl
  - Bill Sobel's example of using Mp3Player.pm object
 
@@ -287,6 +291,9 @@ speak_voices.pl
 speak_proxy.pl
  - An example of how to allow for speech to distributed mh proxies 
    using the speak rooms= parm.
+
+sports_score_bball.pl
+ - Robert Hughes code for getting basketball scores.
 
 sprinklers_*.pl 
  - Brian Rudy and Bill Sobel's code for sprinklers

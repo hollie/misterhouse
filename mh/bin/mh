@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-09-07 12:30:12 winter>
+#  Last change Time-stamp: <2003-11-25 22:55:28 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -1411,7 +1411,7 @@ sub check_for_proxy_data {
                 unless ($proxy->start) {
                     &print_log("Proxy is dead: $address");
 #                   delete $proxy_by_room{$address};
-                    &drop_proxy($address);
+#                   &drop_proxy($address);  ... do not drop it ... keep testing it so we can reconnect when proxy comes back
                     $address =~ s/\:\d+$//; # Shorten up name for speaking
                     $address =~ s/.+\.(\d+)$/$1/;
                     &speak("proxy $address is dead") if &new_minute(2);
@@ -3658,13 +3658,57 @@ sub read_misc_parms {
     
 }
 
-                                # Read optional, table formated definitions of mh objects and events
-sub read_table_files {
+
+###################################
+## convert_table_files is intended to provide a transition from the
+##   current "table_A" *.mht files to the xml item definition files.
+###################################
+sub convert_table_files {
                                 # Find files
     my %file_paths = &file_read_dir(@Code_Dirs);
     my @files_read = sort keys %file_paths;
 
-    return unless @files_read = grep(/^[a-z0-9].*\.mht$/i, @files_read);
+    @files_read = grep(/^[a-z0-9].*\.mht$/i, @files_read);
+	
+                                # See if we are supposed to skip any files
+    my %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
+                                    &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2));
+
+	## attempt to convert all *.mht files to xml
+	require "table_A2XML.pm";
+	foreach my $mht_file (@files_read){
+		(print "File skipped due to -noload: $mht_file\n"), next if $noload_files{$mht_file};
+		my $mht_path=$file_paths{$mht_file};  ## 
+		my $xml_path=$mht_path;
+		if( $xml_path =~s/(.*)\.mht/${1}.xml/){
+			print "converting [$mht_path] to [$xml_path]\n";
+			&table_A2XML::convert($mht_path,$xml_path);
+		}
+		else{
+			die "couldn't infer output from [$ARGV]\n";
+		}
+	}
+}
+
+                                # Read optional, table formated definitions of mh objects and events
+sub read_table_files {
+
+				# Allow for newer xml formated tables
+    my $table_type = ($config_parms{table_type} =~ /xml/i) ? 'xml' : 'mht';
+
+    if ($table_type eq 'xml') {
+        require "read_table_xml_A.pl";
+        &convert_table_files; ## convert any *.mht files that exist. 
+    }
+
+                                # Find files
+    my %file_paths = &file_read_dir(@Code_Dirs);
+    my @files_read = sort keys %file_paths;
+
+
+#   return unless @files_read = grep(/^[a-z0-9].*\.mht$/i, @files_read);
+    return unless @files_read = grep(/^[a-z0-9].*\.$table_type$/i, @files_read);
+
     my $count = @files_read;
 #   print_log "Reading $count .mht table files: @files_read";
 
@@ -3685,7 +3729,8 @@ sub read_table_files {
                                 # Process tables of various, user-defined formats
     for my $file (@files_read) {
         next if $noload_files{$file};
-        (my $table_code_file = "$file_paths{$file}") =~ s/\.mht$/.mhp/i;
+#       (my $table_code_file = "$file_paths{$file}") =~ s/\.mht$/.mhp/i;
+        (my $table_code_file = "$file_paths{$file}") =~ s/\.$table_type$/.mhp/i;
         print_log "Translating $file -> $table_code_file";
         open  TABLE_IN,  "$file_paths{$file}";
         open  TABLE_OUT, ">$table_code_file" or print_log "Error in writing to $table_code_file";
@@ -4016,12 +4061,13 @@ sub do_user_file {
     }
 }
 
+use vars qw(@run_after_delay_timers);
 sub run_after_delay {
     my ($delay, $code_ref) = @_;
     my $timer = new Timer;
-    set $timer $delay, $code_ref;
-                                # Data Dumpper will not anonymous subroutines
-#   push @{$Persistent{timers}}, $timer;
+    my $index = $#run_after_delay_timers + 1;
+    set $timer $delay, $code_ref . "; delete \$run_after_delay_timers[$index];";
+    push @run_after_delay_timers, $timer;
 }
 
 sub run_voice_cmd {
@@ -5626,6 +5672,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.85  2003/12/01 03:05:33  winter
+#  - 2.85 release
+#
 # Revision 2.84  2003/11/23 20:20:04  winter
 # - 2.84 release
 #

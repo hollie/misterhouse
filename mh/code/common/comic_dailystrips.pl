@@ -11,6 +11,7 @@
 
 $dailystrip_update = new Voice_Cmd '[Update,Clean] the daily comic strips';
 $dailystrip_update-> set_info("Runs the dailystrip program to retrieve comics specified in mh.ini parm comics: $config_parms{comics}");
+$dailystrip_update-> set_icon("goofy");
 
 if ($state = said $dailystrip_update) {
     my $comics_dir = &html_alias('/comics');

@@ -15,6 +15,8 @@
 $mh_volume         = new Generic_Item;
 $mh_speakers       = new Generic_Item;
 $mh_speakers_timer = new Timer;
+$Info{Volume_Control} = 'Command Line' if $Reload and $config_parms{volume_get_cmd} and $config_parms{volume_set_cmd};
+
 
                                 # Detect if we are speaking or not
                                 # Note, a call to is_speaking seems to be expensive on Windows
@@ -35,8 +37,9 @@ if ($is_speaking_flag and !$is_speaking) {
 #   print_log "Speakers off, volume reset to $volume_previous";
     $is_speaking_flag = 0;
     set $mh_speakers OFF;
-    &Win32::Sound::Volume($volume_previous) if $OS_win and defined $volume_previous;
-    Audio::Mixer::set_cval('vol', $volume_previous) if $main::Info{OS_name} eq "linux" and defined $volume_previous;
+    set_volume2($volume_previous) if defined $volume_previous;
+#   &Win32::Sound::Volume($volume_previous) if $OS_win and defined $volume_previous;
+#   Audio::Mixer::set_cval('vol', $volume_previous) if $main::Info{OS_name} eq "linux" and defined $volume_previous;
 #   &Voice_Cmd::activate if $OS_win;
 }
 
@@ -97,16 +100,22 @@ sub set_volume {
 sub set_volume2 {
     my ($volume) = @_;
     my $volume_previous;
-    if ($Info{Volume_Control} eq 'Win32::Sound') {
+    if ($Info{Volume_Control} eq 'Command Line') {
+        $volume_previous = `$config_parms{volume_get_cmd}`;
+        chomp $volume_previous;
+        my $r = system eval qq("$config_parms{volume_set_cmd}");
+    }
+    elsif ($Info{Volume_Control} eq 'Win32::Sound') {
         $volume_previous = Win32::Sound::Volume;
         $volume = int 255 * $volume / 100;   # (0->100 =>  0->255)
         $volume = $volume + ($volume << 16); # Hack to fix a bug in Win32::Sound::Volume 
         &Win32::Sound::Volume($volume);
     }
-    if ($Info{Volume_Control} eq 'Audio::Mixer') {
+    elsif ($Info{Volume_Control} eq 'Audio::Mixer') {
         my @vol = Audio::Mixer::get_cval('vol');
         $volume_previous = ($vol[0] + $vol[1]) / 2;
-        Audio::Mixer::set_cval('vol', $volume);
+#       Audio::Mixer::set_cval('vol', $volume);
+        Audio::Mixer::set_cval('spkr', $volume);
     }
     return $volume_previous;
 }
