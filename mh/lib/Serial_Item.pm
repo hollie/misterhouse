@@ -187,6 +187,8 @@ sub set_rts {
 
 sub set {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
+
                                 # Allow for Serial_Item's without states
     $state = 'default_state' unless defined $state; 
 
@@ -471,6 +473,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.45  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.44  2000/12/03 19:38:55  winter
 # - 2.36 release
 #

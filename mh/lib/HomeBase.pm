@@ -247,9 +247,30 @@ sub send_X10 {
     print "Bad HomeBase X10 transmition sent=$sent\n" unless 10 == $sent;
 }
 
+# Valid digitis 0-9, * # 
+# OnHook = +
+# OffHook = ^
+# Pause = ,
+# CallerID C
+# HookFlash !
+sub send_telephone 
+{
+    my ($serial_port, $phonedata) = @_;
+    print "\ndb sending HomeBase telephone command: $phonedata\n" if lc($main::config_parms{debug}) eq 'homebase';
+
+    $phonedata = "##%57<" . $phonedata . ">";
+    print "db HomeBase telephone command sent: $phonedata\n" if lc($main::config_parms{debug}) eq 'homebase';
+
+    my $sent = $serial_port->write($phonedata . "\r");
+    print "Bad HomeBase telephone transmition sent=$sent\n" unless $sent > 0;
+}
+
 my $serial_data;                # Holds left over serial data
 
 sub read {
+    
+    return undef unless $::New_Msecond_100;
+    
     my ($serial_port, $no_block) = @_;
 
     my %table_hcodes = qw(6  A 7  B 4  C 5  D 8  E 9  F a  G b H
@@ -279,6 +300,9 @@ sub read {
 
             return undef unless $bytes[0] eq '0'; # Only look at x10 data for now
             return undef unless $bytes[1] eq '0' or $bytes[1] eq '1'; # Only look at receive data for now
+            # Disable using the Stargate for X10 receive if so configured.  I am using the CM11a and just use
+            # the stargate for I/O and phone control (bsobel@vipmail.com)
+            return if $main::config_parms{HomeBase_DisableX10Receive};
 
             my ($house, $device);
             unless ($house = $table_hcodes{lc($bytes[3])}) {
@@ -324,6 +348,9 @@ return 1;           # for require
 # Modified by Bob Steinbeiser 2/12/00
 #
 # $Log$
+# Revision 1.11  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.10  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

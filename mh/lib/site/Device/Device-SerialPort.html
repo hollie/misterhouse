@@ -1,7 +1,7 @@
 <HTML>
 <HEAD>
 <TITLE>Device::SerialPort - Linux/POSIX emulation of Win32::SerialPort functions.</TITLE>
-<LINK REV="made" HREF="mailto:YOURNAME@YOURHOST.YOURDOMAIN">
+<LINK REV="made" HREF="mailto:cook-cpan@outflux.net">
 </HEAD>
 
 <BODY>
@@ -66,7 +66,7 @@ Device::SerialPort - Linux/POSIX emulation of Win32::SerialPort functions.
 <HR>
 <H1><A NAME="SYNOPSIS">SYNOPSIS</A></H1>
 <P>
-<PRE>  use Device::SerialPort qw( :PARAM :STAT 0.07 );
+<PRE>  use Device::SerialPort qw( :PARAM :STAT 0.09 );
 </PRE>
 <P>
 <HR>
@@ -170,7 +170,7 @@ Device::SerialPort - Linux/POSIX emulation of Win32::SerialPort functions.
   $PortObj-&gt;can_baud;                   # 1
   $PortObj-&gt;can_databits;               # 1
   $PortObj-&gt;can_stopbits;               # 1
-  $PortObj-&gt;can_dtrdsr;                 # 0 currently
+  $PortObj-&gt;can_dtrdsr;                 # 1
   $PortObj-&gt;can_handshake;              # 1
   $PortObj-&gt;can_parity_check;           # 1
   $PortObj-&gt;can_parity_config;          # 1
@@ -361,7 +361,7 @@ The <CODE>$lockfile</CODE> parameter has a related purpose. It will attempt to c
 file will be automatically deleted when the <CODE>$PortObj</CODE>
 is no longer used (by DESTROY). You would usually request <CODE>$lockfile</CODE>
 with <CODE>$quiet</CODE> true to disable messages while attempting to obtain exclusive ownership of
-the port via the lock. Lockfiles are experimental in Version 0.07. They are
+the port via the lock. Lockfiles are experimental in Version 0.09. They are
 intended for use with other applications. No attempt is made to resolve
 port aliases (/dev/modem == /dev/ttySx) or to deal with login processes
 such as getty and uugetty.
@@ -892,15 +892,16 @@ omissions should be considered bugs and reported to the maintainer.
 <HR>
 <H1><A NAME="AUTHORS">AUTHORS</A></H1>
 <P>
-Based on Win32::SerialPort.pm, Version 0.8, by Bill Birthisel
+Based on Win32::SerialPort.pm, Version 0.8, by <a href="mailto:wcbirthisel@alum.mit.edu">Bill Birthisel</a>, <a href="http://members.aol.com/Bbirthisel/">http://members.aol.com/Bbirthisel/</a>.
 
 <P>
-Ported to linux/POSIX by Joe Doss for MisterHouse
+Ported to linux/POSIX by Joe Doss for <a href="http://www.misterhouse.net/">MisterHouse</a><br>
+Ported to Solaris, AIX, OpenBSD by Kees Cook for <a href="http://sendpage.cpoint.net/">Sendpage</a><br>
 
 <P>
-Currently maintained by: Bill Birthisel, <A
-HREF="mailto:wcbirthisel@alum.mit.edu,">wcbirthisel@alum.mit.edu,</A> <A
-HREF="http://members.aol.com/Bbirthisel/">http://members.aol.com/Bbirthisel/</A>
+Currently maintained by: Kees Cook, <A
+HREF="mailto:cook-cpan@outflux.net">cook-cpan@outflux.net,</A> <A
+HREF="http://outflux.net/">http://outflux.net/</A>
 
 
 <P>
@@ -919,11 +920,12 @@ Perltoot.xxx - Tom (Christiansen)'s Object-Oriented Tutorial
 <HR>
 <H1><A NAME="COPYRIGHT">COPYRIGHT</A></H1>
 <P>
-Copyright (C) 1999, Bill Birthisel. All rights reserved.
+Copyright (C) 1999, Bill Birthisel. All rights reserved.<br>
+Copyright (C) 2001, Kees Cook. All rights reserved.<br>
 
 <P>
 This module is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself. 5 Sepember 1999.
+under the same terms as Perl itself. 27 Jan 2001
 
 </BODY>
 

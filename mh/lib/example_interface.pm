@@ -53,6 +53,7 @@ sub check_for_data {
 
 sub set {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state);
 
     my $serial_data;

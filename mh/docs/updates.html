@@ -13,6 +13,7 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#Version_2_41_posted_on_01_20_01">Version 2.41 posted on 01/20/01</A></LI>
 		<LI><A HREF="#Version_2_39_posted_on_12_21_00">Version 2.39 posted on 12/21/00</A></LI>
 		<LI><A HREF="#Version_2_36_posted_on_12_03_00">Version 2.36 posted on 12/03/00</A></LI>
 		<LI><A HREF="#Version_2_34_posted_on_11_12_00">Version 2.34 posted on 11/12/00</A></LI>
@@ -74,6 +75,177 @@
 list (an archive of all the list messages is at <A
 HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A>
 )
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_41_posted_on_01_20_01">Version 2.41 posted on 01/20/01</A></H2>
+<P>
+Version 2.41 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net/download.html">http://misterhouse.sourceforge.net/download.html</A>
+  <A HREF="http://misterhouse.net/download.html">http://misterhouse.net/download.html</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Brian Paulsen re-wrote the iButton code for much improved reliability. He
+also added iButton::Weather (see example at the end of iButton.pl).
+
+</P>
+<P>
+- Brent DeShazer added mh/bin/snpp_page, for doing snpp paging via the
+internet.
+
+</P>
+<P>
+- Added net_domain_name_start and net_domain_name_done, so that we can
+lookup domain names in the background without the danger of mh pausing. See
+mh/docs/mh.* or mh/code/examples/test_dns.pl and mh/bruce/monitor_router.pl
+for examples.
+
+</P>
+<P>
+- Re-wrote mh/code/common/benchmarks.pl. 'Run speed benchmark' will now
+create a tk window with with the average amount of time used (in
+milliseconds) for each code member. If not using tk, the results are also
+logged to data_dir. On Unix, this option will not work too well unless you
+have Time::HiRes installed. Unlike the previous benchmark code, this should
+allow for a quick and pretty painless way to find slow running code
+members. For example, this record in computer_data.pl caused an unneeded
+slowdown:
+
+</P>
+<P>
+<PRE>  $disk_drives = join(',', Win32::DriveInfo::DrivesInUse()) if $OS_win;
+</PRE>
+</P>
+<P>
+Without a 'and $Reload' added, it made that call on every pass, and the
+DriveInof function is pretty slow.
+
+</P>
+<P>
+- Added a window_name option for the display function, so we can re-use a
+tk window (e.g. above benchmark code).
+
+</P>
+<P>
+- John Snow came up with the idea of using a CM11 to detect power outage.
+Here is an example:
+
+</P>
+<P>
+<PRE>  if ($ControlX10::CM11::POWER_RESET) {
+      display time =&gt; 0, text =&gt; &quot;Detected a CM11 power reset&quot;;
+      $ControlX10::CM11::POWER_RESET = 0;
+  }
+</PRE>
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Anders Baardsgaard sent in a bsd patch to avoid shelling out to find
+<CODE>$Time_Boot_time</CODE> on FreeBSD.
+
+</P>
+<P>
+- Ron Klinkien fixed set_clock so it works on FreeBSD.
+
+</P>
+<P>
+- Roger Bille sent in code to support a new mh.ini default_temp=Celsius
+parm. Currently this is only used by mh/lib/iButton.pm
+
+</P>
+<P>
+- Ray Dzek created a 'how to get started with iButton guide' at <A
+HREF="http://www.solarbugs.com/home/ibutton.htm">http://www.solarbugs.com/home/ibutton.htm</A>
+(added a link to faq and mh docs).
+
+</P>
+<P>
+- Fenghua Zong discovered that we goofed up with a 2.39 update to vv_tts.pl
+(should not have changed ViaVoiceTTS to TTSClass).
+
+</P>
+<P>
+- Fenghua Zong also sent in an update to Voice_Cmd.pm that tunes some
+delays so ViaVoice will work better on some faster computers. Someday we
+will need to update the viavoice_server code with better handshaking so it
+is less dependent on hardcoded delays.
+
+</P>
+<P>
+- Tony Drumm created mh/code/public/wxserver_client.pl and
+wxserver_server.pl. The client code populates the mh <CODE>%weather</CODE>
+array with data from a wxserver. Tony also has a program on his web site
+that will serve weather data data from a Peet Brother's weather station
+(e.g. Ultimeter 2000).
+
+</P>
+<P>
+- Jean-Marie Martin found a problem with processing .MHT (rather than .mht)
+files.
+
+</P>
+<P>
+- Clive Freedman fixed <CODE>$Time_of_Day</CODE> so it is night rather than
+afternoon prior to 5 am.
+
+</P>
+<P>
+- Brian Paulsen modified mh/code/public/rrd_graph to make it a bit easier
+to add/remove rooms.
+
+</P>
+<P>
+- Ian Davidson sent in a fix so sensors.pl will work with the newer analog
+weeder boards.
+
+</P>
+<P>
+- Brent DeShazer fixed Timer.pm to handler subroutine actions.
+
+</P>
+<P>
+- Craig Schaeffer added a time_add function: $Save{setback_off} = time_add
+``$Save{wakeup_time} - 1:20'';
+
+</P>
+<P>
+- Allow for read_table_xxx.pl and user_modules to be in the user_code
+directory. 
+
+</P>
+<P>
+- Fixed the SwitchLinc set method.
+
+</P>
+<P>
+- Fixed 2.39 bugs which caused the web parm password_allow_clients to be
+ignored and a web command search to fail.
+
+</P>
+<P>
+- Added a 'password set/not set' voice message in the web server, for
+notification of web password attempts.
+
+</P>
+<P>
+- Updated the rpm file to not require the viavoice libraries and to not
+require perl in /usr/bin/perl
 
 </P>
 <P>

@@ -68,7 +68,7 @@ sub use_ua {
     if ($file) {
         print "Retrieving (with ua) $url into $file ..." unless $config_parms{quiet};
         $response = $ua->simple_request($request, $file);
-        print " url retreived.\n" unless $config_parms{quiet};
+        print " url retrieved.\n" unless $config_parms{quiet};
         exit;
     }
     else {
@@ -92,7 +92,7 @@ sub use_get {
             open (OUT, ">$file") or die "Error, could not open file $file for output\n";
             print OUT $data;
             close OUT;
-            print " url retreived\n" unless $config_parms{quiet};
+            print " url retrieved\n" unless $config_parms{quiet};
         }
         else {
             print " get failed\n";
@@ -105,6 +105,9 @@ sub use_get {
 
 #
 # $Log$
+# Revision 1.9  2001/02/04 20:31:30  winter
+# - 2.43 release
+#
 # Revision 1.8  2000/12/21 18:54:14  winter
 # - 2.38 release
 #

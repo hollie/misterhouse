@@ -739,8 +739,9 @@ only at Startup?
       X10 has many of its products documented here:
         http://www.x10.com/support/support_manuals.htm
 
-      Lots of good X10 data can be found here:
+      Lots of good X10 data/ideas can be found here:
         http://www.geocities.com/ido_bartana/toc.htm
+        http://www.x10ideas.com
 
       Europeans can get X10 stuff distributers listed here:
         http://www.x10.com/x10euro.htm
@@ -753,6 +754,12 @@ only at Startup?
 
       Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
         http://the-labs.com/HomeAppliance/
+
+      Jay Archer recommends this free Windows mail server
+        http://www.argosoft.com
+
+      And this mult-platform web server:
+        http://www.xitami.com
 
   6.5: How can I use cvs to co-develop core mh code?
 
@@ -868,6 +875,9 @@ only at Startup?
       http://www.x10.com/products/x10_lm14a.htm  two way lamp module from X10, $33
 
   6.7 What do I need to use the iButtons?
+
+    Ray Dzek created a how to get started with iButton guide at
+    http://www.solarbugs.com/home/ibutton.htm
 
     Here is a post from Clay Jackson
 

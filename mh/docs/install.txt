@@ -213,6 +213,8 @@ Detailed Install Instructions for UNIX users
       cpan> install Tk
       cpan> install Tk::JPEG
       cpan> install DB_File
+      cpan> install Term::ReadKey
+      cpan> install Time::HiRes
       cpan> exit
 
   Step 3, Download and Install a Speech Engines
@@ -432,6 +434,11 @@ Installing Hardware
     free serial port, update the Weeder_port or cm11_port parm in
     the mh.ini file to point to that port and try a simple example,
     like test_x10.pl in the test directory.
+
+    If you are getting 'bad checksum from cm11' messages, mh is
+    haveing problems talking to your cm11. If on windows, make sure
+    the X10 ActiveHome software works to verify you have the right
+    port. If on unix, you can try heyu: http://heyu.tanj.com
 
     Support for any serial port device can be coded by using the
     generic Serial_Item objects. For example, a ham radio enthusiast

@@ -377,6 +377,9 @@ DESCRIPTION
       http://weather.henriksens.net  has free 1-Wire Weather station software
         - It includes a tcp/ip server that (in theory) could talk to mh
 
+      Ray Dzek has a nice how to get started tutorial here:
+        http://www.solarbugs.com/home/ibutton.htm
+
     If you want more reliable VR without having to use a headset,
     you can try these to digital array microphones:
 
@@ -1572,23 +1575,29 @@ DESCRIPTION
         Displays the specified text string, text file contents, or
         bitmap (.gif or .jpg).
 
-          Usage:
+          Simple mode:
+             display $file_or_text, $time, $title, $font, $window_name;
 
-            display($file_or_text, $time, $title, $font);
+          Options mode:
+             display option => 'value', text => $file_or_text;
 
-              $file_or_text can be a file or a text string.
-              $time  (optional) is how long (in seconds) till the box will auto-close.
+          Options:
+              $time is how long (in seconds) till the box will auto-close.
                      Defaults to 120.  Use 0 to disable auto-close.
-              $title (optional) is the title of the display box.
-
+              $title is the title of the display box.
+              $font  is the font (default is mh.ini parm tk_font).
+              $window_name will re-use an exisiting display window of the same name.
+         
           Examples:
 
             display "Internet message: $msg", 300, 'Internet message'; 
             display $f_trivia_answer;
             display '/pictures/photo.jpg';
-          
-        If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk popup window.
-        If -tk 0 or the data is echoed to the console.
+            display text => $log, time => 0, font => 'fixed', window_name => 'log';
+
+        If -tk 1 (i.e. Tk is installed and used), the data is
+        displayed in a Tk popup window. If -tk 0 or the data is
+        echoed to the console.
 
         If the data is requested from a web browser, the data is
         echoed to the browser print_log window. It will be displayed
@@ -1911,6 +1920,25 @@ DESCRIPTION
             $Save{mode} = 'mute' if time_cron '0 10-21 * * 1-5';
             speak 'mode=unmuted  The front door just opened';
 
+    time_add
+        Use this to add/delete an offset to a time value, using the
+        same syntax as offsets allowed for in time_now.
+
+           Examples:
+
+            $Save{setback_off} = time_add "$Save{wakeup_time} - 1:20";
+
+    time_diff
+        This function returns the time difference between 2 time
+        values. The roundoff time unit is dependent on how big the
+        difference is between the 2 times. For example, if the time
+        difference is > 5 days, the returned value will be in days.
+
+           Examples:
+
+           my $diff = time_diff $Moon{time_full}, $Time;
+           speak "The last full moon was $diff ago";
+
     time_date_stamp
         You can use this function to return a time/date string.
 
@@ -2183,22 +2211,38 @@ DESCRIPTION
         If you pass no argument, it defaults to 1 (i.e. the same as
         the $New_* variables).
 
-    net_domain_name function
-        This will return the domain_name of the last client to
-        access the specified port. If the mh.ini DNS_server parm is
-        NOT set, it will return the IP address instead. You can also
-        pass it a IP address, instead of a server port name.
+    net_domain_name 'address'
+    net_domain_name_start 'search_name', 'address'
+    net_domain_name_done  'search_name'
+        These functions will return the domain_name of the last
+        client to access the specified port. If the mh.ini
+        DNS_server parm is NOT set, it will return the IP address
+        instead. You can also pass it an IP address, instead of a
+        server port name.
 
         If used in an array context, it returns the full domain
         name, and a short version of the domain name (e.g.
         'www.ibm.com' and 'ibm').
 
+        If you call net_domain_name_start, then check for
+        net_domain_name_done, it will query the DNS servers as a
+        background task, so mh will not pause if the DNS server
+        response takes a while. The 'search_name' string must be
+        unique for that part of the code, so that the
+        net_domain_name_done test gets the correct results.
+
           Examples:
 
-           my $domain_name = &net_domain_name('http');
-           my ($name, $name_short) = &net_domain_name('server_speak');
-           my ($name, $name_short) = &net_domain_name('204.146.18.33');
-             Restults $name = 'www.ibm.com', $name_short = 'ibm';
+                                   # Run in the foreground
+           my $domain_name = net_domain_name 'http';
+           my ($name, $name_short) = net_domain_name 'server_speak';
+           my ($name, $name_short) = net_domain_name '204.146.18.33';
+        #  Results: $name = 'www.ibm.com', $name_short = 'ibm';
+
+                                   # Run in the background
+          $v_test_dns2  = new Voice_Cmd 'Run the dns test2';
+          $v_test_dns2 -> tie_event("net_domain_name_start 'test', '204.146.18.33'");
+          print_log "Domain=$state" if $state = net_domain_name 'test';
 
     net_ping
         Checks to see if an IP address is available. Returns true if

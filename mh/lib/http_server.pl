@@ -1130,7 +1130,7 @@ sub html_list {
     $h_list .= qq[<!-- html_list -->\n];
 
                                 # This means the form was submited ... check for search keyword
-    if (my ($search) = $webname_or_object_type =~ /search=(\S*)/) {
+    if (my ($search) = $webname_or_object_type =~ /search=(.*)/) {
 
                                 # Check for msagent checkbox
         if ($webname_or_object_type =~ /msagent=1/) {
@@ -1484,7 +1484,7 @@ sub html_item_state {
 #   print "db on=$object_name ix10=$isa_X10 s=@states\n";
     @states = split ',', $config_parms{x10_menu_states} if $isa_X10;
     @states = qw(on off) if $object->isa('X10_Appliance');
-    my $use_select = 1 if @states > 2;
+    my $use_select = 1 if @states > 2 and length("@states") > $config_parms{html_select_length};
 
     if ($use_select) {
 #       $html .= qq[<FORM action="/SET:&html_list($object_type)?" method="get">\n];
@@ -1527,24 +1527,37 @@ sub html_item_state {
         }
         $html .= qq[</SELECT>\n];
     }
-
+     
+    if (@states) {
                                 # Find toggle state
-    my $state_toggle;
-    if ($object_type eq 'Weather_Item') {
-    }
-    elsif ($state_now eq ON or $state_now =~ /^[\+\-]?\d/) {
-        $state_toggle = OFF;
-    }
-    elsif ($state_now eq OFF or grep $_ eq ON, @states) {
-        $state_toggle = ON;
-    }
+        my $state_toggle;
+        if ($object_type eq 'Weather_Item') {
+        }
+        elsif ($state_now eq ON or $state_now =~ /^[\+\-]?\d/) {
+            $state_toggle = OFF;
+        }
+        elsif ($state_now eq OFF or grep $_ eq ON, @states) {
+            $state_toggle = ON;
+        }
     
-    if ($state_toggle) {
-        $html .= qq[<a href='/SET:referer?$object_name=$state_toggle'>$object_name2</a>];
-#       $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?$state_toggle'>$object_name2</a>];
+        if ($state_toggle) {
+            $html .= qq[<a href='/SET:referer?$object_name=$state_toggle'>$object_name2</a>];
+#           $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?$state_toggle'>$object_name2</a>];
+        }
+        else {
+            $html .= $object_name2;
+        }
     }
     else {
         $html .= $object_name2;
+    }
+#   else {
+    unless ($use_select) {
+        for my $state (@states) {
+            next unless $state;
+            my $state_short = substr $state, 0, 5;
+            $html .= qq[ <a href='/SET:referer?$object_name=$state'>$state_short</a>];
+        }
     }
 
     $html .= qq[</b></td>];
@@ -1881,6 +1894,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.53  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.52  2001/01/20 17:47:50  winter
 # - 2.41 release
 #

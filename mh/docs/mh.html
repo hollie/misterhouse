@@ -651,6 +651,11 @@ Here are some urls and prices:
 </PRE>
 </P>
 <P>
+<PRE>  Ray Dzek has a nice how to get started tutorial here:
+    <A HREF="http://www.solarbugs.com/home/ibutton.htm">http://www.solarbugs.com/home/ibutton.htm</A>
+</PRE>
+</P>
+<P>
 If you want more reliable VR without having to use a headset, you can try
 these to digital array microphones:
 
@@ -2376,32 +2381,37 @@ Displays the specified text string, text file contents, or bitmap (.gif or
 
 </P>
 <P>
-<PRE>  Usage:
+<PRE>  Simple mode:
+     display $file_or_text, $time, $title, $font, $window_name;
 </PRE>
 </P>
 <P>
-<PRE>    display($file_or_text, $time, $title, $font);
+<PRE>  Options mode:
+     display option =&gt; 'value', text =&gt; $file_or_text;
 </PRE>
 </P>
 <P>
-<PRE>      $file_or_text can be a file or a text string.
-      $time  (optional) is how long (in seconds) till the box will auto-close.
+<PRE>  Options:
+      $time is how long (in seconds) till the box will auto-close.
              Defaults to 120.  Use 0 to disable auto-close.
-      $title (optional) is the title of the display box.
-</PRE>
-</P>
-<P>
-<PRE>  Examples:
+      $title is the title of the display box.
+      $font  is the font (default is mh.ini parm tk_font).
+      $window_name will re-use an exisiting display window of the same name.
+ 
+  Examples:
 </PRE>
 </P>
 <P>
 <PRE>    display &quot;Internet message: $msg&quot;, 300, 'Internet message'; 
     display $f_trivia_answer;
     display '/pictures/photo.jpg';
-  
-If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk popup window.
-If -tk 0 or the data is echoed to the console.
+    display text =&gt; $log, time =&gt; 0, font =&gt; 'fixed', window_name =&gt; 'log';
 </PRE>
+</P>
+<P>
+If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk
+popup window. If -tk 0 or the data is echoed to the console.
+
 </P>
 <P>
 If the data is requested from a web browser, the data is echoed to the
@@ -2888,6 +2898,37 @@ Passes specified text to the TTS program. There are 2 modes of calling it:
     speak 'mode=unmuted  The front door just opened';
 </PRE>
 </P>
+<DT><STRONG><A NAME="item_time_add">time_add</A></STRONG><DD>
+<P>
+Use this to add/delete an offset to a time value, using the same syntax as
+offsets allowed for in time_now.
+
+</P>
+<P>
+<PRE>   Examples:
+</PRE>
+</P>
+<P>
+<PRE>    $Save{setback_off} = time_add &quot;$Save{wakeup_time} - 1:20&quot;;
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_time_diff">time_diff</A></STRONG><DD>
+<P>
+This function returns the time difference between 2 time values. The
+roundoff time unit is dependent on how big the difference is between the 2
+times. For example, if the time difference is &gt; 5 days, the returned
+value will be in days.
+
+</P>
+<P>
+<PRE>   Examples:
+</PRE>
+</P>
+<P>
+<PRE>   my $diff = time_diff $Moon{time_full}, $Time;
+   speak &quot;The last full moon was $diff ago&quot;;
+</PRE>
+</P>
 <DT><STRONG><A NAME="item_time_date_stamp">time_date_stamp</A></STRONG><DD>
 <P>
 You can use this function to return a time/date string.
@@ -3292,12 +3333,14 @@ If you pass no argument, it defaults to 1 (i.e. the same as the $New_*
 variables).
 
 </P>
-<DT><STRONG><A NAME="item_net_domain_name">net_domain_name function</A></STRONG><DD>
+<DT><STRONG><A NAME="item_net_domain_name">net_domain_name 'address'</A></STRONG><DD>
+<DT><STRONG><A NAME="item_net_domain_name_start">net_domain_name_start 'search_name', 'address'</A></STRONG><DD>
+<DT><STRONG><A NAME="item_net_domain_name_done">net_domain_name_done  'search_name'</A></STRONG><DD>
 <P>
-This will return the domain_name of the last client to access the specified
-port. If the mh.ini DNS_server parm is NOT set, it will return the IP
-address instead. You can also pass it a IP address, instead of a server
-port name.
+These functions will return the domain_name of the last client to access
+the specified port. If the mh.ini DNS_server parm is NOT set, it will
+return the IP address instead. You can also pass it an IP address, instead
+of a server port name.
 
 </P>
 <P>
@@ -3306,14 +3349,30 @@ version of the domain name (e.g. 'www.ibm.com' and 'ibm').
 
 </P>
 <P>
+If you call net_domain_name_start, then check for net_domain_name_done, it
+will query the DNS servers as a background task, so mh will not pause if
+the DNS server response takes a while. The 'search_name' string must be
+unique for that part of the code, so that the net_domain_name_done test
+gets the correct results.
+
+</P>
+<P>
 <PRE>  Examples:
 </PRE>
 </P>
 <P>
-<PRE>   my $domain_name = &amp;net_domain_name('http');
-   my ($name, $name_short) = &amp;net_domain_name('server_speak');
-   my ($name, $name_short) = &amp;net_domain_name('204.146.18.33');
-     Restults $name = 'www.ibm.com', $name_short = 'ibm';
+<PRE>                           # Run in the foreground
+   my $domain_name = net_domain_name 'http';
+   my ($name, $name_short) = net_domain_name 'server_speak';
+   my ($name, $name_short) = net_domain_name '204.146.18.33';
+#  Results: $name = 'www.ibm.com', $name_short = 'ibm';
+</PRE>
+</P>
+<P>
+<PRE>                           # Run in the background
+  $v_test_dns2  = new Voice_Cmd 'Run the dns test2';
+  $v_test_dns2 -&gt; tie_event(&quot;net_domain_name_start 'test', '204.146.18.33'&quot;);
+  print_log &quot;Domain=$state&quot; if $state = net_domain_name 'test';
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_net_ping">net_ping</A></STRONG><DD>
@@ -5240,14 +5299,6 @@ and <a href="authors.html">a bunch of fellow home hackers</a>
 mh can be download from <A
 HREF="http://misterhouse.net">http://misterhouse.net</A>
 
-</P>
-<P>
-Here is a list of other online mh sites:
-
-</P>
-<P>
-<PRE>  <A HREF="http://www.archer-online.net">http://www.archer-online.net</A>
-</PRE>
 </P>
 <P>
 Here is a list of articles written about MisterHouse:

@@ -7,12 +7,13 @@ use strict;
 my %Windows;
 
 sub new {
-    my ($class, $text, $time, $title, $font, $window_name) = @_;
+    my ($class, $text, $time, $title, $font, $window_name, $append) = @_;
     $time = 120 unless defined $time;
     my $auto_quit = 1 unless $time == 0; 
     $title = 'Display Text' unless $title;
     my $self = {text => $text, time => $time, title => $title,
-                auto_quit => $auto_quit, font => $font, window_name => $window_name};
+                auto_quit => $auto_quit, font => $font, 
+                window_name => $window_name, append => $append};
     bless $self, $class;
     &display($self);
     return $self;
@@ -46,7 +47,7 @@ sub read_text {
     while (@data) {
         $_ = shift @data;
         my $length = length;
-        $$self{width} = $length if $length > $$self{width}; 
+        $$self{width} = $length if !$$self{width} or $length > $$self{width}; 
         $$self{height}++; 
         $$self{height} += int($length/100); # Add more rows if we are line wrapping
         $$self{text} .= $_ if $file;
@@ -72,6 +73,10 @@ sub read_text {
     }
     if ($$self{width} > 100) { 
         $$self{width} = 100; 
+    }
+    if ($$self{append}) {
+        $$self{width} = 100;
+        $$self{scroll} = 'se';
     }
 }
 
@@ -140,8 +145,17 @@ sub display {
         my $t1;
         if ($reuse_flag) {
             $t1 = $Windows{$$self{window_name}}{t1};
-            $t1->delete(('0.0', 'end')); 
-            $t1->insert(('0.0', $$self{text})); 
+            if ($$self{append} eq 'bottom') {
+                                # If we put at end, tk does not auto-scroll :(
+                $t1->insert(('end', $$self{text})); 
+            }
+            elsif ($$self{append}) {
+                $t1->insert(('0.0', $$self{text})); 
+            }
+            else {
+                $t1->delete(('0.0', 'end')); 
+                $t1->insert(('0.0', $$self{text})); 
+            }
         }
         else {
             $t1 = $$self{MW}->Scrolled('Text', -setgrid => 'true',  
@@ -238,6 +252,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.18  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.17  2001/01/20 17:47:50  winter
 # - 2.41 release
 #

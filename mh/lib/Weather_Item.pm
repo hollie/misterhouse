@@ -13,10 +13,13 @@ sub Init {
 }
 
 sub check_weather {
-    for my $self (@weather_item_list) {
-        next unless defined $main::Weather{$self->{type}};
-        if (!defined $self->{state} or $self->{state} ne $main::Weather{$self->{type}}) {
-            &Generic_Item::set_states_for_next_pass($self,  $main::Weather{$self->{type}});
+    if($::New_Msecond_250)
+    {
+        for my $self (@weather_item_list) {
+            next unless defined $main::Weather{$self->{type}};
+            if (!defined $self->{state} or $self->{state} ne $main::Weather{$self->{type}}) {
+                &Generic_Item::set_states_for_next_pass($self,  $main::Weather{$self->{type}});
+            }
         }
     }
 }
@@ -46,7 +49,8 @@ sub new {
 
 sub state {
     my ($self) = @_;
-    return  $main::Weather{$self->{type}} unless $self->{comparison};
+    return undef unless defined $main::Weather{$self->{type}};
+    return $main::Weather{$self->{type}} unless $self->{comparison};
     return ($main::Weather{$self->{type}} <  ($self->{limit}) ? 1 : 0) if $self->{comparison} eq '<';
     return ($main::Weather{$self->{type}} >  ($self->{limit}) ? 1 : 0) if $self->{comparison} eq '>';
     return ($main::Weather{$self->{type}} == ($self->{limit}) ? 1 : 0) if $self->{comparison} eq '=';

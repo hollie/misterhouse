@@ -1,4 +1,9 @@
 # Category=Internet
+
+# NOTE:  Due to changes somewhere, the jabber code in mh no longer seems to work.
+#  If you are on perl 5.6+ (which has unicode support), you can try installing
+#  the jabber library from perl.com/cpan
+
 #
 # Send messages to a instant messaging Jabber client
 # Jabber is a new, open, XML based protocol for instant messaging.  You can get free IDs and client for various
@@ -20,6 +25,6 @@ net_jabber_send(text => "Stock summary\n  $Save{stock_data1}\n  $Save{stock_data
                 subject => "Stock summary for $Time_Date") if said $v_jabber_test;
 
                                 # Send email summary once a day at noon
-net_jabber_send(text => "Internet mail received at $Time_Now", 
-                file => "$config_parms{data_dir}/get_email2.txt") if time_cron '04 12 * * 1-5';
+#net_jabber_send(text => "Internet mail received at $Time_Now", 
+#                file => "$config_parms{data_dir}/get_email2.txt") if time_cron '04 12 * * 1-5';
 

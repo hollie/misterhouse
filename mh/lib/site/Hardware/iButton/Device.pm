@@ -412,7 +412,7 @@ sub readpacket {
 
 	# attempt to read UDP from sendpacket
 	print "head_len = $head_len\n";
-	print join( " ", map { uc(unpack( "H*", $_ )) } split( / */, $result )), "\n";
+	print join( " ", map { uc(unpack( "H*", $_ )) } split( //, $result )), "\n";
 	my $length = substr( $result, $head_len, 1 );
 	$crc = $c->docrc16( $crc, $length );
 
@@ -677,14 +677,14 @@ Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 
 =cut
 
-sub read_temperature_time { return 0.75; }
+sub read_temperature_time { return 0.3; }
 
 sub read_temperature {
     my($self) = @_;
     my $data = $self->read_temperature_scratchpad();
 
     if ( $data ) {
-	my @data = map { ord($_) } split( / */, $data );
+	my @data = unpack( "C*", $data );
 	my $sign = $data[2] > 128 ? -1 : 1;
 	my $temp = (($data[2] & 0x07) * 256 + $data[1]) / 16 * $sign;
 	return $temp;
@@ -699,7 +699,7 @@ sub read_temperature_hires {
 
     if ( $data ) {
 	# calculate the high-res temperature
-	my @data = map { ord($_) } split( / */, $data );
+	my @data = unpack( "C*", $data );
 	my $tmp = int($data[1]/2);
 	$tmp -= 128 if $data[2] & 0x01;
 	my $cr = $data[7];

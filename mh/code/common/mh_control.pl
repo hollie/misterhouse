@@ -27,7 +27,25 @@ if (said $v_uptime) {
     speak("I was started $uptime_pgm ago. The computer was booted $uptime_computer ago.");
 }
 
-$v_reboot = new  Voice_Cmd("Reboot the computer");
+$v_restart_http = new Voice_Cmd '[Open,Close,Restart] the http server';
+
+if ($state = said $v_restart_http) {
+    print_log "${state}ing the http server";
+    socket_open    'http' if $state eq 'Open';
+    socket_close   'http' if $state eq 'Close';
+    socket_restart 'http' if $state eq 'Restart';
+}
+        
+
+$v_restart_mh = new Voice_Cmd 'Restart Mister House';
+$v_restart_mh-> set_info('Restart mh.  This will only work if you are start mh with mh/bin/mhl');
+&exit_pgm(1) if said $v_restart_mh;
+
+if ($Startup and $Save{mh_exit} ne 'normal') {
+    display "MisterHouse auto restarted: $Save{mh_exit}", 0;
+}
+
+$v_reboot = new  Voice_Cmd 'Reboot the computer';
 $v_reboot-> set_info('Do this only if you really mean it!  Windows only');
 
 if (said $v_reboot and $OS_win) {
@@ -244,3 +262,22 @@ if ($Keyboard) {
                                 # Monitor if web password was set or unset
 speak 'rooms=all Web password was just set' if $Cookies{password_was_set};
 speak 'rooms=all Notice, an invalid Web password was just specified' if $Cookies{password_was_not_set};
+
+
+                                # Those with ups devices can set this seperatly
+                                # Those without a CM11 ... this will not hurt any
+$Power_Supply = new Generic_Item;
+
+if ($ControlX10::CM11::POWER_RESET) {
+    $ControlX10::CM11::POWER_RESET = 0;
+    set $Power_Supply 'Restored';
+    print_log 'Power reset detected';
+    display time => 0, text => "Detected a CM11 power reset";
+}
+
+                                # Set back to normal 1 pass after restored
+if (state_now $Power_Supply eq 'Restored') {
+    print_log 'Power has been restored';
+    set $Power_Supply 'Normal';
+}
+

@@ -89,22 +89,25 @@ sub init
 
 sub UserCodePreHook
 {
-    for my $port_name (@DSC_Alarm_Ports) {
-      &::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
-      my $data = $::Serial_Ports{$port_name}{data_record};
-      next if !$data;
-      &::logit("$::config_parms{data_dir}/logs/$port_name.$::Year_Month_Now.log", "$data");
-      ::print_log "DSC_Alarm port $port_name data = $data, $::Loop_Count\n" if $::config_parms{debug} eq 'DSC';
+    if($::New_Msecond_100)
+    {
+        for my $port_name (@DSC_Alarm_Ports) {
+            &::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
+            my $data = $::Serial_Ports{$port_name}{data_record};
+            next if !$data;
+            &::logit("$::config_parms{data_dir}/logs/$port_name.$::Year_Month_Now.log", "$data");
+            ::print_log "DSC_Alarm port $port_name data = $data, $::Loop_Count\n" if $::config_parms{debug} eq 'DSC';
 
-      my @object_refs = @{$DSC_Alarm_Objects{$port_name}};
-      while (my $self = pop @object_refs) {
-        $self->{user} = $2   if $data =~ /^.*User (|Code)\s+(\d+).*/;
-        set $self "Armed"    if $data =~ /^.*System\s+Armed in (.*) Mode/;    
-        $self->{mode} = $1;
-        set $self "Disarmed" if $data =~ /^.*System\s+Opening.*/;
-        set $self "Alarm"    if $data =~ /^.*System\s+Alarm Zone\s+(\d+).*/;
-        $self->{zone} = $1;
-      }
+            my @object_refs = @{$DSC_Alarm_Objects{$port_name}} if $DSC_Alarm_Objects{$port_name};
+            while (my $self = pop @object_refs) {
+                $self->{user} = $2   if $data =~ /^.*User (|Code)\s+(\d+).*/;
+                set $self "Armed"    if $data =~ /^.*System\s+Armed in (.*) Mode/;    
+                $self->{mode} = $1;
+                set $self "Disarmed" if $data =~ /^.*System\s+Opening.*/;
+                set $self "Alarm"    if $data =~ /^.*System\s+Alarm Zone\s+(\d+).*/;
+                $self->{zone} = $1;
+            }
+        }
     }
 }
 

@@ -160,21 +160,23 @@ sub new {
 
 sub set_with_timer {
     my ($self, $state, $time) = @_;
-    
+    return if &main::check_for_tied_filters($self, $state);
+
     $self->set($state);
     return unless $time;
 
                                 # If off, timeout to on, otherwise timeout to off
     my $state_change = ($state eq 'off') ? 'on' : 'off';
 
-#   my $x10_timer = new  main::Timer;
-    my $x10_timer = &Timer::new();
+                                # Reuse timer for this object if it exists
+    $$self{timer} = &Timer::new() unless $$self{timer};
+#   my $x10_timer = &Timer::new();
     my $object = $self->{object_name};
     my $action = "set $object '$state_change'";
 #   my $action = "&X10_Items::set($object, '$state_change')";
 #   print "db Setting x10 timer $x10_timer: self=$self time=$time action=$action\n";
 #   $x10_timer->set($time, $action);
-    &Timer::set($x10_timer, $time, $action);
+    &Timer::set($$self{timer}, $time, $action);
 
 }
 
@@ -446,28 +448,44 @@ sub new {
 
     $self-> add ("X" . $hc . 'P', 'off');
 
-    $self-> add ("X" . $hc . "1" . $hc . 'J', '1on');
-    $self-> add ("X" . $hc . "2" . $hc . 'J', '2on');
-    $self-> add ("X" . $hc . "3" . $hc . 'J', '3on');
-    $self-> add ("X" . $hc . "4" . $hc . 'J', '4on');
-    $self-> add ("X" . $hc . "5" . $hc . 'J', '5on');
-    $self-> add ("X" . $hc . "6" . $hc . 'J', '6on');
-    $self-> add ("X" . $hc . "7" . $hc . 'J', '7on');
-    $self-> add ("X" . $hc . "8" . $hc . 'J', '8on');
+    $self-> add ("X" . $hc . "1" . $hc . 'J', '1-on');
+    $self-> add ("X" . $hc . "2" . $hc . 'J', '2-on');
+    $self-> add ("X" . $hc . "3" . $hc . 'J', '3-on');
+    $self-> add ("X" . $hc . "4" . $hc . 'J', '4-on');
+    $self-> add ("X" . $hc . "5" . $hc . 'J', '5-on');
+    $self-> add ("X" . $hc . "6" . $hc . 'J', '6-on');
+    $self-> add ("X" . $hc . "7" . $hc . 'J', '7-on');
+    $self-> add ("X" . $hc . "8" . $hc . 'J', '8-on');
+    $self-> add ("X" . $hc . "9" . $hc . 'J', '9-on');
+    $self-> add ("X" . $hc . "A" . $hc . 'J', '10-on');
+    $self-> add ("X" . $hc . "B" . $hc . 'J', '11-on');
+    $self-> add ("X" . $hc . "C" . $hc . 'J', '12-on');
+    $self-> add ("X" . $hc . "D" . $hc . 'J', '13-on');
+    $self-> add ("X" . $hc . "E" . $hc . 'J', '14-on');
+    $self-> add ("X" . $hc . "F" . $hc . 'J', '15-on');
+    $self-> add ("X" . $hc . "G" . $hc . 'J', '16-on');
 
-    $self-> add ("X" . $hc . "1" . $hc . 'K', '1off');
-    $self-> add ("X" . $hc . "2" . $hc . 'K', '2off');
-    $self-> add ("X" . $hc . "3" . $hc . 'K', '3off');
-    $self-> add ("X" . $hc . "4" . $hc . 'K', '4off');
-    $self-> add ("X" . $hc . "5" . $hc . 'K', '5off');
-    $self-> add ("X" . $hc . "6" . $hc . 'K', '6off');
-    $self-> add ("X" . $hc . "7" . $hc . 'K', '7off');
-    $self-> add ("X" . $hc . "8" . $hc . 'K', '8off');
+    $self-> add ("X" . $hc . "1" . $hc . 'K', '1-off');
+    $self-> add ("X" . $hc . "2" . $hc . 'K', '2-off');
+    $self-> add ("X" . $hc . "3" . $hc . 'K', '3-off');
+    $self-> add ("X" . $hc . "4" . $hc . 'K', '4-off');
+    $self-> add ("X" . $hc . "5" . $hc . 'K', '5-off');
+    $self-> add ("X" . $hc . "6" . $hc . 'K', '6-off');
+    $self-> add ("X" . $hc . "7" . $hc . 'K', '7-off');
+    $self-> add ("X" . $hc . "8" . $hc . 'K', '8-off');
+    $self-> add ("X" . $hc . "9" . $hc . 'K', '9-off');
+    $self-> add ("X" . $hc . "A" . $hc . 'K', '10-off');
+    $self-> add ("X" . $hc . "B" . $hc . 'K', '11-off');
+    $self-> add ("X" . $hc . "C" . $hc . 'K', '12-off');
+    $self-> add ("X" . $hc . "D" . $hc . 'K', '13-off');
+    $self-> add ("X" . $hc . "E" . $hc . 'K', '14-off');
+    $self-> add ("X" . $hc . "F" . $hc . 'K', '15-off');
+    $self-> add ("X" . $hc . "G" . $hc . 'K', '16-off');
 
     $self->set_interface($interface);
 
-    $self->{zone_runtimes} = [10,10,10,10,10,10,10,10];
-    $self->{zone_runcount} = 8;
+    $self->{zone_runtimes} = [10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
+    $self->{zone_runcount} = 0;
     $self->{zone_delay} = 10;
     $self->{timer} = &Timer::new();
 
@@ -510,6 +528,20 @@ sub set
 {
     my ($self, $state) = @_;
 
+    if($state =~ /^(\w+):(.*)/)
+    {
+        print "X10_IrrigationController set with times found: state=$1 times=$2\n";# if $main::config_parms{debug} eq 'X10';
+        $state = $1;
+        return if &main::check_for_tied_filters($self, $state);
+
+        my @runtimes = split ',', $2;
+        $self->set_runtimes(@runtimes);
+    }
+    else
+    {
+        return if &main::check_for_tied_filters($self, $state);
+    }
+
     if(lc($state) eq 'on')
     {
         # Start a cascade
@@ -538,8 +570,8 @@ sub zone_cascade
     $zone = 1 if $zone eq undef;
 
     # Turn off last zone
-    $self->X10_IrrigationController::Inherit::set(($zone - 1) . 'off') unless $zone == 1;
-    # Or turn off all is starting from zone 1
+    $self->X10_IrrigationController::Inherit::set(($zone - 1) . '-off') unless $zone == 1;
+    # Or turn off all if starting from zone 1
     $self->X10_IrrigationController::Inherit::set('off') if $zone == 1;
 
     print "Zone $zone of $self->{zone_runcount}\n" if $main::config_parms{debug} eq 'X10';
@@ -549,11 +581,14 @@ sub zone_cascade
     # Print stop message
     print "X10_IrrigationController: zone_cascade complete\n" if($zone > $self->{zone_runcount});
 
+    # Make the objects state go complete if we are done
+    &Generic_Item::set($self,'complete') if($zone > $self->{zone_runcount});
+
     # Stop now if we've run out of zones
     return if($zone > $self->{zone_runcount});
 
     my $runtime = $self->{zone_runtimes}[$zone-1];
-    if($runtime ne undef)
+    if($runtime ne undef and $runtime > 0)
     {
         # Set a timer to turn it off and turn the next zone on
         my $sprinkler_timer = $self->{timer};
@@ -576,7 +611,7 @@ sub zone_delay
     my ($self, $zone, $runtime) = @_;
 
     # Turn the zone on
-    $self->X10_IrrigationController::Inherit::set($zone . 'on');
+    $self->X10_IrrigationController::Inherit::set($zone . '-on');
 
     # Set a timer to turn it off and turn the next zone on
     my $sprinkler_timer = $self->{timer};
@@ -640,6 +675,9 @@ sub set {
 
 
 # $Log$
+# Revision 1.16  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.15  2001/01/20 17:47:50  winter
 # - 2.41 release
 #

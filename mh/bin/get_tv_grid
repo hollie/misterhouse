@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2000-12-09 13:44:06 winter>
+#  Last change Time-stamp: <2001-02-04 09:53:45 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -48,7 +48,7 @@ Creates a DBM for use by get_tv_info.
     -channels xyz => xyz is the number of channels to filter.  Default is 999.
     -infile  xyz  => xyz is  original input file.   Default is 
                      web/tv/clicktv/day_hour.html.  If this file is missing
-                     or old, a new file will be retreived from the web.
+                     or old, a new file will be retrieved from the web.
     -outfile xyz  => xyz the filtered output file. 
                      Default is -outdir/day_hour.html
     -outdir  xyz  => xyz the directory the outfiles will be put in.
@@ -124,10 +124,14 @@ sub get_url {
 #       my $url="http://clicktv.com/listings.cfm?ctv_user_id=$request";
                                 #  - need to see what WSERVER## to pick ??
                                 #  - Not sure what UserID does ... works ok without it.  Different from Profileid?
-        my $request = "$parms{userid}&WSN=WSERVER10&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
+                                # Pre 01/31/2001 request
 #       my $request = "$parms{userid}&UserID=$parms{userid}&WSN=WSERVER10&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
+#       my $request = "$parms{userid}&WSN=WSERVER10&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
+#       my $url="http://listings.clicktv.com/listings.asp?profileID=$request";
 
-        my $url="http://listings.clicktv.com/listings.asp?profileID=$request";
+        my $request = "&CID=TVD&WSN=WSERVER20&UserID=$parms{userid}&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
+        my $url="http://listings.clicktv.com/listings.asp?profileID=%2478%2479%248D%2479%2489%2487$request";
+
         print "Requesting url: $url\n";
         use LWP::Simple;
         my $html = get $url;
@@ -138,7 +142,7 @@ sub get_url {
             print "data stored in $infile\n";
         }
         else {
-            print "\nError, no data retreived from: $url\n\n";
+            print "\nError, no data retrieved from: $url\n\n";
         }
     }
 }
@@ -331,13 +335,13 @@ sub make_index {
 sub delete_old_data {
     my ($down, $down, $day, $month) = &days_from_now(time, -28);
     my $pgm_date = "$month/$day";
-    print "Deleteing old data for $pgm_date ...";
+    print "Deleteing old data from 4 weeks ago: $pgm_date ...";
     my @channels = keys %DBM2;
     for my $channel_number (@channels) {
         for my $hour (00 .. 23) {
             for my $min ('00', '30') {
                 my $db_key = join($;, $channel_number, $pgm_date, "$hour:$min");
-                print "deleteing $db_key\n" if $parms{debug};
+#               print "deleteing $db_key\n" if $parms{debug};
                 delete $DBM{$db_key};
             }
         }
@@ -429,6 +433,9 @@ sub setup {
 
 #
 # $Log$
+# Revision 1.32  2001/02/04 20:31:30  winter
+# - 2.43 release
+#
 # Revision 1.31  2000/12/21 18:54:14  winter
 # - 2.38 release
 #

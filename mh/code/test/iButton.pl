@@ -17,7 +17,6 @@
 # More info on coding iButton_Item is in mh/docs/mh.html
 #
 
-
 $v_iButton_connect   = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
 $v_iButton_connect  -> set_info('Use this to free up the serial port or test the iButton start/stop calls');
 $v_iButton_readtemps = new Voice_Cmd "Read the iButton temperature buttons";
@@ -116,7 +115,10 @@ if (new_minute 2) {
 print_log "List of ibuttons:\n" . &iButton::scan_report if said $v_iButton_list;
 
                                 # Pick how often to check the bus ... it takes about 6 ms per device.
+                                # You can use the 'start a by name speed benchmark' command
+                                # to see how much time this is taking
 &iButton::monitor if $New_Second;
+#iButton::monitor if $New_Msecond_500;
 
 
 sub update_rrd {

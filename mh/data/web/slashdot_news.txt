@@ -1,30 +1,30 @@
-Title: Will The Real Nupedia Please Stand Up?
-2001-01-20 09:17:48 by michael  in dept: you-say-tomato-I-say-gnupedia  (news   61)
+Title: Openly Published e-Commerce Security Precautions?
+2001-02-04 11:03:54 by Cliff  in dept: knowing-how-secure-your-merchant's-data-is  (internet   76)
 
-Title: Wearable Translators
-2001-01-20 04:14:39 by michael  in dept: computer-of-girdle-model  (tech   148)
+Title: Microsoft Ties DRM Technology To Windows
+2001-02-04 08:34:29 by timothy  in dept: what-about-my-analog-rights?  (microsoft   175)
 
-Title: Sandia, Compaq, and Celera To Build Petaflop Machine
-2001-01-20 02:09:40 by Hemos  in dept: dear-lord-that's-a-lot  (compaq   158)
+Title: Linux Running On Intel XScale CPU
+2001-02-04 03:11:09 by timothy  in dept: small-packages  (news   112)
 
-Title: EFF Appeals 2600 Decision
-2001-01-19 23:37:59 by michael  in dept: right-to-link  (news   154)
+Title: Ethics In Computer Consulting
+2001-02-03 23:58:05 by Cliff  in dept: stuff-to-think-about  (news   242)
 
-Title: What Do You Do With 1 Million Atari Games?
-2001-01-19 22:05:18 by CmdrTaco  in dept: now-that-is-simply-mad  (games   226)
+Title: Apple Moves Again To Squash Look-Alikes
+2001-02-03 21:43:03 by timothy  in dept: hey-you-can't-do-that!  (apple   481)
 
-Title: ACLU Takes on ICANN
-2001-01-19 20:05:31 by michael  in dept: steel-cage-match  (internet   188)
+Title: Vixie And Others On Members-Only BIND Info
+2001-02-03 19:21:20 by timothy  in dept: putting-a-fork-in-it?  (internet   180)
 
-Title: Cringley: Chip Manufacturing To Radically Change
-2001-01-19 19:07:52 by Hemos  in dept: easy-to-predict  (tech   195)
+Title: Sonicblue Acquires ReplayTV
+2001-02-03 18:19:05 by timothy  in dept: convergence  (news   52)
 
-Title: Where Should Company Loyalty End?
-2001-01-19 18:36:58 by Cliff  in dept: stuff-to-think-about  (internet   494)
+Title: ORBS Lookup Entries Undergo Major Revamping
+2001-02-03 16:41:35 by timothy  in dept: lovely-spam-wonderful-spam-  (spam   136)
 
-Title: Stuffing Junkmail Postage-Paid Envelopes?
-2001-01-19 17:06:09 by CmdrTaco  in dept: fun-and-games-for-the-snail-mail-spammers  (humor   654)
+Title: Indigo Magic Desktop, Now On Linux
+2001-02-03 14:07:52 by timothy  in dept: a-pigment-of-your-imagination  (sgi   219)
 
-Title: Self-Adaptive Websites
-2001-01-19 16:16:58 by CmdrTaco  in dept: stuff-to-think-about  (internet   141)
+Title: NetBSD Supports SEGA's Broadband Adapter
+2001-02-03 10:12:55 by timothy  in dept: why-is-inoshiro-in-my-apartment?  (bsd   150)
 

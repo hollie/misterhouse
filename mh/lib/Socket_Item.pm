@@ -146,6 +146,8 @@ sub set_echo {
 sub set {
     my ($self, $state) = @_;
 
+    return if &main::check_for_tied_filters($self, $state);
+
     $self->{state} = $state;
 
     return unless %main::Socket_Ports;
@@ -228,6 +230,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.17  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.16  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

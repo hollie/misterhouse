@@ -258,7 +258,9 @@ sub check_for_voice_cmd {
                                 # for the current pass, because we do not know where we are in the user code loop
 sub set {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state);
+    &main::print_log("Running: $self->{text_by_state}{$state}");
     print "db1 set voice cmd $self to $state\n" if $main::config_parms{debug} eq 'voice';
 }
 
@@ -385,6 +387,7 @@ sub _register {
         $state = 1 if !$state or $state eq $cmd;
 
         my $cmd_num = &_register2($self, $cmd, $vocab, $description);
+        $self->{text_by_state}{$state} = $cmd;
         $cmd_state_by_num{$cmd_num} = $state;
 
 #	    print "cmd_num=$cmd_num cmd=$cmd state=$state\n";
@@ -435,7 +438,7 @@ sub _increment_indexes {
 sub _register2 {
     my($self, $text, $vocab, $des) = @_;
     $text = &_clean_text_string($text);
-    push(@{$self->{texts}}, $text);
+#   push(@{$self->{texts}}, $text);
 
                                 # With viavoice, only add at startup or when adding a new command
                                 #  - point to new Voice_Cmd object pointer
@@ -591,6 +594,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.29  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.28  2001/01/20 17:47:50  winter
 # - 2.41 release
 #

@@ -6,7 +6,7 @@ use strict;
 package Generic_Item;
 
 my (@reset_states, @states_from_previous_pass);
-
+use vars qw(@items_with_tied_times);
 
 sub new {
     my ($class) = @_;
@@ -20,6 +20,16 @@ sub new {
 
 sub set {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
+    if ($state eq 'toggle') {
+        if ($$self{state} eq 'on') {
+            $state = 'off';
+        }
+        else {
+            &main::print_log("Toggling $self->{object_name} from $$self{state} to ON") unless $$self{state} eq 'off';
+            $state = 'on';
+        }
+    }
     &set_states_for_next_pass($self, $state);
 }
 
@@ -181,17 +191,19 @@ sub reset_states {
 
 sub tie_items {
 #   return unless $main::Reload;
-    my ($self, $object, $state, $desiredstate) = @_;
-    $state = 'all_states' unless defined $state;
+    my ($self, $object, $state, $desiredstate, $log_msg) = @_;
+    $state   = 'all_states' unless defined $state;
+    $log_msg = 1            unless $log_msg;
     return if $$self{tied_objects}{$object}{$state};
-    $$self{tied_objects}{$object}{$state} = [$object, $desiredstate];
+    $$self{tied_objects}{$object}{$state} = [$object, $desiredstate, $log_msg];
 }
 
 sub tie_event {
 #   return unless $main::Reload;
-    my ($self, $event, $state) = @_;
-    $state = 'all_states' unless defined $state;
-    $$self{tied_events}{$event}{$state} = 1;
+    my ($self, $event, $state, $log_msg) = @_;
+    $state   = 'all_states' unless defined $state;
+    $log_msg = 1            unless $log_msg;
+    $$self{tied_events}{$event}{$state} = $log_msg;
 }
 
 sub untie_items {
@@ -222,8 +234,55 @@ sub untie_event {
     }        
 }
 
+sub tie_filter {
+#   return unless $main::Reload;
+    my ($self, $filter, $state, $log_msg) = @_;
+    $state   = 'all_states' unless defined $state;
+    $log_msg = 1            unless $log_msg;
+    $$self{tied_filters}{$filter}{$state} = $log_msg;
+}
+sub untie_filter {
+    my ($self, $filter, $state) = @_;
+    if ($state) {
+        delete $self->{tied_filters}{$filter}{$state};
+    }
+    elsif ($filter) {
+        delete $self->{tied_filters}{$filter}; # Untie all states
+    }
+    else {
+        delete $self->{tied_filters}; # Untie em all
+    }        
+}
+
+sub tie_time {
+    my ($self, $time, $state, $log_msg) = @_;
+    $state   = 'on' unless defined $state;
+    $log_msg = 1    unless $log_msg;
+    push @items_with_tied_times, $self unless $$self{tied_times};
+    $$self{tied_times}{$time}{$state} = $log_msg;
+}
+sub untie_time {
+    my ($self, $time, $state) = @_;
+    if ($state) {
+        delete $self->{tied_times}{$time}{$state};
+    }
+    elsif ($time) {
+        delete $self->{tied_times}{$time}; # Untie all states
+    }
+    else {
+        delete $self->{tied_times}; # Untie em all
+    }        
+}
+sub delete_old_tied_times {
+    undef @items_with_tied_times;
+}
+
+
 #
 # $Log$
+# Revision 1.11  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.10  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

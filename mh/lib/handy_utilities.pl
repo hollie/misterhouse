@@ -861,7 +861,7 @@ sub main::time_date_stamp {
     $day        = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[$wday];
     $day_long   = ("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[$wday];
     $month      = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")[$mon];
-    $month_long = ("January", "Febuary", "March", "April", "May", "June",
+    $month_long = ("January", "February", "March", "April", "May", "June",
                   "July", "August", "September", "October", "November", "December")[$mon];
     $mon++;
 
@@ -1043,6 +1043,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.46  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.45  2001/01/20 17:47:50  winter
 # - 2.41 release
 #

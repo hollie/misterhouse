@@ -38,6 +38,7 @@ sub new
 sub set
 {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
 
     print "Mp3Control set called: " . $self->{address} . " to " . $state . "\n";
     winamp_control($state,$self->{address});

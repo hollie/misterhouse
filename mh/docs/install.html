@@ -356,6 +356,8 @@ also try the CPAN installer like this:
   cpan&gt; install Tk
   cpan&gt; install Tk::JPEG
   cpan&gt; install DB_File
+  cpan&gt; install Term::ReadKey
+  cpan&gt; install Time::HiRes
   cpan&gt; exit
 </PRE>
 </P>
@@ -654,6 +656,13 @@ After plugging in the Weeder X10 kit or a CM11 interface into a free serial
 port, update the Weeder_port or cm11_port parm in the mh.ini file to point
 to that port and try a simple example, like test_x10.pl in the test
 directory. 
+
+</P>
+<P>
+If you are getting 'bad checksum from cm11' messages, mh is haveing
+problems talking to your cm11. If on windows, make sure the X10 ActiveHome
+software works to verify you have the right port. If on unix, you can try
+heyu: <A HREF="http://heyu.tanj.com">http://heyu.tanj.com</A>
 
 </P>
 <P>

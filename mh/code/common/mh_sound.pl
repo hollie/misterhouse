@@ -16,8 +16,9 @@ $mh_speakers_timer = new Timer;
                                 # Detect if we are speaking or not
                                 # Note, a call to is_speaking seems to be expensive on Windows
                                 #  -  mip meter drops from 220 to 170 with this call :(
+                                # Call it every 250 ms
 my ($is_speaking, $is_speaking_flag);
-$is_speaking = &Voice_Text::is_speaking;
+$is_speaking = &Voice_Text::is_speaking if $New_Msecond_250;
 $is_speaking = 1 if active $mh_speakers_timer;
 
 if (!$is_speaking_flag and $is_speaking) {

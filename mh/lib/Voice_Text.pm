@@ -3,6 +3,7 @@ package Voice_Text;
 use strict;
 
 my ($VTxt, $VTxt_festival, $VV_TTS, $save_mute_esd, $save_change_volume, %pronouncable);
+my ($ViaVoiceTTS); #mod for ViaVoiceTTS
 
 sub init {
 
@@ -25,7 +26,11 @@ sub init {
         $VV_TTS .= " -default_sound " . $main::config_parms{vv_tts_default_sound} if $main::config_parms{vv_tts_default_sound};
         print "VV TTS command string: $VV_TTS\n";
     }
-    
+
+    if ($main::config_parms{voice_text} =~ /viavoice/i) {
+      $ViaVoiceTTS = 1;     #define $ViaVoiceTTS if 'voice_text=viavoice'
+      print "Using ViaVoiceTTS.pm for speech.\n";  
+    }
 
     if ($main::config_parms{voice_text} =~ /ms/i and $main::OS_win) {
         print "Creating MS TTS object\n";
@@ -51,7 +56,7 @@ sub speak_text {
     
     $parms{text} = force_pronounce($parms{text}) if %pronouncable;
 
-    unless ($VTxt or $VV_TTS or $VTxt_festival ) {
+    unless ($VTxt or $VV_TTS or $VTxt_festival or $ViaVoiceTTS) {
         unless ($main::config_parms{voice_text}) {
             print "Can not speak.  mh.ini entry for voice_text is disabled. Phrase=$parms{text}\n";
         } else {
@@ -114,7 +119,33 @@ sub speak_text {
             die 'cant exec $VV_TTS';
         }
     }
-    
+
+    if ($ViaVoiceTTS) {
+        $SIG{CHLD}  = "IGNORE";        # eliminate zombies created by FORK()
+FORK:                                  # straight out of the book
+        if (my $pid=fork) {            # if forked ok
+            # Parent's code
+            print "$parms{text} sent to $pid\n";
+        } elsif (defined $pid) {
+            # child's code here
+            my $prog = <<ProgCode;
+use ViaVoiceTTS;
+my \$tts = new ViaVoiceTTS();
+ViaVoiceTTS::speak \$tts,"$parms{text}";
+exit 0;
+ProgCode
+            exec "echo '$prog' | $^X ";   # pipe prog to perl
+            die "ViaVoiceTTS child died"; # This statement should not be reached
+        } elsif ($! =~ /No more process/) {
+            # EAGAIN, supposedly recoverable fork error
+            sleep 2;
+            redo FORK;
+        } else {
+            # weird fork error
+            die "Can't fork: $!\n";
+        }
+    }
+
     if ($VTxt) {
         
         # Turn off vr while speaking ... SB live card will listen while speaking!
@@ -219,6 +250,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.22  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.21  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

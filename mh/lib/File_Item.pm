@@ -125,7 +125,12 @@ sub read_current {
     return $record;
 }
 
+                                # This was a bad name for an object method ... perl already uses index!
 sub index {
+	return $_[0]->{index};
+}
+
+sub get_index {
 	return $_[0]->{index};
 }
 

@@ -349,50 +349,10 @@ sub read {
                                 #  - Protocol.txt says to send macros string, but that did not work.
             if ($data_d == 165 and !$no_power_fail_check) {
 
-#55 to 48   timer download header (0x9b)
-#47 to 40   Current time (seconds)
-#39 to 32   Current time (minutes ranging from 0 to 119)
-#31 to 23   Current time (hours/2, ranging from 0 to 11)
-#23 to 16   Current year day (bits 0 to 7)
-#15 Current year day (bit 8)
-#14 to 8        Day mask (SMTWTFS)
-#7 to 4     Monitored house code
-#3      Reserved
-#2      Battery timer clear flag
-#1      Monitored status clear flag
-#0      Timer purge flag
-
-                my ($Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday) = localtime time;
-                my $localtime = localtime time;
-                $Wday = 2 ** (7 - $Wday);
-                if ($Yday > 255) {
-                    $Yday -= 256;
-                    $Wday *= 2;
-                }
-                my $power_reset = pack('C7', 0x9b, 
-                                       $Second,
-                                       $Minute,
-                                       $Hour,  
-                                       $Yday,  
-                                       $Wday,
-                                       0x03);    # Not sure what is best here.  x10d.c did this.
-            
+                print "\nCM11 power fail detected.  Resetting the CM11 clock with";
+                &setClock($serial_port);
                                   # We can use this to detect a power failure
                 $POWER_RESET = 1; # The user code will be responsible for reseting this
-
-                print "\nCM11 power fail detected.  Resetting the CM11 clock with:\n $localtime\n";
-                my $results = $serial_port->write($power_reset);
-                select undef, undef, undef, 50 / 1000;
-                my $checksum = $serial_port->input; # Receive, but ignore, checksum
-		if ($DEBUG) {
-                    printf "\npower_reset: %s %s %s %s %s %s %s\n",
-			unpack ('H2H2H2H2H2H2H2', $power_reset);
-                    print "  sent $results bytes\n";
-                    printf "  checksum = %x\n", ord($checksum);
-		}
-                my $pc_ok = pack('C', 0x00);
-                print "Bad cm11 checksum acknowledge\n" unless 1 == $serial_port->write($pc_ok);
-#                undef $data;
             }
 
             return $data;
@@ -434,6 +394,105 @@ sub dim_level_decode {
     $level_p = $level_p - ($level_p % 5);
     print "CM11 debug: dim_code=$code leveld=$level_d level_p=$level_p\n" if $DEBUG;
     return $level_p;
+}
+
+
+sub reset_cm11 {
+    return unless ( 1 == @_ ) ; # requires port number to reset
+    &enable_RI ( @_ );
+    &setClock ( @_ );
+}
+
+                                # This currently gets bad checksums :( 
+                                # On windows, it gives Parity Errors.
+sub enable_RI {
+    my ($serial_port) = @_;
+    my $ri_on = 0xeb;
+    my $ack  = 0x00;
+    my $done = 0x55;
+    my $checksum;
+
+                                # Send RI Enable code to CM11
+    $serial_port->input;
+    $serial_port->write(pack('C',$ri_on));
+    do {
+        $checksum = $serial_port->input;
+    } until $checksum;
+
+    if ( $checksum ne pack('C',$ri_on) ) {
+        print "Checksum error in enabling RI: ", unpack('H2',$checksum),"\n";
+        return $checksum;
+    }
+
+                                # Tell the CM11 to do it
+    $serial_port->write(pack('C',$ack));
+    
+    do {
+        $checksum = $serial_port->input;
+    } until $checksum;
+
+    if ( $checksum ne pack('C',$done) ) {
+        print "CM11 failed to properly acknowledge execution of RI_Enable\n";
+    }
+    return $checksum;
+}
+
+#55 to 48   timer download header (0x9b)
+#47 to 40   Current time (seconds)
+#39 to 32   Current time (minutes ranging from 0 to 119)
+#31 to 23   Current time (hours/2, ranging from 0 to 11)
+#23 to 16   Current year day (bits 0 to 7)
+#15 Current year day (bit 8)
+#14 to 8        Day mask (SMTWTFS)
+#7 to 4     Monitored house code
+#3      Reserved
+#2      Battery timer clear flag
+#1      Monitored status clear flag
+#0      Timer purge flag
+
+sub setClock {
+    my ($serial_port) = @_;
+#   $DEBUG=1;
+    my ($Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday) = localtime time;
+    my $localtime = localtime time;
+    print "Reseting time with: $localtime\n" if $DEBUG;
+#    $Wday = 2 ** (7 - $Wday);
+#    if ($Yday > 255) {
+#        $Yday -= 256;
+#        $Wday *= 2;
+#    }
+    # Manipulate Minutes to be 0 - 119 (2 hours) and Hours to be 0 - 11
+    $Minute += (($Hour % 2) * 60);
+    $Hour /= 2;
+    # Must do some weird packing of data for Yday and Wday fields.
+    my $Yday1 = $Yday % 256;        # mantisa of Yday
+    my $Yday2 = ($Yday / 256) << 7; # Radius of Yday shifted over 7 bits
+    my $Dmask = 0x01 << $Wday;      # Day mask of SMTWTFS
+    $Yday2 |= $Dmask;            # OR the two fields together to get one
+    my $CodeF = 0x06 << 4;          # Put "A" housecode in upper nibble
+    $CodeF |= 0x07;              # Put 0b0111 in lower nibble (battery,monitor, & timer cleared)
+    my $power_reset = pack('C7', 
+                           0x9b, 
+                           $Second,
+                           $Minute,
+                           $Hour,  
+                           $Yday1,
+                           $Yday2,
+                           $CodeF);
+#                           $Wday,
+#                           0x03);    # Not sure what is best here.  x10d.c did this.
+            
+    my $results = $serial_port->write($power_reset);
+    select undef, undef, undef, 50 / 1000;
+    my $checksum = $serial_port->input; # Receive, but ignore, checksum
+    if ($DEBUG) {
+        printf "\npower_reset: %s %s %s %s %s %s %s\n",
+        unpack ('H2H2H2H2H2H2H2', $power_reset);
+        print "  sent $results bytes\n";
+        printf "  checksum = %x\n", ord($checksum);
+    }
+    my $pc_ok = pack('C', 0x00);
+    print "Bad cm11 checksum acknowledge\n" unless 1 == $serial_port->write($pc_ok);
 }
 
 return 1;           # for require
@@ -522,13 +581,13 @@ the unit address where C<##> is a number between 1 and 63.
 
 A partial translation list for the most important levels:
 
-	&P##	 %		&P##	 %		&P##	 %
-	  0	  0		 13	 20		 44	 70
-	  1	  2		 16	 25		 47	 75
-	  2	  4		 19	 30		 50	 80
-	  3	  5		 25	 40		 57	 90
-	  6	 10		 31	 50		 61	 95
-	  9	 15		 38	 60		 63	100
+    &P##     %      &P##     %      &P##     %
+      0   0      13  20      44  70
+      1   2      16  25      47  75
+      2   4      19  30      50  80
+      3   5      25  40      57  90
+      6  10      31  50      61  95
+      9  15      38  60      63 100
 
 There is another set of Preset Dim commands that are used by some modules
 (e.g. the RCS TX15 thermostat). These 32 non-extended Preset Dim codes can
@@ -678,6 +737,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.15  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 2.14  2001/01/20 17:47:50  winter
 # - 2.41 release
 #

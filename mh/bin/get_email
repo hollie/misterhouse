@@ -4,7 +4,7 @@
 #  File: 
 #      get_mail
 #  Description: 
-#      A perl script to retreive mail info from multiple email accounts
+#      A perl script to retrieve mail info from multiple email accounts
 #  Author: 
 #      Bruce Winter    bruce@misterhouse.net
 #  Latest version: 
@@ -268,6 +268,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.23  2001/02/04 20:31:30  winter
+# - 2.43 release
+#
 # Revision 1.22  2000/12/21 18:54:14  winter
 # - 2.38 release
 #

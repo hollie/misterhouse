@@ -44,13 +44,13 @@ if ($MW and $Reload) {
                                 # Add speak and log windows to bottom frame
         $Tk_objects{speak_window} = $Tk_objects{fb}->
             Scrolled('Text', -height => 7, -width => 40, -bg => 'cyan', -wrap => 'none', -scrollbars => 'se',
-                     -setgrid => 'true', -font => 'Courier* 10 bold')->
+                     -setgrid => 'true', -font => $config_parms{tk_font_fixed})->
                          pack(qw/-side top -expand 1 -fill both/);
         $Tk_objects{speak_window}->insert('0.0', (join "\n", @Speak_Log)); # Seed with previous entries
 
         $Tk_objects{log_window} = $Tk_objects{fb}->
             Scrolled('Text', -height => 7, -width => 40, -bg => 'cyan', -wrap => 'none', -scrollbars => 'se',
-                     -setgrid => 'true', -font => 'Courier* 10 bold')->
+                     -setgrid => 'true', -font => $config_parms{tk_font_fixed})->
                          pack(qw/-side top -expand 1 -fill both/);
         $Tk_objects{log_window}->insert('0.0', (join "\n", @Print_Log)); # Seed with previous entries
 

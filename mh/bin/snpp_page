@@ -33,7 +33,6 @@
 #================================================================================
 
 use strict;
-use Net::SNPP;
 
 my ($Pgm_Path, $Pgm_Name, $Version);
 use vars '$Pgm_Root';
@@ -103,6 +102,7 @@ exit;
 # Get server and number from config file
 #--------------------------------------------------------------------------------
 sub setup {
+    use Net::SNPP;
 	require 'handy_utilities.pl';
 
 	# Read entire config files

@@ -81,6 +81,11 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateLCDKeypad('$address', $other)";
     }
+    elsif($type eq "STARGATETHERM") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateThermostat('$address', $other)";
+    }
     elsif($type eq "XANTECH") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -97,6 +102,7 @@ sub read_table_A {
     
     $code .= sprintf "\n\$%-35s =  new %s;\n", $name, $object if $object;
 
+    $grouplist = '' unless $grouplist; # Avoid -w uninialized errors
     for my $group (split('\|', $grouplist)) {
         $code .= sprintf "\$%-35s =  new Group;\n", $group unless $groups{$group};
         $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name;
@@ -115,6 +121,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.7  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.6  2000/12/21 18:54:15  winter
 # - 2.38 release
 #

@@ -48,7 +48,7 @@ sub new {
     $raw_id .= unpack('b8', $crc);
 
     $port = $connections{default} unless $port;
-    my $connection = $connections{$port};
+    my $connection = $connections{$port} if $port;
 
     my $self = Hardware::iButton::Device->new($connection, $raw_id);
 
@@ -199,6 +199,7 @@ sub scan_report {
 sub set {
     my ($self, $state) = @_;
     my $connection;
+    return if &main::check_for_tied_filters($self, $state);
     return unless $connection = $connections{$self->{port}};
 #    $connection->reset;
     $self->select;
@@ -233,10 +234,11 @@ package iButton::Weather;
 sub new {
     my $class = shift;
     my %ARGS = @_;
+    my %connections = iButton::_connections();
 
     my $this;
 
-    my $port = $ARGS{ PORT } ? $ARGS{ PORT } : $iButton::connections{default};
+    my $port = $ARGS{ PORT } ? $ARGS{ PORT } : $connections{default};
     $this->{ PORT } = $port;
 
     # Check to see that we have enough 01 chips
@@ -319,7 +321,7 @@ sub read_windspeed {
 
     my $speed = $rev * 2.453;  # This is the MPH constant
     $this->set_receive( $speed );
-    return $speed * 2.453;
+    return $speed;
 }
     
 sub read_dir {
@@ -330,6 +332,7 @@ sub read_dir {
     my $c = $connections{ $this->{ PORT } };
 
     my @iButtons = $c->scan( "01" );
+    $this->{ "12" }->set_switch( CHANNEL_B => 1);
     
     my @dirs;
     foreach my $i ( @iButtons ) {
@@ -450,6 +453,9 @@ memory
 
 
 # $Log$
+# Revision 1.8  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.7  2001/01/20 17:47:50  winter
 # - 2.41 release
 #

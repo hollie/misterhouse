@@ -353,22 +353,68 @@ sub main::net_jabber_send {
 
 }
 
-
 sub main::net_im_signon {
     my ($name, $password) = @_;
     return if $aim_connection;  # Already signed on
 
-    print "Logging onto AIM with name=$name ... ";
+    print "Logging onto AIM with name=$name ... \n";
 
-    eval 'use Net::AIM';
-    my $aim = new Net::AIM;
-
-    unless ($aim_connection = $aim->newconn(Screenname => $name, Password   => $password)) {
-        print "Error, can not create AIM connection object\n";
+    eval 'use Net::AOLIM';
+    if ($@) {
+        print "Net::AOLIM eval error: $@\n";
+        return;
     }
+    $aim_connection = Net::AOLIM->new("username" => $name, 
+                                      "password" => $password,
+                                      "callback" => \&aolim::callback,
+                                      "allow_srv_settings" => 0 );
+    $aim_connection -> add_buddies("friends", $name);
+    unless (defined($aim_connection->signon)) {
+        print "AIM logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
+        undef $aim_connection;
+        return;
+    }
+
+    &main::MainLoop_post_add_hook( \&aolim::process, 1 );
+
+                                # This is the old way
+#    eval 'use Net::AIM';
+#    unless ($aim_connection = $aim->newconn(Screenname => $name, Password   => $password)) {
+#        print "Error, can not create AIM connection object\n";
+#    }
                                 # Logon occurs here
                                 # Not sure how to test for successful logon
-    $aim->do_one_loop();
+#   $aim->do_one_loop();
+
+}
+
+# IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hi ho</FONT></BODY></HTML>
+sub aolim::callback {
+    my ($type, $name, $arg, $text) = @_;
+    if ($type eq 'ERROR') {
+        my $error = "$Net::AOLIM::ERROR_MSGS{$name}";
+        $error =~ s/\$ERR_ARG/$arg/g;
+        print "AOL AIM error: $error\n";
+    }
+    elsif ($type eq 'IM_IN') {
+        my $time = &main::time_date_stamp(5);
+        my $text2 = "$name ($time:$main::Second): " .
+          HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($text));
+        &main::display(text => $text2, time => 0, window_name => 'AIM', append => 'top');
+    }
+    else {
+        print "AOL AIM data: t=$type name=$name a=$arg text=$text\n";
+    }
+}
+
+sub aolim::process {
+    return unless $main::New_Second;
+    if (!defined $aim_connection or !defined $aim_connection->ui_dataget(0)) {
+        print "\nAOL AIM connection died\n";
+        print "AIM logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
+        undef $aim_connection;
+        &main::MainLoop_post_drop_hook( \&aolim::process, 1 );
+    }
 }
 
 
@@ -393,12 +439,13 @@ sub main::net_im_send {
     &main::net_im_signon($from, $password);
     return unless $aim_connection;
 
-    print "Sending aim message to $to ";
+    print "Sending aim message to $to\n";
 
     $text  = $parms{text};
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
 
-    $aim_connection -> send_im($to, $text);
+    $aim_connection -> toc_send_im($to, $text);
+#   $aim_connection -> send_im($to, $text);
 
 }
 
@@ -722,8 +769,8 @@ sub main::net_ping {
 
 #
 # $Log$
-# Revision 1.26  2001/01/20 17:47:50  winter
-# - 2.41 release
+# Revision 1.27  2001/02/04 20:31:31  winter
+# - 2.43 release
 #
 # Revision 1.25  2000/12/21 18:54:15  winter
 # - 2.38 release

@@ -139,45 +139,6 @@ sub UserCodePreHook
                                     }
                                 }
                                 &main::check_for_tied_events(@tied_item_activation_list);
-=pod
-                                my $object;
-                                foreach $object (@compool_item_list)
-                                {
-                                    if($object->state_now)
-                                    {
-                                        print "Object link: starting enumeration for object=$object\n" if $::config_parms{debug} eq 'events';
-                                        my ($ref, $state);
-                                        for $ref (@{$object->{'tied_objects'}}) {
-                                            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
-                                            print "Object link: Setting $ref->[0] to $state\n" if $::config_parms{debug} eq 'events';
-                                            $ref->[0]->set($state);
-                                        }
-                                        for $ref (@{$object->{'tied_objects:'.lc($object->state)}}) {
-                                            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
-                                            print "Object link: Setting $ref->[0] to $state\n" if $::config_parms{debug} eq 'events';
-                                            $ref->[0]->set($state);
-                                        }
-
-                                        for $ref (@{$object->{'tied_events'}}) {
-                                            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
-                                            print "Event link: starting eval\n" if $::config_parms{debug} eq 'events';
-                                            package main;
-                                            eval "$ref->[0]";
-                                            print $@ if $@;
-                                            package Compool;
-
-                                        }
-                                        for $ref (@{$object->{'tied_events:'.lc($object->state)}}) {
-                                            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
-                                            print "Event link: starting eval\n" if $::config_parms{debug} eq 'events';
-                                            package main;
-                                            eval "$ref->[0]";
-                                            print $@ if $@;
-                                            package Compool;
-                                        }
-                                    }
-                                }
-=cut
                             }
                         }
                         else
@@ -293,8 +254,14 @@ sub get_temp
     }
     else
     {
-        my $temp = int( ((unpack('C',substr($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},$PacketOffset,1)) * 1.8) / 4 ) + 32 ); 
+        # Solar and Air temperature are given in 0.5 degrees C increments (not 0.25 like the others)
+        my $divisor = (($PacketOffset == 12) or ($PacketOffset == 17)) ? 2 : 4;
+        
+        my $temp = int( ((unpack('C',substr($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},$PacketOffset,1)) / $divisor) * 1.8 ) + 32 ); 
 
+        # If the spa temp is reading 0, then return the pool temp as they are the same
+        $temp = get_temp("pool") if $temp == 0 and $PacketOffset == 13;
+        
         return $temp if($comparison eq undef);
         return (($temp < $limit) ? 1 : 0) if($comparison eq '<');
         return (($temp > $limit) ? 1 : 0) if($comparison eq '>');
@@ -351,7 +318,25 @@ sub _set_device
 {
     my ($serial_port, $targetdevice, $targetstate) = @_;
 
-    if($targetstate eq 'on' or $targetstate eq 'ON' or $targetstate eq '1') {$targetstate=1;} else {$targetstate=0;}
+    # Handle 'toggle' state
+    if($targetstate eq 'toggle')
+    {
+        $targetstate = (get_device($serial_port, $targetdevice) eq 'on') ? 'off' : 'on';
+    }
+
+    if($targetstate eq 'on' or $targetstate eq 'ON' or $targetstate eq '1') 
+    {
+        $targetstate=1;
+    } 
+    elsif($targetstate eq 'off' or $targetstate eq 'OFF' or $targetstate eq '0') 
+    {
+        $targetstate=0;
+    }
+    else
+    {
+        print "Invalid state passed to Compool::_set_device\n";
+        return;
+    }
 
     my $targetprimary;
     my $targetbit = 0;
@@ -722,6 +707,8 @@ sub new
         /aux4/i            && do { push(@{$$self{states}}, 'on','off'); last SWITCH; };
         /aux5/i            && do { push(@{$$self{states}}, 'on','off'); last SWITCH; };
         /aux6/i            && do { push(@{$$self{states}}, 'on','off'); last SWITCH; };
+        /heater/i 	   && do { push(@{$$self{states}}, 'on','off'); last SWITCH; };
+        /solar/i 	   && do { push(@{$$self{states}}, 'on','off'); last SWITCH; };
         /remote/i          && do { push(@{$$self{states}}, 'on','off'); last SWITCH; };
         /display/i         && do { push(@{$$self{states}}, 'on','off'); last SWITCH; };
         /delaycancel/i     && do { push(@{$$self{states}}, 'on','off'); last SWITCH; };
@@ -764,6 +751,8 @@ sub state
         /aux4/i            && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
         /aux5/i            && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
         /aux6/i            && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
+        /heater/i 	   && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
+        /solar/i 	   && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
         /remote/i          && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
         /display/i         && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
         /delaycancel/i     && do { return &Compool::get_device($self->{serial_port}, $self->{device}); };
@@ -808,6 +797,8 @@ sub state_now
         /aux4/i            && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
         /aux5/i            && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
         /aux6/i            && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
+        /heater/i 	   && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
+        /solar/i 	   && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
         /remote/i          && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
         /display/i         && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
         /delaycancel/i     && do { return &Compool::get_device_now($self->{serial_port}, $self->{device}); };
@@ -825,6 +816,7 @@ sub state_now
 sub set
 {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
 
     unshift(@{$$self{state_log}}, "$main::Time_Date $state");
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
@@ -866,6 +858,7 @@ sub set
 sub set_with_timer
 {
     my ($self, $targetstate, $time) = @_;
+    return if &main::check_for_tied_filters($self, $targetstate);
     return &Compool::set_device_with_timer($self->{serial_port}, $self->{device}, $targetstate, $time);
 }
 

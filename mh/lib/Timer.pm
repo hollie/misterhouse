@@ -63,7 +63,7 @@ sub restore_string {
     my ($self) = @_;
 
     my $expire_time = $self->{expire_time};
-    return if !$expire_time or $expire_time < &main::get_tickcount;
+    return if !$expire_time or $expire_time < main::get_tickcount;
 
     my $restore_string  = "set $self->{object_name} $self->{period} " if $self->{period};
     $restore_string .= ", q|$self->{action}|" if $self->{action};
@@ -78,7 +78,7 @@ sub restore_string {
 sub restore_self_set {
     my ($self) = @_;
     my $expire_time = $self->{expire_time};
-    return if !$expire_time or $expire_time < &main::get_tickcount;
+    return if !$expire_time or $expire_time < main::get_tickcount;
     set $self $self->{period}, $self->{action}, $self->{repeat};
     $self->{expire_time} = $expire_time;
 }
@@ -95,6 +95,8 @@ sub state_log {
 
 sub set {
     ($self, $state, $action, $repeat) = @_;
+
+    return if &main::check_for_tied_filters($self, $state);
 
                                 # Turn a timer off
     if ($state == 0) {
@@ -282,6 +284,9 @@ sub inactive {
 
 #
 # $Log$
+# Revision 1.21  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.20  2001/01/20 17:47:50  winter
 # - 2.41 release
 #

@@ -103,14 +103,21 @@ sub start_next {
         elsif (defined $pid) {
             print "Process start: child type=$type cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
             if ($type eq 'eval') {
+                package main;   # Had to do this to get the 'speak' function recognized without having to &main::speak() it
                 eval $cmd;
                 print "Process Eval results: $@\n";
-                exit;
+                                # Exit with a do nothing exec, rather than exit.
+                                # If we call exit, objects DESTROY methods get called and might 
+                                # mess up the parent process (e.g. CM11 Serial_Port objects
+                                # have a DESTROY method that will close the port
+                                # which will then revert to its pre-mh values).
+#               exit;
+                exec '';
             }
             else {
                 exec "$cmd_path $cmd_args";
-                die "Error in start Process exec for cmd=$cmd\n";
             }
+            die "Error in start Process exec for cmd=$cmd\n";
         }
         else {
             print "Error in start Process fork for cmd=$cmd\n";
@@ -196,6 +203,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.14  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.13  2000/12/21 18:54:15  winter
 # - 2.38 release
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-01-21 17:24:37 winter>
+#  Last change Time-stamp: <2001-02-04 10:56:01 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -70,7 +70,7 @@ eof
 use vars qw($Time_Start_time $Time_Stop_time $Time_Increment $Time_Startup $Time_Startup_time $Time_Boot_time $Time_Uptime_Seconds);
 use vars qw($Time_Sunrise $Time_Sunrise_Twilight $Time_Sunset $Time_Sunset_Twilight %Moon $Time_Now $Time_Date $Date_Now $Date_Now_Speakable $Year_Month_Now);
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
-use vars qw($New_Second $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
+use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
 use vars qw($Version_tk $Password);
@@ -415,11 +415,12 @@ sub setup {
     use Caller_ID;
 
     use constant;               # To keep perl2exe happy
-    use constant ON  => 'on';
-    use constant OFF => 'off';
-    use constant STATUS => 'status';
-    use constant OPEN  => 'open';
-    use constant CLOSE => 'close';
+    use constant ON      => 'on';
+    use constant OFF     => 'off';
+    use constant TOGGLE  => 'toggle';
+    use constant STATUS  => 'status';
+    use constant OPEN    => 'open';
+    use constant CLOSE   => 'close';
     use constant OPENED  => 'opened';
     use constant CLOSED  => 'closed';
 
@@ -455,7 +456,7 @@ sub setup {
     $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
     
     $config_parms{code_dir}         = $Pgm_PathU . "/../code"        unless $config_parms{code_dir};
-    $config_parms{code_dir_common } = $Pgm_PathU . "/../code_system" unless $config_parms{code_dir_common};
+    $config_parms{code_dir_common } = $Pgm_PathU . "/../code_common" unless $config_parms{code_dir_common};
 
                                 # Make various directories, if missing
     mkdir ("$config_parms{data_dir}/logs", 0777) unless -d "$config_parms{data_dir}/logs";
@@ -494,19 +495,11 @@ sub setup {
 
         printf " - creating %-15s on %3s %5s %s\n", $port_name, $proto, $port, $datatype;
 
+        $Socket_Ports{$port_name}{port}     = $port;
         $Socket_Ports{$port_name}{protocol} = $proto;
         $Socket_Ports{$port_name}{datatype} = $datatype;
 
-        if ($proto eq 'tcp') {
-           $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
-               die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port_name}_port in mh.ini\n";
-        } elsif ($proto eq 'udp') {
-           $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp') or 
-               die "Couldn't start a udp server on $port_name $port: $@\n";
-           $Socket_Ports{$port_name}{socka} = $Socket_Ports{$port_name}{sock}; # UDP ports are always "active"
-        } else {
-            die "Unknown protocol for $port_name \n";
-        }
+        &socket_open($port_name);
     }
     
     for my $port_name (@Generic_Serial_Ports) {
@@ -568,6 +561,12 @@ sub setup {
     if ($config_parms{cm11_port}) {
         require 'ControlX10/CM11.pm';
         &serial_port_create('cm11', $config_parms{cm11_port}, 4800, 'none');
+                                # Reset the CM11 so we don't get old X10 incoming data
+                                # This will also set the cm11 $POWER_RESET flag that
+                                # that mh_control $Power_Supply will look for to detect power fails
+                                # Also reset the clock for the heck of it ... doesn't take long
+        &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
+        &ControlX10::CM11::setClock($Serial_Ports{cm11}{object});
     }
     if ($config_parms{Homevision_port}) {
         require 'Homevision.pm';
@@ -605,8 +604,9 @@ sub setup {
         &serial_port_create('cm17', $config_parms{cm17_port});
     }
 
+                                # Store boot time in seconds since epoc
     if ($OS_win) {
-        $Time_Boot_time = 0;    # Gettickcount starts at computer boot
+        $Time_Boot_time = time - &get_tickcount/1000;    # Gettickcount starts at computer boot
     }
     elsif ($^O eq 'linux') {
 
@@ -674,9 +674,9 @@ sub setup {
     }
 
                                 # Setup and Read in previous logs
-    my $print_log = "$config_parms{code_dir}/mh_temp.print.log";
-    my $speak_log = "$config_parms{code_dir}/mh_temp.speak.log";
-    my $error_log = "$config_parms{code_dir}/mh_temp.error.log";
+    my $print_log = "$config_parms{data_dir}/print.log";
+    my $speak_log = "$config_parms{data_dir}/speak.log";
+    my $error_log = "$config_parms{data_dir}/error.log";
     
     my (@log, $log_cnt);
     $log_cnt = @log = file_read $print_log;
@@ -850,11 +850,13 @@ sub browser {
     run qq[$config_parms{browser} "$file"];
 }
 
-my ($loop_tickcount1, $loop_tickcount_total);
+my ($loop_tickcount1, $loop_tickcount2, $loop_tickcount3, $loop_tickcount4, $loop_tickcount_total);
 sub check_for_action {
-
     &exit_pgm if $exit_flag;
-    my $loop_tickcount1 = &get_tickcount;
+
+                                # Avoid -w uninitialzed value warnings
+    $loop_tickcount1 = $loop_tickcount2 = $loop_tickcount3 = $loop_tickcount4 = $loop_tickcount_total = 0 if $Startup;
+    $loop_tickcount1 = &get_tickcount;
 
                                 # Do window loop here, to check for pause mode exit
     if ($MW) {
@@ -877,6 +879,7 @@ sub check_for_action {
     &Voice_Cmd::check_for_voice_cmd; # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
     &check_for_serial_data if %Serial_Ports;
     &check_for_socket_data if %Socket_Ports;
+    &check_for_tied_times  if $New_Minute;
     &check_for_timer_actions;
     &check_for_external_command_file;
 
@@ -899,6 +902,8 @@ sub check_for_action {
 
     if ($Reread) {
         $Startup = 0; $Reload = 0; $Reread = 0;
+                                # This will be reset to 'normal' on a normal exit
+        $Save{mh_exit} = 'abend';
     }
 
 }
@@ -1305,8 +1310,8 @@ sub check_for_socket_data {
     }
 }    
 
-                                # This is called by mh/lib/Generic_Item.pm
-                                #  - it fires tied items/events
+                                # These tied subs are called by mh/lib/Generic_Item.pm
+                                # They are called in main mh so evals work ok
 sub check_for_tied_events {
     my @objects = @_;
     for my $object1 (@objects) {
@@ -1324,7 +1329,8 @@ sub check_for_tied_events {
             $state_key = 'all_states' unless $$object1{tied_objects}{$key}{$state_key};
 
             if ($$object1{tied_objects}{$key}{$state_key}) {
-                my ($object2, $state2) = @{$$object1{tied_objects}{$key}{$state_key}};
+                my ($object2, $state2, $log_msg) = @{$$object1{tied_objects}{$key}{$state_key}};
+                &print_log($log_msg) unless $log_msg eq '1';
                 $state2 = $state1 unless defined $state2;
                 print "Object link: Setting $object2 to $state2\n" if $config_parms{debug} eq 'events';
                 if ($object2->can('set')) {
@@ -1342,7 +1348,8 @@ sub check_for_tied_events {
             my $state_key = $state1;
             $state_key = 'all_states' unless $$object1{tied_events}{$event}{$state_key};
 
-            if ($$object1{tied_events}{$event}{$state_key}) {
+            if (my $log_msg = $$object1{tied_events}{$event}{$state_key}) {
+                &print_log($log_msg) unless $log_msg eq '1';
                 print "Event link: eval event=$event\n" if $config_parms{debug} eq 'events';
                 my $state = $state1; # So eval can substitue $state
                 my $object=$object1;
@@ -1353,6 +1360,64 @@ sub check_for_tied_events {
 
     }
 }
+
+sub check_for_tied_filters {
+    my ($self, $state) = @_;
+    if ($$self{tied_filters}) {
+        for my $filter (keys %{$$self{tied_filters}}) {
+            print "Item tie_fiter test for $self->{object_name} filter: $filter  state:$state\n"  if $config_parms{debug} eq 'filter';
+            my $log_msg;
+            if ($log_msg = $$self{tied_filters}{$filter}{$state} or
+                $log_msg = $$self{tied_filters}{$filter}{all_states}) {
+                if (eval $filter) {
+                    print "Item tie_filter triggered for $self->{object_name} $filter\n" if $config_parms{debug} eq 'filter';
+                    &print_log($log_msg) unless $log_msg eq '1';
+                    return 1;
+                }
+            }
+        }
+    }
+}
+
+sub check_for_tied_times {
+    for my $ref (@Generic_Item::items_with_tied_times) {
+        for my $time (keys %{$$ref{tied_times}}) {
+            for my $state (keys %{$$ref{tied_times}{$time}}) {
+                my $triggered = 0;
+                print "Item tie_time test for $ref->{object_name} time: $time  state:$state\n"  if $config_parms{debug} eq 'tied_times';
+
+                                # Check for cron time format
+                my @a = split ' ',$time;
+                if (5 == @a) {
+                    $triggered = 1 if &time_cron($time);
+                }
+                                # We might also have something like '$Time_Sunset - 0:30'
+                                # so lets just default everything else to time_cron
+#               elsif ($time =~ /^[0-9\:apm ]+$/i) {
+#               }
+#               else {
+#                   print "tied_time format not supported: $ref->{object_name} time: $time\n";
+#               }
+                else {
+                    $triggered = 1 if &time_now($time);
+                }
+                if ($triggered) {
+                    print "Item tie_time triggered for $ref->{object_name} $time\n" if $config_parms{debug} eq 'tied_times';
+                    my $log_msg = $$ref{tied_times}{$time}{$state};
+                    &print_log($log_msg) unless $log_msg eq '1';
+                    if ($ref->can('set')) {
+                        $ref->set($state);
+                        $ref->{changed_by} = 'tied_time';
+                    }
+                    else {
+                        print "tie_items object can not set: $ref->{object_name}\n";
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 
 sub check_for_timer_actions {
@@ -1392,7 +1457,8 @@ sub display {
                                 # Check for fancy key => value options
     my %parms = @parms unless @parms %2;
     if ($parms{text}) {
-        @parms = ($parms{text}, $parms{time}, $parms{title}, $parms{font}, $parms{window_name});
+        @parms = ($parms{text}, $parms{time}, $parms{title}, $parms{font},
+                  $parms{window_name}, $parms{append});
     }
     my $text = $parms[0];
 
@@ -1531,6 +1597,10 @@ sub eval_user_code_loop {
         print "\n$Time_Date Oops2: $_[0]\n";
 #       play('file' => $config_parms{sound_error});
     };
+#    local $SIG{__DIE__} = sub {
+#        print "\n$Time_Date Dieing: $_[0]\n";
+#        exit 1;
+#    };
     eval "&loop_code";
     if ($@) {
                                 # Display usercode errors only once
@@ -1546,7 +1616,7 @@ sub eval_user_code_loop {
 
                                 # Log these errors for review
             print ERRORLOG (&time_date_stamp(1), $Time)[0], ":\n  $error\n";
-            print "Error logged to: $config_parms{code_dir}/mh_temp.error.log\n";
+            print "Error logged to: $config_parms{data_dir}/error.log\n";
         }
     }
 }
@@ -1579,17 +1649,34 @@ sub eval_user_code_reset {
     &Voice_Cmd::reset;          # So we can check for duplicate voice commands.
     &X10_Item::reset;           # Reset some list arrays
     &reset_hook_code;           # This frees up old user code hooks
+
+                                # Since we created new objects, lets de-reference all the old ones
+    &Timer::delete_old_timers;
+    &Generic_Item::delete_old_tied_times;
 }
 
 sub exit_pgm {
-    print "Exiting program\n";
+    my ($restart) = @_;
+    $Save{mh_exit} = ($restart) ? 'restart' : 'normal';
+    print "Exiting program: $Save{mh_exit}\n";
     &Voice_Cmd::remove_voice_cmds if $config_parms{voice_cmd};
     &run_kill_processes;        # From handy_utilities ... kills anybody that isn't done yet
     &Process_Item::stop;
+
+                                # Used in mh/code/common/mh_control to
+                                # display a auto-restarted window
     &object_states_save;
-    print "Bye bye\n";
+
                                 # Use exit code 1 to mean we exited on purpose ... anything else 
-    exit 1;                     # we can use in mh_loop to mean accidental exit, 'better restart'
+                                # we can use in mh_loop to mean accidental exit, 'better restart'
+    if ($restart) {
+        &print_log("Restarting mh");
+        exit 0;
+    }
+    else {
+        &print_log("Bye bye");
+        exit 1;
+    }
 }
 
 
@@ -1726,7 +1813,7 @@ sub monitor_commands {
         &check_for_action;
         next unless $Loop_Sleep_Time; # Avoid -w uninialized errors
         $Loop_Sleep_Time = 1000 if $Loop_Sleep_Time > 1000; # Don't go over a second
-        select undef, undef, undef, $Loop_Sleep_Time / 1000;
+        select undef, undef, undef, $Loop_Sleep_Time / 1000 if $Loop_Sleep_Time;
     }
 }
 
@@ -1830,8 +1917,6 @@ sub object_states_restore {
     open SAVE, ">$restore_state_file.unused";
 
 #   &speak("Error, Mr. Bruce, restoring an empty state file!") if !@states and $Info{User} eq 'winter';
-
-    &Timer::delete_old_timers;  # Since we created new objects, lets de-reference all the old ones
 
     print "Restoring object states\n";
     # Set unused stats first, so they can get overwritten by a more recent state
@@ -2125,22 +2210,34 @@ sub play {
 sub print_log {
     my ($data) = @_;
 
+    my $logfile;
+    if ($data =~ /^log=(\S+) /i) {
+        $logfile = "$config_parms{data_dir}/$1";
+        $data =~ s/^log=\S+//i;
+    }
+    $data = "$Time_Date $data";
+
     if ($Tk_objects{log_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
                                 # move to the bottom, messing up any manual scrolling
-        $Tk_objects{log_window}->insert('0.0', "$Time_Date $data\n");
+        $Tk_objects{log_window}->insert('0.0', $data . "\n");
 #       $Tk_objects{log_window}->insert('end', "$Time_Date $data\n");
 #       $Tk_objects{log_window}->yview('moveto', 30);
     }
     else {
-        print "$Time_Date $data\n";
+        print $data . "\n";
     }
-    unshift (@Print_Log, "$Time_Date $data");
+    unshift (@Print_Log, $data);
     pop @Print_Log if @Print_Log > $config_parms{max_log_entries};
 
     $Last_Response = 'print_log';
 
-    print PRINTLOG "$Time_Date $data\n";
+    if ($logfile) {
+        logit $logfile, $data . "\n", 0;
+    }
+    else {
+        print PRINTLOG $data . "\n";
+    }
 }
 
 sub print_log_last {
@@ -2184,7 +2281,7 @@ sub print_speaklog {
         $Tk_objects{speak_window}->insert('0.0', "$Time_Date $data\n");
     }
     else {
-        print "$data\n";
+        print "$data\n" unless $config_parms{no_log} =~ /speak/;
     }
     print SPEAKLOG "$Time_Date $data\n";
 }
@@ -2290,7 +2387,7 @@ sub process_serial_data {
                                 # Track previous key so we can do multi-key sequences
         unless ($prev_pass) {
             pop  @prev_x10_events if @prev_x10_events > 4;
-            unshift @prev_x10_events, {time => &get_tickcount, data => substr($event_data, 1)};
+            unshift @prev_x10_events, {time => $loop_tickcount1, data => substr($event_data, 1)};
         }
 
                                 # Check for codes All-on All-off
@@ -2334,7 +2431,7 @@ sub process_serial_data {
         my $prev_x10_event = '';
         for my $i (1 .. 4) {
             my $prev_x10_time = $prev_x10_events[$i]{time};
-            last unless $prev_x10_time and $prev_x10_time > (&get_tickcount - $config_parms{x10_multikey_delay});
+            last unless $prev_x10_time and $prev_x10_time > ($loop_tickcount1 - $config_parms{x10_multikey_delay});
             $prev_x10_event = $prev_x10_events[$i]{data} . $prev_x10_event;
         }
         if ($prev_x10_event) {
@@ -2833,13 +2930,16 @@ sub set_global_vars {
     $loop_speed_cnt++;
     $Loop_Count++;
     &Timer::increment_timer_loop; # Needed so we can have 'expired' work multiple times per pass
-    $New_Second = 0;
-    $New_Minute = 0;
-    $New_Hour   = 0;
-    $New_Day    = 0;
-    $New_Week   = 0;
-    $New_Month  = 0;
-    $New_Year   = 0;
+    $New_Second      = 0;
+    $New_Msecond_500 = 0;
+    $New_Msecond_250 = 0;
+    $New_Msecond_100 = 0;
+    $New_Minute      = 0;
+    $New_Hour        = 0;
+    $New_Day         = 0;
+    $New_Week        = 0;
+    $New_Month       = 0;
+    $New_Year        = 0;
 
     my $time_now = time;
     if ($Startup) {
@@ -2851,7 +2951,9 @@ sub set_global_vars {
         my $diff = $time_now - $prev_time;
         print_log "mh paused for $diff seconds" unless $config_parms{no_log} =~ /pause/;
         $Time_Start_time = $prev_time;
-        $Time_Increment = 1;
+        $Time_Increment  = 1;
+        $config_parms{sleep_time} = $Loop_Sleep_Time; # In case we manually change it after startup
+        $Loop_Sleep_Time = 0;   # Go to full throttle catchup mode 
     }
 
                                 # Check for test mode, where we cycle one second per loop
@@ -2879,7 +2981,8 @@ sub set_global_vars {
         }
         else {
             $Time += $Time_Increment;
-#           print "@";
+                                # Reset these so the $New_Msecond_* is always true in catchup mode
+            $loop_tickcount2 = $loop_tickcount3 = $loop_tickcount4 = 0;
         }
     }
     else {
@@ -2890,6 +2993,21 @@ sub set_global_vars {
                                 # This way, we do not repeat time base events (like running set_clock.bat again)
     $Time = $prev_time if $prev_time > $Time;
 
+                                # Check if we need to set the .1 second flag
+    if ($loop_tickcount1 - $loop_tickcount2 > 100) {
+        $loop_tickcount2 = $loop_tickcount1;
+        $New_Msecond_100 = 1;
+    }
+    if ($loop_tickcount1 - $loop_tickcount3 > 250) {
+        $loop_tickcount3 = $loop_tickcount1;
+        $New_Msecond_250 = 1;
+        if ($loop_tickcount1 - $loop_tickcount4 > 500) {
+            $loop_tickcount4 = $loop_tickcount1;
+            $New_Msecond_500 = 1;
+        }
+    }
+
+    
     unless ($prev_time == $Time) {
         $Info{loop_speed} = $loop_speed_cnt;
         $Loop_Speed       = $loop_speed_cnt; # Grandfathered (in old benchmarks.pl)
@@ -3055,7 +3173,8 @@ sub set_global_vars {
         }
     
         $Tk_objects{label_uptime_cpu} = sprintf("Uptime Computer: %s",
-                                                &time_diff($Time_Boot_time, (&get_tickcount)/1000, undef, 'numeric'));
+                                                &time_diff($Time_Boot_time, $Time, undef, 'numeric'));
+#                                               &time_diff($Time_Boot_time, ($loop_tickcount1)/1000, undef, 'numeric'));
         $Tk_objects{label_uptime_mh}  = sprintf("Uptime Program:  %s",
                                                 &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
         $Tk_objects{label_cpu_used}    = sprintf("Cpu Used: %5.1f%%", $Info{cpu_used});
@@ -3080,7 +3199,7 @@ sub set_global_vars {
     }
     # Save object states every 5 minutes, in case mh is aborted without a proper shutdown
 #   &object_states_save if $New_Minute and !($Minute % 5); $Time_Increment
-    &object_states_save if $New_Minute and $Time_Increment <= 1; # Skip if in accelerated mode
+    &object_states_save if $New_Minute and !($Time_Start_time or $Time_Stop_time); # Skip if in accelerated mode
 
 }
 
@@ -3200,12 +3319,14 @@ sub set_moon_data {
 }
 
 sub sig_handler {
+    print "Exit flag set in sig_handler\n";
     $exit_flag = 1;
 }
 sub sig_handler_pipe {
     print "\nBroken pipe\n";
 }
 
+                                # This will close either client or server active socket
 sub socket_close {
     my ($port_name) = @_;
     my $sock = $Socket_Ports{$port_name}{socka};
@@ -3222,8 +3343,41 @@ sub socket_close {
         $Socket_Ports{$port_name}{host_port} =~ /\:/; # Client, not server, socket
     $Socket_Ports{$port_name}{inactive_this_pass} = 1;
     $Socket_Ports{$port_name}{active_this_pass} = 0;
-
 }
+
+                                # This opens a server socket (client sockets are done in mh/lib/Socket_Item.pm)
+sub socket_open {
+    my ($port_name) = @_;
+    my $proto = $Socket_Ports{$port_name}{protocol};
+    my $port  = $Socket_Ports{$port_name}{port};
+    print "Opening socket port $port_name on port $port\n" if $config_parms{debug} eq $port_name;
+    if ($proto eq 'tcp') {
+        $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
+            die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port_name}_port in mh.ini\n";
+    } elsif ($proto eq 'udp') {
+        $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp') or 
+            die "Couldn't start a udp server on $port_name $port: $@\n";
+        $Socket_Ports{$port_name}{socka} = $Socket_Ports{$port_name}{sock}; # UDP ports are always "active"
+    } else {
+        print "\nUnknown protocol in socket_open for socket port $port_name: proto=$proto port=$port\n\n";
+    }
+}
+
+                                # Restart a server socket
+sub socket_restart {
+    my ($port_name) = @_;
+    my $sock = $Socket_Ports{$port_name}{sock};
+    print "Restarting $port_name\n";
+    print "Restarting socket port $port_name\n" if $config_parms{debug} eq $port_name;
+    unless ($sock) {
+        print "Warning, socket_restart sock port was not active: $port_name\n";
+    }
+    else {
+        close $sock;
+    }
+    &socket_open($port_name);
+}
+    
 
                                 # This could be made more efficient per pg. 200 of Advanced perl programing.
                                 # and using $bit_out=$bit_in
@@ -3731,7 +3885,7 @@ sub tk_command_list {
     $f->Label(text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
     $Tk_objects{command} = $f->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'left', -fill => 'x');
 
-    $list->insert(0, &list_voice_cmds_match('')); # Init with all commands
+    $list->insert(0, &list_voice_cmds_match($config_parms{tk_startup_cmd})); # Init with all commands
 
     $list->bind('<Double-1>' => sub{
         $list->selectionClear(0, 'end');
@@ -3889,6 +4043,7 @@ sub write_user_code {
     &Voice_Cmd::activate;
     &Voice_Cmd::mic('on');
 
+
                                 # Now set usage_name in each object, so they know what they are called.
 #   my $var;
 #   for $var (keys %main::) { 
@@ -3931,6 +4086,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.43  2001/02/04 20:27:26  winter
+# - 2.43 release
+#
 # Revision 2.42  2001/01/23 13:32:29  winter
 # - test release
 #

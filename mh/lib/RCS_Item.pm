@@ -95,6 +95,7 @@ sub add {
 
 sub set {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
 
     #print "set state=$state id=$self->{id_by_state}{$state} cmd_type=.$self->{cmd_type}{$state}. ";
     if ($self->{cmd_type}{$state} eq 'setpoint' or 

@@ -28,6 +28,7 @@ my $device_prev;
 sub set {
     my ($self, $state) = @_;
 
+    return if &main::check_for_tied_filters($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state);
 
                                 # Since the X10 IR Commander is a bit slow (.5 sec per xmit),
@@ -90,6 +91,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.7  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.6  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

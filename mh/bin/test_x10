@@ -1,28 +1,39 @@
 #!/bin/perl -w
 
-# Test a CM11 and/or CM17 X10  device
+# Use this as a stand-alone (outside of mh) way to
+# test a CM11 and/or CM17 X10  device
 #  - set the $interface, $port, $house, and $unit parms 
+# then run:
+#   perl test_x10
 
-use lib '../lib', '../lib/site';
+# Or simply run something like this:
+#   perl test_x10 CM11 /dev/ttyS0 A 1
+#   perl test_x10 CM17 COM1 B 2
 
-use Carp;
+
 use strict;
 
-my ($device, $port, $house, $unit, $interface, $config_parms);
+my ($device, $port, $house, $unit, $interface, %config_parms);
 
                                 # Use BEGIN so we can conditionally eval modules
 BEGIN {
+    eval "use lib '../lib', '../lib/site'"; # So perl2exe works
+
                                 # Set these parms
 
-    $interface = 'CM11';
+    $interface = shift;
+    $port      = shift;
+    $interface = 'CM11' unless $interface;
 #   $interface = 'CM17';
 
 #   $port = '/dev/ttyS0';
-#    $port = 'COM9';
-    $port = '\\\\.\COM10';
+#   $port = 'COM9';
+    $port = '\\\\.\COM10' unless $port;
 
-    $house = 'A';
-    $unit  = '2';
+    $house = shift;
+    $unit  = shift;
+    $house = 'A' unless $house;
+    $unit  = '1' unless $unit;
 
 
     if ($^O eq "MSWin32") {
@@ -68,7 +79,7 @@ foreach (1..4) {
 }
 
 sub toggle {
-	print "---> Toggle light to $cmd\n";
+	print "---> Toggle light $house$unit to $cmd\n";
 
     if ($interface eq 'CM11') {
         send_cm11($device, $house . $unit);

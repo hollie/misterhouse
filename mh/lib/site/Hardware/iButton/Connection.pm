@@ -433,7 +433,7 @@ sub write {
     return undef if !$this->connected();
 
     if ( $this->{ DEBUG } ) {
-	my @debug = map { uc(unpack("H*", $_ )) } split / */, $string;
+	my @debug = map { uc(unpack("H*", $_ )) } split //, $string;
 	my $debugString = join( " ", @debug );
 	warn( "WROTE: $debugString\n" );
     } 
@@ -471,7 +471,7 @@ sub read {
         } 
  
 	if ( $this->{ DEBUG } ) {
-	  my $tmpString = join( " ", map { uc(unpack( "H*", $_ )) } split( / */, $string ));
+	  my $tmpString = join( " ", map { uc(unpack( "H*", $_ )) } split( //, $string ));
 	  warn( " READ: $tmpString\n" );
 	}
 	return $string;
@@ -492,7 +492,7 @@ sub docrc8 {
     my $this = shift;
     my $utilcrc8 = 0;
 
-    my @data = map { ord($_) } split( / */, shift );
+    my @data = unpack( "C*", shift );
 
     foreach my $x ( @data ) {
 	$utilcrc8 = $DSCRC_TABLE->[ $utilcrc8 ^ $x ];
@@ -514,7 +514,7 @@ sub docrc16 {
     my $prevcrc16 = shift;
     my $data = shift;
 
-    my @data = map { ord($_) } split( / */, $data );
+    my @data = unpack( "C*", $data );
     foreach my $x ( @data ) {
 	$x = ($x ^ ($prevcrc16 & 0xff)) & 0xff;
 	$prevcrc16 >>= 8;
@@ -753,7 +753,7 @@ sub owNext {
     my @tmpSend = ( 0 ) x ( 16 * 8 );
     # only modify bits if not the first search
     if ( $this->{ "LastDiscrepancy" } != 0xFF) {
-	my @tmpSerial = split / */, unpack( "b*", $this->{ "SerialNum" } );
+	my @tmpSerial = split //, unpack( "b*", $this->{ "SerialNum" } );
 	# set the bits in the added buffer
 	foreach my $i ( 0..63 ) {
 	    # before last discrepancy
@@ -783,7 +783,7 @@ sub owNext {
 	# read back the 17 byte response from setting time limit
 	my $result = $this->read( 17 );
 	if ( $result && length( $result ) == 17 ) {
-	    my @result = split / */, unpack( "b*", substr( $result, 1 ) );
+	    my @result = split //, unpack( "b*", substr( $result, 1 ) );
 	    my @tmpSerialNum = ( 0 ) x ( 16 * 8 );
 	    # interpret the bit stream
 	    foreach my $i ( 0..63 ) {
@@ -861,7 +861,7 @@ sub FindDevices {
 	foreach my $i ( @serialNum ) {
 	    $serial .= chr( $i );
 	}
-	my @tmpSerial = split / */, unpack( "b*", $serial );
+	my @tmpSerial = split //, unpack( "b*", $serial );
 	my $send;
 
 	# construct the search rom 
@@ -881,7 +881,7 @@ sub FindDevices {
 	my $result = $this->owBlock( $send );
 	if ( $result ) {
 	    # check results to see if it was a success 
-	    my @result = split / */, unpack( "b*", substr( $result, 1 ) );
+	    my @result = split //, unpack( "b*", substr( $result, 1 ) );
 	    my $cnt = 0;
 	    my $goodbits = 0;
 	    for (my $i = 0; $i < 192; $i += 3) {
@@ -925,7 +925,7 @@ sub FindDevices {
     my @devices;
     # loop to find all of the devices up to MAXDEVICES
     while ( my $serial = $this->owNext( %ARGS ) ) {
-	my @serial = map { ord($_) } split( / */, $serial );
+	my @serial = unpack( "C*", $serial );
 	push @devices, [ @serial ] if !defined $ARGS{ FAMILY } || $serial[0] == $ARGS{ FAMILY };
     }
     return @devices;
@@ -1062,7 +1062,7 @@ sub scan {
     my %ARGS = ( ALARM => 0 );
     $ARGS{ FAMILY } = hex($family_code) if defined $family_code;
 
-    my @serial = map { ord($_) } split( / */, pack( "b*", $serial ) ) if defined $serial;
+    my @serial = unpack( "C*", pack( "b*", $serial ) ) if defined $serial;
     $ARGS{ SERIAL } = [ @serial ] if defined $serial;
 
     my @raw_ids = $self->FindDevices( %ARGS );
@@ -1095,7 +1095,7 @@ sub scan_alarm {
     my %ARGS = ( ALARM => 1 );
     $ARGS{ FAMILY } = hex($family_code) if defined $family_code;
 
-    my @serial = map { ord($_) } split( / */, pack( "b*", $serial ) ) if defined $serial;
+    my @serial = unpack( "C*", pack( "b*", $serial ) ) if defined $serial;
     $ARGS{ SERIAL } = [ @serial ] if defined $serial;
 
     my @raw_ids = $self->FindDevices( %ARGS );

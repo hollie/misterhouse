@@ -9,7 +9,10 @@ $timer_text = new Generic_Item;
 &tk_entry('Timer amount' => $timer_time, 'Timer Text' => $timer_text);
 
                                 # Create timers
-if (state_now $timer_time or state_now $timer_text) {
+                                #  - only set timer when time changes ... the web interface
+                                #    will only set one field at a time :(
+#f (state_now $timer_time or state_now $timer_text) {
+if (state_now $timer_time) {
     my $timer_time = state $timer_time;
     my $timer_text = state $timer_text;
     my ($time, $unit) = $timer_time =~ /([\d\.]+) *(\S*)/;
@@ -55,7 +58,7 @@ $v_minute_timer-> set_info('Set a minute timer.  Time remaining will be periodic
 if ($state =  said $v_minute_timer) {
     speak "A timer has been set for $state minutes";
     set $timer_time "$state minuts";
-    set $timer_text 'minite';
+#   set $timer_text 'minite';
 }
 
                                 # List all timers

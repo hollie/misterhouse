@@ -1,5 +1,5 @@
 Device::SerialPort
-VERSION=0.07, 7 September 1999
+VERSION=0.09, 25 Jan 2001
 
 Hello Serial Port users:
 
@@ -45,6 +45,10 @@ if required. But please file a bug report if you do. I have tested with
 Perl 5.005_02 on Redhat 5.2. Some testing has occurred on AIX and Solaris
 as well.  This is the first beta release.
 
+Version 0.09 adds further compatibility for other OSes, including AIX,
+Solaris, and OpenBSD.  Kees Cook is now maintaining this code for use
+with the Sendpage tool (http://sendpage.cpoint.net/).
+
 COMPATIBILITY NOTES:
 
 1. Earlier versions of this module were named SerialPort_Linux.pm or
@@ -78,7 +82,8 @@ See the NOTES and KNOWN LIMITATIONS in the SerialPort documentation. The
 are especially relevant when you start calling this module from your own
 code. Special thanks to Joe Doss for the initial porting. And to Bruce
 Winter for the "required *.ph" list. Also thanks to the others who have
-contributed comments and suggestions.
+contributed comments and suggestions.  Thanks to Aaron Botsis for letting
+me play with his OpenBSD box and watching DTR lights for me.
 
 FILES:
 
@@ -204,14 +209,15 @@ Don't trust it for anything important without complete testing.
 
 And watch for updates at:
 
-%%%% http://members.aol.com/Bbirthisel/alpha.html
+%%%% http://sendpage.cpoint.net/device-serialport/
 
-or CPAN under authors/id/B/BB/BBIRTH or Device::SerialPort
+or CPAN under authors/id/C/CO/COOK or Device::SerialPort
 
 Thanks,
 
 -bill
+(and now Kees Cook <cook@cpoint.net>)
 
-Copyright (C) 1999, Bill Birthisel. All rights reserved. This module is
-free software; you can redistribute it and/or modify it under the same
-terms as Perl itself.
+Copyright (C) 1999, Bill Birthisel, 2001, Kees Cook. All rights reserved.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.

@@ -31,6 +31,7 @@ sub set {
     my ($self, $state) = @_;
     print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::config_parms{debug} eq 'group';
 
+    return if &main::check_for_tied_filters($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state);
 
     $self->{state} = $state;
@@ -84,6 +85,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.13  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
 # Revision 1.12  2000/12/21 18:54:15  winter
 # - 2.38 release
 #

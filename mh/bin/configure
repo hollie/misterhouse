@@ -26,6 +26,7 @@ case `uname -a` in
    h2ph asm/ioctls.h
    h2ph asm/ioctl.h
    h2ph linux/posix_types.h
+   h2ph linux/stddefs.h
  ;;
  FreeBSD*)
    h2ph sys/termios.h
@@ -46,6 +47,8 @@ if [ `uname -m` = 'sparc' ] ; then
   h2ph asm-sparc/ioctls.h                                                     
   h2ph asm-sparc64/ioctl.h                                                    
   h2ph asm-sparc/ioctl.h                                                      
+  h2ph asm-sparc64/stddefs.h
+  h2ph asm-sparc/stddefs.h
 fi                                                                            
 
 cd $curdir
