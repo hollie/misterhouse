@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2004-07-29 08:25:40 winter>
+#  Last change Time-stamp: <2004-09-25 10:56:05 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -79,7 +79,7 @@ use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category $Respond_Target $Set_By);
 use vars qw($Version_tk $DelayOccured %Debug $Authorized);
-use vars qw(%User_Code @Code_Dirs @Generic_Serial_Ports);
+use vars qw(%User_Code @Code_Dirs @Generic_Serial_Ports %Misc);
 
 my ($Pgm_PathU);
 my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
@@ -2114,7 +2114,7 @@ sub display {
 
                                 # Assume we were waiting for this and reset http server counter.  Speak has precedence
     $Last_Response = 'display' unless $Last_Response eq 'speak';
-#   $leave_socket_open_passes= 1 if $leave_socket_open_passes;
+    $leave_socket_open_passes = 1 if $leave_socket_open_passes;
     return if $Respond_Target =~ /^web/;
 
                                 # Allow for display_device functions (e.g. lib/Display_Alpha.pm display_alpha)
@@ -3443,7 +3443,7 @@ sub process_serial_data {
             last unless defined($time_diff) and $time_diff < $config_parms{x10_multireceive_delay};
 #           print "db $event_data1 eq $prev_x10_events[$i]{data}\n";
             if ($event_data1 eq $prev_x10_events[$i]{data}) {
-                print "X10: Duplicate data ignored data=$event_data time=$time_diff\n"
+                print_log "X10: Duplicate data ignored data=$event_data time=$time_diff"
                     if $config_parms{x10_errata} >= 3;
                 return;
             }
@@ -3512,7 +3512,7 @@ sub process_serial_data {
 
                                 # Check for codes All-on All-off
         if ($event_data =~ /^X(\S)([OP])$/) {
-            print "X10: House code $1 set to $2\n" if $Debug{x10} or $config_parms{x10_errata} >= 3;
+            print_log "X10: House code $1 set to $2" if $Debug{x10} or $config_parms{x10_errata} >= 3;
             my $state = ($2 eq 'O') ? ON : OFF;
             &X10_Item::set_by_housecode($1, $state);
             return 1;
@@ -3561,7 +3561,7 @@ sub process_serial_data {
         }
         if ($prev_x10_event) {
             my $event_data2 = 'X' . $prev_x10_event . substr($event_data, 1);
-            print "X10: Merged string data=$event_data2\n" if $Debug{x10} or $config_parms{x10_errata} >= 3;
+            print_log "X10: Merged string data=$event_data2" if $Debug{x10} or $config_parms{x10_errata} >= 3;
                                 # See if it matches as one string
             if (&Serial_Item::serial_items_by_id($event_data2)) {
                 print_log "X10: Event found for merged data=$event_data2" if $config_parms{x10_errata} >= 3;
@@ -5741,8 +5741,9 @@ sub tk_mlabel {
                                                  # $pvar may be %Save or an object that changes on reloads :(
     $name = $pvar unless $name;
                                                  # If an object, get its state
+                                                 #  - As of 2.88 (Generic_Item Tie update), object pointers don't work.  Data is no updated.
     my $pvar2 = (ref $pvar ne 'SCALAR' and $pvar->can('set')) ? \$$pvar{state} : $pvar;
-#   print "db2 testing mlable pv=$pvar  $Tk_objects{mlabel}{$pvar}\n";
+#   print "db2 testing mlable pv=$pvar pv2=$pvar2 pv2v=$$pvar2  $Tk_objects{mlabel}{$pvar}\n";
 
     $Tk_objects{mlabel}{$name}->destroy if $Tk_objects{mlabel}{$name} and Exists($Tk_objects{mlabel}{$name});
     $Tk_objects{mlabel}{$name} = $Tk_objects{menu_bar}->
@@ -5883,6 +5884,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.95  2004/09/25 19:40:18  winter
+# *** empty log message ***
+#
 # Revision 2.94  2004/07/30 23:05:10  winter
 # *** empty log message ***
 #
