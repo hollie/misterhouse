@@ -22,6 +22,17 @@
 # Lynx10PLC_baudrate=19200
 # Lynx10PLC_module = Lynx10PLC
 #
+#
+# Revision History
+#
+# Version 1.0 12/4/2001 - Initial release
+#
+# Version 1.1 2/1/2002  - Added code to reconfigure the device if it
+#                         is not responding to Lynx-Net commands. The
+#                         device comes from the factory set at legacy
+#                         lynx-10 protocol and 1200 baud. This change
+#                         no longer requires that the device be programmed
+#                         using the Lynx10-PLC Setup utility under windows
 ########################################################################
 
 use strict;
@@ -151,14 +162,14 @@ my ($_cmds, %Lynx10PLC);
 ########################################################################
 sub startup 
 {
+    $Lynx10PLC{SEQNUM} = 0;
+    $Lynx10PLC{NODEID} = 0;
+
     &serial_startup;
 
     # Add hook only if serial port was created ok
     if (my $serial_port = $main::Serial_Ports{Lynx10PLC}{object})
     {
-	$Lynx10PLC{SEQNUM} = 0;
-	$Lynx10PLC{NODEID} = 0;
-	
 	# Force LynxNet protocol and Legacy Dim Mode 1
 	&send($serial_port, NETID_LYNXNET,
 	      pack('C3', LNCMD_WRITENVRAM, 1,3));
@@ -170,6 +181,43 @@ sub startup
     }
 }
 
+sub configure_plc
+{
+    return 0 unless ( 2 == @_ );
+    print "Configuring Lynx10-PLC\n";
+
+    my ($serial_port, $speed) = @_;
+
+    # Assert break for 250msec. This puts the Lynx10-PLC at 1200
+    # and legacy lynx-10 mode 
+    $serial_port->pulse_break_on(500);
+    $serial_port->baudrate(1200);	    
+    $serial_port->write_settings;
+    
+    # determine the correct baud rate value
+    my $legacy = "00";
+    $legacy = "01" if $speed == 2400;
+    $legacy = "02" if $speed == 4800;
+    $legacy = "03" if $speed == 9600;
+    $legacy = "04" if $speed == 19200;
+    $legacy = "05" if $speed == 38400;
+    $legacy = "06" if $speed == 57600;
+    $legacy = "07" if $speed == 115200;
+    $serial_port->write("M00=" . $legacy . "\r");
+    
+    # Set Lynx-Net protocol
+    $serial_port->write("M01=01\r");
+    
+    # Reboot the device
+    $serial_port->write("R\r");
+    
+    # sleep a bit
+    select (undef, undef, undef, 0.250);
+
+    $serial_port->baudrate($speed);	    
+    return $serial_port->write_settings;
+}
+
 sub serial_startup
 {
     my $debug = lc($main::config_parms{debug}) =~ /lynx10plc/;
@@ -178,6 +226,7 @@ sub serial_startup
     if ($::config_parms{Lynx10PLC_port})
     {
         my($speed) = $::config_parms{Lynx10PLC_baudrate} || 9600;
+	
         if (&::serial_port_create('Lynx10PLC', 
 				  $::config_parms{Lynx10PLC_port}, 
 				  $speed, 'none'))
@@ -186,15 +235,25 @@ sub serial_startup
 	    $serial_port->error_msg(0);
 	    #$serial_port->user_msg(1);
 	    $serial_port->debug(1);
-	    
 	    $serial_port->parity_enable(0);
 	    $serial_port->databits(8);
 	    $serial_port->parity("none");
 	    $serial_port->stopbits(1);
 	    $serial_port->dtr_active(1);
 	    $serial_port->rts_active(0);       
+	    $serial_port->write_settings;
 	    select (undef, undef, undef, .100);         # Sleep a bit
-	    
+
+	    # Force LynxNet protocol and Legacy Dim Mode 1
+	    if (&send($serial_port, NETID_LYNXNET,
+		      pack('C3', LNCMD_WRITENVRAM, 1,3)) == 0)
+	    {
+		print "Lynx10-PLC is not responding, trying to reconfigure\n";
+		configure_plc($serial_port, $speed);
+		$serial_port->baudrate($speed);
+		$serial_port->write_settings;
+		select (undef, undef, undef, .100);         # Sleep a bit
+	    }
         }
     }
 }
@@ -625,7 +684,7 @@ sub read
 	    last if $id == NETID_LYNXNET;
 	    
 	    # NetID is unknown, so toss it in the bitbucket
-	    print "Unexpected NetID=" . sprintf("%02X", $id) . ". Skipping\n";
+	    print "Unexpected NetID=" . sprintf("%02X", $id) . ". Skipping\n" if $debug;
 	    $readBuf = substr($readBuf,1);
 	}
 

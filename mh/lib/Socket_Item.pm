@@ -18,6 +18,7 @@ sub socket_item_by_id {
 sub new {
     my ($class, $id, $state, $host_port, $port_name, $host_proto, $datatype) = @_;
 
+#    print "dbx1 creating socket on port $host_port name=$port_name\n";
     my $self = {state => ''};
 
     $port_name = $host_port unless $port_name;
@@ -154,7 +155,7 @@ sub set_echo {
 }
 
 sub set {
-    my ($self, $state) = @_;
+    my ($self, $state, $ip_address) = @_;
 
     return if &main::check_for_tied_filters($self, $state);
 
@@ -180,20 +181,47 @@ sub set {
         print "Error, socket port $port_name has not been set: data=$socket_data\n";
         return;
     }
-    
-    my $sock = $main::Socket_Ports{$port_name}{socka};
-    unless ($sock) {
+
+    my @sockets;
+    if (defined $ip_address) {
+        if ($main::Socket_Ports{$port_name}{clients}) {
+            if ($ip_address =~ /^\d+$/) {
+                if (defined $main::Socket_Ports{$port_name}{clients}[$ip_address]) {
+                    push @sockets, $main::Socket_Ports{$port_name}{clients}[$ip_address][0];
+                }
+                else {
+                    print "Socket_Item: Error, set client ip number $ip_address is not active\n";
+                }
+            }
+            else {
+                for my $ptr (@{$main::Socket_Ports{$port_name}{clients}}) {
+                    my ($socka, $client_ip_address, $data) = @{$ptr};
+                    print "Testing socket client ip address: $client_ip_address\n" if $main::config_pamrs{debug} eq 'socket';
+                    push @sockets, $socka if $client_ip_address =~ /$ip_address/ or $ip_address eq 'all';
+                }
+            }
+        }
+        else {
+            push @sockets, $main::Socket_Ports{$port_name}{socka} if $main::Socket_Ports{$port_name}{socka};
+        }
+    }
+    else {
+        push @sockets, $main::Socket_Ports{$port_name}{socka} if $main::Socket_Ports{$port_name}{socka};
+    }
+
+    unless (@sockets) {
         print "Error, socket port $port_name is not active on a socket_item set for data=$socket_data\n";
         return;
     }
 
-    print "db print to $sock: $socket_data\n" if $main::config_parms{debug} eq 'socket';
-
+    for my $sock (@sockets) {
+        print "db print to $sock: $socket_data\n" if $main::config_parms{debug} eq 'socket';
                                 # Dos telnet wants to see \r.  Doesn't seem to hurt
                                 # unix telnet or other pgms (e.g. viavoice_server)
-    print $sock $socket_data, "\r\n";
-#   print $sock $socket_data, "\n";
-#   print "db port=$port_name data=$socket_data\n" if $port_name eq 'speak_server';
+        print $sock $socket_data, "\r\n";
+#       print $sock $socket_data, "\n";
+#       print "db port=$port_name data=$socket_data\n" if $port_name eq 'speak_server';
+    }
 
 }    
 
@@ -240,6 +268,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.20  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.19  2001/06/27 03:45:14  winter
 # - 2.54 release
 #

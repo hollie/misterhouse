@@ -341,6 +341,40 @@ for, say, your audrey interface, just add another html_alias_whatever
 parameter.
 
 
+=head2 1.21: Where is perl program code located?
+
+From Harald Koch on 2/2002.
+
+There are (at least) three different locations for scripts:
+
+/mh/bin - standalone programs (such as get_weather, get_tv_grid); they
+    are called from the main MH process via "run" or a Process_Item;
+    they do not get any environment or variables from the main MH
+    program, and typically return results to MH by writing output files
+    which MH later reads.
+
+    MH typically looks for external programs here, and also programs
+    here typically assume they're being run from this directory; they
+    try to find files in ../lib, for example.
+
+$config_parms{code_dir} - scripts in this directory are (after some
+    parsing) loaded into the middle of the MH event loop, and the
+    commands in them run constantly. They run within the MH environment,
+    and can use all the variables available there.
+
+$config_parms{html_dir} - scripts in this directory are run by the HTTP
+    server, and are expected to return blobs of HTML. They too run
+    inside the MH process, and can access all variables, subroutines,
+    etc.
+
+Each script directory has a different purpose, and programs in one are
+generally not terribly useful in another. My weather processing, for
+example, has scripts in all three places; mh/bin/get_weather_ca is the
+standalone that fetches/parses HTML, code/weather_ec.pl is the script
+that creates and processes voice commands and timer events, and then I
+have scripts in /web/weather/ that format the HTML for display.
+
+
 
 
 =head1 2: MisterHouse coding questions
@@ -852,6 +886,7 @@ Here is a rough timeline of MisterHouse development:
  - 11/01 New web interface, Audrey pictureframes, multiple sound cards.
  - 12/01 Wireless wmr968 and Ultimeter2000 weather stations, Lynx10 X10 support.
  - 01/02 Xmms, audrey callerid, Linksys rounter, TTS flite engine, standard CGIs.
+ - 03/01 GD on-the-fly web buttons, support for comics, xmms, redrat.
 
 Audrey support, more MS TTS controls, call waiting callerid
 
@@ -1138,6 +1173,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.29  2002/03/02 02:36:50  winter
+# - 2.65 release
+#
 # Revision 1.28  2002/01/19 21:11:11  winter
 # - 2.63 release
 #

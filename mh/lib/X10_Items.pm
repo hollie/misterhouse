@@ -174,6 +174,10 @@ sub set_x10_level {
     my ($self, $state) = @_;
     my $level;
     $level = $$self{level};
+
+    $state = '+34' if $state =~ /bright/i;   # From CM11.pm 
+    $state = '-34' if $state =~ /dim/i;
+
     if ($state =~ /^([\+\-]?)(\d+)$/) {
         $level = 100 unless defined $level; # bright and dim from on or off will start at 100%
         $level += $state;
@@ -187,6 +191,7 @@ sub set_x10_level {
         $level = 100   if $state eq 'on' and !defined $level; # Only if we used to be off. 
         $level = undef if $state eq 'off'; # Dimming from off starts at 100% :(
     }
+#   print "db l=$level s=$state\n\n";
     $$self{level} = $level;
 }        
 
@@ -801,6 +806,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.25  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.24  2002/01/19 21:11:12  winter
 # - 2.63 release
 #

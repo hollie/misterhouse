@@ -56,7 +56,6 @@ sub init {
             
         if ($VTxt_version eq 'msv4') {
             $VTxt[0] = Win32::OLE->new('Speech.VoiceText');
-#           unless (@VTxt) {
             unless ($VTxt[0]) {
                 print "\n\nError, could not create ms Speech TTS object.  ", Win32::OLE->LastError(), "\n\n";
                 return;
@@ -136,11 +135,14 @@ sub speak_text {
               # These mess up -text "text" calls and not useful when speaking?
     $parms{text} =~ s/\"//g unless $parms{no_mod};
     
-    return unless $parms{text};
+    return unless $parms{text} or $parms{play};
 
     if ($speak_engine =~ /festival/i) {
         &init('festival') unless $VTxt_festival;
     
+        print "\ndb1 $parms{voice} or $parms{volume} or $parms{rate} or $VTxt_festival\n";
+        print "\ndb2 $parms{voice} or $parms{volume} or $parms{rate} or $VTxt_festival\n" if !active $VTxt_festival;
+
         if ($parms{to_file}) {
                                        # Change from relative to absolute path
             $parms{to_file} = "$main::Pgm_Path/$1" if $parms{to_file} =~ /^\.\/(.+)/;
@@ -167,7 +169,8 @@ sub speak_text {
             select undef, undef, undef, .2; # Need this ?
         }
         elsif ($parms{voice} or $parms{volume} or $parms{rate} or 
-               $parms{text} =~ /<sable>i/ or !active $VTxt_festival) {
+               $parms{text} =~ /<sable>i/) {
+#               $parms{text} =~ /<sable>i/ or !active $VTxt_festival) {
             my $text = $parms{text};
             unless ($text =~ /<sable>i/) {
                 $parms{rate}   = '-50%'  if $parms{rate}   eq 'slow';
@@ -273,13 +276,12 @@ sub speak_text {
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
             if ($parms{to_file}) {
-                my $stream_old = $VTxt[0]->{AudioOutputStream};
                 my $stream = Win32::OLE->new('Sapi.SpFileStream');
                 $stream->Open($parms{to_file}, 3, 0);
                 $VTxt_stream->{AudioOutputStream} = $stream;
                 $VTxt_stream->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
                 $stream->Close;
-                $VTxt_stream->{AudioOutputStream} = $stream_old;
+                undef $stream;
 #               &main::print_log("Text->wav file:  $parms{to_file}");
 #               &main::play($parms{to_file});
             }
@@ -320,7 +322,7 @@ sub speak_text {
 
     }
     else {
-        print "Can not speak for engine=$speak_engine: Phrase=$parms{text}\n" if $engine;
+        print "Can not speak for engine=$speak_engine: Phrase=$parms{text}\n" if $speak_engine;
     }
     
     $VTxt[0] = $vtxt_default if $vtxt_default;
@@ -329,7 +331,7 @@ sub speak_text {
 
 sub is_speaking {
 #    print " vt=$VTxt[0] .. ";
-    if (@VTxt) {
+    if (@VTxt and $VTxt[0]) {
         if ($VTxt_version eq 'msv5') {
             return 2 == ($VTxt[0]->Status->{RunningState});
         }
@@ -502,7 +504,7 @@ sub set_voice {
             $spec = "Name=Microsoft $voice";
         }
 
-        print "Setting ms voice to spec=$spec\n";
+        print "Setting ms voice ($voice) to spec=$spec\n" if $main::config_parms{debug} eq 'voice';
 
                                 # If text is given, set for just this text with XML.  Otherwise change the default
         if ($text) {
@@ -511,7 +513,7 @@ sub set_voice {
                                 # First voice returned is the best fit
         else {
             for my $object (Win32::OLE::in $VTxt[0]->GetVoices($spec)) {
-                print "Setting voice for $spec: $object\n";
+                print "Setting voice ($voice) to $spec: $object\n" if $main::config_parms{debug} eq 'voice';
                 $VTxt[0]->{Voice} = $object;
                 return;
             }
@@ -537,6 +539,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.34  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.33  2002/01/23 01:50:33  winter
 # - 2.64 release
 #

@@ -1,5 +1,7 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2001-12-08 23:14:28 winter>
+
+#  Last change Time-stamp: <2002-03-01 08:18:18 winter>
+
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -11,437 +13,225 @@
 #      http://misterhouse.net/mh/bin
 #  Change log:
 #    04/25/98  Created.
+#    02/--/02  Tom Witmer (mycattypes4me@myrealbox.com) adds mods
+#
+#---------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------
+#  Purpose:
+#      For the days/times/channels listed, retrieve the listing data and
+#      store it in the listings DB. Does not do any DB purging. Does not
+#      retain the raw HTML listing data unless requested.
+# 
+#  Notes for the future:
+#    - ASSUMPTION: Shows in grid do not indicate their true start or end 
+#      times, if they cross grid boundaries. This is somewhat avoidable
+#      by choosing long durations (6 hours max), and might be partially
+#      fixable by adjusting shows that seem to "repeat". (This won't work
+#      for shows that are listed twice in a row, however!)
+#    - Would be nice to get only primetime data for weekdays, and all
+#      data for weekends. This is not yet incorporated.
 #
 #---------------------------------------------------------------------------
 use strict;
+require "RedirAgent.pm";
+#require "SMSAgent.pm";
+require 'handy_utilities.pl';      # For read_mh_opts 
+#require 'handy_net_utilities.pl';  # For net_mail_send <-- causes probs in perl 5.6.1 with -w flag!
+
+use Getopt::Long;
+use LWP::Simple;
+use LWP::UserAgent;
+use HTTP::Cookies;
+use HTTP::Request::Common;
+use vars '%config_parms';  # Not a my, as called from handy_net_utils
+
+#======================================================================
+# Version info
+#======================================================================
 my($Pgm_Path, $Pgm_Name, $Version);
 BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
-    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+   ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+   ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+   ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+   eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
-my %parms;
-use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "outdir=s", "reget", "redo", "db=s", "name=s",
-                 "keep=s", "skip=s", "channel_max=s", "zip:s", "provider:s", "debug", "label=s", "keep_old",
-                 "mail_to=s", "mail_server=s", "mail_baseref=s",
-                 "days=s", "day=s", "hour=s") or @ARGV or
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+
+
+#======================================================================
+# Variable declarations and other init
+#======================================================================
+# Globals
+#
+my ( %parms, $didLogIn, $infile, $outfile, %channels_skip, %channels_keep, $channel_data );
+my ($url, $ua, $cookie_jar, $req_get1, $req_get2, $req_post, $logged_in);
+my (@hours );
+my  (%DBM, %DBM2);
+
+%channels_skip = ();
+%channels_keep = ();
+$url      = 'http://tvlistings2.zap2it.com/';
+$ua       = new RedirAgent();
+$ua -> proxy(['http', 'ftp'] => $parms{proxy}) if $parms{proxy};
+#$ua       = new SMSAgent();
+
+#======================================================================
+# Temporary Debug variables
+#======================================================================
+my $dbgSubmitRequest = 1;  # Set to 0 to turn off URL requests
+
+#======================================================================
+# Check invocation options, and print usage message if necessary
+#======================================================================
+if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "outdir=s",
+   "reget", "redo", "db=s", "name=s", "preserveRaw",
+   "keep=s", "skip=s", "channel_max=s", "channel_min=s",
+   "zip:s", "provider:s", "debug", "label=s", "keep_old", "mail_to=s",
+   "mail_server=s", "mail_baseref=s",
+   "purge=s", "mail_baseref=s",
+   "include_footer",
+   "days=s", "day=s", "hour=s", "tableChannels=s", "timebars=s") or @ARGV or
+   ($parms{h} or $parms{help})) 
+{
+   print<<eof;
 $Pgm_Name gets a TV grid/schedule from the web (zap2it.com) and changes so
 it to be used by the MisterHouse program to create VCR and TV event reminders.
 Creates a DBM for use by get_tv_info.
   Version: $Version
   Usage:
    $Pgm_Name [options]
-    -h        => This help text
-    -help     => This help text
-    -db   xyz      => xyz is the database (tv, sat, cable, default tv)
-    -name xyz      => xyz is the name of the service (TV, Dish Network,
-                      Cable, etc) default is TV
-    -zip xyz      => xyz is your zip code
-    -provider xyz => xyz is your TV provider ID.  See note below
-    -day xyz      => xyz is the day  to get/filter.  Default is today.
-    -hour xyz     => xyz is the hour to get/filter.  Default is 6pm.  Can also
-                     be 'all' to get all hours.
-    -days xyz     => xyz is the number of days to get/filter, starting 
-                     with -day.
-    -channel_max xyz  => Channels above xyz will be dropped.  Default is 999.
-    -keep    xyz  => xyz is a list of channels to keep.
-    -skip    xyz  => xyz is a list of channels to skip.
-    -infile  xyz  => xyz is  original input file.   Default is 
-                     web/tv/download/day_hour.html.  If this file is missing
-                     or old, a new file will be retrieved from the web.
-    -outfile xyz  => xyz the filtered output file. 
-                     Default is -outdir/day_hour.html
-    -outdir  xyz  => xyz the directory the outfiles will be put in.
-                     Default is mh.ini parm html_dir/{db}
-    -label xyz    => Use xyz as the link lable.  Default is "VCR".  
-                     To disable, set to none (-label none).
-    -reget        => Re-read  the web page, even if a recent file it
-                     already exists.
-    -redo         => Re-write -outfile xyz, even if it already exists.
-    -keep_old     => Do NOT delete data from the DBM that is one month older 
-                     than todays date
-    -debug        => turn on debug info
+   -h        => This help text
+   -help     => This help text
+   -db   xyz      => xyz is the database (tv, sat, cable, default tv)
+   -name xyz      => xyz is the name of the service (TV, Dish Network,
+                     Cable, etc) default is TV
+   -zip xyz      => xyz is your zip code
+   -provider xyz => xyz is your TV provider ID.  See note below
+   -day xyz      => xyz is the day  to get/filter.  Default is today.
+   -hour xyz     => xyz is the hour to get/filter.  Default is 6pm.  Can also
+                    be 'all' to get all hours.
+   -days xyz     => xyz is the number of days to get/filter, starting
+                    with -day.
+   -channel_max xyz  => Channels above xyz will be dropped.  Default is 9999.
+   -channel_min xyz  => Channels below xyz will be dropped.  Default is 1.
+   -keep    xyz  => xyz is a list of channels to keep.
+   -skip    xyz  => xyz is a list of channels to skip.
+   -infile  xyz  => xyz is  original input file.   Default is
+                    web/tv/download/day_hour.html.  If this file is missing
+                    or old, a new file will be retrieved from the web.
+   -outfile xyz  => xyz the filtered output file.
+                    Default is -outdir/day_hour.html
+   -outdir  xyz  => xyz the directory the outfiles will be put in.
+                    Default is mh.ini parm html_dir/{db}
+   -purge  xyz  => Purge entries older than xyz days old.
+   -include_footer => Enables inclusion of the raw footer from the source.
+   -tableChannels xyz=> Number of channels to place in each HTML table
+                    in the output file. Default is 40.
+   -timebars xyz   => Number of channels between timebars in output table.
+                    Default is 5.
+   -label xyz    => Use xyz as the link lable.  Default is "VCR".
+                    To disable, set to none (-label none).
+   -reget        => Re-read  the web page, even if a recent file it
+                    already exists.
+   -redo         => Re-write -outfile xyz, even if it already exists.
+   -preserveRaw  => Prevents deletion of freshly-downloaded source HTML files
+   -keep_old     => Do NOT delete data from the DBM that is one month older
+                    than todays date
+   -debug        => turn on debug info
 
-    -mail_to      xyz => Will email the charts to xyz
-    -mail_server  xyz => xyz is the SMTP host.  Default is localhost
-    -mail_baseref xyz => xyz is the http address of your mh server.  Needed if
-                         you want to control mh from the emailed web page
+   -mail_to      xyz => Will email the charts to xyz
+   -mail_server  xyz => xyz is the SMTP host.  Default is localhost
+   -mail_baseref xyz => xyz is the http address of your mh server.  Needed if
+                        you want to control mh from the emailed web page
   Example:
-    $Pgm_Name -day 25 -hour 4pm -outfile my_tv.html
-    $Pgm_Name -days 7 -hour all -keep "2,4,8,12,33"
-    $Pgm_Name -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8080
+   $Pgm_Name -day 25 -hour 4pm -outfile my_tv.html
+   $Pgm_Name -days 7 -hour all -keep "2,4,8,12,33"
+   $Pgm_Name -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8080
 
   Note on finding your provider ID:
    Enter your zip code at http://tvlistings.zap2it.com/
    View the html source and pick the number from value='nnnnnn'
    by doing a string search for you provider.  For example:
-      <OPTION value="255248">Charter Communications - Rochester</OPTION>
+     <OPTION value="255248">Charter Communications - Rochester</OPTION>
 
 eof
   exit;
 }
-                                # Globals
-my (@days, @hours, $infile, $outfile, %DBM, %DBM2, %channels_skip, %channels_keep, $channel_data);
-my ($url, $ua, $cookies, $req_get1, $req_get2, $req_post, $logged_in);
 
-use vars '%config_parms';       # Not a my, as it is called from handy_net_utils for sent
-&setup;
-for my $day_data (@days) {
-    my ($down, $dow, $day, $month, $year, $day_time) = split(' ', $day_data);
-    for my $hour (@hours) {
-        print "Checking day=$day hour=$hour\n" if $parms{debug};
-        $outfile = "$parms{outdir}/${day}_$hour.html" unless $parms{outfile};
-        if ($parms{redo} or !(-e $outfile) or (8 < -M $outfile) or (4000 > -s $outfile)) {
-            &get_html($hour, $day, $month, $year);
-            &filter_html($hour, $down, $dow, $day, $month, $year, $day_time);
-        }
-        if ($day == (localtime(time))[3] and $hour >  17 and $hour <= 20) {
-            use File::Copy;
-            copy($outfile, "$parms{outdir}/index.html");
-            if ($parms{mail_to}) {
-                &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year");
-            }
-        }
-    }
-    &delete_old_data unless $parms{keep_old};
-}
-dbmclose %DBM;
-dbmclose %DBM2;
+#======================================================================
+# SUB: calculate_date
+# Calculates the month/day/year for a time "X" seconds in the future
+# from the specified time.
+# INPUT:
+#    $day_time = start time, in seconds since 1/1/1900
+#    $days = Number of days from now to calculate. (0 = today, 1=tomorrow...)
+# OUTPUT:
+#    List, where each entry is
+#      $day =  day of month, like 28, 31, etc.
+#      $month = month #, like 1, 3, 12, etc.
+#      $year =  4 digit year, like 1984, 2002...
+#======================================================================
+sub days_from_now 
+{
+   #print "days_from_now: Incoming: @_ \n";
+   my ($day_time, $days) = @_;
+   my $day_time2 = $day_time + $days * 60 * 60 * 24;
+   my ($day, $month, $year, $down) = (localtime($day_time2))[3,4,5,6];
+   my $dow = (qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday))[$down];
 
-sub get_html {
-    my ($hour, $day, $month, $year) = @_;
-    $infile = $parms{infile};
-    $infile = "$parms{outdir}/download/${day}_$hour.html" unless $infile;
-                                # File must exist, be younger than a week old, and have > 1k bytes
-    if ((-e $infile) and (8 > -M $infile) and (4000 < -s $infile) and !$parms{reget}) {
-        print "Reusing file: $infile\n";
-    }
-    else {
-        &login unless $logged_in;
-        print "Requesting data for hour=$hour day=$day month=$month year=$year .";
-        my $hours = ($parms{hour} eq 'all_by_3') ? 3 : 4;
-        $req_post->content("displayType=Grid&duration=$hours&startDay=$month/$day/$year&startTime=$hour&category=0&station=0&goButton=GO");
-        print " .";
-        print "Sending:\n" . $req_post->as_string . $cookies->as_string . "\n" if $parms{debug};
-        my $res = $ua->request($req_post);
-        print " .";
-                                # Gotta request again, as first grid does not have all the channels :(
-        print "Sending:\n" . $req_get2->as_string . $cookies->as_string . "\n" if $parms{debug};
-        $res = $ua->request($req_get2, $infile);
-        print " .\n";
-        unless ($res->is_success) {
-            print "  Error: " . $res->status_line . "\n";
-        }
-    }
+   $month++;
+   $year += 1900;
+   #$day = sprintf("%02d", $day);
+   #print "days_from_now: Returning $day - $month - $year \n";
+   return ($dow, $down, $day, $month, $year);
 }
 
-                                # Get the ASPSESSION cookie
-sub login {
-    print "Getting the session cookie ...\n";
-    print "Sending:\n" . $req_get1->as_string . $cookies->as_string . "\n" if $parms{debug};
-    my $res = $ua->simple_request($req_get1);
-    $logged_in++;
+
+
+
+#======================================================================
+# SUB: min_to_hour
+#======================================================================
+sub min_to_hour 
+{
+   my ($min) = @_;
+   my $hour = int($min / 60);
+   $min = $min - $hour * 60;
+   return sprintf("%d:%02d", $hour, $min);
 }
 
-sub filter_html {
-    my ($hour, $down, $dow, $day, $month, $year, $day_time) = @_;
-    my $min = $hour*60;
-    open (IN,   "$infile")  || die "Error, could not open file $infile: $!\n";
-    open (OUT, ">$outfile") || die "Error, could not open file $outfile: $!\n";
-    print "Filtering $infile to $outfile\n" if $parms{debug};
-    print OUT<<eof;
-<HTML>
-<HEAD>
-<TITLE>$parms{name} Schedule for $dow, $month/$day.$year</TITLE>
-</HEAD>
-<body bgcolor=gray>
-eof
-    my ($record, $record_prev, $script, $script_flag, $data_flag, $count1, $count2, $count3);
-    my ($channel_number, $channel_name, $pgm_name, $pgm_desc, $min_start, $min_end, $min_pgm);
 
-    $count1 = $count2 = $count3 = 0;
-    while ($record = <IN>) {
-        $count1++;
-                                # Pull out javascript stuff
-        $script_flag = 1 if /<script language=/i;
-        if ($script_flag) {
-#           $_ =~ s|([a-z]+\.asp\?)|http://listings.clicktv.com/$1|g;
-            $script .= $_;
-        }
-        $script_flag = 0 if /<\/script/i;
+#======================================================================
+# SUB: setup
+# Process invocation parameters prior to doing any real work
+#======================================================================
+sub setup 
+{
+   &main::read_mh_opts(\%config_parms, $Pgm_Path);
 
-                                # Look for start of good stuff ... looks like this
-#<!--sp_GetGridInfo 100128400, '10/24/2001 1:00:00 AM', '10/24/2001 5:00:00 AM', 0, 0, 3, '',''--><table BORDER="1" BGCOLOR="#FFFFFF" CELLPADDING="2" CELLSPACING="1" WIDTH="100%">
-        if (!$data_flag and $record =~ /GetGridInfo /i) {
-            print "Found start of $parms{name} grid\n" if $parms{debug};
-            $data_flag = 1;
-            &make_index($hour, $down, $day, $day_time);
-            print OUT $record;
-            next;
-        }
-        
-                                # data_flag = 1 -> channel data
-                                # data_flag = 2 -> bottom data
-        next unless $data_flag;
-        if ($record =~ / END GRID TABLE / and $data_flag = 1) {
-            print OUT "</table>\n";
-            $data_flag = 2;
-        }
+   #------------------------------------------------------------
+   # Process Incoming Parameters, defaulting as necessary
+   #------------------------------------------------------------
+   $parms{preserveRaw} = 0 unless ( $parms{preserveRaw} );
+   $parms{purge}    = 14 unless $parms{purge};
+   $parms{timebars} = 5 unless $parms{timebars};
+   $parms{tableChannels} = 40 unless $parms{tableChannels};
+   $parms{days}    = 1 unless $parms{days};
+   $parms{db}      = 'tv'  unless $parms{db};
+   $parms{outdir}  ="$config_parms{html_dir}/$parms{db}" 
+      unless $parms{outdir};
+   $parms{zip}     = $config_parms{zip_code} unless $parms{zip};
+   $parms{proxy}   = $ENV{HTTP_PROXY}      unless $parms{proxy};
+   $parms{proxy}   = $config_parms{proxy}  unless $parms{proxy};
+   $parms{provider}= $config_parms{$parms{db}.'_provider'} 
+      unless $parms{provider};
+   $parms{hour}    = $config_parms{$parms{db}.'_hours'} unless $parms{hour};
+   $parms{skip}    = $config_parms{$parms{db}.'_channels_skip'} 
+      if ($config_parms{$parms{db}.'_channels_skip'} and !$parms{skip});
+   $parms{keep}    = $config_parms{$parms{db}.'_channels_keep'} 
+      if ($config_parms{$parms{db}.'_channels_keep'} and !$parms{keep});
+   $parms{name}    = $config_parms{$parms{db}.'_name'} unless $parms{name};
 
-                                # New channel row
-        if ($channel_number and $record =~ /<tr>/) {
-            $channel_data = '';
-        }
-                                # Print out previous channel, unless we want to skip it  
-        if ($channel_number and $record =~ /<\/tr>/) {
-            print OUT $channel_data unless
-                ($parms{keep} and !$channels_keep{$channel_number}) or
-                ($parms{skip} and  $channels_skip{$channel_number});
-            $channel_data = '';
-        }
-
-        $count2++;
-                                # Point to local gifs
-        $record =~ s|images/([^/]+?.gif)|/tv/$1|g;
-        $record =~ s|/?images.+?/([^/]+?.gif)|/tv/$1|g;
-#       print "db gif record=$record\n" if $record =~ /\.gif/;
-                                # Discard channel .jpgs
-#       $record =~ s!<img .+?\.(jpg|gif)[^>]+?>!!g;
-                                # Make local copy of channel .jpgs
-        if ($record =~ s!http://tvlistings\d?.zap2it.com/tms_network_logos/([^/]*\.(jpg|gif))!/tv/logos/$1!) {
-            unless (-f "$parms{outdir}/logos/$1") {
-                my $req = new HTTP::Request('GET',
-                                            "http://tvlistings.zap2it.com/tms_network_logos/$1");
-                my $res = $ua->request($req, "$parms{outdir}/logos/$1");
-                unless ($res->is_success) {
-                    print "  Error: " . $res->status_line . "\n";
-                }
-            }
-        }
-
-
-                                # Point to remote tv discriptions
-                                #  <a href="listings_redirect.asp?station_num=10715">
-                                #  <form method="post" action="listings_redirect.asp"><TD height=3 width = "100%" align=center> 
-        $record =~ s|\"([_a-z]+\.asp\??)|\"http://tvlistings.zap2it.com/$1|g;
-
-
-                                # Find channel number and name
-                                #  ...station_num=10715">2<br><nobr>KTCA</nobr>
-        if ($record =~ /\> *(\d+) *<br><nobr>(\S*?)\</i) {
-            $channel_number = $1; $channel_name = $2;
-            print "Found channel: $channel_number => $channel_name\n" if $parms{debug};
-            $min_start = $min;
-            $min_end = '';
-            last if $channel_number > $parms{channel_max};
-        }
-
-#       last if $record =~ / END GRID TABLE /;
-
-
-        unless (($parms{keep} and !$channels_keep{$channel_number}) or
-                ($parms{skip} and  $channels_skip{$channel_number}) ) {
-
-# ...progdetails.asp?prog_id=1675831&series_id=553685">Scientific American Frontiers: <i>The Gene Hunters</i></a></font>
-#   <font face="arial,helvetica" size="-2"></b>   TVG Geneticists Jim Watson ...
-#			</font>
-
-            if ($record =~ /colspan="?(\d+)"?/) {
-                $min_start = $min_end if $min_end;
-                $min_pgm = 30 * $1;
-                $min_end = $min_start + $min_pgm;
-            }
-
-            if ($record =~ /progdetails.+?>(.+?)<\/a.+?<\/b> *(.+)/) {
-                ($pgm_name, $pgm_desc) = ($1, $2);
-                if ($pgm_name) {
-                    $count3++;
-                                # Clean up the program description
-                    $pgm_name =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
-                    $pgm_desc =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
-                    $pgm_desc =~ s/  / /g;     # Drop extra spaces
-                    my $pgm_name_html = $pgm_name;
-                    $pgm_name_html =~ tr/ /_/;
-                                # Set program times/dates
-                    my $time_start = &min_to_hour($min_start);
-                    my $time_end   = &min_to_hour($min_end);
-                    my $pgm_date = "$month/$day";
-                    print "db $pgm_name, $min_pgm, $min_start, $min_end, $time_start, $time_end, $pgm_date\n" if $parms{debug};
-                                # Insert the mh link
-                    my $vcr_ref =
-                        "<a href='/SET:last_spoken?\$tv_grid?channel_${channel_number}_from_${time_start}" .
-                            "_to_${time_end}_on_${pgm_date}_for_${pgm_name_html}'>$parms{label}</a>";
-                    $record =~ s|<a href=|$vcr_ref for <a href=| unless lc $parms{label} eq 'none';
-                                # Store the data in the DBM
-                    my $db_key = join($;, $channel_number, $pgm_date, $time_start);
-                    my $db_data= join($;, $time_end, $pgm_name, $pgm_desc);
-                    $DBM{$db_key} = $db_data;
-                    $DBM2{$channel_number} = $channel_name;
-                    print "db key=$db_key\n  data=$db_data.\n" if $parms{debug};
-                }
-            }
-        }
-
-        if ($data_flag == 1) {
-            $channel_data .= $record;
-        }
-        elsif ($data_flag == 2) {
-            print OUT $record;
-        }
-    }
-    print "$count1 records with $count2 grid rows were read.  $count3 programs stored.\n";
-    close IN;
-    close OUT;
-}
-                                # Create the index table, for the next 2 weeks, and for other hours in this day
-sub make_index {
-    my ($hour, $down, $day, $day_time) = @_;
-    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n";		### DW: remove bgcolors
-    print OUT "<font face=arial size=+1 color=white> $parms{name} Listings</td><td align=right>";
-    print OUT "<FORM>";
-    print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
-    my $dow_start = -$down - 7;
-    my $dow_stop  = $dow_start + 20;
-    for my $count ($dow_start .. $dow_stop) {
-        my ($dow2n, $dow2, $day2, $month2, $year2) = &days_from_now($day_time, $count);
-        print OUT "<option value='/" . $parms{db} . "/${day2}_$hour.html'";
-        if ($day2 == $day)  {
-          print OUT " Selected ";
-        }
-        print OUT ">$dow2, $month2/$day2\n";
-    }
-    print OUT "</select>\n";
-    print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
-
-#   for my $hour2 (2, 6, 10, 14, 18, 22) {
-    for my $hour2 (@hours) {
-        my $hour2_ampm;
- 
-        if ($hour2 == 12) {
-            $hour2_ampm = "12 pm";
-        }
-        elsif ($hour2 > 12) {
-            $hour2_ampm = $hour2 - 12 . " pm";
-        }
-        elsif ($hour2 == 0) {
-            $hour2_ampm = "12 am";
-        }
-        else {
-            $hour2_ampm = $hour2 + 0 . " am";
-        }
-#       $hour2_24 = '0' . $hour2 if $hour2 < 10;
-
- 
-
-
-         print OUT "<option value='/" . $parms{db} . "/${day}_${hour2}.html'";
-         if ($hour2 == $hour)  {
-           print OUT " Selected ";
-         }
-
-         print OUT ">$hour2_ampm\n";
-
-#        print OUT "<td align=center bgcolor=white><a href=/tv/${day}_${hour2}.html>$hour2_ampm</a><td>\n";
-    }
-    print OUT "</select></td>\n";
-    print OUT "</tr>\n</form></table></center>\n";
-}
-                                # Delete data from 4 weeks ago
-sub delete_old_data {
-    my ($down, $down, $day, $month) = &days_from_now(time, -28);
-    my $pgm_date = "$month/$day";
-    print "Deleting old data from 4 weeks ago: $pgm_date ...";
-    my @channels = keys %DBM2;
-    for my $channel_number (@channels) {
-        for my $hour (00 .. 23) {
-            for my $min ('00', '30') {
-                my $db_key = join($;, $channel_number, $pgm_date, "$hour:$min");
-#               print "deleting $db_key\n" if $parms{debug};
-                delete $DBM{$db_key};
-            }
-        }
-    }
-    print " data deleted.\n";
-}
-sub min_to_hour {
-    my ($min) = @_;
-    my $hour = int($min / 60);
-    $min = $min - $hour * 60;
-    return sprintf("%d:%02d", $hour, $min);
-}
-sub days_from_now {
-    my ($day_time, $days) = @_;
-#   $day_time = time if $parms{day}; # Need to do a string to time thing here.
-    my $day_time2 = $day_time + $days * 60 * 60 * 24;
-    my ($day, $month, $year, $down) = (localtime($day_time2))[3,4,5,6];
-    my $dow = (qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday))[$down];
-#   $month= (January,February,March,April,May,June,July,August,Septermber,October,November,December)[$month];
-    $month++;
-    $year += 1900;
-    $day = sprintf("%02d", $day);
-    return ($down, $dow, $day, $month, $year, $day_time2);
-}
-                                # Email default page
-sub mail_file {
-    my ($mailto, $mailserver, $file, $subject) = @_;
-    $mailserver = 'localhost' unless $mailserver;
-    $parms{mail_baseref} = 'localhost' unless $parms{mail_baseref};
-    print "$Pgm_Name is now mailing $file to $mailto\n";
-    my $date = localtime;
-                                # Modify the html so it has a BASE HREF and the links work in a mail reader
-#   my $html = &file_read($file);
-#   $html =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{mail_baseref}">|i;
-
-                                # From handy_net_utilities
-    &net_mail_send(subject => $subject,
-                   server  => $mailserver,
-                   from    => $Pgm_Name,
-                   to      => $mailto,
-                   baseref => $parms{mail_baseref},
-#                  filename=> 'tv_grid.html',
-#                  text    => $html,
-                   file    => $file,
-                   mime    => 1);
-
-    return;
-}
-
-sub setup {
-    
-    require 'handy_utilities.pl';      # For read_mh_opts 
-    require 'handy_net_utilities.pl';  # For net_mail_send
-    &main::read_mh_opts(\%config_parms, $Pgm_Path);
-#   $parms{userid} = '%247A%247B%2489%247A' unless $parms{userid};
-
-    $parms{db}       = 'tv'  unless $parms{db};
-    $parms{outdir}   ="$config_parms{html_dir}/$parms{db}"     unless $parms{outdir};
-    $parms{zip}      = $config_parms{zip_code}                 unless $parms{zip};
-    $parms{provider} = $config_parms{$parms{db} . '_provider'} unless $parms{provider};
-    $parms{hour}     = $config_parms{$parms{db} . '_hours'}    unless $parms{hour};
-    $parms{label}    = $config_parms{$parms{db} . '_label'}    unless $parms{label};
-    $parms{skip}     = $config_parms{$parms{db} . '_channels_skip'}  unless $parms{skip};
-    $parms{keep}     = $config_parms{$parms{db} . '_channels_keep'}  unless $parms{keep};
-
-    $parms{name}        = 'TV'     unless $parms{name};
-    $parms{zip}         = '55901'  unless $parms{zip};
-    $parms{provider}    = '255248' unless $parms{provider};
-    $parms{channel_max} = '999'    unless $parms{channel_max};
-    $parms{label} = "VCR" unless $parms{label};  # This can also be an image link
-#   $parms{label} = qq[<img src="/tv/vcr.jpg">] unless $parms{label};
-    $parms{days}  = 1 unless $parms{days};
-    $parms{redo}  = 1 if $parms{reget};
-
-    %channels_keep = map{$_, 1} split(',', $parms{keep}) if $parms{keep};
-    %channels_skip = map{$_, 1} split(',', $parms{skip}) if $parms{skip};
-
-    for my $count (0 .. $parms{days}-1) {
-        my @day_data = &days_from_now(time, $count);
-        push(@days, "@day_data"); # $dow $month $day $year");
-    }
     $parms{hour} = '6pm' unless $parms{hour};
     if (lc($parms{hour}) eq 'all') {
         @hours = qw(02 06 10 14 18 22);
@@ -455,7 +245,6 @@ sub setup {
 #           print "$_/n";
         }
     }
-
     elsif (1 < (@hours = split(',', $parms{hour}))) {
     }
     else {
@@ -463,158 +252,918 @@ sub setup {
         $hour += 12 unless lc($am_pm) eq 'am' or $hour == 12;
         @hours = (sprintf("%02d", $hour));
     }
-    my $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
-    my $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
-
-    print "Files will be stored to $parms{outdir}\n";
-    print "Tieing to $dbm_file\n";        
-    use Fcntl;
-    use DB_File;
-    tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
-    tie (%DBM2, 'DB_File',  $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
 
 
-    mkdir $parms{outdir}, 0777 unless -d $parms{outdir};
-    mkdir "$parms{outdir}/logos", 0777 unless -d "$parms{outdir}/logos";
-    mkdir "$parms{outdir}/download", 0777 unless -d "$parms{outdir}/download";
+   $parms{duration}= $config_parms{$parms{db}.'_duration'} if ( $config_parms{$parms{db}.'_duration'} );
+   $parms{duration}= 4 unless ( $parms{duration} );
 
-    use LWP::Simple;
-    use LWP::UserAgent;
-    use HTTP::Cookies;
-    use HTTP::Request::Common;
-    
-    $url      = 'http://tvlistings.zap2it.com/';
-    $ua       = LWP::UserAgent->new;
-    $cookies  = HTTP::Cookies->new();
-    $req_get1 = HTTP::Request->new(GET  => $url . 'gridall.asp');
-    $req_post = HTTP::Request->new(POST => $url . 'listings_redirect.asp');
-    $req_get2 = HTTP::Request->new(GET  => $url . 'listings_redirect.asp?spp=0');
+   $parms{channel_min} = $config_parms{$parms{db}.'_channel_min'} 
+      if $config_parms{$parms{db} . '_channel_min'};
+   $parms{channel_max} = $config_parms{$parms{db}.'_channel_max'} 
+      if $config_parms{$parms{db} . '_channel_max'};
 
-    $req_post-> content_type('application/x-www-form-urlencoded');
+   $parms{zip} || die "Missing zipcode!";
+   $parms{provider} || die "Missing provider!";
+   $parms{channel_min} = '1'    unless $parms{channel_min};
+   $parms{channel_max} = '9999' unless $parms{channel_max};
+   $parms{label} = "VCR" unless $parms{label};  # This can also be an image link
+   $parms{days}  = 1 unless $parms{days};
+   $parms{redo}  = 1 if $parms{reget};
+   $parms{duration}  = 6 unless $parms{duration};
 
-    $cookies -> set_cookie(0,                           # $version,
-                           'TVListings',                # $key,
-                           "ZipCode=$parms{zip}&ProviderID=$parms{provider}&vstr%5Fid=",
-                           '/',                         # $path,
-                           'tvlistings.zap2it.com');   # $domain,
-    $ua -> cookie_jar($cookies); 
+   %channels_keep = map{$_, 1} split(',', $parms{keep}) if $parms{keep};
+   %channels_skip = map{$_, 1} split(',', $parms{skip}) if $parms{skip};
 
+   # Set up DBM files
+   my $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
+   my $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
+   print "Files will be stored to $parms{outdir}\n";
+   print "Tieing to $dbm_file\n";        
+   use Fcntl;
+   use DB_File;
+   tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
+   tie (%DBM2, 'DB_File',  $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
+
+   # Create any directories that need creating.
+   createOutputDirs();
+
+   # Initialize other global variables
+   $didLogIn = 0;
 }
 
-#
-# $Log$
-# Revision 1.38  2001/12/16 21:48:40  winter
-# - 2.62 release
-#
-# Revision 1.37  2001/11/18 22:51:42  winter
-# - 2.61 release
-#
-# Revision 1.36  2001/10/21 01:22:31  winter
-# - 2.60 release
-#
-# Revision 1.35  2001/05/06 21:07:25  winter
-# - 2.51 release
-#
-# Revision 1.34  2001/04/15 16:17:20  winter
-# - 2.49 release
-#
-# Revision 1.33  2001/02/24 23:18:40  winter
-# - 2.45 release
-#
-# Revision 1.32  2001/02/04 20:31:30  winter
-# - 2.43 release
-#
-# Revision 1.31  2000/12/21 18:54:14  winter
-# - 2.38 release
-#
-# Revision 1.30  2000/12/03 19:38:50  winter
-# - 2.36 release
-#
-# Revision 1.29  2000/11/12 21:01:02  winter
-# - 2.34 release
-#
-# Revision 1.28  2000/08/19 01:20:42  winter
-# - 2.27 release
-#
-# Revision 1.27  2000/08/06 21:56:43  winter
-# - See 2.24 release notes.
-#
-# Revision 1.26  2000/06/24 22:10:54  winter
-# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
-#
-# Revision 1.25  2000/04/09 18:03:19  winter
-# - 2.13 release
-#
-# Revision 1.24  2000/03/10 04:09:01  winter
-# - Add Ibutton support and more web changes
-#
-# Revision 1.23  2000/02/12 05:33:34  winter
-# - commit lots of changes, in preperation for mh release 2.0
-#
-# Revision 1.22  2000/01/27 13:22:33  winter
-# - update version number
-#
-# Revision 1.21  2000/01/02 23:40:16  winter
-# - added dropbox code for index
-#
-# Revision 1.20  1999/11/17 04:46:32  winter
-# *** empty log message ***
-#
-# Revision 1.19  1999/11/17 04:30:51  winter
-# - allow -hour option to bye all_by_3 or explicit list
-#
-# Revision 1.18  1999/10/02 22:39:55  winter
-# - fix use lib eval
-#
-# Revision 1.17  1999/10/01 00:20:23  winter
-# - delete explicit use lib.
-#
-# Revision 1.16  1999/09/27 03:12:51  winter
-# - add mailto option.  Fix detail.asp links to point back to clicktv.
-#
-# Revision 1.15  1999/09/12 16:16:00  winter
-# - fixed $Version bug
-#
-# Revision 1.14  1999/09/02 13:45:01  winter
-# *** empty log message ***
-#
-# Revision 1.13  1999/09/02 13:40:36  winter
-# - Change to new clicktv.com format.  Add delete_old_data, keep_old.
-#
-# Revision 1.12  1999/07/21 21:08:41  winter
-# - fix typo in pgm_name_html.  Increase -s $outfile size check
-#
-# Revision 1.11  1999/07/05 22:30:15  winter
-# - added DBM store.  added -label.  Fix/keep javascript code.
-#
-# Revision 1.10  1999/07/05 16:49:09  winter
-# - added DBM saves.
-#
-# Revision 1.9  1999/06/20 22:30:16  winter
-# - use last_spoken on SET
-#
-# Revision 1.8  1999/03/21 17:38:31  winter
-# - email change
-#
-# Revision 1.7  1999/03/12 04:35:27  winter
-# - fix time/date check
-#
-# Revision 1.6  1999/02/08 00:37:54  winter
-# - add -redo.  Only re-filter if needed, or -redo.
-#
-# Revision 1.5  1999/02/04 14:35:24  winter
-# - aplit on day_data not day
-#
-# Revision 1.4  1999/02/01 00:09:36  winter
-# - use lib, so mh libs are found
-#
-# Revision 1.3  1999/01/30 21:47:08  winter
-# - add an index.
-#
-# Revision 1.2  1999/01/24 21:00:46  winter
-# - fix Prog_Path
-#
-# Revision 1.1  1999/01/24 20:14:35  winter
-# - created from filter_tv_schedule
-#
-#
+#======================================================================
+# SUB: setup_web_client
+# Set up WebClient and Cookie Jar
+#======================================================================
+sub setup_web_client 
+{
+   $cookie_jar = HTTP::Cookies->new( ignore_discard => 1  );
+
+   # Use the following if you want to examine the cookies.
+   #$cookie_jar = HTTP::Cookies->new( file => "lwpCookies.txt", 
+   #  autosave => 1, ignore_discard => 1  );
+
+   $ua -> cookie_jar( $cookie_jar ); 
+}
+
+#======================================================================
+# SUB: createOutputDirs
+# Create any directories/files that need creating prior to downloads
+#======================================================================
+sub createOutputDirs 
+{
+   #------------------------------------------------------------
+   # Create directories needed for downloading data 
+   #------------------------------------------------------------
+   mkdir $parms{outdir}, 0777 unless -d $parms{outdir};
+   mkdir "$parms{outdir}/logos", 0777 unless -d "$parms{outdir}/logos";
+   mkdir "$parms{outdir}/download", 0777 unless -d "$parms{outdir}/download";
+
+   if ( ! -d $parms{outdir} )
+   {
+      print "FAILED TO MAKE DIR: $parms{outdir} \n";
+   }
+   if ( ! -d $parms{outdir}."/logos" )
+   {
+      print "FAILED TO MAKE DIR: $parms{outdir}/logos \n";
+   }
+   if ( ! -d $parms{outdir}."/download" )
+   {
+      print "FAILED TO MAKE DIR: $parms{outdir}/download \n";
+   }
+}
+
+#======================================================================
+# SUB: submitRequest
+# Processes all requests through common code that can check status
+# responses, etc.
+#======================================================================
+sub submitRequest
+{
+   # Collect incoming arguments
+   my ($request, $outFile) = @_;
+   my $res; # Reponse
+
+   # Add any relevant cookies to the request
+   if ( ! ($request->as_string =~ /logo/ ) )
+   {
+      $cookie_jar->add_cookie_header( $request );
+   }
+
+   # Submit request
+   print "Request: [".($request->as_string)."]\n" if ($parms{debug});
+   if ( $outFile )
+   {
+      print "Submitting request with output file: $outFile \n" if ($parms{debug});
+      if ( $dbgSubmitRequest )
+      {
+         $res = $ua->request( $request, $outFile );
+      }
+   }
+   else
+   {
+      print "Submitting request without output file\n" if ($parms{debug});
+      if ( $dbgSubmitRequest )
+      {
+         $res = $ua->request( $request );
+      }
+   }
+
+   
+   # Minimizes problems during dry-runs (no net connection)
+   if ( ! $dbgSubmitRequest ) 
+   {
+      print "DBG: Returning 1\n";
+      return 1;
+   }
+
+   # Process response data
+   if ( $res->status_line =~ /200/ )
+   {
+      print "Response successful (200)\n" if ($parms{debug});
+      return 1;
+   }
+   else
+   {
+      print "FAILED RESPONSE: ".$res->as_string."\n";
+      return -1;
+   }
+}
+
+#======================================================================
+# login
+#======================================================================
+sub login
+{
+   #------------------------------------------------------------
+   # Prepare our web-browsing tools for use
+   #------------------------------------------------------------
+   setup_web_client();
+
+   #------------------------------------------------------------
+   # First submission, to obtain the ASPSESSIONID cookie
+   #------------------------------------------------------------
+   #submitRequest( HTTP::Request->new( GET => $url ), "out1.txt" );
+   print "1 of 4\n";
+   my $submitResult = 0;
+   $submitResult = submitRequest( HTTP::Request->new( GET => $url ), "out1.txt" );
+   if ( 1 != $submitResult )
+   {
+      return -1;
+   }
+
+   #------------------------------------------------------------
+   # Second submission, to submit our zip code
+   #------------------------------------------------------------
+   my $req_zip= HTTP::Request->new( GET => $url.'edit_provider_list.asp' );
+   $req_zip->content( "zipcode=$parms{zip}&"
+      ."ziptype=new&"
+      ."SubmitZipCode=Continue" );
+   $req_zip->content_type('application/x-www-form-urlencoded');
+   #submitRequest( $req_zip, "out2.txt" );
+   print "2 of 4\n";
+   $submitResult = submitRequest( $req_zip );
+   if ( 1 != $submitResult )
+   {
+      return -1;
+   }
+
+   #------------------------------------------------------------
+   # Third submission, to submit our provider & get listings
+   # (A real waste, since it gives us data we might not use, but 
+   # really should. However, it does get us to the point where we can 
+   # collect the data we actually want. Skipping this step seems
+   # to result in an error though, so I guess we're stuck.)
+   #------------------------------------------------------------
+   my $req_prov = HTTP::Request->new(POST => $url.'edit_provider_list.asp');
+   $req_prov->content( "FormName=edit_provider_list.asp&"
+      ."provider=".($parms{provider})."&"
+      ."saveProvider=See%20Listings&"
+      ."zipCode=$parms{zip}&"
+      ."ziptype=new" );
+   $req_prov->content_type('application/x-www-form-urlencoded');
+   #submitRequest( $req_prov, "out3.txt" );
+   print "3 of 4\n";
+   $submitResult = submitRequest( $req_prov );
+   if ( 1 != $submitResult )
+   {
+      return -1;
+   }
+
+   #------------------------------------------------------------
+   # Fourth submission. If you thought the last one was a waste, you
+   # ain't seen nothin! The javascript form doesn't trigger 'all channels',
+   # so we have to do that with this step before asking for specific
+   # dates/times
+   #------------------------------------------------------------
+   my $req_allChans = HTTP::Request->new(GET => $url.'listings_redirect.asp?spp=0');
+   print "4 of 4\n";
+   $submitResult = submitRequest( $req_allChans );
+   if ( 1 != $submitResult )
+   {
+      return -1;
+   }
+
+   #------------------------------------------------------------
+   # If we got this far, return successful result!
+   #------------------------------------------------------------
+   print "Login complete!\n";
+   return 1;
+}
+
+#======================================================================
+# fetchDataToFile
+# 
+#======================================================================
+sub fetchDataToFile
+{
+   my ( $outfile, $startDay, $startHour ) = @_;
+
+   #------------------------------------------------------------
+   # If output file already exists, and is recent enough, use
+   # keep it instead of re-downloading. 
+   #------------------------------------------------------------
+   if ( (-e $outfile) and (8 > -M $outfile) and 
+      (4000 < -s $outfile) and !$parms{reget} ) 
+   {
+      print "Reusing: $outfile\n";
+   }
+
+   #------------------------------------------------------------
+   # Retrieve the HTML listings for this date/time & duration
+   #------------------------------------------------------------
+   else
+   {
+      #------------------------------------------------------------
+      # If we're not logged in, do so now.
+      #------------------------------------------------------------
+      if ( ! $didLogIn )
+      {
+         print "Logging in...\n";
+         $didLogIn = login();
+         if ( 1 != $didLogIn )
+         {
+            print "Login failed!: $didLogIn\n";
+            return -1;
+         }
+      }
+
+      #------------------------------------------------------------
+      # Retrieve the file we need
+      #------------------------------------------------------------
+      print "Requesting data for ${startDay} at $startHour for $parms{duration} hours\n"; 
+      my $loopReq = HTTP::Request->new( 
+         POST => $url.'listings_redirect.asp');
+      $loopReq->content( 
+         "displayType=Grid&"
+         ."duration=$parms{duration}&"
+         ."startDay=${startDay}&"
+         ."startTime=${startHour}&"
+         ."category=0&"
+         ."station=0&"
+         ."goButton=GO" );
+
+      $loopReq->content_type('application/x-www-form-urlencoded');
+      my $submitResult = submitRequest( $loopReq, $outfile );
+      if ( 1 != $submitResult )
+      {
+         return -1;
+      }
+
+      #------------------------------------------------------------
+      # Verify that we actually got a usable output file
+      #------------------------------------------------------------
+      if ( (-e $outfile) and (4000 < -s $outfile) )
+      {
+         print "Verified: $outfile\n";
+      }
+      else
+      {
+         print "Error!: Missing or Truncated: $outfile \n";
+         return -1;
+      }
+   }
+   return 1;  
+}
+
+#======================================================================
+# SUB: processRawFile
+#======================================================================
+sub processRawFile
+{
+   my ( $day_time, $hour, $down, $rawFile, $outfile, $dow, $month, $day, $year ) = @_;
+   print "Processing $rawFile to $outfile\n" if ($parms{debug});
+
+   #------------------------------------------------------------
+   # Open files and start the output HTML
+   #------------------------------------------------------------
+   my $min = $hour*60;
+   open (IN,   "$rawFile")  || die "Error, could not open file $infile: $!\n";
+   open (OUT, ">$outfile") || die "Error, could not open file $outfile: $!\n";
+   print "Filtering $rawFile to $outfile\n" if $parms{debug};
+   print OUT<<eof;
+<HTML>
+<HEAD>
+<TITLE>$parms{name} Schedule for $dow, $month/$day/$year</TITLE>
+</HEAD>
+<body bgcolor=gray>
+eof
+
+   #------------------------------------------------------------
+   # Create & initialize local variables for processing
+   #------------------------------------------------------------
+   my ($record, $record_prev, $script, $loop_phase, $count1, $count2, $count3 );
+   my ($pgm_desc, $min_start, $min_end, $min_pgm) = 0;
+
+   $count1 = $count2 = $count3 = 0;
+   my $channel_number = '';
+   my $channel_name = '';
+   my $pgm_name = '';
+   my $channelRowsSaved = 0;
+   my $current_time_bar = '';
+   my $rowOfLastTimeBar = 0;
+   my $tableStartText = '';
+   my $rowsInCurrentOutTable  = 0; 
+   my $script_flag  = 0; 
+
+   #----------------------------------------------------------------------
+   # Cycle through each raw HTML line to produce the filtered version
+   # Phases:
+   #   - Global = Applies to all passes through the loop
+   #   - 0 = Raw HTML prior to Grid data
+   #   - 1 = Raw HTML of Grid data
+   #   - 2 = Raw HTML after Grid data ("footer")
+   #   - 3 = Done processing file
+   #----------------------------------------------------------------------
+   $loop_phase = 0;
+   while ( $record = <IN> )
+   {
+      if ( $loop_phase >= 4 ) 
+      {
+         last;
+      }
+      # Increment count of raw HTML processed
+      # FIXME: Use array of $count{Raw} instead of multiple counts
+      $count1++;
+
+      #======================================================================
+      # PHASE: GLOBAL
+      #======================================================================
+
+      #----------------------------------------------------------------------
+      # Eliminate all javascript from input file.
+      #----------------------------------------------------------------------
+      # Eliminate one-liners
+      if ( $record =~ /<script language=/i and $record =~ /<\/script/i)
+      {
+         next;
+      }
+
+      # Eliminate multi-liners
+      if ( $record =~ /<script language=/i )
+      {
+         $script_flag = 1;
+         $script = $record;
+         next;
+      }
+      if ( $record =~ /<\/script/i )
+      {
+         print "SCRIPT (END) discarded: [$script]\n" if ( $parms{debug} );
+         $script = '';
+         $script_flag = 0;
+         next;
+      }
+      if ( 1 == $script_flag ) # Haven't found end of script yet
+      {
+         $script .= $record;
+         next;
+      }
+   
+      #======================================================================
+      # PHASE: 0 (Prior to Grid Data)
+      # (All code here is only exercised before we find grid data)
+      #======================================================================
+      if ( 0 == $loop_phase )
+      {
+         # Look for start of good stuff ... looks like this
+         #<!--sp_GetGridInfo 100128400, '10/24/2001 1:00:00 AM', '10/24/2001 5:00:00 AM', 0, 0, 3, '',''--><table BORDER="1" BGCOLOR="#FFFFFF" CELLPADDING="2" CELLSPACING="1" WIDTH="100%">
+
+         #------------------------------------------------------------
+         # Create date/time menu selection javascript header to page.
+         # (Lets user jump to a different date/time)
+         #------------------------------------------------------------
+         if ( $record =~ /GetGridInfo/i) 
+         {
+            $loop_phase = 1;
+            &make_index($hour, $down, $day, $day_time);
+         }
+     
+         #------------------------------------------------------------
+         # Skip all infile lines that don't have TV schedule data.
+         #------------------------------------------------------------
+         next;
+      }
+
+      #======================================================================
+      # PHASE: 1 (Found Grid data)
+      # (All code here is only exercised once we find grid data)
+      # - By default, each record is appended to the $row_data, unless we
+      #   hit one of the conditions within here.
+      #======================================================================
+      if ( 1 == $loop_phase )
+      {
+         $count2++; # Number of grid rows processed
+
+         #------------------------------------------------------------
+         # Look for the end of the grid data
+         # If we're at the end of the grid data, we may or may not want
+         # want the footer. ( Generally, we don't)
+         #------------------------------------------------------------
+         if ($record =~ / END GRID TABLE / ) 
+         {
+            print OUT "</table>\n";
+
+            if ( $parms{include_footer} )
+            {
+               # Collect the footer info
+               $loop_phase = 2;
+            }
+            else
+            {
+               # We're done processing!
+               $loop_phase = 3;
+            }
+            next; # End the looping within phase 1
+         }
+
+         #------------------------------------------------------------
+         # Prevent table tags from getting through. We need to collect 
+         # the first one though, so that we can use it ourselves to 
+         # create new table entries later on.
+         #------------------------------------------------------------
+         if ( $record =~ /<table/i )
+         {
+            # If we haven't yet found a table start, collect this one.
+            if ( $tableStartText eq '' )
+            {
+               $tableStartText = $record;
+               print "Preserving this table start: "
+                  ."[$tableStartText]\n" if $parms{debug};
+               print OUT $tableStartText;
+            }
+            next; # Skip all table lines
+         }
+         #----------------------------------------------------------------------
+         # Dump any table-ending tags. We don't need them since we generate 
+         # our own tables.
+         #----------------------------------------------------------------------
+         if ( $record =~ /<\/table/i )
+         {
+            next;
+         }
+
+         #----------------------------------------------------------------------
+         # Found the (potential) beginning of a row of TV Schedule data!
+         # Clear out the $channel_data variable so that we can begin collecting
+         # the data with a clean slate. (If this isn't channel data, we'll
+         # discard this row anyway.)
+         #----------------------------------------------------------------------
+         #if ( $channel_number and $record =~ /<tr>/) 
+         if ( $record =~ /<tr>/) 
+         {
+            $channel_data = '';
+         }
+
+         #-----------------------------------------------------------------
+         # If we've found the end of a row of data, print it out, UNLESS we 
+         # don't want this channel. (I.E. it's not in our keep list, or is 
+         # in our skip list.)
+         #------------------------------------------------------------
+         if ($record =~ /<\/tr>/i )
+         {
+            # Lines with "timeBar" tend to have ads..."
+            if ( $record =~ /-- timeBar -->/ )
+            {
+               $record = '';
+               $channel_data = '';
+               next;
+            }
+   
+            # Memorize the timebar (1:00,1:30,2:00,...) the first time,
+            # but then only print it out whenever we have X # of channels.
+            # if ( $channel_data =~ /:00 AM<\/nobr/ or $channel_data =~ /:00 PM<\/nobr/ )
+            if ( $channel_data =~ /:00 [AP]M<\/nobr/ )
+            {
+               if ( $current_time_bar eq '' )
+               {
+                  $current_time_bar = $channel_data . $record;
+                  print "Preserving timebar:[$current_time_bar]\n" if ($parms{debug});
+                  print OUT $current_time_bar;
+               }
+     
+               # Clear out the channel data, since we're done with this row.
+               $channel_data = '';
+               $channel_number = '';
+               next;
+            }
+         }
+
+
+         #----------------------------------------------------------------------
+         # If this is a channel we want, propagate it to the output log
+         #----------------------------------------------------------------------
+         if ($channel_number and $record =~ /<\/tr>/) 
+         {
+            # Is this channel number within range?
+            unless (
+               ($parms{keep} and !$channels_keep{$channel_number}) or
+               ($parms{skip} and  $channels_skip{$channel_number}) or
+               ($parms{channel_min} and $channel_number<$parms{channel_min}) or
+               ($parms{channel_max} and $channel_number>$parms{channel_max} ) ) 
+            {
+               print OUT $channel_data . $record;
+               ++$channelRowsSaved;
+               ++$rowsInCurrentOutTable;
+   
+               #------------------------------------------------------------
+               # Do we need to generate a new timebar?
+               # (Don't do this if this is the last line of the table.)
+               #------------------------------------------------------------
+               if ( $rowsInCurrentOutTable % $parms{timebars} == 0 and 
+                  $rowsInCurrentOutTable != $parms{tableChannels} )
+               {
+                  my $tempResult =  $rowsInCurrentOutTable % $parms{timebars};
+                  print OUT $current_time_bar;
+               }
+          
+               #------------------------------------------------------------
+               # Do we need to generate a new table?
+               #------------------------------------------------------------
+               if ( $rowsInCurrentOutTable == $parms{tableChannels} )
+               {
+                  print OUT "</table>\n";
+                  print OUT $tableStartText;
+                  print OUT $current_time_bar;
+                  $rowsInCurrentOutTable = 0;
+               }
+            }
+            $channel_data = '';
+            next;
+         }
+
+         #------------------------------------------------------------
+         # Find channel number and name
+         #  ...station_num=10715">2<br><nobr>KTCA</nobr>
+         #------------------------------------------------------------
+         if ($record =~ /\> *(\d+) *<br><nobr>(\S*?)\</i) 
+         {
+             $channel_number = $1; $channel_name = $2;
+             print "Found channel: $channel_number => $channel_name\n" if $parms{debug};
+             $min_start = $min;
+             $min_end = '';
+             if ( $parms{debug} )
+             {
+                print "LOW: $channel_number < $parms{channel_min} \n" if ($channel_number < $parms{channel_min} and $parms{channel_min} );
+                print "HIGH: $channel_number\n" if ($channel_number > $parms{channel_max} and $parms{channel_max});
+             }
+             # Take shortcut if there aren't any more channels to see
+             # last if ($channel_number > $parms{channel_max} and $parms{channel_max} );
+         }
+  
+         #------------------------------------------------------------
+         # Point to local gifs, eliminate ones we don't want
+         # $record =~ s|images/([^/]+?.gif)|/tv/$1|g;
+         # $record =~ s|/?images.+?/([^/]+?.gif)|/tv/$1|g;
+         #------------------------------------------------------------
+         #$record =~ s|images/([^/]+?.gif)|/$parms{db}/$1|g;
+         $record =~ s|/?images.+?/([^/]+?.gif)|/$parms{db}/logos/$1|g;
+         #$record =~ s/\/$parms{db}\/black.gif//;
+         #$record =~ s/\/$parms{db}\/rightArrow.gif//;
+         #$record =~ s/\/$parms{db}\/leftArrow.gif//;
+         #$record =~ s/\/$parms{db}\/footercorner.gif//;
+
+         #-----------------------------------------------------------------
+         # Make local copy of channel .jpgs in logos directory, so that we
+         # can show them on the local output webpage. Also, alter url ref
+         # so that it points to our logos directory.
+         #-----------------------------------------------------------------
+         if ($record =~ s!http://tvlistings\d?.zap2it.com/tms_network_logos/([^/]*\.(jpg|gif))!/$parms{db}/logos/$1!)
+         {
+            unless (-f "$parms{outdir}/logos/$1") 
+            {
+               #print "Retrieving logo: $1\n" if ( $parms{debug} );
+               print "Retrieving logo: $1\n";
+               my $logoRequest = HTTP::Request->new( 
+                  GET => $url."tms_network_logos/$1" );
+
+               $ua->request( $logoRequest, "$parms{outdir}/logos/$1" );
+
+            }
+         }
+
+         #-----------------------------------------------------------------
+         # Make local copy of various images in logos directory, so that we
+         # can show them on the local output webpage. Also, alter url ref
+         # so that it points to our logos directory.
+         #-----------------------------------------------------------------
+         if ($record =~ s!images/([^/]*\.(jpg|gif))!/$parms{db}/logos/$1!)
+         {
+            unless (-f "$parms{outdir}/logos/$1") 
+            {
+               #print "Retrieving logo: $1\n" if ( $parms{debug} );
+               print "Retrieving logo: $1\n";
+               my $logoRequest = HTTP::Request->new( 
+                  GET => $url."images/$1" );
+
+               $ua->request( $logoRequest, "$parms{outdir}/logos/$1" );
+            }
+         }
+
+
+         #------------------------------------------------------------
+         # Point to remote tv discriptions. (Of suspect use, since we
+         # would need a session anyway)
+         # 
+         # Point to remote tv discriptions
+         #  <a href="listings_redirect.asp?station_num=10715">
+         #  <form method="post" action="listings_redirect.asp"><TD height=3 width = "100%" align=center> 
+         #------------------------------------------------------------
+         $record =~ s|\"([_a-z]+\.asp\??)|\"http://tvlistings.zap2it.com/$1|g;
+  
+         # last if $record =~ / END GRID TABLE /;
+
+         unless (
+            ($parms{keep} and !$channels_keep{$channel_number}) or
+            ($parms{skip} and  $channels_skip{$channel_number}) or
+            ($parms{channel_min} and $channel_number and ($channel_number < $parms{channel_min})) or
+            ($parms{channel_max} and $channel_number and ($channel_number > $parms{channel_max})))
+         {
+
+            # ...progdetails.asp?prog_id=1675831&series_id=553685">Scientific American Frontiers: <i>The Gene Hunters</i></a></font>
+            # <font face="arial,helvetica" size="-2"></b>   TVG Geneticists Jim Watson ...
+            # </font>
+
+            if ($record =~ /colspan="?(\d+)"?/) 
+            {
+               $min_start = $min_end if $min_end;
+               $min_pgm = 30 * $1;
+               $min_end = $min_start + $min_pgm;
+            }
+
+            if ($record =~ /progdetails.+?>(.+?)<\/a.+?<\/b> *(.+)/) 
+            {
+               ($pgm_name, $pgm_desc) = ($1, $2);
+
+               if ($pgm_name) 
+               {
+                  $count3++;
+
+                  # Clean up the program description
+                  $pgm_name =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
+                  $pgm_desc =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
+                  $pgm_desc =~ s/  / /g;     # Drop extra spaces
+
+                  my $pgm_name_html = $pgm_name;
+                  $pgm_name_html =~ tr/ /_/;
+                               # Set program times/dates
+                  my $time_start = &min_to_hour($min_start);
+                  my $time_end   = &min_to_hour($min_end);
+                  my $pgm_date = "$month/$day";
+                  print "db $pgm_name, $min_pgm, $min_start, $min_end, $time_start, $time_end, $pgm_date\n" if $parms{debug};
+
+                  # Insert the mh link
+                   my $vcr_ref =
+                      "<a href='/SET:last_spoken?\$tv_grid?channel_${channel_number}_from_${time_start}" .
+                      "_to_${time_end}_on_${pgm_date}_for_${pgm_name_html}'>$parms{label}</a>";
+                   $record =~ s|<a href=|$vcr_ref for <a href=| unless lc $parms{label} eq 'none';
+
+                   #------------------------------------------------------------
+                   # Store the data in the DBM
+                   #------------------------------------------------------------
+                   my $db_key = join($;, $channel_number, $pgm_date, 
+                      $time_start);
+                   my $db_data= join($;, $time_end, $pgm_name, $pgm_desc);
+                   $DBM{$db_key} = $db_data;
+                   $DBM2{$channel_number} = $channel_name;
+                   print "db key=$db_key\n  data=$db_data.\n" if $parms{debug};
+               }
+           }
+       }
+
+       #------------------------------------------------------------
+       # Append current record to end of channel_data, since we
+       # didn't have to stop processing for any other reason...
+       #------------------------------------------------------------
+       $channel_data .= $record;
+
+       } 
+
+       #======================================================================
+       # PHASE: 2 (Processing Footer)
+       # (All code here is only exercised after we finish grid data)
+       #======================================================================
+       if ($loop_phase == 2) 
+       {
+          print OUT $record;
+       }
+       if ($loop_phase == 3) 
+       {
+          print OUT "</body></html>";
+          last;
+       }
+   } # Main while-loop
+
+   print "$count1 records with $count2 grid rows were read. "
+   ."$count3 programs stored for $channelRowsSaved channels.\n";
+   close IN;
+   close OUT;
+}
+
+#======================================================================
+# SUB: make_index
+# Create the index table, for the next 2 weeks, and for other hours in 
+# this day
+#======================================================================
+sub make_index {
+   my ($hour, $down, $day, $day_time) = @_;
+   print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n";      ### DW: remove bgcolors
+
+   print OUT "<font face=arial size=+1 color=white> TV Listings for $parms{name} </td><td align=right>";
+   print OUT "<FORM>";
+
+   #----------------------------------------------------------------------
+   # Notes to any who care: Use different window targets for different 
+   # results:
+   #  _blank= new browser window
+   #  _self = current browser window
+   #  _parent = window superior to the frame
+   #  _top = cancels all frames, loads in full browser window
+   #  In this case, I'm using the named "output" frame, which seems to
+   #  be the friendliest way to do this (in my own humble opinion.)
+   #  Feel free to change this if you like.
+   #----------------------------------------------------------------------
+   print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'main')>\n";
+   my $dow_start = -$down - 7;
+   my $dow_stop  = $dow_start + 20;
+   for my $count ($dow_start .. $dow_stop) {
+       my ($dow2, $dow2n, $day2, $month2, $year2) = &days_from_now($day_time, $count);
+       print OUT "<option value='/" . $parms{db} . "/${day2}_$hour.html'";
+
+       if ($day2 == $day)  {
+         print OUT " Selected ";
+       }
+       print OUT ">$dow2, $month2/$day2\n";
+   }
+   print OUT "</select>\n";
+   print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'main')>\n";
+
+   for my $hour2 (@hours) {
+       my $hour2_ampm;
+ 
+       if ($hour2 == 12) {
+           $hour2_ampm = "12 pm";
+       }
+       elsif ($hour2 > 12) {
+           $hour2_ampm = $hour2 - 12 . " pm";
+       }
+       elsif ($hour2 == 0) {
+           $hour2_ampm = "12 am";
+       }
+       else {
+           $hour2_ampm = $hour2 + 0 . " am";
+       }
+#       $hour2_24 = '0' . $hour2 if $hour2 < 10;
+
+        print OUT "<option value='/" . $parms{db} . "/${day}_${hour2}.html'";
+        if ($hour2 == $hour)  {
+          print OUT " Selected ";
+        }
+
+        print OUT ">$hour2_ampm\n";
+
+#        print OUT "<td align=center bgcolor=white><a href=/tv/${day}_${hour2}.html>$hour2_ampm</a><td>\n";
+   }
+   print OUT "</select>\n</td>\n";
+   print OUT "</tr>\n</form></table></center>\n";
+}
+
+#======================================================================
+# SUB: delete_old_data
+# Delete data from 4 weeks ago
+# NOTE: This should probably be modified to delete old raw HTML files
+# as well.
+#======================================================================
+sub delete_old_data {
+   #my ($down, $down, $day, $month) = &days_from_now(time, -28);
+   my ($dow, $down, $day, $month) = &days_from_now(time, $parms{purge} * -1 );
+   my $pgm_date = "$month/$day";
+   print "Deleting old data from $parms{purge} days ago: $pgm_date ...\n";
+   my @channels = keys %DBM2;
+   for my $channel_number (@channels) {
+       for my $hour (00 .. 23) {
+           for my $min ('00', '30') {
+               my $db_key = join($;, $channel_number, $pgm_date, "$hour:$min");
+#               print "deleting $db_key\n" if $parms{debug};
+               delete $DBM{$db_key};
+           }
+       }
+   }
+}
+
+#======================================================================
+# fetchLoop
+#======================================================================
+sub fetchLoop
+{
+   # Notes:
+   # - Want to collect up to 1-6 hours at a time
+   # - Want to maximize number of hours per get for accuracy
+   # - Don't want to re-fetch output files unless we have to
+   # - Don't want to regenerate HTML unless we have to
+   # - Minimal invocation is for 1 day (some hour subset), increments by day
+   # - Most common invocation is presumably for entire day, not subset.
+
+   #------------------------------------------------------------
+   # For each number of days we're asked to retrieve...
+   #------------------------------------------------------------
+   for my $count ( 0 .. $parms{days}-1 ) 
+   {
+      #------------------------------------------------------------
+      # Calculate the date/time of this day
+      #------------------------------------------------------------
+      my @day_data = days_from_now( time, $count );
+      my ($dow, $down, $day, $month, $year) = split(' ', "@day_data");
+      my $startDay = ${month}."/".${day}."/".${year};
+
+      #------------------------------------------------------------
+      # For each hour we're supposed to retrieve...
+      #------------------------------------------------------------
+      for my $startHour( @hours )
+      {
+         #------------------------------------------------------------
+         # Calculate the name of the output file
+         #------------------------------------------------------------
+         my $rawFile = "$parms{outdir}/download/"
+            ."${month}_${day}_${startHour}_$parms{duration}.html";
+         my $outfile = "$parms{outdir}/${day}_${startHour}.html";
+         $outfile = $parms{outfile} if ( $parms{outfile} );
+
+         #------------------------------------------------------------
+         # Now retrieve the data, if it needs retrieving.
+         #------------------------------------------------------------
+         if ( 1 != fetchDataToFile( $rawFile, $startDay, $startHour ) )
+         {
+            return -1;
+         }
+
+         #------------------------------------------------------------
+         # Process this file for insertion into the DB
+         #------------------------------------------------------------
+         processRawFile( time, $startHour, $down, $rawFile, $outfile, $dow, $month, $day, $year );
+
+         #------------------------------------------------------------
+         # Delete the raw file, unless we're told to keep it.
+         #------------------------------------------------------------
+         if ( !$parms{preserveRaw} )
+         {
+            print "Removing raw file: [$rawFile]\n" if ($parms{debug});
+            unlink( $rawFile );
+         }
+
+         #------------------------------------------------------------
+         # Find listing for "prime time" and make it the default index file.
+         # Also, email it to someone if we have the means of doing so.
+         #------------------------------------------------------------
+         if ( $day == (localtime(time))[3] and $startHour >  17 and $startHour <= 20) 
+         {
+            use File::Copy;
+            copy($outfile, "$parms{outdir}/index.html");
+#           if ($parms{mail_to}) 
+#           {
+#               &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year");
+#           }
+         }
+      }
+   }
+
+   #-------------------------------------------------------
+   # Blow away the old data
+   #-------------------------------------------------------
+   &delete_old_data unless $parms{keep_old};
+   return 1;
+}
+
+#======================================================================
+# M A I N   
+#======================================================================
+setup();
+if ( -1 == fetchLoop() )
+{
+   print "Grid Update failed\n";
+   exit -1;
+}
+
+print "Grid Update for $parms{db} complete\n";
+
+dbmclose %DBM;
+dbmclose %DBM2;

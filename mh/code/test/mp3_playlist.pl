@@ -112,7 +112,8 @@ sub mp3_playlists {
     return '', '', '' unless $mp3_dbm{file};
     for my $file (split $;, $mp3_dbm{file}) {
         next unless $file =~ /([^\\\/]+)((\.m3u)|(\.pls))$/i;
-        my $name = ucfirst lc $1;
+#       my $name = ucfirst lc $1;
+        my $name = $1;
         unless ($mp3files{$name}) {
             $mp3names .= $name . ','; 
             $mp3files{$name} = $file;
@@ -138,7 +139,7 @@ if ($state = said $v_mp3_playlist1 or
     $state = said $v_mp3_playlist5) {
 
     my $host = 'localhost';
-    $host = 'dm'  if said $v_mp3_playlist2;
+    $host = 'warp'if said $v_mp3_playlist2;
     $host = 'z'   if said $v_mp3_playlist3;
     $host = 'c2'  if said $v_mp3_playlist4;
     $host = 'p90' if said $v_mp3_playlist5;
@@ -148,6 +149,11 @@ if ($state = said $v_mp3_playlist1 or
 
     my $file = $mp3files{$state};
     if ($config_parms{mp3_program_control} eq 'httpq') {
+        $file =~ s/ /%20/g;
+        $file =~ s/\#/%23/g;
+        $file =~ s/\&/%26/g;
+        $file =~ s/\'/%27/g;
+        $file =~ s/\,/%2C/g;
         print_log "Winamp (httpq) playlist: $state file=$file";
         print_log filter_cr get "http://$host:4800/DELETE?p=$config_parms{mp3_program_password}";
         print_log filter_cr get "http://$host:4800/PLAYFILE?p=$config_parms{mp3_program_password}&a=$file";

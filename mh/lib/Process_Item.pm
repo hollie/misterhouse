@@ -129,8 +129,12 @@ sub start_next {
                                 # mess up the parent process (e.g. CM11 Serial_Port objects
                                 # have a DESTROY method that will close the port
                                 # which will then revert to its pre-mh values).
+                                # exec '' errors with 'do nothing exec failed' and the child
+                                # never dies, so use /bin/true.
 #               exit;
-                exec '';
+#               exec '';
+                exec '/bin/true';
+                die "do nothing exec failed: $!";
             }
             else {
                 exec "$cmd_path $cmd_args";
@@ -173,7 +177,7 @@ sub harvest {
 
                                 # Mark as done or start the next cmd?
             if ($$process{cmd_index} < @{$$process{cmds}}) {
-                print "Process starting next cmd process=$process pid=$pid index=$$process{cmd_index}\n";
+                print "Process starting next cmd process=$process pid=$pid index=$$process{cmd_index}\n" if $main::config_parms{debug} eq 'process';
                 delete $$process{pid};
                 &start_next($process);
             }
@@ -222,6 +226,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.17  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.16  2001/05/28 21:14:38  winter
 # - 2.52 release
 #

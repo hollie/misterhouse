@@ -24,9 +24,10 @@ use strict;
 #BEGIN { require '../lib/site/HTML/FormatText.pm' }
 BEGIN { 
 #    unshift (@INC, "./../lib/site");
-     require './../lib/site/HTML/FormatText.pm';
-     require './../lib/site/HTML/Parse.pm';    # Without these we get HTML::Parser errors ... not sure why
-     require './../lib/site/HTML/Parser.pm';
+    require './../lib/site/HTML/FormatText.pm';
+    local $SIG{__WARN__} = sub { return if $_[0] =~ /redefined at/ };
+    require './../lib/site/HTML/Parser.pm';
+    require './../lib/site/HTML/Parse.pm';    # Without these we get HTML::Parser errors ... not sure why
 #    require './../lib/site/HTML/Formatter.pm';
 #    require './../lib/site/HTML/TableExtract.pm';
 #    require './../lib/site/HTML/TreeBuilder.pm';
@@ -34,7 +35,7 @@ BEGIN {
 }
                                 # These are useful for calling from user code directly
 #se HTML::FormatText;
-use HTML::Parse;
+#use HTML::Parse;
 use LWP::Simple;
 
 
@@ -163,7 +164,7 @@ sub net_domain_name_parse {
         my $string = '';
         for my $answer ($result->answer) {
             my $temp = $answer->string;
-            print "  DNS Results: $address -> $temp\n";
+            print "DNS: $address -> $temp\n" if $main::config_parms{debug} eq 'net';
             $string = $temp if $temp =~ /\sPTR\s/;
         }
 #   print "db s=$string ip=$DNS_resolver_address\n";
@@ -282,6 +283,7 @@ sub main::net_jabber_signon {
     $jabber_connection = new Net::Jabber::Client;
     unless ($jabber_connection->Connect(hostname => $server, port => $port)) {
         print "  - Error:  Jabber server is down or connection was not allowed. jc=$jabber_connection\n";
+        undef $jabber_connection;
         return;
     }
 
@@ -296,6 +298,7 @@ sub main::net_jabber_signon {
                                               resource => $resource);
     if ($result[0] ne "ok") {
         print "  - Error: Jabber Authorization failed: $result[0] - $result[1]\n";
+        undef $jabber_connection;
         return;
     }
 
@@ -309,6 +312,13 @@ sub main::net_jabber_signon {
     &main::MainLoop_post_add_hook( \&jabber::process, 1 );
 
 }
+
+sub main::net_jabber_signoff {
+    print "disconnecting from jabber\n";
+    undef $jabber_connection;
+    &main::MainLoop_post_drop_hook( \&jabber::process, 1 );
+}
+
 
 sub jabber::process {
     return unless $main::New_Second;
@@ -330,6 +340,7 @@ sub jabber::InMessage {
 #   my $subject  = $message->GetSubject();
     my $body     = $message->GetBody();
     &main::display("$main::Time_Date $from\nMessage:  " . $body, 0, "Jabber Message from $from", 'fixed');
+    &main::Jabber_Message_hooks($sid, $message);
 }
 
 
@@ -342,6 +353,7 @@ sub jabber::InIQ {
     my $query = $iq->GetQuery();
     my $xmlns = $query->GetXMLNS();
     &main::display("$main::Time_Date $from\nIQ $query:  " . $xmlns, 0, "Jabber IQ from $from", 'fixed');
+    &main::Jabber_IQ_hooks($sid, $iq);
 }
 
 sub jabber::InPresence {
@@ -352,6 +364,7 @@ sub jabber::InPresence {
     my $type     = $presence->GetType();
     my $status   = $presence->GetStatus();
     &main::display("$main::Time_Date $from\nPresence:  " . $status, 0, "Jabber Presence from $from", 'fixed');
+    &main::Jabber_Presence_hooks($sid, $presence);
 #   print $presence->GetXML(),"\n";
 }
 
@@ -845,6 +858,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.39  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.38  2002/01/23 01:50:33  winter
 # - 2.64 release
 #

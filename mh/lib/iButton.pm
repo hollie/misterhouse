@@ -91,7 +91,7 @@ sub connect {
     }
     elsif ( !$connections{ $port } ) {
 	printf " - creating %-15s object on port %s\n", 'Ibutton', $port;
-	$connections{$port} = new Hardware::iButton::Connection($port, 0, $main::config_parms{ibutton_tweak}) or
+	$connections{$port} = new Hardware::iButton::Connection($port, 0, $main::config_parms{ibutton_tweak}, uc($main::config_parms{ibutton_line_length})) or
 	  print "iButton connection error to port $port: $!";
     }
     else {
@@ -346,22 +346,25 @@ sub read_dir {
     $this->{ "12" }->set_switch( CHANNEL_B => 1);
     my $c = $connections{ $this->{ PORT } };
 
-    my @iButtons = $c->scan( "01" );
-    $this->{ "12" }->set_switch( CHANNEL_B => 1);
-    
     my @dirs;
-    foreach my $i ( @iButtons ) {
-	my $id = $i->id();
-	push @dirs, $this->{ DIRS }->{ $id } if defined $this->{ DIRS }->{ $id };
+    for ( 1..10 ) {
+	my @iButtons = $c->scan( "01" );
+	foreach my $i ( @iButtons ) {
+	    my $id = $i->id();
+	    push @dirs, $this->{ DIRS }->{ $id } if defined $this->{ DIRS }->{ $id };
+	}
+
+	last if $#dirs >= 0;
     }
 
-    @dirs = sort @dirs;
+    $this->{ "12" }->set_switch( CHANNEL_B => 0);
 
     my $dir;
     if ( $#dirs == 0 ) {
 	$dir = $dirs[0];
     }
     elsif ( $#dirs == 1 ) {
+	@dirs = sort @dirs;
 	if ($dirs[0] == 0 && $dirs[1] == 14 ) {
 	    $dir = 15;
 	}
@@ -468,6 +471,9 @@ memory
 
 
 # $Log$
+# Revision 1.16  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.15  2002/01/19 21:11:12  winter
 # - 2.63 release
 #

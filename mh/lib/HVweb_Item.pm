@@ -7,7 +7,7 @@
 #
 # Create items as follows: 
 #
-#     $kitchen_light    =  new HVweb_Item('On',    'X10 G1 On');
+#     $kitchen_light    =  new HVweb_Item('On','X10 G1 On','X10 G1 state level%','Main Kitchen Light');
 #     $kitchen_light    -> add           ('Off',   'X10 G1 Off');
 #     $vcr              =  new HVweb_Item('Power', 'IR 45 1 time');
 #     $vcr              -> add           ('Play',  'IR 46 1 time');
@@ -32,28 +32,42 @@ package HVweb_Item;
 
 
 sub new {
-    my ($class, $state, $cmd) = @_;
+    my ($class, $state, $cmd, $status_tag, $desc) = @_;
     my $self = {};
 
-    &add($self, $state, $cmd);
+    &add($self, $state, $cmd, $status_tag, $desc);
     bless $self, $class;
 
     return $self;
 }
 
 sub add {
-    my ($self, $state, $cmd) = @_;
+    my ($self, $state, $cmd, $status_tag, $desc) = @_;
 
-    $self->{$state} = $cmd;
+    $state = lc($state);
+    $self->{$state} = $cmd;                                #Homevision html command tag to set item state
+    $self->{state}      = '?';                             #Item state returned by Homeivision
+    $self->{state_info} = '?';                             #Addt'l state info returned by Homeiviosn (Ex. X10 Brightness level)
+    $self->{status_tag} = $status_tag  if ( $status_tag ); #Homevision html command tag to read item state
+    $self->{desc} = $desc  if ( $desc );                   #Descriptive text for this item
 }
 
 sub set {
     my ($self, $state) = @_;
     my $url = "$main::config_parms{homevision_url}";
+    $state = lc($state);
     my ($cmd) = $$self{$state};
+    my $desc = $$self{desc};
+
+    if ($cmd eq '') {
+         &main::print_log ("(HVWEB_ITEM) Error: Command '$state' not defined for this item ($desc)");
+         return;
+    }
+
     use LWP::UserAgent;
     my $ua  = new LWP::UserAgent;
     my $req = new HTTP::Request POST => $url;
+    $cmd =~ tr/?/ /;
 
     $req->content_type('application/x-www-form-urlencoded');
     $req->content("$cmd");
@@ -61,14 +75,22 @@ sub set {
     my $res = $ua->request($req);
 
     if ($res->is_success) {
-        my ($status) = $res->as_string =~ /<BR>(.*)<BR>/;
-        &main::print_log ("(HVWEB_ITEM) Homevision '$cmd' $status\n");
+         my ($status) = $res->as_string =~ /<BR>(.*)<BR>/;
+         &main::print_log ("(HVWEB_ITEM) $desc '$state' ($cmd) $status");
+         $self->{state} = $state;
     }
     else {
-        &main::print_log ("(HVWEB_ITEM) Homevision '$cmd' Error: " .
-                           $res->status_line . "\n");
+         &main::print_log ("(HVWEB_ITEM) $desc '$state' ($cmd) Error: " . $res->status_line);
     }
-    return;
+return;
+}
+
+sub set_state {
+    my ($self, $state, $state_info) = @_;
+    $self->{state} = lc($state);
+    $self->{state_info} = $state_info if ( $state_info );
+return;
 }
 
 return 1;
+

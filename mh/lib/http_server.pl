@@ -15,6 +15,7 @@ my %mime_types = (
                   'htm'   => 'text/html',
                   'html'  => 'text/html',
                   'shtml' => 'text/html',
+                  'sht'   => 'text/html',
                   'vxml'  => 'text/html',
                   'pl'    => 'text/html',
                   'txt'   => 'text/plain',
@@ -40,17 +41,18 @@ sub http_read_parms {
                                 # Old style:  html_alias_tv = /tv   $config_parms{data_dir}/tv
                                 # New style:  html_alias_tv =       $config_parms{data_dir}/tv
     for my $parm (keys %main::config_parms) {
-        next unless $parm =~ /^html_alias_(\S+)/;
-        my $alias = '/' . $1;
+        next unless $parm =~ /^html_alias(\d*)_(\S+)/;
+        my $alias   = '/' . $2;
         my $dir = $main::config_parms{$parm};
                                 # Allow for old style alias
-        if ($main::config_parms{$parm} =~ /(\S+)\s+(\S+)/) {
+        if ($dir =~ /(\S+)\s+(\S+)/) {
             $alias = $1;
             $dir   = $2;
         }
-        print " - html alias: $parm: $alias => $dir\n" if $main::config_parms{debug} eq 'http';
+        print " - html alias: $parm $alias => $dir\n" if $main::config_parms{debug} eq 'http';
+                                # If we have multiple alias, the last one wins
         if (-d $dir) {
-            $http_dirs{$alias} = $dir;
+            unshift @{$http_dirs{$alias}}, $dir;
         }
         else {
             print "   html_alias alias $alias dir does not exist, dir=$dir\n";
@@ -112,7 +114,7 @@ sub http_process_request {
     return unless &socket_has_data($socket, .5);
     while (1) {
         $_ = <$socket>;
-        last unless /\S/;
+        last unless $_ and /\S/;
         $temp .= $_;
         if (/^ *(GET|POST) /) {
             $header = $_;
@@ -129,6 +131,7 @@ sub http_process_request {
     $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
     $Http{request} = $header;
     $Http{Referer} = '' unless $Http{Referer}; # Avoid uninitilized var errors
+    ($Http{Host_address}) = $Http{Host} =~ /([^\:]+)/ if $Http{Host}; # Drop the port, if present
 
     if ($Http{Cookie}) {
         for my $key_value (split ';', $Http{Cookie}) {
@@ -202,7 +205,6 @@ sub http_process_request {
 #       shutdown($socket->fileno(), 0);   # "how":  0=no more receives, 1=sends, 2=both
     }
 
-#query-replace-regexp "said \\([$a-z_]+\\)" "\\1->{said}" nil)
     if (!$get_req or $get_req eq '/') {
         $get_req = $main::config_parms{'html_file' . $Http{format}};
         $get_req = '/' . $get_req unless $get_req =~ /^\//; # Leading / is optional
@@ -281,7 +283,8 @@ sub http_process_request {
             $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
             $Cookies{password_was_not_valid}++; # So we can monitor from user code
             &print_log("Password was just NOT set; $name");
-            &speak("Password NOT set by $name_short");
+            &play(file => 'unauthorized'); # Defined in event_sounds.pl
+#           &speak("Password NOT set by $name_short");
         }
         else {
             $Authorized = 1;
@@ -336,7 +339,7 @@ sub http_process_request {
             if (!$get_arg) {
                 &html_response($socket, $h_response);
             }
-            elsif (&run_voice_cmd($get_arg)) {
+            elsif (&run_voice_cmd($get_arg, undef, 'web')) {
                 &html_response($socket, $h_response);
             }
             else {
@@ -429,7 +432,7 @@ sub http_process_request {
                     my $pvar = $html_pointers{$item};
                                 # Allow for state objects
                     if ($pvar and ref $pvar ne 'SCALAR' and $pvar->can('set')) {
-                        $pvar->set($state);
+                        $pvar->set($state, 'web');
                     }
                     else {
                         $$pvar = $state;
@@ -445,7 +448,8 @@ sub http_process_request {
 
                                 # Can be a scalar or a object
                     $state =~ tr/\"/\'/; # So we can use "" to quote it
-                    my $eval_cmd = qq[($item and ref($item) and $item->isa('Generic_Item')) ? ($item->set("$state")) : ($item = "$state")];
+                    my $eval_cmd = qq[($item and ref($item) and $item->isa('Generic_Item')) ? 
+                                      ($item->set("$state", 'web')) : ($item = "$state")];
                     print "SET eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
                     eval $eval_cmd;
                     print "SET eval error: $@\n" if $@;
@@ -542,19 +546,30 @@ sub http_get_local_file {
     my ($http_dir, $http_member) = $get_req =~ /^(\/[^\/]+)(.*)/;
     my $file;
     if ($http_dir and $http_dirs{$http_dir}) {
-        $file  = $http_dirs{$http_dir};
-        $file .= "/$http_member" if $http_member;
+                               # First one wins (last one in the mh.ini file)
+        for my $dir (@{$http_dirs{$http_dir}}) {
+            $file  = $dir;
+            if ($http_member) {
+                $file .= "/$http_member";
+                last if -e $file;
+            }
+            else {
+                last if -d $file;
+            }
+            undef $file;
+        }
     }
     else {
         $file = "$main::config_parms{'html_dir' . $Http{format}}/$get_req";
     }
-    return ($file, $http_dir);
+    return ($file, $http_dir) if $file;
 }
 
 sub test_for_file {
     my ($socket, $get_req, $get_arg, $no_header, $no_print) = @_;
 
     my ($file, $http_dir) = &http_get_local_file($get_req);
+    return 0 unless $file;
 
                                 # Check for index files in directory
     if (-d $file) {
@@ -914,7 +929,7 @@ sub html_file {
 
                                 # Allow for 'server side include' directives
                                 #  <!--#include file="whatever"-->
-    if ($file =~ /\.shtml$/ or $file =~ /\.vxml$/) {
+    if ($file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/) {
         print "Processing server side include file: $file\n" if $main::config_parms{debug} eq 'http';
         $html = &mime_header($file) unless $no_header;
         while (my $r = <HTML>) {
@@ -944,7 +959,8 @@ sub html_file {
                 }
                 elsif ($directive eq 'var' or $directive eq 'code') {
                     print "Processing server side include: var=$data\n" if $main::config_parms{debug} eq 'http';
-                    $html .= eval "return $data";
+                    $html .= eval "return $data";                       # Why the return??
+#                   $html .= eval "$data";                       # Why the return??
                     print "Error in eval: $@" if $@;
                 }
                 else {
@@ -1016,10 +1032,11 @@ sub mime_header {
     return qq[HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n\n];
 }
 
-                                # This returns real dirs, given html alias
+                                # this returns real dirs, given html alias
+                                # If we have multiple aliases, return the first one?
 sub html_alias {
     my ($dir) = @_;
-    return ($http_dirs{$dir} or $http_dirs{"/$dir"});
+    return ($http_dirs{$dir}[0] or $http_dirs{"/$dir"}[0]);
 }
 
 # Responses documented here: http://www.w3.org/Protocols/HTTP/HTRESP.html
@@ -1125,8 +1142,12 @@ sub html_category {
 #           $info = qq[onMouseOver="overlib('$info', FIXX, 5, OFFSETY, 50 )" onMouseOut="nd();"];
             $info = qq[onMouseOver="overlib('$info', RIGHT, OFFSETY, 50 )" onMouseOut="nd();"];
         }
-        $h_index .= "<li>" . qq[<a href=list?$category $info accesskey=$accesskey>$category</a>\n];
-#       $h_index .= "<li>" . &html_active_href("list?$category", $category) . "\n";
+                                  # Create buttons with GD module if available
+        if ($Info{module_GD}) {
+            $h_index .= qq[<a href=list?$category $info accesskey=$accesskey><img src="/bin/button.pl?$category" border="0"></a>\n]; }
+        else {
+            $h_index .= "<li>" . qq[<a href=list?$category $info accesskey=$accesskey>$category</a>\n];
+        }
     }
     return $h_index;
 }
@@ -1134,7 +1155,14 @@ sub html_category {
 sub html_groups {
     my $h_index;
     for my $group (&list_objects_by_type('Group')) {
-        $h_index    .= "<li>" . &html_active_href("list?group=$group", &pretty_object_name($group)) . "\n";
+                                  # Create buttons with GD module if available
+        if ($Info{module_GD}) {
+            my $name = &pretty_object_name($group);
+            $h_index .= qq[<a href=list?group=$group><img src="/bin/button.pl?$name" border="0"></a>\n];
+        }
+        else {
+            $h_index    .= "<li>" . &html_active_href("list?group=$group", &pretty_object_name($group)) . "\n";
+        }
     }
     return $h_index;
 }
@@ -1144,55 +1172,66 @@ sub html_items {
 #   for my $object_type ('X10_Item', 'X10_Appliance', 'Group', 'iButton', 'Serial_Item') {
     for my $object_type (@Object_Types) {
         next if $object_type eq 'Voice_Cmd'; # Already covered under Category
-        $h_index    .= "<li>" . &html_active_href("list?$object_type", $object_type) . "\n";
+                                  # Create buttons with GD module if available
+        if ($Info{module_GD}) {
+            $h_index .= qq[<a href=list?$object_type><img src="/bin/button.pl?$object_type" border="0"></a>\n];
+        }
+        else {
+            $h_index    .= "<li>" . &html_active_href("list?$object_type", $object_type) . "\n";
+        }
     }
     return $h_index;
 }
 
 sub html_find_icon_image {
     my ($object, $type) = @_;
+    my ($name, $state, $icon, $ext, $member);
 
     $type = lc $type;
-    my $name  = lc $object->{object_name};
-    my $state = lc $object->{state};
-
-    $name =~ s/^\$//;           # remove $ at front of objects
-    $name =~ s/^v_//;           # remove v_ in voice commands
-
+    if ($type eq 'text') {
+        $name = $object;
+    }
+    else {
+        $name  = lc $object->{object_name};
+        $state = lc $object->{state};
+        $name =~ s/^\$//;       # remove $ at front of objects
+        $name =~ s/^v_//;       # remove v_ in voice commands
                                 # Hard to track exact time state, so just use 1 icon for any dim
-    $state = 'dim' if $type eq 'x10_item' and ($state =~ /^[+-]?\d+$/ or $state =~ /\d+\%/);
-
+        $state = 'dim' if $type eq 'x10_item' and ($state =~ /^[+-]?\d+$/ or $state =~ /\d+\%/);
                                 # Use on/off icons for conditional Weather_Items
-    $state = ($state) ? 'on' : 'off' if $type eq 'weather_item' and ($object->{comparison});
+        $state = ($state) ? 'on' : 'off' if $type eq 'weather_item' and ($object->{comparison});
+                                # Allow for set_icon to set the icon directly
+        $name = $object->{icon} if $object->{icon};
+        return '' if $name eq 'none';
+    }
 
     print "Find_icon: object_name=$name, type=$type, state=$state\n" if $main::config_parms{debug} eq 'http';
 
-    my ($icon, $member);
     unless (%html_icons) {
-
-        my $dir = "$main::config_parms{'html_dir' . $Http{format}}/graphics/";
-        $dir = $http_dirs{'/graphics'} if $http_dirs{'/graphics'};
-        print "Reading html icons from $dir\n";
-        opendir (ICONS, $dir);
-        for $member (readdir ICONS) {
-            ($icon) = $member =~ /(\S+)\.\S+/;
-            next unless $icon;
-            $icon = lc $icon;
-            $html_icons{$icon} = $member;
+        undef %html_icons;
+                                # If we have multiple dirs, the first one wins (last one in mh.ini file)
+        for my $dir (@{$http_dirs{'/graphics'}}) {
+            print "Reading html icons from $dir\n";
+            opendir (ICONS, $dir);
+            for $member (readdir ICONS) {
+                ($icon, $ext) = $member =~ /(\S+)\.(\S+)/;
+                $ext = lc $ext;
+                next unless $ext and ($ext eq 'gif' or $ext eq 'jpg' or $ext eq 'png');
+                $icon = lc $icon;
+                                # Give .jpg files a preference as these are supported by GD from web/bin/button.pl
+                $html_icons{$icon} = $member unless $html_icons{$icon} and $html_icons{$icon} =~ /.jpg$/i;
+            }
         }
     }
 
-                                # Allow for set_icon to set the icon directly
-    $name = $object->{icon} if $object->{icon};
-    return '' if $name eq 'none';
-
                                 # Look for exact matches
-    if ($icon = $html_icons{"$name-$state"}) {
+    if ($icon = $html_icons{"$name-$state"} or 
+        $icon = $html_icons{$name}) {
     }
                                 # For voice items, look for approximate name matches
                                 #  - Order of preference: object, text, filename
                                 #    and pick the longest named match
-    elsif ($type eq 'voice') {
+    elsif ($type eq 'voice' or $type eq 'text') {
         my ($i1, $i2, $i3, $l1, $l2, $l3);
         $l1 = $l2 = $l3 = 0;
         for my $member (sort keys %html_icons) {
@@ -1200,13 +1239,15 @@ sub html_find_icon_image {
             my $l = length $member;
             if ($html_icons{$member}) {
                 if($name               =~ /$member/i and $l > $l1) { $i1 = $html_icons{$member}; $l1 = $l};
-                if($object->{text}     =~ /$member/i and $l > $l2) { $i2 = $html_icons{$member}; $l2 = $l};
-                if($object->{filename} =~ /$member/i and $l > $l3) { $i3 = $html_icons{$member}; $l3 = $l};
+                unless ($type eq 'text') {
+                    if($object->{text}     =~ /$member/i and $l > $l2) { $i2 = $html_icons{$member}; $l2 = $l};
+                    if($object->{filename} =~ /$member/i and $l > $l3) { $i3 = $html_icons{$member}; $l3 = $l};
+                }
             }
 #           print "db n=$name t=$object->{text} $i1,$i2,$i3 l=$l m=$member\n" if $object->{text} =~ /playlist/;
         }
         if    ($i1) {$icon = $i1}
-        elsif ($i2) {$icon = $i2} 
+        elsif ($i2) {$icon = $i2}
         elsif ($i3) {$icon = $i3}
         else {
             return '';         # No match
@@ -2192,7 +2233,7 @@ sub dir_index {
     my $dir_tr = $dir_html;
     $dir_tr =~ s/\//\%2F/g;
 
-    opendir DIR, $dir or print "http_server: Could not open dir_index dir=$dir: $!\n";
+    opendir DIR, $dir or print "http_server: Could not open dir_index for $dir_html dir=$dir: $!\n";
     my @files = sort readdir DIR;
     close DIR;
     
@@ -2293,6 +2334,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.67  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.66  2002/01/23 01:50:33  winter
 # - 2.64 release
 #

@@ -160,7 +160,7 @@ sub set_data {
 
 sub set_receive {
     my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    &Generic_Item::set_states_for_next_pass($self, $state, 'serial');
 }
 
 sub set_dtr {
@@ -221,7 +221,7 @@ sub set {
         return;
     }
 
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    &Generic_Item::set_states_for_next_pass($self, $state, 'serial');
 
     return unless %main::Serial_Ports;
 
@@ -502,6 +502,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.54  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.53  2002/01/19 21:11:12  winter
 # - 2.63 release
 #

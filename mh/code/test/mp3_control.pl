@@ -33,7 +33,7 @@ $v_mp3_control3 = new  Voice_Cmd("Set the house mp3 player to [$mp3_states]");
 $v_mp3_control4 = new  Voice_Cmd("Set the shoutcast mp3 player to [$mp3_states]");
 $v_mp3_control5 = new  Voice_Cmd("Set the phone mp3 player to [$mp3_states]");
 
-&winamp_control($state, 'dm')    if $state = said $v_mp3_control1;
+&winamp_control($state, 'warp')  if $state = said $v_mp3_control1;
 &winamp_control($state, 'z')     if $state = said $v_mp3_control2;
 &winamp_control($state, 'house') if $state = said $v_mp3_control3;
 &winamp_control($state, 'c2')    if $state = said $v_mp3_control4;
@@ -53,7 +53,7 @@ if ($state = said $v_mp3_control_boys or
     $state = ($state eq 'on') ? 'PLAY' : 'STOP';
     print_log "Setting boy's mp3 players to $state";
     run_voice_cmd "Set Nicks mp3 player to $state";
-    run_voice_cmd "Set Zacks mp3 player to $state";
+#    run_voice_cmd "Set Zacks mp3 player to $state";
 }
 
  

@@ -48,7 +48,7 @@ $test_speak_mode-> tie_event('speak mode => $state');
 $test_speech_flags = new Voice_Cmd 'Test [xml,sable] speech tags';
 if ($state = said $test_speech_flags) {
     speak "$Pgm_Root/docs/ms_speech_xml_example.txt" if $state eq 'xml';
-    speak "$Pgm_Root/docs/festival_speech_example.sable" if $state eq 'sable';
+    speak "engine=festival $Pgm_Root/docs/festival_speech_example.sable" if $state eq 'sable';
 }
 
                                 # Set hooks so set_volume is called whenever speak or play is called
@@ -64,12 +64,12 @@ sub set_volume {
 
     my %parms = @_;
 
+                                # Set a timer since we can not detect when a wav file is done
+    set $mh_speakers_timer  $parms{time} if $parms{time}; # Set in &play
+
                                 # msv5 changes volume with xml tags in lib/Voice_Text.pm
     return if $parms{text} and $Voice_Text::VTxt_version eq 'msv5';
 
-
-                                # Set a timer since we can not detect when a wav file is done
-    set $mh_speakers_timer  $parms{time} if $parms{time}; # Set in &play
     undef $volume_previous;
     my $volume = $parms{volume};
     $volume = $config_parms{sound_volume} unless defined $volume;

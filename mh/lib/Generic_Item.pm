@@ -20,7 +20,7 @@ sub new {
 }
 
 sub set {
-    my ($self, $state) = @_;
+    my ($self, $state, $set_by) = @_;
     return if &main::check_for_tied_filters($self, $state);
     if ($state eq 'toggle') {
         if ($$self{state} eq 'on') {
@@ -31,11 +31,14 @@ sub set {
         }
         &main::print_log("Toggling X10_Item object $self->{object_name} from $$self{state} to $state");
     }
-    &set_states_for_next_pass($self, $state);
+    &set_states_for_next_pass($self, $state, $set_by);
 }
 
-sub get_changed_by {
-    return $_[0]->{changed_by};
+sub get_set_by {
+    return $_[0]->{set_by};
+}
+sub get_changed_by {            # Grandfathered old syntax
+    return $_[0]->{set_by};
 }
 
                                 # This is called by mh on exit to save persistant data
@@ -216,7 +219,7 @@ sub get_states {
 }
 
 sub set_states_for_next_pass {
-    my ($ref, $state) = @_;
+    my ($ref, $state, $set_by) = @_;
     push @states_from_previous_pass, $ref unless $ref->{state_next_pass} and @{$ref->{state_next_pass}};
     push @{$ref->{state_next_pass}}, $state;
 
@@ -227,8 +230,8 @@ sub set_states_for_next_pass {
     pop @{$$ref{state_log}} if $$ref{state_log} and @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
 
                                 # Reset this (used to detect which tied item triggered the set)
-                                #  - Default to self, rather than blank
-    $ref->{changed_by} = $ref;
+                                #  - Default to self if not specified
+    $ref->{set_by} = ($set_by) ? $set_by : $ref;
 }
 
                                 # Reset, then set, states from previous pass
@@ -351,6 +354,9 @@ sub delete_old_tied_times {
 
 #
 # $Log$
+# Revision 1.17  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.16  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

@@ -30,8 +30,10 @@ use Net::DNS::Resolver;         # Needed find_domain_name
 
 use Net::AIM;
 use Net::Jabber;
+use Net::Jabber::Client;
 use Net::SNPP;
-use XML::Stream; 
+use XML::Stream;                # Used by Jabber
+use XML::Stream::Hash;          # Used by Jabber
 use File::Spec;                 # Used by Jabber
 use File::Spec::Unix;           # Used by Jabber
 use File::Spec::Win32;          # Used by Jabber
@@ -49,7 +51,8 @@ use Win32::OLE;
 #se Win32::OLE::lite;
 use Win32::Process;
 use Win32::PerfLib;
-use Win32::Setupsup;    # For sending keystrokes
+use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText);
+#use Win32::Setupsup;    # For sending keystrokes
 use Win32::Sound;		# So we can play wave files
 use Win32::SoundEx;		# So we can play wave files
 use Win32::Registry;
@@ -66,11 +69,17 @@ use re;                         # Used by File::Copy File::Basename
 
 use URI::URL::http;             # Used by get_url
 use MIME::Lite;                 # Used by get_tv_grid, etc
+use HTML::Parse;                # Used by get_tv_grid, etc
 use HTTP::Cookies;              # Used by get_tv_grid, etc
 use HTTP::Request::Common;      # Used by get_tv_grid, etc
 
 use Display;
 
+# These are new with 5.6
+use File::Glob;
+# Took out setupsup
+# Took out jpeg
+# Took out aim
 
 print " done\n";
 

@@ -56,6 +56,17 @@ if (inactive_now $telnet_server) {
 				# You can also write text directly out, not using a pre-defined item state
 set $telnet_server "The time is $Time_Now" if $New_Minute and active $telnet_server and !$telnet_password_flag;
 
+
+$telnet_client_set = new Voice_Cmd 'Run telnet set test [1,2,3,4,5]';
+
+if ($state = said $telnet_client_set) {
+    set $telnet_server "Test telnet set $state"              if $state == 1;
+    set $telnet_server "Test telnet set $state", 'all'       if $state == 2;
+    set $telnet_server "Test telnet set $state", 0           if $state == 3;
+    set $telnet_server "Test telnet set $state", 1           if $state == 4;
+    set $telnet_server "Test telnet set $state", '127.0.0.1' if $state == 5;
+}
+
 				# Read from the port, then write to it based on what was sent
 my $socket_speak_loop;
 #if (my $data = $Socket_Ports{server_telnet}{data_record}) {
@@ -83,7 +94,7 @@ if (my $data = said $telnet_server) {
                                 # This will allow us to type in any command
 #       set $telnet_server "You said: $data";
         if ($telnet_auth_flag) {
-            if (process_external_command($data)) {
+            if (process_external_command($data, 0 , 'telnet')) {
                 set $telnet_server "Command executed: $data";
                 $socket_speak_loop = $Loop_Count + 2; # Give us 2 full passes to wait for any resulting speech
             }

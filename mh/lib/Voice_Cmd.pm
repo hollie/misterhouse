@@ -224,10 +224,10 @@ sub check_for_voice_cmd {
         $cmd = $ref->{text};
         $cmd = 'unknown command' unless $cmd;
         print "Voice cmd num=$number ref=$ref said=$said cmd=$cmd\n" if $main::config_parms{debug} eq 'voice';
-        $said  = 1 unless defined $said; 
+        $said  = 1 if !defined $said; # Some Voice_Cmds have blank saids.  But allow for 0 state
 
                                 # This could be set for either the current or next pass ... next pass is easier
-        &Generic_Item::set_states_for_next_pass($ref, $said);
+        &Generic_Item::set_states_for_next_pass($ref, $said, 'vr');
 #       $ref->{said}  = $said;
 #       $ref->{state} = $said;
 
@@ -259,13 +259,14 @@ sub check_for_voice_cmd {
                                 # This will set voice items for the NEXT pass ... do not want it active
                                 # for the current pass, because we do not know where we are in the user code loop
 sub set {
-    my ($self, $state) = @_;
+    my ($self, $state, $set_by) = @_;
+    $set_by = 'unknown' unless $set_by;
     if ($$self{disabled}) {
         &main::print_log("Disabled command not run: $self->{text_by_state}{$state}");
         return;
     }
     return if &main::check_for_tied_filters($self, $state);
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
     &main::print_log("Running: $self->{text_by_state}{$state}");
     print "db1 set voice cmd $self to $state\n" if $main::config_parms{debug} eq 'voice';
 }
@@ -321,7 +322,9 @@ sub voice_items {
 
     $vocab = 'mh' unless $vocab; # Default
 
-    my @cmd_list = sort {$cmd_num_by_text{$a} <=> $cmd_num_by_text{$b}} keys %cmd_num_by_text;
+#   my @cmd_list = sort {$cmd_num_by_text{$a} <=> $cmd_num_by_text{$b}} keys %cmd_num_by_text;
+    my @cmd_list =                                                      keys %cmd_num_by_text;
+
                                 # Add the filename to the list, so we can do better grep searches
     my @cmd_list2;
     for my $cmd (@cmd_list) {
@@ -332,7 +335,7 @@ sub voice_items {
         $category = '' unless $category; # Avoid unint warning
         push(@cmd_list2, "$category: $cmd");
     }
-    return @cmd_list2;
+    return sort {uc $a cmp uc $b} @cmd_list2;
 }
 
 sub new {
@@ -390,7 +393,8 @@ sub _register {
 
                                 # These commands have no real states ... there is no enumeration
                                 #  - avoid saving the whole name as state.  Too much for state_log displays
-        $state = 1 if !$state or $state eq $cmd;
+                                # Leave state=0 alone!
+        $state = 1 if !defined $state or $state eq '' or $state eq $cmd;
 
         my $cmd_num = &_register2($self, $cmd, $vocab, $description);
         $self->{text_by_state}{$state} = $cmd;
@@ -550,12 +554,14 @@ sub mic {
         &main::print_log("Error, Voice_Cmd::mic must be set to on or off: $state");
         return;
     }
+    select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set("mic" . $state);
 }
 
 sub definevocab {
     return unless $Vcmd_viavoice;
     my($vocab, @phrases) = @_;
+    select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set("definevocab");
     select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
     $Vcmd_viavoice->set($vocab);
@@ -602,6 +608,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.38  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.37  2002/01/23 01:50:33  winter
 # - 2.64 release
 #

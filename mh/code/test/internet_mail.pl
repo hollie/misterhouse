@@ -11,7 +11,7 @@ if ($state = $v_send_email_test->{said}) {
     if (&net_connect_check) {
                                 # Use to => 'user@xyz.com', or default to your own address (from net_mail_user in mh.ini)
         &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date", 
-                       to => 'bruce@misterhouse.net ; winter@chartermi.net',
+#                      to => 'bruce@misterhouse.net ; winter@chartermi.net',
                        debug => 1) if $state == 1;
 
                                 # Send a command in the subject

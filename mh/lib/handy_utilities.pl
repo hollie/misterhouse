@@ -699,7 +699,7 @@ sub main::run {
         my($pgm_path, $pgm_args) = &main::find_pgm_path($pgm);
         $pgm = "$pgm_path $pgm_args";
         $pgm .= " &" unless $mode eq 'inline';
-        print "Running: $pgm\n";
+        print "Running: $pgm\n" unless $main::config_parms{no_log} =~ /run/;
         system($pgm) == 0 or print "Warning, run system error:  pgm=$pgm rc=$?\n";
     }
 }
@@ -1072,6 +1072,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.55  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 1.54  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

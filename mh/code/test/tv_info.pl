@@ -26,22 +26,16 @@ if ($state = said  $v_tv_shows1) {
     set_watch $f_tv_file;
 }
 if (said $v_tv_shows2) {
-    if (-e $config_parms{favorite_tv_shows_file}) {
-        print_log "Searching for shows listed in $config_parms{favorite_tv_shows_file}";
-        run qq[get_tv_info -times all -keyfile $config_parms{favorite_tv_shows_file} -title_only];
-        set_watch $f_tv_file 'favorites today';
-    }
-    elsif ($config_parms{favorite_tv_shows}) {
-        run qq[get_tv_info -keys "$config_parms{favorite_tv_shows}" -title_only];
-        set_watch $f_tv_file 'favorites today';
-    }
+    print_log "Searching for favorite shows";
+    run qq[get_tv_info -times all -keys "$config_parms{favorite_tv_shows}" -keyfile $config_parms{favorite_tv_shows_file} -title_only];
+    set_watch $f_tv_file 'favorites today';
 }
 
                                 # Check for favorite shows ever 1/2 hour
 if (time_cron('58,28 * * * *')) {
     my ($min, $hour, $mday, $mon) = (localtime(time + 120))[1,2,3,4];
     $mon++;
-    run qq[get_tv_info -times $hour:$min -dates $mon/$mday -keyfile $config_parms{favorite_tv_shows_file}  -title_only];
+    run qq[get_tv_info -quiet -times $hour:$min -dates $mon/$mday -keys "$config_parms{favorite_tv_shows}"  -keyfile $config_parms{favorite_tv_shows_file}  -title_only];
     set_watch $f_tv_file 'favorites now';
 }
 

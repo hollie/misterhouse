@@ -100,9 +100,12 @@ if ($New_Second) {
         $i++;
         $time_left = int $time_left;
         next if $time_left < 10;
+        print "db1 u=$timer->{unit} tl=$time_left\n";
         $time_left /=   60 if $timer->{unit} eq 'minute';
         $time_left /= 3600 if $timer->{unit} eq 'hour';
         my $pitch = int 10*(1 - $time_left/5);
+        print "db2 u=$timer->{unit} tl=$time_left\n";
+#       $time_left = int $time_left;
         if ($timer_reminder_intervals{$time_left}) {
             if ($timer->{text}) {
                 speak "voice=mike pitch=$pitch $timer->{text} in " . &plural($time_left, $timer->{unit}) ;

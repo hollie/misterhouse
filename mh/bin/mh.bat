@@ -17,7 +17,7 @@ if %noloop% == 1  goto START
 
 :RERUN
 @rem This file will be created if mh starts normally (i.e. does not die on startup)
-del mh.started
+if exist mh.started del mh.started
 
 :START
 if EXIST mh.exe goto COMPILED

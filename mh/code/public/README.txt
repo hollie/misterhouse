@@ -67,11 +67,18 @@ door_monitor_jay.pl
  - Jay Archer's code for using an X10 powerflash and hawkeye motion sensors
    to monitor and control a garage door
 
+hvac_david.pl
+ - David Lounsberry's code to monitor 14 different iButtons and control HVAC with a weeder board!
+ 
 iButton_ws.pl
  - Craig Schaeffer's code for monitoring the iButton weather station
 
+iButton_ws_brian.pl
+ - Brian Paulson's example for monitoring the iButton weather station
+
 iButton_ws_client.pl
  - Doug Mackie's code for for getting iButton weather station data from Henriksen's tcp server
+
 
 iButton temps ploted with gnuplot
  - Kieran Ames has a page showing how he plots ibutton temps with gnuplot here:
@@ -102,6 +109,9 @@ internet_starshine.pl
  - Tim Doyle's code to announce when one of the visible passes of
    a StarShine satellite is about to occur.
 
+irman.pl
+ - Code to receive IR signals from the $30 irman box, available http://evation.com/irman/interface.txt
+
 irvs*
  - Walter Leemput's example of a DTFM driven phone menu, using the 
    Irvs phone module from CPAN (linux only).
@@ -118,6 +128,7 @@ mp3_control_mrMP3.pl
 
 mp3_control_xmms.pl
  - Richard Phillips's code for controling the xmms MP3 player for Linux.
+ - Also see xmms_*.pl members
 
 monitor_sump_pump.pl
  - Craig's code to monitor his sump pump
@@ -154,6 +165,12 @@ phone_logs_kieran.pl
 printer_control.pl
  - Paul Wilkinson's example of how to turn a printer on/off based on a unix print spool file.
 
+readrat_capture
+readrat.pl
+ - Kent Noonan's code for controling IR devices with the 
+   RedRat interface: http://www.dodgies.demon.co.uk/index.html
+
+rrd.pl
 rrd_graph
 rrd_create.sh
 rrd_create.bat
@@ -201,6 +218,9 @@ test_homevision.pl
 tv_info_clive.pl
  - Clive Freedman's code for tv queries (derived from mh/code/bruce/tv_info.pl
 
+tv_info_ge.pl
+ - Stoll Thomas's code for tv queries of german stations (uses mh/bin/get_tv_info_ge) via http://www.tvspielfilm.de
+
 video_inline.pl
  - Kent Noonan's code for controling the inline video scan doubler
 
@@ -221,6 +241,9 @@ weather_chance_of_rain.pl
 downloaded by get_weather (US only).  If rain is forecasted, it will be
 announced.  There is also some example code for skipping sprinkler cycles
 based on the forecast.
+
+weather_ec.pl
+ - Harald Koch's code for parsing data from weatheroffice.ec.gc.ca into %Weather.
 
 weather_pollen.pl
  - Kent Noonan's code for monitoring pollen counts
@@ -269,6 +292,9 @@ webcam_ron.pl
  - Ron Klinkien's code for using a command line frame grabber to create
    a simple webcam.
 
+weeder_david.pl
+ - David Lounsberry's code for controling hist HVAC system with a Solid State Relay weeder board!
+
 weeder_init.pl
  - Jeff Pagel's code for initializing weeder DIO cards.
 
@@ -282,6 +308,12 @@ wintvpvr_grid.pl
 x10_video_security.pl
  - Mark Holm's code for a video surveillance system using X10 XCAM cameras and motion sensors.
 
+Xmms_Control.pl
+Xmms_jukebox.pl
+Xmms_x10_control.pl
+ - Gaetan Lord's files for controling the linux xmms mp3 player.  
+   These files also interact with the web interface at /music/xmms (mh/web/music/xmms)
+   Also see mp3_control_xmms.pl.
 
 ------------
 
@@ -322,3 +354,20 @@ With tk turned off, and with few events, it consumes very little of Nick's
 valuable gaming computer resources ;)  Nick uses it in his room to control
 a few lights and his mp3 player.  Bruce likes it cause he can then have 
 his version of MisterHouse turn off Nick's music after hours :)
+
+---------
+
+mh/code/public/Roger
+
+From Roger Bille on Jan 2002.  This code is targeting APRS but they include many different
+technologies and therefore could be used as templates. For example:
+ 
+ a)    Reading and sending data through TCP/IP sockets
+ b)    Retrieve Web pages and decipher the content
+ c)    Using SQL statement for select, insert and update an MS Access database.
+       (used to send over APRS roadwork's within 30 km of a moving APRS station.)
+ d)    Create web pages. This one is created live by my system ahub.pl. http://ahubswe.net/ahub.html
+ e)    Calculating distances and bearing between locations
+ 
+Some of them is better documented than others and they are constantly modified.
+

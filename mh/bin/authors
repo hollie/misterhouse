@@ -9,7 +9,7 @@ use strict;
 my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan 
                      Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
                      ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call);
-my @bogus_last  = qw(Homelink House Group Report Programs Aqualink);
+my @bogus_last  = qw(Homelink House Group Report Programs Aqualink WinTV);
 
 undef $/;
 my $f = <>;
@@ -56,7 +56,7 @@ for my $a (sort {$a{$b} <=> $a{$a} or $a cmp $b} keys %a) {
 print "</tr>\n" if $cnt % 3;
 print <<eof;
 </table><hr>
-<p>Found $cnt authors
+<h3>Found $cnt authors</h3>
 </body></html>
 eof
 

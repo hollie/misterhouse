@@ -2,7 +2,7 @@ package Win32::Setupsup;
 
 #
 # Setupsup.pm
-# by Jens Helberg, jens.helberg@bosch.com
+# by Jens Helberg, jens.helberg@pcm.bosch.de
 # all comments are welcome
 #
 # you can use this module under GNU public licence
@@ -10,25 +10,48 @@ package Win32::Setupsup;
 # some code is borrowed from Dave Roth's adminmisc module
 # thanks to him!
 #
-# version 1.0 from 09/24/1998
+# version 1.01 from 10/15/2000
 #
 # not all functions are tested completly - use this at your own risk
 #
 # it's only intended to work on winnt (version 4.0 with sp3 or later)
-# but it should work on win95 too (remove the app. line below)
+# but it should work on win95/98/me too
 #
 
 require Exporter;
 require DynaLoader;
 package main;
-#require 'nt.ph';
-use Win32::Registry;
+
+BEGIN
+{
+	if($] >= 5.006)
+	{
+		use Win32::Registry;
+
+		$Win32::Setupsup::RegCreateKeyEx = \&Win32::Registry::RegCreateKeyEx;
+		$Win32::Setupsup::RegOpenKeyEx = \&Win32::Registry::RegOpenKeyEx;
+		$Win32::Setupsup::RegQueryValueEx = \&Win32::Registry::RegQueryValueEx;
+		$Win32::Setupsup::RegSetValue = \&Win32::Registry::RegSetValue;
+		$Win32::Setupsup::RegCloseKey = \&Win32::Registry::RegCloseKey;
+	}
+	else
+	{
+		require "nt.ph";
+
+		$Win32::Setupsup::RegCreateKeyEx = \&Win32::RegCreateKeyEx;
+		$Win32::Setupsup::RegOpenKeyEx = \&Win32::RegOpenKeyEx;
+		$Win32::Setupsup::RegQueryValueEx = \&Win32::RegQueryValueEx;
+		$Win32::Setupsup::RegSetValue = \&Win32::RegSetValue;
+		$Win32::Setupsup::RegCloseKey = \&Win32::RegCloseKey;
+	}
+}
+
 package Win32::Setupsup;
 
-$Version = 980320;
+$Version = 1.01;
 $Package = "Win32::Setupsup";
 
-# die "The $Package module works only on Windows NT" if(!Win32::IsWinNT());
+die "The $Package module works only on Windows NT" if(!Win32::IsWinNT());
 
 @ISA= qw(Exporter DynaLoader);
 
@@ -188,24 +211,24 @@ sub AUTOLOAD
 # disables keyboard input after reboot
 sub DisableKeyboardAfterReboot
 {
-	die "Usage: NT::Setupsup::DisableKeyboardAfterReboot()\n" if($#_ != -1);
+	die "Usage: Win32::Setupsup::DisableKeyboardAfterReboot()\n" if($#_ != -1);
 
-	if(!Win32::Registry::RegCreateKeyEx(&main::HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Hardware Profiles\\' .
-				'0001\\System\\CurrentControlSet\\Enum\\ROOT\\LEGACY_KBDCLASS\\0000', 
-				&NULL, '', &NULL, &main::KEY_WRITE, &NULL, $hKey, $disp))
+	if(!&{$Win32::Setupsup::RegCreateKeyEx}(&main::HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Hardware Profiles\\' .
+								'0001\\System\\CurrentControlSet\\Enum\\ROOT\\LEGACY_KBDCLASS\\0000', 
+								&NULL, '', &NULL, &main::KEY_WRITE, &NULL, $hKey, $disp))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
 		return 0;
 	}
 
-	if(!Win32::Registry::RegSetValueEx($hKey, 'CSConfigFlags', &NULL, &main::REG_DWORD, 1))
+	if(!&{$Win32::Setupsup::RegSetValueEx}($hKey, 'CSConfigFlags', &NULL, &main::REG_DWORD, 1))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
-		Win32::Registry::RegCloseKey($hKey);
+		&{$Win32::Setupsup::RegCloseKey}($hKey);
 		return 0;
 	}
 
-	Win32::Registry::RegCloseKey($hKey);
+	&{$Win32::Setupsup::RegCloseKey}($hKey);
 	
 	return 1;
 }
@@ -214,24 +237,24 @@ sub DisableKeyboardAfterReboot
 # enables keyboard input after reboot
 sub EnableKeyboardAfterReboot
 {
-	die "Usage: NT::Setupsup::EnableKeyboardAfterReboot()\n" if($#_ != -1);
+	die "Usage: Win32::Setupsup::EnableKeyboardAfterReboot()\n" if($#_ != -1);
 		
-	if(!Win32::Registry::RegCreateKeyEx(&main::HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Hardware Profiles\\' .
-				'0001\\System\\CurrentControlSet\\Enum\\ROOT\\LEGACY_KBDCLASS\\0000', 
-				&NULL, '', &NULL, &main::KEY_WRITE, &NULL, $hKey, $disp))
+	if(!&{$Win32::Setupsup::RegCreateKeyEx}(&main::HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Hardware Profiles\\' .
+								'0001\\System\\CurrentControlSet\\Enum\\ROOT\\LEGACY_KBDCLASS\\0000', 
+								&NULL, '', &NULL, &main::KEY_WRITE, &NULL, $hKey, $disp))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
 		return 0;
 	}
 
-	if(!Win32::Registry::RegSetValueEx($hKey, 'CSConfigFlags', &NULL, &main::REG_DWORD, 0))
+	if(!&{$Win32::Setupsup::RegSetValueEx}($hKey, 'CSConfigFlags', &NULL, &main::REG_DWORD, 0))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
-		Win32::Registry::RegCloseKey($hKey);
+		&{$Win32::Setupsup::RegCloseKey}($hKey);
 		return 0;
 	}
 
-	Win32::Registry::RegCloseKey($hKey);
+	&{$Win32::Setupsup::RegCloseKey}($hKey);
 	
 	return 1;
 }
@@ -240,24 +263,24 @@ sub EnableKeyboardAfterReboot
 # disables mouse input after reboot
 sub DisableMouseAfterReboot
 {
-	die "Usage: NT::Setupsup::DisableMouseAfterReboot()\n" if($#_ != -1);
+	die "Usage: Win32::Setupsup::DisableMouseAfterReboot()\n" if($#_ != -1);
 		
-	if(!Win32::Registry::RegCreateKeyEx(&main::HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Hardware Profiles\\' .
-				'0001\\System\\CurrentControlSet\\Enum\\ROOT\\LEGACY_MOUCLASS\\0000', 
-				&NULL, '', &NULL, &main::KEY_WRITE, &NULL, $hKey, $disp))
+	if(!&{$Win32::Setupsup::RegCreateKeyEx}(&main::HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Hardware Profiles\\' .
+								'0001\\System\\CurrentControlSet\\Enum\\ROOT\\LEGACY_MOUCLASS\\0000', 
+								&NULL, '', &NULL, &main::KEY_WRITE, &NULL, $hKey, $disp))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
 		return 0;
 	}
 
-	if(!Win32::Registry::RegSetValueEx($hKey, 'CSConfigFlags', &NULL, &main::REG_DWORD, 1))
+	if(!&{$Win32::Setupsup::RegSetValueEx}($hKey, 'CSConfigFlags', &NULL, &main::REG_DWORD, 1))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
-		Win32::Registry::RegCloseKey($hKey);
+		&{$Win32::Setupsup::RegCloseKey}($hKey);
 		return 0;
 	}
 
-	Win32::Registry::RegCloseKey($hKey);
+	&{$Win32::Setupsup::RegCloseKey}($hKey);
 	
 	return 1;
 }
@@ -266,20 +289,20 @@ sub DisableMouseAfterReboot
 # enables mouse input after reboot
 sub EnableMouseAfterReboot
 {
-	die "Usage: NT::Setupsup::EnableMouseAfterReboot()\n" if($#_ != -1);
+	die "Usage: Win32::Setupsup::EnableMouseAfterReboot()\n" if($#_ != -1);
 		
-	if(!Win32::Registry::RegCreateKeyEx(&main::HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Hardware Profiles\\' .
-				'0001\\System\\CurrentControlSet\\Enum\\ROOT\\LEGACY_MOUCLASS\\0000', 
-				&NULL, '', &NULL, &main::KEY_WRITE, &NULL, $hKey, $disp))
+	if(!&{$Win32::Setupsup::RegCreateKeyEx}(&main::HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Hardware Profiles\\' .
+								'0001\\System\\CurrentControlSet\\Enum\\ROOT\\LEGACY_MOUCLASS\\0000', 
+								&NULL, '', &NULL, &main::KEY_WRITE, &NULL, $hKey, $disp))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
 		return 0;
 	}
 
-	if(!Win32::Registry::RegSetValueEx($hKey, 'CSConfigFlags', &NULL, &main::REG_DWORD, 0))
+	if(!&{$Win32::Setupsup::RegSetValueEx}($hKey, 'CSConfigFlags', &NULL, &main::REG_DWORD, 0))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
-		Win32::Registry::RegCloseKey($hKey);
+		&{$Win32::Setupsup::RegCloseKey}($hKey);
 		return 0;
 	}
 
@@ -294,21 +317,21 @@ sub GetProgramFilesDir
 {
 	die "Usage: Win32::Setupsup::GetProgramFilesDir(\\\$dir)\n" if($#_);
 	
-	if(!Win32::Registry::RegOpenKeyEx(&main::HKEY_LOCAL_MACHINE, 'Software\Microsoft\Windows\CurrentVersion',
-				&NULL, &main::KEY_READ, $hKey))
+	if(!&{$Win32::Setupsup::RegOpenKeyEx}(&main::HKEY_LOCAL_MACHINE, 'Software\Microsoft\Windows\CurrentVersion',
+							&NULL, &main::KEY_READ, $hKey))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
 		return 0;
 	}
 
-	if(!Win32::Registry::RegQueryValueEx($hKey, 'ProgramFilesDir', &NULL, &NULL, $_[0]))
+	if(!&{$Win32::Setupsup::RegQueryValueEx}($hKey, 'ProgramFilesDir', &NULL, &NULL, $_[0]))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
-		Win32::RegCloseKey($hKey);
+		&{$Win32::Setupsup::RegCloseKey}($hKey);
 		return 0;
 	}
 
-	Win32::Registry::RegCloseKey($hKey);
+	&{$Win32::Setupsup::RegCloseKey}($hKey);
  
 	return 1;
 }
@@ -319,21 +342,21 @@ sub GetCommonFilesDir
 {
 	die "Usage: Win32::Setupsup::GetCommonFilesDir(\\\$dir)\n" if($#_);
 	
-	if(!Win32::Registry::RegOpenKeyEx(&main::HKEY_LOCAL_MACHINE, 'Software\Microsoft\Windows\CurrentVersion',
-				&NULL, &main::KEY_READ, $hKey))
+	if(!&{$Win32::Setupsup::RegOpenKeyEx}(&main::HKEY_LOCAL_MACHINE, 'Software\Microsoft\Windows\CurrentVersion',
+								&NULL, &main::KEY_READ, $hKey))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
 		return 0;
 	}
 
-	if(!Win32::Registry::RegQueryValueEx($hKey, 'CommonFilesDir', &NULL, &NULL, $_[0]))
+	if(!&{$Win32::Setupsup::RegQueryValueEx}($hKey, 'CommonFilesDir', &NULL, &NULL, $_[0]))
 	{
 		Win32::Setupsup::SetLastError(Win32::GetLastError());
-		Win32::Registry::RegCloseKey($hKey);
+		&{$Win32::Setupsup::RegCloseKey}($hKey);
 		return 0;
 	}
 
-	Win32::Registry::RegCloseKey($hKey);
+	&{$Win32::Setupsup::RegCloseKey}($hKey);
  
 	return 1;
 }

@@ -219,7 +219,7 @@ sub format_data {
         $function = '1';
         $extended = '0';
         if ($code eq 'DIM' or $code eq 'M' or $code eq 'BRIGHT' or $code eq 'L') {
-            $dim_level = 50;
+            $dim_level = 34;    # Lets default to 3 bight/dims to go full swing
         }
         elsif ($code =~ /^[+-]\d\d$/) {
             $dim_level = abs($code);
@@ -737,6 +737,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.16  2002/03/02 02:36:51  winter
+# - 2.65 release
+#
 # Revision 2.15  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

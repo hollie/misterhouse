@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-01-20 20:57:27 winter>
+#  Last change Time-stamp: <2002-02-28 17:30:28 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -32,10 +32,8 @@ BEGIN {
 
     ($Version) = q$Revision$ =~ /: (\S+)/; # Auto-updated by CVS
 
-    $0 = $ENV{sourceExe} if $ENV{sourceExe}; # perl2exe fills this in
     ($Pgm_Path, $Pgm_Name) = $0 =~ /^(.*)[\\\/]([^.]+)/i;
     ($Pgm_Name) = $0 =~ /([^.]+)/i unless $Pgm_Name;
-    $Pgm_Name = 'mh' if $ENV{sourceExe}; # Since we sometimes rename mh.exe
 
     unless ($Pgm_Path) {
         use Cwd;
@@ -49,20 +47,20 @@ BEGIN {
     $usage = <<"eof";
 
 Description:
-   $Pgm_Name is a perl program for time, event, web, and voice based home control
-   functions.  Configuration is controled in the \\mh\\bin\\$Pgm_Name.ini file.
-   See the \\mh\\docs\\$Pgm_Name.html for more info.
+   mh is a perl program for time, event, web, and voice based home control
+   functions.  Configuration is controled in the \\mh\\bin\\mh.ini file.
+   See the \\mh\\docs\\mh.html for more info.
 
 Usage:
-   $Pgm_Name [options] [files]
+   mh [options] [files]
 
-   Where options can be any of the parms listed in the \\mh\\bin\\$Pgm_Name.ini file
+   Where options can be any of the parms listed in the \\mh\\bin\\mh.ini file
 
 Examples usage:
-    $Pgm_Name
-    $Pgm_Name -help
-    $Pgm_Name -tk 0 -code_dir c:\\mh\\code\\test
-    $Pgm_Name -log_file test1.log -debug 1 test1.pl
+    mh
+    mh -help
+    mh -tk 0 -code_dir c:\\mh\\code\\test
+    mh -log_file test1.log -debug 1 test1.pl
 
 eof
 
@@ -122,7 +120,6 @@ sub ReadMode {};                # In case Readkey is not installed
 sub ReadKey  {};
 
 BEGIN {
-
     &check_for_run_cmd;
     &print_version;
     &setup_INC;
@@ -137,17 +134,14 @@ BEGIN {
 #           @ARGV = split(/[, ]/, $config_parms{run_parms});
             shift @ARGV;
             my $pgm = shift @ARGV;
-            my $pgm_path = $pgm;
-                                # Best to change to the mh bin dir, so their Paths are correct.
-#           $pgm_path = "$Pgm_Path/$pgm" unless -e $pgm_path;
-            chdir $Pgm_Path unless -e $pgm_path;
-            unless (-e $pgm_path) {
+            unless (-e $pgm) {
                 print "\nCan not find -run pgm: $pgm\n\n";
                 exit;
             }
-            print "\nRunning: $pgm_path @ARGV\n";
-            $0 = $pgm;          # Reset program name from mh to $pgm
-            do "$pgm_path";
+            print "\nRunning: $pgm @ARGV\n";
+            my ($pgm_name) = $pgm =~ /([^\.\/\\]+)$/;
+            $0 = $pgm_name;          # Reset program name from mh to $pgm
+            do "$pgm";
             print "Error with $pgm: $@\n" if $@;
             print "\nDone running: $pgm\n";
             exit;
@@ -156,14 +150,11 @@ BEGIN {
     }
 
     sub print_version {
+
+        $Info{Perl_compiled} = 1 unless $^X =~ /perl/i;
         
         $Version_date= localtime((stat $0)[9]);
-        
-                                # perl2exe sets this var
-        if ($ENV{sourceExe}) {
-            $Version_date= localtime((stat $ENV{sourceExe})[9]);
-            $Version .= " (compiled)" unless $Version =~ /compiled/;
-        }
+        $Version .= " (compiled)" if $Info{Perl_compiled};
         
 #       ($Pgm_PathU = $Pgm_Path) =~ tr/\\/\//;
         $Pgm_PathU = '.';       # I don't think we really need this anymore, since we chdir to mh/bin
@@ -198,9 +189,8 @@ BEGIN {
         print "Pgm  path   : $Pgm_Path\n";
         print "Pgm  version: $Version      Last updated: $Version_date\n";
         $Info{Perl_version} = $];
-                                # BuildNumber doesn't work with perl2exe compile :(
-                                #  - use eval to avoid problems with earlier version (e.g. build 502)
-        $Info{Perl_version} .= " Build " . eval "&Win32::BuildNumber()" if $OS_win and !$ENV{sourceExe};
+                                # Use eval to avoid problems with earlier version (e.g. build 502)
+        $Info{Perl_version} .= " Build " . eval "&Win32::BuildNumber()" if $OS_win;
         print "Perl version: $Info{Perl_version}\n";
         print "OS   version: $^O $Info{OS_name} $Info{OS_version} $Info{OS_filesystem}\n";
         print "Other       : user=$Info{User} pid=$$ box=$Info{Machine} cpu=$ENV{PROCESSOR_ARCHITECTURE}-$ENV{PROCESSOR_LEVEL}\n";
@@ -209,6 +199,10 @@ BEGIN {
     }
 
     sub setup_INC {
+                                # For some weird reason, we get errors if this is evaled before we change INC with perl2exe :(
+        eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)"
+            if $Info{Perl_compiled};
+
         print "Setting up INC path ...";
                                 # Note, use lib messes up perl2exe, but eval use lib does not.  Either use 
                                 #  eval use lib (only once, because it is slow in perl2exe) or comment out use lib
@@ -302,18 +296,15 @@ BEGIN {
             &my_use("Win32::OLE");
 #           &my_use("Win32::OLE qw(in with EVENTS)");
 #           use Win32::OLE qw(in with EVENTS);
-
 #           &my_use("Win32::OLE::lite");
             &my_use("Win32::Process");
             &my_use("Win32::PerfLib"); # Used in &memory_used
             &my_use("Win32::Registry");
                                 # Note: Must use eval, not my_use, or exported pgms are not seen :(
-                                #  - setupsup is not yet available for perl 5.6
-                                #  - BuildNumber doesn't work with perl2exe compile 
                                 #  - Loaded from: http://jenda.krynicky.cz/perl/
-            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)" 
-                if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
-
+                                #  - For some reason, perl2exe binary abends here, so we evaled it earlier
+            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)"
+                unless $Info{Perl_compiled};
             print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@;
 
             eval "use Win32::Sound";
@@ -358,6 +349,9 @@ BEGIN {
             }
 
         }
+                                          # Use GD for http server, if it is installed and has newFrom methods
+        eval "use GD";
+        $Info{module_GD} = (!$@ and $GD::VERSION > 1.18) ? 1 : 0;
 
         if ($config_parms{tk}) {
             print "Loading Tk modules ";
@@ -463,14 +457,6 @@ sub setup {
     require 'menu_code.pl';
 
     if ($OS_win) {
-
-                                            # These are the modules that perl2exe can not find on its own
-                                            #   Note: tk windows starts faster in mh.exe if we run this,
-                                            #         even though they are included with the perl2exe_include!
-#       require  'mh_perl2exe_list.pl';
-#perl2exe_include mh_perl2exe_list.pl
-
-
         no strict 'subs';   # For non-win OS
         if (1) {
             $CON_IN = new Win32::Console STD_INPUT_HANDLE;
@@ -495,8 +481,10 @@ sub setup {
 #   $SIG{TTIN} = 'IGNORE';                    # This does not help ReadKey in cbreak mode :(
 
 
-    $Info{IPAddress_local} = (&get_ip_address())[0];
-    $Info{IPAddress_local} = $config_parms{ipaddress_local} if $config_parms{ipaddress_local};
+    $Info{IPAddress_local}    = (&get_ip_address(''))[0];
+    $Info{IPAddress_local}    = $config_parms{ipaddress_local}    if $config_parms{ipaddress_local};
+    $Info{IPAddress_external} = $config_parms{ipaddress_external} if $config_parms{ipaddress_external};
+    $Info{IPAddress_external} = $Info{IPAddress_local} unless $Info{IPAddress_external};
 
     $config_parms{code_dir}         = $Pgm_PathU . "/../code"        unless $config_parms{code_dir};
     $config_parms{code_dir_common } = $Pgm_PathU . "/../code_common" unless $config_parms{code_dir_common};
@@ -794,6 +782,8 @@ sub add_hook_code {
                         Reload_pre   => 1, Reload_post  => 1,
                         Play_pre => 1,     Play_post => 1,
                         Speak_pre => 1,    Speak_post => 1,
+                        Jabber_Message => 1, Jabber_IQ => 1, Jabber_Presence => 1,
+                        Log       => 1,
                         Exit      => 1
                         );
 
@@ -1045,7 +1035,7 @@ sub check_for_external_command_file {
         close XCMD;
         next unless $cmd;
         unlink $xcmd_file;
-        &process_external_command($cmd, 1);
+        &process_external_command($cmd, 1, 'xcmd');
     }
 }
 
@@ -1328,33 +1318,63 @@ sub check_for_socket_data {
     for my $port_name (keys %Socket_Ports) {
         next if $port_name eq 'http'; # Deal with this elsewhere
         next unless my $sock = $Socket_Ports{$port_name}{sock};
+        $Socket_Ports{$port_name}{active_this_pass}   = 0;
         $Socket_Ports{$port_name}{inactive_this_pass} = 0;
-        if ($Socket_Ports{$port_name}{socka}) {
-            push(@active_ports, $port_name);
-            $Socket_Ports{$port_name}{active_this_pass} = 0;
+
+                                # Check to see if any already open client sockets are active
+        my $server_active = 0;
+        if ($Socket_Ports{$port_name}{clients}) {
+            my $client_number = 0;
+            for my $ptr (@{$Socket_Ports{$port_name}{clients}}) {
+                my ($socka, $client_ip_address, $data) = @{$ptr};
+                next unless $socka;
+                if (my $nfound = &socket_has_data($socka)) {
+                                # Set default to active socket
+                    $Socket_Ports{$port_name}{socka}             = $socka;
+                    $Socket_Ports{$port_name}{client_number}     = $client_number;
+                    $Socket_Ports{$port_name}{data}              = $data;
+                    $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
+                    print "socket: $port_name nfound=$nfound client=$client_number" if $config_parms{debug} eq $port_name;
+                    push(@active_ports, $port_name);
+                    $server_active = 1;
+                    last;
+                }
+                $client_number++;
+            }
         }
-        else {
+        unless ($server_active) {
+               # Check for mh client sockets (only one active socket possible)
+            if ($Socket_Ports{$port_name}{socka}) {
+                push(@active_ports, $port_name);
+            }
+
+                                # Else look for new clients
             if (my $nfound = &socket_has_data($sock)) {
                 my $new_sock = $sock->accept();
                 next unless $new_sock; # Can be undef it socket was killed
                 $new_sock->autoflush(1); # Not sure if this does anything?
 #               $new_sock->autoflush(0); # Not sure if this does anything?
-                $Socket_Ports{$port_name}{socka} = $new_sock;
-                $Socket_Ports{$port_name}{active_this_pass} = 1;
-                delete $Socket_Ports{$port_name}{data}; # Delete data from previous session
-                push(@active_ports, $port_name);
-                                # Log the address of the client
+                                               # Log the address of the client
                 my $peer = $new_sock->peername;
                 my ($port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
                 my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
                 $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
+                $Socket_Ports{$port_name}{socka} = $new_sock;
+                $Socket_Ports{$port_name}{active_this_pass} = 1;
+                
+                push @{$Socket_Ports{$port_name}{clients}}, [$new_sock, $client_ip_address, undef];
+                delete $Socket_Ports{$port_name}{data}; # Delete data from previous session
+                $Socket_Ports{$port_name}{client_number} = @{$Socket_Ports{$port_name}{clients}} - 1;
+                
                 logit "$config_parms{data_dir}/logs/server.$Year_Month_Now.log",  "$port_name $client_ip_address";
                 print "\nsocket: $port_name active sock=$new_sock client=$client_ip_address.\n" if $config_parms{debug} eq $port_name;
+                
+                push(@active_ports, $port_name);
             }
         }
     }
 
-                                # See if any active ports have data ... this could be rolled into previous loop
+                                           # See if any active ports have data
     for my $port_name (@active_ports) {
         my $sock = $Socket_Ports{$port_name}{socka};
         if (my $nfound = &socket_has_data($sock)) {
@@ -1372,6 +1392,7 @@ sub check_for_socket_data {
             }
         }
     }
+
 
                                 # Get data from active ports
     for my $port_name (@ports_with_data) {
@@ -1405,21 +1426,21 @@ sub check_for_socket_data {
             print "socket: closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
             &socket_close($port_name);
         }
+        else {
+            $Socket_Ports{$port_name}{data} .= $data if defined $data;
+            print "socket: port=$port_name data=$data." if $config_parms{debug} eq $port_name;
 
-        $Socket_Ports{$port_name}{data} .= $data if defined $data;
-        print "socket: port=$port_name data=$data." if $config_parms{debug} eq $port_name;
-
-        if (my $echo = $config_parms{"${port_name}_echo"}) {
+            if (my $echo = $config_parms{"${port_name}_echo"}) {
                                 # Need to loop thru $data here, one byte at a time
-            my $byte = $data;
+                my $byte = $data;
                                 # bs = 8, del=127
-            my $char = unpack('C', $byte);
-                                # Allow us to pick our echo character (e.g. '*')
-            $byte = $echo unless $echo == 1 or $char eq 8;
-            next if $char eq 8;
-            print $sock $byte unless $char eq 13 or $char eq 10;
+                my $char = unpack('C', $byte);
+                              # Allow us to pick our echo character (e.g. '*')
+                $byte = $echo unless $echo == 1 or $char eq 8;
+                next if $char eq 8;
+                print $sock $byte unless $char eq 13 or $char eq 10;
+            }
         }
-
     }
 
                                 # Look for 'records' based on break separator
@@ -1446,6 +1467,10 @@ sub check_for_socket_data {
 #               print "socket: $port_name remainder=$remainder.  hex=", unpack('H*', $remainder), "\n";
             }
         }
+                                # Store away Client data
+        my $client_number = $Socket_Ports{$port_name}{client_number};
+        $Socket_Ports{$port_name}{clients}[$client_number][2] = $Socket_Ports{$port_name}{data} if defined $client_number;
+
                                 # 10/99 Comment out \r\n print ... what needed this?? Messed up viavoice server
 #       print $sock "\r\n";
 #       print $sock "You said: $record\n";
@@ -1482,8 +1507,8 @@ sub check_for_tied_events {
                     $state2 = $state1 if $state2 eq 'all_states';
                     if ($object2->can('set')) {
                         $object2->set($state2);
-#                       $object2->{changed_by} = $object1->{object_name};
-                        $object2->{changed_by} = $object1;
+#                       $object2->{set_by} = $object1->{object_name};
+                        $object2->{set_by} = $object1;
                     }
                     else {
                         print "tie_items object can not set: $object2\n";
@@ -1555,7 +1580,7 @@ sub check_for_tied_times {
                     &print_log($log_msg) unless $log_msg eq '1';
                     if ($ref->can('set')) {
                         $ref->set($state);
-                        $ref->{changed_by} = 'tied_time';
+                        $ref->{set_by} = 'tied_time';
                     }
                     else {
                         print "tie_items object can not set: $ref->{object_name}\n";
@@ -1614,6 +1639,8 @@ sub display {
                                 # Assume we were waiting for this and reset http server counter so almost 0 
     $Last_Response = 'display';
     $leave_socket_open_passes= 2 if $leave_socket_open_passes;
+
+    &Log_hooks('display', $text, %parms);   # Created by &add_hooks
 
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
@@ -1958,6 +1985,16 @@ sub list_objects_by_type {
     return unless $object_names_by_type{$object_type};
     return @{$object_names_by_type{$object_type}};
 }
+
+sub list_objects_by_group {
+    my ($group_name) = @_;
+    $group_name = '$' . $group_name unless $group_name =~ /^\$/;
+    if (my $object = &get_object_by_name($group_name)) {
+        my @objects = list $object;
+        return (map {$_->{object_name}} @objects);
+    }
+}
+
 sub list_objects_by_webname {
     return unless $_[0]; 
     return @{$object_names_by_webname{$_[0]}} if $object_names_by_webname{$_[0]};
@@ -2300,6 +2337,8 @@ sub play {
 
     print "Playing wave file $parms{file}\n" if $config_parms{debug} eq 'play';
 
+    &Log_hooks('play', $parms{file}, %parms);   # Created by &add_hooks
+
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
 
     my $play_parm = $parms{mode};
@@ -2384,11 +2423,11 @@ sub play {
 
         if (!$OS_win) {
             next if $file =~ /^System/;
-            last unless $config_parms{sound_program};
             if ($config_parms{sound_program} =~ /vv_tts/i) {	# use vv_tts for play also
                 speak(play=>"$file", nolog=>1);
                 last;
             }
+            last unless $config_parms{sound_program};
             print "running: $config_parms{sound_program} $file\n";
 
                                 # Greg Satz had problems with MAC OS X zombies with system call here
@@ -2451,6 +2490,8 @@ sub print_log {
         $logfile = "$config_parms{data_dir}/$1";
         $data =~ s/^log=\S+//i;
     }
+    &Log_hooks('print_log', $data);   # Created by &add_hooks
+
     $data = "$Time_Date $data";
 
     if ($Tk_objects{log_window}) {
@@ -2512,7 +2553,7 @@ sub print_speaklog {
     unshift (@Speak_Log, "$Time_Date $data");
     pop @Speak_Log if @Speak_Log > $config_parms{max_log_entries};
 
-    $data =~ s/<voice .+?>//g;  # Drop XML speech tags
+    $data =~ s/<\/?voice.*?>//g;  # Drop XML speech tags
 
     if ($Tk_objects{speak_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
@@ -2526,7 +2567,7 @@ sub print_speaklog {
 }
 
 sub process_external_command {
-    my ($cmd, $warning_flag) = @_;
+    my ($cmd, $warning_flag, $set_by) = @_;
 #   $cmd =~ s/[\'\"]//g;        # Deletes quotes  ... no, not if we want to do eval or set commands
     $cmd =~ s/^\s+//;           # Deletes leading blanks
     $cmd =~ s/\s+$//;           # Deletes trailing blanks
@@ -2539,7 +2580,7 @@ sub process_external_command {
 #       print_log "\nError in running external eval command: cmd=$eval_cmd\n error: $@\n" if $@;
 #   }
     print "Running external command: $cmd\n";
-    if (&run_voice_cmd(lc($cmd))) {
+    if (&run_voice_cmd(lc($cmd), undef, $set_by)) {
         print_log "Running cmd:$cmd";
     }
     elsif ($cmd =~ /^set (.+)/i) {
@@ -2559,11 +2600,11 @@ sub process_external_command {
         for my $ref (@refs) {
             if (my $state = $$ref{state_by_id}{$cmd}) {
 #               set_receive $ref $state;
-                set         $ref $state;
+                set         $ref $state, $set_by;
                 print "Serial event=$cmd state=$state\n" if $config_parms{debug} eq 'serial';
             }
             else {
-                set         $ref $cmd;
+                set         $ref $cmd, $set_by;
             }
         }
         print_log "Found a matching event for xcmd=$cmd";
@@ -3191,14 +3232,13 @@ sub run_after_delay {
 }
 
 sub run_voice_cmd {
-    my ($cmd, $vocab) = @_;
+    my ($cmd, $vocab, $set_by) = @_;
     $vocab = 'mh' unless $vocab; # Default
     my ($ref, $said, $vocab_cmd) = &Voice_Cmd::voice_item_by_text(lc($cmd));
-    print "run_voice_cmd cmd=$cmd ref=$ref said=$said vocab=$vocab_cmd\n" if $config_parms{debug} eq 'misc';
+    print "run_voice_cmd cmd=$cmd ref=$ref said=$said vocab=$vocab_cmd set_by=$set_by\n" if $config_parms{debug} eq 'misc';
 #   print_log "cmd=$cmd";
     if ($ref and $vocab eq $vocab_cmd) {
-        $said  = 1 unless $said; 
-        set $ref $said;
+        set $ref $said, $set_by;
 #       $ref->{said} = $said;
         return $ref;
     }
@@ -3212,8 +3252,8 @@ sub run_voice_cmd {
 sub sendkeys_find_window {
     my ($title, $program) = @_;
     return unless $OS_win;
-                                # We don't have a Setupsup 5.6 version yet :(
-    if ($] >= 5.006) {
+                                # Use this if we need to disable Setupsup ?
+    if (0) {
         print_log "Starting $program";
         run $program;
         print     "Waiting for $title\n";
@@ -3330,6 +3370,10 @@ sub set_global_vars {
 
     
     unless ($prev_time == $Time) {
+                                # Synchronize milli-second flags
+        $loop_tickcount2 = $loop_tickcount3 = $loop_tickcount4 = $loop_tickcount1;
+        $New_Msecond_100 = $New_Msecond_250 = $New_Msecond_500 = 1;
+
         $Info{loop_speed} = $loop_speed_cnt;
         $Loop_Speed       = $loop_speed_cnt; # Grandfathered (in old benchmarks.pl)
         if (@Loop_Speeds) {
@@ -3662,8 +3706,14 @@ sub sig_handler_pipe {
     print "\nBroken pipe\n";
 }
 sub sig_child_death {
-    my $pid = wait;
+#   my $pid = wait;
 #   print "reaped $pid" . ($? ? " with exit $?" : '');
+                                # Harvest potentially more than one dead child
+    use POSIX ":sys_wait_h";
+    my $pid;
+    do {
+        $pid = waitpid(-1, &WNOHANG);
+    } until $pid == -1;
 }
 
                                 # This will close either client or server active socket
@@ -3678,6 +3728,12 @@ sub socket_close {
         close $sock;
     }
     delete $Socket_Ports{$port_name}{socka};
+
+                                # Drop client data from list of active clients
+    my $client_number = $Socket_Ports{$port_name}{client_number};
+    splice(@{$Socket_Ports{$port_name}{clients}}, $client_number, 1) if defined $client_number;
+
+                                # See if we need to close the parent socket
     delete $Socket_Ports{$port_name}{sock} if
         $Socket_Ports{$port_name}{host_port} and 
         $Socket_Ports{$port_name}{host_port} =~ /\:/; # Client, not server, socket
@@ -3758,7 +3814,7 @@ sub speak {
         $key = lc $key;
                                 # Not all TTS engines have all these options ... this is a superset
         print "Warning, speak control not recognized: key=$key value=$value\n"
-            unless grep $key eq $_, qw(room rooms mode display play volume time voice pitch card);
+            unless grep $key eq $_, qw(engine address room rooms mode display play volume time voice pitch card);
         
         if ($key =~ /room[s]?/) {
             $rooms = $value;
@@ -3809,6 +3865,8 @@ sub speak {
             return;
         }
     }
+
+    &Log_hooks('speak', $phrase, %parms);   # Created by &add_hooks
 
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and
         !($parms{mode} =~ /unmute/i or $parms{to_file});
@@ -4047,13 +4105,13 @@ sub tk_setup_cascade_menus {
                         my $text2 = "$prefix$state$suffix";
                         my $text3 = "$filename: $text2";
                         $Tk_objects{menu_command_by_cat}{$category}->
-                            add('command', -label => $text3, command => sub{&run_voice_cmd($text2)});
+                            add('command', -label => $text3, command => sub{&run_voice_cmd($text2, undef, 'tk')});
                     }
                 }
                 else {
                     my $text3 = "$filename: $text";
                     $Tk_objects{menu_command_by_cat}{$category}->
-                        add('command', -label => $text3, command => sub{&run_voice_cmd($text)});
+                        add('command', -label => $text3, command => sub{&run_voice_cmd($text, undef, 'tk')});
                 }
             }
         }
@@ -4252,12 +4310,12 @@ sub tk_command_list {
     $list->bind('<Double-1>' => sub{
         $list->selectionClear(0, 'end');
         my ($file, $cmd) = $_[0]->get('active') =~ /(.+)\: *(.+)/;
-        &run_voice_cmd($cmd);
+        &run_voice_cmd($cmd, undef, 'tk');
     });
 
     $Tk_objects{command}->bind('<Return>', sub { 
         my $cmd = $Tk_objects{command}->get;
-        unless (&process_external_command($cmd, 0)) {
+        unless (&process_external_command($cmd, 0, 'tk')) {
                                 # No exact match ... create a list of commands that kind of match
             $list->delete(0, 'end');
             my @cmds = &list_voice_cmds_match($cmd);
@@ -4461,6 +4519,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.65  2002/03/02 02:32:59  winter
+# - 2.65 release
+#
 # Revision 2.64  2002/01/23 01:46:17  winter
 # - 2.64 release
 #

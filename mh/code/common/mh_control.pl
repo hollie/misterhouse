@@ -73,8 +73,9 @@ if (said $v_reboot and $OS_win) {
 #        speak "Sorry, the reboot option does not work on Win95";
 #   }
     if ($Info{OS_name} eq 'NT') {
-        speak "The house computer will reboot in 1 minute.";
-        Win32::InitiateSystemShutdown('HOUSE', 'Rebooting in 1 minutes', 60, 1, 1);
+        my $machine = $ENV{COMPUTERNAME};
+        speak "The computer $machine will reboot in 1 minute.";
+        Win32::InitiateSystemShutdown($machine, 'Rebooting in 1 minutes', 60, 1, 1);
         &exit_pgm;
     }
                                 # In theory, either of these work for Win98/WinMe
@@ -277,6 +278,16 @@ $v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message,What did you sa
 if (said $v_repeat_last_spoken) {
     ($temp = $Speak_Log[0]) =~ s/^.+?: //s; # Remove time/date/status portion of log entry
     speak "I said $temp";
+}
+
+$v_clear_cache = new Voice_Cmd 'Clear the web cache directory', '';
+$v_clear_cache-> set_info('Delete all the auto-generated .jpg files in mh/web/cache');
+if (said $v_clear_cache) {
+    my $cmd = ($OS_win) ? 'del' : 'rm';
+    $cmd .= " $config_parms{html_dir}/cache/*.jpg";
+    $cmd =~ s|/|\\|g if $OS_win;
+    system $cmd;
+    print_log "Ran: $cmd";
 }
 
     

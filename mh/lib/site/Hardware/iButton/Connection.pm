@@ -263,10 +263,12 @@ sub new {
     my $port = shift;
     my $DEBUG = shift || 0;
     my $TWEAK = shift || 0;
+    my $LINELENGTH = shift || "LONG"; # SHORT is the only other valid option
     my $this;
     $this->{ PORTNAME } = $port;
     $this->{ DEBUG } = $DEBUG;
     $this->{ TWEAK } = $TWEAK;
+    $this->{ LINELENGTH } = $LINELENGTH;
     bless $this, $class;
 
     $this->openPort;
@@ -394,9 +396,20 @@ sub DS2480Detect {
     my $send;
     # set the FLEX configuration parameters
     # default PDSRC = 1.37Vus
-    $send .= chr( ord(CMD_CONFIG) | ord(PARMSEL_SLEW) | ord(PARMSET_Slew0p83Vus) );
+    if ( $this->{ LINELENGTH } eq "SHORT" ) {
+	$send .= chr( ord(CMD_CONFIG) | ord(PARMSEL_SLEW) | ord(PARMSET_Slew1p37Vus) );
+    }
+    else {
+	$send .= chr( ord(CMD_CONFIG) | ord(PARMSEL_SLEW) | ord(PARMSET_Slew0p83Vus) );
+    }
+
     # default W1LT = 8us
-    $send .= chr( ord(CMD_CONFIG) | ord(PARMSEL_WRITE1LOW) | ord(PARMSET_Write12us) );
+    if ( $this->{ LINELENGTH } eq "SHORT" ) {
+	$send .= chr( ord(CMD_CONFIG) | ord(PARMSEL_WRITE1LOW) | ord(PARMSET_Write8us) );
+    }
+    else {
+	$send .= chr( ord(CMD_CONFIG) | ord(PARMSEL_WRITE1LOW) | ord(PARMSET_Write12us) );
+    }
     # default DSO/WORT = 10us
     $send .= chr( ord(CMD_CONFIG) | ord(PARMSEL_SAMPLEOFFSET) | ord(PARMSET_SampOff10us) );
 

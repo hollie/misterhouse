@@ -14,6 +14,7 @@
 	<LI><A HREF="#mister house announcement list">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#version 2.64 posted on 01/23/2002">Version 2.64 posted on 01/23/2002</A></LI>
 		<LI><A HREF="#version 2.63 posted on 01/19/2002">Version 2.63 posted on 01/19/2002</A></LI>
 		<LI><A HREF="#version 2.62 posted on 12/16/2001">Version 2.62 posted on 12/16/2001</A></LI>
 		<LI><A HREF="#version 2.61 posted on 11/18/2001">Version 2.61 posted on 11/18/2001</A></LI>
@@ -86,6 +87,25 @@
 <H1><A NAME="mister house announcement list">Mister House Announcement List</A></H1>
 <P>- This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at <A HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A> )</P>
+<P>
+<H2><A NAME="version 2.64 posted on 01/23/2002">Version 2.64 posted on 01/23/2002</A></H2>
+<P>Version 2.64 was just uploaded to:</P>
+<PRE>
+  <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
+  <A HREF="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</A></PRE>
+<P><STRONG>New Features:</STRONG></P>
+<P>- Minor release (no no features)</P>
+<P><STRONG>Bug Fixes and Other Changes:</STRONG></P>
+<P>- Alex Hsia found a 2.63 problem if you had vv_tts_program and no sound_program parm.</P>
+<P>- Added missing perlctl.dll missing from 2.63 win.zip</P>
+<P>- Backup up to an older mh/bin/viavoice_server binary, so the newer
+/lib/libc.so.6: version  'GLIBC_2.1.3' is not required.</P>
+<P>- Changed default &amp;net_connect to pre 2.63 behaviour of returning 1 if net_connect_if is not specified.</P>
+<P>- Fixed a 2.63 bug in get_url url file (file data was not saved)</P>
+<P>- Fixed yet another 2.63 bug that caused normal MS TTS to lost after a speak to_file call.</P>
+<P>- Fixed the ``Can't find '_hparser_xs_state' element in HTML::Parser'' error.</P>
+<P>- Added an example copy of mh/data/pronouncable_words.list</P>
+<P>- Added mh.ini parm ipaddress_local which overrides $Info{IPAddress_local}, now used in speak address option.</P>
 <P>
 <H2><A NAME="version 2.63 posted on 01/19/2002">Version 2.63 posted on 01/19/2002</A></H2>
 <P>Version 2.63 was just uploaded to:</P>
