@@ -440,8 +440,20 @@ sub setup {
     print "Creating socket server ports\n";
     for my $port_name (@Server_Ports) {
         my $port = $config_parms{$port_name . "_port"};
-        $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
-            die "Couldn't start a tcp server on $port_name $port: $@.\nTo get mh to run, blank out or change the ${port}_port in mh.ini\n";
+        my $proto = $config_parms{$port_name . "_protocol"};
+        $proto = 'tcp' unless $proto;
+
+        if ($proto eq 'tcp') {
+           $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
+               die "Couldn't start a tcp server on $port_name $port: $@\n";
+        } elsif ($proto eq 'udp') {
+           $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp') or 
+               die "Couldn't start a udp server on $port_name $port: $@\n";
+           $Socket_Ports{$port_name}{socka} = $Socket_Ports{$port_name}{sock}; # UDP ports are always "active"
+        } else {
+          die "Unknown protocol for $port_name \n";
+        }
+        $Socket_Ports{$port_name}{proto} = $proto;
     }
 
     print "Creating serial ports\n";
@@ -925,8 +937,15 @@ sub check_for_socket_data {
                                 # There must be a better way to dectect how many bytes to read without blocking??
                                 # If only fcntl work so we could make the port non blocking :(
         my ($byte, $data);
+
+        if ('udp' eq $config_parms{"${port_name}_protocol"}) {  # UDP Ports do not block
+          my $from_saddr = recv($sock, $data, 1500, undef); 
+          (my $from_port, my $from_ip) = sockaddr_in($from_saddr);
+          $Socket_Ports{$port_name}{data_record} = $data;       # No further processing for UDP...
+          return;
+        }
                                 # Browsers will send a line at a time, so will not block
-        if ($port_name eq 'http' or $config_parms{"${port_name}_buffer"} or $Socket_Ports{$port_name}{buffer}) {
+        elsif ($port_name eq 'http' or $config_parms{"${port_name}_buffer"} or $Socket_Ports{$port_name}{buffer}) {
                                 # Only one record ... user code must see only one record per pass
             $data = <$sock>;
 #            print "#".$data;
@@ -3158,6 +3177,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.16  2000/05/11 01:12:45  danal
+# Added support for UDP sockets; must be defined in MH.INI
+#
 # Revision 2.15  2000/05/06 16:30:13  winter
 # - allow for duplicate Serial_Item ids.  Add tk_font.
 #
