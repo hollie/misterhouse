@@ -1,4 +1,6 @@
-# Category=MisterHouse
+# Category = MisterHouse
+
+#@ Core MisterHouse commands e.g. reload code, list x10 items.
 
 $v_reload_code = new  Voice_Cmd("[,Force] {Reload,re load} code");
 $v_reload_code-> set_info('Load new mh.ini, icon, and/or code changes');

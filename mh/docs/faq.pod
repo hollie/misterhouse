@@ -35,13 +35,13 @@ Here are some memory stats:
 
   Linux
     10 Meg   <- mh -tk 0 mh_control.pl (run just one code file)
-    12 Meg   <- mh -tk 0               (run all the test code)
-    17 Meg   <- mh                     (run all the test code with tk gui on)
+    12 Meg   <- mh -tk 0               (run all the default code)
+    17 Meg   <- mh                     (run all the default code with tk gui on)
  
   Windows
     18 Meg   <- mh -tk 0 mh_control.pl (run just one code file)
-    20 Meg   <- mh -tk 0               (run all the test code)
-    27 Meg   <- mh                     (run all the test code with tk gui on)
+    20 Meg   <- mh -tk 0               (run all the default code)
+    27 Meg   <- mh                     (run all the default code with tk gui on)
  
    
 
@@ -155,7 +155,7 @@ The code that allows this is in mh/code/common/mhsend_server.pl.
 An example of mh code to act as a client to different mh box is in mh/code/examples/test_server2.pl
 
 - You can also control mh remotely via email (see faq question 'Can do I send mh comands via email?'),
-telnet sessions (if running mh/code/test/telent.pl), and via the built in web server.  An example url
+telnet sessions (if running mh/code/common/telent.pl), and via the built in web server.  An example url
 for the web server is:
 
   http://192.168.1.10:8080/RUN;last_response?turn_living_room_light_on
@@ -272,7 +272,7 @@ what is on the web control page and how it looks.
 There is more (probably not so easy to read) documentation on how to do this  
 under 'Customizing the Web Interface' in mh/docs/mh.html
 
-You can also use something like mh/code/test/mhsend_server.pl
+You can also use something like mh/code/common/mhsend_server.pl
 and then read/write to sockets directly from non-mh web server cgi scripts.
 Or have the web server script simply call mh/bin/mhsend to run mh commands.
 
@@ -582,18 +582,18 @@ You can also create a group of X10 items.  Here is an example that would turn al
 
 =head2 2.11: How do I get mh to stop telling the time each minute?
 
-Out of the box, mh defaults to running all the code in the mh/code/test directory.  
-Members test_tagline and the hello_speak members are the main sources of the periodic test speech.
-Once you have played around
-with the example code, you will want to create your own code directory (probably somewhere other than in mh/code, so 
-you can easily upgrade to new versions of mh), and copy just the code members you find useful.  
+Out of the box, mh defaults to running most of the code in the mh/code/common directory and all the code in mh/code/test.
+Members test_tagline.pl and the hello_speak.pl members are the main sources of the periodic test speech.
+Once you have played around with the example code, you will want to use 
+http://localhost:8080/bin/select_code.pl  menu (avaliable on the web ia5 MrHouse menu 'Select Code' button) 
+and select only the code files you find useful.
 
 See the FAQ question 'How does mh.ini work' on how to modify the code_dir parm to point to your new code directory.
 
 
 =head2 2.12: Can do I send mh comands via email?
 
-Set the mh.ini net_mail_command_code parm to a secret code, and copy mh/code/test/internet_mail.pl
+Set the mh.ini net_mail_command_code parm to a secret code, and copy mh/code/common/internet_mail.pl
 into your code directory.   Now you can send email with the following string either
 in the subject or the body of your email:
 
@@ -1131,6 +1131,22 @@ You can find instuctions on how to do this at: http://win98central.acauth.com/in
 IP addresses that start with 10. (e.g. 10.0.0.1) are reserved for internal lans, so you can use
 10.0.0.1, 10.0.0.2, etc.
 
+=head2 How do I run MH when not logged in to Win2K or XP?
+
+You can run any program as a service, using a program called srvany.exe, 
+available in the Resource Kit, or from here:
+
+ http://www.electrasoft.com/srvany/srvany.htm
+
+Here is an example of registry entries after configuring my to run with srvany:
+ 
+ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MisterHouse\Parameters AppDirectory  REG_SZ    c:\mh\bin
+ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MisterHouse\Parameters Application   REG_SZ    c:\perl\bin\perl.exe -S c:\mh\bin\mh
+ 
+
+Rather than call mh as a service, many peopld have Windows do an auto-login and add mh to the startup.
+
+
 =head1 5: Perl questions
 
 =head2 5.1: Whats the best way to learn perl?
@@ -1246,6 +1262,7 @@ Here is a rough timeline of MisterHouse development:
  - 06/02 Registered misterhouse.com domain name.
  - 08/02 Caddx alarm, iButton humidity sensor, undo, light/dark hawkey sensor
  - 09/02 Proxy mh, improved %cpu used, Group member and idle_time methods, Linux NaturalVoice, Clipsal CBUS
+ - 10/02 Enabled web based code selection, file based alarms, palm reader, and Mac OSX support.
 
 
 Audrey support, more MS TTS controls, call waiting callerid
@@ -1554,6 +1571,9 @@ parasitic powering.
 
 Here is a link with some detailed electronic info: http://www.maxim-ic.com/1st_pages/tb1.htm
 
+Kieran Ames has a nice writeup on how he used iButtons to log and plot his 
+pond temperatures: http://ames.homeip.net:81/pages/My_iButtonVenture.htm
+
 
 =head2 6.8 What sort of hardware do you have in your house?
 
@@ -1592,6 +1612,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.34  2002/10/13 02:07:58  winter
+#  - 2.72 release
+#
 # Revision 1.33  2002/09/22 01:33:22  winter
 # - 2.71 release
 #

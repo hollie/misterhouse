@@ -20,8 +20,9 @@ if not '%1' == '' goto GETARGS
 if %noloop% == 1  goto START
 
 :RERUN
-@rem This file will be created if mh starts normally (i.e. does not die on startup)
-if exist mh.started del mh.started
+@rem This file will be deleted if mh starts normally (i.e. does not die on startup)
+@rem if exist mh.started del mh.started
+echo mh will delete on startup > mh.startup
 
 :START
 if EXIST mh.exe goto COMPILED
@@ -43,7 +44,8 @@ if %noloop%     == 1 goto DONE
 
 :FAIL
 
-if not EXIST mh.started goto DONE2
+@rem not EXIST mh.started goto DONE2
+if       EXIST mh.startup goto DONE2
 
 echo. | date >> mh_restart.log
 echo accidental exit on mh, restarting ... >> mh_restart.log

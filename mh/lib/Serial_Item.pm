@@ -136,11 +136,11 @@ sub said {
     my $data;
     if ($datatype and $datatype eq 'raw') {
         $data = $main::Serial_Ports{$port_name}{data};
-        $main::Serial_Ports{$port_name}{data} = '';
+        $main::Serial_Ports{$port_name}{data} = undef;
     }
     else {
         $data = $main::Serial_Ports{$port_name}{data_record};
-        $main::Serial_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
+        $main::Serial_Ports{$port_name}{data_record} = undef; # Maybe this should be reset in main loop??
     }
 #   print "db serial $port_name data: $data\n" if $main::config_parms{debug} and $main::config_parms{debug} eq $port_name;
     return $data;
@@ -224,17 +224,16 @@ sub set {
 
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
 
-    return unless %main::Serial_Ports;
-
     my $port_name = $self->{port_name};
+    my $interface = $self->{interface};
+    $interface = '' unless $interface;
 
     print "Serial_Item: port=$port_name self=$self state=$state data=$serial_data interface=$$self{interface}\n" 
         if $main::config_parms{debug} eq 'serial';
 
-    return if $main::Save{mode} eq 'offline';
+    return if     $main::Save{mode} eq 'offline';
+    return unless %main::Serial_Ports;
 
-    my $interface = $$self{interface};
-    $interface = 'none' unless $interface;
 
                                 # First deal with X10 strings...
     if ($serial_data =~ /^X/ or $self->isa('X10_Item')) {
@@ -282,7 +281,7 @@ sub set {
                                 # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
                 $serial_chunk = $1 . substr 'ABCDEFG', $2, 1 if $serial_chunk =~ /^(\S)1(\d)$/;
 
-                &send_x10_data($self, 'X' . $serial_chunk, $interface);
+                &send_x10_data($interface, 'X' . $serial_chunk);
 
             }
             else {
@@ -292,43 +291,17 @@ sub set {
         }
         return;
     }
-
-                                # Now deal with all other Serial strings
-    elsif ($interface eq 'homevision') {
-        print "Using homevision to send: $serial_data\n";
-        &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
-    }
-    elsif ($interface eq 'ncpuxa' or $port_name eq 'ncpuxa') {
-        print "Using ncpuxa to send: $serial_data\n";
-        &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
-    }
     else {
-                                # Pick a default port, if not specified
+        $port_name = $interface   if !$port_name;
         $port_name = 'Homevision' if !$port_name and $main::Serial_Ports{Homevision}{object}; #Since it's multifunction, it should be default
-        $port_name = 'weeder'  if !$port_name and $main::Serial_Ports{weeder}{object};
-        $port_name = 'serial1' if !$port_name and $main::Serial_Ports{serial1}{object};
-        $port_name = 'serial2' if !$port_name and $main::Serial_Ports{serial2}{object};
-#       print "\$port_name is $port_name\n\$main::Serial_Ports{Homevision}{object} is $main::Serial_Ports{Homevision}{object}\n";
+        $port_name = 'weeder'     if !$port_name and $main::Serial_Ports{weeder}{object};
+        $port_name = 'serial1'    if !$port_name and $main::Serial_Ports{serial1}{object};
+        $port_name = 'serial2'    if !$port_name and $main::Serial_Ports{serial2}{object};
         unless ($port_name) {
             print "Error, serial set called, but no serial port found: data=$serial_data\n";
             return;
         }
-        unless ($main::Serial_Ports{$port_name}{object}) {
-            print "Error, serial port for $port_name has not been set: data=$serial_data\n";
-            return;
-        }
-
-        if (lc($port_name) eq 'homevision') {
-            &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
-        }
-        else {
-            my $datatype  = $main::Serial_Ports{$port_name}{datatype};
-            $serial_data .= "\r" unless $datatype and $datatype eq 'raw';
-            my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
-            
-#           &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::config_parms{debug} eq 'serial';
-            print "serial port=$port_name out=$serial_data results=$results\n" if $main::config_parms{debug} eq 'serial';
-        }
+        &send_serial_data($port_name, $serial_data);
     }
 
                                 # Check for X10 All-on All-off house codes
@@ -358,16 +331,44 @@ sub set {
             }
         }
     }
-
 }    
+
+sub send_serial_data {
+    my ($port_name, $serial_data) = @_;
+
+    return if &main::proxy_send($port_name, 'send_serial_data', $serial_data);
+
+    unless ($main::Serial_Ports{$port_name}{object}) {
+        print "Error, serial port for $port_name has not been set: data=$serial_data\n";
+        return;
+    }
+
+    if (lc $port_name eq 'homevision') {
+        print "Using homevision to send: $serial_data\n";
+        &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
+    }
+    elsif (lc $port_name eq 'ncpuxa') {
+        print "Using ncpuxa to send: $serial_data\n";
+        &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
+    }
+    else {
+        my $datatype  = $main::Serial_Ports{$port_name}{datatype};
+        $serial_data .= "\r" unless $datatype and $datatype eq 'raw';
+        
+        my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
+           
+#      &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::config_parms{debug} eq 'serial';
+        print "serial port=$port_name out=$serial_data results=$results\n" if $main::config_parms{debug} eq 'serial';
+    }
+}
 
 my $x10_save_unit;
 sub send_x10_data {
-    my ($self, $serial_data, $interface) = @_;
+    my ($interface, $serial_data) = @_;
     my ($isfunc);
 
                                 # Use proxy mh if present (avoids mh pauses for slow X10 xmits)
-    return if &main::proxy_send($interface, 'send_x10_data', $serial_data, $interface);
+    return if &main::proxy_send($interface, 'send_x10_data', $serial_data);
 
     if ($serial_data =~ /^X[A-P][1-9A-G]$/) {
         $isfunc = 0;
@@ -475,6 +476,9 @@ sub send_x10_data {
     else {
         print "\nError, X10 interface not found: interface=$interface, data=$serial_data\n";
     }
+
+    &send_x10_data_hooks($serial_data);   # Created by &add_hooks
+
 }
 
 sub set_interface {
@@ -522,6 +526,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.59  2002/10/13 02:07:59  winter
+#  - 2.72 release
+#
 # Revision 1.58  2002/09/22 01:33:23  winter
 # - 2.71 release
 #

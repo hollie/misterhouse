@@ -55,9 +55,10 @@ sub restore_string {
     my ($self) = @_;
 
     my $state       = $self->{state};
-    my $restore_string = $self->{object_name} . "->{state} = q~$state~;\n" if $state;
-    $restore_string = $self->{object_name} . "->{count} = q~$self->{count}~;\n" if $self->{count};
-    $restore_string = $self->{object_name} . "->{set_time} = q~$self->{set_time}~;\n" if $self->{set_time};
+    my $restore_string;
+    $restore_string .= $self->{object_name} . "->{state} = q~$state~;\n" if defined $state;
+    $restore_string .= $self->{object_name} . "->{count} = q~$self->{count}~;\n" if $self->{count};
+    $restore_string .= $self->{object_name} . "->{set_time} = q~$self->{set_time}~;\n" if $self->{set_time};
 
     if ($self->{state_log} and my $state_log = join($;, @{$self->{state_log}})) {
         $state_log =~ s/\n/ /g; # Avoid new-lines on restored vars
@@ -67,7 +68,7 @@ sub restore_string {
                                 # Allow for dynamicaly/user defined save data
     for my $restore_var (@{$$self{restore_data}}) {
         my $restore_value = $self->{$restore_var};
-        $restore_string .= $self->{object_name} . "->{$restore_var} = q~$restore_value~;\n" if $restore_value;
+        $restore_string .= $self->{object_name} . "->{$restore_var} = q~$restore_value~;\n" if defined $restore_value;
     }
 
     return $restore_string;
@@ -414,6 +415,9 @@ sub get_web_style {
 
 #
 # $Log$
+# Revision 1.22  2002/10/13 02:07:59  winter
+#  - 2.72 release
+#
 # Revision 1.21  2002/09/22 01:33:23  winter
 # - 2.71 release
 #

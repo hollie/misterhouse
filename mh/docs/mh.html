@@ -3892,6 +3892,18 @@ Then run mh_proxy.  If you have tk installed, you may want to run mh_proxy -tk 1
 <P>You can start or restart either the main mh or mh_proxy before or after the other one and they should sync up.
 So far, only the CM11, CM17 interfaces and iButton state_now and read_temp methods are proxy enabled.
 Support for other iButton methods or serial interfaces can be added as needed.</P>
+<P>If you want to put an iButton port on a proxy, you will need to also run a code file
+on the proxy that defines all the iButtons you will use on that port.  These iButton object names
+must match those on in your real code on your main mh box.  One way to do this is to 
+share the same iButton.pl code file on your proxy as you use on your main mh box,
+using the mh.ini/mh.proxy.ini code_dir and load_code parms.  For example:</P>
+<PRE>
+ main mh:
+  code_dir  = c:/misterhouse/bruce</PRE>
+<PRE>
+ proxy mh:
+  code_dir  = $Pgm_Root/code/proxy,c:/misterhouse/bruce
+  only_load = proxy_server.pl,ibutton.pl</PRE>
 <P>If you want to distribute speech to mh_proxy machines, 
 see mh/code/public/speak_proxy.pl for example code.</P>
 <P>Here are some small $400-&gt;$500 computers that might be good for distributed speech and/or ports:</P>

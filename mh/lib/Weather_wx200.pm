@@ -36,6 +36,7 @@ sub update_wx200_weather {
     my $debug = 1 if $main::config_parms{debug} eq 'weather';
     my $remainder = &read_wx200($data, \%main::Weather, $debug);
     set_data $wx200_port $remainder if $remainder;
+
 }                             
 
 # Category=Weather
@@ -240,6 +241,9 @@ sub wx_time {
 
 #
 # $Log$
+# Revision 1.9  2002/10/13 02:07:59  winter
+#  - 2.72 release
+#
 # Revision 1.8  2002/08/22 04:33:20  winter
 # - 2.70 release
 #

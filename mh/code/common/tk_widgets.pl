@@ -1,4 +1,6 @@
-# Category=MisterHouse
+# Category = MisterHouse
+
+#@ Adds widgets to the tk interface
 
 # Position=2                    Load after tk_frames
 
@@ -39,7 +41,7 @@ if ($Reload) {
 #   &tk_entry("Sleep time", \$Loop_Sleep_Time, "Sleep count", \$config_parms{sleep_count});  ... only works on reload
 
                                 # $search_code_string is defined in mh/code/common/mh_control.pl
-    &tk_entry('Code Search', $search_code_string,    'Debug flag', \$config_parms{debug}) if $Run_Members{mh_control};
+    &tk_entry('Code Search', $search_code_string,    'Debug flag', \$config_parms{debug});
 
     &tk_entry('MP3 Search', \$Save{mp3_search}, 'MP3 Genre', \$Save{mp3_Genre}) if $Run_Members{mp3_playlist};
 

@@ -16,21 +16,24 @@ The reasons you might want to run this are:
 
 Run with mh/bin/mh_proxy
 
-See 'Use distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
+See 'Using distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
 
 =cut
 
 $proxy_server  = new  Socket_Item(undef, undef, 'server_proxy');
 
-print '.';                      # A heartbeat
+#print '.';                      # A heartbeat
 
                                 # Process incoming requests from the real mh
 if ($state = said $proxy_server) {
-    my ($function, @data) = split $;, $state;
-    print_log "Proxy data received: function=$function data=@data.";
+    my ($interface, $function, @data) = split $;, $state;
+    print_log "Proxy data received from mh: interface=$interface function=$function data=@data." if $config_parms{debug} eq 'proxy';
 
-    if ($function eq 'send_x10_data') {
-        &Serial_Item::send_x10_data(undef, @data);
+    if ($function eq 'send_serial_data') {
+        &Serial_Item::send_serial_data($interface, $data[0]);
+    }
+    elsif ($function eq 'send_x10_data') {
+        &Serial_Item::send_x10_data($interface, $data[0]);
     }
     elsif ($function eq 'send_ir') {
         &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, $data[0]);
@@ -58,20 +61,23 @@ if ($state = said $proxy_server) {
                                 # Echo incoming serial data back to the real mh
 &Serial_data_add_hook(\&proxy_serial_data) if $Reload;
 sub proxy_serial_data {
-    my ($data) = @_;
-    print_log "Proxy serial data sent: $data.";
-    set $proxy_server join($;, 'serial', $data), 'all'; # all writes out to all clients
+    my ($data, $interface) = @_;
+    print_log "Proxy serial data sent to mh: interface=$interface data=$data." if $config_parms{debug} eq 'proxy';
+    if ($proxy_server->active()) {
+        set $proxy_server join($;, 'serial', $data, $interface), 'all'; # all writes out to all clients
+    }
 }
 
 
                                 # Echo incoming iButton data back to the real mh
 &iButton_receive_add_hook(\&proxy_ibutton_data) if $Reload;
 sub proxy_ibutton_data {
-    my ($ref, $data) = @_;
-    my $name = $$ref{object_name};
-    print_log "iButton change: $name $data";
-    print_log "Proxy ibutton data sent: $data.";
-    set $proxy_server join($;, 'set_receive', $name, $data), 'all';
+    if ($proxy_server->active()) {
+        my ($ref, $data) = @_;
+        my $name = $$ref{object_name};
+        print_log "Proxy ibutton data sent:  $name $data." if $config_parms{debug} eq 'proxy';
+        set $proxy_server join($;, 'set_receive', $name, $data), 'all';
+    }
 }
 
 
@@ -81,8 +87,10 @@ sub proxy_ibutton_data {
                                 # Those without a CM11 ... this will not hurt any
 if ($ControlX10::CM11::POWER_RESET) {
     $ControlX10::CM11::POWER_RESET = 0;
-    print_log "Proxy CM11 power reset sent";
-    set $proxy_server join($;, 'set', '$Power_Supply', 'Restored'), 'all';
+    if ($proxy_server->active()) {
+        print_log "Proxy CM11 power reset sent" if $config_parms{debug} eq 'proxy';
+        set $proxy_server join($;, 'set', '$Power_Supply', 'Restored'), 'all';
+    }
 }
 
 
@@ -104,3 +112,10 @@ if ($Keyboard) {
 
                                 # Need this so the default tk_widgets.pl will not fail
 $search_code_string = new Generic_Item;
+
+
+                                # Make sure main mh program is still alive
+if ($New_Minute and !active $proxy_server) {
+    speak "Proxy can not talk to Mister House";
+}
+

@@ -1,3 +1,7 @@
+  -rw-rw-rw-   1 winter   root     6388 Aug 10  2001 internet_earthquakes_cal.pl
+  -rw-rw-rw-   1 winter   root     4190 Nov 12  2001 internet_starshine.pl
+  -rw-rw-rw-   1 winter   root    16156 Nov 17  2001 aqualink.pl
+  -rw-rw-rw-   1 winter   root     6495 Nov 16  2001 voice_server.pl
 
 mh/code/public:
 
@@ -13,15 +17,8 @@ alarmclock_evan.pl
 alarmclock_david.pl
  - David McLellan's alarm clock
 
-alarmclock_doug.pl
- - Doug Nakakihara's alarm clock for for  file based timed reminders.
-
 alarm_concept.*
  - Nick Maddock's code for the Concept alarm system from http://www.innerrange.com
-
-aqualink.pl
- - Tim Doyle's code for the Jandy AquaLink RS pool/spa controller.
-   Like Compool.pl, you can get/set various temps and states.                    
 
 audible_menu.pl
 audible_menu.txt
@@ -52,16 +49,14 @@ callerisdn.pl
    (ISDN4BSD or ISDN4Linux required)
 
 
-cbus_v1.0.zip
+cbus_v2.0.zip
  - Richard Morgan's code for talking to CBUS devices via Clipsal CGATE 
 ( http://www.clipsal.com.au )
 
 chart_xl.pl
  - Clive Freedman's code for generating html that calls Excel via activex to chart log data.
 
-chimes_cuckoo*.pl
-chimes_westminster.pl
- - David Norwood's code for chimeing like cuckoo and grandfather clocks.
+chimes_cuckoo_doug.pl
    Douglas Nakakihara's version that uses only one wav file
 
 Compool*.pl
@@ -91,8 +86,6 @@ hvac_craig.pl
  - Craig Schaeffer's example of a function he uses in 
    his HVAC setup to do a smart heat/cool setback cycle.
 
- - David Lounsberry's code to monitor 14 different iButtons and control HVAC with a weeder board!
- 
 hvac_david.pl
  - David Lounsberry's code to monitor 14 different iButtons and control HVAC with a weeder board!
  
@@ -123,24 +116,14 @@ ical.pl
 ImageWebSub.pl
  - Samuel Bagfors example of a web icon selecting function
 
-internet_earthquake.pl
-internet_earthquake_cal.pl
- - Tim Doyle's script for monitoring earthquakes.
- - David Norwood created a California specific _cal version.
-
 internet_hebcal.pl
  - Max Kelly's code for downloading a shabbat calendar
 
-internet_ip_update.pl
-internet_ip_update_craig.pl
+internet_ip_update*.pl
  - Updates IP servers/web pages with IP addresses
 
 internet_speed_check.pl
  - Larry Roudebush's code to time ftp updload and download rates.
-
-internet_starshine.pl
- - Tim Doyle's code to announce when one of the visible passes of
-   a StarShine satellite is about to occur.
 
 irman.pl
  - Code to receive IR signals from the $30 irman box, available at 
@@ -164,11 +147,11 @@ mp3_control_xmms.pl, mp3_playlist_xmms.pl
  - Richard Phillips's code for controling the xmms MP3 player for Linux.
  - Also see xmms_*.pl members
 
+mirror_directory*
+ - Larry Roudebush's code mirror directories.
+ 
 monitor_sump_pump.pl
  - Craig's code to monitor his sump pump
-
-monitor_server.pl
- - Use to monitor web hits to the mh server
 
 monitor_ipchainlog.pl
  - Use to a linux ipchain log for web traffic
@@ -196,6 +179,9 @@ news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
  - Brian Rigsby did news_yahoo.pl
 
+palm_calendar*
+ - Axel Brown's code for copying palm calendar entries to the mh organizer calendar
+
 pa_control_evan.pl
 pa_control_evan_test.pl
  - Evan Graham's code for controling which rooms hear the sound 
@@ -204,7 +190,7 @@ pa_control_evan_test.pl
 phone_logs_kieran.pl
  - Kieran Ames' code for summarizing recent callers.  Also see mh/code/bruce/phone_logs.pl
 
-pictures_filess.pl
+pictures_files1.pl
  - Robert Rozman's code that uses a dbm to index a photo database.
 
 printer_control.pl
@@ -282,9 +268,6 @@ tv_info_ge.pl
  - Stoll Thomas's code for tv queries of german stations (uses mh/bin/get_tv_info_ge) 
    via http://www.tvspielfilm.de
 
-tk_photos.pl
- - David Norwood's code for displaying a local, full screen photo slideshow using tk.
-
 video_inline.pl
  - Kent Noonan's code for controling the inline video scan doubler
 
@@ -309,12 +292,6 @@ weather.pl
 
 weather_com.pl
  - Uses Geo::Weather.pm to get weather data from weather.com.  Good for international sites.
-
-weather_chance_of_rain.pl
- - David Norwood's script that parses rain info from the weather forecasts
-   downloaded by get_weather (US only).  If rain is forecasted, it will be
-   announced.  There is also some example code for skipping sprinkler cycles
-   based on the forecast.
 
 weather_ec.pl
  - Harald Koch's code for parsing data from weatheroffice.ec.gc.ca into %Weather.

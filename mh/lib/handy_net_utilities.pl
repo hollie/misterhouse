@@ -147,7 +147,7 @@ sub main::net_domain_name {
             if $main::Socket_Ports{$address} and
                $main::Socket_Ports{$address}{client_ip_address};
 
-    return if &main::is_local_address($address);
+    return ('local', 'local') if &main::is_local_address($address);
 
     if ($DNS_cache{$address}) {
         return &net_domain_name_parse2($DNS_cache{$address});
@@ -606,7 +606,7 @@ sub main::net_im_signoff {
 # IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hi ho</FONT></BODY></HTML>
 sub aolim::callback {
     my ($type, $name, $arg, $text) = @_;
-    print "db t=$type, n=$name, a=$arg, t=$text\n";
+#   print "db t=$type, n=$name, a=$arg, t=$text\n";
     if ($type eq 'ERROR') {
         my $error = "$Net::AOLIM::ERROR_MSGS{$name}";
         $error =~ s/\$ERR_ARG/$arg/g;
@@ -619,7 +619,9 @@ sub aolim::callback {
 #       &main::display(text => "$name ($time:$main::Second): " . $text2, time => 0, window_name => 'AIM', append => 'top');
         &main::AOLim_Message_hooks($name, $text2, 'AOL');
     }
-    else {
+                                  # Sometimes name, arg, and text are empty,
+                                  # but type=2 once a minute, so don't print that
+    elsif ($name or $arg or $text) {
         print "AOL AIM data: t=$type name=$name a=$arg text=$text\n";
     }
 }
@@ -1010,6 +1012,23 @@ sub main::net_mail_read {
     return \@msgdata;
 }
 
+                                # Dangerous method here!
+sub main::net_mail_delete {
+
+    my %parms = @_;
+    return unless my $pop = &main::net_mail_login(%parms);
+
+    $parms{first}  = 1             unless $parms{first};
+    ($parms{last}) = $pop->popstat unless $parms{last};
+
+    my @msgdata;
+    foreach my $msgnum ($parms{first} .. $parms{last}) {
+        print "Deleting msg $msgnum\n";
+        $pop->delete($msgnum);
+    }
+    $pop->quit;                 # Need to logoff to delete
+}
+
 sub main::net_ping {
     my ($host, $protocol) = @_;
     use Net::Ping;
@@ -1025,6 +1044,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.43  2002/10/13 02:07:59  winter
+#  - 2.72 release
+#
 # Revision 1.42  2002/07/01 22:25:28  winter
 # - 2.69 release
 #

@@ -7,7 +7,7 @@ B<mh> - MisterHouse Home Automation Program
 =head1 SYNOPSIS
 
 B<mh> is a perl program for time, event, web, socket, and voice based home control functions.  It currently
-runs on Windows 95/98/NT and on Unix platforms, including Linux.
+runs on Windows 95/98/NT and on Unix platforms, including Linux and Mac OSX.
 
 perl objects are used for various types of objects to give a powerful but 
 concise programming interface.  Here is some example code:
@@ -56,7 +56,7 @@ This will disable the tk interface and change the code dir to the Bruce director
 
    mh -tk 0 -code_dir c:\mh\code\Bruce
 
-This will log all 'print' statements to /mh/test1.log and turn on all serial related debug messages:
+This will log all 'print' statements to test1.log and turn on all serial related debug messages:
 
    mh -log_file test1.log -debug serial
 
@@ -247,6 +247,9 @@ Actions can be triggered in milliseconds,
 without having to wait for the 500+ millisecond time it takes
 to transmit data over the powerline. 
 
+This new RF->X10 interface now supports all housecodes (older ones only support once housecode each):
+http://www.letsautomate.com/10680.cfm?CFID=67097&CFTOKEN=4528584
+
 Another supported X10 interface is the Marrick Lynx10-PLC controller: http://www.marrickltd.com/LynX105.htm
 See mh/lib/Lynx10PLC.pm
 
@@ -399,7 +402,10 @@ Here are some URLs and prices:
       http://www.pointsix.com/cgi-bin/PointSix.cgi?AppNotes&app010
 
   http://www.aag.com.mx
-- Sells an iButton weather station for $80
+    - Sells an iButton weather station for $80
+
+  http://ibuttonlink.com/
+    - An improved $35 serial interface
 
   http://weather.henriksens.net  has free 1-Wire Weather station software
     - It includes a tcp/ip server that (in theory) could talk to mh
@@ -427,7 +433,7 @@ slightly noise environments, where headsets were normally required.
 
 Can process data from a keyboard simulator scanner, like the Cue Cat
 
-The mh/code/test/barcode* members code will process data from the Cue Kat keyboard simulator
+The mh/code/common/barcode* members code will process data from the Cue Kat keyboard simulator
 barcode scanner, which you can pick up for free at Radio Shack.  The manufacture of the Cue Kat
 prefers that you use their software (that's why they give it away), and if you want to look up data
 on the web for an item, their software is probably best, as they have a large database of UPC codes.
@@ -472,7 +478,7 @@ running), add :port to URL (e.g.  http://localhost:8080 ).
 
 =item server_telnet_port=23
 
-Use 23 to enable access via 'telnet localhost', if you are running the mh/code/testtelnet.pl member.
+Use 23 to enable access via 'telnet localhost', if you are running the mh/code/common/telnet.pl member.
 If you use a different port, you can still get to the port with 'telnet localhost port_number'.
 
 =item diagnostics=1
@@ -739,6 +745,10 @@ The 2nd optional tie_* argument is a print_log message you want whenever the tie
                             'Overriding item1 ON command because of wind');
 
     $fountain -> tie_time('10PM', OFF, 'Fountain turned off');
+
+                           # Disable an item when we are away
+    $item1 -> tie_filter('state $status_away eq ON');
+    $item1 -> tie_event('print_log "item1 toggled to $state"');
 
 
 See mh/code/examples/generic_item.pl for more examples.
@@ -1023,7 +1033,7 @@ use the codes for your various remotes.
 
 This object is used to send and receive data to LCD type displays with keypads.
 An example is in mh/code/bruce/lcd.pl.
-To use simulate an LCD keypad with your pc keyboard, use mh/code/test/lcd_keyboard.pl.
+To use simulate an LCD keypad with your pc keyboard, use mh/code/bruce/lcd_keyboard.pl.
 
   Methods:
      new $type, $port, $size, $menu_group, $keymap
@@ -1488,7 +1498,7 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
                                Number => 4, Number => 11) if said $router_reboot;
 
 More examples are in mh/code/bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
-my/code/bruce/mh_watchdog.pl, mh/code/test/socket_test.pl, and mh/code/examples/socket_test.pl
+my/code/bruce/mh_watchdog.pl, mh/code/examples/socket_test*.pl
 
 
 =item Timer
@@ -1783,7 +1793,7 @@ Wed 10/11/00 07:38:11  07:38 10/11/00 System         Opening by User Code 40
 =item add_sound
 
 Assigns a sound file to an event name.  This allows us to create and review event sounds.
-See mh/code/test/event_sounds.pl for an example.
+See mh/code/common/event_sounds.pl for an example.
 
   Example:
 
@@ -2900,7 +2910,7 @@ Returns the number of email message on the specified account.
 This returns a pointer to a hash array containing info on mail for a specified email account. 
 Check out the mh/bin/get_email program for a usage example.  Rather than call this 
 with mh code directly, calling get_email with a Process_Item, so mh does not pause
-while email is being checked.  See mh/code/test/internet_mail.pl for an example.
+while email is being checked.  See mh/code/common/internet_mail.pl for an example.
 
  
 
@@ -2909,6 +2919,9 @@ while email is being checked.  See mh/code/test/internet_mail.pl for an example.
 Returns a list array of pointers to data read from an email account.
 This is not tested and needs to be documented.
 
+=item net_mail_delete
+
+Deletes mail from an account.   A dangerous, but requested, function.
  
 
 
@@ -3078,7 +3091,7 @@ If your have your mail client set to 'leave mail on server'
 (useful if you want to use appliances like Audrey to also read mail),
 you will probably want to set this to something like 15.
 
-Here is an example of how to call it from mh (see mh/code/test/internet_mail.pl 
+Here is an example of how to call it from mh (see mh/code/common/internet_mail.pl 
 for the complete example):
 
   $p_get_email = new Process_Item('get_email');
@@ -3096,7 +3109,7 @@ for the complete example):
 =item get_mp3_data
 
 get_mp3_data reads mp3 directories and stores the results in a dbm file.
-This data is used by mh/test/mp3_playlist/pl to search/play mp3 
+This data is used by mh/bruce/mp3_playlist/pl to search/play mp3 
 tag data, file names, and playlist files.
 
   Usage:
@@ -3475,7 +3488,7 @@ Usage:
 =item mhsend
 
 mhsend allows you to send data to mh over the intra/internet.  Data can be logged, filed, spoken, displayed,
-or run.  The data processed by mh/code/test/mhsend_server.pl
+or run.  The data processed by mh/code/common/mhsend_server.pl
 
   mhsend sends data to the MisterHouse program, through the internet/intranet.
 
@@ -4171,7 +4184,7 @@ http://www.speech.cs.cmu.edu/flite/
 For vr with ViaVoice, use mh/code/bruce/viavoice_control.pl
 
 
-=head2 Use distributed MisterHouse proxies
+=head2 Using distributed MisterHouse proxies
 
 There are several reasons you might want to run one or more extra proxy versions of MisterHouse:
 
@@ -4191,19 +4204,28 @@ There are several reasons you might want to run one or more extra proxy versions
    the speak rooms= parm, using eithernet instead of a 
    relay / PA wiring scheme. 
 
+ - Wean yourself off of one OS onto another, sharing ports
+   from your old computer to the new one.
+
 To run a proxy mh,  copy and modify the mh/bin/mh_proxy.ini 
 and mh_proxy (unix) or mh_proxy.bat (windows) files.
 Then run mh_proxy.  If you have tk installed, you may want to run mh_proxy -tk 1 while debugging.
 
+Another option, instead of running a simple pruned down mh with mh_proxy, 
+you can also simply run a 2nd normal version of mh,
+and simply include the proxy code dir in you mh.ini code_dir parm.  For example:
+
+ code_dir = c:/misterhouse/my_code,c:/misterhouse/mh/code/proxy
+
 On your main mh box, change your mh.ini port parms to point to the address:port of the proxy box, like this:
 
- cm11_port           = proxy localhost:9001
- cm17_port           = proxy localhost:9001
- iButton_serial_port = proxy localhost:9001
+ cm11_port           = proxy localhost:8005
+ cm17_port           = proxy localhost:8005
+ iButton_serial_port = proxy localhost:8005
 
 You can start or restart either the main mh or mh_proxy before or after the other one and they should sync up.
-So far, only the CM11, CM17 interfaces and iButton state_now and read_temp methods are proxy enabled.
-Support for other iButton methods or serial interfaces can be added as needed.
+Tested interfaces include 
+cm11, cm17, iButton, weeder, mr26, wx200 weather, modem, netcallerid, and ham tnc.
 
 If you want to put an iButton port on a proxy, you will need to also run a code file
 on the proxy that defines all the iButtons you will use on that port.  These iButton object names
@@ -4438,6 +4460,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.58  2002/10/13 02:07:58  winter
+#  - 2.72 release
+#
 # Revision 1.57  2002/09/22 01:33:23  winter
 # - 2.71 release
 #

@@ -123,8 +123,11 @@ sub speak_text {
 #       $speak_pgm = "$path/bin/TTSDesktopPlayer      -data $path/data -xml";
     }
 
+    elsif ($main::Info{OS_name}=~ /darwin/i) {
+        $speak_pgm = 'osascript';
+    }
 
-    if ($speak_engine =~ /viavoice/i or $speak_engine =~ /vv_tts/i) {
+    elsif ($speak_engine =~ /viavoice/i or $speak_engine =~ /vv_tts/i) {
         $parms{voice} = $main::config_parms{viavoice_voice} unless $parms{voice};
         $parms{voice} = $voice_names{lc $parms{voice}} if $voice_names{lc $parms{voice}};
         my %voice_table = (male => 1, female => 2, child => 3, elder_female => 7, elder_male => 8);
@@ -297,6 +300,18 @@ sub speak_text {
 #               $speak_pgm_use_stdin = 1;    
 
                 $speak_pgm .= "> /dev/null";
+            }
+            elsif ($speak_pgm eq 'osascript') {
+                $parms{text} =~ s/\"/\'/g;   # Leave ' for use in I've etc
+                if ($parms{volume}) {
+                    $parms{volume} = int (7 * $parms{volume}/100) if $parms{volume} > 7;
+                    $speak_pgm_arg .= qq[ -e 'set volume $parms{volume}'];
+                }
+                $speak_pgm_arg .= qq[ -e 'say "$parms{text}"'];
+                            # Reset to previous level ... how do we get that??
+                if ($parms{volume_reset}) {
+                    $speak_pgm_arg .= qq[ -e 'set $parms{volume_reset}'];
+                }
             }
                 # Not sure what other programs are being used here
             else {
@@ -705,6 +720,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.39  2002/10/13 02:07:59  winter
+#  - 2.72 release
+#
 # Revision 1.38  2002/09/22 01:33:24  winter
 # - 2.71 release
 #

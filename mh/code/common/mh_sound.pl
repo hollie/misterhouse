@@ -1,4 +1,6 @@
-# Category=MisterHouse
+# Category = MisterHouse
+
+#@ Controls sound volume durring speak and play events.
 
 # Here is what this code does:
 #  - Controls volume and sets a object whenever speak or play is called

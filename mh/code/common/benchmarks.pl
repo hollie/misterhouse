@@ -1,10 +1,10 @@
-# Category=MisterHouse
+# Category = MisterHouse
 
-#
+#@ Various benchmarking functions.
+
 # If you want to run different benchmark with stuff turned off, 
 # you can set parameters with at startup.  For example:
 #    mh -voice_cmd 0 -voice_text 0 -weeder_port none
-#
 
 $v_what_speed = new Voice_Cmd 'What is your [max,normal] speed', 'Calculating';
 $v_what_speed-> set_info('Runs mh at max speed for a few seconds, then reports Passes Per Second');

@@ -151,7 +151,7 @@ sub new {
 
                                 # Check for toggle data
 sub set {
-    my ($self, $state) = @_;
+    my ($self, $state, $set_by) = @_;
 
     if ($state eq 'toggle') {
         if ($$self{state} eq 'on') {
@@ -183,7 +183,7 @@ sub set {
 
     $state = "+$state" if $state =~ /^\d+$/; # In case someone trys a state of 30 instead of +30.
     &set_x10_level($self, $state);
-    $self->SUPER::set($state);
+    $self->SUPER::set($state, $set_by);
 }
 
 sub set_receive {
@@ -828,6 +828,8 @@ sub add {
         $id = 'X' . $id . $hc . 'J';
     }
 
+    $name = 'unknown' unless $name;
+
     &::print_log("Adding X10_Sensor timer for $id, name=$name type=$type")   
       if $main::config_parms{debug} eq 'X10_Sensor';
 
@@ -871,6 +873,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.32  2002/10/13 02:07:59  winter
+#  - 2.72 release
+#
 # Revision 1.31  2002/09/22 01:33:24  winter
 # - 2.71 release
 #

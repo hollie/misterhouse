@@ -3,7 +3,7 @@ Mister House Announcement List
     mailing list (an archive of all the list messages is at
     http://sourceforge.net/mail/?group_id=1365 )
 
-  Version 2.72 posted on 09/21/2002
+  Version 2.71 posted on 09/21/2002
 
     Version 2.71 was just uploaded to:
 
@@ -11,6 +11,25 @@ Mister House Announcement List
       http://misterhouse.net:81/download.html
 
     New Features:
+
+    - Richard Morgan's sent in mh/code/public/cbus_v2.0.zip, his set of code
+    for talking to CBUS devices via the Australian Clipsal CGATE interface.
+
+    - Ron Klinkien and Paul Wilkinson enabled the great sounding AT&T
+    NaturalVoices TTS engine on Linux. ($150 from
+    http://www.naturalvoices.com ) Use the voice_text_naturalvoice parm to
+    point to where you have it installed and set voice_text=naturalvoice. As
+    with the Windows version, you can use the speak voice=name option to
+    pick a non-default voice.
+
+    - Jason Sharpe and I added several new methods: Generic_Item
+    get_idle_time and Group member_changed and member_changed_log. This
+    allows us to use Group items to monitor sets of sensors for detecting
+    occupancy states. This change means that Group states will change
+    whenever a member's state changes, but these can be distinguised from
+    full group state changes (member only state changes are prefixed with
+    'member'). See an example of these new methods in Jason's occupancy
+    algorithm in mh/code/public/monitor_occupancy_jason.pl.
 
     - Added the option to use additional mh instances as proxies to allow
     for remote ports (e.g. 'mh in the barn'), distributed lan-based speech,
@@ -38,25 +57,6 @@ Mister House Announcement List
     parm from 50 to 10 (milliseconds). By sleeping more often for less time,
     total %cpu use is decreased, since active code does not don't swap out
     of cache as often.
-
-    - Ron Klinkien and Paul Wilkinson enabled the great sounding AT&T
-    NaturalVoices TTS engine on Linux. ($150 from
-    http://www.naturalvoices.com ) Use the voice_text_naturalvoice parm to
-    point to where you have it installed and set voice_text=naturalvoice. As
-    with the Windows version, you can use the speak voice=name option to
-    pick a non-default voice.
-
-    - Jason Sharpe and I added several new methods: Generic_Item
-    get_idle_time and Group member_changed and member_changed_log. This
-    allows us to use Group items to monitor sets of sensors for detecting
-    occupancy states. This change means that Group states will change
-    whenever a member's state changes, but these can be distinguised from
-    full group state changes (member only state changes are prefixed with
-    'member'). See an example of these new methods in Jason's occupancy
-    algorithm in mh/code/public/monitor_occupancy_jason.pl.
-
-    - Richard Morgan's sent in mh/code/public/cbus_v1.0.zip, his set of code
-    for talking to CBUS devices via the Australian Clipsal CGATE interface.
 
     Bug Fixes and Other Changes:
 

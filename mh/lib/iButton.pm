@@ -62,7 +62,7 @@ sub new {
     $port = $connections{default} unless $port;
     my $connection = $connections{$port} if $port;
 
-    my $self = Hardware::iButton::Device->new($connection, $raw_id, $main::config_parms{ibutton_time_delay});
+    my $self = Hardware::iButton::Device->new($connection, $raw_id);
 
     $self->{port}    = $port;
     $self->{channel} = $channel;
@@ -516,6 +516,9 @@ memory
 
 
 # $Log$
+# Revision 1.19  2002/10/13 02:07:59  winter
+#  - 2.72 release
+#
 # Revision 1.18  2002/09/22 01:33:24  winter
 # - 2.71 release
 #

@@ -15,7 +15,7 @@ for other user-supplied documentation.
 =head1 System Requirements
 
 Mister House has been tested on all the Windows OSes (95, 98, ME, NT, 2000, XP)
-and the unix OSes Linux, FreeBSD, and AIX.  In theory, much
+and the unix OSes Linux, FreeBSD, AIX, and Mac OSX.  In theory, much
 of the function should run on any platform that can run Perl.  
 
 The core Mister House code will use between 10 and 30 Megabytes of memory.
@@ -80,10 +80,10 @@ These are the quick instructions for those of you who, like me, don't like to re
 To use less memory and cpu, or if you get graphics related errors, 
 you can run without the local gui inteface with:  mh -tk 0
 
-The default setup runs all the test scripts in the mh\code\test directory.
+The default setup runs most the standard scripts in the mh/code/common directory.
 Point your web browser to http://localhost:8080 and try out a few commands. 
 Also try 'telnet localhost 1234' and type one of the commands you saw on the
-web interface (e.g. 'say something good to Bruce').
+web interface (e.g. 'say something mean' from mh/code/common/goofy.pl).
 
 =begin html
 See <a href="#Coding_your_own_events">Coding your own events</a> for info on how to customized mh.
@@ -321,7 +321,7 @@ Here is one way to allow non-root access to the microphone:
   chmod go+rw /dev/dsp*
   chmod go+rw /dev/audio*
 
-Documentation is in /usr/doc/ViaVoice and test/example code is in /usr/lib/ViaVoice/samples.
+Documentation is in /usr/doc/ViaVoice and test and example code is in /usr/lib/ViaVoice/samples.
 /usr/doc/ViaVoice/rt.readme.txt suggests creating a new userid with this java app:
 
  /usr/bin/vvstartuserguru 
@@ -333,17 +333,32 @@ If that doesn't work, you can add a user with this command:
 
 To enable viavoice from mh, review the viavoice_* parms in the mh.ini file 
 (defaults should work if you run mh on the same box as the server), set parm voice_cmd=viavoice, 
-run mh/bin/viavoice_server_start, make sure mh/code/test/viavoice_control.pl is in your code dir, 
-then start mh.  Use the Tk 'VR mode' button and/or the phrase(s) in viavoice_awake_phrase to 
-enable the awake VR mode.
+run mh/bin/viavoice_server_start, start mh and enable the viavoice_control.pl from the 'Select Code' ia5 MhHouse web menu.
+Use the Tk 'VR mode' button and/or the phrase(s) in viavoice_awake_phrase to enable the awake VR mode.
 
 The viavoice SDK FAQ can be found here at
 http://www-4.ibm.com/software/speech/dev/faq_linux.html .
 
 
+For Apple OS X users, here are some hints from Jon Boehm:
+
+ 1. Install Xdarwin, remember the 10.2 patch if your running Jaguar.
+
+ 2. Upgrade Perl to 5.8 http://developer.apple.com/internet/macosx/perl.html
+
+ 3. Install Perl modules required by Misterhouse.
+    Some of the packages will not install nicely.  If something fails you
+    will need to do Goggle searches like: "OSX GD" to get some help.
+
+Specifically for GD get the translated version of this page "Installazione
+di php+apache+mysql su OSX" and note the packages that need to be installed
+before GD.  Note: make sure XDarwin is running before you run "make test'
+for GD
+
+
 =head1 Testing Mister House
 
-Edit x:\mh\bin\mh.ini and change the appropriate parms.   It should run just fine with the 
+Edit mh/bin/mh.ini and change the appropriate parms.   It should run just fine with the 
 default parms,  although your sunrise/sunset times will be for Rochester, MN :)
 
 If you decide to use mh, you will want to copy the parms you
@@ -354,7 +369,7 @@ If you are on Windows and you are not using the compiled mh.exe,
 you may need to edit the last record of the mh.bat file to point to the correct
 directories where Perl and the mh are installed. 
 
-Next, cd to x:\mh\bin and then type: mh hello_print.pl. This will load the x:\mh\code\test\hello_print.pl
+Next, cd to \mh\bin and then type: mh hello_print.pl. This will load the \mh\code\common\hello_print.pl
 file which is a simple event that prints some uptime info every 30 seconds.
 Since we did not include the tk*.pl members, the tk interface will not be displayed
 
@@ -368,14 +383,13 @@ If you are a Windows user and have the VR engine installed, make sure
 the green MSVoice V icon is in the "Listening for Voice Commands" mode, try saying, "What time is it?"
 You can list all the available commands by right clicking on the V and picking "What can I say?"
 
-To run all of the sample code in the test directory, do not specify any files (e.g. just type mh).
-This also reads the common code in mh/code/common.
-Here are a few of the commands enabled by files in the test directory:
+To run all of the standard code in the mh/code/common directory, do not specify any files (e.g. just type mh).
+Here are a few of the commands enabled by the mh/code/common files:
 
   "What is the trivia question?" and "What is the triva answer?"
   "Read the deep thought"
-  "Say something bad to Bruce"
-  "Say something good to Bruce"
+  "Say something nice"
+  "Say something mean"
   "Set a timer for 5 minutes"
   "When will the sun set"
   "Say hello to bruce"
@@ -393,11 +407,7 @@ via mh.ini http_port parm. If you do not have any other web server running, you 
 from the default of 8080 to 80 so that you can use a simpler address of http://localhost .
 
 You can also tailor the web interface to your liking by creating a new member in the \mh\web\mh directory and changing
-the html_file mh.ini parm.  For example, you can preview an alternate interfaces with
-http://localhost:8080/mh_brian/index_2.html or 
-http://localhost:8080/mh_brian/index_3.html .
-
-Windows users can also setup a Windows Active Desktop entry so this interface is available all the time on your desktop!
+the html_file mh.ini parm. 
 
 In addition to the voice and web interfaces, you can type these commands on the Tk "Enter Command" field
 or from the DOS command line using the house command.
@@ -417,11 +427,10 @@ Here is a summary of the different ways you can control mh:
   By having whatever program you want create a command in the xcmd_file
   By a TCP socket, for example, using telnet localhost
 
-
-Use your favorite editor to review and try some changes to any or all test members. On the Mister House
+Use your favorite editor to edit the example code in mh/code/test/my_test.pl. On the Mister House
 window, use the F1 key to re-load your changed code. If you introduced an error, it will sound a long beep,
 spit out some errata showing the error, and then it re-loads the old error-free code.
-There is lots of other code you can peruse in the mh\code\Bruce directory. This is all the code that runs our house!
+There is lots of other code you can peruse in the mh\code\bruce directory. This is all the code that runs our house!
 
 
 =head1 Installing Hardware
@@ -508,16 +517,14 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
  On unix, add this to /etc/profile or like place:
    export mh_parms=/prog/misterhouse/mh.private.ini
 
-Now when you run mh, it will read just the *.pl files in c:\misterhouse\code.  
-After mh is up and running, copy in the other members from mh/code/test that
-you think might be useful and click the Reload button to read them in.
-Adding a member a few at a time might be useful if you are trying to find an error.
-By default, the code files in mh/code/common are always read (you can disable this
-or point to a different directory with the mh.private.ini code_dir_common parm).
+After mh is up and running, Use http://localhost:8080/bin/select_code.pl  menu
+(avaliable on the web ia5 MrHouse menu 'Select Code' button) to select which of the 
+standard code files you want to run.  You can add your own custom code files
+to your privte \misterhouse\code directory.
 
 The first thing you will want to do is create an items.mht file that declares
-all your X10 items (see mh/code/Bruce/items.mht for an example).  Alternativly, you 
-can declare each of your X10 items in the first code member you use it in.  In either
+all your X10 items (see mh/code/bruce/items.mht for an example).  Alternativly, you 
+can declare each of your X10_items in any of the code members you use it in.  In either
 case you can use the "List X10 items" command created in mh_control.pl to review all
 your X10 items.
 

@@ -184,7 +184,7 @@ sub set {
     }
 
     my @sockets;
-    if (defined $ip_address) {
+    if ($ip_address) {
         if ($main::Socket_Ports{$port_name}{clients}) {
             if ($ip_address =~ /^\d+$/) {
                 if (defined $main::Socket_Ports{$port_name}{clients}[$ip_address]) {
@@ -271,6 +271,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.24  2002/10/13 02:07:59  winter
+#  - 2.72 release
+#
 # Revision 1.23  2002/09/22 01:33:23  winter
 # - 2.71 release
 #

@@ -1,3 +1,6 @@
+# Category = MisterHouse
+
+#@ Specifies tk layout
 
 # Position=1                    Load before any tk_widget code
 

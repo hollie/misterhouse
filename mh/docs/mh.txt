@@ -4105,6 +4105,21 @@ DESCRIPTION
         proxy enabled. Support for other iButton methods or serial
         interfaces can be added as needed.
 
+        If you want to put an iButton port on a proxy, you will need to also
+        run a code file on the proxy that defines all the iButtons you will
+        use on that port. These iButton object names must match those on in
+        your real code on your main mh box. One way to do this is to share
+        the same iButton.pl code file on your proxy as you use on your main
+        mh box, using the mh.ini/mh.proxy.ini code_dir and load_code parms.
+        For example:
+
+         main mh:
+          code_dir  = c:/misterhouse/bruce
+
+         proxy mh:
+          code_dir  = $Pgm_Root/code/proxy,c:/misterhouse/bruce
+          only_load = proxy_server.pl,ibutton.pl
+
         If you want to distribute speech to mh_proxy machines, see
         mh/code/public/speak_proxy.pl for example code.
 

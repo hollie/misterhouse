@@ -1,6 +1,6 @@
+# Category = MisterHouse
 
-# Category=MisterHouse
-
+#@ Adds the 'enable/disable xyz code file' commands
 
                                 # Allow for turning on/off code members
 
@@ -93,7 +93,7 @@ if (expired $disable_code_timer) {
         
 
 # If you have a 24x7 internet connection, you can use this to 
-# debug time loss problems (from internet_data.pl)
+# debug time loss problems (from internet_time.pl)
 
 #run_voice_cmd 'Set the clock via the internet' if 
 #    expired $disable_code_timer and $disable_member_time > .01;

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2002-09-18 19:48:19 winter>
+#  Last change Time-stamp: <2002-10-12 14:26:47 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -135,7 +135,6 @@ Creates a DBM for use by get_tv_info.
                     To disable, set to none (-label none).
    -reget        => Re-read  the web page, even if a recent file it
                     already exists.
-   -redo         => Re-write -outfile xyz, even if it already exists.
    -preserveRaw  => Prevents deletion of freshly-downloaded source HTML files
    -keep_old     => Do NOT delete data from the DBM that is one month older
                     than todays date
@@ -159,6 +158,9 @@ Creates a DBM for use by get_tv_info.
 eof
   exit;
 }
+
+# obsolete parms
+#   -redo         => Re-write -outfile xyz, even if it already exists.
 
 #======================================================================
 # SUB: calculate_date
@@ -417,7 +419,8 @@ sub login
    #------------------------------------------------------------
    # Second submission, to submit our zip code
    #------------------------------------------------------------
-   my $req_zip= HTTP::Request->new( GET => $url.'edit_provider_list.asp' );
+
+   my $req_zip= HTTP::Request->new( POST => $url.'edit_provider_list.asp' );
    $req_zip->content( "zipcode=$parms{zip}&"
       ."ziptype=new&"
       ."SubmitZipCode=Continue" );
@@ -1124,17 +1127,6 @@ sub fetchLoop
             ."${month}_${day}_${startHour}_$parms{duration}.html";
          my $outfile = "$parms{outdir}/${day}_${startHour}.html";
          $outfile = $parms{outfile} if ( $parms{outfile} );
-
-         #------------------------------------------------------------
-         # If output file already exists, and is recent enough, use
-         # keep it instead of re-downloading. 
-         #------------------------------------------------------------
-         if ( (-e $outfile) and (8 > -M $outfile) and 
-            (4000 < -s $outfile) and !$parms{reget}  and !$parms{redo} ) 
-         {
-            print "Reusing: $outfile\n";
-            next;
-         }
 
          #------------------------------------------------------------
          # Now retrieve the data, if it needs retrieving.

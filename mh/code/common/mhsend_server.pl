@@ -1,8 +1,8 @@
-# Category=MisterHouse
-#
-# This code will read incoming data from a socket port and do stuff with it.
-# An example client that talks with this is mh/bin/mhsend
-#
+# Category = MisterHouse
+
+#@ Reads incoming data from a socket port and do stuff with it.
+#@ An example client that talks with this is mh/bin/mhsend
+
 
 $mhsend_server = new  Socket_Item(undef, undef, 'server_mhsend');
 

@@ -1,5 +1,6 @@
+# Category = MisterHouse
 
-# Category=MisterHouse
+#@ Monitors for memory leaks 
 
 # Monitor memory usage (unix and NT/2K only. 
 # Win95/98 have no way to monitor memory :(

@@ -54,6 +54,18 @@ $windy -> set_states(ON, OFF);
 $item1 -> tie_filter('state $windy eq ON', ON, 'Overriding item1 ON command because of wind');
 
 
+# This code will disable an item when we are away from the house
+
+$item1       =  new Generic_Item;
+$status_away =  new Generic_Item;
+$status_away -> set_states(ON, OFF);
+
+$item1 -> tie_filter('state $status_away eq ON');
+$item1 -> tie_event('print_log "item1 toggled to $state"');
+
+$item1 -> set('toggle') if new_second 5;
+
+
 # Test cross-tied items
 #  - This allows us to set either item, and have the other one have the same state
 

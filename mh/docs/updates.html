@@ -14,7 +14,7 @@
 	<LI><A HREF="#mister house announcement list">Mister House Announcement List</A></LI>
 	<UL>
 
-		<LI><A HREF="#version 2.72 posted on 09/21/2002">Version 2.72 posted on 09/21/2002</A></LI>
+		<LI><A HREF="#version 2.71 posted on 09/21/2002">Version 2.71 posted on 09/21/2002</A></LI>
 		<LI><A HREF="#version 2.70 posted on 08/22/2002">Version 2.70 posted on 08/22/2002</A></LI>
 		<LI><A HREF="#version 2.69 posted on 07/03/2002">Version 2.69 posted on 07/03/2002</A></LI>
 		<LI><A HREF="#version 2.68 posted on 05/28/2002">Version 2.68 posted on 05/28/2002</A></LI>
@@ -95,12 +95,25 @@
 <P>- This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at <A HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A> )</P>
 <P>
-<H2><A NAME="version 2.72 posted on 09/21/2002">Version 2.72 posted on 09/21/2002</A></H2>
+<H2><A NAME="version 2.71 posted on 09/21/2002">Version 2.71 posted on 09/21/2002</A></H2>
 <P>Version 2.71 was just uploaded to:</P>
 <PRE>
   <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
   <A HREF="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</A></PRE>
 <P><STRONG>New Features:</STRONG></P>
+<P>- Richard Morgan's sent in mh/code/public/cbus_v2.0.zip, his set of code for talking to 
+CBUS devices via the Australian Clipsal CGATE interface.</P>
+<P>- Ron Klinkien and Paul Wilkinson
+enabled the great sounding AT&amp;T NaturalVoices TTS engine on Linux.
+($150 from <A HREF="http://www.naturalvoices.com">http://www.naturalvoices.com</A> )
+Use the voice_text_naturalvoice parm to point to where you have it installed and set voice_text=naturalvoice.
+As with the Windows version, you can use the speak voice=name option to pick a non-default voice.</P>
+<P>- Jason Sharpe and I added several new methods: Generic_Item get_idle_time  and
+Group member_changed and member_changed_log.
+This allows us to use Group items to monitor sets of sensors for detecting occupancy states.
+This change means that Group states will change whenever a member's state changes, but these
+can be distinguised from full group state changes (member only state changes are prefixed with 'member').
+See an example of these new methods in Jason's occupancy algorithm in mh/code/public/monitor_occupancy_jason.pl.</P>
 <P>- Added the option to use additional mh instances as proxies to allow for remote ports (e.g. 'mh in the barn'),
 distributed lan-based speech, or buffering of slow serial data to avoid the 'mh pause' problem.
 See 'Use distributed MisterHouse proxies' in mh/docs/mh.* 
@@ -117,19 +130,6 @@ synthesizing each word to seperate wav files, then use Audio::Wav to concatonate
 <P>- Added mh.ini parm sleep_count, so we can control how often mh sleeps per pass. 
 Default is now 5 (was 2) and I lowered the default sleep_time parm from 50 to 10 (milliseconds).
 By sleeping more often for less time, total %cpu use is decreased, since active code does not don't swap out of cache as often.</P>
-<P>- Ron Klinkien and Paul Wilkinson
-enabled the great sounding AT&amp;T NaturalVoices TTS engine on Linux.
-($150 from <A HREF="http://www.naturalvoices.com">http://www.naturalvoices.com</A> )
-Use the voice_text_naturalvoice parm to point to where you have it installed and set voice_text=naturalvoice.
-As with the Windows version, you can use the speak voice=name option to pick a non-default voice.</P>
-<P>- Jason Sharpe and I added several new methods: Generic_Item get_idle_time  and
-Group member_changed and member_changed_log.
-This allows us to use Group items to monitor sets of sensors for detecting occupancy states.
-This change means that Group states will change whenever a member's state changes, but these
-can be distinguised from full group state changes (member only state changes are prefixed with 'member').
-See an example of these new methods in Jason's occupancy algorithm in mh/code/public/monitor_occupancy_jason.pl.</P>
-<P>- Richard Morgan's sent in mh/code/public/cbus_v1.0.zip, his set of code for talking to 
-CBUS devices via the Australian Clipsal CGATE interface.</P>
 <P><STRONG>Bug Fixes and Other Changes:</STRONG></P>
 <P>- Tom Christian sent in an update that allows for spaces in mh.ini web alias parms.</P>
 <P>- Steve Switzer noticed that get_set_by always returned 'serial' for Serial_Item.  

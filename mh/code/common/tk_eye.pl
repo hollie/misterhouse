@@ -1,3 +1,6 @@
+# Category = MisterHouse
+
+#@ Adds an 'program active eye' to the tk interface
 
 # Position=3                    Load after tk_widget.pl, so we just to the left of the Help button
 

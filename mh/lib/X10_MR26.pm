@@ -53,8 +53,9 @@ my %ucodes = qw(000 1J 010 2J 008 3J 018 4J 040 5J 050 6J 048 7J 058 8J
                 400 9J 410 AJ 408 BJ 418 CJ 440 DJ 450 EJ 448 FJ 458 GJ
                 020 1K 030 2K 028 3K 038 4K 060 5K 070 6K 068 7K 078 8K
                 420 9K 430 AK 428 BK 438 CK 460 DK 470 EK 468 FK 478 GK
-                090 O  080 P  088 L 098 M 800 5J 810 6J 820 5K 830 6K);
-
+                090 O  080 P  088 L  098 M  800 5J 810 6J 820 5K 830 6K
+                488 L  498 M
+                );
 
                                 # UR51A Function codes:  
                                 #  - OK and Ent are same, PC and Subtitle are same, 
@@ -72,7 +73,7 @@ sub check_for_data {
     my ($self) = @_;
     &main::check_for_generic_serial_data('MR26');
     my $data = $main::Serial_Ports{MR26}{data};
-    $main::Serial_Ports{MR26}{data} = '';
+    $main::Serial_Ports{MR26}{data} = undef;
     return unless $data;
 
     my $hex = unpack "H10", $data;
@@ -124,6 +125,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.6  2002/10/13 02:07:59  winter
+#  - 2.72 release
+#
 # Revision 1.5  2001/09/23 19:28:11  winter
 # - 2.59 release
 #
