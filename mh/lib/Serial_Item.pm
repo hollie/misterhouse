@@ -141,6 +141,7 @@ sub said {
         $data = $main::Serial_Ports{$port_name}{data_record};
         $main::Serial_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
     }
+#   print "db serial $port_name data: $data\n" if $main::config_parms{debug} and $main::config_parms{debug} eq $port_name;
     return $data;
 }
 
@@ -231,24 +232,25 @@ sub set {
     $interface = 'none' unless $interface;
 
                                 # First deal with X10 strings...
+    if ($serial_data =~ /^X/) {
                                 # allow for xx% (e.g. 1% -> &P1)
-    if ($serial_data =~ /(\d+)%/) {
-        $serial_data = '&P' . int ($1 * 63 / 100 + 0.5);
-    }
+                                #  ... need to allow for multiple X10 commands data here?
+        if ($serial_data =~ /(\d+)%/) {
+            $serial_data = '&P' . int ($1 * 63 / 100 + 0.5);
+        }
                                 # Make sure that &P codes have the house code prefixed
                                 #  - e.g. device A1 -> A&P1
-    if ($serial_data =~ /^&P/) {
-        $serial_data = substr($self->{x10_id}, 1, 1) . $serial_data;
-    }
+        if ($serial_data =~ /^X&P/) {
+            $serial_data = substr($self->{x10_id}, 1, 1) . $serial_data;
+        }
                                 # If code is &P##, prefix with item code.
                                 #  - e.g. A&P1 -> A1A&P1
-    if (substr($serial_data, 1, 1) eq '&') {
-        $serial_data = $self->{x10_id} . $serial_data;
-    }
+        if (substr($serial_data, 1, 1) eq '&') {
+            $serial_data = $self->{x10_id} . $serial_data;
+        }
    
                                 # Allow for long strings like this: XAGAGAGAG (e.g. SmartLinc control)
                                 #  - break it into individual codes (XAG  XAG  XAG)
-    if ($serial_data =~ /^X/) {
         $serial_data =~ s/^X//;
         my $serial_chunk;
         while ($serial_data) {
@@ -481,6 +483,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.49  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
 # Revision 1.48  2001/06/27 03:45:14  winter
 # - 2.54 release
 #

@@ -1,30 +1,30 @@
-Title: Australians to Build Spaceport on Christmas Island
-2001-06-27 08:05:45 by michael  in dept: they-say-that-santa's-on-his-way  (space   78)
+Title: Korean Air Mission Critical Systems Moved to Linux
+2001-08-11 09:32:26 by Hemos  in dept: good-work-tux  (linuxbiz   31)
 
-Title: Hacking DirecTV over TCP/IP using Linux
-2001-06-27 03:03:03 by timothy  in dept: getting-bits-to-be-just-bits  (tv   242)
+Title: Linux 2.4.8 is Out
+2001-08-11 05:43:13 by michael  in dept: so-much-for-my-2.4.7-installation  (linux   101)
 
-Title: Slashback: Shooters, Ire, Boldness
-2001-06-26 23:59:18 by timothy  in dept: learn-something-new-every-day  (slashback   149)
+Title: How to Burn a Magnesium NeXT Cube
+2001-08-11 04:42:45 by CmdrTaco  in dept: to-much-spare-time  (humor   98)
 
-Title: MSDN Subscriber Forced to use Passport
-2001-06-26 23:33:13 by CmdrTaco  in dept: now-thats-nice-and-fair  (privacy   423)
+Title: Protecting Clients: Legal Impact of Filesharing Network Design
+2001-08-11 02:17:51 by michael  in dept: when-lawyers-attack  (doj   97)
 
-Title: Mandrakesoft To IPO
-2001-06-26 22:39:44 by Hemos  in dept: twist-and-turns-of-the-financial-wind  (mandrake   174)
+Title: Quake 4 Announced
+2001-08-11 00:54:21 by michael  in dept: dust-off-the-railgun  (quake   232)
 
-Title: GeForce3: Real-time RenderMan?
-2001-06-26 20:37:31 by CmdrTaco  in dept: not-anytime-soon  (graphics   253)
+Title: FreeCiv 1.12.0 Released
+2001-08-10 23:14:23 by CmdrTaco  in dept: games-people-play  (games   182)
 
-Title: Powerline Networks Finally Viable?
-2001-06-26 19:58:19 by timothy  in dept: electrical-excitement  (tech   161)
+Title: Triana Mothballed
+2001-08-10 22:39:02 by Hemos  in dept: nada-mas-triana  (space   168)
 
-Title: Image Processing By Example
-2001-06-26 18:24:50 by timothy  in dept: draw-this-way  (graphics   257)
+Title: Court Decision Favors Rambus
+2001-08-10 20:01:19 by Hemos  in dept: and-it-goes-on-and-on  (patents   123)
 
-Title: Hyperion Robot Follows the Sun
-2001-06-26 17:48:58 by michael  in dept: you-make-me-happy-when-skies-are-grey  (space   104)
+Title: Ask Sam Lantinga About SDL On PS2 And More
+2001-08-10 18:30:56 by timothy  in dept: talk-about-cross-platform  (news   153)
 
-Title: Napster Signs Indie Deal
-2001-06-26 16:56:19 by Hemos  in dept: good-deal  (music   181)
+Title: Code Red III
+2001-08-10 17:48:50 by CmdrTaco  in dept: are-we-there-yet-mommy  (microsoft   725)
 

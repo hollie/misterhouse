@@ -10,7 +10,8 @@ $v_send_email_test-> set_info('Send commands to test remote email commands');
 if ($state = $v_send_email_test->{said}) {
     if (&net_connect_check) {
                                 # Use to => 'user@xyz.com', or default to your own address (from net_mail_user in mh.ini)
-        &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date") if $state == 1;
+        &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date", 
+                       debug => 1) if $state == 1;
 
                                 # Send a command in the subject
         &net_mail_send(subject => "command:What time is it   code:$config_parms{net_mail_command_code}",

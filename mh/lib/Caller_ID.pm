@@ -9,7 +9,6 @@ my ($my_areacode, @my_areacodes, $my_state);
 sub make_speakable {
     my($data, $format,$local_area_code_language) = @_;
 
-
 =cut begin
 
 format=1: Weeder CID data looks like this:
@@ -62,6 +61,12 @@ CALLER NUMBER: <PHONE NUMBER>
 CALLER NAME: <CALLER NAME>
 
 
+Format=4   NetCallerID (http://ugotcall.com/nci.htm)
+###DATE06182106...NMBR7045551212...NAMESPAULDING TIMOT+++
+###DATE07252019...NMBR5072881030...NAMEWINTER BRUCE LA+++
+###DATE06191942...NMBR...NAME-UNKNOWN CALLER-+++
+
+
 =cut end
 
 
@@ -87,23 +92,11 @@ CALLER NAME: <CALLER NAME>
         
         print "phone number=$number numberTo=$numberTo name=$name\n";
 
-
         $name = substr($name, 0, 15);
         $name = 'Unavailable' if $name =~ /^O$/; # Jay's & Chaz's exceptions
         $name = 'Private'     if $name =~ /^P$/; # Chaz's exception
         $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/; # Chaz's exception
         ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
-
-		if ( $local_area_code_language =~ /swiss-german/gi ) {
-			# Switzerland's phone#s are reported without the area code if in the same area
-	        substr($number, length($number)-2, 0) = '-' if length($number) > 6 ;
-    	    substr($number, length($number)-5, 0) = '-' if length($number) > 6 ;
-	        substr($number, length($number)-9, 0) = '-' if length($number) > 8 ;
-		}
-		else {
-	        substr($number, 6, 0) = '-' if length $number > 7;
-    	    substr($number, 3, 0) = '-' if length $number > 3;
-		}
                                 # This is used for ZyXEL u1496 (see format at top)
     } elsif ($format == 3) {
         $time = "$date $time";
@@ -118,13 +111,29 @@ CALLER NAME: <CALLER NAME>
         $name = substr($name, 0, 15);
         $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/; # Chaz's exception
         ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
-        substr($number, 6, 0) = '-' if length $number > 7;
-        substr($number, 3, 0) = '-' if length $number > 3;
-                                #### End format 3
+    }
+    elsif ($format == 4) {
+       ($date, $time, $number, $name) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.+?)\+*$/;
+       print "\nCaller_ID format=3 not parsed: d=$data date=$date time=$time number=$number name=$name\n" unless $name;
     }
     else {
         ($time, $number, $name) = unpack("A13A13A15", $data);
     }
+
+                                # Put in the - between 123-456-7891
+    unless ($number =~ /-/) {
+		if ( $local_area_code_language =~ /swiss-german/gi ) {
+			# Switzerland's phone#s are reported without the area code if in the same area
+	        substr($number, length($number)-2, 0) = '-' if length($number) > 6 ;
+    	    substr($number, length($number)-5, 0) = '-' if length($number) > 6 ;
+	        substr($number, length($number)-9, 0) = '-' if length($number) > 8 ;
+		}
+		else {
+	        substr($number, 6, 0) = '-' if length $number > 7;
+    	    substr($number, 3, 0) = '-' if length $number > 3;
+		}
+    }
+
     ($last, $first, $middle) = split(' ', $name);
     $first = ucfirst(lc($first));
     $first = ucfirst(lc($middle)) if length($first) == 1 and $middle; # Last M First format
@@ -275,6 +284,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.23  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
 # Revision 1.22  2001/06/27 03:45:14  winter
 # - 2.54 release
 #

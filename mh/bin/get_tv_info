@@ -60,10 +60,13 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
     -increment xyz => Time increment is xyz minutes (5 or 30). Default is 5.
     -lengths   xyz => Will return info only for shows that are xyz hours long.
                       Default is any length.
-    -keys      xyz => Will return info only for shows that have keywords     
+
+    -keys      xyz => Will return info only for shows that have keywords
                       in the xyz list in their title or description.
-                      Note: xyz can be a regular expresion (e.g. -keys "\^ER\$") 
-    -keyfile   xyz => List of keys to search for, from a file in the data directory
+                      Note: xyz can be a regular expresion (e.g. -keys > "\^ER\$")
+    -keyfile   xyz => List of keys to search for, from a file in the data directory,
+                      with each item on a separate line (no commas).
+                      Empty lines and comment lines beginning with # will be ignored.
 
       All of the above parms support these formats:
          : comma-seperated values (e.g. -dates 7/4,7/5,7/6)
@@ -80,6 +83,7 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
     $Pgm_Name -dates "7/4-7/11" -keys "star trek, er ,dilbert"
     $Pgm_Name -dates +14 -keys computer             
     $Pgm_Name -time "17-23"
+    $Pgm_Name -time "17-23 -keyfile 'tv_mylist.list' "
 
   Shows which have already started are excluded unless you search without specifying -times or you search for -times 'all'.
 
@@ -356,7 +360,9 @@ sub setup {
     print "keys  = $parms{keys}\n";
     print "times = $parms{times}\n";
 
+
                                 # Sort @times, but keep 0->5:59 after 23:59
+#   @times = sort {&hour_to_min(&ampm_to_hour24($a)) <=> &hour_to_min(&ampm_to_hour24($b))} @times;
   	@times = sort {
         my $t1 = &hour_to_min(&ampm_to_hour24($a));
         my $t2 = &hour_to_min(&ampm_to_hour24($b));
@@ -397,6 +403,7 @@ sub split_parm {
                 my ($high_hour, $high_min) = split ':', $high;
                 print "db h=$high_hour m=$high_min\n" if $parms{debug};
                 $low -= 4 if (!$parms{all});
+                $low = 6 if $low < 6 and $high > 6;
                 $low = 0 if ($low > $high or $low < 0);
                 $low .= ':00' unless $low =~ /:/;
                 push(@parms, $j=$low);
@@ -483,6 +490,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.20  2001/08/12 04:02:57  winter
+# - 2.57 update
+#
 # Revision 1.19  2001/05/06 21:07:25  winter
 # - 2.51 release
 #

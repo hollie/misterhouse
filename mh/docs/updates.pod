@@ -6,6 +6,89 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.57 posted on 08/12/2001
+
+Version 2.57 was just uploaded to:
+
+  http://misterhouse.sourceforge.net/download.html
+  http://misterhouse.net/download.html
+
+Note:  A change this release requires all of us in the Western Hemisphere (e.g. Americas and Canada)to 
+follow the common convention of using a negative time_zone and longitude mh.ini parms.
+
+B<New Features:>
+
+- Added these new speak mode options for controling spoken text
+(currently only for the MS TTS engine):
+stop, pause, resume, rewind, fastforward, slow, normal, fast, ###.
+The speak rate option also supports slow, normal, fast, and ###.  
+### is words per minute.  For example:  speak rate => 200
+Added mh/code/common/mh_sound.pl commands "Set speech to 'stop,pause,....'"
+
+- Walter Leemput created mh/code/public/irvs and irvs_server.pl (linux only).  
+These allow for mh control via DTFM phone menus using 
+the Irvs.pm module from CPAN and a voicemodem.
+
+- Ron Klinkien sent in mh/code/public/webcam_ron.pl and webcam_ron.html.
+These files create a simple webcam, using a command line frame grabber.
+
+- Jeff Crum sent in mh/code/public/copycode.pl
+for copying voice commands from one mh computer to another.
+
+
+B<Bug Fixes and Other Changes:>
+
+- Jean-Marie Martin and Harald Koch noticed mh was not 
+calculating sun rise/set times correctly those people in the Eastern Hemisphere. 
+This fix requires all of us in the Western Hemisphere to use negative time_zone and longitude mh.ini parms.
+
+- Benny Miller updated mh/code/public/iButton_ws_client.pl
+
+- Ron Klinkien and David Norwood found a 2.55 bug with shtml files.
+
+- Ian Davidson discovered a bug with sending out non-X10 serial data with ##% strings.
+
+- David Norwood added an IR_Item code of addEnter, which 
+adds an ENTER command after any numbers, so changing channels is 
+faster on devices that wait for a timeout like the Ocelot.
+
+- David Norwood created a California specific mh/code/public/internet_earthquake_cal.pl
+
+- Clive Freedman fixed a bug in get_tv_info that messed up searches for shows that started before 6am.
+
+- Jeff Pagel found a problem with iButton monitor when using a 2nd iButton port.
+We also discovered a 2nd port did not work as documented.
+Updated the iButton.pl example to point to $config_parms{ibutton_port2} rather than 'ibutton_port2'.
+
+- Larry Roudebush found a problem when running -no_load tk_frames.pl to 
+get tk windows without the main tk window (button widgets still tried to load).
+
+- Added format=4 to mh/lib/Caller_ID.pl to support the Call Waiting Caller ID 
+NetCallerID box.  See mh/code/bruce/phone_netcallerid.pl for an example.
+Another option is Timothy Spaulding's mh/code/public/NetCallerID.pl.
+
+- Disallow objects with the same group names in .mht files.
+
+- Add a duplicate object name check.
+
+- Fixed a bug with the distance reported by mh/code/bruce/tracking_aprs.pl (was way too small for long distances).
+Also added an option to track vehicles via aprs internet gateway data, so you can keep track of
+family when they are on a long road trip (wife just drove to Berkley and back).
+
+- Add a Daylight Savings Time check to internet_iridium.pl.
+
+- Added mh.ini parm http_fork.  Windows users will want to set this to 1 to enable
+the forking feature added in 2.55, which avoids mh pauses with slow remote web sites 
+request data.
+
+- Added mh.ini ibutton_tweak parm.  If you are having problems with ibuttons, 
+set this to 1 to enable a small delay that Stoll Thomas and Kevin Olalde discovered they needed on their boxes.
+
+- Make a 2.52 change to the the &play function specific to OSx.  On all other unix OSes, 
+use a system call, rather than a fork call, to avoid problems with bad return codes causing 
+the same wav file being played multiple times.
+
+
 =head2 Version 2.54 posted on 06/26/2001
 
 Version 2.54 was just uploaded to:
@@ -14,6 +97,7 @@ Version 2.54 was just uploaded to:
   http://misterhouse.net/download.html
 
 B<New Features:>
+
 
 - mh now forks to a background process when serving large (> 2k) web pages.  This avoids pauses in mh
 when being accessed by slow web browsers.   On windows, we play some magic to emulate a fork

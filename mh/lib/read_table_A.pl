@@ -22,7 +22,7 @@ sub read_table_A {
     my ($record) = @_;
 
     my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand);
-
+    
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
 
@@ -155,9 +155,14 @@ sub read_table_A {
 
     $grouplist = '' unless $grouplist; # Avoid -w uninialized errors
     for my $group (split('\|', $grouplist)) {
-        $code .= sprintf "\$%-35s =  new Group;\n", $group unless $groups{$group};
-        $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name;
-        $groups{$group}++;
+        if ($name eq $group) {
+            print_log "mht object and group name are the same: $name  Bad idea!";
+        }
+        else {
+            $code .= sprintf "\$%-35s =  new Group;\n", $group unless $groups{$group};
+            $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name;
+            $groups{$group}++;
+        }
 
         if(lc($group) eq 'hidden')
         {
@@ -172,6 +177,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.9  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
 # Revision 1.8  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

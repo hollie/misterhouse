@@ -79,7 +79,7 @@ sub connect {
     }
     elsif ( !$connections{ $port } ) {
 	printf " - creating %-15s object on port %s\n", 'Ibutton', $port;
-	$connections{$port} = new Hardware::iButton::Connection $port or
+	$connections{$port} = new Hardware::iButton::Connection($port, $main::config_parms{ibutton_tweak}) or
 	  print "iButton connection error to port $port: $!";
     }
     else {
@@ -113,7 +113,7 @@ sub monitor {
     my (@ib_list, $count, $ib, $id, $object, %buttons_dropped);
 #   @ib_list = &scan;
 #   print "db calling scan\n";
-    @ib_list = &scan($family);       # monitor just the button devices
+    @ib_list = &scan($family, $port);       # monitor just the button devices
     $count = @ib_list;
 #   print "ib count=$count l=@ib_list.\n";
     %buttons_dropped = %buttons_active;
@@ -456,6 +456,9 @@ memory
 
 
 # $Log$
+# Revision 1.11  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
 # Revision 1.10  2001/05/06 21:07:26  winter
 # - 2.51 release
 #

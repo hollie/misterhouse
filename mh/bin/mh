@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-06-30 07:36:29 winter>
+#  Last change Time-stamp: <2001-08-11 22:06:00 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -480,7 +480,8 @@ sub setup {
     $SIG{KILL}  = \&sig_handler;              # Exit cleanly with a kill signal
     $SIG{HUP}   = \&read_code   if !$OS_win;  # Reload code (alias mhreload per info in mh.ini file)
     $SIG{PIPE}  = \&sig_handler_pipe;         # Web browsers can shut down sockets while we are sending data 
-    $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
+#   $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
+    $SIG{CHLD} = \&sig_child_death;
 #   $SIG{TTIN} = 'IGNORE';                    # This does not help ReadKey in cbreak mode :(
 
     $config_parms{code_dir}         = $Pgm_PathU . "/../code"        unless $config_parms{code_dir};
@@ -1013,6 +1014,7 @@ sub check_for_external_command_file {
 sub check_for_generic_serial_data {
     my ($port_name) = @_;
     my $data;
+
     unless ($data = $Serial_Ports{$port_name}{object}->input) {
                                 # If we do not do this, we may get endless error messages.
         $Serial_Ports{$port_name}{object}->reset_error;
@@ -1023,14 +1025,17 @@ sub check_for_generic_serial_data {
 
     $Serial_Ports{$port_name}{data} .= $data if defined $data;
 
-    print "  serial name=$port_name type=$Serial_Ports{$port_name}{datatype} data2=$Serial_Ports{$port_name}{data}...\n" 
+    print "  serial name=$port_name type=$Serial_Ports{$port_name}{datatype} data2=\n$Serial_Ports{$port_name}{data}\n---\n" 
         if defined $data and ($config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name);
 
                                 # Check to see if we have a carrage return yet
     if (defined $Serial_Ports{$port_name}{data} and
         (!defined($Serial_Ports{$port_name}{datatype}) or $Serial_Ports{$port_name}{datatype} ne 'raw')) {
-        while (my($record, $remainder) = $Serial_Ports{$port_name}{data} =~ /(.+?)[\r\n]+(.*)/s) {
-            &print_log("Data from $port_name: $record.  remainder=$remainder.") if $config_parms{debug} eq 'serial';
+        my $break = $config_parms{"${port_name}_break"};
+        $break = "[\r\n]+" unless $break;
+        while (my($record, $remainder) = $Serial_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s) {
+            &print_log("Data from $port_name: $record.  remainder=$remainder.") 
+                if $config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name;
             $Serial_Ports{$port_name}{data_record} = $record;
             $Serial_Ports{$port_name}{data} = $remainder;
             if ($Serial_Ports{$port_name}{process_data}) {
@@ -1768,6 +1773,7 @@ sub file_changed {
     else {
         $file_time = 0;
     }
+
 #    print "Warning, file_change file does not exist: $file\n" unless -e $file;
 #    print "db file_change file=$file time=$file_time time_old=$file_change_times{$file}\n";
                                 # 1st time we look at a file, return 'unknown' (-1)
@@ -2257,9 +2263,12 @@ sub play {
                                 # Check for SystemXYZ or //server or \file or c:\file
         unless ($file =~ /^System/ or $file =~ /^[\\\/]/ or $file =~ /^\S\:/) {
 
+            if (-e $file) {
+            }
                                 # Use from common dir only if it is not in the user sound_dir
-            if (-e "$config_parms{sound_dir_common}/$file" and 
-               !-e "$config_parms{sound_dir}/$file") {
+                                #  - Can not test for -e in user sound_dir if we have a *.wav spec 
+            elsif ( -e "$config_parms{sound_dir_common}/$file" and 
+                   !-e "$config_parms{sound_dir}/$file") {
                 $file = "$config_parms{sound_dir_common}/$file";
             }
             else {
@@ -2295,13 +2304,20 @@ sub play {
                 speak(play=>"$file", nolog=>1);
                 last;
             }
-                                # Greg Satz had problems with MAC OS X zombies with system call here
             print "running: $config_parms{sound_program} $file\n";
-#           system("$config_parms{sound_program} $file &");
-            my $pid = fork;
-            if (defined $pid && $pid == 0) {
-                exec qq[$config_parms{sound_program} $file];
-                die 'cant exec $config_parms{sound_program}';
+
+                                # Greg Satz had problems with MAC OS X zombies with system call here
+                                # Some linux guys had problems with problems with rc being mis-set
+                                # with the fork, so default to system calls
+            if ($main::Info{OS_name} eq "OSX") {
+                my $pid = fork;
+                if (defined $pid && $pid == 0) {
+                    exec qq[$config_parms{sound_program} $file];
+                    die 'cant exec $config_parms{sound_program}';
+                }
+            }
+            else {
+                system("$config_parms{sound_program} $file &");
             }
             $played_ok = 1 if 0 == $?;
         }
@@ -2884,7 +2900,7 @@ sub read_user_code {
     undef %object_names_by_type;
     undef %files_by_webname;
 
-    my (%member_sort_order, %sub_code);
+    my (%member_sort_order, %sub_code, %object_name_check);
     for $file (sort sort_user_code keys %User_Code) {
         print "Reading $file\n" if $config_parms{debug} eq 'misc';
  
@@ -2931,7 +2947,10 @@ sub read_user_code {
 
                                 # Store a ref-to-name correlation hash
             if ($object) {
-                print "\n\nWarning, duplicate object name: $object\n\n" if $objects_by_object_name{$object};
+                print "\n\nWarning, duplicate object name: $object\n - $object_name_check{$object} - $member_name: $record\n\n\n"
+                    if $object_name_check{$object};
+                $object_name_check{$object} = "$member_name: $record";
+                
                 $file_by_object_name{$type}{$object} = $member_name;
                 push @{$object_names_by_file{$member_name}}, $object;
                 push @{$object_names_by_webname{$webname}},  $object;
@@ -3529,9 +3548,8 @@ sub sig_handler {
 sub sig_handler_pipe {
     print "\nBroken pipe\n";
 }
-sub child_death {
+sub sig_child_death {
     my $pid = wait;
-    $SIG{CHLD} = \&child_death;
 }
 
                                 # This will close either client or server active socket
@@ -3610,7 +3628,7 @@ sub speak {
         $phrase = $parms{text};
     	$play   = $parms{play};
     	$nolog  = $parms{nolog};
-        print "Error, no text keyword in speak command.  Parms= @_\n" unless $phrase or $play;
+#       print "Error, no text keyword in speak command.  Parms= @_\n" unless $phrase or $play;
     }
     $parms{mode}  = '' unless $parms{mode};
     $rooms        = $parms{rooms}   if $parms{rooms};
@@ -3621,7 +3639,7 @@ sub speak {
         $key = lc $key;
                                 # Not all TTS engines have all these options ... this is a superset
         print "Warning, speak control not recognized: key=$key value=$value\n"
-            unless grep $key, qw(room display play volume time voice pitch);
+            unless grep $key eq $_, qw(room display play volume time voice pitch);
         
         if ($key =~ /room[s]?/) {
             $rooms = $value;
@@ -3665,6 +3683,9 @@ sub speak {
     
     $Last_Response = 'speak';
 
+    &Voice_Text::speak_mode($parms{mode}) if $parms{mode}; # Allow for pause,resume,stop,speed,etc
+    &Voice_Text::speak_mode($parms{rate}) if $parms{rate}; # Allow for slow,normal,fast,wpm:###
+
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
 
                                 # Check if we want to speak web requested data
@@ -3686,7 +3707,7 @@ sub speak {
                                 #    anything between ! thru ~
                                 # We do this check in case something (like serial_server)
                                 # goes out of control ... we don't want to hear garbage!
-    if ($phrase !~ /^[\n\r\t !-~]+$/ and !$play) {
+    if ($phrase and $phrase !~ /^[\n\r\t !-~]+$/ and !$play) {
         print "Data is unspeakable!  phrase=$phrase\n";
         print_log "Data is unspeakable!  phrase=", substr($phrase, 0, 40), " ...\n";
     }
@@ -4033,7 +4054,7 @@ sub tk_cascade_entry {
 
                                 # Create tk widget subroutines
 sub tk_button {
-    return unless $MW and $Reload;
+    return unless $MW and $Reload and $Tk_objects{grid};
     my (@data) = @_;
     my @widgets;
     while (@data) {
@@ -4056,7 +4077,7 @@ sub tk_button {
 
                                 # Button for the menubar
 sub tk_mbutton {
-    return unless $MW and $Reload;
+    return unless $MW and $Reload and $Tk_objects{grid};
     my ($label, $pvar) = @_;
     $Tk_objects{mbutton}{$pvar}->destroy if $Tk_objects{mbutton}{$pvar} and Exists($Tk_objects{mbutton}{$pvar});
     $Tk_objects{mbutton}{$pvar} = $Tk_objects{menu_bar}->Button(text => $label, command => $pvar)->
@@ -4069,7 +4090,7 @@ sub tk_checkbutton {
                                 # Allow web widgets, even with -no_tk
     push(@Tk_widgets, [$Category, 'checkbutton', @_]);
 
-    return unless $MW;
+    return unless $MW and $Tk_objects{grid};;
     my @data = @_;
     my @widgets;
     while (@data) {
@@ -4129,7 +4150,7 @@ sub tk_entry {
                                 # Allow web widgets, even with -no_tk
     push(@Tk_widgets, [$Category, 'entry', @_]);
 
-    return unless $MW;
+    return unless $MW and $Tk_objects{grid};
     my @data = @_;
     my @widgets;
     for (@data) {
@@ -4171,7 +4192,7 @@ sub tk_label {
                                 # Allow web widgets, even with -no_tk
     push(@Tk_widgets, [$Category, 'label', @_]);
 
-    return unless $MW;
+    return unless $MW and $Tk_objects{grid};
     my @data = @_;
     my @widgets;
     for my $pvar (@data) {
@@ -4197,7 +4218,7 @@ sub tk_mlabel {
 
     push(@Tk_widgets, [$Category, 'label', @_]);
 
-    return unless $MW;
+    return unless $MW and $Tk_objects{menu_bar};
     my ($pvar) = @_;
     $Tk_objects{mlabel}{$pvar}->destroy if $Tk_objects{mlabel}{$pvar} and Exists($Tk_objects{mlabel}{$pvar});
     $Tk_objects{mlabel}{$pvar} = $Tk_objects{menu_bar}->
@@ -4214,7 +4235,7 @@ sub tk_radiobutton {
                                 # Allow web widgets, even with -no_tk
     push(@Tk_widgets, [$Category, 'radiobutton', @_]);
 
-    return unless $MW;
+    return unless $MW and $Tk_objects{grid};
     my ($label, $pvar, $pvalue, $ptext, $callback, $widget) = @_;
     $Tk_objects{radiobutton}{$pvar}->destroy if $Tk_objects{radiobutton}{$pvar} and Exists($Tk_objects{radiobutton}{$pvar});
     my @widgets;
@@ -4312,6 +4333,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.57  2001/08/12 04:02:57  winter
+# - 2.57 update
+#
 # Revision 2.56  2001/07/19 03:48:08  winter
 # - add http_fork
 #

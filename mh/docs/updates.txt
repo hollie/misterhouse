@@ -3,6 +3,26 @@ Mister House Announcement List
     MisterHouse mailing list (an archive of all the list messages is
     at http://sourceforge.net/mail/?group_id=1365 )
 
+  Version 2.56? posted on 06/26/2001
+
+    Version 2.56? was just uploaded to:
+
+      http://misterhouse.sourceforge.net/download.html
+      http://misterhouse.net/download.html
+
+    New Features:
+
+    Bug Fixes and Other Changes:
+
+    - Jean-Marie Martin and Harald Koch noticed mh was not
+    calculating sun rise/set times correctly those people in the
+    Eastern Hemisphere. This fix requires all of us in the Western
+    Hemisphere to use negative time_zone and longitude mh.ini parms.
+
+    - Benny Miller updated mh/code/public/iButton_ws_client.pl
+
+    - Ron Klinkien found a 2.55 bug with shtml files.
+
   Version 2.54 posted on 06/26/2001
 
     Version 2.54 was just uploaded to:

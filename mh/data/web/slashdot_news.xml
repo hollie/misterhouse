@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Australians to Build Spaceport on Christmas Island</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/1216243</url>
-		<time>2001-06-27 08:05:45</time>
-		<author>michael</author>
-		<department>they-say-that-santa's-on-his-way</department>
-		<topic>space</topic>
-		<comments>78</comments>
-		<section>articles</section>
-		<image>topicspace.gif</image>
-	</story>
-
-	<story>
-		<title>Hacking DirecTV over TCP/IP using Linux</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/27/0029217</url>
-		<time>2001-06-27 03:03:03</time>
-		<author>timothy</author>
-		<department>getting-bits-to-be-just-bits</department>
-		<topic>tv</topic>
-		<comments>242</comments>
-		<section>articles</section>
-		<image>topictv.jpg</image>
-	</story>
-
-	<story>
-		<title>Slashback: Shooters, Ire, Boldness</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/2221214</url>
-		<time>2001-06-26 23:59:18</time>
-		<author>timothy</author>
-		<department>learn-something-new-every-day</department>
-		<topic>slashback</topic>
-		<comments>149</comments>
-		<section>articles</section>
-		<image>topicslashback.gif</image>
-	</story>
-
-	<story>
-		<title>MSDN Subscriber Forced to use Passport</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/2050205</url>
-		<time>2001-06-26 23:33:13</time>
-		<author>CmdrTaco</author>
-		<department>now-thats-nice-and-fair</department>
-		<topic>privacy</topic>
-		<comments>423</comments>
-		<section>yro</section>
-		<image>topicprivacy.gif</image>
-	</story>
-
-	<story>
-		<title>Mandrakesoft To IPO</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/2029221</url>
-		<time>2001-06-26 22:39:44</time>
+		<title>Korean Air Mission Critical Systems Moved to Linux</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/10/1933204</url>
+		<time>2001-08-11 09:32:26</time>
 		<author>Hemos</author>
-		<department>twist-and-turns-of-the-financial-wind</department>
-		<topic>mandrake</topic>
-		<comments>174</comments>
+		<department>good-work-tux</department>
+		<topic>linuxbiz</topic>
+		<comments>31</comments>
 		<section>articles</section>
-		<image>topicmandrake.gif</image>
+		<image>topiclinuxbiz.gif</image>
 	</story>
 
 	<story>
-		<title>GeForce3: Real-time RenderMan?</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/2015243</url>
-		<time>2001-06-26 20:37:31</time>
-		<author>CmdrTaco</author>
-		<department>not-anytime-soon</department>
-		<topic>graphics</topic>
-		<comments>253</comments>
-		<section>articles</section>
-		<image>topicgraphics3.gif</image>
-	</story>
-
-	<story>
-		<title>Powerline Networks Finally Viable?</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/204229</url>
-		<time>2001-06-26 19:58:19</time>
-		<author>timothy</author>
-		<department>electrical-excitement</department>
-		<topic>tech</topic>
-		<comments>161</comments>
-		<section>articles</section>
-		<image>topictech2.jpg</image>
-	</story>
-
-	<story>
-		<title>Image Processing By Example</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/1818245</url>
-		<time>2001-06-26 18:24:50</time>
-		<author>timothy</author>
-		<department>draw-this-way</department>
-		<topic>graphics</topic>
-		<comments>257</comments>
-		<section>articles</section>
-		<image>topicgraphics3.gif</image>
-	</story>
-
-	<story>
-		<title>Hyperion Robot Follows the Sun</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/1717239</url>
-		<time>2001-06-26 17:48:58</time>
+		<title>Linux 2.4.8 is Out</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/11/0543253</url>
+		<time>2001-08-11 05:43:13</time>
 		<author>michael</author>
-		<department>you-make-me-happy-when-skies-are-grey</department>
+		<department>so-much-for-my-2.4.7-installation</department>
+		<topic>linux</topic>
+		<comments>101</comments>
+		<section>articles</section>
+		<image>topiclinux.gif</image>
+	</story>
+
+	<story>
+		<title>How to Burn a Magnesium NeXT Cube</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/10/1646241</url>
+		<time>2001-08-11 04:42:45</time>
+		<author>CmdrTaco</author>
+		<department>to-much-spare-time</department>
+		<topic>humor</topic>
+		<comments>98</comments>
+		<section>articles</section>
+		<image>topichumor.gif</image>
+	</story>
+
+	<story>
+		<title>Protecting Clients: Legal Impact of Filesharing Network Design</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/10/2049225</url>
+		<time>2001-08-11 02:17:51</time>
+		<author>michael</author>
+		<department>when-lawyers-attack</department>
+		<topic>doj</topic>
+		<comments>97</comments>
+		<section>articles</section>
+		<image>topicdoj.jpg</image>
+	</story>
+
+	<story>
+		<title>Quake 4 Announced</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/11/0044248</url>
+		<time>2001-08-11 00:54:21</time>
+		<author>michael</author>
+		<department>dust-off-the-railgun</department>
+		<topic>quake</topic>
+		<comments>232</comments>
+		<section>articles</section>
+		<image>topicquake.gif</image>
+	</story>
+
+	<story>
+		<title>FreeCiv 1.12.0 Released</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/10/1614252</url>
+		<time>2001-08-10 23:14:23</time>
+		<author>CmdrTaco</author>
+		<department>games-people-play</department>
+		<topic>games</topic>
+		<comments>182</comments>
+		<section>articles</section>
+		<image>topicgames.jpg</image>
+	</story>
+
+	<story>
+		<title>Triana Mothballed</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/10/1949215</url>
+		<time>2001-08-10 22:39:02</time>
+		<author>Hemos</author>
+		<department>nada-mas-triana</department>
 		<topic>space</topic>
-		<comments>104</comments>
+		<comments>168</comments>
 		<section>science</section>
 		<image>topicspace.gif</image>
 	</story>
 
 	<story>
-		<title>Napster Signs Indie Deal</title>
-		<url>http://slashdot.org/article.pl?sid=01/06/26/174210</url>
-		<time>2001-06-26 16:56:19</time>
+		<title>Court Decision Favors Rambus</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/10/1916259</url>
+		<time>2001-08-10 20:01:19</time>
 		<author>Hemos</author>
-		<department>good-deal</department>
-		<topic>music</topic>
-		<comments>181</comments>
+		<department>and-it-goes-on-and-on</department>
+		<topic>patents</topic>
+		<comments>123</comments>
 		<section>articles</section>
-		<image>topicmusic.gif</image>
+		<image>topicpatents.gif</image>
+	</story>
+
+	<story>
+		<title>Ask Sam Lantinga About SDL On PS2 And More</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/10/1736243</url>
+		<time>2001-08-10 18:30:56</time>
+		<author>timothy</author>
+		<department>talk-about-cross-platform</department>
+		<topic>news</topic>
+		<comments>153</comments>
+		<section>articles</section>
+		<image>topicnews.gif</image>
+	</story>
+
+	<story>
+		<title>Code Red III</title>
+		<url>http://slashdot.org/article.pl?sid=01/08/10/162207</url>
+		<time>2001-08-10 17:48:50</time>
+		<author>CmdrTaco</author>
+		<department>are-we-there-yet-mommy</department>
+		<topic>microsoft</topic>
+		<comments>725</comments>
+		<section>articles</section>
+		<image>topicms.gif</image>
 	</story>
 
 </backslash>

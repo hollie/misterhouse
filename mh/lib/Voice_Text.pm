@@ -268,6 +268,23 @@ sub read_pronouncable_list {
     close WORDS;
 }
 
+sub speak_mode {
+    my ($mode) = lc shift;
+                                # Only MS TTS for now
+    if ($VTxt) {
+        return $VTxt->StopSpeaking      if $mode eq 'stop';
+        return $VTxt->AudioPause        if $mode eq 'pause';
+        return $VTxt->AudioResume       if $mode eq 'resume';
+        return $VTxt->AudioFastForward  if $mode eq 'fastforward';
+        return $VTxt->AudioRewind       if $mode eq 'rewind';
+        return $VTxt->{Speed} = 250     if $mode eq 'fast';
+        return $VTxt->{Speed} = 200     if $mode eq 'normal';
+        return $VTxt->{Speed} = 150     if $mode eq 'slow';
+        return $VTxt->{Speed} = $mode   if $mode =~ /^\d+$/
+    }
+}
+
+
 sub force_pronounce {
     my($phrase) = @_;
     print "input  phrase is '$phrase'\n" if $main::config_parms{debug} eq 'voice';
@@ -282,6 +299,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.27  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
 # Revision 1.26  2001/05/28 21:14:38  winter
 # - 2.52 release
 #

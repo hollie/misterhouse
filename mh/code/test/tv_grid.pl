@@ -1,7 +1,5 @@
 # Category=TV
 
-$VCR = new IR_Item 'VCR', '3digit';
-
                                 # Note: This $tv_grid is a special name, used by the get_tv_grid program.  
                                 #       Do not change it.
 $tv_grid = new Generic_Item();

@@ -41,19 +41,28 @@ sub set {
 
     $state = uc $state;
 
-                                # Always lead single digit with a 0.  Cover all 4 cases:
+                                # Option to make changing channels faster on devices with a timeout
+    if ($$self{code} and $$self{code} eq 'addEnter') {
+        $state =~ s/^(\d+),/$1,ENTER,/g;
+        $state =~ s/,(\d+),/,$1,ENTER,/g;
+        $state =~ s/,(\d+)$/,$1,ENTER/g;
+        $state =~ s/^(\d+)$/$1,ENTER/g;
+    }
+                                # Default is to lead single digit with a 0.  Cover all 4 cases:
                                 #  1,record    stop,2   stop,3,record     4
-    $state =~ s/^(\d),/0$1,/g;
-    $state =~ s/,(\d),/,0$1,/g;
-    $state =~ s/,(\d)$/,0$1/g;
-    $state =~ s/^(\d)$/0$1/g;
+    else {
+        $state =~ s/^(\d),/0$1,/g;
+        $state =~ s/,(\d),/,0$1,/g;
+        $state =~ s/,(\d)$/,0$1/g;
+        $state =~ s/^(\d)$/0$1/g;
 
                                 # Lead with another 0 for devices that require 3 digits.
-    if ($$self{code} and $$self{code} eq '3digit') {
-        $state =~ s/^(\d\d),/0$1,/g;
-        $state =~ s/,(\d\d),/,0$1,/g;
-        $state =~ s/,(\d\d)$/,0$1/g;
-        $state =~ s/^(\d\d)$/0$1/g;
+        if ($$self{code} and $$self{code} eq '3digit') {
+            $state =~ s/^(\d\d),/0$1,/g;
+            $state =~ s/,(\d\d),/,0$1,/g;
+            $state =~ s/,(\d\d)$/,0$1/g;
+            $state =~ s/^(\d\d)$/0$1/g;
+        }
     }
                                 # Put commas between all digits, so they are seperate commands
     $state =~ s/(\d)(?=\d)/$1,/g;
@@ -93,6 +102,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.10  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
 # Revision 1.9  2001/06/27 03:45:14  winter
 # - 2.54 release
 #

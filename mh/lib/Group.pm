@@ -15,6 +15,11 @@ sub new {
 
 sub add {
     my ($self, @items) = @_;
+
+                                # Dang, no way to get $self->{object_name} here (it is saved later in user_code)
+                                # Note much use without it ... who would do this anyway :)
+#   &main::display("Warning, Group containts itself! $self.  Bad idea.") if grep $_ eq $self, @items;
+
     push(@{$$self{members}}, @items);
 
                                 # Define group states according to the first item
@@ -85,6 +90,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.16  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
 # Revision 1.15  2001/04/15 16:17:21  winter
 # - 2.49 release
 #

@@ -796,3 +796,10 @@ sub menu_format_list {
 
 return 1;
 
+
+#
+# $Log$
+# Revision 1.6  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
+#

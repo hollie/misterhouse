@@ -387,6 +387,9 @@ DESCRIPTION
         - Info on how to wire up a 1 wire bus: 
           http://www.pointsix.com/cgi-bin/PointSix.cgi?AppNotes&app010
 
+      http://www.aag.com.mx
+        - Sell an ibutton weather station for $80
+
       http://weather.henriksens.net  has free 1-Wire Weather station software
         - It includes a tcp/ip server that (in theory) could talk to mh
 
@@ -1038,6 +1041,7 @@ DESCRIPTION
              state        : Returns the last state that was received or sent
 
              state_now    : Returns the state that was received or sent in the current pass.
+                            Note that the a 'set' will trigger a state_now one the next pass.
 
              state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
                             time_date stamped states.

@@ -262,9 +262,11 @@ sub new {
     my $class = shift;
     my $port = shift;
     my $DEBUG = shift || 0;
+    my $TWEAK = shift || 0;
     my $this;
     $this->{ PORTNAME } = $port;
     $this->{ DEBUG } = $DEBUG;
+    $this->{ TWEAK } = $TWEAK;
     bless $this, $class;
 
     $this->openPort;
@@ -438,8 +440,13 @@ sub write {
 	warn( "WROTE: $debugString\n" );
     } 
     my $count = $this->{ SERIALPORT }->write( $string ); 
-# This caused problems for several other users :(
-#    select undef, undef, undef, (11*1000 / 10**6);  # 11ms  added by Thomas Stoll on 10.4.2001 20:50 in Modul Connection.pm
+
+                                # 11ms  added by Thomas Stoll on 10.4.2001 20:50 in Modul Connection.pm
+                                # This caused problems for several other users, so made it optional
+    if ( $this->{ TWEAK } == 1 ) {
+        select undef, undef, undef, (11*1000 / 10**6);
+    }
+
     if ( !$count ) { 
         warn "write failed\n"; 
         return undef; 

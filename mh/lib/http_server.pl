@@ -487,7 +487,7 @@ sub get_local_file {
 }
 
 sub test_for_file {
-    my ($socket, $get_req, $get_arg, $skip_header) = @_;
+    my ($socket, $get_req, $get_arg, $no_header, $no_print) = @_;
 
     my ($file, $http_dir) = &get_local_file($get_req);
 
@@ -508,8 +508,14 @@ sub test_for_file {
     }
 
     if (-e $file) {
-        &html_file($socket, $file, $get_arg, $skip_header) if &test_file_req($socket, $get_req, $http_dir);
-        return 1;
+        my $html = &html_file($socket, $file, $get_arg, $no_header) if &test_file_req($socket, $get_req, $http_dir);
+        if ($no_print) {
+            return $html;
+        }
+        else {
+            &print_socket_fork($socket, $html);
+            return 1;
+        }
     }
     else {
         return 0;               # No file found ... check for other types of http requests
@@ -782,9 +788,10 @@ sub html_print_log {
 }
 
 sub html_file {
-    my ($socket, $file, $arg, $skip_header) = @_;
+    my ($socket, $file, $arg, $no_header) = @_;
     print "printing html file $file to $socket\n" if $main::config_parms{debug} eq 'http';
 
+    my $html;
     local *HTML;                # Localize, for recursive call to &html_file
 
     unless (open (HTML, $file)) {
@@ -797,7 +804,7 @@ sub html_file {
                                 #  <!--#include file="whatever"-->
     if ($file =~ /\.shtml$/ or $file =~ /\.vxml$/) {
         print "Processing server side include file: $file\n" if $main::config_parms{debug} eq 'http';
-        my $html = &mime_header($file);
+        $html = &mime_header($file) unless $no_header;
         while (my $r = <HTML>) {
                                 # Example:  <li>Version: <!--#include var="$Version"--> ...
 #           if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=[\"\']([^\"\']+)[\"\'] *--\>(.*)/) {
@@ -812,7 +819,8 @@ sub html_file {
                  $get_arg = '' unless $get_arg; # Avoid uninitalized var msg
                  if ($directive eq 'file') {
 
-                    if (&test_for_file($socket, $get_req, $get_arg, 1)) {
+                    if (my $html_file = &test_for_file($socket, $get_req, $get_arg, 1, 1)) {
+                        $html .= $html_file;
                     }
                     elsif (my ($html2, $style) = &html_mh_generated($get_req, $get_arg, 0)) {
                         $style = '' unless $style; # Avoid uninitalized var msg
@@ -836,7 +844,6 @@ sub html_file {
                 $html .= $r;
             }
         }
-        &print_socket_fork($socket, $html);
     }
                                 # Allow for .pl cgi programs
                                 # Note: These differ from classic .cgi in that they return 
@@ -853,35 +860,21 @@ sub html_file {
 #       open(STDOUT, ">&OLDOUT_H");
 #       close OLDOUT_H;
 
-        my $results = eval $code;
+        $html = eval $code;
         print "Error in http eval: $@" if $@;
-        print "Http_server  .pl file results:$results.\n" if $main::config_parms{debug} eq 'http';
-        &print_socket_fork($socket, $results);
-#       print $socket $results;
-    }
-    elsif (0) {
-        my $buff;
-        binmode HTML;
-        my $len;
-        $len = &html_header( $socket, $file ) unless $skip_header;
-        while (read(HTML, $buff, 8*2**10)) {
-            print $socket $buff;
-            $len += length($buff);
-        }
-        print $socket "\n\n" if $len==256 or $len==257; # Without this, netscap will not show really short .gif files!
+        print "Http_server  .pl file results:$html.\n" if $main::config_parms{debug} eq 'http';
     }
     else {
-        my $html = &mime_header($file);
+        $html = &mime_header($file) unless $no_header;
         binmode HTML;
         $html .= join '', <HTML>;
-        &print_socket_fork($socket, $html);
     }
-
     close HTML;
+    return $html;
 }
 
 sub mime_header {
-    my ($extention) = $_[0] =~ /.+\.(\S+)/;
+    my ($extention) = $_[0] =~ /.+\.(\S+)$/;
     my $mime = $mime_types{lc $extention} || 'text/html';
     return qq[HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n\n];
 }
@@ -1553,8 +1546,8 @@ sub print_socket_fork {
     my ($socket, $html) = @_;
     my $length = length $html;
                                 # These sizes are picked a bit randomly.  Don't need to fork on small files
-    if ($length > 2000 and !&is_local_address() or 
-        $length > 10000) {
+    if (($main::config_parms{http_fork} or !$OS_win) and
+        ($length > 2000 and !&is_local_address() or $length > 10000)) {
         print "http_server: printing with forked socket: l=$length s=$socket\n" if $main::config_parms{debug} eq 'http';
         if ($OS_win) {
             &socket_fork_win($socket, $html);
@@ -2061,6 +2054,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.60  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
 # Revision 1.59  2001/06/27 13:17:39  winter
 # - 2.55 release
 #

@@ -38,7 +38,8 @@ package X10_MR26;
 
 sub startup {
     &main::serial_port_create('MR26', $main::config_parms{MR26_port}, 9600, 'none', 'raw');
-    &::MainLoop_pre_add_hook(  \&X10_MR26::check_for_data, 1 );
+                                # Add hook only if serial port was created ok
+    &::MainLoop_pre_add_hook(  \&X10_MR26::check_for_data, 1 ) if $main::Serial_Ports{MR26}{object};
 }
 
                                 # House codes A-P
@@ -123,6 +124,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.4  2001/08/12 04:02:58  winter
+# - 2.57 update
+#
 # Revision 1.3  2001/06/27 03:45:14  winter
 # - 2.54 release
 #

@@ -42,6 +42,9 @@ Compool*.pl
  - Bill Sobel's code for monitoring and controling ComPool pool/spa equipment.
    You can get/set time, get/set temperature, and get/set equipment states.    
 
+copycode.pl
+ - Jeff Crum's code for copying voice commands from one mh computer to another.
+
 date_functions.pl
  - Jeff Crum's functions for dealing with dates (e.g. finding labor day).
 
@@ -53,7 +56,7 @@ iButton_ws.pl
  - Craig Schaeffer's code for monitoring the iButton weather station
 
 iButton_ws_client.pl
- - Gets iButton weather station data from Henriksen's tcp server
+ - Doug Mackie's code for for getting iButton weather station data from Henriksen's tcp server
 
 ical.pl
  - David Lounsberry's code to run the mh/bin/ical_load program to create
@@ -62,11 +65,17 @@ ical.pl
    Set this mh.ini parm: calendar_file=/home/dbl/.calendar
 
 internet_earthquake.pl
+internet_earthquake_cal.pl
  - Tim Doyle's script for monitoring earthquakes.
+ - David Norwood created a California specific _cal version.
 
 internet_ip_update.pl
 internet_ip_update_craig.pl
  - Updates IP servers/web pages with IP addresses
+
+irvs*
+ - Walter Leemput's example of a DTFM driven phone menu, using the 
+   Irvs phone module from CPAN (linux only).
 
 mp3_control_GQmpeg.pl
  - Dave Lounsberry's code for controling the GQmpge.pl player on linux
@@ -88,6 +97,7 @@ NetCallerID.pl
  - Timothy Spaulding's code to interface with the $30 NetCallerID box.  
    In addition to normal CallerID, it supports Call Waiting CallerID
    (callerid while you are on the phone).
+   Aso see mh/code/bruce/phone_netcallid.pl for another example.
 
 news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
@@ -183,6 +193,11 @@ webcam_lite.html
 webcam_lite.pl
  - Mike's code for allowing visitors to his webcam site to flash lights and
    type in TTS messages.
+
+webcam_ron.html
+webcam_ron.pl
+ - Ron Klinkien's code for using a command line frame grabber to create
+   a simple webcam.
 
 winamp_control.pl
  - Evan Graham's code for controling and querying winamp using messaging via Win32::GUI. 

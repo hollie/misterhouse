@@ -47,7 +47,6 @@ These are the quick instructions for those of you who, like me, don't like to re
 
  - mh.bat (this will call mh.exe or 'perl mh')
 
-
 =head2 Unix users
 
  - Download the the latest rpm, tar, or zip file 
@@ -74,12 +73,19 @@ These are the quick instructions for those of you who, like me, don't like to re
 
  - ./mhl (if that doesn't work, try: mh or perl mh)
 
-If you have graphics related errors, turn of the local graphics interface with: ./mh -tk 0
+=head2 Tips
 
-This runs all the test scripts in the mh\code\test directory.  Point your web browser to 
-http://localhost:8080
-and try out a few commands.  Also try 'telnet localhost 1234' and type one of the commands you saw on the
+To use less memory and cpu, or if you get graphics related errors, 
+you can run without the local gui inteface with:  mh -tk 0
+
+The default setup runs all the test scripts in the mh\code\test directory.
+Point your web browser to http://localhost:8080 and try out a few commands. 
+Also try 'telnet localhost 1234' and type one of the commands you saw on the
 web interface (e.g. 'say something good to Bruce').
+
+=begin html
+See <a href="#Coding_your_own_events">Coding your own events</a> for info on how to customized mh.
+<a href="updates.html">
 
 
 =head1 Windows Detailed Install Instructions
@@ -172,6 +178,9 @@ Unzip speech_api.zip, then run spchapi.exe to install the speech API.
 Unzip msvoice.zip from speech_api.zip into a directory to store the msvoice app in (e.g. /misterhouse/msvoice). 
 Then run msvoice.exe to start the "Microsoft Voice" application. 
 Once running, you can use the "Voice Command Options" menu from the green V in your tray to pick your default voice.
+
+Other TTS engines, including those for British English, Dutch, French, German, Italian, Portuguese, and Spanish
+can be downloaded from http://www.nextup.com/TextAloud/SpeechEngine/voices.html
 
 
 =head1 UNIX Detailed Install Instructions
@@ -389,7 +398,7 @@ See FAQ question 6.5 for more info on X10.
 
 If you want more than just X10, you may want to go with the Weeder X10 Kit. 
 One advantage of the Weeder kits is they can all share the same serial port.
-The X10 kit, however, costs more ($40 + $25 for a WT523 module if you don't already have that, 
+The X10 kit, however, costs more ($40 + $25 for a TW523 module if you don't already have that, 
 $10 for a serial and a phone cable), and doesn't support the extended X10 data 
 that the CM11 does (e.g. preset dims).
 
@@ -416,21 +425,21 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
  mkdir c:\misterhouse\code 
  mkdir c:\misterhouse\data
 
- copy  c:\misterhouse\mh\test\trivia.pl c:\misterhouse\code
- copy  c:\misterhouse\mh\bin\mh.example.ini  c:\misterhouse\mh.ini
+ copy  c:\misterhouse\mh\code\test\trivia.pl c:\misterhouse\code
+ copy  c:\misterhouse\mh\bin\mh.example.ini  c:\misterhouse\mh.private.ini
  xcopy c:\misterhouse\mh\data           c:\misterhouse\data /s
 
- edit  c:\misterhouse\mh.ini
-   - Delete all the records from your mh.ini that you don't change 
+ edit  c:\misterhouse\mh.private.ini
+   - Delete all the records from your mh.private.ini that you don't change 
      since the default mh\bin\mh.ini will also be read.
      Set code_dir=c:\misterhouse\code
      Set data_dir=c:\misterhouse\data
 
  On windows, add this to your autoexec.bat:
-   set mh_parms=c:\MisterHouse\mh.ini
+   set mh_parms=c:\misterHouse\mh.private.ini
 
  On unix, add this to /etc/profile or like place:
-   export mh_parms=/prog/Misterhouse/mh.ini
+   export mh_parms=/prog/misterhouse/mh.private.ini
        
 
 Now when you run mh, it will read just the *.pl files in c:\misterhouse\code.  
@@ -438,7 +447,7 @@ After mh is up and running, copy in the other members from mh/code/test that
 you think might be useful and click the Reload button to read them in.
 Adding a member a few at a time might be useful if you are trying to find an error.
 By default, the code files in mh/code/common are always read (you can disable this
-or point to a different directory with the mh.ini code_dir_common parm).
+or point to a different directory with the mh.private.ini code_dir_common parm).
 
 The first thing you will want to do is create an items.mht file that declares
 all your X10 items (see mh/code/Bruce/items.mht for an example).  Alternativly, you 

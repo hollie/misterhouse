@@ -220,7 +220,8 @@ sub read_in_call_log {
 #Tue, Nov  2  6:46 PM 507-252-8619 SPENCER DARYL
 #Mon 04/14/97 14:28:00 
      
-            my($time_date, $number, $name) = $_ =~ /(.+?)(\d\d\d\-\d\d\d\-\d\d\d\d) (.+)$/; 
+            my($time_date, $number, $name) = $_ =~ /(.+?)(\d\d\d\-?\d\d\d\-?\d\d\d\d) (.+)$/;
+            my ($line) = $_ =~ /line=(.+?)/; # Optional ... which incoming line
         
                                 # Deal with "private, 'out of area', and bad data" calls 
             unless ($name) { 
@@ -238,13 +239,15 @@ sub read_in_call_log {
                     $name = "  " . substr($_, 21); 
                 } 
             } 
+            $time_date =~ s/ +$//;
+            $name =~ s/data=.+//;
         
 #          $name =~ s/[\r\n]+$//; # Delete carrage return 
 
             my $name2 = $callerid_name_by_number{$number};
             $name2 = $name unless $name2;
             
-            my $number_name = sprintf("%-12s %s", $number, $name2); 
+#           my $number_name = sprintf("$line %-12s %s", $number, $name2); 
             
             $count++; 
 #           $calls{out}{$count}{date}     =&ParseDate($time_date); # For sorting by date .... MUCH too slow  :( 
@@ -252,7 +255,8 @@ sub read_in_call_log {
             $calls{in}{$count}{time_date}   = $time_date; 
             $calls{in}{$count}{number} = $number; 
             $calls{in}{$count}{name}   = $name; 
-            $calls{in}{$count}{name2}   = $name2; 
+            $calls{in}{$count}{name2}  = $name2; 
+            $calls{in}{$count}{line}   = $line;  
             
         } 
     }
@@ -300,7 +304,7 @@ sub read_out_call_log {
             $calls{out}{$count}{time_date}   = $time_date; 
             $calls{out}{$count}{number} = $number; 
             $calls{out}{$count}{name}   = $name; 
-            $calls{out}{$count}{name2}   = $name2; 
+            $calls{out}{$count}{name2}  = $name2; 
         } 
     } 
 }
@@ -501,8 +505,9 @@ sub sort_data {
     my $rec; 
     for $rec (sort {$calls{$class}{$b}{$sort_by} cmp $calls{$class}{$a}{$sort_by}} keys %{$calls{$class}}) { 
         $count++; 
-        $data .= sprintf("%20s %-12s %s\n",  
+        $data .= sprintf("%s %s %-12s %s\n",  
                          $calls{$class}{$rec}{time_date}, 
+                         $calls{$class}{$rec}{line}, 
                          $calls{$class}{$rec}{number}, 
                          $calls{$class}{$rec}{name2}); 
     } 
@@ -572,6 +577,9 @@ sub phone_list2 {
 
 #
 # $Log$
+# Revision 1.17  2001/08/12 04:02:57  winter
+# - 2.57 update
+#
 # Revision 1.16  2000/01/27 13:21:37  winter
 # - update version number
 #
