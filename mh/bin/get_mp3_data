@@ -1,0 +1,129 @@
+#!/usr/bin/perl
+# -*- Perl -*-
+
+use strict;
+
+my($Pgm_Path, $Pgm_Name, $Version);
+BEGIN {
+    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+}
+
+my %parms;
+use Getopt::Long;
+if (!&GetOptions(\%parms, "h", "help", "dbm=s") or !@ARGV or $parms{h} or $parms{help}) {
+    print<<eof;
+
+$Pgm_Name reads mp3 directories and stores the results in a dbm file.
+
+  Version: $Version
+
+  Usage:
+
+   $Pgm_Name [options] dir1 dir2 etc
+
+    -h        => This help text
+    -help     => This help text
+
+    -dbm  xyz => Stores the data in dbm file xyz.
+
+  Examples:
+    $Pgm_Name c:\mp3 d:\mp3
+    $Pgm_Name -dbm e:\mh\data\mp3_dbm c:\mp3
+
+eof
+    exit;
+}
+
+my (%counts, %DBM, @data);
+&setup;
+for my $dir (@ARGV) {
+    print "\nTraversing dir $dir\n";
+    &read_mp3_dir($dir);
+}
+print "\nRead $counts{dir} directories and $counts{file} files.\n  - Found  $counts{tag} files with TAG data\n";
+my @tags = qw(title artist album year comment genre file);
+for (0 .. 6) {
+    printf "  - Found %4d files with a $tags[$_] tag\n", $counts{$_} unless $_ == 6;
+    $DBM{$tags[$_]} = join $;, @{$data[$_]};
+}
+
+
+sub setup { 
+    $parms{dbm} = 'mp3.dbm' unless $parms{dbm};
+    print "\nData will be stored in $parms{dbm}\n";
+    unlink $parms{dbm};
+    use DB_File;
+    tie %DBM, 'DB_File', $parms{dbm}, O_RDWR|O_CREAT, 0666 or die "Can not open dbm file $parms{dbm}: $!";
+}
+
+sub read_mp3_dir {
+    my($dir) = @_;
+    my $buffer;
+    print "  - Reading files in $dir\n";
+    $counts{dir}++;
+    opendir(MP3DIR, $dir) or return;
+    my @files = readdir MP3DIR;
+    close MP3DIR;
+
+    my @mp3_genres = ('Blues', 'Classic Rock', 'Country', 'Dance', 'Disco', 'Funk', 'Grunge', 
+                  'Hip-Hop', 'Jazz', 'Metal', 'New-Age', 'Oldies', 'Other', 'Pop', 'R&B', 
+                  'Rap', 'Reggae', 'Rock', 'Techno', 'Industrial', 'Alternative', 'Ska',
+                  'Death Metal', 'Pranks', 'Soundtrack', 'Euro-Techno', 'Ambient', 'Trip-Hop',
+                  'Vocal', 'Jazz+Funk', 'Fusion', 'Trance', 'Classical', 'Instrumental', 'Acid',
+                  'House', 'Game', 'Sound Clip', 'Gospel', 'Noise', 'AlternRock', 'Bass', 'Soul',
+                  'Punk', 'Space', 'Meditative', 'Instrumental Pop', 'Instrumental Rock', 'Ethnic', 
+                  'Gothic', 'Darkwave', 'Techno-Industrial', 'Electronic', 'Pop-Folk', 'Eurodance',
+                  'Dream', 'Southern Rock', 'Comedy', 'Cult', 'Gangsta', 'Top 40', 'Christian Rap',
+                  'Pop/Funk', 'Jungle', 'Native American', 'Cabaret', 'New Wave', 'Psychadelic',
+                  'Rave', 'Showtunes', 'Trailer', 'Lo-Fi', 'Tribal', 'Acid Punk', 'Acid Jazz',
+                  'Polka', 'Retro', 'Musical', 'Rock & Roll', 'Hard Rock');
+
+
+    for my $file (sort @files) {
+        next if $file eq '.' or $file eq '..';
+        $file = "$dir/$file";
+        &read_mp3_dir($file), next if -d $file;
+#       next if $file eq '.' or $file eq '..' or $file !~ /\.mp3$/i;
+        next if $file eq '.' or $file eq '..';
+        $counts{file}++;
+        open(MP3FILE, $file) or print "Error in in file open: $!\n";
+        if (open(MP3FILE, $file)) {
+
+            seek MP3FILE, -128, 2;
+            read MP3FILE, $buffer, 128;
+            close MP3FILE;
+
+            my @tag_data = unpack('A3A30A30A30A4A30A1', $buffer);
+            if ('TAG' eq shift @tag_data) {
+                $counts{tag}++;
+            }
+            else {
+                undef @tag_data;
+            }
+            for my $i (0 .. 5) {
+                if ($i == 5) {
+                    $tag_data[$i] = $mp3_genres[ord $tag_data[$i]] if defined $tag_data[$i];
+                }
+                else {
+                    $tag_data[$i] =~ tr/\x20-\x7e//cd; # Drop non-ascii characters
+                    $tag_data[$i] =~ s/^\s+//;
+                    $tag_data[$i] =~ s/\s+$//;
+                }
+                push @{$data[$i]}, $tag_data[$i];
+                $counts{$i}++ if $tag_data[$i];
+            }
+            $file =~ s|/|\\|g if $^O eq 'MSWin32';
+            push @{$data[6]}, $file;
+        }
+    }
+}
+           
+
+#
+# $Log$
+# Revision 1.1  2000/01/27 13:59:25  winter
+# - created
+#
+#
