@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-11-30 18:38:03 winter>
+#  Last change Time-stamp: <2000-12-07 19:03:26 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -210,8 +210,14 @@ BEGIN {
     sub check_usage {
 
                                 # Get legal options from .ini file
-#       my $parmfile = $Pgm_PathU . "/$Pgm_Name.ini";
-        my $parmfile = $Pgm_PathU . "/mh.ini";
+        my $parmfile;
+        if ($ENV{mh_parms}) {
+            $parmfile = $ENV{mh_parms};
+        } else {
+            $parmfile = $Pgm_PathU . "/mh.ini";
+        }
+        my $parmfile = $Pgm_PathU . "/$Pgm_Name.ini";
+
         open (PARMS, $parmfile) or die "Error, could not open parmfile $parmfile: $!\n";
         my @parms;
         while (<PARMS>) {
@@ -496,7 +502,7 @@ sub setup {
 
         if ($proto eq 'tcp') {
            $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
-               die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port}_port in mh.ini\n";
+               die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port_name}_port in mh.ini\n";
         } elsif ($proto eq 'udp') {
            $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp') or 
                die "Couldn't start a udp server on $port_name $port: $@\n";
@@ -519,8 +525,9 @@ sub setup {
                                 # Manager must be available in lib directory
     for my $parm (keys %config_parms) {
                                 # Check for serial and server ports modules (e.g. Compool.pm)
+                                #  Alow for: Stargate485_serial_port=COM9 
         next unless $config_parms{$parm};
-        if ($parm =~ /^(\S+?)(:?\d*)_(serial|server)_port/) {
+        if ($parm =~ /^([^:]+)(:?\d*)_(serial|server)_port/) {
             if (-e "$Pgm_PathU/../lib/$1.pm") {
                 print "Found managed $3 port=$1$2\nMH will now require $1.pm and call $1::$3_startup($1$2)\n" 
                     if $config_parms{debug} eq 'startup';
@@ -545,6 +552,19 @@ sub setup {
                 print "Startup error on $startup: $@\n" if $@;
             }
         }
+                                # Check for other mh.ini specified modules (e.g. Weather_vw.pm)
+                                # weather_vwlog_module=Weather_vw
+        if ($parm =~ /^(\S+?)_module/) {
+            my $module = "$config_parms{$parm}.pm";
+            if (-e "$Pgm_PathU/../lib/$1.pm") {
+                print "Found managed $1 module\nMH will now require $1.pm and call $1::startup\n"
+                    if $config_parms{debug} eq 'startup';
+                require "$1.pm";
+                eval "$1::startup()";
+                print "Startup error on $1::startup(): $@\n" if $@;
+            }
+        }
+        
     }
 
     if ($config_parms{weeder_port}) {
@@ -2428,11 +2448,11 @@ sub read_table_files {
         my $format;
         my %formats_seen;
         while (<TABLE_IN>) {
+            $format = $1 if / *Format *= *(\S+)/i;
             if (/^\s*#/) {      # comment line
                 print TABLE_OUT $_;
                 next;
             }
-            $format = $1 if / *Format *= *(\S+)/i;
             if ($format) {
                                 # These code reading subroutines are in mh/lib/read_table.pl
                                 # Run the Init function on Reload
@@ -2568,14 +2588,16 @@ sub read_user_code {
             if ($object or
                 $record =~ /^my\s/ or                 # Global 'my'
                 $record =~ /^use vars\s/ or           # Global 'use vars'
-                $record =~  /^\s*hidden\s/ or         # hidden    only needs to be done on code load
-                $record =~ /->\s*hidden/ or           # hidden    only needs to be done on code load
-                $record =~  /^\s*set_icon\s/ or       # set_icon  only needs to be done on code load
-                $record =~ /->\s*set_icon/ or         # set_icon  only needs to be done on code load
-                $record =~  /^\s*set_info\s/ or       # set_info  only needs to be done on code load
-                $record =~ /->\s*set_info/ or         # set_info  only needs to be done on code load
-                $record =~  /^\s*set_order\s/ or      # set_order only needs to be done on code load
-                $record =~ /->\s*set_order/ or        # set_order only needs to be done on code load
+                $record =~  /^\s*hidden\s/ or         # These only needs to be done on code load
+                $record =~ /->\s*hidden/   or
+                $record =~  /^\s*set_authority\s/ or
+                $record =~ /->\s*set_authority/   or
+                $record =~  /^\s*set_icon\s/ or
+                $record =~ /->\s*set_icon/   or
+                $record =~  /^\s*set_info\s/ or
+                $record =~ /->\s*set_info/   or
+                $record =~  /^\s*set_order\s/ or
+                $record =~ /->\s*set_order/   or
                 $record =~ /^\s{0,3}\S+\s*->\s*add[\s\(]/ or
                 $record =~ /^\s{0,3}add\s/) {
                 $noloop_statement_flag = 1; # Allow for multi-record statements
@@ -3816,6 +3838,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.37  2000/12/08 02:13:35  winter
+# *** empty log message ***
+#
 # Revision 2.36  2000/12/03 19:33:47  winter
 # - 2.36 release
 #
