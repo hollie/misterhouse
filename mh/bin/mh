@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-11-11 23:14:50 winter>
+#  Last change Time-stamp: <2000-11-18 22:24:46 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -172,6 +172,7 @@ BEGIN {
 
 # Win95:  MSWin32 Win95  B 4 0 67306684 1 FAT32
 # Win98:  MSWin32 Win95    4 10 67766222 1 FAT
+# WinME:  MSWin32 Win95    4 90 67766222 1 FAT
 # 2K:     MSWin32 NT Service Pack 1,5,0,2195,2 NTFS
 
 
@@ -180,6 +181,7 @@ BEGIN {
             $Info{OS_name} = 'NT' if Win32::IsWinNT;
             $Info{OS_name} = 'Win95' if Win32::IsWin95 ;
             $Info{OS_name} = 'Win98' if Win32::IsWin95 and (Win32::GetOSVersion)[2] > 0;
+            $Info{OS_name} = 'WinMe' if Win32::IsWin95 and (Win32::GetOSVersion)[2] > 10;
             $Info{OS_filesystem} = Win32::FsType;
             $Info{User} = Win32::LoginName;
             $Info{Machine} = Win32::NodeName;
@@ -361,6 +363,8 @@ sub setup {
         &print_version;
     }
 
+    &add_hook_code;
+
     use Astro::MoonPhase;
     use Astro::SunTime;
 #   use Barcode;
@@ -394,6 +398,8 @@ sub setup {
     use IR_Item;
 #   &my_use("Serial_Item");  # So we can add debug to Serial_Item.pm when running mh.exe
     use Serial_Item;
+    use vars '%Weather';
+    use Weather_Item;   &Weather_Item::Init();
     use X10_Items;
     use iButton;
     use Hardware::iButton::Connection;
@@ -455,8 +461,6 @@ sub setup {
 
     open(ERROR_LOG, ">>$config_parms{code_dir}/mh_temp.error_log") or 
         print "Error, could not open error log $config_parms{code_dir}/-error_log-: $!\n";
-
-    &add_hook_code;
 
 #   print "parms=", join(":", %config_parms), "\n";
     if ($config_parms{voice_cmd}) {
@@ -578,12 +582,12 @@ sub setup {
         &serial_port_create('cm17', $config_parms{cm17_port});
     }
 
-    if($config_parms{weather_sblog_file} or
-       $config_parms{weather_vwlog_file} or
-       $config_parms{serial_wx200}) {
-        require 'Weather.pm';
-        &Weather_Data::Init();
-    }
+#    if($config_parms{weather_sblog_file} or
+#       $config_parms{weather_vwlog_file} or
+#       $config_parms{serial_wx200_port}) {
+#        require 'Weather_Data.pm';
+#        &Weather_Data::Init();
+#    }
 
 
     if ($OS_win) {
@@ -622,14 +626,14 @@ sub setup {
     $Time_Increment = ($config_parms{time_increment}) ? $config_parms{time_increment} : 60;
     if ($config_parms{time_start} =~ /\S/) {
         $Loop_Sleep_Time = 0;
-        $Loop_Tk_Passes = 1;
+#       $Loop_Tk_Passes  = 1;
         $Time_Start_time = &my_str2time($config_parms{time_start});
         $Time  = $Time_Start_time - $Time_Increment; # Cause we start the loop with an increment
         print "time_start=$config_parms{time_start} -> $Time_Start_time \n";
     }
     if ($config_parms{time_stop} =~ /\S/) {
         $Loop_Sleep_Time = 0;
-        $Loop_Tk_Passes = 1;
+#       $Loop_Tk_Passes  = 1;
         $Time_Stop_time  = &my_str2time($config_parms{time_stop});
         $Time_Stop_time += 3600*24 if $Time_Stop_time < $Time_Start_time;
         print "time_stop =$config_parms{time_stop} -> $Time_Stop_time \n";
@@ -2751,9 +2755,9 @@ sub set_global_vars {
                 print $msg;
                 print_log $msg;
                 &speak($msg);
+#               $Loop_Tk_Passes  = $config_parms{tk_passes};
             }
             $Loop_Sleep_Time = $config_parms{sleep_time};
-            $Loop_Tk_Passes = $config_parms{tk_passes};
             undef $Time_Start_time;
         }
         else {
@@ -2961,8 +2965,8 @@ sub set_global_vars {
             if file_change($config_parms{pronouncable_list_file}) or $Startup;
     }
     # Save object states every 5 minutes, in case mh is aborted without a proper shutdown
-#    &object_states_save if $New_Minute and !($Minute % 5);
-    &object_states_save if $New_Minute;
+#   &object_states_save if $New_Minute and !($Minute % 5); $Time_Increment
+    &object_states_save if $New_Minute and $Time_Increment <= 1; # Skip if in accelerated mode
 
 }
 
@@ -3808,6 +3812,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.35  2000/11/19 19:54:28  winter
+# - added %Weather.  Fixed -time_stop accelerated time mode
+#
 # Revision 2.34  2000/11/12 21:01:02  winter
 # - 2.34 release
 #
