@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-08-06 16:48:08 winter>
+#  Last change Time-stamp: <2000-08-08 22:34:55 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -505,7 +505,8 @@ sub setup {
     }
 
     if ($config_parms{weeder_port}) {
-        &serial_port_create('weeder', $config_parms{weeder_port}, 1200, 'dtr');
+        $config_parms{weeder_baudrate} = 1200 unless $config_parms{weeder_baudrate};
+        &serial_port_create('weeder', $config_parms{weeder_port}, $config_parms{weeder_baudrate}, 'dtr');
         $Serial_Ports{weeder}{process_data} = 1;
     }
 
@@ -1630,12 +1631,12 @@ sub monitor_commands {
 
                                 # use our own str2time here so we can do arithmitic offsets
 sub my_str2time {
-    my($time_date) = @_;
-    return 0 unless defined $time_date;
+    my($time_date_arg) = @_;
+    return 0 unless defined $time_date_arg;
     my ($monthf, $mdayf, $yearf, $time_date_time, $hourf, $minf, $am_pm);
     my ($op, $offset, $sec_offset, $hour_offset, $min_offset);
-    $time_date = eval(qq["$time_date"]);   # Use eval for on-the-fly variable substitution
-    print "Error in my_str2time: time=$time_date  error=$@\n" if $@;
+    my $time_date = eval(qq["$time_date_arg"]);   # Use eval for on-the-fly variable substitution
+    print "Error in my_str2time: time=$time_date_arg  error=$@\n" if $@;
 
                                 # Date specification is optional
     ($monthf, $mdayf, $yearf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\/(\S+) +(.+)/;
@@ -1649,8 +1650,8 @@ sub my_str2time {
     ($hourf, $minf, $am_pm) = $time_date =~ /(\d+):?(\d*) *([AaPp]?[Mm]?)/;
     $minf = 0 unless $minf;
     unless (defined $hourf) {
-        my @caller = caller;    # This is not useful in user_code eval :(
-        print_log("Warning, bad time record: time=$time_date  caller=@caller.");
+#       my @caller = caller;    # This is not useful in user_code eval :(
+        print_log("Warning, bad time record: time=$time_date_arg time_date=$time_date ");
         return 0;
     }
                                 # Allow for time offsets
@@ -2751,8 +2752,9 @@ sub set_global_vars {
                                                 &time_diff($Time_Boot_time, (&get_tickcount)/1000, undef, 'numeric'));
         $Tk_objects{label_uptime_mh}  = sprintf("Uptime Program:  %s",
                                                 &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
+        $cpu_used = 0 unless $cpu_used;
         $Tk_objects{label_cpu_used}   = sprintf("Cpu Used: %5.1f%%",
-                                                $cpu_used) if $cpu_used;
+                                                $cpu_used);
         $Tk_objects{label_cpu_used}  .= sprintf("    Memory Used (virtual/real): %4.1f/%4.1f Meg",
                                                 $memory_used_virtual, $memory_used_real) if $memory_used_virtual;
 
@@ -3644,6 +3646,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.25  2000/08/09 03:38:36  winter
+# - fix $cpu test and improve my_str2time error msg
+#
 # Revision 2.24  2000/08/06 21:56:43  winter
 # - See 2.24 release notes.
 #
