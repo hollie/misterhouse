@@ -215,6 +215,10 @@ sub check_for_voice_cmd {
 
         $ref->{said}  = $said;
         $ref->{state} = $said;
+
+        unshift(@{$$ref{state_log}}, "$main::Time_Date $said");
+        pop @{$$ref{state_log}} if @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
+
         push(@reset_states, $ref);
 
         $Vcmd_ms->{CommandSpoken} = 0 if $Vcmd_ms;
@@ -246,6 +250,11 @@ sub check_for_voice_cmd {
         $ref->{said}  = $ref->{said_next_pass};
         $ref->{state} = $ref->{said_next_pass};
         push(@reset_states, $ref);
+
+        unshift(@{$$ref{state_log}}, "$main::Time_Date $ref->{said_next_pass}");
+        pop @{$$ref{state_log}} if @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
+
+
     }
 }
 
@@ -437,7 +446,10 @@ sub _register2 {
 
 #   return $cmd_num_by_text{$text} if $cmd_num_by_text{$text};
     $cmd_num++;
-    print "\n\nWarning, duplicate Voice_Cmd text: $text\n\n" if $cmd_num_by_text{$text};
+    if ($cmd_num_by_text{$text}) {
+        my $cmd = $cmd_by_num{$cmd_num_by_text{$text}};
+        print "\n\nWarning, duplicate Voice_Cmd Text: $text   Cmd: $$cmd{text}\n\n";
+    }
     print "db cmd=$cmd_num text=$text vocab=$vocab.\n" if $main::config_parms{debug} eq 'voice';
 
 #   $cmd_file_by_text{$main::item_file_name} = $cmd_num;	# Yuck!
@@ -482,12 +494,22 @@ sub _clean_text_string {
     return $text;
 }
 
+sub set_icon {
+    my ($self, $icon) = @_;
+    $self->{icon} = $icon;
+}
+
 sub said {
     return @_[0]->{said};
 }
 
 sub state {
     return @_[0]->{state};
+}
+
+sub state_log {
+    my ($self) = @_;
+    return @{$$self{state_log}} if $$self{state_log};
 }
 
 sub get_last_cmd_time {
@@ -577,6 +599,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.18  2000/02/12 06:11:37  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.17  2000/01/27 13:43:46  winter
 # - update version number
 #

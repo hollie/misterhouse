@@ -1,6 +1,6 @@
 
-# This example shows how you can mix 'phrase enumeration groups' 
-# bounced by {} with  a 'state enumeration group' with [].
+# This example shows how you can mix 'phrase enumeration groups' bounded by {},
+# with  a 'state enumeration group' bounded with [].
 
                                 # Example of several phrase enumeration groups
 $v_test1 = new Voice_Cmd("{turn,set} the {living,famliy} room {light,lights} [on,off]");

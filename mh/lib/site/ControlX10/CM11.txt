@@ -1,5 +1,5 @@
 ControlX10::CM11
-VERSION=2.06, 20 December 1999
+VERSION=2.09, 30 January 2000
 
 Hello home automators:
 
@@ -30,8 +30,8 @@ FILES:
     README.txt		- this file for DOS
     CM11.pm		- the reason you're reading this
 
-    test.pl		- RUN ME FIRST, basic tests
-    eg_cm11.plx		- simple On/Off/Dim_Lamp demo
+    t/test1.t		- RUN ME FIRST, basic tests
+    eg/eg_cm11.plx	- simple On/Off/Dim_Lamp demo
 
 OPERATION:
 
@@ -67,7 +67,7 @@ and follows a similar sequence.
 Both sequences create install files and directories. The test uses a
 CM11 emulator and does not open a real serial port. You can specify an
 optional PAUSE (0..5 seconds) between pages of output. The
-'perl test.pl PAUSE' form works on all OS types. The test will indicate
+'perl t/test1.t PAUSE' form works on all OS types. The test will indicate
 if any unexpected errors occur (not ok). Some error and debug messages
 are forced by the test sequence.
 
@@ -80,6 +80,11 @@ Extended X10 Preset Dim commands are now supported, if you have the
 CM11 interface and a compatible (LM14A) module. You can send them
 directly, like 'A1&P47' (set unit A1 to Preset level 47, i.e. 75%)
 
+Starting in version 2.07, incoming extended data is also processed.
+The first character will be the I<House Code> in the range [A..P].
+The next character will be I<Z>, indicating extended data.
+The remaining data will be the extended data.
+
 Watch for updates at:
 
 %%%% http://members.aol.com/Bbirthisel/alpha.html
@@ -88,6 +93,6 @@ or CPAN under authors/id/B/BB/BBIRTH or ControlX10::CM11
 
 CPAN packaging and module documentation by Bill Birthisel.
 
-Copyright (C) 1999, Bruce Winter. All rights reserved. This module is
+Copyright (C) 2000, Bruce Winter. All rights reserved. This module is
 free software; you can redistribute it and/or modify it under the same
 terms as Perl itself.

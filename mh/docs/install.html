@@ -37,11 +37,12 @@ There is also a <a href="faq.html">faq.html</a> to cover misc. topics.
 
 	<LI><A HREF="#testing">Testing Instructions</A>
 	<LI><A HREF="#hardware">Installing Hardware</A>
+	<LI><A HREF="#coding">Coding your own events</A>
 </UL>
 
 <hr>
 
-<H2><I><a name=requirements>System Requirements</a></h2></B></I>
+<H2><I><a name=requirements>System Requirements</a></h2></I>
 
 <p>Mister House has been tested on Windows 95, 98, NT, and the unix OSes Linux and AIX.  In theory, much
 of the function should run on any platform that can run Perl.  
@@ -56,7 +57,7 @@ need 48 Meg to run with low speech latency.
 mh uses about 20% of the cpu and gets about 8 passes per second.
 
 
-<H2><I><a name=quick_instructions>Quick Install Instructions</a></h2></B></I>
+<H2><I><a name=quick_instructions>Quick Install Instructions</a></h2></I>
 
 <P>These are the quick instructions for those of you who, like me, don't like to read instructions:</P>
 
@@ -66,7 +67,7 @@ mh uses about 20% of the cpu and gets about 8 passes per second.
 <UL>
 <LI>Download the the mh_src_###.zip and mh_win_###.zip files from Mister House from: 
 <A HREF="http://misterhouse.webjump.com">http://misterhouse.webjump.com</A> </LI>
-<LI>cd to where you want it the mh directory created in (e.g. c:\)</LI>
+<LI>cd to where you want it the mh directory created in (e.g. c:\misterhouse)</LI>
 <LI>unzip \downloads\mh_src_###.zip (wherever you downloaded it to) </LI>
 <LI>unzip \downloads\mh_win_###.zip (wherever you downloaded it to) </LI>
 <LI>cd mh\bin </LI>
@@ -76,15 +77,14 @@ mh uses about 20% of the cpu and gets about 8 passes per second.
 <li> Linux users
 
 <UL>
-<LI>Download the the mh_src_###.zip and mh_linux_###.zip files from Mister House from: 
+<LI>Download the the mh_src_###.zip from Mister House from: 
 <A HREF="http://misterhouse.webjump.com">http://misterhouse.webjump.com</A> </LI>
-<LI>cd to where you want it the mh directory created in (e.g. cd /projects)</LI>
+<LI>cd to where you want it the mh directory created in (e.g. cd /projects/misterhouse)</LI>
 <LI>unzip -aU /downloads/mh_src_###.zip (wherever you downloaded it to) </LI>
-<LI>unzip -aU /downloads/mh_linux_###.zip (wherever you downloaded it to) </LI>
 <LI>cd mh/bin </LI>
 <LI>chmod +x configure
 <li>./configure
-<li>./mhe (or if you have a recent perl, try running ./mh )
+<li>./mh (if that doesn't work, try: perl mh)
 </UL>
 
 </UL>
@@ -98,9 +98,9 @@ web interface (e.g. 'say something good to Bruce').
 
 <hr>
 
-<H2><I><a name=detailed_instructions>Detailed Install Instructions for Windows users</a></h2></B></I>
+<H2><I><a name=detailed_instructions>Detailed Install Instructions for Windows users</a></h2></I>
 
-<H3><a name=step1>Step 1, Download and Install Mister House</a></h2></B>
+<H3><a name=step1>Step 1, Download and Install Mister House</a></h2>
 
 <P>I you already have perl installed, you only need to download the main mh_src_###.zip package.  If you do not have perl
 installed, you will also need to download the compiled mh.exe file, which is in the mh_win_###.zip package.
@@ -110,12 +110,12 @@ Both are available from <A HREF="http://misterhouse.webjump.com">http://misterho
 The compiled version is not any faster, it is just more convenient
 if you do not need Perl installed for any other programs.</p>
 
-<P>Change to the drive/directory you want mh installed to (e.g. c:\), and unzip the file(s) using your un-zipper of choice
+<P>Change to the drive/directory you want mh installed to (e.g. c:\misterhouse), and unzip the file(s) using your un-zipper of choice
 (use the -d if using pkunzip to preserve the directory structure).  Look in the mh/lib directory to 
 make sure long file names were preserved (e.g. http_server.pl).  If not, you can download unzip from 
 <a href="http://misterhouse.net/public/unzip.exe">http://misterhouse.net/public/unzip.exe</a>.
 
-<H3><a name=step2>Step 2, Download and Install Perl</a></h3></B>
+<H3><a name=step2>Step 2, Download and Install Perl</a></h3>
 
 <P>You can skip this step if you downloaded the compiled version of Mister House.</P>
 
@@ -148,8 +148,8 @@ and install them from local storage. For example, to install the Tk package: </P
 standard Activestate distribution.
 
 
-<H3><a name=step3>Step 3, Download and Install the Speech Engines</a></h3></B>
-</B><P>You can skip this step if you do not want to enable TTS and VR, but much of the fun of
+<H3><a name=step3>Step 3, Download and Install the Speech Engines</a></h3>
+<P>You can skip this step if you do not want to enable TTS and VR, but much of the fun of
 Mister House comes from the 2-way speech. If you are running NT 5.0, you should be able to skip this step,
 as this function should already be installed. The Creative Labs PhoneBlaster software also installs this function.</P>
 
@@ -192,28 +192,23 @@ installed the SDK). Once running, you can use the "Voice Command Options" menu t
 
 <hr>
 
-<H2><I><a name=detailed_instructions_u>Detailed Install Instructions for UNIX users</a></h2></B></I>
+<H2><I><a name=detailed_instructions_u>Detailed Install Instructions for UNIX users</a></h2></I>
 
-<H3><a name=step1_u>Step 1, Download and Install Mister House</a></h3></B>
+<H3><a name=step1_u>Step 1, Download and Install Mister House</a></h3>
 
 <P>Download a 'Perl source' file mh_src_###.zip from 
 <A HREF="http://misterhouse.webjump.com">http://misterhouse.webjump.com</A>.</P>
 
 <P>The 1 MB zip file installs into 3 MB of disk space.
 
-<p>If you are running on linux and you do not have perl with the latest Tk installed, 
-you may also want to download the linux compiled version, mhe, which is in the mh_linux_###.zip package.
-
-<P>Change to the directory you want mh installed to (e.g. /projects) and unzip the file(s) using your un-zipper of choice
+<P>Change to the directory you want mh installed to (e.g. /projects/misterhouse) and unzip the file(s) using your un-zipper of choice
 (use the -d if using pkunzip to preserve the directory structure).   If using 'unzip', you 
 will want to use the -a to Automatically get rid of those pesky /r characters that DOS like to add to newlines
 Also, the unzip -U switch (contrary to what the help text says), will be needed on newer versions of unzip to preserve case on filenames. 
 
 <p>Run the configure script to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 
-<H3><a name=step2_u>Step 2, Download and Compile Perl</a></h3></B>
-
-<p>If you are on linux and have also downloaded mhe from mh_linux_###.zip, you can skip this step.
+<H3><a name=step2_u>Step 2, Download and Compile Perl</a></h3>
 
 <P>Most, if not all, UNIX installations now have perl installed by default.  If for some reason, yours does not
 or if it is an older version of perl, you can downloaded the latest from 
@@ -238,8 +233,8 @@ also try the CPAN installer like this:
 </ul>
 
 
-<H3><a name=step3_u>Step 3, Download and Install a Speech Engines</a></h3></B>
-</B><P>You can skip this step if you do not want to enable VR or TTS.
+<H3><a name=step3_u>Step 3, Download and Install a Speech Engines</a></h3>
+<P>You can skip this step if you do not want to enable VR or TTS.
 
 <p>The IBM ViaVoice Voice Recognition engine is available at
 <a href=http://www-4.ibm.com/software/speech/dev/sdk_linux.html>http://www-4.ibm.com/software/speech/dev/sdk_linux.html</a>
@@ -312,16 +307,16 @@ that has a very nice US english male and female voice.
 
 <hr>
 
-<H2><I><a name=testing>Testing Mister House</a></h2></B></I>
+<H2><I><a name=testing>Testing Mister House</a></h2></I>
 
-</B><P>Edit x:\mh\bin\mh.ini and change the appropriate parms.   It should run just fine with the 
-default parms,  although your sunrise/sunset times will be for Rochester, MN
-:)
-<p>If you decide to keep/use mh, you will probably want to copy the parms you
+<P>Edit x:\mh\bin\mh.ini and change the appropriate parms.   It should run just fine with the 
+default parms,  although your sunrise/sunset times will be for Rochester, MN :)
+
+<p>If you decide to use mh, you will want to copy the parms you
 change to your own parm file and point to that with the mh_parm environmental
 variable (see the mh.ini header for details).
 
-<P>If you are not using the compiled mh.exe, edit the last record of the mh.bat file to point to the correct
+<P>If you are not using the compiled mh.exe, you may need to edit the last record of the mh.bat file to point to the correct
 directories where Perl and the mh are installed. </P>
 
 <P>Next, cd to x:\mh\bin and then type: mh hello_print.pl. This will load the x:\mh\code\test\hello_print.pl
@@ -398,8 +393,8 @@ There is lots of other code you can peruse in the mh\code\Bruce directory. This 
 
 <hr>
 
-<H2><I><a name=hardware>Installing Hardware</a></h2></B></I>
-</B><P>Without any interface hardware, mh is pretty limited. It can do some simple time of day based events
+<H2><I><a name=hardware>Installing Hardware</a></h2></I>
+<P>Without any interface hardware, mh is pretty limited. It can do some simple time of day based events
  and voice based events, but that is about it. Currently, Mister House
  supports the X10 CM11 (aka ActiveHome) and CM17 (aka Firecracker) 
 interfaces and all the Weeder kits (analog, digital, x10, phone, available from from 
@@ -407,7 +402,8 @@ interfaces and all the Weeder kits (analog, digital, x10, phone, available from 
 but I don't have the interface, so I'm waiting for someone to try it.</P>
 
 <P>Currently, the X10 guys have a $50 deal for an ActiveHome kit, which includes the CM11 interface.
- Check it out at <A HREF="http://www.x10.com/">http://www.x10.com</A>.</P>
+ Check it out at <A HREF="http://www.x10.com/">http://www.x10.com</A>. 
+See FAQ question 6.5 for more info on X10.
 
 <P>If you want more than just X10, you may want to go with the Weeder X10 Kit, as all of the Weeder kits
  can share the same serial port. The X10 kit sells for $40, $25 for a WT523 module (if you don't already have that),
@@ -422,12 +418,69 @@ For example, a ham radio enthusiast has interfaced to his GPS (Global Positionin
 
 <P>Support for any device that speaks with sockets over your network can be added using the Socket_Item objects.
 
+<H2><I><a name=coding>Coding your own events</a></h2></I>
+
+<p>After you have played with the the default test code for a bit, you will want to start setting
+up your own code directory. 
+Assuming you have mh installed in c:\misterhouse\mh, the steps might looks something like this
+(using the DOS commands, as I think unix guys can make the translation :):
+
+<pre>
+
+ mkdir c:\misterhouse\code 
+
+ copy  c:\misterhouse\mh\code\test\tk_*.pl    c:\misterhouse\code
+
+ copy  c:\misterhouse\mh\code\testmh_control c:\misterhouse\code
+
+ copy  c:\misterhouse\mh\bin\mh.ini c:\misterhouse\mh.ini
+
+ edit  c:\misterhouse\mh.ini
+   - Delete all the records from your mh.ini that you don't change 
+     since the default mh\bin\mh.ini will also be read.
+     Set code_dir=c:\misterhouse\code
+
+ On windows, add this to your autoexec.bat:
+   set mh_parms=c:\MisterHouse\mh.ini
+
+ On unix, add this to /etc/profile or like place:
+   export mh_parms=/prog/Misterhouse/mh.ini
+       
+</pre>
+
+<p>Now when you run mh, it will read just the *.pl files in c:\misterhouse\code.  
+After mh is up and running, copy in the other members from mh/code/test that
+you think might be useful and click the Reload button to read them in.
+Adding a member a few at a time might be useful if you are trying to find an error.
+
+<p>
+The first thing you will want to do is create an items.pl file that declares
+all your X10 items (see mh/code/Bruce/items.pl for an example).  Alternativly, you 
+can declare each of your X10 items in the first code member you use it in.  In either
+case you can use the "List X10 items" command created in mh_control.pl to review all
+your X10 items.
+
+<p>When you want to upgrade to a newer verion of mh, follow these steps:
+<pre>
+
+ cd \misterhouse
+ rename mh mh_old
+ unzip \downloads\mh_src_###.zip
+ unzip \downloads\mh_win_###.zip
+
+</pre>
+
+<p>
+
 <P><HR>
 <PRE>
 #
 # Document Change Log
 #
 # $Log$
+# Revision 1.11  2000/02/12 06:11:36  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.10  2000/01/27 13:36:43  winter
 # - update version number
 #

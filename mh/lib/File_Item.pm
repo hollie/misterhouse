@@ -69,20 +69,21 @@ sub said {
                                 # Could/should use object IO package here?
     my $handle = $$self{handle};
     unless ($handle) {
+        return unless -e $$self{file};
         $$self{handle} = $handle = 'FILEITEM' . $file_handle_cnt++;
         open ($handle, $$self{file}) or print "Error, could not open File_Item $$self{file}: $!\n";
 
                                 # On startup, point pointer to the tail of the file
         while (<$handle>) { }
         $$self{index} = tell $handle;
-#       print "db File_Item file $$self{file} opened to index $$self{index}\n";
+        print "File_Item said method for $$self{file} opened to index $$self{index}\n";
         return;                 # No new data on startup
     }
     seek $handle, $$self{index}, 0;     # Go to where the last data was read
-    my $data = <$handle>;          # One record per call
+    my $data = <$handle>;       # One record per call
     $$self{index} = tell $handle;
 
-#   print "File_Item index=$$self{index} data: $_\n" if $data;
+    print "File_Item index=$$self{index} data: $_\n" if $data;
     return $data;
 }
 

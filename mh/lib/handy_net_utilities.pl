@@ -151,7 +151,51 @@ sub main::net_ftp {
     return "was successful";
 }
 
-sub main::net_mail_send {
+use Net::AIM;
+my $aim = new Net::AIM;
+my $aim_connection;
+
+sub main::net_im_signon {
+    my ($name, $password) = @_;
+    return if $aim_connection;  # Already signed on
+
+    print "Logging onto AIM with name=$name\n";
+    $aim_connection = $aim->newconn(Screenname => $name, Password   => $password);
+    
+    print "Error, can not connect to AIM" unless $aim_connection;
+    print "aim=$aim ac=$aim_connection";
+
+    $aim->do_one_loop() if $aim; # This will do the sign on
+    print " ... logged on\n";
+}
+
+
+sub main::net_im_send {
+    my %parms = @_;
+
+    my ($from, $password, $to, $text, $file);
+
+    $from     = $parms{from};
+    $password = $parms{password};
+    $to       = $parms{to};
+
+    $from     = $main::config_parms{net_aim_name}      unless $from;
+    $password = $main::config_parms{net_aim_password}  unless $password;
+    $to       = $main::config_parms{net_aim_name_send} unless $to;
+
+    &main::net_im_signon($from, $password);
+
+    print "Sending im message to $to ";
+
+    $text  = $parms{text};
+    $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
+
+    $aim_connection -> send_im($to, $text);
+
+}
+
+
+sub main::net_mail_send_old {
     my %parms = @_;
     my ($from, $to, $subject, $text, $server, $smtp, $account);
 
@@ -161,11 +205,11 @@ sub main::net_mail_send {
     $subject = $parms{subject};
     $account = $parms{account};
 
-    $account = $main::config_parms{net_mail_send_account} unless $server;
+    $account = $main::config_parms{net_mail_send_account}         unless $server;
     $server  = $main::config_parms{"net_mail_${account}_server"}  unless $server;
     $from    = $main::config_parms{"net_mail_${account}_address"} unless $from;
     $to      = $main::config_parms{"net_mail_${account}_address"} unless $to;
-    $subject = "Email from Mister House" unless $subject;
+    $subject = "Email from Mister House"                          unless $subject;
     $text    = $parms{text};
 
     print "net_mail_send error: 'server' parm missing (check net_mail_server in mh.ini)\n" unless $server;
@@ -185,6 +229,82 @@ sub main::net_mail_send {
     $smtp->quit;
     print "Message sent\n";
 }
+                        
+sub main::net_mail_send {
+    my %parms = @_;
+    my ($from, $to, $subject, $text, $server, $smtp, $account, $mime, $baseref, $file);
+
+    $server  = $parms{server};
+    $account = $parms{account};
+    $from    = $parms{from};
+    $to      = $parms{to};
+    $subject = $parms{subject};
+    $mime    = $parms{mime};
+    $baseref = $parms{baseref};
+    $text    = $parms{text};
+    $file    = $parms{file};
+
+    $account = $main::config_parms{net_mail_send_account}         unless $server;
+    $server  = $main::config_parms{"net_mail_${account}_server"}  unless $server;
+    $server = 'localhost'                                         unless $server;
+    $from    = $main::config_parms{"net_mail_${account}_address"} unless $from;
+    $to      = $main::config_parms{"net_mail_${account}_address"} unless $to;
+    $subject = "Email from Mister House"                          unless $subject;
+    $baseref = 'localhost'                                        unless $baseref;
+
+    $text .= &main::file_read($file) if $file;
+
+    print "Sending mail with $account, from $from to $to\n";
+
+    print "net_mail_send error: 'server' parm missing (check net_mail_server in mh.ini)\n" unless $server;
+    print "net_mail_send error: 'to' parm missing\n" unless $to;
+
+    return unless $server and $to;
+
+    if ($mime) {
+        eval "use MIME::Lite";
+        if ($@) {
+            print "To use email, you need to install MIME::Lite\n";
+            print " - linux: perl -MCPAN -eshell    install MIME::Lite\n";
+            print " - windows: ppm -install MIME-Lite\n";
+            return;
+        }
+
+                                # Modify the html so it has a BASE HREF and the links work in a mail reader
+        $text =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{mail_baseref}">|i;
+        
+        my ($file_member) = $file =~ /([^\\\/]+)$/;
+
+        my $message = MIME::Lite->new(From => $main::Pgm_Name,
+                                      Subject => $subject,
+                                      Type  => 'text/html',
+                                      Encoding => '8bit',
+                                      Data => $text,
+#                                     Path => $file,
+                                      Filename => $file_member,
+                                      To => $to);
+        if ($^O eq "MSWin32") {
+            print "Using built in smtp code with server $server\n";
+            MIME::Lite->send('smtp', $server, Timeout => 20);
+        }
+        print "Sending report to $to\n";
+        $message->send;
+    }
+    else {
+        use Net::SMTP;
+        print "Logging into mail server $server to send msg to $to\n";
+        unless ($smtp = Net::SMTP->new($server, Timeout => 10, Debug => $parms{debug})) {
+            print "Unable to log into mail server $server: $@\n";
+            return;
+        }
+        $smtp->mail($from) if $from;
+        $smtp->to($to);
+        $smtp->data("Subject: $subject\n", "To: $to\n", "From: $from\n\n", $text);
+        $smtp->quit;
+        print "Message sent\n";
+    }
+}
+
 
 sub main::net_mail_login {
     my %parms = @_;
@@ -342,6 +462,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.15  2000/02/12 06:11:37  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.14  2000/01/27 13:45:36  winter
 # - update version number
 #

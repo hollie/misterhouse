@@ -4,26 +4,91 @@
 =head1 Mister House Announcement List
 
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
-messages is at http://www.onelist.com/archives.cgi/misterhouse )
+messages is at http://sourceforge.net/mail/?group_id=1365 )
 
-=head2 mh ver 1.95 posted on 01/23/00
+=head2 mh ver 1.?? posted on 01/27/00
 
-Version 1.95 was just uploaded to:
+Version 1.97 was just uploaded to:
 
   http://misterhouse.net/download
-  http://sourceforge.misterhouse.net/download
+  http://misterhouse.sourceforge.net
+
+B<New Features:>
+
+- http server mh3
+
+- Added state_log method to various items.  This is used in the Tk Items pull down state_log
+entry and the new web pages.   It shows the time_date stamps of the last 
+max_state_log_entries (mh.ini parm, default is 10) state changes.
+
+- Added net_im_send.  This allows mh to send messages to AOL AIM clients. 
+Set the new mh.ini net_aim_* parms and try running mh/test/internet_im.pl.  
+More info is in mh/docs/mh.html.
+
+- Added a tracking_mailto option to mh/code/Bruce/tracking_bruce.pl.
+mh will now send me email or an instant messages whenever it detects our
+cars have gone somewhere.  It is a great way to keep track of the family from work!
+
+- Added -mime option to net_mail_send
+
+- Added a call to the new Astro::MoonPhase module to create,
+$Moon{phase}, $Moon{brightness}, $Moon{age}, and $Moon{new,first,full,last} entries.  
+See mh/code/test/time_info.pl for examples.
+
+- sf survey 
+
+B<Bug Fixes and Minor Changes:>
+
+- Moved the loading of playlists from mp3_control.pl to mp3_playlist.pl
+
+- Fixed CM11.pm so it would not do a power fail time reset after sending a D5 command.
+
+- Added FAQ question 6.5 What is X10?.  
+
+- Added 'Coding your own events' to install.html
+
+- Added mh/code/examples/x10_motion_sensors_kevin.pl
+
+- Restored the mh/data/remarks/deep_thoughts.txt database (accidently deleted in the last release)
+
+- Drop the extra "" in mh.ini favorite_tv_shows parm
+
+- Fixed the web server stats report in monitor_server.pl
+
+- Add plural_check to de-pluralize a string (example in monitor_shoutcast.pl).
+
+- Merge timers_*.pl into timer_kitchen.pl
 
 
-New Features:
+
+=head2 mh ver 1.97 posted on 01/27/00
+
+Version 1.97 was just uploaded to:
+
+  http://misterhouse.net/download
+  http://misterhouse.sourceforge.net
+
+Lets try this again!  The only change between 1.97 and the 1.96 posted earlier today is 
+the O_CREAT error is fixed and the new X10 Garage_Door state is now saved.
+
+B<New Features:>
 
 - Moved the mh CVS repository to sourceforge.net.  This doesn't affect most of you, but if anyone
-else wants to get involved in updating core mh code, let me know and I'll send you a howto note.
+who wants to get involved in updating core mh code, let me know and I'll send you a howto note.
 
-- Updated internet_slashdot.pl.
+- Added the time_random function.  This can be used to code randomly fired events.
+See mh/code/test/goofy.pl and mh/doc/mh.html for examples.
 
-- mp3 stuff/search
+- Danal Estes updated CM11.pl so it can now receive extended X10 data, in addition to sending it.
+He also added a X10_Garage_Door object to X10_Items.pl and created code/public/Garage_Door.pl.
+This allows mh to read Stanley Homelink modules.  See code/public/Garage_Door.txt for more info.
 
-- receive extended x10 data.  garage code.
+- Added mh/code/test/mp3_playlist.pl.  After setting the mh.ini mp3_dir to point to all your
+mp3 directories, run "build the mp3 database".  When that step is done 
+(it took about a minute to read many songs spread across 4 computers at my house), you can 
+then use the MP3 Search and/or MP3 Genre tk fields to start your mp3 player for the requested songs.
+
+- Updated internet_slashdot.pl to work with the newer slashdot xml standard.
 
 - Added a said method to File_Item. 
 This allows us to easily monitor the tail end of log files.
@@ -32,10 +97,16 @@ See shoutcast.pl for an example.
 - Updated mh/code/Bruce/shoutcast.pl so it can be used with the newer, web based
 shoutcast servers.  This code will announce when you have new listeners to your mp3 streamed broadcasts.
 
-- Added mh/code/public/callerid.pl as another, more simple example on how to do callerid with a modem.
+- Added mh/code/public/callerid.pl as another example on how to do callerid with a modem.
+
+- Added Dave L.'s motion sensor code as code/examples/x10_motion_sensors_dave.pl
 
 
-Bug Fixes and Minor Changes:
+B<Bug Fixes and Minor Changes:>
+
+- Fixed an 'unrecognized data: X##' bug recently introduced into CM11.pm.
+
+- Added a new_mail_light example to internet_mail.pl. 
 
 - Fixed the {a,b,c} enumeration problem on web category lists.
 
@@ -45,6 +116,13 @@ Bug Fixes and Minor Changes:
 even if you had the mh.ini DNS parm enabled.
 
 - Allow display_callers to work with the compiled mh.exe.
+
+- Fixed "What is your uptime?" in mh_control.pl, for linux users (again!)
+
+- Added FAQ 4.2: How do I set setup networking between Windows boxes, 
+1.14: How does mh read and use the user code in code_dir and,
+6.5: How can I use cvs to co-develop core mh code
+
 
 
 =head2 mh ver 1.93 posted on 01/05/00

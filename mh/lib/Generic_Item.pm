@@ -20,10 +20,19 @@ sub state_now {
     return @_[0]->{state_now};
 } 
 
+sub state_log {
+    my ($self) = @_;
+    return @{$$self{state_log}} if $$self{state_log};
+}
+
 sub set {
     my ($self, $state) = @_;
     $self->{state_next_pass} = $state;
     push(@states_from_previous_pass, $self);
+
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
+    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
+
 }
 
 sub reset_states {
@@ -43,6 +52,9 @@ sub reset_states {
 
 #
 # $Log$
+# Revision 1.5  2000/02/12 06:11:37  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.4  2000/01/27 13:39:27  winter
 # - update version number
 #

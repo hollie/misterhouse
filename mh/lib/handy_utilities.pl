@@ -300,6 +300,16 @@ sub main::plural2 {
     }
     return $value . $suffix;
 }
+                                # Un-pluralize something if there is only one of them
+sub main::plural_check {
+    my($text) = @_;
+    if ($text =~ /(\d+)/ and abs $1 == 1) {
+        $text =~ s/s\.?$//;
+        $text =~ s/ are / is /;
+    }
+    return $text;
+}
+
 
 sub main::read_mh_opts {
     my($ref_parms, $Pgm_Path, $debug) = @_;
@@ -670,7 +680,7 @@ sub main::time_date_stamp {
     my $time;
     if ($time_or_file) {
         if ($time_or_file =~ /^\d+$/) {
-            $time = $time_or_file;
+            $time = int $time_or_file;
         }
         elsif (-e $time_or_file) {
             $time = (stat($time_or_file))[9];
@@ -859,6 +869,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.34  2000/02/12 06:11:37  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.33  2000/01/27 13:52:23  winter
 # - update version number
 #

@@ -55,10 +55,17 @@ sub new {
     bless $self, $class;
     return $self;
 }
+
 sub state {
     ($self) = @_;
     return $self->{state};
 }
+
+sub state_log {
+    my ($self) = @_;
+    return @{$$self{state_log}} if $$self{state_log};
+}
+
 sub set {
     ($self, $state, $action, $repeat) = @_;
 
@@ -82,6 +89,10 @@ sub set {
         }
     }
     $self->{pass_triggered} = 0;
+
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
+    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
+
 }    
 
 sub unset {
@@ -237,6 +248,9 @@ sub inactive {
 
 #
 # $Log$
+# Revision 1.14  2000/02/12 06:11:37  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.13  2000/01/27 13:43:19  winter
 # - update version number
 #

@@ -13,7 +13,7 @@ use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 require Exporter;
 
 @ISA = qw(Exporter);
-@EXPORT= qw();
+@EXPORT= qw( send_cm11 receive_cm11 read_cm11 dim_decode_cm11 );
 @EXPORT_OK= qw();
 %EXPORT_TAGS = (FUNC    => [qw( send_cm11   receive_cm11
                                 read_cm11   dim_decode_cm11 )]);
@@ -82,7 +82,7 @@ my %table_fcodes2 = qw(0010 J  0011 K  0100 L  0101 M  0001 O  0000 P
 sub receive_buffer {
     my ($serial_port) = @_;
 
-    if (defined $main::config_parms{debug}) {
+    if (exists $main::config_parms{debug}) {
         $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
     }
 
@@ -131,7 +131,9 @@ sub receive_buffer {
                                    # Add device code back in, since this is not included in status :(
                $function = $Last_Dcode . $function if $function =~ /^STATUS/;
                                    # Handle Vehicle Interface RF Receiver extended code - assume length of 3 for extended
-               $extended_count = 3 if $function eq 'Z';
+               $extended_count = 3 if ($function eq 'Z');
+## 2.08, but 'Z' not numeric ##
+##               $extended_count = 3 if ($function == 'Z');
 
                $data .= $house . $function;
                  print "CM11 db: data=$data\n" if $DEBUG;
@@ -202,9 +204,11 @@ sub format_data {
         my $b4c = unpack('C', $b4);
         my $b5c = unpack('C', $b5);
         $extended_checksum = $b3c + $b4c + $b5c;
-        printf ("CM11 ed=%d, b345=0x%0.2x,0x%0.2x,0x%0.2x ex=%s cs=0x%0.2x\n",
-	        $extended_data, $b3c, $b4c, $b5c, $extended_string,
-	        $extended_checksum) if $DEBUG;
+	if ($DEBUG) {
+            printf "CM11 ed=%d, b345=0x%0.2x,0x%0.2x,0x%0.2x ex=%s cs=0x%0.2x\n",
+	    $extended_data, $b3c, $b4c, $b5c, $extended_string,
+	    $extended_checksum;
+	}
     }
                                 # Test for device code
     elsif ($code_bits = $table_dcodes{$code}) {
@@ -266,7 +270,7 @@ sub format_data {
 sub send {
     my ($serial_port, $house_code) = @_;
 
-    if (defined $main::config_parms{debug}) {
+    if (exists $main::config_parms{debug}) {
         $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
 #       &Win32::SerialPort::debug(1) if $DEBUG;
     }
@@ -304,7 +308,7 @@ sub send {
     print "Bad cm11 acknowledge send transmition\n" unless 1 == $serial_port->write($pc_ok);
 
     $data_rcv = &read($serial_port);
-    my $data_d = unpack('C', $data_rcv);
+    $data_d = unpack('C', $data_rcv);
 
     if ($data_d == 0x55) {
         print "CM11 done\n" if $DEBUG;
@@ -316,7 +320,7 @@ sub send {
         goto RETRY if $retry_cnt++ < 3;
     }
 
-    if (defined $main::config_parms{debug}) {
+    if (exists $main::config_parms{debug}) {
 #       &Win32::SerialPort::debug(0) if $DEBUG;
     }
 
@@ -330,7 +334,7 @@ sub read {
                                 # No harm done, but we would rather not wait :)
     my $tries = ($no_block) ? 1 : 20;
 
-    if (defined $main::config_parms{debug}) {
+    if (exists $main::config_parms{debug}) {
         $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
     }
 
@@ -376,11 +380,16 @@ sub read {
                                        $Wday,
                                        0x03);    # Not sure what is best here.  x10d.c did this.
             
-                print "\nCM11 power fail detected.  Reseting the CM11 clock with:\n $localtime\n $power_reset.\n";
-                print "  results:", $serial_port->write($power_reset), ".\n";
+                print "\nCM11 power fail detected.  Resetting the CM11 clock with:\n $localtime\n";
+                my $results = $serial_port->write($power_reset);
                 select undef, undef, undef, 50 / 1000;
                 my $checksum = $serial_port->input; # Receive, but ignore, checksum
-                print "  checksum=$checksum.\n";
+		if ($DEBUG) {
+                    printf "\npower_reset: %s %s %s %s %s %s %s\n",
+			unpack ('H2H2H2H2H2H2H2', $power_reset);
+                    print "  sent $results bytes\n";
+                    printf "  checksum = %x\n", ord($checksum);
+		}
                 my $pc_ok = pack('C', 0x00);
                 print "Bad cm11 checksum acknowledge\n" unless 1 == $serial_port->write($pc_ok);
 #                undef $data;
@@ -411,7 +420,7 @@ sub dim_level_decode {
                           9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
                           A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
 
-    if (defined $main::config_parms{debug}) {
+    if (exists $main::config_parms{debug}) {
         $DEBUG = ($main::config_parms{debug} eq 'X10') ? 1 : 0;
     }
 
@@ -610,12 +619,13 @@ may be received from a CM11 and will be properly decoded.
     
 =head1 EXPORTS
 
-Nothing is exported by default. The B<send_cm11>, B<receive_cm11>,
-B<read_cm11>, and B<dim_decode_cm11> functions can be exported on request
-with the tag C<:FUNC>. They are identical to the "fully-qualified" names
-and accept the same parameters.
+The B<send_cm11>, B<receive_cm11>, B<read_cm11>, and B<dim_decode_cm11>
+functions are exported by default starting with Version 2.09.
+They are identical to the "fully-qualified" names and accept the same
+parameters. The I<export on request> tag C<:FUNC> is maintained for
+compatibility (but deprecated).
 
-  use ControlX10::CM11 qw( :FUNC 2.06 );
+  use ControlX10::CM11;
   send_cm11($serial_port, 'A1');            # send() - address
   send_cm11($serial_port, 'AJ');            # send() - function
   $data = receive_cm11($serial_port);           # receive_buffer()
@@ -629,13 +639,26 @@ Bruce Winter  bruce@misterhouse.net  http://misterhouse.net
 CPAN packaging by Bill Birthisel wcbirthisel@alum.mit.edu
 http://members.aol.com/bbirthisel
 
+=head2 MAILING LISTS
+
+General information about the mailing lists is at:
+
+  http://lists.sourceforge.net/mailman/listinfo/misterhouse-users
+  http://lists.sourceforge.net/mailman/listinfo/misterhouse-announce
+
+To post to this list, send your email to:
+
+  misterhouse-users@lists.sourceforge.net
+
+If you ever want to unsubscribe or change your options (eg, switch to
+or from digest mode, change your password, etc.), visit your
+subscription page at:
+
+  http://lists.sourceforge.net/mailman/options/misterhouse-users/$user_id
+
 =head1 SEE ALSO
 
 mh can be download from http://misterhouse.net
-
-You can subscribe to the mailing list at http://www.onelist.com/subscribe.cgi/misterhouse
-
-You can view the mailing list archive at http://www.onelist.com/archives.cgi/misterhouse
 
 Win32::SerialPort and Device::SerialPort from CPAN
 
@@ -645,17 +668,17 @@ perl(1).
 
 =head1 COPYRIGHT
 
-Copyright (C) 1999 Bruce Winter. All rights reserved.
+Copyright (C) 2000 Bruce Winter. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself. 20 December 1999.
+under the same terms as Perl itself. 30 January 2000.
 
 =cut
 
 #
 # $Log$
-# Revision 2.9  2000/02/12 00:51:32  danal
-# Corrected incorrect compare of Extended Code that could cause false "unknown X10 data".
+# Revision 2.10  2000/02/12 06:11:37  winter
+# - commit lots of changes, in preperation for mh release 2.0
 #
 # Revision 2.08  2000/01/29 20:07:01  winter
 # - add $no_power_fail_check.

@@ -23,6 +23,10 @@ sub set {
     my ($self, $state) = @_;
     print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::config_parms{debug};
 
+    $self->{state} = $state;
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
+    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
+
                                 # If we are using a CM11 (and not a CM17),
                                 # and they are all X10 objects with the same house code, 
                                 # then we can get fancy and control X10 devices all at once by 
@@ -56,6 +60,15 @@ sub set {
     }
 }    
 
+sub state {
+    return @_[0]->{state};
+} 
+
+sub state_log {
+    my ($self) = @_;
+    return @{$$self{state_log}} if $$self{state_log};
+}
+
 sub list {
     my ($self) = @_;
     print "Group list: self=$self members=@{$$self{members}}\n" if $main::config_parms{debug};
@@ -64,6 +77,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.5  2000/02/12 06:11:37  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.4  2000/01/27 13:40:26  winter
 # - update version number
 #

@@ -155,6 +155,7 @@ another good book that has a ton of examples in it.
 
 For those of you using the compiled, instead of the interpreted, version of mh, the 
 standard perl documentation can be found at 
+http://www.perl.com/pub/v/documentation , 
 http://language.perl.com/CPAN/doc/manual/html/index.html and/or
 http://www.activestate.com/ActivePerl/docs
 
@@ -294,6 +295,10 @@ a GPS transmitters position.
 
 Byterunner offers lots of types of serial cards: http://www.byterunner.com
 
+Good sources of information on the WX200/WM918 weather stations are at
+http://wx200.planetfall.com/  and  http://www.weatherwatchers.org/wxstation/WX-200/ .
+
+
 =head2 List of startup options
 
 The complete list of valid startup options is in the mh.ini file.  Here are a few of the more
@@ -385,8 +390,12 @@ Time/Date Variables
   $Second, $Minute, $Hour, $Mday, $Wday, $Day, $Month, $Year, $Holiday
   $New_Second, $New_Minute, $New_Hour, $New_Day, $New_Month, $New_Year
   $Season, $Weekday, $Weekend
+  %Moon
 
 The complete list of global variables can be found at the top of mh/bin/mh.
+
+The %Moon array has 
+$Moon{phase}, $Moon{brightness}, $Moon{age}, and $Moon{new,first,full,last} entries.  
 
 The $Time_Now and $Date_Now variables return a formated time and date.
 
@@ -484,6 +493,10 @@ You can use this object to group and operate on groups of items:
      new(@item_list)
      add(@item_list)
      set  
+     state        : Contains the last state that the group was set to
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+
 
   Examples:
      $outside_lights = new Group($light1, $light2, $light3);
@@ -546,6 +559,9 @@ Serial_Item is used whenever you want read or write serial port data.
      state        : Contains the last state that was received or sent
 
      state_now    : Contains the state that was received or sent in the current pass.
+
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
 
      set_dtr      : Sets/resets the DTR line
      set_rcs      : Sets/resets the RCS line.  For example:
@@ -617,7 +633,7 @@ local module on a RF Transeiver, you can tell mh to use the RF CM17 interface, l
 
     $test_light = new X10_Item('A1', 'CM17');
 
-Note that the X10 device code is in hex, (0->9,A->F).  For example device 16 in house code P would be PF.
+Note that the X10 device code is numbered 1->9,A->F.  For example device 16 in house code P would be PF.
 
 If a single character is use (e.g. X10_Item('D')), then 'on' and 'off' states are translated to
 ALL_ON and ALL_OFF commands for that house code.  For example:
@@ -1516,6 +1532,40 @@ Used to ftp data to or from an ftp server:
 Returns true if connected to the Internet.  If the mh.ini parm net_connect=persistent, this always 
 returns true.
 
+
+=item net_im_send
+
+Used to send and Instant Message across the internet.
+Currently only the AIM clients are supported. 
+More information on AIM clients (available for various different platforms)
+can be found at http://www.aol.com/aim/faq/getstarted.html . 
+Tik, a tk based client for use on a Unix os, can be found at http://tarp.linuxos.org/tik .
+You can register for an AIM name at http://www.aol.com/aim/faq/registration.html .
+
+ 
+  Usage:
+    net_im_send(option => value);
+
+     These are the options:
+
+        password    Default is mh.ini parm net_aim_password
+        from        Default is mh.ini parm net_aim_name
+        to          Default is mh.ini parm net_aim_name_send
+
+        text        Message
+        file        Message.  You can use the text and/or file options.
+
+The first time you send a message, mh will pause for a few seconds while it logs onto AIM.  
+Subsequent messages use the same signon, so are sent much faster.
+
+  Example:
+
+    net_im_send(text => "Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}")
+
+    net_im_send(text => "Internet mail summary for $Date_Now $Time_Now",
+                file => "$config_parms{data_dir}/get_email2.txt") if time_cron '05 12 * * 1-5';
+
+
  
 
 =item net_mail_send
@@ -1536,6 +1586,10 @@ Used to send email.
 
         subject     Default is 'Email from Mister House'
         text        Body of the message
+        file        File with the body of the message.
+
+        mime        Set to 1 if you want mail sent in mime format (e.g. file has html)
+        baseref     If sending html with mime => 1, use this to set the BASE HREF
 
   Example:
 
@@ -1678,6 +1732,26 @@ for the complete example):
       $Save{email_flag} = file_read "$Pgm_Root/data/get_email.flag";
   }
   &tk_mlabel(\$Save{email_flag});
+
+
+=item get_mp3_data
+
+get_mp3_data reads mp3 directories and stores the results in a dbm file.
+This data is used by mh/test/mp3_playlist/pl to search/play mp3 
+tag data, file names, and playlist files.
+
+  Usage:
+
+   get_mp3_data [options] dir1 dir2 etc
+
+    -h        => This help text
+    -help     => This help text
+
+    -dbm  xyz => Stores the data in dbm file xyz.
+
+  Examples:
+    get_mp3_data c:\mp3 d:\mp3
+    get_mp3_data -dbm e:\mh\data\mp3_dbm c:\mp3
 
 
 =item get_tv_grid
@@ -2174,8 +2248,8 @@ if those variables are defined with "use vars '$my_var1', '$my_var2'".  Variable
 are local only to the mh loop, and would not be available to any web .pl program.
 
 In addition to calling the above mh-generated html directly, you can embed these lists in your own html
-using the "Server Side Include" syntax.  If the extention on your html is .shtml (for server-side html)
-then mh will parse the html, looing for the following string:
+using the server-side-include syntax.  If the extention on your html is .shtml (for server-side html)
+then mh will parse the html, looking for the following string:
 
    <!--#include file="your_directive"-->
 
@@ -2229,7 +2303,6 @@ Here are some examples demonstrating these options:
 
  This returns a list of recently spoken text:
   <li><a href=http://localhost:8080/RUN?WebCam_light_-50 >-50</a>
-
 
  This will allow for text input, using a html FORM, and returning the the results form
  the user defined function &my_response:
@@ -2377,7 +2450,7 @@ mh can be download from http://misterhouse.net
 Yuu can suscribe and/or view the mailing list at
 http://sourceforge.net/mail/?group_id=1365
 
-An older list is at <a href=http://www.onelist.com/messages/MisterHouse>here</a>).
+An older list with a searchable archive at <a href=http://www.onelist.com/messages/MisterHouse>here</a>).
 
 There is HomeToys article on MisterHouse at http://hometoys.com/htinews/jun99/articles/winter/winter.htm
 
@@ -2413,6 +2486,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.17  2000/02/12 06:11:36  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.16  2000/01/27 13:37:14  winter
 # - update version number
 #

@@ -17,7 +17,8 @@ sub serial_item_by_id {
 sub new {
     my ($class, $id, $state, $port_name) = @_;
     my $self = {};
-    print "\n\nWarning: duplicate ID codes on different Serial_Item objects: id=$id\n\n" if $serial_item_by_id{$id};
+    print "\n\nWarning: duplicate ID codes on different Serial_Item objects:\n " .
+          "id=$id state=$state states=@{${$serial_item_by_id{$id}}{states}}\n\n" if $serial_item_by_id{$id};
     $$self{port_name} = $port_name;
     &add($self, $id, $state);
     bless $self, $class;
@@ -125,6 +126,12 @@ sub state_now {
     return @_[0]->{state_now};
 }
 
+sub state_log {
+    my ($self) = @_;
+    return @{$$self{state_log}} if $$self{state_log};
+}
+
+
 sub said {
     my $port_name = @_[0]->{port_name};
     my $datatype  = $main::Serial_Ports{$port_name}{datatype};
@@ -166,6 +173,10 @@ sub set_receive {
                                 # Only add to the list once per pass
     push(@states_from_previous_pass, $self) unless defined $self->{state_next_pass};
     $self->{state_next_pass} = $state;
+
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
+    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
+
 }
 
 sub set_dtr {
@@ -197,6 +208,9 @@ sub set {
                                 # Only add to the list once per pass
     push(@states_from_previous_pass, $self) unless defined $self->{state_next_pass};
     $self->{state_next_pass} = $state;
+
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state");
+    pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
     return unless %main::Serial_Ports;
 
@@ -341,9 +355,11 @@ sub set_interface {
     $$self{interface} = lc($interface) if $interface;
 }
 
-
 #
 # $Log$
+# Revision 1.33  2000/02/12 06:11:37  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.32  2000/01/27 13:42:42  winter
 # - update version number
 #

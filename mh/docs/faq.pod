@@ -490,8 +490,8 @@ Here is a rough timeline of MisterHouse development:
  -  9/98 Uploaded to the web
  - 10/98 Created compiled version.
  - 11/98 First known user.
- - 01/99 Started mailing list
- - 02/99 Ported to Unix/Linux
+ - 01/99 Started a mailing list at onelist.com
+ - 02/99 Ported mh to Unix/Linux
  - 03/99 Article in Popular Home Automation
  - 05/99 Registered misterhouse.net domain name (misterhouse.com is owned 
          by misterhouse.it,  an Italian Real Estate company ... go figure!)
@@ -503,20 +503,22 @@ Here is a rough timeline of MisterHouse development:
  - 11/99 Linux VR using IBM's ViaVoice
  - 11/99 HomeVision support
  - 11/99 Mailing list reaches 200 members
+ - 01/00 Moved the mailing list and CVS repostitory to sourceforge.net
 
 =head2 6.2: Who is that Bruce guy anyway?
 
-MisterHouse author, Bruce Winter, has a day job with IBM in Rochester, Minnesota, helping design ASIC integrated circuits.
+Bruce (Winter) is the the main author of MisterHouse.
+He has a day job with IBM in Rochester, Minnesota, designing integrated circuits.
 He got started with Home Automation as one of the first ECS users in '86 and started the ECS mailing list
-in early '94.  Loves getting slaughtered by his twin boys in Quake death matches, hiking
+in early '94.  He loves getting slaughtered by his twin boys in Quake death matches, hiking
 in Montana, and playing his digital piano.
 
 =head2 6.3: Why open source?
 
-You should know the answer to this one already ... because it is 'the thing to do' ;-)
+Because open source only has 2 syllables, and proprietary has 5. 
 
-That and clearly MisterHouse has developed much faster, with the help of a wider user base
-and help from other coders, than it would have if it were proprietary.  
+That and MisterHouse has developed much faster with the help of a wider user base
+and help from other coders than it would have if it were proprietary.  
 
 Plus it feels good to give stuff back to the growing open source community.
 
@@ -525,7 +527,7 @@ Plus it feels good to give stuff back to the growing open source community.
 
 Here are some useful/related Home Automation links:
 
-  Dan Hoehnens most excelent colection of HA links:
+  Dan Hoehnens most excellent collection of HA links:
     http://www.infinet.com/~dhoehnen/ha/list.html
 
   Lots of good tutorials and articles are here:
@@ -542,16 +544,88 @@ For those on windows, you can find instructions for installing cvs and ssh (the 
  http://sfdocs.sourceforge.net/sfdocs/site/user/newproject-howto.php
 
 
-Here is the command to check out the mh repository.  Do this someplace other than your main mh directory.  It does not include all the mh code (some of which came from CPAN and is maintained elsewhere), so you will not be able to run out of this directory.
+Here is the command to check out the mh repository.  Do this someplace other than your main mh directory.
+It does not include all the mh code (some of which came from CPAN and is maintained elsewhere),
+so you will not be able to run out of this directory.
+Also change username to your sourceforge id:
 
-cd \sourceforge
-cvs -dusername@cvs.misterhouse.sourceforge.net:/cvsroot/misterhouse co mh
+  cd \sourceforge
+  cvs -d:ext:username@cvs.misterhouse.sourceforge.net:/cvsroot/misterhouse co mh
+
 
 When you have code you want to check in, you would do it with somethink like this:
 
-cp \mh\lib\http_server.pl \sourceforge\mh\lib
-cd \sourceforge\mh\lib
-cvs commit http_server.pl
+  cp \mh\lib\http_server.pl \sourceforge\mh\lib
+  cd \sourceforge\mh\lib
+  cvs commit http_server.pl
+
+=head2 6.5 What is X10?
+
+The people at http://www.x10.com sell affordable devices that communicate with each other over 
+normal household power lines.  
+
+The most common modules are the Lamp module and the Appliance module.  Both sell for around $10-$15.
+The lamp module has can turn up to 300 watt lamps on, off, and various levels of bright. 
+The appliance module is an on/off relay.
+
+The 2 most popular X10 PC interfaces are  
+the $50 ActiveHome/CM11 and the $6 Firecracker/CM17.
+
+The CM17 is a transmit only interface.  In addition to being almost free, another advantage is
+it is wireless. It is a small, 1 inch box that just dangles off of your serial port and transmits
+to a receiver that plugs into the wall.  The other advantage to the CM17 is gives
+instant ON/OFF control to the relay built into the wireless receiver.  All other X10 devices
+have about a 1/2 second delay to send and receive the protocol over the power lines.
+
+The CM11 is a 2 way interface, so you can program mh events to react to X10 motion sensor 
+and button pushes from various X10 controlers (e.g. keychain and palmpads).
+Some of the newer, more expensive modules, like the $35 LM14A lamp module,
+allow you to query their status, so you can determine it status even if it were manually turned on or off.
+
+If decide you splurge for the CM11 activehome kit, you might as well also get the Firecracker kit.
+For the extra $6, you also get a few extra modules and mh can support both the CM11 and the CM17 
+on the same port. 
+
+
+Here is some more info, copied from a misterhouse-users post by Kevin Olalde. 
+
+
+The firecracker hardware, CM17 which plugs into the PC, can only send radio
+frequency (RF) commands to devices.  With the kit you will also get a
+transceiver, TM751, that receives commands from the CM17 and relays
+commands for the house code it's set to via your power lines.  You also get
+a lamp module, LM465,  which can be control with via the transceiver.  With
+the PalmPad or the CM17 you send RF commands  to the TM751, those commands
+are then relayed to the lamp module (or other power line receiver modules,
+like light switches).  All of this is one way communications, the LM465
+lamp module and the TM751 transceiver are not capable of reporting status.
+The TM751 doubles as an appliance module hard coded to unit 1.  You can
+only control it though RF commands, it does not respond to power pline
+commands.
+
+The next step I took was to order the Active Home kit.  With it you get
+(among other stuff), another transceiver, RR501, and another computer
+interface, CM11A.  The RR501 works like the TM751, in that it receives RF
+commands, and relays then on to the power line.  A difference is that the
+RR501 can report it's status.  The computer interface, CM11A, can send
+power line commands (you use computer software to tell the interface what
+commands to send), 'sees' all commands being sent over the power line (and
+reports those commands to computer software), and can ask modules for their
+status.  The RR501 also doubles as an appliance module, it can be set to
+unit code 1 or 9, and can be controlled with both RF and power line
+commands.
+
+The majority of the devices, lamp modules, appliance modules, wall
+switches, ..... are one way devices, they can only receive.  I have no
+historical perspective, but it looks as though that was the way the
+original X10 spec went, one way only.
+
+There are devices that can report their current status to something like
+the CM11A, but I haven't used any of then (except for the RR501), since
+that are much more expense.
+
+  http://www.x10.com/products/x10_lm465.htm  one way lamp module from X10, $13
+  http://www.x10.com/products/x10_lm14a.htm  two way lamp module from X10, $33
 
 
 =cut
@@ -559,6 +633,9 @@ cvs commit http_server.pl
 
 #
 # $Log$
+# Revision 1.9  2000/02/12 06:11:36  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
 # Revision 1.8  2000/01/27 13:36:11  winter
 # - update version number
 #
