@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-01-09 14:12:36 winter>
+#  Last change Time-stamp: <2000-01-26 08:31:42 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -30,7 +30,7 @@ use vars '%config_parms', '%config_parms_startup', '$Pgm_Path';
 
 BEGIN {
 
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge
 
     $0 = $ENV{sourceExe} if $ENV{sourceExe}; # perl2exe fills this in
     ($Pgm_Path, $Pgm_Name) = $0 =~ /^(.*)[\\\/]([^.]+)/i;
@@ -535,6 +535,8 @@ sub setup {
     @Requested_Files = @ARGV;
     
     &password_read;
+
+    srand(time() ^ ($$ + ($$ << 15)) ); # Set the randum number seed, used in time_random;
 
     $main::config_parms{max_log_entries} = 50 unless defined $main::config_parms{max_log_entries};
 
@@ -2543,15 +2545,23 @@ sub time_less_than {
 sub time_now {
     return unless $New_Minute;  # Only on minute boundarys
     my ($time_date) = @_;
-    return unless $time_date;
+    return unless $time_date =~ /\S/;                 # Ignore empty entries
+
                                 # Allow time_now to match to the nearest minute, not the exact second
                                 #  - if we add a 'catchup mode', we can go back to checking on the exact second
-#   return $Time == &my_str2time($time_date);
     my $time_now = &my_str2time($time_date);
 #   print "db td=$time_date t=$Time tn=$time_now\n";
     return ($Time >= $time_now and $Time < $time_now+60);
-#   return (time >= $time_now and time < $time_now+60);
 }
+
+sub time_random {
+    return unless $New_Minute;  # Only on minute boundarys
+    my ($time_cron, $time_freq) = @_;
+    my $flag = &time_cron($time_cron);
+    return 0 unless $flag;
+    return (int(rand $time_freq) == 0) ? 1 : 0;
+}
+
 
 sub tk_setup_windows {
                                 # See perl/bin/widget.bat for lots of examples
@@ -2971,8 +2981,8 @@ __END__
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 13:59:16  winter
-# Initial revision
+# Revision 1.95  2000/01/26 14:32:38  winter
+# - ignore empty $time_date spec, and add time_random
 #
 # Revision 1.94  2000/01/09 20:13:53  winter
 # - Add $year_unix to $Year is always a correct 4 digit year
