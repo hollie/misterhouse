@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-10-12 19:22:39 winter>
+#  Last change Time-stamp: <2002-11-09 11:51:59 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -18,7 +18,7 @@
 #  Documentation is in mh/docs/mh.html (from mh.pod) and mh/docs/install.html
 #
 #  This free software is licensed under the terms of the GNU public license. 
-#  Copyright 1998-2001 Bruce Winter
+#  Copyright 1998-2002 Bruce Winter
 #
 #---------------------------------------------------------------------------
   
@@ -414,6 +414,7 @@ sub setup {
 #   use Date::Parse;            # For str2time
 #   use Data::Dumper qw(Dumper DumperX);
     use Data::Dumper;
+#   use Date::Manip;            # This modules takes .5 second to load and uses 3 meg!
 #   use FreezeThaw qw(freeze thaw cmpStr safeFreeze cmpStrHard);
     use IO::Socket;
     use LWP::Simple;            # For pgms like set_clock that need to grab data from urls
@@ -422,6 +423,9 @@ sub setup {
     use Text::Wrap;
     use Time::Local;            # For timelocal
     use Time::DaysInMonth;      # For days_in (and is_leap?)
+
+                                # Date::Manip needs it in ISO 8601 form: +-HHMM
+    $ENV{TZ} = (($config_parms{time_zone} < 0) ? '-' : '+' ) . sprintf("%02d00", abs $config_parms{time_zone});
 
     if ($config_parms{DNS_server}) {
         print "Loading DNS code ...";
@@ -516,7 +520,7 @@ sub setup {
     }
 
                                 # Find all defined socket and serial ports
-    for my $parm (keys %config_parms) {
+    for my $parm (sort keys %config_parms) {
         next unless $config_parms{$parm}; # Ingore blank parms
         push(@Server_Ports, $1)         if $parm =~ /(http)_port/;
         push(@Server_Ports, $1)         if $parm =~ /^(server\S+)_port/;
@@ -530,6 +534,7 @@ sub setup {
         my $port     = $config_parms{$port_name . "_port"};
         my $proto    = $config_parms{$port_name . "_protocol"};
         my $datatype = $config_parms{$port_name . "_datatype"};
+        my $address  = $config_parms{$port_name . "_address"};
 #        my $break    = $config_parms{$port_name . "_break"};
 
         $proto    = 'tcp'      unless $proto;
@@ -544,6 +549,7 @@ sub setup {
         $Socket_Ports{$port_name}{port}     = $port;
         $Socket_Ports{$port_name}{protocol} = $proto;
         $Socket_Ports{$port_name}{datatype} = $datatype;
+        $Socket_Ports{$port_name}{address}  = $address if $address;
 #       $Socket_Ports{$port_name}{break}    = $break;
 
         &socket_open($port_name);
@@ -618,7 +624,7 @@ sub setup {
             my $address = $1;
             printf " - creating %-15s proxy on %s\n", $interface, $address;
             next if $proxy_servers{$address}; # Only need/want one
-            $proxy_servers{$address} = new Socket_Item(undef, undef, $address);
+            $proxy_servers{$address} = new Socket_Item(undef, undef, $address, undef, undef, undef, "\035");
             $proxy_servers{$address}->start;
         }
     }
@@ -733,6 +739,7 @@ sub setup {
     $Time_Startup_time = $Time;
     $Time_Startup = &time_date_stamp(9, $Time_Startup_time);
     $Startup = 1;
+    $Save{mode} = 'normal' unless $Save{mode};
 
     if ($config_parms{pid_file}) {
         print "Process id $$ written to $config_parms{pid_file}\n";
@@ -744,9 +751,9 @@ sub setup {
     }
 
                                 # Setup and Read in previous logs
-    my $print_log = "$config_parms{data_dir}/print.log";
-    my $speak_log = "$config_parms{data_dir}/speak.log";
-    my $error_log = "$config_parms{data_dir}/error.log";
+    my $print_log = "$config_parms{data_dir}/logs/print.log";
+    my $speak_log = "$config_parms{data_dir}/logs/speak.log";
+    my $error_log = "$config_parms{data_dir}/logs/error.log";
     
     my (@log);
     @log = &file_tail($print_log, $config_parms{max_log_entries});
@@ -809,7 +816,7 @@ sub add_hook_code {
                              State_change iButton_receive
                              Play_pre Play_post Speak_pre Speak_post
                              Jabber_Message Jabber_IQ Jabber_Presence
-                             AOLim_Message MSNim_Message MSNim_Status
+                             AOLim_Message AOLim_Status MSNim_Message MSNim_Status
                              Reload_pre Reload_post Log Exit
                              );
     %hook_locations = map {$_, 1} @hook_locations;
@@ -827,7 +834,6 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
 
    sub add_hook_ {
        my($location, $hook, $type, @parms) = @_;
-    
        $type = '0' unless $type;
        $type = 'persistent' if $type eq '1'; # Grandfathered syntax
 
@@ -850,7 +856,6 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
            push(    @{$hook_pointers{$location}}, [$hook, $type, @parms] );
        }
        
-
        return 1;
    }
 
@@ -1034,7 +1039,7 @@ sub check_for_external_command_file {
     return unless $New_Second;
                                 # Note: Check for non-zero size, not -e.  Zero length files cause a loop!
     if ($xcmd_file and -s $xcmd_file) {
-        &print_log("External command file found: $xcmd_file");
+        &print_log("External command file found: $xcmd_file") unless $config_parms{no_log} =~ /xcmd/;
         unless (open(XCMD, $xcmd_file)) {
             print "\nWarning, can not open file $xcmd_file: $!\n";
             return;
@@ -1240,7 +1245,9 @@ sub check_for_proxy_data {
         if (!$proxy->active and &new_second(5)) {
             unless ($proxy->start) {
                 &print_log("Proxy is dead: $address");
-                &speak("A proxy is dead") if $New_Minute;
+                $address =~ s/\:\d+$//; # Shorten up name for speaking
+                $address =~ s/.+\.(\d+)$/$1/;
+                &speak("proxy $address is dead") if &new_minute(2);
                 next;
             }
         }
@@ -1325,7 +1332,6 @@ sub check_for_socket_data_http {
         my @data = eval($leave_socket_open_action);
         print "Error in http lso action: $@\n" if $@;
         my $html = &html_page("", @data);
-#       print "db html=$html\n";
         print $sock $html;
         &socket_close('http');
         $leave_socket_open_passes = 0;
@@ -1474,7 +1480,7 @@ sub check_for_socket_data {
 
                                 # Store udp from_* data
             if ($Socket_Ports{$port_name}{protocol} and $Socket_Ports{$port_name}{protocol} eq 'udp') {
-                (my $from_port, my $from_ip) = sockaddr_in($from_saddr);
+                (my $from_port, my $from_ip) = sockaddr_in($from_saddr) if $from_saddr;
                 $Socket_Ports{$port_name}{from_port} = $from_port;
                 $Socket_Ports{$port_name}{from_ip}   = $from_ip;
             }
@@ -1518,6 +1524,7 @@ sub check_for_socket_data {
      
                                 # Look for data separator (default is newline)
         my $break = $config_parms{"${port_name}_break"};
+        $break = $Socket_Ports{$port_name}{break} if $Socket_Ports{$port_name}{break};
         $break = "[\r\n]+" unless $break;
 #        $break = "[\r\n]+";
 
@@ -1664,7 +1671,7 @@ sub check_for_tied_times {
 sub convert_k2f {       # Convert degrees Kelvin to Farenheight
     sprintf("%3.1f", 32 + (9/5)*($_[0] - 273.15));
 }
-sub convert_c2f {       # Convert degrees Kelvin to Farenheight
+sub convert_c2f {       # Convert degrees Celsius to Farenheight
     sprintf("%3.1f", 32 + (9/5)*($_[0]));
 }
 
@@ -2518,11 +2525,13 @@ sub play {
                     exec qq[$config_parms{sound_program} $file];
                     die 'cant exec $config_parms{sound_program}';
                 }
+                $played_ok = 1 if 0 == $?;  # $? is $SIG_CHILD
             }
             else {
-                system("$config_parms{sound_program} $file &");
+                                # Perl 5.8 did was setting $? to -1, so use system $rc instead
+                my $rc = system("$config_parms{sound_program} $file &");
+                $played_ok = 1 if 0 == $rc;
             }
-            $played_ok = 1 if 0 == $?;
         }
         else {
             $played_ok = 1 if 1 == Win32::Sound::Play($file, $play_parm | SND_NOSTOP);
@@ -2663,13 +2672,13 @@ sub process_external_command {
 #       eval $eval_cmd;
 #       print_log "\nError in running external eval command: cmd=$eval_cmd\n error: $@\n" if $@;
 #   }
-    print "Running external command: $cmd\n";
+    print "Running external command: $cmd\n" unless $config_parms{no_log} =~ /xcmd/;
     if (&run_voice_cmd(lc($cmd), undef, $set_by)) {
-        print_log "Running cmd:$cmd";
+        print_log "Running cmd:$cmd" unless $config_parms{no_log} =~ /xcmd/;
     }
                                 # Limit syntax to protect from dangerous hacks
     elsif ($cmd =~ /^set +(\$[\_a-z0-9]+) * [\'\" \_a-z0-9]+ *$/i and eval "ref $1") {
-        print_log "Running set command: $cmd";
+        print_log "Running set command: $cmd" unless $config_parms{no_log} =~ /xcmd/;
         eval $cmd;
         print_log "\nError in running external set command: cmd=$cmd\n error: $@\n" if $@;
     }
@@ -2900,7 +2909,6 @@ sub process_serial_data {
 sub proxy_send {
     my ($interface, $function, @data) = @_;
 
-#   print "dbx i=$interface f=$function d=@data\n";
     my $address;
     if ($function eq 'speak' or $function eq 'play' or $function eq 'ibutton') {
         $address = $interface;
@@ -2925,7 +2933,7 @@ sub proxy_send {
     }
     else {
         print_log "Error in proxy_send: proxy port not active for function=$function int=$interface address=$address data=@data";
-        return 0;
+#       return 0;  If we return 0, send_serial_data will try to send.
     }
     return 1;
 }
@@ -3063,7 +3071,11 @@ sub read_code {
                 $file_path = "$code_dir/$file";
             }
         }
- 
+        unless ($file_path) {
+            print "\nError, could not find file in code_dirs: $file\n\n";
+            next;
+        }
+
         delete $files_deleted{$file_path};
 
         unless (-e $file_path) {
@@ -3954,8 +3966,9 @@ sub socket_close {
                                 # This opens a server socket (client sockets are done in mh/lib/Socket_Item.pm)
 sub socket_open {
     my ($port_name) = @_;
-    my $proto = $Socket_Ports{$port_name}{protocol};
-    my $port  = $Socket_Ports{$port_name}{port};
+    my $proto   = $Socket_Ports{$port_name}{protocol};
+    my $port    = $Socket_Ports{$port_name}{port};
+    my $address = $Socket_Ports{$port_name}{address};
     print "Opening socket port $port_name on port $port\n" if $config_parms{debug} eq $port_name;
     unless ($port) {
         print "\nError, no port specified for ip server $port_name\n";
@@ -3965,8 +3978,14 @@ sub socket_open {
         $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
             die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port_name}_port in mh.ini\n";
     } elsif ($proto eq 'udp') {
-        $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp') or 
-            die "Couldn't start a udp server on $port_name $port: $@\n";
+        if ($address) {
+            $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(PeerPort => $port, PeerAddr => $address => Proto => 'udp') or 
+                die "Couldn't start a udp peer server on $port_name $port: $@\n";
+        }
+        else {
+            $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp') or 
+                die "Couldn't start a udp server on $port_name $port: $@\n";
+        }
         $Socket_Ports{$port_name}{socka} = $Socket_Ports{$port_name}{sock}; # UDP ports are always "active"
     } else {
         print "\nUnknown protocol in socket_open for socket port $port_name: proto=$proto port=$port\n\n";
@@ -4015,6 +4034,7 @@ sub speak {
     my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression);
 
                                 # Allow for parms in text if done the simple way
+    $phrase = '' unless $phrase;
     while (($key, $value, $phrase_new) = $phrase =~ /^\s*(\S+)=(\S*)\s(.*)/s) {
         $key = lc $key;
                                 # Not all TTS engines have all these options ... this is a superset
@@ -4289,7 +4309,6 @@ sub tk_setup_windows {
     $Tk_objects{menu_file}->command(-label => 'Reload', accelerator => 'Alt+r', underline => 0, command => \&read_code);
     $Tk_objects{menu_file}->command(-label => 'Exit',   accelerator => 'Alt+x', underline => 1, command => \&sig_handler);
     $Tk_objects{menu_file}->separator();
-    $Save{mode} = 'normal' unless $Save{mode};
     $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Normal',  -variable => \$Save{mode}, value => 'normal');
     $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, value => 'mute');
     $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, value => 'offline');
@@ -4727,7 +4746,8 @@ sub write_user_code {
     &object_states_restore;     # Must be after Item_code variables have been defined
 
                                 # Created by &add_hooks (after object states have been restored)
-    &Reload_post_hooks();       # Note:  I don't think this is useful, as user code loop has not been run yet to add any hooks!
+                                # Note:  I don't think this is useful, as user code loop has not been run yet to add any hooks!
+    &Reload_post_hooks();       #        Except, it IS useful when called from module code on startup.
 
     print "Activate the voice commands\n";
     &Voice_Cmd::activate;
@@ -4784,6 +4804,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.73  2002/11/10 01:54:05  winter
+# - 2.73 release
+#
 # Revision 2.72  2002/10/13 01:59:42  winter
 # - 2.72 release
 #
