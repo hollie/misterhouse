@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-09-21 19:10:41 winter>
+#  Last change Time-stamp: <2002-10-12 19:22:39 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -266,6 +266,10 @@ BEGIN {
         push @code_dirs, $config_parms{code_dir_common};
         for (@code_dirs) { s/^\s*//; s/\s*$//; }; # Drop leading and trailing blanks
         print "Code Directories:\n - ", join("\n - ", @code_dirs), "\n";;
+                                 # If first time, add default selected modules
+        use File::Copy;             # So we copy files
+        copy "$Pgm_Root/data/select_code_core.txt", "$config_parms{data_dir}/select_code.txt" unless 
+                                                 -e "$config_parms{data_dir}/select_code.txt";
 
         unshift @INC, @code_dirs; # So we can add/override .pm modules locally
                                   # So we can add/override .pl modules locally
@@ -405,7 +409,7 @@ sub setup {
     use SunTime_mh;
 #   use Barcode;
     use File::Basename;
-    use File::Copy;             # So we copy files
+#   use File::Copy;             # So we copy files
     use Fcntl;                  # To enable O_RDWR|O_CREAT
 #   use Date::Parse;            # For str2time
 #   use Data::Dumper qw(Dumper DumperX);
@@ -619,25 +623,22 @@ sub setup {
         }
     }
 
-
     if ($config_parms{weeder_port}) {
         $config_parms{weeder_baudrate} = 1200 unless $config_parms{weeder_baudrate};
         &serial_port_create('weeder', $config_parms{weeder_port}, $config_parms{weeder_baudrate}, 'dtr');
         $Serial_Ports{weeder}{process_data} = 1;
     }
 
-    if ($config_parms{cm11_port} =~ /proxy/i) {
-        $Serial_Ports{'cm11'}{object} = 'proxy';
-    }
-    elsif ($config_parms{cm11_port}) {
+    if ($config_parms{cm11_port}) {
         require 'ControlX10/CM11.pm';
-        &serial_port_create('cm11', $config_parms{cm11_port}, 4800, 'none');
+        if (&serial_port_create('cm11', $config_parms{cm11_port}, 4800, 'none')) {
                                 # Reset the CM11 so we don't get old X10 incoming data
                                 # This will also set the cm11 $POWER_RESET flag that
                                 # that mh_control $Power_Supply will look for to detect power fails
                                 # Also reset the clock for the heck of it ... doesn't take long
-        &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
-        &ControlX10::CM11::setClock($Serial_Ports{cm11}{object});
+            &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
+            &ControlX10::CM11::setClock($Serial_Ports{cm11}{object});
+        }
     }
     if ($config_parms{Homevision_port}) {
         require 'Homevision.pm';
@@ -666,10 +667,7 @@ sub setup {
     }
 
                                 # Do this one last, as it can share a serial port.
-    if ($config_parms{cm17_port} =~ /proxy/i) {
-        $Serial_Ports{'cm17'}{object} = 'proxy';
-    }
-    elsif ($config_parms{cm17_port}) {
+    if ($config_parms{cm17_port}) {
         require 'ControlX10/CM17.pm';
         &serial_port_create('cm17', $config_parms{cm17_port});
     }
@@ -806,18 +804,15 @@ sub AUTOLOAD {
 my (%hook_pointers, %hook_locations);
 sub add_hook_code {
 
-    %hook_locations = ( MainLoop_pre => 1, MainLoop_post => 1,
-                        Serial_data  => 1, Serial_match => 1,
-                        State_change => 1, iButton_receive => 1,
-                        Reload_pre   => 1, Reload_post  => 1,
-                        Play_pre => 1,     Play_post => 1,
-                        Speak_pre => 1,    Speak_post => 1,
-                        Jabber_Message => 1, Jabber_IQ => 1, Jabber_Presence => 1,
-                        AOLim_Message  => 1,
-                        MSNim_Message  => 1, MSNim_Status => 1,
-                        Log       => 1,
-                        Exit      => 1
-                        );
+    my @hook_locations = qw( MainLoop_pre MainLoop_post
+                             Serial_data  Serial_match Serial_Item::send_x10_data
+                             State_change iButton_receive
+                             Play_pre Play_post Speak_pre Speak_post
+                             Jabber_Message Jabber_IQ Jabber_Presence
+                             AOLim_Message MSNim_Message MSNim_Status
+                             Reload_pre Reload_post Log Exit
+                             );
+    %hook_locations = map {$_, 1} @hook_locations;
 
     for my $location (keys %hook_locations){
         my($accessors) = "
@@ -1057,6 +1052,8 @@ sub check_for_generic_serial_data {
     my ($port_name) = @_;
     my $data;
 
+    return if $Serial_Ports{$port_name}{object} eq 'proxy';
+
     unless ($data = $Serial_Ports{$port_name}{object}->input) {
                                 # If we do not do this, we may get endless error messages.
         $Serial_Ports{$port_name}{object}->reset_error;
@@ -1071,20 +1068,25 @@ sub check_for_generic_serial_data {
         if defined $data and ($config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name);
 
                                 # Check to see if we have a carrage return yet
-    if (defined $Serial_Ports{$port_name}{data} and
-        (!defined($Serial_Ports{$port_name}{datatype}) or $Serial_Ports{$port_name}{datatype} ne 'raw')) {
-        my $break = $config_parms{"${port_name}_break"};
-        $break = "[\r\n]+" unless $break;
-        while (my($record, $remainder) = $Serial_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s) {
-            &print_log("Data from $port_name: $record.  remainder=$remainder.") 
-                if $config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name;
-            $Serial_Ports{$port_name}{data_record} = $record;
-            $Serial_Ports{$port_name}{data} = $remainder;
-            if ($Serial_Ports{$port_name}{process_data}) {
-                &process_serial_data($record);
-            }
-            else {
-                last;           # Only process one data_record per user_code loop
+    if (defined $Serial_Ports{$port_name}{data}) {
+        if (defined($Serial_Ports{$port_name}{datatype}) and $Serial_Ports{$port_name}{datatype} eq 'raw') {
+            &Serial_data_hooks($Serial_Ports{$port_name}{data}, $port_name);   # Created by &add_hooks
+        }
+        else {
+            my $break = $config_parms{"${port_name}_break"};
+            $break = "[\r\n]+" unless $break;
+            while (my($record, $remainder) = $Serial_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s) {
+                &print_log("Data from $port_name: $record.  remainder=$remainder.") 
+                    if $config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name;
+                $Serial_Ports{$port_name}{data_record} = $record;
+                $Serial_Ports{$port_name}{data} = $remainder;
+                if ($Serial_Ports{$port_name}{process_data}) {
+                    &process_serial_data($record);
+                }
+                else {
+                    &Serial_data_hooks($record, $port_name);   # Created by &add_hooks
+                    last;           # Only process one data_record per user_code loop
+                }
             }
         }
     }
@@ -1235,12 +1237,25 @@ sub check_for_proxy_data {
     for my $address (keys %proxy_servers) {
         my $proxy = $proxy_servers{$address};
                    # If proxy is down, this is slow, so don't do it every pass
-        $proxy->start if &new_second(5) and !$proxy->active;
+        if (!$proxy->active and &new_second(5)) {
+            unless ($proxy->start) {
+                &print_log("Proxy is dead: $address");
+                &speak("A proxy is dead") if $New_Minute;
+                next;
+            }
+        }
         if (my $data = $proxy->said) {
             my ($type, @data) = split $;, $data;
-            print "mh proxy server data: $type, @data.\n" if $config_parms{debug} eq 'proxy';
+            print "proxy data received: $type, @data.\n" if $config_parms{debug} eq 'proxy';
+            return unless $type;
             if ($type eq 'serial') {
-                &process_serial_data($data[0]);
+                    # If port was named, store in that hash, otherwise process
+                if ($data[1]) {
+                    $Serial_Ports{$data[1]}{data_record} = $data[0];
+                }
+                else {
+                    &process_serial_data($data[0]);
+                }
             }
             elsif ($type eq 'set_receive') {
                 eval "$data[0] -> set_receive('$data[1]')";
@@ -1251,7 +1266,7 @@ sub check_for_proxy_data {
                 print "proxy set eval error: $@" if $@;
             }
             else {
-                &print_log( "Error, unknown proxy data: $type\n");
+                &print_log( "Error, unknown proxy data: $type.\n");
             }
         }
     }
@@ -1604,6 +1619,9 @@ sub check_for_tied_filters {
 }
 
 sub check_for_tied_times {
+                                # time_* calls are minute based
+    return unless $New_Minute;
+
     for my $ref (@Generic_Item::items_with_tied_times) {
         for my $time (keys %{$$ref{tied_times}}) {
             for my $state (keys %{$$ref{tied_times}{$time}}) {
@@ -1672,6 +1690,7 @@ sub display {
     my %parms;
     %parms = @parms unless @parms %2;
 
+    my $x = @parms;
     unless ($parms{text}) {
         ($parms{text}, $parms{time}, $parms{title}, $parms{font},
          $parms{window_name}, $parms{append}) = @parms;
@@ -1803,7 +1822,8 @@ sub eval_user_code_load {
         print "\nGood code saved\n";
         $user_code_last_good = $user_code;
         play('file' => $config_parms{sound_reload});
-        &file_write('mh.started', $$); # Used in mh.bat to loop on accidental exit
+#       &file_write('mh.started', $$); # Used in mh.bat and mhl to loop on accidental exit
+        unlink 'mh.startup';           # Used in mh.bat and mhl to loop on accidental exit
     }
 }
 
@@ -2241,7 +2261,7 @@ sub object_states_save {
                                 # Save states on user specifed Save keys
     for $var (keys %Save) {
         no strict 'refs';
-        if ($Save{$var}) {
+        if (defined $Save{$var}) {
             $restore_state .= &object_states_save_check("\$Save{'$var'} = q~$Save{$var}~;") . "\n";
         }
         print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'misc';
@@ -2385,15 +2405,17 @@ sub play {
         }
     }
 
+    my $mode = $parms{mode} || $Save{mode};
+
                                 # Do not log System our sound_ files (these are played frequently)
-    &print_speaklog($Save{mode} . ": (" . basename($parms{file}) . ")")  unless
+    &print_speaklog($mode . ": (" . basename($parms{file}) . ")")  unless
         $parms{file} =~ /sound_/ or $parms{file} =~/^System/;
 
     print "Playing wave file $parms{file}\n" if $config_parms{debug} eq 'play';
 
     &Log_hooks('play', $parms{file}, %parms);   # Created by &add_hooks
 
-    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
+    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $mode !~ /unmute/i;
 
     my $play_parm = $parms{mode};
     $play_parm = 'wait' if !$play_parm and $config_parms{play_mode} eq 'wait';
@@ -2735,7 +2757,8 @@ sub process_serial_data {
             last unless defined($time_diff) and $time_diff < $config_parms{x10_multireceive_delay};
 #           print "dbx $event_data1 eq $prev_x10_events[$i]{data}\n";
             if ($event_data1 eq $prev_x10_events[$i]{data}) {
-                print "X10: Duplicate data ignored data=$event_data time=$time_diff\n";
+                print "X10: Duplicate data ignored data=$event_data time=$time_diff\n" 
+                    if $config_parms{x10_errata} >= 3;
                 return;
             }
         }
@@ -2867,7 +2890,7 @@ sub process_serial_data {
         print_log "X10: Unmatched incoming data=$event_data" if !$matched and $config_parms{x10_errata} >= 2;
     }
     else {
-        print_log "Unmatched incoming serial data=$event_data" unless $matched;
+        print_log "Unmatched incoming serial data=$event_data" unless $matched or $config_parms{no_log} =~ /serial_unmatch/;
     }
 
     return $matched;
@@ -2877,6 +2900,7 @@ sub process_serial_data {
 sub proxy_send {
     my ($interface, $function, @data) = @_;
 
+#   print "dbx i=$interface f=$function d=@data\n";
     my $address;
     if ($function eq 'speak' or $function eq 'play' or $function eq 'ibutton') {
         $address = $interface;
@@ -2889,13 +2913,18 @@ sub proxy_send {
     
     my $proxy = $proxy_servers{$address};
 
-    print "proxy int=$interface f=$function a=$address p=$proxy d=@data\n" if $config_parms{debug} eq 'proxy';
+    unless ($proxy) {
+        print "\nError in proxy_send:  no proxy server found for function=$function int=$interface address=$address data=@data\n";
+        return 0;
+    }
+
+    print "proxy data sent: int=$interface f=$function a=$address p=$proxy d=@data\n" if $config_parms{debug} eq 'proxy';
     $proxy->start unless $proxy->active;
     if ($proxy->active) {
-        $proxy->set(join $;, $function, @data);
+        $proxy->set(join $;, $interface, $function, @data);
     }
     else {
-        print_log "Error, proxy port not active for proxy: function=$function int=$interface address=$address";
+        print_log "Error in proxy_send: proxy port not active for function=$function int=$interface address=$address data=@data";
         return 0;
     }
     return 1;
@@ -2999,11 +3028,15 @@ sub read_code {
     }
     else {
         for my $file_dir (@code_dirs) {
-            opendir(DIR, $file_dir) or die "Error, can not open directory $file_dir.\n";
-            push @files_read, readdir(DIR);
+            opendir(DIR, $file_dir) or print  "\n\nError, can not open directory $file_dir.\n\n";
+            push @files_read, readdir(DIR) unless $file_dir eq $config_parms{code_dir_common};
             close DIR;
         }
+                                  # Add selected members from code_dir_common
+        push @files_read, &file_read("$config_parms{data_dir}/select_code.txt");
+
         @files_read = grep(/^[a-z0-9].*\.(pl|mhp)$/i, @files_read); # Must start with alphanumeric ... emacs edited checkpoints can start with #
+
     }
 #   print "           files: @files_read\n";
     my $count = @files_read;
@@ -3017,17 +3050,26 @@ sub read_code {
     %noload_files = map {$_, 1} split(',', $config_parms{no_load});
     my %files_seen;
     for $file (@files_read) {
-        if ($files_seen{$file}++) { # Read first occurance only
-            print "Warning, duplicate file: $file\n";
-            next;
-        }
         next if $file =~ /^read_table/; # Ignore table file readers in the user dir
         (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
+
+        undef $file_path;
         for my $code_dir (@code_dirs) {
-            last if -e ($file_path = "$code_dir/$file");
+            next unless -e "$code_dir/$file";
+            if ($file_path) {
+                print "Duplicate file. Used:$file_path  Skipped:$code_dir/$file\n";
+            }
+            else {
+                $file_path = "$code_dir/$file";
+            }
         }
+ 
         delete $files_deleted{$file_path};
-        die "\nError, can not find file $file_path\n" unless -e $file_path;
+
+        unless (-e $file_path) {
+            print "\n\nError, can not find file $file_path\n\n";
+            next;
+        }
         $file_time = (stat($file_path))[9];
                                 # File has not changed since last call
         next if $file_code_times{$file_path} and $file_time == $file_code_times{$file_path}; 
@@ -3039,6 +3081,7 @@ sub read_code {
     my $files_deleted = 0;
     for $file_path (keys %files_deleted) {
         delete $User_Code{$file_path};
+        delete $file_code_times{$file_path};
         $files_deleted++;
     }
     &print_log("   $files_deleted files deleted, " . (@files_changed2+0) . " files changed: @files_changed2") unless $Startup;
@@ -3453,7 +3496,8 @@ sub set_global_vars {
                                 # If mh got hung up doing something, lets go to catch up mode
     elsif (!$Time_Start_time and $prev_time < ($time_now - 2)) {
         $DelayOccured = $time_now - $prev_time;
-        unless ($config_parms{no_log} =~ /pause/ or $Reload or $Loop_Count < 10) {
+        unless ($config_parms{no_log} =~ /pause/ or $Reload or $Loop_Count < 10
+                or ($config_parms{time_pause_log} and $config_parms{time_pause_log} > $DelayOccured) ) {
             my $volume = int 100 * $DelayOccured / 30;
             &play(file => 'mh_pause', volume => $volume); # Defined in event_sounds.pl
             print_log "mh paused for $DelayOccured seconds (v=$volume)";
@@ -3744,6 +3788,11 @@ sub set_global_vars {
 sub serial_port_create {
     my ($name, $port, $baudrate, $handshake, $datatype) = @_;
 
+    if ($port =~ /proxy/i) {
+        $Serial_Ports{$name}{object} = 'proxy';
+        return;
+    }
+
     $port = '\\\\.\\' . $port if $Info{OS_name} =~ /(NT|XP)/ and $port =~ /^com\d{2}\z/i;
 
     unless ($name and $port) {
@@ -3953,21 +4002,15 @@ sub socket_has_data {
 }
 
 sub speak {
-    my ($rooms, $display_time, $key, $value, $phrase_new,  %parms, $play, $nolog);
+    my ($rooms, $display_time, $key, $value, $phrase_new,  %parms, $play);
 
     my ($phrase) = @_;          # Simple way ... no parms
 
     if (@_ > 1) {               # Fancy way key=value way
         %parms = @_;
         $phrase = $parms{text};
-    	$play   = $parms{play};
-    	$nolog  = $parms{nolog};
 #       print "Error, no text keyword in speak command.  Parms= @_\n" unless $phrase or $play;
     }
-    $parms{mode}  = '' unless $parms{mode};
-    $rooms        = $parms{rooms}   if $parms{rooms};
-    $rooms        = $parms{room}    if $parms{room};
-    $display_time = $parms{display} if $parms{display};
 
     my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression);
 
@@ -3977,20 +4020,15 @@ sub speak {
                                 # Not all TTS engines have all these options ... this is a superset
         print "Warning, speak control not recognized: key=$key value=$value\n"
             unless grep $key eq $_, @speak_parms;
-        
-        if ($key =~ /room[s]?/) {
-            $rooms = $value;
-            $key = 'rooms';     # Allow for room or rooms
-        }
-        elsif ($key eq 'display') {
-            $display_time = $value;
-        }
-        elsif ($key eq 'play') {
-            $play = $value;
-        }
         $parms{$key} = $value;
         $phrase      = $phrase_new;
     }
+
+    $parms{mode}  = '' unless $parms{mode};
+    $parms{rooms} = $parms{room}    if $parms{room}; # Allow for room or rooms
+    $rooms        = $parms{rooms}   if $parms{rooms};
+    $display_time = $parms{display} if $parms{display};
+    $play         = $parms{play}    if $parms{play};
 
                                 # Allow for defaults to be specified in parmfile
     for my $parm (@speak_parms) {
@@ -4019,7 +4057,7 @@ sub speak {
 
     my $mode = $parms{mode} || $Save{mode};
 
-    if (!$nolog) {
+    if (!$parms{nolog}) {
         my $speaklog = $mode . ": ";
     	$speaklog = "card=$parms{card}: " if $parms{card};
     	$speaklog = "to_file: "           if $parms{to_file};
@@ -4057,10 +4095,6 @@ sub speak {
 
     &Log_hooks('speak', $phrase, %parms);   # Created by &add_hooks
 
-                        # Do not speak to the default card if muted or offline
-    return if $mode and ($mode eq 'mute' or $mode eq 'offline') and
-        !($parms{to_file} or $parms{card});
-
                                 # Lowercase all uppercase text ... 
                                 #  if it > 4 characters (don't want to mess up acronyms)
     $parms{no_mod} = 1 if $phrase =~ /\<sable\>/i;
@@ -4077,6 +4111,12 @@ sub speak {
     else {
         $parms{text} = $phrase;
 
+        &Speak_pre_hooks(%parms);   # Created by &add_hooks
+
+                        # Do not speak to the default card if muted or offline
+        return if $mode and ($mode eq 'mute' or $mode eq 'offline') and
+            !($parms{to_file} or $parms{card});
+
                                 # If we have a 1/2 duplex sound card, we want to wait a bit before speaking
                                 # or else the speech will get qued.
                                 # Maybe just turning off vr during speach would fix this?
@@ -4088,7 +4128,6 @@ sub speak {
             }
         }
 #       &set_volume($parms{volume});
-        &Speak_pre_hooks(%parms);   # Created by &add_hooks
         &Voice_Text::speak_text(%parms);
         &Speak_post_hooks(%parms);   # Created by &add_hooks
     }
@@ -4212,9 +4251,7 @@ sub tk_setup_windows {
                                 # See perl/bin/widget.bat for lots of examples
     print "Setting up tk window\n";
     $MW = MainWindow->new; 
-    print '.';
     $MW->withdraw;              # Hide the window until we are all setup
-    print '.';
 
 
                                 # Keep startup value so we resize only if it has changed since startup,
@@ -4256,7 +4293,6 @@ sub tk_setup_windows {
     $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Normal',  -variable => \$Save{mode}, value => 'normal');
     $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, value => 'mute');
     $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, value => 'offline');
-    print '.';
 
 }
 
@@ -4748,6 +4784,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.72  2002/10/13 01:59:42  winter
+# - 2.72 release
+#
 # Revision 2.71  2002/09/22 01:30:54  winter
 # - 2.71 release
 #
