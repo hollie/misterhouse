@@ -7,7 +7,7 @@ require Exporter;
 
 @ISA = qw(Exporter);
 @EXPORT= qw();
-@EXPORT_OK= qw( send_cm17 );
+@EXPORT_OK= qw( send_cm17 send_cm17_ir );
 $VERSION = '0.06';
 $DEBUG = 0;
 
@@ -35,9 +35,39 @@ my %table_dcodes = qw(1J 00000000000 1K 00000100000 2J 00000010000 2K 0000011000
                       FJ 10001001000 FK 10001101000 GJ 10001011000 GK 10001111000 
                       L  00010001000 M  00010011000 O  00010010000 N  00010100000 P 00010000000);
 
+my %table_ir_codes = qw(POWER    1000001001111011  MUTE     1000001100100011 
+                        CH+      1000001100100111  CH-      1000001101000011
+                        VOL+     1000001100001111  VOL-     1000001100010111
+                        1        1000001100110011  2        1000001100111111
+                        3        1000001100101011  4        1000001001011011
+                        5        1000001001101111  6        1000001001100111
+                        7        1000001001011111  8        1000001001101011
+                        9        1000001001010111  0        1000001001010011
+                        MENU     1000001000100111  ENTER    1000001000111111
+                        FF       1000001000010011  REW      1000001000001011
+                        RECORD   1000001000000111  PAUSE    1000001000011011 
+                        PLAY     1000001000011011  STOP     1000001000010111
+                        AVSWITCH 1000001001001011  DISPLAY  1000001001000011
+                        UP       1000001001001111  DOWN     1000001000110011 
+                        LEFT     1000001000110111  RIGHT    1000001000101111
+                        SKIPDOWN 1000001000101011  SKIPUP   1000001000001111
+                        TITLE    1000001000100011  SUBTITLE 1000001000011111
+                        EXIT     1000001001100011  OK       1000001001000111
+                        RETURN   1000001000111011
+                       );
+my %table_device_codes = qw(TV  1000001001110111  VCR 1000001001110011
+                            CAB 1000001100001011  CD  1000001100010011
+                            SAT 1000001100000111  DVD 1000001100000011
+                            );
+    
+
 sub send_cm17 {
     return unless ( 2 == @_ );
     return ControlX10::CM17::send (@_);
+}
+sub send_cm17_ir {
+    return unless ( 2 == @_ );
+    return ControlX10::CM17::send_ir (@_);
 }
 
 sub send {
@@ -61,7 +91,7 @@ sub send {
         my $device= $1;
         my $dir   = $2;
         my $level = $3;
-	my $ok;
+        my $ok;
         print "Running CM17 dim/bright loop: device=$device $dir=$dir level=$level\n" if $DEBUG;
                                 # The CM17 dim/bright has not device address, so we must first
                                 # address the device (need to make sure it is on anyway)
@@ -84,6 +114,37 @@ sub send {
     }
                                 # Header + data + footer = 40 bits
     &send_bits($serial_port, '1101010110101010' . $data . $data2 . '10101101'); 
+}
+
+sub send_ir {
+    my ($serial_port, $device_command) = @_;
+
+                                # Device is optional
+    my ($device, $command) = $device_command =~ /(\S*) +(\S+)/;
+    print "db sending cm17 ir data device=$device command=$command\n" if $main::config_parms{debug} eq 'IR';
+    my $data;
+                                # Send device code
+    if ($device) {
+        unless ($data = $table_device_codes{uc $device}) {
+            print "Warning, cm17 device command not found: $device\n";
+            return;
+        }
+        &send_ir_bits($serial_port, $data);
+    }
+
+                                # Send command code
+    unless ($data = $table_ir_codes{uc $command}) {
+        print "Warning, cm17 ir command not found: $command\n";
+        return;
+    }
+    &send_ir_bits($serial_port, $data);
+}
+
+sub send_ir_bits {
+    my ($serial_port, $data) = @_;
+    &send_bits($serial_port, '1101010110101010' . $data . '10101101'); 
+    my $data = '1000001101111111';
+    &send_bits($serial_port, '1101010110101010' . $data . '10101101'); 
 }
 
 sub send_bits {
