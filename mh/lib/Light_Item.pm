@@ -68,6 +68,8 @@ Usage:
          do NOT want to attach door objects and motion objects to the object
          if using this feature -- just attach the presence object(s) and
          any light restriction objects (and possibly a Light_Switch_Object).
+      manual(X): Set X to 1 to set the light into a full manual mode where
+         it will never be turned on or off automatically.
 	
 	Input states:
       From a Light_Restriction_Item:
@@ -137,6 +139,7 @@ sub initialize
 	$$self{m_door_always_on} = 0;
    $$self{m_pending_lock} = 0;
    $$self{m_delay_on} = 0;
+   $$self{m_manual} = undef;
 }
 
 sub set
@@ -152,6 +155,8 @@ sub set
    }
 
 	my $l_state=$p_state;
+
+   return if defined($$self{m_manual});
 
 	################ Light Restriction Item ###############
    if (defined $p_setby and $p_setby->isa('Light_Restriction_Item')) {
@@ -481,6 +486,14 @@ sub delay_on {
 	my ($self, $p_intDelayOn) = @_;
 	$$self{m_delay_on} = $p_intDelayOn if defined $p_intDelayOn;
 	return $$self{m_delay_on};
+}
+
+sub manual {
+	my ($self, $p_manual) = @_;
+   if (defined($p_manual)) {
+   	$$self{m_manual} = $p_manual;
+   }
+	return $$self{m_manual};
 }
 
 sub x10_sync

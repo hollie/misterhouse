@@ -34,7 +34,7 @@
       A: Laundry timer $state
     D: List timers
       A: list all timers
-    D: Set Minute [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,25,30,45,60,90,120] 
+    D: Set Minute [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,25,30,45,60,90,120]
       A: Set a timer for $state minutes
     D: Cancel
       A: Cancel all timers
@@ -74,11 +74,11 @@
     D: HVAC
     D: Curtain [open,close]
        A: $state the bedroom curtains
-    D: Bed Fan [on,off] 
+    D: Bed Fan [on,off]
        A: set $bedroom_fan $state
 
  M: Downstairs
-    D: Hall Light [on,off,+30,-30] 
+    D: Hall Light [on,off,+30,-30]
        A: set $hallway_light $state
     D: Art Curtain [open,close]
        A: $state the family room curtains
@@ -104,21 +104,21 @@
        A: set $garage_light [on,off,+30,-30]
     D: Backyard [on,off,+,-]
        A: set $backyard_light [on,off,+30,-30]
-    D: Driveway [on,off,+,-]          
+    D: Driveway [on,off,+,-]
        A: set $driveway_light $state
     D: Fountain [on,off]
        A: set $fountain $state
 
  M: Liv Lights
-    D: Living room light [on,off]    
+    D: Living room light [on,off]
        A: set $living_light [on,off]
-    D: Camera [on,off,+,-]    
+    D: Camera [on,off,+,-]
        A: set $camera_light [on,off,+30,-30]
-    D: Pedestal [on,off,+,-]  
+    D: Pedestal [on,off,+,-]
        A: set $pedestal_light [on,off,+30,-30]
-    D: Blue [on,off]          
+    D: Blue [on,off]
        A: set $blue_light $state
-    D: Driveway [on,off,+,-]          
+    D: Driveway [on,off,+,-]
        A: set $driveway_light [on,off,+30,-30]
     D: Christmas [on,off,+30,-30]
        A: set $christmas_lights $state
@@ -126,9 +126,9 @@
  M: HVAC
     D: Living Fan [on,off]
        A: set $living_room_fan $state
-    D: Bed Fan [on,off] 
+    D: Bed Fan [on,off]
        A: set $bedroom_fan $state
-    D: Attic   [on,off] 
+    D: Attic   [on,off]
        A: set $attic_fan $state
     D: Furnace heat [on,off]
        A: set $furnace_heat $state
@@ -166,9 +166,9 @@
        A: Skip next wakeup time
     D: School close
        A: Check for school closing
-    D: Fan [on,off,+30,-30] 
+    D: Fan [on,off,+30,-30]
        A: set $bedroom_fan_light $state
-    D: TV [power,ch+,ch-,mute,vol+,vol-] 
+    D: TV [power,ch+,ch-,mute,vol+,vol-]
        A: tv $state
     D: VCR [power,ch+,ch-,record,play,pause,stop,ff,rew]
        A: vcr $state
@@ -177,16 +177,16 @@
     D: Left [on,off,+30,-30]
        A: set $left_bedroom_light $state
        R: Ok, light $state
-    D: Right [on,off,+30,-30] 
+    D: Right [on,off,+30,-30]
        A: set $right_bedroom_light $state
-    D: Fan [on,off,+30,-30] 
+    D: Fan [on,off,+30,-30]
        A: set $bedroom_fan_light $state
     D: All lights [on,off,+30,-30]
        A: set $Bedroom $state
     D: Bathroom [on,off,+30,-30]
        A: set $bathroom_light $state
 
-    
+
 
  M: Logs
     P: anyone            # Menu level Password authorization default
@@ -213,7 +213,7 @@
  M: Weather
     P: anyone            # Menu level Password authorization default
     R: last_response     # Override Set to ... response
-    D: Temperature 
+    D: Temperature
       A: What is the  temperature
     D: Wind
       A: What is the wind speed
@@ -247,11 +247,11 @@
        R: href=http://slashdot.org
 
  M: Ibutton
-    D: Temperature 1   
+    D: Temperature 1
        A: Read the ibutton temperature 1
-    D: Temperature 2   
+    D: Temperature 2
        A: Read the ibutton temperature 2
-    D: List ibuttons   
+    D: List ibuttons
        A: List all the ibutton buttons
 
  M: Audrey
@@ -283,12 +283,10 @@
       A: Read the next deep thought
     D: Trivia [question,answer]
       A: Display the [next science trivia question,trivia answer]
-    D: Bingo [Start,Pause,Resume,Status]
-      A: $state bingo
     D: Bingo time [2,5,10,15,20]
       A: Set bingo time to $state
     D: Top 10 list
-      A: Display the top 10 list 
+      A: Display the top 10 list
     D: Slashdot
       A: Show the slashdot news
     D: Top news
@@ -298,4 +296,6 @@
     D: Photos
       R: href=/misc/photos.html
 
-   
+ M: Games
+    D: Bingo [Start,Pause,Resume,Status]
+      A: $state bingo

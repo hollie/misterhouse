@@ -28,7 +28,7 @@ my %mime_types = (
                   'gif'   => 'image/gif',
                   'jpg'   => 'image/jpeg',
                   'jpeg'  => 'image/jpeg',
-                  'wbmp'  => 'image/vnd.wap.wbmp',  
+                  'wbmp'  => 'image/vnd.wap.wbmp',
                   'bmp'   => 'image/bmp',
                   'au'    => 'audio/basic',
                   'pls'   => 'audio/x-scpls',
@@ -78,7 +78,7 @@ sub http_read_parms {
             print "   html_alias alias $alias dir does not exist, dir=$dir\n";
         }
     }
-            
+
     $html_info_overlib = 1 if $main::config_parms{html_info} and $main::config_parms{html_info} =~ 'overlib';
 
 #   $config_parms{http_fork} = 1 if ($config_parms{http_fork} ne '0') and (!$OS_win or $OS_win and Win32::IsWinNT);
@@ -149,7 +149,7 @@ sub http_process_request {
         print "http: Error, not header request.  header=$temp\n" if $main::Debug{http} and $temp;
         return;
     }
-    
+
     $Socket_Ports{http}{data_record} = $header;
 
     $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
@@ -183,10 +183,10 @@ sub http_process_request {
 #Agent: Mozilla/4.7 [en] (X11; I; Linux 2.2.14-15mdk i686)
 #Agent: Mozilla/4.76 [en] (X11; U; Linux 2.2.16-22jjg i686)
 #Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:0.9.4) Gecko/20011128 Netscape6/6.2.1
-#Audrey:     Mozilla/4.7 (Win98; Audrey)   
+#Audrey:     Mozilla/4.7 (Win98; Audrey)
 #Compaq IA1: Mozilla/4.0 (compatible; MSIE 4.01; Windows CE; MSN Companion 2.0; 800x600; Compaq).
 #Aquapad:    Mozilla/4.0 (compatible; MSIE 4.01; Windows NT Windows CE)
-#Opera: Mozilla/4.0 (compatible; MSIE 5.0; Linux 2.4.6-rmk1-np2-embedix armv4l; 240x320) Opera 5.0  [en] 
+#Opera: Mozilla/4.0 (compatible; MSIE 5.0; Linux 2.4.6-rmk1-np2-embedix armv4l; 240x320) Opera 5.0  [en]
 
 #   print "db ua=$Http{'User-Agent'}\n";
     if ($Http{'User-Agent'}) {
@@ -264,7 +264,7 @@ sub http_process_request {
         return;
     }
 
-    logit "$config_parms{data_dir}/logs/server_http.$Year_Month_Now.log",  "$Socket_Ports{http}{client_ip_address} $get_req $get_arg" 
+    logit "$config_parms{data_dir}/logs/server_http.$Year_Month_Now.log",  "$Socket_Ports{http}{client_ip_address} $get_req $get_arg"
        unless $config_parms{no_log} =~ /http_local/ and &is_local_address();
 
     $get_arg =~ tr/\+/ /;       # translate + back to spaces (e.g. code search tk widget)
@@ -273,7 +273,7 @@ sub http_process_request {
     $get_arg =~ s/\&/&&/g;      # translate & to &&, since we translate %##  to & before splitting
 
                                 # translate from %## back to real characters
-                                # Ascii table: http://www.bbsinc.com/symbol.html 
+                                # Ascii table: http://www.bbsinc.com/symbol.html
                                 #  - get_req may have h_response with %## chars in it
     $get_req =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
     $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
@@ -302,7 +302,7 @@ sub http_process_request {
             my ($name, $name_short) = &net_domain_name('http');
             if ($Authorized and $get_req =~ /\/SET_PASSWORD$/) {
                 &print_log("Password was just accepted for User [$Authorized] browser $name");
-                &speak("$Authorized password accepted for $name_short");
+                &speak("app=admin $Authorized password accepted for $name_short");
                 $html .= "<br><b>$Authorized password accepted</b>";
                 print $socket &html_page(undef, $html);
             }
@@ -333,7 +333,7 @@ sub http_process_request {
 #           $html = $Http{Referer}; # &html_page will use referer if only a url is given
             $html =~ s/\/SET_PASSWORD.*//;
             &print_log("Password was just accepted for User [$user] browser $name");
-            &speak("$user password accepted for $name_short");
+            &speak("app=admin $user password accepted for $name_short");
         }
         else {
             $Authorized = 0;
@@ -342,7 +342,7 @@ sub http_process_request {
             $Cookies{password_was_not_valid}++; # So we can monitor from user code
             &print_log("Password was just NOT set; $name");
             &play(file => 'unauthorized'); # Defined in event_sounds.pl
-#           &speak("Password NOT set by $name_short");
+#           &speak("app=admin Password NOT set by $name_short");
         }
         print $socket &html_page(undef, $html);
         return;
@@ -440,14 +440,14 @@ sub http_process_request {
                                 # Generate a response IF requested (i.e. no default)
         &html_response($socket, $h_response) if $h_response;
     }
-                                # Allow for either SET or SET_VAR 
+                                # Allow for either SET or SET_VAR
     elsif  ($get_req =~ /\/SET(_VAR)?$/i or
             $get_req =~ /\/SET(_VAR)?[\:\;](\S*)$/i) {
         $h_response = $2;
 #       print "Error, no SET argument: $header\n" unless $get_arg;
 
                                 # Change select_item=$item&select_state=abc to $item=abc
-        $get_arg =~ s/select_item=(\S+)\&&select_state=/$1=/; 
+        $get_arg =~ s/select_item=(\S+)\&&select_state=/$1=/;
 
                                 # Drop the &&x=n&&y=n that is tacked on (before or after) when doing image form submits
                                 # Do the same in RUN above
@@ -486,7 +486,7 @@ sub http_process_request {
                 ($item, $state) = $temp =~ /(\S+?)[\?\=](.*)/s;
 #               print "db i=$item s=$state a=$get_arg t=$temp\n";
 
-                $state =~ s/\_/ /g;      # No blanks were allowed in a url 
+                $state =~ s/\_/ /g;      # No blanks were allowed in a url
                 $state =~ s/\~/_/g;      # Put _ back
 
                                 # If item name is only digits, this implies tk_widgets, where we used html_pointer_cnt as an index
@@ -503,20 +503,20 @@ sub http_process_request {
                                 #  - yep, needed till we switch widgets to objects
                     $Tk_results{$html_pointers{$item . "_label"}} = $state if $html_pointers{$item . "_label"};
                 }
-                                # Otherwise, we are trying to pass var name in directly. 
+                                # Otherwise, we are trying to pass var name in directly.
                 else {
                                 # WAP pages don't allow for $ in url, so make it optional
                     $item = "\$". $item unless substr($item, 0, 1) eq "\$";
 
                                 # Can be a scalar or a object
                     $state =~ tr/\"/\'/; # So we can use "" to quote it
-                    my $eval_cmd = qq[($item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item')) ? 
+                    my $eval_cmd = qq[($item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item')) ?
                                       ($item->set("$state", "web [$client_ip_address]")) : ($item = "$state")];
                     print "SET eval: $eval_cmd\n" if $main::Debug{http};
                     eval $eval_cmd;
                     print "SET eval error.  cmd=$eval_cmd  error=$@\n" if $@;
                 }
-            }            
+            }
             &html_response($socket, $h_response);
         }
         else {
@@ -542,21 +542,24 @@ sub http_process_request {
 #           print "\n$Time_Date: $msg";
             &print_log($msg);
         }
-    }        
+    }
     else {
-        my $msg = "Unrecognized html request: get_req=$get_req   get_arg=$get_arg  header=$header\n";
-        print $socket &html_page("Error", $msg);
-        print $msg;
+        print "Unrecognized html request: get_req=$get_req get_arg=$get_arg  header=$header\n";
+
+        $get_req .= "?$get_arg" if $get_arg;
+        $Misc{missing_url} = $get_req;
+
+        print $socket &http_redirect("/misc/failed_request.shtml");
     }
 
     $time_check = time - $time_check;
     if ($time_check > $config_parms{http_pause_time}) {
-        my $msg = "http_server time exceeded $config_parms{http_pause_time} seconds: time=$time_check, lso=$leave_socket_open_passes, " . 
+        my $msg = "http_server time exceeded $config_parms{http_pause_time} seconds: time=$time_check, lso=$leave_socket_open_passes, " .
                   "l=$socket_fork_data{length}, ip=$Socket_Ports{http}{client_ip_address}, header=$header";
         logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  $msg;
         print "\n$Time_Date: $msg\n";
         &print_log($msg);
-#       &speak("web sleep of $time_check seconds");
+#       &speak("app=admin web sleep of $time_check seconds");
     }
 
     return ($leave_socket_open_passes, $leave_socket_open_action);
@@ -725,7 +728,7 @@ sub test_file_req {
 sub html_mh_generated {
     my ($get_req, $get_arg, $auto_refresh) = @_;
     my $html = '';
-    $html = qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{'html_refresh_rate' . $Http{format}}; url=$get_req">\n] 
+    $html = qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{'html_refresh_rate' . $Http{format}}; url=$get_req">\n]
 	if $auto_refresh and $main::config_parms{'html_refresh_rate' . $Http{format}};
 
                                 # Allow for any of these $get_req forms:
@@ -847,12 +850,12 @@ sub html_response {
     if ($h_response) {
         if ($h_response =~ /^last_response_?(\S*)/) {
             $Last_Response = '';
-                                # Wait for some sort of response ... need a way to 
+                                # Wait for some sort of response ... need a way to
                                 # specify longer wait times on longer commands.
                                 # By default, we shouldn't put a long time here or
                                 # we way too many passes for the 'no response message'
                                 # from many commands that do not respond
-            $leave_socket_open_passes = 3; 
+            $leave_socket_open_passes = 3;
             $leave_socket_open_action = qq|&html_last_response('$Http{"User-Agent"}', $1)|;
         }
         elsif ($h_response eq 'last_displayed') {
@@ -951,7 +954,7 @@ sub html_last_response {
 sub http_speak_to_wav_start {
     my ($tts_text, $voice, $compression) = @_;
 
-                                # Try to To minimized the problem of 2 web browsers 
+                                # Try to To minimized the problem of 2 web browsers
                                 # talking at the same time by using a semi-random .wav file name
     my $wav_file = "cache/http_server.$Second.wav";
 
@@ -968,7 +971,7 @@ sub http_speak_to_wav_start {
 
     $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
     ($compression = (&is_local_address()) ? 'low' : 'high') unless $compression;
-    &Voice_Text::speak_text(voice => $voice, to_file => "$config_parms{html_dir}/$wav_file", 
+    &Voice_Text::speak_text(voice => $voice, to_file => "$config_parms{html_dir}/$wav_file",
                             text => $tts_text, compression => $compression, async => 1);
 
                    # Some browsers (e.g. Audrey) do not echo port in Host data
@@ -1019,7 +1022,7 @@ sub http_speak_to_wav_finish {
         }
         else {
             $html .= "\n<br><EMBED SRC='$wav_file' VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
-#           $html .= "\n<br><EMBED SRC='$wav_file'  VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n" . 
+#           $html .= "\n<br><EMBED SRC='$wav_file'  VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n" .
 #             "<NOEMBED><BGSOUND SRC='$wav_file'></NOEMBED>\n";
         }
     }
@@ -1131,7 +1134,7 @@ sub html_form_select {
     my $form .= qq|<select name='$var' $onchange>\n|;
     for my $value (@values) {
         my $selected = ($value eq $default) ? 'selected' : '';
-        my $option = $value; 
+        my $option = $value;
         $option =~ s/&/&#38;/g;
         $option =~ s/'/&#39;/g;
         $form .= qq|<option value='$option' $selected>$value</option>\n|;
@@ -1189,7 +1192,7 @@ sub html_file {
         }
     }
                                 # Allow for .pl cgi programs
-                                # Note: These differ from classic .cgi in that they return 
+                                # Note: These differ from classic .cgi in that they return
                                 #       the results, rather than print them to stdout.
     elsif ($file =~ /\.(pl|cgi)$/) {
         my $code = join('', <HTML>);
@@ -1197,7 +1200,7 @@ sub html_file {
                                 # Check if authorized
         my $user_required = lc $1 if $code =~ /^# *authority: *(\S+) *$/smi;
         $file =~ s/.*\///;      # Drop path to file
-	
+
         $user_required = $Password_Allow{$file} if $Password_Allow{$file};
 
         unless (&authority_check($user_required)) {
@@ -1234,7 +1237,7 @@ sub html_file {
 #       my $data = join '', <HTML>;
 	       # Read entire file at once instead of line by line ... faster
         my $data;
-        { local $/ = undef; 
+        { local $/ = undef;
           $data = join('', <HTML>);
         }
         $html = &mime_header($file, 1, length $data) unless $no_header;
@@ -1255,7 +1258,7 @@ sub shtml_include {
         $html .= $prefix;
                                 # tellme vxml does not like comments in the middle of things :(
                                 # - also had problems with comments inside td elements, so lets skip this
-                                #   e.g.: " <td <!--#include file="motion.pl?timer_motion_main"--> > 
+                                #   e.g.: " <td <!--#include file="motion.pl?timer_motion_main"--> >
 #       $html .= "\n<\!-- The following is from include $directive = $data -->\n" unless $file =~ /\.vxml$/;
         if ($directive eq 'file') {
             eval "\$data = qq[$data]";  # Resolve $vars in file specs (e.g. config_parm{web_href...}
@@ -1322,11 +1325,11 @@ sub html_cgi {
 #       sub DELETE { }
         sub define_print   (&) {   tie(*STDOUT, "Override_print", @_); }
         sub undefine_print (&) { untie(*STDOUT); }
-        
+
         package Main;
         Override_print::define_print { $html .= shift };
     }
-    
+
     print "HTTP/1.0 200 OK\nServer: MisterHouse\nCache-Control: no-cache\n";
 
                                 # Setup up vars so pgms like CGI.pm work ok
@@ -1380,7 +1383,7 @@ sub mime_header {
     $header .= "Content-Length: $length\n" if $length;
 
     return $header . "\n";
-#Expires: Mon, 01 Jul 2002 08:00:00 GMT 
+#Expires: Mon, 01 Jul 2002 08:00:00 GMT
 }
 
                                 # this returns real dirs, given html alias
@@ -1503,7 +1506,7 @@ sub http_agent_size {
 sub html_category {
     my $h_index;
 
-    $h_index = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] . 
+    $h_index = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] .
         qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] if $html_info_overlib;
 
     for my $category (&list_code_webnames('Voice_Cmd')) {
@@ -1601,7 +1604,7 @@ sub html_find_icon_image {
     }
 
                                 # Look for exact matches
-    if ($icon = $html_icons{"$name-$state"} or 
+    if ($icon = $html_icons{"$name-$state"} or
         $icon = $html_icons{$name}) {
     }
                                 # For voice items, look for approximate name matches
@@ -1647,9 +1650,9 @@ sub html_find_icon_image {
 sub button_action {
     my ($args) = @_;
     my ($object_name, $state, $referer, $xy) = split ',', $args;
-	 
+
     my ($x, $y) = $xy =~ /(\d+)\|(\d+)/;
-	     
+
                                 # Do not dim the dishwasher :)
     unless (eval qq|UNIVERSAL::isa($object_name, 'X10_Appliance')|) {
         $state = 'dim'      if $x < 30;   # Left  side of image
@@ -1658,7 +1661,7 @@ sub button_action {
 
     eval qq|$object_name->set("$state")|;
     print "smart_button_action.pl eval error: $@\n" if $@;
-						     
+
     $referer =~ s/ /%20/g;
     $referer =~ s/&&/&/g;
     return &http_redirect($referer);
@@ -1667,16 +1670,16 @@ sub button_action {
 sub html_header {
     my ($text) = @_;
     $text = 'Generic Header' unless $text;
-		 
+
     my $color = $config_parms{html_color_header};
     $color = '#9999cc' unless $color;
-			 
+
 return qq[
 $config_parms{html_style}
 <table width=100% bgcolor='$color'>
 <td><center>
 <font size=3 color="black"><b>
-$text 
+$text
 </b></font></center>
 </td>
 </table><br>
@@ -1687,7 +1690,7 @@ sub html_list {
 
     my($webname_or_object_type, $auto_refresh) = @_;
     my ($object, @object_list, $num, $h_list);
-    
+
     $h_list .= &html_header ("<b>Browse $webname_or_object_type</b>&nbsp;&nbsp;&nbsp;&nbsp;" . &html_authorized);
     $h_list =~ s/group=\$//;     # Drop the group=$ prefix on group lists
 
@@ -1826,7 +1829,7 @@ sub html_command_table {
         $list_count++;
 
                                 # Find the states and create the test label
-                                #  - pick the first {a,b,c} phrase enumeration 
+                                #  - pick the first {a,b,c} phrase enumeration
         $text =~ s/\{(.+?),.+?\}/$1/g;
 
         my ($prefix, $states, $suffix, $h_text, $text_cmd, $ol_info, $state_log, $ol_state_log);
@@ -1933,7 +1936,7 @@ sub html_command_table {
                 my $selected = $currState && $state eq $currState ? "selected" : "";
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
-                $text_cmd =~ tr/ /\_/;  
+                $text_cmd =~ tr/ /\_/;
                 $html .= qq[<option $selected value="$text_cmd">$state</option>\n];
                 $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
                 $msagent_cmd1 .= "$state|" if $state;
@@ -1948,7 +1951,7 @@ sub html_command_table {
                 my $selected = $currState && $state eq $currState ? "checked" : "";
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
-                $text_cmd =~ tr/ /\_/;  
+                $text_cmd =~ tr/ /\_/;
                 $html .= qq[<INPUT type="radio" name="select_cmd" $selected onChange="form.submit()" value="$text_cmd"/>$state\n];
                 $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
                 $msagent_cmd1 .= "$state|" if $state;
@@ -1965,7 +1968,7 @@ sub html_command_table {
                 $text_cmd =~ s/\+/\%2B/g; # Use hex 2B = +, as + will be translated to blanks
                 $text_cmd =~ s/\'/\%27/g; # Use hex 27 = '
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
-                $text_cmd =~ tr/ /\_/;  
+                $text_cmd =~ tr/ /\_/;
                                 # Use the first entry as the default one, used when clicking on the icon
                 if ($hrefs) {
                     $hrefs .= qq[, ] if $hrefs;
@@ -1974,7 +1977,7 @@ sub html_command_table {
                     $html .= qq[<input type="hidden" name="select_cmd" value='$text_cmd'>\n];
                 }
 
-                                # We could add ol_info here, so netscape kind of works, but this 
+                                # We could add ol_info here, so netscape kind of works, but this
                                 # would be redundant and ineffecient.
                 $hrefs .= qq[<a href='RUN;$H_Response?$text_cmd'>$state</a> ];
                 $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
@@ -1990,14 +1993,14 @@ sub html_command_table {
             $text_cmd =~ s/\+/\%2B/g; # Use hex 2B = +, as + will be translated to blanks
             $text_cmd =~ s/\'/\%27/g; # Use hex 27 = '
             $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
-            $text_cmd =~ tr/ /\_/; 
+            $text_cmd =~ tr/ /\_/;
             $html .= qq[<b>$text</b>];
             $html .= qq[<input type="hidden" name="select_cmd" value='$text_cmd'>\n];
             $msagent_cmd1 = $text;
         }
 
         $html .= qq[<b>$suffix</b>] if $suffix;
-        push @htmls, qq[$html</td></FORM>\n]; 
+        push @htmls, qq[$html</td></FORM>\n];
 
                                 # Do the states_log entry
         if ($main::config_parms{'html_category_states' . $Http{format}}) {
@@ -2025,8 +2028,8 @@ sub html_command_table {
 
                                 # Create final html
     $html = "<BASE TARGET='" . $config_parms{'html_target_speech' . $Http{format}}. "'>\n";
-    $html = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] . 
-            qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] . 
+    $html = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] .
+            qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] .
                 $html if $html_info_overlib;
 
     if ($Http{'User-Agent'} =~ /^MS/ and $Cookies{msagent} and $main::config_parms{'html_msagent_script_vr' . $Http{format}}) {
@@ -2045,10 +2048,22 @@ sub html_command_table {
     return  $html . &table_it($cols, $main::config_parms{'html_category_border' . $Http{format}}, $main::config_parms{'html_category_cellsp' . $Http{format}},  @htmls);
 }
 
+                                # Return html for 1 item
+sub html_item {
+    my ($name) = @_;
+    my $object = &get_object_by_name($name);
+    if (UNIVERSAL::isa($object, 'Voice_Cmd')) {
+        return &html_command_table($name);
+    }
+    else {
+        return &table_it(1, 1, 0, &html_item_state($object, $name));
+    }
+}
+
                                 # List current object state
 sub html_item_state {
     my ($object, $object_type) = @_;
-    
+
     my $object_name  = $object->{object_name};
     my $object_name2 = &pretty_object_name($object_name);
     my $isa_X10 = UNIVERSAL::isa($object, 'X10_Item');
@@ -2081,12 +2096,12 @@ sub html_item_state {
 
                                 # Find icon to show state, if not found show state_now in text.
                                 #  - icon is also used to show state log
-    $html .= qq[<td align="right"><a href='SET;&html_state_log($object_name)' target=\'] . 
+    $html .= qq[<td align="right"><a href='SET;&html_state_log($object_name)' target=\'] .
              $config_parms{'html_target_speech' . $Http{format}}. "'>";
 
     if (my $h_icon = &html_find_icon_image($object, $object_type)) {
         $html .= qq[<img src="$h_icon" alt="$object_name" border="0"></a>];
-    } 
+    }
     elsif ($state_now) {
 	my $temp = $state_now;
 	$temp = substr($temp, 0, 8) . '..' if length $temp > 8;
@@ -2119,7 +2134,7 @@ sub html_item_state {
         }
         $html .= qq[</SELECT>\n];
     }
-     
+
     if (@states) {
                                 # Find toggle state
         my $state_toggle;
@@ -2131,7 +2146,7 @@ sub html_item_state {
         elsif ($state_now eq OFF or grep $_ eq ON, @states) {
             $state_toggle = ON;
         }
-    
+
         if ($state_toggle) {
                                 # Some browsers (e.g. Audrey) do not have full url in Referer :(
             my $referer = ($Http{Referer} =~ /html$/) ? 'referer' : "&html_list($object_type)";
@@ -2184,12 +2199,12 @@ sub html_info {
 sub html_active_href {
     my($url, $text) = @_;
     return qq[<a href=$url>$text</a>];
-                                # Netscape has problems with this when 
+                                # Netscape has problems with this when
                                 # used with the hide-show javascript in main.shtml / top.html
     return qq[
       <a href=$url>
       <SPAN onMouseOver="this.className='over';"
-      onMouseOut="this.className='out';" 
+      onMouseOut="this.className='out';"
       style="cursor: hand"
       class="blue">$text</SPAN></a>
     ];
@@ -2307,7 +2322,7 @@ sub print_socket_fork_win {
 
                                 # Processes can only inherit Win32 filehandles :(
                                 # We only have 3 available handles (STDOUT,STDIN,STDERR)
-                                # If we use these with parallel processes, they mess up, 
+                                # If we use these with parallel processes, they mess up,
                                 # so make sure we only call this once at a time
         open OLD_HANDLE, ">&STDOUT"  or print "\nsocket_fork error: can not backup STDOUT: $!\n";
         if (my $fileno = $socket->fileno()) {
@@ -2352,7 +2367,7 @@ sub print_socket_fork_unix {
         print $socket $html;
         $socket->close;
                                 # This avoids 'Unexpected async reply' if mh -tk 1
-        &POSIX::_exit(0) 
+        &POSIX::_exit(0)
 #       exit;
     }
     else {
@@ -2380,7 +2395,7 @@ sub print_socket2 {
     }
 }
 
-                                # Use this 
+                                # Use this
                                 #  - /SET;&referer(/ia5/lights/list_items.pl|$object_type)
 sub referer {
     my ($r) = @_;
@@ -2409,7 +2424,7 @@ sub vars_global {
     }
 
     for my $key (sort keys %main::) {
-                                # Assume all the global vars we care about are $Ab... 
+                                # Assume all the global vars we care about are $Ab...
         next if $key !~ /^[A-Z][a-z]/ or $key =~ /\:/;
         next if $key eq 'Save' or $key eq 'Tk_objects'; # Covered elsewhere
         next if $key eq 'Socket_Ports';
@@ -2422,7 +2437,7 @@ sub vars_global {
            next if $value =~ /HASH/; # Skip object pointers
            next if $key eq 'Password';
            push @table_items, "<td align='left'><b>\$$key:</b> $value</td>";
-        } 
+        }
         elsif (defined %{$key}) {
             for my $key2 (sort eval "keys \%$key") {
                 my $value = eval "\$$key\{'$key2'\}\n";
@@ -2532,12 +2547,12 @@ $grammar
    <noinput>
     <audio>$noinput</audio><reprompt/>
    </noinput>
-   <nomatch> 
-    <audio>$nomatch</audio> 
-    <reprompt/> 
-   </nomatch> 
+   <nomatch>
+    <audio>$nomatch</audio>
+    <reprompt/>
+   </nomatch>
    <default>
-    <reprompt/> 
+    <reprompt/>
    </default>
    <help>
     <audio>$parms{help}</audio><reprompt/>
@@ -2572,7 +2587,7 @@ sub widgets {
         $category =~ s/ /_/;
 
         next unless $request_type eq 'search' or
-            (($request_type eq 'all' or $type eq $request_type) and 
+            (($request_type eq 'all' or $type eq $request_type) and
              (!$request_category or $request_category eq $category));
 
         my $search = $request_category if $request_type eq 'search';
@@ -2738,7 +2753,7 @@ sub dir_index {
     opendir DIR, $dir or print "http_server: Could not open dir_index for $dir_html dir=$dir: $!\n";
     my @files = sort readdir DIR;
     close DIR;
-    
+
     @files = grep /$filter/, @files if $filter; # Drop out files if requested
 
     $filter =~ s/\\/\%5C/g;
@@ -2755,7 +2770,7 @@ sub dir_index {
         $type = '' unless $type;
         $type = 'Directory' if -d "$dir/$file";
         $file_data{$file}{type} = $type;
-        
+
 #       $file_data{$file}{type} = '' $1 if $file =~ /(\.[^\.]+)$/;
 #        if ($file =~ /(\.[^\.]+)$/) {
 #            $file_data{$file}{type} = $1;
@@ -2812,6 +2827,7 @@ eof
 }
 
 
+
 return 1;           # Make require happy
 
 # Example on updateing 2 frames at once
@@ -2839,6 +2855,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.92  2004/09/25 20:01:19  winter
+# *** empty log message ***
+#
 # Revision 1.91  2004/07/05 23:36:37  winter
 # *** empty log message ***
 #

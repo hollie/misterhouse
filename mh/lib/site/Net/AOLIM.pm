@@ -220,10 +220,10 @@ values are optional):
     'login_port' => login port (default 5198)
     'login_timeout' => timeout in seconds to wait for a response to the
                        toc_signon packet.  Default is 0 (infinite)
-    'aim_agent' => agentname (max 200 char) 
+    'aim_agent' => agentname (max 200 char)
                 Default is AOLIM:$Version VERSION$
-                There have been some reports that changing this 
-                may cause TOC servers to stop responding to signon 
+                There have been some reports that changing this
+                may cause TOC servers to stop responding to signon
                 requests
 
 callback is the callback function that handles incoming data from the
@@ -246,7 +246,7 @@ Returns a blessed instantiation of Net::AOLIM.
 sub new
 {
     my $whatami = shift @_;
-    
+
     while ($key = shift @_)
     {
 	if ($var = shift @_)
@@ -254,13 +254,13 @@ sub new
 	    $args{$key} = $var;
 	}
     }
-    
+
     unless ((defined $args{'username'}) && (defined $args{'password'}) && (defined $args{'callback'}))
     {
 	$main::IM_ERR = $SFLAP_ERR_ARGS;
 	return undef;
     }
-		
+
     ($args{'allow_srv_settings'} = 1) unless (defined $args{'allow_srv_settings'});
     $args{'server'} ||= 'toc.oscar.aol.com';
     $args{'port'} ||= 1234;
@@ -335,7 +335,7 @@ sub signon
 #
 # takes no arguments
 #
-# returns 0 on success, undef on failure.  If failure, 
+# returns 0 on success, undef on failure.  If failure,
 # check $main::IM_ERR for reason.
 #
     my $imsg = $_[0];
@@ -351,6 +351,8 @@ sub signon
 	    or print "Couldn't connect to server: $!";
 #	    or die "Couldn't connect to server: $!";
 
+	    return undef unless defined($$im_socket);
+
         $$im_socket->autoflush(1);
 
 # add this filehandle to the select loop that we will later use
@@ -365,7 +367,7 @@ sub signon
         my $so_toc_srv_config_msg;
         my $so_toc_srv_config_rest;
 	my $so_init_done;
-	
+
 # send a FLAPON to initiate the connection; this is the only time
 # that stuff should be printed directly to the server without
 # using send_sflap_packet
@@ -374,18 +376,18 @@ sub signon
 	return undef unless (defined ($so_srv_sflap_signon = $imsg->read_sflap_packet()));
 
 	$ulen = length $imsg->{'unamenorm'};
-	
+
 	$so_sflap_signon = pack "Nnna".$ulen, 1, 1, $ulen, $imsg->{'unamenorm'};
-	
-	
+
+
 	return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_SIGNON, $so_sflap_signon, 1, 1)));
-	
+
 	$so_toc_ascii = $imsg->toc_format_login_msg('toc_signon',$imsg->{'login_server'},$imsg->{'login_port'},$imsg->{'unamenorm'},$imsg->{'roastedp'},'english',$imsg->{'aim_agent'});
-	
+
 	return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $so_toc_ascii, 0, 0)));
-	
+
 	my @ready = $imsg->{'sel'}->can_read($imsg->{'login_timeout'});
-	
+
 	if (scalar(@ready) > 0)
 	{
 	    return undef unless (defined ($so_toc_srv_so = $imsg->read_sflap_packet()));
@@ -395,7 +397,7 @@ sub signon
 	    $main::IM_ERR = 6;
 	    return undef;
 	}
-	
+
 	unless ($so_toc_srv_so =~  /SIGN_ON/)
 	{
 # we didn't sign on successfully
@@ -412,7 +414,7 @@ sub signon
 	    return undef;
 	}
     }
-    
+
 # we can't possibly be paused at this point; make sure $imsg->{'pause'} = 0
     $imsg->{'pause'} = 0;
 
@@ -421,8 +423,8 @@ sub signon
 
 # now we finish the signon with an init_done
     $so_init_done = $imsg->toc_format_msg('toc_init_done');
-    
-    
+
+
     return undef unless (defined $imsg->send_sflap_packet($SFLAP_TYPE_DATA, $so_init_done, 0, 0));
 
     return $SFLAP_SUCCESS;
@@ -497,7 +499,7 @@ sub read_sflap_packet
 	return $rsp_decoded;
     }
 
-# if we fall through to here, something's wrong; return an 
+# if we fall through to here, something's wrong; return an
 # unknown error
     $main::IM_ERR = $SFLAP_ERR_UNKNOWN;
     return undef;
@@ -507,11 +509,11 @@ sub read_sflap_packet
 
 =head2 $aim->send_sflap_packet($type, $data, $formatted, $noterm)
 
-This method sends an SFLAP packet to the server.  
+This method sends an SFLAP packet to the server.
 
 C<$type> is one of the SFLAP types (see B<TOC(7)>).
 
-C<$data> is the payload to send.  
+C<$data> is the payload to send.
 
 If C<$formatted> evaluates to true, the data is assumed to be the
 completely formed payload of the SFLAP packet; otherwise, the payload
@@ -571,7 +573,7 @@ sub send_sflap_packet
     my ($ssp_header, $ssp_data, $ssp_packet, $ssp_datalen);
 
     if ($already_formatted)
-    {	
+    {
 # we don't have to modify the data
 	$ssp_data = $sflap_data;
 	$ssp_datalen = length $sflap_data;
@@ -587,7 +589,7 @@ sub send_sflap_packet
 	$sflap_data =~ s/\0*$//;
 	$sflap_data .= "\0";
         }
-	
+
 # now we calculate the length and make the packet
 	$ssp_datalen = length $sflap_data;
 	$ssp_data = pack "a".$ssp_datalen, $sflap_data;
@@ -649,7 +651,7 @@ sub srv_socket
 ########################################################
 # MISCELLANEOUS FUNCTIONS
 # these serve important functions, but
-# are not directly accessed by the user 
+# are not directly accessed by the user
 # of the Net::AOLIM package
 ########################################################
 
@@ -674,7 +676,7 @@ sub pw_roast
 {
 #
 # this takes one argument, the
-# password, and returns the roasted 
+# password, and returns the roasted
 # string
 #
     my $imsg = shift @_;
@@ -690,7 +692,7 @@ sub pw_roast
 	$main::IM_ERR = $SFLAP_ERR_ARGS;
 	return undef;
     }
-    
+
     for ($i = 0; $i < $pr_len; $i++)
     {
 	my $bit1 = substr $pr_password_bits, $i, 1;
@@ -770,7 +772,7 @@ sub toc_format_msg
     my $toc_command = shift @_;
     my $escaped;
     my $finalmsg;
-    
+
     unless (defined $toc_command)
     {
 	$main::IM_ERR = $SFLAP_ERR_ARGS;
@@ -792,7 +794,7 @@ sub toc_format_msg
     }
 
     $finalmsg = $toc_command . $finalmsg;
-    
+
     return $finalmsg;
 }
 
@@ -826,7 +828,7 @@ sub toc_format_login_msg
     my $useragentstr = pop @_;
     my $escaped;
     my $finalmsg;
-    
+
     unless (defined $toc_command)
     {
 	$main::IM_ERR = $SFLAP_ERR_ARGS;
@@ -850,7 +852,7 @@ sub toc_format_login_msg
     $useragentstr =~ s/([\$\{\}\[\]\(\)\"\\\'])/\\$1/g;
 
     $finalmsg = $toc_command . $finalmsg . ' "' . $useragentstr . '"';
-    
+
     return $finalmsg;
 }
 
@@ -903,7 +905,7 @@ sub toc_send_im
 	$tsi_full_msg .= " auto";
     }
 
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tsi_full_msg, 0, 0)));
 
     return $TOC_SUCCESS;
@@ -934,14 +936,14 @@ sub add_buddies
 # the first argument is the name of
 # the group that the names after it will
 # be added to.
-# 
+#
 # each arg is taken to be a buddy
 # in the user's buddy list which is
 # sent during signon.
 #
     my $imsg = shift @_;
     my $ib_group = shift @_;
-    
+
     unless ((defined $ib_group) && (defined $_[0]))
     {
 	$main::IM_ERR = $SFLAP_ERR_ARGS;
@@ -949,7 +951,7 @@ sub add_buddies
     }
 
     ($ { $imsg->{'buddies'} }{$ib_group} = []) unless (scalar @{$ { $imsg->{'buddies'} }{$ib_group}});
-    
+
     my @norm_buddies;
 
     foreach $buddy (@_)
@@ -996,10 +998,10 @@ sub remove_buddies
     foreach $group (keys %{$imsg->{'buddies'}})
     {
 	my %temp;
-	
+
 	map {$temp{$_} = 1;} @ { $ { $imsg->{'buddies'} } {$group} };
 	map {delete $temp{$_};} @norm_buddies;
-	
+
 	@ { $ { $imsg->{'buddies'} } {$group} } = keys %temp;
 
 	unless (scalar @ { $ { $imsg->{'buddies'} } {$group} })
@@ -1027,10 +1029,10 @@ sub add_online_buddies
 # takes at least two arguments
 #
 # this should be called only after signon
-# adds all arguments after the firist as buddies 
+# adds all arguments after the firist as buddies
 # to the buddy list.  the first argument is
 # the name of the group in which to add them
-# 
+#
 # if you want to add people to your initial buddy
 # list, us im_buddies()
 #
@@ -1060,19 +1062,19 @@ sub remove_online_buddies
 # takes at least one argument
 #
 # this should be called only after signon
-# removes all arguments from the buddy list.  
+# removes all arguments from the buddy list.
 #
 # returns undef on error
 #
     my $imsg = shift @_;
-    
+
     return undef unless (defined $imsg->remove_buddies(@_));
 
     my $rob_message = $imsg->toc_format_msg('toc_remove_buddy', @_);
 
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $rob_message, 0, 0)));
-    
+
     if ($imsg->{'allow_srv_settings'})
     {
 	$imsg->toc_set_config();
@@ -1084,12 +1086,12 @@ sub set_srv_buddies
 #
 # adds buddies in our list from the server
 #
-# takes one argument, the CONFIG string from the 
+# takes one argument, the CONFIG string from the
 # server
 #
     my $imsg = shift @_;
     my $srv_buddy_list = $_[0];
-    
+
     return unless ($imsg->{'allow_srv_settings'});
 
     $srv_buddy_list =~ s/^CONFIG://;
@@ -1149,7 +1151,7 @@ sub current_buddies
 # takes one argument, a pointer to a hash that should
 # be filled with the current users such that each hash
 # key is a buddy group and the corresponding value is a
-# list of buddies in that group.  Thus, 
+# list of buddies in that group.  Thus,
 #
 # @{$hash{"foo"}}
 #
@@ -1183,7 +1185,7 @@ sub current_permits
 # returns a list of the people currently on the "permit" list
 #
     my $imsg = shift @_;
-    
+
     return @ {$imsg->{'permit'}};
 }
 
@@ -1203,14 +1205,14 @@ sub current_denies
 # returns a list of the people currently on the "deny" list
 #
     my $imsg = shift @_;
-    
+
     return @ {$imsg->{'deny'}};
 }
 
 #*********************************************************
 # ACCESS PERMISSION OPTIONS
 #
-# these functions affect the users that are permitted to 
+# these functions affect the users that are permitted to
 # see you; interfaces are provided for both online and
 # offline specification of permissions
 
@@ -1340,11 +1342,11 @@ sub add_im_permit
 #
 # this should only be called after signon is completed
 # if you want to do permit before then, use im_permit
-# 
+#
     my $imsg = shift @_;
 
     return undef unless (defined $imsg->im_permit(@_));
-    
+
     $imsg->toc_set_config();
 }
 
@@ -1370,11 +1372,11 @@ sub add_im_deny
 #
 # this should be called after signon is completed
 # if you want to do deny before then, use im_deny
-# 
+#
     my $imsg = shift @_;
 
     return undef unless (defined $imsg->im_deny(@_));
-    
+
     $imsg->toc_set_config();
 }
 
@@ -1447,12 +1449,12 @@ sub add_im_deny_all
 # im_deny_all
 #
     my $imsg = shift @_;
-    
+
     $imsg->im_deny_all;
 
     my $aida_message = $imsg->toc_format_msg('toc_add_permit');
 
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $aida_message, 0, 0)));
 
     if ($imsg->{'allow_srv_settings'})
@@ -1485,10 +1487,10 @@ sub add_im_permit_all
     my $imsg = shift @_;
 
     $imsg->im_permit_all;
-    
+
     my $aipa_message = $imsg->toc_format_msg('toc_add_deny');
 
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $aipa_message, 0, 0)));
 
     if ($imsg->{'allow_srv_settings'})
@@ -1507,7 +1509,7 @@ sub toc_set_config
 # to session by the server
 #
 # this is called at signon and
-# after each call to add_im_buddies 
+# after each call to add_im_buddies
 # or remove_im_buddies
 #
 # In V1.6, this function was modified so that
@@ -1519,7 +1521,7 @@ sub toc_set_config
 # returns undef on error
 #
     my $imsg = shift @_;
-    
+
     my $tsc_config_info;
     my $tsc_packet;
     my $tsc_permit_mode = $imsg->{'permit_mode'};
@@ -1531,11 +1533,11 @@ sub toc_set_config
             my $aob_message = $imsg->toc_format_msg('toc_add_buddy', $group, @ { $ { $imsg->{'buddies'} } {$group} });
 
             return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $aob_message, 0, 0)));
-            
+
             if ($imsg->{'allow_srv_settings'})
             {
                 $tsc_config_info .= "g $group\n";
-                
+
                 foreach $buddy (@ { $ { $imsg->{'buddies'} } {$group} })
                 {
                     $tsc_config_info .= "b $buddy\n";
@@ -1548,13 +1550,13 @@ sub toc_set_config
         my $aob_message = $imsg->toc_format_msg('toc_add_buddy', 'Me', $imsg->{'username'});
         return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $aob_message, 0, 0)));
     }
-        
+
     if (scalar @ { $imsg->{'permit'} })
     {
 	my $aip_message = $imsg->toc_format_msg('toc_add_permit', @ { $imsg->{'permit'} });
-	
+
 	return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $aip_message, 0, 0)));
-	
+
 	if ($imsg->{'allow_srv_settings'})
 	{
 	    foreach $permit (@ { $imsg->{'permit'} })
@@ -1567,10 +1569,10 @@ sub toc_set_config
     if (scalar @ { $imsg->{'deny'} })
     {
 	my $aid_message = $imsg->toc_format_msg('toc_add_deny', @_);
-	
-	
+
+
 	return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $aid_message, 0, 0,)));
-	
+
 	if ($imsg->{'allow_srv_settings'})
 	{
 	    foreach $deny (@ { $imsg->{'deny'} })
@@ -1586,7 +1588,7 @@ sub toc_set_config
         $tsc_config_info = "{" . $tsc_config_info . "}";
 
 	$tsc_packet = 'toc_set_config ' . $tsc_config_info . "\0";
-	
+
 	return undef unless (defined $imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tsc_packet, 1, 1));
     }
 }
@@ -1625,7 +1627,7 @@ sub toc_evil
 
     my $te_evil_msg = $imsg->toc_format_msg('toc_evil', $imsg->norm_uname($te_user), $te_anon);
 
-    
+
     return undef unless (defined $imsg->send_sflap_packet($SFLAP_TYPE_DATA, $te_evil_msg, 0, 0));
 }
 
@@ -1651,7 +1653,7 @@ sub toc_chat_join
 #
 # returns undef on error
 #
-# this function does not get the chat room ID; 
+# this function does not get the chat room ID;
 # that is handled when the server sends back the
 # CHAT_JOIN packet, and we have a handler for that
 # in the incoming handler
@@ -1671,8 +1673,8 @@ sub toc_chat_join
 
     my $tcj_message = $imsg->toc_format_msg('toc_chat_join', $tcj_exchange, $tcj_room_name);
 
-    
-    
+
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tcj_message, 0, 0)));
 }
 
@@ -1714,7 +1716,7 @@ sub toc_chat_send
 
     my $tcs_message = $imsg->toc_format_msg('toc_chat_send', $tcs_roomid, $tcs_msgtext);
 
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tcs_message, 0, 0)));
 }
 
@@ -1755,8 +1757,8 @@ sub toc_chat_whisper
     }
 
     my $tcw_message = $imsg->toc_format_msg('toc_chat_whisper', $tcw_roomid, $imsg->norm_uname($tcw_dstuser), $tcw_msgtext);
-    
-    
+
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tcs_message, 0, 0)));
 }
 
@@ -1797,8 +1799,8 @@ sub toc_chat_evil
     }
 
     my $tce_message = $imsg->toc_format_msg('toc_chat_evil', $tce_roomid, $imsg->norm_uname($tce_dstuser), $tce_anon);
-    
-    
+
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tce_message, 0, 0)));
 }
 
@@ -1841,7 +1843,7 @@ sub toc_chat_invite
 
     my $tci_message = $imsg->toc_format_msg('toc_chat_invite', $tci_roomid, $tci_msgtext, @tci_buddies);
 
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tci_message, 0, 0)));
 }
 
@@ -1872,7 +1874,7 @@ sub toc_chat_leave
 
     my $tcl_message = $imsg->toc_format_msg('toc_chat_leave', $tcl_roomid);
 
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tcl_message, 0, 0)));
 }
 
@@ -1905,7 +1907,7 @@ sub toc_chat_accept
     }
 
     my $tcl_message = $imsg->toc_format_msg('toc_chat_accept', $tca_roomid);
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tcl_message, 0, 0)));
 }
 
@@ -1937,7 +1939,7 @@ sub toc_get_info
     }
 
     my $tgi_message = $imsg->toc_format_msg('toc_get_info', $tgi_username);
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tgi_message, 0, 0)));
 }
 
@@ -1969,7 +1971,7 @@ sub toc_set_info
     }
 
     my $tsi_message = $imsg->toc_format_msg('toc_set_info', $tsi_info);
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tsi_message, 0, 0)));
 }
 
@@ -1993,7 +1995,7 @@ sub toc_set_away
     my $tsa_awaymsg = $_[0];
 
     my $tsa_message = $imsg->toc_format_msg('toc_set_away', $tsa_awaymsg);
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tsa_message, 0, 0)));
 }
 
@@ -2023,7 +2025,7 @@ sub toc_get_dir
     }
 
     my $tgd_message = $imsg->toc_format_msg('toc_get_dir', $imsg->norm_uname($tgd_username));
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tgd_message, 0, 0)));
 }
 
@@ -2055,7 +2057,7 @@ sub toc_set_dir
     }
 
     my $tsd_message = $imsg->toc_format_msg('toc_set_dir', $tsd_userinfo);
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tsd_message, 0, 0)));
 }
 
@@ -2086,7 +2088,7 @@ sub toc_dir_search
     }
 
     my $tds_message = $imsg->toc_format_msg('toc_dir_search', $tds_searchstr);
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tds_message, 0, 0)));
 }
 
@@ -2122,7 +2124,7 @@ sub toc_set_idle
     }
 
     my $tsi_message = $imsg->toc_format_msg('toc_set_idle', $tsi_seconds);
-    
+
     return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $tsi_message, 0, 0)));
 }
 
@@ -2131,7 +2133,7 @@ sub toc_set_idle
 #
 # these functions have to do with checking whether input
 # is ready and allowing the user to request that we block
-# on the filehandles that we have in our select loop 
+# on the filehandles that we have in our select loop
 # (including user-added filehandles) until something happens
 #*****************************************************
 
@@ -2206,7 +2208,7 @@ sub ui_del_fh
 	$main::IM_ERR = $SFLAP_ERR_ARGS;
 	return undef;
     }
-	
+
     $imsg->{'sel'}->remove($fh);
     delete $ { $imsg->{'callbacks'} }{$fh};
 }
@@ -2247,7 +2249,7 @@ sub ui_exists_fh
 #
 # takes one argument
 #
-# filehandle : the filehandle to check for existence in 
+# filehandle : the filehandle to check for existence in
 #              the select loop
 #
 # returns a true value if filehandle is in the loop, and
@@ -2386,7 +2388,7 @@ sub ui_dataget
 	{
             return undef unless defined($recv_buffer = $imsg->read_sflap_packet());
 	    ($tp_type, $tp_tmp) = split(/:/, $recv_buffer, 2);
-            
+
 # pause if we've been told to by the server
             if ($tp_type eq 'PAUSE')
             {
@@ -2403,7 +2405,7 @@ sub ui_dataget
             {
                 $imsg->set_srv_buddies($tp_tmp);
             }
-            
+
             &{$imsg->{'callback'}}($tp_type, split(/:/,$tp_tmp,$SERVER_MSG_ARGS{$tp_type}));
 	}
 	else
@@ -2501,7 +2503,7 @@ this class.
 =head1 FILES
 
 F<example.pl>
-    
+
     A sample client that demonstrates how this object could be used.
 
 =head1 SEE ALSO
@@ -2526,7 +2528,7 @@ B<0.1>
 
 B<0.11>
 
-    Re-release under a different name with minor changes to the 
+    Re-release under a different name with minor changes to the
     documentation. (7/16/00)
 
 B<0.12>
@@ -2561,7 +2563,7 @@ B<1.3>
     off-by-one error in a for() test.  Thanks to Bruce Winter for
     pointing this out.
 
-B<1.4> 
+B<1.4>
 
     Changed the way that Net::AOLIM sends the login command string
     because AOL apparently changed their server software, breaking the

@@ -1,6 +1,6 @@
 # Category=Internet
 
-#@ This code will periodically scan and announce when you 
+#@ This code will periodically scan and announce when you
 #@ receive new email. This code also has some test examples for sending email.
 
 #@ Point to your accounts with mh.ini net_mail_account* parms.
@@ -17,7 +17,7 @@ $v_send_email_test-> set_info('Send commands to test remote email commands');
 if ($state = said $v_send_email_test) {
     if (&net_connect_check) {
                                 # Use to => 'user@xyz.com', or default to your own address (from net_mail_account_address in mh.ini)
-        &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date", 
+        &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date",
 #                      to => 'bruce@misterhouse.net ; winter@chartermi.net',
                        debug => 1) if $state == 1;
 
@@ -81,14 +81,16 @@ $p_get_email = new Process_Item;
 $v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a second and I will check for new email');
 $v_recent_email-> set_info('Download and summarize new email headers');
 if (said $v_recent_email or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
-                             new_minute $config_parms{net_mail_scan_interval} and &net_connect_check)) { 
+                             new_minute $config_parms{net_mail_scan_interval} and &net_connect_check)) {
     set $p_get_email 'get_email -quiet';
     set $p_get_email 'get_email -debug' if $Debug{email};
     start $p_get_email;
 }
 
 $email_flag = new Generic_Item;
-&tk_mlabel($email_flag, 'email flag');
+
+#tk_mlabel($email_flag, 'email flag');   ... this quit working in 2.88.  Tk does not liek the Generic_Item Tie update
+&tk_mlabel(\$Save{email_flag}, 'email flag');
 
 my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
 if ($p_get_email->{done_now}) {
@@ -142,7 +144,7 @@ sub speak_unread_mail {
     speak "app=email $text" if $text;
 }
 
-                                # Allow for email send commands, IF the secret command code matches 
+                                # Allow for email send commands, IF the secret command code matches
                                 #  - someday we need to allow for better, more secure mail commands
 sub scan_subjects {
     my ($file) = @_;
@@ -187,4 +189,3 @@ sub scan_subjects {
     }
 #   unlink $file;
 }
-

@@ -89,6 +89,8 @@ Usage Details:
       unpause(): Unpauses the player
       pause(): Pauses the player
       pause_toggle(): Pauses or unpauses the player
+      forward(seconds): Jumps forward the specified number of seconds.
+      rewind(seconds): Jumps back the specified number of seconds.
       is_paused(): Returns current paused status
       next_song(): Jump to the next song in the playlist
       previous_song(): Return to the previous song in the playlist
@@ -102,6 +104,7 @@ Usage Details:
          the current MP3.
       get_artist(): Returns the current artist name (only if ID3 tags are set to be
          read in your alsaplayer config and the MP3 has ID3 tags).
+      get_path(): Returns the filename of the song currently being played.
       get_playlist_length(): Returns number of songs in playlist.
       is_busy(): Returns true if one or more commands are waiting to be
          executed OR if songs are waiting to be added to the playlist.
@@ -272,6 +275,8 @@ sub _get_status {
             }
          } elsif ($key eq 'speed') {
             $sessions[$id]->{'speed'} = $val if $sessions[$id];
+         } elsif ($key eq 'path') {
+            $sessions[$id]->{'path'} = $val if $sessions[$id];
          } elsif ($key eq 'artist') {
             $sessions[$id]->{'artist'} = $val if $sessions[$id];
          } elsif ($key eq 'playlist_length') {
@@ -371,6 +376,7 @@ sub clear {
    my ($self) = @_;
    $self->remove_all_playlists();
    $self->_queue_cmd('clear');
+   $$self{'replace'} = 1;
    %{$$self{'playlist'}} = ();
    @{$$self{'pending_playlist'}} = ();
    &::print_log("AlsaPlayer($$self{session_name}): clear()") if $main::Debug{alsaplayer};
@@ -661,6 +667,24 @@ sub previous_song {
    $self->_queue_cmd('prev');
 }
 
+sub forward {
+   my ($self, $seconds) = @_;
+   if ($seconds > 0) {
+      $self->_queue_cmd('relative', $seconds);
+   } else {
+      &::print_log("AlsaPlayer($$_{session_name}): forward($seconds): Invalid parameter");
+   }
+}
+
+sub rewind {
+   my ($self, $seconds) = @_;
+   if ($seconds > 0) {
+      $self->_queue_cmd('relative', -$seconds);
+   } else {
+      &::print_log("AlsaPlayer($$_{session_name}): rewind($seconds): Invalid parameter");
+   }
+}
+
 sub stop {
    my ($self) = @_;
    $self->_queue_cmd('stop');
@@ -736,6 +760,11 @@ sub get_album {
    return $$self{'album'};
 }
 
+sub get_path {
+   my ($self) = @_;
+   return $$self{'path'};
+}
+
 sub get_title {
    my ($self) = @_;
    return $$self{'title'};
@@ -784,7 +813,7 @@ sub start {
    }
    my $opts = $::config_parms{alsaplayer_opts};
    unless ($opts) {
-      $opts = '-q --nosave -i daemon -P';
+      $opts = '-r -q --nosave -i daemon -P';
    }
    my $channel = '';
    if ($$self{'channel'}) {

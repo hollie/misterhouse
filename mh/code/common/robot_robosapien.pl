@@ -2,9 +2,12 @@
 # Category = Entertainment
 
 #@ This code creates commands for controling the $100 RoboSapien Robot:
-#@ <a href=http://www.robosapienonline.com>robosapienonline.com</a>.  
+#@ <a href=http://www.robosapienonline.com>robosapienonline.com</a>.
 #@ Currently setup to send IR signals via xAP (e.g. mh -> xAP -> xAP RedRat connector -> USB RedRat3 -> RoboSapien)
 #@ RedRat3 IR codes for the RoboSapien are available at <a href=http://www.redrat.co.uk/IR_Data.aspx>redrat.co.uk</a>.
+#@ Pictures and a movie of a hack to give it an external sound and power source
+#@ can be found at <a href=http://misterhouse.net/public/robot/>misterhouse.net/public/robot/</a>.
+
 
 $robot = new IR_Item 'Robosapien', undef, 'xAP';
 
@@ -18,7 +21,7 @@ my %robot_cmds1 = (
               LeftHandStrike1  => 3.5, LeftHandStrike2  => 4.0, LeftHandStrike3  => 3.5},
      lean => {TiltBodyRight    => 1.0, TiltBodyLeft     => 1.0, LeanBackward     => 1.0, LeanForward    => 1.0},
      walk => {WalkForward      => 0.0, WalkBackward     => 0.0, ForwardStep      => 2.0, BackwardStep   => 2.0,
-              Bolldozer        => 6.0, 
+              Bolldozer        => 6.0,
               TurnRight        => 0.0, TurnLeft         => 0.0, RightTurnStep    => 3.5, LeftTurnStep   => 3.5},
      talk => {Burp             => 2.5, High5            => 5.0, Oops             => 4.0,
               Roar             => 3.5, TalkBack         => 5.0, Whistle          => 4.5},
@@ -141,7 +144,7 @@ $xap_monitor_robot = new xAP_Item;
 if ($state = state_now $xap_monitor_robot) {
     my $class   = $$xap_monitor_robot{'xap-header'}{class};
     print "  - robot xap monitor: lc=$Loop_Count class=$class state=$state\n" if $Debug{robot} == 1;
-    
+
     if ($class eq 'xap-osd.display') {
         set $robot 'RightArmDown~1~RightArmUp';
     }
@@ -179,11 +182,9 @@ if (expired $robot_timer3) {
 
 if ($New_Msecond_250 and $robot_speaking_flag) {
     print '.';
-    unless (&Voice_Text::is_speaking()) {
+    if (!&Voice_Text::is_speaking() or $robot_speaking_flag++ > 120) {
         print "*\n";
         $robot_speaking_flag = 0;
         stop $robot_timer3;
     }
 }
-
-

@@ -22,17 +22,17 @@ sub init {
 #        my $Mac_voice = $Mac::Speech::Voice{$voice};
 #        $VTxt_mac = NewSpeechChannel($Mac_voice); # Need a default voice here?
 #    }
-    
+
     if (($main::config_parms{voice_text} =~ /festival/i or $engine and $engine eq 'festival') and
         $main::config_parms{festival_host}) {
         my $festival_address = "$main::config_parms{festival_host}:$main::config_parms{festival_port}";
         print "Creating festival TTS socket on $festival_address\n";
         $VTxt_festival = new  Socket_Item(undef, undef, $festival_address, 'festival', 'tcp', 'raw');
     }
-    
+
     if ($main::config_parms{voice_text} =~ /ms/i and $main::OS_win) {
         print "Creating MS TTS object for voice_text=$main::config_parms{voice_text} ...\n";
-        
+
                                 # Test and default to the new SDK 5 SAPI
         $VTxt_version = lc $main::config_parms{voice_text};
         unless ($VTxt_version eq 'msv4') {
@@ -65,20 +65,20 @@ sub init {
 
                                 # Create an object for to_file calls
                 $VTxt_stream1 = Win32::OLE->new('Sapi.SpVoice');
-               
+
             }
             else {
                 $VTxt_version = 'msv4';
             }
         }
-            
+
         if ($VTxt_version eq 'msv4') {
             $VTxt[0] = Win32::OLE->new('Speech.VoiceText');
             unless ($VTxt[0]) {
                 print "\n\nError, could not create ms Speech TTS object.  ", Win32::OLE->LastError(), "\n\n";
                 return;
             }
-        
+
 #           print "Registering the MS TTS object\n";
             $VTxt[0]->Register("Local PC", "perl voice_text.pm");
 #           $VTxt[0]->{Enabled} = 1;
@@ -91,8 +91,10 @@ sub init {
 sub speak_text {
     my(%parms) = @_;
 
+    return if lc $parms{voice} eq 'none';
+
     if ($parms{address}) {
-        my @address = split ',', $parms{address}; 
+        my @address = split ',', $parms{address};
         delete $parms{address};
         $parms{to_file} = "$main::config_parms{html_dir}/cache/speak_address.$main::Second.wav";
 
@@ -116,7 +118,7 @@ sub speak_text {
         $vtxt_card = $VTxt[$card];
     }
 
-    
+
                                 # Use this as a rough guess if other methods fail
 				# - Must trigger timer this pass, not next, or http server
 				#   will return before we start!  Hence, call to set_from_last_pass
@@ -132,6 +134,7 @@ sub speak_text {
     $speak_pgm = $1                                     if $speak_engine =~ /program (\S+)/;
     $speak_pgm = $main::config_parms{voice_text_flite}  if $speak_engine eq 'flite';
     $speak_pgm = $main::config_parms{voice_text_theta}  if $speak_engine eq 'theta';
+    $speak_pgm = $main::config_parms{voice_text_swift}  if $speak_engine eq 'swift';
     $speak_pgm = "$^X $main::Pgm_Path/vv_tts.pl"        if $speak_engine =~ /vv_tts/i;
     $speak_pgm = "$^X $main::Pgm_Path/vv_tts_simple.pl" if $speak_engine =~ /viavoice/i;
 
@@ -157,7 +160,7 @@ sub speak_text {
         my %voice_table = (male => 1, female => 2, child => 3, elder_female => 7, elder_male => 8);
         $parms{voice} = $voice_table{lc $parms{voice}} if $voice_table{lc $parms{voice}};
     }
-    elsif ($speak_engine =~ /theta/i) {
+    elsif ($speak_engine =~ /(theta|swift)/i) {
         $parms{voice} = $voice_names{lc $parms{voice}} if $voice_names{lc $parms{voice}};
     }
 
@@ -195,7 +198,7 @@ sub speak_text {
 
                                 # Drop XML speech tags unless supported
     $parms{text} =~ s/<\/?voice.*?>//g unless ($VTxt_version and $VTxt_version eq 'msv5') or $speak_engine =~ /naturalvoice/i;
-    
+
     return unless $parms{text} or $parms{play};
 
     if ($speak_engine =~ /^&/) {
@@ -218,7 +221,7 @@ sub speak_text {
 				# Clear out buffer, so is_speaking works
         $main::Socket_Ports{festival}{data_record} = '';
         $main::Socket_Ports{festival}{data}        = '';
-    
+
         if ($parms{to_file}) {
                                        # Change from relative to absolute path
             $parms{to_file} = "$main::Pgm_Path/$1" if $parms{to_file} =~ /^\.\/(.+)/;
@@ -249,8 +252,8 @@ sub speak_text {
             select undef, undef, undef, .2; # Need this ?
         }
 		 # Check for sable requests.  Server does not do sable
-        elsif (!$VTxt_festival and 
-	       ($parms{voice} or $parms{volume} or 
+        elsif (!$VTxt_festival and
+	       ($parms{voice} or $parms{volume} or
 		$parms{rate} or  $parms{text} =~ /<sable>i/)) {
             my $text = $parms{text};
             unless ($text =~ /<sable>i/) {
@@ -289,7 +292,7 @@ sub speak_text {
 #       $SIG{CHLD}  = "IGNORE";                   # eliminate zombies created by FORK() ... we do this in bin/mh
         if ($fork and $pid) {
             $VTxt_pid = $pid;
-        } elsif (!$fork or defined $pid) { 
+        } elsif (!$fork or defined $pid) {
                                 # Or else browser will wait for child to finish speaking
             &::socket_close('http') if $main::Socket_Ports{http}{socka};
             my $speak_pgm_arg = '';
@@ -364,7 +367,7 @@ sub speak_text {
 # Use either of these ... use_stdin has problems with mh -tk 1
                 $parms{text} =~ s/\"/\'/g;   # Leave ' for use in I've etc
                 $speak_pgm   = qq[echo "$parms{text}" | $speak_pgm];
-#               $speak_pgm_use_stdin = 1;    
+#               $speak_pgm_use_stdin = 1;
 
                 $speak_pgm .= " > /dev/null" unless $main::Debug{voice} and $main::Debug{voice} > 1;
             }
@@ -387,11 +390,16 @@ sub speak_text {
                     $speak_pgm_arg .= qq[ -e 'set $parms{volume_reset}'];
                 }
             }
-            elsif ($speak_engine =~ /theta/i) {
-	    
+            elsif ($speak_engine =~ /(theta|swift)/i) {
+
                 $speak_pgm_arg .= " -S $parms{pitch}"   if $parms{pitch};
                 $speak_pgm_arg .= " -r $parms{rate}"    if $parms{rate};
-                $speak_pgm_arg .= ' -N '     . "'$parms{voice}'"  if $parms{voice};
+                if ($speak_engine eq 'theta') {
+                    $speak_pgm_arg .= ' -N '     . "'$parms{voice}'"  if $parms{voice};
+                }
+                else {
+                    $speak_pgm_arg .= ' -n '     . "'$parms{voice}'"  if $parms{voice};
+                }
                 $speak_pgm_arg .= ' -o '   . $parms{to_file}    if $parms{to_file}; # Not working yet??
                 $speak_pgm_arg .= qq[ "$parms{text}"];
             }
@@ -427,7 +435,7 @@ sub speak_text {
         }
     }
     elsif ($vtxt_card) {
-        print "Voice_Text.pm ms_tts: comp=$parms{compression} async=$parms{async} to_file=$parms{to_file} VTxt=$vtxt_card text=$parms{'text'}\n" 
+        print "Voice_Text.pm ms_tts: comp=$parms{compression} async=$parms{async} to_file=$parms{to_file} VTxt=$vtxt_card text=$parms{'text'}\n"
           if $main::Debug{voice};
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
@@ -443,7 +451,7 @@ sub speak_text {
 # SAFTCCITT_uLaw_8kHzMono     = 48 (176k)
 # SAFTADPCM_8kHzMono          = 56 (176k)
 # SAFTGSM610_8kHzMono         = 64 (88k?? ... this is the same as the default)
-# SAFTGSM610_11kHzMono        = 65 (3k .. not useable on CE3 CompaQ IA1) 
+# SAFTGSM610_11kHzMono        = 65 (3k .. not useable on CE3 CompaQ IA1)
 # SAFTGSM610_22kHzMono        = 66 (5k .. not choppy like above 11kHz mode)
 # SAFTGSM610_44kHzMono        = 67 (9k)
                 $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
@@ -568,7 +576,7 @@ sub is_speaking_wav {
     }
 }
 
-                                # This has been moved to mh.  Leave this stub in so 
+                                # This has been moved to mh.  Leave this stub in so
                                 # we don't break old user code
 sub last_spoken {
     my ($how_many) = @_;
@@ -583,7 +591,7 @@ sub list_voices {
 sub list_voice_names {
     return @voice_names;
 }
-    
+
 sub read_parms {
                                 # Read in voice name translation and list of available voices
     &main::read_parm_hash(\%voice_names, $main::config_parms{voice_names});
@@ -594,8 +602,8 @@ sub read_parms {
     my $pronouncable_list_file = $main::config_parms{pronouncable_list_file};
     if ($pronouncable_list_file and ($::Startup or main::file_change($pronouncable_list_file))) {
         my ($phonemes, $word, $cnt);
-        open (WORDS, $pronouncable_list_file) or 
-          print "\nError, could not find the pronouncable word file $pronouncable_list_file: $!\n"; 
+        open (WORDS, $pronouncable_list_file) or
+          print "\nError, could not find the pronouncable word file $pronouncable_list_file: $!\n";
         undef %pronouncable;
         while (<WORDS>) {
             next if /^\#/;
@@ -603,7 +611,7 @@ sub read_parms {
             next unless $word;
             $cnt++;
             $pronouncable{$word} = $phonemes;
-        } 
+        }
         print "Read $cnt entries from $pronouncable_list_file\n";
         close WORDS;
     }
@@ -691,7 +699,7 @@ sub set_volume {
                                 # AT&T docs say range is 0 -> 200, but
                                 # I saw no difference between 100 and 200
 #       $volume *= 2;           # Volume range is 0 -> 200
- 
+
                                # If text is given, set for just this text with XML.  Otherwise change the default
         if ($text) {
             return "<volume level='$volume'/> " . $text;
@@ -808,11 +816,14 @@ sub force_pronounce {
     print "output phrase is '$phrase'\n" if $main::Debug{voice};
     return $phrase;
 }
-    
+
 1;
 
 #
 # $Log$
+# Revision 1.53  2004/09/25 20:01:19  winter
+# *** empty log message ***
+#
 # Revision 1.52  2004/04/25 18:19:58  winter
 # *** empty log message ***
 #

@@ -86,18 +86,6 @@ sub xml {
 
                                 # List widgets
     if ($request{widgets}) {
-        for my $ptr (@Tk_widgets) {
-            my @data = @$ptr;
-            my $category = shift @data;
-            my $type     = shift @data;
-            if ($type eq 'label') {
-                @data = map{$$_} @data;
-            }
-            $xml_widgets .= "<widget>";
-            $xml_widgets .= "<type>$type</type>";
-            $xml_widgets .= "<data>@data</data>";
-            $xml_widgets .= "</widget>\n";
-        }
         $xml .= "<widgets>\n$xml_widgets</widgets>\n";
     }
 
@@ -112,7 +100,7 @@ sub xml {
         for my $key (sort keys %main::) {
                                 # Assume all the global vars we care about are $Ab... 
             next if $key !~ /^[A-Z][a-z]/ or $key =~ /\:/;
-            next if $key eq 'Save' or $key eq 'Tk_objects'; # Covered elsewhere
+            next if $key eq 'Save'; # Covered elsewhere
             next if $key eq 'Socket_Ports';
             no strict 'refs';
             if (defined $$key) {
@@ -150,18 +138,32 @@ Server: MisterHouse
 Content-type: text/xml
 
 <?xml version="1.0" ?>
-
+<?xml-stylesheet type="text/xsl" href="simpletest.xsl"?>
 $xml
 
 eof
 
 }
 
+sub svg_page {
+    my ($svg) = @_;
+    return <<eof;
+HTTP/1.0 200 OK
+Server: Homegrow
+Content-type: image/svg+xml
+
+$svg
+eof
+
+}
 
 return 1;           # Make require happy
 
 #
 # $Log$
+# Revision 1.2  2004/09/25 20:01:20  winter
+# *** empty log message ***
+#
 # Revision 1.1  2001/05/28 21:22:46  winter
 # - 2.52 release
 #

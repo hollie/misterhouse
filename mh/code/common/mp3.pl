@@ -31,7 +31,6 @@ if ('Build' eq said $v_mp3_build_list) {
 
 if (done_now $p_mp3_build_list) {
     speak "mp3 database build is done";
-    print_log "Finished updating mp3 database";
     ($mp3names, %mp3files) = &mp3_playlists;
 }
 
@@ -71,7 +70,7 @@ sub mp3_search {
     $count1 = $count2 = 0;
     for my $i (0 .. @files) {
         $count1++;
-        next unless $files[$i] =~ /\.mp3$/i;
+        next unless $files[$i] =~ /\.(mp3|ogg)$/i;
         if (!$mp3_search or
             $titles[$i]  =~ /$mp3_search/i or
             $artists[$i] =~ /$mp3_search/i or
@@ -85,7 +84,7 @@ sub mp3_search {
             push @results, $i;
         }
     }
-    @results = sort {uc($artists[$a]) cmp uc($artists[$b])} @results;
+    @results = sort {my $c = $artists[$a]; my $d = $artists[$b]; $c =~ s/^the //i; $d =~ s/^the //i; uc($c) cmp uc($d)} @results;
     foreach my $i (@results) {
             my $file = $files[$i];
             $results2 .= "$file\n";
@@ -99,16 +98,17 @@ sub mp3_search {
 
 
 sub mp3_playlists {
-    unless (%mp3_dbm) {
-        print_log "Now Tieing to $mp3_file";
-        my $tie_code = qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
-        eval $tie_code;
-        if ($@) {
-            print_log "\n\nError in tieing to $mp3_file:\n  $@";
-            $mp3_dbm{empty} = 'empty';
-        }
 
+                                # Re-tie to the database, in case it has changed.
+    eval 'untie %mp3_dbm';      # eval in cause db_file is not installed
+    print_log "Now Tieing to $mp3_file";
+    my $tie_code = qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
+    eval $tie_code;
+    if ($@) {
+        print_log "\n\nError in tieing to $mp3_file:\n  $@";
+        $mp3_dbm{empty} = 'empty';
     }
+
                                 # Find the playlist files
     my ($mp3names, %mp3files);
     return '', '', '' unless $mp3_dbm{file};
@@ -180,7 +180,7 @@ sub mp3_find_all {
     my %all;
     foreach my $tag (split $;, $mp3_dbm{$mp3_tag}) {
         $count++;
-        next unless $files[$count] =~ /\.mp3$/i;
+        next unless $files[$count] =~ /\.(mp3|ogg)$/i;
         if ($mp3_tag eq 'album') {
             $tag = "$artists[$count]$;$tag";
         }

@@ -4,8 +4,9 @@ package Generic_Item_Hash;
 
 require Tie::Hash;
 @Generic_Item_Hash::ISA = ('Tie::ExtraHash');
+#@Generic_Item_Hash::ISA = ('Tie::StdHash');
 
-sub STORE { 
+sub STORE {
     my $oldValue = $_[0][0]{$_[1]};
     $_[0][0]{$_[1]} = $_[2];
 
@@ -16,7 +17,7 @@ sub STORE {
 }
 
 
-# This is the parent object for all state-based mh objects.  
+# This is the parent object for all state-based mh objects.
 # It can also be used stand alone.
 
 package Generic_Item;
@@ -186,7 +187,7 @@ sub restore_string {
         $state_log =~ s/~/\\~/g;
         $restore_string .= '@{' . $self->{object_name} . "->{state_log}} = split(\$;, q~$state_log~);";
     }
-    
+
                                 # Allow for dynamicaly/user defined save data
     for my $restore_var (@{$$self{restore_data}}) {
         my $restore_value = $self->{$restore_var};
@@ -235,7 +236,7 @@ sub state {
 
     # No need to lc() the state here, we will return what was originally set.
     return $self->{state};
-} 
+}
 
 sub said {
                                 # Set global Respond_Target var, so user code doesn't have to bother
@@ -249,6 +250,15 @@ sub state_now {
 }
 sub state_changed {
     return $_[0]->{state_changed};
+}
+                                # Returns the objects final state that the object will
+                                # be in after all pending states are processed
+sub state_final {
+    my ($self) = @_;
+    if (@{$self->{state_next_pass}}) {
+        return $self->{state_next_pass}->[-1];
+    }
+    return $self->state();
 }
 
 sub state_log {
@@ -268,7 +278,7 @@ sub state_overload {
         $self->{states_nosubstate}   = 0;
     }
 }
-        
+
 sub set_icon {
     return unless $main::Reload;
     my ($self, $icon) = @_;
@@ -297,7 +307,7 @@ sub set_info {
 sub set_with_timer {
     my ($self, $state, $time, $return_state, $additional_return_states) = @_;
     return if &main::check_for_tied_filters($self, $state);
- 
+
                                 # If blank state, then we wanted the timed return_state only
     $self->set($state) unless $state eq '';
 
@@ -311,8 +321,8 @@ sub set_with_timer {
     # Handle additoinal return states if requested (this is done so we don't need to parse for
     # ; seperators in this function, that work has already been done in MH)
     $state_change .= ';' . $additional_return_states if $additional_return_states;
- 
- 
+
+
                                 # Reuse timer for this object if it exists
     $$self{timer} = &Timer::new() unless $$self{timer};
     my $object = $self->{object_name};
@@ -536,8 +546,8 @@ sub reset_states2 {
     $ref->{state_now}     = $state;
     $ref->{set_by}        = $set_by;
     $ref->{target}        = $target;
-    if (( defined $state and !defined $ref->{state_prev}) or 
-        (!defined $state and  defined $ref->{state_prev}) or 
+    if (( defined $state and !defined $ref->{state_prev}) or
+        (!defined $state and  defined $ref->{state_prev}) or
         ( defined $state and  defined $ref->{state_prev} and $state ne $ref->{state_prev})) {
         $ref->{state_changed} = $state;
     }
@@ -594,7 +604,7 @@ sub untie_event {
     }
     else {
         delete $self->{tied_events}; # Untie em all
-    }        
+    }
 }
 
 sub tie_filter {
@@ -614,7 +624,7 @@ sub untie_filter {
     }
     else {
         delete $self->{tied_filters}; # Untie em all
-    }        
+    }
 }
 
 sub tie_time {
@@ -634,7 +644,7 @@ sub untie_time {
     }
     else {
         delete $self->{tied_times}; # Untie em all
-    }        
+    }
 }
 sub delete_old_tied_times {
     undef @items_with_tied_times;
@@ -666,6 +676,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.40  2004/09/25 20:01:19  winter
+# *** empty log message ***
+#
 # Revision 1.39  2004/07/30 23:26:38  winter
 # *** empty log message ***
 #

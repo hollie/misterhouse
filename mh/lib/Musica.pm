@@ -219,7 +219,8 @@ Controlling the Musica zone objects using functions:
    delay_off(seconds): Automatically turn the zone off in the specified number
       of seconds.  Timer is cancelled if the user selects a new source or if
       this function is called with '0' for the argument.  Also can be reset
-      by calling this function again.
+      by calling this function again.  Returns current delay if no argument
+      is provided.
 
 Controlling the Musica zone objects using set()
    The following input states are recognized by the Musica zone objects:
@@ -617,6 +618,9 @@ sub _store_zone_source {
          } else {
             if ($source eq '0') {
                $$self{'zones'}[$zone]->set_receive('zone_off', $set_by);
+               if ($$self{'timerOff'}) {
+                  $$self{'timerOff'}->set(0);
+               }
             } else {
                $$self{'zones'}[$zone]->set_receive('source_changed', $set_by);
             }
@@ -1012,6 +1016,11 @@ sub _is_base_obj {
    }
 }
 
+sub get_zone_obj {
+   my ($self, $zone_num) = @_;
+   return $$self{'zones'}[$zone_num];
+}
+
 ################################################################################
 # Begin public system-wide Musica functions
 ################################################################################
@@ -1086,19 +1095,20 @@ sub switched_outlet_off {
 
 sub set_treble {
    my ($self, $treble) = @_;
-   $treble = $self->_scale_to_15($treble, -14, 14);
+   $treble = _scale_to_15($treble, -14, 14);
    $self->_queue_cmd("ChangeTreb/$$self{'zone'}/$treble");
 }
 
 sub set_bass {
    my ($self, $bass) = @_;
-   $bass = $self->_scale_to_15($bass, -14, 14);
-   $self->_queue_cmd("ChangeBass/$$self{'zone'}/$bass");
+   my $newbass = _scale_to_15($bass, -14, 14);
+   &::print_log("$self->{'zone'}: bass level of '$bass' converted to '$newbass'") if $main::Debug{musica};
+   $self->_queue_cmd("ChangeBass/$$self{'zone'}/$newbass");
 }
 
 sub set_balance {
    my ($self, $balance) = @_;
-   $balance = $self->_scale_to_15($balance, -7, 7);
+   $balance = _scale_to_15($balance, -7, 7);
    $self->_queue_cmd("ChangeBal/$$self{'zone'}/$balance");
 }
 
@@ -1328,10 +1338,18 @@ sub set {
 
 sub delay_off {
    my ($self, $delay) = @_;
-   unless ($$self{'timerOff'}) {
-      $$self{'timerOff'} = new Timer();
+   if (defined($delay)) {
+      &::print_log("$$self{'object_name'}: delay_off set to $delay") if $main::Debug{musica};
+      unless ($$self{'timerOff'}) {
+         $$self{'timerOff'} = new Timer();
+      }
+      $$self{'timerOff'}->set($delay, $self);
    }
-   $$self{'timerOff'}->set($delay, $self);
+   if ($$self{'timerOff'}) {
+      return $$self{'timerOff'}->query();
+   } else {
+      return 0;
+   }
 }
 
 sub nudge_source_down {
@@ -1422,7 +1440,6 @@ sub get_blcolor() {
 
 sub get_brightness() {
    my ($self) = @_;
-   &::print_log("$self->{'zone'}: returning brightness $self->{brightness}") if $main::Debug{musica};
    return $self->{'brightness'};
 }
 

@@ -58,11 +58,21 @@ Example Usage:
 Usage:
    add_files(list): Adds one or more .mp3, .m3u and/or directories to this
       playlist object (and any players with this object attached).
+   add_mp3_files(list): Adds one or more .mp3 files and/or directories to this
+      playlist object (and any players with this object attached).
+   add_m3u_files(list): Adds the contents of any m3u files that are specified
+      or that are found in a directory (recursively) that was specified.
    remove_files(list): Removes one or more .mp3, .m3u and/or directories from
       this playlist object (and any players with this object attached).
    clear(): Empties this playlist.
    randomize(): Call only after you have added your MP3s... randomizes the
       order of all songs currently in the playlist.
+   randomize_by_dir(): Call only after you have added your MP3s... randomizes the
+      order of songs by directory -- i.e. first it determines all of the 
+      directories, and then randomly picks one, and then another, etc.  Note
+      that the MP3 list is sorted in this process, so I'd recomment beginning
+      your MP3 names with the track number on each CD -- i.e. 01-xx.mp3.  I use
+      this to basically sort by directory.
 
 Special Thanks to: 
 	Bruce Winter - Misterhouse
@@ -110,7 +120,7 @@ sub _get_m3u {
 }
 
 sub _get_dir {
-   my ($dir) = @_;
+   my ($dir, $ext) = @_;
    my @ret = ();
    my @dirs = ();
    if (opendir (DIR, $dir)) {
@@ -118,9 +128,9 @@ sub _get_dir {
          next if $entry =~ /^\./;
          if (-d $dir . '/' . $entry) {
             push @dirs, $dir . '/' . $entry;
-         } elsif ($entry =~ /\.m3u$/) {
+         } elsif (($entry =~ /\.m3u$/) and (not $ext or ($ext eq 'm3u'))) {
             push @ret, &_get_m3u($dir . '/' . $entry);
-         } elsif ($entry =~ /\.mp3$/) {
+         } elsif (($entry =~ /\.mp3$/) and (not $ext or ($ext eq 'mp3'))) {
             push @ret, "$dir/$entry";
          }
       }
@@ -167,14 +177,14 @@ sub _unregister {
    $ptr->_remove_playlist_files(@{$$self{'list'}});
 }
 
-sub add_files {
-   my ($self, @files) = @_;
+sub _add_files {
+   my ($self, $ext, @files) = @_;
    my @new = ();
    foreach (@files) {
-      if ($_ =~ /\.m3u$/) {
-         push @new, &_get_m3u($_);
+      if (($_ =~ /\.m3u$/) and (not $ext or ($ext eq 'm3u'))) {
+         push @new, &_get_m3u($_, $ext);
       } elsif (-d $_) {
-         push @new, &_get_dir($_);
+         push @new, &_get_dir($_, $ext);
       } else {
          push @new, $_;
       }
@@ -185,6 +195,21 @@ sub add_files {
          $_->_add_playlist_files(@new);
       }
    }
+}
+
+sub add_files {
+   my ($self, @files) = @_;
+   $self->_add_files('', @files);
+}
+
+sub add_mp3_files {
+   my ($self, @files) = @_;
+   $self->_add_files('mp3', @files);
+}
+
+sub add_m3u_files {
+   my ($self, @files) = @_;
+   $self->_add_files('m3u', @files);
 }
 
 sub remove_files {
@@ -209,13 +234,40 @@ sub clear {
    $self->_do_remove_files(@{$$self{'list'}});
 }
 
+sub randomize_by_dir {
+   my ($self) = @_;
+   my @orig_list = sort @{$$self{'list'}};
+   my @dirlist;
+   @{$$self{'list'}} = ();
+   my $lastdir = '';
+   foreach (@orig_list) {
+      # First, get list of directories...
+      my $dir = $_;
+      $dir =~ s/\/[^\/]+$//;
+      $dir =~ s/-Disc_\d$//;
+      unless ($dir eq $lastdir) {
+         $lastdir = $dir;
+         push @dirlist, $dir;
+      }
+   }
+   while (@dirlist) {
+      my $random_num = int(rand($#dirlist + 1));
+      my $random_dir = $dirlist[$random_num];
+      for (my $i = 0; $i <= $#orig_list; $i++) {
+         if ($orig_list[$i] =~ /^\Q$random_dir\E(-Disc_\d)?\//) {
+            push @{$$self{'list'}}, $orig_list[$i];
+         }
+      }
+      splice @dirlist, $random_num, 1;
+   }
+}
+
 sub randomize {
    my ($self) = @_;
    my @orig_list = @{$$self{'list'}};
    @{$$self{'list'}} = ();
    while (@orig_list) {
-      my $count = $#orig_list;
-      my $random = int(rand($count + 1));
+      my $random = int(rand($#orig_list + 1));
       push @{$$self{'list'}}, $orig_list[$random];
       splice @orig_list, $random, 1;
    }

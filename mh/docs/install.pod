@@ -376,7 +376,7 @@ don_diphone, kal_diphone, ked_diphone, rab_diphone, us1_mbrola, us2_mbrola, and 
 
 Another good TTS engine is now available from Cepstral: http://www.cepstral.com .  
 $30 per voice, for either Linux or Windows.
-Set mh.ini parm voice_text=theta and modify voice_text_theta to point to the theta binary.
+Set mh.ini parm voice_text=swift and modify voice_text_swift to point to the swift binary.
 
 
 Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural Voices TTS linux engine here:
@@ -652,4 +652,3 @@ When you want to upgrade to a newer verion of mh, follow these steps:
  rename mh mh_old
  unzip \downloads\misterhouse_src_###.zip
  unzip \downloads\misterhouse_win_###.zip
-

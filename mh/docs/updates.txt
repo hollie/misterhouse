@@ -2,7 +2,122 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    - Ant Skelton created mh/code/common/internet_irc.pl which allows
+    MrHouse to talk to multiple channels and multiple users on multiple IRC
+    servers.
+
+    - Dan Wilga updated mh/bin/get_tv_grid to allow for multiple providers
+    (e.g. local cable and Dish Network). To use more than one, the list of
+    providers needs to be separated by commas, like: 1234,5678 or Charter
+    Communications,Dish Network.
+
+    - Scott Johnson created mh/code/public/siteplayer.pl as an example of
+    sending digital signals to a $30 siteplayer ethernet interface:
+    http://www.siteplayer.com
+
+    - Mark Rogers added Ogg Vorbis support to the mp3 playlists.
+
+    - Lou Montulli updates lib/Xantech.pm with some fixes to get it working
+    on his Xantech whole house audio system. He also create
+    code/public/Xantech_test.pl for a web based control test.
+
+    - Pierrick Dintrat created web/bin/floorplan_svg.pl, a SVG (Scaleable
+    Vector Graphic), version of the html only version, floorplan.pl.
+    Required SVG plugin is available from
+    http://www.adobe.com/svg/viewer/install .
+
+    - David Norwood suggested we add mh/web/bin/dbmedit.cgi, hacked from
+    from http://www.jmarshall.com/tools/dbmedit/. Call it to browse db files
+    like this: http://localhost:8080/bin/dbmedit.cgi?file=tv_channels.dbm
+
+    - Kirk Bauer updated Alsaplayer.pm (added forward, rewind functions, and
+    get_path functions), Light_Item.pm (added manual function), Musica.pm
+    (fixed set_bass, set_treble, and set_balance functions), RCSsTR40.pm
+    (added set_heat_limits and set_cool_limits functions), mp3_alsaplayer.pl
+    (added mp3_get_playlist_pos and mp3_get_curr_file functions and added
+    the ability for usercode to set a function to be called whenever the
+    alsaplayer is in use), and PlayList.pm (provides more flexibility in
+    adding files to the playlist).
+
+    - Clive Freedman created functions url_changed and url_last_modified
+    functions. See mh/doc/mh.* for an example.
+
+    - Added a mh.ini voice_text=swift and voice_text_swift=pgm_path options
+    for the new Cepstral Linux TTS engine.
+
+    - Kirk Bauer created code/common/mp3Rip_code.pl to rip MP3s from audio
+    CDs through the Misterhouse web interface. Info available from the
+    common code select menu (points to mh/docs/mp3Rip_system_setup.txt).
+    Currently Linux only.
+
+    - Kirk Bauer added a new state_final Generic_Item method, so we can
+    query what state an object will be in after all queued state changes
+    have been processed.
+
+    - Kirk Bauer created new handy_net_utilites.pl functions html_decode,
+    cookies_parse, and cookies_generate. He also updated bin/get_url to
+    allow for -cookies, -post, and header_file options.
+
+    - Kirk Bauer (busy boy!) created code/common/eBay.pl to monitor your
+    eBay activity and report interesting events, such as somebody outbidding
+    you, an item ending, an item that is going to end soon, and much more.
+
     Bug Fixes and Other Changes:
+
+    - Dominique Benoliel updated code/common/weather_rrd_update.pl to add
+    sea level barometric pressure (in the labels of the pressure graphs),
+    change label "barometric pressure" by "Absolute barometric pressure" (to
+    avoid confusion with the sea level pressure), add new mh parameter
+    "$Weather{ratio_sea_baro}" to calculate the sea level barometric
+    pressure (to avoid hard coded in the script, default 10 meters), and use
+    "altitude" mh parameter to calculate the sea level barometric pressure
+    graph.
+
+    - Updated lib/Telephony_Interface.pm to recognize NetCallerID message
+    waiting data.
+
+    - David Norwood modified the sort order for mp3 songs, playlists, and
+    artists so that the string "the " at the beginning is ignored.
+
+    - Clive Freedman and I created web/misc/failed_request.shtml for missing
+    pages, which can be overriden with a user aliased dir to change the
+    message given on missing pages.
+
+    - Added %Misc global array, to store misc goblal vars (like %Save, but
+    not saved between mh restarts).
+
+    - Kirk Bauer updated bin/get_mp3_data to fix a genre bug and to add
+    support for some newer genres.
+
+    - Added a mh.ini bin_dir option, to point to your private version of any
+    file that normally gets executed from the bin/mh dir (e.g. get_weather).
+
+    - Added app=admin to http_server.pl calls to speak (e.g. "Admin password
+    accepted"), so we can use a speak_apps parm to override if and how to
+    speak that speech. Also updated Voice_Text.pm to exit quietly with
+    voice=none.
+
+    - Mark Rogers updated common/mp3.pl to re-tie to the dbm database, so
+    newly rebuilt mp3 data is picked up.
+
+    - Chris Barrett found a typo in the protocol printout of USB_UIRT.pm.
+
+    - Kirk Bauer re-wrote the read_record function to be more efficient and
+    added a read_next_tail to File_Item.
+
+    - Added &html_item to html_sever.pl, so we can add just specific objects
+    to .shtml files. Example in docs/mh.*
+
+    - Craig Schaeffer noticed that if tk_mlabel pointed to an object, it
+    echoed only the state at startup. We took out that object option and
+    changed the Tk mail label in common/internet_mail.pl to point to a
+    variable instead.
+
+    - Craig Schaeffer noticed that web RUN:last_displayed calls caused my to
+    pause for a long time.
+
+    - Allow for range of channels in get_tv_grid -keep and -skip options
+    (e.g. -keep 9,10,100-200,300 ).
 
   Version 2.94 posted on 07/30/2004
     Version 2.94 was just uploaded to:
@@ -375,7 +490,7 @@ Mister House Announcement List
     - Lincoln Foreman noticed that new_second (and new_minute etc) did not
     work for some intervals like 35.
 
-    - Jason Sharpe noticed a 2.88 bug where target was lost in respond
+    - Jason Sharpee noticed a 2.88 bug where target was lost in respond
     commands.
 
     - Clive Freedman enabled the mh.ini mail account_timeout parm.
@@ -643,7 +758,7 @@ Mister House Announcement List
     the other Base_Item objects to improve occupancy monitoring and allow
     for on-the-fly object reconnection.
 
-    - Jason Sharpe created lib/Telephony_xAP.pm, a xAP Listener for
+    - Jason Sharpee created lib/Telephony_xAP.pm, a xAP Listener for
     Telephony Events. He also created bin/xAP-info.pl, a stand alone program
     to that interfaces to the Asterisk phone system (
     http://www.asterisk.org ) to send incoming and outgoing phone data as
@@ -675,7 +790,7 @@ Mister House Announcement List
 
     Bug Fixes and Other Changes:
 
-    - Jason Sharpe updated Door_Item.pm, Occupancy_Monitor.pm, and
+    - Jason Sharpee updated Door_Item.pm, Occupancy_Monitor.pm, and
     Presence_Monitor.pm.
 
     - Jim Duda updated common/proxy_client_server.pl to be more robust when
@@ -699,7 +814,7 @@ Mister House Announcement List
     - David Norwood updated common/weather_aws.pl so weather_monitor.pl
     doesn't report gusts for hours after they have occured.
 
-    - Jason Sharpe made some presence updates to Light_Item allow countdown
+    - Jason Sharpee made some presence updates to Light_Item allow countdown
     timer to be "restart"ed in Timer_Item.
 
     - Timothy Spaulding noticed a 2.84 bug in processing proxy serial
@@ -858,10 +973,10 @@ Mister House Announcement List
     - Created code/common/slimp3_display.pl to display spoken text to a list
     of slimp3 players ( http://www.slimdevices.com )
 
-    - Jason Sharpe created code/common/xAP_command.pl, a xAP server that
+    - Jason Sharpee created code/common/xAP_command.pl, a xAP server that
     will run requested commands and send respond results back.
 
-    - Jason Sharpe created code/public/asterisk_jason* and Robert Mann
+    - Jason Sharpee created code/public/asterisk_jason* and Robert Mann
     created code/public/asterisk_robert*. These code files interfaces mh to
     the Asterisk phone system ( http://www.asterisk.org ). Jason code uses
     the xAP protocal to allow you to send commands to the mh via touch tone
@@ -883,7 +998,7 @@ Mister House Announcement List
 
     Bug Fixes and Other Changes:
 
-    - Jason Sharpe updated his new set of Base_Item objects as well as a
+    - Jason Sharpee updated his new set of Base_Item objects as well as a
     small Timer.pm update.
 
     - Greg Limming update the Celstia TTS option to allow for aliased voice
@@ -913,8 +1028,8 @@ Mister House Announcement List
 
     - Updated bin/report_weblogs to parse the current mh http_server format.
 
-    - Jason Sharpe fixed an 'Error in respond: respond=$object' error in sub
-    respond in bin/mh.
+    - Jason Sharpee fixed an 'Error in respond: respond=$object' error in
+    sub respond in bin/mh.
 
     - Srdan Lasic noticed &speakify_numbers was only returning the suffix
     (e.g. rd instead of 3rd). He also noticed that we didn't honor
@@ -925,7 +1040,7 @@ Mister House Announcement List
     speak_mh_room=study, then speech would go to the mh soundcard only when
     speak rooms=all or rooms=study.
 
-    - Jason Sharpe noticed we did not propogate set_by when using the
+    - Jason Sharpee noticed we did not propogate set_by when using the
     set_with_timer method.
 
     - Kent Noonan and I enabled the set_casesensitve method for
@@ -1136,14 +1251,14 @@ Mister House Announcement List
     customized. How To instructions are on the default My MH page. Bazyle
     also added a Twiki button to the 'About MrHouse' ia5 documentation page.
 
-    - Jason Sharpe created a floorplan web script, available via
+    - Jason Sharpee created a floorplan web script, available via
     http://localhost:8080/bin/floorplan.pl . To enable, add x,y data to your
     .mht items (or use the new set_fp_location method) to show where they
     are in each room group and add x,y,w,h data to new mht GROUP records to
     define how room groups relate to each other. See mh/code/test/test.mht
     for an example.
 
-    - Jason Sharpe created Presence_Monitor, Occupancy_Monitor, Light_Item,
+    - Jason Sharpee created Presence_Monitor, Occupancy_Monitor, Light_Item,
     Door_Item, Motion_Item, Camera_Item, Photocell_Item objects, all
     children of a new lib/Base_Item.pm object. Jason is still working on
     these objects, so we don't have any documentaion or examples yet.
@@ -1251,8 +1366,8 @@ Mister House Announcement List
     - Jon Upham added iButton DS2405 io button to
     site/Hardware/iButton/Device.pm.
 
-    - Jason Sharpe created lib/Occupancy_Monitor.pm. It counts the number of
-    people in a house based on movement detected throughout a graph based
+    - Jason Sharpee created lib/Occupancy_Monitor.pm. It counts the number
+    of people in a house based on movement detected throughout a graph based
     network of motion sensors.
 
     - Clive Freedman created city based data/ini/mh.city_name.ini files and
@@ -1436,7 +1551,7 @@ Mister House Announcement List
     lib/site/Hardware/iButton/Device.pm to allow either channel to be an
     input or output.
 
-    - Jason Sharpe sent in code/publice/ivr.pl and ivr.menu as examples of
+    - Jason Sharpee sent in code/publice/ivr.pl and ivr.menu as examples of
     his DTFM Interactive Voice Response setup using the Stargate phone
     interface. Updated supporting files are lib/Telephony_DTMF.pm,
     Telephony_Item.pm, Stargate.pm, and StargateJTelephone.pm.

@@ -125,7 +125,7 @@ sub main::file_read_dir {
 sub main::file_read {
     my ($file, $flag, $textmode) = @_;
     open(LOG, "$file") or print "Warning, could not open file_read file $file: $!\n";
-    
+
 # $flag = 1 -> Read as a scalar, even if wantarray is true
 # $flag = 2 -> Read as an array, but drop comment records
     if (wantarray and !($flag and $flag == 1)) {
@@ -207,7 +207,7 @@ sub main::find_pgm_path {
         print "Warning, new Process:  Can not find path to pgm=$pgm, pgm_path=$pgm_path arg=$pgm_args\n";
 #       return;
     }
-                                # This is in desperation ... see notes on &run and &process_item $cflag. 
+                                # This is in desperation ... see notes on &run and &process_item $cflag.
                                 # We must avoid .bat files on order to make processes killable :(
     if ($main::OS_win and $pgm_path =~ /bat$/ and &main::file_head($pgm_path) =~ /mh -run (\S+)/) {
         my $perl_code = $1;
@@ -454,7 +454,7 @@ sub main::plural2 {
                                 # 11,12,13 are excptions.  th-ify them
     if ($value > 10 and $value < 21) {
         $suffix = 'th';
-    }        
+    }
     elsif ($r == 1) {
         $suffix = 'st';
     }
@@ -545,15 +545,15 @@ sub main::read_opts {
 
         $value =~ s/\s+$//;     # Delete end of value blanks
 
-                                # substitue in $vars in the .ini file 
+                                # substitue in $vars in the .ini file
                                 #  - older perl does not eval to main::value :(
                                 #    so we do it the hard way
-                                #  - We can probably skip this now, as we 
+                                #  - We can probably skip this now, as we
                                 #    now do evals above in mh_read_opts.
         if ($value =~ /\$Pgm_Root/) {
             $value =~ s/\$Pgm_Root/$pgm_root/g;
 #           eval "\$value = qq[$value]";
-        }        
+        }
 
                                 # Last parm wins (in case we reload parm file)
         if ($value_continued) {
@@ -575,7 +575,7 @@ sub main::read_opts {
     return sort keys %{$ref_parms};
 }
 
-# Read a key/value string into a hass: key1 => value, key2 => value2 
+# Read a key/value string into a hass: key1 => value, key2 => value2
 sub main::read_parm_hash {
     my ($ref, $data, $preserve_case) = @_;
     for my $temp (split ',', $data) {
@@ -609,9 +609,9 @@ sub main::read_record {
     my($file, $index) = @_;
     my(@records);
 
-                                # Note, we could be more clever here and use the trick on page 284 of the 
-                                # perl cookbook to read a random line without saving all records from 
-                                # the file.  
+                                # Note, we could be more clever here and use the trick on page 284 of the
+                                # perl cookbook to read a random line without saving all records from
+                                # the file.
 
     open(DATA, $file) or print "Error, could not open read_record file: $file\n";
     @records = <DATA>;
@@ -631,7 +631,7 @@ sub main::read_record {
 }
 
 #---------------------------------------------------------------------------
-#   Win32 Registry 
+#   Win32 Registry
 #---------------------------------------------------------------------------
 
 sub main::registry_get {
@@ -668,7 +668,7 @@ sub main::registry_set {
 #   Don't know how to pass type in directly :(
 #    $type = 1 if $type eq "REG_SZ";
 #    $type = 3 if $type eq "REG_BINARY";
-#    $type = 4 if $type eq "REG_DWORD"; 
+#    $type = 4 if $type eq "REG_DWORD";
 
     my $rc = $ptr->SetValueEx($subkey, 0, $type, $value);
 
@@ -678,7 +678,7 @@ sub main::registry_set {
 sub main::registry_open {
 
 #   use Win32::Registry;
-    
+
     my($key) = @_;
 
     my ($key1, $key2, $ptr);
@@ -744,7 +744,7 @@ sub main::run_kill_processes {
 }
 
 
-                                # If you want more control (e.g. detect when done), use Process_Item.pm 
+                                # If you want more control (e.g. detect when done), use Process_Item.pm
 sub main::run {
     my($mode, $pgm, $no_log) = @_;
                 # Mode is optional ... yuck ... optional parms should be last!
@@ -782,7 +782,7 @@ sub main::run {
         return $process;
     }
     else {
-                                # This will look for pgms in mh/bin, even if that is 
+                                # This will look for pgms in mh/bin, even if that is
                                 # not not in the path
         my($pgm_path, $pgm_args) = &main::find_pgm_path($pgm);
         $pgm = "$pgm_path $pgm_args";
@@ -802,7 +802,7 @@ sub main::run_old {
                                 # Unless ... you use cmd /c :)
                                 # Need to use cmd with nt??
         $pgm = qq[command "/e:4000 /c $pgm"];   # Do this so the cmd window dissapears after the command is done
-                            
+
         my $start = '';
         $start = 'start /min';
         $start = 'start /max' if $mode eq 'max';
@@ -823,12 +823,12 @@ my $comment_out = <<'eof';
 sub main::run_old_win32_iproc {
     my($mode, $pgm) = @_;
     $pgm = $mode unless $pgm;   # Mode is optional
-    
+
     use Win32::IProc
-        qw( SW_SHOWNORMAL SW_SHOWDEFAULT SW_SHOWMAXIMIZED SW_MINIMIZE SW_HIDE SW_SHOW SW_MAXIMIZE FOREGROUND_RED 
+        qw( SW_SHOWNORMAL SW_SHOWDEFAULT SW_SHOWMAXIMIZED SW_MINIMIZE SW_HIDE SW_SHOW SW_MAXIMIZE FOREGROUND_RED
             FOREGROUND_GREEN FOREGROUND_BLUE BACKGROUND_RED BACKGROUND_GREEN BACKGROUND_BLUE
             FOREGROUND_INTENSITY NORMAL_PRIORITY_CLASS PROCESS_ALL_ACCESS INHERITED NONINHERITED FLOAT
-            DIGITAL NULL CREATE_NEW_CONSOLE CREATE_NEW_PROCESS_GROUP);  
+            DIGITAL NULL CREATE_NEW_CONSOLE CREATE_NEW_PROCESS_GROUP);
     my $cflag = CREATE_NEW_CONSOLE;
     my $obj=new Win32::IProc || warn "Error, could not create process in hand_utilities run: $!\n";
     my $Attributes =FOREGROUND_RED | BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE;
@@ -862,7 +862,7 @@ sub main::run_old2 {
 #       push (@command, substr($command, 0, $i));
 #   $command = substr($command, $i);
 #    }
-    
+
     print "\nrunning command: ", join("", @command), "\n" if $main::opt_verbose;
 #   print `$command`;
 #   print `@command`;
@@ -877,7 +877,7 @@ eof
 #
     sub main::run_perl {
         my($command) = @_;
-        
+
         @ARGV = &main::parse_arg_string($command);
         my $perl_pgm = shift @ARGV;
 
@@ -989,13 +989,13 @@ sub main::time_date_stamp {
     $year_full += 100 if $year_full < 1970;
 
     $style = 1 unless $style;
-    
+
                                 # Do NOT convert to AMPM if time_format=24
     $ampm = '';
     unless ($main::config_parms{time_format} == 24 or $style == 2 or $style == 12 or $style == 13 or $style == 14) {
         ($time_ampm, $hour, $min, $ampm) = &main::time_to_ampm("$hour:$min");
     }
-    
+
     my $year_format;
     if ($main::config_parms{date_format} =~ /yyyy/) {
         $year_format = "%04d";
@@ -1119,7 +1119,7 @@ sub main::time_diff {
         push(@diff, &main::plural($hours,   "hour"))   if $hours   and $nu < 4;
         push(@diff, &main::plural($minutes, "minute")) if $minutes and $nu < 3;
         push(@diff, &main::plural($seconds, "second")) if $seconds and $nu < 2;
-        
+
         $last = pop @diff;
         if (@diff > 0) {
             $string = join(', ', @diff) . " and $last";
@@ -1133,7 +1133,7 @@ sub main::time_diff {
 #   $string .= ($time2 > $time1) ? ' ago' : ' from now';
     $string = "unknown time.  time2=$time2 time1=$time1 diff=$diff" unless $string;  # debug
     return $string;
-} 
+}
 
 
 sub main::time_to_ampm {
@@ -1143,7 +1143,7 @@ sub main::time_to_ampm {
     $hour -= 12 if $hour > 12;
     $hour =  12 if $hour == 0;
     return wantarray ? ("$hour:$min $ampm", $hour, $min, $ampm) : "$hour:$min $ampm";
-} 
+}
 
 sub main::uniqify {
     my %list = map {$_, 1} @_;
@@ -1180,7 +1180,7 @@ sub main::which {
     return;                     # Didn't find it
 }
 
-                                # Update ini parameters without changing order or removing comments 
+                                # Update ini parameters without changing order or removing comments
 sub main::write_mh_opts {
     my($ref_parms, $pgm_root, $debug, $parm_file) = @_;
     $debug = 0 unless $debug;
@@ -1196,7 +1196,7 @@ sub main::write_mh_opts {
 
     my ($key, @parms, @done, $in_multiline);
     while (my $line = <INI_PARMS>) {
-                                # Remove old continuation lines from edited entries 
+                                # Remove old continuation lines from edited entries
         if ($in_multiline) {
             if ($line =~ /^\s+[^#@\s]/) {
                 next;
@@ -1205,14 +1205,14 @@ sub main::write_mh_opts {
                 $in_multiline = 0;
             }
         }
-                                # Remove any repeats of edited entries 
+                                # Remove any repeats of edited entries
         foreach $key (@done) {
             if ($line =~ /^$key\s*=/) {
                 $in_multiline = 1;
                 next;
             }
         }
-                                # Update changed entries 
+                                # Update changed entries
         foreach $key (keys %$ref_parms) {
             if ($line =~ s/^$key\s*=.*/$key=$$ref_parms{$key}/) {
                 delete $$ref_parms{$key};
@@ -1220,20 +1220,20 @@ sub main::write_mh_opts {
                 $in_multiline = 1;
             }
         }
-                                # Compile new file entries 
-        push @parms, $line; 
+                                # Compile new file entries
+        push @parms, $line;
     }
     close INI_PARMS;
 
-                                # Re-write entire file if changes effect existing entries 
+                                # Re-write entire file if changes effect existing entries
     &main::file_backup($parm_file);
     if (@done) {
         print "Writing config_file $parm_file\n" unless defined $debug and $debug == 0;
         open (INI_PARMS, ">$parm_file") or print "\nError, could not write config file: $parm_file\n";
-        print INI_PARMS @parms; 
+        print INI_PARMS @parms;
         close INI_PARMS;
     }
-                                # Append any new parameters 
+                                # Append any new parameters
     if (%$ref_parms) {
         print "Appending to config_file $parm_file\n" unless defined $debug and $debug == 0;
         open (INI_PARMS, ">>$parm_file") or print "\nError, could not append to config file: $parm_file\n";
@@ -1252,6 +1252,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.74  2004/09/25 20:01:19  winter
+# *** empty log message ***
+#
 # Revision 1.73  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #

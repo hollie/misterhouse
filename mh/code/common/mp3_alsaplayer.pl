@@ -22,9 +22,14 @@ if ($Reload) {
 use AlsaPlayer;
 
 my $default;
+my $in_use_notify = undef;
 
 sub set_default_alsaplayer {
    $default = $_[0];
+}
+
+sub set_alsaplayer_in_use_notify {
+   $in_use_notify = $_[0];
 }
 
 $v_mp3_control_cmd = new Voice_Cmd("Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off]");
@@ -35,10 +40,13 @@ sub mp3_control {
    my ($state, $player) = @_;
    $player = $default unless defined($player); 
    if ($state eq 'Play') {
+      $in_use_notify->($player, 1) if $in_use_notify;
       $player->start();
    } elsif ($state eq 'Stop') {
+      $in_use_notify->($player, 0) if $in_use_notify;
       $player->stop();
    } elsif ($state eq 'Pause') {
+      $in_use_notify->($player, 0) if $in_use_notify;
       $player->pause();
    } elsif ($state eq 'Next Song') {
       $player->next_song();
@@ -68,6 +76,8 @@ sub mp3_control {
 sub mp3_play {
    my ($file, $player) = @_;
    $player = $default unless defined($player); 
+   $in_use_notify->($player, 1) if $in_use_notify;
+   $player->shuffle(0);
    $player->clear();
    $player->add_files($file);
    $player->start();
@@ -82,14 +92,15 @@ sub mp3_queue {
 }
 
 sub mp3_clear {
-   my ($file, $player) = @_;
+   my ($player) = @_;
    $player = $default unless defined($player); 
+   $in_use_notify->($player, 0) if $in_use_notify;
    $player->clear();
    print_log "mp3 playlist cleared";
 }
 
 sub mp3_get_playlist {
-   my ($file, $player) = @_;
+   my ($player) = @_;
    $player = $default unless defined($player); 
    my @list = $player->get_playlist;
    return \@list;
@@ -97,32 +108,57 @@ sub mp3_get_playlist {
 
 # return the current volume 
 sub mp3_get_volume {
-   my ($file, $player) = @_;
+   my ($player) = @_;
    $player = $default unless defined($player); 
    return $player->volume;
 }
 
 # return the number of songs in the current playlist 
 sub mp3_get_playlist_length { 
-   my ($file, $player) = @_;
+   my ($player) = @_;
    $player = $default unless defined($player); 
    return $player->get_playlist_length();
 }
 
-# we don't support this function
 sub mp3_get_playlist_pos { 
+   my ($player) = @_;
+   $player = $default unless defined($player); 
+   my $i = -1;
+   my $currsong = $player->get_path();
+   my $ref = &mp3_get_playlist($player);
+   return -1 unless ref $ref;
+   foreach (@{$ref}) {
+      $i++;
+      print_log "Alsaplayer::mp3_get_playlist_pos(): Checking $currsong against $_";
+      if ($_ eq $player->get_path()) {
+         print_log "Alsaplayer::mp3_get_playlist_pos(): Returning $i";
+         return $i;
+      }
+   }
+   print_log "Alsaplayer::mp3_get_playlist_pos(): Returning -1";
    return -1;
 }
 
 # returns the song that is currently playing
 sub mp3_get_curr_song { 
-   my ($file, $player) = @_;
+   my ($player) = @_;
    $player = $default unless defined($player); 
-   return $player->get_title();
+   return $player->get_title() . ' by ' . $player->get_artist();
+}
+
+sub mp3_get_curr_file { 
+   my ($player) = @_;
+   $player = $default unless defined($player); 
+   return $player->get_path();
 }
 
 sub mp3_running {
-   my ($file, $player) = @_;
+   my ($player) = @_;
    $player = $default unless defined($player); 
    return $player->is_okay();
+}
+
+sub mp3_get_playlist_timestr {
+   # Don't think I can get this very easily...
+   return '';
 }

@@ -20,7 +20,7 @@ Usage:
 	Example initialization:
 
 		use CID_Announce;
-		$cid = new CID_Announce($telephony_driver,'Call from $name $snumber.');		
+		$cid = new CID_Announce($telephony_driver,'Call from $name $snumber.');
 
 	Constructor Parameters:
 		ex. $x = new CID_Announce($y,$z);
@@ -46,9 +46,9 @@ Bugs:
 	There isnt a whole lot of error handling currently present in this version.  Drop me
 	an email if you are seeing something odd.
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - MH
-		
+
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
@@ -68,10 +68,10 @@ sub new
 	bless $self,$class;
 
 
-	$p_Telephony->tie_items($self,'cid') if defined $p_Telephony;	
+	$p_Telephony->tie_items($self,'cid') if defined $p_Telephony;
 	if (defined $p_mod_ring) {
-		$p_Telephony->tie_items($self,'ring') if defined $p_Telephony;	
-	}	
+		$p_Telephony->tie_items($self,'ring') if defined $p_Telephony;
+	}
 	$self->speak_format($p_speak_format);
 	$self->mod_ring($p_mod_ring);
 
@@ -91,9 +91,9 @@ sub set
 {
 	my ($self,$p_state,$p_setby) = @_;
 #	&::print_log("CIDAnn $p_state, $p_setby");
-	if ($p_state =~ /^CID/i or 
+	if ($p_state =~ /^CID/i or
 		(
-			$p_state eq 'ring' and 
+			$p_state eq 'ring' and
 			$p_setby->ring_count() % $$self{m_mod_ring} == 0 ) )
 	{
 		$self->cid_name($p_setby->cid_name());
@@ -101,7 +101,7 @@ sub set
 		$self->cid_type($p_setby->cid_type());
 		$self->address($p_setby->address());
 		#if category reject, then dont announce
-		
+
 		if ($p_setby->isa('CID_Lookup')) {
 			if (lc $p_setby->category() ne 'reject') {
 				$self->announce($p_setby,$self->speak_format(),$::config_parms{local_area_code});
@@ -135,6 +135,8 @@ sub announce
 
 	my $response=$self->parse_format($p_telephony,$p_speak_format,$p_local_area_code);
 #	print "CID Announce $response,$p_telephony,$p_speak_format";
+    return if $response =~ /MESSAGE WAITING/; # Don't announce message waiting data
+    return if $response =~ /\-MSG OFF\-/;
 	if ($response=~ /\.wav$/) {
 		$self->play_cid($response);
 	} else {
@@ -149,7 +151,7 @@ sub speak_cid
 	my ($self,$p_cid) = @_;
 #	print "CID SPEAK";
 #	&::respond	('app=phone target=callerid $response');
-	&::speak("app=phone target=callerid $p_cid");		
+	&::speak("app=phone target=callerid $p_cid");
 }
 
 sub play_cid
@@ -162,14 +164,14 @@ sub play_cid
 sub parse_format
 {
 	my ($self,$p_telephony,$p_speak_format,$p_local_area_code) = @_;
-	
+
 	my ($number, $name, $address,$city, $state, $fnumber, $type, $time,$sound_file);
 	my ($first, $middle, $last,$areacode,$suffix,$prefix,$soundfile,$snumber,$category);
 	my %table_types=qw(p private u unknown i internation n normal);
   	my ($format1);
 
 	my $speak_string;
-	
+
 	$name = $p_telephony->cid_name();
 	$number = $p_telephony->cid_number();
 	$type = $table_types{lc $p_telephony->cid_type()};
@@ -184,7 +186,7 @@ sub parse_format
     print "CID_nnounce data: type=$type name=$name number=$number\n" if $main::Debug{phone};
 
 	if ($p_telephony->isa('CID_Lookup')) {
-#		print "CID ISA";		
+#		print "CID ISA";
 		$areacode = $p_telephony->areacode();
 		$fnumber = $p_telephony->formated_number();
 		$snumber = $p_telephony->speakable_number();
@@ -235,4 +237,3 @@ sub parse_format
 
 
 1;
-

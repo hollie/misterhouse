@@ -57,7 +57,7 @@ sub open_port {
         $baudrate  = $table{$type}[1];
         $handshake = $table{$type}[2];
     }
-    print "Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake\n" 
+    print "Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake\n"
       if $main::Debug{phone};
     if ($port) {
         &::serial_port_create($name, $port, $baudrate, $handshake);
@@ -88,16 +88,16 @@ sub check_for_data {
             $data = '' if $data !~ /^[\n\r\t !-~]+$/;
             $caller_id_data{$port} .= ' ' . $data;
             print "Phone data: $data.\n" if $main::Debug{phone};
-            if (($caller_id_data{$port} =~ /NAME.+NU?MBE?R/s) or 
-                ($caller_id_data{$port} =~ /NU?MBE?R.+NAME/s) or 
-                ($caller_id_data{$port} =~ /NU?MBE?R.+MESG/s) or 
+            if (($caller_id_data{$port} =~ /NAME.+NU?MBE?R/s) or
+                ($caller_id_data{$port} =~ /NU?MBE?R.+NAME/s) or
+                ($caller_id_data{$port} =~ /NU?MBE?R.+MESG/s) or
                 ($caller_id_data{$port} =~ /NU?MBE?R/ and $main::config_parms{callerid_format} eq 'number only') or
                 ($caller_id_data{$port} =~ /END MSG/s) or         # UK format
-                ($caller_id_data{$port} =~ /FM:/)) { 
+                ($caller_id_data{$port} =~ /FM:/)) {
                 &::print_log("Callerid: $caller_id_data{$port}");
                 &process_cid_data($port, $caller_id_data{$port});
                 undef $caller_id_data{$port};
-             } 
+             }
             else {
                 &process_phone_data($port, 'ring') if $data =~ /ring/i;
             }
@@ -110,7 +110,7 @@ sub process_phone_data {
     my ($port, $data) = @_;
                                 # Set all objects monitoring this port
     for my $object(@{$list_objects{$port}}) {
-        print "Setting object $object to $data.\n";
+        print "Setting Telephony_Interface object $$object{name} to $data.\n";
         $object->SUPER::set('ring') if $data eq 'ring';
 		$object->ring_count($object->ring_count()+1);  # Where/when does this get reset??
     }
@@ -129,7 +129,12 @@ sub process_cid_data {
         ($time, $number, $name) = unpack("A13A13A15", $data);
     }
     elsif ($type eq 'netcallerid') {
+#  ###DATE12151248...NMBR2021230002...NAMEBUSH GEORGE +++
+#  ###DATE01061252...NMBR...NAME-UNKNOWN CALLER-+++
+#  ###DATE01061252...NMBR...NAME-PRIVATE CALLER-+++
+#  ###DATE...NMBR...NAME MESSAGE WAITING+++
         ($date, $time, $number, $name) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.+?)\+*$/;
+        ($name)                        = $data =~ /NAME(.+?)\+*$/ unless $date;
     }
 # NCID data=CID:*DATE*10202003*TIME*0019*NMBR*2125551212*MESG*NONE*NAME*INFORMATION*
 # http://ncid.sourceforge.net/
@@ -149,22 +154,22 @@ sub process_cid_data {
         }
         $name = substr($name, 0, 15);
     }
-    else { 
-        ($date)   = $data =~ /DATE *= *(\S+)/s; 
-        ($time)   = $data =~ /TIME *= *(\S+)/s; 
-        ($name)   = $data =~ /NAME *= *(.{1,15})/s; 
-        ($name)   = $data =~ /MESG *= *([^\n]+)/s unless $name; 
-        $name     = 'private'     if $name eq '080150'; 
-        $name     = 'unavailable' if $name eq '08014F'; 
-        ($number) = $data =~ /NU?M?BE?R *= *(\S+)/s; 
-        ($number) = $data =~ /FM:(\S+)/s unless $number; 
-    } 
+    else {
+        ($date)   = $data =~ /DATE *= *(\S+)/s;
+        ($time)   = $data =~ /TIME *= *(\S+)/s;
+        ($name)   = $data =~ /NAME *= *(.{1,15})/s;
+        ($name)   = $data =~ /MESG *= *([^\n]+)/s unless $name;
+        $name     = 'private'     if $name eq '080150';
+        $name     = 'unavailable' if $name eq '08014F';
+        ($number) = $data =~ /NU?M?BE?R *= *(\S+)/s;
+        ($number) = $data =~ /FM:(\S+)/s unless $number;
+    }
 
     $name   = '' unless $name;
     $number = '' unless $number;
 
     unless ($name or $number) {
-        print "\nCallerid data not parsed: t=$type d=$data date=$date time=$time number=$number name=$name\n";
+        print "\nCallerid data not parsed: p=$port t=$type d=$data date=$date time=$time number=$number name=$name\n";
         return;
     }
 
@@ -181,9 +186,9 @@ sub process_cid_data {
     }
     $cid_type = 'U' if uc $name eq 'O' or $number eq 'O';
     $cid_type = 'N' if $number =~ /^[\d\- ]+$/;	  # Override the type if the number is known
-    
 
-    print "Callerid data: port=$port type=$type cid_type=$cid_type name=$name number=$number date=$date time=$time\n   data=$data.\n" 
+
+    print "Callerid data: port=$port type=$type cid_type=$cid_type name=$name number=$number date=$date time=$time\n   data=$data.\n"
       if $main::Debug{phone};
 
                                 # Set all objects monitoring this port

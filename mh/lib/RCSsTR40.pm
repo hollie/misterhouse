@@ -46,6 +46,11 @@ calling (once) the function: set_variable(74,1);  I don't like having to leave
 the thermostat in "hold" mode, so instead I clear out the schedule (just once
 using the clear_schedule() command).
 
+BUGS
+
+The get_heat_run_time() and get_cool_run_time() functions are not always
+accurate... I must still have some bugs there.
+
 EXAMPLE USAGE
 
 Creating the object:
@@ -175,6 +180,8 @@ All of the functions available:
       Note that this will always return 'hold' if there is no schedule defined.
    get_vacation_status(): Returns either 'vacation' or 'no_vacation'.  Vacation
       mode is (de)activated by pressing and holding the away button for 3 seconds.
+   set_heat_limits(min, max): Specify minimum and maximum heat setpoints
+   set_cool_limits(min, max): Specify minimum and maximum cool setpoints
 =cut
 
 use strict;
@@ -488,6 +495,10 @@ sub cool_setpoint{
 		print "$::Time_Date: RCSsTR40 -> cool_setpoint ERROR $temp not numeric\n";
 		return;
 	}
+   if (($temp < $$self{'cool_min_limit'}) or ($temp > $$self{'cool_max_limit'})) {
+		print "$::Time_Date: RCSsTR40 -> cool_setpoint WARNING temp '$temp' is outside of limits\n";
+      return;
+   }
    $$self{'cool_sp'} = $temp;
    $$self{'cool_sp_pending'} = $temp;
    $self->_send_cmd("SPC=$temp");
@@ -500,6 +511,10 @@ sub heat_setpoint{
 		print "$::Time_Date: RCSsTR40 -> heat_setpoint ERROR $temp not numeric\n";
 		return;
 	}
+   if (($temp < $$self{'heat_min_limit'}) or ($temp > $$self{'heat_max_limit'})) {
+		print "$::Time_Date: RCSsTR40 -> heat_setpoint WARNING temp '$temp' is outside of limits\n";
+      return;
+   }
    $$self{'heat_sp'} = $temp;
    $$self{'heat_sp_pending'} = $temp;
    $self->_send_cmd("SPH=$temp");
@@ -610,6 +625,18 @@ sub get_vacation_status() {
    return $$self{'vacation'};
 }
 
+sub set_heat_limits($$) {
+   my ($self, $min, $max) = @_;
+   $$self{'heat_min_limit'} = $min;
+   $$self{'heat_max_limit'} = $max;
+}
+
+sub set_cool_limits($$) {
+   my ($self, $min, $max) = @_;
+   $$self{'cool_min_limit'} = $min;
+   $$self{'cool_max_limit'} = $max;
+}
+
 sub _parse_data {
 	my ($self, $data) = @_;
    return if (($$self{'last_change'} + 5) > $main::Time);
@@ -637,7 +664,9 @@ sub _parse_data {
          $$self{'temp'} = $val;
          $self->_process_off_times();
          if ($$self{'temp'} < $$self{'heat_sp'}) {
+            &::print_log("RCSsTR40: Temp $$self{temp} is less than $$self{heat_sp} (mode=$$self{mode})");
             if (($$self{'mode'} eq 'heat') or ($$self{'mode'} eq 'auto')) {
+               &::print_log("RCSsTR40: heat_start=$$self{heat_start}, heat_end=$$self{heat_end}, mot=$$self{mot}");
                if ($$self{'heat_end'} > $::Time) {
                   # It was scheduled to turn off, so cancel that
                   $$self{'heat_end'} = 0;
@@ -674,7 +703,7 @@ sub _parse_data {
                }
             }
          }
-         if (($$self{'temp'} >= $$self{'heat_sp'}) and ($$self{'temp'} <= $$self{'cool_sp'})) {
+         if (($$self{'temp'} >= $$self{'heat_sp'}) and (($$self{'temp'} <= $$self{'cool_sp'})) or ($$self{'mode'} eq 'off')) {
             if ($$self{'heat_start'}) {
                # Done heating...
                if ($$self{'heat_start'} > $::Time) {

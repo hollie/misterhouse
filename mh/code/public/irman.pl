@@ -2,7 +2,7 @@
 #
 # This file interfaces to the irman box, available for $30 from
 #    http://evation.com/irman/interface.txt
-# 
+#
 # The protocol is documented at:
 #    http://evation.com/irman/interface.txt
 #
@@ -20,10 +20,12 @@
 #  - Repeat for all your keys
 #  - click/speak/run: "Stop programming IRman codes"
 
+# &tk_entry('Test 1 (a..z)', \$test_input1, "Test 2", \$Save{test_input2});
+
 $irman      = new Generic_Item();
 $irman_port = new Serial_Item(undef, undef, 'serial_irman');
 
-                                # You can use state_now $irman queries in any 
+                                # You can use state_now $irman queries in any
                                 # of your events, like this:
 #print_log "irman said: $state" if $state = state_now $irman;
 
@@ -84,7 +86,7 @@ if (my $data = said $irman_port) {
                 print " -> unknown\n";
             }
         }
-            
+
     }
     set_data $irman_port '';
 }

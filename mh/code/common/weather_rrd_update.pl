@@ -64,6 +64,12 @@
 #    weather_graph_sensor_names = sensor => name, ...
 #    Values : sensor names = intemp, tempspare1,..., tempspare10, inhumid, 
 #    humidspare1,...,humidspare10
+#  - Altitude in meters to add the barometric pressure to 1 millibar. 
+#    Ratio to calculate the sea level barometric pressure in the weather graphs
+#    ratio_sea_baro = 10 (default value)
+#  - Initialize the altitude of the local weather station,
+#    In feet, used to calculate the sea level barometric pressure  
+#    altitude = 0
 #--------------------------------------------------------------------
 # 				HISTORY
 #--------------------------------------------------------------------
@@ -93,6 +99,10 @@
 # 18/05/04   1.4   Dominique Benoliel
 # - Change min/max value for RRD DS press (Thanks to Clive Freedman)
 # - add comment : unit of neasure of mh variable $Weather{...} in input
+# 30/07/04   1.5   Dominique Benoliel
+# - add sea level barometric pressure (label in pressure graph)
+# - change label "barometric pressure" by "absolute barometric 
+#   pressure",
 #####################################################################
 use RRDs;
 
@@ -113,6 +123,8 @@ if ($Reload) {
     $config_parms{weather_graph_footer} = 'Last updated $Time_Date, Dominique Benoliel, www.domotix.net' unless $config_parms{weather_graph_footer};
     mkdir $config_parms{weather_graph_dir} unless -d $config_parms{weather_graph_dir};
     $config_parms{weather_graph_sensor_names} = "temp => Temperature outdoor, humid => Humidity outdoor, dew => Temperature dewpoint outdoor, press => Pressure outdoor, dir => Wind direction, avgdir => Wind average direction, speed => Wind speed, avgspeed => Wind average speed, chill => Temperature windchill, rate => Rain rate, rain => Rain total, intemp => Temperature indoor, inhumid => Humidity indoor, indew => Temperature dewpoint indoor, tempspare1 => Temperature extra sensor 1, humidspare1 => Humidity extra sensor 1, dewspare1 => Temperature dewpoint extra sensor 1, tempspare2 => Temperature extra sensor 2, humidspare2 => Humidity extra sensor 2, dewspare2 => Temperature dewpoint extra sensor 2, tempspare3 => Temperature extra sensor 3, humidspare3 => Humidity extra sensor 3, dewspare3 => Temperature dewpoint extra sensor 3, tempspare4 => Temperature extra sensor 4, humidspare4 => Humidity extra sensor 4, tempspare5 => Temperature extra sensor 5, humidspare5 => Humidity extra sensor 5, tempspare6 => Temperature extra sensor 6, humidspare6 => Humidity extra sensor 6, tempspare7 => Temperature extra sensor 7, humidspare7 => Humidity extra sensor 7, tempspare8 => Temperature extra sensor 8, humidspare8 => Humidity extra sensor 8, tempspare9 => Temperature extra sensor 9, humidspare9 => Humidity extra sensor 9, tempspare10 => Temperature extra sensor 10, humidspare10 => Humidity extra sensor 10 " unless $config_parms{weather_graph_sensor_names};
+    $config_parms{altitude}=0 unless $config_parms{altitude};
+    $config_parms{ratio_sea_baro} = 10 unless $config_parms{ratio_sea_baro};
    }
 
 # Debug mode
@@ -1413,6 +1425,7 @@ sub create_rrdgraph_press {
     my $width = 600;		# graph drawing area --width in pixels
     my $coloraltbg = 'EEEEEE';		# alternating (with white) background color
     my $colormoypress = 'ff0000';		# color of primary variable average line (red)
+    my $colormoyseapress = 'FFCC00';		# color of primary variable average line (red)
     my $colorna = 'C0C0C0';	# color for unknown area or 0 for gaps (barre noire verticale)
     my $colorpress = '330099';		# color of wind chill
     my $colorwhite = 'FFFFFF';		# color white
@@ -1500,24 +1513,26 @@ for $celgtime (@$tabgtime) {
 .($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fminpress=minpress,0.029529987508,/\"," : "\"CDEF:fminpress=minpress\",") 
 ."\"DEF:maxpress=$rrd_dir:press:MAX\","
 .($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fmaxpress=maxpress,0.029529987508,/\"," : "\"CDEF:fmaxpress=maxpress\",") 
+."\"CDEF:seafvar=fvar," . $config_parms{altitude} . "," . $config_parms{ratio_sea_baro} . ",3.2808399,*,/,+\","
 . qq^
 "CDEF:wipeout=var,UN,INF,UNKN,IF", 
 "CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
 "AREA:background#$coloraltbg",
 
-"LINE2:fvar#$colormoypress:Average barometric pressure\\\\n",
-"AREA:fmaxpress#$colorpress:Barometric pressure",
+"LINE2:fvar#$colormoypress:Average absolute barometric pressure\\\\n",
+"AREA:fmaxpress#$colorpress:Absolute barometric pressure",
 "AREA:fminpress#$colorwhite",
 "LINE2:fvar#$colormoypress",
 "GPRINT:fminpress:MIN:Min \\\\: %2.1lf",
 "GPRINT:fmaxpress:MAX:Max \\\\: %2.1lf",
 "GPRINT:fvar:AVERAGE:Avg \\\\: %2.1lf",
-"GPRINT:fvar:LAST:Last \\\\: %2.1lf\\\\n",
+"GPRINT:fvar:LAST:Last \\\\: %2.1lf",
+"GPRINT:seafvar:LAST:(sea level \\\\: %2.1lf)\\\\n",
 ^
-. ($config_parms{weather_uom_baro} eq 'mb' ? "\"HRULE:1013.2#$colorzero\",":"\"HRULE:29.9#$colorzero\",")
+. ($config_parms{weather_uom_baro} eq 'mb' ? "\"HRULE:1013.25#$colorzero\",":"\"HRULE:29.9#$colorzero\",")
 . qq^
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna\\\\n\\\\n",
 ^
 . "\"COMMENT:Start time \: $starttime   Step size \: "
 . convertstep($step)

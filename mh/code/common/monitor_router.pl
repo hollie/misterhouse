@@ -32,7 +32,7 @@
  To enable loging on a Linksys, set Enable Access log on the log tab.
  Leaving 'Send log to: ...255' will let any local computer monitor the log
 
- To enable logging on a Netgear rounter, telnet router, 
+ To enable logging on a Netgear rounter, telnet router,
   select option 24 -> 3 -> 2, then fill it in something like this:
  Menu 24.3.2 - System Maintenance - UNIX Syslog
 
@@ -57,7 +57,7 @@ my %router_time_prev;
 my $router_count = 0;
 my $router_loops = 0;
 my $router_server_hits = 0;
- 
+
 use vars '%router_ip_times';  # This will save data between reloads
 
 $router = new Socket_Item(undef, undef, 'server_router');
@@ -73,7 +73,7 @@ if (my $packet = said $router) {
     unless ($config_parms{server_router_type}) {
         $config_parms{server_router_type} = ($config_parms{server_router_port} == 514) ? 'netgear' : 'linksys';
     }
-    
+
                                 # Netgear
     if ($config_parms{server_router_type} eq "netgear") {
 #Router data: <181>winter_router: IP[Src=168.191.93.23   Dst=192.168.0.5 TCP spo=02248  dpo=00080]}S05>R01nN>R02nF
@@ -94,7 +94,7 @@ if (my $packet = said $router) {
                                 # Linksys
     elsif ($config_parms{server_router_type} eq "linksys") {
 #Router data: 0é p?? .... +????Ps?? ?é +@out 192.168.0.2 8080 24.159.204.248 10325
-        $proto = 'TCP'; # Linksys only does TCP :( 
+        $proto = 'TCP'; # Linksys only does TCP :(
         ($dir, $ip_src, $port_in, $ip_dst, $port_out) = $packet =~
             /\@(in|out) (\S+) (\S+) (\S+) (\S+)/;
     }
@@ -158,7 +158,7 @@ if (my ($name, $name_short) = net_domain_name_done 'router') {
     if ($time_since_last_visit > 600) {
         $name_short =~ s/[\d\.]/ /g; # Get rid of digits and dots
         $name_short = 'unknown' if $name_short =~ /^ *$/;
-        
+
         print_log "Web hit from $name_short:  $name";
         if ($config_parms{internet_speak_flag} eq 'some' or
             $config_parms{internet_speak_flag} eq 'all') {
@@ -180,7 +180,7 @@ if (new_second 10 and $router_server_hits and $config_parms{internet_speak_flag}
     $router_server_hits = 0;
 }
                                 # Monitor how busy the router is for all traffic
-if (new_minute 30) {
+if (new_minute 60) {
     my $router_overload = int 100 * $router_count / $router_loops;
 #   $router_count = sprintf '%4.1f', $router_count / 1000;
     my $msg = "Router had $router_count packets (${router_overload}% packets-per-pass) of traffic in the last hour";
@@ -216,6 +216,5 @@ $router_client = new Socket_Item(undef, undef, $config_parms{router_address} . "
 if (said $router_reboot) {
     print_log 'Rebooting the router';
                                 # This walks down the NetGear menu to the reboot option
-    set_expect $router_client (Password => $config_parms{router_password}, Number => 24, Number => 4, Number => 11); 
+    set_expect $router_client (Password => $config_parms{router_password}, Number => 24, Number => 4, Number => 11);
 }
-

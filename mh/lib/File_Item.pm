@@ -97,7 +97,7 @@ my $file_handle_cnt = 0;
 sub said {
     my ($self) = @_;
 
-    no strict 'refs';           # Because of dynamic handle ref 
+    no strict 'refs';           # Because of dynamic handle ref
                                 # Could/should use object IO package here?
     my $handle = $$self{handle};
     unless ($handle) {
@@ -123,7 +123,7 @@ sub read_random {
     my ($self) = @_;
     my $record;
                                 # Note, random read will write over index
-                                #   ... lets us init to random spots in a file. 
+                                #   ... lets us init to random spots in a file.
     ($record, $$self{index}) = &main::read_record($$self{file}, 'random'); # From handy_utilities.pl
     return $record;
 }
@@ -135,6 +135,17 @@ sub read_next {
     return read_random $self unless defined $$self{index};
 
     ($record, $$self{index}) = &main::read_record($$self{file}, $$self{index} + 1);
+    return $record;
+}
+
+sub read_next_tail {
+    my ($self) = @_;
+    my $record;
+    unless(defined $$self{index}) {
+        # If there is no index (e.g. startup), start with the first record
+        $$self{index} = 0;
+    }
+    ($record, $$self{index}) = &main::read_record($$self{file}, $$self{index} + 1, 1);
     return $record;
 }
 
@@ -167,6 +178,9 @@ sub set_index {
 
 #
 # $Log$
+# Revision 1.13  2004/09/25 20:01:19  winter
+# *** empty log message ***
+#
 # Revision 1.12  2004/06/06 21:38:44  winter
 # *** empty log message ***
 #

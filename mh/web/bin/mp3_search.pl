@@ -24,7 +24,7 @@ my $show_details = 1;
 if (($string eq 'playlists') or ($string eq '')) {
     my ($playlists, %playfiles) = &mp3_playlists;
     $html = "<h3>No playlists found in mh/web/bin/mp3_search.pl</h3>" unless $playlists;
-    for my $playlist (sort keys %playfiles) {
+    for my $playlist (sort {my $c = $a; my $d = $b; $c =~ s/^the //i; $d =~ s/^the //i; uc($c) cmp uc($d)} keys %playfiles) {
         my $href = encode_url('"' . $playfiles{$playlist} . '"');
         $href  = "<a href='/sub?mp3_play($href)' target=invisible>";
         my $icon  = $href;
@@ -60,7 +60,7 @@ elsif ($string eq 'stations') {
 elsif ($string eq 'artists') {
     my %artists = &mp3_find_all('artist');
     $html = "<h3>No artists found in mh/web/bin/mp3_search.pl</h3>" unless keys %artists;
-    for my $artist (sort {uc $a cmp uc $b} keys %artists) {
+    for my $artist (sort {my $c = $a; my $d = $b; $c =~ s/^the //i; $d =~ s/^the //i; uc($c) cmp uc($d)} keys %artists) {
         my $href = encode_url(quotemeta($artist));
         my $n = $artists{$artist};
         $artist = 'none' if $artist eq '';
@@ -75,7 +75,7 @@ elsif ($string eq 'artists') {
 elsif ($string eq 'albums') {
     my %albums = &mp3_find_all('album');
     $html = "<h3>No albums found in mh/web/bin/mp3_search.pl</h3>" unless keys %albums;
-    for my $artistalbum (sort {uc $a cmp uc $b} keys %albums) {
+    for my $artistalbum (sort {my $c = $a; my $d = $b; $c =~ s/^the //i; $d =~ s/^the //i; uc($c) cmp uc($d)} keys %albums) {
         my ($artist, $album) = split $;, $artistalbum; 
         next if $album  eq '' or $albums{$artistalbum} < 3; 
         my $href = encode_url(quotemeta($album));

@@ -40,6 +40,51 @@ sub main::html_unescape {
     $todecode =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
     return $todecode;
 }
+
+sub main::html_decode($) {
+    my $ret = $_[0];
+    $ret =~ s/&amp;/&/;
+    $ret =~ s/&lt;/</;
+    $ret =~ s/&gt;/>/;
+    return $ret;
+}
+
+# Example usage:
+#   my $ebay_cookies = '';
+#   $f_ebay_login_headers = new File_Item "$config_parms{data_dir}/web/ebay_login.headers";
+#   $p_ebay_login = new Process_Item("get_url 'http://signin.ebay.com/ws2/eBayISAPI.dll?SignIn&ssPageName=h:h:sin:US' '/dev/null' '" . $f_ebay_login_headers->name . "'");
+#   start $p_ebay_login;
+#   if (done_now $p_ebay_login) {
+#      $ebay_cookies = &cookies_parse($f_ebay_login_headers, $ebay_cookies);
+#   }
+sub main::cookies_parse ($$) {
+    my ($file_item, $cookies) = @_;
+   # NOTE: Currently does not handle domains or expiration or anything... just
+   # adds all cookies to the list.  Could be improved, but I don't have a need
+   # to put in the effort at this time.
+    my ($name, $val);
+    foreach ($file_item->read_all()) {
+        if (($name, $val) = (/^Set-Cookie: ([^=]+)=([^;]+);.*/)) {
+            $cookies->{$name} = $val;
+        }
+    }
+    return $cookies;
+}
+
+# Example usage (continued from example for cookies_parse())
+# $p_ebay_watching->set("get_url -cookies '" . &cookies_generate($ebay_cookies) . "' '$url_ebay_watching' '" . $f_ebay_watching->name . "'");
+# $p_ebay_watching->start();
+sub main::cookies_generate ($$) {
+    my ($cookies) = @_;
+    my $ret = '';
+    foreach (keys %{$cookies}) {
+        $ret .= "$_=$cookies->{$_}; ";
+    }
+    $ret =~ s/;\s*$//;
+    return $ret;
+}
+
+
                                 # Checking registry keys is fast!  1 ms per call (1000 calls -> 1 second)
                                 #   print "Time used: ", timestr(timethis(1000, '&net_connect_check')), "\n";
                                 #   Call to dun::checkconnect took 100 ms (100 calls -> 10 seconds)
@@ -600,6 +645,8 @@ sub main::net_icq_signon {
     }
     return $icq_connection;
 }
+
+
 
 sub main::get_toc_connection {
 
@@ -1303,10 +1350,42 @@ sub main::net_socket_check {
     }
 }
 
+sub main::url_last_modified {
+      my $url = shift;
+      my $ua = LWP::UserAgent->new();
+      my $rq = HTTP::Request->new(HEAD => $url);
+      my $rp = $ua->request($rq);
+      if ($rp) {
+         print $rp->last_modified if $main::Debug{http};
+         return &time2str($rp->last_modified);
+      }
+      else {
+         return 'Not known';
+      }
+}
+
+sub main::url_changed {
+    my ($url, $name) = @_;
+    $name = substr($url,7) unless $name;
+    my $previous_modified = $main::Save{"url_date:$name"};
+    my $last_modified = &main::get_last_modified($url);
+    if ($previous_modified ne $last_modified) {
+        $main::Save{"url_date:$name"} = $last_modified;
+        return 1;
+    }
+    else {
+        return;
+    }
+}
+
+
 1;
 
 #
 # $Log$
+# Revision 1.59  2004/09/25 20:01:19  winter
+# *** empty log message ***
+#
 # Revision 1.58  2004/07/30 23:26:38  winter
 # *** empty log message ***
 #

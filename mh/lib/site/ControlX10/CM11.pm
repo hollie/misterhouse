@@ -16,7 +16,7 @@ require Exporter;
 @EXPORT= qw( send_cm11 receive_cm11 read_cm11 dim_decode_cm11 ping_cm11);
 @EXPORT_OK= qw();
 %EXPORT_TAGS = (FUNC    => [qw( send_cm11   receive_cm11
-				read_cm11   dim_decode_cm11 
+				read_cm11   dim_decode_cm11
  				ping_cm11 )]);
 
 Exporter::export_ok_tags('FUNC');
@@ -62,12 +62,12 @@ my %table_dcodes  = qw(1 0110  2 1110  3 0010  4 1010  5 0001  6 1001  7 0101  8
                        9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
                        A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
 my %table_fcodes  = qw(J 0010  K 0011  M 0100  L 0101  O 0001  P 0000
-                       ALL_OFF 0000  ALL_ON  0001  ON 0010 OFF 0011 DIM 0100 BRIGHT 0101 
-                       -10 0100 -20 0100 -30 0100 -40 0100 
+                       ALL_OFF 0000  ALL_ON  0001  ON 0010 OFF 0011 DIM 0100 BRIGHT 0101
+                       -10 0100 -20 0100 -30 0100 -40 0100
                        -15 0100 -25 0100 -35 0100 -45 0100 -5  0100
-                       -50 0100 -60 0100 -70 0100 -80 0100 -90 0100 
+                       -50 0100 -60 0100 -70 0100 -80 0100 -90 0100
                        -55 0100 -65 0100 -75 0100 -85 0100 -95 0100 -100 0100
-                       +10 0101 +20 0101 +30 0101 +40 0101 
+                       +10 0101 +20 0101 +30 0101 +40 0101
                        +15 0101 +25 0101 +35 0101 +45 0101 +5  0101
                        +50 0101 +60 0101 +70 0101 +80 0101 +90 0101
                        +55 0101 +65 0101 +75 0101 +85 0101 +95 0101 +100 0101
@@ -81,7 +81,9 @@ my %table_hcodes2 = qw(0110 A  1110 B  0010 C  1010 D  0001 E  1001 F  0101 G  1
                        0111 I  1111 J  0011 K  1011 L  0000 M  1000 N  0100 O  1100 P);
 my %table_dcodes2 = qw(0110 1  1110 2  0010 3  1010 4  0001 5  1001 6  0101 7  1101 8
                        0111 9  1111 A  0011 B  1011 C  0000 D  1000 E  0100 F  1100 G);
-my %table_fcodes2 = qw(0010 J  0011 K  0100 L  0101 M  0001 O  0000 P 
+                                # Yikes!  L and M are swapped!   If we fix it here, we also
+                                # have to fix it elsewhere (maybe only in bin/mh, $f_code test)
+my %table_fcodes2 = qw(0010 J  0011 K  0100 L  0101 M  0001 O  0000 P
                        0111 Z 1010 PRESET_DIM1 1011 PRESET_DIM2
                        1101 STATUS_ON   1110 STATUS_OFF 1111 STATUS);
 
@@ -103,7 +105,7 @@ sub receive_buffer {
     select undef, undef, undef, 80 / 1000;
 
     my $data;
-    return undef unless $data = &read($serial_port, 1); 
+    return undef unless $data = &read($serial_port, 1);
 
 #   my $data = &read($serial_port);
 
@@ -121,7 +123,7 @@ sub receive_buffer {
 
     undef $data;
     foreach my $byte (@bytes) {
-              # Send extended data into MH as untranslated hex.           
+              # Send extended data into MH as untranslated hex.
         if ($extended_count) {
            $data .= unpack('H*', $byte);
            --$extended_count;
@@ -191,10 +193,10 @@ sub format_data {
         $extended = '1';
         $dim_level = 0;         # Dim level is not applicable to extended transmitions.
 
-                                # Hard codeded preset for now ... 
+                                # Hard codeded preset for now ...
 
                                 # This is not documented!!  By looking at
-                                # ActiveHome errata, it seems the device code is required 
+                                # ActiveHome errata, it seems the device code is required
                                 #  - $Last_Dcode is a hack ... assume previous selected device.
         my $extended_device = '0000' . $table_dcodes{$Last_Dcode};
         my $extended_code = '00110001'; # Type=3 => Control Modules  Func=1 => Preset Receiver
@@ -246,7 +248,7 @@ sub format_data {
     $header .= '1';             # Bit 2 is always set to a 1 to ensure synchronization
     $header .= $function;       # 0 for address,  1 for function
     $header .= $extended;       # 0 for standard, 1 for extended transmition
-    
+
                                 # Convert from bit to string
     my $b1 = pack('B8', $header);
     my $b2 = pack('B8', $house_bits . $code_bits);
@@ -264,12 +266,12 @@ sub format_data {
     }
 
     printf("CM11 dim=$dim header=$header hb=$house_bits cb=$code_bits " .
-           "bd=0x%0.2x,0x%0.2x checksum=0x%0.2x\n", 
+           "bd=0x%0.2x,0x%0.2x checksum=0x%0.2x\n",
            $b1d, $b2d, $checksum) if $DEBUG;
 
     return $data, $checksum;
-    
-}    
+
+}
 
 sub send {
     my ($serial_port, $house_code) = @_;
@@ -289,7 +291,7 @@ sub send {
 
                                 # Note: Skip the power fail check, because we the
                                 # checksum might be the power fail flag (0xa5)
-    my $data_rcv = &read($serial_port, 0, 1); 
+    my $data_rcv = &read($serial_port, 0, 1);
 #   my $data_rcv;
 #   return unless $data_rcv = &read($serial_port, 0, 1);
 
@@ -331,7 +333,7 @@ sub send {
 sub read {
     my ($serial_port, $no_block, $no_power_fail_check) = @_;
     my $data;
-                                # Note ... for dim commands > 30, this will time out after 30*50=1.5 seconds 
+                                # Note ... for dim commands > 30, this will time out after 30*50=1.5 seconds
                                 # No harm done, but we would rather not wait :)
     my $tries = ($no_block) ? 1 : 30;
 
@@ -365,7 +367,7 @@ sub read {
         else {
             $serial_port->reset_error;
         }
-        
+
         if ($tries) {
             select undef, undef, undef, 50 / 1000;
         }
@@ -407,7 +409,7 @@ sub reset_cm11 {
     &setClock ( @_ );
 }
 
-                                # This currently gets bad checksums :( 
+                                # This currently gets bad checksums :(
                                 # On windows, it gives Parity Errors.
 sub enable_RI {
     my ($serial_port) = @_;
@@ -430,7 +432,7 @@ sub enable_RI {
 
                                 # Tell the CM11 to do it
     $serial_port->write(pack('C',$ack));
-    
+
     do {
         $checksum = $serial_port->input;
     } until $checksum;
@@ -475,17 +477,17 @@ sub setClock {
     $Yday2 |= $Dmask;            # OR the two fields together to get one
     my $CodeF = 0x06 << 4;          # Put "A" housecode in upper nibble
     $CodeF |= 0x07;              # Put 0b0111 in lower nibble (battery,monitor, & timer cleared)
-    my $power_reset = pack('C7', 
-                           0x9b, 
+    my $power_reset = pack('C7',
+                           0x9b,
                            $Second,
                            $Minute,
-                           $Hour,  
+                           $Hour,
                            $Yday1,
                            $Yday2,
                            $CodeF);
 #                           $Wday,
 #                           0x03);    # Not sure what is best here.  x10d.c did this.
-            
+
     my $results = $serial_port->write($power_reset);
     select undef, undef, undef, 50 / 1000;
     my $checksum = $serial_port->input; # Receive, but ignore, checksum
@@ -507,16 +509,16 @@ sub ping {
     my $checksum;
     my $counter;
     my $maxcounter = 10000;
-    
+
     # Send RI Enable code to CM11
     $serial_port->write(pack('C',$ri_on));
-    
+
     $counter = 0;
     do {
         $checksum = $serial_port->input;
         $counter++;
     } until (($checksum) || ($counter == $maxcounter));
-    
+
     return 0 if ($counter == $maxcounter);
 
     print "cm11::ping - checksum: got: 0x", unpack('H2',$checksum),"\n" if $DEBUG;
@@ -538,7 +540,7 @@ sub ping {
         $checksum = $serial_port->input;
         $counter++;
     } until (($checksum) || ($counter == $maxcounter));
-    
+
     print "cm11::ping - checksum: got: 0x", unpack('H2',$checksum),"\n" if $DEBUG;
 
     if (($checksum ne pack('C',$done)) && $DEBUG) {
@@ -731,7 +733,7 @@ may be received from a CM11 and will be properly decoded.
            45    AF        95    P8
 
 =back
-    
+
 =head1 EXPORTS
 
 The B<send_cm11>, B<receive_cm11>, B<read_cm11>, and B<dim_decode_cm11>
@@ -792,6 +794,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.22  2004/09/25 20:01:20  winter
+# *** empty log message ***
+#
 # Revision 2.21  2004/06/06 21:38:44  winter
 # *** empty log message ***
 #

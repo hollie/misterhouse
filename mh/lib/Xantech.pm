@@ -9,6 +9,9 @@
 #    bsobel@vipmail.com
 #    July 19, 2000
 #
+#    Modified for use on ZPR68-10 by lou@montulli.org
+#    Sept 6, 2004
+#    Added a bunch of setstate methods
 #
 
 use strict;
@@ -156,6 +159,16 @@ sub new
 {
     my ($class, $zone) = @_;
 
+    # see if this zone is already in the object list
+    # if it is then return the exiting one
+    for my $current_zone_object (@xantech_zone_object_list)
+    {
+       if ($current_zone_object->{zone} == $zone)
+       {
+	  return $current_zone_object;
+       }
+    }
+
     my $self = {zone => $zone};
     bless $self, $class;
 
@@ -199,6 +212,13 @@ sub PrevInput
     return $Return < 1 ? 8 : $Return;
 }
 
+sub getstate_mute
+{
+    my ($self, $substate) = @_;
+
+    return $self->{current_mute};
+}
+
 sub ToggleMute
 {
     my ($self) = @_;
@@ -224,6 +244,13 @@ sub SendCommand()
 #
 # Set functions...
 #
+
+sub getstate_zone
+{
+    my ($self, $substate) = @_;
+
+    return $self->{zone};
+}
 
 sub setstate_off
 {
@@ -258,6 +285,13 @@ sub setstate_unquiet
     my ($self, $substate) = @_;
     print "Xantech received set_on with '$substate' substate\n";
     $self->SendCommand("QN");
+}
+
+sub getstate_volume
+{
+    my ($self, $substate) = @_;
+
+    return $self->{current_volume};
 }
 
 sub setstate_volume
@@ -302,6 +336,13 @@ sub setstate_down
     $self->set_volume('up');
 }
 
+sub getstate_input
+{
+    my ($self, $substate) = @_;
+
+    return $self->{current_input};
+}
+
 sub setstate_input
 {
     my ($self, $substate) = @_;
@@ -331,11 +372,25 @@ sub setstate_prev
     $self->set_input('prev');
 }
 
+sub getstate_treble
+{
+    my ($self, $substate) = @_;
+
+    return $self->{current_treble};
+}
+
 sub setstate_treble
 {
     my ($self, $substate) = @_;
     $self->SendCommand(sprintf("T%2.2d",$substate));
 }
+sub getstate_bass
+{
+    my ($self, $substate) = @_;
+
+    return $self->{current_bass};
+}
+
 
 sub setstate_bass
 {
