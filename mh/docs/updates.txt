@@ -3,7 +3,7 @@ Mister House Announcement List
     mailing list (an archive of all the list messages is at
     http://sourceforge.net/mail/?group_id=1365 )
 
-  Version 2.70 posted on 08/??/2002
+  Version 2.70 posted on 08/22/2002
 
     Version 2.70 was just uploaded to:
 
@@ -12,8 +12,12 @@ Mister House Announcement List
 
     New Features:
 
-    - Chris Witte's created mh/lib/caddx.pm and mh/code/public/caddx.* for
+    - Chris Witte created mh/lib/caddx.pm and mh/code/public/caddx.* for
     monitoring the outputs from a CADDX nx8e alarm panel.
+
+    - Ernie Oporto updated lib/site/Hardware/iButton/Device.pm to add the
+    capability to read DS2438-based humidity sensors. Example in
+    mh/code/public/iButton_ws_ernie.pl.
 
     - Ryan Scott suggested we create a web/bin/get_state.pl function for
     returning object states for use by other programs, like php. As another
@@ -25,17 +29,24 @@ Mister House Announcement List
     some. It is what I used for the mh related photos at:
     http://misterhouse.net:81/pictures
 
-    - Ernie Oporto updated lib/site/Hardware/iButton/Device.pm to add the
-    capability to read DS2438-based humidity sensors. Example in
-    mh/code/public/iButton_ws_ernie.pl.
+    - Paul Chamberlain suggested we create an undo function. I added a 'Undo
+    the last action' to mh/code/common/mh_control.pl. Currently it only
+    changes the last changed X10_Item, but could be updated to allow for
+    non-X10 items.
+
+    - Clint Dimick suggested we add a light/dark state option to X10_Sensor.
+    This is enabled if you pass in MS13 (the model number of the popular X10
+    Hawkeye motion sensor) to the end of your mht X10MS table entry (see
+    X10_Sensor in doc/mh.pod for an example). State names are now
+    motion/still and light/dark (if MS13 is specified).
 
     Bug Fixes and Other Changes:
 
     - Mark Miller noticed that mh.ini some records without blanks padded
     around the '=' were not parsed correctly.
 
-    - Craig Schaeffer noticed code/public/internet_ip_update.pl had and
-    bogus 'inline' parm to a Process_Item call.
+    - Craig Schaeffer noticed code/public/internet_ip_update.pl had a bogus
+    'inline' parm to a Process_Item call.
 
     - Larry Roudebush found a site hosting the lost linux IBM Viavoice files
     (install docs updated).
@@ -46,11 +57,7 @@ Mister House Announcement List
     - Wally Kissel found an updated version of Win32::DriveInfo.pm worked
     better on his Win2k box.
 
-    I'm a little uncertain of the calculation being done for humidity, but
-    I'm hoping someone will correct me on it. I've included some comments
-    from datasheets so that people can see where the current calcs come from
-
-    - Max Kelly send in mh/code/public/internet__hebcal.pl for for
+    - Max Kelly send in mh/code/public/internet_hebcal.pl for for
     downloading a shabbat calendar.
 
     - Andy Oldfield updated get_url useragent option to use agent and
@@ -65,6 +72,28 @@ Mister House Announcement List
 
     - Brian Rudy updated mh/code/public/weather_aws.pl
 
+    - Bill Sobel made 2 changes to tie_items. The first was to allow for
+    cross-tied items, so you can set either item have have them reflect each
+    others state. The other was to allow for multiple tied states to a
+    controlling state.
+
+    - Clive Freedman created mh/code/examples/test_socket2.pl to show how we
+    can have different mh boxes communicated to each other's mhsend_server
+    sockets.
+
+    - Walter Leemput found a problem with system calls done while a
+    Process_Item was active (mh would pause).
+
+    - Richard Phillips added a mp3 xmms 'now playing' option to the web
+    status bar script, web/bin/status.pl.
+
+    - Neil Cherry noticed "'CHLD' isn't numeric" errors that we fixed with
+    an update to the waitpid call in &sig_child_death.
+
+    - David Norwood fixed get_tv_grid to not re-get data when "preserveRaw"
+    is off. He also changed the url tvlistings as his provider id kept
+    changing every week on tvlistings2.
+
     - Fixed the 1.69 web menu dim button.
 
     - Added an --outdir option to image_resize, so we can store our resized
@@ -72,14 +101,25 @@ Mister House Announcement List
 
     - Added a no_response option to .menu files.
 
+    - Added a 'R: href=url' .menu file response option, so you can point to
+    other web pages when web browsing menus.
+
     - Added a time_catchup_skip parm, to allow for skipping mh pause catchup
     mode on hybernated laptops. Default is a large number. More info in
     mh.ini help text.
 
-    - Added a 'R: href=url' menu response option, so you can point to other
-    web pages when web browsing menus.
-
     - Added a 'list voice commands' command in code/commond/mh_control.pl.
+
+    - Fixed 2 wap phone problems. Blanks in menu names (e.g. 'Astro Time')
+    were causing compile errors on some phones/browsers and recent
+    wav->browser support was causing errors errors from some commands. Most
+    wap phones don't do wml with wav files very well :).
+
+    - Added an empty file to mh/web/cache. Clive Freedman noticed his unzip
+    programs was not creating this directory because it was empty.
+
+    - Drop / suffix on http file requests that the goofy Audrey sometimes
+    adds on pushed wav urls.
 
   Version 2.69 posted on 07/03/2002
 

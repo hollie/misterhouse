@@ -7,7 +7,7 @@
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
 
-=head2 Version 2.70 posted on 08/18/2002
+=head2 Version 2.70 posted on 08/22/2002
 
 Version 2.70 was just uploaded to:
 
@@ -16,7 +16,7 @@ Version 2.70 was just uploaded to:
 
 B<New Features:>
 
-- Chris Witte's created mh/lib/caddx.pm and mh/code/public/caddx.* 
+- Chris Witte created mh/lib/caddx.pm and mh/code/public/caddx.* 
 for monitoring the outputs from a CADDX nx8e alarm panel.
 
 - Ernie Oporto updated lib/site/Hardware/iButton/Device.pm 

@@ -1260,6 +1260,18 @@ Do you have any of those handy little X10 MS12A battery-powered motion sensors?
 Here's your answer - use the X10_Sensor instead of the Serial_Item when you define
 it, and your house will notice when your sensor hasn't been tripped in 24 hours,
 allowing you to check on the batteries.
+<P>If you have an sensor that detects and sends codes for daytime and nighttime (light and dark levels), 
+pass in a model number of MS13.  For the id, you can use the 2 character, or 5 character X10 code.
+Here are some examples:</P>
+<PRE>
+  $sensor_hall = new X10_Sensor('A4', 'sensor_hall', 'MS13');</PRE>
+<PRE>
+ .mht table examples:</PRE>
+<PRE>
+   X10MS,      XA2AJ,  sensor_bathroom,       Sensors|Upstairs
+   X10MS,       A4,    sensor_hall,           Sensors|Downstairs,  MS13</PRE>
+<P>With MS13 specified, it will return states named motion,still,light, and dark.
+Without the MS13 model number, the light/dark codes will be ignored.</P>
 <P></P>
 <DT><STRONG><A NAME="item_RCS_TX15">RCS_TX15</A></STRONG><BR>
 <DD>

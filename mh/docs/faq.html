@@ -210,16 +210,23 @@ Examples can be found in mh/lib/site/test_cm11.pl and test_cm17.pl.</P>
 <P>- Write commands to the file specified in the mh.ini xcmd_file parm.  By default this
 is mh/house_cmd.txt. See mh/bin/house and mh/bin/house.bat for examples.</P>
 <P>- Use mh/bin/mhsend to send commands via sockets (can be over the internet).  If you have
-run mh/bin/set_password, the mhsend -password parm is required.   To enable this, include
-the code mh/test/code/mhsend_server.pl in your code directory.</P>
-<P>For example, from a computer on your network, you can run this:</P>
+run mh/bin/set_password, the mhsend -password parm is required.   Some examples:</P>
 <PRE>
- .../mh/bin/mhsend -host ip.A -run &quot;All Lights On&quot;</PRE>
+  mh/bin/mhsend -host ip.A -run &quot;All Lights On&quot;
+  mhsend -p password -run &quot;turn living room light on&quot;</PRE>
 <P>Where ip.A is computer A's ip address (or name if you have a HOST file setup
 to alias a name to an ip address).  mhsend is a stand alone perl script,
-so you do not need mh running there (although it will not hurt).</P>
-<P>You can also control mh remotely via email (see faq question 'Can do I send mh comands via email?'),
-telnet sessions (if running mh/code/test/telent.pl), and via the built in web server.</P>
+so you do not need mh running there (although it will not hurt).
+The code that allows this is in mh/code/common/mhsend_server.pl.
+An example of mh code to act as a client to different mh box is in mh/code/examples/test_server2.pl</P>
+<P>- You can also control mh remotely via email (see faq question 'Can do I send mh comands via email?'),
+telnet sessions (if running mh/code/test/telent.pl), and via the built in web server.  An example url
+for the web server is:</P>
+<PRE>
+  <A HREF="http://192.168.1.10:8080/RUN">http://192.168.1.10:8080/RUN</A>;last_response?turn_living_room_light_on</PRE>
+<P>- If you are runing IM client (if running code file internet_im.pl) 
+like AOL AIM, MSN, or Jabber, you can any voice command to 
+MisterHouse if you give Misterhouse its own account to logon with.</P>
 <P>
 <H2><A NAME="1.11: how can i debug a problem">1.11: How can I debug a problem?</A></H2>
 <P>Lots of debug errata can be controled with the mh -debug switch.  Most of this code is probably 

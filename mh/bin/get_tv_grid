@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2002-08-20 08:24:11 winter>
+#  Last change Time-stamp: <2002-08-22 19:36:28 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -1113,6 +1113,21 @@ sub fetchLoop
          my $outfile = "$parms{outdir}/${day}_${startHour}.html";
          $outfile = $parms{outfile} if ( $parms{outfile} );
 
+
+         #------------------------------------------------------------
+         # Find listing for "prime time" and make it the default index file.
+         # Also, email it to someone if we have the means of doing so.
+         #------------------------------------------------------------
+         if ( $day == (localtime(time))[3] and $startHour >  17 and $startHour <= 20) 
+         {
+            use File::Copy;
+            copy($outfile, "$parms{outdir}/index.html");
+            if ($parms{mail_to}) 
+              {
+                  &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year");
+              }
+         }
+
          #------------------------------------------------------------
          # If output file already exists, and is recent enough, use
          # keep it instead of re-downloading. 
@@ -1146,19 +1161,6 @@ sub fetchLoop
             unlink( $rawFile );
          }
 
-         #------------------------------------------------------------
-         # Find listing for "prime time" and make it the default index file.
-         # Also, email it to someone if we have the means of doing so.
-         #------------------------------------------------------------
-         if ( $day == (localtime(time))[3] and $startHour >  17 and $startHour <= 20) 
-         {
-            use File::Copy;
-            copy($outfile, "$parms{outdir}/index.html");
-            if ($parms{mail_to}) 
-              {
-                  &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year");
-              }
-         }
       }
    }
 
