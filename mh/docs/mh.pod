@@ -1448,6 +1448,15 @@ to be aware of events that DSC alarm systems log to their event buffers.
      alarm_now    : True when system enters Alarm state.  Valid for 1 pass only.
 
      zone         : Zone number that caused Alarm. Valid only when alarm_now is true.
+    
+     mode         : Returns arming mode. Valid only when state = Armed.
+                    Stay = System armed in stay mode; User pressed F1 key before arming.
+                    Away = System armed in away mode; User pressed F2 key (or nothing) before arming
+
+                    Note: Most DSC systems will not arm in "Stay" mode unless at least one zone
+                          is defined as a "Stay/Away" zone.  Also, even when "Away" mode is requested
+                          system will be in "Stay" mode unless a delay zone is violated during the
+                          exit delay.
 
      Most other Generic_Item methods, such as "state_log", are valid.
 
@@ -3645,6 +3654,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.37  2001/02/07 01:18:10  danal
+# Documented "mode" method for DSC_Alarm objects
+#
 # Revision 1.36  2001/02/04 20:31:31  winter
 # - 2.43 release
 #
