@@ -11,7 +11,7 @@ use vars qw(%Http %Cookies %Included_HTML);
 $Authorized = 0;
 
 my($leave_socket_open_passes, $leave_socket_open_action);
-my($Cookie, $H_Response, $html_pointer_cnt, %html_pointers, $browser_format);
+my($Cookie, $H_Response, $html_pointer_cnt, %html_pointers);
 
 my %mime_types = (
                   'htm'   => 'text/html',
@@ -971,12 +971,35 @@ sub http_speak_to_wav_finish {
 # EMBED             works with Konqueror (with plugin)
 # Embed gives controls, BGSOUND is invisible
 # Volume, with and without %, does not work (at least not in IE or Audrey)
+
     if ($wav_file) {
-#       $html .= "\n<br><EMBED SRC='$wav_file' VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
-#       $html .= "\n<br><BGSOUND SRC='$wav_file' VOLUME=20>\n";
-        $html .= "\n<br><EMBED SRC='$wav_file'  VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n" . 
-                       "<NOEMBED><BGSOUND SRC='$wav_file'></NOEMBED>\n";
-#       $html .= "<a href='$wav_file'>Listen to wav</a>\n";
+                          # Allow for different formats for different browsers
+        my $format = $config_parms{'html_wav_format' . $Http{format}};
+
+                                # This seems clever, but seems not to work :(
+        if ($format =~ /frame/i) {
+            print "db h=$html wf=$wav_file\n";
+            $html .= qq|
+   <FRAMESET ROWS="99%,*">
+   <NOFRAMES>
+     This document must be viewed using a frame-enabled browser.
+   </NOFRAMES>
+     <FRAME SRC="$html">
+     <FRAME SRC="$wav_file">
+   </FRAMESET>
+|;
+        }
+        elsif ($format =~ /link/) {
+            $html .= "<a href='$wav_file'>Listen to wav</a>\n";
+        }
+        elsif ($format =~ /bgsound/) {
+            $html .= "\n<br><BGSOUND SRC='$wav_file' VOLUME=20>\n";
+        }
+        else {
+            $html .= "\n<br><EMBED SRC='$wav_file' VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
+#           $html .= "\n<br><EMBED SRC='$wav_file'  VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n" . 
+#             "<NOEMBED><BGSOUND SRC='$wav_file'></NOEMBED>\n";
+        }
     }
 
                                 # Without this, IE loads the file too quick??
@@ -2699,6 +2722,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.80  2003/04/20 21:44:08  winter
+#  - 2.80 release
+#
 # Revision 1.79  2003/03/09 19:34:42  winter
 #  - 2.79 release
 #

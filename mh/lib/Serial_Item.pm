@@ -31,6 +31,7 @@ sub new {
     &add($self, $id, $state);
     bless $self, $class;
     $self->set_interface($port_name) if $id and $id =~ /^X/;
+    $self->state_overload('off'); # By default, do not process ~;: strings as substate/multistate
     return $self;
 }
 sub add {
@@ -228,8 +229,11 @@ sub set {
     return unless %main::Serial_Ports;
 
 
-                                # First deal with X10 strings...
-    if ($serial_data =~ /^X/ or $self->isa('X10_Item')) {
+                                # First deal with X10 strings.  Assume X10 capable if interface is set.
+                                # Ideally, we would test for specific X10 interfaces, but so far it only
+                                # gets set if it is an X10 interface.
+    if (($serial_data =~ /^X/ and $interface ne '') or $self->isa('X10_Item')) {
+
                                 # allow for xx% (e.g. 1% -> &P1)
                                 #  ... need to allow for multiple X10 commands data here?
         if ($serial_data =~ /(\d+)%/) {
@@ -536,6 +540,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.64  2003/04/20 21:44:07  winter
+#  - 2.80 release
+#
 # Revision 1.63  2003/03/09 19:34:41  winter
 #  - 2.79 release
 #

@@ -550,7 +550,8 @@ sub SetDigitalInputState
         # Make sure the item is within the range of 8 status bits returned, skip if not
         next unless ($current_object->{address} > (($base-1) * 8)) and ($current_object->{address} <= ($base * 8));
 
-        my $unitbit = 1 << ($current_object->{address}-1);
+#       my $unitbit = 1 << ($current_object->{address}-1);
+        my $unitbit = 1 << ($current_object->{address}-1)-($base-1)*8;
 
         my $newstate;
 	if ($current_object->invert() == 1)
@@ -1241,8 +1242,8 @@ sub set_audio
 
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
 
-	my %table_input = qw(li 02 ic 03 co 04);
-	my %table_output = qw(lo 02 co 04 ic 08);
+	my %table_input = qw(li 02 ic 03 co 04 icm 03);
+	my %table_output = qw(lo 02 co 04 ic 08 icm 08);
 	my %table_state = qw(off 00 on 01);
 
 ##%5d010402 CoLoConnect
@@ -1702,6 +1703,7 @@ sub patch
 {
 	my ($self,$p_state)= @_;
 	
+	&::print_log("***PATCH ***:" . $self->address() . ":" . $p_state);
 	if ($p_state eq 'on')
 	{
 		&Stargate::set_audio('li',$self->address(),'on');
@@ -1765,11 +1767,11 @@ sub hook
 	
 	if ($p_state eq 'on')
 	{
-		&Stargate::send_telephone('+');
+		&Stargate::send_telephone($$self{serial_port},'+');
 	}
 	elsif (defined $p_state)
 	{
-		&Stargate::send_telephone('^');
+		&Stargate::send_telephone($$self{serial_port},'^');
 	}
 	return $self->SUPER::hook($p_state);
 }

@@ -36,21 +36,32 @@ sub set {
     }
     $respond = $main::Respond_Target unless $respond;
 
-
                                 # Handle overloaded state processing
-    my ($primarystate, $substate) = split(/:/, $state, 2);
-    my $setcall = 'setstate_' . lc($primarystate);
-    if($self->can($setcall)) {
+    unless ($self->{states_nosubstate}) {
+        my ($primarystate, $substate) = split(/:/, $state, 2);
+        my $setcall = 'setstate_' . lc($primarystate);
+        if($self->can($setcall)) {
                           # Some devices may need to wait for the set to occur
                           # (for example the Compool which doesn't actually change a state
                           # until the device has confirmed the requested action has been performed)
-        return if $self->$setcall($substate, $set_by, $respond) == -1;
+            return if $self->$setcall($substate, $set_by, $respond) == -1;
+        }
+        elsif($self->can('default_setstate')) {
+            print "dbx ps=$primarystate ss=$substate\n";
+            return if $self->default_setstate($primarystate, $substate, $set_by, $respond) == -1;
+        }
+        elsif ($self->can('default_setrawstate')) {
+            return if $self->default_setrawstate($state, $set_by, $respond) == -1;
+        }
     }
-    elsif($self->can('default_setstate')) {
-        return if $self->default_setstate($primarystate, $substate, $set_by, $respond) == -1;
-    }
-    elsif($self->can('default_setrawstate')) {
-        return if $self->default_setrawstate($state, $set_by, $respond) == -1;
+                                # Allow for default setstate methods
+    else {
+        if ($self->can('default_setstate')) {
+            return if $self->default_setstate($state, undef, $set_by, $respond) == -1;
+        }
+        elsif ($self->can('default_setrawstate')) {
+            return if $self->default_setrawstate($state, $set_by, $respond) == -1;
+        }
     }
 
     &set_states_for_next_pass($self, $state, $set_by, $respond);
@@ -185,6 +196,15 @@ sub state_log {
     return @{$$self{state_log}} if $$self{state_log};
 }
 
+                                # Allow for turning off ~;: state processing
+sub state_overload {
+    my ($self, $flag) = @_;
+    if (lc $flag eq 'off') {
+        $self->{states_nomultistate} = 1;
+        $self->{states_nosubstate}   = 1;
+    }
+}
+        
 sub set_icon {
     return unless $main::Reload;
     my ($self, $icon) = @_;
@@ -499,6 +519,9 @@ sub get_web_style {
 
 #
 # $Log$
+# Revision 1.27  2003/04/20 21:44:07  winter
+#  - 2.80 release
+#
 # Revision 1.26  2003/02/08 05:29:23  winter
 #  - 2.78 release
 #

@@ -1,5 +1,5 @@
 
-# Category = MisterHouse
+# Category = X10
 
 #@ This module resets all X10 items after a power fail or when selected manually.
 

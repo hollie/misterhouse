@@ -1,10 +1,11 @@
 # Category = Informational
 
 #@ This module will announce when an Iridium Satellite flash is about
-#@ to occur. There are 66 or so (defunct) Iridium communications
+#@ to occur. There are 66 or so Iridium communications
 #@ satellites that periodically reflect the sun's rays to the ground.
 #@ You must have valid latitude, longitude, and time_zone values set
-#@ in your mh.private.ini file.
+#@ in your mh.private.ini file.  Optionally set a mh.ini 
+#@ iridium_brightness parm to limit announcments of only the brigher flares.
 
 =begin comment
 
@@ -84,7 +85,7 @@ eof
 
                                 # Create a seperate code file with a time_now for each event
             print MYCODE<<eof;
-            if (\$Dark and time_now '$time - 0:02') {
+            if (\$Dark and time_now '$time - 0:02' and $a[3] <= \$config_parms{iridium_brightness}) {
                 my \$msg = "Notice: $a[9] satellite $a[10] will have a magnitude $a[3] flare in 2 minutes ";
                 \$msg .= "at an altitude of $a[4], azimuth of $a[5].";
                 speak "app=timer \$msg";

@@ -40,19 +40,19 @@ if ($MW and $Reload) {
         $Tk_objects{cmd_list}->pack(qw/-side top -expand 1 -fill both/);
 
         $Tk_objects{msg_window} = $Tk_objects{ftl}->
-            Scrolled('Text', -height=> 5, -width => 30, -bg => 'white', -wrap => 'none', -scrollbars => 'se')->
+            Scrolled('Text', -height=> 1, -width => 30, -bg => 'white', -wrap => 'none', -scrollbars => 'se')->
                 pack(qw/-side top -expand 0 -fill both/);
         &print_msg("Started");
 
                                 # Add speak and log windows to bottom frame
         $Tk_objects{speak_window} = $Tk_objects{fb}->
-            Scrolled('Text', -height => 7, -width => 40, -bg => 'cyan', -wrap => 'none', -scrollbars => 'se',
+            Scrolled('Text', -height => 5, -width => 40, -bg => 'cyan', -wrap => 'none', -scrollbars => 'se',
                      -setgrid => 'true', -font => $config_parms{tk_font_fixed})->
                          pack(qw/-side top -expand 1 -fill both/);
         $Tk_objects{speak_window}->insert('0.0', (join "\n", @Speak_Log)); # Seed with previous entries
 
         $Tk_objects{log_window} = $Tk_objects{fb}->
-            Scrolled('Text', -height => 7, -width => 40, -bg => 'cyan', -wrap => 'none', -scrollbars => 'se',
+            Scrolled('Text', -height => 5, -width => 40, -bg => 'cyan', -wrap => 'none', -scrollbars => 'se',
                      -setgrid => 'true', -font => $config_parms{tk_font_fixed})->
                          pack(qw/-side top -expand 1 -fill both/);
         $Tk_objects{log_window}->insert('0.0', (join "\n", @Print_Log)); # Seed with previous entries

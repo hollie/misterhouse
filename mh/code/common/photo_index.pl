@@ -109,7 +109,8 @@ $photo_subdir = new Generic_Item;
 sub photo_html {
     my $dir = '/photos';
                                 # TODO, Add support for multiple subdirectories 
-    my $selected = (split ',', $config_parms{photo_dirs})[0] or $dir;
+    my $selected = (split ',', $config_parms{photo_dirs})[0] || $dir;
+
     @subdirs = ();
     &photo_subdirs($dir, '');
     return '' unless @subdirs > 1;

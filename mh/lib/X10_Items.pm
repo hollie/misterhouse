@@ -315,6 +315,12 @@ sub new {
 }
 
 
+# This is used by X10_MR26.pm and X10_W800.pm, called by code/common/x10_rf_relay.pl
+package X10_RF_Receiver;
+
+@X10_RF_Receiver::ISA = ('Generic_Item');
+
+
 package X10_Garage_Door;
 
 @X10_Garage_Door::ISA = ('X10_Item');
@@ -810,6 +816,32 @@ sub new {
 ## it, and your house will notice when your sensor hasn't been tripped in 24 hours,
 ## allowing you to check on the batteries.
 ##
+## Sensor Item can be created with a type to specify the sensors properties. 
+## Ex:
+##	X10MS,      CA,    work_room_motion,       Sensors|Motion_Sensors,      Motion
+##	X10MS,      CB,    work_room_brightness,   Sensors|Brighness_Sensors,   Brightness
+##  or:
+##	X10MS,      CA,    work_room_sensors,      Sensors,      		MS13
+##
+## Ex:
+##	$work_room_motion     =  new X10_Sensor('CA', 'work_room_motion',     'Motion');
+##	$work_room_brightness =  new X10_Sensor('CB', 'work_room_brightness', 'Brightness');
+##  or:
+##	$work_room_sensors    =  new X10_Sensor('CA', 'work_room_sensors',    'MS13');
+##
+## The 'MS13' Sensor Item listens for x10 'CA' cmds for motion and x10 'CB' cmds for brightness
+## state changes. The brighness state is saved in a 'dark' private variable and can be fetched
+## with the dark() method. The 'MS13_Motion' type only listens for state changes on 'CA' cmds
+## and 'MS13_Brightness' only listens for state changes for 'CB'. An advantage to using two
+## X10 Sensor Items is that both states of the MS13 can be easily printed in log files:
+## Ex:
+##	print_log "state of work_room_motion = ", 	state $work_room_motion;
+## 	print_log "state of work_room_brightness = ",   state $work_room_brightness;
+
+ 
+
+
+##
 ## Todo: 
 ##      + make the countdown time configurable per sensor
 ##      + make the action configurable per sensor
@@ -867,21 +899,36 @@ sub add {
     $self->{battery_timer}-> set(24*60*60, 
                        "speak \"rooms=all Battery timer for $name expired\"", 7);  
 
-    my ($hc, $id2) = $id =~ /X(\S)(\S+)(\S)\S/i;
+    my ($hc, $id1) = $id =~ /X(\S)(\S+)(\S)\S/i;
+    my $id2 = $id1;
+    my ($motion_detector)     = 1;
+    my ($brightness_detector) = 0;
 
-#   print "dbx2 id=$id hc=$hc id=$id2 X$hc${id2}${hc}J \n";
+#   print $name, "type=$type id=$id hc=$hc id1=$id1 X$hc${id1}${hc}J \n";
 
-    &Serial_Item::add($self, "X$hc${id2}${hc}J", 'motion');
-    &Serial_Item::add($self, "X$hc${id2}${hc}K", 'still');
-
+    if ($type and $type =~ /brightness/i) {
+        $motion_detector     = 0;
+        $brightness_detector = 1;
+    }
+    if ($type and $type =~ /motion/i) {
+        $motion_detector     = 1;
+        $brightness_detector = 0;
+    }
     if ($type and $type =~ /ms13/i) {
+        $motion_detector     = 1;
+        $brightness_detector = 1;
         $id2++;
         $id2 = 'A' if $id2 eq '10';
-        $id2 = '1' if $id2 eq 'H';    # Not sure if this is true?
+        $id2 = '1' if $id2 eq 'H';
+    }
+    if ($motion_detector == 1) {
+    	&Serial_Item::add($self, "X$hc${id1}${hc}J", 'motion');
+    	&Serial_Item::add($self, "X$hc${id1}${hc}K", 'still');
+    }
+    if ($brightness_detector) {
         &Serial_Item::add($self, "X$hc${id2}${hc}K", 'light');
         &Serial_Item::add($self, "X$hc${id2}${hc}J", 'dark');
     }
-
     return;
 }
 
@@ -920,6 +967,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.38  2003/04/20 21:44:08  winter
+#  - 2.80 release
+#
 # Revision 1.37  2003/03/09 19:34:41  winter
 #  - 2.79 release
 #

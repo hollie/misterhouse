@@ -32,6 +32,7 @@ sub new {
     $main::Socket_Ports{$port_name}{break}     = $break     if $break;
     &add($self, $id, $state);
     bless $self, $class;
+    $self->state_overload('off'); # By default, do not process ~;: strings as substate/multistate
     return $self;
 }
 
@@ -289,6 +290,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.30  2003/04/20 21:44:07  winter
+#  - 2.80 release
+#
 # Revision 1.29  2003/02/08 05:29:23  winter
 #  - 2.78 release
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-03-08 20:50:47 winter>
+#  Last change Time-stamp: <2003-04-20 14:59:51 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -464,9 +464,16 @@ sub setup {
     use Net::FTP;               # For uploading stuff
     use Text::Wrap;
 
-    use Text::PhraseDistance qw(pdistance); # Used in &phrase_match
-    use Text::Levenshtein    qw(distance);  # Used in &phrase_match if we non-exact word matching (runs too long)
-
+                                # These Text modules are used in &phrase_match 
+    use Text::PhraseDistance qw(pdistance); 
+                                # This fancy distance function allows for non-exact word matching, 
+                                # but the non-XS version is too slow.  Use the XS version if installed,
+                                # otherwise we use a simple but fast exact word match distance function.
+    {
+        local $SIG{__WARN__} = sub { };  # Disable 5.8 "Can't locate auto/..." message
+        eval 'use Text::LevenshteinXS qw(distance)';
+        eval 'print " - using simple Text distance function\n"; sub distance { return $_[0] ne $_[1] }' if $@;
+    }
     use Time::Local;            # For timelocal
     use Time::DaysInMonth;      # For days_in (and is_leap?)
 
@@ -509,6 +516,7 @@ sub setup {
 #    use CID_Lookup;
 #    use CID_Log;
 #    use CID_Announce;
+
 
     use constant;               # To keep perl2exe happy
     use constant ON      => 'on';
@@ -844,12 +852,12 @@ sub setup {
     unshift @Error_Log, "$Time_Date ---------- Restart ---------- ";
 
 
-    print "Archiving previous $config_parms{data_dir}/logs/*.log files\n";
+    print "Archiving previous $config_parms{data_dir}/logs/*.log files .";
 
                # These files will get archived by mh/code/common/mh_control.pl
-    file_cat $print_log, $print_log . ".old";
-    file_cat $speak_log, $speak_log . ".old";
-    file_cat $error_log, $error_log . ".old";
+    file_cat $error_log, $error_log . ".old";  print ".";
+    file_cat $print_log, $print_log . ".old";  print ".";
+    file_cat $speak_log, $speak_log . ".old";  print ".\n";
     open PRINTLOG,  ">$print_log" or die "Error, could not open print logfile $print_log: $!\n";
     open SPEAKLOG,  ">$speak_log" or die "Error, could not open speak logfile $speak_log: $!\n";
     open ERRORLOG,  ">$error_log" or die "Error, could not open error logfile $error_log: $!\n";
@@ -1738,31 +1746,33 @@ sub check_for_tied_filters {
 
     # Is this a state string with multiple sets in it?  If so we take over and call set on each state found.  
     # If not, we are already in a set call, so don't do any additional processing.
-    if($state =~ /;/) {
-        print "Multiple states entry state=$state\n" if $Debug{state};
-        while ( my ($currentstate, $remainingstate) = split(/;/, $state, 2) ) {
-            print "Multiple states split into state=$currentstate remainder=$remainingstate\n" if $Debug{state};
-            $state = $remainingstate;
+
+    unless ($self->{states_nomultistate}) {
+        if($state =~ /;/) {
+            print "Multiple states entry state=$state\n" if $Debug{state};
+            while ( my ($currentstate, $remainingstate) = split(/;/, $state, 2) ) {
+                print "Multiple states split into state=$currentstate remainder=$remainingstate\n" if $Debug{state};
+                $state = $remainingstate;
 
             # Check for states with a embeded set_with_timer directive
-            return 1 if check_for_embedded_commands($self, $currentstate, $remainingstate);
+                return 1 if check_for_embedded_commands($self, $currentstate, $remainingstate);
 
             # Set the object to the currentstate, we will then loop and repeat
             #print ">>>>>set state=$currentstate\n";
-            $self->set($currentstate);
+                $self->set($currentstate);
+            }
+            return 1;
         }
-        return 1;
-    }
-    else {
+        else {
         # Check for states with a embeded set_with_timer directive
-        return check_for_embedded_commands($self, $state);
+            return check_for_embedded_commands($self, $state);
+        }
     }
+    return 0;
 }
 
 sub check_for_embedded_commands {
     my ($self, $state, $remainingstates) = @_;
-
-    return 1 if defined $self->{states_nomultistate};
 
                                 # Allow for embeded objects (e.g.: $Pool;on)
     if($state =~ /^\$.*/) {
@@ -2713,7 +2723,7 @@ sub phrase_match {
 #   for my $phrase2 (('when will the sun set', 'new moon')) {
                                  # Do a fast less accurate search on all phrases
     for my $phrase2 (&Voice_Cmd::voice_items('mh', 'no_category')) {
-        my $d = pdistance($phrase, $phrase2, $set1, \&phrase_match_word, {-cost => [1,0,3], -mode => 'set'});
+        my $d = pdistance($phrase, $phrase2, $set1, \&distance, {-cost => [1,0,3], -mode => 'set'});
         print " - d1=$d phrase=$phrase2.\n" if $Debug{phrase};
         push @{$list1{$d}}, $phrase2 if $d <= $d_min1;
         $d_min1 = $d if $d < $d_min1;
@@ -2735,10 +2745,6 @@ sub phrase_match {
     return @{$list2{$d_min2}};
 }
         
-sub phrase_match_word {
-    return $_[0] ne $_[1];
-}
-
 
 
 sub play {
@@ -3417,11 +3423,10 @@ sub read_code {
 
     &read_table_files();           # Re-create table code file, if any table file changed
 
-    push @Requested_Files, split ',', $config_parms{only_load};
-
-#   print " reading @Code_Dirs\n";
-    if (@Requested_Files) {
+   print " reading @Code_Dirs\n";
+    if (@Requested_Files or $config_parms{only_load}) {
         @files_read = @Requested_Files;
+        push @files_read, split ',', $config_parms{only_load};
     }
     else {
         for my $file_dir (@Code_Dirs) {
@@ -3457,7 +3462,7 @@ sub read_code {
         for my $code_dir (@Code_Dirs) {
             next unless -e "$code_dir/$file";
             if ($file_path) {
-                print "Duplicate file. Used:$file_path  Skipped:$code_dir/$file\n";
+                print "Duplicate file.\n -    Used: $file_path\n - Skipped: $code_dir/$file\n\n";
             }
             else {
                 $file_path = "$code_dir/$file";
@@ -3678,7 +3683,10 @@ sub read_user_code {
                                 #    Allow for new XYZ(stuff), new XYZ;, new XYZ qq|stuff|, etc
 #           my ($object, $type) = $record =~ /^\s*(\$\S+)\s*=\s*new\s+(\S+?)\s*[\(\;]/;
 #           my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+(\S+?)\s*[\(\"\'\;\n]/;
-            my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+([^\s\(\;]+)/;
+
+#           my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+([^\s\(\;]+)/; # <- Did not parse on RH 9.0 perl 5.8!  Ok without last \s
+            my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+([A-Za-z0-9\_\-]+)/;
+
                                 # Allow for type->new(..)
             ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*(\S+?) *-> *new/ unless $type;
 
@@ -4589,6 +4597,9 @@ sub respond_vr {
 sub respond_web {
     &respond_default(@_);
 }
+sub respond_xcmd {
+    &respond_default(@_);
+}
 sub respond_unmuted {
     my %parms = @_;
     $parms{mode} = 'unmuted';
@@ -5419,6 +5430,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.80  2003/04/20 21:43:57  winter
+#  - 2.80 release
+#
 # Revision 2.79  2003/03/09 03:11:07  winter
 # - 2.79 release
 #

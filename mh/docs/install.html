@@ -126,6 +126,12 @@ This program works ok:  <a href="http://misterhouse.net/public/unzip.exe">http:/
     - exit (to switch back from root)</pre>
 <pre>
  - ./mhl (if that doesn't work, try: mh or perl mh)</pre>
+<pre>
+ - If are running with a recent Linux which has a recent libc.so
+(ls -l /lib/libc.so* and look ver a version &gt; 2.2.93, like on RH 8 or higher)
+and don't want to bother with installing the various optional perl modules, 
+download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin dir and run mhe instead.
+Note: one of the above files are still required, as they have the documentation and support files.</pre>
 <p>
 </p>
 <h2><a name="tips">Tips</a></h2>
@@ -180,10 +186,10 @@ but Randy Kobes has kindly made them available at his site. You can install them
    ppm&gt; install Tk-JPEG
    ppm&gt; install Win32-Setupsup
    ppm&gt; exit</pre>
-<p>If the DB_File post-install script doesn't run to install the included libdb.dll 
-(the DB_File.dll should already be copied ok), you can extract the dll
-from <a href="http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz">http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz</a> and copy it to your 
- \perl\site\lib\auto direcotory, or some other directory in your path.</p>
+<p>The DB_File post-install script doesn't seem to work for most people, so you will need to copy the libdb.dll 
+file from 
+from <a href="http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz">http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz</a> or <a href="http://misterhouse.net/public/libdb.dll">http://misterhouse.net/public/libdb.dll</a>
+to your \perl\site\lib\auto direcotory, or some other directory in your path.</p>
 <p>If you are behind a www proxy firewall, try setting the environment variable http_proxy=http://proxy-server:port
 If you have problems installing the files with ppm over the internet, you can download the files 
 and install them from local storage. For example, to install the Tk package:</p>
@@ -273,8 +279,8 @@ delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 <p>Most, if not all, UNIX installations now have perl installed by default.  If for some reason, yours does not
 or if it is an older version of perl, you can downloaded the latest from <a href="http://www.perl.com">http://www.perl.com</a> .</p>
 <p>Run 'perl -v' to show your version ... anything above 5.005 should be fine. 
-The current Redhat 5.2 version of Linux comes with 5.004.  This works OK, but we have had some problems 
-compiling the current Tk interface with 5.004, so you may want to upgraded to 5.005 or higher.</p>
+Redhat 5.2 comes with 5.004, which works OK, but we have had some problems 
+compiling the Tk modules 5.004, so you may want to upgraded to 5.005 or higher.</p>
 <p>If you want to use
 the Tk interface (used to display logs and various pop-up messages), make sure that the perl Tk package is installed as well.
 If the Tk is not installed, this test will fail:  perl -e ``use Tk''.   If you need it, you can download perl Tk from 
@@ -290,9 +296,22 @@ also try the CPAN installer like this:</p>
   cpan&gt; install Time::HiRes
   cpan&gt; install Audio::Mixer  (if on Linux)
   cpan&gt; install GD
+  cpan&gt; install Text::LevenshteinXS
   cpan&gt; exit</pre>
 <p>The first time you run the CPAN code, it creates a configuration file.  
-The default (press enter) usually is good for most questions.</p>
+The defaults (press enter a bunch of times) usually is good for all questinos except the one that ones
+you to pick which site to download from.</p>
+<p>You may need to type ``export FTP_PASSIVE=1''
+before ``perl -MCPAN -eshell''. This is because by default the CPAN installer
+will generally try to use active ftp sessions which may fail if you are
+behind some firewalls and/or if your ISP caches ftp sessions. By exporting
+the FTP_PASSIVE variable prior to running the CPAN installer session,
+passive connections will be used instead.</p>
+<p>If are running with a recent Linux which has a recent libc.so
+(ls -l /lib/libc.so* and look ver a version &gt; 2.2.93, like on RH 8 or higher)
+you can also try the compiled version of mhe in misterhouse-#.##.linux.zip.
+This might be useful if you have troubles with the above CPAN installs or if you have a older (or newer) version
+of perl that has some sort of problem (e.g. memory leak).</p>
 <p>There are some example start/stop/restart .rc files in mh/bin/misterhouse*.rc</p>
 <p>
 </p>
@@ -319,6 +338,14 @@ a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to
 <a href="http://tcts.fpms.ac.be/synthesis/mbrola.html">http://tcts.fpms.ac.be/synthesis/mbrola.html</a> 
 that has a very nice US english male and female voice.</p>
 <p>Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.</p>
+<p>To set the default voices, find your siteinit.scm file and have fun with the following:</p>
+<pre>
+  (set! voice_default 'voice_us1_mbrola)
+  (set! voice_male1   'voice_kal_diphone)
+  (set! voice_male2   'voice_us2_mbrola)
+  (set! voice_female  'voice_kal_diphone)</pre>
+<p>This depends upon which voices you have installed on your system.  Some voices are
+don_diphone, kal_diphone, ked_diphone, rab_diphone, us1_mbrola, us2_mbrola, and us3_mbrola</p>
 <p>Prior to 11/2002, for $150, you can get 2 nice voices with AT&amp;T Natural Voices TTS linux engine here:
  <a href="http://www.naturalvoices.com">http://www.naturalvoices.com</a> (additional voices cost $70), but for some reason, they no longer sell them from there.
 Now the only supplier we have found is from <a href="http://www.nextup.com/attnv.html,">http://www.nextup.com/attnv.html,</a> where additional voices are $35.
@@ -328,8 +355,8 @@ If you find a source for the linux engine, let me know.</p>
 where you have it installed and set voice_text=naturalvoice.</p>
 <p>If you only have the windows binary, you can now use Wine to run it from linux. 
 On my 1.2 GHz Celeron, time-to-speech is about 1 second, -vs- about .4 seconds for the native Linux binary.
-See bin/mh.ini for examples on these parms: voice_text=NaturalVoiceWine,  voice_text_naturalvoice=windows_path_to_voices, 
-wine_path=path_to_wine, and wine_path_temp=windows_path_to_temp_dir.</p>
+See bin/mh.ini for examples on these parms: voice_text=NaturalVoiceWine,  voice_text_naturalvoice=path_to_windows_voices, 
+wine_path=path_to_wine.</p>
 <p>The IBM ViaVoice TTS and Voice Recognition engines is no longer available (as of 05/2002) 
 from the IBM site ( <a href="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</a> ), but can still be found here: 
 <a href="http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/">http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/</a>

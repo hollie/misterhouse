@@ -10,14 +10,12 @@ if (done_now $p_get_email and -e $get_email_scan_file) {
     for my $line (file_read $get_email_scan_file) {
         my ($from, $to, $subject, $body) = $line =~ /From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
         if ($subject =~ /breaking news/i) {
-           print "dbx1 s=$subject body=$body\n";
+#           print "dbx1 s=$subject body=$body\nline=$line\n";
             $body =~ s/BREAKING NEWS from CNN.com//i;
             $body =~ s/For complete coverage.+//i;
             $body =~ s/Full story on .+//i;
-           print "dbx2 body=$body\n";
             $body =~ s/Watch CNN .+//i;
             $body =~ s/\*+/\*/g;  # In case we somehow miss a line of these
-           print "dbx3 body=$body\n";
             my $msg = "Notice, just received news item: $subject.\n  $body";
             display $msg, 0;
             speak   rooms => 'all', text => substr $msg, 0, 200;

@@ -89,7 +89,10 @@ hvac_craig.pl
 
 hvac_david.pl
  - David Lounsberry's code to monitor 14 different iButtons and control HVAC with a weeder board!
- 
+
+iButton_DS2450.pl 
+ - Brian Rudy's sample code for communicating with the DS2450 Quad A/D converter
+
 iButton_ws.pl
  - Craig Schaeffer's code for monitoring the iButton weather station
 
@@ -134,11 +137,17 @@ irvs*
  - Walter Leemput's example of a DTFM driven phone menu, using the 
    Irvs phone module from CPAN (linux only).
 
+ivr.pl and ivr.menu
+ - Jason Sharpe's code for DTFM Interactive Voice Response using the Stargate phone interface.
+
 ir_creative.pl
  - Richard Smith's example of reading IR data from Creative Credit Card Remotes.
 
 HVweb.pl
  - Joseph Gaston's code to control Homevision controller via the Homevision web server 
+
+mh_restart.pl
+ - Richard Phillips's example and notes on restarting MisterHouse each night.
 
 mp3_control_GQmpeg.pl
  - Dave Lounsberry's code for controling the GQmpge.pl player on linux
@@ -178,6 +187,7 @@ NetCallerID.pl
    In addition to normal CallerID, it supports Call Waiting CallerID
    (callerid while you are on the phone).
    Also see mh/code/bruce/phone_netcallid.pl for another example.
+   This has been replaced with mh/code/common/callerid.pl
 
 news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
@@ -190,6 +200,10 @@ pa_control_evan.pl
 pa_control_evan_test.pl
  - Evan Graham's code for controling which rooms hear the sound 
    spoken or played by mh, using weeder DIO controled relays.
+
+phone_identifier.pl
+ - Craig  Schaeffer's code for talking to the 2+ line incoming/outgoing/DTFM
+   Identifier phone line monitor: http://www.yes-tele.com/mlm.html
 
 phone_logs_kieran.pl
  - Kieran Ames' code for summarizing recent callers.  Also see mh/code/bruce/phone_logs.pl
@@ -207,6 +221,7 @@ readrat_capture
 readrat.pl
  - Kent Noonan's code for controling IR devices with the 
    RedRat interface: http://www.dodgies.demon.co.uk/index.html
+
 
 rrd.pl
 rrd_graph

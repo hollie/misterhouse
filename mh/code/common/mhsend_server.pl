@@ -59,6 +59,10 @@ if (my $header = said $mhsend_server) {
         $response = "Data was displayed for $action_arg seconds";
         logit("$config_parms{data_dir}/mhsend/display.log", $msg); # Also logit
     }        
+    elsif ($action eq 'state') {
+        my $state = eval "state $msg";
+        $response = $state;
+    }        
     elsif ($action eq 'speak') {
         if (length $msg < 400) {
             speak $msg;

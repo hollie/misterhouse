@@ -21,7 +21,8 @@ if ($Reload) {
     add_sound 4            => 'sound_nature/avairy.wav',   volume => 20;
     add_sound barcode_scan => 'sound_nature/bird.wav',     volume => 20;
     add_sound mh_problem   => 'sound_nature/bird1.wav',    volume => 20;
-    add_sound mh_pause     => 'sound_nature/bird1.wav',    volume => 20;
+#   add_sound mh_pause     => 'sound_nature/bird1.wav',    volume => 20;
+    add_sound mh_pause     => 'none',                      volume => 20;
     add_sound 7            => 'sound_nature/bird2.wav',    volume => 20;
     add_sound wap          => 'sound_nature/bird3.wav',    volume => 20;
     add_sound tell_me      => 'sound_nature/birds.wav',    volume => 20;

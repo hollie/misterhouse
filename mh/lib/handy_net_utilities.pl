@@ -993,7 +993,10 @@ sub main::net_mail_summary {
         my $msg_ptr = $pop->top($msgnum, $main::config_parms{net_mail_scan_size});
         my ($date, $date_received, $from, $from_name, $to, $replyto, $subject, $header, $header_flag, $body);
         $header_flag = 1;
+        my $i = 0;
         for (@$msg_ptr) {
+            last if $i++ > 200; # The scan_size parm above doesn't work? 
+#           print "dbx net_mail_summary hf=$header_flag r=$_\n";
             if ($header_flag) {
 #               chomp;
                 $date    = $1 if !$date    and /^Date:(.+)/;
@@ -1101,6 +1104,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.49  2003/04/20 21:44:08  winter
+#  - 2.80 release
+#
 # Revision 1.48  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

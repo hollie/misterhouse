@@ -23,8 +23,117 @@ B<New Features:>
 
 B<Bug Fixes and Other Changes:>
 
+=head2 Version 2.80 posted on 04/20/2003
 
-=head2 Version 2.79 posted on 03/08/2003
+Version 2.80 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+- Autrijus Tang created a new PAR.pm module which allows us to compile perl scripts and libraries into
+one executable binary. If you are running with a recent Linux which has a recent libc.so
+(ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
+you can now try the new compiled mhe file in misterhouse-2.80.linux.zip.
+This might be useful if you have troubles with the above CPAN installs or if you have a older (or newer) version
+of perl that has some sort of problem (e.g. memory leak).
+
+- Created lib/X10_W800.pm to support the X10 RF -> serial W800 interface. 
+This is similar to the MR26, but also supports extended codes and has a better range.  
+Comparison between the 2 can be found here: http://www.wgldesigns.com/comments.htm .
+Note:  Extended codes are not yet supported (I didn't have any RF devices that generated them).
+
+- Created mh/code/common/x10_rf_relay.pl to relay selected X10 house codes received from either
+of the X10 MR26 or W800 RF (Radio Frequency) interfaces.
+
+- Dree Mistrut created Text::LevenshteinXS module, like Text-Levenshtein, but implemented in C rather than Perl, so it is much faster.
+If installed, it will be used in the &phrase_match function, available as 'Smart command search' on the ia5 search menu.  
+This enables non-exact word matches, so for example you can type 'bed light on' and it will match 'turn on bedroom lights'.
+If this module is not installed, mh defaults to the previous simple/fast function that matches on exact words.
+On linux, use the CPAN to install (see install doc).  On windows, it is installed in the mh libs for 5.6, but not 5.0 or 5.8 systems.
+
+- Created bin/send_email.  Tom Vanderpool was having problems when mh called &net_mail_send to send email,
+so we created a stand alone command that can be called as a background process.  
+See 'Send test e mail 11' for and example.
+
+- David Norwood and I updated  bin/get_tv_grid to be compatable with a new tv listings format from zap2it.com.
+
+- Brian Rudy added support for the iButton DS2450 Quad A/D converter.  Example in code/public/iButton_DS2450.pl.
+
+- Neil Wrightson updated the iButton read_switch method in lib/site/Hardware/iButton/Device.pm to allow
+either channel to be an input or output.
+
+- Jason Sharpe sent in code/publice/ivr.pl and ivr.menu as examples of his
+DTFM Interactive Voice Response setup using the Stargate phone interface.
+Updated supporting files are lib/Telephony_DTMF.pm, Telephony_Item.pm, Stargate.pm, and StargateJTelephone.pm.
+
+- Craig Schaeffer created lib/Telephony_Identifier.pm and code/common/phone_identifier.pl for talking to the 2+ line 
+incoming/outgoing/DTFM Identifier phone line monitor from http://www.yes-tele.com/mlm.html
+
+- David Norwood created a preliminary interface for the USB-UIRT two way infrared transceiver.  
+Installing drivers on Windows, Linux and BSD requires patches, so contact David for info.
+See USB_UIRT_learning.pl in the common code selector for configuration details.  
+David also updated the UIRT2_learning web interface to allow generation of codes based on protocol, device and function number.  
+
+- Ron Klinkien created a 'MisterHouse from Scratch' weblog site
+(a collection of links, resources, notes and commentary) here: http://mrhousefromscratch.tk .
+
+
+B<Bug Fixes and Other Changes:>
+
+- Roger Bille updated Serial_Item.pm to allow for 'X...' strings in non-X10 items.
+
+- Added a -state option to bin/mhsend to get the state of an object.
+
+- Richard Phillips and Sean Walker posted docs/faq.html entry 3.4: How do get Linux to play more than one sound at the same time
+
+- Richard Phillips created code/public/mp3_control_x10.pl and code/public/mh_restart.pl
+
+- Peter Woodall noticed we did not have a xcmd_respond function, so bin/house commands were not working.
+
+- Piet Delaney added X10_Sensor motion and brightness options, in addition to the existing MS13 option which detects both.
+See mh/docs/mh.html X10_Sensor section for details and examples.
+
+- Jason Sharpee sent web/bin/video_streamer.pl as an example of how to display video from using the Linux streamer program.
+
+- Andrew McLaren noticed the mh lib/site/File files were pretty down level.  
+The newer versions are not compatable with older perls, and it looks like all versions of perl have those installed by 
+default, so I deleted the mh/lib/File modules.  Not sure why we included them in the first place.
+ 
+- Enabled setupsup for 5.8 win98 users.
+
+- Added a mh.ini html_wav_format parm to control how the web server delivers TTS wav files.  Options are
+bgsound (default for Audrey), link (default for Netscape and Mozilla, frame (doesn't seem to work very well),
+and embed (default for all others).
+
+- Updated Geo::Weather to version 1.2.3 (used by public/weather_com.pl to get data from weather.com).
+
+- Sean Walker updated web/bin/photos.pl to allow for a mh.ini photo_back_style parm, so you can specify style 
+stuff like background color.
+
+- Updated bin/set_password to honor the mh.ini password_file parm.
+
+- Added mh.ini parm voice_cmd_response to control the default response to voice triggered
+commands.  The default is 'Ok, %HEARD%', where %HEARD% will be replaced by the spoken phrase.
+
+- Floyd Moore fixed bin/get_tv_grid so -provider has precedence over -provider_name.
+
+- Changed the default mh_pause sound in common/event_sounds.pl from bird1.wav to none.
+
+- James Martin discovered that linux Red Hat 9.0 perl 5.8 has a wierd bug that causes mh not to parse code objects correctly.
+Really strange in the same perl version is in RH 8.0 which works, and recompiling perl 5.8 on RH 9.0 also fixes the problem.
+We worked around this by changing a perl regex.   
+
+- Jeff Pagel noticed a duplicate file problem when using the -only_load option, like we use with a mh proxy.
+
+- Roger Bille noticed the recent 2.78 substate and multistate code (set $test_set1 'on~2~random:on;repeat:on;play';) 
+messed up with some he code that he had that had Socket_Item data with some ~:; characters.
+To avoid this, we added a Generic_Item states_overload method, which we set to 'off' in Socket_Item, Serial_Item, and 
+xAP_Items.pm.
+
+- Added an optional iridium_brightness mh.ini parm (defaults to 0) so you can allow for announcement of only brigher flares.
+
+
+=head2 Version 2.79 posted on 03/09/2003
 
 Version 2.79 was just uploaded to:
 
@@ -120,6 +229,9 @@ so speech can be directed to the box that send the mhsend request.
 
 - Clive Freedman made some caller ID updates for the UK.
 
+- Claes Johansson made a keypad fix in lib/LCD.pm for LCDProc users.
+
+- Mark Miller noticed we pointed to the wrong directory with the web ia5 Iridium Flares button.
 
 
 =head2 Version 2.78 posted on 02/07/2003

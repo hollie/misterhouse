@@ -72,6 +72,8 @@ The system requirements and installation instructions are detailed in
 <p>Paul Chamberlain has set up a 
 <a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
 for other user-supplied documentation.
+Ron Klinkien also has a <a href=http://mrhousefromscratch.tk/> 'MisterHouse from Scratch' weblog site</a>
+with a nice collection of links, resources, notes and commentary.
 
 =end html
 
@@ -238,14 +240,17 @@ X10.com also sells a $50 IR transmitter that works through the CM17 interface.
 Info is at http://www.x10.com/products/ux17a_bj2.htm.  This is supported
 via the mh IR_Item object.
 
-Another nice interface is the $30 MR26A: http://www.x10.com/products/x10_mr26a.htm 
-This will receive the information coming from most of the X10 
+Another nice X10 option are the X10 RF -> Serial interfaces.  
+The MR26A is $30 from http://www.x10.com/products/x10_mr26a.htm .
+The W800  is $50 from http://www.wgldesigns.com/w800.html .
+A comparison of them is here http://www.wgldesigns.com/comments.htm .
+These will receive the information coming from most of the X10 
 RF devices (e.g.  motion sensors, keychains, palmpads, remote controls like UR19, UR47, JR20). 
 The advantage to receiving X10 data this way, instead of a powerline device like a CM11,
-is it is much faster as data goes from RF -> MR26A -> serial_port -> mh.   
+is it is much faster as data goes from RF -> MR26A/W800 -> serial_port -> mh.   
 Actions can be triggered in milliseconds, 
 without having to wait for the 500+ millisecond time it takes
-to transmit data over the powerline. 
+to transmit data over the powerline.   More info in mh/code/common/x10_rf_relay.pl .
 
 This new RF->X10 interface now supports all housecodes (older ones only support once housecode each):
 http://www.letsautomate.com/10680.cfm?CFID=67097&CFTOKEN=4528584
@@ -438,17 +443,12 @@ Both of these mikes are meant to be used when you are at the desktop.
 The idea is that they filter out background noise better, so you can use them in
 slightly noise environments, where headsets were normally required.
 
-Can process data from a keyboard simulator scanner, like the Cue Cat
-
 The mh/code/common/barcode* members code will process data from the Cue Kat keyboard simulator
-barcode scanner, which you can pick up for free at Radio Shack.  The manufacture of the Cue Kat
-prefers that you use their software (that's why they give it away), and if you want to look up data
-on the web for an item, their software is probably best, as they have a large database of UPC codes.
-If, however, you want to use the scanner
-for some sort of home inventory purpose, their software does not do that.  The problem is that if 
-you use their software, you must agree to a License that says you will only use the scanner with their
-software.  Hopefully they will not notice or care that small group of us HA guys are using it
-without their software (other people who have written similar code have gotten cease-and-desist letters).
+barcode scanner, which used to be free from places like Radio Shack but are now discontinued.
+
+If you would like to do call waiting caller id (normal callerid and caller id even while 
+you are on the phone), you can a good deal on the NetCallerID box for $15 from here:
+http://www.dfwmetrotechs.com/misterhouse/calleridorder.html
 
 
 =begin html
@@ -1444,7 +1444,7 @@ For the Switchlinc controllers:
 This supports the OTE X10 themostat from Ouellet Canada.
 
 
-=item X10_Sensor;
+=item X10_Sensor
 
 Do you have any of those handy little X10 MS12A battery-powered motion sensors?
 Here's your answer - use the X10_Sensor instead of the Serial_Item when you define
@@ -1452,22 +1452,30 @@ it, and your house will notice when your sensor hasn't been tripped in 24 hours,
 allowing you to check on the batteries.
 
 If you have an sensor that detects and sends codes for daytime and nighttime (light and dark levels), 
-pass in a model number of MS13.  For the id, you can use the 2 character, or 5 character X10 code.
+pass in a optional type MS13, Motion, or Brightness.  For the id, you can use the 2 character, or 5 character X10 code.
 Here are some examples:          
 
   $sensor_hall = new X10_Sensor('A4', 'sensor_hall', 'MS13');
+  $work_room_motion = new X10_Sensor('CA', 'work_room_motion', 'motion');
+  $work_room_bright = new X10_Sensor('CB', 'work_room_bright', 'brightness');
 
  .mht table examples:
 
    X10MS,      XA2AJ,  sensor_bathroom,       Sensors|Upstairs
    X10MS,       A4,    sensor_hall,           Sensors|Downstairs,  MS13
 
+   X10MS,      CA,    work_room_motion,       Sensors|Motion_Sensors,      Motion
+   X10MS,      CB,    work_room_brightness,   Sensors|Brighness_Sensors,   Brightness
+   X10MS,      CA,    work_room_sensors,      Sensors,      		MS13    # This detects both motion and brightness
+
 With MS13 specified, it will return states named motion,still,light, and dark.
-Also, methods light and dark will return the current light/dark state.  For example:
+With Motion specified, it will return only the motion and still states.
+With Brightness specified, it will return only the light and dark states.
+In all cases, methods light and dark will return the current light/dark state.  For example:
 
  speak 'It is dark downstairs' if dark $sensor_downstairs;
 
-Without the MS13 model number, the light/dark codes will be ignored.
+Without the MS13 or Brightness type, the light/dark codes will be ignored.
 
 
 =item X10_Transmitter
@@ -1522,7 +1530,7 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
                        the state data is sent.  Otherwise the data_stream associated
                        with that state is sent.
                      - If there is more than one client connected to this port, an
-                       optional 3rd parm can be used to pick which client set to.  
+                       optional 2nd parm can be used to pick which client set to.  
                        Values are:
                           - 'all' (send to all connected clients),
                           - ip_address (a regular expresion of the ip address(s) you want to send to
@@ -1586,6 +1594,10 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
                                      'router', 'tcp', 'raw');
     set_expect $router_client (Password => $config_parms{router_password}, Number => 24,
                                Number => 4, Number => 11) if said $router_reboot;
+
+                             
+                  # Example of sending a message to all clients
+    set $telnet_server "Hi to all clients", 'all';
 
 More examples are in mh/code/bruce/telnet.pl,
 mh/code/examples/socket_test*.pl, 
@@ -1729,11 +1741,11 @@ this is useful as these commands can also be run from the Tk, web, telnet, and f
         Use this when you have several different ways to describe the same thing.
 
         $response is the text or wave file that will be played back when the
-        VR engine detects this command.  If not defined, the response 
-        is : "I heard $command" (on viavoice).
+        VR engine detects this command.  If not defined, the mh.ini parm
+        voice_cmd_response parm is used (default is "Ok, %HEARD%").
 
-        You can put %STATE% or any variable in the response string and have it
-        substituted/evaluated when the response is spoken
+        You can put %STATE%, %HEARD%, or any variable in the response string and 
+        have it substituted/evaluated when the response is spoken.
 
         $confirm is either 0 or 1 (default is 0).  If set to 1, then mh will
         ask 'Confirm with a yes or a no'.  If yes or no is not heard within
@@ -2310,6 +2322,8 @@ and on Unix, the program is forked with &.
 
 If you specify 'inline' as the first argument, the program will not be a background process/forked.
 mh will pause until the program is done.
+
+If you want to track when the process finishes, use a Process_Item object instead.
 
   Examples:
      run('IR_cmd VCR,3,6,RECORD');  # Start a VCR recording
@@ -3017,8 +3031,11 @@ Checks to see if an IP address is available.    Returns true if pingable.
 
   Example:
     
-    &ping($host);           #  Default protocol is specified in mh.ini
-    &ping($host, $protocol);
+    &net_ping($host);           #  Default protocol is specified in mh.ini
+    &net_ping($host, $protocol);
+
+Note this may cause my to hang for a while if the target is not pingable.  A better way 
+of testing ping-ability to use a Process_Item call.  An example is in code/common/internet_connect_check.pl
 
 =item net_ftp
 
@@ -3121,6 +3138,9 @@ More examples are in mh/code/common/internet_im.pl
 Used to send email.
 To run commands via email, see FAQ question 2.12: Can do I send mh comands via email?
 
+There is also a stand alone bin/send_email command you can use if you find &net_mail_send
+causes mh to pause.  
+
  
   Usage:
     net_mail_send(option => value);
@@ -3159,12 +3179,15 @@ To run commands via email, see FAQ question 2.12: Can do I send mh comands via e
 
     net_mail_send to => 'winter@misterhouse.net,santa@claus.net', text => 'hiho';
 
-    net_mail_send(subject => 'test an html file attachement',
+    net_mail_send(subject => 'test an html file attachment',
                   baseref => 'localhost:8080',
                   file    => '../web/mh4/widgets.html', mime  => 'html');
 
     net_mail_send(subject => 'test a gif file attachement',
                   file    => '../web/graphics/goofy.gif');
+
+                        # Use run to launch a background process
+    run 'send_mail -subject "test" -text "Test background send_mail"';
 
 
 
@@ -4763,6 +4786,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.65  2003/04/20 21:39:38  winter
+#  - 2.80 release
+#
 # Revision 1.64  2003/03/09 19:34:39  winter
 #  - 2.79 release
 #

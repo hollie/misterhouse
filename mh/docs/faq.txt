@@ -1060,6 +1060,123 @@ only at Startup?
     On the other hand, it means that MH will restart itself automatically
     even if it exits due to bad code, which does happen to me occaisionally.
 
+  3.4: How do get Linux to play more than one sound at the same time
+    Posted by Richard Phillips and Sean Walker on 03/2003
+
+    FYI This is a bit of a "head's up" for those people who may be
+    trying/struggling to get misterhouse to - for example - play music and
+    also at the same time be able to speak under linux. You may find, for
+    example, that misterhouse is silent whilst playing music and only after
+    stopping (say) xmms your misterhouse server starts speaking all the
+    queued up messages.
+
+    There are a number of different ways to enable your linux server to
+    multiplex sound, and many different theories as to which way is better.
+    Some people prefer to use ALSA because it's not proprietary as opposed
+    to ARTS which is installed by default under many distributions such as
+    Redhat. The trouble with alsa at the moment is it can be a bit fiddly to
+    configure as it is not currently part of the linux kernel used in most
+    distributions (it will be when 2.5 is released). Anyhow, even after
+    successfully getting alsa installed, there can be some issues with
+    getting multiple applications to use the sound card concurrently - this
+    is because not all alsa sound card drivers support multiplexing.
+
+    So.....
+
+    If you want to use alsa, good for you. I won't get involved in which
+    system is better, and of course there are some other commercial
+    alternatives out there that a number of people also use and swear by.
+    Anyhow, I'll just describe what can be done to get things working with
+    arts IF you are using it AND are also having problems.
+
+    1. Install your distribution as you would normally, and ensure that arts
+    is also installed/configured. As previously noted, many distros such as
+    Redhat use arts by default so you won't have to do anything special -
+    everything should be automagically detected. If you open up a terminal
+    session and type "ps -ef | grep artsd" you should see a line showing the
+    details of the artsd daemon. 2. Install flite - again depends on distro.
+    With gentoo you can just do an "emerge flite". If you don't have a
+    package available for your distro, you can get the source from
+    http://www.speech.cs.cmu.edu/flite/ and try to build it yourself. There
+    are other speech engines you can use of course, but this is probably the
+    easiest to get running so it's what I'll use in this demonstration. 3.
+    From a command prompt type "flite -t hello -o play" - you should hear a
+    very bad hello from your computer 4. Fire up an application such as a
+    music player that can use arts. If you use something like xmms, make
+    sure that it is actually using arts (with xmms, go into
+    options/preferences and check that the outplut plugin being used is the
+    "aRts driver"). Now load up a playlist, put it on repeat, and start
+    playing music. 5. Now try step 3 again - you'll probably find that it
+    appears to hang. Just kill it with a "ctrl c" 6. Now try "artsdsp flite
+    -t hello -o play" instead - you should hear music AND a bad "hello".
+
+    Why is it so? Well, by default flite - and a number of other
+    applications - when trying to create sound directly access the sound
+    device (usually something like /dev/dsp). By using the wrapper "artsdsp"
+    before running an application such as flite, any calls to the sound
+    device by the program are trapped and redirected to the arts server -
+    basically it forces the application to "play nice" and not grab
+    exclusive use of the sound device.
+
+    So how do I now use flite and misterhouse? Well, you just need to change
+    the line in your ini file that tells misterhouse where flite is located.
+    Go to a command prompt and type "which artsdsp". This will let you know
+    exactly where the artsdsp program is located. Do the same for flite (eg
+    "which flite"). Now change your mh.private.ini file as follows:
+
+    voice_text = flite voice_text_flite = /usr/kde/3.1/bin/artsdsp
+    /usr/bin/flite
+
+    (Naturally, change the program locations depending on where your
+    programs live).
+
+    Now, restart misterhouse and keep xmms (or whatever) running and playing
+    music. You should now be able to do something like go to the ia5 web
+    interface, select misterhouse, then misterhouse home, then browse mr
+    house, and then click on the "what is your up time" and be able to hear
+    mister house talking whilst music is also a happening thing!
+
+    Of course, as noted before you can use the same wrapper for other
+    programs that may not directly support arts - for example if you install
+    festival, you can test it by typing something like "echo 'Hello from
+    Festival'| artsdsp festival --tts".
+
+    The same also works for using esd as well as artsd. You can use JACK,
+    I'm sure, but I haven't tried it yet. Also, you can configure festival
+    to use any play program directly instead of using the artsdsp or esddsp
+    hacks. Those are hacks and will not work with all programs, just for
+    reference. To configure festival use something like this in your
+    siteinit.scm file (located in the festival root directory):
+
+      (Parameter.set 'Audio_Required_Format 'snd)
+      (Parameter.set 'Audio_Command "esdplay -s localhost:5001 $FILE")
+      (Parameter.set 'Audio_Method 'Audio_Command)
+
+    In the Audio_Command line, the only thing critical is the $FILE You can
+    use any player that you want in place of esdplay in the above, but it
+    must be compatible with the audio formats that festival can produce.
+    These, coming from the docs, are as follows: The default is unheadered
+    raw, but this may be any of the values supported by the speech tools
+    (including nist, esps, snd, riff, aiff, audlab, raw and, if you really
+    want it, ascii).
+
+    More information can be found in the festival doc files festival_6.html
+    and festival_23.html wherever your festival documentation is installed,
+    including the handy:
+
+      (Parameter.set 'Audio_Required_Rate 16000)
+      (Parameter.set 'Audio_Device "/dev/dsp2")
+
+    These parameters can be specified in alternative methods as well. We
+    should be able to tell festival which sound card to use or modify other
+    settings on the fly as well. I haven't looked into that yet.
+
+    By default festival should be asynchronous and you should be able to
+    start playing from the file even before the file if finished writing. At
+    least that is what I gathered out of the doc files. Setting synchronous
+    or asynchronous modes are as easy as (audio_mode sync) or (audio_mode
+    async)
+
 4: Windows specific questions
   4.1: mh seems to cause some windows to hang
     If you are experiencing problems with windows not popping up when they
@@ -1220,6 +1337,7 @@ only at Startup?
      - 12/02 Improved callerID, new respond and Text_Item functions, xAP support.
      - 01/03 Mailing list reaches 500 members.
      - 02/03 Addex xPL support, stacked and overloaded states, and multi-user logon.
+     - 03/03 Linux NaturalVoiceWine, web based TV and photo setup, improved Lynx X10 support.
 
     Audrey support, more MS TTS controls, call waiting callerid
 

@@ -24,20 +24,14 @@ something like this:
  set $TV $state if $state = state_now $Remote;
 
 If you want to relay all the of the incoming RF data back out to 
-the powerline, you can use this code: 
-
-$Transmitter = new X10_Item;
-if ($state = state_now $Remote and $state =~ /^X/) {
-    print_log "Relaying X10 data from the MR26: $state";
-    set $Transmitter $state;
-}
-
-You may want to limit this to not relay busy motion detectors.
-
+the powerline, use mh/code/common/x10_mr26.pl.
 
 Note on range.  Depending on who knows what, people have reported 
 a maximum range for 10 -> 50 feet from receiver to remote. 
 See comment at the end of this file for hints on increasing the range.
+
+Also see X10_W800.pm for a similar interface, which is reported to have better range.
+
 
 =cut
 
@@ -124,8 +118,8 @@ sub check_for_data {
         }
         &main::main::print_log("MR26 Code: $state") if $main::Debug{mr26};
 
-                                # Set state of all MR26 objects
-        for my $name (&main::list_objects_by_type('X10_MR26')) {
+                                # Set state of all MR26 and X10_RF objects
+        for my $name (&main::list_objects_by_type('X10_MR26'), &main::list_objects_by_type('X10_RF_Receiver')) {
             my $object = &main::get_object_by_name($name);
             $object -> set($state);
         }
@@ -139,6 +133,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.9  2003/04/20 21:44:08  winter
+#  - 2.80 release
+#
 # Revision 1.8  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

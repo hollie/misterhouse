@@ -22,7 +22,7 @@ use strict;
 my ($Pgm_Path, $Pgm_Name, %parms);
 use Getopt::Long;
 if (!&GetOptions(\%parms, "h", "help", "host=s", "port=s", "stdin", "password=s",
-                 "log:s", "file=s", "display:n", "speak", "run") or
+                 "log:s", "file=s", "display:n", "state", "speak", "run") or
     (@ARGV == 0 and !$parms{stdin}) or $parms{h} or $parms{help}) {  
     print<<eof; 
 
@@ -36,6 +36,8 @@ if (!&GetOptions(\%parms, "h", "help", "host=s", "port=s", "stdin", "password=s"
     -log xyz      -> Logs  the data into data_dir xyz.log
 
     -run          -> Runs the data as command.
+
+    -state        -> Get state of an object
 
     -display xyz  -> Displays the data.  xyz is how log to leave the display up.
 
@@ -51,6 +53,7 @@ if (!&GetOptions(\%parms, "h", "help", "host=s", "port=s", "stdin", "password=s"
     $Pgm_Name -port 8084 -host misterhouse.net 'hi there'
     $Pgm_Name -speak file_to_speak.txt
     $Pgm_Name -file file1 file_to_send.txt
+    $Pgm_Name -state \$tv
     $Pgm_Name -log This is a good url:  http://goodplace.com
     echo 'hi there' | $Pgm_Name -stdin
 
@@ -113,6 +116,9 @@ sub send {
     }
     elsif ($parms{log}) {
         $action = "log $parms{log}";
+    }
+    elsif ($parms{state}) {
+        $action = "state $parms{state}";
     }
     elsif ($parms{run}) {
         $action = "run";

@@ -158,6 +158,7 @@ sub monitor {
     }
 }
 
+# This method is implemented in lib/site/Hardware/iButton/Device.pm, which has precidence ?
 sub read_switch {
     my ($self) = @_;
     my $connection;
@@ -179,6 +180,32 @@ sub read_switch {
         return $byte;
     } else {
         print "bad family for read_switch\n";
+    }
+#    $Hardware::iButton::Connection::debug = 0;
+
+}
+
+sub toggle_switch_2405 {
+    my ($self) = @_;
+    my $connection;
+    return unless $connection = $connections{$self->{port}};
+
+#    $Hardware::iButton::Connection::debug = 1;
+
+    if ($self->model() eq 'DS2405' ) {          #switch
+
+        $self->reset;
+        $self->select;
+        $connection->mode("\xe3");               # COMMAND_MODE (is this correct?)
+        $connection->send("\x55");               # This should toggle the switch
+        $connection->read(3);                    # How many bytes should I read here?
+        my $byte = unpack("b",$connection->read(1)); # This reads one more byte, I think.
+        print unpack("b",$byte);
+        $connection->reset;
+#        $Hardware::iButton::Connection::debug = 0;
+        return $byte;
+    } else {
+        print "bad family for toggle_switch_2405\n";
     }
 #    $Hardware::iButton::Connection::debug = 0;
 
@@ -514,6 +541,9 @@ memory
 
 
 # $Log$
+# Revision 1.22  2003/04/20 21:44:08  winter
+#  - 2.80 release
+#
 # Revision 1.21  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

@@ -238,18 +238,16 @@ sub check_for_voice_cmd {
 
                                 # Echo command response
         my $response = $cmd_by_num{$number}->{response};
+        $response = $main::config_parms{voice_cmd_response} unless defined $response;
         if (defined $response) {
                                 # Allow for something like: 'Ok, I turned it %STATE%'
             $response =~ s/%STATE%/$said/g;
+            $response =~ s/%HEARD%/$cmd_heard/g;
                                 # Allow for something like: 'Ok, I turned it $v_indoor_fountain->{said}'
             package main;       # Avoid having to prefix vars with main::
             eval "\$response  = qq[$response]";
             package Voice_Cmd;
             &main::speak($response) if $response;
-        }
-        else {
-#           &main::speak("I heard " . $cmd_heard) if $cmd_heard;
-            &main::speak($cmd_heard) if $cmd_heard;
         }
 
 
@@ -613,6 +611,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.44  2003/04/20 21:44:08  winter
+#  - 2.80 release
+#
 # Revision 1.43  2003/03/09 19:34:41  winter
 #  - 2.79 release
 #

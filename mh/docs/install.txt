@@ -63,6 +63,12 @@ Quick Install Instructions
 
      - ./mhl (if that doesn't work, try: mh or perl mh)
 
+     - If are running with a recent Linux which has a recent libc.so
+    (ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
+    and don't want to bother with installing the various optional perl modules, 
+    download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin dir and run mhe instead.
+    Note: one of the above files are still required, as they have the documentation and support files.
+
   Tips
     To use less memory and cpu, or if you get graphics related errors, you
     can run without the local gui inteface with: mh -tk 0
@@ -123,11 +129,11 @@ Windows Detailed Install Instructions
        ppm> install Win32-Setupsup
        ppm> exit
 
-    If the DB_File post-install script doesn't run to install the included
-    libdb.dll (the DB_File.dll should already be copied ok), you can extract
-    the dll from http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz and
-    copy it to your \perl\site\lib\auto direcotory, or some other directory
-    in your path.
+    The DB_File post-install script doesn't seem to work for most people, so
+    you will need to copy the libdb.dll file from from
+    http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz or
+    http://misterhouse.net/public/libdb.dll to your \perl\site\lib\auto
+    direcotory, or some other directory in your path.
 
     If you are behind a www proxy firewall, try setting the environment
     variable http_proxy=http://proxy-server:port If you have problems
@@ -251,9 +257,9 @@ UNIX Detailed Install Instructions
     you can downloaded the latest from http://www.perl.com .
 
     Run 'perl -v' to show your version ... anything above 5.005 should be
-    fine. The current Redhat 5.2 version of Linux comes with 5.004. This
-    works OK, but we have had some problems compiling the current Tk
-    interface with 5.004, so you may want to upgraded to 5.005 or higher.
+    fine. Redhat 5.2 comes with 5.004, which works OK, but we have had some
+    problems compiling the Tk modules 5.004, so you may want to upgraded to
+    5.005 or higher.
 
     If you want to use the Tk interface (used to display logs and various
     pop-up messages), make sure that the perl Tk package is installed as
@@ -270,10 +276,27 @@ UNIX Detailed Install Instructions
       cpan> install Time::HiRes
       cpan> install Audio::Mixer  (if on Linux)
       cpan> install GD
+      cpan> install Text::LevenshteinXS
       cpan> exit
 
     The first time you run the CPAN code, it creates a configuration file.
-    The default (press enter) usually is good for most questions.
+    The defaults (press enter a bunch of times) usually is good for all
+    questinos except the one that ones you to pick which site to download
+    from.
+
+    You may need to type "export FTP_PASSIVE=1" before "perl -MCPAN
+    -eshell". This is because by default the CPAN installer will generally
+    try to use active ftp sessions which may fail if you are behind some
+    firewalls and/or if your ISP caches ftp sessions. By exporting the
+    FTP_PASSIVE variable prior to running the CPAN installer session,
+    passive connections will be used instead.
+
+    If are running with a recent Linux which has a recent libc.so (ls -l
+    /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
+    you can also try the compiled version of mhe in
+    misterhouse-#.##.linux.zip. This might be useful if you have troubles
+    with the above CPAN installs or if you have a older (or newer) version
+    of perl that has some sort of problem (e.g. memory leak).
 
     There are some example start/stop/restart .rc files in
     mh/bin/misterhouse*.rc
@@ -315,6 +338,18 @@ UNIX Detailed Install Instructions
     Once you have the festival server running, you can enable mh to use it
     with mh.ini parms voice_text and festival_port.
 
+    To set the default voices, find your siteinit.scm file and have fun with
+    the following:
+
+      (set! voice_default 'voice_us1_mbrola)
+      (set! voice_male1   'voice_kal_diphone)
+      (set! voice_male2   'voice_us2_mbrola)
+      (set! voice_female  'voice_kal_diphone)
+
+    This depends upon which voices you have installed on your system. Some
+    voices are don_diphone, kal_diphone, ked_diphone, rab_diphone,
+    us1_mbrola, us2_mbrola, and us3_mbrola
+
     Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural
     Voices TTS linux engine here: http://www.naturalvoices.com (additional
     voices cost $70), but for some reason, they no longer sell them from
@@ -331,8 +366,7 @@ UNIX Detailed Install Instructions
     linux. On my 1.2 GHz Celeron, time-to-speech is about 1 second, -vs-
     about .4 seconds for the native Linux binary. See bin/mh.ini for
     examples on these parms: voice_text=NaturalVoiceWine,
-    voice_text_naturalvoice=windows_path_to_voices, wine_path=path_to_wine,
-    and wine_path_temp=windows_path_to_temp_dir.
+    voice_text_naturalvoice=path_to_windows_voices, wine_path=path_to_wine.
 
     The IBM ViaVoice TTS and Voice Recognition engines is no longer
     available (as of 05/2002) from the IBM site (

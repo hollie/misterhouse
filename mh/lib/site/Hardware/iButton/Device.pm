@@ -138,6 +138,13 @@ use vars qw(%models);
 		    'mintime' => 0,
 		    'maxtime' => .9,
 		   },
+           "20" => {			# Brian Rudy
+                    'model' => 'DS2450',
+                    'memsize' => 4*8/8, # 4 pages of 8 bytes.   
+                    'memtype' => "??",
+                    'specialfuncs' => "ADC",
+                    'class' => 'Hardware::iButton::Device::DS2450'
+                   },
 	   "21" => {			# STOLL
 		    'model' => 'DS1921',
 		    'memsize' => 2048/8, # yes, really. 2K bytes.
@@ -172,7 +179,6 @@ use vars qw(%models);
 		    'mintime' => 0,
 		    'maxtime' => .9,
 		   },
-
 	   "14" => {
 		    'model' => 'DS1971',
 		    'memsize' => 256/8,
@@ -1108,38 +1114,55 @@ use vars qw(@ISA);
 #	Returns: (-1) If the Channel Info Byte could not be read.
 #			 (Info Byte) If the Channel Info Byte could be read.
 #                                                           
+
+ 
 sub read_switch {
     my $this = shift;
+    my $temp = 0;	
     my $ClearActivity = shift;
     $ClearActivity = 1 if !defined $ClearActivity;
     my $c = $this->{'connection'};
     return undef if !$c->connected();
-
+    my $channel = $this->{channel};
+    $channel = 'A' unless $channel;
     # access and verify it is there
     if ($this->select) {
 	# reset CRC 
-	my $crc = 0;
+        my $crc = 0;
 	
 	# channel access command 
-	my $send = "\xF5";
+        my $send = "\xF5";
 	
 	# control bytes                
-	$send .= $ClearActivity ? "\xD5" : "\x55";
-	$send .= "\xFF";
+        $send .= $ClearActivity ? "\xD5" : "\x55";
+        $send .= "\xFF";
 	
-	$crc = $c->docrc16( $crc, $send );
-   
+        $crc = $c->docrc16( $crc, $send );
+        
 	# read the info byte + 3 bytes of dummy data
-	$send .= ("\xFF" x 4 );
+        $send .= ("\xFF" x 4 );
  
-	my $result = $c->owBlock( $send );
-	if ( $result ) {
+        my $result = $c->owBlock( $send );
+        if ( $result ) {
 	    # read a dummy read byte and CRC16
-	    $crc = $c->docrc16( $crc, substr( $result, 3 ) );
-	    return ord( substr( $result, 3, 1 ) ) if $crc == 0xB001;
-	}
+            $crc = $c->docrc16( $crc, substr( $result, 3 ) );
+            $temp = ord(substr( $result, 3, 1 ));
+            if ($crc == 0xB001){
+                if ($channel eq "A") {
+                    if (($temp & 4) eq 4) {
+                        return 1;}
+                    else {
+                        return 0; }
+                }
+                if ($channel eq "B") {
+                    if (($temp & 8) eq 8) {
+                        return 1;}
+                    else { 
+                        return 0;}
+                }
+            } # END CRC Check
+        }
     }
-
     return undef;
 }
 
@@ -1264,6 +1287,479 @@ sub read_counter {
     # return the result flag rt
     return undef;
 } 
+
+
+package Hardware::iButton::Device::DS2450;
+        
+use Hardware::iButton::Connection;
+
+# This code supports setup, A/D conversion, memory read/write and 
+# switch operations for the DS2450 quad A/D converter. There is presently 
+# no support for alarm operations.
+#
+# Version 0.2, 4-12-2003  Brian Rudy (brudyNO@SPAMpraecogito.com)
+# Added CRC support, fixed a few bugs.
+#
+# Version 0.1, 4-9-2003  Brian Rudy (brudyNO@SPAMpraecogito.com)
+# First working version. No CRC support.
+
+use strict;
+use vars qw(@ISA);
+        
+@ISA = qw(Hardware::iButton::Device);
+ 
+=head2 setup
+
+ $b->setup($VCC,\%A,\%B,\%C,\%D);
+
+This method can be used to set the input parameters in DS2450 iButtons. 
+$VCC must be set to 1 if the device is powered by VCC. \%A-\%D are
+references to the channel configuration hashes.
+ $A{type} = AD or switch
+ $A{resolution} = AD resolution from 1 to 16
+ $A{range} = 5.12 or 2.56
+ $A{state} = 1/on or 0/off (in switch mode turn the switch on or off)
+
+=cut
+
+sub setup {
+  my ($this,$VCC,$A,$B,$C,$D) = @_;
+
+  #print "VCC=$VCC, A mode " . $A->{type} . ", B mode " .
+  # $B->{type} . ", C mode " . $C->{type} . ", D mode " . 
+  # $D->{type} . ".\n";
+  my $c = $this->{'connection'};
+  my $crc = 0;
+  my $send;
+  my $result;
+  my @res;
+  return undef if !$c->connected();
+  # access the device
+  if ( $this->select ) {
+    if ($VCC) {
+      $send = "\x55";   # write memory
+      $send .= "\x1C";	# to 001c
+      $send .= "\x00";
+      $send .= "\x40";	# VCC operation
+      $crc = $c->docrc16( 0, $send);
+      # now send the block
+      $result = $c->owBlock( $send . ("\xFF" x 3));
+      # Check the CRC
+      $crc = $c->docrc16( $crc, substr($result,-3,2) );
+      $this->reset;
+      $this->select;
+      if ($crc != 0xB001) {
+        print "Failed CRC16 check!\n";
+        return undef;
+      }
+    }
+    $send = "\x55";    	  # write memory
+    $send .= "\x08";	  # Start at address 0008
+    $send .= "\x00";
+    
+    #### Channel A
+    if ($A->{type} =~ m/ad/i) {
+      $send .= pack "C", ($A->{resolution} - 1);    # How many bits?
+    }
+    else {
+      # Set OE=1, and OC=1 or 0 
+      $send .= ($A->{state} =~ m/on|1/i) ? "\x80" : "\xC0";
+    }
+    $result = $c->owBlock( $send . ("\xFF" x 3));
+
+    $crc = $c->docrc16( 0, $send ); 
+    # CRC16
+    $crc = $c->docrc16( $crc, substr($result,-3,2) ); 
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      $this->reset;
+      return undef;
+    }
+
+    if ($A->{type} eq 'AD') {
+      if ($A->{range} > 2.56) {
+        $send = "\x01";   # 5.12V range
+      }
+      else {
+        $send = "\x00";   # 2.56 range
+      }
+    }
+    else {
+      # Set the upper and lower alarm values
+      # Need to set behavior somehow
+      $send = "\x00";
+    }
+    $result = $c->owBlock( $send . ("\xFF" x 3));
+
+    $crc = 0x0009;  # seed the CRC generator with the new address
+    $crc = $c->docrc16( $crc, $send );
+    # CRC16 + read back bit
+    $crc = $c->docrc16( $crc, substr($result,-3,2) );
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      $this->reset;
+      return undef;
+    }
+
+
+    #### Channel B
+    if ($B->{type} =~ m/ad/i) {
+      $send = pack "C", ($B->{resolution} - 1);    # How many bits?
+    }
+    else {
+      # Set OE=1, and OC=1 or 0 
+      $send = ($B->{state} =~ m/on|1/i) ? "\x80" : "\xC0";
+    }
+    $result = $c->owBlock( $send . ("\xFF" x 3));
+
+    $crc = 0x000A;  # seed the CRC generator with the new address
+    $crc = $c->docrc16( $crc, $send );
+    # CRC16 + read back bit
+    $crc = $c->docrc16( $crc, substr($result,-3,2) );
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      $this->reset;
+      return undef;
+    } 
+
+    if ($B->{type} eq 'AD') {
+      if ($B->{range} > 2.56) {
+        $send = "\x01";   # 5.12V range
+      }
+      else {
+        $send = "\x00";   # 2.56 range
+      }
+    }
+    else {
+      # Set the upper and lower alarm values
+      # Need to set behavior somehow
+      $send = "\x00";
+    }
+    $result = $c->owBlock( $send . ("\xFF" x 3));
+    $crc = 0x000B;  # seed the CRC generator with the new address
+    $crc = $c->docrc16( $crc, $send );
+    # CRC16 + read back bit
+    $crc = $c->docrc16( $crc, substr($result,-3,2) );
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      $this->reset;
+      return undef;
+    } 
+
+
+    #### Channel C
+    if ($C->{type} =~ m/ad/i) {
+      $send = pack "C", ($C->{resolution} - 1);    # How many bits?
+    }
+    else {
+      # Set OE=1, and OC=1 or 0 
+      $send = ($C->{state} =~ m/on|1/i) ? "\x80" : "\xC0";
+    }
+    $result = $c->owBlock( $send . ("\xFF" x 3));
+
+    $crc = 0x000C;  # seed the CRC generator with the new address
+    $crc = $c->docrc16( $crc, $send );
+    # CRC16 + read back bit
+    $crc = $c->docrc16( $crc, substr($result,-3,2) );
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      $this->reset;
+      return undef;
+    } 
+
+    if ($C->{type} eq 'AD') {
+      if ($C->{range} > 2.56) {
+        $send = "\x01";   # 5.12V range
+      }
+      else {
+        $send = "\x00";   # 2.56 range
+      }
+    }
+    else {
+      # Set the upper and lower alarm values
+      # Need to set behavior somehow
+      $send = "\x00";
+    }
+    $result = $c->owBlock( $send . ("\xFF" x 3));
+
+    $crc = 0x000D;  # seed the CRC generator with the new address
+    $crc = $c->docrc16( $crc, $send );
+    # CRC16 + read back bit
+    $crc = $c->docrc16( $crc, substr($result,-3,2) );
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      $this->reset;
+      return undef;
+    } 
+
+
+    #### Channel D
+    if ($D->{type} =~ m/ad/i) {
+      $send = pack "C", ($D->{resolution} - 1);    # How many bits?
+    }
+    else {
+      # Set OE=1, and OC=1 or 0
+      $send = ($D->{state} =~ m/on|1/i) ? "\x80" : "\xC0";
+    }
+    $result = $c->owBlock( $send . ("\xFF" x 3));
+
+    $crc = 0x000E;  # seed the CRC generator with the new address
+    $crc = $c->docrc16( $crc, $send );
+    # CRC16 + read back bit
+    $crc = $c->docrc16( $crc, substr($result,-3,2) );
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      $this->reset;
+      return undef;
+    } 
+
+    if ($D->{type} =~ m/ad/i) {
+      if ($D->{range} > 2.56) {
+        $send = "\x01";   # 5.12V range
+      }
+      else {
+        $send = "\x00";   # 2.56 range
+      }
+    }
+    else {
+      # Set the upper and lower alarm values
+      # Need to set behavior somehow
+      $send = "\x00";
+    }
+    $result = $c->owBlock( $send . ("\xFF" x 3));
+
+    $crc = 0x000F;  # seed the CRC generator with the new address
+    $crc = $c->docrc16( $crc, $send );
+    # CRC16 + read back bit
+    $crc = $c->docrc16( $crc, substr($result,-3,2) );
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      $this->reset;
+      return undef;
+    } 
+
+    # Save the setup info for this device if we are sucessful
+    $this->{'VCC'} = $A->{VCC};
+    $this->{'A_range'} = ($A->{range} > 2.56) ? 5.12 : 2.56;
+    $this->{'B_range'} = ($B->{range} > 2.56) ? 5.12 : 2.56;
+    $this->{'C_range'} = ($C->{range} > 2.56) ? 5.12 : 2.56;
+    $this->{'D_range'} = ($D->{range} > 2.56) ? 5.12 : 2.56;
+    
+    $this->reset;
+    return 1;
+  }
+  return undef;
+}
+
+=head2 convert
+
+ $b->convert($channel)
+
+This method initiates a A/D conversion for the selected channel/s in 
+DS2450 iButtons.
+
+ $channel = ABCD or ALL
+
+$channel can also be a string such as "CDA", (channel order doesn't matter.)
+
+=cut
+
+sub convert {
+  my ($this,$channel) = @_;
+  my $c = $this->{'connection'};
+  my $crc = 0;
+  my $send;
+  my $result;
+  return undef if !$c->connected();
+  # access the device
+  if ( $this->select ) {
+    $send = "\x3C";     # convert
+    if ($channel =~ m/all/i) {
+      $send .= "\x0F";  # All channels
+    }
+    else {
+      my $ch = "\x00";
+      if ($channel =~ m/a/i) {
+        $ch = "\x01";        # Channel A
+      }
+      if ($channel =~ m/b/i) {
+        $ch |= "\x02";  # Channel B
+      }
+      if ($channel =~ m/c/i) {
+        $ch |= "\x04";  # Channel C
+      }
+      if ($channel =~ m/d/i) {
+        $ch |= "\x08";  # Channel D
+      }
+      #print "Channel mask = " . unpack ("C*", $ch) . ".\n";
+      $send .= $ch;
+    }
+    #$send .= "\x01";  # Set all to zeros
+    $send .= "\x00";  # leave at default
+    $crc = $c->docrc16( 0, $send);
+
+    $result = $c->owBlock( $send . ("\xFF" x 2));
+
+    $crc = $c->docrc16( $crc, substr($result,-2,2) );
+    #print "CRC16 = $crc .\n";
+
+    if (!$this->{VCC}) {
+      # set the 1-Wire Net to strong pull-up
+      return undef if $c->level(&Hardware::iButton::Connection::MODE_STRONG5) ne
+         &Hardware::iButton::Connection::MODE_STRONG5;
+    }
+
+    # Conversion time = (#channels * #bits * 80us) + 160us
+    # ie. all channels, 16 bits = 5.280ms
+    # sleep for 6ms (max conversion time) during conversion
+    select( undef, undef, undef, 0.006 );
+
+    if (!$this->{VCC}) {
+      # turn off the 1-Wire Net strong pull-up
+      return undef if $c->level(&Hardware::iButton::Connection::MODE_NORMAL) ne
+         &Hardware::iButton::Connection::MODE_NORMAL;
+    }
+
+    # Verify that the conversion completed
+    $result = $c->owBlock("\xFF" x 2);
+    $this->reset;
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      return undef;  
+    }
+    my @res = unpack ("C*", $result);
+    if ($res[1] != "255") {
+      print "Conversion error!\n";
+      return undef;
+    }
+    return 1;
+  }
+  return undef;
+}
+
+
+=head2 readAD
+
+ $b->readAD($channel)
+
+This method reads the last converted AD values from memory for the selected 
+channel/s in DS2450 iButtons.
+
+ $channel = A/B/C/D/ALL
+
+=cut
+
+sub readAD {
+  my ($this,$channel) = @_;
+  my $c = $this->{'connection'};
+  my $crc = 0;
+  my $send;
+  my $result;
+  return undef if !$c->connected();
+  # access the device
+  if ( $this->select ) {
+    $send = "\xAA";        # Read memory
+    $send .= "\x00\x00";   # Address 0000
+    $send .= "\xFF" x 10;  # 8 bytes per page +CRC16
+
+    # Read memory page 0
+    # Bytes 0-2 = \xAA\x00\x00
+    # Byte 3 = LSB A
+    # Byte 4 = MSB A
+    # Byte 5 = LSB B
+    # Byte 6 = MSB B
+    # Byte 7 = LSB C
+    # Byte 8 = MSB C
+    # Byte 9 = LSB D
+    # Byte 10 = MSB D
+    # Bytes 11-12 = CRC16
+
+    $result = $c->owBlock( $send );
+    $crc = $c->docrc16( 0, substr($result,0,11) );
+    $crc = $c->docrc16( $crc, substr($result,-2,2) );
+
+    my @res = unpack ("C*", $result);
+    my $Va = $this->{A_range} * (($res[4] << 8) + $res[3])/65536; 
+    my $Vb = $this->{B_range} * (($res[6] << 8) + $res[5])/65536; 
+    my $Vc = $this->{C_range} * (($res[8] << 8) + $res[7])/65536; 
+    my $Vd = $this->{D_range} * (($res[10] << 8) + $res[9])/65536; 
+
+    $this->reset;
+
+    if ($crc != 0xB001) {
+      print "Failed CRC16 check!\n";
+      return undef;
+    }
+    if ($channel =~ m/all/i) {
+      return($Va,$Vb,$Vc,$Vd);
+    }
+    elsif ($channel =~ m/a/i) {
+      return($Va);
+    }
+    elsif ($channel =~ m/b/i) {
+      return($Vb);
+    }
+    elsif ($channel =~ m/c/i) {
+      return($Vc);
+    }
+    elsif ($channel =~ m/d/i) {
+      return($Vd);
+    }
+  }
+}
+
+
+=head2 set_switch
+
+ $b->set_switch($channel,$state);
+    
+This method can be used to set switch outputs on DS2450 iButtons.
+ $channel = ABCD (Which channel?) 
+ $state = 1/on or 0/off (Turn the switch on or off)
+
+=cut
+       
+sub set_switch {
+  my ($this,$channel,$state) = @_;
+          
+  my $c = $this->{'connection'};
+  my $send;
+  my $result;
+  my $crc = 0;
+  return undef if !$c->connected();
+  # access the device
+  if ( $this->select ) {
+    $send = "\x55";   # write memory
+    if ($channel =~ m/a/i) {
+      $send .= "\x08\x00";  # to 0008
+    }
+    elsif ($channel =~ m/b/i) {
+      $send .= "\x0A\x00";  # to 000A
+    }
+    elsif ($channel =~ m/c/i) {
+      $send .= "\x0C\x00";  # to 000C
+    }
+    elsif ($channel =~ m/d/i) {
+      $send .= "\x0E\x00";  # to 000E
+    }
+    # Set OE=1, and OC=1 or 0
+    $send .= ($state =~ m/on|1/i) ? "\x80" : "\xC0";
+
+    # now send the block
+    $result = $c->owBlock( $send . ("\xFF" x 3));
+
+    $crc = $c->docrc16( 0, $send );
+    $crc = $c->docrc16( $crc, substr($result,-3,2) );
+
+    $this->reset;
+
+    if ($crc == 0xB001) {
+      return 1;
+    }
+  }
+  return undef;
+}
+
 
 
 

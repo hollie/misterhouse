@@ -52,6 +52,8 @@ if ($state = said $v_send_email_test) {
         &net_mail_send(subject => "command:request $config_parms{caller_id_file}  code:$config_parms{net_mail_command_code}") if $state == 10;
         &net_mail_send(subject => "command:set \$camera_light TOGGLE code:$config_parms{net_mail_command_code}") if $state == 11;
 
+        run 'send_mail -subject "test" -text "Test background send_mail"' if $state == 11;
+
         speak "Test message has been sent";
     }
     else {

@@ -155,6 +155,9 @@ sub check_accounts {
 
                                 # Delete attachements
                                 # I think the g in gsm will do this without the while loop
+
+#                   print "dbx get_email body=$body.\n";
+
                     $body  =~ s/Content-Disposition: attachment.+?filename=(.+?)^.+/Attachment deleted: $1/gsm;
 #                   while ($body =~ m/Content-Disposition: attachment.+?filename=(.+?\").+?NextPart.+?\n/s) {
 #                       $body =~ s/Content-Disposition: attachment.+?filename=(.+?\").+?NextPart.+?\n/Attachment removed: $1\n\n/sm;
@@ -303,6 +306,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.32  2003/04/20 21:43:57  winter
+#  - 2.80 release
+#
 # Revision 1.31  2002/11/10 01:59:54  winter
 # - 2.73 release
 #
