@@ -13,6 +13,8 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#Version_2_49_posted_on_04_200">Version 2.49 posted on 04/??/2001</A></LI>
+		<LI><A HREF="#Version_2_47_posted_on_03_24_200">Version 2.47 posted on 03/24/2001</A></LI>
 		<LI><A HREF="#Version_2_45_posted_on_02_24_200">Version 2.45 posted on 02/24/2001</A></LI>
 		<LI><A HREF="#Version_2_43_posted_on_02_03_200">Version 2.43 posted on 02/03/2001</A></LI>
 		<LI><A HREF="#Version_2_41_posted_on_01_20_01">Version 2.41 posted on 01/20/01</A></LI>
@@ -77,6 +79,253 @@
 list (an archive of all the list messages is at <A
 HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A>
 )
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_49_posted_on_04_200">Version 2.49 posted on 04/??/2001</A></H2>
+<P>
+Version 2.49 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net/download.html">http://misterhouse.sourceforge.net/download.html</A>
+  <A HREF="http://misterhouse.net/download.html">http://misterhouse.net/download.html</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Created a LCD object.
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Other Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Ian Davidson found an 2.47 problem when running -debug serial
+
+</P>
+<P>
+- Tom Vanderpool spotted a change in the clicktv get_tv_grid url (drop the
+WSN string).
+
+</P>
+<P>
+- Craig Schaeffer sent in an update
+mh/code/public/internet_ip_update_craig.pl for updating dynamic ip
+addresses to a web page.
+
+</P>
+<P>
+- Scott Johnston ran into a 500 phrase limit in viavoice_server. We bumpped
+the limit to 5000.
+
+</P>
+<P>
+- Updated mh to it can be started from any directory, not just the
+mh/bin/mh dir.
+
+</P>
+<P>
+- http_server changes for local style sheets.
+
+</P>
+<P>
+- Craig Schaeffer epods stuff.
+
+</P>
+<P>
+- Allow for non-rooted auto-generated html include files.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_47_posted_on_03_24_200">Version 2.47 posted on 03/24/2001</A></H2>
+<P>
+Version 2.47 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net/download.html">http://misterhouse.sourceforge.net/download.html</A>
+  <A HREF="http://misterhouse.net/download.html">http://misterhouse.net/download.html</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Added template based menuing code. This allows us to create nested menus
+for use with web browsers, LCD displays, WAP phones, and vxml based phone
+voice portals. To enable, copy mh/code/test/menu.pl and test.menu. More
+information can be found here in mh/docs/mh* or here: <A
+HREF="http://misterhouse.net/mh.html#Customizing_the_Menu_interfaces">http://misterhouse.net/mh.html#Customizing_the_Menu_interfaces</A>
+. I have not yet implemented an authorization scheme for the vxml or wml
+menus, so you will want to limit the commands to harmless commands disable
+non-local access of those functions by modifying the Password_Allow records
+in menu.pl.
+
+</P>
+<P>
+- Added mh/bin/backup_data. This allows for periodic smart backups, with
+options for daily age based backups and/or less periodic full backups, with
+options to filter based on file/dir name or size. It defaults to using tar
+and gzip. It also has an option to use perl modules from CPAN, but they are
+slower and use more memory. Here is how I do daily and monthly cross
+backups between 2 different networked computers:
+
+</P>
+<P>
+<PRE>   <A HREF="http://misterhouse.net/mh/code/bruce/backup.pl">http://misterhouse.net/mh/code/bruce/backup.pl</A>
+</PRE>
+</P>
+<P>
+- X10 bright/dim commands will now set the selected X10_Item objects to the
+correct bright/dim states (used to be only house code X10_Items were set).
+Also added a 'level' method to X10_Item, so you can query what mh thinks
+the current brightness level is after one or more bright/dims.
+ 
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Other Changes:</STRONG>
+
+
+
+</P>
+<P>
+- David Norwood fixed a problem with internet_iridium.pl on unix boxes.
+
+</P>
+<P>
+- Wally Kissel sent in mh/code/public/x10_mr26_wally.pl, code that shows
+how to listen to the wireless MR26A remote.
+
+</P>
+<P>
+- Mark Holm's sent in mh/code/public/x10_video_security.pl, code for a
+video surveillance system using X10 XCAM cameras and motion sensors.
+
+</P>
+<P>
+- John Moore sent in another example unix .rc file for starting misterhouse
+(mh/bin/misterhouse_john.rc).
+
+</P>
+<P>
+- Brent Gross suggested we have a way to disable commands like 'reboot the
+computer', so we added mh.ini parm disabled_commands, which defaults to
+mh/data/disabled_commands.
+
+</P>
+<P>
+- Clive Freedman fixed a couple of bugs in get_tv_info.
+
+</P>
+<P>
+- David Norwood added mh/bin/get_finger and updated
+mh/code/public/internet_earthquakes.pl to use get_finger, rather than
+get_url.
+
+</P>
+<P>
+- Donald Hoffman sent in a patch to http_server.pl involving SET on a
+scalar.
+
+</P>
+<P>
+- Bill Sobel added time_greater_or_equal and time_less_or_equal, like
+time_grather_than and time_less_than.
+
+</P>
+<P>
+- Bill Sobel added a check to allow Windows NT/2k to use COM10+ ports
+without the dorky \\.\ prefix.
+
+</P>
+<P>
+- Riad Wahby updated the AOL AIM module with a timeout option (no more mh
+hangs when unable to logon).
+
+</P>
+<P>
+- Jean-Marie Martin added more states to the (Canadian?) X10_Ote item and
+X10O to read_table_A.pl.
+
+</P>
+<P>
+- Ingo Dean added a X10 Motion_Sensor object that will send a 'dead
+battery' message if it has not heard from the sensor after 24 hours.
+
+</P>
+<P>
+- Stuart Grimshaw and Mark Mabry fixed a 'RUN command not found'
+http_server bug that some browsers had. 
+
+</P>
+<P>
+- Ian Davidson found an error in reading '0' from serial ports.
+
+</P>
+<P>
+- Tim Doyle added a VOICE option to format=A mht tables.
+
+</P>
+<P>
+- Bill Sobel sent in a bunch of changes: Compool now incudes new state
+checks. Stargate includes more support for stargate variables, thermostats
+(fully working), flags (in process), timers (in process), digital inputs
+(fully working), relay output (read status, not set yet), analog inputs
+(not done yet), and some Stargate485 fixes. Read_Table_A includes some of
+the new (and renamed) Stargate devices.
+
+</P>
+<P>
+- Modified the web server to process all current get request in one pass,
+for faster refresh of web pages with lots of icons/scripts, especially on
+slower computers.
+
+</P>
+<P>
+- Added a timer to mh/lib/Voice_Text.pm so the pa_control is_speaking test
+will work for all the TTS engines.
+
+</P>
+<P>
+- Updated mh/lib/CallerID.pm so it supports more than one local area code.
+
+</P>
+<P>
+- Updated so that mh will use its own updated HTML::FormatText, rather than
+one in your perl path, so that table extraction works ok on all
+installations (e.g. internet_data.pl top 10 list).
+
+</P>
+<P>
+- Added 'Enable/Disable all code files' in mh/code/common/disable_code.pl
+(for performance debug). Also added a <CODE>$Disable</CODE> flag for
+selecting internal mh functions for debug.
+
+</P>
+<P>
+- Fixed a bug in that would cause mh to slow down if net_domain_name was
+called many times. I discovered this after my mh slowed down from 60
+loops/second to 30 loops/second after about 4 days of high http service
+(about 400 clients / 4000 hits a day). 
+
+</P>
+<P>
+- Re-ordered loopcode subs according to the optional Position directive.
 
 </P>
 <P>
@@ -247,7 +496,7 @@ format.
 <P>
 - Changed the mh.ini and sun_time calculations to allow for the more
 correct notation of negative numbers for time_zone and longitudes for those
-of us in the Western Hemisphere (e.g. North/South America). This is
+of us in the western hemisphere (e.g. North/South America). This is
 required for the new earthquake and iridium code to work correctly.
 
 </P>

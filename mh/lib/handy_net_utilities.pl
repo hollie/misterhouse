@@ -170,11 +170,13 @@ sub main::net_ftp {
     $file_remote    = $file unless $file_remote;
     my $command     = $parms{command};
     my $type        = $parms{type};
+    my $passive     = $parms{passive};
 
     $server   = $main::config_parms{net_www_server} unless $server;
     $user     = $main::config_parms{net_www_user} unless $user;
     $password = $main::config_parms{net_www_password} unless $password;
     $dir      = $main::config_parms{net_www_dir} unless $dir;
+    $passive  = 0 unless $passive;
 
     print "net_ftp error: 'server'   parm missing (check net_www_server   in mh.ini)\n" unless $server;
     print "net_ftp error: 'user'     parm missing (check net_www_user     in mh.ini)\n" unless $user;
@@ -185,7 +187,7 @@ sub main::net_ftp {
     print "Logging into web server $server as $user...\n";
 
     my $ftp;
-    unless ($ftp = Net::FTP->new($server)) {
+    unless ($ftp = Net::FTP->new($server, timeout => 120, passive => $passive)) {
         print "Unable to connect to ftp server $server: $@\n";
         return "failed on connect";
     }
@@ -772,6 +774,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.29  2001/04/15 16:17:21  winter
+# - 2.49 release
+#
 # Revision 1.28  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

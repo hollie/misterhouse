@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-03-04 17:46:35 winter>
+#  Last change Time-stamp: <2001-03-26 21:45:04 winter>
 #---------------------------------------------------------------------------
 #  Description:
 #      Walks directories and stores selected files to gziped tar files.
@@ -49,6 +49,10 @@ $Pgm_Name walks directories and stores selected files to gziped tar files.
     -int      => Use the internal perl tar and gzip modules, rather
                  then external tar and gzip programs.  This is slower
                  and users more memory (> the data being tared).
+
+    Windows binaries for tar.exe and gzip.exe can be found here:
+                   http://misterhouse.net/public
+ 
 
   Examples:
     $Pgm_Name /www
@@ -176,6 +180,9 @@ sub read_dir {
 
 #
 # $Log$
+# Revision 1.2  2001/04/15 16:17:20  winter
+# - 2.49 release
+#
 # Revision 1.1  2001/03/24 18:08:37  winter
 # - 2.47 release
 #

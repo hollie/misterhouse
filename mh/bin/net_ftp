@@ -13,7 +13,7 @@ my %parms;
 use Getopt::Long;
 if (!&GetOptions(\%parms, 'h', 'help', 
                  'user=s', 'password=s', 'server=s', 'dir=s',
-                 'file=s', 'file_remote=s', 'command=s', 'type=s') or
+                 'file=s', 'file_remote=s', 'command=s', 'type=s', 'passive=s') or
     @ARGV or !$parms{command} or ($parms{h} or $parms{help})) {
     print<<eof;
 
@@ -32,9 +32,10 @@ if (!&GetOptions(\%parms, 'h', 'help',
        file_remote     Name of remote file (if different from file)
        command         get/put/delete.
        type            ascii/binary  (default is ascii)
+       passive         Sometimes needed if behind a firewall
 
   Example:
-    $Pgm_Name -command put -file \junk1.txt -file_remote /tmp/junk1.txt
+    $Pgm_Name -passive 1 -command put -file \junk1.txt -file_remote /tmp/junk1.txt
 
 eof
     exit;
@@ -52,6 +53,9 @@ use vars '%config_parms';
 
 # 
 # $Log$
+# Revision 1.2  2001/04/15 16:17:20  winter
+# - 2.49 release
+#
 # Revision 1.1  2000/09/09 21:20:02  winter
 # - 2.28 release
 #

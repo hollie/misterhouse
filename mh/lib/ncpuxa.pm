@@ -177,7 +177,7 @@ sub send_x10_leviton_level {
 
 }
 
-sub write_relay {
+sub set_relay {
 	my $s = shift;
 	my $module = shift;
 	my $point = shift;

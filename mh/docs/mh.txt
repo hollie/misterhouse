@@ -909,6 +909,36 @@ DESCRIPTION
             set $VCR "12,RECORD" if time_cron('59 19 * * 3');
             set $VCR "STOP"      if time_cron('00 20 * * 3');
 
+    LCD This object is used to send and receive data to LCD type
+        displays with keypads.
+
+          Methods:
+             new $type, $port, $size, $menu_group, $keymap
+         
+               $type:  Either lcdproc or keyboard.  
+               $port:  The ip:port of where lcdproc is running.
+               $size:  ROWSxCOLUMNS of the LCD display.
+               $menu_group:  The menu parsed by menu_parse (see Menu section of this doc).
+               $keymap: A has that translates keys to usable names.   
+
+             start        => Connect to the LCD.  Automatically called on startup
+             stop         => Disconnect the LCD.
+             load $menu   => Load menu $menu.  Default menu is the first one.
+             check_key    => Returns whatever key is keyed in
+             set @data    => Sends @data to the LCD, one line per list element
+             set_key $key => Simulates the keyboard being pressed with $key
+             inactive     => Returns true if no key has been pressed in 10 seconds.
+
+          Examples:
+
+             my %lcd_keymap1 = ( N => 'up', I => 'down', M => 'left', H => 'right',
+                                 F => 'exit', K => 'enter', L => 'left', G => 'right');
+             my %lcd_keymap2 = ( 38=> 'up', 40=> 'down', 37=> 'left', 
+                                 39=> 'right', 17=> 'exit', 96=> 'enter') ;
+
+            $lcd1 = new LCD  'lcdproc', '192.168.0.5:13666', '4x20', 'default', \%lcd_keymap1;
+            $lcd2 = new LCD 'keyboard',               undef, '4x20', 'mh',      \%lcd_keymap2;
+
     Process_Item
         You can use this object to run external programs. On Win32
         systems, the Win32::Process function is used. On Unix
@@ -1120,12 +1150,12 @@ DESCRIPTION
         Note that the X10 device code is numbered 1->9,A->G. For
         example device 16 in house code P would be PG.
 
-        If a single character is use (e.g. X10_Item('D')), then 'on'
+        If a single character is use (e.g. X10_Item 'D'), then 'on'
         and 'off' states are translated to ALL_ON and ALL_OFF
         commands for that house code. For example:
 
-           $v_test_lights = new Voice_Cmd("All lights [on,off]");
-           $test_lights   = new X10_Item("O");
+           $v_test_lights = new Voice_Cmd 'All lights [on,off]';
+           $test_lights   = new X10_Item 'O';
            set $test_lights $state if $state = said $v_test_lights;
 
         This item also has a built in timer with the set_with_timer
@@ -1133,6 +1163,15 @@ DESCRIPTION
         light to 20% for 5 seconds:
 
            set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
+
+        After doing one or more bright/dim/on/off commands, you can
+        query the current brightness level of a device with the
+        level method. For example:
+
+           if ($state = state_now $pedestal_light) {
+              my $level = level $pedestal_light;
+              print_log "Pedestal light state=$state, level=$level"
+           }
 
         If you have one of the newer (more expensive) LM14A/PLM21 2
         way X10 pro lamp modules, you can tell mh to send an
@@ -1182,6 +1221,35 @@ DESCRIPTION
     X10_Appliance
         Same as X10_Item, except it has only has pre-defined states
         'on' and 'off'
+
+    X10_Garage_Door;
+        For the Stanely Garage Door status transmitter. See
+        mh/code/public/Danal/Garage_Door.pl
+
+    X10_IrrigationController;
+        For this sprinkler device:
+        http://ourworld.compuserve.com/homepages/rciautomation/p6.ht
+        m
+
+    X10_Switchlinc;
+        For the Switchlinc controlers:
+
+             # Just picked this device to use to send the clear
+          $Office_Light_Torch->set("clear");
+             # Send a command to each group member to make it listen
+          $SwitchlincDisable->set("off");
+             # Just picked this device item to send the command
+          $Office_Light_Torch->set("disablex10transmit");
+
+    X10_Ote;
+        Not sure what this is :)
+
+    X10_Sensor;
+        Do you have any of those handy little X10 MS12A battery-
+        powered motion sensors? Here's your answer - use the
+        X10_Sensor instead of the Serial_Item when you define it,
+        and your house will notice when your sensor hasn't been
+        tripped in 24 hours, allowing you to check on the batteries.
 
     RCS_TX15
         Craig is working on this one.
@@ -2075,12 +2143,14 @@ DESCRIPTION
             pa_sleep_mode('kids', 1) if time_cron '* 21 * * * ';
 
     time_greater_than
+    time_greater_or_equal
     time_less_than
-        These return true if the specified time is greater or less
-        than the current time. Format can have the same sorts of
-        offsets as described in time_now below. Note unlike time_now
-        which is only true once, these functions will return a true
-        value for every pass that they are true.
+    time_less_or_equal
+        These return true if the specified time is greater, less
+        than, or equal to the current time. Format can have the same
+        sorts of offsets as described in time_now below. Note unlike
+        time_now which is only true once, these functions will
+        return a true value for every pass that they are true.
 
            Example: curtain_on('bedroom', OPEN) if 
                             time_cron('22 6 * * 1-5') and 
@@ -2523,6 +2593,36 @@ DESCRIPTION
           Example:
             alpha_page -pin 123456 -message 'Bring home bread and milk'
             alpha_page -name craig -message 'Bring home bread and milk'
+
+    backup_data
+        backup_data walks directories and stores selected files to
+        gziped tar files.
+
+          Usage:
+
+           backup_data [options] dir1 dir2 etc
+
+            -h        => This help text
+
+            -file xyz => Name of tar file.  Default is backup
+            -size xyz => Do NOT store files > xyz KBytes.  Default is 100
+            -skip xyz => Skip any file or dir that matches regex xyz
+            -age  xyz => Only back up files changed in the last xyz days
+
+            -no_zip   => Do NOT gzip the tar file.
+            -no_zip   => Do NOT suffix the files with date stamp.
+
+            -int      => Use the internal perl tar and gzip modules, rather
+                         then external tar and gzip programs.  This is slower
+                         and users more memory (> the data being tared).
+
+          Examples:
+            backup_data /www
+            backup_data -size 10 -no_zip -int /usr/local/bin
+            backup_data -file /backup/misc /bin //misterhouse.net/bin
+            backup_data -file /backup/mh -skip "(/tv$)|(/articles$)" /misterhouse
+            backup_data -file /backup/mh_articles  -size 100000 /misterhouse/articles
+            backup_data -file /backup/docs -age 30 -size 100000 /docs
 
     display
         Use this to display a string of text or the contents of a
@@ -3078,6 +3178,167 @@ DESCRIPTION
     Explorer must be re-started if you want to enter a different
     password.
 
+  Customizing the Menu interfaces
+
+    You can nested create menus that let you query mh data or
+    control mh items or commands. You can use use any or all of
+    these interfaces to walk through menus:
+
+      Web browser:        http://localhost/sub?menu_html
+      WAP phone:          http://localhost/sub?menu_wml
+      Tellme.com phone:   http://localhost/sub?menu_vxml  
+      LCD keypads:        see mh/code/bruce/lcdproc.pl for an example
+
+    To enable, use mh/code/test/menu.pl to read in menu files. The
+    format of the menu files is a simple text file, where each
+    record is prefixed with a record type character. Here is an
+    example:
+
+     M: Test            # Top level menu can have any name
+        D: HVAC
+        D: Lights
+     M: HVAC
+        D: Indoor temperature
+           R: At $Time_Date, the temperature is $Weather{TempIndoor}
+        D: Living fan [on,off] 
+           A: set $living_fan $state
+        D: Outdoor temperature
+           A: What is the outdoor temperature
+           R: last_response
+     M: Lights
+        D: Camera [+,-,^,v]    
+           A: Camera light [on,off,+30,-30]
+        D: Bedroom [on,off,+30,-30]
+        M: Outside
+     M: Outside
+        D: Garage Light [on,off,+30,-30]
+        D: Backyard Light [on,off,+30,-30]
+
+    These are the record types:
+
+     M:  Menu screen
+     D:  text to Display as a menu choice
+     A:  what Action to run (either a voice cmd or code to eval)
+     R:  what Response to display.  last_response will pick up the last mh response
+
+    The above example specifies 3 menu (M:) records that creates a
+    Test menu, with 2 submenus, HVAC and Lights.
+
+    The HVAC 'Indoor temperature' display record (D:) will respond
+    (R:) with the indoor $Weather data.
+
+    The 'Living fan' entry will evaluate the 'set $living_fan
+    $state' action (A:) record to set the fan to the specified (on
+    or off) state.
+
+    The 'Outdoor temperature' record will run a Voice_Cmd action
+    (A:), and respond with the last data printed or spoken by mh
+    (the results of the outdoor temperature command).
+
+    The 'Camera light' record also runs a Voice_Cmd action. To save
+    (LCD) display space, the on,off,+30,-30 Action states were
+    renamed on the Display record to +,-,^,v.
+
+    The 'Bedroom' record matches a Voice_Cmd exactly, so no action
+    record is required.
+
+    The last Outside Light records are a 3rd level menu, nested
+    under the 2nd level Lights menu. There are no limits to how deep
+    you can nest menus and they can appear in any order you want in
+    the file. The same menu can be a submenu of more than one other
+    parent menu.
+
+    If you want a starting point to customize your own menus, you
+    can find an auto-generated menu for all the mh Voice_Cmds in the
+    mh_temp.menu file in your code directory. This file is re-
+    generated on reload, so copy and edit this file, then point
+    menu.pl at your edited copy.
+
+    You can have different sets of menus, for use with different
+    interfaces or users. For example, the default menu.pl looks like
+    this:
+
+        my $menu_mh   = menu_create "$config_parms{code_dir}/mh_temp.menu";
+        my $menu_test = file_read   "$config_parms{code_dir}/test.menu";
+        menu_parse $menu_test, 'default';
+        menu_parse $menu_mh,   'mh'; # This menu has all the mh voice commands
+
+    menu_create creates the example mh_temp.menu file for all voice
+    commands and returns it into $menu_mh. $menu_test has the test
+    menu, similar to the above example. You can specify the menu
+    group (e.g. default or mh) when calling any of the menu
+    interface subroutines. For the above menu.pl, you can point your
+    WAP phone to:
+
+      Either of these will get the 'default' test menu:
+        http://misterhouse.net:8080/sub?menu_wml
+        http://misterhouse.net:8080/sub?menu_wml(default)
+
+      This will get the auto-generated 'mh' entry for all voice commands:
+        http://misterhouse.net:8080/sub?menu_wml(mh)
+
+    Something like this could be used to create different menus for
+    different LCD controlers:
+
+      $menu_standard = read_file 'standard.menu';
+      $menu_bedroom  = read_file 'bedroom.menu';
+      $menu_living   = read_file 'living.menu';
+      $menu_all      = read_file 'all.menu';
+
+      if ($Reread) {
+        menu_parse $menu_bedroom  $menu_bedroom . $menu_standard,  'bedroom';  
+        menu_parse $menu_living   $menu_living  . $menu_standard,  'living';  
+        menu_parse $menu_all      $menu_all     . $menu_living .
+                                  $menu_bedroom . $menu_standard, 'all';
+        $lcd_data{bed1}   {menu_group} = 'bedroom';
+        $lcd_data{living1}{menu_group} = 'living';
+        $lcd_data{living2}{menu_group} = 'all';
+      }
+
+    To test your menus, point your browser to
+    http://localhost:8080/sub?menu_html
+
+    If you have a LCD supported by lcdproc program (
+    http://lcdproc.omnipotent.net ) (e.g. crystalfontz or matrix-
+    orbital), you can use mh/code/bruce/lcdproc.pl to display menus.
+    Currently only the linux version of lcdproc supports the keypad
+    option on the maxrix-orbital displays. Several other mh'ers are
+    writing similar code for their LCD displays.
+
+    If you have a 24x7 internet connection, you can walk the menus
+    with either a WAP compatable cell phone, or using voice commands
+    with any phone via a Voice Portal like http://studio.tellme.com.
+
+    For cell phones, simply point your phone to
+    http://your_domain/sub?menu_wml. You can test your menus with a
+    web based phone simulator at http://www.yospace.com or download
+    a phone simlator from http://phone.com . Other browsers are
+    listed at http://www.palowireless.com/wap/browsers.asp ,
+    although I didn't have much luck with http://www.wapsilon.com or
+    /http://www.gelon.net .
+
+    Tellme.com currently offers free 1-800 access to their VR and
+    TTS engines, using vxml (Voice XML) menus. You can view the mh
+    vxml menus by pointing a XML compatable browser (e.g. IE) to
+    this address:
+
+       http://localhost:8080/sub?menu_vxml
+
+    When ready to try with tellme, sign up for a free developer id,
+    which will be your extention number. I used Home0 (46630). Then
+    you can go to to my studio and enter your url:
+
+       http://studio.tellme.com/mystudio/mystudio.cgi
+
+       http://your_domain/sub?menu_vxml
+
+    where your_domain is your domain name or ip address. To test,
+    dial: 1-800-555-8965 (VXML) and enter your devloper ID and Pin.
+    When you have it working, click on the MyExtentions, enter the
+    same URL and check the enable checkbox. Now you can dial:
+
+       1-800-555-8355  (wait for 'tellme more') 1-yourextention
+
   Customizing the Tk Interface
 
     You can modify what the Tk window displays by modifying the
@@ -3345,7 +3606,7 @@ DESCRIPTION
       Format:
        SET:h_response?$object?value 
        RUN:h_response?command
-       SUB:sub_name(arg1,arg2)
+       SUB:h_response?sub_name(arg1,arg2)
 
       $var and $object are the variable and object names, with or without the $ prefix.
 
@@ -3553,14 +3814,6 @@ KNOWN LIMITATIONS AND BUGS
     an old perl/tk (older than 8.0012), things are even more messed
     up.
 
-    If you have perl installed, you may get this message:
-
-      Can't find 'boot_IO' symbol ...
-
-    The problem is there are two different IO.DLL files, one in the
-    FTP module and one in the TK module. Do a find in IO.DLL in your
-    perl directory, and rename the one in the tk path.
-
   Windows bugs/limitations
 
     If 'run' calls give you an 'out of environment memory' error,
@@ -3573,10 +3826,18 @@ KNOWN LIMITATIONS AND BUGS
     > 5 meg).
 
     Adding, deleting, or changing Voice commands does is not
-    recognized by the Windows MSVoice applicatino while it is
+    recognized by the Windows MSVoice application while it is
     running. You have to exit and restart MSVoice, then restart mh
     to get it to recognize new commands. Hopefully we can get this
     to work with release 5.0 of the MS Speech SDK.
+
+    If you have perl installed, you may get this message:
+
+      Can't find 'boot_IO' symbol ...
+
+    The problem is there are two different IO.DLL files, one in the
+    FTP module and one in the TK module. Do a find in IO.DLL in your
+    perl directory, and rename the one in the tk path.
 
   Unix bugs/limitations
 
@@ -3588,9 +3849,6 @@ KNOWN LIMITATIONS AND BUGS
          http://cslu.cse.ogi.edu/index.html 
          http://WWW.ISIP.MsState.Edu/projects/speech_recognition/
          http://www.tmt.de/~stephan/ears.html
-
-    The control keys from the console window do not work (e.g. F1 to
-    reload, F3 to exit). Ctl-C works :)
 
     Disk drive info (need to port from DriveInfo to df)
 
@@ -3644,7 +3902,7 @@ SEE ALSO
     CPUXA, and HCS II) that hopefully we can then link to with mh.
 
     Rene Mueller has a nice set of web pages with lots of info on
-    HomeAppliances at http://the-labs.com/HomeAppliance/
+    HomeAppliances at http://the-labs.com/HomeNetwork/
 
 COPYRIGHT
     Copyright (C) 1998-2001 Bruce Winter. All rights reserved.

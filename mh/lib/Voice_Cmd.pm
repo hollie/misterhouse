@@ -396,7 +396,7 @@ sub _register {
 
         $self->{disabled} = 1 if $main::Disabled_Commands{lc $cmd};
 
-#	    print "cmd_num=$cmd_num cmd=$cmd state=$state\n";
+	    print "cmd_num=$cmd_num cmd=$cmd state=$state\n" if $main::config_parms{debug} eq 'voice';
         last if &_increment_indexes > $index_last;
     }
 }
@@ -600,6 +600,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.31  2001/04/15 16:17:21  winter
+# - 2.49 release
+#
 # Revision 1.30  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Programmers for Scientific Research?</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/24/0251208</url>
-		<time>2001-03-24 11:43:16</time>
-		<author>michael</author>
-		<department>do-it-yourself</department>
-		<topic>programming</topic>
-		<comments>1</comments>
-		<section>askslashdot</section>
-		<image>topicprogramming.gif</image>
-	</story>
-
-	<story>
-		<title>Eurorights Launched</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/24/0328209</url>
-		<time>2001-03-24 08:22:14</time>
-		<author>michael</author>
-		<department>noble-intentions,-slim-odds</department>
-		<topic>news</topic>
-		<comments>44</comments>
-		<section>yro</section>
-		<image>topicnews.gif</image>
-	</story>
-
-	<story>
-		<title>Court of Appeals Overturns Indiana Video Game Ordinance</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/24/0343233</url>
-		<time>2001-03-24 05:34:43</time>
-		<author>michael</author>
-		<department>fatality!</department>
-		<topic>censorship</topic>
-		<comments>111</comments>
-		<section>articles</section>
-		<image>topiccensorship.gif</image>
-	</story>
-
-	<story>
-		<title>NSA Inside?</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/24/0225209</url>
-		<time>2001-03-24 02:58:21</time>
-		<author>michael</author>
-		<department>maybe-they-could-have-a-little-swirly-logo</department>
+		<title>Kurt Seifried On The Danger Of Binary RPMs</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/15/0214248</url>
+		<time>2001-04-15 08:19:36</time>
+		<author>timothy</author>
+		<department>don't-nelson-laugh-please</department>
 		<topic>linux</topic>
-		<comments>170</comments>
+		<comments>93</comments>
 		<section>articles</section>
 		<image>topiclinux.gif</image>
 	</story>
 
 	<story>
-		<title>Interview with Dominic Lachowicz of Abiword</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/24/0048246</url>
-		<time>2001-03-24 00:53:19</time>
-		<author>michael</author>
-		<department>macro-virus-support-optional</department>
-		<topic>gnome</topic>
-		<comments>70</comments>
+		<title>Fuel Cells For (Military)  Portable Computing</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/15/0013219</url>
+		<time>2001-04-15 02:56:40</time>
+		<author>timothy</author>
+		<department>call-it-vaporware-with-impunity</department>
+		<topic>tech</topic>
+		<comments>137</comments>
 		<section>articles</section>
-		<image>topicgnome.gif</image>
+		<image>topictech2.jpg</image>
 	</story>
 
 	<story>
-		<title>Zooming in on the GeForce 3</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/23/2051242</url>
-		<time>2001-03-23 23:47:14</time>
+		<title>Evangelion Movies Coming This Fall</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/14/156227</url>
+		<time>2001-04-14 22:56:39</time>
 		<author>CmdrTaco</author>
-		<department>pixels-for-dinner</department>
-		<topic>graphics</topic>
-		<comments>139</comments>
+		<department>my-eva-can-beat-up-your-eva</department>
+		<topic>anime</topic>
+		<comments>161</comments>
 		<section>articles</section>
-		<image>topicgraphics3.gif</image>
+		<image>topicanime.gif</image>
 	</story>
 
 	<story>
-		<title>IBM Linux Watch v2.0</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/23/2033231</url>
-		<time>2001-03-23 22:28:41</time>
-		<author>CmdrTaco</author>
-		<department>isn't-that-special</department>
-		<topic>pilot</topic>
+		<title>Iomega Settles Zip Drive Suit (With Rebates)</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/14/216228</url>
+		<time>2001-04-14 21:04:23</time>
+		<author>timothy</author>
+		<department>don't-throw-me-in-that-briar-patch</department>
+		<topic>doj</topic>
+		<comments>264</comments>
+		<section>articles</section>
+		<image>topicdoj.jpg</image>
+	</story>
+
+	<story>
+		<title>Diamonds Are A Space Station's Best Friend</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/14/1724223</url>
+		<time>2001-04-14 18:18:18</time>
+		<author>timothy</author>
+		<department>ok-what-book-am-I-thinking-about?</department>
+		<topic>tech</topic>
 		<comments>147</comments>
 		<section>articles</section>
-		<image>topicpilot.gif</image>
+		<image>topictech2.jpg</image>
 	</story>
 
 	<story>
-		<title>Michael Abrash's Black Book For Download</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/23/194254</url>
-		<time>2001-03-23 21:00:19</time>
-		<author>CmdrTaco</author>
-		<department>epic-tomes-available-online</department>
-		<topic>programming</topic>
-		<comments>160</comments>
+		<title>The Economist's Open-Source Quintet</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/14/1340229</url>
+		<time>2001-04-14 17:07:14</time>
+		<author>timothy</author>
+		<department>bundles-of-satisfaction</department>
+		<topic>news</topic>
+		<comments>54</comments>
 		<section>articles</section>
-		<image>topicprogramming.gif</image>
+		<image>topicnews.gif</image>
 	</story>
 
 	<story>
-		<title>New Linux Worm</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/23/1850206</url>
-		<time>2001-03-23 20:45:08</time>
-		<author>CmdrTaco</author>
-		<department>worming-its-way-around</department>
-		<topic>bug</topic>
-		<comments>359</comments>
+		<title>When Your Hardware Isn't Obsolete Soon Enough</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/14/130250</url>
+		<time>2001-04-14 15:51:15</time>
+		<author>timothy</author>
+		<department>ok-folks-what's-the-problem-here?</department>
+		<topic>hardware</topic>
+		<comments>478</comments>
 		<section>articles</section>
-		<image>topicbug.jpg</image>
+		<image>topichardware.gif</image>
 	</story>
 
 	<story>
-		<title>Red Hat Breaks Even, Beats Street Estimate</title>
-		<url>http://slashdot.org/article.pl?sid=01/03/23/1837205</url>
-		<time>2001-03-23 18:52:37</time>
-		<author>Hemos</author>
-		<department>downing-in-submissions</department>
-		<topic>redhat</topic>
-		<comments>253</comments>
+		<title>Free Speech Movement Digital Archive</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/13/2027249</url>
+		<time>2001-04-14 14:14:57</time>
+		<author>michael</author>
+		<department>keeping-it-real</department>
+		<topic>censorship</topic>
+		<comments>102</comments>
 		<section>articles</section>
-		<image>topicredhat.gif</image>
+		<image>topiccensorship.gif</image>
+	</story>
+
+	<story>
+		<title>A Real Life Cryptonomicon Gold Stash?</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/14/1242205</url>
+		<time>2001-04-14 13:21:54</time>
+		<author>timothy</author>
+		<department>art-life-life-art</department>
+		<topic>money</topic>
+		<comments>59</comments>
+		<section>articles</section>
+		<image>topicmoney.gif</image>
+	</story>
+
+	<story>
+		<title>Music Industry Raids Taiwan Campuses For MP3s</title>
+		<url>http://slashdot.org/article.pl?sid=01/04/14/1220249</url>
+		<time>2001-04-14 12:15:57</time>
+		<author>timothy</author>
+		<department>international-cooperative-spirit</department>
+		<topic>doj</topic>
+		<comments>262</comments>
+		<section>articles</section>
+		<image>topicdoj.jpg</image>
 	</story>
 
 </backslash>

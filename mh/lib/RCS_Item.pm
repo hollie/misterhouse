@@ -7,6 +7,8 @@ package RCS_Item;
 # distribute it under the same terms as Perl itself.  
 # This copyright notice must remain attached to the file.  
 #
+# Protocol is documented here: 
+#   http://www.resconsys.com/docs/X10%20BIDIRECTIONAL%20PROTOCOL%20REV13.pdf 
 
 ####################################################################
 
@@ -44,13 +46,16 @@ sub new {
     my $i = 0;
     for my $hc (qw(M N O P C D A B E F G H K L I J)) {
    
-        # unit 1,2,3 -> send setpoint
-        #$self -> add ($id . '1' . $hc . 'PRESET_DIM1',  4 + $i . ' degrees', 'setpoint'); 
-        #$self -> add ($id . '1' . $hc . 'PRESET_DIM2', 20 + $i . ' degrees', 'setpoint'); 
-        #$self -> add ($id . '2' . $hc . 'PRESET_DIM1', 36 + $i . ' degrees', 'setpoint');
-        $self -> add ($id . '2' . $hc . 'PRESET_DIM2', 52 + $i . ' degrees', 'setpoint');
-        $self -> add ($id . '3' . $hc . 'PRESET_DIM1', 68 + $i . ' degrees', 'setpoint');
-        $self -> add ($id . '3' . $hc . 'PRESET_DIM2', 84 + $i . ' degrees', 'setpoint');
+        # unit 1,2,3,9 -> send setpoint
+# Disabled by default to minimize menu select lists size
+#       $self -> add ($id . '1' . $hc . 'PRESET_DIM1',   4 + $i . ' degrees', 'setpoint'); 
+#       $self -> add ($id . '1' . $hc . 'PRESET_DIM2',  20 + $i . ' degrees', 'setpoint'); 
+#       $self -> add ($id . '2' . $hc . 'PRESET_DIM1',  36 + $i . ' degrees', 'setpoint');
+        $self -> add ($id . '2' . $hc . 'PRESET_DIM2',  52 + $i . ' degrees', 'setpoint');
+        $self -> add ($id . '3' . $hc . 'PRESET_DIM1',  68 + $i . ' degrees', 'setpoint');
+        $self -> add ($id . '3' . $hc . 'PRESET_DIM2',  84 + $i . ' degrees', 'setpoint');
+        $self -> add ($id . '9' . $hc . 'PRESET_DIM1', 100 + $i . ' degrees', 'setpoint');
+        $self -> add ($id . '9' . $hc . 'PRESET_DIM2', 116 + $i . ' degrees', 'setpoint');
 
         # unit 4 -> send command
         $self -> add ($id . '4' . $hc . 'PRESET_DIM1', $RCS_table_send_cmd[$i],    'cmd');
@@ -66,13 +71,19 @@ sub new {
         $self -> add ($id . 'A' . $hc . 'PRESET_DIM1', 'Echo:' . $RCS_table_send_cmd[$i],    'echo');
         $self -> add ($id . 'A' . $hc . 'PRESET_DIM2', 'Echo:' . $RCS_table_send_cmd[16+$i], 'echo');
 
-        # unit 13,14,15 -> report temperature
-        $self -> add ($id . 'D' . $hc . 'PRESET_DIM1',  4 + $i . " degrees ", 'temp'); 
-        $self -> add ($id . 'D' . $hc . 'PRESET_DIM2', 20 + $i . " degrees ", 'temp'); 
-        $self -> add ($id . 'E' . $hc . 'PRESET_DIM1', 36 + $i . " degrees ", 'temp');
-        $self -> add ($id . 'E' . $hc . 'PRESET_DIM2', 52 + $i . " degrees ", 'temp');
-        $self -> add ($id . 'F' . $hc . 'PRESET_DIM1', 68 + $i . " degrees ", 'temp');
-        $self -> add ($id . 'F' . $hc . 'PRESET_DIM2', 84 + $i . " degrees ", 'temp');
+        # unit 11,12,13,14,15,16 -> report temperature
+        $self -> add ($id . 'B' . $hc . 'PRESET_DIM1', -60 + $i . " degrees ", 'temp'); 
+        $self -> add ($id . 'B' . $hc . 'PRESET_DIM2', -44 + $i . " degrees ", 'temp'); 
+        $self -> add ($id . 'C' . $hc . 'PRESET_DIM1', -28 + $i . " degrees ", 'temp'); 
+        $self -> add ($id . 'C' . $hc . 'PRESET_DIM2', -12 + $i . " degrees ", 'temp'); 
+        $self -> add ($id . 'D' . $hc . 'PRESET_DIM1',   4 + $i . " degrees ", 'temp'); 
+        $self -> add ($id . 'D' . $hc . 'PRESET_DIM2',  20 + $i . " degrees ", 'temp'); 
+        $self -> add ($id . 'E' . $hc . 'PRESET_DIM1',  36 + $i . " degrees ", 'temp');
+        $self -> add ($id . 'E' . $hc . 'PRESET_DIM2',  52 + $i . " degrees ", 'temp');
+        $self -> add ($id . 'F' . $hc . 'PRESET_DIM1',  68 + $i . " degrees ", 'temp');
+        $self -> add ($id . 'F' . $hc . 'PRESET_DIM2',  84 + $i . " degrees ", 'temp');
+        $self -> add ($id . 'G' . $hc . 'PRESET_DIM1', 100 + $i . " degrees ", 'temp'); 
+        $self -> add ($id . 'G' . $hc . 'PRESET_DIM2', 116 + $i . " degrees ", 'temp'); 
 
         $i++;
     }

@@ -11,9 +11,10 @@ use vars qw(@items_with_tied_times);
 sub new {
     my ($class) = @_;
     my $self = {};
-    $$self{state}     = '';
-    $$self{said}      = '';
-    $$self{state_now} = '';
+                                # Use undef ... '' will return as defined
+    $$self{state}     = undef;
+    $$self{said}      = undef;
+    $$self{state_now} = undef;
     bless $self, $class;
     return $self;
 }
@@ -281,6 +282,9 @@ sub delete_old_tied_times {
 
 #
 # $Log$
+# Revision 1.13  2001/04/15 16:17:21  winter
+# - 2.49 release
+#
 # Revision 1.12  2001/02/24 23:26:40  winter
 # - 2.45 release
 #

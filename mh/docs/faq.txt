@@ -709,16 +709,17 @@ only at Startup?
      - 12/00 wx200d and wunderground personal weather project support, new add_sound function.
      - 01/00 SMS and snnp messaging, improved iButton and benchmarking support.
      - 01/01 Mailing list reaches 400 members
+     - 02/01 2 way AOL AIM messaging, earthquake and satellite tracking.
+     - 03/01 Backup program and menu templates for WAP, VXML, and LCD displays.
 
   6.2: Who is that Bruce guy anyway?
 
     Bruce (Winter) is the the main author of MisterHouse. He has a
     day job with IBM in Rochester, Minnesota, designing integrated
     circuits. He got started with Home Automation as one of the
-    first ECS users in '86 and started the ECS mailing list in '94.
-    He loves getting slaughtered by his twin boys in Quake death
-    matches, hiking in his boyhood state of Montana, and playing a
-    digital piano.
+    first ECS users in '86. He loves getting slaughtered by his twin
+    boys in Quake death matches, hiking in his boyhood state of
+    Montana, and playing a digital piano.
 
   6.3: Why open source?
 
@@ -761,7 +762,7 @@ only at Startup?
         http://linuxha.sourceforge.net 
 
       Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
-        http://the-labs.com/HomeAppliance/
+        http://the-labs.com/HomeNetwork/
 
       Jay Archer recommends this free Windows mail server
         http://www.argosoft.com

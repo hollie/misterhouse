@@ -24,6 +24,10 @@ calllog.pl
    by Ernie O. to use the CallerID.pm state and names arrays.
    Another example of logging phone data can be found in mh/code/bruce/phone*
 
+callerid_doug*
+ - Caller ID for modem, from Doug Parrish.  Ties into a DB file and has an
+   optional PHP page.
+
 Compool*.pl
  - Bill Sobel's code for monitoring and controling ComPool pool/spa equipment.
    You can get/set time, get/set temperature, and get/set equipment states.    
@@ -47,13 +51,9 @@ ical.pl
 internet_earthquake.pl
  - Tim Doyle's script for monitoring earthquakes.
 
-internet_ip_update.p
+internet_ip_update.pl
+internet_ip_update_craig.pl
  - Updates IP servers/web pages with IP addresses
-
-Garage_Door.pl
-Garage_Door.txt
- - From Danal Estes.  Uses the X10_Items X10_Garage_Door object
-   to receive Extended X10 data from Stanley modules.
 
 mp3_control_GQmpeg.pl
  - Dave Lounsberry's code for controling the GQmpge.pl player on linux
@@ -186,6 +186,18 @@ tracking.pos
 
 ---------
 
+mh/code/public/Danal
+
+This is Danal's Estes's code.  Amongst other things,
+he has ISDN callerid, Stanley garage door sensors, and DCS alarm pannel code. 
+
+Garage_Door.pl
+Garage_Door.txt
+ - From Danal Estes.  Uses the X10_Items X10_Garage_Door object
+   to receive Extended X10 data from Stanley modules.
+
+---------
+
 mh/code/public/Nick:
 
 This is an example of a bare bones setup that we set up for Bruce's son Nick.
@@ -193,7 +205,3 @@ With tk turned off, and with few events, it consumes very little of Nick's
 valuable gaming computer resources ;)  Nick uses it in his room to control
 a few lights and his mp3 player.  Bruce likes it cause he can then have 
 his version of MisterHouse turn off Nick's music after hours :)
-
-
-
-d

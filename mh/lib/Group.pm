@@ -6,7 +6,7 @@ package Group;
 
 sub new {
     my ($class, @items) = @_;
-    my $self = {state => ''};
+    my $self = {state => undef};
     $$self{members} = [];
     &add($self, @items) if @items;
     bless $self, $class;
@@ -85,6 +85,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.15  2001/04/15 16:17:21  winter
+# - 2.49 release
+#
 # Revision 1.14  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

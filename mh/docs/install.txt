@@ -128,7 +128,7 @@ Detailed Install Instructions for Windows users
     can download the files and install them from local storage. For
     example, to install the Tk package:
 
-      download and unzip Tk.zip from http://www.activestate.com/packages/zips to c:\temp
+      download and unzip Tk.zip from http://www.activestate.com/PPMPackages/zips to c:\temp
       ppm install c:\temp\Tk.ppd 
 
     All other required packages should either be in the mh
@@ -159,7 +159,11 @@ Detailed Install Instructions for Windows users
     The new MS 5.0 Speech SDK is not yet compatable with MisterHouse
     (it does not support OLE calls). You can download the required
     files from the 4.0 SDK from here:
-    ftp://misterhouse.sourceforge.net/pub/misterhouse/ .
+    ftp://misterhouse.sourceforge.net/pub/misterhouse/ . Note: IE
+    takes a long time (5 minutes) to list that directory (maybe it
+    is listing the 20,000+ dirs in pub). Netscape or command line
+    ftp work much faster. Or you can also get the files here:
+    http://misterhouse.net/public/speech .
 
     Running msttsl.exe will install the TTS engine. mscsrgl.exe will
     install the VR engine. Unzip speech_api.zip, then run
@@ -216,6 +220,9 @@ Detailed Install Instructions for UNIX users
       cpan> install Term::ReadKey
       cpan> install Time::HiRes
       cpan> exit
+
+    There are some example start/stop/restart .rc files in
+    mh/bin/misterhouse*.rc
 
   Step 3, Download and Install a Speech Engines
 

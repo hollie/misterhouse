@@ -37,6 +37,7 @@ if (!&GetOptions(\%parms, "h", "help",
 
 $Pgm_Name returns info about tv programs that match the requested parms.
 It uses a database created by the get_tv_grid program.
+See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
 
   Version: $Version
 
@@ -88,7 +89,8 @@ eof
 }
 
                                 # Globals
-my (@channels, @dates, @times, @early_am, @lengths, @keys, %DBM, %DBM2, $match_cnt, $match_list1, $match_list2, $date_today, $time_now, $min_begin, $min_now);
+my (@channels, @dates, @times, @early_am, @lengths, @keys, %DBM, %DBM2, $match_cnt, $match_list1, $match_list2,
+    $date_today, $time_now, $min_begin, $min_now, $symbol);
 my %config_parms;
 
 &setup;
@@ -155,9 +157,9 @@ sub find_match {
                             $pgm_desc    =~ /\b$key/) {
                             $match_key = 1;
                             print "$key ";
-# The next 2 lines highlight the selected key-word(s)
-#                            $pgm_desc =~ s/$key/**$key*/gi;
-#                            $pgm_name =~ s/$key/**$key*/gi;
+# The next 2 lines highlight the selected key-word(s), using the selected symbol in mh.ini
+                            $pgm_desc =~ s/$key/$symbol$symbol$key$symbol/gi;
+                            $pgm_name =~ s/$key/$symbol$symbol$key$symbol/gi;
                     
                             last;
                         }
@@ -166,11 +168,10 @@ sub find_match {
 
                                 # Check if show has ended
                                 # First, convert times to 30 hour clock (6 am to 6am instead of midnight to midnight)
-            		$min_now = $min_now + 24 * 60 if ($min_now < 6 * 60);
+                    $min_now = $min_now + 24 * 60 if ($min_now < 6 * 60);
                     $min_end = $min_end + 24 * 60 if ($min_end < 6 * 60);
                     $min_begin = $min_begin + 24 * 60 if ($min_begin < 6 * 60);
 
-                    my $show_ended = 1 if ($min_end < $min_begin or $min_end < $min_now);
                     my $show_ended = 1 if ($min_end < $min_begin or $min_end < $min_now);
 
                     unless 	(@lengths and !$match_length or
@@ -188,18 +189,31 @@ sub find_match {
                         
                         $match_cnt++;
 #                       my $watch_link = " <a href='SET?\$TV?$channel_name'>Watch</a>";
-                        my $watch_link = " <a href='SET?\$TV?$channel_name'><img src=/graphics/tv_small.gif width=16 height=16></a>";
+                        my $watch_link = " <a href='SET?\$TV?$channel_name'><img src=/graphics/tv_small.gif width=16 height=16 border=0></a>";
                         $watch_link =~ s/CH/Channel+/;
                                 # Set VCR data
                         my $vcr_date = $pgm_date;
                         $vcr_date =~ s/\//_/;
+
+                                # Adjust date if starting after midnight (this will be wrong on the first day of the month: 31 + 1 = 1 not 32)
+                        if ($min_start < 6 * 60) {
+                            $vcr_date =~ /(.+)_(.+)/;
+                            $vcr_date = $1."_".eval{$2 + 1};
+                        }
+                                # Add 5 minutes to end of vcr recording time in case program starts late
+                                #  - skip for now ... back-to-back recordings would get messed up
+#                       my $vcr_time_end = &min_to_hour(&hour_to_min($time_end) + 5);
+
+
 #                       my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$time_end>Set video</a>";
-                        my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$time_end><img src=/graphics/vcr.gif width=20 height=16></a>";
+                        my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$vcr_time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
                         $vcr_link =~ s/://g;
                         my $temp = "\n$match_cnt.  $pgm_name.  $channel_name (Channel $channel_number).  ";
 
                         my $print_date = $pgm_date;
+
                         $print_date =~ s/(.+)\/(.+)/$2\/$1/g if ($config_parms{date_format} =~ "ddmmyy");
+
 
                         $temp .= "On $print_date.  " if (@dates > 1 or $pgm_date ne $date_today);
 #                       $temp .= "On $pgm_date.  " if @dates > 1 or $pgm_date ne $date_today;
@@ -207,7 +221,7 @@ sub find_match {
                         $temp .= "From $time_start2 till $time_end2.\n";
                         $match_list1 .= $temp;
                         $match_list1 =~ s/\(.+\)\.//g; 
-                        $match_list1 =~ s/CH/Channel /g if ($config_parms{country} =~ /UK/); 
+                        $match_list1 =~ s/CH/Channel /g if ($config_parms{country} eq "UK"); 
                         chomp $temp;
                         $match_list2 .= $temp . $vcr_link. $watch_link. "\n$pgm_desc";
                     }
@@ -228,8 +242,8 @@ sub find_match {
     if ($parms{dates} ne $print_date) {
        $print_date = $parms{dates};
                                 # Convert to UK date format
-       $print_date =~ s/(.+)\/(.+)\-(.+)\/(.+)/$2\/$1\-$4\/$3/g if ($config_parms{date_format} = "ddmmyy" and length($print_date) > 5);
-       $print_date =~ s/(.+)\/(.+)/$2\/$1/g if ($config_parms{date_format} = "ddmmyy" and length($print_date) < 6);
+       $print_date =~ s/(.+)\/(.+)\-(.+)\/(.+)/$2\/$1\-$4\/$3/g if ($config_parms{date_format} =~ "ddmmyy" and length($print_date) > 5);
+       $print_date =~ s/(.+)\/(.+)/$2\/$1/g if ($config_parms{date_format} =~ "ddmmyy" and length($print_date) < 6);
     } 
     print OUT1 "Found $match_cnt shows.\n$match_list1";
 
@@ -249,24 +263,16 @@ sub find_match {
     $html =~ s/\n/<BR>/gs;
     $html =~ s/<BR> //gs;
                                 # The next 2 lines highlight the selected key-word(s)
-#	$html =~ s/\*\*/<B>/g;
-#	$html =~ s/\*/<\/B>/g;
-
+    $html =~ s/\Q$symbol\E\Q$symbol\E/<B>/g;
+    $html =~ s/\Q$symbol\E/<\/B>/g;
     $html =~ s/   /&nbsp;&nbsp;&nbsp;/g;
     my $header = "<HTML><HEAD>\n";
-# The next line can be deleted.
-#	$header .= "<META HTTP-EQUIV='refresh' content='20;URL=/mh4/index_tv.html'>\n";
     $header .= "<meta http-equiv='Pragma' content='no-cache'>\n";
 	$header .= "<TITLE>TV selections</TITLE>\n";
 	$header .= "<link rel=STYLESHEET href=/default.css type=text/css>\n</HEAD>\n<BODY BGCOLOR=Wheat>";
 	$header .= "<FONT FACE=Arial SIZE=2>\n";
 
-# I have had a problem getting .html pages to load without a manual refresh.
-# I have solved it (I hope) by doing the sendkeys Refresh twice (in the code .pl # file) after a 6 second delay.
-
-#   $header .= "<B>HIT REFRESH FIRST [F5]</B><P>\n";
-
-	$html = $header. $html."</FONT>\n</BODY></HTML>";
+    $html = $header. $html."</FONT>\n</BODY></HTML>";
     file_write("$config_parms{data_dir}/tv_info2.html", $html);
 
 
@@ -288,6 +294,7 @@ sub setup {
     my $dbm_file  = "$config_parms{data_dir}/tv_programs.dbm";
     my $dbm_file2 = "$config_parms{data_dir}/tv_channels.dbm";
     print "Using dbm file $dbm_file\n" unless $parms{quiet};
+    $symbol  = $config_parms{tv_key_symbol};
 
     use Fcntl;
     use DB_File;
@@ -336,17 +343,9 @@ sub setup {
     @times    = split_parm($parms{times}, 'times');
     @early_am = split_parm($parms{early_am}, 'early_am');
     push @times, @early_am;
-    $min_begin = &hour_to_min(@times[0]) unless $min_begin;
-
+    $min_begin = &hour_to_min(@times[0]);
+ 
     @lengths  = split_parm($parms{lengths}, 'lengths');
-
-                                # Sort @times, but keep 0->5:59 after 23:59
-    @times = sort {
-        my $t1 = &hour_to_min(&ampm_to_hour24($a));
-        my $t2 = &hour_to_min(&ampm_to_hour24($b));
-        $t2 >= 360 and $t1 < 360 or $t1 <=> $t2;
-    } @times;
-
 
     if ($parms{keyfile}) {
         @keys = file_read("$config_parms{data_dir}/$parms{keyfile}");
@@ -358,6 +357,13 @@ sub setup {
 
     print "keys  = $parms{keys}\n";
     print "times = $parms{times}\n";
+
+                                # Sort @times, but keep 0->5:59 after 23:59
+  	@times = sort {
+        my $t1 = &hour_to_min(&ampm_to_hour24($a));
+        my $t2 = &hour_to_min(&ampm_to_hour24($b));
+        $t2 >= 360 and $t1 < 360 or $t1 <=> $t2;
+    } @times;
 
     @channels = sort{$a <=> $b} keys %DBM2 if !@channels or $channels[0] eq 'all';
 
@@ -389,7 +395,7 @@ sub split_parm {
             elsif ($type eq 'times' or $type eq 'early_am') {
                 $low  = &ampm_to_hour24($low);
                 $high = &ampm_to_hour24($high);
-                $min_begin = &hour_to_min($low) if ($type eq 'times');
+#               $min_begin = &hour_to_min($low) if ($type eq 'times');
                 my ($high_hour, $high_min) = split ':', $high;
                 print "db h=$high_hour m=$high_min\n" if $parms{debug};
                 $low -= 4 if (!$parms{all});
@@ -457,7 +463,6 @@ sub hour_to_min {
     my ($hour, $min) = split(':', @_[0]);
     return $hour * 60 + $min;
 }
-
 sub hour24_to_ampm {
     my ($hour, $min) = split(':', @_[0]);
     if ($hour >= 12) {
@@ -468,6 +473,7 @@ sub hour24_to_ampm {
         return "$hour:$min AM";
     }
 }
+
 sub ampm_to_hour24 {
     my ($hour, $min, $ampm) = @_[0] =~ /(\d+):?(\d*) *(\S*)/;
     $hour += 12 if uc($ampm) eq 'PM' and $hour  < 12;
@@ -479,11 +485,8 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
-# Revision 1.16  2001/03/24 18:08:37  winter
-# - 2.47 release
-#
-# Revision 1.15  2001/02/24 23:18:40  winter
-# - 2.45 release
+# Revision 1.17  2001/04/15 16:17:20  winter
+# - 2.49 release
 #
 # Revision 1.14  2001/02/04 20:31:30  winter
 # - 2.43 release

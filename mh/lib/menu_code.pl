@@ -1,6 +1,6 @@
 use strict;
 
-use vars qw(%Menus %lcd_data %lcd_keymap);
+use vars qw(%Menus);
 
 #---------------------------------------------------------------------------
 #  menu_parse will parse the menu into %Menus
@@ -78,6 +78,8 @@ sub menu_parse {
             if (!$$ptr{A} and $voice_cmd_list{$$ptr{D}}) {
                 $$ptr{A} = $$ptr{D};
                 @{$$ptr{Astates}} = @{$$ptr{Dstates}} if $$ptr{Dstates};
+                $$ptr{Aprefix} = $$ptr{Dprefix};
+                $$ptr{Asuffix} = $$ptr{Dsuffix};
             }
 
                                 # Allow for: turn fan [on,off]
@@ -181,10 +183,14 @@ sub menu_submenus {
     if ($levelized) {
         return @menus_list;
     }
+                                # Return all menus for all levels in one list
     else {
-        my @menus_total;
+        my (@menus_total, %menus_seen);
         for my $ptr (@menus_list) {
-            push @menus_total, @{$ptr};
+#           print "db1 m=@{$ptr}\n";
+            for my $menu (@{$ptr}) {
+                push @menus_total, $menu unless $menus_seen{$menu}++;
+            };
         }
         return @menus_total;
     }
@@ -217,13 +223,14 @@ sub menu_create {
 
 #---------------------------------------------------------------------------
 #  menu_run will be called to execute menu actions
+#     $format:  v->vxml,  h->html,  w->wml,  l->lcd
 #---------------------------------------------------------------------------
 
 sub menu_run {
     my ($menu_group, $menu, $item, $state, $format) = split ',', $_[0] if $_[0];
-    logit "$config_parms{data_dir}/logs/menu_run.log", 
-          "f=$format ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu i=$item s=$state";
-    my $action = '';
+
+
+    my $action;
     my $ptr = $Menus{$menu_group}{$menu}{items}[$item];
     if (defined $state and $$ptr{actions}) {
         $action = $$ptr{actions}[$state];
@@ -231,6 +238,31 @@ sub menu_run {
     else {
         $action = $$ptr{A};
     }
+
+    $action = '' unless defined $action;  # Avoid uninit warnings
+    $state  = '' unless defined $state;   # Avoid uninit warnings
+    $format = '' unless defined $format;  # Avoid uninit warnings
+    $Socket_Ports{http}{client_ip_address} = '' unless $Socket_Ports{http}{client_ip_address};
+    my $msg = "a=$Authorized f=$format ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu i=$item s=$state a=$action";
+#   print "$msg\n";
+    logit "$config_parms{data_dir}/logs/menu_run.log", $msg;
+
+    unless ($Authorized or $format eq 'l') {
+        if ($format eq 'v') {
+            my $vxml = qq|<form><block><audio>Sorry, authorization required to run $action</audio><goto next='_lastanchor'/></block></form>|;
+            return &vxml_page($vxml);
+        }
+                                # If wap cell phone id is not in the list, prompt for the password
+        elsif ($format eq 'w') {
+            unless ($Http{'x-up-subno'} and grep $Http{'x-up-subno'} eq $_, split(/[, ]/, $config_parms{password_allow_phones})) {
+                return &html_password('browser'); # wml requires browser login ... no form/cookies for now
+            }
+        }
+        else {
+            return &html_password(''); # Html can take cookies or browser ... default to mh.ini password_menu
+        }
+    }
+
     if ($action) {
         my $cmd = $action;
         $cmd =~ s/\'//g;        # Drop the '' quotes around state if a voice cmd
@@ -238,48 +270,70 @@ sub menu_run {
         print_log  $msg;
         print     "$msg\n";
         unless (&run_voice_cmd($cmd)) {
+#           package main;   # Need this if we had this code in a package
             eval $action;
             print "Error in menu_run: m=$menu i=$item s=$state action=$action error=$@\n" if $@;
         }
     }
-    $state = $$ptr{Dstates}[$state] if defined $state and $$ptr{Dstates};
     my $response = $$ptr{R};
     $Menus{last_response_menu}       = $menu;
     $Menus{last_response_menu_group} = $menu_group;
-    if ($response and $response eq 'last_response') {
+
+    if ($response and lc $response eq 'none' and $format eq 'l') {
+        return;
+    }
+
+                                # Substitute $state
+    if (defined $state and $state >= 0) {
+        my $t_state;
+        $t_state  = $$ptr{Dstates}[$state] if $$ptr{Dstates};
+        $t_state  = $$ptr{Astates}[$state] if $$ptr{Astates};
+        if (defined $t_state) {
+            $state = $t_state;
+        }
+        $response = "Set to $state" unless $response;
+    }
+
+    if ($response and $response =~ /^eval (.+)/) {
+        $response = eval $1;
+    }
+    elsif ($response) {
+        eval "\$response = qq[$response]"; # Allow for var substitution of $state
+    }
+
+    if (!$response or $response eq 'last_response') {
         if ($format eq 'l') {
             $Menus{last_response_loop} = $Loop_Count + 3;
+            return;
         }
                                 # Everything else comes via http_server
         else {
             return "menu_run_response($response,$format)"
         }
     }
-    else {
-        eval "\$response = qq[$response]" if $response; # Allow for var substitution
-        return &menu_run_response($response, $format);
-    }
+
+    return &menu_run_response($response, $format);
 }
 
 sub menu_run_response {
     my ($response, $format) = @_;
     ($response, $format) = split ',', $response unless $format; # only 1 arg if called via http last response
     $response = &last_response if $response and $response eq 'last_response';
+    $response = 'all done' unless $response;
     if ($format and $format eq 'w') {
-        $response = 'All done' unless $response;
-        $response = "<card><p>$response</p></card>";
-        $response =  qq|<template><do type="accept" label="Prev."><prev/></do></template>\n| . $response;
-        return &wml_page($response);
+        my $wml = qq|<head><meta forua="true" http-equiv="Cache-Control" content="max-age=0"/></head>\n|;
+        $wml   .= qq|<template><do type="accept" label="Prev."><prev/></do></template>\n|;
+        $wml   .= qq|<card><p>$response</p></card>|;
+        return &wml_page($wml);
     }
     elsif ($format and $format eq 'v') {
-        $response = 'All done' unless $response;
-        my $http_root = "http://$config_parms{http_server}:$config_parms{http_port}";
-        my $goto      = "$http_root/sub?menu_vxml($Menus{last_response_menu_group})#$Menus{last_response_menu}";
+#       my $http_root = "http://$config_parms{http_server}:$config_parms{http_port}";
+        my $http_root = '';     # Full url is no longer required :)
+        my $goto      = "${http_root}sub?menu_vxml($Menus{last_response_menu_group})#$Menus{last_response_menu}";
         my $vxml = qq|<form><block><audio>$response</audio><goto next='$goto'/></block></form>|;
         return &vxml_page($vxml);
     }
     elsif ($format and $format eq 'h') {
-        $response = 'All done' unless $response;
         return &html_page('Menu Results', $response);
     }
     else {
@@ -386,6 +440,13 @@ sub menu_wml_cards {
             $wml .= "  </refresh></onevent>\n";
         }
         $wml .= "  <p>$menu\n  <select name='prev_value'>\n";
+# ivalue=0 does not seem to change anything
+#                              <select name='prev_value' ivalue='0'>
+# Not sure what select grouping does
+#   <optgroup title='test1'>
+#   </optgroup>
+
+
         my $item = 0;
         for my $ptr (@{$Menus{$menu_group}{$menu}{items}}) {
                                 # Action item
@@ -401,6 +462,9 @@ sub menu_wml_cards {
                     $wml .= "    <option onpick='/sub?menu_run($menu_group,\$prev_menu,\$prev_value,$item,w)'>$$ptr{D}</option>\n";
                 }
                                 # One state
+                elsif ($$ptr{A} eq 'set_password') {
+                    $wml .= "    <option onpick='/SET_PASSWORD'>Set Password</option>\n";
+                }
                 else {
                     $wml .= "    <option onpick='/sub?menu_run($menu_group,$menu,$item,,w)'>$$ptr{D}</option>\n";
                 }
@@ -445,7 +509,8 @@ sub menu_vxml {
 sub menu_vxml_forms {
     my ($menu_group, @menus) = @_;
     my (%menus, @forms);
-    my $http_root =  "http://$config_parms{http_server}:$config_parms{http_port}";
+#   my $http_root =  "http://$config_parms{http_server}:$config_parms{http_port}/";
+    my $http_root = '';         # Full url is no longer required :)
 
     for my $menu (@menus) {
 
@@ -475,15 +540,15 @@ sub menu_vxml_forms {
                 }
                                 # States menu
                 elsif ($$ptr{A} eq 'state_select') {
-                    $goto = "$http_root/sub?menu_run($menu_group,{prev_menu},{prev_item},$item,v)";
+                    $goto = "${http_root}sub?menu_run($menu_group,{prev_menu},{prev_item},$item,v)";
                 }
                                 # One state
                 else {
-                    $goto = "$http_root/sub?menu_run($menu_group,$menu,$item,,v)";
+                    $goto = "${http_root}sub?menu_run($menu_group,$menu,$item,,v)";
                 }
             }
             elsif ($$ptr{R}) {
-                $goto = "$http_root/sub?menu_run($menu_group,$menu,$item,,v)";
+                $goto = "${http_root}sub?menu_run($menu_group,$menu,$item,,v)";
             }
                                 # Menu item
             else {
@@ -502,172 +567,186 @@ sub menu_vxml_forms {
 
 
 #---------------------------------------------------------------------------
-#  menu_lcd* populate the %lcd_data array for use by LCD interfaces with keypads
+#  menu_lcd* populate the LCD objects
 #---------------------------------------------------------------------------
                                 # This loads in a menu and refreshes the LCD display data
 sub menu_lcd_load {
-    my ($menu) = @_;
-    $menu = $lcd_data{menu_name}                        unless $menu;
-    $menu = $Menus{$lcd_data{menu_group}}{menu_list}[0] unless $menu;
+    my ($lcd, $menu) = @_;
+    $menu = $$lcd{menu_name}                        unless $menu;
+    $menu = $Menus{$$lcd{menu_group}}{menu_list}[0] unless $menu;
+    return unless $menu;
 
                                 # Reset menu only if it is a new one (keep old cursor and state)
-    unless ($lcd_data{menu_name} eq $menu) {
-        my $ptr = $Menus{$lcd_data{menu_group}}{$menu};
+    unless ($$lcd{menu_name} and $$lcd{menu_name} eq $menu) {
+        my $ptr = $Menus{$$lcd{menu_group}}{$menu};
         my $i = -1;
         for my $ptr2 (@{$$ptr{items}}) {
-            $lcd_data{menu}[++$i] = $$ptr2{D};
+            $$lcd{menu}[++$i] = $$ptr2{D};
         }
                                 # Set initial cursor and display location to 0,0 if a new menu
-        $lcd_data{cx} = $lcd_data{cy} = $lcd_data{dx} = $lcd_data{dx} = 0;
-        $lcd_data{menu_cnt}  = $i;
-        $lcd_data{state}     = -1;
-        $lcd_data{menu_ptr}  = $ptr;
-        $lcd_data{menu_name} = $menu;
+        $$lcd{cx} = $$lcd{cy} = $$lcd{dy} = 0;
+        $$lcd{menu_cnt}  = $i;
+        $$lcd{menu_state}     = -1;
+        $$lcd{menu_ptr}  = $ptr;
+        $$lcd{menu_name} = $menu;
     }
-    &menu_lcd_refresh;          # Refresh the display data
+    &menu_lcd_refresh($lcd);    # Refresh the display data
 }
 
                                 # This will refresh the LCD Display records
                                 # And position the cursor scroll line if needed
 sub menu_lcd_refresh {
-    for my $i (0 .. $lcd_data{dy_max}) {
+    my ($lcd) = @_;
+    for my $i (0 .. $$lcd{dy_max}) {
 
-        my $row  = $lcd_data{dy} + $i;
+        my $row  = $$lcd{dy} + $i;
                                 # Use a blank if there is no menu entry for this row
-        my $data = ($row <= $lcd_data{menu_cnt}) ? $lcd_data{menu}[$row] : ' ';
+        my $data = ($row <= $$lcd{menu_cnt}) ? $$lcd{menu}[$row] : ' ';
         my $l = length $data;
 
-        if ($row == $lcd_data{cy}) {
-                                # Keep cursor within current line
-            $lcd_data{cx} = $l if $lcd_data{cx} > $l;
-            substr($data, $lcd_data{cx}, 1) = '#';
+                                # Do extra stuff on cursor line
+        if ($row == $$lcd{cy}) {
 
-                                # Check to see if this line needs scrolling
-            if ($lcd_data{dx}) {
-                $data = '<' . substr $data, ($lcd_data{dx} + 4);
+                                # Set cursor marker
+            $$lcd{cx} = $l if $$lcd{cx} > $l;
+            substr($data, $$lcd{cx}, 1) = '#';
+
+                                # If the line does not fit, center the text on the cursor
+            my $x = 0;
+            if ($l > $$lcd{dx_max}) {
+                $x = $$lcd{cx} - $$lcd{dx_max}/2;
+                if ($x > 1) {
+                    $data = '<' . substr $data, $x;
+                }
+                else {
+                    $x = 0;
+                }
             }
         }
-        substr($data, $lcd_data{dx_max}, 1) = '>' if ($l - $lcd_data{dx} - 2) > $lcd_data{dx_max};
-        $lcd_data{display}[$i] = $data;
+        substr($data, $$lcd{dx_max}, 1) = '>' if length($data) > $$lcd{dx_max};
+        $$lcd{display}[$i] = $data;
     }
-    $lcd_data{refresh} = 1;
+    $$lcd{refresh} = 1;
 }
 
                                 # Monitor keypad data (allow for computer keyboard simulation)
 sub menu_lcd_navigate {
-    my ($key) = @_;
-    $key = $lcd_keymap{$key} if $lcd_keymap{$key};
+    my ($lcd, $key) = @_;
+    $key = $$lcd{keymap}->{$key} if $$lcd{keymap}->{$key};
 
-    my $menu = $lcd_data{menu_name};
-    my $ptr = $lcd_data{menu_ptr}{items}[$lcd_data{cy}];
+    my $menu = $$lcd{menu_name};
+    my $ptr  = $$lcd{menu_ptr}{items}[$$lcd{cy}] unless $menu eq 'response';
     
                                 # See if we need to scroll the display window
     if ($key eq 'up') {
-        $lcd_data{cy}-- unless $lcd_data{cy} == 0;
-        if ($lcd_data{cy} < $lcd_data{dy}) {
-            $lcd_data{dy} = $lcd_data{cy};
+        $$lcd{cy}-- unless $$lcd{cy} == 0;
+        if ($$lcd{cy} < $$lcd{dy}) {
+            $$lcd{dy} = $$lcd{cy};
         }
+        &menu_lcd_curser_state($lcd, $$lcd{menu_ptr}{items}[$$lcd{cy}]); # Move cursor to the same state
     }
     elsif ($key eq 'down') {
-        $lcd_data{cy}++ unless $lcd_data{cy} == $lcd_data{menu_cnt};
-        if ($lcd_data{cy} > ($lcd_data{dy} + $lcd_data{dy_max})) {
-            $lcd_data{dy} =  $lcd_data{cy} - $lcd_data{dy_max};
+        $$lcd{cy}++ unless $$lcd{cy} == $$lcd{menu_cnt};
+        if ($$lcd{cy} > ($$lcd{dy} + $$lcd{dy_max})) {
+            $$lcd{dy} =  $$lcd{cy} - $$lcd{dy_max};
         }
+        &menu_lcd_curser_state($lcd, $$lcd{menu_ptr}{items}[$$lcd{cy}]); # Move cursor to the same state
     }
     elsif ($key eq 'left') {
                                 # For action state menus, scroll to the previous state
-        if ($$ptr{Dstates}) {
-            if (--$lcd_data{state} >= 0) {
-                &menu_lcd_curser_state($ptr);
-            }
-            else {
-                $lcd_data{state} = -1;
-                $lcd_data{cx}    =  0;
-            }
+        if ($ptr and $$ptr{Dstates}) {
+            $$lcd{menu_state}--;
+            &menu_lcd_curser_state($lcd, $ptr);
         }
         else {
-            $lcd_data{cx} -= 5;
-            $lcd_data{cx}  = 0 if $lcd_data{cx} < 0;
-        }
-        if ($lcd_data{cx} < $lcd_data{dx}) {
-            $lcd_data{dx} = $lcd_data{cx};
+            $$lcd{cx} -= 5;
+            $$lcd{cx}  = 0 if $$lcd{cx} < 0;
         }
     }
     elsif ($key eq 'right') {
                                 # For action state menus, scroll to the next state
-        if ($$ptr{Dstates}) {
-            if (++$lcd_data{state} < @{$$ptr{Dstates}}) {
-                &menu_lcd_curser_state($ptr);
-            }
-            else {
-                $lcd_data{state} = @{$$ptr{Dstates}};
-                $lcd_data{cx}    = length $lcd_data{menu}[$lcd_data{cy}];
-            }
+        if ($ptr and $$ptr{Dstates}) {
+            $$lcd{menu_state}++;
+            &menu_lcd_curser_state($lcd, $ptr);
         }
         else {
-            my $l = length($lcd_data{menu}[$lcd_data{cy}]);
-            $lcd_data{cx} += 5;
-            $lcd_data{cx} = $l if $lcd_data{cx} > $l;
-        }
-                                # Scroll the display if needed
-        if ($lcd_data{cx} > ($lcd_data{dx} + $lcd_data{dx_max})) {
-            $lcd_data{dx} =  $lcd_data{cx} - $lcd_data{dx_max};
+            my $l = length($$lcd{menu}[$$lcd{cy}]);
+            $$lcd{cx} += 5;
+            $$lcd{cx} = $l if $$lcd{cx} > $l;
         }
     }
-                                # Run action or display next menu
     elsif ($key eq 'enter') {
-        if ($$ptr{A}) {
-            my $response = &menu_run("$lcd_data{menu_group},$menu,$lcd_data{cy},$lcd_data{state},l");
+        $Menus{last_response_object} = $lcd;
+
+                                # Run an action
+        if ($ptr and $$ptr{A}) {
+            my $response = &menu_run("$$lcd{menu_group},$menu,$$lcd{cy},$$lcd{menu_state},l");
             if ($response) {
-                &menu_lcd_display($response, $menu);
-            }
-            else {
-                &menu_lcd_load($lcd_data{menu_name});
+                &menu_lcd_display($lcd, $response, $menu);
             }
         }
-        elsif ($$ptr{R}) {
-            my $response = &menu_run("$lcd_data{menu_group},$menu,$lcd_data{cy},$lcd_data{state},l");
+                                # Display a response
+        elsif ($ptr and $$ptr{R}) {
+            my $response = &menu_run("$$lcd{menu_group},$menu,$$lcd{cy},$$lcd{menu_state},l");
             if ($response) {
-                &menu_lcd_display($response, $menu);
-            }
-            else {
-                &menu_lcd_load($lcd_data{menu_name});
+                &menu_lcd_display($lcd, $response, $menu);
             }
         }
+                                # Load next menu
+        elsif ($ptr) {
+            push @{$$lcd{menu_history}}, $menu;
+            push @{$$lcd{menu_states}}, join $;, $$lcd{cx}, $$lcd{cy}, $$lcd{dy}, $$lcd{menu_state};
+            &menu_lcd_load($lcd, $$ptr{D});
+        }
+                                # Nothing to do (e.g. response display)
         else {
-            push @{$lcd_data{menu_history}}, $menu;
-            push @{$lcd_data{menu_history_cy}}, $lcd_data{cy};
-            push @{$lcd_data{menu_history_dy}}, $lcd_data{dy};
-            &menu_lcd_load($$ptr{D});
         }
         return;
     }
     elsif ($key eq 'exit') {
-        if (my $menu = pop @{$lcd_data{menu_history}}) {
-            &menu_lcd_load($menu);
-            $lcd_data{cy} = pop @{$lcd_data{menu_history_cy}};
-            $lcd_data{dy} = pop @{$lcd_data{menu_history_dy}};
+        if (my $menu = pop @{$$lcd{menu_history}}) {
+            &menu_lcd_load($lcd, $menu);
+            ($$lcd{cx}, $$lcd{cy}, $$lcd{dy}, $$lcd{menu_state}) = 
+                split $;, pop @{$$lcd{menu_states}};
         }
     }
-    &menu_lcd_refresh;  # Refresh the display data data
+    else {
+        return;                 # Do not refresh the display if nothing changed
+    }
+    &menu_lcd_refresh($lcd);  # Refresh the display data data
 }
 
 sub menu_lcd_display {
-    my ($response, $menu) = @_;
+    my ($lcd, $response, $menu) = @_;
+    push @{$$lcd{menu_history}}, $menu if $menu;
+    push @{$$lcd{menu_states}}, join $;, $$lcd{cx}, $$lcd{cy}, $$lcd{dy}, $$lcd{menu_state};
     $Text::Wrap::columns = 20;
-    @{$lcd_data{display}} = split "\n", wrap('', '', $response);
-    $lcd_data{menu_cnt}  = @{$lcd_data{menu}} - 1;
-    $lcd_data{menu_name} = 'response';
-    $lcd_data{cx} = $lcd_data{cy} = $lcd_data{dx} = $lcd_data{dy} = 0;
-    push @{$lcd_data{menu_history}}, $menu if $menu;
-    $lcd_data{refresh} = 1;
+#   @{$$lcd{display}} = split "\n", wrap('', '', $response);
+    @{$$lcd{menu}} = split "\n", wrap('', '', $response);
+    $$lcd{menu_cnt}  = @{$$lcd{menu}} - 1;
+    $$lcd{menu_name} = 'response';
+    $$lcd{cx} = $$lcd{cy} = $$lcd{dy} = 0;
+    &menu_lcd_refresh($lcd);  # Refresh the display data data
 }
 
 sub menu_lcd_curser_state {
-    my ($ptr) = @_;
-    my $state_name = $$ptr{Dstates}[$lcd_data{state}];
-    if ($$ptr{D} =~ /([\[,]\Q$state_name\E[,\]])/) {
-        $lcd_data{cx} = 1 + index $$ptr{D}, $1;
+    my ($lcd, $ptr) = @_;
+
+                                # State = -1 means cursor at start of line
+    if ($$lcd{menu_state} < 0) {
+        $$lcd{menu_state} = -1;
+        $$lcd{cx}    =  0;
+        return;
+    }
+
+                                # Limit to maximium state
+    if ($$lcd{menu_state} > $#{$$ptr{Dstates}}) {
+        $$lcd{menu_state} = $#{$$ptr{Dstates}};
+    }
+
+    my $state_name = $$ptr{Dstates}[$$lcd{menu_state}];
+    if ($state_name and $$ptr{D} =~ /([\[,]\Q$state_name\E[,\]])/) {
+        $$lcd{cx} = 1 + index $$ptr{D}, $1;
     }
 }
 

@@ -38,7 +38,7 @@ if (my $data = state_now $tv_grid) {
     if (time_now '$date $start') {
         speak "VCR recording started";
         print_log "VCR recording on channel $channel for $show_name";
-        set \$VCR "$channel,RECORD";
+        set \$VCR "STOP,$channel,RECORD"; # Stop first, in case we were already finishing recording something else
 #       run('min', 'IR_cmd VCR,$channel,RECORD');
     }
 #   if (time_now '$date $stop - 00:01') {

@@ -25,15 +25,16 @@ if EXIST mh.exe goto COMPILED
 echo Starting interpreted perl mh
 perl -S mh %pgmargs%
 @rem This test means exit=1 (normal exit) and not > 1
-@rem if errorlevel 1 if not errorlevel 2 goto DONE
-if %errorlevel% == 1 goto DONE
+if errorlevel 1 if not errorlevel 2 goto DONE
+@rem This only works from nt/2k/4dos
+@rem if %errorlevel% == 1 goto DONE
 if %noloop%     == 1 goto DONE
 goto FAIL
 
 :COMPILED
 echo Starting compiled mh.exe
 mh.exe %pgmargs%
-if %errorlevel% == 1 goto DONE
+if errorlevel 1 if not errorlevel 2 goto DONE
 if %noloop%     == 1 goto DONE
 
 :FAIL

@@ -900,6 +900,40 @@ use the codes for your various remotes.
     set $VCR "STOP"      if time_cron('00 20 * * 3');
 
 
+=item LCD
+
+This object is used to send and receive data to LCD type displays with keypads.
+An example is in mh/code/bruce/lcd.pl.
+To use simulate an LCD keypad with your pc keyboard, use mh/code/test/lcd_keyboard.pl.
+
+  Methods:
+     new $type, $port, $size, $menu_group, $keymap
+ 
+       $type:  Either lcdproc or keyboard.  
+       $port:  The ip:port of where lcdproc is running.
+       $size:  ROWSxCOLUMNS of the LCD display.
+       $menu_group:  The menu parsed by menu_parse (see Menu section of this doc).
+       $keymap: A has that translates keys to usable names.   
+
+     start        => Connect to the LCD.  Automatically called on startup
+     stop         => Disconnect the LCD.
+     load $menu   => Load menu $menu.  Default menu is the first one.
+     check_key    => Returns whatever key is keyed in
+     set @data    => Sends @data to the LCD, one line per list element
+     set_key $key => Simulates the keyboard being pressed with $key
+     inactive     => Returns true if no key has been pressed in 10 seconds.
+
+  Examples:
+
+     my %lcd_keymap1 = ( N => 'up', I => 'down', M => 'left', H => 'right',
+                         F => 'exit', K => 'enter', L => 'left', G => 'right');
+     my %lcd_keymap2 = ( 38=> 'up', 40=> 'down', 37=> 'left', 
+                         39=> 'right', 17=> 'exit', 96=> 'enter') ;
+
+    $lcd1 = new LCD  'lcdproc', '192.168.0.5:13666', '4x20', 'default', \%lcd_keymap1;
+    $lcd2 = new LCD 'keyboard',               undef, '4x20', 'mh',      \%lcd_keymap2;
+
+
 =item Process_Item
 
 You can use this object to run external programs.  On Win32 systems, the Win32::Process function is used. 
@@ -1952,7 +1986,7 @@ You can use this to have one event trigger another voice command event.
       run_voice_cmd 'Get the top10 list' if time_now('6:30 AM');
 
 
-=item SendKeys WaitForAnyWindow SetFocus EnumChildWindows sendkeys_find_window 
+=item SendKeys WaitForAnyWindow SetWindowText GetWindowText SetFocus EnumChildWindows sendkeys_find_window 
 
 On Windows systems, use these functions to control other programs.
 Full documentation is mh/lib/site/Win32/setupsup.html.  
@@ -1965,6 +1999,11 @@ Full documentation is mh/lib/site/Win32/setupsup.html.
 WaitForAnyWindow will set the window handle for the window that matches the (sub)string specified in $title. 
 
 WaitForWindow is like WaitForWindow, but requires an exact string match for the window title.
+
+SetWindowText is useful in changing a genericlly named window to a specific name that can then
+be accessed via WaitForAnyWindow.  Also, since WaitForAnyWindow will match
+the first (left most) part of any title, GetWindowText allows one to get window
+specific info that can be used to determine the status of the window application.
 
 SendKeys sends the keys.  Here is an excerpt of the valid key list:
 
@@ -2431,10 +2470,11 @@ hanging mh with long running ftp sessions.
             file_remote     Name of remote file (if different from local file)
             command         get/put/delete.
             type            ascii/binary  (default is ascii)
+            passive         Set to 1 to get a passive FTP (sometimes needed for firewalls)
 
    Example:
 
-     net_ftp(file => 'index.html', command => 'put');
+     net_ftp(file => 'index.html', command => 'put', passive => 1);
 
      my $rc = net_ftp(
         file => 'c:/junk1.txt', file_remote => 'incoming/junk1.txt',
@@ -2766,7 +2806,45 @@ tag data, file names, and playlist files.
 
 get_tv_grid gets a TV grid/schedule from the web (clicktv.com) and changes so
 it to be used by the MisterHouse program to create VCR and TV event reminders.
-See mh/code/bruce/tv_grid.pl for a mh event example that uses get_tv_grid.
+Creates a DBM for use by get_tv_info.
+
+  Usage:
+   get_tv_grid [options]
+    -h        => This help text
+    -help     => This help text
+    -userid xyz   => xyz is your clicktv userid.  Go to http://clicktv.com  to
+                     create one, or to find the generic one that matches your
+                     local tv schedule.
+    -day xyz      => xyz is the day  to get/filter.  Default is today.
+    -hour xyz     => xyz is the hour to get/filter.  Default is 6pm.  Can also
+                     be 'all' to get all hours.
+    -days xyz     => xyz is the number of days to get/filter, starting
+                     with -day.
+    -channels xyz => xyz is the number of channels to filter.  Default is 999.
+    -infile  xyz  => xyz is  original input file.   Default is
+                     web/tv/clicktv/day_hour.html.  If this file is missing
+                     or old, a new file will be retrieved from the web.
+    -outfile xyz  => xyz the filtered output file.
+                     Default is -outdir/day_hour.html
+    -outdir  xyz  => xyz the directory the outfiles will be put in.
+                     Default is mh.ini parm html_dir/tv
+    -label xyz    => Use xyz as the link lable.  Default is "VCR".
+    -reget        => Re-read  the clicktv web page, even if a recent file it
+                     already exists.
+    -redo         => Re-write -outfile xyz, even if it already exists.
+    -keep_old     => Do NOT delete data from the DBM that is one month older
+                     than todays date
+    -debug        => turn on debug info
+
+    -mail_to      xyz => Will email the charts to xyz
+    -mail_server  xyz => xyz is the SMTP host.  Default is localhost
+    -mail_baseref xyz => xyz is the http address of your mh server.  Needed if
+                         you want to control mh from the emailed web page
+  Example:
+    get_tv_grid -day 25 -hour 4pm -outfile my_tv.html
+    get_tv_grid -days 7 -hour all
+    get_tv_grid -email bruce@misterhouse.net -mail_baseref misterhouse.net:8080
+
 
   Usage:
     get_tv_grid [options] 
@@ -2820,24 +2898,31 @@ get_tv_info returns info about tv programs that match the requested parms.
 It uses a database created by the get_tv_grid program.
 See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
 
-  Usage:
-    get_tv_info [options]
+  Version: 1.14
 
-  Options:
+  Usage:
+
+   get_tv_info [options]
+
     -h        => This help text
     -help     => This help text
 
-    -channels xyz => Will return info only for channel numbers xyz.
-                     Default is all the channels found by get_tv_grid.
-    -dates    xyz => Will return info only for dates xyz.
-                     Default is today.  Format: month/day (e.g. 4/22).
-    -time     xyz => Will return info only for shows that start at xyz.
-                     Default is '6pm-10pm'.  Use 'all' for all hours.
-                     Valid formats: 1 pm, 1PM, 13, 13:00.
-    -lengths  xyz => Will return info only for shows that are xyz hours long.
-                     Default is any length.
-    -keys     xyz => Will return info only for shows that have keywords
-                     in the xyz list in their title or description.
+    -channels  xyz => Will return info only for channel numbers xyz.
+                      Default is all the channels found by get_tv_grid.
+    -dates     xyz => Will return info only for dates xyz.
+                      Default is today.  Format: month/day (e.g. 4/22).
+    -times     xyz => Will return info only for shows that start at xyz.
+                      Default is '6pm-10pm'.  Use 'all' for all hours.
+                      Valid formats: 1 pm, 1PM, 13, 13:00.
+    -early_am  xyz => Adds info for shows after midnight.
+                      Formats are same as for to times.
+    -increment xyz => Time increment is xyz minutes (5 or 30). Default is 5.
+    -lengths   xyz => Will return info only for shows that are xyz hours long.
+                      Default is any length.
+    -keys      xyz => Will return info only for shows that have keywords
+                      in the xyz list in their title or description.
+                      Note: xyz can be a regular expresion (e.g. -keys "^ER$")
+    -keyfile   xyz => List of keys to search for, from a file in the data directory
 
       All of the above parms support these formats:
          : comma-seperated values (e.g. -dates 7/4,7/5,7/6)
@@ -2846,12 +2931,17 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
            Starting spec is optional (e.g. -dates +2)
 
     -debug        => turn on debug info
+    -quiet        => turn off normal errata
 
   Examples:
     get_tv_info -channels "4-12" -lengths 2
-    get_tv_info -channels "4,6,12" -time "7 pm"
-    get_tv_info -dates "7/4-7/11" -keys "star trek,dilbert"
+    get_tv_info -channels "4,6,12" -times "7 pm"
+    get_tv_info -dates "7/4-7/11" -keys "star trek, er ,dilbert"
     get_tv_info -dates +14 -keys computer
+    get_tv_info -time "17-23"
+
+  Shows which have already started are excluded unless you search 
+  without specifying -times or you search for -times 'all'.
 
 
 =item get_url
@@ -3244,9 +3334,12 @@ Here is an example:
     D: Outdoor temperature
        A: What is the outdoor temperature
        R: last_response
+    D: Humidity
+       A: What is the humidity temperature
  M: Lights
     D: Camera [+,-,^,v]    
        A: Camera light [on,off,+30,-30]
+       R: eval "Light $state" . chr(07) # Ring bell
     D: Bedroom [on,off,+30,-30]
     M: Outside
  M: Outside
@@ -3258,7 +3351,10 @@ These are the record types:
  M:  Menu screen
  D:  text to Display as a menu choice
  A:  what Action to run (either a voice cmd or code to eval)
- R:  what Response to display.  last_response will pick up the last mh response
+ R:  what Response to display. 
+     last_response will pick up the last mh response
+     If not specified, defaults to selecte state or last_response.
+     Begin with eval to eval the string first.
 
 The above example specifies 3 menu (M:) records that creates a Test menu, with 2 submenus, HVAC and Lights.  
 
@@ -3269,6 +3365,7 @@ specified (on or off) state.
 
 The 'Outdoor temperature' record will run a Voice_Cmd action (A:), and respond with the last
 data printed or spoken by mh (the results of the outdoor temperature command).
+The 'Humidity' record will also run a Voice_Cmd and default to last_response. 
 
 The 'Camera light' record also runs a Voice_Cmd action.
 To save (LCD) display space, the on,off,+30,-30 Action states were renamed on the Display record to +,-,^,v.    
@@ -3303,6 +3400,23 @@ menu interface subroutines.  For the above menu.pl, you can point your WAP phone
   This will get the auto-generated 'mh' entry for all voice commands:
     http://misterhouse.net:8080/sub?menu_wml(mh)
 
+Something like this could be used to create different menus for different LCD controlers:
+
+  $menu_standard = read_file 'standard.menu';
+  $menu_bedroom  = read_file 'bedroom.menu';
+  $menu_living   = read_file 'living.menu';
+  $menu_all      = read_file 'all.menu';
+
+  if ($Reread) {
+    menu_parse $menu_bedroom  $menu_bedroom . $menu_standard,  'bedroom';  
+    menu_parse $menu_living   $menu_living  . $menu_standard,  'living';  
+    menu_parse $menu_all      $menu_all     . $menu_living .
+                              $menu_bedroom . $menu_standard, 'all';
+    $lcd_data{bed1}   {menu_group} = 'bedroom';
+    $lcd_data{living1}{menu_group} = 'living';
+    $lcd_data{living2}{menu_group} = 'all';
+  }
+
 To test your menus, point your browser to http://localhost:8080/sub?menu_html
 
 If you have a LCD supported by lcdproc  program ( http://lcdproc.omnipotent.net )
@@ -3314,9 +3428,11 @@ If you have a 24x7 internet connection, you can walk the menus with either
 a WAP compatable cell phone, or using voice commands with any phone via a Voice Portal like
 http://studio.tellme.com.
 
-For cell phones, simply point your phone to http://your_domain/menu_wml.  You can test your
-menus with a web based phone simulator at http://www.gelon.net , or download
-a phone simlator from http://phone.com .  Other browsers are listed at http://www.palowireless.com/wap/browsers.asp
+For cell phones, simply point your phone to http://your_domain/sub?menu_wml.  You can test your
+menus with a web based phone simulator at http://www.yospace.com
+or download a phone simlator from http://phone.com .  
+Other browsers are listed at http://www.palowireless.com/wap/browsers.asp ,
+although I didn't have much luck with http://www.wapsilon.com or /http://www.gelon.net .
 
 Tellme.com currently offers free 1-800 access to their VR and TTS engines, using vxml (Voice XML) menus.
 You can view the mh vxml menus by pointing a XML compatable browser (e.g. IE) to this address:
@@ -3446,7 +3562,7 @@ You can use the following html addresses to have mh return dynaically generated 
   /list?Category
     This can be used to list just the commands in the specified Category.
 
-  /list:h_response?Category
+  /list;h_response?Category
     As above, but it also passes h_response to the RUN commands (see h_response below)
 
   /group
@@ -3518,7 +3634,7 @@ of an mh variable.  For example:
 This what is used in the mh 'About' web button to return the mh version.
 
 You can also define your own functions in your code files to return html, and then call them 
-with the code= include directive or as a response to a /SET or /RUN command (see below).
+with the code= include directive or as a h_response to a /SET or /RUN command (see below).
 For example, add these to any of your code files:
 
   sub web_func1 {
@@ -3543,7 +3659,7 @@ Then call them like this:
 
 Or with this:
 
- http://localhost:8080/SET:&web_func2(myarg1,myarg2)
+ http://localhost:8080/SET;&web_func2(myarg1,myarg2)
 
 
 One useful built in function is &dir_index, which can be used to create a directory
@@ -3568,16 +3684,16 @@ The SET (or SET_VAR ... they are now the same) command can set any object or var
 The RUN command can run any voice command.
 Use '_' to replace blanks in the command string.
 
-SET, RUN, or SUB can use an optional response field to decide what html will be returned:
+SET, RUN, or SUB can use an optional h_response field to decide what html will be returned:
 
   Format:
-   SET:h_response?$object?value 
-   RUN:h_response?command
-   SUB:h_response?sub_name(arg1,arg2)
+   SET;h_response?$object?value 
+   RUN;h_response?command
+   SUB;h_response?sub_name(arg1,arg2)
 
   $var and $object are the variable and object names, with or without the $ prefix.
 
-  h_response can be one of the following:
+  h_response is optional and can be one of the following:
    &function        The results of &function will be returned
    &function(args)  The results of &function(arg) will be returned
    last_response    The last displayed or spoken text. 
@@ -3593,13 +3709,13 @@ SET, RUN, or SUB can use an optional response field to decide what html will be 
 Here are some examples demonstrating these options:
 
  This returns the last spoken line:
-  <li><a href=http://localhost:8080/RUN:last_spoken?WebCam_light_on>Light on</a>
+  <li><a href=http://localhost:8080/RUN;last_spoken?WebCam_light_on>Light on</a>
 
  This returns the string "Thanks for playing"
-  <li><a href=http://localhost:8080/RUN:Thanks_for_playing?WebCam_light_off>Light off</a>
+  <li><a href=http://localhost:8080/RUN;Thanks_for_playing?WebCam_light_off>Light off</a>
 
  This returns the contents of the mh/web/test/test3.html file:
-  <li><a href=http://localhost:8080/RUN:test/test3.html?WebCam_light_+50>+50</a>
+  <li><a href=http://localhost:8080/RUN;test/test3.html?WebCam_light_+50>+50</a>
 
  This returns a list of recently spoken text:
   <li><a href=http://localhost:8080/RUN?WebCam_light_-50>-50</a>
@@ -3609,33 +3725,33 @@ Here are some examples demonstrating these options:
  function you will need to authorize &my_response with this in your code: 
  $Password_Allow{'&my_response'} = 1):
 
-  <FORM ACTION="SET:&my_response">Test 1<INPUT SIZE=5 NAME="$Save{test_input1}"</form>
+  <FORM ACTION="SET;&my_response">Test 1<INPUT SIZE=5 NAME="$Save{test_input1}"</form>
 
  This will set a $barcode_scan Generic_Item, then display a web page 
  that was updated by user code:
 
-  <FORM ACTION="SET:barcode_search.html"  target='speech'>
+  <FORM ACTION="SET;barcode_search.html"  target='speech'>
   <p>Scan data into here: <INPUT SIZE=60 NAME="$barcode_scan" value=""></FORM>
 
 
  This will redirect the browser back to the calling page 
  (note the $ from the $camera_light object is optional):
 
-  <a HREF="http://misterhouse.net:8080/SET:Referer?camera_light=on">Light on</a>
+  <a HREF="http://misterhouse.net:8080/SET;Referer?camera_light=on">Light on</a>
 
  This will redirect the browser to misterhouse.net
 
-  <a HREF="http://misterhouse.net:8080/SET:http://misterhouse.net?$camera_light=off">Light off</a>
+  <a HREF="http://misterhouse.net:8080/SET;http://misterhouse.net?$camera_light=off">Light off</a>
 
 
-You can also use RUN:h_response without a command.
+You can also use RUN;h_response without a command.
 For example, if you want to get a directory listing, sorted by date (recent on top):
 
-  <a href=http://localhost:8080/RUN:&dir_index('/pictures','date',1)>List pictures by date </a>
+  <a href=http://localhost:8080/RUN;&dir_index('/pictures','date',1)>List pictures by date </a>
 
 Finally, you can specify a subroutine to run that generates response html.  For example:
 
-   http://misterhouse.net:8080/SUB:tellme_menu(,,html)
+   http://misterhouse.net:8080/SUB;tellme_menu(,,html)
 
 
 =head2 Voice Recognition (VR) and Text To Speech (TTS) on windows
@@ -3734,9 +3850,14 @@ called, use the &MainLoop_pre_add_hook and
   sub test_hook_post { print ">"; }
 
 If you want your hook code to last between code reloads (e.g. added by startup code from a module), 
-set the persistant flag by passing a 1 as a 2nd argument.  For example:
+set 2nd argument to 'persistent' (a value of 1 will also work ... grandfathered in for old code).
+For example:
 
-  &main::MainLoop_post_drop_hook( \&jabber::process, 1 );
+  &main::MainLoop_post_drop_hook( \&jabber::process, 'persistent' );
+
+If you want that hook to run first, before all other hooks of that type, set the 2nd argument 
+to 'first', or 'persisent_first'.  Otherwise the hook is pushed to the end of the list, so 
+it is run in the order the hooks were added.
 
 Here is a list of all the code hook locations:
 
@@ -3855,7 +3976,7 @@ http://linuxha.sourceforge.net .  This project is developing daemons for various
 (e.g. ADI Ocelot, CPUXA, and HCS II) that hopefully we can then link to with mh.   
 
 Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
-http://the-labs.com/HomeAppliance/
+http://the-labs.com/HomeNetwork/
 
 
 =head1 COPYRIGHT
@@ -3876,6 +3997,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.40  2001/04/15 16:17:21  winter
+# - 2.49 release
+#
 # Revision 1.39  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

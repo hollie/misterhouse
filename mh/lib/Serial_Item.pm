@@ -24,7 +24,7 @@ sub serial_item_by_id {
 
 sub new {
     my ($class, $id, $state, $port_name) = @_;
-    my $self = {state => ''};
+    my $self = {state => undef}; # Use undef ... '' will return as defined
 #   print "\n\nWarning: duplicate ID codes on different Serial_Item objects:\n " .
 #         "id=$id state=$state states=@{${$serial_item_by_id{$id}}{states}}\n\n" if $serial_item_by_id{$id};
     $$self{port_name} = $port_name;
@@ -276,7 +276,7 @@ sub set {
         print "Using homevision to send: $serial_data\n";
         &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
     }
-    elsif ($interface eq 'ncpuxa') {
+    elsif ($interface eq 'ncpuxa' or $port_name eq 'ncpuxa') {
         print "Using ncpuxa to send: $serial_data\n";
         &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
     }
@@ -478,6 +478,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.47  2001/04/15 16:17:21  winter
+# - 2.49 release
+#
 # Revision 1.46  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

@@ -20,7 +20,7 @@
 my $stationid = $config_parms{wunderground_stationid};
 my $passwd    = $config_parms{wunderground_password};
       
-use POSIX qw(strftime);
+#use POSIX qw(strftime);
  
 my ($utc, $url);
 my $p_weather_update = new Process_Item;
@@ -34,7 +34,10 @@ display($f_weather_update_page) if said $v_weather_update;
 if (new_minute 15) {
 #   print_log "Logging weather with id=$stationid and pw=$passwd";
 
-    $utc = strftime("%Y-%m-%d %H:%M:%S", gmtime());
+                                # strftime tries its own savings time conversion and messes things up
+#   $utc = strftime("%Y-%m-%d %H:%M:%S", gmtime());
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =  gmtime();
+    $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec;
 
     $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&PASSWORD=%s&dateutc=%s&winddir=%s&windspeedmph=%d&windgustmph=%d&tempf=%.1f&rainin=%.2f&baromin=%.2f&dewptf=%.2f&humidity=%s&weather=&clouds=&softwaretype=%s&action=updateraw',
 	$stationid, $passwd, $utc,

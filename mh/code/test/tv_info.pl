@@ -48,7 +48,9 @@ if ($Tk_results{'TV search'} or $Tk_results{'TV dates'}) {
 }
 
                                 # Speak/show the results for all of the above requests
-if ($state = changed $f_tv_file) {
+
+$v_tv_results = new  Voice_Cmd 'What are the tv search results';
+if ($state = changed $f_tv_file or said $v_tv_results) {
     my $f_tv_info2 = "$config_parms{data_dir}/tv_info2.txt";
 
     my $summary = read_head $f_tv_file 6;

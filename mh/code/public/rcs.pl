@@ -9,8 +9,7 @@
 # RCS makes several X10 compatible thermostats.
 #
 # This script shows how to create RCS menus and send/receive RCS commands
-# I have an RCS TX10B thermostat, but this code should work with the
-# newer TX15B.
+# It works with both the TX10B and newer TX15B thermostats.
 #
 # Requires: RCS_Item.pm
 #

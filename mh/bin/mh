@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-03-24 17:30:38 winter>
+#  Last change Time-stamp: <2001-04-14 23:03:15 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -43,7 +43,8 @@ BEGIN {
                                 # When we do system calls in Dos, we need \, not /
         $Pgm_Path =~ tr!\/!\\! if $^O eq "MSWin32";
     }
-
+    chdir $Pgm_Path;            # Base everything from the mh dir.
+#   $Pgm_Path = '.';
 
     $usage = <<"eof";
 
@@ -164,7 +165,8 @@ BEGIN {
             $Version .= " (compiled)" unless $Version =~ /compiled/;
         }
         
-        ($Pgm_PathU = $Pgm_Path) =~ tr/\\/\//;
+#       ($Pgm_PathU = $Pgm_Path) =~ tr/\\/\//;
+        $Pgm_PathU = '.';       # I don't think we really need this anymore, since we chdir to mh/bin
         $Pgm_Root = "$Pgm_PathU/..";
        
         $OS_win = ($^O eq "MSWin32") ? 1 : 0;
@@ -293,7 +295,8 @@ BEGIN {
                                 #  - setupsup is not yet available for perl 5.6
                                 #  - BuildNumber doesn't work with perl2exe compile 
                                 #  - Loaded from: http://jenda.krynicky.cz/perl/
-            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus)" if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
+            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)" if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
+
             print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@;
 
             eval "use Win32::Sound";
@@ -407,6 +410,7 @@ sub setup {
     use X10_Items;
     use iButton;
     use Hardware::iButton::Connection;
+    use LCD;
 
     use Socket_Item;
     use Process_Item;
@@ -727,7 +731,7 @@ sub setup {
 
 
                                 # This code allows us to add dynamic user code hooks at various places.
-my (%hook_pointers, %hook_pointers_persistent, %hook_locations, %hook_parms);
+my (%hook_pointers, %hook_locations);
 sub add_hook_code {
 
     %hook_locations = ( MainLoop_pre => 1, MainLoop_post => 1,
@@ -749,8 +753,11 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
   }
 
    sub add_hook_ {
-       my($location, $hook, $persistent, @parms) = @_;
+       my($location, $hook, $type, @parms) = @_;
     
+       $type = '0' unless $type;
+       $type = 'persistent' if $type eq '1'; # Grandfathered syntax
+
        unless( defined( $hook_locations{$location} ) ){
            warn "Invalid hook location $location\n";
            return 0;
@@ -762,10 +769,14 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
        }
        
        $hook_pointers{$location} = [] unless defined ($hook_pointers{$location});
+
+       if ($type =~ /first/) {
+           unshift( @{$hook_pointers{$location}}, [$hook, $type, @parms] );
+       }
+       else {
+           push(    @{$hook_pointers{$location}}, [$hook, $type, @parms] );
+       }
        
-       push( @{$hook_pointers{$location}}, $hook );
-       push( @{$hook_pointers_persistent{$location}}, $hook ) if $persistent;
-       @{$hook_parms{$hook}} = @parms;
 
        return 1;
    }
@@ -783,7 +794,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
            my($i)=-1;
            
            for ( $i=$#{$h}; $i >= 0; $i-- ) {
-               last if ($hook == $h->[$i] );
+               last if ($hook == $h->[$i][0] );
            }
 
                                 # delete if the index returned is in range
@@ -804,13 +815,13 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
 
                                 # call all hooks with user specified args, if any
    sub run_hooks_ {
-#      my($location) = @_;
        my $location = shift @_;
-       for my $hook (&get_hooks_($location)){
+       my $i = 0;
+       for my $ptr (&get_hooks_($location)){
+           my ($hook, $type, @parms) = @$ptr;
                                 # Allow for parms passed in mh, and parms specified
                                 # with addhook.
-           my @parms = (@_, @{$hook_parms{$hook}});
-           &$hook(@parms); 
+           &$hook(@_, @parms); 
        }
    }
 
@@ -819,12 +830,12 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
                                 # All other user code is undefed.
    sub reset_hook_code {
        for my $location (keys %hook_locations) {
-           if ($hook_pointers_persistent{$location}) {
-               @{$hook_pointers{$location}} = @{$hook_pointers_persistent{$location}};
+           my @hook_pointers_persistent;
+           for my $ptr (&get_hooks_($location)){
+               my ($hook, $type, @parms) = @$ptr;
+               push @hook_pointers_persistent, $ptr if $type =~ /persistent/;
            }
-           else {
-               delete $hook_pointers{$location};
-           }
+           @{$hook_pointers{$location}} = @hook_pointers_persistent;
        }
    }
 }
@@ -979,9 +990,9 @@ sub check_for_generic_serial_data {
                                 # If we do not do this, we may get endless error messages.
         $Serial_Ports{$port_name}{object}->reset_error;
     }
-
-                                # SerialPort input returns a 0x00, which is different than undef !
-    undef $data if length $data == 0;
+                                # SerialPort returns the empty string, which is defined.
+                                # We need to allow for data=0, so need to use the defined test.
+    undef $data if $data eq '';
 
     $Serial_Ports{$port_name}{data} .= $data if defined $data;
 
@@ -1058,18 +1069,18 @@ sub check_for_keyboard_input {
         }
     }
     else {
-        my ($keystring);
+        my ($key, $keystring);
                                 # Allow for F1 -> F12, which are multi key strings
         ReadMode 'cbreak';
-        while (my $key = ReadKey(-1)) {
+        while (defined($key = ReadKey(-1))) {
             $keystring .= sprintf('%2x', ord $key);
             $Keyboard = $key;
         }
         ReadMode 'normal';      # Or else we loose echo when mh exits.  Benchmark shows no slowdown.
-        $Keyboard = $keystring if $keystring and length $keystring > 2;
+        $Keyboard = $keystring if defined $keystring and length $keystring > 2;
     }
 
-    return unless $Keyboard;
+    return unless defined $Keyboard;
 
     my %keymap = (112 => 'F1',  113 => 'F2',  114 => 'F3',
                   115 => 'F4',  116 => 'F5',  117 => 'F6',
@@ -1080,7 +1091,7 @@ sub check_for_keyboard_input {
                   '1b5b31357e' => 'F5',  '1b5b31377e' => 'F6',  '1b5b31387e' => 'F7',  '1b5b31397e' => 'F8',
                   '1b5b32317e' => 'F10', '1b5b32337e' => 'F11', '1b5b32347e' => 'F12'
                   );
-    $Keyboard = $keymap{$Keyboard} if $keymap{$Keyboard};
+    $Keyboard = $keymap{$Keyboard} if defined $keymap{$Keyboard};
 
                                 # This can not be called from mh_control when in paused mode
     if ($Keyboard eq 'F2' and $pause_mode) {
@@ -2606,7 +2617,7 @@ sub read_code {
                                 #  - %Local_Addresses is for backward compatibility ... maybe drop it some day
     %Local_Addresses = map{$_, 1} split(',', $config_parms{local_addresses});
     @Local_Addresses = split ',', $config_parms{local_addresses};
-    @Password_Allow_Clients = split ',', $config_parms{password_allow_clients};
+    @Password_Allow_Clients = split /[, ]/, $config_parms{password_allow_clients};
 
 
     &read_table_files;           # Re-create table code file, if any table file changed
@@ -4212,6 +4223,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.49  2001/04/15 16:12:24  winter
+# - 2.49 release
+#
 # Revision 2.48  2001/03/24 23:43:36  winter
 # - add serial undef check with length == 0
 #

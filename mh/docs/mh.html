@@ -1390,6 +1390,49 @@ to program the IR Commander to use the codes for your various remotes.
     set $VCR &quot;STOP&quot;      if time_cron('00 20 * * 3');
 </PRE>
 </P>
+<DT><STRONG><A NAME="item_LCD">LCD</A></STRONG><DD>
+<P>
+This object is used to send and receive data to LCD type displays with
+keypads.
+
+</P>
+<P>
+<PRE>  Methods:
+     new $type, $port, $size, $menu_group, $keymap
+ 
+       $type:  Either lcdproc or keyboard.  
+       $port:  The ip:port of where lcdproc is running.
+       $size:  ROWSxCOLUMNS of the LCD display.
+       $menu_group:  The menu parsed by menu_parse (see Menu section of this doc).
+       $keymap: A has that translates keys to usable names.   
+</PRE>
+</P>
+<P>
+<PRE>     start        =&gt; Connect to the LCD.  Automatically called on startup
+     stop         =&gt; Disconnect the LCD.
+     load $menu   =&gt; Load menu $menu.  Default menu is the first one.
+     check_key    =&gt; Returns whatever key is keyed in
+     set @data    =&gt; Sends @data to the LCD, one line per list element
+     set_key $key =&gt; Simulates the keyboard being pressed with $key
+     inactive     =&gt; Returns true if no key has been pressed in 10 seconds.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>     my %lcd_keymap1 = ( N =&gt; 'up', I =&gt; 'down', M =&gt; 'left', H =&gt; 'right',
+                         F =&gt; 'exit', K =&gt; 'enter', L =&gt; 'left', G =&gt; 'right');
+     my %lcd_keymap2 = ( 38=&gt; 'up', 40=&gt; 'down', 37=&gt; 'left', 
+                         39=&gt; 'right', 17=&gt; 'exit', 96=&gt; 'enter') ;
+</PRE>
+</P>
+<P>
+<PRE>    $lcd1 = new LCD  'lcdproc', '192.168.0.5:13666', '4x20', 'default', \%lcd_keymap1;
+    $lcd2 = new LCD 'keyboard',               undef, '4x20', 'mh',      \%lcd_keymap2;
+</PRE>
+</P>
 <DT><STRONG><A NAME="item_Process_Item">Process_Item</A></STRONG><DD>
 <P>
 You can use this object to run external programs. On Win32 systems, the
@@ -4738,13 +4781,13 @@ menus:
 </PRE>
 </P>
 <P>
-To enable, use mh/code/bruce/menu.pl to read in menu files. The format of
+To enable, use mh/code/test/menu.pl to read in menu files. The format of
 the menu files is a simple text file, where each record is prefixed with a
 record type character. Here is an example:
 
 </P>
 <P>
-<PRE> M: Main            # Top level menu can have any name
+<PRE> M: Test            # Top level menu can have any name
     D: HVAC
     D: Lights
  M: HVAC
@@ -4777,8 +4820,8 @@ These are the record types:
 </PRE>
 </P>
 <P>
-This specifies 3 Menu (M:) records that creates a Main menu, with 2
-submenus, HVAC and Lights.  
+The above example specifies 3 menu (M:) records that creates a Test menu,
+with 2 submenus, HVAC and Lights.  
 
 </P>
 <P>
@@ -4812,7 +4855,15 @@ required.
 <P>
 The last Outside Light records are a 3rd level menu, nested under the 2nd
 level Lights menu. There are no limits to how deep you can nest menus and
-they can be in any order you want in the file.
+they can appear in any order you want in the file. The same menu can be a
+submenu of more than one other parent menu.
+
+</P>
+<P>
+If you want a starting point to customize your own menus, you can find an
+auto-generated menu for all the mh Voice_Cmds in the mh_temp.menu file in
+your code directory. This file is re-generated on reload, so copy and edit
+this file, then point menu.pl at your edited copy.
 
 </P>
 <P>
@@ -4832,7 +4883,7 @@ menu_create creates the example mh_temp.menu file for all voice commands
 and returns it into $menu_mh. <CODE>$menu_test</CODE> has the test menu,
 similar to the above example. You can specify the menu group (e.g. default
 or mh) when calling any of the menu interface subroutines. For the above
-menu.pl:
+menu.pl, you can point your WAP phone to:
 
 </P>
 <P>
@@ -4847,11 +4898,28 @@ menu.pl:
 </PRE>
 </P>
 <P>
-If you want a starting point to customize your own menus, you can find an
-auto-generated menu for all the mh Voice_Cmds in the mh_temp.menu file in
-your code directory. This file is re-generated on reload, so copy and edit
-this file, then point menu.pl at your edited copy.
+Something like this could be used to create different menus for different
+LCD controlers:
 
+</P>
+<P>
+<PRE>  $menu_standard = read_file 'standard.menu';
+  $menu_bedroom  = read_file 'bedroom.menu';
+  $menu_living   = read_file 'living.menu';
+  $menu_all      = read_file 'all.menu';
+</PRE>
+</P>
+<P>
+<PRE>  if ($Reread) {
+    menu_parse $menu_bedroom  $menu_bedroom . $menu_standard,  'bedroom';  
+    menu_parse $menu_living   $menu_living  . $menu_standard,  'living';  
+    menu_parse $menu_all      $menu_all     . $menu_living .
+                              $menu_bedroom . $menu_standard, 'all';
+    $lcd_data{bed1}   {menu_group} = 'bedroom';
+    $lcd_data{living1}{menu_group} = 'living';
+    $lcd_data{living2}{menu_group} = 'all';
+  }
+</PRE>
 </P>
 <P>
 To test your menus, point your browser to <A
@@ -4877,13 +4945,15 @@ HREF="http://studio.tellme.com.">http://studio.tellme.com.</A>
 </P>
 <P>
 For cell phones, simply point your phone to <A
-HREF="http://your_domain/menu_wml.">http://your_domain/menu_wml.</A> You
-can test your menus with a web based phone simulator at <A
-HREF="http://www.gelon.net">http://www.gelon.net</A> , or download a phone
-simlator from <A HREF="http://phone.com">http://phone.com</A> . Other
+HREF="http://your_domain/sub?menu_wml.">http://your_domain/sub?menu_wml.</A>
+You can test your menus with a web based phone simulator at <A
+HREF="http://www.yospace.com">http://www.yospace.com</A> or download a
+phone simlator from <A HREF="http://phone.com">http://phone.com</A> . Other
 browsers are listed at <A
 HREF="http://www.palowireless.com/wap/browsers.asp">http://www.palowireless.com/wap/browsers.asp</A>
-
+, although I didn't have much luck with <A
+HREF="http://www.wapsilon.com">http://www.wapsilon.com</A> or
+/http://www.gelon.net .
 
 </P>
 <P>
@@ -4912,12 +4982,9 @@ studio and enter your url:
 </P>
 <P>
 where your_domain is your domain name or ip address. To test, dial:
-1-800-555-8965 (VXML) and enter your devloper ID and Pin.  
-
-</P>
-<P>
-When you have it working, click on the MyExtentions, enter the same URL and
-check the enable checkbox. Now you can dial:
+1-800-555-8965 (VXML) and enter your devloper ID and Pin. When you have it
+working, click on the MyExtentions, enter the same URL and check the enable
+checkbox. Now you can dial:
 
 </P>
 <P>
@@ -5625,20 +5692,6 @@ messed up.
 
 </P>
 <P>
-If you have perl installed, you may get this message:
-
-</P>
-<P>
-<PRE>  Can't find 'boot_IO' symbol ...
-</PRE>
-</P>
-<P>
-The problem is there are two different IO.DLL files, one in the FTP module
-and one in the TK module. Do a find in IO.DLL in your perl directory, and
-rename the one in the tk path. 
-
-</P>
-<P>
 <HR>
 <H2><A NAME="Windows_bugs_limitations">Windows bugs/limitations</A></H2>
 <P>
@@ -5654,9 +5707,23 @@ about 30 Meg, once a day. Displaying .gif and .jpg files also leaks about
 </P>
 <P>
 Adding, deleting, or changing Voice commands does is not recognized by the
-Windows MSVoice applicatino while it is running. You have to exit and
+Windows MSVoice application while it is running. You have to exit and
 restart MSVoice, then restart mh to get it to recognize new commands.
 Hopefully we can get this to work with release 5.0 of the MS Speech SDK.
+
+</P>
+<P>
+If you have perl installed, you may get this message:
+
+</P>
+<P>
+<PRE>  Can't find 'boot_IO' symbol ...
+</PRE>
+</P>
+<P>
+The problem is there are two different IO.DLL files, one in the FTP module
+and one in the TK module. Do a find in IO.DLL in your perl directory, and
+rename the one in the tk path. 
 
 </P>
 <P>
@@ -5673,11 +5740,6 @@ Potential candidates for VR engines other non-linux unix platforms are:
      <A HREF="http://WWW.ISIP.MsState.Edu/projects/speech_recognition/">http://WWW.ISIP.MsState.Edu/projects/speech_recognition/</A>
      <A HREF="http://www.tmt.de/~stephan/ears.html">http://www.tmt.de/~stephan/ears.html</A>
 </PRE>
-</P>
-<P>
-The control keys from the console window do not work (e.g. F1 to reload, F3
-to exit). Ctl-C works :)
-
 </P>
 <P>
 Disk drive info (need to port from DriveInfo to df)
@@ -5775,7 +5837,7 @@ CPUXA, and HCS II) that hopefully we can then link to with mh.
 <P>
 Rene Mueller has a nice set of web pages with lots of info on
 HomeAppliances at <A
-HREF="http://the-labs.com/HomeAppliance/">http://the-labs.com/HomeAppliance/</A>
+HREF="http://the-labs.com/HomeNetwork/">http://the-labs.com/HomeNetwork/</A>
 
 
 </P>

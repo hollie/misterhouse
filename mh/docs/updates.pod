@@ -6,7 +6,77 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
-=head2 Version 2.47 posted on 03/??/2001
+=head2 Version 2.49 posted on 04/15/2001
+
+Version 2.49 was just uploaded to:
+
+  http://misterhouse.sourceforge.net/download.html
+  http://misterhouse.net/download.html
+
+B<New Features:>
+
+- Created a LCD object, so we can support multiple LCD keypads.
+See mh/docs/mh.* and/or mh/code/bruce/lcd.pl for an example. 
+To use simulate an LCD keypad with your pc keyboard, use mh/code/test/lcd_keyboard.pl
+
+- Wap phone authorization is now enabled.  If your phone supports standard password authorization, you will be prompted
+for a password (user name can be left blank), when you select a menu command to run.  Or if your phone sends a unique x-up-subno
+field, you can specify that in a new mh.ini password_allow_phones parm (see mh/bin/mh.ini for more info).
+
+- Many minor changes to the web server to enable device dependent html.
+We can now have style sheets local to a web subdirectory and serve different style sheets to different browers.
+For example, web pages displayed on an epod can have different html stylesheets than the same page displayed from Netscape.  
+Craig Schaeffer is working on an example set of epod web pages (not yet in this release).
+
+
+B<Examples, Bug Fixes, and Other Changes:>
+
+- Ian Davidson found an 2.47 problem when running -debug serial
+
+- Tom Vanderpool spotted a change in the clicktv get_tv_grid url (drop the WSN string).
+
+- Craig Schaeffer sent in an update mh/code/public/internet_ip_update_craig.pl for updating dynamic ip addresses to a web page.
+
+- Craig Schaeffer found a duplicate states problem with the vxml menu code.
+
+- Robert Rozman found a problem with state data in the LCD menu_code.  Numerous other bugs from the new menu_code were also fixed.
+
+- Scott Johnston ran into a 500 phrase limit in viavoice_server.  We bumped the limit to 5000.
+
+- Wally Kissel added SendKeys functions SetWindowText GetWindowText (windows only).
+
+- Douglas Parrish added mh/code/public/callerid_doug* files for processing callerid data with ties to
+DB files and PHP web pages.
+
+- Ian Davidson updated mh/lib/LCD.pm with an example of how to talk to serial attached LCD keypads.
+
+- Mark Dahmke found a problem with blanks in the mh.ini password_allow_clients string.
+
+- Brandon verified that RCS_Item works with the TX15B thermostat.
+
+- Kent Noonan found a problem with the vxml tellme menu when using mh.ini parm http_server=localhost.
+
+- Stoll Thomas added a small delay to the iButton code to get it to work on his win 2k box.
+
+- David Norwood enabled relay with the CPU-XA/Ocelot.  An example:  $back_yard_sprinklers = new Serial_Item('OUTPUT11high', ON, "ncpuxa");
+
+- Fenghua Zong updated mh/code/public/x10_mr26.pl to pass key inputs like Play/Stop/Rew/FF to mh.
+
+- Clive Freedman updated get_tv_info and added a mh.ini parm tv_key_symbol to highlight search words in tv search results.
+
+- Mark Dahmke noticed that the main web page was not immediately displayed after logging in with password_protect=all.
+WAP phone menus with this parm were also fixed. 
+
+- Fixed mh.bat so that it does not loop on normal mh exit on windows 98.
+
+- Updated weather_upload.pl not to use strftime, which was an hour off with with the change in daylight savings time.
+ 
+- Added a passive option to net_ftp.
+
+- Updated mh to it can be started from any directory, not just the mh/bin/mh dir.
+
+
+=head2 Version 2.47 posted on 03/24/2001
 
 Version 2.47 was just uploaded to:
 
@@ -14,6 +84,13 @@ Version 2.47 was just uploaded to:
   http://misterhouse.net/download.html
 
 B<New Features:>
+
+- Added template based menuing code.  This allows us to create nested menus for use with web browsers, LCD displays,
+WAP phones, and vxml based phone voice portals.  To enable, copy mh/code/test/menu.pl and test.menu.
+More information can be found here in mh/docs/mh* or here: http://misterhouse.net/mh.html#Customizing_the_Menu_interfaces . 
+I have not yet implemented an authorization scheme for the vxml or wml menus, so you will want
+to limit the commands to harmless commands disable non-local access of those functions by modifying the Password_Allow
+records in menu.pl.
 
 - Added mh/bin/backup_data.  This allows for periodic smart backups, with options for daily age
 based backups and/or less periodic full backups, with options to filter based on file/dir name or size.
@@ -26,10 +103,6 @@ use more memory.  Here is how I do daily and monthly cross backups between 2 dif
 (used to be only house code X10_Items were set).  Also added a 'level' method to X10_Item, so 
 you can query what mh thinks the current brightness level is after one or more bright/dims.
  
-- wap/lcd?
-
-- Ingo Dean added a X10 Motion_Sensor object that will send a 'dead battery' message if it has not heard
-from the sensor after 24 hours.
 
 B<Examples, Bug Fixes, and Other Changes:>
 
@@ -61,9 +134,22 @@ to use get_finger, rather than get_url.
 
 - Jean-Marie Martin added more states to the (Canadian?) X10_Ote item and X10O to read_table_A.pl.
 
+- Ingo Dean added a X10 Motion_Sensor object that will send a 'dead battery' message if it has not heard
+from the sensor after 24 hours.
+
 - Stuart Grimshaw and Mark Mabry fixed a 'RUN command not found' http_server bug that some browsers had. 
 
 - Ian Davidson found an error in reading '0' from serial ports.
+
+- Tim Doyle added a VOICE option to format=A mht tables.
+
+- Bill Sobel sent in a bunch of changes:
+Compool now incudes new state checks.
+Stargate includes more support for stargate variables,
+thermostats (fully working), flags (in process), timers (in process),
+digital inputs (fully working), relay output (read status, not set yet),
+analog inputs (not done yet), and some  Stargate485 fixes.
+Read_Table_A includes some of the new (and renamed) Stargate devices.
 
 - Modified the web server to process all current get request in one pass, for faster refresh
 of web pages with lots of icons/scripts, especially on slower computers.
@@ -83,16 +169,6 @@ I discovered this after my mh slowed down from 60 loops/second to 30 loops/secon
 4 days of high http service (about 400 clients / 4000 hits a day). 
 
 - Re-ordered loopcode subs according to the optional Position directive.
-
-- Tim Doyle added a VOICE option to format=A mht tables.
-
-- Bill Sobel sent in a bunch of changes:
-Compool now incudes new state checks.
-Stargate includes more support for stargate variables,
-thermostats (fully working), flags (in process), timers (in process),
-digital inputs (fully working), relay output (read status, not set yet),
-analog inputs (not done yet), and some  Stargate485 fixes.
-Read_Table_A includes some of the new (and renamed) Stargate devices.
 
 
 =head2 Version 2.45 posted on 02/24/2001

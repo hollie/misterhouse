@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2001-02-11 13:20:30 winter>
+#  Last change Time-stamp: <2001-03-26 07:42:07 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -129,7 +129,10 @@ sub get_url {
 #       my $request = "$parms{userid}&WSN=WSERVER10&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
 #       my $url="http://listings.clicktv.com/listings.asp?profileID=$request";
 
-        my $request = "&CID=TVD&WSN=WSERVER20&UserID=$parms{userid}&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
+                                # Pre 03/26/2001 ... WSN=WSERVER20 required?
+#       my $request = "&CID=TVD&WSN=WSERVER20&UserID=$parms{userid}&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
+
+        my $request = "&CID=TVD&UserID=$parms{userid}&gDate=${month}A${day}A${year}&gHour=${hour}&gChRow=1";
         my $url="http://listings.clicktv.com/listings.asp?profileID=$parms{userid}$request";
 
         print "Requesting url: $url\n";
@@ -450,6 +453,9 @@ sub setup {
 
 #
 # $Log$
+# Revision 1.34  2001/04/15 16:17:20  winter
+# - 2.49 release
+#
 # Revision 1.33  2001/02/24 23:18:40  winter
 # - 2.45 release
 #

@@ -641,6 +641,23 @@ http://www.sapien.com/PrimalSCRIPT.htm "
 Doug likes $20 shareware  CodeWhiz: http://www.incatec.com .   Colored commands, auto indent, auto remark/unremark, line #s, etc.
 
 
+=head2 5.3 When are you supposed to use '=>' as opposed to '->' ?
+
+=> is a synatically pretty way to seperate entries in a list.
+When creating a hash, you can pass it a set of key/value pairs via a list, so instead of this:
+
+  %hash = ('key1', 'value1', 'key2', 'value2');
+
+You can use => instead of a , to make it look pretty:
+
+ %hash = ('key1' => 'value1', 'key2' => 'value2');
+
+Now to really confuse you, I'll try to explain how -> is used for dereferencing pointers.  All mh objects can be viewed as pointers, and the state of an object is stored in a hash key of {state}, so there are 4 ways to get the current object state:
+
+ $state = state $light;    # Use the state method to get {state}
+ $state = $light->state;   # Dereference with -> to get the state method
+ $state = $light->{state}; # Dereference with -> to get the state hash
+ $state = $$light{state};  # Dereference object with an extra
 
 
 =head1 6: Misc questions
@@ -683,13 +700,15 @@ Here is a rough timeline of MisterHouse development:
  - 12/00 wx200d and wunderground personal weather project support, new add_sound function.
  - 01/00 SMS and snnp messaging, improved iButton and benchmarking support.
  - 01/01 Mailing list reaches 400 members
+ - 02/01 2 way AOL AIM messaging, earthquake and satellite tracking.
+ - 03/01 Backup program and menu templates for WAP, VXML, and LCD displays.
 
 =head2 6.2: Who is that Bruce guy anyway?
 
 Bruce (Winter) is the the main author of MisterHouse.
 He has a day job with IBM in Rochester, Minnesota, designing integrated circuits.
-He got started with Home Automation as one of the first ECS users in '86 and started the ECS mailing list
-in '94.  He loves getting slaughtered by his twin boys in Quake death matches, hiking
+He got started with Home Automation as one of the first ECS users in '86.
+He loves getting slaughtered by his twin boys in Quake death matches, hiking
 in his boyhood state of Montana, and playing a digital piano.
 
 =head2 6.3: Why open source?
@@ -732,7 +751,7 @@ Here are some useful/related Home Automation links:
     http://linuxha.sourceforge.net 
 
   Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
-    http://the-labs.com/HomeAppliance/
+    http://the-labs.com/HomeNetwork/
 
   Jay Archer recommends this free Windows mail server
     http://www.argosoft.com
@@ -931,6 +950,9 @@ else on the list, the ThermoCRON iButton is different yet again.
 
 #
 # $Log$
+# Revision 1.23  2001/04/15 16:17:20  winter
+# - 2.49 release
+#
 # Revision 1.22  2001/02/24 23:26:39  winter
 # - 2.45 release
 #
