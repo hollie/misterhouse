@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-06-01 15:09:05 winter>
+#  Last change Time-stamp: <2003-07-06 11:58:18 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -537,6 +537,12 @@ sub setup {
     use X10_Items;
     use iButton;
     use LCD;
+                                # Base_Items
+    use Base_Item;
+    use Door_Item;
+    use Light_Item;
+    use Motion_Item;
+    use Photocell_Item;
 
     use Socket_Item;
     use Process_Item;
@@ -587,8 +593,10 @@ sub setup {
     $SIG{PIPE}  = \&sig_handler_pipe;         # Web browsers can shut down sockets while we are sending data 
 #   $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
 
-                                # Return codes (e.g. from run) are bad on some OSes with this on
-    $SIG{CHLD} = \&sig_child_death unless $^O eq 'freebsd';
+                                              # Return codes (e.g. from run) are (were?) bad on freebsd with SIG{CHLD},
+                                              # but without this we get many zombies.   We choose to be zombie free.
+#   $SIG{CHLD} = \&sig_child_death unless $^O eq 'freebsd';
+    $SIG{CHLD} = \&sig_child_death;
 
 #   $SIG{TTIN} = 'IGNORE';                    # This does not help ReadKey in cbreak mode :(
 
@@ -644,7 +652,7 @@ sub setup {
         printf " - creating %-15s on %3s %s %5s %s\n", $port_name, $proto, $address, $port, $datatype;
 
         $Socket_Ports{$port_name}{port}     = $port;
-        $Socket_Ports{$port_name}{protocol} = $proto;
+        $Socket_Ports{$port_name}{protocol} = lc $proto;
         $Socket_Ports{$port_name}{datatype} = $datatype;
         $Socket_Ports{$port_name}{address}  = $address if $address;
 #       $Socket_Ports{$port_name}{break}    = $break;
@@ -824,6 +832,7 @@ sub setup {
     $Month++;
 
     &persistent_restore();      # Populate %Save
+    &setup_DBI();               # Create optional $DBI database interface
     
     use vars '$Catchup_Mode';
     $Catchup_Mode = new Generic_Item;
@@ -921,11 +930,10 @@ sub setup {
     $config_parms{max_log_entries} = 50 unless defined $config_parms{max_log_entries};
     $config_parms{max_state_log_entries} = 10 unless defined $config_parms{max_state_log_entries};
     $config_parms{time_format_log} = 12 unless $config_parms{time_format_log};
-
+    
     print "Done with setup\n\n";
 
 }
-
 
                                 # The remaining subroutines are in alphabetical order
 
@@ -2250,6 +2258,7 @@ sub get_ip_address {
 
 sub get_object_by_name {
     my ($object_name) = @_;
+    $object_name = '$' . $object_name unless $object_name =~ /^\$/;
     return $objects_by_object_name{$object_name};
 }      
 
@@ -3347,12 +3356,13 @@ sub proxy_send {
     }
     else {
         return 0 unless $Serial_Ports{$interface}{object} eq 'proxy';
-        $address = $config_parms{$interface . '_port'};
+        $address = $config_parms{   $interface . '_port'};
+        $address = $config_parms{lc $interface . '_port'} unless $address;
+        $address = $config_parms{uc $interface . '_port'} unless $address;
     }
     $address =~ s/proxy +//;
     
     my $proxy = $proxy_servers{$address};
-
     unless ($proxy) {
         print "\nError in proxy_send:  no proxy server found for function=$function int=$interface address=$address data=@data\n";
         return 0;
@@ -3458,7 +3468,7 @@ sub read_code {
 
     &read_table_files();           # Re-create table code file, if any table file changed
 
-   print " reading @Code_Dirs\n";
+    print "Reading code_dirs: @Code_Dirs\n";
     if (@Requested_Files or $config_parms{only_load}) {
         @files_read = @Requested_Files;
         push @files_read, split ',', $config_parms{only_load};
@@ -3621,6 +3631,27 @@ sub read_table_files {
 
 }
 
+sub setup_DBI {
+    use vars '$DBI';
+    return unless $config_parms{dbi_driver};
+
+    my $db = "DBI:$main::config_parms{dbi_driver}:$main::config_parms{dbi_database}";
+    $db .= ":$config_parms{dbi_server}" if $config_parms{dbi_server};
+    $db .= ":$config_parms{dbi_port}"   if $config_parms{dbi_port};
+    print "Enabling DBI database:  $db\n";
+
+    unless (&my_use('DBI')) {       # So we don't fail if DBI is not installed
+        return if $DBI = DBI->connect($db, $config_parms{dbi_user},$config_parms{dbi_password});
+    }
+
+    print " - Could not connect to database.\n";
+    if ($config_parms{dbi_essential}) {
+        print " - dbi_essential=1, so exiting.\n";
+        exit(1);
+    }
+}
+
+
 sub sort_user_code
 {
     if($a =~ /.mhp/i)
@@ -3758,14 +3789,8 @@ sub read_user_code {
                 $record =~ /^use +vars\s/ or          # Global 'use vars'
                 $record =~  /^\s*hidden\s/ or         # These only needs to be done on code load
                 $record =~ /->\s*hidden/   or
-                $record =~  /^\s*set_authority\s/ or
-                $record =~ /->\s*set_authority/   or
-                $record =~  /^\s*set_icon\s/ or
-                $record =~ /->\s*set_icon/   or
-                $record =~  /^\s*set_info\s/ or
-                $record =~ /->\s*set_info/   or
-                $record =~  /^\s*set_order\s/ or
-                $record =~ /->\s*set_order/   or
+                $record =~  /^\s*set_(authority|icon|info|order|fp_location)\s/ or
+                $record =~ /->\s*set_(authority|icon|info|order|fp_location)/   or
                 $record =~ /^\s{0,3}\S+\s*->\s*add[\s\(]/ or
                 $record =~ /^\s{0,3}add\s/) {
                 $noloop_statement_flag = 1 unless $pod_flag; # Allow for multi-record statements
@@ -5449,6 +5474,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.82  2003/07/06 17:49:41  winter
+#  - 2.82 release
+#
 # Revision 2.81  2003/06/01 21:52:49  winter
 #  - 2.81 release
 #
