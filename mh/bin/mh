@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-04-17 20:51:18 winter>
+#  Last change Time-stamp: <2000-05-06 11:27:54 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -405,6 +405,7 @@ sub setup {
     $SIG{BREAK} = \&sig_handler; # Exit cleanly with BREAK
     $SIG{KILL}  = \&sig_handler; # Exit cleanly with a kill signal
     $SIG{HUP}   = \&read_code;   # Reload code (alias mhreload per info in mh.ini file)
+    $SIG{PIPE}  = "IGNORE";      # Web browsers can shut down sockets while we are sending data 
 
     
     $config_parms{code_dir} = $Pgm_PathU . "/../code" unless $config_parms{code_dir};
@@ -440,7 +441,7 @@ sub setup {
     for my $port_name (@Server_Ports) {
         my $port = $config_parms{$port_name . "_port"};
         $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
-            die "Couldn't start a tcp server on $port_name $port: $@.\nTo get mh to run, blank out the ${port}_port in mh.ini\n";
+            die "Couldn't start a tcp server on $port_name $port: $@.\nTo get mh to run, blank out or change the ${port}_port in mh.ini\n";
     }
 
     print "Creating serial ports\n";
@@ -655,12 +656,14 @@ sub check_for_cm11_data {
                 $state = 'J' if $state eq 'ON';
                 $state = 'K' if $state eq 'OFF';
                 my $event_data = 'X' . $house . $device . $house . $state;
-                if (my $ref = &Serial_Item::serial_item_by_id($event_data)) {
-                    if ($state = $$ref{state_by_id}{$event_data}) {
-#                       set_receive $ref $state;
-                        $ref->{state} = $state;
-                        print "CM11 Status results: data=$data event_data=$event_data state=$state\n" 
-                            if $config_parms{debug} eq 'X10';
+                if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
+                    for my $ref (@refs) {
+                        if ($state = $$ref{state_by_id}{$event_data}) {
+#                           set_receive $ref $state;
+                            $ref->{state} = $state;
+                            print "CM11 Status results: data=$data event_data=$event_data state=$state\n" 
+                                if $config_parms{debug} eq 'X10';
+                        }
                     }
                 }
                 else {
@@ -1083,6 +1086,7 @@ sub display {
 
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
+        $_[3] = $config_parms{tk_font} unless $_[3];
         new Display(@_) unless $leave_socket_open_passes;
     }
     else {
@@ -1780,7 +1784,7 @@ sub process_serial_data {
         if (((&get_tickcount) - $config_parms{x10_multikey_delay}) < $prev_serial_event{$event_type}{time}) {
             my $event_data2 = $prev_serial_event{$event_type}{event} . substr($event_data, 1);
             print "Serial data: X10 merged string=$event_data2\n" if $config_parms{debug} eq 'X10';
-            $event_data = $event_data2 if &Serial_Item::serial_item_by_id($event_data2);
+            $event_data = $event_data2 if &Serial_Item::serial_items_by_id($event_data2);
         }
 
                                 # Track previous key so we can do multi-key sequences
@@ -1796,28 +1800,32 @@ sub process_serial_data {
 
     }
 
-    if ($ref = &Serial_Item::serial_item_by_id($event_data)) {
-        if ($state = $$ref{state_by_id}{$event_data}) {
-            set_receive $ref $state;
-#            $ref->{state} = $state;
-#            $ref->{state_now} = $state;
-            print "Serial event=$event_data state=$state\n" if $config_parms{debug} eq 'serial';
-        }
-        else {
-            set_receive $ref $event_data;
-#           $ref->{state_now} = $event_data;
-#           print "event=$event_data oneshot\n";
-        }
+    if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
+        for $ref (@refs) {
+            if ($state = $$ref{state_by_id}{$event_data}) {
+                set_receive $ref $state;
+#              $ref->{state} = $state;
+#              $ref->{state_now} = $state;
+                print "Serial event=$event_data state=$state\n" if $config_parms{debug} eq 'serial';
+            }
+            else {
+                set_receive $ref $event_data;
+#              $ref->{state_now} = $event_data;
+#              print "event=$event_data oneshot\n";
+            }
                                 # Allow for other processing
-        &serial_stub($ref, $state, $event_data);
-#       push(@reset_states, $ref);
+            &serial_stub($ref, $state, $event_data);
+#           push(@reset_states, $ref);
+        }
     }
 
                                 # Check for string type items (e.g. caller ID or analog data)
-    elsif ($ref = &Serial_Item::serial_item_by_id($event_type)) {
-        set_receive $ref $event_data;
-#       $ref->{state_now} = $event_data;
-#       push(@reset_states, $ref);
+    elsif (my @refs = &Serial_Item::serial_items_by_id($event_type)) {
+        for $ref (@refs) {
+            set_receive $ref $event_data;
+#           $ref->{state_now} = $event_data;
+#           push(@reset_states, $ref);
+        }
     }
 
     else {
@@ -1847,7 +1855,7 @@ sub process_serial_data {
                     print "X10 db: try breaking $event_data into 4 and 2 character chunks:\n" if $config_parms{debug} eq 'X10';
                                 # Look for 4 character match
                     if ($event_data2 = 'X' . substr($event_data, $pos, 4) and
-                        &Serial_Item::serial_item_by_id($event_data2)) {
+                        &Serial_Item::serial_items_by_id($event_data2)) {
                         print "  Found match: $event_data2\n" if $config_parms{debug} eq 'X10';
                                 # Process this data one pass at a time (e.g. multi keypad entries)
                         push(@serial_data_buffer, $event_data2);
@@ -1857,7 +1865,7 @@ sub process_serial_data {
                     }
                                 # Look for 2 character match
                     elsif ($event_data2 = 'X' . substr($event_data, $pos, 2) and
-                           &Serial_Item::serial_item_by_id($event_data2)) {
+                           &Serial_Item::serial_items_by_id($event_data2)) {
                         print "  Found match: $event_data2\n" if $config_parms{debug} eq 'X10';
                         push(@serial_data_buffer, $event_data2);
 #                       &process_serial_data($event_data2, 1);
@@ -1988,6 +1996,8 @@ sub read_user_code {
     undef %object_names_by_webname;
     undef %objects_by_object_name;
     undef %object_names_by_type;
+    undef %files_by_webname;
+
     my %member_sort_order;
     foreach $file (sort keys %User_Code) {
         print "Reading $file\n" if $config_parms{debug} eq 'misc';
@@ -2249,6 +2259,13 @@ sub set_global_vars {
                                                         $Loop_Speed);
 
         }
+        elsif ($^O eq 'freebsd') {
+#           run 'inline', '/sbin/sysctl -a |grep boottime|cut -f 5 -d " " >/tmp/btime';
+#           open(BTIME, "/tmp/btime") or print "\nError: can't open /tmp/btime\n";
+            open(BTIME, '/sbin/sysctl -a |grep boottime|cut -f 5 -d " " |') or print "\nError: can't open /sbin/sysctl -a: $!";
+            $Time_Boot_time = <BTIME>;
+            close BTIME;
+        }
         else {
             $cpu_used = 100*$Loop_Speed/$Loop_Speed2 if $Loop_Speed2 > 0;
             $cpu_used = 100 if $cpu_used > 100;
@@ -2384,6 +2401,8 @@ sub set_global_vars {
 
         &Caller_ID::read_callerid_list($config_parms{caller_id_file}) 
             if file_change($config_parms{caller_id_file}) or $Startup;
+        &Voice_Text::read_pronouncable_list($config_parms{pronouncable_list_file}) 
+            if file_change($config_parms{pronouncable_list_file}) or $Startup;
     }
     # Save object states every 5 minutes, in case mh is aborted without a proper shutdown
     &object_states_save if $New_Minute and !($Minute % 5);
@@ -2603,11 +2622,11 @@ sub speak {
     $phrase =~ s/([A-Z]{4,})/ucfirst(lc($1))/eg;
 
     # Ascii codes 030 -> 126 covers normal characters
-    #             blank! -> ~
+    #    anything between ! thru ~
     # We do this check in case something (like serial_server)
     # goes out of control ... we don't want to hear garbage!
 
-    if ($phrase !~ /^[\n\r !-~]+$/) {
+    if ($phrase !~ /^[\n\r\t !-~]+$/) {
         print "Data is unspeakable!  phrase=$phrase\n";
         print_log "Data is unspeakable!  phrase=", substr($phrase, 0, 40), " ...\n";
     }
@@ -3018,7 +3037,7 @@ sub tk_entry {
         $Tk_objects{entry}{$label} = $Tk_objects{grid}->
 #            Label(-text => $label, -anchor => 'w',  -bg => 'white');
             Label(-relief => 'groove', -text => $label, -anchor => 'w');
-#           Label(-relief => 'groove', -text => $label, -anchor => 'w',  -bg => 'white', -font => '{Courier New Bold} 8 normal');
+#           Label(-relief => 'groove', -text => $label, -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font});
         $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => $pvar, width => 8);
 
         $Tk_objects{entry}{$pvar}->bind('<Return>', sub { $Tk_results{$label} = $$pvar } );
@@ -3049,7 +3068,7 @@ sub tk_label {
         $Tk_objects{label}{$pvar}->destroy if $Tk_objects{label}{$pvar} and Exists($Tk_objects{label}{$pvar});
                                 # Note: Use a fixed font, so label size does not change with changing letters.
         $Tk_objects{label}{$pvar} = $Tk_objects{grid}->
-            Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w',  -bg => 'white', -font => '{Courier New Bold} 8 normal');
+            Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font_fixed});
 #           Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w', -font => $font1);
         push(@widgets, $Tk_objects{label}{$pvar});
     }
@@ -3071,7 +3090,7 @@ sub tk_mlabel {
     my ($pvar) = @_;
     $Tk_objects{mlabel}{$pvar}->destroy if $Tk_objects{mlabel}{$pvar} and Exists($Tk_objects{mlabel}{$pvar});
     $Tk_objects{mlabel}{$pvar} = $Tk_objects{menu_bar}->
-        Label(-relief => 'sunken', -textvariable => $pvar, -bg => 'white',  -font => '{Courier New Bold} 8 normal')->
+        Label(-relief => 'sunken', -textvariable => $pvar, -bg => 'white',  -font => $config_parms{tk_font_fixed})->
             pack(qw/-side right -anchor e/); 
 }
 
@@ -3139,6 +3158,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.15  2000/05/06 16:30:13  winter
+# - allow for duplicate Serial_Item ids.  Add tk_font.
+#
 # Revision 2.14  2000/04/23 01:30:19  winter
 # - enable unmuted in the Play function
 #
