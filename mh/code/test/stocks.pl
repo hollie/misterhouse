@@ -13,6 +13,7 @@ my @stock_keys = ('Name', 'Last', 'Date', 'Time', 'Change', 'PChange',
 
 $v_stock_quote = new Voice_Cmd '[Show,Update] stock quotes', 'Ok, here are the latest prices';
 $v_stock_quote-> set_info("Gets stock info from yaho for these stocks: $config_parms{stocks}");
+$v_stock_quote-> set_authority('anyone');
 
 if ($state = said $v_stock_quote) {
     unless (&net_connect_check) {

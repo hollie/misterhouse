@@ -7,7 +7,7 @@
 if ($MW and $Reload) {
 
                                 # If this file has not changed, only re-create the tk widget grid
-    if (!$Startup and !file_change("$config_parms{code_dir}/tk_frames.pl")) {
+    if (!$Startup and !file_change("$config_parms{code_dir_common}/tk_frames.pl")) {
         print "Deleting old grid frame\n";
         $Tk_objects{grid}->destroy;
         $Tk_objects{grid} = $Tk_objects{ft}->Frame->pack(qw/-side right -anchor n/); 
@@ -15,7 +15,7 @@ if ($MW and $Reload) {
 
                                 # This file changed, so re-create all frames
     else {
-        file_change("$config_parms{code_dir}/tk_frames.pl") if $Startup; # Set file change time stamp
+        file_change("$config_parms{code_dir_common}/tk_frames.pl") if $Startup; # Set file change time stamp
 
         unless ($Startup) {
             print "Deleteing old tk frames\n";

@@ -16,8 +16,9 @@ if (said $v_set_password) {
     do "$Pgm_PathU/set_password";
 }
 
-$v_uptime = new  Voice_Cmd("What is your up time?", 0);
+$v_uptime = new  Voice_Cmd("What is your up time", 0);
 $v_uptime-> set_info('Check how long the comuter and MisterHouse have been running');
+$v_uptime-> set_authority('anyone');
 
 if (said $v_uptime) {
     my $uptime_pgm      = &time_diff($Time_Startup_time, time);
@@ -38,8 +39,16 @@ if (said $v_reboot and $OS_win) {
         Win32::InitiateSystemShutdown('HOUSE', 'Rebooting in 5 minutes', 60, 1, 1);
         &exit_pgm;
     }
+                                # In theory, either of these work for Win98/WinMe
+    elsif ($Info{OS_name} eq 'WinMe') {
+        speak "The house computer will reboot in 15 seconds";
+        run 'start c:\\windows\\system\\runonce.exe -q';
+        sleep 5;                # Give it a chance to get started
+        &exit_pgm;
+    }
     else {
         run 'rundll32.exe shell32.dll,SHExitWindowsEx 6 ';
+        sleep 5;                # Give it a chance to get started
         &exit_pgm;
     }
 }
@@ -90,7 +99,7 @@ if (said $v_mode_toggle) {
         $Save{mode} = 'mute';
     }
                                 # mode => force cause speech even in mute or offline mode
-    &speak(mode => 'unmuted', text => "MisterHouse is set to $Save{mode} mode");
+    &speak(mode => 'unmuted', rooms => 'all', text => "MisterHouse is set to $Save{mode} mode");
 }
 
 

@@ -16,7 +16,8 @@
 $v_jabber_test = new  Voice_Cmd 'Send an jabber test message';
 $v_jabber_test-> set_info('Send a test message to the default Jabber address');
 
-net_jabber_send(text => "Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}") if said $v_jabber_test;
+net_jabber_send(text => "Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}",
+                subject => "Stock summary for $Time_Date") if said $v_jabber_test;
 
                                 # Send email summary once a day at noon
 net_jabber_send(text => "Internet mail received at $Time_Now", 

@@ -7,6 +7,7 @@ my $f_mquote_otd_html = "$config_parms{data_dir}/web/mquote_otd.html";
 
 $p_mquote_otd = new Process_Item("get_url http://www.starlingtech.com/quotes/mqotd.html $f_mquote_otd_html");
 $v_mquote_otd = new  Voice_Cmd('[Get,Read,Show] mquote_otd');
+$v_mquote_otd ->set_authority('anyone');
 
 speak($f_mquote_otd)   if said $v_mquote_otd eq 'Read';
 display($f_mquote_otd) if said $v_mquote_otd eq 'Show';

@@ -7,6 +7,7 @@ my $f_onthisday_html = "$config_parms{data_dir}/web/onthisday.html";
 
 $p_onthisday = new Process_Item("get_url http://www.nytimes.com/learning/general/onthisday/index.html $f_onthisday_html");
 $v_onthisday = new  Voice_Cmd('[Get,Read,Show] onthisday');
+$v_onthisday ->set_authority('anyone');
 
 speak($f_onthisday)   if said $v_onthisday eq 'Read';
 display($f_onthisday) if said $v_onthisday eq 'Show';

@@ -12,11 +12,12 @@ sub get_email_rule {
     return                         if $from =~ /InfoBeat/;
     return                         if $from =~ /TipWorld/;
     return                         if $from =~ /X10 Newsletter/;
-    return                         if $subject =~ /Car tracking report/;
+    return                         if $subject =~ /test \d+/;
     return                         if $from =~ /get tv grid/;
     return                         if $from =~ /Cron Daemon/;
     return 'The Mister House guys' if $subject =~ /\[misterhouse-/;
-    return 'A new Mister House subscriber' if $subject =~ / subscribe notification/i;
+    return 'A Mister House subscriber' if $subject =~ /subscribe notification/i;
+    return                         if $from =~ /Mail Delivery Subsystem/i;
     return 'The perl guys'         if $to =~ /Perl-Win32-Users/;
     return 'The phone guys'        if $to =~ /ktx/ or $subject =~ /kx-t/i;
     return                         if $to =~ /klug/;

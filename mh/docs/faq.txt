@@ -700,6 +700,7 @@ only at Startup?
      - 08/00 Added rpm and tarballs, NetGear router support
      - 09/00 Added ViaVoiceTTS.pm, Jabber, and Applied Digital cpuxad support
      - 10/00 Added barcode scanner and MS Agent support
+     - 11/00 Support for ical, rrd, html email access, WAP, and VXML for phone access via tellme.com
 
   6.2: Who is that Bruce guy anyway?
 
@@ -741,8 +742,11 @@ only at Startup?
       Lots of good X10 data can be found here:
         http://www.geocities.com/ido_bartana/toc.htm
 
-      Europeans can get X10 stuff from
+      Europeans can get X10 stuff distributers listed here:
+        http://www.x10.com/x10euro.htm
+      Some examples are:
         http://www.intellihome.be 
+        http://www.marmitek.com/
 
       Neil Cherry has created a home for linux related Home Automation programs at
         http://linuxha.sourceforge.net 
@@ -777,10 +781,16 @@ only at Startup?
       cd \sourceforge\mh\lib
       cvs commit http_server.pl
 
+    You don't have to do the CVS thing if you want to make mh
+    changes. Most changes are simply emailed to Bruce. Either way
+    works fine.
+
   6.6 What is X10?
 
     The people at http://www.x10.com sell affordable devices that
     communicate with each other over normal household power lines.
+    Manuals for many of there devices are listed at
+    http://www.x10.com/support/support_manuals.htm
 
     The most common modules are the Lamp module and the Appliance
     module. Both sell for around $10-$15. The lamp module has can

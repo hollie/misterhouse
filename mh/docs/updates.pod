@@ -6,6 +6,84 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.36 posted on 12/03/00
+
+Version 2.36 was just uploaded to:
+
+  http://misterhouse.sourceforge.net/download
+  http://misterhouse.net/download
+
+B<New Features:>
+
+- Added Voice XML (vxml) functions and created mh/code/bruce/tellme_menu.pl.
+This code enables remote VR control via 1-800-555-8355 from http://tellme.com .
+For my house, speak 'Extentions', then dial 46630 (Home0).  Instructions
+on how to setup your own extention is at the top of tellmen_menu.pl.
+
+- Changed web search results to use a Category Command type table 
+(rather than a simple list) and added Tk widgets to the search.
+Added web option /list?authority=anyone (now used in open access list on the default web page).
+
+- Added an index to the data/email files. 
+Clive Freedman sent in misc. get_email patchs, including
+one to add data/email/summary.html with mailbox size data for all accounts.
+
+- Added mh/code/public/iButton_ws_client.pl.  This gets weather data from
+the Henriksen Weather Station tcp server for the iButton one-wire weather station.
+
+- Added mh/code/public/weather_com.pl to get weather data from weather.com.  
+Unlike the noaa data used by get_weather, weather.com supports non-US cities.
+
+- Added mh/lib/Weather_Item, derived from Bill Sobel's earlier Weather.pm module.
+See mh/docs/mh.html for more info.
+
+- Kieran Ames built a map with the responses from his 
+"Where in the world are MisterHouse users" query:  http://misterhouse.net/usage.html .
+If you missed out on the survey, you can send in your location (anonymously if you want)
+via a form on that web page.
+
+
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Timothy Spaulding found a 2.34 problem with RCS thermostat states.
+
+- David Norwood found a problem running web commands with embeded + characters.
+
+- Ernie Oporto found a problem with get_tv_grid data of shows that cross grid boundaries.
+
+- Sanjay Seth suggested adding the Windows setupsup methods
+WaitForAnyWindow, SetFocus, and EnumChildWindows.  See docs/mh.* for more info.
+
+- Brent DeShazer added Subject to net_jabber_send and found that net_jabber_server and _resource
+were not being used.
+
+- Brent also found a problem running more than one mhsend command.
+
+- Fixed sluggish tk windows with running in accelerated time test mode (e.g. -time_stop "11:59 pm").
+Als fixed -time_start (was ignored).
+
+- Re-enabled -w 1 (was supposed to be the same as -diagnostics 1, but was being ignored).
+
+- Allow for mh.ini abc_module=abc.pm parms.  See mh/lib/Weather_wx200.pm for an example.
+
+- Added 'update location' option on aprs tracking web pages.
+
+- Added /mh/code/examples/play_midi_windows.pl as an example of playing midi files.
+
+- Allow web requested display data to be displayed to a local tk window,
+only if the display $time parameter is specified.
+
+- Added mh.ini net_mail_scan_size (defaults to 2000).  This is the number of records
+that &net_mail_summary uses (called by mh/bin/get_email).
+
+- Allowed a 'round to the nearest $digits' mode to the round function (see mh.pod for example).
+
+- Added mh.ini voice_cmd_prefix option.  This will be added to all voice commands.
+
+- Avoid errors wint Win32::Sound::Volume with older win32 Perls
+
+
 =head2 Version 2.34 posted on 11/12/00
 
 Version 2.34 was just uploaded to:
@@ -100,6 +178,8 @@ the default from useragent to simple, since more people were having problems wit
 bottom) of another file.
 
 - Added a $Dark flag (true before and after twighlight)
+
+- Changed sort in get_tv_info from date/channel/time to date/time/channel
 
 - Set $Info{OS_name} to Win98 (rather than Win95) on Win98 systems.
 

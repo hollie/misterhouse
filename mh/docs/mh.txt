@@ -995,6 +995,45 @@ DESCRIPTION
         See mh/code/examples/serial_port_examples.pl for more
         Serial_Item examples.
 
+    Weather_Item
+        This object can be used to track data stored in the global
+        %Weather array.
+
+          Methods:
+             new $type
+                $type is the name of the %Weather index you want to monitor
+
+                $type can also have a =<> comparision operator in it so 
+                you can make the object a true/false test.
+
+             state        : Returns the last state, or 1/0 if $comparition and $limit were used.
+             state_now    : Returns the state only when the weather data changed.
+
+             It also inherits the Generic_Item methods.
+
+          Examples:
+
+           $WindSpeed = new Weather_Item 'WindSpeed';
+           $WindSpeed-> tie_event('print_log "Wind speed is now at $state"');
+
+           $freezing = new Weather_Item 'TempOutdoor < 32';
+           if (state_now $fountain eq ON and state $freezing) {
+             speak "Sorry fountains don't work too well when frozen";
+             set $fountain OFF
+           }
+
+           $Windy = new Weather_Item 'WindSpeed > 15';
+           speak "Wind is gusting at $Weather{WindSpeed} mph" if state $Windy;
+
+                          # For current state, easiest to use it directly
+           speak "Outdoor temperature is $Weather{TempOutdoor} degrees";
+
+        For examples on interface code that stores data into
+        %Weather, see mh/code/bruce/weather_monitor.pl (uses
+        mh/lib/Weather_wx200.pm),
+        mh/code/public/iButton_ws_client.pl, and
+        mh/code/public/weather_com.pl
+
     X10_Item
         Same as Serial_Item, except the 'X' prefix is prepended, to
         indicate an X10 command, and it has pre-defined states 'on',
@@ -1232,7 +1271,7 @@ DESCRIPTION
 
                 $response is the text or wave file that will be played back when the
                 VR engine detects this command.  If not defined, the response 
-                is : "you said $command"
+                is : "I heard $command" (on viavoice).
 
                 You can put %STATE% or any variable in the response string and have it
                 substituted/evaluated when the response is spoken
@@ -1457,8 +1496,10 @@ DESCRIPTION
           
         If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk popup window.
         If -tk 0 or the data is echoed to the console.
-        If the data is requested from a web browser, the data is echoed to the browser print_log 
-        window.
+
+        If the data is requested from a web browser, the data is
+        echoed to the browser print_log window. It will be displayed
+        to a local tk window only if the $time parm is specified.
 
     file_changed (or older name of file_change)
         Returns 1 if the specified file has change since last
@@ -1642,6 +1683,22 @@ DESCRIPTION
         print_speaklog is called by the speak and play functions, so
         should not be normally used in user code.
 
+    round
+        Use this function to round off a number. Usage:
+
+           round $number, $digits
+
+        If $digits < 10, $number is rounded to $digits to the right
+        of the decimal
+
+        If $digits >= 10, $number is rounded to $digits nearest
+        $digits
+
+        Examples:
+
+           $time_left = round $time_left, 1; Round to nearest tenth
+
+           $rank = round $1, 100; # Round to nearest 100
 
     run You can use the run function to run a program as a separate
         process. On Windows, the perl Win32::Process function is
@@ -1665,16 +1722,21 @@ DESCRIPTION
 
               run_voice_cmd 'Get the top10 list' if time_now('6:30 AM');
 
-    SendKeys WaitForAnyWindow sendkeys_find_window
+    SendKeys WaitForAnyWindow SetFocus EnumChildWindows sendkeys_find_window
         On Windows systems, use these functions to control other
         programs. Full documentation is
         mh/lib/site/Win32/setupsup.html.
 
            SendKeys($window, $keystr, $activate, [$timeout])
            WaitForAnyWindow($title, \$window, $timeout, [$refresh])
+           SetFocus($window)
+           EnumChildWindows($window, \@childs)
 
         WaitForAnyWindow will set the window handle for the window
         that matches the (sub)string specified in $title.
+
+        WaitForWindow is like WaitForWindow, but requires an exact
+        string match for the window title.
 
         SendKeys sends the keys. Here is an excerpt of the valid key
         list:
@@ -1686,6 +1748,15 @@ DESCRIPTION
            NUM0 0 on the num block ... NUM9 9 on the num block 
            NUM* multiply key on the num block 
            NUM+ add key on the num block NUM- minus key on the num block NUM/ divide key on the num block 
+
+        SetFocus sets the focus to $window. It does not activate the
+        window (the foreground application will not be changed if
+        $windows belongs to another application).
+
+        EnumChildWindows enumerates all child windows that belong to
+        $window and returns the handles in the @childsCODE> array.
+        $window must be a valid window handle @childs must be an
+        array reference.
 
         sendkeys_find_window is an mh subroutine that calls
         WaitForAnyWindow. If the window is not found and $program is
@@ -2951,7 +3022,11 @@ DESCRIPTION
     you define in your mh user code, but only if those variables are
     defined with "use vars '$my_var1', '$my_var2'". Variables
     defined with "my ($my_var1, $my_var2)" are local only to the mh
-    loop, and would not be available to any web .pl program.
+    loop, and would not be available to any web .pl program. To pass
+    arguments to your .pl file, append them to the url in normal CGI
+    fasion after a ?. For example:
+
+       http://misterhouse.net/test/test1.pl?argument1&argument2 
 
     In addition to calling the above mh-generated html directly, you
     can embed these lists in your own html using the server-side-
@@ -2979,21 +3054,33 @@ DESCRIPTION
     version.
 
     You can also define your own functions in your code files to
-    return html, and then call them with the code= include
-    directive. For example, add these to any of your code files:
+    return html, and then call them with the code= include directive
+    or as a response to a /SET or /RUN command (see below). For
+    example, add these to any of your code files:
 
       sub web_func1 {
-          return "uptime = " . &time_diff($Time_Startup_time,$Time , undef, 'numeric');
+         return "uptime = " . &time_diff($Time_Startup_time,$Time , undef, 'numeric');
       }
       sub web_func2 {
-          return "results from function 2"; 
+         my ($arg1, $arg2) = @_;
+         return "results from function 2: $arg1, $arg2"; 
+      }
+
+      # Add this if you want unauthorized web access to these functions  
+      if ($Reload) {
+        $Password_Allow{'&web_func1'} = 1;
+        $Password_Allow{'&web_func2'} = 1;
       }
 
     Then call them like this:
 
      <p>Test web functions
      <!--#include code="&web_func1"-->
-     <!--#include code="&web_func2"-->
+     <!--#include code="&web_func2(myarg1,myarg2)"-->
+
+    Or with this:
+
+     http://localhost:8080/SET:&web_func2(myarg1,myarg2)
 
     One useful built in function is &dir_index, which can be used to
     create a directory listing of files in selected directories. For
@@ -3002,8 +3089,10 @@ DESCRIPTION
     code="&dir_index('/pictures','name',0)"-->
 
     You can have &dir_index sort by name, type, size, or date. Set
-    the 3rd argument to 1 for reverse sort order. See
-    mh/web/graphics/index.shtml for an example.
+    the 3rd argument to 1 for reverse sort order. An optional 4th
+    parameter is a regular expresion that can be used to subset to
+    matching files. See mh/web/graphics/index.shtml and
+    mh/data/email/index.shtml for examples.
 
     If you want to have only a few specific html controls, you can
     write your own html using the RUN and SET (or SET_VAR) url
@@ -3029,7 +3118,7 @@ DESCRIPTION
 
       h_response can be one of the following:
        &function        The results of &function will be returned
-       &function(arg)   The results of &function(arg) will be returned
+       &function(args)  The results of &function(arg) will be returned
        last_response    The last displayed or spoken text. 
        last_response_## As above, but only the first ## characters.
        last_displayed   The last displayed text will be returned
@@ -3054,8 +3143,10 @@ DESCRIPTION
      This returns a list of recently spoken text:
       <li><a href=http://localhost:8080/RUN?WebCam_light_-50>-50</a>
 
-     This will allow for text input, using a html FORM, and returning the the results form
-     the user defined function &my_response:
+     This will allow for text input, using a html FORM, and returning the the results
+     form the user defined function &my_response (Note, to give anyone access to this 
+     function you will need to authorize &my_response with this in your code: 
+     $Password_Allow{'&my_response'} = 1):
 
       <FORM ACTION="SET:&my_response">Test 1<INPUT SIZE=5 NAME="$Save{test_input1}"</form>
 

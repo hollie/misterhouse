@@ -26,6 +26,9 @@ door_monitor_jay.pl
 iButton_ws.pl
  - Craig Schaeffer's code for monitoring the iButton weather station
 
+iButton_ws_client.pl
+ - Gets iButton weather station data from Henriksen's tcp server
+
 ical.pl
  - David Lounsberry's code to run the mh/bin/ical_load program to create
    mh events based on the unix ical calander program.
@@ -101,12 +104,10 @@ voicemodem.pl
  - Brian Klier's code for interfacing to a voice modem.  
 
 weather.pl
- - Earnie Oporto's weather script that queries wunderground web sites
+ - Ernie Oporto's weather script that queries wunderground web sites
 
-aws_weather.pl
-weather_aws.pl
-weather_monitor_aws.pl
- - Brian Rudy's weather scripts for AWS live web weather sites
+weather_com.pl
+ - Uses Geo::Weather.pm to get weather data from weather.com.  Good for international sites.
 
 weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I 
@@ -114,6 +115,11 @@ weather_sbweather.pl
 
 weather_wrtv.pl
  - Tom K. example on geting weather from his local news web page
+
+aws_weather.pl
+weather_aws.pl
+weather_monitor_aws.pl
+ - Brian Rudy's weather scripts for AWS live web weather sites
 
 webcam_lite.html
 webcam_lite.pl

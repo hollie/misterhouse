@@ -57,6 +57,7 @@ if (my $header = said $mhsend_server) {
         $action_arg = 120 unless defined $action_arg;
         display($msg, $action_arg, "Internet Message from $name");
         $response = "Data was displayed for $action_arg seconds";
+        logit("$config_parms{data_dir}/mhsend/display.log", $msg); # Also logit
     }        
     elsif ($action eq 'speak') {
         if (length $msg < 400) {
@@ -92,7 +93,6 @@ if (my $header = said $mhsend_server) {
     print "mhsend_server: $response\n";
     print $handle $response;
 
-    close $handle;
 }
 
 

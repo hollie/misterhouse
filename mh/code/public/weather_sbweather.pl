@@ -14,7 +14,6 @@
 ####################################################
 
                                 # Don't do it on the minute ... that is when sbweather updates!
-my %weather;
 if (($New_Second and $Second == 30)) {
 
     # Take the 2nd to last record from todays file
@@ -25,49 +24,49 @@ if (($New_Second and $Second == 30)) {
                   WindGustSpeed WindGustDir WindAvgSpeed WindAvgDir WindHighSpeed WindHighDir 
                   Barom BaromSea RainTotal RainRate RainYest 
                   DewIndoor DewIndoorH DewIndoorL DewOutdoor DewOutdoorH DewOutdoorL WindChill WindChillL);
-#   print "db $weather{TimeStamp} temp=$weather{TempOutdoor} gust=$weather{WindGustSpeed}\n";
-#   print "db $weather{TimeStamp} wind1=$weather{WindGustSpeed} dir=$weather{WindGustDir}\n";
-#   print "db $weather{TimeStamp} wind2=$weather{WindAvgSpeed} dir=$weather{WindAvgDir}\n";
+#   print "db $Weather{TimeStamp} temp=$Weather{TempOutdoor} gust=$Weather{WindGustSpeed}\n";
+#   print "db $Weather{TimeStamp} wind1=$Weather{WindGustSpeed} dir=$Weather{WindGustDir}\n";
+#   print "db $Weather{TimeStamp} wind2=$Weather{WindAvgSpeed} dir=$Weather{WindAvgDir}\n";
     my $i = 0;
     
     # If we got valid data
-    my $raintotal_prev = $weather{RainTotal};
+    my $raintotal_prev = $Weather{RainTotal};
     if (@temp < 2) {
-        %weather = map{@keys[$i++], 'unknown'} @keys;
+        %Weather = map{@keys[$i++], 'unknown'} @keys;
     }
     else {
-        %weather = map{@keys[$i++], $_} @temp;
+        %Weather = map{@keys[$i++], $_} @temp;
 
-        $weather{HumidOutdoor} = 100 if $weather{HumidOutdoor} > 100;
+        $Weather{HumidOutdoor} = 100 if $Weather{HumidOutdoor} > 100;
         
         # Note interesting weather events
         $timer_wind_gust = new Timer();
-        if ($weather{WindGustSpeed} > 12 and 
+        if ($Weather{WindGustSpeed} > 12 and 
             not $Save{sleeping_parents}) {
-            if ($weather{WindGustSpeed} > $Save{WindGustMax}) {
-                $Save{WindGustMax} = $weather{WindGustSpeed};
-                speak "rooms=all Weather alert.  The winnd is now gusting at " . round($weather{WindGustSpeed}) . 
+            if ($Weather{WindGustSpeed} > $Save{WindGustMax}) {
+                $Save{WindGustMax} = $Weather{WindGustSpeed};
+                speak "rooms=all Weather alert.  The winnd is now gusting at " . round($Weather{WindGustSpeed}) . 
                     " MPH.";
                 set $timer_wind_gust 120*60;
             }
             elsif (inactive $timer_wind_gust) {
                 set $timer_wind_gust 120*60;
-                speak "rooms=all Weather alert.  A winnd gust of " . round($weather{WindGustSpeed}) . 
+                speak "rooms=all Weather alert.  A winnd gust of " . round($Weather{WindGustSpeed}) . 
                     " MPH was just recorded.";
             }
         }
         $Save{WindGustMax} = 0 if $New_Day;
         
-        $weather{RainRecent} = round(($weather{RainTotal} - $raintotal_prev), 2) if $raintotal_prev > 0;
-        if ($weather{RainRecent} > 0) {
-            speak "Notice, it just rained $weather{RainRecent} inches";
-            $weather{IsRaining}++;
+        $Weather{RainRecent} = round(($Weather{RainTotal} - $raintotal_prev), 2) if $raintotal_prev > 0;
+        if ($Weather{RainRecent} > 0) {
+            speak "Notice, it just rained $Weather{RainRecent} inches";
+            $Weather{IsRaining}++;
         }
         elsif ($Minute % 20) {  # Reset every 20 minutes
-            $weather{IsRaining} = 0;
+            $Weather{IsRaining} = 0;
         }
-#   print "Notice, 1 it just rained $weather{RainRecent} inches (total=$weather{RainTotal}).\n" if $weather{RainRecent} > 0;
-#   print "Notice, 2 it just rained $weather{RainRate} inches\n" if $weather{RainRate};
+#   print "Notice, 1 it just rained $Weather{RainRecent} inches (total=$Weather{RainTotal}).\n" if $Weather{RainRecent} > 0;
+#   print "Notice, 2 it just rained $Weather{RainRate} inches\n" if $Weather{RainRate};
 
     }                             
 
@@ -79,7 +78,7 @@ sub get_weather_record {
     
 #10/28/1998 08:35:32,72.500000,86.360000,63.860000,46.940000,98.060000,29.120000,45.000000,78.000000,33.000000,97.000000,97.000000,29.000000,0.000000,296.000000,0.000000,296.000000,41.831900,29.000000,28.850810,28.850810,13.818898,0.000000,0.905512,51.800000,75.200000,39.200000,46.400000,78.800000,32.000000,46.400000,14.000000
 
-                                # Read and parse data into %weather array
+                                # Read and parse data into %Weather array
     my($min, $hour, $mday, $mon, $year) = (localtime($time))[1,2,3,4,5];
     my($wdate, $wtime, $whour, $wmin);
     my $date = sprintf("%02d%02d%4d", 1+$mon, $mday, 1900 + $year);

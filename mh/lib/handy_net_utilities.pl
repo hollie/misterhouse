@@ -266,22 +266,26 @@ sub jabber::InPresence {
 sub main::net_jabber_send {
     my %parms = @_;
 
-    my ($from, $password, $to, $text, $file);
+    my ($from, $password, $to, $text, $file, $subject, $server, $resource);
 
     $from     = $parms{from};
     $password = $parms{password};
     $to       = $parms{to};
+    $subject  = $parms{subject};
 
     $from     = $main::config_parms{net_jabber_name}      unless $from;
     $password = $main::config_parms{net_jabber_password}  unless $password;
     $to       = $main::config_parms{net_jabber_name_send} unless $to;
+    $server   = $main::config_parms{net_jabber_server}    unless $server;
+    $resource = $main::config_parms{net_jabber_resource}  unless $resource;
+    $subject  = "Misterhouse" unless $subject;
 
     unless ($from and $password and $to) {
         print "\nError, net_jabber_send called with a missing argument:  from=$from to=$to password=$password\n";
         return;
     }
                                 # This will take a few seconds to connect the first time
-    &main::net_jabber_signon($from, $password);
+    &main::net_jabber_signon($from, $password, $server, $resource);
     return unless $jabber_connection;
 
     print "Sending jabber message to $to\n";
@@ -289,7 +293,7 @@ sub main::net_jabber_send {
     $text  = $parms{text};
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
 
-    $jabber_connection -> MessageSend(to   => $to, body => $text);
+    $jabber_connection -> MessageSend(to   => $to, body => $text, subject => $subject);
     $jabber_connection -> Process(0);
 
 }
@@ -413,7 +417,9 @@ sub main::net_mail_send {
     return unless $server and $to;
 
                                 # Auto-detect mime type
-    ($mime) = $file =~ /(txt,pl,zip|exe|jpg|gif|png|html)$/ unless $mime;
+                                #  - do not mime txt files ... best to just display them directly
+#   ($mime) = $file =~ /(pl|zip|exe|jpg|gif|png|html|txt)$/ unless $mime;
+    ($mime) = $file =~ /(pl|zip|exe|jpg|gif|png|html)$/ unless $mime;
     $mime = 'text' if $mime eq 'txt' or $mime eq 'pl';
 
     if ($mime) {
@@ -576,19 +582,22 @@ sub main::net_mail_summary {
     $parms{first}  = 1             unless $parms{first};
     ($parms{last}) = $pop->popstat unless $parms{last};
 
+    $main::config_parms{net_mail_scan_size} = 2000 unless $main::config_parms{net_mail_scan_size};
+    
     my %msgdata;
     foreach my $msgnum ($parms{first} .. $parms{last}) {
         print "getting msg $msgnum\n" if $main::config_parms{debug} eq 'net';
-        my $msg_ptr = $pop->top($msgnum, 200); # Limit the number of records read
-        my ($date, $from, $from_name, $to, $subject, $header, $header_flag, $body);
+        my $msg_ptr = $pop->top($msgnum, $main::config_parms{net_mail_scan_size});
+        my ($date, $from, $from_name, $to, $replyto, $subject, $header, $header_flag, $body);
         $header_flag = 1;
         for (@$msg_ptr) {
             if ($header_flag) {
 #               chomp;
-                $date    = $1 if !$date    and /Date:(.+)/;
-                $from    = $1 if !$from    and /From:(.+)/;
-                $to      = $1 if !$to      and /To:(.+)/;
-                $subject = $1 if !$subject and /Subject:(.+)/;
+                $date    = $1 if !$date    and /^Date:(.+)/;
+                $from    = $1 if !$from    and /^From:(.+)/;
+                $to      = $1 if !$to      and /^To:(.+)/;
+                $replyto = $1 if !$replyto      and /^Reply-To:(.+)/;
+                $subject = $1 if !$subject and /^Subject:(.+)/;
                 $header .= $_;
                 $header_flag = 0 if /^ *$/;
             }
@@ -610,9 +619,10 @@ sub main::net_mail_summary {
 
 #       print "db from_name=$from_name from=$from\n";
         print "msgnum=$msgnum  date=$date from=$from to=$to subject=$subject\n" if $main::config_parms{debug} eq 'net';
-        push(@{$msgdata{date}}, $date);
-        push(@{$msgdata{to}},   $to);
-        push(@{$msgdata{from}}, $from);
+        push(@{$msgdata{date}},      $date);
+        push(@{$msgdata{to}},        $to);
+        push(@{$msgdata{replyto}},   $replyto);
+        push(@{$msgdata{from}},      $from);
         push(@{$msgdata{from_name}}, $from_name);
         push(@{$msgdata{subject}},   $subject);
         push(@{$msgdata{header}},    $header);
@@ -657,6 +667,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.24  2000/12/03 19:38:55  winter
+# - 2.36 release
+#
 # Revision 1.23  2000/11/12 21:02:38  winter
 # - 2.34 release
 #

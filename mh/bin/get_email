@@ -53,7 +53,7 @@ eof
 &setup;
 &check_accounts;
 
-my (@email_accounts, %email_prev, $email_rule, $results_new, $results_unread);
+my (@email_accounts, %email_prev, $email_rule, $results_new, $results_unread, $results_unread2);
 sub setup {
 
     require 'handy_utilities.pl';
@@ -92,11 +92,23 @@ sub setup {
 
 sub check_accounts {
 
-    my $email_file_data;
+    unlink("$config_parms{data_dir}/email/summary.html");
+    my ($email_file_data, $summary);
+
+    my $time = localtime;
+    $summary = qq[$time &nbsp;&nbsp; <A HREF='/email/latest.html'>Latest emails</A><br>];
+
+    my $wday = (localtime)[6];
+    my  $day = ('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')[$wday];
+
     my $msgcnt_flag = 'Email:';
     for my $account (@email_accounts) {
         print "checking account=$account "  unless $config_parms{quiet};
-        my $msgcnt = &net_mail_count(account => $account, debug => $config_parms{debug});
+        
+         my ($msgcnt, $msgsize) = &net_mail_stats(account => $account, debug => $config_parms{debug});
+        
+        $summary .= qq[&nbsp;&nbsp;&nbsp;$msgcnt messages ($msgsize bytes) in ] .
+            qq[$account: $config_parms{"net_mail_${account}_address"}, $config_parms{"net_mail_${account}_user"}<BR>\n];
 
         $msgcnt_flag .= sprintf("%3d", $msgcnt);
 
@@ -122,10 +134,12 @@ sub check_accounts {
                     
                     my $subject = $$msgptr{subject}[$cnt];
                     my $to      = $$msgptr{to}[$cnt];
+                    my $replyto = $$msgptr{replyto}[$cnt];
                     my $from    = $$msgptr{from}[$cnt];
                     my $body    = $$msgptr{body}[$cnt];
 
                     $name = &get_email_rule($name, $to, $subject) if $email_rule;
+                    $name = 'filtered' unless $name;
 
                     print "Reading text for subject=$subject\n" unless $config_parms{quiet};
 
@@ -137,38 +151,71 @@ sub check_accounts {
                     
                     use HTML::Entities; # So we can encode stuff like <bruce@misterhouse.net>
                     $to      = encode_entities $to;
+                    $replyto = encode_entities $replyto;
                     $from    = encode_entities $from;
                     $subject = encode_entities $subject;
-                    $body    = encode_entities $body;
-#                   $body    = encode_entities $body, "\200-\377<>&";
+                    if ($body =~ /^(.*?)<html>(.*)$/is) {
+                        $body = "<pre>$1</pre>\n<html><p>\n$2";
+#                       $body = "<div>$body</div>";  # Try to bound bad/untermintated html tags ... doesn't help
+                    }
+                    else {
+                        $body = encode_entities $body;
+                        $body = "<pre>$body</pre>";
+                    }
 
-#                   my $html = 'Date: ' . &time_date_stamp($config_parms{time_format_log} , time) . "<br>\n";
-                    my $html = 'Date: ' . &time_date_stamp(14, time) . "<br>\n"; # Log format same as .scan logit
-                    $html .= "To:$to<br>\nFrom:$from<br>\nSubject:$subject<br>\n";
-                    $html .= "<blockquote><pre>$body</pre></blockquote><br>\n<hr>";
+                    my $href = time . $cnt; # An arbitrary index
+                    my $href_prev = $href - 1 unless $cnt == 0;
+                    my $href_next = $href + 1 unless $cnt == $#list;
+                    $href_prev = 'top' unless $href_prev; # No easy way to track prev href 
+
+                    my $msgcnt2 = sprintf "%02d", $msgcnt_prev + $cnt + 1;
+                    my $time_date = &time_date_stamp(14, time);
+                    my $html;
+#                   $html = 'Date: ' . &time_date_stamp($config_parms{time_format_log} , time) . "<br>\n";
+#                   $html = 'Date: ' . &time_date_stamp(14, time) . "<br>\n"; # Log format same as .scan logit
+                    $html  = "($msgcnt2) <a name='$href' href='#top'>Back to Index</a> , ";
+                    $html .= "<a href='#$href_prev'>Previous</a> , ";
+                    $html .= "<a href='#$href_next'>Next</a>\n" if $href_next;
+                    $html .= "<br><b>Date:</b> $time_date<br>\n"; # Log format same as .scan logit
+                    $html .= "<b>To:</b>$to<br>\n<b>From:</b> <a href='mailto:$from'>$name</a><br>\n<b>Reply to:</b> <a href='mailto:$replyto'>$replyto</a><br>\n<b>Subject:</b>$subject<br>\n";
+                    $html .= "<blockquote>$body</blockquote><br><hr>\n";
 
                                 # This gets reset whenever mail has been received
                     logit("$config_parms{data_dir}/email/latest.html", $html, 0);
 
                                 # Log by account and day of week
-                    my $wday = (localtime)[6];
-                    my  $day = ('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')[$wday];
-                    my  $log = "$config_parms{data_dir}/email/${account}_$day.html";
+                    my  $log = "$config_parms{data_dir}/email/${account}_${day}.shtml";
+                    my  $logi= "$config_parms{data_dir}/email/${account}_${day}_index.html";
                     unlink $log if time - (stat $log)[9] > 3600*24; # Reset if from last week
+                    unless (-e $log) {
+                        unlink $logi;
+                        my $html2 =  "<table cellspacing=5>\n<tr><th><b>Msg</b></th><th><b>Received</b></th>";
+                        $html2 .= "<th><b>From</b></th><th><b>Subject</b></th></tr></b>\n";
+                        logit($logi, $html2, 0);
+                        $html2  = qq[<LINK REL='STYLESHEET' HREF='/default.css' TYPE='text/css'>\n];
+                        $html2 .= qq[<!--\#include file="/email/${account}_${day}_index.html"-->\n</table>\n<hr>\n];
+                        logit($log, $html2, 0);
+                    }
                     logit($log, $html, 0);
+                    
+                    my $index = "<tr><td>$msgcnt2</td><td><a href='#$href'>$time_date</a></td><td><a href='mailto:$from'>$name</a>";
+                    $index .= "</td><td><a href='#$href'>$subject</a></td></tr>\n";
+                    logit($logi, $index, 0);
 
                     $cnt++;
                 }
-                @list = grep(/\S/, @list); # Delete blank names (filtered out from the above get_email_rule)
-                next unless $cnt = @list;
-
+                
                                 # Add to previously read names
                 push(@{$email_prev{$account}}, @list);
 
                 $results_new .= &make_name_list($account, @{$email_prev{$account}});
             }
         }
-        $results_unread .= &make_name_list($account, @{$email_prev{$account}});
+        my $temp = &make_name_list($account, @{$email_prev{$account}});
+        $results_unread  .= $temp;
+                                # Create html version with a link
+        $temp =~ s|^a(.+) has |&nbsp;&nbsp;&nbsp;<A HREF='/email/${account}_${day}.shtml'>A$1</A> has |;
+        $results_unread2 .= $temp . "<br>" if $temp;
 
                                 # Save parsed data, so we don't have to re-read next time
         $email_file_data .= (join($;, $account, @{$email_prev{$account}})) . "\n" if
@@ -177,8 +224,15 @@ sub check_accounts {
     }
     &file_write("$config_parms{data_dir}/get_email.data", $email_file_data);
     &file_write("$config_parms{data_dir}/get_email.txt",  $results_new);
-    &file_write("$config_parms{data_dir}/get_email2.txt",  $results_unread);
+    &file_write("$config_parms{data_dir}/get_email2.txt", $results_unread);
     &file_write("$config_parms{data_dir}/get_email.flag", $msgcnt_flag);
+
+    $results_unread =~ s/account /<P>Account /gs;
+
+    $summary .= "$results_unread2";
+
+    logit("$config_parms{data_dir}/email/summary.html", $summary, 0);
+
     unless ($config_parms{quiet}) {
         print "\nNew\n", $results_new;
         print "\nUnread\n", $results_unread;
@@ -187,10 +241,13 @@ sub check_accounts {
 
 sub make_name_list {
     my ($account, @list) = @_;
-  
+
     my $account2 = $account;
     $account2 =~ tr/_/ /; # Make speakable
+
+    @list = grep !/^filtered/, @list; # Delete blank names (filtered out from the above get_email_rule)
     my $cnt = @list;
+
     return unless $cnt;
 #   return ("Email account $account2 has " . plural($cnt, 'new email message') . 
     return ("$account2 has " . plural($cnt, 'new message') . 
@@ -199,6 +256,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.21  2000/12/03 19:38:50  winter
+# - 2.36 release
+#
 # Revision 1.20  2000/11/12 21:01:02  winter
 # - 2.34 release
 #

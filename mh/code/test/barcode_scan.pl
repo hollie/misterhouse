@@ -7,21 +7,33 @@
 #   - If scanning paperbacks, check the inside cover for the ISBN EAN code,
 #     not the back-of-the-book UPC code
 #
+# Heres is the program flow:
+#
+# - mh/web/barcode_scan.shtml has a form that calls SET on the Generic_Item $barcode_scan variable
+#
+# - mh/code/test/barcode_scan.pl wakes up when $barcode_scan changes, and process the data into $barcode_data
+#
+# - mh/code/test/barcode_web.pl (or mh/code/barcode_inventory.pl) detects $barcode_data change
+#   and updates mh/web/barcode_search.html.
+#
+# - Your original web request, after a few mh passes, returns mh/web/barcode_search.html
+#
+# 
 
 $barcode_data   = new Generic_Item;
 $barcode_mode   = new Generic_Item;
 $barcode_mode  -> set_states('web', 'add inventory', 'delete inventory', 'query inventory', 'clear inventory');
-$barcode_mode  -> set_authority('anyone');
+$barcode_mode  -> set_authority('anyweb');
 
 $v_barcode_mode = new Voice_Cmd('Change barcode scan to [web,add inventory,delete inventory,query inventory,clear inventory] mode');
 $v_barcode_mode-> set_info('Controls what you want to do with barcode scans.  Web will create urls, inventory updates a database');
-$v_barcode_mode-> set_authority('anyone');
+$v_barcode_mode-> set_authority('anyweb');
 $v_barcode_mode-> tie_items($barcode_mode);
 $v_barcode_mode-> tie_event('print_log "Scanner set to $state mode"');
 
 
 $barcode_scan   = new Generic_Item;
-$barcode_scan  -> set_authority('anyone');
+$barcode_scan  -> set_authority('anyweb');
 &tk_entry('Barcode', $barcode_scan);
                                 # Scan starts with Alt-F10
 $MW->bind('<Key-F10>', sub {$Tk_objects{entry}{$barcode_scan}->focus()}) if $MW and $Reload;

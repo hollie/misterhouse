@@ -8,7 +8,8 @@
 
 <b>Open Access</b>
 <li><a href="barcode_scan.shtml">Scan a barcode</a></li>
-<li><a href="/list?Informational">Informational</a>
+<li><A href="http://misterhouse.net:8080/aprs">Track vehicles</A>
+<li><a href="/list?authority=\S">Other</a>
 
 <hr>
 <b>Password protected</b>

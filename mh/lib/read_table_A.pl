@@ -67,9 +67,9 @@ sub read_table_A {
     }
     elsif($type eq "WEATHER") {
         ($address, $name, $grouplist) = @item_info;
-        ($address, $comparison, $limit) = $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
-        $object = "Weather_Item('$address', '$comparison', '$limit')" if $comparison ne undef;
-        $object = "Weather_Item('$address')" if $comparison eq undef;
+#       ($address, $comparison, $limit) = $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
+#       $object = "Weather_Item('$address', '$comparison', '$limit')" if $comparison ne undef;
+        $object = "Weather_Item('$address')";
     }
     elsif($type eq "STARGATELCD") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -110,6 +110,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.5  2000/12/03 19:38:55  winter
+# - 2.36 release
+#
 # Revision 1.4  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

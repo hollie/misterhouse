@@ -5,7 +5,6 @@ $f_deep_thoughts     = new File_Item("$config_parms{data_dir}/remarks/deep_thoug
 $v_deep_thought      = new  Voice_Cmd('[What is,Read,Display] the deep thought');
 $v_deep_thought_next = new  Voice_Cmd('[What is,Read,Display] the next deep thought');
 $v_deep_thought-> set_info('The deep thoughts are creative, goofy, and fun sayings from SNL (I think)');
-$v_deep_thought     -> set_authority('anyone');
 $v_deep_thought_next-> set_authority('anyone');
 
 fileit($f_deep_thought, read_next $f_deep_thoughts) if said $v_deep_thought_next;

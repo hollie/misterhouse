@@ -11,11 +11,17 @@ my $f_top10_html = "$config_parms{data_dir}/web/top10_list.html";
 #$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/network/tvshows/mini/lateshow/index.shtml $f_top10_html");
 $p_top10_list = new Process_Item("get_url http://marketing.cbs.com/latenight/lateshow/ $f_top10_html");
 
-$v_top10_list = new  Voice_Cmd('[Get,Read,Show] the top 10 list');
-$v_top10_list-> set_info("This is David Lettermans famoust Top 10 List"); 
+$v_top10_list  = new  Voice_Cmd('[Get,Read,Show] the top 10 list');
+$v_top10_list -> set_info("This is David Lettermans famoust Top 10 List"); 
 
-speak($f_top10_list)   if said $v_top10_list eq 'Read';
-display($f_top10_list) if said $v_top10_list eq 'Show';
+                                # Allow for an open access action
+$v_top10_list2 = new  Voice_Cmd('{Display,What is} the top 10 list');
+$v_top10_list2-> set_info("This is David Lettermans famoust Top 10 List"); 
+$v_top10_list2-> set_authority('anyone');
+$v_top10_list2-> tie_items($v_top10_list, 1, 'Show');
+
+speak   $f_top10_list if said $v_top10_list eq 'Read';
+display $f_top10_list if said $v_top10_list eq 'Show';
 
 if (said $v_top10_list eq 'Get') {
 
@@ -77,7 +83,8 @@ if (said  $v_get_internet_weather_data) {
                                 # Detatch this, as it may take 10-20 seconds to retreive
                                 # Another, probably better way, to do this is with the
                                 # Process_Item, as is with p_top10_list above
-        run "get_weather -city $config_parms{city} -state $config_parms{state}";
+        run "get_weather -city $config_parms{city} -zone $config_parms{zone} -state $config_parms{state}";
+
         set_watch $f_weather_forecast;
         speak "Weather data requested";
     }
@@ -88,6 +95,7 @@ if (said  $v_get_internet_weather_data) {
 
 $v_show_internet_weather_data = new  Voice_Cmd('Show internet weather [forecast,conditions]');
 $v_show_internet_weather_data-> set_info('Display previously downloaded weather data');
+$v_show_internet_weather_data-> set_authority('anyone');
 if ($state = said  $v_show_internet_weather_data or changed $f_weather_forecast) {
     print_log "Weather $state displayed";
     if ($state eq 'forecast') {

@@ -22,23 +22,23 @@ if ($state = said $v_send_email_test) {
 
                                 # Send attachements of different types
                                 #  - Note mime parm is optional if file ends with that extention
-        &net_mail_send(subject => 'test a file attachement',
+        &net_mail_send(subject => 'test an html attachement',
                        baseref => 'localhost:8080',
                        file    => '../web/mh4/widgets.html', mime  => 'html') if $state == 4;
 
-        &net_mail_send(subject => 'test a file attachement',
+        &net_mail_send(subject => 'test a zip file attachement',
                        file    => 'c:/temp/test1.zip') if $state == 5;
 
-        &net_mail_send(subject => 'test a file attachement',
+        &net_mail_send(subject => 'test a tar.gz file attachement',
                        file    => 'c:/temp/test.tar.gz', mime => 'bin') if $state == 6;
 
-        &net_mail_send(subject => 'test a file attachement',
+        &net_mail_send(subject => 'test a gif file attachement',
                        file    => '../web/graphics/goofy.gif') if $state == 7;
 
-        &net_mail_send(subject => 'test a file attachement',
+        &net_mail_send(subject => 'test a txt file',
                        file    => '../docs/faq.txt') if $state == 8;
 
-        &net_mail_send(subject => 'test a file attachement',
+        &net_mail_send(subject => 'test an html file',
                        file    => '../docs/faq.html') if $state == 9;
 
         speak "Test message has been sent";

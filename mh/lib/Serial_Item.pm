@@ -39,8 +39,8 @@ sub add {
 #   $state = 'default_state' unless defined $state;
     $state = $id  unless defined $state;
 
-    $$self{state_by_id}{$id} = $state if $id;
-    $$self{id_by_state}{$state} = $id;
+    $$self{state_by_id}{$id} = $state if defined $id;
+    $$self{id_by_state}{$state} = $id if defined $state;
     push(@{$$self{states}}, $state);
     push(@{$serial_items_by_id{$id}}, $self) if $id;
 }
@@ -191,8 +191,11 @@ sub set {
     $state = 'default_state' unless defined $state; 
 
     my $serial_id;
-                                # Lowercase (e.g. treat ON the same as on ... so X10_Items is simpler)
-    if (defined $self->{id_by_state}{lc $state}) {
+                                # Allow for upper/mixed case (e.g. treat ON the same as on ... so X10_Items is simpler)
+    if (defined $self->{id_by_state}{$state}) {
+        $serial_id = $self->{id_by_state}{$state};
+    }
+    elsif (defined $self->{id_by_state}{lc $state}) {
         $serial_id = $self->{id_by_state}{lc $state};
     }
     else {
@@ -204,7 +207,7 @@ sub set {
                                 # It is pretty easy to create a loop with
                                 # tied items, groups, house codes, etc.  Just ask Bill S. :)
 #   print "db state=$state, sp=$self->{state_prev},  loop=$main::Loop_Count, lcp==$self->{change_pass}\n";
-    if ($serial_id =~ /^X/ and $state eq $self->{state_prev} and 
+    if ($serial_id =~ /^X/ and $self->{state_prev} and $state eq $self->{state_prev} and 
         $self->{change_pass} >= ($main::Loop_Count - 1)) {
         my $item_name = $self->{object_name};
         print "X10 item set skipped on consecutive pass.  item=$item_name state=$state id=$serial_id\n";
@@ -468,6 +471,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.44  2000/12/03 19:38:55  winter
+# - 2.36 release
+#
 # Revision 1.43  2000/11/12 21:02:38  winter
 # - 2.34 release
 #

@@ -62,10 +62,12 @@ DDN_NMBR= 9932562
         ($time)   = $data =~ /TIME *= *(\S+)/s;
         $time = "$date $time";
         ($number) = $data =~ /NMBR *= *(\S+)/s;
-        ($name)   = $data =~ /NAME *= *(.+)/s;
-        $name = substr($name, 0, 15);
 
-        $name = 'Unavailable' if $name =~ /^(ONMBR|O$)/; # Jay's & Chaz's exceptions
+#       ($name)   = $data =~ /NAME *= *(.+)/s;
+        ($name)   = $data =~ /NAME *= *([^\n]+)/s;
+
+        $name = substr($name, 0, 15);
+        $name = 'Unavailable' if $name =~ /^O$/; # Jay's & Chaz's exceptions
         $name = 'Private'     if $name =~ /^P$/; # Chaz's exception
         $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/; # Chaz's exception
         ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
@@ -205,6 +207,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.19  2000/12/03 19:38:55  winter
+# - 2.36 release
+#
 # Revision 1.18  2000/11/12 21:02:38  winter
 # - 2.34 release
 #

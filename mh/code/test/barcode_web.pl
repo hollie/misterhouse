@@ -3,6 +3,12 @@
 #   Takes data from barcode_scan.pl and points to relevant web sites
 #
 
+                                # Allow anyone web access to the results
+$Password_Allow{'&barcode_web_results'} = 'anyone' if $Reload;
+sub barcode_web_results {
+    return file_read "$config_parms{html_dir}/barcode_search.html", 1;
+}
+
 return unless 'web' eq state $barcode_mode or ! state $barcode_mode;
 
 if (my $scan = state_now $barcode_data) {

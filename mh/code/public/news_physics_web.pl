@@ -7,6 +7,7 @@ my $f_physics_web_html = "$config_parms{data_dir}/web/physics_web.html";
 
 $p_physics_web = new Process_Item("get_url http://physicsweb.org/archive/news $f_physics_web_html");
 $v_physics_web = new  Voice_Cmd('[Get,Read,Show] physics_web');
+$v_physics_web ->set_authority('anyone');
 
 speak($f_physics_web)   if said $v_physics_web eq 'Read';
 display($f_physics_web) if said $v_physics_web eq 'Show';

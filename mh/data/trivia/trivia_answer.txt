@@ -1,5 +1,5 @@
 The trivia answer is.
-  1: Elephant..
+  4: New York..
 
 Once again, the trivia answer is.
-  1: Elephant..
+  4: New York..

@@ -593,8 +593,17 @@ sub main::round {
     my($number, $digits) = @_;
     $digits = 0 unless $digits;
     $number = 0 unless $number;
+    $number =~ s/,//g;
     return $number unless $number =~ /^[\d\. \-\+]+$/;  # Leave none-numeric data alone
-    return sprintf("%.${digits}f", $number);
+
+                                # If $digits <  10, it means round to that many decimals
+                                # If $digits >= 10, it means round to the nearest $digits
+    if ($digits >= 10) {
+        return $digits * int ($number / $digits);
+    }
+    else {
+        return sprintf("%.${digits}f", $number);
+    }
 }
 
 #---------------------------------------------------------------------------
@@ -854,6 +863,7 @@ sub main::time_date_stamp {
     $style = 1 unless $style;
     
                                 # Do NOT convert to AMPM if time_format=24
+    $ampm = '';
     unless ($main::config_parms{time_format} == 24 or $style == 2 or $style == 12 or $style == 13 or $style == 14) {
         ($time_ampm, $hour, $min, $ampm) = &main::time_to_ampm("$hour:$min");
     }
@@ -1016,6 +1026,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.44  2000/12/03 19:38:55  winter
+# - 2.36 release
+#
 # Revision 1.43  2000/11/12 21:02:38  winter
 # - 2.34 release
 #

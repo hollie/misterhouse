@@ -1520,6 +1520,66 @@ over the command text.
 See mh/code/examples/serial_port_examples.pl for more Serial_Item examples.
 
 </P>
+<DT><STRONG><A NAME="item_Weather_Item">Weather_Item</A></STRONG><DD>
+<P>
+This object can be used to track data stored in the global
+<CODE>%Weather</CODE> array.
+
+</P>
+<P>
+<PRE>  Methods:
+     new $type
+        $type is the name of the %Weather index you want to monitor
+</PRE>
+</P>
+<P>
+<PRE>        $type can also have a =&lt;&gt; comparision operator in it so 
+        you can make the object a true/false test.
+</PRE>
+</P>
+<P>
+<PRE>     state        : Returns the last state, or 1/0 if $comparition and $limit were used.
+     state_now    : Returns the state only when the weather data changed.
+</PRE>
+</P>
+<P>
+<PRE>     It also inherits the Generic_Item methods.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>   $WindSpeed = new Weather_Item 'WindSpeed';
+   $WindSpeed-&gt; tie_event('print_log &quot;Wind speed is now at $state&quot;');
+</PRE>
+</P>
+<P>
+<PRE>   $freezing = new Weather_Item 'TempOutdoor &lt; 32';
+   if (state_now $fountain eq ON and state $freezing) {
+     speak &quot;Sorry fountains don't work too well when frozen&quot;;
+     set $fountain OFF
+   }
+</PRE>
+</P>
+<P>
+<PRE>   $Windy = new Weather_Item 'WindSpeed &gt; 15';
+   speak &quot;Wind is gusting at $Weather{WindSpeed} mph&quot; if state $Windy;
+</PRE>
+</P>
+<P>
+<PRE>                  # For current state, easiest to use it directly
+   speak &quot;Outdoor temperature is $Weather{TempOutdoor} degrees&quot;;
+   
+</PRE>
+</P>
+<P>
+For examples on interface code that stores data into %Weather, see
+mh/code/bruce/weather_monitor.pl (uses mh/lib/Weather_wx200.pm),
+mh/code/public/iButton_ws_client.pl, and mh/code/public/weather_com.pl
+
+</P>
 <DT><STRONG><A NAME="item_X10_Item">X10_Item</A></STRONG><DD>
 <P>
 Same as Serial_Item, except the 'X' prefix is prepended, to indicate an X10
@@ -1871,7 +1931,7 @@ run from the Tk, web, telnet, and file interfaces.
 <P>
 <PRE>        $response is the text or wave file that will be played back when the
         VR engine detects this command.  If not defined, the response 
-        is : &quot;you said $command&quot;
+        is : &quot;I heard $command&quot; (on viavoice).
 </PRE>
 </P>
 <P>
@@ -2208,9 +2268,13 @@ Displays the specified text string, text file contents, or bitmap (.gif or
   
 If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk popup window.
 If -tk 0 or the data is echoed to the console.
-If the data is requested from a web browser, the data is echoed to the browser print_log 
-window.
 </PRE>
+</P>
+<P>
+If the data is requested from a web browser, the data is echoed to the
+browser print_log window. It will be displayed to a local tk window only if
+the <CODE>$time</CODE> parm is specified.
+
 </P>
 <DT><STRONG><A NAME="item_file_changed">file_changed (or older name of file_change)</A></STRONG><DD>
 <P>
@@ -2495,8 +2559,35 @@ print_speaklog is called by the speak and play functions, so should not be
 normally used in user code.
 
 </P>
+<DT><STRONG><A NAME="item_round">round</A></STRONG><DD>
 <P>
-<PRE> 
+Use this function to round off a number. Usage:
+
+</P>
+<P>
+<PRE>   round $number, $digits
+</PRE>
+</P>
+<P>
+If <CODE>$digits</CODE> &lt; 10, <CODE>$number</CODE> is rounded to
+<CODE>$digits</CODE> to the right of the decimal
+
+</P>
+<P>
+If <CODE>$digits</CODE> &gt;= 10, <CODE>$number</CODE> is rounded to
+<CODE>$digits</CODE> nearest <CODE>$digits</CODE>
+
+</P>
+<P>
+Examples:
+
+</P>
+<P>
+<PRE>   $time_left = round $time_left, 1; Round to nearest tenth
+</PRE>
+</P>
+<P>
+<PRE>   $rank = round $1, 100; # Round to nearest 100
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_run">run</A></STRONG><DD>
@@ -2532,7 +2623,7 @@ You can use this to have one event trigger another voice command event.
 <PRE>      run_voice_cmd 'Get the top10 list' if time_now('6:30 AM');
 </PRE>
 </P>
-<DT><STRONG><A NAME="item_SendKeys">SendKeys WaitForAnyWindow sendkeys_find_window</A></STRONG><DD>
+<DT><STRONG><A NAME="item_SendKeys">SendKeys WaitForAnyWindow SetFocus EnumChildWindows sendkeys_find_window</A></STRONG><DD>
 <P>
 On Windows systems, use these functions to control other programs. Full
 documentation is mh/lib/site/Win32/setupsup.html.  
@@ -2541,11 +2632,18 @@ documentation is mh/lib/site/Win32/setupsup.html.
 <P>
 <PRE>   SendKeys($window, $keystr, $activate, [$timeout])
    WaitForAnyWindow($title, \$window, $timeout, [$refresh])
+   SetFocus($window)
+   EnumChildWindows($window, \@childs)
 </PRE>
 </P>
 <P>
 WaitForAnyWindow will set the window handle for the window that matches the
 (sub)string specified in $title. 
+
+</P>
+<P>
+WaitForWindow is like WaitForWindow, but requires an exact string match for
+the window title.
 
 </P>
 <P>
@@ -2561,6 +2659,19 @@ SendKeys sends the keys. Here is an excerpt of the valid key list:
    NUM* multiply key on the num block 
    NUM+ add key on the num block NUM- minus key on the num block NUM/ divide key on the num block 
 </PRE>
+</P>
+<P>
+SetFocus sets the focus to $window. It does not activate the window (the
+foreground application will not be changed if <CODE>$windows</CODE> belongs
+to another application).
+
+</P>
+<P>
+EnumChildWindows enumerates all child windows that belong to
+<CODE>$window</CODE> and returns the handles in the @childsCODE&gt; array.
+<CODE>$window</CODE> must be a valid window handle <CODE>@childs</CODE>
+must be an array reference.
+
 </P>
 <P>
 sendkeys_find_window is an mh subroutine that calls WaitForAnyWindow. If
@@ -4446,8 +4557,13 @@ One other note on .pl web files. You can have them use variables you define
 in your mh user code, but only if those variables are defined with ``use
 vars '$my_var1', '$my_var2'''. Variables defined with ``my ($my_var1,
 $my_var2)'' are local only to the mh loop, and would not be available to
-any web .pl program.
+any web .pl program. To pass arguments to your .pl file, append them to the
+url in normal CGI fasion after a ?. For example:
 
+</P>
+<P>
+<PRE>   <A HREF="http://misterhouse.net/test/test1.pl?argument1&amp">http://misterhouse.net/test/test1.pl?argument1&amp</A>;argument2 
+</PRE>
 </P>
 <P>
 In addition to calling the above mh-generated html directly, you can embed
@@ -4488,16 +4604,26 @@ This what is used in the mh 'About' web button to return the mh version.
 </P>
 <P>
 You can also define your own functions in your code files to return html,
-and then call them with the code= include directive. For example, add these
-to any of your code files:
+and then call them with the code= include directive or as a response to a
+/SET or /RUN command (see below). For example, add these to any of your
+code files:
 
 </P>
 <P>
 <PRE>  sub web_func1 {
-      return &quot;uptime = &quot; . &amp;time_diff($Time_Startup_time,$Time , undef, 'numeric');
+     return &quot;uptime = &quot; . &amp;time_diff($Time_Startup_time,$Time , undef, 'numeric');
   }
   sub web_func2 {
-      return &quot;results from function 2&quot;; 
+     my ($arg1, $arg2) = @_;
+     return &quot;results from function 2: $arg1, $arg2&quot;; 
+  }
+</PRE>
+</P>
+<P>
+<PRE>  # Add this if you want unauthorized web access to these functions  
+  if ($Reload) {
+    $Password_Allow{'&amp;web_func1'} = 1;
+    $Password_Allow{'&amp;web_func2'} = 1;
   }
 </PRE>
 </P>
@@ -4508,7 +4634,15 @@ Then call them like this:
 <P>
 <PRE> &lt;p&gt;Test web functions
  &lt;!--#include code=&quot;&amp;web_func1&quot;--&gt;
- &lt;!--#include code=&quot;&amp;web_func2&quot;--&gt;
+ &lt;!--#include code=&quot;&amp;web_func2(myarg1,myarg2)&quot;--&gt;
+</PRE>
+</P>
+<P>
+Or with this:
+
+</P>
+<P>
+<PRE> <A HREF="http://localhost:8080/SET:&amp">http://localhost:8080/SET:&amp</A>;web_func2(myarg1,myarg2)
 </PRE>
 </P>
 <P>
@@ -4521,8 +4655,9 @@ code=``&amp;dir_index('/pictures','name',0)''--&gt;
 </P>
 <P>
 You can have <CODE>&amp;dir_index</CODE> sort by name, type, size, or date.
-Set the 3rd argument to 1 for reverse sort order. See
-mh/web/graphics/index.shtml for an example.
+Set the 3rd argument to 1 for reverse sort order. An optional 4th parameter
+is a regular expresion that can be used to subset to matching files. See
+mh/web/graphics/index.shtml and mh/data/email/index.shtml for examples.
 
 </P>
 <P>
@@ -4561,7 +4696,7 @@ returned:
 <P>
 <PRE>  h_response can be one of the following:
    &amp;function        The results of &amp;function will be returned
-   &amp;function(arg)   The results of &amp;function(arg) will be returned
+   &amp;function(args)  The results of &amp;function(arg) will be returned
    last_response    The last displayed or spoken text. 
    last_response_## As above, but only the first ## characters.
    last_displayed   The last displayed text will be returned
@@ -4598,8 +4733,10 @@ Here are some examples demonstrating these options:
 </PRE>
 </P>
 <P>
-<PRE> This will allow for text input, using a html FORM, and returning the the results form
- the user defined function &amp;my_response:
+<PRE> This will allow for text input, using a html FORM, and returning the the results
+ form the user defined function &amp;my_response (Note, to give anyone access to this 
+ function you will need to authorize &amp;my_response with this in your code: 
+ $Password_Allow{'&amp;my_response'} = 1):
 </PRE>
 </P>
 <P>

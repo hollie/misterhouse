@@ -34,7 +34,8 @@ my ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-update
 
 use Getopt::Long;
 my %parms;
-if (!&GetOptions(\%parms, "h", "help", "v", "city:s", "state:s",  "data=s", "no_log") or @ARGV or 
+if (!&GetOptions(\%parms, "h", "help", "v", "city:s", "zone:s", "state:s",
+                 "data=s", "no_log") or @ARGV or
     ($parms{h} or $parms{help})) {
     print<<eof;
 
@@ -50,6 +51,7 @@ Usage:
 
     -city     xxx => xxx is the City  you want.
     -state    xxx => xxx is the State you want.
+    -zone     xxx => xxx is the Zone (for forecast) you want.
 
     -data     xxx => xxx is either conditions, forecast, or all.  Default is all.
 
@@ -66,9 +68,10 @@ eof
 my ($conditions, $forecast, %data);
 my %config_parms;
 
-$parms{city}  = 'Rochester' unless $parms{city};
-$parms{state} = 'MN'        unless $parms{state};
-$parms{data} = 'all'        unless $parms{data};
+$parms{city}  = 'Rochester'  unless $parms{city};
+$parms{zone}  = $parms{city} unless $parms{zone};
+$parms{state} = 'MN'         unless $parms{state};
+$parms{data}  = 'all'        unless $parms{data};
 $data{conditions}++ if $parms{data} eq 'all' or $parms{data} eq 'conditions';
 $data{forecast}++   if $parms{data} eq 'all' or $parms{data} eq 'forecast';
 
@@ -96,9 +99,9 @@ if ($data{conditions}) {
 }
 
 if ($data{forecast}) {
-    print "Getting the forecast for $parms{city}, $parms{state}\n";
-#   %wx = get_forecast($parms{city}, $parms{state}, $parms{refresh}, "$config_parms{data_dir}/web");
-    $forecast = print_forecast($parms{city}, $parms{state},undef,undef,undef,1);
+    print "Getting the forecast for $parms{zone}, $parms{state}\n";
+#   %wx = get_forecast($parms{zone}, $parms{state}, $parms{refresh}, "$config_parms{data_dir}/web");
+    $forecast = print_forecast($parms{zone}, $parms{state},undef,undef,undef,1);
     $forecast =~ s/Geo::WeatherNOAA.pm .+\n//; # Drop geo version
 }
 
@@ -138,6 +141,9 @@ else {
 #	print_forecast
 
 # $Log$
+# Revision 1.10  2000/12/03 19:38:50  winter
+# - 2.36 release
+#
 # Revision 1.9  2000/01/27 13:23:38  winter
 # - update version number
 #

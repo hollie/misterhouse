@@ -26,7 +26,7 @@ if ($Reload) {
     &tk_label(\$Tk_objects{label_uptime_cpu});
     &tk_label(\$Tk_objects{label_uptime_mh});
     &tk_label(\$Tk_objects{label_cpu_used});
-    &tk_label(\$Tk_objects{label_memory_used}) unless $Info{OS_name} eq 'Win95';
+    &tk_label(\$Tk_objects{label_memory_used}) unless $Info{OS_name} =~ /Win/; # Works for NT/2k
 
 #   &tk_label(\$Save{stock_data1}) if $Run_Members{stocks};
 #   &tk_label(\$Save{stock_data2}) if $Run_Members{stocks};

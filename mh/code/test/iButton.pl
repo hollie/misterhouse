@@ -19,10 +19,13 @@ $v_iButton_readtemps = new Voice_Cmd "Read the iButton temperature buttons";
 $v_iButton_readtemps-> set_info('This reads all all iButton temperature devices.  Takes a while (.6 s per device)');
 $v_iButton_readtemp  = new Voice_Cmd "Read the iButton temperature [1,2,3,4]";
 $v_iButton_readtemp -> set_info('Read only the temperature from a specific button');
+$v_iButton_readtemp -> set_authority('anyone');
 $v_iButton_list      = new Voice_Cmd "List all the iButton buttons";
 $v_iButton_list     -> set_info('Lists the family and ID codes of all the buttons on the bus');
+$v_iButton_list     -> set_authority('anyweb');
 $v_iButton_relay1    = new Voice_Cmd "Turn on relay1 [on,off]";
 $v_iButton_relay1   -> set_info('Controls a test relay');
+$v_iButton_relay1   -> set_authority('anyone');
 
 
 if ($state = said $v_iButton_connect) {

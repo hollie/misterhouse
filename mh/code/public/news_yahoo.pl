@@ -15,7 +15,9 @@ my $f_Sports_news = "$config_parms{data_dir}/web/Sports_news.txt";
 $p_all_news = new Process_Item("get_url http://dailynews.yahoo.com/fc $f_all_news_html");
 
 $v_all_news = new  Voice_Cmd('Get the current news');
-$v_news = new  Voice_Cmd('Tell me the [Top,U S,World,Entertainment,Business,Technology,Science,Health,Sports] news');
+$v_all_news ->set_authority('anyone');
+$v_news     = new  Voice_Cmd('Tell me the [Top,U S,World,Entertainment,Business,Technology,Science,Health,Sports] news');
+$v_news     ->set_authority('anyone');
 
 speak($f_Top_news) if said $v_news eq 'Top';
 speak($f_US_news) if said $v_news eq 'U S';

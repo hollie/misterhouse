@@ -13,6 +13,7 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#Version_2_36_posted_on_12_03_00">Version 2.36 posted on 12/03/00</A></LI>
 		<LI><A HREF="#Version_2_34_posted_on_11_12_00">Version 2.34 posted on 11/12/00</A></LI>
 		<LI><A HREF="#Version_2_32_posted_on_10_22_00">Version 2.32 posted on 10/22/00</A></LI>
 		<LI><A HREF="#Version_2_29_posted_on_10_01_00">Version 2.29 posted on 10/01/00</A></LI>
@@ -72,6 +73,154 @@
 list (an archive of all the list messages is at <A
 HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A>
 )
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_36_posted_on_12_03_00">Version 2.36 posted on 12/03/00</A></H2>
+<P>
+Version 2.36 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net/download">http://misterhouse.sourceforge.net/download</A>
+  <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Added Voice XML (vxml) functions and created
+mh/code/bruce/tellme_menu.pl. This code enables remote VR control via
+1-800-555-8355 from <A HREF="http://tellme.com">http://tellme.com</A> . For
+my house, speak 'Extentions', then dial 46630 (Home0). Instructions on how
+to setup your own extention is at the top of tellmen_menu.pl.
+
+</P>
+<P>
+- Changed web search results to use a Category Command type table (rather
+than a simple list) and added Tk widgets to the search. Added web option
+/list?authority=anyone (now used in open access list on the default web
+page).
+
+</P>
+<P>
+- Added an index to the data/email files. Clive Freedman sent in misc.
+get_email patchs, including one to add data/email/summary.html with mailbox
+size data for all accounts.
+
+</P>
+<P>
+- Added mh/code/public/iButton_ws_client.pl. This gets weather data from
+the Henriksen Weather Station tcp server for the iButton one-wire weather
+station.
+
+</P>
+<P>
+- Added mh/code/public/weather_com.pl to get weather data from weather.com.
+Unlike the noaa data used by get_weather, weather.com supports non-US
+cities.
+
+</P>
+<P>
+- Added mh/lib/Weather_Item, derived from Bill Sobel's earlier Weather.pm
+module. See mh/docs/mh.html for more info.
+
+</P>
+<P>
+- Kieran Ames built a map with the responses from his ``Where in the world
+are MisterHouse users'' query: <A
+HREF="http://misterhouse.net/usage.html">http://misterhouse.net/usage.html</A>
+. If you missed out on the survey, you can send in your location
+(anonymously if you want) via a form on that web page.
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Timothy Spaulding found a 2.34 problem with RCS thermostat states.
+
+</P>
+<P>
+- David Norwood found a problem running web commands with embeded +
+characters.
+
+</P>
+<P>
+- Ernie Oporto found a problem with get_tv_grid data of shows that cross
+grid boundaries.
+
+</P>
+<P>
+- Sanjay Seth suggested adding the Windows setupsup methods
+WaitForAnyWindow, SetFocus, and EnumChildWindows. See docs/mh.* for more
+info.
+
+</P>
+<P>
+- Brent DeShazer added Subject to net_jabber_send and found that
+net_jabber_server and _resource were not being used.
+
+</P>
+<P>
+- Brent also found a problem running more than one mhsend command.
+
+</P>
+<P>
+- Fixed sluggish tk windows with running in accelerated time test mode
+(e.g. -time_stop ``11:59 pm''). Als fixed -time_start (was ignored).
+
+</P>
+<P>
+- Re-enabled -w 1 (was supposed to be the same as -diagnostics 1, but was
+being ignored).
+
+</P>
+<P>
+- Allow for mh.ini abc_module=abc.pm parms. See mh/lib/Weather_wx200.pm for
+an example.
+
+</P>
+<P>
+- Added 'update location' option on aprs tracking web pages.
+
+</P>
+<P>
+- Added /mh/code/examples/play_midi_windows.pl as an example of playing
+midi files.
+
+</P>
+<P>
+- Allow web requested display data to be displayed to a local tk window,
+only if the display <CODE>$time</CODE> parameter is specified.
+
+</P>
+<P>
+- Added mh.ini net_mail_scan_size (defaults to 2000). This is the number of
+records that <CODE>&amp;net_mail_summary</CODE> uses (called by
+mh/bin/get_email).
+
+</P>
+<P>
+- Allowed a 'round to the nearest $digits' mode to the round function (see
+mh.pod for example).
+
+</P>
+<P>
+- Added mh.ini voice_cmd_prefix option. This will be added to all voice
+commands.
+
+</P>
+<P>
+- Avoid errors wint Win32::Sound::Volume with older win32 Perls
 
 </P>
 <P>
@@ -251,6 +400,10 @@ javascript).
 </P>
 <P>
 - Added a <CODE>$Dark</CODE> flag (true before and after twighlight)
+
+</P>
+<P>
+- Changed sort in get_tv_info from date/channel/time to date/time/channel
 
 </P>
 <P>

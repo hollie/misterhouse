@@ -7,6 +7,7 @@ my $f_ap_breaking_news_html = "$config_parms{data_dir}/web/ap_breaking_news.html
 
 $p_ap_breaking_news = new Process_Item("get_url http://ap.tbo.com/ap/breaking/index.htm $f_ap_breaking_news_html");
 $v_ap_breaking_news = new  Voice_Cmd('[Get,Read,Show] ap_breaking_news');
+$v_ap_breaking_news ->set_info('anyone');
 
 speak($f_ap_breaking_news)   if said $v_ap_breaking_news eq 'Read';
 display($f_ap_breaking_news) if said $v_ap_breaking_news eq 'Show';

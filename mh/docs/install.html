@@ -45,7 +45,7 @@
 <P>
 <HR>
 <H1><A NAME="Mister_House_Install_Instruction">Mister House Install Instructions</A></H1>
-This file is for the installation instructions.
+This file (mh/docs/install.html) is for the installation instructions.
 The main Mister House documentation is in <a href="mh.html">mh.html</a>.
 A list of update announcements is in <a href="updates.html">updates.html</a> 
 There is also a <a href="faq.html">faq.html</a> to cover misc. topics.
@@ -54,9 +54,9 @@ There is also a <a href="faq.html">faq.html</a> to cover misc. topics.
 <HR>
 <H1><A NAME="System_Requirements">System Requirements</A></H1>
 <P>
-Mister House has been tested on Windows 95, 98, NT, and the unix OSes Linux
-and AIX. In theory, much of the function should run on any platform that
-can run Perl.  
+Mister House has been tested on Windows 95, 98, NT, 2000, and the unix OSes
+Linux, FreeBSD, and AIX. In theory, much of the function should run on any
+platform that can run Perl.  
 
 </P>
 <P>
@@ -137,17 +137,11 @@ to read instructions:
 </P>
 <P>
 <PRE> - Run Configure to convert C serial headers to perl headers:
-</PRE>
-</P>
-<P>
-<PRE> - cd mh/bin
-</PRE>
-</P>
-<P>
-<PRE> - chmod +x configure
- - su   (to run configure as root)
- - ./configure
- - exit (to switch back from root)
+    - cd mh/bin
+    - chmod +x configure
+    - su   (to run configure as root)
+    - ./configure
+    - exit (to switch back from root)
 </PRE>
 </P>
 <P>
@@ -325,8 +319,9 @@ If you choose to use the zip file instead, make sure you use the -a to
 automatically get rid of those pesky /r characters that DOS like to add to
 newlines. Also, the unzip -U switch (contrary to what the help text says),
 will be needed on newer versions of unzip to preserve case on filenames.
-Then run the configure script (as root) to delete dos/windows only files,
-and 'chmod +x' on the files in the bin directory.
+Then run the configure script (as root, see quick install instructions) to
+delete dos/windows only files, and 'chmod +x' on the files in the bin
+directory.
 
 </P>
 <P>
@@ -386,7 +381,7 @@ After downloading, install viavoice by running (as root) run tar -xf
 viavoice_sdk_rtk_2.tar and then follow the tar file readme.txt
 instructions. Note for our usage, you will not need any of the gui menus,
 so if rpm tells you that you have down level or missing libraries (e.g.
-libgdk), you can probably ignore that by adding the tar --nodeps option.
+libgdk), you can probably ignore that by adding the rpm --nodeps option.
 
 </P>
 <P>
@@ -533,8 +528,9 @@ right clicking on the V and picking ``What can I say?''
 </P>
 <P>
 To run all of the sample code in the test directory, do not specify any
-files (e.g. just type mh). Here are a few of the commands enabled by files
-in the test directory:
+files (e.g. just type mh). This also reads the common code in
+mh/code/common. Here are a few of the commands enabled by files in the test
+directory:
 
 </P>
 <P>
@@ -645,11 +641,12 @@ more info on X10.
 
 </P>
 <P>
-If you want more than just X10, you may want to go with the Weeder X10 Kit,
-as all of the Weeder kits can share the same serial port. The X10 kit sells
-for $40, <CODE>$25</CODE> for a WT523 module (if you don't already have
-that), <CODE>$10</CODE> for a serial and a phone cable, and about an hour
-with a soldering iron. 
+If you want more than just X10, you may want to go with the Weeder X10 Kit.
+One advantage of the Weeder kits is they can all share the same serial
+port. The X10 kit, however, costs more ($40 + <CODE>$25</CODE> for a WT523
+module if you don't already have that, <CODE>$10</CODE> for a serial and a
+phone cable), and doesn't support the extended X10 data that the CM11 does
+(e.g. preset dims).
 
 </P>
 <P>
@@ -722,7 +719,7 @@ different directory with the mh.ini code_dir_common parm).
 
 </P>
 <P>
-The first thing you will want to do is create an items.pl file that
+The first thing you will want to do is create an items.mht file that
 declares all your X10 items (see mh/code/Bruce/items.mht for an example).
 Alternativly, you can declare each of your X10 items in the first code
 member you use it in. In either case you can use the ``List X10 items''

@@ -3,9 +3,9 @@
 my $f_trivia_question = "$Pgm_Path/../data/trivia/trivia_question.txt";
 my $f_trivia_answer   = "$Pgm_Path/../data/trivia/trivia_answer.txt";
 
-$v_trivia_next1    = new  Voice_Cmd('What is the [Current,next Science,next Entertainment,next Mixed,next Sports] trivia question?');
-$v_trivia_next2    = new  Voice_Cmd('Display the [Current,next Science,next Entertainment,next Mixed,next Sports] trivia question?');
-$v_trivia_answer   = new  Voice_Cmd('[What is,Display] the trivia answer?');
+$v_trivia_next1    = new  Voice_Cmd('What is the [Current,next Science,next Entertainment,next Mixed,next Sports] trivia question');
+$v_trivia_next2    = new  Voice_Cmd('Display the [Current,next Science,next Entertainment,next Mixed,next Sports] trivia question');
+$v_trivia_answer   = new  Voice_Cmd('[What is,Display] the trivia answer');
 
 $v_trivia_next2   -> set_authority('anyone');
 $v_trivia_answer  -> set_authority('anyone');

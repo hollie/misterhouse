@@ -41,6 +41,10 @@ $test_volume-> tie_event('speak "volume=$state Testing volume at $state%"');
 my $volume_previous;
 sub set_volume {
     return unless $OS_win;      # Not sure how to control volume on unix
+                                # Test for win32 sound
+    eval "Win32::Sound::Volume";
+    return if $@;               # Older Win32 perls do not have this
+
     my %parms = @_;
 
                                 # Set a timer since we can not detect when a wav file is done
@@ -56,8 +60,8 @@ sub set_volume {
                                 # Store previous volume
     $volume_previous = Win32::Sound::Volume;
 
-    my $volume = int 255 * $volume / 100;   # (0->100 =>  0->255)
-    my $volume = $volume + ($volume << 16); # Hack to fix a bug in Win32::Sound::Volume 
+    $volume = int 255 * $volume / 100;   # (0->100 =>  0->255)
+    $volume = $volume + ($volume << 16); # Hack to fix a bug in Win32::Sound::Volume 
     &Win32::Sound::Volume($volume);
 }
 

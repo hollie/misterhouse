@@ -17,7 +17,7 @@
 <!--#include code="&web_func2"-->
 
 <p>This is an example of generating html on the fly using cgi .pl programs
-<!--#include file="/test/test1.pl"-->
+<!--#include file="/test/test1.pl?argument1&argument2"-->
 
 <p> Test list:last_response?group
 <!--#include file="/list:last_response?Group"-->

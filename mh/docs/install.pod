@@ -3,7 +3,7 @@
 =head1 Mister House Install Instructions 
 
 =begin html
-This file is for the installation instructions.
+This file (mh/docs/install.html) is for the installation instructions.
 The main Mister House documentation is in <a href="mh.html">mh.html</a>.
 A list of update announcements is in <a href="updates.html">updates.html</a> 
 There is also a <a href="faq.html">faq.html</a> to cover misc. topics.
@@ -12,7 +12,8 @@ There is also a <a href="faq.html">faq.html</a> to cover misc. topics.
 
 =head1 System Requirements
 
-Mister House has been tested on Windows 95, 98, NT, and the unix OSes Linux and AIX.  In theory, much
+Mister House has been tested on Windows 95, 98, NT, 2000,  and the 
+unix OSes Linux, FreeBSD, and AIX.  In theory, much
 of the function should run on any platform that can run Perl.  
 
 The core Mister House code will use between 10 and 30 Megabytes of memory.
@@ -65,13 +66,11 @@ These are the quick instructions for those of you who, like me, don't like to re
      unzip -aU /downloads/misterhouse_src_###.zip (wherever you downloaded it to) 
 
  - Run Configure to convert C serial headers to perl headers:
-
- - cd mh/bin
-
- - chmod +x configure
- - su   (to run configure as root)
- - ./configure
- - exit (to switch back from root)
+    - cd mh/bin
+    - chmod +x configure
+    - su   (to run configure as root)
+    - ./configure
+    - exit (to switch back from root)
 
  - ./mh (if that doesn't work, try: perl mh)
 
@@ -177,7 +176,8 @@ If you choose to use the zip file instead, make sure you
 use the -a to automatically get rid of those pesky /r characters that DOS like to add to newlines.
 Also, the unzip -U switch (contrary to what the help text says), 
 will be needed on newer versions of unzip to preserve case on filenames. 
-Then run the configure script (as root) to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
+Then run the configure script (as root, see quick install instructions) 
+to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 
 =head2 Step 2, Download and Compile Perl
 
@@ -215,7 +215,7 @@ Hopefully a smaller package with just the Command and Control engine will become
 After downloading, install viavoice by running (as root) run tar -xf viavoice_sdk_rtk_2.tar and then  
 follow the tar file readme.txt instructions.  Note for our usage, you will not need
 any of the gui menus, so if rpm tells you that you have down level or missing libraries (e.g. libgdk),
-you can probably ignore that by adding the tar --nodeps option.
+you can probably ignore that by adding the rpm --nodeps option.
 
 As the readme.txt instructions state, you should probably run the viavoice code as non-root.
 Here is one way to allow non-root access to the microphone:
@@ -305,6 +305,7 @@ the green MSVoice V icon is in the "Listening for Voice Commands" mode, try sayi
 You can list all the available commands by right clicking on the V and picking "What can I say?"
 
 To run all of the sample code in the test directory, do not specify any files (e.g. just type mh).
+This also reads the common code in mh/code/common.
 Here are a few of the commands enabled by files in the test directory:
 
   "What is the trivia question?" and "What is the triva answer?"
@@ -374,9 +375,11 @@ Currently, the X10 guys have a $50 deal for an ActiveHome kit, which includes th
  Check it out at http://www.x10.com .
 See FAQ question 6.5 for more info on X10.
 
-If you want more than just X10, you may want to go with the Weeder X10 Kit, as all of the Weeder kits
- can share the same serial port. The X10 kit sells for $40, $25 for a WT523 module (if you don't already have that),
- $10 for a serial and a phone cable, and about an hour with a soldering iron. 
+If you want more than just X10, you may want to go with the Weeder X10 Kit. 
+One advantage of the Weeder kits is they can all share the same serial port.
+The X10 kit, however, costs more ($40 + $25 for a WT523 module if you don't already have that, 
+$10 for a serial and a phone cable), and doesn't support the extended X10 data 
+that the CM11 does (e.g. preset dims).
 
 After plugging in the Weeder X10 kit or a CM11 interface into a free serial port, update the 
 Weeder_port or cm11_port parm in the mh.ini file to point to that port and try a simple example, like test_x10.pl in the test directory. 
@@ -419,7 +422,7 @@ Adding a member a few at a time might be useful if you are trying to find an err
 By default, the code files in mh/code/common are always read (you can disable this
 or point to a different directory with the mh.ini code_dir_common parm).
 
-The first thing you will want to do is create an items.pl file that declares
+The first thing you will want to do is create an items.mht file that declares
 all your X10 items (see mh/code/Bruce/items.mht for an example).  Alternativly, you 
 can declare each of your X10 items in the first code member you use it in.  In either
 case you can use the "List X10 items" command created in mh_control.pl to review all

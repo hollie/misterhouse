@@ -166,6 +166,10 @@ sub check_for_voice_cmd {
 
         $text = substr($text, 1); # Drop the leading 00 byte (not sure why we get that)
 
+                                # Drop the prefix, if present
+        my $prefix  = $main::config_parms{voice_cmd_prefix};
+        $text =~ s/^$prefix// if $prefix;
+
         $noise_this_pass = $text;
 #       ($cmd_heard) = $text =~ /^Said: (.+)/;
         ($cmd_heard) = $text =~ /Said: (.+)/; # Patch from the list ... not sure why this is needed
@@ -326,6 +330,10 @@ sub voice_items {
 sub new {
     my ($class, $text, $response, $confirm, $vocab) = @_;
     $vocab = 'mh' unless $vocab; # default
+
+                                # Avoid ? ... they are a pain in html and vxml
+    $text =~ s/\?//g;
+
     my $self = {text => $text, response => $response, confirm => $confirm, vocab => $vocab, state => ''};
     &_register($self);
     bless $self, $class;
@@ -447,20 +455,24 @@ sub _register2 {
 #   $cmd_file_by_text{$main::item_file_name} = $cmd_num;	# Yuck!
 #   if ($Vmenu_ms and $Vmenu_ms->Add($cmd_num, $text, $vocab, $des)) {
 
+                                # Allow for a prefix word
+    my $prefix  = $main::config_parms{voice_cmd_prefix};
+    my $text_vr = ($prefix) ? "$prefix $text" : $text;
+
                                 # Always re-add the ms voice cmd
     if ($Vmenu_ms) {
 #	    print "Voice cmd num=$cmd_num text=$text v=$vocab des=$des\n";
-        $Vmenu_ms->Add($cmd_num, $text, $vocab, $des) if $text;
+        $Vmenu_ms->Add($cmd_num, $text_vr, $vocab, $des) if $text;
         print Win32::OLE->LastError() if Win32::OLE->LastError(0);
     }
                                 # If it is not in the default vocabulary, save it and add it later
     if ($Vcmd_viavoice and $Vcmd_viavoice->active) {
         if ($vocab eq '' or $vocab eq 'mh') {
-            $Vcmd_viavoice->set($text);
+            $Vcmd_viavoice->set($text_vr);
             select undef, undef, undef, .01; # Need this for now to avoid viavoice_server 'no data' error
         }
         else {
-            push(@{$cmd_text_by_vocab{$vocab}}, $text);
+            push(@{$cmd_text_by_vocab{$vocab}}, $text_vr);
         }
                                 # We need beter handshaking here ... not a delay!
 #       select undef, undef, undef, .05;
@@ -579,6 +591,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.26  2000/12/03 19:38:55  winter
+# - 2.36 release
+#
 # Revision 1.25  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

@@ -4,6 +4,7 @@ my $slashdot_news = "$Pgm_Root/data/web/slashdot_news";
 $p_slashdot_news  = new Process_Item "get_url http://slashdot.org/slashdot.xml $slashdot_news.xml";
 $v_slashdot_news  = new Voice_Cmd '[Get,Show,Display,Read,Parse] the slashdot news';
 $v_slashdot_news-> set_info('Summarize recent news from the great geek new site slashdot.org');
+$v_slashdot_news-> set_authority('anyone');
 
 $state = said $v_slashdot_news;
 if ($state eq 'Get' or time_now('6:30 AM')) {
