@@ -186,6 +186,12 @@ if ($temp = state_now $search_code_string) {
 }
 
 
+                                # Create a list of all Voice_Cmd texts
+$v_list_voice_cmds = new Voice_Cmd 'List voice commands';
+$v_list_voice_cmds ->set_info('Display a list of valid voice commands');
+display join "\n", &Voice_Cmd::voice_items if said $v_list_voice_cmds;
+
+
                                 # Create a list by X10 Addresses
 $v_list_x10_items = new Voice_Cmd 'List {X 10,X10} items';
 $v_list_x10_items-> set_info('Generates a report fo all X10 items, sorted by device code');
@@ -328,3 +334,19 @@ if ($temp = state_now $run_command) {
     &process_external_command($temp, 1, $set_by);
 }
 
+$undo_last_change = new Voice_Cmd 'Undo the last action';
+$undo_last_change-> set_info('Changes the most recently changed item back to its previous state');
+
+                                # Not sure how to limit this to relevent items ... start with X10_Items
+if (said $undo_last_change) {
+    my @refs = &Generic_Item::recently_changed;
+    while (my $ref = shift @refs) {
+#       print "db testing $ref->{object_name}\n";
+        if ($ref->isa('X10_Item')) {
+            my $name = &pretty_object_name($ref->{object_name});
+            speak "Changeing $name from $ref->{state} back to $ref->{state_prev}";
+            set $ref $ref->{state_prev};
+            last;
+        }
+    }
+}

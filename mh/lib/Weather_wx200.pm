@@ -19,7 +19,7 @@ package Weather_wx200;
    http://misterhouse.net/mh/code/bruce/weather_monitor.pl
 
  Lots of other good WX200 software links at:
-   http://weatherwatchers.org/wxstation/wx200/software.html
+   http://weatherwatchers.org/wxstation/WX-200/
 
 =cut
 
@@ -240,6 +240,9 @@ sub wx_time {
 
 #
 # $Log$
+# Revision 1.8  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.7  2002/03/31 18:50:40  winter
 # - 2.66 release
 #

@@ -70,7 +70,7 @@ if (my $header = said $mhsend_server) {
         }
     }
     elsif ($action eq 'run') {
-        $msg =~ s/\n//g;
+        $msg =~ s/\n|\r//g;
         if (&run_voice_cmd($msg)) {
             $response = "Command was run: $msg";
         }

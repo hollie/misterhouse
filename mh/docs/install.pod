@@ -253,6 +253,9 @@ also try the CPAN installer like this:
   cpan> install GD
   cpan> exit
 
+The first time you run the CPAN code, it creates a configuration file.  
+The default (press enter) usually is good for most questions.
+
 There are some example start/stop/restart .rc files in mh/bin/misterhouse*.rc
 
 =head2 UNIX Step 3, Download and Install a Speech Engines
@@ -286,23 +289,15 @@ that has a very nice US english male and female voice.
 
 Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.
 
-The IBM ViaVoice TTS and Voice Recognition engines is no longer available (as of 05/2002).
-These instructions are here for future reference, in hopes that the modules 
-will become available again.
-
-The IBM ViaVoice TTS engine for Linux is available from
-http://www-4.ibm.com/software/speech/dev/sdk_linux.html .
-Here is the download link: http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm
-
-Looks like you can still get the TTS engine from here:
+The IBM ViaVoice TTS and Voice Recognition engines is no longer available (as of 05/2002) 
+from the IBM site ( http://www-4.ibm.com/software/speech/dev/sdk_linux.html ), but can still be found here: 
+http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/
+The TTS engines can also be found here:
 ftp://people.redhat.com/jlamb/
 
 To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
 http://www.reednet.org/ViaVoiceTTS  , then set your mh.ini voice_text=vv_tts or voice_text=viavoice
 (vv_tts is a bit fancier, queing up speech and has more mh.ini options).
-
-The Voice Recognition engines are available here:
-http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm. 
 
 Download and install (as root) these rpms:
   

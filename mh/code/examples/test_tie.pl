@@ -54,4 +54,18 @@ $windy -> set_states(ON, OFF);
 $item1 -> tie_filter('state $windy eq ON', ON, 'Overriding item1 ON command because of wind');
 
 
+# Test cross-tied items
+#  - This allows us to set either item, and have the other one have the same state
+
+$item3a = new Generic_Item;
+$item3b = new Generic_Item;
+
+$item3a -> tie_items($item3b);
+$item3b -> tie_items($item3a);
+
+tie_event $item3a 'print_log "Item3a set to $state"';
+tie_event $item3b 'print_log "Item3b set to $state"';
+
+$v_test_item3 = new Voice_Cmd 'set test3 to [a,b,c]';
+tie_items $v_test_item3 $item3a;
 

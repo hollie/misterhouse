@@ -44,6 +44,9 @@ callerid_doug*
  - Caller ID for modem, from Doug Parrish.  Ties into a DB file and has an
    optional PHP page.
 
+caddx*.*
+ - Chris Witte's code for monitoring the outputs from a CADDX nx8e alarm panel.
+
 callerisdn.pl
  - Ron Klinkien's code for monitoring callerid on  AVM Fritz!Card
    (ISDN4BSD or ISDN4Linux required)
@@ -76,6 +79,9 @@ door_monitor_jay.pl
  - Jay Archer's code for using an X10 powerflash and hawkeye motion sensors
    to monitor and control a garage door
 
+get_state.php
+ - Douglas Parrish's example of how to get mh states from php
+
 hvac_david.pl
  - David Lounsberry's code to monitor 14 different iButtons and control HVAC with a weeder board!
  
@@ -84,6 +90,10 @@ iButton_ws.pl
 
 iButton_ws_brian.pl
  - Brian Paulson's example for monitoring the iButton weather station
+
+iButton_ws_ernie.pl
+ - Ernie Oporto's iButton code.  Includes an example for reading a
+DS2438-based humidity sensor using the Honeywell HIH-3605/3610. 
 
 iButton_ws_client.pl
  - Doug Mackie's code for for getting iButton weather station data from Henriksen's tcp server
@@ -106,6 +116,9 @@ internet_earthquake.pl
 internet_earthquake_cal.pl
  - Tim Doyle's script for monitoring earthquakes.
  - David Norwood created a California specific _cal version.
+
+internet_hebcal.pl
+ - Max Kelly's code for downloading a shabbat calendar
 
 internet_ip_update.pl
 internet_ip_update_craig.pl
@@ -306,9 +319,7 @@ wxserver_server.pl
    will serve the data in the mh %weather array.
    Tony also has code at his site that will serve data from a Peet Brother's weather station.
 
-aws_weather.pl
 weather_aws.pl
-weather_monitor_aws.pl
  - Brian Rudy's weather scripts for AWS live web weather sites
 
 weather_monitor_ultimeter2000.pl

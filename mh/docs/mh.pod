@@ -69,7 +69,6 @@ The system requirements and installation instructions are detailed in
 <a href="install.html">mh/docs/install.html</a>
 <p>There is also a FAQ that covers misc. topics in
 <a href="faq.html">mh/docs/faq.html</a>
-
 <p>Paul Chamberlain has set up a 
 <a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
 for other user-supplied documentation.
@@ -366,7 +365,11 @@ a GPS transmitters position.
 
 An better, object-oriented way to write code to interface to a new hardware device is in mh/lib/example_interface.pm. 
 
-Byterunner offers lots of types of serial cards: http://www.byterunner.com
+Byterunner offers lots of types of serial cards: http://www.byterunner.com.
+Note for windows users:
+with the PCI-800H, I found I had to click the 'use default baud rate' box under 
+control panel -> device manager (under the 4th tab, data rate).
+ 
 
 Good sources of information on the WX200/WM918 weather stations are at
 http://wx200.planetfall.com/  and  http://www.weatherwatchers.org/wxstation/WX-200/ .
@@ -1335,7 +1338,8 @@ For the Switchlinc controllers:
 
 =item X10_Ote;
 
-Not sure what this is :)
+This supports the OTE X10 themostat from Ouellet Canada.
+
 
 =item X10_Sensor;
 
@@ -1343,6 +1347,20 @@ Do you have any of those handy little X10 MS12A battery-powered motion sensors?
 Here's your answer - use the X10_Sensor instead of the Serial_Item when you define
 it, and your house will notice when your sensor hasn't been tripped in 24 hours,
 allowing you to check on the batteries.
+
+If you have an sensor that detects and sends codes for daytime and nighttime (light and dark levels), 
+pass in a model number of MS13.  For the id, you can use the 2 character, or 5 character X10 code.
+Here are some examples:          
+
+  $sensor_hall = new X10_Sensor('A4', 'MS13');
+
+ .mht table examples:
+
+   X10MS,      XA2AJ,  sensor_bathroom,       Sensors
+   X10MS,       A4,    sensor_hall,           Sensors,  MS13
+
+With MS13 specified, it will return states named motion,still,light, and dark.
+Without the MS13 model number, the light/dark codes will be ignored.
 
 =item RCS_TX15
 
@@ -1360,8 +1378,8 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
      new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype')
      add('data_stream', 'state_name')
 
-        'host_port' must be of the form ip_address:port or 
-        it must match a server* parm in mh.ini (e.g. server1).
+        'host_port' must be of the form ip_address:port (when creating a client) or 
+        it must match a server_* parm in mh.ini (when creating a server) (e.g. server_telnet_port).
 
         'host_protocol' can be 'tcp' or 'udp'.  Default is 'tcp'
 
@@ -1423,12 +1441,15 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
 
   Examples:
 
+                  # An example of a server socket
+                  # Add this mh.ini parm:  server_speak_port = 8090
     $socket_server = new  Socket_Item(undef, undef, 'server_speak');
     if (my $data = said $socket_server) {
        print "speak_server socket data: $data\n";
        speak $data;
     }
 
+                  # An example of a client socket
     my $lcdproc_address = 'misterhouse:13666';
     $lcdproc = new  Socket_Item(undef, undef, $lcdproc_address, 'lcdproc');
 
@@ -1442,7 +1463,7 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
                                Number => 4, Number => 11) if said $router_reboot;
 
 More examples are in mh/code/bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
-my/code/bruce/mh_watchdog.pl, and mh/code/test/socket_test.pl
+my/code/bruce/mh_watchdog.pl, mh/code/test/socket_test.pl, and mh/code/examples/socket_test.pl
 
 
 =item Timer
@@ -3619,6 +3640,8 @@ These are the record types:
  A:  what Action to run (either a voice cmd or code to eval)
  R:  what Response to display. 
      last_response will pick up the last mh response
+     no_response   will return no response
+     href=url      will goto the url (is using a web browser)
      If not specified, defaults to select state or last_response.
      Begin with eval to eval the string first.
 
@@ -4323,6 +4346,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.55  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.54  2002/07/01 22:25:28  winter
 # - 2.69 release
 #

@@ -64,23 +64,25 @@ sub use_ua {
     $ua -> proxy(['http', 'ftp'] => $config_parms{proxy}) if $config_parms{proxy};
 
     $ua->timeout([120]);         # Time out after 60 seconds 
-    $ua->env_proxy(); 
+    $ua->env_proxy();
+    $ua->agent($config_parms{get_url_ua}) if $config_parms{get_url_ua};
 
     my $request = new HTTP::Request('GET', $url);
     my $response;
+    
     if ($file) {
         print "Retrieving (with ua) $url into $file ..." unless $config_parms{quiet};
         if ($file eq '/dev/null') {
-            $response = $ua->simple_request($request);
+            $response = $ua->request($request);
         }
         else {
-            $response = $ua->simple_request($request, $file);
+            $response = $ua->request($request, $file);
         }
         print " url retrieved.\n" unless $config_parms{quiet};
         exit;
     }
     else {
-        $response = $ua->simple_request($request);
+        $response = $ua->request($request);
         print $response->content();
     }
     if ($response->is_error()) {
@@ -95,6 +97,7 @@ sub use_get {
         
         # Do not use simple get ... it will not time out :(
         my $data = get $url;
+#       print $data;
         unless ($file eq '/dev/null') {
             if ($data) {
                 open (OUT, ">$file") or die "Error, could not open file $file for output\n";
@@ -114,6 +117,9 @@ sub use_get {
 
 #
 # $Log$
+# Revision 1.13  2002/08/22 04:33:18  winter
+# - 2.70 release
+#
 # Revision 1.12  2002/03/02 02:36:49  winter
 # - 2.65 release
 #

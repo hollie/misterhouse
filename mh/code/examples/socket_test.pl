@@ -32,3 +32,12 @@ if (my $data = said $client1) {
 }
 
 
+# Here is an example on how to create a mh server, instead of clients like above.
+# Add this  mh.ini parm, so the server is created on startup:
+#   server_myserver_port=8012
+# Then monitor the server port with this:
+
+ $myserver = new  Socket_Item(undef, undef, 'myserver');
+ print_log "myserver data: $temp" if $temp = said $myserver;
+
+

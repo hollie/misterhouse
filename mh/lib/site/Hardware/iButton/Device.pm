@@ -860,76 +860,190 @@ use strict;
 use vars qw(@ISA);
 
 @ISA = qw(Hardware::iButton::Device);
-sub read_humidity
-{
-    my($self) = @_;
+#
+# From SHTxx Sensmitter Humidity & Temperature Application Note 
+# Dewpoint calculation 
+#    1 Introduction 
+# From the relative humidity and temperature the dewpoint temperature can 
+# easily be calculated. 
+#    2 Revision History 
+# November 18, 2001    C2  URO    Revision 0.9 (Preliminary) 
+#    3  Theory 
+# Definition of dewpoint: 
+# The temperature that the air must reach for the air to hold the maximum
+# amount of moisture it can. When the temperature cools 
+# to the dewpoint, the air becomes saturated and fog, or dew or frost 
+# can occur. 
+# 
+# The  following  formula (F.A.Berry,Jr. Handbook of Meteorology, McGraw-Hill
+# Book Company, 1945, page 343) calculates  the  dewpoint  from  relative  
+# humidity  and  temperature.  All temperatures  are  in Celsius. 
+# 
+# EW = 10^ ( 0.66077+7.5*T/ (237.3+T) ) %                            saturation vapor pressure over water.
+# EW_RH = EW * RH / 100 %                                            multiply with relative humidity
+# Dp = ((0.66077-log10(EW_RH))*237.3) % / (log10(EW_RH)-8.16077) %   dewpoint
+# Simplified:
+# LogEW = ( 0.66077+7.5*T/ (237.3+T)+(log10(RH)-2)   %
+# Dp = ((0.66077-logEW)*237.3) / (logEW-8.16077) % this is the dewpoint 
+# Example:   RH=10% T=25C     -> EW=  23.7465 -> Dewpoint = -8.69°C 
+#            RH=90% T=50C     -> EW=  92.4753 -> Dewpoint = 47.89°C 
+# 
+# This formula is a commonly used approximation. See Figure 1 for the 
+# deviation to the actual value between .40°C and 100°C. 
+# A more far more complex calculation is described in 
+#     Bob Hardy, Thunder Scientific Corporation, Albuquerque, NM, USA 
+#     The proceedings of the Third international Symposium on Humidity 
+#     & Moisture, Teddington, London, England, April 1998. 
+# 
+# See DS2438 datasheet for more details on the operation of this object
+#
+# Bytes seem to be offset by +2 for retrieval
+# Byte 0 - Status/Configuration
+# Byte 1&2 - Temp
+# Byte 3&4 - Voltage
+# Byte 5&6 - Current
+# Byte 7 Threshold
+# Byte 8 CRC
 
-    print "\nhumidity\n";
-
-    my $Vdd = $self->Volt_Reading(1);
-    my $Vad = $self->Volt_Reading(0);
-
-
-    my $temp = Get_Temperature();
-
-    my $humid = ((($Vad/$Vdd) - 0.16)/0.0062)/(1.0546 - 0.00216 * $temp);
-
-    print "\n\n";
-
+sub Get_Temp_2438{
+    # This is common to all DS2438 readings - in Celsius
+    my $result="";
     my $this = shift;
-    $this->Volt( @_ );
-
-
-}
-
-sub Volt_Reading
-{
-	my($vdd)=@_;
-    my $this = shift;	
     my $c = $this->{'connection'};
     return undef if !$c->connected();
-    if (Volt_AD($vdd))
+    if ($this->select()) {my $result = $c->owBlock("\x4E\x00\x00");}  # Write SP  - ICA CA EE act
+    #if ($this->select()) {my $result = $c->owBlock("\x48\x00");}      # Copy SP
+    if ($this->select()) {my $result = $c->owBlock("\x44");}          # Temp Convert
+    if ($this->select()) {my $result = $c->owBlock("\xB8\x00");}      # Memory Recall Page0
+    if ($this->select()) {
+        my $result = $c->owBlock("\xBE\x00".("\xFF" x 9));    # Read 9 bytes from Page0
+        if ($result)
+        {
+            # return undef if !$c->docrc8(substr ($result,1)); # Perform CRC no last eight bytes
+            #collect @data[3] and @data[4] for Temp
+            #compare @data[2] to 7 for proper Vad setting
+            my @data = unpack("C*",$result);
+            #if ((@data[2] & 7) ne 7)
+            #{
+            #    if ($this->select()) {
+            #        my $result = $c->owBlock("\x4E\x00\x07");
+            #        my $result = $c->owBlock("\x48\x00");
+            #    }  # Write SP  - ICA CA EE active
+            #}
+            my $sign = $data[4] > 128 ? -1 : 1;
+            my $temp = sprintf ("%3.2f",((($data[4] * 256) + $data[3]) * $sign * 0.03125 / 8));
+            #$temp = sprintf ("%3.2f",$temp);
+            return $temp;
+        }
+        else
+        {
+            return undef;
+        }
+    }
+    else
     {
+        return undef;
     }
 }
 
-sub Volt_AD
-{
-	my($vdd)=@_;
-    my $this = shift;	
+sub Get_Vad_2438{
+    my $this = shift;
+    my $result="";
     my $c = $this->{'connection'};
     return undef if !$c->connected();
-	# access the device 
-	if ($this->select() ) 
-	{
-	    my $send = "\xB8\x00";
-	    my $result = $c->owBlock( $send );
-
-	    $send = "\xBE\x00" . ( "\xFF" x 9 );
-	    $result = $c->owBlock( $send );
-	    if ( $result ) 
-		{
-			# perform the CRC8 on the last 8 bytes of packet
-			return $result if !$c->docrc8( substr( $result, 1 ) );
-
-			if ( $result ) 
-			{
-				my @data = unpack( "C*", $result );
-				my $sign = substr( $result, 2 ) > 128 ? -1 : 1;
-				my $temp = ((substr( $result, 2 ) & 0x07) * 256 + substr( $result, 1 )) / 16 * $sign;
-				return $temp;
-			}
-
-
-			return $result if !$c->docrc8( substr( $result, 1 ) );
-	    }
-	}
+    if ($this->select()) {my $result = $c->owBlock("\x4E\x00\x00");}  # Write SP  - ICA CA EE act
+    #if ($this->select()) {my $result = $c->owBlock("\x48\x00");}      # Copy SP
+    if ($this->select()) {my $result = $c->owBlock("\xB4");}          # Volt Convert A/D
+    if ($this->select()) {my $result = $c->owBlock("\xB8\x00");}      # Memory Recall Page0
+    if ($this->select()) {
+        my $result = $c->owBlock("\xBE\x00".("\xFF" x 9));   # Read 9 bytes from Page0
+        if ($result)
+        {
+            #collect @data[5] and @data[6] for Volt
+            #compare @data[2] to 7 for proper Vad setting
+            my @data = unpack("C*",$result);
+            #if ((@data[2] & 7) ne 7)
+            #{
+            #    if ($this->select()) {my $result = $c->owBlock("\x4E\x00\x07");}  # Write SP  - ICA CA EE act
+            #}
+            my $volt = sprintf ("%3.2f",((($data[6] * 256) + $data[5])/100));
+            return $volt;
+        }
+        else
+        {
+            return undef;
+        }
+    }
+    else
+    {
+        return undef;
+    }
 }
 
-sub Get_Temperature
-{
+sub Get_Vdd_2438{
+    my $this = shift;
+    my $result="";
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    if ($this->select()) {my $result = $c->owBlock("\x4E\x00\x08");}  # Write SP  - ICA CA EE AD act
+    #if ($this->select()) {my $result = $c->owBlock("\x48\x00");}      # Copy SP
+    if ($this->select()) {my $result = $c->owBlock("\xB4");}          # Volt Convert A/D
+    if ($this->select()) {my $result = $c->owBlock("\xB8\x00");}      # Memory Recall Page0
+    if ($this->select()) {
+        my $result = $c->owBlock("\xBE\x00".("\xFF" x 9));    # Read 9 bytes from Page0
+        if ($result)
+        {
+            #collect @data[5] and @data[6] for Volt
+            #compare @data[2] to 15 for proper Vdd setting
+            my @data = unpack("C*",$result);
+            #if ((@data[2] & 15) ne 15)
+            #{
+            #    if ($this->select()) {my $result = $c->owBlock("\x4E\x00\x0F");}  # Write SP  - ICA CA EE act
+            #}
+            my $volt = sprintf ("%3.2f",((($data[6] * 256) + $data[5])/100));
+                return $volt;
+        }
+        else
+        {
+            return undef;
+        }
+    }
+    else
+    {
+        return undef;
+    }
 }
 
+sub Get_Vsens_2438{
+    my $this = shift;
+    my $result="";
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    # Convert temp
+    if ($this->select()) {my $result = $c->owBlock("\x4E\x00\x00");}  # Write SP  - ICA CA EE AD act
+    #if ($this->select()) {my $result = $c->owBlock("\x48\x00");}      # Copy SP
+    if ($this->select()) {my $result = $c->owBlock("\xB4");}          # Volt Convert A/D
+    if ($this->select()) {my $result = $c->owBlock("\xB8\x00");}      # Memory Recall Page0
+    if ($this->select()) {
+        my $result = $c->owBlock("\xBE\x00".("\xFF" x 9));   # Read 9 bytes from Page0
+        if ($result)
+        {
+            #collect @data[7] and @data[8] for Volt
+            #compare @data[2] to 7 for proper Vad setting
+            my @data = unpack("C*",$result);
+            #if ((@data[2] & 7) ne 7)
+            #{
+            #    if ($this->select()) {my $result = $c->owBlock("\x4E\x00\x07");}  # Write SP  - ICA CA EE act
+            #}
+            my $volt = sprintf ("%3.2f",((($data[8] * 256) + $data[7])/100));
+            return $volt;
+        }
+    }
+    else
+    {
+        return undef;
+    }
+}
 
 package Hardware::iButton::Device::DS1957B;
 # this is a crypto button.

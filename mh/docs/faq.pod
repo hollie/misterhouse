@@ -143,19 +143,27 @@ You can send mh commands (Voice_Cmd text strings) from other programs in many wa
 is mh/house_cmd.txt. See mh/bin/house and mh/bin/house.bat for examples.
 
 - Use mh/bin/mhsend to send commands via sockets (can be over the internet).  If you have
-run mh/bin/set_password, the mhsend -password parm is required.   To enable this, include
-the code mh/test/code/mhsend_server.pl in your code directory.  
+run mh/bin/set_password, the mhsend -password parm is required.   Some examples:
 
-For example, from a computer on your network, you can run this:
-
- .../mh/bin/mhsend -host ip.A -run "All Lights On"
+  mh/bin/mhsend -host ip.A -run "All Lights On"
+  mhsend -p password -run "turn living room light on"
 
 Where ip.A is computer A's ip address (or name if you have a HOST file setup
 to alias a name to an ip address).  mhsend is a stand alone perl script,
 so you do not need mh running there (although it will not hurt).
+The code that allows this is in mh/code/common/mhsend_server.pl.
+An example of mh code to act as a client to different mh box is in mh/code/examples/test_server2.pl
 
-You can also control mh remotely via email (see faq question 'Can do I send mh comands via email?'),
-telnet sessions (if running mh/code/test/telent.pl), and via the built in web server.
+- You can also control mh remotely via email (see faq question 'Can do I send mh comands via email?'),
+telnet sessions (if running mh/code/test/telent.pl), and via the built in web server.  An example url
+for the web server is:
+
+  http://192.168.1.10:8080/RUN;last_response?turn_living_room_light_on
+
+- If you are runing IM client (if running code file internet_im.pl) 
+like AOL AIM, MSN, or Jabber, you can any voice command to 
+MisterHouse if you give Misterhouse its own account to logon with.
+
 
 
 =head2 1.11: How can I debug a problem?
@@ -1573,6 +1581,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.32  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.31  2002/07/01 22:25:28  winter
 # - 2.69 release
 #

@@ -213,6 +213,7 @@ Unzip speech_api.zip, then run spchapi.exe to install the speech API.</P>
 <P>Unzip msvoice.zip from speech_api.zip into a directory to store the msvoice app in (e.g. /misterhouse/msvoice). 
 Then run msvoice.exe to start the ``Microsoft Voice'' application. 
 Once running, you can use the ``Voice Command Options'' menu from the green V in your tray to pick your default voice.</P>
+<P>To enable VR from MisterHouse, set this mh.ini parm:  voice_cmd = MS (or MSV4)</P>
 <P>Other TTS engines, including those for British English, Dutch, French, German, Italian, Portuguese, and Spanish
 can be downloaded from <A HREF="http://www.nextup.com/TextAloud/SpeechEngine/voices.html">http://www.nextup.com/TextAloud/SpeechEngine/voices.html</A></P>
 <P>
@@ -262,6 +263,8 @@ also try the CPAN installer like this:</P>
   cpan&gt; install Audio::Mixer  (if on Linux)
   cpan&gt; install GD
   cpan&gt; exit</PRE>
+<P>The first time you run the CPAN code, it creates a configuration file.  
+The default (press enter) usually is good for most questions.</P>
 <P>There are some example start/stop/restart .rc files in mh/bin/misterhouse*.rc</P>
 <P>
 <H2><A NAME="unix step 3, download and install a speech engines">UNIX Step 3, Download and Install a Speech Engines</A></H2>
@@ -287,16 +290,14 @@ a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to
 <A HREF="http://tcts.fpms.ac.be/synthesis/mbrola.html">http://tcts.fpms.ac.be/synthesis/mbrola.html</A> 
 that has a very nice US english male and female voice.</P>
 <P>Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.</P>
-<P>The IBM ViaVoice TTS engine for Linux is available from
-<A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A> .
-Here is the download link: <A HREF="http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm">http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm</A></P>
+<P>The IBM ViaVoice TTS and Voice Recognition engines is no longer available (as of 05/2002) 
+from the IBM site ( <A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A> ), but can still be found here: 
+<A HREF="http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/">http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/</A>
+The TTS engines can also be found here:
+<A HREF="ftp://people.redhat.com/jlamb/">ftp://people.redhat.com/jlamb/</A></P>
 <P>To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
 <A HREF="http://www.reednet.org/ViaVoiceTTS">http://www.reednet.org/ViaVoiceTTS</A>  , then set your mh.ini voice_text=vv_tts or voice_text=viavoice
 (vv_tts is a bit fancier, queing up speech and has more mh.ini options).</P>
-<P>The IBM ViaVoice Voice Recognition engine is no longer available (as of 05/2002) from
-<A HREF="http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm.">http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm.</A> 
-These instructions are here for future reference, in hopes that the modules 
-will become available again.</P>
 <P>Download and install (as root) these rpms:
 </P>
 <PRE>
@@ -455,10 +456,14 @@ up your own code and data directories.  Here is an example:</P>
    - Delete all the records from your mh.private.ini that you don't change 
      since the default mh\bin\mh.ini will also be read.</PRE>
 <PRE>
-   - Change these entries
-      code_dir         = C:\misterhouse\code
-      data_dir         = C:\misterhouse\data
-      sound_dir        = C:\misterhouse\sounds</PRE>
+   - Change these entries (note: Forward slashes are best in perl)
+      code_dir         = C:/misterhouse/code
+      data_dir         = C:/misterhouse/data
+      sound_dir        = C:/misterhouse/sounds
+</PRE>
+<PRE>
+
+ Note that you should use /, not \, on paths, on Windows, just like Unix.</PRE>
 <PRE>
  On windows, add this to your autoexec.bat:
    set mh_parms=c:\misterHouse\mh.private.ini</PRE>

@@ -23,7 +23,9 @@ $v_what_time-> set_authority('anyone');
 
 if (said $v_what_time) {
     my $temp = "It is $Holiday" if $Holiday;
-    speak "It is $Time_Now on $Date_Now_Speakable. $temp";
+              # Avoid really speaking if command was from an Instant Messanger
+    my $mode = (get_set_by $v_what_time eq 'im') ? 'mode=mute' : '';
+    speak "$mode It is $Time_Now on $Date_Now_Speakable. $temp";
 }
 
 speak "Today is $Holiday" if $Holiday and time_cron '30 9,12,19 * * *';

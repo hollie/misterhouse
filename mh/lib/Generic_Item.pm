@@ -5,7 +5,7 @@ use strict;
 
 package Generic_Item;
 
-my (@reset_states, @states_from_previous_pass);
+my (@reset_states, @states_from_previous_pass, @recently_changed);
 use vars qw(@items_with_tied_times);
 
 sub new {
@@ -239,6 +239,11 @@ sub set_states_for_next_pass {
     $ref->{set_by} = ($set_by) ? $set_by : $ref;
 }
 
+                                # You can use this for an undo function
+sub recently_changed {
+    return wantarray ? @recently_changed : $recently_changed[0];
+}
+
                                 # Reset, then set, states from previous pass
 sub reset_states {
     my $ref;
@@ -265,6 +270,11 @@ sub reset_states {
             ( defined $state and  defined $ref->{state_prev} and $state ne $ref->{state_prev})) {
             $ref->{state_changed} = $state;
         }
+                                # This allows for an 'undo' function
+        unless ($ref->isa('Voice_Cmd')) {
+            unshift @recently_changed, $ref;
+            pop     @recently_changed if @recently_changed > 20;
+        }
     }
     @states_from_previous_pass = @items_with_more_states;
 
@@ -279,7 +289,7 @@ sub tie_items {
     $state         = 'all_states' unless defined $state;
     $desiredstate  = $state       unless defined $desiredstate;
     $log_msg = 1            unless $log_msg;
-    return if $$self{tied_objects}{$object}{$state};
+    return if $$self{tied_objects}{$object}{$state}{$desiredstate};
     $$self{tied_objects}{$object}{$state}{$desiredstate} = [$object, $log_msg];
 }
 
@@ -384,6 +394,9 @@ sub get_web_style {
 
 #
 # $Log$
+# Revision 1.20  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.19  2002/05/28 13:07:51  winter
 # - 2.68 release
 #

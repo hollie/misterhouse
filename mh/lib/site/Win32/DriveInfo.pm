@@ -1,23 +1,23 @@
-#  Copyright (c) 1998 by Mike Blazer.  All rights reserved.
-#  This program is free software; you can redistribute it and/or modify
-#  it under the same terms as Perl itself.
-
-#  Full POD documentation is availible at the end of the code
+#  Copyright (c) 1998-2001 by Mike Blazer.  All rights reserved.
 
 package Win32::DriveInfo;
 
-use vars qw($VERSION);
-$Win32::DriveInfo::VERSION = '0.01';
-
 use Win32::API;
+use Cwd;
 use strict 'vars';
+use vars qw/$VERSION
+  $GetVolumeInformation $GetDriveType $GetLogicalDrives
+  $GetVersionEx $GetDiskFreeSpace $GetDiskFreeSpaceEx/;
+
+use constant DWORD_NULL => pack("L",0);
+$VERSION = '0.06';
 
 #==================
-sub GetVersionEx {
+sub GetVersionEx () {
 #==================
 # on Win95 if returning $dwBuildNumber(low word of original)
 # is greater than 1000, the system is running OSR 2 or a later release.
-   my $h = new Win32::API("kernel32", "GetVersionEx", [P], N);
+   $GetVersionEx ||= new Win32::API("kernel32", "GetVersionEx", ['P'], 'N') or return;
 
    my ($dwOSVersionInfoSize, $dwMajorVersion, $dwMinorVersion,
        $dwBuildNumber,       $dwPlatformId,   $szCSDVersion) =
@@ -27,7 +27,7 @@ sub GetVersionEx {
       ($dwOSVersionInfoSize, $dwMajorVersion, $dwMinorVersion,
        $dwBuildNumber,       $dwPlatformId,   $szCSDVersion);
 
-   return undef if $h->Call($OSVERSIONINFO) == 0;
+   return undef if $GetVersionEx->Call($OSVERSIONINFO) == 0;
    ($dwOSVersionInfoSize, $dwMajorVersion, $dwMinorVersion,
     $dwBuildNumber,       $dwPlatformId,   $szCSDVersion) =
    unpack "LLLLLa128", $OSVERSIONINFO;
@@ -41,48 +41,49 @@ sub GetVersionEx {
 }
 
 #==================
-sub GetDiskFreeSpace {
+sub GetDiskFreeSpace ($) {
 #==================
    my $drive = shift;
    return undef unless $drive =~ s/^([a-z])(:(\\)?)?$/$1:\\/i;
 
-   my $h = new Win32::API("kernel32", "GetDiskFreeSpace", [P,P,P,P,P], N);
-   return undef unless $h =~ /Win32::API/i;
+   $GetDiskFreeSpace ||=
+     new Win32::API("kernel32", "GetDiskFreeSpace", ['P','P','P','P','P'], 'N') or return;
 
    my ($lpRootPathName, $lpSectorsPerCluster, $lpBytesPerSector,
        $lpNumberOfFreeClusters, $lpTotalNumberOfClusters) =
-       ($drive, "\0\0\0\0", "\0\0\0\0", "\0\0\0\0", "\0\0\0\0");
-   return undef if $h->Call(
+       ($drive, DWORD_NULL, DWORD_NULL, DWORD_NULL, DWORD_NULL);
+
+   return undef if $GetDiskFreeSpace->Call(
      $lpRootPathName, $lpSectorsPerCluster, $lpBytesPerSector,
      $lpNumberOfFreeClusters, $lpTotalNumberOfClusters
    ) == 0;
 
    ($lpSectorsPerCluster, $lpBytesPerSector,
     $lpNumberOfFreeClusters, $lpTotalNumberOfClusters) =
-   (unpack (L,$lpSectorsPerCluster),
-    unpack (L,$lpBytesPerSector),
-    unpack (L,$lpNumberOfFreeClusters),
-    unpack (L,$lpTotalNumberOfClusters));
+   (unpack ("L",$lpSectorsPerCluster),
+    unpack ("L",$lpBytesPerSector),
+    unpack ("L",$lpNumberOfFreeClusters),
+    unpack ("L",$lpTotalNumberOfClusters));
 
    ($lpSectorsPerCluster, $lpBytesPerSector,
     $lpNumberOfFreeClusters, $lpTotalNumberOfClusters);
 }
 
 #==================
-sub GetDiskFreeSpaceEx {
+sub GetDiskFreeSpaceEx ($) {
 #==================
    my $drive = shift;
    return undef unless $drive =~ s/^([a-z])(:(\\)?)?$/$1:\\/i ||
-                       $drive =~ s/^(\\\\\w+\\\w+)(\\)?$/$1\\/;
+                       $drive =~ s/^(\\\\\w+\\\w+\$?)(\\)?$/$1\\/;
 
-   my $h = new Win32::API("kernel32", "GetDiskFreeSpaceEx", [P,P,P,P], N);
-   return undef unless $h =~ /Win32::API/i;
+   $GetDiskFreeSpaceEx ||=
+       new Win32::API("kernel32", "GetDiskFreeSpaceEx", ['P','P','P','P'], 'N') or return;
 
    my ($lpDirectoryName, $lpFreeBytesAvailableToCaller,
        $lpTotalNumberOfBytes, $lpTotalNumberOfFreeBytes) =
-      ($drive, "\0\0\0\0", "\0\0\0\0", "\0\0\0\0");
+      ($drive, "\0"x8, "\0"x8, "\0"x8);
 
-   return undef if $h->Call(
+   return undef if $GetDiskFreeSpaceEx->Call(
      $lpDirectoryName, $lpFreeBytesAvailableToCaller,
      $lpTotalNumberOfBytes, $lpTotalNumberOfFreeBytes
    ) == 0;
@@ -90,35 +91,40 @@ sub GetDiskFreeSpaceEx {
    ($lpFreeBytesAvailableToCaller,
     $lpTotalNumberOfBytes,
     $lpTotalNumberOfFreeBytes) =
-   (unpack (L,$lpFreeBytesAvailableToCaller),
-    unpack (L,$lpTotalNumberOfBytes),
-    unpack (L,$lpTotalNumberOfFreeBytes));
+   (unpack_LARGE_INTEGER ($lpFreeBytesAvailableToCaller),
+    unpack_LARGE_INTEGER ($lpTotalNumberOfBytes),
+    unpack_LARGE_INTEGER ($lpTotalNumberOfFreeBytes));
 
    ($lpFreeBytesAvailableToCaller, $lpTotalNumberOfBytes,
     $lpTotalNumberOfFreeBytes);
 }
 
-#==================
-sub DriveType {
-#==================
-   my $drive = shift;
-   return undef unless $drive =~ s/^([a-z])(:(\\)?)?$/$1:\\/i ||
-                       $drive =~ s/^(\\\\\w+\\\w+)(\\)?$/$1\\/;
-
-   my $h = new Win32::API("kernel32", "GetDriveType", [P], N);
-   return undef unless $h =~ /Win32::API/i;
-
-   my ($lpDirectoryName) = $drive;
-
-   my $type = $h->Call( $lpDirectoryName );
+#==========================
+sub unpack_LARGE_INTEGER ($) {
+  my ($b, $a) = unpack "LL", shift;
+  $a*2**32+$b;
 }
 
 #==================
-sub DriveSpace {
+sub DriveType ($) {
+#==================
+   my $drive = shift;
+   return undef unless $drive =~ s/^([a-z])(:(\\)?)?$/$1:\\/i ||
+                       $drive =~ s/^(\\\\\w+\\\w+\$?)(\\)?$/$1\\/;
+
+   $GetDriveType ||= new Win32::API("kernel32", "GetDriveType", ['P'], 'N') or return;
+
+   my ($lpDirectoryName) = $drive;
+
+   my $type = $GetDriveType->Call( $lpDirectoryName );
+}
+
+#==================
+sub DriveSpace ($) {
 #==================
   my $drive = shift;
   return undef unless $drive =~ s/^([a-z])(:(\\)?)?$/$1:\\/i ||
-                      $drive =~ s/^(\\\\\w+\\\w+)(\\)?$/$1\\/;
+                      $drive =~ s/^(\\\\\w+\\\w+\$?)(\\)?$/$1\\/;
 
   my ($MajorVersion, $MinorVersion, $BuildNumber, $PlatformId, $BuildStr) = GetVersionEx();
   my ($FreeBytesAvailableToCaller, $TotalNumberOfBytes, $TotalNumberOfFreeBytes);
@@ -150,27 +156,25 @@ sub DriveSpace {
 }
 
 #===========================
-sub DrivesInUse {
+sub DrivesInUse () {
 #===========================
    my (@dr, $i);
-   my $h = new Win32::API("kernel32", "GetLogicalDrives", [], N);
-   return undef unless $h =~ /Win32::API/i;
+   $GetLogicalDrives ||= new Win32::API("kernel32", "GetLogicalDrives", [], 'N') or return;
 
-   my $bitmask = $h->Call();
+   my $bitmask = $GetLogicalDrives->Call;
    for $i(0..25) {
-     push (@dr, (A..Z)[$i]) if $bitmask & 2**$i;
+     push (@dr, chr(ord("A")+$i)) if $bitmask & 2**$i;
    }
    @dr;
 }
 
 #===========================
-sub FreeDriveLetters {
+sub FreeDriveLetters () {
 #===========================
    my (@dr, $i);
-   my $h = new Win32::API("kernel32", "GetLogicalDrives", [], N);
-   return undef unless $h =~ /Win32::API/i;
+   $GetLogicalDrives ||= new Win32::API("kernel32", "GetLogicalDrives", [], 'N') or return;
 
-   my $bitmask = $h->Call();
+   my $bitmask = $GetLogicalDrives->Call;
    for $i(0..25) {
      push (@dr, (A..Z)[$i]) unless $bitmask & 2**$i;
    }
@@ -178,34 +182,51 @@ sub FreeDriveLetters {
 }
 
 #==================
-sub VolumeInfo {
+sub IsReady ($) {
+#==================
+   my $drive = shift;
+   return undef unless $drive =~ s/^([a-z])(:(\\)?)?$/$1:\\/i ||
+                       $drive =~ s/^(\\\\\w+\\\w+\$?)(\\)?$/$1\\/;
+   my $dir = cwd;
+   my $rc  = chdir $drive;
+   chdir $dir;
+   $rc;
+}
+
+#==================
+sub VolumeInfo ($) {
 #==================
    my $drive = shift;
    return undef unless $drive =~ s/^([a-z])(:(\\)?)?$/$1:\\/i;
 
-   my $h = new Win32::API("kernel32", "GetVolumeInformation", [P,P,N,P,P,P,P,N], N);
-   return undef unless $h =~ /Win32::API/i;
+   $GetVolumeInformation ||=
+    new Win32::API("kernel32", "GetVolumeInformation", ['P','P','N','P','P','P','P','N'], 'N') or return;
 
    my ($lpRootPathName, $lpVolumeNameBuffer, $nVolumeNameSize,
        $lpVolumeSerialNumber, $lpMaximumComponentLength, $lpFileSystemFlags,
        $lpFileSystemNameBuffer, $nFileSystemNameSize) =
-       ($drive, "\0"x256, 256, "\0\0\0\0", "\0\0\0\0", "\0\0\0\0", "\0"x256, 256);
-   return undef if $h->Call(
+       ($drive, "\0"x256, 256, DWORD_NULL, DWORD_NULL, DWORD_NULL, "\0"x256, 256);
+
+   return undef if $GetVolumeInformation->Call(
      $lpRootPathName, $lpVolumeNameBuffer, $nVolumeNameSize,
      $lpVolumeSerialNumber, $lpMaximumComponentLength, $lpFileSystemFlags,
      $lpFileSystemNameBuffer, $nFileSystemNameSize
    ) == 0;
 
    ($lpVolumeSerialNumber, $lpMaximumComponentLength, $lpFileSystemFlags) =
-   (unpack (L,$lpVolumeSerialNumber),
-    unpack (L,$lpMaximumComponentLength),
-    unpack (L,$lpFileSystemFlags));
+   (unpack ("L",$lpVolumeSerialNumber),
+    unpack ("L",$lpMaximumComponentLength),
+    unpack ("L",$lpFileSystemFlags));
 
    $lpVolumeNameBuffer     =~ s/\0.*$//;
    $lpFileSystemNameBuffer =~ s/\0.*$//;
 
-   $lpVolumeSerialNumber = uc sprintf "%08x", $lpVolumeSerialNumber;
-   $lpVolumeSerialNumber =~ s/(....)(....)/$1:$2/;
+   if ($lpVolumeSerialNumber) {
+     $lpVolumeSerialNumber = uc sprintf "%08x", $lpVolumeSerialNumber;
+     $lpVolumeSerialNumber =~ s/(....)(....)/$1:$2/;
+   } else {
+     $lpVolumeSerialNumber = "";
+   }
 
    my @attr;
    if ($lpFileSystemFlags & FS_CASE_IS_PRESERVED      () ) { push @attr, 1 }
@@ -266,6 +287,11 @@ Win32::DriveInfo - drives on Win32 systems
      ($MajorVersion, $MinorVersion, $BuildNumber,
       $PlatformId, $BuildStr) = Win32::DriveInfo::GetVersionEx();
 
+     # check is your CD-ROM loaded
+     $CDROM = ( grep { Win32::DriveInfo::DriveType($_) == 5 }
+	Win32::DriveInfo::DrivesInUse() )[0];
+     $CD_inside = Win32::DriveInfo::IsReady($CDROM);
+
 =head1 ABSTRACT
 
 With this module you can get total/free space on Win32 drives,
@@ -278,11 +304,11 @@ functionality on Win95/98.
 
 The current version of Win32::DriveInfo is available at:
 
-  http://www.dux.ru/guest/fno/perl/
+  http://base.dux.ru/guest/fno/perl/
 
 =head1 DESCRIPTION
 
-=over4
+=over 4
 
 Module provides few functions:
 
@@ -347,12 +373,27 @@ Returns integer value:
    4     - the drive is a remote (network) drive.
    5     - the drive is a CD-ROM drive.
    6     - the drive is a RAM disk.
- 
+
    drive - drive-letter in either 'c' or 'c:' or 'c:\\' form or UNC path
            in either "\\\\server\\share" or "\\\\server\\share\\" form.
 
 In case of UNC path 4 will be returned that means that
 networked drive is available (1 - if not available).
+
+=item IsReady ( drive )
+
+Returns TRUE if root of the C<drive> is accessible, otherwise FALSE.
+This one isn't really something cool - the function just tries to
+chdir to the C<drive>'s root. This takes time and produces unpleasant
+sound in case the removable drive is not loaded. If somebody knows
+some better way to determine is there something inside your CD-ROM
+or FDD - please let me know (in fact CD-ROMs, RAM drives and network
+drives return their status fast,
+may be some other devices make problem, dunno).
+
+   drive - drive-letter in either 'c' or 'c:' or 'c:\\' form or UNC path
+           in either "\\\\server\\share" or "\\\\server\\share\\" form.
+
 
 =item VolumeInfo ( drive )
 
@@ -371,7 +412,7 @@ C<$FileSystemName, @attr) => B<Win32::DriveInfo::VolumeInfo> ( drive );
         the value 255, rather than the previous 8.3 indicator. Long names can
         also be supported on systems that use the New Technology file system
         (NTFS).
-   $FileSystemName         - name of the file system (such as FAT or NTFS).
+   $FileSystemName         - name of the file system (such as FAT, FAT32, CDFS or NTFS).
    @attr                   - array of integers 1-6
      1 - file system preserves the case of filenames
      2 - file system supports case-sensitive filenames
@@ -394,7 +435,7 @@ B<Win32::DriveInfo::GetVersionEx> ( );
    $MinorVersion - minor version number of the operating system. For Windows NT
                    version 3.51, it's 51; for Windows NT version 4.0, it's 0.
    $BuildNumber  - build number of the operating system.
-   $PlatformId   - 0 for Win32s, 1 for Win95/98 (? - not verified), 2 for Win NT
+   $PlatformId   - 0 for Win32s, 1 for Win95/98, 2 for Win NT
    $BuildStr     - Windows NT: Contains string, such as "Service Pack 3".
                    Indicates the latest Service Pack installed on the system.
                    If no Service Pack has been installed, the string is empty.
@@ -403,30 +444,68 @@ B<Win32::DriveInfo::GetVersionEx> ( );
 
 =back
 
-You need B<Win32::API.pm> by C<Aldo Calpini> for this module.
-
 Nothing is exported by default. All functions return C<undef> on errors.
 
 =head1 INSTALLATION
 
 As this is just a plain module no special installation is needed. Just put
-it into /Win32 subdir somewhere in your @INC.
+it into /Win32 subdir somewhere in your @INC.  The standard
+
+ Makefile.PL
+ make
+ make test
+ make install
+
+installation procedure is provided. In addition
+
+ make html
+
+will produce the HTML-docs.
+
+This module requires
+
+Win32::API module by Aldo Calpini
 
 =head1 CAVEATS
 
 This module has been created and tested in a Win95 environment on GS port
-of Perl 5.004_02.  Although I expect it to function correctly on other Win32
-platforms and other ports, that fact has not been confirmed.
+of Perl 5.004_02. As it uses Win32::API module I expect it would work fine
+with other ports like ActiveState if Win32::API (API.dll) is compiled for
+this port.
+
+=head1 CHANGES
+
+ 0.02 - Austin Durbin <adurbin@earthlink.net> tested module on Win NT
+        and discovered small bug in UNC paths handling. Fixed.
+        Thanks Austin!
+
+ 0.03 - fixed bug that returned incorrect values for volumes that are
+        larger than 0x7fffffff bytes (2 GB). Approved on Win98 with FAT32.
+
+ 0.04 - added IsReady() function and MakeMaker compartible distribution.
+        Empty SerialNumber fixed. Now it's empty string, previously it
+	was evaluated to 0000:0000.
+	Minor enhancements.
+
+ 0.05 - test.pl fixed, other minor fixes. 
+	The last 0.0x version before the major update (soon!)
+
+ 0.06 - test.pl fixed more ;-)
 
 =head1 BUGS
 
-Please report.
+C<DriveSpace ( )> returns incorrect $NumberOfFreeClusters,
+$TotalNumberOfClusters values on the large ( >2M ) drives.
+Dunno whether somebody use these values or not but I'll try to
+fix this in the next release.
+
+Please report if any bugs.
 
 =head1 VERSION
 
-This man page documents Win32::DriveInfo.pm version 0.01.
+This man page documents Win32::DriveInfo version 0.06
 
-November 7, 1998.
+February 19, 2001
 
 =head1 AUTHOR
 
@@ -434,7 +513,7 @@ Mike Blazer C<<>blazer@mail.nevalink.ruC<>>
 
 =head1 COPYRIGHT
 
-Copyright (C) 1998 by Mike Blazer. All rights reserved.
+Copyright (C) 1998-2001 by Mike Blazer. All rights reserved.
 
 =head1 LICENSE
 

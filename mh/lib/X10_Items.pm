@@ -818,7 +818,10 @@ sub add {
     my ($self, $id, $name) = @_;
 
                                 # Allow for A1 and XA1AJ 
-    $id = 'X' . $id . 'AJ' if length $id == 2;
+    if (length $id == 2) {
+        my $hc = substr $id, 0, 1;
+        $id = 'X' . $id . $hc . 'J';
+    }
 
     &::print_log("Adding X10_Sensor timer for $id, $self, $name")   
     if $main::config_parms{debug} eq 'X10_Sensor';;
@@ -828,11 +831,24 @@ sub add {
     $self->{battery_timer}->{$id}->set(24*60*60, 
                        "speak \"rooms=all Battery timer for $name expired\"", 7);  
 
-    &Serial_Item::add($self, $id, $name);
-                                # create item for off signal
-    substr($id, -1, 1 ) = 'K';
-    $name .= '_stopped';
-    &Serial_Item::add($self, $id, $name);
+    my ($hc, $id2) = $id =~ /X(\S)(\S+)(\S)\S/;
+
+                                # Use $name to allow for light/dark mode.  
+                                # $name is usually redundant with object name anyway.
+    if ($name =~ /ms13/i) {
+        &Serial_Item::add($self, "X$hc${id2}${hc}J", 'motion');
+        &Serial_Item::add($self, "X$hc${id2}${hc}K", 'still');
+        $id2++;
+        $id2 = 1 if $id2 eq 'H' or $id2 eq '17';
+        &Serial_Item::add($self, "X$hc${id2}${hc}K", 'light');
+        &Serial_Item::add($self, "X$hc${id2}${hc}J", 'dark');
+    }
+    else {
+        &Serial_Item::add($self, "X$hc${id2}${hc}J", $name);
+        &Serial_Item::add($self, "X$hc${id2}${hc}K", $name . '_stopped');
+    }
+
+
     return;
 }
 
@@ -856,6 +872,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.29  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.28  2002/07/01 22:25:28  winter
 # - 2.69 release
 #

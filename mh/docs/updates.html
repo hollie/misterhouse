@@ -14,6 +14,8 @@
 	<LI><A HREF="#mister house announcement list">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#version 2.70 posted on 08//2002">Version 2.70 posted on 08/??/2002</A></LI>
+		<LI><A HREF="#version 2.69 posted on 07/03/2002">Version 2.69 posted on 07/03/2002</A></LI>
 		<LI><A HREF="#version 2.68 posted on 05/28/2002">Version 2.68 posted on 05/28/2002</A></LI>
 		<LI><A HREF="#version 2.67 posted on 05/04/2002">Version 2.67 posted on 05/04/2002</A></LI>
 		<LI><A HREF="#version 2.66 posted on 03/31/2002">Version 2.66 posted on 03/31/2002</A></LI>
@@ -92,14 +94,122 @@
 <P>- This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at <A HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A> )</P>
 <P>
-<H2><A NAME="version 2.68 posted on 05/28/2002">Version 2.68 posted on 05/28/2002</A></H2>
-<P>Version 2.6? was just uploaded to:</P>
+<H2><A NAME="version 2.70 posted on 08//2002">Version 2.70 posted on 08/??/2002</A></H2>
+<P>Version 2.70 was just uploaded to:</P>
 <PRE>
   <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
   <A HREF="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</A></PRE>
 <P><STRONG>New Features:</STRONG></P>
+<P>- Chris Witte's created mh/lib/caddx.pm and mh/code/public/caddx.* 
+for monitoring the outputs from a CADDX nx8e alarm panel.</P>
+<P>- Ryan Scott suggested we create a web/bin/get_state.pl function for returning
+object states for use by other programs, like php.
+As another approach, Douglas Parrish's sent in mh/code/public/get_state.php 
+as an example of how to get mh states from php using xml.</P>
+<P>- Added mh/bin/image_index, for creating simple photo index pages. 
+Very simple and not really mh related, but it is small and might be handy for some.
+It is what I used for the mh related photos at: <A HREF="http://misterhouse.net:81/pictures">http://misterhouse.net:81/pictures</A></P>
+<P>- Ernie Oporto updated lib/site/Hardware/iButton/Device.pm 
+to add the capability to read DS2438-based humidity sensors.
+Example in mh/code/public/iButton_ws_ernie.pl.</P>
 <P><STRONG>Bug Fixes and Other Changes:</STRONG></P>
+<P>- Mark Miller noticed that mh.ini some records without blanks padded around the '=' were not parsed correctly.</P>
+<P>- Craig Schaeffer noticed code/public/internet_ip_update.pl had and bogus 'inline' parm to a Process_Item call.</P>
+<P>- Larry Roudebush found a site hosting the lost linux IBM Viavoice files (install docs updated).</P>
+<P>- Shane Harrison and Nick Maddock noticed mh did not support mh objects in the Type-&gt;new syntax.</P>
+<P>- Wally Kissel found an updated version of Win32::DriveInfo.pm worked better on his Win2k box.</P>
+<P>I'm a little uncertain of the calculation being done for humidity, 
+but I'm hoping someone will correct me on it.  
+I've included some comments from datasheets so that people can see where the current calcs come from</P>
+<P>- Max Kelly send in mh/code/public/internet__hebcal.pl for for downloading a shabbat calendar.</P>
+<P>- Andy Oldfield updated get_url useragent option to use agent and request, rather than simple_request,
+so that it will follow redirects better.</P>
+<P>- Axel Brown added passing of %parms to vv_tts called from play, to allow for volume control.</P>
+<P>- Jeffrey Bertoia discovered a case sensitive typo in the mh/lib/weather_wmr968</P>
+<P>- Brian Rudy updated mh/code/public/weather_aws.pl</P>
+<P>- Fixed the 1.69 web menu dim button.</P>
+<P>- Added an --outdir option to image_resize, so we can store our resized photos separately from our originals.</P>
+<P>- Added a no_response option to .menu files.</P>
+<P>- Added a time_catchup_skip parm, to allow for skipping mh pause catchup mode on hybernated laptops.  
+Default is a large number.  More info in mh.ini help text.</P>
+<P>- Added a 'R: href=url' menu response option, so you can point to other web pages when web browsing menus.</P>
+<P>- Added a 'list voice commands' command in code/commond/mh_control.pl.</P>
+<P>
+<H2><A NAME="version 2.69 posted on 07/03/2002">Version 2.69 posted on 07/03/2002</A></H2>
+<P>Version 2.69 was just uploaded to:</P>
+<PRE>
+  <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
+  <A HREF="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</A></PRE>
+<P><STRONG>New Features:</STRONG></P>
+<P>- David Norwood created mh/code/public/v4l_pvr.pl and v4l_radio.pl for Linux systems.
+The pvr code (Personal Video Recorder) can record shows picked from the TV listings or shows
+that match a list of keywords.  It has a basic web interface for controlling all its functionality.   
+The v4l_radio.pl code allows you to stream music from a video4linux compatible 
+FM tuner card to shoutcast clients on your network.  Install instructions are at the top of the files.</P>
+<P>- Nick Maddock created mh/lib/Concept.pm and mh/code/public/alarm_concept.* 
+to support the Concept alarm system from <A HREF="http://www.innerrange.com">http://www.innerrange.com</A></P>
+<P>- Jeff_Ferris sent in code to access online mci voicemail.   Enable with the new mh.ini phone_voicemail_* parms,
+used by web/ia5/phone/voicemail.pl.</P>
+<P>- Andy Oldfield created mh/lib/read_table_xml.pl to support a Format=xml mht file.  
+We also now include the XPath XML parser in the mh/lib/site path.</P>
+<P>- Made quite a few changes to the new menu web interface.  
+Added optional javascript navigation keys to the web menu interface (only supported on recent NS and IE browsers).
+Allow common menu pages to be split between different .menu files. 
+Added active, color coded buttons.  See the help text for a description of state dependent colors.
+To enable an active button, your menu Action must start  with 'set $object', so we can
+associate the correct object with that button. 
+To support the above, I had to change the set_menu_default syntax from Menu1,Menu2,Menu3 to Menu1|Menu2|Menu3.</P>
+<P>- Enabled overriding of <CODE>file(s)</CODE> in html subdirectories.  Simply create an alias for the
+root directory, then populate subdirs with just the files you want to override.  For example:</P>
+<PRE>
+  html_alias2_ia5    = /misterhouse/web/ia5</PRE>
+<P>Then create a /misterhouse/web/ia5/security directory with the <CODE>file(s)</CODE> you want to override
+for the ia5 security page.</P>
+<P>- Added mh/code/test/x10_reset.pl.  This will reset all X10 devices to their previous states after a power fail was detected.</P>
+<P>- I figured out the magic incantation to allow web browsers to cache static files (e.g. image files).
+Some older browers (e.g. Audrey and CE 3.0) were already doing this,
+but the newer browsers (IE 6 and Netscape 6) were not.
+This makes things like the menu buttons and LED clock much more usable, and speeds up most web pages.
+For IE, I had to clear my disk cache before it would start caching correctly.</P>
+<P>- Registered misterhouse.com, currently pointing to the same server as misterhouse.net
+Don't worry, no commercial intent planned.  The domain name simply came up for grabs and the fees are down
+to $10 a year now, so I had little reason not go grab it :)</P>
+<P><STRONG>Bug Fixes and Other Changes:</STRONG></P>
+<P>- Added to the faq question 'What do I need to use the iButtons' with info from some recent posts.</P>
+<P>- Added shtml directive svar.  Unlike var=, the variable contents will be returned only if the web user is authorized.</P>
+<P>- Added mh.ini parm html_color_header, now used by the ia5 pages and web/bin/status_line.pl.</P>
+<P>- Added sunrise and sunset (in addition sun, which auto-picked sunrise/sunset) to web/bin/status_link.pl</P>
+<P>- Added mh/code/examples/timer_remarks.pl an an example of how to some character to your timer reminders :)</P>
+<P>- Added signoff functions for AOL, MSN, and Jabber and used these in code/test/internet_im.pl.  
+If you loose a connection, simply run the connect command.</P>
+<P>- David Norwood fixed a bin/get_tv_grid problem with incorrect vcr programing times for shows that start or end around midnight.</P>
+<P>- Mark Miller suggested we a page view counter, so we created  a simple one with
+web/bin/counter.pl.  Set mh.ini parm web_href_counter to blank to turn off the new ia5 web page counter</P>
+<P>- David Norwood updated the web server to allow for shtml style includes in user coded %Included_HTML strings.</P>
+<P>- Joseph Gaston found that a mh.ini password_allow_clients with a blank in the value (e.g. 'a, b') would allow any client.</P>
+<P>- Wally Kissel added the logon prompt to the web 'Unauthorized mode' response.</P>
+<P>- Nick Maddock added time_date_stamp format 18, for creating log file names.</P>
+<P>- David Norwood added Process_Item set_errlog, like the existing set_output, but for STDERR, rather than STDOUT.
+Examples in mh/code/examples/test_process.pl</P>
+<P>- Fenghua Zong fixed the mh.ini web_href_weather_local parm, used in the ia5 weather page.</P>
+<P>- Jeff Burricelli noticed mh was not storing the brightness level of X10_Items between mh restarts.</P>
+<P>- Jeff Burricelli's girlfriend updated Serial_Item to understand 3 character X10 device codes (e.g. A16 rather than AG).
+We had previously updated X10_Item to allow for this, but not Serial_Item X10 codes.</P>
+<P>- Jason Brunen discovered mh would choke on code files named with a - (e.g. test-event.pl).</P>
+<P>- Created Faq from a Scott Reston post: What is the format of MisterHouse X10 codes?</P>
+<P>- Shane Harrison noted that we were inadvertently adding \n\r to raw Socket_Item output.</P>
+<P>- On XP, set $Info{OS_name} to XP, instead of NT.  Added an abortable shutdown/reboot for XP option in mh/code/common/mh_control.pl.</P>
+<P>- Fixed missing web button images on some browsers (e.g. Netscape 4.7).  web/bin/button.pl to was not adding a mime header.</P>
 <P>- Fixed 'list all timers'  (need a space after ``voice=male'' ...)</P>
+<P>- Fixed 'browser lights/appliances' from the ia5 lights page.</P>
+<P>- Added mh.ini parm http_pause_time to control the http_server time exceeded messages.  Defaults to 2 seconds.</P>
+<P>- Replaced the ia5 MisterHouse logo.  The old one was cute, with the butler tie, but I thought the H looked too much
+like an M, and MisterMouse just didn't seem right :)  Any alternate logo suggestions are always welcome.</P>
+<P>- Modified web/bin/photos.pl background menu from a 3x3 grid to a 4x3 grid,
+adding a menus button next to the main menu button.
+Also used a style sheet directive to avoid tile-ing when in background mode on larger browsers.</P>
+<P>
+<H2><A NAME="version 2.68 posted on 05/28/2002">Version 2.68 posted on 05/28/2002</A></H2>
 <P>Version 2.68 was just uploaded to:</P>
 <PRE>
   <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
@@ -392,6 +502,7 @@ Set this to a large number to disable the photo slideshow.</P>
 <P>- Added jump-to option to photos slideshow (click on photo number).</P>
 <P>- Also added a help screen to the photos slideshow when in background mode (like when called from an Audrey). 
 Touch the center of the screen to activate.</P>
+<P>- Updated &amp;get_ip_address, used to set $Info{IPAddress_local},  to work better on unix.</P>
 <P>
 <H2><A NAME="version 2.64 posted on 01/23/2002">Version 2.64 posted on 01/23/2002</A></H2>
 <P>Version 2.64 was just uploaded to:</P>

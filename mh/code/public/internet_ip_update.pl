@@ -68,14 +68,7 @@ if($config_parms{ip_update_url})
 {
     if (($Startup or ($New_Minute and !($Minute % 17))) and &net_connect_check)
     {
-        if($Startup)
-        {
-            start $p_ip_update_url 'inline'
-            }
-        else
-        {
-            start $p_ip_update_url
-            }
+        start $p_ip_update_url;
     }
 }
     

@@ -10,13 +10,14 @@ use strict;
 
 #print_log "Using read_table_A.pl";
 
-my (%groups, %objects);
+my (%groups, %objects, %packages);
 
 sub read_table_init_A {
                                 # reset known groups
 	print_log "Initialized read_table_A.pl";
 	%groups=();
 	%objects=();
+	%packages=();
 }
 
 sub read_table_A {
@@ -176,6 +177,21 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "iButton('$address', $other)";
     }
+
+    ##ZONE,      4,     Stairway_motion,            Inside|Hall|Sensors
+    elsif($type eq "ZONE") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+	if($other){
+		$object = "Sensor_Zone('$address',$other)";
+	}
+	else{
+		$object = "Sensor_Zone('$address')";
+	}
+	if( ! $packages{caddx}++ ) {   # first time for this object type?
+		$code .= "use caddx;\n";
+	}
+    }
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
@@ -211,6 +227,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.13  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.12  2002/05/28 13:07:52  winter
 # - 2.68 release
 #

@@ -30,9 +30,9 @@ my %mime_types = (
                   'wav'   => 'audio/x-wav',
                   'wml'   => 'text/vnd.wap.wml',
                   'wmls'  => 'text/vnd.wap.wmlscript',
-                  'wmls'  => 'text/vnd.wap.wmlscript',
                   'wmlc'  => 'application/vnd.wap.wmlc',
                   'wmlsc' => 'application/vnd.wap.wmlscriptc',
+                  'wrl'   => 'x-world/x-vrml',
 );
 
 
@@ -478,7 +478,7 @@ sub http_process_request {
                                       ($item->set("$state", 'web')) : ($item = "$state")];
                     print "SET eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
                     eval $eval_cmd;
-                    print "SET eval error: $@\n" if $@;
+                    print "SET eval error.  cmd=$eval_cmd  error=$@\n" if $@;
                 }
             }            
             &html_response($socket, $h_response);
@@ -574,6 +574,9 @@ sub http_get_local_file {
 
                                 # Check for alias dirs for member name
     ($http_dir, $http_member) = $get_req =~ /^(\/[^\/]+)(.*)/;
+                               # Goofy audrey can add a / suffix to a file request
+    $http_member =~ s|/$||;
+
     if ($http_dir and $http_dirs{$http_dir}) {
                                 # First one wins (last one in the mh.ini file)
         ALIAS_CHECK:
@@ -600,6 +603,9 @@ sub http_get_local_file {
         }
     }
     $file = "$main::config_parms{'html_dir' . $Http{format}}/$get_req" unless $file;
+
+                               # Goofy audrey can add a / suffix to a file request
+    $file =~ s|/$|| unless -d $file;
     return ($file, $http_dir) if -e $file;
 }
 
@@ -631,11 +637,6 @@ sub test_for_file {
             print $socket &html_page("Error", "No index found for directory $get_req");
             return 1;
         }
-    }
-
-                               # Goofy audrey can add a / suffix to a file request
-    if ($file =~ m|(.+)/$|) {
-        $file = $1;
     }
 
     if (-e $file) {
@@ -1995,7 +1996,10 @@ sub print_socket_fork_win {
         open OLD_HANDLE, ">&STDOUT"  or print "\nsocket_fork error: can not backup STDOUT: $!\n";
         if (my $fileno = $socket->fileno()) {
             print "http: redirecting socket fn=$fileno s=$socket\n" if $main::config_parms{debug} eq 'http';
-            open STDOUT,     ">&$fileno" or warn "http error: Can not redirect STDOUT: $!\n";
+            unless (open STDOUT,  ">&$fileno") {
+                print "http error: Can not redirect STDOUT: $!\n";
+                print "Older windows (like $Info{OS_name}) can not do this.\n" if Win32::IsWin95;
+            }
             my $pid = Win32::Process::Create($process, $perl, $cmd, 1, 0, '.') or
                 print "Warning, run error: pgm_path=$perl $cmd\n error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
             open  STDOUT, ">&OLD_HANDLE"  or print "\nsocket_fork error: can not redir STDIN to orig value: $!\n";
@@ -2491,6 +2495,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.71  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.70  2002/07/01 22:25:28  winter
 # - 2.69 release
 #

@@ -237,6 +237,11 @@ DESCRIPTION
     A nice summary of the different X10 controllers is here:
     http://www.geocities.com/ido_bartana/Which_controller.html
 
+    A survey of common X-10 devices and some hints as to their behavior is
+    here: http://www.shed.com/x10stuff.html
+
+    Here is yet another site with X10 info: http://www.x10ideas.com
+
     Europeans can get X10 stuff from http://www.intellihome.be ,
     http://www.hwg-telekom.de , http://www.digihouse.com.au ,
     http://www.eon3.com, www.madomotique.com, www.letsautomate.com, and
@@ -349,7 +354,9 @@ DESCRIPTION
     hardware device is in mh/lib/example_interface.pm.
 
     Byterunner offers lots of types of serial cards:
-    http://www.byterunner.com
+    http://www.byterunner.com. Note for windows users: with the PCI-800H, I
+    found I had to click the 'use default baud rate' box under control panel
+    -> device manager (under the 4th tab, data rate).
 
     Good sources of information on the WX200/WM918 weather stations are at
     http://wx200.planetfall.com/ and
@@ -1011,7 +1018,8 @@ DESCRIPTION
                 On Windows, the &-> eval trick is supposed to work with perl 5.6+ (which has fork), but
                 unfortunately, it causes perl to crash often, so is probably not useful yet.
 
-             set_output $output_file : Program errata goes to $output_file
+             set_output $output_file : Program STDOUT errata goes to $output_file
+             set_errlog $errlog_file : Program STDERR errata goes to $errlog_file
 
              start          : Starts the process.
              start 'program arg'  : Starts the process with program arg
@@ -1299,7 +1307,7 @@ DESCRIPTION
           $Office_Light_Torch->set("disablex10transmit");
 
     X10_Ote;
-        Not sure what this is :)
+        This supports the OTE X10 themostat from Ouellet Canada.
 
     X10_Sensor;
         Do you have any of those handy little X10 MS12A battery-powered
@@ -1323,8 +1331,8 @@ DESCRIPTION
              new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype')
              add('data_stream', 'state_name')
 
-                'host_port' must be of the form ip_address:port or 
-                it must match a server* parm in mh.ini (e.g. server1).
+                'host_port' must be of the form ip_address:port (when creating a client) or 
+                it must match a server_* parm in mh.ini (when creating a server) (e.g. server_telnet_port).
 
                 'host_protocol' can be 'tcp' or 'udp'.  Default is 'tcp'
 
@@ -1384,12 +1392,15 @@ DESCRIPTION
 
           Examples:
 
+                          # An example of a server socket
+                          # Add this mh.ini parm:  server_speak_port = 8090
             $socket_server = new  Socket_Item(undef, undef, 'server_speak');
             if (my $data = said $socket_server) {
                print "speak_server socket data: $data\n";
                speak $data;
             }
 
+                          # An example of a client socket
             my $lcdproc_address = 'misterhouse:13666';
             $lcdproc = new  Socket_Item(undef, undef, $lcdproc_address, 'lcdproc');
 
@@ -1403,8 +1414,8 @@ DESCRIPTION
                                        Number => 4, Number => 11) if said $router_reboot;
 
         More examples are in mh/code/bruce/telnet.pl,
-        mh/code/public/Brian/tracker.pl, my/code/bruce/mh_watchdog.pl, and
-        mh/code/test/socket_test.pl
+        mh/code/public/Brian/tracker.pl, my/code/bruce/mh_watchdog.pl,
+        mh/code/test/socket_test.pl, and mh/code/examples/socket_test.pl
 
     Timer
         The Timer object can be used to run an action one or more times, at
@@ -3460,6 +3471,8 @@ DESCRIPTION
          A:  what Action to run (either a voice cmd or code to eval)
          R:  what Response to display. 
              last_response will pick up the last mh response
+             no_response   will return no response
+             href=url      will goto the url (is using a web browser)
              If not specified, defaults to select state or last_response.
              Begin with eval to eval the string first.
 
@@ -3789,6 +3802,10 @@ DESCRIPTION
         returns the contents of an mh variable. For example:
 
           <li><b>Version:</b> <!--#include var="$Version"-->
+
+        If you use svar=, instead of var=, the var contents will be returned
+        only if the web user is authorized (i.e. logged in or from an ip
+        address listed in password_allow_clients).
 
         This what is used in the mh 'About' web button to return the mh
         version.

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2002-06-29 14:28:42 winter>
+#  Last change Time-stamp: <2002-08-20 08:24:11 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -71,7 +71,8 @@ my  (%DBM, %DBM2);
 
 %channels_skip = ();
 %channels_keep = ();
-$url      = 'http://tvlistings2.zap2it.com/';
+#url      = 'http://tvlistings2.zap2it.com/';
+$url      = 'http://tvlistings.zap2it.com/';
 $ua       = new RedirAgent();
 $ua -> proxy(['http', 'ftp'] => $parms{proxy}) if $parms{proxy};
 #$ua       = new SMSAgent();
@@ -928,6 +929,7 @@ eof
                   $pgm_name_html =~ tr/ /_/;
                   $pgm_name_html =~ s/&/and/g;
                   $pgm_name_html =~ s/\'/&#39;/g;
+                  $pgm_name_html =~ s/\?/&#63;/g;
                                # Set program times/dates
                   my $time_start = &min_to_hour($min_start);
                   my $time_end   = &min_to_hour($min_end);
@@ -1110,6 +1112,17 @@ sub fetchLoop
             ."${month}_${day}_${startHour}_$parms{duration}.html";
          my $outfile = "$parms{outdir}/${day}_${startHour}.html";
          $outfile = $parms{outfile} if ( $parms{outfile} );
+
+         #------------------------------------------------------------
+         # If output file already exists, and is recent enough, use
+         # keep it instead of re-downloading. 
+         #------------------------------------------------------------
+         if ( (-e $outfile) and (8 > -M $outfile) and 
+            (4000 < -s $outfile) and !$parms{reget}  and !$parms{redo} ) 
+         {
+            print "Reusing: $outfile\n";
+            next;
+         }
 
          #------------------------------------------------------------
          # Now retrieve the data, if it needs retrieving.

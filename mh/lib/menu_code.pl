@@ -31,6 +31,7 @@ sub menu_parse {
                                 # Pull out 'start menu' records:  M: Lights 
         if ($type eq 'M') {
             $menu = $data;
+            $menu =~ s/ /_/g;   # Blanks will mess up wml (and vxml and html?) menus
                                 # Reset index.  Allow for menus in different sections/files
             $index = -1;
             $index = @{$menus{$menu}{items}} - 1 if $menus{$menu} and $menus{$menu}{items};
@@ -117,13 +118,15 @@ sub menu_parse {
                                 # Now verify that all menus exist and are used
                                 # Also set default goto if needed
 
+            my $temp = $$ptr{D};
+            $temp =~ s/ /_/g;
                                 # Explicit goto menu is given
             if ($$ptr{goto} and $menus{$$ptr{goto}}) {
                 delete $unused_menus{$$ptr{goto}};
             }
                                 # The display text matches a submenu
-            elsif ($menus{$$ptr{D}}) {
-                $$ptr{goto} = $$ptr{D};
+            elsif ($menus{$temp}) {
+                $$ptr{goto} = $temp;
                 delete $unused_menus{$$ptr{goto}};
             }
                                 # For an action, stay on the goto menu by default
@@ -245,7 +248,7 @@ sub menu_create {
 
 #---------------------------------------------------------------------------
 #  menu_run will be called to execute menu actions
-#     $format:  v->vxml,  h->html,  w->wml,  l->lcd
+#     $format:  v->vxml,  h->html, hn->html no_response,  w->wml,  l->lcd
 #---------------------------------------------------------------------------
 
 sub menu_run {
@@ -388,6 +391,8 @@ sub menu_run_response {
         return &vxml_page($vxml);
     }
     elsif ($format and $format eq 'h') {
+        return &html_no_response() if $response =~ /no[ _]response/i;
+        return &http_redirect($1)  if $response =~ /^href=(.+)/i;
         return &html_page('', $response);
     }
     else {
@@ -469,10 +474,11 @@ sub menu_wml {
     }
     $i -= 2;                    # The template card is extra
 
-#   print "db2 mcnt=$#menus ccnt=$#cards i=$i l=$length m=@menus, c=@cards.\n";
 
                                 # This time build only for the requested cards that fit
     @cards = &menu_wml_cards($menu_group, @menus[0..$i]);
+
+#   print "db2 mcnt=$#menus ccnt=$#cards i=$i l=$length m=@menus, c=@cards.\n";
 
     return &wml_page("@cards");
 
@@ -840,6 +846,9 @@ return 1;
 
 #
 # $Log$
+# Revision 1.11  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.10  2002/07/01 22:25:29  winter
 # - 2.69 release
 #

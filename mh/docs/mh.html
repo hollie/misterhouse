@@ -111,10 +111,10 @@ The default is to run all .pl files.</P>
 The system requirements and installation instructions are detailed in 
 <a href="install.html">mh/docs/install.html</a>
 <p>There is also a FAQ that covers misc. topics in
-<a href="faq.html">mh/docs/faq.html</a><P>&lt;p&gt;Paul Chamberlain has set up a 
-&lt;a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse&gt;TWiki web-based collaboration site&lt;/a&gt;
-for other user-supplied documentation.</P>
-<P>
+<a href="faq.html">mh/docs/faq.html</a>
+<p>Paul Chamberlain has set up a 
+<a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
+for other user-supplied documentation.<P>
 <HR>
 <H1><A NAME="description">DESCRIPTION</A></H1>
 <P>
@@ -278,6 +278,10 @@ to transmit data over the powerline.</P>
 See mh/lib/Lynx10PLC.pm</P>
 <P>A nice summary of the different X10 controllers is here:
 <A HREF="http://www.geocities.com/ido_bartana/Which_controller.html">http://www.geocities.com/ido_bartana/Which_controller.html</A></P>
+<P>A survey of common X-10 devices and some hints as to their behavior is here:
+<A HREF="http://www.shed.com/x10stuff.html">http://www.shed.com/x10stuff.html</A></P>
+<P>Here is yet another site with X10 info:
+<A HREF="http://www.x10ideas.com">http://www.x10ideas.com</A></P>
 <P>Europeans can get X10 stuff from  <A HREF="http://www.intellihome.be">http://www.intellihome.be</A> , 
 <A HREF="http://www.hwg-telekom.de">http://www.hwg-telekom.de</A> , <A HREF="http://www.digihouse.com.au">http://www.digihouse.com.au</A> , <A HREF="http://www.eon3.com,">http://www.eon3.com,</A> 
 www.madomotique.com, www.letsautomate.com, and www.laser.com .</P>
@@ -356,7 +360,10 @@ header of that file for more info.</P>
 in the code/public directory that shows how to interface to a ham radio TNC receiver to decode and track
 a GPS transmitters position.</P>
 <P>An better, object-oriented way to write code to interface to a new hardware device is in mh/lib/example_interface.pm.</P>
-<P>Byterunner offers lots of types of serial cards: <A HREF="http://www.byterunner.com">http://www.byterunner.com</A></P>
+<P>Byterunner offers lots of types of serial cards: <A HREF="http://www.byterunner.com.">http://www.byterunner.com.</A>
+Note for windows users:
+with the PCI-800H, I found I had to click the 'use default baud rate' box under 
+control panel -&gt; device manager (under the 4th tab, data rate).</P>
 <P>Good sources of information on the WX200/WM918 weather stations are at
 <A HREF="http://wx200.planetfall.com/">http://wx200.planetfall.com/</A>  and  <A HREF="http://www.weatherwatchers.org/wxstation/WX-200/">http://www.weatherwatchers.org/wxstation/WX-200/</A> .
 $200-&gt;$300 at Radio Shack or $200 from <A HREF="http://www.heartlandamerica.com">http://www.heartlandamerica.com</A> (search for weather, model WW22- 3350).
@@ -980,7 +987,8 @@ On Unix systems, the fork function is used.  On either system, the following met
         On Windows, the &amp;-&gt; eval trick is supposed to work with perl 5.6+ (which has fork), but
         unfortunately, it causes perl to crash often, so is probably not useful yet.</PRE>
 <PRE>
-     set_output $output_file : Program errata goes to $output_file</PRE>
+     set_output $output_file : Program STDOUT errata goes to $output_file
+     set_errlog $errlog_file : Program STDERR errata goes to $errlog_file</PRE>
 <PRE>
      start          : Starts the process.
      start 'program arg'  : Starts the process with program arg</PRE>
@@ -1244,7 +1252,7 @@ For the Switchlinc controllers:
 <P></P>
 <DT><STRONG><A NAME="item_X10_Ote%3B">X10_Ote;</A></STRONG><BR>
 <DD>
-Not sure what this is :)
+This supports the OTE X10 themostat from Ouellet Canada.
 <P></P>
 <DT><STRONG><A NAME="item_X10_Sensor%3B">X10_Sensor;</A></STRONG><BR>
 <DD>
@@ -1267,8 +1275,8 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
      new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype')
      add('data_stream', 'state_name')</PRE>
 <PRE>
-        'host_port' must be of the form ip_address:port or 
-        it must match a server* parm in mh.ini (e.g. server1).</PRE>
+        'host_port' must be of the form ip_address:port (when creating a client) or 
+        it must match a server_* parm in mh.ini (when creating a server) (e.g. server_telnet_port).</PRE>
 <PRE>
         'host_protocol' can be 'tcp' or 'udp'.  Default is 'tcp'</PRE>
 <PRE>
@@ -1330,12 +1338,15 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
 <PRE>
   Examples:</PRE>
 <PRE>
+                  # An example of a server socket
+                  # Add this mh.ini parm:  server_speak_port = 8090
     $socket_server = new  Socket_Item(undef, undef, 'server_speak');
     if (my $data = said $socket_server) {
        print &quot;speak_server socket data: $data\n&quot;;
        speak $data;
     }</PRE>
 <PRE>
+                  # An example of a client socket
     my $lcdproc_address = 'misterhouse:13666';
     $lcdproc = new  Socket_Item(undef, undef, $lcdproc_address, 'lcdproc');</PRE>
 <PRE>
@@ -1348,7 +1359,7 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
     set_expect $router_client (Password =&gt; $config_parms{router_password}, Number =&gt; 24,
                                Number =&gt; 4, Number =&gt; 11) if said $router_reboot;</PRE>
 <P>More examples are in mh/code/bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
-my/code/bruce/mh_watchdog.pl, and mh/code/test/socket_test.pl</P>
+my/code/bruce/mh_watchdog.pl, mh/code/test/socket_test.pl, and mh/code/examples/socket_test.pl</P>
 <P></P>
 <DT><STRONG><A NAME="item_Timer">Timer</A></STRONG><BR>
 <DD>
@@ -3388,6 +3399,8 @@ Here is an example:</P>
  A:  what Action to run (either a voice cmd or code to eval)
  R:  what Response to display. 
      last_response will pick up the last mh response
+     no_response   will return no response
+     href=url      will goto the url (is using a web browser)
      If not specified, defaults to select state or last_response.
      Begin with eval to eval the string first.</PRE>
 <P>The above example specifies 3 menu (M:) records that creates a Test menu, with 2 submenus, HVAC and Lights.</P>
@@ -3624,6 +3637,8 @@ from above.  For example:</P>
 of an mh variable.  For example:</P>
 <PRE>
   &lt;li&gt;&lt;b&gt;Version:&lt;/b&gt; &lt;!--#include var=&quot;$Version&quot;--&gt;</PRE>
+<P>If you use svar=, instead of var=, the var contents will be returned only if the web user is 
+authorized (i.e. logged in or from an ip address listed in password_allow_clients).</P>
 <P>This what is used in the mh 'About' web button to return the mh version.</P>
 <P>You can also define your own functions in your code files to return html, and then call them 
 with the code= include directive or as a h_response to a /SET or /RUN command (see below).

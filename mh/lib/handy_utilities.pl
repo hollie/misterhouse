@@ -23,7 +23,7 @@ sub Win32::NodeName;
 sub Win32::IsWinNT;
 sub Win32::IsWin95;
 sub Win32::GetTickCount;
-sub Win32::DriveInfo::DrivesInUse;
+sub Win32::DriveInfo::DrivesInUse();
 sub Win32::Sound::Volume;
 #sub Win32::PerfLib;
 
@@ -83,8 +83,11 @@ sub main::file_tail {
 
                                 # Get the last few lines of a file
     $records = 3 unless $records;
-    seek DATA, -1000, 2;
-    @tail = (<DATA>)[-$records..-1];
+    my $bytes = $records * 400; # Guess on where to put the file pointer ... faster
+    seek DATA, -$bytes, 2;
+    my @data = <DATA>;
+    $records = @data if @data < $records;
+    @tail = @data[-$records..-1];
     close DATA;
     return wantarray ? @tail : "@tail";
 }
@@ -1084,6 +1087,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.58  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.57  2002/07/01 22:25:28  winter
 # - 2.69 release
 #

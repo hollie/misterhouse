@@ -36,7 +36,7 @@ to the array so I had to compensate for that where it occurred.
   serial_wmr968_baudrate  = 9600
   serial_wmr968_handshake = dtr
   serial_wmr968_datatype  = raw
-  serial_wmr968_module    = weather_wmr968
+  serial_wmr968_module    = Weather_wmr968
   serial_wmr968_skip      =  # Use to ignore bad sensor data.  e.g. TempOutdoor,HumidOutdoor,WindChill
 #  altitude = 1000 # In feet, used to find sea level barometric pressure 
 #  in the RS weather station, it adjusts for sea level and gives a direct
@@ -431,6 +431,9 @@ return $u968;
 # 2001/11/18 v1.0 of Weather_wmr968.pm based on Bruce's Weather_wx200.pm
 #
 # $Log$
+# Revision 1.2  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
 # Revision 1.1  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

@@ -79,6 +79,7 @@ sub UpdateVwWeather
     {
         @temp = split /,/;
     }
+    close(SBDATA);
 
     # Old style files have 25 entries, new apparently 39
     if(@temp != 24 and @temp != 39)
