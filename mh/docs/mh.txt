@@ -215,15 +215,17 @@ DESCRIPTION
     interface. Info is at http://www.x10.com/products/ux17a_bj2.htm. This is
     supported via the mh IR_Item object.
 
-    Another nice interface is the $30 MR26A:
-    http://www.x10.com/products/x10_mr26a.htm This will receive the
+    Another nice X10 option are the X10 RF -> Serial interfaces. The MR26A
+    is $30 from http://www.x10.com/products/x10_mr26a.htm . The W800RF32 is
+    $50 from http://www.wgldesigns.com/w800.html . A comparison of them is
+    here http://www.wgldesigns.com/comments.htm . These will receive the
     information coming from most of the X10 RF devices (e.g. motion sensors,
     keychains, palmpads, remote controls like UR19, UR47, JR20). The
     advantage to receiving X10 data this way, instead of a powerline device
-    like a CM11, is it is much faster as data goes from RF -> MR26A ->
-    serial_port -> mh. Actions can be triggered in milliseconds, without
+    like a CM11, is it is much faster as data goes from RF -> MR26A/W800RF32
+    -> serial_port -> mh. Actions can be triggered in milliseconds, without
     having to wait for the 500+ millisecond time it takes to transmit data
-    over the powerline. More info in mh/code/common/x10_mr26.pl.
+    over the powerline. More info in mh/code/common/x10_rf_relay.pl .
 
     This new RF->X10 interface now supports all housecodes (older ones only
     support once housecode each):
@@ -405,6 +407,9 @@ DESCRIPTION
 
       Ray Dzek has a nice how to get started tutorial here:
         http://www.solarbugs.com/home/ibutton.htm
+
+      Neil Wrightson also has some 1wire info here:
+        http://www.users.bigpond.com/nwrightson/1Wire%20Hardware.htm
 
     If you want more reliable VR without having to use a headset, you can
     try these to digital array microphones:
@@ -653,6 +658,10 @@ DESCRIPTION
                                    minutes, hours, or days (e.g. '90 s' or '7 days').
                                    Optionally, $time can also specify a spefic state (e.g. '4 m on')
 
+             set_by              : allows setting a description of why the last state change
+                                     - motion, sunrise, manual, serial,    etc..  any string 
+                                       is allowed value is returned by get_set_by below.
+
              get_idle_time       : Returns number of seconds since the last state change
 
              get_set_by          : Returns what caused this object to change.  Values either:
@@ -742,6 +751,9 @@ DESCRIPTION
                                    # Disable an item when we are away
             $item1 -> tie_filter('state $status_away eq ON');
             $item1 -> tie_event('print_log "item1 toggled to $state"');
+
+                                   # Disable callerid announcements when we are not at home
+            $cid_announce -> tie_filter('state $mode_occupied ne "home"');
 
                                    # Set an item to multiple states, with 5 second a delay between states
             $test_set1  = new Generic_Item;
@@ -1147,6 +1159,59 @@ DESCRIPTION
 
         More examples are in mh/code/examples/test_process.pl
 
+    RF_Item
+        An RF_item is created to receive states from X10 security devices
+        and RF TV style remote through a W800RF32 module or an MR26A module
+        (the MR26A only passes TV remote style data through, it does not
+        pass security data).
+
+        RF items can be created in the items.mht in the following manner:
+
+             RF,     68,     keychain_remote,                Security
+             RF,     System, security_system,                Security
+             RF,     Sensor, security_sensors,               Security
+             RF,     81,     door_sensor,                    Security
+             RF,     Remote, tv_remote,                      TV
+
+        RF Items can be manually created in the following manner:
+
+             $keychain_remote  = new RF_Item('68'    , 'keychain_remote' );
+             $security_system  = new RF_Item('system', 'security_system' );
+             $security_sensors = new RF_Item('sensor', 'security_sensors');
+             $door_sensor      = new RF_Item('81'    , 'door_sensor'     );
+             $tv_remote        = new RF_Item('remote', 'tv_remote'       );
+
+        The 2nd column the items.mht file (or the 1st parameter when
+        manually creating a new RF_Item) is the 2 digit hexadecimal unit id
+        of the particular transmitter or one of the following classes:
+
+             system     Any device that change the state of the security system.
+                        States from any transmitters that go into this class are:
+                        armawaymin, armawaymax, armhomemin, armhomemax, disarm, panic
+             sensor     Any device that changes a sensor state.
+                        States from any transmitters that go into this class are:
+                        normal, normalmax, normalmin, alert, alertmin, alertmax
+             control    Any device that changes some general feature:
+                        States from any transmitter that go into this class are:
+                        lightson, lightsoff
+             remote     Any TV style remote control (UR51A, etc.).
+                        States from any transmitter that go into this class are:
+                        Power PC Title Display Enter Return Up Down Left Right Menu
+                        Exit Rew Play FF Record Stop Pause Recall 0 1 2 3 4 5 6 7 8 9
+                        AB Ch+ Ch- Vol- Vol+ Mute
+
+        Some transmitters have a min and max switch that cause the
+        transmitter to send different states depending on that switch. If
+        you don't care about the full detail of the state, you can do a test
+        like:
+
+            if (my $state = state_now $door_sensor =~ /^alert/) { ... }
+
+        To determine what the 2 digit hexadecimal unit id for a particular
+        security transmetter is, press the button on the transmitter (or
+        open/close the sensor) and look at the misterhouse log to find the
+        id that the unit transmitted.
+
     Serial_Item
         Serial_Item is used whenever you want read or write serial port
         data. Like most mh objects, it inherits all the Generic_Item
@@ -1428,7 +1493,11 @@ DESCRIPTION
         and dark. With Motion specified, it will return only the motion and
         still states. With Brightness specified, it will return only the
         light and dark states. In all cases, methods light and dark will
-        return the current light/dark state. For example:
+        return the current light/dark state.
+
+        Examples:
+
+         set_with_timer  $light1 ON, 600 if $work_room_motion eq motion;
 
          speak 'It is dark downstairs' if dark $sensor_downstairs;
 
@@ -1919,14 +1988,18 @@ DESCRIPTION
             speak "Wind speed is " . round($weather{WindAvgSpeed}) .
                   " from the " . convert_wind_direction($weather{WindAvgDir});
 
-    dbm_write
+    dbm_write =item logit_dbm
         Writes data into a dbm file. If data for that key exists, it is
         overwritten. dbm files are useful if you want to store key-value
         data or hash arrays onto disk for later use.
 
           Usage:
 
+            dbm_write($log_file, $log_key, $log_data);
             logit_dbm($log_file, $log_key, $log_data);
+
+          dbm_write simply stores data as is:    $dbm_file{$log_key}=$log_data
+          logit_dbm also stores an access count: $dbm_file{$log_key}="$access_count $log_data"
 
           Examples:
 
@@ -4379,9 +4452,11 @@ DESCRIPTION
 
     Another option, instead of running a simple pruned down mh with
     mh_proxy, you can also simply run a 2nd normal version of mh, and simply
-    include the proxy code dir in you mh.ini code_dir parm. For example:
+    include the proxy code dir in you mh.ini code_dir parm and add the
+    server_proxy_port parm. For example:
 
      code_dir = c:/misterhouse/my_code,c:/misterhouse/mh/code/proxy
+     server_proxy_port = 8085   # Used by the proxy_server.pl
 
     On your main mh box, change your mh.ini port parms to point to the
     address:port of the proxy box, like this:

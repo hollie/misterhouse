@@ -397,7 +397,7 @@ sub _register {
                                 # These commands have no real states ... there is no enumeration
                                 #  - avoid saving the whole name as state.  Too much for state_log displays
                                 # Leave state=0 alone!
-        $state = 1 if !defined $state or $state eq '' or $state eq $cmd;
+        $state = 1 if !defined $state or $state eq '' or $state eq $text;
 
         my $cmd_num = &_register2($self, $cmd, $vocab, $description);
         $self->{text_by_state}{$state} = $cmd;
@@ -611,6 +611,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.45  2003/07/06 17:55:11  winter
+#  - 2.82 release
+#
 # Revision 1.44  2003/04/20 21:44:08  winter
 #  - 2.80 release
 #

@@ -121,7 +121,9 @@ The system requirements and installation instructions are detailed in
 <a href="faq.html">mh/docs/faq.html</a>
 <p>Paul Chamberlain has set up a 
 <a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
-for other user-supplied documentation.<p>
+for other user-supplied documentation.
+Ron Klinkien also has a <a href=http://mrhousefromscratch.tk/> 'MisterHouse from Scratch' weblog site</a>
+with a nice collection of links, resources, notes and commentary.<p>
 </p>
 <hr />
 <h1><a name="description">DESCRIPTION</a></h1>
@@ -271,14 +273,17 @@ only (does not receive X10 signals).</p>
 <p>X10.com also sells a $50 IR transmitter that works through the CM17 interface.  
 Info is at <a href="http://www.x10.com/products/ux17a_bj2.htm.">http://www.x10.com/products/ux17a_bj2.htm.</a>  This is supported
 via the mh IR_Item object.</p>
-<p>Another nice interface is the $30 MR26A: <a href="http://www.x10.com/products/x10_mr26a.htm">http://www.x10.com/products/x10_mr26a.htm</a> 
-This will receive the information coming from most of the X10 
+<p>Another nice X10 option are the X10 RF -&gt; Serial interfaces.  
+The MR26A is $30 from <a href="http://www.x10.com/products/x10_mr26a.htm">http://www.x10.com/products/x10_mr26a.htm</a> .
+The W800RF32  is $50 from <a href="http://www.wgldesigns.com/w800.html">http://www.wgldesigns.com/w800.html</a> .
+A comparison of them is here <a href="http://www.wgldesigns.com/comments.htm">http://www.wgldesigns.com/comments.htm</a> .
+These will receive the information coming from most of the X10 
 RF devices (e.g.  motion sensors, keychains, palmpads, remote controls like UR19, UR47, JR20). 
 The advantage to receiving X10 data this way, instead of a powerline device like a CM11,
-is it is much faster as data goes from RF -&gt; MR26A -&gt; serial_port -&gt; mh.   
+is it is much faster as data goes from RF -&gt; MR26A/W800RF32 -&gt; serial_port -&gt; mh.   
 Actions can be triggered in milliseconds, 
 without having to wait for the 500+ millisecond time it takes
-to transmit data over the powerline.   More info in mh/code/common/x10_mr26.pl.</p>
+to transmit data over the powerline.   More info in mh/code/common/x10_rf_relay.pl .</p>
 <p>This new RF-&gt;X10 interface now supports all housecodes (older ones only support once housecode each):
 <a href="http://www.letsautomate.com/10680.cfm?CFID=67097&CFTOKEN=4528584">http://www.letsautomate.com/10680.cfm?CFID=67097&CFTOKEN=4528584</a></p>
 <p>Another supported X10 interface is the Marrick Lynx10-PLC controller: <a href="http://www.marrickltd.com/LynX105.htm">http://www.marrickltd.com/LynX105.htm</a>
@@ -414,6 +419,9 @@ Here are some URLs and prices:</p>
 <pre>
   Ray Dzek has a nice how to get started tutorial here:
     <a href="http://www.solarbugs.com/home/ibutton.htm">http://www.solarbugs.com/home/ibutton.htm</a></pre>
+<pre>
+  Neil Wrightson also has some 1wire info here:
+    <a href="http://www.users.bigpond.com/nwrightson/1Wire%20Hardware.htm">http://www.users.bigpond.com/nwrightson/1Wire%20Hardware.htm</a></pre>
 <p>If you want more reliable VR without having to use a headset, you can try these to digital array microphones:</p>
 <pre>
  - Labtec LVA-7280 ClearVoice Digital Microphone ($130)
@@ -740,6 +748,12 @@ mh is stopped/started.
 </dd>
 <dd>
 <pre>
+     set_by              : allows setting a description of why the last state change
+                             - motion, sunrise, manual, serial,    etc..  any string 
+                               is allowed value is returned by get_set_by below.</pre>
+</dd>
+<dd>
+<pre>
      get_idle_time       : Returns number of seconds since the last state change</pre>
 </dd>
 <dd>
@@ -866,6 +880,11 @@ tie to apply to.  If not specified, it defaults to all states.  This is required
                            # Disable an item when we are away
     $item1 -&gt; tie_filter('state $status_away eq ON');
     $item1 -&gt; tie_event('print_log &quot;item1 toggled to $state&quot;');</pre>
+</dd>
+<dd>
+<pre>
+                           # Disable callerid announcements when we are not at home
+    $cid_announce -&gt; tie_filter('state $mode_occupied ne &quot;home&quot;');</pre>
 </dd>
 <dd>
 <pre>
@@ -1410,6 +1429,73 @@ On Unix systems, the fork function is used.  On either system, the following met
 <p>More examples are in mh/code/examples/test_process.pl</p>
 </dd>
 <p></p>
+<dt><strong><a name="item_rf_item">RF_Item</a></strong><br />
+</dt>
+<dd>
+An RF_item is created to receive states from X10 security devices and RF
+TV style remote through a W800RF32 module or an MR26A module (the MR26A
+only passes TV remote style data through, it does not pass security data).
+</dd>
+<dd>
+<p>RF items can be created in the items.mht in the following manner:</p>
+</dd>
+<dd>
+<pre>
+     RF,     68,     keychain_remote,                Security
+     RF,     System, security_system,                Security
+     RF,     Sensor, security_sensors,               Security
+     RF,     81,     door_sensor,                    Security
+     RF,     Remote, tv_remote,                      TV</pre>
+</dd>
+<dd>
+<p>RF Items can be manually created in the following manner:</p>
+</dd>
+<dd>
+<pre>
+     $keychain_remote  = new RF_Item('68'    , 'keychain_remote' );
+     $security_system  = new RF_Item('system', 'security_system' );
+     $security_sensors = new RF_Item('sensor', 'security_sensors');
+     $door_sensor      = new RF_Item('81'    , 'door_sensor'     );
+     $tv_remote        = new RF_Item('remote', 'tv_remote'       );</pre>
+</dd>
+<dd>
+<p>The 2nd column the items.mht file (or the 1st parameter when manually
+creating a new RF_Item) is the 2 digit hexadecimal unit id of the
+particular transmitter or one of the following classes:</p>
+</dd>
+<dd>
+<pre>
+     system     Any device that change the state of the security system.
+                States from any transmitters that go into this class are:
+                armawaymin, armawaymax, armhomemin, armhomemax, disarm, panic
+     sensor     Any device that changes a sensor state.
+                States from any transmitters that go into this class are:
+                normal, normalmax, normalmin, alert, alertmin, alertmax
+     control    Any device that changes some general feature:
+                States from any transmitter that go into this class are:
+                lightson, lightsoff
+     remote     Any TV style remote control (UR51A, etc.).
+                States from any transmitter that go into this class are:
+                Power PC Title Display Enter Return Up Down Left Right Menu
+                Exit Rew Play FF Record Stop Pause Recall 0 1 2 3 4 5 6 7 8 9
+                AB Ch+ Ch- Vol- Vol+ Mute</pre>
+</dd>
+<dd>
+<p>Some transmitters have a min and max switch that cause the transmitter
+to send different states depending on that switch.  If you don't care
+about the full detail of the state, you can do a test like:</p>
+</dd>
+<dd>
+<pre>
+    if (my $state = state_now $door_sensor =~ /^alert/) { ... }</pre>
+</dd>
+<dd>
+<p>To determine what the 2 digit hexadecimal unit id for a particular
+security transmetter is, press the button on the transmitter (or
+open/close the sensor) and look at the misterhouse log to find the id
+that the unit transmitted.</p>
+</dd>
+<p></p>
 <dt><strong><a name="item_serial_item">Serial_Item</a></strong><br />
 </dt>
 <dd>
@@ -1799,7 +1885,14 @@ Here are some examples:</p>
 <p>With MS13 specified, it will return states named motion,still,light, and dark.
 With Motion specified, it will return only the motion and still states.
 With Brightness specified, it will return only the light and dark states.
-In all cases, methods light and dark will return the current light/dark state.  For example:</p>
+In all cases, methods light and dark will return the current light/dark state.</p>
+</dd>
+<dd>
+<p>Examples:</p>
+</dd>
+<dd>
+<pre>
+ set_with_timer  $light1 ON, 600 if $work_room_motion eq motion;</pre>
 </dd>
 <dd>
 <pre>
@@ -2516,7 +2609,8 @@ Converts 0-&gt;360 degrees into north, north east, east, etc
           &quot; from the &quot; . convert_wind_direction($weather{WindAvgDir});</pre>
 </dd>
 <p></p>
-<dt><strong><a name="item_dbm_write">dbm_write</a></strong><br />
+<dt><strong><a name="item_dbm_write_%3ditem_logit_dbm">dbm_write
+=item logit_dbm</a></strong><br />
 </dt>
 <dd>
 Writes data into a dbm file.  If data for that key exists, it is overwritten.  dbm files
@@ -2528,7 +2622,13 @@ are useful if you want to store key-value data or hash arrays onto disk for late
 </dd>
 <dd>
 <pre>
+    dbm_write($log_file, $log_key, $log_data);
     logit_dbm($log_file, $log_key, $log_data);</pre>
+</dd>
+<dd>
+<pre>
+  dbm_write simply stores data as is:    $dbm_file{$log_key}=$log_data
+  logit_dbm also stores an access count: $dbm_file{$log_key}=&quot;$access_count $log_data&quot;</pre>
 </dd>
 <dd>
 <pre>
@@ -5773,9 +5873,10 @@ and mh_proxy (unix) or mh_proxy.bat (windows) files.
 Then run mh_proxy.  If you have tk installed, you may want to run mh_proxy -tk 1 while debugging.</p>
 <p>Another option, instead of running a simple pruned down mh with mh_proxy, 
 you can also simply run a 2nd normal version of mh,
-and simply include the proxy code dir in you mh.ini code_dir parm.  For example:</p>
+and simply include the proxy code dir in you mh.ini code_dir parm and add the server_proxy_port parm.  For example:</p>
 <pre>
- code_dir = c:/misterhouse/my_code,c:/misterhouse/mh/code/proxy</pre>
+ code_dir = c:/misterhouse/my_code,c:/misterhouse/mh/code/proxy
+ server_proxy_port = 8085   # Used by the proxy_server.pl</pre>
 <p>On your main mh box, change your mh.ini port parms to point to the address:port of the proxy box, like this:</p>
 <pre>
  cm11_port           = proxy localhost:8085

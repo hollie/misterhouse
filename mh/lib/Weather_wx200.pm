@@ -14,6 +14,9 @@ package Weather_wx200;
   serial_wx200_module    = Weather_wx200
   serial_wx200_skip      =  # Use to ignore bad sensor data.  e.g. TempOutdoor,HumidOutdoor,WindChill
   altitude = 1000 # In feet, used to find sea level barometric pressure
+ 
+ Default temperature scale used is Fahrenheit. To change to Celsius, add the following mh.ini parm
+  default_temp=Celsius
 
  A complete usage example is at:
    http://misterhouse.net/mh/code/bruce/weather_monitor.pl
@@ -136,7 +139,8 @@ sub wx_temp2 {
     my $temp   =  sprintf('%x%02x', 0x07 & $n2, $n1);
     substr($temp, 2, 0) = '.';
     $temp *= -1 if 0x08 & $n2;
-    $temp = &main::convert_c2f($temp);
+    #$temp = &main::convert_c2f($temp);
+    $temp = ($main::config_parms{default_temp} eq 'Celsius') ? $temp : &main::convert_c2f($temp); 
     return $temp;
 }
 
@@ -213,7 +217,8 @@ sub wx_wind {
     unless ($skip{WindChill}) {
         $$wptr{WindChill} = sprintf('%x', $data[16]);
         $$wptr{WindChill} *= -1 if 0x20 & $data[21];
-        $$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill});
+        #$$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill});
+        $$wptr{WindChill} =($main::config_parms{default_temp} eq 'Celsius') ? $$wptr{WindChill} : &main::convert_c2f($$wptr{WindChill}); 
     }
 
     $$wptr{Wind} = sprintf("%3d /%3d from the %s",
@@ -241,6 +246,13 @@ sub wx_time {
 
 #
 # $Log$
+# Revision 1.11  2003/07/06 17:55:11  winter
+#  - 2.82 release
+#
+#
+# Revision 1.11 2003/04/27 17:53:00 Richard Phillips
+# - added in support for celsius readings for us foreigners ;-)
+#
 # Revision 1.10  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

@@ -40,7 +40,7 @@ if ($MW and $Reload) {
         $Tk_objects{cmd_list}->pack(qw/-side top -expand 1 -fill both/);
 
         $Tk_objects{msg_window} = $Tk_objects{ftl}->
-            Scrolled('Text', -height=> 1, -width => 30, -bg => 'white', -wrap => 'none', -scrollbars => 'se')->
+            Scrolled('Text', -height=> 2, -width => 30, -bg => 'white', -wrap => 'none', -scrollbars => 'se')->
                 pack(qw/-side top -expand 0 -fill both/);
         &print_msg("Started");
 

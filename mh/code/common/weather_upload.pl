@@ -20,14 +20,12 @@
  
   wunderground_stationid = KMNROCHE3
   wunderground_password  = xyz
+  wunderground_frequency = 10
 
  Place this file in your code directory, and you are ready to go. 
 
 =cut
 
-my $stationid = $config_parms{wunderground_stationid};
-my $passwd    = $config_parms{wunderground_password};
-      
 #use POSIX qw(strftime);
  
 $p_weather_update = new Process_Item;
@@ -37,23 +35,49 @@ my $f_weather_update_html = "$config_parms{data_dir}/web/wu-result.html";
 $state = said $v_weather_update;
 display($f_weather_update_html) if $state eq 'Show results from';
 
-if (new_minute 15 or $state eq 'Run') {
-#   print_log "Logging weather with id=$stationid and pw=$passwd";
+$config_parms{wunderground_frequency} = 10 unless $config_parms{wunderground_frequency};
+if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
 
-    my $clouds;
-    $clouds = 'CLR' if $Weather{Conditions} eq 'Clear';
-    $clouds = 'OVC' if $Weather{Conditions} eq 'Cloudy';
+    my $stationid = $config_parms{wunderground_stationid};
+    my $passwd    = $config_parms{wunderground_password};
+    my $clouds='';
+	my $weather_conditions='';
+	my $weather_barom;
+	if ($config_parms{serial_wmr968_module} eq "Weather_wmr968") {
+		# ---- CLOUDS ----
+		# SKC = Sky Clear
+    		$clouds = 'SKC' if $Weather{WxTendency} eq 'Sunny';
+		# SCT = Scattered
+    		$clouds = 'SCT' if $Weather{WxTendency} eq 'Partly Cloudy';
+		# BKN = Broken
+    		$clouds = 'BKN' if $Weather{WxTendency} eq 'Cloudy';
+		# OVC = Overcast
+    		$clouds = 'OVC' if $Weather{WxTendency} eq 'Rain';
+		# ----CONDITIONS WEATHERS ----
+		# MI = Shallow clouds
+		$weather_conditions = "MI" if $Weather{WxTendency} eq 'Sunny';
+		# BC = Patches clouds
+		$weather_conditions = "BC" if $Weather{WxTendency} eq 'Partly Cloudy';
+		# PR = Partial clouds
+		$weather_conditions = "PR" if $Weather{WxTendency} eq 'Cloudy';
+		# RA = Rain
+		$weather_conditions = "RA" if $Weather{WxTendency} eq 'Rain';
+		# ---- BAROM ----
+		$weather_barom = $Weather{Barom};
+	}
+	else {
+        $clouds = 'CLR' if $Weather{Conditions} eq 'Clear';
+        $clouds = 'OVC' if $Weather{Conditions} eq 'Cloudy';
+                                # wx200 stores in millibars, 968 stores in Hg
+        $Weather{BaromSea_hg} = $Weather{BaromSea} unless $Weather{BaromSea_hg};
+        $Weather{BaromSea_hg}  *= 0.029529987508 if $Weather{BaromSea_hg} > 100;  # hg should be around 29.
+        $weather_barom = $Weather{BaromSea_hg};
+	}
 
-                                # strftime tries its own savings time conversion and messes things up
-#   $utc = strftime("%Y-%m-%d %H:%M:%S", gmtime());
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =  gmtime();
     my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec;
 
-# wx200 stores in millibars, 968 stores in Hg
-    $Weather{BaromSea_hg} = $Weather{BaromSea} unless $Weather{BaromSea_hg};
-    $Weather{BaromSea_hg} *= 0.029529987508 if $Weather{BaromSea_hg} > 100;  # hg should be around 29.
-
-    my $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&PASSWORD=%s&dateutc=%s&winddir=%s&windspeedmph=%d&windgustmph=%d&tempf=%.1f&rainin=%.2f&baromin=%.2f&dewptf=%.2f&humidity=%s&weather=&clouds=%s&softwaretype=%s&action=updateraw',
+    my $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&PASSWORD=%s&dateutc=%s&winddir=%s&windspeedmph=%d&windgustmph=%d&tempf=%.1f&rainin=%.2f&baromin=%.2f&dewptf=%.2f&humidity=%s&weather=%s&clouds=%s&softwaretype=%s&action=updateraw',
 	$stationid, $passwd, $utc,
 	$Weather{WindAvgDir},
 	$Weather{WindAvgSpeed},
@@ -63,12 +87,13 @@ if (new_minute 15 or $state eq 'Run') {
 # To set your sea level pressure, add one millibar to your station pressure for every 10 meters of altitude.
 #   - lets do this in Weather_wx200.pm instead, as other devices are smarter :)
 #	($Weather{Barom} + $altitude/10) * 0.029529987508, # convert millibars to inches Hg
-	$Weather{BaromSea_hg},
+	$weather_barom,
 	$Weather{DewOutdoor},
 	$Weather{HumidOutdoor},
-    $clouds,
-#	'Misterhouse ' . $Version;
+	$weather_conditions,
+    	$clouds,
 	'Misterhouse';
+
     $url =~ s/ /\%20/g;
 #   print "wunderground: sun=$Weather{sun_sensor} $url\n";  # do not print this to print_log, as it has the password in it
     set $p_weather_update qq|get_url -quiet "$url" $f_weather_update_html|;

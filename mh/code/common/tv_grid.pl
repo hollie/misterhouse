@@ -54,7 +54,8 @@ if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data2) 
         $state = ($state eq 'Get') ? '' : "-$state";
 
                                 # Call with -db sat to use sat_* parms instead of tv_* parms
-        my $pgm = "get_tv_grid -preserveRaw -db tv $state -days $days";
+                                # Use mh_run so we can find mh libs and/or compiled mh.exe/mhe
+        my $pgm = "mh_run get_tv_grid -preserveRaw -db tv $state -days $days";
 
                                 # Allow data to be stored wherever the alias points to
         my $tvdir = &html_alias('tv');

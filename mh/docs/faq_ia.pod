@@ -39,7 +39,7 @@ Here are some helpful links:
  Ether: http://www.ppetru.net/audrey/#ether
  Faq:   http://www.3rdmoon.com/crusso/audrey/
  List:  http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=3Com_Audrey&Idle
- OS:    http://www.qnxstart.com/
+ OS:    http://www.openqnx.com/
 
 Pete Flaherty posted a mh compatable Audrey image at http://vsa.cape.com/~pjf/MrAudrey.html 
 

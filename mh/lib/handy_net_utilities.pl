@@ -991,17 +991,18 @@ sub main::net_mail_summary {
     while ($msgnum) {
         print "getting msg $msgnum\n" if $main::Debug{net};
         my $msg_ptr = $pop->top($msgnum, $main::config_parms{net_mail_scan_size});
-        my ($date, $date_received, $from, $from_name, $to, $replyto, $subject, $header, $header_flag, $body);
+        my ($date, $date_received, $from, $from_name, $to, $cc, $replyto, $subject, $header, $header_flag, $body);
         $header_flag = 1;
         my $i = 0;
         for (@$msg_ptr) {
             last if $i++ > 200; # The scan_size parm above doesn't work? 
-#           print "dbx net_mail_summary hf=$header_flag r=$_\n";
+#           print "dbx net_mail_summary hf=$header_flag r=$_\n" if $_ =~ /winter/i or $to =~ /winter/;
             if ($header_flag) {
 #               chomp;
                 $date    = $1 if !$date    and /^Date:(.+)/;
                 $from    = $1 if !$from    and /^From:(.+)/;
                 $to      = $1 if !$to      and /^To:(.+)/;
+                $cc      = $1 if !$cc      and /^Cc:(.+)/;
                 $replyto = $1 if !$replyto      and /^Reply-To:(.+)/;
                 $subject = $1 if !$subject and /^Subject:(.+)/;
                 $header .= $_;
@@ -1040,6 +1041,7 @@ sub main::net_mail_summary {
         push(@{$msgdata{date}},      $date);
         push(@{$msgdata{received}},  $date_received);
         push(@{$msgdata{to}},        $to);
+        push(@{$msgdata{cc}},        $cc);
         push(@{$msgdata{replyto}},   $replyto);
         push(@{$msgdata{from}},      $from);
         push(@{$msgdata{from_name}}, $from_name);
@@ -1104,6 +1106,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.50  2003/07/06 17:55:11  winter
+#  - 2.82 release
+#
 # Revision 1.49  2003/04/20 21:44:08  winter
 #  - 2.80 release
 #

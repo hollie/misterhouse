@@ -411,14 +411,15 @@ sub menu_run_response {
 
 sub menu_html {
     my ($menu_group, $menu) = split ',', $_[0] if $_[0];
-    $menu_group = 'default' unless $menu_group;
-    $menu       = $Menus{$menu_group}{_menu_list}[0] unless $menu;
 
-    my @k = keys %main::Menus;
+    ($menu_group) = &get_menu_default('default') unless $menu_group;
+    $menu       = $Menus{$menu_group}{_menu_list}[0] unless $menu;
+    $menu       = 'Top' unless $menu;
 
     my $html = "<h1>";
     my $item = 0;
     my $ptr = $Menus{$menu_group};
+
     for my $ptr2 (@{$$ptr{$menu}{items}}) {
         my $goto = $$ptr2{goto};
                                 # Action item
@@ -453,13 +454,13 @@ sub menu_html {
 
 #---------------------------------------------------------------------------
 #  menu_wml creates the wml (for WAP enabled cell phones) menu interface
-#  You can test it here:  http://www.gelon.net
+#  You can test it here:  http://www.gelon.net  or http://wapsilon.com
 #  Others listed here: http://www.palowireless.com/wap/browsers.asp
 #---------------------------------------------------------------------------
 
 sub menu_wml {
     my ($menu_group, $menu_start) = split ',', $_[0] if $_[0];
-    $menu_group = 'default' unless $menu_group;
+    ($menu_group) = &get_menu_default('default') unless $menu_group;
     $menu_start = $Menus{$menu_group}{_menu_list}[0] unless $menu_start;
     logit "$config_parms{data_dir}/logs/menu_wml.log", 
           "ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu_start";
@@ -566,7 +567,7 @@ sub menu_wml_cards {
 
 sub menu_vxml {
     my ($menu_group, $menu_start) = split ',', $_[0] if $_[0];
-    $menu_group = 'default'                         unless $menu_group;
+    ($menu_group) = &get_menu_default('default') unless $menu_group;
     $menu_start = $Menus{$menu_group}{_menu_list}[0] unless $menu_start;
     logit "$config_parms{data_dir}/logs/menu_vxml.log",
           "ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu_start";
@@ -848,7 +849,11 @@ sub set_menu_default {
 }
 sub get_menu_default {
     my ($address) = @_;
-    return split $;, $Menus{menu_data}{defaults}{$address};
+    my ($menu_group, $menus) = split $;, $Menus{menu_data}{defaults}{$address};
+                           # Safeguard, in case the default was mis-specified.
+                           # Auto-generated mh.menu  group will always be there.
+    $menu_group = 'mh' unless $Menus{$menu_group};
+    return ($menu_group, $menus);
 }
 
 return 1;
@@ -856,6 +861,9 @@ return 1;
 
 #
 # $Log$
+# Revision 1.14  2003/07/06 17:55:12  winter
+#  - 2.82 release
+#
 # Revision 1.13  2003/03/09 19:34:42  winter
 #  - 2.79 release
 #

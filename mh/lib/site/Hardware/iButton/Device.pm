@@ -74,6 +74,13 @@ use vars qw(%models);
 		    'memtype' => "NVRAM",
 		    'specialfuncs' => "protected nvram 3*384bits",
 		   },
+       "05" => {			# Jon Upham
+            'model' => 'DS2405',
+            'memsize' => 0,
+            'memtype' => "none",
+            'specialfuncs' => "pio",
+            'class' => 'Hardware::iButton::Device::DS2405'
+           },
 	   "08" => {
 		    'model' => 'DS1992',
 		    'memsize' => 1024/8,
@@ -263,6 +270,10 @@ sub new {
 
 sub family {
     return $_[0]->{'family'};
+}
+
+sub raw_id { # Added by Jon Upham
+    return $_[0]->{'raw_id'};
 }
 
 sub serial {
@@ -1093,6 +1104,133 @@ Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 sub read_temperature_hires {
     my $this = shift;
     return $this->read_temperature( @_ );
+}
+
+
+package Hardware::iButton::Device::DS2405;
+
+use Hardware::iButton::Connection;
+
+# This code supports using the DS2405's native functions: toggling and reading the state
+# See the data sheet for more information on this device.  Implemented here by Jon Upham.
+
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+
+=head2 toggle2405
+
+Use this like other 1-wire devices in this module.
+
+=cut
+
+sub toggle2405{
+    my $this = shift;
+    my $serial = pack( "b*", $this->raw_id() );
+    my $c = $this->{'connection'};
+    my $send;
+
+    # reset the 1-wire
+    if ($this->reset()) {
+	# create a buffer to use with block function
+	# match Serial Number command 0x55
+	$send .= "\x55";
+
+	# Serial Number
+	$send .= $serial;
+
+      $send .= "\xFF"; # Added to send enough bits to read the return from the 2405
+
+	# send/recieve the transfer buffer
+	my $result = $c->owBlock( $send );
+
+#print "Sent:  ".unpack("b*",$send)."\n";
+#print "Result:".unpack("b*",$result)."\n";
+
+      # now get the last bit of the unpacked result and that's the state!
+      my $rv = unpack("b*",$result);
+      my $state2405 = substr($rv,length($rv)-1,1);
+#print "State: $state2405\n";
+	return $state2405
+    }
+
+    # reset or match echo failed
+    return -1;
+}
+
+=head2 query2405
+
+Use this like other 1-wire devices in this module.
+This code should look familiar to the FindDevices code in Connection.pm
+
+=cut
+
+sub query2405{
+    my $this = shift;
+    my $serial = pack( "b*", $this->raw_id() );
+    my $c = $this->{'connection'};
+
+	my @tmpSerial = split //, unpack( "b*", $serial );
+	my $send;
+
+	# construct the search rom
+	$send .= "\xF0";
+
+	my @tmpSend = ( 1 ) x (24 * 8);
+
+	# now set or clear apropriate bits for search
+	foreach my $i ( 0..63 ) {
+	    $tmpSend[3*($i+1)-1] = $tmpSerial[$i];
+	}
+
+	$send .= pack( "b*", join( "", @tmpSend ) );
+
+	#Add a /xFF so that we'll receive the status of the 2405 back
+
+	$send .= "\xFF";
+
+	# send/recieve the transfer buffer
+	$this->reset();
+	my $result = $c->owBlock( $send );
+	if ( $result ) {
+	    # check results to see if it was a success
+	    my @result = split //, unpack( "b*", substr( $result, 1 ) );
+	    my $cnt = 0;
+	    my $goodbits = 0;
+	    for (my $i = 0; $i < 192; $i += 3) {
+		my $tst = ( $result[$i] << 1 ) | $result[$i+1];
+		my $s = $tmpSerial[$cnt++];
+
+		if ($tst == 0x03) {
+		    # no device on line
+		    $goodbits = 0;    # number of good bits set to zero
+		    last;     # quit
+		}
+
+		if ( ( $s == 0x01 && $tst == 0x02 ) ||
+		     ( $s == 0x00 && $tst == 0x01 ) ) {
+		    # correct bit
+		    $goodbits++;  # count as a good bit
+		}
+	    }
+
+	    # check too see if there were enough good bits to be successful
+      if ($goodbits >=8){
+         my $rv = unpack("b*",$result);
+         my $state2405 = substr($rv,length($rv)-1,1);
+         print "State: $state2405\n";
+	   return $state2405
+      }
+	    return ( -1) if $goodbits >= 8;
+	}
+
+	# block fail or device not present
+
+print "problem sending reset...\n";
+
+	return (-2);
+
 }
 
 

@@ -56,7 +56,7 @@ if ($state = said $test_speech_flags) {
 
                                 # Allow for default volume control.  Reset on startup.
 set $mh_volume $mh_volume->state if $Startup;
-if ($state = state_now $mh_volume) {
+if (defined($state = state_now $mh_volume)) {
     if (!$Info{Volume_Control}) {
         print_log "Volume control not enabled";
     }

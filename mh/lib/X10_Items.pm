@@ -897,7 +897,8 @@ sub add {
                                 #24 hour countdown Timer
     $self->{battery_timer} = new Timer;
     $self->{battery_timer}-> set(24*60*60, 
-                       "speak \"rooms=all Battery timer for $name expired\"", 7);  
+	      ( ($main::config_parms{MS13_Battery_action}) ? $main::config_parms{MS13_Battery_action} : "print_log")
+				 .  " \"rooms=all Battery timer for $name expired\"", 7);  
 
     my ($hc, $id1) = $id =~ /X(\S)(\S+)(\S)\S/i;
     my $id2 = $id1;
@@ -945,14 +946,16 @@ sub sensorhook {
     ($ref->{dark} = 0) if $state eq 'light';
     ($ref->{dark} = 1) if $state eq 'dark'; 
 
-    &::print_log("X10_Sensor::sensorhook: resetting $ref->{battery_timer}") 
+    &::print_log("X10_Sensor::sensorhook: resetting $ref->{name}") 
       if $main::Debug{x10_sensor};
 
 # If I received something from this battery-powered transmitter, the battery 
 # must still be good, so reset the countdown timer $main::config_parms{MS13_Battery_Timer} hours
 # default is 12 more hours if not specified:
     $ref->{battery_timer}->set(($main::config_parms{MS13_Battery_timer}) ? $main::config_parms{MS13_Battery_Timer} : 12 *60*60, 
-                     "speak \"Battery timer for $ref->{name} expired\"", 7);
+                              (($main::config_parms{MS13_Battery_action}) ? 
+                                $main::config_parms{MS13_Battery_action} : "print_log")
+                               .  " \"rooms=all Battery timer for $name expired\"", 7); 
 }  
 
 
@@ -967,6 +970,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.39  2003/07/06 17:55:11  winter
+#  - 2.82 release
+#
 # Revision 1.38  2003/04/20 21:44:08  winter
 #  - 2.80 release
 #

@@ -56,6 +56,8 @@ if (my $header = said $mhsend_server) {
     elsif ($action eq 'display') {
         $action_arg = 120 unless defined $action_arg;
         display($msg, $action_arg, "Internet Message from $name");
+        display text => $msg, time => $action_arg, title => 'Mhsend message', window_name => 'mssend', append => 'bottom';
+#       print_msg "mhsend: $msg";
         $response = "Data was displayed for $action_arg seconds";
         logit("$config_parms{data_dir}/mhsend/display.log", $msg); # Also logit
     }        

@@ -27,7 +27,7 @@ $proxy_server  = new  Socket_Item(undef, undef, 'server_proxy', undef, undef, un
                                 # Process incoming requests from the real mh
 if ($state = said $proxy_server) {
     my ($interface, $function, @data) = split $;, $state;
-    print_log "Proxy data received from mh: interface=$interface function=$function data=@data." if $Debug{'proxy'};
+    print "Proxy data received from mh: interface=$interface function=$function data=@data.\n" if $Debug{'proxy'};
 
     if ($function eq 'send_serial_data') {
         &Serial_Item::send_serial_data($interface, $data[0]);
@@ -37,6 +37,9 @@ if ($state = said $proxy_server) {
     }
     elsif ($function eq 'send_ir') {
         &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, $data[0]);
+    }
+    elsif ($function eq 'uirt2_send') {
+        $main::Serial_Ports{UIRT2}{object}->write(pack 'C*', @data); 
     }
     elsif ($function eq 'ibutton') {
         my $function2 = shift @data;
@@ -64,7 +67,7 @@ if ($state = said $proxy_server) {
 sub proxy_serial_data {
     my ($data, $interface) = @_;
     return unless $data;
-    print_log "Proxy serial data sent to mh: interface=$interface data=$data." if $Debug{proxy};
+    print "Proxy serial data sent to mh: interface=$interface data=$data.\n" if $Debug{proxy};
     if ($proxy_server->active()) {
         set $proxy_server join($;, 'serial', $data, $interface), 'all'; # all writes out to all clients
     }
@@ -77,7 +80,7 @@ sub proxy_ibutton_data {
     if ($proxy_server->active()) {
         my ($ref, $data) = @_;
         my $name = $$ref{object_name};
-        print_log "Proxy ibutton data sent:  $name $data." if $Debug{proxy};
+        print "Proxy ibutton data sent:  $name $data.\n" if $Debug{proxy};
         set $proxy_server join($;, 'set_receive', $name, $data), 'all';
     }
 }
@@ -90,7 +93,7 @@ sub proxy_ibutton_data {
 if ($ControlX10::CM11::POWER_RESET) {
     $ControlX10::CM11::POWER_RESET = 0;
     if ($proxy_server->active()) {
-        print_log "Proxy CM11 power reset sent" if $Debug{proxy};
+        print "Proxy CM11 power reset sent\n" if $Debug{proxy};
         set $proxy_server join($;, 'set', '$Power_Supply', 'Restored'), 'all';
     }
 }

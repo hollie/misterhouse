@@ -60,7 +60,9 @@ The main Mister House documentation is in <a href="mh.html">mh.html</a>.
 A list of update announcements is in <a href="updates.html">updates.html</a> 
 There is also a <a href="faq.html">faq.html</a> to cover misc. topics and a  
 <a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
-for other user-supplied documentation.<p>
+for other user-supplied documentation.
+Ron Klinkien also has a <a href=http://mrhousefromscratch.tk/> 'MisterHouse from Scratch' weblog site</a>
+with a nice collection of links, resources, notes and commentary.<p>
 </p>
 <hr />
 <h1><a name="system_requirements">System Requirements</a></h1>
@@ -96,7 +98,7 @@ mh uses about 20% of the cpu and gets about 8 passes per second.</p>
  
  - cd mh\bin</pre>
 <pre>
- - mh.bat (this will call mh.exe or 'perl mh')</pre>
+ - mh.bat (this will call mh.exe if it exists or 'perl mh')</pre>
 <p>Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file names.  
 This program works ok:  <a href="http://misterhouse.net/public/unzip.exe">http://misterhouse.net/public/unzip.exe</a></p>
 <p>
@@ -128,18 +130,25 @@ This program works ok:  <a href="http://misterhouse.net/public/unzip.exe">http:/
  - ./mhl (if that doesn't work, try: mh or perl mh)</pre>
 <pre>
  - If are running with a recent Linux which has a recent libc.so
-(ls -l /lib/libc.so* and look ver a version &gt; 2.2.93, like on RH 8 or higher)
-and don't want to bother with installing the various optional perl modules, 
-download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin dir and run mhe instead.
-Note: one of the above files are still required, as they have the documentation and support files.</pre>
+     (ls -l /lib/libc.so* and look ver a version &gt; 2.2.93, like on RH 8 or higher)
+     and don't want to bother with installing the various optional perl modules, 
+     download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin
+     dir and run mhe instead.  Note: one of the above files are still required, 
+     as they have the documentation and support files.</pre>
 <p>
 </p>
 <h2><a name="tips">Tips</a></h2>
+<p>Point your web browser to <a href="http://localhost:8080">http://localhost:8080</a> and try out a few commands. 
+The default setup runs only a few core scripts from mh/code/common directory
+(listed in data_dir/code_select.txt). 
+You can use <a href="http://localhost:8080/bin/code_select.pl">http://localhost:8080/bin/code_select.pl</a>  menu
+(avaliable on the web ia5 MrHouse menu 'Select Code' button) to select other 
+standard code files you want to run.  To quickly test many of the code files, run:</p>
+<pre>
+  mh -code_select code_select_test.txt</pre>
 <p>To use less memory and cpu, or if you get graphics related errors, 
 you can run without the local gui inteface with:  mh -tk 0</p>
-<p>The default setup runs most the standard scripts in the mh/code/common directory.
-Point your web browser to <a href="http://localhost:8080">http://localhost:8080</a> and try out a few commands. 
-Also try 'telnet localhost 1234' and type one of the commands you saw on the
+<p>Also try 'telnet localhost 1234' and type one of the commands you saw on the
 web interface (e.g. 'say something mean' from mh/code/common/goofy.pl).</p>
 See <a href="#Coding_your_own_events">Coding your own events</a> for info on how to customized mh.
 <a href="updates.html"><p>
@@ -184,7 +193,10 @@ but Randy Kobes has kindly made them available at his site. You can install them
    ppm&gt; install GD
    ppm&gt; install DB_File
    ppm&gt; install Tk-JPEG
+   ppm&gt; install Tk-CursorControl
    ppm&gt; install Win32-Setupsup
+   ppm&gt; install DBI        (if you want to interface to a database server)
+   ppm&gt; install DBD-mysql  (if you want to interface with a mysql server) 
    ppm&gt; exit</pre>
 <p>The DB_File post-install script doesn't seem to work for most people, so you will need to copy the libdb.dll 
 file from 
@@ -291,12 +303,15 @@ also try the CPAN installer like this:</p>
   &gt;perl -MCPAN -eshell
   cpan&gt; install Tk
   cpan&gt; install Tk::JPEG
+  cpan&gt; install Tk::CursorControl
   cpan&gt; install DB_File
   cpan&gt; install Term::ReadKey
   cpan&gt; install Time::HiRes
   cpan&gt; install Audio::Mixer  (if on Linux)
   cpan&gt; install GD
   cpan&gt; install Text::LevenshteinXS
+  cpan&gt; install DBI        (if you want to interface to a database server)
+  cpan  install DBD::mysql  (if you want to interface with a mysql server) 
   cpan&gt; exit</pre>
 <p>The first time you run the CPAN code, it creates a configuration file.  
 The defaults (press enter a bunch of times) usually is good for all questinos except the one that ones
@@ -334,6 +349,13 @@ so if you can, you will probably want to use the RPM files.</p>
 <p>You can also run the client, or a simple telnet, from a different box, but you first have to create 
 a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to give authority to.  (e.g. 
 (set! server_access_list '(``localhost'' ``house\\.isl\\.net''))  ).  See the festival documentation for more details.</p>
+<p>Ricky Buchanan reports ESD and festival --server doe not work, and suggests to instead
+edit /etc/festival.scm and add these lines to the top:</p>
+<pre>
+ (Parameter.set 'Audio_Method 'Audio_Command)
+ (Parameter.set 'Audio_Command &quot;/usr/bin/esdcat -m -r $SR $FILE&quot;)
+ 
+Making sure that /usr/bin/esdcat points to the right spot for the esdcat program.</pre>
 <p>David L. reports that there is a different engine for festival called MBROLA at
 <a href="http://tcts.fpms.ac.be/synthesis/mbrola.html">http://tcts.fpms.ac.be/synthesis/mbrola.html</a> 
 that has a very nice US english male and female voice.</p>
@@ -555,11 +577,8 @@ up your own code and data directories.  Here is an example:</p>
 <pre>
  On unix, add this to /etc/profile or like place:
    export mh_parms=/prog/misterhouse/mh.private.ini</pre>
-<p>After mh is up and running, Use <a href="http://localhost:8080/bin/select_code.pl">http://localhost:8080/bin/select_code.pl</a>  menu
-(avaliable on the web ia5 MrHouse menu 'Select Code' button) to select which of the 
-standard code files you want to run.  You can add your own custom code files
-to your private \misterhouse\code directory.</p>
-<p>The first thing you will want to do is create an items.mht file that declares
+<p>You can add your own custom code files to your private \misterhouse\code directory.
+The first thing you will want to do is create an items.mht file that declares
 all your X10 items (see mh/code/bruce/items.mht for an example).  Alternativly, you 
 can declare each of your X10_items in any of the code members you use it in.  In either
 case you can use the ``List X10 items'' command created in mh_control.pl to review all

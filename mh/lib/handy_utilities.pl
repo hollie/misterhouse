@@ -57,9 +57,9 @@ sub main::batch {
 
 
 sub main::file_backup {
-    my ($file) = @_;
+    my ($file, $mode) = @_;
                                 # Back it up if it is older than a few minutes old
-    if (($main::Time - (stat $file)[9]) > 60*10) {
+    if ($mode eq 'force' or ($main::Time - (stat $file)[9]) > 60*10) {
         print  "Backing up file: $file to $file.backup\n";
         unlink "$file.backup4" if -e "$file.backup4";
         rename "$file.backup3", "$file.backup4" if -e "$file.backup4";
@@ -415,7 +415,7 @@ sub main::my_use {
     eval "use $module";
     if ($@) {
         print "\nError in loading module=$module:\n  $@";
-        print " - See install.html for instructions on how to install perl module $module\n\n";
+        print "\n - See install.html for instructions on how to install perl module $module\n\n";
     }
     return $@;
 }
@@ -1023,7 +1023,7 @@ sub main::time_date_stamp {
                                $day_long, $month_long, &main::plural2($mday)) }
     elsif ($style == 16) {$time_date_stamp = sprintf("%02d/%02d/$year_format %02d:%02d:%02d %s",
                                @day_month, $year, $hour, $min, $sec, $ampm) }
-    elsif ($style == 17) {$time_date_stamp = sprintf("%s-%02d-%02d %02d:%02d:%02d\n",
+    elsif ($style == 17) {$time_date_stamp = sprintf("%s-%02d-%02d %02d:%02d:%02d",
                           $year_full, $mon, $mday, $hour, $min, $sec) }
     elsif ($style == 18)  {$time_date_stamp = sprintf("%04d%02d%02d",
                                                       $year_full, $mon, $mday) }
@@ -1223,6 +1223,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.66  2003/07/06 17:55:12  winter
+#  - 2.82 release
+#
 # Revision 1.65  2003/03/09 19:34:42  winter
 #  - 2.79 release
 #

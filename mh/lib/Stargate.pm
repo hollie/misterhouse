@@ -550,8 +550,7 @@ sub SetDigitalInputState
         # Make sure the item is within the range of 8 status bits returned, skip if not
         next unless ($current_object->{address} > (($base-1) * 8)) and ($current_object->{address} <= ($base * 8));
 
-#       my $unitbit = 1 << ($current_object->{address}-1);
-        my $unitbit = 1 << ($current_object->{address}-1)-($base-1)*8;
+         my $unitbit = 1 << ($current_object->{address}-1)-($base-1)*8;
 
         my $newstate;
 	if ($current_object->invert() == 1)
@@ -579,6 +578,10 @@ sub ParseTelephoneData
         if($data <= 0x09)
         {
             SetTelephoneState('ICM',"dtmf::$data");
+        }
+        elsif($data eq 0x0a)
+        {
+            SetTelephoneState('ICM',"dtmf::0");
         }
         elsif($data eq 0x0b)
         {

@@ -2,17 +2,290 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
-    - If are running with a recent Linux which has a recent libc.so (ls -l
+    Bug Fixes and Other Changes:
+
+  Version 2.82 posted on 07/06/2003
+    Version 2.81 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+      http://misterhouse.net:81/download.html
+
+    New Features:
+
+    - Bazyle Butcher created a My MH button for the top of the default ia5
+    web page which we use to point to a web page that can be easily
+    customized. How To instructions are on the default My MH page. Bazyle
+    also added a Twiki button to the 'About MrHouse' ia5 documentation page.
+
+    - Jason Sharpe created a floorplan web script, available via
+    http://localhost:8080/bin/floorplan.pl . To enable, add x,y data to your
+    .mht items (or use the new set_fp_location method) to show where they
+    are in each room group and add x,y,w,h data to new mht GROUP records to
+    define how room groups relate to each other. See mh/code/test/test.mht
+    for an example.
+
+    - Jason Sharpe created Presence_Monitor, Occupancy_Monitor, Light_Item,
+    Door_Item, Motion_Item, Camera_Item, Photocell_Item objects, all
+    children of a new lib/Base_Item.pm object. Jason is still working on
+    these objects, so we don't have any documentaion or examples yet.
+
+    - Bill Young extracted common code from lib/X10_W800.pm and X10_MR26.pm
+    into lib/X10_RF.pm and added support for security devices. Bill created
+    RF_Item.pm for a general way to handle TV/VCR RF remotes and X10
+    security devices. See RF_Item in mh/docs/mh* . At the same time, Ross
+    Towbin created lib/X10_W800RF.pm, which is also for the W800 and
+    provides similar function.
+
+    - Denis Cheong enabled a DBI interface, so we can optionally use any DBI
+    enabled database server (e.g. mysql) to store miscellaneous mh data. If
+    you are not using a compiled mh, install DBI and DBD::mysql (or relevant
+    module for your server). Enable with the new dbi_* mh.ini parms and test
+    with http://localhost:8080/bin/dbi_table.pl .
+
+    - Created code/common/xAP_news.pl to monitor data from James Traynor's
+    new Windows xAP news.exe client, available from from http://mi4.biz .
+    Run a seperate news client for each news source you want (e.g. news cnn,
+    news reuters, etc) on any Windows computer on your network. You can use
+    a xAP_news mh.ini parm to control if new news titles are printed,
+    spoken, or displayed for each news source, like this:
+
+       xAP_news = cnn => display, slashdot => speak&display, default => display&print
+
+    - Created code/common/xAP_Weather.pl to monitor James Traynor's new
+    Windows xAP weather.exe client, also available from from http://mi4.biz
+    . Data will be stored in $Weather{station}{key} (e.g.
+    $Weather{egll}{tempf}). To set the standard $Weather keys used in the
+    web status line, set mh.ini parm weather_source=station_name (e.g.
+    weather_source=egll). To find your station name, go to
+    http://www.nws.noaa.gov/tg/siteloc.shtml, then use that when you start
+    the program (e.g. weather.exe krst). If you don't specify a code it will
+    default to London, Heathrow (EGLL).
+
+    Bug Fixes and Other Changes:
+
+    - James Derrick fixed deleting of temp festival sable files.
+
+    - Tom Dunk updated common/audrey_control.pl to fix 'set audrey volume'
+    and added various 'Push Audrey Button' commands.
+
+    - James Derrick fixed 'repeat your last command' to not repeat 'I said'.
+
+    - Robert Mann and Edward Brookhouse fixed bin/set_password if no
+    .password file existed and updated the web 'Set Password' phrase to
+    'Submit Password'
+
+    - Edward Brookhouse added FAQ entries 'Password Managment' and
+    'Customizing the TV guide'
+
+    - Ingo Dean changed the default X10_Sensor battery expired warning to
+    print_log, rather than speak. If you prefer speak, add this mh.ini parm:
+    MS13_Battery_action=speak
+
+    - Joel Berry was having zombie problems on FreeBSD, so we dropped the
+    $SIG{CHLD} exclusion we had on FreeBSD in bin/mh.
+
+    - Allowed for setting $mh_volume (in common/mh_sound.pl) to 0, to enable
+    muting of all computer sound. It was honoring 1->100, but not 0.
+
+    - Bazyle Butcher noticed that photo_time=0 caused instant refresh rather
+    than disabling photo refreshes.
+
+    - Denis Cheong used Tk::CursorControl to hide the cursor in
+    common/tk_photo.pl. You can install that Tk module with "ppm install
+    Tk-CursorControl" (windows) or "perl -MCPAN -e 'install
+    Tk::CursorControl'" (unix).
+
+    - Bill Young sent in code/public/weeder_doorbell.pl as an example of
+    monitoring and controlling a doorbell with a weeder board.
+
+    - Andrew Drummond spotted a 2.81 problem with browsers (like Audrey)
+    that do not pass http port data with their requests.
+
+    - David Norwood updated public/v4l_pvr.pl to add a dbm of recorded shows
+    so we don't re-record them and made the record command configurable.
+
+    - Robin Van-Oosten sent in code/public/rrd_graph_web.pl which he uses to
+    graph iButtons data stored in RRD (Round Robin Database).
+
+    - Enabled proxy support for the UIRT2 interface.
+
+    - Correctly set the menu defaults for http://localhost:8090/sub?menu_wml
+    , menu_vxml, and menu_html. Looks like these got broke a few releases
+    ago with a update for the html menus /bin/menu.pl page. These sub?menu_*
+    menus would work, but only if you specified a menu to start with (e.g.
+    sub?menu_wml(main)). Also now enable the auto-generated mh menu if the
+    specified or default menu was not found.
+
+  Version 2.81 posted on 06/01/2003
+    Version 2.81 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+      http://misterhouse.net:81/download.html
+
+    New Features:
+
+    - Jon Upham added iButton DS2405 io button to
+    site/Hardware/iButton/Device.pm.
+
+    - Jason Sharpe created lib/Occupancy_Monitor.pm. It counts the number of
+    people in a house based on movement detected throughout a graph based
+    network of motion sensors.
+
+    - Clive Freedman created city based data/ini/mh.city_name.ini files and
+    updated the web iniedit menu to allow for easy location based
+    initialization of the mh.private.ini file. Only first time users with no
+    private .ini files will see this (move your mh.private.ini or unset
+    mh_parms if you want to try it). While we may re-structure this on the
+    next release if we decide to break up the .ini file, the idea of city
+    based .ini seed files seems like a good one. New or updated mh.city.ini
+    files will be most welcomed.
+
+    - Joe Blecher updated lib/Lynx10PLC.pm to add support for Unit Address,
+    Extended Code 1, a number of API methods to allow users to access low
+    level commands, updates from Craig Schaeffer to support PRESET_DIM[12]
+    commands, fixed bug with DIM/BRIGHT command where level was parsed, and
+    created common/Lynx10PLC.pl for reporting hourly X10 stats.
+
+    - Created web/bin/button_toggle.pl and updated the ia5 modes menu and
+    common/mh_control.pl to add these new objects to track various modes:
+    $mode_mh (normal/mute/offline), $mode_security (armed/unarmed),
+    $mode_occupied (home/work/vacation), and $mode_sleeping
+    (nobody/parents/kids/all). Ron Klinkien created nice
+    web/graphics/mode_*.gif buttons for the above object names and states.
+    If you use other object names or states and have GD installed, buttons
+    will be generated with the state name. The above listed states can be
+    overridden with the set_states method, like this:
+
+      $mode_sleeping -> set_states('nobody', 'parents', 'nick', 'zack');
+
+    - Added bin/mh_run and bin/mh_run.bat, which we now call from
+    common/get_tv_grid.pl. This will use the compiled mhe or mh.exe it it
+    exists, so the script will now run ok on Linux (and Windows) even if you
+    don't have perl installed.
+
+    - Renamed the data and web/bin select_code* files to code_select* and
+    code_unselect* files. Added mh.ini parms code_select and code_unselect
+    so we can easily switch between sets of code files. By default, mh will
+    now use code_select.txt which is just the core files from code/common.
+    To test many of the common files (like mh used to do by default), run:
+
+      mh -code_select code_select_test.txt
+
+    - Autrijus Tang updated his PAR module so we can now use it to compile
+    mh on windows, in addition to Linux. I suspect we will run into issues
+    with it, so this release as 2 versions of .exe files in the windows .zip
+    file. The standard mh.exe is like in prior releases, perl 5.0 compiled
+    with perl2exe. The new mhe.exe uses perl 5.8, compiled with the PAR pp
+    script, like we do on Linux.
+
+    - Pete Flaherty posted his a new 03-2 MrAudrey image at
+    http://vsa.cape.com/~pjf/MrAudrey.html . This version has a exciting new
+    package installer where you can install Audrey applications that he has
+    packaged up at his web site with the click of a button from a new
+    Package Manager web page. For example, it took me about 30 seconds to
+    install nifty new mpgnoph player that I can direct to a shoutcast music
+    station using a web browser from any machine on our network.
+
+    Bug Fixes and Other Changes:
+
+    - James Derrick dropped an extra \n in time_date_stamp format=17
+
+    - Fixed the monthly archiving of old print/speak/error logs
+    (data_dir/logs/print.log.old). Without this fix, the files were growing
+    pretty large (mine was > 100 MB!) and the mh startup could pause a while
+    in the 'Archiving previous log files' step.
+
+    - John McCaskey enabled the use of weeder cards on multiple ports
+    (normally not needed as weeder cards can share a COM port) by allowing
+    for a xyz_process_data=1 mh.ini serial port parm.
+
+    - Updated lib/Serial_Item.pm with the option of a x10_interface mh.ini
+    parm, so we can control the default X10 interface.
+
+    - Larry Roudebush sent in code/public/weather_email_breaking.pl for
+    anouncing important weather info from email alerts.
+
+    - Jeff Pagel sent in code/public/garage_door_code.pl for monitoring and
+    controlling garage doors.
+
+    - Updated web/overlib.js to version 3.51 (it does the popup windows on
+    some menus when you hover over commands).
+
+    - Claes Johansson updated lib/X10_W800.pm to support X10RF UR51A remote
+    codes.
+
+    - Ron Klinkien updated code/common/monitor_router.pl to support Draytek
+    Vigor routers. He also updated bin/monitor_weblog to work with the
+    mhsend server when speaking web hits.
+
+    - Richard Phillips updated lib/Weather_wx200.pm to honor the mh.ini
+    default_temp=Celsius override.
+
+    - James Armstrong noticed the new lib/X10_W800.pm module would sometimes
+    get out of sync with incoming data.
+
+    - Ryan Scott noticed that Voice_Text '[a,b,c]' strings returned a state
+    of 1 instead of a,b,c.
+
+    - Steve Switzer improved the web phone search results formating in
+    web/bin/phone_search.pl
+
+    - Thomas Stoll added a optonal Audrey_IPs_for_speaking mh.ini parm in
+    code/common/audreyspeak.pl and limited the number of .wav files
+    generated to 10. He also updated bin/report_weblog to the apache web log
+    format he sees in Switzerland.
+
+    - Scott Johnson updated lib/Startgate.pm (again!) to allows reading
+    Digital Inputs 9-16 and to fix a problem with DTMF decoding of the
+    number 0 through the intercom.
+
+    - Dominique Benoliel updated code/common/weather_upload.pl (uploads
+    weather to wunderground.com) to work better with the WMR968 weather
+    station.
+
+    - Craig Schaeffer fixed the hourly/daily summary in
+    common/monitor_router.pl.
+
+    - David Lounsberry fixed the stop Process_Item method (was killing all
+    processes, not just the specified one).
+
+    - Add 'cc' addresses to 'to' address in bin/get_email, so we can filter
+    on cc addresses also.
+
+    - Updated the ia5 weather page to use 2 weather_local mh.ini parms,
+    which by default are based on the zip_code parm. Dropped the calls to
+    the radar image gif and set_parm_weather_local.pl script, as
+    wunderground changed their pages so the radar gif is no longer easy to
+    get at, and these did not work for non-US users with no zip code.
+
+    - Echo errors in web .pl files to the web browser.
+
+  Version 2.80 posted on 04/20/2003
+    Version 2.80 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+      http://misterhouse.net:81/download.html
+
+    New Features:
+
+    - Autrijus Tang created a new PAR.pm module which allows us to compile
+    perl scripts and libraries into one executable binary. If you are
+    running with a recent Linux which has a recent libc.so (ls -l
     /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
-    you can now try the compiled mhe file in misterhouse-2.80.linux.zip.
-    This might be useful if you have troubles with the above CPAN installs
-    or if you have a older (or newer) version of perl that has some sort of
+    you can now try the new compiled mhe file in misterhouse-2.80.linux.zip.
+    This might be useful if you have troubles with the CPAN installs or if
+    you have a older (or newer) version of perl that has some sort of
     problem (e.g. memory leak).
 
     - Created lib/X10_W800.pm to support the X10 RF -> serial W800
     interface. This is similar to the MR26, but also supports extended codes
     and has a better range. Comparison between the 2 can be found here:
-    http://www.wgldesigns.com/comments.htm ....
+    http://www.wgldesigns.com/comments.htm . Note: Extended codes are not
+    yet supported (I didn't have any RF devices that generated them).
+
+    - Created mh/code/common/x10_rf_relay.pl to relay selected X10 house
+    codes received from either of the X10 MR26 or W800 RF (Radio Frequency)
+    interfaces.
 
     - Dree Mistrut created Text::LevenshteinXS module, like
     Text-Levenshtein, but implemented in C rather than Perl, so it is much
@@ -44,20 +317,28 @@ Mister House Announcement List
     interface. Updated supporting files are lib/Telephony_DTMF.pm,
     Telephony_Item.pm, Stargate.pm, and StargateJTelephone.pm.
 
-    - Craig Schaeffer created lib/Identifier.pm and
+    - Craig Schaeffer created lib/Telephony_Identifier.pm and
     code/common/phone_identifier.pl for talking to the 2+ line
     incoming/outgoing/DTFM Identifier phone line monitor from
     http://www.yes-tele.com/mlm.html
 
-    - Created mh/code/common/x10_mr26.pl to relay selected X10 house codes
-    received from the X10 MR26 RF interface.
+    - David Norwood created a preliminary interface for the USB-UIRT two way
+    infrared transceiver. Installing drivers on Windows, Linux and BSD
+    requires patches, so contact David for info. See USB_UIRT_learning.pl in
+    the common code selector for configuration details. David also updated
+    the UIRT2_learning web interface to allow generation of codes based on
+    protocol, device and function number.
+
+    - Ron Klinkien created a 'MisterHouse from Scratch' weblog site (a
+    collection of links, resources, notes and commentary) here:
+    http://mrhousefromscratch.tk .
 
     Bug Fixes and Other Changes:
 
     - Roger Bille updated Serial_Item.pm to allow for 'X...' strings in
     non-X10 items.
 
-    - Added a -state option to bin/mhsend
+    - Added a -state option to bin/mhsend to get the state of an object.
 
     - Richard Phillips and Sean Walker posted docs/faq.html entry 3.4: How
     do get Linux to play more than one sound at the same time
@@ -78,15 +359,15 @@ Mister House Announcement List
     - Andrew McLaren noticed the mh lib/site/File files were pretty down
     level. The newer versions are not compatable with older perls, and it
     looks like all versions of perl have those installed by default, so I
-    hide the mh/lib/File modules so they would not get used. Not sure why we
-    included them in the first place.
+    deleted the mh/lib/File modules. Not sure why we included them in the
+    first place.
 
     - Enabled setupsup for 5.8 win98 users.
 
     - Added a mh.ini html_wav_format parm to control how the web server
     delivers TTS wav files. Options are bgsound (default for Audrey), link
-    (default for Netscape and Mozilla, frame, and embed (default for all
-    others).
+    (default for Netscape and Mozilla, frame (doesn't seem to work very
+    well), and embed (default for all others).
 
     - Updated Geo::Weather to version 1.2.3 (used by public/weather_com.pl
     to get data from weather.com).
@@ -115,6 +396,15 @@ Mister House Announcement List
 
     - Jeff Pagel noticed a duplicate file problem when using the -only_load
     option, like we use with a mh proxy.
+
+    - Roger Bille noticed the recent 2.78 substate and multistate code (set
+    $test_set1 'on~2~random:on;repeat:on;play';) messed up with some he code
+    that he had that had Socket_Item data with some ~:; characters. To avoid
+    this, we added a Generic_Item states_overload method, which we set to
+    'off' in Socket_Item, Serial_Item, and xAP_Items.pm.
+
+    - Added an optional iridium_brightness mh.ini parm (defaults to 0) so
+    you can allow for announcement of only brigher flares.
 
   Version 2.79 posted on 03/09/2003
     Version 2.79 was just uploaded to:

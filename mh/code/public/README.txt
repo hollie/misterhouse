@@ -77,6 +77,9 @@ door_monitor_jay.pl
 froggyrita.pl
  - Gaetan Lord's code for the temp,pressure,humidity sensor from http://www.froggyhome.com
 
+garage_door_code.pl 
+ - Jeff Pagel's code for monitoring and controlling garage doors.
+ 
 get_state.php
  - Douglas Parrish's example of how to get mh states from php
 
@@ -89,6 +92,9 @@ hvac_craig.pl
 
 hvac_david.pl
  - David Lounsberry's code to monitor 14 different iButtons and control HVAC with a weeder board!
+
+HVweb.pl
+ - Joseph Gaston's code to control Homevision controller via the Homevision web server 
 
 iButton_DS2450.pl 
  - Brian Rudy's sample code for communicating with the DS2450 Quad A/D converter
@@ -142,9 +148,6 @@ ivr.pl and ivr.menu
 
 ir_creative.pl
  - Richard Smith's example of reading IR data from Creative Credit Card Remotes.
-
-HVweb.pl
- - Joseph Gaston's code to control Homevision controller via the Homevision web server 
 
 mh_restart.pl
  - Richard Phillips's example and notes on restarting MisterHouse each night.
@@ -201,6 +204,11 @@ pa_control_evan_test.pl
  - Evan Graham's code for controling which rooms hear the sound 
    spoken or played by mh, using weeder DIO controled relays.
 
+pha_k256.pl
+ - Lincoln Foreman's example of reading data from phanderson's K256 kit which can 
+   monitor 256 DS1820 temperature sensors, 8 bits digital IO, and 11 bits of analog IO.
+   Available for $50 from http://www.phanderson.com/t64.html
+
 phone_identifier.pl
  - Craig  Schaeffer's code for talking to the 2+ line incoming/outgoing/DTFM
    Identifier phone line monitor: http://www.yes-tele.com/mlm.html
@@ -235,6 +243,10 @@ rrd_create.bat
    the perl-shared directory, run:  ppm install rrds.ppd
    After installing RRDs.pm, set the rrd_dir mh.ini parm to enable from mh.
    Edit and use rrd_create to initialize the RRD databases.
+
+rrd_graph_web.*
+ - Robin van Oosten's code for graphing iButtons with RRDsDavid Lounsberry's 
+   example of how to create graphs using  rrdtool.
 
 rcs.pl
  - Craig's code to run RCS X10 thermostats.
@@ -333,6 +345,9 @@ weather_com.pl
 weather_ec.pl
  - Harald Koch's code for parsing data from weatheroffice.ec.gc.ca into %Weather.
 
+weather_email_breaking.pl
+ - Larry Roudebush's code for announcing important weather info from email alerts.
+
 weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I 
    wrote a direct interface for the Wx200 weather station (code/Bruce/weather_wx200.pl).
@@ -373,6 +388,9 @@ webcam_ron.pl
 
 weeder_david.pl
  - David Lounsberry's code for controling hist HVAC system with a Solid State Relay weeder board!
+
+weeder_doorbell.pl
+ - Bill Young's example of monitoring and controlling a doorbell with a weeder board.
 
 weeder_init.pl
  - Jeff Pagel's code for initializing weeder DIO cards.

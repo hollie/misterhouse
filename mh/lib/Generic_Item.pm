@@ -31,8 +31,23 @@ sub set {
     $state = lc($state) unless defined $self->{states_casesensitive};
 
     if ($state and lc($state) eq 'toggle') {
-        $state = (lc($$self{state}) eq 'on') ? 'off' : 'on';
-        &main::print_log("Toggling $self->{object_name} from $$self{state} to $state");
+        my $state_current = $$self{state};
+                        # If states are defined, toggle will pick the next one
+        if ($$self{states}) {
+            my @s = @{$$self{states}};
+            my $i = 0;
+            while ($i < @s) {
+                last if $s[$i] eq $state_current;
+                $i++;
+            }
+            $i++;
+            $i = 0 if $i > $#s;
+            $state = $s[$i];
+        }
+        else {
+            $state = ($state_current eq 'on') ? 'off' : 'on';
+        }
+        &main::print_log("Toggling $self->{object_name} from $state_current to $state");
     }
     $respond = $main::Respond_Target unless $respond;
 
@@ -47,7 +62,6 @@ sub set {
             return if $self->$setcall($substate, $set_by, $respond) == -1;
         }
         elsif($self->can('default_setstate')) {
-            print "dbx ps=$primarystate ss=$substate\n";
             return if $self->default_setstate($primarystate, $substate, $set_by, $respond) == -1;
         }
         elsif ($self->can('default_setrawstate')) {
@@ -315,6 +329,49 @@ sub get_authority {
     return $_[0]->{authority};
 }
 
+sub set_type {
+	my ($self, $type) = @_;
+	$$self{type}=$type;
+}
+
+sub get_type {
+    return $_[0]->{type};
+}
+
+
+sub set_fp_location {
+    my ($self, @location) = @_;
+    @{$$self{location}}=@location;
+}
+
+
+sub get_fp_location {
+    my ($self) = @_;
+    if (! defined @{$$self{location}} ) { return }
+   return @{$$self{location}};
+}
+
+sub set_fp_nodes {
+    my ($self, @nodes) = @_;
+    @{$$self{nodes}}=@nodes;
+}
+
+sub get_fp_nodes {
+    my ($self) = @_;
+    return @{$$self{nodes}};
+}
+
+sub set_fp_icons {
+    my ($self, %icons) = @_;
+    %{$$self{fp_icons}}=%icons;
+}
+
+sub get_fp_icons {
+    my ($self) = @_;
+    return %{$$self{fp_icons}};
+}
+
+
 sub set_states {
     return unless $main::Reload;
     my ($self, @states) = @_;
@@ -517,8 +574,16 @@ sub get_web_style {
     return $self->{ web_style };
 }
 
+sub user_data {
+	my $self = shift;
+	return \%{$$self{user_data}};
+}
+
 #
 # $Log$
+# Revision 1.28  2003/07/06 17:55:11  winter
+#  - 2.82 release
+#
 # Revision 1.27  2003/04/20 21:44:07  winter
 #  - 2.80 release
 #

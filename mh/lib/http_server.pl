@@ -242,7 +242,8 @@ sub http_process_request {
         $get_req = '/' . $get_req unless $get_req =~ /^\//; # Leading / is optional
         my $referer = "http://$Http{Host}";
                                 # Some browsers (e.g. Audrey) do not echo port in Host data
-        $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
+#       $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
+        $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /\:\d+$/;
         $referer .= $get_req;
         print $socket &http_redirect($referer);
         return;
@@ -555,7 +556,9 @@ sub html_password {
         $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n];
 #       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
         $html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
-        $html .= qq[<INPUT type=submit value='Set Password'>\n</FORM>\n];
+        $html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
+	$html .= qq[<P> This form is used for logging into MisterHouse.<br> For administration please see the documentation of <a href="http://misterhouse.net/mh.html"> set_password </a></P>\n];
+
 
     }
     else {
@@ -645,7 +648,8 @@ sub test_for_file {
         unless ($get_req =~ m|/$|) {
             my $referer = "http://$Http{Host}";
                                 # Some browsers (e.g. Audrey) do not echo port in Host data
-            $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
+#           $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
+            $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /\:/;
             $referer .= "$get_req/";
             print $socket &http_redirect($referer);
             print "test_for_file redirected to $referer\n" if $main::Debug{http};
@@ -952,7 +956,8 @@ sub http_speak_to_wav_start {
 
                    # Some browsers (e.g. Audrey) do not echo port in Host data
     my $ref = "http://$Http{Host}";
-    $ref .= ":$config_parms{http_port}" if $config_parms{http_port} and $ref !~ /$config_parms{http_port}$/;
+#   $ref .= ":$config_parms{http_port}" if $config_parms{http_port} and $ref !~ /$config_parms{http_port}$/;
+    $ref .= ":$config_parms{http_port}" if $config_parms{http_port} and $ref !~ /\:/;
     $ref .= "/$wav_file";
 
     return $ref;
@@ -1175,7 +1180,12 @@ sub html_file {
         }
         else {
             $html = eval $code;
-            print "Error in http eval: $@" if $@;
+            if ($@) {
+                my $msg = "http error in http eval of $file: $@";
+                $html = &html_page('', $msg);
+                print $msg;
+            }
+#            print "Error in http eval: $@" if $@;
         }
 
                                 # Drop the http header if no_header
@@ -1275,12 +1285,13 @@ sub html_cgi {
         Override_print::define_print { $html .= shift };
     }
     
-    print "HTTP/1.0 200 OK\nServer: MisterHouse\nCache-control: no-cache\n";
+    print "HTTP/1.0 200 OK\nServer: MisterHouse\nCache-Control: no-cache\n";
 
                                 # Setup up vars so pgms like CGI.pm work ok
     $arg =~ s/&&/&/g;
     $ENV{QUERY_STRING}      = $arg;
     $ENV{REQUEST_METHOD}    = 'GET';
+#   $ENV{REMOTE_ADDR}       = $Http{Client_address};
     eval '&CGI::initialize_globals';  # Need this or else CGI.pm global vars are not reset
     local $^W = 0;  # Avoid redefined sub msgs
     eval $code;
@@ -1305,7 +1316,7 @@ sub mime_header {
 #   use HTTP::Date qw(time2str);
 #   my $date=time2str(time);
     my $header = "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n";
-    $header .= "Cache-Control: max-age=1000000\n" if $cache;
+    $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
                                 # Allow for a length header, as this allows for faster 'persistant' connections
     $header .= "Content-Length: $length\n" if $length;
     return $header . "\n";
@@ -1345,13 +1356,13 @@ sub html_page {
 #        my $length = length $body;
 # Content-Length: $length
 
-#Cache-control: max-age=1000000
+#Cache-Control: max-age=1000000
     return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
 Date: $date
 Content-Type: text/html
-Cache-control: no-cache
+Cache-Control: no-cache
 
 $body
 eof
@@ -1372,8 +1383,7 @@ eof
     $frame  = '' unless $frame;  # Avoid -w uninitialized value msg
     $script = '' unless $script; # Avoid -w uninitialized value msg
     $title  = '' unless $title;  # Avoid -w uninitialized value msg
-    $title = "<h3>$title</h3>" if $title;
-#Cache-control: max-age=1000000
+#Cache-Control: max-age=1000000
 
     my $html;
     $html = $script . "\n" if $script;
@@ -1383,7 +1393,6 @@ $style
 <TITLE>$title</TITLE>
 </HEAD>
 <BODY>
-$title
 
 $body
 </BODY>
@@ -1401,7 +1410,7 @@ $body
 HTTP/1.0 200 OK
 Server: MisterHouse
 Content-Type: text/html
-Cache-control: no-cache
+Cache-Control: no-cache
 $extraheaders
 
 $html
@@ -2722,6 +2731,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.81  2003/07/06 17:55:12  winter
+#  - 2.82 release
+#
 # Revision 1.80  2003/04/20 21:44:08  winter
 #  - 2.80 release
 #

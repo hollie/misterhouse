@@ -133,7 +133,7 @@ if (said $v_reboot_abort and $OS_win) {
     }
 }
 
-$v_debug = new  Voice_Cmd("Set debug to [X10,serial,http,misc,startup,socket,off]");
+$v_debug = new  Voice_Cmd("Set debug to [X10,serial,http,misc,startup,socket,password,user_code,off]");
 $v_debug-> set_info('Controls what kind of debug is printed to the console');
 if ($state = said $v_debug) {
     $config_parms{debug} = $state;
@@ -174,6 +174,7 @@ if ($temp = state_now $search_code_string) {
     print "Searching for code $temp";
     my ($results, $count, %files);
     $count = 0;
+    $temp =~ s/ /.+/;           # Let 'reload code' match 'reload xyz code' 
     for my $file (sort keys %User_Code) {
         my $n = 0;
         for (@{$User_Code{$file}}) {
@@ -336,8 +337,9 @@ if (state_now $Power_Supply eq 'Restored') {
                                 # Repeat last spoken
 $v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message,What did you say}', '';
 if (said $v_repeat_last_spoken) {
-    ($temp = $Speak_Log[0]) =~ s/^.+?: //s; # Remove time/date/status portion of log entry
-    respond "I said $temp";
+    ($temp = $Speak_Log[0]) =~ s/^.+?: //s;
+    ($temp = $temp) =~ s/^I said //s; # In case we run this more than once in a row
+      respond "I said $temp";
 }
 
 $v_clear_cache = new Voice_Cmd 'Clear the web cache directory', '';
@@ -356,13 +358,10 @@ if (said $v_clear_cache) {
 
                                 # Archive old logs
 if ($New_Month) {
-    print_log "Archiving old print/speak logs";
-    my $print_log = "$config_parms{data_dir}/print.log";
-    my $speak_log = "$config_parms{data_dir}/speak.log";
-    my $error_log = "$config_parms{data_dir}/error.log";
-    rename "$print_log.old", "$print_log.old2";
-    rename "$speak_log.old", "$speak_log.old2";
-    rename "$error_log.old", "$error_log.old2";
+    print_log "Archiving old print/speak logs: $config_parms{data_dir}/logs/print.log.old";
+    file_backup "$config_parms{data_dir}/logs/print.log.old", 'force';
+    file_backup "$config_parms{data_dir}/logs/speak.log.old", 'force';
+    file_backup "$config_parms{data_dir}/logs/error.log.old", 'force';
 }
 
 
@@ -415,4 +414,32 @@ $test_command_yo2-> set_info('A short text authorization required command for qu
 
 respond "Hi to $test_command_yo->{set_by}, $test_command_yo->{target}." if said $test_command_yo;
 respond "Hi to authorized $test_command_yo2->{set_by}, $test_command_yo2->{target}." if said $test_command_yo2;
+
+ 
+# Set up core MisterHouse modes like  mode_mh (normal/mute/offline), mode_vacation (on/off),
+# mode_scurity (armed/unarmed), mode_sleep (awake/sleeping parents/sleeping kids).
+# These modes can be controled via the web ia5 modes menu.
+
+$mode_mh        = new Generic_Item;
+$mode_mh       -> set_states('normal', 'mute', 'offline');
+
+$mode_security  = new Generic_Item;
+$mode_security -> set_states('armed', 'unarmed');
+
+$mode_occupied  = new Generic_Item;
+$mode_occupied -> set_states('home', 'work', 'vacation');
+
+$mode_sleeping  = new Generic_Item;
+$mode_sleeping -> set_states('nobody', 'parents', 'kids', 'all');
+
+
+                         # Grandfather in the $Save{mode} versions
+if ($state = state_now $mode_mh) {
+    $Save{mode} = $state;
+    &respond(mode => 'unmuted', app => 'notice', text => "Changed to $Save{mode} mode");
+}
+if ($state = state_now $mode_sleeping) {
+    $Save{sleeping_parents} = ($state eq 'parents' or $state eq 'all') ? 1 : 0;
+    $Save{sleeping_kids}    = ($state eq 'kids'    or $state eq 'all') ? 1 : 0;
+}
 

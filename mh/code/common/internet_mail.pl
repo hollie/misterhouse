@@ -75,11 +75,13 @@ if (said $cell_phone_test) {
                                 # Check for recent email since last received by mail program
                                 # Do it with a get_email process, so mh will not pause
 #&tk_radiobutton('Check email', \$Save{email_check}, ['no', 'yes']);
-$p_get_email = new Process_Item('get_email -quiet');
+$p_get_email = new Process_Item;
 $v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a second and I will check for new email');
 $v_recent_email-> set_info('Download and summarize new email headers');
 if (said $v_recent_email or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
                              new_minute 10 and &net_connect_check)) { 
+    set $p_get_email 'get_email -quiet';
+    set $p_get_email 'get_email -debug' if $Debug{mail};
     start $p_get_email;
 }
 

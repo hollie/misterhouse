@@ -33,7 +33,7 @@ Quick Install Instructions
  
      - cd mh\bin
 
-     - mh.bat (this will call mh.exe or 'perl mh')
+     - mh.bat (this will call mh.exe if it exists or 'perl mh')
 
     Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file
     names. This program works ok: http://misterhouse.net/public/unzip.exe
@@ -64,19 +64,27 @@ Quick Install Instructions
      - ./mhl (if that doesn't work, try: mh or perl mh)
 
      - If are running with a recent Linux which has a recent libc.so
-    (ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
-    and don't want to bother with installing the various optional perl modules, 
-    download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin dir and run mhe instead.
-    Note: one of the above files are still required, as they have the documentation and support files.
+         (ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
+         and don't want to bother with installing the various optional perl modules, 
+         download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin
+         dir and run mhe instead.  Note: one of the above files are still required, 
+         as they have the documentation and support files.
 
   Tips
+    Point your web browser to http://localhost:8080 and try out a few
+    commands. The default setup runs only a few core scripts from
+    mh/code/common directory (listed in data_dir/code_select.txt). You can
+    use http://localhost:8080/bin/code_select.pl menu (avaliable on the web
+    ia5 MrHouse menu 'Select Code' button) to select other standard code
+    files you want to run. To quickly test many of the code files, run:
+
+      mh -code_select code_select_test.txt
+
     To use less memory and cpu, or if you get graphics related errors, you
     can run without the local gui inteface with: mh -tk 0
 
-    The default setup runs most the standard scripts in the mh/code/common
-    directory. Point your web browser to http://localhost:8080 and try out a
-    few commands. Also try 'telnet localhost 1234' and type one of the
-    commands you saw on the web interface (e.g. 'say something mean' from
+    Also try 'telnet localhost 1234' and type one of the commands you saw on
+    the web interface (e.g. 'say something mean' from
     mh/code/common/goofy.pl).
 
 Windows Detailed Install Instructions
@@ -126,7 +134,10 @@ Windows Detailed Install Instructions
        ppm> install GD
        ppm> install DB_File
        ppm> install Tk-JPEG
+       ppm> install Tk-CursorControl
        ppm> install Win32-Setupsup
+       ppm> install DBI        (if you want to interface to a database server)
+       ppm> install DBD-mysql  (if you want to interface with a mysql server) 
        ppm> exit
 
     The DB_File post-install script doesn't seem to work for most people, so
@@ -271,12 +282,15 @@ UNIX Detailed Install Instructions
       >perl -MCPAN -eshell
       cpan> install Tk
       cpan> install Tk::JPEG
+      cpan> install Tk::CursorControl
       cpan> install DB_File
       cpan> install Term::ReadKey
       cpan> install Time::HiRes
       cpan> install Audio::Mixer  (if on Linux)
       cpan> install GD
       cpan> install Text::LevenshteinXS
+      cpan> install DBI        (if you want to interface to a database server)
+      cpan  install DBD::mysql  (if you want to interface with a mysql server) 
       cpan> exit
 
     The first time you run the CPAN code, it creates a configuration file.
@@ -330,6 +344,16 @@ UNIX Detailed Install Instructions
     with a list of boxes that you want to give authority to. (e.g. (set!
     server_access_list '("localhost" "house\\.isl\\.net")) ). See the
     festival documentation for more details.
+
+    Ricky Buchanan reports ESD and festival --server doe not work, and
+    suggests to instead edit /etc/festival.scm and add these lines to the
+    top:
+
+     (Parameter.set 'Audio_Method 'Audio_Command)
+     (Parameter.set 'Audio_Command "/usr/bin/esdcat -m -r $SR $FILE")
+ 
+    Making sure that /usr/bin/esdcat points to the right spot for the esdcat
+    program.
 
     David L. reports that there is a different engine for festival called
     MBROLA at http://tcts.fpms.ac.be/synthesis/mbrola.html that has a very
@@ -618,16 +642,13 @@ Coding your own events
      On unix, add this to /etc/profile or like place:
        export mh_parms=/prog/misterhouse/mh.private.ini
 
-    After mh is up and running, Use http://localhost:8080/bin/select_code.pl
-    menu (avaliable on the web ia5 MrHouse menu 'Select Code' button) to
-    select which of the standard code files you want to run. You can add
-    your own custom code files to your private \misterhouse\code directory.
-
-    The first thing you will want to do is create an items.mht file that
-    declares all your X10 items (see mh/code/bruce/items.mht for an
-    example). Alternativly, you can declare each of your X10_items in any of
-    the code members you use it in. In either case you can use the "List X10
-    items" command created in mh_control.pl to review all your X10 items.
+    You can add your own custom code files to your private \misterhouse\code
+    directory. The first thing you will want to do is create an items.mht
+    file that declares all your X10 items (see mh/code/bruce/items.mht for
+    an example). Alternativly, you can declare each of your X10_items in any
+    of the code members you use it in. In either case you can use the "List
+    X10 items" command created in mh_control.pl to review all your X10
+    items.
 
     To enabled password protection, run mh/bin/set_password command like
     this:

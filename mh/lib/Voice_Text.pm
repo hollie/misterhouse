@@ -234,6 +234,7 @@ sub speak_text {
                 $parms{rate}   = '-50%'  if $parms{rate}   eq 'slow';
                 $parms{rate}   = '+50%'  if $parms{rate}   eq 'fast';
                 $parms{volume} = 'quiet' if $parms{volume} eq 'soft';
+                              # Does this need to be scaled from 0->100 to ???
                 if ($parms{volume}) {
                     $text = qq[<VOLUME LEVEL="$parms{volume}"> $text </VOLUME>];
                 }
@@ -246,8 +247,8 @@ sub speak_text {
             my $file = "$main::config_parms{data_dir}/mh_temp.festival.$random.sable";
             &main::file_write($file, $text);
             print "Voice_text TTS: $main::config_parms{voice_text_festival} --tts $file\n" if $main::Debug{voice};
-            system("($main::config_parms{voice_text_festival} --tts $file ; ) &");
-#            system("($main::config_parms{voice_text_festival} --tts $file ; rm $file) &");
+#            system("($main::config_parms{voice_text_festival} --tts $file ; ) &");
+            system("($main::config_parms{voice_text_festival} --tts $file ; rm $file) &");
 #            system("($main::config_parms{voice_text_festival} --tts $file ; cat $file) &");
         }
         else {
@@ -410,6 +411,7 @@ sub speak_text {
 # SAFTGSM610_44kHzMono        = 67 (9k)
                 $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
                 $VTxt_stream2->{Format}->{Type} = 4;
+                $VTxt_stream2->{Format}->{Type} = $parms{compression} if $parms{compression} =~ /^\d+$/;
                 $VTxt_stream2->{Format}->{Type} = 22 if $parms{compression} eq 'low';
                 $VTxt_stream2->{Format}->{Type} = 66 if $parms{compression} eq 'high';
                 $VTxt_stream2->Open($parms{to_file}, 3, 0);
@@ -771,6 +773,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.47  2003/07/06 17:55:11  winter
+#  - 2.82 release
+#
 # Revision 1.46  2003/03/09 19:34:41  winter
 #  - 2.79 release
 #

@@ -269,7 +269,8 @@ sub set {
                 $serial_data =~ /^([A-P]PRESET_DIM2)(\S*)/ or
                 $serial_data =~ /^([A-P][1][0-6])(\S*)/ or
                 $serial_data =~ /^([A-P][1-9A-W])(\S*)/ or
-                $serial_data =~ /^([A-P]\&P\d+)(\S*)/ or 
+                $serial_data =~ /^([A-P]\&P\d+)(\S*)/ or         # Pre Dim Cmds
+                $serial_data =~ /^([A-P]Z\S*)/ or                # Scene Cmds for Switchlinc 
                 $serial_data =~ /^([A-P]\d+\%)(\S*)/ or 
                 $serial_data =~ /^([A-P][\+\-]?\d+)(\S*)/) {
                 $serial_chunk = $1;
@@ -401,12 +402,13 @@ sub send_x10_data {
     elsif ($interface eq 'bx24') {
         &X10_BX24::SendX10($serial_data);
     }
-    elsif ($interface eq 'lynx10plc') 
+ 
+    elsif ($interface eq 'lynx10plc')
     {
-	# marrick PLC wants XA1K
+                                # marrick PLC wants XA1AK
         &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},
-			     "X" . substr($x10_save_unit, 1) . 
-			     substr($serial_data, 2)) if $isfunc;
+                             "X" . substr($x10_save_unit, 1) .
+                             substr($serial_data, 1)) if $isfunc;
     }
     elsif ($interface eq 'cm17') {
                                 # cm17 wants A1K, not XA1AK
@@ -499,7 +501,11 @@ sub set_interface {
     my ($self, $interface) = @_;
                                 # Set the default interface
     unless ($interface) {
-        if ($main::Serial_Ports{cm11}{object}) {
+
+        if ($main::config_parms{x10_interface}) {
+            $interface = $main::config_parms{x10_interface};
+        }
+        elsif ($main::Serial_Ports{cm11}{object}) {
             $interface = 'cm11';
         }
         elsif ($main::Serial_Ports{BX24}{object}) {
@@ -526,11 +532,11 @@ sub set_interface {
         elsif ($main::Serial_Ports{cm17}{object}) {
             $interface = 'cm17';
         }
+        elsif ($main::Serial_Ports{Lynx10PLC}{object}) {
+            $interface = 'lynx10plc';
+        }
         elsif ($main::Serial_Ports{weeder}{object}) {
             $interface = 'weeder';
-        }
-	elsif ($main::Serial_Ports{Lynx10PLC}{object}) {
-            $interface = 'lynx10plc';
         }
 
     }
@@ -540,6 +546,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.65  2003/07/06 17:55:11  winter
+#  - 2.82 release
+#
 # Revision 1.64  2003/04/20 21:44:07  winter
 #  - 2.80 release
 #

@@ -33,8 +33,7 @@
 		<li><a href="#1.17:_how_can_i_use_family_radios_with_misterhouse">1.17: How can I use Family Radios with MisterHouse?</a></li>
 		<li><a href="#1.18:_is_there_a_way_to_tell_if_mh_is_shutdown_correctly_or_not">1.18: Is there a way to tell if MH is shutdown correctly or not?</a></li>
 		<li><a href="#1.19:_how_can_i_use_an_internet_appliance_with_misterhouse">1.19: How can I use an Internet Appliance with MisterHouse?</a></li>
-		<li><a href="#1.20:_how_can_i_point_misterhouse_to_a_custom_web_interface">1.20: How can I point MisterHouse to a custom web interface?</a></li>
-		<li><a href="#1.21:_where_is_perl_program_code_located">1.21: Where is perl program code located?</a></li>
+		<li><a href="#1.20:_where_is_perl_program_code_located">1.20: Where is perl program code located?</a></li>
 	</ul>
 
 	<li><a href="#2:_misterhouse_coding_questions">2: MisterHouse coding questions</a></li>
@@ -96,6 +95,14 @@
 		<li><a href="#6.6_what_is_x10">6.6 What is X10?</a></li>
 		<li><a href="#6.7_what_do_i_need_to_use_the_ibuttons">6.7 What do I need to use the iButtons?</a></li>
 		<li><a href="#6.8_what_sort_of_hardware_do_you_have_in_your_house">6.8 What sort of hardware do you have in your house?</a></li>
+	</ul>
+
+	<li><a href="#7.0:_setup_questions">7.0: Setup Questions</a></li>
+	<ul>
+
+		<li><a href="#7.1:_password_management">7.1: Password Management</a></li>
+		<li><a href="#7.2:_customizing_the_tv_guide">7.2: Customizing the TV guide</a></li>
+		<li><a href="#7.3:_how_can_i_point_misterhouse_to_a_custom_web_interface">7.3: How can I point MisterHouse to a custom web interface?</a></li>
 	</ul>
 
 </ul>
@@ -212,8 +219,9 @@ it on the command line.  For example:</p>
 <h2><a name="1.8:_is_there_a_way_i_can_have_direct_x10_control_with_a_simple_perl_script">1.8: Is there a way I can have direct X10 control with a simple perl script?</a></h2>
 <p>If all you want to do is control X10 devices with a cron job or from your own cgi scripts,
 running mh is probably overkill.  You can send X10 commands using either the ActiveHome
-interface (CM11) or the cheaper Firecracker interface (CM17) using the modules
-and documentation found in mh/lib/site/ControlX10 or download them from CPAN.
+interface (CM11, available from <a href="http://www.x10.com/automation/x10_ck11a_d.htm">http://www.x10.com/automation/x10_ck11a_d.htm</a> )
+or the cheaper Firecracker interface (CM17, available from <a href="http://www.x10.com/automation/firecracker_d.htm">http://www.x10.com/automation/firecracker_d.htm</a> )
+using the modules and documentation found in mh/lib/site/ControlX10 or download them from CPAN.
 Examples can be found in mh/lib/site/test_cm11.pl and test_cm17.pl.</p>
 <p>
 </p>
@@ -302,7 +310,7 @@ You can apply quick patches to mh, -vs- downloading a larger, less frequently up
 <h2><a name="1.14:_how_does_mh_read_and_use_the_user_code_in_code_dir">1.14: How does mh read and use the user code in code_dir</a></h2>
 <p>Each time mh is started or a Reload is done, mh will re-read all the .pl code members 
 in the code_dir directory (this is a mh.ini parm)
-and the file code_dir/mh_temp.user_code is created.
+and the file data_dir/mh_temp.user_code is created.
 All of the objects and global variables (see FAQ question 2.4), are put at top
 of this file, and everything else is put in seperate subroutines, one for each file read.
 A &amp;loop_code subroutine is also created (at the very bottom of mh_temp.user_code), that 
@@ -367,34 +375,7 @@ code in mh/code/common/mh_control.pl will set $Power_Supply, so you can do somet
 There is seperate FAQ on varous Internet Appliances in
 <a href="faq_ia.html">mh/docs/faq_ia.html</a><p>
 </p>
-<h2><a name="1.20:_how_can_i_point_misterhouse_to_a_custom_web_interface">1.20: How can I point MisterHouse to a custom web interface?</a></h2>
-<p>From David Norwood on 10/2001</p>
-<p>Here's a way to configure Misterhouse so you can have your own custom web
-interface AND still have access to web pages that are introduced with new
-releases (like the Audrey pages).</p>
-<p>Let's assume your misterhouse distribution is in /misterhouse/mh and your
-custom html files are in /misterhouse/web/custom.   Set these private.ini
-parameters:</p>
-<pre>
- html_dir=$Pgm_Root/web
- html_file=/custom/index.html
- html_alias_custom=/custom       /misterhouse/web/custom</pre>
-<p>Now your custom web pages will come up by default, but you will still have
-access to the latest and greatest ``mh4'' and ``ia*'' interfaces.  Your pages
-will not be over-written by new releases.  If you need another directory
-for, say, your audrey interface, just add another html_alias_whatever
-parameter.</p>
-<p>You can now also override just specific pages from an existing web interface.
-For example, create your own web/ia5 and web/ia5/security
-directories, then add this mh.ini parm to point to it:</p>
-<pre>
- html_alias2_ia5    = /misterhouse/web/ia5</pre>
-<p>For example, you can change the ia5 Security menu to point to different webcams or floorplan 
-images by creating your own web/ia5/security directory with just the files you want to 
-modify.</p>
-<p>
-</p>
-<h2><a name="1.21:_where_is_perl_program_code_located">1.21: Where is perl program code located?</a></h2>
+<h2><a name="1.20:_where_is_perl_program_code_located">1.20: Where is perl program code located?</a></h2>
 <p>From Harald Koch on 2/2002.</p>
 <p>There are (at least) three different locations for scripts:</p>
 <p>/mh/bin - standalone programs (such as get_weather, get_tv_grid); they
@@ -585,7 +566,7 @@ command line options, so there is less of a need here.</p>
 <p>Out of the box, mh defaults to running most of the code in the mh/code/common directory and all the code in mh/code/test.
 Members test_tagline.pl and the hello_speak.pl members are the main sources of the periodic test speech.
 Once you have played around with the example code, you will want to use 
-<a href="http://localhost:8080/bin/select_code.pl">http://localhost:8080/bin/select_code.pl</a>  menu (avaliable on the web ia5 MrHouse menu 'Select Code' button) 
+<a href="http://localhost:8080/bin/code_select.pl">http://localhost:8080/bin/code_select.pl</a>  menu (avaliable on the web ia5 MrHouse menu 'Select Code' button) 
 and select only the code files you find useful.</p>
 <p>See the FAQ question 'How does mh.ini work' on how to modify the code_dir parm to point to your new code directory.</p>
 <p>
@@ -1295,7 +1276,9 @@ When creating a hash, you can pass it a set of key/value pairs via a list, so in
  - 12/02 Improved callerID, new respond and Text_Item functions, xAP support.
  - 01/03 Mailing list reaches 500 members.
  - 02/03 Addex xPL support, stacked and overloaded states, and multi-user logon.
- - 03/03 Linux NaturalVoiceWine, web based TV and photo setup, improved Lynx X10 support.</pre>
+ - 03/03 Linux NaturalVoiceWine, web based TV and photo setup, improved Lynx X10 support.
+ - 04/03 Compiled mhe for linux, support for X10 W800, CallerID Identifier, USB-UIRT, and more iButton modules.
+ - 05/03 Got slashdotted (visted by lots of people from a link on slashdot.org)</pre>
 <p>Audrey support, more MS TTS controls, call waiting callerid</p>
 <p>
 </p>
@@ -1320,6 +1303,9 @@ and help from other coders than it would have if it were proprietary.</p>
   Dan Hoehnens most excellent collection of HA links:
     <a href="http://my.ohio.voyager.net/~dhoehnen/ha/list.html">http://my.ohio.voyager.net/~dhoehnen/ha/list.html</a></pre>
 <pre>
+  Mark Henrichs has a great 'Home Wiring Guide' site here:
+    <a href="http://www.wildtracks.cihost.com/homewire/">http://www.wildtracks.cihost.com/homewire/</a></pre>
+<pre>
   Over 500 links on about everything with HA:
     <a href="http://home-automation.org/">http://home-automation.org/</a></pre>
 <pre>
@@ -1331,7 +1317,8 @@ and help from other coders than it would have if it were proprietary.</p>
 <pre>
   Lots of good X10 data/ideas can be found here:
     <a href="http://www.geocities.com/ido_bartana/toc.htm">http://www.geocities.com/ido_bartana/toc.htm</a>
-    <a href="http://www.x10ideas.com">http://www.x10ideas.com</a></pre>
+    <a href="http://www.x10ideas.com">http://www.x10ideas.com</a>
+    <a href="http://www.x10.com/automation/homeautomation_e.htm">http://www.x10.com/automation/homeautomation_e.htm</a></pre>
 <pre>
   Dave Houston has some good X10 info (e.g. causes of CM11A lockups) here:
      <a href="http://www.laser.com/dhouston/">http://www.laser.com/dhouston/</a></pre>
@@ -1394,7 +1381,8 @@ Either way works fine.</p>
 <h2><a name="6.6_what_is_x10">6.6 What is X10?</a></h2>
 <p>The people at <a href="http://www.x10.com">http://www.x10.com</a> sell affordable devices that communicate with each other over 
 normal household power lines.  Manuals for many of there devices are listed
-at <a href="http://www.x10.com/support/support_manuals.htm">http://www.x10.com/support/support_manuals.htm</a></p>
+at <a href="http://www.x10.com/support/support_manuals.htm">http://www.x10.com/support/support_manuals.htm</a>  .
+They have their home automation product slited here: <a href="http://www.x10.com/automation/homeautomation_e.htm/#homeautomation">http://www.x10.com/automation/homeautomation_e.htm/#homeautomation</a></p>
 <p>The most common modules are the Lamp module and the Appliance module.  Both sell for around $10-$15.
 The lamp module has can turn up to 300 watt lamps on, off, and various levels of bright. 
 The appliance module is an on/off relay.</p>
@@ -1577,6 +1565,95 @@ pond temperatures: <a href="http://ames.homeip.net:81/pages/My_iButtonVenture.ht
  - A ham radio TNC for tracking 2 GPS APRS equipped cars
  - NetGear router with mh monitored SYSLOG data for tracking internet traffic
  - MSVoice VR via a Andrea Desktop Array microphone</pre>
+<p>
+</p>
+<hr />
+<h1><a name="7.0:_setup_questions">7.0: Setup Questions</a></h1>
+<p>
+</p>
+<h2><a name="7.1:_password_management">7.1: Password Management</a></h2>
+<p>To password protect Misterhouse, you can set passwords for different users via set_password.
+The 'admin' link from the main page is only for logging in once you have setup a password. 
+</p>
+<pre>
+
+To enable password protection, run mh/bin/set_password command like this:</pre>
+<pre>
+     set_password -user family -password xyz1
+     set_password -user admin  -password xyz2</pre>
+<pre>
+    Note: only the first 8 characters are used. The admin password is
+    required for controling the mh web setup menus (e.g. item and code
+    selection menus).(Unix or Windows)</pre>
+<p>This will create a file pointed to with the mh.ini password_file parm (e.g. mh/data/.password).
+To further extend which user can do what see password_allow in mh/data/</p>
+<p>
+</p>
+<h2><a name="7.2:_customizing_the_tv_guide">7.2: Customizing the TV guide</a></h2>
+<p>To set the MisterHouse TV Today so it will display listings relevant to your area and provider
+Start by finding your tv_provider ID, run this command (located in mh/bin):</p>
+<pre>
+  get_tv_grid -zip your_zipcode -get_provider</pre>
+<p>Then edit your mh.ini and set the tv_provider_name parm.
+Listed below are two examples or related parms, one that uses sat_ and one that is tv_.
+You can copy these tv_* parms as another set of sat_* or cable_* or
+or whatever_*, then run get_tv_grid multiple times to support
+multiple sets of tv schedules.  For example:</p>
+<pre>
+   get_tv_grid -db tv   (-db tv is the default)
+   get_tv_grid -db sat</pre>
+<pre>
+  sat_provider = 128772
+  sat_provider_name = DirectTV Washington
+  sat_name =SAT               @ Used to give a useful label on the web pages
+  sat_hours=all                                 @ Which hours to get.  Use all for all hours
+  sat_label=SATELLITE         @ Which web link name.  Use none to disable,
+  sat_channels_keep=          @ Which channels to keep
+  sat_channels_skip=          @ Which channels to skip
+  sat_channel_min=0           @ Keep only channels above this number
+  sat_channel_max=99999</pre>
+<pre>
+  tv_provider_name = Charter Communications - Rochester
+  tv_name = TV                @ Used to give a useful label on the web pages
+  tv_hours=02,06,10,14,18,22  @ Which hours to get.  Use all for all hours
+  tv_label=VCR                @ Which web link name.  Use none to disable,
+  tv_channels_keep=           @ Which channels to keep
+  tv_channels_skip=           @ Which channels to skip
+  tv_channel_min=0            @ Keep only channels above this number
+  tv_channel_max=99999        @ Keep only channels below this number</pre>
+<p>Use mh/common/tv_grid.pl to do daily call get_tv_grid to update your tv database and web pages.
+and mh/code/common/tv_info.pl to search and announce shows.
+If you change your tv_provider, you can use get_tv_grid -reget to refresh the tv/*.html files.</p>
+<p>When I first setup MH it took me three weeks to figure out that my providerID 
+had changed since install (matter of a week) and thats why the tv listings came up broken.
+So if you have a problem, and you think the syntax in the mh.ini is correct, try re-checking your provider ID.</p>
+<p>
+</p>
+<h2><a name="7.3:_how_can_i_point_misterhouse_to_a_custom_web_interface">7.3: How can I point MisterHouse to a custom web interface?</a></h2>
+<p>From David Norwood on 10/2001</p>
+<p>Here's a way to configure Misterhouse so you can have your own custom web
+interface AND still have access to web pages that are introduced with new
+releases (like the Audrey pages).</p>
+<p>Let's assume your misterhouse distribution is in /misterhouse/mh and your
+custom html files are in /misterhouse/web/custom.   Set these private.ini
+parameters:</p>
+<pre>
+ html_dir=$Pgm_Root/web
+ html_file=/custom/index.html
+ html_alias_custom=/custom       /misterhouse/web/custom</pre>
+<p>Now your custom web pages will come up by default, but you will still have
+access to the latest and greatest ``mh4'' and ``ia*'' interfaces.  Your pages
+will not be over-written by new releases.  If you need another directory
+for, say, your audrey interface, just add another html_alias_whatever
+parameter.</p>
+<p>You can now also override just specific pages from an existing web interface.
+For example, create your own web/ia5 and web/ia5/security
+directories, then add this mh.ini parm to point to it:</p>
+<pre>
+ html_alias2_ia5    = /misterhouse/web/ia5</pre>
+<p>For example, you can change the ia5 Security menu to point to different webcams or floorplan 
+images by creating your own web/ia5/security directory with just the files you want to 
+modify.</p>
 
 </body>
 

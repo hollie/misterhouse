@@ -9,7 +9,7 @@ my %code_members_off;
 
 if ($Reload) {
     for my $member (split ',', $Save{code_members_off}) {
-        print_log "Member $member has been disabled";
+        print_log "Member $member has been disabled.  Re-enable with 'toggle code member $member'";
         $code_members_off{$member}++;
         $Run_Members{$member} = 0;
     }

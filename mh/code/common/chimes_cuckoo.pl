@@ -3,6 +3,7 @@
 #@ This module plays Cuckoo style chimes on each
 #@ quarter hour. You must download BigBenSounds.zip from:
 #@  http://www.bamafolks.com/~randy/freeware/chimes/
+#@  or http://alan.firebin.net/cuckoos.tar
 #@ then unzip the contents into a new "chimes" directory
 #@ under your existing "sounds" directory.
 

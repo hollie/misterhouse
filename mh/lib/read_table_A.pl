@@ -7,6 +7,10 @@ use strict;
 # Type         Address/Info            Name                                    Groups                                      Other Info
 #
 #X10I,           J1,                     Outside_Front_Light_Coaches,            Outside|Front|Light|NightLighting
+#
+# See mh/code/test/test.mht for an example.
+#
+
 
 #print_log "Using read_table_A.pl";
 
@@ -23,7 +27,7 @@ sub read_table_init_A {
 sub read_table_A {
     my ($record) = @_;
 
-    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand);
+    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy);
     
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
@@ -75,6 +79,11 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "X10_Sensor('$address', '$name', $other)";
     }
+    elsif($type eq "RF") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "RF_Item('$address', '$name', $other)";
+    }
     elsif($type eq "COMPOOL") {
         ($address, $name, $grouplist) = @item_info;
         ($address, $comparison, $limit) = $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
@@ -84,6 +93,51 @@ sub read_table_A {
     elsif($type eq "GENERIC") {
         ($name, $grouplist) = @item_info;
         $object = "Generic_Item";
+    }
+    elsif($type eq "LIGHT") {
+        require 'Light_Item.pm';
+	($object, $name, $grouplist, @other) = @item_info;
+        $object = "Light_Item(\$$object, $other)";
+    }
+    elsif($type eq "DOOR") {
+        require 'Door_Item.pm';
+	($object, $name, $grouplist, @other) = @item_info;
+        $object = "Door_Item(\$$object, $other)";
+    }
+    elsif($type eq "MOTION") {
+        require 'Motion_Item.pm';
+        ($object, $name, $grouplist, @other) = @item_info;
+        $object = "Motion_Item(\$$object, $other)";
+    }
+    elsif($type eq "PHOTOCELL") {
+        require 'Photocell_Item.pm';
+        ($object, $name, $grouplist, @other) = @item_info;
+        $object = "Photocell_Item(\$$object, $other)";
+    }
+    elsif($type eq "TEMP") {
+        require 'Temperature_Item.pm';
+        ($object, $name, $grouplist, @other) = @item_info;
+        $object = "Temperature_Item(\$$object, $other)";
+    }
+    elsif($type eq "CAMERA") {
+        require 'Camera_Item.pm';
+        ($object, $name, $grouplist, @other) = @item_info;
+        $object = "Camera_Item(\$$object, $other)";
+    }
+    elsif($type eq "OCCUPANCY") {
+        require 'Occupancy_Monitor.pm';
+        ($name, $grouplist, @other) = @item_info;
+        $object = "Occupancy_Monitor( $other)";
+    }
+    elsif($type eq "PRESENCE") {
+        require 'Presence_Monitor.pm';
+        ($object, $occupancy, $name, $grouplist, @other) = @item_info;
+        $object = "Presence_Monitor(\$$object, \$$occupancy,$other)";
+    }
+    elsif($type eq "GROUP") {
+        ($name, $grouplist) = @item_info;
+        $object = "Group" unless $groups{$name}; # Skip new group if we already did this
+        $groups{$name}{empty}++;
     }
     elsif($type eq "MP3PLAYER") {
         require 'Mp3Player.pm';
@@ -241,6 +295,14 @@ sub read_table_A {
             print_log "mht object and group name are the same: $name  Bad idea!";
         }
         else {
+                                # Allow for floorplan data:  Bedroom(5,15)|Lights
+            if ($group =~ /(\S+)\((\S+?)\)/) {
+                $group = $1;
+                my $loc = $2;
+                $loc =~ s/;/,/g;
+                $loc .= ',1,1' if ($loc =~ tr/,/,/) < 3;
+                $code .= sprintf "\$%-35s -> set_fp_location($loc);\n", $name;
+            }
             $code .= sprintf "\$%-35s =  new Group;\n", $group unless $groups{$group};
             $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name unless $groups{$group}{$name};
             $groups{$group}{$name}++;
@@ -259,6 +321,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.18  2003/07/06 17:55:12  winter
+#  - 2.82 release
+#
 # Revision 1.17  2003/01/12 20:39:21  winter
 #  - 2.76 release
 #

@@ -247,7 +247,7 @@ sub stop {
                                 # If none specified, kill em all!
     @process_list = @active_processes unless @process_list;
     
-    for my $process (@active_processes) {
+    for my $process (@process_list) {
         my $pid = $$process{pid};
         next unless $pid;
         delete $$process{pid};
@@ -272,6 +272,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.23  2003/07/06 17:55:11  winter
+#  - 2.82 release
+#
 # Revision 1.22  2003/02/08 05:29:23  winter
 #  - 2.78 release
 #

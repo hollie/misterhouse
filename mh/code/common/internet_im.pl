@@ -42,6 +42,10 @@ If on Windows, you can get these from ActiveState with these commands:
  perl ppm.bat install Net-Jabber
  perl ppm.bat install XML-Stream
 
+If on Linux (or the above does not work on Windows) try:
+
+ perl -MCPAN -eshell     then     install Net::Jabber
+
 =cut
 
 $v_im_test = new  Voice_Cmd 'Send a [AOL,MSN,jabber] test message';
