@@ -1,0 +1,41 @@
+icon_auth.pl:return "<a href='$action' target='main'><img src='/ia5/images/$icon.gif' alt='Logon' border=0></a>";
+list_buttons.pl:$html = "<html><body>\n<base target ='output'>\n" . 
+list_buttons2.pl:$html = "<html><body>\n<base target ='output'>\n" . 
+list_categories.pl:$html = "<html><body>\n<base target ='output'>\n" . 
+list_groups.pl:#html = "<html><body>\n<base target ='output'>\n" . 
+list_items.pl:$html = "<html><body>\n<base target ='output'>\n" . 
+list_widgets.pl:$html = "<html><body>\n<base target ='output'>\n" . 
+menu.pl:        my $target = '';
+menu.pl:                $target = 'speech';
+menu.pl:            $target = 'speech';
+menu.pl:            $target = 'main' if $$ptr2{R} =~ /^href=/i;
+menu.pl:        my $color = ($target eq 'speech' or $target eq 'main') ? 'blue' : 'white';
+menu.pl:            $html .= &menu_button($text, $href, $target, $color);
+menu.pl:            $html .= "<td><a target='speech' href='$href'>$state_name " . &key_pointer . "</a></td>\n";
+menu.pl:    my ($text, $href, $target, $color) = @_;
+menu.pl:    $target = ($target) ? "target='$target'" : '';
+menu.pl:    return "<a $target id=a$menu_key_index href='$href'>$link</a>\n" if $href;
+menu_old.pl:    my $target = $frame;
+menu_old.pl:    $target++;
+menu_old.pl:    $target = 'speech' if $target eq 'menu4';
+menu_old.pl:    my $html = "<base target='$target'><table  width='100%'>\n";
+menu_old.pl:                $target = 'speech';
+menu_old.pl:                $target = 'speech';
+menu_old.pl:            $href = "/bin/menu.pl?list&$menu_group&$goto&$target";
+menu_old.pl:        $html .= "<a href='$href' target='$target'>$link</a></td></tr>\n";
+menu_old.pl:        $html .= "<td><a href='/sub?menu_run($menu_group,$menu,$item,$state,h)' target='speech'>$state_name</a></td>\n";
+mp3_search.pl:        $href  = "<a href='/RUN?Set_house_mp3_player_to_playlist_$href' target=invisible>";
+mp3_search.pl:        my $href  = qq[<a href='/SUB?mp3_play("$file")' target=invisible>];
+mp3_search.pl:<base target ='mp3_output'>
+phone_in.pl:my $html = "<html><body>\n<base target ='output'>\n" . 
+phone_out.pl:my $html = "<html><body>\n<base target ='output'>\n" . 
+photos.pl:#$html .= "<base target='_top'>\n";
+photos.pl:<td><a href='$config_parms{photo_url}' target='_top'> <img src='/graphics/1pixel.gif' width='$width' height='$height' border=$border></a></td>
+photos.pl:<td><a href='/ia5/index_menu.shtml'    target='_top'> <img src='/graphics/1pixel.gif' width='$width' height='$height' border=$border></a></td>
+photos.pl:<td><a href='/misc/photos.shtml' target='_top'> <img src='/graphics/1pixel.gif' width='$width' height='$height' border=$border></a></td>
+photos.pl:<td><a href='$config_parms{photo_url}' target='_top'>Main Menu</a></td>
+photos.pl:<td><a href='/ia5/index_menu.shtml' target='_top'>Menus</a></td>
+photos.pl:<td><a href='/clock/index.html' target='_top'>Clock</a></td>
+set_cookie.pl:my ($string, $text, $target) = @ARGV;
+set_cookie.pl:#   print "db s=$string t=$text t=$target c=$Cookies{$string}\n";
+set_cookie.pl:    $html .= "target='$target' " if $target;
