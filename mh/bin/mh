@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-12-16 15:17:13 winter>
+#  Last change Time-stamp: <2002-01-16 07:58:30 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -2294,7 +2294,7 @@ sub play {
     &print_speaklog($Save{mode} . ": (" . basename($parms{file}) . ")")  unless
         $parms{file} =~ /sound_/ or $parms{file} =~/^System/;
 
-    print "Playing wave file $parms{file}\n" if $config_parms{debug} eq 'misc';
+    print "Playing wave file $parms{file}\n" if $config_parms{debug} eq 'play';
 
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
 
@@ -2355,7 +2355,7 @@ sub play {
                 }
             }
         }
-        print "playing file=$file parm=$play_parm\n" if $config_parms{debug} eq 'misc';
+        print "playing file=$file parm=$play_parm\n" if $config_parms{debug} eq 'play';
 
 #       system($config_parms{sound_program_prescript}) if $config_parms{sound_program_prescript};
 
@@ -2364,6 +2364,20 @@ sub play {
 #       while ($i++ < 3) {
 #           no strict 'subs';   # For non-win OS
         my $played_ok;
+
+                                # Let the speak codee push the wav file
+        if ($parms{address}) {
+            copy $file, "$config_parms{html_dir}/speak_address.wav";
+            for my $address (split ',', $parms{address}) {
+                my $address_code = $config_parms{voice_text_address_code};
+                $address_code =~ s|\$address|$address|;
+                $address_code =~ s|\$url|http://$Info{Machine}:$config_parms{http_port}/speak_address.wav|;
+                print "play running address code: $address_code\n" if $main::config_parms{debug} eq 'play';
+                eval $address_code;
+            }
+            last;
+        }
+
         if (!$OS_win) {
             next if $file =~ /^System/;
             last unless $config_parms{sound_program};
@@ -2844,7 +2858,6 @@ sub read_code {
         $files_deleted++;
     }
     &print_log("   $files_deleted files deleted, " . (@files_changed2+0) . " files changed: @files_changed2") unless $Startup;
-#   print "Read user code\n";
     &read_user_code(@files_changed) if @files_changed or $files_deleted;
 #   speak(@files_changed+0 . " files were read.");
 
@@ -3098,6 +3111,7 @@ sub read_user_code {
         
 #       ($webname =~ /startup/i) ?  unshift(@Loop_Code, $temp) : push(@Loop_Code, $temp);
     }
+
                                 # Sort Loop_Code into desired order
     for my $member_name (sort {$member_sort_order{$a} <=> $member_sort_order{$b} or 
                                $a cmp $b} keys %Run_Members) {
@@ -4442,6 +4456,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.63  2002/01/19 20:59:19  winter
+# - 2.63 release
+#
 # Revision 2.62  2001/12/16 21:44:09  winter
 # - 2.62 release
 #
