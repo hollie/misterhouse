@@ -4,9 +4,9 @@
 #  Description:
 #      Handy network utilities of all shapes and sizes
 #  Author:
-#      Bruce Winter    winter@isl.net  http://www.isl.net/~winter
+#      Bruce Winter    bruce@misterhouse.net
 #  Latest version:
-#      http://www.isl.net/~winter/house/programs
+#      http://misterhouse.net/mh/lib/handy_net_utilities.pl
 #  Change log:
 #    11/27/98  Created.
 #
@@ -784,6 +784,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.31  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.30  2001/05/06 21:07:26  winter
 # - 2.51 release
 #

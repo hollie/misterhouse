@@ -22,112 +22,114 @@ sub new {
 
 #   print "\n\nWarning: duplicate ID codes on different X10_Item objects: id=$id\n\n" if $serial_item_by_id{$id};
 
-    my $hc = substr($id, 0, 1);
-    push @{$items_by_house_code{$hc}}, $self;
-    $id = "X$id";
-    $self->{x10_id} = $id;
+    if ($id) {
+        my $hc = substr($id, 0, 1);
+        push @{$items_by_house_code{$hc}}, $self;
+        $id = "X$id";
+        $self->{x10_id} = $id;
 
                                 # Setup house only codes:     e.g. XAO, XAP, XA+20
                                 #  - allow for all bright/dim commands so we can detect incoming signals
-    if (length($id) == 2) {
-        $self-> add ($id . 'O', 'on');
-        $self-> add ($id . 'P', 'off');
-        $self-> add ($id . '+5',  '+5');
-        $self-> add ($id . '+10', '+10');
-        $self-> add ($id . '+15', '+15');
-        $self-> add ($id . '+20', '+20');
-        $self-> add ($id . '+25', '+25');
-        $self-> add ($id . '+30', '+30');
-        $self-> add ($id . '+35', '+35');
-        $self-> add ($id . '+40', '+40');
-        $self-> add ($id . '+45', '+45');
-        $self-> add ($id . '+50', '+50');
-        $self-> add ($id . '+55', '+55');
-        $self-> add ($id . '+60', '+60');
-        $self-> add ($id . '+65', '+65');
-        $self-> add ($id . '+70', '+70');
-        $self-> add ($id . '+75', '+75');
-        $self-> add ($id . '+80', '+80');
-        $self-> add ($id . '+85', '+85');
-        $self-> add ($id . '+90', '+90');
-        $self-> add ($id . '+95', '+95');
-        $self-> add ($id . '+100', '+100');
-        $self-> add ($id . '-5',  '-5');
-        $self-> add ($id . '-10', '-10');
-        $self-> add ($id . '-15', '-15');
-        $self-> add ($id . '-20', '-20');
-        $self-> add ($id . '-25', '-25');
-        $self-> add ($id . '-30', '-30');
-        $self-> add ($id . '-35', '-35');
-        $self-> add ($id . '-40', '-40');
-        $self-> add ($id . '-45', '-45');
-        $self-> add ($id . '-50', '-50');
-        $self-> add ($id . '-55', '-55');
-        $self-> add ($id . '-60', '-60');
-        $self-> add ($id . '-65', '-65');
-        $self-> add ($id . '-70', '-70');
-        $self-> add ($id . '-75', '-75');
-        $self-> add ($id . '-80', '-80');
-        $self-> add ($id . '-85', '-85');
-        $self-> add ($id . '-90', '-90');
-        $self-> add ($id . '-95', '-95');
-        $self-> add ($id . '-100', '-100');
-    }
+        if (length($id) == 2) {
+            $self-> add ($id . 'O', 'on');
+            $self-> add ($id . 'P', 'off');
+            $self-> add ($id . '+5',  '+5');
+            $self-> add ($id . '+10', '+10');
+            $self-> add ($id . '+15', '+15');
+            $self-> add ($id . '+20', '+20');
+            $self-> add ($id . '+25', '+25');
+            $self-> add ($id . '+30', '+30');
+            $self-> add ($id . '+35', '+35');
+            $self-> add ($id . '+40', '+40');
+            $self-> add ($id . '+45', '+45');
+            $self-> add ($id . '+50', '+50');
+            $self-> add ($id . '+55', '+55');
+            $self-> add ($id . '+60', '+60');
+            $self-> add ($id . '+65', '+65');
+            $self-> add ($id . '+70', '+70');
+            $self-> add ($id . '+75', '+75');
+            $self-> add ($id . '+80', '+80');
+            $self-> add ($id . '+85', '+85');
+            $self-> add ($id . '+90', '+90');
+            $self-> add ($id . '+95', '+95');
+            $self-> add ($id . '+100', '+100');
+            $self-> add ($id . '-5',  '-5');
+            $self-> add ($id . '-10', '-10');
+            $self-> add ($id . '-15', '-15');
+            $self-> add ($id . '-20', '-20');
+            $self-> add ($id . '-25', '-25');
+            $self-> add ($id . '-30', '-30');
+            $self-> add ($id . '-35', '-35');
+            $self-> add ($id . '-40', '-40');
+            $self-> add ($id . '-45', '-45');
+            $self-> add ($id . '-50', '-50');
+            $self-> add ($id . '-55', '-55');
+            $self-> add ($id . '-60', '-60');
+            $self-> add ($id . '-65', '-65');
+            $self-> add ($id . '-70', '-70');
+            $self-> add ($id . '-75', '-75');
+            $self-> add ($id . '-80', '-80');
+            $self-> add ($id . '-85', '-85');
+            $self-> add ($id . '-90', '-90');
+            $self-> add ($id . '-95', '-95');
+            $self-> add ($id . '-100', '-100');
+        }
                                 # Setup unit-command  codes:  e.g. XA1AJ, XA1AK, XA1+20
                                 # Note: The 0%->100% states are handled directly in Serial_Item.pm
-    else {
-        $self-> add ($id . $hc . 'J', 'on');
-        $self-> add ($id . $hc . 'K', 'off');
-        $self-> add ($id . $hc . 'J' . $hc . 'J', 'double on');
-        $self-> add ($id . $hc . 'K' . $hc . 'K', 'double off');
-        $self-> add ($id . $hc . 'J' . $hc . 'J' . $hc . 'J',  'triple on');
-        $self-> add ($id . $hc . 'K' . $hc . 'K' . $hc . 'K',  'triple off');
-        $self-> add ($id . $hc . 'L', 'brighten');
-        $self-> add ($id . $hc . 'M', 'dim');
-        $self-> add ($id . $hc . '+5',  '+5');
-        $self-> add ($id . $hc . '+10', '+10');
-        $self-> add ($id . $hc . '+15', '+15');
-        $self-> add ($id . $hc . '+20', '+20');
-        $self-> add ($id . $hc . '+25', '+25');
-        $self-> add ($id . $hc . '+30', '+30');
-        $self-> add ($id . $hc . '+35', '+35');
-        $self-> add ($id . $hc . '+40', '+40');
-        $self-> add ($id . $hc . '+45', '+45');
-        $self-> add ($id . $hc . '+50', '+50');
-        $self-> add ($id . $hc . '+55', '+55');
-        $self-> add ($id . $hc . '+60', '+60');
-        $self-> add ($id . $hc . '+65', '+65');
-        $self-> add ($id . $hc . '+70', '+70');
-        $self-> add ($id . $hc . '+75', '+75');
-        $self-> add ($id . $hc . '+80', '+80');
-        $self-> add ($id . $hc . '+85', '+85');
-        $self-> add ($id . $hc . '+90', '+90');
-        $self-> add ($id . $hc . '+95', '+95');
-        $self-> add ($id . $hc . '+100', '+100');
-        $self-> add ($id . $hc . '-5',  '-5');
-        $self-> add ($id . $hc . '-10', '-10');
-        $self-> add ($id . $hc . '-15', '-15');
-        $self-> add ($id . $hc . '-20', '-20');
-        $self-> add ($id . $hc . '-25', '-25');
-        $self-> add ($id . $hc . '-30', '-30');
-        $self-> add ($id . $hc . '-35', '-35');
-        $self-> add ($id . $hc . '-40', '-40');
-        $self-> add ($id . $hc . '-45', '-45');
-        $self-> add ($id . $hc . '-50', '-50');
-        $self-> add ($id . $hc . '-55', '-55');
-        $self-> add ($id . $hc . '-60', '-60');
-        $self-> add ($id . $hc . '-65', '-65');
-        $self-> add ($id . $hc . '-70', '-70');
-        $self-> add ($id . $hc . '-75', '-75');
-        $self-> add ($id . $hc . '-80', '-80');
-        $self-> add ($id . $hc . '-85', '-85');
-        $self-> add ($id . $hc . '-90', '-90');
-        $self-> add ($id . $hc . '-95', '-95');
-        $self-> add ($id . $hc . '-100', '-100');
-
-        $self-> add ($id . $hc . 'STATUS', 'status');
-        $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
-
+        else {
+            $self-> add ($id . $hc . 'J', 'on');
+            $self-> add ($id . $hc . 'K', 'off');
+            $self-> add ($id . $hc . 'J' . $hc . 'J', 'double on');
+            $self-> add ($id . $hc . 'K' . $hc . 'K', 'double off');
+            $self-> add ($id . $hc . 'J' . $hc . 'J' . $hc . 'J',  'triple on');
+            $self-> add ($id . $hc . 'K' . $hc . 'K' . $hc . 'K',  'triple off');
+            $self-> add ($id . $hc . 'L', 'brighten');
+            $self-> add ($id . $hc . 'M', 'dim');
+            $self-> add ($id . $hc . '+5',  '+5');
+            $self-> add ($id . $hc . '+10', '+10');
+            $self-> add ($id . $hc . '+15', '+15');
+            $self-> add ($id . $hc . '+20', '+20');
+            $self-> add ($id . $hc . '+25', '+25');
+            $self-> add ($id . $hc . '+30', '+30');
+            $self-> add ($id . $hc . '+35', '+35');
+            $self-> add ($id . $hc . '+40', '+40');
+            $self-> add ($id . $hc . '+45', '+45');
+            $self-> add ($id . $hc . '+50', '+50');
+            $self-> add ($id . $hc . '+55', '+55');
+            $self-> add ($id . $hc . '+60', '+60');
+            $self-> add ($id . $hc . '+65', '+65');
+            $self-> add ($id . $hc . '+70', '+70');
+            $self-> add ($id . $hc . '+75', '+75');
+            $self-> add ($id . $hc . '+80', '+80');
+            $self-> add ($id . $hc . '+85', '+85');
+            $self-> add ($id . $hc . '+90', '+90');
+            $self-> add ($id . $hc . '+95', '+95');
+            $self-> add ($id . $hc . '+100', '+100');
+            $self-> add ($id . $hc . '-5',  '-5');
+            $self-> add ($id . $hc . '-10', '-10');
+            $self-> add ($id . $hc . '-15', '-15');
+            $self-> add ($id . $hc . '-20', '-20');
+            $self-> add ($id . $hc . '-25', '-25');
+            $self-> add ($id . $hc . '-30', '-30');
+            $self-> add ($id . $hc . '-35', '-35');
+            $self-> add ($id . $hc . '-40', '-40');
+            $self-> add ($id . $hc . '-45', '-45');
+            $self-> add ($id . $hc . '-50', '-50');
+            $self-> add ($id . $hc . '-55', '-55');
+            $self-> add ($id . $hc . '-60', '-60');
+            $self-> add ($id . $hc . '-65', '-65');
+            $self-> add ($id . $hc . '-70', '-70');
+            $self-> add ($id . $hc . '-75', '-75');
+            $self-> add ($id . $hc . '-80', '-80');
+            $self-> add ($id . $hc . '-85', '-85');
+            $self-> add ($id . $hc . '-90', '-90');
+            $self-> add ($id . $hc . '-95', '-95');
+            $self-> add ($id . $hc . '-100', '-100');
+            
+            $self-> add ($id . $hc . 'STATUS', 'status');
+            $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
+            
+        }
     }
 
     $self->set_interface($interface);
@@ -805,6 +807,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.19  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.18  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

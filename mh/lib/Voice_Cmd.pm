@@ -328,6 +328,7 @@ sub voice_items {
         next unless $vocab eq $vocab_cmd;
 #       my $filename  = $ref->{filename};
         my $category  = $ref->{category};
+        $category = '' unless $category; # Avoid unint warning
         push(@cmd_list2, "$category: $cmd");
     }
     return @cmd_list2;
@@ -600,6 +601,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.32  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.31  2001/04/15 16:17:21  winter
 # - 2.49 release
 #

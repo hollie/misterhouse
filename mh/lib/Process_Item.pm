@@ -18,6 +18,12 @@ sub set {
     @{$$self{cmds}} = @cmds;
 }
 
+                                # Allow for process STDOUT to go to a file
+sub set_output {
+    my ($self, $file) = @_;
+    $$self{output} = $file;
+}
+
 sub add {
     my ($self, @cmds) = @_;
     push @{$$self{cmds}}, @cmds;
@@ -70,6 +76,16 @@ sub start_next {
         print "  The process will not be restarted:  cmd=$cmd\n";
         return;
     }
+
+    print "Process start: cmd_path=$cmd_path cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
+
+                                # Store STDOUT to a file
+    if ($$self{output}) {
+        open( STDOUT_REAL, ">&STDOUT" )        or print "Process_Item Warning, can not backup STDOUT: $!\n";
+        open( STDOUT,      ">$$self{output}" ) or print "Process_Item Warning, can not open output file $$self{output}: $!\n";
+        print STDOUT_REAL '';   # To avoid the "used only once" perl -w warning
+    }
+
     if ($main::OS_win and $type ne 'eval') {
                                 # A blank cflag will result in stdout to mh window. 
                                 # Also, this runs beter, without as much problem with 'out ov env space' problems.
@@ -78,6 +94,7 @@ sub start_next {
                                 # But, with a blank cflag, we can not Kill hung processes on exit :(
                                 # UNLESS we run our process with perl, rather then command.com (perl get_url instead of get_url.bat)
                                 # So, we make sure that cmd_path is not a bat file (done in find_pgm_path above)
+                                # This also enables set_output to work ok (with a bat file that call perl, it comes up empty).
                                 # Got all that :)
 #       use Win32::Process;
 #       $cflag = CREATE_NEW_CONSOLE;
@@ -86,10 +103,10 @@ sub start_next {
 #       $cflag = NORMAL_PRIORITY_CLASS;
         $cflag = 0;             # Avoid uninit warnings
 
-        print "Process start: cmd_path=$cmd_path cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
-
         &Win32::Process::Create($pid, $cmd_path, $cmd, 0, $cflag , '.') or
-            print "Warning, start Process error: cmd_path=$cmd_path\n -  cmd=$cmd   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
+            warn "Process_Item Warning, start Process error: cmd_path=$cmd_path\n -  cmd=$cmd   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
+        
+        open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
 
         $$self{pid} = $pid;
 #       $pid->Wait(10000) if $run_mode eq 'inline'; # Wait for process
@@ -98,6 +115,7 @@ sub start_next {
         $pid = fork;
         if ($pid) {
             print "Process start: parent pid=$pid type=$type cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
+            open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
             $$self{pid} = $pid;
         }
         elsif (defined $pid) {
@@ -204,6 +222,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.16  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.15  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

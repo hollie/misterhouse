@@ -964,6 +964,8 @@ On Unix systems, the fork function is used.  On either system, the following met
         On Windows, the &-> eval trick is supposed to work with perl 5.6+ (which has fork), but
         unfortunatly, it causes perl to crash often, so is probably not useful yet.
 
+     set_output $output_file : Program errata goes to $output_file
+
      start          : Starts the process.
 
      stop           : Stops the process.
@@ -981,6 +983,7 @@ On Unix systems, the fork function is used.  On either system, the following met
      display $slashdot_news if done_now $p_slashdot_news;
 
      $p_report_weblog = new Process_Item;
+     $p_report_weblog ->set_output("$config_parms{data_dir}/weblog_results.txt");
      if (time_now '2 AM') {
          set   $p_report_weblog "report_weblog /mh/data/logs/server.$Year_Month_Now.log";
          start $p_report_weblog;
@@ -2730,6 +2733,49 @@ An example of how to create these logs is in mh/code/bruce/phone.pl
     display_callers (no argument -> uses latest logs) 
     display_callers 1997_11  (Look only at November, 1997 logs) 
 
+=item find_files
+
+find_files finds files on shared networked Windows and samba directories
+
+  Usage:
+   find_files [options] search_string
+
+    -h or -help  => This help text
+    -v           => Verbose (shows dirs as they are searched)
+
+    -boxes x,y,z => Search for files on boxes x,y, and z.  Defaults to all.
+    -dirs  x,y,z => Search only dirs x,y, and z.  Defaults to all.
+    -skip  x,y,z => Ignore files/dirs with strings x,y, and z.
+
+  Examples:
+    find_files mp3
+    find_files -v -boxes "house,dm,c2" mp3
+    find_files -dirs "//house/c,//dm/d" mp3
+
+
+=item find_programs
+
+find_programs finds programs running on networked Windows computers.
+
+Requires WMI to be installed on both/all computers.
+
+  Usage:
+   find_programs [options] box_list [search_string]
+
+    box_list is a comma delimited list of boxes to search
+    search_string lists only programs that match
+
+   options:
+    -h or -help  => This help text
+    -all         => Show/search all programs
+
+  Examples:
+    find_programs house
+    find_programs "house,dm,c2" quake
+    find_programs -all "house,dm,c2"
+
+
+
 =item get_ceiva
 
 get_ceiva gets pictures from the 'now showing' folder of a Ceiva.com web page.
@@ -3332,6 +3378,7 @@ You can use use any or all of these interfaces to walk through menus:
   WAP phone:          http://localhost/sub?menu_wml
   Tellme.com phone:   http://localhost/sub?menu_vxml  
   LCD keypads:        see mh/code/bruce/lcdproc.pl for an example
+  Audible feedback:   see mh/code/public/audible_menu.* for an example
 
 To enable, use mh/code/test/menu.pl to read in menu files.
 The format of the menu files is a simple text file, where each record is prefixed with a record type character.  
@@ -3747,7 +3794,16 @@ Here are some examples demonstrating these options:
  function you will need to authorize &my_response with this in your code: 
  $Password_Allow{'&my_response'} = 1):
 
-  <FORM ACTION="SET;&my_response">Test 1<INPUT SIZE=5 NAME="$Save{test_input1}"</form>
+  HTML:
+   <form action="SET;&my_response">Test 2<input size=9 name="$test_form"></form>
+  
+  User code:
+   $test_form = new Generic_Item;
+   print_log $state if $state = state_now $test_form;
+   sub my_response {
+     return "You entered " . state $test_form;
+   }
+
 
  This will set a $barcode_scan Generic_Item, then display a web page 
  that was updated by user code:
@@ -3755,6 +3811,7 @@ Here are some examples demonstrating these options:
   <FORM ACTION="SET;barcode_search.html"  target='speech'>
   <p>Scan data into here: <INPUT SIZE=60 NAME="$barcode_scan" value=""></FORM>
 
+ 
 
  This will redirect the browser back to the calling page 
  (note the $ from the $camera_light object is optional):
@@ -4019,6 +4076,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.42  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.41  2001/05/06 21:07:25  winter
 # - 2.51 release
 #

@@ -29,7 +29,7 @@ if (said $v_top10_list eq 'Get') {
     if (-s $f_top10_html > 10 and
         time_date_stamp(6, $f_top10_html) eq time_date_stamp(6)) {
         print_log "Top 10 list is current";
-        display $f_top10_list;
+        display $f_top10_list, 300;
     }
     else {
         if (&net_connect_check) {

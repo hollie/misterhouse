@@ -2,15 +2,25 @@ use strict;
 
 package Weather_wx200;
 
+=begin comment
 
-# This code reads data from the wx200 Weatherstation
-# See mh/code/bruce/weather_monitor.pl for a usage example
-# To use it, add these mh.ini parms
-#  serial_wx200_port=\\.\COM7
-#  serial_wx200_baudrate=9600
-#  serial_wx200_handshake=dtr
-#  serial_wx200_datatype=raw
-#  serial_wx200_module=weather_wx200
+ This mh code reads data from the wx200 Weather station
+
+ To use it, add these mh.ini parms
+  serial_wx200_port=\\.\COM7
+  serial_wx200_baudrate=9600
+  serial_wx200_handshake=dtr
+  serial_wx200_datatype=raw
+  serial_wx200_module=weather_wx200
+  altitude = 1000 # In feet, used to find sea level barometric pressure
+
+ A complete usage example is at:
+   http://misterhouse.net/mh/code/bruce/weather_monitor.pl
+
+ Lots of other good WX200 software links at:
+   http://weatherwatchers.org/wxstation/wx200/software.html
+
+=cut
 
 my $wx200_port;
 sub startup {
@@ -25,34 +35,6 @@ sub update_wx200_weather {
     my $remainder = &read_wx200($data, \%main::Weather, $debug);
     set_data $wx200_port $remainder if $remainder;
 }                             
-
-####################################################
-#
-# Weather_wx200.pl
-#
-# Author: Bruce Winter (brucewinter@home.net)
-#
-# This function will parse a string of data read from a wx200 weather station.
-# It stores the results in the specified hash arry.
-#
-# Example usage:
-#  
-#  $wx200_port = new  Serial_Item(undef, undef, 'serial2');
-#  &read_wx200($data, \%weather) if $data = said $wx200_port;
-#
-# A complete usage example is at:
-#    http://misterhouse.net/mh/code/Bruce/weather_monitor.pl
-#
-# Lots of other good WX200 software links at:
-#    http://weatherwatchers.org/wxstation/wx200/software.html
-#
-# Use these mh.ini parms
-#  serial_wx200_port=\\.\COM7
-#  serial_wx200_baudrate=9600
-#  serial_wx200_handshake=dtr
-#  serial_wx200_datatype=raw
-#
-####################################################
 
 # Category=Weather
 
@@ -158,8 +140,13 @@ sub wx_temp2 {
 sub wx_baro {
     my ($wptr, $debug, @data) = @_;
     $$wptr{Barom}    = sprintf('%x%02x', $data[2], $data[1]);
+                                # This number is the same on my unit, so lets compensate 
+                                #  - add 1 mill-bars per 10 meters (altitude is in feet)
     $$wptr{BaromSea} = sprintf('%x%02x%02x', 0x0f & $data[5], $data[4], $data[3]);
     substr($$wptr{BaromSea}, -1, 0) = '.';
+    if ($main::config_parms{altitude}) {
+        $$wptr{BaromSea} = $$wptr{Barom} + $main::config_parms{altitude}/(10 * 3.28);
+    }
 
     $data[18] = 0x00 if $data[18] == 0xee; # Returns 0xee (238) in sub zero weather
 

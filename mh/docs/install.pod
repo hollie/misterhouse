@@ -120,10 +120,10 @@ Activestate has provided ppm (Perl Package Manager), a nifty new way of automati
 and installing packages. Do this by logging on to the internet and typing:
 
    cd \perl\bin (modify to match your directory)
-   perl ppm install Win32-API
-   perl ppm install Tk
-   perl ppm install Tk-JPEG
-   perl ppm install DB_File
+   perl ppm.pl install Win32-API
+   perl ppm.pl install Tk
+   perl ppm.pl install Tk-JPEG
+   perl ppm.pl install DB_File
 
 The Tk package is about 2 MB, so it will take a while. If you are behind a www proxy firewall, 
 try setting the environment variable http_proxy=http://proxy-server:port

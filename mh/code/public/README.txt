@@ -16,6 +16,16 @@ alarmclock_david.pl
 alarmclock_doug.pl
  - Doug Nakakihara's alarm clock for for  file based timed reminders.
 
+audible_menu.pl
+audible_menu.txt
+ - David Norwood's code for walking through mh menus with just one or two
+   switches (e.g. air sip switches for the disabled), using
+   audible feedback to help pick menu items/states.
+
+aqualink.pl
+ - Tim Doyle's code for the Jandy AquaLink RS pool/spa controller.
+   Like Compool.pl, you can get/set various temps and states.                    
+
 AudioControl.pl
  - Bill Sobel's example of using Mp3Player.pm object
 
@@ -31,6 +41,9 @@ callerid_doug*
 Compool*.pl
  - Bill Sobel's code for monitoring and controling ComPool pool/spa equipment.
    You can get/set time, get/set temperature, and get/set equipment states.    
+
+date_functions.pl
+ - Jeff Crum's functions for dealing with dates (e.g. finding labor day).
 
 door_monitor_jay.pl
  - Jay Archer's code for using an X10 powerflash and hawkeye motion sensors
@@ -79,6 +92,9 @@ pa_control_evan.pl
 pa_control_evan_test.pl
  - Evan Graham's code for controling which rooms hear the sound 
    spoken or played by mh, using weeder DIO controled relays.
+
+phone_logs_kieran.pl
+ - Kieran Ames' code for summarizing recent callers.  Also see mh/code/bruce/phone_logs.pl
 
 printer_control.pl
  - Paul Wilkinson's example of how to turn a printer on/off based on a unix print spool file.

@@ -292,6 +292,26 @@ There is seperate FAQ on the FRS topic in
 =end html
 
 
+=head2 1.18: Is there a way to tell if MH is shutdown correctly or not?
+
+On windows, mh/bin/mh.bat checks errorlevel and on linux, mh/bin/mhl finds the return code via $?.
+Both of these shells will restart mh unless they detect a normal exit (rc=1).
+
+This code in mh/code/common/mh_control.pl will detect an abnormal restart:
+
+ if ($Startup and $Save{mh_exit} ne 'normal') {
+    display "MisterHouse auto restarted: $Save{mh_exit}", 0;
+ }
+
+If you want to detect a power outage and you have a CM11, 
+code in mh/code/common/mh_control.pl will set $Power_Supply, so you can do something like this:
+
+ if (state_now $Power_Supply eq 'Restored') {
+    speak 'You should have bought a ups';
+ }
+
+Bruce
+
 
 
 =head1 2: MisterHouse coding questions
@@ -526,6 +546,19 @@ Clive Freedman sent in some useful tips on common coding errors in
 =end html
 
 
+=head2 2.14 How can I measure time between two nearly spaced events? 
+
+If you are on Windows, or on Unix with the Time::HiRes module installed,
+a call to get_tickcount will give sub-second resolution (returns milliseconds).
+For example, to 'debounce' a doorbell button, (i.e. don't trigger it twice within a 250 millisecond time):
+
+  my $doorbell_time;
+  if (state_now $doorbell) {
+    play 'doorbell' if get_tickcount - $doorbell_time > 250;
+    $doorbell_time = get_tickcount; 
+  }
+
+If you are on unix without Time::HiRes, you can use $LoopCount and count number of passes through the loop code.
 
 
 
@@ -596,7 +629,8 @@ I still had the problem until I installed the above.
 For Windows 95, the update is at:
 
   http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp
-  
+
+
 =head2 4.2: How do I set setup networking between Windows boxes
 
 You need to have the TCP/IP protocol enabled for your Networking Interface Card (NIC).  
@@ -734,7 +768,7 @@ Plus it feels good to give stuff back to the growing open source community.
 Here are some useful/related Home Automation links:
 
   Dan Hoehnens most excellent collection of HA links:
-    http://www.infinet.com/~dhoehnen/ha/list.html
+    http://my.ohio.voyager.net/~dhoehnen/ha/list.html
 
   Over 500 links on about everything with HA:
     http://home-automation.org/
@@ -749,6 +783,9 @@ Here are some useful/related Home Automation links:
     http://www.geocities.com/ido_bartana/toc.htm
     http://www.x10ideas.com
 
+  Dave Houston has some good X10 info (e.g. causes of CM11A lockups) here:
+     http://www.laser.com/dhouston/
+
   Europeans can get X10 stuff distributers listed here:
     http://www.x10.com/x10euro.htm
   Some examples are:
@@ -761,11 +798,12 @@ Here are some useful/related Home Automation links:
   Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
     http://the-labs.com/HomeNetwork/
 
-  Jay Archer recommends this free Windows mail server
+  Jay Archer recommends this free Windows mail server and mult-platform web server:
     http://www.argosoft.com
-
-  And this mult-platform web server:
     http://www.xitami.com
+
+  Nokia sponsered open source site for home entertainment devices.
+    http://www.ostdev.net/
 
 
 =head2 6.5: How do I contribute additions or updates to the mh code?
@@ -990,6 +1028,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.25  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.24  2001/05/06 21:07:25  winter
 # - 2.51 release
 #

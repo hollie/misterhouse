@@ -163,7 +163,7 @@ if ($state = $test_input1) {
 #       print time_date_stamp(13) . "\n";
     }
     elsif ($state eq 't') {
-
+        print "Log running display jpg gif test";
 		display "$config_parms{html_dir}/graphics/funny_face.gif";
 		display "$config_parms{html_dir}/graphics/funny_face.jpg";
     }

@@ -90,7 +90,7 @@ sub main::file_tail {
 }
 
 sub main::file_read {
-    my ($file, $scalar) = @_;
+    my ($file, $scalar, $textmode) = @_;
     open(LOG, "$file") or print "Warning, could not open file_read file $file: $!\n";
     
     if (wantarray and !$scalar) {
@@ -101,7 +101,7 @@ sub main::file_read {
     }
                                 # Read is faster than <> (?)
     else {
-        binmode LOG;            # Don't use this on wantarray ... chomp will only get \n, not \r\n
+        binmode LOG unless $textmode; # Don't use this on wantarray ... chomp will only get \n, not \r\n
         my ($data, $buffer);
         while (read(LOG, $buffer, 8*2**10)) {
             $data .= $buffer;
@@ -168,7 +168,7 @@ sub main::find_pgm_path {
 #   print "db pgm_path=$pgm_path\n";
 
     unless($pgm_path = &main::which($pgm_path)) {
-        print "Warning, new Process:  Can not find path to pgm=$pgm\n";
+        print "Warning, new Process:  Can not find path to pgm=$pgm_path arg=$pgm_args\n";
 #       return;
     }
                                 # This is in desperation ... see notes on &run and &process_item $cflag. 
@@ -1048,7 +1048,9 @@ sub main::uudecode {
 
 sub main::which {
     my ($pgm) = @_;
-    for my $path (".", "$main::Pgm_Path", split(';', $ENV{PATH})) {
+                                # Not sure if ; is allow for in unix paths??
+    my @paths = ($main::OS_win) ?  split(';', $ENV{PATH}) :  split(/[\:\;]/, $ENV{PATH});
+    for my $path (".", "$main::Pgm_Path", @paths) {
         chop $path if $path =~ /\\$/; # Drop trailing slash
         my $pgm_path = "$path/$pgm";
         return "$pgm_path.bat" if -e "$pgm_path.bat";
@@ -1066,6 +1068,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.49  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.48  2001/04/15 16:17:21  winter
 # - 2.49 release
 #

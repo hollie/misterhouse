@@ -29,9 +29,10 @@ sub init {
     }
     if ($main::config_parms{voice_text} =~ /program (\S+)/i) {
         $speak_pgm = $1;
-        $speak_pgm .= " -volume " . $main::config_parms{speak_volume} if $main::config_parms{speak_volume};
-        $speak_pgm .= " -pitch  " . $main::config_parms{speak_pitch}  if $main::config_parms{speak_pitch};
-        $speak_pgm .= " -voice  " . $main::config_parms{speak_voice}  if $main::config_parms{speak_voice};
+        $speak_pgm .= " " . $main::config_parms{speak_volume} if $main::config_parms{speak_volume};
+        $speak_pgm .= " " . $main::config_parms{speak_pitch}  if $main::config_parms{speak_pitch};
+        $speak_pgm .= " " . $main::config_parms{speak_rate}  if $main::config_parms{speak_rate};
+        $speak_pgm .= " " . $main::config_parms{speak_voice}  if $main::config_parms{speak_voice};
         print "Speak string: $speak_pgm\n";
     }
 
@@ -107,6 +108,13 @@ sub speak_text {
         set $VTxt_festival qq[(SayText "$parms{text}")];
     }
 
+    if ($ViaVoiceTTS or $main::config_parms{voice_text} =~ /vv_tts/i) {
+        $parms{voice} = $main::config_parms{viavoice_voice} unless $parms{voice};
+        my %voice_table = (male => 1, female => 2, child => 3, elder_female => 7, elder_male => 8);
+        $parms{voice} = $voice_table{lc $parms{voice}} if $voice_table{lc $parms{voice}};
+        $parms{text} =~ s/\"/\'/g;
+    }
+
     if ($speak_pgm) {
         my $self = {};
         my $pid = fork;
@@ -115,19 +123,21 @@ sub speak_text {
             $$self{pid} = $pid;
         } elsif (defined $pid) {
             my $speak_pgm_arg = '';
-            if ($parms{play}) {
-                if ($parms{play} =~ /^System/ or $parms{play} =~ /^[\\\/]/ or $parms{play} =~ /^\S\:/) {
-                    $speak_pgm_arg .= " -play $parms{play} ";
-                } else {
-                    $speak_pgm_arg .= " -play $main::config_parms{sound_dir}/$parms{play} ";
+            if (my $file = $parms{play}) {
+                unless ($file =~ /^System/ or $file =~ /^[\\\/]/ or $file =~ /^\S\:/) {
+                    $file = "$main::config_parms{sound_dir}/$parms{play}";
+                    $file = "$main::config_parms{sound_dir_common}/$parms{play}" unless -e $file;
                 }
+                $speak_pgm_arg .= " -play $file ";
             }
-            $speak_pgm .= ' -volume ' . $parms{volume} if $parms{volume};
-            $speak_pgm .= ' -pitch  ' . $parms{pitch}  if $parms{pitch};
-            $speak_pgm .= ' -voice  ' . $parms{voice}  if $parms{voice};
-            if ($parms{text}) {
-                $speak_pgm_arg .= ' -text' if $main::config_parms{voice_text} =~ /vv_tts/i;
-                $speak_pgm_arg .= " '$parms{text}'";
+            if ($main::config_parms{voice_text} =~ /vv_tts/i) {
+                $speak_pgm_arg .= " -text '`v$parms{voice} $parms{text}'";
+            }
+            else {
+                $speak_pgm .= ' -volume ' . $parms{volume} if $parms{volume};
+                $speak_pgm .= ' -pitch  ' . $parms{pitch}  if $parms{pitch};
+                $speak_pgm .= ' -voice  ' . $parms{voice}  if $parms{voice};
+                $speak_pgm_arg .= qq[ "$parms{text}"];
             }
             
             print "db start TTS: $speak_pgm $speak_pgm_arg\n" if $main::config_parms{debug} eq 'voice';
@@ -147,6 +157,7 @@ FORK:                                  # straight out of the book
             my $prog = <<ProgCode;
 use ViaVoiceTTS;
 my \$tts = new ViaVoiceTTS();
+ViaVoiceTTS::setVoice \$tts,"$parms{voice}";
 ViaVoiceTTS::speak \$tts,"$parms{text}";
 exit 0;
 ProgCode
@@ -271,6 +282,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.26  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.25  2001/05/06 21:07:26  winter
 # - 2.51 release
 #

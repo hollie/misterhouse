@@ -140,6 +140,8 @@ sub process_http_request {
     $get_arg =~ tr/\+/ /;       # translate + back to spaces (e.g. code search tk widget)
                                 # Real + will be in %## form (e.g. /SET;&html_list(X10_Item)?$test_house2?%2B15)
 
+    $get_arg =~ s/\&/&&/g;      # translate & to &&, so %## & will not trigger && splits
+
                                 # translate from %## back to real characters
                                 # Ascii table: http://www.bbsinc.com/symbol.html 
                                 #  - get_req may have h_response with %## chars in it
@@ -250,7 +252,7 @@ sub process_http_request {
             $get_arg =~ s/select_cmd=//;  # Drop the cmd=  prefix from form lists.
             $get_arg =~ tr/\_/ /;   # Put blanks back
             $get_arg =~ tr/\~/_/;   # Put _ back
-            $get_arg =~ s/&?x=\d+&y=\d+&?//; # Drop the &x=n&y=n that is tacked on when doing image form submits
+            $get_arg =~ s/&&?x=\d+&&y=\d+&?//; # Drop the &&x=n&&y=n that is tacked on when doing image form submits
         }
 
         my ($ref) = &Voice_Cmd::voice_item_by_text(lc($get_arg));
@@ -323,7 +325,7 @@ sub process_http_request {
                                 # See if any variables require authorization
         my $authority = 1;
         unless ($Authorized) {
-            for my $temp (split('&', $get_arg)) {
+            for my $temp (split('&&', $get_arg)) {
                 next unless ($item, $state) = $temp =~ /(\S+)[\?\=](.*)/;
 
                 if ($item =~ /^\d+$/) { # Can't do html_pointer yet ... need to switch to Tk objects
@@ -344,7 +346,7 @@ sub process_http_request {
         print "SET a=$Authorized,$authority hr=$h_response get_req=$get_req  get_arg=$get_arg\n" if $main::config_parms{debug} eq 'http';
 
         if ($Authorized or $authority) {
-            for my $temp (split('&', $get_arg)) {
+            for my $temp (split('&&', $get_arg)) {
                 ($item, $state) = $temp =~ /(\S+)[\?\=](.*)/;
 
                 $state =~ s/\_/ /g;      # No blanks were allowed in a url 
@@ -370,6 +372,7 @@ sub process_http_request {
                     $item = "\$". $item unless substr($item, 0, 1) eq "\$";
 
                                 # Can be a scalar or a object
+                    $state =~ tr/\"/\'/; # So we can use "" to quote it
                     my $eval_cmd = qq[($item and ref($item) and $item->isa('Generic_Item')) ? ($item->set("$state")) : ($item = "$state")];
                     print "SET eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
                     eval $eval_cmd;
@@ -781,7 +784,9 @@ sub html_file {
                  print "Http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
                  print $socket $prefix;
                                 # tellme vxml does not like comments in the middle of things :(
-                 print $socket "\n<\!-- The following is from include $directive = $data -->\n" unless $file =~ /\.vxml$/;
+                                # - also had problems with comments inside td elements, so lets skip this
+                                #   e.g.: " <td <!--#include file="motion.pl?timer_motion_main"--> > 
+#                print $socket "\n<\!-- The following is from include $directive = $data -->\n" unless $file =~ /\.vxml$/;
                  my ($get_req, $get_arg) = $data =~ m|(\/?[^ \?]+)\??(\S+)?|;
                  $get_arg = '' unless $get_arg; # Avoid uninitalized var msg
                  if ($directive eq 'file') {
@@ -789,6 +794,7 @@ sub html_file {
                     if (&test_for_file($socket, $get_req, $get_arg, 1)) {
                     }
                     elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg, 0)) {
+                        $style = '' unless $style; # Avoid uninitalized var msg
                         print $socket $style . $html;
                     }
                     else {
@@ -814,7 +820,7 @@ sub html_file {
                                 # Note: These differ from classic .cgi in that they return 
                                 #       the results, rather than print them to stdout.
     elsif ($file =~ /\.pl$/) {
-        @ARGV = split('&', $arg) if $arg;
+        @ARGV = split('&&', $arg) if $arg;
         my $code = join(' ', <HTML>);
 
                                 # I couldn't figure out how to open STDOUT to $socket
@@ -1519,6 +1525,7 @@ sub pretty_object_name {
 }
 
                                 # Netscape 4.? hangs if we print > 28k bytes all at once to the socket :(
+                                #  - this does not fix the problem :((
 sub print_socket {
     my ($socket, $html) = @_;
 #   binmode $socket;
@@ -1958,6 +1965,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.57  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.56  2001/05/06 21:07:26  winter
 # - 2.51 release
 #

@@ -15,7 +15,7 @@ elsif ($Reload) {
 
 if (new_minute 10) {
     my $memory_diff = $Info{memory_virtual} - $Info{memory_virtual_prev};
-    if ($memory_diff > .01) {
+    if ($memory_diff > .5) {
         my $msg = sprintf "Warning, memory leak detected: %3.2f.  %4.2f -> %4.2f", 
                  $memory_diff, $Info{memory_virtual_prev}, $Info{memory_virtual};
         print_log $msg;

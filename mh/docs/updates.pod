@@ -6,6 +6,70 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.52 posted on 05/28/2001
+
+Version 2.52 was just uploaded to:
+
+  http://misterhouse.sourceforge.net/download.html
+  http://misterhouse.net/download.html
+
+B<New Features:>
+
+- David Norwood created mh/lib/Audible_Menu.pm and mh/code/public/audible_menu.* 
+This code can be used for walking through mh menus with just one or two
+switches (e.g. air sip switches for the disabled), using
+audible feedback to help pick menu items/states.
+
+- Brad Reed added mh.ini parm viavoice_voice to allow voice_text=viavoice or vv_tts
+users to select a default voice.   We also now allow on-the-fly voice changes (viavoice only): 
+e.g. speak "voice=male Yo, Adrian!".
+
+- Greg Satz sent in updates so mh speak and play on the Mac OS X.
+
+- Tim Doyle created mh/code/public/aqualink.pl for the Jandy AquaLink RS pool/spa controller.
+
+- Jeff Crum sent in mh/code/public/date_functions.pl with various date functions like
+finding the day of the first/last day of the month.
+
+- Added Process_Item set_output method, so we can store process results to a file.  
+Modified internet_connect_check.pl to use this instead of the dorky ping_to_file command, 
+and to also work on unix.
+
+- Added (currently windows only) mh/bin/find_files and find_programs.   
+find_files finds files on shared networked Windows and samba directories.
+find_programs finds programs running on networked Windows computers.
+See mh/code/bruce/find_files.pl and monitor_programs.pl for an example.
+
+- Added mh/lib/xml_server.pl, so other xml based programs can get data from mh.
+Point am XML browser (e.g. IE) to: http://localhost:8080/sub?xml
+
+
+B<Bug Fixes and Other Changes:>
+
+- Joey Smith discovered a problem with comments returned from web server include files.
+
+- David Norwood and Damon Hopkins came up with an addition to x10_ma26.pl to allow
+the MR26a to relay RF X10 commands to the powerline.
+
+- Wally Kissel noticed that display file.gif (or .jpg) was no longer worked.
+Turns out it was busted way back in 2.41!
+
+- Kieran Ames send in mh/code/public/phone_logs.pl.
+
+- Allow for strings with odd characters like & to be processed in html forms.
+
+- Updated mh/lib/Weather_wx200.pm to use an mh.ini altitude
+parm to calculate sea level barometric pressure. 
+Also updated Weather_upload.pl to use $Weather{BaromSea}.
+
+- Allow unix Process_Item and run calls to programs in your PATH, without fully qualifying the path.
+
+- Added mh.ini sound_dir_common, so you can use sound_dir to point to your own wav files
+without having to copy the default mh/sounds files.
+
+- Moved the mh_temp files from data_dir to code_dir.
+
+
 =head2 Version 2.51 posted on 05/06/2001
 
 Version 2.51 was just uploaded to:
@@ -31,7 +95,7 @@ Also allow for menu level defaults in the menu code for R: and P: records.
 Audio::Mixer module with this:  perl -MCPAN -eshell;  install Audio::Mixer  
 
 
-B<Bug Fixes, and Other Changes:>
+B<Bug Fixes and Other Changes:>
 
 - Damon Hopkins discovered that Netscape would hang on browsing big (> 20k) mh web pages.
 Unfortunatly, I have not figured out the fix for this problem yet.
@@ -58,7 +122,7 @@ a printer on/off based on a unix print spool file.
 
 - Added a -voice_text 'program xyz' option, so mh can use an arbitrary xyz TTS program. 
 Greg Satz is working on a Max OS X TTS program.
- 
+
 - Changed the iButton monitor function parms from $port to $family,$port for consistency.
 Those with 2+ iButton ports will need to update your code.
 
@@ -1139,6 +1203,8 @@ B<Examples, Bug Fixes, and Minor Changes:>
 
 - Justin Matlock inspired the addition of &serial_match_log to mh_control.pl.
 This will do a &print_log the object names that match incoming serial (e.g. X10) data.  
+
+- thegreen [thegreen@mediaone.net] mail_send...
 
 - Switched to the Cpan Astro/SunTime.pm module, to avoid the problems some people were having calling sun_time.
 

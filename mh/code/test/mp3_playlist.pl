@@ -19,7 +19,10 @@ if ('Build' eq said $v_mp3_build_list) {
     start $p_mp3_build_list;
 }
 
-speak "mp3 database build is done" if done_now $p_mp3_build_list;
+if (done_now $p_mp3_build_list) {
+    speak "mp3 database build is done";
+    ($mp3names, %mp3files) = &load_playlist;
+}
 
                                 # Search the mp3 database
 #&tk_entry('MP3 Search', \$Save{mp3_search}, 'MP3 Genre', \$Save{mp3_Genre});
@@ -56,7 +59,7 @@ if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
     }
     if ($results1) {
         speak "Found $count2 songs";
-        display "Found $count2 songs\n" . $results1, 10, 'MP3 Search Results', 'fixed';
+        display "Found $count2 songs\n" . $results1, 30, 'MP3 Search Results', 'fixed';
         my $file = "$config_parms{data_dir}/search.m3u";
         file_write $file, $results2;
         run "$config_parms{mp3_program} $file";

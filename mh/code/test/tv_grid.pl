@@ -73,7 +73,7 @@ if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data7) 
 
                                 # If we have set the net_mail_send_account, send default web page via email
         my $mail_account = $config_parms{net_mail_send_account};
-        my $mail_server  = $main::config_parms{"net_mail_${mail_account}_server"};
+        my $mail_server  = $main::config_parms{"net_mail_${mail_account}_server_send"};
         my $mail_to      = $main::config_parms{"net_mail_${mail_account}_address"};
         if ($mail_to and $mail_server) {
             $pgm .= " -mail_to $mail_to -mail_server $mail_server ";

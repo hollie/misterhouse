@@ -1,12 +1,13 @@
 
                                 # Modify this rule for use with get_email
+                                #  - $from_full has the full email address, not just the name portion.
 sub get_email_rule {
-    my ($from, $to, $subject) = @_;
+    my ($from, $to, $subject, $from_full) = @_;
 
 #   print "Debug in get_email_rule: to=$to from=$from subject=$subject\n";
 
 
-    return                         if $from =~ /newsletter/; # Covers [newsletter@x10.com]
+    return                         if $from_full =~ /newsletter/; # Covers [newsletter@x10.com]
     return 'The S F gals'          if $to =~ /FEM-SF/;
     return 'The S F gals'          if $to =~ /sfpanet/;
     return                         if $subject =~ /\[TINI\]/;

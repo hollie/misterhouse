@@ -30,6 +30,7 @@ sub read_text {
     my @data;
     if ($$self{text} =~ /^\S+$/ and -e $$self{text}) { 
         $file = $$self{text};
+        print "db testing $file\n";
         if ($file =~ /\.gif$/i or $file =~ /\.jpg$/i or $file =~ /\.png$/i) {
             $$self{type} = 'photo';
             $$self{title} = "Image: $file";
@@ -125,6 +126,7 @@ sub display {
     }
 
     if ($$self{type} and $$self{type} eq 'photo') {
+        print "db pic\n";
         $$self{photo1} = $$self{MW}->Photo(-file => $$self{text});
 #       $$self{MW}->Button(-text => 'Photo', -command => sub {$self->destroy}, -image => $$self{photo1}) ->
         $$self{photo2} = $$self{MW}->Label(-text => 'Photo', -image => $$self{photo1}) ->
@@ -167,34 +169,34 @@ sub display {
 
             $t1->insert(('0.0', $$self{text})); 
             $t1->pack(qw/-expand yes -fill both -side bottom/); 
-
-            $$self{MW}->repeat(1000, sub {return unless $$self{auto_quit}; 
-                                      $$self{time}--;  
-                                      $l->configure(textvariable => \$$self{time}); # Shouldn't have to do this
-#                                     print "$$self{time} mw=$$self{MW}\n";
-                                      $self->destroy unless $$self{time} > 0; 
-#                                     $b->configure(-text => "Quit (or ESC) auto-quit in $$self{time} seconds (F1 to toggle auto-quit)");; 
-#                                     $$self{MW}->withdraw if $$self{time} % 2;   ... test to hide and unhide a window
-#                                     $$self{MW}->deiconify unless $$self{time} % 2;
-                                  }); 
-
-            $$self{MW}->bind('<q>'         => sub{$self->destroy});
-            $$self{MW}->bind('<Escape>'    => sub{$self->destroy});
-            $$self{MW}->bind('<F3>'        => sub{$self->destroy});
-            $$self{MW}->bind('<Control-c>' => sub{$self->destroy});
-        
-            $$self{MW}->bind('<F1>' => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1}); 
-
-                                # Try everything to get focus
-#           $$self{MW}->tkwait('visibility', $$self{MW}); 
-            $$self{MW}->deiconify;
-            $$self{MW}->raise;
-            $$self{MW}->focusForce;
-            $$self{MW}->focus('-force');
-#           $$self{MW}->grabGlobal; 
-#           $$self{MW}->grab("-global");  # This will disable the minimize-maximize-etc controls
         }
     }
+
+    $$self{MW}->repeat(1000, sub {return unless $$self{auto_quit}; 
+                                  $$self{time}--;  
+                                  $l->configure(textvariable => \$$self{time}); # Shouldn't have to do this
+#                                 print "$$self{time} mw=$$self{MW}\n";
+                                  $self->destroy unless $$self{time} > 0; 
+#                                 $b->configure(-text => "Quit (or ESC) auto-quit in $$self{time} seconds (F1 to toggle auto-quit)");; 
+#                                   $$self{MW}->withdraw if $$self{time} % 2;   ... test to hide and unhide a window
+#                                     $$self{MW}->deiconify unless $$self{time} % 2;
+                                  }); 
+    
+    $$self{MW}->bind('<q>'         => sub{$self->destroy});
+    $$self{MW}->bind('<Escape>'    => sub{$self->destroy});
+    $$self{MW}->bind('<F3>'        => sub{$self->destroy});
+    $$self{MW}->bind('<Control-c>' => sub{$self->destroy});
+    
+    $$self{MW}->bind('<F1>' => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1}); 
+
+                                # Try everything to get focus
+#   $$self{MW}->tkwait('visibility', $$self{MW}); 
+    $$self{MW}->deiconify;
+    $$self{MW}->raise;
+    $$self{MW}->focusForce;
+    $$self{MW}->focus('-force');
+#   $$self{MW}->grabGlobal; 
+#   $$self{MW}->grab("-global");  # This will disable the minimize-maximize-etc controls
 
     MainLoop if $$self{loop};
 
@@ -252,6 +254,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.19  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
 # Revision 1.18  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

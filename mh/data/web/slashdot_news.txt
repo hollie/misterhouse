@@ -1,30 +1,30 @@
-Title: Kubrick's 2001: A Triple Allegory
-2001-05-06 19:29:30 by timothy  in dept: your-eyebrows-will-hit-the-ceiling  (space   22)
+Title: Compaq's Laptop/Desktop Concepts
+2001-05-28 08:17:24 by timothy  in dept: eyecandy-or-eyesore?  (compaq   45)
 
-Title: NASA Smartmorphing Materials and Structures
-2001-05-06 18:48:09 by Hemos  in dept: fun-with-materials  (tech   38)
+Title: The Inside Scoop on Yopy
+2001-05-28 06:14:05 by CmdrTaco  in dept: little-color-better  (pilot   78)
 
-Title: Supercavitation: Ultrafast Underwater Weapons
-2001-05-06 17:45:26 by michael  in dept: never-hear-the-one-that-gets-you  (tech   95)
+Title: Mandrake For PowerPC Is Coming
+2001-05-28 03:46:21 by timothy  in dept: the-answer-is-*yes*  (mandrake   111)
 
-Title: Review: The Mummy Returns
-2001-05-06 15:40:53 by JonKatz  in dept: -dumb-animation-run-amok-  (movies   156)
+Title: Google Owns Your UseNet Post
+2001-05-28 01:08:59 by timothy  in dept: boiling-boilerplate  (internet   215)
 
-Title: AOL vs. Microsoft in Desktop War?
-2001-05-06 13:10:29 by michael  in dept: clash-of-the-titans  (aol   213)
+Title: Voyager Eulogy
+2001-05-27 22:56:35 by timothy  in dept: so-long-farewell-now-beam-down-my-clothes  (tv   332)
 
-Title: Microsoft Postpones Office XP Subscriptions
-2001-05-06 07:37:58 by michael  in dept: boil-the-frog-slowly  (microsoft   227)
+Title: Monitoring What Files Your Applications Leave Behind?
+2001-05-27 21:07:40 by Cliff  in dept: package-manifests-GOOOOOD!  (Privacy   178)
 
-Title: Internet Aware Pacemakers Planned
-2001-05-06 03:34:40 by michael  in dept: buffer-overflow  (tech   157)
+Title: 2001 Book Author Responds
+2001-05-27 18:18:18 by timothy  in dept: laaaaaaast-word  (space   192)
 
-Title: Digital Display Encryption Details Leaked
-2001-05-06 00:29:59 by michael  in dept: licensed-monitor-device  (encryption   294)
+Title: Review: Pearl Harbor
+2001-05-27 16:30:47 by JonKatz  in dept: -bloated-epic-(war-is-hell-but-pretty)-  (movies   538)
 
-Title: On the State of Scientific Telecollaboration?
-2001-05-05 22:30:06 by Cliff  in dept: stuff-to-talk-about  (tech   102)
+Title: Actionscript: The Definitive Guide
+2001-05-27 14:15:46 by timothy  in dept: make-it-work-in-lynx  (programming   110)
 
-Title: Networked MAME - Kaillera
-2001-05-05 21:06:39 by michael  in dept: save-a-quarter  (games   84)
+Title: Stallman To Respond To Mundie Tuesday
+2001-05-27 12:12:12 by timothy  in dept: wednesday  (gnu   184)
 
