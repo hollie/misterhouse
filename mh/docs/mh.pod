@@ -260,7 +260,7 @@ This controler does 2 way X10, 2 way IR, 24 digital IO, and can output its menus
 See member mh/code/public/test_homevision.pl for example code.
 
 The DSC_Alarm.pm module supports the DSC PC5400 serial printer interface.  This 
-module prints all events that DSC logs to the even buffer.  These events include
+module prints all events that DSC logs to the event buffer.  These events include
 arms/disarms/alarms, user code(s) that performed action(s), installer access, etc.
 DSC does not log individual zone open/close nor 'entry chime' events.
 See the mh/lib/DSC_Alarm.pm for further information.
@@ -1343,27 +1343,22 @@ See mh/code/bruce/lcdproc.pl for more examples.
 DSC_Alarm module supports the DSC PC5400 serial printer interface. This allows mh 
 to be aware of events that DSC alarm systems log to their event buffers.
 
-  Note: This original version (October 2000) exposes 
-  only "new" & "said", where "said" contains the raw data
-  from the printer module.
-
-  It is my intent to expose object methods (such as 
-  "state") in a future release.  This may lead to 
-  incompatible changes in existing methods.
-
-  Danal Estes, October 9, 2000
-
   Required mh.ini entries:
     DSC_Alarm_serial_port=COM1 or /dev/ttys0
     DSC_Alarm_baudrate=4800
 
   Multiple instances may be supported by adding instance
   numbers to the parms as in:
-    DSC_Alarm:1_serial_port=COMx or /dev/ttysx
+    DSC_Alarm:1_serial_port=COMx or /dev/ttysX
     DSC_Alarm:1_baudrate=4800
-    DSC_Alarm:2_serial_port=COMy or /dev/ttysx
+    DSC_Alarm:2_serial_port=COMy or /dev/ttysY
     DSC_Alarm:2_baudrate=4800
 
+  Optional mh.ini entries:
+    DSC_Alarm_user_40=Jane Doe
+    DSC_Alarm_user_1=Bob Smith
+    
+    See the "user" method below for a description.
 
   Methods:
      new('alarm-name')
@@ -1372,6 +1367,49 @@ to be aware of events that DSC alarm systems log to their event buffers.
         The 'alarm-name' argument defaults to 'DSC_Alarm' if not specified.
 
      said         : Returns the last serial data received.  Valid for 1 pass only.
+
+     Important Note:  Due to mh internals, the "said" method and the "state" method (and
+     all "state" derived methods) lag each other's values by 1 pass through the user scripts.
+     As such, any given script should use "said" or "state", but should NOT mix the two!
+
+     state        : Returns last state of alarm system from following values:
+                    Armed    = System is closed and armed.
+                    Disarmed = System is opened.
+                    Alarm    = System is alarming.
+
+     state_now    : Same as state, but valid for 1 pass only.
+
+     user         : User number of last code used to arm/disarm system.
+
+                    If present, mh.ini parm DSC_Alarm_user_nn=xyz will cause "user" 
+                    to return string "xyz" from the parm.
+
+     alarm_now    : True when system enters Alarm state.  Valid for 1 pass only.
+
+     zone         : Zone number that caused Alarm. Valid only when alarm_now is true.
+
+     Most other Generic_Item methods, such as "state_log", are valid.
+
+  Logging:
+     The internal support module for DSC_Alarm (DSC_Alarm.pm) maintains a log of 
+     all serial data received from the DSC PC5400 interface.  This log is placed 
+     in /mh.ini parm data_dir/logs/$port_name.YYYY_MM.log; for example, the log 
+     entries shown below would be in file '/mh/data/logs/DSC_Alarm.2000_10.log'.
+     This implies a new log will be started each month.
+
+  DSC User Codes:
+     40 = Master code (can arm/disarm, change codes, any keypad function)
+     41 = Supervisor code (can arm/disarm, change codes)
+     42 = Supervisor code (can arm/disarm, change codes)
+     01-32 = User codes (can arm/disarm, can be associated to individual wireless keys)
+     33 = Duress code (can arm/disarm + sends duress code to master station)
+     34 = Duress code (can arm/disarm + sends duress code to master station)
+ 
+     The above information derived from PC1555 master panel; please see the installer
+     manual for your particular panel for further information.
+
+     Duress code reporting is NOT reflected via states as of December 2000.  
+     Coming soon...
 
   Examples:
     mh.ini entry of 'DSC_Alarm_serial_port=com2' 
@@ -1384,8 +1422,8 @@ to be aware of events that DSC alarm systems log to their event buffers.
     mh.ini entry of 'DSC_Alarm:2_serial_port=com5' 
 	
     $DSC_test = new DSC_Alarm('DSC_Alarm:2');
-    if (my $log = said $DSC_test) {
-       print_log "Alarm system data = $log\n";
+    if (my $state = state $DSC_test) {
+       print_log "Alarm system state change, state = $state\n";
     }
 
   Examples of typical DSC alarm system event/log entries:
@@ -3454,6 +3492,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.33  2000/12/12 22:04:47  danal
+# DSC_Alarm object methods such as "state" documented
+#
 # Revision 1.32  2000/12/03 19:38:54  winter
 # - 2.36 release
 #
