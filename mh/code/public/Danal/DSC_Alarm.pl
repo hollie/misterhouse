@@ -38,14 +38,14 @@
 #   DSC programming location 801 subsection 02 set to:           #
 #    01 = English                                                #
 #                                                                #
+#                                                                #
 #  By: Danal Estes, N5SVV                                        #
 #  E-Mail: danal@earthling.net                                   #
 #                                                                #
 ##################################################################
 
-# Note: said and state lag one another by a pass.
-# As such, it is NOT recommended to mix/match them in the same code.
-# In this example, they are isolated to seperate 'if' blocks, which is OK.
+# Also see mh/code/public/Danal/Kitchen.pl for integration examples.
+
 
 $DSC_Alarm = new DSC_Alarm;
 my $warning_sent = 0;
@@ -55,9 +55,12 @@ if (my $log = said $DSC_Alarm) {
 }
 
 if (my $state = state_now $DSC_Alarm) {
+   # Debugging / demo stuff
    print_log "DSC_Alarm.pl $Loop_Count state_now = $state\n";
                  my $var = state $DSC_Alarm;
    print_log "DSC_Alarm.pl $Loop_Count state = $state\n";
+                 my $var = mode $DSC_Alarm;
+   print_log "DSC_Alarm.pl $Loop_Count mode = $var\n";
                  my $var = user $DSC_Alarm;
    print_log "DSC_Alarm.pl $Loop_Count user = $var\n";
                  my $var = alarm_now $DSC_Alarm;
@@ -66,6 +69,8 @@ if (my $state = state_now $DSC_Alarm) {
    print_log "DSC_Alarm.pl $Loop_Count zone = $var\n";
                  my $var = said $DSC_Alarm;
    print_log "DSC_Alarm.pl $Loop_Count said = $var\n";
+
+   # Real stuff
    if (alarm_now $DSC_Alarm) {
      &alarm_page("Alarm in zone " . zone $DSC_Alarm);
      $warning_sent=1;
