@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-09-03 12:34:30 winter>
+#  Last change Time-stamp: <2001-11-01 23:15:03 winter>
 #---------------------------------------------------------------------------
 #  Description:
 #      Walks directories and stores selected files to gziped tar files.
@@ -117,7 +117,8 @@ sub tar_files {
         close LIST;
                                 # The tar -z gzip does not work with tar on dos :(
         my $options = ($parms{no_zip} or $^O eq 'MSWin32') ? '-cf' : 'czf';
-        my $pgm = "tar -T tar_files.list $options $parms{file}";
+#       my $pgm = "tar -T tar_files.list $options $parms{file}";
+        my $pgm = "tar $options $parms{file} -T tar_files.list";
         print "\nRunning: $pgm\n";
         system $pgm;
         if ($^O eq 'MSWin32' and !$parms{no_zip}) {
@@ -180,6 +181,9 @@ sub read_dir {
 
 #
 # $Log$
+# Revision 1.4  2001/11/18 22:51:42  winter
+# - 2.61 release
+#
 # Revision 1.3  2001/09/23 19:26:53  winter
 # - 2.59 release
 #

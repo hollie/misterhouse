@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-10-19 08:17:56 winter>
+#  Last change Time-stamp: <2001-11-17 23:45:37 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -242,6 +242,16 @@ BEGIN {
             print $usage;
             exit;
        }
+
+                                # If -log_file used, start logging right away
+        my $logfile = $config_parms_startup{log_file};
+        $config_parms{log}++ if $logfile;
+        if ($config_parms{log}) {
+            print "Output will be logged into $logfile\n";
+            open STDOUT, ">$logfile" or die "Error, could not open logfile $logfile: $!\n";
+            &print_version;
+        }
+
     }
 
     sub read_parms {
@@ -255,17 +265,18 @@ BEGIN {
         for my $parm (keys %config_parms_startup) {
             $config_parms{$parm} = $config_parms_startup{$parm};
         }
+    }
+
+    sub use_conditional_modules {
 
         print "User   Code Directory: $config_parms{code_dir}\n";
         print "System Code Directory: $config_parms{code_dir_common}\n" if $config_parms{code_dir_common};
 
         unshift @INC, $config_parms{code_dir}; # So we can add/override modules locally
 
-    }
-
-    sub use_conditional_modules {
-
         if ($config_parms{diagnostics} or $config_parms{w}) {
+            $config_parms{diagnostics}++;
+            $config_parms{w}++;
             print "Perl diaganotics module (perl -w) has been turned on\n";
             eval 'use diagnostics';
         }
@@ -379,17 +390,7 @@ sub setup {
 
     print "Starting setup\n";
 
-    $| = 1;        # Turn on command buffering (e.g. flush on every print)
-
-    my $logfile = $config_parms{log_file};
-    $config_parms{log}++ if $logfile;
-    $config_parms{log_file} = $Pgm_PathU . "/../mh.log" unless $config_parms{log_file};
-
-    if ($config_parms{log}) {
-        print "Output will be logged into $logfile\n";
-        open STDOUT, ">$logfile" or die "Error, could not open logfile $logfile: $!\n";
-        &print_version;
-    }
+    $| = 1;                     # Turn on command buffering (e.g. flush on every print)
 
     &add_hook_code;
 
@@ -482,11 +483,16 @@ sub setup {
     $SIG{HUP}   = \&read_code   if !$OS_win;  # Reload code (alias mhreload per info in mh.ini file)
     $SIG{PIPE}  = \&sig_handler_pipe;         # Web browsers can shut down sockets while we are sending data 
 #   $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
-    $SIG{CHLD} = \&sig_child_death;
+
+                                # Return codes (e.g. from run) are bad on some OSes with this on
+    $SIG{CHLD} = \&sig_child_death unless $^O eq 'freebsd';
+
 #   $SIG{TTIN} = 'IGNORE';                    # This does not help ReadKey in cbreak mode :(
 
     $config_parms{code_dir}         = $Pgm_PathU . "/../code"        unless $config_parms{code_dir};
     $config_parms{code_dir_common } = $Pgm_PathU . "/../code_common" unless $config_parms{code_dir_common};
+
+    $config_parms{log_file}         = $Pgm_PathU . "/../mh.log"      unless $config_parms{log_file};
 
                                 # Make various directories, if missing
     mkdir ("$config_parms{data_dir}/logs", 0777) unless -d "$config_parms{data_dir}/logs";
@@ -763,6 +769,10 @@ sub setup {
                                 # The remaining subroutines are in alphabetical order
 
 
+sub AUTOLOAD {
+    use vars '$AUTOLOAD';
+    &print_log("Undefined subroutine: $AUTOLOAD");
+}
                                 # This code allows us to add dynamic user code hooks at various places.
 my (%hook_pointers, %hook_locations);
 sub add_hook_code {
@@ -2132,7 +2142,7 @@ sub object_states_save {
                                 # Save Persistent data
     file_write "$restore_state_file.persistent", Data::Dumper->Dump([\%Persistent], [qw(*Persistent)]);
    
-    print " done\n";
+    print " done\n" unless $config_parms{no_log} =~ /save_state/;
 }
 
 
@@ -2366,6 +2376,8 @@ sub play {
                 
             }
         }
+
+        $parms{fileplayed} = $file if $played_ok; # For play_post_hooks to use
 
 #        print "Waiting to play sound file, pass $i, file=$file\n";
 #        sleep 1;
@@ -2729,11 +2741,11 @@ sub read_code {
 
     print_log "Re-reading $ENV{mh_parms} and mh.ini";
 
-    my $debug_old = $config_parms{debug};
+    $config_parms{debug_old} = $config_parms{debug};
     read_parms unless $Startup; # Re-read .ini parms, in case they changed
+    $config_parms{debug} = $config_parms{debug_old};
     &http_read_parms;           # Refresh lib/http_server.pl stuff
 
-    $config_parms{debug} = $debug_old unless $config_parms{debug};
     
 
                                 # These parms might be twiddled with, so re-set them.
@@ -2844,7 +2856,10 @@ sub read_table_files {
         my $format;
         my %formats_seen;
         while (<TABLE_IN>) {
-            $format = $1 if /Format\s*=\s*(\S+)/i;
+            if (/Format\s*=\s*(\S+)/i) {
+                $format = $1;
+                next;
+            }
             if (/^\s*#/) {      # comment line
                 print TABLE_OUT $_;
                 next;
@@ -2973,8 +2988,13 @@ sub read_user_code {
 
                                 # Store a ref-to-name correlation hash
             if ($object) {
-                print "\n\nWarning, duplicate object name: $object\n - $object_name_check{$object} - $member_name: $record\n\n\n"
-                    if $object_name_check{$object};
+                                # Warn if a duplicate record, but only if it is different
+                                #  - that way we can define identical objects in different members.
+                if ($object_name_check{$object}) {
+                    my ($m2, $r2) = $object_name_check{$object} =~ /(\S+?): (.+)/;
+                    print "\n\nWarning, duplicate object name: $object\n - $object_name_check{$object} - $member_name: $record\n\n\n"
+                        if $record ne "$r2\n";
+                }
                 $object_name_check{$object} = "$member_name: $record";
                 
                 $file_by_object_name{$type}{$object} = $member_name;
@@ -3590,6 +3610,7 @@ sub sig_handler_pipe {
 }
 sub sig_child_death {
     my $pid = wait;
+#   print "reaped $pid" . ($? ? " with exit $?" : '');
 }
 
                                 # This will close either client or server active socket
@@ -4381,6 +4402,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.61  2001/11/18 22:46:31  winter
+# - 2.61 release
+#
 # Revision 2.60  2001/10/21 01:08:38  winter
 # - 2.60 release
 #

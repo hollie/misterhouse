@@ -618,6 +618,12 @@ processes that do not complete.
 
 Solution: You need to use ViaVoice_Outloud 5.0 with "any" ALSA driver.
 ViaVoice Outloud 5.1 does not work with ALSA, but it seems that downgrading to 5.0 fixes it.
+You can get the it here:
+http://dittos.yi.org/automation/ViaVoice_Outloud_rtk-5.0-1.0.i386.rpm
+
+The older version ViaVoiceTTS that supports the older ViaVoice Outloud can be foudn at  Brad's website:
+http://www.reednet.org/ViaVoiceTTS/ViaVoiceTTS-0.02.tar.gz
+
 
 =head2 3.2 How can I set the default volume level for Festival?
 
@@ -1065,6 +1071,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.27  2001/11/18 22:51:43  winter
+# - 2.61 release
+#
 # Revision 1.26  2001/10/21 01:22:32  winter
 # - 2.60 release
 #

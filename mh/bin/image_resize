@@ -1,20 +1,30 @@
 #!/usr/bin/perl -w
-#  Last change Time-stamp: <2001-11-02 21:53:39 winter>
-#---------------------------------------------------------------------------
-#  File:
-#      image_resize
-#  Description:
-#      See help text below
-#  Author:
-#      Bruce Winter    bruce@misterhouse.net   http://misterhouse.net
-#  Original from:
-#       http://www.perlmonks.org/index.pl?node=53367&lastnode_id=74271
-#  Latest version:
-#      http://misterhouse.net:81/mh/bin
-#  Change log:
-#    11/01/2001  Created.
-#
-#---------------------------------------------------------------------------
+#  Last change Time-stamp: <2001-11-10 21:49:30 winter>
+
+=begin comment
+
+Author:
+    Bruce Winter    bruce@misterhouse.net   http://misterhouse.net:81
+Original from:
+     http://www.perlmonks.org/index.pl?node=53367&lastnode_id=74271
+Latest version:
+    http://misterhouse.net:81/mh/bin
+
+Description:
+  This uses the powerful ImageMagick perl module to resize images.
+
+  More info in this module is here:
+    http://www.imagemagick.org/www/perl.html
+
+  The above link has instructions on how to compile on Unix.
+
+  On windows, Activestate has the module compiled, so you 
+  can install with this:
+
+    cd \perl\bin (modify to match your directory)
+    perl ppm install Image::Magick
+
+=cut
 
 sub help {
     print <<DONE;
@@ -37,19 +47,24 @@ Options are:
                   Default is 640x480
 
 -e, --extensions  Only shrink files that end with the given extensions.  
-                  The list of extensions should be quoted, each extension 
-                  separated by a space.  Valid extensions are all those file 
-                  types supported by PerlMagick.  
-                  Default is "bmp gif jpg jpeg mng pcd pcx png tga tiff xpm"
+                  This is a comma delimited list of extentions. Valid
+                  extensions are all those file types supported by PerlMagick.  
+                  Default is bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm
 
--b, --border      Add a border to pad out to the --size dimentions
+-b, --border      Add a border to pad out to the --size dimentions. 
+                  Default is to add the border (i.e. -b 1)
+
+-r, --replace     Replace exisiting resized image.  Default is -r 0.
+
+-a, --annotate    Annotate image with text (does not work)
 
 -h, --help        Display this help message.
 
 Examples:
 
- shrink.pl -d ~/pics -s 400 -e "jpg gif"  
- shrink.pl -s 40% -e "bmp" -border 0 -p small
+ image_resize -d pictures
+ image_resize -d . -e jpg,gif -p small
+ image_resize -d . -s 200x200 -border 0
 
 DONE
     exit;
@@ -60,18 +75,17 @@ use Image::Magick;
 use File::Find;
 use Getopt::Long;
 
-
                                 # Declare parms and defaults
-my($size, $dir, $exts, $border, $prefix, $help) =
-    ('640x480', '', 'bmp gif jpg jpeg mng pcd pcx png tga tiff xpm', 1, 'sm1', 0);
-my (%exts, $new, $img, $rc);
+my($size, $dir, $exts, $border, $replace, $annotate, $prefix, $help) =
+    ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', 0);
+my (%exts, $rc);
 
                                 # Changes defaults if specified on command line
-&help if (!GetOptions('size:s' => \$size, 'directory=s' => \$dir, 'prefix' => \$prefix, 'extensions:s' => \$exts,
-                      'border=s' => \$border, 'help' => \$help) or $help or !$dir);
+&help if (!GetOptions('size:s' => \$size, 'directory=s' => \$dir, 'prefix:s' => \$prefix, 'extensions:s' => \$exts,
+                      'border=s' => \$border, 'replace=s' => \$replace, 'anotate=s' => \$annotate, 'help' => \$help) or $help or !$dir);
 
                                 # Creates a hash of valid image extensions
-map {$exts{$_} = 1}  split(' ', $exts);
+map {$exts{$_} = 1}  split(/[ ,]/, $exts);
 
                                 # Use SizexSize if only one dimention given
 $size = "${size}x$size" if $size =~ /^\d+$/;
@@ -79,17 +93,22 @@ my ($size_w, $size_h) = split 'x', $size;
 
                                 # Recurses, starting from within the current directory, 
 print "\nShrinking images to $size with border=$border\n";
+
 find(\&get_img, $dir);
 
 sub get_img() {
     my ($file) = $_;
     if (-f $file) {
         my ($root, $ext) = $file =~ /(.+)\.(.+)/;
-        return unless $ext and $exts{$ext};
+        return unless $ext and $exts{lc $ext};
         return if $root =~ /^${prefix}_/;
-        $new = "${prefix}_$root.$ext";
-        print "  $File::Find::dir/$file \t-> $new\n";
-        $img = new Image::Magick;
+        my $file_new = "${prefix}_$root.$ext";
+        if (-f $file_new and !$replace) {
+            print "  $File::Find::dir/$file_new \tfiles already exists\n";
+            return;
+        }
+        print "  $File::Find::dir/$file  \t-> $file_new \tcreated from\n";
+        my $img = new Image::Magick;
         warn($rc) if $rc = $img->Read($file);
         warn($rc) if $rc = $img->Resize(geometry => $size);
         if ($border) {
@@ -98,13 +117,25 @@ sub get_img() {
             $h = ($size_h - $h) / 2;
             warn($rc) if $rc = $img->Border(geometry => $size, width => $w, height => $h, fill => 'black');
         }
-        warn($rc) if $rc = $img->Write($new);
+                                # Does not work ... gives Warning 315: no delegates configuration file found (delegates.mgk)
+        if ($annotate) {
+            $annotate = $file if $annotate == 1;
+            warn($rc) if $rc = $img->Annotate(text => $annotate, font => 'Fixed', stroke => 'black', pointsize => 10, x => 10, y => 10);
+        }
+        warn($rc) if $rc = $img->Write($file_new);
+
+                                # Change time-date stampe to match the original file
+        my ($atime, $mtime) = (stat($file))[8,9];
+        utime($atime, $mtime, $file_new);    
     }
 }   
 
 #
 # $Log$
+# Revision 1.2  2001/11/18 22:47:17  winter
+# - 2.61 release
+#
 # Revision 1.1  2001/11/03 03:54:17  winter
 # - Created
 #
-#
+

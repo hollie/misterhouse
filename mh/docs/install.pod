@@ -217,6 +217,9 @@ will be needed on newer versions of unzip to preserve case on filenames.
 Then run the configure script (as root, see quick install instructions) 
 to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 
+There are various examples of how to start/stop mh in mh/bin/misterhouse*.rc
+
+
 =head2 UNIX Step 2, Download and Compile Perl
 
 Most, if not all, UNIX installations now have perl installed by default.  If for some reason, yours does not

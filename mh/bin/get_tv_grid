@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2001-10-20 14:21:04 winter>
+#  Last change Time-stamp: <2001-11-10 20:44:18 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -24,7 +24,7 @@ BEGIN {
 my %parms;
 use Getopt::Long;
 if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "outdir=s", "reget", "redo",
-                 "channels=s", "zip:s", "provider:s", "debug", "label=s", "keep_old",
+                 "keep=s", "skip=s", "channel_max=s", "zip:s", "provider:s", "debug", "label=s", "keep_old",
                  "mail_to=s", "mail_server=s", "mail_baseref=s",
                  "days=s", "day=s", "hour=s") or @ARGV or
     ($parms{h} or $parms{help})) {
@@ -44,7 +44,9 @@ Creates a DBM for use by get_tv_info.
                      be 'all' to get all hours.
     -days xyz     => xyz is the number of days to get/filter, starting 
                      with -day.
-    -channels xyz => xyz is the number of channels to filter.  Default is 999.
+    -channel_max xyz  => Channels above xyz will be dropped.  Default is 999.
+    -keep    xyz  => xyz is a list of channels to keep.
+    -skip    xyz  => xyz is a list of channels to skip.
     -infile  xyz  => xyz is  original input file.   Default is 
                      web/tv/download/day_hour.html.  If this file is missing
                      or old, a new file will be retrieved from the web.
@@ -67,11 +69,11 @@ Creates a DBM for use by get_tv_info.
                          you want to control mh from the emailed web page
   Example:
     $Pgm_Name -day 25 -hour 4pm -outfile my_tv.html
-    $Pgm_Name -days 7 -hour all
+    $Pgm_Name -days 7 -hour all -keep "2,4,8,12,33"
     $Pgm_Name -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8080
 
   Note on finding your provider ID:
-   Enter your zip code at http://tvlistings2.zap2it.com/
+   Enter your zip code at http://tvlistings.zap2it.com/
    View the html source and pick the number from value='nnnnnn'
    by doing a string search for you provider.  For example:
       <OPTION value="255248">Charter Communications - Rochester</OPTION>
@@ -80,10 +82,10 @@ eof
   exit;
 }
                                 # Globals
-my (@days, @hours, $infile, $outfile, %DBM, %DBM2);
+my (@days, @hours, @skip_chan, $infile, $outfile, %DBM, %DBM2, %channels_keep, $channel_data);
 my ($url, $ua, $cookies, $req_get1, $req_get2, $req_post, $logged_in);
 
-my %config_parms;
+use vars '%config_parms';       # Not a my, as it is called from handy_net_utils for sent
 &setup;
 for my $day_data (@days) {
     my ($down, $dow, $day, $month, $year, $day_time) = split(' ', $day_data);
@@ -94,7 +96,7 @@ for my $day_data (@days) {
             &get_html($hour, $day, $month, $year);
             &filter_html($hour, $down, $dow, $day, $month, $year, $day_time);
         }
-        if ($day == (localtime(time))[3] and $hour >= 17 and $hour < 20) {
+        if ($day == (localtime(time))[3] and $hour >  17 and $hour <= 20) {
             use File::Copy;
             copy($outfile, "$parms{outdir}/index.html");
             if ($parms{mail_to}) {
@@ -175,20 +177,46 @@ eof
             print "Found start of TV grid\n" if $parms{debug};
             $data_flag = 1;
             &make_index($hour, $down, $day, $day_time);
-#           print OUT $record;
+            print OUT $record;
+            next;
         }
-                                # From here on is the TV grid data
+        
+                                # data_flag = 1 -> channel data
+                                # data_flag = 2 -> bottom data
         next unless $data_flag;
+        $data_flag = 2 if $record =~ / END GRID TABLE /;
+
+                                # Keep only requested channels ... the start and end on tr
+        if ($channel_number and $record =~ /<tr>/) {
+            $channel_data = '';
+        }
+        if ($channel_number and $record =~ /<\/tr>/) {
+            print OUT $channel_data unless $parms{keep} and !$channels_keep{$channel_number};
+            $channel_data = '';
+        }
+
         $count2++;
                                 # Point to local gifs
         $record =~ s|images/([^/]+?.gif)|/tv/$1|g;
                                 # Discard channel .jpgs
-        $record =~ s!<img .+?\.(jpg|gif)[^>]+?>!!g;
+#       $record =~ s!<img .+?\.(jpg|gif)[^>]+?>!!g;
+                                # Make local copy of channel .jpgs
+        if ($record =~ s!http://tvlistings\d?.zap2it.com/tms_network_logos/([^/]*\.(jpg|gif))!/tv/logos/$1!) {
+            unless (-f "$parms{outdir}/logos/$1") {
+                my $req = new HTTP::Request('GET',
+                                            "http://tvlistings.zap2it.com/tms_network_logos/$1");
+                my $res = $ua->request($req, "$parms{outdir}/logos/$1");
+                unless ($res->is_success) {
+                    print "  Error: " . $res->status_line . "\n";
+                }
+            }
+        }
+
 
                                 # Point to remote tv discriptions
                                 #  <a href="listings_redirect.asp?station_num=10715">
                                 #  <form method="post" action="listings_redirect.asp"><TD height=3 width = "100%" align=center> 
-        $record =~ s|\"([_a-z]+\.asp\??)|\"http://tvlistings2.zap2it.com/$1|g;
+        $record =~ s|\"([_a-z]+\.asp\??)|\"http://tvlistings.zap2it.com/$1|g;
 
 
                                 # Find channel number and name
@@ -198,8 +226,9 @@ eof
             print "Found channel: $channel_number => $channel_name\n" if $parms{debug};
             $min_start = $min;
             $min_end = '';
+            last if $channel_number > $parms{channel_max};
+            next if @skip_chan && grep( /^$channel_number$/, @skip_chan );
         }
-        last if $channel_number > $parms{channels};
 #       last if $record =~ / END GRID TABLE /;
 
 
@@ -213,11 +242,12 @@ eof
             $min_end = $min_start + $min_pgm;
         }
 
-        if ($record =~ /progdetails.+?>(.+?)<.+?<\/b> *(.+)/) {
+        if ($record =~ /progdetails.+?>(.+?)<\/a.+?<\/b> *(.+)/) {
             ($pgm_name, $pgm_desc) = ($1, $2);
             if ($pgm_name) {
                 $count3++;
                                 # Clean up the program description
+                $pgm_name =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
                 $pgm_desc =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
                 $pgm_desc =~ s/  / /g;     # Drop extra spaces
                 my $pgm_name_html = $pgm_name;
@@ -240,7 +270,13 @@ eof
                 print "db key=$db_key\n  data=$db_data.\n" if $parms{debug};
             }
         }
-        print OUT $record;
+        if ($data_flag == 1) {
+            $channel_data .= $record;
+            my $l = length $channel_data;
+        }
+        elsif ($data_flag == 2) {
+            print OUT $record;
+        }
     }
     print "$count1 records with $count2 grid rows were read.  $count3 programs stored.\n";
     close IN;
@@ -249,8 +285,8 @@ eof
                                 # Create the index table, for the next 2 weeks, and for other hours in this day
 sub make_index {
     my ($hour, $down, $day, $day_time) = @_;
-    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td bgcolor=123456 align=left>\n";
-    print OUT "<font face=arial size=+1 color=white> TV Listings</td><td bgcolor=123456 align=right>";
+    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n";		### DW: remove bgcolors
+    print OUT "<font face=arial size=+1 color=white> TV Listings</td><td align=right>";
     print OUT "<FORM>";
     print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
     my $dow_start = -$down - 7;
@@ -303,13 +339,13 @@ sub make_index {
 sub delete_old_data {
     my ($down, $down, $day, $month) = &days_from_now(time, -28);
     my $pgm_date = "$month/$day";
-    print "Deleteing old data from 4 weeks ago: $pgm_date ...";
+    print "Deleting old data from 4 weeks ago: $pgm_date ...";
     my @channels = keys %DBM2;
     for my $channel_number (@channels) {
         for my $hour (00 .. 23) {
             for my $min ('00', '30') {
                 my $db_key = join($;, $channel_number, $pgm_date, "$hour:$min");
-#               print "deleteing $db_key\n" if $parms{debug};
+#               print "deleting $db_key\n" if $parms{debug};
                 delete $DBM{$db_key};
             }
         }
@@ -367,7 +403,8 @@ sub setup {
 #   $parms{userid} = '%247A%247B%2489%247A' unless $parms{userid};
     $parms{zip}      = '55901'  unless $parms{zip};
     $parms{provider} = '255248' unless $parms{provider};
-    $parms{channels} = '999' unless $parms{channels};
+    $parms{channel_max} = '999' unless $parms{channel_max};
+    %channels_keep = map{$_, 1} split(',', $parms{keep}) if $parms{keep};
     $parms{days} = 1 unless $parms{days};
     $parms{redo} = 1 if $parms{reget};
     $parms{label} = "VCR" unless $parms{label};  # This can also be an image link
@@ -397,6 +434,7 @@ sub setup {
         $hour += 12 unless lc($am_pm) eq 'am' or $hour == 12;
         @hours = (sprintf("%02d", $hour));
     }
+    @skip_chan = split(',', $parms{skip}) if defined $parms{skip};
     my $dbm_file  = "$config_parms{data_dir}/tv_programs.dbm";
     my $dbm_file2 = "$config_parms{data_dir}/tv_channels.dbm";
     print "Tieing to $dbm_file\n";        
@@ -406,13 +444,15 @@ sub setup {
     tie (%DBM2, 'DB_File',  $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
 
     $parms{outdir} = "$config_parms{html_dir}/tv" unless $parms{outdir};
+    mkdir $parms{outdir}, 0777 unless -d $parms{outdir};
+    mkdir "$parms{outdir}/logos", 0777 unless -d "$parms{outdir}/logos";
 
     use LWP::Simple;
     use LWP::UserAgent;
     use HTTP::Cookies;
     use HTTP::Request::Common;
     
-    $url      = 'http://tvlistings2.zap2it.com/';
+    $url      = 'http://tvlistings.zap2it.com/';
     $ua       = LWP::UserAgent->new;
     $cookies  = HTTP::Cookies->new();
     $req_get1 = HTTP::Request->new(GET  => $url . 'gridall.asp');
@@ -425,13 +465,16 @@ sub setup {
                            'TVListings',                # $key,
                            "ZipCode=$parms{zip}&ProviderID=$parms{provider}&vstr%5Fid=",
                            '/',                         # $path,
-                           'tvlistings2.zap2it.com');   # $domain,
+                           'tvlistings.zap2it.com');   # $domain,
     $ua -> cookie_jar($cookies); 
 
 }
 
 #
 # $Log$
+# Revision 1.37  2001/11/18 22:51:42  winter
+# - 2.61 release
+#
 # Revision 1.36  2001/10/21 01:22:31  winter
 # - 2.60 release
 #

@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Nautilus 1.0.5 Release</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/2359224</url>
-		<time>2001-10-20 01:58:10</time>
-		<author>michael</author>
-		<department>ah-eazel-we-hardly-knew-ye</department>
-		<topic>131</topic>
-		<comments>0</comments>
+		<title>Linuxconf.Au Needs Papers &amp;amp; Join In</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/28/0133218</url>
+		<time>2001-10-28 11:30:23</time>
+		<author>Hemos</author>
+		<department>i-come-from-a-land-down-under</department>
+		<topic>106</topic>
+		<comments>16</comments>
 		<section>articles</section>
-		<image>topicgnome.gif</image>
+		<image>topiclinux.gif</image>
 	</story>
 
 	<story>
-		<title>Magnetic Fluids</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/1423251</url>
-		<time>2001-10-19 23:19:05</time>
-		<author>michael</author>
-		<department>flux-capacitor</department>
-		<topic>159</topic>
-		<comments>32</comments>
+		<title>Be-Alike: BlueOS Uses Linux For Its Kernel</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/28/0316223</url>
+		<time>2001-10-28 07:56:51</time>
+		<author>timothy</author>
+		<department>must-ipso-facto-half-not-be</department>
+		<topic>87</topic>
+		<comments>72</comments>
 		<section>articles</section>
+		<image>topicbe.gif</image>
+	</story>
+
+	<story>
+		<title>Undercover Hacking, For Money</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/28/039248</url>
+		<time>2001-10-28 03:30:26</time>
+		<author>timothy</author>
+		<department>nice-work-if-you-can-get-it</department>
+		<topic>172</topic>
+		<comments>153</comments>
+		<section>articles</section>
+		<image>topicsecurity.gif</image>
+	</story>
+
+	<story>
+		<title>Sony Uses DCMA To Shut Down Aibo Hack Site</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/28/005233</url>
+		<time>2001-10-28 01:13:55</time>
+		<author>timothy</author>
+		<department>what-are-they-thinking</department>
+		<topic>159</topic>
+		<comments>265</comments>
+		<section>yro</section>
 		<image>topictoys.gif</image>
 	</story>
 
 	<story>
-		<title>Desktop Biodetectors</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/2230210</url>
-		<time>2001-10-19 22:26:59</time>
-		<author>michael</author>
-		<department>two-steps-toward-gattaca-one-step-back</department>
-		<topic>126</topic>
-		<comments>39</comments>
-		<section>science</section>
-		<image>topictech2.gif</image>
-	</story>
-
-	<story>
-		<title>SSSCA Hearing October 25th: Free Software Threatened</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/1954207</url>
-		<time>2001-10-19 20:30:52</time>
+		<title>Teragrid: Massive Grid Computing</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/27/2243203</url>
+		<time>2001-10-27 22:42:29</time>
 		<author>timothy</author>
-		<department>register-your-xerographic-devices-please</department>
-		<topic>103</topic>
-		<comments>230</comments>
-		<section>yro</section>
-		<image>topicus.gif</image>
-	</story>
-
-	<story>
-		<title>Intel kills Consumer Electronics</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/198245</url>
-		<time>2001-10-19 20:08:13</time>
-		<author>CmdrTaco</author>
-		<department>todays-economy-is-much-less-fun</department>
-		<topic>118</topic>
-		<comments>61</comments>
-		<section>articles</section>
-		<image>topicintel.gif</image>
-	</story>
-
-	<story>
-		<title>Nurturing Ideas Into Open Source Projects?</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/1917251</url>
-		<time>2001-10-19 19:05:42</time>
-		<author>Cliff</author>
-		<department>birthing-the-code</department>
-		<topic>99</topic>
-		<comments>92</comments>
-		<section>askslashdot</section>
-		<image>topicnews.gif</image>
-	</story>
-
-	<story>
-		<title>VIA to Create Pentium 4 'Clone'</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/1829255</url>
-		<time>2001-10-19 18:29:10</time>
-		<author>michael</author>
-		<department>lawsuits-galore</department>
-		<topic>137</topic>
-		<comments>97</comments>
-		<section>articles</section>
-		<image>topichardware.gif</image>
-	</story>
-
-	<story>
-		<title>Physics and Archaeology</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/1636214</url>
-		<time>2001-10-19 16:35:15</time>
-		<author>michael</author>
-		<department>captain-caveman</department>
+		<department>pocket-calculator-of-the-future</department>
 		<topic>134</topic>
-		<comments>150</comments>
-		<section>science</section>
+		<comments>99</comments>
+		<section>articles</section>
 		<image>topicscience.gif</image>
 	</story>
 
 	<story>
-		<title>Quirky Engineers Gone the Way of the Dinosaur?</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/1451235</url>
-		<time>2001-10-19 15:11:26</time>
-		<author>Hemos</author>
-		<department>what-happens-to-the-engineers</department>
-		<topic>99</topic>
-		<comments>279</comments>
+		<title>OS Emulation Extravaganza, OS X On Down</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/27/2025221</url>
+		<time>2001-10-27 20:34:53</time>
+		<author>timothy</author>
+		<department>top-this-if-you-have-the-ram</department>
+		<topic>107</topic>
+		<comments>166</comments>
 		<section>articles</section>
-		<image>topicnews.gif</image>
+		<image>topicapple.gif</image>
 	</story>
 
 	<story>
-		<title>Why Linux is About to Lose</title>
-		<url>http://slashdot.org/article.pl?sid=01/10/19/1313222</url>
-		<time>2001-10-19 14:32:28</time>
-		<author>CmdrTaco</author>
-		<department>dammit-now-i-gotta-reformat</department>
+		<title>Self-Improving Systems</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/27/1443254</url>
+		<time>2001-10-27 19:03:34</time>
+		<author>Hemos</author>
+		<department>bigger-better-faster</department>
+		<topic>156</topic>
+		<comments>123</comments>
+		<section>developers</section>
+		<image>topicprogramming.gif</image>
+	</story>
+
+	<story>
+		<title>Pot Calls Kettle Censor</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/27/159233</url>
+		<time>2001-10-27 18:50:00</time>
+		<author>jamie</author>
+		<department>pass-the-popcorn</department>
+		<topic>153</topic>
+		<comments>155</comments>
+		<section>yro</section>
+		<image>topiccensorship.gif</image>
+	</story>
+
+	<story>
+		<title>Advanced Filesystem Implementors Guide Continues</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/27/170231</url>
+		<time>2001-10-27 17:54:48</time>
+		<author>timothy</author>
+		<department>keeping-track-of-things</department>
 		<topic>106</topic>
-		<comments>558</comments>
-		<section>articles</section>
+		<comments>53</comments>
+		<section>developers</section>
 		<image>topiclinux.gif</image>
+	</story>
+
+	<story>
+		<title>Making Strategy Games with...Strategy?</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/26/1441203</url>
+		<time>2001-10-27 16:40:00</time>
+		<author>Cliff</author>
+		<department>doing-away-with-the-RTS-blitz-crap</department>
+		<topic>127</topic>
+		<comments>370</comments>
+		<section>askslashdot</section>
+		<image>topicgames.jpg</image>
 	</story>
 
 </backslash>

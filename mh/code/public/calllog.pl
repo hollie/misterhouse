@@ -34,7 +34,7 @@ $request_phone_stuff = new X10_Item('A6');
 
 $v_phone_lastcaller = new Voice_Cmd('Show Recent Call Log');
 if ((said $v_phone_lastcaller) || (state_now $request_phone_stuff eq 'on')) {
-    open(CALLLOG, "$config_parms{code_dir}/calllog.log"); # Open for input
+    open(CALLLOG, "$config_parms{data_dir}/calllog.log"); # Open for input
     @callloglines = <CALLLOG>;                            # Open array and
                                                           # read in data
     close CALLLOG;                                        # Close the file
@@ -64,7 +64,7 @@ if ((said $v_phone_lastcaller) || (state_now $request_phone_stuff eq 'on')) {
 
 $v_phone_clearlog = new Voice_Cmd('Clear Recent Call Log');
 if ((said $v_phone_clearlog) || (state_now $request_phone_stuff eq 'off')) {
-    open(CALLLOG, ">$config_parms{code_dir}/calllog.log");     # CLEAR Log
+    open(CALLLOG, ">$config_parms{data_dir}/calllog.log");     # CLEAR Log
     close CALLLOG;
     print_log "Call Log Cleared.";
     speak "Call Log Cleared.";
@@ -83,7 +83,7 @@ if ((said $v_phone_clearlog) || (state_now $request_phone_stuff eq 'off')) {
 if ($Startup or $Reload) {
     set $phone_modem 'init';               # Initialize MODEM
 
-    open(REJLOG, "$config_parms{code_dir}/rejlog.log");   # Open for input
+    open(REJLOG, "$config_parms{data_dir}/rejlog.log");   # Open for input
     @rejloglines = <REJLOG>;                              # Open array and
                                                           # read in data
     close REJLOG;                                         # Close the file
@@ -201,7 +201,7 @@ if ($PhoneModemString = said $phone_modem) {
 
         # Log the data in a special file to announce from Palmpad
 
-        open(CALLLOG, ">>$config_parms{code_dir}/calllog.log");  # Log it
+        open(CALLLOG, ">>$config_parms{data_dir}/calllog.log");  # Log it
         print CALLLOG "$PhoneDate`$PhoneTime`$caller`$PhoneNumber\n";
         close CALLLOG;
 

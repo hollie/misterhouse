@@ -699,6 +699,7 @@ Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 =cut
 
 sub read_temperature_time { return 0.3; }
+#ub read_temperature_time { return 0.9; } # Need this for slower computers ?
 
 sub read_temperature {
     my($self) = @_;
@@ -801,6 +802,7 @@ Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 =cut
 
 sub read_temperature_time { return 0.3; }
+#ub read_temperature_time { return 0.9; } # Need this for slower computers ?
 
 sub read_temperature {
     my($self) = @_;

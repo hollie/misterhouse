@@ -183,6 +183,8 @@ sub main::net_ftp {
     my $command     = $parms{command};
     my $type        = $parms{type};
     my $passive     = $parms{passive};
+    my $timeout     = $parms{timeout};
+    $timeout = 20 unless $timeout;
 
     $server   = $main::config_parms{net_www_server} unless $server;
     $user     = $main::config_parms{net_www_user} unless $user;
@@ -199,8 +201,8 @@ sub main::net_ftp {
     print "Logging into web server $server as $user...\n";
 
     my $ftp;
-    unless ($ftp = Net::FTP->new($server, timeout => 120, Passive => $passive)) {
-        print "Unable to connect to ftp server $server: $@\n";
+    unless ($ftp = Net::FTP->new($server, timeout => $timeout, Passive => $passive)) {
+        print "Unable to connect to ftp server $server timeout=$timeout passive=$passive: $@\n";
         return "failed on connect";
     }
     unless ($ftp->login($user, $password)) {
@@ -260,7 +262,7 @@ sub main::net_jabber_signon {
     $port     = 5222         unless $port;
     $resource = 'none'       unless $resource;
 
-    print "Logging onto $server:$port with name=$name resource=$resource\n";
+    print "Logging onto $server $port with name=$name resource=$resource\n";
 
     eval 'use Net::Jabber qw (Client)';
     print "Error in Net::Jabber: $@\n" if $@;
@@ -510,9 +512,10 @@ sub main::net_mail_send_old {
 
 sub main::net_mail_send {
     my %parms = @_;
-    my ($from, $to, $subject, $text, $server, $smtp, $account, $mime, $baseref, $file, $filename);
+    my ($from, $to, $subject, $text, $server, $port, $smtp, $account, $mime, $baseref, $file, $filename);
 
     $server  = $parms{server};
+    $port    = $parms{port};
     $account = $parms{account};
     $from    = $parms{from};
     $to      = $parms{to};
@@ -524,9 +527,11 @@ sub main::net_mail_send {
     $filename= $parms{filename};
 
     $account = $main::config_parms{net_mail_send_account}         unless $server;
-    $server  = $main::config_parms{"net_mail_${account}_server_send"}  unless $server;
+    $server  = $main::config_parms{"net_mail_${account}_server_send"}       unless $server;
     $server  = $main::config_parms{"net_mail_${account}_server"}  unless $server;
     $server = 'localhost'                                         unless $server;
+    $port    = $main::config_parms{"net_mail_${account}_server_send_port"}  unless $port;
+    $port    = 25 unless $port;
     $from    = $main::config_parms{"net_mail_${account}_address"} unless $from;
     $to      = $main::config_parms{"net_mail_${account}_address"} unless $to;
     $subject = "Email from Mister House"                          unless $subject;
@@ -534,7 +539,7 @@ sub main::net_mail_send {
 
     $text .= &main::file_read($file) if $file;
 
-    print "Sending mail with $account, from $from to $to\n";
+    print "Sending mail with account $account from $from to $to on $server $port\n";
 
     print "net_mail_send error: 'server' parm missing (check net_mail_server in mh.ini)\n" unless $server;
     print "net_mail_send error: 'to' parm missing\n" unless $to;
@@ -608,40 +613,46 @@ sub main::net_mail_send {
                                        To => $to);
         }
         
-        if ($^O eq "MSWin32") {
-            print "Using built in smtp code with server $server\n";
-            MIME::Lite->send('smtp', $server, Timeout => 20);
+        
+        my $method = $main::config_parms{net_mail_send_method};
+        $method = 'smtp' if !$method and $^O eq 'MSWin32';
+        print "  - MIME email sent with net_mail_send_method $method\n";
+        if ($method eq 'smtp') {
+          MIME::Lite->send($method, $server, Timeout => 20, Port => $port);
         }
-        print "Sending report to $to\n";
-        $message->send;
+        elsif ($method) {
+          MIME::Lite->send('sendmail', $method);
+        }
+        $message->send($server, Timeout => 20);
     }
     else {
         use Net::SMTP;
-        print "Logging into mail server $server to send msg to $to\n";
-        unless ($smtp = Net::SMTP->new($server, Timeout => 10, Debug => $parms{debug})) {
-            print "Unable to log into mail server $server: $@\n";
+        unless ($smtp = Net::SMTP->new($server, Timeout => 10, Port => $port, Debug => $parms{debug})) {
+            print "Unable to log into mail server $server $port: $@\n";
             return;
         }
         $smtp->mail($from) if $from;
         $smtp->to($to);
         $smtp->data("Subject: $subject\n", "To: $to\n", "From: $from\n\n", $text);
         $smtp->quit;
-        print "Message sent\n";
     }
 }
 
 
 sub main::net_mail_login {
     my %parms = @_;
-    my ($user, $password, $server, $pop, $account);
+    my ($user, $password, $server, $port, $pop, $account);
 
     $user     = $parms{user};
     $password = $parms{password};
     $server   = $parms{server};
+    $port     = $parms{port};
     $account  = ($parms{account}) ? "net_mail_" . $parms{account} : "net_mail";
     $user     = $main::config_parms{$account . "_user"} unless $user;
     $password = $main::config_parms{$account . "_password"} unless $password;
     $server   = $main::config_parms{$account . "_server"} unless $server;
+    $port     = $main::config_parms{$account . "_server_port"} unless $port;
+    $port     = 110 unless $port;
 
     print "net_mail_read error: mh.ini ${account}_user parm is missing\n" unless $user;
     print "net_mail_read error: mh.ini ${account}_password parm is missing\n" unless $password;
@@ -657,14 +668,14 @@ sub main::net_mail_login {
 
     use Net::POP3;
 #   print "Logging into $server\n";
-    unless ($pop = Net::POP3->new($server, Timeout => 10, Debug => $parms{debug})) {
-        print "Can not open connection to $server: $@\n";
+    unless ($pop = Net::POP3->new($server, Timeout => 10, Port => $port, Debug => $parms{debug})) {
+        print "Can not open connection to $server $port: $@\n";
         return;
     }
 #   unless ($pop->apop($user, $password)) {   ... avoids plain text password across network by using MD5 ... not installed yet
     my $msgcnt;
     unless (defined ($msgcnt = $pop->login($user, $password))) {
-        print "Can not login to $server as $user: $@\n";
+        print "Can not login to $server $port as $user: $@\n";
         return;
     }
 
@@ -803,6 +814,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.35  2001/11/18 22:51:43  winter
+# - 2.61 release
+#
 # Revision 1.34  2001/10/21 01:22:32  winter
 # - 2.60 release
 #

@@ -3,6 +3,9 @@
 # This is a linux shell mh loop for restarting mh if mh had an unexpected exit
 # If you want to use it, call it in the same way you would call mh.
 
+# Call Switch User if you call this script as root so mh does not run as root
+# su xyz 
+
 while [ 1 = 1 ]; do 
 
     echo

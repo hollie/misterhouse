@@ -37,7 +37,8 @@ if ($Reload) {
 
     &tk_entry("Sleep time", \$Loop_Sleep_Time, "Tk passes", \$Loop_Tk_Passes);
 
-    &tk_entry('Code Search', \$Save{mh_code_search}, 'Debug flag', \$config_parms{debug}) if $Run_Members{mh_control};
+                                # $search_code_string is defined in mh/code/common/mh_control.pl
+    &tk_entry('Code Search', $search_code_string,    'Debug flag', \$config_parms{debug}) if $Run_Members{mh_control};
 
     &tk_entry('MP3 Search', \$Save{mp3_search}, 'MP3 Genre', \$Save{mp3_Genre}) if $Run_Members{mp3_playlist};
 

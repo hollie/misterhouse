@@ -3,7 +3,7 @@ package Voice_Text;
 use strict;
 
 use vars '$VTxt_version';
-my ($VTxt, $VTxt_stream, $VTxt_festival, $speak_pgm, $save_mute_esd, $save_change_volume, %pronouncable);
+my (@VTxt, $VTxt_stream, $VTxt_festival, $speak_pgm, $save_mute_esd, $save_change_volume, %pronouncable);
 my ($ViaVoiceTTS); 
 
 
@@ -49,9 +49,23 @@ sub init {
                                 # Test and default to the new SDK 5 SAPI
         $VTxt_version = lc $main::config_parms{voice_text};
         unless ($VTxt_version eq 'msv4') {
-            if ($VTxt = Win32::OLE->new('Sapi.SpVoice')) {
+            if (my $test = Win32::OLE->new('Sapi.SpVoice')) {
                 $VTxt_version = 'msv5';
                 $VTxt_stream = Win32::OLE->new('Sapi.SpFileStream');
+
+                                # Create objects for all available output cards
+                my $outputs = $test->GetAudioOutputs;
+                my $count   = $outputs->Count;
+                for my $i (1 .. $count) {
+                    next if $main::config_parms{voice_text_cards} and $main::config_parms{voice_text_cards} !~ /$i/;
+                    my $object = $outputs->Item($i-1);
+                    my $des    = $object->GetDescription;
+                    print "\n  Sound card $i: $des";
+                    $VTxt[$i] = Win32::OLE->new('Sapi.SpVoice');
+                    $VTxt[$i] ->{AudioOutput} = $object;
+                }
+                $VTxt[0] = $VTxt[1]; # Default to the first card;
+
             }
             else {
                 $VTxt_version = 'msv4';
@@ -59,23 +73,30 @@ sub init {
         }
             
         if ($VTxt_version eq 'msv4') {
-            $VTxt = Win32::OLE->new('Speech.VoiceText');
-            unless ($VTxt) {
+            $VTxt[0] = Win32::OLE->new('Speech.VoiceText');
+            unless (@VTxt) {
                 print "\n\nError, could not create ms Speech TTS object.  ", Win32::OLE->LastError(), "\n\n";
                 return;
             }
         
 #           print "Registering the MS TTS object\n";
-            $VTxt->Register("Local PC", "perl voice_text.pm");
-#           $VTxt->{Enabled} = 1;
+            $VTxt[0]->Register("Local PC", "perl voice_text.pm");
+#           $VTxt[0]->{Enabled} = 1;
         }
         print " engine used: $VTxt_version\n";
     }
-    return $VTxt;
 }
 
 sub speak_text {
     my(%parms) = @_;
+
+                                # If text is specified, save the default output, so we can set it back
+    my $vtxt_default;
+    if ($parms{card}) {
+        $vtxt_default = $VTxt[0] if $parms{text};
+        $VTxt[0] = $VTxt[$parms{card}];
+    }
+    
 
                                 # Allow for pause,resume,stop,ff,rew.  Also allow mode to set rate
     if (my $mode = $parms{mode}) {
@@ -95,9 +116,9 @@ sub speak_text {
 
                                 # Only MSVoice currently tells us when it is done
                                 # For all others, set a timer with a rough guess
-    set $is_speaking_timer (1 + (length $parms{text}) / 10) unless $VTxt;
+    set $is_speaking_timer (1 + (length $parms{text}) / 10) unless @VTxt;
 
-    unless ($VTxt or $speak_pgm or $VTxt_festival or $ViaVoiceTTS) {
+    unless ($VTxt[0] or $speak_pgm or $VTxt_festival or $ViaVoiceTTS) {
         unless ($main::config_parms{voice_text}) {
             print "Can not speak.  mh.ini entry for voice_text is disabled. Phrase=$parms{text}\n";
         } else {
@@ -136,7 +157,11 @@ sub speak_text {
 
         if ($parms{to_file}) {
             print "Festival saving speech to_file: $parms{to_file}\n";
-            set $VTxt_festival qq[(utt.save.wave (SayText "hello world") "$parms{to_file}" "riff")];
+#           set $VTxt_festival qq[(utt.save.wave (SayText "$parms{text}") "$parms{to_file}" "riff")];
+            set $VTxt_festival qq[(utt.save.wave (utt.synth (Utterance Text "$parms{text}")) "$parms{to_file}" "riff")];
+
+                                # Should parm this if it works ok
+#           system "/mh/bin_my/flite -t \"$parms{text}\" $parms{to_file}";
         }
         else {
             print "Data sent to festival: $parms{text}\n";
@@ -209,23 +234,23 @@ ProgCode
         }
     }
 
-    if ($VTxt and $parms{text}) {
-        print "Voice_Text.pm ms_tts: VTxt=$VTxt text=$parms{'text'}\n" if $main::config_parms{debug} eq 'voice';
+    if ($VTxt[0] and $parms{text}) {
+        print "Voice_Text.pm ms_tts: VTxt=$VTxt[0] text=$parms{'text'}\n" if $main::config_parms{debug} eq 'voice';
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
             if ($parms{to_file}) {
                 $VTxt_stream->Open($parms{to_file}, 3, 0);
-                my $old_stream = $VTxt->{AudioOutputStream};
-                $VTxt->{AudioOutputStream} = $VTxt_stream;
-                $VTxt->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
+                my $old_stream = $VTxt[0]->{AudioOutputStream};
+                $VTxt[0]->{AudioOutputStream} = $VTxt_stream;
+                $VTxt[0]->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
                 $VTxt_stream->Close;
-                $VTxt->{AudioOutputStream} = $old_stream;
+                $VTxt[0]->{AudioOutputStream} = $old_stream;
 #               &main::print_log("Text->wav file:  $parms{to_file}");
 #               &main::play($parms{to_file});
             }
             else {
-#               $VTxt->Speak($parms{text}, 1 + 2 + 8); # Flags: 1=async  2=pruge  8=XML
-                $VTxt->Speak($parms{text}, 1 +     8);
+#               $VTxt[0]->Speak($parms{text}, 1 + 2 + 8); # Flags: 1=async  2=pruge  8=XML
+                $VTxt[0]->Speak($parms{text}, 1 +     8);
             }
         }
                                 # Older engine
@@ -244,31 +269,34 @@ ProgCode
             $parms{priority} = 'normal' unless $parms{priority};
             $priority{$parms{'priority'}} = $parms{'priority'} if $parms{'priority'} =~ /\d+/; # allow for direct parm
             
-#           $VTxt->{'Speed'} = $parms{'speed'} if defined $parms{'speed'};
+#           $VTxt[0]->{'Speed'} = $parms{'speed'} if defined $parms{'speed'};
             my ($priority, $type, $voice);
             $priority = $priority{$parms{'priority'}};
             $type = $type{$parms{'type'}};
             $voice = qq[\\Vce=Speaker="$parms{voice}"\\] if $parms{voice};
             $voice = '' unless $voice;
             
-            print "Voice_Text.pm ms_tts: VTxt=$VTxt text=$parms{'text'}\n" if $main::config_parms{debug} eq 'voice';
-            $VTxt->Speak($voice . $parms{'text'}, $priority);
+            print "Voice_Text.pm ms_tts: VTxt=$VTxt[0] text=$parms{'text'}\n" if $main::config_parms{debug} eq 'voice';
+            $VTxt[0]->Speak($voice . $parms{'text'}, $priority);
             
-#           $VTxt->Speak($parms{'text'}, ($priority | $type));
-#           $VTxt->Speak('Hello \Chr="Angry"\ there. Bruce is \Vce=Speaker=Biff\ a very smart idiot guy.', hex('201'));
+#           $VTxt[0]->Speak($parms{'text'}, ($priority | $type));
+#           $VTxt[0]->Speak('Hello \Chr="Angry"\ there. Bruce is \Vce=Speaker=Biff\ a very smart idiot guy.', hex('201'));
         }
 
     }
+
+    $VTxt[0] = $vtxt_default if $vtxt_default;
+
 }
 
 sub is_speaking {
-#    print " vt=$VTxt .. ";
-    if ($VTxt) {
+#    print " vt=$VTxt[0] .. ";
+    if (@VTxt) {
         if ($VTxt_version eq 'msv5') {
-            return 2 == ($VTxt->Status->{RunningState});
+            return 2 == ($VTxt[0]->Status->{RunningState});
         }
         else {
-            return $VTxt->{IsSpeaking};
+            return $VTxt[0]->{IsSpeaking};
         }
     }
     else {
@@ -306,22 +334,22 @@ sub read_pronouncable_list {
 sub set_mode {
     my ($mode) = lc shift;
                                 # Only MS TTS for now
-    if ($VTxt) {
+    if (@VTxt) {
         if ($VTxt_version eq 'msv5') {
-            return $VTxt->Skip('Sentence',99999) if $mode eq 'stop';
-            return $VTxt->Pause                  if $mode eq 'pause';
-            return $VTxt->Resume                 if $mode eq 'resume';
-            return $VTxt->Skip('Sentence',  5)   if $mode eq 'fastforward';
-            return $VTxt->Skip('Sentence', -5)   if $mode eq 'rewind';
-            return $VTxt->Skip('Sentence', $1)   if $mode =~ /forward_(\d+)/;
-            return $VTxt->Skip('Sentence', -$1)  if $mode =~ /rewind_(\d+)/;
+            return $VTxt[0]->Skip('Sentence',99999) if $mode eq 'stop';
+            return $VTxt[0]->Pause                  if $mode eq 'pause';
+            return $VTxt[0]->Resume                 if $mode eq 'resume';
+            return $VTxt[0]->Skip('Sentence',  5)   if $mode eq 'fastforward';
+            return $VTxt[0]->Skip('Sentence', -5)   if $mode eq 'rewind';
+            return $VTxt[0]->Skip('Sentence', $1)   if $mode =~ /forward_(\d+)/;
+            return $VTxt[0]->Skip('Sentence', -$1)  if $mode =~ /rewind_(\d+)/;
         }
         else {
-            return $VTxt->StopSpeaking      if $mode eq 'stop';
-            return $VTxt->AudioPause        if $mode eq 'pause';
-            return $VTxt->AudioResume       if $mode eq 'resume';
-            return $VTxt->AudioFastForward  if $mode eq 'fastforward';
-            return $VTxt->AudioRewind       if $mode eq 'rewind';
+            return $VTxt[0]->StopSpeaking      if $mode eq 'stop';
+            return $VTxt[0]->AudioPause        if $mode eq 'pause';
+            return $VTxt[0]->AudioResume       if $mode eq 'resume';
+            return $VTxt[0]->AudioFastForward  if $mode eq 'fastforward';
+            return $VTxt[0]->AudioRewind       if $mode eq 'rewind';
         }
     }
 }
@@ -349,13 +377,13 @@ sub set_rate {
     my ($rate, $text) = @_;
 
                                 # Only MS TTS for now
-    return $text unless $VTxt;
+    return $text unless @VTxt;
 
     if ($VTxt_version eq 'msv4') {
-        $VTxt->{Speed} = 250     if $rate eq 'fast';
-        $VTxt->{Speed} = 200     if $rate eq 'normal';
-        $VTxt->{Speed} = 150     if $rate eq 'slow';
-        $VTxt->{Speed} = $rate   if $rate =~ /^\d+$/;
+        $VTxt[0]->{Speed} = 250     if $rate eq 'fast';
+        $VTxt[0]->{Speed} = 200     if $rate eq 'normal';
+        $VTxt[0]->{Speed} = 150     if $rate eq 'slow';
+        $VTxt[0]->{Speed} = $rate   if $rate =~ /^\d+$/;
         return $text;
     }
     else {
@@ -367,7 +395,7 @@ sub set_rate {
             return "<rate absspeed='$rate'/> " . $text;
         }
         else {
-            $VTxt->{Rate} = $rate;
+            $VTxt[0]->{Rate} = $rate;
             return;
         }
     }
@@ -383,7 +411,7 @@ sub set_volume {
             return "<volume level='$volume'/> " . $text;
         }
         else {
-            $VTxt->{Volume} = $volume;
+            $VTxt[0]->{Volume} = $volume;
             return;
         }
     }
@@ -414,9 +442,9 @@ sub set_voice {
 
         if ($voice =~ /random/) {
             my (@voices, $object);
-#           @voices = Win32::OLE::in $VTxt->GetVoices($spec);
+#           @voices = Win32::OLE::in $VTxt[0]->GetVoices($spec);
                                 # Filter out unusual voices
-            for $object (Win32::OLE::in $VTxt->GetVoices($spec)) {
+            for $object (Win32::OLE::in $VTxt[0]->GetVoices($spec)) {
                 next if $object->GetDescription eq 'Sample TTS Voice';
                 next if $object->GetDescription eq 'MS Simplified Chinese Voice';
                 push @voices, $object;
@@ -439,9 +467,9 @@ sub set_voice {
         }
                                 # First voice returned is the best fit
         else {
-            for my $object (Win32::OLE::in $VTxt->GetVoices($spec)) {
+            for my $object (Win32::OLE::in $VTxt[0]->GetVoices($spec)) {
                 print "Setting voice for $spec: $object\n";
-                $VTxt->{Voice} = $object;
+                $VTxt[0]->{Voice} = $object;
                 return;
             }
         }
@@ -466,6 +494,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.30  2001/11/18 22:51:43  winter
+# - 2.61 release
+#
 # Revision 1.29  2001/10/21 01:22:32  winter
 # - 2.60 release
 #

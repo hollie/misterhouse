@@ -10,7 +10,11 @@ $request_time       -> add             ('XN4');
 $request_time       -> add             ('XO4');
 $request_time       -> add             ('XP4');
 
-speak "rooms=$request_time->{room} volume=100 It is now $Time_Now" if state_now $request_time;
+if (state_now $request_time) {
+    ($temp = $Time_Now) =~ s/\:00//;   # MS TTS V5 turns :00 into O'clock
+#   ($temp = $Time_Now) =~ s/ [AP]M//; # Drop the AM/PM
+    speak "rooms=$request_time->{room} volume=100 It is now $temp";
+}
 
 $v_what_time = new  Voice_Cmd('{What time is it,Tell me the time}', 0);
 $v_what_time-> set_info('Says the Time and Date');

@@ -28,10 +28,11 @@ BEGIN {
 my %parms;
 use Getopt::Long;
 if (!&GetOptions(\%parms, "h", "help",
-                 "channels=s", "dates=s", "times=s", "lengths=s", "keys=s", "keyfile=s", 
-                 'increment=s', "outfile1=s", "outfile2=s", "early_am=s",
+                 "channels=s", "dates=s", "times=s", "lengths=s", "keys=s", "keyfile=s", 'title_only', 
+                 'increment=s', "outfile1=s", "outfile2=s", "early_am=s", "started=s",
                  "debug", "quiet") or @ARGV or 
-    !($parms{channels} or $parms{dates} or $parms{times} or $parms{lengths} or $parms{keys} or $parms{early_am}) or
+    !($parms{channels} or $parms{dates} or $parms{times} or $parms{lengths} or 
+      $parms{keys} or $parms{keyfile} or $parms{early_am}) or
     ($parms{h} or $parms{help})) {
     print<<eof;
 
@@ -55,6 +56,7 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
     -times     xyz => Will return info only for shows that start at xyz.
                       Default is '6pm-10pm'.  Use 'all' for all hours.
                       Valid formats: 1 pm, 1PM, 13, 13:00.
+    -started   yes => Will include shows which have already started
     -early_am  xyz => Adds info for shows after midnight.
                       Formats are same as for to times.
     -increment xyz => Time increment is xyz minutes (5 or 30). Default is 5.
@@ -67,6 +69,7 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
     -keyfile   xyz => List of keys to search for, from a file in the data directory,
                       with each item on a separate line (no commas).
                       Empty lines and comment lines beginning with # will be ignored.
+    -title_only       Search show titles only
 
       All of the above parms support these formats:
          : comma-seperated values (e.g. -dates 7/4,7/5,7/6)
@@ -145,7 +148,6 @@ sub find_match {
                         next if ($key =~ /\#/ or $key !~ /\w/);
                                 # added .?\b to match whole words and plurals only
                                 # Make upper case keywords case-sensitive
-                        my $lc_pgm_name = lc($pgm_name);
 # \b$key.?\b
 # In the end I found \bword\b was too limited, as it was necessary to list both 
 # Egypt and Egyptian.
@@ -153,12 +155,8 @@ sub find_match {
 # want part of a word to be matched, ie 'lion[SPACE]' to prevent matching with 'Lionel'.
 # I can also now edit the key_lists with Notepad from inside mh.
 # I have added case-sensitive upper-case in $pgm_desc.
-
-                        my $lc_pgm_desc = lc($pgm_desc);
-                        if ($pgm_name    =~ /\b$key/ or
-                            $lc_pgm_name =~ /\b$key/ or
-                            $lc_pgm_desc =~ /\b$key/ or
-                            $pgm_desc    =~ /\b$key/) {
+                        if ($pgm_name    =~ /\b$key/i or
+                            ($pgm_desc    =~ /\b$key/i and !$parms{title_only})) {
                             $match_key = 1;
                             print "$key ";
 # The next 2 lines highlight the selected key-word(s), using the selected symbol in mh.ini
@@ -211,6 +209,7 @@ sub find_match {
 #                       my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$vcr_time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
                         $vcr_link =~ s/://g;
                         $pgm_name =~ s/\*+//g; # Change **show name** => show name
+                        $pgm_name =~ s/[\\\$\^]//g;  # Remove regular expression chars introduced above
                         my $temp = "\n$match_cnt.  $pgm_name.  $channel_name Channel $channel_number.  ";
 
                         my $print_date = $pgm_date;
@@ -357,9 +356,10 @@ sub setup {
         @keys = split(/,/,  $parms{keys});
     }
     @keys = grep s/^ *//, @keys;
+    @keys = grep !/^\#/,  @keys;  # Delete commented out records
 
-    print "keys  = $parms{keys}\n";
-    print "times = $parms{times}\n";
+#   print "keys  = $parms{keys}\n";
+#   print "times = $parms{times}\n";
 
 
                                 # Sort @times, but keep 0->5:59 after 23:59
@@ -403,7 +403,7 @@ sub split_parm {
 #               $min_begin = &hour_to_min($low) if ($type eq 'times');
                 my ($high_hour, $high_min) = split ':', $high;
                 print "db h=$high_hour m=$high_min\n" if $parms{debug};
-                $low -= 4 if (!$parms{all});
+                $low -= 4 if lc $parms{started} eq 'yes' and !$parms{all};
                 $low = 6 if $low < 6 and $high > 6;
                 $low = 0 if ($low > $high or $low < 0);
                 $low .= ':00' unless $low =~ /:/;
@@ -491,6 +491,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.22  2001/11/18 22:51:42  winter
+# - 2.61 release
+#
 # Revision 1.21  2001/10/21 01:22:31  winter
 # - 2.60 release
 #

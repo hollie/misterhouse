@@ -8,8 +8,8 @@ use strict;
 
 my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan 
                      Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
-                     ViaVoice SetWindowText);
-my @bogus_last  = qw(Homelink House Group Report Programs);
+                     ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call);
+my @bogus_last  = qw(Homelink House Group Report Programs Aqualink);
 
 undef $/;
 my $f = <>;

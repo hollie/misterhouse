@@ -27,13 +27,13 @@ if ($state = said  $v_tv_shows1) {
 }
 if (said $v_tv_shows2) {
     print_log "Searching for $config_parms{favorite_tv_shows}";
-    run qq[get_tv_info -keys "$config_parms{favorite_tv_shows}"];
+    run qq[get_tv_info -keys "$config_parms{favorite_tv_shows}" -title_only];
     set_watch $f_tv_file 'favorites tonight';
 }
 
                                 # Check for favorite shows ever 1/2 hour
 if (time_cron('0,30 18-22 * * *')) {
-    run qq[get_tv_info -times $Hour:$Minute -keys "$config_parms{favorite_tv_shows}" -quiet];
+    run qq[get_tv_info -times $Hour:$Minute -keys "$config_parms{favorite_tv_shows}" -quiet -title_only];
     set_watch $f_tv_file 'favorites now';
 }
 

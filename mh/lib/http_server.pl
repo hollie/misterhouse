@@ -34,20 +34,26 @@ my %mime_types = (
 );
 
 
-my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs, %http_agent_formats);
+my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs, %http_agent_formats, %http_agent_sizes);
 sub http_read_parms {
     
-                                # html_alias1=/aprs=>e:/misterhouse/web/aprs
+                                # Old style:  html_alias_tv = /tv   $config_parms{data_dir}/tv
+                                # New style:  html_alias_tv =       $config_parms{data_dir}/tv
     for my $parm (keys %main::config_parms) {
-        next unless $parm =~ /^html_alias/;
-        next unless $main::config_parms{$parm} =~ /(\S+)\s+(\S+)/;
-                                # This doesn't work ??
-        print " - html alias: $1 => $2\n" if $main::config_parms{debug} eq 'http';
-        if (-d $2) {
-            $http_dirs{$1} = $2;
+        next unless $parm =~ /^html_alias_(\S+)/;
+        my $alias = '/' . $1;
+        my $dir = $main::config_parms{$parm};
+                                # Allow for old style alias
+        if ($main::config_parms{$parm} =~ /(\S+)\s+(\S+)/) {
+            $alias = $1;
+            $dir   = $2;
+        }
+        print " - html alias: $parm: $alias => $dir\n" if $main::config_parms{debug} eq 'http';
+        if (-d $dir) {
+            $http_dirs{$alias} = $dir;
         }
         else {
-            print "   html_alias alias $1 is not a directory: $2\n";
+            print "   html_alias alias $alias dir does not exist, dir=$dir\n";
         }
     }
             
@@ -55,8 +61,12 @@ sub http_read_parms {
 
 #html_user_agents    = Windows CE=>1,whatever=>2
     for my $temp (split ',', $config_parms{html_browser_formats}) {
-        my ($agent, $format) = $temp =~ / *(.+) *=> *(\d)/;
+        my ($agent, $format) = $temp =~ / *(.+) *=> *(\d+)/;
         $http_agent_formats{$agent} = $format;
+    }
+    for my $temp (split ',', $config_parms{html_browser_sizes}) {
+        my ($agent, $size) = $temp =~ / *(.+) *=> *(\d+)/;
+        $http_agent_sizes{$agent} = $size;
     }
     
     undef %html_icons;          # Refresh lib/http_server.pl icons
@@ -65,6 +75,7 @@ sub http_read_parms {
 
                                 # Set defaults for all html_ parms for alternate browser user-agent web_formats
     for my $parm (grep /^html_.*[^\d]$/, keys %main::config_parms) {
+        next if $parm =~ /^html_alias/;
         $main::config_parms{$parm . '1'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '1'};
         $main::config_parms{$parm . '2'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '2'};
         $main::config_parms{$parm . '3'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '3'};
@@ -170,15 +181,16 @@ sub process_http_request {
 #query-replace-regexp "said \\([$a-z_]+\\)" "\\1->{said}" nil)
     if (!$get_req or $get_req eq '/') {
         $get_req = $main::config_parms{'html_file' . $Http{format}};
+        $get_req = '/' . $get_req unless $get_req =~ /^\//; # Leading / is optional
         my $referer = "http://$Http{Host}";
                                 # Some browsers (e.g. Audrey) do not echo port in Host data
         $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
-        $referer .= "/$get_req";
+        $referer .= $get_req;
         print $socket &http_redirect($referer);
         return;
     }
 
-    $get_arg = '' unless $get_arg;
+    $get_arg = '' unless defined $get_arg;
     logit "$config_parms{data_dir}/logs/server_http.$Year_Month_Now.log",  "$Socket_Ports{http}{client_ip_address} $get_req $get_arg";
 
     $get_arg =~ tr/\+/ /;       # translate + back to spaces (e.g. code search tk widget)
@@ -274,19 +286,6 @@ sub process_http_request {
                                 # See if the request was for a file
     elsif (&test_for_file($socket, $get_req, $get_arg)) {
     }
-
-                                # See if request was for an auto-generated page
-    elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg, 1)) {
-        my $time_check2 = time;
-        &print_socket_fork($socket, &html_page("", $html, $style));
-#        print $socket &html_page("", $html, $style);
-        $time_check2 = time - $time_check2;
-        if ($time_check2 > 2) {
-            my $msg = "http_server write time exceeded: time=$time_check2, req=$get_req,$get_arg";
-            print "\n$Time_Date: $msg";
-            &print_log($msg);
-        }
-    }        
                                 # Test for RUN commands
     elsif  ($get_req =~ /\/RUN$/i or
             $get_req =~ /\/RUN[\:\;](\S*)$/i) {
@@ -441,6 +440,18 @@ sub process_http_request {
         }
 
     }
+                                # See if request was for an auto-generated page
+    elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg, 1)) {
+        my $time_check2 = time;
+        &print_socket_fork($socket, &html_page("", $html, $style));
+#        print $socket &html_page("", $html, $style);
+        $time_check2 = time - $time_check2;
+        if ($time_check2 > 2) {
+            my $msg = "http_server write time exceeded: time=$time_check2, req=$get_req,$get_arg";
+            print "\n$Time_Date: $msg";
+            &print_log($msg);
+        }
+    }        
     else {
         my $msg = "Unrecognized html request: get_req=$get_req   get_arg=$get_arg  header=$header\n";
         print $socket &html_page("Error", $msg);
@@ -493,8 +504,8 @@ sub html_unauthorized {
         return &vxml_page(audio => 'Sorry, you are not authorized for that command');
     }
     else {
-        my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
-        $msg .= "<br><B>Unauthorized Mode.</B> Authorization flag was not set, to the following was NOT performed<p>";
+#        my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
+        my $msg .= "<br><B>Unauthorized Mode</B>";
         $msg .= "<li>" . $action . "</li>";
         return $msg;
     }
@@ -662,7 +673,7 @@ sub html_sub {
                                 # Allow for &sub1 and &sub1(args)
     if ((($sub_name, $sub_arg) = $data =~ /^\&(\S+)\((\S+)\)$/) or
         (($sub_name)           = $data =~ /^\&(\S+)$/)) {
-        $sub_arg = '' unless $sub_arg; # Avoid uninit warninng
+        $sub_arg = '' unless defined $sub_arg; # Avoid uninit warninng
 #       $sub_ref = \&{$sub_name};  # This does not work ... code refs are always auto-created :(
 #       if (defined $sub_ref) {
                                 # The %main:: array will have a glob for all subs (and vars)
@@ -710,9 +721,16 @@ sub html_response {
 #           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
 #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
-        elsif ($h_response =~ /^http:\S+$/i or $h_response =~ /^reff?erer$/i) {
+        elsif ($h_response =~ /^http:\S+$/i or $h_response =~ /^reff?erer/i) {
+            $h_response = $Http{Referer};
+                                # Allow to use just the base part of the referer
+                                #  - some browsers (audrey) do not return full referer url :(
+                                #    so allow for referer(url)...
+            if (my ($rurl) = $h_response =~ /^reff?erer(\S+)/) {
+                $Http{Referer} =~ m|(http://\S+?)/|;
+                $h_response = $1 . $rurl;
+            }
                                 # Wait a few passes before refreshing page, in case mh states changed
-            $h_response = $Http{Referer} if $h_response =~ /^referer$/i;
 #           $leave_socket_open_action = "&http_redirect('$h_response')"; # mh uses &html_page, so this does not work
             $leave_socket_open_action = "'$h_response'"; # &html_page will use referer if only a url is given
             $leave_socket_open_passes = 3;
@@ -758,7 +776,10 @@ sub html_last_response {
 
                                 # Create a tts wav file
     my $tts_text = $last_response;
-    my $webmute = 1 if $Cookies{webmute} or $config_parms{webmute} or !$tts_text;
+                                # Skip if on the local box
+#   print "dbx a=$Socket_Ports{http}{client_ip_address}\n";
+    my $webmute = 1 if $Cookies{webmute} or $config_parms{webmute} or 
+        !$tts_text or $Socket_Ports{http}{client_ip_address} eq '127.0.0.1';
     unless ($webmute) {
         $tts_text =~ s/^[\d\/\: ]+(AM|PM)//;
         $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
@@ -870,7 +891,7 @@ sub html_file {
                                 #   e.g.: " <td <!--#include file="motion.pl?timer_motion_main"--> > 
 #                $html .= "\n<\!-- The following is from include $directive = $data -->\n" unless $file =~ /\.vxml$/;
                  my ($get_req, $get_arg) = $data =~ m|(\/?[^ \?]+)\??(\S+)?|;
-                 $get_arg = '' unless $get_arg; # Avoid uninitalized var msg
+                 $get_arg = '' unless defined $get_arg; # Avoid uninitalized var msg
                  if ($directive eq 'file') {
 
                     if (my $html_file = &test_for_file($socket, $get_req, $get_arg, 1, 1)) {
@@ -903,15 +924,19 @@ sub html_file {
                                 # Note: These differ from classic .cgi in that they return 
                                 #       the results, rather than print them to stdout.
     elsif ($file =~ /\.pl$/) {
+        my $code = join('', <HTML>);
                                 # Check if authorized
-        unless ($Authorized or $Password_Allow{$file}) {
+        unless ($Authorized or $code =~ /^# *authority: *anyone *$/smi) {
             $file =~ s/.*\///;
-            return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
+            unless ($Password_Allow{$file}) {
+                my $whoisit = &net_domain_name('http');
+             	&print_log("$whoisit made an unauthorized request for $file");
+            	return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
+            }
         }
 
         @ARGV = '';             # Have to clear previous args
-        @ARGV = split('&&', $arg) if $arg;
-        my $code = join('', <HTML>);
+        @ARGV = split(/[&]+/, $arg) if defined $arg;
 
                                 # I couldn't figure out how to open STDOUT to $socket
 #       open(OLDOUT_H, ">&STDOUT"); # Copy old handle
@@ -943,11 +968,23 @@ sub mime_header {
                                 # This returns real dirs, given html alias
 sub html_alias {
     my ($dir) = @_;
-    return $http_dirs{$dir};
+    return ($http_dirs{$dir} or $http_dirs{"/$dir"});
 }
 
 sub html_page {
     my ($title, $body, $style, $script, $frame) = @_;
+
+                                # Allow for fully formated html
+    if ($body =~ /^\s*<html/i) {
+    return <<eof;
+HTTP/1.0 200 OK
+Server: MisterHouse
+Content-Type: text/html
+Cache-control: no-cache
+
+$body
+eof
+    }
 
     $body = 'No data' unless $body;
 
@@ -959,11 +996,12 @@ sub html_page {
                                 # This meta tag does not work :(
                                 # MS IE does not honor Window-target :(
 #   my $frame2 = qq[<META HTTP-EQUIV="Window-target" CONTENT="$frame">] if $frame;
-    $style = $main::config_parms{'html_style' . $Http{format}} if $main::config_parms{'html_style' . $Http{format}} and !$style;
+    $style = $main::config_parms{'html_style' . $Http{format}} if $main::config_parms{'html_style' . $Http{format}} and !defined $style;
     $frame = "Window-target: $frame" if $frame;
     $frame  = '' unless $frame;  # Avoid -w uninitialized value msg
     $script = '' unless $script; # Avoid -w uninitialized value msg
     $title  = '' unless $title;  # Avoid -w uninitialized value msg
+    $title = "<h3>$title</h3>" if $title;
     return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
@@ -980,7 +1018,7 @@ $style
 <TITLE>$title</TITLE>
 </HEAD>
 <BODY>
-<H3>$title</H3>
+$title
 
 $body
 
@@ -989,6 +1027,7 @@ $body
 eof
 }
 
+
 sub http_redirect {
     my ($url) = @_;
     return <<eof;
@@ -996,6 +1035,12 @@ HTTP/1.0 301 Moved Temporarily
 Location:$url
 $Cookie
 eof
+}
+
+sub http_agent_size {
+    my $agent = $Http{'User-Agent'};
+    my $size = ($http_agent_sizes{$agent}) ? $http_agent_sizes{$agent} : 1000;
+    return $size;
 }
 
 sub html_category {
@@ -1456,7 +1501,7 @@ sub html_command_table {
     }
 
                                 # Create final html
-    $html = "<BASE TARGET='speech'>\n";
+    $html = "<BASE TARGET='" . $config_parms{'html_target_speech' . $Http{format}}. "'>\n";
     $html = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] . 
             qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] . 
                 $html if $html_info_overlib;
@@ -1504,14 +1549,15 @@ sub html_item_state {
 
     if ($use_select) {
                                 # Some browsers (e.g. Audrey) do not have full url in Referer :(
-        my $referer = ($Http{Referer} =~ m|/\S+?/\S+|) ? 'referer' : "&html_list($object_type)";
+        my $referer = ($Http{Referer} =~ /html$/) ? 'referer' : "&html_list($object_type)";
         $html .= qq[<FORM action="/SET;$referer?" method="get">\n];
         $html .= qq[<INPUT type="hidden" name="select_item" value="$object_name">\n]; # So we can uncheck buttons
     }
 
                                 # Find icon to show state, if not found show state_now in text.
                                 #  - icon is also used to show state log
-    $html .= qq[<td align="right"><a href='SET;&html_state_log($object_name)' target='speech'>];
+    $html .= qq[<td align="right"><a href='SET;&html_state_log($object_name)' target=\'] . 
+             $config_parms{'html_target_speech' . $Http{format}}. "'>";
 
     if (my $h_icon = &html_find_icon_image($object, $object_type)) {
         $html .= qq[<img src="$h_icon" alt="$h_icon" border="0"></a>];
@@ -1528,7 +1574,7 @@ sub html_item_state {
     $html .= qq[<td align="left"><b>];
     if ($isa_X10) {
                                 # Some browsers (e.g. Audrey) do not have full url in Referer :(
-        my $referer = ($Http{Referer} =~ m|/\S+?/\S+|) ? 'referer' : "&html_list($object_type)";
+        my $referer = ($Http{Referer} =~ /html$/) ? 'referer' : "&html_list($object_type)";
 
                                 # Note:  Use hex 2B = +, as + means spaces in most urls
         $html .= qq[<a href='SET;$referer?$object_name?%2B15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
@@ -1561,7 +1607,7 @@ sub html_item_state {
     
         if ($state_toggle) {
                                 # Some browsers (e.g. Audrey) do not have full url in Referer :(
-            my $referer = ($Http{Referer} =~ m|/\S+?/\S+|) ? 'referer' : "&html_list($object_type)";
+            my $referer = ($Http{Referer} =~ /html$/) ? 'referer' : "&html_list($object_type)";
             $html .= qq[<a href='SET;$referer?$object_name=$state_toggle'>$object_name2</a>];
         }
         else {
@@ -1577,8 +1623,8 @@ sub html_item_state {
             next unless $state;
             my $state_short = substr $state, 0, 5;
                                 # Some browsers (e.g. Audrey) do not have full url in Referer :(
-            my $referer = ($Http{Referer} =~ m|/\S+?/\S+|) ? 'referer' : "&html_list($object_type)";
-            $html .= qq[ <a href='SET;referer?$object_name=$state'>$state_short</a>];
+            my $referer = ($Http{Referer} =~ /html$/) ? 'referer' : "&html_list($object_type)";
+            $html .= qq[ <a href='SET;$referer?$object_name=$state'>$state_short</a>];
         }
     }
 
@@ -1653,6 +1699,17 @@ sub print_socket_fork {
         print $socket $html;
     }
 }
+
+                                # Use this 
+                                #  - /SET;&referer(/ia5/lights/list_items.pl|$object_type)
+sub referer {
+    my ($r) = @_;
+    $r =~ tr/\|/?/;
+    $Http{Referer} =~ m|(http://\S+?)/|;
+    $r = $1 . $r;
+    return $r;
+}
+
 
 # Magic simulated fork using copied file handles from
 #  Example: 7.22 of "Win32 Perl Scripting: Administrators Handbook" by Dave Roth
@@ -1954,7 +2011,8 @@ sub widget_entry {
         next if $search and $label !~ /$search/i;
         push @table_items, qq[<td align=left><b>$label:</b></td>];
                                 # Put form outside of td, or else td gets too high
-        my $html = qq[<FORM name="widgets_entry" ACTION="SET;$H_Response"  target='speech'> <td align='left'>];
+        my $html = qq[<FORM name="widgets_entry" ACTION="SET;$H_Response"  target=\']
+             . $config_parms{'html_target_speech' . $Http{format}}. "'> <td align='left'>";
         $html_pointers{++$html_pointer_cnt} = $pvar;
         $html_pointers{$html_pointer_cnt . "_label"} = $label;
 
@@ -1982,7 +2040,8 @@ sub widget_radiobutton {
     my $search = shift @_;
     my ($label, $pvar, $pvalue, $ptext) = @_;
     return if $search and $label and $label !~ /$search/i;
-    my $html = qq[<FORM name="widgets_radiobutton" ACTION="SET;$H_Response"  target='speech'>\n];
+    my $html = qq[<FORM name="widgets_radiobutton" ACTION="SET;$H_Response"  target=\']
+         . $config_parms{'html_target_speech' . $Http{format}} . "'>\n";
     $html .= qq[<td align='left'><b>$label</b></td>];
     push @table_items, $html;
     $html_pointers{++$html_pointer_cnt} = $pvar;
@@ -2019,7 +2078,8 @@ sub widget_checkbutton {
         next if $search and $text !~ /$search/i;
         $html_pointers{++$html_pointer_cnt} = $pvar;
         my $checked = ($$pvar) ? 'CHECKED' : '';
-        my $html = qq[<FORM name="widgets_radiobutton" ACTION="SET;$H_Response"  target='speech'>\n];
+        my $html = qq[<FORM name="widgets_radiobutton" ACTION="SET;$H_Response"  target=\']
+             . $config_parms{'html_target_speech' . $Http{format}} . "'>\n";
         $html .= qq[<INPUT type="hidden" name="$html_pointer_cnt" value='0'>\n]; # So we can uncheck buttons
         $html .= qq[<td align='left'><INPUT type="checkbox" NAME="$html_pointer_cnt" value="1" $checked onClick="form.submit()">$text</td></FORM>\n];
         push @table_items, $html;
@@ -2087,7 +2147,9 @@ sub dir_index {
     @files = reverse @files if $reverse;
     for my $file (@files) {
         my $file_date = localtime $file_data{$file}{date};
-        $html .= "<tr><td><a href=$dir_html/$file>$file</a></td>\n";
+        my $file_ref = $file;
+        $file_ref =~ s/ /%20/g;
+        $html .= "<tr><td><a href=$dir_html/$file_ref>$file</a></td>\n";
         $html .= "<td>$file_data{$file}{type}</td>\n";
         $html .= "<td>$file_data{$file}{size}</td>\n";
         $html .= "<td>$file_date</td></tr>\n";
@@ -2147,6 +2209,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.63  2001/11/18 22:51:43  winter
+# - 2.61 release
+#
 # Revision 1.62  2001/10/21 01:22:32  winter
 # - 2.60 release
 #

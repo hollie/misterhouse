@@ -26,7 +26,10 @@ sub read_table_A {
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
 
-    if($type eq "X10A") {
+    if($record =~ /^#/ or $record =~ /^\s*$/) {
+       return;
+    }
+    elsif($type eq "X10A") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "X10_Appliance('$address', $other)";
@@ -59,6 +62,12 @@ sub read_table_A {
         require 'RCS_Item.pm';
         ($address, $name, $grouplist) = @item_info;
         $object = "RCS_Item('$address')";
+    }
+    elsif($type eq "X10MS") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        @other =  $name unless @other; # If no name specified, default to object name
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "X10_Sensor('$address', $other)";
     }
     elsif($type eq "COMPOOL") {
         ($address, $name, $grouplist) = @item_info;
@@ -153,6 +162,7 @@ sub read_table_A {
         $object = "iButton('$address', $other)";
     }
     else {
+        print "\nUnrecognized .mht entry: $record\n";
         return;
     }
     
@@ -182,6 +192,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.11  2001/11/18 22:51:43  winter
+# - 2.61 release
+#
 # Revision 1.10  2001/10/21 01:22:33  winter
 # - 2.60 release
 #

@@ -35,7 +35,7 @@ if (my $scan = state_now $barcode_data) {
     my $msg = "Count after $mode for $scan is $count";
     print_log $msg;
                                 # Fill in the web search file also, in case we are in the wrong mode
-    my $html_file = "$config_parms{html_dir}/barcode_search.html";
+    my $html_file = "$config_parms{html_dir}/misc/barcode_search.html";
     file_write $html_file, $msg;
 }
 

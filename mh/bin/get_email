@@ -105,7 +105,8 @@ sub check_accounts {
     my $wday = (localtime)[6];
     my  $day = ('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')[$wday];
 
-    my $msgcnt_flag = 'Email:';
+#   my $msgcnt_flag = 'Email:';
+    my $msgcnt_flag;
     for my $account (@email_accounts) {
         print "checking account=$account "  unless $config_parms{quiet};
         
@@ -114,7 +115,7 @@ sub check_accounts {
         $summary .= qq[&nbsp;&nbsp;&nbsp;$msgcnt messages ($msgsize bytes) in ] .
             qq[$account: $config_parms{"net_mail_${account}_address"}, $config_parms{"net_mail_${account}_user"}<BR>\n];
 
-        $msgcnt_flag .= sprintf("%3d", $msgcnt);
+#       $msgcnt_flag .= sprintf("%3d", $msgcnt);
 
                                 # If count is < last time, assume we have read previous messages and reset for next pass
                                 # If count is > last time, read only new messages
@@ -131,10 +132,18 @@ sub check_accounts {
                                            first => $msgcnt_prev+1, last => $msgcnt, 
                                            age   => $config_parms{net_mail_scan_age},
                                            debug => $config_parms{debug});
+
+                                # If you leave mail in the mailbox and use scan_age, we need to 
+                                # reset this to only report new msgs, not total msgs
+            if ($config_parms{net_mail_scan_age}) {
+                $msgcnt = ($$msgptr{from_name}) ? @{$$msgptr{from_name}} : 0;
+            }
+            $msgcnt_flag .= sprintf("%3d", $msgcnt);
             
+
             if ($$msgptr{from_name}) {
                 my @list = @{$$msgptr{from_name}};
-                
+
                                 # Use a rule to modify name of sender
                                 # Changing $name will modify @list ($name is an implicit alias).
                 my $cnt = -1;
@@ -146,6 +155,14 @@ sub check_accounts {
                     my $replyto = $$msgptr{replyto}[$cnt];
                     my $from    = $$msgptr{from}[$cnt];
                     my $body    = $$msgptr{body}[$cnt];
+
+                                # Delete attachements
+                                # I think the g in gsm will do this without the while loop
+                    $body  =~ s/Content-Disposition: attachment.+?filename=(.+?)^.+/Attachment deleted: $1/gsm;
+#                   while ($body =~ m/Content-Disposition: attachment.+?filename=(.+?\").+?NextPart.+?\n/s) {
+#                       $body =~ s/Content-Disposition: attachment.+?filename=(.+?\").+?NextPart.+?\n/Attachment removed: $1\n\n/sm;
+#                   }
+
 
                     $name = &get_email_rule($name, $to, $subject, $from, $body) if $email_rule;
 
@@ -219,6 +236,7 @@ sub check_accounts {
                 push(@{$email_prev{$account}}, @list);
 
                 $results_new .= &make_name_list($account, @{$email_prev{$account}});
+
             }
         }
         my $temp = &make_name_list($account, @{$email_prev{$account}});
@@ -277,6 +295,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.27  2001/11/18 22:51:42  winter
+# - 2.61 release
+#
 # Revision 1.26  2001/10/21 01:22:31  winter
 # - 2.60 release
 #

@@ -42,9 +42,10 @@ callerisdn.pl
  - Ron Klinkien's code for monitoring callerid on  AVM Fritz!Card
    (ISDN4BSD or ISDN4Linux required)
 
-chimes_cuckoo.pl
+chimes_cuckoo*.pl
 chimes_westminster.pl
  - David Norwood's code for chimeing like cuckoo and grandfather clocks.
+   Douglas Nakakihara's version that uses only one wav file
 
 Compool*.pl
  - Bill Sobel's code for monitoring and controling ComPool pool/spa equipment.
@@ -83,6 +84,10 @@ internet_earthquake_cal.pl
 internet_ip_update.pl
 internet_ip_update_craig.pl
  - Updates IP servers/web pages with IP addresses
+
+internet_starshine.pl
+ - Tim Doyle's code to announce when one of the visible passes of
+   a StarShine satellite is about to occur.
 
 irvs*
  - Walter Leemput's example of a DTFM driven phone menu, using the 
@@ -175,6 +180,9 @@ tv_info_clive.pl
 voicemodem.pl
  - Brian Klier's code for interfacing to a voice modem.  
 
+voice_client/server.pl
+ - Tim Doyle's code that allows mh to speak to other windows boxes, like his Windows box at work.
+
 weather.pl
  - Ernie Oporto's weather script that queries wunderground web sites
 
@@ -207,6 +215,9 @@ weather_aws.pl
 weather_monitor_aws.pl
  - Brian Rudy's weather scripts for AWS live web weather sites
 
+weather_monitor_ultimeter2000.pl
+ - Kent Noonan's code for the Peet Bros Ultimeter 2000 weather station
+
 webcam_lite.html
 webcam_lite.pl
  - Mike's code for allowing visitors to his webcam site to flash lights and
@@ -219,6 +230,10 @@ webcam_ron.pl
 
 winamp_control.pl
  - Evan Graham's code for controling and querying winamp using messaging via Win32::GUI. 
+
+wintvpvr_grid.pl
+ - Jeff Ferris's code for controlling a Hauppage WinTV PVR USB to record TV
+   shows using the tv_grid web pages.
 
 x10_video_security.pl
  - Mark Holm's code for a video surveillance system using X10 XCAM cameras and motion sensors.

@@ -11,7 +11,7 @@ package Weather_wx200;
   serial_wx200_baudrate  = 9600
   serial_wx200_handshake = dtr
   serial_wx200_datatype  = raw
-  serial_wx200_module    = weather_wx200
+  serial_wx200_module    = Weather_wx200
   serial_wx200_skip      =  # Use to ignore bad sensor data.  e.g. TempOutdoor,HumidOutdoor,WindChill
   altitude = 1000 # In feet, used to find sea level barometric pressure
 
@@ -239,6 +239,9 @@ sub wx_time {
 
 #
 # $Log$
+# Revision 1.6  2001/11/18 22:51:43  winter
+# - 2.61 release
+#
 # Revision 1.5  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

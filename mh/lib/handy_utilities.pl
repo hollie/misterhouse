@@ -306,7 +306,7 @@ sub main::dbm_search {
     $count1 = $count2 = 0;
     while (($key, $value) = each %DBM_search) {
         $count1++;
-        if ($key =~ /$string/i or $value =~ /$string/i) {
+        if (!$string or $key =~ /$string/i or $value =~ /$string/i) {
             $count2++;
             push(@results, $key, $value);
         }
@@ -483,7 +483,7 @@ sub main::read_opts {
     while (<CONFIG>) {
         next if /^\s*[\#\@]/;
                                 # Allow for multi-line values records
-        if ($key and ($value) = $_ =~ /^\s+([^[\#\@]]+)/ and $value !~ /=/) {
+        if ($key and ($value) = $_ =~ /^\s+([^\#\@]+)/ and $value !~ /=/) {
             $value_continued = 1;
         }
                                 # Look for normal key=value records
@@ -516,7 +516,7 @@ sub main::read_opts {
         else {
             $$ref_parms{$key}  = $value;
         }
-        print "parm key=$key value=$$ref_parms{$key}\n" if $debug;
+        print main::STDOUT "parm key=$key value=$$ref_parms{$key}\n" if $debug;
     }
     close CONFIG;
     return sort keys %{$ref_parms};
@@ -675,7 +675,7 @@ sub main::run {
             print "Run error, program not found: $pgm\n";
             return;
         }
-        print "Running: pgm=$pgm_path args=$pgm_args\n";
+        print "Running: pgm=$pgm_path args=$pgm_args\n" unless $main::config_parms{no_log} =~ /run/;
 
         my ($cflag, $process);
 
@@ -1071,6 +1071,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.53  2001/11/18 22:51:43  winter
+# - 2.61 release
+#
 # Revision 1.52  2001/10/21 01:22:32  winter
 # - 2.60 release
 #

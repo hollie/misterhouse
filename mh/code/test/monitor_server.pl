@@ -60,7 +60,7 @@ if (my $data = said $http_server) {
             }
         }
         else {
-            play 'sound_click2.wav' if $time_since_last_visit > 5;
+#           play 'sound_click2.wav' if $time_since_last_visit > 5;
         }
 
     }

@@ -6,7 +6,7 @@
                                 # Allow anyone web access to the results
 $Password_Allow{'&barcode_web_results'} = 'anyone' if $Reload;
 sub barcode_web_results {
-    return file_read "$config_parms{html_dir}/barcode_search.html", 1;
+    return file_read "$config_parms{html_dir}/misc/barcode_search.html", 1;
 }
 
 return unless 'web' eq state $barcode_mode or ! state $barcode_mode;
@@ -46,7 +46,7 @@ if (my $scan = state_now $barcode_data) {
                  "&tracknumbers=$code>FedEx Tracking</a>\n";
     }
                                 # Not sure how to force a browser refresh here
-    my $html_file = "$config_parms{html_dir}/barcode_search.html";
+    my $html_file = "$config_parms{html_dir}/misc/barcode_search.html";
     file_write $html_file, $html;
 #   browser $html_file;
 #   browser "http://localhost:$config_parms{http_port}/barcode_search.html";

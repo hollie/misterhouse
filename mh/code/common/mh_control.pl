@@ -143,16 +143,20 @@ if (said $v_mode_toggle) {
                                 # Search for strings in user code
 #&tk_entry('Code Search', \$Save{mh_code_search}, 'Debug flag', \$config_parms{debug});
 
-if (my $string = quotemeta $Tk_results{'Code Search'}) {
+$search_code_string = new Generic_Item; # Set from web menu mh/web/ia5/house/search.shtml
+
+if ($temp = quotemeta $Tk_results{'Code Search'} or
+    $temp = state_now $search_code_string) {
+
     undef $Tk_results{'Code Search'};
-    print "Searching for code $string";
+    print "Searching for code $temp";
     my ($results, $count, %files);
     $count = 0;
     for my $file (sort keys %User_Code) {
         my $n = 0;
         for (@{$User_Code{$file}}) {
             $n++;
-            if (/$string/i) {
+            if (/$temp/i) {
                 $count++;
                 $results .= "\nFile: $file:\n------------------------------\n" unless $files{$file}++;
                 $results .= sprintf("%4d: %s", $n, $_);

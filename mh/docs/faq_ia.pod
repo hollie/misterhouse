@@ -40,6 +40,48 @@ Here are some helpful links:
  List:  http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=3Com_Audrey&Idle
  OS:    http://www.qnxstart.com/
 
+=head2 Some common hacks
+
+Here are some common/useful hacks (edit these file to these values):
+
+  echo 1 > /config/BROWSER_AllowNewWindow
+  echo 0 > /config/SYSTEM_ScreenSaveSecs  (disable auto-shutdown)
+
+To improve color resolution (do this on boot, before browser starts)
+  echo 0 > /config/BROWSER_Use256Colors
+
+If you press the Browser button while the browser is already visible, the menu will slide away.
+
+You may want to increase the size on these:
+
+ /config/BROWSER_ImageCacheSizeKB 2048 (Had problems increasing this to 20000)
+ /config/BROWSER_CacheSize        5000 (I changed to 50000
+
+Here are some instructions to allow turning the screen on/off remotely:
+
+ http://homepage.mac.com/deandavis/audrey/AudreyOnOff.html
+
+Note, the above simply turns the screen off.  Not quite the same as the power button 
+which also disable browser refreshes.
+
+=head2 Remote Audrey browsing and control
+
+Create a HOSTS entry to point to your audrey address (available from the
+About Audrey -> Provile icon on the Audrey Options menu).
+For example, edit c:/WINNT/system32/drivers/etc/hosts
+and add 192.168.0.101 Audrey).
+
+Assuming you have already done the above AudreyOnOff hack, try these urls:
+
+ http://audrey/Channels/.Channel00/.template/index.shtml
+ http://audrey/SystemProfile.shtml
+ http://audrey/cgi-bin/GetSystemValue?kcrontab
+ http://audrey/cgi-bin/GetSystemValue?Timeserver0
+ http://audrey/cgi-bin/SetLEDState?1  (2 blink, 0 off)
+ http://audrey/gpio.shtml?0 (screen off, 3 for on)
+
+
+
 =head2 How to boot Audrey to a mh page
 
 From Ron Wright from some other site on 10/2001
@@ -94,5 +136,41 @@ BTW My kcrontab looks like this
  -MemDefrag;15;19;*;*;*
  setitime;23;19;*;*;*
  maild;/5;*;*;*;*
+
+=head2 How to share files
+
+Assuming a hacked shell like DaveC-Img10-23-01, 
+you can share access Windows shared folders with this command
+
+ /nto/bin/fs-cifs -a //windows_box:ip_address:/share_name /directory user password
+
+For example:
+
+ mkdir /mp3
+ /nto/bin/fs-cifs -a //mp3_server:192.168.0.2:/mp3s /mp3 guest guest
+
+If using DaveC image, you can do this on startup by editing /kojak/remotemount.sh,
+called from /kojak/go
+
+=head2 How to play mp3 files
+
+From Tony Perrie on 10/2001:
+
+Assuming a hacked shell like DaveC-Img10-23-01.
+
+I setup a little shell script to start the photon player:
+
+ export MPEGAUDIOBUFFERSIZE=300000
+ export MPEGAUDIOBUFFERSTARTPERCENT=90
+ export MPEGAUDIOREFILLONUNDERFLOW=YES
+ phplay &
+
+The default priority on fs-cifs and phplay is 19 which is the lowest.
+You'll probably want to up the priority on fs-cifs and to keep the photon player
+from skipping with:
+
+ slay -P 5 fs-cifs
+ slay -P 5 phplay
+
 
 

@@ -781,6 +781,9 @@ sub new {
 sub add {
     my ($self, $id, $name) = @_;
 
+                                # Allow for A1 and XA1AJ 
+    $id = 'X' . $id . 'AJ' if length $id == 2;
+
     &::print_log("Adding X10_Sensor timer for $id, $self, $name")   
     if $main::config_parms{debug} eq 'X10_Sensor';;
 
@@ -812,6 +815,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.22  2001/11/18 22:51:43  winter
+# - 2.61 release
+#
 # Revision 1.21  2001/10/21 01:22:32  winter
 # - 2.60 release
 #
