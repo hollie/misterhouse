@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-02-19 22:00:25 winter>
+#  Last change Time-stamp: <2000-03-09 18:21:36 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -18,7 +18,7 @@
 #  Documentation is in mh/docs/mh.html (from mh.pod) and mh/docs/install.html
 #
 #  This free software is licensed under the terms of the GNU public license. 
-#  Copyright 1998,1999 Bruce Winter
+#  Copyright 1998-2000 Bruce Winter
 #
 #---------------------------------------------------------------------------
  
@@ -71,7 +71,7 @@ use vars qw($Time_Start_time $Time_Stop_time $Time_Increment $Time_Startup $Time
 use vars qw($Time_Sunrise $Time_Sunset %Moon $Time_Now $Time_Date $Date_Now $Date_Now_Speakable $Year_Month_Now);
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
-use vars qw($Season $Weekday $Weekend $Holiday);
+use vars qw($Season $Weekday $Weekend $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
 
 my ($Pgm_PathU);
@@ -82,7 +82,7 @@ my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
 my ($exit_flag, $xcmd_file, %file_code_times, %file_change_times);
 my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, @Item_Code, @Item_Code_Objects, $user_code);
 my ($user_code_last_good_candidate_flag, $user_code_last_good, $restore_state);
-my (%objects_by_object_name, %file_by_object_name, %object_names_by_file, %object_names_by_type, %object_names_by_webname);
+my (%objects_by_object_name, %file_by_object_name, %files_by_webname, %object_names_by_file, %object_names_by_type, %object_names_by_webname);
 my (%prev_serial_event, @Generic_Serial_Ports, @Server_Ports);
 my ($CON_IN, $CON_OUT);
 #use vars '$CON_IN', '$CON_OUT';
@@ -218,14 +218,16 @@ BEGIN {
     }
 
     sub setup_INC {
-        print "Setting up INC path\n";
+        print "Setting up INC path ...";
                                 # Note, use lib messes up perl2exe, but eval use lib does not.  Either use 
                                 #  eval use lib (only once, because it is slow in perl2exe) or comment out use lib
                                 #  when compiling and use perl5lib env.  Yuck.
-#       use lib '$Pgm_PathU/../lib', '$Pgm_PathU/../lib/site', '$Pgm_PathU'; 
-        eval "use lib '$Pgm_PathU/../lib', '$Pgm_PathU/../lib/site', '$Pgm_PathU'"; 
+                                #  - can not seem to get perl2exe to honor this.  Guess we have to make sure
+                                #    everything is compile by adding it to lib/mh_perl2exe_list.pl
+#       eval "use lib '$Pgm_PathU/../lib', '$Pgm_PathU/../lib/site', '$Pgm_PathU', '../lib', '../lib/site', '.'";
+        eval "use lib '$Pgm_PathU/../lib', '$Pgm_PathU/../lib/site', '$Pgm_PathU'";
 #       print "Error in use lib: $@\n" if $@;   # Dang .. this error check messes up the compiled version!??  Gives 'can not find lib.pm' message
-
+        print " done\n";
         require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
     }
 
@@ -341,6 +343,10 @@ sub setup {
     use Group;
     &my_use("Serial_Item");  # So we can add debug to Serial_Item.pm when running mh.exe
     use X10_Items;
+    use iButton;
+    use Hardware::iButton::Connection;
+
+
     use Socket_Item;
     use Process_Item;
     use Voice_Cmd;
@@ -449,12 +455,18 @@ sub setup {
             &Homevision::init($Serial_Ports{Homevision}{object}); # Turn on Echo mode
         }
     }
+
     if ($config_parms{HomeBase_port}) {
         require 'HomeBase.pm';
         my($speed) = $config_parms{HomeBase_baudrate} || 9600;
         if (&serial_port_create('HomeBase', $config_parms{HomeBase_port}, $speed, 'none')) {
             &HomeBase::init($Serial_Ports{HomeBase}{object}); # Turn on Echo mode
         }
+    }
+
+    if ($config_parms{ibutton_port}) {
+        &my_use("Hardware::iButton::Connection;");
+        print ' - ' . &iButton::connect($config_parms{ibutton_port}) . "\n";
     }
                                 # Do this one last, as it can share a serial port.
     if ($config_parms{cm17_port}) {
@@ -573,6 +585,7 @@ sub check_for_action {
     &Voice_Cmd::check_for_voice_cmd; # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
     &Generic_Item::reset_states;     # Set state_now for generic items
     &Serial_Item::reset_states;      # Set state_now for serial items
+    &iButton::reset_states if $config_parms{ibutton_port};   # Set state_now for ibutton
     &Process_Item::harvest;          # Check for done processes
     &check_for_keyboard_input;
     &check_for_serial_data if %Serial_Ports;
@@ -822,6 +835,8 @@ sub check_for_serial_data {
     for my $port_name (@Generic_Serial_Ports) {
         &check_for_generic_serial_data($port_name) if $Serial_Ports{$port_name}{object};
     }
+                                # Leave this under user control?
+#   &iButton::monitor if $config_parms{ibutton_port} and if $New_Second;
 }
 
 sub check_for_socket_data {
@@ -1034,16 +1049,8 @@ sub convert_direction {
 
 
 sub display {
-#   print "display parms: @_\n";
 
-    if ($config_parms{tk}) {
-        new Display(@_);
-    }
-    else {
-#        &print_log(@_);
-        print "display call with -tk 0.  Text=@_\n";
-    }
-
+                                # If it is a file, read it
     my $text = @_[0];
     if (-e $text) { 
         open IN, $text or print "Error in sub display, could not open file $text:$!\n"; 
@@ -1058,6 +1065,16 @@ sub display {
                                 # Assume we were waiting for this and reset http server counter so almost 0 
     $Last_Response = 'display';
     $leave_socket_open_passes= 2 if $leave_socket_open_passes;
+
+
+                                # Unless this was called from the web, display it with tk
+    if ($config_parms{tk}) {
+        new Display(@_) unless $leave_socket_open_passes;
+    }
+    else {
+#       &print_log(@_);
+        print "display call with -tk 0.  Text=@_\n";
+    }
 
 }
 
@@ -1228,7 +1245,13 @@ sub list_code_files {
     return sort {lc($a) cmp lc($b)} keys %object_names_by_file;    # Case insensitive sort
 }
 sub list_code_webnames {
+    my @a = keys %object_names_by_webname;
     return sort {lc($a) cmp lc($b)} keys %object_names_by_webname; # Case insensitive sort
+}
+sub list_files_by_webname {
+    my ($webname) = @_;
+    $webname =~ s/_/ /;         # Take out _ put in by http_server.pl
+    return @{$files_by_webname{$webname}} if $files_by_webname{$webname};
 }
 
 sub list_objects_by_file {
@@ -1240,7 +1263,7 @@ sub list_objects_by_type {
     return @{$object_names_by_type{$object_type}};
 }
 sub list_objects_by_webname {
-    return @{$object_names_by_webname{@_[0]}} if $object_names_by_webname{@_[0]};
+    return @{$object_names_by_webname{$_[0]}} if $object_names_by_webname{$_[0]};
 }
 sub list_object_types {
     return sort keys %object_names_by_type;
@@ -1377,29 +1400,13 @@ sub object_states_save {
                                 # Save states on user specifed Save keys
     foreach $var (keys %Save) {
         no strict 'refs';
-        $state = $Save{$var};
-        if ($state) {
-            if ($state =~ /\~/) {
-                print "\n\nWARNING, \$Save{$var} was not saved because it contained a ~ character: $state\n\n";
-            }
-                                # Check for state values with bad data that we can not restore
-#           elsif ($state =~ /\x20-\x7e/ ) {
-#           elsif ($state =~ /^[^\W\d_]+$/) {
-            else {
-                my $temp = "q~$state~;\n";
-                eval $temp;
-                if ($@) {
-                    print "\n\nWARNING, \$Save{$var} state was not saved because it is weird: $state\n\n";
-                }
-                else {
-                    $restore_state .= "\$Save{$var} = $temp";
-                }
-            }
+        if ($state = $Save{$var}) {
+            $restore_state .= &object_states_save_check("\$Save{$var} = q~$state~;\n");
         }
         print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'misc';
     }
                                 # Save states of all objects
-    foreach $object_type (qw(File_Item Timer Group Serial_Item X10_Item X10_Appliance X10_Garage_Door Generic_Item Voice_Cmd)) {
+    foreach $object_type (qw(File_Item Timer Group Serial_Item X10_Item X10_Appliance X10_Garage_Door Generic_Item Voice_Cmd iButton)) {
         foreach $var (keys %{$file_by_object_name{$object_type}}) {
             print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'misc';
 
@@ -1425,9 +1432,8 @@ sub object_states_save {
                 }
             }
             else {
-                                # Let hope that ~ is not used in a state string
                 $state = $$ref->{state};
-                $restore_var = $var . "->{state} = q~$state~" if $state;
+                $restore_var = &object_states_save_check($var . "->{state} = q~$state~") if $state;
             }
 
             $restore_state .= "if (defined $var) {$restore_var} else {'var not used'}\n" if $restore_var;
@@ -1451,8 +1457,30 @@ sub object_states_save {
         print_log("Object states saved") if $config_parms{debug} eq 'misc';
         print "Save object states:  restore_state=\n$restore_state\n" if $config_parms{debug} eq 'misc';
     }
-    
+   
 }
+
+
+sub object_states_save_check {
+    my ($save_string) = @_;
+
+                                # These are old tests
+#    if ($state =~ /\~/) {
+#                print "\n\nWARNING, \$Save{$var} was not saved because it contained a ~ character: $state\n\n";
+#     }
+                                # Check for state values with bad data that we can not restore
+#   elsif ($state =~ /\x20-\x7e/ ) {
+#   elsif ($state =~ /^[^\W\d_]+$/) {
+
+                                # This is an effective test
+    eval $save_string;
+    if ($@) {
+        print "\n\nWARNING, Can not save this wierd state: $save_string. \n - Error: $@\n\n";
+        return;
+    }
+    return $save_string;
+}
+
 
 my ($Password);
 sub password_read {
@@ -1623,7 +1651,7 @@ sub print_log {
     else {
         print "$Time_Date: $data\n";
     }
-    unshift (@Print_Log, "$Time_Date $data");
+    unshift (@Print_Log, "$Time_Date: $data");
     pop @Print_Log if @Print_Log > $main::config_parms{max_log_entries};
 
     $Last_Response = 'print_log';
@@ -1662,18 +1690,19 @@ sub print_msg {
 sub print_speaklog {
     my ($data) = @_;
 
-    unshift (@Speak_Log, $data);
+#   unshift (@Speak_Log, "$Time_Now $data");
+    unshift (@Speak_Log, "$Time_Date $data");
     pop @Speak_Log if @Speak_Log > $main::config_parms{max_log_entries};
 
     if ($Tk_objects{speak_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
                                 # move to the bottom, messing up any manual scrolling
-        $Tk_objects{speak_window}->insert('0.0', "$Time_Date: $data\n");
+        $Tk_objects{speak_window}->insert('0.0', "$Time_Date $data\n");
     }
     else {
         print "$data\n";
     }
-    print PRINTLOG "$Time_Date: $data\n";
+    print PRINTLOG "$Time_Date $data\n";
 }
 
 sub process_external_command {
@@ -1961,9 +1990,10 @@ sub read_user_code {
                                 # No need to keep subroutines out of the loop code ... no speed advantage ?!?
 #           $subroutine_flag = 1 if $record =~ /^ *sub /; # Assume the rest of the file is subroutine!
             $noloop_flag = 1 if $record =~ /#\s*noloop=start/i;
-            if ($record =~ /\#\s*category\s*=\s*(.+?)\s*\r?$/i) {
+            if ($record =~ /\#\s*category\s*=\s*(.+?)\s*[\r\n]/i) {
                 $webname = $1;
                 $record .= "\n\$Category = '$1';\n"; # Used in tk_widgets
+                push @{$files_by_webname{$webname}}, $member_name;
             }
             $webname =~ tr/ /\_/;    # Blanks are not allowed in urls
             $member_sort_order{$member_name} = $1 if $record =~ /\#\s*position\s*=\s*(\S+)/i;
@@ -1994,8 +2024,11 @@ sub read_user_code {
 
                                 # Find global records
             if ($object or
-                $record =~ /^my\s/ or        # Global 'my'
-                $record =~ /^use vars\s/ or  # Global 'use vars'
+                $record =~ /^my\s/ or           # Global 'my'
+                $record =~ /^use vars\s/ or     # Global 'use vars'
+                $record =~ /^\s*set_icon\s/ or  # set_icon  only needs to be done on code load
+                $record =~ /^\s*set_info\s/ or  # set_info  only needs to be done on code load
+                $record =~ /^\s*set_order\s/ or # set_order only needs to be done on code load
                 $record =~ /->\s*add[\s\(]/ or
                 $record =~ /^\s*add\s/) {
                 $noloop_statement_flag = 1; # Allow for multi-record statements
@@ -2195,7 +2228,7 @@ sub set_global_vars {
             $memory_used_real    = $a[23] * 4 / 1000;
             $loop_unix_cnt = $cnt;
                                 # Since we don't have sub-second gettick, we can not do projected max-loops.
-            $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second Current: %4d",
+            $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d",
                                                         $Loop_Speed);
 
         }
@@ -2203,7 +2236,7 @@ sub set_global_vars {
             $cpu_used = 100*$Loop_Speed/$Loop_Speed2 if $Loop_Speed2 > 0;
             $cpu_used = 100 if $cpu_used > 100;
             
-            $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second Current/Max: %4d/%4d/%4d",
+            $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d/%4d/%4d",
                                                     $Loop_Speed, $Loop_Speed2, $Loop_Speed3);
         }
 
@@ -2242,6 +2275,20 @@ sub set_global_vars {
             unless ($prev_hour eq $Hour) {
                 $New_Hour = 1;
                 $prev_hour = $Hour;
+
+                if (&time_less_than('11:59') and &time_greater_than('5:00') ) {
+                    $Time_Of_Day = 'morning';
+                }
+                elsif (&time_less_than('17:00')) {
+                    $Time_Of_Day = 'afternoon';
+                }
+                elsif (&time_less_than('21:00')) {
+                    $Time_Of_Day = 'evening';
+                }
+                else {
+                    $Time_Of_Day = 'night';
+                }
+
                 unless ($prev_mday == $Mday) {
                     $New_Day = 1;
                     $prev_mday = $Mday;
@@ -2638,6 +2685,10 @@ sub time_random {
     my ($time_cron, $time_freq) = @_;
     my $flag = &time_cron($time_cron);
     return 0 unless $flag;
+#   my $r = rand $time_freq;
+#   my $i = int $r;
+#   print "db $Time_Now time_random freq=$time_freq r=$r i=$i\n";
+#   return ($i == 0) ? 1 : 0;
     return (int(rand $time_freq) == 0) ? 1 : 0;
 }
 
@@ -2745,7 +2796,7 @@ sub tk_setup_cascade_menus {
         $Tk_objects{menu_items}->menu->delete(0, 'end'); # Delete old menus
 
                                 # Timers do not have @states (only state), so can not be included
-        for my $object_type ('Serial_Item', 'X10_Item', 'X10_Appliance', 'Group') {
+        for my $object_type ('Serial_Item', 'X10_Item', 'X10_Appliance', 'iButton', 'Group') {
 
                                 # We must delete old ones first, otherwise we get a memory leak!
             $Tk_objects{menu_items_by_type}{$object_type}->delete(0, 'end')if $Tk_objects{menu_items_by_type}{$object_type};
@@ -3004,7 +3055,7 @@ sub tk_mlabel {
 sub tk_radiobutton {
     return unless $Reload;
 
-#   print "db5 Debug doing the radiobuon thing, l=@_[0], r=$Reload\n";
+#   print "db5 Debug doing the radiobutton thing, l=@_, r=$Reload\n";
 
                                 # Allow web widgets, even with -no_tk
     push(@Tk_widgets, [$Category, 'radiobutton', @_]);
@@ -3064,6 +3115,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.11  2000/03/10 02:42:24  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 2.1  2000/02/20 04:47:54  winter
 # -2.01 release
 #
