@@ -37,10 +37,14 @@ sub-class of I<IO::Socket::INET>, so you can perform socket operations
 directly on it too.
 
 The accept() method will return when a connection from a client is
-available. The returned value will be a reference to a object of the
-I<HTTP::Daemon::ClientConn> class which is another I<IO::Socket::INET>
-subclass. Calling the get_request() method on this object will read
-data from the client and return an I<HTTP::Request> object reference.
+available.  In a scalar context the returned value will be a reference
+to a object of the I<HTTP::Daemon::ClientConn> class which is another
+I<IO::Socket::INET> subclass.  In a list context a two-element array
+is returned containing the new I<HTTP::Daemon::ClientConn> reference
+and the peer address; the list will be empty upon failure.  Calling
+the get_request() method on the I<HTTP::Daemon::ClientConn> object
+will read data from the client and return an I<HTTP::Request> object
+reference.
 
 This HTTP daemon does not fork(2) for you.  Your application, i.e. the
 user of the I<HTTP::Daemon> is reponsible for forking if that is
@@ -94,9 +98,14 @@ sub new
 =item $c = $d->accept([$pkg])
 
 This method is the same as I<IO::Socket::accept> but returns an
-I<HTTP::Daemon::ClientConn> reference by default.  It returns
-undef if you specify a timeout and no connection is made within
-that time.
+I<HTTP::Daemon::ClientConn> reference by default.  It returns undef if
+you specify a timeout and no connection is made within that time.  In
+a scalar context the returned value will be a reference to a object of
+the I<HTTP::Daemon::ClientConn> class which is another
+I<IO::Socket::INET> subclass.  In a list context a two-element array
+is returned containing the new I<HTTP::Daemon::ClientConn> reference
+and the peer address; the list will be empty upon failure.
+
 
 =cut
 
@@ -104,9 +113,13 @@ sub accept
 {
     my $self = shift;
     my $pkg = shift || "HTTP::Daemon::ClientConn";
-    my $sock = $self->SUPER::accept($pkg);
-    ${*$sock}{'httpd_daemon'} = $self if $sock;
-    $sock;
+    my ($sock, $peer) = $self->SUPER::accept($pkg);
+    if ($sock) {
+        ${*$sock}{'httpd_daemon'} = $self;
+        return wantarray ? ($sock, $peer) : $sock;
+    } else {
+        return;
+    }
 }
 
 
@@ -121,7 +134,7 @@ sub url
     my $self = shift;
     my $url = "http://";
     my $addr = $self->sockaddr;
-    if ($addr eq INADDR_ANY) {
+    if (!$addr || $addr eq INADDR_ANY) {
  	require Sys::Hostname;
  	$url .= lc Sys::Hostname::hostname();
     }

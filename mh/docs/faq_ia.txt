@@ -32,7 +32,7 @@ What is an Audrey
      OS:    http://www.qnxstart.com/
 
     Pete Flaherty posted a mh compatable Audrey image at
-    http://vsa.cape.com/~pjf/MrAudrey.html.
+    http://vsa.cape.com/~pjf/MrAudrey.html
 
   Some common hacks
 

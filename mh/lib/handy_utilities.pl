@@ -174,7 +174,7 @@ sub main::find_pgm_path {
 #   print "db pgm_path=$pgm_path\n";
 
     unless($pgm_path = &main::which($pgm_path)) {
-        print "Warning, new Process:  Can not find path to pgm=$pgm_path arg=$pgm_args\n";
+        print "Warning, new Process:  Can not find path to pgm=$pgm, pgm_path=$pgm_path arg=$pgm_args\n";
 #       return;
     }
                                 # This is in desperation ... see notes on &run and &process_item $cflag. 
@@ -456,8 +456,8 @@ sub main::read_mh_opts {
 
     my @parm_files;
     push @parm_files, $parm_file if $parm_file;
-    push @parm_files, $Pgm_Path . '/mh.ini';
-    push @parm_files, $Pgm_Path . '/mh.private.ini';
+    push @parm_files, "$::Pgm_Path/mh.ini";
+    push @parm_files, "$::Pgm_Path/mh.private.ini";
     push @parm_files, split ',', $ENV{mh_parms} if $ENV{mh_parms};
 
     print "Reading parm files: @parm_files\n" if $debug;
@@ -531,8 +531,14 @@ sub main::read_opts {
         }
         else {
             $$ref_parms{$key}  = $value;
+            if ($config_file eq "$::Pgm_Path/mh.ini") {
+                delete $$ref_parms{$key . "_MHINTERNAL_filename"};
+            }
+            else {
+                $$ref_parms{$key . "_MHINTERNAL_filename"} = $config_file;
+            }
         }
-        print main::STDOUT "parm vc=$value_continued key=$key value=$$ref_parms{$key}\n" if $debug;
+        print main::STDOUT "parm vc=$value_continued key=$key value=$$ref_parms{$key} file=$config_file\n" if $debug;
     }
     close CONFIG;
     return sort keys %{$ref_parms};
@@ -553,6 +559,13 @@ sub main::read_parm_hash {
         }
     }
 }
+
+sub main::get_parm_file {
+    my ($ref_parms, $param_name) = @_;
+#   print "Test=" . $param_name . ":" . $$ref_parms{$param_name} . ":" . $$ref_parms{$param_name . "_MHINTERNAL_filename"} . "\n";
+    return $$ref_parms{$param_name . '_MHINTERNAL_filename'};
+}
+
 
 sub main::read_record {
     my($file, $index) = @_;
@@ -693,10 +706,14 @@ sub main::run_kill_processes {
 }
 
 
-                                # This is depreciated ... use Process_Item.pm instead
+                                # If you want more control (e.g. detect when done), use Process_Item.pm 
 sub main::run {
-    my($mode, $pgm) = @_;
-    $pgm = $mode unless $pgm;   # Mode is optional
+    my($mode, $pgm, $no_log) = @_;
+                # Mode is optional ... yuck ... optional parms should be last!
+    unless ($mode eq 'inline') {
+        $pgm = $mode;
+        $no_log = $pgm;
+    }
 
     if ($main::OS_win) {
 
@@ -707,7 +724,7 @@ sub main::run {
             print "Run error, program not found: $pgm\n";
             return;
         }
-        print "Running: pgm=$pgm_path args=$pgm_args\n" unless $main::config_parms{no_log} =~ /run/;
+        print "Running: pgm=$pgm_path args=$pgm_args\n" unless $main::config_parms{no_log} =~ /run/ or $no_log;
 
         my ($cflag, $process);
 
@@ -731,7 +748,7 @@ sub main::run {
         my($pgm_path, $pgm_args) = &main::find_pgm_path($pgm);
         $pgm = "$pgm_path $pgm_args";
         $pgm .= " &" unless $mode eq 'inline';
-        print "Running: $pgm\n" unless $main::config_parms{no_log} =~ /run/;
+        print "Running: $pgm\n" unless $main::config_parms{no_log} =~ /run/ or $no_log;
         system($pgm) == 0 or print "Warning, run system error:  pgm=$pgm rc=$?\n";
     }
 }
@@ -1092,9 +1109,11 @@ sub main::which {
     for my $path (".", "$main::Pgm_Path", @paths) {
         chop $path if $path =~ /\\$/; # Drop trailing slash
         my $pgm_path = "$path/$pgm";
-        return "$pgm_path.bat" if -e "$pgm_path.bat";
-        return "$pgm_path.exe" if -e "$pgm_path.exe";
-        return "$pgm_path.com" if -e "$pgm_path.com";
+        if ($main::OS_win) {
+            return "$pgm_path.bat" if -e "$pgm_path.bat";
+            return "$pgm_path.exe" if -e "$pgm_path.exe";
+            return "$pgm_path.com" if -e "$pgm_path.com";
+        }
         return $pgm_path if -e $pgm_path;
     }
     return $pgm if -e $pgm;     # Covers the fully qualified $pgm name
@@ -1107,6 +1126,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.62  2003/01/12 20:39:21  winter
+#  - 2.76 release
+#
 # Revision 1.61  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

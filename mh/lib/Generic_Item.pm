@@ -21,13 +21,14 @@ sub new {
 }
 
 sub set {
-    my ($self, $state, $set_by) = @_;
+    my ($self, $state, $set_by, $respond) = @_;
     return if &main::check_for_tied_filters($self, $state);
     if ($state and $state eq 'toggle') {
         $state = ($$self{state} eq 'on') ? 'off' : 'on';
         &main::print_log("Toggling $self->{object_name} from $$self{state} to $state");
     }
-    &set_states_for_next_pass($self, $state, $set_by, $main::Respond_Target); # Pass default target along
+    $respond = $main::Respond_Target unless $respond;
+    &set_states_for_next_pass($self, $state, $set_by, $respond); # Pass default target along
 }
 
 sub get_object_name {
@@ -56,6 +57,7 @@ sub restore_string {
     my ($self) = @_;
 
     my $state       = $self->{state};
+    $state =~ s/~/\\~/g if $state;
     my $restore_string;
     $restore_string .= $self->{object_name} . "->{state} = q~$state~;\n" if defined $state;
     $restore_string .= $self->{object_name} . "->{count} = q~$self->{count}~;\n" if $self->{count};
@@ -63,6 +65,7 @@ sub restore_string {
 
     if ($self->{state_log} and my $state_log = join($;, @{$self->{state_log}})) {
         $state_log =~ s/\n/ /g; # Avoid new-lines on restored vars
+        $state_log =~ s/~/\\~/g;
         $restore_string .= '@{' . $self->{object_name} . "->{state_log}} = split(\$;, q~$state_log~);";
     }
     
@@ -145,15 +148,19 @@ sub set_info {
 
 
 sub set_with_timer {
-    my ($self, $state, $time) = @_;
+    my ($self, $state, $time, $return_state) = @_;
     return if &main::check_for_tied_filters($self, $state);
+ 
+                                # If blank state, then we wanted the timed return_state only
+    $self->set($state) unless $state eq '';
 
-    $self->set($state);
     return unless $time;
-
                                 # If off, timeout to on, otherwise timeout to off
-    my $state_change = ($state eq 'off') ? 'on' : 'off';
-
+    my $state_change;
+    $state_change = ($state eq 'off') ? 'on' : 'off';
+    $state_change = $return_state if defined $return_state;
+    $state_change = $self->{state} if $return_state and lc $return_state eq 'previous';
+ 
                                 # Reuse timer for this object if it exists
     $$self{timer} = &Timer::new() unless $$self{timer};
     my $object = $self->{object_name};
@@ -162,7 +169,6 @@ sub set_with_timer {
 #   print "db Setting x10 timer $x10_timer: self=$self time=$time action=$action\n";
 #   $x10_timer->set($time, $action);
     &Timer::set($$self{timer}, $time, $action);
-
 }
 
 sub incr_count {
@@ -241,20 +247,23 @@ sub set_states_for_next_pass {
     push @states_from_previous_pass, $ref unless $ref->{state_next_pass} and @{$ref->{state_next_pass}};
     push @{$ref->{state_next_pass}}, $state;
 
-                                # Reset this (used to detect which tied item triggered the set)
-                                #  - Default to self if not specified ... naw, not sure why we would need it set to self??
-#   $ref->{set_by} = ($set_by) ? $set_by : $ref;
-    $ref->{set_by} = $set_by;
-    $target = $set_by unless defined $target;
-    $ref->{target} = $target;
+                                # Used in get_idle_time
+    $ref->{set_time} = $main::Time;
 
                                 # If set by another object, find/use object name
     my $set_by_type = ref($set_by);
 #   print "dbx1 sb=$set_by r=$set_by_type\n";
     $set_by = $set_by->{object_name} if $set_by_type and $set_by_type ne 'SCALAR';
 
-                                # Uset in get_idle_time
-    $ref->{set_time} = $main::Time;
+                                # Else set to Usercode [calling code file]
+    $set_by = &main::get_calling_sub() unless $set_by;
+
+                                # Reset this (used to detect which tied item triggered the set)
+                                #  - Default to self if not specified ... naw, not sure why we would need it set to self??
+#   $ref->{set_by} = ($set_by) ? $set_by : $ref;
+    $ref->{set_by} = $set_by;
+    $target = $set_by unless defined $target;
+    $ref->{target} = $target;
 
                                 # Set the state_log ... log non-blank states
                                 # Avoid -w unintialized variable errors
@@ -422,6 +431,9 @@ sub get_web_style {
 
 #
 # $Log$
+# Revision 1.25  2003/01/12 20:39:20  winter
+#  - 2.76 release
+#
 # Revision 1.24  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

@@ -35,7 +35,7 @@ if (defined($state = state_now $eliza_data)) {
     my $msg = $state;
 
                                 # Used cached data from a previous background DSN search, if from the web
-    my ($name, $name_short) = net_domain_name_start 'eliza_server', 'http' if get_set_by $eliza_data eq 'web';
+    my ($name, $name_short) = net_domain_name_start 'eliza_server', 'http' if get_set_by $eliza_data =~ /^web/;
     $name = 'unknown' unless $name;
 
     my $rule    = state $eliza_rule;

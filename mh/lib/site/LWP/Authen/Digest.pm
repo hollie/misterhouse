@@ -1,7 +1,7 @@
 package LWP::Authen::Digest;
 use strict;
 
-require MD5;
+require Digest::MD5;
 
 sub authenticate
 {
@@ -18,7 +18,7 @@ sub authenticate
     my $uri = $request->url->path_query;
     $uri = "/" unless length $uri;
 
-    my $md5 = new MD5;
+    my $md5 = Digest::MD5->new;
 
     my(@digest);
     $md5->add(join(":", $user, $auth_param->{realm}, $pass));
@@ -42,7 +42,7 @@ sub authenticate
     my %resp = map { $_ => $auth_param->{$_} } qw(realm nonce opaque);
     @resp{qw(username uri response algorithm)} = ($user, $uri, $digest, "MD5");
 
-    if($auth_param->{qop} eq "auth") {
+    if (($auth_param->{qop} || "") eq "auth") {
 	@resp{qw(qop cnonce nc)} = ("auth", $cnonce, $nc);
     }
 
@@ -69,8 +69,8 @@ sub authenticate
     # Need to check this isn't a repeated fail!
     my $r = $response;
     while ($r) {
-	my $auth = $r->request->header($auth_header);
-	if ($auth && $auth eq $auth_value) {
+	my $u = $r->request->{digest_user_pass};
+	if ($u && $u->[0] eq $user && $u->[1] eq $pass) {
 	    # here we know this failed before
 	    $response->header("Client-Warning" =>
 			      "Credentials for '$user' failed before");
@@ -81,6 +81,9 @@ sub authenticate
 
     my $referral = $request->clone;
     $referral->header($auth_header => $auth_value);
+    # we shouldn't really do this, but...
+    $referral->{digest_user_pass} = [$user, $pass];
+
     return $ua->request($referral, $arg, $size, $response);
 }
 

@@ -125,6 +125,7 @@ Windows Detailed Install Instructions
        ppm> install GD
        ppm> install DB_File
        ppm> install Tk-JPEG
+       ppm> install Win32-Setupsup
 
     If the DB_File post-install script doesn't run to install the included
     libdb.dll, you can extract the dll from
@@ -526,18 +527,27 @@ Coding your own events
     example:
 
        c:--+
-           +--misterhouse--+        <--- my copy of mh.ini lives here
-                           +--code      <--- my code
-                           +--data      <--- my data
-                           +--sounds    <--- my sounds
-                           +--mh----+   <--- mh installed here
-                                    +--bin
-                                    +--code
-                                    +--data
-                                    +--docs
-                                    +--lib
-                                    +--sounds
-                                    +--web
+           +--misterhouse--+       
+                           +--mh.private.ini  <--- my private mh.ini parms
+                           +--code       <--- my code
+                           +--data       <--- my data
+                           +--sounds     <--- my sounds
+                           +--mh-----+   <--- mh installed here
+                                     +--bin
+                                     +--code
+                                     +--data
+                                     +--docs
+                                     +--lib
+                                     +--sounds
+                                     +--web
+                           +--mh_123-+   <--- Old mh 123 version 
+                                     +--bin
+                                     +--code
+                                     +--data
+                                     +--docs
+                                     +--lib
+                                     +--sounds
+                                     +--web
 
     Assuming you have mh installed in c:\misterhouse\mh, the steps might
     looks something like this (using the DOS commands, as I think unix guys

@@ -28,6 +28,7 @@ case `uname -a` in
    h2ph asm/ioctl.h
    h2ph linux/posix_types.h
    h2ph linux/stddefs.h
+   h2ph linux/stddef.h
  ;;
  FreeBSD*)
    h2ph sys/termios.h

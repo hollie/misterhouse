@@ -91,7 +91,7 @@ sub UserCodePreHook
         {
             while (my($record, $remainder) = $::Serial_Ports{'Stargate485'}{data} =~ /(.+?)[\r\n]+(.*)/s) 
             {
-                &::print_log("Data from Stargate485: $record.  remainder=$remainder.") if $::config_parms{debug} eq 'serial';
+                &::print_log("Data from Stargate485: $record.  remainder=$remainder.") if $::config_parms{debug} eq 'Stargate485';
                 $::Serial_Ports{'Stargate485'}{data_record} = $record;
                 $::Serial_Ports{'Stargate485'}{data} = $remainder;
                 if($::config_parms{debug} eq 'Stargate485')
@@ -182,6 +182,21 @@ sub ParseKeypadData
         $MacroId = hex($MacroId) + 1;
         #print "MacroID decoded as: " . $MacroId . "\n";
         SetKeypadStates($TargetLCD,sprintf('macro%3.3d',$MacroId));
+    }
+    elsif(substr($record,0,2) eq '0A')
+    {
+        # Keyboard status alive response, ignore
+    }
+    elsif(substr($record,0,1) eq 'K')
+    {
+        # Extract Digit
+        my $Digit = substr($record,1,1);
+        SetKeypadStates($TargetLCD,sprintf('digit%1.1d', $Digit));
+        # Don't know what 2 additional characters are (checksum)?
+    }
+    else
+    {
+        print "Unknown keypad response lcd:$TargetLCD data:$record\n" if $record; # if $::config_parms{debug} eq 'Stargate485Keypad';
     }
 }
 

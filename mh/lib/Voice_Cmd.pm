@@ -319,13 +319,16 @@ sub voice_item_by_text {
 }
 
 sub voice_items {
-    my ($vocab) = @_;
+    my ($vocab, $list) = @_;
 
     $vocab = 'mh' unless $vocab; # Default
 
 #   my @cmd_list = sort {$cmd_num_by_text{$a} <=> $cmd_num_by_text{$b}} keys %cmd_num_by_text;
     my @cmd_list =                                                      keys %cmd_num_by_text;
 
+    if ($list and $list eq 'no_category') {
+        return @cmd_list;
+    }
                                 # Add the filename to the list, so we can do better grep searches
     my @cmd_list2;
     for my $cmd (@cmd_list) {
@@ -338,6 +341,7 @@ sub voice_items {
     }
     return sort {uc $a cmp uc $b} @cmd_list2;
 }
+
 
 sub new {
     my ($class, $text, $response, $confirm, $vocab) = @_;
@@ -371,7 +375,7 @@ sub _register {
         my ($l, $m, $r) = ($1, $2, $3);
         print "Warning, unmatched brackets in Voice_Cmd text: text=$text l=$l m=$m r=$r\n" if
             $l and !$r or !$l and $r;
-        @{$data[$i]{text}} = ($l) ? split(',', $m) : ($m);
+        @{$data[$i]{text}} = ($l) ? split(/ *, */, $m) : ($m);
         $data[$i]{last}    = scalar @{$data[$i]{text}} - 1;
         if ($l eq '[') {
             print "Warning, more than one [] state bracket in Voice_Cmd text: i=$i l=$l r=$r text=$text\n" if $index_state;
@@ -609,6 +613,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.41  2003/01/12 20:39:20  winter
+#  - 2.76 release
+#
 # Revision 1.40  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

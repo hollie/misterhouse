@@ -6,22 +6,33 @@
 # Win95/98 have no way to monitor memory :(
 
 my $memory_leak_log = "$config_parms{data_dir}/logs/monitor_memory_leak.log";
-if ($Startup) {
-    logit $memory_leak_log, '-- Restarted --';
-    $Info{memory_virtual_prev} = $Info{memory_virtual};
-}
-elsif ($Reload) {
-    logit $memory_leak_log, '   ReLoad';
-}
+logit $memory_leak_log, "-- Restarted --.  Perl version:  $Info{Perl_version}" if $Startup;
 
-if (new_minute 10) {
-    my $memory_diff = $Info{memory_virtual} - $Info{memory_virtual_prev};
-    if ($memory_diff > .5) {
-        my $msg = sprintf "Warning, memory leak detected: %3.2f.  %4.2f -> %4.2f", 
-                 $memory_diff, $Info{memory_virtual_prev}, $Info{memory_virtual};
-        print_log $msg;
-        logit $memory_leak_log, $msg;
-        $Info{memory_virtual_prev} = $Info{memory_virtual};
+                                # Ignore startup memory stats
+if ($Time_Uptime_Seconds > 600) {
+    if (!$Info{memory_virtual_prev}) {
+        $Info{memory_virtual_startup} = $Info{memory_virtual};
+        $Info{memory_virtual_prev}    = $Info{memory_virtual};
+        $Info{memory_virtual_time}    = $Time;
+    }
+
+    logit $memory_leak_log, '   ReLoad'     if ($Reload);
+
+    if (new_minute 10) {
+        my $memory_diff = $Info{memory_virtual} - $Info{memory_virtual_prev};
+        my $memory_time = round ($Time - $Info{memory_virtual_time})/3600 if $Info{memory_virtual_time};
+        if ($memory_diff > .5) {
+            my $time_startup = $Time_Uptime_Seconds / 3600;
+            my $memory_diff_rate  = $memory_diff / $memory_time if $memory_time;
+            my $memory_diff_total = ($Info{memory_virtual} - $Info{memory_virtual_startup}) / $time_startup;
+            my $msg = sprintf "%5.1f hours:  %4.1f MB in %4.1f hours.  %5.1f -> %5.1f at %5.2f MB/hour.  Total: %5.2f MB/hour", 
+              $time_startup, $memory_diff, $memory_time, $Info{memory_virtual_prev}, $Info{memory_virtual},
+                $memory_diff_rate, $memory_diff_total;
+            print_log "Warning, memory leak detected: $msg";
+            logit $memory_leak_log, $msg;
+            $Info{memory_virtual_prev} = $Info{memory_virtual};
+            $Info{memory_virtual_time} = $Time;
+        }
     }
 }
 

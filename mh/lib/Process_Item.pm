@@ -18,6 +18,10 @@ sub set {
     @{$$self{cmds}} = @cmds;
 }
 
+sub set_timeout {
+    my ($self, $timeout) = @_;
+    $$self{timeout} = $timeout;
+}
                                 # Allow for process STDOUT to go to a file
 sub set_output {
     my ($self, $file) = @_;
@@ -175,12 +179,18 @@ sub start_next {
     }
     push(@active_processes, $self);
     $$self{started} = time;
+    undef $$self{timed_out};
     undef $$self{done};
 }    
 
 sub done {
     my ($self) = @_;
     return ($$self{pid}) ? 0 : 1;
+}    
+
+sub timed_out {
+    my ($self) = @_;
+    return ($$self{timed_out}) ? 1 : 0;
 }    
 
 sub done_now {
@@ -198,24 +208,31 @@ sub harvest {
     }
 
     my @active_processes2;
+    my $time = time;
     for $process (@active_processes) {
         my $pid = $$process{pid};
         next unless $pid;       # In case somehow we already harvested his pid
+                                # Check if process is done or timed out
+        if (defined $$process{timeout} and $time > ($$process{timeout} + $$process{started})) {
+            print "Process timed out process=$$process{object_name} pid=$pid cmd=@{$$process{cmds}} timeout=$$process{timeout}\n" if $main::config_parms{debug} eq 'process';
+            $$process{timed_out} = $time;
+            $process->stop();
+        }
         if (($main::OS_win and $pid->Wait(0)) or 
-            (!$main::OS_win and waitpid($pid, 1))) {
-
+            (!$main::OS_win and waitpid($pid, 1)) or
+            ($$process{timed_out})) {
                                 # Mark as done or start the next cmd?
             if ($$process{cmd_index} < @{$$process{cmds}}) {
-                print "Process starting next cmd process=$process pid=$pid index=$$process{cmd_index}\n" if $main::config_parms{debug} eq 'process';
+                print "Process starting next cmd process=$$process{object_name} pid=$pid index=$$process{cmd_index}\n" if $main::config_parms{debug} eq 'process';
                 delete $$process{pid};
                 &start_next($process);
             }
             else {
                 push(@done_processes, $process);
                 $$process{done_now}++;
-                $$process{done} = time;
+                $$process{done} = $time;
                 delete $$process{pid};
-                print "Process done_now process=$process pid=$pid cmd=@{$$process{cmds}}\n" if $main::config_parms{debug} eq 'process';
+                print "Process done_now process=$$process{object_name} pid=$pid to=$$process{timed_out} cmd=@{$$process{cmds}}\n" if $main::config_parms{debug} eq 'process';
             }
         }
         else {
@@ -234,7 +251,7 @@ sub stop {
         my $pid = $$process{pid};
         next unless $pid;
         delete $$process{pid};
-        print "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n";
+        print "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n" if $main::config_parms{debug} eq 'process';
         if ($main::OS_win) {
 #           $pid->Suspend() or print "Warning 1, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
 #           $pid->Resume() or print "Warning 1a, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
@@ -255,6 +272,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.21  2003/01/12 20:39:20  winter
+#  - 2.76 release
+#
 # Revision 1.20  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

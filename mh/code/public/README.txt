@@ -302,6 +302,9 @@ v4l_radio.pl
  - David Norwood's code for Linux that allows you to stream music from a video4linux
    compatible FM tuner card to shoutcast clients on your network.  
 
+wakeup_on_lan.pl
+ - Bill Sobel's code for waking up computers via lan.
+
 
 weather.pl
  - Ernie Oporto's weather script that queries wunderground web sites

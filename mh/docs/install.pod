@@ -137,6 +137,7 @@ but Randy Kobes has kindly made them available at his site. You can install them
    ppm> install GD
    ppm> install DB_File
    ppm> install Tk-JPEG
+   ppm> install Win32-Setupsup
 
 If the DB_File post-install script doesn't run to install the included libdb.dll, you can extract the dll
 from http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz and copy it to a dir in your path.
@@ -487,18 +488,27 @@ After you have played with the the default test code for a bit, you will want to
 up your own code and data directories.  Here is an example:
 
    c:--+
-       +--misterhouse--+        <--- my copy of mh.ini lives here
-                       +--code      <--- my code
-                       +--data      <--- my data
-                       +--sounds    <--- my sounds
-                       +--mh----+   <--- mh installed here
-                                +--bin
-                                +--code
-                                +--data
-                                +--docs
-                                +--lib
-                                +--sounds
-                                +--web
+       +--misterhouse--+       
+                       +--mh.private.ini  <--- my private mh.ini parms
+                       +--code       <--- my code
+                       +--data       <--- my data
+                       +--sounds     <--- my sounds
+                       +--mh-----+   <--- mh installed here
+                                 +--bin
+                                 +--code
+                                 +--data
+                                 +--docs
+                                 +--lib
+                                 +--sounds
+                                 +--web
+                       +--mh_123-+   <--- Old mh 123 version 
+                                 +--bin
+                                 +--code
+                                 +--data
+                                 +--docs
+                                 +--lib
+                                 +--sounds
+                                 +--web
 
 
 Assuming you have mh installed in c:\misterhouse\mh, the steps might looks something like this

@@ -22,7 +22,10 @@ if (said  $v_get_internet_weather_data) {
                                 # Detatch this, as it may take 10-20 seconds to retreive
                                 # Another, probably better way, to do this is with the
                                 # Process_Item, as is with p_top10_list above
-        run "get_weather -city $config_parms{city} -zone $config_parms{zone} -state $config_parms{state}";
+        my $city = $config_parms{city};
+        $city = $config_parms{nws_city} if defined $config_parms{nws_city};
+        run qq|get_weather -city "$city" -zone "$config_parms{zone}" -state $config_parms{state}|;
+
 
         set_watch $f_weather_forecast;
         print_log "Weather data requested";
@@ -39,12 +42,9 @@ if ($state = said  $v_show_internet_weather_data or changed $f_weather_forecast)
     print_log "Weather $state displayed";
     if ($state eq 'forecast') {
         my $name = name $f_weather_forecast;
-        print "displaying $f_weather_forecast $name\n";
         display name $f_weather_forecast;
-        display $name;
     }
     else {
-        print "displaying $f_weather_conditions\n";
         display name $f_weather_conditions;
 # Parse data.  Here is an example:
 # At 6:00 AM, Rochester, MN conditions were  at  55 degrees , wind was south at

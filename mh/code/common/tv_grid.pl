@@ -26,7 +26,11 @@ if (my $data = state_now $tv_grid) {
     speak $msg;
     print_log $msg;
 
-    my $vcr_set = ($main::{VCR}) ? 'set' : '# set';
+# Allow set $VCR only if we have $VCR defined somewhere
+# Not sure why this does not work ... eval is more sure-fired anyway
+#   my $vcr_set = ($main::{VCR}) ? 'set' : '# set';
+    eval '$VCR';
+    my $vcr_set = ($@) ? '# set' : 'set';
     &trigger_set("time_now '$date $start - 00:02'",
                  "speak qq~app=tv \$Time_Now. VCR recording will be started in 2 minutes for $show_name on channel $channel~");
     &trigger_set("time_now '$date $start'",

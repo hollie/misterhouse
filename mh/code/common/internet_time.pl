@@ -7,16 +7,22 @@
                                 # Check clock against an internet atomic clock
 $v_set_clock = new  Voice_Cmd('Set the clock via the internet');
 $v_set_clock-> set_info('Use an Internet connected atomic clock to set your pc clock time');
-set_icon $v_set_clock 'time';
+$v_set_clock-> set_icon('time');
+$p_set_clock = new  Process_Item "set_clock -log $config_parms{data_dir}/logs/set_clock.log";
+
 if (said $v_set_clock or
     time_cron '7 6 * * * ') {
     print "Running set_clock to set clock via the internet ...";
+    start $p_set_clock;
 #   run "$Pgm_Path/set_clock"; 
-    @ARGV = (-log => "$config_parms{data_dir}/logs/set_clock.log");
-    my $status = do "$Pgm_Path/set_clock"; 
-    print " set_clock was run\n";
-    print_log "Clock has been set";
-    respond $status unless $Save{sleeping_parents};
+#   @ARGV = (-log => "$config_parms{data_dir}/logs/set_clock.log");
+#   my $status = do "$Pgm_Path/set_clock"; 
+}
+
+if (done_now $p_set_clock) {
+    my $results = file_read "$config_parms{data_dir}/logs/set_clock.log.txt";
+    print_log "set_clock results:  $results";
+    respond $results;
 }
 
 my $f_set_clock_log = "$config_parms{data_dir}/logs/set_clock.log";

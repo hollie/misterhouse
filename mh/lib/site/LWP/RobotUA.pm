@@ -18,16 +18,18 @@ use strict;
 
 =head1 NAME
 
-LWP::RobotUA - A class for Web Robots
+LWP::RobotUA - a class for well-behaved Web robots
 
 =head1 SYNOPSIS
 
-  require LWP::RobotUA;
-  $ua = new LWP::RobotUA 'my-robot/0.1', 'me@foo.com';
-  $ua->delay(10);  # be very nice, go slowly
+  use LWP::RobotUA;
+  my $ua = LWP::RobotUA->new( 'my-robot/0.1', 'me@foo.com' );
+  $ua->delay(10);  # be very nice -- max one hit every ten minutes!
   ...
-  # just use it just like a normal LWP::UserAgent
-  $res = $ua->request($req);
+
+  # Then just use it just like a normal LWP::UserAgent:
+  my $response = $ua->get('http://whatever.int/...');
+  ...
 
 =head1 DESCRIPTION
 
@@ -36,12 +38,16 @@ applications.  Robots should be nice to the servers they visit.  They
 should consult the F</robots.txt> file to ensure that they are welcomed
 and they should not make requests too frequently.
 
-But, before you consider writing a robot take a look at
-<URL:http://info.webcrawler.com/mak/projects/robots/robots.html>.
+But before you consider writing a robot, take a look at
+<URL:http://www.robotstxt.org/>.
 
-When you use a I<LWP::RobotUA> as your user agent, then you do not
-really have to think about these things yourself.  Just send requests
-as you do when you are using a normal I<LWP::UserAgent> and this
+When you use a I<LWP::RobotUA> object as your user agent, then you do not
+really have to think about these things yourself; C<robots.txt> files
+are automatically consulted and obeyed, the server isn't queried
+too rapidly, and so on.  Just send requests
+as you do when you are using a normal I<LWP::UserAgent>
+object (using C<< $ua->get(...) >>, C<< $ua->head(...) >>,
+C<< $ua->request(...) >>, etc.), and this
 special agent will make sure you are nice.
 
 =head1 METHODS
@@ -70,7 +76,8 @@ Your robot's name and the mail address of the human responsible for
 the robot (i.e. you) are required by the constructor.
 
 Optionally it allows you to specify the I<WWW::RobotRules> object to
-use.
+use.  If you don't provide one, then this user agent will make its own
+internal database of F<robots.txt> rules as needed.
 
 =cut
 
@@ -79,7 +86,8 @@ sub new
     my($class,$name,$from,$rules) = @_;
 
     Carp::croak('LWP::RobotUA name required') unless $name;
-    Carp::croak('LWP::RobotUA from address required') unless $from;
+    Carp::croak('LWP::RobotUA from address required') unless $from
+     and $from =~ m/\@/;
 
     my $self = new LWP::UserAgent;
     $self = bless $self, $class;
@@ -102,8 +110,12 @@ sub new
 
 =item $ua->delay([$minutes])
 
-Set the minimum delay between requests to the same server.  The
-default is 1 minute.
+Set the minimum delay between requests to the same server,
+in I<minutes>.  The
+default is 1 minute.  Note that this number doesn't have to be an integer;
+for example, this sets the delay to 10 seconds:
+
+    $ua->delay(10/60);
 
 =item $ua->use_sleep([$boolean])
 
@@ -143,7 +155,6 @@ sub rules {
     $old;
 }
 
-
 =item $ua->no_visits($netloc)
 
 Returns the number of documents fetched from this server host. Yes I
@@ -155,7 +166,7 @@ something like that. :-(
 sub no_visits
 {
     my($self, $netloc) = @_;
-    $self->{'rules'}->no_visits($netloc);
+    $self->{'rules'}->no_visits($netloc) || 0;
 }
 
 *host_count = \&no_visits;  # backwards compatibility with LWP-5.02
@@ -163,7 +174,7 @@ sub no_visits
 
 =item $ua->host_wait($netloc)
 
-Returns the number of seconds (from now) you must wait before you can
+Returns the number of I<seconds> (from now) you must wait before you can
 make a new request to this host.
 
 =cut
@@ -227,11 +238,13 @@ sub simple_request
 
     # Check rules
     unless ($allowed) {
-	return new HTTP::Response
+	my $res = new HTTP::Response
 	  &HTTP::Status::RC_FORBIDDEN, 'Forbidden by robots.txt';
+	$res->request( $request ); # bind it to that request
+	return $res;
     }
 
-    my $netloc = $request->url->host_port;
+    my $netloc = eval { local $SIG{__DIE__}; $request->url->host_port; };
     my $wait = $self->host_wait($netloc);
 
     if ($wait) {
@@ -242,6 +255,7 @@ sub simple_request
 	    my $res = new HTTP::Response
 	      &HTTP::Status::RC_SERVICE_UNAVAILABLE, 'Please, slow down';
 	    $res->header('Retry-After', time2str(time + $wait));
+	    $res->request( $request ); # bind it to that request
 	    return $res;
 	}
     }
@@ -283,7 +297,7 @@ L<LWP::UserAgent>, L<WWW::RobotRules>
 
 =head1 COPYRIGHT
 
-Copyright 1996-2000 Gisle Aas.
+Copyright 1996-2002 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

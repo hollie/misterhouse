@@ -31,15 +31,21 @@ if (said $v_onthisday eq 'Get') {
 
 if (done_now $p_onthisday or said $v_onthisday eq 'Show') {
     my $html = file_read $f_onthisday_html;                           
+
+                                # Pull out date
+#<B>Monday, December&nbsp;23rd</B> 
+    my ($date) = $html =~ /<B>(\S+, \S+?&nbsp;\S+?)<\/B>/i;
+
                                 # Prune down to main table
     $html =~ s|.+(\<tr.+?Today\'s .+)|$1|is;
-                                # Change relative lines to absolute
+
+                               # Change relative lines to absolute
     $html =~ s|href="/|href="http://www.nytimes.com/|g;
     $html =~ s|href="../|href="http://www.nytimes.com/learning/general/|g;
 
-    my $html2 = "<html><body><table>\n" . $html;
+    my $html2 = "<html><body><table>$date\n" . $html;
     my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html2));
-    $text =~ s/.+?(on this date in)/$1/is;
+#    $text =~ s/.+?(on this date in)/$1/is;
     file_write($f_onthisday_html2, $html2);
     file_write($f_onthisday, $text);
     respond $text;

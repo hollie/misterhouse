@@ -162,6 +162,7 @@ sub set_receive {
     my ($self, $state, $set_by) = @_;
 #   $set_by = 'serial' unless $set_by;
     return if &main::check_for_tied_filters($self, $state);
+    return if &set_prev_pass_check($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
 }
 
@@ -212,16 +213,7 @@ sub set {
     }
     my $serial_data = $serial_id;
 
-                                # Avoid sending the same X10 code on consecutive passes.
-                                # It is pretty easy to create a loop with
-                                # tied items, groups, house codes, etc.  Just ask Bill S. :)
-#   print "db state=$state, sp=$self->{state_prev},  loop=$main::Loop_Count, lcp==$self->{change_pass}\n";
-    if ($serial_id =~ /^X/ and $self->{state_prev} and $state eq $self->{state_prev} and 
-        $self->{change_pass} >= ($main::Loop_Count - 1)) {
-        my $item_name = $self->{object_name};
-        print "X10 item set skipped on consecutive pass.  item=$item_name state=$state id=$serial_id\n";
-        return;
-    }
+    return if &set_prev_pass_check($self, $serial_id);
 
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
 
@@ -334,12 +326,29 @@ sub set {
     }
 }    
 
+                                # Avoid sending the same X10 code on consecutive passes.
+                                # It is pretty easy to create a loop with
+                                # tied items, groups, house codes, etc.  Just ask Bill S. :)
+sub set_prev_pass_check {
+    my ($self, $state);
+#   print "db state=$state, sp=$self->{state_prev},  loop=$main::Loop_Count, lcp==$self->{change_pass}\n";
+    if ($state =~ /^X/ and $self->{state_prev} and $state eq $self->{state_prev} and 
+        $self->{change_pass} >= ($main::Loop_Count - 1)) {
+        my $item_name = $self->{object_name};
+        print "X10 item set skipped on consecutive pass.  item=$item_name state=$state id=$state\n";
+        return 1;
+    }
+    return 0;
+}
+
 sub send_serial_data {
     my ($port_name, $serial_data) = @_;
 
     return if &main::proxy_send($port_name, 'send_serial_data', $serial_data);
 
-    unless ($main::Serial_Ports{$port_name}{object}) {
+                                # The ncpuxa code works on a socket, not a serial port
+                                # but may be called as a Serial_Item
+    unless ($main::Serial_Ports{$port_name}{object} or lc $port_name eq 'ncpuxa') {
         print "Error, serial port for $port_name has not been set: data=$serial_data\n";
         return;
     }
@@ -527,6 +536,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.61  2003/01/12 20:39:20  winter
+#  - 2.76 release
+#
 # Revision 1.60  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

@@ -152,7 +152,7 @@ sub new {
                                 # Check for toggle data
 sub set {
     my ($self, $state, $set_by) = @_;
-
+    return if &main::check_for_tied_filters($self, $state);
     if ($state eq 'toggle') {
         if ($$self{state} eq 'on') {
             $state = 'off';
@@ -257,6 +257,8 @@ sub state_level {
 sub set_by_housecode {
     my ($hc, $state) = @_;
     for my $object (@{$items_by_house_code{$hc}}) {
+        next if $object->{type} =~ /transmit/i;  # Do not set transmitters
+#       next if $object->isa('X10_Transmitter'); # This would work also
         print "Setting X10 House code $hc item $object to $state\n" if $main::config_parms{debug} eq 'X10';
         $object->set_receive($state, 'housecode');
     }
@@ -300,6 +302,15 @@ sub new {
     $self->set_interface($interface);
 
     return $self;
+}
+
+package X10_Transmitter;
+
+@X10_Transmitter::ISA = ('X10_Item');
+
+sub new {
+    my ($class, $id, $name, $type) = @_;
+    return &X10_Item::new($class, $id, $name, 'transmitter');
 }
 
 
@@ -748,7 +759,8 @@ sub set {
         my $index = int(.5 + $1 * 32 / 100) - 1;   # 32 levels, 100% -> 31
         my $state2  = $self->{x10_id} . $preset_dim_levels[$index];
         $state2 .= ($index < 16) ? 'PRESET_DIM1' : 'PRESET_DIM2';
-        print "Switchlink X10 dim: $state -> $state2\n";
+        print "Switchlink X10 dim: $state -> $state2\n" if $main::config_parms{debug} eq 'X10';
+
         $state = $state2;
     }
     $self->SUPER::set($state, $set_by);
@@ -904,6 +916,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.35  2003/01/12 20:39:21  winter
+#  - 2.76 release
+#
 # Revision 1.34  2002/12/02 04:55:20  winter
 # - 2.74 release
 #

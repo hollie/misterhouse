@@ -12,7 +12,7 @@
                                 #      Subject line is:  command:x y z  code:xyz
 $v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10,11]', 'Ok, will do');
 $v_send_email_test-> set_info('Send commands to test remote email commands');
-if ($state = $v_send_email_test->{said}) {
+if ($state = said $v_send_email_test) {
     if (&net_connect_check) {
                                 # Use to => 'user@xyz.com', or default to your own address (from net_mail_user in mh.ini)
         &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date", 
@@ -25,7 +25,7 @@ if ($state = $v_send_email_test->{said}) {
 
                                 # Send a command in the body
         &net_mail_send(subject => "test command in body of text",
-                       text => "command:What is your up time   \ncode:$config_parms{net_mail_command_code}") if $state == 3;
+                       text => "command:get this weeks new dvds  \ncode:$config_parms{net_mail_command_code}") if $state == 3;
 
                                 # Send attachements of different types
                                 #  - Note mime parm is optional if file ends with that extention
@@ -76,18 +76,22 @@ if (said $cell_phone_test) {
 $p_get_email = new Process_Item('get_email -quiet');
 $v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a second and I will check for new email');
 $v_recent_email-> set_info('Download and summarize new email headers');
-if ($v_recent_email->{said} or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
+if (said $v_recent_email or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
                              new_minute 10 and &net_connect_check)) { 
     start $p_get_email;
 }
 
+$email_flag = new Generic_Item;
+&tk_mlabel($email_flag, 'email flag');
+
 my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
 if ($p_get_email->{done_now}) {
-    $Save{email_flag} = file_read "$config_parms{data_dir}/get_email.flag";
+    my $data = file_read "$config_parms{data_dir}/get_email.flag";
+    set $email_flag  $data;
 
                                 # Turn on an 'new mail indicator'
                                 #  - could be modified for different lights for different accounts.
-#   set $new_mail_light (($Save{email_flag} =~ /[1-9]/) ? ON : OFF);
+#   set $new_mail_light ($data =~ /[1-9]/) ? ON : OFF);
 
                                 # Once an hour, summarize all email, otherwise just new mail
     if ($Minute < 10) {
@@ -104,13 +108,10 @@ elsif ($p_get_email->{done} and -e $get_email_scan_file) {
     unlink $get_email_scan_file;
 }
 
-
-&tk_mlabel(\$Save{email_flag});
-
                                 # List or read unread email
 $v_unread_email = new  Voice_Cmd('[List,Read] unread e mail');
 $v_unread_email-> set_info('Summarize unread email headers and optionally call Outlook to read the mail');
-if ($state = $v_unread_email->{said}) {
+if ($state = said $v_unread_email) {
     &speak_unread_mail unless $Save{email_check} eq 'no';
     if ($state eq 'Read') {
         if (my $window = &sendkeys_find_window('Outlook', 'C:\Program Files\Microsoft Office\Office\OUTLOOK.EXE')) {
@@ -157,6 +158,7 @@ sub scan_subjects {
                      }
                  }
                  else {
+                                  # The mh respond_email function will mail back the results
                      if (&process_external_command($command, 1, 'email', "email to=$from subject='Results for: $command'")) {
 #                    if (run_voice_cmd $command) {
                          speak "Running email command: $command";

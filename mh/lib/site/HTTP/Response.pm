@@ -32,7 +32,7 @@ C<request()> method of an C<LWP::UserAgent> object:
 
 C<HTTP::Response> is a subclass of C<HTTP::Message> and therefore
 inherits its methods.  The inherited methods most often used are header(),
-push_header(), remove_header(), headers_as_string(), and content().
+push_header(), remove_header(), and content().
 The header convenience methods are also available.  See
 L<HTTP::Message> for details.
 
@@ -147,7 +147,6 @@ A "Content-Base:" or a "Content-Location:" header in the response.
 For backwards compatability with older HTTP implementations we will
 also look for the "Base:" header.
 
-
 =item 3.
 
 The URI used to request this response. This might not be the original
@@ -171,6 +170,8 @@ sub base
                $self->header('Content-Location') ||  # HTTP/1.1
                $self->header('Base');                # HTTP/1.0
     return $HTTP::URI_CLASS->new_abs($base, $self->request->uri);
+    # So yes, if $base is undef, the return value is effectively
+    # just a copy of $self->request->uri.
 }
 
 
@@ -242,7 +243,7 @@ sub error_as_HTML
 <HTML>
 <HEAD><TITLE>$title</TITLE></HEAD>
 <BODY>
-<H1>$title</h1>
+<H1>$title</H1>
 $body
 </BODY>
 </HTML>
@@ -385,7 +386,7 @@ sub fresh_until
 
 =head1 COPYRIGHT
 
-Copyright 1995-1997 Gisle Aas.
+Copyright 1995-2001 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

@@ -54,7 +54,9 @@ if (said $v_top10_list eq 'Get') {
             speak "Sorry, you must be logged onto the net";
         }
     }            
-    $leave_socket_open_passes = 200; # Tell web browser to wait for respond
+#   print_log " top10 get set_by=$v_top10_list->{target} target=$v_top10_list->{target}";
+#   $leave_socket_open_passes = 200 if $Respond_Target =~ /^web/; # Tell web browser to wait for respond
+    &respond_wait;  # Tell web browser to wait for respond
 }
 
 if (done_now $p_top10_list) {

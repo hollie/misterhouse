@@ -527,7 +527,7 @@ sub read_parms {
     print "Voice names: @voice_names\n";
 
     my $pronouncable_list_file = $main::config_parms{pronouncable_list_file};
-    if (main::file_change($pronouncable_list_file)) {
+    if ($::Startup or main::file_change($pronouncable_list_file)) {
         my ($phonemes, $word, $cnt);
         open (WORDS, $pronouncable_list_file) or 
           print "\nError, could not find the pronouncable word file $pronouncable_list_file: $!\n"; 
@@ -747,6 +747,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.43  2003/01/12 20:39:20  winter
+#  - 2.76 release
+#
 # Revision 1.42  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

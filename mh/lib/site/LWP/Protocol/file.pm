@@ -108,8 +108,8 @@ sub request
 	}
 	# Ensure that the base URL is "/" terminated
 	my $base = $url->clone;
-	unless ($base->epath =~ m|/$|) {
-	    $base->epath($base->epath . "/");
+	unless ($base->path =~ m|/$|) {
+	    $base->path($base->path . "/");
 	}
 	my $html = join("\n",
 			"<HTML>\n<HEAD>",

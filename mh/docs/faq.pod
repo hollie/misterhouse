@@ -1265,6 +1265,7 @@ Here is a rough timeline of MisterHouse development:
  - 10/02 Enabled web based code selection, file based alarms, palm reader, and Mac OSX support.
  - 11/02 UIRT2 control, better im control, web interface for triggers and items
  - 12/02 Improved callerID, new respond and Text_Item functions, xAP support.
+ - 01/03 Mailing list reaches 500 members.
 
 
 Audrey support, more MS TTS controls, call waiting callerid
@@ -1614,6 +1615,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.37  2003/01/12 20:39:14  winter
+#  - 2.76 release
+#
 # Revision 1.36  2002/12/24 03:05:06  winter
 # - 2.75 release
 #

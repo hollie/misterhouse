@@ -24,12 +24,14 @@ my %mime_types = (
                   'png'   => 'image/png',
                   'gif'   => 'image/gif',
                   'jpg'   => 'image/jpeg',
+                  'jpeg'  => 'image/jpeg',
                   'wbmp'  => 'image/vnd.wap.wbmp',  
                   'bmp'   => 'image/bmp',
                   'au'    => 'audio/basic',
                   'pls'   => 'audio/x-scpls',
                   'snd'   => 'audio/basic',
                   'wav'   => 'audio/x-wav',
+                  'mp3'   => 'audio/x-mp3',
                   'wml'   => 'text/vnd.wap.wml',
                   'wmls'  => 'text/vnd.wap.wmlscript',
                   'wmlc'  => 'application/vnd.wap.wmlc',
@@ -44,6 +46,7 @@ sub http_read_parms {
                                 # Old style:  html_alias_tv = /tv   $config_parms{data_dir}/tv
                                 # New style:  html_alias_tv =       $config_parms{data_dir}/tv
     for my $parm (keys %main::config_parms) {
+        next if $parm =~ /_MHINTERNAL_/;
         next unless $parm =~ /^html_alias(\d*)_(\S+)/;
         my $alias   = '/' . $2;
         my $dir = $main::config_parms{$parm};
@@ -77,6 +80,7 @@ sub http_read_parms {
                                 # Set defaults for all html_ parms for alternate browser user-agent web_formats
 
     for my $parm (grep /^html_.*[^\d]$/, keys %main::config_parms) {
+        next if $parm =~ /_MHINTERNAL_/;
         next if $parm =~ /^html_alias/;
         $main::config_parms{$parm . '1'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '1'};
         $main::config_parms{$parm . '2'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '2'};
@@ -359,7 +363,7 @@ sub http_process_request {
             if (!$get_arg) {
                 &html_response($socket, $h_response);
             }
-            elsif (&run_voice_cmd($get_arg, undef, 'web')) {
+            elsif (&run_voice_cmd($get_arg, undef,  "web [$client_ip_address]")) {
                 &html_response($socket, $h_response);
             }
             else {
@@ -436,7 +440,7 @@ sub http_process_request {
                 }
                                 # WAP pages don't allow for $ in url, so make it optional
                 $item = "\$". $item unless substr($item, 0, 1) eq "\$";
-                my $set_authority = eval qq[$item->get_authority if $item and ref($item) and $item->isa('Generic_Item');];
+                my $set_authority = eval qq[$item->get_authority if $item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item');];
                 print "SET authority eval error: $@\n" if $@;
                 unless ($set_authority or $Password_Allow{$item}) {
                     $authority = 0;
@@ -460,7 +464,7 @@ sub http_process_request {
                     my $pvar = $html_pointers{$item};
                                 # Allow for state objects
                     if ($pvar and ref $pvar ne 'SCALAR' and $pvar->can('set')) {
-                        $pvar->set($state, 'web');
+                        $pvar->set($state, "web [$client_ip_address]");
                     }
                     else {
                         $$pvar = $state;
@@ -476,8 +480,8 @@ sub http_process_request {
 
                                 # Can be a scalar or a object
                     $state =~ tr/\"/\'/; # So we can use "" to quote it
-                    my $eval_cmd = qq[($item and ref($item) and $item->isa('Generic_Item')) ? 
-                                      ($item->set("$state", 'web')) : ($item = "$state")];
+                    my $eval_cmd = qq[($item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item')) ? 
+                                      ($item->set("$state", "web [$client_ip_address]")) : ($item = "$state")];
                     print "SET eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
                     eval $eval_cmd;
                     print "SET eval error.  cmd=$eval_cmd  error=$@\n" if $@;
@@ -632,6 +636,8 @@ sub test_for_file {
             $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
             $referer .= "$get_req/";
             print $socket &http_redirect($referer);
+            print "test_for_file redirected to $referer\n" if $main::config_parms{debug} eq 'http';
+            return 1;
         }
 
         my $dir = $file;
@@ -681,6 +687,7 @@ sub test_file_req {
         return 0;
     }
 
+#   print "test_file_req Clean request=$get_req\n" if $main::config_parms{debug} eq 'http';
     return 1;
 }
 
@@ -745,8 +752,10 @@ sub html_mh_generated {
         $H_Response = $1 if $1;
         $html = &html_list($get_arg, $auto_refresh);
 #       $html .= "\n$Included_HTML{$get_arg}\n" if $Included_HTML{$get_arg} ;
-        foreach (split "\n", $Included_HTML{$get_arg}) {
-            $html .= shtml_include($_) . "\n";
+        if ($Included_HTML{$get_arg}) {
+            foreach (split "\n", $Included_HTML{$get_arg}) {
+                $html .= shtml_include($_) . "\n";
+            }
         }
         return ($html, $main::config_parms{'html_style_list' . $Http{format}});
     }
@@ -1083,7 +1092,7 @@ sub html_form_select_set_var {
 
 sub html_file {
     my ($socket, $file, $arg, $no_header) = @_;
-    print "http: print html file $file\n" if $main::config_parms{debug} eq 'http';
+    print "http: print html file=$file arg=$arg\n" if $main::config_parms{debug} eq 'http';
 
     my $html;
     local *HTML;                # Localize, for recursive call to &html_file
@@ -1343,7 +1352,7 @@ $body
 ";
 
                    # Not sure how important length is, but pretty cheap and easy to do
-    my $length = length $body;
+    my $length = length $html;
     return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
@@ -1360,9 +1369,10 @@ eof
 
 sub http_redirect {
     my ($url) = @_;
+    print "http_redirect Location: $url\n" if $main::config_parms{debug} eq 'http';
     return <<eof;
-HTTP/1.0 301 Moved Temporarily
-Location:$url
+HTTP/1.0 302 Moved Temporarily
+Location: $url
 $Cookie
 eof
 }
@@ -1525,7 +1535,7 @@ sub button_action {
     #   print "dbx4 on=$object_name s=$state r=$referer xy=$xy xy=$x,$y\n";
 	     
                                 # Do not dim the dishwasher :)
-    unless (eval qq|$object_name->isa('X10_Appliance')|) {
+    unless (eval qq|UNIVERSAL::isa($object_name, 'X10_Appliance')|) {
         $state = 'dim'      if $x < 30;   # Left  side of image
         $state = 'brighten' if $x > 70;  # Right side of image
     }
@@ -1568,6 +1578,7 @@ sub html_list {
     $h_list .= qq[<!-- html_list -->\n];
 
                                 # This means the form was submited ... check for search keyword
+                                # Now better done with /bin/command_search.pl?string
     if (my ($search) = $webname_or_object_type =~ /search=(.*)/) {
 
                                 # Search for matching Voice_Cmd and Tk Widgets
@@ -1594,7 +1605,7 @@ sub html_list {
         for my $category (&list_code_webnames('Voice_Cmd')) {
             for my $object_name (sort &list_objects_by_webname($category)) {
                 my $object = &get_object_by_name($object_name);
-                next unless $object and $object->isa('Voice_Cmd');
+                next unless $object and UNIVERSAL::isa($object, 'Voice_Cmd');
                                 # for now, only list set_authority('anyone') commands
                 my $authority = $object->get_authority;
                 push @object_list, $object_name if $authority and $authority =! /$search/i;
@@ -1923,10 +1934,11 @@ sub html_item_state {
     my ($object, $object_type) = @_;
     my $object_name  = $object->{object_name};
     my $object_name2 = &pretty_object_name($object_name);
-    my $isa_X10 = $object->isa('X10_Item');
+    my $isa_X10 = UNIVERSAL::isa($object, 'X10_Item');
+#   my $isa_X10 = $object->isa('X10_Item');  # This will abend if object is not an object
 
                                 # If not a state item, just list it
-    unless ($isa_X10 or $object->isa('Group') or defined $object->{state} or $object->{states}) {
+    unless ($isa_X10 or UNIVERSAL::isa($object, 'Group') or defined $object->{state} or $object->{states}) {
         return qq[<td></td><td align="left"><b>$object_name2</b></td>\n];
     }
 
@@ -1940,7 +1952,7 @@ sub html_item_state {
     @states = @{$object->{states}} if $object->{states};
 #   print "db on=$object_name ix10=$isa_X10 s=@states\n";
     @states = split ',', $config_parms{x10_menu_states} if $isa_X10;
-    @states = qw(on off) if $object->isa('X10_Appliance');
+    @states = qw(on off) if UNIVERSAL::isa($object, 'X10_Appliance');
     my $use_select = 1 if @states > 2 and length("@states") > $config_parms{'html_select_length' . $Http{format}};
 
     if ($use_select) {
@@ -2426,6 +2438,7 @@ sub widget_entry {
     while (@_) {
         my $label= shift @_;
         my $pvar = shift @_;
+        next unless $pvar;
 
         next if $search and $label !~ /$search/i;
         push @table_items, qq[<td align=left><b>$label:</b></td>];
@@ -2494,6 +2507,8 @@ sub widget_checkbutton {
     while (@_) {
         my $text = shift @_;
         my $pvar = shift @_;
+        next unless $pvar;
+
         next if $search and $text !~ /$search/i;
         $html_pointers{++$html_pointer_cnt} = $pvar;
         my $checked = ($$pvar) ? 'CHECKED' : '';
@@ -2628,6 +2643,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.76  2003/01/12 20:39:21  winter
+#  - 2.76 release
+#
 # Revision 1.75  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

@@ -169,7 +169,8 @@ but Randy Kobes has kindly made them available at his site. You can install them
    ppm &gt; repository add <A HREF="http://theoryx5.uwinnipeg.ca/cgi-bin/ppmserver?urn:/PPMServer58">http://theoryx5.uwinnipeg.ca/cgi-bin/ppmserver?urn:/PPMServer58</A>
    ppm&gt; install GD
    ppm&gt; install DB_File
-   ppm&gt; install Tk-JPEG</PRE>
+   ppm&gt; install Tk-JPEG
+   ppm&gt; install Win32-Setupsup</PRE>
 <P>If the DB_File post-install script doesn't run to install the included libdb.dll, you can extract the dll
 from <A HREF="http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz">http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz</A> and copy it to a dir in your path.</P>
 <P>If you are behind a www proxy firewall, try setting the environment variable http_proxy=http://proxy-server:port
@@ -449,18 +450,27 @@ For example, a ham radio enthusiast has interfaced to his GPS (Global Positionin
 up your own code and data directories.  Here is an example:</P>
 <PRE>
    c:--+
-       +--misterhouse--+        &lt;--- my copy of mh.ini lives here
-                       +--code      &lt;--- my code
-                       +--data      &lt;--- my data
-                       +--sounds    &lt;--- my sounds
-                       +--mh----+   &lt;--- mh installed here
-                                +--bin
-                                +--code
-                                +--data
-                                +--docs
-                                +--lib
-                                +--sounds
-                                +--web</PRE>
+       +--misterhouse--+       
+                       +--mh.private.ini  &lt;--- my private mh.ini parms
+                       +--code       &lt;--- my code
+                       +--data       &lt;--- my data
+                       +--sounds     &lt;--- my sounds
+                       +--mh-----+   &lt;--- mh installed here
+                                 +--bin
+                                 +--code
+                                 +--data
+                                 +--docs
+                                 +--lib
+                                 +--sounds
+                                 +--web
+                       +--mh_123-+   &lt;--- Old mh 123 version 
+                                 +--bin
+                                 +--code
+                                 +--data
+                                 +--docs
+                                 +--lib
+                                 +--sounds
+                                 +--web</PRE>
 <P>Assuming you have mh installed in c:\misterhouse\mh, the steps might looks something like this
 (using the DOS commands, as I think unix guys can make the translation :):</P>
 <PRE>

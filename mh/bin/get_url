@@ -76,7 +76,7 @@ sub use_ua {
             $response = $ua->request($request);
         }
         else {
-            $response = $ua->request($request, $file);
+            $response = $ua->request($request, $file);   # Old UserAgent code
         }
         print " url retrieved.\n" unless $config_parms{quiet};
         exit;
@@ -118,6 +118,9 @@ sub use_get {
 
 #
 # $Log$
+# Revision 1.15  2003/01/12 20:38:53  winter
+#  - 2.76 release
+#
 # Revision 1.14  2002/10/13 02:07:57  winter
 #  - 2.72 release
 #

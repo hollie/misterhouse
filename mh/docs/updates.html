@@ -15,6 +15,7 @@
 	<UL>
 
 		<LI><A HREF="#changes in the current test version">Changes in the current test version</A></LI>
+		<LI><A HREF="#version 2.75 posted on 12/23/2002">Version 2.75 posted on 12/23/2002</A></LI>
 		<LI><A HREF="#version 2.74 posted on 12/01/2002">Version 2.74 posted on 12/01/2002</A></LI>
 		<LI><A HREF="#version 2.73 posted on 11/09/2002">Version 2.73 posted on 11/09/2002</A></LI>
 		<LI><A HREF="#version 2.72 posted on 10/12/2002">Version 2.72 posted on 10/12/2002</A></LI>
@@ -97,14 +98,113 @@
 <HR>
 <H1><A NAME="mister house announcement list">Mister House Announcement List</A></H1>
 This is a copy of the mh update announcements made to MisterHouse mailing list, also
-<a href=http://sourceforge.net/mail/?group_id=1365>archived here</a>
-<p>The changelog for the current test release can be found
-<a href=http://misterhouse.net:81/mh/docs/updates.html>can be found here</a><P>
+<a href=http://sourceforge.net/mail/?group_id=1365>archived here</a><P>
 <H2><A NAME="changes in the current test version">Changes in the current test version</A></H2>
+<p>The latest changelog for the 
+<a href=http://misterhouse.net/public/misterhouse_src_test.zip>current test release</a>
+(updated nightly) can be found
+<a href=http://misterhouse.net:81/mh/docs/updates.html>here, in the test release updates file</a>.<P><STRONG>New Features:</STRONG></P>
+<P>- Andrew Drummond send in mh/lib/Acid.pm, so we can 
+display callerid data from mh on one or more Audrey units running the acid program,
+which is included in Pete's nifty Audrey image.
+This is automatically enabled from Bill's new CID_Server code.</P>
+<P>- Pete Flaherty posted his updated Audrey image at <A HREF="http://vsa.cape.com/~pjf/MrAudrey.html.">http://vsa.cape.com/~pjf/MrAudrey.html.</A></P>
+<P>- Added a  get_parm_file function, so we can tell if a parm was overridden or not.  This allowed us to 
+fixed the ia5 weather page to not display the 'click to set parm' button if the weather parm has already been overridden.</P>
+<P>- Bill Sobel updates:
+Audiotron player:  Fixed for latest firmware, support password if set in .ini file
+CID_Server, caller id server with initial YAC implementation (can add others here fairly easy)  Needs yacserver. and yacserver.bat in the MH directory.
+Compool.pm fixes for solar power
+DSC_Alarm: supports proxy config
+http_server.pl: bug fixes
+read_table_a.pl: new x10 transmiter, yacclient and wakeonline stuff
+Like an X10_Item, but will not be set by incoming X10 data.  Simulates transmit only devices like keypads.</P>
+<P>serial_item.pm: looping fixes
+stargate.pm: Fixes, digital relay updates, ir support (initial)
+stargate485.pm: LCD keypad digit support
+telephony_item: base work for dialed ability (we now log outgoing calls as well if the CID hardware detects DTMF and reports them)
+wakeonlan.pm: wakeonlan module
+x10_items: x10 transmitter definition
+xantech.pm: made some logging optional
+mh.: serial port/proxy fixes
+internet_weather.pl  added nws_city .ini parm nws_city= paramter which overrides city if set
+- set_with_timer 
+ - return_state option
+ - state can be blank</P>
+<P>- Bill Sobel created lib/WakeOnLan.pm.  See code/public/wakeup_on_lan.pl for more info.</P>
+<P>- embeded into normal set with ~ seperator:  set '100%~2~50%'</P>
+<PRE>
+        You can call set_with_timer with sets of states as follows:</PRE>
+<PRE>
+           set(s1~t1~s2~t2...sn~tn);
+</PRE>
+<PRE>
+
+        where s1, s2, ... sn are various states, and t1, t2 ... tn are the times to
+        wait between states.  See example below.</PRE>
+<P>- Jason Sharpee et all updates to CID ...</P>
+<P>- Steve Switzer updates to telnet.pl ...</P>
+<P>- Sean Walker and Jason Sharpee had the idea of allowing for an optional speak chime sound, 
+to be played before non-interactive speech event, so we created mh/code/common/speak_chime.pl.</P>
+<P>- Added set_timeout and timed_out methods for Process_Item.  See code/examples/test_process.pl for an example.</P>
+<P>- Added a phrase_match function, which calls Dree Mistrut's updated PhraseDistance.pm module.  
+This should allow us to find and run commands that are the closest match to a given string.
+Dree was able to speed up his algorithm enough that we can now use it interactivly on faster boxes.
+Not useful yet, but you can test it with the ia5 search 'Smart command search' menu and/or
+commands from the updated common/telnet.pl server.</P>
+<P><STRONG>Bug Fixes and Other Changes:</STRONG></P>
+<P>- Change the test for 'unspeakable text' to still allow speech if &lt; 10 unspeakable characters.</P>
+<P>- Tom Kotowski updated code/public/news_drudge_report.pl</P>
+<P>- Joe Doss fixed a few problems in the new lib/Telephony_Interface.pm code.</P>
+<P>- Bill Sobel found a problem with looping caused by his code that tied items, groups, and X10 whole house codes.
+To fix this, we added X10_Transmitter object and a like X10_Item 'transmitter' type.  .  
+Like X10_Item, but it will not be set when incoming or outgoing house codes are set.</P>
+<P>- Steve Switzer noticed that set_by and respond target were not working in the new Text_Cmd object.</P>
+<P>- Chris Witte made set_by smarter when set by the web and user code.   
+It will now return web [ip_address]  or UserCode [filename].</P>
+<P>- Thomas Caligiuri noticed a 2.75 bug with some browsers not loading the full html file, due to
+a bug in the http length value.</P>
+<P>- Andrew Drummond made an update to allow for serial/socket modules to be in user code.</P>
+<P>- Axel Brown noticed that the pronouncable_list_file was not being read in (probably a recent bug).</P>
+<P>- Jon Boehm noticed that hidden items still showed up on the list_buttons web pages.</P>
+<P>- Bill Sobel added code hook processing to the serial proxy data.</P>
+<P>- Andrew Drummond updated the RCSs code to allow for control of multiple thermostats and
+to allow for control of the RS485 models.</P>
+<P>- Brian Paulsen suggested we use Data::Dumper on the %Save data, like we do with the %Persistant data,
+so now we can store nested data in %Save ( e.g. $Save{TEMPS} = { BASEMENT =&gt; 70, LIVING_ROOM =&gt; 40};  )
+I also updated the save/restore code to allow for ~ characters in the state and state_log.</P>
+<P>- Paul Wong noticed a bad return code when running 'Set the clock via the internet' from XP when run from the tk or web menu,
+so we changed this to be a background process, which also avoids  mh pauses.</P>
+<P>- David Norwood fixed a but in the web iniedit function when updating parms with quotes.</P>
+<P>- Brian Rudy updated code/public/mp3_control_xmms.pl to 
+remove the need for xmms-shell, and the site specific code.</P>
+<P>- Fixed a 2.75 respond related bug in internet_top10.pl and dvd_releases.pl.  The web server would stop if those commands
+were run from something other than a web browser.  Fixed them by calling a new &amp;respond_wait function, which we can call
+to tell the web server to wait for respond data.</P>
+<P>- Use UNIVERSAL::isa function, rather than isa method, in http_server, to avoid mh abends.</P>
+<P>- Added more data to data/logs/monitor_memory_leak.log</P>
+<P>- Updated dailystrips comic script 1.0.25 (a few new comics added changes).</P>
+<P>- Updated LWP and LWP and HTTP libraries from the latest libwww to fix a problem some were having with dailystrips comic downloads.</P>
+<P>- Fixed a 2.75 bug that would allow data_log/logs/error.log to grow (if you had code errors) without prunning on restart.
+This would cause mh to load slowly on startup, if your error.log file got large.</P>
+<P>- Run 'Check the http server' every 10 minutes in mh_control.pl, to make sure the web server is working.</P>
+<P>- Removed un-needed targets from various web/bin scripts, so single window browsers like the Audrey work better.</P>
+<P>- Moved code/bruce/monitor_router.pl to code/common, after moving the Bruce specific code to bruce/monitor_router_bruce.pl.
+This code monitors router traffic via udp broadcasts from NetGear and LinkSys routers.</P>
+<P>- Allow objects for tk_label, like we do for the other tk_* widgets.</P>
+<P>- Fix common/tv_grid.pl to not create bad code when clicking on the VCR link if a $VCR object is not defined.</P>
+<P>- Fixed a web select_code bug that would not show the ini parm help text unless you had already run iniedit.pl</P>
+<P>- Joseph Gaston fixed a net_mail_send bug when account was specified, but not server.</P>
+<P>
+<H2><A NAME="version 2.75 posted on 12/23/2002">Version 2.75 posted on 12/23/2002</A></H2>
+<P>Version 2.75 was just uploaded to:</P>
+<PRE>
+  <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
+  <A HREF="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</A></PRE>
 <P><STRONG>New Features:</STRONG></P>
 <P>- Steve Switzer and I added a new respond function, 
 which can be used to send the resulting text of a command or query to a specified target.  
-By default, valid targets are display, email, im, log, speak, tk, web.
+By default, valid targets are display, email, im, log, speak, tk, and web.
 The default respond target it whatever set_by is, so for example, if a command is run from an im client,
 text sent to any respond called by that command will be sent only to that im client.
 More info and examples are in docs/mh.html.
@@ -113,13 +213,14 @@ We also changed many of the speak calls in the code/common files to respond.</P>
 I created Telephoney_Interface and code/common/callerid.pl to use these modules for callerID.
 These replace code/common/phone_modem.pl and phone_netcallerid.pl and lib/Caller_ID.pm, 
 but I left them there for a while for backward compatability while we work out the bugs in the new code :)</P>
-<P>- Chris Witte created mh/lib/RCSs.pm and mh/code/public/RCSs.pl 
-for talking to the RS232/485 versions of the RCS thermostats.</P>
 <P>- Created a Text_Cmd object, so we can fire events based on commands that match a regular expression.
 For an example, see mh/code/examples/Text_Cmd_example1.pl and/or docs/mh.html.</P>
 <P>- Updated lib/xAP.pm to the new 1.2 protocol (info on xap is at <A HREF="http://www.xapautomation.org">http://www.xapautomation.org</A> ).
-To enable, add this mh.ini parm:  xap_module = xAP.
-Examples are code/public/xap_example.pl.</P>
+To try it, first start a hub program, then enable code/common/test_xap.pl.
+Not very tested yet, as there are not many applications yet.  I have it working with
+an older version of xhub, but not with Patric's latest xhub-hub.</P>
+<P>- Chris Witte created mh/lib/RCSs.pm and mh/code/public/RCSs.pl 
+for talking to the RS232/485 versions of the RCS thermostats.</P>
 <P>- Chris Witte and Rob Williams updated the cadx code with more documentation, bug fixes, 
 and Windows (as well as linux) compatibility.
 </P>
@@ -155,12 +256,16 @@ Steve also added a net_aim_port option, so you can change from the default of 12
 <P>- Sean Walker updated the read_table_A.pl .mht reader to drop trailing blanks from Group names.</P>
 <P>- Tom Kotowski and Dave Crawford updated code/common/news_yahoo.pl</P>
 <P>- Pete Flaherty posted version of his mh compatable Audrey image at <A HREF="http://vsa.cape.com/~pjf/MrAudrey.html.">http://vsa.cape.com/~pjf/MrAudrey.html.</A></P>
+<P>- David Norwood updated tk_photos to work even if -tk 0, and made a few updates 
+to the UIRT2 code to fix problems with learning and receiving.</P>
+<P>- Bob Hughes noticed that tie_filter did not filter when the data was incoming serial data.</P>
 <P>- Replaced the mh.ini sound_volume parm with mh_volume object in code/common/mh_volume.pl.  
 This will set the default sound, which can still be overriden by the speak/play volume= parm.  
 You can use the default volume widget from common/tk_widgets.pl to control it from the tk or web interface.</P>
 <P>- Switched from exit to POSIX::_exit for much faster mh exits.</P>
 <P>- Dropped 'noscroll' in the web photo search results.</P>
-<P>- Added mht_item_add/copy/delete functions to bin/mh, so we can write code that can manipulate mht entries.</P>
+<P>- Added mht_item_add/copy/delete functions to bin/mh, so we can write code that can manipulate mht entries.
+Also added help text to the web based item editor.</P>
 <P>
 <H2><A NAME="version 2.74 posted on 12/01/2002">Version 2.74 posted on 12/01/2002</A></H2>
 <P>Version 2.74 was just uploaded to:</P>

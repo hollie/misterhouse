@@ -119,10 +119,10 @@ if ($state = said $v_what_temp) {
             $text = "It is $temp_in degrees $humidity_in percent inside, $temp_out. $remark ";
 
         }
-        speak $text;
+        respond $text;
     }
     else {
-        speak "Sorry, no weather info";
+        respond "Sorry, no weather info";
     }   
 }
 
@@ -140,7 +140,7 @@ if (said $v_what_wind) {
         $temp .= ".  Average speed is " . 
             round($Weather{WindAvgSpeed}) . " from the " . convert_direction($Weather{WindAvgDir});
     }
-    speak $temp;
+    respond $temp;
 }
 
 $v_what_rain = new  Voice_Cmd('How much rain have we had in the last ' .
@@ -197,12 +197,12 @@ if (my $period = said $v_what_rain) {
             $temp .= "in the last $period";
         }
     }
-    speak $temp;
+    respond $temp;
 }
 
                                 # This code gets archived weather data
 sub get_weather_record {
-    speak 'Sorry, not implemented yet';
+    respond 'Sorry, not implemented yet';
 }
 
 
@@ -213,12 +213,12 @@ if (state $Windy and
     not $Save{sleeping_parents}) {
     if ($Weather{WindGustSpeed} > ($Save{WindGustMax} + 5)) {
         $Save{WindGustMax} = $Weather{WindGustSpeed};
-        speak "app=notice Weather alert.  The wind is now gusting at " . round($Weather{WindGustSpeed}) . " MPH.";
+        respond "app=notice Weather alert.  The wind is now gusting at " . round($Weather{WindGustSpeed}) . " MPH.";
         set $timer_wind_gust 120*60;
     }
     elsif (inactive $timer_wind_gust) {
         set $timer_wind_gust 120*60;
-        speak "app=notice Weather alert.  A wind gust of " . round($Weather{WindGustSpeed}) . " MPH was just recorded.";
+        respond "app=notice Weather alert.  A wind gust of " . round($Weather{WindGustSpeed}) . " MPH was just recorded.";
     }
 }
 $Save{WindGustMax} = 0 if $New_Day;
@@ -227,7 +227,7 @@ my $raintotal_prev;
 if (my $rain = state_now $RainTotal) {
     $Weather{RainRecent} = round(($rain - $raintotal_prev), 2) if $raintotal_prev > 0;
     if ($Weather{RainRecent} > 0) {
-        speak "Notice, it just rained $Weather{RainRecent} inches";
+        respond "Notice, it just rained $Weather{RainRecent} inches";
         $Weather{IsRaining}++;
     }
     else {

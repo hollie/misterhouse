@@ -78,7 +78,7 @@ putting something like this in your user code.
 
 sub respond_netcallerid {
     my (%parms) = @_;
-    $parms{text} =~ s/ ?\.[^\.]*$/\./;  # Drop the extra 'call from'
+    $parms{text} =~ s/ ?\.[^\.]*\.?$/\./;  # Drop the extra 'call from'
     &net_im_send(pgm => "AOL', text => $parms{text}); # Add to => screenname to send to non-default
     &speak("app=phone $parms{text}");
 }

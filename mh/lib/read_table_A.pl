@@ -41,6 +41,11 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "X10_Item('$address', $other)";
     }
+    elsif($type eq "X10TR") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "X10_Transmitter('$address', $other)";
+    }
     elsif($type eq "X10O") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -144,6 +149,18 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateTelephone('$address', $other)";
     }
+    elsif($type eq "STARGATEIR") {
+        require 'Stargate.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateIR('$address', $other)";
+    }
+    elsif($type eq "STARGATEASCII") {
+        require 'Stargate.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateASCII('$address', $other)";
+    }
     elsif($type eq "XANTECH") {
         require 'Xantech.pm';
         ($address, $name, $grouplist, @other) = @item_info;
@@ -176,7 +193,22 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "iButton('$address', $other)";
     }
-
+    #WAKEONLAN, MACADDRESS, Name, Grouplist
+    #WAKEONLAN, 00:06:5b:8e:52:b9, BillsOfficeComputer, WakeableComputers|Computers|MorningWakeupDevices
+    elsif($type eq "WAKEONLAN") {
+        require 'WakeOnLan.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "WakeOnLan('$address', $other)";
+    }
+    #YACCLIENT, machinename, Name, Grouplist
+    #YACCLIENT, titan, TitanYacClient, YacClients
+    elsif($type eq "YACCLIENT") {
+        require 'CID_Server.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "CID_Server_YAC('$address', $other)";
+    }
     ##ZONE,      4,     Stairway_motion,            Inside|Hall|Sensors
     elsif($type eq "ZONE") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -227,6 +259,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.17  2003/01/12 20:39:21  winter
+#  - 2.76 release
+#
 # Revision 1.16  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

@@ -40,9 +40,10 @@ if ($state = said $v_http_control) {
     socket_restart 'http' if $state eq 'Restart';
 }
 
-                                # Check the http port frequently, so we can restart it if down.
+                                # Check the http port, so we can restart it if down.
+run_voice_cmd 'Check the http server', undef, 'time', 1 if new_minute 1;
+
 $http_monitor   = new  Socket_Item(undef, undef, "$config_parms{http_server}:$config_parms{http_port}");
-#f ((said $v_http_control eq 'Check') or new_minute 1) {
 if ((said $v_http_control eq 'Check')) {
     unless (start $http_monitor) {
         my $msg = "The http server $config_parms{http_server}:$config_parms{http_port} is down.  Restarting";
@@ -52,7 +53,7 @@ if ((said $v_http_control eq 'Check')) {
         stop $http_monitor if active $http_monitor; # Need this?
     }
     else {
-        print_log "The http server is up" if said $v_http_control;
+        print_log "The http server is up" unless get_set_by $v_http_control eq 'time';
         stop $http_monitor;
     }
 }
@@ -322,19 +323,33 @@ if ($New_Month) {
     print_log "Archiving old print/speak logs";
     my $print_log = "$config_parms{data_dir}/print.log";
     my $speak_log = "$config_parms{data_dir}/speak.log";
+    my $error_log = "$config_parms{data_dir}/error.log";
     rename "$print_log.old", "$print_log.old2";
     rename "$speak_log.old", "$speak_log.old2";
+    rename "$error_log.old", "$error_log.old2";
 }
 
 
                                 # Allow for commands to be entered via tk or web
-$run_command = new Generic_Item; # Set from web menu mh/web/ia5/house/search.shtml
+$run_command           = new Generic_Item; # Set from web menu mh/web/ia5/house/search.shtml
 #&tk_entry('Run Command', $run_command) if $Run_Members{mh_control};
 
 if ($temp = state_now $run_command) {
     my $set_by = get_set_by $run_command;
     print_log "Running External $set_by command: $temp";
     &process_external_command($temp, 1, $set_by);
+}
+
+$search_command_string = new Generic_Item; # Set from web menu mh/web/ia5/house/search.shtml
+if ($temp = state_now $search_command_string) {
+    my @match = &phrase_match($temp);
+    my $results = "Matches for $temp:\n";
+    my $i = 1;
+    for my $cmd2 (@match) {
+        $results .= " $i: $cmd2\n";
+        $i++;
+    }
+    respond $results;
 }
 
 $undo_last_change = new Voice_Cmd 'Undo the last action';
@@ -353,3 +368,10 @@ if (said $undo_last_change) {
         }
     }
 }
+
+                                # Add a short command for testing
+$test_command_yo = new Text_Cmd 'yo';
+$test_command_yo-> set_info('A short text command for quick tests');
+$test_command_yo-> set_authority('anyone');
+respond "Hi to $test_command_yo->{set_by}, $test_command_yo->{target}." if said $test_command_yo;
+

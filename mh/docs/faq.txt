@@ -1201,6 +1201,7 @@ only at Startup?
      - 10/02 Enabled web based code selection, file based alarms, palm reader, and Mac OSX support.
      - 11/02 UIRT2 control, better im control, web interface for triggers and items
      - 12/02 Improved callerID, new respond and Text_Item functions, xAP support.
+     - 01/03 Mailing list reaches 500 members.
 
     Audrey support, more MS TTS controls, call waiting callerid
 

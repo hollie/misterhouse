@@ -317,6 +317,12 @@ need 12V, the Weeders give 5V).</P>
 extra 8 pin dip switches to do that.</P>
 <P>6. It comes as a bare open board, so think about an enclosure of some type.</P>
 <P>7. All of these parts are available from jameco for nominal extra cost.</P>
+<P>Danal Estes reports another relay option is the ELK-924-4 ``Sensitive Relay'':
+<A HREF="http://www.elkproducts.com/products/elk-924.htm.">http://www.elkproducts.com/products/elk-924.htm.</A>  
+He used a couple of the four packs.  Work like a charm, have been in an attic
+for over a year, no problems. Smarthome carries these for $38 a four-pack,
+you can probably find them cheaper, lots of alarm system places carry them.
+Search on ``ELK-924''.</P>
 <P>The HomeBase.pm module to supports the JDS interfaces, <A HREF="http://www.jdstechnologies.com">http://www.jdstechnologies.com</A> .
 See member mh/code/public/test_homebase.pl for example code.</P>
 <P>The Homevison.pm module to supports HomeVision controller, <A HREF="http://www.csi3.com/homevis2.htm">http://www.csi3.com/homevis2.htm</A> .
@@ -596,9 +602,23 @@ mh is stopped/started.
                       Unlike state_now, state_changed will return undef (false) if
                       the item is set to the same state it is currently in.</PRE>
 <PRE>
-     set                 :  places the value into the state field (e.g. set $light on)
-     set_with_timer      :  like set, but will toggle back on/off after the specified time</PRE>
+     set($state)   :  places the value into the state field (e.g. set $light on)</PRE>
 <PRE>
+     set_with_timer($state, $time, $return_state)
+                   :  Like set, but will return to $return_state after $time.
+                      If $return_state is not specified, it toggles $state.
+                      If $return_state is previous, it returns to the previous state.</PRE>
+<PRE>
+        You can call set_with_timer with sets of states as follows:</PRE>
+<PRE>
+           set(s1~t1~s2~t2...sn~tn);
+</PRE>
+<PRE>
+
+        where s1, s2, ... sn are various states, and t1, t2 ... tn are the times to
+        wait between states.  See example below.</PRE>
+<PRE>
+
      hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.</PRE>
 <PRE>
      tie_items($item)    : If the state of the generic_item changes, then 
@@ -700,6 +720,11 @@ tie to apply to.  If not specified, it defaults to all states.  This is required
                            # Disable an item when we are away
     $item1 -&gt; tie_filter('state $status_away eq ON');
     $item1 -&gt; tie_event('print_log &quot;item1 toggled to $state&quot;');</PRE>
+<PRE>
+                           # Set an item to multiple states, with 5 second a delay between states
+    $test_set1  = new Generic_Item;
+    $test_set1 -&gt; set('0%~5~30%~5~60%~5~100%') if new_second 20;
+    $test_set1 -&gt; tie_event('print_log &quot;test set $state&quot;');</PRE>
 <P>See mh/code/examples/generic_item.pl for more examples.
 See mh/code/examples/test_tie.pl for more examples on how to tie/untie items/events.</P>
 <P></P>
@@ -1039,19 +1064,23 @@ On Unix systems, the fork function is used.  On either system, the following met
         On Windows, the &amp;-&gt; eval trick is supposed to work with perl 5.6+ (which has fork), but
         unfortunately, it causes perl to crash often, so is probably not useful yet.</PRE>
 <PRE>
-     set_output $output_file : Program STDOUT errata goes to $output_file
-     set_errlog $errlog_file : Program STDERR errata goes to $errlog_file</PRE>
+     set_timeout $timeout     : Process will timeout after $timeout seconds
+     set_output  $output_file : Program STDOUT errata goes to $output_file
+     set_errlog  $errlog_file : Program STDERR errata goes to $errlog_file</PRE>
 <PRE>
      start          : Starts the process.
      start 'program arg'  : Starts the process with program arg</PRE>
 <PRE>
-     stop           : Stops the process.
-                      If not process is specified, all active Process_Items are stopped.</PRE>
+     stop           : Stops the process. If called as a stand alone function
+                      (not as an object method), all active Process_Items are stopped.</PRE>
 <PRE>
      done           : Returns the time (seconds since epoch) that the process finished.  If
                       the process has been started, but has not yet finished, it returns 0.</PRE>
 <PRE>
      done_now       : Is true for the pass that the process finished on.</PRE>
+<PRE>
+     timed_out      : Returns the time when the process timed out.  
+                      done_now will still trigger for a timed_out process.</PRE>
 <PRE>
   Examples:
      my $slashdot_news = &quot;$Pgm_Root/data/web/slashdot_news.txt&quot;;
@@ -1078,9 +1107,11 @@ On Unix systems, the fork function is used.  On either system, the following met
       set $p_test_ftp &quot;&amp;main::net_ftp(file =&gt; '/tmp/junk1.txt', &quot; .
                       &quot;file_remote =&gt; 'incoming/junk1.txt',&quot; . 
                       &quot;command =&gt; '$state')&quot;;
+      set_timeout $p_test_ftpb 60*2;
       start $p_test_ftpb;
     }
     print_log &quot;Ftp command done&quot; if done_now $p_test_ftp;</PRE>
+<P>More examples are in mh/code/examples/test_process.pl</P>
 <P></P>
 <DT><STRONG><A NAME="item_Serial_Item">Serial_Item</A></STRONG><BR>
 <DD>
@@ -1331,6 +1362,12 @@ Also, methods light and dark will return the current light/dark state.  For exam
  speak 'It is dark downstairs' if dark $sensor_downstairs;</PRE>
 <P>Without the MS13 model number, the light/dark codes will be ignored.</P>
 <P></P>
+<DT><STRONG><A NAME="item_X10_Transmitter">X10_Transmitter</A></STRONG><BR>
+<DD>
+Like an X10_Item, but will not be set by incoming X10 data.  Simulates transmit only devices like keypads.
+Can be used in place of X10_Item if you have complicated code that might get into a loop 
+because we are not ignoring incoming X10 data for transmit-only devices.
+<P></P>
 <DT><STRONG><A NAME="item_RCS_TX15">RCS_TX15</A></STRONG><BR>
 <DD>
 Craig is working on this one.
@@ -1350,9 +1387,11 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
 <PRE>
         'host_protocol' can be 'tcp' or 'udp'.  Default is 'tcp'</PRE>
 <PRE>
-        'datatype'      can be 'raw' or 'record'.  If 'raw', the said
+        'datatype'      can be 'raw', 'rawout', or 'record'.  If 'raw', the said
                         method returns data as read.  If record, 
-                        said only returns data when reaching a newline.</PRE>
+                        said only returns data when reaching a newline.
+                        When writing to the port, a newline is added unless 
+                        datatype is 'raw' or 'rawout'.</PRE>
 <PRE>
         'break_char'    This will be added to data sent with set and, unless datatype=raw,
                         will be used to break incoming data into state_now records. 
@@ -1377,8 +1416,12 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
                        optional 3rd parm can be used to pick which client set to.  
                        Values are:
                           - 'all' (send to all connected clients),
-                          - ip_address (a regular expresion of the ip address(s) you want to send to,
-                          - client_number (which client to send to, 0 .. #).</PRE>
+                          - ip_address (a regular expresion of the ip address(s) you want to send to
+                          - client_number (which client to send to, 0 .. #).  Note this
+                            can change as clients are added and dropped. 
+                          - socket hash name, which can be captured when reading
+                            data from the port with this:
+                               $client = $Socket_Ports{$port_name}{socka};</PRE>
 <PRE>
      set_echo     : Use this to control echoing of incoming characters:
                      set_echo $my_socket 0   -&gt; Do not echo incoming characters
@@ -1468,8 +1511,9 @@ will be tested against all Text_Cmd items.  All items that match will fire their
    &amp;tk_entry(&quot;Text Input&quot;, $Text_Input, &quot;tcmd1&quot;, $tcmd1);</PRE>
 <PRE>
    if ($state = state_now $Text_Input) {
-      print_log &quot;You typed $state&quot;;
-      run_voice_cmd($state);
+      my $set_by = get_set_by $Text_Input;
+      print_log &quot;Text_Input set_by $set_by typed $state&quot;;
+      run_voice_cmd($state, undef, $set_by);
    }
                     # Create commands
    $tcmd1 = new Text_Cmd('hi (a|b|c)');
@@ -1478,8 +1522,8 @@ will be tested against all Text_Cmd items.  All items that match will fire their
 <PRE>
                     # Fire events if the commands match text input
    $tcmd1-&gt;tie_event('print_log &quot;tcmd1 state: $state&quot;');
-   $tcmd2-&gt;tie_event('print_log &quot;tcmd2 state: $state&quot;');
-   print_log &quot;tcmd3 state: $state&quot;' if $state = $state_now $tcmd3;</PRE>
+   print_log &quot;tcmd2 state=$state&quot; if $state = state_now $tcmd2;
+   print_log &quot;tcmd3 state=$state set_by=$tcmd3-&gt;{set_by}, target=$tcmd3-&gt;{target}&quot; if $state = state_now $tcmd3;</PRE>
 <P></P>
 <DT><STRONG><A NAME="item_Timer">Timer</A></STRONG><BR>
 <DD>
@@ -2569,20 +2613,19 @@ The $variable is copied to $Tk_results{'Entry label:'} only after the RETURN key
 <DT><STRONG><A NAME="item_tk_label_tk_mlabel">tk_label tk_mlabel</A></STRONG><BR>
 <DD>
 Use these functions to add a Tk label widget to the mh tk grid (tk_label) or the tk menu_bar (tk_mlabel).
-&amp;tk_label will accept multiple variables, displaying them in a row in the grid.
+To avoid duplicate labels after a reload, pass a label name as a 2nd parm.
 <PRE>
    Usage:
 </PRE>
 <PRE>
 
      &amp;tk_mlabel(\$variable);
-     &amp;tk_label(\$variable);
-     &amp;tk_label(\$variable1, \$variable2, \$variable3);</PRE>
+     &amp;tk_mlabel($object, $label);</PRE>
 <PRE>
    Example:</PRE>
 <PRE>
-     &amp;tk_mlabel(\$Save{email_flag});
-     $Save{email_flag} = file_read &quot;$Pgm_Root/data/get_email.flag&quot;;</PRE>
+     $email_flag = new Generic_Item;
+     &amp;tk_label($email_flag, 'email flag');</PRE>
 <P></P>
 <DT><STRONG><A NAME="item_tk_radiobutton">tk_radiobutton</A></STRONG><BR>
 <DD>
@@ -4102,9 +4145,9 @@ and simply include the proxy code dir in you mh.ini code_dir parm.  For example:
  code_dir = c:/misterhouse/my_code,c:/misterhouse/mh/code/proxy</PRE>
 <P>On your main mh box, change your mh.ini port parms to point to the address:port of the proxy box, like this:</P>
 <PRE>
- cm11_port           = proxy localhost:8005
- cm17_port           = proxy localhost:8005
- iButton_serial_port = proxy localhost:8005</PRE>
+ cm11_port           = proxy localhost:8085
+ cm17_port           = proxy localhost:8085
+ iButton_serial_port = proxy localhost:8085</PRE>
 <P>You can start or restart either the main mh or mh_proxy before or after the other one and they should sync up.
 Tested interfaces include 
 cm11, cm17, iButton, weeder, mr26, wx200 weather, modem, netcallerid, and ham tnc.</P>

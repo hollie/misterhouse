@@ -648,12 +648,21 @@ sub get_heatsource
         ::print_log "Compool get_heatsource unknown device\n", return undef;
     }
 
-    SWITCH: for( $targetbyte >> $targetshift)
+    if ( $targetbyte >> $targetshift == 0)
     {
-        /0x03/      && do { return "solarpri?"; };
-        /0x02/      && do { return "heater?"; };
-        /0x01/      && do { return "solar?"; };
-        /0x00/      && do { return "off?"; };
+        return "off";
+    }
+    elsif ( $targetbyte >> $targetshift == 1)
+    {
+        return "solar";
+    }
+    elsif ( $targetbyte >> $targetshift == 2)
+    {
+        return "heater";
+    }
+    elsif ( $targetbyte >> $targetshift == 3)
+    {
+        return "solarpriority";
     }
     ::print_log "Compool get_heatsource unknown state\n", return undef;
 }

@@ -292,6 +292,13 @@ DESCRIPTION
 
     7. All of these parts are available from jameco for nominal extra cost.
 
+    Danal Estes reports another relay option is the ELK-924-4 "Sensitive
+    Relay": http://www.elkproducts.com/products/elk-924.htm. He used a
+    couple of the four packs. Work like a charm, have been in an attic for
+    over a year, no problems. Smarthome carries these for $38 a four-pack,
+    you can probably find them cheaper, lots of alarm system places carry
+    them. Search on "ELK-924".
+
     The HomeBase.pm module to supports the JDS interfaces,
     http://www.jdstechnologies.com . See member
     mh/code/public/test_homebase.pl for example code.
@@ -611,9 +618,20 @@ DESCRIPTION
                               Unlike state_now, state_changed will return undef (false) if
                               the item is set to the same state it is currently in.
 
-             set                 :  places the value into the state field (e.g. set $light on)
-             set_with_timer      :  like set, but will toggle back on/off after the specified time
+             set($state)   :  places the value into the state field (e.g. set $light on)
 
+             set_with_timer($state, $time, $return_state)
+                           :  Like set, but will return to $return_state after $time.
+                              If $return_state is not specified, it toggles $state.
+                              If $return_state is previous, it returns to the previous state.
+
+                You can call set_with_timer with sets of states as follows:
+
+                   set(s1~t1~s2~t2...sn~tn);
+ 
+                where s1, s2, ... sn are various states, and t1, t2 ... tn are the times to
+                wait between states.  See example below.                 
+                          
              hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.
 
              tie_items($item)    : If the state of the generic_item changes, then 
@@ -722,6 +740,11 @@ DESCRIPTION
                                    # Disable an item when we are away
             $item1 -> tie_filter('state $status_away eq ON');
             $item1 -> tie_event('print_log "item1 toggled to $state"');
+
+                                   # Set an item to multiple states, with 5 second a delay between states
+            $test_set1  = new Generic_Item;
+            $test_set1 -> set('0%~5~30%~5~60%~5~100%') if new_second 20;
+            $test_set1 -> tie_event('print_log "test set $state"');
 
         See mh/code/examples/generic_item.pl for more examples. See
         mh/code/examples/test_tie.pl for more examples on how to tie/untie
@@ -1069,19 +1092,23 @@ DESCRIPTION
                 On Windows, the &-> eval trick is supposed to work with perl 5.6+ (which has fork), but
                 unfortunately, it causes perl to crash often, so is probably not useful yet.
 
-             set_output $output_file : Program STDOUT errata goes to $output_file
-             set_errlog $errlog_file : Program STDERR errata goes to $errlog_file
+             set_timeout $timeout     : Process will timeout after $timeout seconds
+             set_output  $output_file : Program STDOUT errata goes to $output_file
+             set_errlog  $errlog_file : Program STDERR errata goes to $errlog_file
 
              start          : Starts the process.
              start 'program arg'  : Starts the process with program arg
 
-             stop           : Stops the process.
-                              If not process is specified, all active Process_Items are stopped.
+             stop           : Stops the process. If called as a stand alone function
+                              (not as an object method), all active Process_Items are stopped.
 
              done           : Returns the time (seconds since epoch) that the process finished.  If
                               the process has been started, but has not yet finished, it returns 0.
 
              done_now       : Is true for the pass that the process finished on.
+
+             timed_out      : Returns the time when the process timed out.  
+                              done_now will still trigger for a timed_out process.
 
           Examples:
              my $slashdot_news = "$Pgm_Root/data/web/slashdot_news.txt";
@@ -1108,9 +1135,12 @@ DESCRIPTION
               set $p_test_ftp "&main::net_ftp(file => '/tmp/junk1.txt', " .
                               "file_remote => 'incoming/junk1.txt'," . 
                               "command => '$state')";
+              set_timeout $p_test_ftpb 60*2;
               start $p_test_ftpb;
             }
             print_log "Ftp command done" if done_now $p_test_ftp;
+
+        More examples are in mh/code/examples/test_process.pl
 
     Serial_Item
         Serial_Item is used whenever you want read or write serial port
@@ -1391,6 +1421,13 @@ DESCRIPTION
 
         Without the MS13 model number, the light/dark codes will be ignored.
 
+    X10_Transmitter
+        Like an X10_Item, but will not be set by incoming X10 data.
+        Simulates transmit only devices like keypads. Can be used in place
+        of X10_Item if you have complicated code that might get into a loop
+        because we are not ignoring incoming X10 data for transmit-only
+        devices.
+
     RCS_TX15
         Craig is working on this one.
 
@@ -1411,9 +1448,11 @@ DESCRIPTION
 
                 'host_protocol' can be 'tcp' or 'udp'.  Default is 'tcp'
 
-                'datatype'      can be 'raw' or 'record'.  If 'raw', the said
+                'datatype'      can be 'raw', 'rawout', or 'record'.  If 'raw', the said
                                 method returns data as read.  If record, 
                                 said only returns data when reaching a newline.
+                                When writing to the port, a newline is added unless 
+                                datatype is 'raw' or 'rawout'.
 
                 'break_char'    This will be added to data sent with set and, unless datatype=raw,
                                 will be used to break incoming data into state_now records. 
@@ -1436,8 +1475,12 @@ DESCRIPTION
                                optional 3rd parm can be used to pick which client set to.  
                                Values are:
                                   - 'all' (send to all connected clients),
-                                  - ip_address (a regular expresion of the ip address(s) you want to send to,
-                                  - client_number (which client to send to, 0 .. #). 
+                                  - ip_address (a regular expresion of the ip address(s) you want to send to
+                                  - client_number (which client to send to, 0 .. #).  Note this
+                                    can change as clients are added and dropped. 
+                                  - socket hash name, which can be captured when reading
+                                    data from the port with this:
+                                       $client = $Socket_Ports{$port_name}{socka};
 
              set_echo     : Use this to control echoing of incoming characters:
                              set_echo $my_socket 0   -> Do not echo incoming characters
@@ -1530,8 +1573,9 @@ DESCRIPTION
            &tk_entry("Text Input", $Text_Input, "tcmd1", $tcmd1);
 
            if ($state = state_now $Text_Input) {
-              print_log "You typed $state";
-              run_voice_cmd($state);
+              my $set_by = get_set_by $Text_Input;
+              print_log "Text_Input set_by $set_by typed $state";
+              run_voice_cmd($state, undef, $set_by);
            }
                             # Create commands
            $tcmd1 = new Text_Cmd('hi (a|b|c)');
@@ -1540,8 +1584,8 @@ DESCRIPTION
 
                             # Fire events if the commands match text input
            $tcmd1->tie_event('print_log "tcmd1 state: $state"');
-           $tcmd2->tie_event('print_log "tcmd2 state: $state"');
-           print_log "tcmd3 state: $state"' if $state = $state_now $tcmd3;
+           print_log "tcmd2 state=$state" if $state = state_now $tcmd2;
+           print_log "tcmd3 state=$state set_by=$tcmd3->{set_by}, target=$tcmd3->{target}" if $state = state_now $tcmd3;
 
     Timer
         The Timer object can be used to run an action one or more times, at
@@ -2640,19 +2684,18 @@ DESCRIPTION
 
     tk_label tk_mlabel
         Use these functions to add a Tk label widget to the mh tk grid
-        (tk_label) or the tk menu_bar (tk_mlabel). &tk_label will accept
-        multiple variables, displaying them in a row in the grid.
+        (tk_label) or the tk menu_bar (tk_mlabel). To avoid duplicate labels
+        after a reload, pass a label name as a 2nd parm.
 
            Usage:
    
              &tk_mlabel(\$variable);
-             &tk_label(\$variable);
-             &tk_label(\$variable1, \$variable2, \$variable3);
+             &tk_mlabel($object, $label);
 
            Example:
 
-             &tk_mlabel(\$Save{email_flag});
-             $Save{email_flag} = file_read "$Pgm_Root/data/get_email.flag";
+             $email_flag = new Generic_Item;
+             &tk_label($email_flag, 'email flag');
 
     tk_radiobutton
         Use this function to create radio buttons in the mh tk grid. If
@@ -4302,9 +4345,9 @@ DESCRIPTION
     On your main mh box, change your mh.ini port parms to point to the
     address:port of the proxy box, like this:
 
-     cm11_port           = proxy localhost:8005
-     cm17_port           = proxy localhost:8005
-     iButton_serial_port = proxy localhost:8005
+     cm11_port           = proxy localhost:8085
+     cm17_port           = proxy localhost:8085
+     iButton_serial_port = proxy localhost:8085
 
     You can start or restart either the main mh or mh_proxy before or after
     the other one and they should sync up. Tested interfaces include cm11,

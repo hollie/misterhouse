@@ -52,7 +52,8 @@ sub str2time ($;$)
     my $tz = pop(@d);
     unless (defined $tz) {
 	unless (defined($tz = shift)) {
-	    return eval { my $t = Time::Local::timelocal(reverse @d);
+	    return eval { my $frac = $d[-1]; $frac -= ($d[-1] = int($frac));
+			  my $t = Time::Local::timelocal(reverse @d) + $frac;
 			  $t < 0 ? undef : $t;
 		        };
 	}
@@ -73,7 +74,8 @@ sub str2time ($;$)
 	return undef unless defined $offset;
     }
 
-    return eval { my $t = Time::Local::timegm(reverse @d);
+    return eval { my $frac = $d[-1]; $frac -= ($d[-1] = int($frac));
+		  my $t = Time::Local::timegm(reverse @d) + $frac;
 		  $t < 0 ? undef : $t - $offset;
 		};
 }

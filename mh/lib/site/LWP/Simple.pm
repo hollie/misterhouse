@@ -3,14 +3,16 @@
 
 =head1 NAME
 
-get, head, getprint, getstore, mirror - Procedural LWP interface
+LWP::Simple - simple procedural interface to LWP
 
 =head1 SYNOPSIS
 
  perl -MLWP::Simple -e 'getprint "http://www.sn.no"'
 
  use LWP::Simple;
- $content = get("http://www.sn.no/")
+ $content = get("http://www.sn.no/");
+ die "Couldn't get it!" unless defined $content;
+
  if (mirror("http://www.sn.no/", "foo") == RC_NOT_MODIFIED) {
      ...
  }
@@ -21,10 +23,10 @@ get, head, getprint, getstore, mirror - Procedural LWP interface
 
 =head1 DESCRIPTION
 
-This interface is intended for those who want a simplified view of the
+This module is meant for people who want a simplified view of the
 libwww-perl library.  It should also be suitable for one-liners.  If
 you need more control or access to the header fields in the requests
-sent and responses received you should use the full object oriented
+sent and responses received, then you should use the full object-oriented
 interface provided by the C<LWP::UserAgent> module.
 
 The following functions are provided (and exported) by this module:
@@ -71,8 +73,8 @@ the HTTP response code.
 =back
 
 This module also exports the HTTP::Status constants and procedures.
-These can be used when you check the response code from getprint(),
-getstore() and mirror().  The constants are:
+You can use them when you check the response code from getprint(),
+getstore() or mirror().  The constants are:
 
    RC_CONTINUE
    RC_SWITCHING_PROTOCOLS
@@ -134,9 +136,23 @@ The user agent created by this module will identify itself as
 and will initialize its proxy defaults from the environment (by
 calling $ua->env_proxy).
 
+=head1 CAVEAT
+
+Note that if you are using both LWP::Simple and the very popular CGI.pm
+module, you may be importing a C<head> function from each module,
+producing a warning like "Prototype mismatch: sub main::head ($) vs
+none". Get around this problem by just not importing LWP::Simple's
+C<head> function, like so:
+
+        use LWP::Simple qw(!head);
+        use CGI qw(:standard);  # then only CGI.pm defines a head()
+
+Then if you do need LWP::Simple's C<head> function, you can just call
+it as C<LWP::Simple::head($url)>.
+
 =head1 SEE ALSO
 
-L<LWP>, L<LWP::UserAgent>, L<HTTP::Status>, L<lwp-request>,
+L<LWP>, L<lwpcook>, L<LWP::UserAgent>, L<HTTP::Status>, L<lwp-request>,
 L<lwp-mirror>
 
 =cut
@@ -281,6 +297,12 @@ sub _get
 	return _trivial_http_get($host, $port, $path);
     } else {
         _init_ua() unless $ua;
+	if (@_ && $url !~ /^\w+:/) {
+	    # non-absolute redirect from &_trivial_http_get
+	    my($host, $port, $path) = @_;
+	    require URI;
+	    $url = URI->new_abs($url, "http://$host:$port$path");
+	}
 	my $request = HTTP::Request->new(GET => $url);
 	my $response = $ua->request($request);
 	return $response->is_success ? $response->content : undef;
@@ -298,7 +320,7 @@ sub _trivial_http_get
    my $sock = IO::Socket::INET->new(PeerAddr => $host,
                                     PeerPort => $port,
                                     Proto    => 'tcp',
-                                    Timeout  => 60) || return;
+                                    Timeout  => 60) || return undef;
    $sock->autoflush;
    my $netloc = $host;
    $netloc .= ":$port" if $port != 80;
@@ -320,7 +342,7 @@ sub _trivial_http_get
            # redirect
            my $url = $1;
            return undef if $loop_check{$url}++;
-           return _get($url);
+           return _get($url, $host, $port, $path);
        }
        return undef unless $code =~ /^2/;
        $buf =~ s/.+?\015?\012\015?\012//s;  # zap header

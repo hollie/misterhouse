@@ -131,11 +131,12 @@ sub said {
     my $datatype  = $main::Socket_Ports{$port_name}{datatype};
     if ($datatype and $datatype eq 'raw') {
         $data = $main::Socket_Ports{$port_name}{data};
-        $main::Socket_Ports{$port_name}{data} = '';
+#       $main::Socket_Ports{$port_name}{data} = '';
+        $main::Socket_Ports{$port_name}{data} = undef;
     }
     else {
         $data = $main::Socket_Ports{$port_name}{data_record};
-        $main::Socket_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
+        $main::Socket_Ports{$port_name}{data_record} = undef; # Maybe this should be reset in main loop??
     }
     return $data;
 }
@@ -212,7 +213,8 @@ sub set {
                 for my $ptr (@{$main::Socket_Ports{$port_name}{clients}}) {
                     my ($socka, $client_ip_address, $data) = @{$ptr};
                     print "Testing socket client ip address: $client_ip_address\n" if $main::config_parms{debug} eq 'socket';
-                    push @sockets, $socka if $socka and $client_ip_address =~ /$ip_address/ or $ip_address eq 'all';
+                    push @sockets, $socka if $socka and $client_ip_address =~ /$ip_address/ or
+                      $ip_address eq 'all' or $ip_address eq $socka;
                 }
             }
         }
@@ -233,7 +235,7 @@ sub set {
                                 # unix telnet or other pgms (e.g. viavoice_server)
     my $datatype  = $main::Socket_Ports{$port_name}{datatype};
     my $break     = $main::Socket_Ports{$port_name}{break};
-    $break = "\r\n" unless $break or ($datatype and $datatype eq 'raw');
+    $break = "\r\n" unless $break or ($datatype and $datatype =~ 'raw');
     $socket_data .= $break;
 
     for my $sock (@sockets) {
@@ -287,6 +289,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.28  2003/01/12 20:39:20  winter
+#  - 2.76 release
+#
 # Revision 1.27  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

@@ -25,7 +25,7 @@ use Telephony_Item;
 use strict;
 
 my (@stargatedigitalinput_object_list, @stargatevariable_object_list, @stargateflag_object_list, @stargaterelay_object_list);
-my (@stargatethermostat_object_list, @stargatetelephone_object_list, @stargateascii_object_list);
+my (@stargatethermostat_object_list, @stargatetelephone_object_list, @stargateascii_object_list, @stargateir_object_list);
 
 package Stargate;
 
@@ -99,16 +99,27 @@ sub UserCodePreHook
         #    my %table_echocommands = qw (0 0x00 2 0x02 3 0x03 4 0x04 5 0x05 8 0x08 a 0x0a c 0x0c);
 
         my ($data);
-        if ($data = $serial_port->input) 
+        unless ($data = $serial_port->input) 
         {
-		print "SG:>$data<\n";
-            $data =~ s/[\r\n]/\t/g;
-            print "db Stargate serial data1=$data...\n" if lc($main::config_parms{debug}) eq 'stargate';
+            # If we do not do this, we may get endless error messages.
+            $serial_port->reset_error;
+        }
+
+        # SerialPort returns the empty string, which is defined.
+        # We need to allow for data=0, so need to use the defined test.
+        undef $data if $data eq '';
+
+        if (defined $data) 
+        {
+	    #print "SG:>$data<\n";
+#           $data =~ s/[\r\n]/\t/g;
+#           print "db Stargate serial data1=$data...\n" if lc($main::config_parms{debug}) eq 'stargate';
 
             $serial_data .= $data;
             print "db Stargate serial data2=$serial_data...\n" if lc($main::config_parms{debug}) eq 'stargate';
-            my ($record, $remainder);
-            while (($record, $remainder) = $serial_data =~ /(\S.+?)\t+(.*)/s) 
+#           my ($record, $remainder);
+            while (my($record, $remainder) = $serial_data =~ /(.+?)[\r\n]+(.*)/s) 
+#           while (my($record, $remainder) = $serial_data =~ /(\S.+?)\t+(.*)/s) 
             {
 		$parse_packet=1;
                 $serial_data = $remainder; # Might have part of the next record left over
@@ -143,18 +154,13 @@ sub UserCodePreHook
                 next if $record eq "##1";
 
 		ParseASCII($record);
-                print "Unknown Stargate response:$record\n";
+                print "Stargate unknown response:$record\n";
             }
-		if ($parse_packet==0)
-		{
-			print "SG Didnt fit the regexp\n";
-        	}
-		$parse_packet=0;
+            if ($parse_packet==0)
+            {
+		print "SG Didnt fit the regexp:>$serial_data<\n" if lc($main::config_parms{debug}) eq 'stargate';
             }
-        # If we do not do this, we may get endless error messages.
-        else 
-        {
-            $serial_port->reset_error;
+            $parse_packet=0;
         }
     }
 
@@ -288,6 +294,12 @@ sub ParseEchoCommand
         my $unitstates = hex $bytes[2].$bytes[3];
         ParseRelayData($code, $unitstates);
     }
+    # Next check for transmitted ir
+    elsif($command == 0x09)
+    {
+        #print "SG IR $subcommand: $commanddata";
+        ParseIRData($subcommand, $commanddata);
+    }
     # Check for thermostat state changes (part 1)
     elsif($command == 0x0d)
     {
@@ -350,7 +362,7 @@ sub SetDigitalInputState
 	        $newstate = "on" if $current_object->state ne 'on' and ($unitstates & $unitbit);
  		$newstate = "off" if $current_object->state ne 'off' and !($unitstates & $unitbit);
 	}
-        print "Stargate Digitial Input #" . $current_object->{address} . " state change to $newstate\n" if $newstate;
+        print "Stargate Digitial Input #" . $current_object->{address} . " state change to $newstate\n" if $newstate and $::config_parms{debug} =~ /StargateDigitalInput/i;
         $current_object->set_states_for_next_pass($newstate) if $newstate;
     }
 }
@@ -444,7 +456,6 @@ sub ParseCallerId
 
     &::print_log( "Stargate CallerId=$data\n");
     SetTelephoneState('CO',"callerid::N::" . $data);
-
 }
 
 sub SetTelephoneState
@@ -466,17 +477,16 @@ sub SetTelephoneState
     }
 
 }
+
 sub ParseASCII
 {
-	my ($data) = @_;
-
-	SetASCIIState('COM1',$data);
-
+    my ($data) = @_;
+    SetASCIIState('COM1',$data);
 }
 
 sub SetASCIIState
 {
-	my ($address,$state) = @_;
+    my ($address,$state) = @_;
 #    print "SetTelephoneState called with state=$line,$state\n";
 
     for my $current_object (@stargateascii_object_list)
@@ -606,6 +616,30 @@ sub SetRelayState
 
         print "Stargate Relay #" . $current_object->{address} . " state change to $newstate\n" if $newstate;
         $current_object->set_states_for_next_pass($newstate) if $newstate;
+    }
+}
+
+sub ParseIRData
+{
+    my ($subcommand, $data) = @_;
+    # Command is bank (0 = 0-255, 1 = 256-511)
+    SetIRState( hex(($subcommand * 256) + $data), "played");
+}
+
+sub SetIRState
+{
+    my ($address, $state) = @_;
+
+    for my $current_object (@stargateir_object_list) 
+    {
+        next unless $current_object->{address} == $address;
+
+        my $newstate;
+        $newstate = $state if $current_object->state ne $state;
+
+        print "Stargate Flag #" . $current_object->{address} . " state change to $newstate\n" if $newstate;
+        $current_object->set_states_for_next_pass($newstate) if $newstate;
+        $current_object->set_states_for_next_pass("idle") if $newstate;
     }
 }
 
@@ -1032,7 +1066,7 @@ sub set_time
     #Checksum not required, so set it to 00
     #my $checksum = sprintf("%02x", unpack("%8C*", $set_time));
     my $checksum = "00";
-    print "Stargate set_time=$set_time checksum=$checksum\n";
+    print "Stargate set_time=$set_time checksum=$checksum\n" if lc($main::config_parms{debug}) eq 'stargate';
 
     if (32 == ($temp = $serial_port->write("##%05" . $set_time . $checksum . "\r"))) 
     {
@@ -1112,7 +1146,6 @@ sub send_ascii
 	my $serial_port;
 
 	$serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
-		
 }
 
 sub set_audio
@@ -1216,6 +1249,7 @@ sub new
 sub set 
 {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
     
     if($state < 0 or $state > 255)
     {
@@ -1273,6 +1307,7 @@ sub new
 sub set 
 {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
     
     $state = lc($state);
     $state = "set" if $state eq "on" or $state eq "1";
@@ -1326,7 +1361,9 @@ sub new
 sub set 
 {
     my ($self, $state) = @_;
-	my %l_address = qw ( 1 1  2 2  3 4  4 8  5 16  6 32  7 64  8 128 );
+    return if &main::check_for_tied_filters($self, $state);
+
+    my %l_address = qw ( 1 1  2 2  3 4  4 8  5 16  6 32  7 64  8 128 );
 
     $state = lc($state);
     $state = "set" if $state eq "on" or $state eq "1";
@@ -1342,7 +1379,7 @@ sub set
     my ($command) = "##%330019" . sprintf("%02x%02x", 
 	$l_address{$self->{address}}, 
 	$state eq "set" ? $l_address{$self->{address}} : 0) . "\r";
-	&main::print_log("Stargate relay:$command:");
+    #&main::print_log("Stargate relay:$command:");
     if (length($command) == $self->{serial_port}->write($command))
     {
         $self->set_states_for_next_pass($state);
@@ -1350,7 +1387,7 @@ sub set
     }
     else 
     {
-        print "StargateFlag serial write command failed:$command\n";
+        print "StargateRelay serial write command failed:$command\n";
         return 0;
     }
     # Clear
@@ -1383,6 +1420,7 @@ sub new
 sub set
 {
     my ($self, $setstate) = @_;
+    return if &main::check_for_tied_filters($self, $setstate);
     return undef if($self->{address} == 0);
 
     my ($device,$state) = $setstate =~ /\s*(\w+)\s*:*\s*(\w*)/;
@@ -1500,6 +1538,7 @@ sub new
 sub set 
 {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
     # Set
     # Clear
 	&::print_log("SGTelephoneclass call $$self{line} ,$state,");
@@ -1511,6 +1550,14 @@ sub set
 		$self->cid_type($1);
 		$state='cid';
 	}
+	elsif ($state =~ /^dialed/i )
+	{
+            $state =~ /dialed::([0-9,\*,\#,\+,\^]*)/i;
+            $self->cid_name('');
+            $self->cid_number($1);
+            $self->cid_type('');
+            $state='dialed';
+	}
 	elsif ($state =~ /^ring/i)
 	{
 		$state =~ /ring::([0-9]*)/;
@@ -1519,8 +1566,7 @@ sub set
 	}		
 	elsif ($state =~ /^dtmf/i)		
 	{
-		my $temp_digit;
-		$temp_digit =~ /dtmf::([0-9,*,#,+,^,])/i;
+		my ($temp_digit) = $state =~ /dtmf::([0-9,\*,\#,\+,\^])/i;
 		$self->SUPER::dtmf($temp_digit);
 		$state = 'dtmf';
 	}
@@ -1625,7 +1671,6 @@ sub hook
 package StargateASCII;
 @StargateASCII::ISA = ('Generic_Item');
 
-
 sub new 
 {
     my ($class, $address, $serial_port) = @_;
@@ -1642,10 +1687,20 @@ sub new
 sub set 
 {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
     # Set
     # Clear
-#	&::print_log("SGascii class call $$self{line} $state");
+    #&::print_log("SGascii class call $$self{line} $state");
+    if (length($state)+1 == $self->{serial_port}->write($state . "\r"))
+    {
         $self->set_states_for_next_pass($state);
+        return 1;
+    }
+    else 
+    {
+        print "StargateAscii serial write command failed:$state\n";
+        return 0;
+    }
     return;
 }
 
@@ -1670,10 +1725,11 @@ sub new
 sub set 
 {
     my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
     
     if($state < 0 or $state > 255)
     {
-        print "StargateVariable invalid state:$state set (must be 0-255)\n";
+        print "StargateVoicemail invalid state:$state set (must be 0-255)\n";
         return;
     }
 
@@ -1702,6 +1758,98 @@ sub set
 }
 
 1;
+
+
+#
+# Item object version (this lets us use object links and events)
+#
+
+package StargateIR;
+@StargateIR::ISA = ('Generic_Item');
+
+sub new 
+{
+    my ($class, $address, $serial_port) = @_;
+    $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
+
+    my ($alternateplay);
+    $alternateplay = 0;
+
+    my ($realaddress, $portmap) = $address =~ /([0-9]{1,3}):([0-9]{1,2})/;
+    $realaddress = $address if $realaddress == undef;
+    $portmap = 0x0f if $portmap == 0 or $portmap == undef;
+
+    my $self = {address => $realaddress, serial_port => $serial_port, alternateplay => $alternateplay, portmap => $portmap};
+    bless $self, $class;
+
+    push(@stargateir_object_list, $self);
+    return $self;
+}
+
+sub set 
+{
+    my ($self, $state) = @_;
+    return if &main::check_for_tied_filters($self, $state);
+
+    if ($state =~ /^play/i )
+    {
+        # Handle play:repeatcount (e.g. play:10)
+        my ($repeatcount) = $state =~ /^play:([0-9]{1,3})/;
+        $repeatcount = 1 if $repeatcount == undef;
+
+        # ##%28 6c 0685 f5 ea 01 0 f 00. (bank 0 ea)
+        # ##%28 6c 0685 f7 f5 01 0 f 00. (bank 1 f5-f8)
+        # ##%28 6c 0685 f7 f6 01 0 f 00.
+        # ##%28 6c 0685 f7 f7 01 0 f 00.
+        # ##%28 6c 0685 f7 f8 01 0 f 00.
+        # +++++ ad ???? mb ad ## A P CC
+        # ad=address
+        # ???=static
+        # mb=memory bank (low f5 or high f7)
+        # ad=address
+        # ##=repeate count
+        # A=alternate play
+        # P=port (F=all)
+        # CC=checksum (unused)
+        my ($memorybank, $address);
+        if ($self->{address} <= 256)
+        {
+            $memorybank = "f5";
+            $address = $self->{address} - 1;
+        }
+        else
+        {
+            $memorybank = "f7";
+            $address = $self->{address} - 256 - 1;
+        }
+
+        my ($command) = "##%286c0685" . $memorybank . sprintf("%02x%02x%01x%01x", $address, $repeatcount, $self->{alternateplay}, $self->{portmap}) . "00\r";
+
+        print "Stargate ir command:$command\n";
+
+        if (length($command) == $self->{serial_port}->write($command))
+        {
+            $self->set_states_for_next_pass($state);
+            $self->set_states_for_next_pass("idle");
+            return 1;
+        }
+        else 
+        {
+            print "StargateIR serial write command failed:$command\n";
+            return 0;
+        }
+    }
+    else
+    {
+        print "StargateIR invalid state:$state set (must be play or play:repeatcount\n";
+        return;
+    }
+}
+1;
+
+
+
+
 
 
 # For reference on dealing with bits/bytes/strings:

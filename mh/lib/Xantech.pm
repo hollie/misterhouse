@@ -117,7 +117,7 @@ sub UserCodePreHook
         if(@xantech_command_list > 0)
         {
             (my $output) = shift @xantech_command_list;
-            print "Xantech Output: " .$output . "\n";
+            print "Xantech Output: " .$output . "\n" if($::config_parms{debug} eq 'xantech');
             $::Serial_Ports{Xantech}{object}->write($output . "\r");
         }
     }

@@ -778,7 +778,7 @@ sub main::net_mail_send {
     $file    = $parms{file};
     $filename= $parms{filename};
 
-    $account = $main::config_parms{net_mail_send_account}         unless $server;
+    $account = $main::config_parms{net_mail_send_account}         unless $account;
     $server  = $main::config_parms{"net_mail_${account}_server_send"}       unless $server;
     $server  = $main::config_parms{"net_mail_${account}_server"}  unless $server;
     $server = 'localhost'                                         unless $server;
@@ -1101,6 +1101,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.47  2003/01/12 20:39:21  winter
+#  - 2.76 release
+#
 # Revision 1.46  2002/12/24 03:05:08  winter
 # - 2.75 release
 #
