@@ -496,13 +496,13 @@ sub setup {
                                 #  (e.g. Compool.pm)
     for my $parm (keys %config_parms) {
         next unless $config_parms{$parm};
-        if ($parm =~ /^(\S+)_(serial|server)_port/) {
+        if ($parm =~ /^(\S+?)(:?\d*)_(serial|server)_port/) {
             if (-e "$Pgm_PathU/../lib/$1.pm") {
-                print "Found managed $2 port=$1\nMH will now require $1.pm and call $1::$2_startup($parm)\n" 
+                print "Found managed $3 port=$1$2\nMH will now require $1.pm and call $1::$3_startup($1$2)\n" 
                     if $config_parms{debug} eq 'startup';
                 require "$1.pm";
-                eval "&$1::$2_startup('$parm')";
-                print "Startup errror on &$1::$2_startup('$parm'): $@\n" if $@;
+                eval "&$1::$3_startup('$1$2')";
+                print "Startup errror on &$1::$3_startup('$1$2'): $@\n" if $@;
             }
             else {
                 print "No $1.pm file found for $parm\n";
@@ -3717,6 +3717,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.31  2000/10/13 19:47:57  danal
+# DSC_Alarm.pm support via changes to managed serial startup calls
+#
 # Revision 2.30  2000/10/09 02:24:19  winter
 # - post 2.29 release.  Add new members and sync up code/bruce
 #
