@@ -1,0 +1,40 @@
+<html>
+<head>
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+
+<SCRIPT LANGUAGE="JavaScript">
+function popupWin(theName, theUrl, width, height) {
+    if((width==null)||(height==null)) {
+        newWin=window.open("",theName,'scrollbars,width=320,height=240,resizable');
+    }else{
+        newWin=window.open("",theName,'scrollbars,resizable,width=' + width + ',height=' + height);
+    }
+    newWin.location.href=theUrl;
+    newWin.focus();
+    if(newWin.focus){newWin.focus()};
+//  newWin.onBlur=newWin.self.close;
+}
+</SCRIPT>
+
+</head>
+<body>
+
+<BASE TARGET='control'>
+
+<li><a href="/speak/speak.html">Speak a message</a>
+
+<li>Track <A href="http://misterhouse.net:8080/aprs">our cars</A>
+
+<li><A href="/RUN:last_displayed?Display_the_next_deep_thought">Deep Thought</A>
+
+<li><a href="javascript:void(0);" 
+  onMouseOver="window.status='The top 10 list'; return true;"
+  onMouseOut="window.status=' ';"
+  onClick="popupWin('top10','/RUN:last_displayed?Show_the_top_10_list',500,700);return false;">
+  The top 10 list</a>
+
+<li><a href=/test/test_stuff.shtml>Test Stuff</a>
+
+</body>
+</html>
+

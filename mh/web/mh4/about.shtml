@@ -1,0 +1,18 @@
+<html>
+<head>
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+</head>
+<body>
+
+<BASE TARGET='control'>
+
+<p><b>Program</b>:
+<li><b><a TARGET='_blank' href="http://misterhouse.net">Homepage</a></b>
+<li><b>Version:</b> <!--#include var="$Version"-->
+<li><b>Modified:</b> <!--#include var="$Version_date"-->
+<li><b>OS:</b> <!--#include var="$^O"-->
+
+
+</body>
+</html>
+
