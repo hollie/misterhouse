@@ -28,3 +28,16 @@ $test_sensor2    ->     add          ('XDK',   OFF);
 
 print_log "Test sensor1 was triggered to $state" if $state = state_now $test_sensor1;
 print_log "Test sensor2 was triggered to $state" if $state = state_now $test_sensor2;
+
+
+# Here is an example of detecting multi-key input from X10 controlers
+
+# This detects a double push of A1-ON (code=A1, on=AJ) with Palm remote.
+$test_button2 = new Serial_Item 'XA1AJA1AJ';
+speak "Palm A1 key was pressed twice" if state_now $test_button2;
+
+
+# This would detect O1 button on a X10 maxi-contoler was pushed twice.
+$test_button3 = new Serial_Item 'XO1O1';
+tie_event $test_button3 "speak 'Button O1 was just pressed twice'";
+
