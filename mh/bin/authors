@@ -9,8 +9,15 @@ use strict;
 my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan 
                      Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
                      ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call No Peet Rewrote Turtle
-                     Select Solid Edit);
-my @bogus_last  = qw(Homelink House Group Report Programs Aqualink WinTV CallerID Voices Video Faq);
+                     Select Solid Edit Telephony Unit Weather Rio Red About Australian Caller Card
+		     Creative Device Digital Direct Evolution Extended External GHz Gentoo Home
+		     How Iridium Misterhouse Motorola Mythtv Password Server Song
+		     );
+my @bogus_last  = qw(Homelink House Group Report Programs Aqualink WinTV CallerID Voices Video Faq
+		     Events Address Station Audio Hat MrHouse Clipsal 
+		     Remotes Credit Type Inputs Tivo Robotics Codes Commands Celeron Linux Theatre To Flares
+		     GUIs Management Network Info
+		     );
 
 undef $/;
 my $f = <>;
@@ -19,8 +26,8 @@ while ($f =~ /([A-Z][a-zA-Z\.\']+) ([A-Z][a-zA-Z\']+)[ \.\,]/gms) {
     my ($first, $last) = ($1, $2);
     next if $first =~ /^[A-Z]+$/;  # Not all uppercase
     next if $last  =~ /^[A-Z]+$/;  # Not all uppercase
-    next if grep /$first/, @bogus_first;
-    next if grep /$last/,  @bogus_last;
+    next if grep /$first/i, @bogus_first;
+    next if grep /$last/i,  @bogus_last;
     $first=~ s/\.$//;           # Drop the abrev . 
     $last =~ s/\.$//;
     $last =~ s/\'s$//;          # Drop the 's suffix

@@ -2683,7 +2683,7 @@ sub new_second {
 sub new_minute { 
     return unless $New_Minute;
     return 1 unless $_[0];
-    my $minute = int ($Time / 3600);
+    my $minute = int ($Time / 60);
     return !($minute % $_[0]);
 #   return !($Minute % $_[0]);
 }
@@ -3736,7 +3736,8 @@ sub read_code {
     undef @files_changed2;
     my %files_deleted = %file_code_times;
     %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
-                                 &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2));
+                                 &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2))
+	if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
     my %files_seen;
     for $file (@files_read) {
@@ -3816,7 +3817,8 @@ sub convert_table_files {
 	
                                 # See if we are supposed to skip any files
     my %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
-                                    &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2));
+                                    &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2))
+	if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
 	## attempt to convert all *.mht files to xml
 	require "table_A2XML.pm";
@@ -3858,7 +3860,8 @@ sub read_table_files {
 
                                 # See if we are supposed to skip any files
     my %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
-                                    &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2));
+                                    &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2)) 
+	if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
                                 # See if any of the files have changed
     my ($changed);
@@ -4494,22 +4497,15 @@ sub set_global_vars {
                             elsif (($month, $mday, $year, $des) = $date_des =~ m|(\d+)/(\d+)/?(\d*)\s*(.*)|) {
 			        ($mday, $month) = ($month, $mday) if $config_parms{date_format} =~ /ddmm/;
 #                               print "db1 m=$month y=$year des=$des\n";
-                                next if $year and $year != $Year;
+				   # Allow for yy or 20yy
+				next if $year and (($year % 100) != ($Year % 100));
                                 if ($month == $Month and $mday == $Mday) {
                                     $des = 1 unless $des; # Description is optional
                                     $Holiday = $des;
                                 }
                             }
                         }
-                        print "Holiday notice:  $Month/$Mday/$Year $Holiday\n" if $Holiday;
-			if ($Holiday) {
-			    if ($config_parms{date_format} =~ /ddmm/) {
-				print "Holiday notice:  $Mday/$Month/$Year $Holiday\n"
-				}
-			    else {
-				print "Holiday notice:  $Month/$Mday/$Year $Holiday\n";
-			    }
-			}
+			print "Holiday notice:  $Date_Now $Holiday\n" if $Holiday;
 
                     }
 
@@ -5864,6 +5860,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.90  2004/05/02 22:05:08  winter
+# *** empty log message ***
+#
 # Revision 2.89  2004/04/25 17:21:46  winter
 # *** empty log message ***
 #
