@@ -1,0 +1,93 @@
+=pod
+
+=head1 1: Family Radio Service with MisterHouse FAQ
+
+This was posted by Danal Estes on 10/15/00:
+
+There's been a lot of discussion about FRS radios and MH, and questions are beginning to repeat, so, here's a mini FAQ:
+
+=head2 1.    What are FRS radios?
+
+Cheap, UHF two way radios licensed by the FCC in the US only for "Family Radio Service".  They have 14 possible frequencies and various add on "privacy" or "sub" codes, which is a VERY MISLEADING term.  The packing on many of the radios is even more misleading about "14 channels x 38 subcodes = 532 ways to find a clear channel".  There are 14 frequencies, period.  The subcodes MAY prevent YOU from hearing OTHERS; they DO NOT prevent OTHERS from hearing YOU.
+
+For more on FRS in general, see:
+
+http://www.provide.net/~prsg/frs-faq.htm
+
+For more on this "subcode" privacy topic, see:
+
+http://members.tripod.com/~jwilkers/myth.htm
+
+For selecting an FRS radio (equipment comparisions), see:
+
+http://members.tripod.com/~jwilkers/compare.htm
+http://members.tripod.com/~jwilkers/ctcss.htm
+
+You can order them from the Web or find them at Radio Shack, Best Buy, Fry's, even Target and Wal Mart.
+
+=head2 2.    What does FRS have to do with MH?
+
+Brian Rigsby posted to the list around 10/9/2000 that he'd connected an FRS radio to a PC running mh.  He could then transmit voice commands from an FRS radio in his hand and hear mh's responses back via the radio.
+
+Brian indicated he's using a earset/mic that clips to his lapel, and a radio feature called VOX (voice activation of transmit) so he just leans his mouth toward the mic and speaks; mh responds in his earphone.  See his post in the archives for much more info; search on "new functionality" and "Cheap FRS radios" to see many, many posts on this topic.
+
+=head2 3.    How do you hook it up?
+
+Search the archives and see Brian's post and the many follow ups. But, basically, you put the "earphone/ext speaker" jack on the FRS to the "mic in" on the PC. You put the "speaker out" or "line out" from the PC to the "mic" jack on the FRS.  You need a radio with "VOX" - Voice activated transmit -or- you need a relay board attached to the PC and connect a relay across the "Push to Talk" button. You may also wish to wire a power supply to the FRS attached to the PC; batteries would only last a few hours.  The exact hookup for power and/or PTT will vary by radio.
+
+Some of these hookups may require an "attenuating" cable; particularly if it's "speaker" to "mic".  Radio shack carries these with descriptions like "use for recording when speaker out is hooked to microphone in".  A straight cable may also work if various volume controls are set appropriately.
+
+With less hookup (FRS earphone to PC mic in only), you could use the FRS just to get your speech to the PC and hear mh's reply(s) over regular speakers.  You wouldn't need the VOX and/or relay at the mh end in this scenario.
+
+Beware - many radios that claim VOX implement it via an external VOX headset that really closes the Push To Talk in the headset jack...  Won't work with mh.
+
+=head2 4.    Is it legal?
+
+Extremely Doubtful.
+
+See this FAQ http://cellphones.about.com/gadgets/cellphones/gi/dynamic/offsite.htm?site=http%3A%2F%2Fwww.provide.net%2F%7Eprsg%2Ffrs-faq.htm
+and or see the FCC regulations themselves.  FRS is for "voice" communications among "persons"; you are explicitly forbidden to modify the radios and/or attach them to other comm equipment (no music, no phones, etc.).  You are also forbidden to engage in "one way" communications, except as required to establish communications with another "person". 
+
+Calling mh MAY fall under "voice paging"; or maybe not.  It sure seems to fall under the forbidden "one way" rule.
+
+I personally can't see any way an mh reply via FRS can be regarded as legal...
+
+There is also an extreme gray area if a mh transmission were to block an "emergency" transmission by another FRS users.  There's little in the FRS regs about this, but civil liability in the U.S. can be pretty wacky.
+
+=head2 5.    Is it secure?
+
+NO!  ABSOLUTELY NOT!  And the statements regarding security on much of the retail packaging for FRS are WRONG!
+
+FRS is shared.  Others may hear your commands and/or issue commands on the same channel.  CTCSS subcodes don't help this situation very much and certainly are NOT "secure"  (see the ''myth" link in question 1). 
+
+Let's assume your use CTCSS paired radios with mh.  CTCSS will not keep anyone from hearing your commands transmitted to mh; they just turn CTCSS off on the radio they're using to monitor you...!  Nor will it prevent them from sending commands to mh if they so desire.  They only have to continue to monitor, trying each CTCSS subcode in turn, until they catch you transmitting; bingo! they're now on the right CTCSS to transmit to mh too.  If mh responds to command(s) he doesn't recognize, they don't even have to wait for you to transmit to find the right CTCSS code,  just transmit on each one and wait for the mh "Command unrecognized" reply.
+
+If your going to use FRS with mh, CTCSS subcode capable radios are a good idea, just don't depend on them to stop A) anyone who tries at all B) random passerby that happen to be on that freq/subcode combination.
+
+Even the radios advertised as "voice scrambling" or "privacy encryption" use a simple modulation inversion scheme that's A) easily hacked & B) will work for anyone who has the same brand/feature radio you do, and probably some other brands too!
+
+By the way, any deeper/better privacy coding or encryption would violate the FCC regs for FRS service.
+
+=head2 6.    Does this mean other people can issue commands to mh?
+
+YES.  What happens after that is partially dependent on the Voice Recongition software you run.  If you decide to try this, think CAREFULLY about what mh is capable of doing via voice command.  Assume that someone who intends Bad Things(tm) can issue each command at any time... think it through.
+
+=head2 7.    Will my & mh's conversation(s) upset other people using FRS?  Will they call the FCC?
+
+Possible and possibly.
+
+=head2 8.    What about voice recognition accuracy?
+
+If trained to your voice, the pioneers report very, very high accuracy.  With enough training, this may slightly contribute to security, but I'm not going to count on it...
+
+=head2 9.    What's the range?
+
+All (decent) FRS radios transmit at 1/2 watt (500mw).  This is a lot of power for a handheld.  Being UHF, line-of-sight has much more to do with range than distance.  While the manufacturers generally list "2 miles", I've heard reports of FRS failing at 1/4 mile in a steel building, and working for more than 30 miles in open terrain from one hilltop to another.  So, likely to be plenty enough for around the average (non-steel framed) residence; probably even good around a country home with outbuildings.
+
+
+Ok, everybody feel free to comment/contribute, or modify and re-post!
+
+Danal
+
+
+ 

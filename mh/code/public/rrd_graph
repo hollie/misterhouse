@@ -1,0 +1,158 @@
+#!/usr/bin/perl
+use lib qw( /usr/local/rrdtool-1.0.28/lib/perl );
+use Time::Local;
+use Date::Parse;
+use RRDp;
+
+my $targetdir = "/home/httpd/html/automation/plots";
+my $indir = "/home/dbl/mh/data/rrd/temp";
+my $curtime=time;
+my $lastday = ($curtime - (24*60*60));
+#my $lastday = ($curtime - (1*60*60));
+my $yestday = ($curtime - (2*24*60*60));
+my $curyest = ($curtime - (24*60*60));
+my $lastweek = ($curtime - (7*24*60*60));
+my $priorweek = ($curtime - (14*24*60*60));
+
+my $plot_last = "
+	DEF:eric=$indir/eric_bedroom.rrd:temp:LAST
+	DEF:nicole=$indir/nicole_bedroom.rrd:temp:LAST
+	DEF:living_room=$indir/living_room.rrd:temp:LAST
+	DEF:playroom=$indir/playroom.rrd:temp:LAST
+	DEF:office=$indir/office.rrd:temp:LAST
+	DEF:outside=$indir/outside.rrd:temp:LAST
+	DEF:attic=$indir/attic.rrd:temp:LAST
+	DEF:dvault=$indir/dining_vault.rrd:temp:LAST
+	DEF:mvault=$indir/master_vault.rrd:temp:LAST
+";
+my $plot_average = "
+	DEF:eric=$indir/eric_bedroom.rrd:temp:AVERAGE
+	DEF:nicole=$indir/nicole_bedroom.rrd:temp:AVERAGE
+	DEF:living_room=$indir/living_room.rrd:temp:AVERAGE
+	DEF:playroom=$indir/playroom.rrd:temp:AVERAGE
+	DEF:office=$indir/office.rrd:temp:AVERAGE
+	DEF:outside=$indir/outside.rrd:temp:AVERAGE
+	DEF:attic=$indir/attic.rrd:temp:AVERAGE
+	DEF:dvault=$indir/dining_vault.rrd:temp:AVERAGE
+	DEF:mvault=$indir/master_vault.rrd:temp:AVERAGE
+";
+my $probes = "
+	LINE1:outside#ff000c:'Outside             '
+	GPRINT:outside:LAST:'Cur\\:%3.2lf%s'
+        GPRINT:outside:MIN:'Min\\:%3.2lf%s'
+        GPRINT:outside:MAX:'Max\\:%3.2lf%s'
+	GPRINT:outside:AVERAGE:'Ave\\:%3.2lf%s'
+	LINE1:attic#00ffee:'Attic               '
+	GPRINT:attic:LAST:'Cur\\:%3.2lf%s'
+        GPRINT:attic:MIN:'Min\\:%3.2lf%s'
+        GPRINT:attic:MAX:'Max\\:%3.2lf%s'
+	GPRINT:attic:AVERAGE:'Ave\\:%3.2lf%s'
+	COMMENT:'\\c'
+	LINE1:nicole#e804f4:'Nicole Bedroom      '
+	GPRINT:nicole:LAST:'Cur\\:%3.2lf%s'
+        GPRINT:nicole:MIN:'Min\\:%3.2lf%s'
+        GPRINT:nicole:MAX:'Max\\:%3.2lf%s'
+	GPRINT:nicole:AVERAGE:'Ave\\:%3.2lf%s'
+	LINE1:eric#ff6500:'Eric Bedroom        '
+        GPRINT:eric:LAST:'Cur\\:%3.2lf%s'
+        GPRINT:eric:MIN:'Min\\:%3.2lf%s'
+        GPRINT:eric:MAX:'Max\\:%3.2lf%s'
+        GPRINT:eric:AVERAGE:'Ave\\:%3.2lf%s'
+	COMMENT:'\\c'
+	LINE1:living_room#56ba43:'Living Room         '
+	GPRINT:living_room:LAST:'Cur\\:%3.2lf%s'
+        GPRINT:living_room:MIN:'Min\\:%3.2lf%s'
+        GPRINT:living_room:MAX:'Max\\:%3.2lf%s'
+	GPRINT:living_room:AVERAGE:'Ave\\:%3.2lf%s'
+	LINE1:dvault#a86212:'Living Room Vault   '
+	GPRINT:dvault:LAST:'Cur\\:%3.2lf%s'
+        GPRINT:dvault:MIN:'Min\\:%3.2lf%s'
+        GPRINT:dvault:MAX:'Max\\:%3.2lf%s'
+	GPRINT:dvault:AVERAGE:'Ave\\:%3.2lf%s'
+	COMMENT:'\\c'
+	LINE1:playroom#0029f9:'Play Room           '
+	GPRINT:playroom:LAST:'Cur\\:%3.2lf%s'
+        GPRINT:playroom:MIN:'Min\\:%3.2lf%s'
+        GPRINT:playroom:MAX:'Max\\:%3.2lf%s'
+	GPRINT:playroom:AVERAGE:'Ave\\:%3.2lf%s'
+	LINE1:office#15ff00:'Office              '
+	GPRINT:office:LAST:'Cur\\:%3.2lf%s'
+        GPRINT:office:MIN:'Min\\:%3.2lf%s'
+        GPRINT:office:MAX:'Max\\:%3.2lf%s'
+	GPRINT:office:AVERAGE:'Ave\\:%3.2lf%s'
+	COMMENT:'\\c'
+	LINE1:mvault#a0a0a0:'Master Bedroom Vault'
+	GPRINT:mvault:LAST:'Cur\\:%3.2lf%s'
+        GPRINT:mvault:MIN:'Min\\:%3.2lf%s'
+        GPRINT:mvault:MAX:'Max\\:%3.2lf%s'
+	GPRINT:mvault:AVERAGE:'Ave\\:%3.2lf%s'
+	COMMENT:'                                                                       '
+	COMMENT:'\\c'
+";
+my $comment = "
+	COMMENT:'\\s'
+	COMMENT:'\\s'
+	COMMENT:'Graph created on: ".localtime(time())."\\c'
+";
+
+RRDp::start "/usr/local/rrdtool-1.0.28/bin/rrdtool";
+
+RRDp::cmd "graph $targetdir/house_temps-today.png -s $lastday -e $curtime ",
+	"--title \"Temperature Readings for Past 24 Hours\" ",
+	"--vertical-label 'Temperature'",
+	"-a PNG",
+	"-h 400 -w 850",
+#	"-u 85",
+	"-l 60 -u 90",
+	"-y 5:1",
+	"-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M",
+	"$plot_last",
+	"$probes",
+	"$comment";
+my $answer = RRDp::read;
+print "$$answer";
+
+RRDp::cmd "graph $targetdir/house_temps-yesterday.png -s $yestday -e $curyest ",
+	"--title \"Temperature Readings for 24-48 Hours Ago\" ",
+	"--vertical-label 'Temperature'",
+	"-a PNG",
+	"-h 400 -w 850",
+	"-u 85",
+	"-l 60 -u 90",
+	"-y 5:1",
+	"-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M",
+	"$plot_last",
+	"$probes",
+	"$comment";
+my $answer = RRDp::read;
+print "$$answer";
+
+RRDp::cmd "graph $targetdir/house_temps-prior2weeks.png -s $priorweek -e $curtime ",
+	"--title \"Hourly Temperature Readings for Past 14 Days\" ",
+	"--vertical-label 'Temperature'",
+	"-a PNG",
+	"-h 200 -w 1400",
+	"-l 60 -u 90",
+	"-x HOUR:6:HOUR:6:DAY:1:86400:%D",
+	"$plot_average",
+	"$probes",
+	"$comment";
+
+my $answer = RRDp::read;
+print "$$answer";
+
+#RRDp::cmd "graph $targetdir/house_temps-priorweek.png -s $priorweek -e $lastweek ",
+#	"--title \"Hourly Temperature Readings for 7-14 Days Ago\" ",
+#	"--vertical-label 'Temperature'",
+#	"-a PNG",
+#	"-h 200 -w 1400",
+#	"-l 60 -u 90",
+#	"-x HOUR:6:HOUR:6:DAY:1:86400:%A%n%D",
+#	"$plot_average",
+#	"$probes",
+#	"$comment";
+
+#my $answer = RRDp::read;
+#print "$$answer";
+
+RRDp::end;
