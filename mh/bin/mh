@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-12-07 19:03:26 winter>
+#  Last change Time-stamp: <2000-12-21 12:00:00 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -116,6 +116,9 @@ sub Win32::DriveInfo::DrivesInUse;
 sub RRDs::update;
 sub RRDs::error; 
 
+sub ReadMode {};                   # In case Readkey is not installed
+sub ReadKey  {};
+
 
 &setup;
 &read_code;                     # Load all menus
@@ -125,8 +128,8 @@ BEGIN {
 
     &check_for_run_cmd;
     &print_version;
-    &check_usage;
     &setup_INC;
+    &check_usage;
     &read_parms;
     &use_conditional_modules;
     print "Loading other modules\n";
@@ -207,32 +210,6 @@ BEGIN {
 
     }
 
-    sub check_usage {
-
-                                # Get legal options from .ini file
-        my $parmfile;
-        if ($ENV{mh_parms}) {
-            $parmfile = $ENV{mh_parms};
-        } else {
-            $parmfile = $Pgm_PathU . "/mh.ini";
-        }
-        my $parmfile = $Pgm_PathU . "/$Pgm_Name.ini";
-
-        open (PARMS, $parmfile) or die "Error, could not open parmfile $parmfile: $!\n";
-        my @parms;
-        while (<PARMS>) {
-            push(@parms, "$1=s") if /^([^\s\#]+) *=/;
-        }
-        close PARMS;
-
-        use Getopt::Long;
-        if (!&GetOptions(\%config_parms_startup, "h", "help", "run=s", "run_parms=s", @parms) or
-            ($config_parms_startup{h} or $config_parms_startup{help})) {
-            print $usage;
-            exit;
-       }
-    }
-
     sub setup_INC {
         print "Setting up INC path ...";
                                 # Note, use lib messes up perl2exe, but eval use lib does not.  Either use 
@@ -251,6 +228,22 @@ BEGIN {
 #       print "Error in use lib: $@\n" if $@;   # Dang .. this error check messes up the compiled version!??  Gives 'can not find lib.pm' message
         print " done\n";
         require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
+    }
+
+                                # Get legal options from .ini file
+    sub check_usage {
+        my (@parms1, @parms2);
+        push @parms1, &file_read($Pgm_PathU . "/mh.ini");
+        push @parms1, &file_read($ENV{mh_parms}) if $ENV{mh_parms};
+        for (@parms1) {
+            push(@parms2, "$1=s") if /^([^\s\#]+) *=/;
+        }
+        use Getopt::Long;
+        if (!&GetOptions(\%config_parms_startup, "h", "help", "run=s", "run_parms=s", @parms2) or
+            ($config_parms_startup{h} or $config_parms_startup{help})) {
+            print $usage;
+            exit;
+       }
     }
 
     sub read_parms {
@@ -317,6 +310,8 @@ BEGIN {
         }
         else {                              # load the mutually-exclusive non-Windows modules
             &my_use("Device::SerialPort");  # Unix Posix verion of Win32 SerialPort
+            eval "use Term::ReadKey"; # Used for $Keyboard
+            print "\nTerm::ReadKey not installed ... keyboard monitoring disabled\n" if $@;
         }
 
         if ($config_parms{tk}) {
@@ -358,9 +353,7 @@ sub setup {
     my $logfile = $config_parms{log_file};
     $config_parms{log}++ if $logfile;
     $config_parms{log_file} = $Pgm_PathU . "/../mh.log" unless $config_parms{log_file};
-    my $print_log = $Pgm_PathU . "/../mh.print.log";
-    rename $print_log, $print_log . ".old";
-    open PRINTLOG, ">$print_log" or die "Error, could not open print lotfile $print_log: $!\n";
+
     if ($config_parms{log}) {
         print "Output will be logged into $logfile\n";
         open STDOUT, ">$logfile" or die "Error, could not open logfile $logfile: $!\n";
@@ -440,7 +433,7 @@ sub setup {
         if (1) {
             $CON_IN = new Win32::Console STD_INPUT_HANDLE;
             $CON_OUT= new Win32::Console STD_OUTPUT_HANDLE; 
-            $CON_OUT->Title("Mister House");
+            $CON_OUT->Title("MisterHouse");
 #           use vars '$FG_WHITE', '$BG_CYAN';
 #           &explodeAttr($CON_OUT, $FG_WHITE | $BG_CYAN);
 #           $CON_OUT->Attr($FG_WHITE | $BG_CYAN);
@@ -462,9 +455,6 @@ sub setup {
     mkdir ("$config_parms{data_dir}/web", 0777)  unless -d "$config_parms{data_dir}/web";
     mkdir ("$config_parms{html_dir}/tv", 0777)   unless -d "$config_parms{html_dir}/tv";
     mkdir ("$config_parms{html_dir}/tv/clicktv", 0777)   unless -d "$config_parms{html_dir}/tv/clicktv";
-
-    open(ERROR_LOG, ">>$config_parms{code_dir}/mh_temp.error_log") or 
-        print "Error, could not open error log $config_parms{code_dir}/-error_log-: $!\n";
 
 #   print "parms=", join(":", %config_parms), "\n";
     if ($config_parms{voice_cmd}) {
@@ -544,24 +534,17 @@ sub setup {
         if ($parm =~ /^(\S+?)_module/) {
             my $module = "$config_parms{$parm}.pm";
             if (-e "$Pgm_PathU/../lib/$module") {
+#           if (-e "$Pgm_PathU/../lib/$1.pm") {
                 my $startup = "&$config_parms{$parm}" . '::startup';
+#               print "Found managed $1 module\nMH will now require $1.pm and call $1::startup\n"
                 print "Found managed $module module\nMH will now require $module and call $startup\n" 
-                    if $config_parms{debug} eq 'startup';
+                     if $config_parms{debug} eq 'startup';
                 require $module;
                 eval    $startup;
                 print "Startup error on $startup: $@\n" if $@;
-            }
-        }
-                                # Check for other mh.ini specified modules (e.g. Weather_vw.pm)
-                                # weather_vwlog_module=Weather_vw
-        if ($parm =~ /^(\S+?)_module/) {
-            my $module = "$config_parms{$parm}.pm";
-            if (-e "$Pgm_PathU/../lib/$1.pm") {
-                print "Found managed $1 module\nMH will now require $1.pm and call $1::startup\n"
-                    if $config_parms{debug} eq 'startup';
-                require "$1.pm";
-                eval "$1::startup()";
-                print "Startup error on $1::startup(): $@\n" if $@;
+#               require "$1.pm";
+#               eval "$1::startup()";
+#               print "Startup error on $1::startup(): $@\n" if $@;
             }
         }
         
@@ -674,6 +657,32 @@ sub setup {
     if ($config_parms{tk}) {
         &tk_setup_windows;
     }
+
+                                # Setup and Read in previous logs
+    my $print_log = "$config_parms{code_dir}/mh_temp.print.log";
+    my $speak_log = "$config_parms{code_dir}/mh_temp.speak.log";
+    my $error_log = "$config_parms{code_dir}/mh_temp.error.log";
+    
+    my (@log, $log_cnt);
+    $log_cnt = @log = file_read $print_log;
+    $log_cnt = $config_parms{max_log_entries} if $log_cnt > $config_parms{max_log_entries};
+    @Print_Log = reverse @log[-$log_cnt..-1];
+    unshift @Print_Log, "$Time_Date ---------- Restart ---------- ";
+
+    $log_cnt = @log = file_read $speak_log;
+    $log_cnt = $config_parms{max_log_entries} if $log_cnt > $config_parms{max_log_entries};
+    @Speak_Log = reverse @log[-$log_cnt..-1];
+    unshift @Speak_Log, "$Time_Date ---------- Restart ---------- ";
+
+    rename $print_log, $print_log . ".old";
+    rename $speak_log, $speak_log . ".old";
+    open PRINTLOG,  ">$print_log" or die "Error, could not open print logfile $print_log: $!\n";
+    open SPEAKLOG,  ">$speak_log" or die "Error, could not open speak logfile $speak_log: $!\n";
+    open ERRORLOG, ">>$error_log" or die "Error, could not open error logfile $error_log: $!\n";
+
+    print PRINTLOG (join "\n", reverse @Print_Log), "\n";
+    print SPEAKLOG (join "\n", reverse @Speak_Log), "\n";
+
 
     print "External command file (xcmd_file): $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
 
@@ -804,6 +813,14 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
    }
 }
 
+use vars '%Sounds';
+sub add_sound {
+    my ($key, $file, %parms) = @_;
+    $Sounds{$key}{file} = $file;
+    for my $parm (keys %parms) {
+        $Sounds{$key}{$parm} = $parms{$parm};
+    }
+}
 
 sub browser {
     my ($file) = @_;
@@ -985,65 +1002,64 @@ sub check_for_HomeBase_data {
     }
 }
 
+
+use vars '$Keyboard';
 sub check_for_keyboard_input {
-    my $key;
+                                # The F1->F5 data is now processed in mh/code/common/mh_control.pl
 
-#   return;                     # Console off for now.
-
-                                # Need to find a way to do this in Linux
-    return unless $OS_win;
-
-    for(0..$CON_IN->GetEvents()-1) {
-# Event data:  1, keyup_down, key_repeat_count, id1, id2, id3, id4
-#  id1 seems to cover all the keys (e.g. 112 is F1, a=65, A=65)
-#  id2 seems to be keyboard positional (e.g. a=30, s=31)
-#  id3 seems to be ascii (a=97, A=65)
-        my @event = $CON_IN->Input();
-        $key = $event[3] if $event[1];
-    }
-    return unless $key;
-
-    my %keymap = ('F1: Reload' => 'F1', 'F2: Pause' => 'F2', 'F3: Exit' => 'F3',
-                  'F4: Debug' => 'F4',  'F5: Logging' => 'F5',
-                  112  => 'F1',        113  => 'F2',       114  => 'F3',
-                  115  => 'F4',        116  => 'F5');
-
-
-    if ($key == 13) {       # Enter Key  -> display simple menu
-        my ($oldX, $oldY, $oldS, $oldV) = $CON_OUT->Cursor(); 
-        my $oldmode = $CON_IN->Mode();
-        my $choice = &choose_menu($CON_IN, $CON_OUT, 
-                                  "F1: Reload", "F2: Pause", "F3: Exit",
-                                  "F4: Debug", "F5: Logging");
-        $CON_IN->Mode($oldmode);
-        $CON_OUT->Cursor($oldX, $oldY, $oldS, $oldV);
-        $key = $keymap{$choice};
-        print "action=$choice key=$key\n";
+    undef $Keyboard;
+    if ($OS_win) {
+        for(0..$CON_IN->GetEvents()-1) {
+                                # Event data:  1, keyup_down, key_repeat_count, id1, id2, id3, id4
+                                #  id1 seems to cover all the keys (e.g. 112 is F1, a=65, A=65)
+                                #  id2 seems to be keyboard positional (e.g. a=30, s=31)
+                                #  id3 seems to be ascii (a=97, A=65)
+            my @event = $CON_IN->Input();
+            $Keyboard = $event[3] if $event[1];
+        }
+        if ($Keyboard and $Keyboard == 13) {       # Enter Key  -> display simple menu
+            my ($oldX, $oldY, $oldS, $oldV) = $CON_OUT->Cursor(); 
+            my $oldmode = $CON_IN->Mode();
+            my $choice = &choose_menu($CON_IN, $CON_OUT, 
+                                      "F1: Reload", "F2: Pause", "F3: Exit",
+                                      "F4: Debug", "F5: Logging");
+            $CON_IN->Mode($oldmode);
+            $CON_OUT->Cursor($oldX, $oldY, $oldS, $oldV);
+            my %keymap = ('F1: Reload' => 'F1', 'F2: Pause'   => 'F2', 'F3: Exit' => 'F3',
+                          'F4: Debug ' => 'F4', 'F5: Logging' => 'F5');
+            $Keyboard = $keymap{$choice};
+            print "action=$choice key=$Keyboard\n";
+        }
     }
     else {
-        $key = $keymap{$key} if $keymap{$key};
+        my ($keystring);
+                                # Allow for F1 -> F12, which are multi key strings
+        ReadMode 'cbreak';
+        while (my $key = ReadKey(-1)) {
+            $keystring .= sprintf('%2x', ord $key);
+            $Keyboard = $key;
+        }
+        ReadMode 'normal';      # Or else we loose echo when mh exits.  Benchmark shows no slowdown.
+        $Keyboard = $keystring if length $keystring > 2;
     }
-    
-    if ($key eq 'F1') {
-        print "Key F1 pressed.  Reloading code\n";
-        read_code();
-    }
-    elsif ($key eq 'F2') {
-        print "Key F2 pressed.\n";
-        &pause;
-    }
-    elsif ($key eq 'F3') {
-        print "Key F3 pressed.  Exiting\n";
-        &exit_pgm;
-    }
-    elsif ($key eq 'F4') {
-        &toggle_debug;
-    }
-    elsif ($key eq 'F5') {
-        &toggle_log;
-    }
-    elsif ($key) {
-        print "key press: $key\n" if $config_parms{debug} eq 'misc';
+
+    return unless $Keyboard;
+
+    my %keymap = (112 => 'F1',  113 => 'F2',  114 => 'F3',
+                  115 => 'F4',  116 => 'F5',  117 => 'F6',
+                  118 => 'F7',  119 => 'F8',  120 => 'F9',
+                  121 => 'F10', 122 => 'F11', 123 => 'F12',
+                  '1b4f50'     => 'F1',  '1b4f51'     => 'F2',  '1b4f52'     => 'F3',  '1b4f53'     => 'F4',
+                  '1b5b31317e' => 'F1',  '1b5b31327e' => 'F2',  '1b5b31337e' => 'F3',  '1b5b31347e' => 'F4',
+                  '1b5b31357e' => 'F5',  '1b5b31377e' => 'F6',  '1b5b31387e' => 'F7',  '1b5b31397e' => 'F8',
+                  '1b5b32317e' => 'F10', '1b5b32337e' => 'F11', '1b5b32347e' => 'F12'
+                  );
+    $Keyboard = $keymap{$Keyboard} if $keymap{$Keyboard};
+
+                                # This can not be called from mh_control when in paused mode
+    if ($Keyboard eq 'F2' and $pause_mode) {
+        &toggle_pause;
+        undef $Keyboard;
     }
 }
 
@@ -1078,6 +1094,19 @@ sub toggle_log {
         print     "STDOUT has been restored\n";
         &print_log("STDOUT has been restored");
     }
+}
+sub toggle_pause {
+    if ($pause_mode) {
+        &print_log('Leaving pause mode');
+        print "Leaving pause mode\n";
+        $pause_mode = 0;
+    }
+    else {
+        &print_log('Entering pause mode');
+        print "Entering pause mode\n";
+        $pause_mode = 1;
+    }
+#   display "Sorry, not implemented yet";
 }
 
 my @serial_data_buffer;
@@ -1329,33 +1358,16 @@ sub convert_c2f {       # Convert degrees Kelvin to Farenheight
 
 sub convert_direction {
     my ($dir) = @_;
-    if ($dir < 30 or $dir >= 330) {
-        return "north";
-    }
-    elsif ($dir < 60) {
-        return "north east";
-    }
-    elsif ($dir < 120) {
-        return "east";
-    }
-    elsif ($dir < 150) {
-        return "south east";
-    }
-    elsif ($dir < 210) {
-        return "south";
-    }
-    elsif ($dir < 240) {
-        return "south west";
-    }
-    elsif ($dir < 300) {
-        return "west";
-    }
-    elsif ($dir < 330) {
-        return "north west";
-    }
-    else {
-        return "outer space";
-    }
+    return 'unknown'    if $dir !~ /^[\d \.]+$/;
+    return 'north'      if $dir <  30 or $dir >= 330;
+    return 'north east' if $dir <  60;
+    return 'east'       if $dir < 120;
+    return 'south east' if $dir < 150;
+    return 'south'      if $dir < 210;
+    return 'south west' if $dir < 240;
+    return 'west'       if $dir < 300;
+    return 'north west' if $dir < 330;
+    return 'outer space';
 }
 
 
@@ -1376,7 +1388,6 @@ sub display {
                                 # Assume we were waiting for this and reset http server counter so almost 0 
     $Last_Response = 'display';
     $leave_socket_open_passes= 2 if $leave_socket_open_passes;
-
 
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
@@ -1512,8 +1523,8 @@ sub eval_user_code_loop {
             &speak("Error found in user code.  Check the error log.");
 
                                 # Log these errors for review
-            print ERROR_LOG (&time_date_stamp(1), $Time)[0], ":\n  $error\n";
-            print "Error logged to: $config_parms{code_dir}/mh_temp.error_log\n";
+            print ERRORLOG (&time_date_stamp(1), $Time)[0], ":\n  $error\n";
+            print "Error logged to: $config_parms{code_dir}/mh_temp.error.log\n";
         }
     }
 }
@@ -1564,8 +1575,14 @@ sub exit_pgm {
 sub file_changed {
     my ($file) = @_;
     my ($file_time);
-    $file_time = (stat($file))[9];
-    print "Warning, file_change file does not exist: $file\n" unless -e $file;
+                                # Trigger a file_changed if the file is added, deleted, or changed
+    if (-e $file) {
+        $file_time = (stat($file))[9];
+    }
+    else {
+        $file_time = 0;
+    }
+#    print "Warning, file_change file does not exist: $file\n" unless -e $file;
 #    print "db file_change file=$file time=$file_time time_old=$file_change_times{$file}\n";
                                 # 1st time we look at a file, return 'unknown' (-1)
     unless (defined $file_change_times{$file}) {
@@ -1761,6 +1778,24 @@ sub my_str2time {
     return ($sec_offset + timelocal(0, $minf, $hourf, $mdayf, $monthf, $yearf));
 }
 
+sub new_second { 
+    return unless $New_Second;
+    return 1 unless $_[0];
+    return !($Second % $_[0]);
+}
+
+sub new_minute { 
+    return unless $New_Minute;
+    return 1 unless $_[0];
+    return !($Minute % $_[0]);
+}
+
+sub new_hour { 
+    return unless $New_Hour;
+    return 1 unless $_[0];
+    return !($Hour % $_[0]);
+}
+
 sub object_states_restore {
 
     my $restore_state_file = "$config_parms{code_dir}/mh_temp.saved_states";
@@ -1932,20 +1967,6 @@ sub password_check {
     }
 }
 
-                                # Toggle pause mode
-sub pause {
-    if ($pause_mode) {
-        &print_log('Leaving pause mode');
-        print "Leaving pause mode\n";
-        $pause_mode = 0;
-    }
-    else {
-        &print_log('Entering pause mode');
-        print "Entering pause mode\n";
-        $pause_mode = 1;
-    }
-#   display "Sorry, not implemented yet";
-}
 
 sub play {
     my %parms;
@@ -1957,7 +1978,15 @@ sub play {
         %parms = @_;
     }
     $parms{mode} = '' unless $parms{mode};
-        
+     
+                                # Allow for add_sound %Sounds keys ... if not specified in play call
+    my $sound_key = $parms{file};
+    if ($Sounds{$sound_key}) {
+        for my $parm (keys %{$Sounds{$sound_key}}) {
+            $parms{$parm} = $Sounds{$sound_key}{$parm} unless $parms{$parm} and $parm ne 'file';
+        }
+    }
+
                                 # Do not log System our sound_ files (these are played frequently)
     &print_speaklog($Save{mode} . ": (" . basename($parms{file}) . ")")  unless
         $parms{file} =~ /^sound_/ or $parms{file} =~/^System/;
@@ -2017,26 +2046,45 @@ sub play {
 #       system($config_parms{sound_program_prescript}) if $config_parms{sound_program_prescript};
 
         my $i;
-        while ($i++ < 3) {
-            no strict 'subs';   # For non-win OS
-                                # Need to use the linux equivalent here
-            if (!$OS_win) {
-                next if $file =~ /^System/;
-                last unless $config_parms{sound_program};
-                if ($config_parms{sound_program} =~ /vv_tts/i) {	# use vv_tts for play also
-                    speak(play=>"$file", nolog=>1);
-                    last;
+        
+#       while ($i++ < 3) {
+#           no strict 'subs';   # For non-win OS
+        my $played_ok;
+        if (!$OS_win) {
+            next if $file =~ /^System/;
+            last unless $config_parms{sound_program};
+            if ($config_parms{sound_program} =~ /vv_tts/i) {	# use vv_tts for play also
+                speak(play=>"$file", nolog=>1);
+                last;
+            }
+            print "running: play $file\n";
+            system("$config_parms{sound_program} $file &");
+            $played_ok = 1 if 0 == $?;
+        }
+        else {
+            $played_ok = 1 if 1 == Win32::Sound::Play($file, $play_parm | SND_NOSTOP);
+        }
+                                # If no success, try again later
+        unless ($played_ok) {
+            $parms{retry} = 4 unless $parms{retry};
+            if (--$parms{retry} > 0) {
+                my $play_timer = new Timer;
+                my $replay_parms = '';
+                for my $key (sort keys %parms) {
+                    $replay_parms .= qq['$key' => '$parms{$key}', ];
                 }
-                print "running: play $file\n";
-                system("$config_parms{sound_program} $file &");
-                last if 0 == $?;
+                set $play_timer 1, "&play($replay_parms)";
+                print "Waiting to play sound file, pass $parms{retry}, &play{$replay_parms}\n";
             }
             else {
-                last if 1 == Win32::Sound::Play($file, $play_parm | SND_NOSTOP);
+                print "Gave up trying to play sound file: $file\n";
+                
             }
-            print "Waiting to play sound file, pass $i, file=$file\n";
-            sleep 1;
         }
+
+#        print "Waiting to play sound file, pass $i, file=$file\n";
+#        sleep 1;
+#        }
 
 #       system($config_parms{sound_program_postscript}) if $config_parms{sound_program_postscript};
 
@@ -2064,7 +2112,7 @@ sub print_log {
 
     $Last_Response = 'print_log';
 
-    print PRINTLOG "$Time_Date: $data\n";
+    print PRINTLOG "$Time_Date $data\n";
 }
 
 sub print_log_last {
@@ -2110,7 +2158,7 @@ sub print_speaklog {
     else {
         print "$data\n";
     }
-    print PRINTLOG "$Time_Date $data\n";
+    print SPEAKLOG "$Time_Date $data\n";
 }
 
 sub process_external_command {
@@ -2177,6 +2225,8 @@ sub process_serial_data {
 #   print SERIALLOG "$date_now $time_now\n$header\n$event_data\n";
 
     ($event_type) = $event_data =~ /^(\S)/;
+    print "Serial_Item warning: blank event_type: $event_data\n" unless $event_data;
+    
     print "Serial data: event_type=$event_type, event_data=$event_data\n" 
         if $config_parms{debug} eq 'serial' or $config_parms{debug} eq 'X10';
 
@@ -2225,7 +2275,6 @@ sub process_serial_data {
         
                                 # Do special X10 data processing on longer X10 strings
         if (!$matched and 3 < (my $length = length($event_data))) {
-
 
             my $f_code = substr($event_data, 2, 1);
 
@@ -2458,7 +2507,8 @@ sub read_table_files {
                                 # Run the Init function on Reload
                 if(!$formats_seen{$format}++){  
                     require "read_table_$format.pl" ;
-                    print TABLE_OUT eval "&read_table_init_$format(\$_)";
+                    my $results = eval "&read_table_init_$format(\$_)";
+                    print TABLE_OUT "# Init results: $results $@\n";
                     print "Error in &read_table_$format: $@\n" if $@;
                 }
 
@@ -2500,7 +2550,7 @@ sub sort_user_code
 
 sub read_user_code {
     my(@files) = @_;
-    my ($file, $noloop_flag, $noloop_statement_flag, $webname);
+    my ($file, $noloop_flag, $noloop_statement_flag, $pod_flag, $webname);
 
     $Reload = 1;
     undef @Tk_widgets;
@@ -2536,14 +2586,22 @@ sub read_user_code {
         my ($member_name) = $file =~ /([^\\\/\.]+)\.[^\\\/\.]+$/i;
 
         $webname = $member_name;
-        $noloop_flag = 0;
-        $noloop_statement_flag = 0;
+        $noloop_flag = $noloop_statement_flag = $pod_flag = 0;
 
 #       push (@Item_Code, "my $item_file_name; # Used to see which files items came from \n");
         my ($code, $code_flag);
-        for $record (@{$User_Code{$file}}) {
+        for my $temp (@{$User_Code{$file}}) {
+            $record = $temp;    # Do not want to modify stuff in User_Code
 #           push(@Item_Code, "\$item_file_name = '$file';\n");
-            
+
+                                # Check for pod sections
+            $pod_flag = 1 if $record =~ /^=for/ or $record =~ /^=begin/;
+            $pod_flag = 0 if $record =~ /^=cut/ or $record =~ /^=end/;
+            if ($pod_flag) {
+                $code .= $record;
+                next;
+            }
+
                                 # No need to keep subroutines out of the loop code ... no speed advantage ?!?
 #           $subroutine_flag = 1 if $record =~ /^ *sub /; # Assume the rest of the file is subroutine!
             $noloop_flag = 1 if $record =~ /#\s*noloop=start/i;
@@ -2558,7 +2616,7 @@ sub read_user_code {
                                 # Pull it out as an mh object IF:
                                 #  - It has 0 to 3 blanks in front of it (no my, not indented more than 3 blanks)
 #           my ($object, $type) = $record =~ /^\s*(\$\S+)\s*=\s*new\s+(\S+?)\s*[\(\;]/;
-            my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+(\S+?)\s*[\(\"\'\;]/;
+            my ($object, $type) = $record =~ /^\s{0,3}(\$\S+)\s*=\s*new\s+(\S+?)\s*[\(\"\'\;\n]/;
 #           print "wn=$webname member=$member_name o=$object type=$type\n";
 
                                 # Store a ref-to-name correlation hash
@@ -2600,7 +2658,7 @@ sub read_user_code {
                 $record =~ /->\s*set_order/   or
                 $record =~ /^\s{0,3}\S+\s*->\s*add[\s\(]/ or
                 $record =~ /^\s{0,3}add\s/) {
-                $noloop_statement_flag = 1; # Allow for multi-record statements
+                $noloop_statement_flag = 1 unless $pod_flag; # Allow for multi-record statements
             }
 
             if ($noloop_flag or
@@ -2999,6 +3057,10 @@ sub set_global_vars {
 sub serial_port_create {
     my ($name, $port, $baudrate, $handshake, $datatype) = @_;
 
+    unless ($name and $port) {
+        print "\n\nError, serial port data missing: name=$name port=$port\n\n";
+        return;
+    }
     printf " - creating %-15s object on port %s\n", $name, $port;
     
     $handshake = 'none' unless $handshake;
@@ -3065,6 +3127,7 @@ sub serial_port_open {
 sub set_sun_time {
     my @parms = (latitude  =>  $config_parms{latitude}, longitude => -$config_parms{longitude},
                  time_zone => -$config_parms{time_zone});
+    print "Latitude: $config_parms{latitude},  Longitude: $config_parms{longitude},  Time Zone: $config_parms{time_zone}\n";
     $Time_Sunrise = time_to_ampm &sun_time(type => 'rise', @parms);
     $Time_Sunset  = time_to_ampm &sun_time(type => 'set',  @parms);
     print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
@@ -3359,7 +3422,7 @@ sub tk_setup_windows {
     $MW->bind('Alt-Key-r'   => \&read_code);
     $MW->bind('Alt-Key-x'   => \&sig_handler);
 
-    $MW->title("Mister House version: $Version  PID: $$");
+    $MW->title("MisterHouse $Version  PID: $$");
 
                                 # Create menu bar and buttons
     $Tk_objects{menu_bar} = $MW->Frame->pack(-anchor => 'w', -side => 'top', expand => 0, fill => 'x');
@@ -3838,6 +3901,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.38  2000/12/21 18:49:01  winter
+# - 2.38 release
+#
 # Revision 2.37  2000/12/08 02:13:35  winter
 # *** empty log message ***
 #
