@@ -1,0 +1,155 @@
+
+# Category = Entertainment
+
+#@ This code creates commands for controling the $100 RoboSapien Robot:
+#@ <a href=http://www.robosapienonline.com>robosapienonline.com</a>.  
+#@ Currently setup to send IR signals via xAP (e.g. mh -> xAP -> xAP RedRat connector -> USB RedRat3 -> RoboSapien)
+#@ RedRat3 IR codes for the RoboSapien are available at <a href=http://www.redrat.co.uk/IR_Data.aspx>redrat.co.uk</a>.
+
+$robot = new IR_Item 'Robosapien', undef, 'xAP';
+
+              # Define commands by category and how long each one takes to run
+my %robot_cmds1 = (
+    right => {RightArmDown     => 1.0, RightArmIn       => 1.0, RightArmOut      => 1.0, RightArmUp     => 1.0,
+              RightHandPickUp  => 3.5, RightHandSweep   => 3.0, RightHandThrow   => 3.5, RightHandThump => 2.5,
+              RightHandStrike1 => 3.5, RightHandStrike2 => 5.0, RightHandStrike3 => 3.5},
+     left => {LeftArmDown      => 1.0, LeftArmIn        => 1.0, LeftArmOut       => 1.0, LeftArmUp      => 1.0,
+              LeftHandPickUp   => 3.5, LeftHandSweep    => 3.0, LeftHandThrow    => 3.5, LeftHandThump  => 2.5,
+              LeftHandStrike1  => 3.5, LeftHandStrike2  => 4.0, LeftHandStrike3  => 3.5},
+     lean => {TiltBodyRight    => 1.0, TiltBodyLeft     => 1.0, LeanBackward     => 1.0, LeanForward    => 1.0},
+     walk => {WalkForward      => 0.0, WalkBackward     => 0.0, ForwardStep      => 2.0, BackwardStep   => 2.0,
+              Bolldozer        => 6.0, 
+              TurnRight        => 0.0, TurnLeft         => 0.0, RightTurnStep    => 3.5, LeftTurnStep   => 3.5},
+     talk => {Burp             => 2.5, High5            => 5.0, Oops             => 4.0,
+              Roar             => 3.5, TalkBack         => 5.0, Whistle          => 4.5},
+     demo => {AllDemo          => 132, DanceDemo        => 43,  Demo1            => 45, Demo2           => 43},
+  control => {Stop             => 0,   Listen           => 0.0, Reset            => 0.0,
+              Sleep            => 0,   WakeUp           => 0},
+  program => {RightProgram     => 0,   RightExecute     => 0,   LeftProgram      => 0,
+              LeftExecture     => 0,   SonicProgram     => 0,   SonicExecute     => 0,
+              MasterProgram    => 0,   MasterExecute    => 0,   PowerOff         => 0, ProgramPlay => 0}
+);
+
+                     # Create other useful arrays
+# noloop=start
+my (%robot_cmds2, %robot_cmds3);
+for my $cat (sort keys %robot_cmds1) {
+    $robot_cmds2{$cat} = join ',', sort keys %{$robot_cmds1{$cat}};
+                                    # Gather all commands that we can sequence
+    for my $cmd (keys %{$robot_cmds1{$cat}}) {
+        $robot_cmds3{$cmd} = $robot_cmds1{$cat}{$cmd} if $robot_cmds1{$cat}{$cmd} > 0 and $robot_cmds1{$cat}{$cmd} < 10;
+    }
+}
+# noloop=stop
+
+                      # Create commands for all functions
+$robot_right   = new Voice_Cmd "Robot right [$robot_cmds2{right}]";
+$robot_left    = new Voice_Cmd "Robot left [$robot_cmds2{left}]";
+$robot_lean    = new Voice_Cmd "Robot lean [$robot_cmds2{lean}]";
+$robot_walk    = new Voice_Cmd "Robot walk [$robot_cmds2{walk}]";
+$robot_talk    = new Voice_Cmd "Robot talk [$robot_cmds2{talk}]";
+$robot_demo    = new Voice_Cmd "Robot demo [$robot_cmds2{demo}]";
+$robot_control = new Voice_Cmd "Robot control [$robot_cmds2{control}]";
+$robot_program = new Voice_Cmd "Robot program [$robot_cmds2{program}]";
+$robot_right   -> tie_items($robot);
+$robot_left    -> tie_items($robot);
+$robot_lean    -> tie_items($robot);
+$robot_walk    -> tie_items($robot);
+$robot_talk    -> tie_items($robot);
+$robot_demo    -> tie_items($robot);
+$robot_control -> tie_items($robot);
+$robot_program -> tie_items($robot);
+
+                     # Create sequence commands
+$robot_sequence1 = new Voice_Cmd 'Robot sequence [pickup,tilt,strike,arms,step,talk,all,random,stop]';
+$robot_timer1    = new Timer;
+
+my @robot_sequence_cmds;
+if ($state = said $robot_sequence1) {
+    if ($state eq 'stop') {
+        speak "Ok, robot sequence stopped";
+        stop $robot_timer1;
+    }
+    else {
+        speak "Starting robot $state sequence";
+        if ($state eq 'all') {
+            @robot_sequence_cmds = sort keys %robot_cmds3;
+        }
+        elsif ($state eq 'random') {
+            @robot_sequence_cmds = keys %robot_cmds3;
+            randomize_list @robot_sequence_cmds;
+        }
+        elsif ($state eq 'pickup') {
+            @robot_sequence_cmds = qw(RightHandPickUp LeftHandPickUp RightHandThrow LeftHandThrow Burp);
+        }
+        elsif ($state eq 'tilt') {
+            @robot_sequence_cmds = qw(TiltBodyRight LeanBackward TiltBodyLeft LeanForward Burp);
+        }
+        elsif ($state eq 'strike') {
+            @robot_sequence_cmds = qw(RightHandStrike1 LeftHandStrike1 RightHandStrike2
+                                      LeftHandStrike2 RightHandStrike3 LeftHandStrike3
+                                      RightHandSweep  LeftHandSweep Burp);
+        }
+        elsif ($state eq 'arms') {
+            @robot_sequence_cmds = qw(RightArmDown LeftArmDown RightArmIn LeftArmIn
+                                      RightArmOut LeftArmOut RightArmUp LeftArmUp Burp);
+        }
+        elsif ($state eq 'step') {
+            @robot_sequence_cmds = qw (ForwardStep BackwardStep RightTurnStep LeftTurnStep Burp );
+        }
+        elsif ($state eq 'talk') {
+            @robot_sequence_cmds = qw (High5 Oops Roar TalkBack Whistle Burp);
+        }
+
+        set $robot_timer1 .1;
+    }
+}
+if (expired $robot_timer1) {
+    if (my $cmd = shift @robot_sequence_cmds) {
+        speak $cmd;
+        set $robot $cmd;
+        set $robot_timer1 $robot_cmds3{$cmd};
+        print_log "Sending $robot_cmds3{$cmd} second robot cmd: $cmd";
+    }
+    else {
+        speak "Robot sequence done";
+    }
+}
+
+
+$robot_keepawake = new Voice_Cmd 'Set robot to [keepawake, letsleep, WakeUp, Sleep]';
+$robot_timer2    = new Timer;
+
+if ($state = said $robot_keepawake) {
+    if ($state eq 'keepawake') {
+        set $robot_timer2 5*60, 'set $robot "LeftArmIn"', -1;
+        speak 'Ok, robot will be tickled every 5 minutes';
+    }
+    elsif ($state eq 'letsleep') {
+        stop $robot_timer2;
+    }
+    else {
+        set $robot $state;
+    }
+}
+
+                 # React to local and remote (xAP monitored) speech
+$xap_monitor_robot = new xAP_Item;
+
+if ($state = state_now $xap_monitor_robot) {
+    my $class   = $$xap_monitor_display_alpha{'xap-header'}{class};
+    print "  - robot xap monitor: lc=$Loop_Count class=$class state=$state\n" if $Debug{robot} == 1;
+    
+    if ($class eq 'xap-osd.display') {
+        set $robot 'RightArmDown~1~RightArmUp';
+    }
+}
+
+&Speak_pre_add_hook(\&robot_speak_chime) if $Reload;
+
+sub robot_speak_chime {
+    set $robot 'LeftArmDown~1~LeftArmUp';
+}
+
+
+

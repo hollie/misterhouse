@@ -30,6 +30,7 @@ Version 2.92 was just uploaded to:
 
   http://misterhouse.sf.net/download.html
 
+
 B<New Features:>
 
 - Sean Walker sent in code/public/vocp_sean.pl for integrating with linux vocp voicemail ( http://vocp.sourceforge.net/ ).
