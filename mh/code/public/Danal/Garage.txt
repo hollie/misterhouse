@@ -177,9 +177,13 @@ e7= e=1110=House Code=B
       door 2 would be green, but is masked off in "enrolled" byte, no leds lit
       door 1 red
 
-1d= Constant that is always sent?  Terminator for extended data? 
-    If this were a function, it would be housecode=E, function=extended data transfer.
-    If this were an address (as the CM11 mask says), it would be housecode=E, unitcode=16.
+1d= Constant that is always sent by garage door interface
+    According to ftp://ftp.x10.com/pub/manuals/xtc798.doc
+    "Standard" and "Extended" X-10 Code Formats   September 22, 1993
+    Rev. 11/20/94, 07/12/96, 12/18/96, 04/02/97, 07/22/97, 05/07/98
+    1=0001=Type code for "sensor" data
+    d=1101=Data is bit encoded in prior two bytes.
+	
 
 Conclusions:
 
