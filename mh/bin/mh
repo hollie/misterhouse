@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-01-17 20:44:48 winter>
+#  Last change Time-stamp: <2003-02-07 19:41:43 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -77,7 +77,7 @@ use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category $Respond_Target);
-use vars qw($Version_tk $Password $DelayOccured);
+use vars qw($Version_tk $DelayOccured %Debug);
 use vars qw(%User_Code @Code_Dirs @Generic_Serial_Ports);
 
 my ($Pgm_PathU);
@@ -89,7 +89,7 @@ my (@Loop_Code, @Sub_Code, %Sub_Code, %Run_Members, %Benchmark_Members, @Item_Co
 my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
-my (@Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
+my (@Server_Ports, , %Local_Addresses, @Local_Addresses, %Passwords, @Password_Allow_Clients);
 my (%proxy_servers, %speak_apps);
 my ($CON_IN, $CON_OUT);
 
@@ -260,7 +260,7 @@ BEGIN {
 
         $config_parms{debug_old} = $config_parms{debug};
         my $debug = 1 if $config_parms_startup{debug} and $config_parms_startup{debug} eq 'startup';
-        $debug = 1 if $config_parms{debug} eq 'parms';
+        $debug = 1 if $Debug{parms};
         my @files = &main::read_mh_opts(\%config_parms, '.', $debug);
         print "Read parm files: @files\n";
 
@@ -643,7 +643,7 @@ sub setup {
            if (-e "./../lib/$module.pm" or
                -e "$config_parms{code_dir}/$module.pm") {
                 print "Found managed $type port=$instance\nMH will now require $module.pm and call ${module}::${type}_startup($instance)\n" 
-                    if $config_parms{debug} eq 'startup';
+                    if $Debug{startup};
                 require "$module.pm";
                 eval "&${module}::${type}_startup('$instance')";
                 print "Startup error on &${module}::${type}_startup('$instance'): $@\n" if $@;
@@ -661,7 +661,7 @@ sub setup {
                 -e "$config_parms{code_dir}/$module") {
                 my $startup = "&$config_parms{$parm}" . '::startup';
                 print "Found managed $module module\nMH will now require $module and call $startup\n" 
-                    if $config_parms{debug} eq 'startup';
+                    if $Debug{startup};
                 require $module;
                 eval    $startup;
                 print "Startup error on $startup: $@\n" if $@;
@@ -850,7 +850,6 @@ sub setup {
     print PRINTLOG (join "\n", reverse @Print_Log), "\n";
     print SPEAKLOG (join "\n", reverse @Speak_Log), "\n";
     print ERRORLOG (join "\n", reverse @Error_Log), "\n";
-
 
     print "External command file (xcmd_file): $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
 
@@ -1098,7 +1097,7 @@ sub check_for_cm11_data {
     my $data_d = unpack('C', $data);    # Convert from string to decimal
 
                                 # Check for the official 0x5a=90 string and 0xa5=165 (I have seen this!)
-    print "mh CM11 data=$data data_d=$data_d\n" if $config_parms{debug} eq 'X10' and $data;
+    print "mh CM11 data=$data data_d=$data_d\n" if $Debug{x10} and $data;
 #   if ($data_d == 0x5a) {
     if ($data_d == 0x5a or $data_d == 0xa5) {
         if ($data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object})) {
@@ -1145,7 +1144,7 @@ sub check_for_generic_serial_data {
     $Serial_Ports{$port_name}{data} .= $data if defined $data;
 
     print "  serial name=$port_name type=$Serial_Ports{$port_name}{datatype} data2=\n$Serial_Ports{$port_name}{data}\n---\n" 
-        if defined $data and ($config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name);
+        if defined $data and ($Debug{serial} or $Debug{$port_name});
 
                                 # Check to see if we have a carrage return yet
     if (defined $Serial_Ports{$port_name}{data}) {
@@ -1156,8 +1155,8 @@ sub check_for_generic_serial_data {
             my $break = $config_parms{"${port_name}_break"};
             $break = "[\r\n]+" unless $break;
             while (my($record, $remainder) = $Serial_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s) {
-                &print_log("Data from $port_name: $record.  remainder=$remainder.") 
-                    if $config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name;
+                print "Data from $port_name: $record.  remainder=$remainder.\n" 
+                    if $Debug{serial} or $Debug{$port_name};
                 $Serial_Ports{$port_name}{data_record} = $record;
                 $Serial_Ports{$port_name}{data} = $remainder;
                 if ($Serial_Ports{$port_name}{process_data}) {
@@ -1175,7 +1174,7 @@ sub check_for_generic_serial_data {
 sub check_for_Homevision_data {
     my $data = &Homevision::read($Serial_Ports{Homevision}{object});
     if ($data) {
-        print "Homevision data=$data\n" if $config_parms{debug} =~ /homevision|serial/i;
+        print "Homevision data=$data\n" if $Debug{homevision} or $Debug{serial};
         &process_serial_data($data);
     }
 }
@@ -1183,7 +1182,7 @@ sub check_for_Homevision_data {
 sub check_for_ncpuxa_data {
     my $data = &ncpuxa_mh::read($config_parms{ncpuxa_port});
     if ($data) {
-        print "ncpuxa data=$data\n" if $config_parms{debug} =~ /ncpuxa|serial/i;
+        print "ncpuxa data=$data\n" if $Debug{ncpuxa} or $Debug{serial};
         &process_serial_data($data);
     }
 }
@@ -1191,7 +1190,7 @@ sub check_for_ncpuxa_data {
 sub check_for_HomeBase_data {
     my $data = &HomeBase::read($Serial_Ports{HomeBase}{object});
     if ($data) {
-        print "HomeBase x10 data=$data\n" if $config_parms{debug} eq 'homebase';
+        print "HomeBase x10 data=$data\n" if $Debug{homebase};
         &process_serial_data("X" . $data);
     }
 }
@@ -1269,6 +1268,7 @@ sub check_for_nextpass_actions {
     undef @Nextpass_Actions;
 }
 
+                                # This is pretty much defunct now
 sub toggle_debug {
     $config_parms{debug} = ($config_parms{debug}) ? 0 : 1;
     my $state = ($config_parms{debug}) ? 'on' : 'off';
@@ -1321,7 +1321,7 @@ sub check_for_proxy_data {
         my $proxy = $proxy_servers{$address};
         if (my $data = $proxy->said) {
             my ($type, @data) = split $;, $data;
-            print "proxy data received: $type, @data.\n" if $config_parms{debug} eq 'proxy';
+            print "proxy data received: $type, @data.\n" if $Debug{proxy};
             return unless $type;
             if ($type eq 'serial') {
                     # If port was named, store in that hash, otherwise process
@@ -1358,7 +1358,7 @@ sub check_for_serial_data {
     return unless %Serial_Ports;
                                 # Process remaining serial items from previous pass
     if (my $data = shift @serial_data_buffer) {
-        print "Running serial_data_buffer string: $data\n" if $config_parms{debug} eq 'X10';
+        print "Running serial_data_buffer string: $data\n" if $Debug{x10};
         &process_serial_data($data, 1);
         return;
     }
@@ -1382,12 +1382,12 @@ sub check_for_socket_data_http {
 
                                 # These must be closed only AFTER the 'forked' Win32 process is done
     if ($OS_win and $socket_fork_data{process} and $socket_fork_data{process}->Wait(0)) {
-        print "http: closing http port after forked process s=$socket_fork_data{socket}\n" if $config_parms{debug} eq 'http';
+        print "http: closing http port after forked process s=$socket_fork_data{socket}\n" if $Debug{http};
         $socket_fork_data{socket}->close if $socket_fork_data{socket};
                                 # Do the next one, if in the que
         if ($socket_fork_data{next} and my $ptr = shift @{$socket_fork_data{next}}) {
 
-            print "http: printing defered socket s=$$ptr[0]\n" if $main::config_parms{debug} eq 'http';
+            print "http: printing defered socket s=$$ptr[0]\n" if $Debug{http};
             &print_socket_fork_win(@{$ptr});
         }
         else {
@@ -1402,7 +1402,7 @@ sub check_for_socket_data_http {
         (--$leave_socket_open_passes <= 0) or 
         ($leave_socket_open_check and eval($leave_socket_open_check))) {
         my $sock = $Socket_Ports{http}{socka};
-        print "http: closing http port with action: s=$sock a=$leave_socket_open_action\n" if $config_parms{debug} eq 'http';
+        print "http: closing http port with action: s=$sock a=$leave_socket_open_action\n" if $Debug{http};
         my @data = eval($leave_socket_open_action);
         print "Error in http lso action: $@\n" if $@;
         my $html = &html_page("", @data);
@@ -1430,7 +1430,7 @@ sub check_for_socket_data_http {
         ($leave_socket_open_passes, $leave_socket_open_action) = &http_process_request($sock);
 
         my $time_diff = time - $time_check;
-        print "http: c=$loop_count td=$time_diff sop=$leave_socket_open_passes soa=$leave_socket_open_action.\n" if $config_parms{debug} eq 'http';
+        print "http: c=$loop_count td=$time_diff sop=$leave_socket_open_passes soa=$leave_socket_open_action.\n" if $Debug{http};
 
         if ($leave_socket_open_action) {
             last;               # Wait for socket action to finish before we process the next request
@@ -1485,7 +1485,7 @@ sub check_for_socket_data {
                     $Socket_Ports{$port_name}{client_number}     = $client_number;
                     $Socket_Ports{$port_name}{data}              = $data;
                     $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
-                    print "socket: $port_name nfound=$nfound client=$client_number" if $config_parms{debug} eq $port_name;
+                    print "socket: $port_name nfound=$nfound client=$client_number" if $Debug{$port_name};
                     $server_active = 1;
                     last;
                 }
@@ -1513,7 +1513,7 @@ sub check_for_socket_data {
                 $Socket_Ports{$port_name}{client_number} = @{$Socket_Ports{$port_name}{clients}} - 1;
                 
                 logit "$config_parms{data_dir}/logs/server.$Year_Month_Now.log",  "$port_name $client_ip_address";
-                print "\nsocket: $port_name active sock=$new_sock client=$client_ip_address.\n" if $config_parms{debug} eq $port_name;
+                print "\nsocket: $port_name active sock=$new_sock client=$client_ip_address.\n" if $Debug{$port_name};
                     
                 $server_active = 1;
             }
@@ -1526,13 +1526,13 @@ sub check_for_socket_data {
         my $sock = $Socket_Ports{$port_name}{socka};
         my $nfound = &socket_has_data($sock);
         if (my $nfound = &socket_has_data($sock)) {
-#           print "socket: $port_name nfound=$nfound " if $config_parms{debug} eq $port_name;
+#           print "socket: $port_name nfound=$nfound " if $Debug{$port_name};
             if ($nfound < 0) {
                                 # Note, must do a shutdown here ... a close does not close handles
                                 #   from &run (system start) processes !?! ... maybe IO sockets do not need this?
                                 # Not sure how to shutdown IO handles ... this gives 'bad symbol on filehandle' error
 #               shutdown($sock->fileno(), 2);   # "how":  0=no more receives, 1=sends, 2=both
-                print "socket:  closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
+                print "socket:  closing socket port $port_name\n" if $Debug{$port_name};
                 &socket_close($port_name);
             }
             else {
@@ -1565,7 +1565,7 @@ sub check_for_socket_data {
                 $Socket_Ports{$port_name}{from_ip}   = $from_ip;
             }
         }
-        print "socket data: port=$port_name data=$data.\n" if $config_parms{debug} eq $port_name;
+        print "socket data: port=$port_name data=$data.\n" if $Debug{$port_name};
 
 
                                 # Need to do this or the socket never closes!
@@ -1573,12 +1573,12 @@ sub check_for_socket_data {
                                 # In other words, a telnet disconnect will leave nfound=1, but no data.
                                 # When telnet closes, byte IS defined, but is empty, so check on ''
         if (!defined $data or $data eq '') {
-            print "socket: closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
+            print "socket: closing socket port $port_name\n" if $Debug{$port_name};
             &socket_close($port_name);
         }
         else {
             $Socket_Ports{$port_name}{data} .= $data if defined $data;
-            print "socket: port=$port_name data=$data.\n" if $config_parms{debug} eq $port_name;
+            print "socket: port=$port_name data=$data.\n" if $Debug{$port_name};
 
             if (my $echo = $config_parms{"${port_name}_echo"}) {
                                 # Need to loop thru $data here, one byte at a time
@@ -1613,7 +1613,7 @@ sub check_for_socket_data {
         if ( my($record, $remainder) = $Socket_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s) {
             $Socket_Ports{$port_name}{data_record} = $record;
             $Socket_Ports{$port_name}{data}        = $remainder;
-            if ($config_parms{debug} eq $port_name) {
+            if ($Debug{$port_name}) {
                 print "socket: port=$port_name record=$record, r=$remainder.\n";
 #               print "socket: $port_name record=$record.  hex=", unpack('H*', $record), "\n";
 #               print "socket: $port_name remainder=$remainder.  hex=", unpack('H*', $remainder), "\n";
@@ -1638,11 +1638,11 @@ sub check_for_tied_events {
     for my $object1 (@objects) {
         next unless  $object1 -> isa('Generic_Item'); # Safeguard ... should not need this
         my $state1 = $object1 -> state;
-#       my $state1 = lc $object1 -> state;
+        $state1 = $object1->{state} unless defined $state1;  # In case default_getstate fails for whatever reason
 
         &State_change_hooks($object1, $state1); # Created by &add_hooks
 
-        print "Object link: starting enumeration for object=$object1->{object_name} state=$state1\n" if $config_parms{debug} eq 'events';
+        print "Object link: starting enumeration for object=$object1->{object_name} state=$state1\n" if $Debug{events};
 
         for my $key (keys %{$$object1{tied_objects}}) {
 
@@ -1679,7 +1679,7 @@ sub check_for_tied_events {
 
             if (my $log_msg = $$object1{tied_events}{$event}{$state_key}) {
                 &print_log($log_msg) unless $log_msg eq '1';
-                print "Event link: eval event=$event\n" if $config_parms{debug} eq 'events';
+                print "Event link: eval event=$event\n" if $Debug{events};
                 my $state = $state1; # So eval can substitue $state
                 my $object=$object1;
                 eval $event;
@@ -1694,55 +1694,118 @@ sub check_for_tied_filters {
     my ($self, $state) = @_;
 
     if ($$self{tied_filters}) {
+        my $searchstate = $state;
+        $searchstate = lc($searchstate) unless defined $self->{states_casesensitive};
         for my $filter (keys %{$$self{tied_filters}}) {
             my $log_msg;
-            if ($log_msg = $$self{tied_filters}{$filter}{$state} or
+            if ($log_msg = $$self{tied_filters}{$filter}{$searchstate} or
                 $log_msg = $$self{tied_filters}{$filter}{all_states}) {
-                print "Item tie_fiter test for $self->{object_name} filter: $filter  state:$state\n"  if $config_parms{debug} eq 'filters';
+                print "Item tie_fiter test for $self->{object_name} filter: $filter  state:$searchstate\n"  if $Debug{filters};
                 if (eval $filter) {
-                    print "Item tie_filter triggered for $self->{object_name} $filter\n" if $config_parms{debug} eq 'filters';
+                    print "Item tie_filter triggered for $self->{object_name} $filter\n" if $Debug{filters};
                     &print_log($log_msg) unless $log_msg eq '1';
                     return 1;
                 }
             }
         }
     }
-                               # Check for states with a embeded set_with_timer directive
-    if (my ($s1, $time, $s2) = $state =~ /(.*?)~(.+?)~(.*)/ and
+
+    # Check for multi-states.   Here are some examples of the ~ and ; tied together.
+    #
+    # State: 'on~10~random:on;repeat:on;play'
+    #     We should wind up calling set_with_timer with 'on,10,;random:on;repeat:on;play'.  
+    #     This will assure that the additonal processing occurs after the timeout.
+    #
+    # State: 'repeat:on;play~3600~stop'
+    #     We should wind up calling set on repeat:on and then set with timer on play~3600~stop
+    #
+    # State: 'repeat:on;play~3600~stop;repeat:off'
+    #     We should wind up calling set on repeat:on and then set with timer on play~3600~stop;repeat:off
+    #
+    # Find first ; 
+
+    # Is this a state string with multiple sets in it?  If so we take over and call set on each state found.  
+    # If not, we are already in a set call, so don't do any additional processing.
+    if($state =~ /;/) {
+        print "Multiple states entry state=$state\n" if $Debug{state};
+        while ( my ($currentstate, $remainingstate) = split(/;/, $state, 2) ) {
+            print "Multiple states split into state=$currentstate remainder=$remainingstate\n" if $Debug{state};
+            $state = $remainingstate;
+
+            # Check for states with a embeded set_with_timer directive
+            return 1 if check_for_embedded_commands($self, $currentstate, $remainingstate);
+
+            # Set the object to the currentstate, we will then loop and repeat
+            #print ">>>>>set state=$currentstate\n";
+            $self->set($currentstate);
+        }
+        return 1;
+    }
+    else {
+        # Check for states with a embeded set_with_timer directive
+        return check_for_embedded_commands($self, $state);
+    }
+}
+
+sub check_for_embedded_commands {
+    my ($self, $state, $remainingstates) = @_;
+
+    return 1 if defined $self->{states_nomultistate};
+
+                                # Allow for embeded objects (e.g.: $Pool;on)
+    if($state =~ /^\$.*/) {
+        my $ref = eval "ref $state";
+        print "check_for_embedded_commands found $state->set('$remainingstates') ref=$ref\n"  if $Debug{state};
+        if ($ref) {
+            eval "$state->set('$remainingstates');";
+            print "generic_item set invalid multistate $state->set('$remainingstates'); (:$@)\n" if $@;
+            return 1;
+        }
+    }
+
+    # Check for states with a embeded set_with_timer directive
+    if (my ($s1, $time, $s2) = $state =~ /(.*?)~(.+?)~(.*)/ and 
         $self->can('set_with_timer')) {
-        $self->set_with_timer($s1, $time, $s2);
-        print "Embeded set_with_timer state found for $self->{object_name}: s1=$s1, time=$time, s2=$s2\n"  if $config_parms{debug} eq 'filters';
+        print "Multiple states set with timer state=$s1 time=$time afterstate=$s2\n" if $Debug{state};
+        $self->set_with_timer($s1, $time, $s2, $remainingstates);
+        print "Embeded set_with_timer state found for $self->{object_name}: s1=$s1, time=$time, s2=$s2\n"  if $Debug{filters};
         return 1;
     }
 }
 
 sub check_for_tied_times {
-                                # time_* calls are minute based
-    return unless $New_Minute;
+                                # time_* calls are minute based (except for idle:XX seconds)
+    return unless $New_Second;
 
     for my $ref (@Generic_Item::items_with_tied_times) {
         for my $time (keys %{$$ref{tied_times}}) {
             for my $state (keys %{$$ref{tied_times}{$time}}) {
                 my $triggered = 0;
-                print "Item tie_time test for $ref->{object_name} time: $time  state:$state\n"  if $config_parms{debug} eq 'tied_times';
-
-                                # Check for cron time format
-                my @a = split ' ',$time;
-                if (5 == @a) {
-                    $triggered = 1 if &time_cron($time);
+                print "Item tie_time test for $ref->{object_name} time: $time  state:$state\n"  if $Debug{tied_times};
+                                # Look for time_idle specs like:  
+                                #  'time_idle 10 minutes', 'time_idle 2 seconds', 'time_idle 24 hours',
+                                #  'time_idle 7 days', 'time_idle 1 hour on'
+                if (my ($idle_time) = $time =~ /time_idle (.+)/) {
+                                # Should we do this check for the other triggers??
+                                #  We also need it to verify the state is not equal to the requested state,
+                                #  to avoid resetting the idle timeout by setting an object to the state it already is?
+                    if ($state ne $ref->state()) {
+                        print "Item tie_item found idle_time=$idle_time\n" if $Debug{tied_times};
+                        $triggered = 1 if $ref->time_idle($idle_time);
+                    }
                 }
-                                # We might also have something like '$Time_Sunset - 0:30'
-                                # so lets just default everything else to time_cron
-#               elsif ($time =~ /^[0-9\:apm ]+$/i) {
-#               }
-#               else {
-#                   print "tied_time format not supported: $ref->{object_name} time: $time\n";
-#               }
-                else {
-                    $triggered = 1 if &time_now($time);
+                elsif ($New_Minute) {
+                                                  # Check for time_cron format, else default to time_now
+                    my @a = split ' ',$time;
+                    if (5 == @a) {
+                        $triggered = 1 if &time_cron($time);
+                    }
+                    else {
+                        $triggered = 1 if &time_now($time);
+                    }
                 }
                 if ($triggered) {
-                    print "Item tie_time triggered for $ref->{object_name} $time\n" if $config_parms{debug} eq 'tied_times';
+                    print "Item tie_time triggered for $ref->{object_name} $time\n" if $Debug{tied_times};
                     my $log_msg = $$ref{tied_times}{$time}{$state};
                     &print_log($log_msg) unless $log_msg eq '1';
                     if ($ref->can('set')) {
@@ -1786,7 +1849,6 @@ sub convert_direction {
     return 'north west' if $dir < 330;
     return 'outer space';
 }
-
 
 sub display {
     my @parms = @_;
@@ -2019,6 +2081,15 @@ sub exit_pgm {
                                 # display a auto-restarted window
     &object_states_save;
 
+                                # Close all ports to be safe
+    for my $port (keys %Serial_Ports) {
+        my $object = $Serial_Ports{$port}{object};
+        $object->close() if $object and $object ne 'proxy';
+    }
+    for my $port (keys %Socket_Ports) {
+        my $sock = $Socket_Ports{$port}{sock};
+        $sock->close() if $sock;
+    }
                                 # Use exit code 1 to mean we exited on purpose ... anything else 
                                 # we can use in mh_loop to mean accidental exit, 'better restart'
     if ($restart) {
@@ -2058,7 +2129,7 @@ sub file_changed {
     }
     return 0 if $file_time == $file_change_times{$file}; # File has not changed since last call
     $file_change_times{$file} = $file_time;              # Reset time
-    print "File changed: time=$file_time file=$file\n" if $config_parms{debug} eq 'misc';
+    print "File changed: time=$file_time file=$file\n" if $Debug{misc};
     return 1;
 }
 
@@ -2115,7 +2186,7 @@ sub get_ip_address {
 
     my @host_data = gethostbyname($hostname);
     my @ip_addresses = map {inet_ntoa($_)} @host_data[4 .. $#host_data];
-    print "IP addresses for $hostname are @ip_addresses\n" if $config_parms{debug} eq 'misc';
+    print "IP addresses for $hostname are @ip_addresses\n" if $Debug{misc};
     return wantarray ? @ip_addresses : $ip_addresses[-1]; # Assume last one is most interesting ... usually IP address
 }
 
@@ -2266,7 +2337,6 @@ sub mht_item_file_write {
 sub monitor_commands {
     print "Starting monitor commands loop\n\n";
     while (1) {
-#       print '-' if $config_parms{debug};
         &check_for_action;
     }
 }
@@ -2305,8 +2375,8 @@ sub my_str2time {
     $minf = 0 unless $minf;
     $secf = 0 unless $secf;
     unless (defined $hourf) {
-#       my @caller = caller;    # This is not useful in user_code eval :(
-        print_log("Warning, bad time record: time=$time_date_arg time_date=$time_date ");
+        my @caller = caller;    # This is not useful in user_code eval :(
+        print_log("Warning, bad time record: time=$time_date_arg time_date=$time_date caller=@caller.");
         return 0;
     }
                                 # Allow for time offsets
@@ -2394,14 +2464,14 @@ sub object_states_restore {
     # Set unused stats first, so they can get overwritten by a more recent state
     no strict 'vars';       # Do this so eval doesn't choke ... we do defined checks in the $state code
     while (my $state = pop @states) {
-        print "restoring state: $state" if $config_parms{debug} eq 'save';
+        print "restoring state: $state" if $Debug{save};
         my $rc = eval $state;
         if ($@) {
             print " Error in save: eval $state\n   $@";
         }
         elsif ($rc eq 'var not used') {
             print SAVE $state;  # These are unused for this call of mh
-            print " - Save stated not used:\n rc=$rc  state=$state\n" if $config_parms{debug} eq 'save';
+            print " - Save stated not used:\n rc=$rc  state=$state\n" if $Debug{save};
         }
     }
     use strict 'vars'; 
@@ -2435,12 +2505,12 @@ sub object_states_save {
 #        if (defined $Save{$var}) {
 #            $restore_state .= &object_states_save_check("\$Save{q~$var~} = q~$Save{$var}~;") . "\n";
 #        }
-#        print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'save';
+#        print "Saving state for Save{$var} = $state\n" if $Debug{save};
 #    }
                                 # Save states of all objects
     for $object_type (@Object_Types) {
         for $var (keys %{$file_by_object_name{$object_type}}) {
-            print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'save';
+            print "Saving state for $object_type $var\n" if $Debug{save};
             my $ref = $objects_by_object_name{$var};
             $restore_string =  &object_states_save_check($ref->restore_string) if $ref and $ref->can('restore_string');
             $restore_state .= "if (defined $var) {$restore_string} else {'var not used'}\n" if $restore_string;
@@ -2454,8 +2524,8 @@ sub object_states_save {
         open  SAVE, ">$restore_state_file" or print "Can not open saved_states file $restore_state_file: $!\n";
         print SAVE $restore_state;
         close SAVE;
-        print_log("Object states saved") if $config_parms{debug} eq 'save';
-        print "Save object states:  restore_state=\n$restore_state\n" if $config_parms{debug} eq 'save';
+        print_log("Object states saved") if $Debug{save};
+        print "Save object states:  restore_state=\n$restore_state\n" if $Debug{save};
     }
 
                                 # Save Persistent data
@@ -2488,7 +2558,7 @@ sub object_states_save_check {
 #    eval $save_string;
 #    if ($@) {
 #        print "\n\nWARNING, Can not save this wierd state: $save_string. \n - Error: $@\n\n" 
-#            if $config_parms{debug} eq 'misc';
+#            if $Debug{misc};
 #        return;
 #    }
                                 # Can not restore stuff with carrage returns (for now). 
@@ -2506,7 +2576,14 @@ sub password_read {
     if (-e $pw_file) {
         print "Reading password from $pw_file\n";
         if (open (PASSWD, $pw_file)) {
-            $Password = <PASSWD>;
+            while (<PASSWD>) {
+                if (/User: (\S+) (.+)/) {
+                    $Passwords{$1} = $2;
+                }
+                else {
+                    $Passwords{family} = $_;  # Grandfathter old single-user file
+                }
+            }
         }
         close PASSWD;
     }
@@ -2518,7 +2595,16 @@ sub password_read {
     if ($pw_file = $config_parms{password_allow_file}) { 
         my @records = grep !(/^\#/ or /^\s*$/), &file_read($pw_file);
         print "Read in ", scalar @records, " items from $pw_file\n";
-        %Password_Allow = map {$_, 1} @records;
+#       %Password_Allow = map {$_, 1} @records;
+        for my $cmd (@records) {
+            my $user = 'anyone';
+            if ($cmd =~ /(.+?) *authority *= *(\S+)/i) {
+                $cmd  = $1;
+                $user = $2;
+            }
+            $cmd =~ s/\s*$//;   # Drop trailing whitespace
+            $Password_Allow{$cmd} = $user;
+        }
     }
 
                                 # This allows for disabling commands without modifing code
@@ -2530,32 +2616,58 @@ sub password_read {
     }
 }
 
+                                # Returns userid that matches the password
 sub password_check {
-    my ($password, $port) = @_;
+    my ($password, $port, $type) = @_;
 
-    if ($Password) {
-                                # Allow us to bypass password protection on select clients
+#   return 1;  # disable remote access
+
+    if (%Passwords) {
         if ($password) {
-            if (crypt($password, $Password) eq $Password) {
-                return;             # Good password
+# each requires a reset to start at the begining :(
+#           while (my($user, $passwordc) = each %Passwords) {
+            for my $user (sort keys %Passwords) {
+                my $passwordc = $Passwords{$user};
+                print "testing $password for user=$user pw=$passwordc.\n" if $Debug{password};
+
+                                # Simple string check if already crypted (e.g. html password cookie check)
+                if ($type eq 'crypted') {
+                    return $user if $passwordc eq $password;
+                }
+                                # Check encrypted password
+                elsif (crypt($password, $passwordc) eq $passwordc) {
+                    return $user;
+                }
             }
-            else {
-                return "Password not valid";
-            }
+            print "No match found for $password.\n" if $Debug{password};
+            return 0;
         }
+                                # Bypass password protection on select clients
         else {
             my $client = $Socket_Ports{$port}{client_ip_address} if $port;
-#           my $rc = $client and grep $client =~ /$_/, @Password_Allow_Clients;;
-#           print "db rc=$rc client=$client port=$port allowed=$config_parms{password_allow_clients}\n";
-#           return if $client and -1 < index $config_parms{password_allow_clients}, $client;
-            return if $client and grep $client =~ /$_/, @Password_Allow_Clients;
-
-            return "Password required";
+#           return 'family' if $client and -1 < index $config_parms{password_allow_clients}, $client;
+            my $a = ($client and grep $client =~ /$_/, @Password_Allow_Clients) ? 'family' : 0;
+            print "db p=$port client=$client pa=@Password_Allow_Clients a=$a\n" if $Debug{password};
+            return $a;
         }
     }
     else {
-        return;                 # No password required if the file does not exist
+        return 'admin';         # No password required if the file does not exist
     }
+}
+
+                                # If valid, return the crypted password
+sub password_check2 {
+    my ($password) = @_;
+    if (%Passwords and $password) {
+        for my $user (sort keys %Passwords) {
+            my $passwordc = $Passwords{$user};
+            if (crypt($password, $passwordc) eq $passwordc) {
+                return ($user, $passwordc);
+            }
+        }
+    }
+    return undef;
 }
 
 
@@ -2565,12 +2677,12 @@ sub phrase_match {
     my (%list1, %list2);
     my $d_min1 = 999;
     my $set1 = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    print "phrase_match for: $phrase.\n" if $config_parms{debug} eq 'phrase';
+    print "phrase_match for: $phrase.\n" if $Debug{phrase};
 #   for my $phrase2 (('when will the sun set', 'new moon')) {
                                  # Do a fast less accurate search on all phrases
     for my $phrase2 (&Voice_Cmd::voice_items('mh', 'no_category')) {
         my $d = pdistance($phrase, $phrase2, $set1, \&phrase_match_word, {-cost => [1,0,3], -mode => 'set'});
-        print " - d1=$d phrase=$phrase2.\n" if $config_parms{debug} eq 'phrase';
+        print " - d1=$d phrase=$phrase2.\n" if $Debug{phrase};
         push @{$list1{$d}}, $phrase2 if $d <= $d_min1;
         $d_min1 = $d if $d < $d_min1;
     }
@@ -2583,7 +2695,7 @@ sub phrase_match {
     my $set2 = 'abcdefghijklmnopqrstuvwxyz0123456789+-%';
     for my $phrase2 (@{$list1{$d_min1}}) {
         my $d = pdistance($phrase, $phrase2, $set2, \&distance, {-cost => [1,0,3], -mode => 'set'});
-        print " - d2=$d phrase=$phrase2.\n" if $config_parms{debug} eq 'phrase';
+        print " - d2=$d phrase=$phrase2.\n" if $Debug{phrase};
         push @{$list2{$d}}, $phrase2 if $d <= $d_min2;
         $d_min2 = $d if $d < $d_min2;
     }
@@ -2613,7 +2725,7 @@ sub play {
             for my $temp (split ' ', $speak_apps{$app}) {
                 my ($key, $value) = $temp =~ /(\S+)=(\S+)/;
                 $parms{$key} = $value unless $parms{$key};
-                print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $config_parms{debug} eq 'voice';
+                print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $Debug{play};
             }
         }
         else {
@@ -2633,18 +2745,19 @@ sub play {
         }
     }
 
+    return if $parms{file} eq 'none';
+
     my $mode = $parms{mode} || $Save{mode};
 
                                 # Do not log System our sound_ files (these are played frequently)
     &print_speaklog($mode . ": (" . basename($parms{file}) . ")")  unless
         $parms{file} =~ /sound_/ or $parms{file} =~/^System/;
 
-    print "Playing wave file $parms{file}\n" if $config_parms{debug} eq 'play';
+    print "Playing wave file $parms{file}\n" if $Debug{play};
 
     &Log_hooks('play', $parms{file}, %parms);   # Created by &add_hooks
 
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $mode !~ /unmute/i;
-    return if $parms{file} eq 'none';
 
     my $play_parm = $parms{mode};
     $play_parm = 'wait' if !$play_parm and $config_parms{play_mode} eq 'wait';
@@ -2705,7 +2818,7 @@ sub play {
                 }
             }
         }
-        print "playing file=$file parm=$play_parm\n" if $config_parms{debug} eq 'play';
+        print "playing file=$file parm=$play_parm\n" if $Debug{play};
 
 #       system($config_parms{sound_program_prescript}) if $config_parms{sound_program_prescript};
 
@@ -2723,7 +2836,7 @@ sub play {
                 my $address_code = $config_parms{voice_text_address_code};
                 $address_code =~ s|\$address|$address|;
                 $address_code =~ s|\$url|http://$Info{IPAddress_local}:$config_parms{http_port}/cache/speak_address.$Second.wav|;
-                print "play running address code: $address_code\n" if $main::config_parms{debug} eq 'play';
+                print "play running address code: $address_code\n" if $Debug{play};
                 eval $address_code;
             }
             last;
@@ -2936,7 +3049,7 @@ sub process_external_command {
             if (my $state = $$ref{state_by_id}{$cmd}) {
 #               set_receive $ref $state;
                 set         $ref $state, $set_by;
-                print "Serial event=$cmd state=$state\n" if $config_parms{debug} eq 'serial';
+                print "Serial event=$cmd state=$state\n" if $Debug{serial};
             }
             else {
                 set         $ref $cmd, $set_by;
@@ -2968,7 +3081,7 @@ sub process_serial_data {
     my ($event_type, $event_data1) = $event_data =~ /^(\S)(\S*)/;
     
     print "Serial data: event_type=$event_type, event_data=$event_data\n" 
-        if $config_parms{debug} eq 'serial' or $config_parms{debug} eq 'X10';
+        if $Debug{serial} or $Debug{x10};
 
     my ($state, $ref, @refs, $matched);
     if ($event_type eq 'X') {
@@ -2988,7 +3101,7 @@ sub process_serial_data {
 #                       set_receive $ref $state;
                         $ref->{state} = $state;
                         print "CM11 Status results: data=$event_data1 event_data=$event_data state=$state\n" 
-                            if $config_parms{debug} eq 'X10';
+                            if $Debug{x10};
                     }
                 }
             }
@@ -3026,7 +3139,7 @@ sub process_serial_data {
 #           print "db et=$event_type ed=$event_data o=$ref->{object_name}\n";
             if ($state = $$ref{state_by_id}{$event_data}) {
                 set_receive $ref $state, 'serial';
-                print "Serial event=$event_data state=$state\n" if $config_parms{debug} eq 'serial';
+                print "Serial event=$event_data state=$state\n" if $Debug{serial};
             }
             else {
                 set_receive $ref $event_data, 'serial';
@@ -3070,12 +3183,12 @@ sub process_serial_data {
             }
             $pos += 2;
         }
-        print "X10: Previous units=", keys %prev_x10_units, " reset_flag=$prev_x10_units_reset\n" if $config_parms{debug} eq 'X10';
+        print "X10: Previous units=", keys %prev_x10_units, " reset_flag=$prev_x10_units_reset\n" if $Debug{x10};
                 
         
                                 # Check for codes All-on All-off
         if ($event_data =~ /^X(\S)([OP])$/) {
-            print "X10: House code $1 set to $2\n" if $config_parms{debug} eq 'X10' or $config_parms{x10_errata} >= 3;
+            print "X10: House code $1 set to $2\n" if $Debug{x10} or $config_parms{x10_errata} >= 3;
             my $state = ($2 eq 'O') ? ON : OFF;
             &X10_Item::set_by_housecode($1, $state);
             return 1;
@@ -3124,7 +3237,7 @@ sub process_serial_data {
         }
         if ($prev_x10_event) {
             my $event_data2 = 'X' . $prev_x10_event . substr($event_data, 1);
-            print "X10: Merged string data=$event_data2\n" if $config_parms{debug} eq 'X10' or $config_parms{x10_errata} >= 3;
+            print "X10: Merged string data=$event_data2\n" if $Debug{x10} or $config_parms{x10_errata} >= 3;
                                 # See if it matches as one string
             if (&Serial_Item::serial_items_by_id($event_data2)) {
                 print_log "X10: Event found for merged data=$event_data2" if $config_parms{x10_errata} >= 3;
@@ -3167,7 +3280,7 @@ sub proxy_send {
         return 0;
     }
 
-    print "proxy data sent: int=$interface f=$function a=$address p=$proxy d=@data\n" if $config_parms{debug} eq 'proxy';
+    print "proxy data sent: int=$interface f=$function a=$address p=$proxy d=@data\n" if $Debug{proxy};
     $proxy->start unless $proxy->active;
     if ($proxy->active) {
         $proxy->set(join $;, $interface, $function, @data);
@@ -3201,13 +3314,13 @@ sub process_x10_chunks {
     my $flag_found = 0;
     my $event_data_chunk;
     while ($pos < $length) {
-        print "X10 db: try breaking $event_data into 4 and 2 character chunks:\n" if $config_parms{debug} eq 'X10';
+        print "X10 db: try breaking $event_data into 4 and 2 character chunks:\n" if $Debug{x10};
                                 # Look for 4 character match
                                 #  - also match raw bright/dim commands (XaBcd is a match if B=L or M)
         if ($event_data_chunk = 'X' . substr($event_data, $pos, 4) and
             (&Serial_Item::serial_items_by_id($event_data_chunk)) or
             (substr($event_data, $pos) =~ /^\S[ML]/)) {
-            print "  Found match: $event_data_chunk\n" if $config_parms{debug} eq 'X10';
+            print "  Found match: $event_data_chunk\n" if $Debug{x10};
                                 # Process this data one pass at a time (e.g. multi keypad entries)
             push(@serial_data_buffer, $event_data_chunk);
             $flag_found = 1;
@@ -3221,13 +3334,13 @@ sub process_x10_chunks {
                                 # Look for 2 character match
         elsif ($event_data_chunk = 'X' . substr($event_data, $pos, 2) and
                &Serial_Item::serial_items_by_id($event_data_chunk)) {
-            print "  Found match: $event_data_chunk\n" if $config_parms{debug} eq 'X10';
+            print "  Found match: $event_data_chunk\n" if $Debug{x10};
             push(@serial_data_buffer, $event_data_chunk);
             $flag_found = 1;
             $pos += 2;
         }
         else {
-            print "  No match found: $event_data_chunk\n" if $config_parms{debug} eq 'X10';
+            print "  No match found: $event_data_chunk\n" if $Debug{x10};
             my($hc, $fc) = $event_data_chunk =~ /X(\S)(\S)/;
             $fc = 'ON'      if $fc eq 'J';
             $fc = 'OFF'     if $fc eq 'K';
@@ -3365,17 +3478,9 @@ sub read_misc_parms {
                                 # Read optional, table formated definitions of mh objects and events
 sub read_table_files {
                                 # Find files
-    my (@files_read, %file_paths);
-    for my $file_dir (@Code_Dirs) {
-        opendir(DIR, $file_dir) or die "Error, can not open directory $file_dir.\n";
-        my @files = readdir(DIR);
-        close DIR;
-                                # Create a hash that shows the full file pathname
-        for my $member (@files) {
-            $file_paths{$member} = "$file_dir/$member" unless $file_paths{$member};
-        }
-        push @files_read, @files;
-    }
+    my %file_paths = &file_read_dir(@Code_Dirs);
+    my @files_read = sort keys %file_paths;
+
     return unless @files_read = grep(/^[a-z0-9].*\.mht$/i, @files_read);
     my $count = @files_read;
 #   print_log "Reading $count .mht table files: @files_read";
@@ -3496,7 +3601,7 @@ sub read_user_code {
 
     my (%member_sort_order, %object_name_check);
     for $file (sort sort_user_code keys %User_Code) {
-        print "Reading $file\n" if $config_parms{debug} eq 'misc';
+        print "Reading $file\n" if $Debug{misc};
  
                                 # Allow for . in dir name (e.g. misterhouse-2.26)
                                 # Add _table suffix, so we can have both items.pl and items.mht
@@ -3674,7 +3779,7 @@ sub read_user_code_loopcode {
     my $sub_name = "${member_name}_loopcode";
     $sub_name =~ s/[- ]/_/g;   # Legalize sub name
     my $debug_print = '';
-    $debug_print = "print '   $member_name';\n" if $config_parms{debug} eq 'user_code';
+    $debug_print = "print '   $member_name';\n" if $Debug{user_code};
     return ($sub_name, "#-------------------------------------------------\n\n" .
         "sub $sub_name {\n $debug_print" .
         "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
@@ -3695,7 +3800,7 @@ sub do_user_file {
     $member_name .= '_table' if $file =~ /mhp$/;
     my ($sub_name, $code) = &read_user_code_loopcode($member_name, &file_read($file, 1));
     print_log "Evaluating code $member_name";
-    print "\n\n\ndb user_file code:\n", $code, "\n\n" if $config_parms{debug} eq 'misc';
+    print "\n\n\ndb user_file code:\n", $code, "\n\n" if $Debug{misc};
     eval $code;
                                  # If error, use previous code if we have it
     if ($@) {
@@ -3725,7 +3830,7 @@ sub run_voice_cmd {
                                  # Look for the first Voice_Cmd match
     my ($ref, $said, $vocab_cmd) = &Voice_Cmd::voice_item_by_text(lc($cmd));
     print "run_voice_cmd cmd=$cmd ref=$ref said=$said vocab=$vocab_cmd no_log=$no_log set_by=$set_by target=$respond_target\n"
-        if $config_parms{debug} eq 'misc';
+        if $Debug{misc};
     if ($ref and $vocab eq $vocab_cmd) {
         set $ref $said, $set_by, $no_log, $respond_target;
 #       return $ref;
@@ -4073,6 +4178,27 @@ sub set_global_vars {
 #   &object_states_save if $New_Minute and !($Minute % 5); $Time_Increment
     &object_states_save if $New_Minute and !($Time_Start_time or $Time_Stop_time); # Skip if in accelerated mode
 
+                                # Populate %Debug if debug changed
+    if (defined $config_parms{debug}) {
+        if (!defined $Debug{debug_previous} or $config_parms{debug} ne $Debug{debug_previous}) {
+            undef %Debug;
+            $Debug{debug_previous} = $config_parms{debug};
+                                # Allow for multiple debugs like serial;x10
+            for my $debug (split ';', lc $config_parms{debug}) {
+                                # Allow for debug level like: x10:4
+                next unless $debug;
+                if ($debug =~ /(.+):(.+)/) {
+                    $Debug{$1} = $2;
+                    print "Debug for $1 set to $2\n";
+                }
+                else {
+                    $Debug{$debug} = 1;
+                    print "Debug for $debug set on\n";
+                }
+            }
+        }
+    }
+
 }
 
 sub serial_port_create {
@@ -4220,7 +4346,7 @@ sub sig_child_death {
 sub socket_close {
     my ($port_name) = @_;
     my $sock = $Socket_Ports{$port_name}{socka};
-    print "Closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
+    print "Closing socket port $port_name\n" if $Debug{$port_name};
     unless ($sock) {
         print "Error, socket_close sock port undefined for port $port_name\n";
     }
@@ -4248,7 +4374,7 @@ sub socket_open {
     my $proto   = $Socket_Ports{$port_name}{protocol};
     my $port    = $Socket_Ports{$port_name}{port};
     my $address = $Socket_Ports{$port_name}{address};
-    print "Opening socket port $port_name on port $port\n" if $config_parms{debug} eq $port_name;
+    print "Opening socket port $port_name on port $port\n" if $Debug{$port_name};
     unless ($port) {
         print "\nError, no port specified for ip server $port_name\n";
         return;
@@ -4284,7 +4410,7 @@ sub socket_restart {
     my ($port_name) = @_;
     my $sock = $Socket_Ports{$port_name}{sock};
     print "Restarting $port_name\n";
-    print "Restarting socket port $port_name\n" if $config_parms{debug} eq $port_name;
+    print "Restarting socket port $port_name\n" if $Debug{$port_name};
     unless ($sock) {
         print "Warning, socket_restart sock port was not active: $port_name\n";
     }
@@ -4361,7 +4487,7 @@ sub respond {
     $target = 'default' if $target !~ /\S/ or $target eq 'unknown';
 
     print "respond target=$target lr=$Last_Response RT=$Respond_Target lso=$leave_socket_open_passes lsa=leave_socket_open_action a=@_\n" 
-        if $config_parms{debug} eq 'respond';
+        if $Debug{respond};
 
     $leave_socket_open_passes = 1 if $leave_socket_open_passes > 0;
 
@@ -4431,7 +4557,7 @@ sub respond_unmuted {
 sub respond_telnet {
     my %parms = @_;
     $parms{text} =~ s/\n/\n\r/g;
-    print "respond telnet: client=$parms{client} text=$parms{text}\n" if $config_parms{debug} eq 'respond';
+    print "respond telnet: client=$parms{client} text=$parms{text}\n" if $Debug{respond};
     eval "\$telnet_server->set(q~$parms{text}~, $parms{arg1})";
     print "respond telnet eval error: client=$parms{client} text=$parms{text} error=$@\n" if $@;
 }
@@ -4439,7 +4565,7 @@ sub respond_telnet {
 sub respond_object_set {
     my (%parms) = @_;
     $parms{name} = '$' . $parms{name} unless $parms{name} =~ /^\$/;
-    print "respond object_set: $parms{name}->set(q~$parms{text}~, $parms{arg1}, $parms{arg2})\n" if $config_parms{debug} eq 'respond';
+    print "respond object_set: $parms{name}->set(q~$parms{text}~, $parms{arg1}, $parms{arg2})\n" if $Debug{respond};
     eval "$parms{name}->set(q~$parms{text}~, $parms{arg1}, $parms{arg2})";
     print "respond object_set eval error: name=$parms{name}, arg1=$parms{arg1}, error=$@\n" if $@;
 }
@@ -4462,7 +4588,7 @@ sub speak {
             for my $temp (split ' ', $speak_apps{$app}) {
                 my ($key, $value) = $temp =~ /(\S+)=(\S+)/;
                 $parms{$key} = $value unless $parms{$key};
-                print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $config_parms{debug} eq 'voice';
+                print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $Debug{voice};
             }
         }
         else {
@@ -5236,7 +5362,7 @@ sub x10_dim_level_decode {
                                 # 16 different values.  Round to nearest 5%, max of 95.
     my $level_p = int(100 * $level_d / 211); # Do not allow 100% ... not a valid state?
     $level_p = $level_p - ($level_p % 5);
-    print "CM11 debug: dim_code=$code leveld=$level_d level_p=$level_p\n" if $main::config_parms{debug} eq 'X10';
+    print "CM11 debug: dim_code=$code leveld=$level_d level_p=$level_p\n" if $Debug{x10};
     return $level_p;
 }
 
@@ -5256,6 +5382,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.78  2003/02/08 05:23:36  winter
+#  - 2.78 release
+#
 # Revision 2.77  2003/01/18 03:28:11  winter
 #  - 2.77 release
 #
