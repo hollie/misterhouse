@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-03-09 18:21:36 winter>
+#  Last change Time-stamp: <2000-03-22 07:46:28 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -341,7 +341,8 @@ sub setup {
     use File_Item;
     use Generic_Item;
     use Group;
-    &my_use("Serial_Item");  # So we can add debug to Serial_Item.pm when running mh.exe
+#   &my_use("Serial_Item");  # So we can add debug to Serial_Item.pm when running mh.exe
+    use Serial_Item;
     use X10_Items;
     use iButton;
     use Hardware::iButton::Connection;
@@ -3115,6 +3116,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.12  2000/03/22 14:03:47  winter
+# -Fix CM11 delay.  Compile in Serial_Item
+#
 # Revision 2.11  2000/03/10 02:42:24  winter
 # - Add Ibutton support and more web changes
 #
