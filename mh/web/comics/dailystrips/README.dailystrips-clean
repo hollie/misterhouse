@@ -1,0 +1,13 @@
+Description:
+In order to keep disk usage down, the dailystrips-clean script is provided to
+automatically delete files that are older than a specified number of days, for
+example, a week or a month.
+
+Usage:
+Operation is straightforward. In the directory where the downloaded strip and
+HTML files are located, simply run the command:
+
+'dailystrips-clean DAYS'
+
+Where DAYS is the number of days to preserve. There are also a few simple
+options available that may be viewed by running 'dailystrips-clean --help'.

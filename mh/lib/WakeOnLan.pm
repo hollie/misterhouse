@@ -88,8 +88,8 @@ sub default_setstate
 
 #
 # $Log$
-# Revision 1.1  2004/01/25 05:13:45  cwitte
-# cwitte sync to 2.86 tarball
+# Revision 1.2  2004/01/26 01:42:59  cwitte
+# cwitte sync to 2.86 tarball (take2)
 #
 #
 

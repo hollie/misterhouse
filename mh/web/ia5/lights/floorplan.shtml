@@ -1,0 +1,12 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+
+<!--#include code="&html_header('FloorPlan View')" -->
+
+<img src="../images/floorplan.gif" border=0>
+</body>
+</html>

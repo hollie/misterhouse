@@ -1,0 +1,176 @@
+This file describes in further detail how the strips.def file is contsructed.
+
+Strips can be defined in one of two ways. The first is standalone. Also, strips
+can be provide the image URL by generating it (as from the current date) or by
+searching a web page for a URL. Let's look at an example of generating first:
+
+strip badtech
+	name Badtech
+	artist James Sharman
+	homepage http://www.badtech.com/
+	type generate
+	imageurl http://www.badtech.com/a/%-y/%-m/%-d.jpg
+	provides any
+end
+
+In the first line, we specify the short name of the strip that will be used to
+refer to it on the command line. This must be unique. Next, "name" specifies the
+name of the strip to display in the HTML output. "artist" specifies the strip
+artist's name, which will be displayed on the same line as the name of the
+strip. "homepage" is the address of the strip's homepage, use for the link in
+the output. "type" can be either "generate" or "search". Here we are using
+"generate" to generate a URL. "imageurl" is the address of the image. You are
+allowed to use a number of special variables. Single letters preceeded by the
+"%" symbol, such as "%Y", "%d", "%m", etc. are interpreted as date variables
+and passed to the strftime function for conversion. Date variables may be used
+in: homepage, searchpage, searchpattern, imageurl, baseurl, and referer.
+"date --help" provides a reference that is compatible. You can also use a "$"
+followed by the name of the above variables, such as "$homepage". This will
+simply subsititute "http://www.badtech.com" in place of "$homepage". You can
+use named variables for name, homepage, searchpage, searchpattern, imageurl,
+baseurl, referer variables on homepage, searchpage, searchpattern, imageurl,
+baseurl, and referer lines.
+
+
+The other type of URL generation, searching, is as follows:
+
+strip joyoftech
+	name The Joy of Tech
+	homepage http://www.joyoftech.com/joyoftech/
+	type search
+	searchpattern <IMG.+?src="(joyimages/\d+\.gif)\"
+	matchpart 1
+	baseurl http://www.joyoftech.com/joyoftech/
+	provides latest
+end
+
+"strip", "name", and "homepage" all function as above. The difference is the
+"type search" line and the lines that follow. "searchpattern" is a Perl regular
+expression that must be written to match the strip's URL. Not shown is
+"searchpage", which would ordinarily go above "searchpattern". This is a URL to
+a web page and is only needed if the URL to the strip image is not found on the
+homepage. The same special variables listed above for "imageurl" may also be
+used here. "matchpart" tells the script which parenthetical section (there must
+be at least one) will contain the desired URL (see man perlre on $n variables
+for more). Note that this line is only mandatory for values other than 1.
+"baseurl" only needs to be specified if the "searchpattern" regular expression
+does not match a full URL (that is, it does not start with "http://" and contain
+the host). If specified, it is prepended to whatever "searchpattern" matched.
+Not shown is "urlsuffix", which will be appended to the what "searchpattern"
+matched. Finally, "imageurl" can also be used here in place of "baseurl" and
+"urlsuffix". It is useful when addresses to the strip image must be constructed
+from a known portion and a variable portion that is searched for. Simply specify
+the URL template and insert "$match" wherever you wish the result of the search
+to be put. To access multiple matches, use the $match[1..9] variables. See the
+strips "8bit" and "pgs" for examples of how this works.
+
+The "provides" line indicates which type of strips the definition can provide:
+either "any" for a definition that can provide the strip for any given date
+or "latest" for a definition that can only provide the current strip. This is
+used so that the program can skip definitons that only provide the latest strip
+when running with the --date option.
+
+Two additional variables are not shown. First is "referer". Some webservers
+insist that the HTTP_REFERER header be set to the address of the HTML page that
+the image is on, or they will not return the image. This is to prevent other
+sites from linking to the image and (presumably) scripts like this from
+functioning. What the script does by default is set the HTTP_REFERER header to
+the searchpage (if specified), or the homepage (if no specific searchpage was
+specified). If the webserver for some reason needs a referer other than the
+searchpage or homepage, it can be specified with this variable. The second
+keyword is "prefetch". This was added because it seemed at one point that
+sfgate required a certain page to be downloaded immediately before the strip
+images could be loaded.  The syntax is simply "prefetch [URL]". Any URL
+specified will be downloaded immediately before the strip image. If this URL
+cannot be retrieved (error 404 from the webserver, etc), no attempt will be made
+to download the strip image.
+
+New feature: you can now put little snippets of Perl code right into the
+definition. For example, the definition for The Norm uses this to generate the
+day number for 14 days ago. The Norm website uses Javascript to generate the
+image URL, so it couldn't be searched for and previously there was no way to
+work with dates other than the current date. Here's how it works: just
+insert <code:Perl code>. No need to quote the code, just put it where
+"Perl code" is. Don't forget to escape any > that may happen to be in your
+code.
+
+
+The other method of specifying strips is to use classes. This method is used
+when there are serveral strips provided by the same webserver that all have an
+identical definition, except for some strip-specific elements. Classes work as
+follows:
+
+First, the class is declared:
+class ucomics-srch
+	homepage http://www.ucomics.com/$strip/view$1.htm
+	type search
+	searchpattern (/$1/(\d+)/$1(\d+)\.(gif|jpg))
+	matchpart 1
+	baseurl http://images.ucomics.com/comics
+	provides latest
+end
+
+This is just like a strip definition, except "class" is the first line. The
+value for "class" must be unique among other classes but will not conflict with
+the names of strips. Strip-specific elements are specified using special
+variables "$x", where "x" is a number from 0 to 9. When the definition file is
+parsed, these variables are retrieved from the strip definition, shown below.
+
+strip calvinandhobbes
+	name Calvin and Hobbes
+	useclass ucomics-srch
+	$1 ch
+end
+
+This definition is like a normal definition except the second line is "useclass"
+followed by the name of the class to use. Below that, the strip-specific "$x"
+variables must be specified. Values already declared in the class can be
+overridden (if necessary) by simply specifying them in the strip definition.
+
+
+For your convenience, "groups" of strips may also be defined. These allow you to
+use a single keyword on the command line to refer to a whole set of strips. The
+construct is as follows:
+
+>group favorites
+>	desc My Favorite Comics
+>	include peanuts
+>	include foxtrot, userfriendly
+>end
+
+The group name must be unique among all groups, but will not conflict with
+strips or classes (in fact it might be useful to have a group for each class - I
+might even make that automatic). "desc" is a description of the group that will
+be shown by --list. Everything after an "include" is added to the list of
+strips. You may specify one or more strips per "include" line, whatever you
+prefer. Groups are referenced on the command line by an "@" symbol followed by
+the name (bare words not preceeded by an "@" symbol will be considered strips).
+Finally, you may use "exclude [strips]" lines instead of "include" lines to
+make the group contain everystrip except those specified.
+
+Notes:
+
+* As of 1.0.10, only date variables use the "%" symbol - everything else now
+  uses "$"
+
+* For classes, variables declared in the strip definition take precedence over
+  those specified in the class, if there is any conflict
+
+* You cannot use "$variablename" to refer to a variable below the current line
+  (assuming that you use the standard order) if the referenced variable is a
+  reference itself - the script only parses "$variablename" references once.
+  This is a bug and is scheduled to be fixed.
+
+* If no "searchpage" is specified for definitions of type "search", the value of
+  "homepage" is used.
+
+* If no "referer" is specified, the value of "searchpage" is used. If this has
+  not been set (in the case of definitions that generate the URL or search
+  definitions that use the homepage as the searchpage), the value of "homepage"
+  is used.
+
+* There may be additional problems lurking in the defintion file-parsing code.
+  It currently works fairly well, but needs to be re-written properly.
+
+* Group, strip, and class names can contain pretty much any character except
+  semicolon, space, and pipe.

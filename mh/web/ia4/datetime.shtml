@@ -1,0 +1,14 @@
+<html>
+<HEAD> 
+  <META HTTP-EQUIV="refresh" content="60;URL=datetime.shtml"> 
+  <TITLE>Stats</TITLE> 
+</HEAD> 
+<BODY text=lime bgcolor=123456> 
+<table width=100%>
+<tr><td align=left><b><font face=arial size=4> <!--#include var="$Date_Now"--> 
+<!--#include var="$Time_Now"--></td>
+<td align=right><font face=arial size=4><b>Office: <!--#include var="$Save{office_temp} "--> f</td>
+</tr></table>
+
+
+</html>

@@ -1,0 +1,31 @@
+<HTML>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target='output'>
+<table height='100%' border='0'>
+<tbody>
+<td valign='top' align='left' width='100%'>
+<a href='/bin/phone_in.pl'><img src="images/recentcalls.gif" alt='Incoming calls' border=0></a><br>
+<a href='/bin/phone_out.pl'><img src="images/outgoing.gif" alt='Outgoing calls' border=0></a><br>
+<a href='/bin/phone_search.pl'><img src="images/searchcalls.gif" alt='Search' border=0></a><br>
+
+<!--#include file="/ia5/phone/voicemail.pl" -->
+
+<a href='<!--#include var="$config_parms{web_href_yellowpages}" -->'>
+<img src="images/yellowpages.gif" alt='Yellow pages' border=0></a><br>
+
+<a href='<!--#include var="$config_parms{web_href_whitepages}" -->'>
+<img src="images/whitepages.gif" alt='White pages' border=0></a><br>
+
+<a href='<!--#include var="$config_parms{web_href_reverselookup}" -->'>
+<img src="images/lookup.gif" alt='Reverse lookup' border=0></a><br>
+
+<a href='browse.shtml'><img src="images/browse.gif" alt='Browse Category' border=0></a><br>
+
+</td>
+</tbody>
+</table>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head><body>
+<base target ="output">
+<!--#include code="&html_header('Calendar Facts')" -->
+<table width="100%" border="0">
+<pre>
+<font size=1>
+<!--#include file="$config_parms{web_href_calendar_history}"-->
+</font>
+</pre>
+</table>
+</body>
+</html>

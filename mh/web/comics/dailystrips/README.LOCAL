@@ -1,0 +1,58 @@
+This file describes in further detail dailystrips' 'local' mode of
+operation.
+
+Normally, dailystrips generates the URLs to the selected strips and
+displays them on STDOUT for redirection into a file (--output lets you
+specify a file to save the HTML into automatically).  However, this is
+usually inconvenient as you must first run the program  manually,  and
+then wait for your browser to download the images. Local mode, instead
+of putting the address of each image in the generated page,  downloads
+the image and save a copy of it locally. The address in  the generated
+page then refers to that downloaded image. With this,  you do not have
+to wait for your browser to download the images from the 'net  -  they
+are already on your hard drive (or your own webserver - another way to
+set it up).  The time savings really add up when you want to view  the
+page more than once.
+
+Method 1: (one system)
+
+Create a directory (such as /home/user/dailystrips/) in which to store
+the downloaded images and output files.
+
+Create a cron script like the following and put it in  /etc/cron.daily
+(call it dailystrips.sh, etc)
+
+#!/bin/sh
+echo "dailystrips running:"
+su user -c "dailystrips --basedir /home/user/dailystrips --local all"
+
+Of course, change /home/user/dailystrips to the exact  directory  that
+you created.  Also, change "su user.." to reflect an appropriate login
+(your own is  best if you created a  directory in your home directory)
+You should also change the "all"  to reflect just  the strips you want
+to see - the over 200 strips would take a rather long time to download
+even with a fast connection.
+
+By default, the program calls the output file 'dailystrips-YYYY.MM.DD'
+and creates 'index.html' as a symlink to this, so that you can make a
+bookmark to index.html  in your web browser that will always take you
+to the latest page.  If you need to change this,  you'll have to edit
+the script.
+
+For scheduling the time that dailystrips runs, you'll have to consider
+your time zone.  I have found  that running at  0600 EST (-0500) works
+well for my strips (see the contents of group 'andrew').  You may have
+to experiment a  little to find the best time for the  specific strips
+you download. One idea is to create a crontab entry to run dailystrips
+early in the morning  and then a few hours later  if the strips aren't
+all available at one time.
+
+
+Method 2: (webserver/intranet)
+
+This is the same as above  -  just locate the directory somewhere  in
+your webserver's document root.  Keep in mind that this should  be for
+personal  use only,  as making the  output publicly  available  on the
+internet constitutes  copyright infringement, without permission  from
+the strips' authors. As far as I know, though, it's within your rights
+to use this for personal use.

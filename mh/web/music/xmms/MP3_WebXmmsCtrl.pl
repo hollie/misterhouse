@@ -185,8 +185,8 @@ sub PlaylistCtrl {
 }
 
 #$Log$
-#Revision 1.1  2004/01/25 05:14:25  cwitte
-#cwitte sync to 2.86 tarball
+#Revision 1.2  2004/01/26 01:43:04  cwitte
+#cwitte sync to 2.86 tarball (take2)
 #
 #Revision 1.5  2002/01/27 01:57:36  gaetan
 #Beta 0.1
@@ -201,8 +201,8 @@ sub PlaylistCtrl {
 #create a shuffle simulation tyo workaround the lack of on/off shuffle
 #
 #$Log$
-#Revision 1.1  2004/01/25 05:14:25  cwitte
-#cwitte sync to 2.86 tarball
+#Revision 1.2  2004/01/26 01:43:04  cwitte
+#cwitte sync to 2.86 tarball (take2)
 #
 #Revision 1.5  2002/01/27 01:57:36  gaetan
 #Beta 0.1

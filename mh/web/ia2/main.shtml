@@ -1,0 +1,120 @@
+<html>
+<head>
+<!-- epods -->
+<LINK REL="STYLESHEET" HREF="default.css" TYPE="text/css">
+
+<SCRIPT LANGUAGE="JavaScript">
+function popupWin(theName, theUrl, width, height) {
+    if((width==null)||(height==null)) {
+        newWin=window.open("",theName,'scrollbars,width=300,height=200,resizable');
+    }else{
+        newWin=window.open("",theName,'scrollbars,resizable,width=' + width + ',height=' + height);
+    }
+    newWin.location.href=theUrl;
+    newWin.focus();
+    if(newWin.focus){newWin.focus()};
+//  newWin.onBlur=newWin.self.close;
+}
+</SCRIPT>
+
+</head>
+
+<body>
+
+<BASE TARGET='control'>
+
+<DIV id="divAbout" style="position:absolute; left:10; top:5; visibility: hidden">
+  <p><b>Program</b>:
+  <li><b><a TARGET='_blank' href="http://misterhouse.net">Homepage</a></b>
+  <li><b>Version:</b> <!--#include var="$Version"-->
+  <li><b>Modified:</b> <!--#include var="$Version_date"-->
+  <li><b>OS:</b> <!--#include var="$^O"-->
+  <li><b>Perl:</b> <!--#include var="$]"-->
+  <li><b>Date:</b> <!--#include var="$Version_date"-->
+</DIV>
+
+
+<DIV id="divOther" style="position:absolute; left:10; top:5; visibility: hidden">
+
+  <BASE TARGET='control'>
+
+
+  <li><a href=/mh_craig/get_temp.shtml>Temp Graphs</a>
+
+  <li><a href=/mh_craig/get_rain.shtml>Rainfall Graph</a>
+
+  <li><a href=/mh_craig/get_archy_histogram.shtml>Archy Histogram</a>
+
+  <li><a href=/mh_craig/get_sump_graph.shtml>Sump Pump Graph</a>
+
+  <li><a href=/mh_craig/get_ups.shtml>UPS Graphs</a>
+
+  <li><A href="RUN;last_displayed?Sump_status">Sump status</A>
+
+ <hr>
+
+  <li><A href=webcam.html target=control>Live Webcam</A>
+
+  <li><a href="http://home.rochester.rr.com/archy/webcam32.jpg" height=240 width=320 BORDER="0" ALT="webcam">Last Webcam</a>
+
+  <li><a href="http://home.rochester.rr.com/archy/webcam.html">Webcam history</a>
+
+  <li>Cam 1 <a href=/mh_craig/get_webcam.pl?4,1>4</a>
+	    <a href=/mh_craig/get_webcam.pl?12,1>12</a>
+	    <a href=/mh_craig/get_webcam.pl?99,1>99</a>
+
+  <li>Cam 2 <a href=/mh_craig/get_webcam.pl?4,2>4</a>
+	    <a href=/mh_craig/get_webcam.pl?12,2>12</a>
+	    <a href=/mh_craig/get_webcam.pl?99,2>99</a>
+
+  <li>Cam 3 <a href=/mh_craig/get_webcam.pl?4,3>4</a>
+	    <a href=/mh_craig/get_webcam.pl?12,3>12</a>
+	    <a href=/mh_craig/get_webcam.pl?99,3>99</a>
+
+<hr>
+
+  <li><a href="/mh_craig/email_index.shtml">EMail</a>
+
+  <li><a href=/mh_craig/cidsmall.html>CallerID</a>
+
+ <hr>
+
+  <li><A href="RUN;last_displayed?Display_the_next_deep_thought">Display a Deep Thought</A>
+
+  <li><A href="RUN;last_displayed?Show_the_top_10_list">Show the top 10</A>
+
+</DIV>
+
+
+<DIV id="divCateg" style="position:absolute; left:10; top:5">
+  <!--#include file="/category"-->
+</DIV>
+
+
+<DIV id="divItems" style="position:absolute; left:10; top:5; visibility:hidden">
+  <!--#include file="/items"-->
+</DIV>
+
+
+<DIV id="divGroups" style="position:absolute; left:10; top:5; visibility:hidden">
+  <!--#include file="/groups"-->
+</DIV>
+
+
+<DIV id="divWidgets" style="position:absolute; left:10; top:5; visibility: hidden">
+
+  <li><a href="widgets">All widgets</a>
+  <li><a href="widgets_label">Labels</a>
+  <li><a href="widgets_entry">Entry</a>
+  <li><a href="widgets_radiobutton">RadioButtons</a>
+  <li><a href="widgets_checkbox">Checkboxes</a>
+  <li><a href="widgets_type">All by type</a>
+  <hr>
+  <li><a href="vars_save">Save Variables</a>
+  <li><a href="vars_global">Global Variables</a>
+
+
+</DIV>
+
+</body>
+</html>

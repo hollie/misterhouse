@@ -1,0 +1,235 @@
+Joaquín Perez <joaquin@mondongo.com.ar>
+Finished implementing every strip at ucomics.com & unitedmedia.com
+
+Marc Doumayrou <mad@oxyan.com>
+Implemented --dailydir option and link to previous day's strip
+
+Scott Carlson <ScottCarlson@email.com>
+Implemented detection and symlinking for duplicate strip files
+
+Dave Tweed <dtweed@acm.org>
+Added sfgate strips & others
+
+Itai Zukerman <zukerman@math-hat.com>
+Added Avalon High
+
+Russell Keppner <rkeppner@idiglobal.com>
+Added Sluggy Freelance
+
+Peter <pete@pretender.com>
+Added strips: exploitnow coolcat classm bruno thinhline nukees joeaverage hotzp
+flem gpf in2it crfh striptease
+
+Robert Jagger <jagger@oznog.org>
+Added strips: angst, bobbins
+
+Robert Sandilands <robert.sandilands@secureworx.com
+Added strips: zapiro madameve
+
+Roy Moore <lizard@tyrannos.com>
+Added strips: goats plif
+
+Michael Lewis <michael.s.lewis@att.net>
+--nospaces option, zippythecolorpinhead
+
+Mark Wallace <Mark.Wallace@osd.mil
+Added strip: clanofthecats
+
+Daniel Skarda <0rfelyus@atrey.karlin.mff.cuni.cz>
+Added --stripdir and --date options
+
+Mark Larimer <larimer@fantasybowl.com
+Added Dork Tower definition
+
+Francesco Chemolli <kinkie@kame.usr.dsi.unimi.it>
+Patch to automatically use the definition file located in the same directory
+as the script instead of the current directory
+
+Rene Weber <rene_dailyst@elvenlord.com>
+--useragent option, Debian packaging, system-wide definitions, numerous fixes
+
+Peter De Wachter <pdewacht@vub.ac.be>
+Addeed Kevin and Kell, Freefall
+Fixed --date option
+
+Tom Klinger <Admin@the-piper.net>
+Win32 porting
+Getops
+Fixes to strips.def
+
+Chip Marshall <chip@chocobo.cx>
+Added Astronomy Picture of the Day
+
+Pat Lashley <patl@phoenix.volant.org>
+Fixed group support
+
+Martin Feeney <martin@tuatha.org>
+Added numerous strips, strip fixes
+
+JR Boyens <jboyens@iastate.edu>
+Added Spaz Labs
+
+Chris Hoover <choover@ideatank.com>
+Added frazz, janesworld, bfriends; revised spooner, pcnpixel, thenorm
+Fixed "Spooner"
+
+Jeff Brown <jbrown@saic1.com>
+Added spiderman, tuma, nowak, asay, lang, shelton
+Fixed "PC and Pixel", "Liberty Meadows", "Diesel Sweeties"
+Fixed "PC and Pixel" again
+
+Jarrod Benjami Johnson <jbjohns4@unity.ncsu.edu>
+Added elflife, elflifeadult, funnyfarm, ozyandmillie, suburbanjungle,
+acidreflux, whenigrowup
+Fixed the RedHat image corruption problem
+
+Joseph Blough <jblough@CreativeSolutions.com>
+Added links for navigating between strips
+
+Douglas Riga <driga@san.rr.com>
+Added --nosymlinks and --notitles options
+Added sevtrek, fotr, sevgate, bluffy, sevfiles, sevwars, sevylon5, sevscifi
+
+Tucker McLean <tucker@noodleroni.com>
+Added strip 'Mr. Potato Head'
+
+Ted Berg <tedberg@users.sourceforge.net>
+Added strips 'Walky', 'Jackie's Fridge', 'Schlock Mercenary', and
+'Unicorn Jelly'
+
+Rich Lafferty <rich@lafferty.ca>
+Added strips greytown, slowwave, sexylosers, youdamnkid, houndshome, cutewendy,
+lifesorad, bigones
+
+Elf M. Sternberg <elf@drizzle.com>
+Added strips "As If", "Nip 'N Tuck", "Under the Lemon Tree", and "Winter"
+
+Daniel M. Drucker <dmd@3e.org>
+Fixed "Penny Arcade"
+
+Robert Fleming <rob@flemish.org>
+Added "Brainbuzz", "The Duplex"
+
+Matt Hucke <hucke@cynico.net>
+Fixed "Sexy Losers"
+
+David Findlay <david_j_findlay@yahoo.com.au>
+Added "Swamp"
+
+Ryan T. Dean <rtdean@cytherianage.net>
+Fixed "The Norm"
+Added "Melonpool"
+
+David S. Geirsson <david@bsd.is>
+Added "Flem"
+
+Mike Schwartz <tearyeyed@fanboy.org>
+Added "Real Life", "Sheldon", "Weak-end Warriors"
+
+Aaron D. Marasco <Aaron@Marasco.com>
+Fixed comicspage.com strips
+
+Pat Lashley <patl@volant.org>
+Fixed a file-extension detection bug
+
+Marcie Alana Lovell <marcie@bigrock.com>
+Added strips "Alice!", "The Shadows", "Lowest Common Denominator",
+"The Devil's Panties", "Fat Jesus", "Funny Farm", "Sex and Violence", "Fans!"
+
+Josh Brand <josh@triat.net>
+Added "Underpower" and "Nekobox"
+
+Soeren Gerlach <soereng@users.sourceforge.net>
+Added "Perscheids Abgruende", "Harm Bengen's Alltagsskizzen", "Weyershausen", "Touche"
+Fixed "Perscheids Abgruende", "Harm Bengen's Alltagsskizzen", "Weyershausen", "Quirit"
+
+Ted Richards <tedrichards@rogers.com>
+Added "Drawing a Crowd", "I Need Help", "On the Fast Track", "Pibgorn",
+"Safe Havens", and "Working Daze"
+
+Kenneth Ballard <ken_ballaard@hotmail.com>
+Added "Marvin"
+Moved "Andy Capp", "BC", "Wizard of ID" to Washington Post
+
+CJ Kucera <pez@apocalyptech.com>
+Added "Death to the Extremist", "Dicebox"
+
+Anders Bruun Olsen <anders@bruun-olsen.net>
+Added "Jack"
+
+Kim Scarborough <sluggo@unknown.nu>
+Added 180(!) new strips: aislin alcarez alimov ammer andersonk andersonn
+anjornooz ares ariail asay auth babin bado bateman beattie behrendt bertrams
+bish bizwit bok boligan boyle breen britt brookins brown cagle cajas cardow
+carlson carlucho cartoonfix casciari catalino catrow chappatte cherepanov
+christo clement coco cole corax corrigan cranandlerma crowe cummings
+curiousmoments curry day deadder deangelis deering deore dolighan doloricon
+donato drybones duffy emmerson englehart erniepook erniepookbig esquivel
+evans gable gado garrincha gomaa gorrell graff graston greenberg grondahl
+hachfeld hajjaj hansson harville heller heng hervi huffaker incontempt
+jacobson jonesc kallaugher kazanevsky keefe keshav kim koterba kowsar lane langer
+leahy linttrap macgregor mackay mackinnon markstein matson mccloskey mckee
+medi menees miel mitropoulos moir molina morin moudakis nicholson noexit obi
+ofarrell ohman oliphant olle palomo pancho paresh parker peel persitoons
+peterson pismestrovic plante plantu powell priggee raeside rall ramirez
+ramsey randompropaganda reddick ricardo ritter rodewalt ronnen rowe sakurai
+sargent scarygoround schopf schot serguei sherffius siers slane slowpoke
+snibbe spencer stantis stavro streeter summers swill tayo thompson toles tom
+toomuchcoffeeman topsyturvey touka trever trinidad troubletown turner varvel
+wallace walters wilkinson wolvertoon wonsoo wrightl zapiro zeev zetterling zudin
+
+Kevin Fenzi <kevin@scrye.com>
+Added "Fleem", "Queen of Wands", "WIGU"
+
+Daniel Chudnov <dchud@umich.edu>
+Added "Overdue"
+
+J. Traub <jtraub@dragoncat.net>
+Added "Ben Sargent", "Pat Oliphant"
+Added pt3g, barneygoogle, betterhalf, buckles, dinetteset, grinandbearit,
+hiandlois, judgeparker, lockhorns, marktrail, maryworth, pardonmyplanet,
+redeye, rexmorgan, steveroper, theylldoiteverytime, tiger, tinasgroove,
+tumbleweeds, edgecity
+
+Christian Rubbert <christian@rubbert.de
+Fixed "Bruno the Bandit", added "Nicht Lustig"
+
+Jesper Lindh <rakblad@home.se>
+Added "Hackles" and "Aford Turtle"
+
+Gene Spafford <spaf@cerias.purdue.edu>
+Fixed "Mister Boffo", added "P. S. Mueller"
+
+Greg Hackmann <gwh2@cec.wustl.edu>
+Added "Dragon Tails"
+
+The Doctor What <docwhat@gerf.org>
+Added pvpcurrent, brunothebanditcurrent
+
+Eduardo Alvarez <punga@bumba.net>
+Fixed "Dork Tower", "Sherman's Lagoon"
+
+Uri Guttman <uri@stemsystems.com>
+Fixed "Zippy the Pinhead"
+
+Mike Scwartz <mjschwar@optonline.net>
+Added "Nothing Nice to Say"
+
+Thomas Ritter <th.ritter@gmx.net>
+Added "Ctrl+Alt+Del", "Tastes Live Gravel", "Instant Classic", "Geek
+Salad", "Comet 7", "Movie Punks", "Building 12", "Sarah and David" 
+Fixed "Real Life"
+
+Manuel Streuhofer <manuel@streuhofer.net>
+Added "Haiopeis"
+
+Joe Drew <hoserhead@woot.net>
+Fixed "Dr. Fun"
+
+Taylor Jacob <rtjacob@earthlink.net>
+Fixed "Mother Goose and Grimm"
+
+Antonio Larrosa Jiménez <larrosa@kde.org>
+Added "Tira ecol de Bilo y Nano", "Tira ecol de Bilo y Nano (english)",
+"Gallego Y Rey", "Ricardo (El Mundo)", "Idigoras", "Zulet", "Elgar",
+"Pachi", "Amor es..."

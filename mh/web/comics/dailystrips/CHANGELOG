@@ -1,0 +1,754 @@
+1.0.28
+  23 Mar 2003
+  Removed redundant def for "Funny Farm"
+
+  Removed redundant defs for several strips.
+
+  Fixed "Mister Boffo", added "P. S. Mueller" (Gene Spafford)
+
+  Added "Dragon Tails" (Greg Hackmann)
+
+  Fixed "PC and Pixel" (Jeff Brown)
+
+  Fixed "Weyershausenwelt", "Quirit", "Perscheid", and "Harmbengen" (Soeren
+  Gerlach)
+
+  28 May 2003
+  Fixed B-Bit Theater
+
+  29 May 2003
+  Added 'dailystrips-update' script to do automatic defs updates
+
+  Personal definitions should now work on Windows
+
+  25 Jun 2003
+  Fixed "Queen of Wands" homepage
+
+  King Features/SF Gate strips should be working now (fixed by using URL as
+  Referer value if no Referer is provided)
+
+  Added "pvpcurrent" and "brunothebanditcurrent", which stay in sync with
+  their websites (The Doctor What)
+
+  Fixed "8-Bit Theater"
+
+  Fixed "Sherman's Lagoon" and "Dork Tower" (Eduardo Alvarez)
+
+  Fixed "Zippy the Pinhead" (Uri Guttman)
+
+  Added "Dicebox" (CJ Kucera)
+
+  Added "Nothing Nice to Say" (Mike Schwartz)
+
+  Fixed some typos in dailystrips-clean
+
+  17 Jul 2003
+  Fixed another referrer issue
+
+  Fixed Zippy color definition
+
+  1 Aug 2003
+  Fixed the elusive "RedHat image corruption problem" (Jarrod Johnson)
+
+  8 Aug 2003
+  Added README.dailystrips-update file
+
+  23 Aug 2003
+  Fixed "As If"
+
+  24 Aug 2003
+  Fixed "John Cole", "Farley", "GPF", "Bob Lang", "Lowest Common
+  Denominator", "Under the Lemon Tree", "Megatokyo", "Nip and Tuck", "Paul
+  Nowak", "Pathetic Geek Stories", "Sexy Losers", "Kevin Tuma"
+
+  Added support for multiple match parts in defs
+
+  Removed "Unicorn Jelly", "US of Play", "Warped"
+
+  25 Aug 2030
+  Added "Ctrl+Alt+Del", "Tastes Live Gravel", "Instant Classic", "Geek
+  Salad", "Comet 7", "Movie Punks", "Building 12", "Sarah and David" (Thomas
+  Ritter)
+
+  Fixed "Real Life" (Thomas Ritter)
+
+  Added "Haiopeis" (Manuel Streuhofer)
+
+  Fixed "Dr. Fun" (Joe Drew)
+
+  Fixed "Mother Goose and Grimm" (Taylor Jacob)
+
+  Added "Tira ecol de Bilo y Nano", "Tira ecol de Bilo y Nano (english)",
+  "Gallego Y Rey", "Ricardo (El Mundo)", "Idigoras", "Zulet", "Elgar",
+  "Pachi", "Amor es..." (Antonio Larrosa Jiménez)
+
+   Removed redundant "Dwane Powell" def
+
+ 
+1.0.27
+  24 Feb 2003
+  Added 180 new strips (Kim Scarborough)
+
+  Fixed "Clan of the Cats", "Little Gamers"
+
+  Added "Fleem", "Queen of Wands", "WIGU" (Kevin Fenzi)
+
+  Added "Overdue" (Daniel Chudnov)
+
+  15 Mar 2003
+  Added "Ben Sargent", "Pat Oliphant" (J. Traub)
+
+  Fixed "I Need Help" (J. Traub)
+
+  Added 20 Assorted strips (J. Traub)
+
+  Fixed "Bruno the Bandit" (Christian Rubbert)
+
+  Added "Nicht Lustig" (Christian Rubbert)
+
+  Added "Aford Turtle" and "Hackles" (Jesper Lindh)
+
+  16 Mar 2003
+  Fixed "Scary Go Round"
+
+
+1.0.26
+  02 Jul 2002
+  Added "Achewood"
+
+  27 Aug 2002
+  Added strips "Death to the Extremist" (CJ Kucera), "Jack" (Anders Bruun
+  Olsen)
+
+  29 Nov 2002
+  Fixed "As If!"
+
+  28 Dec 2002
+  Updated comicspage.com and creators.com strips and cleaned up misc. other
+  strips
+
+  23 Feb 2003
+  Fixed "The Devil's Panties", "The Class Menagerie", "Diesel Sweeties",
+  "Fans"
+
+
+1.0.25
+  26 May 2002
+  Fixed sfgate strips
+
+  18 Jun 2002
+  Fixed Penny Arcade
+
+  21 Jun 2002
+  Fixed "Spooner" (Chris Hoover)
+
+  Added "Underpower" and "Nekobox" (Josh Brand)
+
+  Added "Perscheids Abgruende", "Harm Bengen's Alltagsskizzen", "Weyershausen",
+  "Touche" (Soeren Gerlach)
+
+  Added "Drawing a Crowd", "I Need Help", "On the Fast Track", "Pibgorn",
+  "Safe Havens", and "Working Daze" (Ted Richards)
+
+  dailystrips-clean can now remove obsolete entries from the archive.html file
+
+  27 Jun 2002
+  Fixed "Dorktower", "Penny Arcade", "Sexy Losers"
+
+  30 Jun 2002
+  Added "Marvin", Moved "Andy Capp", "BC", "Wizard of ID" to Washington Post
+  (Kenneth Ballard)
+
+
+1.0.24
+  24 Apr 2002
+  Moved definitions for strips that are no longer updated
+  but which can still be downloaded for previous days to
+  'archive.def' (Badtech, Citizen Dog)
+
+  07 May 2002
+  Fixed a bug in the call to the dailystrips-clean script (Rene Weber)
+
+  Added "Real Life", "Sheldon", "Weak-end Warriors" (Mike Schwartz)
+
+  Fixed comicspage.com strips (Aaron D. Marasco)
+
+  Removed "Professor Doodles"
+
+  Fixed another file extension detection bug (Pat Lashley)
+
+  24 May 2002
+  Removed "Lupo Alberto", "Off Sides", "Rug Rats", "Basement Studio",
+  "Crabby Road", "Not Quite Right", "Real Life", "Wandering Ones",
+  "When I Grow Up", "That's Jake"
+
+  Fixed "Pathetic Geek Stories", "Cute Wendy", "Mr. Chuck Show", "Zapiro",
+  "Bobbins"
+
+  Fixed comicspage.com strips to work on Sundays.
+
+  Added several new strips (Marcie Alana Lovell)
+
+
+1.0.23
+  02 Apr 2002
+  "Diesel Sweeties" fixed
+
+  Disabled Liberty Meadows again
+
+  "PC and Pixel" fixed (Jeff Brown)
+
+  "Bottom Liners" restored
+
+  "Brainbuzz" and "The Duplex" added (Robert Fleming)
+
+  Typo in help fixed (Rene Weber)
+
+  "Sexy Losers" fixed (Matt Hucke)
+
+  "Swamp" added (David Findlay)
+
+  install.pl updated to be more configurable
+
+  Fixed bug with --stripnav option
+
+  Removed "Wee Pals", "Dear Dudley", "Punc and Mark", "Spooner", "Jack Ohman"
+
+  Fixed "Dork Tower", "Under the Lemon Tree"
+
+  04 Apr 2002
+  Fixed "The Norm" (Ryan T. Dean)
+
+  06 Apr 2002
+  Added "Something Positive"
+
+  Added Melonpool (Ryan T. Dean)
+
+  Fixed "8-Bit Theater"
+
+  Cleaned some old junk out of the definitions file
+
+  16 Apr 2002
+  Fixed "Dork Tower", "Pathetic Geek Stories", "Zapiro", "Mac Hall"
+
+  Fixed file-extension detection
+
+  18 Apr 2002
+  Added "Flem" (David S. Geirsson)
+
+  20 Apr 2002
+  Fixed "As If"
+
+
+1.0.22
+  12 Jan 2002
+  Added 'Off the Mark'
+
+  13 Jan 2002
+  Typo in script fixed.
+
+  Previously, if the script was run more than once in a day and downloading of a
+  strip succeeded during one run but failed in the next, an error would be
+  reported and the existence of a local strip file for the day was not
+  considered. Now, for generate-type strips, the local file will be re-used if
+  downloading fails at a later time.
+
+  14 Jan 2002
+  install.pl will now refuse to run on Win32
+
+  18 Jan 2002
+  Added strips "As If", "Nip 'N Tuck", "Under the Lemon Tree", and "Winter"
+  (Elf M. Sternberg)
+
+  25 Jan 2002
+  On Win32, a copy of the output page (local mode) is now created as index.html
+
+  03 Feb 2002
+  Fixed Penny Arcade (Daniel M. Drucker)
+
+  Added 'dailystrips-clean' script that will delete any files older than a
+  specified number of days
+
+  Fixed "The Class Menagerie"
+
+  10 Feb 2002
+  Removed 'Sexy Losers'
+
+  12 Feb 2002
+  Made number of retries configurable
+
+  Fixed a few broken strips (Dorktower, Life So Rad, Winter)
+
+  16 Feb 2002
+  Fixed PC and Pixel, Liberty Meadows (Jeff Brown)
+
+  Added "Bobbins" (Robert Jagger)
+
+
+1.0.21
+  28 Oct 2001
+  Fixed --nostale option - code was there, but attempting to use it would result
+  in a 'no such option' error.
+
+  11 Nov 2001
+  Fixed strips '8bit Theater' and 'Adventurers' (Martin Feeney)
+
+  Fixed strip 'Diesel Sweeties'
+
+  Fixed a bug in defs parsing where a lack of parentheses in searchpattern lines
+  was not reported.
+
+  Added strip 'Mr. Potato Head' (Tucker McLean)
+
+  Fixed a problem with using both --nospaces and --stripdir
+
+  Added strips 'Walky', 'Jackie's Fridge', 'Schlock Mercenary', and
+  'Unicorn Jelly' (Ted Berg)
+
+  12 Nov 2001
+  Fixed strip 'Avalon High'
+
+  Now completely up to date with unitedmedia.com strips
+
+  Fixed a bug in defs parsing where referencing of non-existant classes was not
+  reported
+
+  Now completely up to date with comicspage.com strips
+
+  02 Jan 2002
+  Fixed RPG World def
+
+  Added strips greytown, slowwave, sexylosers, youdamnkid, houndshome,
+  cutewendy, lifesorad, bigones (Rich Lafferty)
+
+  Added 'artist' keyword to defs file
+
+  Fixed freefalf def to work on Win32
+
+  12 Jan 2002
+  Fixed 'Avalon High' (again), 'Sexy Losers', 'Zippy the Pinhead',
+  'Adventurers', 'Freckles', 'Lil Abner', 'Kevin Tuma'
+
+  Removed 'In2It Online'
+
+  When running under --dailydir, no longer puts the HTML output in the
+  dailydir directory since the IMG tags would be wrong from there anyway.
+
+
+1.0.20
+  08 Oct 2001
+  Added spiderman, tuma, nowak, asay, lang, shelton (Jeff Brown)
+
+  14 Oct 2001
+  Made "matchpart 1" lines unnecessary
+
+  Added elflife, elflifeadult, funnyfarm, ozyandmillie, suburbanjungle,
+  acidreflux, whenigrowup (Jarrod Benjami Johnson)
+
+  16 Oct 2001
+  Added mechanism to automatically retry downloading bad links. Some webservers
+  seem to be randomly returning bogus 404s on strip images, possibly with the
+  intent of tripping up programs such as this.
+
+  26 Oct 2001
+  Fixed 8bit Theater, Diesel Sweeties
+
+  Removed Adventurers, hotzp/Bad Boys of Computer Science (both gone)
+
+  Added system-wide definitions (Rene Weber)
+
+  Added --stripnav option to insert links for jumping to specific strips on a
+  large page of comics (Joseph Blough)
+
+  27 Oct 2001
+  Added --nosymlinks, --titles options and links to archive on strip pages
+  Added sevtrek, fotr, sevgate, bluffy, sevfiles, sevwars, sevylon5, sevscifi
+  (Douglas Riga)
+
+
+1.0.19
+  07 Sep 2001
+  Removed some Win32 code that no longer applied to anything
+
+  13 Sep 2001
+  Fixed Zapiro
+
+  21 Sep 2001
+  Added 16 new strips (Martin Feeney)
+
+  24 Sep 2001
+  Fixed Megatokyo
+
+  Added Spaz Labs (JR Boyens)
+
+  26 Sep 2001
+  Added strip glasbergen
+
+  08 Oct 2001
+  Fixed sluggy to cover more days, still doesn't handle multi-image strips
+
+  Added frazz, janesworld, bfriends; revised spooner, pcnpixel, thenorm (Chris Hoover)
+
+  Fixed boasas, glasbergen, striptease
+
+
+1.0.18
+  18 Aug 2001
+  Changed the behavior of the program to handle strips that don't get updated
+  daily in a more intelligent manner. Now the most current strip possible is
+  saved. By default, a strip that is the same as the previous day's is still
+  displayed but the new '--nostale' option can be used to display an message
+  in the HTML output instead when an updated strip is not available. Also, the
+  --new option has been removed.
+
+  20 Aug 2001
+  Added a --lite option for outputting reduced HTML
+
+  Added --random to select a random strip to get
+
+  Fixed 8-Bit Theater
+
+  28 Aug 2001
+  Added strip pgs
+
+  Changed method of operation for search mode to be more flexible
+
+  Fixed a bug in groups support (Pat Lashley)
+
+  03 Sep 2001
+  Renamed the script to just 'dailystrips', not 'dailystrips.pl'
+
+  RPMs now available
+
+  04 Sep 2001
+  Fixed DorkTower (proabaly only temporarily), jokesonyou, and striptease
+
+  scragends seems to be gone - removed
+
+
+1.0.17
+  01 Aug 2001
+  Small fix to Avantgo table generation
+
+  08 Aug 2001
+  Added Astronomy Picture of the Day (Chip Marshall)
+
+  Win32 fixes
+
+  09 Aug 2001
+  Additional Win32 fix
+
+  10 Aug 2001
+  Small (but important) fixes
+
+  Fixed Exploitation Now, small optimizations to other regexps
+
+  Fixed display of date in output on certain platforms (FreeBSD, Win32 known)
+
+  Even more fixes to --date. It should work now. Really.
+
+  14 Aug 2001
+  Typo fixes
+  Fixed several broken strips
+
+  16 Aug 2001
+  Fixed more broken strips
+
+  17 Aug 2001
+  Continued cleaning up definitions. New total of working strips: 220
+
+
+1.0.16
+  23 Jul 2001
+  Fixed reporting of line numbers for errors encountered while parsing
+  definitions.
+
+  Strip definitions now specify what they can provide (latest image only
+  or the correct strip for any date) so that only strips that can actually
+  provide the strip for the requested date are downloaded when using the
+  --date option.
+
+  Fixed the --date option yet again. (Peter De Wachter)
+
+  Misc code cleanups
+
+  Better error reporting in the definition parser
+
+  Misc bug fixes
+
+  24 Jul 2001
+  Cleaned up some regexps in option parsing code
+
+  Fixed syntax checking and error reporting in option parsing code
+
+  26 Jul 2001
+  strips.def:
+  Added 8-Bit Theater
+  Removed flem, madameve, katies, mrlowe, ribman
+  Fixed dorktower
+  Cleaned up some regexps
+
+  Fixed proxy server detection
+
+  Implemented urlsuffix in defs file
+
+  27 Jul 2001
+  Implemented Getopt::Long for command line argument processing (Tom Klinger)
+
+  Implemented necessary changes for Win32 (Tom Klinger)
+
+  Implemented preliminary Avantgo support
+
+  Misc code tweaks
+
+  31 Jul 2001
+  Updated several unitedmedia.com strips to use the class again
+
+
+1.0.15
+  13 Jul 2001
+  Major change: now installs to system directories instead of one dir.
+  This involves:
+    -installer script install.pl
+    -strips.def goes in /usr/share/dailystrips
+    -docs go in /usr/share/doc/dailystrips-VERSION
+    -script goes in /usr/bin
+   Personal installations are described in the INSTALL file.
+
+   A --useragent option has been added to specify the User-Agent: header.
+
+   Added new strip: jerkcity
+
+   Other small code fixes
+
+   15 Jul 2001
+   Proxy authentication changed. Please notify if any problems arise.
+
+   Added 'prefetch' keyword to definition file (see README.DEFS for more)
+
+   SF Gate strips seem to be working again
+
+   Other small code fixes
+
+   19 Jul 2001
+   Fixed usage of Date::Parse yet again
+
+   No longer creates index.html when an alternate date is specified (so that it
+   will not overwrite the latest symlink if running for an earlier day)
+
+   Fixed syntax checking of http_proxy environment variable
+
+   23 Jul 2001
+   Better errors for mis-specified proxy servers
+
+   Misc changes
+
+
+1.0.14
+  12 Jul 2001
+  Now uses the strips.def file located in the same directory as the script,
+  instead of checking the current directory (Francesco Chemolli)
+
+  Added 'exclude' keyword for defs file (Francesco Chemolli)
+
+  Personal definition files are now supported (~/.dailystrips.defs)
+
+
+1.0.13
+  04 June 2001
+  Enchanced the strip definition file a bit (see README.DEFS for more)
+
+  Added The Norm definition
+
+  14 May 2001
+  Fixed User Friendly definition
+
+  Fixed routine that checks for presence of Date::Parse module
+
+  Added Dork Tower definition (Mark Larimer)
+
+
+1.0.12
+  11 Mar 2001
+  Added --stripdir option to put the files for each strip in a separate
+  directory (Daniel Skarda)
+
+  Added --date to specify the date to work with, instead of the current date.
+  This works with many strips, but some sites do not provide an HTML page for
+  each day (in the case of URLs that must be searched for) or an image
+  for each day (in the case of URLs that are generated). Check the definition
+  file before using this option, or you may end up downloading current strips
+  in addition to strips for the specified date (this requires the Date::Parse
+  module from CPAN) (Daniel Skarda)
+
+  Added --verbose option to give extra status information. This is helpful
+  if you're trying to figure out what's wrong when a strip won't download.
+
+  Fixed the Dr. Fun definition -  the strip is not updated daily
+
+
+1.0.11
+  07 Mar 2001
+  Output no longer contains my name and email, so as not to confuse the
+  lawyers.
+ 
+
+1.0.10
+  27 Feb 2001
+  Documentation now better explains usage of groups
+
+  Non-date variables now use '$' instead of '%'. Before, when both used '%'
+  it was impossible for the script to distinguish between a date variable
+  follwed by unrelated text and any other sort of named variable (most
+  importantly, this was breaking Sluggy Freelance)
+
+  Added several new strips
+
+  Fixed several strips
+
+  Added --nospaces option (Michael Lewis)
+
+  Added proxy authentication support
+
+
+1.0.9
+  24 Feb 2001
+  Added groups support - define multiple strips as one keyword
+
+  Minor code enhancements
+
+  Fixed jokesonyou definition
+
+  21 Feb 2001
+  Added Peanuts and everything except Yak's Corner from comicspage.com
+  (strip count is now 206)
+
+  Cleaned out a bunch of old code from the script
+
+  Made searchpage the default referer (if different than homepage)
+
+  Added documentation for the strip definition file
+
+
+1.0.8
+  20 Feb 2001
+  Added HTTP proxy server support
+
+  Added 'referer' value to definition file - this can be used if a web server
+  refuses to return the image without a referer set. Actually, the program uses
+  'homepage' as a default referer - you only need to specify 'referer' if the
+  homepage value doesn't work.
+
+  Fixed a bug that was causing problems with image files that have no extension
+
+  With the completion of the above two items, SFGate strips should now work
+  properly.
+
+  Fixed the Avalon High definition
+
+  Cleaned up the definition file parsing code somewhat
+
+
+1.0.7
+  19 Feb 2001
+  Added several new strips (total is now 148)
+
+  18 Feb 2001
+  Fixed a bug when using the --dailydir option that would make incorrect
+  symlinks for duplicate files
+
+  Fixed the sample code in README.LOCAL
+
+
+1.0.6
+  02 Feb 2001
+  Added --basedir option. dailystrips will change to the specified directory to
+  look for information files and save new files there. This makes possible the
+  elimination of lines in cron scripts to manually change to a directory for
+  operation.
+
+  31 Jan 2001
+  The strips definition file now specifies the frequency that each strip is
+  expected to be updated at (just daily/semidaily for now). Now, dailystrips
+  will not download the same image two days in a row for a daily strip (which
+  previously would happen if it was being run before a strip's website was
+  updated with the day's new strip). If you wish to add to the definitions file,
+  note that "updated daily" is assumed (being the most common) if no "updated"
+  line is present - only "updated semidaily" needs to be specified.
+
+  29 Jan 2001
+  Fixed a bug with the new mode of sylinking to previous images (previously,
+  if today's image wass a symlink and the program was being run for the second
+  time that day,the old file would get overwritten - this has been fixed by
+  deleting the symlink before downloading a new strip and doing the comparison.
+
+
+1.0.5
+  29 Jan 2001
+  Added sfgate strips & misc others (Dave Tweed)
+
+  28 Jan 2001
+  Implemented detection and symlinking for duplicate strip files (Scott Carlson)
+
+
+1.0.4
+  26 Jan 2001
+  Added all strips from unitedmedia.com (Joaquín Perez again).
+
+  Implemented strip definitions file to describe strips (instead of having a
+  separate subroutine for each strip in the program). See strips.def to see how
+  this works
+
+
+1.0.3
+  24 Jan 2001
+  Added --dailydir option (Marc Doumayrou)
+
+  Also added links to previous day's page (Marc again), and a link in
+  the previous day's page to today's page.
+
+  Added warning/error messages if various operations fail that the user should
+  know about
+
+
+1.0.2
+  24 Jan 2001
+  Added the rest of the strips at ucomics.com (Joaquín Perez).
+  dailystrips now has a total of 38 strips available.
+
+  23 Jan 2001
+  Re-did command line options parsing code so that order of commands no longer
+  matters
+
+  Added --archive option. This adds a link to the current day's page to the
+  file archive.html
+
+  Added --noindex option. This disables symlinking the latest page to
+  'index.html'
+
+  Various other cleanups
+
+
+1.0.1
+  22 Jan 2001
+  No longer uses the external 'date' command. Now, dailystrips should run on
+  any platworm where the modules HTTP::Request, LWP::UserAgent, and POSIX are
+  available
+
+  Added --save option. This recognizes if a strip has already been
+  downloaded for the currect day and saves time/bandwidth by not
+  re-downloading
+
+  Added 2 new strips - Garfield & Adam@home
+
+  Various other code cleanups/optimizations
+
+  21 Jan 2001
+  No longer uses wget - replaced with LWP
+  This enhances portability and also allows for better error handling of failed
+  downloads
+
+
+1.0.0:
+  20 Jan 2001
+  First public release

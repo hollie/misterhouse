@@ -1,0 +1,19 @@
+Description:
+The dailystrips-update script is provided to automatically retrieve updated
+strip definitions from a central server, eliminating the need to manually
+download and install new versions of the entire program.
+
+It is recommened that the dailystrips-update script be run before each
+execution of the main dailystrips program. The dailystrips-update script
+has provisions to only check for updates if the current file has reached a
+certain age, which maximizes efficiency and should allow users to run the
+update script before each execution of dailystrips without overtaxing the 
+update server. 
+
+Usage:
+Operation is straightforward. Simply execute dailystrips-update and the
+updated definitions will be saved to ~/.dailystrips-updates.def, which will
+automatically be loaded by the main dailystrips program.
+
+There are also a few simple options available that may be viewed by running
+'dailystrips-update --help'.

@@ -1,0 +1,54 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Sun and Moon Data')" -->
+<table cellSpacing="0" cellPadding="0" width="100%" border="0">
+<font size=3>
+<tr>
+<td><b>General</b></td><td></td>
+</tr><tr>
+<td>Time of Day:</td><td><!--#include var="$Time_Of_Day"--></td>
+</tr><tr>
+<td>Season:</td><td><!--#include var="$Season"--></td>
+</tr><tr>
+<td><b>Sun</b></td><td></td>
+</tr><tr>
+<td>Time Sunrise:</td><td><!--#include var="$Time_Sunrise"--></td>
+</tr><tr>
+<td>Time Sunrise Twilight:</td><td><!--#include var="$Time_Sunrise_Twilight"--></td>
+</tr><tr>
+<td>Time Sunset:</td><td><!--#include var="$Time_Sunset"--></td>
+</tr><tr>
+<td>Time Sunset Twilight:</td><td><!--#include var="$Time_Sunset_Twilight"--></td>
+</tr><tr>
+<td><b>Moon</b></td><td></td>
+</tr><tr>
+<td>Age:</td><td><!--#include var="$Moon{age}"--></td>
+</tr><tr>
+<td>Brightness:</td><td><!--#include var="$Moon{brightness}"--></td>
+</tr><tr>
+<td>Phase:</td><td><!--#include var="$Moon{phase}"--></td>
+</tr><tr>
+<td>Moon First:</td><td><!--#include var="$Moon{first}"--></td>
+</tr><tr>
+<td>Moon First Prev:</td><td><!--#include var="$Moon{first_prev}"--></td>
+</tr><tr>
+<td>Moon Full:</td><td><!--#include var="$Moon{full}"--></td>
+</tr><tr>
+<td>Moon Full Prev:</td><td><!--#include var="$Moon{full_prev}"--></td>
+</tr><tr>
+<td>Moon Last:</td><td><!--#include var="$Moon{last}"--></td>
+</tr><tr>
+<td>Moon Last Prev:</td><td><!--#include var="$Moon{last_prev}"--></td>
+</tr><tr>
+<td>Moon New:</td><td><!--#include var="$Moon{new}"--></td>
+</tr><tr>
+<td>Moon New Prev:</td><td><!--#include var="$Moon{new_prev}"--></td>
+</tr>
+</table>
+</font>
+</body>
+</html>

@@ -547,8 +547,8 @@ sub setup {
 
 #
 # $Log$
-# Revision 1.1  2004/01/25 05:13:32  cwitte
-# cwitte sync to 2.86 tarball
+# Revision 1.2  2004/01/26 01:42:57  cwitte
+# cwitte sync to 2.86 tarball (take2)
 #
 # Revision 1.38  2001/12/16 21:48:40  winter
 # - 2.62 release

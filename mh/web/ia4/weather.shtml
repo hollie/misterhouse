@@ -1,0 +1,29 @@
+<html>
+<body bgcolor=123456 link=black alink=black vlink=black>
+
+<br>
+<table width=480 bgcolor=silver border=4 columns=3>
+<tr><td colspan=3 align=center bgcolor=silver>
+<font face=arial color=black size=+3>
+<b>WEATHER CENTER</b>
+</font>
+</td></tr>
+
+<tr>
+<td align=center colspan=3 bgcolor=123456>
+<br><br><br>
+<font face=arial color=white size=5>
+<!--#include file="../data/web/weather_conditions.txt"-->
+<br><br><br><br><br><br>
+</td>
+</tr>
+
+<tr>
+<td align=center width=160 bgcolor=silver><font face=arial color=black size=+2><a href="localwx.html" target="mh_main"><b>Local Radar</a></font></td>
+<td align=center width=160 bgcolor=silver><font face=arial color=black size=+2><a href="wxforecast.shtml" target="mh_main"><b>Forecast</a></font></td>
+<td align=center width=160 bgcolor=silver><font face=arial color=black size=+2><a href="wxoutlook.html" target="mh_main"><b>5 Day Outlook</a></font></td>
+</tr>
+</table>
+
+</body>
+</html>

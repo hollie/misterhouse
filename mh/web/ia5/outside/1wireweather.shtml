@@ -1,0 +1,12 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Dallas 1-wire Weather Station')" -->
+<img src="images/top.jpg" border=0>
+<img src="images/body.jpg" border=0>
+<img src="images/bottom.jpg" border=0>
+</font>
+</html>

@@ -1,0 +1,12 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Voice Messages')" -->
+<!--#include code="&voicemails"-->
+<br>
+<a href="/SUB;/ia5/phone/clearmsgs.shtml"><img src="images/clearmsgs.gif" border=0></a>
+</body>
+</html>

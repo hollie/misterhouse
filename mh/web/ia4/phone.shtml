@@ -1,0 +1,24 @@
+<HTML>
+<HEAD>
+<TITLE>Mister House Control Page</TITLE>
+</HEAD>
+<body bgcolor=123456 text=white>
+<center>
+<br>
+<table width=480 height=250 bgcolor=silver border=4 columns=3 cellpadding=5>
+<tr><td colspan=3 align=center bgcolor=silver>
+<font face=arial color=black size=+3>
+<b>RECENT CALLERS</b>
+</font>
+</td></tr>
+
+<tr>
+<td colspan=3  valign=top bgcolor=123456 height=250>
+<br>
+<font color=white size=2>
+<!--#include code="&web_phonelog"--> 
+
+
+</table>
+<br>
+</HTML>

@@ -1,0 +1,23 @@
+#classes
+class ucomics-gen
+	homepage http://www.ucomics.com/$strip/view$1.htm
+	type generate
+	imageurl http://images.ucomics.com/comics/$1/%Y/$1%y%m%d.gif
+	provides any
+
+end
+
+#strips
+strip badtech
+	name Badtech
+	homepage http://www.badtech.com/
+	type generate
+	imageurl http://www.badtech.com/a/%-y/%-m/%-d.jpg
+	provides any
+end
+
+strip citizendog
+	name Citizen Dog
+	useclass ucomics-gen
+	$1 cd
+end

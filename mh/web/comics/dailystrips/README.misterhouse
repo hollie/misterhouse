@@ -1,0 +1,2 @@
+The 2 script, dailyscripts and dailyscript-clean, were moved to mh/bin
+for easier execution from the user code file mh/code/test/dailyscript.pl

@@ -476,8 +476,8 @@ sub FindFile {
 #}
 
 #$Log$
-#Revision 1.2  2004/01/25 05:14:08  cwitte
-#cwitte sync to 2.86 tarball
+#Revision 1.3  2004/01/26 01:43:01  cwitte
+#cwitte sync to 2.86 tarball (take2)
 #
 #Revision 1.2  2002/12/01 06:23:18  gaetan
 #First release to public

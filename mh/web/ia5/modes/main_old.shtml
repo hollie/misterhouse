@@ -1,0 +1,47 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Control MrHouse Modes and Events')" -->
+<table cellSpacing=0 cellPadding=0 width="100%" border=0>
+<center>
+ <table cellSpacing=4 cellPadding=0 width="100%" border=0>  
+ <tr>    
+  <td align="left" width="12%"></td>
+  <td align="middle" width="34%"><!--#include file="/ia5/modes/house_mode.pl"--></td>
+  <td align="left" width="12%"></td>
+  <td align="middle" width="34%"><img src="images/sleep.gif" alt='Sleep' border=0></td>
+
+  <td align="left" width="12%"></td>
+ </tr><tr>
+  <td align="left" width="12%"></td>
+  <td align="middle" width="34%"><img src="images/vacation.gif" alt='Vacation' border=0></td>
+  <td align="left" width="12%"></td>
+  <td align="middle" width="34%"><img src="images/wakeup.gif" alt='Wakeup' border=0></td>
+  <td align="left" width="12%"></td>
+ </tr><tr>
+  <td align="left" width="12%"></td>
+  <td align="middle" width="34%"><img src="images/away.gif" alt='Away' border=0></td>
+  <td align="left" width="12%"></td>
+  <td align="middle" width="34%"><img src="images/towork.gif" alt='To Work' border=0></td>
+  <td align="left" width="12%"></td>
+ </tr>
+
+<tr>
+  <td>
+   <a href='/SET;referer?$vacation_mode=toggle'>
+   <img src=/bin/get_state_image.pl?$vacation_mode alt='Vacation Mode' border=0></a></td>
+
+  <td>
+   <a href='/SET;&referer(/ia5/modes/main.shtml)?$vacation_mode=toggle'>
+   <img src=/bin/get_state_image.pl?$vacation_mode alt='Vacation Mode' border=0></a></td>
+</tr>
+
+
+</table>
+</center>
+</table>
+</body>
+</html>

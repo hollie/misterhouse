@@ -1,0 +1,18 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+<meta http-equiv="refresh" content="5">
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Camera Overview')" -->
+<br>
+<table cellSpacing=0 cellPadding=0 width="100%" border=0>
+<center>
+<img src="captures/testpattern.gif"><br><br>
+<img src="captures/back_latest.jpg"><br><br>
+<img src="captures/desk_latest.jpg">
+</center>
+</table>
+</body>
+</html>
