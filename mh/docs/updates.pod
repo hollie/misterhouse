@@ -25,6 +25,8 @@ B<New Features:>
 
 B<Bug Fixes and Other Changes:>
 
+- Steve Switzer fixed the tv configure script web/bin/set_parm_tv_provider.pl to work on unix boxes without bin/mh it the path var.
+
 
 =head2 Version 2.88 posted on 03/21/2004
 

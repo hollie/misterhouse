@@ -44,8 +44,9 @@ sub edit {
     |;
 
                                 # Get list of providers 
-    my $output = `get_tv_grid -zip $args{zipcode} -get_providers `;
-#   my $output = `./get_tv_grid -zip $args{zipcode} -get_providers `;
+    my $pgm = ($OS_win) ? 'get_tv_grid' : './get_tv_grid';
+    my $output = `$pgm -zip $args{zipcode} -get_providers `;
+    print "p=$pgm o=$output\n";
     my %providers;
     foreach (split "\n", $output) {
        if (my ($id, $name) = /^Provider (\d+)\s+(.+)/) { 
