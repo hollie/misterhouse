@@ -1,0 +1,135 @@
+Win32::DUN.pm  v. 0.02
+======================
+
+This is a short description of Win32::DUN.pm.
+Sorry, no PODs for now.
+
+OK. It exports no semantics, so with each subroutine  or variable you'll have to
+use Win32::DUN:: prefix.
+Don't forget to put DUN.pm to /Win32 dir under <perl>/lib  or current dir.
+
+Win32::Registry.pm is needed.
+
+
+3 variables global to Win32::DUN package:
+
+$Win32::DUN::DIALER  - the location of rasdial.exe (RasDial95.exe) program.
+     default: rasdial.exe in some folder in PATH or current folder
+$Win32::DUN::INIFILE - this one is used in AutodialRand() subroutine only.
+     File that contains usernames and password. Must contain correct perl
+     text statements and define $Win32::DUN::DIALLIST like this:
+
+$Win32::DUN::DIALLIST = [
+['ISP1', 'user1', 'password1'],
+['ISP2', 'user2', 'password2'],
+['ISP3', 'user3', 'password3'],
+];
+
+NB!!! This file must ends with 1; to be properly required. (sample is included)
+
+By default
+$Win32::DUN::INIFILE = 'dialup.ini';
+and module will search for it in @INC folders, i.e. in case of GS-port:
+
+<perl>\lib, <perl>\lib\site, c:\perl\lib, c:\perl\lib\site, .
+
+. - current dir, I recommend to have this files in the same dir as your script
+or redefine $Win32::DUN::INIFILE.
+
+I guess I'll change this in some next version.
+
+Methods:
+
+Win32::DUN::DialSelectedEntry(DUN-entry, user, password)
+   dials DUN-entry once and returns dialed entry on success, otherwise undef
+
+Win32::DUN::HangUp() 
+   disconnects machine from the net. Returns undef if machine was not connected,
+   otherwise - DUN-entry which the machine was disconnected from.
+
+Win32::DUN::CheckConnect()
+   in fact checks if DialUp Networking is at least initialized.
+   Returns DUN-entry that was last connected or undef if DUN is not initialized.
+
+   This is not very much useful routine cause if some subprocess or dialer started
+   Dial sequence CheckConnect will return as if machine is connected to Internet.
+   Only FALSE answer is valuable - it means no dialup sequence is in progress.
+
+Win32::DUN::Reconnect(DUN-entry, user, password)
+   drop previous connection and redial to given DUN-entry.
+
+Win32::DUN::Autodial(DUN-entry, user, password, retries, pause, ask)
+   dials to given DUN-entry till success and returns connected DUN-entry or undef
+   if still not connected.
+   retries - maximum number of retries (default 10000)
+   pause   - pause between retries, sec. (default - no pause)
+   ask     - if true Retry/Cancel message-box will be shown after each attempt
+
+Win32::DUN::AutodialRand(retries, pause, ask)
+   same as previous but each time tries to connect to random entry from the list
+   defined in $Win32::DUN::INIFILE 
+
+
+All dialing methods die with error-message on attempt to dial to non-existent
+DUN-entry cause it's programmer's error.
+
+Login/password unconformity and/or other details of dialup session are not captured.
+
+
+NOTE: you may have some problems if you run McAfee Viruscan, Doctor Solomon,
+Norton Antivirus or I suppose any antivirus monitor. In the case of recurrent Perl
+errors you'll have to temporary avoid virus scanning.
+
+NOTE ALSO: Sometimes after you used some other dialer then rasdial.exe you'll
+experience that rasdial.exe does not return control to Perl (at least on my machine).
+But the second attempt it's always OK. After reboot or native DUN dialup session or
+just on second attepmt this problem is always gone.
+I'll report it to the rasdial.exe's author.
+
+
+Use it under the same terms as Perl itself.
+This is beta-software - use it at your own risk. Author takes no responsibility etc. etc.
+
+Enjoy!
+
+
+I'd be much pleased if somebody will rewrite this a little closer to _real english_ ;)
+
+
+June 10, 1998     Mike Blazer <blazer@mail.nevalink.ru>
+
+
+S a m p l e s :
+===============
+
+
+use Win32::DUN;
+$Win32::DUN::DIALER = 'rasdial.exe';
+$entry=Win32::DUN::HangUp();
+print "Previous connection: $entry\n";
+
+
+use Win32::DUN;
+$Win32::DUN::DIALER = 'rasdial.exe';
+$entry=Win32::DUN::DialSelectedEntry('ISP', 'user', 'cf5H6r4');
+print "Connected to: $entry\n";
+
+
+use Win32::DUN;
+$Win32::DUN::DIALER = 'rasdial.exe';
+$entry=Win32::DUN::Reconnect('ISP', 'user', 'cf5H6r4');
+print "New connection: $entry\n";
+
+
+use Win32::DUN;
+$Win32::DUN::DIALER = 'rasdial.exe';
+$entry = Win32::DUN::Autodial('ISP', 'user', 'cf5H6r4',3,1,1);
+print "Connected to: $entry\n";
+
+
+use Win32::DUN;
+$Win32::DUN::DIALER  = 'c:\myscripts\dialer\rasdial.exe';
+$Win32::DUN::INIFILE = 'c:\myscripts\dialer\dialup.ini';
+$entry = Win32::DUN::AutodialRand();
+print "Connected to: $entry\n";
+

@@ -70,8 +70,7 @@ unless ($config_parms{weather_graph_skip} =~ /$typegraph/) {
      $j=0;
      $html .= "\n" . qq|<A NAME="$periodgraph->[0]"></A><BR>|;
      $html .= "\n<IMG SRC = ";
-     $html .= "\'/weather_graph/weather_" . $typegraph . "_" . $periodgraph->[0] . ".png";
-     $html .= qq|?<!--#include code="int(100000*rand)"-->' border=0><BR><BR>|;
+     $html .= "\'/weather_graph/weather_" . $typegraph . "_" . $periodgraph->[0] . ".png?" . int(100000*rand);
     }
   }
 }

@@ -1,0 +1,61 @@
+
+;  Run from winbatch, available from: http://www.windowware.com
+
+; get_mail.wbt
+
+; Runs Internet Mail (if not already running) and then get mail.  
+; Use rasdial (if under NT) or dunce (or equivalent if running under Win95) to logon before running this
+
+;WindowName = "E:\WINNT\Internet Mail"
+
+; This ois for outlook express
+;WindowName = "Inbox - Outlook Express"
+
+; This is for outlook
+WindowName = "Inbox"
+
+If WinExist(WindowName) == @TRUE
+     WinActivate(WindowName)
+Else
+;    Run("E:\WINNT\explorer.exe", "/root,E:\WINNT\Internet Mail.{89292102-4755-11cf-9DC2-00AA006C2B84}")
+
+;    Run("E:\Program Files\Outlook Express\msimn.exe", "/MAIL")
+     Run("D:\msOffice\Office\OUTLOOK.EXE", "")
+
+     while WinExist(WindowName) == @FALSE
+     endwhile
+Endif
+
+; Wait till it can accept user input
+IntControl(36, WindowName, 5000, 0, 0)
+
+; ! for ALT
+; ^ for CTL
+; + for shift
+
+; This is for new mail in Internet Mail
+; {ESCAPE} {PGUP} {SPACE} {TAB} etc 
+
+; This is for new mail in Outlook Express
+;;SendKey("!ts")
+;SendKey("^M")
+
+; This is for new mail in Outlook
+SendKey("{F5}")
+
+TimeDelay(2)
+
+; If not connected, this will auto-connect (in NT)
+If WinExist("Connect to Infonet") == @TRUE
+   SendKey("{ENTER}")
+Endif
+
+; If 1st time on NT with Outlook Express, it will ask for password for local storage
+If WinExist("Protected Storage") == @TRUE
+   password = Environment("localpass")	
+   SendKey(StrCat(password,"{ENTER}"))
+Endif
+
+;WinIconize(WindowName)
+
+Return
