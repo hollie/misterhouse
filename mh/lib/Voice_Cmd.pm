@@ -395,7 +395,7 @@ sub _register {
         my ($l, $m, $r) = ($1, $2, $3);
         print "Warning, unmatched brackets in Voice_Cmd text: text=$text l=$l m=$m r=$r\n" if
             $l and !$r or !$l and $r;
-        @{$data[$i]{text}} = ($l) ? split(/ *, */, $m) : ($m);
+        @{$data[$i]{text}} = ($l) ? split(/ *, */, $m, 999) : ($m);
         $data[$i]{last}    = scalar @{$data[$i]{text}} - 1;
         if ($l eq '[') {
             print "Warning, more than one [] state bracket in Voice_Cmd text: i=$i l=$l r=$r text=$text\n" if $index_state;
@@ -414,6 +414,8 @@ sub _register {
             $data[$j]{index} = 0 unless $data[$j]{index};
             $cmd .= $data[$j]{text}[$data[$j]{index}];
         }
+        $cmd =~ s/ +/ /g;       # Delete double blanks so 'set {the,} light on' works
+
         my $state = $data[$index_state]{text}[$data[$index_state]{index}] if defined $index_state;
 
                                 # These commands have no real states ... there is no enumeration
@@ -633,6 +635,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.47  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.46  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

@@ -401,7 +401,8 @@ sub check_for_data {
 #	$prev_loop = $main::Loop_Count;
 
                                     # Process data only on the 2nd occurance
-	my $repeat_data = ($data eq $prev_data) && ($time < $prev_time + 1500 or $main::Loop_Count < $prev_loop + 7);
+    my $repeat_time = $main::config_parms{W800_multireceive_delay} || 1500;
+	my $repeat_data = ($data eq $prev_data) && ($time < $prev_time + $repeat_time or $main::Loop_Count < $prev_loop + 7);
 	return if $repeat_data and $prev_done;
 	$prev_data = $data;
 	$prev_time = $time;

@@ -1210,3 +1210,15 @@ Mon 06/28/04 10:01:11 city=helsinki state=finland name=
 Mon 06/28/04 17:21:32 city=portland state=or name=
 Sun 07/04/04 00:15:58 city=The Colony state=TX name=Jeff StJohn
 Mon 07/05/04 16:30:31 city=London state=UK name=Richard Sillitto
+Tue 07/06/04 05:06:07 city=Prague state=Czech republic name=
+Tue 07/06/04 17:32:52 city=Bentonville state=AR name=Cory
+Tue 07/06/04 20:55:50 city=Cincinnati state=OH name=
+Thu 07/08/04 06:32:47 city=Neuss state=Germany name=
+Thu 07/08/04 15:27:52 city=Eastpointe state=mi name=
+Thu 07/08/04 16:31:05 city=Northern Cambria state=Pa name=Dick Bradford
+Thu 07/08/04 22:03:11 city=ceres  state=ca name=jose gutierrez
+Fri 07/09/04 22:08:33 city=Houston state=TX name=
+Mon 07/12/04 04:10:43 city=Obdam state=Netherlands name=
+Fri 07/16/04 04:26:58 city=Cambrils state=Spain name=Pelija's home
+Fri 07/16/04 16:22:59 city=Rochester state=MN name=Brad Erickson
+Sat 07/17/04 21:51:37 city=Adelaide state=Australia name=

@@ -8,8 +8,8 @@ Info:
     http://www.xapautomation.org
 
  xPL websites:
-    http://www.wintermute-ltd.com/picxap/xpl.htm
-    http://www.xaphal.com/xap.htm
+    http://www.xplproject.org.uk
+    http://www.xaphal.com
 
 Examples:
  See mh/code/common/test_xap.pl
@@ -184,7 +184,7 @@ sub check_for_data {
                         unless $section eq 'xap-header' or $section eq 'xap-hbeat' or $section eq 'xpl-stat';
 
                     print "db3 xap state check m=$$o{state_monitor} key=$section : $key  value=$value\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
-                    if ("$section : $key" eq $$o{state_monitor} and defined $value) {
+                    if ($$o{state_monitor} and "$section : $key" eq $$o{state_monitor} and defined $value) {
                         print "db3 xap setting state to $value\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
                         $state_value = $value;
                     }

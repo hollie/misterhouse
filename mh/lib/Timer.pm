@@ -119,7 +119,7 @@ sub set {
     return if &main::check_for_tied_filters($self, $state);
 
                                 # Set states for NEXT pass, so expired, active, etc,
-                                # checks are consistent for one pass.
+                                # checks are consistent for one pass.  
     push @sets_from_previous_pass, $self;
     @{$self->{set_next_pass}} = ($state, $action, $repeat);
 }
@@ -127,8 +127,10 @@ sub set {
                                 # This is called from mh
 sub set_from_last_pass {
     my ($self) = @_;
-
+    
+    return unless $self->{set_next_pass};
     ($state, $action, $repeat) = @{$self->{set_next_pass}} ;
+    undef $self->{set_next_pass};
 
                                 # Turn a timer off
     if ($state == 0) {
@@ -185,7 +187,7 @@ sub run_action {
             &{$action};
         }
         elsif ($action_type eq '') {
-#	    &::print_log("Action");
+#       &::print_log("Action");
             package main;   # Had to do this to get the 'speak' function recognized without having to &main::speak() it
             my $timer_name = $self->{object_name};  # So we can use this in the timer action eval
             $state = $self->{object_name};  # So we can use this in the timer action eval
@@ -193,10 +195,10 @@ sub run_action {
             package Timer;
             print "\nError in running timer action: action=$action\n error: $@\n" if $@;
         }
-	else
-	{
-		$action->set('off',$self);
-	}
+    else
+    {
+        $action->set('off',$self);
+    }
 
     }
 }
@@ -293,7 +295,7 @@ sub active {
     ($self) = @_;
     if (($self->{expire_time} and
          $self->{expire_time} >= main::get_tickcount) or
-	($self->{set_next_pass})) {
+        ($self->{set_next_pass})) {
         return 1;
     }
     else {
@@ -321,12 +323,12 @@ sub restart {
     $self->{time} = time;
     $self->{time_adjust} = 0;
     $self->{time_pause}  = 0;
-	if ( $$self{expire_time} ) { # If this timer is countdown type then restart it instead
-#	        $self->{expire_time} = ($$self{period} * 1000) + main::get_tickcount;
-#		push @sets_from_previous_pass, $self;
-#		@{$self->{set_next_pass}} = ($$self{period}, $$self{action}, $$self{repeat});
-		$self->set($$self{period},$$self{action},$$self{repeat});
-	}
+    if ( $$self{expire_time} ) { # If this timer is countdown type then restart it instead
+#           $self->{expire_time} = ($$self{period} * 1000) + main::get_tickcount;
+#       push @sets_from_previous_pass, $self;
+#       @{$self->{set_next_pass}} = ($$self{period}, $$self{action}, $$self{repeat});
+        $self->set($$self{period},$$self{action},$$self{repeat});
+    }
 
 }
 
@@ -363,6 +365,9 @@ sub query {
 
 #
 # $Log$
+# Revision 1.31  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.30  2004/07/05 23:36:37  winter
 # *** empty log message ***
 #

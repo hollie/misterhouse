@@ -2,11 +2,6 @@
 <BODY bgcolor="#ffffff">
 <base target="weather output">
 <table width='100%' border='0'>
-    <TR>
-      <TD align="center"></TD>
-      <TD align="center"></TD>
-      <TD align="center"></TD>
-    </TR>
     <tr>
       <TD align="center"><a href="/bin/weather_graph_zoom.pl"><img src="images/weather-zoom.gif" alt='Weather zoom' border="0" name="Weather zoom"></a></TD>
     </tr>

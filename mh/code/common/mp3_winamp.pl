@@ -15,14 +15,17 @@
 # Version ??? lets call it 1.01 - 9-16-03 Dan Uribe
 #  Major update to align functions with David's common mp3 code and xmms
 #  Supports a target host or defaults to localhost (Seems to work, but really untested)
-#  
+  
 # V1.02 28 Feb 2004 David Noorwood, 
 #	  Update to add mp playing 
-#
+
 # V1.03  1 Mar 2004 Pete Flaherty,  
 #	  Updated mp3_output_timestr to deliver consistant data with xmms output of same function
 #         now delivers "mm:ss/MM:SS (xx%)"  where mm:ss is the Elapsed time MM:SS is the Total time
 #         and (xx%) is the elapsed percentage of the total time
+
+# V1.04 15 July 2004 Pete Flaherty
+#	  Added mp3_playlist_delete to remove entries from current list
 
 # noloop=start      This directive allows this code to be run on startup/reload
 my (%winamp_commands, $mp3_states);
@@ -242,6 +245,21 @@ sub mp3_playlist_add {
 #    How is this diffrent from queue?
 #
 	&mp3_queue($file,$host);
+}
+
+sub mp3_playlist_delete {
+	my $pos = shift;
+	return 0 if ($pos eq '');
+	my $host = shift || $mp3_host;
+	if (&is_httpq) {
+		my $url = "http://$host:$config_parms{mp3_program_port}/deletepos?p=$config_parms{mp3_program_password}&a=$pos";
+		print_log $url;
+		return get "$url";
+	}
+	else {
+    # don't know how to do this 
+		print_log "mp3 set playlist pos: Unsupported" if $Debug{winamp};
+	}
 }
 
         # return an array reference to a list containing the current playlist

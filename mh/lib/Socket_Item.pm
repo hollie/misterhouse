@@ -174,7 +174,7 @@ sub set {
 
     print "Socket_Item: self=$self port=$port_name state=$state ip=$ip_address data=$socket_data\n" if $main::Debug{socket};
 
-    return if $main::Save{mode} eq 'offline';
+    return if $main::Save{mode} and $main::Save{mode} eq 'offline';
 
     unless ($main::Socket_Ports{$port_name}{sock}) {
         print "Error, socket port $port_name has not been set: data=$socket_data\n";
@@ -219,7 +219,7 @@ sub set {
     my $datatype  = $main::Socket_Ports{$port_name}{datatype};
     my $break     = $main::Socket_Ports{$port_name}{break};
     $break = "\r\n" unless $break or ($datatype and $datatype =~ 'raw');
-    $socket_data .= $break;
+    $socket_data .= $break if defined $break;
 
     for my $sock (@sockets) {
         next unless $sock; # Shouldn't need this ?
@@ -272,6 +272,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.32  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.31  2003/12/22 00:25:06  winter
 #  - 2.86 release
 #

@@ -54,6 +54,9 @@
  be included in the common code directory.  
 
  V1.7 - 28 Feb 2004 - Pete Flaherty added mp3_playing to detect running state
+ 
+ V1.8 - 12 Jul 2004 - Pete Flaherty added mp3_playlist_delete to allow current 
+ playlist entry deletion (does not save list on purpose)
 
  Requires this package:  xmms-devel
 '
@@ -61,6 +64,7 @@
 
 use Xmms;
 use Xmms::Remote ();
+use Xmms::Config ();
 #use Getopt::Std;
 
 my $session = 0;
@@ -78,7 +82,7 @@ if ($state = said $v_mp3_control_state) {
     speak "MP3 control now $state.";
 }
 
-$v_mp3_control_cmd = new Voice_Cmd("Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off,Hide Window,Show Window]");
+$v_mp3_control_cmd = new Voice_Cmd("Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off,Hide Window,Show Window,track]");
 
 my $state;
 mp3_control($state) if $state = said $v_mp3_control_cmd;
@@ -153,7 +157,10 @@ sub mp3_control {
       $remote->main_win_toggle(1);
     }
 
-    print_log "mp3 player set to " . said $v_mp3_control_cmd;
+#    elsif ($state eq 'track') {
+#      $remote->track($pos);
+#    }
+    print_log "mp3 player set to " . said $v_mp3_control_cmd . $state;
 }
 
 sub mp3_play {
@@ -195,6 +202,13 @@ sub mp3_set_playlist_pos {
         # add to the current playlist (argument received is reference to array)
 sub mp3_playlist_add {
     return $remote->playlist_add($1);
+}
+
+        # delete from the current playlist (argument received is reference to array)
+sub mp3_playlist_delete {
+    my $pos = shift; 
+    print_log "deleting track $pos";
+    return $remote->playlist_delete($pos);
 }
 
         # return an array reference to a list containing the current playlist

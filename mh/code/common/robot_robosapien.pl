@@ -32,12 +32,13 @@ my %robot_cmds1 = (
 
                      # Create other useful arrays
 # noloop=start
-my (%robot_cmds2, %robot_cmds3);
+my (%robot_cmds2, %robot_cmds3, %robot_cmds4);
 for my $cat (sort keys %robot_cmds1) {
     $robot_cmds2{$cat} = join ',', sort keys %{$robot_cmds1{$cat}};
-                                    # Gather all commands that we can sequence
+                                    # Gather commands of various types
     for my $cmd (keys %{$robot_cmds1{$cat}}) {
-        $robot_cmds3{$cmd} = $robot_cmds1{$cat}{$cmd} if $robot_cmds1{$cat}{$cmd} > 0 and $robot_cmds1{$cat}{$cmd} < 10;
+        $robot_cmds3{$cmd} = $robot_cmds1{$cat}{$cmd} if $robot_cmds1{$cat}{$cmd} > 0 and $robot_cmds1{$cat}{$cmd} <= 10;
+        $robot_cmds4{$cmd} = $robot_cmds1{$cat}{$cmd} if $cat =~ /(lean|right|left)/  and $robot_cmds1{$cat}{$cmd} <= 3;
     }
 }
 # noloop=stop
@@ -123,7 +124,7 @@ $robot_timer2    = new Timer;
 if ($state = said $robot_keepawake) {
     if ($state eq 'keepawake') {
         set $robot_timer2 5*60, 'set $robot "LeftArmIn"', -1;
-        speak 'Ok, robot will be tickled every 5 minutes';
+        print_log 'Robot will be tickled every 5 minutes to keep him awake';
     }
     elsif ($state eq 'letsleep') {
         stop $robot_timer2;
@@ -137,7 +138,7 @@ if ($state = said $robot_keepawake) {
 $xap_monitor_robot = new xAP_Item;
 
 if ($state = state_now $xap_monitor_robot) {
-    my $class   = $$xap_monitor_display_alpha{'xap-header'}{class};
+    my $class   = $$xap_monitor_robot{'xap-header'}{class};
     print "  - robot xap monitor: lc=$Loop_Count class=$class state=$state\n" if $Debug{robot} == 1;
     
     if ($class eq 'xap-osd.display') {
@@ -145,11 +146,43 @@ if ($state = state_now $xap_monitor_robot) {
     }
 }
 
-&Speak_pre_add_hook(\&robot_speak_chime) if $Reload;
 
+                                # Move random limbs while speaking
+
+&Speak_pre_add_hook(\&robot_speak_chime) if $Reload;
+my $robot_speaking_flag;
 sub robot_speak_chime {
-    set $robot 'LeftArmDown~1~LeftArmUp';
+    my %parms = @_;
+    return if $parms{nolog};
+    print "db robot speak hook: t=$Respond_Target parms=@_\n" if $Debug{robot};
+    set $robot_timer3 .1;
+    $robot_speaking_flag = 1;
 }
 
+$robot_timer3 = new Timer;
+if (expired $robot_timer3) {
+                                # Pick a random movement
+    my @cmds = keys %robot_cmds4;  # Short commands that don't walk
+#   my @cmds = keys %{$robot_cmds1{lean}};
+
+#   randomize_list @cmds;
+#   my $cmd = $cmds[0];
+    my $cmd = $cmds[int rand(@cmds)];
+
+    set $robot $cmd;
+    print $robot_speaking_flag;
+    set $robot_timer3 $robot_cmds4{$cmd} if $robot_speaking_flag;
+    print_log "Sending $robot_cmds4{$cmd} second robot cmd: $cmd" if $Debug{robot};
+}
+
+
+if ($New_Msecond_250 and $robot_speaking_flag) {
+    print '.';
+    unless (&Voice_Text::is_speaking()) {
+        print "*\n";
+        $robot_speaking_flag = 0;
+        stop $robot_timer3;
+    }
+}
 
 

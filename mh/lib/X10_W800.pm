@@ -115,8 +115,9 @@ sub check_for_data {
     #  - Check time and loop count.  If mh paused (e.g. sending ir data)
     #    then we better also check loop count.
     #  - Process data only on the 2nd occurance, to avoid noise
+    my $repeat_time = $main::config_parms{W800_multireceive_delay} || 1500;
     my $repeat_data =    ($data eq $prev_data)
-		      && (   $time < $prev_time + 1500
+		      && (   $time < $prev_time + $repeat_time
 			  || $main::Loop_Count < $prev_loop + 7);
     return if $repeat_data and $prev_done;
     $prev_data = $data;
@@ -167,6 +168,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.5  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.4  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

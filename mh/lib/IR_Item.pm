@@ -18,32 +18,32 @@ sub new {
     $$self{code}  = $code if $code;
     $$self{interface} = ($interface) ? lc $interface : 'cm17';
  
-				# Enable receiving of IR data
+                # Enable receiving of IR data
     if ($$self{interface} eq 'xap') {
-	$$self{states_casesensitive} = 1;
-	&::MainLoop_pre_add_hook( \&IR_Item::check_xap, 1) unless $hooks_added++;
-	push @objects_xap, $self;
+        $$self{states_casesensitive} = 1;
+        &::MainLoop_pre_add_hook( \&IR_Item::check_xap, 1) unless $hooks_added++;
+        push @objects_xap, $self;
     }
-
+    
     $device = uc $device unless $$self{states_casesensitive};
     $device = 'TV' unless $device;
     $$self{device} =    $device;
-
+    
     $mapref = \%default_map unless $mapref;
     $$self{mapref} = $mapref;
-
+    
     bless $self, $class;
     return $self;
 }
 
 sub check_xap {
     if (my $xap_data = &xAP::received_data()) {
-	next unless $$xap_data{'xap-header'}{class} eq 'ir.receive';
+        return unless $$xap_data{'xap-header'}{class} and $$xap_data{'xap-header'}{class} eq 'ir.receive';
         for my $o (@objects_xap) {
-	    print "IR_Item xap: $$xap_data{'ir.signal'}{device} = $$xap_data{'ir.signal'}{signal}\n";
-	    next unless uc $$xap_data{'ir.signal'}{device} eq $$o{device};
-	    $o -> SUPER::set($$xap_data{'ir.signal'}{signal}, 'xap');
-	}
+            print "IR_Item xap: $$xap_data{'ir.signal'}{device} = $$xap_data{'ir.signal'}{signal}\n";
+            next unless uc $$xap_data{'ir.signal'}{device} eq $$o{device};
+            $o -> SUPER::set($$xap_data{'ir.signal'}{signal}, 'xap');
+        }
     }
 }
 
@@ -91,7 +91,7 @@ sub default_setstate {
                                 # Add delay after powering up
     $state =~ s/POWER,/POWER,DELAY,/g;
 
-    print "Sending IR_Item command $device $state\n";
+    print "Sending IR_Item command $device $state\n" if $main::Debug{ir};
     my $mapped_ir;
     for my $command (split(',', $state)) {
 
@@ -120,13 +120,13 @@ sub default_setstate {
             &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $command);
         } elsif ($$self{interface} eq 'uirt2') {
             &UIRT2::set($device, $command);
-	} elsif ($$self{interface} eq 'usb_uirt') {
+        } elsif ($$self{interface} eq 'usb_uirt') {
             &USB_UIRT::set($device, $command);
         } elsif ($$self{interface} eq 'ninja') {
-	    &ninja_mh::send($device, $command);
+            &ninja_mh::send($device, $command);
         } elsif ($$self{interface} eq 'xap') {
-	    &xAP::send('xAP', 'IR.Transmit', 'IR.Signal' => {Device => $device, Signal => $command});
-	} else {
+            &xAP::send('xAP', 'IR.Transmit', 'IR.Signal' => {Device => $device, Signal => $command});
+        } else {
             print "IR_Item::set Interface $$self{interface} not supported.\n";
         }
     }
@@ -134,6 +134,9 @@ sub default_setstate {
 
 #
 # $Log$
+# Revision 1.17  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.16  2004/07/05 23:36:37  winter
 # *** empty log message ***
 #

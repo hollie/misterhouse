@@ -1263,6 +1263,7 @@ only at Startup?
      - 01/99 Started a mailing list at onelist.com
      - 02/99 Ported mh to Unix/Linux
      - 03/99 Article in Popular Home Automation
+     - 04/99 Posted to comp.home.automation
      - 05/99 Registered misterhouse.net domain name.
      - 06/99 Added CM17 & HomeBase support
      - 06/99 Article in HomeToys: http://hometoys.com/htinews/jun99/articles/winter/winter.htm

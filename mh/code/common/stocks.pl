@@ -82,7 +82,7 @@ if (done_now $p_stock_quote) {
             my $p = ($t =~ /%/ ? $t : 0);
             $p =~ s/%//;
             $t = 0 if $p;
-            if (($t and $t < $stocks{$stock}{Change}) or ($p and $p < $stocks{$stock}{PChange})) {
+            if (($t and $t < abs $stocks{$stock}{Change}) or ($p and $p < $stocks{$stock}{PChange})) {
                 $Save{stock_alert} = "Market alert: " unless $Save{stock_alert};
                 $Save{stock_alert} .= $stocks{$stock}{'Speak Name'} ? $stocks{$stock}{'Speak Name'} : $stocks{$stock}{Name};
                 $Save{stock_alert} .= " has " . ($stocks{$stock}{Change} < 0 ? "fallen" : "risen");

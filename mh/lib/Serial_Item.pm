@@ -341,7 +341,7 @@ sub set {
 sub set_prev_pass_check {
     my ($self, $state);
 #   print "db state=$state, sp=$self->{state_prev},  loop=$main::Loop_Count, lcp==$self->{change_pass}\n";
-    if ($state =~ /^X/ and $self->{state_prev} and $state eq $self->{state_prev} and 
+    if (defined $state and $state =~ /^X/ and $self->{state_prev} and $state eq $self->{state_prev} and 
         $self->{change_pass} >= ($main::Loop_Count - 1)) {
         my $item_name = $self->{object_name};
         print "X10 item set skipped on consecutive pass.  item=$item_name state=$state id=$state\n";
@@ -536,7 +536,7 @@ sub send_x10_data {
 sub set_interface {
     my ($self, $interface) = @_;
                                 # Set the default interface
-    unless ($interface) {
+    unless ($interface and $interface =~ /\S/) {
 
         if ($main::config_parms{x10_interface}) {
             $interface = $main::config_parms{x10_interface};
@@ -582,6 +582,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.72  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.71  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

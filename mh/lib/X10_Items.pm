@@ -970,6 +970,8 @@ sub new {
     &X10_Sensor::add($self, $id, $name, $type);
 
     restore_data $self ('dark'); # Save dark flag between restarts
+
+    $self->set_interface();
     
     return $self;
 }
@@ -1070,6 +1072,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.45  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.44  2004/06/06 21:38:44  winter
 # *** empty log message ***
 #

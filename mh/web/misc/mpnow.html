@@ -1,9 +1,15 @@
-<html> <!-- Remote contrul web interface MRU 20040212 V1.0 Pete Flaherty -->
+<html> 
+<!-- 
+ Remote contrul web interface MRU 20040712 V1.1 Pete Flaherty 
+ 1.1 changed playlist url for updated lists
+-->
 <head>
 <meta http-equiv='Pragma' content='no-cache'>
 <meta http-equiv='Expires' content='-1'>
 <META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+<title>MisterHouse Jukebox Remote</title>
 <script src='/bin/mp3_applet_data.pl'></script>
+<script src='/bin/mp3_cookies.js'></script>
 
 <script>
 if ( StreamSvr == null ){StreamSvr ="http://house:8010/";}
@@ -38,25 +44,64 @@ isAudrey = (isAudrey | isPhoton ) ;
 
 function ReLoadMe() {
     window.location.reload() ;
+	if ( isAudrey == false ) {	
+	    var targeturl = '/misc/mplist.html'; 
+	    window.open(targeturl,'mp3list' );
+        }
+
 }
 function Get_PlayList() { 
-var targeturl ='/bin/mp3_applet_playlist.pl';
-    if ( isAudrey == false ){
-	var winOpt = "width=430, height=300, resizable='yes', scrollbars ";
-        //   silly Audrey filmstrip doesnt like this
-	window.open(targeturl,"mp3list",winOpt );
-    }
-    if ( isAudrey == true ) {
-        top.document.location = targeturl;
+//var targeturl ='/bin/mp3_applet_playlist.pl';
+var targeturl = '/misc/mplist.html'; 
+
+var ListON = readCookie('Playlist');
+    if ( ListON != 'OPEN'){
+        //eraseCookie('Playlist');
+	createCookie('Playlist','OPEN','1');
+
+	if ( isAudrey == false ){
+	    var winOpt = "width=420, height=300, resizable='yes', scrollbars='yes',toolbar='no', menubar='no',titlebar='no', screenx=100, screeny=192, dependent ";
+    	    //   silly Audrey filmstrip doesnt like this
+	    window.open(targeturl,"mp3list",winOpt );
+	}
+    
+	if ( isAudrey == true ) {
+	    top.document.location = targeturl;
+	}
+
+    } else {
+    createCookie('Playlist','CLOSE','1');
+	if ( isAudrey == false ) {	
+	    var targeturl = '/misc/mplist.html'; 
+	    window.open(targeturl,'mp3list' );
+        }
+	if ( isAudrey == true ) {
+	    top.document.location = targeturl
+	}
+	ReLoadMe();
     }
 }
 
 function Action(act){
     ActCmd = "/RUN?Set_the_house_mp3_player_to_" + act ;
     loopCount = timeout -2 ;
+    
     if ( act == "Get_PlayList" ){
 	open( "/bin/get_playlist" );
     } else { open( ActCmd, 'invisible' ); }
+    
+    var listWinNM = 'mp3list';
+    var targeturl = '/misc/mplist.html'; 
+    var ListON = readCookie('Playlist');
+    if (ListON == 'OPEN'){
+	if ( isAudrey == false ) {	
+	    window.open(targeturl,'mp3list' );
+        }
+	if ( isAudrey == true ) {
+	    reload();
+	}
+    }
+
 }
 function TimeConv(time) {
  PlayMins = 0 ;
@@ -112,7 +157,7 @@ if (isAudrey == true ){
 document.write( "<a href='http://localhost/cgi-bin/mpctrl?file=" + StreamSvr + "&action=Play'>[Start]</a> " );
 document.write( "&nbsp<a href='http://localhost/cgi-bin/mpctrl?file=" + StreamSvr + "&action=Stop'>[Stop]</a> the local Player" );
 } 
-if (isAudrey == false ) { document.write ("<a href='",StreamSvr,"'>Tune in Now</a>");}
+if (isAudrey == false ) { document.write ("<a type='audio/x-mpegurl' href='",StreamSvr,"'>Tune in Now</a>");}
 </script>
 
 </small></b>
@@ -148,13 +193,27 @@ if (isAudrey == true ){
 }
 </script>
 
-<td>&nbsp &nbsp &nbsp &nbsp &nbsp</td>
 
-<td><Input type='button' name='bk' value='<<' onClick='Action("Previous_Song")'></td>
-<td><Input type='button' name='st' value=' || ' onClick='Action("Stop")'></td>
-<td><Input type='button' name='pl' value=' > ' onClick='Action("Play")'></td>
-<td><Input type='button' name='ff' value='>>' onClick='Action("Next_Song")'></td>
-<td><Input type='button' name='pl' value='PL' onClick='Get_PlayList()'></td>
+<td>&nbsp &nbsp &nbsp &nbsp &nbsp</td>
+<td><Input type='button' name='bk' value='<<' onClick='Action('Previous_Song')'></td>
+<td><Input type='button' name='st' value=' || ' onClick='Action('Stop')'></td>
+<td><Input type='button' name='pl' value=' > ' onClick='Action('Play')'></td>
+<td><Input type='button' name='ff' value='>>' onClick='Action('Next_Song')'></td>
+
+<script>
+if (isAudrey == false) {
+    var ListON = readCookie('Playlist');
+    //document.write(ListON);
+    if ( ListON == 'OPEN' ){
+	document.write ("<td><Input type='image'  name='pl' value='PL' src ='/ia5/entertain/images/PL-button-ON.gif' onClick='Get_PlayList()'></td>");
+    }
+    if ( ListON != 'OPEN' ){
+	document.write ("<td><Input type='image'  name='pl' value='PL' src ='/ia5/entertain/images/PL-button-OFF.gif' onClick='Get_PlayList()'></td>");
+    }
+}
+if ( isAudrey == true) { 
+    document.write ( "<td><Input type='button'  name='pl' value='PL' onClick='Get_PlayList()'></td>"); }
+</script> 
 
 </tr></table>
 

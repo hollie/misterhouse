@@ -9,10 +9,11 @@
 
 				# Display Time once a minute, unless busy displaying other data
 $display_alpha_timer = new Timer;
+
 if ($Reread or expired $display_alpha_timer or (new_minute and inactive $display_alpha_timer)) {
 #   my $display = &time_date_stamp(21);  # 12:52 Sun 25
     my $display = &time_date_stamp(8);   # 12:52 
-    $display .= ' ' . int($Weather{TempIndoor}) . '/' . int($Weather{TempOutdoor});
+    $display .= ' ' . int($Weather{TempIndoor}) . ' ' . int($Weather{TempOutdoor});
     $display .= ' ' . substr($Day, 0, 1) . $Mday;
 #   $display .= ' ' . substr($Day, 0, 3);
     display device => 'alpha', color => 'amber', text => $display;
@@ -80,7 +81,8 @@ sub Display_Alpha::send_hook {
     return if $parms{nolog};          # Do not display if we are not logging
     $parms{text} =~ s/[\n\r ]+/ /gm;  # Drop extra blanks and newlines
 
-    $parms{color} = 'red' unless $parms{color};
+    $parms{mode}   = 'rotate' unless $parms{mode};
+    $parms{color}  = 'yellow' unless $parms{color};
     $parms{device} = 'alpha';
     display %parms;
     set $display_alpha_timer 30;

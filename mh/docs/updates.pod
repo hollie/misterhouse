@@ -19,9 +19,56 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 =end html
 
+
 B<New Features:>
 
 B<Bug Fixes and Other Changes:>
+
+
+=head2 Version 2.93 posted on 07/18/2004
+
+Version 2.93 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+
+
+B<New Features:>
+
+- Pete Flaherty updated the web mp3 interface, adding delete, jump, and playlist on/off toggle button on the remote
+popup player/playlist and updated mp3_xmms and mp3_winamp to be more interactive between the control and the playlist.
+
+- John Dillenburg wrote lib/Motion_Tracker.pm, experimenting with the occupancy monitoring stuff and 
+deciding it was too complicated for his application.  Motion_Tracker takes a motion sensor object as 
+a parameter and sets up a timer everytime motion is detected.  It ignores the 'off' messages from the sensors. 
+This allows the timeouts to be set on the computer rather than on each sensor individually.  
+The object state is restored through restarts, so the occupied state will eventually expire, even after restarts.
+
+
+B<Bug Fixes and Other Changes:>
+
+- Timothy Spaulding found a 2.92 bug that caused set_by to get the wrong data.
+
+- David Norwood fixed a bug in stocks.pl that kept price drops from being announced. 
+
+- Lowered the default MR26_multireceive_delay from 1500 to 400 
+(I ment to do that in 2.92, but Bill Young noticed that I didn't).
+Also added a W800_multireceive_delay to the X10_W800* modules, but left the default at 1500,
+since Bill mentioned that those module does not filter repeats like the MR26 does.
+
+- Added 'Speak deep thought with voice xyz' to common/deep_thought.pl,
+so we can read deep thoughts with different voices.
+
+- Fixed a 2.92 bug in display, where the tk window would not appear.
+
+- Fixed a 2.92 bug with Timer where active would return true after the timer expired.
+
+- Brent Gross added quotes to the email address that gets the response of email commands in common/internet_mail.pl,
+so that emails addresses with blanks work ok.
+
+- Robert Rozman noticed that Voice_Cmd 'Set {the,} light on' did not work with the string 'Set light on'.
+
+- John Dillenburg noticed that X10_Sensor (X10MS) was giving 'serial set called but no serial port found' messages.
+
 
 
 =head2 Version 2.92 posted on 07/05/2004
@@ -37,7 +84,7 @@ B<New Features:>
 
 - Lincoln Foreman created code/public/x10_video_security2.pl as another example of interfacing with X10 cameras.
 
-- Krik Bauer created lib/Tivo_Control.pm for displaying text on a Tivo.  See header for details.
+- Kirk Bauer created lib/Tivo_Control.pm for displaying text on a Tivo.  See header for details.
 
 - Norm Dressler created code/common/mr26_vdr.pl to send remote control commands to VDR (Video Disk Recorder)
 ( http://www.cadsoft.de/vdr/ ) from an X10 RF remote, via a MR26 interface.
@@ -294,13 +341,13 @@ It currently has the 40 west(minster) and cuckoo chimes, about 60 fun .wav files
 
 - Robert Rozman sent code files common/mythtv_osd.pl and xosd.pl as examples of display data to Freevo or Mythtv GUIs using xosd.
 
-- Krik Bauer created lib/Musica.pm to control the Musica whole-house audio system by Netstreams over the RS232 port.
+- Kirk Bauer created lib/Musica.pm to control the Musica whole-house audio system by Netstreams over the RS232 port.
 This system has provides 6 zones and 4 sources with very nice keypads:  http://www.netstreams.com
 
-- Krik Bauer created lib/AlsaPlayer.pm which allows for the creation and control of alsaplayer processes,
+- Kirk Bauer created lib/AlsaPlayer.pm which allows for the creation and control of alsaplayer processes,
 and Playlist.pm which manages lists of music files.  Documentation is at the top of those modules.
 
-- Krik Bauer created lib/Weeder_light.pm which allows you to monitors and controls a light through Weeder boards.
+- Kirk Bauer created lib/Weeder_light.pm which allows you to monitors and controls a light through Weeder boards.
 
 - Pete Flaherty, with some help from David Norwood, updated the MP3 Jukebox page to include a nifty new Song Info popup button.
 
@@ -450,7 +497,7 @@ and pointed to that script with a new 'Caller List' button to the ia5 phone menu
 
 - Chris Barrett updated Holiday anouncements to honor ddmm format.
 
-- Krik Bauer noticed that a date only time_now string would get mis-interpreted and would fire every day.
+- Kirk Bauer noticed that a date only time_now string would get mis-interpreted and would fire every day.
 
 - Fixed a 2.84 bug where run_after_delay would not work with subroutine calls.
 

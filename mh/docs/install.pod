@@ -381,9 +381,8 @@ Set mh.ini parm voice_text=theta and modify voice_text_theta to point to the the
 
 Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural Voices TTS linux engine here:
  http://www.naturalvoices.com (additional voices cost $70), but for some reason, they no longer sell them from there.
-Now the only supplier we have found is from http://www.nextup.com/attnv.html, where additional voices are $35.
-But this site only offers the Windows engine, although the voice data files can be used with either engine.
-If you find a source for the linux engine, let me know.  
+Have not tried it, but this site is selling linux voices for $50 each:
+ https://secure.wizzardsoftware.com/voice/wizzshop1/nvshoplinux2.asp
 
 If you have the linux binary, use the voice_text_naturalvoice parm to point to 
 where you have it installed and set voice_text=naturalvoice. 

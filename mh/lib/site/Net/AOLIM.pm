@@ -348,7 +348,8 @@ sub signon
 					    PeerPort => $imsg->{'port'},
 					    Proto => 'tcp',
 					    Type => SOCK_STREAM)
-	    or die "Couldn't connect to server: $!";
+	    or print "Couldn't connect to server: $!";
+#	    or die "Couldn't connect to server: $!";
 
         $$im_socket->autoflush(1);
 

@@ -119,6 +119,11 @@ sub read_table_A {
         ($object, $name, $grouplist, @other) = @item_info;
         $object = "Photocell_Item(\$$object, $other)";
     }
+    elsif($type eq "MOTION_TRACKER") {
+       require 'Motion_Tracker.pm';
+       ($object, $name, $grouplist, @other) = @item_info;
+       $object = "Motion_Tracker(\$$object, $other)";
+    }
     elsif($type eq "TEMP") {
         require 'Temperature_Item.pm';
         ($object, $name, $grouplist, @other) = @item_info;
@@ -408,6 +413,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.24  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.23  2004/06/06 21:38:44  winter
 # *** empty log message ***
 #

@@ -124,7 +124,29 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 <a href=http://misterhouse.net/public/misterhouse_src_test.zip>current test release</a>
 (updated nightly) can be found
 <a href=http://misterhouse.net:81/mh/docs/updates.html>here, in the test release updates file</a>.<p><strong>New Features:</strong></p>
+<p>- Pete Flaherty updated the web mp3 interface, adding delete and jump support to the popup player/playlist and
+in mp3_xmms and mp3_winamp to be more interactive between the control and the playlist.</p>
+<p>- John Dillenburg wrote lib/Motion_Tracker.pm, experimenting with the occupancy monitoring stuff and 
+deciding it was too complicated for my application.  Motion_Tracker takes a motion sensor object as 
+a parameter and sets up a timer everytime motion is detected.  It ignores the 'off' messages from the sensors. 
+This allows the timeouts to be set on the computer rather than on each sensor individually.  
+The object is also very careful to save and restore it's state through restarts, especially the time the last motion
+was detected.  This insures that the occupied state will evetually expire, even after restarts.</p>
 <p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>- Timothy Spaulding found a 2.92 bug that caused set_by to get the wrong data.</p>
+<p>- David Norwood fixed a bug in stocks.pl that kept price drops from being announced.</p>
+<p>- Lowered the default MR26_multireceive_delay from 1500 to 400 (
+ment to do that in 2.92, but Bill Young noticed that I didn't).
+Also added a W800_multireceive_delay to the X10_W800* modules, but left the default at 1500,
+since Bill mentioned that those module does not filter repeats like the MR26 does.</p>
+<p>- Added 'Speak deep thought with voice xyz' to common/deep_thought.pl,
+so we can read deep thoughts with different voices.</p>
+<p>- Fixed a 2.92 bug in display, where the tk window would not appear.</p>
+<p>- Fixed a 2.92 bug with Timer where active would return true after the timer expired.</p>
+<p>- Brent Gross added quotes to the email address that gets the response of email commands in common/internet_mail.pl,
+so that emails addresses with blanks work ok.</p>
+<p>- Robert Rozman noticed that Voice_Cmd 'Set {the,} light on' did not work with the string 'Set light on'.</p>
+<p>- John Dillenburg noticed that X10_Sensor (X10MS) was giving 'serial set called but no serial port found' messages.</p>
 <p>
 </p>
 <h2><a name="version_2_92_posted_on_07_05_2004">Version 2.92 posted on 07/05/2004</a></h2>
@@ -134,7 +156,7 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 <p><strong>New Features:</strong></p>
 <p>- Sean Walker sent in code/public/vocp_sean.pl for integrating with linux vocp voicemail ( <a href="http://vocp.sourceforge.net/">http://vocp.sourceforge.net/</a> ).</p>
 <p>- Lincoln Foreman created code/public/x10_video_security2.pl as another example of interfacing with X10 cameras.</p>
-<p>- Krik Bauer created lib/Tivo_Control.pm for displaying text on a Tivo.  See header for details.</p>
+<p>- Kirk Bauer created lib/Tivo_Control.pm for displaying text on a Tivo.  See header for details.</p>
 <p>- Norm Dressler created code/common/mr26_vdr.pl to send remote control commands to VDR (Video Disk Recorder)
 ( <a href="http://www.cadsoft.de/vdr/">http://www.cadsoft.de/vdr/</a> ) from an X10 RF remote, via a MR26 interface.</p>
 <p>- Created lib/Display_Alpha.pm and code/common/display_alpha.pl for sending text to an Alpha LED signs using a serial port.  
@@ -297,11 +319,11 @@ level attribute whenever the object state is changed.</p>
 <a href="http://misterhouse.sf.net/misterhouse_misc.zip>">http://misterhouse.sf.net/misterhouse_misc.zip></a>misterhouse_misc.zip . 
 It currently has the 40 <code>west(minster)</code> and cuckoo chimes, about 60 fun .wav files, and about 65 halloween .wav files.</p>
 <p>- Robert Rozman sent code files common/mythtv_osd.pl and xosd.pl as examples of display data to Freevo or Mythtv GUIs using xosd.</p>
-<p>- Krik Bauer created lib/Musica.pm to control the Musica whole-house audio system by Netstreams over the RS232 port.
+<p>- Kirk Bauer created lib/Musica.pm to control the Musica whole-house audio system by Netstreams over the RS232 port.
 This system has provides 6 zones and 4 sources with very nice keypads:  <a href="http://www.netstreams.com">http://www.netstreams.com</a></p>
-<p>- Krik Bauer created lib/AlsaPlayer.pm which allows for the creation and control of alsaplayer processes,
+<p>- Kirk Bauer created lib/AlsaPlayer.pm which allows for the creation and control of alsaplayer processes,
 and Playlist.pm which manages lists of music files.  Documentation is at the top of those modules.</p>
-<p>- Krik Bauer created lib/Weeder_light.pm which allows you to monitors and controls a light through Weeder boards.</p>
+<p>- Kirk Bauer created lib/Weeder_light.pm which allows you to monitors and controls a light through Weeder boards.</p>
 <p>- Pete Flaherty, with some help from David Norwood, updated the MP3 Jukebox page to include a nifty new Song Info popup button.</p>
 <p>- Dominique Benoliel updated the common/weather_rrd_update.pl script with a bunch of updates, including a new
 mh.ini parm to allow for labeling of the various graphs.  mh.ini parms are listed at the top of the code file.
@@ -389,7 +411,7 @@ and pointed to that script with a new 'Caller List' button to the ia5 phone menu
 
 - Updated the web server to honor mh.ini parm html_refresh_rate on the widget pages.</pre>
 <p>- Chris Barrett updated Holiday anouncements to honor ddmm format.</p>
-<p>- Krik Bauer noticed that a date only time_now string would get mis-interpreted and would fire every day.</p>
+<p>- Kirk Bauer noticed that a date only time_now string would get mis-interpreted and would fire every day.</p>
 <p>- Fixed a 2.84 bug where run_after_delay would not work with subroutine calls.</p>
 <p>- Jim Duda fixed a 2.86 problem with W800 proxy data (serial datatype parm was not being passed for proxies).</p>
 <p>- Scott Johnson updated lib/site/Hardware/iButton/Device.PM so read_temperature works for the 18B20 (1822)

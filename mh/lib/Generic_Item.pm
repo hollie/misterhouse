@@ -104,7 +104,8 @@ sub set_process {
             return if $self->$setcall($substate, $set_by, $respond) == -1;
         }
         elsif($self->can('default_setstate')) {
-            return if $self->default_setstate($primarystate, $substate, $set_by, $respond) == -1;
+            my $test = $self->default_setstate($primarystate, $substate, $set_by, $respond);
+            return if $test and $test == -1;
         }
         elsif ($self->can('default_setrawstate')) {
             return if $self->default_setrawstate($state, $set_by, $respond) == -1;
@@ -113,7 +114,8 @@ sub set_process {
                                 # Allow for default setstate methods
     else {
         if ($self->can('default_setstate')) {
-            return if $self->default_setstate($state, undef, $set_by, $respond) == -1;
+            my $test = $self->default_setstate($state, undef, $set_by, $respond);
+            return if $test and $test == -1;
         }
         elsif ($self->can('default_setrawstate')) {
             return if $self->default_setrawstate($state, $set_by, $respond) == -1;
@@ -492,6 +494,7 @@ sub set_state_log {
       if $state or (ref $self) eq 'Voice_Cmd';
     pop @{$$self{state_log}} if $$self{state_log} and @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
+    return ($set_by, $target);
 }
 
 
@@ -666,6 +669,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.38  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.37  2004/07/05 23:36:37  winter
 # *** empty log message ***
 #

@@ -749,9 +749,10 @@ sub main::run {
     my($mode, $pgm, $no_log) = @_;
                 # Mode is optional ... yuck ... optional parms should be last!
     unless ($mode eq 'inline') {
-        $pgm = $mode;
         $no_log = $pgm;
+        $pgm = $mode;
     }
+
 
     if ($main::OS_win) {
 
@@ -1251,6 +1252,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.73  2004/07/18 22:16:37  winter
+# *** empty log message ***
+#
 # Revision 1.72  2004/07/05 23:36:37  winter
 # *** empty log message ***
 #

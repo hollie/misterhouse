@@ -166,7 +166,7 @@ sub scan_subjects {
                  }
                  else {
                                   # The mh respond_email function will mail back the results
-                     if (&process_external_command($command, 1, 'email', "email to=$from subject='Results for: $command'")) {
+                     if (&process_external_command($command, 1, 'email', "email to='$from' subject='Results for: $command'")) {
 #                    if (run_voice_cmd $command) {
                          speak "Running email command: $command";
                          $results = "Command was run: $command";
