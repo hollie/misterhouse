@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2004-07-04 00:40:24 winter>
+#  Last change Time-stamp: <2004-07-14 20:50:52 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -25,7 +25,7 @@
 use strict;
 
 my ($Pgm_Name, $Revision, $usage);
-				# So we can get at it from other packages
+                # So we can get at it from other packages
 use vars qw(%config_parms %config_parms_startup $Pgm_Path $Version $Version_date %Info);
 
 BEGIN {
@@ -716,7 +716,8 @@ sub setup {
                 print "Startup error on &${module}::${type}_startup('$instance'): $@\n" if $@;
             }
             else {
-                print "No $1.pm file found for $parm\n";
+#  No need for warning errata, in case we have arbitrary _port ini parms
+#               print "No $1.pm file found for $parm\n";
             }
         }
 
@@ -1192,90 +1193,90 @@ sub check_for_action {
 
 sub check_for_cm11_data {
 
-				# Standard 1-cm11 code
+                # Standard 1-cm11 code
     if (!$config_parms{cm11_bak_port}) {                                                         
-	my $data = &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
-	return unless $data;
-	my $data_d = unpack('C', $data);    # Convert from string to decimal
+    my $data = &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
+    return unless $data;
+    my $data_d = unpack('C', $data);    # Convert from string to decimal
 
                                 # Check for the official 0x5a=90 string and 0xa5=165 (I have seen this!)
-	print "mh CM11 data=$data data_d=$data_d\n" if $Debug{x10} and $data;
+    print "mh CM11 data=$data data_d=$data_d\n" if $Debug{x10} and $data;
 #       if ($data_d == 0x5a) {
-	if ($data_d == 0x5a or $data_d == 0xa5) {
-	    if ($data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object})) {
-		&process_serial_data("X" . $data);
-	    }
-	}
+    if ($data_d == 0x5a or $data_d == 0xa5) {
+        if ($data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object})) {
+        &process_serial_data("X" . $data);
+        }
     }
-				# Dual cm11 code
+    }
+                # Dual cm11 code
     else {
-	my $data     = &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
-	my $data_bak = &ControlX10::CM11::read($Serial_Ports{cm11_bak}{object}, 1) if $config_parms{cm11_bak_port}; 
+    my $data     = &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
+    my $data_bak = &ControlX10::CM11::read($Serial_Ports{cm11_bak}{object}, 1) if $config_parms{cm11_bak_port}; 
                                                                                                                                                
-	my $heartbeat = $config_parms{cm11_heartbeat};
-	$heartbeat = -1 unless $heartbeat;          # setting heartbeat to -1 disables the functionality
+    my $heartbeat = $config_parms{cm11_heartbeat};
+    $heartbeat = -1 unless $heartbeat;          # setting heartbeat to -1 disables the functionality
                                                                                                                                                
-	# restart the timers if we've got data from them
-	if ($data) {
-	    $cm11_objects{active}->set(ON);
-	    $cm11_objects{timer}->set($heartbeat,,1) if ($heartbeat != -1);
-	}
-	if ($data_bak) {
-	    $cm11_objects{bak_active}->set(ON);
-	    $cm11_objects{bak_timer}->set($heartbeat,,1) if ($heartbeat != -1);
-	}
-	
-	if ($New_Second && $Debug{cm11}) {
-	    print "db CM11";
-	    print " main:" . $cm11_objects{active}->state();
-	    print ":" . $cm11_objects{timer}->seconds_remaining() if ($heartbeat != -1);
-	    if ($config_parms{cm11_bak_port}) {
-		print " bak:" . $cm11_objects{bak_active}->state();
-		print ":" . $cm11_objects{bak_timer}->seconds_remaining() if ($heartbeat != -1);
-	    }
-	    print "\n";
-	}
-	
+    # restart the timers if we've got data from them
+    if ($data) {
+        $cm11_objects{active}->set(ON);
+        $cm11_objects{timer}->set($heartbeat,,1) if ($heartbeat != -1);
+    }
+    if ($data_bak) {
+        $cm11_objects{bak_active}->set(ON);
+        $cm11_objects{bak_timer}->set($heartbeat,,1) if ($heartbeat != -1);
+    }
+    
+    if ($New_Second && $Debug{cm11}) {
+        print "db CM11";
+        print " main:" . $cm11_objects{active}->state();
+        print ":" . $cm11_objects{timer}->seconds_remaining() if ($heartbeat != -1);
+        if ($config_parms{cm11_bak_port}) {
+        print " bak:" . $cm11_objects{bak_active}->state();
+        print ":" . $cm11_objects{bak_timer}->seconds_remaining() if ($heartbeat != -1);
+        }
+        print "\n";
+    }
+    
     # Convert from string to decimal
-	my $data_d = unpack('C', $data) if $data;
-	my $data_d_bak = unpack('C', $data_bak) if ($data_bak && $config_parms{cm11_bak_port});
-	
+    my $data_d = unpack('C', $data) if $data;
+    my $data_d_bak = unpack('C', $data_bak) if ($data_bak && $config_parms{cm11_bak_port});
+    
                                 # Check for the official 0x5a=90 string and 0xa5=165 (I have seen this!)
-	print "mh CM11 data=$data data_d=$data_d\n" if (($Debug{x10} || $Debug{cm11}) and $data);
-	print "mh CM11 data_bak=$data_bak data_d_bak=$data_d_bak\n" if (($Debug{x10} || $Debug{cm11}) and $data_bak);
-	
-	$data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object}) if ($data && ($data_d == 0x5a or $data_d == 0xa5));
-	
-	$data_bak = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11_bak}{object}) if ($data_bak && ($data_d_bak == 0x5a or $data_d_bak == 0xa5));
+    print "mh CM11 data=$data data_d=$data_d\n" if (($Debug{x10} || $Debug{cm11}) and $data);
+    print "mh CM11 data_bak=$data_bak data_d_bak=$data_d_bak\n" if (($Debug{x10} || $Debug{cm11}) and $data_bak);
+    
+    $data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object}) if ($data && ($data_d == 0x5a or $data_d == 0xa5));
+    
+    $data_bak = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11_bak}{object}) if ($data_bak && ($data_d_bak == 0x5a or $data_d_bak == 0xa5));
                                                                                                                                                
-	if ($heartbeat != -1) {
-	    if ($cm11_objects{timer}->inactive()) {
-		print "db CM11 cm11_timer has expired... testing... " if $Debug{cm11};
-		if (&ControlX10::CM11::ping_cm11($Serial_Ports{cm11}{object})) {
-		    $cm11_objects{active}->set(ON);
-		    print "alive\n" if $Debug{cm11};
-		} else {
-		    $cm11_objects{active}->set(OFF);
-		    print "no response\n" if $Debug{cm11};
-		}
-		$cm11_objects{timer}->set($heartbeat,,1);
-	    }
-	    
-	    if (($cm11_objects{bak_timer}->inactive()) && ($config_parms{cm11_bak_port})) {
-		print "db CM11 cm11_bak_timer has expired... testing... " if $Debug{cm11};
-		if (&ControlX10::CM11::ping_cm11($Serial_Ports{cm11_bak}{object})) {
-		    $cm11_objects{bak_active}->set(ON);
-		    print "alive\n" if $Debug{cm11};
-		} else {
-		    $cm11_objects{bak_active}->set(OFF);
-		    print "no response\n" if $Debug{cm11};
-		}
-		$cm11_objects{bak_timer}->set($heartbeat,,1);
-	    }
-	}
-	
-	&process_serial_data("X" . $data) if ($data);
-	&process_serial_data("X" . $data_bak) if (($data_bak) && ($data_bak != $data));
+    if ($heartbeat != -1) {
+        if ($cm11_objects{timer}->inactive()) {
+        print "db CM11 cm11_timer has expired... testing... " if $Debug{cm11};
+        if (&ControlX10::CM11::ping_cm11($Serial_Ports{cm11}{object})) {
+            $cm11_objects{active}->set(ON);
+            print "alive\n" if $Debug{cm11};
+        } else {
+            $cm11_objects{active}->set(OFF);
+            print "no response\n" if $Debug{cm11};
+        }
+        $cm11_objects{timer}->set($heartbeat,,1);
+        }
+        
+        if (($cm11_objects{bak_timer}->inactive()) && ($config_parms{cm11_bak_port})) {
+        print "db CM11 cm11_bak_timer has expired... testing... " if $Debug{cm11};
+        if (&ControlX10::CM11::ping_cm11($Serial_Ports{cm11_bak}{object})) {
+            $cm11_objects{bak_active}->set(ON);
+            print "alive\n" if $Debug{cm11};
+        } else {
+            $cm11_objects{bak_active}->set(OFF);
+            print "no response\n" if $Debug{cm11};
+        }
+        $cm11_objects{bak_timer}->set($heartbeat,,1);
+        }
+    }
+    
+    &process_serial_data("X" . $data) if ($data);
+    &process_serial_data("X" . $data_bak) if (($data_bak) && ($data_bak != $data));
     }
 }
 
@@ -1520,7 +1521,7 @@ sub check_for_proxy_data {
 #                   delete $proxy_by_room{$address};
                           # Drop only dynamic proxies, like those in common/proxy_client_server.pl.
                           # Leave static ones, so we can keep testing it so we can reconnect when proxy comes back
-		    &drop_proxy($address) if $config_parms{mh_proxyreg_port};
+            &drop_proxy($address) if $config_parms{mh_proxyreg_port};
                     $address =~ s/\:\d+$//; # Shorten up name for speaking
                     $address =~ s/.+\.(\d+)$/$1/;
                     &speak("proxy $address is dead") if &new_minute(2);
@@ -1539,13 +1540,13 @@ sub check_for_proxy_data {
             if ($type eq 'serial') {
                     # If port was named, store in that hash, otherwise process
                 if ($data[1]) {
-#		    if (defined($Serial_Ports{$data[1]}{object})   and $Serial_Ports{$data[1]}{object} eq 'proxy') {
- 		    if (defined($Serial_Ports{$data[1]}{datatype}) and $Serial_Ports{$data[1]}{datatype} eq 'raw') {
-			$Serial_Ports{$data[1]}{data} = $data[0];
-		    }
-		    else {
-			$Serial_Ports{$data[1]}{data_record} = $data[0];
-		    }
+#           if (defined($Serial_Ports{$data[1]}{object})   and $Serial_Ports{$data[1]}{object} eq 'proxy') {
+            if (defined($Serial_Ports{$data[1]}{datatype}) and $Serial_Ports{$data[1]}{datatype} eq 'raw') {
+            $Serial_Ports{$data[1]}{data} = $data[0];
+            }
+            else {
+            $Serial_Ports{$data[1]}{data_record} = $data[0];
+            }
                     if ($Serial_Ports{$data[1]}{process_data}) {
                         &process_serial_data($data[0]);
                     }
@@ -1603,10 +1604,10 @@ sub check_for_socket_data_http {
     if ($OS_win and $socket_fork_data{process} and $socket_fork_data{process}->Wait(0)) {
         print "http: closing http port after forked process s=$socket_fork_data{socket}\n" if $Debug{http};
         $socket_fork_data{socket}->close if $socket_fork_data{socket};
-	if ($config_parms{http_fork} eq 'memmap') {
-	    my $ret = $socket_fork_data{forkmem}->Close if $socket_fork_data{forkmem};
-	    print "http:************  $ret, UNDEFINED!!!!!\n" if (!defined $ret );
-	}
+    if ($config_parms{http_fork} eq 'memmap') {
+        my $ret = $socket_fork_data{forkmem}->Close if $socket_fork_data{forkmem};
+        print "http:************  $ret, UNDEFINED!!!!!\n" if (!defined $ret );
+    }
                                 # Do the next one, if in the que
         if ($socket_fork_data{next} and my $ptr = shift @{$socket_fork_data{next}}) {
 
@@ -1906,7 +1907,7 @@ sub check_for_tied_events {
                 my $state = $state1; # So eval can substitue $state
                 my $object=$object1;
                 $Set_By = $object1->{object_name};        # Checked in Generic_Item set method
-		$Respond_Target = $object1->get_target(); # Pass target along
+        $Respond_Target = $object1->get_target(); # Pass target along
                 eval $event;
                 $Set_By = '';
                 print "tie_events eval error: $@" if $@;
@@ -2084,16 +2085,20 @@ sub display {
 
                                 # Allow for either positional or key=value form
 #   my %parms = @parms unless @parms %2;  # Wierd bug with this?  %parms is rember from previous call!
-
-    my %parms = &parse_func_parms(@_);
-    &set_app_parms(\%parms, 'display');     # Set parms according to an optional app parm
+    my %parms;
+    %parms = @parms unless @parms %2;
 
     unless (defined $parms{text}) {
         ($parms{text}, $parms{time}, $parms{title}, $parms{font},
          $parms{window_name}, $parms{append}) = @parms;
     }
+
+    %parms = &parse_func_parms(%parms);  # Allow for key=value embeded in the text
+    &set_app_parms(\%parms, 'display');     # Set parms according to an optional app parm
+
     my $text = $parms{text};
     return unless $text;        # No data
+
 
                                 # If it is a file, read it
     if ($text =~ /^\S+$/ and -e $text) { 
@@ -2409,16 +2414,16 @@ sub file_diff {
                                # Look for the calling program
                                # Used by Generic_Item set_by
 sub get_calling_sub {
-	my $x=1;   ## don't need to check [0] (self)
-#	print "loopcode_search: ",scalar(localtime(time())),"\n";
-	while(my($pkg, $filename, $line, $subroutine) = caller($x++)) {
-#		print "loopcode_search: $x [$pkg] [$filename][$subroutine]\n";
-		if($subroutine =~ s/^main::(.*)_loopcode$/UserCode [$1.pl]/){
+    my $x=1;   ## don't need to check [0] (self)
+#   print "loopcode_search: ",scalar(localtime(time())),"\n";
+    while(my($pkg, $filename, $line, $subroutine) = caller($x++)) {
+#       print "loopcode_search: $x [$pkg] [$filename][$subroutine]\n";
+        if($subroutine =~ s/^main::(.*)_loopcode$/UserCode [$1.pl]/){
 #           print "loopcode_search: set_by=$subroutine\n";
-			return $subroutine;
-		}
-	}
-	return undef;
+            return $subroutine;
+        }
+    }
+    return undef;
 }
 
 sub get_ip_address {
@@ -2510,7 +2515,7 @@ sub list_groups_by_object {
       my $group = &get_object_by_name($group_name);
 #     print "testing group=$group_name -> $group\n";
       for my $object2 (list $group) {
-	push @groups, $group if $object eq $object2;
+    push @groups, $group if $object eq $object2;
       }
     }
     return @groups;
@@ -2621,9 +2626,9 @@ sub my_str2time {
     ($monthf, $mdayf, $yearf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\/(\S+)\s+(.+)/;
     ($monthf, $mdayf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\s+(.+)/ unless $time_date_time; # Year is optional
 
-				# Allow for Date only specs
+                # Allow for Date only specs
     unless ($time_date_time) {
-	$time_date_time = '12 pm' if ($monthf, $mdayf, $yearf) = $time_date =~ /^ *(\S+?)\/(\S+?)\/?(\S*) *$/;
+    $time_date_time = '12 pm' if ($monthf, $mdayf, $yearf) = $time_date =~ /^ *(\S+?)\/(\S+?)\/?(\S*) *$/;
     }
 
                                 # Allow for dd/mm format
@@ -2857,28 +2862,28 @@ sub persistent_restore {
 ###########################################################
 sub password_read {
     my($force_read)=@_;   ## allow caller to force re-read (on startup)
-	
+    
     my $pw_file = $config_parms{password_file};
     $pw_file = "$config_parms{data_dir}/.password" unless $pw_file;
     if($force_read || &file_changed($pw_file)){
-	    %Passwords=();  ## reset to allow deletion of users
-	    if (-e $pw_file){
-		print "Reading password from $pw_file\n" if $Debug{password};
-		if (open (PASSWD, $pw_file)) {
-		    while (<PASSWD>) {
-			if (/User: (\S+) (.+)/) {
-			    $Passwords{$1} = $2;
-			}
-			else {
-			    $Passwords{family} = $_;  # Grandfathter old single-user file
-			}
-		    }
-		}
-		close PASSWD;
-	    }
-	    else {
-		print "\nWarning:  password_file $pw_file not found.  Run mh/bin/set_password\n\n";
-	    }
+        %Passwords=();  ## reset to allow deletion of users
+        if (-e $pw_file){
+        print "Reading password from $pw_file\n" if $Debug{password};
+        if (open (PASSWD, $pw_file)) {
+            while (<PASSWD>) {
+            if (/User: (\S+) (.+)/) {
+                $Passwords{$1} = $2;
+            }
+            else {
+                $Passwords{family} = $_;  # Grandfathter old single-user file
+            }
+            }
+        }
+        close PASSWD;
+        }
+        else {
+        print "\nWarning:  password_file $pw_file not found.  Run mh/bin/set_password\n\n";
+        }
     }
     
                                 # This disables password protection for the specified commands/items
@@ -3083,7 +3088,7 @@ sub play {
     &Play_pre_hooks(%parms);# Created by &add_hooks
 
 
-				# Do not speak locally if this parm is specified and does not match the rooms parm
+                # Do not speak locally if this parm is specified and does not match the rooms parm
     if ($config_parms{speak_mh_room} && $parms{rooms}) {
         my $mh_room = $config_parms{speak_mh_room};
         return unless $parms{rooms} =~ /^$mh_room|\,$mh_room|^all/;
@@ -3146,18 +3151,18 @@ sub play {
 
         if (!$OS_win) {
             next if $file =~ /^System/;
-            if ($config_parms{sound_program} =~ /vv_tts/i) {	# use vv_tts for play also
+            if ($config_parms{sound_program} =~ /vv_tts/i) {    # use vv_tts for play also
                 speak(play=>"$file", nolog=>1, %parms);
                 last;
             }
             last unless $config_parms{sound_program};
-	    my $sound_program = $config_parms{sound_program};
-	    if ($config_parms{mp3_program}) {
-		$sound_program = $config_parms{mp3_program} if ($file =~ /.mp3/);
-	    }
-	    if ($parms{sound_program} ) {
-		$sound_program = $parms{sound_program};
-	    }
+        my $sound_program = $config_parms{sound_program};
+        if ($config_parms{mp3_program}) {
+        $sound_program = $config_parms{mp3_program} if ($file =~ /.mp3/);
+        }
+        if ($parms{sound_program} ) {
+        $sound_program = $parms{sound_program};
+        }
             print "running: $sound_program $file\n";
 
                                 # Greg Satz had problems with MAC OS X zombies with system call here
@@ -3387,7 +3392,7 @@ sub process_serial_data {
     return unless $event_data;
 
                                 # Allow for other processing.  Ignore if this is data munged 
-				# in the crazy X10 serial_data_buffer munging (don't want the proxy to see it)
+                # in the crazy X10 serial_data_buffer munging (don't want the proxy to see it)
     &Serial_data_hooks($event_data, undef, $source) unless $prev_pass;   # Created by &add_hooks
 
     my ($event_type, $event_data1) = $event_data =~ /^(\S)(\S*)/;
@@ -3487,8 +3492,8 @@ sub process_serial_data {
         my $length = length $event_data;
         my $pos = 1;
         while ($pos < $length) {
-	   last if $event_data =~ /PRESET_DIM/;  # The DIM1 and DIM2 strings would get parsed as M1 and M2
-	   my $unit = substr($event_data, $pos, 2);
+       last if $event_data =~ /PRESET_DIM/;  # The DIM1 and DIM2 strings would get parsed as M1 and M2
+       my $unit = substr($event_data, $pos, 2);
             if ($unit =~ /([A-P][1-9A-G])/) {
                 undef %prev_x10_units if $prev_x10_units_reset;
                 $prev_x10_units_reset = 0;
@@ -3586,10 +3591,10 @@ sub proxy_send {
         $address = $interface;
     }
     else {
-				# Some interfaces (bx24) are case mixed
-	my $ref = $Serial_Ports{$interface} || $Serial_Ports{uc $interface} || $Serial_Ports{lc $interface};
-	print "proxy_send test: int=$interface r=$ref p=$$ref{object}\n" if $Debug{proxy};
-	return 0 unless $$ref{object} eq 'proxy';
+                # Some interfaces (bx24) are case mixed
+    my $ref = $Serial_Ports{$interface} || $Serial_Ports{uc $interface} || $Serial_Ports{lc $interface};
+    print "proxy_send test: int=$interface r=$ref p=$$ref{object}\n" if $Debug{proxy};
+    return 0 unless $$ref{object} eq 'proxy';
         $address = $config_parms{   $interface . '_port'};
         $address = $config_parms{lc($interface) . '_port'} unless $address;
         $address = $config_parms{uc($interface) . '_port'} unless $address;
@@ -3744,7 +3749,7 @@ sub read_code {
     my %files_deleted = %file_code_times;
     %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
                                  &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2))
-	if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
+    if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
     my %files_seen;
     for $file (@files_read) {
@@ -3821,32 +3826,32 @@ sub convert_table_files {
     my @files_read = sort keys %file_paths;
 
     @files_read = grep(/^[a-z0-9].*\.mht$/i, @files_read);
-	
+    
                                 # See if we are supposed to skip any files
     my %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
                                     &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2))
-	if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
+    if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
-	## attempt to convert all *.mht files to xml
-	require "table_A2XML.pm";
-	foreach my $mht_file (@files_read){
-		(print "File skipped due to -noload: $mht_file\n"), next if $noload_files{$mht_file};
-		my $mht_path=$file_paths{$mht_file};  ## 
-		my $xml_path=$mht_path;
-		if( $xml_path =~s/(.*)\.mht/${1}.xml/){
-			print "converting [$mht_path] to [$xml_path]\n";
-			&table_A2XML::convert($mht_path,$xml_path);
-		}
-		else{
-			die "couldn't infer output from [$ARGV]\n";
-		}
-	}
+    ## attempt to convert all *.mht files to xml
+    require "table_A2XML.pm";
+    foreach my $mht_file (@files_read){
+        (print "File skipped due to -noload: $mht_file\n"), next if $noload_files{$mht_file};
+        my $mht_path=$file_paths{$mht_file};  ## 
+        my $xml_path=$mht_path;
+        if( $xml_path =~s/(.*)\.mht/${1}.xml/){
+            print "converting [$mht_path] to [$xml_path]\n";
+            &table_A2XML::convert($mht_path,$xml_path);
+        }
+        else{
+            die "couldn't infer output from [$ARGV]\n";
+        }
+    }
 }
 
                                 # Read optional, table formated definitions of mh objects and events
 sub read_table_files {
 
-				# Allow for newer xml formated tables
+                # Allow for newer xml formated tables
     my $table_type = ($config_parms{table_type} =~ /xml/i) ? 'xml' : 'mht';
 
     if ($table_type eq 'xml') {
@@ -3868,7 +3873,7 @@ sub read_table_files {
                                 # See if we are supposed to skip any files
     my %noload_files = map {$_, 1} (split(',', $config_parms{no_load}), 
                                     &file_read("$config_parms{data_dir}/$config_parms{code_unselect}", 2)) 
-	if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
+    if -e "$config_parms{data_dir}/$config_parms{code_unselect}";
 
                                 # See if any of the files have changed
     my ($changed);
@@ -3892,26 +3897,26 @@ sub read_table_files {
         print TABLE_OUT "# Category = Other\n\n";
         my $format;
         my %formats_seen;
-	if ($table_type =~/xml/) { $/=undef;$format="xml"; }
-#	print "read_table: table_type [$table_type] format [$format]\n";
+    if ($table_type =~/xml/) { $/=undef;$format="xml"; }
+#   print "read_table: table_type [$table_type] format [$format]\n";
         while (<TABLE_IN>) {
-#	    print "read_table: read data [$_]\n";
-             	  # only scan for the format tag/comments in mht files, not xml files
+#       print "read_table: read data [$_]\n";
+                  # only scan for the format tag/comments in mht files, not xml files
             if ($table_type eq "mht"){
-		if( /Format\s*=\s*(\S+)/i) {
+        if( /Format\s*=\s*(\S+)/i) {
                     $format = $1;
                     next;
-	        }
+            }
                 if (/^\s*#/) {      # comment line
                     print TABLE_OUT $_;
                     next;
                 }
-	    }
+        }
             if ($format) {
                                 # These code reading subroutines are in mh/lib/read_table.pl
                                 # Run the Init function on Reload
                 if(!$formats_seen{$format}++){  
-#		    print "read_table: initializing for [$format]\n";
+#           print "read_table: initializing for [$format]\n";
                     require "read_table_$format.pl" ;
                     my $results = eval "&read_table_init_$format(\$_)";
                     print TABLE_OUT "# Init results: $results $@\n";
@@ -4168,7 +4173,7 @@ sub read_user_code {
                                 # do the 'object_name' reference and do symbolic var manipulation
     for (sort keys %file_by_object_name) {
         my @list = sort keys %{$file_by_object_name{$_}};
-	@list = grep !/\[/, @list;    # Do not 'use vars' objects that are members of pre-declared list arrays
+    @list = grep !/\[/, @list;    # Do not 'use vars' objects that are members of pre-declared list arrays
         unshift @Item_Code, "use vars qw(@list);\n\n";
         unshift @Item_Code, "# List of $_ objects\n";
     }
@@ -4497,7 +4502,7 @@ sub set_global_vars {
                     }
                     else {
                         $Season = $seasons[3];
-		    }
+            }
 
 
                                 # Check/Set the $Holiday var
@@ -4518,17 +4523,17 @@ sub set_global_vars {
                                 }
                             }
                             elsif (($month, $mday, $year, $des) = $date_des =~ m|(\d+)/(\d+)/?(\d*)\s*(.*)|) {
-			        ($mday, $month) = ($month, $mday) if $config_parms{date_format} =~ /ddmm/;
+                    ($mday, $month) = ($month, $mday) if $config_parms{date_format} =~ /ddmm/;
 #                               print "db1 m=$month y=$year des=$des\n";
-				   # Allow for yy or 20yy
-				next if $year and (($year % 100) != ($Year % 100));
+                   # Allow for yy or 20yy
+                next if $year and (($year % 100) != ($Year % 100));
                                 if ($month == $Month and $mday == $Mday) {
                                     $des = 1 unless $des; # Description is optional
                                     $Holiday = $des;
                                 }
                             }
                         }
-			print "Holiday notice:  $Date_Now $Holiday\n" if $Holiday;
+            print "Holiday notice:  $Date_Now $Holiday\n" if $Holiday;
 
                     }
 
@@ -4669,8 +4674,8 @@ sub serial_port_open {
     $Serial_Ports{$name}{object} = $serial_port;
     $Serial_Ports{object_by_port}{$port} = $serial_port;
 
-#   $serial_port->{"_RBUF"}	= " "x4096;
-#   $serial_port->{"_RBUF"}	= " "x16000;
+#   $serial_port->{"_RBUF"} = " "x4096;
+#   $serial_port->{"_RBUF"} = " "x16000;
 
 #   my $serial_port = $Serial_Ports{$name}{object};
     $serial_port->error_msg(1);     # use built-in error messages
@@ -4856,7 +4861,7 @@ sub parse_func_parms {
     my %parms;
 
     if (@_ > 1) {               # Fancy way key=value way
-	print "Odd number of parms in in parse_func_parms: @_.\n" if @_ % 2;
+        print "Odd number of parms in in parse_func_parms: @_.\n" if @_ % 2;
         %parms = @_;
         $text = $parms{text};
     }
@@ -4898,8 +4903,8 @@ sub respond {
         $target = $1;
         &parse_func_parms2(\%parms, $2);
     }
-    $target = 'default' if $target =~ /\$/;	# Ignore goofy target=$object cases
-#   $target =~ s/\$//g;		# Avoid errors from target=$object
+    $target = 'default' if $target =~ /\$/; # Ignore goofy target=$object cases
+#   $target =~ s/\$//g;     # Avoid errors from target=$object
 #    my $p = join ',', %parms; print "db2 p=$p.\n";
 
                                 # Call respond_xyz function
@@ -5051,10 +5056,10 @@ sub speak {
 
     if (!$parms{nolog}) {
         my $speaklog = $mode . ": ";
-    	$speaklog = "card=$parms{card}: " if $parms{card};
-    	$speaklog = "to_file: "           if $parms{to_file};
-    	$speaklog .= "(" . basename($play) . ") " if $play;		# put sound in () to show the sound played.
-    	$speaklog .= $phrase if $phrase;
+        $speaklog = "card=$parms{card}: " if $parms{card};
+        $speaklog = "to_file: "           if $parms{to_file};
+        $speaklog .= "(" . basename($play) . ") " if $play;     # put sound in () to show the sound played.
+        $speaklog .= $phrase if $phrase;
         &print_speaklog($speaklog);
     }
     
@@ -5111,7 +5116,7 @@ sub speak {
     &Speak_pre_hooks(%parms);   # Created by &add_hooks
 #   &Speak_pre_hooks(\%parms);   # Created by &add_hooks
 
-				# Do not speak locally if this parm is specified and does not match the rooms parm
+                # Do not speak locally if this parm is specified and does not match the rooms parm
     if ($config_parms{speak_mh_room}) {
         my $mh_room = $config_parms{speak_mh_room};
         return unless $parms{rooms} =~ /^$mh_room|\,$mh_room|^all/;
@@ -5133,11 +5138,11 @@ sub speak {
     }
 #   &set_volume($parms{volume});
 
-				# Allow for a comma delimited list of cards
+                # Allow for a comma delimited list of cards
     if (my $cards = $parms{card}) {
        for my $card (split ',', $cards) {
-       	 $parms{card} = $card;
-	 &Voice_Text::speak_text(%parms);
+         $parms{card} = $card;
+     &Voice_Text::speak_text(%parms);
        }
     }
     else {
@@ -5208,20 +5213,20 @@ sub time_between {
     my $time1 = &my_str2time($time_date_1);
     my $time2;
     if (defined $time_date_2) {
-	$time2 = &my_str2time($time_date_2);
+    $time2 = &my_str2time($time_date_2);
     }
     else {
-	return 0;  # 2nd parameter not provided;
+    return 0;  # 2nd parameter not provided;
     }
     return 0 if $time1 == 0;  # Time_date string invalid
     return 0 if $time2 == 0;  # Time_date string invalid
     if ($time2 < $time1) {    # This happens comparing across midnight
-	if (($time1 - $Time) > 43200) { # If Time1 is more than 12 hours into the future
-	    $time1 = $time1 - 86400;   #    Subtract 24 hours from Time1
-	}
-	else {
-	    $time2 = $time2 + 86400;   #    Otherwise add 24 hours to Time2
-	}
+    if (($time1 - $Time) > 43200) { # If Time1 is more than 12 hours into the future
+        $time1 = $time1 - 86400;   #    Subtract 24 hours from Time1
+    }
+    else {
+        $time2 = $time2 + 86400;   #    Otherwise add 24 hours to Time2
+    }
     }
     return (($Time >= $time1) && ($Time <= $time2));
 }
@@ -5875,6 +5880,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.93  2004/07/18 22:09:43  winter
+# *** empty log message ***
+#
 # Revision 2.92  2004/07/05 23:23:29  winter
 # *** empty log message ***
 #
