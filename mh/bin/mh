@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-02-07 19:41:43 winter>
+#  Last change Time-stamp: <2003-03-08 20:50:47 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -77,7 +77,7 @@ use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category $Respond_Target);
-use vars qw($Version_tk $DelayOccured %Debug);
+use vars qw($Version_tk $DelayOccured %Debug $Authorized);
 use vars qw(%User_Code @Code_Dirs @Generic_Serial_Ports);
 
 my ($Pgm_PathU);
@@ -540,7 +540,7 @@ sub setup {
 
    
     $SIG{INT}   = \&sig_handler;              # Exit cleanly with CTL-C
-    $SIG{BREAK} = \&sig_handler if  $OS_win;  # Exit cleanly with BREAK
+    $SIG{BREAK} = \&exit_pgm    if  $OS_win;  # Exit less cleanly with BREAK
     $SIG{KILL}  = \&sig_handler;              # Exit cleanly with a kill signal
     $SIG{HUP}   = \&read_code   if !$OS_win;  # Reload code (alias mhreload per info in mh.ini file)
     $SIG{PIPE}  = \&sig_handler_pipe;         # Web browsers can shut down sockets while we are sending data 
@@ -641,7 +641,9 @@ sub setup {
             $module =~ s/[:_]\d+$//;        # Drop instance suffix
 #           print "\n\ndb i=$instance m=$module p=$parm\n";
            if (-e "./../lib/$module.pm" or
-               -e "$config_parms{code_dir}/$module.pm") {
+               -e "$config_parms{lib_dir}/$module.pm" or
+               -e "$Code_Dirs[0]/$module.pm") {
+#              -e "$config_parms{code_dir}/$module.pm") {
                 print "Found managed $type port=$instance\nMH will now require $module.pm and call ${module}::${type}_startup($instance)\n" 
                     if $Debug{startup};
                 require "$module.pm";
@@ -658,7 +660,9 @@ sub setup {
         if ($parm =~ /^(\S+?)_module/) {
             my $module = "$config_parms{$parm}.pm";
             if (-e "./../lib/$module" or 
-                -e "$config_parms{code_dir}/$module") {
+                -e "$config_parms{lib_dir}/$module" or
+                -e "$Code_Dirs[0]/$module") {
+#               -e "$config_parms{code_dir}/$module") {
                 my $startup = "&$config_parms{$parm}" . '::startup';
                 print "Found managed $module module\nMH will now require $module and call $startup\n" 
                     if $Debug{startup};
@@ -777,14 +781,22 @@ sub setup {
 
     $Month++;
 
+    &persistent_restore();      # Populate %Save
+    
+    use vars '$Catchup_Mode';
+    $Catchup_Mode = new Generic_Item;
+
                                 # Configure 'fast test mode' parms
     $Time_Increment = ($config_parms{time_increment}) ? $config_parms{time_increment} : 60;
-    if ($config_parms{time_start} =~ /\S/) {
+    my $time_start = $config_parms{time_start};
+    $time_start = $Save{Time_Saved} if $time_start and lc $time_start eq 'resume';
+    if ($time_start) {
         $Loop_Sleep_Time = 0;
 #       $Loop_Tk_Passes  = 1;
-        $Time_Start_time = &my_str2time($config_parms{time_start});
+        $Time_Start_time = &my_str2time($time_start);
+        set $Catchup_Mode 'startup';
         $Time  = $Time_Start_time - $Time_Increment; # Cause we start the loop with an increment
-        print "time_start=$config_parms{time_start} -> $Time_Start_time \n";
+        print "time_start=$time_start -> $Time_Start_time \n";
     }
     if ($config_parms{time_stop} =~ /\S/) {
         $Loop_Sleep_Time = 0;
@@ -971,7 +983,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
        my $i = 0;
        for my $ptr (&get_hooks_($location)){
            my ($hook, $type, @parms) = @$ptr;
-#          print "dbx hook l=$location p=$ptr h=$hook t=$type p=@parms.\n" unless $location eq 'MainLoop_pre';
+#          print "db hook l=$location p=$ptr h=$hook t=$type p=@parms.\n" unless $location eq 'MainLoop_pre';
                                 # Allow for parms passed in mh, and parms specified
                                 # with addhook.
            &$hook(@_, @parms); 
@@ -2029,6 +2041,8 @@ sub eval_user_code_loop {
             print "Error logged to: $config_parms{data_dir}/error.log\n";
         }
     }
+
+    $Respond_Target  = undef;  # This is only valid during the user code loop
 }
 
 sub eval_user_code_error {
@@ -2104,7 +2118,7 @@ sub exit_pgm {
 }
 
 END {
-    print "Exiting mh\n";       # Will not see this (or DESTROY) with fast POSIX::_exit
+#   print "Exiting mh\n";       # Will not see this (or DESTROY) with fast POSIX::_exit
 }
 
 
@@ -2221,7 +2235,7 @@ sub last_response {
         ($last_response) = &print_log_last(1);
     }
     $Last_Response = '';
-#   print "dbx1 LR=$Last_Response lr=$last_response\n";
+#   print "db LR=$Last_Response lr=$last_response\n";
     return $last_response;
 }
 
@@ -2476,28 +2490,19 @@ sub object_states_restore {
     }
     use strict 'vars'; 
     close SAVE;
-    print "Object states restored\n";
-
-                                # Restore Persistent data
-    $Persistent{timers} = [];   # In case we don't read in any
-    if (-e  "$restore_state_file.persistent") {
-        my $persistent_data = file_read "$restore_state_file.persistent";
-        eval $persistent_data;
-        print "Error in Persistent data restore: $@\n" if $@;
-        
-                                # Must resart each timer
-        for my $timer (@{$Persistent{timers}}) {
-            $timer->restore_self_set;
-        }
-    }
 
     &Timer::resort_timers_with_actions;
+
+    print "Object states restored\n";
+
+    &persistent_restore();
 }
 
 sub object_states_save {
     my ($object_type, $var, $expire_time, $state);
 
     print "$Time_Date: Saving object states ..." unless $config_parms{no_log} =~ /save_state/;
+    $Save{Time_Saved} = $Time_Date;
     my ($restore_state, $restore_string);
 
 #    for $var (keys %Save) {
@@ -2516,7 +2521,7 @@ sub object_states_save {
             $restore_state .= "if (defined $var) {$restore_string} else {'var not used'}\n" if $restore_string;
         }
     }
-                                # Do not write file on startup ($restore_state should be empty)
+                                 # Do not write file on startup ($restore_state should be empty)
     my $restore_state_file = "$config_parms{data_dir}/mh_temp.saved_states";
     if ($restore_state) {
         return unless $restore_state;
@@ -2569,6 +2574,22 @@ sub object_states_save_check {
     return $save_string;
 }
 
+sub persistent_restore {
+                                # Restore Persistent data
+    $Persistent{timers} = [];   # In case we don't read in any
+    my $restore_state_file = "$config_parms{data_dir}/mh_temp.saved_states";
+    if (-e  "$restore_state_file.persistent") {
+        my $persistent_data = file_read "$restore_state_file.persistent";
+        eval $persistent_data;
+        print "Error in Persistent data restore: $@\n" if $@;
+        
+                                # Must resart each timer
+        for my $timer (@{$Persistent{timers}}) {
+            $timer->restore_self_set;
+        }
+    }
+}
+
 
 sub password_read {
     my $pw_file = $config_parms{password_file};
@@ -2616,11 +2637,22 @@ sub password_read {
     }
 }
 
+sub authority_check {
+    my ($user_required) = @_;
+    return 1 if  $user_required eq 'anyone';
+    return 0 if !$Authorized;
+    return 1 if !$user_required;
+    return 1 if  $Authorized eq 'admin';    # Allow any command for admin
+    return 1 if  $Authorized eq $user_required;
+    return 1 if  $user_required eq 'guest';  # Allow any login for guest commands
+    return 0;
+}
+
                                 # Returns userid that matches the password
 sub password_check {
     my ($password, $port, $type) = @_;
 
-#   return 1;  # disable remote access
+#   return 0;  # disable remote access
 
     if (%Passwords) {
         if ($password) {
@@ -3089,17 +3121,22 @@ sub process_serial_data {
                                 # Process CM11 status requests
 # C2STATUS_ONC2
 # C3C3STATUS_OFFC3C3STATUS_OFF
+# J5J7STATUS_ON OR  J5J2STATUS_OFF ...  Leviton DHC examples give strange extra 2 characters before STATUS string
         if ($event_data1 =~ /STATUS/) {
 #           my ($house, $device, $state) = $event_data1 =~ /(\S)(\S)STATUS_(\S+)/;
-            my ($house, $device, $state) = $event_data1 =~ /(\S)(\S)STATUS_(ON|OFF)/;
+            my ($house, $device, $state) = $event_data1 =~ /(\S)(\S)\S{0,2}STATUS_(ON|OFF)/;
+
+
+
             $state = 'J' if $state eq 'ON';
             $state = 'K' if $state eq 'OFF';
             my $event_data = 'X' . $house . $device . $house . $state;
             if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
                 for my $ref (@refs) {
                     if ($state = $$ref{state_by_id}{$event_data}) {
+#                       $ref->{state} = $state;
 #                       set_receive $ref $state;
-                        $ref->{state} = $state;
+                        set_receive $ref $state if $state ne $ref->{state};
                         print "CM11 Status results: data=$event_data1 event_data=$event_data state=$state\n" 
                             if $Debug{x10};
                     }
@@ -3118,7 +3155,7 @@ sub process_serial_data {
         for my $i (0 .. 4) {
             my $time_diff = $loop_tickcount1 - $prev_x10_events[$i]{time} if $prev_x10_events[$i]{time};
             last unless defined($time_diff) and $time_diff < $config_parms{x10_multireceive_delay};
-#           print "dbx $event_data1 eq $prev_x10_events[$i]{data}\n";
+#           print "db $event_data1 eq $prev_x10_events[$i]{data}\n";
             if ($event_data1 eq $prev_x10_events[$i]{data}) {
                 print "X10: Duplicate data ignored data=$event_data time=$time_diff\n" 
                     if $config_parms{x10_errata} >= 3;
@@ -3905,7 +3942,7 @@ sub set_global_vars {
                 or ($config_parms{time_pause_log} and $config_parms{time_pause_log} > $DelayOccured) ) {
             my $volume = int 100 * $DelayOccured / 30;
             &play(file => 'mh_pause', volume => $volume); # Defined in event_sounds.pl
-            print_log "mh paused for $DelayOccured seconds (v=$volume)";
+            print_log "mh paused for $DelayOccured seconds (volume=$volume)";
         }
         logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  "mh paused for $DelayOccured seconds";
         if ($DelayOccured > $config_parms{time_catchup_skip}) {
@@ -3913,6 +3950,7 @@ sub set_global_vars {
         }
         else {
             $Time_Start_time = $prev_time;
+            set $Catchup_Mode 'mh_pause';
             $Time_Increment  = 1;
             $config_parms{sleep_time} = $Loop_Sleep_Time; # In case we manually change it after startup
             $Loop_Sleep_Time = 0;   # Go to full throttle catchup mode 
@@ -3931,14 +3969,14 @@ sub set_global_vars {
             &exit_pgm;
         }
                                 # All caught up, go to normal mode
-        if (!$Time_Stop_time and $Time_Start_time and $Time > time) {
-            if ($config_parms{time_start}) {
+        if (!$Time_Stop_time and $Time_Start_time and ($Time + $Time_Increment) > time) {
+            if ($$Catchup_Mode{state} eq 'startup') {
                 my $msg = "Caught up from start time of $config_parms{time_start}";
-                print $msg;
                 print_log $msg;
-                &speak($msg);
+                &speak($msg) unless $config_parms{time_start} eq 'resume';
 #               $Loop_Tk_Passes  = $config_parms{tk_passes};
             }
+            set $Catchup_Mode 'done';
             $Loop_Sleep_Time = $config_parms{sleep_time};
             undef $Time_Start_time;
         }
@@ -4298,7 +4336,7 @@ sub set_moon_data {
     $Moon{age} = int $phase[2];
     print "The moon is $Moon{phase}, $Moon{brightness}% bright, and $Moon{age} days old\n";
 
-    my @phases = Astro::MoonPhase::phasehunt($Time);
+    my @phases = Astro::MoonPhase::phasehunt($Time + 3600*24*30);
     my $month  = 3600 * 24 * 29.53058868;
 
     $Moon{time_new_prev }  = int $phases[0] - (($phases[0] > $Time) ? $month : 0);
@@ -4539,6 +4577,9 @@ sub respond_log {
 sub respond_speak {
     &speak(@_);
 }
+sub respond_serial {
+    &respond_default(@_);
+}
 sub respond_tk {
     &respond_default(@_);
 }
@@ -4652,7 +4693,6 @@ sub speak {
 
                                            # Intercept speak/log/print/last_response -> web wav
                                            #  - but not for wml response
-#       print "dbx1 lso=$leave_socket_open_action\n";
         if ($leave_socket_open_action =~ /response/ and $leave_socket_open_action !~ /,'w'/) {
                                 # Generate to_wave file unless webmute
             if (my $wav_file = &http_speak_to_wav_start($phrase, $parms{voice}, $parms{compression} )) {
@@ -4682,37 +4722,34 @@ sub speak {
                                 #    anything between ! thru ~
                                 # We do this check in case something (like serial_server)
                                 # goes out of control ... we don't want to hear garbage!
-                                # Lets allow a few unspeakable characters through
-    my $count_non_ascii = $phrase =~ tr/\n\r\t !-~//c;
-    if ($phrase and $count_non_ascii > 10 and !$play) {
-#   if ($phrase and $phrase !~ /^[\n\r\t !-~]+$/ and !$play) {
-        print "Data is unspeakable!  non_ascii=$count_non_ascii, phrase=$phrase\n";
-        print_log "Data is unspeakable!  non_ascii=$count_non_ascii, phrase=", substr($phrase, 0, 40), " ...\n";
-    }
-    else {
-        $parms{text} = $phrase;
+                                # Updated:  French (and other languages) have characters above 126, so lets skip this check
+#    my $count_non_ascii = $phrase =~ tr/\n\r\t !-~//c;
+#    if ($phrase and $count_non_ascii > 10 and !$play) {
+#        print "Data is unspeakable!  non_ascii=$count_non_ascii, phrase=$phrase\n";
+#        print_log "Data is unspeakable!  non_ascii=$count_non_ascii, phrase=", substr($phrase, 0, 40), " ...\n";
+#        return;
+#    }
+    $parms{text} = $phrase;
 
-        &Speak_pre_hooks(%parms);   # Created by &add_hooks
+    &Speak_pre_hooks(%parms);   # Created by &add_hooks
 
                         # Do not speak to the default card if muted or offline
-        return if $mode and ($mode eq 'mute' or $mode eq 'offline') and
-            !($parms{to_file} or $parms{card});
+    return if $mode and ($mode eq 'mute' or $mode eq 'offline') and
+        !($parms{to_file} or $parms{card});
 
                                 # If we have a 1/2 duplex sound card, we want to wait a bit before speaking
                                 # or else the speech will get qued.
                                 # Maybe just turning off vr during speach would fix this?
-        if (my $delay = $config_parms{delay_speak}) {
-            $delay -= (&get_tickcount - &Voice_Cmd::get_last_cmd_time);
-            if ($delay > 0) {
-                print "Sleeping for $delay ms before speaking\n";
-                select undef, undef, undef, $delay / 1000;
-            }
+    if (my $delay = $config_parms{delay_speak}) {
+        $delay -= (&get_tickcount - &Voice_Cmd::get_last_cmd_time);
+        if ($delay > 0) {
+            print "Sleeping for $delay ms before speaking\n";
+            select undef, undef, undef, $delay / 1000;
         }
-#       &set_volume($parms{volume});
-        &Voice_Text::speak_text(%parms);
-        &Speak_post_hooks(%parms);   # Created by &add_hooks
     }
-
+#   &set_volume($parms{volume});
+    &Voice_Text::speak_text(%parms);
+    &Speak_post_hooks(%parms);   # Created by &add_hooks
 
 }
 
@@ -5382,6 +5419,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.79  2003/03/09 03:11:07  winter
+# - 2.79 release
+#
 # Revision 2.78  2003/02/08 05:23:36  winter
 #  - 2.78 release
 #
