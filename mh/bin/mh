@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-11-30 16:04:43 winter>
+#  Last change Time-stamp: <2002-12-23 17:44:28 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -31,7 +31,6 @@ use vars qw(%config_parms %config_parms_startup $Pgm_Path $Version $Version_date
 BEGIN {
     $Info{Perl_compiled} = 1 unless $^X =~ /perl/i;  # If built with perl2exe
     $Info{Perl_compiled} = 1 if $PerlApp::BUILD;     # If built with perlapp
-    $Info{Perl_compiled} = 1 if $PerlApp::BUILD;     # (avoid 'only used once' warning).
 
     ($Version) = q$Revision$ =~ /: (\S+)/; # Auto-updated by CVS
     $Version .= " (compiled)" if $Info{Perl_compiled};
@@ -77,20 +76,20 @@ use vars qw($Time_Sunrise $Time_Sunrise_Twilight $Time_Sunset $Time_Sunset_Twili
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
-use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
+use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category $Respond_Target);
 use vars qw($Version_tk $Password $DelayOccured);
-use vars qw(%User_Code @Code_Dirs);
+use vars qw(%User_Code @Code_Dirs @Generic_Serial_Ports);
 
 my ($Pgm_PathU);
 my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
-my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
+my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log, @Error_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
 my (@Loop_Code, @Sub_Code, %Sub_Code, %Run_Members, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
 my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
-my (@Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
+my (@Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
 my (%proxy_servers, %speak_apps);
 my ($CON_IN, $CON_OUT);
 
@@ -140,12 +139,19 @@ BEGIN {
 
                                 # Pick local mh modules first, over any site install ones
         unshift (@INC, './../lib', './../lib/site', '.');
+#       my $pwd=cwd(); print "pwd=$pwd inc=@INC\n";
 #       push (@INC, './../lib', './../lib/site', '.');
 #       push (@INC, './../lib');
         if ($^O eq 'MSWin32') {
             my $build = &Win32::BuildNumber;
-            if ($build < 800) {
-                push @INC, ($build < 600) ? './../lib/site_win50' : './../lib/site_win56';
+            if ($build < 600) {
+                push @INC, './../lib/site_win50';
+            }
+            elsif ($build < 800) {
+                push @INC, './../lib/site_win56';
+            }
+            else {
+                push @INC, './../lib/site_win58';
             }
         }
         require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
@@ -176,6 +182,7 @@ BEGIN {
     sub print_version {
         
         $Version_date = localtime((stat $0)[9]);
+        $Version_date = localtime((stat "$Pgm_Path/bin/$0.exe")[9]) if $PerlApp::BUILD;
         $Version_date = localtime((stat $ENV{sourceExe})[9]) if $ENV{sourceExe}; # Older 3.x perl2exe
 
         $Pgm_PathU = '.';       # Since we now chdir, this is obsolete, but still used in some user code :(
@@ -253,7 +260,9 @@ BEGIN {
 
         my $debug = 1 if $config_parms_startup{debug} and $config_parms_startup{debug} eq 'startup';
         $debug = 1 if $config_parms{debug} eq 'parms';
-        &main::read_mh_opts(\%config_parms, '.', $debug);
+        my @files = &main::read_mh_opts(\%config_parms, '.', $debug);
+        print "Read parm files: @files\n";
+
 
                                 # Read in speak parms per application
         &main::read_parm_hash(\%speak_apps,  $main::config_parms{speak_apps_default});
@@ -294,6 +303,14 @@ BEGIN {
             $config_parms{w}++;
             print "Perl diaganotics module (perl -w) has been turned on\n";
             eval 'use diagnostics';
+# Dang, 5.0 does not have warnings.pm, so we can not use it in 5.6/5.8 :(
+#           no warnings 'uninitialized';   # These seem to always show up ... lets turn them off
+#           eval 'use warnings';
+#           eval "no warnings 'uninitialized'"; # Does not work :(
+#           $SIG{__WARN__} = sub { print "my warn: $_[0].\n"; }; # Does not filter out first verbose warning 
+#           my $j; print "j=$j\n";
+#           my $l; my %k; print $k{$l};
+#           exit;
         }
 #       disable diagnostics;
 
@@ -326,7 +343,7 @@ BEGIN {
                                 #  - For some reason, perl2exe binary abends here, so we evaled it earlier
             eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)"
                 unless $Info{Perl_compiled};
-            print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@;
+            print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@ and &Win32::BuildNumber < 580;
 
             eval "use Win32::Sound";
             print "\nError in loading module=Win32::Sound:\n  $@\n" if $@;
@@ -448,6 +465,7 @@ sub setup {
         print " DNS set to $config_parms{DNS_server}\n";
     }
     &my_use("DB_File");         # Need by get_tv_grid
+#    exit;
 
     use Timer;                  # This needs to be first, as it is used in Voice_Cmd (and elsewhere?)
     use File_Item;
@@ -464,9 +482,15 @@ sub setup {
 
     use Socket_Item;
     use Process_Item;
+    use Text_Cmd;
     use Voice_Cmd;
     use Voice_Text;
-    use Caller_ID;
+
+    use Caller_ID;              # Old module ... keep for a while for backward compatability
+#    use Telephony_Item;
+#    use CID_Lookup;
+#    use CID_Log;
+#    use CID_Announce;
 
     use constant;               # To keep perl2exe happy
     use constant ON      => 'on';
@@ -751,7 +775,7 @@ sub setup {
     $Time_Startup_time = $Time;
     $Time_Startup = &time_date_stamp(9, $Time_Startup_time);
     $Startup = 1;
-    $Save{mode} = 'normal' unless $Save{mode};
+    $Save{mode}   = 'normal' unless $Save{mode};
 
     if ($config_parms{pid_file}) {
         print "Process id $$ written to $config_parms{pid_file}\n";
@@ -778,9 +802,15 @@ sub setup {
     @Speak_Log = reverse @log;
     unshift @Speak_Log, "$Time_Date ---------- Restart ---------- ";
 
+    @log = &file_tail($error_log, $config_parms{max_log_entries});
+    chomp @log;
+    @Error_Log = reverse @log;
+    unshift @Error_Log, "$Time_Date ---------- Restart ---------- ";
+
                # These files will get archived by mh/code/common/mh_control.pl
     file_cat $print_log, $print_log . ".old";
     file_cat $speak_log, $speak_log . ".old";
+    file_cat $error_log, $error_log . ".old";
     open PRINTLOG,  ">$print_log" or die "Error, could not open print logfile $print_log: $!\n";
     open SPEAKLOG,  ">$speak_log" or die "Error, could not open speak logfile $speak_log: $!\n";
     open ERRORLOG, ">>$error_log" or die "Error, could not open error logfile $error_log: $!\n";
@@ -792,6 +822,7 @@ sub setup {
 
     print PRINTLOG (join "\n", reverse @Print_Log), "\n";
     print SPEAKLOG (join "\n", reverse @Speak_Log), "\n";
+    print ERRORLOG (join "\n", reverse @Error_Log), "\n";
 
 
     print "External command file (xcmd_file): $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
@@ -1261,16 +1292,6 @@ sub toggle_pause {
 sub check_for_proxy_data {
     for my $address (keys %proxy_servers) {
         my $proxy = $proxy_servers{$address};
-                   # If proxy is down, this is slow, so don't do it every pass
-        if (!$proxy->active and &new_second(5)) {
-            unless ($proxy->start) {
-                &print_log("Proxy is dead: $address");
-                $address =~ s/\:\d+$//; # Shorten up name for speaking
-                $address =~ s/.+\.(\d+)$/$1/;
-                &speak("proxy $address is dead") if &new_minute(2);
-                next;
-            }
-        }
         if (my $data = $proxy->said) {
             my ($type, @data) = split $;, $data;
             print "proxy data received: $type, @data.\n" if $config_parms{debug} eq 'proxy';
@@ -1510,6 +1531,8 @@ sub check_for_socket_data {
                 $Socket_Ports{$port_name}{from_ip}   = $from_ip;
             }
         }
+        print "socket data: port=$port_name data=$data.\n" if $config_parms{debug} eq $port_name;
+
 
                                 # Need to do this or the socket never closes!
                                 # For some reason, nfound = 1 (instead of -1) unless we do this.
@@ -1602,9 +1625,10 @@ sub check_for_tied_events {
                     $state2 = $state1 if $state2 eq 'all_states';
                     if ($object2->can('set')) {
                                 # Make sure we don't get into a loop with cross-tied objects
-                        unless ($object1->{set_by} eq $object2) {
+                        unless ($object1->{set_by} and $object1->{set_by} eq $object2) {
 #                           $object2->{set_by} = $object1->{object_name};
 #                           $object2->{set_by} = $object1;
+                            $Respond_Target = $object1->get_target(); # Pass target along
                             $object2->set($state2, $object1);
                         }
                     }
@@ -1700,6 +1724,13 @@ sub convert_c2f {       # Convert degrees Celsius to Farenheight
     sprintf("%3.1f", 32 + (9/5)*($_[0]));
 }
 
+sub convert_f2c {       # Convert degrees fahrenheit to celsius
+     sprintf("%3.1f", (5/9)*($_[0] - 32));
+}
+sub convert_f2k {       # Convert degrees fahrenheit to kelvin
+     sprintf("%3.1f", (5/9)*($_[0] - 32) + 273.15);
+}
+
 sub convert_direction {
     my ($dir) = @_;
     return 'unknown'    if $dir !~ /^[\d \.]+$/;
@@ -1717,13 +1748,13 @@ sub convert_direction {
 
 sub display {
     my @parms = @_;
+
                                 # Allow for either positional or key=value form
 #   my %parms = @parms unless @parms %2;  # Wierd bug with this?  %parms is rember from previous call!
     my %parms;
     %parms = @parms unless @parms %2;
 
-    my $x = @parms;
-    unless ($parms{text}) {
+    unless (defined $parms{text}) {
         ($parms{text}, $parms{time}, $parms{title}, $parms{font},
          $parms{window_name}, $parms{append}) = @parms;
     }
@@ -1740,13 +1771,13 @@ sub display {
 
     unshift (@Display_Log, $text);
     pop @Display_Log if @Display_Log >  $config_parms{max_log_entries};
+    &Log_hooks('display', $text, %parms);   # Created by &add_hooks
 
                                 # Assume we were waiting for this and reset http server counter.  Speak has precedence
     $Last_Response = 'display' unless $Last_Response eq 'speak';
-    $leave_socket_open_passes= 1 if $leave_socket_open_passes;
-
-    &Log_hooks('display', $text, %parms);   # Created by &add_hooks
-
+#   $leave_socket_open_passes= 1 if $leave_socket_open_passes;
+    return if $Respond_Target eq 'web';
+    
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
         $parms{title} = $Time_Now              unless $parms{title}; # Default Title
@@ -1949,8 +1980,13 @@ sub exit_pgm {
     }
     else {
         print "Bye Bye\n";
-        exit 1;
+#       exit 1;
+        POSIX::_exit(1);        # MUCH faster ... but no DESTROY or END called. 
     }
+}
+
+END {
+    print "Exiting mh\n";       # Will not see this (or DESTROY) with fast POSIX::_exit
 }
 
 
@@ -2127,6 +2163,49 @@ sub list_voice_cmds_match {
     }        
 }
 
+                                 # These functions can be used to change .mht entries
+sub mht_item_copy {
+    my ($file, $pos) = @_;
+    my @file_data = &file_read($file);
+    my $pos2 = @file_data;
+    $file_data[$pos2] = $file_data[$pos];
+#   print "db copy $pos to $pos2: $file_data[$pos2]\n";
+}
+
+sub mht_item_delete {
+    my ($file, $pos) = @_;
+    my @file_data = &file_read($file);
+    my $pos2 = @file_data;
+    $file_data[$pos] = '';
+    &mht_item_file_write($file, \@file_data);
+}
+
+sub mht_item_add {
+    my ($file, @parms) = @_;
+    return unless @parms;
+    my @file_data = &file_read($file);
+    my $record;
+    for my $p (@parms) {
+        $record .= "$p,  ";
+    }
+    $file_data[@file_data] = $record;
+    &mht_item_file_write($file, @file_data);
+}
+
+
+sub mht_item_file_write {
+    my ($file, $data_ptr) = @_;
+    print "Writing out to mht file $file\n";
+                                # Back it up if it is older than a few minutes
+    if (($Time - (stat $file)[9]) > 60*10) {
+        print "Backing up mht file $file\n";
+        copy "$file.old2", "$file.old3" if -e "$file.old2";
+        copy "$file.old1", "$file.old2" if -e "$file.old1";
+        copy  $file, "$file.old1";
+    }
+    &file_write($file, join("\n", @$data_ptr));
+}
+
 sub monitor_commands {
     print "Starting monitor commands loop\n\n";
     while (1) {
@@ -2258,14 +2337,14 @@ sub object_states_restore {
     # Set unused stats first, so they can get overwritten by a more recent state
     no strict 'vars';       # Do this so eval doesn't choke ... we do defined checks in the $state code
     while (my $state = pop @states) {
-        print "restoring state: $state" if $config_parms{debug} eq 'misc';
+        print "restoring state: $state" if $config_parms{debug} eq 'save';
         my $rc = eval $state;
         if ($@) {
             print " Error in save: eval $state\n   $@";
         }
         elsif ($rc eq 'var not used') {
             print SAVE $state;  # These are unused for this call of mh
-            print " - Save stated not used:\n rc=$rc  state=$state\n" if $config_parms{debug} eq 'misc';
+            print " - Save stated not used:\n rc=$rc  state=$state\n" if $config_parms{debug} eq 'save';
         }
     }
     use strict 'vars'; 
@@ -2297,14 +2376,14 @@ sub object_states_save {
     for $var (keys %Save) {
         no strict 'refs';
         if (defined $Save{$var}) {
-            $restore_state .= &object_states_save_check("\$Save{'$var'} = q~$Save{$var}~;") . "\n";
+            $restore_state .= &object_states_save_check("\$Save{q~$var~} = q~$Save{$var}~;") . "\n";
         }
-        print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'misc';
+        print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'save';
     }
                                 # Save states of all objects
     for $object_type (@Object_Types) {
         for $var (keys %{$file_by_object_name{$object_type}}) {
-            print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'misc';
+            print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'save';
             my $ref = $objects_by_object_name{$var};
             $restore_string =  &object_states_save_check($ref->restore_string) if $ref and $ref->can('restore_string');
             $restore_state .= "if (defined $var) {$restore_string} else {'var not used'}\n" if $restore_string;
@@ -2318,8 +2397,8 @@ sub object_states_save {
         open  SAVE, ">$restore_state_file" or print "Can not open saved_states file $restore_state_file: $!\n";
         print SAVE $restore_state;
         close SAVE;
-        print_log("Object states saved") if $config_parms{debug} eq 'misc';
-        print "Save object states:  restore_state=\n$restore_state\n" if $config_parms{debug} eq 'misc';
+        print_log("Object states saved") if $config_parms{debug} eq 'save';
+        print "Save object states:  restore_state=\n$restore_state\n" if $config_parms{debug} eq 'save';
     }
 
                                 # Save Persistent data
@@ -2404,7 +2483,7 @@ sub password_check {
             }
         }
         else {
-            my $client = $Socket_Ports{$port}{client_ip_address};
+            my $client = $Socket_Ports{$port}{client_ip_address} if $port;
 #           my $rc = $client and grep $client =~ /$_/, @Password_Allow_Clients;;
 #           print "db rc=$rc client=$client port=$port allowed=$config_parms{password_allow_clients}\n";
 #           return if $client and -1 < index $config_parms{password_allow_clients}, $client;
@@ -2666,6 +2745,21 @@ sub print_log_last {
     }
 }
 
+sub error_log_last {
+                                # Return the last how_many error_log phrases
+    my ($how_many) = @_;
+    my $count = @Error_Log;
+    if ($how_many == 1) {
+        return $Error_Log[0];
+    }
+    elsif ($how_many >= $count) {
+        return @Error_Log;
+    }
+    else {
+        return (@Error_Log[0 .. ($how_many-1)]);
+    }
+}
+
 sub print_msg {
 #   my ($data) = @_;
     my $data = "@_";
@@ -2703,7 +2797,7 @@ sub print_speaklog {
 }
 
 sub process_external_command {
-    my ($cmd, $warning_flag, $set_by) = @_;
+    my ($cmd, $warning_flag, $set_by, $respond_target) = @_;
 #   $cmd =~ s/[\'\"]//g;        # Deletes quotes  ... no, not if we want to do eval or set commands
     $cmd =~ s/^\s+//;           # Deletes leading blanks
     $cmd =~ s/\s+$//;           # Deletes trailing blanks
@@ -2716,7 +2810,7 @@ sub process_external_command {
 #       print_log "\nError in running external eval command: cmd=$eval_cmd\n error: $@\n" if $@;
 #   }
     print "Running external command: $cmd\n" unless $config_parms{no_log} =~ /xcmd/;
-    if (&run_voice_cmd(lc($cmd), undef, $set_by)) {
+    if (&run_voice_cmd(lc($cmd), undef, $set_by, 0, $respond_target)) {
         print_log "Running cmd:$cmd" unless $config_parms{no_log} =~ /xcmd/;
     }
                                 # Limit syntax to protect from dangerous hacks
@@ -3361,18 +3455,7 @@ sub read_user_code {
                 $object_name_check{$object}{record} = $r_test;
                 $object_name_check{$object}{member} = $member_name;
                 
-                $file_by_object_name{$type}{$object} = $member_name;
-                push @{$object_names_by_file{$member_name}}, $object;
-                push @{$object_names_by_webname{$webname}},  $object;
-                push @{$object_names_by_type{$type}},        $object;
-
-                push @Item_Code_Objects, qq[\$objects_by_object_name{'$object'} = $object;\n];
-
-                push @Item_Code_Objects, $object . qq[->{category} = "$webname";\n];
-                push @Item_Code_Objects, $object . qq[->{filename} = "$member_name";\n];
-                push @Item_Code_Objects, $object . qq[->{object_name} = '$object';\n];
-
-#               push @Item_Code_Objects, qq[set_filename $object "$member_name";\n];
+                push @Item_Code_Objects, &store_object_data($object, $type, $webname, $member_name);
             }
 
                                 # Find global records
@@ -3423,8 +3506,11 @@ sub read_user_code {
             $Run_Members{$member_name} = 1;
         }
 
-
-        $member_sort_order{$member_name} = 9 unless defined $member_sort_order{$member_name};
+                                # Default the order of user files after common files,
+                                # so we can override functions if neede
+        unless (defined $member_sort_order{$member_name}) {
+            $member_sort_order{$member_name} = ($file =~ /$config_parms{code_dir_common}/) ? 8 : 9;
+        }
         
 #       ($webname =~ /startup/i) ?  unshift(@Loop_Code, $temp) : push(@Loop_Code, $temp);
     }
@@ -3463,12 +3549,32 @@ sub read_user_code {
     @Object_Types = sort keys %object_names_by_type;
 }
 
+sub store_object_data {
+    my ($object, $type, $webname, $member_name) = @_;
+    my $code;
+                               # Store object data in various hashes
+    $file_by_object_name{$type}{$object} = $member_name;
+    push @{$object_names_by_file{$member_name}}, $object;
+    push @{$object_names_by_webname{$webname}},  $object;
+    push @{$object_names_by_type{$type}},        $object;
+    
+                               # Now generate code for on-they-fly stored data
+                               # because we don't get object reference till code is evaled
+    $code  = qq[\$objects_by_object_name{'$object'} = $object;\n];
+    $code .= $object . qq[->{category} = "$webname";\n];
+    $code .= $object . qq[->{filename} = "$member_name";\n];
+    $code .= $object . qq[->{object_name} = '$object';\n];
+    return $code;
+}
+
 sub read_user_code_loopcode {
     my ($member_name, $code) = @_;
     my $sub_name = "${member_name}_loopcode";
     $sub_name =~ s/[- ]/_/g;   # Legalize sub name
+    my $debug_print = '';
+    $debug_print = "print '   $member_name';\n" if $config_parms{debug} eq 'user_code';
     return ($sub_name, "#-------------------------------------------------\n\n" .
-        "sub $sub_name {\n" .
+        "sub $sub_name {\n $debug_print" .
         "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
         "        display('Multiple eval errors in $member_name.  Code was disabled', 0);" .
         "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
@@ -3511,19 +3617,23 @@ sub run_after_delay {
 }
 
 sub run_voice_cmd {
-    my ($cmd, $vocab, $set_by, $no_log) = @_;
+    my ($cmd, $vocab, $set_by, $no_log, $respond_target) = @_;
     $vocab = 'mh' unless $vocab; # Default
+
+                                 # Look for the first Voice_Cmd match
     my ($ref, $said, $vocab_cmd) = &Voice_Cmd::voice_item_by_text(lc($cmd));
-    print "run_voice_cmd cmd=$cmd ref=$ref said=$said vocab=$vocab_cmd set_by=$set_by\n" if $config_parms{debug} eq 'misc';
-#   print_log "cmd=$cmd";
+    print "run_voice_cmd cmd=$cmd ref=$ref said=$said vocab=$vocab_cmd set_by=$set_by target=$respond_target\n"
+        if $config_parms{debug} eq 'misc';
     if ($ref and $vocab eq $vocab_cmd) {
-        set $ref $said, $set_by, $no_log;;
-#       $ref->{said} = $said;
-        return $ref;
+        set $ref $said, $set_by, $no_log, $respond_target;
+#       return $ref;
     }
-    else {
-        return 0;
-    }
+                                 # Also look for any Text_Cmd matches
+                                 # ... maybe this should go under process_external_command?
+                                 # ... if so, web RUN would not work.
+    my $text_cmd_matches = &Text_Cmd::set_matches($cmd);
+    
+    return ($ref or $text_cmd_matches) ? 1 : 0;
 }
 
 
@@ -4088,29 +4198,132 @@ sub socket_has_data {
     return $nfound;
 }
 
-sub speak {
-    my ($rooms, $display_time, $key, $value, $phrase_new,  %parms, $play);
+                                # Used to parse arg call with "key1=value1 key2=value2 text) or standard parm passing
+sub parse_func_parms {
+    my ($text) = @_;            # Simple way ... no parms
 
-    my ($phrase) = @_;          # Simple way ... no parms
+    my %parms;
 
     if (@_ > 1) {               # Fancy way key=value way
         %parms = @_;
-        $phrase = $parms{text};
-#       print "Error, no text keyword in speak command.  Parms= @_\n" unless $phrase or $play;
+        $text = $parms{text};
     }
+                                # Allow for parms in text if done the simple way
+    $text = '' unless $text;
+    $text = &parse_func_parms2(\%parms, $text);
+    $parms{text} = $text;
+
+    return (%parms);
+}
+
+sub parse_func_parms2 {
+    my ($ref, $text) = @_;
+    while (my ($key, $value, $text_new) = $text =~ /^\s*(\S+)=(\S+)\s*(.*)/s) {
+        $text = $text_new;
+                                 # If value has leading but not trailing quote, grab till next quote
+        if ($value =~ /^[\'\"]([^\'\"]+)$/) {
+            $value = $1;
+            if ($text =~ /(.+?)[\'\"](.*)/) {
+                $value .= " $1";
+                $text = $2;
+            }
+        }
+        $key = lc $key;
+        $$ref{$key} = $value;
+    }
+    return $text;
+}
+
+
+sub respond {
+    my (%parms) = &parse_func_parms(@_);
+
+                                # Get respond from passed parm or global parm
+    my $target = $parms{target};
+    $target = $Respond_Target unless $target;
+                                # Strip out optional key=value parms
+    if ($target =~ /(\S+?) (.+)/) {
+        $target = $1;
+        &parse_func_parms2(\%parms, $2);
+    }
+#    my $p = join ',', %parms; print "db2 p=$p.\n";
+
+                                # Call respond_xyz function
+    $target = 'default' if $target !~ /\S/ or $target eq 'unknown';
+
+    print "respond target=$target lr=$Last_Response RT=$Respond_Target lso=$leave_socket_open_passes lsa=leave_socket_open_action a=@_\n" 
+        if $config_parms{debug} eq 'respond';
+
+                                # If a file, read the contents
+    $parms{text} = &file_read($parms{text}) if $parms{text} =~ /^\S+$/ and -e $parms{text};
+
+                                # Allow for a , delimited list of targets
+    for my $target1 (split ',', $target) {
+        my $ref = eval '\&' . "respond_$target1";
+        if ($@) {
+            print_log "Error in respond: respond=$target1 error=$@";
+        }
+        else {
+            $ref->(%parms);
+        }
+    }
+}
+
+sub respond_default {
+    my %parms = @_;
+                          # If long or > 2 linefeeds, then display, otherwise speak
+    my $text = $parms{text};
+    if ((length $text > 300) or 
+        (($text =~ tr/\n/\n/) > 2)) {
+        &display(@_);
+    }
+    else {
+        &speak(@_);
+    }
+}
+sub respond_display {
+    &display(@_);
+}
+sub respond_email {
+    &net_mail_send(@_);
+    &print_log(@_);
+}
+sub respond_im {
+    &net_im_send(@_);
+    &print_log(@_);
+}
+sub respond_log {
+    &print_log(@_);
+}
+sub respond_speak {
+    &speak(@_);
+}
+sub respond_tk {
+    &respond_default(@_);
+}
+sub respond_web {
+    &respond_default(@_);
+}
+
+sub respond_object_set {
+    my (%parms) = @_;
+    $parms{name} = '$' . $parms{name} unless $parms{name} =~ /^\$/;
+    print "respond object_set: $parms{name}->set(q~$parms{text}~, $parms{arg1}, $parms{arg2})\n";
+    eval "$parms{name}->set(q~$parms{text}~, $parms{arg1}, $parms{arg2})";
+    print "respond_object eval error: name=$parms{name}, arg1=$parms{arg1}, error=$@\n" if $@;
+}
+
+sub speak {
+    my ($rooms, $display_time, $play);
+
+    my (%parms) = &parse_func_parms(@_);
+    my $phrase = $parms{text};
 
     my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression app);
-
-                                # Allow for parms in text if done the simple way
-    $phrase = '' unless $phrase;
-    while (($key, $value, $phrase_new) = $phrase =~ /^\s*(\S+)=(\S*)\s(.*)/s) {
-        $key = lc $key;
                                 # Not all TTS engines have all these options ... this is a superset
-        print "Warning, speak control not recognized: key=$key value=$value\n"
-            unless grep $key eq $_, @speak_parms;
-        $parms{$key} = $value;
-        $phrase      = $phrase_new;
-    }
+#   print "Warning, speak control not recognized: key=$key value=$value\n"
+#            unless grep $key eq $_, @speak_parms;
+
 
                                 # Set parms according to an optional app parm
     if (my $app = $parms{app}) {
@@ -4171,6 +4384,7 @@ sub speak {
     $Last_Response = 'speak';   # Queried by http_server and telnet_server
 
                                 # Check if we want to speak web requested data
+                                # If Respond_Target is set, let &respond_web handle it
     if ($leave_socket_open_passes) {
         $leave_socket_open_passes = 1;
 
@@ -4555,6 +4769,8 @@ sub tk_setup_cascade_menus {
 sub tk_object_states {
     my ($object, $menu_parent, $menu) = @_;
 
+    return unless $object;
+
                                 # Already have this object's menu created
     return $Tk_objects{menu_items_by_object}{$object} if !$menu and $Tk_objects{menu_items_by_object}{$object}; # Already have this object's menu created
 
@@ -4886,6 +5102,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.75  2002/12/24 02:58:10  winter
+# - 2.75 release
+#
 # Revision 2.74  2002/12/02 04:47:14  winter
 # - 2.74 release
 #
