@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-04-14 23:03:15 winter>
+#  Last change Time-stamp: <2001-04-21 11:07:57 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -2412,17 +2412,36 @@ sub process_external_command {
 my (@prev_x10_events, %prev_x10_units, $prev_x10_units_reset);
 sub process_serial_data {
     my ($event_data, $prev_pass) = @_;
-    my ($event_type, $state, $ref, @refs, $matched);
+    my ($event_type, $event_data1, $state, $ref, @refs, $matched);
 
     return unless $event_data;
 
 #   print SERIALLOG "$date_now $time_now\n$header\n$event_data\n";
 
-    ($event_type) = $event_data =~ /^(\S)/;
+    ($event_type, $event_data1) = $event_data =~ /^(\S)(\S+)/;
     print "Serial_Item warning: blank event_type: $event_data\n" unless $event_data;
     
     print "Serial data: event_type=$event_type, event_data=$event_data\n" 
         if $config_parms{debug} eq 'serial' or $config_parms{debug} eq 'X10';
+
+                                # Track previous X10 data
+    if ($event_type eq 'X') {
+                                # Ignore duplicate X10 entries
+                                #  - We might have a CM11 and a MR26 both receiving the same data
+        for my $i (0 .. 4) {
+            my $time_diff = $loop_tickcount1 - $prev_x10_events[$i]{time} if $prev_x10_events[$i]{time};
+            last unless defined($time_diff) and $time_diff < $config_parms{x10_multireceive_delay};
+            if ($event_data1 eq $prev_x10_events[$i]{data}) {
+                print "X10: Duplicate data ignored time=$time_diff data=$event_data\n";
+                return;
+            }
+        }
+        unless ($prev_pass) {
+            pop  @prev_x10_events if @prev_x10_events > 4;
+            unshift @prev_x10_events, {time => $loop_tickcount1, data => $event_data1};
+        }
+
+    }
 
                                 # Look for a direct match
     if (@refs = &Serial_Item::serial_items_by_id($event_data)) {
@@ -2451,12 +2470,6 @@ sub process_serial_data {
     if ($event_type eq 'X') {
 
         print_log "X10: Incoming data=$event_data" if $config_parms{x10_errata} >= 4;
-
-                                # Track previous key so we can do multi-key sequences
-        unless ($prev_pass) {
-            pop  @prev_x10_events if @prev_x10_events > 4;
-            unshift @prev_x10_events, {time => $loop_tickcount1, data => substr($event_data, 1)};
-        }
 
                                 # Track last selected items list (reset if a non-unit code string is found)
                                 #  - For example:  XA1A2ALxx would set both units A1 and A2 to dim level xx
@@ -4223,6 +4236,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.50  2001/04/21 16:21:06  winter
+# - add x10_mulitireceive_delay check
+#
 # Revision 2.49  2001/04/15 16:12:24  winter
 # - 2.49 release
 #
