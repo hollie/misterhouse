@@ -97,8 +97,8 @@ sub new {
             $self-> add ($id . $hc . 'K' . $hc . 'K', 'double off');
             $self-> add ($id . $hc . 'J' . $hc . 'J' . $hc . 'J',  'triple on');
             $self-> add ($id . $hc . 'K' . $hc . 'K' . $hc . 'K',  'triple off');
-            $self-> add ($id . $hc . '+34', 'brighten');
-            $self-> add ($id . $hc . '-34', 'dim');
+            $self-> add ($id . $hc . '+35', 'brighten');
+            $self-> add ($id . $hc . '-35', 'dim');
 #            $self-> add ($id . $hc . 'L', 'brighten');
 #            $self-> add ($id . $hc . 'M', 'dim');
             $self-> add ($id . $hc . '+5',  '+5');
@@ -227,8 +227,8 @@ sub set_x10_level {
 
     return unless defined $state;
 
-    $state = '+34' if $state =~ /bright/i;   # From CM11.pm
-    $state = '-34' if $state =~ /dim/i;
+    $state = '+35' if $state =~ /bright/i;   # From CM11.pm
+    $state = '-35' if $state =~ /dim/i;
 
     if ($state =~ /^([\+\-]?)(\d+)$/) {
         $level = 100 unless defined $level; # bright and dim from on or off will start at 100%
@@ -1074,6 +1074,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.47  2005/01/23 23:21:45  winter
+# *** empty log message ***
+#
 # Revision 1.46  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

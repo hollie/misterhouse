@@ -327,7 +327,7 @@ sub main::dbm_read {
     use Fcntl;
     my %DBM_search;
     tie (%DBM_search,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or
-        print "\nError in search_dbm, can not dbm file $dbm_file: $!\n";
+        print "\nError in dbm_read, can not open dbm file $dbm_file: $!\n";
     if ($key) {
         my $value = $DBM_search{$key};
         dbmclose %DBM_search;
@@ -345,7 +345,7 @@ sub main::dbm_search {
     use Fcntl;
     my %DBM_search;
     tie (%DBM_search,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or
-        print "\nError in search_dbm, can not dbm file $dbm_file: $!\n";
+        print "\nError in dbm_search, can not open dbm file $dbm_file: $!\n";
 
     my ($count1, $count2);
     $count1 = $count2 = 0;
@@ -1202,13 +1202,13 @@ sub main::which {
         chop $path if $path =~ /\\$/; # Drop trailing slash
         my $pgm_path = "$path/$pgm";
         if ($main::OS_win) {
-            return "$pgm_path.bat" if -e "$pgm_path.bat";
-            return "$pgm_path.exe" if -e "$pgm_path.exe";
-            return "$pgm_path.com" if -e "$pgm_path.com";
+            return "$pgm_path.bat" if -x "$pgm_path.bat";
+            return "$pgm_path.exe" if -x "$pgm_path.exe";
+            return "$pgm_path.com" if -x "$pgm_path.com";
         }
-        return $pgm_path if -e $pgm_path;
+        return $pgm_path if -x $pgm_path;
     }
-    return $pgm if -e $pgm;     # Covers the fully qualified $pgm name
+    return $pgm if -x $pgm;     # Covers the fully qualified $pgm name
     return;                     # Didn't find it
 }
 
@@ -1284,6 +1284,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.76  2005/01/23 23:21:45  winter
+# *** empty log message ***
+#
 # Revision 1.75  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

@@ -1,7 +1,7 @@
 # Category=Phone
 
 # Add these entries to your mh.ini file:
-#  serial_gsm_port=COM3  
+#  serial_gsm_port=COMx  
 #  serial_gsm_baudrate=9600
 #  serial_gsm_handshake=none
 
@@ -19,10 +19,23 @@ support it.
 program only support 2 messages:
 
     mh 0        (turn off living_corner_light)
-    mh 1        (turn on living_corenr_light)
+    mh 1        (turn on living_corner_light)
 
  The action_sms also check who the sender is before it allows an action to
 be done. get_gsm translate numbers to names.
+
+From Gianni Veloce on 11/2004.
+
+Roger's code helped as a starting point for me, being definitely not a PERL 
+guy. I added/changed some pieces of code (marked by GV comment) to make it  
+work with my NOKIA phones.
+The code was tested with 6110 and DAU9P cable using Nokia Data Suite 3.0 as 
+6110 does not provide a hardware modem. Then tested also with 7110 and DLR3 
+cable (no Data Suite needed as 7110 has a hardware modem in it.In this sence 
+7110 can be used by Linux users, 6110 cannot.
+This code has been used for CADDX alarm integration with SMS alerts. 
+Finally, I apologize for using my nickname: Gianni Veloce. I used to be a race 
+car driver when I was young and I really miss these times...
 
 =cut
 
@@ -31,7 +44,7 @@ my ($gsm_mode, $gsm_message, $gsm_header);
 
 $timer_waitforanswer = new Timer;   # Timer that Waits for an Answer
 
-$gsm = new Serial_Item ('AT&FE1V1+CMGF=1', 'init', 'serial_gsm');
+$gsm = new Serial_Item ('AT&FE1V1+CMGF=1;+CNMI=2,1,0,0,0', 'init', 'serial_gsm'); # GV-enabled phone's TE mode
 if ($Reload) {
 	$gsm_mode = "init";
     set $gsm 'init';               # Initialize MODEM
@@ -41,20 +54,20 @@ if ($Reload) {
 
 &read_all;
 
-#   SMS to Roger
-$sms_roger   = new Generic_Item;
-$sms_roger  -> set_authority('anyone');
-&tk_entry('SMS to Roger', $sms_roger);
-if ($state = state_now $sms_roger) {
-	&send_sms ("0705944780", $state);
+#   SMS to Julie
+$sms_Julie   = new Generic_Item;
+$sms_Julie  -> set_authority('anyone');
+&tk_entry('SMS to Julie', $sms_Julie);
+if ($state = state_now $sms_Julie) {
+	&send_sms ("+39456789012", $state);
 }
 
-#   SMS to Anna
-$sms_anna   = new Generic_Item;
-$sms_anna  -> set_authority('anyone');
-&tk_entry('SMS to Anna ', $sms_anna);
-if ($state = state_now $sms_anna) {
-	&send_sms ("0706071650", $state);
+#   SMS to Kostas
+$sms_Kostas   = new Generic_Item;
+$sms_Kostas  -> set_authority('anyone');
+&tk_entry('SMS to Kostas', $sms_Kostas);
+if ($state = state_now $sms_Kostas) {
+	&send_sms ("+391234567890", $state);
 }
 
 #   SMS to MisterHouse
@@ -62,14 +75,14 @@ $sms_mh   = new Generic_Item;
 $sms_mh  -> set_authority('anyone');
 &tk_entry('SMS to Misterhouse', $sms_mh);
 if ($state = state_now $sms_mh) {
-	&send_sms ("0703809627", $state);
+	&send_sms ("+391703809627", $state);
 }
 
 #	List SMS Messages
 $v_sms_list = new  Voice_Cmd('List SMS Messages');
 if (said $v_sms_list) {
 	$gsm_mode = "list";
-    set $gsm "AT+CMGL=4\r";
+    set $gsm "AT+CMGL=\"REC UNREAD\"\r";   # GV-substituted =4 with "REC UNREAD"
     print_log "Reading SMS List" if $main::config_parms{debug} eq 'sms';
 }
 
@@ -122,29 +135,36 @@ sub action_sms {
 # 	print ".$sms_nbr.";
 	my $name = &get_gsm ($sms_from);
 	print_log "SMS from $name: $message";
-	if ($message =~ /^mh /i and $name =~ /Roger|Anna|MisterHouse/) {
+#	if ($message =~ /^mh /i and $name =~ /Roger|Anna|MisterHouse/) {    # GV-Deleted
+	if ($message =~ /^mh /i and $name =~ /Julie|Kostas|MisterHouse/) {  # GV-Added my numbers
 		$message =~ s/^mh //ig;
 		print_log "SMS Command to mh received: $message";
 		if ($message eq "1") {
-			set $living_corner_light ON;
+# 			set $living_corner_light ON;    		# GV-deleted
+			print_log "Received ON (1) Command"; 	# GV-added (your command(s) here)
 		} elsif ($message eq "2") {
-			set $living_corner_light OFF;
+# 			set $living_corner_light OFF;  	 	# GV-deleted
+			print_log "Received OFF (0) Command"; 	# GV-added (your command(s) here)
+		} elsif ($message eq "T") {
+			print_log "Received TEST (T) Command"; 	# GV-added an auto-reply test
+			send_sms ($sms_from, "TEST OK"); 	      # GV-added an auto-reply test
 		} else {
 			print_log "SMS Command to mh received in Error";
 		}	
 	}
     set $gsm "AT+CMGD=$sms_nbr\r";
+	print_log "deleting msg $sms_nbr";  #   GV-added
 # 	print "AT+CMGD=$sms_nbr\n";
 }
 	
 sub get_gsm {
 	my ($number) = @_;
 	my $name;
-	if ($number eq "+46705944780") {
-		$name = "Roger";
-	} elsif ($number eq "+46706071650") {
-		$name = "Anna";
-	} elsif ($number eq "+46703809627") {
+	if ($number eq "+391234567890") {       # GV-my numbers
+		$name = "Kostas";
+	} elsif ($number eq "+393456789012") {  # GV-my numbers
+		$name = "Julie";
+	} elsif ($number eq "+391703809627") {
 		$name = "MisterHouse";
 	} elsif ($number eq "133") {
 		$name = "Voicemail";

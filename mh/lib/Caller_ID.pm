@@ -30,7 +30,7 @@ NAME=ARCHER L       NMBR=5071234567
 
 RING
 
-RING RING DATE=0224 NAME=ONMBR=5072884388 
+RING RING DATE=0224 NAME=ONMBR=5072884388
 
 ***************************************
 Canadian (Quebec - Bell Canada) format:
@@ -46,14 +46,14 @@ Switzerland format:
 RING
 FM:07656283xx TO:86733xx
 
-(Notes: 
+(Notes:
 - 'O' as a name means 'Unavailable'
 - the phone# doesn'n include the area code if in the same area code than you.
 - instead of 'NMBR', it's 'DDN_NMBR.'. don't ask me why...
 )
 ***************************************
 
-Format=3  ZyXEL u1496 
+Format=3  ZyXEL u1496
 
 RING
 TIME: MM-DD HH:MM
@@ -89,7 +89,7 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
 
         ($number) = $data =~ /FM:(\S+)/s unless $number;
         ($numberTo) = $data =~ /TO:(\S+)/s;
-        
+
         print "phone number=$number numberTo=$numberTo name=$name\n";
 
         $name = substr($name, 0, 15);
@@ -154,11 +154,11 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         ($areacode, $local_number) = $number =~ /(\d+)-(\S+)/;
 	}else{
         ($areacode, $local_number) = ($my_areacode,$number);
-	}    
+	}
 
 #I03/22 16:13 507-123-4567 OUT OF AREA
-#I03/23 08:35 OUT OF AREA  OUT OF AREA  
-#I03/22 16:17 PRIVATE      PRIVATE 
+#I03/23 08:35 OUT OF AREA  OUT OF AREA
+#I03/22 16:17 PRIVATE      PRIVATE
 #I03/22 20:00 PAY PHONE
 
     if ($caller = $name_by_number{$number}) {
@@ -198,11 +198,11 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
     print "ac=$areacode state_by_area_code=$state_by_areacode{$areacode}\n";
 #   unless ($areacode == $my_areacode or !$areacode or $caller =~ /\.wav/) {
     unless (!$areacode or (grep $_ == $areacode, @my_areacodes) or $caller =~ /\.wav/) {
-        if ($state_by_areacode{$areacode}) 
+        if ($state_by_areacode{$areacode})
 		{
 			if ($local_area_code_language =~ /swiss-german/gi)
 			{
-				$caller .= " aus $state_by_areacode{$areacode}" 
+				$caller .= " aus $state_by_areacode{$areacode}"
 			}
 			else
 			{
@@ -231,15 +231,15 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
 sub read_areacode_list {
 
     my %parms = @_;
-    
+
 #   &main::print_log("Reading area code table ... ");
 #   print "Reading area code table ... ";
 
     my ($area_code_file, %city_by_areacode, $city, $state, $areacode, $areacode_cnt);
     if ($parms{area_code_file}) {
-        open (AREACODE, $parms{area_code_file}) or 
+        open (AREACODE, $parms{area_code_file}) or
             print "\nError, could not find the area code file $parms{area_code_file}: $!\n";
-        
+
         while (<AREACODE>) {
             next if /^\#/;
             $areacode_cnt++;
@@ -265,17 +265,17 @@ sub read_areacode_list {
 
                                 # If withing state, use only city name.
     for $areacode (keys %state_by_areacode) {
-        $state_by_areacode{$areacode} = $city_by_areacode{$areacode} if $city_by_areacode{$areacode} and 
+        $state_by_areacode{$areacode} = $city_by_areacode{$areacode} if $city_by_areacode{$areacode} and
             $my_state and $state_by_areacode{$areacode} eq $my_state;
     }
 #   print "db ac=$state_by_areacode{'507'}\n";
 #   print "db my_areacode=$my_areacode ms=$my_state\n";
 #   print "db ac=$state_by_areacode{'612'}\n";
 #   print "db ac=$state_by_areacode{'406'}\n";
-}   
+}
 
 sub read_callerid_list {
-    
+
     my($caller_id_file,$reject_caller_id_file) = @_;
 
     my ($number, $name, $callerid_cnt);
@@ -290,7 +290,7 @@ sub read_callerid_list {
         $callerid_cnt = 0;
         while (<CALLERID>) {
             next if /^\#/;
-            ($number, $name) = $_ =~ /^(\S+) +(.+) *$/;
+            ($number, $name) = $_ =~ /^(\S+)\s+(.+) *$/;
             next unless $name;
             $callerid_cnt++;
 #           $number =~ s/-//g;
@@ -309,7 +309,7 @@ sub read_callerid_list {
         $callerid_cnt = 0;
         while (<CALLERID>) {
             next if /^\#/;
-            ($number, $name) = $_ =~ /^(\S+) +(.+) *$/;
+            ($number, $name) = $_ =~ /^(\S+)\s+(.+) *$/;
             next unless $name;
             $callerid_cnt++;
 #           $number =~ s/-//g;
@@ -321,10 +321,13 @@ sub read_callerid_list {
         close CALLERID;
     }
 
-}   
+}
 
 #
 # $Log$
+# Revision 1.30  2005/01/23 23:21:44  winter
+# *** empty log message ***
+#
 # Revision 1.29  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #
@@ -412,6 +415,3 @@ sub read_callerid_list {
 #
 
 1;
-
-
-

@@ -45,7 +45,8 @@ firewall at work.
 my $authorized_1 = 0;
 my ($password_1, $user_1, $data_1);
 
-$voice_server_1 = new Socket_Item("Connected to MisterHouse Voice Server 1\r\n", 'Welcome', 'server_voice_1');
+#$voice_server_1 = new Socket_Item("Connected to MisterHouse Voice Server 1\r\n", 'Welcome', 'server_voice_1');
+$voice_server_1 = new Socket_Item("\r\n", 'Welcome', 'server_voice_1');
 $timer_disconnect_1 = new Timer;
 
 if (($Reload) && (active $voice_server_1)) {
@@ -60,7 +61,7 @@ if (($New_Minute) && (active $voice_server_1)) {
 if (active_now $voice_server_1) {
     print_log "Voice server 1 connected";
     set $voice_server_1 'Welcome';
-    set $timer_disconnect_1 5, 'disconnect_voice_1';
+    set $timer_disconnect_1 5000, 'disconnect_voice_1';
 }
 
 if (inactive_now $voice_server_1) {
@@ -77,13 +78,15 @@ if ($data_1 = said $voice_server_1) {
         }
         else {
             $authorized_1 = 1;
-            set $voice_server_1 "Password authorized";
+#            set $voice_server_1 "Password authorized";
+            set $voice_server_1 " ";
         }
     }
 }
 
 sub disconnect_voice_1 {
-    set $voice_server_1 "Password missing or invalid. Disconnecting.";
+#    set $voice_server_1 "Password missing or invalid. Disconnecting.";
+    set $voice_server_1 " ";
     sleep 1;
     stop $voice_server_1;
 }
@@ -132,7 +135,7 @@ if (($New_Minute) && (active $voice_server_2)) {
 if (active_now $voice_server_2) {
     print_log "Voice server 2 connected";
     set $voice_server_2 'Welcome';
-    set $timer_disconnect_2 5, 'disconnect_voice_2';
+    set $timer_disconnect_2 5000, 'disconnect_voice_2';
 }
 
 if (inactive_now $voice_server_2) {
@@ -204,7 +207,7 @@ if (($New_Minute) && (active $voice_server_3)) {
 if (active_now $voice_server_3) {
     print_log "Voice server 3 connected";
     set $voice_server_3 'Welcome';
-    set $timer_disconnect_3 5, 'disconnect_voice_3';
+    set $timer_disconnect_3 5000, 'disconnect_voice_3';
 }
 
 if (inactive_now $voice_server_3) {

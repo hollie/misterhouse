@@ -1,4 +1,3 @@
-
 =begin comment
 
 Use this module to send text to the Alpha LED signs using a serial port.  Signs are available from:
@@ -21,6 +20,12 @@ Use these mh.ini parameters to enable this code:
  Display_Alpha_module = Display_Alpha
  Display_Alpha_port   = COM1
 
+If you have more than one display, point to the ports, and the rooms they are in, with this format:
+
+ Display_Alpha_port   = COM1=>living, COM2=>bedroom
+
+Then use the display room= parm to pick the room.  If room is not used, it goes to all displays.
+
 Here are some usage examples:
 
  display device => 'alpha', mode => 'hold',   color => 'amber', text => $Time_Now;
@@ -31,13 +36,24 @@ More examples can be found in mh/code/bruce/display_alpha.pl
 
 =cut
 
-
 use strict;
 package Display_Alpha;
 
+my @room_names;
 sub startup {
-   &::serial_port_create('Display_Alpha', $main::config_parms{Display_Alpha_port}, 9600);
-   &::Exit_add_hook( sub { &main::display_alpha(text => 'I am dead', color => 'yellow') }, 1);
+                                # Open all ports
+    for my $port_room (split ',', $::config_parms{Display_Alpha_port}) {
+        my ($port, $room) = $port_room =~ /(\S+) *=> *(\S+)/;
+        unless ($room) {
+            $port = $port_room;
+            $room = 'default';
+        }
+        $room = lc $room;
+        print "Opening Display_Alpha port: pr=$port_room port=$port room=$room\n" if $::Debug{display_alpha};
+        push @room_names, $room;
+        &::serial_port_create("Display_Alpha_$room", $port, 9600);
+    }
+    &::Exit_add_hook( sub { &main::display_alpha(text => 'I am dead', color => 'yellow') }, 1);
 }
 
 sub main::display_alpha {
@@ -54,25 +70,35 @@ sub main::display_alpha {
                 );
     my %color = (      red => "\x31",    green => "\x32",  amber => "\x33", darkred => "\x34",
                  darkgreen => "\x35",    brown => "\x36", orange => "\x37",  yellow => "\x38",
-                  rainbow1 => "\x39", rainbow2 => "\x41",    mix => "\x42",    auto => "\x43",   off => "\x30",);
+                  rainbow1 => "\x39", rainbow2 => "\x41",    mix => "\x42",    auto => "\x43",   off => "\x30");
 
 # [COMMAND CODE][FILE LABEL] <esc> [Display Position][Mode Code] Special Specifier [ASCII MESSAGE]
 #  Command Code AA ->  write (A) to label A
 
+
     $parms{color}   = lc $parms{color} if $parms{color};
-    $parms{color}   = 'green' unless $parms{color} or !$color{$parms{color}};
+    $parms{color}   = 'green' if !$parms{color} or !$color{$parms{color}};
 
     $parms{mode}    = lc $parms{mode} if $parms{mode};
-    $parms{mode}    = 'hold'  unless $parms{mode}  or !$mode{$parms{mode}};
+    $parms{mode}    = 'hold'  if !$parms{mode}  or !$mode{$parms{mode}};
 
     my $init  = "\0\0\0\0\0\001" . "Z00" . "\002";  # Nul, StartOfHeader=01, Type=Z, Address=00, StartOfText=02
     my $cmd   = "AA";          # Write to Lable A
     my $pos   = "\x1B\x20";    # Middle is best. Top=\x22, Bottom=\x26, Fill=\x30
+
     my $data = $init . $cmd . $pos . $mode{$parms{mode}} . "\x1c" . $color{$parms{color}} . $parms{text} . "\004";
 
-    print "Display_Alpha: parms=@_ data=$data\n" if $::Debug{display_alpha} == 2;
-
-    $main::Serial_Ports{'Display_Alpha'}{object}->write($data);
+    my @rooms = split ',', lc($parms{room}) if $parms{room};
+    @rooms = @room_names unless @rooms;
+    for my $room (@rooms) {
+        print "Display_Alpha: room=$room parms=@_ data=$data\n" if $::Debug{display_alpha};
+        if ($::Serial_Ports{"Display_Alpha_$room"} and $::Serial_Ports{"Display_Alpha_$room"}{object}) {
+            $::Serial_Ports{"Display_Alpha_$room"}{object}->write($data);
+        }
+        else {
+            print "Error, can not find Display_Alpha port: room=$room\n";
+        }
+    }
 }
 
 1;

@@ -94,7 +94,7 @@ if ($^O eq 'MSWin32') {
 	sub PrintError {
 		my $errno = Win32::GetLastError();
 		my $errstr = Win32::FormatMessage($errno);
-		printf("\n\t*** ERROR: errno=%d, %s", $errno, $errstr);
+		printf("\n\t*** ERROR: errno=%d (0x%02x), %s", $errno, $errno, $errstr); #CJB
 	}
 
 	# UUIRTDRV_API BOOL PASCAL UUIRTGetDrvInfo(unsigned int *puDrvVersion);
@@ -116,6 +116,9 @@ if ($^O eq 'MSWin32') {
 
 	# UUIRTDRV_API BOOL PASCAL UUIRTClose(HUUHANDLE hHandle);
 	Win32::API->Import('uuirtdrv', 'BOOL UUIRTClose(HUUHANDLE hHandle)');
+
+	# UUIRTDRV_API BOOL PASCAL UUIRTGetDrvVersion(unsigned int *puDrvVersion);	
+	Win32::API->Import('uuirtdrv', 'BOOL UUIRTGetDrvVersion(PUINT puDrvVersion)');	
 }
 
 END {if ($^O eq 'MSWin32') {UUIRTClose($DrvHandle);}}
@@ -124,10 +127,24 @@ sub startup {
 	&::MainLoop_pre_add_hook(  \&USB_UIRT::check_for_data, 1 );
 	$db = tie (%DBM,  'DB_File', $dbm_file) or print "\nError, can not open dbm file $dbm_file: $!";
 	if ($^O eq 'MSWin32') {
-		print "Quering USB-UIRT device driver information...\n";
-		my $DrvVersion;
-		if (UUIRTGetDrvInfo($DrvVersion)) {
-			printf("** USB-UIRT Driver Info: 0x%04x\n\n", $DrvVersion);
+		print "Querying USB-UIRT device driver information...\n"; 
+		my $DrvInfo; 
+		if (UUIRTGetDrvInfo($DrvInfo)) { 
+			printf("** USB-UIRT Driver Info: 0x%04x\n", $DrvInfo); 
+		} else {
+			PrintError();
+		}
+
+		my $DrvVersion; 
+		if (UUIRTGetDrvVersion($DrvVersion)) {
+			my $A = int($DrvVersion / 1000);
+			$DrvVersion -= $A*1000;
+			my $B = int($DrvVersion / 100);
+			$DrvVersion -= $B*100;
+			my $C = int($DrvVersion / 10);
+			$DrvVersion -= $C*10;
+			my $D = int($DrvVersion);
+			printf("** USB-UIRT DLL (uuirtdrv.dll) Version: %d.%d.%d.%d\n",$A,$B,$C,$D);
 		} else {
 			PrintError();
 		}
@@ -277,12 +294,13 @@ sub set {
 	$device = uc shift;
 	$function = uc shift;
 	return unless defined $device and defined $function;
-      push @transmit_queue, "$device$;$function";
+	push @transmit_queue, "$device$;$function";
 }
 
 sub send_ir_code {
 	return if &main::get_tickcount - $transmit_timeout < 0;
 	my $code = $DBM{shift @transmit_queue};
+	return if $code eq "";
 	if ($code =~ s/^R//i) {
 		transmit_raw($code);
 	}
@@ -343,14 +361,14 @@ sub get_version {
             $protocol_minor = $UirtInfo->{protVersion}&0xff;
             $firmware_month = $UirtInfo->{fwDateMonth};
             $firmware_day = $UirtInfo->{fwDateDay};
-            $firmware_year = $UirtInfo->{fwDateYear};        # Bruce update this line for correct display on win32 platforms
+            $firmware_year = $UirtInfo->{fwDateYear};        
         } else {
 	    PrintError();
         }
     } else {
 	usb_uirt_send(0x23);
 	my $ret = get_response(8);
-    printf("USB_UIRT: get_version returned 0x%X\n",$ret) unless ($ret == 0x21);
+        printf("USB_UIRT: get_version returned 0x%X\n",$ret) unless ($ret == 0x21);
 	($firmware_minor, $firmware_major, $protocol_minor, $protocol_major, $firmware_day, $firmware_month, $firmware_year)
 	    = unpack 'C*', $ret;
     }
@@ -386,13 +404,14 @@ sub set_moderaw {
 	@learned = ();
 	usb_uirt_send(0x24);
 	my $ret = get_response(1);
-    printf("USB_UIRT: get_moderaw returned 0x%X\n",$ret) unless ($ret == 0x21);
+	printf("USB_UIRT: get_moderaw returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
 
 sub set_modeuir {
 	$learning = 0;
 	usb_uirt_send(0x20);
 	my $ret = get_response(1);
+printf("USB_UIRT: get_modeuir returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
 
 sub get_response {
@@ -411,7 +430,7 @@ sub transmit_raw {
 #	foreach (@bytes) {$t += $_}
 	usb_uirt_send(0x36, $#bytes + 2, @bytes);
 	my $ret = get_response(1);
-    printf("USB_UIRT: transmit_raw returned 0x%X\n",$ret) unless ($ret == 0x21);
+	printf("USB_UIRT: transmit_raw returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
 
 sub transmit_pronto {
@@ -454,7 +473,7 @@ sub transmit_pronto {
 			if ($word > 0x7f) {
 				push @raw, ($word >> 8) | 0x80;
 			}
-   			push @raw, $word & 0xff;
+			push @raw, $word & 0xff;
 			$length--;
 		}
 		splice @raw, 4, 0, $#raw - 3;
@@ -470,7 +489,7 @@ sub transmit_pronto {
 	}
 	$transmit_timeout = &main::get_tickcount + 500;
 	my $ret = get_response(1);
-    printf("USB_UIRT: transmit_pronto returned 0x%X\n",$ret) unless ($ret == 0x21);
+	printf("USB_UIRT: transmit_pronto returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
 
 sub transmit_struct {
@@ -478,7 +497,7 @@ sub transmit_struct {
 	$transmit_timeout = &main::get_tickcount + 500;
 	usb_uirt_send(0x37, $#bytes + 2, @bytes);
 	my $ret = get_response(1);
-    printf("USB_UIRT: transmit_struct returned 0x%X\n",$ret) unless ($ret == 0x21);
+	printf("USB_UIRT: transmit_struct returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
 
 sub usb_uirt_send {

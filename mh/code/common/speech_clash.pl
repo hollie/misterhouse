@@ -51,7 +51,9 @@ sub speak_clash_stub {
       my ($pkey,$pval);
       while (($pkey,$pval) = each(%{$ref})) {
          $parmstxt.=', ' if $parmstxt;
-         $parmstxt.="$pkey => '$pval'";
+			# WLA: quote the text, otherwise if the spoken text contains a ' character we
+			# get an error message
+         $parmstxt .= "$pkey => q($pval)";
       }
       &print_log("CLASH Parameters: $parmstxt") if $main::Debug{voice};
       &run_after_delay($sc_delay, "speak($parmstxt)");
@@ -77,4 +79,3 @@ sub speak_clash_stub {
 End of speech_clash.pl
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
-

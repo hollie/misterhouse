@@ -836,6 +836,7 @@ sub main::net_im_send {
                                 # Default is aol aim (only because it was first)
     my $pgm = lc $parms{pgm};
     my $to = $parms{to};
+    print "net_im_send pgm=$pgm to=$to\n" if $::Debug{im};
 
     return if &main::net_im_do_send(%parms) != 0;
 
@@ -888,9 +889,11 @@ sub main::net_im_do_send {
                                 # This will take a few seconds to connect the first time
     $im_connection = &main::net_im_signon($from, $password, $parms{pgm});
 
+    print "net_im_send im=$im_connection to=$to status=$buddies_status{$to}\n" if $::Debug{im};
+
     return 0 unless defined $im_connection;
 
-    return 0 unless ($buddies_status{$to} eq 'on');
+    return 0 if $buddies_status{$to} and $buddies_status{$to} ne 'on';
 
     print "Sending $parms{pgm} message to $to\n";
 
@@ -1430,6 +1433,9 @@ sub main::url_changed {
 
 #
 # $Log$
+# Revision 1.61  2005/01/23 23:21:45  winter
+# *** empty log message ***
+#
 # Revision 1.60  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

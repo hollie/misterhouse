@@ -80,10 +80,12 @@ Quick Install Instructions
     list all commands, search on a blank string.
 
     The default setup runs only a few core scripts from mh/code/common
-    directory (listed in data_dir/code_select.txt). You can use
-    http://localhost:8080/bin/code_select.pl menu (avaliable on the web ia5
-    MrHouse menu 'Select Code' button) to select other standard code files
-    you want to run. To quickly test many of the code files, run:
+    directory (listed in data_dir/code_select.txt). You can use the
+    http://localhost:8080/bin/code_select.pl menu (default web page ->
+    MhHouse Home -> Setup MrHouse -> Common Code Activation) to select other
+    standard code files you want to run.
+
+    To quickly test many of the code files, run:
 
       mh -code_select code_select_test.txt
 
@@ -326,6 +328,14 @@ UNIX Detailed Install Instructions
     misterhouse-#.##.linux.zip. This might be useful if you have troubles
     with the above CPAN installs or if you have a older (or newer) version
     of perl that has some sort of problem (e.g. memory leak).
+
+    Dependencies for above modules: Tk requires an X-server be installed
+    DB_File requires Berkley DB be installed Audio::Mixer requires kernel
+    sound support GD requires several libraries installed: GD library, zlib
+    library, png library
+
+    The perl install files contain README files which explain their
+    dependencies.
 
     There are some example start/stop/restart .rc files in
     mh/bin/misterhouse*.rc

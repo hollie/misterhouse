@@ -1,7 +1,7 @@
 #!/local/bin/perl
 #####################################################################
 #  NOM		: weather_graph_zoom.pl
-#  DESCRIPTION 	: 
+#  DESCRIPTION 	:
 =begin comment
 #@ Generate html page for weather graphs zoom
 #@ mh parameter : nothing
@@ -46,13 +46,13 @@ if ($cgi->param) {
 
   # Convert begin date in Epoch date
   my $debepochtime = timelocal(0,0,0,$cgi->param('debday'),$cgi->param('debmonth')-1,$cgi->param('debyear')-1900);
-  
+
   # Convert end date in Epoch date
   my $endepochtime = timelocal(59,59,23,$cgi->param('endday'),$cgi->param('endmonth')-1,$cgi->param('endyear')-1900);
   if ($endepochtime > time()) {
   	$endepochtime = time();
   	}
- 
+
   if ($debepochtime <= $endepochtime) {
   	my %sensor_names;
   	&main::read_parm_hash(\%sensor_names, $main::config_parms{weather_graph_sensor_names});
@@ -64,9 +64,9 @@ if ($cgi->param) {
 	&graph_error('STARTING DATE IS GREATER THAN ENDING DATE');
 	return;
 	}
-  
+
   &print_graph;
- 
+
   # Print parameters
   #if (1) {
   #my @values;
@@ -106,11 +106,16 @@ sub graph_error {
 # Print zoom graph
 #==============================================================================
 sub print_graph {
+  $config_parms{weather_graph_format} = "PNG" unless $config_parms{weather_graph_format};
+  tr/a-z/A-Z/ for $config_parms{weather_graph_format};
+  my $rrd_format = $config_parms{weather_graph_format};
+  tr/A-Z/a-z/ for $rrd_format;
+
   print $cgi->start_center;
   print $cgi->start_table({-width=>"591", -border=>"0", -cellpading=>"0", -cellspacing=>"0"});
   print $cgi->start_Tr;
   print $cgi->start_td({-align=>'center'});
-  print $cgi->img({src=>"/rrd/weather_zoom.png?".time(), align=>'center'});
+  print $cgi->img({src=>"/rrd/weather_zoom.$rrd_format?".time(), align=>'center'});
   print $cgi->end_td;
   print $cgi->end_Tr;
   print $cgi->end_table();
@@ -264,19 +269,19 @@ sub convertstepz {
 	my $reste;
 
 	if ( ($temp=int($stepnum/(24*3600))) > 0) {
-		$stepchar=$temp . 'd';	
+		$stepchar=$temp . 'd';
 	  }
 	$reste=$stepnum-(24*3600*int($stepnum/(24*3600)));
 	if ( ($temp=int($reste/3600)) > 0) {
-		$stepchar.=$temp . 'h';	
+		$stepchar.=$temp . 'h';
 	  }
 	$reste=$reste-3600*int($reste/3600);
 	if ( ($temp=int($reste/60)) > 0) {
-		$stepchar.=$temp . 'mn';	
+		$stepchar.=$temp . 'mn';
 	  }
 	$reste=$reste-60*int($reste/60);
 	if ( $reste > 0) {
-		$stepchar.=$reste . 's';	
+		$stepchar.=$reste . 's';
 	  }
 	return $stepchar;
 }
@@ -295,7 +300,9 @@ sub create_rrdgraph_zoom {
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
-    
+    my $rrd_format = $config_parms{weather_graph_format};
+    tr/A-Z/a-z/ for $rrd_format;
+
     my $err;
     my ($start,$step,$names,$array);
     my $datapoint;
@@ -349,7 +356,7 @@ sub create_rrdgraph_zoom {
   if ($sensor1 eq 'temp' or $sensor1 eq 'dew' or $sensor1 eq 'intemp' or $sensor1 eq 'indew' or
       $sensor1 eq 'tempspare1' or $sensor1 eq 'tempspare2' or $sensor1 eq 'tempspare3' or $sensor1 eq 'tempspare4' or
       $sensor1 eq 'tempspare5' or $sensor1 eq 'tempspare6' or $sensor1 eq 'tempspare7' or $sensor1 eq 'tempspare8' or
-      $sensor1 eq 'tempspare9' or $sensor1 eq 'tempspare10' or 
+      $sensor1 eq 'tempspare9' or $sensor1 eq 'tempspare10' or
       $sensor1 eq 'dewspare1' or $sensor1 eq 'dewspare2' or $sensor1 eq 'dewspare3' or $sensor1 eq 'chill')
   	{
          $libuom=($config_parms{weather_uom_temp} eq 'C' ? "\"Degrees Celcius\"," : "\"Degrees Fahrenheit\",");
@@ -400,50 +407,50 @@ sub create_rrdgraph_zoom {
   ($strminvar2=$strminvar)=~s/mindata/mindata2/g;
   ($strmaxvar2=$strmaxvar)=~s/maxdata/maxdata2/g;
 
-  $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_zoom.png",
-"--title", "Environmental data : $titrerrd", 
-"--height","$gheight", 
-"--width", "$gwidth", 
-"--imgformat", "PNG", 
+  $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_zoom.$rrd_format",
+"--title", "Environmental data : $titrerrd",
+"--height","$gheight",
+"--width", "$gwidth",
+"--imgformat", "$config_parms{weather_graph_format}",
 "--alt-autoscale",
 "--interlaced",
 "--step","120",
 "--units-exponent", "0",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
-^ 
-. "\"--vertical-label\"," . "$libuom" 
+^
+. "\"--vertical-label\"," . "$libuom"
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 
-. "\"DEF:var=$rrd_dir:" . $sensor1 . ":AVERAGE\"," 
+. "\"DEF:var=$rrd_dir:" . $sensor1 . ":AVERAGE\","
 . "$strvar"
-. "\"DEF:mindata=$rrd_dir:" . $sensor1 . ":MIN\"," 
+. "\"DEF:mindata=$rrd_dir:" . $sensor1 . ":MIN\","
 . "$strminvar"
-. "\"DEF:maxdata=$rrd_dir:" . $sensor1 . ":MAX\"," 
+. "\"DEF:maxdata=$rrd_dir:" . $sensor1 . ":MAX\","
 . "$strmaxvar"
 
-. ($sensor2 ne "nosensor" ? "\"DEF:var2=$rrd_dir:" . $sensor2 . ":AVERAGE\",":'') 
-. ($sensor2 ne "nosensor" ? "$strvar2":'') 
-. ($sensor2 ne "nosensor" ? "\"DEF:mindata2=$rrd_dir:" . $sensor2 . ":MIN\",":'') 
-. ($sensor2 ne "nosensor" ? "$strminvar2":'') 
-. ($sensor2 ne "nosensor" ? "\"DEF:maxdata2=$rrd_dir:" . $sensor2 . ":MAX\",":'') 
-. ($sensor2 ne "nosensor" ? "$strmaxvar2":'') 
+. ($sensor2 ne "nosensor" ? "\"DEF:var2=$rrd_dir:" . $sensor2 . ":AVERAGE\",":'')
+. ($sensor2 ne "nosensor" ? "$strvar2":'')
+. ($sensor2 ne "nosensor" ? "\"DEF:mindata2=$rrd_dir:" . $sensor2 . ":MIN\",":'')
+. ($sensor2 ne "nosensor" ? "$strminvar2":'')
+. ($sensor2 ne "nosensor" ? "\"DEF:maxdata2=$rrd_dir:" . $sensor2 . ":MAX\",":'')
+. ($sensor2 ne "nosensor" ? "$strmaxvar2":'')
 . "\"CDEF:wipeout=var,UN,INF,UNKN,IF\","
 . "\"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF\","
 . "\"LINE2:fvar#$colordatamoy:" . sprintf("%-${max}s",$libsensor1) . " (Average)\","
-. qq^ 
+. qq^
 "GPRINT:fmindata:MIN:Min \\\\: %5.1lf",
 "GPRINT:fmaxdata:MAX:Max \\\\: %5.1lf",
 "GPRINT:fvar:AVERAGE:Avg \\\\: %5.1lf",
 "GPRINT:fvar:LAST:Last \\\\: %5.1lf\\\\n",
 ^
-. ($sensor2 ne "nosensor" ? "\"LINE2:fvar2#$colordatamoy2:" . sprintf("%-${max}s",$libsensor2) . " (Average)\",":'') 
-. ($sensor2 ne "nosensor" ? "\"GPRINT:fmindata2:MIN:Min \\\\: %5.1lf\",":'') 
-. ($sensor2 ne "nosensor" ? "\"GPRINT:fmaxdata2:MAX:Max \\\\: %5.1lf\",":'') 
-. ($sensor2 ne "nosensor" ? "\"GPRINT:fvar2:AVERAGE:Avg \\\\: %5.1lf\",":'') 
-. ($sensor2 ne "nosensor" ? "\"GPRINT:fvar2:LAST:Last \\\\: %5.1lf\\\\n\",":'') 
-. qq^ 
+. ($sensor2 ne "nosensor" ? "\"LINE2:fvar2#$colordatamoy2:" . sprintf("%-${max}s",$libsensor2) . " (Average)\",":'')
+. ($sensor2 ne "nosensor" ? "\"GPRINT:fmindata2:MIN:Min \\\\: %5.1lf\",":'')
+. ($sensor2 ne "nosensor" ? "\"GPRINT:fmaxdata2:MAX:Max \\\\: %5.1lf\",":'')
+. ($sensor2 ne "nosensor" ? "\"GPRINT:fvar2:AVERAGE:Avg \\\\: %5.1lf\",":'')
+. ($sensor2 ne "nosensor" ? "\"GPRINT:fvar2:LAST:Last \\\\: %5.1lf\\\\n\",":'')
+. qq^
 "AREA:wipeout#$colorna:No data\\\\n",
 "AREA:wipeout2#$colorna\\\\n",
 ^
@@ -457,4 +464,4 @@ sub create_rrdgraph_zoom {
   eval $str_graph;
   my $err=RRDs::error;
   die "ERROR : function RRDs::graph : $err\n" if $err;
-} 
+}

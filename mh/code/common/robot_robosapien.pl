@@ -7,6 +7,8 @@
 #@ RedRat3 IR codes for the RoboSapien are available at <a href=http://www.redrat.co.uk/IR_Data.aspx>redrat.co.uk</a>.
 #@ Pictures and a movie of a hack to give it an external sound and power source
 #@ can be found at <a href=http://misterhouse.net/public/robot/>misterhouse.net/public/robot/</a>.
+#@ You can control the voice and sound card with a parm like this: speak_apps = robot => voice=Charles card=1/2 .
+
 
 
 $robot = new IR_Item 'Robosapien', undef, 'xAP';
@@ -72,11 +74,11 @@ $robot_timer1    = new Timer;
 my @robot_sequence_cmds;
 if ($state = said $robot_sequence1) {
     if ($state eq 'stop') {
-        speak "Ok, robot sequence stopped";
+        speak "app=robot Ok, robot sequence stopped";
         stop $robot_timer1;
     }
     else {
-        speak "Starting robot $state sequence";
+        speak "app=robot Starting robot $state sequence";
         if ($state eq 'all') {
             @robot_sequence_cmds = sort keys %robot_cmds3;
         }
@@ -111,13 +113,13 @@ if ($state = said $robot_sequence1) {
 }
 if (expired $robot_timer1) {
     if (my $cmd = shift @robot_sequence_cmds) {
-#       speak no_animate => 1, text => $cmd;
+#       speak app => 'robot', no_animate => 1, text => $cmd;
         set $robot $cmd;
         set $robot_timer1 $robot_cmds5{$cmd};
         print_log "Sending $robot_cmds5{$cmd} second robot cmd: $cmd.";
     }
     else {
-#       speak "Robot sequence done";
+#       speak "app=robot Robot sequence done";
     }
 }
 
@@ -202,7 +204,7 @@ if ($state = state_now $robot_dance) {
         set $robot 'Stop';
     }
     else {
-        speak 'no_animate=1 Time to dance!';
+        speak 'app=robot no_animate=1 Time to dance!';
         set $robot_song "mplay32.exe  /play /close c:/misterhouse/sounds/ymca.mid";
         start $robot_song;
         @robot_sequence_cmds = qw(DanceDemo BackwardStep Burp BackwardStep High5 Demo2 BackwardStep);
@@ -215,12 +217,12 @@ if ($state = state_now $robot_dance) {
 $robot_words       = new File_Item "$config_parms{data_dir}/remarks/list_fun_words.txt";
 $robot_speak_timer = new Timer;
 if (expired $robot_speak_timer) {
-   speak no_animate => 1, no_chime => 1, text => read_random $robot_words;
+   speak app => 'robot', no_animate => 1, no_chime => 1, text => read_random $robot_words;
    if (@robot_sequence_cmds) {
        set $robot_speak_timer 4;
    }
    else {
        stop $robot_song unless @robot_sequence_cmds;
-       speak "I am tired of dancing."
+       speak "app=robot I am tired of dancing."
    }
 }

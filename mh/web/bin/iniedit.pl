@@ -180,7 +180,7 @@ sub edit {
     $data .= '
         </select>';
     $data .= '<input type=submit name="Switch" value="Switch">&nbsp;&nbsp;';
-    $data .= '<input type=submit name="Commit" value="Commit"><input type=submit name="Reset Values" value="Reset Values">' if $Authorized eq 'Admin';
+    $data .= '<input type=submit name="Commit" value="Commit"><input type=submit name="Reset Values" value="Reset Values">' if $Authorized eq 'admin';
     $data .= '
         </td></tr>
     ';

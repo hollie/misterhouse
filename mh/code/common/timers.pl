@@ -52,8 +52,8 @@ sub expired_timer {
     }
     speak "app=timer volume=100 Notice: $text2.  The $time $text timer just expired";
     play volume => 50, file => 'timer';               # Set in event_sounds.pl
-}    
-    
+}
+
 
                                 # Allow for limited voice command timers
 $v_minute_timer = new  Voice_Cmd('Set a timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,25,30,45,60,90,120] minutes');
@@ -68,8 +68,14 @@ if ($state =  said $v_minute_timer) {
 $v_list_timers = new  Voice_Cmd('list all timers');
 $v_list_timers-> set_info('Summarize all timers');
 if ($state = said $v_list_timers) {
-    if (@{$Persistent{timers}}) {
-        for my $timer (@{$Persistent{timers}}) {
+    my @x10_timers=();
+    foreach my $object (list_objects_by_type('X10_Appliance')) {
+        if (get_object_by_name($object)->{timer}) {
+            push (@x10_timers,get_object_by_name($object)->{timer});
+        }
+    }
+    if (@{$Persistent{timers}},@x10_timers) {
+        for my $timer (@{$Persistent{timers}},@x10_timers) {
             my $time_left = seconds_remaining $timer;
             next unless $time_left;
             $time_left /=   60 if $timer->{unit} eq 'minute';
@@ -85,7 +91,7 @@ if ($state = said $v_list_timers) {
     else {
         speak 'app=timer There are no active timers';
     }
-}		
+}
 
                                 # Speak periodic timer count-downs
                                 #  - also delete expired timers

@@ -25,17 +25,15 @@ sub slimserver_display {
 				# This program also enables IR -> xAP data, even for non-slim IR data!
     if ($config_parms{slimserver_protocol} eq 'xAP') {
         my $duration = $parms{duration} || 15;
-        &xAP::send('xAP', 'xAP-OSD.Display', 'Display.SliMP3' => 
+        &xAP::send('xAP', 'xAP-OSD.Display', 'Display.SliMP3' =>
                    {Line1 => $parms{text}, Line2 => ' ', Duration => $duration, Size => 'Double', Brightness => 'Brightest'});
     }
     else {
 				# Allow for player and/or players parm.  No Big or Brightest option here :(
         $config_parms{slimserver_players} = $config_parms{slimserver_player} unless $config_parms{slimserver_players};
         for my $player (split ',', $config_parms{slimserver_players}) {
-            my $request = "http://$config_parms{slimserver_server}/status?p0=display&p1=MisterHouse Message:&p2=$parms{text}&p3=30&player=$player";
+            my $request = "http://$config_parms{slimserver_server}/status.txt?p0=display&p1=MisterHouse Message:&p2=$parms{text}&p3=30&player=$player";
             get $request;
         }
     }
 }
-
-

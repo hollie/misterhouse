@@ -111,7 +111,7 @@ The default is to run all .pl files.</p>
    mh -tk 0 -code_dir c:\mh\code\Bruce</pre>
 <p>This will log all 'print' statements to test1.log and turn on all serial related debug messages:</p>
 <pre>
-   mh -log_file test1.log -debug serial</pre>
+   mh -debug serial &gt; test1.log</pre>
 <p>
 </p>
 <h2><a name="installation">Installation</a></h2>
@@ -758,6 +758,12 @@ mh is stopped/started.
         See mh/code/examples/test_states_stacked.pl for a complete example.
         Note, this is turnded off by default for Serial_Item objects.
         To enable, run:   $object -&gt; state_overload(ON);</pre>
+</dd>
+<dd>
+<pre>
+     set_casesensitive   : By default, states are all lowercased, to allow for case 
+                           insensitive tests.  To avoid this (for example on Serial Interfaces
+                           that are case sensitive), call this method.</pre>
 </dd>
 <dd>
 <pre>
@@ -1716,6 +1722,11 @@ Like most mh objects, it inherits all the Generic_Item methods.
      stop  $tnc_output if said $v_tnc_close;
      start $tnc_output if $New_Minute and is_stopped $tnc_output
                           and is_available $tnc_output;</pre>
+</dd>
+<dd>
+<pre>
+     $serial_tom10port = new  Serial_Item(undef, undef, 'serial_tom10');
+     $serial_tom10port -&gt; set_casesensitive;     # TOM10 needs lowercase commands</pre>
 </dd>
 <dd>
 <p>See mh/code/examples/serial_port_examples.pl for more Serial_Item examples.</p>
@@ -2698,6 +2709,24 @@ Converts from degrees Kelvin/Centigrade to Farenheight
 <dd>
 <pre>
     $weather{TempF} = convert_c2f($weather{TempC});</pre>
+</dd>
+<dd>
+<p>Here is a complete list of conversion functions:</p>
+</dd>
+<dd>
+<pre>
+  convert_k2f        # Convert degrees Kelvin to Farenheight
+  convert_c2f        # Convert degrees Celsius to Farenheight
+  convert_f2c        # Convert degrees fahrenheit to celsius
+  convert_f2k        # Convert degrees fahrenheit to kelvin
+  convert_in2mb      # Convert to inches of mercury to millibars
+  convert_in2mm      # convert inches (per hour) to millimeters (per hour)
+  convert_km2mile    # convert kilometers (per hour) to miles (per hour)
+  convert_mb2in      # Convert millibars to inches of mercury
+  convert_mile2km    # convert miles (per hour) to kilometers (per hour)
+  convert_mm2in      # convert millimeters (per hour) to inches (per hour)
+  convert_mps2mph    # convert meters per second to miles per hour
+  convert_mps2mph    # convert miles per hour to meters per second</pre>
 </dd>
 <p></p>
 <dt><strong><a name="item_convert_direction">convert_direction</a></strong><br />

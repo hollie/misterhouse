@@ -1,7 +1,7 @@
 # Category=Weather
 #####################################################################
 #  NOM		: weather_rrd_update.pl
-#  DESCRIPTION 	: 
+#  DESCRIPTION 	:
 #@ Create/update RRD database with the weather informations,
 #@ Create/update CSV file database with the weather informations,
 #@ Create weather graphs with RRD database,
@@ -14,7 +14,7 @@
 #@ http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/pub/
 #@ rrdtool-1.0.40.x86distr.zip-5.8.zip,
 #@ (or similar) then cd to perl-shared and type: ppm install rrds.ppd
-#@ RRD is available from 
+#@ RRD is available from
 #@ http://ee-staff.ethz.ch/~oetiker/webtools/rrdtool
 #@ Examples graphs : http://www.domotix.net
 #  Script inspired from T. Oetiker wx200 monitor
@@ -47,6 +47,7 @@
 #    weather_graph_dir = $config_parms{data_dir}/rrd
 #  - Web dir for PNG graph file
 #    html_alias_rrd = $config_parms{data_dir}/rrd
+#    weather_rrd_format = PNG / GIF (PNG is default)
 #  - frequency for graphs generation (minute)
 #    weather_graph_frequency = 10
 #  - Footer center line graph, for example
@@ -55,27 +56,27 @@
 #    values : tempout tempin windspeed winddir raintotal rainrate press
 #             humout humin
 #    weather_graph_skip =
-#  - Skip generation graphs for specific periods, blank to generate 
+#  - Skip generation graphs for specific periods, blank to generate
 #    graphs for all periods
-#    values : 6hour 12hour 1day 2day 1week 2week 1month 2month 
+#    values : 6hour 12hour 1day 2day 1week 2week 1month 2month
 #             6month 1year 2year 5year
 #    weather_graph_period_skip =
 #  - Sensor name for indoor temperature and humidity graphs
 #    weather_graph_sensor_names = sensor => name, ...
-#    Values : sensor names = intemp, tempspare1,..., tempspare10, inhumid, 
+#    Values : sensor names = intemp, tempspare1,..., tempspare10, inhumid,
 #    humidspare1,...,humidspare10
-#  - Altitude in meters to add the barometric pressure to 1 millibar. 
+#  - Altitude in meters to add the barometric pressure to 1 millibar.
 #    Ratio to calculate the sea level barometric pressure in the weather graphs
 #    ratio_sea_baro = 10 (default value)
 #  - Initialize the altitude of the local weather station,
-#    In feet, used to calculate the sea level barometric pressure  
+#    In feet, used to calculate the sea level barometric pressure
 #    altitude = 0
 #--------------------------------------------------------------------
 # 				HISTORY
 #--------------------------------------------------------------------
 #   DATE   REVISION    AUTHOR	        DESCRIPTION
 #--------------------------------------------------------------------
-# 26/10/03   1.0   Dominique Benoliel	
+# 26/10/03   1.0   Dominique Benoliel
 # Creation script
 # 13/03/04   1.1   Dominique Benoliel (thanks to Robin van Oosten)
 # - add "--lazy" to generate a graph only if data has changed or a
@@ -101,22 +102,37 @@
 # - add comment : unit of neasure of mh variable $Weather{...} in input
 # 30/07/04   1.5   Dominique Benoliel
 # - add sea level barometric pressure (label in pressure graph)
-# - change label "barometric pressure" by "absolute barometric 
+# - change label "barometric pressure" by "absolute barometric
 #   pressure",
+# 05/12/04   1.6   Bruce Winter & Tom Valdes
+# - modifed script with the GlobalVars defined for Internet
+# 28/12/04   1.7   Dominique Benoliel
+# - change $Reload with $Reread (clive Freedman)
+# - correct Wind Direction ratio with "--y-grid" ,"45:1" (Tine Gornik)
+# - correct Rain Rate with "--alt-y-grid"
+# - correct Rain Total with "--alt-y-grid"
+# 01/01/05   1.8   Matthew Williams
+# - added unit conversion routines when using metric units
+# - NB: unit conversion requires main mh binary > 2.96
+# - added full support for m/s for wind speed
+# - changed dew point ranges to allow negative dew points
+#  1/15/05   1.9   Pete Flaherty
+# - added ability to specify alternate graph format eg GIF
+#   $config_parms{weather_graph_format}
 #####################################################################
 use RRDs;
 
 my $RRD_STEP = 60;		# seconds between recorded data samples
 my $RRD_HEARTBEAT = 300;	# seconds before data becomes *unknown*
 my $RRD_LAZY = 1;		# set to 1 to use --lazy
-my $RRD_LAST; 
+my $RRD_LAST;
 
 #==============================================================================
 # Principal script
 #==============================================================================
 
 # Initialisation
-if ($Reload) {
+if ($Reread) {
     $config_parms{weather_graph_frequency} = 10 unless $config_parms{weather_graph_frequency};
     $config_parms{weather_data_rrd} = "$config_parms{data_dir}/rrd/weather_data.rrd" unless $config_parms{weather_data_rrd};
     $config_parms{weather_graph_dir} = "$config_parms{data_dir}/rrd" unless $config_parms{weather_graph_dir};
@@ -125,6 +141,8 @@ if ($Reload) {
     $config_parms{weather_graph_sensor_names} = "temp => Temperature outdoor, humid => Humidity outdoor, dew => Temperature dewpoint outdoor, press => Pressure outdoor, dir => Wind direction, avgdir => Wind average direction, speed => Wind speed, avgspeed => Wind average speed, chill => Temperature windchill, rate => Rain rate, rain => Rain total, intemp => Temperature indoor, inhumid => Humidity indoor, indew => Temperature dewpoint indoor, tempspare1 => Temperature extra sensor 1, humidspare1 => Humidity extra sensor 1, dewspare1 => Temperature dewpoint extra sensor 1, tempspare2 => Temperature extra sensor 2, humidspare2 => Humidity extra sensor 2, dewspare2 => Temperature dewpoint extra sensor 2, tempspare3 => Temperature extra sensor 3, humidspare3 => Humidity extra sensor 3, dewspare3 => Temperature dewpoint extra sensor 3, tempspare4 => Temperature extra sensor 4, humidspare4 => Humidity extra sensor 4, tempspare5 => Temperature extra sensor 5, humidspare5 => Humidity extra sensor 5, tempspare6 => Temperature extra sensor 6, humidspare6 => Humidity extra sensor 6, tempspare7 => Temperature extra sensor 7, humidspare7 => Humidity extra sensor 7, tempspare8 => Temperature extra sensor 8, humidspare8 => Humidity extra sensor 8, tempspare9 => Temperature extra sensor 9, humidspare9 => Humidity extra sensor 9, tempspare10 => Temperature extra sensor 10, humidspare10 => Humidity extra sensor 10 " unless $config_parms{weather_graph_sensor_names};
     $config_parms{altitude}=0 unless $config_parms{altitude};
     $config_parms{ratio_sea_baro} = 10 unless $config_parms{ratio_sea_baro};
+    $config_parms{weather_graph_format} = "PNG" unless $config_parms{weather_graph_format};
+    tr/a-z/A-Z/ for $config_parms{weather_graph_format};
    }
 
 # Debug mode
@@ -135,7 +153,9 @@ $RRD_LAZY = 0 if $debug;
 
 # Update RRD database every 1 minute
 if ($New_Minute) {
-    my $rrd_TempOutdoor = defined $Weather{TempOutdoor} ? $Weather{TempOutdoor} : 'U';
+    my $rrd_TempOutdoor = $Weather{TempOutdoor} or $Weather{TempInternet};
+    $rrd_TempOutdoor = 'U' unless defined $rrd_TempOutdoor;
+
     my $rrd_HumidOutdoor = defined $Weather{HumidOutdoor} ? $Weather{HumidOutdoor} : 'U';
     my $rrd_DewOutdoor = defined $Weather{DewOutdoor} ? $Weather{DewOutdoor} : 'U';
     my $rrd_Barom = defined $Weather{Barom} ? $Weather{Barom} : 'U';
@@ -175,10 +195,39 @@ if ($New_Minute) {
     my $rrd_HumidSpare10 = defined $Weather{HumidSpare10} ? $Weather{HumidSpare10} : 'U';
 
     my $RRD = "$config_parms{weather_data_rrd}";
+
     my $time = time;
     my @d;
 
     &create_rrd($time) unless -e $RRD;
+
+    if ($config_parms{weather_uom_temp} eq 'C') {
+      grep { $_=convert_c2f($_) } ($rrd_TempOutdoor, $rrd_TempIndoor,
+        $rrd_TempSpare1, $rrd_TempSpare2, $rrd_TempSpare3, $rrd_TempSpare4,
+        $rrd_TempSpare5, $rrd_TempSpare6, $rrd_TempSpare7, $rrd_TempSpare8,
+        $rrd_TempSpare9, $rrd_TempSpare10, $rrd_DewOutdoor, $rrd_DewIndoor,
+        $rrd_DewSpare1, $rrd_DewSpare2, $rrd_DewSpare3, $rrd_WindChill);
+    }
+
+    if ($config_parms{weather_uom_baro} eq 'mb') {
+      grep { $_=convert_mb2in($_) } ($rrd_Barom);
+    }
+
+    if ($config_parms{weather_uom_wind} eq 'kph') {
+      grep { $_=convert_km2mile($_) } ($rrd_WindGustSpeed, $rrd_WindAvgSpeed);
+    }
+
+    if ($config_parms{weather_uom_wind} eq 'm/s') {
+      grep { $_=convert_mps2mph($_) } ($rrd_WindGustSpeed, $rrd_WindAvgSpeed);
+    }
+
+    if ($config_parms{weather_uom_rain} eq 'mm') {
+      grep { $_=convert_mm2in($_)} ($rrd_RainTotal);
+    }
+
+    if ($config_parms{weather_uom_rainrate} eq 'mm/hr') {
+      grep { $_=convert_mm2in($_)  } ($rrd_RainRate);
+    }
 
     @d = ($rrd_TempOutdoor, $rrd_HumidOutdoor, $rrd_DewOutdoor, $rrd_Barom,
 	  $rrd_WindGustDir, $rrd_WindAvgDir, $rrd_WindGustSpeed, $rrd_WindAvgSpeed,
@@ -202,8 +251,10 @@ if ($New_Minute) {
   }
 
 # Create the graphs
+$p_weather_graph = new Process_Item "&create_rrdgraph_all";
 $tell_generate_graph = new Voice_Cmd "Generate weather graphs";
 if (new_minute $config_parms{weather_graph_frequency} or said $tell_generate_graph) {
+
 	my $RRD = "$config_parms{weather_data_rrd}";
 	$RRD_LAST = RRDs::last $RRD;
    	my $err=RRDs::error;
@@ -211,7 +262,7 @@ if (new_minute $config_parms{weather_graph_frequency} or said $tell_generate_gra
 	#print "Last : $RRD_LAST\n";
 
 	# weather graphs creation
-	&create_rrdgraph_all;
+    $OS_win ? &create_rrdgraph_all : start $p_weather_graph;
   }
 #==============================================================================
 # Creation bases RRD
@@ -226,7 +277,7 @@ sub create_rrd {
     '-b', $_[0], '-s', $RRD_STEP,
     "DS:temp:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:humid:GAUGE:$RRD_HEARTBEAT:0:100",
-    "DS:dew:GAUGE:$RRD_HEARTBEAT:0:150",
+    "DS:dew:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:press:GAUGE:$RRD_HEARTBEAT:23:33",
     "DS:dir:GAUGE:$RRD_HEARTBEAT:0:360",
     "DS:avgdir:GAUGE:$RRD_HEARTBEAT:0:360",
@@ -237,17 +288,16 @@ sub create_rrd {
     "DS:rain:GAUGE:$RRD_HEARTBEAT:0:9999",
     "DS:intemp:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:inhumid:GAUGE:$RRD_HEARTBEAT:0:100",
-    "DS:indew:GAUGE:$RRD_HEARTBEAT:0:150",
+    "DS:indew:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:tempspare1:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:humidspare1:GAUGE:$RRD_HEARTBEAT:0:100",
-    "DS:dewspare1:GAUGE:$RRD_HEARTBEAT:0:150",
+    "DS:dewspare1:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:tempspare2:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:humidspare2:GAUGE:$RRD_HEARTBEAT:0:100",
-    "DS:dewspare2:GAUGE:$RRD_HEARTBEAT:0:150",
+    "DS:dewspare2:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:tempspare3:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:humidspare3:GAUGE:$RRD_HEARTBEAT:0:100",
-    "DS:dewspare3:GAUGE:$RRD_HEARTBEAT:0:150",
-
+    "DS:dewspare3:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:tempspare4:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:humidspare4:GAUGE:$RRD_HEARTBEAT:0:100",
     "DS:tempspare5:GAUGE:$RRD_HEARTBEAT:-150:150",
@@ -320,7 +370,7 @@ sub create_rrd {
 sub update_rrd {
         my $err;
 	my @last;
-	my $last; 
+	my $last;
 	my $i;
 	my $RRD = "$config_parms{weather_data_rrd}";
 	my ($time, @data) = @_;
@@ -333,7 +383,7 @@ sub update_rrd {
 	$last = $time unless $last;
 	$i = 0;
 	# Zero change -> fill in flat lines
-	if (0 >= grep $_ ne $last[$i++], @data) { 
+	if (0 >= grep $_ ne $last[$i++], @data) {
 	    print "WARNING, loop 1...\n" if $debug;
 	    print "No data change\n" if $debug;
 	    for ($i = $last + $RRD_STEP; $i < $time; $i += $RRD_STEP) {
@@ -390,7 +440,7 @@ sub update_csv {
     	  'Temperature 4', 'Humidity module 4', 'Temperature 5','Humidity module 5',
     	  'Temperature 6', 'Humidity module 6', 'Temperature 7','Humidity module 7',
     	  'Temperature 8', 'Humidity module 8', 'Temperature 9','Humidity module 9',
-    	  'Temperature 10', 'Humidity module 10',"\n"); 
+    	  'Temperature 10', 'Humidity module 10',"\n");
 
 	 &logit("$config_parms{weather_data_csv}.$Year_Month_Now", $row_header,0);
     	}
@@ -402,7 +452,7 @@ sub update_csv {
 	  $data[18], $data[19], $data[20], $data[21], $data[22],
 	  $data[23], $data[24], $data[25], $data[26], $data[27], $data[28], $data[29],
 	  $data[30], $data[31], $data[32], $data[33], $data[34], $data[35], $data[36],
-	  "\n"); 
+	  "\n");
 
        &logit("$config_parms{weather_data_csv}.$Year_Month_Now", $row_data,0);
 }
@@ -410,6 +460,7 @@ sub update_csv {
 # Generate all the weather graphs
 #==============================================================================
 sub create_rrdgraph_all {
+
 	my %sensor_names;
 
         &main::read_parm_hash(\%sensor_names, $main::config_parms{weather_graph_sensor_names});
@@ -437,19 +488,19 @@ sub convertstep {
 	my $reste;
 
 	if ( ($temp=int($stepnum/(24*3600))) > 0) {
-		$stepchar=$temp . 'd';	
+		$stepchar=$temp . 'd';
 	  }
 	$reste=$stepnum-(24*3600*int($stepnum/(24*3600)));
 	if ( ($temp=int($reste/3600)) > 0) {
-		$stepchar.=$temp . 'h';	
+		$stepchar.=$temp . 'h';
 	  }
 	$reste=$reste-3600*int($reste/3600);
 	if ( ($temp=int($reste/60)) > 0) {
-		$stepchar.=$temp . 'mn';	
+		$stepchar.=$temp . 'mn';
 	  }
 	$reste=$reste-60*int($reste/60);
 	if ( $reste > 0) {
-		$stepchar.=$reste . 's';	
+		$stepchar.=$reste . 's';
 	  }
 	return $stepchar;
 }
@@ -486,6 +537,8 @@ sub create_rrdgraph_tempout {
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
     $rrd_dir =~ s/:/\\\\\:/g;
+    my $rrd_format = $config_parms{weather_graph_format} ;
+    tr/A-Z/a-z/ for $rrd_format ;
 
     $tabgtime =  [
   ['6hour',  'Temperatures last 6 hours','--x-grid","MINUTE:10:HOUR:1:MINUTE:30:0:%H\:%M',
@@ -528,74 +581,74 @@ for $celgtime (@$tabgtime) {
      $datapoint = $#$array + 1;
      $starttime = localtime($start);
 
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_tempout_$celgtime->[0].png",
-"--title", "$celgtime->[1]", 
-"--height","$height", 
-"--width", "$width", 
-"--imgformat", "PNG", 
-"--units-exponent", "0", 
+     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_tempout_$celgtime->[0].$rrd_format",
+"--title", "$celgtime->[1]",
+"--height","$height",
+"--width", "$width",
+"--imgformat", "$config_parms{weather_graph_format}",
+"--units-exponent", "0",
 "--alt-autoscale",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
-^ 
+^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 . ($RRD_LAZY ? "\"--lazy\"," : '')
 . "\"--vertical-label\","
-. ($config_parms{weather_uom_temp} eq 'C' ? "\"Degrees Celcius\"," : "\"Degrees Fahrenheit\",")
+. ($config_parms{weather_uom_temp} eq 'C' ? "\"Degrees Celsius\"," : "\"Degrees Fahrenheit\",")
 . qq^"$celgtime->[2]",
-"DEF:var=$rrd_dir:temp:AVERAGE", 
+"DEF:var=$rrd_dir:temp:AVERAGE",
 ^
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fvar=var,32,-,5,9,/,*\"," : "\"CDEF:fvar=var\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fvar=var,32,-,5,9,/,*\"," : "\"CDEF:fvar=var\",")
 ."\"$celgtime->[3]\","
 ."\"DEF:mintemp=$rrd_dir:temp:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintemp=mintemp,32,-,5,9,/,*\"," : "\"CDEF:fmintemp=mintemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintemp=mintemp,32,-,5,9,/,*\"," : "\"CDEF:fmintemp=mintemp\",")
 ."\"DEF:maxtemp=$rrd_dir:temp:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtemp=maxtemp,32,-,5,9,/,*\"," : "\"CDEF:fmaxtemp=maxtemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtemp=maxtemp,32,-,5,9,/,*\"," : "\"CDEF:fmaxtemp=maxtemp\",")
 ."\"DEF:mindew=$rrd_dir:dew:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmindew=mindew,32,-,5,9,/,*\"," : "\"CDEF:fmindew=mindew\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmindew=mindew,32,-,5,9,/,*\"," : "\"CDEF:fmindew=mindew\",")
 ."\"DEF:maxdew=$rrd_dir:dew:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxdew=maxdew,32,-,5,9,/,*\"," : "\"CDEF:fmaxdew=maxdew\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxdew=maxdew,32,-,5,9,/,*\"," : "\"CDEF:fmaxdew=maxdew\",")
 ."\"DEF:dew=$rrd_dir:dew:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fdew=dew,32,-,5,9,/,*\"," : "\"CDEF:fdew=dew\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fdew=dew,32,-,5,9,/,*\"," : "\"CDEF:fdew=dew\",")
 ."\"DEF:chill=$rrd_dir:chill:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fchill=chill,32,-,5,9,/,*\"," : "\"CDEF:fchill=chill\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fchill=chill,32,-,5,9,/,*\"," : "\"CDEF:fchill=chill\",")
 ."\"DEF:minchill=$rrd_dir:chill:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminchill=minchill,32,-,5,9,/,*\"," : "\"CDEF:fminchill=minchill\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminchill=minchill,32,-,5,9,/,*\"," : "\"CDEF:fminchill=minchill\",")
 ."\"DEF:maxchill=$rrd_dir:chill:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxchill=maxchill,32,-,5,9,/,*\"," : "\"CDEF:fmaxchill=maxchill\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxchill=maxchill,32,-,5,9,/,*\"," : "\"CDEF:fmaxchill=maxchill\",")
 ."\"DEF:minintemp=$rrd_dir:intemp:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminintemp=minintemp,32,-,5,9,/,*\"," : "\"CDEF:fminintemp=minintemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminintemp=minintemp,32,-,5,9,/,*\"," : "\"CDEF:fminintemp=minintemp\",")
 ."\"DEF:maxintemp=$rrd_dir:intemp:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxintemp=maxintemp,32,-,5,9,/,*\"," : "\"CDEF:fmaxintemp=maxintemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxintemp=maxintemp,32,-,5,9,/,*\"," : "\"CDEF:fmaxintemp=maxintemp\",")
 ."\"DEF:intemp=$rrd_dir:intemp:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fintemp=intemp,32,-,5,9,/,*\"," : "\"CDEF:fintemp=intemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fintemp=intemp,32,-,5,9,/,*\"," : "\"CDEF:fintemp=intemp\",")
 . qq^
 "CDEF:fdeltachill=fvar,fminchill,-",
-"CDEF:wipeout=var,UN,INF,UNKN,IF", 
-"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
+"CDEF:wipeout=var,UN,INF,UNKN,IF",
+"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 ^
 . ($config_parms{weather_uom_temp} eq 'C' ? "\"HRULE:0#$colorzero\",":"\"HRULE:32#$colorzero\",")
 . qq^
 "AREA:fmaxtemp#$colortemp:Outdoor temperature",
 "AREA:fmintemp#$colortemp",
-"GPRINT:fmintemp:MIN:Min  \\\\: %5.1lf", 
-"GPRINT:fmaxtemp:MAX:Max  \\\\: %5.1lf", 
-"GPRINT:fvar:AVERAGE:Avg \\\\: %5.1lf", 
+"GPRINT:fmintemp:MIN:Min  \\\\: %5.1lf",
+"GPRINT:fmaxtemp:MAX:Max  \\\\: %5.1lf",
+"GPRINT:fvar:AVERAGE:Avg \\\\: %5.1lf",
 "GPRINT:fvar:LAST:Last    \\\\: %5.1lf\\\\n",
 
-"AREA:fminchill#$colorwhite", 
+"AREA:fminchill#$colorwhite",
 "STACK:fdeltachill#$colorwchill:Wind Chill         ",
-"GPRINT:fminchill:MIN:Min  \\\\: %5.1lf", 
-"GPRINT:fmaxchill:MAX:Max  \\\\: %5.1lf", 
-"GPRINT:fchill:AVERAGE:Avg \\\\: %5.1lf", 
+"GPRINT:fminchill:MIN:Min  \\\\: %5.1lf",
+"GPRINT:fmaxchill:MAX:Max  \\\\: %5.1lf",
+"GPRINT:fchill:AVERAGE:Avg \\\\: %5.1lf",
 "GPRINT:fchill:LAST:Last    \\\\: %5.1lf\\\\n",
 
-"LINE2:fdew#$colordew:Dew Point          ", 
-"GPRINT:fmindew:MIN:Min  \\\\: %5.1lf", 
-"GPRINT:fmaxdew:MAX:Max  \\\\: %5.1lf", 
-"GPRINT:fdew:AVERAGE:Avg \\\\: %5.1lf", 
+"LINE2:fdew#$colordew:Dew Point          ",
+"GPRINT:fmindew:MIN:Min  \\\\: %5.1lf",
+"GPRINT:fmaxdew:MAX:Max  \\\\: %5.1lf",
+"GPRINT:fdew:AVERAGE:Avg \\\\: %5.1lf",
 "GPRINT:fdew:LAST:Last    \\\\: %5.1lf\\\\n",
 
 "LINE2:fvar#$colortempavg:Average outdoor temperature",
@@ -636,6 +689,8 @@ sub create_rrdgraph_tempin {
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
+    my $rrd_format = $config_parms{weather_graph_format} ;
+    tr/A-Z/a-z/ for $rrd_format ;
 
     my $time1;
     my $time2;
@@ -704,191 +759,191 @@ for $celgtime (@$tabgtime) {
      $datapoint = $#$array + 1;
      $starttime = localtime($start);
 
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_tempin_$celgtime->[0].png",
-"--title", "$celgtime->[1]", 
-"--height","$height", 
-"--width", "$width", 
-"--imgformat", "PNG", 
-"--units-exponent", "0", 
+     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_tempin_$celgtime->[0].$rrd_format",
+"--title", "$celgtime->[1]",
+"--height","$height",
+"--width", "$width",
+"--imgformat", "$config_parms{weather_graph_format}",
+"--units-exponent", "0",
 "--alt-autoscale",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
-^ 
+^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 . ($RRD_LAZY ? "\"--lazy\"," : '')
 . "\"--vertical-label\","
-. ($config_parms{weather_uom_temp} eq 'C' ? "\"Degrees Celcius\"," : "\"Degrees Fahrenheit\",")
+. ($config_parms{weather_uom_temp} eq 'C' ? "\"Degrees Celsius\"," : "\"Degrees Fahrenheit\",")
 . qq^"$celgtime->[2]",
-"DEF:var=$rrd_dir:temp:AVERAGE", 
+"DEF:var=$rrd_dir:temp:AVERAGE",
 ^
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fvar=var,32,-,5,9,/,*\"," : "\"CDEF:fvar=var\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fvar=var,32,-,5,9,/,*\"," : "\"CDEF:fvar=var\",")
 ."\"$celgtime->[3]\","
 ."\"DEF:mintemp=$rrd_dir:temp:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintemp=mintemp,32,-,5,9,/,*\"," : "\"CDEF:fmintemp=mintemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintemp=mintemp,32,-,5,9,/,*\"," : "\"CDEF:fmintemp=mintemp\",")
 ."\"DEF:maxtemp=$rrd_dir:temp:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtemp=maxtemp,32,-,5,9,/,*\"," : "\"CDEF:fmaxtemp=maxtemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtemp=maxtemp,32,-,5,9,/,*\"," : "\"CDEF:fmaxtemp=maxtemp\",")
 
 ."\"DEF:minintemp=$rrd_dir:intemp:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminintemp=minintemp,32,-,5,9,/,*\"," : "\"CDEF:fminintemp=minintemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminintemp=minintemp,32,-,5,9,/,*\"," : "\"CDEF:fminintemp=minintemp\",")
 ."\"DEF:maxintemp=$rrd_dir:intemp:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxintemp=maxintemp,32,-,5,9,/,*\"," : "\"CDEF:fmaxintemp=maxintemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxintemp=maxintemp,32,-,5,9,/,*\"," : "\"CDEF:fmaxintemp=maxintemp\",")
 ."\"DEF:intemp=$rrd_dir:intemp:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fintemp=intemp,32,-,5,9,/,*\"," : "\"CDEF:fintemp=intemp\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fintemp=intemp,32,-,5,9,/,*\"," : "\"CDEF:fintemp=intemp\",")
 
 ."\"DEF:mintempspare1=$rrd_dir:tempspare1:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare1=mintempspare1,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare1=mintempspare1\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare1=mintempspare1,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare1=mintempspare1\",")
 ."\"DEF:maxtempspare1=$rrd_dir:tempspare1:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare1=maxtempspare1,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare1=maxtempspare1\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare1=maxtempspare1,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare1=maxtempspare1\",")
 ."\"DEF:tempspare1=$rrd_dir:tempspare1:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare1=tempspare1,32,-,5,9,/,*\"," : "\"CDEF:ftempspare1=tempspare1\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare1=tempspare1,32,-,5,9,/,*\"," : "\"CDEF:ftempspare1=tempspare1\",")
 
 ."\"DEF:mintempspare2=$rrd_dir:tempspare2:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare2=mintempspare2,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare2=mintempspare2\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare2=mintempspare2,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare2=mintempspare2\",")
 ."\"DEF:maxtempspare2=$rrd_dir:tempspare2:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare2=maxtempspare2,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare2=maxtempspare2\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare2=maxtempspare2,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare2=maxtempspare2\",")
 ."\"DEF:tempspare2=$rrd_dir:tempspare2:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare2=tempspare2,32,-,5,9,/,*\"," : "\"CDEF:ftempspare2=tempspare2\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare2=tempspare2,32,-,5,9,/,*\"," : "\"CDEF:ftempspare2=tempspare2\",")
 
 ."\"DEF:mintempspare3=$rrd_dir:tempspare3:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare3=mintempspare3,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare3=mintempspare3\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare3=mintempspare3,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare3=mintempspare3\",")
 ."\"DEF:maxtempspare3=$rrd_dir:tempspare3:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare3=maxtempspare3,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare3=maxtempspare3\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare3=maxtempspare3,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare3=maxtempspare3\",")
 ."\"DEF:tempspare3=$rrd_dir:tempspare3:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare3=tempspare3,32,-,5,9,/,*\"," : "\"CDEF:ftempspare3=tempspare3\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare3=tempspare3,32,-,5,9,/,*\"," : "\"CDEF:ftempspare3=tempspare3\",")
 
 ."\"DEF:mintempspare4=$rrd_dir:tempspare4:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare4=mintempspare4,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare4=mintempspare4\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare4=mintempspare4,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare4=mintempspare4\",")
 ."\"DEF:maxtempspare4=$rrd_dir:tempspare4:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare4=maxtempspare4,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare4=maxtempspare4\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare4=maxtempspare4,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare4=maxtempspare4\",")
 ."\"DEF:tempspare4=$rrd_dir:tempspare4:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare4=tempspare4,32,-,5,9,/,*\"," : "\"CDEF:ftempspare4=tempspare4\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare4=tempspare4,32,-,5,9,/,*\"," : "\"CDEF:ftempspare4=tempspare4\",")
 
 ."\"DEF:mintempspare5=$rrd_dir:tempspare5:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare5=mintempspare5,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare5=mintempspare5\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare5=mintempspare5,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare5=mintempspare5\",")
 ."\"DEF:maxtempspare5=$rrd_dir:tempspare5:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare5=maxtempspare5,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare5=maxtempspare5\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare5=maxtempspare5,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare5=maxtempspare5\",")
 ."\"DEF:tempspare5=$rrd_dir:tempspare5:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare5=tempspare5,32,-,5,9,/,*\"," : "\"CDEF:ftempspare5=tempspare5\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare5=tempspare5,32,-,5,9,/,*\"," : "\"CDEF:ftempspare5=tempspare5\",")
 
 ."\"DEF:mintempspare6=$rrd_dir:tempspare6:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare6=mintempspare6,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare6=mintempspare6\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare6=mintempspare6,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare6=mintempspare6\",")
 ."\"DEF:maxtempspare6=$rrd_dir:tempspare6:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare6=maxtempspare6,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare6=maxtempspare6\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare6=maxtempspare6,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare6=maxtempspare6\",")
 ."\"DEF:tempspare6=$rrd_dir:tempspare6:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare6=tempspare6,32,-,5,9,/,*\"," : "\"CDEF:ftempspare6=tempspare6\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare6=tempspare6,32,-,5,9,/,*\"," : "\"CDEF:ftempspare6=tempspare6\",")
 
 ."\"DEF:mintempspare7=$rrd_dir:tempspare7:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare7=mintempspare7,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare7=mintempspare7\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare7=mintempspare7,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare7=mintempspare7\",")
 ."\"DEF:maxtempspare7=$rrd_dir:tempspare7:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare7=maxtempspare7,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare7=maxtempspare7\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare7=maxtempspare7,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare7=maxtempspare7\",")
 ."\"DEF:tempspare7=$rrd_dir:tempspare7:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare7=tempspare7,32,-,5,9,/,*\"," : "\"CDEF:ftempspare7=tempspare7\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare7=tempspare7,32,-,5,9,/,*\"," : "\"CDEF:ftempspare7=tempspare7\",")
 
 ."\"DEF:mintempspare8=$rrd_dir:tempspare8:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare8=mintempspare8,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare8=mintempspare8\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare8=mintempspare8,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare8=mintempspare8\",")
 ."\"DEF:maxtempspare8=$rrd_dir:tempspare8:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare8=maxtempspare8,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare8=maxtempspare8\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare8=maxtempspare8,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare8=maxtempspare8\",")
 ."\"DEF:tempspare8=$rrd_dir:tempspare8:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare8=tempspare8,32,-,5,9,/,*\"," : "\"CDEF:ftempspare8=tempspare8\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare8=tempspare8,32,-,5,9,/,*\"," : "\"CDEF:ftempspare8=tempspare8\",")
 
 ."\"DEF:mintempspare9=$rrd_dir:tempspare9:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare9=mintempspare9,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare9=mintempspare9\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare9=mintempspare9,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare9=mintempspare9\",")
 ."\"DEF:maxtempspare9=$rrd_dir:tempspare9:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare9=maxtempspare9,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare9=maxtempspare9\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare9=maxtempspare9,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare9=maxtempspare9\",")
 ."\"DEF:tempspare9=$rrd_dir:tempspare9:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare9=tempspare9,32,-,5,9,/,*\"," : "\"CDEF:ftempspare9=tempspare9\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare9=tempspare9,32,-,5,9,/,*\"," : "\"CDEF:ftempspare9=tempspare9\",")
 
 ."\"DEF:mintempspare10=$rrd_dir:tempspare10:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare10=mintempspare10,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare10=mintempspare10\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare10=mintempspare10,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare10=mintempspare10\",")
 ."\"DEF:maxtempspare10=$rrd_dir:tempspare10:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare10=maxtempspare10,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare10=maxtempspare10\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxtempspare10=maxtempspare10,32,-,5,9,/,*\"," : "\"CDEF:fmaxtempspare10=maxtempspare10\",")
 ."\"DEF:tempspare10=$rrd_dir:tempspare10:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare10=tempspare10,32,-,5,9,/,*\"," : "\"CDEF:ftempspare10=tempspare10\",") 
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare10=tempspare10,32,-,5,9,/,*\"," : "\"CDEF:ftempspare10=tempspare10\",")
 
 . qq^
 #"CDEF:fdeltachill=fvar,fminchill,-",
-"CDEF:wipeout=var,UN,INF,UNKN,IF", 
-"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
+"CDEF:wipeout=var,UN,INF,UNKN,IF",
+"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 ^
 . ($config_parms{weather_uom_temp} eq 'C' ? "\"HRULE:0#$colorzero\",":"\"HRULE:32#$colorzero\",")
 
-. ($sensor_names{intemp} ? 
-	"\"LINE2:fintemp#990000:" . sprintf("%-${max}s",$sensor_names{intemp}) . "\"," 
-	."\"GPRINT:fminintemp:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxintemp:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:fintemp:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{intemp} ?
+	"\"LINE2:fintemp#990000:" . sprintf("%-${max}s",$sensor_names{intemp}) . "\","
+	."\"GPRINT:fminintemp:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxintemp:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:fintemp:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:fintemp:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare1} ? 
-	"\"LINE2:ftempspare1#FF0000:" . sprintf("%-${max}s",$sensor_names{tempspare1}) . "\"," 
-	."\"GPRINT:fmintempspare1:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare1:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare1:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare1} ?
+	"\"LINE2:ftempspare1#FF0000:" . sprintf("%-${max}s",$sensor_names{tempspare1}) . "\","
+	."\"GPRINT:fmintempspare1:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare1:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare1:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare1:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare2} ? 
-	"\"LINE2:ftempspare2#990099:" . sprintf("%-${max}s",$sensor_names{tempspare2}) . "\"," 
-	."\"GPRINT:fmintempspare2:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare2:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare2:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare2} ?
+	"\"LINE2:ftempspare2#990099:" . sprintf("%-${max}s",$sensor_names{tempspare2}) . "\","
+	."\"GPRINT:fmintempspare2:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare2:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare2:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare2:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare3} ? 
-	"\"LINE2:ftempspare3#CC0099:" . sprintf("%-${max}s",$sensor_names{tempspare3}) . "\"," 
-	."\"GPRINT:fmintempspare3:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare3:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare3:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare3} ?
+	"\"LINE2:ftempspare3#CC0099:" . sprintf("%-${max}s",$sensor_names{tempspare3}) . "\","
+	."\"GPRINT:fmintempspare3:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare3:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare3:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare3:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare4} ? 
-	"\"LINE2:ftempspare4#CC33CC:" . sprintf("%-${max}s",$sensor_names{tempspare4}) . "\"," 
-	."\"GPRINT:fmintempspare4:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare4:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare4:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare4} ?
+	"\"LINE2:ftempspare4#CC33CC:" . sprintf("%-${max}s",$sensor_names{tempspare4}) . "\","
+	."\"GPRINT:fmintempspare4:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare4:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare4:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare4:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare5} ? 
-	"\"LINE2:ftempspare5#FF00FF:" . sprintf("%-${max}s",$sensor_names{tempspare5}) . "\"," 
-	."\"GPRINT:fmintempspare5:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare5:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare5:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare5} ?
+	"\"LINE2:ftempspare5#FF00FF:" . sprintf("%-${max}s",$sensor_names{tempspare5}) . "\","
+	."\"GPRINT:fmintempspare5:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare5:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare5:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare5:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare6} ? 
-	"\"LINE2:ftempspare6#FF99CC:" . sprintf("%-${max}s",$sensor_names{tempspare6}) . "\"," 
-	."\"GPRINT:fmintempspare6:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare6:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare6:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare6} ?
+	"\"LINE2:ftempspare6#FF99CC:" . sprintf("%-${max}s",$sensor_names{tempspare6}) . "\","
+	."\"GPRINT:fmintempspare6:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare6:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare6:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare6:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare7} ? 
-	"\"LINE2:ftempspare7#99FF00:" . sprintf("%-${max}s",$sensor_names{tempspare7}) . "\"," 
-	."\"GPRINT:fmintempspare7:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare7:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare7:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare7} ?
+	"\"LINE2:ftempspare7#99FF00:" . sprintf("%-${max}s",$sensor_names{tempspare7}) . "\","
+	."\"GPRINT:fmintempspare7:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare7:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare7:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare7:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare8} ? 
-	"\"LINE2:ftempspare8#006600:" . sprintf("%-${max}s",$sensor_names{tempspare8}) . "\"," 
-	."\"GPRINT:fmintempspare8:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare8:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare8:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare8} ?
+	"\"LINE2:ftempspare8#006600:" . sprintf("%-${max}s",$sensor_names{tempspare8}) . "\","
+	."\"GPRINT:fmintempspare8:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare8:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare8:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare8:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare9} ? 
-	"\"LINE2:ftempspare9#66FFFF:" . sprintf("%-${max}s",$sensor_names{tempspare9}) . "\"," 
-	."\"GPRINT:fmintempspare9:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare9:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare9:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare9} ?
+	"\"LINE2:ftempspare9#66FFFF:" . sprintf("%-${max}s",$sensor_names{tempspare9}) . "\","
+	."\"GPRINT:fmintempspare9:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare9:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare9:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare9:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{tempspare10} ? 
-	"\"LINE2:ftempspare10#0000CC:" . sprintf("%-${max}s",$sensor_names{tempspare10}) . "\"," 
-	."\"GPRINT:fmintempspare10:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:fmaxtempspare10:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:ftempspare10:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{tempspare10} ?
+	"\"LINE2:ftempspare10#0000CC:" . sprintf("%-${max}s",$sensor_names{tempspare10}) . "\","
+	."\"GPRINT:fmintempspare10:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxtempspare10:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:ftempspare10:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare10:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . qq^
@@ -926,6 +981,8 @@ sub create_rrdgraph_winddir {
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
+    my $rrd_format = $config_parms{weather_graph_format} ;
+    tr/A-Z/a-z/ for $rrd_format ;
 
     my $time1;
     my $time2;
@@ -980,34 +1037,34 @@ for $celgtime (@$tabgtime) {
      $datapoint = $#$array + 1;
      $starttime = localtime($start);
 
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_winddir_$celgtime->[0].png",
-"--title", "$celgtime->[1]", 
-"--height","$height", 
-"--width", "$width", 
-"--imgformat", "PNG", 
-"--units-exponent", "0", 
+     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_winddir_$celgtime->[0].$rrd_format",
+"--title", "$celgtime->[1]",
+"--height","$height",
+"--width", "$width",
+"--imgformat", "$config_parms{weather_graph_format}",
+"--units-exponent", "0",
 "--alt-autoscale",
 "-l", "0","-u","360",
-"--y-grid" ,"30:1",
+"--y-grid" ,"45:1",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
-^ 
+^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 . ($RRD_LAZY ? "\"--lazy\"," : '')
 . qq^"--vertical-label", "Degrees",
 "$celgtime->[2]",	# start seconds
 
-"DEF:var=$rrd_dir:dir:AVERAGE", 
+"DEF:var=$rrd_dir:dir:AVERAGE",
 "CDEF:fvar=var",
 "$celgtime->[3]",
-"DEF:mindir=$rrd_dir:dir:MIN", 
+"DEF:mindir=$rrd_dir:dir:MIN",
 "CDEF:fmindir=mindir",
-"DEF:maxdir=$rrd_dir:dir:MAX", 
+"DEF:maxdir=$rrd_dir:dir:MAX",
 "CDEF:fmaxdir=maxdir",
 
-"CDEF:wipeout=var,UN,INF,UNKN,IF", 
-"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
+"CDEF:wipeout=var,UN,INF,UNKN,IF",
+"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 
 "LINE2:fvar#$colormoydir:Average direction",
@@ -1055,8 +1112,10 @@ sub create_rrdgraph_humout {
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
+    my $rrd_format = $config_parms{weather_graph_format} ;
+    tr/A-Z/a-z/ for $rrd_format ;
 
-    
+
     my $time1;
     my $time2;
     my $err;
@@ -1110,32 +1169,32 @@ for $celgtime (@$tabgtime) {
      $datapoint = $#$array + 1;
      $starttime = localtime($start);
 
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_humout_$celgtime->[0].png",
-"--title", "$celgtime->[1]", 
-"--height","$height", 
-"--width", "$width", 
-"--imgformat", "PNG", 
+     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_humout_$celgtime->[0].$rrd_format",
+"--title", "$celgtime->[1]",
+"--height","$height",
+"--width", "$width",
+"--imgformat", "$config_parms{weather_graph_format}",
 "--alt-autoscale",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
 "--lower-limit","0",
 "--upper-limit","100",
 "--y-grid", "5:2",
-^ 
+^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 . ($RRD_LAZY ? "\"--lazy\"," : '')
-. qq^"--vertical-label", "Percent %", 
+. qq^"--vertical-label", "Percent %",
 "$celgtime->[2]",
 
-"DEF:var=$rrd_dir:humid:AVERAGE", 
+"DEF:var=$rrd_dir:humid:AVERAGE",
 "CDEF:fvar=var",
 "$celgtime->[3]",
-"DEF:minhumid=$rrd_dir:humid:MIN", 
-"DEF:maxhumid=$rrd_dir:humid:MAX", 
+"DEF:minhumid=$rrd_dir:humid:MIN",
+"DEF:maxhumid=$rrd_dir:humid:MAX",
 
-"CDEF:wipeout=var,UN,INF,UNKN,IF", 
-"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
+"CDEF:wipeout=var,UN,INF,UNKN,IF",
+"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 
 "LINE2:var#$colormoyhumid:Average outdoor humidity\\\\n",
@@ -1189,6 +1248,8 @@ sub create_rrdgraph_humin {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $rrd_format = $config_parms{weather_graph_format} ;
+    tr/A-Z/a-z/ for $rrd_format ;
 
     my %sensor_names = @_;
 
@@ -1249,30 +1310,30 @@ for $celgtime (@$tabgtime) {
      $datapoint = $#$array + 1;
      $starttime = localtime($start);
 
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_humin_$celgtime->[0].png",
-"--title", "$celgtime->[1]", 
-"--height","$height", 
-"--width", "$width", 
-"--imgformat", "PNG", 
-"--units-exponent", "0", 
+     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_humin_$celgtime->[0].$rrd_format",
+"--title", "$celgtime->[1]",
+"--height","$height",
+"--width", "$width",
+"--imgformat", "$config_parms{weather_graph_format}",
+"--units-exponent", "0",
 "--alt-autoscale",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
 "--lower-limit","0",
 "--upper-limit","100",
 "--y-grid", "5:2",
-^ 
+^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 . ($RRD_LAZY ? "\"--lazy\"," : '')
 . "\"--vertical-label\","
 . "\"Percent %\","
 . qq^"$celgtime->[2]",
-"DEF:var=$rrd_dir:inhumid:AVERAGE", 
+"DEF:var=$rrd_dir:inhumid:AVERAGE",
 "CDEF:fvar=var",
 "$celgtime->[3]",
-"DEF:mininhumid=$rrd_dir:inhumid:MIN", 
-"DEF:maxinhumid=$rrd_dir:inhumid:MAX", 
+"DEF:mininhumid=$rrd_dir:inhumid:MIN",
+"DEF:maxinhumid=$rrd_dir:inhumid:MAX",
 
 "DEF:humidspare1=$rrd_dir:humidspare1:AVERAGE",
 "DEF:minhumidspare1=$rrd_dir:humidspare1:MIN",
@@ -1314,86 +1375,86 @@ for $celgtime (@$tabgtime) {
 "DEF:minhumidspare10=$rrd_dir:humidspare10:MIN",
 "DEF:maxhumidspare10=$rrd_dir:humidspare10:MAX",
 
-"CDEF:wipeout=var,UN,INF,UNKN,IF", 
-"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
+"CDEF:wipeout=var,UN,INF,UNKN,IF",
+"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 ^
 
-. ($sensor_names{inhumid} ? 
-	"\"LINE2:fvar#990000:" . sprintf("%-${max}s",$sensor_names{inhumid}) . "\"," 
-	."\"GPRINT:mininhumid:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxinhumid:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:fvar:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{inhumid} ?
+	"\"LINE2:fvar#990000:" . sprintf("%-${max}s",$sensor_names{inhumid}) . "\","
+	."\"GPRINT:mininhumid:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxinhumid:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:fvar:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:fvar:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare1} ? 
-	"\"LINE2:humidspare1#FF0000:" . sprintf("%-${max}s",$sensor_names{humidspare1}) . "\"," 
-	."\"GPRINT:minhumidspare1:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare1:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare1:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare1} ?
+	"\"LINE2:humidspare1#FF0000:" . sprintf("%-${max}s",$sensor_names{humidspare1}) . "\","
+	."\"GPRINT:minhumidspare1:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare1:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare1:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare1:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare2} ? 
-	"\"LINE2:humidspare2#990099:" . sprintf("%-${max}s",$sensor_names{humidspare2}) . "\"," 
-	."\"GPRINT:minhumidspare2:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare2:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare2:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare2} ?
+	"\"LINE2:humidspare2#990099:" . sprintf("%-${max}s",$sensor_names{humidspare2}) . "\","
+	."\"GPRINT:minhumidspare2:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare2:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare2:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare2:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare3} ? 
-	"\"LINE2:humidspare3#CC0099:" . sprintf("%-${max}s",$sensor_names{humidspare3}) . "\"," 
-	."\"GPRINT:minhumidspare3:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare3:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare3:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare3} ?
+	"\"LINE2:humidspare3#CC0099:" . sprintf("%-${max}s",$sensor_names{humidspare3}) . "\","
+	."\"GPRINT:minhumidspare3:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare3:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare3:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare3:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare4} ? 
-	"\"LINE2:humidspare4#CC33CC:" . sprintf("%-${max}s",$sensor_names{humidspare4}) . "\"," 
-	."\"GPRINT:minhumidspare4:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare4:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare4:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare4} ?
+	"\"LINE2:humidspare4#CC33CC:" . sprintf("%-${max}s",$sensor_names{humidspare4}) . "\","
+	."\"GPRINT:minhumidspare4:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare4:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare4:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare4:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare5} ? 
-	"\"LINE2:humidspare5#FF00FF:" . sprintf("%-${max}s",$sensor_names{humidspare5}) . "\"," 
-	."\"GPRINT:minhumidspare5:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare5:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare5:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare5} ?
+	"\"LINE2:humidspare5#FF00FF:" . sprintf("%-${max}s",$sensor_names{humidspare5}) . "\","
+	."\"GPRINT:minhumidspare5:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare5:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare5:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare5:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare6} ? 
-	"\"LINE2:humidspare6#FF99CC:" . sprintf("%-${max}s",$sensor_names{humidspare6}) . "\"," 
-	."\"GPRINT:minhumidspare6:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare6:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare6:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare6} ?
+	"\"LINE2:humidspare6#FF99CC:" . sprintf("%-${max}s",$sensor_names{humidspare6}) . "\","
+	."\"GPRINT:minhumidspare6:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare6:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare6:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare6:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare7} ? 
-	"\"LINE2:humidspare7#99FF00:" . sprintf("%-${max}s",$sensor_names{humidspare7}) . "\"," 
-	."\"GPRINT:minhumidspare7:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare7:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare7:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare7} ?
+	"\"LINE2:humidspare7#99FF00:" . sprintf("%-${max}s",$sensor_names{humidspare7}) . "\","
+	."\"GPRINT:minhumidspare7:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare7:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare7:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare7:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare8} ? 
-	"\"LINE2:humidspare8#006600:" . sprintf("%-${max}s",$sensor_names{humidspare8}) . "\"," 
-	."\"GPRINT:minhumidspare8:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare8:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare8:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare8} ?
+	"\"LINE2:humidspare8#006600:" . sprintf("%-${max}s",$sensor_names{humidspare8}) . "\","
+	."\"GPRINT:minhumidspare8:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare8:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare8:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare8:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare9} ? 
-	"\"LINE2:humidspare9#66FFFF:" . sprintf("%-${max}s",$sensor_names{humidspare9}) . "\"," 
-	."\"GPRINT:minhumidspare9:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare9:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare9:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare9} ?
+	"\"LINE2:humidspare9#66FFFF:" . sprintf("%-${max}s",$sensor_names{humidspare9}) . "\","
+	."\"GPRINT:minhumidspare9:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare9:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare9:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare9:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
-. ($sensor_names{humidspare10} ? 
-	"\"LINE2:humidspare10#0000CC:" . sprintf("%-${max}s",$sensor_names{humidspare10}) . "\"," 
-	."\"GPRINT:minhumidspare10:MIN:Min \\\\: %5.1lf\"," 
-	."\"GPRINT:maxhumidspare10:MAX:Max \\\\: %5.1lf\"," 
-	."\"GPRINT:humidspare10:AVERAGE:Avg \\\\: %5.1lf\"," 
+. ($sensor_names{humidspare10} ?
+	"\"LINE2:humidspare10#0000CC:" . sprintf("%-${max}s",$sensor_names{humidspare10}) . "\","
+	."\"GPRINT:minhumidspare10:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:maxhumidspare10:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:humidspare10:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare10:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . qq^
@@ -1433,8 +1494,10 @@ sub create_rrdgraph_press {
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
-    
-    
+    my $rrd_format = $config_parms{weather_graph_format} ;
+    tr/A-Z/a-z/ for $rrd_format ;
+
+
     my $time1;
     my $time2;
     my $err;
@@ -1446,7 +1509,7 @@ sub create_rrdgraph_press {
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
     $rrd_dir =~ s/:/\\\\\:/g;
-    
+
         $tabgtime =  [
   ['6hour',  'Barometric pressure last 6 hours','--x-grid","MINUTE:10:HOUR:1:MINUTE:30:0:%H\:%M',
    'CDEF:background=var,POP,LTIME,1200,%,600,LE,INF,UNKN,IF',"24000"],
@@ -1488,16 +1551,16 @@ for $celgtime (@$tabgtime) {
      $datapoint = $#$array + 1;
      $starttime = localtime($start);
 
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_press_$celgtime->[0].png",
-"--title", "$celgtime->[1]", 
-"--height","$height", 
-"--width", "$width", 
-"--imgformat", "PNG", 
-"--units-exponent", "0", 
+     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_press_$celgtime->[0].$rrd_format",
+"--title", "$celgtime->[1]",
+"--height","$height",
+"--width", "$width",
+"--imgformat", "$config_parms{weather_graph_format}",
+"--units-exponent", "0",
 "--alt-autoscale",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
-^ 
+^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 . ($RRD_LAZY ? "\"--lazy\"," : '')
@@ -1506,17 +1569,17 @@ for $celgtime (@$tabgtime) {
 . qq^"$celgtime->[2]",
 "DEF:var=$rrd_dir:press:AVERAGE",
 ^
-.($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fvar=var,0.029529987508,/\"," : "\"CDEF:fvar=var\",") 
+.($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fvar=var,0.029529987508,/\"," : "\"CDEF:fvar=var\",")
 
 ."\"$celgtime->[3]\","
 ."\"DEF:minpress=$rrd_dir:press:MIN\","
-.($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fminpress=minpress,0.029529987508,/\"," : "\"CDEF:fminpress=minpress\",") 
+.($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fminpress=minpress,0.029529987508,/\"," : "\"CDEF:fminpress=minpress\",")
 ."\"DEF:maxpress=$rrd_dir:press:MAX\","
-.($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fmaxpress=maxpress,0.029529987508,/\"," : "\"CDEF:fmaxpress=maxpress\",") 
+.($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fmaxpress=maxpress,0.029529987508,/\"," : "\"CDEF:fmaxpress=maxpress\",")
 ."\"CDEF:seafvar=fvar," . $config_parms{altitude} . "," . $config_parms{ratio_sea_baro} . ",3.2808399,*,/,+\","
 . qq^
-"CDEF:wipeout=var,UN,INF,UNKN,IF", 
-"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
+"CDEF:wipeout=var,UN,INF,UNKN,IF",
+"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 
 "LINE2:fvar#$colormoypress:Average absolute barometric pressure\\\\n",
@@ -1556,7 +1619,7 @@ sub create_rrdgraph_windspeed {
     my $create_graph;
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
-    
+
     my $coloraltbg = 'EEEEEE';		# alternating (with white) background color
     my $colormoyspeed = 'ff0000';		# color of primary variable average line (red)
     my $colorna = 'C0C0C0';	# color for unknown area or 0 for gaps (barre noire verticale)
@@ -1566,7 +1629,9 @@ sub create_rrdgraph_windspeed {
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
-    
+    my $rrd_format = $config_parms{weather_graph_format} ;
+    tr/A-Z/a-z/ for $rrd_format ;
+
     my $time1;
     my $time2;
     my $err;
@@ -1578,7 +1643,7 @@ sub create_rrdgraph_windspeed {
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
     $rrd_dir =~ s/:/\\\\\:/g;
-    
+
         $tabgtime =  [
   ['6hour',  'Wind speed last 6 hours','--x-grid","MINUTE:10:HOUR:1:MINUTE:30:0:%H\:%M',
    'CDEF:background=var,POP,LTIME,1200,%,600,LE,INF,UNKN,IF',"24000"],
@@ -1620,34 +1685,34 @@ for $celgtime (@$tabgtime) {
      $datapoint = $#$array + 1;
      $starttime = localtime($start);
 
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_windspeed_$celgtime->[0].png",
-"--title", "$celgtime->[1]", 
-"--height","$height", 
-"--width", "$width", 
-"--imgformat", "PNG", 
-"--units-exponent", "0", 
+     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_windspeed_$celgtime->[0].$rrd_format",
+"--title", "$celgtime->[1]",
+"--height","$height",
+"--width", "$width",
+"--imgformat", "$config_parms{weather_graph_format}",
+"--units-exponent", "0",
 "--alt-autoscale",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
-^ 
+^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 . ($RRD_LAZY ? "\"--lazy\"," : '')
 . "\"--vertical-label\","
-. ($config_parms{weather_uom_wind} eq 'kph' ? "\"Killometers per hour (kph)\"," : "\"Miles per hour (mph)\",")
+. ($config_parms{weather_uom_wind} eq 'kph' ? "\"Kilometers per hour (kph)\"," : $config_parms{weather_uom_wind} eq 'm/s' ? "Meters per second (m/s)\"," : "\"Miles per hour (mph)\",")
 . qq^"$celgtime->[2]",
 "DEF:var=$rrd_dir:speed:AVERAGE",
 ^
-.($config_parms{weather_uom_wind} eq 'kph' ? "\"CDEF:fvar=var,1.609344,*\"," : "\"CDEF:fvar=var\",") 
+.($config_parms{weather_uom_wind} eq 'kph' ? "\"CDEF:fvar=var,1.609344,*\"," : $config_parms{weather_uom_wind} eq 'm/s' ? "\"CDEF:fvar=var,0.23694,/\"," : "\"CDEF:fvar=var\",")
 
 ."\"$celgtime->[3]\","
 ."\"DEF:minspeed=$rrd_dir:speed:MIN\","
-.($config_parms{weather_uom_wind} eq 'kph' ? "\"CDEF:fminspeed=minspeed,1.609344,*\"," : "\"CDEF:fminspeed=minspeed\",") 
+.($config_parms{weather_uom_wind} eq 'kph' ? "\"CDEF:fminspeed=minspeed,1.609344,*\"," : $config_parms{weather_uom_wind} eq 'm/s' ? "\"CDEF:fminspeed=minspeed,0.23694,/\"," : "\"CDEF:fminspeed=minspeed\",")
 ."\"DEF:maxspeed=$rrd_dir:speed:MAX\","
-.($config_parms{weather_uom_wind} eq 'kph' ? "\"CDEF:fmaxspeed=maxspeed,1.609344,*\"," : "\"CDEF:fmaxspeed=maxspeed\",") 
+.($config_parms{weather_uom_wind} eq 'kph' ? "\"CDEF:fmaxspeed=maxspeed,1.609344,*\"," : $config_parms{weather_uom_wind} eq 'm/s' ? "\"CDEF:fmaxpeed=maxpeed,0.23694,/\"," : "\"CDEF:fmaxspeed=maxspeed\",")
 . qq^
-"CDEF:wipeout=var,UN,INF,UNKN,IF", 
-"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
+"CDEF:wipeout=var,UN,INF,UNKN,IF",
+"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 
 "LINE2:fvar#$colormoyspeed:Average wind speed\\\\n",
@@ -1686,7 +1751,7 @@ sub create_rrdgraph_raintotal {
     my $create_graph;
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
-    
+
     my $coloraltbg = 'EEEEEE';		# alternating (with white) background color
     my $colormoyrain = 'ff0000';		# color of primary variable average line (red)
     my $colorna = 'C0C0C0';	# color for unknown area or 0 for gaps (barre noire verticale)
@@ -1697,7 +1762,9 @@ sub create_rrdgraph_raintotal {
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
-    
+    my $rrd_format = $config_parms{weather_graph_format} ;
+    tr/A-Z/a-z/ for $rrd_format ;
+
     my $time1;
     my $time2;
     my $err;
@@ -1751,16 +1818,16 @@ for $celgtime (@$tabgtime) {
      $datapoint = $#$array + 1;
      $starttime = localtime($start);
 
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_raintotal_$celgtime->[0].png",
-"--title", "$celgtime->[1]", 
-"--height","$height", 
-"--width", "$width", 
-"--imgformat", "PNG", 
-"--units-exponent", "0", 
-"--alt-autoscale",
+     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_raintotal_$celgtime->[0].$rrd_format",
+"--title", "$celgtime->[1]",
+"--height","$height",
+"--width", "$width",
+"--imgformat", "$config_parms{weather_graph_format}",
+"--units-exponent", "0",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
-^ 
+^
+#"--alt-autoscale",
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 . ($RRD_LAZY ? "\"--lazy\"," : '')
@@ -1769,19 +1836,20 @@ for $celgtime (@$tabgtime) {
 . qq^"$celgtime->[2]",
 "DEF:var=$rrd_dir:rain:AVERAGE",
 ^
-."\"--y-grid\","
-. ($config_parms{weather_uom_rain} eq 'mm' ? "\"10:5\"," : "\"0.25:4\",")
-.($config_parms{weather_uom_rain} eq 'mm' ? "\"CDEF:fvar=var,0.0393700787402,/\"," : "\"CDEF:fvar=var\",") 
+."\"--alt-y-grid\","
+#."\"--y-grid\","
+#. ($config_parms{weather_uom_rain} eq 'mm' ? "\"10:5\"," : "\"0.25:4\",")
+.($config_parms{weather_uom_rain} eq 'mm' ? "\"CDEF:fvar=var,0.0393700787402,/\"," : "\"CDEF:fvar=var\",")
 
 ."\"$celgtime->[3]\","
 ."\"DEF:minrain=$rrd_dir:rain:MIN\","
-.($config_parms{weather_uom_rain} eq 'mm' ? "\"CDEF:fminrain=minrain,0.0393700787402,/\"," : "\"CDEF:fminrain=minrain\",") 
+.($config_parms{weather_uom_rain} eq 'mm' ? "\"CDEF:fminrain=minrain,0.0393700787402,/\"," : "\"CDEF:fminrain=minrain\",")
 ."\"DEF:maxrain=$rrd_dir:rain:MAX\","
-.($config_parms{weather_uom_rain} eq 'mm' ? "\"CDEF:fmaxrain=maxrain,0.0393700787402,/\"," : "\"CDEF:fmaxrain=maxrain\",") 
+.($config_parms{weather_uom_rain} eq 'mm' ? "\"CDEF:fmaxrain=maxrain,0.0393700787402,/\"," : "\"CDEF:fmaxrain=maxrain\",")
 . qq^
 "CDEF:fsum=PREV,UN,0,PREV,IF,fmaxrain,fminrain,-,+",
-"CDEF:wipeout=var,UN,INF,UNKN,IF", 
-"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
+"CDEF:wipeout=var,UN,INF,UNKN,IF",
+"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 
 "AREA:fmaxrain#$colorrainmax:Total rain",
@@ -1831,7 +1899,7 @@ sub create_rrdgraph_rainrate {
     my $rrd_graph_dir;
     my $rrd_dir;
 
-    
+
     my $time1;
     my $time2;
     my $err;
@@ -1879,6 +1947,9 @@ for $celgtime (@$tabgtime) {
      $secs = $celgtime->[4];
      $time1  = $secs/600*int(($RRD_LAST-$secs)/($secs/600));
      $time2  = $secs/600*int(($RRD_LAST)/($secs/600));
+    my $rrd_format = $config_parms{weather_graph_format} ;
+    tr/A-Z/a-z/ for $rrd_format ;
+
 
      ($start,$step,$names,$array) = RRDs::fetch "$config_parms{weather_data_rrd}", "AVERAGE", "-s", "$time1", "-e", "$time2" ;
      $err=RRDs::error;
@@ -1886,19 +1957,21 @@ for $celgtime (@$tabgtime) {
      $datapoint = $#$array + 1;
      $starttime = localtime($start);
 
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_rainrate_$celgtime->[0].png",
-"--title", "$celgtime->[1]", 
-"--height","$height", 
-"--width", "$width", 
-"--imgformat", "PNG", 
-"--units-exponent", "0", 
+     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_rainrate_$celgtime->[0].$rrd_format",
+"--title", "$celgtime->[1]",
+"--height","$height",
+"--width", "$width",
+"--imgformat", "$config_parms{weather_graph_format}",
+"--units-exponent", "0",
 "--alt-autoscale",
 "-l", "0",
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
-^ 
-."\"--y-grid\","
-. ($config_parms{weather_uom_rainrate} eq 'mm/hr' ? "\"0.5:1\"," : "\"0.025:4\",")
+^
+#"--alt-autoscale",
+."\"--alt-y-grid\","
+#."\"--y-grid\","
+#. ($config_parms{weather_uom_rainrate} eq 'mm/hr' ? "\"0.5:1\"," : "\"0.025:4\",")
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
 . ($RRD_LAZY ? "\"--lazy\"," : '')
@@ -1907,16 +1980,16 @@ for $celgtime (@$tabgtime) {
 . qq^"$celgtime->[2]",
 "DEF:var=$rrd_dir:rate:AVERAGE",
 ^
-.($config_parms{weather_uom_rainrate} eq 'mm/hr' ? "\"CDEF:fvar=var,0.0393700787402,/\"," : "\"CDEF:fvar=var\",") 
+.($config_parms{weather_uom_rainrate} eq 'mm/hr' ? "\"CDEF:fvar=var,0.0393700787402,/\"," : "\"CDEF:fvar=var\",")
 
 ."\"$celgtime->[3]\","
 ."\"DEF:minrate=$rrd_dir:rate:MIN\","
-.($config_parms{weather_uom_rainrate} eq 'mm/hr' ? "\"CDEF:fminrate=minrate,0.0393700787402,/\"," : "\"CDEF:fminrate=minrate\",") 
+.($config_parms{weather_uom_rainrate} eq 'mm/hr' ? "\"CDEF:fminrate=minrate,0.0393700787402,/\"," : "\"CDEF:fminrate=minrate\",")
 ."\"DEF:maxrate=$rrd_dir:rate:MAX\","
-.($config_parms{weather_uom_rainrate} eq 'mm/hr' ? "\"CDEF:fmaxrate=maxrate,0.0393700787402,/\"," : "\"CDEF:fmaxrate=maxrate\",") 
+.($config_parms{weather_uom_rainrate} eq 'mm/hr' ? "\"CDEF:fmaxrate=maxrate,0.0393700787402,/\"," : "\"CDEF:fmaxrate=maxrate\",")
 . qq^
-"CDEF:wipeout=var,UN,INF,UNKN,IF", 
-"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF", 
+"CDEF:wipeout=var,UN,INF,UNKN,IF",
+"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 
 "AREA:fmaxrate#$colorrainmax:Rain rate",

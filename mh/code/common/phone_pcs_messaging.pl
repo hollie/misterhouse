@@ -5,13 +5,14 @@
 #    Original creation
 # 2002 Dec 23 - V 1.1  Steve Switzer
 #    Added support for Cingular
-#
+# 2005 Jan 2 - Joel Moore
+#    Added support for Nextel
 #
 
 #@ Allows sending of short messages to PCS cell phones.
 #@ This requires .INI parms for each phone:
 #@ phone_pcs_NAME_number=1234567890
-#@ phone_pcs_NAME_service=sprint  #(sprint or verizon)
+#@ phone_pcs_NAME_service=sprint  #(sprint, verizon, t-mobile, cingular or nextel)
 
 
 $pcs_phone_test = new Voice_Cmd 'Send test message to [pcs, P C S] phone';
@@ -38,6 +39,7 @@ sub send_pcs_phone {
   $addr="$pcsnumber\@vtext.com"                   if lc $pcsservice eq 'verizon';
   $addr="$pcsnumber\@tmomail.net"                 if lc $pcsservice eq 't-mobile';
   $addr="$pcsnumber\@mycingular.net"              if lc $pcsservice eq 'cingular';
+  $addr="$pcsnumber\@messaging.nextel.com"        if lc $pcsservice eq 'nextel';
   if ($addr eq '') {print_log "PCS ERROR: Service with name \"$pcsservice\" is not supported.";return;}
   net_mail_send(to => $addr, msg => $parms{msg}, subject => $parms{msg});
 }

@@ -16,6 +16,7 @@
 	<ul>
 
 		<li><a href="#changes_in_the_current_test_version">Changes in the current test version</a></li>
+		<li><a href="#version_2_97_posted_on_01_23_2005">Version 2.97 posted on 01/23/2005</a></li>
 		<li><a href="#version_2_96_posted_on_11_22_2004">Version 2.96 posted on 11/22/2004</a></li>
 		<li><a href="#version_2_95_posted_on_09_25_2004">Version 2.95 posted on 09/25/2004</a></li>
 		<li><a href="#version_2_94_posted_on_07_30_2004">Version 2.94 posted on 07/30/2004</a></li>
@@ -129,6 +130,62 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 (updated nightly) can be found
 <a href=http://misterhouse.net/mh/docs/updates.html>here, in the test release updates file</a>.<p><strong>New Features:</strong></p>
 <p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>
+</p>
+<h2><a name="version_2_97_posted_on_01_23_2005">Version 2.97 posted on 01/23/2005</a></h2>
+<p>Version 2.97 was just uploaded to:</p>
+<pre>
+  <a href="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</a></pre>
+<p><strong>New Features:</strong></p>
+<p>- Matthew Williams created web/bin/shopping_list.pl, now linked under a new web ia5 'events/calender' menu with a new shopping button.</p>
+<p>- David Norwood updated common/phone_minutes.pl to work with Tmobile (in addition to Sprint).</p>
+<p>- Pete Flaherty created code/common/audrey_control2.pl, which controls lights, screen, power, volume on multiple Audreys.</p>
+<p>- Added support for multiple Alpha LED displays.  See lib/Display_Alpha.pm for more info.  Also fixed a 2.96 bug with colors.</p>
+<p>- Jocelyn Brouillard created code/public/dsc_pc5401.pl DSC Alarm PC5401 Serial interface.</p>
+<p>- Jason Sharpee created code/public/weather_mos_forecast.pl to decode MOS forecast data.</p>
+<p>- Dominique Benoliel, with input from Tom Valdes, Clive Freedman, and Tine Gornik updated common/weather_rrd_update.pl.
+Updates include smarter $Reload, correct Wind Direction ratio, correct Rain Rate/Total,
+change Celcius with Celsius, and added check for $Weather{TempInternet}.</p>
+<p>- Matthew Williams also updated weather_rrd_update.pl to allow for metric units and negative dew points.
+He also added a bunch of metric related convert_* functions to bin/mh.  For a list, search for convert_ in docs/mh.txt</p>
+<p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>- Chris Barrett updated USB_UIRT.pm with debug updates.</p>
+<p>- Matthew Williams updated code/common/phone_logs.pl to allow for numbers without area codes.</p>
+<p>- Gianni Veloce made some updates to code/public/sms.pl .</p>
+<p>- Pete Flaherty updated weather_rrd_update.pl to allow for weather_rrd_format=GIF (defaults to PNG).</p>
+<p>- David Norwood updated weather_rrd_update.pl to fork when creating graphs, to avoid mh pauses, but this only works on non-windows boxes.</p>
+<p>- David Norwood noticed a 2.96 problem with set_output using open2 and not getting STDOUT results from Process_Item on Linux.</p>
+<p>- Fixed a 2.96 problem with sending internet messages with send_im.</p>
+<p>- Dan Puccio noticed a problem, caused by a bug in the which function, when mh was installed in installed in a /mh dir.</p>
+<p>- William Magill fixed the uptime calculation for OSx.</p>
+<p>- Greg Limming update common/xAP_command.pl to allow for targets and ackmsg attributes.</p>
+<p>- David Satterfield noticed that unquoted arguments using the web SUB function were treated as one argument instead of multiple arguments.</p>
+<p>- Neil Wrightson noticed odd problems on Windows when mhe.exe was used with the mh -log_file command line option.
+I tried fixing it, but it is something deep in the Windows PAR compiler, although Linux PAR works fine.
+So I took that option out of the documentation, since simple redirection (mh &gt; debug.log) works just as well
+and disabled it for windows mhe.exe users.</p>
+<p>- Jeff Bevis fixed a problem with an authorization check in web/bin/iniedit.pl</p>
+<p>- Updated lib/site/Geo/Weather.pm , to be compatable again with updated weather.com pages.</p>
+<p>- Rick Rolstin fixed a problem with frequent disconnects in common/voice_server.pl and public/voice_client.pl</p>
+<p>- Matthew Williams discovered that the 'admin password accepted' speak calls would cause problems with speak hooks.
+like in the Audrey code.   We already had print_log calls there, so we took out the speak calls.</p>
+<p>- Jeff Bevis noticed we broke X10 BRIGHT/DIM states in 2.96.</p>
+<p>- Larry Roudebush noticed that common/xAP_send.pl disabled local speech.</p>
+<p>- Werner Lane found a bug in common/deep_thought.pl that was causing a file access on each mh pass!</p>
+<p>- Werner Lane updated common/display_slimserver.pl to work with the new slimserver 5.4+ releases.</p>
+<p>- Werner Lane updated common/speech_clash.pl to allow for speech with the ' character.</p>
+<p>- Werner Lane also updated bin/mh to use am/pm on Time_Sun* parms if time_format==12</p>
+<p>- Matthew Williams added listing of X10_Item timers to the ``list all timers'' to common/timers.pl</p>
+<p>- Joel Moore added Nextel support to phone_pcs_messaging.pl.</p>
+<p>- Dominique Benoliel modified lib/weather_wmr968.pm
+to calculate the pressure at sea level with the mh parameters ``ratio_sea_baro'' parm
+and make metric conversions to load $Weather global variables in coherence with the ``weather_uom_...'' mh parameters.</p>
+<p>- Dominique Benoliel modified common/weather_upload.pl to send the pressure sea level and not the absolute pressure
+if using the wmr968 and to make some metric-&gt;english conversions if needed, according to the ``weather_uom_...'' parms.</p>
+<p>- Jason Sharpee and Kirk Bauer fixed lib/Light_Item.pm to fix a problem with Lights and Motion sensors without occupancy (would
+not stay on during motion sequences) and another problem with X10 Sync timer
+killing a light when it has occupancy as well.</p>
+<p>- Jason Sharpee also updated lib/Door_Item.pm to make door alarm repeatable (keep on nagging until door is closed).</p>
 <p>
 </p>
 <h2><a name="version_2_96_posted_on_11_22_2004">Version 2.96 posted on 11/22/2004</a></h2>

@@ -30,6 +30,12 @@ sub select_weather_graph {
 
 my $html = &html_header('Weather Station Graphs');
 
+$config_parms{weather_graph_format} = "PNG" unless $config_parms{weather_graph_format};
+tr/a-z/A-Z/ for $config_parms{weather_graph_format};
+	
+my $rrd_format = $config_parms{weather_graph_format} ;
+tr/A-Z/a-z/ for $rrd_format ;
+
 # lookup code for periods (code, description)
 my $tabperiod =  [['6hour','6 hours'],['12hour','12 hours'],['1day','1 day'],['2day','2 days'],
 	['1week','1 week'],['2week','2 week'],['1month','1 month'],['2month','2 months'],
@@ -77,7 +83,7 @@ unless ($config_parms{weather_graph_skip} =~ /$typegraph/) {
      $html .= "\n" . qq|<A NAME="$periodgraph->[0]"></A><BR>|;
      $html .= "\n<IMG SRC = ";
 #    $html .= "\'/rrd/weather_" . $typegraph . "_" . $periodgraph->[0] . ".png?" . int(100000*rand) . "'>\n";
-     $html .= "\'/rrd/weather_" . $typegraph . "_" . $periodgraph->[0] . ".png?".time().'\' border=0><BR><BR>';
+     $html .= "\'/rrd/weather_" . $typegraph . "_" . $periodgraph->[0] . ".$rrd_format?".time().'\' border=0><BR><BR>';
     }
   }
 }

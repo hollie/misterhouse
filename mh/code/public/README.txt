@@ -81,6 +81,9 @@ door_monitor_jay.pl
 dreambox.pl
 - Timo Sariwating's code for interfacing to the the European Dreambox satelite receiver.
 
+dcs_pc5401.pl
+- Jocelyn Brouillard's code for the DSC Alarm PC5401 Serial interface.
+
 froggyrita.pl
  - Gaetan Lord's code for the temp,pressure,humidity sensor from http://www.froggyhome.com
 
@@ -406,6 +409,9 @@ weather_ec.pl
 
 weather_email_breaking.pl
  - Larry Roudebush's code for announcing important weather info from email alerts.
+
+weather_mos_forecast.pl
+ - Jason Sharpee's code to decode MOS forecast data.
 
 weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I

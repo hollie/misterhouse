@@ -27,14 +27,39 @@
 # - New UV locator
 # - New wind locator
 
-# V1.2.1
+# V1.21
 #  Parse new weather.com as of 2003-01-08 -klp
 
-# V1.2.2 - 1/27/03
+# V1.22 - 1/27/03
 #  Bug Fix for negative dew points -klp
 
-# V1.2.3 - 02/24/03
+# V1.23 - 02/24/03
 # Change to picture parsing for new HTML code -klp
+
+# V1.3 - 05/27/03
+# Change request URL -klp
+
+# V1.31 - 05/28/03
+# Added data_check() function in an effort to detect and catch bad/missing data. -klp
+# Removed unnecessary UserAgent cookie jar left behind from V1.3 development -klp
+
+# V1.32 - 06/12/03 -klp
+# Changed $self->{server_zip} value
+# Cleared $self->{ext} value
+
+# V1.4 - 08/12/03 -klp
+# Bug Fix for City, State request.  Added recursive lookup call against redirect URL.
+# Added get_city(), get_state() functions.
+# Added set_report_colors() functions.
+# Minor reformatting of report() function.
+# Added lookup_forecast() and report_forecast() function.
+# Removed $self->{ext} variable.
+# Additional debugging messages added.
+
+# V1.41 - 08/27/03 -klp
+# Changed City, State URL extraction due to weather.com change
+# Changed $self->{forecast_flag} to $self->{location_code} as it is now needed by
+# both the current and forecast weather retrievals
 
 package Geo::Weather;
 
@@ -50,7 +75,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw();
 @EXPORT = qw( $OK $ERROR_UNKNOWN $ERROR_QUERY $ERROR_PAGE_INVALID $ERROR_CONNECT $ERROR_NOT_FOUND $ERROR_TIMEOUT $ERROR_BUSY);
-$VERSION = '1.2.3';
+$VERSION = '1.41';
 
 $OK = 1;
 $ERROR_UNKNOWN = 0;
@@ -67,15 +92,27 @@ sub new {
 	my $self = {};
 	$self->{debug} = 0;
 	$self->{version} = $VERSION;
-	$self->{server} = 'www.weather.com';
+	$self->{server_zip} = 'www.w3.weather.com';
+	$self->{server_cst} = 'www.weather.com';
 	$self->{port} = 80;
-	$self->{base} = '/search/search?where=';
-	$self->{ext} = '&what=WeatherLocalUndeclared&GO=GO';
 	$self->{timeout} = 10;
 	$self->{proxy} = '';
 	$self->{proxy_username} = '';
 	$self->{proxy_password} = '';
 	$self->{agent_string} = "Geo::Weather/$VERSION";
+	$self->{base_zip} = '/weather/local/';
+	$self->{base_cst} = '/search/search?where=';
+	$self->{location_code} = '';
+
+	#--- Forecast
+	$self->{forecast_server} = $self->{server_zip};
+	$self->{forecast_base} = '/weather/print/';
+	$self->{forecast_table_size} = '80';
+
+	#--- Report Colors
+	$self->{report_hdr_color} = "#000000";
+	$self->{report_cond_color} = "#000080";
+	$self->{report_result_color} = "#0000a0";
 
 	bless $self, $class;
 	return $self;
@@ -85,24 +122,74 @@ sub get_weather {
 	my $self = shift;
 	my $city = shift || '';
 	my $state = shift || '';
+	my $mode;
 
 	return $ERROR_QUERY unless $city;
 
 	my $page = '';
 	if ($city =~ /^\d+$/) {
 		# Use zip code
-		$page = $self->{base}.$city.$self->{ext};
+		$page = $self->{base_zip}.$city;
+		$self->{location_code} = $city;
+		$mode = 'zip';
 	} else {
-		# Use state_city
+		# Use City, State
 		$state = lc($state);
 		$city = lc($city);
 		$city =~ s/ /+/g;
-		$page = $self->{base}.$city.','.$state.$self->{ext};
+		$page = $self->{base_cst}.$city.','.$state;
+		#forecast flag set in lookup for City, State
+		$mode = 'cst';
 	}
 
-	$self->{results} = $self->lookup($page);
+	$self->{results} = $self->lookup($page, $mode);
 
 	return $self->{results};
+}
+
+sub get_city {
+	my $self = shift;
+
+	return $ERROR_UNKNOWN unless $self->{results};
+	my $results = $self->{results};
+
+	return $results->{city};
+}
+
+sub get_state {
+	my $self = shift;
+
+	return $ERROR_UNKNOWN unless $self->{results};
+	my $results = $self->{results};
+
+	return $results->{state};
+}
+
+sub set_report_colors {
+	my $self = shift;
+	my $report_hdr_color = shift;
+	my $report_cond_color = shift;
+	my $report_result_color = shift;
+
+	return 0 if (length($report_hdr_color) < 7);
+	return 0 if (length($report_cond_color) < 7);
+	return 0 if (length($report_result_color) < 7);
+
+	$self->{report_hdr_color} = $report_hdr_color;
+	$self->{report_cond_color} = $report_cond_color;
+	$self->{report_result_color} = $report_result_color;
+
+	return 1;
+}
+
+sub data_check {
+	my $self = shift;
+	my $data = $self->report_raw();
+	my $data_integrity = 1;
+
+	$data_integrity = 0 if ($data =~ /^\|{4}/);
+
+	return $data_integrity;
 }
 
 sub report_raw {
@@ -112,26 +199,23 @@ sub report_raw {
 
 	return $ERROR_UNKNOWN unless $self->{results};
 
-	$output .= $results->{city} . '|';
+	$output .= $results->{city}  . '|';
 	$output .= $results->{state} . '|';
-	$output .= $results->{pic} . '|';
-	$output .= $results->{cond} . '|';
-	$output .= $results->{temp} . '|';
-	$output .= $results->{wind} . '|';
-	$output .= $results->{dewp} . '|';
-	$output .= $results->{humi} . '|';
-	$output .= $results->{visb} . '|';
-	$output .= $results->{baro} . '|';
+	$output .= $results->{pic}   . '|';
+	$output .= $results->{cond}  . '|';
+	$output .= $results->{temp}  . '|';
+	$output .= $results->{wind}  . '|';
+	$output .= $results->{dewp}  . '|';
+	$output .= $results->{humi}  . '|';
+	$output .= $results->{visb}  . '|';
+	$output .= $results->{baro}  . '|';
 	$output .= $results->{uv};
 
-	return "$output";
+	return $output;
 }
 
 sub report {
 	my $self = shift;
-	my $result_hdr_color = "#0080FF";
-	my $result_cond_color = "#FF8080";
-	my $result_color = "#03C1C7";
 
 	return $ERROR_UNKNOWN unless $self->{results};
 
@@ -147,26 +231,22 @@ sub report {
 
 
 	$output = <<REPORT_START;
-	<font size="+2" color=\"$result_hdr_color\">
+	<font size="+2" color=\"$self->{report_hdr_color}\">
 		$results->{city}, $results->{state}
 	</font>
 	<br>
 	<a href=\"$results->{url}\"><img src=\"$results->{pic}\" border=0></a>
-	<font size="+1" color="$result_cond_color">
+	<font size="+1" color="$self->{report_cond_color}">
 		$results->{cond}
 	</font>
 	<br>
 	<br>
 	<table border="0">
 		<tr>
-			<td>
-					<b>Temperature:</b>
-			</td>
-			<td>
-				<font color="$result_color">
-					$results->{temp}&deg F/$results->{temp_c}&deg C&nbsp;&nbsp; $feels_like
-				</font>
-			</td>
+		 <th align="left">Temperature:</th>
+		 <td>
+		  <font color="$self->{report_result_color}">$results->{temp}&deg F/$results->{temp_c}&deg C&nbsp;&nbsp; $feels_like</font>
+		 </td>
 		</tr>
 
 REPORT_START
@@ -174,14 +254,10 @@ REPORT_START
 	if ($results->{wind}) {
 		$output .= <<REPORT_WIND;
 		<tr>
-			<td>
-				<b>Wind:</b>
-			</td>
-			<td>
-				<font color="$result_color">
-					$results->{wind}
-				</font>
-			</td>
+		 <th align="left">Wind:</th>
+		 <td>
+		  <font color="$self->{report_result_color}">$results->{wind}</font>
+		 </td>
 		</tr>
 
 REPORT_WIND
@@ -189,34 +265,22 @@ REPORT_WIND
 
 	$output .= <<REPORT_MID;
 		<tr>
-			<td>
-				<b>Dew Point:</b>
-			</td>
-			<td>
-				<font color="$result_color">
-					$results->{dewp}&deg F/$results->{dewp_c}&deg C
-				</font>
-			</td>
+		 <th align="left">Dew Point:</th>
+		 <td>
+		  <font color="$self->{report_result_color}">$results->{dewp}&deg; F/$results->{dewp_c}&deg; C</font>
+		 </td>
 		</tr>
 		<tr>
-			<td>
-				<b>Rel. Humidity:</b>
-			</td>
-			<td>
-				<font color="$result_color">
-					$results->{humi} %
-				</font>
-			</td>
+		 <th align="left">Rel. Humidity:</th>
+		 <td>
+		  <font color="$self->{report_result_color}">$results->{humi} %</font>
+		 </td>
 		</tr>
 		<tr>
-			<td>
-				<b>Visibility:</b>
-			</td>
-			<td>
-				<font color="$result_color">
-					$results->{visb}
-				</font>
-			</td>
+		 <th align="left">Visibility:</th>
+		 <td>
+		  <font color="$self->{report_result_color}">$results->{visb}</font>
+		 </td>
 		</tr>
 
 REPORT_MID
@@ -224,14 +288,10 @@ REPORT_MID
 	if ($results->{baro}) {
 		$output .= <<REPORT_BARO;
 		<tr>
-			<td>
-				<b>Barometer:</b>
-			</td>
-			<td>
-				<font color="$result_color">
-					$results->{baro}
-				</font>
-			</td>
+		 <th align="left">Barometer:</th>
+		 <td>
+		  <font color="$self->{report_result_color}">$results->{baro}</font>
+		  </td>
 		</tr>
 
 REPORT_BARO
@@ -240,14 +300,10 @@ REPORT_BARO
 	if ($results->{baro}) {
 		$output .= <<REPORT_UV;
 		<tr>
-			<td>
-				<b>UV Index:</b>
-			</td>
-			<td>
-				<font color="$result_color">
-					$results->{uv}
-				</font>
-			</td>
+		 <th align="left">UV Index:</th>
+		 <td>
+		  <font color="$self->{report_result_color}">$results->{uv}</font>
+		 </td>
 		</tr>
 
 REPORT_UV
@@ -255,13 +311,72 @@ REPORT_UV
 
 	$output .= "</table>\n";
 
-	return "$output|$results->{city}|$results->{state}";
+	return $output;
+}
+
+sub report_forecast {
+	my $self = shift;
+	my $table_size = shift;
+	my $url = 'http://' . $self->{forecast_server} . $self->{forecast_base} . $self->{location_code};
+	my $output;
+
+	return $ERROR_QUERY unless $self->{results};
+
+	$self->{forecast_table_size} = $table_size if (defined($table_size) && length($table_size) > 0);
+
+	my @forecast = $self->lookup_forecast($url);
+	print STDERR __LINE__, ": Geo::Weather: Forecast size " . $#forecast . "\n" if $self->{debug} > 3;
+
+	$output = <<REPORT_START;
+	<!-- Begin Forecast Data -->
+	<font size="+2" color="$self->{report_hdr_color}">$self->{city}, $self->{state}</font>
+	<br>
+	<br>
+	<font size="+1" color="$self->{report_cond_color}">Ten Day Forecast</font>
+	<br>
+
+REPORT_START
+
+	#--- Reformat Data
+	my $strip = 0;
+	my $weather_href = "href=\"http://www.weather.com";
+	foreach (@forecast) {
+			s/HREF="/$weather_href/ig; #convert relative links
+			s/bgcolor=\"#ffffff\"\s+//ig; #remove white background from table cell
+			s/>/ target=\"_blank\">/ if (/href/ig); #open links in new window
+			if (/<td/i) {
+				s/BGCOLOR="#\w*">/>/i;
+			} elsif (/<\/TABLE>/i) {
+				$strip = 0;
+			}
+		if (/<!-- begin loop -->/) {
+			$strip = 1;
+			$output .= <<FORECAST;
+				<table border="0" width="$self->{forecast_table_size}%">
+					<tr>
+         		 <td colspan="3">&nbsp;</td>
+          		 <th valign="middle">High /<br> Low (&deg;F)</th>
+          		 <th valign="middle">Precip. %</th>
+        			</tr>
+
+FORECAST
+
+		} elsif ($strip) {
+			# forecast content
+			$output .= "$_\n";
+		} else {
+			# unwanted content
+		}
+	}
+	$output .= "</table>\n<!-- End Forecast Data -->\n";
+
+	return $output;
 }
 
 sub lookup {
 	my $self = shift;
 	my $page = shift || '';
-	my $redir = shift || 0;
+	my $mode = shift || 'raw';
 
 	my $rh_cnt = 0;
 	my $dew_cnt = 0;
@@ -274,7 +389,8 @@ sub lookup {
 
 	my %results = ();
 
-	$results{url} = "http://$self->{server}";
+	$results{url} = "http://$self->{server_zip}" if ($mode eq 'zip');
+	$results{url} = "http://$self->{server_cst}" if ($mode eq 'cst');
 	$results{url} .= ":$self->{port}" unless $self->{port} eq '80';
 	$results{url} .= $page;
 	$results{page} = $page;
@@ -283,7 +399,7 @@ sub lookup {
 	my $end_report_marker = '<!-- vertical outlet #1 -->';
 	my $line = '';
 
-	print STDERR __LINE__, ": Geo::Weather: Attempting to GET $results{url}\n" if $self->{debug};
+	print STDERR __LINE__, ": Geo::Weather: Attempting to GET current weather at $results{url}\n" if $self->{debug};
 	my $ua = new LWP::UserAgent;
 	my $request = new HTTP::Request('GET',$results{url});
 	my $proxy_user = $self->{proxy_user} || $ENV{HTTP_PROXY_USER} || '';
@@ -291,16 +407,36 @@ sub lookup {
 	$request->proxy_authorization_basic($proxy_user, $proxy_pass) if $self->{proxy} && $proxy_user;
 
 	$ua->timeout($self->{timeout}) if $self->{timeout};
+
 	$ua->agent($self->{agent_string});
 	$ua->proxy(['http'], $self->{proxy}) if $self->{proxy};
 
 
 	my $response = $ua->request($request);
 	unless ($response->is_success) {
+		print STDERR __LINE__, ": Geo::Weather: GET Failed for current weather " . $response->status_line . "\n" if $self->{debug};
 		return $ERROR_TIMEOUT;
 	}
 	my $content = $response->content();
 	my @lines = split(/\n/, $content);
+
+	#--- Parse out City, State URL
+	if ($mode eq 'cst') {
+		for (my $i = 0; $i < @lines; $i++) {
+			my $line = $lines[$i];
+			next if ($line eq '');
+
+			#--- Recursive look up of weather page
+			if ($line =~ s/.+URL=.+\/(.+)">/$1/) {
+				$self->{location_code} = $line;
+				print STDERR __LINE__, ": CST Location Code: $self->{location_code}\n" if $self->{debug} > 2;
+				my $url = 'http://' . $self->{server_zip} . $self->{base_zip} . $self->{location_code};
+				$self->{results} = $self->lookup($url);
+				return $self->{results};
+			}
+		}
+	}
+
 	for (my $i = 0; $i < @lines; $i++) {
 		my $line = $lines[$i];
 		next if ($line eq '');
@@ -317,11 +453,14 @@ sub lookup {
 		if ($line =~ /<b>Local Forecast for (.*?)<\/b>/i || $line =~ /<b>Travel Forecast for (.*?)<\/b>/i) {
 			my ($city, $state) = split(/\,[\s+]/, $1);
 			$results{city} = $city;
+			$self->{city} = $city;
 			if ($state =~ /(.*)\s+\((.*)\)/) {
 				$results{state} = $1;
 				$results{zip} = $2;
+				$self->{state} = $results{state};
 			} else {
 				$results{state} = $state;
+				$self->{state} = $results{state};
 			}
 		}
 
@@ -448,10 +587,50 @@ sub lookup {
 
 	#Celcius Conversions
 	$results{temp_c} = sprintf("%0.0f", 5/9 * ($results{temp} - 32));
+	$results{dewp} =~ s/(\d+)(.+)/$1/;
 	$results{dewp_c} = sprintf("%0.0f", 5/9 * ($results{dewp} - 32));
 
-
 	return \%results;
+}
+
+sub lookup_forecast {
+	my $self = shift;
+	my $url = shift;
+	my @forecast;
+
+	return $ERROR_QUERY unless $url;
+
+	print STDERR __LINE__, ": Geo::Weather: Attempting to GET forecast at $url\n" if $self->{debug};
+	my $ua = new LWP::UserAgent;
+	my $request = new HTTP::Request('GET', $url);
+	my $proxy_user = $self->{proxy_user} || $ENV{HTTP_PROXY_USER} || '';
+	my $proxy_pass = $self->{proxy_pass} || $ENV{HTTP_PROXY_PASS} || '';
+	$request->proxy_authorization_basic($proxy_user, $proxy_pass) if $self->{proxy} && $proxy_user;
+
+	$ua->timeout($self->{timeout}) if $self->{timeout};
+
+	$ua->agent($self->{agent_string});
+	$ua->proxy(['http'], $self->{proxy}) if $self->{proxy};
+
+
+	my $response = $ua->request($request);
+	unless ($response->is_success) {
+		print STDERR __LINE__, ": Geo::Weather: GET Failed for forecast " . $response->status_line . "\n" if $self->{debug};
+		return $ERROR_TIMEOUT;
+	}
+
+	print STDERR __LINE__, ": Geo::Weather: GET Succeeded for forecast at $url\n" if $self->{debug};
+	my $content = $response->content();
+	my @raw_content = split(/\n/, $content);
+	foreach my $line (@raw_content) {
+		next if ($line eq '');
+		chomp $line;
+		$line =~ s/</~~~</g; #prepend "~~~" before each <tag>
+		push(@forecast, split /~~~/, $line); #Split on "~~~" to create a semi-manageable format to search
+	}
+		print STDERR "forecast_lookup Sizes:" . $#raw_content . ' ~ ' . $#forecast . "\n" if $self->{debug} > 3;
+
+	return @forecast;
 }
 
 1;
@@ -578,6 +757,91 @@ B<Sample Code>
 
 =over 4
 
+=item * B<report_forecast>
+
+Returns an HTML table containing the ten day forecast. Must call get_weather first.
+
+B<Arguments>
+
+	table_width - Optional (integer) table width for the report. Default is '80'.
+
+B<Sample Code>
+
+	my $forecast = $weather->report_forecast();
+
+=back
+
+
+=over 4
+
+=item * B<set_report_colors>
+
+Set the HTML color values for the weather report.  Must call before report or report_forecast to be effective. (DUH!)
+
+B<Arguments>
+
+	report_hdr_color - Report header color. Default is '#000000'.
+	report_cond_color - Report conditions color. Default is '#000080'.
+	report_result_color - Report reults color. Default is '#0000a0'.
+
+B<Sample Code>
+
+	my $status = $weather->set_report_colors('#ff0000', '#00ff00', '#0000ff');
+
+B<Returns>
+
+	0 if passed a bad value.
+	1 if successful.
+
+=back
+
+
+=over 4
+
+=item * B<data_check>
+
+Returns a boolean value indicating if valid weather data appears to have been retrieved. Must call get_weather first.
+
+B<Sample Code>
+
+	my $valid = $weather->data_check();
+	unless ($valid) {
+		die "The weather data retrieved appears to be bad or missing.\n";
+	}
+
+=back
+
+
+=over 4
+
+=item * B<get_city>
+
+Returns string containing the current weather city.  This is useful when looking up weather by zip code.  Must call get_weather first.
+
+
+B<Sample Code>
+
+	my $city = $weather->get_city();
+
+=back
+
+
+=over 4
+
+=item * B<get_state>
+
+Returns string containing the current weather state.  This is useful when looking up weather by zip code.  Must call get_weather first.
+
+
+B<Sample Code>
+
+	my $state = $weather->get_state();
+
+=back
+
+
+=over 4
+
 =item * B<lookup>
 
 Gets current weather given a full weather.com URL
@@ -588,11 +852,31 @@ B<Sample Code>
 
 B<Returns>
 
-	On sucess, lookup returns a hashref with the same keys as the get_weather function
+	On sucess, lookup returns a hashref with the same keys as the get_weather function.
 
-	On error, lookup returns the same errors defined for get_weather
+	On error, lookup returns the same errors defined for get_weather.
 
 =back
+
+
+=over 4
+
+=item * B<lookup_forecast>
+
+Gets the ten day forecast page given a full weather.com URL.  Not intended to be called directly, but used by report_forecast.
+
+B<Sample Code>
+
+	my $raw_forecast = $weather->lookup_forecast('http://www.w3.weather.com/weather/print/95630');
+
+B<Returns>
+
+	On sucess, lookup_forecast returns an array containing the weather.com ten day forecast page data.
+
+	On error, lookup_forecast returns the same errors defined for get_weather.
+
+=back
+
 
 =head1 OBJECT KEYS
 

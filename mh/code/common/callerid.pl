@@ -50,7 +50,7 @@ $cid_server     = new CID_Server($cid_item); # Enables YAC, Acid, and xAP/xPL ca
 
                        # $format1 includes City and State, if out of Town/State
 $cid_announce  = new CID_Announce($cid_item, 'Call from $format1');
-#cid_announce  = new CID_Announce($cid_item, 'Call from $first $last');
+#$cid_announce  = new CID_Announce($cid_item, 'Call from $first $last');
 
                                 # Setup commands we can use to run tests without the modem
 $cid_interface_test = new Voice_Cmd('Test callerid [0,1,2,3,4,5,6,7,8,9,offhook,UKknown,UK unknown]');

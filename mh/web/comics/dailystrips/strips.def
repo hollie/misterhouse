@@ -39,7 +39,7 @@ class ucomics-srch
 end
 
 class ucomics-gen
-	homepage http://www.ucomics.com/$strip/view$1.htm
+    homepage http://www.ucomics.com/$strip/view$1.phtml
 	type generate
 	imageurl http://images.ucomics.com/comics/$1/%Y/$1%y%m%d.gif
 	provides any
@@ -603,7 +603,7 @@ strip pgs
         #http://www.theonionavclub.com/images/229/image_article1192.jpg
 	searchpattern issue_id=(\d+).+?window.open\('/comics.php\?img_article_id=(\d+)','pgs'
 	imageurl http://www.theonionavclub.com/images/$match_1/image_article$match_2.jpg
-	
+
 	provides latest
 end
 
@@ -3009,31 +3009,31 @@ end
 
 strip auth
 	name Tony Auth
-	useclass washpost-uclick 
+	useclass washpost-uclick
 	$1 ta
 end
 
 strip carlson
 	name Stuart Carlson
-	useclass washpost-uclick 
+	useclass washpost-uclick
 	$1 sc
 end
 
 strip deore
 	name Bill Deore
-	useclass washpost-uclick 
+	useclass washpost-uclick
 	$1 bd
 end
 
 strip oliphant
 	Name Pat Oliphant
-	useclass washpost-uclick 
+	useclass washpost-uclick
 	$1 po
 end
 
 strip rall
 	name Ted Rall
-	useclass washpost-uclick 
+	useclass washpost-uclick
 	$1 tr
 end
 
@@ -3197,12 +3197,12 @@ end
 
 #non-template
 strip cole
-	name John Cole 
+	name John Cole
 	homepage http://cagle.slate.msn.com/politicalcartoons/PCcartoons/cole.asp
 	type generate
 	provides latest
 	imageurl http://www.heraldsun.com/images/photos/live/coletoon.jpg
-end	
+end
 
 strip crowe
 	name J.D. Crowe

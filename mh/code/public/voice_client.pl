@@ -101,13 +101,13 @@ while (1) {
 }
 
 sub Reconnect {
-    &speak("Connection closed. Attempting to reconnect");
+#    &speak("Connection closed. Attempting to reconnect");
 
     $attempts = 0;
     $connected = 0;
     while ($connected == 0) {
         $attempts = $attempts + 1;
-        &speak("Attempt $attempts");
+#        &speak("Attempt $attempts");
         $socket = new IO::Socket::INET (PeerAddr => $host, PeerPort => $port, Proto => 'tcp');
         if ($attempts == 10) {
             &speak("Failed to reconnect, ending program");
@@ -171,7 +171,7 @@ sub speak {
         #$text = "<pitch absmiddle='5'/> " . $text;
         #$text = "<rate absspeed='0'/> " . $text;
         #$text = "<volume level='100'/> " . $text;
-        $text = "<voice required='Name=Microsoft Mike'/> " . $text;
+        #$text = "<voice required='Name=Sample TTS voice'/> " . $text;
     }
     $VTxt->Speak($text, 0);
 }

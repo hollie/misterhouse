@@ -68,7 +68,7 @@ if ($state = state_now $xap_monitor_display_alpha) {
     }
     if ($text) {
         $mode     = 'rotate' unless $mode;
-        $duration = 30       unless $duration;
+        $duration = 45       unless $duration;
         set $display_alpha_timer $duration;
         display device => 'alpha', text => $text, mode => $mode, color => $color;
     }

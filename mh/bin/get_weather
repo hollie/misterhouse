@@ -3,9 +3,9 @@
 
 #---------------------------------------------------------------------------
 #  File:
-#      get_weather 
+#      get_weather
 #  Description:
-#      A perl script that gets the weather forecast                
+#      A perl script that gets the weather forecast
 #  Author:
 #      Bruce Winter    bruce@misterhouse.net   http://misterhouse.net
 #  Latest version:
@@ -14,7 +14,7 @@
 #    - 01/20/99  Created.  Replaces filter_weather with the nifty Geo::Weather module
 #    - The rest of the change log is at the bottom of this file.
 #
-#  This free software is licensed under the terms of the GNU public license. 
+#  This free software is licensed under the terms of the GNU public license.
 #  Copyright 1998 Bruce Winter
 #
 #---------------------------------------------------------------------------
@@ -43,7 +43,7 @@ $Pgm_Name gets weather info
 
 Usage:
 
-  $Pgm_Name [options] 
+  $Pgm_Name [options]
 
     -h         => This help text
     -help      => This help text
@@ -55,7 +55,7 @@ Usage:
 
     -data     xxx => xxx is either conditions, forecast, or all.  Default is all.
 
-    -no_log       => Unless this option is used, the results also get filed 
+    -no_log       => Unless this option is used, the results also get filed
                      into the data_dir/web directory
 
   Example:
@@ -142,6 +142,9 @@ else {
 #	print_forecast
 
 # $Log$
+# Revision 1.12  2005/01/23 23:21:18  winter
+# *** empty log message ***
+#
 # Revision 1.11  2003/06/01 21:54:40  winter
 #  - 2.81 release
 #

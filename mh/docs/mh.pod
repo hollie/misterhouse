@@ -58,7 +58,7 @@ This will disable the tk interface and change the code dir to the Bruce director
 
 This will log all 'print' statements to test1.log and turn on all serial related debug messages:
 
-   mh -log_file test1.log -debug serial
+   mh -debug serial > test1.log
 
 
 =head2 Installation
@@ -733,6 +733,9 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
         Note, this is turnded off by default for Serial_Item objects.
         To enable, run:   $object -> state_overload(ON);
 
+     set_casesensitive   : By default, states are all lowercased, to allow for case 
+                           insensitive tests.  To avoid this (for example on Serial Interfaces
+                           that are case sensitive), call this method.
 
      hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.
 
@@ -1432,6 +1435,9 @@ Like most mh objects, it inherits all the Generic_Item methods.
      start $tnc_output if $New_Minute and is_stopped $tnc_output
                           and is_available $tnc_output;
 
+     $serial_tom10port = new  Serial_Item(undef, undef, 'serial_tom10');
+     $serial_tom10port -> set_casesensitive;     # TOM10 needs lowercase commands
+
 
 See mh/code/examples/serial_port_examples.pl for more Serial_Item examples.
 
@@ -2122,11 +2128,28 @@ Calls up the web browser defined my the mh.ini browser parm
 
 =item convert_c2f
 
+
 Converts from degrees Kelvin/Centigrade to Farenheight
 
   Example:
 
     $weather{TempF} = convert_c2f($weather{TempC});
+
+Here is a complete list of conversion functions:
+
+  convert_k2f        # Convert degrees Kelvin to Farenheight
+  convert_c2f        # Convert degrees Celsius to Farenheight
+  convert_f2c        # Convert degrees fahrenheit to celsius
+  convert_f2k        # Convert degrees fahrenheit to kelvin
+  convert_in2mb      # Convert to inches of mercury to millibars
+  convert_in2mm      # convert inches (per hour) to millimeters (per hour)
+  convert_km2mile    # convert kilometers (per hour) to miles (per hour)
+  convert_mb2in      # Convert millibars to inches of mercury
+  convert_mile2km    # convert miles (per hour) to kilometers (per hour)
+  convert_mm2in      # convert millimeters (per hour) to inches (per hour)
+  convert_mps2mph    # convert meters per second to miles per hour
+  convert_mps2mph    # convert miles per hour to meters per second
+
 
 
 =item convert_direction
@@ -5094,6 +5117,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.77  2005/01/23 23:21:40  winter
+# *** empty log message ***
+#
 # Revision 1.76  2004/11/22 22:57:22  winter
 # *** empty log message ***
 #

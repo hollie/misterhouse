@@ -30,7 +30,7 @@ $refresh_rate = 60 unless $refresh_rate;
 $html .= qq[<meta http-equiv='Refresh' content='$refresh_rate'>\n];
                                 # The javascript refresh can cause problems.   When the java timer expires and it
                                 # triggers a refresh on the Audrey, it will interrupt any other voyager browser activity.
-                                # Disable by avoiding the 'doLoad' call. 
+                                # Disable by avoiding the 'doLoad' call.
 my $refresh_rate2 = $refresh_rate * 1000;
 my $servertimestr = "$Date_Now $Year $Hour:$Minute:$Second";
 $servertimestr =~ s/^[^,]+,//;
@@ -74,7 +74,7 @@ for my $parm (@parms) {
                                # Allow for sun (auto-pick), sunrise, or sunset
     elsif ($parm =~ /sun/) {
         if ($parm eq 'sun') {
-            $parm = (time_less_than    "$Time_Sunrise + 2:00" or 
+            $parm = (time_less_than    "$Time_Sunrise + 2:00" or
                      time_greater_than "$Time_Sunset  + 2:00") ? 'sunrise' : 'sunset';
         }
         if ($parm eq 'sunrise') {
@@ -84,7 +84,7 @@ for my $parm (@parms) {
             $html .= qq[&nbsp;<img src='/ia5/images/sunset.gif' border=0>&nbsp;Set $Time_Sunset\n];
         }
     }
-    
+
     elsif ($parm eq 'mode') {
         $html .= qq[&nbsp;<img src='/ia5/images/home.gif' border=0>&nbsp;];
         if ($Save{mode} ne 'normal') {
@@ -109,7 +109,7 @@ for my $parm (@parms) {
         $Save{email_flag}= '' unless $Save{email_flag};
         $html .= qq[&nbsp;<img src='/ia5/images/mail.gif' border=0>$Save{email_flag}\n];
     }
-    
+
     elsif ($parm eq 'weather') {
         $Weather{Summary_Short} = '' unless $Weather{Summary_Short};
         $html .= qq[&nbsp;<img src='/ia5/images/temp.gif' border=0>&nbsp;$Weather{Summary_Short}\n];

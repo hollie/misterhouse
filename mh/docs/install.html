@@ -142,11 +142,10 @@ This program works ok:  <a href="http://misterhouse.net/public/unzip.exe">http:/
 <p>Point your web browser to <a href="http://localhost:8080">http://localhost:8080</a> and try out a few commands.
 You can search or list commands using the 'Search String' menu from the
 Search icon in the upper right of the default /ia5 web page.  To list all commands, search on a blank string.</p>
-<p>The default setup runs only a few core scripts from mh/code/common directory
-(listed in data_dir/code_select.txt).
-You can use <a href="http://localhost:8080/bin/code_select.pl">http://localhost:8080/bin/code_select.pl</a>  menu
-(avaliable on the web ia5 MrHouse menu 'Select Code' button) to select other
-standard code files you want to run.  To quickly test many of the code files, run:</p>
+<p>The default setup runs only a few core scripts from mh/code/common directory (listed in data_dir/code_select.txt).
+You can use the <a href="http://localhost:8080/bin/code_select.pl">http://localhost:8080/bin/code_select.pl</a> menu
+(default web page -&gt; MhHouse Home -&gt; Setup MrHouse -&gt; Common Code Activation) to select other standard code files you want to run.</p>
+<p>To quickly test many of the code files, run:</p>
 <pre>
   mh -code_select code_select_test.txt</pre>
 <p>To use less memory and cpu, or if you get graphics related errors,
@@ -332,6 +331,13 @@ passive connections will be used instead.</p>
 you can also try the compiled version of mhe in misterhouse-#.##.linux.zip.
 This might be useful if you have troubles with the above CPAN installs or if you have a older (or newer) version
 of perl that has some sort of problem (e.g. memory leak).</p>
+<p><table cellspacing="0" cellpadding="0"><tr><td>Dependencies for above modules:
+<tr><td><td>Tk requires an X-server be installed
+<tr><td><td>DB_File requires Berkley DB be installed
+<tr><td><td>Audio::Mixer requires kernel sound support
+<tr><td><td>GD requires several libraries installed:
+<tr><td><td>GD library, zlib library, png library</table></p>
+<p>The perl install files contain README files which explain their dependencies.</p>
 <p>There are some example start/stop/restart .rc files in mh/bin/misterhouse*.rc</p>
 <p>
 </p>

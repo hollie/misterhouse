@@ -49,6 +49,8 @@
 
 
  M: Rooms
+    D: garage door
+      A: open garage door
     D: Living Room
     D: Bedroom
     D: Downstairs
@@ -99,7 +101,7 @@
 
  M: Outside
     D: Garage Door [open,close]
-       A: $state the garage door
+       A: $state garage door
     D: Garage   [on,off,+,-]
        A: set $garage_light [on,off,+30,-30]
     D: Backyard [on,off,+,-]
@@ -237,6 +239,7 @@
     D: TV shedule
        R: href=/tv
     D: Misc2
+
 
  M: Misc2
     D: List X10

@@ -302,7 +302,8 @@ sub http_process_request {
             my ($name, $name_short) = &net_domain_name('http');
             if ($Authorized and $get_req =~ /\/SET_PASSWORD$/) {
                 &print_log("Password was just accepted for User [$Authorized] browser $name");
-                &speak("app=admin $Authorized password accepted for $name_short");
+                                # Speak calls cause problems with speak hooks, like in the audrey code
+#               &speak("app=admin $Authorized password accepted for $name_short");
                 $html .= "<br><b>$Authorized password accepted</b>";
                 print $socket &html_page(undef, $html);
             }
@@ -333,7 +334,7 @@ sub http_process_request {
 #           $html = $Http{Referer}; # &html_page will use referer if only a url is given
             $html =~ s/\/SET_PASSWORD.*//;
             &print_log("Password was just accepted for User [$user] browser $name");
-            &speak("app=admin $user password accepted for $name_short");
+#           &speak("app=admin $user password accepted for $name_short");
         }
         else {
             $Authorized = 0;
@@ -826,7 +827,12 @@ sub html_sub {
             print "html_sub: a=$Authorized pa=$Password_Allow{'&$sub_name'} data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n" if $main::Debug{http};
                                 # Check for authorization
             if (($Authorized or $Password_Allow{"&$sub_name"} and $Password_Allow{"&$sub_name"} eq 'anyone')) {
-                $sub_arg = "'$sub_arg'" if $sub_arg and $sub_arg !~ /^[\'\"]/; # Add quotes if needed
+                                # If not quoted, split to multiple argument according to ,
+#               $sub_arg = "'$sub_arg'" if $sub_arg and $sub_arg !~ /^[\'\"]/; # Add quotes if needed
+                unless ($sub_arg =~ /^[\'\"]/) {
+                    my @args = split ',', $sub_arg;
+                    $sub_arg = join  ',', map {"'$_'"} @args;
+                }
                 return(undef, "&$sub_name($sub_arg)");
             }
             else {
@@ -2453,7 +2459,6 @@ sub vars_global {
 }
 
 
-
 sub vxml_page {
     my ($vxml) = @_;
 
@@ -2464,10 +2469,10 @@ sub vxml_page {
 HTTP/1.0 200 OK
 Server: MisterHouse
 $header
-<!DOCTYPE vxml PUBLIC "-//Tellme Networks//Voice Markup Language 1.0//EN"
- 'http://resources.tellme.com/toolbox/vxml-tellme.dtd'>
+<?xml version="1.0" encoding="UTF-8"?>
 
-<vxml application="http://resources.tellme.com/lib/universals.vxml">
+<vxml version="2.0"
+application="http://resources.tellme.com/lib/universals.vxml">
 
 $vxml
 
@@ -2479,14 +2484,14 @@ eof
 sub vxml_audio {
     my ($name, $text, $wav, $goto) = @_;
     my $vxml;
-    $vxml  = "<form id='$name' anchor='true'>\n <block>\n  <audio ";
+    $vxml  = "<form id='$name'>\n <block>\n  <audio ";
     $vxml .= "src='$wav'" if $wav;
     $vxml .= ">$text</audio>\n";
     $vxml .= "  <goto next='$goto'/>\n </block></form>";
     return $vxml;
 }
 
-                                # vxml for a basic form with grammar.  Called from &menu_vxml
+                                # vxml for a basic form with grammar. Called from &menu_vxml
 sub vxml_form {
     my %parms = @_;
     my ($prompt, $grammar, $filled);
@@ -2529,16 +2534,16 @@ sub vxml_form {
         }
         else {
             $grammar .= qq|[$cmd] {<option "$i">}\n|;
-            $filled  .= qq|  <result name='$i'>\n|;
+            $filled  .= qq|  <if cond='$i'>\n|;
             $filled  .= qq|   <audio>$text</audio>\n| unless $text eq 'previous';
             $filled  .= qq|   $action[$i-1]\n| if $action[$i-1];
-            $filled  .= qq|   <goto expr="'$goto[$i-1]'"/>\n  </result>\n|;
+            $filled  .= qq|   <goto expr="'$goto[$i-1]'"/>\n  </if>\n|;
         }
         $i++;
     }
     return <<eof;
- <form id='$parms{name}' anchor='true'>
-  <field name="$parms{name}" timeout="60">
+ <form id='$parms{name}'>
+  <field name="$parms{name}">
    $prompt
    <grammar>
     <![CDATA[[
@@ -2552,9 +2557,9 @@ $grammar
     <audio>$nomatch</audio>
     <reprompt/>
    </nomatch>
-   <default>
+   <catch>
     <reprompt/>
-   </default>
+   </catch>
    <help>
     <audio>$parms{help}</audio><reprompt/>
    </help>
@@ -2565,6 +2570,8 @@ $grammar
  </form>
 eof
 }
+
+
 
 sub widgets {
     my ($request_type, $request_category) = @_;
@@ -2856,6 +2863,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.94  2005/01/23 23:21:45  winter
+# *** empty log message ***
+#
 # Revision 1.93  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

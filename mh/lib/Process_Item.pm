@@ -1,6 +1,4 @@
 use strict;
-use FileHandle;
-use IPC::Open2;
 
 package Process_Item;
 
@@ -152,16 +150,12 @@ sub start_next {
 #       $pid->Wait(10000) if $run_mode eq 'inline'; # Wait for process
     }
     else {
-#       $pid = fork;
-        my ($stdout,$stdin);
-        $pid = &main::open2($stdout, $stdin, "$cmd_path $cmd_args") or die "Error in start Process exec for cmd=$cmd\n";
+        $pid = fork;
         if ($pid) {
             print "Process start: parent pid=$pid type=$type cmd=$cmd\n" if $main::Debug{process};
             open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
             open( STDERR, ">&STDERR_REAL" ) if $$self{errlog};
             $$self{pid} = $pid;
-            $$self{stdin} = $stdin;
-            $$self{stdout} = $stdout;
         }
         elsif (defined $pid) {
             print "Process start: child type=$type cmd=$cmd\n" if $main::Debug{process};
@@ -301,30 +295,12 @@ sub results {
     my ($self) = @_;
 }
 
-# Read from Process STDOUT
-sub said {
-    my ($self) = @_;
-    my $stdout = $$self{stdout};
-    my $data;
-    if (defined $stdout and !eof $stdout) {
-	$data = <$stdout>;
-#       print "Process_Item::said $data\n" if $main::Debug{process};
-    }
-    return $data;
-}
-
-# Write to Process STDIN
-sub put {
-    my ($self, $data) = @_;
-    my $stdin = $$self{stdin};
-    if (defined $stdin) {
-      print $stdin $data;
-#      print "Process_Item::put $data\n" if $main::Debug{process};
-    }
-}
 
 #
 # $Log$
+# Revision 1.29  2005/01/23 23:21:45  winter
+# *** empty log message ***
+#
 # Revision 1.28  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

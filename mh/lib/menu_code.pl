@@ -29,7 +29,7 @@ sub menu_parse {
         my ($type, $data) = $_ =~ /^\s*(\S+)\:\s*(.+?)\s*$/;
         $data =~ s/\s+\#.+//;   # Ignore comments
 
-                                # Pull out 'start menu' records:  M: Lights 
+                                # Pull out 'start menu' records:  M: Lights
         if ($type eq 'M') {
             $menu = $data;
             $menu =~ s/ /_/g;   # Blanks will mess up wml (and vxml and html?) menus
@@ -85,7 +85,7 @@ sub menu_parse {
                 }
                 $menus{$menu}{items}[$index]{'Dstates_menu'} = $menu_states_cnt;
             }
-        }            
+        }
     }
                                 # Setup actions and goto for each state
     my %unused_menus = %menus;
@@ -164,7 +164,7 @@ sub menu_parse {
                                 # Create a sorted menu list
     @{$menus{_menu_list_sorted}} = sort {$menus{$a}{level} <=> $menus{$b}{level}} @{$menus{_menu_list}};
 
-    return $Menus{$menu_group}; 
+    return $Menus{$menu_group};
 }
 
                                 # Find just one level of submenus
@@ -234,7 +234,7 @@ sub menu_create {
             my $object = &get_object_by_name($object_name);
             next unless $object and $object->isa('Voice_Cmd');
             my $authority = $object->get_authority;
-#           next unless $authority =~ /anyone/ or 
+#           next unless $authority =~ /anyone/ or
 #                       $config_parms{tellme_pin} and $Cookies{vxml_cookie} eq $config_parms{tellme_pin};
 
                                 # Pick first of {a,b} enumerations (e.g. {tell me,what is} )
@@ -246,7 +246,7 @@ sub menu_create {
     }
     &file_write($file, $menu_top . $menu);
     return $menu_top . $menu;
-}    
+}
 
 #---------------------------------------------------------------------------
 #  menu_run will be called to execute menu actions
@@ -254,7 +254,8 @@ sub menu_create {
 #---------------------------------------------------------------------------
 
 sub menu_run {
-    my ($menu_group, $menu, $item, $state, $format, $referer) = split ',', $_[0] if $_[0];
+#   my ($menu_group, $menu, $item, $state, $format, $referer) = split ',', $_[0] if $_[0];
+    my ($menu_group, $menu, $item, $state, $format, $referer) = @_;
 
     my ($action, $cmd);
     my $ptr = $Menus{$menu_group}{$menu}{items}[$item];
@@ -273,7 +274,7 @@ sub menu_run {
     $state     = '' unless defined $state;
     $format    = '' unless defined $format;
     $authority = '' unless defined $authority;
-    $display   = '' unless defined $display; 
+    $display   = '' unless defined $display;
     $response  = '' unless defined $response;
 
     $Menus{menu_data}{response_format} = $format;
@@ -335,7 +336,7 @@ sub menu_run {
                                 #  Default to referer.  Also make sure we have a full path, starting with http
         $Http{Referer} =~ m|(http://\S+?)/|;
         $referer = $1 . $referer unless $referer =~ /^http/;
-        $referer =~ s/&&/&/;    # These got doubled up in http_server ... need them as single (e.g. /bin/menu.pl?main&Top|Main|Rooms) 
+        $referer =~ s/&&/&/;    # These got doubled up in http_server ... need them as single (e.g. /bin/menu.pl?main&Top|Main|Rooms)
         $referer =~ s/ /%20/g;
         return &http_redirect($referer);
     }
@@ -380,7 +381,7 @@ sub menu_run_response {
     $response = &last_response if $response and $response eq 'last_response';
     $response = 'all done' unless $response;
     if ($format and $format eq 'w') {
-        $response =~ s/& /&amp; /g; 
+        $response =~ s/& /&amp; /g;
         my $wml = qq|<head><meta forua="true" http-equiv="Cache-Control" content="max-age=0"/></head>\n|;
         $wml   .= qq|<template><do type="accept" label="Prev."><prev/></do></template>\n|;
         $wml   .= qq|<card><p>$response</p></card>|;
@@ -410,7 +411,8 @@ sub menu_run_response {
 #---------------------------------------------------------------------------
 
 sub menu_html {
-    my ($menu_group, $menu) = split ',', $_[0] if $_[0];
+    my ($menu_group, $menu) = @_;
+    ($menu_group, $menu) = split ',', $menu_group unless defined $menu;
 
     ($menu_group) = &get_menu_default('default') unless $menu_group;
     $menu       = $Menus{$menu_group}{_menu_list}[0] unless $menu;
@@ -459,10 +461,12 @@ sub menu_html {
 #---------------------------------------------------------------------------
 
 sub menu_wml {
-    my ($menu_group, $menu_start) = split ',', $_[0] if $_[0];
+    my ($menu_group, $menu_start) = @_;
+    ($menu_group, $menu_start) = split ',', $menu_group unless defined $menu_start;
+
     ($menu_group) = &get_menu_default('default') unless $menu_group;
     $menu_start = $Menus{$menu_group}{_menu_list}[0] unless $menu_start;
-    logit "$config_parms{data_dir}/logs/menu_wml.log", 
+    logit "$config_parms{data_dir}/logs/menu_wml.log",
           "ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu_start";
 
     my (@menus, @cards);
@@ -566,7 +570,9 @@ sub menu_wml_cards {
 #---------------------------------------------------------------------------
 
 sub menu_vxml {
-    my ($menu_group, $menu_start) = split ',', $_[0] if $_[0];
+    my ($menu_group, $menu_start) = @_;
+    ($menu_group, $menu_start) = split ',', $menu_group unless defined $menu_start;
+
     ($menu_group) = &get_menu_default('default') unless $menu_group;
     $menu_start = $Menus{$menu_group}{_menu_list}[0] unless $menu_start;
     logit "$config_parms{data_dir}/logs/menu_vxml.log",
@@ -712,7 +718,7 @@ sub menu_lcd_navigate {
 
     my $menu = $$lcd{menu_name};
     my $ptr  = $$lcd{menu_ptr}{items}[$$lcd{cy}] unless $menu eq 'response';
-    
+
                                 # See if we need to scroll the display window
     if ($key eq 'up') {
         $$lcd{cy}-- unless $$lcd{cy} == 0;
@@ -783,7 +789,7 @@ sub menu_lcd_navigate {
     elsif ($key eq 'exit') {
         if (my $menu = pop @{$$lcd{menu_history}}) {
             &menu_lcd_load($lcd, $menu);
-            ($$lcd{cx}, $$lcd{cy}, $$lcd{dy}, $$lcd{menu_state}) = 
+            ($$lcd{cx}, $$lcd{cy}, $$lcd{dy}, $$lcd{menu_state}) =
                 split $;, pop @{$$lcd{menu_states}};
         }
     }
@@ -832,7 +838,7 @@ sub menu_format_list {
     my ($format, @list) = @_;
 
     if ($format eq 'w') {
-        return '<select><option>' . join("</option>\n<option>", @list) . '</option></select>'; 
+        return '<select><option>' . join("</option>\n<option>", @list) . '</option></select>';
     }
     elsif ($format eq 'h') {
         return join("<br>\n", @list);
@@ -840,7 +846,7 @@ sub menu_format_list {
     else {
         return join("\n", @list);
     }
-}        
+}
 
                                 # Call this to set default menus
 sub set_menu_default {
@@ -861,6 +867,9 @@ return 1;
 
 #
 # $Log$
+# Revision 1.15  2005/01/23 23:21:46  winter
+# *** empty log message ***
+#
 # Revision 1.14  2003/07/06 17:55:12  winter
 #  - 2.82 release
 #

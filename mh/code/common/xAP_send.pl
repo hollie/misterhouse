@@ -4,7 +4,7 @@
 #@ This code sends out various mh source data data as xAP messages, for use with other xAP enabled clients.
 
                                 # Send weather data
-if (new_minute 5) {
+if (new_minute 1) {
 # Scheme from: From: http://www.xapautomation.org/modules.php?name=Sections&op=viewarticle&artid=2
     &xAP::send('xAP', 'weather.report', 'weather.report' => {
           UTC => "$Hour:$Minute",               DATE => scalar &time_date_stamp(19),
@@ -36,8 +36,6 @@ sub xAP_send_speak {
 
     return unless $$parms_ref{text} or $$parms_ref{file};
 #   return if $mode eq 'mute';
-
-    $$parms_ref{no_speak} = 1 unless $$parms_ref{card} or $$parms_ref{rooms} or $$parms_ref{file};    # Disable local speech
 
                                 # Drop extra blanks and newlines
     $$parms_ref{text} =~ s/[\n\r ]+/ /gm;

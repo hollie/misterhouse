@@ -8,6 +8,29 @@
 # Webpage: http://www.kliernetwork.net               #
 ######################################################
 
+=begin comment
+
+mh.ini parms:
+
+tracking_trackself=1                    # This parameter should equal "1" if
+                                        # GPS Speaking is off and you still want
+                                        # to hear tracking from your own mobile
+tracking_shortannounce=1                #  0 = When Speaking Tracking
+                                        #      Information, this will
+                                        #      announce both distance from
+                                        #      this station and distance
+                                        #      from waypoint.
+                                        #  1 = Only Distance from waypoint.
+tracking_withname=1                     #  0 = If tracking.nam available,
+                                        #      announce callsign instead
+                                        #      of given name.
+                                        #  1 = Announce Given name instead
+                                        #      of callsign.
+                                        #  2 = Announce given name AND
+                                        #      callsign.
+
+=cut
+
 # For more information on hardware needed for this system to function:
 #   - Check out http://www.kliernetwork.net/aprs    and
 #               http://www.kliernetwork.net/aprs/mine
@@ -438,7 +461,7 @@ if ($APRSString = said $tnc_output) {
             # Find out the user defined "name" for this callsign.
 
             $j = '0';
-            
+
             foreach $TempName (@namelines) {
                 if ($j eq '0') {
                     ($TempNameCall, $TempNameName) = (split(',', $TempName))[0, 1];
@@ -737,7 +760,7 @@ if ($APRSString = said $tnc_output) {
 
                 if ($config_parms{tracking_withname} == 1)
                     {$GPSCallsign = $HamName};
-        
+
                 if (($GPSCallsign ne $LastGPSCallsign) || ($GPSDistance ne $LastGPSDistance)) {
 
                     if ($config_parms{tracking_shortannounce} == 0)
@@ -769,13 +792,13 @@ if ($APRSString = said $tnc_output) {
 
             $i = -$GPSLongitude;
             $j = $GPSLatitude;
-            
+
             my $html  = qq[<FORM ACTION='/SET:last_response' target='speech';\n];
             $html .= qq[<tr><td>$Date_Now $Time_Now</td><td>$GPSSpeakString</td>\n];
             $html .= qq[<td><a href="http://www.mapblast.com/myblast/map.mb?];
             $html .= qq|CT=$j\%3A$i\%3A10000">$GPSSpeakString2</a></td>\n|;
             $html .= qq[<td><INPUT name=aprs_location_name type='text' SIZE=10 onChange=submit>\n];
-            $i = -$i;       # For logging form data in .pos 
+            $i = -$i;       # For logging form data in .pos
             $html .= qq[<INPUT name=aprs_location_loc type='hidden' value='$j,$i'></td></tr></FORM>\n\n];
 
             #$k = qq[<li>$Date_Now $Time_Now: <a href=\"http://www.mapblast.com/mblast/map.mb?];
@@ -798,7 +821,7 @@ if ($APRSString = said $tnc_output) {
                 close NEWWEEK;
                 #file_cat "$config_parms{html_dir}/mh/tracking/week2.html", "$config_parms{html_dir}/mh/tracking/old/${Year_Month_Now}.html";
                 #rename "$config_parms{html_dir}/mh/tracking/week1.html", "$config_parms{html_dir}/mh/tracking/week2.html"  or print_log "Error in aprs rename 2: $!";
-                my $html = qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n<table>\n];                
+                my $html = qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n<table>\n];
                 $html .= qq[<tr><td><b>Date Time</b></td><td><b>Vehicle Heading and Speed</b></td><td><b>Location</b></td><td><b>New Location</b></td></tr>\n];
                 logit "$config_parms{html_dir}/mh/tracking/week1.html", $html, 1;
             }
@@ -873,7 +896,7 @@ if ($APRSString = said $tnc_output) {
 
             if (substr($PacketPart, 0, 4) eq 'X10-' and
                 substr($RealAPRSCallsign, 0, length($HamCall)) eq $HamCall) {
-                
+
                 # Split the line so $PacketPart is actually the message received to process.
                 ($CallsignPart, $PacketPart) = (split('-', $PacketPart))[0, 1];
 
@@ -1095,7 +1118,7 @@ if ($APRSString = said $tnc_output) {
                 # Calculate Wind Chill if temp is less than 45 degrees
                 if ($WXTemp <= 45) {
                     $WXWindChill = .0817 * (3.71 * sqrt($WXWindSpeed) + 5.81 - .25 * $WXWindSpeed) * ($WXTemp - 91.4) + 91.4;
-                    $WXWindChill = round($WXWindChill, 0);                    
+                    $WXWindChill = round($WXWindChill, 0);
                     if ($WXWindSpeed <= 5) {$WXWindChill = $WXTemp};
                 }
 
@@ -1103,7 +1126,7 @@ if ($APRSString = said $tnc_output) {
                 if ($WXTemp >= 46) {
                     $WXWindChill = $WXTemp;
                 }
-                
+
                 # Add Readings for Last Hour Precip and Last 24 Hour Precip
                 $WXHrPrecip = (substr($PacketPart, 41, 3));
                 # Get rid of those damn 0's in the Precip
@@ -1175,7 +1198,7 @@ if ($APRSString = said $tnc_output) {
                 # Calculate Wind Chill if temp is less than 45 degrees
                 if ($WXTemp <= 45) {
                     $WXWindChill = .0817 * (3.71 * sqrt($WXWindSpeed) + 5.81 - .25 * $WXWindSpeed) * ($WXTemp - 91.4) + 91.4;
-                    $WXWindChill = round($WXWindChill, 0);                    
+                    $WXWindChill = round($WXWindChill, 0);
                     if ($WXWindSpeed <= 5) {$WXWindChill = $WXTemp};
                 }
 
@@ -1183,7 +1206,7 @@ if ($APRSString = said $tnc_output) {
                 if ($WXTemp >= 46) {
                     $WXWindChill = $WXTemp;
                 }
-              
+
                 # Add Readings for Last Hour Precip and Last 24 Hour Precip
                 $WXHrPrecip = (substr($PacketPart, 43, 3));
                 # Get rid of those damn 0's in the Precip
@@ -1257,7 +1280,7 @@ if ($APRSString = said $tnc_output) {
                 # Calculate Wind Chill if temp is less than 45 degrees
                 if ($WXTemp <= 45) {
                     $WXWindChill = .0817 * (3.71 * sqrt($WXWindSpeed) + 5.81 - .25 * $WXWindSpeed) * ($WXTemp - 91.4) + 91.4;
-                    $WXWindChill = round($WXWindChill, 0);                    
+                    $WXWindChill = round($WXWindChill, 0);
                     if ($WXWindSpeed <= 5) {$WXWindChill = $WXTemp};
                 }
 
@@ -1283,7 +1306,7 @@ if ($APRSString = said $tnc_output) {
                 }
                 # Divide Precip by 10
                 $WX24HrPrecip = $WX24HrPrecip / 10;
-            
+
                 # If It's not the same as the last report, say it.
 
                 if ((($WXCallsign ne $LastWXCallsign) || ($WXDistance ne $LastWXDistance) || ($WXTemp ne $LastWXTemp)) and ($WXWindSpeed ne '0')) {
@@ -1297,9 +1320,9 @@ if ($APRSString = said $tnc_output) {
                         ($config_parms{tracking_speakflag} == 3))
                         {speak $WXSpeakString};
                 }
-            
+
                 # If the wind is calm, say the following.
-            
+
                 if ((($WXCallsign ne $LastWXCallsign) || ($WXDistance ne $LastWXDistance) || ($WXTemp ne $LastWXTemp)) and ($WXWindSpeed eq '0')) {
                     $WXSpeakString = "$APRSCallsign reports temperature of $WXTemp degrees.  Winnd is calm.";
                     if ($WXHrPrecip != 0) {$WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour."};

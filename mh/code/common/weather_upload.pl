@@ -1,33 +1,38 @@
 
 # Category = Weather
 
-#@ Upload data from your local weather station to wunderground.com.  
+#@ Upload data from your local weather station to wunderground.com.
 #@ See code for info on wunderground_* mh.ini parms
 
 =begin comment
 
  weather_upload.pl by David Norwood, dnorwood2@yahoo.com
 
- This code will upload your weather station data to wunderground.com. 
- Look here for info and examples: 
+ This code will upload your weather station data to wunderground.com.
+ Look here for info and examples:
   http://www.wunderground.com/weatherstation/index.asp
   http://www.wunderground.com/weatherstation/ListStations.asp
- 
+
  The URL to sign up for an account and get back a station id is:
-  http://www.wunderground.com/weatherstation/usersignup.asp 
- 
+  http://www.wunderground.com/weatherstation/usersignup.asp
+
  Add/update these mh.ini parms:
- 
+
   wunderground_stationid = KMNROCHE3
   wunderground_password  = xyz
   wunderground_frequency = 10
 
- Place this file in your code directory, and you are ready to go. 
+ Place this file in your code directory, and you are ready to go.
+
+# 01/12/05 Dominique Benoliel
+# - change $Weather{Barom} with $Weather{BaromSea} for WMR928 weather station
+# 01/23/05 Dominique Benoliel
+# - make some conversions with mh parameters weather_uom_...
 
 =cut
 
 #use POSIX qw(strftime);
- 
+
 $p_weather_update = new Process_Item;
 $v_weather_update = new Voice_Cmd '[Show results from,Run] wunderground.com upload';
 my $f_weather_update_html = "$config_parms{data_dir}/web/wu-result.html";
@@ -42,7 +47,21 @@ if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
     my $passwd    = $config_parms{wunderground_password};
     my $clouds='';
     my $weather_conditions='';
-    my $weather_barom;
+
+    # Make some conversions if necessary
+    my $weather_tempoutdoor = $config_parms{weather_uom_temp} eq 'C' ? convert_c2f($Weather{TempOutdoor}):$Weather{TempOutdoor};
+    my $weather_dewoutdoor = $config_parms{weather_uom_temp} eq 'C' ? convert_c2f($Weather{DewOutdoor}):$Weather{DewOutdoor};
+    my $weather_barom = $config_parms{weather_uom_baro} eq 'mb' ? convert_mb2in($Weather{Barom}):$Weather{Barom};
+    my $weather_baromsea = $config_parms{weather_uom_baro} eq 'mb' ? convert_mb2in($Weather{BaromSea}):$Weather{BaromSea};
+
+    my $weather_windgustspeed = $config_parms{weather_uom_wind} eq 'kph' ? convert_km2mile($Weather{WindGustSpeed}):$Weather{WindGustSpeed};
+    my $weather_windavgspeed = $config_parms{weather_uom_wind} eq 'kph' ? convert_km2mile($Weather{WindAvgSpeed}):$Weather{WindAvgSpeed};
+
+    $weather_windgustspeed = convert_mps2mph($Weather{WindGustSpeed}) if $config_parms{weather_uom_wind} eq 'm/s';
+    $weather_windavgspeed = convert_mps2mph($Weather{WindAvgSpeed}) if $config_parms{weather_uom_wind} eq 'm/s';
+
+    my $weather_rainrate = $config_parms{weather_uom_rainrate} eq 'mm/hr' ? convert_mm2in($Weather{RainRate}):$Weather{RainRate};
+
     if ($config_parms{serial_wmr968_module} eq "Weather_wmr968") {
 	        # ---- CLOUDS ----
 		# SKC = Sky Clear
@@ -63,12 +82,12 @@ if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
 		# RA = Rain
 	$weather_conditions = "RA" if $Weather{WxTendency} eq 'Rain';
 		# ---- BAROM ----
-	$weather_barom = $Weather{Barom};
+	$weather_barom = $weather_baromsea;
     }
     else {
         $clouds = 'CLR' if $Weather{Conditions} eq 'Clear';
         $clouds = 'OVC' if $Weather{Conditions} eq 'Cloudy';
-                                # wx200 stores in millibars, 968 stores in Hg
+        # wx200 stores in millibars, 968 stores in Hg
         unless ($weather_barom = $Weather{BaromSea_hg}) {
 	    $weather_barom = $Weather{BaromSea};
 	    $weather_barom  *= 0.029529987508 if $weather_barom > 100;  # hg should be around 29.
@@ -81,15 +100,15 @@ if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
     my $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&PASSWORD=%s&dateutc=%s&winddir=%s&windspeedmph=%d&windgustmph=%d&tempf=%.1f&rainin=%.2f&baromin=%.2f&dewptf=%.2f&humidity=%s&weather=%s&clouds=%s&softwaretype=%s&action=updateraw',
 	$stationid, $passwd, $utc,
 	$Weather{WindAvgDir}?$Weather{WindAvgDir}:$Weather{WindGustDir},
-	$Weather{WindAvgSpeed},
-	$Weather{WindGustSpeed},
-	$Weather{TempOutdoor},
-	$Weather{RainRate},
+	$weather_windavgspeed,
+	$weather_windgustspeed,
+	$weather_tempoutdoor,
+	$weather_rainrate,
 # To set your sea level pressure, add one millibar to your station pressure for every 10 meters of altitude.
 #   - lets do this in Weather_wx200.pm instead, as other devices are smarter :)
 #	($Weather{Barom} + $altitude/10) * 0.029529987508, # convert millibars to inches Hg
 	$weather_barom,
-	$Weather{DewOutdoor},
+	$weather_dewoutdoor,
 	$Weather{HumidOutdoor},
 	$weather_conditions,
     	$clouds,
@@ -110,7 +129,7 @@ if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
 #}
 
 # -------------------
-# 
+#
 # Here is the URL used in the uploading (if you go here without parameters
 # you will get a brief usage):
 # http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php
@@ -127,15 +146,15 @@ if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
 # rainin - [rain in (hourly)]
 # baromin - [barom in]  ... sea level
 # dewptf- [dewpoint F]
-# weather - [text] -- metar style (+RA) 
+# weather - [text] -- metar style (+RA)
 # clouds - [text] -- SKC, FEW, SCT, BKN, OVC
 # softwaretype - [text] ie: vws or weatherdisplay
 
 # Cloud types:
-#  CLR No clouds overhead below 10,000 feet. 
-#  SCT "Scattered" clouds. Refers to cloud coverage of less than 3/10 of the visible sky. 
-#  BKN "Broken" clouds. Refers to a cloud cover of 6/10 to 9/10 of the visible sky. 
-#  OVC "Overcast". Refers to cloud coverage of 10/10. 
+#  CLR No clouds overhead below 10,000 feet.
+#  SCT "Scattered" clouds. Refers to cloud coverage of less than 3/10 of the visible sky.
+#  BKN "Broken" clouds. Refers to a cloud cover of 6/10 to 9/10 of the visible sky.
+#  OVC "Overcast". Refers to cloud coverage of 10/10.
 
 # IF we wanted to try updated Conditions, this pointer might help:
 #  http://www.qisfl.net/home/hurricanemike/codedobhelp.htm

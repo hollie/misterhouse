@@ -73,7 +73,7 @@ sub new {
     $$self{state}     = '';     # Will only be listed on web page if state is defined
 
     if ($self->model() eq 'DS2406' ) {
-        push(@{$$self{states}}, 'on', 'off'); 
+        push(@{$$self{states}}, 'on', 'off');
     }
 
     return $self;
@@ -114,7 +114,7 @@ sub disconnect {
 
     return 'Have never connected to iButton bus'  unless $connections{$port};
     return 'Proxy used, disconnect ignored'           if $connections{$port} eq 'proxy';
-    
+
     if ( !$connections{ $port }->connected() ) {
         return 'iButton bus is already disconnected';
     }
@@ -124,7 +124,7 @@ sub disconnect {
     }
 }
 
-                                # Called for each mh loop
+                                # This is called to monitor state changes (e.g. mh/code/common/iButton.pl)
 sub monitor {
     my ($family, $port) = @_;
     $port = $connections{default} unless $port;
@@ -219,13 +219,13 @@ sub read_temp {
         &main::proxy_send($self->{port}, 'ibutton', 'read_temp', $$self{object_name});
         return $self->{state}; # This is the previous  temp, but better than nothing.
     }
-    
+
     my $temp = $self->read_temperature_hires();
     return wantarray ? () : undef if !defined $temp;
 
     my $temp_c = sprintf("%3.2f", $temp);
     my $temp_f = sprintf("%3.2f", $temp*9/5 +32);
-    my $temp_def = ($main::config_parms{default_temp} eq 'Celsius') ? $temp_c : $temp_f;                                          
+    my $temp_def = ($main::config_parms{default_temp} eq 'Celsius') ? $temp_c : $temp_f;
 
     set_receive $self $temp_def;
 
@@ -334,7 +334,7 @@ sub new {
     push @windcounters, $ibutton if uc(substr( $i, 0, 2 )) eq "1D";
     push @tempsensors,  $ibutton if uc(substr( $i, 0, 2 )) eq "10";
     }
-    
+
     die "Need 8 01 chips!\n" if $#windsensors != 7;
     die "Need a 1D counter!\n" if $#windcounters != 0;
     die "Need a 12 switch!\n" if $#windswitch != 0;
@@ -355,7 +355,7 @@ sub new {
     $this->{ "DIRS" } = \%dirs;
 
     bless $this, $class;
-}    
+}
 
 sub read_temp {
     my $this = shift;
@@ -366,7 +366,7 @@ sub read_temp {
 
     my $temp_c = sprintf("%3.2f", $temp);
     my $temp_f = sprintf("%3.2f", $temp*9/5 +32);
-    my $temp_def = ($main::config_parms{default_temp} eq 'Celsius') ? $temp_c : $temp_f;                                          
+    my $temp_def = ($main::config_parms{default_temp} eq 'Celsius') ? $temp_c : $temp_f;
 
     $this->set_receive( $temp_def );
 
@@ -385,7 +385,7 @@ sub read_windspeed {
     if ( !defined $this->{ PREVCOUNT } ) {
         $this->{ PREVCOUNT } = $this->{ "1D" }->read_counter( 3 );
         return undef if !defined $this->{ PREVCOUNT };
-        
+
         $this->{ PREVTIME } = &main::get_tickcount() / 1000;
         select undef, undef, undef, 0.5;
     }
@@ -398,12 +398,12 @@ sub read_windspeed {
     my $rev = ( ($count - $this->{ PREVCOUNT } ) / ( $time - $this->{ PREVTIME } )) / 2.0;
     $this->{ PREVTIME } = $time;
     $this->{ PREVCOUNT } = $count;
-    
+
     my $speed = $rev * 2.453;  # This is the MPH constant
     $this->set_receive( $speed );
     return $speed;
 }
-    
+
 sub read_dir {
     my $this = shift;
     my %connections = iButton::_connections();
@@ -541,6 +541,9 @@ memory
 
 
 # $Log$
+# Revision 1.24  2005/01/23 23:21:46  winter
+# *** empty log message ***
+#
 # Revision 1.23  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

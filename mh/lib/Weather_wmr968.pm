@@ -9,9 +9,9 @@ Tom Vanderpool modified Bruce Winter's wx200 code to enable use of it
 for the OS wmr968/918 and Radio Shack Accuweather Wireless weather stations.
 The wx200 ~ wmr918 ~ wmr968 from what I could tell. It seems the main difference
 in the wx200 and the 918/968 is the format of the data returned. The difference
-between the 918 and the 968 that I found reference to was that the 918 is wired 
+between the 918 and the 968 that I found reference to was that the 918 is wired
 and the 968 is wireless. Radio Shack has an Accuweather Wireless Weather Station
-(63-1016) which is what I have. 
+(63-1016) which is what I have.
 
  This mh code reads data from the Radio Shack Weather station but should work on the
 918 & 968.
@@ -28,7 +28,7 @@ definition (they ignored the first 2 bytes).
 
 And it appears that when in a called subroutine, there is one byte added
 to the array so I had to compensate for that where it occurred.
- 
+
 # To use it, add these mh.ini parms
 #  serial_wmr968_port      = COM7
 #  serial_wmr968_baudrate  = 9600
@@ -37,10 +37,10 @@ to the array so I had to compensate for that where it occurred.
 #  serial_wmr968_module    = Weather_wmr968
 #  serial_wmr968_skip      =  # Use to ignore bad sensor data.  e.g. TempOutdoor,
 #                              HumidOutdoor,WindChill
-# altitude = 1000 # In feet, used to find sea level barometric pressure 
+# altitude = 1000 # In feet, used to find sea level barometric pressure
 # in the RS weather station, it adjusts for sea level and gives a direct
 # reading so altitude is not needed
-# 
+#
 # A complete usage example is at:
 #    http://misterhouse.net/mh/code/bruce/weather_monitor.pl
 # Lots of other good Wmr968 software links at:
@@ -48,7 +48,7 @@ to the array so I had to compensate for that where it occurred.
 # -----------------------------------------------------------------------------
 # 24/11/03   1.6   Dominique Benoliel	Correct bugs and improvements
 # - test for WMR928 Weather station (France)
-# - Correct bug if not enough data and only 255 data (1 byte) for the first 
+# - Correct bug if not enough data and only 255 data (1 byte) for the first
 #   pass : test data length lower than 3 (headers+device type)
 # - Replace Batt. value 100% by 1=power and 0=low (better for test)
 # - add $$wptr{WindGustOver} : 1=over, 0=normal
@@ -86,6 +86,11 @@ to the array so I had to compensate for that where it occurred.
 #   wmr928 and wmr968
 # - produce more lisible debug mode
 # - Add device type TH (thermo only=4)
+# 01/10/05   1.7   Dominique Benoliel
+# - Calculate pressure sea level
+# 01/23/05   1.8   Dominique Benoliel
+# - make necessary conversions. Store data in global weather variable and use
+#   the mh parameters weather_uom_...
 # =============================================================================
 =cut
 my ($wmr968_port, %skip);
@@ -102,13 +107,13 @@ sub update_wmr968_weather {
     my $debug = 1 if $main::Debug{weather};
     my $remainder = &read_wmr968($data, \%main::Weather, $debug);
     set_data $wmr968_port $remainder if $remainder;
-}                             
+}
 
 # Category=Weather
 # Parse wx200 datastream into array pointed at with $wptr
 # Lots of good info on the Wmr968 from: http://www.peak.org/~stanley/wmr918/dataspec
 # Set up array of data types, including group index,
-# group name, length of data, and relevant subroutine 
+# group name, length of data, and relevant subroutine
 
 # tv changed table to reflect wmr968 values
 # wx_datatype : data type, nb byte, function
@@ -133,7 +138,7 @@ sub read_wmr968 {
 
     my @data = unpack('C*', $data);
     print "Data read : #@data#\n" if $debug;
- 
+
     # Test if we have headers and device type, if not return what is left for next pass
     if (@data < 3) {
         printf("     Not enough data, length<3, return data for next pass\n") if $debug;
@@ -141,14 +146,14 @@ sub read_wmr968 {
 	}
 
     while (@data) {
-        my $group = $data[2];  # tv changed from 0 
+        my $group = $data[2];  # tv changed from 0
         my $dtp = $wx_datatype{$group};
 
         # Check for valid datatype
         unless ($dtp) {
             my $length = @data;
             printf("     Bad weather data = group(%x) length($length)\n", $group);
-            return; 
+            return;
         }
         # If we don't have enough data, return what is left for next pass
         if ($$dtp[1] > @data) {
@@ -176,11 +181,43 @@ sub read_wmr968 {
         }
 
         # Process the data
-#       print "process data $$dtp[0], $$dtp[1]\n";
         &{$$dtp[2]}($wptr, $debug, @data2);
+
+	# Make some conversion if necessary
+        if ($main::config_parms{weather_uom_temp} eq 'C') {
+      		$$wptr{TempOutdoor} = $$wptr{TempOutdoor_ws};
+      		$$wptr{TempIndoor} = $$wptr{TempIndoor_ws};
+      		$$wptr{TempSpare1} = $$wptr{TempSpare1_ws};
+      		$$wptr{TempSpare2} = $$wptr{TempSpare2_ws};
+      		$$wptr{TempSpare3} = $$wptr{TempSpare3_ws};
+      		$$wptr{DewSpare1} = $$wptr{DewSpare1_ws};
+      		$$wptr{DewSpare2} = $$wptr{DewSpare2_ws};
+      		$$wptr{DewSpare3} = $$wptr{DewSpare3_ws};
+      		$$wptr{DewOutdoor} = $$wptr{DewOutdoor_ws};
+      		$$wptr{DewIndoor} = $$wptr{DewIndoor_ws};
+      		$$wptr{WindChill} = $$wptr{WindChill_ws};
+    		}
+        if ($main::config_parms{weather_uom_baro} eq 'mb') {
+      		$$wptr{Barom} = $$wptr{Barom_ws};
+      		$$wptr{BaromSea} = $$wptr{BaromSea_ws};
+    		}
+    	if ($main::config_parms{weather_uom_wind} eq 'kph') {
+      		$$wptr{WindGustSpeed} = &main::convert_mile2km($$wptr{WindGustSpeed});
+      		$$wptr{WindAvgSpeed} = &main::convert_mile2km($$wptr{WindAvgSpeed});
+    		}
+    	if ($main::config_parms{weather_uom_wind} eq 'm/s') {
+      		$$wptr{WindGustSpeed} = $$wptr{WindGustSpeed_ws};
+      		$$wptr{WindAvgSpeed} = $$wptr{WindAvgSpeed_ws};
+                }
+   	if ($main::config_parms{weather_uom_rain} eq 'mm') {
+      		$$wptr{RainTotal} = $$wptr{RainTotal_ws};
+      		$$wptr{RainYest} = $$wptr{RainYest_ws};
+    		}
+    	if ($main::config_parms{weather_uom_rainrate} eq 'mm/hr') {
+      		$$wptr{RainRate} = $$wptr{RainRate_ws};
+    		}
     }
 }
-
 
 sub wx_temp2 {
     my ($n1, $n2) = @_;
@@ -244,7 +281,7 @@ sub wx_rain {
     	$$wptr{RainTotal} = $$wptr{RainTotal_ws};
     	# Convert mm to in
     	$$wptr{RainTotal}=sprintf("%.2f",$$wptr{RainTotal_ws}*0.0393700787402);
-    }        
+    }
     unless ($skip{RainYest}) {
     	$$wptr{RainYest_ws} = sprintf('%u', (0xf0 & $data[9])>>4)*1000 + sprintf('%u', 0x0f & $data[9])*100
 			      + sprintf('%u', (0xf0 & $data[8])>>4)*10 + sprintf('%u', 0x0f & $data[8]);
@@ -305,7 +342,7 @@ sub wx_wind {
 	$$wptr{BatWind} = (($data[3] & 0x40)>>6) ? 0 : 1;
     }
     unless ($skip{WindGustSpeed}) {
-        $$wptr{WindGustSpeed_ws}=sprintf('%u',(0xf0 & $data[6])>>4)*10 + sprintf('%u',0x0f & $data[6]) 
+        $$wptr{WindGustSpeed_ws}=sprintf('%u',(0xf0 & $data[6])>>4)*10 + sprintf('%u',0x0f & $data[6])
 				+ sprintf('%u',(0xf0 & $data[5])>>4)*0.1;
 	# m/s unit by default
         $$wptr{WindGustSpeed}=$$wptr{WindGustSpeed_ws};
@@ -371,8 +408,8 @@ sub wx_time {
     $$wptr{BatMain} = (($data[3] & 0x80)>>7) ? 0 : 1;
 
     $$wptr{DateMain}=sprintf("%x%x%x%x%u%u",$data[7],$data[6],$data[5],$data[4],
-	    	($data[3] & 0x70)>>4, $data[3] & 0x0F) if $debug;  
- 
+	    	($data[3] & 0x70)>>4, $data[3] & 0x0F) if $debug;
+
     print "** MAIN UNIT - CLOCK : $main::Time_Date\n" if $debug;
     print "       BatMain         ($$wptr{BatMain})\n" if $debug;
     print "       DateMain        ($$wptr{DateMain})\n" if $debug;
@@ -393,10 +430,10 @@ sub wx_time {
 # 5	DD		Dew point, ab of ab Celsius
 # 6	HH		Baro pressure, convert to decimal and
 # 			add 600mb for device 6
-# device 6 
+# device 6
 # 7	xB		Encoded 'tendency' 0x0c=clear 0x06=partly cloudy
 #			0x02=cloudy 0x03=rain
-# 8	DD		Sea level reference, cd of <abc.d>. 
+# 8	DD		Sea level reference, cd of <abc.d>.
 # 9	DD		Sea level reference, ab of <abc.d>. Add this to raw
 #			bp from byte 6 to get sea level pressure.
 #=============================================================================
@@ -412,7 +449,7 @@ my %eval = (0xc0 => "Sunny",
 $$wptr{BatIndoor} = (($data[3] & 0x40)>>6) ? 0 : 1;
 
 unless ($skip{TempIndoor}) {
-        $$wptr{TempIndoor_ws}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1 
+        $$wptr{TempIndoor_ws}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1
 				+ sprintf('%u',(0x0f & $data[5]))*10 + sprintf('%u',(0x30 & $data[5])>>4)*100;
         $$wptr{TempIndoor_ws} *= -1 if 0x80 & $data[5];
 	# C unit by default
@@ -425,10 +462,10 @@ unless ($skip{TempIndoor}) {
 $$wptr{DewIndoorUnder} = ($data[3] & 0x10)>>4;
 
 unless ($skip{HumidIndoor}) {
-      $$wptr{HumidIndoor}=sprintf('%u',(0x0f & $data[6]))*1 + sprintf('%u',(0xf0 & $data[6])>>4)*10; 
+      $$wptr{HumidIndoor}=sprintf('%u',(0x0f & $data[6]))*1 + sprintf('%u',(0xf0 & $data[6])>>4)*10;
 }
 unless ($skip{DewIndoor}) {
-      $$wptr{DewIndoor_ws}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10; 
+      $$wptr{DewIndoor_ws}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10;
 	# C unit by default
         $$wptr{DewIndoor} = $$wptr{DewIndoor_ws};
 	# Convert C to F
@@ -445,9 +482,12 @@ unless ($skip{Barom}) {
    # Convert mb to in
    $$wptr{Barom} = sprintf('%.2f', $$wptr{Barom_ws} * .0295301);
 
-   $$wptr{BaromSea_ws} = $xb + sprintf('%x%x',$data[12],$data[11]);
+   # $$wptr{BaromSea_ws} = $xb + sprintf('%x%x',$data[12],$data[11]);
    # mb unit by default
-   $$wptr{BaromSea} = $$wptr{BaromSea_ws};
+   # $$wptr{BaromSea} = $$wptr{BaromSea_ws};
+   # Calculate pressure sea level
+   $$wptr{BaromSea_ws} = $$wptr{Barom_ws} + ($main::config_parms{altitude} / ($main::config_parms{ratio_sea_baro} * 3.2808399))
+     if $main::config_parms{ratio_sea_baro};
    # Convert mb to in
    $$wptr{BaromSea} = sprintf('%.2f',$$wptr{BaromSea_ws} * .0295301);
    }
@@ -485,7 +525,7 @@ my ($wptr, $debug, @data) = @_;
 $$wptr{BatOutdoor} = (($data[3] & 0x40)>>6) ? 0 : 1;
 
 unless ($skip{TempOutdoor}) {
-        $$wptr{TempOutdoor_ws}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1 
+        $$wptr{TempOutdoor_ws}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1
 				+ sprintf('%u',(0x0f & $data[5]))*10 + sprintf('%u',(0x30 & $data[5])>>4)*100;
         $$wptr{TempOutdoor_ws} *= -1 if 0x80 & $data[5];
 	# C unit by default
@@ -498,10 +538,10 @@ unless ($skip{TempOutdoor}) {
 $$wptr{DewOutdoorUnder} = ($data[3] & 0x10)>>4;
 
 unless ($skip{HumidOutdoor}) {
-      $$wptr{HumidOutdoor}=sprintf('%u',(0x0f & $data[6]))*1 + sprintf('%u',(0xf0 & $data[6])>>4)*10; 
+      $$wptr{HumidOutdoor}=sprintf('%u',(0x0f & $data[6]))*1 + sprintf('%u',(0xf0 & $data[6])>>4)*10;
 }
 unless ($skip{DewOutdoor}) {
-      $$wptr{DewOutdoor_ws}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10; 
+      $$wptr{DewOutdoor_ws}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10;
 	# C unit by default
         $$wptr{DewOutdoor} = $$wptr{DewOutdoor_ws};
 	# Convert C to F
@@ -517,9 +557,9 @@ print "       DewOutdoorUnder  ($$wptr{DewOutdoorUnder})\n" if $debug;
 
 }
 #=============================================================================
-# THERMO HYGRO EXTRA SENSOR 
+# THERMO HYGRO EXTRA SENSOR
 # OR
-# THERMO ONLY EXTRA SENSOR 
+# THERMO ONLY EXTRA SENSOR
 # This unit can handle up to 3 extra sensors.
 # Byte	Nibble	Bit	Meaning
 #  0	02		temp/humidity data
@@ -544,7 +584,7 @@ $copy = $$wptr{"ChannelSpare"};
 $$wptr{"BatSpare$copy"} = (($data[3] & 0x40)>>6) ? 0 : 1;
 
 unless ($skip{"TempSpare$copy"}) {
-        $$wptr{"TempSpare$copy". "_ws"}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1 
+        $$wptr{"TempSpare$copy". "_ws"}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1
 				+ sprintf('%u',(0x0f & $data[5]))*10 + sprintf('%u',(0x30 & $data[5])>>4)*100;
         $$wptr{"TempSpare$copy"."_ws"} *= -1 if 0x80 & $data[5];
 	# C unit by default
@@ -561,10 +601,10 @@ if ($data[2] == 2) {
    $$wptr{"DewSpareUnder$copy"} = ($data[3] & 0x10)>>4;
 
    unless ($skip{"HumidSpare$copy"}) {
-        $$wptr{"HumidSpare$copy"}=sprintf('%u',(0x0f & $data[6]))*1 + sprintf('%u',(0xf0 & $data[6])>>4)*10; 
+        $$wptr{"HumidSpare$copy"}=sprintf('%u',(0x0f & $data[6]))*1 + sprintf('%u',(0xf0 & $data[6])>>4)*10;
    }
    unless ($skip{"DewSpare$copy"}) {
-        $$wptr{"DewSpare$copy"."_ws"}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10; 
+        $$wptr{"DewSpare$copy"."_ws"}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10;
 	# C unit by default
         $$wptr{"DewSpare$copy"} = $$wptr{"DewSpare$copy"."_ws"};
 	# Convert C to F
@@ -598,8 +638,8 @@ sub wx_seq {
     my ($wptr, $debug, @data) = @_;
 
     $$wptr{BatMain} = (($data[3] & 0x80)>>7) ? 0 : 1;
-    $$wptr{MinuteMain}=sprintf("%u%u",($data[3] & 0x70)>>4,$data[3] & 0x0F) if $debug;  
- 
+    $$wptr{MinuteMain}=sprintf("%u%u",($data[3] & 0x70)>>4,$data[3] & 0x0F) if $debug;
+
     print "** MAIN UNIT - MINUTE : $main::Time_Date\n" if $debug;
     print "       BatMain         ($$wptr{BatMain})\n" if $debug;
     print "       MinuteMain      ($$wptr{MinuteMain})\n" if $debug;
@@ -632,6 +672,9 @@ return $f968;
 # 2001/11/18 v1.0 of Weather_wmr968.pm based on Bruce's Weather_wx200.pm
 #
 # $Log$
+# Revision 1.5  2005/01/23 23:21:45  winter
+# *** empty log message ***
+#
 # Revision 1.4  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

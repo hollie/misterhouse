@@ -1,25 +1,25 @@
-	
+
 # Category = IR
 
-#@ Use this code file to learn and import codes for the 
+#@ Use this code file to learn and import codes for the
 #@ <a href='http://home.earthlink.net/~jrhees/USBUIRT/index.htm'>USB-UIRT 2 way IR interface</a>.
-#@ To enable this code, add the usb_uirt_* parms listed at the top of 
+#@ To enable this code, add the usb_uirt_* parms listed at the top of
 #@ <a href='/bin/browse.pl?/lib/USB_UIRT.pm'>USB_UIRT.pm</a>,
-#@ then click <a href="/SUB;usb_uirt_update_html">here</a> or click on the IR category button.  
-#@ Windows is now supported using the uuirt.DLL driver.  Note: Learning is still not working 
+#@ then click <a href="/SUB;usb_uirt_update_html">here</a> or click on the IR category button.
+#@ Windows is now supported using the uuirt.DLL driver.  Note: Learning is still not working
 #@ in this release.  Support for the USB-UIRT is included in the ftdi_sio driver in the 2.4.22
-#@ Linux kernel.  
+#@ Linux kernel.
 
-=begin comment 
+=begin comment
 
 03/26/2003	Created by David Norwood (dnorwood2@yahoo.com)
 
-To enable the USB_UIRT module, add these entries to your .ini file: 
+To enable the USB_UIRT module, add these entries to your .ini file:
 
 usb_uirt_module=USB_UIRT
-usb_uirt_port=/dev/ttyUSB1	# optional, defaults to /dev/ttyUSB0, not used on Windows 
+usb_uirt_port=/dev/ttyUSB1	# optional, defaults to /dev/ttyUSB0, not used on Windows
 
-$config_parms{usb_uirt_module} $config_parms{usb_uirt_port} 
+$config_parms{usb_uirt_module} $config_parms{usb_uirt_port}
 
 =cut
 
@@ -27,21 +27,21 @@ $config_parms{usb_uirt_module} $config_parms{usb_uirt_port}
 my (@devices, @functions, $prev_device, $current_device, $current_function, $ofa_html);
 use vars '$usb_uirt_function_pcode';
 
-use IR_Utils; 
+use IR_Utils;
 
 if ($Reload) {
     &IR_Utils::init_ir_utils;
     $Included_HTML{'IR'} = '<!--#include code="&usb_uirt_update_html"-->' . "\n\n\n";
-    $ofa_html = &ofa_html; 
-} 
+    $ofa_html = &ofa_html;
+}
 
-$usb_uirt_test = new Voice_Cmd( "usb_uirt debug [version,raw,uir,struct,gpio,replay,learn]");
+$usb_uirt_test = new Voice_Cmd( "usb_uirt debug [version,raw,uir,gpio,replay,learn]");
 
 if (my $state = said $usb_uirt_test) {
     USB_UIRT::get_version() if $state eq 'version';
     USB_UIRT::set_moderaw() if $state eq 'raw';
     USB_UIRT::set_modeuir() if $state eq 'uir';
-    USB_UIRT::set_modestruct() if $state eq 'struct';
+#   USB_UIRT::set_modestruct() if $state eq 'struct';
     USB_UIRT::send_ir_code('tv', 'volume down') if $state eq 'replay';
     USB_UIRT::learn_code('tv', 'volume down') if $state eq 'learn';
 }
@@ -49,13 +49,13 @@ if (my $state = said $usb_uirt_test) {
 sub usb_uirt_update_html {
 #    print_log "Updating HTML";
 #        <META HTTP-EQUIV="REFRESH" CONTENT="6; url=' . "'" . 'SUB;referer?usb_uirt_update_html()' . "'" . '">
-    my $html; 
+    my $html;
     if (USB_UIRT::is_learning()) {
         $html = '
         <META HTTP-EQUIV="REFRESH" CONTENT="6">
         <h1><b><p align=center>Learning</p></b></h1>
         ';
-        return $html; 
+        return $html;
     }
     $html = '
       <form action="SET;referer" target="control" name=fm>
@@ -70,7 +70,7 @@ sub usb_uirt_update_html {
     $current_device = $devices[0] if $current_device eq '' and @devices;
     my $i = 0;
     foreach (@devices) {
-         $html .= '<option value="' . $i++ . ($current_device eq $_ ? '" selected>' : '">') . $_ . 
+         $html .= '<option value="' . $i++ . ($current_device eq $_ ? '" selected>' : '">') . $_ .
            "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
     }
     $html .= '
@@ -94,13 +94,13 @@ sub usb_uirt_update_html {
     $prev_device = $current_device;
     $i = 0;
     foreach (@functions) {
-         $html .= '<option value="' . $i++ . ($current_function eq $_ ? '" selected>' : '">') . $_ . 
+         $html .= '<option value="' . $i++ . ($current_function eq $_ ? '" selected>' : '">') . $_ .
            "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
     }
     my ($frequency, $repeat, $code1, $code2) = USB_UIRT::get_ir_code($current_device, $current_function);
-    my $pronto; 
+    my $pronto;
     if ($code1 =~ /^0000 /) {
-        $pronto = lc $code1; 
+        $pronto = lc $code1;
     }
     else {
         ($pronto) = USB_UIRT::raw_to_pronto(USB_UIRT::struct_to_raw($frequency, $repeat, $code1, $code2));
@@ -116,8 +116,8 @@ sub usb_uirt_update_html {
       <input type=submit name=$usb_uirt_function_rename value="Rename"><br>
       <input type=submit name=$usb_uirt_function_send value="Send"><br>
       USB_UIRT Code<br>
-      1 <input value="' . $code1 . '" size="70" name=$usb_uirt_function_code1><br> 
-      2 <input value="' . $code2 . '" size="70" name=$usb_uirt_function_code2><br> 
+      1 <input value="' . $code1 . '" size="70" name=$usb_uirt_function_code1><br>
+      2 <input value="' . $code2 . '" size="70" name=$usb_uirt_function_code2><br>
       Frequency <input value="' . $frequency . '" name=$usb_uirt_function_frequency>
       &nbsp&nbsp&nbsp Repeat <input value="' . $repeat . '" size="5" name=$usb_uirt_function_repeat>
       &nbsp&nbsp&nbsp <input type=submit value="Modify" name=$usb_uirt_function_modify><br>
@@ -137,7 +137,7 @@ sub usb_uirt_update_html {
       </td></tr>
       <tr><td colspan=4>
       Pronto Code<br>
-      <textarea name=$usb_uirt_function_pcode Rows=8 COLS=100 wrap="hard">' . $pronto . '</textarea>  
+      <textarea name=$usb_uirt_function_pcode Rows=8 COLS=100 wrap="hard">' . $pronto . '</textarea>
       <input type=submit value="Import" name=$usb_uirt_function_import><br>
       You can find Pronto codes at <a target="_BLANK" href="http://www.remotecentral.com">Remote Central</a> and
       at <a target="_BLANK" href="http://www.premisesystems.com/techsupport/irlibrary">Premise Systems</a>.<p>
@@ -145,7 +145,7 @@ sub usb_uirt_update_html {
     my $raw = USB_UIRT::last_learned();
     $html .= '
       Last learned raw code (for debugging)<br>
-      <textarea name=$usb_uirt_function_raw Rows=8 COLS=100 wrap="hard">' . $raw . '</textarea>  
+      <textarea name=$usb_uirt_function_raw Rows=8 COLS=100 wrap="hard">' . $raw . '</textarea>
       ' if $raw;
     $html .= '
       <a target="control" href="SUB;referer?usb_uirt_update_html()">Refresh</a><br>
@@ -166,7 +166,7 @@ if (state_now $usb_uirt_device_add) {
 	my $device = uc state $usb_uirt_device_text;
 	return unless $device;
 	print_log "Adding device $device";
-	USB_UIRT::add_device($device); 
+	USB_UIRT::add_device($device);
 	$current_device = $device;
 	$current_function = '';
 }
@@ -223,7 +223,7 @@ if (state_now $usb_uirt_function_learn) {
 	my $frequency = state $usb_uirt_function_frequency;
 	my $repeat = 1;
 	print_log "Learning device $device function $function";
-	USB_UIRT::learn_code($device, $function, $frequency, $repeat); 
+	USB_UIRT::learn_code($device, $function, $frequency, $repeat);
 }
 
 if (state_now $usb_uirt_function_delete) {
@@ -322,28 +322,28 @@ if (state_now $usb_uirt_gen_commit) {
 
 sub ofa_html {
 	my $sub_prev;
-	my $mfgs_prev; 
-	my $list = '<h2>Pick a Device to Autogenerate</h2><p>'; 
+	my $mfgs_prev;
+	my $list = '<h2>Pick a Device to Autogenerate</h2><p>';
 	foreach (&IR_Utils::ofa_bysub) {
 		my ($sub, $type, $mfgs, $code) = split "$;";
 		$list .= "<p>\n$sub ($type)" if "$sub$;$type" ne $sub_prev;
-		$list .= "<br>\n\t&nbsp&nbsp&nbsp&nbsp$mfgs " if $mfgs ne $mfgs_prev; 
-		$list .= ", " if $mfgs eq $mfgs_prev; 
-		$list .= "<a target='control' href=" . '"' . 
-		  "SUB;referer?usb_uirt_add_ofa_device('$mfgs $sub','$type','$code')" . '"' . ">$code</a>"; 
-		$list .= " [<a target='speech' href=" . '"' . 
-		  "SUB;send_ofa_key('$type','$code','POWER')" . '"' . ">test</a>]"; 
+		$list .= "<br>\n\t&nbsp&nbsp&nbsp&nbsp$mfgs " if $mfgs ne $mfgs_prev;
+		$list .= ", " if $mfgs eq $mfgs_prev;
+		$list .= "<a target='control' href=" . '"' .
+		  "SUB;referer?usb_uirt_add_ofa_device('$mfgs $sub','$type','$code')" . '"' . ">$code</a>";
+		$list .= " [<a target='speech' href=" . '"' .
+		  "SUB;send_ofa_key('$type','$code','POWER')" . '"' . ">test</a>]";
 		$sub_prev = "$sub$;$type";
-		$mfgs_prev = $mfgs; 
+		$mfgs_prev = $mfgs;
 	}
 	$list .= '<p>';
-	return $list; 
+	return $list;
 }
 
 sub usb_uirt_add_ofa_device {
 	my $device_name = shift;
-	my $type = shift; 
-	my $code = shift; 
+	my $type = shift;
+	my $code = shift;
 	print_log "Adding device $device_name $type $code";
 	my ($repeat, %prontos) = &IR_Utils::generate_ofa_device($type, $code);
 	while (my ($key, $pronto) = each %prontos) {
@@ -354,9 +354,9 @@ sub usb_uirt_add_ofa_device {
 }
 
 sub send_ofa_key {
-	my $type = shift; 
-	my $code = shift; 
-	my $key = shift; 
+	my $type = shift;
+	my $code = shift;
+	my $key = shift;
 	my %keys = &IR_Utils::get_ofa_keys($type, $code);
 	my $efc = $keys{$key};
 	my ($protocol, $device, $function) = &IR_Utils::get_function($type, $code, $efc);
