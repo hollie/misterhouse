@@ -1,4 +1,4 @@
-# Category=Home_network
+# Category=Home_Network
 #
 #@ XOsd control script.
 

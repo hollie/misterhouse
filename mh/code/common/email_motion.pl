@@ -1,5 +1,5 @@
 
-# Category = Security
+# Category = Photos
 
 #@ Check incoming email for netcam pictures and extract the pictures to a web directory.
 #@ Images in emails with a subject of 'Motion: xyz' are extracted to a /web/motion directory.

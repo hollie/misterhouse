@@ -9,9 +9,11 @@ sub STORE {
   my $oldValue = $_[0][0]{$_[1]};
   $_[0][0]{$_[1]} = $_[2];
 
-  if(defined $oldValue and defined $_[2] and $oldValue ne $_[2]) {
+				# Call property_changed if old and new are different
+  if((defined($oldValue) != defined($_[2])) or (defined $oldValue and $oldValue ne $_[2])) {
     $_[0][1]->property_changed($_[1],$_[2], $oldValue);
   }
+
 }
 
 
@@ -628,6 +630,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.35  2004/05/02 22:22:17  winter
+# *** empty log message ***
+#
 # Revision 1.34  2004/04/25 18:19:41  winter
 # *** empty log message ***
 #

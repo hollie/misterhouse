@@ -41,6 +41,9 @@ $html = qq|
 $html
 |;
 
+my $rate = 60 * $config_parms{weather_graph_frequency};
+$html .= "<meta http-equiv='refresh' content='".$rate.";url='>" if $rate;
+
 my $j=1;
 unless ($config_parms{weather_graph_skip} =~ /$typegraph/) {
  $html .= qq|

@@ -10,6 +10,10 @@ Description:
    and provides 6 zones and 4 sources with very nice keypads.
 
    http://www.netstreams.com
+   
+   If you are interested in installing a Netstreams Musica system yourself,
+   contact me and I can put you in contact with somebody who can give you
+   a good price.
 
    Note that you must use a null-modem cable between the Musica system and your
    Misterhouse computer.
@@ -19,6 +23,10 @@ Description:
 Author:
 	Kirk Bauer
 	kirk@kaybee.org
+
+   You can get the most current version of this file and other files related
+   whole-house music/speech setup here:
+     http://www.linux.kaybee.org:81/tabs/whole_house_audio/
 
 License:
 	This free software is licensed under the terms of the GNU public license.

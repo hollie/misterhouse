@@ -551,7 +551,7 @@ sub main::read_opts {
                                 #  - We can probably skip this now, as we 
                                 #    now do evals above in mh_read_opts.
         if ($value =~ /\$Pgm_Root/) {
-            $value =~ s/\$Pgm_Root/$pgm_root/;
+            $value =~ s/\$Pgm_Root/$pgm_root/g;
 #           eval "\$value = qq[$value]";
         }        
 
@@ -1232,6 +1232,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.70  2004/05/02 22:22:17  winter
+# *** empty log message ***
+#
 # Revision 1.69  2004/04/25 18:20:16  winter
 # *** empty log message ***
 #

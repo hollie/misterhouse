@@ -246,6 +246,8 @@ AT&T no longer sells them from their site, but you can get 2 voices from http://
 for abour $40 ($25 for the voices, $15 for a nextup product, required to qualify for the voices). 
 Additional voices are $35.
 
+Another new source of greate voices is from Cepstral at http://www.cepstral.com . Lots of voices for Windows and linux for $30 each.
+
 
 =head1 UNIX Detailed Install Instructions
 
@@ -373,7 +375,7 @@ don_diphone, kal_diphone, ked_diphone, rab_diphone, us1_mbrola, us2_mbrola, and 
 
 
 Another good TTS engine is now available from Cepstral: http://www.cepstral.com .  
-$30 per voice, for either Linux or Windows (only tested on Linux so far).
+$30 per voice, for either Linux or Windows.
 Set mh.ini parm voice_text=theta and modify voice_text_theta to point to the theta binary.
 
 

@@ -27,7 +27,7 @@ run_voice_cmd 'get iridium flares' if $New_Week;
 
                                 # Their web site uses dorky Time Zone strings,
                                 # so use UCT (GMT+0) and translate.
-my $iridium_check_e = "$config_parms{code_dir}/iridium_check_events.pl";
+my $iridium_check_e = "$Code_Dirs[0]/iridium_check_events.pl";
 my $iridium_check_f = "$config_parms{data_dir}/web/iridium.html";
 my $iridium_check_u = "http://www.heavens-above.com/iridium.asp?" . 
                       "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&" .

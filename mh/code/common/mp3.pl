@@ -144,14 +144,28 @@ if ($state = said $v_play_clear_music) {
 # The following returns the current song being played
 $v_what_playing = new Voice_Cmd('What is now playing');
 if ($state = said $v_what_playing) {
-	my $mp3playing = ${&mp3_get_playlist()}[&mp3_get_playlist_pos()];
-	speak $mp3playing;
+#   my $mp3playing = ${&mp3_get_playlist()}[&mp3_get_playlist_pos()];
+    my $mp3playing = '';
+    my $pos = &mp3_get_playlist_pos();
+    if ($pos >= 0) {
+	$mp3playing = ${&mp3_get_playlist()}[$pos];
+    } else {
+	$mp3playing = &mp3_get_curr_song();
+    }
+    speak $mp3playing;
 }
+
 
 	# This can be slow if player is down, so don't do it too often
 #if (new_second 15) {
 #   my $ref = &mp3_get_playlist();
-#   $Save{NowPlaying} = ${$ref}[&mp3_get_playlist_pos()] if $ref;
+##  $Save{NowPlaying} = ${$ref}[&mp3_get_playlist_pos()] if $ref;
+#   my $pos = &mp3_get_playlist_pos();
+#   if ($pos >= 0) {
+#      $Save{NowPlaying} = ${$ref}[$pos] if $ref;
+#   } else {
+#      $Save{NowPlaying} = &mp3_get_curr_song();
+#   }
 #}
 
 sub mp3_find_all {

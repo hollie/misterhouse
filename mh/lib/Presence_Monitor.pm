@@ -57,6 +57,17 @@ Usage:
       that basically nobody ever stays in... yet there is lots of activity 
       in and out and one of the outs might be missed.
 
+   Automating timers:
+      You can now add arbitrary commands to a presence object that will be
+      run after a room has been vacant or occupied for the specified amount
+      of time.  Here are examples:
+
+         $om_presence_master_bedroom->add_presence_timer(15, 'speak("bedroom presence")');
+         $om_presence_master_bedroom->add_vacancy_timer(15, 'speak("bedroom vacant")');
+
+      These examples cause the specified text to be spoken after a room has been
+      continuously occupied for 15 seconds or continuously vacant for 15 seconds.
+
    Setting occupancy:
       set_count(): This function can be used to set the number of people
       in a specific room.  Set to 0 to vacate the room, or a positive number

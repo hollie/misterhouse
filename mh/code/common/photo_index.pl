@@ -1,4 +1,4 @@
-# Category = Entertainment
+# Category = Photos
 
 #@ This code reads directories of photos to create an index which is 
 #@ used by web browsers working as picture frames.

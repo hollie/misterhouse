@@ -20,7 +20,7 @@ if (said $organizer_check or ($New_Minute and changed $organizer_cal)) {
     set_watch $organizer_cal;  # Reset so changed function works
     my ($objDB) = new vsDB(file => $organizer_cal->name, delimiter => '\t');
     print $objDB->LastError unless $objDB->Open;
-    my $mycode = "$config_parms{code_dir}/organizer_events.pl";
+    my $mycode = "$Code_Dirs[0]/organizer_events.pl";
     open(MYCODE, ">$mycode") or print_log "Error in open on $mycode: $!\n";
     while (!$objDB->EOF) {
         my $date  = $objDB->FieldValue('DATE');
@@ -46,7 +46,7 @@ if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
     set_watch $organizer_todo;  # Reset so changed function works
     my ($objDB) = new vsDB(file => $organizer_todo->name, delimiter => '\t');
     print $objDB->LastError unless $objDB->Open;
-    my $mycode = "$config_parms{code_dir}/organizer_tasks.pl";
+    my $mycode = "$Code_Dirs[0]/organizer_tasks.pl";
     open(MYCODE, ">$mycode") or print_log "Error in open on $mycode: $!\n";
     print MYCODE "\n#@ Auto-generated from code/common/organizer.pl\n\n";
     my %emails;

@@ -4,7 +4,7 @@
 #@ Set mh.ini parm outlook_file to your .pst file.  For example:
 #@   outlook_file = c:/Documents and Settings/winter/Local Settings/Application Data/Microsoft/Outlook/OUTLOOK.PST
 
-my $outlook_file = "$config_parms{code_dir}/outlook_programing.pl";
+my $outlook_file = "$Code_Dirs[0]/outlook_programing.pl";
 #p_outlook_read  = new Process_Item("outlook_read -version 98 -pl_file $outlook_file");
 $p_outlook_read  = new Process_Item("outlook_read             -pl_file $outlook_file");
  

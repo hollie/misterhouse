@@ -572,8 +572,6 @@ sub html_password {
         $html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
         $html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
 	$html .= qq[<P> This form is used for logging into MisterHouse.<br> For administration please see the documentation of <a href="http://misterhouse.net/mh.html"> set_password </a></P>\n];
-
-
     }
     else {
         $html  = qq[HTTP/1.0 401 Unauthorized\n];
@@ -2283,7 +2281,7 @@ sub print_socket_fork_win {
     my ($process, $perl, $cmd);
 
     $cmd = 'perl'    if            $perl = &main::which('perl.exe');
-    $cmd = 'mh -run' if !$perl and $perl = &main::which('mh.exe');
+    $cmd = 'mhe -run' if !$perl and $perl = &main::which('mhe.exe');
     if ($cmd) {
 	if ($fork_count) {
 	    my $mapname = "//MemMap/HttpFork" . "$fork_count";
@@ -2321,7 +2319,7 @@ sub print_socket_fork_win {
         }
     }
     else {
-        print "\nsocket_fork_win error: no perl.exe or mh.exe found\n" unless $cmd;
+        print "\nsocket_fork_win error: no perl.exe or mhe.exe found\n" unless $cmd;
 	if ($fork_count) {
 	    $ptr->Read(\my $html,0,$ptr->GetDataSize);
 	    $ptr->Close;
@@ -2830,6 +2828,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.89  2004/05/02 22:22:17  winter
+# *** empty log message ***
+#
 # Revision 1.88  2004/04/25 18:20:17  winter
 # *** empty log message ***
 #

@@ -14,7 +14,7 @@ use xAP_Items;
 $xap_monitor1  = new xAP_Item;
 $xap_monitor1 -> tie_event('print_log "xap data: $state"');
 if ($state = state_now $xap_monitor1) {
-    display text => "$Time_Now: $state\n\n", time => 0, title => 'xAP data', width => 100, height => 10,
+    display text => "$Time_Date: $state\n", time => 0, title => 'xAP data', width => 130, height => 50,
       window_name => 'xAP', append => 'top', font => 'fixed' unless $state =~ /^xap-hbeat/;
 }
 

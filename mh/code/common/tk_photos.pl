@@ -1,4 +1,4 @@
-# Category = Entertainment
+# Category = Photos
 
 #@ This script displays a fullscreen photo slideshow on the local monitor.
 #@ It is particularly nice if your computer is hooked up to a TV.

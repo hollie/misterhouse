@@ -225,7 +225,7 @@ sub set
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	my $l_state;
 
-   if ($p_setby == $$self{'attached_object'}) {
+   if ($p_setby and ($p_setby eq $$self{'attached_object'})) {
       # Our tied object's state changed...
       $self->_check_watched_value($p_state) if $p_state;
    } else {

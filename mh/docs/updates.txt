@@ -2,6 +2,52 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    - Added slimserver_protocol=xAP option for common/display_slimserver.pl.
+    This uses the xAP SlimServer Connector from: http://www.xapframework.net
+    to display data to Slim devices. This program allows for big and
+    brightness controls, and eventually will capture IR data (slimp3 -> xAP
+    traffic -> mh), even for many non-slim IR remotes.
+
+    - Jim Duda created common/camera_gphoto2.pl for downloading photos from
+    digital cameras using ghoto2 (linux only)
+
+    - Kirk Bauer created lib/VirtualAudio.pm which alows you to create
+    virtual audio sources and route them to a physical multi-zone audio
+    system. For example, different playlists can be routed to different
+    rooms.
+
+    - Kirk Bauer also created common/mp3_alsaplayer.pl, which adds support
+    for Alsaplayer the same way it exists for XMMS/Winamp added some new
+    functionality to lib/AlsaPlayer.pm.
+
+    - Amauri Viguera created common/tv_btvwin32.pl for interfacing with
+    SnapStream's "Beyond TV" PVR software.
+
+    Bug Fixes and Other Changes:
+
+    - Neil Wrightson noticed that the windows web server was looking for
+    mh.exe rather than mhe.exe when forking big files.
+
+    - Neil Wrightson also noticed that a code_dir path with multiple dirs
+    would mess up some common code file member (menu.pl, trigger.pl,
+    outlook.pl, and internet_irridium.pl).
+
+    - Steve Switzer fixed a 2.89 typo in weather_aws.pl.
+
+    - Chris Barrett fixed Holiday notices for different date_formats and
+    fixed year based Holidays.
+
+    - Chris Barrett also noticed a 2.89 bug in new_minute.
+
+    - Chris Barrett added an auto-refresh to the rrd weather graphs.
+
+  Version 2.89 posted on 04/25/2004
+    Version 2.89 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+
+    New Features:
+
     - Dave Hall created code/public/robot_er1.pl for interacting with the
     Evolution Robotics ER1 robot: http://www.evolution.com/er1/
 
@@ -13,18 +59,24 @@ Mister House Announcement List
     - Added 'Email daily comics' to common/comic_dailystrips.pl. Also added
     'Email xxx weather chart' commands to common/weather_rrd_update.pl.
     These both use html email, so the images are displayed without having to
-    open them, just like in all those pesky emails. You can have these sent
-    on a daily basis with something like this:
+    open them, just like in all those pesky spam emails. You can have these
+    sent on a daily basis with something like this:
 
       run_voice_cmd 'Email daily comics' if time_cron '2 5 * * *';
 
-    - Created web/bin/list_images.pl to list recent images from a dir. Here
-    is an example page: http://misterhouse.net:8080/ia5/security/index.html
+    - Created web/bin/list_images.pl to list recent images from a directory
+    of images (e.g webcam snapshots). Here is an example page:
+    http://misterhouse.net:8080/ia5/security/index.html
 
     - Updated bin/mh.bat to use the newer, par compiled, mhe.exe. Dropped
     the older perl2exe compiled mh.exe from the misterhouse_win_###.zip
     package. Also updated the perl par compiler to version 0.80 on linux and
     windows. As a result, perl58.dll is no longer required on windows.
+
+    - Steve Switzer created code/common/speech_clash.pl which will re-que a
+    speak event if speech is currently in progress. This can help speech
+    engines that do not have built in speech ques, so that speech is not
+    lost or overlapped.
 
     Bug Fixes and Other Changes:
 
@@ -64,8 +116,8 @@ Mister House Announcement List
 
     - Chris Barrett added net_mail_send -priority option.
 
-    - Added a no_speak parm to speak, so we can add speak hooks that abort
-    speaking.
+    - Added a no_speak parm to speak, so we can add speak_parm hooks that
+    abort speaking.
 
   Version 2.88 posted on 03/21/2004
     Version 2.88 was just uploaded to:

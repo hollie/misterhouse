@@ -1450,6 +1450,9 @@ sub cur_count
 sub sensor_count {
 	my ($self, $p_obj, $p_count) = @_;
    if (defined $p_count) {
+   	if ($$self{m_objects}{$p_obj}{count} > $p_count) {
+         $$self{m_objects}{$p_obj}{last_decrease} = $::Time;
+      }
    	$$self{m_objects}{$p_obj}{count} = $p_count;
       # Jason: I'm not sure what should be done here to maintain
       # the integrity of the event log... at the very least, when

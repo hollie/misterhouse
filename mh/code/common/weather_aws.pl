@@ -73,7 +73,7 @@ my $prev_timestamp;
 
 # noloop=start
 #y $AWSWeatherURL="http://aws.com/full.asp?id=$AWS_ID";
-my $AWSWeatherURL=http://www.aws.com/AWS/full.asp?id=$AWS_ID;
+my $AWSWeatherURL="http://www.aws.com/AWS/full.asp?id=$AWS_ID";
 # noloop=stop
 
 $p_awsweather_page = new Process_Item("get_url -quiet \"$AWSWeatherURL\" \"$f_awsweather_html\"");

@@ -15,6 +15,10 @@ Author:
 	Kirk Bauer
 	kirk@kaybee.org
 
+   You can get the most current version of this file and other files related
+   whole-house music/speech setup here:
+     http://www.linux.kaybee.org:81/tabs/whole_house_audio/
+
 License:
 	This free software is licensed under the terms of the GNU public license.
 
@@ -43,7 +47,7 @@ Example Usage:
       use PlayList;
       my $kirk_mp3s = new PlayList;
 
-      if ($Startup) {
+      if ($Reload) {
          # Starts the Alsaplayer process
          $mp3_player->start();
 
@@ -64,7 +68,14 @@ Example Usage:
    your AlsaPlayer as described just above the shuffle function in this module.
 
 Usage Details:
-   States:
+   Input States:
+      The object accepts the following input states:
+         next: Go to the next song
+         previous: Go to the previous song
+         pause: Pause the player
+         unpause: Resume the player
+
+   Output States:
       You can watch for the following states from an AlsaPlayer object:
          new_song: Player just started playing a new song.
          playlist_loaded: Player just finished loading the current playlist
@@ -94,6 +105,11 @@ Usage Details:
       get_playlist_length(): Returns number of songs in playlist.
       is_busy(): Returns true if one or more commands are waiting to be
          executed OR if songs are waiting to be added to the playlist.
+      add_files(): Adds arbitrary MP3s to this player
+      remove_files(): Removes arbitrary MP3s from this player
+      clear(): Removes all playlists and MP3s
+      get_playlist(): Returns current playlist
+      get_playlist_length(): Returns length current playlist
 
 TODO:
    - Have not implemented seeking/jumping to points in a MP3 (--seek and --relative)
@@ -111,6 +127,8 @@ Bugs:
    this module attempts to keep track of the pause state, but sometimes it 
    can get it wrong.  So, it is best to set up a remote or voice command to 
    allow you to manually pause/resume the MP3s...
+   - I believe the file ~/.alsaplayer/alsaplayer.m3u will mess things up
+   and I recommend removing it before starting up Misterhouse.
 
 Special Thanks to: 
 	Bruce Winter - Misterhouse
@@ -137,8 +155,7 @@ my @check_once = ();
 
 @AlsaPlayer::ISA = ('Generic_Item');
 
-sub new
-{
+sub new {
 	my ($class, $name, $channel) = @_;
 	my $self={};
    $$self{'control'} = new Process_Item();
@@ -155,12 +172,33 @@ sub new
       &::print_log("AlsaPlayer: adding mainloop pre-hook") if $main::Debug{alsaplayer}; 
       &::MainLoop_pre_add_hook(\&AlsaPlayer::_scan_sessions, 1);
 #      system("killall alsaplayer");
+      unless ($::config_parms{alsaplayer_binary}) {
+         $::config_parms{alsaplayer_binary} = 'alsaplayer';
+      }
    }
-   push @check_once, $self;
-   unless ($::config_parms{alsaplayer_binary}) {
-      $::config_parms{alsaplayer_binary} = 'alsaplayer';
+   for (my $i = 0; $i < MAX_SESSIONS; $i++) {
+      if (($sessions[$i]) and ($sessions[$i]->{'session_name'} eq $name)) {
+         &::print_log("AlsaPlayer: session $name already at id $i") if $main::Debug{alsaplayer}; 
+         $sessions[$i] = $self;
+         $$self{'session'} = $i;
+      }
+   }
+   unless ($$self{'session'} >= 0) {
+      push @check_once, $self;
    }
 	return $self;
+}
+
+# Doesn't currently seem to be called upon code reload
+sub DESTROY {
+   my ($self) = @_;
+   &::print_log("AlsaPlayer($$self{session_name}): Destructor called."); 
+   if ($$self{'session'} >= 0) {
+      if ($sessions[$$self{'session'}] eq $self) {
+         &::print_log("AlsaPlayer($$self{session_name}): Destructor unregistering session $$self{session}..."); 
+         $sessions[$$self{'session'}] = undef;
+      }
+   }
 }
 
 #---------------- Session ----------------
@@ -228,7 +266,10 @@ sub _get_status {
          } elsif ($key eq 'artist') {
             $sessions[$id]->{'artist'} = $val if $sessions[$id];
          } elsif ($key eq 'playlist_length') {
-            $sessions[$id]->{'playlist_length'} = $val if $sessions[$id];
+            if ($sessions[$id]) {
+               $sessions[$id]->{'playlist_length'} = $val;
+               $sessions[$id]->_rebuild_playlist() unless ($val > 0);
+            }
          } elsif ($key eq 'album') {
             $sessions[$id]->{'album'} = $val if $sessions[$id];
          } elsif ($key eq 'title') {
@@ -242,26 +283,45 @@ sub _get_status {
       }
    }
    close(STATUS);
+   if ($sessions[$id]) {
+      if (($sessions[$id]->{'playlist_length'} > 0) and (not $sessions[$id]->{'title'})) {
+         # Sometimes I notice that the playlist is loaded but no track is selected, so
+         # jump to the first track...
+         $sessions[$id]->_queue_cmd('jump', 1);
+      }
+   }
    return $name;
+}
+
+sub _rebuild_playlist {
+   my ($self) = @_;
+   &::print_log("AlsaPlayer($$self{session_name}): _rebuild_playlist()") if $main::Debug{alsaplayer};
+   if (keys %{$$self{'playlist'}}) {
+      $$self{'replace'} = 1;
+      foreach (keys %{$$self{'playlist'}}) {
+         #&::print_log("AlsaPlayer($$self{session_name}): _rebuild_playlist(): $_") if $main::Debug{alsaplayer};
+         push @{$$self{'pending_playlist'}}, $_;
+      }
+   }
 }
 
 sub _reconnect {
    my ($self) = @_;
+   &::print_log("AlsaPlayer($$self{session_name}): _reconnect(): session=$$self{'session'}, pending=$$self{'pending'}") if $main::Debug{alsaplayer};
    &::print_log("AlsaPlayer($$self{session_name}): trying to restart and reconnect..."); 
    $self->start();
-   # Re-build playlist
-   $$self{'replace'} = 1;
-   foreach (keys %{$$self{'playlist'}}) {
-      push @{$$self{'pending_playlist'}}, $_;
-   }
+   $self->_rebuild_playlist();
 }
 
 sub _died {
    my ($self) = @_;
+   &::print_log("AlsaPlayer($$self{session_name}): _died(): session=$$self{'session'}, pending=$$self{'pending'}") if $main::Debug{alsaplayer};
    if ($$self{'session'} >= 0) {
       &::print_log("AlsaPlayer($$self{session_name}): ERROR: process died..."); 
+      $sessions[$$self{'session'}] = undef;
       # Delete old socket file...
       system("rm -f /tmp/alsaplayer_*_$$self{session}");
+      $$self{'control'}->stop();
       $$self{'session'} = -1;
       $$self{'pending'} = 0;
       if ($$self{'object_name'}) {
@@ -294,12 +354,41 @@ sub _queue_cmd {
    }
 }
 
+sub clear {
+   my ($self) = @_;
+   $self->remove_all_playlists();
+   $self->_queue_cmd('clear');
+   %{$$self{'playlist'}} = ();
+   @{$$self{'pending_playlist'}} = ();
+   &::print_log("AlsaPlayer($$self{session_name}): clear()") if $main::Debug{alsaplayer};
+}
+
 sub remove_all_playlists {
    my ($self) = @_;
    foreach (@{$$self{'playlists'}}) {
       $_->_unregister($self);
    }
    @{$$self{'playlists'}} = ();
+}
+
+sub add_files {
+   my ($self, @songs) = @_;
+   my @mp3s = ();
+   foreach (@songs) {
+      if (/\.m3u$/) {
+         require PlayList;
+         push @mp3s, (PlayList::_get_m3u($_));
+      } else {
+         push @mp3s, $_;
+      }
+   }
+   print "Got here: @mp3s\n";
+   $self->_add_playlist_files(@mp3s);
+}
+
+sub remove_files {
+   my ($self, @songs) = @_;
+   $self->_remove_playlist_files(@songs);
 }
 
 sub add_playlist {
@@ -332,12 +421,22 @@ sub set {
    }
 }
 
+sub get_playlist_length {
+   my ($self) = @_;
+   return ($$self{'playlist_length'});
+}
+
+sub get_playlist {
+   my ($self) = @_;
+   return (keys %{$$self{'playlist'}}, @{$$self{'pending_playlist'}});
+}
+
 sub _add_playlist_files {
    my ($self, @files) = @_;
    foreach (@files) {
       $$self{'playlist'}->{$_}++;
       if ($$self{'playlist'}->{$_} == 1) {
-         &::print_log("AlsaPlayer($$self{'session_name'}): adding to pending playlist: $_") if $main::Debug{alsaplayer};
+         #&::print_log("AlsaPlayer($$self{'session_name'}): adding to pending playlist: $_") if $main::Debug{alsaplayer};
          push @{$$self{'pending_playlist'}}, $_;
          if ($$self{'replace'}) {
 #            unless ($$self{'paused'} == 0) {
@@ -383,6 +482,12 @@ sub _reattached {
    $$self{'pending'} = 0;
    @{$$self{'queue'}} = ();
    $self->_queue_cmd('stop');
+}
+
+sub is_okay {
+   my ($self) = @_;
+   return 0 if ($$self{'pending'});
+   return 1 if ($$self{'session'} >= 0);
 }
 
 sub _activated {
@@ -442,10 +547,9 @@ sub _scan_sessions() {
             }
             &::print_log("AlsaPlayer($sessions[$i]->{session_name}): after: pending playlist has $#{$sessions[$i]->{'pending_playlist'}} entries") if $main::Debug{alsaplayer};
             if ($songs) {
-               &::print_log("AlsaPlayer($sessions[$i]->{session_name}): adding songs with '$cmd': $songs") if $main::Debug{alsaplayer}; 
+               #&::print_log("AlsaPlayer($sessions[$i]->{session_name}): adding songs with '$cmd': $songs") if $main::Debug{alsaplayer}; 
                $sessions[$i]->{'control'}->set("$::config_parms{alsaplayer_binary} -n '$sessions[$i]->{'session'}' --$cmd $songs");
                $sessions[$i]->{'control'}->start();
-               &::print_log("AlsaPlayer($sessions[$i]->{session_name}): system call returned") if $main::Debug{alsaplayer}; 
                unless (@{$sessions[$i]->{'pending_playlist'}}) {
                   if ($sessions[$i]->{'shuffle'}) {
                      $sessions[$i]->_queue_cmd('shuffle');
@@ -468,11 +572,13 @@ sub _scan_sessions() {
          $label = &_get_status($i);
          unless ($label) {
             $sessions[$i]->_died();
-            $sessions[$i] = 0;
+            $sessions[$i] = undef;
          }
-      } else {
+      } 
+      unless ($sessions[$i]) {
          if (@pending or @check_once) {
             if ($label = &_get_status($i)) {
+               &::print_log("AlsaPlayer: scanned id $i and found label: $label") if $main::Debug{alsaplayer};
                if (@pending) {
                   for (my $j = 0; $j <= $#pending; $j++) {
                      if ($pending[$j]->{'session_name'} eq $label) {
@@ -633,10 +739,11 @@ sub get_playlist_length {
 
 sub start {
    my ($self) = @_;
+   &::print_log("AlsaPlayer($$self{session_name}): start(): session=$$self{'session'}, pending=$$self{'pending'}") if $main::Debug{alsaplayer};
    if (($$self{'session'} >= 0) or ($$self{'pending'})) {
       # Already running, so send in the --start command
       $self->_queue_cmd('start');
-#      $$self{'paused'} = 0;
+      $$self{'paused'} = 0;
       &::print_log("AlsaPlayer($$self{session_name}): setting paused to 0 in start()") if $main::Debug{alsaplayer};
       return;
    }

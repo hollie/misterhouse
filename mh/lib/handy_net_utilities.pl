@@ -731,6 +731,10 @@ sub main::net_im_send {
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
 
     # Chop message up if needed since AIM has a limit of 1024
+
+# Need this for html based clients??
+#   $text =~ s/\n/<br>/g;
+
     if (length $text > 900)
     {
 		# Break message into lines for readability
@@ -1225,6 +1229,9 @@ sub main::net_socket_check {
 
 #
 # $Log$
+# Revision 1.57  2004/05/02 22:22:17  winter
+# *** empty log message ***
+#
 # Revision 1.56  2004/04/25 18:20:00  winter
 # *** empty log message ***
 #

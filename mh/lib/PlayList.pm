@@ -18,6 +18,10 @@ Author:
 	Kirk Bauer
 	kirk@kaybee.org
 
+   You can get the most current version of this file and other files related
+   whole-house music/speech setup here:
+     http://www.linux.kaybee.org:81/tabs/whole_house_audio/
+
 License:
 	This free software is licensed under the terms of the GNU public license.
 
@@ -90,6 +94,7 @@ sub _get_m3u {
    if (open (LIST, $file)) {
       while (my $line = <LIST>) {
          chomp($line);
+         $line =~ s/\r$//;
          # Skip winamp extended info
          next if $line =~ /^#/;
          # Convert backslashes to forward-slashes

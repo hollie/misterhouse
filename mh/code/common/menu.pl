@@ -38,7 +38,8 @@ if ($Reread) {
     print_log 'Rereading .menu code files.';
 
                                 # Create a menu with all mh voice commands
-    my $menu_mh = menu_create "$config_parms{code_dir}/mh.menu";
+#   my $menu_mh = menu_create "$config_parms{code_dir}/mh.menu";
+    my $menu_mh = menu_create "$Code_Dirs[0]/mh.menu";
 
 
                                 # Find all .menu files

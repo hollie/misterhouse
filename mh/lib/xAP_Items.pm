@@ -218,7 +218,8 @@ sub send {
     my ($protocol, $class_address, @data) = @_;
     my $uid      = $::config_parms{xap_uid};
     my $instance = $::config_parms{title};
-    $uid = 'FF200301' unless $uid;
+#   $uid = 'FF200301' unless $uid;
+    $uid = 'FF123400' unless $uid;
     $instance =~ tr/ /_/;
     print "db5 $protocol send: ca=$class_address d=@data xap_send=$xap_send\n" if $main::Debug{xap} and $main::Debug{xap} == 5;
 
@@ -256,7 +257,8 @@ sub send_heartbeat {
     my $port = $::Socket_Ports{xap_listen}{port};
     my $uid      = $::config_parms{xap_uid};
     my $instance = $::config_parms{title};
-    $uid = 'FF200301' unless $uid;
+#   $uid = 'FF200301' unless $uid;
+    $uid = 'FF123400' unless $uid;
     $instance =~ tr/ /_/;
     my $ip_address = $::Info{IPAddress_local};
     my $msg;

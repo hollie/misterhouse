@@ -223,6 +223,8 @@ sub set_x10_level {
     my $level;
     $level = $$self{level};
 
+    return unless defined $state;
+
     $state = '+34' if $state =~ /bright/i;   # From CM11.pm 
     $state = '-34' if $state =~ /dim/i;
 
@@ -1068,6 +1070,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.43  2004/05/02 22:22:17  winter
+# *** empty log message ***
+#
 # Revision 1.42  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

@@ -32,7 +32,7 @@ run_voice_cmd 'get starshine flares' if $New_Week;
 
                                 # Their web site uses dorky Time Zone strings,
                                 # so use UCT (GMT+0) and translate.
-my $starshine_check_e = "$config_parms{code_dir}/starshine_check_events.pl";
+my $starshine_check_e = "$Code_Dirs[0]/starshine_check_events.pl";
 my $starshine_check_f = "$config_parms{data_dir}/web/starshine.html";
 my $starshine_check_u = "http://www.heavens-above.com/PassSummary.asp?" . 
                       "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&satid=26929";

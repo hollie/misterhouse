@@ -10,7 +10,7 @@ use vars '%triggers';           # use vars so we can use in the web server
 my ($trigger_write_code_flag, $prev_triggers, $prev_script);
 my $trigger_file = "$config_parms{data_dir}/triggers.current";
 my $expired_file = "$config_parms{data_dir}/triggers.expired";
-my $script_file  = "$config_parms{code_dir}/triggers.mhp";
+my $script_file  = "$Code_Dirs[0]/triggers.mhp";
 
                                 # No need to save right after startup 
 $prev_triggers = &file_read($trigger_file) if $Reload and -e $trigger_file;
@@ -74,7 +74,7 @@ sub trigger_write_code {
     &file_write($script_file, $script);
                                 # Replace (faster) or reload (if there was no file previously)
     if ($Run_Members{'triggers_table'}) {
-        &do_user_file("$config_parms{code_dir}/triggers.mhp");
+        &do_user_file("$Code_Dirs[0]/triggers.mhp");
     }
     else {
                                 # Must be done before the user code eval
