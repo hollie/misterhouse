@@ -95,7 +95,9 @@ sub default_setstate {
             &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $command);
         } elsif ($$self{interface} eq 'uirt2') {
             &UIRT2::set($device, $command);
-        } else {
+	} elsif ($$self{interface} eq 'usb_uirt') {
+            &USB_UIRT::set($device, $command);
+	} else {
             print "IR_Item::set Interface $$self{interface} not supported.\n";
         }
     }
@@ -103,6 +105,9 @@ sub default_setstate {
 
 #
 # $Log$
+# Revision 1.14  2004/02/01 19:24:35  winter
+#  - 2.87 release
+#
 # Revision 1.13  2003/02/08 05:29:23  winter
 #  - 2.78 release
 #

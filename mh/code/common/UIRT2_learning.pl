@@ -1,9 +1,10 @@
 	
 # Category = IR
 
-#@ Use this code file to learn and import codes for the 
+#@ Use this script to learn and import codes for the 
 #@ <a href='http://www.fukushima.us/UIRT2/'>UIRT2 2 way IR interface</a>.
-#@ To enable this code, add the uirt2_* parms listed at the top of the mh/lib/UIRT2.pm,
+#@ To enable this code, add the uirt2_* parms listed at the top of
+#@ <a href='/bin/browse.pl?/lib/UIRT2.pm'>UIRT2.pm</a>,
 #@ then click <a href="/SUB;uirt2_update_html">here</a> or click on the IR category button.  
 
 =begin comment 

@@ -67,6 +67,7 @@ sub main::net_connect_check {
                 return $prev_state = 1;
             }
         }  
+        &main::print_log("net_connect_check: interface $if not active.");
         return $prev_state = 0;
     }
 
@@ -1139,11 +1140,11 @@ sub main::net_ping {
     my $timeout = $main::config_parms{ping_timeout} || $main::config_parms{net_ping_timeout};
     if (defined $timeout) {
       # use the user-defined timeout
-      print "Using a timeout of $timeout seconds for Net::Ping\n";
+      print "Using a timeout of $timeout seconds for Net::Ping\n" if $main::Debug{debug};
       $p = Net::Ping->new($protocol,$timeout);
     } else {
       # use the default timeout of Net::Ping (which is 5 seconds)
-      print "Using Net::Ping's default timeout\n";
+      print "Using Net::Ping's default timeout\n" if $main::Debug{debug};
       $p = Net::Ping->new($protocol);
     }
 
@@ -1194,6 +1195,9 @@ sub main::net_socket_check {
 
 #
 # $Log$
+# Revision 1.54  2004/02/01 19:24:35  winter
+#  - 2.87 release
+#
 # Revision 1.53  2003/12/22 00:25:06  winter
 #  - 2.86 release
 #

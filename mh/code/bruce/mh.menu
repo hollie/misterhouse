@@ -170,7 +170,7 @@ M: MisterHouse
   D: Send a test scan email                              # $v_send_email_scan_test             
   D: Set the [guest,family,admin] password               # $v_set_password                     
   D: [Start a by name,Start a by speed,Stop the] speed benchmark  # $v_speed_benchmark                  
-  D: Toggle code member [alarmclock,appliances,audible_menu,audrey,audrey_control,backup,barcode_inventory,barcode_scan,barcode_web,benchmarks,callerid,cm11_control,comic_dailystrips,computer_disk_space,curtains,date_reminders,deep_thought,disable_code,display_slimserver,door_monitor,dvd_releases,eliza_server,email_motion,email_scan,event_sounds,event_sounds_bruce,find_files,get_email_rule,goofy,halloween,heat_cool,iButton,iButton_bruce,internet_connect_check,internet_data_bruce,internet_earthquakes,internet_im,internet_im_bruce,internet_iridium,internet_logon,internet_mail,internet_slashdot,internet_starshine,internet_time,internet_top10,internet_weather,iridium_check_events,items,items_table,keyboard_numbered_menu,lights,mailbox,menu,menu_bruce,mh_control,mh_sound,mh_zip,mhsend_server,monitor_amazon,monitor_game_time,monitor_house_im,monitor_lan,monitor_memory,monitor_memory_leak,monitor_mh,monitor_programs,monitor_router,monitor_router_bruce,monitor_shoutcast,mp3,mp3_control,mp3_winamp,news_ap_breaking,news_email_breaking,news_mquote_oftd,news_onthisday,news_physics_web,news_yahoo,organizer,organizer_events,organizer_tasks,outlook,pa_control,pa_control_bruce,phone,phone_logs,phone_weeder,photo_index,reject_caller_list,reports,school_clock,school_closing,sensors,speak_chime,speak_proxy,speak_voices,startup,stocks,telnet,test_code_hooks,test_speak,test_stuff,test_stuff2,test_weather,test_web_functions,test_x10,test_x10_light,time_info,timers,timers2,tk_eye,tk_frames_big,tk_widgets_bruce,tracking_aprs,trigger_code,triggers_table,trivia,tv,tv_grid,tv_info,voice_ms,wakeup,wakeup_on_lan,weather,weather_chance_of_rain,weather_log,weather_monitor,weather_monitor_bruce,weather_pollen,weather_upload,weatherpoint,web_sub,web_sub_ron,webcam_light,wxserver_server,x10_keypads,x10_rf_relay,xAP_news,xAP_weather]  # $v_toggle_run_member                
+  D: Toggle code member [alarmclock,appliances,audible_menu,audrey,audrey_control,backup,barcode_inventory,barcode_scan,barcode_web,benchmarks,callerid,cm11_control,comic_dailystrips,computer_disk_space,curtains,date_reminders,deep_thought,disable_code,display_slimserver,door_monitor,dvd_releases,eliza_server,email_misc,email_motion,email_scan,event_sounds,event_sounds_bruce,find_files,get_email_rule,goofy,halloween,heat_cool,iButton,internet_connect_check,internet_data_bruce,internet_earthquakes,internet_im,internet_im_bruce,internet_iridium,internet_logon,internet_mail,internet_slashdot,internet_starshine,internet_time,internet_top10,internet_weather,iridium_check_events,items,items_table,keyboard_numbered_menu,lights,mailbox,menu,menu_bruce,mh_control,mh_sound,mh_zip,mhsend_server,monitor_amazon,monitor_game_time,monitor_house_im,monitor_lan,monitor_memory,monitor_memory_leak,monitor_mh,monitor_programs,monitor_router,monitor_router_bruce,monitor_shoutcast,mp3,mp3_control,mp3_winamp,news_ap_breaking,news_email_breaking,news_mquote_oftd,news_onthisday,news_physics_web,news_yahoo,organizer,organizer_events,organizer_tasks,outlook,pa_control,pa_control_bruce,phone,phone_logs,phone_weeder,photo_index,reports,school_clock,school_closing,sensors,speak_chime,speak_proxy,speak_voices,startup,stocks,telnet,test_code_hooks,test_speak,test_stuff,test_stuff2,test_weather,test_web_functions,test_x10,test_x10_light,time_info,timers,timers2,tk_eye,tk_frames_big,tk_widgets_bruce,tracking_aprs,trigger_code,triggers_table,trivia,tv,tv_grid,tv_info,voice_ms,wakeup,wakeup_on_lan,weather,weather_chance_of_rain,weather_log,weather_monitor,weather_monitor_bruce,weather_pollen,weather_rrd_update,weather_upload,weatherpoint,web_sub,web_sub_ron,webcam_light,wxserver_server,x10_keypads,x10_rf_relay,xAP_news,xAP_weather]  # $v_toggle_run_member                
   D: [Disable,Enable,List status of] all code files      # $v_toggle_run_members               
   D: What is your up time                                # $v_uptime                     anyone
   D: What is your [max,normal] speed                     # $v_what_speed                       
@@ -186,7 +186,7 @@ M: Music
   D: Set the shoutcast mp3 player to [Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat,Restart,Shoutcast Connect,Add Song,Clear List]  # $v_mp3_control4                     
   D: Set the phone mp3 player to [Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat,Restart,Shoutcast Connect,Add Song,Clear List]  # $v_mp3_control5                     
   D: Turn Boy music [on,off]                             # $v_mp3_control_boys                 
-  D: Set house mp3 player to playlist [BRUCE_SONGS_ALL,JUNK1,TOP_100,bruce_20,top_100_web,top_20]  # $v_mp3_playlist1                    
+  D: Set house mp3 player to playlist [test2,test3,BRUCE_SONGS_ALL,JUNK1,TOP_100,bruce_20,top_100_web,top_20,all,all1,goodsome,petey's MIX1,trial,zach1,__00_04_20_04_17_6c,__127.0.0.1,__192.168.0.11,__history,bruce_100,bruce_100_web,house,piano1]  # $v_mp3_playlist1                    
   D: Music [on,off]                                      # $v_pa_radio                         
   D: Clear mp3 playlist                                  # $v_play_clear_music                 
   D: Check the shoutcast player                          # $v_shoutcast_check                  
@@ -207,7 +207,6 @@ M: Other
   D: Living room blue light [ON,OFF,bbw1]                # $v_blue_light                       
 M: Phone
   D: Test callerid [0,1,2,3,4,5,6,7,offhook,UKknown,UK unknown]  # $cid_interface_test                 
-  D: Display rejected caller list                        # $v_Reject_call_list                 
   D: Display recent [incoming,outgoing,] phone calls     # $v_phone_log                        
   D: Show the tk phone log                               # $v_phone_log_tk                     
 M: Security
@@ -282,6 +281,7 @@ M: Vehicles
 M: Voice
   D: Reset M S Voice                                     # $voice_reset                        
 M: Weather
+  D: Generate weather graphs                             # $tell_generate_graph                
   D: Get weather test for [New York,Portland,Baltimore]  # $test_weather                       
   D: What is the forecasted chance of rain               # $v_chance_of_rain                   
   D: Get internet weather data                           # $v_get_internet_weather_data           
@@ -298,8 +298,5 @@ M: Weather
 M: iButtons
   D: [Connect,Disconnect] to the iButton bus             # $v_iButton_connect                  
   D: List all the iButton buttons                        # $v_iButton_list               anyone
-  D: Read the iButton temperature [1,2,3,4]              # $v_iButton_readtemp           anyone
-  D: Read the iButton temperature buttons                # $v_iButton_readtemps                
-  D: Turn on relay1 [on,off]                             # $v_iButton_relay1             anyone
 M: none
   D: [open,close,change] th garage door                  # $garage_door_v                      

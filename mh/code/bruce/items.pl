@@ -2,7 +2,7 @@
 
 #@ Lists various items.  Standard items are listed in items.mht
 
-my ($temp, $state, $ref);
+# my ($temp, $state, $ref);
    
 # Various X10 items
 

@@ -1,6 +1,6 @@
 # Net::Domain.pm
 #
-# Copyright (c) 1995-1997 Graham Barr <gbarr@ti.com>. All rights reserved.
+# Copyright (c) 1995-1998 Graham Barr <gbarr@pobox.com>. All rights reserved.
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
@@ -16,7 +16,7 @@ use Net::Config;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(hostname hostdomain hostfqdn domainname);
 
-$VERSION = do { my @r=(q$Revision$=~/\d+/g); sprintf "%d."."%02d"x$#r,@r};
+$VERSION = "2.19"; # $Id$
 
 my($host,$domain,$fqdn) = (undef,undef,undef);
 
@@ -28,54 +28,81 @@ sub _hostname {
     return $host
     	if(defined $host);
 
-    ($^O eq 'MSWin32'
-     && do {
-	require Sys::Hostname;
-	$host = Sys::Hostname::hostname();
-    })
+    if ($^O eq 'MSWin32') {
+        require Socket;
+        my ($name,$alias,$type,$len,@addr) =  gethostbyname($ENV{'COMPUTERNAME'}||'localhost');
+        while (@addr)
+         {
+          my $a = shift(@addr);
+          $host = gethostbyaddr($a,Socket::AF_INET());
+          last if defined $host;
+         }
+        if (defined($host) && index($host,'.') > 0) {
+           $fqdn = $host;
+           ($host,$domain) = $fqdn =~ /^([^\.]+)\.(.*)$/;
+         }
+        return $host;
+    }
+    elsif ($^O eq 'MacOS') {
+	chomp ($host = `hostname`);
+    }
+    elsif ($^O eq 'VMS') {   ## multiple varieties of net s/w makes this hard
+        $host = $ENV{'UCX$INET_HOST'} if defined($ENV{'UCX$INET_HOST'});
+        $host = $ENV{'MULTINET_HOST_NAME'} if defined($ENV{'MULTINET_HOST_NAME'});
+        if (index($host,'.') > 0) {
+           $fqdn = $host;
+           ($host,$domain) = $fqdn =~ /^([^\.]+)\.(.*)$/;
+        }
+        return $host;
+    }
+    else {
+	local $SIG{'__DIE__'};
 
-    # syscall is preferred since it avoids tainting problems
-    || eval {
-    	my $tmp = "\0" x 256; ## preload scalar
-    	eval {
-    	    package main;
-     	    require "syscall.ph";
-    	}
-    	|| eval {
-    	    package main;
-     	    require "sys/syscall.ph";
-    	}
-        and $host = (syscall(&main::SYS_gethostname, $tmp, 256) == 0)
-		? $tmp
-		: undef;
+	# syscall is preferred since it avoids tainting problems
+	eval {
+    	    my $tmp = "\0" x 256; ## preload scalar
+    	    eval {
+    		package main;
+     		require "syscall.ph";
+		defined(&main::SYS_gethostname);
+    	    }
+    	    || eval {
+    		package main;
+     		require "sys/syscall.ph";
+		defined(&main::SYS_gethostname);
+    	    }
+            and $host = (syscall(&main::SYS_gethostname, $tmp, 256) == 0)
+		    ? $tmp
+		    : undef;
+	}
+
+	# POSIX
+	|| eval {
+	    require POSIX;
+	    $host = (POSIX::uname())[1];
+	}
+
+	# trusty old hostname command
+	|| eval {
+    	    chop($host = `(hostname) 2>/dev/null`); # BSD'ish
+	}
+
+	# sysV/POSIX uname command (may truncate)
+	|| eval {
+    	    chop($host = `uname -n 2>/dev/null`); ## SYSV'ish && POSIX'ish
+	}
+
+	# Apollo pre-SR10
+	|| eval {
+    	    $host = (split(/[:\. ]/,`/com/host`,6))[0];
+	}
+
+	|| eval {
+    	    $host = "";
+	};
     }
 
-    # POSIX
-    || eval {
-	require POSIX;
-	$host = (POSIX::uname())[1];
-    }
-
-    # trusty old hostname command
-    || eval {
-    	chop($host = `(hostname) 2>/dev/null`); # BSD'ish
-    }
-
-    # sysV/POSIX uname command (may truncate)
-    || eval {
-    	chop($host = `uname -n 2>/dev/null`); ## SYSV'ish && POSIX'ish
-    }
-
-    # Apollo pre-SR10
-    || eval {
-    	$host = (split(/[:\. ]/,`/com/host`,6))[0];
-    }
-
-    || eval {
-    	$host = "";
-    };
- 
-    # remove garbage 
+    # remove garbage
     $host =~ s/[\0\r\n]+//go;
     $host =~ s/(\A\.+|\.+\Z)//go;
     $host =~ s/\.\.+/\./go;
@@ -89,6 +116,8 @@ sub _hostdomain {
     return $domain
     	if(defined $domain);
 
+    local $SIG{'__DIE__'};
+
     return $domain = $NetConfig{'inet_domain'}
 	if defined $NetConfig{'inet_domain'};
 
@@ -98,6 +127,7 @@ sub _hostdomain {
     # those on dialup systems.
 
     local *RES;
+    local($_);
 
     if(open(RES,"/etc/resolv.conf")) {
     	while(<RES>) {
@@ -114,11 +144,10 @@ sub _hostdomain {
 
     my $host = _hostname();
     my(@hosts);
-    local($_);
 
     @hosts = ($host,"localhost");
 
-    unless($host =~ /\./) {
+    unless (defined($host) && $host =~ /\./) {
 	my $dom = undef;
         eval {
     	    my $tmp = "\0" x 256; ## preload scalar
@@ -135,14 +164,20 @@ sub _hostdomain {
 		    : undef;
         };
 
+	if ( $^O eq 'VMS' ) {
+	    $dom ||= $ENV{'TCPIP$INET_DOMAIN'}
+		 || $ENV{'UCX$INET_DOMAIN'};
+	}
+
 	chop($dom = `domainname 2>/dev/null`)
-		unless(defined $dom);
+		unless(defined $dom || $^O =~ /^(?:cygwin|MSWin32)/);
 
 	if(defined $dom) {
 	    my @h = ();
+	    $dom =~ s/^\.+//;
 	    while(length($dom)) {
 		push(@h, "$host.$dom");
-		$dom =~ s/^[^.]+.//;
+		$dom =~ s/^[^.]+.+// or last;
 	    }
 	    unshift(@hosts,@h);
     	}
@@ -150,19 +185,19 @@ sub _hostdomain {
 
     # Attempt to locate FQDN
 
-    foreach (@hosts) {
+    foreach (grep {defined $_} @hosts) {
     	my @info = gethostbyname($_);
 
     	next unless @info;
 
     	# look at real name & aliases
     	my $site;
-    	foreach $site ($info[0], split(/ /,$info[1])) { 
+    	foreach $site ($info[0], split(/ /,$info[1])) {
     	    if(rindex($site,".") > 0) {
 
     	    	# Extract domain from FQDN
 
-     	    	($domain = $site) =~ s/\A[^\.]+\.//; 
+     	    	($domain = $site) =~ s/\A[^\.]+\.//;
      	        return $domain;
     	    }
     	}
@@ -170,7 +205,7 @@ sub _hostdomain {
 
     # Look for environment variable
 
-    $domain ||= $ENV{LOCALDOMAIN} ||= $ENV{DOMAIN} || undef;
+    $domain ||= $ENV{LOCALDOMAIN} || $ENV{DOMAIN};
 
     if(defined $domain) {
     	$domain =~ s/[\r\n\0]+//g;
@@ -195,16 +230,20 @@ sub domainname {
     # eleminate DNS lookups
 
     return $fqdn = $host . "." . $domain
-	if($host !~ /\./ && $domain =~ /\./);
+	if(defined $host and defined $domain
+		and $host !~ /\./ and $domain =~ /\./);
 
-    my @host   = split(/\./, $host);
-    my @domain = split(/\./, $domain);
+    # For hosts that have no name, just an IP address
+    return $fqdn = $host if defined $host and $host =~ /^\d+(\.\d+){3}$/;
+
+    my @host   = defined $host   ? split(/\./, $host)   : ('localhost');
+    my @domain = defined $domain ? split(/\./, $domain) : ();
     my @fqdn   = ();
 
     # Determine from @host & @domain the FQDN
 
     my @d = @domain;
- 
+
 LOOP:
     while(1) {
     	my @h = @host;
@@ -287,13 +326,17 @@ Returns the remainder of the FQDN after the I<hostname> has been removed.
 
 =head1 AUTHOR
 
-Graham Barr <gbarr@ti.com>.
+Graham Barr <gbarr@pobox.com>.
 Adapted from Sys::Hostname by David Sundstrom <sunds@asictest.sc.ti.com>
 
 =head1 COPYRIGHT
 
-Copyright (c) 1995-1997 Graham Barr. All rights reserved.
+Copyright (c) 1995-1998 Graham Barr. All rights reserved.
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
+
+=for html <hr>
+
+I<$Id$>
 
 =cut

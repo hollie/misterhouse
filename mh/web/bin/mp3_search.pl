@@ -7,7 +7,7 @@ This file is called directly from the browser with:
 
 Set search_string to playlist to get a list of all playlists.
 
-This code requires you run code mp3_playlist.pl, to get
+This code requires you run code code/common/mp3.pl, to get
 the &mp3_playlists and &mp3_search functions.
 
 =cut

@@ -2,13 +2,17 @@
 
 #@ Wakeup events
 
+$Save{heat_temp} = 66 if time_now '10:30 pm';
+$Save{heat_temp} = 68 if time_now '7 am';
+
+
 # Wake up Zack for Saturday job
 
-if (time_cron '0 8 * * 6' or
-    time_now '8:01 am' and $Day eq 'Sat') {
-  speak "room=zack Zack, time to wake up.  Really.   Time to wake up now.  Ok?  Ok!";
-  run_voice_cmd 'open Zacks curtains';
-}
+#if (time_cron '0 8 * * 6' or
+#    time_now '8:01 am' and $Day eq 'Sat') {
+#  speak "room=zack Zack, time to wake up.  Really.   Time to wake up now.  Ok?  Ok!";
+#  run_voice_cmd 'open Zacks curtains';
+#}
 
 $wakeup_bypass = new Voice_Cmd 'Skip next wakeup time';
 if (state_now $wakeup_bypass) {

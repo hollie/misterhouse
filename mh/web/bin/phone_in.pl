@@ -8,7 +8,12 @@ for my $r (@calls) {
     ($time, $num, $name) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/ unless $name;
     next unless $num;
     next unless $line;
-    $html_calls .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'><td nowrap>$time</td><td nowrap><a href=\"phone_search.pl?search=$num\">$num</a></td><td nowrap>$name</td><td nowrap>$line</td></tr>";
+
+    $html_calls .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+#    $html_calls .= "<td nowrap><a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a>&nbsp;<a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a></td>";
+    $html_calls .= "<td nowrap>$time</td><td nowrap><a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a>&nbsp;$num</td>";
+    $html_calls .= "<td nowrap><a href=\"callerid.pl?cidnumber=$num&cidname=$name&showlist=0\"><img src='/graphics/ico_plus.gif' border=0 alt='Add $num to phone.callerid.list file'></a>&nbsp;$name</td><td nowrap>$line</td>";
+    $html_calls .= "</tr>";
 }
 
 #my $html = "<html><body>\n<base target ='output'>\n" . 

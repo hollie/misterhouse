@@ -233,10 +233,8 @@ sub proxy_serial_data {
     # if command came in from a proxy, don't send out as proxy
     print_log "proxy_serial_data: $proxy $interface" if $Debug{proxy};
     return if ($proxy);
+    set $proxy_server join($;, 'serial', $data, $interface), 'all'; # all writes out to all clients
     print "Proxy serial data sent to collective: interface=$interface data=$data.\n" if $Debug{proxy};
-    if ($proxy_server->active()) {
-        set $proxy_server join($;, 'serial', $data, $interface), 'all'; # all writes out to all clients
-    }
 }
 
 

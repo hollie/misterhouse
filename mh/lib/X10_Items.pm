@@ -722,10 +722,11 @@ sub zone_delay
 }
 
 
+ 
+
 package X10_Switchlinc;
 
-@X10_Switchlinc::ISA = ('X10_Item');
-
+@X10_Switchlinc::ISA = ('X10_Item'); 
 
 =begin comment
 
@@ -738,7 +739,8 @@ $SwitchlincDisable->set("off");
 $Office_Light_Torch->set("disablex10transmit");
 
 =cut
- 
+
+@preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
 
 sub new {
     my $self = &X10_Item::new(@_);
@@ -753,25 +755,28 @@ sub new {
     $self-> add ('XMGNGPGOGPG', 'disablex10transmit');
     $self-> add ('XOGMGNGPGPG', 'enablex10transmit');
 
+
+    # 0% is MPRESET_DIM1
+    $self-> add( $id . $preset_dim_levels[0] . 'PRESET_DIM1', "0%" );
+
+    # 100% is JPRESET_DIM2
+    $self-> add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "100%" );
+
+    # 30 levels, 1% to 99%
+    for (my $percent=1; $percent<=99; $percent++)
+    {
+      my $index = int(($percent - 1) * 30 / 99) + 1;
+      my $state2  = $id . ( ($index < 16 ) ? 
+                  $preset_dim_levels[$index] . 'PRESET_DIM1' :
+                  $preset_dim_levels[$index - 16] . 'PRESET_DIM2');
+      $self-> add( $state2, $percent . "%" );
+    }
+
+    $self->{type}='preset';
+
     return $self;
 }
 
-@preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
-                        M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
-sub set {
-    my ($self, $state, $set_by) = @_;
-
-                                # Use preset_dims for ##% data
-    if ($state =~ /^(\d+)\%/) {
-        my $index = int(.5 + $1 * 32 / 100) - 1;   # 32 levels, 100% -> 31
-        my $state2  = $self->{x10_id} . $preset_dim_levels[$index];
-        $state2 .= ($index < 16) ? 'PRESET_DIM1' : 'PRESET_DIM2';
-        print "Switchlink X10 dim: $state -> $state2\n" if $main::Debug{x10};
-
-        $state = $state2;
-    }
-    $self->SUPER::set($state, $set_by);
-}
 
 package X10_TempLinc;
 
@@ -1044,6 +1049,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.41  2004/02/01 19:24:35  winter
+#  - 2.87 release
+#
 # Revision 1.40  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

@@ -6,6 +6,9 @@
 #@  find: xyz to search for command xyz, or
 #@  log: xyz to start sending log data with filter xyz.
 #@  Example filters are print, speak, play, speak|play, all, and stop (to stop).
+#@ To Authorize commands, either use the logon command from your aim client
+#@ or set the mh.ini password_allow_im to a list of your aim ids
+#@ (e.g. password_allow_im = joe@jabber.com/Jabber Instant Messenger, joe@hotmail.com, joe )
 
 
 =begin comment

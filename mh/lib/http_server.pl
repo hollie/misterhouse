@@ -533,7 +533,7 @@ sub http_process_request {
         $time_check2 = time - $time_check2;
         if ($time_check2 > 2) {
             my $msg = "http_server write time exceeded: time=$time_check2, req=$get_req,$get_arg";
-            print "\n$Time_Date: $msg";
+#           print "\n$Time_Date: $msg";
             &print_log($msg);
         }
     }        
@@ -721,6 +721,9 @@ sub test_file_req {
 sub html_mh_generated {
     my ($get_req, $get_arg, $auto_refresh) = @_;
     my $html = '';
+    $html = qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{'html_refresh_rate' . $Http{format}}; url=$get_req">\n] 
+	if $auto_refresh and $main::config_parms{'html_refresh_rate' . $Http{format}};
+
                                 # Allow for any of these $get_req forms:
                                 #    /dir/request
                                 #    /request
@@ -728,33 +731,31 @@ sub html_mh_generated {
     $get_req =~ s/^.*?([^\/]+)$/$1/;
 
     if ($get_req =~ /^widgets$/) {
-        return (&widgets('all'), $main::config_parms{'html_style_tk' . $Http{format}});
+        return ($html . &widgets('all'), $main::config_parms{'html_style_tk' . $Http{format}});
     }
     elsif ($get_req =~ /^widgets_type?$/) {
         $html .= &widgets('checkbutton');
         $html .= &widgets('radiobutton');
         $html .= &widgets('entry');
-        return ($html, $main::config_parms{'html_style_tk' . $Http{format}});
+        return ($html . $html, $main::config_parms{'html_style_tk' . $Http{format}});
     }
     elsif ($get_req =~ /^widgets_label$/) {
-        $html = qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{'html_refresh_rate' . $Http{format}}; url=widgets_label">\n] 
-            if $auto_refresh and $main::config_parms{'html_refresh_rate' . $Http{format}};
         return ($html . &widgets('label'), $main::config_parms{'html_style_tk' . $Http{format}});
     }
     elsif ($get_req =~ /^widgets_entry$/) {
-        return (&widgets('entry'), $main::config_parms{'html_style_tk' . $Http{format}});
+        return ($html . &widgets('entry'), $main::config_parms{'html_style_tk' . $Http{format}});
     }
     elsif ($get_req =~ /^widgets_radiobutton$/) {
-        return (&widgets('radiobutton'), $main::config_parms{'html_style_tk' . $Http{format}});
+        return ($html . &widgets('radiobutton'), $main::config_parms{'html_style_tk' . $Http{format}});
     }
     elsif ($get_req =~ /^widgets_checkbox$/) {
-        return (&widgets('checkbutton'), $main::config_parms{'html_style_tk' . $Http{format}});
+        return ($html . &widgets('checkbutton'), $main::config_parms{'html_style_tk' . $Http{format}});
     }
     elsif ($get_req =~ /^vars_save$/) {
-        return (&vars_save, $main::config_parms{'html_style_tk' . $Http{format}});
+        return ($html . &vars_save, $main::config_parms{'html_style_tk' . $Http{format}});
     }
     elsif ($get_req =~ /^vars_global$/) {
-        return (&vars_global, $main::config_parms{'html_style_tk' . $Http{format}});
+        return ($html . &vars_global, $main::config_parms{'html_style_tk' . $Http{format}});
     }
                                 # .html suffix is grandfathered in
     elsif ($get_req =~ /^speech(.html)?$/) {
@@ -1126,7 +1127,10 @@ sub html_form_select {
     my $form .= qq|<select name='$var' $onchange>\n|;
     for my $value (@values) {
         my $selected = ($value eq $default) ? 'selected' : '';
-        $form .= qq|<option value='$value' $selected>$value</option>\n|;
+        my $option = $value; 
+        $option =~ s/&/&#38;/g;
+        $option =~ s/'/&#39;/g;
+        $form .= qq|<option value='$option' $selected>$value</option>\n|;
     }
     $form .= "</select>\n";
     return $form;
@@ -2007,6 +2011,7 @@ sub html_command_table {
                                 # List current object state
 sub html_item_state {
     my ($object, $object_type) = @_;
+    
     my $object_name  = $object->{object_name};
     my $object_name2 = &pretty_object_name($object_name);
     my $isa_X10 = UNIVERSAL::isa($object, 'X10_Item');
@@ -2045,8 +2050,10 @@ sub html_item_state {
     if (my $h_icon = &html_find_icon_image($object, $object_type)) {
         $html .= qq[<img src="$h_icon" alt="$object_name" border="0"></a>];
     } 
-    elsif ($state_now and 8 > length $state_now) {
-        $html .= $state_now . '</a>&nbsp';
+    elsif ($state_now) {
+	my $temp = $state_now;
+	$temp = substr($temp, 0, 8) . '..' if length $temp > 8;
+	$html .= $temp . '</a>&nbsp';
     }
     else {
         $html .= qq[<img src="/graphics/nostat.gif" alt="no_state" border="0"></a>];
@@ -2606,7 +2613,8 @@ sub widget_entry {
         $html .= qq[</td></FORM>\n];
         push @table_items, $html;
     }
-    while (@table_items < 6) {
+#   while (@table_items < 6) {
+    while (@table_items % 6) {
         push @table_items, qq[<td></td>];
     }
     return @table_items;
@@ -2639,7 +2647,8 @@ sub widget_radiobutton {
         push @table_items, $html;
     }
     $table_items[$#table_items] .= qq[</form>\n];
-    while (@table_items < 6) {
+#   while (@table_items < 6) {
+    while (@table_items % 6) {
         push @table_items, qq[<td></td>];
     }
     return @table_items;
@@ -2663,7 +2672,7 @@ sub widget_checkbutton {
         $html .= qq[<td align='left'><INPUT type="checkbox" NAME="$html_pointer_cnt" value="1" $checked onClick="form.submit()">$text</td></FORM>\n];
         push @table_items, $html;
     }
-    while (@table_items < 6) {
+    while (@table_items % 6) {
         push @table_items, qq[<td></td>];
     }
     return @table_items;
@@ -2788,6 +2797,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.86  2004/02/01 19:24:35  winter
+#  - 2.87 release
+#
 # Revision 1.85  2003/12/22 00:25:06  winter
 #  - 2.86 release
 #

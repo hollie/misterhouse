@@ -26,6 +26,7 @@ $Save{ping_test_flag} = ($state eq 'on') ? 1 : 0 if $state = said $v_ping_test a
 if (($Save{ping_test_flag} and new_minute($Save{ping_test_results} eq 'up' ? 10 : 2)) or $state) {
     unlink $ping_test_results;
     start  $ping_test unless $state eq 'off';
+    print_log "Starting ping test" if $Debug{ping};
 }
 
 # Win2k: Pinging 24.213.60.73 with 32 bytes of data:
@@ -71,4 +72,5 @@ if (done_now $ping_test) {
         }
         print_log "Internet is $Save{ping_test_results}";
     }
+    print_log "Ping results: $Save{ping_test_results} results=$ping_results" if $Debug{ping};
 }

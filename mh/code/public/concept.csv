@@ -1,0 +1,72 @@
+# This is the master file for defineing devices on the Concept 
+# alarm system to Mr House
+# It should be set up to suite each installation
+# 
+# The column definitions are;
+#
+# id		The id of the node eg: C01:03 or the area number
+# speak_name	What to say when speaking about this device
+# label		What to put in the logs when logging about the device	
+# icon		What icon to use on the web interface
+# category	What MH menu category to assign this device to
+# group		What MH Group to assign the device to (seperate list with ':')
+# type		The node type
+#			1 Zone input (off/on/tamper/isolate, can't be controled)
+#			2 Aux device (on/off can be controled)
+#  			3 Area (on/off/isolate, can be controled)
+# info		Info to be displayed on mouse over with web interface
+# announce	Speak. set to 1 to enable MH voice to speak about this device
+#
+id,speak_name,label,icon,category,group,type,info,announce
+XC01:01,Outside Siren,Outside Siren,1,Alarm,Equipment,2,Dont,0
+XC01:02,Outside Strobe,Outside Strobe,1,Alarm,Equipment,2,Dont,0
+XT01:02,Led4,Led4,1,Alarm,Equipment,2,Last Ternminal Led,0
+XT01:06,Led1,Led1,1,Alarm,Equipment,2,First Ternminal Led,0
+XT01:07,Led2,Led2,1,Alarm,Equipment,2,Second Ternminal Led,0
+XT01:08,Led3,Led3,1,Alarm,Equipment,2,Third Ternminal Led,0
+XB01:11,Spa Light,Spa Light,1,house,Lights1,2,Spa Light,0
+XB01:09,Garden Lights,Garden Lights,1,house,Lights1,2,Garden Lights,0
+XB01:10,Bottom Pool Light,Bottom Pool Light,1,house,Lights1,2,South pool light,0
+XB01:12,Middle Pool Light,Middle Pool Light,1,house,Lights1,2,Middle Pool Light,0
+XB01:13,Top Pool Light,Top Pool Light,1,house,Lights1,2,North Pool Light,0
+XB01:14,Pool Clorinator,Pool Clorinator,1,Pool,Equipment,2,Clorinator,0
+XB01:15,Pool Pump,Pool Pump,1,Pool,Equipment,2,Pool Pump,0
+XB01:16,Spa Blower,Spa Blower,1,Pool,Equipment,2,Spa Blower,0
+XB01:17,Spa Heater,Spa Heater,1,Pool,Equipment,2,Spa Heater,0
+XB01:19,Swim Jets Power,Swim Jets Power,1,Pool,Equipment,2,Swim Jets Power,0
+XB01:20,Swim Jet West,Swim Jet West,1,Pool,Equipment,2,Swim Jet West,0
+XB01:21,Swim Jet East,Swim Jet East,1,Pool,Equipment,2,Swim Jet East,0
+XB01:22,Spa Heater Power,Spa Heater Power,1,Pool,Equipment,2,Spa Heater Power,0
+XB01:24,Spa Jets,Spa Jets,1,Pool,Equipment,2,Spa Jets,0
+ZC01:01,Fire Alarm,Fire Alarm,1,Alarm,Equipment,1,Dont,0
+ZC01:02,Window Sensors,Window Sensors,1,Alarm,Sensors,1,Dont,0
+ZC01:03,Front Door Sensor,Front Door Sensor,1,Alarm,Sensors,1,Dont,0
+ZC01:04,Back Door Sesor,Back Door Sensor,1,Alarm,Sensors,1,Dont,0
+ZC01:05,External Siren Tamper,External Siren Tamper,1,Alarm,Equipment,1,Dont,0
+ZC01:06,Lounge Room Motion,Lounge Room Motion,1,Alarm,Sensors,1,Dont,0
+ZC01:07,Main Bed Room Motion,Main Bed Room Motion,1,Alarm,Sensors,1,Dont,0
+ZC01:08,Computer Room Motion,Computer Room Motion,1,Alarm,Sensors,1,Dont,0
+ZC01:09,Babies Room Motion,Babies Room Motion,1,Alarm,Sensors,1,Dont,0
+ZC01:10,Back Room Motion,Back Room Motion,1,Alarm,Sensors,1,Dont,0
+ZC01:11,Front Porch Movement,Front Porch Movement,1,Alarm,Sensors,1,Dont,0
+ZC01:12,Dinning Room Movement,Dinning Room Movement,1,Alarm,Sensors,1,Dont,0
+ZC01:13,Back Porch Movement,Back Porch Movement,1,Alarm,Sensors,1,Dont,0
+ZB01:01,Spa Lower South,Spa Lower South,1,Pool,Equipment,1,Dont,0
+ZB01:02,Spa Top North,Spa Top North,1,Pool,Equipment,1,Dont,0
+ZB01:03,Spa Upper South,Spa Upper South,1,Pool,Equipment,1,Dont,0
+ZB01:04,Spa Top South,Spa Top South,1,Pool,Equipment,1,Dont,0
+ZB01:05,Spa Lower Middle,Spa Lower Middle,1,Pool,Equipment,1,Dont,0
+ZB01:06,Spa Lower North,Spa Lower North,1,Pool,Equipment,1,Dont,0
+ZB01:07,Spa Upper Middle,Spa Upper Middle,1,Pool,Equipment,1,Dont,0
+ZB01:08,Spa Upper North,Spa Upper North,1,Pool,Equipment,1,Dont,0
+ZB01:09,Jet Control East,Jet Control East,1,Pool,Equipment,1,Dont,0
+ZB01:10,Jet Control West,Jet Control West,1,Pool,Equipment,1,Dont,0
+ZB01:11,Jet Control Button,Jet Control Button,1,Pool,Equipment,1,Dont,0
+ZB01:12,Master Left,Master Left,1,Pool,Equipment,1,Dont,0
+ZB01:13,Master Left West,Master Left West,1,Pool,Equipment,1,Dont,0
+1,Fire Alarms Zone,Fire Alarms Zone,1,Alarm,Area,3,Always on,0
+2,Perimeter Zone,Perimeter Zone,1,Alarm,Area,3,On to monitor perimiter,0
+3,House zone,House Zone,1,Alarm,Area,3,On when we are out,0
+4,System alarms,System alarms,1,Alarm,Area,3,For detecting faults in the alarm system,0
+5,Motion Sensors,Motion Sensors,1,Alarm,Area,3,Turn on to allow motion sensors to send event info,0
+6,Home Auxilaries,Home Auxilaries,1,Alarm,Area,3,Turn on to get the home auxilaries to work,0

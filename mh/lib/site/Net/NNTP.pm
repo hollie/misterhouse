@@ -1,6 +1,6 @@
 # Net::NNTP.pm
 #
-# Copyright (c) 1995-1997 Graham Barr <gbarr@ti.com>. All rights reserved.
+# Copyright (c) 1995-1997 Graham Barr <gbarr@pobox.com>. All rights reserved.
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
@@ -14,7 +14,7 @@ use Carp;
 use Time::Local;
 use Net::Config;
 
-$VERSION = do { my @r=(q$Revision$=~/\d+/g); sprintf "%d."."%02d"x$#r,@r};
+$VERSION = "2.22"; # $Id$
 @ISA     = qw(Net::Cmd IO::Socket::INET);
 
 sub new
@@ -59,7 +59,24 @@ sub new
   }
 
  my $c = $obj->code;
- ${*$obj}{'net_nntp_post'} = $c >= 200 && $c <= 209 ? 1 : 0;
+ my @m = $obj->message;
+
+ unless(exists $arg{Reader} && $arg{Reader} == 0) {
+   # if server is INN and we have transfer rights the we are currently
+   # talking to innd not nnrpd
+   if($obj->reader)
+    {
+     # If reader suceeds the we need to consider this code to determine postok
+     $c = $obj->code;
+    }
+   else
+    {
+     # I want to ignore this failure, so restore the previous status.
+     $obj->set_status($c,\@m);
+    }
+ }
+
+ ${*$obj}{'net_nntp_post'} = $c == 200 ? 1 : 0;
 
  $obj;
 }
@@ -70,7 +87,7 @@ sub debug_text
  my $inout = shift;
  my $text = shift;
 
- if(($nntp->code == 350 && $text =~ /^(\S+)/)
+ if((ref($nntp) and $nntp->code == 350 and $text =~ /^(\S+)/)
     || ($text =~ /^(authinfo\s+pass)/io)) 
   {
    $text = "$1 ....\n"
@@ -88,12 +105,23 @@ sub postok
 
 sub article
 {
- @_ == 1 || @_ == 2 or croak 'usage: $nntp->article( MSGID )';
+ @_ >= 1 && @_ <= 3 or croak 'usage: $nntp->article( [ MSGID ], [ FH ] )';
  my $nntp = shift;
+ my @fh;
+
+ @fh = (pop) if @_ == 2 || (@_ && ref($_[0]) || ref(\$_[0]) eq 'GLOB');
 
  $nntp->_ARTICLE(@_)
-    ? $nntp->read_until_dot()
+    ? $nntp->read_until_dot(@fh)
     : undef;
+}
+
+sub articlefh {
+ @_ >= 1 && @_ <= 2 or croak 'usage: $nntp->articlefh( [ MSGID ] )';
+ my $nntp = shift;
+
+ return unless $nntp->_ARTICLE(@_);
+ return $nntp->tied_fh;
 }
 
 sub authinfo
@@ -116,22 +144,44 @@ sub authinfo_simple
 
 sub body
 {
- @_ == 1 || @_ == 2 or croak 'usage: $nntp->body( [ MSGID ] )';
+ @_ >= 1 && @_ <= 3 or croak 'usage: $nntp->body( [ MSGID ], [ FH ] )';
  my $nntp = shift;
+ my @fh;
+
+ @fh = (pop) if @_ == 2 || (@_ && ref($_[0]) || ref(\$_[0]) eq 'GLOB');
 
  $nntp->_BODY(@_)
-    ? $nntp->read_until_dot()
+    ? $nntp->read_until_dot(@fh)
     : undef;
+}
+
+sub bodyfh
+{
+ @_ >= 1 && @_ <= 2 or croak 'usage: $nntp->bodyfh( [ MSGID ] )';
+ my $nntp = shift;
+ return unless $nntp->_BODY(@_);
+ return $nntp->tied_fh;
 }
 
 sub head
 {
- @_ == 1 || @_ == 2 or croak 'usage: $nntp->head( [ MSGID ] )';
+ @_ >= 1 && @_ <= 3 or croak 'usage: $nntp->head( [ MSGID ], [ FH ] )';
  my $nntp = shift;
+ my @fh;
+
+ @fh = (pop) if @_ == 2 || (@_ && ref($_[0]) || ref(\$_[0]) eq 'GLOB');
 
  $nntp->_HEAD(@_)
-    ? $nntp->read_until_dot()
+    ? $nntp->read_until_dot(@fh)
     : undef;
+}
+
+sub headfh
+{
+ @_ >= 1 && @_ <= 2 or croak 'usage: $nntp->headfh( [ MSGID ] )';
+ my $nntp = shift;
+ return unless $nntp->_HEAD(@_);
+ return $nntp->tied_fh;
 }
 
 sub nntpstat
@@ -270,13 +320,19 @@ sub post
     : undef;
 }
 
+sub postfh {
+  my $nntp = shift;
+  return unless $nntp->_POST();
+  return $nntp->tied_fh;
+}
+
 sub quit
 {
  @_ == 1 or croak 'usage: $nntp->quit()';
  my $nntp = shift;
 
- $nntp->_QUIT
-    && $nntp->close;
+ $nntp->_QUIT;
+ $nntp->close;
 }
 
 sub slave
@@ -488,9 +544,14 @@ sub _msg_arg
   {
    if(ref($spec))
     {
-     $arg = $spec->[0] . "-";
-     $arg .= $spec->[1]
-	if defined $spec->[1] && $spec->[1] > $spec->[0];
+     $arg = $spec->[0];
+     if(defined $spec->[1])
+      {
+       $arg .= "-"
+	  if $spec->[1] != $spec->[0];
+       $arg .= $spec->[1]
+	  if $spec->[1] > $spec->[0];
+      }
     }
    else
     {
@@ -616,16 +677,11 @@ sub _XINDEX    { shift->unsupported }
 ## IO/perl methods
 ##
 
-sub close
+sub DESTROY
 {
  my $nntp = shift;
-
- ref($nntp) 
-    && defined fileno($nntp)
-    && $nntp->SUPER::close;
+ defined(fileno($nntp)) && $nntp->quit
 }
-
-sub DESTROY { shift->close }
 
 
 1;
@@ -639,7 +695,7 @@ Net::NNTP - NNTP Client class
 =head1 SYNOPSIS
 
     use Net::NNTP;
-    
+
     $nntp = Net::NNTP->new("some.host.name");
     $nntp->quit;
 
@@ -669,6 +725,12 @@ NNTP server, a value of zero will cause all IO operations to block.
 
 B<Debug> - Enable the printing of debugging information to STDERR
 
+B<Reader> - If the remote server is INN then initially the connection
+will be to nnrpd, by default C<Net::NNTP> will issue a C<MODE READER> command
+so that the remote server becomes innd. If the C<Reader> option is given
+with a value of zero, then this command will not be sent and the
+connection will be left talking to nnrpd.
+
 =back
 
 =head1 METHODS
@@ -680,39 +742,46 @@ empty list.
 
 =over 4
 
-=item article ( [ MSGID|MSGNUM ] )
+=item article ( [ MSGID|MSGNUM ], [FH] )
 
 Retrieve the header, a blank line, then the body (text) of the
 specified article. 
 
-If no arguments are passed then the current article in the current
-newsgroup is returned.
+If C<FH> is specified then it is expected to be a valid filehandle
+and the result will be printed to it, on success a true value will be
+returned. If C<FH> is not specified then the return value, on success,
+will be a reference to an array containg the article requested, each
+entry in the array will contain one line of the article.
 
-C<MSGNUM> is a numeric id of an article in the
-current newsgroup, and will change the current article pointer.
-C<MSGID> is the message id of an article as
-shown in that article's header.  It is anticipated that the client
-will obtain the C<MSGID> from a list provided by the C<newnews>
-command, from references contained within another article, or from
-the message-id provided in the response to some other commands.
+If no arguments are passed then the current article in the currently
+selected newsgroup is fetched.
 
-Returns a reference to an array containing the article.
+C<MSGNUM> is a numeric id of an article in the current newsgroup, and
+will change the current article pointer.  C<MSGID> is the message id of
+an article as shown in that article's header.  It is anticipated that the
+client will obtain the C<MSGID> from a list provided by the C<newnews>
+command, from references contained within another article, or from the
+message-id provided in the response to some other commands.
 
-=item body ( [ MSGID|MSGNUM ] )
+If there is an error then C<undef> will be returned.
 
-Retrieve the body (text) of the specified article. 
+=item body ( [ MSGID|MSGNUM ], [FH] )
 
-Takes the same arguments as C<article>
+Like C<article> but only fetches the body of the article.
 
-Returns a reference to an array containing the body of the article.
+=item head ( [ MSGID|MSGNUM ], [FH] )
 
-=item head ( [ MSGID|MSGNUM ] )
+Like C<article> but only fetches the headers for the article.
 
-Retrieve the header of the specified article. 
+=item articlefh ( [ MSGID|MSGNUM ] )
 
-Takes the same arguments as C<article>
+=item bodyfh ( [ MSGID|MSGNUM ] )
 
-Returns a reference to an array containing the header of the article.
+=item headfh ( [ MSGID|MSGNUM ] )
+
+These are similar to article(), body() and head(), but rather than
+returning the requested data directly, they return a tied filehandle
+from which to read the article.
 
 =item nntpstat ( [ MSGID|MSGNUM ] )
 
@@ -775,8 +844,8 @@ that it will allow posting.
 
 Obtain information about all the active newsgroups. The results is a reference
 to a hash where the key is a group name and each value is a reference to an
-array. The elements in this array are:- the first article number in the group,
-the last article number in the group and any information flags about the group.
+array. The elements in this array are:- the last article number in the group,
+the first article number in the group and any information flags about the group.
 
 =item newgroups ( SINCE [, DISTRIBUTIONS ])
 
@@ -812,6 +881,19 @@ If C<MESSAGE> is not specified then the message must be sent using the
 C<datasend> and C<dataend> methods from L<Net::Cmd>
 
 C<MESSAGE> can be either an array of lines or a reference to an array.
+
+The message, either sent via C<datasend> or as the C<MESSAGE>
+parameter, must be in the format as described by RFC822 and must
+contain From:, Newsgroups: and Subject: headers.
+
+=item postfh ()
+
+Post a new article to the news server using a tied filehandle.  If
+posting is allowed, this method will return a tied filehandle that you
+can print() the contents of the article to be posted.  You must
+explicitly close() the filehandle when you are finished posting the
+article, and the return value from the close() call will indicate
+whether the message was successfully posted.
 
 =item slave ()
 
@@ -903,9 +985,23 @@ specified.
 Returns a reference to a HASH where the keys are the message numbers and the
 values are the References: lines from the articles
 
-=item listgroup
+=item listgroup ( [ GROUP ] )
+
+Returns a reference to a list of all the active messages in C<GROUP>, or
+the current group if C<GROUP> is not specified.
 
 =item reader
+
+Tell the server that you are a reader and not another server.
+
+This is required by some servers. For example if you are connecting to
+an INN server and you have transfer permission your connection will
+be connected to the transfer daemon, not the NNTP daemon. Issuing
+this command will cause the transfer daemon to hand over control
+to the NNTP daemon.
+
+Some servers do not understand this command, but issuing it and ignoring
+the response is harmless.
 
 =back
 
@@ -933,7 +1029,7 @@ second number in a range is less than or equal to the first then the range
 represents all messages in the group after the first message number.
 
 B<NOTE> For compatibility reasons only with earlier versions of Net::NNTP
-a message spec can be passed as a list of two numbers, this is depreciated
+a message spec can be passed as a list of two numbers, this is deprecated
 and a reference to the list should now be passed
 
 =item PATTERN
@@ -973,7 +1069,7 @@ the beginning of the test string just inside the open square
 bracket.
 
 The final operation uses the backslash character to
-invalidate the special meaning of the a open square bracket C<[>,
+invalidate the special meaning of an open square bracket C<[>,
 the asterisk, backslash or the question mark. Two backslashes in
 sequence will result in the evaluation of the backslash as a
 character with no special meaning.
@@ -1011,12 +1107,16 @@ L<Net::Cmd>
 
 =head1 AUTHOR
 
-Graham Barr <gbarr@ti.com>
+Graham Barr <gbarr@pobox.com>
 
 =head1 COPYRIGHT
 
 Copyright (c) 1995-1997 Graham Barr. All rights reserved.
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
+
+=for html <hr>
+
+I<$Id$>
 
 =cut

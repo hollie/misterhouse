@@ -1,6 +1,5 @@
 1: MisterHouse operational questions
   1.1: What OSes can it run on?
-
     It has been tested on Windows 95, 98, NT 4.0, and 2K. On Unix, it has
     been run on Linux, AIX, and Sun.
 
@@ -9,7 +8,6 @@
     so the Serial IO related function would take some work.
 
   1.2: How can I make it run faster and use less memory?
-
     On my Celron 400 Mhz computer running Windows 98, using 60 code files
     with 6000 lines of code, mh takes 10% the cpu, running at 9 passes per
     second and using about 30 MB of memory.
@@ -43,14 +41,12 @@
         27 Meg   <- mh                     (run all the default code with tk gui on)
  
   1.3: How can I easily upgrade to the latest version of mh?
-
     Point your mh.ini code_dir, data_dir, and html_dir parms to somplace
     other than your mh path. Then you should be able to rename your old mh
     directory and unzip the new one in its place without loosing anything.
     Also keep your mh.private.ini somewhere else (see next question).
 
   1.4: How does mh.ini work?
-
     All the entries in mh.ini are read on mh Startup and on a Reload. They
     are stored in the %config_parms array. So, for example, if you added:
 
@@ -74,7 +70,6 @@
     when you re-start mh.
 
   1.5: Can I run run mh in a 'fast debug mode'?
-
     Funny you should ask :) Check out the time_start, time_stop, and
     time_increment parms in the mh.ini file. Here are some examples:
 
@@ -83,7 +78,6 @@
        mh -time_start "5/14 7:10" -time_stop "5/15 10 PM" -time_increment 300
 
   1.6: How are the X10 and Serial Items implemented, indpendent of the platform?
-
     This answer is authored by Bill Birthisel, author of the SerialPort and
     CommPort modules.
 
@@ -113,7 +107,6 @@
     correctly ;-)
 
   1.7: mh seems way too complicated.  How can I run something simple?
-
     Copy mh\code\test\test_x10.pl into your own code dir (e.g. c:\mh_code).
     Then run:
 
@@ -126,7 +119,6 @@
       mh test_x10.pl
 
   1.8: Is there a way I can have direct X10 control with a simple perl script?
-
     If all you want to do is control X10 devices with a cron job or from
     your own cgi scripts, running mh is probably overkill. You can send X10
     commands using either the ActiveHome interface (CM11, available from
@@ -138,7 +130,6 @@
     test_cm17.pl.
 
   1.9: Can I send mh commands from other programs?
-
     You can send mh commands (Voice_Cmd text strings) from other programs in
     many ways:
 
@@ -172,7 +163,6 @@
     give Misterhouse its own account to logon with.
 
   1.11: How can I debug a problem?
-
     Lots of debug errata can be controled with the mh -debug switch. Most of
     this code is probably meaningful only if you dig into the source code,
     so most people probably will not use it unless you are generating debug
@@ -196,7 +186,6 @@
       mh -debug "serial;x10"
 
   1.12: How can I debug time event problem?
-
     One way is to create a code member that contains just the event you are
     trying to debug, then run mh on just that one member. For example,
     create a member called \temp\test_time.pl with this code:
@@ -215,7 +204,6 @@
     Note, you can run this test mh quickly without stoping your normal mh.
 
   1.13: What are the advantages/disadvantages to running the compiled versions of mh?
-
     Advantages:
 
     *   You don't need the latest version of perl installed
@@ -233,7 +221,6 @@
     The memory and cpu used, once mh is started, is the same.
 
   1.14: How does mh read and use the user code in code_dir
-
     Each time mh is started or a Reload is done, mh will re-read all the .pl
     code members in the code_dir directory (this is a mh.ini parm) and the
     file data_dir/mh_temp.user_code is created. All of the objects and
@@ -251,7 +238,6 @@
     kill mh), sleeps for a bit, then repeats.
 
   1.15 How can I control mh from a non-mh web server like Apache?
-
     You can think of the built in mh web server as 2 parts:
 
      - The part that auto-generates web pages that reflect your items and commands.
@@ -271,7 +257,6 @@
     have the web server script simply call mh/bin/mhsend to run mh commands.
 
   1.16 Is there a front-end tool for defining/editing mh items/events?
-
     Not yet, but you can now define items/events in a table-like format.
     This should allow us to enable a gui or web based front end tools for
     editing.
@@ -290,9 +275,7 @@
     mh/lib/read_table_xyz.pl member, then set Format=xyz.
 
   1.17: How can I use Family Radios with MisterHouse?
-
   1.18: Is there a way to tell if MH is shutdown correctly or not?
-
     On windows, mh/bin/mh.bat checks errorlevel and on linux, mh/bin/mhl
     finds the return code via $?. Both of these shells will restart mh
     unless they detect a normal exit (rc=1).
@@ -313,9 +296,7 @@
      }
 
   1.19: How can I use an Internet Appliance with MisterHouse?
-
   1.20: Where is perl program code located?
-
     From Harald Koch on 2/2002.
 
     There are (at least) three different locations for scripts:
@@ -348,7 +329,6 @@
 
 2: MisterHouse coding questions
   2.1: How do I debug syntax errors in my code?
-
     If there are syntax errors in your code, most of them will be caught on
     startup or reload. The error, and (hopefully) relevant code member
     and/or line number, will show up in your console, and if running Tk, in
@@ -387,7 +367,6 @@
 
   2.2: How should I code events that should occur only at infrequently, or 
 only at Startup?
-
     You can use the $Startup or $Reload variables for events that should
     only occur when mh is Started, or when code is Reloaded. Note that
     $Reload is also true when $Startup is true.
@@ -411,7 +390,6 @@ only at Startup?
       print_log "Every weekday at 2:15 am" time_cron '2 15 * * 1-5';
 
   2.3: How should I structure my Perl code?
-
     Pretty much anyway you want! You may want to put object definitions all
     in one member (e.g. mh/code/Bruce/items.pl) so you can easily change
     device codes, or you may want to define the objects in the file members
@@ -422,7 +400,6 @@ only at Startup?
     duplicate names.
 
   2.4: Can I create global variables that can be shared between code members?
-
     Yep. All objects definitions (e.g. $light = new X10_Item('C5')) are
     always shared. They are pulled out of the member loop by mh.
 
@@ -450,7 +427,6 @@ only at Startup?
     not be shared with the server.
 
   2.5: How can I move code out of the loop code?
-
     Sometimes you may need to have mh run code out of the loop code. For
     example, if you want to create a Voice_Cmd object that has states that
     are read from a file. Since objects are moved out of the loop code by
@@ -476,7 +452,6 @@ only at Startup?
       }
 
   2.6: How can I add my own subroutines?
-
     You can add your own subroutines anywhere in any of your code files.
     These can then be called by that member or any other member. Here is a
     couple of examples:
@@ -499,7 +474,6 @@ only at Startup?
        }
 
   2.7: What other special global variables are there?
-
     Here are a few:
 
       $Pgm_Path is the directory that that mh/bin/mh is found in.
@@ -507,7 +481,6 @@ only at Startup?
       $OS_win is true on windows, false otherwise.  $^O will reflect the OS name.
 
   2.8: Can I use mh to control other windows
-
     On Windows (95,98, NT), you can use the SendKeys to send keystrokes to
     other windows. See mh.html for details.
 
@@ -516,7 +489,6 @@ only at Startup?
     of a need here.
 
   2.9: What data is saved when mh is exited and restarted?
-
     The state of all objects (Timer Serial_Item X10_Item X10_Appliance
     File_Item Generic_Item) and all the $Save variables.
 
@@ -529,7 +501,6 @@ only at Startup?
     $Save{sleeping_cat} to track whenever your cat is asleep.
 
   2.10: How can I turn a bunch of lights on/off all at once?
-
     You can turn all the lights on a single house code on/off by specifying
     just the house code letter. For example:
 
@@ -548,7 +519,6 @@ only at Startup?
       set $all_lights $state if $state = said $v_lights_all;
 
   2.11: How do I get mh to stop telling the time each minute?
-
     Out of the box, mh defaults to running most of the code in the
     mh/code/common directory and all the code in mh/code/test. Members
     test_tagline.pl and the hello_speak.pl members are the main sources of
@@ -561,7 +531,6 @@ only at Startup?
     code_dir parm to point to your new code directory.
 
   2.12: Can do I send mh comands via email?
-
     Set the mh.ini net_mail_command_code parm to a secret code, and copy
     mh/code/common/internet_mail.pl into your code directory. Now you can
     send email with the following string either in the subject or the body
@@ -575,7 +544,6 @@ only at Startup?
     authorized".
 
   2.13: How can I control Command Categories
-
     All Voice_Cmd objects are listed in the Tk Command pull down and Web
     Category list. These lists are organize by Category, which is specified
     with a Category=value comment in the user code. For example:
@@ -588,9 +556,7 @@ only at Startup?
     If a file does not have a # Category record, the file name will be used.
 
   2.14: Common Perl and mh coding errors
-
   2.14: How can I measure time between two nearly spaced events?
-
     If you are on Windows, or on Unix with the Time::HiRes module installed,
     a call to get_tickcount will give sub-second resolution (returns
     milliseconds). For example, to 'debounce' a doorbell button, (i.e. don't
@@ -606,7 +572,6 @@ only at Startup?
     number of passes through the loop code.
 
   2.15: What is the format of MisterHouse X10 codes?
-
     MH sees X10 data in this format:
 
       XM1MK
@@ -626,7 +591,6 @@ only at Startup?
     examples, take a look at mh/lib/X10_Items.pm
 
   2.16: How are states set for each pass though the user code loop?
-
     From Bill Sobel on 02/2003:
 
     Misterhouse works on a multipass system where a state becomes 'new' for
@@ -658,7 +622,6 @@ only at Startup?
 
 3: Linux specific questions
   3.1: When I run Viavoice and festival at the same time I get "Can't open output file '/dev/dsp'"
-
     Answer complements of Brent L Johnson.
 
     The problem is, festival or another sound program, is locking your dsp
@@ -694,7 +657,6 @@ only at Startup?
     http://www.reednet.org/ViaVoiceTTS/ViaVoiceTTS-0.02.tar.gz
 
   3.2 How can I set the default volume level for Festival?
-
     This might work ... it has not been tested.
 
     You can globally increase the volume of all waveforms generated by
@@ -724,7 +686,6 @@ only at Startup?
     lower the 1.0 until you get an acceptable volume
 
   3.3 How do I add a multi-port serial card in linux?
-
     From Dave Lounsberry on 1/1/2002
 
     First make sure you have the device nodes for the extra serial ports.
@@ -799,7 +760,6 @@ only at Startup?
     your interface program once boot up is complete
 
   3.4: How do I get Mister House to start up automatically when my linux box boots
-
     Check out various .rc startup scripts in mh/bin/*.rc
 
     Here is a good tutorial note from Mike Bruno on 4/2002
@@ -1073,7 +1033,6 @@ only at Startup?
     even if it exits due to bad code, which does happen to me occaisionally.
 
   3.4: How do get Linux to play more than one sound at the same time
-
     Posted by Richard Phillips and Sean Walker on 03/2003
 
     FYI This is a bit of a "head's up" for those people who may be
@@ -1192,7 +1151,6 @@ only at Startup?
 
 4: Windows specific questions
   4.1: mh seems to cause some windows to hang
-
     If you are experiencing problems with windows not popping up when they
     should (e.g. control panel or install shield), you will want to install
     DCOM 1.3, available from here:
@@ -1207,7 +1165,6 @@ only at Startup?
       http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp
 
   4.2: How do I set setup networking between Windows boxes
-
     You need to have the TCP/IP protocol enabled for your Networking
     Interface Card (NIC). If you use a modem to reach the internet, you
     already have TCP/IP enable for the dial up adaptor, but you need to
@@ -1220,8 +1177,7 @@ only at Startup?
     IP addresses that start with 10. (e.g. 10.0.0.1) are reserved for
     internal lans, so you can use 10.0.0.1, 10.0.0.2, etc.
 
-  How do I run MH when not logged in to Win2K or XP?
-
+  4.3 How do I run MH when not logged in to Win2K or XP?
     You can run any program as a service, using a program called srvany.exe,
     available in the Resource Kit, or from here:
 
@@ -1238,12 +1194,10 @@ only at Startup?
 
 5: Perl questions
   5.1: Whats the best way to learn perl?
-
     Using MisterHouse ;-) Much more fun that trying to code up that report
     generator at work! Some good books are referenced in mh.html.
 
   5.2 What are good editors to use with perl?
-
     Codeing perl is much easier and less error prone if you use an
     programing editor that automatically highlights and indents code.
 
@@ -1277,7 +1231,6 @@ only at Startup?
     commands, auto indent, auto remark/unremark, line #s, etc.
 
   5.3 When are you supposed to use '=>' as opposed to '->' ?
-
     You can use => for a synatically pretty way to seperate entries in a
     list. When creating a hash, you can pass it a set of key/value pairs via
     a list, so instead of this:
@@ -1300,7 +1253,6 @@ only at Startup?
 
 6: Misc questions
   6.1: Misterhouse Timeline
-
     Here is a rough timeline of MisterHouse development:
 
      - 12/96 Coded a predecessor called House_Menu
@@ -1363,10 +1315,7 @@ only at Startup?
      - 09/03 Cepstral TTS engine support, a new PA room object, improved proxy support.
      - 11/03 Support for Sphinx2 VR, myHTPC tv menus, Asterisk phone interface, SMTP authentication, and a xAP command server.
 
-    Audrey support, more MS TTS controls, call waiting callerid
-
   6.2: Who is that Bruce guy anyway?
-
     Bruce (Winter) is the the main author of MisterHouse. He has a day job
     with IBM in Rochester, Minnesota, designing integrated circuits. He got
     started with Home Automation as one of the first ECS users in '86. He
@@ -1374,7 +1323,6 @@ only at Startup?
     hiking in his boyhood state of Montana, and playing a digital piano.
 
   6.3: Why open source?
-
     Because open source only has 3 syllables, and proprietary has 5.
 
     That and MisterHouse has developed much faster with the help of a wider
@@ -1385,7 +1333,6 @@ only at Startup?
     community.
 
   6.4: Misc Home Automation links
-
     Here are some useful/related Home Automation links:
 
       Dan Hoehnens most excellent collection of HA links:
@@ -1431,7 +1378,6 @@ only at Startup?
         http://www.ostdev.net/
 
   6.5: How do I contribute additions or updates to the mh code?
-
     If you want to contribute new code or fixes/updates, you have 3 options:
 
     1   Get a sourceforge.net account and check it in to the CVS repository
@@ -1475,7 +1421,6 @@ only at Startup?
     changes are simply emailed to Bruce. Either way works fine.
 
   6.6 What is X10?
-
     The people at http://www.x10.com sell affordable devices that
     communicate with each other over normal household power lines. Manuals
     for many of there devices are listed at
@@ -1584,7 +1529,6 @@ only at Startup?
       http://www.hometoys.com/htinews/jun98/articles/kingery/kingery9.htm
 
   6.7 What do I need to use the iButtons?
-
     Ray Dzek created a how to get started with iButton guide at
     http://www.solarbugs.com/home/ibutton.htm
 
@@ -1679,7 +1623,6 @@ only at Startup?
     http://ames.homeip.net:81/pages/My_iButtonVenture.htm
 
   6.8 What sort of hardware do you have in your house?
-
     This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.*
     'List of supported hardware interfaces' for more info):
 
@@ -1710,7 +1653,6 @@ only at Startup?
 
 7.0: Setup Questions
   7.1: Password Management
-
     To password protect Misterhouse, you can set passwords for different
     users via set_password. The 'admin' link from the main page is only for
     logging in once you have setup a password.
@@ -1730,7 +1672,6 @@ only at Startup?
     password_allow in mh/data/
 
   7.2: Customizing the TV guide
-
     To set the MisterHouse TV Today so it will display listings relevant to
     your area and provider Start by finding your tv_provider ID, run this
     command (located in mh/bin):
@@ -1776,7 +1717,6 @@ only at Startup?
     the syntax in the mh.ini is correct, try re-checking your provider ID.
 
   7.3: How can I point MisterHouse to a custom web interface?
-
     From David Norwood on 10/2001
 
     Here's a way to configure Misterhouse so you can have your own custom

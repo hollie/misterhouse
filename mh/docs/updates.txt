@@ -1,6 +1,123 @@
 Mister House Announcement List
   Changes in the current test version
+    New Features:
 
+    Bug Fixes and Other Changes:
+
+  Version 2.87 posted on 01/31/2004
+    New Features:
+
+    - Dominique Benoliel created common/weather_rrd_update.pl to store and
+    graph weather data via a RRD database. The mhe compiled versions of mh
+    should have the RRDs.pm module enabled. Non-compiled users can install
+    RRD with instructions at the top of weather_rrd_update.pl. You can view
+    the new graphs via the ia5 -> Outside -> Weather Station page (here is
+    mine: http://misterhouse.net:8080/ia5/outside/weather_graph.shtml )
+
+    - Nick Maddock replaced mh/code/public/alarm_concept.* files with
+    mh/code/public/concept_* for interfacing to the Concept 4000 alarm
+    panel.
+
+    - Kirk Bauer updated web/bin/floorplan.pl and made a bunch of changes to
+    the occupancy/presence modules. Changes are documented in the comment
+    section at the top of each of the .pm files.
+
+    - Steven Lee updated lib/X10_Item.pm X10_Switchlinc to Reports the
+    state, level, and state_level appropriately. Also, 0% to 100% are
+    represented correctly, supports response from status request (2-way
+    only), and sets state/level when switch is pressed (2-way only).
+
+    - Bob Hughes and Joel Davidson sent in example code for snapping
+    pictures using the linux v4lctl program, saved as public/webcam_bob.zip
+    and webcam_joel.zip.
+
+    - Steve Switzer updated the web/bin/phone_in.pl and added
+    web/bin/callerid.pl to allow for web based editing of
+    phone.caller_id.list.
+
+    - Chris Barrett added support for a backup CM11. Point to it with the
+    mh.ini cm11_bak_port.
+
+    - Chris Barrett updated lib/RF_Item.pm and X10_RF.pm to support Digimax
+    210 thermostat via a W800RF32. Unlike the other RF devices the Digimax
+    has a 4 byte ID code. His .mht entry for the unit is: RF, A9EF, Digimax,
+    Thermostat
+
+    - David Norwood updated common/internet_earthquake*.pl to use Net::FTP
+    instead of finger, which was recently disable due to a security filter
+    on the USGS site. He also updated them to download images of where the
+    latest quakes are and to use triggers for scheduling.
+
+    - David Norwood updated common/stocks.pl to announce price changes that
+    exceed the threshold specified with the stocks_thresholds mh.ini parm
+    (defaults to 5%).
+
+    - David Norwood updated the common/mp3* code so xmms now recognizes an
+    mp3_player_hide ini parameter to hide the main window. This is useful if
+    you are using the xmms coverviewer plug-in. He also updated the winamp
+    mp3_play and mp3_queue routines so they will work remotely and and
+    disabled the $Save{NowPlaying} variable because it was a resource hog.
+
+    Bug Fixes and Other Changes:
+
+    - Bill Young noticed a casesensitive problem in common/x10_rf_relay.pl
+
+    - Larry Roudebush updated mh.ini parm caller_id_file to use
+    $config_parms{data_dir} instead of $Pgm_Root/data
+
+    - Larry Roudebush and I merged the code/common/reject_caller_list.pl and
+    web/bin/rejectcall.pl files into web/bin/phone_list.pl and pointed to
+    that script with a new 'Caller List' button to the ia5 phone menu.
+
+    - Kirk Bauer sent in his linux mh start scripts, saved as
+    mh/bin/misterhouse_kirk*.rc
+
+    - Robert Mann found a 2.86 problem in lib/W800RF.pm
+
+    - George Clark created a time_between function.
+
+    - Kirk Bauer updated lib/RCSsTR40.pm to fix a setpoint changed bug and
+    to track run-time for logging/analysis purposes.
+
+    - Brian Ujvary updated lib/IR_Item.pm to support the usb_uirt interface.
+
+    - Kirk Bauer suggested we unset set_with_timer events if the object is
+    set before the timer is expired.
+
+    - Pass the $source parm to Serial_data hooks.
+
+    - Bob Hughes fixed Query_Barometer in X10_BX24.pm. Gaetan Lord updated
+    it to detect security code, standardize debug messages, and include
+    security information in the doc.
+
+    - Pete Flaherty added wind chill calculations
+    common/weather_iB_OWW_client.pl .
+
+    - Updated the web server to honor mh.ini parm html_refresh_rate on the
+    widget pages.
+
+    - Chris Barrett updated Holiday anouncements to honor ddmm format.
+
+    - Krik Bauer noticed that a date only time_now string would get
+    mis-interpreted and would fire every day.
+
+    - Fixed a 2.84 bug where run_after_delay would not work with subroutine
+    calls.
+
+    - Jim Duda fixed a 2.86 problem with W800 proxy data (serial datatype
+    parm was not being passed for proxies).
+
+    - Scott Johnson updated lib/site/Hardware/iButton/Device.PM so
+    read_temperature works for the 18B20 (1822) and added subs to read and
+    write to the DS2408 (Device Type 29).
+
+    - David Norwood updated common/weather_aws.pl to only update values if
+    the downloaded web page has a timestamp and it's different from the
+    previous one and added "miles per hour" the monitor_weather wind gust
+    announcement. He also made minor changes to the UIRT, photo_index,
+    http_server, and tk_photos code.
+
+  Version 2.86 posted on 12/21/2003
     New Features:
 
     - Kirk Bauer created lib/RCSsTR40.pm for the RCS TR40 Theormostate:
@@ -123,7 +240,6 @@ Mister House Announcement List
     needed on some items.
 
   Version 2.85 posted on 11/30/2003
-
     Version 2.85 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -186,7 +302,6 @@ Mister House Announcement List
     better.
 
   Version 2.84 posted on 11/23/2003
-
     Version 2.84 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -384,7 +499,6 @@ Mister House Announcement List
     the Windows DLL driver.
 
   Version 2.83 posted on 09/01/2003
-
     Version 2.83 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -494,7 +608,6 @@ Mister House Announcement List
     directory.
 
   Version 2.82 posted on 07/06/2003
-
     Version 2.82 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -612,7 +725,6 @@ Mister House Announcement List
     specified or default menu was not found.
 
   Version 2.81 posted on 06/01/2003
-
     Version 2.81 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -757,7 +869,6 @@ Mister House Announcement List
     - Echo errors in web .pl files to the web browser.
 
   Version 2.80 posted on 04/20/2003
-
     Version 2.80 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -904,7 +1015,6 @@ Mister House Announcement List
     you can allow for announcement of only brigher flares.
 
   Version 2.79 posted on 03/09/2003
-
     Version 2.79 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -1035,7 +1145,6 @@ Mister House Announcement List
     want to sequence a series of X10 cameras ON).
 
   Version 2.78 posted on 02/07/2003
-
     Version 2.78 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -1164,7 +1273,6 @@ Mister House Announcement List
     is not needed.
 
   Version 2.77 posted on 01/17/2003
-
     Version 2.77 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -1214,7 +1322,6 @@ Mister House Announcement List
     get a popup that advices to use the File->Exit option.
 
   Version 2.76 posted on 01/12/2003
-
     Version 2.76 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -1397,7 +1504,6 @@ Mister House Announcement List
     - Updated the xAP code to work with Patrick's latest hub.
 
   Version 2.75 posted on 12/23/2002
-
     Version 2.75 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -1531,7 +1637,6 @@ Mister House Announcement List
     based item editor.
 
   Version 2.74 posted on 12/01/2002
-
     Version 2.74 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -1662,7 +1767,6 @@ Mister House Announcement List
     javascript, in hopes it would be more reliable.
 
   Version 2.73 posted on 11/09/2002
-
     Version 2.73 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -1783,7 +1887,6 @@ Mister House Announcement List
     return the current light and dark state of MS13 motion sensors.
 
   Version 2.72 posted on 10/12/2002
-
     Version 2.72 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -1885,7 +1988,6 @@ Mister House Announcement List
     internet_weather, and internet_time.
 
   Version 2.71 posted on 09/21/2002
-
     Version 2.71 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -1994,7 +2096,6 @@ Mister House Announcement List
     via a new script at mh/web/bin/display_map.pl
 
   Version 2.70 posted on 08/22/2002
-
     Version 2.70 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -2112,7 +2213,6 @@ Mister House Announcement List
     adds on pushed wav urls.
 
   Version 2.69 posted on 07/03/2002
-
     Version 2.69 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -2261,7 +2361,6 @@ Mister House Announcement List
     larger browsers.
 
   Version 2.68 posted on 05/28/2002
-
     Version 2.68 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -2366,7 +2465,6 @@ Mister House Announcement List
     Dropped mh/bin/sprint_pcs.
 
   Version 2.67 posted on 05/04/2002
-
     Version 2.67 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -2505,7 +2603,6 @@ Mister House Announcement List
     clock. Looks ok on an Audrey, but is not centered on IE or Netscape.
 
   Version 2.66 posted on 03/31/2002
-
     Version 2.66 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -2663,7 +2760,6 @@ Mister House Announcement List
     tk.
 
   Version 2.65 posted on 03/01/2002
-
     Version 2.65 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -2811,7 +2907,6 @@ Mister House Announcement List
     better on unix.
 
   Version 2.64 posted on 01/23/2002
-
     Version 2.64 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -2848,7 +2943,6 @@ Mister House Announcement List
     $Info{IPAddress_local}, now used in speak address option.
 
   Version 2.63 posted on 01/19/2002
-
     Version 2.63 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -2960,7 +3054,6 @@ Mister House Announcement List
     &net_mail_send.
 
   Version 2.62 posted on 12/16/2001
-
     Version 2.62 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -3075,7 +3168,6 @@ Mister House Announcement List
     were not able to play wav files.
 
   Version 2.61 posted on 11/18/2001
-
     Version 2.61 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -3197,7 +3289,6 @@ Mister House Announcement List
     lights/appliances page for an example.
 
   Version 2.60 posted on 10/20/2001
-
     Version 2.60 was just uploaded to:
 
       http://misterhouse.sf.net/download.html
@@ -3318,7 +3409,6 @@ Mister House Announcement List
     - Print a warning if password_file is missing.
 
   Version 2.59 posted on 09/23/2001
-
     Version 2.59 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -3404,7 +3494,6 @@ Mister House Announcement List
     list.
 
   Version 2.57 posted on 08/12/2001
-
     Version 2.57 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -3497,7 +3586,6 @@ Mister House Announcement List
     multiple times.
 
   Version 2.54 posted on 06/26/2001
-
     Version 2.54 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -3586,7 +3674,6 @@ Mister House Announcement List
     - Moved the web overlib popup window to below, not over, the command.
 
   Version 2.52 posted on 05/28/2001
-
     Version 2.52 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -3659,7 +3746,6 @@ Mister House Announcement List
     - Moved the mh_temp files from code_dir to data_dir.
 
   Version 2.51 posted on 05/06/2001
-
     Version 2.51 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -3745,7 +3831,6 @@ Mister House Announcement List
     data/logs/mh_pause.*.log file to track mh pauses.
 
   Version 2.49 posted on 04/15/2001
-
     Version 2.49 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -3834,7 +3919,6 @@ Mister House Announcement List
     mh/bin/mh dir.
 
   Version 2.47 posted on 03/24/2001
-
     Version 2.47 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -3947,7 +4031,6 @@ Mister House Announcement List
     - Re-ordered loopcode subs according to the optional Position directive.
 
   Version 2.45 posted on 02/24/2001
-
     Version 2.45 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -4062,7 +4145,6 @@ Mister House Announcement List
     ok.
 
   Version 2.43 posted on 02/03/2001
-
     Version 2.43 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -4207,7 +4289,6 @@ Mister House Announcement List
     - Fixed a problem with unix computer uptime with uptimes > 40 days.
 
   Version 2.41 posted on 01/20/01
-
     Version 2.41 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -4311,7 +4392,6 @@ Mister House Announcement List
     require perl in /usr/bin/perl
 
   Version 2.39 posted on 12/21/00
-
     Version 2.39 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -4446,7 +4526,6 @@ Mister House Announcement List
     locations. We also added a table to list the cities/countries.
 
   Version 2.36 posted on 12/03/00
-
     Version 2.36 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download.html
@@ -4533,7 +4612,6 @@ Mister House Announcement List
     - Avoid errors wint Win32::Sound::Volume with older win32 Perls
 
   Version 2.34 posted on 11/12/00
-
     Version 2.34 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download
@@ -4652,7 +4730,6 @@ Mister House Announcement List
     file).
 
   Version 2.32 posted on 10/22/00
-
     Version 2.32 was just uploaded to:
 
       http://misterhouse.sourceforge.net/download
@@ -4762,7 +4839,6 @@ Mister House Announcement List
     mh/docs/faq_frs.html.
 
   Version 2.29 posted on 10/01/00
-
     Version 2.29 was just uploaded to:
 
       http://misterhouse.sourceforge.net
@@ -4879,7 +4955,6 @@ Mister House Announcement List
     - Allow for passing parms with code hooks.
 
   Version 2.28 posted on 09/09/00
-
     Version 2.28 was just uploaded to:
 
       http://misterhouse.sourceforge.net
@@ -4981,7 +5056,6 @@ Mister House Announcement List
     to $Tk_objects{label_memory_used}.
 
   Version 2.27 posted on 08/18/00
-
     Version 2.27 was just uploaded to:
 
       http://misterhouse.sourceforge.net
@@ -5059,7 +5133,6 @@ Mister House Announcement List
     - Fixed a bug that disabled simultaneous X10 Group action with a CM11.
 
   Version 2.24 posted on 08/06/00
-
     Version 2.24 was just uploaded to:
 
       http://misterhouse.net/download
@@ -5175,7 +5248,6 @@ Mister House Announcement List
     bright/dim commands easier.
 
   Version 2.22 posted on 06/24/00
-
     Version 2.22 was just uploaded to:
 
       http://misterhouse.net/download
@@ -5273,7 +5345,6 @@ Mister House Announcement List
     anyone wants this as an option, let me know.
 
   Version 2.20 posted on 05/27/00
-
     Version 2.20 was just uploaded to:
 
       http://misterhouse.net/download
@@ -5361,7 +5432,6 @@ Mister House Announcement List
       of the MS Speech SDK.
 
   Version 2.15 posted on 05/06/00
-
     Version 2.15 was just uploaded to:
 
       http://misterhouse.net/download
@@ -5444,7 +5514,6 @@ Mister House Announcement List
     like Apache?
 
   Version 2.13 posted on 04/09/00
-
     Version 2.13 was just uploaded to:
 
       http://misterhouse.net/download
@@ -5518,7 +5587,6 @@ Mister House Announcement List
     directory, enabling easier upgrades.
 
   Version 2.11 posted on 03/09/00
-
     Version 2.11 was just uploaded to:
 
       http://misterhouse.net/download
@@ -5611,7 +5679,6 @@ Mister House Announcement List
     evening, and night)
 
   mh ver 2.1 posted on 02/19/00
-
     Version 2.1 was just uploaded to:
 
       http://misterhouse.net/download
@@ -5683,7 +5750,6 @@ Mister House Announcement List
     - Updated monitor_server.pl to allow for 'web hits per hour'.
 
   mh ver 2.00 posted on 02/12/00
-
     Version 2.00 was just uploaded to:
 
       http://misterhouse.net/download
@@ -5764,7 +5830,6 @@ Mister House Announcement List
     monitor_shoutcast.pl).
 
   mh ver 1.97 posted on 01/27/00
-
     Version 1.97 was just uploaded to:
 
       http://misterhouse.net/download
@@ -5836,7 +5901,6 @@ Mister House Announcement List
     can I use cvs to co-develop core mh code
 
   mh ver 1.93 posted on 01/05/00
-
     Version 1.93 was just uploaded to:
 
       http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
@@ -5906,7 +5970,6 @@ Mister House Announcement List
     advantages/disadvantages to the compiled vesions of mh" question.
 
   mh ver 1.90 posted on 12/12/99
-
     Version 1.90 was just uploaded to:
 
       http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
@@ -5993,7 +6056,6 @@ Mister House Announcement List
     a problem for someone.
 
   mh ver 1.89 posted on 11/20/99
-
     Version 1.89 was just uploaded to:
 
       http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
@@ -6047,7 +6109,6 @@ Mister House Announcement List
     - Drop 50 frow/o + from X10_Items.
 
   mh ver 1.87 posted on 11/07/99
-
     Version 1.87 was just uploaded to:
 
       http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
@@ -6127,7 +6188,6 @@ Mister House Announcement List
     added file_unchanged.
 
   mh ver 1.83 posted on 10/09/99
-
     Version 1.83 was just uploaded to:
 
       http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
@@ -6175,7 +6235,6 @@ Mister House Announcement List
     mh/lib/site/HomeAutomation to mh/lib/site/ControlX10.
 
   mh ver 1.82 posted on 10/02/99
-
     Version 1.82 was just uploaded to:
 
       http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
@@ -6230,7 +6289,6 @@ Mister House Announcement List
     volume_stub to speak so we can support different volume levels.
 
   mh ver 1.79 posted on 09/26/99
-
     Version 1.79 was just uploaded to:
 
       http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
@@ -6298,7 +6356,6 @@ Mister House Announcement List
     - Save state of debug flag between code reloads.
 
   mh ver 1.77 posted on 09/17/99
-
     Version 1.77 was just uploaded to:
 
       http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
@@ -6333,7 +6390,6 @@ Mister House Announcement List
     - Changed the Tk Command menu items so it will not list empty groups.
 
   mh ver 1.75 posted on 09/12/99
-
     Version 1.75 was just uploaded to:
 
       http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
@@ -6407,7 +6463,6 @@ Mister House Announcement List
     sound_beep1.
 
   mh ver 1.71 posted on 08/29/99
-
     Version 1.71 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -6462,7 +6517,6 @@ Mister House Announcement List
     - More Homebase.pm debug. Bob, I'll send a seperate note to you on this.
 
   mh ver 1.69 posted on 08/01/99
-
     Version 1.69 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -6481,7 +6535,6 @@ Mister House Announcement List
     for starting the work on this one!
 
   mh ver 1.68 posted on 07/31/99
-
     Version 1.68 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -6547,7 +6600,6 @@ Mister House Announcement List
     specified.
 
   mh ver 1.65 posted on 07/22/99
-
     Version 1.65 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -6607,7 +6659,6 @@ Mister House Announcement List
     for the show.
 
   mh ver 1.63 posted on 07/05/99
-
     Version 1.63 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -6708,7 +6759,6 @@ Mister House Announcement List
     tk_entry in mh.html for details.
 
   mh ver 1.61 posted on 06/27/99
-
     Version 1.61 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -6768,7 +6818,6 @@ Mister House Announcement List
     for those brave enough :)
 
   mh ver 1.58 posted on 06/20/99
-
     Version 1.58 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -6823,7 +6872,6 @@ Mister House Announcement List
     read_user_code method would sometimes cause a perl abend.
 
   mh ver 1.56 posted on 05/30/99
-
     Version 1.56 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -6895,7 +6943,6 @@ Mister House Announcement List
     - Documented time_* functions, and Serial_Item a bit more.
 
   mh ver 1.54 posted on 04/27/99
-
     Version 1.54 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -6950,7 +6997,6 @@ Mister House Announcement List
     and/or tested with the speak.cgi.bat script.
 
   mh ver 1.51 posted on 03/27/99
-
     Version 1.51 was just uploaded to:
 
       http://members.home.net/winters/house/programs/index.html
@@ -7024,7 +7070,6 @@ Mister House Announcement List
     Next up ... I'm not sure. Guess we will find out in a few weeks :)
 
   mh ver 1.46 posted on 03/12/99
-
     Version 1.46 was just uploaded to:
 
       http://members.home.net/winters/house/programs
@@ -7143,7 +7188,6 @@ Mister House Announcement List
     this time I mean it :)
 
   mh ver 1.42 posted on 02/26/99
-
     Version 1.42 was just uploaded to:
 
       http://misterhouse.webjump.com/
@@ -7167,7 +7211,6 @@ Mister House Announcement List
     bit better than hanging on exit.
 
   mh ver 1.40 posted on 02/20/99
-
     - The web page can now (optionally) require password authentication to
     function, like the telnet.pl server does. See the mh.html Authentication
     section for more details.
@@ -7218,7 +7261,6 @@ Mister House Announcement List
     any wav files. Uncompressed wav files are just too big.
 
   mh ver 1.35 posted on 02/07/99
-
     Version 1.35 was just uploaded to
     http://www.isl.net/~winter/house/programs and
     http://misterhouse.webjump.com. Here are the package files:
@@ -7239,7 +7281,6 @@ Mister House Announcement List
     I just forgot to test serial port output :)
 
   mh ver 1.34 posted on 02/07/99
-
     Version 1.34 was just uploaded to
     http://www.isl.net/~winter/house/programs and
     http://misterhouse.webjump.com
@@ -7282,7 +7323,6 @@ Mister House Announcement List
     log windows.
 
   mh update 02/04/99 version 1.32
-
     Version 1.32 was just uploaded to
     http://www.isl.net/~winter/house/programs and
     http://misterhouse.webjump.com
@@ -7322,7 +7362,6 @@ Mister House Announcement List
     - Allow telnet.pl to run without a password file.
 
   mh update 01/30/99 version 1.30
-
     Version 1.30 was just uploaded to
     http://www.isl.net/~winter/house/programs
 
@@ -7358,7 +7397,6 @@ Mister House Announcement List
     machine.
 
   mh update 01/30/99 version 1.29
-
     Version 1.29 was just uploaded to
     http://www.isl.net/~winter/house/programs
 
@@ -7400,7 +7438,6 @@ Mister House Announcement List
     program, so now linux dudes can revel in 'Deep thoughts for the day'
 
   mh update 01/24/99 version 1.27
-
     Version 1.27 was just uploaded to
     http://www.isl.net/~winter/house/programs. Lots of new tricks and
     changes:
@@ -7440,7 +7477,6 @@ Mister House Announcement List
     - Probably other important changes I have forgotten to take notes on :)
 
   mh update 01/13/99 version 1.21
-
     I just uploaded version 1.21 of mh to
 
     - fixed a bug where many of the commands would not work if the VR (Voice
@@ -7471,7 +7507,6 @@ Mister House Announcement List
     Any linux users out there want to test it?
 
   mh update 01/08/99 version 1.18
-
     I just uploaded version 1.18 of hh. Changes include:
 
     - Fixed the run command option. For example, this dos command should
@@ -7484,7 +7519,6 @@ Mister House Announcement List
     or two.
 
   mh update 01/06/99 version 1.17
-
     I just uploaded version 1.17 of mh. Changes include:
 
     - 5% increments in bright dim (instead of 10%)

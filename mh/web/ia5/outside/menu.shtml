@@ -17,6 +17,9 @@
 <a href='<!--#include var="$config_parms{web_href_weather_national}" -->'>
 <img src="images/nationalweather.gif" alt='National Weather' border=0></a><br>
 
+<a href='weather_index.shtml'>
+<img src="images/weatherstation.gif" alt='Weather Station' border=0></a><br>
+
 <!-- <a href="radar.shtml"><img src="images/localweather.gif" alt='Local Radar' border=0></a><br> -->
 <!-- <a href="1wireweather.shtml"><img src="images/1wireweather.gif" alt='One wire' border=0></a><br> -->
 

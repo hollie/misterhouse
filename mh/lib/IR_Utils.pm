@@ -7,7 +7,7 @@ my $fields = 'Type	Sub	Code	?	P-id	Protocol	dev1	dev2	dev3	data1	data2	data3	Dat
 my $buttons = '0	1	2	3	4	5	6	7	8	9	VOL +	VOL -	MUTE	CH +	CH -	POWER	ENTER	TV/VCR	LAST	MENU	GUIDE	Up	Down	Left	Right	SELECT	SLEEP	PIP	DISPLAY	SWAP	MOVE	PLAY	PAUSE	REW	FFWD	STOP	REC	EXIT	SURR';
 my %devices; 
 my $device_file = "../data/infrared/Devices4.csv";
-my $irp_spreadsheet = "../data/infrared/comparison matrix.csv";
+my $irp_spreadsheet = "../data/infrared/comparison_matrix.csv";
 my $devicelib_dir = "../data/infrared/devicelib";
 my %protocols;
 my %protocol_names;

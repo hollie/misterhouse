@@ -34,8 +34,6 @@ if ($Reload) {
 my ($mw_photo, $mw_photo_label, $mw_photo_image, $mw_cursor);
 
 if (said $photo_slideshow eq 'Start') {
-                                # Setup TV 
-    eval 'set $TV ON; set $AMP ON; set $TV "video1"; set $AMP "vcr"; my $key = "\ct\cd640 480\ct"; system "echo $key |a2x";';
                                 # Create a full screen, frameless window
     unless ($MW) {
         $MW = MainWindow->new;

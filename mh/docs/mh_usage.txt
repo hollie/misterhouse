@@ -1025,3 +1025,62 @@ Sat 12/20/03 19:30:43 city=Tucson state=AZ name=Ted Frohling
 Sun 12/21/03 10:26:11 city=Fayetteville state=AR name=
 Sun 12/21/03 13:45:17 city=Andilly - Paris state=France name=Gautier Pascal
 Sun 12/21/03 14:27:22 city=tiel state=netherlands name=
+Mon 12/22/03 09:41:43 city=zeist state=netherlands name=
+Mon 12/22/03 13:12:36 city=boise state=ID name=
+Mon 12/22/03 13:14:33 city=Mentor state=OH name=Orlando
+Mon 12/22/03 19:20:39 city=toronto state=canada name=
+Tue 12/23/03 07:59:47 city=PARMA state=ITALIA name=
+Tue 12/23/03 08:04:57 city=REGGIO EMILIA state=ITALIA name=
+Tue 12/23/03 08:05:16 city=REGGIO EMILIA state=ITALIA name=DINO
+Wed 12/24/03 09:13:42 city=Lincoln state=VT name=Paul Webb
+Thu 12/25/03 04:45:38 city=fox river grove state=il name=
+Thu 12/25/03 06:35:58 city=lynge state=denmark name=
+Thu 12/25/03 09:14:12 city=Vigo state=Spain name=Pablo
+Thu 12/25/03 17:16:13 city=brussels state=belgium name=
+Sat 12/27/03 12:32:17 city=Quebec state=Canada name=
+Sat 12/27/03 18:26:57 city=north scituate state=ri name=
+Sun 12/28/03 12:07:17 city=Perth state=WA name=Gary
+Mon 12/29/03 14:05:08 city=san diego state=ca name=
+Tue 12/30/03 07:20:09 city=helsinki state=finland name=
+Tue 12/30/03 08:19:46 city=markham state=ontario name=
+Fri 01/02/04 07:52:32 city=utrecht state=netherlands name=eskimo
+Sat 01/03/04 17:41:03 city=detriot state=mi name=
+Sat 01/03/04 19:35:07 city=Sydney state=AU name=
+Sat 01/03/04 21:04:30 city=raleigh state=nc name=
+Sat 01/03/04 21:04:37 city=cary state=nc name=
+Sat 01/03/04 21:05:05 city=Cary state=NC name=
+Sun 01/04/04 18:18:04 city=Sydney state=Australia name=Griffo
+Sun 01/04/04 23:45:43 city=Perth state=Australia name=
+Mon 01/05/04 02:59:33 city=dongen state=the netherlands name=
+Mon 01/05/04 06:27:27 city=Brisbane state=Australia name=
+Mon 01/05/04 16:31:37 city=Dublin state=Ireland name=Kiall
+Mon 01/05/04 17:35:52 city=Cascavel state=Brazil name=
+Wed 01/07/04 10:39:28 city=bordeaux state=france name=mouton
+Thu 01/08/04 11:49:50 city=Columbus state=OH name=
+Thu 01/08/04 15:57:54 city=lisbon state=pt name=
+Thu 01/08/04 21:34:20 city=findlay state=ph name=
+Fri 01/09/04 10:33:07 city=Salt Lake City state=UT name=Glen E. Ebert
+Sat 01/10/04 06:32:12 city=Perth state=WA name=Gary Liney
+Sat 01/10/04 10:02:09 city=Vigo state=Spain name=Narf
+Sat 01/10/04 22:29:55 city=montreal state=canada name=
+Sun 01/11/04 08:16:28 city=little rock state=ar name=
+Sun 01/11/04 21:53:26 city=Blaine state=MN name=
+Mon 01/12/04 10:25:55 city=farmingville state=ny name=
+Wed 01/14/04 21:20:26 city=Brisbane state=Australia name=Steve
+Sat 01/17/04 06:20:35 city=Awase state=Japan name=Anderson
+Sun 01/18/04 11:56:28 city=Aloha state=OR name=Kean Stump
+Mon 01/19/04 23:34:40 city=Rochester state=MN name=
+Tue 01/20/04 00:46:31 city=Luxembourg state=Luxembourg name=
+Wed 01/21/04 10:45:36 city=Belfast state=ME name=
+Thu 01/22/04 06:43:42 city=Portage state=MI name=
+Fri 01/23/04 20:57:44 city=Munford state=AL name=
+Sat 01/24/04 19:31:59 city=Tucson state=AZ name=Patrick
+Sat 01/24/04 21:46:20 city=Louisville state=Ky name=
+Mon 01/26/04 02:55:55 city=Old Bridge state=NJ name=Kevin
+Mon 01/26/04 10:21:16 city=Jupille-Sur-Meuse state=Belgium name=Tjardick
+Mon 01/26/04 12:26:18 city=ALbuquerque state=NM name=
+Wed 01/28/04 21:23:58 city=corona state=ca name=
+Thu 01/29/04 06:17:47 city=Melbourne state=Australia name=
+Thu 01/29/04 22:57:24 city=redwood city state=ca name=
+Fri 01/30/04 08:41:10 city=Wrens state=Georgia name=Bruce
+Sat 01/31/04 03:14:50 city=Cape Town state=South Africa name=

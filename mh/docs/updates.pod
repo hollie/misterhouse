@@ -21,6 +21,98 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 B<New Features:>
 
+B<Bug Fixes and Other Changes:>
+
+
+=head2 Version 2.87 posted on 01/31/2004
+
+B<New Features:>
+
+- Dominique Benoliel created common/weather_rrd_update.pl to store and graph weather data via 
+a RRD database.  The mhe compiled versions of mh should have the RRDs.pm module enabled.  Non-compiled users can install RRD 
+with instructions at the top of weather_rrd_update.pl.   You can view the new graphs via the ia5 -> Outside -> Weather Station page
+(here is mine:  http://misterhouse.net:8080/ia5/outside/weather_graph.shtml )
+
+- Nick Maddock replaced mh/code/public/alarm_concept.* files with mh/code/public/concept_* for interfacing to the Concept 4000 alarm panel.
+
+- Kirk Bauer updated web/bin/floorplan.pl and made a bunch of changes to the occupancy/presence modules.
+Changes are documented in the comment section at the top of each of the .pm files.
+
+- Steven Lee updated lib/X10_Item.pm X10_Switchlinc to Reports the state, level, and state_level appropriately.   
+Also, 0% to 100% are represented correctly, supports response from status request (2-way only), and sets state/level when switch is pressed (2-way only).
+
+- Bob Hughes and Joel Davidson  sent in example code for snapping pictures using the linux v4lctl program, saved as public/webcam_bob.zip and webcam_joel.zip.
+
+- Steve Switzer updated the web/bin/phone_in.pl and added web/bin/callerid.pl to allow
+for web based editing of phone.caller_id.list.   
+
+- Chris Barrett added support for a backup CM11.   Point to it with the mh.ini  cm11_bak_port.  
+
+- Chris Barrett updated lib/RF_Item.pm and X10_RF.pm to support Digimax 210 thermostat via a W800RF32.
+Unlike the other RF devices the Digimax has a 4 byte ID code.  His .mht entry for the unit is:  RF, A9EF, Digimax,    Thermostat
+
+- David Norwood updated common/internet_earthquake*.pl to use Net::FTP instead of finger, 
+which was recently disable due to a security filter on the USGS site.  He also updated them to download images of where 
+the latest quakes are and to use triggers for scheduling.
+
+- David Norwood updated common/stocks.pl to announce price changes that exceed the threshold specified with the stocks_thresholds mh.ini parm (defaults to 5%).
+
+- David Norwood updated the common/mp3* code so xmms now recognizes an mp3_player_hide ini parameter to hide the main window.
+This is useful if you are using the xmms coverviewer plug-in.
+He also updated the winamp mp3_play and mp3_queue routines so they will work remotely and
+and disabled the $Save{NowPlaying} variable because it was a resource hog.
+
+
+B<Bug Fixes and Other Changes:>
+
+- Bill Young noticed a casesensitive problem in common/x10_rf_relay.pl
+
+- Larry Roudebush updated mh.ini parm caller_id_file to use $config_parms{data_dir} instead of $Pgm_Root/data
+
+- Larry Roudebush and I merged the code/common/reject_caller_list.pl and web/bin/rejectcall.pl files into web/bin/phone_list.pl 
+and pointed to that script with a new 'Caller List' button to the ia5 phone menu.
+
+- Kirk Bauer sent in his linux mh start scripts, saved as mh/bin/misterhouse_kirk*.rc
+
+- Robert Mann found a 2.86 problem in lib/W800RF.pm
+
+- George Clark created a time_between function.
+
+- Kirk Bauer updated lib/RCSsTR40.pm  to fix a setpoint changed bug and to track run-time for logging/analysis purposes.
+
+- Brian Ujvary updated lib/IR_Item.pm to support the usb_uirt interface.
+
+- Kirk Bauer suggested we unset set_with_timer events if the object is set before the timer is expired.
+
+- Pass the $source parm to Serial_data hooks.
+
+- Bob Hughes fixed Query_Barometer in X10_BX24.pm. Gaetan Lord updated it to detect security code, standardize debug messages, and include security information in the doc.
+
+- Pete Flaherty added wind chill calculations common/weather_iB_OWW_client.pl .
+ 
+- Updated the web server to honor mh.ini parm html_refresh_rate on the widget pages.
+
+- Chris Barrett updated Holiday anouncements to honor ddmm format.
+
+- Krik Bauer noticed that a date only time_now string would get mis-interpreted and would fire every day.
+
+- Fixed a 2.84 bug where run_after_delay would not work with subroutine calls.
+
+- Jim Duda fixed a 2.86 problem with W800 proxy data (serial datatype parm was not being passed for proxies).
+
+- Scott Johnson updated lib/site/Hardware/iButton/Device.PM so read_temperature works for the 18B20 (1822)
+and added subs to read and write to the DS2408 (Device Type 29).  
+
+- David Norwood updated common/weather_aws.pl to only update values if the downloaded web
+page has a timestamp and it's different from the previous one and added "miles per hour" the monitor_weather wind gust announcement.
+He also made minor changes to the UIRT, photo_index, http_server, and tk_photos code.
+
+
+
+=head2 Version 2.86 posted on 12/21/2003
+
+B<New Features:>
+
 - Kirk Bauer created lib/RCSsTR40.pm for the RCS TR40 Theormostate: http://www.resconsys.com/products/stats/serial.htm
 
 - Kirk Bauer created lib/Light_Restriction_Item.pm and updated most of the other Base_Item objects to improve occupancy monitoring
@@ -303,7 +395,6 @@ hours, days, weeks, or months.  He also added an option to the aws script to ign
 - David Norwood fixed a couple problems in the Ocelot code related to receiving X10, IR, and IO signals.
 
 - Brian G. Ujvary and David Norwood updated USB_UIRT to add support for the Windows DLL driver.
-
 
 
 =head2 Version 2.83 posted on 09/01/2003

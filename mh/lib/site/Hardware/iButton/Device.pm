@@ -186,6 +186,18 @@ use vars qw(%models);
 		    'mintime' => 0,
 		    'maxtime' => .9,
 		   },
+
+ 	  "29" => {
+		    'model' => 'DS2408',
+		    'memsize' => 1024/8, 
+		    'memtype' => "EEPROM",
+		    'specialfuncs' => "pio",
+		    'class' => 'Hardware::iButton::Device::DS2408',
+		    'mintime' => 0,
+		    'maxtime' => .9,
+		   },
+
+
 	   "14" => {
 		    'model' => 'DS1971',
 		    'memsize' => 256/8,
@@ -758,6 +770,7 @@ sub read_temperature {
 	my $data = $self->read_temperature_scratchpad( $_ );
 	if ( $data ) {
 	    my @data = unpack( "C*", $data );
+	    #print "Data0 $data[0] Data1 $data[1] Data2 $data[2]\n";
 	    my $sign = $data[2] > 128 ? -1 : 1;
 	    my $temp = (($data[2] & 0x07) * 256 + $data[1]) / 16 * $sign;
 	    if ( $temp == 85 ) { # this is a result from too short of a read time
@@ -777,6 +790,51 @@ sub read_temperature {
     }
     return undef;
 }
+
+sub read_temperature_18B20 {
+    my($self) = @_;
+    my $temp;
+    my $c = $self->{'connection'};
+    return if !$c->id_on_wire( $self->id() );
+
+    for ( 0..1 ) {
+	my $data = $self->read_temperature_scratchpad( $_ );
+	if ( $data ) 
+	{
+	 my @data = unpack( "C*", $data );
+	#print "18B20: Data1 $data[1] Data2 $data[2]\n";
+	my $sign = $data[2] > 128 ? 0 : 1;
+
+		if ($sign)   #Positive Number				
+		{
+		$temp = ($data[2]* 256 + $data[1]) / 16;
+		}
+		else		#2's Compliment
+		{
+		$temp = ($data[2]* 256 + $data[1]);
+		$temp = (~$temp +1);
+		$temp = ($temp & 0x7FF);
+ 		$temp = ($temp /16 * -1);
+		}	
+	   
+	if ( $temp == 85 ) { # this is a result from too short of a read time
+		$self->update_temperature_time( 0 );
+		next;
+	}
+	elsif ( !$_ )  {
+	$self->update_temperature_time( 1 );
+	}
+
+	return $temp;
+	}
+	elsif ( !$_ ) {
+	    $self->update_temperature_time( 0 );
+	    next;
+	}
+    }
+    return undef;
+}
+
 
 
 sub read_temperature_hires {
@@ -1103,7 +1161,7 @@ Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 
 sub read_temperature_hires {
     my $this = shift;
-    return $this->read_temperature( @_ );
+    return $this->read_temperature_18B20( @_ );
 }
 
 
@@ -1361,6 +1419,197 @@ sub set_switch {
     # return the result flag rt
     return undef;
 }
+
+# this is the 8 bit i/o soip device
+package Hardware::iButton::Device::DS2408;
+use Hardware::iButton::Connection;
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+
+sub read_logic_state_2408 {
+    my $this = shift;
+    my $serial = pack( "b*", $this->raw_id() );
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    my $channel = $this->{channel};
+    my $send;
+
+    # reset the 1-wire
+    if ($this->reset()) {
+	# create a buffer to use with block function
+	# match Serial Number command 0x55
+	$send .= "\x55";
+
+	# Serial Number
+	$send .= $serial;
+
+      $send .= "\xF0"; # Read PIO Register
+      $send .= "\x88"; # Read Reg 0088
+      $send .= "\x00";
+      $send .= "\xFF"; # I don't understand this, but everyone else did it????
+
+	# send/recieve the transfer buffer
+	my $result = $c->owBlock( $send );
+      my $rv = unpack("b*",$result);
+      my $bits2408 = substr($rv,length($rv)-8,8);
+      # OK, the bits are bass ackwards, leave them that way to make the substr easier!!
+      my $state2408 = substr($bits2408,$channel,1);
+      #print "State=$state2408 bits=$bits2408\n";
+	return $state2408;
+    }
+
+    # reset or match echo failed
+    return -1;
+}
+
+sub read_reg_state_2408 {
+    my $this = shift;
+    my $serial = pack( "b*", $this->raw_id() );
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    my $channel = $this->{channel};
+    my $send;
+
+    # reset the 1-wire
+    if ($this->reset()) {
+	# create a buffer to use with block function
+	# match Serial Number command 0x55
+	$send .= "\x55";
+
+	# Serial Number
+	$send .= $serial;
+
+      $send .= "\xF0"; # Read PIO Register
+      $send .= "\x88"; # Read Reg 0088
+      $send .= "\x00";
+      $send .= "\xFF"; # I don't understand this, but everyone else did it????
+
+	# send/recieve the transfer buffer
+	my $result = $c->owBlock( $send );
+      my $rv = unpack("b*",$result);
+      my $bits2408 = substr($rv,length($rv)-8,8);
+      #print "Register=$bits2408\n";
+      return $bits2408;
+    }
+
+    # reset or match echo failed
+    return -1;
+}
+
+sub read_change_state_2408 {
+    my $this = shift;
+    my $serial = pack( "b*", $this->raw_id() );
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    my $channel = $this->{channel};
+    my $send;
+
+    # reset the 1-wire
+    if ($this->reset()) {
+	# create a buffer to use with block function
+	# match Serial Number command 0x55
+	$send .= "\x55";
+
+	# Serial Number
+	$send .= $serial;
+
+      $send .= "\xF0"; # Read PIO Register
+      $send .= "\x8A"; # Read Reg 008A -Activity Latch
+      $send .= "\x00";
+      $send .= "\xFF"; # I don't understand this, but everyone else did it????
+     # send/recieve the transfer buffer
+	my $result = $c->owBlock( $send );
+      my $rv = unpack("b*",$result);
+      my $bits2408 = substr($rv,length($rv)-8,8);
+     # print "Changed=$bits2408\n";
+
+	#Reset The Activity Latches
+	$this->reset();
+	$send = "\x55";
+	# Serial Number
+	$send .= $serial;
+        $send .= "\xC3"; # Read PIO Register
+	$result = $c->owBlock( $send );
+
+	return $bits2408;
+    }
+
+    # reset or match echo failed
+    return -1;
+}
+
+
+sub read_op_state_2408 {
+    my $this = shift;
+    my $serial = pack( "b*", $this->raw_id() );
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    my $channel = $this->{channel};
+    my $send;
+
+    # reset the 1-wire
+    if ($this->reset()) {
+	# create a buffer to use with block function
+	# match Serial Number command 0x55
+	$send .= "\x55";
+
+	# Serial Number
+	$send .= $serial;
+
+      $send .= "\xF0"; # Read PIO Register
+      $send .= "\x89"; # Read Reg 0088
+      $send .= "\x00";
+      $send .= "\x11"; # I don't understand this, but everyone else did it????
+
+	# send/recieve the transfer buffer
+      my $result = $c->owBlock( $send );
+      my $rv = unpack("b*",$result);
+      my $bits2408 = substr($rv,length($rv)-8,8);
+      #print "Register=$bits2408\n";
+      return $bits2408;
+    }
+}
+
+
+
+sub write_reg_2408 {
+    my ($this,$state) = @_;
+    my $serial = pack( "b*", $this->raw_id() );
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    my $send;
+    my $sendat;
+    my $sendatx;
+    my $isendatx;
+    $sendat=$state* 1;
+    $sendatx = pack('h2',$sendat);  #Must Be Binary Data
+    $isendatx = ~$sendatx;  #Bitwise Inverted for data security
+   
+    # reset the 1-wire
+    if ($this->reset()) {
+	# create a buffer to use with block function
+	# match Serial Number command 0x55
+	$send = "\x55";
+	$send .= $serial;
+	$send .= "\x5A"; # Write  Register (defaults to 88)
+	$send .= $isendatx;
+        $send .= $sendatx;
+	# send/recieve the transfer buffer
+        print "Send = $send\n";
+	my $result = $c->owBlock( $send );
+      $this->reset();
+
+      my $rv = unpack("b*",$result);
+      my $bits2408 = substr($rv,length($rv)-8,8);
+      return $bits2408;
+    }
+
+    # reset or match echo failed
+    return -1;
+}
+
 
 
 package Hardware::iButton::Device::DS2423;

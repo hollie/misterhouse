@@ -98,6 +98,17 @@ sub decode_rf_bytes {
 	$nbytes[$j] = ord(pack("B8", unpack("b*", $bytes[$i])));
     }
 
+     # It appears that the bytes returned by the W800RF32AE for the Digimax 210
+     # thermostat do not need as much conversion. Bytes 0&1 are the ID, 2 is the 
+     # status and 3 is the current temperature.  Unfortunately the setpoint set on
+     # the Digimax's interface is not available via the W800RF32AE. (Chris Barrett)
+    my @rbytes; 
+    for (my $i = 0; $i < 4; $i++) {
+ 	$rbytes[$i] = ord(pack("b8", unpack("b*", $bytes[$i])));
+    }
+ 
+
+
     # Since the MR26 doesn't have the checksum bytes, we'll just manufacture
     # them here.  We can't just strip them out of the decode_rf_bytes routine
     # because decode_rf_bytes can also handle security data sent by a W800RF32,
@@ -118,6 +129,56 @@ sub decode_rf_bytes {
 	printf "%s: reordered data: %02x %02x %02x %02x\n",
 	       $uc_module, $nbytes[0], $nbytes[1], $nbytes[2], $nbytes[3];
     }
+
+     # Do we have a Digimax 210?
+    if (   (($rbytes[2] == 0x1e)  			# state = fan on
+	    ||  ($rbytes[2] == 0x2d)  			# state = fan off
+	    ||  ($rbytes[2] == 0x3c)) 			# state = initialising 
+	   && (($rbytes[3] >= 0) && ($rbytes[3] <= 40))	# temp between 0 and 40 degrees Celcius
+	   ) {
+	my($device_id, $state, $temperature);
+	
+	# Unlike other X-10 security devices, the Digimax's ID is 2 bytes long
+	$device_id = $rbytes[0] * 256 + $rbytes[1];     
+	
+	if ($rbytes[2] == 0x1e) {
+	    $state = "fan on";
+	} elsif ($rbytes[2] == 0x2d) {
+	    $state = "fan off";
+	} elsif ($rbytes[2] == 0x3c) {
+	    $state = "initialising";
+	} else { 
+	    $state = "unknown";		# this is redundant because of the test above.
+	}
+	
+	$temperature = $rbytes[3];
+	
+         # I'm not sure if this is the right way to do this.  It means that state and 
+         # state_now will return "status:temperature", for example, if the fan is 
+         # off and it's 26C then state* will return "fan off:26"
+	$state .= ":".$temperature;
+ 
+ 	my $item_id  = lc sprintf "%04x", $device_id;
+ 
+ 	# Set the state of any items or classes associated with this device.
+ 	my $matched;
+ 	for my $name (&main::list_objects_by_type('RF_Item')) {
+ 	    my $object = &main::get_object_by_name($name);
+ 	    my $id     = $object->{rf_id};
+ 	    if ($id eq $item_id) {
+ 		$object->set($state);
+ 		$matched = 1;
+ 	    }
+ 	}
+ 	unless ($matched) {
+ 	    printf "%s: digimax210: unmatched device %02x (state = $state)\n",
+	    $uc_module, $device_id, $state;
+ 	}
+	
+	return $state; 
+    }
+ 
+
 
     # Make sure the data looks valid.  Normal X10 data has two pairs with each
     # pair of bytes complementing each other.  Normal X10 data has zeros in the
@@ -405,8 +466,8 @@ sub decode_rf_bytes {
 
 #
 # $Log$
-# Revision 1.2  2004/01/26 01:42:59  cwitte
-# cwitte sync to 2.86 tarball (take2)
+# Revision 1.3  2004/02/01 19:24:35  winter
+#  - 2.87 release
 #
 #
 

@@ -2,12 +2,13 @@
 # Category = IR
 
 #@ Use this code file to learn and import codes for the 
-#@ <a href='http://home.earthlink.net/~jrhees/USBUIRT/index.htm'>USB_UIRT 2 way IR interface</a>.
-#@ To enable this code, add the usb_uirt_* parms listed at the top of the mh/lib/USB_UIRT.pm,
+#@ <a href='http://home.earthlink.net/~jrhees/USBUIRT/index.htm'>USB-UIRT 2 way IR interface</a>.
+#@ To enable this code, add the usb_uirt_* parms listed at the top of 
+#@ <a href='/bin/browse.pl?/lib/USB_UIRT.pm'>USB_UIRT.pm</a>,
 #@ then click <a href="/SUB;usb_uirt_update_html">here</a> or click on the IR category button.  
 #@ Windows is now supported using the uuirt.DLL driver.  Note: Learning is still not working 
-#@ in this release.  Support for the US-UIRT is included in the ftdi_sio driver in the 2.4.22
-#
+#@ in this release.  Support for the USB-UIRT is included in the ftdi_sio driver in the 2.4.22
+#@ Linux kernel.  
 
 =begin comment 
 

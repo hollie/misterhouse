@@ -149,10 +149,10 @@ if ($state = said $v_what_playing) {
 }
 
 	# This can be slow if player is down, so don't do it too often
-if (new_second 15) {
-   my $ref = &mp3_get_playlist();
-   $Save{NowPlaying} = ${$ref}[&mp3_get_playlist_pos()] if $ref;
-}
+#if (new_second 15) {
+#   my $ref = &mp3_get_playlist();
+#   $Save{NowPlaying} = ${$ref}[&mp3_get_playlist_pos()] if $ref;
+#}
 
 sub mp3_find_all {
     my ($mp3_tag) = @_;

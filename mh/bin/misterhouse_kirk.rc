@@ -1,0 +1,84 @@
+#!/bin/sh
+# File: /etc/rc.d/init.d/misterhouse
+# Description: Startup script for Misterhouse
+# ===================================================================
+# chkconfig: 345 91 35
+# description: This script will activate Misterhouse.
+
+# The recent discussion caused me to improve my start/stop script and I
+# figured I would share it with everybody else.  Basically, I have the
+# 'misterhouse' script (this file) that I place in /etc/rc.d/init.d directory and then
+# I have the 'start_mrhouse' script that I place into my /mh directory.
+# This second script does the actual starting and is called by the init
+# script.
+
+. /etc/rc.d/init.d/functions
+
+# What is the name of the program
+PGM=/mh/start_mrhouse
+
+# Where does the program store it's PID
+PIDFILE=/mh/data/mh.pid
+PIDFILE_PROXY=/mh/data/proxy/mh.pid
+
+# Any runtime options are listed here
+OPTIONS="-tk 0"
+
+# Start the application with option in its directory
+start () {
+   echo -n "Starting Misterhouse: "
+   daemon --user kirk $PGM $OPTIONS
+   return $?
+}
+
+# Stop Misterhouse 
+kill_mh () {
+   [ -f "$1" ] || return
+   kill -INT `cat "$1"` 2>/dev/null
+   count=0
+   while ps `cat "$1"` >/dev/null ; do
+      count=$[$count+1]
+      if [ $count -ge 7 ] ; then
+         kill -KILL `cat "$1"`
+      fi
+      if [ $count -ge 11 ] ; then
+         kill -9 `cat "$1"`
+      fi
+      if [ $count -ge 15 ] ; then
+         echo "COULD NOT STOP $1" >&2
+         return
+      fi
+      sleep 1
+   done
+   rm -f "$1"
+}
+
+stop () {
+   echo -n $"Stopping Misterhouse: "
+   killproc mhl
+   kill_mh $PIDFILE
+   [ -n "$PIDFILE_PROXY" ] && kill_mh $PIDFILE_PROXY
+}
+
+case "$1" in
+
+  start)			# Start the application
+    start
+    ;;
+
+  stop)				# Stop the application
+    stop
+    ;;
+
+  restart)			# Reload by stopping and starting
+    stop
+    sleep 5
+    start
+    ;;
+
+  *)				# Display a usage option.
+    echo "Usage: /etc/rc.d/init.d/misterhouse {start|stop|restart}"
+    exit 1
+esac
+
+exit 0

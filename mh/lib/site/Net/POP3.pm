@@ -1,6 +1,6 @@
 # Net::POP3.pm
 #
-# Copyright (c) 1995-1997 Graham Barr <gbarr@ti.com>. All rights reserved.
+# Copyright (c) 1995-1997 Graham Barr <gbarr@pobox.com>. All rights reserved.
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
@@ -13,7 +13,7 @@ use Net::Cmd;
 use Carp;
 use Net::Config;
 
-$VERSION = do { my @r=(q$Revision$=~/\d+/g); sprintf "%d."."%02d"x$#r,@r};
+$VERSION = "2.24"; # $Id$
 
 @ISA = qw(Net::Cmd IO::Socket::INET);
 
@@ -25,6 +25,7 @@ sub new
  my %arg  = @_; 
  my $hosts = defined $host ? [ $host ] : $NetConfig{pop3_hosts};
  my $obj;
+ my @localport = exists $arg{ResvPort} ? ( LocalPort => $arg{ResvPort} ): ();
 
  my $h;
  foreach $h (@{$hosts})
@@ -32,6 +33,7 @@ sub new
    $obj = $type->SUPER::new(PeerAddr => ($host = $h), 
 			    PeerPort => $arg{Port} || 'pop3(110)',
 			    Proto    => 'tcp',
+			    @localport,
 			    Timeout  => defined $arg{Timeout}
 						? $arg{Timeout}
 						: 120
@@ -52,6 +54,8 @@ sub new
    return undef;
   }
 
+ ${*$obj}{'net_pop3_banner'} = $obj->message;
+
  $obj;
 }
 
@@ -67,28 +71,49 @@ sub login
  @_ >= 1 && @_ <= 3 or croak 'usage: $pop3->login( USER, PASS )';
  my($me,$user,$pass) = @_;
 
- if(@_ <= 2)
-  {
-   require Net::Netrc;
-
-   $user ||= ($^O =~ /mswin32/i ? $ENV{USERNAME} : (getpwuid($>))[0]);
-
-   my $m = Net::Netrc->lookup(${*$me}{'net_pop3_host'},$user);
-
-   $m ||= Net::Netrc->lookup(${*$me}{'net_pop3_host'});
-
-   $pass = $m ? $m->password || ""
-              : "";
-  }
+ if (@_ <= 2) {
+   ($user, $pass) = $me->_lookup_credentials($user);
+ }
 
  $me->user($user) and
     $me->pass($pass);
 }
 
+sub apop
+{
+ @_ >= 1 && @_ <= 3 or croak 'usage: $pop3->apop( USER, PASS )';
+ my($me,$user,$pass) = @_;
+ my $banner;
+ my $md;
+
+ if (eval { local $SIG{__DIE__}; require Digest::MD5 }) {
+   $md = Digest::MD5->new();
+ } elsif (eval { local $SIG{__DIE__}; require MD5 }) {
+   $md = MD5->new();
+ } else {
+   carp "You need to install Digest::MD5 or MD5 to use the APOP command";
+   return undef;
+ }
+
+ return undef
+   unless ( $banner = (${*$me}{'net_pop3_banner'} =~ /(<.*>)/)[0] );
+
+ if (@_ <= 2) {
+   ($user, $pass) = $me->_lookup_credentials($user);
+ }
+
+ $md->add($banner,$pass);
+
+ return undef
+    unless($me->_APOP($user,$md->hexdigest));
+
+ $me->_get_mailbox_count();
+}
+
 sub user
 {
  @_ == 2 or croak 'usage: $pop3->user( USER )';
- $_[0]->_USER($_[1]);
+ $_[0]->_USER($_[1]) ? 1 : undef;
 }
 
 sub pass
@@ -100,9 +125,7 @@ sub pass
  return undef
    unless($me->_PASS($pass));
 
- $me->message =~ /(\d+)\s+message/io;
-
- ${*$me}{'net_pop3_count'} = $1 || 0;
+ $me->_get_mailbox_count();
 }
 
 sub reset
@@ -113,7 +136,7 @@ sub reset
 
  return 0 
    unless($me->_RSET);
-  
+
  if(defined ${*$me}{'net_pop3_mail'})
   {
    local $_;
@@ -169,24 +192,36 @@ sub list
    $me->message =~ /\d+\D+(\d+)/;
    return $1 || undef;
   }
- 
- my $info = $me->read_until_dot;
- my %hash = ();
- map { /(\d+)\D+(\d+)/; $hash{$1} = $2; } @$info;
+
+ my $info = $me->read_until_dot
+	or return undef;
+
+ my %hash = map { (/(\d+)\D+(\d+)/) } @$info;
 
  return \%hash;
 }
 
 sub get
 {
- @_ == 2 or croak 'usage: $pop3->get( MSGNUM )';
+ @_ == 2 or @_ == 3 or croak 'usage: $pop3->get( MSGNUM [, FH ])';
  my $me = shift;
 
  return undef
-    unless $me->_RETR(@_);
+    unless $me->_RETR(shift);
 
- $me->read_until_dot;
+ $me->read_until_dot(@_);
 }
+
+sub getfh
+{
+ @_ == 2 or croak 'usage: $pop3->getfh( MSGNUM )';
+ my $me = shift;
+
+ return unless $me->_RETR(shift);
+ return        $me->tied_fh;
+}
+
+
 
 sub delete
 {
@@ -194,36 +229,100 @@ sub delete
  $_[0]->_DELE($_[1]);
 }
 
-sub _USER { shift->command('USER',$_[0])->response() == CMD_OK }
-sub _PASS { shift->command('PASS',$_[0])->response() == CMD_OK }
-sub _RPOP { shift->command('RPOP',$_[0])->response() == CMD_OK }
+sub uidl
+{
+ @_ == 1 || @_ == 2 or croak 'usage: $pop3->uidl( [ MSGNUM ] )';
+ my $me = shift;
+ my $uidl;
+
+ $me->_UIDL(@_) or
+    return undef;
+ if(@_)
+  {
+   $uidl = ($me->message =~ /\d+\s+([\041-\176]+)/)[0];
+  }
+ else
+  {
+   my $ref = $me->read_until_dot
+	or return undef;
+   my $ln;
+   $uidl = {};
+   foreach $ln (@$ref) {
+     my($msg,$uid) = $ln =~ /^\s*(\d+)\s+([\041-\176]+)/;
+     $uidl->{$msg} = $uid;
+   }
+  }
+ return $uidl;
+}
+
+sub ping
+{
+ @_ == 2 or croak 'usage: $pop3->ping( USER )';
+ my $me = shift;
+
+ return () unless $me->_PING(@_) && $me->message =~ /(\d+)\D+(\d+)/;
+
+ ($1 || 0, $2 || 0);
+}
+
+sub _lookup_credentials
+{
+  my ($me, $user) = @_;
+
+  require Net::Netrc;
+
+  $user ||= eval { local $SIG{__DIE__}; (getpwuid($>))[0] } ||
+    $ENV{NAME} || $ENV{USER} || $ENV{LOGNAME};
+
+  my $m = Net::Netrc->lookup(${*$me}{'net_pop3_host'},$user);
+  $m ||= Net::Netrc->lookup(${*$me}{'net_pop3_host'});
+
+  my $pass = $m ? $m->password || ""
+                : "";
+
+  ($user, $pass);
+}
+
+sub _get_mailbox_count
+{
+  my ($me) = @_;
+  my $ret = ${*$me}{'net_pop3_count'} = ($me->message =~ /(\d+)\s+message/io)
+	  ? $1 : ($me->popstat)[0];
+
+  $ret ? $ret : "0E0";
+}
+
+
+sub _STAT { shift->command('STAT')->response() == CMD_OK }
+sub _LIST { shift->command('LIST',@_)->response() == CMD_OK }
 sub _RETR { shift->command('RETR',$_[0])->response() == CMD_OK }
 sub _DELE { shift->command('DELE',$_[0])->response() == CMD_OK }
-sub _TOP  { shift->command('TOP', @_)->response() == CMD_OK }
-sub _LIST { shift->command('LIST',@_)->response() == CMD_OK }
 sub _NOOP { shift->command('NOOP')->response() == CMD_OK }
 sub _RSET { shift->command('RSET')->response() == CMD_OK }
-sub _LAST { shift->command('LAST')->response() == CMD_OK }
 sub _QUIT { shift->command('QUIT')->response() == CMD_OK }
-sub _STAT { shift->command('STAT')->response() == CMD_OK }
+sub _TOP  { shift->command('TOP', @_)->response() == CMD_OK }
+sub _UIDL { shift->command('UIDL',@_)->response() == CMD_OK }
+sub _USER { shift->command('USER',$_[0])->response() == CMD_OK }
+sub _PASS { shift->command('PASS',$_[0])->response() == CMD_OK }
+sub _APOP { shift->command('APOP',@_)->response() == CMD_OK }
+sub _PING { shift->command('PING',$_[0])->response() == CMD_OK }
 
-sub close
+sub _RPOP { shift->command('RPOP',$_[0])->response() == CMD_OK }
+sub _LAST { shift->command('LAST')->response() == CMD_OK }
+
+sub quit
 {
  my $me = shift;
 
- return 1
-   unless (ref($me) && defined fileno($me));
-
- $me->_QUIT && $me->SUPER::close;
+ $me->_QUIT;
+ $me->close;
 }
-
-sub quit    { shift->close }
 
 sub DESTROY
 {
  my $me = shift;
 
- if(fileno($me))
+ if(defined fileno($me))
   {
    $me->reset;
    $me->quit;
@@ -243,13 +342,13 @@ sub response
  $cmd->debug_print(0,$str)
    if ($cmd->debug);
 
- if($str =~ s/^\+OK\s+//io)
+ if($str =~ s/^\+OK\s*//io)
   {
    $code = "200"
   }
  else
   {
-   $str =~ s/^\+ERR\s+//io;
+   $str =~ s/^-ERR\s*//io;
   }
 
  ${*$cmd}{'net_cmd_resp'} = [ $str ];
@@ -264,29 +363,36 @@ __END__
 
 =head1 NAME
 
-Net::POP3 - Post Office Protocol 3 Client class (RFC1081)
+Net::POP3 - Post Office Protocol 3 Client class (RFC1939)
 
 =head1 SYNOPSIS
 
     use Net::POP3;
-    
+
     # Constructors
     $pop = Net::POP3->new('pop3host');
     $pop = Net::POP3->new('pop3host', Timeout => 60);
+
+    if ($pop->login($username, $password) > 0) {
+      my $msgnums = $pop->list; # hashref of msgnum => size
+      foreach my $msgnum (keys %$msgnums) {
+        my $msg = $pop->get($msgnum);
+        print @$msg;
+        $pop->delete($msgnum);
+      }
+    }
+
+    $pop->quit;
 
 =head1 DESCRIPTION
 
 This module implements a client interface to the POP3 protocol, enabling
 a perl5 application to talk to POP3 servers. This documentation assumes
-that you are familiar with the POP3 protocol described in RFC1081.
+that you are familiar with the POP3 protocol described in RFC1939.
 
 A new Net::POP3 object must be created with the I<new> method. Once
 this has been done, all POP3 commands are accessed via method calls
 on the object.
-
-=head1 EXAMPLES
-
-    Need some small examples in here :-)
 
 =head1 CONSTRUCTOR
 
@@ -302,6 +408,10 @@ will be used.
 
 C<OPTIONS> are passed in a hash like fashion, using key and value pairs.
 Possible options are:
+
+B<ResvPort> - If given then the socket for the C<Net::POP3> object
+will be bound to the local port given using C<bind> when the socket is
+created.
 
 B<Timeout> - Maximum time, in seconds, to wait for a response from the
 POP3 server (default: 120)
@@ -329,12 +439,24 @@ Send the PASS command. Returns the number of messages in the mailbox.
 
 =item login ( [ USER [, PASS ]] )
 
-Send both the the USER and PASS commands. If C<PASS> is not given the
+Send both the USER and PASS commands. If C<PASS> is not given the
 C<Net::POP3> uses C<Net::Netrc> to lookup the password using the host
 and username. If the username is not specified then the current user name
 will be used.
 
-Returns the number of messages in the mailbox.
+Returns the number of messages in the mailbox. However if there are no
+messages on the server the string C<"0E0"> will be returned. This is
+will give a true value in a boolean context, but zero in a numeric context.
+
+If there was an error authenticating the user then I<undef> will be returned.
+
+=item apop ( [ USER [, PASS ]] )
+
+Authenticate with the server identifying as C<USER> with password C<PASS>.
+Similar to L</login>, but the password is not sent in clear text.
+
+To use this method you must have the Digest::MD5 or the MD5 module installed,
+otherwise this method will return I<undef>.
 
 =item top ( MSGNUM [, NUMLINES ] )
 
@@ -351,10 +473,18 @@ If called without arguments a reference to a hash is returned. The
 keys will be the C<MSGNUM>'s of all undeleted messages and the values will
 be their size in octets.
 
-=item get ( MSGNUM )
+=item get ( MSGNUM [, FH ] )
 
-Get the message C<MSGNUM> from the remote mailbox. Returns a reference to an
-array which contains the lines of text read from the server.
+Get the message C<MSGNUM> from the remote mailbox. If C<FH> is not given
+then get returns a reference to an array which contains the lines of
+text read from the server. If C<FH> is given then the lines returned
+from the server are printed to the filehandle C<FH>.
+
+=item getfh ( MSGNUM )
+
+As per get(), but returns a tied filehandle.  Reading from this
+filehandle returns the requested message.  The filehandle will return
+EOF at the end of the message and should not be reused.
 
 =item last ()
 
@@ -362,8 +492,19 @@ Returns the highest C<MSGNUM> of all the messages accessed.
 
 =item popstat ()
 
-Returns an array of two elements. These are the number of undeleted
+Returns a list of two elements. These are the number of undeleted
 elements and the size of the mbox in octets.
+
+=item ping ( USER )
+
+Returns a list of two elements. These are the number of new messages
+and the total number of messages for C<USER>.
+
+=item uidl ( [ MSGNUM ] )
+
+Returns a unique identifier for C<MSGNUM> if given. If C<MSGNUM> is not
+given C<uidl> returns a reference to a hash where the keys are the
+message numbers and the values are the unique identifiers.
 
 =item delete ( MSGNUM )
 
@@ -391,17 +532,21 @@ means that any messages marked to be deleted will not be.
 
 =head1 SEE ALSO
 
-L<Net::Netrc>
+L<Net::Netrc>,
 L<Net::Cmd>
 
 =head1 AUTHOR
 
-Graham Barr <gbarr@ti.com>
+Graham Barr <gbarr@pobox.com>
 
 =head1 COPYRIGHT
 
 Copyright (c) 1995-1997 Graham Barr. All rights reserved.
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
+
+=for html <hr>
+
+I<$Id$>
 
 =cut

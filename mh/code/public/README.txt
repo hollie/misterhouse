@@ -12,7 +12,7 @@ alarmclock_evan.pl
 alarmclock_david.pl
  - David McLellan's alarm clock
 
-alarm_concept.*
+concept_* 
  - Nick Maddock's code for the Concept alarm system from http://www.innerrange.com
 
 audible_menu.pl
@@ -399,6 +399,12 @@ webcam_lite.pl
 webcam_ron.pl
  - Ron Klinkien's code for using a command line frame grabber to create
    a simple webcam. Also see mh/web/public/webcam_ron.shtml
+
+webcam_bob.pl
+ - Bob Hughes's code for snapping pictures using the linux program v4lctl.
+
+webcam_joel.pl
+ - Joel Davididson's code for snapping pictures using the linux program v4lctl.
 
 weeder_david.pl
  - David Lounsberry's code for controling hist HVAC system with a Solid State Relay weeder board!

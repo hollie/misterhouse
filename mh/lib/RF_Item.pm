@@ -22,7 +22,7 @@ RF Items can be manually created in the following manner:
      $tv_remote        = new RF_Item('remote', 'tv_remote'       );
 
 The 2nd column the items.mht file (or the 1st parameter when manually
-creating a new RF_Item) is the 2 digit hexadecimal unit id of the
+creating a new RF_Item) is the 2 or 4 digit hexadecimal unit id of the
 particular transmitter or one of the following classes:
 
      system	Any device that change the state of the security system.
@@ -75,9 +75,10 @@ sub new {
 
     $self->{rf_id} = $id;
 
-    # Must be a 2 digit hex unit id or a one of our predefined classes (from
+    # Must be a 2 or 4 digit hex unit id or a one of our predefined classes (from
     # X10_RF.pm).
     if (    $id !~ /^[0-9a-f]{2}$/
+ 	and $id !~ /^[0-9a-f]{4}$/       						# CJB
 	and $id ne 'sensor'
 	and $id ne 'system'
 	and $id ne 'control'
@@ -91,8 +92,8 @@ sub new {
 
 #
 # $Log$
-# Revision 1.2  2004/01/26 01:42:59  cwitte
-# cwitte sync to 2.86 tarball (take2)
+# Revision 1.3  2004/02/01 19:24:35  winter
+#  - 2.87 release
 #
 #
 

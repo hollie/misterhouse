@@ -14,7 +14,7 @@ $v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10,11]'
 $v_send_email_test-> set_info('Send commands to test remote email commands');
 if ($state = said $v_send_email_test) {
     if (&net_connect_check) {
-                                # Use to => 'user@xyz.com', or default to your own address (from net_mail_user in mh.ini)
+                                # Use to => 'user@xyz.com', or default to your own address (from net_mail_account_address in mh.ini)
         &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date", 
 #                      to => 'bruce@misterhouse.net ; winter@chartermi.net',
                        debug => 1) if $state == 1;

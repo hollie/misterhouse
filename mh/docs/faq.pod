@@ -1262,7 +1262,7 @@ You can find instuctions on how to do this at: http://win98central.acauth.com/in
 IP addresses that start with 10. (e.g. 10.0.0.1) are reserved for internal lans, so you can use
 10.0.0.1, 10.0.0.2, etc.
 
-=head2 How do I run MH when not logged in to Win2K or XP?
+=head2 4.3 How do I run MH when not logged in to Win2K or XP?
 
 You can run any program as a service, using a program called srvany.exe, 
 available in the Resource Kit, or from here:
@@ -1404,8 +1404,6 @@ Here is a rough timeline of MisterHouse development:
  - 09/03 Cepstral TTS engine support, a new PA room object, improved proxy support.
  - 11/03 Support for Sphinx2 VR, myHTPC tv menus, Asterisk phone interface, SMTP authentication, and a xAP command server.
 
-
-Audrey support, more MS TTS controls, call waiting callerid
 
 =head2 6.2: Who is that Bruce guy anyway?
 
@@ -1852,6 +1850,9 @@ modify.
 
 #
 # $Log$
+# Revision 1.44  2004/02/01 19:24:20  winter
+#  - 2.87 release
+#
 # Revision 1.43  2003/12/01 03:09:52  winter
 #  - 2.85 release
 #

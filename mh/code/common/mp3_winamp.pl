@@ -31,7 +31,7 @@ else {
     %winamp_commands = ('Next Song' => 'next', 'Previous Song' => 'prev',
                         'Toggle Shuffle' => 'shuffle', 'Toggle Repeat' => 'repeat',
                         'Volume Up' => 'volumeup', 'Volume Down' => 'volumedown', 'Shoutcast Connect' => 'shoutcast_connect',
-			'Add Song' => 'playfile', 'Clear List' => 'delete' );
+                        'Clear List' => 'delete' );
 }
 my $mp3_host = 'localhost'; 
 $mp3_host = $config_parms{mp3_program_host} if $config_parms{mp3_program_host};
@@ -54,7 +54,7 @@ sub mp3_control {
     $host = $mp3_host unless $host;
     print_log "Setting $host winamp to $command" if $Debug{winamp};
 
-    return unless &mp3_running($mp3_host);
+    return 0 unless &mp3_running($host); 
 
     if (&is_httpq) {
         my $url = "http://$host:$config_parms{mp3_program_port}";
@@ -76,7 +76,7 @@ sub mp3_control {
             }
             print_log "Winamp (httpq $host) set to $command: $temp" if $Debug{winamp};
         }
-	elsif($command =~ /shuffle/i) {
+        elsif($command =~ /shuffle/i) {
 		$temp .= filter_cr get "$url/shuffle_status?p=$config_parms{mp3_program_password}";
 		if ($temp) {
 			get "$url/shuffle?p=$config_parms{mp3_program_password}&a=0";
@@ -86,24 +86,12 @@ sub mp3_control {
 			get "$url/shuffle?p=$config_parms{mp3_program_password}&a=1";
 			print_log "Winamp (httpq $host) Shuffle set ON" if $Debug{winamp};
 		}
-	}
-	elsif($command =~ /playfile/i) {
-		$arg1 =~ s/&&/&/g;
-		# Escape name ala http
-	        $arg1 =~ s/ /%20/g;
-        	$arg1 =~ s/\#/%23/g;
-        	$arg1 =~ s/\&/%26/g;
-        	$arg1 =~ s/\'/%27/g;
-        	$arg1 =~ s/\,/%2C/g;
-		my $url = "http://$host:$config_parms{mp3_program_port}";
-		my $temp = filter_cr get "$url/playfile?p=$config_parms{mp3_program_password}&a=$arg1";
-		print_log "Winamp (httpq $host) song/list $arg1 added: $temp" if $Debug{winamp};
-	}
-	else {
+        }
+        else {
             $temp = filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
             print_log "Winamp (httpq $host) set to $command: $temp" if $Debug{winamp};
         }
-	return $temp;
+        return $temp;
     }
     else {
         print_log "Winamp (watrl) set to $command" if $Debug{winamp};
@@ -116,14 +104,32 @@ sub mp3_control {
     }
 }
 
-# Play Song, Clear list if present - this really should support a remote host 
+# Play Song, Clear list if present 
 sub mp3_play {
-    my $file = shift;
-    return unless &mp3_running('localhost');
-    # No httpq specific stuff... much easier to clear list and play file from cmd line
-    $file =~ s/&&/&/g;
-    run qq[$config_parms{mp3_program} "$file"];
-    print_log "mp3 play: $file" if $Debug{winamp};
+	my $file = shift;
+	return 0 if ($file eq '');
+	my $host = shift || $mp3_host;
+	return 0 unless &mp3_running($host); 
+	$file =~ s/&&/&/g;
+	$file =~ s/\//\\/g;
+	if (&is_httpq) {
+		# Escape name ala http
+            $file =~ s/ /%20/g;
+        	$file =~ s/\#/%23/g;
+        	$file =~ s/\&/%26/g;
+        	$file =~ s/\'/%27/g;
+        	$file =~ s/\,/%2C/g;
+		my $url = "http://$host:$config_parms{mp3_program_port}";
+		my $temp = filter_cr get "$url/delete?p=$config_parms{mp3_program_password}";
+		print_log "winamp debug $url/playfile?p=$config_parms{mp3_program_password}&a=$file";
+        $temp = filter_cr get "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
+		$temp = filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
+		print_log "Winamp (httpq $host) song/list $file added: $temp" if $Debug{winamp};
+	}
+	else {
+		run qq[$config_parms{mp3_program} "$file"];
+		print_log "mp3 play: $file" if $Debug{winamp};
+	}
 }
 
 # Queue Song, Append to current playlist
@@ -131,11 +137,21 @@ sub mp3_queue {
 	my $file = shift;
 	return 0 if ($file eq '');
 	my $host = shift || $mp3_host;
+	return 0 unless &mp3_running($host); 
+	$file =~ s/&&/&/g;
+	$file =~ s/\//\\/g;
 	if (&is_httpq) {
-		&mp3_control('Add Song', $host, $file);
+		# Escape name ala http
+            $file =~ s/ /%20/g;
+        	$file =~ s/\#/%23/g;
+        	$file =~ s/\&/%26/g;
+        	$file =~ s/\'/%27/g;
+        	$file =~ s/\,/%2C/g;
+		my $url = "http://$host:$config_parms{mp3_program_port}";
+		my $temp = filter_cr get "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
+		print_log "Winamp (httpq $host) song/list $file added: $temp" if $Debug{winamp};
 	}
 	else {
-		$file =~ s/&&/&/g;
 		run qq[$config_parms{mp3_program} /ADD "$file"];  ##/ # For gVim syntax
 		print_log "mp3 queue: $file" if $Debug{winamp};
 	}
@@ -166,8 +182,8 @@ sub mp3_clear {
         # return a reference to a list containing the playlist titles
 sub mp3_get_playlist {
 	my $host = shift || $mp3_host;
+	return 0 unless &mp3_player_running($host); # Avoid frequent calls to a non-existant player ... get is too slow
 	if (&is_httpq) {
-	        return unless &mp3_player_running($host); # Avoid frequent calls to a non-existant player ... get is too slow
 		my $url = "http://$host:$config_parms{mp3_program_port}/getplaylisttitle?p=$config_parms{mp3_program_password}";
 		my $mp3List = get $url;
 		my @mp3Queue = split("<br>",$mp3List);
@@ -293,11 +309,10 @@ sub mp3_get_playlist_length {
 
 }
 
-        # return the status of the player 
+        # try to start winamp if not running and return the status of the player 
 sub mp3_running { 
 	my $host = shift || $mp3_host;
                                 # Start winamp, if it is not already running (windows localhost only)
-#	&sendkeys_find_window 'Winamp', $config_parms{mp3_program};
 	if ($OS_win && $host eq 'localhost' && done $p_winamp_house && ! &sendkeys_find_window('Winamp', $config_parms{mp3_program})) {
 		start $p_winamp_house;
 		select undef, undef, undef, .4;

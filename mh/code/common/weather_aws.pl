@@ -3,14 +3,16 @@
 #@ This code will retrieve and parse data from an AWS weather station via
 #@ their website.
 #@
-#@ Check http://www.instaweather.com for the nearest site's station id
+#@ Check <a href="http://www.instaweather.com">http://www.instaweather.com</a>
+#@ for the nearest site's station id
 #@ then add the id to the aws_id config parameter in your mh.ini or 
-#@ mh.private.ini
-#@
+#@ mh.private.ini:<br><br>
+#@ 
 #@ aws_id = TMISC 
-#@
+#@ <br><br>
 #@ The URL containing the ID of the TMISC AWS station is shown for example:
-#@ http://www.aws.com/aws_2001/asp/obsForecast.asp?id=TMISC&obs=full
+#@ <a href="http://www.aws.com/aws_2001/asp/obsForecast.asp?id=TMISC&obs=full">
+#@ http://www.aws.com/aws_2001/asp/obsForecast.asp?id=TMISC&obs=full</a>
 
 =begin comment
 
@@ -67,6 +69,7 @@ use HTML::TableExtract;
 
 my $AWS_ID = $config_parms{aws_id};
 my $f_awsweather_html = "$config_parms{data_dir}/web/$AWS_ID.html";
+my $prev_timestamp;
 
 # noloop=start
 my $AWSWeatherURL="http://aws.com/full.asp?id=$AWS_ID";
@@ -136,6 +139,7 @@ if (($New_Minute and !($Minute % 5)) or said $v_get_aws_weather) {
 if (done_now $p_awsweather_page) {
 
   my $html = file_read $f_awsweather_html;
+  return unless $html; 
 
 #  my $te = new HTML::TableExtract( depth => 1, count => 1, subtables => 1);
   my $te = new HTML::TableExtract( depth => 2, count => 1, subtables => 1);
@@ -146,9 +150,11 @@ if (done_now $p_awsweather_page) {
 
 
   # Timestamp of last sucessfull data retrieval from internet node
-  #$cell[0][0] =~ m/\s+(\d+)\/(\d+)\/(\d+) - (\d+):(\d+):(\d+) (\w+)/;
-  #print "Timestamp of last sucessfull data retrieval\n$1\/$2\/$3\n";
-  #print "$4:$5:$6 $7\n";
+  $cell[0][0] =~ m/\s+(\d+)\/(\d+)\/(\d+) - (\d+):(\d+):(\d+) (\w+)/;
+  my $timestamp = "$1$2$3$4$5$6$7";
+  return unless $timestamp and $timestamp ne $prev_timestamp;
+  $prev_timestamp = $timestamp;
+  #print "Timestamp of last sucessfull data retrieval: $1\/$2\/$3 $4:$5:$6 $7\n";
 
   $cell[1][1] =~ m/\s+(-?\d+).(\d+)/;
   #print "Current temperature: ", join(".", $1, $2), "°F\n";

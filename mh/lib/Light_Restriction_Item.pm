@@ -54,6 +54,20 @@ Usage:
       whatever logic you desire to determine its value and whatever 
       frequency you desire.  The value is checked once every second.
 
+	Attaching to a hash:
+      Although you can attach to a hash entry by doing this:
+
+         $only_when_dark->attach_scalar(\$hash_name{hash_key});
+
+      Sometimes this reference becomes invalid.  In particular, the
+      %Save hash is sometimes reloaded and the references to the values
+      change.  So, I recommend attaching to hash values as follows:
+
+         $only_when_dark->attach_hash_key(\%hash_name, 'hash_key');
+
+      As with the functions above and below, these parameters can be 
+      followed by a list of any number of "okay" values.
+
 	Attaching to an object:
       You can attach to another object to automatically allow or disallow 
       lights based on its state.  Any number of "light ok" values are allowed:
@@ -63,12 +77,6 @@ Usage:
 
          # Only allow lights to turn on when mode_sleeping is 'nobody'
          $only_when_awake->attach_object($mode_sleeping, 'nobody');
-
-Bugs:
-   When you attach to another object at startup and that object has a saved state,
-   that state does not get seen.  So, the light will not be restricted until
-   the object changes state the first time after a restart, and only then if
-   the new state is not one of the "OK" states, of course.
 
 Special Thanks to: 
 	Jason Sharpee
@@ -86,18 +94,29 @@ package Light_Restriction_Item;
 @Light_Restriction_Item::ISA = ('Base_Item');
 
 my @CheckScalars;
+my @CheckStartup;
 
 sub initialize
 {
 	my ($self) = @_;
+   $$self{m_write} = 0;
 	$$self{state}='light_ok';
+   $$self{'hash_ref'} = undef;
+   $$self{'hash_key'} = undef;
    $$self{'scalar_ref'} = undef;
-   $$self{'scalar_ok_values'} = undef;
+   $$self{'ok_values'} = undef;
    $$self{'last_watched_val'} = undef;
    $$self{'attached_object'} = undef;
 }
 
-sub _check_scalars {
+sub _check_values {
+   if ($main::Startup) {
+      foreach (@CheckStartup) {
+         if ($$_{'attached_object'}) {
+            $_->_check_watched_value($$_{'attached_object'}->state());
+         }
+      }
+   }
    if ($main::New_Second) {
       foreach (@CheckScalars) {
          $_->_check_scalar();
@@ -109,15 +128,18 @@ sub _check_scalar {
    my ($self) = @_;
    if (ref $$self{'scalar_ref'}) {
       $self->_check_watched_value(${$$self{'scalar_ref'}});
+   } elsif (ref $$self{'hash_ref'} and $$self{'hash_key'}) {
+      $self->_check_watched_value($$self{'hash_ref'}->{$$self{'hash_key'}});
    }
 }
 
 sub _check_watched_value ($$) {
    my ($self, $value) = @_;
    if ($value ne $$self{'last_watched_val'}) {
+      &::print_log("$$self{object_name}: New value $value different than $$self{last_watched_val}") if $main::Debug{occupancy};
       $$self{'last_watched_val'} = $value;
-      if ($$self{'scalar_ok_values'}) {
-         foreach (@{$$self{'scalar_ok_values'}}) {
+      if ($$self{'ok_values'}) {
+         foreach (@{$$self{'ok_values'}}) {
             if ($$self{'last_watched_val'} eq $_) {
                # New scalar value is one of the OK ones
                unless ($self->state() eq 'light_ok') {
@@ -140,34 +162,57 @@ sub _check_watched_value ($$) {
    }
 }
 
+sub finish_attach {
+   my ($self, @ok_values) = @_;
+   if (@ok_values) {
+      @{$$self{'ok_values'}} = ();
+      push @{$$self{'ok_values'}}, @ok_values;
+   } else {
+      $$self{'ok_values'} = undef;
+   }
+   if (($#CheckScalars == -1) and ($#CheckStartup == -1)) {
+      &::MainLoop_pre_add_hook(\&Light_Restriction_Item::_check_values, 1);
+   }
+}
+
 sub attach_object {
    my ($self, $p_obj, @ok_values) = @_;
    $$self{'attached_object'} = $p_obj;
    $p_obj->tie_items($self);
-   if (@ok_values) {
-      push @{$$self{'scalar_ok_values'}}, @ok_values;
-   } else {
-      $$self{'scalar_ok_values'} = undef;
+   $self->finish_attach(@ok_values);
+   foreach (@CheckStartup) {
+      return if ($_ eq $self);
    }
+   push @CheckStartup, $self;
    $self->_check_watched_value($p_obj->state());
+}
+
+sub attach_hash_key {
+   my ($self, $hash_ref, $hash_key, @ok_values) = @_;
+   if (ref $hash_ref) {
+      $$self{'hash_ref'} = $hash_ref;
+      $$self{'hash_key'} = $hash_key;
+      $self->finish_attach(@ok_values);
+      foreach (@CheckScalars) {
+         return if ($_ eq $self);
+      }
+      push @CheckScalars, $self;
+   } else {
+      print "ERROR: Light_Restriction_Item::attach_hash_key() called with a non-reference first parameter!\n";
+   }
 }
 
 sub attach_scalar {
    my ($self, $scalar_ref, @ok_values) = @_;
    if (ref $scalar_ref) {
       $$self{'scalar_ref'} = $scalar_ref;
-      if (@ok_values) {
-         push @{$$self{'scalar_ok_values'}}, @ok_values;
-      } else {
-         $$self{'scalar_ok_values'} = undef;
-      }
-      $$self{'last_watched_val'} = undef;
-      if ($#CheckScalars == -1) {
-         &::MainLoop_pre_add_hook(\&Light_Restriction_Item::_check_scalars, 1);
+      $self->finish_attach(@ok_values);
+      foreach (@CheckScalars) {
+         return if ($_ eq $self);
       }
       push @CheckScalars, $self;
    } else {
-      &::print_log("ERROR: Light_Restriction_Item::attach_scalar() called with a non-reference parameter!");
+      print "ERROR: Light_Restriction_Item::attach_scalar() called with a non-reference first parameter!\n";
    }
 }
 

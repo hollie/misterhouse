@@ -3,7 +3,7 @@
 #@ This module checks the USGS National Earthquake Information Center
 #@ to get the most recent earthquakes that have occurred and presents
 #@ those that were at least the minimum magnitude(s) specified. You'll
-#@ need to have your latitude and longitude variables set properly.
+#@ need to have your latitude and longitude parameters set properly.
 #@ 
 #@ If you want to customize your magnitude thresholds, set a variable
 #@ like this in your ini file:
@@ -20,6 +20,9 @@
 =begin comment
 
 internet_quakes.pl
+ 1.4 Switched back to get_url after finger stopped working.  Added a 
+     process to automatically download an image showing where the 
+     latest quake was - David Norwood - 1/14/2004
  1.3 Merged in relative date/time reporting and some other 
      modifications made to internet_quakes_cal.pl since it was
      derived from this file - Tim Doyle - 11/11/2001
@@ -32,7 +35,7 @@ internet_quakes.pl
      using news_yahoo.pl as an example - 2/15/2001
 
 This script checks the USGS National Earthquake Information Center
-via finger to get the last twenty one earthquakes that have occurred
+via ftp to get the last twenty one earthquakes that have occurred
 in the world and presents those that were at least the minimum
 magnitude(s) specified.
 
@@ -57,6 +60,11 @@ longitude .ini variable to be negative.
 
 =cut
 
+# Add earthquake image to Informational category web page 
+if ($Reload) {
+    $Included_HTML{'Informational'} .= qq(<h3>Latest Earthquake<p><img src='/data/web/earthquakes.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
+}
+
 # Default Magnitude Thresholds
 my %Magnitude_thresholds = (
     99999,  5.5,     # show anything anywhere over 5.5
@@ -75,9 +83,12 @@ if ($config_parms{Earthquake_Count}) {
   $Earthquake_Count = $config_parms{Earthquake_Count};
 }
 
-my $f_earthquakes_finger = "$config_parms{data_dir}/web/earthquakes.finger";
+$f_earthquakes_txt = new File_Item("$config_parms{data_dir}/web/earthquakes.txt");
+$f_earthquakes_gif    = new File_Item("$config_parms{data_dir}/web/earthquakes.gif");
 
-$p_earthquakes = new Process_Item("get_finger quake\@gldfs.cr.usgs.gov $f_earthquakes_finger");
+my $image; 
+$p_earthquakes_image = new Process_Item;
+$p_earthquakes = new Process_Item("get_url ftp://ghtftp.cr.usgs.gov/pub/cnss/quake " . $f_earthquakes_txt->name);
 
 $v_earthquakes =  new  Voice_Cmd('[Get,Show,Read,Clear] recent earthquakes');
 $v_earthquakes -> set_info('Display recent earthquake information');
@@ -85,7 +96,8 @@ $v_earthquakes -> set_authority('anyone');
 
 $state = said $v_earthquakes;
 
-if ( $state eq 'Get' or $New_Hour) {
+if ( $state eq 'Get' ) {
+  unlink $f_earthquakes_txt->name;
   if (&net_connect_check) {
     print_log "Checking for recent earthquakes ...";
 
@@ -122,10 +134,8 @@ if (done_now $p_earthquakes) {
 
   #The data returned has oldest on top, and we need to look at the newest data first
   #The following reads the data into an array and then pops lines off the bottom
-  my @FingerFile = file_read "$f_earthquakes_finger";
-  while ($_ = pop @FingerFile) {
-    chop;
-
+  my @txtFile = $f_earthquakes_txt->read_all;
+  while ($_ = pop @txtFile) {
     #Only look at lines with quake data on them
     if (/^(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s+(\S+)M\s+(\S)?\s+(.+)/ ) {
       $search = $quake = $_;
@@ -137,12 +147,15 @@ if (done_now $p_earthquakes) {
   if ($new_quakes) {
     $Save{quakes} = $new_quakes . $Save{quakes};
 #   $Save{quakes} =~ s/^(([^\t]*\t){1,1000}).*/$1/; 
-    $Save{quakes} =~ s/^(([^\t]*\t){1,15}).*/$1/;   # Save last 15 quakes
+    $Save{quakes} =~ s/^(([^\t]*\t){1,21}).*/$1/;   # Save last 21 quakes
+    $image = '';
     foreach (split /\t/, $new_quakes) {
       $quake = $_;
-      return unless $num < $Earthquake_Count;
+      last unless $num < $Earthquake_Count;
       $num += speak_quake($quake);
     }
+    set $p_earthquakes_image "get_url $image " . $f_earthquakes_gif->name;
+    start $p_earthquakes_image if $image;
   }
 }
 
@@ -191,6 +204,8 @@ sub calc_age {
     return int($diff/(60*60*24) + .5) . " days ago at $hour ";
 }
 
+# 03/12/30 15:32:35 34.20N 139.13E 33.0 4.4M B NEAR S. COAST OF HONSHU, JAPAN 
+
 sub speak_quake {
     if (my ($qdate, $qtime, $qlatd, $qnoso, $qlong, $qeawe, $qdept, $qmagn, $qqual, $qloca) =
         $_ =~ m!^(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s+(\S+)M\s+(\S)?\s+(.+)! ) {
@@ -200,6 +215,8 @@ sub speak_quake {
         $config_parms{longitude}, $qlatd, $qlong) + .5;
       for (keys %Magnitude_thresholds) {
         if ( $distance <= $_ and $qmagn >= $Magnitude_thresholds{$_}) {
+          my $long_reso = abs(5 * round($qlatd/5)) > 45 ? (abs(5 * round($qlatd/5)) > 65 ? 20 : 10) : 5;
+          $image = 'http://earthquake.usgs.gov/recenteqsww/Maps/10/' . $long_reso * round(($qlong < 0 ? 360 + $qlong : $qlong)/$long_reso) . '_' . 5 * round($qlatd/5) . '.gif';
           speak &calc_age("$qdate $qtime") . "a magnitude $qmagn earthquake occurred $distance miles away near $qloca";
           return 1;
         }
@@ -208,3 +225,11 @@ sub speak_quake {
     return 0;
 }
 
+# lets allow the user to control via triggers
+
+if ($Reload and $Run_Members{'trigger_code'}) { 
+    eval qq(
+        &trigger_set('\$New_Hour and net_connect_check', "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes') 
+          unless &trigger_get('get earthquakes');
+    );
+}

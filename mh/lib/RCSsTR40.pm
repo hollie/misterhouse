@@ -220,7 +220,6 @@ sub check_for_data {
       &::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
       my $data = $::Serial_Ports{$port_name}{data_record};
       next if !$data;
-      #print "$port_name got: [$::Serial_Ports{$port_name}{data_record}]\n";
       #main::print_log("$port_name got: [$::Serial_Ports{$port_name}{data_record}]");
       $RCSsTR40_Data{$port_name}{'obj'}->_parse_data($data);
       $RCSsTR40_Data{$port_name}{'send_count'}--;
@@ -228,7 +227,7 @@ sub check_for_data {
          # User changed something and a status message was sent... but for some
          # reason the status message sent doesn't usually (ever?) contain the
          # actual change.  So, make sure we requset a full status update.
-         print "RCSs_TR40: Received status report... requesting full report\n";
+         print "RCSs_TR40: Received status report... requesting full report\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
          $RCSsTR40_Data{$port_name}{'send_count'}++;
          $RCSsTR40_Data{$port_name}{'obj'}->_poll();
       }
@@ -338,7 +337,7 @@ sub get_cool_run_time {
 sub _send_cmd {
 	my ($self, $cmd) = @_;
 	my $instance = $$self{port_name};
-	print "$::Time_Date: RCSsTR40: Executing command $cmd\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40: Executing command $cmd\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
 	my $data = "A=$self->{thermaddress} $cmd\r";
 	$main::Serial_Ports{$instance}{object}->write($data);
    select(undef,undef,undef,0.15);
@@ -349,7 +348,7 @@ sub _send_cmd {
 sub mode{
 	my ($self, $state) = @_;
 	$state = lc($state);
-	print "$::Time_Date: RCSsTR40 -> Mode $state\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Mode $state\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
 	my $mode;
 	if ($state eq 'off') {
 		$mode = "0";
@@ -372,7 +371,7 @@ sub mode{
 sub fan{
 	my ($self, $state) = @_;
 	$state = lc($state);
-	print "$::Time_Date: RCSsTR40 -> Fan $state\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Fan $state\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
 	my $fan;
 	if (($state eq 'on') or ($state eq 'fan_on')) {
 		$fan = 1;
@@ -391,7 +390,7 @@ sub fan{
 sub set_schedule_control {
 	my ($self, $state) = @_;
 	$state = lc($state);
-	print "$::Time_Date: RCSsTR40 -> Schedule Control $state\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Schedule Control $state\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
 	my $val;
 	if ($state eq 'hold') {
 		$val = 0;
@@ -407,13 +406,13 @@ sub set_schedule_control {
 
 sub lock_display{
 	my ($self, $msg) = @_;
-	print "$::Time_Date: RCSsTR40 -> Lock Display\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Lock Display\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    $self->_send_cmd("DL=1");
 }
 
 sub unlock_display{
 	my ($self, $msg) = @_;
-	print "$::Time_Date: RCSsTR40 -> Unlock Display\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Unlock Display\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    $self->_send_cmd("DL=0");
 }
 
@@ -429,13 +428,13 @@ sub create_schedule_entry {
    $hour =~ s/^\d$/0$hour/;
    $heat =~ s/^\d$/0$heat/;
    $cool =~ s/^\d$/0$cool/;
-	print "$::Time_Date: RCSsTR40 -> Set Schedule: $day/$entry=$hour$min$heat$cool\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Set Schedule: $day/$entry=$hour$min$heat$cool\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    $self->_send_cmd("SE$day/$entry=$hour$min$heat$cool");
 }
 
 sub clear_schedule {
 	my ($self) = @_;
-	print "$::Time_Date: RCSsTR40 -> Clearing schedule\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Clearing schedule\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    for (my $i = 1; $i <= 7; $i++) {
       $self->create_schedule_entry($i, 1, 6, 0, 0, 0);
       $self->create_schedule_entry($i, 2, 9, 0, 0, 0);
@@ -446,20 +445,20 @@ sub clear_schedule {
 
 sub set_variable{
 	my ($self, $var, $val) = @_;
-	print "$::Time_Date: RCSsTR40 -> Set Variable $var=$val\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Set Variable $var=$val\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    $self->_send_cmd("SV$var=$val");
 }
 
 sub clear_messages{
 	my ($self,$msg)=@_;
-	print "$::Time_Date: RCSsTR40 -> Clear Text Messages\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Clear Text Messages\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    $self->_send_cmd("TM=\"#\"");
 }
 
 # Use carriage returns (\r) for new lines
 sub send_text_msg{
 	my ($self, $msg) = @_;
-	print "$::Time_Date: RCSsTR40 -> Send Text message: $msg\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Send Text message: $msg\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
 	if($msg =~ /\"/) {
 		print "$::Time_Date: RCSsTR40 -> send_text_msg ERROR message contains double-quotes: $msg\n";
 		return;
@@ -473,29 +472,31 @@ sub send_text_msg{
 
 sub cool_setpoint{
 	my ($self, $temp) = @_;
-	print "$::Time_Date: RCSsTR40 -> Cool setpoint $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Cool setpoint $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
 	if($temp !~ /^\d+$/){
 		print "$::Time_Date: RCSsTR40 -> cool_setpoint ERROR $temp not numeric\n";
 		return;
 	}
    $$self{'cool_sp'} = $temp;
+   $$self{'cool_sp_pending'} = $temp;
    $self->_send_cmd("SPC=$temp");
 }
 
 sub heat_setpoint{
 	my ($self, $temp) = @_;
-	print "$::Time_Date: RCSsTR40 -> Heat setpoint $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Heat setpoint $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
 	if($temp !~ /^\d+$/){
 		print "$::Time_Date: RCSsTR40 -> heat_setpoint ERROR $temp not numeric\n";
 		return;
 	}
    $$self{'heat_sp'} = $temp;
+   $$self{'heat_sp_pending'} = $temp;
    $self->_send_cmd("SPH=$temp");
 }
 
 sub set_outside_temp {
 	my ($self, $temp) = @_;
-	print "$::Time_Date: RCSsTR40 -> Set outside temp: $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Set outside temp: $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
 	if($temp !~ /^\d+$/){
 		print "$::Time_Date: RCSsTR40 -> set_outside_temp ERROR $temp not numeric\n";
 		return;
@@ -506,7 +507,7 @@ sub set_outside_temp {
 
 sub set_remote_temp {
 	my ($self, $temp) = @_;
-	print "$::Time_Date: RCSsTR40 -> Set remote temp: $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Set remote temp: $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
 	if($temp !~ /^\d+$/){
 		print "$::Time_Date: RCSsTR40 -> set_remote_temp ERROR $temp not numeric\n";
 		return;
@@ -526,7 +527,7 @@ sub set_date_time {
    $Year =~ s/^\d\d(\d\d)$/$1/;
    my $time = "$Hour:$Minute:$Second";
    my $date = "$Month:$Mday:$Year";
-	print "$::Time_Date: RCSsTR40 -> Set date ($date), time ($time), and weekday ($Wday)\n" unless $main::config_parms{no_log} =~/RCSsTR40/ ;
+	print "$::Time_Date: RCSsTR40 -> Set date ($date), time ($time), and weekday ($Wday)\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    $self->_send_cmd("TIME=$time DATE=$date DOW=$Wday");
 }
 
@@ -604,9 +605,11 @@ sub _parse_data {
    my ($name, $val);
    $data =~ s/^\s*//;
    $data =~ s/\s*$//;
-   print "RCSsTR40: Parsing serial data: $data\n";
+   print "RCSsTR40: Parsing serial data: $data\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    my $vacation_sph = 0;
    my $vacation_spc = 0;
+   my $last_sph;
+   my $last_spc;
    while ($data =~ s/^\s*(\S+)=(\S+)\s*//) {
       $name = $1;
       $val = $2;
@@ -723,29 +726,42 @@ sub _parse_data {
          } elsif ($$self{'heat_sp'} == 66) {
             $vacation_sph = -1;
          }
-         if ($$self{'heat_sp'} and ($$self{'heat_sp'} != $val)) {
+         if ($$self{'heat_sp_pending'} eq $val) {
+            $$self{'heat_sp_pending'} = 0;
+            $vacation_sph = 0;
+         } elsif ($$self{'heat_sp'} and ($$self{'heat_sp'} != $val)) {
             if ($$self{'vacation'} eq 'vacation') {
                $vacation_sph = -1;
             }
             unless ($vacation_sph) {
-               $self->set_receive('heat_sp_change');
+               unless ($$self{'heat_sp_pending'}) {
+                  $self->set_receive('heat_sp_change');
+               }
             }
          }
+         $last_sph = $$self{'heat_sp'};
          $$self{'heat_sp'} = $val;
       } elsif ($name eq 'SPC') {
+         print "Examining SPC: $val, $$self{cool_sp_pending}, $$self{cool_sp}, $$self{vacation}\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
          if ($val == 80) {
             $vacation_spc = 1;
          } elsif ($$self{'cool_sp'} == 80) {
             $vacation_spc = -1;
          }
-         if ($$self{'cool_sp'} and ($$self{'cool_sp'} != $val)) {
+         if ($$self{'cool_sp_pending'} eq $val) {
+            $$self{'cool_sp_pending'} = 0;
+            $vacation_spc = 0;
+         } elsif ($$self{'cool_sp'} and ($$self{'cool_sp'} != $val)) {
             if ($$self{'vacation'} eq 'vacation') {
                $vacation_spc = -1;
             }
             unless ($vacation_spc) {
-               $self->set_receive('cool_sp_change');
+               unless ($$self{'cool_sp_pending'}) {
+                  $self->set_receive('cool_sp_change');
+               }
             }
          }
+         $last_spc = $$self{'cool_sp'};
          $$self{'cool_sp'} = $val;
       } elsif ($name eq 'M') {
          if ($val eq 'O') {
@@ -780,9 +796,9 @@ sub _parse_data {
       $self->set_receive('no_vacation');
       $$self{'vacation'} = 'no_vacation';
    } elsif ($vacation_spc) {
-      $self->set_receive('cool_sp_change');
+      $self->set_receive('cool_sp_change') unless ($last_sph == $$self{'heat_sp'});
    } elsif ($vacation_sph) {
-      $self->set_receive('heat_sp_change');
+      $self->set_receive('heat_sp_change') unless ($last_spc == $$self{'cool_sp'});
    }
 }
 

@@ -138,8 +138,8 @@ sub CantOpenDir {
 }
 
 #$Log$
-#Revision 1.2  2004/01/26 01:43:04  cwitte
-#cwitte sync to 2.86 tarball (take2)
+#Revision 1.3  2004/02/01 19:24:37  winter
+# - 2.87 release
 #
 #Revision 1.3  2002/01/27 01:57:45  gaetan
 #Beta 0.1

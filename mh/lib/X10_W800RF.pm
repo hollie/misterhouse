@@ -299,7 +299,7 @@ package X10_W800RF;
 
 sub startup {
 
-&::print_log ("In W800RF (Startup)\n") if $main::Debug{w800rf};
+&::print_log ("In W800RF (Startup)\n") if $main::Debug{w800};
 
    &main::serial_port_create('W800RF', $main::config_parms{W800RF_port}, 4800, 'none', 'raw');
 
@@ -414,8 +414,8 @@ sub check_for_data {
 
 
 
-#	&main::main::print_log("-------------\n)" if $main::Debug{w800rf};
-#	&::respond("-------------") if $main::Debug{w800rf};
+#	&main::main::print_log("-------------\n)" if $main::Debug{w800};
+#	&::respond("-------------") if $main::Debug{w800};
 
 	my ($state, $state1, $state2, $errortext);
 	my $hex = unpack "H*", $data;
@@ -524,7 +524,7 @@ sub check_for_data {
 
 				if (!$state2) {
 					$errortext = " COMMAND CODE #($state1) NOT FOUND : HOUSE=($house) UNIT=($unit) DATA=($output_hex)";
-#					&main::main::print_log("$errortext\n") if $main::Debug{w800rf};
+#					&main::main::print_log("$errortext\n") if $main::Debug{w800};
 				}
 
 				$state = "X".$house.$unit.$house.$state2;
@@ -542,7 +542,7 @@ sub check_for_data {
 
 				if (!$state2) {
 					$errortext = " FUNCTION CODE #($state1) NOT FOUND : HOUSE=($house) DATA=($output_hex)";
-#					&main::main::print_log("$errortext\n") if $main::Debug{w800rf};
+#					&main::main::print_log("$errortext\n") if $main::Debug{w800};
 				}
 
 				# not that it should matter, but for DIM,
@@ -626,7 +626,7 @@ sub check_for_data {
 
 				if (!$function) {
 					$errortext = " TV REMOTE CODE #($function1) NOT FOUND : DATA=($output_hex)";
-#					&main::main::print_log("$errortext\n") if $main::Debug{w800rf};
+#					&main::main::print_log("$errortext\n") if $main::Debug{w800};
 				}
 
 				$outputtext .= " UR51A REMOTE ($function)";
@@ -652,7 +652,7 @@ sub check_for_data {
 				$state = $NonX10Prefix . $security_id . $function;
 			} #if TV_remote / security device
 
-			&main::process_serial_data($state, undef 'rf'); # Set states on X10_Items
+			&main::process_serial_data($state, undef, 'rf'); # Set states on X10_Items
 
 			# Set state of all W800RF and X10_RF objects
 			for my $name (&main::list_objects_by_type('X10_W800RF')) {
@@ -673,8 +673,8 @@ sub check_for_data {
 	} # have data in all 8 nibbles
 
 	&::print_log("$errortext\n") if $errortext;
-	&::print_log("$outputtext\n") if $main::Debug{w800rf};
-	&::respond($outputtext) if $main::Debug{w800rf};
+	&::print_log("$outputtext\n") if $main::Debug{w800};
+	&::respond($outputtext) if $main::Debug{w800};
 }
 
 ############################################################################

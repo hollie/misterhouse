@@ -369,8 +369,8 @@ sub GenCxData {
 1;
 
 #$Log$
-#Revision 1.2  2004/01/26 01:42:59  cwitte
-#cwitte sync to 2.86 tarball (take2)
+#Revision 1.3  2004/02/01 19:24:35  winter
+# - 2.87 release
 #
 #Revision 1.4  2002/12/02 01:07:49  gaetan
 #Ajout de la doc

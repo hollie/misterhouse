@@ -47,7 +47,8 @@ return &html_page('FloorPlan', "No $object_name Group found to generate a floorp
 
 my $html = "<meta http-equiv='refresh' content='10;URL='>";
 #$html .= "<title>Floorplan</title>";
-#$html .= "Occupancy Count: " #. $om->min_count() . "<br>";
+$html .= "People Count: " . $om->people() . "<br>";
+$html .= "Minimum Count: " . $om->min_count() . "<br>";
 $html .= &web_fp($object);
 
 return &html_page('FloorPlan', $html);
@@ -153,18 +154,20 @@ sub web_fp_item #render all items based on type
 	$l_text=$$p_obj{object_name} . ":" . $p_obj->state;
 	if ($p_obj->isa('Light_Item') or 
 	$p_obj->isa('Fan_Light') or
+	$p_obj->isa('Weeder_Light') or
         $p_obj->isa('X10_Item')) {
-	        if ($p_obj->state eq 'on' or $p_obj->state eq '100%') {
-			$l_image='fp-light-on.gif';
-			$l_state='off';
-		} else {
+	        if ($p_obj->state eq 'off') {
 			$l_image='fp-light-off.gif';
 			$l_state='on';
+		} else {
+			$l_image='fp-light-on.gif';
+			$l_state='off';
 		}	
 	} elsif ($p_obj->isa('Group')) {
 		$l_text=web_fp_filter_name($p_obj->{object_name});
 	} elsif ($p_obj->isa('Motion_Item')) {
-		if (lc($p_obj->state) eq 'on') {
+		$l_state='motion';
+		if (lc($p_obj->state) eq 'motion') {
 			$l_image='fp-motion-on.gif';
 		} elsif ($p_obj->state eq 'check' ) {
 			$l_image='x.gif';
@@ -174,8 +177,12 @@ sub web_fp_item #render all items based on type
 	} elsif ($p_obj->isa('Door_Item')) {
 		if ($p_obj->state eq 'open') {
 			$l_image='fp-door-open.png';
+		   $l_state='closed';
+		} elsif ($p_obj->state eq 'check' ) {
+			$l_image='x.gif';
 		} else {
 			$l_image='fp-door-closed.png';
+		   $l_state='open';
 		}	
 	} elsif ($p_obj->isa('Photocell_Item')) {
 		if ($p_obj->state eq 'dark') {
@@ -215,6 +222,13 @@ sub web_fp_item #render all items based on type
 		$l_text=web_fp_filter_name($p_obj->{object_name});
 		$l_text.=':' . $p_obj->state();
 	}
+
+   # Check for custom icons
+   my %icons = $p_obj->get_fp_icons();
+   if ((keys %icons) and $icons{$p_obj->state}) {
+      $l_image=$icons{$p_obj->state};
+   }
+
 	if ($l_state ne '') {
 		$l_html.= "<a href='/bin/SET;referer?" . $p_obj->{object_name} . "=$l_state'>";
 	}

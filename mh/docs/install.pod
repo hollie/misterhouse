@@ -91,6 +91,9 @@ This program works ok:  http://misterhouse.net/public/unzip.exe
 =head2 Tips
 
 Point your web browser to http://localhost:8080 and try out a few commands. 
+You can search or list commands using the 'Search String' menu from the 
+Search icon in the upper right of the default /ia5 web page.  To list all commands, search on a blank string.
+
 The default setup runs only a few core scripts from mh/code/common directory
 (listed in data_dir/code_select.txt). 
 You can use http://localhost:8080/bin/code_select.pl  menu

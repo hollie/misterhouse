@@ -12,7 +12,9 @@
 "
 version 1.02	rel date 1/20/02
  v 101-102 updated i variable declaration, cleaned up tk interface, added menu selection description
-
+ v 1.03    added wind chill calclulation, Status bar and TK entries
+	   calculated per NWS 'new' method, Note chill only available < 50F
+	   
  Modified by Pete Flaherty 05/12/02
  Changes to allow OWW weather station to be standalone using the 
   OWW software by Simon Melhuish available at http://www.simon.melhuish.net/projects/oww/
@@ -76,6 +78,9 @@ my @direction=("North","North North East","North East","East North East","East",
 my @directionshort=("N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW");
 
 my $freezing = new Weather_Item 'TempOutdoor', '<', 32;
+my $chill = 0;
+my $chillwthresh = 3; 	# thresholds for calculating wind chill 
+my $chilltthresh = 50;
 my $i = 0 ;
 
 
@@ -132,10 +137,38 @@ if (my $data = said $ibws) {
   
   							# Update the Web Page Data
 
-$Weather{Summary_Short} = "$Weather{TempOutdoor} F";
+# this is the standard short summary for the web interfaces
+$Weather{Summary_Short} = "$Weather{TempOutdoor} F ";
+
+# Calculate wind chill if applicable
+# print "\n\n Calculating WindChill for $Weather{TempOutdoor} at $Weather{WindSpeed} \n";
+$chill = $Weather{TempOutdoor};			# assume no chill to begin with
+
+if ( $Weather{TempOutdoor} <= $chilltthresh ) {
+    #print "Temp is low Enough at $Weather{TempOutdoor} \n";
+
+    if  ( $Weather{Wind} >= $chillwthresh ) {
+	#print " Wind Speed is high enough at $Weather{WindSpeed} \n";
+	# REF OLD Formula  T(wc) = 0.0817 (3.71V**0.5 + 5.81 -0.25V) (T - 91.4) + 91.4
+	# the New Formula  = 35.74 + 0.6215T - 35.75V (**0.16) + 0.4275TV(**0.16)
+
+	$chill = ( 35.74 +  0.6215 * $Weather{TempOutdoor} -  35.75 * ( $Weather{WindSpeed} ** 0.16 ) + 0.4275 * $Weather{TempOutdoor} * ( $Weather{WindSpeed} ** 0.16 )) ;
+
+	# Update the chill data if we have one
+	$chill = int($chill);
+	# print " Wind Chill calculates to be $chill \n";
+	$Weather{Summary_Short} = "$Weather{TempOutdoor} F wc $chill F";
+
+    }
+}
+
+
+
 $Weather{Wind} = " $Weather{WindSpeed}/$Weather{WindSpeedPeak} $directionshort[$Weather{WindDirAvg}]";
 
-&tk_entry("temp",\$Weather{TempOutdoor},"Wind ",\$Weather{Wind} );
+
+
+&tk_entry("temp",\$Weather{TempOutdoor},"Wind ",\$Weather{Wind}, "Wchill ",\$chill );
   
 if ($state = said $ibws_v) {
   print_log "${state}ing the ibutton weather station client";
@@ -161,3 +194,6 @@ if ($state = said $ibws_v) {
     speak $msg;
   }
 }
+
+
+

@@ -105,6 +105,7 @@ speak 'Photo resizing done' if done_now $photo_resizep;
                                 # Add a small form to the Entertainment category page to pick a subdirectory to index 
 my @subdirs; 
 $photo_subdir = new Generic_Item;
+set_casesensitive $photo_subdir if $Reload; 
 
 sub photo_html {
     my $dir = '/photos';

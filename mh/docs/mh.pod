@@ -255,7 +255,7 @@ to transmit data over the powerline.   More info in mh/code/common/x10_rf_relay.
 This new RF->X10 interface now supports all housecodes (older ones only support once housecode each):
 http://www.letsautomate.com/10680.cfm?CFID=67097&CFTOKEN=4528584
 
-Another supported X10 interface is the Marrick Lynx10-PLC controller: http://www.marrickltd.com/LynX105.htm
+Another supported X10 interface is the Marrick Lynx10-PLC controller: http://www.marrickltd.com
 See mh/lib/Lynx10PLC.pm
 
 A nice summary of the different X10 controllers is here:
@@ -268,8 +268,12 @@ Here is yet another site with X10 info:
 http://www.x10ideas.com
 
 Europeans can get X10 stuff from  http://www.intellihome.be , 
-http://www.hwg-telekom.de , http://www.digihouse.com.au , http://www.eon3.com, 
-www.madomotique.com, www.letsautomate.com, and www.laser.com .
+http://www.hwg-telekom.de , www.madomotique.com, www.letsautomate.com, and www.laser.com .
+
+Australians can get gear from www.digihouse.com.au , www.eon3.com ,
+www.dse.com.au , and www.tecsol.com.au .
+
+Note that the CM12 is the equivalent of a CM11 for 220v/240v locations.
 
 Many X10 noise issues can be solved with the  LEVHCA02 repeater and bridge, available
 here for $65: http://www.worthdist.com/Leviton/hca02-10e.htm 
@@ -449,6 +453,9 @@ Here are some URLs and prices:
   Neil Wrightson also has some 1wire info here:
     http://www.users.bigpond.com/nwrightson/1Wire%20Hardware.htm
 
+  A Linux "One Wire File System" that sets up the one wire bus to look like 
+  a directory (not integrated to mh yet)
+    http://owfs.sourceforge.net/
 
 If you want more reliable VR without having to use a headset, you can try these to digital array microphones:
 
@@ -682,6 +689,7 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
                    :  Like set, but will return to $return_state after $time.
                       If $return_state is not specified, it toggles $state.
                       If $return_state is previous, it returns to the previous state.
+                      If set is called before the timer expires, the timer will be unset.
 
         You can also stack a series of set_with_timer calls with one set call like this:
 
@@ -2755,6 +2763,8 @@ You can use this function to return a time/date string.
      14:   Mon 04/14/99 14:28:00
      15:   Sunday, December 25th
      16:   04/14/97  2:28:00 PM
+     17:   2001-04-09 14:05:16  (POSIX strftime format)
+     18:   20011201 (i.e. YYYYMMDD)
 
 
 The second argument can be either time (in epoc seconds) or a file, where it will 
@@ -2816,9 +2826,26 @@ These return true if the specified time is greater, less than, or equal to the c
 same sorts of offsets as described in time_now below.  Note unlike time_now which is only true once,
 these functions will return a true value for every pass that they are true.
 
-   Example: curtain_on('bedroom', OPEN) if 
+   Example:
+
+      curtain_on('bedroom', OPEN) if 
                     time_cron('22 6 * * 1-5') and 
                     time_greater_than("$Time_Sunrise + 0:15");
+
+
+=item time_between
+
+Returns true if the current time is between the 2 specified times.
+
+If the end time happens to be earlier than the start_time, then it tests if the start-time is more than
+12 hours in the future.  If so, it subtracts 24 hours from the start-time, otherwise it adds 24 hours to the end-time.
+
+   Example:
+
+       speak 'Who goes there' if
+            state_now $motion_sensor and
+            time_between '10 pm', '6 am';
+
 
 
 =item time_now
@@ -4944,6 +4971,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.70  2004/02/01 19:24:34  winter
+#  - 2.87 release
+#
 # Revision 1.69  2003/12/22 00:25:05  winter
 #  - 2.86 release
 #

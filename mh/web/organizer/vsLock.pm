@@ -9,8 +9,8 @@
 ;#  as specified in the README file that comes with the distribution.
 ;#
 ;# $Log$
-;# Revision 1.1  2004/01/26 01:43:04  cwitte
-;# cwitte sync to 2.86 tarball (take2)
+;# Revision 1.2  2004/02/01 19:24:37  winter
+;#  - 2.87 release
 ;#
 ;# Revision 0.1.1.1  1998/05/12  07:42:19  ram
 ;# patch1: Baseline for first alpha release.

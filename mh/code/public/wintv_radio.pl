@@ -5,7 +5,7 @@ For those with a Hauppauge WinTV Card, here is a little script to play and
 control the radio program through MH.  There is no volume control, just
 station selection and off.
  
-=end
+=cut
  
 # Category=Music
  

@@ -154,7 +154,9 @@ if (said $v_show_internet_weather_data or time_cron '12 8,12,16,20 * * *') {
     $visible $clouds. Temperature is $temp degree, while pressure is $area with $pressure hecto pascal. 
     $general. Forecast tells that there $forc."; 
 
-    $v_mp3_control -> set('pause~20~play');
+            # Use eval in case this object is not defined
+    eval '$v_mp3_control -> set("pause~20~play");  
+
     speak "$cast";
 }
 

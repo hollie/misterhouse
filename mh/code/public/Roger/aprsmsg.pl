@@ -14,8 +14,7 @@ sub APRSMsg {
 		($Data, $Ack) = (split('{', $Data))[0,1];		# Extract Acknumber
 		$Data = (split(':', $Data))[2];					# Extract message
 		&APRSSendAck($Source, $Ack);					# Send Ack
-		##1/2004 cwitte split up the Source: to prevent CVS intercept
-		print_msg "New Message recieved from $Source" . ": $Data";
+		print_msg "New Message recieved from $Source$Data";
 		if (substr($Data, 0, 2) eq 'R ') { &APRSMsgRoad($Data) };
 	}
 		

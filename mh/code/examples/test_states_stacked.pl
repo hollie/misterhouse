@@ -20,6 +20,7 @@ package main;
 
 # Create a test object 
 $test_set1  = new Test_State_Item;
+$test_set1 -> set_states qw(on off random repeat); # To enable web control
 #$test_set1  = new Generic_Item;
 $test_set2  = new Generic_Item;
 $test_set1 -> tie_event('print_log "test set1 $state"');

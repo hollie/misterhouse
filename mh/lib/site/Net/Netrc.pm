@@ -1,6 +1,6 @@
 # Net::Netrc.pm
 #
-# Copyright (c) 1995-1997 Graham Barr <gbarr@ti.com>. All rights reserved.
+# Copyright (c) 1995-1998 Graham Barr <gbarr@pobox.com>. All rights reserved.
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
@@ -11,18 +11,25 @@ use strict;
 use FileHandle;
 use vars qw($VERSION);
 
-$VERSION = do { my @r=(q$Revision$=~/\d+/g); sprintf "%d."."%02d"x$#r,@r};
+$VERSION = "2.12"; # $Id$
 
 my %netrc = ();
 
 sub _readrc
 {
  my $host = shift;
+ my($home,$file);
 
- # Some OS's don't have `getpwuid', so we default to $ENV{HOME}
- my $home = ($^O =~ /mswin32/i ? $ENV{HOME} :
- 				 (eval { (getpwuid($>))[7] } || $ENV{HOME}));
- my $file = $home . "/.netrc";
+ if($^O eq "MacOS") {
+   $home = $ENV{HOME} || `pwd`;
+   chomp($home);
+   $file = ($home =~ /:$/ ? $home . "netrc" : $home . ":netrc");
+ } else {
+   # Some OS's don't have `getpwuid', so we default to $ENV{HOME}
+   $home = eval { (getpwuid($>))[7] } || $ENV{HOME};
+   $home ||= $ENV{HOMEDRIVE} . ($ENV{HOMEPATH}||'') if defined $ENV{HOMEDRIVE};
+   $file = $home . "/.netrc";
+ }
 
  my($login,$pass,$acct) = (undef,undef,undef);
  my $fh;
@@ -30,8 +37,11 @@ sub _readrc
 
  $netrc{default} = undef;
 
- # OS/2 does not handle stat in a way compatable with this check :-(
- unless($^O eq 'os2')
+ # OS/2 and Win32 do not handle stat in a way compatable with this check :-(
+ unless($^O eq 'os2'
+     || $^O eq 'MSWin32'
+     || $^O eq 'MacOS'
+     || $^O =~ /^cygwin/)
   { 
    my @stat = stat($file);
 
@@ -64,7 +74,13 @@ sub _readrc
        next;
       }
 
-     push(@tok, split(/[\s\n]+/, $_));
+     s/^\s*//;
+     chomp;
+
+     while(length && s/^("((?:[^"]+|\\.)*)"|((?:[^\\\s]+|\\.)*))\s*//) {
+       (my $tok = $+) =~ s/\\(.)/$1/g;
+       push(@tok, $tok);
+     }
 
 TOKEN:
      while(@tok)
@@ -86,7 +102,7 @@ TOKEN:
        if($tok eq "machine")
         {
          my $host = shift @tok;
-         $mach = bless {machine => $mach};
+         $mach = bless {machine => $host};
 
          $netrc{$host} = []
             unless exists($netrc{$host});
@@ -96,6 +112,8 @@ TOKEN:
         {
          next TOKEN unless $mach;
          my $value = shift @tok;
+         # Following line added by rmerrell to remove '/' escape char in .netrc
+         $value =~ s/\/\\/\\/g;
          $mach->{$1} = $value;
         }
        elsif($tok eq "macdef")
@@ -188,7 +206,7 @@ Net::Netrc - OO interface to users netrc file
 =head1 SYNOPSIS
 
     use Net::Netrc;
-    
+
     $mach = Net::Netrc->lookup('some.machine');
     $login = $mach->login;
     ($login, $password, $account) = $mach->lpa;
@@ -273,6 +291,9 @@ the first entry in the .netrc file for C<MACHINE> will be returned.
 If a matching entry cannot be found, and a default entry exists, then a
 reference to the default entry is returned.
 
+If there is no matching entry found and there is no default defined, or
+no .netrc file is found, then C<undef> is returned.
+
 =back
 
 =head1 METHODS
@@ -299,7 +320,7 @@ Return a list of login, password and account information fir the netrc entry
 
 =head1 AUTHOR
 
-Graham Barr <gbarr@ti.com>
+Graham Barr <gbarr@pobox.com>
 
 =head1 SEE ALSO
 
@@ -308,8 +329,12 @@ L<Net::Cmd>
 
 =head1 COPYRIGHT
 
-Copyright (c) 1995-1997 Graham Barr. All rights reserved.
+Copyright (c) 1995-1998 Graham Barr. All rights reserved.
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
+
+=for html <hr>
+
+$Id$
 
 =cut

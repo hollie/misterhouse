@@ -76,14 +76,13 @@ if ($state = said $v_mp3_control_state) {
     speak "MP3 control now $state.";
 }
 
-$v_mp3_control_cmd = new Voice_Cmd("Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off]");
+$v_mp3_control_cmd = new Voice_Cmd("Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off,Hide Window,Show Window]");
 
 my $state;
 mp3_control($state) if $state = said $v_mp3_control_cmd;
 
 sub mp3_control {
     my $state = shift; 
-print "db s=$state \n";
     return 0 unless &mp3_running;
     if ($state eq 'Play') {
       $remote->play;
@@ -145,18 +144,26 @@ print "db s=$state \n";
         $remote->toggle_repeat;
       }
     }
+    elsif ($state eq 'Hide Window') {
+      $remote->main_win_toggle(0);
+    }
+    elsif ($state eq 'Show Window') {
+      $remote->main_win_toggle(1);
+    }
 
     print_log "mp3 player set to " . said $v_mp3_control_cmd;
 }
 
 sub mp3_play {
     my $file = shift;
+    return 0 unless &mp3_running;
     run qq[$config_parms{mp3_program} "$file"];
     print_log "mp3 play: $file";
 }
 
 sub mp3_queue {
     my $file = shift;
+    return 0 unless &mp3_running;
     run qq[$config_parms{mp3_program} -e "$file"];
     print_log "mp3 queue: $file";
 }
@@ -233,14 +240,15 @@ sub mp3_running {
         print_log "$mp3_program is not running, attempting to start";
         `$mp3_program >/dev/null 2>/dev/null&`;
 
-        #sleep 1 sec to let the process start
-        sleep 1;
+        #sleep 5 sec to let the process start
+        sleep 5;
         $XmmsStatus = `/sbin/pidof $mp3_program`;
         chop $XmmsStatus;
         if ( $XmmsStatus eq "" ) {
             print_log "Can't start $mp3_program";
             return 0;
         }
+        &mp3_control('Hide Window') if $main::config_parms{mp3_program_hide};
         print_log "$mp3_program started";
     }
     return 1;

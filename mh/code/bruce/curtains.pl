@@ -122,7 +122,7 @@ sub curtains_all {
     }
     else {
                                 # Do the X10 curtain
-        run_voice_cmd "$action the living room curtains";
+#       run_voice_cmd "$action the living room curtains";
 #       @curtains = ('bedroom', $action, 'family' , $action, 'zack', $action, 'nick', $action);
         @curtains = ('bedroom', $action, 'family' , $action,                  'nick', $action);
     }

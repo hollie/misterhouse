@@ -217,7 +217,7 @@ if (expired $timer_wind_gust2) {
 	10 + $timer_wind_gust->{speed} < $speed) {
         $timer_wind_gust->{speed} = $speed;
         set $timer_wind_gust 20*60;
-        respond "app=notice Weather alert, the wind is gusting at " . round($speed);
+        respond "app=notice Weather alert, the wind is gusting at " . round($speed) . " miles per hour";
     }
     $Save{WindGustMax} = $speed if $Save{WindGustMax} < $speed; # Save a daily max
 }

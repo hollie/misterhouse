@@ -214,7 +214,7 @@ sub set {
     }
 				# uc since other mh processing can lc it to avoid state sensitivity
     my $serial_data = $serial_id;
-    $serial_data = uc $serial_data unless defined $self->{states_casesensitive};
+    $serial_data = uc $serial_data unless $self->{states_casesensitive};
 
     return if &set_prev_pass_check($self, $serial_id);
 
@@ -400,10 +400,41 @@ sub send_x10_data {
     print "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n" if $main::Debug{x10};
 
     if ($interface eq 'cm11') {
-                                # cm11 wants individual codes without X
-        &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},
-                                substr($serial_data, 1));
     }
+    if ($interface eq 'cm11') {
+	
+				# Standard 1-cm11 code
+	if (!$main::config_parms{cm11_bak_port}) {                                                         
+                                # cm11 wants individual codes without X
+	    &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},
+				    substr($serial_data, 1));
+	}
+				# Dual cm11 code
+	else {
+				# if both units are active then
+                                #   use the one with the most time left on the counter as it was the most recently found to be active
+				# otherwise use the main one if it's active or the backup if it's active
+	    if (($main::cm11_objects{active}->state() eq 'on') && ($main::cm11_objects{bak_active}->state() eq 'on')) {
+		if ($main::cm11_objects{timer}->seconds_remaining() >= $main::cm11_objects{bak_timer}->seconds_remaining()) {
+		    print "db CM11: using primary cm11\n" if $main::Debug{cm11};
+		    &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},substr($serial_data, 1));
+		} else {
+		    print "db CM11: using backup cm11\n" if $main::Debug{cm11};
+		    &ControlX10::CM11::send($main::Serial_Ports{cm11_bak}{object},substr($serial_data, 1));
+		}
+	    } elsif ($main::cm11_objects{active}->state() eq 'on') {
+		print "db CM11: using primary cm11\n" if $main::Debug{cm11};
+		&ControlX10::CM11::send($main::Serial_Ports{cm11}{object},substr($serial_data, 1));
+	    } elsif ($main::cm11_objects{bak_active}->state() eq 'on') {
+		print "db CM11: using backup cm11\n" if $main::Debug{cm11};
+		&ControlX10::CM11::send($main::Serial_Ports{cm11_bak}{object},substr($serial_data, 1));
+	    } else {
+		print "db CM11: Error - no cm11's are working ...\n" if $main::Debug{cm11};
+	    }
+	}
+    }
+
+
     elsif ($interface eq 'bx24') {
         &X10_BX24::SendX10($serial_data);
     }
@@ -551,6 +582,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.70  2004/02/01 19:24:35  winter
+#  - 2.87 release
+#
 # Revision 1.69  2003/12/22 00:25:06  winter
 #  - 2.86 release
 #

@@ -49,6 +49,7 @@ sub new
 	my ($class,@p_objects) = @_;
 	my $self={};
 	bless $self,$class;
+   $$self{m_write} = 1;
 	$self->initialize();
 	$self->add(@p_objects);
 	
@@ -57,6 +58,8 @@ sub new
 
 sub initialize
 {
+	my ($self) = @_;
+	$$self{m_presence_value} = 1;
 }
 
 sub add
@@ -144,9 +147,10 @@ sub set
 		my @l_objects = @{$$self{m_objects}};	
 		for my $obj (@l_objects) {
 			if ( $obj ne $p_setby and $obj ne $self ) { # Dont loop
+            #&::print_log($self->get_object_name() . "::checking($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
 				if ( ( $obj->can('writable') and $obj->writable ) or 
 					( ! $obj->can('writable') ) ) { #check for "settable" objects
-#&::print_log("BASE:" . $self->{object_name} . ":$p_state:" . $p_setby );
+               &::print_log($self->get_object_name() . "::set($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
 					$obj->set($p_state,$p_setby,$p_response);
 				}
 			}
@@ -178,6 +182,12 @@ sub find_members {
 		}
 	}
 	return @l_found;	
+}
+
+sub presence_value {
+	my ($self, $p_value) = @_;
+	$$self{m_presence_value} = $p_value if defined $p_value;
+	return $$self{m_presence_value};
 }
 
 sub writable 

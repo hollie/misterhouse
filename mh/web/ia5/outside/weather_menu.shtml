@@ -1,0 +1,39 @@
+<html>
+<BODY bgcolor="#ffffff">
+<base target="weather output">
+<table width='100%' border='0'>
+    <TR>
+      <TD align="center"></TD>
+      <TD align="center"></TD>
+      <TD align="center"></TD>
+    </TR>
+    <tr>
+      <TD align="center"><a href="/bin/weather_graph.pl?tempout"><img src="images/weather-tempout.gif" alt='Outdoor temp' border="0" name="Outdoor temp"></a></TD>
+    </tr>
+    <tr>
+      <TD align="center"><a href="/bin/weather_graph.pl?tempin"><img src="images/weather-tempin.gif" alt='Indoor temp' border="0" name="Indoor temp"></a></TD>
+    </tr>
+    <tr>
+      <TD align="center"><a href="/bin/weather_graph.pl?humout"><img src="images/weather-humout.gif" alt='Outdoor humidity' border="0" name="Outdoor humidity"></a></TD>
+    </tr>
+    <tr>
+      <TD align="center"><a href="/bin/weather_graph.pl?humin"><img src="images/weather-humin.gif" alt='Indoor humidity' border="0" name="Indoor humidity"></a></TD>
+    </tr>
+    <tr>
+      <TD align="center"><a href="/bin/weather_graph.pl?windspeed"><img src="images/weather-windspeed.gif" alt='Wind speed' border="0" name="Wind speed"></a></TD>
+    </tr>
+    <tr>
+      <TD align="center"><a href="/bin/weather_graph.pl?winddir"><img src="images/weather-winddir.gif" alt='Wind direction' border="0" name="Wind direction"></a></TD>
+    </tr>
+    <tr>
+      <TD align="center"><a href="/bin/weather_graph.pl?raintotal"><img src="images/weather-raintotal.gif" alt='Rain total' border="0" name="Rain total"></a></TD>
+    </tr>
+    <tr>
+      <TD align="center"><a href="/bin/weather_graph.pl?rainrate"><img src="images/weather-rainrate.gif" alt='Rain rate' border="0" name="Rain rate"></a></TD>
+    </tr>
+    <tr>
+      <TD align="center"><a href="/bin/weather_graph.pl?press"><img src="images/weather-press.gif" alt='Barometric pressure' border="0" name="Barometric pressure"></a></TD>
+    </tr>
+</table>
+</HEAD>
+</html>

@@ -240,6 +240,6 @@ sub Xmms_Control {
 }
 
 #$Log$
-#Revision 1.2  2004/01/26 01:42:59  cwitte
-#cwitte sync to 2.86 tarball (take2)
+#Revision 1.3  2004/02/01 19:24:20  winter
+# - 2.87 release
 #

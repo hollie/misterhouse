@@ -15,7 +15,7 @@ set $v_initialize_serial_port 1 if $Startup;
 
 if (said $v_initialize_serial_port) {
                                 # Make sure these sensors are in switch mode and read their status
-    for $ref ($back_door, $garage_entry_door, $front_door,
+    for my $ref ($back_door, $garage_entry_door, $front_door,
               $entry_door, $garage_door, $wireless1, $mailbox) {
         set $ref 'init';
     }

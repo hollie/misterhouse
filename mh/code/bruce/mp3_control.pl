@@ -8,11 +8,11 @@ $v_mp3_control3 = new  Voice_Cmd("Set Nicks mp3 player to [$mp3_states]");
 $v_mp3_control4 = new  Voice_Cmd("Set the shoutcast mp3 player to [$mp3_states]");
 $v_mp3_control5 = new  Voice_Cmd("Set the phone mp3 player to [$mp3_states]");
 
-#&winamp_control($state, 'house') if $state = said $v_mp3_control1;
-&winamp_control($state, 'warp')  if $state = said $v_mp3_control3;
-&winamp_control($state, 'z')     if $state = said $v_mp3_control2;
-&winamp_control($state, 'c1')    if $state = said $v_mp3_control4;
-&winamp_control($state, 'p90')   if $state = said $v_mp3_control5;
+#&mp3_control($state, 'house') if $state = said $v_mp3_control1;
+&mp3_control($state, 'warp')  if $state = said $v_mp3_control3;
+&mp3_control($state, 'z')     if $state = said $v_mp3_control2;
+&mp3_control($state, 'c1')    if $state = said $v_mp3_control4;
+&mp3_control($state, 'p90')   if $state = said $v_mp3_control5;
 
                                 # Control kid music
 $v_mp3_control_boys  = new Voice_Cmd '{Turn, } {Boy,boys} music [on,off]';

@@ -3,10 +3,7 @@
 </head>
 <frameset cols="125,*" frameborder="no" border="0" framespacing="0"> 
   <frame name="menu" scrolling="no" noresize src="menu.shtml">
-  <frameset rows="*,90" frameborder="no" border="0" framespacing="0"> 
-    <frame name="output" src='<!--#include var="$config_parms{web_href_weather_local}" -->'>
-    <frame name="speech" src="speech">
-  </frameset>
+  <frame name="output" src='<!--#include var="$config_parms{web_href_weather_local}" -->'>
 </frameset>
 <body bgcolor="#ffffff" text="#000000">
 </body>

@@ -34,6 +34,11 @@ You could also query the incoming serial data directly:
 	print_log "Data from interface: $data";
  }
 
+
+Methods (sub) 'startup' or 'serial_startup' are automatically
+called by mh on startup.   
+
+
 =cut
 
 use strict;

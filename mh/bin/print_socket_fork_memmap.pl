@@ -28,7 +28,6 @@ BEGIN {
     }
     push @INC, './../lib/site';
     push @INC, './../lib';
-    print "dbx inc=@INC\n";
 }
 
 

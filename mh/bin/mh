@@ -107,7 +107,7 @@ use vars '%Password_Allow';     # So we can see check it from http_server.pl
 use vars '%Disabled_Commands';  # So we can access fro Voice_Cmd.pm
 use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
 use vars '$DNS_resolver';
-
+use vars '%cm11_objects';
 
                                 # Pre-declare these so we don't fail on non-windows platforms
 sub Win32::GetOSVersion;
@@ -752,6 +752,14 @@ sub setup {
         $Serial_Ports{weeder}{process_data} = 1;
     }
 
+    # if the user has configured a backup CM11 without a main CM11 then switch them ...                                
+    #   ... and tell the user what we've done                                                                         
+    if ($config_parms{cm11_bak_port} && !$config_parms{cm11_port}) {                                                 
+        $config_parms{cm11_port} = $config_parms{cm11_bak_port};                                                    
+        undef $config_parms{cm11_bak_port};                                                                        
+        print "Warning: a backup CM11 was configured without a main CM11. The backup will be used as the main unit\n";  
+    }                                                                                                             
+                                                                                                                                               
     if ($config_parms{cm11_port}) {
         require 'ControlX10/CM11.pm';
         if (&serial_port_create('cm11', $config_parms{cm11_port}, 4800, 'none')) {
@@ -761,8 +769,22 @@ sub setup {
                                 # Also reset the clock for the heck of it ... doesn't take long
             &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
             &ControlX10::CM11::setClock($Serial_Ports{cm11}{object});
+            $cm11_objects{timer} = new Timer;                                                            
+            $cm11_objects{active} = new Generic_Item;                                                    
         }
     }
+                                                                                                                                               
+    # Initialise the backup CM11 if we have one                                                 
+    if ($config_parms{cm11_bak_port}) {                                                         
+        if (&serial_port_create('cm11_bak', $config_parms{cm11_bak_port}, 4800, 'none')) {      
+            &ControlX10::CM11::read($Serial_Ports{cm11_bak}{object}, 1);                        
+            &ControlX10::CM11::setClock($Serial_Ports{cm11_bak}{object});                       
+            $cm11_objects{bak_timer} = new Timer;                                                        
+            $cm11_objects{bak_active} = new Generic_Item;                                                
+        }                                                                                       
+    }                                                                                           
+
+
     if ($config_parms{Homevision_port}) {
         require 'Homevision.pm';
         my($speed) = $config_parms{Homevision_baudrate} || 9600;
@@ -1157,19 +1179,93 @@ sub check_for_action {
 
 }
 
+
 sub check_for_cm11_data {
 
-    my $data = &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
-    return unless $data;
-    my $data_d = unpack('C', $data);    # Convert from string to decimal
+				# Standard 1-cm11 code
+    if (!$config_parms{cm11_bak_port}) {                                                         
+	my $data = &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
+	return unless $data;
+	my $data_d = unpack('C', $data);    # Convert from string to decimal
 
                                 # Check for the official 0x5a=90 string and 0xa5=165 (I have seen this!)
-    print "mh CM11 data=$data data_d=$data_d\n" if $Debug{x10} and $data;
-#   if ($data_d == 0x5a) {
-    if ($data_d == 0x5a or $data_d == 0xa5) {
-        if ($data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object})) {
-            &process_serial_data("X" . $data);
-        }
+	print "mh CM11 data=$data data_d=$data_d\n" if $Debug{x10} and $data;
+#       if ($data_d == 0x5a) {
+	if ($data_d == 0x5a or $data_d == 0xa5) {
+	    if ($data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object})) {
+		&process_serial_data("X" . $data);
+	    }
+	}
+    }
+				# Dual cm11 code
+    else {
+	my $data     = &ControlX10::CM11::read($Serial_Ports{cm11}{object}, 1);
+	my $data_bak = &ControlX10::CM11::read($Serial_Ports{cm11_bak}{object}, 1) if $config_parms{cm11_bak_port}; 
+                                                                                                                                               
+	my $heartbeat = $config_parms{cm11_heartbeat};
+	$heartbeat = -1 unless $heartbeat;          # setting heartbeat to -1 disables the functionality
+                                                                                                                                               
+	# restart the timers if we've got data from them
+	if ($data) {
+	    $cm11_objects{active}->set(ON);
+	    $cm11_objects{timer}->set($heartbeat,,1) if ($heartbeat != -1);
+	}
+	if ($data_bak) {
+	    $cm11_objects{bak_active}->set(ON);
+	    $cm11_objects{bak_timer}->set($heartbeat,,1) if ($heartbeat != -1);
+	}
+	
+	if ($New_Second && $Debug{cm11}) {
+	    print "db CM11";
+	    print " main:" . $cm11_objects{active}->state();
+	    print ":" . $cm11_objects{timer}->seconds_remaining() if ($heartbeat != -1);
+	    if ($config_parms{cm11_bak_port}) {
+		print " bak:" . $cm11_objects{bak_active}->state();
+		print ":" . $cm11_objects{bak_timer}->seconds_remaining() if ($heartbeat != -1);
+	    }
+	    print "\n";
+	}
+	
+    # Convert from string to decimal
+	my $data_d = unpack('C', $data) if $data;
+	my $data_d_bak = unpack('C', $data_bak) if ($data_bak && $config_parms{cm11_bak_port});
+	
+                                # Check for the official 0x5a=90 string and 0xa5=165 (I have seen this!)
+	print "mh CM11 data=$data data_d=$data_d\n" if (($Debug{x10} || $Debug{cm11}) and $data);
+	print "mh CM11 data_bak=$data_bak data_d_bak=$data_d_bak\n" if (($Debug{x10} || $Debug{cm11}) and $data_bak);
+	
+	$data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object}) if ($data && ($data_d == 0x5a or $data_d == 0xa5));
+	
+	$data_bak = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11_bak}{object}) if ($data_bak && ($data_d_bak == 0x5a or $data_d_bak == 0xa5));
+                                                                                                                                               
+	if ($heartbeat != -1) {
+	    if ($cm11_objects{timer}->inactive()) {
+		print "db CM11 cm11_timer has expired... testing... " if $Debug{cm11};
+		if (&ControlX10::CM11::ping_cm11($Serial_Ports{cm11}{object})) {
+		    $cm11_objects{active}->set(ON);
+		    print "alive\n" if $Debug{cm11};
+		} else {
+		    $cm11_objects{active}->set(OFF);
+		    print "no response\n" if $Debug{cm11};
+		}
+		$cm11_objects{timer}->set($heartbeat,,1);
+	    }
+	    
+	    if (($cm11_objects{bak_timer}->inactive()) && ($config_parms{cm11_bak_port})) {
+		print "db CM11 cm11_bak_timer has expired... testing... " if $Debug{cm11};
+		if (&ControlX10::CM11::ping_cm11($Serial_Ports{cm11_bak}{object})) {
+		    $cm11_objects{bak_active}->set(ON);
+		    print "alive\n" if $Debug{cm11};
+		} else {
+		    $cm11_objects{bak_active}->set(OFF);
+		    print "no response\n" if $Debug{cm11};
+		}
+		$cm11_objects{bak_timer}->set($heartbeat,,1);
+	    }
+	}
+	
+	&process_serial_data("X" . $data) if ($data);
+	&process_serial_data("X" . $data_bak) if (($data_bak) && ($data_bak != $data));
     }
 }
 
@@ -1433,7 +1529,8 @@ sub check_for_proxy_data {
             if ($type eq 'serial') {
                     # If port was named, store in that hash, otherwise process
                 if ($data[1]) {
-		    if (defined($Serial_Ports{$data[1]}{datatype}) and $Serial_Ports{$data[1]}{datatype} eq 'raw') {
+#		    if (defined($Serial_Ports{$data[1]}{object})   and $Serial_Ports{$data[1]}{object} eq 'proxy') {
+ 		    if (defined($Serial_Ports{$data[1]}{datatype}) and $Serial_Ports{$data[1]}{datatype} eq 'raw') {
 			$Serial_Ports{$data[1]}{data} = $data[0];
 		    }
 		    else {
@@ -2497,6 +2594,12 @@ sub my_str2time {
                                 #  Dec/25   7:00 pm (Dec 25 7:00 pm would be tricky)
     ($monthf, $mdayf, $yearf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\/(\S+)\s+(.+)/;
     ($monthf, $mdayf, $time_date_time) = $time_date =~ /(\S+)\/(\S+)\s+(.+)/ unless $time_date_time; # Year is optional
+
+				# Allow for Date only specs
+    unless ($time_date_time) {
+	$time_date_time = '12 pm' if ($monthf, $mdayf, $yearf) = $time_date =~ /^ *(\S+?)\/(\S+?)\/?(\S*) *$/;
+    }
+
                                 # Allow for dd/mm format
     ($mdayf, $monthf) = ($monthf, $mdayf) if $config_parms{date_format} =~ /ddmm/;
 
@@ -2505,7 +2608,6 @@ sub my_str2time {
     $mdayf  = $Mday  unless $mdayf;
     $yearf  = $Year  unless $yearf;
     $monthf--;          # Jan = 0;
-
 
     $time_date = $time_date_time if $time_date_time;
     ($hourf, $minf, $secf, $am_pm) = $time_date =~ /(\d+):?(\d*):?(\d*)\s*([AaPp]?[Mm]?)/;
@@ -3265,7 +3367,7 @@ sub process_serial_data {
 
                                 # Allow for other processing.  Ignore if this is data munged 
 				# in the crazy X10 serial_data_buffer munging (don't want the proxy to see it)
-    &Serial_data_hooks($event_data) unless $prev_pass;   # Created by &add_hooks
+    &Serial_data_hooks($event_data, undef, $source) unless $prev_pass;   # Created by &add_hooks
 
     my ($event_type, $event_data1) = $event_data =~ /^(\S)(\S*)/;
     
@@ -4091,13 +4193,12 @@ sub do_user_file {
     }
 }
 
-use vars qw(@run_after_delay_timers);
 sub run_after_delay {
     my ($delay, $code_ref) = @_;
     my $timer = new Timer;
-    my $index = $#run_after_delay_timers + 1;
-    set $timer $delay, $code_ref . "; delete \$run_after_delay_timers[$index];";
-    push @run_after_delay_timers, $timer;
+    set $timer $delay, $code_ref;
+                                # Data Dumpper will not dump anonymous subroutines
+#   push @{$Persistent{timers}}, $timer;
 }
 
 sub run_voice_cmd {
@@ -4379,6 +4480,15 @@ sub set_global_vars {
                             }
                         }
                         print "Holiday notice:  $Month/$Mday/$Year $Holiday\n" if $Holiday;
+			if ($Holiday) {
+			    if ($config_parms{date_format} =~ /ddmm/) {
+				print "Holiday notice:  $Mday/$Month/$Year $Holiday\n"
+				}
+			    else {
+				print "Holiday notice:  $Month/$Mday/$Year $Holiday\n";
+			    }
+			}
+
                     }
 
                     if ($prev_month ne $Month) {
@@ -4466,11 +4576,6 @@ sub set_global_vars {
 sub serial_port_create {
     my ($name, $port, $baudrate, $handshake, $datatype, $prefix) = @_;
 
-    if ($port =~ /proxy/i) {
-        $Serial_Ports{$name}{object} = 'proxy';
-        return;
-    }
-
     $port = '\\\\.\\' . $port if $Info{OS_name} =~ /(NT|XP)/ and $port =~ /^com\d{2}\z/i;
 
     unless ($name and $port) {
@@ -4487,6 +4592,11 @@ sub serial_port_create {
     $Serial_Ports{$name}{port}      = $port;
     $Serial_Ports{$name}{datatype}  = $datatype;
     $Serial_Ports{$name}{prefix}    = $prefix;
+
+    if ($port =~ /proxy/i) {
+        $Serial_Ports{$name}{object} = 'proxy';
+        return;
+    }
 
     &serial_port_open($name);
 #   &serial_port_open($name)  || delete $Serial_Ports{$name};
@@ -5052,6 +5162,29 @@ sub time_cron {
     }
     return 1;
 
+}
+
+sub time_between {
+    my ($time_date_1, $time_date_2) = @_;
+    my $time1 = &my_str2time($time_date_1);
+    my $time2;
+    if (defined $time_date_2) {
+	$time2 = &my_str2time($time_date_2);
+    }
+    else {
+	return 0;  # 2nd parameter not provided;
+    }
+    return 0 if $time1 == 0;  # Time_date string invalid
+    return 0 if $time2 == 0;  # Time_date string invalid
+    if ($time2 < $time1) {    # This happens comparing across midnight
+	if (($time1 - $Time) > 43200) { # If Time1 is more than 12 hours into the future
+	    $time1 = $time1 - 86400;   #    Subtract 24 hours from Time1
+	}
+	else {
+	    $time2 = $time2 + 86400;   #    Otherwise add 24 hours to Time2
+	}
+    }
+    return (($Time >= $time1) && ($Time <= $time2));
 }
 
 sub time_now_diff {
@@ -5703,6 +5836,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.87  2004/02/01 19:24:18  winter
+#  - 2.87 release
+#
 # Revision 2.86  2003/12/22 00:07:41  winter
 #  - 2.86 release
 #

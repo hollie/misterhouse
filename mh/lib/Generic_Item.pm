@@ -26,9 +26,15 @@ sub set {
     # Check for tied or repeated states.
     return if &main::check_for_tied_filters($self, $state, $set_by);
 
+    # Override any set_by_timer requests
+    if ($$self{timer}) {
+        &Timer::unset($$self{timer});
+        delete $$self{timer};
+    }
+
     # Some devices may need to see states and substates in a case sensitive manner
     # this flg allows them to do so.
-    $state = lc($state) unless defined $self->{states_casesensitive};
+    $state = lc($state) unless $self->{states_casesensitive};
 
     if ($state and lc($state) eq 'toggle') {
         my $state_current = $$self{state};
@@ -366,15 +372,19 @@ sub get_fp_nodes {
 }
 
 sub set_fp_icons {
+    return unless $main::Reload;
     my ($self, %icons) = @_;
     %{$$self{fp_icons}}=%icons;
 }
 
 sub get_fp_icons {
     my ($self) = @_;
-    return %{$$self{fp_icons}};
+    if ($$self{fp_icons}) {
+	return %{$$self{fp_icons}};
+    } else {
+	return undef;
+    }
 }
-
 
 sub set_states {
     return unless $main::Reload;
@@ -586,6 +596,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.32  2004/02/01 19:24:35  winter
+#  - 2.87 release
+#
 # Revision 1.31  2003/12/22 00:25:05  winter
 #  - 2.86 release
 #
