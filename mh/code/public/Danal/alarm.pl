@@ -40,6 +40,7 @@ sub alarm_notify {
    my $p2 = new Process_Item("alpha_page -pin 1488774 -message \"$text $Date_Now $Time_Now\" ");
    start $p2;      # Run externally so as not to hang MH process
       net_mail_send(account => 'DanalHome', to => 'danal@earthling.net', subject => $text, text => "$text $Date_Now $Time_Now"); 
+      net_mail_send(account => 'DanalHome', to => 'destes@rosewalker.com', subject => $text, text => "$text $Date_Now $Time_Now"); 
    print_log "Alarm notification sent, text = $text";
    speak "Djeeni says: $text";
 }

@@ -1,4 +1,7 @@
 # Category=Alarm System
+
+#@ Interface to DSC alarm system via DSC PC5400 Printer Module 
+
 ##################################################################
 #  Interface to DSC alarm system via DSC PC5400 Printer Module   #
 #                                                                #
@@ -50,25 +53,17 @@
 $DSC_Alarm = new DSC_Alarm;
 my $warning_sent = 0;
 
-if (my $log = said $DSC_Alarm) {
-   print_log "DSC_Alarm.pl $Loop_Count said = $log\n";
-}
-
 if (my $state = state_now $DSC_Alarm) {
-   # Debugging / demo stuff
-   print_log "DSC_Alarm.pl $Loop_Count state_now = $state\n";
-                 my $var = state $DSC_Alarm;
-   print_log "DSC_Alarm.pl $Loop_Count state = $state\n";
-                 my $var = mode $DSC_Alarm;
-   print_log "DSC_Alarm.pl $Loop_Count mode = $var\n";
-                 my $var = user $DSC_Alarm;
-   print_log "DSC_Alarm.pl $Loop_Count user = $var\n";
-                 my $var = alarm_now $DSC_Alarm;
-   print_log "DSC_Alarm.pl $Loop_Count alarm = $var\n";
-                 my $var = zone $DSC_Alarm;
-   print_log "DSC_Alarm.pl $Loop_Count zone = $var\n";
-                 my $var = said $DSC_Alarm;
-   print_log "DSC_Alarm.pl $Loop_Count said = $var\n";
+   if ($config_parms{debug} eq 'DSC') {
+     # Debugging / demo stuff
+     print_log "DSC_Alarm.pl $Loop_Count state_now = $state\n";
+     my $var = state $DSC_Alarm;     print_log "DSC_Alarm.pl $Loop_Count state     = $var\n";
+     my $var = mode $DSC_Alarm;      print_log "DSC_Alarm.pl $Loop_Count mode      = $var\n";
+     my $var = user $DSC_Alarm;      print_log "DSC_Alarm.pl $Loop_Count user      = $var\n";
+     my $var = alarm_now $DSC_Alarm; print_log "DSC_Alarm.pl $Loop_Count alarm     = $var\n";
+     my $var = zone $DSC_Alarm;      print_log "DSC_Alarm.pl $Loop_Count zone      = $var\n";
+     my $var = said $DSC_Alarm;      print_log "DSC_Alarm.pl $Loop_Count said      = $var\n";
+   }
 
    # Real stuff
    if (alarm_now $DSC_Alarm) {
@@ -87,7 +82,7 @@ if (my $state = state_now $DSC_Alarm) {
 # Subroutine to send a page / pcs message, etc.
 sub alarm_page {
    my ($text) =@_;
-   speak "Djeeni says: $text";
+   speak(mode=>'unmuted', volume=>100, rooms=>'all', text=>"Djeeni says: $text");
    $text = $text . " $Date_Now $Time_Now";
 
    my $p1 = new Process_Item("alpha_page -pin 1488774 -message \"$text\" ");

@@ -29,10 +29,20 @@ $Master_Bedroom -> add($Master_TV);
 
 $Master_Control  = new Serial_Item('XC1CJ','Read');
 $Master_Control -> add            ('XC1CK','Sleep');
-$Master_Control -> add            ('XC2CJ','DanalRead');
-$Master_Control -> add            ('XC2CK','DebbieRead');
-$Master_Control -> add            ('XC3CJ','KitchenToggle');
-$Master_Control -> add            ('XC3CK','AllOff');
+$Master_Control -> add            ('XC2CJ','Sunset');
+$Master_Control -> add            ('XC2CK','MasterOff');
+$Master_Control -> add            ('XC3CJ','DanalRead');
+$Master_Control -> add            ('XC3CK','FerretRead');
+$Master_Control -> add            ('XC4CJ','R');
+$Master_Control -> add            ('XC4CK','PublicOff');
+$Master_Control -> add            ('XC5CJ','CamFront');
+$Master_Control -> add            ('XC5CK','CamBack');
+$Master_Control -> add            ('XC6CJ','CamReserved');
+$Master_Control -> add            ('XC6CK','CamDrive');
+$Master_Control -> add            ('XC7CJ','WeatherCond');
+$Master_Control -> add            ('XC7CK','WeatherFcst');
+$Master_Control -> add            ('XC8CJ','SecurityIn');
+$Master_Control -> add            ('XC8CK','SecurityAll');
 
 if ($New_Minute) {
    if (time_now("$Time_Sunset - 0:30")) {
@@ -46,37 +56,59 @@ if ($New_Minute) {
 
 if (state_now $Master_Control) {
   my $state = state $Master_Control;
+  print_log "Master Bedroom Button $state";
   if ($state eq 'Read') { 
-     print_log "Master Bedroom Button 1 pushed ON - Set up for READING";
      set $Debbie_Lamp ON; set $Danal_Lamp ON;
      set $Debbie_Fan  ON; set $Danal_Fan  ON;
   }
   if ($state eq 'Sleep') { 
-     print_log "Master Bedroom Button 1 pushed OFF - Set up for SLEEP";
      set $Debbie_Lamp OFF; set $Danal_Lamp OFF;
      set $Debbie_Fan  ON;  set $Danal_Fan  ON;
+     &speak(mode => 'unmuted', volume => 10, text => "Good Night, sleep tight. Don't let the bed bugs bite!");
      $Save{mode} = 'mute'; 
   }
-  if ($state eq 'DanalRead') {
-     print_log "Master Bedroom Button 2 pushed ON - Set up for Danal Only Reading";
-     set $Debbie_Lamp OFF; set $Danal_Lamp ON;
-     set $Debbie_Fan  ON;  set $Danal_Fan  ON;
+  if ($state eq 'Sunset') { 
+     set $Debbie_Lamp ON;  set $Danal_Lamp ON;
+     set $Debbie_Fan  OFF;  set $Danal_Fan  OFF;
   }
-  if ($state eq 'DebbieRead') {
-     print_log "Master Bedroom Button 2 pushed OFF - Set up for Debbie Only Reading";
-     set $Debbie_Lamp ON; set $Danal_Lamp OFF;
-     set $Debbie_Fan  ON; set $Danal_Fan  ON;
-  }
-  if ($state eq 'KitchenToggle') {
-     print_log "Master Bedroom Button 3 pushed ON - No Function currently assigned, so do something interesting";
-     ('on' eq state $Kitchen_Down_Light) ? set $Kitchen OFF : set $Kitchen ON;
-  }
-   if ($state eq 'AllOff') {
-     print_log "Master Bedroom Button 3 pushed OFF - Everything OFF";
+   if ($state eq 'MasterOff') {
      set $Debbie_Lamp OFF; set $Danal_Lamp OFF;
      set $Debbie_Fan  OFF; set $Danal_Fan  OFF;
      $Save{mode} = 'normal'; 
-     &speak(mode => 'unmuted', text => "Djeeni is set to $Save{mode} speech mode");
+     &speak(mode => 'unmuted', volume => 60, text => "Djeeni is set to $Save{mode} speech mode");
+  }
+  if ($state eq 'DanalRead') {
+     set $Debbie_Lamp OFF; set $Danal_Lamp ON;
+     set $Debbie_Fan  ON;  set $Danal_Fan  ON;
+  }
+  if ($state eq 'FerretRead') {
+     set $Debbie_Lamp ON; set $Danal_Lamp OFF;
+     set $Debbie_Fan  ON; set $Danal_Fan  ON;
+  }
+  if ($state eq 'PublicOff') {
+     set $Kitchen OFF; 
+  }
+  if ($state eq 'CamBack') { 
+    run_voice_cmd 'Camera Back';
+  }
+  if ($state eq 'CamFront') { 
+    run_voice_cmd 'Camera Front';
+  }
+  if ($state eq 'CamDrive') { 
+    run_voice_cmd 'Camera Drive';
+  }
+  if ($state eq 'WeatherCond') { 
+     run_voice_cmd  'Read internet weather conditions';
+  }
+  if ($state eq 'WeatherFcst') { 
+     run_voice_cmd  'Read internet weather forecast';
+  }
+  if ($state eq 'SecurityIn') { 
+    set $Kitchen ON;
+  }
+  if ($state eq 'SecurityAll') { 
+    set $Kitchen ON;
+    run_voice_cmd 'Camera Front';
   }
 
 } # End of button pressed on master control
@@ -97,6 +129,6 @@ sub master_morning {
      set $Debbie_Fan  OFF; set $Danal_Fan  OFF;
      set $Debbie_Lamp OFF; set $Danal_Lamp OFF;
      $Save{mode} = 'normal'; 
-     &speak(mode => 'unmuted', text => "Djeeni is set to $Save{mode} speech mode");
+     &speak(mode => 'unmuted', volume => 60, text => "Djeeni is set to $Save{mode} speech mode");
   }
 } # End of sub master_morning
