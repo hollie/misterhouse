@@ -10,16 +10,34 @@ package Weather_vw;
 sub startup {
     &::MainLoop_pre_add_hook(  \&Weather_vw::UpdateVwWeather, 1 );
 }
+#1.00,2001,12,25,13,48,30,0,0,182,32,54,72,46,29.82,33.37,0.00,0.00,0,0,0,0,0,0,0,0.00,0.0,0,46,71,48,31,0.00,1,1,-0.00,0,0,0
 
-my @weather_vwtype = qw(Year Month Day Hour Minute Second
+my @weather_vwtype = qw(Version Year Month Day Hour Minute Second
 WindAvgSpeed WindGustSpeed WindAvgDir 
 HumidIndoor HumidOutdoor
 TempIndoor TempOutdoor
 Barom
-RainTotal
-RainYest
+RainTotal RainDay RainHour
+WeatherCondition
+Dummy1
+Dummy2
+Dummy3
+Dummy4
+Dummy5
+Dummy6
+Dummy7
+Dummy8
+Dummy9
+WindChill
+HeatIxIn HeatIxOut
+DewPt
 RainRate
-WeatherCondition);
+OutTempRate InTemprate
+BaroRate
+Dummy10
+Dummy11
+Dummy12
+);
 my $timer_vwweather_date = new Timer();
 
 sub UpdateVwWeather 
@@ -29,7 +47,7 @@ sub UpdateVwWeather
     my ($time) = time;
     my $tail;
     
-    # 2000,6,7,23,58,9,0,0,357,35,84,77,53,28.00,0.28,0.00,0.00,0
+#1.00,2001,12,25,13,48,30,0,0,182,32,54,72,46,29.82,33.37,0.00,0.00,0,0,0,0,0,0,0,0.00,0.0,0,46,71,48,31,0.00,1,1,-0.00,0,0,0
 
     if($::New_Day)
     {
@@ -49,7 +67,7 @@ sub UpdateVwWeather
 
     # Read and parse data into %weather array
     my($min, $hour, $mday, $mon, $year) = (localtime($time))[1,2,3,4,5];
-    my($wdate, $wyear, $wmonth, $wday, $whour, $wmin, $wsec);
+    my($wversion, $wdate, $wyear, $wmonth, $wday, $whour, $wmin, $wsec);
     my $date = sprintf("%02d%02d%4d", 1+$mon, $mday, 1900 + $year);
     my $file = $main::config_parms{weather_vwlog_file};
 
@@ -62,7 +80,7 @@ sub UpdateVwWeather
         @temp = split /,/;
     }
 
-    if(@temp != 18)
+    if(@temp != 39)
     {
         print "Invalid data read from weather file $file\n";
         return;
@@ -70,7 +88,7 @@ sub UpdateVwWeather
 
 
     # Check to see if weather data is current
-    ($wyear, $wmonth, $wday, $whour, $wmin) = @temp;
+    ($wversion, $wyear, $wmonth, $wday, $whour, $wmin) = @temp;
     $wdate = sprintf("%02d%02d%4d", $wmonth, $wday, $wyear);
 
     my $time_diff = ($hour + $min/60) - ($whour + $wmin/60);

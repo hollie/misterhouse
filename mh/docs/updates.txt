@@ -3,6 +3,196 @@ Mister House Announcement List
     mailing list (an archive of all the list messages is at
     http://sourceforge.net/mail/?group_id=1365 )
 
+  Version 2.63 posted on 01/??/2002
+
+    Version 2.63 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+      http://misterhouse.net:81/download.html
+
+    New Features:
+
+    - Chris Witte created mh/lib/audrey_cid.pm and
+    mh/code/public/audrey_cid.pl to create a UDP client to request callerid
+    data from the Audrey acid UDP server.
+
+    - David Lounsberry added support for mixer and voice selection to the
+    viavoice TTS driver mh/bin/vv_tts.pl These changes allow for setting the
+    mixer for the play sound and the voice sound separately.
+
+    - Gaetan Lord created mh/code/public/dialup_unix.pl for
+    starting/stopping ppp dialup connections. He also and added mh.ini parm
+    net_connect_if so unix users could test for ppp dialup connections with
+    &net_connect_check.
+
+    - Gaetan Lord also created mh/web/misc/mp3_xmms.* (unix only, requires
+    Xmms::Remote to be installed).
+
+    - Richard Phillips created mh/code/public/mp3_control_xmms.pl for
+    controling the xmms MP3 player for Linux.
+
+    - Joseph Gaston created mh/lib/HVweb_Item.pm to control a Homevision
+    controller via the Homevision web server. Examples are at the top of the
+    file.
+
+    - Larry Roudebush created mh/code/public/internet_speed_check.pl for
+    measuring ftp updload/download rates.
+
+    - Clay Jackson updated mh/code/public/weather_vw.pl with an example of
+    logging weather data to APRSWXNET.
+
+    - Paul Chamberlain clued me into HTTP '204 No Response', which enables
+    web links that do not change the web page. If you code a html link a
+    h_response of no_response, the page will not be changed when you click
+    on the link (does not work with Audrey). For example:
+
+      <a href="RUN;no_response?read_the_house_tagline">test no_response</a>
+
+    - Linksys router code - http cgi server code - speak engine= option -
+    Added/fixed to_file to festival, viavoice, vv_tts, and flite. Added
+    instructions on how to install flite. with our without festival server.
+    sable works not on server.
+
+    - Added speak and play address option for pushing speech to remote
+    browsers. For details on how to enable on an Audrey, see mh/docs/faq_ia*
+    question: How to push speech to remote Audreys
+
+    Bug Fixes and Other Changes:
+
+    - David Lounsberry sent in FAQ question 3.3: How do I add a multi-port
+    serial card in linux?
+
+    - Nick Maddock updated get_tv_info so it corretly searches into the next
+    month (e.g. -dates +14 on 12/30 would stop on 1/1).
+
+    - Jeff Pagel sent in mh/code/public/weeder_init.pl as an example of
+    initializing the newer weeder DIO cards. This also figures a startup
+    problem some were having with 2.62.
+
+    - Robin Edwards found a 2.62 problem where web widgets were blank on
+    startup, before a code reload.
+
+    - Fixed perl 5.6 infinite loop problem AOLIM.pm, called by &net_im_send
+    which is used in code internet_im.pl.
+
+    - Allow for unit=9,10,11..16, instead of 9,A,B,C..F in X10_Item and
+    X10_Appliance.
+
+  Version 2.62 posted on 12/16/2001
+
+    Version 2.62 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+      http://misterhouse.net:81/download.html
+
+    New Features:
+
+    - Improved the speed and reliability of the web server by recoding how
+    browser socket data gets processed.
+
+    - Added mh/code/common/trigger_code.pl. David Norwood came up with the
+    idea of allowing for code that runs only a specified number of times,
+    then self prunes itself. Rather than do this with objects, as David
+    first suggested, I implemented this with a file to keep it simpler and
+    the overhead less. Examples are in mh/code/bruce/tv_grid.pl and the web
+    page /ia5 Event-clock -> alarms button (/misc/alarms. Triggers are
+    stored in data_dir/triggers.current.
+
+    - Added a bunch of mh.ini web_href_* parms, so we can point the default
+    /ia5 web pages to references of our choice. I picked some default ones
+    ... suggestions welcome.
+
+    - Tom Vanderpool created mh/lib/Weather_wmr968.pm and
+    mh/code/public/weather_monitor_wmr968.pl. This supports the new wireless
+    stations ($330 from http://www.valcoelectronics.com/oregon/wmr968.htm or
+    $400 Radio Shack Accuweather pn 63-1016), as well as the (we think) the
+    wired wmr918. The older Weather_wx200.pm works with the wx200 and wx918
+    (not wxr918) stations. See the header in Weather_wmr968.pm for more
+    info.
+
+    - Joe Blecher created mh/lib/Lynx10PLC.pm to support the Marrick X10
+    Lynx10-PLC controller ( http://www.marrickltd.com/LynX105.htm ).
+
+    - David Lounsberry updated get_tv_grid and get_tv_info to support
+    multiple databases (e.g. tv and cable). Use the new -db parm to point to
+    a new set of mh.ini parms. For example, copy the tv_* parms as sat_*,
+    then run get_tv_grid twice, once with -db tv and once with -db sat.
+
+    - Kent Noonan updated Ultimeter2000.pm and added Video_Inline.pm and
+    mh/code/public/video_inline.pl to control his Inline video scan doubler.
+
+    - Kent Noonan sent in mh/code/public/weather_pollen.pl for monitoring
+    pollen counts from pollen.com.
+
+    - Robert Rozman and I created mh/web/misc/mp3.html for a web based mp3
+    jukebox, including playlist and search functions.
+
+    - David Lounsberry suggested we add a countup option to Timer.pm. Here
+    are the new timer methods: start,restart,stop,pause,resume,query. Added
+    an example to mh/code/examples/test_timer.pl.
+
+    - David Norwood added mh/code/public/weather_chance_of_rain.pl for
+    announcing when rain or snow is forecasted.
+
+    Bug Fixes and Other Changes:
+
+    - Brad Reed tracked down a 2.61 (hard to find!) problem which caused mh
+    to exit when sending email on his linux box.
+
+    - Kevin Olalde fixed the mh.ini ibutton_tweak option.
+
+    - Jeffrey Ferris updated mh/code/public/wintvpvr_grid.pl for controlling
+    the Hauppage WinTV PVR.
+
+    - Mickey Argo and David Norwood modified tv_info.pl to report on
+    favorite shows 2 minutes before they start and tv_grid.pl to updated the
+    default tv pages 10 minutes prior to the hour.
+
+    - Brian Klier noticed the new get_tv_grid did not work with the compiled
+    mh.exe (missing the cookie module).
+
+    - Tim Doyle noticed that tk pull downs did not work with Voice_Cmd
+    {a,b,c} enumeration strings.
+
+    - RJ Riemensnider sent in the javascript code for mh/web/clock.
+
+    - David Lounsberry added get/set,incr,reset_count methods to
+    Generic_Item.
+
+    - Kieran Ames added %Included_HTML to the web server, so you can add
+    html to the auto-generated /list?xyz html by setting adding this to your
+    user code: $Included_HTML{xyz} = "...your html...".
+
+    - Kieran Ames sent a pointer to an example of using gnuplot to plot
+    ibutton temps here: http://ames.myip.org:81/pages/my_iButtonVenture.htm
+
+    - Craig Schaeffer found a 2.61 problem with the new email not being
+    tallied in $Save{email_check}.
+
+    - Chris Witte suggested we move set_with_timer from X10_Item to
+    Generic_Item.
+
+    - Added a status frame to the photos slide show /misc/photos.html. Also
+    cross-linked it to the new /clock javascript clock.
+
+    - Updated the web server to drop HTTP headers on .pl results when called
+    from .shtml files.
+
+    - Updated mh/bin/get_tv_grid to not store data on -skip or non -keep
+    channels. Also fixed a table problem that caused Netscape not to display
+    channels.
+
+    - Updated mh/code/bruce/trivia.pl to store data in the user data_dir.
+
+    - Changed net_mail_summary (used by get_email) age option to check
+    against date received, rather than date sent.
+
+    - Fixed the tk_widgets.pl pause button. Needed to point to
+    &toggle_pause, not &pause.
+
+    - Changed the default mh.ini parm to webmute=1, since many Unix users
+    were not able to play wav files.
+
   Version 2.61 posted on 11/18/2001
 
     Version 2.61 was just uploaded to:

@@ -265,7 +265,7 @@ bool vocabAction(int sockfd, VocabActions action = VA_Enable)
 
 bool enablevocab(int sockfd)
 {
-  vocabAction(sockfd,VA_Enable);
+  return vocabAction(sockfd,VA_Enable);
 }
 
 
@@ -342,7 +342,7 @@ bool definevocab(int sockfd, bool defining = TRUE)
   strcpy(vocab,vocab_static);
 
   int numWords = 0;
-  const int MAX_PHRASES = 500;
+  const int MAX_PHRASES = 5000;
   SM_VOCWORD   voc_words [ MAX_PHRASES ];
 
   while (1) {
@@ -453,16 +453,16 @@ static void ConnectStuff ( )
   /* These callbacks handle the various messages that the speech       */
   /* engine might be sending back                                      */
   /*-------------------------------------------------------------------*/
-  SmHandler ConnectCB     ( SM_MSG reply, caddr_t client, caddr_t call_data );
-  SmHandler DisconnectCB  ( SM_MSG reply, caddr_t client, caddr_t call_data );
-  SmHandler SetCB         ( SM_MSG reply, caddr_t client, caddr_t call_data );
-  SmHandler MicOnCB       ( SM_MSG reply, caddr_t client, caddr_t call_data );
-  SmHandler MicOffCB      ( SM_MSG reply, caddr_t client, caddr_t call_data );
-  SmHandler DefineVocabCB ( SM_MSG reply, caddr_t client, caddr_t call_data );
-  SmHandler EnableVocabCB ( SM_MSG reply, caddr_t client, caddr_t call_data );
-  SmHandler GetNextWordCB ( SM_MSG reply, caddr_t client, caddr_t call_data );
-  SmHandler RecoWordCB    ( SM_MSG reply, caddr_t client, caddr_t call_data );
-  SmHandler UtteranceCB   ( SM_MSG reply, caddr_t client, caddr_t call_data );
+  SmHandler ConnectCB     ( SM_MSG reply, void * client, void * call_data );
+  SmHandler DisconnectCB  ( SM_MSG reply, void * client, void * call_data );
+  SmHandler SetCB         ( SM_MSG reply, void * client, void * call_data );
+  SmHandler MicOnCB       ( SM_MSG reply, void * client, void * call_data );
+  SmHandler MicOffCB      ( SM_MSG reply, void * client, void * call_data );
+  SmHandler DefineVocabCB ( SM_MSG reply, void * client, void * call_data );
+  SmHandler EnableVocabCB ( SM_MSG reply, void * client, void * call_data );
+  SmHandler GetNextWordCB ( SM_MSG reply, void * client, void * call_data );
+  SmHandler RecoWordCB    ( SM_MSG reply, void * client, void * call_data );
+  SmHandler UtteranceCB   ( SM_MSG reply, void * client, void * call_data );
 
   LogMessage ( "ConnectStuff invoked" );
 
@@ -584,7 +584,7 @@ main()
 /*---------------------------------------------------------------------*/
 /*        Stolen Callbacks                                             */
 /*---------------------------------------------------------------------*/
-SmHandler ConnectCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler ConnectCB ( SM_MSG reply, void * client, void * call_data )
 {
   int    rc;
   char * cp;
@@ -606,7 +606,7 @@ SmHandler ConnectCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
 /*---------------------------------------------------------------------*/
 /*                                                                     */
 /*---------------------------------------------------------------------*/
-SmHandler DisconnectCB  ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler DisconnectCB  ( SM_MSG reply, void * client, void * call_data )
 {
   return ( SM_RC_OK );
 }
@@ -615,7 +615,7 @@ SmHandler DisconnectCB  ( SM_MSG reply, caddr_t client, caddr_t call_data )
 /*---------------------------------------------------------------------*/
 /*                                                                     */
 /*---------------------------------------------------------------------*/
-SmHandler SetCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler SetCB ( SM_MSG reply, void * client, void * call_data )
 {
   return ( SM_RC_OK );
 }
@@ -624,7 +624,7 @@ SmHandler SetCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
 /*---------------------------------------------------------------------*/
 /*                                                                     */
 /*---------------------------------------------------------------------*/
-SmHandler MicOnCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler MicOnCB ( SM_MSG reply, void * client, void * call_data )
 {
   CheckSmRC("MicOnCB");
 
@@ -651,7 +651,7 @@ SmHandler MicOnCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
 /*---------------------------------------------------------------------*/
 /*                                                                     */
 /*---------------------------------------------------------------------*/
-SmHandler MicOffCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler MicOffCB ( SM_MSG reply, void * client, void * call_data )
 {
   CheckSmRC("MicOffCB");
 
@@ -669,7 +669,7 @@ SmHandler MicOffCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
 /*---------------------------------------------------------------------*/
 /*                                                                     */
 /*---------------------------------------------------------------------*/
-SmHandler EnableVocabCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler EnableVocabCB ( SM_MSG reply, void * client, void * call_data )
 {
   CheckSmRC("EnableVocabCB");
 
@@ -680,7 +680,7 @@ SmHandler EnableVocabCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
 /*---------------------------------------------------------------------*/
 /*                                                                     */
 /*---------------------------------------------------------------------*/
-SmHandler DefineVocabCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler DefineVocabCB ( SM_MSG reply, void * client, void * call_data )
 {
   char          * vocab;
   int             rc;
@@ -725,7 +725,7 @@ SmHandler DefineVocabCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
 /*---------------------------------------------------------------------*/
 /*                                                                     */
 /*---------------------------------------------------------------------*/
-SmHandler GetNextWordCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler GetNextWordCB ( SM_MSG reply, void * client, void * call_data )
 {
   CheckSmRC("GetNextWordCB");
 
@@ -739,7 +739,7 @@ SmHandler GetNextWordCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
 /*---------------------------------------------------------------------*/
 /*                                                                     */
 /*---------------------------------------------------------------------*/
-SmHandler RecoWordCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler RecoWordCB ( SM_MSG reply, void * client, void * call_data )
 {
   int             rc;
   int             i;
@@ -765,6 +765,10 @@ SmHandler RecoWordCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
       client_write(theClient, buffer);
     }
     else {
+      sprintf ( buffer, "Noise\n");
+      LogMessage ( buffer );
+      client_write(theClient, buffer);
+      sprintf(buffer,"Noise\n");
       // sprintf(buffer,"RecoWordCB: Unrecognized utterance\n");
     }
   }
@@ -782,7 +786,7 @@ SmHandler RecoWordCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
 /*---------------------------------------------------------------------*/
 /*                                                                     */
 /*---------------------------------------------------------------------*/
-SmHandler UtteranceCB ( SM_MSG reply, caddr_t client, caddr_t call_data )
+SmHandler UtteranceCB ( SM_MSG reply, void * client, void * call_data )
 {
   LogMessage ( "UtteranceCB\n" );
 

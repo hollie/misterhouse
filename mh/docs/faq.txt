@@ -624,6 +624,56 @@ only at Startup?
     If you want X% of the maximum without overflow use the first example and
     lower the 1.0 until you get an acceptable volume
 
+  3.3 How do I add a multi-port serial card in linux?
+
+    From Dave Lounsberry on 1/1/2002
+
+    First make sure you have the device nodes for the extra serial ports.
+    You should have /dev/ttyS[16..23]. If not: # cd /dev # ./MAKEDEV ttyS16
+    (repeat for each device)
+
+    Next you need to run setserial to setup the board. The kernel defaults
+    to only two serial ports. Put the following in a file called
+    /etc/rc.serial and make sure it runs each boot.
+
+    ---- clip here ----------------------------------------------- #!/bin/sh
+    setserial /dev/ttyS16 port 0x180 irq 4 uart 16550A ^fourport setserial
+    /dev/ttyS17 port 0x188 irq 4 uart 16550A ^fourport setserial /dev/ttyS18
+    port 0x190 irq 4 uart 16550A ^fourport setserial /dev/ttyS19 port 0x198
+    irq 4 uart 16550A ^fourport setserial /dev/ttyS20 port 0x1a0 irq 4 uart
+    16550A ^fourport setserial /dev/ttyS21 port 0x1a8 irq 4 uart 16550A
+    ^fourport setserial /dev/ttyS22 port 0x1b0 irq 4 uart 16550A ^fourport
+    setserial /dev/ttyS23 port 0x1b8 irq 4 uart 16550A ^fourport setserial
+    /dev/ttyS16 set_multiport port1 0x1c0 mask1 0xff match1 0xff
+
+    # chown to dbl (runs misterhouse) for a in 16 17 18 19 20 21 22 23 do
+    chown dbl.wheel /dev/ttyS${a} done ----- clip here
+    ----------------------------------------------
+
+    Note that I am using irq 4 for my byterunner. Be careful that you don't
+    have one of the built in serial ports on the same IRQ.
+
+    You can probably take out the for loop in the bottom if you are running
+    MH as root.
+
+    Here is a link explaining the settings and jumpers (in more depth).
+    http://www.mail-archive.com/linux-hardware%40senator-bedfellow.mit.edu/m
+    sg01897.html
+
+    Another good resource is always the Linux HOWTOs. The serial HOWTO can
+    be found at http://www.ibiblio.org/mdw/HOWTO/Serial-HOWTO.html#toc5
+
+    Here is a followup from Nigel Titley:
+
+    I have found that the linux serial card driver doesn't like the serial
+    card to be on a shared interrupt (I assume your Byterunner is a PCI card
+    and not ISA). I had exactly this problem and worked around it by using
+    the BIOS to move interrupts around until the serial card set itself up
+    on an unshared IRQ. Everything then worked. This does seem to be a Linux
+    issue, and I haven't taken the plunge yet and tried to find out where in
+    the serial port driver the bug exists (I guess I am hoping that someone
+    else will do it).
+
 4: Windows specific questions
   4.1: mh seems to cause some windows to hang
 

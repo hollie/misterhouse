@@ -22,35 +22,29 @@ if (my $data = state_now $tv_grid) {
     speak $msg;
     print_log $msg;
 
-                                # Write out a new entry in the grid_programing.pl file
-                                #  - we could/should prune out old code here.
-    my $tv_grid_file = "$config_parms{code_dir}/tv_grid_programing.pl";
-    print_log "Writing to $tv_grid_file";
-    open(TVGRID, ">>$tv_grid_file") or print_log "Error in writing to $tv_grid_file";
+                                # Write out a new entry to triggers.new.  This will be processed
+                                # into a self pruning triggers.pl file
+    my $trigger_file = "$config_parms{data_dir}/triggers.new";
+    print_log "Writing to tv programing to $trigger_file";
+    open(TRIGGERS, ">>$trigger_file") or print_log "Error in writing to $trigger_file";
 
-    print TVGRID<<eof;
+    print TRIGGERS<<eof;
+time_now '$date $start - 00:02'
+  speak "rooms=all \$Time_Now. VCR recording will be started in 2 minutes for $show_name";
 
-    if (time_now '$date $start - 00:02') {
-        speak "rooms=all \$Time_Now. VCR recording will be started in 2 minutes for $show_name";
-    }
-    if (time_now '$date $start') {
-        speak "VCR recording started";
-        print_log "VCR recording on channel $channel for $show_name";
-        set \$VCR "STOP,$channel,RECORD"; # Stop first, in case we were already finishing recording something else
-#       run('min', 'IR_cmd VCR,$channel,RECORD');
-    }
-#   if (time_now '$date $stop - 00:01') {
-    if (time_now '$date $stop') {
-        speak "VCR recording stopped";
-        set \$VCR "$channel,STOP";
-#       run('min', 'IR_cmd VCR,STOP');
-    }
+time_now '$date $start'
+  speak "VCR recording started";
+  print_log "VCR recording on channel $channel for $show_name";
+  set \$VCR "STOP,$channel,RECORD"; # Stop first, in case we were already finishing recording something else
+
+time_now '$date $stop'
+  speak "VCR recording stopped";
+  set \$VCR "$channel,STOP";
+# run('min', 'IR_cmd VCR,STOP');
 
 eof
 
-    close TVGRID;
-
-    &do_user_file($tv_grid_file); # This will replace the old grid programing
+    close TRIGGERS;
 
 }
 

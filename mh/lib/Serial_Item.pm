@@ -253,6 +253,8 @@ sub set {
             $serial_data = $self->{x10_id} . $serial_data;
         }
    
+        &main::print_log("X10: Outgoing data=$serial_data") if $main::config_parms{x10_errata} >= 4;
+
                                 # Allow for long strings like this: XAGAGAGAG (e.g. SmartLinc control)
                                 #  - break it into individual codes (XAG  XAG  XAG)
         $serial_data =~ s/^X//;
@@ -500,6 +502,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.53  2002/01/19 21:11:12  winter
+# - 2.63 release
+#
 # Revision 1.52  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

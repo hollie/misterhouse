@@ -51,20 +51,27 @@ sub main::html_unescape {
 my ($prev_time, $prev_state);
 sub main::net_connect_check {
 
-    return 1 if  !$main::OS_win or lc($main::config_parms{net_connect}) eq 'persistent';
+    return 1 if lc( $main::config_parms{net_connect} ) eq 'persistent';
 
-                                # We don't need to check this more than once a second
-    return $prev_state if ($prev_time == time);
+                         # We don't need to check this more than once a second
+    return $prev_state if ( $prev_time == time );
     $prev_time = time;
-#   return &Win32::DUN::CheckConnect;
 
-                                # Windows NT does not seem to store this in a handy spot, like win98
-                                #  - Jim Maloney found this key, but we think it is unique to his machine :(
-#   my $status = &main::registry_get('HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{C69045CE-7095-4A59-8837-FC8AA04F49BB}', 'NTEContextList');
-#   if (unpack('H8', $status) > 0) {
-#       print "Internet connection found\n";
-#       return $prev_state = 1;
-#   }
+                         # Linux
+    if ( $^O eq "linux" ) {
+        my $if = lc($main::config_parms{net_connect_if});
+        if ( $if eq "" ) { 
+            print "net_connect_if is not defined\n";
+            return $prev_state = 0;
+        }
+        open (PROC,"/proc/net/dev");
+        while (<PROC>) {
+            if ( $_ =~ /$if/ ) {
+                return $prev_state = 1;
+            }
+        }  
+        return $prev_state = 0;
+    }
 
                                 # Windows 95/98
     my $status = &main::registry_get('HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\RemoteAccess', 'Remote Connection');
@@ -539,6 +546,15 @@ sub main::net_mail_send {
     $subject = "Email from Mister House"                          unless $subject;
     $baseref = 'localhost'                                        unless $baseref;
 
+                                # Allow for multiple recepients
+    if ($to =~ /[,;]/) {
+        for my $to2 (split /[,;]/, $to) {
+            print "sending mail to $to2\n";
+            &main::net_mail_send(%parms, to => $to2);
+        }
+        return;
+    }
+
     $text .= &main::file_read($file) if $file;
 
     print "Sending mail with account $account from $from to $to on $server $port\n";
@@ -764,7 +780,8 @@ sub main::net_mail_summary {
         $from_name =~ s/\"//g;  # "first last"
         $from_name = "$2 $1" if $from_name =~ /(\S+), +(\S+)/; # last, first
 #       $from_name =~ s/ (\S)\. / $1 /;  # Drop the "." after middle initial abreviation.
-        print "Warning, net_mail_summary: No From name found: from=$from, header=$header\n" unless $from_name;
+                                         # Spammers blank this out, so no point in warning about it
+#       print "Warning, net_mail_summary: No From name found: from=$from, header=$header\n" unless $from_name;
 
         my $age_msg = int((time -  str2time($date_received)) / 60);
         print "Warning, net_mail_summary: age is negative: age=$age_msg, date=$date_received\n" if $age_msg < 0;
@@ -824,6 +841,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.37  2002/01/19 21:11:12  winter
+# - 2.63 release
+#
 # Revision 1.36  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

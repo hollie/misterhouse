@@ -451,15 +451,17 @@ sub split_parm {
     return @parms;
 }
 
+
 sub increment_date {
+    use HTTP::Date;                             # For str2time
     my ($date, $days) = @_;
-    my($month, $day)  = split('/', $date);
-                                # Really should use str2time and localtime here, to deal
-                                # with month boundarys accurately.
-    $day += $days;
-    ($day = 1, $month++) if $day > 31;
-    $month = 1 if $month > 12;
-    return sprintf("%s/%02d", $month, $day);
+    my ($month, $day) = split('/', $date);
+    my @dateholder = localtime();               # Get the current year
+    $dateholder[5] += 1900;                     # Adjust it to the correct value
+    my $timeinsec = str2time("$dateholder[5]-$month-$day");  
+    $timeinsec += $days * 24 * 60 * 60;         # Add the offest (adjusted to seconds)
+    @dateholder = localtime( $timeinsec );      # Get the new day/month back
+    return sprintf("%s/%02d", $dateholder[4]+1, $dateholder[3]);
 }
 sub format_date {
     my ($month, $day) = @_[0] =~ /0?(\d+)\/(\d+)/; # Drop leading 0 from month
@@ -497,6 +499,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.24  2002/01/19 21:11:09  winter
+# - 2.63 release
+#
 # Revision 1.23  2001/12/16 21:48:40  winter
 # - 2.62 release
 #

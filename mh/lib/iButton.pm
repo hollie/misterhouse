@@ -62,7 +62,7 @@ sub new {
     $port = $connections{default} unless $port;
     my $connection = $connections{$port} if $port;
 
-    my $self = Hardware::iButton::Device->new($connection, $raw_id);
+    my $self = Hardware::iButton::Device->new($connection, $raw_id, $main::config_parms{ibutton_time_delay});
 
     $self->{port} = $port;
     $id = $self->id();       # Get the full id
@@ -468,6 +468,9 @@ memory
 
 
 # $Log$
+# Revision 1.15  2002/01/19 21:11:12  winter
+# - 2.63 release
+#
 # Revision 1.14  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

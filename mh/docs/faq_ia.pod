@@ -173,4 +173,47 @@ from skipping with:
  slay -P 5 phplay
 
 
+=head2 How to push speech to remote Audreys
+
+There are 2 ways to do remotely play wav files on an Audrey.  One plays a wav file in the foreground by 
+creating a popup window, the other uses playsound_noph to play wav files in the background.  
+Both ways requre you first enable remote control (see 'Remote Audrey browsing and control' above).
+
+To enable the foreground wav playing, add this mh.ini parm (this is the default):
+ 
+ voice_text_address_code = run 'get_url -quiet "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=$url" /dev/null'
+
+Now simply use the address argument when calling speak or play.  
+For example (substitute in you Audrey ip address(s)):
+
+ speak "address=192.168.0.101,kitchen Hello to the study";
+ play   address => 'study', file => '../sounds/hello_from_bruce.wav';
+ play   address => 'study,kitchen', file => '../sounds/hello_from_bruce.wav';
+
+To install playsound_noph, first download and unzip it from Keith Webb's site:  http://www.planetwebb.com/audrey .
+Note, you do not need to be running qnx.  A normal hacked Audrey works fine.
+
+Next, create this a file called playsound.shtml with these records:
+
+ <html><head><title>Shell</title></head></body>
+ <!--#exec cmd="playsound_noph $QUERY_STRING &" -->
+ </body></html>
+
+Now copy 3 files over to your Audrey(s).  
+Here are the commands I used from my Audrey to copy the files from my windows house c:/temp directory: 
+ 
+ mkdir /house
+ fs-cifs -a //house:192.168.0.2:/c /house guest guest
+ cd /house/temp
+ cp playsound_noph    /nto/photon/bin
+ cp soundfile_noph.so /nto/photon/dll
+ cp playsound.shtml   /data/XML
+
+Finally, add this mh.ini parm:
+ 
+ voice_text_address_code = run 'get_url -quiet "http://$address/playsound.shtml?$url" /dev/null'
+
+And use the speak and play examples from above.
+More examples are in mh/code/bruce/audrey.pl
+
 

@@ -135,6 +135,8 @@ use vars qw(%models);
 		    'memtype' => "EEPROM",
 		    'specialfuncs' => "thermometer",
 		    'class' => 'Hardware::iButton::Device::DS1920',
+		    'mintime' => 0,
+		    'maxtime' => .9,
 		   },
 	   "21" => {			# STOLL
 		    'model' => 'DS1921',
@@ -142,6 +144,8 @@ use vars qw(%models);
 		    'memtype' => "EEPROM",
 		    'specialfuncs' => "thermometer",
 		    'class' => 'Hardware::iButton::Device::DS1921',
+		    'mintime' => 0,
+		    'maxtime' => .9,
 		   },
 	   "22" => {
 		    'model' => 'DS1822',
@@ -149,6 +153,8 @@ use vars qw(%models);
 		    'memtype' => "EEPROM",
 		    'specialfuncs' => "thermometer",
 		    'class' => 'Hardware::iButton::Device::DS1822',
+		    'mintime' => 0,
+		    'maxtime' => .9,
 		   },
 	   "26" => {			# STOLL
 		    'model' => 'DS2438',
@@ -163,6 +169,8 @@ use vars qw(%models);
 		    'memtype' => "EEPROM",
 		    'specialfuncs' => "thermometer",
 		    'class' => 'Hardware::iButton::Device::DS1822',
+		    'mintime' => 0,
+		    'maxtime' => .9,
 		   },
 
 	   "14" => {
@@ -632,6 +640,160 @@ sub write_eeprom {
 }
 
 
+package Hardware::iButton::Device::TemperatureButton;
+# this is a class that other temperature devices will inherit from
+
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+
+sub read_temperature_time {
+    my $this = shift;
+    my $maxTime = shift;
+
+    if ( $maxTime ) {
+	# this isn't good - it means the last calculation failed
+	# if mintime and maxtime are close (within 0.1 second, add
+	# additional time to each
+	if ( $this->{ 'maxtime' } - $this->{ 'mintime' } < 0.02 ) {
+	    $this->{ 'mintime' } += .01;
+	    $this->{ 'maxtime' } += .01;
+	}
+    }
+
+    if ( $maxTime || !$this->{ 'mintime' } ) {
+	return $this->{ 'maxtime' };
+    }
+    else {
+	return ( $this->{ 'mintime' } + $this->{ 'maxtime' } ) / 2;
+    }
+}
+
+sub update_temperature_time {
+    my $this = shift;
+    my $goodTime = shift;
+
+    if ( !$this->{ 'mintime' } ) {
+	$this->{ 'mintime' } = .01 if $goodTime;
+	return;
+    }
+
+    my $calcTime = $this->read_temperature_time();
+    if ( $goodTime ) {
+	$this->{ 'maxtime' } = $calcTime;
+    }
+    else {
+	$this->{ 'mintime' } = $calcTime;
+    }
+}
+
+sub read_temperature_scratchpad {
+    my $this = shift;
+    my $maxTime = shift;
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+
+    # access the device
+    if ($this->select() ) {
+	# send the convert temperature command
+	$c->owBlock( "\x44" );
+
+	# set the 1-Wire Net to strong pull-up
+	return undef if $c->level(&Hardware::iButton::Connection::MODE_STRONG5) ne
+	  &Hardware::iButton::Connection::MODE_STRONG5;
+
+	# sleep to let chip compute the temperature
+	my $time = $this->read_temperature_time( $maxTime );
+#	print STDERR " $time ";
+	select( undef, undef, undef, $time );
+	
+	# turn off the 1-Wire Net strong pull-up
+	return undef if $c->level(&Hardware::iButton::Connection::MODE_NORMAL) ne
+	  &Hardware::iButton::Connection::MODE_NORMAL;
+	
+	# access the device
+	if ($this->select() ) {
+	    # create a block to send that reads the temperature
+	    # read scratchpad command
+	    # and add the read bytes for data bytes and crc8
+	    my $send = "\xBE" . ( "\xFF" x 9 );
+
+	    # now send the block
+	    my $result = $c->owBlock( $send );
+	    if ( $result ) {
+		# perform the CRC8 on the last 8 bytes of packet
+		return $result if !$c->docrc8( substr( $result, 1 ) );
+	    }
+	}
+    }
+
+    return undef;
+}
+
+sub read_temperature {
+    my($self) = @_;
+
+    for ( 0..1 ) {
+	my $data = $self->read_temperature_scratchpad( $_ );
+	if ( $data ) {
+	    my @data = unpack( "C*", $data );
+	    my $sign = $data[2] > 128 ? -1 : 1;
+	    my $temp = (($data[2] & 0x07) * 256 + $data[1]) / 16 * $sign;
+	    if ( $temp == 85 ) { # this is a result from too short of a read time
+		$self->update_temperature_time( 0 );
+		next;
+	    }
+	    elsif ( !$_ )  {
+		$self->update_temperature_time( 1 );
+	    }
+
+	    return $temp;
+	}
+	elsif ( !$_ ) {
+	    $self->update_temperature_time( 0 );
+	    next;
+	}
+    }
+    return undef;
+}
+
+
+sub read_temperature_hires {
+    my($self) = @_;
+
+    for ( 0..1 ) {
+	my $data = $self->read_temperature_scratchpad( $_ );
+	if ( $data ) {
+	    # calculate the high-res temperature
+	    my @data = unpack( "C*", $data );
+	    my $tmp = int($data[1]/2);
+	    $tmp -= 128 if $data[2] & 0x01;
+	    my $cr = $data[7];
+	    my $cpc = $data[8];
+	    if ($cpc == 0) {
+		if ( !$_ ) {
+		    $self->update_temperature_time( 0 );
+		    next;
+		}
+		return undef;
+	    }
+	    $tmp = $tmp - 0.25 + ($cpc - $cr)/$cpc;
+
+	    if ( $tmp == 85 ) { # this is a result from too short of a read time
+		$self->update_temperature_time( 0 );
+		next;
+	    }
+	    elsif ( !$_ )  {
+		$self->update_temperature_time( 1 );
+	    }
+		
+	    return $tmp;
+	}
+    }
+
+    return undef;
+}
 
 package Hardware::iButton::Device::DS1920;
 
@@ -641,48 +803,8 @@ use Hardware::iButton::Connection;
 use strict;
 use vars qw(@ISA);
 
-@ISA = qw(Hardware::iButton::Device);
+@ISA = qw(Hardware::iButton::Device Hardware::iButton::Device::TemperatureButton);
 
-sub read_temperature_scratchpad {
-    my $this = shift;
-    my $c = $this->{'connection'};
-    return undef if !$c->connected();
-    my $temp;
-
-    # access the device 
-    if ($this->select() ) {
-	# send the convert temperature command
-	$c->owBlock( "\x44" );
-	
-	# set the 1-Wire Net to strong pull-up
-	return undef if $c->level(&Hardware::iButton::Connection::MODE_STRONG5) ne
-	  &Hardware::iButton::Connection::MODE_STRONG5;
-	
-	# sleep to let chip compute the temperature
-	select( undef, undef, undef, $this->read_temperature_time );
-	
-	# turn off the 1-Wire Net strong pull-up
-	return undef if $c->level(&Hardware::iButton::Connection::MODE_NORMAL) ne
-	  &Hardware::iButton::Connection::MODE_NORMAL;
-	
-	# access the device 
-	if ($this->select() ) {
-	    # create a block to send that reads the temperature
-	    # read scratchpad command
-	    # and add the read bytes for data bytes and crc8
-	    my $send = "\xBE" . ( "\xFF" x 9 );
-	    
-	    # now send the block
-	    my $result = $c->owBlock( $send );
-	    if ( $result ) {
-		# perform the CRC8 on the last 8 bytes of packet
-		return $result if !$c->docrc8( substr( $result, 1 ) );
-	    }
-	}
-    }
-   
-    return undef;
-}
 
 =head2 read_temperature
 
@@ -697,43 +819,6 @@ about +/- 0.5C.
 Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 
 =cut
-
-sub read_temperature_time { return 0.3; }
-#ub read_temperature_time { return 0.9; } # Need this for slower computers ?
-
-sub read_temperature {
-    my($self) = @_;
-    my $data = $self->read_temperature_scratchpad();
-
-    if ( $data ) {
-	my @data = unpack( "C*", $data );
-	my $sign = $data[2] > 128 ? -1 : 1;
-	my $temp = (($data[2] & 0x07) * 256 + $data[1]) / 16 * $sign;
-	return $temp;
-    }
-    return undef;
-}
-
-sub read_temperature_hires {
-    my($self) = @_;
-
-    my $data = $self->read_temperature_scratchpad();
-
-    if ( $data ) {
-	# calculate the high-res temperature
-	my @data = unpack( "C*", $data );
-	my $tmp = int($data[1]/2);
-	$tmp -= 128 if $data[2] & 0x01;
-	my $cr = $data[7];
-	my $cpc = $data[8];
-	return undef if ($cpc == 0);
-	$tmp = $tmp - 0.25 + ($cpc - $cr)/$cpc;
-			    
-	return $tmp;
-    }
-
-    return undef;
-}
 
 ############## stoll ###############################
 package Hardware::iButton::Device::DS1921;
@@ -744,48 +829,7 @@ use Hardware::iButton::Connection;
 use strict;
 use vars qw(@ISA);
 
-@ISA = qw(Hardware::iButton::Device);
-
-sub read_temperature_scratchpad {
-    my $this = shift;
-    my $c = $this->{'connection'};
-    return undef if !$c->connected();
-    my $temp;
-
-    # access the device 
-    if ($this->select() ) {
-	# send the convert temperature command
-	$c->owBlock( "\x44" );
-	
-	# set the 1-Wire Net to strong pull-up
-	return undef if $c->level(&Hardware::iButton::Connection::MODE_STRONG5) ne
-	  &Hardware::iButton::Connection::MODE_STRONG5;
-	
-	# sleep to let chip compute the temperature
-	select( undef, undef, undef, $this->read_temperature_time );
-	
-	# turn off the 1-Wire Net strong pull-up
-	return undef if $c->level(&Hardware::iButton::Connection::MODE_NORMAL) ne
-	  &Hardware::iButton::Connection::MODE_NORMAL;
-	
-	# access the device 
-	if ($this->select() ) {
-	    # create a block to send that reads the temperature
-	    # read scratchpad command
-	    # and add the read bytes for data bytes and crc8
-	    my $send = "\xBE" . ( "\xFF" x 9 );
-	    
-	    # now send the block
-	    my $result = $c->owBlock( $send );
-	    if ( $result ) {
-		# perform the CRC8 on the last 8 bytes of packet
-		return $result if !$c->docrc8( substr( $result, 1 ) );
-	    }
-	}
-    }
-   
-    return undef;
-}
+@ISA = qw(Hardware::iButton::Device Hardware::iButton::Device::TemperatureButton);
 
 =head2 read_temperature
 
@@ -800,43 +844,6 @@ about +/- 0.5C.
 Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 
 =cut
-
-sub read_temperature_time { return 0.3; }
-#ub read_temperature_time { return 0.9; } # Need this for slower computers ?
-
-sub read_temperature {
-    my($self) = @_;
-    my $data = $self->read_temperature_scratchpad();
-
-    if ( $data ) {
-	my @data = unpack( "C*", $data );
-	my $sign = $data[2] > 128 ? -1 : 1;
-	my $temp = (($data[2] & 0x07) * 256 + $data[1]) / 16 * $sign;
-	return $temp;
-    }
-    return undef;
-}
-
-sub read_temperature_hires {
-    my($self) = @_;
-
-    my $data = $self->read_temperature_scratchpad();
-
-    if ( $data ) {
-	# calculate the high-res temperature
-	my @data = unpack( "C*", $data );
-	my $tmp = int($data[1]/2);
-	$tmp -= 128 if $data[2] & 0x01;
-	my $cr = $data[7];
-	my $cpc = $data[8];
-	return undef if ($cpc == 0);
-	$tmp = $tmp - 0.25 + ($cpc - $cr)/$cpc;
-			    
-	return $tmp;
-    }
-
-    return undef;
-}
 
 ############## stoll ###############################
 package Hardware::iButton::Device::DS2438;
@@ -956,8 +963,6 @@ the integral part of the number.
 Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 
 =cut
-
-sub read_temperature_time { return 0.75; }
 
 sub read_temperature_hires {
     my $this = shift;

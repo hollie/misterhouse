@@ -232,6 +232,9 @@ DESCRIPTION
     having to wait for the 500+ millisecond time it takes to transmit data
     over the powerline.
 
+    Another supported X10 interface is the Marrick Lynx10-PLC controller:
+    http://www.marrickltd.com/LynX105.htm See mh/lib/Lynx10PLC.pm
+
     A nice summary of the different X10 controlers is here:
     http://www.geocities.com/ido_bartana/Which_controller.html
 
@@ -239,6 +242,10 @@ DESCRIPTION
     http://www.hwg-telekom.de , http://www.digihouse.com.au ,
     http://www.eon3.com, www.madomotique.com, www.letsautomate.com, and
     www.laser.com .
+
+    Many X10 noise issues can be solved with the LEVHCA02 repeater and
+    bridge, available here for $65:
+    http://www.worthdist.com/Leviton/hca02-10e.htm
 
     Weeder Technologies, http://www.weedtech.com , offers the following kits
     priced from $30 to $50 each. All of these kits can share the same serial
@@ -351,8 +358,12 @@ DESCRIPTION
     Shack or $200 from http://www.heartlandamerica.com (search for weather,
     model WW22- 3350). See mh/lib/Weather_wx200* for info on interface code.
 
-    There is also now a new WMR-918, which is a wireless version, available
-    for about $350. An mh interface is being worked on.
+    There is also now a new WMR-918/968/Radio Shack Accuweather, which is a
+    wireless version, available for about $350. See
+    mh/code/public/weather_monitor_wmr968.pl.
+
+    See weather_monitor_ultimeter2000.pl for an example of interfacing to
+    the Peet Bros. Ultimeter200 weather station: http://www.peetbros.com
 
     iButton is a family of devices that can all talk to a '1 wire'
     interface. Here are some urls and prices:
@@ -622,6 +633,11 @@ DESCRIPTION
 
              set_label: Specify a text label, useful for creating touch screen interfaces.
 
+             set_count   : Use these methods to control a count variable.
+             get_count
+             incr_count
+             reset_count
+
         The tie/untie methods can be done conditionally, so you can change
         what is tied to what on the fly. If you do this, however, you need
         to also make sure you also make the tie* method call on $Reload, as
@@ -843,6 +859,22 @@ DESCRIPTION
                run_voice_cmd 'Read the iButton temperature 1' if $Second == 11;
                run_voice_cmd 'Read the iButton temperature 2' if $Second == 22;
             }
+
+    HVweb_Item
+        This object allows control of Homevision controller via the
+        Homevision web server. Set homevision_url=<your homevision web
+        server url> in mh.ini. See the Homevision documentation for complete
+        list of command formats. Configure Homevision Webserver to report
+        command results.
+
+          Examples:
+             $kitchen_light    =  new HVweb_Item('On',    'X10 G1 On');
+             $kitchen_light    -> add           ('Off',   'X10 G1 Off');
+             $vcr              =  new HVweb_Item('Power', 'IR 45 1 time');
+             $vcr              -> add           ('Play',  'IR 46 1 time');
+
+             set $kitchen_light 'On';
+             set $vcr 'Play';
 
     IR_Item
         This object controls IR transmiters. Currently only the X10 IR
@@ -1346,6 +1378,8 @@ DESCRIPTION
 
           Methods:
 
+           These methods apply to a count down timer
+
             new        : Used to create the object.
 
             set($period, $action, $cycles)
@@ -1369,6 +1403,15 @@ DESCRIPTION
                 These methods return the hours, minutes or seconds remaining on the timer.
                 The _now methods only return the remaining time on the hour, minute,
                 or second boundary.
+
+           These methods apply to using it as a count up, or stopwatch, timer
+
+            start      : Starts the timer
+            restart    : Restarts the timer (start on an active timer does nothing)
+            stop       : Stops a timer
+            pause      : Pauses
+            resume     : Bet you can guess :)
+            query      : Returns the seconds on the timer.
 
           Examples:    
 
@@ -1823,6 +1866,12 @@ DESCRIPTION
              play(option => 'value', file => $file_name);
 
              Options are:
+               address => 'ip_address' Use this to push wav files to 
+                                       remote computers that are enabled to received
+                                       pushed wav files (e.g. Audreys).  Configure 
+                                       with the mh.ini parm voice_text_address_code.
+                                       Can be a comma delimited list of addresses.
+
                rooms => 'room_names'  You need to code a &Play_pre_add_hook to enable this.
                                       See mh/code/bruce/pa_control for an example.
                volume=> dd            How loud (dd = 0->100).  
@@ -1870,6 +1919,8 @@ DESCRIPTION
              play(file => 'SystemAsterisk') if $Reload;
 
              play "fun/*.wav" if time_cron '* 9 * * 6';
+
+             play address => '192.168.0.82,kitchen', file => '../sounds/hello_from_bruce.wav';
 
     print_log
     print_msg
@@ -2020,16 +2071,30 @@ DESCRIPTION
              speak(option => 'value', text => 'text to speak');
     
              Options are:
-               rooms  => 'room_names'  You need to code a &Speak_pre_add_hook to enable
+               address => 'ip_address' Use this to push TTS synthesized wav files to 
+                                       remote computers that are enabled to received
+                                       pushed wav files (e.g. Audreys).  Configure 
+                                       with the mh.ini parm voice_text_address_code.
+                                       Can be a comma delimited list of addresses.
+
+               rooms   => 'room_names' You need to code a &Speak_pre_add_hook to enable
                                        this.  See mh/code/bruce/pa_control for an example.
 
-               mode   => 'unmuted' Forces speech, even in mute and offline mode
+               mode    => 'unmuted' Forces speech, even in mute and offline mode
 
-             These options are for the Festival speech engine (but don't work yet):
+             These options are for the unix Festival speech engine (but don't work yet):
                rate   => '+-nn%'       (e.g. +10% or -30%)
                voice  => 'name' 
 
-             These options are currently for the MS TTS engine only.
+             These are for unix IBM ViaVoice TTS engine (mh.ini sound_program=vv_tts):
+               default_volume xyz => default volume when -volume not set
+               volume xyz         => volume setting for both play and voice unless specified
+               voice_volume xyz   => voice volume setting
+               voice xyz          => voice #
+               nomixer            => do not use built in mixer support
+               play        xyz    => play's sound file xyz
+
+             These options are currently for the windows MS TTS engine only.
                mode   => any of the following
                 stop, pause, resume, rewind, fastforward, slow, normal, fast, dd
 
@@ -2075,6 +2140,8 @@ DESCRIPTION
             speak 'mode=unmuted  The front door just opened';
             speak mode => 'pause';
             speak mode => 'resume', rate => 120;
+
+            speak "address=bedroom,kitchen Wake up or die!";
  
             speak "Now I am really, <pitch absmiddle='10'/>really excited!"
 
@@ -2612,9 +2679,9 @@ DESCRIPTION
 
               -h              => This help text
               -help           => This help text
-              -name xxx       => name of recipient (must be defined in mh.ini)
-              -pin xxx        => pin number
-              -message xxx    => text of message to send
+              -name xyz       => name of recipient (must be defined in mh.ini)
+              -pin xyz        => pin number
+              -message xyz    => text of message to send
 
           Example:
             alpha_page -pin 123456 -message 'Bring home bread and milk'
@@ -2658,9 +2725,9 @@ DESCRIPTION
              display -options  text_or_file
 
           Options:
-            -time  xxx to have the window auto-close in xxx seconds.  Set to 0 for no auto-close.
-            -font  xxx to pick the font
-            -title xxx to set the window title
+            -time  xyz to have the window auto-close in xyz seconds.  Set to 0 for no auto-close.
+            -font  xyz to pick the font
+            -title xyz to set the window title
 
           Examples:
             display weather_forcast.txt
@@ -2714,27 +2781,6 @@ DESCRIPTION
             find_programs house
             find_programs "house,dm,c2" quake
             find_programs -all "house,dm,c2"
-
-    get_ceiva
-        get_ceiva gets pictures from the 'now showing' folder of a Ceiva.com
-        web page.
-
-          Usage: 
-           get_ceiva [options]
-
-            -h        => This help text
-
-            -username xyz => xyz is a ceiva member name
-            -password xyz => xyz is a ceiva password
-            -frame_id xyz => xyz is a ceiva frame_id
-
-            -outdir xyz   => xyz the directory the pictures will be put in
-            -browser xyz  => xyz is the path to your html browser
-            -reget        => Re-fetch the files, even if they look current
-
-          Examples:
-            get_ceiva -outdir /pictures/ceiva
-            get_ceiva -reget
 
     get_email
         Use this program to check all the email accounts defined in your
@@ -2968,12 +3014,12 @@ DESCRIPTION
             -h         => This help text
             -help      => This help text
 
-            -city     xxx => xxx is the City  you want.
-            -state    xxx => xxx is the State you want.
+            -city     xyz => xyz is the City  you want.
+            -state    xyz => xyz is the State you want.
 
-            -data     xxx => xxx is either conditions, forecast, or all.  Default is all.
+            -data     xyz => xyz is either conditions, forecast, or all.  Default is all.
 
-            -refresh  xxx => xxx is the number of minutes old the cached data can
+            -refresh  xyz => xyz is the number of minutes old the cached data can
                              before it will be refreshed from the net. 
                              The default is 60 minutes.
 
@@ -3156,17 +3202,17 @@ DESCRIPTION
 
           The following flags control what the companion mh server.pl code does:
 
-            -file xxx    -> Files the data into mh/data/mhsend/xxx
+            -file xyz    -> Files the data into mh/data/mhsend/xyz
 
-            -log xxx     -> Logs  the data into mh/data/mhsend/xxx.log
+            -log xyz     -> Logs  the data into mh/data/mhsend/xyz.log
 
             -run         -> Runs the data as command.
 
-            -display xxx -> Displays the data.  xxx is how log to leave the display up.
+            -display xyz -> Displays the data.  xyz is how log to leave the display up.
 
             -speak       -> Speaks and displays the data.
 
-            -pwfile xxx  -> Points to a password file. 
+            -pwfile xyz  -> Points to a password file. 
 
           Usage:
             mhsend 'hi there'
@@ -3251,10 +3297,10 @@ DESCRIPTION
             -h         => This help text
             -help      => This help text
 
-            -password xxx => xxx is the password to check.
+            -password xyz => xyz is the password to check.
                              If not used, a TK popup window will prompt for it.
 
-            -pw_file xxx  => xxx is the file that the crypt-ed password is read/written to.
+            -pw_file xyz  => xyz is the file that the crypt-ed password is read/written to.
                              Default is mh/data/.password
 
           Example:
@@ -3267,803 +3313,822 @@ DESCRIPTION
           Example:
             speak "Boo, did I scare you?"
 
-    trivia
-        This will update trivia question and answer files from the specified
-        database. See mh/code/bruce/trivia.pl for an example of how to call
-        it from mh.
-
   Authentication
 
-    A one way crypt-ed password authentication scheme can be enabled for the
-    web and telnet.pl interfaces.
+        A one way crypt-ed password authentication scheme can be enabled for
+        the web and telnet.pl interfaces.
 
-    The location of the crypt-ed password is controlled with the mh.ini
-    password_file parm. The default location is in $Pgm_Root/data/.password.
+        The location of the crypt-ed password is controlled with the mh.ini
+        password_file parm. The default location is in
+        $Pgm_Root/data/.password.
 
-    If this file does not exist, the telnet.pl and web interface will be
-    enable for anyone and everyone. If it does exist, and the correct
-    password is not entered, the telnet.pl and web function will not
-    implement the requested commands.
+        If this file does not exist, the telnet.pl and web interface will be
+        enable for anyone and everyone. If it does exist, and the correct
+        password is not entered, the telnet.pl and web function will not
+        implement the requested commands.
 
-    The set_password command is used to create and check this password. If
-    you are running the un-compiled perl and do not have Tk installed, the
-    password will have to be passed in with the -password parm (set_password
-    -h for more help). This can be run from a shell prompt or with the mh
-    mh_control "set the password" command.
+        The set_password command is used to create and check this password.
+        If you are running the un-compiled perl and do not have Tk
+        installed, the password will have to be passed in with the -password
+        parm (set_password -h for more help). This can be run from a shell
+        prompt or with the mh mh_control "set the password" command.
 
-    If you want to change the password, delete the password file and rerun
-    set_password.
+        If you want to change the password, delete the password file and
+        rerun set_password.
 
-    When prompted for UserName and Password from your web browser, you can
-    leave UserName blank ... it is not used.
+        When prompted for UserName and Password from your web browser, you
+        can leave UserName blank ... it is not used.
 
-    Netscape appears to allow you to re-try a password, but MS Explorer must
-    be re-started if you want to enter a different password.
+        Netscape appears to allow you to re-try a password, but MS Explorer
+        must be re-started if you want to enter a different password.
 
   Customizing the Menu interfaces
 
-    You can nested create menus that let you query mh data or control mh
-    items or commands. You can use use any or all of these interfaces to
-    walk through menus:
+        You can nested create menus that let you query mh data or control mh
+        items or commands. You can use use any or all of these interfaces to
+        walk through menus:
 
-      Web browser:        http://localhost/sub?menu_html
-      WAP phone:          http://localhost/sub?menu_wml
-      Tellme.com phone:   http://localhost/sub?menu_vxml  
-      LCD keypads:        see mh/code/bruce/lcdproc.pl for an example
-      Audible feedback:   see mh/code/public/audible_menu.* for an example
+          Web browser:        http://localhost/sub?menu_html
+          WAP phone:          http://localhost/sub?menu_wml
+          Tellme.com phone:   http://localhost/sub?menu_vxml  
+          LCD keypads:        see mh/code/bruce/lcdproc.pl for an example
+          Audible feedback:   see mh/code/public/audible_menu.* for an example
 
-    To enable, use mh/code/test/menu.pl to read in menu files. The format of
-    the menu files is a simple text file, where each record is prefixed with
-    a record type character. Here is an example:
+        To enable, use mh/code/test/menu.pl to read in menu files. The
+        format of the menu files is a simple text file, where each record is
+        prefixed with a record type character. Here is an example:
 
-     M: Test            # Top level menu can have any name
-        D: HVAC
-        D: Lights
-     M: HVAC
-        D: Indoor temperature
-           R: At $Time_Date, the temperature is $Weather{TempIndoor}
-        D: Living fan [on,off] 
-           A: set $living_fan $state
-        D: Outdoor temperature
-           A: What is the outdoor temperature
-           R: last_response
-        D: Humidity
-           A: What is the humidity temperature
-     M: Lights
-        D: Camera [+,-,^,v]    
-           A: Camera light [on,off,+30,-30]
-           R: eval "Light $state" . chr(07) # Ring bell
-        D: Bedroom [on,off,+30,-30]
-           P: anyone
-        M: Outside
-     M: Outside
-        P: anyone
-        D: Garage Light [on,off,+30,-30]
-        D: Backyard Light [on,off,+30,-30]
+         M: Test            # Top level menu can have any name
+            D: HVAC
+            D: Lights
+         M: HVAC
+            D: Indoor temperature
+               R: At $Time_Date, the temperature is $Weather{TempIndoor}
+            D: Living fan [on,off] 
+               A: set $living_fan $state
+            D: Outdoor temperature
+               A: What is the outdoor temperature
+               R: last_response
+            D: Humidity
+               A: What is the humidity temperature
+         M: Lights
+            D: Camera [+,-,^,v]    
+               A: Camera light [on,off,+30,-30]
+               R: eval "Light $state" . chr(07) # Ring bell
+            D: Bedroom [on,off,+30,-30]
+               P: anyone
+            M: Outside
+         M: Outside
+            P: anyone
+            D: Garage Light [on,off,+30,-30]
+            D: Backyard Light [on,off,+30,-30]
 
-    These are the record types:
+        These are the record types:
 
-     M:  Menu screen
-     D:  text to Display as a menu choice
-     P:  Password bypass group
-     A:  what Action to run (either a voice cmd or code to eval)
-     R:  what Response to display. 
-         last_response will pick up the last mh response
-         If not specified, defaults to selecte state or last_response.
-         Begin with eval to eval the string first.
+         M:  Menu screen
+         D:  text to Display as a menu choice
+         P:  Password bypass group
+         A:  what Action to run (either a voice cmd or code to eval)
+         R:  what Response to display. 
+             last_response will pick up the last mh response
+             If not specified, defaults to selecte state or last_response.
+             Begin with eval to eval the string first.
 
-    The above example specifies 3 menu (M:) records that creates a Test
-    menu, with 2 submenus, HVAC and Lights.
+        The above example specifies 3 menu (M:) records that creates a Test
+        menu, with 2 submenus, HVAC and Lights.
 
-    The HVAC 'Indoor temperature' display record (D:) will respond (R:) with
-    the indoor $Weather data.
+        The HVAC 'Indoor temperature' display record (D:) will respond (R:)
+        with the indoor $Weather data.
 
-    The 'Living fan' entry will evaluate the 'set $living_fan $state' action
-    (A:) record to set the fan to the specified (on or off) state.
+        The 'Living fan' entry will evaluate the 'set $living_fan $state'
+        action (A:) record to set the fan to the specified (on or off)
+        state.
 
-    The 'Outdoor temperature' record will run a Voice_Cmd action (A:), and
-    respond with the last data printed or spoken by mh (the results of the
-    outdoor temperature command). The 'Humidity' record will also run a
-    Voice_Cmd and default to last_response.
+        The 'Outdoor temperature' record will run a Voice_Cmd action (A:),
+        and respond with the last data printed or spoken by mh (the results
+        of the outdoor temperature command). The 'Humidity' record will also
+        run a Voice_Cmd and default to last_response.
 
-    The 'Camera light' record also runs a Voice_Cmd action. To save (LCD)
-    display space, the on,off,+30,-30 Action states were renamed on the
-    Display record to +,-,^,v.
+        The 'Camera light' record also runs a Voice_Cmd action. To save
+        (LCD) display space, the on,off,+30,-30 Action states were renamed
+        on the Display record to +,-,^,v.
 
-    The 'Bedroom' record matches a Voice_Cmd exactly, so no action record is
-    required. It specifies a Password bypass group of anyone, meaning anyone
-    can run this command without having to use a password.
+        The 'Bedroom' record matches a Voice_Cmd exactly, so no action
+        record is required. It specifies a Password bypass group of anyone,
+        meaning anyone can run this command without having to use a
+        password.
 
-    The last Outside Light records are a 3rd level menu, nested under the
-    2nd level Lights menu. There are no limits to how deep you can nest
-    menus and they can appear in any order you want in the file. The same
-    menu can be a submenu of more than one other parent menu.
+        The last Outside Light records are a 3rd level menu, nested under
+        the 2nd level Lights menu. There are no limits to how deep you can
+        nest menus and they can appear in any order you want in the file.
+        The same menu can be a submenu of more than one other parent menu.
 
-    The Outside menu specifies a P: record before any items are specified,
-    so that is the default for all items on this menu, meaning anyone can
-    run the commands on this page without a password.
+        The Outside menu specifies a P: record before any items are
+        specified, so that is the default for all items on this menu,
+        meaning anyone can run the commands on this page without a password.
 
-    If you want a starting point to customize your own menus, you can find
-    an auto-generated menu for all the mh Voice_Cmds in the mh_temp.menu
-    file in your code directory. This file is re-generated on reload, so
-    copy and edit this file, then point menu.pl at your edited copy.
+        If you want a starting point to customize your own menus, you can
+        find an auto-generated menu for all the mh Voice_Cmds in the
+        mh_temp.menu file in your code directory. This file is re-generated
+        on reload, so copy and edit this file, then point menu.pl at your
+        edited copy.
 
-    You can have different sets of menus, for use with different interfaces
-    or users. For example, the default menu.pl looks like this:
+        You can have different sets of menus, for use with different
+        interfaces or users. For example, the default menu.pl looks like
+        this:
 
-        my $menu_mh   = menu_create "$config_parms{code_dir}/mh_temp.menu";
-        my $menu_test = file_read   "$config_parms{code_dir}/test.menu";
-        menu_parse $menu_test, 'default';
-        menu_parse $menu_mh,   'mh'; # This menu has all the mh voice commands
+            my $menu_mh   = menu_create "$config_parms{code_dir}/mh_temp.menu";
+            my $menu_test = file_read   "$config_parms{code_dir}/test.menu";
+            menu_parse $menu_test, 'default';
+            menu_parse $menu_mh,   'mh'; # This menu has all the mh voice commands
 
-    menu_create creates the example mh_temp.menu file for all voice commands
-    and returns it into $menu_mh. $menu_test has the test menu, similar to
-    the above example. You can specify the menu group (e.g. default or mh)
-    when calling any of the menu interface subroutines. For the above
-    menu.pl, you can point your WAP phone to:
+        menu_create creates the example mh_temp.menu file for all voice
+        commands and returns it into $menu_mh. $menu_test has the test menu,
+        similar to the above example. You can specify the menu group (e.g.
+        default or mh) when calling any of the menu interface subroutines.
+        For the above menu.pl, you can point your WAP phone to:
 
-      Either of these will get the 'default' test menu:
-        http://misterhouse.net:8080/sub?menu_wml
-        http://misterhouse.net:8080/sub?menu_wml(default)
+          Either of these will get the 'default' test menu:
+            http://misterhouse.net:8080/sub?menu_wml
+            http://misterhouse.net:8080/sub?menu_wml(default)
 
-      This will get the auto-generated 'mh' entry for all voice commands:
-        http://misterhouse.net:8080/sub?menu_wml(mh)
+          This will get the auto-generated 'mh' entry for all voice commands:
+            http://misterhouse.net:8080/sub?menu_wml(mh)
 
-    Something like this could be used to create different menus for
-    different LCD controlers:
+        Something like this could be used to create different menus for
+        different LCD controlers:
 
-      $menu_standard = read_file 'standard.menu';
-      $menu_bedroom  = read_file 'bedroom.menu';
-      $menu_living   = read_file 'living.menu';
-      $menu_all      = read_file 'all.menu';
+          $menu_standard = read_file 'standard.menu';
+          $menu_bedroom  = read_file 'bedroom.menu';
+          $menu_living   = read_file 'living.menu';
+          $menu_all      = read_file 'all.menu';
 
-      if ($Reread) {
-        menu_parse $menu_bedroom  $menu_bedroom . $menu_standard,  'bedroom';  
-        menu_parse $menu_living   $menu_living  . $menu_standard,  'living';  
-        menu_parse $menu_all      $menu_all     . $menu_living .
-                                  $menu_bedroom . $menu_standard, 'all';
-        $lcd_data{bed1}   {menu_group} = 'bedroom';
-        $lcd_data{living1}{menu_group} = 'living';
-        $lcd_data{living2}{menu_group} = 'all';
-      }
+          if ($Reread) {
+            menu_parse $menu_bedroom  $menu_bedroom . $menu_standard,  'bedroom';  
+            menu_parse $menu_living   $menu_living  . $menu_standard,  'living';  
+            menu_parse $menu_all      $menu_all     . $menu_living .
+                                      $menu_bedroom . $menu_standard, 'all';
+            $lcd_data{bed1}   {menu_group} = 'bedroom';
+            $lcd_data{living1}{menu_group} = 'living';
+            $lcd_data{living2}{menu_group} = 'all';
+          }
 
-    To test your menus, point your browser to
-    http://localhost:8080/sub?menu_html To view auto-generated menus, try
-    http://localhost:8080/sub?menu_html(mh)
+        To test your menus, point your browser to
+        http://localhost:8080/sub?menu_html To view auto-generated menus,
+        try http://localhost:8080/sub?menu_html(mh)
 
-    If you have a LCD supported by lcdproc program (
-    http://lcdproc.omnipotent.net ) (e.g. crystalfontz or matrix-orbital),
-    you can use mh/code/bruce/lcdproc.pl to display menus. Currently only
-    the linux version of lcdproc supports the keypad option on the
-    maxrix-orbital displays. Several other mh'ers are writing similar code
-    for their LCD displays.
+        If you have a LCD supported by lcdproc program (
+        http://lcdproc.omnipotent.net ) (e.g. crystalfontz or
+        matrix-orbital), you can use mh/code/bruce/lcdproc.pl to display
+        menus. Currently only the linux version of lcdproc supports the
+        keypad option on the maxrix-orbital displays. Several other mh'ers
+        are writing similar code for their LCD displays.
 
-    If you have a 24x7 internet connection, you can walk the menus with
-    either a WAP compatable cell phone, or using voice commands with any
-    phone via a Voice Portal like http://studio.tellme.com.
+        If you have a 24x7 internet connection, you can walk the menus with
+        either a WAP compatable cell phone, or using voice commands with any
+        phone via a Voice Portal like http://studio.tellme.com.
 
-    For cell phones, simply point your phone to
-    http://your_domain/sub?menu_wml. You can test your menus with a web
-    based phone simulator at http://www.yospace.com or download a phone
-    simlator from http://phone.com . Other browsers are listed at
-    http://www.palowireless.com/wap/browsers.asp , although I didn't have
-    much luck with http://www.wapsilon.com or /http://www.gelon.net .
+        For cell phones, simply point your phone to
+        http://your_domain/sub?menu_wml. You can test your menus with a web
+        based phone simulator at http://www.yospace.com or download a phone
+        simlator from http://phone.com . Other browsers are listed at
+        http://www.palowireless.com/wap/browsers.asp , although I didn't
+        have much luck with http://www.wapsilon.com or /http://www.gelon.net
+        .
 
-    Tellme.com currently offers free 1-800 access to their VR and TTS
-    engines, using vxml (Voice XML) menus. You can view the mh vxml menus by
-    pointing a XML compatable browser (e.g. IE) to this address:
+        Tellme.com currently offers free 1-800 access to their VR and TTS
+        engines, using vxml (Voice XML) menus. You can view the mh vxml
+        menus by pointing a XML compatable browser (e.g. IE) to this
+        address:
 
-       http://localhost:8080/sub?menu_vxml
+           http://localhost:8080/sub?menu_vxml
 
-    When ready to try with tellme, sign up for a free developer id, which
-    will be your extention number. I used Home0 (46630). Then you can go to
-    to my studio and enter your url:
+        When ready to try with tellme, sign up for a free developer id,
+        which will be your extention number. I used Home0 (46630). Then you
+        can go to to my studio and enter your url:
 
-       http://studio.tellme.com/mystudio/mystudio.cgi
+           http://studio.tellme.com/mystudio/mystudio.cgi
 
-       http://your_domain/sub?menu_vxml
+           http://your_domain/sub?menu_vxml
 
-    where your_domain is your domain name or ip address. To test, dial:
-    1-800-555-8965 (VXML) and enter your devloper ID and Pin. When you have
-    it working, click on the MyExtentions, enter the same URL and check the
-    enable checkbox. Now you can dial:
+        where your_domain is your domain name or ip address. To test, dial:
+        1-800-555-8965 (VXML) and enter your devloper ID and Pin. When you
+        have it working, click on the MyExtentions, enter the same URL and
+        check the enable checkbox. Now you can dial:
 
-       1-800-555-8355  (wait for 'tellme more') 1-yourextention
+           1-800-555-8355  (wait for 'tellme more') 1-yourextention
 
   Customizing the Tk Interface
 
-    You can modify what the Tk window displays by modifying the tk_frame.pl
-    and tk_widgets.pl members. tk_frame.pl controls the general layout and
-    size of the various scrolled lists. Modifying this member takes a little
-    knowledge of perl Tk.
+        You can modify what the Tk window displays by modifying the
+        tk_frame.pl and tk_widgets.pl members. tk_frame.pl controls the
+        general layout and size of the various scrolled lists. Modifying
+        this member takes a little knowledge of perl Tk.
 
-    tk_widgets.pl shows how you can add widgets to display various info and
-    allow for buttons for manual control. The mh tk_xxx subroutines used
-    here will add widgets to either the menu_bar or to the 'grid' frame
-    defined in tk_frame.pl.
+        tk_widgets.pl shows how you can add widgets to display various info
+        and allow for buttons for manual control. The mh tk_xyz subroutines
+        used here will add widgets to either the menu_bar or to the 'grid'
+        frame defined in tk_frame.pl.
 
-    Any change to tk_frame.pl or tk_widgets will be evaluated on a code
-    reload, as will the tk_geometry parm in mh.ini.
+        Any change to tk_frame.pl or tk_widgets will be evaluated on a code
+        reload, as will the tk_geometry parm in mh.ini.
 
-    tk_xxx widgets can be added anywhere in your mh code, not just the
-    tk_widgets.pl member. See the weather_monitor.pl, internet_mail.pl, and
-    tk_eye.pl members in mh/code/bruce for examples.
+        tk_xyz widgets can be added anywhere in your mh code, not just the
+        tk_widgets.pl member. See the weather_monitor.pl, internet_mail.pl,
+        and tk_eye.pl members in mh/code/bruce for examples.
 
-    The tk_xxx widgets are 'packed' into the menu_bar or grid in the order
-    that they are evaluated. You can use the 'Position' directive at the top
-    of your member.pl code to control this. Position=1 is reserved for the
-    tk_frame.pl member, as this must be evaluated first.
+        The tk_xyz widgets are 'packed' into the menu_bar or grid in the
+        order that they are evaluated. You can use the 'Position' directive
+        at the top of your member.pl code to control this. Position=1 is
+        reserved for the tk_frame.pl member, as this must be evaluated
+        first.
 
-    Note, you can also use native Perl tk commands, or create or override
-    the tk_xxx subroutines in your own code for more flexibility.
+        Note, you can also use native Perl tk commands, or create or
+        override the tk_xyz subroutines in your own code for more
+        flexibility.
 
-    For more info on the tk_xxx widgets, see look in the mh functions
-    section of this document.
+        For more info on the tk_xyz widgets, see look in the mh functions
+        section of this document.
 
   Customizing the Web Interface
 
-    You can write your own Web page interface. The examples under mh/web are
-    frame html files that dictate the shape and positions of various
-    mh-generated html frames.
-
-    You can use the html_root and html_file mh.ini parms to point to the
-    directory and default web page. The html_default parm are the member
-    names used when the URL points to a directory.
-
-    The html_style mh.ini parm points to a style sheet that will be loaded
-    for all mh-generated pages. Style sheets allow default control of colors
-    and fonts.
-
-    There are other, html_* parms in the mh.ini file to control how the
-    auto-generated html data looks. For example, you can control table sizes
-    and auto refresh rates. See the mh.ini file for more info.
-
-    If you want to enable MsAgent support, use the mh.ini
-    html_msagent_script* parm. MsAgent allows remote IE web browsers to do
-    TTS and VR on the remote box. Note, you can do this even if you are
-    running mh on a linux box as long as your remote box is running IE. To
-    enable, add the new mh.ini html_msagent_script* parms that points to a
-    mh/web file with the agent code (currently only Jeff's miniJeff agent is
-    available). Then click on the MSAgent checkbox at the top of the Web
-    menu to turn him on or off.
+        You can write your own Web page interface. The examples under mh/web
+        are frame html files that dictate the shape and positions of various
+        mh-generated html frames.
+
+        You can use the html_root and html_file mh.ini parms to point to the
+        directory and default web page. The html_default parm are the member
+        names used when the URL points to a directory.
+
+        The html_style mh.ini parm points to a style sheet that will be
+        loaded for all mh-generated pages. Style sheets allow default
+        control of colors and fonts.
+
+        There are other, html_* parms in the mh.ini file to control how the
+        auto-generated html data looks. For example, you can control table
+        sizes and auto refresh rates. See the mh.ini file for more info.
+
+        If you want to enable MsAgent support, use the mh.ini
+        html_msagent_script* parm. MsAgent allows remote IE web browsers to
+        do TTS and VR on the remote box. Note, you can do this even if you
+        are running mh on a linux box as long as your remote box is running
+        IE. To enable, add the new mh.ini html_msagent_script* parms that
+        points to a mh/web file with the agent code (currently only Jeff's
+        miniJeff agent is available). Then click on the MSAgent checkbox at
+        the top of the Web menu to turn him on or off.
 
-    IE, by default, will run each command only once, unless you change this
-    setting: Tools, Internet Options, General, Settings button on Temporary
-    Internet Files, under "Check for new versions of stored pages" select
-    the option "Every visit to the page."
-
-    The web Items and Groups displays will use icons to indicate the object
-    state. Icons will be searched for in the mh/graphics directory according
-    to the objects icon method, the object name, the object state, and the
-    object type. For example, given this code:
-
-        $fountain = new X10_Appliance('C3');
-        set_icon $fountain 'water';
-
-    The search order for the ON state will be:
-
-        water-on.gif
-        fountain-on.gif
-        x10_appliance-on.gif
-        on.gif  
-
-    The web Category display will try to match icons to Voice_Cmd objects
-    using the icon method, object name, voice command text, and filename.
-    For example, given this code from the member internet_data.pl:
+        IE, by default, will run each command only once, unless you change
+        this setting: Tools, Internet Options, General, Settings button on
+        Temporary Internet Files, under "Check for new versions of stored
+        pages" select the option "Every visit to the page."
+
+        The web Items and Groups displays will use icons to indicate the
+        object state. Icons will be searched for in the mh/graphics
+        directory according to the objects icon method, the object name, the
+        object state, and the object type. For example, given this code:
+
+            $fountain = new X10_Appliance('C3');
+            set_icon $fountain 'water';
+
+        The search order for the ON state will be:
+
+            water-on.gif
+            fountain-on.gif
+            x10_appliance-on.gif
+            on.gif  
+
+        The web Category display will try to match icons to Voice_Cmd
+        objects using the icon method, object name, voice command text, and
+        filename. For example, given this code from the member
+        internet_data.pl:
+
+         $v_set_clock = new  Voice_Cmd('Set the clock via the internet');
+         set_icon $v_set_clock 'time';
+
+        The search order will be:
+
+         Look for icons that match time
+         Look for icons that match set_clock
+         Look for icons that match words in 'Set the clock via the internet'
+         Look for icons that match internet_data.pl
+
+        All icons in the graphics directory are compared to each of the
+        above. The first match (by search order) is used. If there are
+        multiple matches, the match with the longest word is used. For
+        example, if we had icons names 'clock.gif' and 'internet.gif' (but
+        no 'time.gif'), 'internet.gif' would be used.
+
+        In all of the above examples, .gif was used as an example, but any
+        browser compatable graphics file can be used (e.g. .png and .jpg).
+        If you want to add new icons, some good sources are at
+        http://www.freegraphicland.com/ , http://www.graphsearch.com/ ,
+        http://www.add-soft.com/icons/index.html ,
+        http://www.rad.kumc.edu/icons/icons.htm and
+        http://www.engineeringplastics.com/HomeSeerIcons/
+
+        Important note: If you do play with adding/deleteing/renaming icons,
+        you will want to do a reload before refreshing your browser. The
+        icon directory is cached by mh (for efficiency). If no code has
+        changed, the reload will run very quickly.
+
+        You can use the following html addresses to have mh return
+        dynaically generated html:
+
+          /category
+            This will list all the Voice_Cmds, sorted by categories.  Categories are the member names of the 
+            user code, or the value in the Category=value field specified in the user code.
+            Items are also listed by Group, and Object Type
+
+          /list?Category
+            This can be used to list just the commands in the specified Category.
+
+          /list;h_response?Category
+            As above, but it also passes h_response to the RUN commands (see h_response below)
+
+          /group
+            This will return all the Group Items
+
+          /group?$group_name
+            This will return all the objects in $group_name
+
+          /items
+            This will return all the non Voice Objects (e.g. X10_Items)
 
-     $v_set_clock = new  Voice_Cmd('Set the clock via the internet');
-     set_icon $v_set_clock 'time';
-
-    The search order will be:
-
-     Look for icons that match time
-     Look for icons that match set_clock
-     Look for icons that match words in 'Set the clock via the internet'
-     Look for icons that match internet_data.pl
-
-    All icons in the graphics directory are compared to each of the above.
-    The first match (by search order) is used. If there are multiple
-    matches, the match with the longest word is used. For example, if we had
-    icons names 'clock.gif' and 'internet.gif' (but no 'time.gif'),
-    'internet.gif' would be used.
+          /items?object_type
+            This will return all the objects of type object_type
 
-    In all of the above examples, .gif was used as an example, but any
-    browser compatable graphics file can be used (e.g. .png and .jpg). If
-    you want to add new icons, some good sources are at
-    http://www.freegraphicland.com/ , http://www.graphsearch.com/ ,
-    http://www.add-soft.com/icons/index.html ,
-    http://www.rad.kumc.edu/icons/icons.htm and
-    http://www.engineeringplastics.com/HomeSeerIcons/
+          /widgets
+            This lists all the Tk widgets.
 
-    Important note: If you do play with adding/deleteing/renaming icons, you
-    will want to do a reload before refreshing your browser. The icon
-    directory is cached by mh (for efficiency). If no code has changed, the
-    reload will run very quickly.
-
-    You can use the following html addresses to have mh return dynaically
-    generated html:
-
-      /category
-        This will list all the Voice_Cmds, sorted by categories.  Categories are the member names of the 
-        user code, or the value in the Category=value field specified in the user code.
-        Items are also listed by Group, and Object Type
-
-      /list?Category
-        This can be used to list just the commands in the specified Category.
-
-      /list;h_response?Category
-        As above, but it also passes h_response to the RUN commands (see h_response below)
+          /widgets_label
+            This returns just the label widgets
 
-      /group
-        This will return all the Group Items
+          /widgets_entry
+            This returns just the entry widgets
 
-      /group?$group_name
-        This will return all the objects in $group_name
-
-      /items
-        This will return all the non Voice Objects (e.g. X10_Items)
+          /widgets_radiobutton
+            This returns just the radiobutton widgets
 
-      /items?object_type
-        This will return all the objects of type object_type
+          /widgets_checkbox
+            This returns just the checkbox widgets
 
-      /widgets
-        This lists all the Tk widgets.
+          /speech
+            This lists the most recently spoken text
 
-      /widgets_label
-        This returns just the label widgets
+          /print_log
+            This lists the most recently print_log text.
 
-      /widgets_entry
-        This returns just the entry widgets
+        If you want to generate your own html on-the-fly (like a cgi program
+        would), instead of pointing to a .html file or or one of the above
+        pre-defined mh-generated lists, point to a .pl file and have that
+        perl code return the desired html. Note, this currently differs from
+        how a classic cgi program would work (they return the html as
+        STDOUT). Some examples of this can be found in the mh/web/test/*.pl
+        files.
 
-      /widgets_radiobutton
-        This returns just the radiobutton widgets
+        One other note on .pl web files. You can have them use variables you
+        define in your mh user code, but only if those variables are defined
+        with "use vars '$my_var1', '$my_var2'". Variables defined with "my
+        ($my_var1, $my_var2)" are local only to the mh loop, and would not
+        be available to any web .pl program. To pass arguments to your .pl
+        file, append them to the url in normal CGI fasion after a ?. For
+        example:
+
+           http://misterhouse.net/test/test1.pl?argument1&argument2 
+
+        In addition to calling the above mh-generated html directly, you can
+        embed these lists in your own html using the server-side-include
+        syntax. If the extention on your html is .shtml (for server-side
+        html) then mh will parse the html, looking for the following string:
+
+           <!--#include file="your_directive"-->
+
+        Anytime the above string is found, it will replace that record with
+        whatever you specify in "your_directive". "your_directive" can
+        either be another html (or shtml) file, or it can be one of the
+        mh-generated lists from above. For example:
+
+          <!--#include file="/mh/other_links.html"-->
+          <!--#include file="category"-->
+          <!--#include file="/mh_default/test/test1.pl"-->
+
+        You can use an #include var= directive, like file= above except it
+        returns the contents of an mh variable. For example:
+
+          <li><b>Version:</b> <!--#include var="$Version"-->
 
-      /widgets_checkbox
-        This returns just the checkbox widgets
-
-      /speech
-        This lists the most recently spoken text
-
-      /print_log
-        This lists the most recently print_log text.
-
-    If you want to generate your own html on-the-fly (like a cgi program
-    would), instead of pointing to a .html file or or one of the above
-    pre-defined mh-generated lists, point to a .pl file and have that perl
-    code return the desired html. Note, this currently differs from how a
-    classic cgi program would work (they return the html as STDOUT). Some
-    examples of this can be found in the mh/web/test/*.pl files.
-
-    One other note on .pl web files. You can have them use variables you
-    define in your mh user code, but only if those variables are defined
-    with "use vars '$my_var1', '$my_var2'". Variables defined with "my
-    ($my_var1, $my_var2)" are local only to the mh loop, and would not be
-    available to any web .pl program. To pass arguments to your .pl file,
-    append them to the url in normal CGI fasion after a ?. For example:
-
-       http://misterhouse.net/test/test1.pl?argument1&argument2 
-
-    In addition to calling the above mh-generated html directly, you can
-    embed these lists in your own html using the server-side-include syntax.
-    If the extention on your html is .shtml (for server-side html) then mh
-    will parse the html, looking for the following string:
-
-       <!--#include file="your_directive"-->
-
-    Anytime the above string is found, it will replace that record with
-    whatever you specify in "your_directive". "your_directive" can either be
-    another html (or shtml) file, or it can be one of the mh-generated lists
-    from above. For example:
-
-      <!--#include file="/mh/other_links.html"-->
-      <!--#include file="category"-->
-      <!--#include file="/mh_default/test/test1.pl"-->
-
-    You can use an #include var= directive, like file= above except it
-    returns the contents of an mh variable. For example:
-
-      <li><b>Version:</b> <!--#include var="$Version"-->
-
-    This what is used in the mh 'About' web button to return the mh version.
-
-    You can also define your own functions in your code files to return
-    html, and then call them with the code= include directive or as a
-    h_response to a /SET or /RUN command (see below). For example, add these
-    to any of your code files:
-
-      sub web_func1 {
-         return "uptime = " . &time_diff($Time_Startup_time,$Time , undef, 'numeric');
-      }
-      sub web_func2 {
-         my ($arg1, $arg2) = @_;
-         return "results from function 2: $arg1, $arg2"; 
-      }
-
-      # Add this if you want unauthorized web access to these functions  
-      if ($Reload) {
-        $Password_Allow{'&web_func1'} = 1;
-        $Password_Allow{'&web_func2'} = 1;
-      }
-
-    Then call them like this:
-
-     <p>Test web functions
-     <!--#include code="&web_func1"-->
-     <!--#include code="&web_func2(myarg1,myarg2)"-->
-
-    Or with this:
-
-     http://localhost:8080/SET;&web_func2(myarg1,myarg2)
-
-    One useful built in function is &dir_index, which can be used to create
-    a directory listing of files in selected directories. For example, if
-    you have a web directory called pictures, create an index.shtml file,
-    and include the following line:
-
-        <!--#include code="&dir_index('/pictures','name',0)"-->
-
-    You can have &dir_index sort by name, type, size, or date. Set the 3rd
-    argument to 1 for reverse sort order. An optional 4th parameter is a
-    regular expresion that can be used to subset to matching files. See
-    mh/web/graphics/index.shtml and mh/data/email/index.shtml for examples.
-
-    If you want to have only a few specific html controls, you can write
-    your own html using the RUN and SET (or SET_VAR) url keywords to control
-    mh. Here are a few examples:
-
-     <a href=http://localhost:8080/SET?$test_lights?off >Turn the test light off</a>
-     <a href=http://localhost:8080/SET?$Save{test_input1}?abc >Load test_input1 with abc</a>
-     <a href=http://localhost:8080/RUN?WebCam_light_on >WebCam light on</a>
-
-    The SET (or SET_VAR ... they are now the same) command can set any
-    object or variable defined in your user code. The RUN command can run
-    any voice command. Use '_' to replace blanks in the command string.
-
-    SET, RUN, or SUB can use an optional h_response field to decide what
-    html will be returned:
-
-      Format:
-       SET;h_response?$object?value 
-       RUN;h_response?command
-       SUB;h_response?sub_name(arg1,arg2)
-
-      $var and $object are the variable and object names, with or without the $ prefix.
-
-      h_response is optional and can be one of the following:
-       &function        The results of &function will be returned
-       &function(args)  The results of &function(arg) will be returned
-       last_response    The last displayed or spoken text. 
-       last_response_## As above, but only the first ## characters.
-       last_displayed   The last displayed text will be returned
-       last_spoken      The last spoken item will be returned
-       filexyz.html     The contents of filexyz.html will be returned
-       string           string will be returned
-       referer          The browser will be re-directed back to the calling page
-       referer/url      The browser will be re-directed to the referer_root/url
-       &referer(url)    The browser will be re-directed to the referer_root/url.
-       http://url       The browser will be re-directed to url
-       blank:           A list of recently spoken text will be returned
-
-    Here are some examples demonstrating these options:
-
-     This returns the last spoken line:
-      <li><a href=http://localhost:8080/RUN;last_spoken?WebCam_light_on>Light on</a>
-
-     This returns the string "Thanks for playing"
-      <li><a href=http://localhost:8080/RUN;Thanks_for_playing?WebCam_light_off>Light off</a>
-
-     This returns the contents of the mh/web/test/test3.html file:
-      <li><a href=http://localhost:8080/RUN;test/test3.html?WebCam_light_+50>+50</a>
-
-     This returns a list of recently spoken text:
-      <li><a href=http://localhost:8080/RUN?WebCam_light_-50>-50</a>
-
-     This will allow for text input, using a html FORM, and returning the the results
-     form the user defined function &my_response (Note, to give anyone access to this 
-     function you will need to authorize &my_response with this in your code: 
-     $Password_Allow{'&my_response'} = 1):
-
-      HTML:
-       <form action="SET;&my_response">Test 2<input size=9 name="$test_form"></form>
+        This what is used in the mh 'About' web button to return the mh
+        version.
+
+        You can also define your own functions in your code files to return
+        html, and then call them with the code= include directive or as a
+        h_response to a /SET or /RUN command (see below). For example, add
+        these to any of your code files:
+
+          sub web_func1 {
+             return "uptime = " . &time_diff($Time_Startup_time,$Time , undef, 'numeric');
+          }
+          sub web_func2 {
+             my ($arg1, $arg2) = @_;
+             return "results from function 2: $arg1, $arg2"; 
+          }
+
+          # Add this if you want unauthorized web access to these functions  
+          if ($Reload) {
+            $Password_Allow{'&web_func1'} = 1;
+            $Password_Allow{'&web_func2'} = 1;
+          }
+
+        Then call them like this:
+
+         <p>Test web functions
+         <!--#include code="&web_func1"-->
+         <!--#include code="&web_func2(myarg1,myarg2)"-->
+
+        Or with this:
+
+         http://localhost:8080/SET;&web_func2(myarg1,myarg2)
+
+        One useful built in function is &dir_index, which can be used to
+        create a directory listing of files in selected directories. For
+        example, if you have a web directory called pictures, create an
+        index.shtml file, and include the following line:
+
+            <!--#include code="&dir_index('/pictures','name',0)"-->
+
+        You can have &dir_index sort by name, type, size, or date. Set the
+        3rd argument to 1 for reverse sort order. An optional 4th parameter
+        is a regular expresion that can be used to subset to matching files.
+        See mh/web/graphics/index.shtml and mh/data/email/index.shtml for
+        examples.
+
+        If you want to have only a few specific html controls, you can write
+        your own html using the RUN and SET (or SET_VAR) url keywords to
+        control mh. Here are a few examples:
+
+         <a href=http://localhost:8080/SET?$test_lights?off >Turn the test light off</a>
+         <a href=http://localhost:8080/SET?$Save{test_input1}?abc >Load test_input1 with abc</a>
+         <a href=http://localhost:8080/RUN?WebCam_light_on >WebCam light on</a>
+
+        The SET (or SET_VAR ... they are now the same) command can set any
+        object or variable defined in your user code. The RUN command can
+        run any voice command. Use '_' to replace blanks in the command
+        string.
+
+        SET, RUN, or SUB can use an optional h_response field to decide what
+        html will be returned:
+
+          Format:
+           SET;h_response?$object?value 
+           RUN;h_response?command
+           SUB;h_response?sub_name(arg1,arg2)
+
+          $var and $object are the variable and object names, with or without the $ prefix.
+
+          h_response is optional and can be one of the following:
+           &function        The results of &function will be returned
+           &function(args)  The results of &function(arg) will be returned
+           no_response      Tells the browser to do nothing (page is not changed).
+           last_response    The last displayed or spoken text. 
+           last_response_## As above, but only the first ## characters.
+           last_displayed   The last displayed text will be returned
+           last_spoken      The last spoken item will be returned
+           filexyz.html     The contents of filexyz.html will be returned
+           string           string will be returned
+           referer          The browser will be re-directed back to the calling page
+           referer/url      The browser will be re-directed to the referer_root/url
+           &referer(url)    The browser will be re-directed to the referer_root/url.
+           http://url       The browser will be re-directed to url
+           blank:           A list of recently spoken text will be returned
+
+        Here are some examples demonstrating these options:
+
+         This returns the last spoken line:
+          <li><a href=http://localhost:8080/RUN;last_spoken?WebCam_light_on>Light on</a>
+
+         This returns the string "Thanks for playing"
+          <li><a href=http://localhost:8080/RUN;Thanks_for_playing?WebCam_light_off>Light off</a>
+
+         This returns the contents of the mh/web/test/test3.html file:
+          <li><a href=http://localhost:8080/RUN;test/test3.html?WebCam_light_+50>+50</a>
+
+         This returns a list of recently spoken text:
+          <li><a href=http://localhost:8080/RUN?WebCam_light_-50>-50</a>
+
+         This will allow for text input, using a html FORM, and returning the the results
+         form the user defined function &my_response (Note, to give anyone access to this 
+         function you will need to authorize &my_response with this in your code: 
+         $Password_Allow{'&my_response'} = 1):
+
+          HTML:
+           <form action="SET;&my_response">Test 2<input size=9 name="$test_form"></form>
   
-      User code:
-       $test_form = new Generic_Item;
-       print_log $state if $state = state_now $test_form;
-       sub my_response {
-         return "You entered " . state $test_form;
-       }
+          User code:
+           $test_form = new Generic_Item;
+           print_log $state if $state = state_now $test_form;
+           sub my_response {
+             return "You entered " . state $test_form;
+           }
 
-     This will set a $barcode_scan Generic_Item, then display a web page 
-     that was updated by user code:
+         This will set a $barcode_scan Generic_Item, then display a web page 
+         that was updated by user code:
 
-      <FORM ACTION="SET;barcode_search.html"  target='speech'>
-      <p>Scan data into here: <INPUT SIZE=60 NAME="$barcode_scan" value=""></FORM>
+          <FORM ACTION="SET;barcode_search.html"  target='speech'>
+          <p>Scan data into here: <INPUT SIZE=60 NAME="$barcode_scan" value=""></FORM>
 
-     This will redirect the browser back to the calling page 
-     (note the $ from the $camera_light object is optional):
+         This will redirect the browser back to the calling page 
+         (note the $ from the $camera_light object is optional):
 
-      <a HREF="http://misterhouse.net:8080/SET;Referer?camera_light=on">Light on</a>
+          <a HREF="http://misterhouse.net:8080/SET;Referer?camera_light=on">Light on</a>
 
-     This will redirect the browser to mh page ia5/lights/main.shtml page:
+         This will redirect the browser to mh page ia5/lights/main.shtml page:
 
-      <a HREF="http://misterhouse.net:8080/SET;referer/ia5/lights/main.shtml?$camera_light=on">Light on</a>
- 
-     This will redirect the browser to misterhouse.net
+          <a HREF="http://misterhouse.net:8080/SET;referer/ia5/lights/main.shtml?$camera_light=on">Light on</a>
 
-      <a HREF="http://misterhouse.net:8080/SET;http://misterhouse.net?$camera_light=off">Light off</a>
+         This will redirect the browser to misterhouse.net
 
-    You can also use RUN;h_response without a command. For example, if you
-    want to get a directory listing, sorted by date (recent on top):
+          http://localhost:8080/RUN;http://misterhouse.net?test_volume_at_60
 
-      <a href=http://localhost:8080/RUN;&dir_index('/pictures','date',1)>List pictures by date </a>
+        You can also use RUN;h_response without a command. For example, if
+        you want to get a directory listing, sorted by date (recent on top):
 
-    Here is an example of using a subroutine to generate html:
+          <a href=http://localhost:8080/RUN;&dir_index('/pictures','date',1)>List pictures by date </a>
 
-       http://misterhouse.net:8080/SUB;tellme_menu(,,html)
+        Here is an example of using a subroutine to generate html:
 
-    You can also use a seperate web server (e.g. Apache or ISS) to serve
-    pages that control MisterHouse. For example:
+           http://misterhouse.net:8080/SUB;tellme_menu(,,html)
 
-      Turn lamp
-      <a href="http://localhost:8080/SET;referer?$light1?on">on</a>
-      <a href="http://localhost:8080/SET;referer?$light1?off">off</a>
+        You can also use a seperate web server (e.g. Apache or ISS) to serve
+        pages that control MisterHouse. For example:
 
-    To enable on-the-fly icons to that show current item states, add this
-    function to your code:
+          Turn lamp
+          <a href="http://localhost:8080/SET;referer?$light1?on">on</a>
+          <a href="http://localhost:8080/SET;referer?$light1?off">off</a>
 
-     sub web_icon_state {
-         my ($item) = @_;
-         my $obj   = &get_object_by_name($item);
-         my $state = $obj->state;
-         my $icon  = "$main::config_parms{html_dir}/graphics/$state.gif";
-         print "db icon=$icon s=$state i=$item\n";
-         my $image = file_read $icon;
-         return $image;
-     }
+        To enable on-the-fly icons to that show current item states, add
+        this function to your code:
 
-    Then add this to your html:
+         sub web_icon_state {
+             my ($item) = @_;
+             my $obj   = &get_object_by_name($item);
+             my $state = $obj->state;
+             my $icon  = "$main::config_parms{html_dir}/graphics/$state.gif";
+             print "db icon=$icon s=$state i=$item\n";
+             my $image = file_read $icon;
+             return $image;
+         }
 
-      <img src=http://localhost:8081/sub?web_icon_state('$light1')>
+        Then add this to your html:
+
+          <img src=http://localhost:8081/sub?web_icon_state('$light1')>
 
   Voice Recognition (VR) and Text To Speech (TTS) on windows
 
-    VR and TTS options are controlled with the Microsoft Voice application.
-    It shows up as a 'green V' in your icon tray. Right clicking on this
-    icon brings various menus for configuring your VR and TTS options.
+        VR and TTS options are controlled with the Microsoft Voice
+        application. It shows up as a 'green V' in your icon tray. Right
+        clicking on this icon brings various menus for configuring your VR
+        and TTS options.
 
-    You can pick between 3 VR modes, by right clicking on the MS Voice icon,
-    or toggle between the modes by left clicking on the icon.
+        You can pick between 3 VR modes, by right clicking on the MS Voice
+        icon, or toggle between the modes by left clicking on the icon.
 
-      - Listening for Voice Commands
+          - Listening for Voice Commands
 
-        This mode will listen to anything and everything.  You can get lots of false
-        recognition in noisy environments in this mode.
+            This mode will listen to anything and everything.  You can get lots of false
+            recognition in noisy environments in this mode.
 
-      - Not listening
+          - Not listening
 
-        In this mode, VR will be turned on only when you hold down an activation key or
-        move the mouse to a screen corner, depending on which 'Listening Mode' you
-        pick in the 'Voice Command Options' menu.
+            In this mode, VR will be turned on only when you hold down an activation key or
+            move the mouse to a screen corner, depending on which 'Listening Mode' you
+            pick in the 'Voice Command Options' menu.
 
-      - Paused listening 
+          - Paused listening 
 
-        This mode only listens for a specific trigger keyword.  If heard, then it
-        temporarily switches to normal listening mode. The trigger keyword is listed 
-        as your 'Computer Name' in the 'Voice Command Options' menu.
+            This mode only listens for a specific trigger keyword.  If heard, then it
+            temporarily switches to normal listening mode. The trigger keyword is listed 
+            as your 'Computer Name' in the 'Voice Command Options' menu.
 
-    You can improve your Voice Recognition accuracy by talking through a 10
-    minute training session. Right click on the MS Voice icon and pick
-    'Voice Command Options', then click on the 'Advanced' tab, and finally
-    click on the 'Optional Training' button.
+        You can improve your Voice Recognition accuracy by talking through a
+        10 minute training session. Right click on the MS Voice icon and
+        pick 'Voice Command Options', then click on the 'Advanced' tab, and
+        finally click on the 'Optional Training' button.
 
-    You can pick the voice and speed of the TTS by clicking on the 'Computer
-    Voice' tab on the same 'Voice Command Options' dialog.
+        You can pick the voice and speed of the TTS by clicking on the
+        'Computer Voice' tab on the same 'Voice Command Options' dialog.
 
   Voice Recognition (VR) and Text To Speech (TTS) on Unix
 
-    Need notes on how to use viavoic on linux and how to enable different
-    TTS engines with Festival.
+        Need notes on how to use viavoic on linux and how to enable
+        different TTS engines with Festival.
 
-    There is a now also a Festival lite ending that looks promising at
-    http://www.speech.cs.cmu.edu/flite/
+        There is a now also a Festival lite ending that looks promising at
+        http://www.speech.cs.cmu.edu/flite/
 
-    For vr with viavoice, use mh/code/bruce/viavoice_control.pl
+        For vr with viavoice, use mh/code/bruce/viavoice_control.pl
 
 NOTES
-    This section has info that doesn't fit well anywhere else. Probably be
-    better as a FAQ.
+        This section has info that doesn't fit well anywhere else. Probably
+        be better as a FAQ.
 
-    My hope is that mh will grow into a group project. There is so many,
-    almost unlimited possibilities in Home Automation, that no one person
-    could hope to implement them all.
+        My hope is that mh will grow into a group project. There is so many,
+        almost unlimited possibilities in Home Automation, that no one
+        person could hope to implement them all.
 
-    If you feel so inclined, please send me any code that you develop that
-    you think others might be interested in, and I'll include it in the
-    distribution.
+        If you feel so inclined, please send me any code that you develop
+        that you think others might be interested in, and I'll include it in
+        the distribution.
 
-    If you would rather see it mh in your windows tray, rather in the
-    taskbar, here is a useful utility that will let you move any program to
-    the tray: http://www.teamcti.com/TrayIt
+        If you would rather see it mh in your windows tray, rather in the
+        taskbar, here is a useful utility that will let you move any program
+        to the tray: http://www.teamcti.com/TrayIt
 
-    Another handy utility for windows 95/98 users will help you monitor how
-    much cpu and memory mh takes. TaskInfo80, available at
-    http://www.iarsn.com/index.html
+        Another handy utility for windows 95/98 users will help you monitor
+        how much cpu and memory mh takes. TaskInfo80, available at
+        http://www.iarsn.com/index.html
 
-    If you are getting the message "Out of environment space" try adding
-    these records:
+        If you are getting the message "Out of environment space" try adding
+        these records:
 
-      config.sys:   shell=command.com /e:8000 /p
-      autoexec.bat: set comspec=c:\command.com
+          config.sys:   shell=command.com /e:8000 /p
+          autoexec.bat: set comspec=c:\command.com
 
-    If you want to use a program generated list in an Item declaration, you
-    need to use add # noloop=start/stop comments before and after the code
-    that should preceed the Item. Here is an example:
+        If you want to use a program generated list in an Item declaration,
+        you need to use add # noloop=start/stop comments before and after
+        the code that should preceed the Item. Here is an example:
 
-      # noloop=start
-      my $mp3names;
-      while ( my $mp3name = <d:/library/*.m3u> )
-       {
-        $mp3name =~ s#^.*/##;  # remove path
-        $mp3name =~ s#\..*$##; # remove extension
-        $mp3names .= "," if $mp3names;
-        $mp3names .= $mp3name;
-       }
-      # noloop=stop
+          # noloop=start
+          my $mp3names;
+          while ( my $mp3name = <d:/library/*.m3u> )
+           {
+            $mp3name =~ s#^.*/##;  # remove path
+            $mp3name =~ s#\..*$##; # remove extension
+            $mp3names .= "," if $mp3names;
+            $mp3names .= $mp3name;
+           }
+          # noloop=stop
 
-      $v_play_music = new Voice_Cmd("Play [$mp3names]");
-      if ($state = said $v_play_music) {
-        ... more code here ...
+          $v_play_music = new Voice_Cmd("Play [$mp3names]");
+          if ($state = said $v_play_music) {
+            ... more code here ...
 
-    If you want to have a user defined function called once perl loop, but
-    you want it before or after all the other user code has been called, use
-    the &MainLoop_pre_add_hook and &MainLoop_post_add_hook functions to add
-    callbacks to your functions. For example:
+        If you want to have a user defined function called once perl loop,
+        but you want it before or after all the other user code has been
+        called, use the &MainLoop_pre_add_hook and &MainLoop_post_add_hook
+        functions to add callbacks to your functions. For example:
 
-      $v_hook_pre_add   = new Voice_Cmd 'Add  pre  code hook';
-      $v_hook_pre_drop  = new Voice_Cmd 'Drop pre  code hook';
-      $v_hook_post_add  = new Voice_Cmd 'Add  post code hook';
-      $v_hook_post_drop = new Voice_Cmd 'Drop post code hook';
+          $v_hook_pre_add   = new Voice_Cmd 'Add  pre  code hook';
+          $v_hook_pre_drop  = new Voice_Cmd 'Drop pre  code hook';
+          $v_hook_post_add  = new Voice_Cmd 'Add  post code hook';
+          $v_hook_post_drop = new Voice_Cmd 'Drop post code hook';
 
-      &MainLoop_pre_add_hook(  \&test_hook_pre)  if said $v_hook_pre_add;
-      &MainLoop_pre_drop_hook( \&test_hook_pre)  if said $v_hook_pre_drop;
-      &MainLoop_post_add_hook( \&test_hook_post) if said $v_hook_post_add;
-      &MainLoop_post_drop_hook(\&test_hook_post) if said $v_hook_post_drop;
+          &MainLoop_pre_add_hook(  \&test_hook_pre)  if said $v_hook_pre_add;
+          &MainLoop_pre_drop_hook( \&test_hook_pre)  if said $v_hook_pre_drop;
+          &MainLoop_post_add_hook( \&test_hook_post) if said $v_hook_post_add;
+          &MainLoop_post_drop_hook(\&test_hook_post) if said $v_hook_post_drop;
 
-      sub test_hook_pre  { print "<"; }
-      sub test_hook_post { print ">"; }
+          sub test_hook_pre  { print "<"; }
+          sub test_hook_post { print ">"; }
 
-    If you want your hook code to last between code reloads (e.g. added by
-    startup code from a module), set 2nd argument to 'persistent' (a value
-    of 1 will also work ... grandfathered in for old code). For example:
+        If you want your hook code to last between code reloads (e.g. added
+        by startup code from a module), set 2nd argument to 'persistent' (a
+        value of 1 will also work ... grandfathered in for old code). For
+        example:
 
-      &main::MainLoop_post_drop_hook( \&jabber::process, 'persistent' );
+          &main::MainLoop_post_drop_hook( \&jabber::process, 'persistent' );
 
-    If you want that hook to run first, before all other hooks of that type,
-    set the 2nd argument to 'first', or 'persisent_first'. Otherwise the
-    hook is pushed to the end of the list, so it is run in the order the
-    hooks were added.
+        If you want that hook to run first, before all other hooks of that
+        type, set the 2nd argument to 'first', or 'persisent_first'.
+        Otherwise the hook is pushed to the end of the list, so it is run in
+        the order the hooks were added.
 
-    Here is a list of all the code hook locations:
+        Here is a list of all the code hook locations:
 
-      MainLoop_pre   => Run before user code 
-      MainLoop_post  => Run before user code 
-      Serial_match   => Run when incoming serial data matches and object
-      State_change   => Run when objects change states
-      Play_pre       => Run before playing wav files
-      Play_post      => Run after  playing wav files
-      Speak_pre      => Run before speaking text files
-      Speak_post     => Run after  speaking text files
+          MainLoop_pre   => Run before user code 
+          MainLoop_post  => Run before user code 
+          Serial_match   => Run when incoming serial data matches and object
+          State_change   => Run when objects change states
+          Play_pre       => Run before playing wav files
+          Play_post      => Run after  playing wav files
+          Speak_pre      => Run before speaking text files
+          Speak_post     => Run after  speaking text files
 
-    For more examples on code hooks, see mh/code/bruce/test_code_hooks.pl
+        For more examples on code hooks, see
+        mh/code/bruce/test_code_hooks.pl
 
 KNOWN LIMITATIONS AND BUGS
   General bugs/limitations
 
-    The JDS and Marrick interface modules are untested.
+        The JDS and Marrick interface modules are untested.
 
-    mh also has the the 'windows 49.7 day bug' (2**32 milliseconds) that has
-    been in the news lately:
-    http://www.news.com/News/Item/0,4,33117,00.html?st.ne.ni.rel .
+        mh also has the the 'windows 49.7 day bug' (2**32 milliseconds) that
+        has been in the news lately:
+        http://www.news.com/News/Item/0,4,33117,00.html?st.ne.ni.rel .
 
-    Under windows, TK windows do not get focus and some keys and shortcuts
-    do not work. Worse yet, the 'tear off' line (the dashed line on the pull
-    down menus) causes mh to hang. Perl/tk on unix does not have either of
-    these problems. Hopefully this will get fixed in a future release of
-    perl/Tk. Note: if you have an old perl/tk (older than 8.0012), things
-    are even more messed up.
+        Under windows, TK windows do not get focus and some keys and
+        shortcuts do not work. Worse yet, the 'tear off' line (the dashed
+        line on the pull down menus) causes mh to hang. Perl/tk on unix does
+        not have either of these problems. Hopefully this will get fixed in
+        a future release of perl/Tk. Note: if you have an old perl/tk (older
+        than 8.0012), things are even more messed up.
 
   Windows bugs/limitations
 
-    If 'run' calls give you an 'out of environment memory' error, create a
-    command.pif and change the memory, initial environment from auto to 4k.
+        If 'run' calls give you an 'out of environment memory' error, create
+        a command.pif and change the memory, initial environment from auto
+        to 4k.
 
-    Activestate perl 5.6 build 613 and 616 leaks memory on windows. On my
-    box about 30 Meg, once a day. Displaying .gif and .jpg files also leaks
-    about 10x the picture size (e.g 10 50k photos -> 5 meg).
+        Activestate perl 5.6 build 613 and 616 leaks memory on windows. On
+        my box about 30 Meg, once a day. Displaying .gif and .jpg files also
+        leaks about 10x the picture size (e.g 10 50k photos -> 5 meg).
 
-    Adding, deleting, or changing Voice commands does is not recognized by
-    the Windows MSVoice application while it is running. You have to exit
-    and restart MSVoice, then restart mh to get it to recognize new
-    commands. Hopefully we can get this to work with release 5.0 of the MS
-    Speech SDK.
+        Adding, deleting, or changing Voice commands does is not recognized
+        by the Windows MSVoice application while it is running. You have to
+        exit and restart MSVoice, then restart mh to get it to recognize new
+        commands. Hopefully we can get this to work with release 5.0 of the
+        MS Speech SDK.
 
-    If you have perl installed, you may get this message:
+        If you have perl installed, you may get this message:
 
-      Can't find 'boot_IO' symbol ...
+          Can't find 'boot_IO' symbol ...
 
-    The problem is there are two different IO.DLL files, one in the FTP
-    module and one in the TK module. Do a find in IO.DLL in your perl
-    directory, and rename the one in the tk path.
+        The problem is there are two different IO.DLL files, one in the FTP
+        module and one in the TK module. Do a find in IO.DLL in your perl
+        directory, and rename the one in the tk path.
 
   Unix bugs/limitations
 
-    Voice Recognition IS supported under linux using IBM's ViaVoice SDK.
-    Potential candidates for VR engines other non-linux unix platforms are:
+        Voice Recognition IS supported under linux using IBM's ViaVoice SDK.
+        Potential candidates for VR engines other non-linux unix platforms
+        are:
 
-         http://www.speech.cs.cmu.edu/sphinx/
-         http://cslu.cse.ogi.edu/index.html 
-         http://WWW.ISIP.MsState.Edu/projects/speech_recognition/
-         http://www.tmt.de/~stephan/ears.html
+             http://www.speech.cs.cmu.edu/sphinx/
+             http://cslu.cse.ogi.edu/index.html 
+             http://WWW.ISIP.MsState.Edu/projects/speech_recognition/
+             http://www.tmt.de/~stephan/ears.html
 
-    Disk drive info (need to port from DriveInfo to df)
+        Disk drive info (need to port from DriveInfo to df)
 
-    Linux KDE users should uncheck "Apply fonts and colors to non-KDE apps",
-    or the black text on white windows shows up as white text.
+        Linux KDE users should uncheck "Apply fonts and colors to non-KDE
+        apps", or the black text on white windows shows up as white text.
 
 AUTHORS
-    Bruce Winter: bruce@misterhouse.net , http://winters.ws
+        Bruce Winter: bruce@misterhouse.net , http://winters.ws
 
 SEE ALSO
-    mh can be download from http://misterhouse.net:81
+        mh can be download from http://misterhouse.net:81
 
-    Here is a list of articles written about MisterHouse:
+        Here is a list of articles written about MisterHouse:
 
-      http://www.hometoys.com/htinews/jun99/articles/winter/winter.htm
+          http://www.hometoys.com/htinews/jun99/articles/winter/winter.htm
 
-      http://linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html
+          http://linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html
 
-      http://www.faribault.k12.mn.us/brian/aprs/
+          http://www.faribault.k12.mn.us/brian/aprs/
 
-      http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf
+          http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf
 
-      http://www.itknowledge.com/tpj/issues/vol5_1/tpj0501-0006.html
-        (User login to The Perl Journal is required)
+          http://www.itknowledge.com/tpj/issues/vol5_1/tpj0501-0006.html
+            (User login to The Perl Journal is required)
 
-    The Circuit Cellar Ink article includes a diagram of how to set up a
-    house PA system, so you can control which rooms MisterHouse talks to.
+        The Circuit Cellar Ink article includes a diagram of how to set up a
+        house PA system, so you can control which rooms MisterHouse talks
+        to.
 
-    You can suscribe and/or view the mailing list at
-    http://sourceforge.net/mail/?group_id=1365 You can view the archive at
-    http://lists.sourceforge.net/pipermail/misterhouse-users/ and search it
-    at http://lists.sourceforge.net/mailman/listinfo/misterhouse-users
+        You can suscribe and/or view the mailing list at
+        http://sourceforge.net/mail/?group_id=1365 You can view the archive
+        at http://lists.sourceforge.net/pipermail/misterhouse-users/ and
+        search it at
+        http://lists.sourceforge.net/mailman/listinfo/misterhouse-users
 
-    An older list with a searchable archive at <a
-    href=http://www.onelist.com/messages/MisterHouse>here</a>).
+        An older list with a searchable archive at <a
+        href=http://www.onelist.com/messages/MisterHouse>here</a>).
 
-    Jan Dubois has a fun page of other ticks you can do with perl on windows
-    at
-    http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.html
+        Jan Dubois has a fun page of other ticks you can do with perl on
+        windows at
+        http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.ht
+        ml
 
-    The comp.home.automation newsgroup is another handy resource, especially
-    for X10 related questions.
+        The comp.home.automation newsgroup is another handy resource,
+        especially for X10 related questions.
 
-    Neil Cherry has created a home for linux related Home Automation
-    programs at http://linuxha.sourceforge.net . This project is developing
-    daemons for various interfaces (e.g. ADI Ocelot, CPUXA, and HCS II) that
-    hopefully we can then link to with mh.
+        Neil Cherry has created a home for linux related Home Automation
+        programs at http://linuxha.sourceforge.net . This project is
+        developing daemons for various interfaces (e.g. ADI Ocelot, CPUXA,
+        and HCS II) that hopefully we can then link to with mh.
 
-    Rene Mueller has a nice set of web pages with lots of info on
-    HomeAppliances at http://the-labs.com/HomeNetwork/
+        Rene Mueller has a nice set of web pages with lots of info on
+        HomeAppliances at http://the-labs.com/HomeNetwork/
 
 COPYRIGHT
-    Copyright (C) 1998-2001 Bruce Winter. All rights reserved.
+        Copyright (C) 1998-2001 Bruce Winter. All rights reserved.
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU public license.
+        This program is free software; you can redistribute it and/or modify
+        it under the terms of the GNU public license.
 
 DISCLAIMER
-    This program will most likely not cause your house to self destruct, but
-    if it does, please don't call my lawyer. Actually, I suppose you could
-    try to call my lawyer, since I don't have one I don't think you will get
-    too far (grin).
+        This program will most likely not cause your house to self destruct,
+        but if it does, please don't call my lawyer. Actually, I suppose you
+        could try to call my lawyer, since I don't have one I don't think
+        you will get too far (grin).
 

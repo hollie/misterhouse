@@ -245,6 +245,7 @@ without having to wait for the 500+ millisecond time it takes
 to transmit data over the powerline. 
 
 Another supported X10 interface is the Marrick Lynx10-PLC controller: http://www.marrickltd.com/LynX105.htm
+See mh/lib/Lynx10PLC.pm
 
 A nice summary of the different X10 controlers is here:
 http://www.geocities.com/ido_bartana/Which_controller.html
@@ -252,6 +253,9 @@ http://www.geocities.com/ido_bartana/Which_controller.html
 Europeans can get X10 stuff from  http://www.intellihome.be , 
 http://www.hwg-telekom.de , http://www.digihouse.com.au , http://www.eon3.com, 
 www.madomotique.com, www.letsautomate.com, and www.laser.com .
+
+Many X10 noise issues can be solved with the  LEVHCA02 repeater and bridge, available
+here for $65: http://www.worthdist.com/Leviton/hca02-10e.htm 
 
 Weeder Technologies, http://www.weedtech.com , offers the following kits
 priced from $30 to $50 each.  All of these kits can share the same serial port:
@@ -359,7 +363,11 @@ http://wx200.planetfall.com/  and  http://www.weatherwatchers.org/wxstation/WX-2
 $200->$300 at Radio Shack or $200 from http://www.heartlandamerica.com (search for weather, model WW22- 3350).
 See mh/lib/Weather_wx200* for info on interface code.
 
-There is also now a new WMR-918, which is a wireless version, available for about $350.  An mh interface is being worked on.
+There is also now a new WMR-918/968/Radio Shack Accuweather, which is a wireless version, available for about $350.  
+See mh/code/public/weather_monitor_wmr968.pl.
+
+See weather_monitor_ultimeter2000.pl for an example of interfacing to the 
+Peet Bros. Ultimeter200 weather station: http://www.peetbros.com
 
 iButton is a family of devices that can all talk to a '1 wire' interface.
 Here are some urls and prices:
@@ -872,6 +880,22 @@ The first 2 characters are the iButton family type.  Here is a list of family ty
        run_voice_cmd 'Read the iButton temperature 2' if $Second == 22;
     }
 
+
+=item HVweb_Item
+
+This object allows control of Homevision controller via the Homevision web server.
+Set homevision_url=<your homevision web server url> in mh.ini.
+See the Homevision documentation for complete list of command formats.
+Configure Homevision Webserver to report command results.
+
+  Examples:
+     $kitchen_light    =  new HVweb_Item('On',    'X10 G1 On');
+     $kitchen_light    -> add           ('Off',   'X10 G1 Off');
+     $vcr              =  new HVweb_Item('Power', 'IR 45 1 time');
+     $vcr              -> add           ('Play',  'IR 46 1 time');
+
+     set $kitchen_light 'On';
+     set $vcr 'Play';
 
 
 =item IR_Item
@@ -1912,6 +1936,12 @@ Use this to play wave or system sound files.  There are 2 modes of calling it:
      play(option => 'value', file => $file_name);
 
      Options are:
+       address => 'ip_address' Use this to push wav files to 
+                               remote computers that are enabled to received
+                               pushed wav files (e.g. Audreys).  Configure 
+                               with the mh.ini parm voice_text_address_code.
+                               Can be a comma delimited list of addresses.
+
        rooms => 'room_names'  You need to code a &Play_pre_add_hook to enable this.
                               See mh/code/bruce/pa_control for an example.
        volume=> dd            How loud (dd = 0->100).  
@@ -1957,6 +1987,8 @@ Sounds menu to change their associated wav files:
      play(file => 'SystemAsterisk') if $Reload;
 
      play "fun/*.wav" if time_cron '* 9 * * 6';
+
+     play address => '192.168.0.82,kitchen', file => '../sounds/hello_from_bruce.wav';
 
 
 =item print_log
@@ -2111,16 +2143,33 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
      speak(option => 'value', text => 'text to speak');
     
      Options are:
-       rooms  => 'room_names'  You need to code a &Speak_pre_add_hook to enable
+       address => 'ip_address' Use this to push TTS synthesized wav files to 
+                               remote computers that are enabled to received
+                               pushed wav files (e.g. Audreys).  Configure 
+                               with the mh.ini parm voice_text_address_code.
+                               Can be a comma delimited list of addresses.
+
+       rooms   => 'room_names' You need to code a &Speak_pre_add_hook to enable
                                this.  See mh/code/bruce/pa_control for an example.
 
-       mode   => 'unmuted' Forces speech, even in mute and offline mode
+       mode    => 'unmuted' Forces speech, even in mute and offline mode
 
-     These options are for the Festival speech engine (but don't work yet):
+
+     These options are for the unix Festival speech engine (but don't work yet):
        rate   => '+-nn%'       (e.g. +10% or -30%)
        voice  => 'name' 
 
-     These options are currently for the MS TTS engine only.
+
+     These are for unix IBM ViaVoice TTS engine (mh.ini sound_program=vv_tts):
+       default_volume xyz => default volume when -volume not set
+       volume xyz         => volume setting for both play and voice unless specified
+       voice_volume xyz   => voice volume setting
+       voice xyz          => voice #
+       nomixer            => do not use built in mixer support
+       play        xyz    => play's sound file xyz
+
+
+     These options are currently for the windows MS TTS engine only.
        mode   => any of the following
         stop, pause, resume, rewind, fastforward, slow, normal, fast, dd
 
@@ -2166,6 +2215,8 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
     speak 'mode=unmuted  The front door just opened';
     speak mode => 'pause';
     speak mode => 'resume', rate => 120;
+
+    speak "address=bedroom,kitchen Wake up or die!";
  
     speak "Now I am really, <pitch absmiddle='10'/>really excited!"
 
@@ -2659,6 +2710,7 @@ To run commands via email, see FAQ question 2.12: Can do I send mh comands via e
         port        Default is 25 or  parm net_mail_ACCOUNT_server_send_port
         from        Default is mh.ini parm net_mail_ACCOUNT_address
         to          Default is mh.ini parm net_mail_ACCOUNT_address
+                    This can be a comma or semicolon delimited list of addresses
 
         account     This is the ACCOUNT field used in finding the above parms.
                     It defaults to the mh.ini parm net_mail_send_account.
@@ -2682,6 +2734,8 @@ To run commands via email, see FAQ question 2.12: Can do I send mh comands via e
     net_mail_send(text => "Test email sent at $Time_Now\n\n");
 
     net_mail_send(account => 'Bruce', to => 'winter@misterhouse.net', text => $msg);
+
+    net_mail_send to => 'winter@misterhouse.net,santa@claus.net', text => 'hiho';
 
     net_mail_send(subject => 'test an html file attachement',
                   baseref => 'localhost:8080',
@@ -2753,9 +2807,9 @@ most of these programs with the -h option (e.g. get_tv_grid -h).
 
       -h              => This help text
       -help           => This help text
-      -name xxx       => name of recipient (must be defined in mh.ini)
-      -pin xxx        => pin number
-      -message xxx    => text of message to send
+      -name xyz       => name of recipient (must be defined in mh.ini)
+      -pin xyz        => pin number
+      -message xyz    => text of message to send
 
   Example:
     alpha_page -pin 123456 -message 'Bring home bread and milk'
@@ -2801,9 +2855,9 @@ Use this to display a string of text or the contents of a file using a Tk window
      display -options  text_or_file
 
   Options:
-    -time  xxx to have the window auto-close in xxx seconds.  Set to 0 for no auto-close.
-    -font  xxx to pick the font
-    -title xxx to set the window title
+    -time  xyz to have the window auto-close in xyz seconds.  Set to 0 for no auto-close.
+    -font  xyz to pick the font
+    -title xyz to set the window title
 
   Examples:
     display weather_forcast.txt
@@ -2861,28 +2915,6 @@ Requires WMI to be installed on both/all computers.
     find_programs "house,dm,c2" quake
     find_programs -all "house,dm,c2"
 
-
-
-=item get_ceiva
-
-get_ceiva gets pictures from the 'now showing' folder of a Ceiva.com web page.
-
-  Usage: 
-   get_ceiva [options]
-
-    -h        => This help text
-
-    -username xyz => xyz is a ceiva member name
-    -password xyz => xyz is a ceiva password
-    -frame_id xyz => xyz is a ceiva frame_id
-
-    -outdir xyz   => xyz the directory the pictures will be put in
-    -browser xyz  => xyz is the path to your html browser
-    -reget        => Re-fetch the files, even if they look current
-
-  Examples:
-    get_ceiva -outdir /pictures/ceiva
-    get_ceiva -reget
 
 
 =item get_email
@@ -3128,12 +3160,12 @@ get_weather gets weather info NOAA web servers.
     -h         => This help text
     -help      => This help text
 
-    -city     xxx => xxx is the City  you want.
-    -state    xxx => xxx is the State you want.
+    -city     xyz => xyz is the City  you want.
+    -state    xyz => xyz is the State you want.
 
-    -data     xxx => xxx is either conditions, forecast, or all.  Default is all.
+    -data     xyz => xyz is either conditions, forecast, or all.  Default is all.
 
-    -refresh  xxx => xxx is the number of minutes old the cached data can
+    -refresh  xyz => xyz is the number of minutes old the cached data can
                      before it will be refreshed from the net. 
                      The default is 60 minutes.
 
@@ -3323,17 +3355,17 @@ or run.  The data processed by mh/code/test/mhsend_server.pl
 
   The following flags control what the companion mh server.pl code does:
 
-    -file xxx    -> Files the data into mh/data/mhsend/xxx
+    -file xyz    -> Files the data into mh/data/mhsend/xyz
 
-    -log xxx     -> Logs  the data into mh/data/mhsend/xxx.log
+    -log xyz     -> Logs  the data into mh/data/mhsend/xyz.log
 
     -run         -> Runs the data as command.
 
-    -display xxx -> Displays the data.  xxx is how log to leave the display up.
+    -display xyz -> Displays the data.  xyz is how log to leave the display up.
 
     -speak       -> Speaks and displays the data.
 
-    -pwfile xxx  -> Points to a password file. 
+    -pwfile xyz  -> Points to a password file. 
 
   Usage:
     mhsend 'hi there'
@@ -3424,10 +3456,10 @@ To reset the password, delete the mh/data/.password file.
     -h         => This help text
     -help      => This help text
 
-    -password xxx => xxx is the password to check.
+    -password xyz => xyz is the password to check.
                      If not used, a TK popup window will prompt for it.
 
-    -pw_file xxx  => xxx is the file that the crypt-ed password is read/written to.
+    -pw_file xyz  => xyz is the file that the crypt-ed password is read/written to.
                      Default is mh/data/.password
 
   Example:
@@ -3628,21 +3660,21 @@ You can modify what the Tk window displays by modifying the tk_frame.pl and tk_w
 the general layout and size of the various scrolled lists.  Modifying this member takes a little knowledge of perl Tk.  
 
 tk_widgets.pl shows how you can add widgets to display various info and allow for buttons for manual control.  The mh
-tk_xxx subroutines used here will add widgets to either the menu_bar or to the 'grid' frame defined in tk_frame.pl.
+tk_xyz subroutines used here will add widgets to either the menu_bar or to the 'grid' frame defined in tk_frame.pl.
 
 Any change to tk_frame.pl or tk_widgets will be evaluated on a code reload, as will the tk_geometry parm in mh.ini.
 
-tk_xxx widgets can be added anywhere in your mh code, not just the tk_widgets.pl member.  See the weather_monitor.pl, 
+tk_xyz widgets can be added anywhere in your mh code, not just the tk_widgets.pl member.  See the weather_monitor.pl, 
 internet_mail.pl, and tk_eye.pl members in mh/code/bruce for examples.
 
-The tk_xxx widgets are 'packed' into the menu_bar or grid in the order that they are evaluated.  You can use the
+The tk_xyz widgets are 'packed' into the menu_bar or grid in the order that they are evaluated.  You can use the
 'Position' directive at the top of your member.pl code to control this.  Position=1 is reserved for the tk_frame.pl
 member, as this must be evaluated first.
 
-Note, you can also use native Perl tk commands, or create or override the tk_xxx subroutines in your own code for more
+Note, you can also use native Perl tk commands, or create or override the tk_xyz subroutines in your own code for more
 flexibility.
 
-For more info on the tk_xxx widgets, see look in the mh functions section of this document.
+For more info on the tk_xyz widgets, see look in the mh functions section of this document.
 
 
 =head2 Customizing the Web Interface
@@ -3864,6 +3896,7 @@ SET, RUN, or SUB can use an optional h_response field to decide what html will b
   h_response is optional and can be one of the following:
    &function        The results of &function will be returned
    &function(args)  The results of &function(arg) will be returned
+   no_response      Tells the browser to do nothing (page is not changed).
    last_response    The last displayed or spoken text. 
    last_response_## As above, but only the first ## characters.
    last_displayed   The last displayed text will be returned
@@ -4210,6 +4243,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.50  2002/01/19 21:11:11  winter
+# - 2.63 release
+#
 # Revision 1.49  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

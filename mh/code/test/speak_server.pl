@@ -89,11 +89,11 @@ if (my ($name, $name_short) = net_domain_name_done 'server_speak') {
 #           $msg = "Internet message: $msg" if $msg;
         }
 
-        &speak(to_file => "$config_parms{data_dir}/speak_server.wav", text => $msg);
+        &speak(to_file => "$config_parms{html_dir}/speak_server.wav", text => $msg);
 
         my $html;
         ($html = $msg) =~ s/\n/\n<br>/g;
-        $html .=  "\n<br><EMBED SRC='http://misterhouse.net:8080/data/speak_server.wav' WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
+        $html .=  "\n<br><EMBED SRC='http://misterhouse.net:8080/speak_server.wav' WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
 
         set $speak_server &html_page("", "<h3>The Message spoken:</h3>$html");
 

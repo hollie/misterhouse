@@ -261,52 +261,19 @@ also try the CPAN installer like this:</P>
 <P>
 <H2><A NAME="unix step 3, download and install a speech engines">UNIX Step 3, Download and Install a Speech Engines</A></H2>
 <P>You can skip this step if you do not want to enable VR or TTS.</P>
-<P>The IBM ViaVoice Voice Recognition engine is available at
-<A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A> .
-You don't need the VR dictation, so just download the smaller 'Command &amp; Control Run Time Kit'.</P>
-<P>After downloading, install viavoice by running (as root) run tar -xf viavoice_sdk_rtk_2.tar and then  
-follow the tar file readme.txt instructions.  Note for our usage, you will not need
-any of the gui menus, so if rpm tells you that you have down level or missing libraries (e.g. libgdk),
-you can probably ignore that by adding the rpm --nodeps option.</P>
-<P>As the readme.txt instructions state, you should probably run the viavoice code as non-root.
-Here is one way to allow non-root access to the microphone:</P>
-<PRE>
-  chmod go+rw /dev/dsp*
-  chmod go+rw /dev/audio*</PRE>
-<P>The viavoice SDK FAQ can be found here at
-<A HREF="http://www-4.ibm.com/software/speech/dev/faq_linux.html">http://www-4.ibm.com/software/speech/dev/faq_linux.html</A> .
-It includes suggestion on what to do if you get rc=90 when you start viavoice_server (you must first enroll that id).
-The faq also covers how you can move training files and non-English from the (non-free) windows version.</P>
-<P>After running the rpm commands, you can find other documentation in 
-/usr/doc/Viavoice.
-bpreadme.txt shows how to use the /usr/lib/ViaVoice/bin/buildpol tool to 
-improve accuracy on words using phonetic spelling.
-Section 2 of the skreadme.txt file details how to 
-create a speech and entrollment ids.  Here is an example of the commands
-that I used (as user id bruce, not root):</P>
-<PRE>
-  /usr/bin/vvsetenv 
-  /usr/lib/ViaVoice/bin/vvuseradm -newuser -userid bruce
-  /usr/lib/ViaVoice/bin/vvuseradm -newenrollid -userid bruce -enrollid bruceid
-  /usr/lib/ViaVoice/bin/vvuseradm -userid bruce -enrollid bruceid -setdefault</PRE>
-<P>Lastly, run the /usr/bin/audiog program (requires motif or lesstif from lesstif.org to be installed)
-to set volume and recording levels, and viavoice is installed.
-You may want to also use a program like xmixer to select what the sound source is if, for example,
-you want to monitor the line input instead of or in addition to the mike input.</P>
-<P>To enable viavoice from mh, set the viavoice parms in the mh.ini file, run mh/bin/viavoice_server_start, then 
-start mh.</P>
-<P>The IBM ViaVoice Outload TTS engine for Linux can also be downloaded from the above IBM sdk url.
-To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
-<A HREF="http://www.reednet.org/ViaVoiceTTS">http://www.reednet.org/ViaVoiceTTS</A>  , then set your mh.ini voice_text=vv_tts .</P>
+<P>The simplest and fastest TTS engine is flite, availale from <A HREF="http://www.speech.cs.cmu.edu/flite">http://www.speech.cs.cmu.edu/flite</A> .
+After compiling, simply copy the flite binary to mh/bin and set voice_text = flite.</P>
 <P>The Festival Speech engine is available from
 <A HREF="http://www.cstr.ed.ac.uk/projects/festival/download.html">http://www.cstr.ed.ac.uk/projects/festival/download.html</A> .
 There are various voices and languages available.  Compiling Fesitval can be a little tricky, 
 so if you can, you will probably want to use the RPM files.</P>
 <P>Once you have downloaded in and installed or compiled Festival, you can test it with the following commands:</P>
 <PRE>
-  echo 'Hello from Festival' | festival --tts 
-  festival --server &amp;
-  echo '(SayText &quot;Hello from the festival client&quot;)' | festival_client</PRE>
+  echo 'Hello from Festival' | ./festival --tts 
+  ./festival --tts ../examples/example.sable</PRE>
+<PRE>
+  ./festival --server &amp;
+  echo '(SayText &quot;Hello from the festival client&quot;)' | ./festival_client</PRE>
 <P>You can also run the client, or a simple telnet, from a different box, but you first have to create 
 a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to give authority to.  (e.g. 
 (set! server_access_list '(``localhost'' ``house\\.isl\\.net''))  ).  See the festival documentation for more details.</P>
@@ -314,6 +281,44 @@ a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to
 <A HREF="http://tcts.fpms.ac.be/synthesis/mbrola.html">http://tcts.fpms.ac.be/synthesis/mbrola.html</A> 
 that has a very nice US english male and female voice.</P>
 <P>Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.</P>
+<P>The IBM ViaVoice Outload TTS engine for Linux is available from
+<A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A>
+To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
+<A HREF="http://www.reednet.org/ViaVoiceTTS">http://www.reednet.org/ViaVoiceTTS</A>  , then set your mh.ini voice_text=vv_tts or voice_text=viavoice
+(vv_tts is a bit fancier, queing up speech and has more mh.ini options).</P>
+<P>The IBM ViaVoice Voice Recognition engine is also available from
+<A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A> .
+Download and install (as root) these 2 rpms:
+</P>
+<PRE>
+
+  tar -xvf viavoice_asr_sdk_3.tar  ( 3 MB)
+  tar -xvf viavoice_dict_rtk_3.tar (78 MB)
+  rpm -ivh ViaVoice_runtime-3.0-1.2.i386.rpm
+  rpm -ivh ViaVoice-sdk-3.0-1.1.i386.rpm</PRE>
+<P>Note for our usage, you can get by without 
+the gui menus, so if rpm tells you that you have down level or missing libraries (e.g. libgdk),
+you can probably ignore that by adding the rpm --nodeps option.</P>
+<P>As the *.txt instructions from the tar file state, you should probably run the viavoice code as non-root.
+Here is one way to allow non-root access to the microphone:</P>
+<PRE>
+  chmod go+rw /dev/dsp*
+  chmod go+rw /dev/audio*</PRE>
+<P>Documentation is in /usr/doc/ViaVoice and test/example code is in /usr/lib/ViaVoice/samples.
+/usr/doc/ViaVoice/rt.readme.txt suggests creating a new userid with this java app:</P>
+<PRE>
+ /usr/bin/vvstartuserguru</PRE>
+<P>If that doesn't work, you can add a user with this command:</P>
+<PRE>
+  source /usr/bin/vvsetenv 
+  /usr/lib/ViaVoice/bin/vvuser -userid winter -setdefault</PRE>
+<P>To enable viavoice from mh, review the viavoice_* parms in the mh.ini file 
+(defaults should work if you run mh on the same box as the server), set parm voice_cmd=viavoice, 
+run mh/bin/viavoice_server_start, make sure mh/code/test/viavoice_control.pl is in your code dir, 
+then start mh.  Use the Tk 'VR mode' button and/or the <CODE>phrase(s)</CODE> in viavoice_awake_phrase to 
+enable the awake VR mode.</P>
+<P>The viavoice SDK FAQ can be found here at
+<A HREF="http://www-4.ibm.com/software/speech/dev/faq_linux.html">http://www-4.ibm.com/software/speech/dev/faq_linux.html</A> .</P>
 <P>
 <HR>
 <H1><A NAME="testing mister house">Testing Mister House</A></H1>

@@ -23,6 +23,7 @@
 		<LI><A HREF="#how to stop the audrey from autoupating">How to stop the Audrey from auto-upating</A></LI>
 		<LI><A HREF="#how to share files">How to share files</A></LI>
 		<LI><A HREF="#how to play mp3 files">How to play mp3 files</A></LI>
+		<LI><A HREF="#how to push speech to remote audreys">How to push speech to remote Audreys</A></LI>
 	</UL>
 
 </UL>
@@ -167,6 +168,46 @@ from skipping with:</P>
 <PRE>
  slay -P 5 fs-cifs
  slay -P 5 phplay</PRE>
+<P>
+<H2><A NAME="how to push speech to remote audreys">How to push speech to remote Audreys</A></H2>
+<P>There are 2 ways to do remotely play wav files on an Audrey.  One plays a wav file in the foreground by 
+creating a popup window, the other uses playsound_noph to play wav files in the background.  
+Both ways requre you first enable remote control (see 'Remote Audrey browsing and control' above).</P>
+<P>To enable the foreground wav playing, add this mh.ini parm (this is the default):
+</P>
+<PRE>
+
+ voice_text_address_code = run 'get_url -quiet &quot;<A HREF="http://">http://</A>$address/cgi-bin/SendMessage?M=GOTO_URL&amp;S=$url&quot; /dev/null'</PRE>
+<P>Now simply use the address argument when calling speak or play.  
+For example (substitute in you Audrey ip address(s)):</P>
+<PRE>
+ speak &quot;address=192.168.0.101,kitchen Hello to the study&quot;;
+ play   address =&gt; 'study', file =&gt; '../sounds/hello_from_bruce.wav';
+ play   address =&gt; 'study,kitchen', file =&gt; '../sounds/hello_from_bruce.wav';</PRE>
+<P>To install playsound_noph, first download and unzip it from Keith Webb's site:  <A HREF="http://www.planetwebb.com/audrey">http://www.planetwebb.com/audrey</A> .
+Note, you do not need to be running qnx.  A normal hacked Audrey works fine.</P>
+<P>Next, create this a file called playsound.shtml with these records:</P>
+<PRE>
+ &lt;html&gt;&lt;head&gt;&lt;title&gt;Shell&lt;/title&gt;&lt;/head&gt;&lt;/body&gt;
+ &lt;!--#exec cmd=&quot;playsound_noph $QUERY_STRING &amp;&quot; --&gt;
+ &lt;/body&gt;&lt;/html&gt;</PRE>
+<P>Now copy 3 files over to your Audrey(s).  
+Here are the commands I used from my Audrey to copy the files from my windows house c:/temp directory: 
+</P>
+<PRE>
+
+ mkdir /house
+ fs-cifs -a //house:192.168.0.2:/c /house guest guest
+ cd /house/temp
+ cp playsound_noph    /nto/photon/bin
+ cp soundfile_noph.so /nto/photon/dll
+ cp playsound.shtml   /data/XML</PRE>
+<P>Finally, add this mh.ini parm:
+</P>
+<PRE>
+
+ voice_text_address_code = run 'get_url -quiet &quot;<A HREF="http://">http://</A>$address/playsound.shtml?$url&quot; /dev/null'</PRE>
+<P>And use the speak and play examples from above.</P>
 
 </BODY>
 

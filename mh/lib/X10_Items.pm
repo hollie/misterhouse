@@ -28,6 +28,11 @@ sub new {
     if ($id) {
         my $hc = substr($id, 0, 1);
         push @{$items_by_house_code{$hc}}, $self;
+
+                                # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
+        if ($id =~ /^\S1(\d)$/) {
+            $id = $hc . substr 'ABCDEFG', $1, 1;
+        }
         $id = "X$id";
         $self->{x10_id} = $id;
 
@@ -223,6 +228,10 @@ sub new {
 
     my $hc = substr($id, 0, 1);
     push @{$appliances_by_house_code{$hc}}, $self;
+                                # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
+    if ($id =~ /^\S1(\d)$/) {
+        $id = $hc . substr 'ABCDEFG', $1, 1;
+    }
     $id = "X$id";
     $self->{x10_id} = $id;
 
@@ -792,6 +801,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.24  2002/01/19 21:11:12  winter
+# - 2.63 release
+#
 # Revision 1.23  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

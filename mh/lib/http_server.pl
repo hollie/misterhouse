@@ -783,6 +783,9 @@ sub html_response {
 #           $leave_socket_open_action = "&html_file(\$Socket_Ports{http}{socka}, '$file', '', 1)";
 #           $leave_socket_open_action = "file_read '$file')";
         }
+        elsif ($h_response eq 'no_response') {
+            print $socket &html_no_response;
+        }
         else {
             $h_response =~ tr/\_/ /; # Put blanks back
             $h_response =~ tr/\~/_/; # Put _ back
@@ -967,8 +970,27 @@ sub html_file {
         @ARGV = '';             # Have to clear previous args
         @ARGV = split(/[&]+/, $arg) if defined $arg;
 
-        $html = eval $code;
-        print "Error in http eval: $@" if $@;
+
+                                # Allow for regular STDOUT cgi scripts
+        if ($code =~ /^\S+perl/) {
+            print "http: running cgi script: $file\n";
+            open OLD_HANDLE, ">&STDOUT"  or print "\nhttp .pl error: can not backup STDOUT: $!\n";
+            if (my $fileno = $socket->fileno()) {
+                print "http: cgi redirecting socket fn=$fileno s=$socket\n" if $main::config_parms{debug} eq 'http';
+                open STDOUT, ">&$fileno" or warn "http .pl error: Can not redirect STDOUT: $!\n";
+                print STDOUT "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-Type: text/html\nCache-control: no-cache\n\n";
+                eval $code;
+                print "Error in http eval: $@" if $@;
+                $socket->close();
+                open  STDOUT, ">&OLD_HANDLE"  or print "\nhttp .pl error: can not redir STDIN to orig value: $!\n";
+                close OLD_HANDLE;
+                return;
+            }
+        }
+        else {
+            $html = eval $code;
+            print "Error in http eval: $@" if $@;
+        }
 
                                 # Drop the http header if no_header
         $html =~ s/^HTTP.+?^$//smi if $no_header;
@@ -993,6 +1015,19 @@ sub mime_header {
 sub html_alias {
     my ($dir) = @_;
     return ($http_dirs{$dir} or $http_dirs{"/$dir"});
+}
+
+# Responses documented here: http://www.w3.org/Protocols/HTTP/HTRESP.html
+sub html_no_response {
+
+    return <<eof;
+HTTP/1.0 204 No Response
+Server: MisterHouse
+Content-Type: text/html
+Cache-control: no-cache
+
+
+eof
 }
 
 sub html_page {
@@ -1468,6 +1503,7 @@ sub html_command_table {
             for my $state (@states) {
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ s/\+/\%2B/g; # Use hex 2B = +, as + will be translated to blanks
+                $text_cmd =~ s/\'/\%27/g; # Use hex 27 = '
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
                 $text_cmd =~ tr/ /\_/;  
                                 # Use the first entry as the default one, used when clicking on the icon
@@ -1491,6 +1527,8 @@ sub html_command_table {
                                 # Just display the text, when no states
         else {
             my $text_cmd = $text;
+            $text_cmd =~ s/\+/\%2B/g; # Use hex 2B = +, as + will be translated to blanks
+            $text_cmd =~ s/\'/\%27/g; # Use hex 27 = '
             $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
             $text_cmd =~ tr/ /\_/; 
             $html .= qq[<b>$text</b>];
@@ -1755,7 +1793,7 @@ sub print_socket_fork_win {
         open OLD_HANDLE, ">&STDOUT"  or print "\nsocket_fork error: can not backup STDOUT: $!\n";
         if (my $fileno = $socket->fileno()) {
             print "http: redirecting socket fn=$fileno s=$socket\n" if $main::config_parms{debug} eq 'http';
-            open STDOUT,     ">&$fileno" or warn "Can not redirect STDOUT: $!\n";
+            open STDOUT,     ">&$fileno" or warn "http error: Can not redirect STDOUT: $!\n";
             my $pid = Win32::Process::Create($process, $perl, $cmd, 1, 0, '.') or
                 print "Warning, run error: pgm_path=$perl $cmd\n error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
             open  STDOUT, ">&OLD_HANDLE"  or print "\nsocket_fork error: can not redir STDIN to orig value: $!\n";
@@ -2250,6 +2288,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.65  2002/01/19 21:11:12  winter
+# - 2.63 release
+#
 # Revision 1.64  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

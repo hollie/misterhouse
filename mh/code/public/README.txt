@@ -16,18 +16,21 @@ alarmclock_david.pl
 alarmclock_doug.pl
  - Doug Nakakihara's alarm clock for for  file based timed reminders.
 
+aqualink.pl
+ - Tim Doyle's code for the Jandy AquaLink RS pool/spa controller.
+   Like Compool.pl, you can get/set various temps and states.                    
+
 audible_menu.pl
 audible_menu.txt
  - David Norwood's code for walking through mh menus with just one or two
    switches (e.g. air sip switches for the disabled), using
    audible feedback to help pick menu items/states.
 
-aqualink.pl
- - Tim Doyle's code for the Jandy AquaLink RS pool/spa controller.
-   Like Compool.pl, you can get/set various temps and states.                    
-
 AudioControl.pl
  - Bill Sobel's example of using Mp3Player.pm object
+
+audrey_cid.pl
+ - Chris Witte's code that request callerid data from the Audrey acid UDP server.
 
 calllog.pl          
  - Caller ID for modem.  Modified from mh/code/public/Brian/calllog.pl
@@ -56,6 +59,9 @@ copycode.pl
 
 date_functions.pl
  - Jeff Crum's functions for dealing with dates (e.g. finding labor day).
+
+dialup_unix.pl
+ - Gaetan linny Lord's code for starting/stopping a dialup ppp connection in linux.
 
 door_monitor_jay.pl
  - Jay Archer's code for using an X10 powerflash and hawkeye motion sensors
@@ -89,6 +95,9 @@ internet_ip_update.pl
 internet_ip_update_craig.pl
  - Updates IP servers/web pages with IP addresses
 
+internet_speed_check.pl
+ - Larry Roudebush's code to time ftp updload and download rates.
+
 internet_starshine.pl
  - Tim Doyle's code to announce when one of the visible passes of
    a StarShine satellite is about to occur.
@@ -97,12 +106,18 @@ irvs*
  - Walter Leemput's example of a DTFM driven phone menu, using the 
    Irvs phone module from CPAN (linux only).
 
+HVweb.pl
+ - Joseph Gaston's code to control Homevision controller via the Homevision web server 
+
 mp3_control_GQmpeg.pl
  - Dave Lounsberry's code for controling the GQmpge.pl player on linux
 
 mp3_control_mrMP3.pl
  - Douglas Nakakihara's code to control a Windows Media Player based mp3 player
    he wrote called mrMP3
+
+mp3_control_xmms.pl
+ - Richard Phillips's code for controling the xmms MP3 player for Linux.
 
 monitor_sump_pump.pl
  - Craig's code to monitor his sump pump
@@ -112,6 +127,11 @@ monitor_server.pl
 
 monitor_ipchainlog.pl
  - Use to a linux ipchain log for web traffic
+
+omnistat.pl
+ - Kent Noonan's preliminary code for controling HAI Omnistat Communicating 
+   thermostats (e.g. RC80).  Kent switched houses before he had a chance
+   to finish testing this code.
 
 NetCallerID.pl
  - Timothy Spaulding's code to interface with the $30 NetCallerID box.  
@@ -210,7 +230,9 @@ weather_sbweather.pl
    wrote a direct interface for the Wx200 weather station (code/Bruce/weather_wx200.pl).
 
 weather_vw.pl
- - An example of using Virtual Weatherstation log data
+ - An example of using Virtual Weatherstation ( http://www.ambientsw.com ) log data.
+   Includes Clay Jackson's example of logging weather data to APRSWXNET: http://www.findu.com/aprswxnet.html
+   For example:  http://www.findu.com/cgi-bin/wxpage.cgi?n7qnm 
 
 weather_wrtv.pl
  - Tom K. example on geting weather from his local news web page
@@ -246,6 +268,9 @@ webcam_ron.html
 webcam_ron.pl
  - Ron Klinkien's code for using a command line frame grabber to create
    a simple webcam.
+
+weeder_init.pl
+ - Jeff Pagel's code for initializing weeder DIO cards.
 
 winamp_control.pl
  - Evan Graham's code for controling and querying winamp using messaging via Win32::GUI. 
