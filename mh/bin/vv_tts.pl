@@ -15,8 +15,8 @@ use strict;
 
 my ($Pgm_Path, $Pgm_Name, $Version, $Pgm_Root);
 #use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
-use ViaVoiceTTS;
-package ViaVoiceTTS;
+use TTSClass;
+package TTSClass;
 
 BEGIN {
     ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
@@ -50,6 +50,7 @@ $Pgm_Name (version $Version) perl wrapper for TTS
 
   Example:
     $Pgm_Name -text 'text to speak.'
+    $Pgm_Name -playcmd /usr/bin/play -play magic.wav -text 'text to speak.'
 
 eof
 
@@ -71,7 +72,7 @@ print LOCK "\n";
 close(LOCK);
 
 system($parms{prescript}) if $parms{prescript};
-if ($parms{playcmd} and $parms{play} ne "none") {
+if ($parms{playcmd} and $parms{play} ne 'none') {
 	if ($parms{play}) {
 		system($parms{playcmd}. " " . $parms{play});
 	} elsif ( $parms{default_sound}) {
@@ -79,7 +80,7 @@ if ($parms{playcmd} and $parms{play} ne "none") {
 	}
 }
 
-ViaVoiceTTS::eciSpeakText($parms{text},1);
+TTSClass::eciSpeakText($parms{text},1);
 
 system($parms{postscript}) if $parms{postscript};
 

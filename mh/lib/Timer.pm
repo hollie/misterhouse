@@ -143,12 +143,11 @@ sub run_action {
     if (my $action = $self->{action}) {
         # Passing a subroutine ref to a timer is not tested ... probably not useful
         my $action_type = ref $action;
-        print "Executing timer subroutine ref=$action_type   action=$action\n";
+        print "Executing timer subroutine ref=$action_type   action=$action\n"  if $main::config_parms{debug} eq 'misc';
         if ($action_type eq 'REF') {
             &{$action};
         }
         else {
-            print "Executing timer eval $action\n" if $main::config_parms{debug} eq 'misc';
             package main;   # Had to do this to get the 'speak' function recognized without having to &main::speak() it
             eval $action;
             package Timer;
@@ -279,6 +278,9 @@ sub inactive {
 
 #
 # $Log$
+# Revision 1.19  2000/12/21 18:54:15  winter
+# - 2.38 release
+#
 # Revision 1.18  2000/11/12 21:02:38  winter
 # - 2.34 release
 #

@@ -65,7 +65,9 @@ my %wx_datatype = (0x8f => ['humid', 35, \&wx_humid],
                    0x9f => ['temp',  34, \&wx_temp],
                    0xaf => ['barom', 31, \&wx_baro],
                    0xbf => ['rain',  14, \&wx_rain],
-                   0xcf => ['wind',  27, \&wx_wind]);
+                   0xcf => ['wind',  27, \&wx_wind],
+                   0xff => ['time',  5,  \&wx_time]);    # wx200d only?
+
         
 sub read_wx200 {
     my ($data, $wptr, $debug) = @_;
@@ -110,6 +112,8 @@ sub read_wx200 {
 
 sub wx_humid {
     my ($wptr, $debug, @data) = @_;
+    $data[8]  = 0x99 if $data[8]  > 0x99; # Can return 0xee (238) in sub zero weather
+    $data[20] = 0x99 if $data[20] > 0x99; # Can return 0xee (238) in sub zero weather
     $$wptr{HumidIndoor}  = sprintf('%x', $data[8]);
     $$wptr{HumidOutdoor} = sprintf('%x', $data[20]);
     print "humidity = $$wptr{HumidIndoor}, $$wptr{HumidOutdoor}\n" if $debug;
@@ -156,6 +160,9 @@ sub wx_baro {
     $$wptr{Barom}    = sprintf('%x%02x', $data[2], $data[1]);
     $$wptr{BaromSea} = sprintf('%x%02x%02x', 0x0f & $data[5], $data[4], $data[3]);
     substr($$wptr{BaromSea}, -1, 0) = '.';
+
+    $data[18] = 0x00 if $data[18] == 0xee; # Returns 0xee (238) in sub zero weather
+
     $$wptr{DewIndoor}  =  &main::convert_c2f(sprintf('%x', $data[7]));
     $$wptr{DewOutdoor} =  &main::convert_c2f(sprintf('%x', $data[18]));
     print "baro = $$wptr{Barom}, $$wptr{BaromSea} dew=$$wptr{DewIndoor}, $$wptr{DewOutdoor}\n"  if $debug;
@@ -229,3 +236,6 @@ sub wx_wind {
 #CF. 6	DD	all	Wind	Avg Dir:    'ab' of <abc>
 #CF.16	DD	all	Chill	Temp: -85<ab<60 degrees C @ 1
 #CF.21	Bx	1	Chill	Temp: Sign 0=+, 1=-
+
+sub wx_time {
+}

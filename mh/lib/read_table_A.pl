@@ -15,7 +15,7 @@ my %groups;
 sub read_table_init_A {
                                 # reset known groups
 	print_log "Initialized read_table_A.pl";
-#	%groups=();
+	%groups=();
 }
 
 sub read_table_A {
@@ -35,6 +35,11 @@ sub read_table_A {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "X10_Item('$address', $other)";
+    }
+    elsif($type eq "X10SL") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); 
+        $object = "X10_Switchlinc('$address', $other)";
     }
     elsif($type eq "X10G") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -110,6 +115,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.6  2000/12/21 18:54:15  winter
+# - 2.38 release
+#
 # Revision 1.5  2000/12/03 19:38:55  winter
 # - 2.36 release
 #

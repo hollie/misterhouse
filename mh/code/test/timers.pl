@@ -29,16 +29,25 @@ if (state_now $timer_time or state_now $timer_text) {
     $timer->{text} = $timer_text;
     $timer->{time} = $time;
     $timer->{unit} = $unit;
-    if ($timer->{text}) {
-        set $timer $seconds, "speak rooms=all 'Notice: Time to $timer->{text}. The $timer->{text} timer just expired.'";
-        speak "Timer set. You need to $timer->{text} in " . &plural($time, $unit) . " ";
-    } else {
-        set $timer $seconds, "speak rooms=all 'Notice, the $time $unit $timer->{text} timer just expired'";
-        speak "A $time $unit timer has been set." ;
-    }
-    print_log "$time $unit ($seconds seconds) $timer->{text} timer started";
+    set $timer $seconds, "&expired_timer( '$time $unit', '$timer_text')";
+    speak "A $time $unit $timer_text timer has been set." ;
+    print_log "$time $unit ($seconds seconds) $timer_text timer started";
 }
 
+sub expired_timer {
+    my ($time, $text) = @_;
+    play 'timer';               # Set in event_sounds.pl
+    play 'timer';
+    my $text2;
+    if ($text) {
+        $text2 = "Time to $text";
+    }
+    else {
+        $text2 = 'Timer expired';
+    }
+    speak "rooms=all volume=100 Notice: $text2.  The $time $text timer just expired";
+}    
+    
 
                                 # Allow for limited voice command timers
 $v_minute_timer = new  Voice_Cmd('Set a timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,25,30,45,60,90,120] minutes');

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2000-11-28 08:09:49 winter>
+#  Last change Time-stamp: <2000-12-09 13:44:06 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -247,7 +247,6 @@ eof
 #profileID=%247A%247B%2489%247A&WSN=WSERVER22&gDate=11A27A2000&gHour=18&gChRow=1&gChRef=0&gBrowser=lwp%2Dtrivial%2F1%2E01&Nav=PrevGrid"><img border=0 src="/ctv40/_images/icons/x_cont_prev1.gif"></a>8:00pm <a href="detail.asp?CID=tvd&
 #profileID=%247A%247B%2489%247A&WSN=WSERVER22&gDate=11A27A2000&gHour=22&gChRow=1&gChRef=0&gBrowser=lwp%2Dtrivial%2F1%2E01&prog_ref=2101881">NFL Football</a>  <i>Green Bay Packers at Carolina Panthers</i> <font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1>From Ericsson Stadium in Charlotte, N.C.<!-- NFL Football --><br></font> (Closed Captioned, Live, In Stereo, ESP, Network-ABC) </font></td><td bgcolor=#ffffff colspan=1><font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><a href="detail.asp?CID=tvd&profileID=%247A%247B%2489%247A&WSN=WSERVER22&gDate=11A27A2000&gHour=22&gChRow=1&gChRef=0&gBrowser=lwp%2Dtrivial%2F1%2E01&prog_ref=33700">News</a> <font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><!-- News --><br></font> (Closed Captioned) </font></td><td bgcolor=#ffffff colspan=1><font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><a href="detail.asp?CID=tvd&profileID=%247A%247B%2489%247A&WSN=WSERVER22&gDate=11A27A2000&gHour=22&gChRow=1&gChRef=0&gBrowser=lwp%2Dtrivial%2F1%2E01&prog_ref=15337635">Nightline</a> <font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1>In-depth reporting on major news stories.<!-- Nightline --><br></font> (Closed Captioned, Network-ABC, New) </font></td><td bgcolor=#ffffff colspan=1><font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><a href="detail.asp?CID=tvd&profileID=%247A%247B%2489%247A&WSN=WSERVER22&gDate=11A27A2000&gHour=22&gChRow=1&gChRef=0&gBrowser=lwp%2Dtrivial%2F1%2E01&prog_ref=15377075">Extra</a> <font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1>Host: Leeza Gibbons.<!-- Extra --><br></font> (Closed Captioned, In Stereo, New) </font></td><td bgcolor=#ffffff colspan=1><font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><a href="detail.asp?CID=tvd&profileID=%247A%247B%2489%247A&WSN=WSERVER22&gDate=11A27A2000&gHour=22&gChRow=1&gChRef=0&gBrowser=lwp%2Dtrivial%2F1%2E01&prog_ref=15363434">Power of Attorney</a> <font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1>Former friends fight over a debt.<!-- Power of Attorney --><br></font> (Closed Captioned, In Stereo, New)  (TV-PG)</font></td><td bgcolor=#ffffff colspan=1><font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><a href="detail.asp?CID=tvd&profileID=%247A%247B%2489%247A&WSN=WSERVER22&gDate=11A27A2000&gHour=22&gChRow=1&gChRef=0&gBrowser=lwp%2Dtrivial%2F1%2E01&prog_ref=2220832">Politically Incorrect</a> <font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><!-- Politically Incorrect --><br></font> (Closed Captioned, Network-ABC) </font></td><td bgcolor=#ffffff colspan=1><font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><a href="detail.asp?CID=tvd&profileID=%247A%247B%2489%247A&WSN=WSERVER22&gDate=11A27A2000&gHour=22&gChRow=1&gChRef=0&gBrowser=lwp%2Dtrivial%2F1%2E01&prog_ref=2688026">Change of Heart</a> <font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><!-- Change of Heart --><br></font> (Closed Captioned, In Stereo) </font></td><td bgcolor=#CCCCCC><b><font size=1 face="Tahoma, Arial, Helvetica, sans-seri" color=#000000>5&nbsp;KSTP<br><a href="http://www.abc.com" target=_blank>ABC</a></b></font></td><td bgcolor=#0000ff><br></td></tr>
 
-
             my ($pgm_name, $pgm_desc);
 #           ($pgm_name, $pgm_desc) = $pgm =~ /profileID.+?> *(.+?) *<\/a> *(.+) *<\/td>/ unless $pgm_name;
             ($pgm_name, $pgm_desc) = $pgm =~ /prog_ref=.+?> *(.+?) *<\/a> *(.+) *<\/td>/ unless $pgm_name;
@@ -430,6 +429,9 @@ sub setup {
 
 #
 # $Log$
+# Revision 1.31  2000/12/21 18:54:14  winter
+# - 2.38 release
+#
 # Revision 1.30  2000/12/03 19:38:50  winter
 # - 2.36 release
 #

@@ -3,7 +3,12 @@
 # Fixes in modules
 #  - use     $self->{s}->read_interval(20);          # Time to wait after last byte received
 
-# Enable iButton support by changing the mh.ini ibutton_port parm.
+# Enable iButton support by using the mh.ini ibutton_port parm.
+#
+# If you have more than one ibutton_port, add something like this:
+#   print_log &iButton::connect($config_parms{ibutton_port2}) if $Startup;
+#   $ib_relay1 = new iButton '12000000123456ff', 'ibutton_port2';
+#
 # You can buy iButton stuff here:
 #    http://www.iButton.com/index.html
 #    http://www.pointsix.com
@@ -88,7 +93,7 @@ if ($state = said $v_iButton_readtemp) {
     print_log "Temp for sensor $state: $temp F";
 }
 
-if ($New_Second and !($Minute % 1)) {
+if ($New_Second) {
     my $device;
 #   run_voice_cmd 'Read the iButton temperature 1' if $Second == 11;
     $device = 1 if $Second == 11;

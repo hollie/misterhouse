@@ -129,8 +129,9 @@ sub check_accounts {
                 
                                 # Use a rule to modify name of sender
                                 # Changing $name will modify @list ($name is an implicit alias).
-                my $cnt = 0;
+                my $cnt = -1;
                 for my $name (@list) {
+                    $cnt++;
                     
                     my $subject = $$msgptr{subject}[$cnt];
                     my $to      = $$msgptr{to}[$cnt];
@@ -140,6 +141,8 @@ sub check_accounts {
 
                     $name = &get_email_rule($name, $to, $subject) if $email_rule;
                     $name = 'filtered' unless $name;
+
+                    next if $name =~ /no store/; # Do not index/store
 
                     print "Reading text for subject=$subject\n" unless $config_parms{quiet};
 
@@ -201,8 +204,6 @@ sub check_accounts {
                     my $index = "<tr><td>$msgcnt2</td><td><a href='#$href'>$time_date</a></td><td><a href='mailto:$from'>$name</a>";
                     $index .= "</td><td><a href='#$href'>$subject</a></td></tr>\n";
                     logit($logi, $index, 0);
-
-                    $cnt++;
                 }
                 
                                 # Add to previously read names
@@ -245,17 +246,31 @@ sub make_name_list {
     my $account2 = $account;
     $account2 =~ tr/_/ /; # Make speakable
 
-    @list = grep !/^filtered/, @list; # Delete blank names (filtered out from the above get_email_rule)
+    @list = grep !/^filtered/i, @list; # Delete blank names (filtered out from the above get_email_rule)
     my $cnt = @list;
 
     return unless $cnt;
-#   return ("Email account $account2 has " . plural($cnt, 'new email message') . 
+
+
+                                # Make fred@xyz.com a bit more pronouncable
+                                # Naw, this gets put to a displayed file also,
+                                # so lets leave it.  Added .com et all to pronounceable_words.list
+#   for (@list) {
+#       $_ =~ s/\./ Dot /g ;    # ...change "." to the word "Dot" 
+#       $_ =~ s/\@/ At /g ;     # ...change \@  to the word "At" 
+#   } 
+
     return ("$account2 has " . plural($cnt, 'new message') . 
         " from " . &speakify_list(@list) . ".\n");
+#   return ("Email account $account2 has " . plural($cnt, 'new email message') . 
+
 }
 
 #
 # $Log$
+# Revision 1.22  2000/12/21 18:54:14  winter
+# - 2.38 release
+#
 # Revision 1.21  2000/12/03 19:38:50  winter
 # - 2.36 release
 #

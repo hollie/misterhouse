@@ -178,7 +178,7 @@ sub serial_match_log {
     my ($ref, $state, $event) = @_;
     return unless $event =~ /^X/; # Echo only X10 events
     my $name = substr $$ref{object_name}, 1;
-    print_log "$event: $name $state" if $config_parms{x10_errata} > 1;
+    print_log "$event: $name $state" if $config_parms{x10_errata} > 1 and !$$ref{no_log};
 }
 
                                 # Allow control of individual members
@@ -215,3 +215,28 @@ if (my $member = said $v_toggle_run_member) {
     $Save{code_members_off} = join ',', sort keys %code_members_off;
 }
  
+                                # Allow for keyboard control
+if ($Keyboard) {    
+    if ($Keyboard eq 'F1') {
+        print "Key F1 pressed.  Reloading code\n";
+        read_code();
+        $Run_Members{mh_control} = 2; # Reset, so the mh_temp.user_code decrement works
+    }
+    elsif ($Keyboard eq 'F2') {
+        print "Key F2 pressed.  Toggle pause mode.\n";
+        &toggle_pause;          # Leaving pause mode is still done in mh code
+    }
+    elsif ($Keyboard eq 'F3') {
+        print "Key F3 pressed.  Exiting\n";
+        &exit_pgm;
+    }
+    elsif ($Keyboard eq 'F4') {
+        &toggle_debug;
+    }
+    elsif ($Keyboard eq 'F5') {
+        &toggle_log;
+    }
+    elsif ($Keyboard) {
+        print "key press: $Keyboard\n" if $config_parms{debug} eq 'misc';
+    }
+}

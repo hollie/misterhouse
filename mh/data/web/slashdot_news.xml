@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>NIPC Warns of E-Commerce Vulnerabilities</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/02/2055253</url>
-		<time>2000-12-03 09:07:33</time>
+		<title>Serial ATA 1.0 Draft Released</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/21/0436235</url>
+		<time>2000-12-21 13:28:36</time>
 		<author>Hemos</author>
-		<department>hack-and-slash-attack</department>
-		<topic>internet</topic>
-		<comments>68</comments>
+		<department>getting-closer</department>
+		<topic>hardware</topic>
+		<comments>15</comments>
 		<section>articles</section>
-		<image>topicinternet.gif</image>
+		<image>topichardware.gif</image>
 	</story>
 
 	<story>
-		<title>NASA Has Found Evidence Of Oceans On Mars</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/03/0338234</url>
-		<time>2000-12-03 04:32:48</time>
-		<author>timothy</author>
-		<department>let's-send-(most)-actors-to-check-it-out</department>
+		<title>Number 9, Here We Come?</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/21/1315205</url>
+		<time>2000-12-21 13:14:58</time>
+		<author>Hemos</author>
+		<department>to-complete-the-set</department>
 		<topic>space</topic>
-		<comments>169</comments>
-		<section>articles</section>
-		<image>topicspace.gif</image>
-	</story>
-
-	<story>
-		<title>AOL Still Working On AIM Security Hole</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/03/0119237</url>
-		<time>2000-12-03 01:28:57</time>
-		<author>timothy</author>
-		<department>fingerpokin</department>
-		<topic>aol</topic>
-		<comments>176</comments>
-		<section>articles</section>
-		<image>topicaol.jpg</image>
-	</story>
-
-	<story>
-		<title>An RPM Port Of APT</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/02/2049234</url>
-		<time>2000-12-02 22:47:15</time>
-		<author>Hemos</author>
-		<department>interesting-new-tools-</department>
-		<topic>linux</topic>
-		<comments>239</comments>
-		<section>articles</section>
-		<image>topiclinux.gif</image>
-	</story>
-
-	<story>
-		<title>Keep An Eye Out For The ISS</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/02/1850207</url>
-		<time>2000-12-02 20:49:50</time>
-		<author>Hemos</author>
-		<department>look-to-the-skies</department>
-		<topic>space</topic>
-		<comments>127</comments>
+		<comments>20</comments>
 		<section>science</section>
 		<image>topicspace.gif</image>
 	</story>
 
 	<story>
-		<title>Ken Thompson's Last Day At Bell Labs</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/02/1754247</url>
-		<time>2000-12-02 17:54:05</time>
-		<author>Hemos</author>
-		<department>bye-bye-american-pie</department>
-		<topic>news</topic>
-		<comments>196</comments>
-		<section>articles</section>
-		<image>topicnews.gif</image>
-	</story>
-
-	<story>
-		<title>Very Cool, Very Vaporous 1-Handed Keyboard</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/02/1613228</url>
-		<time>2000-12-02 16:19:27</time>
+		<title>3D GUI Project</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/20/2310213</url>
+		<time>2000-12-21 10:08:21</time>
 		<author>CmdrTaco</author>
-		<department>look-ma-one-hand</department>
-		<topic>toys</topic>
-		<comments>161</comments>
+		<department>why-waste-a-perfectly-good-dimension</department>
+		<topic>graphics</topic>
+		<comments>92</comments>
 		<section>articles</section>
-		<image>topictoys.gif</image>
+		<image>topicgraphics3.gif</image>
 	</story>
 
 	<story>
-		<title>Is The Internet Destroying Spanish?</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/02/053218</url>
-		<time>2000-12-02 11:43:04</time>
-		<author>timothy</author>
-		<department>what-have-the-romans-ever-done-for-us?</department>
-		<topic>ed</topic>
-		<comments>534</comments>
+		<title>Beer In Space</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/21/0445210</url>
+		<time>2000-12-21 06:40:08</time>
+		<author>Hemos</author>
+		<department>lost-in-time-lost-in-space-lost-in...meaning</department>
+		<topic>space</topic>
+		<comments>110</comments>
 		<section>articles</section>
-		<image>topiced.gif</image>
+		<image>topicspace.gif</image>
 	</story>
 
 	<story>
-		<title>AT&amp;T Could Soon Offer GSM To U.S. Customers</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/02/0120244</url>
-		<time>2000-12-02 07:02:53</time>
+		<title>A Spot For Beagle On Mars</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/20/235234</url>
+		<time>2000-12-21 04:14:14</time>
 		<author>timothy</author>
-		<department>now-how-much-would-you-pay?</department>
+		<department>hope-it's-not-a-dog</department>
+		<topic>space</topic>
+		<comments>93</comments>
+		<section>science</section>
+		<image>topicspace.gif</image>
+	</story>
+
+	<story>
+		<title>Princess Mononoke Released on DVD</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/20/1435235</url>
+		<time>2000-12-21 01:35:21</time>
+		<author>CmdrTaco</author>
+		<department>keep-your-eyes-peeled-for-posessed-boars</department>
+		<topic>anime</topic>
+		<comments>152</comments>
+		<section>articles</section>
+		<image>topicanime.gif</image>
+	</story>
+
+	<story>
+		<title>Nazis on Napster</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/20/212235</url>
+		<time>2000-12-20 23:20:00</time>
+		<author>jamie</author>
+		<department>ugly-hate-machine</department>
+		<topic>music</topic>
+		<comments>390</comments>
+		<section>yro</section>
+		<image>topicmusic.gif</image>
+	</story>
+
+	<story>
+		<title>13 Month Calendar?</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/20/1832204</url>
+		<time>2000-12-20 22:31:57</time>
+		<author>CmdrTaco</author>
+		<department>something-to-think-about</department>
 		<topic>news</topic>
-		<comments>171</comments>
+		<comments>416</comments>
 		<section>articles</section>
 		<image>topicnews.gif</image>
 	</story>
 
 	<story>
-		<title>Netscape Users Rejoice</title>
-		<url>http://slashdot.org/article.pl?sid=00/12/01/1747230</url>
-		<time>2000-12-02 03:54:55</time>
-		<author>Hemos</author>
-		<department>not-very-nice-but-pretty-funny</department>
-		<topic>humor</topic>
-		<comments>327</comments>
+		<title>New MPEG 4-Based Open Source Codec</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/20/203228</url>
+		<time>2000-12-20 20:32:52</time>
+		<author>CmdrTaco</author>
+		<department>closer-and-closer-to-streaming-DVD</department>
+		<topic>internet</topic>
+		<comments>258</comments>
 		<section>articles</section>
-		<image>topichumor.gif</image>
+		<image>topicinternet.gif</image>
+	</story>
+
+	<story>
+		<title>Shining Light On (And Through) MEMS</title>
+		<url>http://slashdot.org/article.pl?sid=00/12/20/1639229</url>
+		<time>2000-12-20 18:38:12</time>
+		<author>timothy</author>
+		<department>eentsy-weentsie</department>
+		<topic>tech</topic>
+		<comments>114</comments>
+		<section>articles</section>
+		<image>topictech2.jpg</image>
 	</story>
 
 </backslash>

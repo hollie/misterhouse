@@ -2,12 +2,12 @@
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_info
+#  Latest version:
+#      http://misterhouse.net/mh/bin
 #  Description:
 #      See help text below
 #  Author:
 #      Bruce Winter    bruce@misterhouse.net   http://misterhouse.net
-#  Latest version:
-#      http://misterhouse.net/mh/bin
 #  Change log:
 #    07/04/99  Created.
 #
@@ -26,8 +26,8 @@ BEGIN {
 my %parms;
 use Getopt::Long;
 if (!&GetOptions(\%parms, "h", "help",
-                 "channels=s", "dates=s", "times=s", "lengths=s", "keys=s",
-                 "outfile1=s", "outfile2=s",
+                 "channels=s", "dates=s", "times=s", "lengths=s", "keys=s", "keyfile=s", 
+                 'increment=s', "outfile1=s", "outfile2=s",
                  "debug", "quiet") or @ARGV or 
     !($parms{channels} or $parms{dates} or $parms{times} or $parms{lengths} or $parms{keys}) or
     ($parms{h} or $parms{help})) {
@@ -45,18 +45,20 @@ It uses a database created by the get_tv_grid program.
     -h        => This help text
     -help     => This help text
 
-    -channels xyz => Will return info only for channel numbers xyz.
-                     Default is all the channels found by get_tv_grid.
-    -dates    xyz => Will return info only for dates xyz.
-                     Default is today.  Format: month/day (e.g. 4/22).
-    -times    xyz => Will return info only for shows that start at xyz.
-                     Default is '6pm-10pm'.  Use 'all' for all hours.
-                     Valid formats: 1 pm, 1PM, 13, 13:00.
-    -lengths  xyz => Will return info only for shows that are xyz hours long.
-                     Default is any length.
-    -keys     xyz => Will return info only for shows that have keywords     
-                     in the xyz list in their title or description.
-                     Note: xyz can be a regular expresion (e.g. -keys "\^ER\$") 
+    -channels  xyz => Will return info only for channel numbers xyz.
+                      Default is all the channels found by get_tv_grid.
+    -dates     xyz => Will return info only for dates xyz.
+                      Default is today.  Format: month/day (e.g. 4/22).
+    -times     xyz => Will return info only for shows that start at xyz.
+                      Default is '6pm-10pm'.  Use 'all' for all hours.
+                      Valid formats: 1 pm, 1PM, 13, 13:00.
+    -increment xyz=> Time increment is xyz minutes (5 or 30). Default is 5.
+    -lengths   xyz => Will return info only for shows that are xyz hours long.
+                      Default is any length.
+    -keys      xyz => Will return info only for shows that have keywords     
+                      in the xyz list in their title or description.
+                      Note: xyz can be a regular expresion (e.g. -keys "\^ER\$") 
+    -keyfile   xyz => List of keys to search for, from a file in the data directory
 
       All of the above parms support these formats:
          : comma-seperated values (e.g. -dates 7/4,7/5,7/6)
@@ -72,6 +74,7 @@ It uses a database created by the get_tv_grid program.
     $Pgm_Name -channels "4,6,12" -times "7 pm"
     $Pgm_Name -dates "7/4-7/11" -keys "star trek, er ,dilbert"
     $Pgm_Name -dates +14 -keys computer             
+    $Pgm_Name -time "17-23"
 
 eof
 
@@ -79,17 +82,17 @@ eof
 }
 
                                 # Globals
-my (@channels, @dates, @times, @lengths, @keys, %DBM, %DBM2, $match_cnt, $match_list1, $match_list2, $date_today);
+my (@channels, @dates, @times, @lengths, @keys, %DBM, %DBM2, $match_cnt, $match_list1, $match_list2, $date_today, $time_now);
 my %config_parms;
 
 &setup;
 &find_match;
-print "\nFound $match_cnt shows from ", @channels + 0,
+print "\nFound $match_cnt programmes from ", @channels + 0,
     " channels. Detailed results are in $parms{outfile2}\n" unless $parms{quiet};
 print $match_list1 if $match_cnt < 10;
 
 sub find_match {
-
+    my @tv_list;
     $match_cnt = 0;
 
 #    my @db_keys = %DBM;
@@ -103,7 +106,7 @@ sub find_match {
                 print "key=$db_key.\n" if $parms{debug};
 #               print "key=$db_key.  data=$DBM{$db_key}.\n" if $channel_number == 8 and $time_start eq '18:30';
                 if (my $db_data = $DBM{$db_key}) {
-                                # Drop HTML tags
+                               # Drop HTML tags
                     $db_data = HTML::FormatText->new(lm => 0, rm => 500)->format(HTML::TreeBuilder->new()->parse($db_data));
 
                     my($time_end, $pgm_name, $pgm_desc) = split($;, $db_data);
@@ -126,15 +129,24 @@ sub find_match {
 
                     print "name=$pgm_name\n" if $parms{debug};
                     for my $key (@keys) {
-                        if ($pgm_name =~ /$key/i or
-                            $pgm_desc =~ /$key/i) {
+                                # Ignore comment lines in key-file
+                        next if ($key =~ /\#/ or $key !~ /\w/);
+                                # Added .?\b to match whole words and plurals only
+                                # Make upper case keywords case-sensitive
+                        my $lc_pgm_name = lc($pgm_name);
+                        if ($pgm_name    =~ /\b$key.?\b/ or
+                            $lc_pgm_name =~ /\b$key.?\b/ or
+                            $pgm_desc    =~ /\b$key.?\b/) {
                             $match_key = 1;
                             last;
                         }
                     }
 
+                    my $time_diff = &hour_to_min($time_now) - &hour_to_min(&ampm_to_hour24($time_end2));
+
                     unless (@lengths and !$match_length or
                             @keys    and !$match_key) {
+#                           ($time_diff > 0 and $time_diff < 180) ) {      
                         my $channel_name = $DBM2{$channel_number};
 
                         if ($parms{debug}) {
@@ -147,14 +159,12 @@ sub find_match {
                         }
 
                         $match_cnt++;
-                        my $temp = "\nShow $match_cnt. Channel $channel_number";
-                        $temp .= ", $channel_name" if $channel_name;
-                        $temp .= ", on $pgm_date" if @dates > 1 or $pgm_date ne $date_today;
-#                       $temp .= "from $time_start2 till $time_end2, $pgm_name.\n";
-                        $temp .= ". $pgm_name. From $time_start2 till $time_end2.\n";
+                        my $temp = "\n$match_cnt.    $pgm_name.  $channel_name (Channel $channel_number).  ";
+                        $temp .= "On $pgm_date.  " if @dates > 1 or $pgm_date ne $date_today;
+                        $temp .= "From $time_start2 till $time_end2.\n";
                         $match_list1 .= $temp;
-                        $match_list2 .= $temp . "  $pgm_desc.\n";
-
+                        $match_list1 =~ s/\(.+\)\.//g; 
+                        $match_list2 .= $temp . "$pgm_desc";
                     }
                 }
 
@@ -166,10 +176,18 @@ sub find_match {
                                 # Do this as quick a possible, so we can use File_Item watch in mh
     open (OUT1, ">$parms{outfile1}") or die "Error, could not open output file $parms{outfile1}: $!\n";
     open (OUT2, ">$parms{outfile2}") or die "Error, could not open output file $parms{outfile2}: $!\n";
+    $date_today = time_date_stamp(15);
     print OUT1 "Found $match_cnt shows.\n$match_list1";
-    print OUT2 "Found $match_cnt shows.\n$match_list2";
+    print OUT2 "Found $match_cnt shows.                             $date_today\n\n$match_list2\n\n\n\n\n\n\n\n\n\n\n\n";
     close OUT1;
     close OUT2;
+
+                                # generate .html output
+    my $html = file_read($parms{outfile2});
+    $html =~ s/\n/<BR>/gs;
+    $html =~ s/   /&nbsp;&nbsp;&nbsp;/gs;
+    $html = "<HTML><BODY><FONT FACE=Arial>".$html."</FONT></BODY></HTML>";
+    file_write("$config_parms{data_dir}/tv_info2.html", $html);
 
 
 #    for my $key (keys %DBM) {
@@ -198,8 +216,9 @@ sub setup {
 
     my ($day, $month, $year) = (localtime(time))[3,4,5];
     $date_today = sprintf("%s/%02d", ++$month, $day);
-
+    $time_now = (localtime)[2].":".(localtime)[1];
     $parms{times}    = '6pm-10pm'    unless $parms{times};
+    $parms{increment}= 5             unless $parms{increment};
     $parms{times}    = '0+23.5'      if lc($parms{times}) eq 'all';
     $parms{dates}    = $date_today   unless $parms{dates};
 
@@ -226,8 +245,18 @@ sub setup {
     @channels = split_parm($parms{channels}, 'channels');
     @dates    = split_parm($parms{dates}, 'dates');
     @times    = split_parm($parms{times}, 'times');
+
     @lengths  = split_parm($parms{lengths}, 'lengths');
-    @keys     = split(/[,]+/,  $parms{keys});
+
+    if ($parms{keyfile}) {
+        @keys = file_read("$config_parms{data_dir}/$parms{keyfile}");
+    }
+    else {
+        @keys = split(/,/,  $parms{keys});
+    }
+
+    print "keys  = $parms{keys}\n";
+    print "times = $parms{times}\n";
 
     @channels = sort{$a <=> $b} keys %DBM2 if !@channels or $channels[0] eq 'all';
 
@@ -259,22 +288,25 @@ sub split_parm {
             elsif ($type eq 'times') {
                 $low  = &ampm_to_hour24($low);
                 $high = &ampm_to_hour24($high);
+                my ($high_hour, $high_min) = split ':', $high;
+                print "db h=$high_hour m=$high_min\n";
+                $low -= 3;
+                $low .= ':00' unless $low =~ /:/;
                 push(@parms, $j=$low);
                 my $loop_count = 0;
                 while (1) {
                     print "db time low=$low high=$high j=$j\n" if $parms{debug};
-                    my ($hour, $min, $ampm) = $j =~ /(\d+):?(\d*)/;
-                    if ($min eq '30') {
+                    my ($hour, $min) = $j =~ /(\d+):?(\d*)/;
+                    $min = '00' unless defined $min;
+                    $min += $parms{increment};
+                    last if $j >= $high_hour and $min >= $high_min;
+                    if ($min >= 60) {
+                        $min = '00';
                         $hour++;
                         $hour = 0 if $hour > 23;
-                        $min = '00';
                     }
-                    else {
-                        $min = '30';
-                    }
-                    $j = "$hour:$min";
+                    $j = sprintf "%d:%02d", $hour, $min;
                     push(@parms, $j);
-                    last if $j eq $high or ++$loop_count > 48; # loop count protects us from bad specs
                 }
             }
             elsif ($type eq 'dates') {
@@ -341,8 +373,16 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
-# Revision 1.12  2000/12/03 19:38:50  winter
-# - 2.36 release
+# Revision 1.13  2000/12/21 18:54:14  winter
+# - 2.38 release
+#
+#
+# November 2000: 
+# revised to include processing of key-lists in files, 
+# case-sensitive searches for words starting with upper-case,
+# searches for whole words only, plus plurals,
+# 5 minute start increments, 
+# shows in progress, .html output
 #
 # Revision 1.11  2000/08/06 21:56:43  winter
 # - See 2.24 release notes.

@@ -39,9 +39,14 @@ $ibws_v = new  Voice_Cmd "[Start,Stop,Speak] the ibutton weather station client"
 $ibws_v-> set_info('Connects to the ibutton weather station server');
 
 
+
 if (time_cron '02 8,10,12,14,16,18,20 * * *')
 {
     run_voice_cmd 'Start the ibutton weather station client';
+    set $weather_timer 5;
+}
+
+if (expired $weather_timer) {
     run_voice_cmd 'Stop the ibutton weather station client';
     run_voice_cmd 'Speak the ibutton weather station client';
 }

@@ -3,7 +3,7 @@
 #  File:
 #     monitor_weblog
 #
-#  Last emacs update Time-stamp: <2000-08-13 14:41:31 winter>
+#  Last emacs update Time-stamp: <2000-12-16 14:10:27 winter>
 #
 #  Description:
 #     See help text below
@@ -67,6 +67,7 @@ my %ignore_list = map{$_, 1} split(',', $parms{ignore});
 
 my $log_file = shift;
 $log_file = "/var/log/httpd/access_log" unless $log_file;
+#log_file = "/usr/local/apache/logs/misterhouse.net.ws-access_log" unless $log_file;
 my $log_pos  = &open_log($log_file);
 
 print "Current log position=$log_pos\n";
@@ -180,6 +181,9 @@ sub speak {
 
 #
 # $Log$
+# Revision 1.13  2000/12/21 18:54:14  winter
+# - 2.38 release
+#
 # Revision 1.12  2000/08/19 01:20:42  winter
 # - 2.27 release
 #

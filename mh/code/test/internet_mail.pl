@@ -55,11 +55,12 @@ $p_get_email = new Process_Item('get_email -quiet');
 $v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a second and I will check for new email');
 $v_recent_email-> set_info('Download and summarize new email headers');
 if (said $v_recent_email or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
-                             $New_Minute and !($Minute % 10) and &net_connect_check)) { 
+                             new_minute 10 and &net_connect_check)) { 
     start $p_get_email;
 }
 
 # $new_mail_light= new X10_Item('O7');
+my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
 if (done_now $p_get_email) {
     $Save{email_flag} = file_read "$config_parms{data_dir}/get_email.flag";
 
@@ -74,8 +75,15 @@ if (done_now $p_get_email) {
     else {
         &speak_new_mail;
     }
-    &scan_subjects("$config_parms{data_dir}/get_email.scan")
+    &scan_subjects($get_email_scan_file);
 }
+                                # Delete file after the done_now pass (gives other code
+                                # like news_email_breaking.pl a changes to scan it)
+if (done $p_get_email and !done_now $p_get_email and -e $get_email_scan_file) {
+    unlink $get_email_scan_file;
+}
+
+
 &tk_mlabel(\$Save{email_flag});
 
                                 # List or read unread email
@@ -111,8 +119,8 @@ sub speak_unread_mail {
 sub scan_subjects {
     my ($file) = @_;
     return unless -e $file;
-    for my $line (file_read($file)) {
-        my($from, $to, $subject_body) = $line =~ /From:(.+) To:(.+) Subject:(.*)/;
+    for my $line (file_read $file) {
+        my ($from, $to, $subject_body) = $line =~ /From:(.+) To:(.+) Subject:(.*)/;
         if (my($command, $code) = $subject_body =~ /command:(.+) code:(\S+)/) {
             chomp $command;
             my $results;
@@ -134,6 +142,6 @@ sub scan_subjects {
             &net_mail_send(to => $from, subject => $results);
         }
     }
-    unlink $file;
+#   unlink $file;
 }
 

@@ -78,6 +78,10 @@ sub new {
     else {
         $self-> add ($id . $hc . 'J', 'on');
         $self-> add ($id . $hc . 'K', 'off');
+        $self-> add ($id . $hc . 'J' . $hc . 'J', 'double on');
+        $self-> add ($id . $hc . 'K' . $hc . 'K', 'double off');
+        $self-> add ($id . $hc . 'J' . $hc . 'J' . $hc . 'J',  'triple on');
+        $self-> add ($id . $hc . 'K' . $hc . 'K' . $hc . 'K',  'triple off');
         $self-> add ($id . $hc . 'L', 'brighten');
         $self-> add ($id . $hc . 'M', 'dim');
         $self-> add ($id . $hc . '+5',  '+5');
@@ -592,19 +596,39 @@ sub new {
     my $self = &X10_Item::new(@_);
     my $id = $self->{x10_id};
     $self-> add ($id . 'OGNGMGPGMG', 'clear');
-    $self-> add ($id . 'OGPGMGPGMG', 'setramprate');
+    $self-> add ($id . 'OGPGNGMGMG', 'setramprate');
     $self-> add ($id . 'PGNGMGOGMG', 'setonlevel');
     $self-> add ($id . 'MGNGOGPG',   'addscenemembership');
     $self-> add ($id . 'OGPGMGNG',   'deletescenemembership');
     $self-> add ($id . 'NGOGPGMG',   'setsceneramprate');
     $self-> add ($id . 'MGNGPGOGPG', 'disablex10transmit');
-    $self-> add ($id . 'OGMGPGOGPG', 'enablex10transmit');
+    $self-> add ($id . 'OGMGNGPGPG', 'enablex10transmit');
 
     return $self;
 }
 
+@preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
+                        M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
+sub set {
+    my ($self, $state) = @_;
+
+                                # Use preset_dims for ##% data
+    if ($state =~ /^(\d+)\%/) {
+        my $index = int(.5 + $1 * 32 / 100) - 1;   # 32 levels, 100% -> 31
+        my $state2  = $self->{x10_id} . $preset_dim_levels[$index];
+        $state2 .= ($index < 16) ? 'PRESET_DIM1' : 'PRESET_DIM2';
+        print "Switchlink X10 dim: $state -> $state2\n";
+        $state = $state2;
+    }
+    $self->SUPER::set($self, $state);
+    
+}
+
 
 # $Log$
+# Revision 1.14  2000/12/21 18:54:15  winter
+# - 2.38 release
+#
 # Revision 1.13  2000/11/12 21:02:38  winter
 # - 2.34 release
 #

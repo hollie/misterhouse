@@ -35,7 +35,7 @@ if ($state = said $v_vcr_control) {
 if (my $state = $Tk_results{'TV key'}) {
                                 # Use this to test/tune the placement of your ir xmiters
     if ($state eq 'test') {
-        unless ($Second % 5) {
+        unless (new_second 5) {
             print_log "Testing IR TV interface";
             set $TV 'ch+';
         }
@@ -49,7 +49,7 @@ if (my $state = $Tk_results{'TV key'}) {
 if (my $state = $Tk_results{'VCR key'}) {
                                 # Use this to test/tune the placement of your ir xmiters
     if ($state eq 'test') {
-        unless ($Second % 5) {
+        unless (new_second 5) {
             print_log "Testing IR VCR interface";
             set $VCR 'ch+';
         }

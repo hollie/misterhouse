@@ -7,7 +7,9 @@ use strict;
 
 my ($leave_socket_open_passes, $leave_socket_open_action);
 
-my($Authorized, $password_html, $Browser, $Referer, $MSAgent, $Cookie, $H_Response);
+use vars '%Cookies';
+
+my($Authorized, $password_html, $Browser, $Referer, $Host, $Cookie, $H_Response);
 my($html_pointer_cnt, %html_pointers);
 
 my %mime_types = (
@@ -77,29 +79,37 @@ sub process_http_request {
 
 
                                 # Read http header data (need $Browser parm)
-    $Browser = $Referer = $MSAgent = $Cookie = '';
+    $Browser = $Host = $Referer = $Cookie = '';  undef %Cookies;
     $H_Response = 'last_response';
     while (<$socket>) {
+#       print "db http header=$_";
         last unless /\S/;
+        $Host    = $1 if /^Host: (\S+)/;
         $Referer = $1 if /^Referer: (\S+)/;
-        $MSAgent = 1  if /^Cookie: .*msagent=1/;
-
-        if ($config_parms{password_menu} eq 'html' and $Password) {
-            if (/^Cookie: .*password=([^\s;]+)/) {
-                $Authorized = ($1 eq $Password) ? 1 : 0;
-            }
-        }
-        elsif (/^Authorization: Basic (\S+)/) {
-            my ($user, $password) = split(':', &uudecode($1));
-            $Authorized = (&password_check($password, 'http')) ? 0 : 1;
-        }
-                               #User-Agent: Mozilla/4.0 (compatible; MSIE 5.0; Windows 98)
-                                #User-Agent: Mozilla/4.6 [en] (Win98; I)
+                                # User-Agent: Mozilla/4.0 (compatible; MSIE 5.0; Windows 98)
+                                # User-Agent: Mozilla/4.6 [en] (Win98; I)
         if (/^User-Agent:/) {
             $Browser = (/MSIE/) ? "IE" : "Netscape";
             print "Browser=$Browser  $_" if $main::config_parms{debug} eq 'http';
         }
+                                # This is used/set in vxml menus
+        if (/^Cookie: (.+)/) {
+            for my $key_value (split ';', $1) {
+                my ($key, $value) = $key_value =~ /(\S+)=(\S+)/;
+                $Cookies{$key} = $value;
+            }
+        }
+        if (/^Authorization: Basic (\S+)/) {
+            my ($user, $password) = split(':', &uudecode($1));
+            $Authorized = (&password_check($password, 'http')) ? 0 : 1;
+        }
     }
+    if ($config_parms{password_menu} eq 'html' and $Password) {
+        $Authorized = ($Cookies{password} and $Cookies{password} eq $Password) ? 1 : 0
+    }
+
+
+
     print "Password flag set to $Authorized\n" if $main::config_parms{debug} eq 'http';
 
     my ($get_req, $get_arg) = $header =~ m|^GET (\/[^ \?]+)\??(\S+)? HTTP|;
@@ -162,7 +172,7 @@ sub process_http_request {
         }
         else {
             $Authorized = 1;
-            $Cookie .= "Set-Cookie: password=$Password; ; path=/;\n" if $Password;
+            $Cookie .= "Set-Cookie: password=$Password; ; path=/\n" if $Password;
             $html = &html_authorized . "<h3>Password accepted</h3>";
         }
         print $socket &html_page(undef, "$html\n", undef, undef, undef);
@@ -198,7 +208,7 @@ sub process_http_request {
         $h_response = $1;
 
         if ($get_arg) {
-            $get_arg =~ s/^select_cmd=//;   # Drop the cmd=  prefix from form lists.
+            $get_arg =~ s/select_cmd=//;  # Drop the cmd=  prefix from form lists.
             $get_arg =~ tr/\_/ /;   # Put blanks back
             $get_arg =~ tr/\~/_/;   # Put _ back
             $get_arg =~ s/\&x=\d+\&y=\d+$//;    # Drop the &x=n&y=n that is tacked on the end when doing image form submits
@@ -229,6 +239,11 @@ sub process_http_request {
         else {
             print $socket &html_page("", &html_unauthorized($get_arg, $h_response));
         }
+    }
+                                # Allow for simple sub calls (avoid & character ... messes up Tellme)
+    elsif  ($get_req =~ /\/SUB\:(\S+)$/) {
+        $h_response = '&' . $1;
+        &html_response($socket, $h_response);
     }
                                 # Allow for either SET or SET_VAR 
     elsif  ($get_req =~ /\/SET(_VAR)?$/ or
@@ -348,9 +363,8 @@ sub html_unauthorized {
     }
 }
 
-sub test_for_file {
-    my ($socket, $get_req, $get_arg, $skip_header) = @_;
-
+sub get_local_file {
+    my ($get_req) = @_;
     my ($http_dir, $http_member) = $get_req =~ /^(\/[^\/]+)(.*)/;
     my $file;
     if ($http_dir and $file = $http_dirs{$http_dir}) {
@@ -359,6 +373,13 @@ sub test_for_file {
     else {
         $file = "$main::config_parms{html_dir}/$get_req";
     }
+    return ($file, $http_dir);
+}
+
+sub test_for_file {
+    my ($socket, $get_req, $get_arg, $skip_header) = @_;
+
+    my ($file, $http_dir) = &get_local_file($get_req);
 
                                 # Check for index files in directory
     if (-d $file) {
@@ -480,6 +501,7 @@ sub html_response {
         my ($sub_name, $sub_arg, $sub_ref);
                                 # Allow for &sub1 and &sub1(args)
         if ((($sub_name, $sub_arg) = $h_response =~ /^\&(\S+)\((\S+)\)$/) or
+#           (($sub_name)           = $h_response =~ /^\SUB_(\S+)$/) or
             (($sub_name)           = $h_response =~ /^\&(\S+)$/)) {
             $sub_arg = '' unless $sub_arg; # Avoid uninit warninng
 
@@ -563,7 +585,7 @@ sub html_last_response {
         $last_response =~ s/\n/  /g;         # Remove line breaks
         $last_response =~ s/^.+?: //s;       # Remove time/date/status portion of log entry
                                 # Allow for MSagent
-        if ($browser eq 'IE' and $MSAgent and $main::config_parms{html_msagent_script}) {
+        if ($browser eq 'IE' and $Cookies{msagent} and $main::config_parms{html_msagent_script}) {
             $script = GenerateMsAgent($last_response);
         }
     }
@@ -614,13 +636,26 @@ sub vxml_page {
     my %parms = @_;
     my ($audio, $grammar, $grammar_html, $help);
     $parms{timeout} = 60 unless $parms{timeout};
-#   $parms{goto}  = "vxml/tellme.vxml#Main";
+
     $parms{goto} = "SET:&tellme_menu(main)" unless $parms{goto};
-    my $goto_html = $parms{goto};
+    my ($goto_html, $goto_vxml);
+    $goto_vxml = $parms{goto};
+    unless ($goto_vxml =~ /^http/i) {
+        $goto_vxml = '/' . $goto_vxml unless $goto_vxml =~ /^\//;
+                                # Tellme.com does not pass the port name in, but local
+                                # test browsers do, so use it only if it has a port specified.
+        if ($Host =~ /\:/) {
+            $goto_vxml = 'http://' . $Host . $goto_vxml;
+        }
+        else {
+            $goto_vxml = "http://$config_parms{http_server}:$config_parms{http_port}" . $goto_vxml;
+        }
+    }
+    $goto_html = $goto_vxml;
     $goto_html =~ s/tellme_menu/tellme_menu_html/;
     $goto_html =~ s/&vxml_last_response/last_response/;
-    $parms{goto} =~ s/&/&amp;/g;
-    $parms{goto} = "http://$config_parms{http_server}:$config_parms{http_port}/" . $parms{goto} unless $parms{goto} =~ /^http/i;
+    $goto_vxml =~ s/&/&amp;/g;
+
     $parms{mode} = 'vxml' unless $parms{mode};
 
     $parms{response} = qq|<audio>You said {session.result}</audio>| unless defined $parms{response};
@@ -637,33 +672,32 @@ sub vxml_page {
         $i = -1;
         for my $item ('help', @{$parms{grammar}}) {
             $help .= $item . ',   ' unless $parms{help};
-            $cmd1 = $cmd2 = $item;
 
-            $cmd1 =~ s/[\+%]//g; # These are illegal characters for grammar
-                                # Avoid ? in voice_cmd ... don't know how to pass them via tellme
-#           $cmd1 =~ s/\?/\??/g;
+            my $cmd = $item;
+            $cmd =~ s/[\+%]//g; # These are illegal characters for grammar
+#           $cmd =~ s/\?/\??/g; # Avoid ? in voice_cmd ... don't know how to pass them via tellme
+            $cmd = lc $cmd;
+            $cmd =~ s/\&//g; # These are illegal characters for grammar
 
-            $cmd1 = lc $cmd1;
-            $cmd1 =~ s/\&//g; # These are illegal characters for grammar
+            unless (($cmd1, $cmd2) = $cmd =~ /(.+?) => (.+)/) {
+                $cmd1 = $cmd2 = $cmd;
+                $cmd1 = "($cmd1)";
+                $cmd1 = "dtmf-$i $cmd1" if $i++ < 10;
+            }
             
-            $cmd2 = $cmd1;
             $cmd2 =~ tr/ /\_/; # Blanks are not allowed xml names
-            $cmd2 =~ s/\&//g; # These are illegal characters for grammar
-
-            my $dtmf = '';
-            $dtmf = "dtmf-$i" if $i++ < 10;
-            $grammar      .= qq|[$dtmf ($cmd1)] {<option "$cmd2">}\n|;
-            my $goto_vxml  = $parms{goto};
+            $grammar      .= qq|[$cmd1] {<option "$cmd2">}\n|;
+            my $goto_vxml  = $goto_vxml;
             my $goto_html2 = $goto_html;
             $goto_vxml  =~ s/{session.result}/$cmd2/;
             $goto_html2 =~ s/{session.result}/$cmd2/;
-            $grammar_html .= qq|<li> <a href=$goto_vxml>vxml</a> : <a href=$goto_html2>$dtmf $cmd1</a>\n|;
+            $grammar_html .= qq|<li> <a href=$goto_vxml>vxml</a> : <a href=$goto_html2>$i $cmd1</a>\n|;
         }
         $help = "Speak one of the following $i: $help" unless $parms{help};
         $grammar = qq|<grammar><![CDATA[[\n$grammar]]]></grammar>|;
     }
-    elsif ($parms{grammarsrc}) {
-        $grammar = qq|<grammar src="$parms{grammarsrc}"/>|;
+    elsif ($parms{grammar_src}) {
+        $grammar = qq|<grammar src="$parms{grammar_src}"/>|;
     }
 
     if ($grammar) {
@@ -672,20 +706,25 @@ sub vxml_page {
         my $noinput = qq|Sorry, I did not hear anything.|;
         my $nomatch = qq|What was that again?|;
 # <assign name="document.caller" expr="{session.ani}"/>
+        $Cookie = "Set-Cookie: vxml_cookie=$parms{cookie}; path=/\n" if $parms{cookie};
+
         if ($parms{mode} eq 'html') {
-            my $html = "$audio\n";
+            my $html = "<b>Audio</b>: $audio\n";
             $html .= "$grammar_html\n";
-            $html .= "<br>$noinput\n";
-            $html .= "<br>$nomatch\n";
-            $html .= "<br>$help\n";
-            $html .= "<br>$parms{response}\n";
+            $html .= "<br><b>No Input</b>: $noinput\n";
+            $html .= "<br><b>No Match</b>: $nomatch\n";
+            $html .= "<br><b>Help</b>:     $help\n";
+            $html .= "<br><b>Repsonse</b>: $parms{response}\n";
+            $html .= "<br><b><a href=$Referer>Previous</a></b>\n";
             return &html_page('', $html);
         }
         else {
+            my $header = "Content-type: text/xml";
+            $header    = $Cookie . $header if $Cookie;
             return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
-Content-type: text/xml
+$header
 
 <!DOCTYPE vxml PUBLIC "-//Tellme Networks//Voice Markup Language 1.0//EN"
 "http://resources.tellme.com/toolbox/vxml-tellme.dtd">
@@ -706,7 +745,7 @@ Content-type: text/xml
    </help>
    <filled>
     $parms{response}
-    <goto next="$parms{goto}"/>
+    <goto next="$goto_vxml"/>
    </filled>
   </field>
  </form>
@@ -716,23 +755,27 @@ eof
     }
                                 # Simple audio response
     else {
+        $Cookie = "Set-Cookie: vxml_cookie=$parms{cookie}; path=/\n" if $parms{cookie};
         if ($parms{mode} eq 'html') {
             my $html  = $audio;
-            $html .= "<br><a href=$parms{goto}>vxml</a> : <a href=$goto_html>Next</a>\n";
+            $html .= "<br><a href=$goto_vxml>vxml</a> : <a href=$goto_html>Next</a>\n";
+            $html .= "<br><b><a href=$Referer>Previous</a></b>\n";
             return &html_page('', $html);
         }
         else {
+            my $header = "Content-type: text/xml";
+            $header    = $Cookie . $header if $Cookie;
             return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
-Content-type: text/xml
+$header
 
 <?xml version="1.0"?>
 <vxml>
  <form>
   <block>
    $audio
-   <goto next="$parms{goto}"/>
+   <goto next="$goto_vxml"/>
   </block>
  </form>
 </vxml>
@@ -819,7 +862,7 @@ sub html_file {
             if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
                  print "Http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
                  print $socket $prefix;
-                                # tellme vmxl does not like comments in the middle of things :(
+                                # tellme vxml does not like comments in the middle of things :(
                  print $socket "\n<\!-- The following is from include $directive = $data -->\n" unless $file =~ /\.vxml$/;
                  my ($get_req, $get_arg) = $data =~ m|(\/[^ \?]+)\??(\S+)?|;
                  $get_arg = '' unless $get_arg; # Avoid uninitalized var msg
@@ -1064,16 +1107,8 @@ sub html_find_icon_image {
             return '';         # No match
         }
     }
-    return "/graphics/$icon";
 
-#    my $h_icon;
-#    if (($h_icon = $icon_dir . $name  . "-" . $state . ".gif") and -r ($html_dir . $h_icon) or # light-off.gif
-#        ($h_icon = $icon_dir . $name  .                ".gif") and -r ($html_dir . $h_icon) or # light.gif
-#        ($h_icon = $icon_dir . $type  . "-" . $state . ".gif") and -r ($html_dir . $h_icon) or # x10_item-off.gif
-#        ($h_icon = $icon_dir . $type  .                ".gif") and -r ($html_dir . $h_icon) or # x10_item.gif
-#        ($h_icon = $icon_dir . $state .                ".gif") and -r ($html_dir . $h_icon)) { # off.gif         
-#        return $h_icon;
-#    }
+    return "/graphics/$icon";
 }
 
 sub html_list {
@@ -1087,27 +1122,27 @@ sub html_list {
     $h_list .= qq[<!-- html_list -->\n];
 
                                 # This means the form was submited ... check for search keyword
-    if ($webname_or_object_type =~ /search=(\S*)/) {
+    if (my $search = $webname_or_object_type =~ /search=(\S*)/) {
 
                                 # Check for msagent checkbox
         if ($webname_or_object_type =~ /msagent=1/) {
-            unless ($MSAgent) {
-                $MSAgent = 1;
+            unless ($Cookies{msagent}) {
+                $Cookies{msagent} = 1;
                 $Cookie .= "Set-Cookie: msagent=1 ; ; path=/;\n";
                 return "<h3>MS agent has been turned On</h3>";
             }
         }
         else {
-            if ($MSAgent) {
-                $MSAgent = 0;
+            if ($Cookies{msagent}) {
+                $Cookies{msagent} = 0;
                 $Cookie .= "Set-Cookie: msagent=0 ; ; path=/;\n";
                 return "<h3>MS agent has been turned Off</h3>";
             }
         }
                                 # Search for matching Voice_Cmd and Tk Widgets
-        $h_list .= "<!-- html_list list_objects_by_search=$1 -->\n";
+        $h_list .= "<!-- html_list list_objects_by_search=$search -->\n";
         my %seen;
-        for my $cmd (&list_voice_cmds_match($1)) {
+        for my $cmd (&list_voice_cmds_match($search)) {
                                 # Now find object name
             my ($file, $cmd2) = $cmd =~ /(.+)\:(.+)/;
             my ($object, $said, $vocab_cmd) = &Voice_Cmd::voice_item_by_text(lc $cmd2);
@@ -1115,7 +1150,7 @@ sub html_list {
             next if $seen{$object_name}++;
             push @object_list, $object_name;
         }
-        $h_list .= &widgets('search', $1);
+        $h_list .= &widgets('search', $search);
         $h_list .= &html_command_table(sort @object_list);
         return $h_list;
     }
@@ -1404,7 +1439,7 @@ sub html_command_table {
             qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] . 
                 $html if $html_info_overlib;
 
-    if ($Browser eq 'IE' and $MSAgent and $main::config_parms{html_msagent_script_vr}) {
+    if ($Browser eq 'IE' and $Cookies{msagent} and $main::config_parms{html_msagent_script_vr}) {
         my $msagent_file = file_read "$config_parms{html_dir}/$config_parms{html_msagent_script_vr}";
         $msagent_file =~ s/<!-- *vr_cmds *-->/$msagent_script1/;
         $msagent_file =~ s/<!-- *vr_select *-->/$msagent_script2/;
@@ -1754,10 +1789,10 @@ sub dir_index {
     my ($dir_html, $sortby, $reverse, $filter) = @_;
 
     $filter = '' unless $filter; # Avoid uninit warnings
+    $sortby = '' unless $sortby; # Avoid uinit warnings
     my $reverse2 = ($reverse) ? 0 : 1;
     my $sort_order = ($reverse) ? '+' : '-' ;
-    my $dir = $http_dirs{$dir_html};
-    $dir = "$main::config_parms{html_dir}/$dir_html" unless $dir;
+    my ($dir) = &get_local_file($dir_html);
     my $dir_tr = $dir_html;
     $dir_tr =~ s/\//\%2F/g;
 
@@ -1777,7 +1812,19 @@ sub dir_index {
     my %file_data;
     for my $file (@files) {
         ($file_data{$file}{size}, $file_data{$file}{date}) = (stat("$dir/$file"))[7,9];
-        $file_data{$file}{type} = $1 if $file =~ /(\.[^\.]+)$/;
+        my ($type) = $file =~ /(\.[^\.]+)$/;
+        $type = '' unless $type;
+        $type = 'Directory' if -d "$dir/$file";
+        $file_data{$file}{type} = $type;
+        
+#       $file_data{$file}{type} = '' $1 if $file =~ /(\.[^\.]+)$/;
+#        if ($file =~ /(\.[^\.]+)$/) {
+#            $file_data{$file}{type} = $1;
+#        }
+#        else {
+#            $file_data{$file}{type} = '';
+#    }
+
     }
     if ($sortby eq 'date' or $sortby eq 'size') {
         @files = sort {$file_data{$a}{$sortby} <=> $file_data{$b}{$sortby} or $a cmp $b} @files;
@@ -1824,6 +1871,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.51  2000/12/21 18:54:15  winter
+# - 2.38 release
+#
 # Revision 1.50  2000/12/03 19:38:55  winter
 # - 2.36 release
 #

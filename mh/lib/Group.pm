@@ -23,13 +23,13 @@ sub add {
         @{$$self{states}} = @{$$first_item{states}} if $first_item and $$first_item{states};
         @{$$self{states}} = split ',', $main::config_parms{x10_menu_states} if $first_item->isa('X10_Item');
 #       @{$$self{states}} = qw(on off)                                      if $first_item->isa('X10_Appliance');
-        print "Group states: @{$$self{states}}\n" if $first_item and $$self{states} and $main::config_parms{debug}; #&?? WES
+        print "Group states: @{$$self{states}}\n" if $first_item and $$self{states} and $main::config_parms{debug} eq 'group';
     }
 }
 
 sub set {
     my ($self, $state) = @_;
-    print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::config_parms{debug};
+    print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::config_parms{debug} eq 'group';
 
     &Generic_Item::set_states_for_next_pass($self, $state);
 
@@ -59,7 +59,7 @@ sub set {
 
     if ($hc) {
         for my $ref (@group) {
-            print "Group1 setting $ref to $state\n" if $main::config_parms{debug};
+            print "Group1 setting $ref to $state\n" if $main::config_parms{debug} eq 'group';
             set $ref 'manual';
                                 # Set the real state, rather than 'manual'
                                 #  - the last element of that array 
@@ -70,7 +70,7 @@ sub set {
     }
     else {
         for my $ref (@group) {
-            print "Group2 setting $ref to $state\n" if $main::config_parms{debug};
+            print "Group2 setting $ref to $state\n" if $main::config_parms{debug} eq 'group';
             set $ref $state if $ref;
         }
     }
@@ -78,12 +78,15 @@ sub set {
 
 sub list {
     my ($self) = @_;
-    print "Group list: self=$self members=@{$$self{members}}\n" if $main::config_parms{debug};
+    print "Group list: self=$self members=@{$$self{members}}\n" if $main::config_parms{debug} eq 'group';
     return sort @{$$self{members}};  # Hmmm, to sort or not to sort.
 }
 
 #
 # $Log$
+# Revision 1.12  2000/12/21 18:54:15  winter
+# - 2.38 release
+#
 # Revision 1.11  2000/11/12 21:02:38  winter
 # - 2.34 release
 #

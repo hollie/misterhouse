@@ -13,14 +13,14 @@ sub get_email_rule {
     return                         if $from =~ /TipWorld/;
     return                         if $from =~ /X10 Newsletter/;
     return                         if $subject =~ /test \d+/;
-    return                         if $from =~ /get tv grid/;
+    return 'filtered no store'     if $from =~ /get tv grid/; # no store -> will not store in data/email
     return                         if $from =~ /Cron Daemon/;
     return 'The Mister House guys' if $subject =~ /\[misterhouse-/;
     return 'A Mister House subscriber' if $subject =~ /subscribe notification/i;
     return                         if $from =~ /Mail Delivery Subsystem/i;
     return 'The perl guys'         if $to =~ /Perl-Win32-Users/;
     return 'The phone guys'        if $to =~ /ktx/ or $subject =~ /kx-t/i;
-    return                         if $to =~ /klug/;
+    return 'filtered - klug'       if $to =~ /klug/;           # filtered -> will not be spoken (like blank)
     return 'junk mail'             if $from =~ /\S+[0-9]{3,}/; # If we get a joe#### type address, assume it is junk mail.
     return 'junk mail'             if $from =~ /[0-9]{5,}/;    # If we get a ######  type address, assume it is junk mail.
     return $from;

@@ -39,7 +39,8 @@ $barcode_scan  -> set_authority('anyweb');
 $MW->bind('<Key-F10>', sub {$Tk_objects{entry}{$barcode_scan}->focus()}) if $MW and $Reload;
 
 if ($state = state_now $barcode_scan) {
-    play 'sound_click2.wav';
+#   play volume => 20, file => 'sound_nature/bird.wav';
+    play 'barcode_scan';        # Defined in event_sounds.pl
     $state = '.' . $state unless $state =~ /^\./; # Tk entry drops the leading '.' ???
 
     my ($scanner_sn, $type, $code) =  barcode_decode($state);

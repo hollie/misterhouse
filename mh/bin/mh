@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-12-21 12:00:00 winter>
+#  Last change Time-stamp: <2000-12-21 12:51:54 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -2100,14 +2100,14 @@ sub print_log {
     if ($Tk_objects{log_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
                                 # move to the bottom, messing up any manual scrolling
-        $Tk_objects{log_window}->insert('0.0', "$Time_Date: $data\n");
-#       $Tk_objects{log_window}->insert('end', "$Time_Date: $data\n");
+        $Tk_objects{log_window}->insert('0.0', "$Time_Date $data\n");
+#       $Tk_objects{log_window}->insert('end', "$Time_Date $data\n");
 #       $Tk_objects{log_window}->yview('moveto', 30);
     }
     else {
-        print "$Time_Date: $data\n";
+        print "$Time_Date $data\n";
     }
-    unshift (@Print_Log, "$Time_Date: $data");
+    unshift (@Print_Log, "$Time_Date $data");
     pop @Print_Log if @Print_Log > $config_parms{max_log_entries};
 
     $Last_Response = 'print_log';
@@ -2135,10 +2135,10 @@ sub print_msg {
     my $time = &time_date_stamp(13, $Time);
     if ($Tk_objects{msg_window}) {
         $Tk_objects{msg_window}->insert('0.0', "$time $data\n");
-#       $Tk_objects{msg_window}->insert('0.0', "$Time_Date: $data\n");
+#       $Tk_objects{msg_window}->insert('0.0', "$Time_Date $data\n");
     }
     else {
-        print "$time: $data\n";
+        print "$time $data\n";
     }
     $Last_Response = 'print_msg';
 }
@@ -3901,6 +3901,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.39  2000/12/21 18:54:14  winter
+# - 2.38 release
+#
 # Revision 2.38  2000/12/21 18:49:01  winter
 # - 2.38 release
 #

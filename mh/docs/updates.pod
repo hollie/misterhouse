@@ -6,14 +6,144 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.38 posted on 12/21/00
+
+Version 2.38 was just uploaded to:
+
+  http://misterhouse.sourceforge.net/download.html
+  http://misterhouse.net/download.html
+
+B<New Features:>
+
+- Danal Estes updated the DCS* alarm system code to be object/state aware.
+
+- Stuart Grimshaw added mh/lib/SMS_Item.pm, for sending SMS messages to mobile phones.
+
+- David Norwood added mh/lib/Weather_wx200d.pm.  This talks to the
+Unix wx200d daemon: https://sourceforge.net/projects/wx200d  
+
+- David Norwood also added mh/code/public/weather_upload.pl.
+This uploads your weather station data to the wunderground personal weather project.
+
+- Clive Freedman sent in changes to get_tv_info:
+revised to include processing of key-lists in files,
+case-sensitive searches for words starting with upper-case,
+searches for whole words only, plus plurals,
+option for 5 minute search increments,
+shows in progress, .html output.
+He has an example of his use in mh/code/public/tv_info_clive.pl.
+
+- Added mh/bruce/news_email_breaking.pl to announce breaking email
+stories from a news email subscription.
+Be the first on your block to know the aliens have landed :)
+This subscription sends out about 0->3 items a day: http://www.cnn.com/EMAIL .
+Anyone know of other news services that send just the really big news??
+
+- Modified internet_mail.pl
+to not delete the get_email.scan file until one full pass after it
+was created, so other code can monitor incoming mail, like the above news_email_breaking.pl
+
+- Added the new_second, new_minute, and new_hour functions.
+These functions are like the $New_Second/Minute/Hour variables, 
+except they can return true only on the nth second/minute/hour.  
+So instead of this:
+
+  if ($New_Minute and !($Minute % 10))) { }
+
+we can say 
+
+  if (new_minute 10) { }
+
+
+- Added a few example mh/sounds/sound_nature/*.wav files.  
+These make for fun, less obtrusive but still distinguishable event sounds.
+Our house now sounds like a bird sanctuary  :)
+Found this great site for sound searches:  http://www.findsounds.com
+
+- Added mh function add_sound and mh/test/event_sounds.pl.
+This allows us to create and review event sounds.  For example:
+
+  add_sound movement1 => 'sound_nature/bird1.wav', volume => 20;
+  play 'movement1' if state_now $movement_sensor;
+
+Try 'list event sounds' to review the sound assigments.
+
+- Enabled keyboard monitoring in Unix (was only windows).
+Requires Term::ReadKey which I think is usually installed by default.
+Made $Keyboard available in user code (echos characters typed on the keyboard, and F1 -> F12).
+Moved the F1->F5 processing (e.g. F1 code reload) to mh/code/common/mh_control.pl
+
+- Moved/split mh/mh.print.log to code_dir/mh_temp.speak/print.log.
+Read the previous logs at startup, so up to max_log_entries previous log entries are displayed.
+If you have your own tk_frames.pl, add the 'seed' records from mh/code/common/tk_frames.pl.
+
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Brent DeShazer fixed the new voice_cmd_prefix for ViaVoice.
+
+- Bill Sobel added 'double/triple on/off' states for X10_Item.
+
+- Bill Sobel found a Weather_Item.pm bug with undefined states.
+
+- Dan Ratzlaff found 2 typos and added the dim states in X10_Switchlinc. 
+He also added X10SL to read_table_A.pl.
+
+- David Lounsberry updated vv_tts.pl from ViaVoiceTTS to TTSClass.
+He also sent in a fix for processing web forms with Mozilla.
+
+- Craig Schaeffer sent in mh/code/examples/weeder_io.pl as an example of using the current weeder kits.
+
+- Added mh/lib/example_interface.pm as an example of how to write a code for a new interface.
+
+- Added mh/bruce/school_closing.pl for those of you in snowy climates that have 
+local web pages with school closing status.
+
+- Added an example mh.private.ini with some common parms.
+
+- Added a check for no_log, in mh/code/common/mh_control.pl &serial_match_log.
+If you are getting X10 errata in your print_log file that you don't want
+(e.g. lots of movement sensor data), rather than turning X10 errata off,
+you can turn it off for specific units with this:
+
+  $movement_sensor->{no_log} = 1;
+
+- Allow for Format= table format specs as a comment.  Also fixed
+a problem with loosing Groups after a code reload.
+
+- Allow for pod comments in user code.  Instead of putting # in front of a bunch of lines 
+(e.g. commented out section or example documentation), you can use =begin =cut to mark
+the start/stop of a comment section.  See mh/bruce/tellme_menu.pl for an example.
+
+- Use a timer, rather than a sleep, when &play is waiting to play a sound, 
+so mh does not pause when playing back-to-back sound files.
+
+- Fixed a 2.36 bug with expired timers in timers.pl
+
+- Move set_authority calls out of the loop code.
+
+- Minor changes to tellme_menu code, including detecting and using local host namename and port
+when debuging with a local browser.  I have not gotten a PIN login and cookies to work there yet :(
+
+- If get_email_rule returns a string with 'no store', get_email will not store it in html data/email index.
+
+- Added mh/docs/authors.html.  This list is auto-parsed from mh/docs/updates.pod.
+That filter may have skipped a few names here or there, so if your name is missing
+and you want to be famous, let me know and I'll update that code.
+
+- Kieran Ames continues to update the mh users map.  We are up to 68 locations.
+We also added a table to list the cities/countries.
+
+
 =head2 Version 2.36 posted on 12/03/00
 
 Version 2.36 was just uploaded to:
 
-  http://misterhouse.sourceforge.net/download
-  http://misterhouse.net/download
+  http://misterhouse.sourceforge.net/download.html
+  http://misterhouse.net/download.html
 
 B<New Features:>
+
 
 - Added Voice XML (vxml) functions and created mh/code/bruce/tellme_menu.pl.
 This code enables remote VR control via 1-800-555-8355 from http://tellme.com .
@@ -83,7 +213,6 @@ that &net_mail_summary uses (called by mh/bin/get_email).
 
 - Avoid errors wint Win32::Sound::Volume with older win32 Perls
 
-
 =head2 Version 2.34 posted on 11/12/00
 
 Version 2.34 was just uploaded to:
@@ -106,7 +235,7 @@ See mh/code/public/README.txt rrd* entries for more info.
 and copy in the new mh/code/test/timers.pl member.  This will enable tk and web menu fields that you
 can enter timer time and text into.
 
-- Doug suggested a get_email enhancement that allows for browsing mh monitored email from
+- Douglas Nakakihara suggested a get_email enhancement that allows for browsing mh monitored email from
 a web browser.  One weeks worth of email is stored (by day, as html files)
 for each account in a new data/email dir.  In addition an html.latest member shows
 just the email that has not been received yet.
@@ -255,7 +384,7 @@ B<Examples, Bug Fixes, and Minor Changes:>
 
 - Stephen Merrony found a problem with SunTime.pm calculation for -time_zone 0.
 
-- Danel Estes noted that Serial_Items without defined state strings returned 'default_state'.  
+- Danal Estes noted that Serial_Items without defined state strings returned 'default_state'.  
 We switched it back to return the ID string like it used to.
 
 - Ingo Dean discovered that incoming DIM/BRIGHT commands crashed mh when using a non-CM11 interface
@@ -281,7 +410,7 @@ To avoid this, mh now checks and avoids sending out the same X10 code on consecu
 - Added the mh.ini no_log parm.  Use no_log=pause to turn of the 'mh paused' message.
 
 - Added FAQ entry 1.17: How can I use Family Radios with MisterHouse?' 
-and pointed it to Danel Estes's Family Radio Service FAQ mh/docs/faq_frs.html.
+and pointed it to Danal Estes's Family Radio Service FAQ mh/docs/faq_frs.html.
 
 
 =head2 Version 2.29 posted on 10/01/00
@@ -919,7 +1048,7 @@ Also updated tv_grid.pl to use IR_Item instead of the older, one-for-all mh/bin/
 This also monitors other X10 rf traffic, so may prove to be a good way to improve latency on things 
 like X10 motion sensors.
 
-- Craig S. added a iButton read_switch method, for the DS2407 switch.  He also has started on
+- Craig Schaeffer added a iButton read_switch method, for the DS2407 switch.  He also has started on
 code for monitoring the Dallas 1 wire weather station:  mh/code/public/iButton_ws.pl
 
 - Added volume, rate, and voice options to the speak function.
@@ -940,7 +1069,7 @@ a required step for perl 5.6+ Win32 users:  ppm install Win32::API.  Without thi
 - Fixed a Windows bug that cause mh to hang while wav files were played.
 They are now played asynchronously.
 
-- Added  Kevin O.'s fix to CM11.pm to fix the problem he was having with not receiving all incoming X10 signals.
+- Added  Kevin Olande's fix to CM11.pm to fix the problem he was having with not receiving all incoming X10 signals.
 
 - Fixed a bug introduced in 2.11 that disabled dialup on Windows.
 
@@ -948,14 +1077,14 @@ They are now played asynchronously.
 
 - Fixed a bug where mh would respond with "I heard" when using the ms speech recognition engine.
 
-- Added  David L.'s linux mp3 control code as code to mh/code/public/mp3_control_GQmpeg.pl.
+- Added  David Lounsberry's linux mp3 control code as code to mh/code/public/mp3_control_GQmpeg.pl.
 
 - Added  Brian Klier's example of a custom status pannel page to mh/code/public/statuspannel.pl and .shtml.  
 Also added a screenshot of what Brian's mh page looks like at http://misterhouse.net/pictures/brian.gif .
 If anyone else wants to send in screenshots of their mh web
 interfaces, send them my way and I'll post them.
 
-- Refreshed  Tom K.'s mh/code/public/news_*.pl members
+- Refreshed  Tom Kotowski's mh/code/public/news_*.pl members
 
 - Added an optional net_mail_account_server_send parm, to allow for accounts that have different
 send and receive (stmp/pop) mail servers.
@@ -985,7 +1114,7 @@ on Windows as well as Linux!
 
 - Split mh/code/bruce/phone.pl into phone.pl, phone_weeder.pl, phone_modem.pl, and phone_logs.pl.
 This should allow caller ID modem users another option.  phone.pl differs from the 
-mh/public/calllog.pl code that Brian and Ernie O. put together.  The phone_modem.pl code is a bit 
+mh/public/calllog.pl code that Brian and Ernie Oporto put together.  The phone_modem.pl code is a bit 
 simpler (e.g. no auto-hangup), but it logs data for use with display_callers.
 
 - Reworked the default web page again (now mh/web/mh4).  This now uses the javascript overlib.js
@@ -1018,7 +1147,7 @@ will not be able to view that data.
 
 B<Bug Fixes and Minor Changes:>
 
-- Included  Craig S.'s sump pump code  and Tom's news_* code to mh/code/public.
+- Included  Craig Schaeffer's sump pump code  and Tom's news_* code to mh/code/public.
 
 - Added Voice_Cmd set_order method so you can control the order that the commands are listed
 in web Category list.  The default is alphabetically by file, then by name.
@@ -1048,7 +1177,7 @@ to another program's STDIN/STDOUT
 - A web request to display data will now only display to the web page and not also
 create a tk popup window.
 
-- Added  Tom K.'s $Time_Of_Day global var (morning, afternoon, evening, and night)
+- Added  Tom Kotowski's $Time_Of_Day global var (morning, afternoon, evening, and night)
 
 
 =head2 mh ver 2.1 posted on 02/19/00
@@ -1077,7 +1206,7 @@ X10_Item and X10_Appliance objects.
 
 - Moved Speak_Log from Voice_Text to mh so the web interface will echo spoken text even when muted.
 
-- Jay A. sent a bunch of new icons.
+- Jay Archer sent a bunch of new icons.
 
 
 B<Bug Fixes and Minor Changes:>
@@ -1108,7 +1237,7 @@ This allows you to modify it without changing files in the main distribution dir
 
 - Added FAQ 2.13: How can I control Command Categories
 
-- Craig S. fixed a set_clock 2k bug.
+- Craig Schaeffer fixed a set_clock 2k bug.
 
 - Delete X10_Item 'none' state (use manual instead).
 
@@ -1130,7 +1259,7 @@ but mh has had enough changes since 1.00 that we thought maybe it deserved a new
 
 B<New Features:>
 
-- Dave Lounsberry and I re-vamped the web interface.
+- David Lounsberry and I re-vamped the web interface.
 There are too many changes to summarize here, but most of it documented in the 
 'Customizing the Web Interface' section of mh.html.
 There are some new parms in mh.ini so you can taylor it somewhat with just parm changes.
@@ -1229,7 +1358,7 @@ shoutcast servers.  This code will announce when you have new listeners to your 
 
 - Added mh/code/public/callerid.pl as another example on how to do callerid with a modem.
 
-- Added  Dave L.'s motion sensor code as code/examples/x10_motion_sensors_dave.pl
+- Added  David Lounsberry's motion sensor code as code/examples/x10_motion_sensors_dave.pl
 
 
 B<Bug Fixes and Minor Changes:>
@@ -1266,7 +1395,7 @@ Version 1.93 was just uploaded to:
 
 New Features:
 
-- Changed Voice_Text to allow for calls David L.'s new ViaVoice Outloud TTS
+- Changed Voice_Text to allow for calls David Lounsberry's new ViaVoice Outloud TTS
 server for Linux.  David has an rpm and a tarball, with installation documention, at:
 http://dittos.penguinpowered.com/automation/index.html#software
 
@@ -1307,12 +1436,12 @@ Bug Fixes and Minor Changes:
 
 - Created $Date_Now_Speakable, complements of Amaury J.
 
-- Added mh/code/public/send_alpha_page.pl from David L.
+- Added mh/code/public/send_alpha_page.pl from David Lounsberry
 It uses a linux program called bip to send pages.
 
-- Bill B. updated CM11.pm to an official CPAN 2.06 version (extended data added).
+- Bill Birthisel updated CM11.pm to an official CPAN 2.06 version (extended data added).
 
-- William S. found a bug in trivia.pl
+- William Steiner found a bug in trivia.pl
 
 - Fixed a bug with mh_server processing mhsend -run commands.
 
@@ -1333,7 +1462,7 @@ Version 1.90 was just uploaded to:
 
 New Features:
 
-- Craig S. added mh/lib/RCS_Item.pm and mh/code/public/rcs.pl, to allow for control
+- Craig Schaeffer added mh/lib/RCS_Item.pm and mh/code/public/rcs.pl, to allow for control
 of the RCS TX thermostats.
 
 - Added the option for internet_mail.pl to run commands via email.  
@@ -1508,7 +1637,7 @@ Bug Fixes and Minor Changes:
 
 - Closed an file handle in Display.
 
-- Added code/public/weather from Ernie O.
+- Added code/public/weather from Ernie Oporto
 
 - Added code/Bruce/tracking_bruce.pl.  This is a subset of Brian's mh/public/Brian/tracking.pl code that 
 just does GPS tracking.
@@ -1664,7 +1793,7 @@ The web pages I download do not use PDetail javascript subroutine.
 
 - Fixed a bug where web pages would keep waiting when running events that do not respond with spoken or displayed data.
 
-- Fixed the 'command not found' bug that Bill B. noticed at startup.  
+- Fixed the 'command not found' bug that Bill Birthisel noticed at startup.  
 
 - Added a check for bad data in code/mh_temp.saved_states.
 
@@ -1702,7 +1831,7 @@ mp3_control and  test_stuff.pl (tests o and p)
 
 Bug Fixes, small changes:
 
-- Fixed the CM17 bug that Bill B. found.  Also moved CM11.pm to the lib/site/HomeAutomation/X10 directory.
+- Fixed the CM17 bug that Bill Birthisel found.  Also moved CM11.pm to the lib/site/HomeAutomation/X10 directory.
 
 - Fixed a bug where blanks in '# Category=my category' directives messed up web pages listings.
 
@@ -1756,11 +1885,11 @@ Items uses the most memory, so just turning that one off will probably be enough
 
 - Added mh.ini html_style option.  Use this to change mh web pages colors and fonts.
 
-- Added mh/bin/alpha_page from Craig S.
+- Added mh/bin/alpha_page from Craig Schaeffer
 
 - Some more homebase updates.  Bob and I are closing in on getting this working.
 
-- Some SerialPort and CM17/CM11 updates.  Bill B. is kindly going through all the work to preparing the
+- Some SerialPort and CM17/CM11 updates.  Bill Birthisel is kindly going through all the work to preparing the
 CM17/CM11 modules for eventual upload to a new perl CPAN HomeAutomation::X10 directory.
 
 - Updated get_tv_grid to work with the new click.tv pages.  It now also deletes old shows from the dbm database.
@@ -1791,7 +1920,7 @@ member.  See irman.pl and/or mh.html for more info.
 
 - Added support for .pl web files.  Like 'cgi' programs, this allows us to generate html on the fly,
 that reflects the status of various mh items.  For a few examples, try 
-http://misterhouse.net:8080/mh_default/test/test_stuff.shtml .  Brian K. has another example in
+http://misterhouse.net:8080/mh_default/test/test_stuff.shtml .  Brian Klier has another example in
 mh/web/examples/statuspanel.pl
 
 - Added set_dtr set_rts methods to Serial_Item.  See irman.pl for an example.
@@ -1860,7 +1989,7 @@ our web pages (with mh/bin/set_password) the option of allowing specific command
 be password protected.  For example, anyone can click on the 'display the next deep though' on my web page
 at http://misterhouse.net:8080 
 
-- Bill B. updated Device/SerialPort.pm so should now load OK even on Unix boxes without the proper .ph files.
+- Bill Birthisel updated Device/SerialPort.pm so should now load OK even on Unix boxes without the proper .ph files.
 
 - Added some new small sounds in mh/sounds.  mh will now bypass logging the wave file name in the speak
 log if the name of the file starts with sound_*.   These are ment to be short, frequent sounds.
@@ -2074,7 +2203,7 @@ it is slow (2-3 seconds per command), and it is transmit only.  But it is cheap 
 - Modified the syntax of the optional html_response directive for the RUN, SET, and SET_VAR html commands.
 Also added the option of having the html reponse be a user defined function.  See mh.html for more info.
 
-- Moved  Brian K's code from mh/code/public to mh/code/public/Brian.  Added  Mike M's webcam code.
+- Moved  Brian Klier's code from mh/code/public to mh/code/public/Brian.  Added  Mike M's webcam code.
 I'd be happy to distribute any other code, for those brave enough :)
 
 =head2 mh ver 1.58 posted on 06/20/99
@@ -2192,10 +2321,10 @@ Version 1.54 was just uploaded to:
   http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
   http://misterhouse.webjump.com/index.html
 
-- Fix the 'killing run process' errata on mh exit (Craig S. bug # 1).
+- Fix the 'killing run process' errata on mh exit (Craig Schaeffer bug # 1).
 
 - Fix a bug where mh would exit if a process_item was re-started before a previous process for that item had
-finished (Craig S. bug # 2).
+finished (Craig Schaeffer bug # 2).
 
 - Play a wav file only once on linux (thanks to Kevin P. for that fix).
 
@@ -2206,7 +2335,7 @@ finished (Craig S. bug # 2).
 - Change the mult-X10 event check, so it checks for 2 and 4 character X10 events.
 
 - Decode and store incomming CM11 dim/bright codes.  You can set up Serial_Items to trigger off of the dim 
-amount.  This also fixes the Craig S. bug # 3 he found in mh 1.52.
+amount.  This also fixes the Craig Schaeffer bug # 3 he found in mh 1.52.
 
 - Switched to the latest version of the Serial_Port.pm code.  SerialPort_Linux.pm renamed to SerialPort.pm.
 
@@ -2354,7 +2483,7 @@ to define as many accounts as you want.
 Brian had the good idea of trying to share a dial out modem with mh caller-id monitoring function.  Hopefully these new
 methods will enable that.
 
-- Brian K. added code/public/phone_callerid.pl.  It will allow your internet/data modem to also be used by mh
+- Brian Klier added code/public/phone_callerid.pl.  It will allow your internet/data modem to also be used by mh
 for callerid function.  Brian is still working on it, but it mostly works.
 
 - Included the display_callers program.  This tk window will display outgoing and incoming phone info.  Incoming as logged by callerid code

@@ -168,7 +168,7 @@ sub check_for_voice_cmd {
 
                                 # Drop the prefix, if present
         my $prefix  = $main::config_parms{voice_cmd_prefix};
-        $text =~ s/^$prefix// if $prefix;
+        $text =~ s/Said: $prefix /Said: / if $prefix;
 
         $noise_this_pass = $text;
 #       ($cmd_heard) = $text =~ /^Said: (.+)/;
@@ -591,6 +591,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.27  2000/12/21 18:54:15  winter
+# - 2.38 release
+#
 # Revision 1.26  2000/12/03 19:38:55  winter
 # - 2.36 release
 #

@@ -1,13 +1,16 @@
 <html>
 <head>
-<!-- Last emacs update Time-stamp: <2000-11-03 14:38:06 winter> -->
+<!-- Last emacs update Time-stamp: <2000-12-19 13:46:26 winter> -->
 <link rel="STYLESHEET" href="default.css" type="text/css">
 <title>MisterHouse - Intro</title>
 </head>
 <body>
 <!-- Last emacs update Time-stamp: <2000-09-12 07:23:52 winter> -->
 
-<h3>Mister Who?</h3>
+<hr>
+<center><h2>MisterHouse -- It Knows Kung-Fu</h2></center>
+<hr>
+
 <p>MisterHouse is an open source home automation program.
 It's fun, it's free, and it's entirely geeky.  
 Written in <a target='other' href=http://www.perl.com>Perl</a>, it fires events based on time,
@@ -21,10 +24,7 @@ programming interface.  Here is some example code:
    $fountain = new X10_Item 'B1';
    set $fountain ON if time_now '6:00 PM';
 
-   speak "I am now closing the curtains at $Time_Now" if time_now "$Time_Sunset + 0:15"; 
-   speak "The time is $Time_Now" if time_cron '30,35,40,45,50 6 * * 1-5'; 
-
-   $movement_sensor = new Serial_Item('XA2', 'stair');
+   $movement_sensor = new Serial_Item 'XA2', 'stair';
    play(file => 'stairs_creek*.wav') if state_now $movement_sensor eq 'stair';
 
    $v_bedroom_curtain = new Voice_Cmd '[open,close] the bedroom curtains';

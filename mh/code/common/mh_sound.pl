@@ -18,17 +18,21 @@ $mh_speakers_timer = new Timer;
                                 #  -  mip meter drops from 220 to 170 with this call :(
 my ($is_speaking, $is_speaking_flag);
 $is_speaking = &Voice_Text::is_speaking;
+$is_speaking = 1 if active $mh_speakers_timer;
 
-if (!$is_speaking_flag and ($is_speaking or active $mh_speakers_timer)) {
+if (!$is_speaking_flag and $is_speaking) {
 #   print_log 'Speakers on';
     $is_speaking_flag = 1;
     set $mh_speakers ON;
+                                # The following has no effect :(
+#   &Voice_Cmd::deactivate if $OS_win; # So mh does not listen to itself
 }
-if ($is_speaking_flag and !($is_speaking or active $mh_speakers_timer)) {
+if ($is_speaking_flag and !$is_speaking) {
 #   print_log "Speakers off, volume reset to $volume_previous";
     $is_speaking_flag = 0;
     set $mh_speakers OFF;
     &Win32::Sound::Volume($volume_previous) if $OS_win and defined $volume_previous;
+#   &Voice_Cmd::activate if $OS_win;
 }
 
 $test_volume = new Voice_Cmd 'Test volume at [5,20,60,100]';
@@ -49,7 +53,6 @@ sub set_volume {
 
                                 # Set a timer since we can not detect when a wav file is done
     set $mh_speakers_timer  $parms{time} if $parms{time}; # Set in &play
-
     undef $volume_previous;
     my $volume = $parms{volume};
     $volume = $config_parms{sound_volume} unless defined $volume;

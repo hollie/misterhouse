@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2000-09-15 23:25:37 winter>
+#  Last change Time-stamp: <2000-12-21 12:32:39 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      outlook_read
@@ -150,7 +150,7 @@ sub setup {
     $parms{date_end} = $parms{date} unless $parms{date_end};
     $parms{date_end} = &time_date_stamp(11, time + 3600*24*$parms{days}) if $parms{days};
 
-    print "Searching $parms{folder} num=$folder_number: Start: $parms{date}  Stop: $parms{date_end}\n\n" unless $parms{quiet};
+    print "Searching $parms{folder} num=$folder_number: Start: $parms{date}  Stop: $parms{date_end}\n" unless $parms{quiet};
 
     my ($Outlook, $folder);
     if ($parms{version} eq '97') {
@@ -220,7 +220,7 @@ sub find_items {
         $start =~ s/\:\d\d / /;
         $end   =~ s/\:\d\d / /;
         
-        printf ("start=%15s end=%15s   subject=%s\n\n", $start, $end, $subject) unless $parms{quiet};
+        printf ("start=%-20s end=%-20s  subject=%s\n", $start, $end, $subject) unless $parms{quiet};
 
         if (my($channel, $show) = $subject =~ /^ *vcr +(\d+) +(.+)/i) {
             &create_vcr_event($start, $end, $channel, $show);
@@ -304,6 +304,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.7  2000/12/21 18:54:14  winter
+# - 2.38 release
+#
 # Revision 1.6  2000/10/01 23:35:25  winter
 # - 2.29 release
 #

@@ -21,12 +21,17 @@ if ($state = said $weather_comv) {
     if ($state eq 'Get') {
         print_log "Getting weather data for $config_parms{city}, $config_parms{state}";
         my $data = $weather_com->get_weather($config_parms{city}, $config_parms{state});
-        for my $key (sort keys %{$data}) {
-            print "  Weather{$key}=$$data{$key}\n";
-            $Weather{$key} = $$data{$key};
+        if ($data) {
+            for my $key (sort keys %{$data}) {
+                print "  Weather{$key}=$$data{$key}\n";
+                $Weather{$key} = $$data{$key};
+            }
+            print_log "Getting weather map";
+            run "get_url $Weather{page} $config_parms{data_dir}/weather.html";
         }
-        print_log "Getting weather map";
-        run "get_url $Weather{page} $config_parms{data_dir}/weather.html";
+        else {
+            print_log 'No weather data retreived from weather.com.  Check console for error message.';
+        }
     }
     elsif ($state eq 'Display') {
         browser "$config_parms{data_dir}/weather.html";

@@ -1,30 +1,30 @@
-Title: NIPC Warns of E-Commerce Vulnerabilities
-2000-12-03 09:07:33 by Hemos  in dept: hack-and-slash-attack  (internet   68)
+Title: Serial ATA 1.0 Draft Released
+2000-12-21 13:28:36 by Hemos  in dept: getting-closer  (hardware   15)
 
-Title: NASA Has Found Evidence Of Oceans On Mars
-2000-12-03 04:32:48 by timothy  in dept: let's-send-(most)-actors-to-check-it-out  (space   169)
+Title: Number 9, Here We Come?
+2000-12-21 13:14:58 by Hemos  in dept: to-complete-the-set  (space   20)
 
-Title: AOL Still Working On AIM Security Hole
-2000-12-03 01:28:57 by timothy  in dept: fingerpokin  (aol   176)
+Title: 3D GUI Project
+2000-12-21 10:08:21 by CmdrTaco  in dept: why-waste-a-perfectly-good-dimension  (graphics   92)
 
-Title: An RPM Port Of APT
-2000-12-02 22:47:15 by Hemos  in dept: interesting-new-tools-  (linux   239)
+Title: Beer In Space
+2000-12-21 06:40:08 by Hemos  in dept: lost-in-time-lost-in-space-lost-in...meaning  (space   110)
 
-Title: Keep An Eye Out For The ISS
-2000-12-02 20:49:50 by Hemos  in dept: look-to-the-skies  (space   127)
+Title: A Spot For Beagle On Mars
+2000-12-21 04:14:14 by timothy  in dept: hope-it's-not-a-dog  (space   93)
 
-Title: Ken Thompson's Last Day At Bell Labs
-2000-12-02 17:54:05 by Hemos  in dept: bye-bye-american-pie  (news   196)
+Title: Princess Mononoke Released on DVD
+2000-12-21 01:35:21 by CmdrTaco  in dept: keep-your-eyes-peeled-for-posessed-boars  (anime   152)
 
-Title: Very Cool, Very Vaporous 1-Handed Keyboard
-2000-12-02 16:19:27 by CmdrTaco  in dept: look-ma-one-hand  (toys   161)
+Title: Nazis on Napster
+2000-12-20 23:20:00 by jamie  in dept: ugly-hate-machine  (music   390)
 
-Title: Is The Internet Destroying Spanish?
-2000-12-02 11:43:04 by timothy  in dept: what-have-the-romans-ever-done-for-us?  (ed   534)
+Title: 13 Month Calendar?
+2000-12-20 22:31:57 by CmdrTaco  in dept: something-to-think-about  (news   416)
 
-Title: AT&amp;T Could Soon Offer GSM To U.S. Customers
-2000-12-02 07:02:53 by timothy  in dept: now-how-much-would-you-pay?  (news   171)
+Title: New MPEG 4-Based Open Source Codec
+2000-12-20 20:32:52 by CmdrTaco  in dept: closer-and-closer-to-streaming-DVD  (internet   258)
 
-Title: Netscape Users Rejoice
-2000-12-02 03:54:55 by Hemos  in dept: not-very-nice-but-pretty-funny  (humor   327)
+Title: Shining Light On (And Through) MEMS
+2000-12-20 18:38:12 by timothy  in dept: eentsy-weentsie  (tech   114)
 

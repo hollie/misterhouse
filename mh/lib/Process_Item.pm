@@ -84,6 +84,7 @@ sub start_next {
 #       $cflag = DETACHED_PROCESS || CREATE_NEW_CONSOLE;
 #       $cflag = DETACHED_PROCESS;
 #       $cflag = NORMAL_PRIORITY_CLASS;
+        $cflag = 0;             # Avoid uninit warnings
 
         print "Process start: cmd_path=$cmd_path cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
 
@@ -195,6 +196,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.13  2000/12/21 18:54:15  winter
+# - 2.38 release
+#
 # Revision 1.12  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

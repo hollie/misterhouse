@@ -466,7 +466,7 @@ code.
 </P>
 <P>
 The DSC_Alarm.pm module supports the DSC PC5400 serial printer interface.
-This module prints all events that DSC logs to the even buffer. These
+This module prints all events that DSC logs to the event buffer. These
 events include arms/disarms/alarms, user <CODE>code(s)</CODE> that
 performed <CODE>action(s),</CODE> installer access, etc. DSC does not log
 individual zone open/close nor 'entry chime' events. See the
@@ -556,6 +556,11 @@ transmitters position.
 
 </P>
 <P>
+An better, object-oriented way to write code to interface to a new hardware
+device is in mh/lib/example_interface.pm. 
+
+</P>
+<P>
 Byterunner offers lots of types of serial cards: <A
 HREF="http://www.byterunner.com">http://www.byterunner.com</A>
 
@@ -566,7 +571,8 @@ HREF="http://wx200.planetfall.com/">http://wx200.planetfall.com/</A> and <A
 HREF="http://www.weatherwatchers.org/wxstation/WX-200/">http://www.weatherwatchers.org/wxstation/WX-200/</A>
 . $200-&gt;$300 at Radio Shack or <CODE>$200</CODE> from <A
 HREF="http://www.heartlandamerica.com">http://www.heartlandamerica.com</A>
-(search for weather, model WW22- 3350)
+(search for weather, model WW22- 3350). See mh/lib/Weather_wx200* for info
+on interface code.
 
 </P>
 <P>
@@ -780,7 +786,8 @@ formated time and date.
 </P>
 <P>
 The $New_* variables are true only on the pass that we enter a new Second,
-Minute, Hour, etc.
+Minute, Hour, etc. There are also new_* functions if you want to test on
+every nth second/minute/hour (see new_second function).
 
 </P>
 <P>
@@ -796,6 +803,11 @@ changed.
 <P>
 <CODE>$Reread</CODE> is always true after <CODE>Reload(F1),</CODE> even if
 no code members have changed.
+
+</P>
+<P>
+<CODE>$Keyboard</CODE> echos characters typed on the keyboard (currently
+windows only)
 
 </P>
 <P>
@@ -1173,10 +1185,12 @@ characters are the iButton family type. Here is a list of family types:
 <PRE>    $v_iButton_connect = new Voice_Cmd &quot;[Connect,Disconnect] to the iButton bus&quot;;
     if ($state = said $v_iButton_connect) {
       if ($state eq 'Connect') {
-        print_log &amp;iButton::connect($config_parms{iButton_port});
+        print_log &amp;iButton::connect($config_parms{ibutton_port});
+        print_log &amp;iButton::connect($config_parms{ibutton_port2});
       }
       else {
         print_log &amp;iButton::disconnect;
+        print_log &amp;iButton::disconnect, 'ibutton_port2;
       }
     }
 </PRE>
@@ -1188,7 +1202,7 @@ characters are the iButton family type. Here is a list of family types:
 </PRE>
 </P>
 <P>
-<PRE>    $ib_relay1 = new iButton '12000000123456ff';
+<PRE>    $ib_relay1 = new iButton '12000000123456ff', 'ibutton_port2';
     $v_iButton_relay1    = new Voice_Cmd &quot;Turn relay1 [on,off]&quot;;
     if ($state = said $v_iButton_relay1) {
        print_log &quot;Setting iButton relay1 to $state&quot;;
@@ -2040,22 +2054,6 @@ buffers.
 
 </P>
 <P>
-<PRE>  Note: This original version (October 2000) exposes 
-  only &quot;new&quot; &amp; &quot;said&quot;, where &quot;said&quot; contains the raw data
-  from the printer module.
-</PRE>
-</P>
-<P>
-<PRE>  It is my intent to expose object methods (such as 
-  &quot;state&quot;) in a future release.  This may lead to 
-  incompatible changes in existing methods.
-</PRE>
-</P>
-<P>
-<PRE>  Danal Estes, October 9, 2000
-</PRE>
-</P>
-<P>
 <PRE>  Required mh.ini entries:
     DSC_Alarm_serial_port=COM1 or /dev/ttys0
     DSC_Alarm_baudrate=4800
@@ -2064,10 +2062,18 @@ buffers.
 <P>
 <PRE>  Multiple instances may be supported by adding instance
   numbers to the parms as in:
-    DSC_Alarm:1_serial_port=COMx or /dev/ttysx
+    DSC_Alarm:1_serial_port=COMx or /dev/ttysX
     DSC_Alarm:1_baudrate=4800
-    DSC_Alarm:2_serial_port=COMy or /dev/ttysx
+    DSC_Alarm:2_serial_port=COMy or /dev/ttysY
     DSC_Alarm:2_baudrate=4800
+</PRE>
+</P>
+<P>
+<PRE>  Optional mh.ini entries:
+    DSC_Alarm_user_40=Jane Doe
+    DSC_Alarm_user_1=Bob Smith
+    
+    See the &quot;user&quot; method below for a description.
 </PRE>
 </P>
 <P>
@@ -2085,6 +2091,71 @@ buffers.
 </PRE>
 </P>
 <P>
+<PRE>     Important Note:  Due to mh internals, the &quot;said&quot; method and the &quot;state&quot; method (and
+     all &quot;state&quot; derived methods) lag each other's values by 1 pass through the user scripts.
+     As such, any given script should use &quot;said&quot; or &quot;state&quot;, but should NOT mix the two!
+</PRE>
+</P>
+<P>
+<PRE>     state        : Returns last state of alarm system from following values:
+                    Armed    = System is closed and armed.
+                    Disarmed = System is opened.
+                    Alarm    = System is alarming.
+</PRE>
+</P>
+<P>
+<PRE>     state_now    : Same as state, but valid for 1 pass only.
+</PRE>
+</P>
+<P>
+<PRE>     user         : User number of last code used to arm/disarm system.
+</PRE>
+</P>
+<P>
+<PRE>                    If present, mh.ini parm DSC_Alarm_user_nn=xyz will cause &quot;user&quot; 
+                    to return string &quot;xyz&quot; from the parm.
+</PRE>
+</P>
+<P>
+<PRE>     alarm_now    : True when system enters Alarm state.  Valid for 1 pass only.
+</PRE>
+</P>
+<P>
+<PRE>     zone         : Zone number that caused Alarm. Valid only when alarm_now is true.
+</PRE>
+</P>
+<P>
+<PRE>     Most other Generic_Item methods, such as &quot;state_log&quot;, are valid.
+</PRE>
+</P>
+<P>
+<PRE>  Logging:
+     The internal support module for DSC_Alarm (DSC_Alarm.pm) maintains a log of 
+     all serial data received from the DSC PC5400 interface.  This log is placed 
+     in /mh.ini parm data_dir/logs/$port_name.YYYY_MM.log; for example, the log 
+     entries shown below would be in file '/mh/data/logs/DSC_Alarm.2000_10.log'.
+     This implies a new log will be started each month.
+</PRE>
+</P>
+<P>
+<PRE>  DSC User Codes:
+     40 = Master code (can arm/disarm, change codes, any keypad function)
+     41 = Supervisor code (can arm/disarm, change codes)
+     42 = Supervisor code (can arm/disarm, change codes)
+     01-32 = User codes (can arm/disarm, can be associated to individual wireless keys)
+     33 = Duress code (can arm/disarm + sends duress code to master station)
+     34 = Duress code (can arm/disarm + sends duress code to master station)
+ 
+     The above information derived from PC1555 master panel; please see the installer
+     manual for your particular panel for further information.
+</PRE>
+</P>
+<P>
+<PRE>     Duress code reporting is NOT reflected via states as of December 2000.  
+     Coming soon...
+</PRE>
+</P>
+<P>
 <PRE>  Examples:
     mh.ini entry of 'DSC_Alarm_serial_port=com2' 
         
@@ -2098,8 +2169,8 @@ buffers.
 <PRE>    mh.ini entry of 'DSC_Alarm:2_serial_port=com5' 
         
     $DSC_test = new DSC_Alarm('DSC_Alarm:2');
-    if (my $log = said $DSC_test) {
-       print_log &quot;Alarm system data = $log\n&quot;;
+    if (my $state = state $DSC_test) {
+       print_log &quot;Alarm system state change, state = $state\n&quot;;
     }
 </PRE>
 </P>
@@ -2133,6 +2204,23 @@ Code 40
 <HR>
 <H2><A NAME="List_of_functions">List of functions</A></H2>
 <DL>
+<DT><STRONG><A NAME="item_add_sound">add_sound</A></STRONG><DD>
+<P>
+Assigns a sound file to an event name. This allows us to create and review
+event sounds. See mh/code/test/event_sounds.pl for an example.
+
+</P>
+<P>
+<PRE>  Example:
+</PRE>
+</P>
+<P>
+<PRE>    add_sound barcode_scan =&gt; 'sound_nature/bird.wav', volume =&gt; 20 if $Reload;
+    if ($state = state_now $barcode_scan) {
+        play 'barcode_scan';
+    }
+</PRE>
+</P>
 <DT><STRONG><A NAME="item_browser">browser</A></STRONG><DD>
 <P>
 Calls up the web browser defined my the mh.ini browser parm
@@ -2288,7 +2376,7 @@ after mh was started).
 </PRE>
 </P>
 <P>
-<PRE>    print_log &quot;File $file has change&quot; if file_change($file);
+<PRE>    print_log &quot;File $file has change&quot; if file_changed($file);
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_file_unchanged">file_unchanged</A></STRONG><DD>
@@ -2714,12 +2802,13 @@ Passes specified text to the TTS program. There are 2 modes of calling it:
 </P>
 <P>
 <PRE>   Simple mode:
-     speak &quot;text to speak&quot;
+     speak 'text to speak';
+     speak 'option=value text to speak';
 </PRE>
 </P>
 <P>
 <PRE>   Options mode:
-     speak(option =&gt; 'value', text =&gt; &quot;text to speak&quot;);
+     speak(option =&gt; 'value', text =&gt; 'text to speak');
     
      Options are:
        rooms  =&gt; 'room_name'   You need to code a pa_stub.pl routine to allow this
@@ -2750,6 +2839,8 @@ Passes specified text to the TTS program. There are 2 modes of calling it:
     speak(voice  =&gt; $state,
           text =&gt; &quot;This is an example of a $state voice&quot;) if $state = said $test_voice3;
   
+    $Save{mode} = 'mute' if time_cron '0 10-21 * * 1-5';
+    speak 'mode=unmuted  The front door just opened';
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_time_date_stamp">time_date_stamp</A></STRONG><DD>
@@ -3134,9 +3225,27 @@ Un-escapes ``%xx'' data back into the original characters. Use on HTML FORM
 data.
 
 </P>
+<DT><STRONG><A NAME="item_new_second">new_second</A></STRONG><DD>
+<DT><STRONG><A NAME="item_new_minute">new_minute</A></STRONG><DD>
+<DT><STRONG><A NAME="item_new_hour">new_hour</A></STRONG><DD>
 <P>
-<PRE> 
+These functions are like the $New_Second/Minute/Hour variables, except they
+can return true only on the nth second/minute/hour.  
+
+</P>
+<P>
+<PRE>  Examples:
 </PRE>
+</P>
+<P>
+<PRE>    print_log &quot;This occurs every 10th second&quot; if new_second 10;
+    print_log &quot;This occurs once every even hour&quot; if new_second 2;
+</PRE>
+</P>
+<P>
+If you pass no argument, it defaults to 1 (i.e. the same as the $New_*
+variables).
+
 </P>
 <DT><STRONG><A NAME="item_net_domain_name">net_domain_name function</A></STRONG><DD>
 <P>
@@ -4679,14 +4788,15 @@ command. Use '_' to replace blanks in the command string.
 
 </P>
 <P>
-SET and RUN can use an optional response field to decide what html will be
-returned:
+SET, RUN, or SUB can use an optional response field to decide what html
+will be returned:
 
 </P>
 <P>
 <PRE>  Format:
    SET:h_response?$object?value 
    RUN:h_response?command
+   SUB:sub_name(arg1,arg2)
 </PRE>
 </P>
 <P>
@@ -4777,6 +4887,15 @@ to get a directory listing, sorted by date (recent on top):
 </P>
 <P>
 <PRE>  &lt;a href=<A HREF="http://localhost:8080/RUN:&amp">http://localhost:8080/RUN:&amp</A>;dir_index('/pictures','date',1)&gt;List pictures by date &lt;/a&gt;
+</PRE>
+</P>
+<P>
+Finally, you can specify a subroutine to run that generates response html.
+For example:
+
+</P>
+<P>
+<PRE>   <A HREF="http://misterhouse.net:8080/SUB:tellme_menu">http://misterhouse.net:8080/SUB:tellme_menu</A>(,,html)
 </PRE>
 </P>
 <P>
@@ -5017,9 +5136,9 @@ command.pif and change the memory, initial environment from auto to 4k.
 
 </P>
 <P>
-Activestate perl 5.6 build 613 and 616 leaks memory. On my box about 30
-Meg, once a day. Displaying .gif and .jpg files also leaks about 10x the
-picture size (e.g 10 50k photos -&gt; 5 meg).
+Activestate perl 5.6 build 613 and 616 leaks memory on windows. On my box
+about 30 Meg, once a day. Displaying .gif and .jpg files also leaks about
+10x the picture size (e.g 10 50k photos -&gt; 5 meg).
 
 </P>
 <P>

@@ -313,11 +313,14 @@ The Serial_Item object can read and write to any serially connect device.  There
 in the code/public directory that shows how to interface to a ham radio TNC receiver to decode and track
 a GPS transmitters position.  
 
+An better, object-oriented way to write code to interface to a new hardware device is in mh/lib/example_interface.pm. 
+
 Byterunner offers lots of types of serial cards: http://www.byterunner.com
 
 Good sources of information on the WX200/WM918 weather stations are at
 http://wx200.planetfall.com/  and  http://www.weatherwatchers.org/wxstation/WX-200/ .
-$200->$300 at Radio Shack or $200 from http://www.heartlandamerica.com (search for weather, model WW22- 3350)
+$200->$300 at Radio Shack or $200 from http://www.heartlandamerica.com (search for weather, model WW22- 3350).
+See mh/lib/Weather_wx200* for info on interface code.
 
 There is also now a new WMR-918, which is a wireless version, available for about $350.  An mh interface is being worked on.
 
@@ -470,6 +473,7 @@ $Moon{phase}, $Moon{brightness}, $Moon{age}, and $Moon{new,first,full,last} entr
 The $Time_Now and $Date_Now variables return a formated time and date.
 
 The $New_* variables are true only on the pass that we enter a new Second, Minute, Hour, etc.
+There are also new_* functions if you want to test on every nth second/minute/hour (see new_second function).
 
 $Startup is true on the first pass after starting mh.
 
@@ -477,6 +481,8 @@ $Reload is true when the Reload(F1) is requested AND the code been reloaded beca
 have been changed.
 
 $Reread is always true after Reload(F1), even if no code members have changed.
+
+$Keyboard echos characters typed on the keyboard (currently windows only)
 
 =head2 List of objects and their methods
 
@@ -744,10 +750,12 @@ The first 2 characters are the iButton family type.  Here is a list of family ty
     $v_iButton_connect = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
     if ($state = said $v_iButton_connect) {
       if ($state eq 'Connect') {
-        print_log &iButton::connect($config_parms{iButton_port});
+        print_log &iButton::connect($config_parms{ibutton_port});
+        print_log &iButton::connect($config_parms{ibutton_port2});
       }
       else {
         print_log &iButton::disconnect;
+        print_log &iButton::disconnect, 'ibutton_port2;
       }
     }
 
@@ -755,7 +763,7 @@ The first 2 characters are the iButton family type.  Here is a list of family ty
     speak 'Hi Bruce'  if ON  eq state_now $ib_bruce;
     speak 'Later'     if OFF eq state_now $ib_bruce;
 
-    $ib_relay1 = new iButton '12000000123456ff';
+    $ib_relay1 = new iButton '12000000123456ff', 'ibutton_port2';
     $v_iButton_relay1    = new Voice_Cmd "Turn relay1 [on,off]";
     if ($state = said $v_iButton_relay1) {
        print_log "Setting iButton relay1 to $state";
@@ -1456,6 +1464,19 @@ Wed 10/11/00 07:38:11  07:38 10/11/00 System         Opening by User Code 40
 =over
 
 
+=item add_sound
+
+Assigns a sound file to an event name.  This allows us to create and review event sounds.
+See mh/code/test/event_sounds.pl for an example.
+
+  Example:
+
+    add_sound barcode_scan => 'sound_nature/bird.wav', volume => 20 if $Reload;
+    if ($state = state_now $barcode_scan) {
+        play 'barcode_scan';
+    }
+
+
 =item browser
 
 Calls up the web browser defined my the mh.ini browser parm
@@ -1563,7 +1584,7 @@ Returns undef if we don't know (i.e. first check after mh was started).
 
   Example:
 
-    print_log "File $file has change" if file_change($file);
+    print_log "File $file has change" if file_changed($file);
 
 =item file_unchanged
 
@@ -1848,10 +1869,11 @@ Here are a few examples:
 Passes specified text to the TTS program.  There are 2 modes of calling it:
 
    Simple mode:
-     speak "text to speak"
+     speak 'text to speak';
+     speak 'option=value text to speak';
 
    Options mode:
-     speak(option => 'value', text => "text to speak");
+     speak(option => 'value', text => 'text to speak');
     
      Options are:
        rooms  => 'room_name'   You need to code a pa_stub.pl routine to allow this
@@ -1876,6 +1898,8 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
     speak(voice  => $state,
           text => "This is an example of a $state voice") if $state = said $test_voice3;
   
+    $Save{mode} = 'mute' if time_cron '0 10-21 * * 1-5';
+    speak 'mode=unmuted  The front door just opened';
 
 
 =item time_date_stamp
@@ -2154,7 +2178,22 @@ If used in a list context, all associated IP address are returned (e.g. dial up 
 
 Un-escapes "%xx" data back into the original characters.  Use on HTML FORM data.
 
- 
+=item new_second
+
+=item new_minute
+
+=item new_hour
+
+These functions are like the $New_Second/Minute/Hour variables, except they can return true 
+only on the nth second/minute/hour.  
+
+  Examples:
+
+    print_log "This occurs every 10th second" if new_second 10;
+    print_log "This occurs once every even hour" if new_second 2;
+
+If you pass no argument, it defaults to 1 (i.e. the same as the $New_* variables).
+
 
 =item net_domain_name function
 
@@ -3186,11 +3225,12 @@ The SET (or SET_VAR ... they are now the same) command can set any object or var
 The RUN command can run any voice command.
 Use '_' to replace blanks in the command string.
 
-SET and RUN can use an optional response field to decide what html will be returned:
+SET, RUN, or SUB can use an optional response field to decide what html will be returned:
 
   Format:
    SET:h_response?$object?value 
    RUN:h_response?command
+   SUB:sub_name(arg1,arg2)
 
   $var and $object are the variable and object names, with or without the $ prefix.
 
@@ -3249,6 +3289,10 @@ You can also use RUN:h_response without a command.
 For example, if you want to get a directory listing, sorted by date (recent on top):
 
   <a href=http://localhost:8080/RUN:&dir_index('/pictures','date',1)>List pictures by date </a>
+
+Finally, you can specify a subroutine to run that generates response html.  For example:
+
+   http://misterhouse.net:8080/SUB:tellme_menu(,,html)
 
 
 =head2 Voice Recognition (VR) and Text To Speech (TTS) on windows
@@ -3392,7 +3436,7 @@ Do a find in IO.DLL in your perl directory, and rename the one in the tk path.
 If 'run' calls give you an 'out of environment memory' error, create a command.pif
 and change the memory, initial environment from auto to 4k.
 
-Activestate perl 5.6 build 613 and 616 leaks memory.  On my box about 30 Meg, once a day. 
+Activestate perl 5.6 build 613 and 616 leaks memory on windows.  On my box about 30 Meg, once a day. 
 Displaying .gif and .jpg files also leaks about 10x the picture size (e.g 10 50k photos -> 5 meg).
 
 Adding, deleting, or changing Voice commands does is not recognized by the Windows MSVoice
@@ -3492,6 +3536,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.34  2000/12/21 18:54:15  winter
+# - 2.38 release
+#
 # Revision 1.33  2000/12/12 22:04:47  danal
 # DSC_Alarm object methods such as "state" documented
 #

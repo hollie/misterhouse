@@ -193,6 +193,7 @@ sub main::net_jabber_signon {
     print "Logging onto $server:$port with name=$name resource=$resource\n";
 
     eval 'use Net::Jabber';
+    print "Error in Net::Jabber: $@\n" if $@;
     $jabber_connection = new Net::Jabber::Client;
     unless ($jabber_connection->Connect(hostname => $server, port => $port)) {
         print "  - Error:  Jabber server is down or connection was not allowed. jc=$jabber_connection\n";
@@ -667,6 +668,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.25  2000/12/21 18:54:15  winter
+# - 2.38 release
+#
 # Revision 1.24  2000/12/03 19:38:55  winter
 # - 2.36 release
 #

@@ -4,7 +4,7 @@
 # Monitor memory usage (unix and NT/2K only. 
 # Win95/98 have no way to monitor memory :(
 
-if ($New_Minute and !$Minute % 30) {
+if (new_minute 30) {
     my $memory_diff = round $Info{memory_virtual} - $Info{memory_virtual_prev}, 2;
     if ($memory_diff >  1) {
         print_log "Warning, memory leak detected: $memory_diff.  $Info{memory_virtual_prev} -> $Info{memory_virtual}";

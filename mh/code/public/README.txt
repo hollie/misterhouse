@@ -100,6 +100,9 @@ test_homebase.pl
 test_homevision.pl
  - example code on how to talk to the homevision interface.
 
+tv_info_clive.pl
+ - Clive Freedman's code for tv queries (derived from mh/code/bruce/tv_info.pl
+
 voicemodem.pl
  - Brian Klier's code for interfacing to a voice modem.  
 
@@ -113,8 +116,14 @@ weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I 
    wrote a direct interface for the Wx200 weather station (code/Bruce/weather_wx200.pl).
 
+weather_vw.pl
+ - An example of using Virtual Weatherstation log data
+
 weather_wrtv.pl
  - Tom K. example on geting weather from his local news web page
+
+weather_upload.pl
+ - David Norwood's code for uploading weather data to the wunderground personal weather project.
 
 aws_weather.pl
 weather_aws.pl
