@@ -894,8 +894,8 @@ Cookie: w3ibmID=19990118162505401224000000
 
 #
 # $Log$
-# Revision 1.1  2000/01/19 14:01:00  winter
-# Initial revision
+# Revision 1.32  2000/01/26 14:07:02  winter
+# - reset version number
 #
 # Revision 1.31  2000/01/19 13:23:54  winter
 # - add check for phrase enumeration {}
