@@ -39,7 +39,7 @@ if ($v_test_light1_state = said $v_test_light1) {
 }
 
 my $v_test_appliance_state;
-$v_test_appliance = new Voice_Cmd("Test appliance     # Defaults to [ON,OFF]");
+$v_test_appliance = new Voice_Cmd("Test appliance [ON,OFF]");
 if ($v_test_appliance_state = said $v_test_appliance) {
   set $test_appliance $v_test_appliance_state;
   speak "Turning test appliance $v_test_appliance_state";
@@ -58,3 +58,7 @@ $Motion                              -> add($motion_unit);
 $motion_unit                         -> add ('XP7', 'bedroom');
 
 $motion_unit                         -> add ('XP8', 'bedroom dark');
+# Here are some examples of specifying interface and module types
+#X10A,       O9,     living_room_fan,       Appliances|Upstairs|Living_Room,  CM17
+#X10I,       O7,     camera_light2,         All_Lights|Upstairs|Living_Room,   CM11 
+#X10I,       O7,     camera_light,          All_Lights|Upstairs|Living_Room,        , LM14

@@ -70,15 +70,9 @@ $v_reboot = new  Voice_Cmd '[Reboot,Shut Down] the computer';
 $v_reboot-> set_info('Do this only if you really mean it!  Windows only');
 
 if ($state = said $v_reboot and $OS_win) {
-#   if ($Info{OS_name} eq 'Win95') {
-#        speak "Sorry, the reboot option does not work on Win95";
-#   }
-    if ($Info{OS_name} eq 'NT') {
-        my $machine = $ENV{COMPUTERNAME};
-        speak "The computer $machine will reboot in 1 minute.";
-        my $reboot = ($state eq 'Reboot') ? 1 : 0;
-        Win32::InitiateSystemShutdown($machine, 'Rebooting in 1 minute', 60, 1, $reboot);
-#       &exit_pgm;
+    speak "$state the computer";
+    if ($Info{OS_name} eq 'Win95') {
+        run 'RUNDLL USER.EXE,ExitWindows';
     }
                                 # In theory, either of these work for Win98/WinMe
     elsif ($Info{OS_name} eq 'WinMe') {
@@ -87,13 +81,28 @@ if ($state = said $v_reboot and $OS_win) {
         sleep 5;                # Give it a chance to get started
         &exit_pgm;
     }
+    elsif ($Info{OS_name} eq 'NT') {
+        my $machine = $ENV{COMPUTERNAME};
+        speak "The computer $machine will reboot in 1 minute.";
+        my $reboot = ($state eq 'Reboot') ? 1 : 0;
+        Win32::InitiateSystemShutdown($machine, 'Rebooting in 1 minute', 60, 1, $reboot);
+#       &exit_pgm;
+    }
+    elsif ($Info{OS_name} eq 'XP') {
+        my $machine = $ENV{COMPUTERNAME};
+        speak "The computer $machine will reboot in 1 minute.";
+        my $reboot = ($state eq 'Reboot') ? '-r' : '-s';
+        run "SHUTDOWN -f -t 60 $reboot";
+    }
     else {
         run 'rundll32.exe shell32.dll,SHExitWindowsEx 6 ';
+#       run 'RUNDLL32 KRNL386.EXE,exitkernel';
         sleep 5;                # Give it a chance to get started
         &exit_pgm;
     }
 }
 
+# Good info for all OSes here: http://www.robvanderwoude.com/index.html
 #http://support.microsoft.com/support/kb/articles/q234/2/16.asp
 #  rundll32.exe shell32.dll,SHExitWindowsEx n
 #where n is one, or a combination of, the following numbers:
@@ -108,9 +117,15 @@ if ($state = said $v_reboot and $OS_win) {
 
 $v_reboot_abort = new  Voice_Cmd("Abort the reboot");
 if (said $v_reboot_abort and $OS_win) {
-    my $machine = $ENV{COMPUTERNAME};
-    Win32::AbortSystemShutdown($machine);
-    speak("OK, the reboot has been aborted.");
+    if ($Info{OS_name} eq 'XP') {
+        run "SHUTDOWN -a";
+        speak "OK, the reboot has been aborted.";
+    }
+    else {
+        my $machine = $ENV{COMPUTERNAME};
+        Win32::AbortSystemShutdown($machine);
+        speak "OK, the reboot has been aborted.";
+    }
 }
 
 $v_debug = new  Voice_Cmd("Set debug to [X10,serial,http,misc,startup,socket,off]");

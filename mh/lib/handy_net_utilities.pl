@@ -464,6 +464,13 @@ sub main::net_msn_signon {
     &main::MainLoop_post_add_hook( \&MSN::process, 1, $msn_connection, 0);
 }
 
+sub main::net_msn_signoff {
+    print "disconnecting from jabber\n";
+    undef $msn_connection;
+    &main::MainLoop_post_drop_hook( \&MSN::process, 1 );
+}
+
+
 
 sub MSN::status {
    my ($self, $username, $newstatus) = @_;
@@ -550,9 +557,9 @@ sub main::net_msn_send {
 }
 
 
-
 sub main::net_im_signon {
     my ($name, $password) = @_;
+
     return if $aim_connection;  # Already signed on
 
     $name     = $main::config_parms{net_aim_name}      unless $name;
@@ -588,6 +595,12 @@ sub main::net_im_signon {
                                 # Not sure how to test for successful logon
 #   $aim->do_one_loop();
 
+}
+
+sub main::net_im_signoff {
+    print "disconnecting from jabber\n";
+    undef $aim_connection;
+    &main::MainLoop_post_drop_hook( \&aolim::process, 1 );
 }
 
 # IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hi ho</FONT></BODY></HTML>
@@ -1012,6 +1025,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.42  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
 # Revision 1.41  2002/05/28 13:07:52  winter
 # - 2.68 release
 #

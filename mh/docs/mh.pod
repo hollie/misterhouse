@@ -252,7 +252,13 @@ Another supported X10 interface is the Marrick Lynx10-PLC controller: http://www
 See mh/lib/Lynx10PLC.pm
 
 A nice summary of the different X10 controllers is here:
-http://www.geocities.com/ido_bartana/Which_controller.html
+http://www.geocities.com/ido_bartana/Which_controller.html 
+
+A survey of common X-10 devices and some hints as to their behavior is here:
+http://www.shed.com/x10stuff.html
+
+Here is yet another site with X10 info:
+http://www.x10ideas.com
 
 Europeans can get X10 stuff from  http://www.intellihome.be , 
 http://www.hwg-telekom.de , http://www.digihouse.com.au , http://www.eon3.com, 
@@ -1041,7 +1047,8 @@ On Unix systems, the fork function is used.  On either system, the following met
         On Windows, the &-> eval trick is supposed to work with perl 5.6+ (which has fork), but
         unfortunately, it causes perl to crash often, so is probably not useful yet.
 
-     set_output $output_file : Program errata goes to $output_file
+     set_output $output_file : Program STDOUT errata goes to $output_file
+     set_errlog $errlog_file : Program STDERR errata goes to $errlog_file
 
      start          : Starts the process.
      start 'program arg'  : Starts the process with program arg
@@ -3901,6 +3908,9 @@ of an mh variable.  For example:
 
   <li><b>Version:</b> <!--#include var="$Version"-->
 
+If you use svar=, instead of var=, the var contents will be returned only if the web user is 
+authorized (i.e. logged in or from an ip address listed in password_allow_clients).
+
 This what is used in the mh 'About' web button to return the mh version.
 
 You can also define your own functions in your code files to return html, and then call them 
@@ -4313,6 +4323,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.54  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
 # Revision 1.53  2002/05/28 13:07:50  winter
 # - 2.68 release
 #

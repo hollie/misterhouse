@@ -271,13 +271,19 @@ sub set {
             if ($serial_data =~ /^([A-P]STATUS)(\S*)/ or
                 $serial_data =~ /^([A-P]PRESET_DIM1)(\S*)/ or
                 $serial_data =~ /^([A-P]PRESET_DIM2)(\S*)/ or
+                $serial_data =~ /^([A-P][1][0-6])(\S*)/ or
                 $serial_data =~ /^([A-P][1-9A-W])(\S*)/ or
                 $serial_data =~ /^([A-P]\&P\d+)(\S*)/ or 
                 $serial_data =~ /^([A-P]\d+\%)(\S*)/ or 
                 $serial_data =~ /^([A-P][\+\-]?\d+)(\S*)/) {
                 $serial_chunk = $1;
                 $serial_data  = $2;
+
+                                # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
+                $serial_chunk = $1 . substr 'ABCDEFG', $2, 1 if $serial_chunk =~ /^(\S)1(\d)$/;
+
                 &send_x10_data($self, 'X' . $serial_chunk, $interface);
+
             }
             else {
                 print "Serial_Item error, X10 string not parsed: $serial_data.\n";
@@ -516,6 +522,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.57  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
 # Revision 1.56  2002/05/28 13:07:51  winter
 # - 2.68 release
 #

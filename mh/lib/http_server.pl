@@ -38,7 +38,7 @@ my %mime_types = (
 
 my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs, %http_agent_formats, %http_agent_sizes);
 sub http_read_parms {
-    
+
                                 # Old style:  html_alias_tv = /tv   $config_parms{data_dir}/tv
                                 # New style:  html_alias_tv =       $config_parms{data_dir}/tv
     for my $parm (keys %main::config_parms) {
@@ -79,6 +79,7 @@ sub http_read_parms {
     %password_protect_dirs = map {$_, 1} split ',', $main::config_parms{password_protect_dirs};
 
                                 # Set defaults for all html_ parms for alternate browser user-agent web_formats
+
     for my $parm (grep /^html_.*[^\d]$/, keys %main::config_parms) {
         next if $parm =~ /^html_alias/;
         $main::config_parms{$parm . '1'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '1'};
@@ -156,14 +157,17 @@ sub http_process_request {
 #Agent: Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 5.0)
 #Agent: Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0; BCD2000)
 #Agent: Mozilla/4.0 (compatible; MSIE 6.0b; Windows NT 5.1)
+#Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; Q312461; .NET CLR 1.0.3705)
 #Agent: Mozilla/4.61 [en] (Win98; I)
 #Agent: Mozilla/4.76 [en] (Windows NT 5.0; U)
 #Agent: Mozilla/4.7 [en] (X11; I; Linux 2.2.14-15mdk i686)
 #Agent: Mozilla/4.76 [en] (X11; U; Linux 2.2.16-22jjg i686)
+#Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:0.9.4) Gecko/20011128 Netscape6/6.2.1
 #Audrey:     Mozilla/4.7 (Win98; Audrey)   
 #Compaq IA1: Mozilla/4.0 (compatible; MSIE 4.01; Windows CE; MSN Companion 2.0; 800x600; Compaq).
 #Aquapad:    Mozilla/4.0 (compatible; MSIE 4.01; Windows NT Windows CE)
 
+#   print "db ua=$Http{'User-Agent'}\n";
     if ($Http{'User-Agent'}) {
         if ($Http{'User-Agent'} =~ /Windows CE/) {
             $Http{'User-Agent'}    =  'MSCE';
@@ -173,6 +177,9 @@ sub http_process_request {
         }
         elsif ($Http{'User-Agent'} =~ /MSIE/) {
             $Http{'User-Agent'}    =  'MSIE';
+        }
+        elsif ($Http{'User-Agent'} =~ /Netscape6/) {
+            $Http{'User-Agent'}    =  'Netscape6';
         }
         elsif ($Http{'User-Agent'} =~ /Mozilla/) {
             $Http{'User-Agent'}    =  'Mozilla';
@@ -331,8 +338,12 @@ sub http_process_request {
             $get_arg =~ tr/\_/ /;   # Put blanks back
             $get_arg =~ tr/\~/_/;   # Put _ back
                                 # Drop the &&x=n&&y=n that is tacked on (before or after) when doing image form submits
+                                # Do the same in SET below
             $get_arg =~ s/&&x=\d+&&y=\d+//;
             $get_arg =~ s/x=\d+&&y=\d+&&//;
+                                # From DN: /SET;referer %24pvr_text=Glick&%24pvr_up.x=6&%24pvr_up.y=6
+            $get_arg =~ s/\.x=/_x=/;
+            $get_arg =~ s/\.y=/_y=/;
         }
 
         my ($ref) = &Voice_Cmd::voice_item_by_text(lc($get_arg));
@@ -402,6 +413,14 @@ sub http_process_request {
 
                                 # Change select_item=$item&select_state=abc to $item=abc
         $get_arg =~ s/select_item=(\S+)\&&select_state=/$1=/; 
+
+                                # Drop the &&x=n&&y=n that is tacked on (before or after) when doing image form submits
+                                # Do the same in RUN above
+                                # From DN: /SET;referer %24pvr_text=Glick&%24pvr_up.x=6&%24pvr_up.y=6
+        $get_arg =~ s/&&x=\d+&&y=\d+//;
+        $get_arg =~ s/x=\d+&&y=\d+&&//;
+        $get_arg =~ s/\.x=/_x=/;
+        $get_arg =~ s/\.y=/_y=/;
 
                                 # See if any variables require authorization
         my $authority = 1;
@@ -495,8 +514,8 @@ sub http_process_request {
     }
 
     $time_check = time - $time_check;
-    if ($time_check > 1) {
-        my $msg = "http_server time exceeded: time=$time_check, lso=$leave_socket_open_passes, " . 
+    if ($time_check > $config_parms{http_pause_time}) {
+        my $msg = "http_server time exceeded $config_parms{http_pause_time} seconds: time=$time_check, lso=$leave_socket_open_passes, " . 
                   "l=$socket_fork_data{length}, ip=$Socket_Ports{http}{client_ip_address}, header=$header";
         logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  $msg;
         print "\n$Time_Date: $msg\n";
@@ -541,49 +560,61 @@ sub html_unauthorized {
         return &vxml_page(audio => 'Sorry, you are not authorized for that command');
     }
     else {
-#        my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
+#       my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
         my $msg .= "<br><B>Unauthorized Mode</B>";
         $msg .= "<li>" . $action . "</li>";
+        $msg .= "Status: <b><a href=SET_PASSWORD yet>Not Logged In</a></b><br>";
         return $msg;
     }
 }
 
 sub http_get_local_file {
-    my ($get_req) = @_;
-    my ($http_dir, $http_member) = $get_req =~ /^(\/[^\/]+)(.*)/;
-    my $file;
+    my ($get_req, $get_alias_index) = @_;
+    my ($file, $http_dir, $http_member);
+
+                                # Check for alias dirs for member name
+    ($http_dir, $http_member) = $get_req =~ /^(\/[^\/]+)(.*)/;
     if ($http_dir and $http_dirs{$http_dir}) {
-                               # First one wins (last one in the mh.ini file)
+                                # First one wins (last one in the mh.ini file)
+        ALIAS_CHECK:
         for my $dir (@{$http_dirs{$http_dir}}) {
-            $file  = $dir;
-            if ($http_member) {
-                $file .= "/$http_member";
-                last if -e $file;
+            $file = "$dir/$http_member";
+                                # Check for dir index files
+            if (-d $file) {
+                last ALIAS_CHECK unless $get_req =~ m|/$|; # Force redirect in test_for_file
+                if ($get_alias_index) {
+                    my $dir = $file;
+                    for my $default (split ',', $main::config_parms{'html_default' . $Http{format}}) {
+                        $file = "$dir/$default";
+                        last ALIAS_CHECK if -e $file;
+                    }
+                }
+                else {
+                    last ALIAS_CHECK; # Return dir
+                }
             }
             else {
-                last if -d $file;
+                last ALIAS_CHECK if -e $file;
             }
             undef $file;
         }
     }
-    else {
-        $file = "$main::config_parms{'html_dir' . $Http{format}}/$get_req";
-    }
-    return ($file, $http_dir) if $file;
+    $file = "$main::config_parms{'html_dir' . $Http{format}}/$get_req" unless $file;
+    return ($file, $http_dir) if -e $file;
 }
 
 sub test_for_file {
     my ($socket, $get_req, $get_arg, $no_header, $no_print) = @_;
 
 
-    my ($file, $http_dir) = &http_get_local_file($get_req);
+    my ($file, $http_dir) = &http_get_local_file($get_req, 1);
     return 0 unless $file;
 
                                 # Check for index files in directory
     if (-d $file) {
                                 # If the url does not have a trailing /, redirect it, so
                                 # we can get browsers to work with relative links
-        unless ($file =~ m|/$|) {
+        unless ($get_req =~ m|/$|) {
             my $referer = "http://$Http{Host}";
                                 # Some browsers (e.g. Audrey) do not echo port in Host data
             $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
@@ -591,17 +622,12 @@ sub test_for_file {
             print $socket &http_redirect($referer);
         }
 
-
-        my $file2;
+        my $dir = $file;
         for my $default (split ',', $main::config_parms{'html_default' . $Http{format}}) {
-            $file2 = "$file/$default";
-#           print "dbx gr=$get_req f=$file f2=$file2\n";
-            last if -e $file2;
+            $file = "$dir/$default";
+            last if -e $file;
         }
-        if (-e $file2) {
-            $file = $file2;
-        }
-        else {
+        unless (-e $file) {
             print $socket &html_page("Error", "No index found for directory $get_req");
             return 1;
         }
@@ -708,7 +734,8 @@ sub html_mh_generated {
     elsif ($get_req  =~ /^list[\:\;]?(\S*)$/) {
         $H_Response = $1 if $1;
         $html = &html_list($get_arg, $auto_refresh);
-        $html .= "\n$Included_HTML{$get_arg}\n" if $Included_HTML{$get_arg} ;
+#       $html .= "\n$Included_HTML{$get_arg}\n" if $Included_HTML{$get_arg} ;
+        $html .= "\n" . shtml_include($Included_HTML{$get_arg}) . "\n" if $Included_HTML{$get_arg} ;
         return ($html, $main::config_parms{'html_style_list' . $Http{format}});
     }
     elsif ($get_req =~ /^results$/) {
@@ -727,6 +754,10 @@ sub html_sub {
     $data = '&' . $data if $data and $data !~/^&/; # Avoid & character in the url ... messes up Tellme
     $data =~ s/\=\&+$//;   # Goofy wapalizer (http://www.gelon.net) appends this??
 
+                                # Save ISMAP data: xyz(a,b)?1,2 -> xyz(a,b,1,2)
+    if ($data =~ /^(.+)\)\?(\d+),(\d+)$/) {
+        $data = "$1,xy=$2|$3)";
+    }
                                 # Allow for &sub1 and &sub1(args)
     if ((($sub_name, $sub_arg) = $data =~ /^\&(\S+?)\((.+)\)$/) or
         (($sub_name)           = $data =~ /^\&(\S+)$/)) {
@@ -738,7 +769,7 @@ sub html_sub {
         if ($main::{$sub_name}) {
             print "html_sub: a=$Authorized pa=$Password_Allow{'&$sub_name'} data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n" if $main::config_parms{debug} eq 'http';
                                 # Check for authorization
-            if ($Authorized or $Password_Allow{"&$sub_name"}) {
+            if (($Authorized or $Password_Allow{"&$sub_name"})) {
                 $sub_arg = "'$sub_arg'" if $sub_arg and $sub_arg !~ /^[\'\"]/; # Add quotes if needed
                 return(undef, "&$sub_name($sub_arg)");
             }
@@ -750,8 +781,10 @@ sub html_sub {
             return("Web html function not found: &$sub_name $sub_ref") if $sub_required;
         }
     }
-    return;
+    return("Web html function not parsed: $data") if $sub_required;
+    return;                     # Tell if test we failed
 }
+
 
 sub html_response {
     my ($socket, $h_response) = @_;
@@ -938,6 +971,7 @@ sub html_last_spoken {
     if ($Authorized or $main::config_parms{password_protect} !~ /logs/i) {
         $h_response .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{'html_refresh_rate' . $Http{format}}; url=speech">\n] if $main::config_parms{'html_refresh_rate' . $Http{format}};
         $h_response .= "<a href=speech>Refresh Recently Spoken Text</a>\n";
+#       $h_response .= &html_file($socket, '../web/bin/set_cookie.pl', 'webmute&&<b>Webmute</b>', 1);
         my @last_spoken = &speak_log_last($main::config_parms{max_log_entries});
         for my $text (@last_spoken) {
             $h_response .= "<li>$text\n";
@@ -985,47 +1019,9 @@ sub html_file {
                                 #  <!--#include file="whatever"-->
     if ($file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/) {
         print "Processing server side include file: $file\n" if $main::config_parms{debug} eq 'http';
-        $html = &mime_header($file) unless $no_header;
+        $html = &mime_header($file, 0) unless $no_header;
         while (my $r = <HTML>) {
-                                # Example:  <li>Version: <!--#include var="$Version"--> ...
-#           if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=[\"\']([^\"\']+)[\"\'] *--\>(.*)/) {
-            if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
-                print "Http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
-                $html .= $prefix;
-                                # tellme vxml does not like comments in the middle of things :(
-                                # - also had problems with comments inside td elements, so lets skip this
-                                #   e.g.: " <td <!--#include file="motion.pl?timer_motion_main"--> > 
-#               $html .= "\n<\!-- The following is from include $directive = $data -->\n" unless $file =~ /\.vxml$/;
-                my ($get_req, $get_arg) = $data =~ m|(\/?[^ \?]+)\??(\S+)?|;
-                $get_arg = '' unless defined $get_arg; # Avoid uninitalized var msg
-                if ($directive eq 'file') {
-                    eval "\$get_req = qq[$get_req]";  # Resolve $vars in file specs (e.g. config_parm{web_href...}
-                    $get_arg =~ s/\&/&&/g; # translate & to &&, since we translate %##  to & before splitting
-                    if (my $html_file = &test_for_file($socket, $get_req, $get_arg, 1, 1)) {
-                        $html .= $html_file;
-                    }
-                    elsif (my ($html2, $style) = &html_mh_generated($get_req, $get_arg, 0)) {
-                        $style = '' unless $style; # Avoid uninitalized var msg
-                        $html .= $style . $html2;
-                    }
-                    else {
-                        print "Error, shtml file directive not recognized: req=$get_req arg=$get_arg\n";
-                    }
-                }
-                elsif ($directive eq 'var' or $directive eq 'code') {
-                    print "Processing server side include: var=$data\n" if $main::config_parms{debug} eq 'http';
-                    $html .= eval "return $data";                       # Why the return??
-#                   $html .= eval "$data";                       # Why the return??
-                    print "Error in eval: $@" if $@;
-                }
-                else {
-                    print "http include directive not recognized:  $directive = $data\n";
-                }
-                $html .= $suffix;
-            }
-            else {
-                $html .= $r;
-            }
+            $html .= shtml_include($r, $socket);
         }
     }
                                 # Allow for .pl cgi programs
@@ -1062,11 +1058,65 @@ sub html_file {
 #       print "Http_server  .pl file results:$html.\n" if $main::config_parms{debug} eq 'http';
     }
     else {
-        $html = &mime_header($file) unless $no_header;
         binmode HTML;
-        $html .= join '', <HTML>;
+        my $data = join '', <HTML>;
+        $html = &mime_header($file, 1, length $data) unless $no_header;
+        $html .= $data;
     }
     close HTML;
+    return $html;
+}
+
+sub shtml_include {
+    my ($r, $socket) = @_;
+    my $html;
+
+                                # Example:  <li>Version: <!--#include var="$Version"--> ...
+#   if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=[\"\']([^\"\']+)[\"\'] *--\>(.*)/) {
+    if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
+        print "Http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
+        $html .= $prefix;
+                                # tellme vxml does not like comments in the middle of things :(
+                                # - also had problems with comments inside td elements, so lets skip this
+                                #   e.g.: " <td <!--#include file="motion.pl?timer_motion_main"--> > 
+#       $html .= "\n<\!-- The following is from include $directive = $data -->\n" unless $file =~ /\.vxml$/;
+        if ($directive eq 'file') {
+            eval "\$data = qq[$data]";  # Resolve $vars in file specs (e.g. config_parm{web_href...}
+            my ($get_req, $get_arg) = $data =~ m|(\/?[^ \?]+)\??(\S+)?|;
+            $get_arg = '' unless defined $get_arg; # Avoid uninitalized var msg
+            $get_arg =~ s/\&/&&/g; # translate & to &&, since we translate %##  to & before splitting
+            if (!$get_req) {
+            }
+            elsif (my $html_file = &test_for_file($socket, $get_req, $get_arg, 1, 1)) {
+                $html .= $html_file;
+            }
+            elsif (my ($html2, $style) = &html_mh_generated($get_req, $get_arg, 0)) {
+                $style = '' unless $style; # Avoid uninitalized var msg
+                $html .= $style . $html2;
+            }
+            else {
+                print "Error, shtml file directive not recognized: data=$data req=$get_req arg=$get_arg\n";
+            }
+        }
+        elsif ($directive =~ /^s?var$/ or $directive eq 'code') {
+            print "Processing server side include: var=$data\n" if $main::config_parms{debug} eq 'http';
+            if ($directive eq 'svar' and !$Authorized) {
+                $html .= $data;
+            }
+            else {
+                $html .= eval "return $data";    # Why the return??
+#               $html .= eval "$data";
+            }
+            print "Error in eval: $@" if $@;
+        }
+        else {
+            print "http include directive not recognized:  $directive = $data\n";
+        }
+        $html .= $suffix;
+    }
+    else {
+        $html .= $r;
+    }
     return $html;
 }
 
@@ -1124,9 +1174,17 @@ sub html_cgi {
 }
 
 sub mime_header {
-    my ($extention) = $_[0] =~ /.+\.(\S+)$/;
+    my ($file, $cache, $length) = @_;
+    my ($extention) = $file =~ /.+\.(\S+)$/;
     my $mime = $mime_types{lc $extention} || 'text/html';
-    return qq[HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n\n];
+#   use HTTP::Date qw(time2str);
+#   my $date=time2str(time);
+    my $header = "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n";
+    $header .= "Cache-Control: max-age=1000000\n" if $cache;
+                                # Allow for a length header, as this allows for faster 'persistant' connections
+    $header .= "Content-Length: $length\n" if $length;
+    return $header . "\n";
+#Expires: Mon, 01 Jul 2002 08:00:00 GMT 
 }
 
                                 # this returns real dirs, given html alias
@@ -1143,7 +1201,6 @@ sub html_no_response {
 HTTP/1.0 204 No Response
 Server: MisterHouse
 Content-Type: text/html
-Cache-control: no-cache
 
 
 eof
@@ -1152,11 +1209,16 @@ eof
 sub html_page {
     my ($title, $body, $style, $script, $frame) = @_;
 
+    use HTTP::Date qw(time2str);
+    my $date=time2str(time);
+
                                 # Allow for fully formated html
     if ($body =~ /^\s*<html/i) {
+#Cache-control: max-age=1000000
     return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
+Date: $date
 Content-Type: text/html
 Cache-control: no-cache
 
@@ -1180,6 +1242,7 @@ eof
     $script = '' unless $script; # Avoid -w uninitialized value msg
     $title  = '' unless $title;  # Avoid -w uninitialized value msg
     $title = "<h3>$title</h3>" if $title;
+#Cache-control: max-age=1000000
     return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
@@ -2428,6 +2491,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.70  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
 # Revision 1.69  2002/05/28 13:07:52  winter
 # - 2.68 release
 #

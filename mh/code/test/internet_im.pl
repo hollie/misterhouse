@@ -52,19 +52,27 @@ if ($state = said $v_im_test) {
 net_msn_send(text => "Internet mail received at $Time_Now", 
             file => "$config_parms{data_dir}/get_email2.txt") if time_cron '05 12 * * 1-5';
 
+                                # Connect and disconnect to various IM servers
+$v_im_signon = new Voice_Cmd 'Connect to [AOL,MSN,jabber]';
+$v_im_signon-> set_info('Connect to the AOL, MSN, or Jabber');
+if ($state = said $v_im_signon) {
+    &net_im_signoff       if $state eq 'AOL';
+    &net_msn_signoff      if $state eq 'MSN';
+    &net_jabber_signoff   if $state eq 'jabber';
 
-$v_im_connect = new Voice_Cmd 'Connect to [AOL,MSN,jabber]';
-$v_im_connect-> set_info('Connect to the AOL, MSN, or Jabber');
-if ($state = said $v_im_connect) {
-    &net_im_signon     if $state eq 'AOL';
-    &net_msn_signon    if $state eq 'MSN';
-    &net_jabber_signon if $state eq 'jabber';
+    &net_im_signon        if $state eq 'AOL';
+    &net_msn_signon       if $state eq 'MSN';
+    &net_jabber_signon    if $state eq 'jabber';
 }
 
-                       # Do not yet have AOL or MSN logoffs.  Do we need this?
-$v_jabber_signoff = new Voice_Cmd 'Disconnect from jabber';
-$v_jabber_signoff-> set_info('Disconnect from the configured jabber server');
-net_jabber_signoff() if said $v_jabber_signoff;
+$v_im_signoff = new Voice_Cmd 'Disconnect from [AOL,MSN.jabber]';
+$v_im_signoff-> set_info('Disconnect from the configured jabber server');
+if ($state = said $v_im_signoff) {
+    &net_im_signoff       if $state eq 'AOL';
+    &net_msn_signoff      if $state eq 'MSN';
+    &net_jabber_signoff   if $state eq 'jabber';
+}
+
 
 
 sub im_status {

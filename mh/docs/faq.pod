@@ -623,6 +623,25 @@ For example, to 'debounce' a doorbell button, (i.e. don't trigger it twice withi
 
 If you are on unix without Time::HiRes, you can use $LoopCount and count number of passes through the loop code.
 
+=head2 2.15 What is the format of MisterHouse X10 codes?
+
+MH sees X10 data in this format:
+
+  XM1MK
+  X - every command will start with this
+  M1 - the house code and unit
+  MK - the house code and the command
+
+  K here might be any of the following:
+    J    - ON
+    K    - OFF
+    L    - brighten
+    M    - dim 
+    dd%  - Sets module to this brightness level
+    +-dd - Bright/dims by this amount
+
+
+For more examples, take a look at mh/lib/X10_Items.pm
 
 
 =head1 3: Linux specific questions
@@ -1168,8 +1187,7 @@ Here is a rough timeline of MisterHouse development:
  - 01/99 Started a mailing list at onelist.com
  - 02/99 Ported mh to Unix/Linux
  - 03/99 Article in Popular Home Automation
- - 05/99 Registered misterhouse.net domain name (misterhouse.com is owned 
-         by misterhouse.it,  an Italian Real Estate company ... go figure!)
+ - 05/99 Registered misterhouse.net domain name.
  - 06/99 Added CM17 & HomeBase support
  - 06/99 Article in HomeToys: http://hometoys.com/htinews/jun99/articles/winter/winter.htm
  - 08/99 Mailing list reaches 100 members
@@ -1206,6 +1224,9 @@ Here is a rough timeline of MisterHouse development:
  - 03/02 GD on-the-fly web buttons, support for comics, xmms, redrat.
  - 04/02 Added web calendar, contact, todo list, and tk photo slideshow
  - 05/02 Improved TTS support, TWiki web site, and support for DSS units, BX24 interface, and MSN,  
+ - 05/30 Rewrote web menu interface, added AudioTron support and improved im support.
+ - 06/24 Registered misterhouse.com domain name.
+ - 07/03 XML mht support, Concept alarm, web keyboard shortcuts.
 
 
 Audrey support, more MS TTS controls, call waiting callerid
@@ -1455,6 +1476,65 @@ with a binary point between the 3rd and 4th digits.  According to someone
 else on the list, the ThermoCRON iButton is different yet again.
 
 
+Here is another post from Jeff Pagel (06/2002).
+
+
+The Dallas '1-wire' bus for the ibutton family is actually 2 wires(there
+are only 2 connecting points on the devices).  1 for signal and power, the
+other for ground.  They talk about cat-5, which has 8 conductors, a lot
+because the signal charactoristics of it are very good for the '1-wire'
+bus, twisted pairs, size of the wire, etc..  Of the 8, you only need to use
+2.  Theoretically, the other 6 could be used for something else.
+
+So, back to the original problem, you would need to run a twisted pair,
+like cat5 or cat3, from your mh machine to the garage.  I have cat5 runs of
+over 500 feet that work fine without any special conditioning.
+
+The cool part about the 1-wire bus is that you just need to run 1(ok
+actually 2,but usually in 1 bundle) wire(s) around your house.  It's like a
+'multi-drop' system.  One connects to the other, to the other, etc., in
+parallel.
+
+ In this case, you would run a line, from 1 spool of wire, to the bedroom
+to the living room to the kids room back to the computer.  If this is a
+pre-existing structure, you will face some wiring issues.  It's much easier
+for new construction.  For each ibutton, you would connect 'across' each
+line.  Just solder plus to plus, minus to minus and keep the wire going.
+Think of a railroad track as the 'wire' and the railroad ties as the
+ibutton devices.
+
+The 1-wire bus is fairly restrictive on how you wire it vs how long the
+runs are.  You should avoid 'star' type configurations.  They are ok, but
+only for short runs, the stars introduce reflections of the signal.
+
+Here will be a really bad ascii representation:
+
+
+ Host +   -----------------------------------------------------
+                     |                  |                     |
+                  ibutton1           ibutton2             ibutton3
+                     |                  |                     |
+ Host -   ----------------------------------------------------
+
+
+
+From Yannick Moussette (06/2002)
+
+The DS1820 Temp sensors come in 2 models: iButton and TO-220 
+(transistor-type casing).
+
+The Ibutton has a total of 2 connections, ground and signal. It functions in 
+"parasitic" mode to draw its power from the signal connections (kinda of 
+like what X10 modules do to piggyback signals on powerlines...).
+
+Where things that may confuse you on Dallas's Website site, is the TO-220 
+format of this same sensor which has 3 leads (connections). 1 for power, 1 
+for ground and 1 for signal(data). The power lead may be omitted, in which 
+case the sensor will work exactly like its iButton counterpart: Through 
+parasitic powering.
+
+Here is a link with some detailed electronic info: http://www.maxim-ic.com/1st_pages/tb1.htm
+
 
 =head2 6.8 What sort of hardware do you have in your house?
 
@@ -1493,6 +1573,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.31  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
 # Revision 1.30  2002/05/28 13:07:49  winter
 # - 2.68 release
 #

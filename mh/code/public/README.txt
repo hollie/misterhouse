@@ -16,6 +16,9 @@ alarmclock_david.pl
 alarmclock_doug.pl
  - Doug Nakakihara's alarm clock for for  file based timed reminders.
 
+alarm_concept.*
+ - Nick Maddock's code for the Concept alarm system from http://www.innerrange.com
+
 aqualink.pl
  - Tim Doyle's code for the Jandy AquaLink RS pool/spa controller.
    Like Compool.pl, you can get/set various temps and states.                    
@@ -248,6 +251,16 @@ voicemodem.pl
 
 voice_client/server.pl
  - Tim Doyle's code that allows mh to speak to other windows boxes, like his Windows box at work.
+
+v4l_pvr.pl
+ - David Norwood's Personal Video Recorder (PVR) script for Linux systems.
+It can record shows picked from the TV listings or shows that match a list of keywords.
+It has a basic web interface for controlling all its functionality.   
+
+v4l_radio.pl
+ - David Norwood's code for Linux that allows you to stream music from a video4linux
+compatible FM tuner card to shoutcast clients on your network.  
+
 
 weather.pl
  - Ernie Oporto's weather script that queries wunderground web sites

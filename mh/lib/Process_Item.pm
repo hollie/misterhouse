@@ -24,6 +24,12 @@ sub set_output {
     $$self{output} = $file;
 }
 
+                                # Allow for process STDERR to go to a file
+sub set_errlog {
+    my ($self, $file) = @_;
+    $$self{errlog} = $file;
+}
+
 sub add {
     my ($self, @cmds) = @_;
     push @{$$self{cmds}}, @cmds;
@@ -88,6 +94,13 @@ sub start_next {
         print STDOUT_REAL '';   # To avoid the "used only once" perl -w warning
     }
 
+                                # Store STDERR to a file
+    if ($$self{errlog}) {
+        open( STDERR_REAL, ">&STDERR" )        or print "Process_Item Warning, can not backup STDERR: $!\n";
+        open( STDERR,      ">$$self{errlog}" ) or print "Process_Item Warning, can not open errlog file $$self{errlog}: $!\n";
+        print STDERR_REAL '';   # To avoid the "used only once" perl -w warning
+    }
+
     if ($main::OS_win and $type ne 'eval') {
                                 # A blank cflag will result in stdout to mh window. 
                                 # Also, this runs beter, without as much problem with 'out ov env space' problems.
@@ -109,6 +122,7 @@ sub start_next {
             warn "Process_Item Warning, start Process error: cmd_path=$cmd_path\n -  cmd=$cmd   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
         
         open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
+        open( STDERR, ">&STDERR_REAL" ) if $$self{errlog};
 
         $$self{pid} = $pid;
 #       $pid->Wait(10000) if $run_mode eq 'inline'; # Wait for process
@@ -118,6 +132,7 @@ sub start_next {
         if ($pid) {
             print "Process start: parent pid=$pid type=$type cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
             open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
+            open( STDERR, ">&STDERR_REAL" ) if $$self{errlog};
             $$self{pid} = $pid;
         }
         elsif (defined $pid) {
@@ -228,6 +243,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.19  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
 # Revision 1.18  2002/05/28 13:07:51  winter
 # - 2.68 release
 #

@@ -5,6 +5,17 @@ Mister House Announcement List
 
   Version 2.68 posted on 05/28/2002
 
+    Version 2.6? was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+      http://misterhouse.net:81/download.html
+
+    New Features:
+
+    Bug Fixes and Other Changes:
+
+    - Fixed 'list all timers' (need a space after "voice=male" ...)
+
     Version 2.68 was just uploaded to:
 
       http://misterhouse.sf.net/download.html

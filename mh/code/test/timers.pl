@@ -67,7 +67,7 @@ $v_list_timers-> set_info('Summarize all timers');
 if ($state = said $v_list_timers) {
     if (@{$Persistent{timers}}) {
         for my $timer (@{$Persistent{timers}}) {
-            my $time_left = int seconds_remaining $timer;
+            my $time_left = seconds_remaining $timer;
             next unless $time_left;
             $time_left /=   60 if $timer->{unit} eq 'minute';
             $time_left /= 3600 if $timer->{unit} eq 'hour';
@@ -75,7 +75,7 @@ if ($state = said $v_list_timers) {
             if ($timer->{text}) {
                 speak "voice=male $timer->{text} in " . &plural($time_left, $timer->{unit}) ;
             } else {
-                speak "voice=male" . &plural($time_left, $timer->{unit}) . " left on the timer" ;
+                speak "voice=male " . &plural($time_left, $timer->{unit}) . " left on the timer" ;
             }
         }
     }
@@ -88,9 +88,8 @@ if ($state = said $v_list_timers) {
                                 #  - also delete expired timers
 my %timer_reminder_intervals = map {$_, 1} (1,2,3,4,5,10,20,30,60);
 if ($New_Second) {
-    my @timers = @{$Persistent{timers}};
     my $i = 0;
-    for my $timer (@timers) {
+    for my $timer (@{$Persistent{timers}}) {
         my $time_left = seconds_remaining $timer;
                                 # Delete expired timers
         unless (defined $time_left) {

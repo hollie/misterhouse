@@ -215,13 +215,14 @@ sub set {
         return;
     }
 
-    for my $sock (@sockets) {
-        print "db print to $sock: $socket_data\n" if $main::config_parms{debug} eq 'socket';
                                 # Dos telnet wants to see \r.  Doesn't seem to hurt
                                 # unix telnet or other pgms (e.g. viavoice_server)
-        print $sock $socket_data, "\r\n";
-#       print $sock $socket_data, "\n";
-#       print "db port=$port_name data=$socket_data\n" if $port_name eq 'speak_server';
+    my $datatype  = $main::Socket_Ports{$port_name}{datatype};
+    $socket_data .= "\r\n" unless $datatype and $datatype eq 'raw';
+
+    for my $sock (@sockets) {
+        print "db print to $sock: $socket_data\n" if $main::config_parms{debug} eq 'socket';
+        print $sock $socket_data;
     }
 
 }    
@@ -269,6 +270,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.22  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
 # Revision 1.21  2002/03/31 18:50:39  winter
 # - 2.66 release
 #

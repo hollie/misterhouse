@@ -14,8 +14,9 @@ X10A,       B1,     test_light2,           All_Lights|Test
 
 X10A,       B2,     test_appliance,        Appliances|Test
 
+# VOICE entries default to [ON,OFF]
 VOICE,              test_light1,           Test light [ON,OFF,BRIGHT,DIM]
-VOICE,              test_appliance,        Test appliance     # Defaults to [ON,OFF]
+VOICE,              test_appliance,        Test appliance
 
 # Here are some examples of adding multiple states to the same item
 

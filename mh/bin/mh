@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-05-27 13:29:12 winter>
+#  Last change Time-stamp: <2002-07-01 15:03:27 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -183,14 +183,16 @@ BEGIN {
 # Win98:  MSWin32 Win95    4 10 67766222 1 FAT
 # WinME:  MSWin32 Win95    4 90 67766222 1 FAT
 # 2K:     MSWin32 NT Service Pack 1,5,0,2195,2 NTFS
+# XP:     MSWin32 NT ,5,1,2600,2 NTFS
 
 
         if ($OS_win) {
             $Info{OS_version} = join(',', Win32::GetOSVersion);
-            $Info{OS_name} = 'NT' if Win32::IsWinNT;
             $Info{OS_name} = 'Win95' if Win32::IsWin95 ;
             $Info{OS_name} = 'Win98' if Win32::IsWin95 and (Win32::GetOSVersion)[2] > 0;
             $Info{OS_name} = 'WinMe' if Win32::IsWin95 and (Win32::GetOSVersion)[2] > 10;
+            $Info{OS_name} = 'NT'    if Win32::IsWinNT;
+            $Info{OS_name} = 'XP'    if Win32::IsWinNT and (Win32::GetOSVersion)[2] > 0;
             $Info{OS_filesystem} = Win32::FsType;
             $Info{User} = Win32::LoginName;
             $Info{Machine} = Win32::NodeName;
@@ -284,7 +286,7 @@ BEGIN {
                                 # This must be in a BEGIN in order for the 'use' to be conditional
         if ($OS_win) {
             print "Loading Windows modules\n";
-            
+
                                 # Must use 'my_use' (evals) so unix doesn't croak on missing modules
 
                                 # Not sure what we gain/loose with ole lite
@@ -1925,8 +1927,9 @@ sub get_ip_address {
 
                                 # gethostbyname will default to the local box if left blank
                                 #  - Sys::Hostname will add ISP name onto local box name :(
-#   use Sys::Hostname;
-#   $hostname = hostname() unless $hostname;
+                                #  - hmmm, gethostbyname does not work on some linux boxes with bank arg.
+   use Sys::Hostname;
+   $hostname = hostname() unless $hostname and !$OS_win;
 
     my @host_data = gethostbyname($hostname);
     my @ip_addresses = map {inet_ntoa($_)} @host_data[4 .. $#host_data];
@@ -1965,7 +1968,7 @@ sub last_response {
         ($last_response) = &print_log_last(1);
     }
     $Last_Response = '';
-    print "dbx1 LR=$Last_Response lr=$last_response\n";
+#   print "dbx1 LR=$Last_Response lr=$last_response\n";
     return $last_response;
 }
 
@@ -2886,8 +2889,7 @@ sub read_code {
                                 #  - %Local_Addresses is for backward compatibility ... maybe drop it some day
     %Local_Addresses = map{$_, 1} split(',', $config_parms{local_addresses});
     @Local_Addresses = split ',', $config_parms{local_addresses};
-    @Password_Allow_Clients = split /[, ]/, $config_parms{password_allow_clients};
-
+    @Password_Allow_Clients = split /[, ]+/, $config_parms{password_allow_clients};
 
     &read_table_files;           # Re-create table code file, if any table file changed
 
@@ -2992,6 +2994,7 @@ sub read_table_files {
         while (<TABLE_IN>) {
             if (/Format\s*=\s*(\S+)/i) {
                 $format = $1;
+                if ($format =~/xml/) { $/=undef; }
                 next;
             }
             if (/^\s*#/) {      # comment line
@@ -3016,6 +3019,7 @@ sub read_table_files {
         }
         close TABLE_IN;
         close TABLE_OUT;
+        if ($format =~/xml/) { $/="\n"; }
         print_log "Table format not recognized: file=$file mhp_file=$table_code_file." unless $format;
     }
 
@@ -3202,13 +3206,13 @@ sub read_user_code {
     for my $member_name (sort {$member_sort_order{$a} <=> $member_sort_order{$b} or 
                                $a cmp $b} keys %Run_Members) {
 
-        $member_name =~ s/ /_/g;     # Crazy people use blanks in member names
-
         next unless $sub_code{$member_name};
 
+        my $sub_name = "${member_name}_loopcode";
+        $sub_name =~ s/[- ]/_/g;   # Legalize sub name
         push @Sub_Code, 
                 "#-------------------------------------------------\n\n" .
-                "sub ${member_name}_loopcode {\n" .
+                "sub $sub_name {\n" .
                 "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
                 "        display('Multiple eval errors in $member_name.  Code was disabled', 0);" .
                 "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
@@ -3218,10 +3222,10 @@ sub read_user_code {
                 "   \$Benchmark_Members{'$member_name'} += &get_tickcount - \$benchmark_tickcount if \$benchmark_tickcount and \$Benchmark_Members{on_off_flag};\n" .
                 "\n} # End of $member_name";
 
-        $temp = "    \$Run_Members{'$member_name'}++, &${member_name}_loopcode, \$Run_Members{'$member_name'}-- if \$Run_Members{'$member_name'};\n";
+        $temp = "    \$Run_Members{'$member_name'}++, $sub_name, \$Run_Members{'$member_name'}-- if \$Run_Members{'$member_name'};\n";
                                 # Running eval on each member code is too ineffecient
                                 #  - At sleep_time=1, my I went from 60 pps, 2% cpu, to 30 pps, 25% cpu
-#       $temp = qq[   if (\$Run_Members{'$member_name'}) {eval '&${member_name}_loopcode'; &display_loopcode_error('$member_name') if \$@;}\n];
+#       $temp = qq[   if (\$Run_Members{'$member_name'}) {eval '$sub_name'; &display_loopcode_error('$member_name') if \$@;}\n];
         ($webname =~ /startup/i) ?  unshift(@Loop_Code, $temp) : push(@Loop_Code, $temp);
     }
     
@@ -3251,7 +3255,7 @@ sub read_user_code {
 sub do_user_file {
     my ($file) = @_;
     my ($member_name) = $file =~ /([^\\\/]+)\.pl$/i;
-    $member_name =~ s/ /_/g;     # Crazy people use blanks in member names
+    $member_name =~ s/[ -]/_/g; # Legalize subroutine name
     my $code = "#-------------------------------------------------\n\n";
     $code .= "sub ${member_name}_loopcode {\n";
     open(CODE, "<$file") or print "\nError, can not open do_user_file $file:$!\n";
@@ -3350,8 +3354,8 @@ sub set_global_vars {
             my $volume = int 100 * $DelayOccured / 30;
             &play(file => 'mh_pause', volume => $volume); # Defined in event_sounds.pl
             print_log "mh paused for $DelayOccured seconds (v=$volume)";
-            logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  "mh paused for $DelayOccured seconds";
         }
+        logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  "mh paused for $DelayOccured seconds";
         $Time_Start_time = $prev_time;
         $Time_Increment  = 1;
         $config_parms{sleep_time} = $Loop_Sleep_Time; # In case we manually change it after startup
@@ -3626,7 +3630,7 @@ sub set_global_vars {
 sub serial_port_create {
     my ($name, $port, $baudrate, $handshake, $datatype) = @_;
 
-    $port = '\\\\.\\' . $port if $Info{OS_name} eq 'NT' and $port =~ /^com\d{2}\z/i;
+    $port = '\\\\.\\' . $port if $Info{OS_name} =~ /(NT|XP)/ and $port =~ /^com\d{2}\z/i;
 
     unless ($name and $port) {
         print "\n\nError, serial port data missing: name=$name port=$port\n\n";
@@ -4602,6 +4606,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.69  2002/07/01 22:20:49  winter
+# - 2.69 release
+#
 # Revision 2.68  2002/05/28 13:02:16  winter
 # - 2.68 release
 #

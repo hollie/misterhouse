@@ -377,14 +377,16 @@ sub speak_text {
 }
 
 sub is_speaking {
-    if (@VTxt and $VTxt[0]) {
+    my ($card) = @_;
+    $card = 0 unless $card;
+    if (@VTxt and $VTxt[$card]) {
         if ($VTxt_version eq 'msv5') {
                                 # I think these are the same??  I did not benchmark for speed.
-#           return $VTxt[0]->WaitUntilDone(0);
-            return 2 == ($VTxt[0]->Status->{RunningState});
+#           return $VTxt[$card]->WaitUntilDone(0);
+            return 2 == ($VTxt[$card]->Status->{RunningState});
         }
         else {
-            return $VTxt[0]->{IsSpeaking};
+            return $VTxt[$card]->{IsSpeaking};
         }
     }
     elsif ($VTxt_pid) {
@@ -652,6 +654,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.37  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
 # Revision 1.36  2002/05/28 13:07:51  winter
 # - 2.68 release
 #

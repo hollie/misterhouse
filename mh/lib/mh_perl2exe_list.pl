@@ -35,6 +35,7 @@ use Net::AIM;
 use Net::Jabber;
 use Net::Jabber::Client;
 use Net::SNPP;
+use XML::XPath::XMLParser;      # Used by read_xml_A
 use XML::Stream;                # Used by Jabber
 use XML::Stream::Hash;          # Used by Jabber
 use File::Spec;                 # Used by Jabber

@@ -27,6 +27,8 @@ sub new {
 
     $self->{type} = $type;
 
+    restore_data $self ('level'); # Save brightness level between restarts
+
     if ($id) {
         my $hc = substr($id, 0, 1);
         push @{$items_by_house_code{$hc}}, $self;
@@ -221,6 +223,28 @@ sub level {
 #   print "db2 l=$_[0]->{level} s=$_[0]->{state}\n";
     return $_[0]->{level};
 } 
+
+sub state_level {
+    my $state = $_[0]->{state};
+    my $level = $_[0]->{level};
+    if (!defined $state or !($state eq 'on' or $state eq 'off')) {
+        if (defined $level and $level =~ /^[\+\-\d\%]+$/) {
+            $state = 'dim';
+            $state = 'off' if $level ==   0;
+            $state = 'on'  if $level == 100;
+        }
+        elsif ($state =~ /^[\+\-\d\%]+$/ or $state eq 'dim' or $state eq 'brighten') {
+            $state = 'dim';
+        }
+        else {
+            $state = ''; # unknown
+        }
+    }
+    elsif ($state eq 'on' and defined $level and $level < 100) {
+        $state = 'dim';
+    }
+    return $state;
+}
 
 sub set_by_housecode {
     my ($hc, $state) = @_;
@@ -832,6 +856,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.28  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
 # Revision 1.27  2002/05/28 13:07:51  winter
 # - 2.68 release
 #

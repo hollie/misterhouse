@@ -202,4 +202,12 @@ if ($Save{test_input2} =~ /load (\S+)/) {
 }
 
 
+$toggle_gd = new Voice_Cmd 'Toggle GD on/off';
+
+if (said $toggle_gd) {
+    $Info{module_GD} = ($Info{module_GD}) ? 0 : 1;
+    print_log "GD toggled to $Info{module_GD}";
+}
+ 
+
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2002-03-29 21:42:38 winter>
+#  Last change Time-stamp: <2002-06-29 14:28:42 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -926,6 +926,8 @@ eof
 
                   my $pgm_name_html = $pgm_name;
                   $pgm_name_html =~ tr/ /_/;
+                  $pgm_name_html =~ s/&/and/g;
+                  $pgm_name_html =~ s/\'/&#39;/g;
                                # Set program times/dates
                   my $time_start = &min_to_hour($min_start);
                   my $time_end   = &min_to_hour($min_end);

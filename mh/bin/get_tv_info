@@ -480,6 +480,24 @@ sub hour_to_min {
 }
 sub hour24_to_ampm {
     my ($hour, $min) = split(':', @_[0]);
+    if ($hour >= 24) {
+        $hour  = 12 if ($hour == 24 );
+        $hour -= 24 if ($hour >  24 );
+        return ($hour) . ":$min AM";
+    }
+    if ($hour >= 12) {
+        $hour -= 12 if ($hour > 12 );
+        return ($hour) . ":$min PM";
+    }
+    else {
+        $hour = 12 if ($hour == 0 );
+        return "$hour:$min AM";
+    }
+}
+
+
+sub hour24_to_ampm {
+    my ($hour, $min) = split(':', @_[0]);
     if ($hour >= 12) {
         $hour -= 12 if ($hour > 12 );
         return ($hour) . ":$min PM";
@@ -500,6 +518,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.27  2002/07/01 22:25:25  winter
+# - 2.69 release
+#
 # Revision 1.26  2002/03/02 02:36:49  winter
 # - 2.65 release
 #

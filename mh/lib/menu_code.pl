@@ -18,7 +18,7 @@ sub menu_parse {
                                 # Pick first of {a,b} enumerations (e.g. {tell me,what is} )
         my $text = $$object{text};
         $text =~ s/\{([^,]+).+?\}/$1/g;
-        $voice_cmd_list{$text} = $object;
+        $voice_cmd_list{lc $text} = $object; # Make it case insensitive
     }
 
 
@@ -31,9 +31,13 @@ sub menu_parse {
                                 # Pull out 'start menu' records:  M: Lights 
         if ($type eq 'M') {
             $menu = $data;
+                                # Reset index.  Allow for menus in different sections/files
             $index = -1;
+            $index = @{$menus{$menu}{items}} - 1 if $menus{$menu} and $menus{$menu}{items};
+
             if ($menus{$menu}) {
-                print "\nWarning, duplicate menu: $menu\n\n";
+                                # We get these when we split menus between files
+#               print "\nWarning, duplicate menu: $menu\n\n";
             }
             else {
                 push @{$menus{menu_list}}, $menu;
@@ -87,7 +91,7 @@ sub menu_parse {
         for my $ptr (@{$menus{$menu}{items}}) {
 
                                 # Default action = display if no action and the display matches a voice command
-            if (!$$ptr{A} and $voice_cmd_list{$$ptr{D}}) {
+            if (!$$ptr{A} and $voice_cmd_list{lc $$ptr{D}}) {
                 $$ptr{A} = $$ptr{D};
                 @{$$ptr{Astates}} = @{$$ptr{Dstates}} if $$ptr{Dstates};
                 $$ptr{Aprefix} = $$ptr{Dprefix};
@@ -245,7 +249,7 @@ sub menu_create {
 #---------------------------------------------------------------------------
 
 sub menu_run {
-    my ($menu_group, $menu, $item, $state, $format) = split ',', $_[0] if $_[0];
+    my ($menu_group, $menu, $item, $state, $format, $referer) = split ',', $_[0] if $_[0];
 
     my ($action, $cmd);
     my $ptr = $Menus{$menu_group}{$menu}{items}[$item];
@@ -283,7 +287,7 @@ sub menu_run {
 
     $Socket_Ports{http}{client_ip_address} = '' unless $Socket_Ports{http}{client_ip_address};
     my $msg = "menu_run: a=$Authorized,$authority f=$format ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu i=$item s=$state a=$action r=$response";
-    print "$msg\n";
+#   print "$msg\n";
     logit "$config_parms{data_dir}/logs/menu_run.log", $msg;
 
     unless ($Authorized or $authority or $format eq 'l') {
@@ -305,7 +309,6 @@ sub menu_run {
     if ($action) {
         my $msg = "menu_run: g=$menu_group m=$menu i=$item s=$state => action: $action";
         print_log  $msg;
-        print     "$msg\n";
         unless (&run_voice_cmd($cmd)) {
 #           package main;   # Need this if we had this code in a package
             eval $action;
@@ -318,6 +321,15 @@ sub menu_run {
 
     if ($response and lc $response eq 'none' and $format eq 'l') {
         return;
+    }
+
+    if ($format and $format eq 'hr') {
+                                #  Default to referer.  Also make sure we have a full path, starting with http
+        $Http{Referer} =~ m|(http://\S+?)/|;
+        $referer = $1 . $referer unless $referer =~ /^http/;
+        $referer =~ s/&&/&/;    # These got doubled up in http_server ... need them as single (e.g. /bin/menu.pl?main&Top|Main|Rooms) 
+        $referer =~ s/ /%20/g;
+        return &http_redirect($referer);
     }
 
                                 # Substitute $state
@@ -370,7 +382,7 @@ sub menu_run_response {
 #       my $http_root = "http://$config_parms{http_server}:$config_parms{http_port}";
         my $http_root = '';     # Full url is no longer required :)
         my $goto      = "${http_root}sub?menu_vxml($Menus{menu_data}{last_response_menu_group})#$Menus{menu_data}{last_response_menu}";
-        print "db1 gt=$goto\n";
+#       print "db1 gt=$goto\n";
         my $vxml = qq|<form><block><audio>$response</audio><goto next='$goto'/></block></form>|;
 #       my $vxml = qq|<form><block><audio>$response</audio><goto expr="'$goto'"/></block></form>|;
         return &vxml_page($vxml);
@@ -828,6 +840,9 @@ return 1;
 
 #
 # $Log$
+# Revision 1.10  2002/07/01 22:25:29  winter
+# - 2.69 release
+#
 # Revision 1.9  2002/05/28 13:07:52  winter
 # - 2.68 release
 #

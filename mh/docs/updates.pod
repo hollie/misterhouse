@@ -6,6 +6,121 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.69 posted on 07/03/2002
+
+Version 2.69 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+B<New Features:>
+
+- David Norwood created mh/code/public/v4l_pvr.pl and v4l_radio.pl for Linux systems.
+The pvr code (Personal Video Recorder) can record shows picked from the TV listings or shows
+that match a list of keywords.  It has a basic web interface for controlling all its functionality.   
+The v4l_radio.pl code allows you to stream music from a video4linux compatible 
+FM tuner card to shoutcast clients on your network.  Install instructions are at the top of the files.  
+
+- Nick Maddock created mh/lib/Concept.pm and mh/code/public/alarm_concept.* 
+to support the Concept alarm system from http://www.innerrange.com
+
+- Jeff_Ferris sent in code to access online mci voicemail.   Enable with the new mh.ini phone_voicemail_* parms,
+used by web/ia5/phone/voicemail.pl. 
+
+- Andy Oldfield created mh/lib/read_table_xml.pl to support a Format=xml mht file.  
+We also now include the XPath XML parser in the mh/lib/site path.
+
+- Made quite a few changes to the new menu web interface.  
+Added optional javascript navigation keys to the web menu interface (only supported on recent NS and IE browsers).
+Allow common menu pages to be split between different .menu files. 
+Added active, color coded buttons.  See the help text for a description of state dependent colors.
+To enable an active button, your menu Action must start  with 'set $object', so we can
+associate the correct object with that button. 
+To support the above, I had to change the set_menu_default syntax from Menu1,Menu2,Menu3 to Menu1|Menu2|Menu3.
+
+- Enabled overriding of file(s) in html subdirectories.  Simply create an alias for the
+root directory, then populate subdirs with just the files you want to override.  For example:
+
+  html_alias2_ia5    = /misterhouse/web/ia5
+
+Then create a /misterhouse/web/ia5/security directory with the file(s) you want to override
+for the ia5 security page.
+
+- Added mh/code/test/x10_reset.pl.  This will reset all X10 devices to their previous states after a power fail was detected.
+
+- I figured out the magic incantation to allow web browsers to cache static files (e.g. image files).
+Some older browers (e.g. Audrey and CE 3.0) were already doing this,
+but the newer browsers (IE 6 and Netscape 6) were not.
+This makes things like the menu buttons and LED clock much more usable, and speeds up most web pages.
+For IE, I had to clear my disk cache before it would start caching correctly.
+
+- Registered misterhouse.com, currently pointing to the same server as misterhouse.net
+Don't worry, no commercial intent planned.  The domain name simply came up for grabs and the fees are down
+to $10 a year now, so I had little reason not go grab it :)
+
+
+B<Bug Fixes and Other Changes:>
+
+- Added to the faq question 'What do I need to use the iButtons' with info from some recent posts.
+
+- Added shtml directive svar.  Unlike var=, the variable contents will be returned only if the web user is authorized.
+
+- Added mh.ini parm html_color_header, now used by the ia5 pages and web/bin/status_line.pl.  
+
+- Added sunrise and sunset (in addition sun, which auto-picked sunrise/sunset) to web/bin/status_link.pl
+
+- Added mh/code/examples/timer_remarks.pl an an example of how to some character to your timer reminders :)
+
+- Added signoff functions for AOL, MSN, and Jabber and used these in code/test/internet_im.pl.  
+If you loose a connection, simply run the connect command.
+
+- David Norwood fixed a bin/get_tv_grid problem with incorrect vcr programing times for shows that start or end around midnight.
+
+- Mark Miller suggested we a page view counter, so we created  a simple one with
+web/bin/counter.pl.  Set mh.ini parm web_href_counter to blank to turn off the new ia5 web page counter
+
+- David Norwood updated the web server to allow for shtml style includes in user coded %Included_HTML strings.
+
+- Joseph Gaston found that a mh.ini password_allow_clients with a blank in the value (e.g. 'a, b') would allow any client.
+
+- Wally Kissel added the logon prompt to the web 'Unauthorized mode' response.
+
+- Nick Maddock added time_date_stamp format 18, for creating log file names.
+
+- David Norwood added Process_Item set_errlog, like the existing set_output, but for STDERR, rather than STDOUT.
+Examples in mh/code/examples/test_process.pl
+
+- Fenghua Zong fixed the mh.ini web_href_weather_local parm, used in the ia5 weather page.
+
+- Jeff Burricelli noticed mh was not storing the brightness level of X10_Items between mh restarts.
+
+- Jeff Burricelli's girlfriend updated Serial_Item to understand 3 character X10 device codes (e.g. A16 rather than AG).
+We had previously updated X10_Item to allow for this, but not Serial_Item X10 codes.
+
+- Jason Brunen discovered mh would choke on code files named with a - (e.g. test-event.pl).
+
+- Created Faq from a Scott Reston post: What is the format of MisterHouse X10 codes?
+
+- Shane Harrison noted that we were inadvertently adding \n\r to raw Socket_Item output.
+
+- On XP, set $Info{OS_name} to XP, instead of NT.  Added an abortable shutdown/reboot for XP option in mh/code/common/mh_control.pl. 
+
+- Fixed missing web button images on some browsers (e.g. Netscape 4.7).  web/bin/button.pl to was not adding a mime header.
+
+- Fixed 'list all timers'  (need a space after "voice=male" ...)
+
+- Fixed 'browser lights/appliances' from the ia5 lights page.
+
+- Added mh.ini parm http_pause_time to control the http_server time exceeded messages.  Defaults to 2 seconds.
+
+- Replaced the ia5 MisterHouse logo.  The old one was cute, with the butler tie, but I thought the H looked too much
+like an M, and MisterMouse just didn't seem right :)  Any alternate logo suggestions are always welcome.
+
+- Modified web/bin/photos.pl background menu from a 3x3 grid to a 4x3 grid,
+adding a menus button next to the main menu button.
+Also used a style sheet directive to avoid tile-ing when in background mode on larger browsers.
+
+
 =head2 Version 2.68 posted on 05/28/2002
 
 Version 2.68 was just uploaded to:
@@ -454,6 +569,8 @@ Set this to a large number to disable the photo slideshow.
 
 - Also added a help screen to the photos slideshow when in background mode (like when called from an Audrey). 
 Touch the center of the screen to activate.
+
+- Updated &get_ip_address, used to set $Info{IPAddress_local},  to work better on unix.
 
 
 

@@ -191,6 +191,8 @@ Unzip msvoice.zip from speech_api.zip into a directory to store the msvoice app 
 Then run msvoice.exe to start the "Microsoft Voice" application. 
 Once running, you can use the "Voice Command Options" menu from the green V in your tray to pick your default voice.
 
+To enable VR from MisterHouse, set this mh.ini parm:  voice_cmd = MS (or MSV4)
+
 Other TTS engines, including those for British English, Dutch, French, German, Italian, Portuguese, and Spanish
 can be downloaded from http://www.nextup.com/TextAloud/SpeechEngine/voices.html
 
@@ -284,19 +286,23 @@ that has a very nice US english male and female voice.
 
 Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.
 
+The IBM ViaVoice TTS and Voice Recognition engines is no longer available (as of 05/2002).
+These instructions are here for future reference, in hopes that the modules 
+will become available again.
 
 The IBM ViaVoice TTS engine for Linux is available from
 http://www-4.ibm.com/software/speech/dev/sdk_linux.html .
 Here is the download link: http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm
 
+Looks like you can still get the TTS engine from here:
+ftp://people.redhat.com/jlamb/
+
 To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
 http://www.reednet.org/ViaVoiceTTS  , then set your mh.ini voice_text=vv_tts or voice_text=viavoice
 (vv_tts is a bit fancier, queing up speech and has more mh.ini options).
 
-The IBM ViaVoice Voice Recognition engine is no longer available (as of 05/2002) from
+The Voice Recognition engines are available here:
 http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm. 
-These instructions are here for future reference, in hopes that the modules 
-will become available again.
 
 Download and install (as root) these rpms:
   
@@ -489,11 +495,12 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
    - Delete all the records from your mh.private.ini that you don't change 
      since the default mh\bin\mh.ini will also be read.
 
-   - Change these entries
-      code_dir         = C:\misterhouse\code
-      data_dir         = C:\misterhouse\data
-      sound_dir        = C:\misterhouse\sounds
+   - Change these entries (note: Forward slashes are best in perl)
+      code_dir         = C:/misterhouse/code
+      data_dir         = C:/misterhouse/data
+      sound_dir        = C:/misterhouse/sounds
        
+ Note that you should use /, not \, on paths, on Windows, just like Unix.
 
  On windows, add this to your autoexec.bat:
    set mh_parms=c:\misterHouse\mh.private.ini
