@@ -8,7 +8,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT= qw();
 @EXPORT_OK= qw( send_cm17 send_cm17_ir );
-$VERSION = '0.06';
+$VERSION = '0.07';
 $DEBUG = 0;
 
 #-----------------------------------------------------------------------------
@@ -211,10 +211,15 @@ ControlX10::CM17 - Perl extension for 'FireCracker' RF Transmitter
   &ControlX10::CM17::send($serial_port, 'BO');
     # Turns All lights on house code B off
 
+    # Sends a POWER command to the X10 IR Commander TV device
+  &ControlX10::CM17::send_ir($serial_port, 'TV');
+  &ControlX10::CM17::send_ir($serial_port, 'POWER');
+
 =head1 DESCRIPTION
 
 The FireCracker (CM17A) is a send-only X10 controller that connects
 to a serial port and transmits commands via RF to X10 transceivers.
+It now also transmits commands to X10's IR Commander.
 
 The FireCracker derives its power supply from either the RTS or
 DTR signals from the serial port. At least one of these signals
@@ -256,10 +261,33 @@ round to the next larger magnitude if not a multiple of 14%.
   &ControlX10::CM17::send($serial_port, 'AF-45');
       # outputs 'AFJ','AL','AL','AL','AL' - round up if remainer
 
+The send_ir command is new with version 0.7.  These are valid commands:
+
+        POWER      MUTE      
+        CH+        CH-      
+        VOL+       VOL-     
+        1          2        
+        3          4        
+        5          6        
+        7          8        
+        9          0        
+        MENU       ENTER    
+        FF         REW      
+        RECORD     PAUSE     
+        PLAY       STOP     
+        AVSWITCH   DISPLAY  
+        UP         DOWN      
+        LEFT       RIGHT    
+        SKIPDOWN   SKIPUP   
+        TITLE      SUBTITLE 
+        EXIT       OK       
+        RETURN   
+
+
 =head1 EXPORTS
 
-Nothing is exported by default. A B<send_cm17> subroutine can be exported
-on request. It is identical to C<&ControlX10::CM17::send()>, and
+Nothing is exported by default. The B<send_cm17> and B<send_cm17> subroutines can be exported
+on request. These are identical to C<&ControlX10::CM17::send()> and C<&ControlX10::CM17::send_ir()>, and
 accepts the same parameters.
 
   use ControlX10::CM17 qw( send_cm17 0.05 );

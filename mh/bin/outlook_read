@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <1999-12-31 08:51:39 winter>
+#  Last change Time-stamp: <2000-04-12 21:42:58 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      outlook_read
@@ -257,10 +257,12 @@ if (time_now '$start - 00:02') {
    speak "rooms=all \$Time_Now. VCR recording will be started in 2 minutes for $show on channel $channel";
 }
 if (time_now '$start') {
-   run('min', 'IR_cmd VCR,$channel,RECORD');
+    set \$VCR '$channel,RECORD';
+#   run('min', 'IR_cmd VCR,$channel,RECORD');
 }
 if (time_now '$end') {
-   run('min', 'IR_cmd VCR,STOP');
+    set \$VCR 'STOP';
+#  run('min', 'IR_cmd VCR,STOP');
 }
 eof
         print PL $string;
@@ -302,6 +304,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.5  2000/05/06 16:39:05  winter
+# - 2.15 release
+#
 # Revision 1.4  2000/01/27 13:30:17  winter
 # - update version number
 #

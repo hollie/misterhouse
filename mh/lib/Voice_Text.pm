@@ -2,7 +2,7 @@
 package Voice_Text;
 use strict;
 
-my ($VTxt, $VTxt_festival, $VTxt_Outloud, $save_mute_esd, $save_change_volume);
+my ($VTxt, $VTxt_festival, $VTxt_Outloud, $save_mute_esd, $save_change_volume, %pronouncable);
 
 sub init {
 
@@ -11,6 +11,10 @@ sub init {
 		my $festival_address = "$main::config_parms{festival_host}:$main::config_parms{festival_port}";
 		$VTxt_festival = new  Socket_Item(undef, undef, $festival_address);
 		start $VTxt_festival;
+        if ($main::config_parms{festival_init_cmds}) {
+            print "Data sent to festival: $main::config_parms{festival_init_cmds}\n";
+            set $VTxt_festival qq[$main::config_parms{festival_init_cmds}];
+        }
 	}
 	if ($main::config_parms{voice_text} =~ /vvo_speak/i) {
 		print "Creating ViaVoice Outloud socket\n";
@@ -49,6 +53,8 @@ sub speak_text {
        	 	}
         	return;
 	}
+
+	$parms{text} = force_pronounce($parms{text}) if %pronouncable;
 
 	if ($VTxt_festival) {
 #<SABLE>
@@ -165,11 +171,43 @@ sub set_vvo_option {
     set $VTxt_Outloud $setting;
     return;
 }
+
+sub read_pronouncable_list {
+    my($pronouncable_list_file) = @_;
+
+    my ($phonemes, $word, $cnt);
+
+    open (WORDS, $pronouncable_list_file) or print "\nError, could not find the pronouncable word file $pronouncable_list_file: $!\n"; 
+
+    undef %pronouncable;
+    while (<WORDS>) {
+        next if /^\#/;
+        ($word, $phonemes) = $_ =~ /^(\S+)\s+(.+)\s*$/;
+        next unless $word;
+        $cnt++;
+        $pronouncable{$word} = $phonemes;
+    }
+    print "Read in $cnt pronouncable entries from $pronouncable_list_file\n";
+    close WORDS;
+}
+
+sub force_pronounce {
+    my($phrase) = @_;
+	print "input  phrase is '$phrase'\n" if $main::config_parms{debug} eq 'voice';
+    for my $word (keys %pronouncable) {
+        $phrase =~ s/\b$word\b/$pronouncable{$word}/gi;
+    }
+	print "output phrase is '$phrase'\n" if $main::config_parms{debug} eq 'voice';
+    return $phrase;
+}
     
 1;
 
 #
 # $Log$
+# Revision 1.19  2000/05/06 16:34:32  winter
+# - 2.15 release
+#
 # Revision 1.18  2000/04/09 18:03:19  winter
 # - 2.13 release
 #

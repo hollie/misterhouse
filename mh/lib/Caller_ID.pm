@@ -50,9 +50,9 @@ RING RING DATE=0224 NAME=ONMBR=5072884388
         ($name)   = $data =~ /NAME *= *(.+)/s;
         $name = substr($name, 0, 15);
         $name = 'Unavailable' if $name =~ /^ONMBR/; # Jay's exception
-        ($last, $first, $middle) = split(' ', $name);
-        substr($number, 6, 0) = '-';
-        substr($number, 3, 0) = '-';
+        ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
+        substr($number, 6, 0) = '-' if length $number > 6;
+        substr($number, 3, 0) = '-' if length $number > 3;
     }
     else {
         ($time, $number, $name) = unpack("A13A13A15", $data);
@@ -68,6 +68,7 @@ RING RING DATE=0224 NAME=ONMBR=5072884388
 #I03/23 08:35 OUT OF AREA  OUT OF AREA  
 #I03/22 16:17 PRIVATE      PRIVATE 
 #I03/22 20:00 PAY PHONE
+
     if ($caller = $name_by_number{$number}) {
         if ($caller =~ /\.wav$/) {
             $caller = "phone_call.wav,$caller,phone_call.wav,$caller";  # Prefix 'phone call'
@@ -85,6 +86,11 @@ RING RING DATE=0224 NAME=ONMBR=5072884388
     elsif ($last eq "Pay") {
         $caller = "a pay phone";
     }
+    elsif ($main::config_parms{caller_id_format} eq 'first last' and $name !~ /,/) {
+                                # no comma from Ameritech means leave the caller ID string alone
+                                # perform upper/lower-casing on all the words
+	    $caller = join(" ", map { ucfirst(lc()) } split(/\s+/,$name));
+    }
     else {
         $caller = "$first $last";
     }
@@ -98,7 +104,7 @@ RING RING DATE=0224 NAME=ONMBR=5072884388
             $caller .= " from area code $areacode";
         }
     }
-    $caller = "Call from $caller.  Phone call is from $caller.";
+#   $caller = "Call from $caller.  Phone call is from $caller.";
                                 # Allow for scalar or array call
     return wantarray ? ($caller, $number, $name, $time) : $caller;
 }
@@ -153,6 +159,7 @@ sub read_callerid_list {
 #   &main::print_log("Reading override phone list ... ");
 #   print "Reading override phone list ... \n";
 
+    undef %name_by_number;
     open (CALLERID, $caller_id_file) or print "\nError, could not find the area code file $caller_id_file: $!\n";
 
     while (<CALLERID>) {
@@ -171,6 +178,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.14  2000/05/06 16:34:32  winter
+# - 2.15 release
+#
 # Revision 1.13  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

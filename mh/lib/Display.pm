@@ -103,7 +103,8 @@ sub display {
 # Courier, Times, or Helvetica 
 # system,  ansi, device, systemfixed  ansifixed  oemfixed
 
-    $$self{font} = 'Courier* 10 bold' unless $$self{font};
+#   $$self{font} = 'Courier* 10 bold' unless $$self{font};
+    $$self{font} = 'system'           unless $$self{font};
     $$self{font} = 'systemfixed'      if     $$self{font} eq 'fixed';
 
     # Valid fonts can be listed with xlsfonts 
@@ -190,6 +191,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.14  2000/05/06 16:34:32  winter
+# - 2.15 release
+#
 # Revision 1.13  2000/01/27 13:38:47  winter
 # - update version number
 #

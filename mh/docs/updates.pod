@@ -6,7 +6,85 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
-=head2 Version 2.13 posted on 04/08/00
+
+=head2 Version 2.15 posted on 05/06/00
+
+Version 2.15 was just uploaded to:
+
+  http://misterhouse.net/download
+  http://misterhouse.sourceforge.net
+
+B<New Features:>
+
+- Brian Klier is working on some nifty code to 
+interface with a voice modem in mh/code/public/voicemodem.pl.
+Currently it works with modems based on the Rockwell chip set.  
+The script can pickup your phone after so many rings, play an outgoing
+message, and take a message.  There is also code to dial up a number you specify
+and play a voice message.
+
+- Ingo Dean and Radi Shourbaji made some X10 updates to HomeVision.pm
+
+- Clay Jackson added iButton support for the 1822 temperature button.
+
+- Kees Cook added the mh.ini prounoucable_list_file option, so you can change
+change to phonetic spellings of words, but still keep the correct spelling in your code and logs.
+Control this with the new mh/data/pronouncable_words.list file.
+
+- Kees also sent in a patch to make Caller_ID a bit smarter. 
+I added a mh.ini caller_id_format parm, so we can adapt to various caller ID formats.  
+Also, Caller_ID::make_speakable now returns just the caller name, so you can
+create control the phrasing better (see mh/code/bruce/phone_modem.pl for an example). 
+
+- Allow for duplicate Serial_Items and X10_Items.  Now all items with the same ID code will get set 
+when data is received, rather than just the last defined item.
+
+- Added tk_font and tk_font_fixed mh.ini parms. 
+Like most mh.ini parms, you can change them while mh is running
+and use the F1-reload button to evaluate the change.
+
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Christopher Witte send in a fix for the 'broken pipe' problem that unix users 
+could get when doing multiple quick web browser reloads.
+
+- Chris also updated the CVS repository to be a full copy of mh, so in theory, people can do a full 
+install of mh via cvs. 
+
+- Ron Klinkien sent in some updates for mh on FreeBSD.
+
+- Kees Cook send in a patch to Text_Cmd.pm to allow Festival to use esdplay, so mh can share the sound card 
+with other programs.  The is controled with a new mh.ini festival_init_cmds parm.
+
+- Christopher Kodadek send a fix for a bug introduced in 2.13 where get_mail would announce incoming mail twice.
+
+- Added a '3digit' option to IR_Item to it can be used with devices that require
+all 3 digits to be entered for channel numbers.
+
+- Re-fixed a bug in CM11.pm that created "unrecognized X10 data:" messages. 
+
+- Added Volume Up/Down to mp3_control.pl (latest httpq 1.6 winamp plugin required)
+
+- Added HTML::Parse to get_tv_info, so we can drop HTML tags from TV data.
+
+- Allow for tabs in speakable data.
+
+- Fixed a bug that caused duplicate filename to be listed on the web page popups if code was reloaded with errors.
+
+- Fixed a bug that cause an eval error when listing Global Variables via the web interface.
+
+- Added mh/code/examples/x10_motion_sensor_ben.pl
+
+- Added FAQ question 3.2: How can I set the default volume level for Festival?
+
+- Added FAQ question 1.15 How can I call mh from a non-mh web server like Apache?
+
+
+
+
+
+=head2 Version 2.13 posted on 04/09/00
 
 Version 2.13 was just uploaded to:
 
@@ -55,7 +133,7 @@ They are now played asynchronously.
 - Added David's linux mp3 control code as code to mh/code/public/mp3_control_GQmpeg.pl.
 
 - Added Brian Klier's example of a custom status pannel page to mh/code/public/statuspannel.pl and .shtml.  
-Also added a screenshot of what Brian's mh page looks like at http://misterhouse.net/pictures/brian.gif.
+Also added a screenshot of what Brian's mh page looks like at http://misterhouse.net/pictures/brian.gif .
 If anyone else wants to send in screenshots of their mh web
 interfaces, send them my way and I'll post them.
 

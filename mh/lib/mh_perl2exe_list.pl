@@ -14,6 +14,7 @@ print "Starting mh_perl2exe_list.pl ...";
 
 use Tk;
 use Tk::Entry;		 # Needed for perl2exe
+use Tk::Event;		 # Needed for perl2exe
 use Tk::Button;		 # Needed for perl2exe
 use Tk::Radiobutton; # Needed for perl2exe
 use Tk::Text;		 # Needed for perl2exe

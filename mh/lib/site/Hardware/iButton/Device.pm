@@ -135,7 +135,14 @@ use vars qw(%models);
 		    'specialfuncs' => "thermometer",
 		    'class' => 'Hardware::iButton::Device::DS1920',
 		   },
-	   
+	   "22" => {
+		    'model' => 'DS1822',
+		    'memsize' => 16/8, # yes, really. two bytes.
+		    'memtype' => "EEPROM",
+		    'specialfuncs' => "thermometer",
+		    'class' => 'Hardware::iButton::Device::DS1822',
+		   },
+
 	   "14" => {
 		    'model' => 'DS1971',
 		    'memsize' => 256/8,
@@ -527,7 +534,7 @@ sub read_temperature_scratchpad {
     $c->send("\x44"); # start conversion. need to do a 0.5s strong pullup.
     $c->read(1); # read back 0x44
     # wait
-    usleep(600*1000); # wait .6s
+    usleep(750*1000); # wait .75s
     $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
     $c->write("\xed"); # disarm pullup
     $c->write("\xf1"); # terminate pulse
@@ -570,8 +577,10 @@ sub read_temperature {
     # now, that's really supposed to be a signed 16-bit little-endian
     # quantity, but there isn't a pack() code for such things.
     #printf("tempnumber as read is 0x%04x\n",$tempnumber);
+    printf("tempnumber as read is 0x%04x 0x%04x\n",$tempnumber,$tempnumber>> 4);
     $tempnumber -= 0x10000 if $tempnumber > 0x8000;
-    my $temp = $tempnumber / 2;
+#   my $temp = $tempnumber / 2;
+    my $temp = $tempnumber >> 4;
     return $temp;
 }
 
@@ -591,6 +600,94 @@ sub read_temperature_hires {
     return $temp;
 }
 
+
+
+package Hardware::iButton::Device::DS1822;
+
+use Hardware::iButton::Connection;
+#use Time::HiRes qw(usleep);
+sub usleep {
+    my($usec) = @_;
+#   print "sleep2 $usec\n";
+    select undef, undef, undef, ($usec / 10**6);
+}
+
+
+# this is the thermometer button.
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+
+sub read_temperature_scratchpad {
+    my($self) = @_;
+    my $c = $self->{'connection'};
+
+    $c->reset();
+    $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
+    $c->write("\x39"); # set a 524ms pullup
+    $c->read(1); # response to config command
+    $c->reset();
+    $self->select();
+    $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
+    $c->write("\xef"); # arm the pullup
+    $c->write("\xf1"); # terminate pulse (??)
+    $c->read(1); # response to 0xf1
+    $c->mode(&Hardware::iButton::Connection::SET_DATA_MODE);
+    $c->send("\x44"); # start conversion. need to do a 0.5s strong pullup.
+    $c->read(1); # read back 0x44
+    # wait
+    usleep(750*1000); # wait .75s
+    $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
+    $c->write("\xed"); # disarm pullup
+    $c->write("\xf1"); # terminate pulse
+    $c->read(1); # response??
+
+    $c->reset();
+    $self->select();
+
+    # read scratchpad, bytes 0 and 1 (LSB and MSB)
+    $c->send("\xbe"); $c->read(1);
+    $c->send("\xff" x 9);
+    my $scratchpad = $c->read(9);
+    $c->reset();
+    # check CRC in last byte.
+    if (Hardware::iButton::Connection::crc(0, split(//,$scratchpad))) {
+	warn("scratchpadcrc was wrong");
+    }
+    return $scratchpad;
+}
+
+=head2 read_temperature
+
+ $temp = $b->read_temperature();
+
+This methods can be used on DS1822 1-Wire Thermometer. It returns
+a temperature in degrees C. The range is -55C to +125C, the resolution
+of the returned value is 1 degree C. The measured value has a resolution of
+.0625C, which is truncated.  The value returned by the device is contained
+in a 12 bit signed integer, which has a binary point at 4 bits.  To be able
+to use integer arithmetic, we shift the returned value 4 bits and use just
+the integral part of the number.
+
+Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
+
+=cut
+
+
+sub read_temperature {
+    my $sign = 0x0;
+    my($self) = @_;
+    my $scratchpad = $self->read_temperature_scratchpad($self);
+    my $tempnumber = unpack("v",substr($scratchpad, 0, 2));
+    # now, that's really supposed to be a signed 16-bit little-endian
+    # quantity, but there isn't a pack() code for such things.
+    #printf("tempnumber as read is 0x%04x 0x%04x\n",$tempnumber,$tempnumber>> 4);
+    # check the sign
+    $sign = 0x1000 if $tempnumber > 0x8000;
+    #printf("returning 0x%04x\n",($tempnumber >> 4) - $sign );
+    return ($tempnumber >> 4) - $sign;
+}
 
 
 package Hardware::iButton::Device::DS2423;

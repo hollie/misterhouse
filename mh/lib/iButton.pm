@@ -49,8 +49,11 @@ sub new {
     if ($self->{model} eq 'DS1920' ) {
         @iButton::ISA = ("Hardware::iButton::Device::DS1920");
     }
+	elsif ($self->{model} eq 'DS1822' ) {
+        @iButton::ISA = ("Hardware::iButton::Device::DS1822");
+    }
     elsif ($self->{model} eq 'DS2423') {
-	@iButton::ISA = ("Hardware::iButton::Device::DS2423");
+        @iButton::ISA = ("Hardware::iButton::Device::DS2423");
     }
     elsif ($self->{model} eq 'DS2406' ) {
         @iButton::ISA = ("Hardware::iButton::Device");
@@ -150,9 +153,15 @@ sub read_switch {
 sub read_temp {
     return unless $connection;
     my ($self) = @_;
-    @iButton::ISA = ("Hardware::iButton::Device::DS1920"); # ??
-
-    my $temp = $self->read_temperature_hires();
+    my $temp = 0;
+    if ($self->{model} eq 'DS1920' ) {
+        @iButton::ISA = ("Hardware::iButton::Device::DS1920");
+        $temp = $self->read_temperature_hires();
+    }
+	elsif ($self->{model} eq 'DS1822' ) {
+        @iButton::ISA = ("Hardware::iButton::Device::DS1822");
+        $temp = $self->read_temperature();
+    }
 
     return if $temp < -200 or $temp > 200; # Bad data for whatever reason
 
@@ -333,6 +342,9 @@ memory
 
 
 # $Log$
+# Revision 1.2  2000/05/06 16:34:32  winter
+# - 2.15 release
+#
 # Revision 1.1  2000/04/09 18:03:19  winter
 # - 2.13 release
 #

@@ -2,23 +2,30 @@ use strict;
 
 package Serial_Item;
 
-my (%serial_item_by_id);
+my (%serial_items_by_id);
 my (@reset_states, @states_from_previous_pass);
 
 sub reset {
-    undef %serial_item_by_id;   # Reset on code re-load
+    undef %serial_items_by_id;   # Reset on code re-load
 }
 
+sub serial_items_by_id {
+    my($id) = @_;
+    return unless $serial_items_by_id{$id};
+    return @{$serial_items_by_id{$id}};
+}
+                                # For backward compatability, return just the first item
 sub serial_item_by_id {
     my($id) = @_;
-    return $serial_item_by_id{$id};
+    my @refs = serial_items_by_id{$id};
+    return $refs[0];
 }
 
 sub new {
     my ($class, $id, $state, $port_name) = @_;
     my $self = {};
-    print "\n\nWarning: duplicate ID codes on different Serial_Item objects:\n " .
-          "id=$id state=$state states=@{${$serial_item_by_id{$id}}{states}}\n\n" if $serial_item_by_id{$id};
+#   print "\n\nWarning: duplicate ID codes on different Serial_Item objects:\n " .
+#         "id=$id state=$state states=@{${$serial_item_by_id{$id}}{states}}\n\n" if $serial_item_by_id{$id};
     $$self{port_name} = $port_name;
     &add($self, $id, $state);
     bless $self, $class;
@@ -30,9 +37,7 @@ sub add {
     $$self{state_by_id}{$id} = $state if $id;
     $$self{id_by_state}{$state} = $id;           # Note: State is optional
     push(@{$$self{states}}, $state);
-    $serial_item_by_id{$id} = $self if $id;
-#    print "db sid=", %Serial_Item::serial_item_by_id, "\n";
-
+    push(@{$serial_items_by_id{$id}}, $self) if $id;
 }
 
 sub is_started {
@@ -148,6 +153,7 @@ sub said {
     else {
         if (my $data = $main::Serial_Ports{$port_name}{data_record}) {
             $main::Serial_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
+            print "dbzz $data\n" if $port_name eq 'serial_modem';
             return $data;
         }
         else {
@@ -363,6 +369,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.36  2000/05/06 16:34:32  winter
+# - 2.15 release
+#
 # Revision 1.35  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

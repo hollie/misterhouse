@@ -3,81 +3,49 @@
 # On Windows, this calls a winamp control program called wactrl, by david_kindred@iname.com
 # On linux,   this calls ???
 
-$v_mp3_control = new  Voice_Cmd("Set mp3 player to [Play,Stop,Pause,Restart,Rewind,Forward," .
-                                   "Next Song,Previous Song,Volume up,Volume down,ontop]");
+my $mp3_states = "Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat";
+$v_mp3_control = new  Voice_Cmd("Set mp3 player to [$mp3_states]");
 
                                 # This translates from speakable commands to program commands
-my %winamp_commands = ('Restart' => 'start', 'Rewind' => 'rew5s', 'Forward' => 'ffwd5s', 
-                       'Next Song' => 'nextsong', 'Previous Song' => 'prevsong',
-                       'Volume up' => 'volup', 'Volume down' => 'voldown');
+my %winamp_commands = ('Next Song' => 'next', 'Previous Song' => 'prev',
+                       'Toggle Shuffle' => 'shuffle', 'Toggle Repeat' => 'repeat',
+                       'Volume Up' => 'volumeup', 'Volume Down' => 'volumedown');
 
 if ($state = said $v_mp3_control) {
-    if ($OS_win) {
 
-                                # Start winamp, if it is not already running
-        &sendkeys_find_window('winamp', $config_parms{mp3_program});
+    my $command = $state;
+    $command = $winamp_commands{$command} if $winamp_commands{$command};
+    
+    print_log "Setting winamp to $command";
 
-        $state = $winamp_commands{$state} if $winamp_commands{$state};
-        print_log "Winamp set to $state";
+                                # Start winamp, if it is not already running (windows localhost only)
+    &sendkeys_find_window('winamp', $config_parms{mp3_program});
 
-                                # Volume only goes by 1.5%, so run it a bunch
-        my $i = 1;
-        $i = 22 if $state =~ /^vol/;
-        for (1 .. $i) {
-            run "wactrl $state";
+    if ($config_parms{mp3_program_control} eq 'httpq') {
+        my $url = "http://localhost:$config_parms{mp3_program_port}";
+        if($command eq 'Random Song'){
+            my $mp3_num_tracks = get "$url/getlistlength?p=$config_parms{mp3_program_password}";
+            my $song = int(rand($mp3_num_tracks));
+            my $mp3_song_name  = get "$url/getplaylisttitle?p=$config_parms{mp3_program_password}&a=$song";
+            $mp3_song_name =~ s/[\n\r]//g;
+            print_log "Now Playing $mp3_song_name";
+            get "$url/stop?p=$config_parms{mp3_program_password}";
+            get "$url/setplaylistpos?p=$config_parms{mp3_program_password}&a=$song";
+            print_log filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
+        }
+       elsif($command =~ /volume/i){
+           $temp = '';
+                                # 10 passes is about 20 percent 
+            for my $pass (1 .. 10) {
+                $temp .= filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
+            }
+            print_log "Winamp (httpq) set to $command: $temp";
+        }
+        else {
+            print "$url/$command?p=$config_parms{mp3_program_password}\n";
+            $temp = filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
+            print_log "Winamp (httpq) set to $command: $temp";
         }
     }
-    else {
-        speak "Sorry, no mp3 client for this OS yet";
-    }
+
 }
-
-                                # Allow for loading playlists
-# noloop=start      This directive allows this code to be run on startup/reload
-my $mp3playlist = &load_playlist($config_parms{mp3_dir}, $config_parms{mp3_extention});
-my $mp3songs1   = &load_playlist('d:/winamp/Scour/good', 'mp3');
-my $mp3songs2   = &load_playlist('d:/winamp/Scour/bad', 'mp3');
-# noloop=stop
-
-$v_play_music1 = new Voice_Cmd("Set mp3 player to playlist [$mp3playlist]");
-$v_play_music2 = new Voice_Cmd("Set mp3 player to good song [$mp3songs1]");
-$v_play_music3 = new Voice_Cmd("Set mp3 player to bad song [$mp3songs2]");
-
-my $song;
-$song = '';
-$song = "$config_parms{mp3_dir}"      if $state = said $v_play_music1;
-$song = "d:/winamp/Scour/good/$state" if $state = said $v_play_music2;
-$song = "d:/winamp/Scour/bad/$state"  if $state = said $v_play_music3;
-
-if ($song) {
-    if ($OS_win) {
-                                # Start winamp, if it is not already running
-        &sendkeys_find_window('winamp', $config_parms{mp3_program});
-
-        print_log "Loading mp3 song: $song";
-        run "wactrl delete";
-        run "wactrl $song";
-        select undef, undef, undef, .3; # Give winamp a chance to load it
-        run "wactrl play";
-    }
-    else {
-        speak "Sorry, no mp3 client for this OS yet";
-    }
-}
-
-sub load_playlist {
-    my ($dir, $extention) = @_;
-    my $mp3names;
-    opendir(DIR, $dir) or print "Error in opening mp3_dir $dir: $!\n";
-    print "Reading $dir for $extention files\n";
-    for (readdir(DIR)) {
-        next unless /(\S+)\.(\S+)/;
-        next unless lc $2 eq lc $extention;
-#       print "name=$1 ext=$2 match $extention\n";
-        $mp3names .= $1 . ","; 
-    }
-    print "names=$mp3names\n";
-    return $mp3names;
-}
-
-

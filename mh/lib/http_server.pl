@@ -1104,7 +1104,7 @@ sub vars_global {
         } 
         elsif (defined %{$key}) {
             for my $key2 (sort eval "keys \%$key") {
-                my $value = eval "\$$key\{$key2\}\n";
+                my $value = eval "\$$key\{'$key2'\}\n";
 #               next unless defined $value;
                 next if $value =~ /HASH/; # Skip object pointers
                 push @table_items, "<td align='left'><b>\$$key\{$key2\}:</b> $value</td>";
@@ -1256,6 +1256,9 @@ Cookie: w3ibmID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.41  2000/05/06 16:34:32  winter
+# - 2.15 release
+#
 # Revision 1.40  2000/04/09 18:03:19  winter
 # - 2.13 release
 #

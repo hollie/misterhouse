@@ -235,6 +235,8 @@ X10.com also sells a $50 IR transimiter that works through the CM17 interface.
 Info is at http://www.x10.com/products/ux17a_bj2.htm.  This is supported
 via the mh IR_Item object.
 
+Europeans can get X10 stuff from  http://www.intellihome.be 
+
 Weeder Technologies, http://www.weedtech.com , offers the following kits
 priced from $30 to $50 each.  All of these kits can share the same serial port:
 
@@ -301,7 +303,7 @@ Byterunner offers lots of types of serial cards: http://www.byterunner.com
 
 Good sources of information on the WX200/WM918 weather stations are at
 http://wx200.planetfall.com/  and  http://www.weatherwatchers.org/wxstation/WX-200/ .
-
+$200->$300 at Radio Shack or $200 from http://www.heartlandamerica.com (search for weather, model WW22- 3350)
 
 iButton is a family of devices that can all talk to a '1 wire' interface.
 Here are some urls and prices:
@@ -315,6 +317,25 @@ Here are some urls and prices:
     - $10 for a 1 port relay card
     - $10 for a 2 port digital input or ouptut card
     - $6  for a 1820 temperature sensor
+
+
+If you want more reliable VR without having to use a headset, you can try these to digital array microphones:
+
+ - Labtec LVA-7280 ClearVoice Digital Microphone ($130)
+   http://www.labtec.com/product/family.cfm?CategoryID=2
+
+ - Andrea Desktop array DA-400 ($150)
+   http://www.andreaelectronics.com
+
+The Labtec has a push button on top to
+turn it on and off and a red/green LED that blinks green when sound is
+heard.   The Andrea has a slide switch on the side to turn it on and off.
+The Andrea has a bit clearer sound and is about 2/3 the size.
+Having a hardware switch to disable VR is handy.
+
+Both of these mikes are ment to be used when you are at the desktop.
+The idea is that they filter out background noise better, so you can use them in
+slightly noise environments, where headsets were normally required.
 
 
 =head2 List of startup options
@@ -597,8 +618,7 @@ To enable ibutton support in mh, set the mh.ini parm ibutton_port.
       0B,   64,  32,  40,   8,   1,   3, DS1985,DS2505,16K-bit EPROM
       0C,  256,  32,   0,   0,   1,   1, DS1996,DS2464,64K-bit NVRAM
       0F,  256,  32,  64,   8,   1,   3, DS1986,DS2506,64K-bit EPROM
-      10,    0,   0,   0,   0,   0,   0, DS1920,DS1820,Temperature iButton with
-      Trips
+      10,    0,   0,   0,   0,   0,   0, DS1920,DS1820,Temperature iButton with Trips
       11,    2,  32,   1,   8,   0,   2, DS1981,DS2501,512-bit EPROM
       12,    4,  32,   1,   8,   0,   4, DS2407,,Dual Addressable Switch
       13,   16,  32,  34,   8,   0,   3, DS1983,DS2503,4K-bit EPROM
@@ -618,6 +638,7 @@ To enable ibutton support in mh, set the mh.ini parm ibutton_port.
       20,    3,   8,   0,   0,   1,   9, DS2450,,Quad A-D Converter
       21,   16,  32,   0,   0,   1,   8, DS1921,,Temperature Recorder iButton
       23,   16,  32,   0,   0,   1,   7, DS1973,DS2433,4K-bit EEPROM
+      22                                 DS1822 temperature button   
       40,   16,  32,   0,   0,   0,   1, DS1608,,Battery Pack Clock
 
 
@@ -674,8 +695,12 @@ to program the IR Commander to
 use the codes for your various remotes.  
 
   Methods:
-     new $type    : Creates a new Item.  Here are the valid types:
-         TV, VCR, CAB, CD, SAT, DVD
+     new $type, $code : Creates a new Item.  
+        Here are the valid types:
+           TV, VCR, CAB, CD, SAT, DVD
+        Currently, $code simply controls if 2 or 3 digits are transmited for channels:
+           2digit  (this is the default if $code is not spedified)
+           3digit
 
      state        : Returns the last state that was sent
      state_now    : Returns the state that was sent in the current pass.
@@ -712,7 +737,7 @@ use the codes for your various remotes.
     $v_tv_control = new  Voice_Cmd("tv [power,on,off,mute,vol+,vol-,ch+,ch-]");
     set $TV $state if $state = said $v_tv_control;
 
-    $VCR = new IR_Item 'vcr';
+    $VCR = new IR_Item 'vcr', '3digit';
     set $VCR "12,RECORD" if time_cron('59 19 * * 3');
     set $VCR "STOP"      if time_cron('00 20 * * 3');
 
@@ -858,7 +883,7 @@ local module on a RF Transeiver, you can tell mh to use the RF CM17 interface, l
 
     $test_light = new X10_Item('A1', 'CM17');
 
-Note that the X10 device code is numbered 1->9,A->F.  For example device 16 in house code P would be PF.
+Note that the X10 device code is numbered 1->9,A->G.  For example device 16 in house code P would be PG.
 
 If a single character is use (e.g. X10_Item('D')), then 'on' and 'off' states are translated to
 ALL_ON and ALL_OFF commands for that house code.  For example:
@@ -1321,6 +1346,8 @@ Use this to play wave or system sound files.  There are 2 modes of calling it:
          wait : mh will pause (hang), until wav file finishes
          loop : mh will loop on the wav file
          stop : mh will stop playing the previous file
+
+       mode   => 'unmuted'     Forces speech, even in mute and offline mode
 
 If $file_name is a blank or comma delimited list of 
 files, they are played sequentially.  If it is a wild-carded file specification
@@ -2591,6 +2618,23 @@ of an mh variable.  For example:
 
 This what is used in the mh 'About' web button to return the mh version.
 
+You can also define your own functions in your code files to return html, and then call them 
+with the code= include directive.  For example, add these to any of your code files:
+
+  sub web_func1 {
+      return "uptime = " . &time_diff($Time_Startup_time,$Time , undef, 'numeric');
+  }
+  sub web_func2 {
+      return "results from function 2"; 
+  }
+
+Then call them like this:
+
+ <p>Test web functions
+ <!--#include code="&web_func1"-->
+ <!--#include code="&web_func2"-->
+
+
 If you want to have only a few specific html controls, you can write your own html using the
 RUN, SET, and SET_VAR url keywords to control mh.  Here are a few examples:
 
@@ -2804,12 +2848,13 @@ An older list with a searchable archive at <a href=http://www.onelist.com/messag
 
 
 Jan Dubois has a fun page of other ticks you can do with 
-perl at http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.html
-
-Mark Komarinski wrote a fun article showing how to get started with  
-MisterHouse on Linux at  http://www.linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html
+perl on windows at http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.html
 
 The comp.home.automation newsgroup is another handy resource, especially for X10 related questions.
+
+Neil Cherry has created a home for linux related Home Automation programs at
+http://linuxha.sourceforge.net
+
 
 =head1 COPYRIGHT
 
@@ -2829,6 +2874,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.22  2000/05/06 16:41:43  winter
+# - 2.15 release
+#
 # Revision 1.21  2000/04/09 18:03:19  winter
 # - 2.13 release
 #

@@ -12,6 +12,10 @@
 <p>This is an example of picking images on the fly using cgi .pl programs
 <br><img src="image_status.pl">
 
+<p>Test web functions
+<!--#include code="&web_func1"-->
+<!--#include code="&web_func2"-->
+
 <p>This is an example of generating html on the fly using cgi .pl programs
 <!--#include file="/test/test1.pl"-->
 

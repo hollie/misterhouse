@@ -54,6 +54,9 @@ test_homebase.pl
 test_homevision.pl
  - example code on how to talk to the homevision interface.
 
+voicemodem.pl
+ - Brian Klier's code for interfacing to a voice modem.  
+
 weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I 
    wrote a direct interface for the Wx200 weather station (code/Bruce/weather_wx200.pl).

@@ -69,8 +69,7 @@ sub setup {
     for my $parm (sort keys %config_parms) {
         next unless $config_parms{$parm}; # Ignore blank parms
         next if $parm =~ /net_mail_send/; # Ignore the send mail account
-        push(@email_accounts, $1) if $parm =~ /net_mail_(\S+)_server/;
-        push(@email_accounts, '') if $parm =~ /net_mail_server/;
+        push(@email_accounts, $1) if $parm =~ /net_mail_(\S+)_server$/;
     }
     print "Email accounts to check: @email_accounts\n";
 
@@ -173,6 +172,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.17  2000/05/06 16:39:05  winter
+# - 2.15 release
+#
 # Revision 1.16  2000/04/09 18:03:19  winter
 # - 2.13 release
 #
