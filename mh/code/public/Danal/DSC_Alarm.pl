@@ -43,34 +43,50 @@
 #                                                                #
 ##################################################################
 
-# Note: The original version of DSC_Alarm.pm (October 2000) exposes 
-# only "new" & "said", where "said" contains the raw data
-# from the printer module.
-#
-# It is my intent to expose object methods (such as 
-# "state") in a future release.  This may lead to 
-# incompatible changes in existing methods.
-# Danal Estes, October 9, 2000
-
+# Note: said and state lag one another by a pass.
+# As such, it is NOT recommended to mix/match them in the same code.
+# In this example, they are isolated to seperate 'if' blocks, which is OK.
 
 $DSC_Alarm = new DSC_Alarm;
+my $warning_sent = 0;
 
 if (my $log = said $DSC_Alarm) {
-   print_log "DSC_Alarm.pl data = $log\n";
-   $log =~ /(..\:.. ..\/..\/.. )(.+)/;  # Remove date/time stamp that contains forward slashes... they cause DOS processes heartburn
-   &alarm_page("$2");
+   print_log "DSC_Alarm.pl $Loop_Count said = $log\n";
 }
+
+if (my $state = state_now $DSC_Alarm) {
+   print_log "DSC_Alarm.pl $Loop_Count state_now = $state\n";
+                 my $var = state $DSC_Alarm;
+   print_log "DSC_Alarm.pl $Loop_Count state = $state\n";
+                 my $var = user $DSC_Alarm;
+   print_log "DSC_Alarm.pl $Loop_Count user = $var\n";
+                 my $var = alarm_now $DSC_Alarm;
+   print_log "DSC_Alarm.pl $Loop_Count alarm = $var\n";
+                 my $var = zone $DSC_Alarm;
+   print_log "DSC_Alarm.pl $Loop_Count zone = $var\n";
+                 my $var = said $DSC_Alarm;
+   print_log "DSC_Alarm.pl $Loop_Count said = $var\n";
+   if (alarm_now $DSC_Alarm) {
+     &alarm_page("Alarm in zone " . zone $DSC_Alarm);
+     $warning_sent=1;
+   }
+   if ($warning_sent) {
+     &alarm_page("Alarm state $state user " . user $DSC_Alarm);
+     $warning_sent=0;
+   }
+}
+
+
 
 
 # Subroutine to send a page / pcs message, etc.
 sub alarm_page {
-return;
    my ($text) =@_;
-   $text = $text . $Date_Now . $Time_Now;
+   speak "Djeeni says: $text";
+   $text = $text . " $Date_Now $Time_Now";
 
-   my $p1 = new Process_Item("alpha_page -pin 9999999 -message \"$text\" ");
+   my $p1 = new Process_Item("alpha_page -pin 1488774 -message \"$text\" ");
    start $p1;      # Run externally so as not to hang MH process
 
    print_log "Alarm notification sent, text = $text";
-   speak "Djeeni says: $text";
 }
