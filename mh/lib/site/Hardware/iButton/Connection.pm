@@ -244,7 +244,8 @@ sub DESTROY {
     my($self) = @_;
     print "ibutton Connection DESTROY $self\n";
 #   $self->resetstty();
-    $self->close;
+#   $self->{s}->close;    # This does not free up the port??
+#   $self->close;
     undef $self;
 }
 
@@ -274,9 +275,16 @@ sub read {
 #   return $input = $self->{s}->input;
 
 #   $self->{s}->read_const_time(100);       # Total time to wait
-    $self->{s}->read_char_time(20);         # avg time between read char
+
                                 # read_Interval is not in the unix Device/Serialport.pm
-#   $self->{s}->read_interval(20);          # Time to wait after last byte received
+                                # - But This works best with high speed ports and windows NT/2000
+    if ($^O eq 'MSWin32') {
+        $self->{s}->read_interval(10); # Time to wait after last byte received
+    }
+    else {
+        $self->{s}->read_char_time(20); # avg time between read char
+    }
+
 
     if ($bytes == 0) {
         $input = $self->{s}->input;

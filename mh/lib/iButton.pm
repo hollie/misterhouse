@@ -106,10 +106,12 @@ sub monitor {
     return unless $connection;
     my (@ib_list, $count, $ib, $id, $object, %buttons_dropped);
 #   @ib_list = &scan;
+#   print "db calling scan\n";
     @ib_list = &scan(01);       # monitor just the button devices
     $count = @ib_list;
 #   print "ib count=$count l=@ib_list.\n";
     %buttons_dropped = %buttons_active;
+#   print "db read $count devices\n";
     for $ib (@ib_list) {
         $id = $ib->id;
         $object = $objects_by_id{$id};
@@ -312,6 +314,9 @@ memory
 
 
 # $Log$
+# Revision 1.5  2000/10/09 02:31:13  winter
+# - 2.30 update
+#
 # Revision 1.4  2000/08/19 01:25:08  winter
 # - 2.27 release
 #

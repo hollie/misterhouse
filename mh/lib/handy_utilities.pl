@@ -24,6 +24,7 @@ sub Win32::IsWinNT;
 sub Win32::IsWin95;
 sub Win32::GetTickCount;
 sub Win32::DriveInfo::DrivesInUse;
+#sub Win32::PerfLib;
 
 package handy_utilities;
 use strict;
@@ -219,7 +220,6 @@ sub main::search_dbm {
 sub main::dbm_write {
     my ($log_file, $log_key, $log_data) = @_;
     my ($log_count, %DBM);
-    my ($log_count, %DBM);
     if ($log_key) {
                                 # Assume we have already done use DB_File in calling program
                                 #  - we want to make sure we can still call this when perl is not installed
@@ -235,7 +235,6 @@ sub main::dbm_write {
                                 # Like dbm_write, but also keeps a tally of accesses
 sub main::logit_dbm {
     my ($log_file, $log_key, $log_data) = @_;
-    my ($log_count, %DBM);
     my ($log_count, %DBM);
     if ($log_key) {
                                 # Assume we have already done use DB_File in calling program
@@ -286,6 +285,65 @@ sub main::dbm_search {
     }
     dbmclose %DBM_search;
     return ($count1, $count2, @results);
+}
+
+sub main::memory_used {
+    return unless $^O eq 'MSWin32' and Win32::IsWinNT;
+
+#   use Win32::PerfLib;
+#   &main::my_use('Win32::PerfLib');
+                                # Find process ref of ourself (230 is Process counter)
+                                # Note: this changes with time, so we must reget every time
+                                # GetObjectList takes 180 ms :(.  Total find_mem time is 200 ms
+                                # Got the Counter indexes via Win32::PerfLib::GetCounterNames
+    my $perflib = Win32::PerfLib->new('');
+#    my $perflib = new Win32::PerfLib;
+    my $proc_ref = {};
+    $perflib->GetObjectList(230, $proc_ref);
+    $perflib->Close();
+
+    my ($perf_pid, $perf_mem_virt, $perf_mem_real, $perf_cpu);
+    my $instance_ref = $proc_ref->{Objects}->{230}->{Instances};
+    for my $p (keys %{$instance_ref}) {
+        my $counter_ref = $instance_ref->{$p}->{Counters};
+
+                                # Find pointer to ourself
+        for my $i (keys %{$counter_ref})  {
+                                # counter ID Process=784
+            if ($counter_ref->{$i}->{CounterNameTitleIndex} == 784 and
+                $counter_ref->{$i}->{Counter} == $$) {
+                $perf_pid = $p;
+            }
+        }
+                                # Now find pointer to memory counter
+        if ($perf_pid) {
+            for my $i (keys %{$counter_ref})  {
+                                # counter Working Set=180
+                if ($counter_ref->{$i}->{CounterNameTitleIndex} == 180) {
+                    $perf_mem_real = $counter_ref->{$i}->{Counter};
+                }
+                                # counter Page File Bytes=184
+                if ($counter_ref->{$i}->{CounterNameTitleIndex} == 184) {
+                    $perf_mem_virt = $counter_ref->{$i}->{Counter};
+                }
+                                # Could not figure out how to get %cpu used
+# counter % Processor Time=6  (/10**7 for seconds)
+# counter % Privileged Time=144
+# counter % User Time=142
+
+# counter % Total Processor Time=240
+# counter Current % Processor Time=1502
+# counter Total mSec - Processor=1522
+
+                if ($counter_ref->{$i}->{CounterNameTitleIndex} == 6) {
+                    $perf_cpu = $counter_ref->{$i}->{Counter};
+#                   print "db2 p=$p i=$i\n";
+                }
+            }
+        }
+        last if $perf_pid;
+    }
+    return ($perf_mem_virt/1024000, $perf_mem_real/1024000, $perf_cpu/10**7);
 }
 
 sub main::my_use {
@@ -363,13 +421,9 @@ sub main::read_mh_opts {
     my $private_parms = $Pgm_Path . "/mh.private.ini";
     $private_parms = $ENV{mh_parms} if $ENV{mh_parms};
     $debug = 0 unless $debug;
-    if ($parm_file) {
-        &main::read_opts($ref_parms, $parm_file, $debug, $Pgm_Path . '/..');
-    }
-    else {
-        &main::read_opts($ref_parms, $Pgm_Path . "/mh.ini", $debug, $Pgm_Path . '/..');
-        &main::read_opts($ref_parms, $private_parms, $debug, $Pgm_Path . '/..') if -e $private_parms;
-    }
+    &main::read_opts($ref_parms, $parm_file, $debug, $Pgm_Path . '/..') if -e $parm_file;
+    &main::read_opts($ref_parms, $Pgm_Path . "/mh.ini", $debug, $Pgm_Path . '/..') if $Pgm_Path . "/mh.ini";
+    &main::read_opts($ref_parms, $private_parms, $debug, $Pgm_Path . '/..') if -e $private_parms;
 }
 
 sub main::read_opts {
@@ -941,6 +995,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.41  2000/10/09 02:31:13  winter
+# - 2.30 update
+#
 # Revision 1.40  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

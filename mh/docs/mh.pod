@@ -1507,6 +1507,7 @@ Use this to play wave or system sound files.  There are 2 modes of calling it:
      Options are:
        rooms => 'room_names'  You need to code a pa_stub.pl routine to allow this
                               to work with your PA relays.
+       volume=> dd            How loud (dd = 0->100).  
        time  => $time         The amount of time to leave the PA speakers on for rooms
        mode  => $mode         $mode can be:
          wait  : mh will pause (hang), until wav file finishes
@@ -1647,11 +1648,11 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
     
      Options are:
        rooms  => 'room_name'   You need to code a pa_stub.pl routine to allow this
-                              to work with your PA relays.
+                               to work with your PA relays.
+       volume => dd            How loud (dd = 0->100).  
        mode   => 'unmuted'     Forces speech, even in mute and offline mode
 
      These options are for the Festival speech engine (but don't work yet):
-       volume => 'loud' or 'soft'
        rate   => '+-nn%'       (e.g. +10% or -30%)
        voice  => 'name' 
  
@@ -3187,6 +3188,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.28  2000/10/09 02:31:13  winter
+# - 2.30 update
+#
 # Revision 1.27  2000/10/01 23:36:21  winter
 # - 2.29 release
 #

@@ -46,6 +46,7 @@ use Win32::DriveInfo;	# For disk space free/total
 use Win32::OLE;
 #se Win32::OLE::lite;
 use Win32::Process;
+use Win32::PerfLib;
 use Win32::Setupsup;    # For sending keystrokes
 use Win32::Sound;		# So we can play wave files
 use Win32::SoundEx;		# So we can play wave files

@@ -226,8 +226,9 @@ DESCRIPTION
     http://www.x10.com/products/ux17a_bj2.htm. This is supported via
     the mh IR_Item object.
 
-    Europeans can get X10 stuff from http://www.intellihome.be and
-    http://www.hwg-telekom.de
+    Europeans can get X10 stuff from http://www.intellihome.be ,
+    http://www.hwg-telekom.de , http://www.digihouse.com.au , and
+    Eon3 http://www.eon3.com
 
     Weeder Technologies, http://www.weedtech.com , offers the
     following kits priced from $30 to $50 each. All of these kits
@@ -346,6 +347,24 @@ DESCRIPTION
     better, so you can use them in slightly noise environments,
     where headsets were normally required.
 
+    Can process data from a keyboard simulator scanner, like the Cue
+    Cat
+
+    The mh/code/test/barcode* members code will process data from
+    the Cue Kat keyboard simulator barcode scanner, which you can
+    pick up for free at Radio Shack. The manufacture of the Cue Kat
+    prefers that you use their software (thats why they give it
+    away), and if you want to look up data on the web for an item,
+    their software is probably best, as they have a large databse of
+    UPC codes. If, however, you want to use the scanner for some
+    sort of home inventory purpose, their software does not do that.
+    The problem is that if you use their software, you must agree to
+    a Licence that says you will only use the scanner with their
+    software. Hopefully they will not notice or care that small
+    group of us HA guys are using it without their software (other
+    people who have written similar code have gotten cease-and-
+    desist letters).
+
   List of startup options
 
     The complete list of valid startup options is in the mh.ini
@@ -420,8 +439,8 @@ DESCRIPTION
 
     Time/Date Variables
 
-      $Time_Startup, $Time_Startup_time, $Time_Sunrise, $Time_Sunset
-      $Time_Now, $Date_Now, $Year_Month_Now
+      $Time_Startup, $Time_Startup_time, $Time_Now, $Date_Now, $Year_Month_Now
+      $Time_Sunrise, $Time_Sunset, $Time_Sunrise_Twilight, $Time_Sunset_Twilight
       $Second, $Minute, $Hour, $Mday, $Wday, $Day, $Month, $Year, $Holiday
       $New_Second, $New_Minute, $New_Hour, $New_Day, $New_Month, $New_Year
       $Season, $Weekday, $Weekend $Time_Of_Day
@@ -533,6 +552,15 @@ DESCRIPTION
 
              get_chaged_by      :  Returns which tied object caused this objects state to change.
 
+             set_states(@states) : Sets valid states to @states
+             add_states(@states) : Adds @states to the list of valid states
+             get_states          : Returns the list of valid states
+
+             restore_data(@vars) : Specifies which variables should be saved/restored between
+                                   mh reload/restarts.  The state var is always saved.
+
+             set_authority('anyone') : Bypasses password control
+
         The tie/untie methods can be done conditionally, so you can
         change what is tied to what on the fly. If you do this,
         however, you need to also make sure you also make the tie*
@@ -560,6 +588,18 @@ DESCRIPTION
                 my $ref = get_changed_by $test_button;
                 print_log "Test button's was set to $state by $ref->{object_name}" if $ref;
              }
+
+                                   # This shows how to set states
+            $TV  = new IR_Item 'TV';
+            my  $tv_states = 'power,on,off,mute,vol+,vol-,ch+,ch-';
+            set_states  $TV split ',', $tv_states;
+            $v_tv_control = new  Voice_Cmd("tv [$tv_states]");
+
+                                   # This shows how to save persistant arbitrary data
+            $Test = new Generic_Item;
+            $Test->{junk_data1} = $Time_Now if $Reload;
+            $Test->{junk_data2} = $Month    if $Reload;
+            $Test->restore_data('junk_data1', 'junk_data2');
 
         See mh/code/examples/generic_item.pl for more examples. See
         mh/code/examples/test_tie.pl for more examples on how to
@@ -1023,13 +1063,17 @@ DESCRIPTION
 
           Methods:
 
-             new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol')
+             new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype')
              add('data_stream', 'state_name')
 
                 'host_port' must be of the form ip_address:port or 
                 it must match a server* parm in mh.ini (e.g. server1).
 
                 'host_protocol' can be 'tcp' or 'udp'.  Default is 'tcp'
+
+                'datatype'      can be 'raw' or 'record'.  If 'raw', the said
+                                method returns data as read.  If record, 
+                                said only returns data when reaching a newline.
 
                 'name' is optional.  If used you can set debug to this string
                 to turn on debug for just this socket data.
@@ -1049,6 +1093,11 @@ DESCRIPTION
                              set_echo $my_socket 0   -> Do not echo incoming characters
                              set_echo $my_socket 1   -> echo incoming characters
                              set_echo $my_socket '*' -> echo incoming characters with *
+
+             set_expect   : Used to send a series of strings to the port, waiting for
+                            a specified prompt for each string.  This is useful for
+                            walking through menus.  The arguments passed to set_expect
+                            are pairs of 'prompt' => 'response' strings.  See example below.
 
              said         : Returns a data record received by the port.  
                              - Note: If you want to process binary socket data, specify 
@@ -1080,6 +1129,13 @@ DESCRIPTION
             $lcdproc = new  Socket_Item(undef, undef, $lcdproc_address, 'lcdproc');
 
             $Vcmd_viavoice = new  main::Socket_Item(undef, undef, 'localhost:3234', 'viavoice');
+
+                                         # This example walks the reboot menu of a router
+            $router_reboot = new Voice_Cmd 'Reboot the router';
+            $router_client = new Socket_Item(undef, undef, $config_parms{router_address} . ":23",
+                                             'router', 'tcp', 'raw');
+            set_expect $router_client (Password => $config_parms{router_password}, Number => 24,
+                                       Number => 4, Number => 11) if said $router_reboot;
 
         More examples are in mh/code/bruce/telnet.pl,
         mh/code/public/Brian/tracker.pl,
@@ -1247,6 +1303,41 @@ DESCRIPTION
             speak "Wind speed is " . round($weather{WindAvgSpeed}) .
                   " from the " . convert_wind_direction($weather{WindAvgDir});
 
+    dbm_write
+        Writes data into a dbm file. If data for that key exists, it
+        is overwritten. dbm files are useful if you want to store
+        key-value data or hash arrays onto disk for later use.
+
+          Usage:
+
+            logit_dbm($log_file, $log_key, $log_data);
+
+          Examples:
+
+            logit_dbm("$Pgm_Root/data/phone/callerid.dbm",
+                      $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");
+
+            See display_callers for an example of how to read dbm files.
+
+    dbm_read
+        Read data from a dbm file. If a key is passed, only that one
+        record is returned. Otherwise, the whole dbm is read.
+
+          Usage: 
+
+            $value = read_dbm($dbm_file, $key);
+            %data  = read_dbm($dbm_file);
+
+    dbm_search
+        Search a dbm file for matches to a string. It currently
+        searches both key and value.
+
+          Usage: 
+
+            ($count_searched, $count_matched, %results) = search_dbm($dbm_file, $search_string);
+
+          See mh/code/bruce/phone.pl and mh/bin/display_callers for examples.
+
     display
         Displays the specified text string, text file contents, or
         bitmap (.gif or .jpg).
@@ -1368,22 +1459,6 @@ DESCRIPTION
            logit("$Pgm_Root/data/logs/wx200.$Year_Month_Now.log",  $data, 0);
            logit("$Pgm_Root/data/phone/logs/callerid.$Year_Month_Now.log", "$cid_number $cid_name");
 
-    logit_dbm
-        Logs data into a dbm file. If data for that key exists, it
-        is overwritten. dbm files are useful if you want to store
-        key-value data or hash arrays onto disk for later use.
-
-          Usage:
-
-            logit_dbm($log_file, $log_key, $log_data);
-
-          Examples:
-
-            logit_dbm("$Pgm_Root/data/phone/callerid.dbm",
-                      $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");
-
-            See display_callers for an example of how to read dbm files.
-
     play
         Use this to play wave or system sound files. There are 2
         modes of calling it:
@@ -1480,25 +1555,6 @@ DESCRIPTION
            Example:
 
               run_voice_cmd 'Get the top10 list' if time_now('6:30 AM');
-
-    read_dbm
-        Read data from a dbm file. If a key is passed, only that one
-        record is returned. Otherwise, the whole dbm is read.
-
-          Usage: 
-
-            $value = read_dbm($dbm_file, $key);
-            %data  = read_dbm($dbm_file);
-
-    search_dbm
-        Search a dbm file for matches to a string. It currently
-        searches both key and value.
-
-          Usage: 
-
-            ($count_searched, $count_matched, %results) = search_dbm($dbm_file, $search_string);
-
-          See mh/code/bruce/phone.pl and mh/bin/display_callers for examples.
 
     SendKeys WaitForAnyWindow sendkeys_find_window
         On Windows systems, use these functions to control other
@@ -2601,6 +2657,22 @@ DESCRIPTION
     table sizes and auto refresh rates. See the mh.ini file for more
     info.
 
+    If you want to enable MsAgent support, use the mh.ini
+    html_msagent_script* parm. MsAgent allows remote IE web browsers
+    to do TTS and VR on the remote box. Note, you can do this even
+    if you are running mh on a linux box as long as your remote box
+    is running IE. To enable, add the new mh.ini
+    html_msagent_script* parms that points to a mh/web file with the
+    agent code (currently only Jeff's miniJeff agent is available).
+    Then click on the MSAgent checkbox at the top of the Web menu to
+    turn him on or off.
+
+    IE, by default, will run each command only once, unless you
+    change this setting: Tools, Internet Options, General, Settings
+    button on Temporary Internet Files, under "Check for new
+    versions of stored pages" select the option "Every visit to the
+    page."
+
     The web Items and Groups displays will use icons to indicate the
     object state. Icons will be searched for in the mh/graphics
     directory according to the objects icon method, the object name,
@@ -2769,9 +2841,10 @@ DESCRIPTION
      <a href=http://localhost:8080/RUN?WebCam_light_on >WebCam light on</a>
 
     The SET command can set any object defined in your user code to
-    a valid state. The SET_VAR command can set a variable to any
-    arbitrary value. The RUN command can run any voice command. Use
-    '_' to replace blanks in the command string.
+    a valid state. The SET_VAR command can set a variable or an
+    object (child of Generic_Object) to any arbitrary value. The RUN
+    command can run any voice command. Use '_' to replace blanks in
+    the command string.
 
     SET, SET_VAR, and RUN can use an optional response field to
     decide what html will be returned:
@@ -2809,6 +2882,12 @@ DESCRIPTION
      the user defined function &my_response:
 
       <FORM ACTION="SET_VAR:&my_response">Test 1<INPUT SIZE=5 NAME="$Save{test_input1}"</form>
+
+     This will set a $barcode_scan Generic_Item, then display a web page 
+     that was updated by user code:
+
+      <FORM ACTION="SET_VAR:barcode_search.html"  target='speech'>
+      <p>Scan data into here: <INPUT SIZE=60 NAME="$barcode_scan" value=""></FORM>
 
     You can also use RUN:h_response without a command. For example,
     if you want to get a directory listing, sorted by date (recent

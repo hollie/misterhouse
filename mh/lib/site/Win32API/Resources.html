@@ -1,0 +1,644 @@
+<HTML>
+<HEAD>
+<TITLE>Win32API::Resources - Use Win32::API to retrieve popular resources from Kernel32.dll and others</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<BODY>
+
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#NAME">NAME</A>
+	<LI><A HREF="#SYNOPSIS">SYNOPSIS</A>
+	<LI><A HREF="#ABSTRACT">ABSTRACT</A>
+	<LI><A HREF="#CREDITS">CREDITS</A>
+	<LI><A HREF="#HISTORY">HISTORY</A>
+	<LI><A HREF="#INSTALLATION">INSTALLATION</A>
+	<LI><A HREF="#DESCRIPTION">DESCRIPTION</A>
+	<LI><A HREF="#RETURN_VALUES">RETURN VALUES</A>
+	<LI><A HREF="#FUNCTIONS">FUNCTIONS</A>
+	<UL>
+
+		<LI><A HREF="#Win32API_Resources_GetDiskFree">Win32API::Resources::GetDiskFreeSpace</A>
+		<LI><A HREF="#Win32API_Resources_GetDiskFree">Win32API::Resources::GetDiskFreeSpaceEx</A>
+		<LI><A HREF="#Win32API_Resources_GetDriveSpa">Win32API::Resources::GetDriveSpace</A>
+		<LI><A HREF="#Win32API_Resources_GetFileVers">Win32API::Resources::GetFileVersion</A>
+		<UL>
+
+			<LI><A HREF="#FileFlags_Table">FileFlags Table</A>
+			<LI><A HREF="#FileOS_Table">FileOS Table</A>
+			<LI><A HREF="#FileType_Table">FileType Table</A>
+			<LI><A HREF="#FileSubtype_Table">FileSubtype Table</A>
+		</UL>
+
+		<LI><A HREF="#Win32API_Resources_GlobalMemor">Win32API::Resources::GlobalMemoryStatus</A>
+		<LI><A HREF="#Win32API_Resources_LoadString">Win32API::Resources::LoadString</A>
+		<LI><A HREF="#Win32API_Resources_EnumString">Win32API::Resources::EnumString</A>
+		<LI><A HREF="#Win32API_Resources_ExeType">Win32API::Resources::ExeType</A>
+		<LI><A HREF="#Win32API_Resources_IsEXE16">Win32API::Resources::IsEXE16</A>
+		<LI><A HREF="#Win32API_Resources_IsEXE32">Win32API::Resources::IsEXE32</A>
+		<LI><A HREF="#Win32API_Resources_GetBinaryTy">Win32API::Resources::GetBinaryType</A>
+		<LI><A HREF="#Win32API_Resources_GetDrives">Win32API::Resources::GetDrives</A>
+		<LI><A HREF="#Win32API_Resources_RasEnumConn">Win32API::Resources::RasEnumConnections</A>
+		<LI><A HREF="#Win32API_Resources_DWORD_NULL">Win32API::Resources::DWORD_NULL</A>
+		<LI><A HREF="#Win32API_Resources_UnpackLarge">Win32API::Resources::UnpackLargeInt</A>
+		<LI><A HREF="#Win32API_Resources_ShowKeys">Win32API::Resources::ShowKeys</A>
+	</UL>
+
+	<LI><A HREF="#AUTHOR">AUTHOR</A>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="NAME">NAME</A></H1>
+<P>
+Win32API::Resources - Use Win32::API to retrieve popular resources from
+Kernel32.dll and others
+
+<P>
+<HR>
+<H1><A NAME="SYNOPSIS">SYNOPSIS</A></H1>
+<P>
+<PRE>  use Win32API::Resources;
+</PRE>
+<P>
+<PRE>  my $file = &quot;c:\\winnt\\system32\\cmd.exe&quot;;
+  my %DSpace = Win32API::Resources::GetDiskFreeSpace(&quot;C:\\&quot;);
+  my %DRVSpace = Win32API::Resources::GetDriveSpace(&quot;C:\\&quot;);
+  my %File = Win32API::Resources::GetFileVersion($file, 1);
+  my %Mem = Win32API::Resources::GlobalMemoryStatus();
+  my $Notes = Win32API::Resources::LoadString(&quot;c:\\notes\\nstrings.dll&quot;, 1);
+  my @list = Win32API::Resources::EnumString(&quot;c:\\notes\\nstrings.dll&quot;);
+  my $type = Win32API::Resources::ExeType($file);
+  my @drives = Win32API::Resources::GetDrives(DRIVE_CDROM);
+  my $Connections = Win32API::Resources::RasEnumConnections();
+</PRE>
+<P>
+<PRE>  if (Win32API::Resources::IsEXE16($file))
+        {
+        print &quot;The file $file is 16-bit - ($type)\n&quot;;
+        }
+  elsif (Win32API::Resources::IsEXE32($file))
+        {
+        print &quot;The file $file is 32-bit - ($type)\n&quot;;
+        }
+  print &quot;There are $Connections open RAS Connections\n&quot;;
+  print &quot;The following are valid CD-Rom drives: @drives\n&quot;;
+  Win32API::Resources::ShowKeys(&quot;File Information:&quot;, 1, \%File);
+  Win32API::Resources::ShowKeys(&quot;Disk Space:&quot;, 0, \%DSpace);
+  Win32API::Resources::ShowKeys(&quot;Drive Space:&quot;, 1, \%DRVSpace);
+  Win32API::Resources::ShowKeys(&quot;Memory Stats:&quot;, 1, \%Mem);
+</PRE>
+<P>
+<HR>
+<H1><A NAME="ABSTRACT">ABSTRACT</A></H1>
+<P>
+With this module you can access a series of Win32 API's directly or via
+provided wrappers that are exported from KERNEL32.DLL, SHELL32.DLL,
+USER32.DLL &amp; VERSION.DLL. 
+
+<P>
+The current version of Win32API::Resources is available at:
+
+<P>
+<PRE>  <A HREF="http://home.earthlink.net/~bsturner/perl/index.html">http://home.earthlink.net/~bsturner/perl/index.html</A>
+</PRE>
+<P>
+<HR>
+<H1><A NAME="CREDITS">CREDITS</A></H1>
+<P>
+Thanks go to Aldo Calpini for making the Win32::API module accessible as
+well as some help with GetBinaryType and ExeType functions and to Dave Roth
+and Jens Helberg for providing direction on the GetFileVersion function.
+Thanks to Mike Blazer and Aldo Calpini for fixes to the GetFileVersion
+function and the UnpackLargeInt function that fixes a bug in the
+GetDiskFreeSpaceEx function
+
+<P>
+<HR>
+<H1><A NAME="HISTORY">HISTORY</A></H1>
+<P>
+<PRE>        0.06    Fixed bug with GetDiskFreeSpaceEx that reported drives over 4GB incorrectly
+                Fixed and extended functionality of GetFileVersion function to correctly 
+                view and return all available information
+                Now runs with 'use strict qw(vars)'
+                Added two new internal helper subroutines - UnpackLargeInt and DWORD_NULL
+        0.05    Added RasEnumConnections function and fixed bug with GetDrives on Win95
+        0.04    Added GetDrives function
+        0.03    Cleaned up and fixed bug with GetDiskFreeSpaceEx
+        0.02    Added some new EXEType functions
+        0.01    First release
+</PRE>
+<P>
+<HR>
+<H1><A NAME="INSTALLATION">INSTALLATION</A></H1>
+<P>
+This module is shipped as a basic PM file that should be installed in your
+Perl\site\lib\Win32API dir. Written and tested for the ActivePerl 5xx
+distribution, but should work in any Win32 capable port that has
+Win32::API.
+
+<P>
+REQUIRES Win32::API be installed
+
+<P>
+<HR>
+<H1><A NAME="DESCRIPTION">DESCRIPTION</A></H1>
+<P>
+To use this module put the following line at the beginning of your script:
+
+<P>
+<PRE>        use Win32API::Resources;
+</PRE>
+<P>
+Any one of the functions can be referenced by:
+
+<P>
+<PRE>        var = Win32API::Resources::function
+</PRE>
+<P>
+except for Win32API::Resources::ShowKeys() which does not return a value.
+
+<P>
+<HR>
+<H1><A NAME="RETURN_VALUES">RETURN VALUES</A></H1>
+<P>
+Unless otherwise specified, all functions return 0 if unsuccessful and
+non-zero data if successful.
+
+<P>
+<HR>
+<H1><A NAME="FUNCTIONS">FUNCTIONS</A></H1>
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_GetDiskFree">Win32API::Resources::GetDiskFreeSpace</A></H2>
+<P>
+<PRE>        %Hash = Win32API::Resources::GetDiskFreeSpace($drive);
+</PRE>
+<P>
+<CODE>$drive</CODE> must refer to the root of a target drive and be
+followed by \\
+
+<P>
+<PRE>        $drive = &quot;C:\\&quot;;
+        $drive = &quot;$ENV{SystemDrive}\\&quot;;
+</PRE>
+<P>
+Windows 95: The GetDiskFreeSpace function returns incorrect values for
+volumes that are larger than 2 gigabytes. Even on volumes that are smaller
+than 2 gigabytes, the values may be incorrect. That is because the
+operating system manipulates the values so that computations with them
+yield the correct volume size. 
+
+<P>
+Windows 95 OSR2 and later: The GetDiskFreeSpaceEx function is available on
+Windows 95 systems beginning with OEM Service Release 2 (OSR2). The
+GetDiskFreeSpaceEx function returns correct values for all volumes,
+including those that are greater than 2 gigabytes. 
+
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_GetDiskFree">Win32API::Resources::GetDiskFreeSpaceEx</A></H2>
+<P>
+<PRE>        %Hash = Win32API::Resources::GetDiskFreeSpaceEx($drive);
+</PRE>
+<P>
+<STRONG>GetDiskFreeSpaceEx will not work on Win95 OSR1</STRONG>. This function is provided for direct access, however it is safer to use
+the <EM>Win32API::Resources::GetDriveSpace</EM> wrapper instead.
+
+<P>
+<CODE>$drive</CODE> must refer to the root of a target drive and be
+followed by \\
+
+<P>
+<PRE>        $drive = &quot;C:\\&quot;;
+        $drive = &quot;$ENV{SystemDrive}\\&quot;;
+</PRE>
+<P>
+Windows 95 OSR2: The GetDiskFreeSpaceEx function is available on Windows 95
+systems beginning with OEM Service Release 2 (OSR2). 
+
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_GetDriveSpa">Win32API::Resources::GetDriveSpace</A></H2>
+<P>
+<PRE>        %Hash = Win32API::Resources::GetDriveSpace($drive);
+</PRE>
+<P>
+<CODE>$drive</CODE> must refer to the root of a target drive and be
+followed by \\
+
+<P>
+<PRE>        $drive = &quot;C:\\&quot;;
+        $drive = &quot;$ENV{SystemDrive}\\&quot;;
+</PRE>
+<P>
+Wrapper around GetDiskFreeSpace and GetDiskFreeSpaceEx - GetDriveSpace will
+always call the correct function depending on which version of the OS you
+have.
+
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_GetFileVers">Win32API::Resources::GetFileVersion</A></H2>
+<P>
+<PRE>        %Hash = Win32API::Resources::GetFileVersion($file, $return);
+</PRE>
+<P>
+GetFileVersion will return all available information in both Win95 and
+WinNT.  
+
+<P>
+<PRE>        $file is the full path to the EXE or DLL to be examined
+        $return is an optional boolean switch to return the array as zero valued keys
+</PRE>
+<P>
+Returns a hash with the following keys:
+
+<P>
+<PRE>        CharacterSet            The character set the Language is based on
+        Comments                Comments, from the StringFileInfo block
+        CompanyName             Company Name, from the StringFileInfo block
+        FileDescription         File Description, from the StringFileInfo block
+        FileFlags               &lt;see table&gt;
+        FileOS                  &lt;see table&gt;
+        FileType                &lt;see table&gt;
+        FileSubtype             &lt;see table&gt;
+        FileVersion             File Version, from the StringFileInfo block
+        FileVersionMS           Specifies the most significant 32 bits of the file's binary version number. 
+                                This member is used with FileVersionLS to form a 64-bit value used for numeric 
+                                comparisons. From FixedFileInfo block
+        FileVersionLS           Specifies the least significant 32 bits of the file's binary version number. 
+                                This member is used with FileVersionMS to form a 64-bit value used for numeric 
+                                comparisons. From FixedFileInfo block
+        FileVersion64           The 64-bit File Version representation, from FileVersionMS &amp; LS
+        InternalName            Internal Name, from the StringFileInfo block
+        Language                The internal Language version
+        LegalCopyright          Legal Copyright, from the StringFileInfo block
+        LegalTrademarks         Legal Trademarks, from the StringFileInfo block
+        OriginalFilename        Original Filename, from the StringFileInfo block
+        PrivateBuild            Private Build, from the StringFileInfo block
+        ProductName             Product Name, from the StringFileInfo block
+        ProductVersion          Produc Version, from the StringFileInfo block
+        ProductVersionMS        Specifies the most significant 32 bits of the binary version number of the 
+                                product with which this file was distributed. This member is used with 
+                                ProductVersionLS to form a 64-bit value used for numeric comparisons. 
+                                From the FixedFileInfo block
+        ProductVersionLS        Specifies the least significant 32 bits of the binary version number of the 
+                                product with which this file was distributed. This member is used with 
+                                ProductVersionMS to form a 64-bit value used for numeric comparisons. 
+                                From FixedFileInfo block
+        ProductVersion64        The 64-bit Product Version representation, from ProductVersionMS &amp; LS
+        SpecialBuild            Special Build, from the StringFileInfo block
+</PRE>
+<P>
+<HR>
+<H3><A NAME="FileFlags_Table">FileFlags Table</A></H3>
+<P>
+Contains a bitmask that specifies the Boolean attributes of the file. This
+member can include one or more of the following values: 
+
+<P>
+<PRE>        Flag                    Description 
+        VS_FF_DEBUG             The file contains debugging information or is compiled with debugging features enabled. 
+        VS_FF_INFOINFERRED      The file's version structure was created dynamically; therefore, some of the members 
+                                in this structure may be empty or incorrect. This flag should never be set in a file's 
+                                VS_VERSIONINFO data. 
+        VS_FF_PATCHED           The file has been modified and is not identical to the original shipping file of the 
+                                same version number. 
+        VS_FF_PRERELEASE        The file is a development version, not a commercially released product. 
+        VS_FF_PRIVATEBUILD      The file was not built using standard release procedures. If this flag is set, the 
+                                StringFileInfo structure should contain a PrivateBuild entry. 
+        VS_FF_SPECIALBUILD      The file was built by the original company using standard release procedures but is 
+                                a variation of the normal file of the same version number. If this flag is set, the 
+                                StringFileInfo structure should contain a SpecialBuild entry. 
+</PRE>
+<P>
+<HR>
+<H3><A NAME="FileOS_Table">FileOS Table</A></H3>
+<P>
+Specifies the operating system for which this file was designed. This
+member can be one of the following values: 
+
+<P>
+<PRE>        Flag                    Description 
+        VOS_DOS                 The file was designed for MS-DOS. 
+        VOS_NT                  The file was designed for Windows NT. 
+        VOS__WINDOWS16          The file was designed for 16-bit Windows. 
+        VOS__WINDOWS32          The file was designed for the Win32 API. 
+        VOS_OS216               The file was designed for 16-bit OS/2. 
+        VOS_OS232               The file was designed for 32-bit OS/2. 
+        VOS__PM16               The file was designed for 16-bit Presentation Manager. 
+        VOS__PM32               The file was designed for 32-bit Presentation Manager. 
+        VOS_UNKNOWN             The operating system for which the file was designed is unknown to the system. 
+</PRE>
+<P>
+An application can combine these values to indicate that the file was
+designed for one operating system running on another. The following FileOS
+values are examples of this, but are not a complete list: 
+
+<P>
+<PRE>        Flag                    Description 
+        VOS_DOS_WINDOWS16       The file was designed for 16-bit Windows running on MS-DOS. 
+        VOS_DOS_WINDOWS32       The file was designed for the Win32 API running on MS-DOS. 
+        VOS_NT_WINDOWS32        The file was designed for the Win32 API running on Windows NT. 
+        VOS_OS216_PM16          The file was designed for 16-bit Presentation Manager running on 16-bit OS/2. 
+        VOS_OS232_PM32          The file was designed for 32-bit Presentation Manager running on 32-bit OS/2. 
+</PRE>
+<P>
+<HR>
+<H3><A NAME="FileType_Table">FileType Table</A></H3>
+<P>
+Specifies the general type of file. This member can be one of the following
+values: 
+
+<P>
+<PRE>        Flag                    Description 
+        VFT_UNKNOWN             The file type is unknown to the system. 
+        VFT_APP                 The file contains an application. 
+        VFT_DLL                 The file contains a dynamic-link library (DLL). 
+        VFT_DRV                 The file contains a device driver. If FileType is VFT_DRV, FileSubtype contains a 
+                                more specific description of the driver. 
+        VFT_FONT                The file contains a font. If FileType is VFT_FONT, FileSubtype contains a 
+                                more specific description of the font file. 
+        VFT_VXD                 The file contains a virtual device. If FileType is VFT_VXD, FileSubtype contains 
+                                the virtual device identifier included in the virtual device control block. 
+        VFT_STATIC_LIB          The file contains a static-link library. 
+</PRE>
+<P>
+<HR>
+<H3><A NAME="FileSubtype_Table">FileSubtype Table</A></H3>
+<P>
+Specifies the function of the file. The possible values depend on the value
+of FileType. For all values of FileType not described in the following
+list, FileSubtype is <EM>undefined</EM>. 
+
+<P>
+If FileType is VFT_DRV, FileSubtype can be one of the following values: 
+
+<P>
+<PRE>        Flag                    Description 
+        VFT2_UNKNOWN            The driver type is unknown by the system. 
+        VFT2_DRV_COMM           The file contains a communications driver. 
+        VFT2_DRV_PRINTER        The file contains a printer driver. 
+        VFT2_DRV_KEYBOARD       The file contains a keyboard driver. 
+        VFT2_DRV_LANGUAGE       The file contains a language driver. 
+        VFT2_DRV_DISPLAY        The file contains a display driver. 
+        VFT2_DRV_MOUSE          The file contains a mouse driver. 
+        VFT2_DRV_NETWORK        The file contains a network driver. 
+        VFT2_DRV_SYSTEM         The file contains a system driver. 
+        VFT2_DRV_INSTALLABLE    The file contains an installable driver. 
+        VFT2_DRV_SOUND          The file contains a sound driver. 
+</PRE>
+<P>
+If FileType is VFT_FONT, FileSubtype can be one of the following values: 
+
+<P>
+<PRE>        Flag                    Description 
+        VFT2_UNKNOWN            The font type is unknown by the system. 
+        VFT2_FONT_RASTER        The file contains a raster font. 
+        VFT2_FONT_VECTOR        The file contains a vector font. 
+        VFT2_FONT_TRUETYPE      The file contains a TrueType font. 
+</PRE>
+<P>
+If the function fails and the optional switch <EM>is not</EM> specified, then it returns undef. If the function fails and the optional
+switch <EM>is</EM> specified, then the same hash is returned but the key values will be set to
+0.
+
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_GlobalMemor">Win32API::Resources::GlobalMemoryStatus</A></H2>
+<P>
+<PRE>        %Hash = Win32API::Resources::GlobalMemoryStatus();
+</PRE>
+<P>
+Returns a hash filled with memory information from the current system. The
+structure of the hash is the same as Win32::AdminMisc::GetMemoryInfo:
+
+<P>
+<PRE>        Load            Specifies a number between 0 and 100 that gives a general 
+                        idea of current memory utilization
+        RAMTotal        Indicates the total number of bytes of physical memory
+        RAMAvail        Indicates the number of bytes of physical memory available
+        PageTotal       Indicates the total number of bytes that can be stored in the 
+                        paging file. Note that this number does not represent the actual 
+                        physical size of the paging file on disk.
+        PageAvail       Indicates the number of bytes available in the paging file
+        VirtTotal       Indicates the total number of bytes that can be described in the 
+                        user mode portion of the virtual address space of the calling process
+        VirtAvail       Indicates the number of bytes of unreserved and uncommitted memory in 
+                        the user mode portion of the virtual address space of the calling process
+</PRE>
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_LoadString">Win32API::Resources::LoadString</A></H2>
+<P>
+<PRE>        $Scalar = Win32API::Resources::LoadString($file, $rid);
+</PRE>
+<P>
+<PRE>        $file is full path to the EXE or DLL to examine
+        $rid is the resource element to query where 1 is the first element in the table
+</PRE>
+<P>
+Some EXE's and DLL's have a Resource Table that lists strings that are
+referenced for various purposes. These sometimes contain version
+information or error messages. In the case of Lotus Notes the first element
+of NSTRINGS.DLL contains the version of Notes installed.
+
+<P>
+By default all strings are limited to 64 character wide.
+
+<P>
+To Enumerate the table, use <EM>Win32API::Resources::EnumString</EM>
+
+
+
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_EnumString">Win32API::Resources::EnumString</A></H2>
+<P>
+<PRE>        @List = Win32API::Resources::EnumString($file);
+</PRE>
+<P>
+Just as <EM>Win32API::Resources::LoadString</EM> will load a specific element from the resource table of a file, EnumString
+uses the same method but returns an enumerated list of the contents of the
+resource table.
+
+<P>
+By default all strings are limited to 64 character wide.
+
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_ExeType">Win32API::Resources::ExeType</A></H2>
+<P>
+<PRE>        $Scalar = Win32API::Resources::ExeType($file);
+</PRE>
+<P>
+ExeType is a wrapper around the SHGetFileInfo API. This will return:
+
+<P>
+<PRE>        16-bit Windows based application, NE &lt;OS Version&gt;
+        32-bit Windows based application, PE &lt;OS Version&gt;
+        32-bit Win32 console based application, PE &lt;NULL&gt;
+        MS-DOS based application, MZ &lt;NULL&gt;
+        Unknown, &lt;Type&gt; &lt;OS Version&gt;
+</PRE>
+<P>
+<PRE>        NE designates 16 bit applications
+        PE designates 32 bit applications
+        MZ designates MS-DOS applications
+        &lt;OS Version&gt; is the version of the OS it was compiled to run on (3.0, 3.1, 3.51, etc)
+</PRE>
+<P>
+SHGetFileInfo will work on both WinNT and Win95a systems
+
+<P>
+<EM>Thanks to Aldo Calpini for the code!</EM>
+
+
+
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_IsEXE16">Win32API::Resources::IsEXE16</A></H2>
+<P>
+<PRE>        Win32API::Resources::IsEXE16($file);
+</PRE>
+<P>
+IsEXE16 is a wrapper around the SHGetFileInfo API. It is provided as a
+simple file test that returns a true (1) or false (0) based on the target
+file.  
+
+<P>
+<PRE>        $file is the full path to the EXE in question
+</PRE>
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_IsEXE32">Win32API::Resources::IsEXE32</A></H2>
+<P>
+<PRE>        Win32API::Resources::IsEXE32($file);
+</PRE>
+<P>
+IsEXE32 is a wrapper around the SHGetFileInfo API. It is provided as a
+simple file test that returns a true (1) or false (0) based on the target
+file.  
+
+<P>
+<PRE>        $file is the full path to the EXE in question
+</PRE>
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_GetBinaryTy">Win32API::Resources::GetBinaryType</A></H2>
+<P>
+<PRE>        Win32API::Resources::GetBinaryType($title, 1, \%File);
+</PRE>
+<P>
+GetBinary type <STRONG>only works in Windows NT</STRONG>. It does, however, have the added benefit over SHGetFileInfo in that it
+will also reveal EXE types based on other NT subsystems. It will return:
+
+<P>
+<PRE>        Win32 based application
+        MS-DOS based application
+        16-bit Windows based application
+        PIF file that executes an MS-DOS based application
+        POSIX based application
+        16-bit OS/2 based application
+</PRE>
+<P>
+<EM>Thanks to Aldo Calpini for the code!</EM>
+
+
+
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_GetDrives">Win32API::Resources::GetDrives</A></H2>
+<P>
+<PRE>        [$Scalar] or [@List] = Win32API::Resources::GetDrives($type);
+</PRE>
+<P>
+In List context GetDrives returns a list of drive assignments on the local
+system In Scalar context GetDrives returns the number of valid drive
+assignments Passing GetDrives one of the Drive Type Constants will return:
+In List context, a list of drive assignments that match the passed constant
+In Scalar context, the number of valid drive assignments that match the
+passed constant
+
+<P>
+<PRE>        $type is one of the following constants - optional
+</PRE>
+<P>
+<PRE>        DRIVE_NO_ROOT_DIR       The root directory does not exist. 
+        DRIVE_REMOVABLE         The disk can be removed from the drive. 
+        DRIVE_FIXED             The disk cannot be removed from the drive. 
+        DRIVE_REMOTE            The drive is a remote (network) drive. 
+        DRIVE_CDROM             The drive is a CD-ROM drive. 
+        DRIVE_RAMDISK           The drive is a RAM disk. 
+</PRE>
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_RasEnumConn">Win32API::Resources::RasEnumConnections</A></H2>
+<P>
+<PRE>        $Scalar = Win32API::Resources::RasEnumConnections();
+</PRE>
+<P>
+RasEnumConnections returns the number of active RAS/Dial-Up connections on
+the local machine.
+
+<P>
+<PRE>        $Scalar is the number of open connections
+</PRE>
+<P>
+Returns undef on a failure (RAS is not installed), or 0-x for the number of
+connections.
+
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_DWORD_NULL">Win32API::Resources::DWORD_NULL</A></H2>
+<P>
+<PRE>        $Scalar = Win32API::Resources::DWORD_NULL();
+</PRE>
+<P>
+DWORD_NULL is a way to pack a null string easily. Based on code by Mike
+Blazer.
+
+<P>
+<PRE>        $Scalar is the packed value
+</PRE>
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_UnpackLarge">Win32API::Resources::UnpackLargeInt</A></H2>
+<P>
+<PRE>        $Scalar = Win32API::Resources::UnpackLargeInt($PackedLargeInteger);
+</PRE>
+<P>
+UnpackLargeInt is a way to unpack a LARGE_INTEGER easily. Based on code by
+Mike Blazer.
+
+<P>
+<PRE>        $Scalar is the unpacked value
+</PRE>
+<P>
+<HR>
+<H2><A NAME="Win32API_Resources_ShowKeys">Win32API::Resources::ShowKeys</A></H2>
+<P>
+<PRE>        Win32API::Resources::ShowKeys($title, $sort, \%Hash);
+</PRE>
+<P>
+ShowKeys is provided as a simple way to show the contents of a hash with
+optional sorting.
+
+<P>
+<PRE>        $title is a printed title to the hash
+        $sort is a boolean switch that will optionally sort the Keys
+        \%Hash is a Hash reference that you wish to display
+</PRE>
+<P>
+<HR>
+<H1><A NAME="AUTHOR">AUTHOR</A></H1>
+<P>
+Brad Turner ( <EM>bsturner@sprintparanet.com</EM> ).
+
+</BODY>
+
+</HTML>

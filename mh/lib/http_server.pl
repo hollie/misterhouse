@@ -352,6 +352,9 @@ sub process_http_request {
                     else {
                         $$pvar = $state;
                     }
+                                # This gives uninitilzed errors ... not needed anymore?
+                                #  - yep, needed till we switch widgets to objects
+                    $Tk_results{$html_pointers{$item . "_label"}} = $state if $html_pointers{$item . "_label"};
                 }
                                 # Otherwise, we are trying to pass var name in directly. 
                 else {
@@ -572,7 +575,7 @@ sub html_last_response {
         $last_response = "<br><b>No response resulted from the last command</b>";
     }
  
-    return $last_response, undef, $script;
+    return $last_response, $main::config_parms{html_style_speak}, $script;
 }
 
 sub GenerateMsAgent {
@@ -1192,9 +1195,11 @@ sub html_command_table {
                                 # Include MsAgent VR commands
 #       minijeff.Commands.Add "ltOfficeLight", "Control Office Light","Turn ( on | off ) office light", True, True
         my $msagent_id = substr $object_name, 1;
+#       $msagent_script1 .= qq[minijeff.Commands.Add "Run_Command", "$text", "$msagent_cmd1", True, True\n];
+#       $msagent_script2 .= qq[Case "$msagent_id"\n   $msagent_id\n];
+#       $msagent_script3 .= qq[Sub  $msagent_id\n   window.open "/RUN:last_response?$msagent_cmd2","speech"\nEnd Sub\n];
         $msagent_script1 .= qq[minijeff.Commands.Add "$msagent_id", "$text", "$msagent_cmd1", True, True\n];
-        $msagent_script2 .= qq[Case "$msagent_id"\n   $msagent_id\n];
-        $msagent_script3 .= qq[Sub  $msagent_id\n   window.open "/RUN:last_response?$msagent_cmd2","speech"\nEnd Sub\n];
+        $msagent_script2 .= qq[Case "$msagent_id"\n   Run_Command(UserInput.voice)\n];
     }
 
                                 # Create final html
@@ -1207,7 +1212,7 @@ sub html_command_table {
         my $msagent_file = file_read "$config_parms{html_dir}/$config_parms{html_msagent_script_vr}";
         $msagent_file =~ s/<!-- *vr_cmds *-->/$msagent_script1/;
         $msagent_file =~ s/<!-- *vr_select *-->/$msagent_script2/;
-        $msagent_file =~ s/<!-- *vr_subs *-->/$msagent_script3/;
+#       $msagent_file =~ s/<!-- *vr_subs *-->/$msagent_script3/;
         $html = $msagent_file . $html;
     }
 
@@ -1596,6 +1601,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.46  2000/10/09 02:31:13  winter
+# - 2.30 update
+#
 # Revision 1.45  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

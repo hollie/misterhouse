@@ -13,7 +13,7 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
-		<LI><A HREF="#Version_2_posted_on_09_09_00">Version 2.?? posted on 09/09/00</A></LI>
+		<LI><A HREF="#Version_2_29_posted_on_10_01_00">Version 2.29 posted on 10/01/00</A></LI>
 		<LI><A HREF="#Version_2_28_posted_on_09_09_00">Version 2.28 posted on 09/09/00</A></LI>
 		<LI><A HREF="#Version_2_27_posted_on_08_18_00">Version 2.27 posted on 08/18/00</A></LI>
 		<LI><A HREF="#Version_2_24_posted_on_08_06_00">Version 2.24 posted on 08/06/00</A></LI>
@@ -74,9 +74,9 @@ HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?g
 </P>
 <P>
 <HR>
-<H2><A NAME="Version_2_posted_on_09_09_00">Version 2.?? posted on 09/09/00</A></H2>
+<H2><A NAME="Version_2_29_posted_on_10_01_00">Version 2.29 posted on 10/01/00</A></H2>
 <P>
-Version 2.?? was just uploaded to:
+Version 2.29 was just uploaded to:
 
 </P>
 <P>
@@ -91,18 +91,165 @@ Version 2.?? was just uploaded to:
 
 </P>
 <P>
+- Re-organized the <A
+HREF="http://misterhouse.net">http://misterhouse.net</A> homepage. This is
+now fully mirrored in mh/docs and at <A
+HREF="http://misterhouse.sourceforge.net">http://misterhouse.sourceforge.net</A>
+
+
+</P>
+<P>
+- mh now goes into a 'catch up' mode after it detected that it paused for
+more than a second. This mode guarantees that we won't miss any time based
+events. When this occurs, you will see a 'mh paused for ## seconds'
+messaging in the log. Thanks to Craig Schaeffer for this suggestion.
+
+</P>
+<P>
+- Changed the Web Items menus to list all legal item states, rather than
+just an ON/OFF toggle. A new mh.ini x10_menu_states parm controls which X10
+states are displayed on the tk and web menus.
+
+</P>
+<P>
+- Added set_states, add_states, and get_states as a way to specify legal
+states to Generic_Items. See mh/bruce/tv.pl for an example.
+
+</P>
+<P>
+- Added a set_expect method to Socket_Item. This allows us to easily walk
+through telnet menus by specifing pairs of prompt/response strings. Here is
+an example from the 'reboot the router' command at the end of
+mh/code/bruce/monitor_router.pl
+
+</P>
+<P>
+<PRE>  set_expect $router_client (Password =&gt; $config_parms{router_password},
+                             Number =&gt; 24, Number =&gt; 4, Number =&gt; 11);
+</PRE>
+</P>
+<P>
+- David Norwood added monitoring and IR support to the ncpuxa code for
+Applied Digital interfaces. See mh/code/examples/ncpuxa_example.pl for an
+example
+
+</P>
+<P>
+- Bill Sobel sent in updates for Compool.pm, Stargate485.pm, Xantech.pm,
+and read_table_A.pl. He also added a new Mp3Player.pm object. See
+mh/code/public/AudioControl.pl for an example.
+
+</P>
+<P>
+- Jeffrey Ferris sent patches to enable MsAgent characters. MsAgent allows
+remote IE web browsers to do TTS and VR on the remote box. Note, you can do
+this even if you are running mh on a linux box as long as your remote box
+is running IE. To enable, add the new mh.ini html_msagent_script* parms
+that points to a mh/web file with the agent code (currently only Jeff's
+miniJeff agent is available). Then click on the MSAgent checkbox at the top
+of the Web menu to turn him on or off. IE will do each command only once,
+unless you change this setting: Tools, Internet Options, General, Settings
+button on Temporary Internet Files, under ``Check for new versions of
+stored pages'' select the option ``Every visit to the page.''
+
+</P>
+<P>
+- Added mh.ini password_menu parm. It now defaults to html, which gives an
+html password form that is compatible with web browsers that don't support
+popup password menus. The crypted password is stored in a cookie, so if you
+don't like cookies, set password_menu=browser to get the old menu (browser
+popup).
+
+</P>
+<P>
+- Added the restore_data method to Generic_Item. This calls the
+restore_string method we added last time so we can easily define object
+data that we want saved across mh reloads/restarts. See
+mh/code/bruce/weather_log.pl for an example.
+
+</P>
+<P>
+- Added set_authority and get_authority to Generic_Item. This allows us to
+bypass password protection for specified commands, like the mh.ini
+password_allow_file parm did, except with set_authority we can specify it
+in user code. Examples in mh/code/test/time_info.pl
+
+</P>
+<P>
+- Added the mh/code/test/barcode* members. These will process data from the
+Cue Kat keyboard simulator barcode scanner, which you can pick up for free
+at Radio Shack. The manufacture of the Cue Kat prefers that you use their
+software (thats why they give it away), and if you want to look up data on
+the web for an item, their software is probably best, as they have a large
+databse of UPC codes. If, however, you want to use the scanner for some
+sort of home inventory purpose, their software does not do that. The
+problem is that if you use their software, you must agree to a Licence that
+says you will only use the scanner with their software. Hopefully they will
+not notice or care that small group of us HA hobbiest are using it without
+their software (other people who have written similar code have gotten
+cease-and-desist letters).
+
+</P>
+<P>
 <STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
 
 
 
 </P>
 <P>
-- Brian Rudy sent in mh/public/aws_weather.pl for getting weather data from
-aws web sites.
+- Brian Rudy sent in mh/public/aws_weather.pl,weather_aws.pl, and
+weather_monitor_aws.pl for getting weather data from aws web sites.
 
 </P>
 <P>
 - Mark Lamourine sent in a patch for mh/bin/configure for sparc boxes.
+
+</P>
+<P>
+- Charles D. sent in a fix for Caller_ID.pm for Canadian caller ID format.
+
+</P>
+<P>
+- Brian Rudy and Bill Sobel sent in mh/code/public/sprinkler_*.pl
+
+</P>
+<P>
+- Updated the internet_data.pl 'Top 10 list' url.
+
+</P>
+<P>
+- Fixed a bug in Socket_Item raw.
+
+</P>
+<P>
+- Kip Gebhardt noticed extra 'unmatched incoming serial' data errata, on
+matched X10 data.
+
+</P>
+<P>
+- Bill Sobel added <CODE>$Time_Sunrise_Twilight</CODE> and
+$Time_Sunset_Twilight, with a new mh.ini twilight parm to pick what kind of
+twilight you want.
+
+</P>
+<P>
+- Bill also noticed that sending out X10 All On/off house commands did not
+set the states of individual items within that house code. Another fix was
+to make sure that items with duplicate codes have their states mirrored.
+
+</P>
+<P>
+- Modified X10_Item to accept any level from 0%-&gt;100%, in 1% increments,
+instead of 5% increments. These preset dims can only be done with a
+CM11-&gt;LM14.
+
+</P>
+<P>
+- Fixed Preset Dims (xx% or &amp;Pxx) so it will work on all Device codes.
+
+</P>
+<P>
+- Allow for passing parms with code hooks.
 
 </P>
 <P>

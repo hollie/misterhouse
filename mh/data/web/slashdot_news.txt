@@ -1,30 +1,30 @@
-Title: First Digital Computer Dates back to 1944
-2000-10-01 03:42:08 by CmdrTaco  in dept: older-then-my-286  (tech   115)
+Title: Mini-Robot Available For Wreaking Havoc At Home
+2000-10-08 07:27:49 by timothy  in dept: zoop-zoop-zoop  (toys   63)
 
-Title: Michael Abrash on The Xbox
-2000-10-01 02:22:36 by CmdrTaco  in dept: whats-he-got-to-say  (games   120)
+Title: Titanium As Cheap As Aluminum?
+2000-10-08 02:30:06 by timothy  in dept: minitower-case-please  (science   241)
 
-Title: Apple Advertises "1-Click" Licensing
-2000-10-01 00:25:15 by CmdrTaco  in dept: isn't-that-depressing  (apple   232)
+Title: Time Warner To Change DVD Region Coding System?
+2000-10-07 21:15:16 by Hemos  in dept: maybe-could-be  (tech   327)
 
-Title: Rambus going after AMD &amp; Transmeta
-2000-09-30 21:10:07 by CmdrTaco  in dept: going-in-for-the-kill  (patents   154)
+Title: First Transmeta Notebook
+2000-10-07 18:07:26 by CmdrTaco  in dept: getting-less-vaporous-every-day  (tech   120)
 
-Title: 2 Views of Hackers
-2000-09-30 16:34:01 by CmdrTaco  in dept: now-thats-an-interesting-piece  (media   207)
+Title: Year 2000 Ig-Nobels Released
+2000-10-07 17:42:52 by Hemos  in dept: laugh-till-you-cry  (humor   122)
 
-Title: New Material Responds to Touch Pressure
-2000-09-30 15:31:11 by CmdrTaco  in dept: let-me-type-that-up-on-my-sleeve-a-minute  (tech   103)
+Title: Skiing Down Everest
+2000-10-07 15:51:33 by michael  in dept: stupid-things-to-do-before-breakfast  (news   112)
 
-Title: Sega Pushes ISONews, and They Push Back
-2000-09-30 14:23:06 by CmdrTaco  in dept: sounds-like-they-got-a-good-lawyer  (doj   221)
+Title: Slashnet Forum Chat Log
+2000-10-07 14:19:58 by Hemos  in dept: here's-the-goods  (slashdot   217)
 
-Title: Lunar Landing Historical Site?
-2000-09-30 13:37:34 by michael  in dept: give-a-hoot,-don't-pollute  (space   135)
+Title: Planets Without Stars
+2000-10-07 13:18:00 by michael  in dept: excession  (space   124)
 
-Title: Merits Of The Different Journaling Filesystems?
-2000-09-30 11:58:06 by Cliff  in dept: advantages-and-disadvantages  (linux   274)
+Title: Turbolinux CEO Sees A One-Distribution Future
+2000-10-07 11:52:49 by timothy  in dept: monocular-vision  (linux   161)
 
-Title: CPHack Appeal Denied
-2000-09-30 10:50:41 by michael  in dept: heavy-thunderbolt  (censorship   38)
+Title: Time To Re-Evaluate Microsoft's Linux Myths Page?
+2000-10-07 05:19:47 by Cliff  in dept: do-these-still-hold-true-today  (news   399)
 

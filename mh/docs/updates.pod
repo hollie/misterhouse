@@ -6,6 +6,36 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.30 posted on 10/??/00
+
+Version 2.30 was just uploaded to:
+
+  http://misterhouse.sourceforge.net
+  http://misterhouse.net/download
+
+B<New Features:>
+
+- Added memory on NT and mh/code/common/monitor_memory.pl
+
+- Added volume to speak and play, but currently only works on windows.
+Defaults to a new mh.ini sound_volume parm.
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Fixed the MsAgent code added last time so it works with all VR commands.
+
+- memory leak
+- ibutton on nt
+
+- Fixed a bug in mh_control.pl that disabled web based code reloads after the first reload.
+
+- Added mh.ini code_dir_system dir, like code_dir, but for common code files.  
+Moved the tk*, mh_control, mhsend_server, and benchmark .pl files into there.
+
+- Added mh/lib/site/HTML/TableExtract.pm
+
+
+
 =head2 Version 2.29 posted on 10/01/00
 
 Version 2.29 was just uploaded to:

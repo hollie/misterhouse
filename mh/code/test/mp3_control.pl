@@ -100,12 +100,12 @@ sub winamp_control {
             for my $pass (1 .. 10) {
                 $temp .= filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
             }
-            print_log "Winamp (httpq) set to $command: $temp";
+            print_log "Winamp (httpq $host) set to $command: $temp";
         }
         else {
             print_log "$url/$command?p=$config_parms{mp3_program_password}";
             $temp = filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
-            print_log "Winamp (httpq) set to $command: $temp";
+            print_log "Winamp (httpq $host) set to $command: $temp";
         }
     }
     else {

@@ -39,7 +39,7 @@ if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
 
     my ($results1, $results2, $count1, $count2);
     $count1 = $count2 = 0;
-    for my $i (0 .. @titles) {
+    for my $i (0 .. @files) {
         $count1++;
         if ($titles[$i]  =~ /$mp3_search/i or
             $artists[$i] =~ /$mp3_search/i or

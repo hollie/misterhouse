@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<!-- Last emacs update Time-stamp: <2000-09-30 20:34:57 winter> -->
+<!-- Last emacs update Time-stamp: <2000-10-06 18:52:52 winter> -->
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html;">
 <TITLE>Mister House Install Instructions</TITLE>
 <META NAME="Template" CONTENT="D:\msOffice\Office\html.dot">
@@ -45,7 +45,7 @@ There is also a <a href="faq.html">faq.html</a> to cover misc. topics.
 <p>Mister House has been tested on Windows 95, 98, NT, and the unix OSes Linux and AIX.  In theory, much
 of the function should run on any platform that can run Perl.  
 
-<p>The core Mister House code will use between 5 and 15 Megabytes of memory.
+<p>The core Mister House code will use between 10 and 25 Megabytes of memory.
 On Windows, the VR (Voice Recognition) function 
 takes about 5 MB and the TTS (Text To Speech) function takes about 15 MB.  On Linux, the Festival TTS engine
 takes about 20-30 MB of memory.  So, with TTS enabled, on Windows you can get by with 32 Meg, but you will 
@@ -431,8 +431,10 @@ There is lots of other code you can peruse in the mh\code\Bruce directory. This 
  and voice based events, but that is about it. Currently, Mister House
  supports the X10 CM11 (aka ActiveHome) and CM17 (aka Firecracker) 
 interfaces and all the Weeder kits (analog, digital, x10, phone, available from from 
-<A HREF="http://www.weedtech.com/">http://www.weedtech.com</A> ).  Support for the JDS/HomeBase line is currently be debugged.  The code is written,
-but I don't have the interface, so I'm waiting for someone to try it.</P>
+<A HREF="http://www.weedtech.com/">http://www.weedtech.com</A> ).  
+Other supported hardware is listed in
+<a href="http://misterhouse.net/mh.html#List_of_supported_hardware_inter">mh/docs/mh.html</a>
+
 
 <P>Currently, the X10 guys have a $50 deal for an ActiveHome kit, which includes the CM11 interface.
  Check it out at <A HREF="http://www.x10.com/">http://www.x10.com</A>. 
@@ -462,9 +464,7 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
 
  mkdir c:\misterhouse\code 
 
- copy  c:\misterhouse\mh\code\test\tk_*.pl    c:\misterhouse\code
-
- copy  c:\misterhouse\mh\code\testmh_control c:\misterhouse\code
+ copy  c:\misterhouse\mh\test\trivia.pl c:\misterhouse\code
 
  copy  c:\misterhouse\mh\bin\mh.ini c:\misterhouse\mh.ini
 
@@ -485,10 +485,12 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
 After mh is up and running, copy in the other members from mh/code/test that
 you think might be useful and click the Reload button to read them in.
 Adding a member a few at a time might be useful if you are trying to find an error.
+By default, the code files in mh/code/common are always read (you can disable this
+or point to a different directory with the mh.ini code_dir_common parm).
 
 <p>
 The first thing you will want to do is create an items.pl file that declares
-all your X10 items (see mh/code/Bruce/items.pl for an example).  Alternativly, you 
+all your X10 items (see mh/code/Bruce/items.mht for an example).  Alternativly, you 
 can declare each of your X10 items in the first code member you use it in.  In either
 case you can use the "List X10 items" command created in mh_control.pl to review all
 your X10 items.
@@ -511,6 +513,9 @@ your X10 items.
 # Document Change Log
 #
 # $Log$
+# Revision 1.19  2000/10/09 02:31:13  winter
+# - 2.30 update
+#
 # Revision 1.18  2000/10/01 23:36:21  winter
 # - 2.29 release
 #

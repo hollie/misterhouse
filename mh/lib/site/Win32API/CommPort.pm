@@ -1964,8 +1964,10 @@ sub update_timeouts {
     return unless (@_ == 1);
     my $self = shift;
     unless ( GetCommTimeouts($self->{"_HANDLE"}, $self->{"_TIMEOUT"}) ) {
-        carp "Error in GetCommTimeouts";
-        return;
+        my @caller = caller;
+        carp "Error in GetCommTimeouts in update_timeouts, called from @caller\n";
+                                # If we return 0, we loop somewhere and hang mh :(
+        return 1;
     }
 
     ($self->{RINT},

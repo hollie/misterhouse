@@ -45,7 +45,13 @@ if (done_now $p_get_email) {
                                 #  - could be modified for different lights for different accounts.
 #   set $new_mail_light (($Save{email_flag} =~ /[1-9]/) ? ON : OFF);
 
-    &speak_new_mail;
+                                # Once an hour, summarize all email, otherwise just new mail
+    if ($Minute < 10) {
+        &speak_unread_mail;
+    }
+    else {
+        &speak_new_mail;
+    }
     &scan_subjects("$config_parms{data_dir}/get_email.scan")
 }
 &tk_mlabel(\$Save{email_flag});
@@ -55,8 +61,7 @@ $v_unread_email = new  Voice_Cmd('[List,Read] unread e mail');
 $v_unread_email-> set_info('Summarize unread email headers and optionally call Outlook to read the mail');
 $read_email = new Serial_Item('XOD');
 if ($state = said $v_unread_email or 
-    state_now $read_email or
-    time_cron('51 7-21 * * *')) { 
+    state_now $read_email) {
 #   time_cron('55 16,17,19,21 * * *')) { 
     &speak_unread_mail unless $Save{email_check} eq 'no';
     if ($state eq 'Read' or state_now $read_email) {

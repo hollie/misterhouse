@@ -33,7 +33,7 @@ sub set {
                                 # Since the X10 IR Commander is a bit slow (.5 sec per xmit),
                                 #  lets only send the device code if it is different than last time.
     my $device = $$self{device};
-    $device = '' if device and  $device eq $device_prev;
+    $device = '' if $device and  $device eq $device_prev;
     $device_prev = $$self{device};
 
     $state = uc $state;
@@ -91,6 +91,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.5  2000/10/09 02:31:13  winter
+# - 2.30 update
+#
 # Revision 1.4  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

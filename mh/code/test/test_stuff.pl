@@ -102,12 +102,11 @@ if ($state = $test_input1) {
         my @ip_address = get_ip_address($Save{test_input2});
         print_log "IP address for $Save{test_input2}: @ip_address";
     }
-                                # This experimental volume control module does not work for me :(
+                                # This is windows only for now
     elsif ($state eq 'n') {
         print_log "Testing volume control";
-        play(file => "hello_from_bruce.wav");
-        &Win32::SoundEx::auxSetVolumeAll(0x00010001);
-        play(file => "hello_from_bruce.wav");
+        play(file => "hello_from_bruce.wav", volume => '20%');
+        play(file => "hello_from_bruce.wav", volume => '100%');
     }
                                 # Test Setupsup sendkeys
                                 #  - documentaion is in mh/site/Win32/setupsup.html

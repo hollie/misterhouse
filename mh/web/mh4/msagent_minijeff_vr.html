@@ -16,104 +16,62 @@
 
 
 <SCRIPT language=VBScript>
-Dim minijeff	' a global variable to hold the character object
+Dim minijeff    ' a global variable to hold the character object
 Dim wintarget   ' a window object
 
 ' A production quality page should always include error handling.
 ' This is not a production quality page... *grin*
 
 Sub window_OnLoad
-	AgentControl.Connected = True	' necessary for IE3
-	AgentControl.Characters.Load "minijeff", "http://www.ferristech.net/agent/minijeff.acf"
-	Set minijeff = AgentControl.Characters("minijeff")
-	minijeff.LanguageID = &H0409		' needed under some conditions (English)
-	minijeff.Get "State", "Showing, Speaking, Listening, IdlingLevel1, IdlingLevel2, IdlingLevel3"
-	minijeff.Get "Animation", "Showing, Left, Right, Shrug"
-	minijeff.Show
-	minijeff.Get "State", "Hiding"
-	InitCommands
-	minijeff.Play "Showing"
-//	minijeff.Speak "Welcome to Jeff-Re ality."
-//	minijeff.speak "It's just like V R, without the annoying polygons."
-//	minijeff.Speak "I am e-Jeff, your guide for this little corner of CyberSpace."
-	minijeff.Play "Shrug"
-//	minijeff.Speak "Where would you like to go today?"
-	'minijeff.Hide
+    AgentControl.Connected = True   ' necessary for IE3
+    AgentControl.Characters.Load "minijeff", "http://www.ferristech.net/agent/minijeff.acf"
+    Set minijeff = AgentControl.Characters("minijeff")
+    minijeff.LanguageID = &H0409        ' needed under some conditions (English)
+    minijeff.Get "State", "Showing, Speaking, Listening, IdlingLevel1, IdlingLevel2, IdlingLevel3"
+    minijeff.Get "Animation", "Showing, Left, Right, Shrug"
+    minijeff.Show
+    minijeff.Get "State", "Hiding"
+    InitCommands
+    minijeff.Play "Showing"
+//  minijeff.Speak "Welcome to Jeff-Re ality."
+//  minijeff.speak "It's just like V R, without the annoying polygons."
+//  minijeff.Speak "I am e-Jeff, your guide for this little corner of CyberSpace."
+    minijeff.Play "Shrug"
+//  minijeff.Speak "Where would you like to go today?"
+    'minijeff.Hide
 End Sub
 
 Sub AgentControl_Click (ByVal CharacterID, ByVal Button, ByVal Shift, ByVal X, ByVal Y)
-	minijeff.Stop
-	minijeff.Play "Showing"
-//	minijeff.Speak "Hey, watch it with that pointer!|Oh that tickles!"
-	minijeff.Play "Shrug"
-	minijeff.Play "Showing"
+    minijeff.Stop
+    minijeff.Play "Showing"
+//  minijeff.Speak "Hey, watch it with that pointer!|Oh that tickles!"
+    minijeff.Play "Shrug"
+    minijeff.Play "Showing"
 End Sub
 
 Sub AgentControl_DragComplete (ByVal CharacterID, ByVal Button, ByVal Shift, ByVal X, ByVal Y)
-	minijeff.Stop
-	minijeff.Play "Right"
-	minijeff.Speak "Hey! \emp\You think you can just drag me, drop me, and treat me like some sort of object!|Quit pushing!|Hey, be careful!"
-	minijeff.Play "Left"
-	minijeff.Play "Showing"
-End Sub
-
-Sub EightBallButton()
-	
-	minijeff.Stop
-	minijeff.Play "Left"
-	minijeff.Speak "Sources say no.|Signs point to yes.|Yes|No|Maybe|Better not tell you now."
-	minijeff.play "shrug"
-end Sub
-
-Sub ReadDisclaimerButton()
-	// window.open "http://www.track-zero.com/html/personal","mainwindow"
-	minijeff.stop
-	minijeff.play "shrug"
-	minijeff.speak "This page is defined as not flammable by 1500.3 (c) (6), 16 CFR, Federal Hazard Substance Act, C.P.S.C. Regulations. Keep out of reach of children."
-	minijeff.speak "Intentional misuse by deliberately concentrating and or inhaling contents may be fatal. View in well-ventilated area. Store in a cool, dry place."
-	minijeff.play "showing"
-	minijeff.speak "Contains FD&C Red #5. May contain die-floroe-ethayne, CAS #75-37-6. Guaranteed Dolphin Safe. Every precaution was taken to prevent unnecessary injury of animals during the typing of this page."
-	minijeff.speak "Contains some sackarin, which may have caused cancer in some laboratory animals. This page is ficticious."
-	minijeff.play "showing"
-	minijeff.speak "Any resemblance to any person, place, or thing, living or dead, is therefore either purely by virtue of your own overactive imagination, or an intentional and malicious attempt to annoy someone on my part."
-	minijeff.speak "Keep out of direct sunlight. Contact with this page in liquid form may cause severe chemical burns."
-	minijeff.speak "Further exploration of this site may permanently cripple your social life, it certainly can't be helping mine. Do not eat. Potassium sorbate used as a preservative."
-	minijeff.speak "Contains no MSG. Now with 35% less fat, and 69% more cholesterol. If you are pregnant, consult your physician before exploring this web site."
-	minijeff.speak "Do not operate heavy machinery while viewing these pages. May cause hyperactivity, loss of bodily control, and slight nausia."
-	minijeff.play "showing"
-	minijeff.speak "May cause drowsiness and blurred vision. May cause random growth of additional limbs. May flowers caused by April showers. Please retain all original packing materials for future shipping."
-	minijeff.speak "No warranties, express or implied. Do not shake. Do not place product in the ear canal. Always use in upright position."
-	minijeff.speak "Do not pierce or burn, as explosion may occur. Do not use near open flame or any incandescent material."
-	minijeff.play "shrug"
+    minijeff.Stop
+    minijeff.Play "Right"
+    minijeff.Speak "Hey! \emp\You think you can just drag me, drop me, and treat me like some sort of object!|Quit pushing!|Hey, be careful!"
+    minijeff.Play "Left"
+    minijeff.Play "Showing"
 End Sub
 
 Sub InitCommands
-	Dim cmd	' temp variable - holds a single command object
-	minijeff.Commands.Add "Hello"	' add a command to the collection
-	Set cmd = minijeff.Commands("Hello")	' get its object
-	cmd.Caption = "Say Hello"	' set the text that the user sees
-	cmd.Voice = "[say] (hello | hi)"	' set the speech recognition string
-	cmd.Enabled = True	' enable the command in the pop-up menu
-	cmd.Visible = True	' add the command to the pop-up menu
+    minijeff.Commands.Add "Hello", "Say Hello", "[say] (hello | hi)", True, True
+    minijeff.Commands.Add "Goodbye", "Go Away", "(go away | [say] goodbye | scram | leave)", True, True
 
-	' A more efficient method is to set all command properties when the command is added
-	minijeff.Commands.Add "Goodbye", "Go Away", _
-		"(go away | [say] goodbye | scram | leave)", True, True
-	minijeff.Commands.Add "Weather", "Read the weather","Read the weather", True, True
-	minijeff.Commands.Add "TellMeTime", "Tell me the time","(Tell me | what is) the time", True, True
-	minijeff.Commands.Add "ltOfficeLight", "Control Office Light","Turn ( on | off ) office light", True, True
-
+    ' The following like will be replaced by mh commands
 <!-- vr_cmds --> 
 
-	' You should always include the following command, which gives
-	' the user access to the Advanced Character Options dialog:
-	minijeff.Commands.Add "ACO", "Advanced Character Options", _
-		"advanced character options", True, True
+    ' You should always include the following command, which gives
+    ' the user access to the Advanced Character Options dialog:
+    minijeff.Commands.Add "ACO", "Advanced Character Options", "advanced character options", True, True
 
-	' Now configure the Commands object
-	minijeff.Commands.Caption = "eJeff DigiEars"	' display text
-	minijeff.Commands.Voice = "eJeff DigiEars"	' what the user says to make input active
-	minijeff.Commands.Visible = True		' show the caption in the pop-up
+    ' Now configure the Commands object
+    minijeff.Commands.Caption = "eJeff DigiEars"    ' display text
+    minijeff.Commands.Voice   = "eJeff DigiEars"    ' what the user says to make input active
+    minijeff.Commands.Visible = True        ' show the caption in the pop-up
 End Sub
 
 Sub AgentControl_Command(byVal UserInput)
@@ -122,60 +80,37 @@ Sub AgentControl_Command(byVal UserInput)
 ' or selects one from the menu.
 ' The UserInput object has the details of the command.
 ' The Name property contains the name assigned when the command was added.
-	Select Case UserInput.Name
-		Case "Hello"
-			SayHello
-		Case "Goodbye"
-			SayGoodbye
-		Case "Weather"
-			ReadWeather
-		Case "TellMeTime"
-			TellTime
-		Case "ltOfficeLight"
-			OfficeLight(UserInput.voice)
+    Select Case UserInput.Name
+        Case "Hello"
+            SayHello
+        Case "Goodbye"
+            SayGoodbye
 
 <!-- vr_select --> 
 
-		Case "ACO"
-			AgentControl.PropertySheet.visible = True
-	End Select
+        Case "ACO"
+            AgentControl.PropertySheet.visible = True
+    End Select
+End Sub
+
+Sub Run_Command(text)
+   dim cmd
+   'following line translates "the spoken command" to "the_spoken_command"
+   cmd = replace(text, " ", "_")
+   window.open "/RUN:last_response?" & cmd , "speech"
 End Sub
 
 Sub SayHello
-	minijeff.Play "Left"
-	minijeff.Speak "Hello! How are you?"
-	minijeff.Play "Shrug"
+    minijeff.Play "Left"
+    minijeff.Speak "Hello! How are you?"
+    minijeff.Play "Shrug"
 End Sub
 
 Sub SayGoodbye
-	minijeff.Play "Shrug"
-	minijeff.Speak "Fine. I'm outta here."
-	minijeff.Hide
+    minijeff.Play "Shrug"
+    minijeff.Speak "Fine. I'm outta here."
+    minijeff.Hide
 End Sub
-
-Sub ReadWeather
-	minijeff.Speak "You want a weather report?"
-	window.open "/RUN:last_response?Read_the_weather","speech"
-End Sub
-
-Sub TellTime
-	window.open "/RUN:last_response?What_time_is_it","speech"
-End Sub
-
-Sub OfficeLight(strSpeakCommand)
-	Select Case strSpeakCommand
-	case "Turn on office light"
-		'minijeff.speak "Turning on office light."
-		window.open "/SET:&html_list(group=$Office)?$Office_Lamp?on","control"
-	case "Turn off office light"
-		'minijeff.speak "Turning off office light."
-		window.open "/SET:&html_list(group=$Office)?$Office_Lamp?off","control"
-	case else
-	 	minijeff.speak "I don't know what to do.  Please speak your command."
-	End Select
-End Sub
-
-<!-- vr_subs --> 
 
 </SCRIPT>
 

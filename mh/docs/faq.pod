@@ -31,6 +31,19 @@ You can turn off the tk 'eye' that bounces back and forth by deleting the tk_eye
 
 You can speed up / slow down mh, using more/less cpu, by mh.ini sleep_time parm. 
 
+Here are some memory stats: 
+
+  Linux
+    10 Meg   <- mh -tk 0 mh_control.pl (run just one code file)
+    12 Meg   <- mh -tk 0               (run all the test code)
+    17 Meg   <- mh                     (run all the test code with tk gui on)
+ 
+  Windows
+    18 Meg   <- mh -tk 0 mh_control.pl (run just one code file)
+    20 Meg   <- mh -tk 0               (run all the test code)
+    27 Meg   <- mh                     (run all the test code with tk gui on)
+ 
+   
 
 =head2 1.3: How can I easily upgrade to the latest version of mh?
 
@@ -602,6 +615,8 @@ obligatory syntax coloring, it also has a number of other handy features.
 It's spendy, but a trial version is available at their website:
 http://www.sapien.com/PrimalSCRIPT.htm "
 
+Doug likes $20 shareware  CodeWhiz: http://www.incatec.com .   Colored commands, auto indent, auto remark/unremark, line #s, etc.
+
 
 
 
@@ -637,6 +652,10 @@ Here is a rough timeline of MisterHouse development:
  - 05/00 Article in The Perl Journal #17
  - 06/00 Mailing list reaches 300 members
  - 06/00 Added support for table item/event input and tie_items/tie_events. 
+ - 08/00 Enable perl -w checks, .jpg and .gif, and Slinke support.
+ - 08/00 Added rpm and tarballs, NetGear router support
+ - 09/00 Added ViaVoiceTTS.pm, Jabber, and Applied Digital cpuxad support
+ - 10/00 Added barcode scanner and MS Agent support
 
 =head2 6.2: Who is that Bruce guy anyway?
 
@@ -816,6 +835,9 @@ else on the list, the ThermoCRON iButton is different yet again.
 
 #
 # $Log$
+# Revision 1.17  2000/10/09 02:31:13  winter
+# - 2.30 update
+#
 # Revision 1.16  2000/08/19 01:22:35  winter
 # - 2.27 release
 #

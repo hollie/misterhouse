@@ -1,13 +1,16 @@
 # Category = iButtons
 
-return;
-# Enable iButton support by changing the mh.ini iButton_port parm.
+# Fixes in modules
+#  - use     $self->{s}->read_interval(20);          # Time to wait after last byte received
+
+# Enable iButton support by changing the mh.ini ibutton_port parm.
 # You can buy iButton stuff here:
 #    http://www.iButton.com/index.html
 #    http://www.pointsix.com
 # 
 # More info on coding iButton_Item is in mh/docs/mh.html
 #
+
 
 
 $v_iButton_connect   = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
@@ -23,8 +26,9 @@ $v_iButton_relay1   -> set_info('Controls a test relay');
 
 
 if ($state = said $v_iButton_connect) {
+    print "$state the iButton bus";
     if ($state eq 'Connect') {
-        print_log &iButton::connect($config_parms{iButton_port});
+        print_log &iButton::connect($config_parms{ibutton_port});
     }
     else {
         print_log &iButton::disconnect;
