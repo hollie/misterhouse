@@ -18,7 +18,7 @@ if ($Reload) {
 
     &tk_mbutton('Help', \&help);
 
-    &tk_button('Reload (F1)', \&read_code, 'Pause (F2)', \&pause, ' Exit (F3) ', \&sig_handler,
+    &tk_button('Reload (F1)', \&read_code, 'Pause (F2)', \&toggle_pause, ' Exit (F3) ', \&sig_handler,
                'Debug (F4)', \&toggle_debug, 'Log (F5)', \&toggle_log);
  
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-#  Last change Time-stamp: <2001-11-10 21:49:30 winter>
+#  Last change Time-stamp: <2001-11-28 07:21:09 winter>
 
 =begin comment
 
@@ -58,6 +58,8 @@ Options are:
 
 -a, --annotate    Annotate image with text (does not work)
 
+-v, --verbose     Also print errata about exising photos  
+
 -h, --help        Display this help message.
 
 Examples:
@@ -76,13 +78,15 @@ use File::Find;
 use Getopt::Long;
 
                                 # Declare parms and defaults
-my($size, $dir, $exts, $border, $replace, $annotate, $prefix, $help) =
-    ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', 0);
-my (%exts, $rc);
+my($size, $dir, $exts, $border, $replace, $annotate, $prefix, $help, $verbose) =
+    ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', 0, 0);
+my (%exts, $rc, %counts);
+$counts{resized} = $counts{existed} = 0;
 
                                 # Changes defaults if specified on command line
 &help if (!GetOptions('size:s' => \$size, 'directory=s' => \$dir, 'prefix:s' => \$prefix, 'extensions:s' => \$exts,
-                      'border=s' => \$border, 'replace=s' => \$replace, 'anotate=s' => \$annotate, 'help' => \$help) or $help or !$dir);
+                      'border=s' => \$border, 'replace=s' => \$replace, 'anotate=s' => \$annotate,
+                      'help' => \$help, 'verbose' => \$verbose) or $help or !$dir);
 
                                 # Creates a hash of valid image extensions
 map {$exts{$_} = 1}  split(/[ ,]/, $exts);
@@ -95,6 +99,7 @@ my ($size_w, $size_h) = split 'x', $size;
 print "\nShrinking images to $size with border=$border\n";
 
 find(\&get_img, $dir);
+print " - Resized $counts{resized} images ($counts{existed} images not replaced)\n";
 
 sub get_img() {
     my ($file) = $_;
@@ -104,9 +109,11 @@ sub get_img() {
         return if $root =~ /^${prefix}_/;
         my $file_new = "${prefix}_$root.$ext";
         if (-f $file_new and !$replace) {
-            print "  $File::Find::dir/$file_new \tfiles already exists\n";
+            print "  $File::Find::dir/$file_new \tfiles already exists\n" if $verbose;
+            $counts{existed}++;
             return;
         }
+        $counts{resized}++;
         print "  $File::Find::dir/$file  \t-> $file_new \tcreated from\n";
         my $img = new Image::Magick;
         warn($rc) if $rc = $img->Read($file);
@@ -132,6 +139,9 @@ sub get_img() {
 
 #
 # $Log$
+# Revision 1.3  2001/12/16 21:48:40  winter
+# - 2.62 release
+#
 # Revision 1.2  2001/11/18 22:47:17  winter
 # - 2.61 release
 #

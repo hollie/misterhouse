@@ -77,7 +77,7 @@ sub check_key {
     my $object = $$self{object};
     if ($$self{type} eq 'lcdproc') {
         if (my $data = $object->said) {
-            $data = substr $data, 1;   # The first byte is 0!!??
+           $data = substr $data, 1;   # The first byte is 0!!??
             if ($data =~ /^key.(\S)/) {
                 set_key $self $1;
             }
@@ -213,6 +213,9 @@ sub process {
 
 #
 # $Log$
+# Revision 1.5  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.4  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

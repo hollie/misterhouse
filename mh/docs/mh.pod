@@ -244,6 +244,8 @@ Actions can be triggered in milliseconds,
 without having to wait for the 500+ millisecond time it takes
 to transmit data over the powerline. 
 
+Another supported X10 interface is the Marrick Lynx10-PLC controller: http://www.marrickltd.com/LynX105.htm
+
 A nice summary of the different X10 controlers is here:
 http://www.geocities.com/ido_bartana/Which_controller.html
 
@@ -645,6 +647,11 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
                 on the web interface, when the mouse hovers over the command text.
 
      set_label: Specify a text label, useful for creating touch screen interfaces.
+
+     set_count   : Use these methods to control a count variable.
+     get_count
+     incr_count
+     reset_count
 
 
 The tie/untie methods can be done conditionally, so you can change what is tied to what on the fly.
@@ -1376,6 +1383,8 @@ The Timer object can be used to run an action one or more times, at a specified 
 
   Methods:
 
+   These methods apply to a count down timer
+
     new        : Used to create the object.
 
     set($period, $action, $cycles)
@@ -1399,6 +1408,15 @@ The Timer object can be used to run an action one or more times, at a specified 
         These methods return the hours, minutes or seconds remaining on the timer.
         The _now methods only return the remaining time on the hour, minute,
         or second boundary.
+
+   These methods apply to using it as a count up, or stopwatch, timer
+
+    start      : Starts the timer
+    restart    : Restarts the timer (start on an active timer does nothing)
+    stop       : Stops a timer
+    pause      : Pauses
+    resume     : Bet you can guess :)
+    query      : Returns the seconds on the timer.
 
   Examples:    
 
@@ -3424,14 +3442,6 @@ speak will pass the file or text to mh.  It simply runs the house program.
     speak "Boo, did I scare you?"
 
 
-=item trivia
-
-This will update trivia question and answer files from the specified database.  See mh/code/bruce/trivia.pl
-for an example of how to call it from mh.
-
-=back
- 
-
 =head2 Authentication
 
 A one way crypt-ed password authentication scheme can be enabled for the web and telnet.pl interfaces.  
@@ -3909,15 +3919,14 @@ Here are some examples demonstrating these options:
 
   <a HREF="http://misterhouse.net:8080/SET;Referer?camera_light=on">Light on</a>
 
-
  This will redirect the browser to mh page ia5/lights/main.shtml page:
 
   <a HREF="http://misterhouse.net:8080/SET;referer/ia5/lights/main.shtml?$camera_light=on">Light on</a>
- 
+
 
  This will redirect the browser to misterhouse.net
 
-  <a HREF="http://misterhouse.net:8080/SET;http://misterhouse.net?$camera_light=off">Light off</a>
+  http://localhost:8080/RUN;http://misterhouse.net?test_volume_at_60
 
 You can also use RUN;h_response without a command.
 For example, if you want to get a directory listing, sorted by date (recent on top):
@@ -4201,6 +4210,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.49  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.48  2001/11/18 22:51:43  winter
 # - 2.61 release
 #

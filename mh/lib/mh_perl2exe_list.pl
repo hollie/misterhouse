@@ -66,6 +66,8 @@ use re;                         # Used by File::Copy File::Basename
 
 use URI::URL::http;             # Used by get_url
 use MIME::Lite;                 # Used by get_tv_grid, etc
+use HTTP::Cookies;              # Used by get_tv_grid, etc
+use HTTP::Request::Common;      # Used by get_tv_grid, etc
 
 use Display;
 

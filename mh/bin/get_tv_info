@@ -27,11 +27,11 @@ BEGIN {
 
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help",
-                 "channels=s", "dates=s", "times=s", "lengths=s", "keys=s", "keyfile=s", 'title_only', 
+if (!&GetOptions(\%parms, "h", "help", "db=s", "name=s",
+                 "channels=s", "keep=s", "dates=s", "times=s", "lengths=s", "keys=s", "keyfile=s", 'title_only', 
                  'increment=s', "outfile1=s", "outfile2=s", "early_am=s", "started=s",
                  "debug", "quiet") or @ARGV or 
-    !($parms{channels} or $parms{dates} or $parms{times} or $parms{lengths} or 
+    !($parms{channels} or $parms{keep} or $parms{dates} or $parms{times} or $parms{lengths} or 
       $parms{keys} or $parms{keyfile} or $parms{early_am}) or
     ($parms{h} or $parms{help})) {
     print<<eof;
@@ -49,8 +49,10 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
     -h        => This help text
     -help     => This help text
 
+    -db        xyz => Database (tv, sat, cable, etc) default is tv.
     -channels  xyz => Will return info only for channel numbers xyz.
                       Default is all the channels found by get_tv_grid.
+    -keep      xyz => Same as -channels
     -dates     xyz => Will return info only for dates xyz.
                       Default is today.  Format: month/day (e.g. 4/22).
     -times     xyz => Will return info only for shows that start at xyz.
@@ -102,7 +104,7 @@ my %config_parms;
 
 &setup;
 &find_match;
-print "\nFound $match_cnt programmes from ", @channels + 0,
+print "\nFound $match_cnt $parms{name} programmes from ", @channels + 0,
     " channels. Detailed results are in $parms{outfile2}\n" unless $parms{quiet};
 print $match_list1 if $match_cnt < 10;
 
@@ -121,6 +123,7 @@ sub find_match {
                 print "key=$db_key.\n" if $parms{debug};
 #               print "key=$db_key.  data=$DBM{$db_key}.\n" if $channel_number == 8 and $time_start eq '18:30';
                 if (my $db_data = $DBM{$db_key}) {
+                	print "db_data=$db_data\n" if $parms{debug};
                                # Drop HTML tags
                     $db_data = HTML::FormatText->new(lm => 0, rm => 500)->format(HTML::TreeBuilder->new()->parse($db_data));
 
@@ -247,10 +250,10 @@ sub find_match {
        $print_date =~ s/(.+)\/(.+)\-(.+)\/(.+)/$2\/$1\-$4\/$3/g if ($config_parms{date_format} =~ "ddmmyy" and length($print_date) > 5);
        $print_date =~ s/(.+)\/(.+)/$2\/$1/g if ($config_parms{date_format} =~ "ddmmyy" and length($print_date) < 6);
     } 
-    print OUT1 "Found $match_cnt shows.\n$match_list1";
+    print OUT1 "Found $match_cnt $parms{name} shows.\n$match_list1";
 
 #    It's a bit tidier like this (I can't actually see the bottom two lines without the CRs)
-    print OUT2 "Found $match_cnt shows.                             $print_date\n\n$match_list2";
+    print OUT2 "Found $match_cnt $parms{name} shows.                             $print_date\n\n$match_list2";
     print OUT2 "\n \n \n \n \n \n \n";
 
     close OUT1;
@@ -275,7 +278,7 @@ sub find_match {
 	$header .= "<FONT FACE=Arial SIZE=2>\n";
 
     $html = $header. $html."</FONT>\n</BODY></HTML>";
-    file_write("$config_parms{data_dir}/tv_info2.html", $html);
+    file_write("$config_parms{data_dir}/$parms{db}_info2.html", $html);
 
 
 #    for my $key (keys %DBM) {
@@ -293,8 +296,9 @@ sub setup {
     use HTML::Parse;
 
 
-    my $dbm_file  = "$config_parms{data_dir}/tv_programs.dbm";
-    my $dbm_file2 = "$config_parms{data_dir}/tv_channels.dbm";
+    $parms{db}    = "tv" unless $parms{db};
+    my $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
+    my $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
     print "Using dbm file $dbm_file\n" unless $parms{quiet};
     $symbol  = $config_parms{tv_key_symbol};
 
@@ -308,6 +312,7 @@ sub setup {
     $time_now = (localtime)[2].":".(localtime)[1];
     $min_now = &hour_to_min($time_now);
 
+    $parms{name}     = 'TV'    	     unless $parms{name};
     $parms{times}    = '6pm-10pm'    unless $parms{times};
     $parms{increment}= 5             unless $parms{increment};
     $parms{all}      = "all"         if lc($parms{times}) eq 'all';
@@ -340,6 +345,7 @@ sub setup {
         $parms{lengths} = "$length_start-" . ($length_start + $adder);
     }
         
+    $parms{channels} = $parms{keep} if $parms{keep};
     @channels = split_parm($parms{channels}, 'channels');
     @dates    = split_parm($parms{dates}, 'dates');
     @times    = split_parm($parms{times}, 'times');
@@ -353,7 +359,7 @@ sub setup {
         @keys = file_read("$config_parms{data_dir}/$parms{keyfile}");
     }
     else {
-        @keys = split(/,/,  $parms{keys});
+        @keys = split(/ ?,/,  $parms{keys});
     }
     @keys = grep s/^ *//, @keys;
     @keys = grep !/^\#/,  @keys;  # Delete commented out records
@@ -372,8 +378,8 @@ sub setup {
 
     @channels = sort{$a <=> $b} keys %DBM2 if !@channels or $channels[0] eq 'all';
 
-    $parms{outfile1} = "$config_parms{data_dir}/tv_info1.txt" unless $parms{outfile1};
-    $parms{outfile2} = "$config_parms{data_dir}/tv_info2.txt" unless $parms{outfile2};
+    $parms{outfile1} = "$config_parms{data_dir}/$parms{db}_info1.txt" unless $parms{outfile1};
+    $parms{outfile2} = "$config_parms{data_dir}/$parms{db}_info2.txt" unless $parms{outfile2};
 
     print "\nSearching for:\n  channels: @channels\n  times: @times\n  " .
         "lengths: @lengths\n  dates: @dates\n  keys: @keys\n\n" unless $parms{quiet};
@@ -491,6 +497,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.23  2001/12/16 21:48:40  winter
+# - 2.62 release
+#
 # Revision 1.22  2001/11/18 22:51:42  winter
 # - 2.61 release
 #

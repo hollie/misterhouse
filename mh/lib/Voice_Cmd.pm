@@ -59,7 +59,7 @@ sub is_active {
 sub activate {
     if ($Vcmd_ms) {
         $Vmenu_ms->{Active} = 1;	# Called after all voice commands are added
-        print "\n\nError in Speech VR object.  ", Win32::OLE->LastError(), "\n\n";
+#       print "\n\nError in Speech VR object.  ", Win32::OLE->LastError(), "\n\n";
         $Vcmd_ms->{CommandSpoken} = 0;	# In case any lingering command was there
     }
     if ($Vcmd_viavoice) {
@@ -601,6 +601,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.35  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.34  2001/11/18 22:51:43  winter
 # - 2.61 release
 #

@@ -5,7 +5,7 @@
 
 use strict;
 
-use vars qw(%Http %Cookies $Authorized);
+use vars qw(%Http %Cookies $Authorized %Included_HTML);
 $Authorized = 0;
 
 my($leave_socket_open_passes, $leave_socket_open_action);
@@ -83,51 +83,65 @@ sub http_read_parms {
 
 }
 
-
-sub process_http_request {
-    my ($socket, $header) = @_;
+sub http_process_request {
+    my ($socket) = @_;
 
     my $time_check = time;
 
-    print "Http request: $header\n" if $main::config_parms{debug} eq 'http_get';
-
     $leave_socket_open_passes = 0;
+    $leave_socket_open_action = '';
+    $socket_fork_data{length} = 0;
 
-    my ($text, $h_response, $h_index, $h_list, $item, $state);
-    undef $h_response;
+    my ($header, $text, $h_response, $h_index, $h_list, $item, $state);
+    $H_Response = 'last_response';
+
+                                # Find ip address (used to bypass password check)
+    my $peer = $socket->peername;
+    my ($port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
+    my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
+    $Socket_Ports{http}{client_ip_address} = $client_ip_address;
 
     $Authorized = &password_check(undef, 'http') ? 0 : 1; # If no $Password or local address, defaults to authorized
+    print "----------\nhttp: client_ip=$Socket_Ports{http}{client_ip_address} a=$Authorized.\n" if $config_parms{debug} eq 'http';
 
                                 # Read http header data
     $Cookie = '';  undef %Cookies; undef %Http;
-    $H_Response = 'last_response';
     my $temp;
-    while (<$socket>) {
+
+                                # Must wait for the new socket to become active
+    return unless &socket_has_data($socket, .5);
+    while (1) {
+        $_ = <$socket>;
         last unless /\S/;
         $temp .= $_;
-        my ($key, $value) = /(\S+?)\: ?(.+?)[\n\r]+/;
-
-        $Http{$key} = $value;
-#       print "db http header key=$key value=$value.\n" if $main::config_parms{debug} eq 'http';
-
-        if ($key eq 'Cookie') {
-            for my $key_value (split ';', $value) {
-                my ($key2, $value2) = $key_value =~ /(\S+)=(\S+)/;
-                $Cookies{$key2} = $value2;
-            }
+        if (/^ *(GET|POST) /) {
+            $header = $_;
         }
-        elsif ($key eq 'Authorization') {
-            if ($value =~ /Basic (\S+)/) {
-                my ($user, $password) = split(':', &uudecode($1));
-                $Authorized = (&password_check($password, 'http')) ? 0 : 1;
-            }
+        elsif (my ($key, $value) = /(\S+?)\: ?(.+?)[\n\r]+/) {
+            $Http{$key} = $value;
+            print "http:   header key=$key value=$value.\n" if $main::config_parms{debug} eq 'http2';
         }
-        $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
-        $Http{request} = $header;
     }
+    unless ($header) {
+        print "http: Error, not header request.  header=$temp\n" if $config_parms{debug} eq 'http';
+        return;
+    }
+    $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
+    $Http{request} = $header;
     $Http{Referer} = '' unless $Http{Referer}; # Avoid uninitilized var errors
 
-    logit "$config_parms{data_dir}/logs/server_header.$Year_Month_Now.log",  "$header data:$temp";;
+    if ($Http{Cookie}) {
+        for my $key_value (split ';', $Http{Cookie}) {
+            my ($key2, $value2) = $key_value =~ /(\S+)=(\S+)/;
+            $Cookies{$key2} = $value2 if $value2;
+        }
+    }
+    if ($Http{Authorization}) {
+        if ($Http{Authorization} =~ /Basic (\S+)/) {
+            my ($user, $password) = split(':', &uudecode($1));
+            $Authorized = (&password_check($password, 'http')) ? 0 : 1;
+        }
+    }
 
                                 # Look at type of browser, via User-Agent key
 # Some examples
@@ -140,18 +154,24 @@ sub process_http_request {
 #Agent: Mozilla/4.7 [en] (X11; I; Linux 2.2.14-15mdk i686)
 #Agent: Mozilla/4.76 [en] (X11; U; Linux 2.2.16-22jjg i686)
    
-    if ($Http{'User-Agent'} =~ /Windows CE/) {
-        $Http{'User-Agent'}    =  'MSCE';
+    if ($Http{'User-Agent'}) {
+        if ($Http{'User-Agent'} =~ /Windows CE/) {
+            $Http{'User-Agent'}    =  'MSCE';
+        }
+        elsif ($Http{'User-Agent'} =~ /Audrey/) {
+            $Http{'User-Agent'}    =  'Audrey';
+        }
+        elsif ($Http{'User-Agent'} =~ /MSIE/) {
+            $Http{'User-Agent'}    =  'MSIE';
+        }
+        elsif ($Http{'User-Agent'} =~ /Mozilla/) {
+            $Http{'User-Agent'}    =  'Mozilla';
+        }
     }
-    elsif ($Http{'User-Agent'} =~ /Audrey/) {
-        $Http{'User-Agent'}    =  'Audrey';
+    else {
+        $Http{'User-Agent'} = '';
     }
-    elsif ($Http{'User-Agent'} =~ /MSIE/) {
-        $Http{'User-Agent'}    =  'MSIE';
-    }
-    elsif ($Http{'User-Agent'} =~ /Mozilla/) {
-        $Http{'User-Agent'}    =  'Mozilla';
-    }
+
     $Http{format} = '';
     if ($config_parms{web_format} and $config_parms{web_format} =~ /^\d$/) {
         $Http{format} = $config_parms{web_format};
@@ -164,10 +184,14 @@ sub process_http_request {
         $Authorized = ($Cookies{password} eq $Password) ? 1 : 0
     }
 
-    print "http a=$Authorized format=$Http{format} ua=$Http{'User-Agent'} web_format=$config_parms{web_format}\n" if $main::config_parms{debug} eq 'http';
-
     my ($req_typ, $get_req, $get_arg) = $header =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
+    $get_arg = '' unless defined $get_arg;
 
+    logit "$config_parms{data_dir}/logs/server_header.$Year_Month_Now.log",  "$header data:$temp"
+        if $main::config_parms{debug} eq 'http';
+    print "http: gr=$get_req ga=$get_arg " .
+          "A=$Authorized format=$Http{format} ua=$Http{'User-Agent'} h=$header"
+        if $main::config_parms{debug} eq 'http';
     if ($req_typ eq "POST") {
         $get_arg .= '&' if $get_arg;
         my $cl = $Http{'Content-Length'} || $Http{'Content-length'}; # Netscape uses lower case l
@@ -204,10 +228,14 @@ sub process_http_request {
     $get_req =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
     $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
-    print "Web data requested:  get=$get_req arg=$get_arg\n  header=$header\n" if $main::config_parms{debug} eq 'http';
+#   print "http: gr=$get_req ga=$get_arg\n" if $main::config_parms{debug} eq 'http';
 
+
+                                # See if the request was for a file
+    if (&test_for_file($socket, $get_req, $get_arg)) {
+    }
                                 # Prompt for password
-    if ($get_req =~ /SET_PASSWORD$/) {
+    elsif ($get_req =~ /SET_PASSWORD$/) {
         if ($config_parms{password_menu} eq 'html') {
             if ($get_req =~ /^\/UNSET_PASSWORD$/) {
                 $Authorized = 0;
@@ -283,9 +311,6 @@ sub process_http_request {
         return;
     }
 
-                                # See if the request was for a file
-    elsif (&test_for_file($socket, $get_req, $get_arg)) {
-    }
                                 # Test for RUN commands
     elsif  ($get_req =~ /\/RUN$/i or
             $get_req =~ /\/RUN[\:\;](\S*)$/i) {
@@ -304,7 +329,7 @@ sub process_http_request {
         my $authority = $ref->get_authority if $ref;
         $authority = $Password_Allow{$get_arg} unless $authority;
 
-        print "RUN a=$Authorized,$authority get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
+        print "http: RUN a=$Authorized,$authority get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
 
         if ($Authorized or $authority) {
                                 # Allow for RUN;&func  (response function like &dir_sort, with no action)
@@ -460,7 +485,8 @@ sub process_http_request {
 
     $time_check = time - $time_check;
     if ($time_check > 1) {
-        my $msg = "http_server time exceeded: time=$time_check, ip=$Socket_Ports{http}{client_ip_address}, header=$header";
+        my $msg = "http_server time exceeded: time=$time_check, lso=$leave_socket_open_passes, " . 
+                  "l=$socket_fork_data{length}, ip=$Socket_Ports{http}{client_ip_address}, header=$header";
         logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  $msg;
         print "\n$Time_Date: $msg\n";
         &print_log($msg);
@@ -653,6 +679,7 @@ sub html_mh_generated {
     elsif ($get_req  =~ /^list[\:\;]?(\S*)$/) {
         $H_Response = $1 if $1;
         $html = &html_list($get_arg, $auto_refresh);
+        $html .= "\n$Included_HTML{$get_arg}\n" if $Included_HTML{$get_arg} ;
         return ($html, $main::config_parms{'html_style_list' . $Http{format}});
     }
     elsif ($get_req =~ /^results$/) {
@@ -671,7 +698,7 @@ sub html_sub {
     $data = '&' . $data if $data and $data !~/^&/; # Avoid & character in the url ... messes up Tellme
 
                                 # Allow for &sub1 and &sub1(args)
-    if ((($sub_name, $sub_arg) = $data =~ /^\&(\S+)\((\S+)\)$/) or
+    if ((($sub_name, $sub_arg) = $data =~ /^\&(\S+?)\((.+)\)$/) or
         (($sub_name)           = $data =~ /^\&(\S+)$/)) {
         $sub_arg = '' unless defined $sub_arg; # Avoid uninit warninng
 #       $sub_ref = \&{$sub_name};  # This does not work ... code refs are always auto-created :(
@@ -699,7 +726,7 @@ sub html_response {
     my ($socket, $h_response) = @_;
     my $file;
 
-    print "html response: $h_response\n" if $main::config_parms{debug} eq 'http';
+    print "http: html response: $h_response\n" if $main::config_parms{debug} eq 'http';
     if ($h_response) {
         if ($h_response =~ /^last_response_?(\S*)/) {
             $Last_Response = '';
@@ -722,7 +749,6 @@ sub html_response {
 #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
         elsif ($h_response =~ /^http:\S+$/i or $h_response =~ /^reff?erer/i) {
-            $h_response = $Http{Referer};
                                 # Allow to use just the base part of the referer
                                 #  - some browsers (audrey) do not return full referer url :(
                                 #    so allow for referer(url)...
@@ -730,6 +756,10 @@ sub html_response {
                 $Http{Referer} =~ m|(http://\S+?)/|;
                 $h_response = $1 . $rurl;
             }
+            elsif ($h_response =~ /^reff?erer/) {
+                $h_response = $Http{Referer};
+            }
+
                                 # Wait a few passes before refreshing page, in case mh states changed
 #           $leave_socket_open_action = "&http_redirect('$h_response')"; # mh uses &html_page, so this does not work
             $leave_socket_open_action = "'$h_response'"; # &html_page will use referer if only a url is given
@@ -777,7 +807,6 @@ sub html_last_response {
                                 # Create a tts wav file
     my $tts_text = $last_response;
                                 # Skip if on the local box
-#   print "dbx a=$Socket_Ports{http}{client_ip_address}\n";
     my $webmute = 1 if $Cookies{webmute} or $config_parms{webmute} or 
         !$tts_text or $Socket_Ports{http}{client_ip_address} eq '127.0.0.1';
     unless ($webmute) {
@@ -864,7 +893,7 @@ sub html_print_log {
 
 sub html_file {
     my ($socket, $file, $arg, $no_header) = @_;
-    print "printing html file $file to $socket\n" if $main::config_parms{debug} eq 'http';
+    print "http: print html file $file\n" if $main::config_parms{debug} eq 'http';
 
     my $html;
     local *HTML;                # Localize, for recursive call to &html_file
@@ -893,7 +922,7 @@ sub html_file {
                  my ($get_req, $get_arg) = $data =~ m|(\/?[^ \?]+)\??(\S+)?|;
                  $get_arg = '' unless defined $get_arg; # Avoid uninitalized var msg
                  if ($directive eq 'file') {
-
+#                   eval "\$get_req = qq[$get_req]";  # Not needed?
                     if (my $html_file = &test_for_file($socket, $get_req, $get_arg, 1, 1)) {
                         $html .= $html_file;
                     }
@@ -938,17 +967,12 @@ sub html_file {
         @ARGV = '';             # Have to clear previous args
         @ARGV = split(/[&]+/, $arg) if defined $arg;
 
-                                # I couldn't figure out how to open STDOUT to $socket
-#       open(OLDOUT_H, ">&STDOUT"); # Copy old handle
-#       fdopen 'STDOUT' $socket   or print "Could not redirect http_server STDOUT to $socket: $!\n";
-#       open(STDOUT, ">&$socket") or print "Could not redirect http_server STDOUT to $socket: $!\n";
-#       my $results = eval $code;
-#       open(STDOUT, ">&OLDOUT_H");
-#       close OLDOUT_H;
-
         $html = eval $code;
         print "Error in http eval: $@" if $@;
-        print "Http_server  .pl file results:$html.\n" if $main::config_parms{debug} eq 'http';
+
+                                # Drop the http header if no_header
+        $html =~ s/^HTTP.+?^$//smi if $no_header;
+#       print "Http_server  .pl file results:$html.\n" if $main::config_parms{debug} eq 'http';
     }
     else {
         $html = &mime_header($file) unless $no_header;
@@ -1053,13 +1077,15 @@ sub html_category {
         next if $category =~ /^none$/;
 
         my $info = "$category:";
+        my $accesskey = substr($category,0,1);
         if ($html_info_overlib) {
             if (my @files = &list_files_by_webname($category)) {
                 $info .= '<li>' . join ('<li>', @files);
             }
-            $info = qq[onMouseOver="overlib('$info', FIXX, 5, OFFSETY, 50 )" onMouseOut="nd();"];
+#           $info = qq[onMouseOver="overlib('$info', FIXX, 5, OFFSETY, 50 )" onMouseOut="nd();"];
+            $info = qq[onMouseOver="overlib('$info', RIGHT, OFFSETY, 50 )" onMouseOut="nd();"];
         }
-        $h_index .= "<li>" . qq[<a href=list?$category $info>$category</a>\n];
+        $h_index .= "<li>" . qq[<a href=list?$category $info accesskey=$accesskey>$category</a>\n];
 #       $h_index .= "<li>" . &html_active_href("list?$category", $category) . "\n";
     }
     return $h_index;
@@ -1244,9 +1270,8 @@ sub html_list {
     if ($webname_or_object_type =~ /^group=(\S+)/) {
         $h_list .= "<!-- html_list group = $webname_or_object_type -->\n";
         my $object = &get_object_by_name($1);
-        my @objects = list $object;
                                 # Ignore objects marked as hidden
-        @objects = grep !$$_{hidden}, list $object;
+        my @objects = grep !$$_{hidden}, list $object  if $object and $object->can('list');
 
         my @table_items = map{&html_item_state($_, $webname_or_object_type)} @objects;
         $h_list .= &table_it($config_parms{'html_table_size' . $Http{format}}, 0, 0, @table_items);
@@ -1678,21 +1703,29 @@ sub pretty_object_name {
 
 
                                 # Avoid mh pauses by printing to slow remote clients with a 'forked' program
-my $socket_fork_count = 0;
 sub print_socket_fork {
     my ($socket, $html) = @_;
     return unless $html;
     my $length = length $html;
+    $socket_fork_data{length} = $length;
                                 # These sizes are picked a bit randomly.  Don't need to fork on small files
                                 #  - A few Win98 users had problems, but unix is ok
     if (($main::config_parms{http_fork} or !$OS_win) and
-        ($length > 2000 and !&is_local_address() or $length > 10000)) {
-        print "http_server: printing with forked socket: l=$length s=$socket\n" if $main::config_parms{debug} eq 'http';
+        ($length > 3000 and !&is_local_address() or $length > 10000)) {
+        print "http: printing with forked socket: l=$length s=$socket\n" if $main::config_parms{debug} eq 'http';
         if ($OS_win) {
-            &socket_fork_win($socket, $html);
+                                # This ugly fork can only do one at a time :(
+            if ($socket_fork_data{process}) {
+                print "http: defering socket_fork s=$socket\n" if $main::config_parms{debug} eq 'http';
+                push @{$socket_fork_data{next}}, [$socket, $html];
+                $leave_socket_open_passes = -1; # This will not close the socket
+            }
+            else {
+                &print_socket_fork_win($socket, $html);
+            }
         }
         else {
-            &socket_fork_unix($socket, $html);
+            &print_socket_fork_unix($socket, $html);
         }
     }
     else {
@@ -1700,41 +1733,40 @@ sub print_socket_fork {
     }
 }
 
-                                # Use this 
-                                #  - /SET;&referer(/ia5/lights/list_items.pl|$object_type)
-sub referer {
-    my ($r) = @_;
-    $r =~ tr/\|/?/;
-    $Http{Referer} =~ m|(http://\S+?)/|;
-    $r = $1 . $r;
-    return $r;
-}
-
-
 # Magic simulated fork using copied file handles from
 #  Example: 7.22 of "Win32 Perl Scripting: Administrators Handbook" by Dave Roth
 #  Published by New Riders Publishing  ISBN # 1-57870-215-1
 
-sub socket_fork_win {
+sub print_socket_fork_win {
     my($socket, $html) = @_;
     my ($process, $perl, $cmd);
+
     $cmd = 'perl'    if            $perl = &main::which('perl.exe');
     $cmd = 'mh -run' if !$perl and $perl = &main::which('mh.exe');
     if ($cmd) {
-        my $file = "$Pgm_Path/../data/http_fork_" . $socket_fork_count++;
+        my $file = "$config_parms{data_dir}/http_fork.html";
         &file_write($file, $html);
         $cmd .= " $Pgm_Path/print_socket_fork.pl $file";
-        open OLD_STDOUT, ">&STDOUT"  or print "\nsocket_fork error: can not backup STDOUT: $!\n";
-        open STDOUT,     ">&" . $socket->fileno() or die "Can not redirect STDOUT: $!\n";
-        my $pid = Win32::Process::Create($process, $perl, $cmd, 1, 0, '.') or
-            print "Warning, run error: pgm_path=$perl $cmd\n error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
-        open  STDOUT, ">&OLD_STDOUT"  or print "\nsocket_fork error: can not redir STDIN to orig value: $!\n";
-        close OLD_STDOUT;
+
+                                # Processes can only inherit Win32 filehandles :(
+                                # We only have 3 available handles (STDOUT,STDIN,STDERR)
+                                # If we use these with parallel processes, they mess up, 
+                                # so make sure we only call this once at a time
+        open OLD_HANDLE, ">&STDOUT"  or print "\nsocket_fork error: can not backup STDOUT: $!\n";
+        if (my $fileno = $socket->fileno()) {
+            print "http: redirecting socket fn=$fileno s=$socket\n" if $main::config_parms{debug} eq 'http';
+            open STDOUT,     ">&$fileno" or warn "Can not redirect STDOUT: $!\n";
+            my $pid = Win32::Process::Create($process, $perl, $cmd, 1, 0, '.') or
+                print "Warning, run error: pgm_path=$perl $cmd\n error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
+            open  STDOUT, ">&OLD_HANDLE"  or print "\nsocket_fork error: can not redir STDIN to orig value: $!\n";
+            close OLD_HANDLE;
                                 # Need to close the socket only after the process is done :(
-        $socket_fork_processes{$pid} = [$process, $socket]; # Used in mh to close the socket
-        $leave_socket_open_passes = -1; # This will not close the socket
-#       shutdown($socket, 0);   # "how":  0=no more receives, 1=sends, 2=both
-#       $socket->close();
+            $socket_fork_data{process} = $process;
+            $socket_fork_data{socket}  = $socket;
+            $leave_socket_open_passes = -1; # This will not close the socket
+#           shutdown($socket, 0);   # "how":  0=no more receives, 1=sends, 2=both
+#           $socket->close();
+        }
     }
     else {
         print "\nsocket_fork_win error: no perl.exe or mh.exe found\n" unless $cmd;
@@ -1744,7 +1776,7 @@ sub socket_fork_win {
 }
 
                                 # Forks are MUCH easier in unix :)
-sub socket_fork_unix {
+sub print_socket_fork_unix {
     my($socket, $html) = @_;
 
     my $pid = fork;
@@ -1780,6 +1812,15 @@ sub print_socket2 {
     }
 }
 
+                                # Use this 
+                                #  - /SET;&referer(/ia5/lights/list_items.pl|$object_type)
+sub referer {
+    my ($r) = @_;
+    $r =~ tr/\|/?/;
+    $Http{Referer} =~ m|(http://\S+?)/|;
+    $r = $1 . $r unless $r =~ /^http/;
+    return $r;
+}
 
 sub vars_save {
     my @table_items;
@@ -2209,6 +2250,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.64  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.63  2001/11/18 22:51:43  winter
 # - 2.61 release
 #

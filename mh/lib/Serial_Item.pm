@@ -192,7 +192,10 @@ sub set {
     return if &main::check_for_tied_filters($self, $state);
 
                                 # Allow for Serial_Item's without states
-    $state = 'default_state' unless defined $state; 
+    unless (defined $state) {
+        print "Serial_Item set with an empty state on $$self{object_name}\n";
+        $state = 'default_state';
+    }
 
     my $serial_id;
                                 # Allow for upper/mixed case (e.g. treat ON the same as on ... so X10_Items is simpler)
@@ -364,6 +367,13 @@ sub send_x10_data {
         &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},
                                 substr($serial_data, 1));
     }
+    elsif ($interface eq 'lynx10plc') 
+    {
+	# marrick PLC wants XA1K
+        &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},
+			     "X" . substr($x10_save_unit, 1) . 
+			     substr($serial_data, 2)) if $isfunc;
+    }
     elsif ($interface eq 'cm17') {
                                 # cm17 wants A1K, not XA1AK
         &ControlX10::CM17::send($main::Serial_Ports{cm17}{object},
@@ -461,6 +471,9 @@ sub set_interface {
         elsif ($main::Serial_Ports{HomeBase}{object}) {
             $interface = 'homebase';
         }
+        elsif ($main::Serial_Ports{Stargate}{object}) {
+            $interface = 'stargate';
+        }
         elsif ($main::Serial_Ports{HouseLinc}{object}) {
             $interface = 'houselinc';
         }
@@ -476,6 +489,9 @@ sub set_interface {
         elsif ($main::Serial_Ports{weeder}{object}) {
             $interface = 'weeder';
         }
+	elsif ($main::Serial_Ports{Lynx10PLC}{object}) {
+            $interface = 'lynx10plc';
+        }
 
     }
     $$self{interface} = lc($interface) if $interface;
@@ -484,6 +500,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.52  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.51  2001/10/21 01:22:32  winter
 # - 2.60 release
 #

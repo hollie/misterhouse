@@ -212,9 +212,11 @@ sub main::net_ftp {
 
     print " - doing a $type $command local=$file remote=$file_remote\n";
 
-    unless ($ftp->cwd($dir)) {
-        print "Unable to chdir to $dir on ftp server $server: $@\n";
-        return "failed on change dir";
+    if ($dir) {
+        unless ($ftp->cwd($dir)) {
+            print "Unable to chdir to $dir on ftp server $server: $@\n";
+            return "failed on change dir";
+        }
     }
     if ($type eq 'binary') {
         unless ($ftp->binary()) {
@@ -730,7 +732,7 @@ sub main::net_mail_summary {
     while ($msgnum) {
         print "getting msg $msgnum\n" if $main::config_parms{debug} eq 'net';
         my $msg_ptr = $pop->top($msgnum, $main::config_parms{net_mail_scan_size});
-        my ($date, $from, $from_name, $to, $replyto, $subject, $header, $header_flag, $body);
+        my ($date, $date_received, $from, $from_name, $to, $replyto, $subject, $header, $header_flag, $body);
         $header_flag = 1;
         for (@$msg_ptr) {
             if ($header_flag) {
@@ -742,11 +744,16 @@ sub main::net_mail_summary {
                 $subject = $1 if !$subject and /^Subject:(.+)/;
                 $header .= $_;
                 $header_flag = 0 if /^ *$/;
+                                # Assume first data is the received date
+                                #    ... ; Tue, 4 Dec 2001 10:21:48 -0600
+                $date_received = $1 if !$date_received and /(\S\S\S, \d+ \S\S\S \d+ \d\d:\d\d:\d\d) /
             }
             else {
                 $body .= $_;
             }
         }
+        $date_received = $date unless $date_received;
+
                                 # Process 'from' into speakable name
         ($from_name) = $from =~ /\((.+)\)/;
         ($from_name) = $from =~ / *(.+?) *</ unless $from_name;
@@ -757,15 +764,18 @@ sub main::net_mail_summary {
         $from_name =~ s/\"//g;  # "first last"
         $from_name = "$2 $1" if $from_name =~ /(\S+), +(\S+)/; # last, first
 #       $from_name =~ s/ (\S)\. / $1 /;  # Drop the "." after middle initial abreviation.
-        print "Warning, no From name found: from=$from, header=$header\n" unless $from_name;
+        print "Warning, net_mail_summary: No From name found: from=$from, header=$header\n" unless $from_name;
 
-        my $age_msg = int((time -  str2time($date)) / 60);
-        print "msgnum=$msgnum  age=$age_msg date=$date from=$from to=$to subject=$subject\n" if $parms{debug} or $main::config_parms{debug} eq 'net';
+        my $age_msg = int((time -  str2time($date_received)) / 60);
+        print "Warning, net_mail_summary: age is negative: age=$age_msg, date=$date_received\n" if $age_msg < 0;
 
-#       print "db m=$msgnum mf=$parms{first} a=$age_msg a=$parms{age} \n";
+        print "msgnum=$msgnum  age=$age_msg date=$date_received from=$from to=$to subject=$subject\n" if $parms{debug} or $main::config_parms{debug} eq 'net';
+
+#       print "db m=$msgnum mf=$parms{first} a=$age_msg a=$parms{age} d=$date_received from=$from \n";
         last if $age_msg > $parms{age};
 
         push(@{$msgdata{date}},      $date);
+        push(@{$msgdata{received}},  $date_received);
         push(@{$msgdata{to}},        $to);
         push(@{$msgdata{replyto}},   $replyto);
         push(@{$msgdata{from}},      $from);
@@ -814,6 +824,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.36  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.35  2001/11/18 22:51:43  winter
 # - 2.61 release
 #

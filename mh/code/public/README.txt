@@ -67,6 +67,10 @@ iButton_ws.pl
 iButton_ws_client.pl
  - Doug Mackie's code for for getting iButton weather station data from Henriksen's tcp server
 
+iButton temps ploted with gnuplot
+ - Kieran Ames has a page showing how he plots ibutton temps with gnuplot here:
+     http://ames.myip.org:81/pages/my_iButtonVenture.htm
+
 ical.pl
  - David Lounsberry's code to run the mh/bin/ical_load program to create
    mh events based on the unix ical calander program.
@@ -113,7 +117,7 @@ NetCallerID.pl
  - Timothy Spaulding's code to interface with the $30 NetCallerID box.  
    In addition to normal CallerID, it supports Call Waiting CallerID
    (callerid while you are on the phone).
-   Aso see mh/code/bruce/phone_netcallid.pl for another example.
+   Also see mh/code/bruce/phone_netcallid.pl for another example.
 
 news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
@@ -177,6 +181,9 @@ test_homevision.pl
 tv_info_clive.pl
  - Clive Freedman's code for tv queries (derived from mh/code/bruce/tv_info.pl
 
+video_inline.pl
+ - Kent Noonan's code for controling the inline video scan doubler
+
 voicemodem.pl
  - Brian Klier's code for interfacing to a voice modem.  
 
@@ -188,6 +195,15 @@ weather.pl
 
 weather_com.pl
  - Uses Geo::Weather.pm to get weather data from weather.com.  Good for international sites.
+
+weather_chance_of_rain.pl
+ - David Norwood's script that parses rain info from the weather forecasts
+downloaded by get_weather (US only).  If rain is forecasted, it will be
+announced.  There is also some example code for skipping sprinkler cycles
+based on the forecast.
+
+weather_pollen.pl
+ - Kent Noonan's code for monitoring pollen counts
 
 weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I 
@@ -217,6 +233,9 @@ weather_monitor_aws.pl
 
 weather_monitor_ultimeter2000.pl
  - Kent Noonan's code for the Peet Bros Ultimeter 2000 weather station
+
+weather_monitor_wmr968.pl
+ - Tom Vanderpool's code for the wireless wmr968 (aka Radio Shack Accuweather) weather station.
 
 webcam_lite.html
 webcam_lite.pl

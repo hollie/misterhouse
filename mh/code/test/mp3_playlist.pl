@@ -9,6 +9,16 @@ $v_mp3_build_list-> set_info("Builds/loads an mp3 database for these directories
 
 $p_mp3_build_list = new Process_Item;
 
+                                # Allow for loading playlists
+
+# noloop=start      This directive allows this code to be run on startup/reload
+my $mp3_file = "$config_parms{data_dir}/mp3.dbm";
+my ($mp3names, %mp3files) = &mp3_playlists;
+# noloop=stop
+
+($mp3names, %mp3files) = &mp3_playlists if 'Load' eq said $v_mp3_build_list;
+
+
 my %mp3_dbm;
 if ('Build' eq said $v_mp3_build_list) {
     speak "Ok, rebuilding";
@@ -21,7 +31,7 @@ if ('Build' eq said $v_mp3_build_list) {
 
 if (done_now $p_mp3_build_list) {
     speak "mp3 database build is done";
-    ($mp3names, %mp3files) = &load_playlist;
+    ($mp3names, %mp3files) = &mp3_playlists;
 }
 
                                 # Search the mp3 database
@@ -29,8 +39,32 @@ if (done_now $p_mp3_build_list) {
 if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
     undef $Tk_results{'MP3 Search'};
     undef $Tk_results{'MP3 Genre'};
-    my $mp3_search = quotemeta $Save{mp3_search};
-    my $mp3_genre  = quotemeta $Save{mp3_Genre};
+    my ($results1, $results2, $count1, $count2) = &mp3_search(quotemeta $Save{mp3_search}, quotemeta $Save{mp3_Genre});
+    print_log "$count2 out of $count1 songs for search=$Save{mp3_search}, genre=$Save{mp3_Genre}";
+    if ($results1) {
+        speak "Found $count2 songs";
+        display "Found $count2 (out of $count1) songs\n" . $results1, 30, 'MP3 Search Results', 'fixed';
+        my $file = "$config_parms{data_dir}/search.m3u";
+        file_write $file, $results2;
+        run "$config_parms{mp3_program} $file";
+    }
+    else {
+        speak "Sorry, no songs found";
+    }
+}
+
+
+sub mp3_play {
+    my $file = shift;
+    print_log "mp3 play: $file";
+    run qq[$config_parms{mp3_program} "$file"];
+}
+
+sub mp3_search {
+    my ($mp3_search, $mp3_genre) = @_;
+
+    $mp3_search = quotemeta $mp3_search;
+    $mp3_genre  = quotemeta $mp3_genre;
 
     my @titles   = split $;, $mp3_dbm{title};
     my @artists  = split $;, $mp3_dbm{artist};
@@ -44,7 +78,8 @@ if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
     $count1 = $count2 = 0;
     for my $i (0 .. @files) {
         $count1++;
-        if ($titles[$i]  =~ /$mp3_search/i or
+        if (!$mp3_search or
+            $titles[$i]  =~ /$mp3_search/i or
             $artists[$i] =~ /$mp3_search/i or
             $albums[$i]  =~ /$mp3_search/i or
             $files[$i]   =~ /$mp3_search/i) {
@@ -52,31 +87,16 @@ if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
             $count2++;
             my $file = $files[$i];
             $results2 .= "$file\n";
-            $results1 .= "Title: $titles[$i]   Album: $albums[$i]  $years[$i]  $genres[$i]\n";
+            $results1 .= "Title: $titles[$i]   Album: $albums[$i]  Year: $years[$i]  Genre: $genres[$i]\n";
             $results1 .= "  - Artist: $artists[$i]  Comments:$comments[$i]\n";
-            $results1 .= "  - $file\n\n";
+            $results1 .= "  - File: $file\n\n";
         }
     }
-    if ($results1) {
-        speak "Found $count2 songs";
-        display "Found $count2 songs\n" . $results1, 30, 'MP3 Search Results', 'fixed';
-        my $file = "$config_parms{data_dir}/search.m3u";
-        file_write $file, $results2;
-        run "$config_parms{mp3_program} $file";
-    }
-    else {
-        speak "Sorry, no songs found";
-        print_log "$count2 out of $count1 songs $mp3_search, genre=$mp3_genre";
-    }
+    return ($results1, $results2, $count1, $count2);
 }
 
-                                # Allow for loading playlists
 
-# noloop=start      This directive allows this code to be run on startup/reload
-my $mp3_file = "$config_parms{data_dir}/mp3.dbm";
-my ($mp3names, %mp3files) = &load_playlist;
-
-sub load_playlist {
+sub mp3_playlists {
     unless (%mp3_dbm) {
         print_log "Now Tieing to $mp3_file";
         my $tie_code = qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
@@ -103,10 +123,6 @@ sub load_playlist {
     print "mp3 playlists: $mp3names \n";
     return $mp3names, %mp3files;
 }
-
-# noloop=stop
-
-($mp3names, %mp3files) = &load_playlist if 'Load' eq said $v_mp3_build_list;
 
 $v_mp3_playlist1 = new Voice_Cmd("Set house mp3 player to playlist [$mp3names]");
 $v_mp3_playlist2 = new Voice_Cmd("Set Nicks mp3 player to playlist [$mp3names]");

@@ -184,6 +184,7 @@ With a 50 millisecond sleep time, mh takes about 2-&gt;5% of the cpu and loops a
 The reference book is ``Programming Perl, 3rd edition'' by Larry Wall, Tom Christensen,
 &amp; Randall Schwartz. ISBN 1-56592-149-6. It is available from <A HREF="http://www.oreilly.com">http://www.oreilly.com</A> .  ``The Perl Cookbook'' is 
 another good book that has a ton of examples in it.</P>
+<P>I fun way to slowly learn perl is with to get a perl FAQ per day.  You can sign up here: <A HREF="http://perl.faq-by-day.org">http://perl.faq-by-day.org</A></P>
 <P>For those of you using the compiled, instead of the interpreted, version of mh, the 
 standard perl documentation can be found at 
 <A HREF="http://www.perl.com/pub/v/documentation">http://www.perl.com/pub/v/documentation</A> , 
@@ -492,6 +493,7 @@ or at the top of mh/bin/mh.</P>
 <P>The %Moon array has 
 $Moon{phase}, $Moon{brightness}, $Moon{age}, and $Moon{new,first,full,last} entries.</P>
 <P>The $Time_Now and $Date_Now variables return a formated time and date.</P>
+<P>$Dark is true between $Time_Sunset_Twilight and $Time_Sunrise_Twilight, false otherwise.</P>
 <P>The $New_* variables are true only on the pass that we enter a new Second, Minute, Hour, etc.
 $New_Msecond_100/250 are true every .1 and .25 seconds.
 There are also new_* functions if you want to test on every nth second/minute/hour (see new_second function).</P>
@@ -1984,6 +1986,8 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
 <PRE>
        pitch  =&gt; dd (dd = -10 -&gt; 10)</PRE>
 <PRE>
+       card   =&gt; d (d = 1,2,3...) Picks which sound card to used (V5 only)</PRE>
+<PRE>
        to_file =&gt; xyz.  Saves speech to file xyz, then plays the file.</PRE>
 <PRE>
    With the MS TTS V4 engine, the rate parm effects all subsequent
@@ -2474,7 +2478,9 @@ To run commands via email, see FAQ question 2.12: Can do I send mh comands via e
 <PRE>
      These are the options:</PRE>
 <PRE>
-        server      Default is mh.ini parm net_mail_ACCOUNT_server
+        server      Default is mh.ini parm net_mail_ACCOUNT_server or
+                                      parm net_mail_ACCOUNT_server_send
+        port        Default is 25 or  parm net_mail_ACCOUNT_server_send_port
         from        Default is mh.ini parm net_mail_ACCOUNT_address
         to          Default is mh.ini parm net_mail_ACCOUNT_address</PRE>
 <PRE>
@@ -2518,6 +2524,7 @@ Returns the number of email message on the specified account.
      These are the options:</PRE>
 <PRE>
         server      Default is mh.ini parm net_mail_ACCOUNT_server
+        port        Default is 110 or parm net_mail_ACCOUNT_server_port
         user        Default is mh.ini parm net_mail_ACCOUNT_user
         password    Default is mh.ini parm net_mail_ACCOUNT_password</PRE>
 <PRE>
@@ -3020,7 +3027,9 @@ it directly from mh.
        file            Name local/remote file to get/put
        file_remote     Name of remote file (if different from file)
        command         get/put/delete.
-       type            ascii/binary  (default is ascii)</PRE>
+       type            ascii/binary  (default is ascii)
+       passive         0/1.  Default is 0
+       timeout         Defaults to 20 (seconds)</PRE>
 <PRE>
   Example:
     net_ftp -command put -file junk1.txt -file_remote /tmp/junk1.txt</PRE>
@@ -3576,6 +3585,8 @@ Use '_' to replace blanks in the command string.</P>
    filexyz.html     The contents of filexyz.html will be returned
    string           string will be returned
    referer          The browser will be re-directed back to the calling page
+   referer/url      The browser will be re-directed to the referer_root/url
+   &amp;referer(url)    The browser will be re-directed to the referer_root/url.
    <A HREF="http://url">http://url</A>       The browser will be re-directed to url
    blank:           A list of recently spoken text will be returned</PRE>
 <P>Here are some examples demonstrating these options:</P>
@@ -3620,6 +3631,10 @@ Use '_' to replace blanks in the command string.</P>
  (note the $ from the $camera_light object is optional):</PRE>
 <PRE>
   &lt;a HREF=&quot;<A HREF="http://misterhouse.net:8080/SET">http://misterhouse.net:8080/SET</A>;Referer?camera_light=on&quot;&gt;Light on&lt;/a&gt;</PRE>
+<PRE>
+ This will redirect the browser to mh page ia5/lights/main.shtml page:</PRE>
+<PRE>
+  &lt;a HREF=&quot;<A HREF="http://misterhouse.net:8080/SET">http://misterhouse.net:8080/SET</A>;referer/ia5/lights/main.shtml?$camera_light=on&quot;&gt;Light on&lt;/a&gt;</PRE>
 <PRE>
  This will redirect the browser to misterhouse.net</PRE>
 <PRE>
@@ -3681,6 +3696,8 @@ same 'Voice Command Options' dialog.</P>
 <P>
 <H2><A NAME="voice recognition (vr) and text to speech (tts) on unix">Voice Recognition (VR) and Text To Speech (TTS) on Unix</A></H2>
 <P>Need notes on how to use viavoic on linux and how to enable different TTS engines with Festival.</P>
+<P>There is a now also a Festival lite ending that looks promising at
+<A HREF="http://www.speech.cs.cmu.edu/flite/">http://www.speech.cs.cmu.edu/flite/</A></P>
 <P>For vr with viavoice, use mh/code/bruce/viavoice_control.pl</P>
 <P>
 <HR>

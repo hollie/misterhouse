@@ -44,6 +44,7 @@ sub restore_string {
 
     my $state       = $self->{state};
     my $restore_string = $self->{object_name} . "->{state} = q~$state~;\n" if $state;
+    $restore_string = $self->{object_name} . "->{count} = q~$self->{count}~;\n" if $self->{count};
 
     if ($self->{state_log} and my $state_log = join($;, @{$self->{state_log}})) {
         $state_log =~ s/\n/ /g; # Avoid new-lines on restored vars
@@ -120,6 +121,63 @@ sub set_info {
         return $self->{info};
     }
 }
+
+
+sub set_with_timer {
+    my ($self, $state, $time) = @_;
+    return if &main::check_for_tied_filters($self, $state);
+
+    $self->set($state);
+    return unless $time;
+
+                                # If off, timeout to on, otherwise timeout to off
+    my $state_change = ($state eq 'off') ? 'on' : 'off';
+
+                                # Reuse timer for this object if it exists
+    $$self{timer} = &Timer::new() unless $$self{timer};
+    my $object = $self->{object_name};
+    my $action = "set $object '$state_change'";
+#   my $action = "&X10_Items::set($object, '$state_change')";
+#   print "db Setting x10 timer $x10_timer: self=$self time=$time action=$action\n";
+#   $x10_timer->set($time, $action);
+    &Timer::set($$self{timer}, $time, $action);
+
+}
+
+sub incr_count {
+    my ($self) = @_;
+    $self->{count}++;
+    return;
+}
+
+sub reset_count {
+    my ($self) = @_;
+    $self->{count} = 0;
+    return;
+}
+
+sub set_count {
+    my ($self,$val) = @_;
+    				# Set it
+    if (defined $val) {
+        $self->{count} = $val;
+    }
+    else {                      # Return it
+        return $self->{count};
+    }
+}
+
+sub get_count {
+    my ($self,$val) = @_;
+    				# Set it
+    if (defined $val) {
+        $self->{count} = $val;
+    }
+    else {                      # Return it
+        return $self->{count};
+    }
+}
+
 
 sub set_label {
     return unless $main::Reload;
@@ -293,8 +351,8 @@ sub delete_old_tied_times {
 
 #
 # $Log$
-# Revision 1.15  2001/10/21 01:22:32  winter
-# - 2.60 release
+# Revision 1.16  2001/12/16 21:48:41  winter
+# - 2.62 release
 #
 # Revision 1.14  2001/05/06 21:07:26  winter
 # - 2.51 release

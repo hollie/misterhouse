@@ -190,13 +190,15 @@ sub display {
     $$self{MW}->bind('<F1>' => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1}); 
 
                                 # Try everything to get focus
-#   $$self{MW}->tkwait('visibility', $$self{MW}); 
-    $$self{MW}->deiconify;
-    $$self{MW}->raise;
-    $$self{MW}->focusForce;
-    $$self{MW}->focus('-force');
-#   $$self{MW}->grabGlobal; 
-#   $$self{MW}->grab("-global");  # This will disable the minimize-maximize-etc controls
+    unless ($reuse_flag) {
+#       $$self{MW}->tkwait('visibility', $$self{MW}); 
+        $$self{MW}->deiconify;
+        $$self{MW}->raise;
+        $$self{MW}->focusForce;
+        $$self{MW}->focus('-force');
+#       $$self{MW}->grabGlobal; 
+#       $$self{MW}->grab("-global");  # This will disable the minimize-maximize-etc controls
+    }
 
     MainLoop if $$self{loop};
 
@@ -254,6 +256,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.21  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.20  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

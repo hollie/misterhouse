@@ -361,7 +361,7 @@ sub menu_run_response {
         return &vxml_page($vxml);
     }
     elsif ($format and $format eq 'h') {
-        return &html_page('Menu Results', $response);
+        return &html_page('', $response);
     }
     else {
         return $response;
@@ -377,9 +377,13 @@ sub menu_html {
     $menu_group = 'default' unless $menu_group;
     $menu       = $Menus{$menu_group}{menu_list}[0] unless $menu;
 
+    my @k = keys %main::Menus;
+    print "\n\ndbx1 k=@k m=$menu\n";
+
     my $html = "<h1>";
     my $item = 0;
     my $ptr = $Menus{$menu_group};
+    print "dbx2 g=$menu_group p=$ptr\n";
     for my $ptr2 (@{$$ptr{$menu}{items}}) {
         my $goto = $$ptr2{goto};
                                 # Action item
@@ -787,7 +791,7 @@ sub menu_format_list {
         return '<select><option>' . join("</option>\n<option>", @list) . '</option></select>'; 
     }
     elsif ($format eq 'h') {
-        return join("</br>\n", @list);
+        return join("<br>\n", @list);
     }
     else {
         return join("\n", @list);
@@ -799,6 +803,9 @@ return 1;
 
 #
 # $Log$
+# Revision 1.8  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.7  2001/10/21 01:22:32  winter
 # - 2.60 release
 #

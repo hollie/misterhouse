@@ -136,6 +136,9 @@ DESCRIPTION
     from http://www.oreilly.com . "The Perl Cookbook" is another good book
     that has a ton of examples in it.
 
+    I fun way to slowly learn perl is with to get a perl FAQ per day. You
+    can sign up here: http://perl.faq-by-day.org
+
     For those of you using the compiled, instead of the interpreted, version
     of mh, the standard perl documentation can be found at
     http://www.perl.com/pub/v/documentation ,
@@ -492,6 +495,9 @@ DESCRIPTION
     $Moon{new,first,full,last} entries.
 
     The $Time_Now and $Date_Now variables return a formated time and date.
+
+    $Dark is true between $Time_Sunset_Twilight and $Time_Sunrise_Twilight,
+    false otherwise.
 
     The $New_* variables are true only on the pass that we enter a new
     Second, Minute, Hour, etc. $New_Msecond_100/250 are true every .1 and
@@ -2038,6 +2044,8 @@ DESCRIPTION
 
                pitch  => dd (dd = -10 -> 10)
 
+               card   => d (d = 1,2,3...) Picks which sound card to used (V5 only)
+
                to_file => xyz.  Saves speech to file xyz, then plays the file.
 
            With the MS TTS V4 engine, the rate parm effects all subsequent
@@ -2519,7 +2527,9 @@ DESCRIPTION
 
              These are the options:
 
-                server      Default is mh.ini parm net_mail_ACCOUNT_server
+                server      Default is mh.ini parm net_mail_ACCOUNT_server or
+                                              parm net_mail_ACCOUNT_server_send
+                port        Default is 25 or  parm net_mail_ACCOUNT_server_send_port
                 from        Default is mh.ini parm net_mail_ACCOUNT_address
                 to          Default is mh.ini parm net_mail_ACCOUNT_address
 
@@ -2562,6 +2572,7 @@ DESCRIPTION
              These are the options:
 
                 server      Default is mh.ini parm net_mail_ACCOUNT_server
+                port        Default is 110 or parm net_mail_ACCOUNT_server_port
                 user        Default is mh.ini parm net_mail_ACCOUNT_user
                 password    Default is mh.ini parm net_mail_ACCOUNT_password
 
@@ -3064,6 +3075,8 @@ DESCRIPTION
                file_remote     Name of remote file (if different from file)
                command         get/put/delete.
                type            ascii/binary  (default is ascii)
+               passive         0/1.  Default is 0
+               timeout         Defaults to 20 (seconds)
 
           Example:
             net_ftp -command put -file junk1.txt -file_remote /tmp/junk1.txt
@@ -3726,6 +3739,8 @@ DESCRIPTION
        filexyz.html     The contents of filexyz.html will be returned
        string           string will be returned
        referer          The browser will be re-directed back to the calling page
+       referer/url      The browser will be re-directed to the referer_root/url
+       &referer(url)    The browser will be re-directed to the referer_root/url.
        http://url       The browser will be re-directed to url
        blank:           A list of recently spoken text will be returned
 
@@ -3769,6 +3784,10 @@ DESCRIPTION
 
       <a HREF="http://misterhouse.net:8080/SET;Referer?camera_light=on">Light on</a>
 
+     This will redirect the browser to mh page ia5/lights/main.shtml page:
+
+      <a HREF="http://misterhouse.net:8080/SET;referer/ia5/lights/main.shtml?$camera_light=on">Light on</a>
+ 
      This will redirect the browser to misterhouse.net
 
       <a HREF="http://misterhouse.net:8080/SET;http://misterhouse.net?$camera_light=off">Light off</a>
@@ -3844,6 +3863,9 @@ DESCRIPTION
 
     Need notes on how to use viavoic on linux and how to enable different
     TTS engines with Festival.
+
+    There is a now also a Festival lite ending that looks promising at
+    http://www.speech.cs.cmu.edu/flite/
 
     For vr with viavoice, use mh/code/bruce/viavoice_control.pl
 

@@ -14,6 +14,7 @@
 	<LI><A HREF="#mister house announcement list">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#version 2.61 posted on 11/18/2001">Version 2.61 posted on 11/18/2001</A></LI>
 		<LI><A HREF="#version 2.60 posted on 10/20/2001">Version 2.60 posted on 10/20/2001</A></LI>
 		<LI><A HREF="#version 2.59 posted on 09/23/2001">Version 2.59 posted on 09/23/2001</A></LI>
 		<LI><A HREF="#version 2.57 posted on 08/12/2001">Version 2.57 posted on 08/12/2001</A></LI>
@@ -83,6 +84,68 @@
 <H1><A NAME="mister house announcement list">Mister House Announcement List</A></H1>
 <P>- This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at <A HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A> )</P>
+<P>
+<H2><A NAME="version 2.61 posted on 11/18/2001">Version 2.61 posted on 11/18/2001</A></H2>
+<P>Version 2.61 was just uploaded to:</P>
+<PRE>
+  <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
+  <A HREF="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</A></PRE>
+<P><STRONG>New Features:</STRONG></P>
+<P>- Ron Klinkien and Doug Nakakihara created the ia5 and ia6 web interfaces.  I changed the default to 
+ia5, so if you want to use the older mh4 interface, set mh.ini html_file=mh4.  ia5 still has 
+a number of menus that need updating from Ron's specific setup, but it is an excellent
+start at overhalling mh's web interface.  Over the next few release, I expect we will continue 
+to refine ia5, as well as adding parts from the other web menus.</P>
+<P>- Added a speak -card # option, for users of voice_text MS V5 users.  If you manage to get multiple
+sound cards installed, this allows you to pick which one gets used.  
+To get 2 cards recognized by windows, you will probably have to install 2 different types of sound cards.
+I didn't have any luck with 2 SB Live cards, but a SB Live and a SB Audigy mostly work ok together, even though 
+Creative does not advice it.</P>
+<P>- Rewrote Doug's pictureframe.pl script as mh/web/bin/photos.pl and photo_search.pl, controled with mh.ini photo_* parms.
+These allow for forward, pause, reverse, search, forground/background, and sync options.  
+I included a few small example photos in mh/data/photos.  To view, use <A HREF="http://localhost:8080/bin/photos.pl">http://localhost:8080/bin/photos.pl</A>
+To point to your own photos, point to them with the mh.ini parm html_alias_photos, copy mh/code/test/photo_index.pl 
+and run 'Reindex the photo album'.</P>
+<P>- Added mh/bin/image_resize, which uses the powerful ImageMagick module to resize photos.  I use it to keep
+640x480 versions or our 5000+ photo collection for use with the above photos.pl script on small screens like the Audrey or ePod. 
+See the top of image_resize for instructions on installing the required Image::Magick module on either unix or windows.</P>
+<P>- Tim Doyle created mh/code/public/voice_client.pl and voice_server.pl as a way to allow mh to speak 
+to other windows boxes.  He uses it on his boxes at work (through a firewall), to listen to what his house is up to.</P>
+<P>- Jeff Ferris's created mh/code/public/wintvpvr_grid.pl for controlling a
+Hauppage WinTV PVR USB to record TV shows using the tv_grid web pages.</P>
+<P>- Tim Doyle added mh/code/public/internet_starshine.pl to announce
+when one of the visible passes of a StarShine satellite is about to occur.</P>
+<P>- Kent Noonan created mh/lib/Ultimeter2000.pm, to support the Peet Bros. weather station (http://www.peetbros.com)
+Example code is in mh/code/public/weather_monitor_ultimeter2000.pl.   I think this is a work in progress (i.e. I'm 
+not sure if it works yet).</P>
+<P><STRONG>Bug Fixes and Other Changes:</STRONG></P>
+<P>- Doug Nakakihara sent in mh/code/public/chimes_cuckoo_doug.pl, a cukoo clock that uses only one wav file.</P>
+<P>- William Harford found a few lowercased module names in mh/lib/site</P>
+<P>- David Norwood updated http_server.pl and mh/web/misc/pictureframe.shtml (and now photos.pl) to allow for photo filenames with blanks.</P>
+<P>- Jeff Ferris fixed a problem with authorizing .pl web files.</P>
+<P>- Craig Schaeffer discovered 2.60 broke multi-line mh.ini parms.</P>
+<P>- Tim Doyle and Tom Vanderpool added X10_Sensors support to .mht files as X10MS entries.</P>
+<P>- Paul Chamberlain and Mark Mabry sent in a few more unix examples on starting/stoping mh in mh/bin/misterhouse*.rc</P>
+<P>- Doug Nakakihara fixed get_tv_grid to allow for show titles with html markup.</P>
+<P>- David Norwood updated mh/bin/get_tv_grid to store local copies of logo images.</P>
+<P>- Scott Johnston fixed a bug with tar in mh/bin/backup_data when run on linux</P>
+<P>- Dan Wilga and I added -keep and -skip channel options to get_tv_grid, to choose which channels to keep and skip.</P>
+<P>- Tim Doyle updated mh/code/public/internet_earthquakes.pl to be a bit smarter, like earthquakes_cal.pl.</P>
+<P>- Tim Doyle also sent in an update to mh/code/public/aqualink.pl code for controling the Jandy AquaLink pool controller.</P>
+<P>- Added a -no_title option to get_tv_info and used in in the favorite_tv_shows searchs in tv_info.pl</P>
+<P>- Minor improvements in the iniedit help</P>
+<P>- Added a net_mail_account_server_port and net_mail_account_server_send_port options.
+Also changed ftp timeout from 120 to 20.</P>
+<P>- Updated mh/bin/get_email to delete attachements from the email summaries.</P>
+<P>- Added a few more Audrey entries to IA FAQ: mh/docs/faq_ia.html</P>
+<P>- Created mh/code/examples/audrey.pl as an example of how to control the Audrey led and screen from mh.</P>
+<P>- Change the html alias parm format (old style still works):</P>
+<PRE>
+  Old style:  html_alias_tv = /tv $config_parms{data_dir}/tv
+  New style:  html_alias_tv =     $config_parms{data_dir}/tv</PRE>
+<P>- Allow for authorizing web .pl scripts with this script string: '# Authority: anyone'</P>
+<P>- Added a &amp;referer web response function, to work around tha Audrey problem of not returning full
+referer urls.  See the ia5 lights/appliances page for an example.</P>
 <P>
 <H2><A NAME="version 2.60 posted on 10/20/2001">Version 2.60 posted on 10/20/2001</A></H2>
 <P>Version 2.60 was just uploaded to:</P>

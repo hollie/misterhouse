@@ -1,7 +1,13 @@
 #
+# Use these mh.ini parms:
+#
+# Stargate_module      = Stargate
+# Stargate_serial_port = COM1
+# Stargate_baudrate    = 9600
+#
+#
 # From Misterhouse HomeBase.pm
 #
-
 #            I/ODevice         Offset
 #
 #    TimeCommander-Plus         0x00    1-16
@@ -519,6 +525,7 @@ sub SetRelayState
 sub ParseThermostatData
 {
     my ($address, $subcommand, $data) = @_;
+    print "Called ParseTherostatData(" . $address . $subcommand . $data . ")\n" if $main::config_parms{debug} eq 'stargate';
 
     # Temperature change
     if($subcommand eq 0x00)
@@ -617,10 +624,12 @@ sub ParseVariableUpload
 sub ParseThermostatUpload
 {
     my ($data) = @_;
+    print "Called ParseThermostatUpload()" if $main::config_parms{debug} eq 'stargate';
 
     # Ignore the data unless we requested it (it would mean we are out of sync)
     return unless @Thermostat_Upload_List > 0;
 
+    print "Still in sync" if $main::config_parms{debug} eq 'stargate';
     my ($address) = shift @Thermostat_Upload_List;
     my ($requesttime) = shift @Thermostat_Upload_List;
 

@@ -191,29 +191,6 @@ sub level {
     return $_[0]->{level};
 } 
 
-
-sub set_with_timer {
-    my ($self, $state, $time) = @_;
-    return if &main::check_for_tied_filters($self, $state);
-
-    $self->set($state);
-    return unless $time;
-
-                                # If off, timeout to on, otherwise timeout to off
-    my $state_change = ($state eq 'off') ? 'on' : 'off';
-
-                                # Reuse timer for this object if it exists
-    $$self{timer} = &Timer::new() unless $$self{timer};
-#   my $x10_timer = &Timer::new();
-    my $object = $self->{object_name};
-    my $action = "set $object '$state_change'";
-#   my $action = "&X10_Items::set($object, '$state_change')";
-#   print "db Setting x10 timer $x10_timer: self=$self time=$time action=$action\n";
-#   $x10_timer->set($time, $action);
-    &Timer::set($$self{timer}, $time, $action);
-
-}
-
 sub set_by_housecode {
     my ($hc, $state) = @_;
     for my $object (@{$items_by_house_code{$hc}}) {
@@ -815,6 +792,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.23  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.22  2001/11/18 22:51:43  winter
 # - 2.61 release
 #

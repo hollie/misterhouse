@@ -81,7 +81,7 @@ if (my ($name, $name_short) = net_domain_name_done 'server_speak') {
             my  $msg2  = "<voice required='Name=Microsoft Sam'\>$name_short said: ";
             $msg2 .= "<voice required='Name=Microsoft Mike'>$msg.</voice>\n";
             $msg2 .= "Eliza says: <voice required='gender=female'>$response.</voice>";
-            print "db r=$response\n";
+#           print "db r=$response\n";
             $msg = $msg2;
         }
         else {
@@ -117,7 +117,6 @@ if (my ($name, $name_short) = net_domain_name_done 'server_speak') {
     stop $speak_server;     # Tell the client we got the message
 
     $msg = substr $msg, 0, 600;
-    print "db ms=$msg\n";
     if ($config_parms{internet_speak_flag} eq 'all' or
         $config_parms{internet_speak_flag} eq 'some' and $speak_server_data =~ /^GET /) {
         speak voice => 'mike', text => $msg;

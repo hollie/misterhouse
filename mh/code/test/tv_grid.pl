@@ -62,19 +62,13 @@ if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data7) 
     if (&net_connect_check) {
         my $days = (said $v_get_tv_grid_data7) ? 7 : 1;
         $state = ($state eq 'Get') ? '' : "-$state";
-        my $pgm = "get_tv_grid -zip $config_parms{zip_code} -provider $config_parms{tv_provider} $state -days $days";
-        $pgm .= qq[ -hour  "$config_parms{tv_hours}"] if $config_parms{tv_hours};
-        $pgm .= qq[ -label "$config_parms{tv_label}"] if $config_parms{tv_label};
-        $pgm .= qq[ -skip  "$config_parms{tv_channels_skip}"] if $config_parms{tv_channels_skip};
-        $pgm .= qq[ -keep  "$config_parms{tv_channels_keep}"] if $config_parms{tv_channels_keep};
 
+                                # Call with -db sat to use sat_* parms instead of tv_* parms
+        my $pgm = "get_tv_grid -db tv $state -days $days";
 
                                 # Allow data to be stored wherever the alias points to
         my $tvdir = &html_alias('tv');
         $pgm .= qq[ -outdir "$tvdir"] if $tvdir;
-        print "dbx tvdir=$tvdir\n";
-#       $pgm .= qq[ -outdir "$1"] if $config_parms{html_alias_tv} =~ /\S+\s+(\S+)/;
-
 
                                 # If we have set the net_mail_send_account, send default web page via email
         my $mail_account = $config_parms{net_mail_send_account};
@@ -94,13 +88,15 @@ if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data7) 
 }
 
                                 # Set the default page to the current time
-if (time_cron "0 $config_parms{tv_hours} * * *") {
-    my $tvfile = sprintf "%02d_%02d.html", $Mday, $Hour;
+                                # Check it a few minutes prior to the hour
+#f (time_cron "0 $config_parms{tv_hours} * * *") {
+if (time_cron "50 * * * *") {
+    my ($hour, $mday) = (localtime(time + 600))[2,3];
+    my $tvfile = sprintf "%02d_%02d.html", $mday, $hour;
     my $tvdir = "$config_parms{html_dir}/tv";
     $tvdir = &html_alias('tv') if &html_alias('tv');
     if ( -e  "$tvdir/$tvfile" ) {
+        print_log "Updating TV index page for with $tvfile";
         copy "$tvdir/$tvfile", "$tvdir/index.html";
-#       my $tvhtml = file_read "$tvdir/$tvfile";
-#       file_write "$tvdir/index.html", $tvhtml;
     }
 }

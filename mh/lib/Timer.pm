@@ -73,13 +73,16 @@ sub restore_string {
     my ($self) = @_;
 
     my $expire_time = $self->{expire_time};
-    return if !$expire_time or $expire_time < main::get_tickcount;
+    return unless $self->{time} or ($expire_time and $expire_time > main::get_tickcount);
 
     my $restore_string  = "set $self->{object_name} $self->{period} " if $self->{period};
-    $restore_string .= ", q|$self->{action}|" if $self->{action};
+    $restore_string .= ", q|$self->{action}|"  if $self->{action};
     $restore_string .= ", $self->{repeat}"     if $self->{repeat};
     $restore_string .= ";  ";
-    $restore_string .= $self->{object_name} . "->{expire_time} = $expire_time;" if $expire_time;
+    $restore_string .= $self->{object_name} . "->{expire_time} = $expire_time;"  if $expire_time;
+    $restore_string .= $self->{object_name} . "->{time}        = $self->{time};" if $self->{time};
+    $restore_string .= $self->{object_name} . "->{time_pause}  = $self->{time_pause};"  if $self->{time_pause};
+    $restore_string .= $self->{object_name} . "->{time_adjust} = $self->{time_adjust};" if $self->{time_adjust};
 
     return $restore_string;
 }
@@ -299,10 +302,59 @@ sub inactive {
     }
 }   
 
+                                # The reset of these methods apply to a countup/stopwatch type timer
+sub start {
+    ($self) = @_;
+    if ($self->{time}) {
+        &main::print_log("Timer is already running");
+        return;
+    }
+    $self->{time} = time;
+    $self->{time_adjust} = 0;
+}
+
+sub restart {
+    ($self) = @_;
+    $self->{time} = time;
+    $self->{time_adjust} = 0;
+    $self->{time_pause}  = 0;
+}
+
+sub stop {
+    ($self) = @_;
+    $self->{time} = undef;
+}
+
+sub pause {
+    ($self) = @_;
+    return if $self->{time_pause}; # Already paused
+    $self->{time_pause} = time;
+}
+
+sub resume {
+    ($self) = @_;
+    return unless $self->{time_pause}; # Not paused
+    $self->{time_adjust} += (time - $self->{time_pause});
+    $self->{time_pause} = 0;
+}
+
+sub query {
+    ($self) = @_;
+    my $time = $self->{time};
+    return undef unless $time;
+    my $time_ref = ($self->{time_pause}) ? $self->{time_pause} : time;
+    $time  = $time_ref - $time;
+    $time -= $self->{time_adjust} if $self->{time_adjust};
+    return $time;
+}
+
 1;
 
 #
 # $Log$
+# Revision 1.23  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.22  2001/02/24 23:26:40  winter
 # - 2.45 release
 #

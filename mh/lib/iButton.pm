@@ -91,7 +91,7 @@ sub connect {
     }
     elsif ( !$connections{ $port } ) {
 	printf " - creating %-15s object on port %s\n", 'Ibutton', $port;
-	$connections{$port} = new Hardware::iButton::Connection($port, $main::config_parms{ibutton_tweak}) or
+	$connections{$port} = new Hardware::iButton::Connection($port, 0, $main::config_parms{ibutton_tweak}) or
 	  print "iButton connection error to port $port: $!";
     }
     else {
@@ -468,6 +468,9 @@ memory
 
 
 # $Log$
+# Revision 1.14  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.13  2001/10/21 01:22:32  winter
 # - 2.60 release
 #

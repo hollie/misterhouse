@@ -44,7 +44,7 @@ sub init {
     }
 
     if ($main::config_parms{voice_text} =~ /ms/i and $main::OS_win) {
-        print "Creating MS TTS object for voice_text=$main::config_parms{voice_text} ...";
+        print "Creating MS TTS object for voice_text=$main::config_parms{voice_text} ...\n";
         
                                 # Test and default to the new SDK 5 SAPI
         $VTxt_version = lc $main::config_parms{voice_text};
@@ -60,7 +60,7 @@ sub init {
                     next if $main::config_parms{voice_text_cards} and $main::config_parms{voice_text_cards} !~ /$i/;
                     my $object = $outputs->Item($i-1);
                     my $des    = $object->GetDescription;
-                    print "\n  Sound card $i: $des";
+                    print "  Sound card $i: $des\n";
                     $VTxt[$i] = Win32::OLE->new('Sapi.SpVoice');
                     $VTxt[$i] ->{AudioOutput} = $object;
                 }
@@ -74,7 +74,8 @@ sub init {
             
         if ($VTxt_version eq 'msv4') {
             $VTxt[0] = Win32::OLE->new('Speech.VoiceText');
-            unless (@VTxt) {
+#           unless (@VTxt) {
+            unless ($VTxt[0]) {
                 print "\n\nError, could not create ms Speech TTS object.  ", Win32::OLE->LastError(), "\n\n";
                 return;
             }
@@ -494,6 +495,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.31  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.30  2001/11/18 22:51:43  winter
 # - 2.61 release
 #

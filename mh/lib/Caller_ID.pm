@@ -113,8 +113,10 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
     }
     elsif ($format == 4) {
-       ($date, $time, $number, $name) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.+?)\+*$/;
-       print "\nCaller_ID format=3 not parsed: d=$data date=$date time=$time number=$number name=$name\n" unless $name;
+        ($date, $time, $number, $name) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.+?)\+*$/;
+        $name = 'Unknown' if $name =~ /unknown/i;
+        print "phone number=$number name=$name\n";
+        print "\nCaller_ID format=3 not parsed: d=$data date=$date time=$time number=$number name=$name\n" unless $name;
     }
     else {
         ($time, $number, $name) = unpack("A13A13A15", $data);
@@ -290,6 +292,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.25  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.24  2001/10/21 01:22:32  winter
 # - 2.60 release
 #

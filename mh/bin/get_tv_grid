@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2001-11-10 20:44:18 winter>
+#  Last change Time-stamp: <2001-12-08 23:14:28 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -23,7 +23,7 @@ BEGIN {
 }
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "outdir=s", "reget", "redo",
+if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "outdir=s", "reget", "redo", "db=s", "name=s",
                  "keep=s", "skip=s", "channel_max=s", "zip:s", "provider:s", "debug", "label=s", "keep_old",
                  "mail_to=s", "mail_server=s", "mail_baseref=s",
                  "days=s", "day=s", "hour=s") or @ARGV or
@@ -37,6 +37,9 @@ Creates a DBM for use by get_tv_info.
    $Pgm_Name [options]
     -h        => This help text
     -help     => This help text
+    -db   xyz      => xyz is the database (tv, sat, cable, default tv)
+    -name xyz      => xyz is the name of the service (TV, Dish Network,
+                      Cable, etc) default is TV
     -zip xyz      => xyz is your zip code
     -provider xyz => xyz is your TV provider ID.  See note below
     -day xyz      => xyz is the day  to get/filter.  Default is today.
@@ -53,7 +56,7 @@ Creates a DBM for use by get_tv_info.
     -outfile xyz  => xyz the filtered output file. 
                      Default is -outdir/day_hour.html
     -outdir  xyz  => xyz the directory the outfiles will be put in.
-                     Default is mh.ini parm html_dir/tv
+                     Default is mh.ini parm html_dir/{db}
     -label xyz    => Use xyz as the link lable.  Default is "VCR".  
                      To disable, set to none (-label none).
     -reget        => Re-read  the web page, even if a recent file it
@@ -82,7 +85,7 @@ eof
   exit;
 }
                                 # Globals
-my (@days, @hours, @skip_chan, $infile, $outfile, %DBM, %DBM2, %channels_keep, $channel_data);
+my (@days, @hours, $infile, $outfile, %DBM, %DBM2, %channels_skip, %channels_keep, $channel_data);
 my ($url, $ua, $cookies, $req_get1, $req_get2, $req_post, $logged_in);
 
 use vars '%config_parms';       # Not a my, as it is called from handy_net_utils for sent
@@ -100,7 +103,7 @@ for my $day_data (@days) {
             use File::Copy;
             copy($outfile, "$parms{outdir}/index.html");
             if ($parms{mail_to}) {
-                &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "TV Schedule for $dow, $month/$day/$year");
+                &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year");
             }
         }
     }
@@ -153,7 +156,7 @@ sub filter_html {
     print OUT<<eof;
 <HTML>
 <HEAD>
-<TITLE>TV Schedule for $dow, $month/$day.$year</TITLE>
+<TITLE>$parms{name} Schedule for $dow, $month/$day.$year</TITLE>
 </HEAD>
 <body bgcolor=gray>
 eof
@@ -174,7 +177,7 @@ eof
                                 # Look for start of good stuff ... looks like this
 #<!--sp_GetGridInfo 100128400, '10/24/2001 1:00:00 AM', '10/24/2001 5:00:00 AM', 0, 0, 3, '',''--><table BORDER="1" BGCOLOR="#FFFFFF" CELLPADDING="2" CELLSPACING="1" WIDTH="100%">
         if (!$data_flag and $record =~ /GetGridInfo /i) {
-            print "Found start of TV grid\n" if $parms{debug};
+            print "Found start of $parms{name} grid\n" if $parms{debug};
             $data_flag = 1;
             &make_index($hour, $down, $day, $day_time);
             print OUT $record;
@@ -184,20 +187,28 @@ eof
                                 # data_flag = 1 -> channel data
                                 # data_flag = 2 -> bottom data
         next unless $data_flag;
-        $data_flag = 2 if $record =~ / END GRID TABLE /;
+        if ($record =~ / END GRID TABLE / and $data_flag = 1) {
+            print OUT "</table>\n";
+            $data_flag = 2;
+        }
 
-                                # Keep only requested channels ... the start and end on tr
+                                # New channel row
         if ($channel_number and $record =~ /<tr>/) {
             $channel_data = '';
         }
+                                # Print out previous channel, unless we want to skip it  
         if ($channel_number and $record =~ /<\/tr>/) {
-            print OUT $channel_data unless $parms{keep} and !$channels_keep{$channel_number};
+            print OUT $channel_data unless
+                ($parms{keep} and !$channels_keep{$channel_number}) or
+                ($parms{skip} and  $channels_skip{$channel_number});
             $channel_data = '';
         }
 
         $count2++;
                                 # Point to local gifs
         $record =~ s|images/([^/]+?.gif)|/tv/$1|g;
+        $record =~ s|/?images.+?/([^/]+?.gif)|/tv/$1|g;
+#       print "db gif record=$record\n" if $record =~ /\.gif/;
                                 # Discard channel .jpgs
 #       $record =~ s!<img .+?\.(jpg|gif)[^>]+?>!!g;
                                 # Make local copy of channel .jpgs
@@ -227,52 +238,56 @@ eof
             $min_start = $min;
             $min_end = '';
             last if $channel_number > $parms{channel_max};
-            next if @skip_chan && grep( /^$channel_number$/, @skip_chan );
         }
+
 #       last if $record =~ / END GRID TABLE /;
 
+
+        unless (($parms{keep} and !$channels_keep{$channel_number}) or
+                ($parms{skip} and  $channels_skip{$channel_number}) ) {
 
 # ...progdetails.asp?prog_id=1675831&series_id=553685">Scientific American Frontiers: <i>The Gene Hunters</i></a></font>
 #   <font face="arial,helvetica" size="-2"></b>   TVG Geneticists Jim Watson ...
 #			</font>
 
-        if ($record =~ /colspan="?(\d+)"?/) {
-            $min_start = $min_end if $min_end;
-            $min_pgm = 30 * $1;
-            $min_end = $min_start + $min_pgm;
-        }
+            if ($record =~ /colspan="?(\d+)"?/) {
+                $min_start = $min_end if $min_end;
+                $min_pgm = 30 * $1;
+                $min_end = $min_start + $min_pgm;
+            }
 
-        if ($record =~ /progdetails.+?>(.+?)<\/a.+?<\/b> *(.+)/) {
-            ($pgm_name, $pgm_desc) = ($1, $2);
-            if ($pgm_name) {
-                $count3++;
+            if ($record =~ /progdetails.+?>(.+?)<\/a.+?<\/b> *(.+)/) {
+                ($pgm_name, $pgm_desc) = ($1, $2);
+                if ($pgm_name) {
+                    $count3++;
                                 # Clean up the program description
-                $pgm_name =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
-                $pgm_desc =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
-                $pgm_desc =~ s/  / /g;     # Drop extra spaces
-                my $pgm_name_html = $pgm_name;
-                $pgm_name_html =~ tr/ /_/;
+                    $pgm_name =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
+                    $pgm_desc =~ s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
+                    $pgm_desc =~ s/  / /g;     # Drop extra spaces
+                    my $pgm_name_html = $pgm_name;
+                    $pgm_name_html =~ tr/ /_/;
                                 # Set program times/dates
-                my $time_start = &min_to_hour($min_start);
-                my $time_end   = &min_to_hour($min_end);
-                my $pgm_date = "$month/$day";
-                print "db $pgm_name, $min_pgm, $min_start, $min_end, $time_start, $time_end, $pgm_date\n" if $parms{debug};
+                    my $time_start = &min_to_hour($min_start);
+                    my $time_end   = &min_to_hour($min_end);
+                    my $pgm_date = "$month/$day";
+                    print "db $pgm_name, $min_pgm, $min_start, $min_end, $time_start, $time_end, $pgm_date\n" if $parms{debug};
                                 # Insert the mh link
-                my $vcr_ref =
-                    "<a href='/SET:last_spoken?\$tv_grid?channel_${channel_number}_from_${time_start}" .
-                        "_to_${time_end}_on_${pgm_date}_for_${pgm_name_html}'>$parms{label}</a>";
-                $record =~ s|<a href=|$vcr_ref for <a href=| unless lc $parms{label} eq 'none';
+                    my $vcr_ref =
+                        "<a href='/SET:last_spoken?\$tv_grid?channel_${channel_number}_from_${time_start}" .
+                            "_to_${time_end}_on_${pgm_date}_for_${pgm_name_html}'>$parms{label}</a>";
+                    $record =~ s|<a href=|$vcr_ref for <a href=| unless lc $parms{label} eq 'none';
                                 # Store the data in the DBM
-                my $db_key = join($;, $channel_number, $pgm_date, $time_start);
-                my $db_data= join($;, $time_end, $pgm_name, $pgm_desc);
-                $DBM{$db_key} = $db_data;
-                $DBM2{$channel_number} = $channel_name;
-                print "db key=$db_key\n  data=$db_data.\n" if $parms{debug};
+                    my $db_key = join($;, $channel_number, $pgm_date, $time_start);
+                    my $db_data= join($;, $time_end, $pgm_name, $pgm_desc);
+                    $DBM{$db_key} = $db_data;
+                    $DBM2{$channel_number} = $channel_name;
+                    print "db key=$db_key\n  data=$db_data.\n" if $parms{debug};
+                }
             }
         }
+
         if ($data_flag == 1) {
             $channel_data .= $record;
-            my $l = length $channel_data;
         }
         elsif ($data_flag == 2) {
             print OUT $record;
@@ -286,14 +301,14 @@ eof
 sub make_index {
     my ($hour, $down, $day, $day_time) = @_;
     print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n";		### DW: remove bgcolors
-    print OUT "<font face=arial size=+1 color=white> TV Listings</td><td align=right>";
+    print OUT "<font face=arial size=+1 color=white> $parms{name} Listings</td><td align=right>";
     print OUT "<FORM>";
     print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
     my $dow_start = -$down - 7;
     my $dow_stop  = $dow_start + 20;
     for my $count ($dow_start .. $dow_stop) {
         my ($dow2n, $dow2, $day2, $month2, $year2) = &days_from_now($day_time, $count);
-        print OUT "<option value='/tv/${day2}_$hour.html'";
+        print OUT "<option value='/" . $parms{db} . "/${day2}_$hour.html'";
         if ($day2 == $day)  {
           print OUT " Selected ";
         }
@@ -323,7 +338,7 @@ sub make_index {
  
 
 
-         print OUT "<option value='/tv/${day}_${hour2}.html'";
+         print OUT "<option value='/" . $parms{db} . "/${day}_${hour2}.html'";
          if ($hour2 == $hour)  {
            print OUT " Selected ";
          }
@@ -401,14 +416,28 @@ sub setup {
     require 'handy_net_utilities.pl';  # For net_mail_send
     &main::read_mh_opts(\%config_parms, $Pgm_Path);
 #   $parms{userid} = '%247A%247B%2489%247A' unless $parms{userid};
-    $parms{zip}      = '55901'  unless $parms{zip};
-    $parms{provider} = '255248' unless $parms{provider};
-    $parms{channel_max} = '999' unless $parms{channel_max};
-    %channels_keep = map{$_, 1} split(',', $parms{keep}) if $parms{keep};
-    $parms{days} = 1 unless $parms{days};
-    $parms{redo} = 1 if $parms{reget};
+
+    $parms{db}       = 'tv'  unless $parms{db};
+    $parms{outdir}   ="$config_parms{html_dir}/$parms{db}"     unless $parms{outdir};
+    $parms{zip}      = $config_parms{zip_code}                 unless $parms{zip};
+    $parms{provider} = $config_parms{$parms{db} . '_provider'} unless $parms{provider};
+    $parms{hour}     = $config_parms{$parms{db} . '_hours'}    unless $parms{hour};
+    $parms{label}    = $config_parms{$parms{db} . '_label'}    unless $parms{label};
+    $parms{skip}     = $config_parms{$parms{db} . '_channels_skip'}  unless $parms{skip};
+    $parms{keep}     = $config_parms{$parms{db} . '_channels_keep'}  unless $parms{keep};
+
+    $parms{name}        = 'TV'     unless $parms{name};
+    $parms{zip}         = '55901'  unless $parms{zip};
+    $parms{provider}    = '255248' unless $parms{provider};
+    $parms{channel_max} = '999'    unless $parms{channel_max};
     $parms{label} = "VCR" unless $parms{label};  # This can also be an image link
 #   $parms{label} = qq[<img src="/tv/vcr.jpg">] unless $parms{label};
+    $parms{days}  = 1 unless $parms{days};
+    $parms{redo}  = 1 if $parms{reget};
+
+    %channels_keep = map{$_, 1} split(',', $parms{keep}) if $parms{keep};
+    %channels_skip = map{$_, 1} split(',', $parms{skip}) if $parms{skip};
+
     for my $count (0 .. $parms{days}-1) {
         my @day_data = &days_from_now(time, $count);
         push(@days, "@day_data"); # $dow $month $day $year");
@@ -434,18 +463,20 @@ sub setup {
         $hour += 12 unless lc($am_pm) eq 'am' or $hour == 12;
         @hours = (sprintf("%02d", $hour));
     }
-    @skip_chan = split(',', $parms{skip}) if defined $parms{skip};
-    my $dbm_file  = "$config_parms{data_dir}/tv_programs.dbm";
-    my $dbm_file2 = "$config_parms{data_dir}/tv_channels.dbm";
+    my $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
+    my $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
+
+    print "Files will be stored to $parms{outdir}\n";
     print "Tieing to $dbm_file\n";        
     use Fcntl;
     use DB_File;
     tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
     tie (%DBM2, 'DB_File',  $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
 
-    $parms{outdir} = "$config_parms{html_dir}/tv" unless $parms{outdir};
+
     mkdir $parms{outdir}, 0777 unless -d $parms{outdir};
     mkdir "$parms{outdir}/logos", 0777 unless -d "$parms{outdir}/logos";
+    mkdir "$parms{outdir}/download", 0777 unless -d "$parms{outdir}/download";
 
     use LWP::Simple;
     use LWP::UserAgent;
@@ -472,6 +503,9 @@ sub setup {
 
 #
 # $Log$
+# Revision 1.38  2001/12/16 21:48:40  winter
+# - 2.62 release
+#
 # Revision 1.37  2001/11/18 22:51:42  winter
 # - 2.61 release
 #

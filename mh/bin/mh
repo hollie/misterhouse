@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-11-17 23:45:37 winter>
+#  Last change Time-stamp: <2001-12-16 15:17:13 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -295,8 +295,12 @@ BEGIN {
             eval "use Win32::Console";
             print "\nError in loading module=Win32::Console:\n  $@\n" if $@;
 
+                                            # EVENTS forces single-threaded apartment, so outlook.pl MAPI works
+                                            # We don't need " anymore, but we do need EVENTS for various
+                                            # automation code (e.g. MS 5.1 VR and MSN messanger events)
+                                            # Hmmm, EVENTS causes slow exits
             &my_use("Win32::OLE");
-#           &my_use("Win32::OLE qw(in with EVENTS)"); # EVENTS forces single-threaded apartment, so outlook.pl MAPI works
+#           &my_use("Win32::OLE qw(in with EVENTS)");
 #           use Win32::OLE qw(in with EVENTS);
 
 #           &my_use("Win32::OLE::lite");
@@ -444,6 +448,7 @@ sub setup {
     use constant;               # To keep perl2exe happy
     use constant ON      => 'on';
     use constant OFF     => 'off';
+    use constant DIM     => 'dim';
     use constant TOGGLE  => 'toggle';
     use constant STATUS  => 'status';
     use constant OPEN    => 'open';
@@ -589,7 +594,9 @@ sub setup {
                     if $config_parms{debug} eq 'startup';
                 require $module;
                 eval    $startup;
-                print "Startup error on $startup: $@\n" if $@;
+                               # Startup function is optional (e.g. some modules only have serial_startup
+#               print "Startup error on $startup: $@\n" if $@;
+
 #               require "$1.pm";
 #               eval "$1::startup()";
 #               print "Startup error on $1::startup(): $@\n" if $@;
@@ -772,6 +779,7 @@ sub setup {
 sub AUTOLOAD {
     use vars '$AUTOLOAD';
     &print_log("Undefined subroutine: $AUTOLOAD");
+    return;
 }
                                 # This code allows us to add dynamic user code hooks at various places.
 my (%hook_pointers, %hook_locations);
@@ -781,7 +789,8 @@ sub add_hook_code {
                         Serial_match => 1, State_change => 1,
                         Reload_pre   => 1, Reload_post  => 1,
                         Play_pre => 1,     Play_post => 1,
-                        Speak_pre => 1,    Speak_post => 1
+                        Speak_pre => 1,    Speak_post => 1,
+                        Exit      => 1
                         );
 
     for my $location (keys %hook_locations){
@@ -937,13 +946,13 @@ sub check_for_action {
     &Generic_Item::reset_states      unless $Disable == 5;  # Reset states for all objects that are 'ISA Item' objects
     &Voice_Cmd::check_for_voice_cmd  unless $Disable == 6;  # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
     &check_for_serial_data           unless $Disable == 7;
-                                # Allow for multiple http gets per pass, for faster web response
-    while ($Disable != 8) {last unless &check_for_socket_data};
-    &check_for_tied_times            unless $Disable == 9 and !$New_Minute;
-    &Timer::check_for_timer_actions  unless $Disable == 10;
-    &check_for_external_command_file unless $Disable == 11;
+    &check_for_socket_data_http      unless $Disable == 8;
+    &check_for_socket_data           unless $Disable == 9;
+    &check_for_tied_times            unless $Disable == 10 and !$New_Minute;
+    &Timer::check_for_timer_actions  unless $Disable == 11;
+    &check_for_external_command_file unless $Disable == 12;
 
-    &MainLoop_pre_hooks()            unless $Disable == 12; # Created by &add_hooks
+    &MainLoop_pre_hooks()            unless $Disable == 13; # Created by &add_hooks
 
     my $tic1 = &get_tickcount;
     $Benchmark_Members{' OTHER'} += $tic1 - $loop_tickcount1 if $Benchmark_Members{on_off_flag};
@@ -1234,35 +1243,86 @@ sub check_for_serial_data {
 }
 
 my ($leave_socket_open_passes, $leave_socket_open_action);
-use vars '%socket_fork_processes';
+use vars '%socket_fork_data';
 
-sub check_for_socket_data {
+sub check_for_socket_data_http {
+
+                                # These must be closed only AFTER the 'forked' Win32 process is done
+    if ($OS_win and $socket_fork_data{process} and $socket_fork_data{process}->Wait(0)) {
+        print "http: closing http port after forked process s=$socket_fork_data{socket}\n" if $config_parms{debug} eq 'http';
+        $socket_fork_data{socket}->close if $socket_fork_data{socket};
+                                # Do the next one, if in the que
+        if ($socket_fork_data{next} and my $ptr = shift @{$socket_fork_data{next}}) {
+
+            print "http: printing defered socket s=$$ptr[0]\n" if $main::config_parms{debug} eq 'http';
+            &print_socket_fork_win(@{$ptr});
+        }
+        else {
+            undef $socket_fork_data{process};
+            undef $socket_fork_data{socket};
+        }
+    }
 
                                 # Time to finish the http GET from 2 passes ago with a list of spoken data
     if ($leave_socket_open_passes and --$leave_socket_open_passes <= 0 and my $sock = $Socket_Ports{http}{socka}) {
-        print "closing http port with action: $leave_socket_open_action\n" if $config_parms{debug} eq 'http';
+        print "http: closing http port with action: $leave_socket_open_action\n" if $config_parms{debug} eq 'http';
         my @data = eval($leave_socket_open_action);
         print "Error in http lso action: $@\n" if $@;
         my $html = &html_page("", @data);
         print $sock $html;
         &socket_close('http');
-    }
-                                # These must be closed only AFTER the 'forked' process is done
-    for my $pid (keys %socket_fork_processes) {
-        my ($process, $socket) = @{$socket_fork_processes{$pid}};
-        if (($main::OS_win and $process->Wait(0)) or 
-            (!$main::OS_win and waitpid($pid, 1))) {
-#           print "closing socket for pid=$pid p=$process s=$socket\n";
-            $socket->close;
-            delete $socket_fork_processes{$pid};
-        }
+        $leave_socket_open_action = '';
     }
 
-    my (@active_ports, @ports_with_data, $recheck_flag);
+    return if $leave_socket_open_passes; # Wait for previous request to finish
+
+    my $loop_count = 0;
+    my $time_check = time;
+    while (1) {
+                                # See if there is a http request
+        my $nfound = &socket_has_data($Socket_Ports{http}{sock});
+        last unless $nfound;
+        my $sock = $Socket_Ports{http}{sock}->accept();
+        last unless $sock; # Can be undef it socket was killed
+        $sock->autoflush(1); # Not sure if this does anything?
+        $Socket_Ports{http}{socka} = $sock;
+
+        ($leave_socket_open_passes, $leave_socket_open_action) = &http_process_request($sock);
+
+        my $time_diff = time - $time_check;
+        print "http: c=$loop_count td=$time_diff sop=$leave_socket_open_passes soa=$leave_socket_open_action.\n" if $config_parms{debug} eq 'http';
+
+        if ($leave_socket_open_action) {
+            last;               # Wait for socket action to finish before we process the next request
+        }
+        else {
+                                # forked socket needs no closing, and can not have a open_action
+            if ($leave_socket_open_passes and $leave_socket_open_passes < 0) {
+                $leave_socket_open_passes = 0;
+            }
+            else {
+                                # We must sleep here for a bit, or else Netscape sometimes
+                                # says 'Document contains no data'.  Guess we don't need this anymore :)
+#               select undef, undef, undef, .010;
+                &socket_close('http');
+            }
+        }
+
+                                # Process more requests if present, for a faster server,
+                                # but let mh do other things periodically
+#      last if $loop_count++ > 100;
+       last if $loop_count++ > 100 or $time_diff > 1;
+    }
+}
+
+sub check_for_socket_data {
+
+    my (@active_ports, @ports_with_data);
 
                                 # See which ports are active
                                 #  - could probably use a smarter select check here, rather than loop for each port
     for my $port_name (keys %Socket_Ports) {
+        next if $port_name eq 'http'; # Deal with this elsewhere
         next unless my $sock = $Socket_Ports{$port_name}{sock};
         $Socket_Ports{$port_name}{inactive_this_pass} = 0;
         if ($Socket_Ports{$port_name}{socka}) {
@@ -1284,8 +1344,8 @@ sub check_for_socket_data {
                 my ($port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
                 my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
                 $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
-                logit "$config_parms{data_dir}/logs/server.$Year_Month_Now.log",  "$port_name $client_ip_address" unless $port_name eq 'http';
-                print "\n$port_name active sock=$new_sock client=$client_ip_address.\n" if $config_parms{debug} eq $port_name;
+                logit "$config_parms{data_dir}/logs/server.$Year_Month_Now.log",  "$port_name $client_ip_address";
+                print "\nsocket: $port_name active sock=$new_sock client=$client_ip_address.\n" if $config_parms{debug} eq $port_name;
             }
         }
     }
@@ -1294,13 +1354,13 @@ sub check_for_socket_data {
     for my $port_name (@active_ports) {
         my $sock = $Socket_Ports{$port_name}{socka};
         if (my $nfound = &socket_has_data($sock)) {
-            print "$port_name nfound=$nfound " if $config_parms{debug} eq $port_name;
+#           print "socket: $port_name nfound=$nfound " if $config_parms{debug} eq $port_name;
             if ($nfound < 0) {
                                 # Note, must do a shutdown here ... a close does not close handles
                                 #   from &run (system start) processes !?! ... maybe IO sockets do not need this?
                                 # Not sure how to shutdown IO handles ... this gives 'bad symbol on filehandle' error
 #               shutdown($sock->fileno(), 2);   # "how":  0=no more receives, 1=sends, 2=both
-                print "1 closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
+                print "socket: closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
                 &socket_close($port_name);
             }
             else {
@@ -1333,25 +1393,17 @@ sub check_for_socket_data {
             }
         }
 
-        print " sock=$sock lso=$leave_socket_open_passes data=$data"  if $config_parms{debug} eq $port_name;
-
                                 # Need to do this or the socket never closes!
                                 # For some reason, nfound = 1 (instead of -1) unless we do this.
                                 # In other words, a telnet disconnect will leave nfound=1, but no data.
                                 # When telnet closes, byte IS defined, but is empty, so check on ''
         if (!defined $data or $data eq '') {
-            print "closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
+            print "socket: closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
             &socket_close($port_name);
         }
 
         $Socket_Ports{$port_name}{data} .= $data if defined $data;
-        print "$port_name data=$Socket_Ports{$port_name}{data}" if $config_parms{debug} eq $port_name;
-
-                                # If raw mode, return data as is
-        if ($Socket_Ports{$port_name}{datatype} and $Socket_Ports{$port_name}{datatype} eq 'raw') {
-#           $Socket_Ports{$port_name}{data_record} = $data;  # No not break data on newlines
-            next;
-        }
+        print "socket: port=$port_name data=$data." if $config_parms{debug} eq $port_name;
 
         if (my $echo = $config_parms{"${port_name}_echo"}) {
                                 # Need to loop thru $data here, one byte at a time
@@ -1369,56 +1421,33 @@ sub check_for_socket_data {
                                 # Look for 'records' based on break separator
                                 #  - this data may have been read from a previous pass
     for my $port_name (keys %Socket_Ports) {
+        next if $port_name eq 'http'; # Deal with this elsewhere
         next unless $Socket_Ports{$port_name}{data};
+
+                                # If raw mode, return data as is
+        if ($Socket_Ports{$port_name}{datatype} and $Socket_Ports{$port_name}{datatype} eq 'raw') {
+            next;
+        }
      
                                 # Look for data separator (default is newline)
         my $break = $config_parms{"${port_name}_break"};
         $break = "[\r\n]+";
-        while (my($record, $remainder) = $Socket_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s) {
-#           if ($config_parms{debug} eq $port_name) {
-#               print "$port_name record=$record.  hex=", unpack('H*', $record), "\n";
-#               print "$port_name remainder=$remainder.  hex=", unpack('H*', $remainder), "\n";
-#           }
+
+        if ( my($record, $remainder) = $Socket_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s) {
             $Socket_Ports{$port_name}{data_record} = $record;
             $Socket_Ports{$port_name}{data}        = $remainder;
-            
-            if ($port_name eq 'http') {
-                if ($record =~ /^ *(GET|POST) /) {
-                    my $sock = $Socket_Ports{$port_name}{socka};
-                    ($leave_socket_open_passes, $leave_socket_open_action) = &process_http_request($sock, $record);
-                    print "http lso=$leave_socket_open_passes sock=$sock.\n" if $config_parms{debug} eq $port_name;
-                    unless ($leave_socket_open_passes) {
-                        print "4 closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
-                                # We must sleep here for a bit, or else Netscape sometimes
-                                # says 'Document contains no data'.
-                        select undef, undef, undef, .010;
-                        &socket_close($port_name);
-                        $recheck_flag = 1;
-                    }
-                                # forked socket needs no closing
-                    if ($leave_socket_open_passes < 0) {
-                        $recheck_flag = 1;
-                        $leave_socket_open_passes = 0;
-                    }
-                }
-                else {
-                                # Do nothing with non-GET http requests
-#                   print $sock ">$record";
-                }
-            }
-            else {
-                                # 10/99 Comment out \r\n print ... what needed this?? Messed up viavoice server
-#               print $sock "\r\n";
-#               print $sock "You said: $record\n";
-
-                                # non-raw, non-http socket data is usually read by 'said' Socket_Item methods
-                                #  - only 1 per pass, since 'said' only reads one data_record per pass
-                last; 
+            if ($config_parms{debug} eq $port_name) {
+                print "socket: port=$port_name record=$record, r=$remainder.\n";
+#               print "socket: $port_name record=$record.  hex=", unpack('H*', $record), "\n";
+#               print "socket: $port_name remainder=$remainder.  hex=", unpack('H*', $remainder), "\n";
             }
         }
-#       print "http rf=$recheck_flag lc=$Loop_Count.  \n";
+                                # 10/99 Comment out \r\n print ... what needed this?? Messed up viavoice server
+#       print $sock "\r\n";
+#       print $sock "You said: $record\n";
+
     }
-    return $recheck_flag;
+
 }    
 
                                 # These tied subs are called by mh/lib/Generic_Item.pm
@@ -1767,6 +1796,7 @@ sub exit_pgm {
     $Save{mh_exit} = ($restart) ? 'restart' : 'normal';
     print "Exiting program: $Save{mh_exit}\n";
     &Voice_Cmd::remove_voice_cmds if $config_parms{voice_cmd};
+    &Exit_hooks();              # Allow user code exits
     &run_kill_processes;        # From handy_utilities ... kills anybody that isn't done yet
     &Process_Item::stop;
 
@@ -1781,7 +1811,7 @@ sub exit_pgm {
         exit 99;
     }
     else {
-        &print_log("Bye bye");
+        print "Bye Bye\n";
         exit 1;
     }
 }
@@ -2014,7 +2044,10 @@ sub my_str2time {
             print "Error in my_str2time.  Bad operator=$op time=$time_date\n";
         }
     }
-                                # adjust to am/pm to 24 hour time
+
+                                # Adjust to am/pm to 24 hour time
+                                # Allow for 24 hour time with pm (e.g. 16:00pm)
+    $hourf -= 12 if $am_pm and $hourf > 12;
     $am_pm = uc $am_pm;
     if ($hourf == 12) {
         $sec_offset -= 12 * 3600 if $am_pm eq "AM";
@@ -2123,7 +2156,7 @@ sub object_states_save {
         for $var (keys %{$file_by_object_name{$object_type}}) {
             print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'misc';
             my $ref = $objects_by_object_name{$var};
-            $restore_string =  &object_states_save_check($ref->restore_string) if $ref->can('restore_string');
+            $restore_string =  &object_states_save_check($ref->restore_string) if $ref and $ref->can('restore_string');
             $restore_state .= "if (defined $var) {$restore_string} else {'var not used'}\n" if $restore_string;
         }
     }
@@ -2143,6 +2176,7 @@ sub object_states_save {
     file_write "$restore_state_file.persistent", Data::Dumper->Dump([\%Persistent], [qw(*Persistent)]);
    
     print " done\n" unless $config_parms{no_log} =~ /save_state/;
+
 }
 
 
@@ -2422,6 +2456,7 @@ sub print_log {
     else {
         print PRINTLOG $data . "\n";
     }
+    return;
 }
 
 sub print_log_last {
@@ -3212,7 +3247,7 @@ sub set_global_vars {
                                 # If mh got hung up doing something, lets go to catch up mode
     elsif (!$Time_Start_time and $prev_time < ($time_now - 2)) {
         $DelayOccured = $time_now - $prev_time;
-        unless ($config_parms{no_log} =~ /pause/) {
+        unless ($config_parms{no_log} =~ /pause/ or $Reload or $Loop_Count < 10) {
             my $volume = int 100 * $DelayOccured / 30;
             &play(file => 'mh_pause', volume => $volume); # Defined in event_sounds.pl
             print_log "mh paused for $DelayOccured seconds (v=$volume)";
@@ -3673,10 +3708,11 @@ sub socket_restart {
                                 # This could be made more efficient per pg. 200 of Advanced perl programing.
                                 # and using $bit_out=$bit_in
 sub socket_has_data {
-    my($sock) = @_;
+    my($sock, $timeout) = @_;
+    $timeout = 0 unless $timeout;
     my $rbit = '';
     vec($rbit, $sock->fileno(), 1) = 1; # This had an unintilized var??
-    my ($nfound) = select($rbit, undef, undef, 0);
+    my ($nfound) = select($rbit, undef, undef, $timeout);
     return $nfound;
 }
 
@@ -3704,7 +3740,7 @@ sub speak {
         $key = lc $key;
                                 # Not all TTS engines have all these options ... this is a superset
         print "Warning, speak control not recognized: key=$key value=$value\n"
-            unless grep $key eq $_, qw(room rooms mode display play volume time voice pitch);
+            unless grep $key eq $_, qw(room rooms mode display play volume time voice pitch card);
         
         if ($key =~ /room[s]?/) {
             $rooms = $value;
@@ -3864,6 +3900,7 @@ sub time_now {
     return unless $New_Minute;  # Only on minute boundarys
     my ($time_date) = @_;
     return unless $time_date =~ /\S/;                 # Ignore empty entries
+    return if     $time_date eq 'none';               # For use in bypassing timed events easily
 
                                 # Allow time_now to match to the nearest minute, not the exact second
                                 #  - if we add a 'catchup mode', we can go back to checking on the exact second
@@ -3983,6 +4020,9 @@ sub tk_setup_cascade_menus {
 #                    add('command', -label => 'state_log', command => sub{display join("\n", state_log $object)});
 
                 my $filename = $object->{filename};
+                                # Drop the {a,b,c} enumeragion (pick the first one)
+                $text = $1 . $2 . $3 if $text =~ /^(.*)\{(.*),.*\}(.*)/;
+
                 if (my ($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/) { 
                     for my $state (split(',', $states)) { 
                         my $text2 = "$prefix$state$suffix";
@@ -4402,6 +4442,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.62  2001/12/16 21:44:09  winter
+# - 2.62 release
+#
 # Revision 2.61  2001/11/18 22:46:31  winter
 # - 2.61 release
 #

@@ -40,7 +40,8 @@ if ($state = said $v_http_control) {
 
                                 # Check the http port frequently, so we can restart it if down.
 $http_monitor   = new  Socket_Item(undef, undef, "$config_parms{http_server}:$config_parms{http_port}");
-if ((said $v_http_control eq 'Check') or new_minute 1) {
+#f ((said $v_http_control eq 'Check') or new_minute 1) {
+if ((said $v_http_control eq 'Check')) {
     unless (start $http_monitor) {
         my $msg = "The http server $config_parms{http_server}:$config_parms{http_port} is down.  Restarting";
         print_log $msg;
@@ -136,7 +137,7 @@ if (said $v_mode_toggle) {
         $Save{mode} = 'mute';
     }
                                 # mode => force cause speech even in mute or offline mode
-    &speak(mode => 'unmuted', rooms => 'all', text => "MisterHouse is set to $Save{mode} mode");
+    &speak(mode => 'unmuted', rooms => 'all', text => "Now in $Save{mode} mode");
 }
 
 

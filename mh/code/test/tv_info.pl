@@ -8,9 +8,9 @@ $v_tv_movies1-> set_info('Looks for TV shows that are 2-3 hours in length from 6
 $v_tv_movies2-> set_info('Looks for TV shows that are 2-3 hours in length on all channels, at time:');
 
 $v_tv_shows1 = new  Voice_Cmd('What TV shows are on channel [5,6,8,9,12,51] tonight');
-$v_tv_shows2 = new  Voice_Cmd('What favorite TV shows are on tonight');
+$v_tv_shows2 = new  Voice_Cmd('What favorite TV shows are on today');
 $v_tv_shows1-> set_info('Lists all shows on from 6 to 10 pm tonight on channel:');
-$v_tv_shows2-> set_info("Checks to see if any of the following shows are on tonight: $config_parms{favorite_tv_shows}");
+$v_tv_shows2-> set_info("Checks to see if any of the following shows in $config_parms{favorite_tv_shows} are on today");
 
 if ($state = said  $v_tv_movies1) {
     run qq[get_tv_info -length 2-3 -times 6pm+4 -channels $state];
@@ -26,16 +26,20 @@ if ($state = said  $v_tv_shows1) {
     set_watch $f_tv_file;
 }
 if (said $v_tv_shows2) {
-    print_log "Searching for $config_parms{favorite_tv_shows}";
-    run qq[get_tv_info -keys "$config_parms{favorite_tv_shows}" -title_only];
-    set_watch $f_tv_file 'favorites tonight';
+    print_log "Searching for shows listed in $config_parms{favorite_tv_shows_file}";
+#   run qq[get_tv_info -keys "$config_parms{favorite_tv_shows}" -title_only];
+    run qq[get_tv_info -times all -keyfile $config_parms{favorite_tv_shows_file} -title_only];
+    set_watch $f_tv_file 'favorites today';
 }
 
                                 # Check for favorite shows ever 1/2 hour
-if (time_cron('0,30 18-22 * * *')) {
-    run qq[get_tv_info -times $Hour:$Minute -keys "$config_parms{favorite_tv_shows}" -quiet -title_only];
+if (time_cron('58,28 * * * *')) {
+    my ($min, $hour, $mday, $mon) = (localtime(time + 120))[1,2,3,4];
+    $mon++;
+    run qq[get_tv_info -times $hour:$min -dates $mon/$mday -keyfile $config_parms{favorite_tv_shows_file}  -title_only];
     set_watch $f_tv_file 'favorites now';
 }
+
 
                                 # Search for requested keywords
 #&tk_entry('TV search', \$Save{tv_search}, 'TV dates', \$Save{tv_days});
@@ -61,12 +65,12 @@ if ($state = changed $f_tv_file or said $v_tv_results) {
     my $msg = "There ";
     $msg .= ($show_count > 1) ? " are " : " is ";
     $msg .= plural($show_count, 'favorite show');
-    if ($state eq 'favorites tonight') {
+    if ($state eq 'favorites today') {
         if ($show_count > 0) {
-            speak "$msg on tonight. @data";
+            speak "$msg on today.";
         }
         else {
-            speak "There are no favorite shows on tonight";
+            speak "There are no favorite shows on today";
         }
     }
     elsif ($state eq 'favorites now') {

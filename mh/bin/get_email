@@ -115,14 +115,13 @@ sub check_accounts {
         $summary .= qq[&nbsp;&nbsp;&nbsp;$msgcnt messages ($msgsize bytes) in ] .
             qq[$account: $config_parms{"net_mail_${account}_address"}, $config_parms{"net_mail_${account}_user"}<BR>\n];
 
-#       $msgcnt_flag .= sprintf("%3d", $msgcnt);
-
                                 # If count is < last time, assume we have read previous messages and reset for next pass
                                 # If count is > last time, read only new messages
         my $msgcnt_prev = @{$email_prev{$account}} if $email_prev{$account};
         if (defined $msgcnt and $msgcnt < $msgcnt_prev) {
             delete $email_prev{$account};
             unlink("$config_parms{data_dir}/email/latest.html");
+            $msgcnt = 0;
         }
         elsif ($msgcnt > $msgcnt_prev) {
 
@@ -138,8 +137,6 @@ sub check_accounts {
             if ($config_parms{net_mail_scan_age}) {
                 $msgcnt = ($$msgptr{from_name}) ? @{$$msgptr{from_name}} : 0;
             }
-            $msgcnt_flag .= sprintf("%3d", $msgcnt);
-            
 
             if ($$msgptr{from_name}) {
                 my @list = @{$$msgptr{from_name}};
@@ -239,6 +236,9 @@ sub check_accounts {
 
             }
         }
+
+        $msgcnt_flag .= sprintf("%3d", $msgcnt);
+
         my $temp = &make_name_list($account, @{$email_prev{$account}});
         $results_unread  .= $temp;
                                 # Create html version with a link
@@ -295,6 +295,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.28  2001/12/16 21:48:40  winter
+# - 2.62 release
+#
 # Revision 1.27  2001/11/18 22:51:42  winter
 # - 2.61 release
 #

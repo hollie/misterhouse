@@ -684,6 +684,7 @@ sub main::run {
 #       $cflag = DETACHED_PROCESS | CREATE_NEW_CONSOLE;
 #       $cflag = DETACHED_PROCESS;
 #       $cflag = NORMAL_PRIORITY_CLASS;
+        $cflag = 0;             # Avoid uninit warnings
 
         my $pid = Win32::Process::Create($process, $pgm_path, "$pgm_path $pgm_args", 0, $cflag, '.') or
             print "Warning, run error: pgm_path=$pgm_path\n  -   pgm=$pgm   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
@@ -1071,6 +1072,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.54  2001/12/16 21:48:41  winter
+# - 2.62 release
+#
 # Revision 1.53  2001/11/18 22:51:43  winter
 # - 2.61 release
 #
