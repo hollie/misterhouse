@@ -26,12 +26,11 @@ $v_top10_list2-> tie_items($v_top10_list, 1, 'Show');
 
 $state = said $v_top10_list;
 speak    app => 'top10', text => $f_top10_list, display => 0 if $state eq 'Read';
-display text => $f_top10_list, time => 300, font => 'Times 25 bold', geometry => '+0+0', width => 72, height => 24
-#display text => $f_top10_list, time => 300, font => 'biggest' if $state eq 'Show' or $state eq 'Read';
+respond  app => 'top10', text => $f_top10_list, time => 300, font => 'Times 25 bold', geometry => '+0+0', width => 72, height => 24
   if $state eq 'Show' or $state eq 'Read';
 
-if (said $v_top10_list eq 'Get') {
 
+if (said $v_top10_list eq 'Get') {
                                 # Do this only if we the file has not already been updated today and it is not empty
     if (-s $f_top10_html > 10 and
         time_date_stamp(6, $f_top10_html) eq time_date_stamp(6)) {
@@ -55,6 +54,7 @@ if (said $v_top10_list eq 'Get') {
             speak "Sorry, you must be logged onto the net";
         }
     }            
+    $leave_socket_open_passes = 200; # Tell web browser to wait for respond
 }
 
 if (done_now $p_top10_list) {

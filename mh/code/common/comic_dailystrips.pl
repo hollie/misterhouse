@@ -16,7 +16,7 @@ if ($state = said $dailystrip_update) {
     my $comics_dir = &html_alias('/comics');
     if ($state eq 'Update') {
         my $cmd = "mh -run dailystrips ";
-        $cmd .= "--defs ../web/comics/dailystrips/strips.def ";
+        $cmd .= "--defs $config_parms{html_dir}/comics/dailystrips/strips.def ";
         $cmd .= "--local --basedir $comics_dir --save --nostale ";
 #       $cmd .= "--titles MisterHouse --stripnav ";
         $cmd .= "--proxy $config_parms{proxy} " if $config_parms{proxy};

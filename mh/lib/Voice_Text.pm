@@ -274,7 +274,6 @@ sub speak_text {
                 $speak_pgm_arg .= " -postscript "     . $main::config_parms{vv_tts_postscript} if $main::config_parms{vv_tts_postscript};
                 $speak_pgm_arg .= " -playcmd "        . $main::config_parms{vv_tts_playcmd} if $main::config_parms{vv_tts_playcmd};
                 $speak_pgm_arg .= " -default_sound "  . $main::config_parms{vv_tts_default_sound} if $main::config_parms{vv_tts_default_sound};
-                $speak_pgm_arg .= " -default_volume " . $main::config_parms{sound_volume} if $main::config_parms{sound_volume};
                 if ($main::config_parms{vv_tts_pa_control} and $main::config_parms{xcmd_file}) {
                 	$speak_pgm_arg .= ' -pa_control -xcmd_file ' . $main::config_parms{xcmd_file};
                 	if ($parms{rooms}) {
@@ -748,6 +747,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.42  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.41  2002/12/02 04:55:19  winter
 # - 2.74 release
 #

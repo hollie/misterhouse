@@ -34,7 +34,7 @@ $t_memory_check = new Timer;
 
 my (@memory_leak_members, $memory_leak_index, $memory_leak_member);
 if ('Start' eq said $v_memory_check) {
-    speak 'Ok, starting memory check';
+    respond 'Ok, starting memory check';
     @memory_leak_members = grep !/(monitor_memory)|(tk_)/, sort keys %Run_Members;
     print_log "These members will be tested: @memory_leak_members";
     $memory_leak_index = 0;
@@ -42,7 +42,7 @@ if ('Start' eq said $v_memory_check) {
 }
 
 if ('Stop' eq said $v_memory_check) {
-    speak 'Memory leak check has been stopped';
+    respond 'Memory leak check has been stopped';
     unset $t_memory_check;
 }
 

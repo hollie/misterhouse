@@ -23,16 +23,11 @@ sub new {
 sub set {
     my ($self, $state, $set_by) = @_;
     return if &main::check_for_tied_filters($self, $state);
-    if ($state eq 'toggle') {
-        if ($$self{state} eq 'on') {
-            $state = 'off';
-        }
-        else {
-            $state = 'on';
-        }
-        &main::print_log("Toggling X10_Item object $self->{object_name} from $$self{state} to $state");
+    if ($state and $state eq 'toggle') {
+        $state = ($$self{state} eq 'on') ? 'off' : 'on';
+        &main::print_log("Toggling $self->{object_name} from $$self{state} to $state");
     }
-    &set_states_for_next_pass($self, $state, $set_by);
+    &set_states_for_next_pass($self, $state, $set_by, $main::Respond_Target); # Pass default target along
 }
 
 sub get_object_name {
@@ -40,6 +35,12 @@ sub get_object_name {
 }
 sub get_set_by {
     return $_[0]->{set_by};
+}
+sub set_target {
+    $_[0]->{target} = $_[1];
+}
+sub get_target {
+    return $_[0]->{target};
 }
 sub get_changed_by {            # Grandfathered old syntax
     return $_[0]->{set_by};
@@ -100,10 +101,13 @@ sub state {
 } 
 
 sub said {
+                                # Set global Respond_Target var, so user code doesn't have to bother
+    $main::Respond_Target = $_[0]->{target};
     return $_[0]->{said};
 }
 
 sub state_now {
+    $main::Respond_Target = $_[0]->{target};
     return $_[0]->{state_now};
 }
 sub state_changed {
@@ -233,7 +237,7 @@ sub get_states {
 }
 
 sub set_states_for_next_pass {
-    my ($ref, $state, $set_by) = @_;
+    my ($ref, $state, $set_by, $target) = @_;
     push @states_from_previous_pass, $ref unless $ref->{state_next_pass} and @{$ref->{state_next_pass}};
     push @{$ref->{state_next_pass}}, $state;
 
@@ -241,6 +245,8 @@ sub set_states_for_next_pass {
                                 #  - Default to self if not specified ... naw, not sure why we would need it set to self??
 #   $ref->{set_by} = ($set_by) ? $set_by : $ref;
     $ref->{set_by} = $set_by;
+    $target = $set_by unless defined $target;
+    $ref->{target} = $target;
 
                                 # If set by another object, find/use object name
     my $set_by_type = ref($set_by);
@@ -254,7 +260,9 @@ sub set_states_for_next_pass {
                                 # Avoid -w unintialized variable errors
     $state  = '' unless defined $state;
     $set_by = '' unless defined $set_by;
-    unshift(@{$$ref{state_log}}, "$main::Time_Date $state set_by=$set_by") if $state or (ref $ref) eq 'Voice_Cmd';
+    $target = '' unless defined $target;
+    unshift(@{$$ref{state_log}}, "$main::Time_Date $state set_by=$set_by target=$target")
+      if $state or (ref $ref) eq 'Voice_Cmd';
     pop @{$$ref{state_log}} if $$ref{state_log} and @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
 
 }
@@ -414,6 +422,9 @@ sub get_web_style {
 
 #
 # $Log$
+# Revision 1.24  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.23  2002/11/10 01:59:57  winter
 # - 2.73 release
 #
@@ -481,5 +492,16 @@ sub get_web_style {
 # - created
 #
 #
+
+# Debug ... will not see when using fast POSIX::_exit in bin/mh
+
+#sub DESTROY {
+#    my ($self) = @_;
+#    print "Destorying object $self, name=$self->{object_name}\n";
+#}
+#END {
+#    print "This is the end of Generic_Item\n";
+#}
+
 
 1;

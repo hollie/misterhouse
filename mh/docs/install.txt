@@ -104,37 +104,45 @@ Windows Detailed Install Instructions
     You can skip this step if you downloaded the compiled version of Mister
     House.
 
-    Download and install Perl version 5.005_02 (or higher) from
-    http://www.activestate.com/ActivePerl . The 5 MB zip file installs into
-    about 15 MB of disk space. Currently, MisterHouse with Perl 5.6 has a
-    memory leak problem, so you will probably want to use the older 5.005
-    build 522, available here:
-    http://activestate.com/download/ActivePerl/APi522e.exe .
+    Download and install Perl version 5.8 (or higher) from
+    http://www.activestate.com/ActivePerl . The 12 MB zip file installs into
+    about 43 MB of disk space. The also have older vesions older versions
+    available while will work, but 5.6 had a memory leak problem and 5.0 is,
+    well, kind of old :)
 
-    After installing the core Perl package, you need to install the Tk
-    package. mh will run without Tk, but the Tk gui interface gives it more
-    function. Activestate has provided ppm (Perl Package Manager), a nifty
-    new way of automatically downloading and installing packages. Do this by
-    logging on to the internet and typing:
+    After installing the core Perl package, you will likely want to install
+    a few optional packages. mh will run without them, but they are easy to
+    install and give it more function. Activestate has provided ppm (Perl
+    Package Manager), a nifty way of automatically downloading and
+    installing packages. Unfortunatly, the 3 packages we need are not yet
+    avaliable from ActiveState for perl version 5.8, but Randy Kobes has
+    kindly made them available at his site. You can install them with the
+    following:
 
-       cd \perl\bin (modify to match your directory)
-       perl ppm.bat install Win32-API  (ppm.bat may be ppm or ppm.pl in older perls)
-       perl ppm.bat install Tk
-       perl ppm.bat install Tk-JPEG
-       perl ppm.bat install DB_File
-       perl ppm.bat install GD
+       > cd \perl\bin (modify to match your directory)
+       > ppm
+       ppm > repository add http://theoryx5.uwinnipeg.ca/cgi-bin/ppmserver?urn:/PPMServer58
+       ppm> install GD
+       ppm> install DB_File
+       ppm> install Tk-JPEG
 
-    The Tk package is about 2 MB, so it will take a while. If you are behind
-    a www proxy firewall, try setting the environment variable
-    http_proxy=http://proxy-server:port If you have problems installing the
-    files with ppm over the internet, you can download the files and install
-    them from local storage. For example, to install the Tk package:
+    If the DB_File post-install script doesn't run to install the included
+    libdb.dll, you can extract the dll from
+    http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz and copy it to a
+    dir in your path.
+
+    If you are behind a www proxy firewall, try setting the environment
+    variable http_proxy=http://proxy-server:port If you have problems
+    installing the files with ppm over the internet, you can download the
+    files and install them from local storage. For example, to install the
+    Tk package:
 
       download and unzip Tk.zip from http://www.activestate.com/PPMPackages/zips to c:\temp
       ppm install c:\temp\Tk.ppd 
 
     All other required packages should either be in the mh distribution or
-    is now installed by default in the standard Activestate distribution.
+    is now installed by default in the standard Activestate distribution,
+    including the Tk module (used to be seperate).
 
   Windows Step 3, Download and Install the Speech Engines
 

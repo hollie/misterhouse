@@ -39,9 +39,10 @@ if (done_now $p_onthisday or said $v_onthisday eq 'Show') {
 
     my $html2 = "<html><body><table>\n" . $html;
     my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html2));
+    $text =~ s/.+?(on this date in)/$1/is;
     file_write($f_onthisday_html2, $html2);
     file_write($f_onthisday, $text);
-    display $text;
+    respond $text;
 }
 
 

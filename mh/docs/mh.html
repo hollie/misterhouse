@@ -1436,6 +1436,51 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
 mh/code/examples/socket_test*.pl, 
 mh/code/bruce/monitor_shoutcast.pl, bruce/wxserver_server.pl, and bruce/monitor_router.pl</P>
 <P></P>
+<DT><STRONG><A NAME="item_Text_Cmd">Text_Cmd</A></STRONG><BR>
+<DD>
+Use this object if you want to fire events based on text entered.  Unlike the Voice_Cmd item, you can
+use Text_Cmd to capture arbitrary text, using a regular expression.
+<P>Like Voice_Cmd items, all text passed to the run_voice_cmd and process_external_command functions
+will be tested against all Text_Cmd items.  All items that match will fire their state_now methods.</P>
+<PRE>
+  Methods:</PRE>
+<PRE>
+     new($re_string);</PRE>
+<PRE>
+       $re_string is any valid regular expresion.  Use the () grouping to 
+       pick the data that will be returned with the state_now method.</PRE>
+<PRE>
+     state      : Returns the text from the () match in the $re_string.  
+                  If there was not () grouping, it returns 1.
+                  If there is more than one () grouping, the resulting 
+                  matches are concatonated together with | as a separator.</PRE>
+<PRE>
+     state_now  : Returns the state that was received or sent in the current pass.</PRE>
+<PRE>
+     Like most items, this inherits all Generic_Item methods.</PRE>
+<PRE>
+  Examples:
+</PRE>
+<PRE>
+
+                    # Create a widget for inputing text commands
+   $Text_Input = new Generic_Item;
+   &amp;tk_entry(&quot;Text Input&quot;, $Text_Input, &quot;tcmd1&quot;, $tcmd1);</PRE>
+<PRE>
+   if ($state = state_now $Text_Input) {
+      print_log &quot;You typed $state&quot;;
+      run_voice_cmd($state);
+   }
+                    # Create commands
+   $tcmd1 = new Text_Cmd('hi (a|b|c)');
+   $tcmd2 = new Text_Cmd('bye *(.*)');
+   $tcmd3 = new Text_Cmd('(hi.*) (bye.*)');</PRE>
+<PRE>
+                    # Fire events if the commands match text input
+   $tcmd1-&gt;tie_event('print_log &quot;tcmd1 state: $state&quot;');
+   $tcmd2-&gt;tie_event('print_log &quot;tcmd2 state: $state&quot;');
+   print_log &quot;tcmd3 state: $state&quot;' if $state = $state_now $tcmd3;</PRE>
+<P></P>
 <DT><STRONG><A NAME="item_Timer">Timer</A></STRONG><BR>
 <DD>
 The Timer object can be used to run an action one or more times, at a specified interval.
@@ -1946,6 +1991,16 @@ Appends data into a log file.  Use file_write to write over a file.
    logit(&quot;$Pgm_Root/data/logs/wx200.$Year_Month_Now.log&quot;,  $data, 0);
    logit(&quot;$Pgm_Root/data/phone/logs/callerid.$Year_Month_Now.log&quot;, &quot;$cid_number $cid_name&quot;);</PRE>
 <P></P>
+<DT><STRONG><A NAME="item_mht_item_add">mht_item_add</A></STRONG><BR>
+<DD>
+<DT><STRONG><A NAME="item_mht_item_delete">mht_item_delete</A></STRONG><BR>
+<DD>
+<DT><STRONG><A NAME="item_mht_item_copy">mht_item_copy</A></STRONG><BR>
+<DD>
+<DT><STRONG><A NAME="item_mht_item_write">mht_item_write</A></STRONG><BR>
+<DD>
+These functions can be used to manipulate mht files.
+<P></P>
 <DT><STRONG><A NAME="item_play">play</A></STRONG><BR>
 <DD>
 Use this to play wave or system sound files.  There are 2 modes of calling it:
@@ -2129,6 +2184,51 @@ wait for the window to appear, then return the window handle.</P>
       my $keys = '\\alt\\te\\ret\\';     # For Outlook
       &amp;SendKeys($window, $keys, 1, 500);
    }</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_respond">respond</A></STRONG><BR>
+<DD>
+This function can be used to send the resulting text of a command or query to a specified target.  
+By default, valid targets are:
+<PRE>
+  display -&gt; Text is passed to the display function.
+  email   -&gt; Text is passed to net_mail_send
+  im      -&gt; Text is passed to net_im_send
+  log     -&gt; Text is passed to print_log  
+  speak   -&gt; Text is passed to speak
+  tk      -&gt; Text is passed to speak (or display if long)
+  web     -&gt; Text is passed to the web browser.</PRE>
+<P>All parms given to respond are passed to the target function.  So, for example, you can specify a specific
+email account using the to parm, like this:</P>
+<PRE>
+  respond target =&gt; 'email', to =&gt; 'joe@cops.com', text =&gt; 'Alarm just went off';</PRE>
+<P>or as with the speak and display functions, you can specify your parms in-line, like this:</P>
+<PRE>
+  respond 'target=im to=joe@jabber.com pgm=jabber Alarm just went off';
+</PRE>
+<PRE>
+
+The default respond target it whatever set_by is, so for example, if a command is run from an im client,
+text sent to any respond called by that command will be sent only to that im client.
+You can also specify multiple targets.  For example:</PRE>
+<PRE>
+  respond 'target=speak,im,email app=notice  The fire alarm just went off';</PRE>
+<P>In this case, the app parm is only recognized by the speak function, and would be ignored
+by the im and email functions.</P>
+<P>When called with no target, the default is to speak, or display if the text is long.</P>
+<P>You can specify new targets, or override the default target reponse of the above default targets, by 
+creating respond_xyz functions in your user code.  So for example, if we had callerid code with this:</P>
+<PRE>
+  $caller = &quot;Call from $caller.  Call is from $caller.&quot;;
+  respond(&quot;app=phone target=callerid $caller&quot;);</PRE>
+<P>You could add this function anywhere in your user code to change how it is spoken and to forward
+the call to your im client:</P>
+<PRE>
+  sub respond_netcallerid {
+      my (%parms) = @_;
+      $parms{text} =~ s/ ?\.[^\.]*$/\./;  # Drop the extra 'call from'
+      &amp;net_im_send(pgm =&gt; &quot;AOL', text =&gt; $parms{text});
+      &amp;speak(&quot;app=phone $parms{text}&quot;);
+  }</PRE>
 <P></P>
 <DT><STRONG><A NAME="item_speak">speak</A></STRONG><BR>
 <DD>
@@ -2361,7 +2461,7 @@ these functions will return a true value for every pass that they are true.
 <P></P>
 <DT><STRONG><A NAME="item_time_now">time_now</A></STRONG><BR>
 <DD>
-time_now is evaluate to true for the 1 pass that matches the specified time/date.  Date is optional.
+time_now is evaluate to true for the 1 pass that matches the specified date time.  Date is optional.
 You can specify + or - offset, in hours:minutes:seconds.  Time can include AM/PM or be in 24 hour 
 format.
 <P>A optional  2nd 'second' parameter can be used to specify which $Second it 

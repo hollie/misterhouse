@@ -5,6 +5,8 @@
 
 use strict;
 
+#no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
+
 use vars qw(%Http %Cookies $Authorized %Included_HTML);
 $Authorized = 0;
 
@@ -172,6 +174,9 @@ sub http_process_request {
         elsif ($Http{'User-Agent'} =~ /Audrey/i) {
             $Http{'User-Agent'}    =  'Audrey';
         }
+        elsif ($Http{'User-Agent'} =~ /Photon/i) {
+            $Http{'User-Agent'}    =  'Photon';
+        }
         elsif ($Http{'User-Agent'} =~ /MSIE/i) {
             $Http{'User-Agent'}    =  'MSIE';
         }
@@ -180,9 +185,6 @@ sub http_process_request {
         }
         elsif ($Http{'User-Agent'} =~ /Mozilla/i) {
             $Http{'User-Agent'}    =  'Mozilla';
-        }
-        elsif ($Http{'User-Agent'} =~ /Photon/i) {
-            $Http{'User-Agent'}    =  'Photon';
         }
     }
     else {
@@ -565,7 +567,7 @@ sub html_unauthorized {
     }
     else {
 #       my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
-        my $msg .= "<br><B>Unauthorized Mode</B>";
+        my $msg .= &html_header ("<b>Unauthorized Mode</b>&nbsp;&nbsp;&nbsp;&nbsp;" . &html_authorized);
         $msg .= "<li>" . $action . "</li>";
         $msg .= "<br>Status: <b><a href=SET_PASSWORD yet>Not Logged In</a></b><br>";
         return $msg;
@@ -727,6 +729,9 @@ sub html_mh_generated {
     elsif ($get_req =~ /^print_log(.html)?$/) {
         return (&html_print_log);
     }
+    elsif ($get_req =~ /^error_log(.html)?$/) {
+        return (&html_error_log);
+    }
     elsif ($get_req =~ /^category$/) {
         return (&html_category, $main::config_parms{'html_style_category' . $Http{format}});
     }
@@ -810,7 +815,7 @@ sub html_response {
             $leave_socket_open_action = qq|&html_last_response('$Http{"User-Agent"}', $1)|;
         }
         elsif ($h_response eq 'last_displayed') {
-            $leave_socket_open_passes = 3;
+            $leave_socket_open_passes = 200;
             $leave_socket_open_action = "&html_last_displayed";
         }
         elsif ($h_response eq 'last_spoken') {
@@ -849,7 +854,7 @@ sub html_response {
                                 # Allow for files to be modified on the fly, so wait a pass
                                 #  ... naw, use &file_read if you need to wait (e.g. barcode_scan.shtml)
 #       elsif (-e ($file = "$main::config_parms{'html_dir' . $Http{format}}/$h_response")) {
-#           $leave_socket_open_passes = 3;
+#           $leave_socket_open_passes = 200;
 #           &html_file($socket, $file, '', 1);
 #           $leave_socket_open_action = "&html_file(\$Socket_Ports{http}{socka}, '$file', '', 1)";
 #           $leave_socket_open_action = "file_read '$file')";
@@ -1007,6 +1012,73 @@ sub html_print_log {
         $h_response = "<h4>Not Logged In</h4>";
     }
     return "$h_response\n", $main::config_parms{'html_style_print' . $Http{format}};
+}
+
+
+sub html_error_log {
+
+    my $h_response;
+    if ($Authorized or $main::config_parms{password_protect} !~ /errorlog/i) {
+        $h_response .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{'html_refresh_rate' . $Http{format}}; url=error_log">\n] if $main::config_parms{'html_refresh_rate' . $Http{format}};
+        $h_response .= "<a href=error_log>Refresh Error Log</a>\n";
+        my @last_printed = &main::error_log_last($main::config_parms{max_log_entries});
+        for my $text (@last_printed) {
+            $text =~ s/\n/\n<br>/g;
+            $h_response .= "<li>$text\n";
+        }
+    }
+    else {
+        $h_response = "<h4>Not Logged In</h4>";
+    }
+    return "$h_response\n", $main::config_parms{'html_style_error' . $Http{format}};
+}
+
+                # These html_form functions are used by mh/web/bin/*.pl scrips
+sub html_form_input_set_func {
+    my ($func, $resp, $var1, $var2) = @_;
+    my $html .= qq|<form action='/bin/set_func.pl' method=post><td>\n|;
+    $html .= qq|<input name='func' value="$func"  type='hidden'>\n|;
+    $html .= qq|<input name='resp' value="$resp"  type='hidden'>\n|;
+    $html .= qq|<input name='var1' value="$var1"  type='hidden'>\n|;
+    my $size = 4 + length $var2;
+    $size = 10 if $size < 10;
+    $size = 30 if $size > 30;
+    $html .= qq|<input name='var2' value="$var2" size=$size>\n|;
+    $html .= qq|</td></form>\n|;
+    return $html;
+}
+
+sub html_form_input_set_var {
+    my ($var, $resp, $default) = @_;
+    my $html .= qq|<form action='/bin/set_var.pl' method=post><td>\n|;
+    $html .= qq|<input name='var'   value="$var"   type='hidden'>\n|;
+    $html .= qq|<input name='resp'  value="$resp"  type='hidden'>\n|;
+    $html .= qq|<input name='value' value="$default" size=30>\n|;
+    $html .= qq|</td></form>\n|;
+    return $html;
+}
+#       $html .= "<td><a href=/bin/set_var.pl?\$triggers{'$name2'}{trigger}&/bin/triggers.pl>$trigger</a></td>\n";
+
+sub html_form_select {
+    my ($var, $onchange, $default, @values) = @_;
+    $onchange = ($onchange) ? "onChange='form.submit()'" : '';
+    my $form .= qq|<select name='$var' $onchange>\n|;
+    for my $value (@values) {
+        my $selected = ($value eq $default) ? 'selected' : '';
+        $form .= qq|<option value='$value' $selected>$value</option>\n|;
+    }
+    $form .= "</select>\n";
+    return $form;
+}
+
+
+sub html_form_select_set_var {
+    my ($var, $default, @values) = @_;
+    my $html = "<form action=/bin/set_var.pl method=post><td>\n";
+    $html .= qq|<input type='hidden' name='var'  value="$var">\n|;
+    $html .= qq|<input type='hidden' name='resp' value='/bin/triggers.pl'>\n|;
+    $html .= &html_form_select('value', 1, $default, @values) . "</td></form>\n";
+    return $html;
 }
 
 sub html_file {
@@ -1221,6 +1293,7 @@ sub html_page {
 
                                 # Allow for fully formated html
     if ($body =~ /^\s*<html/i) {
+        my $length = length $body;
 #Cache-control: max-age=1000000
     return <<eof;
 HTTP/1.0 200 OK
@@ -1228,6 +1301,7 @@ Server: MisterHouse
 Date: $date
 Content-Type: text/html
 Cache-control: no-cache
+Content-Length: $length
 
 $body
 eof
@@ -1250,14 +1324,8 @@ eof
     $title  = '' unless $title;  # Avoid -w uninitialized value msg
     $title = "<h3>$title</h3>" if $title;
 #Cache-control: max-age=1000000
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/html
-Cache-control: no-cache
-$Cookie
-$frame
 
+my $html = "
 $script
 <HTML>
 <HEAD>
@@ -1272,6 +1340,20 @@ $body
 
 </BODY>
 </HTML>
+";
+
+                   # Not sure how important length is, but pretty cheap and easy to do
+    my $length = length $body;
+    return <<eof;
+HTTP/1.0 200 OK
+Server: MisterHouse
+Content-Type: text/html
+Cache-control: no-cache
+Content-Length: $length
+$Cookie
+$frame
+
+$html
 eof
 }
 
@@ -1433,12 +1515,54 @@ sub html_find_icon_image {
     return "/graphics/$icon";
 }
 
+#  button_action is used by mh/web/bin/menu.pl.  Similar to web/bin/button_action.pl
+#  but the function form allows for a more complicated referer string.
+sub button_action {
+    my ($args) = @_;
+    my ($object_name, $state, $referer, $xy) = split ',', $args;
+	 
+    my ($x, $y) = $xy =~ /(\d+)\|(\d+)/;
+    #   print "dbx4 on=$object_name s=$state r=$referer xy=$xy xy=$x,$y\n";
+	     
+                                # Do not dim the dishwasher :)
+    unless (eval qq|$object_name->isa('X10_Appliance')|) {
+        $state = 'dim'      if $x < 30;   # Left  side of image
+        $state = 'brighten' if $x > 70;  # Right side of image
+    }
+
+    eval qq|$object_name->set("$state")|;
+    print "smart_button_action.pl eval error: $@\n" if $@;
+						     
+    $referer =~ s/ /%20/g;
+    $referer =~ s/&&/&/g;
+    return &http_redirect($referer);
+}
+
+sub html_header {
+    my ($text) = @_;
+    $text = 'Generic Header' unless $text;
+		 
+    my $color = $config_parms{html_color_header};
+    $color = '#9999cc' unless $color;
+			 
+return qq[
+<link type="text/css" href="default.css" rel=stylesheet>
+<table width=100% bgcolor='$color'>
+<td><center>
+<font size=3 color="black"><b>
+$text 
+</b></font></center>
+</td>
+</table><br>
+];
+}
+
 sub html_list {
 
     my($webname_or_object_type, $auto_refresh) = @_;
     my ($object, @object_list, $num, $h_list);
     
-    $h_list .= "<b>$webname_or_object_type</b> &nbsp &nbsp &nbsp &nbsp " . &html_authorized . "\n";
+    $h_list .= &html_header ("<b>Browse $webname_or_object_type</b>&nbsp;&nbsp;&nbsp;&nbsp;" . &html_authorized);
     $h_list =~ s/group=\$//;     # Drop the group=$ prefix on group lists
 
     $h_list .= qq[<!-- html_list -->\n];
@@ -2081,7 +2205,7 @@ sub vars_save {
         my $value = ($Save{$key}) ? $Save{$key} : '';
         push @table_items, "<td align='left'><b>$key:</b> $value</td>";
     }
-    return &table_it(2, 1, 1, @table_items);
+    return &html_header("List Save Variables") . &table_it(2, 1, 1, @table_items);
 }
 
 sub vars_global {
@@ -2095,6 +2219,7 @@ sub vars_global {
         next if $key !~ /^[A-Z][a-z]/ or $key =~ /\:/;
         next if $key eq 'Save' or $key eq 'Tk_objects'; # Covered elsewhere
         next if $key eq 'Socket_Ports';
+        next if $key eq 'User_Code';
 
         no strict 'refs';
         if (defined ${$key}) {
@@ -2114,7 +2239,7 @@ sub vars_global {
             }
         }
     }
-    return &table_it(2, 1, 1, @table_items);
+    return &html_header("List Global Variables") . &table_it(2, 1, 1, @table_items);
 }
 
 
@@ -2272,7 +2397,9 @@ sub widgets {
             push @table_items, &widget_checkbutton($search, @data);
         }
     }
-    return &table_it($cols, 0, 0, @table_items);
+                               # List a header unless we are listing for a category, which already has a header
+    my $header = ($request_category) ? ' ' : &html_header("List $request_type widgets");
+    return $header . &table_it($cols, 0, 0, @table_items);
 }
 
 sub widget_label {
@@ -2501,6 +2628,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.75  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.74  2002/12/02 04:55:20  winter
 # - 2.74 release
 #

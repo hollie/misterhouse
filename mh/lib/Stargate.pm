@@ -21,7 +21,7 @@
 #    RO Xpander-3               0x0c
 #    RO Xpander-4               0x0d 
 
-
+use Telephony_Item;
 use strict;
 
 my (@stargatedigitalinput_object_list, @stargatevariable_object_list, @stargateflag_object_list, @stargaterelay_object_list);
@@ -101,7 +101,7 @@ sub UserCodePreHook
         my ($data);
         if ($data = $serial_port->input) 
         {
-#		print "SG:>$data<\n";
+		print "SG:>$data<\n";
             $data =~ s/[\r\n]/\t/g;
             print "db Stargate serial data1=$data...\n" if lc($main::config_parms{debug}) eq 'stargate';
 
@@ -129,6 +129,7 @@ sub UserCodePreHook
                 ParseEchoCommand($1) if $record =~ /(\!\!\d\d\/.*)/;
                 next if $record =~ /(\!\!\d\d\/.*)/;
 
+#		&::print_log("Caller1:$record:");
                 ParseCallerId($1) if $last_caller_id and $record =~ /(^\d{7,10}.*)/;
                 # When we get here it's time to clear the caller id flag
                 $last_caller_id = 0;
@@ -359,42 +360,34 @@ sub ParseTelephoneData
     my ($subcommand, $data) = @_;
 	#print "Parse HERE!$subcommand:$data\n";	
 
-    if ($subcommand eq 15) #VoiceMail Notification ????
-    {
-	if($data <= 38 )
-	{
-	   SetTelephoneState('CO','new message');
-	   SetTelephoneState('ICM','new message');
-	}
-    }
     if($subcommand eq 0x05) #ICM DTMF
     {
         if($data <= 0x09)
         {
-            SetTelephoneState('ICM',"$data");
+            SetTelephoneState('ICM',"dtmf::$data");
         }
         elsif($data eq 0x0b)
         {
-            SetTelephoneState('ICM',"*");
+            SetTelephoneState('ICM',"dtmf::*");
         }
         elsif($data eq 0x0c)
         {
-            SetTelephoneState('ICM',"#");
+            SetTelephoneState('ICM',"dtmf::#");
         }
     }
-    if($subcommand eq 0x06) #CO DTMF
+    elsif($subcommand eq 0x06) #CO DTMF
     {
         if($data <= 0x09)
         {
-            SetTelephoneState('CO',"$data");
+            SetTelephoneState('CO',"dtmf::$data");
         }
         elsif($data eq 0x0b)
         {
-            SetTelephoneState('CO',"*");
+            SetTelephoneState('CO',"dtmf::*");
         }
         elsif($data eq 0x0c)
         {
-            SetTelephoneState('CO',"#");
+            SetTelephoneState('CO',"dtmf::#");
         }
     }
     elsif($subcommand eq 0x01) #ICM Hookstate
@@ -420,11 +413,11 @@ sub ParseTelephoneData
         }
         elsif($data >= 0x40)
         {
-            SetTelephoneState('CO',"ring:".($data - 0x40));
+            SetTelephoneState('CO',"ring::".($data - 0x40));
         }
         else
         {
-            print "Stargate Telephone unknown subcommand:$subcommand data:$data\n";
+            &::print_log("Stargate Telephone unknown subcommand:$subcommand data:$data\n");
         }
     }
     elsif($subcommand eq 0x0f)
@@ -435,12 +428,12 @@ sub ParseTelephoneData
         }
         else
         {
-            print "Stargate Telephone unknown subcommand:$subcommand data:$data\n";
+            &::print_log("Stargate Telephone unknown subcommand:$subcommand data:$data\n");
         }
     }
     else
     {
-        ;
+            &::print_log("Stargate Telephone unknown subcommand:$subcommand data:$data\n");
     }
 
 }
@@ -449,8 +442,9 @@ sub ParseCallerId
 {
     my ($data) = @_;
 
-    print "Stargate CallerId=$data\n";
-    SetTelephoneState('CO',"callerid::" . $data);
+    &::print_log( "Stargate CallerId=$data\n");
+    SetTelephoneState('CO',"callerid::N::" . $data);
+
 }
 
 sub SetTelephoneState
@@ -462,8 +456,8 @@ sub SetTelephoneState
     {
 	next unless lc $current_object->{address} eq lc $address;
 #        next unless $current_object->{address} == $address;
-
-	$current_object->set($state);
+	
+		$current_object->set($state);
         my $newstate;
         $newstate = $state if $current_object->state ne $state;
 
@@ -909,6 +903,58 @@ sub read_flags
     }
 }
 
+sub read_voicemail_count
+{
+	my ($l_box) = @_;
+	my $serial_port=$::Serial_Ports{Stargate}{object};
+	my %count;
+
+	$l_box=sprintf("%02d",$l_box);
+	&::print_log("VM count :$l_box:");
+	if (7 == ($temp = $serial_port->write("##%5c$l_box\r")) or 1) 
+	{
+	        select undef, undef, undef, 100 / 1000; # Give it a chance to respond
+		#5c0301\r\n  3 old messages 1 new
+		my $data = $serial_port->input;
+		$data =~/###5c(\d\d)(\d\d)/i;
+		$count{new}=sprintf("%d",$2);
+		$count{old}=sprintf("%d",$1);
+		return \%count;
+	}
+}
+
+sub voicemail
+{
+	my ($l_box,$l_command,$l_output) = @_;
+
+	$l_box = sprintf("%02d",$l_box);
+	if (! defined $l_output or !defined $l_box)
+	{
+		&::print_log("Please specify box and output device (lo,co,ic)");
+		return;
+	}
+
+	my $serial_port=$::Serial_Ports{Stargate}{object};
+	my %table_output = qw(lo 02 co 04 ic 08);
+	my %table_commands = qw(first 01 next 02 repeat 04 stop 06 all 07 allnew 08 cid 05 delete 03 back 09 forward 0a);
+	my $l_string;
+
+	&::print_log("Play :$l_command:"); 
+	$l_string = "##%94" . $table_commands{$l_command} . $l_box . "00" . $table_output{$l_output} . "\r";
+	if (7 == ($temp = $serial_port->write($l_string)) or 1) 
+	{
+#	        select undef, undef, undef, 100 / 1000; # Give it a chance to respond
+#		#5c0301\r\n  3 old messages 1 new
+#		my $data = $serial_port->input;
+#		$data =~/###5c(\d\d)(\d\d)/i;
+#		$count{new}=sprintf("%d",$2);
+#		$count{old}=sprintf("%d",$1);
+#		return \%count;
+	}
+	
+}
+
+
 sub read_variables 
 {
     my ($serial_port) = @_;
@@ -1058,6 +1104,51 @@ sub send_telephone
 
     my $sent = $serial_port->write($phonedata . "\r");
     print "Bad Stargate telephone transmition sent=$sent\n" unless $sent > 0;
+}
+
+sub send_ascii
+{
+	my ($data) = @_;
+	my $serial_port;
+
+	$serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
+		
+}
+
+sub set_audio
+{
+	my ( $p_input,$p_output,$p_state) = @_;
+	my $serial_port;
+
+    $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
+
+	my %table_input = qw(li 02 ic 03 co 04);
+	my %table_output = qw(lo 02 co 04 ic 08);
+	my %table_state = qw(off 00 on 01);
+
+##%5d010402 CoLoConnect
+##%5d000402 CoLoDisconnect
+##%5d010302 ImLoConnect
+##%5d000302 ImLoDisConnect
+##%5d010204 LiCoConnect
+##%5d000204 LiCoDisConnect
+##%5d010208 LiImConnect
+##%5d000208 LiImDisConnect
+
+    my ($command) = "##%5d". $table_state{lc($p_state)} . 
+			$table_input{lc($p_input)} .
+			$table_output{lc($p_output)} . "\r";
+#        print "Stargate Audio Input: $command\n";
+    if (8 == $serial_port->write($command)) 
+    {
+  #      print "Stargate Audio Input: $p_input Output: $p_output State: $p_state\n";
+        return 1;
+    }
+    else 
+    {
+ #       print "BAD Stargate Audio Input: $p_input Output: $p_output State: $p_state\n";
+        return 0;
+    }
 }
 
 
@@ -1390,8 +1481,8 @@ sub SendTheromostatCommand
 # Item object version (this lets us use object links and events)
 #
 package StargateTelephone;
-@StargateTelephone::ISA = ('Generic_Item');
-
+#@StargateTelephone::ISA = ('Generic_Item');
+@StargateTelephone::ISA = ('Telephony_Item');
 
 sub new 
 {
@@ -1402,7 +1493,7 @@ sub new
     bless $self, $class;
 
     push(@stargatetelephone_object_list, $self);
-
+	$self->address(lc $address);
     return $self;
 }
 
@@ -1411,9 +1502,119 @@ sub set
     my ($self, $state) = @_;
     # Set
     # Clear
-#	&::print_log("SGTelephoneclass call $$self{line} $state");
-        $self->set_states_for_next_pass($state);
+	&::print_log("SGTelephoneclass call $$self{line} ,$state,");
+	if ($state =~ /^callerid/i )
+	{
+		$state =~ /callerid::([a-z,A-Z]*)::([0-9]*)\s*([a-z,A-Z,\s]*)\s*([0-9]*)/;
+		$self->cid_name($3);
+		$self->cid_number($2);
+		$self->cid_type($1);
+		$state='cid';
+	}
+	elsif ($state =~ /^ring/i)
+	{
+		$state =~ /ring::([0-9]*)/;
+		$self->ring_count($1);
+		$state = 'ring';
+	}		
+	elsif ($state =~ /^dtmf/i)		
+	{
+		my $temp_digit;
+		$temp_digit =~ /dtmf::([0-9,*,#,+,^,])/i;
+		$self->SUPER::dtmf($temp_digit);
+		$state = 'dtmf';
+	}
+	elsif ($state =~ /.*hook/i)
+	{
+		if ($state eq 'onhook')
+		{
+			$self->SUPER::hook('on');
+		}
+		else
+		{
+			$self->SUPER::hook('off');
+		}
+		$state = 'hook';
+	}
+	$self->SUPER::set($state);
+#        $self->set_states_for_next_pass($state);
     return;
+}
+
+sub patch
+{
+	my ($self,$p_state)= @_;
+	
+	if ($p_state eq 'on')
+	{
+		&Stargate::set_audio('li',$self->address(),'on');
+		&Stargate::set_audio($self->address(),'lo','on');
+	}
+	elsif (defined $p_state) 
+	{
+		&Stargate::set_audio('li',$self->address(),'off');
+		&Stargate::set_audio($self->address(),'lo','off');
+	}
+	return $self->SUPER::patch($p_state);
+}
+
+sub play
+{
+	my ($self,$p_file) = @_;
+
+	&Stargate::set_audio('li',$self->address(),'on');
+	&::play ($p_file);
+	return $self->SUPER::play($p_file);
+}
+
+sub record
+{
+	my ($self,$p_file,$p_timeout) = @_;
+
+	&Stargate::set_audio($self->address(),'lo','on');
+#	&::rec ($p_file);  ????
+	return $self->SUPER::rec($p_file,$p_timeout);
+}
+
+sub speak
+{
+	my ($self,%p_phrase) = @_;
+	$self->patch('on');
+	&::speak(%p_phrase);
+#	Is there a way to know when speaking is finished?
+#	$self->patch('off');
+	return $self->SUPER::speak(%p_phrase);	
+
+}
+sub dtmf
+{
+	my ($self,$p_dtmf) = @_;
+	
+	&Stargate::send_telephone($p_dtmf) if defined $p_dtmf;
+	return $self->SUPER::dtmf($p_dtmf);	
+}
+
+sub dtmf_sequence
+{
+	my ($self,$p_dtmf_seq) = @_;
+	
+	&Stargate::send_telephone($p_dtmf_seq) if defined $p_dtmf_seq;		
+	return $self->SUPER::dtmf_sequence($p_dtmf_seq);	
+}
+
+sub hook
+{
+	my ($self,$p_state) = @_;
+	
+	if ($p_state eq 'on')
+	{
+		&Stargate::send_telephone('+');
+	}
+	elsif (defined $p_state)
+	{
+		&Stargate::send_telephone('^');
+	}
+	return $self->SUPER::hook($p_state);
 }
 
 1;
@@ -1449,6 +1650,59 @@ sub set
 }
 
 1;
+
+package StargateVoicemail;
+@StargateVoicemail::ISA = ('Generic_Item');
+
+sub new 
+{
+    my ($class, $address, $serial_port) = @_;
+    $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
+
+    my $self = {address => $address, serial_port => $serial_port};
+    bless $self, $class;
+
+#    push(@stargatevariable_object_list, $self);
+
+    return $self;
+}
+
+sub set 
+{
+    my ($self, $state) = @_;
+    
+    if($state < 0 or $state > 255)
+    {
+        print "StargateVariable invalid state:$state set (must be 0-255)\n";
+        return;
+    }
+
+    # The Stargate scripts supports:
+    # Load
+    # Clear
+    # Increment
+    # Decrement
+    #
+    # Our set will only handle a specific value for now (e.g. do a load)
+
+    my ($command) = "##%26" . sprintf("%02x%02x01", $self->{address}, $state) . "\r";
+    
+    #print "Stargate variable command:$command\n";
+
+    if (length($command) == $self->{serial_port}->write($command))
+    {
+        $self->set_states_for_next_pass($state);
+        return 1;
+    }
+    else 
+    {
+        print "StargateVariable serial write command failed:$command\n";
+        return 0;
+    }
+}
+
+1;
+
 
 # For reference on dealing with bits/bytes/strings:
 #

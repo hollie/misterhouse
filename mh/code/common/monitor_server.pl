@@ -1,14 +1,10 @@
 # Category = MisterHouse
-
-
 #@  Monitor the hits to the MisterHouse Web server
 
 #  - If you want to monitor a Apache server, use mh/bin/monitor_weblog
 #  - If you want to monitor a linux ipchain log data, monitor_ipchainlog.pl
 #  - If you want to monitor router traffic, use mh/code/bruce/monitor_router.pl
 #
-
-#&tk_radiobutton('Internet Speak', \$config_parms{internet_speak_flag}, ['none', 'local', 'all']);
 
 $http_server = new  Socket_Item(undef, undef, 'http');
 
@@ -23,11 +19,12 @@ if (my $data = said $http_server) {
             $request =~ /^tk/ or $request =~ /^widgets/) {
 
         my $client_ip = $main::Socket_Ports{http}{client_ip_address};
+#      print "web request from $client_ip: $data\n";
 
 
                                 # Keep only the last 3 qualifiers (e.g. xyz.proxy.aol.com)
         my $client = $client_ip;
-        $client = $1 if $client =~ /((\.?[^\.]*){1,3})$/;
+#        $client = $1 if $client =~ /((\.?[^\.]*){1,3})$/;
 
 #      print "web request from $client: $data\n";
 
@@ -35,19 +32,26 @@ if (my $data = said $http_server) {
         $server_clients{$client}{time} = time;
         $server_clients{$client}{hits}++;
         
-
                                 # Speak client name, if it is new and non-local
 #       if (!$Local_Addresses{$client_ip}) {
         if (!is_local_address($client_ip)) {
+
+
             play 'sound_click1.wav' if $time_since_last_visit > 5;
             $Save{web_hits_day}++ if $time_since_last_visit > 5;
             $Save{web_hits_hour}++ if $time_since_last_visit > 5;
+
+
             if ($time_since_last_visit > 3600) {
                 if ($config_parms{DNS_server}) {
-                    my ($name, $name_short) = net_domain_name($client_ip);
-                    $client = $name_short if $name_short;
+                    my ($name_long, $name) = &net_domain_name($client_ip);
+                    $client = $name if $name;
+                    my $client_long = $name_long if $name_long;
                     $client =~ s/[\d\.]/ /g; # Get rid of digits and dots
                     $client = 'unknown' if $client =~ /^ *$/;
+
+                    logit "$config_parms{data_dir}/logs/server_hits.$Year_Month_Now.log", "$client_ip $client $client_long";
+
                 }
                 if ($config_parms{internet_speak_flag} eq 'all' and !$Save{sleeping_parents}) {
                     speak "Web hit from $client";
@@ -55,6 +59,8 @@ if (my $data = said $http_server) {
                 else {
                     print_log "Web hit from $client";
                 }
+
+
                 $Save{web_clients_day}++;
                 $Save{web_clients_hour}++;
             }

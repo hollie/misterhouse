@@ -1,6 +1,27 @@
+
 # Includes Clay Jackson's example of logging weather data to
 #   APRSWXNET:  http://www.findu.com/aprswxnet.html
 # For example:  http://www.findu.com/cgi-bin/wxpage.cgi?n7qnm 
+
+=begin comment
+
+Attached is a new copy of 'weather_vw.pl'; which uses misterhouse to
+send weather data from Ambient Software's Virtual Weather station to the
+Citizen's Weather Observation program (hosted by the Amateur Radio
+Packet Community).
+
+In order to use this code, you'll need a CWOP observer number, or an
+Amateur Radio callsign.   Please do NOT attempt to use this code without
+this.  If you need further assistance, please see:
+
+ www.findu.com/citizenweather/signup.html
+
+Or, contact me at n7qnm@n7qnm.net
+
+Replace your_call and your_password before using.
+
+=cut
+
 
 # Category=Weather
 
@@ -105,11 +126,11 @@ if (time_cron '5,20,35,50 * * * *') {
         $adj_humidity = $humidity;
      }
      $pressure_mb = ($Weather{Barom} / $mb_conv_factor)*10;
-     $aprs_data = sprintf "N7QNM>APRS,TCPIP*:@%02d%02d%02dz4737.18N/12202.62W_%03d/%03dg%03dt%03dr%03dP%03dh%02db%05d/Davis WM II\n",$hh,$mm,$ss,$Weather{WindAvgDir},$Weather{WindAvgSpeed},$Weather{WindGustSpeed},$temp,$hourly_rain*100,$daily_rain*100,$adj_humidity,$pressure_mb;
+     $aprs_data = sprintf "your_call>APRS,TCPIP*:@%02d%02d%02dzDDMM.ddN/DDDMM.ddW_%03d/%03dg%03dt%03dr%03dP%03dh%02db%05d/station type\n",$hh,$mm,$ss,$Weather{WindAvgDir},$Weather{WindAvgSpeed},$Weather{WindGustSpeed},$temp,$hourly_rain*100,$daily_rain*100,$adj_humidity,$pressure_mb;
      logit("$config_parms{data_dir}/aprs.log",$aprs_data);
      unless (active $aprs_net) {
          start $aprs_net;
-         set $aprs_net "user N7QNM pass -1 vers misterhouse linux .01";
+         set $aprs_net "user your_call pass your_password vers misterhouse linux .01";
      }
      if ($aprs_in = said $aprs_net) {};
      set $aprs_net $aprs_data;

@@ -65,11 +65,11 @@ sub read_phone_logs2 {
 #Mon 11/12/01 19:11:28  name=-UNKNOWN CALLER- data=###DATE11121911...NMBR...NAME-UNKNOWN CALLER-+++ line=W
 
             if ($log_file =~ /callerid/) {
-                ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-\d\d\d\-\d\d\d\d) name=(.+) data=/; 
+                ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\-?\d\d\d\d) name=(.+)/; 
                 ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\d\d\d\d\d\d\d)(\s\w+\s\w+\s)/ unless $name;
                                 # Deal with "private, 'out of area', and bad data" calls 
                 unless ($name) { 
-                    ($name) = $_ =~ /name=(.+) data=/;
+                    ($name) = $_ =~ /name=(.+)/;
                     $time_date = substr($_, 0, 21); 
                     if ($_ =~ /out of area/i) { 
                         $number = "Out of Area"; 
@@ -81,6 +81,8 @@ sub read_phone_logs2 {
                         $number = 'Unknown';
                     } 
                 } 
+                $name =~ s/line=.+//;
+                $name =~ s/data=.+//;
             }
                                 # Outgoing
 #Sun 04/01/01 12:03:09 O2525976

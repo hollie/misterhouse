@@ -1199,6 +1199,8 @@ only at Startup?
      - 08/02 Caddx alarm, iButton humidity sensor, undo, light/dark hawkey sensor
      - 09/02 Proxy mh, improved %cpu used, Group member and idle_time methods, Linux NaturalVoice, Clipsal CBUS
      - 10/02 Enabled web based code selection, file based alarms, palm reader, and Mac OSX support.
+     - 11/02 UIRT2 control, better im control, web interface for triggers and items
+     - 12/02 Improved callerID, new respond and Text_Item functions, xAP support.
 
     Audrey support, more MS TTS controls, call waiting callerid
 

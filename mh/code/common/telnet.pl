@@ -20,6 +20,7 @@ if (active_now $telnet_server) {
     set $telnet_server 'Welcome1';
     my $client = $Socket_Ports{'server_telnet'}{client_ip_address};
                                 # If a password has been created (with set_password command), this will return true
+                                # Will return false BOTH if password not defined, AND if the the cliekt IP matched the "password_allow_clients" parm.
     if (password_check undef, 'server_telnet') {
         $telnet_auth_flags{$client} = -1;
         print_log "Telnet active on server_telnet, waiting for password";
@@ -27,7 +28,11 @@ if (active_now $telnet_server) {
         set $telnet_server 'Enter your password:';
     }
     else {
-        set $telnet_server 'Run set_password to create a password.  Global authorization enabled until then';
+        if ($Password) {
+            set $telnet_server 'Authorized by IP address match.';
+        } else {
+            set $telnet_server 'Run set_password to create a password.  Global authorization enabled until then';
+        }
         $telnet_auth_flags{$client} = 1;
     }
 
@@ -55,7 +60,7 @@ if ($state = said $telnet_client_set) {
 }
 
 				# Read from the port, then write to it based on what was sent, if authorized
-my $reponse_loop_telnet = 0;
+#my $reponse_loop_telnet = 0;
 #if (my $data = $Socket_Ports{server_telnet}{data_record}) {
 if (my $data = said $telnet_server) {
     my $client = $Socket_Ports{'server_telnet'}{client_ip_address};
@@ -75,7 +80,7 @@ if (my $data = said $telnet_server) {
     else {
         set $telnet_server "\r\n";
 
-        print_log "server port 1 data: $data";
+        print_log "Telnet port data ($client): $data";
     
         if (lc($data) eq 'hi') {
             set $telnet_server 'hi';
@@ -92,10 +97,10 @@ if (my $data = said $telnet_server) {
                                 # This will allow us to type in any command
 #           set $telnet_server "You said: $data";
             if ($telnet_auth_flags{$client}) {
-                if (process_external_command($data, 0 , 'telnet')) {
+                if (&process_external_command($data, 0, 'telnet', "object_set name=telnet_server arg1='$client'")) {
                     set $telnet_server "Command executed: $data";
-                    $reponse_loop_telnet = $Loop_Count + 2; # Give us 2 passes to wait for any resulting speech
-                    $Last_Response = '';
+#                    $reponse_loop_telnet = $Loop_Count + 2; # Give us 2 passes to wait for any resulting speech
+#                    $Last_Response = '';
                 }
                 else {
                     set $telnet_server "Command not recognized:$data\n";
@@ -112,12 +117,12 @@ if (my $data = said $telnet_server) {
 }
 
                                 # Show the reponse the the previous command
-if (active $telnet_server and $reponse_loop_telnet == $Loop_Count) {
+#if (active $telnet_server and $reponse_loop_telnet == $Loop_Count) {
 #   my ($last_spoken) = &speak_log_last(1);
-    my $last_response = &last_response;
-    $last_response = 'No response' unless $last_response;
-    set $telnet_server "$Last_Response: $last_response\n";
-}
+#    my $last_response = &last_response;
+#    $last_response = 'No response' unless $last_response;
+#    set $telnet_server "$Last_Response: $last_response\n";
+#}
 
 
 

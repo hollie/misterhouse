@@ -33,6 +33,10 @@ case `uname -a` in
    h2ph sys/termios.h
    h2ph sys/ioctl.h
  ;;
+ BSD/OS*)
+   h2ph sys/termios.h
+   h2ph sys/ioctl.h
+ ;;
  *) echo "Warning: Untested platform! Check this script first."
  ;;
 esac

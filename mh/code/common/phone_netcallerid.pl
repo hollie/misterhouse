@@ -1,6 +1,9 @@
 # Category = Phone
 #
 
+#@
+#@ <b>NOTE:  This has been replaced with callerid.pl<br></b>
+#@
 #@ This will announce caller id and call waiting id names
 #@ using the $30 NetCallerID device.
 #@ from <a href=http://ugotcall.com/nci.htm>ugotcall.com</a>
@@ -56,8 +59,7 @@ if (my $caller_id_data = said $NetCallerID || said $v_netcallid_test) {
 
         unless ($Caller_ID::reject_name_by_number{$cid_number}) {
 #           play app => 'phone', file => 'ringin.wav,ringin.wav'; # Simulate a phone ring
-            speak("app=phone $caller");
-#           speak("address=piano $caller");
+            respond("app=phone target=netcallerid $caller");
         }
         logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",  
               "$cid_number name=$cid_name data=$caller_id_data line=W");
@@ -65,4 +67,20 @@ if (my $caller_id_data = said $NetCallerID || said $v_netcallid_test) {
     }
 }
 
+sub respond_netcallerid {
+    &speak(@_);
+}
 
+=begin comment
+
+Here is an example of how you can override how this responds, by
+putting something like this in your user code.
+
+sub respond_netcallerid {
+    my (%parms) = @_;
+    $parms{text} =~ s/ ?\.[^\.]*$/\./;  # Drop the extra 'call from'
+    &net_im_send(pgm => "AOL', text => $parms{text}); # Add to => screenname to send to non-default
+    &speak("app=phone $parms{text}");
+}
+
+=cut

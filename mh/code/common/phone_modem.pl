@@ -1,5 +1,8 @@
 # Category=Phone
 
+#@
+#@ <b>NOTE:  This has been replaced with callerid.pl<br></b>
+#@
 #@ Uses a callerid modem to announce and log incoming phone calls.
 #@ Add these entries to your mh.ini file:
 #@  serial_modem_port=COM1  

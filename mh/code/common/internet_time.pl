@@ -16,7 +16,7 @@ if (said $v_set_clock or
     my $status = do "$Pgm_Path/set_clock"; 
     print " set_clock was run\n";
     print_log "Clock has been set";
-    speak $status unless $Save{sleeping_parents};
+    respond $status unless $Save{sleeping_parents};
 }
 
 my $f_set_clock_log = "$config_parms{data_dir}/logs/set_clock.log";

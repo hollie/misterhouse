@@ -7,7 +7,7 @@
 
 $house_tagline = new  File_Item("$config_parms{data_dir}/remarks/1100tags.txt");
 $test_speak1 = new Voice_Cmd 'Test speech with tagline';
-speak(read_next $house_tagline) if said $test_speak1;
+respond(read_next $house_tagline) if said $test_speak1;
 
 
 $test_speak2 = new Voice_Cmd 'Test speech with tagline to a file with [low,normal,high] compression';

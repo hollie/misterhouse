@@ -28,7 +28,7 @@ if (said $v_uptime) {
     my $uptime_pgm      = &time_diff($Time_Startup_time, time);
     my $uptime_computer = &time_diff($Time_Boot_time, $Time);
 #   speak("I was started on $Time_Startup\n");
-    speak("I was started $uptime_pgm ago. The computer was booted $uptime_computer ago.");
+    respond("I was started $uptime_pgm ago. The computer was booted $uptime_computer ago.");
 }
 
                                 # Control and monitor the http server
@@ -47,7 +47,7 @@ if ((said $v_http_control eq 'Check')) {
     unless (start $http_monitor) {
         my $msg = "The http server $config_parms{http_server}:$config_parms{http_port} is down.  Restarting";
         print_log $msg;
-        display text => $msg, time => 0;
+        display text => "$Time_Date: $msg\n", time => 0, window_name => 'http down log', append => 'bottom';
         socket_close 'http';    # Somehow this gets it going again?
         stop $http_monitor if active $http_monitor; # Need this?
     }
@@ -72,27 +72,27 @@ $v_reboot = new  Voice_Cmd '[Reboot,Shut Down] the computer';
 $v_reboot-> set_info('Do this only if you really mean it!  Windows only');
 
 if ($state = said $v_reboot and $OS_win) {
-    speak "$state the computer";
+    respond "$state the computer";
     if ($Info{OS_name} eq 'Win95') {
         run 'RUNDLL USER.EXE,ExitWindows';
     }
                                 # In theory, either of these work for Win98/WinMe
     elsif ($Info{OS_name} eq 'WinMe') {
-        speak "The house computer will reboot in 15 seconds";
+        respond "The house computer will reboot in 15 seconds";
         run 'start c:\\windows\\system\\runonce.exe -q';
         sleep 5;                # Give it a chance to get started
         &exit_pgm;
     }
     elsif ($Info{OS_name} eq 'NT') {
         my $machine = $ENV{COMPUTERNAME};
-        speak "The computer $machine will reboot in 1 minute.";
+        respond "The computer $machine will reboot in 1 minute.";
         my $reboot = ($state eq 'Reboot') ? 1 : 0;
         Win32::InitiateSystemShutdown($machine, 'Rebooting in 1 minute', 60, 1, $reboot);
 #       &exit_pgm;
     }
     elsif ($Info{OS_name} eq 'XP') {
         my $machine = $ENV{COMPUTERNAME};
-        speak "The computer $machine will reboot in 1 minute.";
+        respond "The computer $machine will reboot in 1 minute.";
         my $reboot = ($state eq 'Reboot') ? '-r' : '-s';
         run "SHUTDOWN -f -t 60 $reboot";
     }
@@ -121,12 +121,12 @@ $v_reboot_abort = new  Voice_Cmd("Abort the reboot");
 if (said $v_reboot_abort and $OS_win) {
     if ($Info{OS_name} eq 'XP') {
         run "SHUTDOWN -a";
-        speak "OK, the reboot has been aborted.";
+        respond "OK, the reboot has been aborted.";
     }
     else {
         my $machine = $ENV{COMPUTERNAME};
         Win32::AbortSystemShutdown($machine);
-        speak "OK, the reboot has been aborted.";
+        respond "OK, the reboot has been aborted.";
     }
 }
 
@@ -135,14 +135,14 @@ $v_debug-> set_info('Controls what kind of debug is printed to the console');
 if ($state = said $v_debug) {
     $config_parms{debug} = $state;
     $config_parms{debug} = 0 if $state eq 'off';
-    speak "Debug has been turned $state";
+    respond "Debug has been turned $state";
 }
 
 $v_mode = new  Voice_Cmd("Put house in [normal,mute,offline] mode");
 $v_mode-> set_info('mute mode disables all speech and sound.  offline disables all serial control');
 if ($state = said $v_mode) {
     $Save{mode} = $state;
-    speak "The house is now in $state mode.";
+    respond "The house is now in $state mode.";
     print_log "The house is now in $state mode.";
 }
 
@@ -158,7 +158,7 @@ if (said $v_mode_toggle) {
         $Save{mode} = 'mute';
     }
                                 # mode => force cause speech even in mute or offline mode
-    &speak(mode => 'unmuted', app => 'notice', text => "Now in $Save{mode} mode");
+    &respond(mode => 'unmuted', app => 'notice', text => "Now in $Save{mode} mode");
 }
 
 
@@ -300,7 +300,7 @@ if (state_now $Power_Supply eq 'Restored') {
 $v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message,What did you say}', '';
 if (said $v_repeat_last_spoken) {
     ($temp = $Speak_Log[0]) =~ s/^.+?: //s; # Remove time/date/status portion of log entry
-    speak "I said $temp";
+    respond "I said $temp";
 }
 
 $v_clear_cache = new Voice_Cmd 'Clear the web cache directory', '';
@@ -314,6 +314,7 @@ if (said $v_clear_cache) {
     $cmd =~ s|/|\\|g if $OS_win;
     system $cmd;
     print_log "Ran: $cmd";
+    respond "Web cache directory has been cleared.";
 }
 
                                 # Archive old logs
@@ -346,7 +347,7 @@ if (said $undo_last_change) {
 #       print "db testing $ref->{object_name}\n";
         if ($ref->isa('X10_Item')) {
             my $name = &pretty_object_name($ref->{object_name});
-            speak "Changeing $name from $ref->{state} back to $ref->{state_prev}";
+            respond "Changeing $name from $ref->{state} back to $ref->{state_prev}";
             set $ref $ref->{state_prev};
             last;
         }

@@ -118,25 +118,67 @@ sub im_message {
 
     my ($ref) = &Voice_Cmd::voice_item_by_text(lc($text));
     my $authority = $ref->get_authority if $ref;
+
     $authority = $Password_Allow{$text} unless $authority;
 
     print "IM: RUN a=$authority,$im_data{password_allow}{$from} from=$from text=$text\n"  if $main::config_parms{debug} eq 'IM';
-    return if $text =~ /^i\'m away(.+)/i;
+    return if $text =~ /^i\'m away/i;
 
     my $msg;
-    if ($authority or $im_data{password_allow}{$from}) {
-        if ($text =~ /^help/) {
-            $msg  = "Type any of the following:\n";
-            $msg .= "  find: xyz  => finds commands that match xyz\n";
-            $msg .= "  log:  xyz  => xyz is a filter of what to log.  Can print, speak, play, speak|play, all, and stop\n";
-            $msg .= "  any valid MisterHouse voice command(e.g. What time is it)\n";
+    print "db t=$text.\n";
+    if ($text =~ /^(login|logon): *(\S*)$/i) {
+        if ($im_data{password_allow}{$from}) {
+            $msg = 'You have global access, and don\'t need to login!';
         }
-        elsif ($text =~ /^find:(.+)/) {
-            my @cmds = list_voice_cmds_match $1;
-            $msg = "Found " . scalar(@cmds) . " commands that matched $1:\n  ";
-            $msg .= join("\n  ", @cmds);
+        else {
+            unless (password_check $1) {
+                run_after_delay 60, "&im_logoff('$pgm', '$from')";
+                $im_data{password_allow_temp}{$from}=1;
+                $msg = 'Login accepted. You will be logged out in 1 minute.';
+                $msg .= "\nRun set_password to create a password.  Global authorization enabled until then" unless $Password;
+            } else {
+                $msg = 'Invalid Password';
+            }
         }
-        elsif ($text =~ /^log: (.+)$/i) {
+    }
+    elsif ($text =~ /^(logout|logoff)$/) {
+        if ($im_data{password_allow}{$from}) {$msg = 'You have global access, and can\'t logout!';}
+        if ($im_data{password_allow_temp}{$from}) {
+            $im_data{password_allow_temp}{$from}=0;
+            $msg = 'You have been logged out';
+        } else {
+            $msg = 'You are not logged in.';
+        }
+    }
+    elsif ($text =~ /^find:(.+)/) {
+        my $search = $1;
+        $search =~ s/^ +//; $search =~ s/ +$//;
+        my @cmds = list_voice_cmds_match $search;
+        my @cmds2;
+        for my $cmd (@cmds) {
+            if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from}) { #if access is given in mh.ini parms, then don't check authority
+                push @cmds2, $cmd
+            } else {
+                $cmd =~ s/^[^:]+: //; #Trim the category ("Other: ", etc) from the front of the command
+                $cmd =~ s/\s*$//;
+                my ($ref) = &Voice_Cmd::voice_item_by_text(lc($cmd));
+                $authority = $ref->get_authority if $ref;
+                push @cmds2, $cmd if lc $authority eq 'im' or lc $authority eq 'anyone';
+            }
+        }
+        $msg = "Found " . scalar(@cmds2) . " commands that matched \"$search\":\n  ";
+        $msg .= join("\n  ", @cmds2);
+    }
+    elsif ($text =~ /^help/) {
+        $msg  = "Type any of the following:\n";
+        $msg .= "  find:  xyz  => finds commands that match xyz\n";
+        $msg .= "  log:   xyz  => xyz is a filter of what to log.  Can print, speak, play, speak|play, all, and stop\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
+        $msg .= "  logon: xyz  => logon with password xyz\n";
+        $msg .= "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only sent using current IM program\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
+        $msg .= "  any valid MisterHouse voice command(e.g. What time is it)\n";
+    }
+    elsif ($authority or $im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from}) {
+        if ($text =~ /^log: (.+)$/i) {
             if (lc $1 eq 'stop') {
                 delete $log_to_im_list{"$pgm $from"};
             }
@@ -145,14 +187,16 @@ sub im_message {
             }
             print_log "IM: logging $1 to $pgm for $from";
         }
-#       elsif (&run_voice_cmd($text, undef, 'msnim')) {
-        elsif (&process_external_command($text, 1, 'im')) {
-#           $msg = "Command was run";
-            $im_data{loop_count} = $Loop_Count + 4; # Give us 2 passes to wait for any resulting speech
-#           print "dbx1 lc=$Loop_Count\n";
-            $im_data{pgm}  = $pgm;
-            $im_data{from} = $from;
-            $Last_Response = '';
+        elsif ($text =~ /^send (.+):(.+)$/i) {
+            if ($2 eq '') {
+                $msg = "Cannot send a blank message.";
+            }
+            else {
+               &net_im_send(pgm => $pgm, to => $1, text => $2);
+               $msg = "Message send to $1";
+            }
+        }
+        elsif (&process_external_command($text, 1, 'im', "im pgm=$pgm to=$from")) {
         }
         else {
             $msg = "Command not found";
@@ -161,19 +205,20 @@ sub im_message {
     else {
         $msg = "Unauthorized access for command";
     }
+
     print_log "IM: pgm=$pgm, to=$from, text=$text, response=$msg";
-
-    my $time = sprintf("%02d:%02d:%02d", $Hour, $Minute, $Second);
-    display text => "$from ($time:$main::Second): $text\n", time => 0, title => $pgm, 
-      window_name => $pgm, append => 'bottom';
-
     &net_im_send(pgm => $pgm, to => $from, text => $msg);
+
+#   my $time = sprintf("%02d:%02d:%02d", $Hour, $Minute, $Second);
+#   display text => "$from ($time:$main::Second): $text\n", time => 0, title => $pgm, window_name => $pgm, append => 'bottom';
+
 }
 
-                                # Show the reponse the the previous command
-if ($im_data{loop_count} and $im_data{loop_count} == $Loop_Count) {
-    my $last_response = &last_response;
-    $last_response = 'No response' unless $last_response;
-    $last_response = substr $last_response, 0, 500; # im clients are wimpy
-    &net_im_send(pgm => $im_data{pgm}, to => $im_data{from}, text => "$Last_Response: $last_response");
+sub im_logoff {
+    my ($pgm, $screenname) = @_;
+    if ($im_data{password_allow_temp}{$screenname}) {
+        $im_data{password_allow_temp}{$screenname}=0;
+        &net_im_send(pgm => $pgm, to => $screenname, text => 'You have been logged out. Type login, to login again.');
+    }
 }
+

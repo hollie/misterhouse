@@ -562,7 +562,7 @@ sub main::net_msn_send {
 
 
 sub main::net_im_signon {
-    my ($name, $password, $pgm) = @_;
+    my ($name, $password, $pgm, $port) = @_;
 
     if (lc $pgm eq 'msn') {
         return &main::net_msn_signon($name, $password);
@@ -575,6 +575,9 @@ sub main::net_im_signon {
 
     $name     = $main::config_parms{net_aim_name}      unless $name;
     $password = $main::config_parms{net_aim_password}  unless $password;
+    $port = $main::config_parms{net_aim_port}          unless $port;
+#   $port = 23                                         unless $port;  # This can get through some firewalls?
+    $port = 1234                                       unless $port;  # This is the default
     my $buddies  = $main::config_parms{net_aim_buddies};
 
     print "Logging onto AIM with name=$name ... \n";
@@ -586,6 +589,7 @@ sub main::net_im_signon {
     }
     $aim_connection = Net::AOLIM->new("username" => $name, 
                                       "password" => $password,
+                                      "port" => $port,
                                       'login_timeout' => 10,
                                       "callback" => \&aolim::callback,
                                       "allow_srv_settings" => 0 );
@@ -1097,6 +1101,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.46  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.45  2002/12/02 04:55:20  winter
 # - 2.74 release
 #

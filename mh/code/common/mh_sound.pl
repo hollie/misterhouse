@@ -12,6 +12,7 @@
 #    like VOX (Voice Activated) Radios .
 #  - Allows for restarting voice engines
 
+$mh_volume         = new Generic_Item;
 $mh_speakers       = new Generic_Item;
 $mh_speakers_timer = new Timer;
 
@@ -49,23 +50,35 @@ $test_speak_mode-> tie_event('speak mode => $state');
                                 # Currently, this only works with the MS Voice TTS
 $test_speech_flags = new Voice_Cmd 'Test [xml,sable] speech tags';
 if ($state = said $test_speech_flags) {
-    speak "$Pgm_Root/docs/ms_speech_xml_example.txt" if $state eq 'xml';
-    speak "engine=festival $Pgm_Root/docs/festival_speech_example.sable" if $state eq 'sable';
+    respond "$Pgm_Root/docs/ms_speech_xml_example.txt" if $state eq 'xml';
+    respond "engine=festival $Pgm_Root/docs/festival_speech_example.sable" if $state eq 'sable';
 }
 
+                                # Allow for default volume control.  Reset on startup.
+set $mh_volume $mh_volume->state if $Startup;
+if ($state = state_now $mh_volume) {
+    if (!$Info{Volume_Control}) {
+        print_log "Volume control not enabled";
+    }
+    elsif ($state < 0 or $state > 100) {
+        $state = 100;
+        set $mh_volume 100;
+    }
+    else {
+        print_log "Changing volume to $state";
+        set_volume2($state);
+    }
+}
                                 # Set hooks so set_volume is called whenever speak or play is called
 &Speak_pre_add_hook(\&set_volume) if $Reload;
 &Play_pre_add_hook (\&set_volume) if $Reload;
 
 my $volume_previous;
 sub set_volume {
-
     return if $is_speaking;     # Speaking volume wins over play volume
-
     return unless $Info{Volume_Control}; # Verify we have a volume control module installed
 
     my %parms = @_;
-
                                 # Set a timer since we can not detect when a wav file is done
     set $mh_speakers_timer  $parms{time} if $parms{time}; # Set in &play
 
@@ -74,13 +87,17 @@ sub set_volume {
 
     undef $volume_previous;
     my $volume = $parms{volume};
-    $volume = $config_parms{sound_volume} unless defined $volume;
 #   print_log "Setting volume to $volume";
     return unless $volume;      # Leave volume at last (manual?) setting
     $volume = 100 if $volume > 100;
+    
+    $volume_previous = set_volume2($volume);
+}
 
+sub set_volume2 {
+    my ($volume) = @_;
+    my $volume_previous;
     if ($Info{Volume_Control} eq 'Win32::Sound') {
-                                # Store previous volume
         $volume_previous = Win32::Sound::Volume;
         $volume = int 255 * $volume / 100;   # (0->100 =>  0->255)
         $volume = $volume + ($volume << 16); # Hack to fix a bug in Win32::Sound::Volume 
@@ -91,8 +108,8 @@ sub set_volume {
         $volume_previous = ($vol[0] + $vol[1]) / 2;
         Audio::Mixer::set_cval('vol', $volume);
     }
+    return $volume_previous;
 }
-
 
                                 # Allow for a pre-speak/play wav file
 &Speak_pre_add_hook(\&sound_pre_speak) if $Reload and $config_parms{sound_pre_speak};

@@ -3,7 +3,121 @@ Mister House Announcement List
 
     New Features:
 
+    - Steve Switzer and I added a new respond function, which can be used to
+    send the resulting text of a command or query to a specified target. By
+    default, valid targets are display, email, im, log, speak, tk, web. The
+    default respond target it whatever set_by is, so for example, if a
+    command is run from an im client, text sent to any respond called by
+    that command will be sent only to that im client. More info and examples
+    are in docs/mh.html. We also changed many of the speak calls in the
+    code/common files to respond.
+
+    - Jason Sharpee added mh/lib/CID_Lookup, CID_Announce, CID_Log, and
+    Telephony_Item modules. I created Telephoney_Interface and
+    code/common/callerid.pl to use these modules for callerID. These replace
+    code/common/phone_modem.pl and phone_netcallerid.pl and
+    lib/Caller_ID.pm, but I left them there for a while for backward
+    compatability while we work out the bugs in the new code :)
+
+    - Chris Witte created mh/lib/RCSs.pm and mh/code/public/RCSs.pl for
+    talking to the RS232/485 versions of the RCS thermostats.
+
+    - Created a Text_Cmd object, so we can fire events based on commands
+    that match a regular expression. For an example, see
+    mh/code/examples/Text_Cmd_example1.pl and/or docs/mh.html.
+
+    - Updated lib/xAP.pm to the new 1.2 protocol (info on xap is at
+    http://www.xapautomation.org ). To enable, add this mh.ini parm:
+    xap_module = xAP. Examples are code/public/xap_example.pl.
+
+    - Chris Witte and Rob Williams updated the cadx code with more
+    documentation, bug fixes, and Windows (as well as linux) compatibility.
+
+    - Steve Switzer improved the interface to the select_code and iniedit
+    web menus.
+
+    - Ron Klinkien updated the ia5 web interface to v2.3.
+
+    - Richard Smith sent mh/code/public/ir_creative.pl as an example of
+    reading IR data from Creative Credit Card Remotes.
+
+    - David Norwood created code/common/dvd_releases.pl, and idea that James
+    Armstrong had to list new DVD titles.
+
+    - Steve Switzer and Tom Kotowski created
+    code/common/phone_pcs_messaging.pl for emailing sprint and verison
+    phones.
+
+    - Created code/common/x10_item_commands.pl to create Voice_Cmd items for
+    all X10_Items.
+
+    - Moved the 'proxy is dead' test out of bin/mh and into
+    code/public/speak_proxy.pl
+
+    - Perl 5.8 is now available from ActiveState. This version, at least on
+    Windows, seems to fix the memory leak problems that many of us saw with
+    version 5.6. It now comes with standard with Tk. I updated the
+    mh/doc/install.html instructions on how to install the modules for it.
+    The only module not yet available is Setupsup, which allows for
+    controling of other Windows applications.
+
     Bug Fixes and Other Changes:
+
+    - Sean Walker fixed some calender -> calendar typos.
+
+    - Axel Brown suggested we update Geo::Weather package, as weather.com
+    has changed (used by public/weather_com.pl to get data from
+    weather.com).
+
+    - David Norwood fixed a 1.74 trigger_code.pl bug to prevent it from
+    reloading code every 5 minutes under some conditions. He also fixed a
+    bug that was causing full code reloads when triggers changed on some
+    systems.
+
+    - David Norwood noticed a problem with $Save keywords with ' in them.
+
+    - Jeff Siddall code/public/random_time_offset.pl for adding random
+    offset times to time_now tests. He also added convert_f2c and
+    convert_f2k, like the k2f and k2c functions, but for converting to
+    celsius and kelvin.
+
+    - Enabled the mh.ini ipaddress_local in common/audreyspeak.pl, to
+    override the default local address.
+
+    - Alan Womack noticed an mh divide by 0 involving mh.ini sleep_count
+    parm.
+
+    - Joseph Gaston updated to the HomeVision mh/lib/HVweb_Item.pm module.
+    He also updated the tv_grid pulldown to reflect how many days you
+    download.
+
+    - Steve Switzer added logon/logoff to common/internet_im.pl, so you can
+    logon via a non-authorized ID. Steve also added a net_aim_port option,
+    so you can change from the default of 1234 to 23 to get through
+    firewalls.
+
+    - Walter Poxon added BSD/OS to bin/configure.
+
+    - Sean Walker updated the read_table_A.pl .mht reader to drop trailing
+    blanks from Group names.
+
+    - Tom Kotowski and Dave Crawford updated code/common/news_yahoo.pl
+
+    - Pete Flaherty posted version of his mh compatable Audrey image at
+    http://vsa.cape.com/~pjf/MrAudrey.html.
+
+    - Replaced the mh.ini sound_volume parm with mh_volume object in
+    code/common/mh_volume.pl. This will set the default sound, which can
+    still be overriden by the speak/play volume= parm. You can use the
+    default volume widget from common/tk_widgets.pl to control it from the
+    tk or web interface.
+
+    - Switched from exit to POSIX::_exit for much faster mh exits.
+
+    - Dropped 'noscroll' in the web photo search results.
+
+    - Added mht_item_add/copy/delete functions to bin/mh, so we can write
+    code that can manipulate mht entries.
 
   Version 2.74 posted on 12/01/2002
 
@@ -63,6 +177,16 @@ Mister House Announcement List
     also extracted many icons from Ron's buttons into a new dir:
     mh/web/graphics/icons. Like button.pl, it requires the perl GD module.
     An example is: /bin/button2.pl?Recent_Incoming_Calls&phone.png
+
+    - Gaetan Lord also created lib/FroggyRita.pm for reading
+    temp,pressure,humidity from the sensor sold at
+    http://www.froggyhome.com. Example is in code/public/froggyrita.pl.
+
+    - David Norwood added a new infrared code generator to UIRT2_learning.pl
+    which automatically create codes for many TVs, VCRs, DVDs, etc, using
+    data in a new data/infrared directory. The generation routines are in a
+    separate module, IR_Utils.pm, so it should be easy to add this feature
+    to other transmitters such as the RedRat.
 
     Bug Fixes and Other Changes:
 
@@ -368,7 +492,7 @@ Mister House Announcement List
     with the Windows version, you can use the speak voice=name option to
     pick a non-default voice.
 
-    - Jason Sharpe and I added several new methods: Generic_Item
+    - Jason Sharpee and I added several new methods: Generic_Item
     get_idle_time and Group member_changed and member_changed_log. This
     allows us to use Group items to monitor sets of sensors for detecting
     occupancy states. This change means that Group states will change

@@ -5,10 +5,6 @@
  
 =begin comment
 
-This script displays a fullscreen photo slideshow on the local monitor.
-It is particularly nice if your computer is hooked up to a TV.
-It will not work if Misterhouse is started with the Tk option turned off. 
-
 For a web browser option, see mh/web/misc/photos.shtml
 
 More info on creating the photo list can be found
@@ -20,6 +16,7 @@ See mh/bin/mh.ini for the various photo_* parms
 
 =cut
 
+use Tk;
 my_use "Tk::JPEG" if $Reload;
 
 $photo_slideshow         = new Voice_Cmd '[Start,Stop,Next,Previous] the photo slideshow';
@@ -35,7 +32,13 @@ if ($Reload) {
 
 my ($mw_photo, $mw_photo_label, $mw_photo_image);
 if (said $photo_slideshow eq 'Start') {
+                                # Setup TV 
+    eval 'set $TV ON; set $AMP ON; set $TV "video1"; set $AMP "vcr"; my $key = "\ct\cd640 480\ct"; system "echo $key |a2x";';
                                 # Create a full screen, frameless window
+    unless ($MW) {
+        $MW = MainWindow->new;
+        $MW->geometry('0x0+0+0');
+    }
     $mw_photo = $MW->Toplevel(-bg => "black");
     $mw_photo->overrideredirect(1);
     geometry $mw_photo $MW->screenwidth . "x" . $MW->screenheight . "+0+0";
@@ -51,6 +54,7 @@ if (said $photo_slideshow eq 'Start') {
 }
 
 if (said $photo_slideshow eq 'Stop') {
+#   $MW             -> destroy  if $MW and ! $config_parms{tk};
     $mw_photo       -> destroy  if $mw_photo;
     $mw_photo_image -> delete   if $mw_photo_image;
     undef $mw_photo_image;

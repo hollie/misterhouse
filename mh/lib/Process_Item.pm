@@ -41,11 +41,22 @@ sub restore_string {
     return;
 }
 
+sub get_set_by {
+    return $_[0]->{set_by};
+}
+sub set_target {
+    $_[0]->{target} = $_[1];
+}
+sub get_target {
+    return $_[0]->{target};
+}
+
 
 sub start {
     my ($self, $cmd_override) = @_;
     $$self{cmd_index} = 0;
     &start_next($self, $cmd_override);
+    $$self{target} = $main::Respond_Target if $main::Respond_Target; # Pass default target along
 #   print "\ndb start total=@{$$self{cmds}}\n";
 }
 
@@ -173,6 +184,7 @@ sub done {
 }    
 
 sub done_now {
+    $main::Respond_Target = $_[0]->{target};
     return $_[0]->{done_now};
 }    
 
@@ -243,6 +255,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.20  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.19  2002/07/01 22:25:28  winter
 # - 2.69 release
 #

@@ -31,8 +31,8 @@ if (($cat = said $v_trivia_next1 or $cat = said $v_trivia_next2) and $cat =~ /ne
     print_log "Trivia question has been refreshed";
 }
 
-speak   $f_trivia_question if said $v_trivia_next1;
-speak   $f_trivia_answer   if said $v_trivia_answer eq 'What is';
+respond $f_trivia_question if said $v_trivia_next1;
+respond $f_trivia_answer   if said $v_trivia_answer eq 'What is';
 
 display $f_trivia_question if said $v_trivia_next2;
 display $f_trivia_answer   if said $v_trivia_answer eq 'Display';
@@ -55,6 +55,7 @@ sub trivia_next {
     my $offset = 0 + 153*($qn-1);
 
     open (INDATA,   "$Pgm_Path/../data/trivia/$cat.dat") or die "Error, could not open trivia file $Pgm_Path/../data/$cat.dat:$!\n";
+#   open (INDATA,   "$config_parms{data_dir}/trivia/$cat.dat") or die "Error, could not open trivia file $config_parms{data_dir}/trivia/$cat.dat:$!\n";
     open (QUESTION, ">$f_trivia_question");
     open (ANSWER,   ">$f_trivia_answer");
 

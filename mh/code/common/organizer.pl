@@ -12,8 +12,8 @@ $organizer_todo = new File_Item "$config_parms{organizer_dir}/tasks.tab";
 set_watch $organizer_cal  if $Reload;
 set_watch $organizer_todo if $Reload;
 
-$organizer_check = new Voice_Cmd 'Check for new calender events';
-$organizer_check ->set_info('Creates MisterHouse events based on organizer calender events');
+$organizer_check = new Voice_Cmd 'Check for new calendar events';
+$organizer_check ->set_info('Creates MisterHouse events based on organizer calendar events');
 
 if (said $organizer_check or ($New_Minute and changed $organizer_cal)) {
     print_log 'Reading updated organizer calendar file';
@@ -48,6 +48,7 @@ if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
     print $objDB->LastError unless $objDB->Open;
     my $mycode = "$config_parms{code_dir}/organizer_tasks.pl";
     open(MYCODE, ">$mycode") or print_log "Error in open on $mycode: $!\n";
+    print MYCODE "\n#@ Auto-generated from code/common/organizer.pl\n\n";
     my %emails;
     &read_parm_hash(\%emails,  $main::config_parms{organizer_email});
     while (!$objDB->EOF) {
@@ -59,6 +60,7 @@ if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
         my $text     = "$name, $subject. $notes";
         $notes .= ".  Sent: $Date_Now $Time_Now";
         $objDB->MoveNext;
+        next if lc $complete eq 'yes';
         next unless time_less_than("$date + 23:59");  # Skip past and invalid events
         
         my $email = "net_mail_send to => '$emails{lc $name}', subject => q~$subject~, text => q~$notes~; " 

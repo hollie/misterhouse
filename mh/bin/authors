@@ -8,7 +8,8 @@ use strict;
 
 my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan 
                      Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
-                     ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call No Peet Rewrote Turtle);
+                     ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call No Peet Rewrote Turtle
+                     Select Solid Edit);
 my @bogus_last  = qw(Homelink House Group Report Programs Aqualink WinTV CallerID Voices Video Faq);
 
 undef $/;

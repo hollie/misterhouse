@@ -58,7 +58,9 @@ sub start {
     my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
     if ($port) {
         print "Socket Item connecting to $host on port $port\n" if $main::config_parms{debug} eq 'socket';
-        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, PeerPort => $port, Proto => $host_proto)) {
+        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, 
+                                                 PeerPort => $port, Proto => $host_proto)) {
+# Timeout => 0,  # Does not help with 2 second pauses on unavailable  addresses :(
             $main::Socket_Ports{$port_name}{sock}  = $sock;
             $main::Socket_Ports{$port_name}{socka} = $sock;
             $main::Socket_Ports{$port_name}{active_this_pass_flag} = 1;
@@ -109,6 +111,7 @@ sub is_available {
 sub active {
     my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{socka};
+#     or  scalar @{$main::Socket_Ports{$port_name}{clients}}
 }
 
 sub active_now {
@@ -284,6 +287,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.27  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.26  2002/12/02 04:55:19  winter
 # - 2.74 release
 #

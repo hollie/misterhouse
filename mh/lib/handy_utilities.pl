@@ -100,7 +100,7 @@ sub main::file_read {
 # $flag = 2 -> Read as an array, but drop comment records
     if (wantarray and !($flag and $flag == 1)) {
         my @data = <LOG>;
-        @data = grep(!/^\#/, @data) if $flag == 2;
+        @data = grep(!/^\#/, @data) if $flag and $flag == 2;
         close LOG;
         chomp @data;            # Why would we ever want \n here??
         return @data;
@@ -460,7 +460,7 @@ sub main::read_mh_opts {
     push @parm_files, $Pgm_Path . '/mh.private.ini';
     push @parm_files, split ',', $ENV{mh_parms} if $ENV{mh_parms};
 
-    print "Reading parm files: @parm_files\n";
+    print "Reading parm files: @parm_files\n" if $debug;
     for my $file (@parm_files) {
         next unless -e $file;
         print "  Reading parm file: $file\n" if $debug;
@@ -485,6 +485,7 @@ sub main::read_mh_opts {
         }
     }
 
+    return @parm_files;
 }
 
 sub main::read_opts {
@@ -1106,6 +1107,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.61  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.60  2002/12/02 04:55:20  winter
 # - 2.74 release
 #

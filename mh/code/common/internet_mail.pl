@@ -140,7 +140,7 @@ sub scan_subjects {
     my ($file) = @_;
     return unless -e $file;
     for my $line (file_read $file) {
-        my ($from, $to, $subject_body) = $line =~ /From:(.+) To:(.+) Subject:(.*)/;
+        my ($from, $to, $subject_body) = $line =~ /From: *(.+) To: *(.+) Subject: *(.*)/;
         if (my($command, $code) = $subject_body =~ /command:(.+?)\s+code:(\S+)/i) {
             my $results;
              if ($config_parms{net_mail_command_code} and $config_parms{net_mail_command_code} eq $code) {
@@ -157,7 +157,7 @@ sub scan_subjects {
                      }
                  }
                  else {
-                     if (&process_external_command($command, 0 , 'email')) {
+                     if (&process_external_command($command, 1, 'email', "email to=$from subject='Results for: $command'")) {
 #                    if (run_voice_cmd $command) {
                          speak "Running email command: $command";
                          $results = "Command was run: $command";

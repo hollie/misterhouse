@@ -154,31 +154,32 @@ make sure long file names were preserved (e.g. http_server.pl).  If not, you can
 <P>
 <H2><A NAME="windows step 2, download and install perl">Windows Step 2, Download and Install Perl</A></H2>
 <P>You can skip this step if you downloaded the compiled version of Mister House.</P>
-<P>Download and install Perl version 5.005_02 (or higher) from 
+<P>Download and install Perl version 5.8 (or higher) from 
 <A HREF="http://www.activestate.com/ActivePerl">http://www.activestate.com/ActivePerl</A> .
-The 5 MB zip file installs into about 15 MB of disk space.
-Currently, MisterHouse with Perl 5.6 has a memory leak problem, so you will probably want to use
-the older 5.005 build 522, available here: <A HREF="http://activestate.com/download/ActivePerl/APi522e.exe">http://activestate.com/download/ActivePerl/APi522e.exe</A> .</P>
-<P>After installing the core Perl package, you need to install the Tk package.  mh will run
-without Tk, but the Tk gui interface gives it more function.
-Activestate has provided ppm (Perl Package Manager), a nifty new way of automatically downloading
-and installing packages. Do this by logging on to the internet and typing:</P>
+The 12 MB zip file installs into about 43 MB of disk space.
+The also have older vesions older versions available while will work, but 5.6 had a memory leak problem and 5.0 is, well, kind of old :)</P>
+<P>After installing the core Perl package, you will likely want to install a few optional packages.
+mh will run without them, but they are easy to install and give it more function.
+Activestate has provided ppm (Perl Package Manager), a nifty way of automatically downloading and installing packages. 
+Unfortunatly, the 3 packages we need are not yet avaliable from ActiveState for perl version 5.8,
+but Randy Kobes has kindly made them available at his site. You can install them with the following:</P>
 <PRE>
-   cd \perl\bin (modify to match your directory)
-   perl ppm.bat install Win32-API  (ppm.bat may be ppm or ppm.pl in older perls)
-   perl ppm.bat install Tk
-   perl ppm.bat install Tk-JPEG
-   perl ppm.bat install DB_File
-   perl ppm.bat install GD</PRE>
-<P>The Tk package is about 2 MB, so it will take a while. If you are behind a www proxy firewall, 
-try setting the environment variable http_proxy=http://proxy-server:port
+   &gt; cd \perl\bin (modify to match your directory)
+   &gt; ppm
+   ppm &gt; repository add <A HREF="http://theoryx5.uwinnipeg.ca/cgi-bin/ppmserver?urn:/PPMServer58">http://theoryx5.uwinnipeg.ca/cgi-bin/ppmserver?urn:/PPMServer58</A>
+   ppm&gt; install GD
+   ppm&gt; install DB_File
+   ppm&gt; install Tk-JPEG</PRE>
+<P>If the DB_File post-install script doesn't run to install the included libdb.dll, you can extract the dll
+from <A HREF="http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz">http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz</A> and copy it to a dir in your path.</P>
+<P>If you are behind a www proxy firewall, try setting the environment variable http_proxy=http://proxy-server:port
 If you have problems installing the files with ppm over the internet, you can download the files 
 and install them from local storage. For example, to install the Tk package:</P>
 <PRE>
   download and unzip Tk.zip from <A HREF="http://www.activestate.com/PPMPackages/zips">http://www.activestate.com/PPMPackages/zips</A> to c:\temp
   ppm install c:\temp\Tk.ppd</PRE>
 <P>All other required packages should either be in the mh distribution or is now installed by default in the 
-standard Activestate distribution.</P>
+standard Activestate distribution, including the Tk module (used to be seperate).</P>
 <P>
 <H2><A NAME="windows step 3, download and install the speech engines">Windows Step 3, Download and Install the Speech Engines</A></H2>
 <P>You can skip this step if you do not want to enable TTS and VR, but much of the fun of

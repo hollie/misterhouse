@@ -161,6 +161,7 @@ sub set_data {
 sub set_receive {
     my ($self, $state, $set_by) = @_;
 #   $set_by = 'serial' unless $set_by;
+    return if &main::check_for_tied_filters($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
 }
 
@@ -526,6 +527,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.60  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.59  2002/10/13 02:07:59  winter
 #  - 2.72 release
 #

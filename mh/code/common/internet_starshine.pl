@@ -52,6 +52,7 @@ if (done_now $starshine_check_p or $state eq 'list') {
 
     my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
     open(MYCODE, ">$starshine_check_e") or print_log "Error in writing to $starshine_check_e";
+    print MYCODE "\n#@ Auto-generated from code/common/internet_starshine.pl\n\n";
     for (split "\n", $text) {
         if (/^\d{2}\s\S{3}\s/) {
             my @a = split;

@@ -57,6 +57,7 @@ sub read_text {
         $height += int($length/100); # Add more rows if we are line wrapping
         $$self{text} .= $_ if $file;
     } 
+
     $$self{height} = $height + 2 unless $$self{height};
     $$self{width}  = $width  + 2 unless $$self{width};
 
@@ -73,9 +74,10 @@ sub read_text {
         $$self{width} = 150; 
     }
     if ($$self{append}) {
-        $$self{width} = 100;
+#       $$self{width} = 100;
         $$self{scroll} = 'se';
     }
+
 }
 
 sub display {
@@ -285,6 +287,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.24  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.23  2002/05/28 13:07:51  winter
 # - 2.68 release
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2002-10-29 19:11:31 winter>
+#  Last change Time-stamp: <2002-12-23 14:31:11 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -1011,8 +1011,10 @@ sub make_index {
    #  Feel free to change this if you like.
    #----------------------------------------------------------------------
    print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'main')>\n";
-   my $dow_start = -$down - 7;
-   my $dow_stop  = $dow_start + 20;
+   #my $dow_start = -$down - 7;
+   #my $dow_stop  = $dow_start + 20;
+   my $dow_start =  -$parms{purge};
+   my $dow_stop =   $parms{days} -1;
    for my $count ($dow_start .. $dow_stop) {
        my ($dow2, $dow2n, $day2, $month2, $year2) = &days_from_now($day_time, $count);
        print OUT "<option value='/" . $parms{db} . "/${day2}_$hour.html'";
@@ -1127,6 +1129,18 @@ sub fetchLoop
             ."${month}_${day}_${startHour}_$parms{duration}.html";
          my $outfile = "$parms{outdir}/${day}_${startHour}.html";
          $outfile = $parms{outfile} if ( $parms{outfile} );
+
+         #------------------------------------------------------------
+         # If output file already exists, and is recent enough, use
+         # keep it instead of re-downloading. 
+         #------------------------------------------------------------
+         if ( (-e $outfile) and (8 > -M $outfile) and 
+            (4000 < -s $outfile) and !$parms{reget} ) 
+         {
+            print "Reusing: $outfile\n";
+            next; 
+         }
+
 
          #------------------------------------------------------------
          # Now retrieve the data, if it needs retrieving.

@@ -244,6 +244,7 @@ sub read_in_call_log {
             } 
             $time_date =~ s/ +$//;
             $name =~ s/data=.+//;
+            $name =~ s/line=.+//;
         
 #          $name =~ s/[\r\n]+$//; # Delete carrage return 
 
@@ -580,6 +581,9 @@ sub phone_list2 {
 
 #
 # $Log$
+# Revision 1.19  2002/12/24 03:05:04  winter
+# - 2.75 release
+#
 # Revision 1.18  2001/12/16 21:48:40  winter
 # - 2.62 release
 #

@@ -134,6 +134,9 @@ irvs*
  - Walter Leemput's example of a DTFM driven phone menu, using the 
    Irvs phone module from CPAN (linux only).
 
+ir_creative.pl
+ - Richard Smith's example of reading IR data from Creative Credit Card Remotes.
+
 HVweb.pl
  - Joseph Gaston's code to control Homevision controller via the Homevision web server 
 
@@ -197,6 +200,9 @@ pictures_files1.pl
 printer_control.pl
  - Paul Wilkinson's example of how to turn a printer on/off based on a unix print spool file.
 
+random_time_offset.pl
+ - Jeff Siddall's code for adding random offset times to time_now tests.
+
 readrat_capture
 readrat.pl
  - Kent Noonan's code for controling IR devices with the 
@@ -217,6 +223,9 @@ rrd_create.bat
 
 rcs.pl
  - Craig's code to run RCS X10 thermostats.
+
+RCSs.pl
+ - Chris Witte's code for talking to the RS232/485 versions of the RCS thermostats.
 
 rcstx15_old.pl          
  - Old rcs code for running a RCS TX15 Thermostat.  Use rcs.pl instead.

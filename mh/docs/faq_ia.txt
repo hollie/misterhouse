@@ -31,6 +31,9 @@ What is an Audrey
      List:  http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=3Com_Audrey&Idle
      OS:    http://www.qnxstart.com/
 
+    Pete Flaherty posted a mh compatable Audrey image at
+    http://vsa.cape.com/~pjf/MrAudrey.html.
+
   Some common hacks
 
     Here are some common/useful hacks (edit these file to these values):

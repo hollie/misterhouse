@@ -167,7 +167,7 @@ sub read_table_A {
         $code .= sprintf "\$v_%s = new Voice_Cmd(\"%s\");\n", $name, $vcommand;
         $code .= sprintf "if (\$v_%s_state = said \$v_%s) {\n", $name, $name;
         $code .= sprintf "  set \$%s \$v_%s_state;\n", $name, $name;
-        $code .= sprintf "  speak \"Turning %s \$v_%s_state\";\n", $fixedname, $name;
+        $code .= sprintf "  respond \"Turning %s \$v_%s_state\";\n", $fixedname, $name;
         $code .= sprintf "}\n";
         return $code;
     }
@@ -204,6 +204,7 @@ sub read_table_A {
 
     $grouplist = '' unless $grouplist; # Avoid -w uninialized errors
     for my $group (split('\|', $grouplist)) {
+        $group =~ s/ *$//;
         if ($name eq $group) {
             print_log "mht object and group name are the same: $name  Bad idea!";
         }
@@ -226,6 +227,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.16  2002/12/24 03:05:08  winter
+# - 2.75 release
+#
 # Revision 1.15  2002/11/10 01:59:57  winter
 # - 2.73 release
 #

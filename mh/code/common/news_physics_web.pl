@@ -13,7 +13,7 @@ $p_physics_web = new Process_Item("get_url http://physicsweb.org/archive/news $f
 $v_physics_web = new  Voice_Cmd('[Get,Read,Show] physics_web');
 $v_physics_web ->set_authority('anyone');
 
-speak($f_physics_web)   if said $v_physics_web eq 'Read';
+respond($f_physics_web)   if said $v_physics_web eq 'Read';
 display($f_physics_web) if said $v_physics_web eq 'Show';
 
 if (said $v_physics_web eq 'Get') {

@@ -9,7 +9,7 @@ $p_mquote_otd = new Process_Item("get_url http://tqpage.com/mqotd.php3 $f_mquote
 $v_mquote_otd = new  Voice_Cmd('[Get,Read,Show] Motivational Quote of the day');
 $v_mquote_otd ->set_authority('anyone');
 
-speak($f_mquote_otd)   if said $v_mquote_otd eq 'Read';
+respond($f_mquote_otd)   if said $v_mquote_otd eq 'Read';
 display($f_mquote_otd) if said $v_mquote_otd eq 'Show';
 
 if (said $v_mquote_otd eq 'Get' and &net_connect_check) {

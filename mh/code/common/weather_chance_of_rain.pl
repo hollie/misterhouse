@@ -41,7 +41,7 @@ if (said $v_chance_of_rain or ($New_Minute and changed $weather_forecast)) {
 
     ($size) = (stat($weather_forecast->name))[7];
     if ($size < 100) {
-        speak "app=notice Incomplete weather forecast received" if said $v_chance_of_rain;
+        respond "app=notice Incomplete weather forecast received" if said $v_chance_of_rain;
         return;
     }
     foreach $day (split $Weather{"Forecast Days"}, /\|/) {
@@ -79,7 +79,7 @@ if (said $v_chance_of_rain or ($New_Minute and changed $weather_forecast)) {
         $text .= " a $chance percent chance of $precip $day,";
     }
     unless ($text) { 
-        speak "app=notice There is no rain in the forecast." if said $v_chance_of_rain;
+        respond "app=notice There is no rain in the forecast." if said $v_chance_of_rain;
         return;
     }
     $tomorrow = $days[($Wday + 1) % 7];
@@ -89,7 +89,7 @@ if (said $v_chance_of_rain or ($New_Minute and changed $weather_forecast)) {
     $text =~ s/a 8/an 8/g;
     $text =~ s/,([^,]+)$/ and$1/;
     $text = 'Notice: ' . $text unless said $v_chance_of_rain;
-    speak "app=notice $text" if said $v_chance_of_rain or $Hour > 7;
+    respond "app=notice $text" if said $v_chance_of_rain or $Hour > 7;
 }
 
 

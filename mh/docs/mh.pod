@@ -1526,6 +1526,51 @@ mh/code/examples/socket_test*.pl,
 mh/code/bruce/monitor_shoutcast.pl, bruce/wxserver_server.pl, and bruce/monitor_router.pl
 
 
+=item Text_Cmd
+
+Use this object if you want to fire events based on text entered.  Unlike the Voice_Cmd item, you can
+use Text_Cmd to capture arbitrary text, using a regular expression.  
+
+Like Voice_Cmd items, all text passed to the run_voice_cmd and process_external_command functions
+will be tested against all Text_Cmd items.  All items that match will fire their state_now methods.
+
+  Methods:
+
+     new($re_string);
+
+       $re_string is any valid regular expresion.  Use the () grouping to 
+       pick the data that will be returned with the state_now method.
+
+
+     state      : Returns the text from the () match in the $re_string.  
+                  If there was not () grouping, it returns 1.
+                  If there is more than one () grouping, the resulting 
+                  matches are concatonated together with | as a separator.  
+
+     state_now  : Returns the state that was received or sent in the current pass.
+
+     Like most items, this inherits all Generic_Item methods.
+
+  Examples:
+ 
+                    # Create a widget for inputing text commands
+   $Text_Input = new Generic_Item;
+   &tk_entry("Text Input", $Text_Input, "tcmd1", $tcmd1);
+
+   if ($state = state_now $Text_Input) {
+      print_log "You typed $state";
+      run_voice_cmd($state);
+   }
+                    # Create commands
+   $tcmd1 = new Text_Cmd('hi (a|b|c)');
+   $tcmd2 = new Text_Cmd('bye *(.*)');
+   $tcmd3 = new Text_Cmd('(hi.*) (bye.*)');
+
+                    # Fire events if the commands match text input
+   $tcmd1->tie_event('print_log "tcmd1 state: $state"');
+   $tcmd2->tie_event('print_log "tcmd2 state: $state"');
+   print_log "tcmd3 state: $state"' if $state = $state_now $tcmd3;
+
 
 =item Timer
 
@@ -2057,6 +2102,16 @@ Appends data into a log file.  Use file_write to write over a file.
    logit("$Pgm_Root/data/phone/logs/callerid.$Year_Month_Now.log", "$cid_number $cid_name");
 
 
+=item mht_item_add
+
+=item mht_item_delete
+
+=item mht_item_copy
+
+=item mht_item_write
+
+These functions can be used to manipulate mht files.
+
 
 =item play
 
@@ -2269,6 +2324,56 @@ Here are a few examples:
       my $keys = '\\alt\\te\\ret\\';     # For Outlook
       &SendKeys($window, $keys, 1, 500);
    }
+
+
+=item respond
+
+This function can be used to send the resulting text of a command or query to a specified target.  
+By default, valid targets are:
+
+  display -> Text is passed to the display function.
+  email   -> Text is passed to net_mail_send
+  im      -> Text is passed to net_im_send
+  log     -> Text is passed to print_log  
+  speak   -> Text is passed to speak
+  tk      -> Text is passed to speak (or display if long)
+  web     -> Text is passed to the web browser.
+
+All parms given to respond are passed to the target function.  So, for example, you can specify a specific
+email account using the to parm, like this:
+
+  respond target => 'email', to => 'joe@cops.com', text => 'Alarm just went off';
+
+or as with the speak and display functions, you can specify your parms in-line, like this:
+
+  respond 'target=im to=joe@jabber.com pgm=jabber Alarm just went off';
+  
+The default respond target it whatever set_by is, so for example, if a command is run from an im client,
+text sent to any respond called by that command will be sent only to that im client.
+You can also specify multiple targets.  For example:
+
+  respond 'target=speak,im,email app=notice  The fire alarm just went off';
+
+In this case, the app parm is only recognized by the speak function, and would be ignored
+by the im and email functions.
+
+When called with no target, the default is to speak, or display if the text is long.
+
+You can specify new targets, or override the default target reponse of the above default targets, by 
+creating respond_xyz functions in your user code.  So for example, if we had callerid code with this:
+
+  $caller = "Call from $caller.  Call is from $caller.";
+  respond("app=phone target=callerid $caller");
+
+You could add this function anywhere in your user code to change how it is spoken and to forward
+the call to your im client:
+
+  sub respond_netcallerid {
+      my (%parms) = @_;
+      $parms{text} =~ s/ ?\.[^\.]*$/\./;  # Drop the extra 'call from'
+      &net_im_send(pgm => "AOL', text => $parms{text});
+      &speak("app=phone $parms{text}");
+  }
 
 
 =item speak
@@ -2507,7 +2612,7 @@ these functions will return a true value for every pass that they are true.
 
 =item time_now
 
-time_now is evaluate to true for the 1 pass that matches the specified time/date.  Date is optional.
+time_now is evaluate to true for the 1 pass that matches the specified date time.  Date is optional.
 You can specify + or - offset, in hours:minutes:seconds.  Time can include AM/PM or be in 24 hour 
 format.  
 
@@ -4570,6 +4675,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.61  2002/12/24 03:05:07  winter
+# - 2.75 release
+#
 # Revision 1.60  2002/12/02 04:55:16  winter
 # - 2.74 release
 #

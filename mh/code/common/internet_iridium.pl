@@ -47,6 +47,7 @@ if (done_now $iridium_check_p or $state eq 'list') {
 
     my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
     open(MYCODE, ">$iridium_check_e") or print_log "Error in writing to $iridium_check_e";
+    print MYCODE "\n#@ Auto-generated from code/common/internet_iridium.pl\n\n";
 
     print MYCODE <<'eof';
 $iridium_timer = new Timer;

@@ -40,6 +40,9 @@ if ($Reload) {
     &tk_entry("Sleep time", \$Loop_Sleep_Time, "Tk passes", \$Loop_Tk_Passes);
 #   &tk_entry("Sleep time", \$Loop_Sleep_Time, "Sleep count", \$config_parms{sleep_count});  ... only works on reload
 
+    use vars '$mh_volume';  # In case we don't have mh_sound
+    &tk_entry("Volume", $mh_volume) if $Run_Members{mh_sound};
+
                                 # $search_code_string is defined in mh/code/common/mh_control.pl
     &tk_entry('Code Search', $search_code_string,    'Debug flag', \$config_parms{debug});
 
