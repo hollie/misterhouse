@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-02-04 10:56:01 winter>
+#  Last change Time-stamp: <2001-02-12 08:45:37 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -18,7 +18,7 @@
 #  Documentation is in mh/docs/mh.html (from mh.pod) and mh/docs/install.html
 #
 #  This free software is licensed under the terms of the GNU public license. 
-#  Copyright 1998-2000 Bruce Winter
+#  Copyright 1998-2001 Bruce Winter
 #
 #---------------------------------------------------------------------------
  
@@ -871,6 +871,7 @@ sub check_for_action {
         }
     }
     &check_for_keyboard_input;
+    &check_for_nextpass_actions;
     return if $pause_mode;
 
     &set_global_vars;
@@ -1026,7 +1027,6 @@ sub check_for_HomeBase_data {
 use vars '$Keyboard';
 sub check_for_keyboard_input {
                                 # The F1->F5 data is now processed in mh/code/common/mh_control.pl
-
     undef $Keyboard;
     if ($OS_win) {
         for(0..$CON_IN->GetEvents()-1) {
@@ -1081,6 +1081,16 @@ sub check_for_keyboard_input {
         &toggle_pause;
         undef $Keyboard;
     }
+    
+}
+
+                                # Check for stuff that must be out of the user code loop (e.g. reload_code)
+use vars '@Nextpass_Actions';
+sub check_for_nextpass_actions {
+    for my $ref (@Nextpass_Actions) {
+        &$ref;
+    }
+    undef @Nextpass_Actions;
 }
 
 sub toggle_debug {
@@ -1332,7 +1342,6 @@ sub check_for_tied_events {
                 my ($object2, $state2, $log_msg) = @{$$object1{tied_objects}{$key}{$state_key}};
                 &print_log($log_msg) unless $log_msg eq '1';
                 $state2 = $state1 unless defined $state2;
-                print "Object link: Setting $object2 to $state2\n" if $config_parms{debug} eq 'events';
                 if ($object2->can('set')) {
                     $object2->set($state2);
 #                   $object2->{changed_by} = $object1->{object_name};
@@ -1671,7 +1680,7 @@ sub exit_pgm {
                                 # we can use in mh_loop to mean accidental exit, 'better restart'
     if ($restart) {
         &print_log("Restarting mh");
-        exit 0;
+        exit 99;
     }
     else {
         &print_log("Bye bye");
@@ -4086,6 +4095,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.44  2001/02/12 14:50:06  winter
+# - add Nextpass_Actions
+#
 # Revision 2.43  2001/02/04 20:27:26  winter
 # - 2.43 release
 #
