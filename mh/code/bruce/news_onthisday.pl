@@ -59,7 +59,7 @@ if (done_now $p_thisday) {
 		$otday = 0;
         }
     } 
-	$text +~ s!([a-zA-Z,'\.\-\s]+)<\w\/?>([a-zA-Z,'\.\-\s]+)!$1 $2!;
+	$text =~ s!([a-zA-Z,'\.\-\s]+)<\w\/?>([a-zA-Z,'\.\-\s]+)!$1 $2!;
     file_write($f_thisday, $text);
     display $f_thisday;
 }

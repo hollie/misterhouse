@@ -1,6 +1,6 @@
 # Category=Misc
 
-my $disk_drives;
+my $disk_drives = '';
 $disk_drives = join(',', Win32::DriveInfo::DrivesInUse()) if $OS_win;
 $v_disk_space = new Voice_Cmd("How much disk space is available on [$disk_drives]");
 $v_disk_space-> set_info('This currently only works on Windows');

@@ -26,7 +26,6 @@
 #   http://mp3spy.com/server
 #
 
-
                                 # Check to see if the winamp shoutcast player is playing or connected
                                 #  - this requires the httpq winamp plugin
 $v_shoutcast_check  = new  Voice_Cmd 'Check the shoutcast player';
@@ -40,6 +39,7 @@ if ($Reload) {
     $temp = 'localhost' unless $temp = $config_parms{shoutcast_player};
     $sc_player_url = "http://$temp:$config_parms{mp3_program_port}";
 }    
+
 
                                 # Monitor shoutcast player to make sure it stays connected to the server
                                 #  - hmmm, maybe not.  If the sc computer is down, this get will hang mh :(
@@ -86,6 +86,13 @@ if ($state = said $v_shoutcast_connect) {
         }
     }        
 }
+
+
+return;                         # skip this  ... causing sc to abend ??
+
+
+
+
 
 
                                 # Open the port ... check periodically, in case server was restarted.
@@ -142,7 +149,7 @@ if ($config_parms{shoutcast_server} and $state = said $shoutcast_server or
         else {
             $msg = "DJ lost the listener ";
         }
-        $domain_name = 'the winter house' if $domain_name =~ /200.200.200/; # Local domain
+        $domain_name = 'the winter house' if $domain_name =~ /192.168.0/; # Local domain
         $domain_name =~ s/[\d\.]/ /g; # Get rid of digits and dots
         $domain_name = 'unknown' if $domain_name =~ /^ *$/;
         $msg .=  "  from $domain_name.  " . plural_check "There are now $shoutcast_users listeners";

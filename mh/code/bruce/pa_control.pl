@@ -15,20 +15,22 @@ $v_pa_speakers = new  Voice_Cmd('speakers [on,off]');
 $v_pa_speakers-> set_info('Turn all the PA speakers on/off');
 
 if ($state = said $v_pa_speakers) {
-    foreach $ref (@speakers) {
-	set $ref $state;
+    for $ref (@speakers) {
+        set $ref $state;
     }
 }
 
+run_voice_cmd 'speakers off' if expired $speaking_off_timer;
+
 my ($speaking_flag, $action_flag, $is_speaking);
 
-				# See if we should turn any pa speakers ON
+                # See if we should turn any pa speakers ON
 
-				# Note, a call to is_speaking seems to be expensive ... mip meter drops from
-				# 220 to 170 with this call :(
+                # Note, a call to is_speaking seems to be expensive ... mip meter drops from
+                # 220 to 170 with this call :(
 
-				# Also, I think this helps avoid the following perl bug 
-				# noted by perl ole dude jan.dubois@ibm.net (Jan Dubois) :
+                # Also, I think this helps avoid the following perl bug 
+                # noted by perl ole dude jan.dubois@ibm.net (Jan Dubois) :
 # When Perl initializes the OLE subsystem then OLE creates a message loop and a 
 # hidden top level window for the current thread (Perl interpreter). Perl itself 
 # never processes the message loop, but all OLE calls do (because OLE uses the 
@@ -54,41 +56,41 @@ $is_speaking =  &Voice_Text::is_speaking;
 if (!$speaking_flag and ($is_speaking or active $speaking_timer)) {
     $speaking_flag = 1;
     $action_flag = 0;
-    foreach $ref (@speakers) {
-	if ($ref->{while_speaking}) {
-	    $action_flag = 1;
-	    $ref->{state} = ON unless $ref->{sleeping};
-	}
+    for $ref (@speakers) {
+        if ($ref->{while_speaking}) {
+            $action_flag = 1;
+            $ref->{state} = ON unless $ref->{sleeping};
+        }
     }
 }
 
-				# See if we should turn any pa speakers OFF
+                # See if we should turn any pa speakers OFF
 if ($speaking_flag and !($is_speaking or active $speaking_timer)) {
     $speaking_flag = 0;
     $action_flag = 0;
-    foreach $ref (@speakers) {
-	if ($ref->{while_speaking}) {
-	    $action_flag = 1;
-	    $ref->{state} = OFF;
-	    $ref->{while_speaking} = 0;
-	}
+    for $ref (@speakers) {
+        if ($ref->{while_speaking}) {
+            $action_flag = 1;
+            $ref->{state} = OFF;
+            $ref->{while_speaking} = 0;
+        }
     }
 }
 
-				# Messy code to set the PA port by byte, not bit 
+                # Messy code to set the PA port by byte, not bit 
 if ($action_flag) {
     $action_flag = 0;
     my ($bit, $byte_string);
 #   for $bit ('A' .. 'H') {
     for $bit (reverse('A' .. 'H')) {
         if ($ref = &Serial_Item::serial_item_by_id("DBL$bit")) {
-	    $state = $ref->{state};
-	}
-	else {
-	    $state = OFF;
-	}
-#	print "db bit=$bit state=$state\n";
-	$byte_string .= ($state eq ON) ? 1 : 0;
+            $state = $ref->{state};
+        }
+        else {
+            $state = OFF;
+        }
+#   print "db bit=$bit state=$state\n";
+        $byte_string .= ($state eq ON) ? 1 : 0;
     }
 #   my $send = "DBWb" . $byte_string;
 #   my $send = "DBW\$" . pack('B8', $byte_string) . "   ";   ... hmmm, when byte = 0000, end of sent record is not detected :(
@@ -99,59 +101,77 @@ if ($action_flag) {
     $main::Serial_Ports{weeder}{object}->write($send . "\r") if $main::Serial_Ports{weeder}{object};
 
 #    if (&main::write_socket("serial", " ",  $send . "\r")) {
-#	print "Error writing to socket\n";
+#   print "Error writing to socket\n";
 #    }
 
 #    $digital_write_port_b->{id} = "DBW\$$byte";
 #    set $digital_write_port_b;
 }
 
-				# This is called by the main loop whenever a serial item is triggered
+&Serial_match_add_hook(\&serial_stub) if $Reload;
+
+#sub serial_stub {
+#    my ($ref, $state, $event) = @_;
+#    my $name = substr $$ref{object_name}, 1;
+#    print_log "$event: $name $state";
+#}
+
+                # This is called by the main loop whenever a serial item is triggered
 my %rooms_by_event = qw( XH shop XJ zack XK study XM family  XN nick XO living XP bedroom);
 sub serial_stub {
     my ($ref, $state, $event) = @_;
 #   print "db room=$ref->{room} event=$event ref=$ref\n";
 
-				# Set the room reference
+    my $object_name = substr $$ref{object_name}, 1;
+
+                # Set the room reference
     my $room = substr($event, 0, 2);
     $ref->{room} = $rooms_by_event{$room};
 
-				# Speak the object name if it was a manual keypad entry
-    return unless $state eq 'manual';
+                # Speak the object name if it was a manual keypad entry
+    return unless $state and $state eq 'manual';
     my $object_type = ref $ref;
     return unless $object_type eq "X10_Item";
+    return unless $object_name;
 
-    my $object_name = $ref->{usage_name};
-    $object_name = substr($object_name, 1); # Drop the '$'
     $object_name =~ s/_/ /g;
     $room = $ref->{room};
     $room = 'all' unless $room;
     speak("rooms=$room $object_name");
-
 }
 
-$speaking_timer = new  Timer;
+$speaking_timer     = new  Timer;
+$speaking_off_timer = new  Timer;
 
-				# This is called by the main loop whenever speak is called
+&Speak_pre_add_hook(\&pa_stub) if $Reload;
+&Play_pre_add_hook (\&pa_stub) if $Reload;
+
 sub pa_stub {
-    my ($rooms, $timer_amount) = @_;
+    my (%parms) = @_;
+#   my ($rooms, $timer_amount) = @_;
+    my ($rooms, $timer_amount) = ($parms{rooms}, $parms{timer_amount});
+    
     my $room;
 #   print "db override pa_rooms stub rooms=$rooms timer=$timer_amount\n";
-				# Must use time for stuff like play where we can not detect when done
+                # Must use time for stuff like play where we can not detect when done
     set $speaking_timer $timer_amount if $timer_amount;
-    foreach $room (split(',', $rooms)) {
-	$room = lc $room;
-	if ($room eq 'all') {
-	    foreach $ref (@speakers) {
-		$ref->{while_speaking} = 1 unless ON eq $ref->state;
-	    }
-	}
-	else {
-	    no strict 'refs';
-	    ${"pa_$room"}->{while_speaking} = 1;
-	}	    
-     } 
-}
+    set $speaking_off_timer 30; # failsafe to keep speakers off by default
+    $rooms = '' unless $rooms;
+    for $room (split(',', $rooms)) {
+        $room = lc $room;
+        if ($room =~ /all/i) {
+            for $ref (@speakers) {
+                                # Lets skip outside pa speaker unless specified
+                next if $ref->{object_name} =~ /family/ and $room ne 'all_and_out';
+                $ref->{while_speaking} = 1 unless ON eq $ref->state;
+            }
+        }
+        else {
+            no strict 'refs';
+            ${"pa_$room"}->{while_speaking} = 1;
+        }
+    }       
+} 
 
 sub pa_sleep_mode {
     my($who, $mode) = @_;
@@ -159,7 +179,7 @@ sub pa_sleep_mode {
     push(@refs, $pa_bedroom, $pa_living) if $who eq 'parents' or $who eq 'all';
     push(@refs, $pa_nick,    $pa_zack)   if $who eq 'kids' or $who eq 'all';
     my $ref;
-    foreach $ref (@refs) {
-	$ref->{sleeping} = $mode;
+    for $ref (@refs) {
+        $ref->{sleeping} = $mode;
     }
 }

@@ -86,7 +86,6 @@ sub read_mp3_dir {
         $file = "$dir/$file";
         &read_mp3_dir($file), next if -d $file;
 #       next if $file eq '.' or $file eq '..' or $file !~ /\.mp3$/i;
-        next if $file eq '.' or $file eq '..';
         $counts{file}++;
         open(MP3FILE, $file) or print "Error in in file open: $!\n";
         if (open(MP3FILE, $file)) {
@@ -123,6 +122,9 @@ sub read_mp3_dir {
 
 #
 # $Log$
+# Revision 1.3  2000/10/09 02:24:19  winter
+# - post 2.29 release.  Add new members and sync up code/bruce
+#
 # Revision 1.2  2000/02/12 05:33:34  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

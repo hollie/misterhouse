@@ -1,0 +1,38 @@
+This code is a driver to the Slink-e product produced by Nirvis (http://www.nirvis.com)
+
+While this product can control Sony products over the S-Link port, it also has hardware
+to handle up to 8 zones of a hardwired IR reception/transmittal system.  The examples
+given with this code are primarily focused on that.
+
+To add soon:
+A server that will accept TCP connections that will tell what IR commands have been
+seen and also allow IR commands to be sent.
+
+Program to read CD information from Sony CD jukeboxes and then hook up to the CDDB
+and provide information about all of the discs in a jukebox.
+
+Note: The examples are not heavily commented or documented and I plan to add that soon.
+This should get you started...
+
+build_IR_database.pl [slinke database name]: 
+  Run this program first.  Upon seeing an infrared signal, it will prompt you for a
+  device name (or provide a default if it has seen the device before), and a command
+  name for that device.  When it asks if the command is repeatable, this is asking
+  you what will happen if you hold down a button.  For example, holding down a power
+  button usually only sends one "Power" command.  Holding down a "Volume Down" button
+  usually keeps sending a "Volume Down" command until you let go of the button.
+  
+  After recording your responses to the questions, the program will save the data in
+  slinke.irdb of your current directory.  To put the file in a different location, 
+  specify the file name on the command line.
+
+decode_IR.pl [slinke database name]:
+  This program will read the slink database created by build_IR_database.pl and then
+  tell you which commands it recognizes as you push different keys on your remote.
+  If it doesn't recognize a command, it will spit out the bit stream of that command
+
+play_IR_command.pl {slinke database name]:
+  This program will accept on STDIN the following parameters (comma separated):
+  device name, command name, times to repeat command
+  If you do not specify a number of times to repeat, the command is sent only once.
+

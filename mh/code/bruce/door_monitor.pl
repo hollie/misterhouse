@@ -2,8 +2,10 @@
 
 $timer_garage_door = new  Timer();
 if($state = state_now $garage_door) {
-    set $timer_garage_door 300;
-    play('rooms' => 'all', 'file' => "garage_door_" . $state . "*.wav");
+    unless ($state eq 'init') {
+        set $timer_garage_door 300;
+        play('rooms' => 'all', 'file' => "garage_door_" . $state . "*.wav");
+    }
 }
 
 # Note:  testing on state $item seems to reset it!! use $item->{state} instead :(
@@ -16,20 +18,20 @@ if ((time_cron('0,5,10,15,30,45 22,23 * * *') and
 }
 
 $timer_front_door = new  Timer();
-if ($state = state_now $front_door and inactive $timer_front_door) {
+if ($state = state_now $front_door  and $state ne 'init' and inactive $timer_front_door) {
     set $timer_front_door 30;
-    play('rooms' => 'all', 'file' => "front_door_" . $state . "_Zach1.wav");
+    play(mode => 'unmuted', 'rooms' => 'all', 'file' => "front_door_" . $state . "_Zach1.wav");
 }
 if (expired $timer_front_door and state $front_door eq OPENED) {
-    speak("The front door has been left open");
+    speak(mode => 'unmuted', text => 'The front door has been left open');
     set $timer_front_door 120;
 }
 
 $timer_back_door = new  Timer();
-if ($state = state_now $back_door and inactive $timer_back_door) {
+if ($state = state_now $back_door and $state ne 'init' and inactive $timer_back_door) {
     set $timer_back_door 60;
                 # Need to make rooms=all more efficient, or we don't detect closure.
-    play('rooms' => 'all', 'file' => "back_door_" . $state . ".wav");
+    play(mode => 'unmuted', 'rooms' => 'all', 'file' => "back_door_" . $state . ".wav");
 #   speak("rooms=all Back door $state");
 #   speak("Back door $state");
 }
@@ -65,9 +67,10 @@ if (state_now $garage_door or
 }
 
 $timer_stair_movement = new  Timer();
+$bathroom_timer  = new Timer();
 #speak("stair creek")      if state_now $movement_sensor eq ON;
 
-print "db movment sensor = ", (state $movement_sensor_unit), "..\n" if state_now $movement_sensor;
+#print_log "movement sensor: " . (state $movement_sensor_unit) if state_now $movement_sensor;
 
 if (state_now $movement_sensor eq ON and 
     inactive $timer_stair_movement and
@@ -81,5 +84,8 @@ if (state_now $movement_sensor eq ON and
         play(rooms => 'all', file => 'sound_hall*.wav');
 #       speak "rooms=all boys in the hall";
     }
+    elsif ((state $movement_sensor_unit) eq 'bathroom') {
+        print_log 'bathroom movement';
+        set $bathroom_timer 5;
+    }
 } 
-

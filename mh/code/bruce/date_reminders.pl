@@ -1,5 +1,7 @@
 # Category=Informational
 
+speak('rooms=all Nick, remember to take your stinky meat pictures') if time_cron('15,30,45 19 * * *');
+ 
 speak('rooms=all Remember to take out the garbage') if time_cron('0 17,19 * * 4');
 
 $plant_talk = new File_Item("$config_parms{data_dir}/remarks/list_plant_talk.txt");

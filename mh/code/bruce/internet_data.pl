@@ -8,7 +8,8 @@ my $f_top10_html = "$config_parms{data_dir}/web/top10_list.html";
 #$f_top10_html2 = new File_Item($f_top10_html); # Needed if we use run instead of process_item
 
 #$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/lateshow/topten/ $f_top10_html");
-$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/network/tvshows/mini/lateshow/index.shtml $f_top10_html");
+#$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/network/tvshows/mini/lateshow/index.shtml $f_top10_html");
+$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/latenight/lateshow/ $f_top10_html");
 
 $v_top10_list = new  Voice_Cmd('[Get,Read,Show] the top 10 list');
 $v_top10_list-> set_info("This is David Lettermans famoust Top 10 List"); 
@@ -19,7 +20,7 @@ display($f_top10_list) if said $v_top10_list eq 'Show';
 if (said $v_top10_list eq 'Get') {
 
                                 # Do this only if we the file has not already been updated today and it is not empty
-    if (0 and -s $f_top10_html > 10 and
+    if (-s $f_top10_html > 10 and
         time_date_stamp(6, $f_top10_html) eq time_date_stamp(6)) {
         print_log "Top 10 list is current";
         display $f_top10_list;
@@ -48,11 +49,14 @@ if (done_now $p_top10_list) {
     my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
 
                                 # Delete text preceeding the list
-    $text =~ s/^.+?the Top Ten/The Top Ten/s;
+#   $text =~ s/^.+?the Top Ten List for/The Top Ten list for/is;
+    $text =~ s/^.+?Top Ten/Top Ten/is;
                                 # Delete data past the last line: 1. xxxxx\n
     $text =~ s/(.+\n *1\..+?)\n.+/$1\n/s;
                                 # Add a period at the end of line, if needed
-#   $text =~ s/([^\.\?\!])\n/$1\.\n/g;
+    $text =~ s/([^\.\?\!])\n/$1\.\n/g;
+                                # Make sure the number at the beginning as a space.
+    $text =~ s/(\n[\d]+)\.?/$1\. /g;
 
     file_write($f_top10_list, $text);
 

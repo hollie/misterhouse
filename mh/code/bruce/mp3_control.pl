@@ -2,7 +2,9 @@
 
 # This uses either of these programs:
 #  - wactrl, by david_kindred@iname.com  (windows only)
-#  - httpq  (a winamp plugin, available at: http://karv.dyn.dhs.org/winamp )
+#  - httpq, a small/fast winamp plugin, available at:
+#       http://karv.dyn.dhs.org/winamp or
+#       http://winamp.com/customize/detail.jhtml?componentId=9936
 
 # This just turns the player on,off,pause, etc.  mp3_playlist.pl controls 
 # starting the mp3 player with a list of songs or a playlist
@@ -18,9 +20,10 @@ if ($config_parms{mp3_program_control} eq 'wactrl') {
                         'Volume up' => 'volup', 'Volume down' => 'voldown');
 }
 else {
-    $mp3_states = "Play,Stop,Pause,Next Song,Previous Song,Random Song,Toggle Shuffle,Toggle Repeat";
+    $mp3_states = "Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat";
     %winamp_commands = ('Next Song' => 'next', 'Previous Song' => 'prev',
-                        'Toggle Shuffle' => 'shuffle', 'Toggle Repeat' => 'repeat');
+                        'Toggle Shuffle' => 'shuffle', 'Toggle Repeat' => 'repeat',
+                        'Volume Up' => 'volumeup', 'Volume Down' => 'volumedown');
 }
 # noloop=stop
 
@@ -47,7 +50,8 @@ if ($state = said $v_mp3_control_boys or
     time_cron '45 22 * * 1-5' or
     time_cron '45 23 * * 0,6') {
     $state = 'off' unless $state;
-    $state = ($state eq 'on') ? 'PLAY' : 'PAUSE';
+    $state = ($state eq 'on') ? 'PLAY' : 'STOP';
+    print_log "Setting boy's mp3 players to $state";
     run_voice_cmd "Set Nicks mp3 player to $state";
     run_voice_cmd "Set Zacks mp3 player to $state";
 }
@@ -90,9 +94,18 @@ sub winamp_control {
             get "$url/setplaylistpos?p=$config_parms{mp3_program_password}&a=$song";
             print_log filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
         }
+       elsif($command =~ /volume/i){
+           $temp = '';
+                                # 10 passes is about 20 percent 
+            for my $pass (1 .. 10) {
+                $temp .= filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
+            }
+            print_log "Winamp (httpq $host) set to $command: $temp";
+        }
         else {
+            print_log "$url/$command?p=$config_parms{mp3_program_password}";
             $temp = filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
-            print_log "Winamp (httpq) set to $command: $temp";
+            print_log "Winamp (httpq $host) set to $command: $temp";
         }
     }
     else {

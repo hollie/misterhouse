@@ -4,7 +4,7 @@
 
 my $f_tini_web_html = "$config_parms{data_dir}/web/tini.html";
 my $f_tini_web_data = "$config_parms{data_dir}/web/tini.data";
-$p_tini_web = new Process_Item("get_url http://200.200.200.100 $f_tini_web_html");
+$p_tini_web = new Process_Item("get_url http://192.168.0.100 $f_tini_web_html");
 $v_tini_web = new  Voice_Cmd('[Get,Read] TINI web data');
 $v_tini_web-> set_info('This is not useful yet');
 

@@ -24,10 +24,11 @@
 #return;                         # Disable till we get another serial port
  
 my %lcd_data;
-$lcdproc = new  Socket_Item(undef, undef, '200.200.200.5:13666');
+$lcdproc = new  Socket_Item(undef, undef, '192.168.0.5:13666');
 
 $v_lcdproc_control = new  Voice_Cmd("[Start,Stop] the lcdproc client");
 $v_lcdproc_control-> set_info('Connects to the lcdproc server, used to display LCD data.');
+run_voice_cmd 'Start the lcdproc client' if time_now '11 pm'; # Daily restart
 
 set $v_lcdproc_control 'Start' if $Startup;
 
@@ -62,7 +63,7 @@ if ($state = said $v_lcdproc_control) {
 if (my $data = said $lcdproc) {
 #   print "db first_byte = ", unpack('C', substr($data, 0, 1));
     $data = substr($data, 1);   # The first byte is 0!!??
-    print "ldproc server said:$data...\n";
+    print "$Time_Now: ldproc server said: $data...\n";
     if ($data =~ /^key.(\S)/) {
         $lcd_data{key}     = $1;
         $lcd_data{refresh} = 1;
@@ -115,7 +116,7 @@ if (active $lcdproc and $lcd_data{refresh}) {
     if ($lcd_data{key} eq 'N') {
         $lcd_data{1} = substr(&time_date_stamp(14, $Time), 0, 18);
                                 # Make sure phone data is speakable
-        my $temp = substr($Save{phone_last}, 7);
+        my $temp = substr($Save{phone_last}, 7) if $Save{phone_last};
         $temp = 'No call' if $temp !~ /^[\n\r !-~]+$/;
         $lcd_data{2} = $temp;
         $lcd_data{3} = $weather{Summary_Short};
@@ -159,13 +160,14 @@ if (active $lcdproc and $lcd_data{refresh}) {
         $vr_mode_flag = 'L';
     }
 #   $lcd_data{1} = sprintf("%-19s%1s", substr($lcd_data{1}, 0, 19), $vr_mode_flag) if $vr_mode_flag;
-    $lcd_data{1} = $vr_mode_flag . ' ' . $lcd_data{1} if $vr_mode_flag;
+    $lcd_data{1} = $vr_mode_flag . $lcd_data{1} if $vr_mode_flag;
 
                                 # Send only changed lines
     my ($data, $line);
     for my $i (1 .. 4) {
         $line = $lcd_data{$i . '_override'};
         $line = $lcd_data{$i} unless $line;
+        $line =~ s/\n.*//s;     # Use only the first line of data
         $data .= "widget_set mh1 $i 1 $i {$line}\n" unless $line eq $lcd_data_prev[$i];
         $lcd_data_prev[$i] = $line;
     }
@@ -173,23 +175,19 @@ if (active $lcdproc and $lcd_data{refresh}) {
 #   print "lcdproc data=$data\n";
 }
 
-                                # Display the last spoken text
-$temp = &speak_log_last(1);
-#$temp = Voice_Text::last_spoken(1);
-if ($last_speak_log ne $temp) {
-    $last_speak_log  = $temp;
-    $lcd_data{'2_override'} = substr($temp, 9);
+                                # Display the last spoken or logged text
+my ($lcd_last_speak, $lcd_last_log, $lcd_last_text);
+$lcd_last_text = $lcd_last_log   = $temp if $temp = &print_log_last(1) and $temp ne $lcd_last_log;
+$lcd_last_text = $lcd_last_speak = $temp if $temp = &speak_log_last(1) and $temp ne $lcd_last_speak;
+    
+if ($lcd_last_text) {
+    $lcd_last_text =~ s/[\n\r]//;
+    $lcd_last_text =~ s/[\{\}]/ /g;
+    $lcd_last_text = substr($lcd_last_text, 18) if length $lcd_last_text > 18; #  Drop time/date prefix
+    $lcd_data{'2_override'} = substr($lcd_last_text, 0, 20);
     $lcd_data{refresh} = 1;
     $time_reset_override = &get_tickcount + 5000;
-}
-                                # Display the last print log
-my ($last_print_log, $last_speak_log);
-$temp = main::print_log_last(1);
-if ($last_print_log ne $temp) {
-    $last_print_log  = $temp;
-    $lcd_data{'3_override'} = substr($temp, 18);
-    $lcd_data{refresh} = 1;
-    $time_reset_override = &get_tickcount + 5000;
+    $lcd_last_text = '';
 }
 
                                 # Detect change in VR mode

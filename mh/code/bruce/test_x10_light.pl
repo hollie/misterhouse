@@ -1,12 +1,11 @@
 # Category=Test
 
-
-$v_test_light_timed = new Voice_Cmd("Outside lights off in [1,5,10,30,60] minutes");
+$v_test_light_timed = new Voice_Cmd("Turn the Outside lights off in [1,5,10,30,60] minutes");
 $v_test_light_timed-> set_info('A test of the set_with_timer X10_Item method');
 set_with_timer $camera_light ON, $state*60 if $state = said $v_test_light_timed;
 
 
-$v_test_light = new Voice_Cmd("Set test camera light to [on,bright,dim,-50,+20,+50,+70,50,10%,30%,60%,&P1,&P2,&P3,&P13,&P10,&P30,&P40,&P50,&P60,fred]");
+$v_test_light = new Voice_Cmd("Set test camera light to [on,bright,dim,-50,+20,+50,+70,50,10%,12%,30%,60%,70%,&P1,&P2,&P3,&P13,&P10,&P30,&P40,&P50,&P60,&P80,fred]");
 $v_test_light-> set_info('Test sending some extended X10 states to a fancy LM14 X10 module');
 
 if ($state = said $v_test_light) {
@@ -15,13 +14,13 @@ if ($state = said $v_test_light) {
 #  set $camera_light $state;
 }
 
-$v_test_lights = new Voice_Cmd("{please,}{turn the,} test lights [on,off,&P13,&P10,&P15,&P20,10%,20%,&P60]");
-$v_test_lights-> set_info('Test sending some extended X10 states to a fancy LM14 X10 module');
-#$test_lights   = new X10_Item("O7", "CM11",  'LM14');
+$v_test_lights = new Voice_Cmd("{please, } {turn the, } test lights [on,off,&P13,&P10,&P15,&P20,10%,20%,70%,&P60]");
+#$v_test_lights-> set_info('Test sending some extended X10 states to a fancy LM14 X10 module');
+$test_lights   = new X10_Item("C9", "CM11",  'LM14');
 
-#et $test_lights $state if $state = said $v_test_lights;
-set $camera_light $state if $state = said $v_test_lights;
-speak "Test light set to $state" if $state = state_now $camera_light;
+set $test_lights $state if $state = said $v_test_lights;
+#set $camera_light $state if $state = said $v_test_lights;
+#speak "Test light set to $state" if $state = state_now $camera_light;
 
 
 $v_xmas_clue1 = new Voice_Cmd("Where is Nicks christmas present");
@@ -37,3 +36,5 @@ speak "Zacks present is in a very, very dirty place" if said $v_xmas_clue2 or sa
 
 $button1 = new  Serial_Item('XNBNB');
 print_log "Button pushed twice" if state_now $button1;
+
+

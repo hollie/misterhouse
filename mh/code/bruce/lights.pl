@@ -2,10 +2,6 @@
 
 my $light_states = 'on,brighten,dim,off,-30,-50,-80,+30,+50,+80,status';
   
-$christmas_lights      = new X10_Item('O8');
-$christmas_lights_bed  = new X10_Item('P3');
-$christmas_lights_nick = new X10_Item('N8');
-
 $v_christmas_lights = new  Voice_Cmd("Christmas Lights [$light_states]");
 if ($state = said $v_christmas_lights) {
     set $christmas_lights_bed $state;
@@ -62,8 +58,8 @@ set $left_bedroom_light $state if $state = said $v_left_bedroom_light;
  $v_right_bedroom_light = new  Voice_Cmd("Right bedroom light [$light_states]");
 set $right_bedroom_light $state if $state = said $v_right_bedroom_light;
 
- $v_study_light = new  Voice_Cmd("Study light [$light_states]");
-set $study_light $state if $state = said $v_study_light;
+# $v_study_light = new  Voice_Cmd("Study light [$light_states]");
+#set $study_light $state if $state = said $v_study_light;
 
  $v_nick_reading_light = new  Voice_Cmd("Nicks reading light [$light_states]");
 set $nick_reading_light $state if $state = said $v_nick_reading_light;
@@ -99,15 +95,11 @@ set $pedestal_light OFF if time_cron '15,45 22,23,24 * * *';
 #    speak("testa 2 worked");
 #}
 
-$outside_lights = new Group($backyard_light, $garage_light, $driveway_light);
-$living_lights  = new Group($pedestal_light, $camera_light, $christmas_lights, $living_light);
-$bedroom_lights = new Group($left_bedroom_light, $right_bedroom_light, $bedroom_fan_light, $bedroom_reading_light);
-
 $v_outside_lights = new  Voice_Cmd("Outside lights [$light_states]");
-set $outside_lights $state if $state = said $v_outside_lights;
+set $Outside $state if $state = said $v_outside_lights;
 
 $v_bedroom_lights = new  Voice_Cmd("Bedroom lights [$light_states]");
-set $bedroom_lights $state if $state = said $v_bedroom_lights;
+set $Bedroom $state if $state = said $v_bedroom_lights;
 
 #all_bedroom_lights  = new Serial_Item('XPOPO',  ON);
 #all_bedroom_lights -> add            ('XPPPP', OFF);
@@ -115,20 +107,21 @@ set $bedroom_lights $state if $state = said $v_bedroom_lights;
 #$all_bedroom_lights -> add            ('XPOPALL_OFF', OFF);
 
 
-$all_lights_bed    = new X10_Item('P');
 $all_lights_living = new X10_Item('O');
-$all_lights  = new Group($all_lights_bed, $all_lights_living);
+$v_lights_living = new  Voice_Cmd("Living lights [on,off]");
+$v_lights_living ->tie_items($all_lights_living);
 
 $v_lights_all = new  Voice_Cmd("All lights [on,off]");
 $v_lights_all -> set_info('This controls all the lights in the house');
 
-set $all_lights $state if $state = said $v_lights_all;
+                                # Set lights with Group_Item s
+set $All_Lights $state if $state = said $v_lights_all;
 
 $v_living_lights_all = new  Voice_Cmd("Living room lights [on,off]");
-set $living_lights $state if $state = said $v_living_lights_all;
+set $Living_Room $state if $state = said $v_living_lights_all;
 
-$v_bedroom_lights_all = new  Voice_Cmd("Bedroom room lights [on,off]");
-set $bedroom_lights $state if $state = said $v_bedroom_lights_all;
+$v_bathroom_light_all = new  Voice_Cmd("Bathroom lights [$light_states]");
+set $bathroom_light $state if $state = said $v_bathroom_light_all;
 
 
                                 # Example of creating a lived in random light event

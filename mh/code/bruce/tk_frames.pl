@@ -1,4 +1,4 @@
-
+ 
 # Position=1                    Load before any tk_widget code
 
 # This file determines the layout of the mh Tk window
@@ -44,12 +44,12 @@ if ($MW and $Reload) {
                                 # Add speak and log windows to bottom frame
         $Tk_objects{speak_window} = $Tk_objects{fr}->
             Scrolled('Text', -height => 25, -width => 60, -bg => 'cyan', -wrap => 'none', -scrollbars => 'se',
-                     -setgrid => 'true', -font => 'Courier* 10 bold')->
+                     -setgrid => 'true', -font => $config_parms{tk_font})->
                          pack(qw/-side top -expand 1 -fill both/);
 
         $Tk_objects{log_window} = $Tk_objects{fr}->
             Scrolled('Text', -height => 25, -width => 60, -bg => 'cyan', -wrap => 'none', -scrollbars => 'se',
-                     -setgrid => 'true', -font => 'Courier* 10 bold')->
+                     -setgrid => 'true', -font => $config_parms{tk_font})->
                          pack(qw/-side top -expand 1 -fill both/);
 
     }

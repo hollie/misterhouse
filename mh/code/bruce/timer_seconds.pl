@@ -1,6 +1,6 @@
 # Category= Timers
 
-my %timer_reminder_intervals = map {$_, 1} (5,10,20,30,60);
+my %timer_reminder_seconds_intervals = map {$_, 1} (5,10,20,30,60);
 
 # Do an seconds timer
 $v_second_timer = new  Voice_Cmd('Start a timer for [5,10,15,20,30,45,60,90,120] seconds');
@@ -22,7 +22,7 @@ if ($state =  said $v_second_timer) {
 }
 
 for my $timer (@timers_second) {
-    speak &plural($temp, "second") . " left"  if ($temp = seconds_remaining_now $timer) and $timer_reminder_intervals{$temp};
+    speak &plural($temp, "second") . " left"  if ($temp = seconds_remaining_now $timer) and $timer_reminder_seconds_intervals{$temp};
 }
 
 # Cancel all seconds timers

@@ -1,0 +1,52 @@
+Some notes from Danal on the Garage_Door item from 8/00
+
+MH has direct support for your garage door sensors.  See this script for
+examples:
+ 
+/mh/code/public/Danal/Garage_Door.pl
+ 
+This avoids having to do your own serial item, extended code(s), etc.  Step 1
+is to create a garage door object:
+ 
+$garage_doors = new X10_Garage_Door('D'); # CHANGE THIS to housecode of your RF Vehicle Link
+
+Note the comment; you must the house code as shown on receiver (at the time
+the transmitters are enrolled).
+ 
+The garage door object will have a state as per other mh objects.  That is
+'state_now', 'state', and similar functions may be used.  The state is for all
+three potential doors that the system supports rolled up into one object.  The
+object contains the "enrollment" status of transmitters, the individual
+transmitter that caused this update, and the open/closed status of all
+transmitters/doors.
+ 
+# Returned state is "bbbdccc" "bbb" is 1=door enrolled, 0=enrolled, indexed by
+# door # (i.e. 123) "d" is door that caused transmission, numeric 1, 2, or 3
+# "ccc" is C=Closed, O=Open, indexed by door #
+ 
+The transmitters re-send about every 90 minutes. While the 4th character tells
+you which transmitter, you'll still need "old" variables to detect if a given
+door has actually changed open/closed or closed/open vs. a retransmit.  Also,
+all transmissions are sent twice... sometimes you get them both, sometimes
+only one.
+ 
+
+Here's some other tips:
+ 
+    The range of the transmitter/receiver is VERY short.  With the receiver
+    plugged in at the front of the garage (about 20 feet from xmitters) the
+    system didn't work well at all... With the receiver plugged into the
+    ceiling outlet for the garage door opener (about 10-12 feet), it worked
+    99.9% of the time, but about once a month missed a door movement.  For
+    some odd reason "open" codes transmit better than "close" codes.  Thus,
+    I'd get alarms (see the script) about doors being open too long...  I
+    finally moved the reciever (via surface wiring on the garage ceiling) to
+    a spot right between my two doors.  Perfect record since that move.
+ 
+    The procedure for "enrolling" a transmitter as 1, 2, or 3 is documented
+    in the instructions.  The receiver should hold the "enrollments" through
+    power failures.
+
+    Not documented anywhere that I know of: You can "de-enroll" all
+    transmitters by placing the "run-install" switch in "install" and then
+    powering-up the receiver.

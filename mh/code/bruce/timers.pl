@@ -20,8 +20,8 @@ $v_tramp_timer = new  Voice_Cmd('[Start,Stop] the tramp timer');
 $v_tramp_timer-> set_info('Set a timer for fair usage on the trampoline.  Peace will rule :)');
 
 $timer_tramp = new  Timer;
-if ('Start'   eq said $v_tramp_timer or
-    ON eq state_now $tramp_timer) {
+if ('Start'   eq said $v_tramp_timer) {
+#    ON eq state_now $tramp_timer) {
     speak "room=family The tramp timer has been started";
 #    set $timer_tramp 5*60, "speak 'rooms=family The tramp timer has just expired.  Time to trade turns'", 10;
     set $timer_tramp 30, "speak 'rooms=family The tramp timer has just expired.  Time to trade turns'", 10;
@@ -30,8 +30,8 @@ if ('Start'   eq said $v_tramp_timer or
 if ($temp = minutes_remaining_now $timer_tramp) {
     speak "room=family There are $temp minutes left on the tramp timer" if $temp % 2;
 }
-if ('Stop'     eq said $v_tramp_timer or
-    OFF eq state_now $tramp_timer) {
+if ('Stop'     eq said $v_tramp_timer) {
+#    OFF eq state_now $tramp_timer) {
     speak "room=family The tramp timer has been stopped";
     set $timer_tramp 0;
 }

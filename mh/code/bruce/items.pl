@@ -3,15 +3,6 @@
 my ($temp, $state, $ref);
    
 # Various X10 items
-$driveway_light      = new X10_Item('C5');
-#$stairway_light      = new X10_Item('A6');
-$backyard_light      = new X10_Item('C4');
-$fountain            = new X10_Appliance('C3');
-$study_light         = new X10_Item('A9');
-$family_tv           = new X10_Appliance('B3');
-$attic_fan           = new X10_Appliance('C2');
-$nick_reading_light  = new X10_Item('NF');
-#air_filter          = new X10_Appliance('J9');
 
 $all_lights_on_shop  = new Serial_Item('XHI');
 $all_lights_on_zack  = new Serial_Item('XJI');
@@ -25,34 +16,24 @@ $garage_movement_light= new Serial_Item('XI1');
 $garage_movement      = new Serial_Item('XI2');   # Do not responde to XIJ (on), so do not use X10_Item
 set_icon $garage_movement 'motion';
 
-$garage_light         = new X10_Item('I3'); 
    
 $movement_sensor      = new  Serial_Item('XAJ', ON);
 $movement_sensor ->     add             ('XAK', OFF);
 set_icon $movement_sensor 'motion';
 
 #movement_sensor_unit = new  Serial_Item('XA1', 'stair');
-$movement_sensor_unit = new  Serial_Item('XA3', 'stair');
-$movement_sensor_unit-> add             ('XA2', 'hall');
+$movement_sensor_unit = new  Serial_Item('XA2', 'hall');
+$movement_sensor_unit-> add             ('XA3', 'stair');
+$movement_sensor_unit-> add             ('XA4', 'bathroom');
+#$movement_sensor_unit-> add             ('XA5', 'bathroom2');
 
 # Living room x10 items
-$pedestal_light      = new X10_Item('O5');
-$living_light        = new X10_Item('O6');
-$camera_light        = new X10_Item('O7', 'CM11', 'LM14');
-#$camera_light       = new X10_Item('O7');
-$living_room_fan     = new X10_Appliance('O9');
 $toggle_attic_fan    = new Serial_Item('XOA', 'toggle');
 $toggle_attic_fan->    add            ('XPA', 'toggle');
-#$dishwasher         = new X10_Appliance('OB');
-$indoor_fountain     = new X10_Appliance('OB');
 $display_calls       = new Serial_Item('XOF');
 
+
 # Bedroom x10 items
-$bedroom_reading_light = new X10_Item('P2');
-$bedroom_fan_light   = new X10_Item('P5');
-$left_bedroom_light  = new X10_Item('P6');
-$right_bedroom_light = new X10_Item('P7');
-$bedroom_fan         = new X10_Item('P9');
 $bedroom_curtain     = new  Serial_Item('XP8', OPEN);
 $bedroom_curtain    -> add             ('XPC', CLOSE);
 $bedroom_curtain    -> add             ('XP8PJ', OPEN);
@@ -64,8 +45,11 @@ $family_curtain     -> add             ('XMC', CLOSE);
 $family_curtain     -> add             ('XAFAJ', OPEN);
 $family_curtain     -> add             ('XAFAK', CLOSE);
 
-$tramp_timer         = new  Serial_Item('XM6', ON);
-$tramp_timer        -> add             ('XMA', OFF);
+$basement_curtain      = new  Serial_Item('XM6', OPEN);
+$basement_curtain     -> add             ('XMA', CLOSE);
+
+#$tramp_timer         = new  Serial_Item('XM6', ON);
+#$tramp_timer        -> add             ('XMA', OFF);
 
 $toggle_backyard_light= new Serial_Item('XM5');
 $toggle_fountain     = new Serial_Item('XM9'); # Family room
@@ -102,6 +86,7 @@ $test_3              = new  Serial_Item('XO3');
 $test_16             = new  Serial_Item('XOG');
   
 # Analog items
+#$analog_request_a    = new  Serial_Item('AES', 'reset');
 $analog_request_a    = new  Serial_Item('AES');
 $analog_results      = new  Serial_Item('A');
 $temp_zack           = new  Serial_Item('AE1');
@@ -195,4 +180,7 @@ $pa_zack             = new  Serial_Item('DBHG', ON);
 $pa_zack            -> add             ('DBLG', OFF);
 $pa_living           = new  Serial_Item('DBHH', ON);
 $pa_living          -> add             ('DBLH', OFF);
+
+$mh_toggle_mode = new  Serial_Item('XPG', 'toggle');
+tie_event $mh_toggle_mode "run_voice_cmd 'Toggle the house mode'";
 

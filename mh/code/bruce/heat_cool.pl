@@ -37,8 +37,8 @@ if (state $furnace_fan eq ON and $weather{TempIndoor} and ($weather{TempIndoor} 
     
     
                                 # Create a setback thermostat
-&tk_entry      ('Heat Temp', \$Save{heat_temp});
-&tk_radiobutton('Heat Temp', \$Save{heat_temp}, [60, 64, 66, 68, 70]);
+#&tk_entry      ('Heat Temp', \$Save{heat_temp});
+#&tk_radiobutton('Heat Temp', \$Save{heat_temp}, [60, 64, 66, 68, 70]);
 
                                 # Turn the heat on
 my $hyster = 1;

@@ -1,6 +1,6 @@
 # Category=TV
 
-$VCR = new IR_Item 'VCR';
+$VCR = new IR_Item 'VCR', '3digit';
 
                                 # Note: This $tv_grid is a special name, used by the get_tv_grid program.  
                                 #       Do not change it.
@@ -12,6 +12,14 @@ if (my $data = state_now $tv_grid) {
                                 # http://house:8080/SET?$tv_grid?channel_2_from_7:00_to_8:00
 
     my($channel, $start, $stop, $date, $show_name) = $data =~ /(\d+) from (\S+) to (\S+) on (\S+) for (.*)/;
+
+    unless ($start) {
+        my $msg = "Bad tv_grid time: $data";
+        speak $msg;
+        print_log $msg;
+        return;
+    }
+
     my $msg = "Programing vcr for $show_name.  Channel $channel from $start to $stop on $date.";
     speak $msg;
     print_log $msg;
@@ -49,11 +57,12 @@ eof
 }
 
                                 # This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
-$v_get_tv_grid_data = new  Voice_Cmd('Get tv grid data');
+$v_get_tv_grid_data = new  Voice_Cmd('Get tv grid data for [today,the next week]');
 $v_get_tv_grid_data-> set_info('Updates the TV database with the next 7 days of programing via the internet');
-if (said  $v_get_tv_grid_data) {
+if ($state = said  $v_get_tv_grid_data) {
     if (&net_connect_check) {
-        my $pgm = "get_tv_grid -userid $config_parms{clicktv_id} -days 7 ";
+        my $pgm = "get_tv_grid -userid $config_parms{clicktv_id} ";
+        $pgm .= ($state eq 'today') ? '-redo -days 1 ' : '-days 7 ';
         $pgm .= qq[ -hour   "$config_parms{clicktv_hours}"] if $config_parms{clicktv_hours};
 
                                 # Allow data to be stored wherever the alias points to

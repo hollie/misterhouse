@@ -34,11 +34,12 @@ use Eliza;
 my ($chatbot, $chatbot_rule);
 
 $speak_server  = new  Socket_Item(undef, undef, 'server_speak');
-$internet_light= new X10_Item('O7');
+$internet_light= new X10_Item('O6');
 
 if (my $data = said $speak_server) {
 
     my $msg;
+#   print "db speak_server: $data\n";
 
                                 # Should allow for POST data 
                                 # but GET will work OK for short messages
@@ -75,11 +76,11 @@ if (my $data = said $speak_server) {
             $chatbot = new Chatbot::Eliza "Eliza", "$config_parms{data_dir}/eliza/$chatbot_rule.txt" unless $chatbot;
 
             my $response = $chatbot->transform($msg);
-            $msg = "You said: $msg.\nEliza says: $response";
+            $msg = "$name_short said: $msg.\nEliza says: $response";
         }
         else {
-#           $msg = "Internet message from $name_short: $msg" if $msg;
-            $msg = "Internet message: $msg" if $msg;
+            $msg = "Internet message from $name_short: $msg" if $msg;
+#           $msg = "Internet message: $msg" if $msg;
         }
 
         my $html;
@@ -105,13 +106,15 @@ if (my $data = said $speak_server) {
 
     stop $speak_server;     # Tell the client we got the message
 
-    if ($config_parms{internet_speak_flag} eq 'none') {
-        print_log $msg;
-    }
-    elsif ($msg and length $msg < 400) {
+    $msg = substr $msg, 0, 200;
+    if ($config_parms{internet_speak_flag} eq 'all' or
+        $config_parms{internet_speak_flag} eq 'some' and $data =~ /^GET /) {
         speak $msg;
     }
-
+    elsif ($msg and length $msg < 400) {
+        print_log $msg unless $msg =~ /^sound_/;
+    }
+    
 }
 
 

@@ -18,6 +18,12 @@
 # Lots of other good WX200 software links at:
 #    http://weatherwatchers.org/wxstation/wx200/software.html
 #
+# Use these mh.ini parms
+#  serial_wx200_port=\\.\COM7
+#  serial_wx200_baudrate=9600
+#  serial_wx200_handshake=dtr
+#  serial_wx200_datatype=raw
+#
 ####################################################
 
 # Category=Weather

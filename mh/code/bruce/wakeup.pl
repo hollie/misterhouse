@@ -3,9 +3,8 @@
 &pa_sleep_mode('kids', 1) if time_cron '* 21 * * * ';
 
 				# If in normal mode, auto-go to mute mode
-if (time_cron '0 22,23,0-4 * * * ' and
+if (time_cron '00 22,23,0-4 * * * ' and
     $Save{mode} eq 'normal') {
-    print "db set to mute\n";
     $Save{mode_set} = 'auto';
     $Save{mode} = 'mute';
     $Save{sleeping_parents} = 1;
@@ -29,11 +28,22 @@ if ($Save{mode} eq 'mute' and
 
 #return;                         # Summertime!
 
-&tk_entry('Wakeup Time', \$Save{wakeup_time});
-&tk_radiobutton('Wakeup Time',  \$Save{wakeup_time}, ['6 am', '6:20 am', '6:40 am', '7 am', ' ']);
+#&tk_entry('Wakeup Time', \$Save{wakeup_time});
+#&tk_radiobutton('Wakeup Time',  \$Save{wakeup_time}, ['6 am', '6:20 am', '6:40 am', '7 am', ' ']);
+
+                                # Allow for keypad control of wakeup time
+$mh_toggle_wakeup_time = new  Serial_Item('XPF', 'cycle');
+if ('cycle' eq state_now $mh_toggle_wakeup_time) {
+    my $time = $Save{wakeup_time};
+    $time = '6 am' unless $time;
+    my ($second, $minute, $hour) = localtime(&my_str2time($time) + 20*60);
+    $hour = 6 if $hour > 8;
+    $Save{wakeup_time} = sprintf("%d:%02d am", $hour, $minute);
+    &speak(mode => 'unmuted', rooms => 'bedroom', text => "Wake up time is now $Save{wakeup_time}");
+}
 
 
-$Save{wakeup_time} = '6 am' unless $Save{wakeup_time};
+$Save{wakeup_time} = '6:00 am' unless $Save{wakeup_time};
 $v_wakeup_parents = new  Voice_Cmd('Wakeup the parents');
 $v_wakeup_parents-> set_info("Do not do this!  Parents like to sleep.");
 
@@ -70,10 +80,10 @@ if ((time_now($Save{wakeup_time}) and $Weekday and $Save{mode} ne 'offline') or
 
 unless ($Save{sleeping_parents}) {
     speak $Time_Now          if time_cron '0,15,30,45 6,7,8 * * 1-5';
-    run_voice_cmd  'Read the top 10 list'                      if time_cron '20 6 * * 1-5';
-    run_voice_cmd  'Read the next deep thought'                if time_cron '22 6 * * 1-5';
-    run_voice_cmd  'What is the next Mixed trivia question?'   if time_cron '23 6 * * 1-5';
-    run_voice_cmd  'What is the trivia answer?'                if time_cron '24 6 * * 1-5';
+    run_voice_cmd  'Read the top 10 list'                      if time_cron '22 6 * * 1-5';
+    run_voice_cmd  'Read the next deep thought'                if time_cron '24 6 * * 1-5';
+    run_voice_cmd  'What is the next Mixed trivia question?'   if time_cron '25 6 * * 1-5';
+    run_voice_cmd  'What is the trivia answer?'                if time_cron '26 6 * * 1-5';
 #   set $living_curtain ON   if time_cron '0  7 * * 1-5';
 #   speak "My Thought for the day: " . read_next $house_tagline if time_cron '12 7 * * 1-5';
 }

@@ -27,4 +27,3 @@ if (done_now $p_get_url1) {
     my $html = file_read $f_get_url1;
     display $html;
 }
-

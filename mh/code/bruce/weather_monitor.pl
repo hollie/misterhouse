@@ -6,9 +6,9 @@ use vars '%weather';            # use var so we can access from web files
                                 # Add tk weather widgets
 #&tk_label(\$weather{TempIndoor}, \$weather{TempOutdoor}, \$weather{WindChill},
 #          \$weather{WindAvgSpeed}, \$weather{HumidOutdoor});
-&tk_label(\$weather{Summary});
-&tk_label(\$weather{SummaryWind});
-&tk_label(\$weather{SummaryRain});
+#&tk_label(\$weather{Summary});
+#&tk_label(\$weather{SummaryWind});
+#&tk_label(\$weather{SummaryRain});
 
                                 # Set up pointers to random weather comments
 $remark_on_humidity      = new File_Item("$config_parms{data_dir}/remarks/list_humid.txt");
@@ -152,7 +152,7 @@ sub get_weather_record {
 
                                 # Read incoming data from WX200 
 
-$wx200_port = new  Serial_Item(undef, undef, 'serial2');
+$wx200_port = new  Serial_Item(undef, undef, 'serial_wx200');
 $timer_wind_gust = new Timer();
 if (my $data = said $wx200_port) {
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-10-01 18:13:57 winter>
+#  Last change Time-stamp: <2000-10-08 20:39:33 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -76,8 +76,7 @@ use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
 use vars qw($Version_tk $Password);
 
 my ($Pgm_PathU);
-my (@Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
-my ($Loop_Speed);
+my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
 my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
@@ -209,7 +208,6 @@ BEGIN {
             push(@parms, "$1=s") if /^([^\s\#]+) *=/;
         }
         close PARMS;
-#        print "db parms=@parms\n";
 
         use Getopt::Long;
         if (!&GetOptions(\%config_parms_startup, "h", "help", "run=s", "run_parms=s", @parms) or
@@ -232,7 +230,8 @@ BEGIN {
                                 #  - We need to support perl 5.005 and 5.6 at the same time.  5.005 win32 binaries
                                 #    are distributed with mh (so user does not have to install them).
                                 #    5.6 users will be required to install them
-        push (@INC, "$Pgm_PathU/../lib", "$Pgm_PathU/../lib/site", "$Pgm_PathU");
+        push    (@INC, "$Pgm_PathU/../lib", "$Pgm_PathU/../lib/site", "$Pgm_PathU");
+#       unshift (@INC, "$Pgm_PathU/../lib", "$Pgm_PathU/../lib/site", "$Pgm_PathU");
 #       print "Error in use lib: $@\n" if $@;   # Dang .. this error check messes up the compiled version!??  Gives 'can not find lib.pm' message
         print " done\n";
         require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
@@ -250,7 +249,8 @@ BEGIN {
             $config_parms{$parm} = $config_parms_startup{$parm};
         }
 
-        print "Code Directory: $config_parms{code_dir}\n";
+        print "User   Code Directory: $config_parms{code_dir}\n";
+        print "System Code Directory: $config_parms{code_dir_common}\n" if $config_parms{code_dir_common};
     }
 
     sub use_conditional_modules {
@@ -278,6 +278,8 @@ BEGIN {
 
 #           &my_use("Win32::OLE::lite");
             &my_use("Win32::Process");
+            &my_use("Win32::PerfLib"); # Used in &memory_used
+
             &my_use("Win32::Registry");
                                 # Note: Must use eval, not my_use, or exported pgms are not seen :(
                                 #  - setupsup is not yet available for perl 5.6
@@ -291,7 +293,7 @@ BEGIN {
 
             &my_use("Win32::SerialPort");
 
-            &my_use("Win32::SoundEx");      # For Volume control
+#           &my_use("Win32::SoundEx");      # For Volume control
 
             &my_use("File::DosGlob 'glob'"); # Allow for globbing without perlglob.exe
 
@@ -401,6 +403,7 @@ sub setup {
 #       require  'mh_perl2exe_list.pl';
 #perl2exe_include mh_perl2exe_list.pl
 
+
         no strict 'subs';   # For non-win OS
         if (1) {
             $CON_IN = new Win32::Console STD_INPUT_HANDLE;
@@ -419,7 +422,8 @@ sub setup {
     $SIG{PIPE}  = \&sig_handler_pipe;         # Web browsers can shut down sockets while we are sending data 
     $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
     
-    $config_parms{code_dir} = $Pgm_PathU . "/../code" unless $config_parms{code_dir};
+    $config_parms{code_dir}         = $Pgm_PathU . "/../code"        unless $config_parms{code_dir};
+    $config_parms{code_dir_common } = $Pgm_PathU . "/../code_system" unless $config_parms{code_dir_common};
 
                                 # Make various directories, if missing
     mkdir ("$config_parms{data_dir}/logs", 0777) unless -d "$config_parms{data_dir}/logs";
@@ -1906,6 +1910,10 @@ sub play {
 
 #   &write_socket("play", "$rooms", $file);
 
+    $parms{volume} = $config_parms{sound_volume} unless defined $parms{volume};
+    &Win32::Sound::Volume(int 255 * $parms{volume} / 100) if $OS_win and $parms{volume};
+    
+
     no strict 'subs';       # For non-win OS
     if (lc($play_parm) eq 'stop') {
         &Win32::Sound::Stop();
@@ -2256,7 +2264,7 @@ sub process_x10_chunks {
 }
 
 sub read_code {
-    my (@files, $file, $file_dir, $file_path, @files_read, @files_changed, @files_changed2, $file_time, %noload_files);
+    my (@files, $file, $file_dir, $file_dir2, $file_path, $file_path2, @files_read, @files_changed, @files_changed2, $file_time, %noload_files);
 
     $Reread = 1;
 
@@ -2278,7 +2286,8 @@ sub read_code {
 
     &read_table_files;           # Re-create table code file, if any table file changed
 
-    $file_dir = $config_parms{code_dir};
+    $file_dir  = $config_parms{code_dir};
+    $file_dir2 = $config_parms{code_dir_common};
     print_log "Reading code files in $file_dir";
     if (@Requested_Files) {
         @files_read = @Requested_Files;
@@ -2286,6 +2295,10 @@ sub read_code {
     else {
         opendir(DIR, $file_dir) or die "Error, can not open directory $file_dir.\n";
         @files_read = readdir(DIR);
+        if ($file_dir2) {
+            opendir(DIR, $file_dir2) or die "Error, can not open directory $file_dir2.\n";
+            push @files_read, readdir(DIR);
+        }
         close DIR;
         @files_read = grep(/^[a-z0-9].*\.(pl|mhp)$/i, @files_read); # Must start with alphanumeric ... emacs edited checkpoints can start with #
     }
@@ -2299,8 +2312,11 @@ sub read_code {
     %noload_files = map {$_, 1} split(',', $config_parms{no_load});
     for $file (@files_read) {
         (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
-        $file_path = "$file_dir/$file";
+        $file_path  = "$file_dir/$file";
+        $file_path2 = "$file_dir2/$file";
+        $file_path = $file_path2 if !-e $file_path and -e $file_path2;
         delete $files_deleted{$file_path};
+        delete $files_deleted{$file_path2};
         die "\nError, can not find file $file_path\n" unless -e $file_path;
         $file_time = (stat($file_path))[9];
         next if $file_code_times{$file_path} and $file_time == $file_code_times{$file_path};  # File has not changed since last call
@@ -2327,9 +2343,11 @@ sub read_code {
                                 # Read optional, table formated definitions of mh objects and events
 sub read_table_files {
                                 # Find files
+                                #  - Lets skip checking code_dir_common here ... why would we have tables there??
     my $file_dir = $config_parms{code_dir};
     print_log "Reading table files in $file_dir";
     opendir(DIR, $file_dir) or return;
+
     my @files_read = readdir DIR;
     close DIR;
     return unless @files_read = grep(/^[a-z0-9].*\.mht$/i, @files_read);
@@ -2422,6 +2440,7 @@ sub read_user_code {
     undef @Sub_Code;
     undef @Item_Code;
     undef @Item_Code_Objects;
+    undef %Run_Members;
     undef %file_by_object_name;
     undef %object_names_by_file;
     undef %object_names_by_webname;
@@ -2645,7 +2664,7 @@ sub set_global_vars {
         $prev_min = $prev_hour = $prev_mday = $prev_month = $prev_year = '';
     }
                                 # If mh got hung up doing something, lets go to catch up mode
-    elsif (!$Time_Start_time and $prev_time < ($time_now - 1)) {
+    elsif (!$Time_Start_time and $prev_time < ($time_now - 2)) {
         my $diff = $time_now - $prev_time;
         print_log "mh paused for $diff seconds";
         $Time_Start_time = $prev_time;
@@ -2688,80 +2707,28 @@ sub set_global_vars {
                                 # This way, we do not repeat time base events (like running set_clock.bat again)
     $Time = $prev_time if $prev_time > $Time;
 
-
     unless ($prev_time == $Time) {
-        $Loop_Speed = $loop_speed_cnt;
+        $Info{loop_speed} = $loop_speed_cnt;
+        $Loop_Speed       = $loop_speed_cnt; # Grandfathered (in old benchmarks.pl)
         if (@Loop_Speeds) {
-            unshift(@Loop_Speeds, $Loop_Speed);
+            unshift(@Loop_Speeds, $Info{loop_speed});
             pop(@Loop_Speeds);
         }
         else {
-            @Loop_Speeds = ($Loop_Speed) x 20;
+            @Loop_Speeds = ($Info{loop_speed}) x 20;
         }
 #       print "Speeds1 = @Loop_Speeds\n";
-        
         $loop_speed_cnt = 0;
         $prev_time = $Time;
+
         $New_Second = 1;
         my $year_unix;
         ($Second, $Minute, $Hour, $Mday, $Month, $year_unix, $Wday) = localtime($Time);
         $Month++;
         $Day = (qw(Sun Mon Tue Wed Thu Fri Sat))[$Wday];
         $prev_sec = $Second;
-
         
         $Time_Date = &time_date_stamp($config_parms{time_format_log}, $Time);
-
-
-        my ($cpu_used, $memory_used_virtual, $memory_used_real);
-        $cpu_used = 0;
-
-                                # Linux info ... maybe should test $O for linux??
-        if ($^O eq 'linux') {
-            open(STAT, "/proc/$$/stat") or print "Error, Can not  open /proc/$$/stat: $!";
-            my @a = split(/\s+/, <STAT>);
-            close STAT;
-                                # Add utime (user time) and ktime (kernal time).  These are in 1/100 second units
-            my $cnt = $a[13] + $a[14];
-            $cpu_used = ($cnt - $loop_unix_cnt) if $loop_unix_cnt;
-            $memory_used_virtual = $a[22] / 1024000;
-            $memory_used_real    = $a[23] * 4 / 1000;
-            $loop_unix_cnt = $cnt;
-        }
-        elsif ($^O eq 'freebsd') {
-#           run 'inline', '/sbin/sysctl -a |grep boottime|cut -f 5 -d " " >/tmp/btime';
-#           open(BTIME, "/tmp/btime") or print "\nError: can't open /tmp/btime\n";
-            open(BTIME, '/sbin/sysctl -a |grep boottime|cut -f 5 -d " " |') or print "\nError: can't open /sbin/sysctl -a: $!";
-            $Time_Boot_time = <BTIME>;
-            close BTIME;
-        }
-        else {
-            $cpu_used = 100*$loop_tickcount_total/1000 if $loop_tickcount_total;
-            $cpu_used = 100 if $cpu_used > 100;
-            $loop_tickcount_total = 0;
-        }
-
-        $Tk_objects{label_time} = 'Date: ' . &time_date_stamp(14, $Time);
-        substr($Tk_objects{label_time}, 19, 0) = ' Time: ';
-
-        $Time_Uptime_Seconds = $Time - $Time_Startup_time;
-        my $uptime_days;
-        if ($New_Minute and 48 < ($uptime_days = $Time_Uptime_Seconds / (24 * 3600000))) {
-            print_log "Uptime: $uptime_days days.  Better re-start MisterHouse.  " . 
-                "It will mess up after 49.7 (2**32 mill-seconds) days of uptime";
-            &speak("Please restart misterhouse.  Uptime is $uptime_days days.") if $New_Hour and $Hour > 9 and $Hour < 22;
-        }
-    
-        $Tk_objects{label_uptime_cpu} = sprintf("Uptime Computer: %s",
-                                                &time_diff($Time_Boot_time, (&get_tickcount)/1000, undef, 'numeric'));
-        $Tk_objects{label_uptime_mh}  = sprintf("Uptime Program:  %s",
-                                                &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
-        $Tk_objects{label_cpu_used}    = sprintf("Cpu Used: %5.1f%%", $cpu_used);
-        $Tk_objects{label_cpu_used}   .= sprintf("   Loops/Sec: %4d", $Loop_Speed);
-        $Tk_objects{label_memory_used} = sprintf("Memory Used (virtual/real): %4.1f/%4.1f Meg",
-                                                 $memory_used_virtual, $memory_used_real) if $memory_used_virtual;
-                                # This is grandfathered for old Tk menus
-        $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d", $Loop_Speed);
 
                                 # Note: use eq instead of ==, so 0 does not eq ''
                                 # This could happen if mh were started at midnight (hour=0)
@@ -2858,6 +2825,57 @@ sub set_global_vars {
             }
         }
         $New_Second = $New_Minute = $New_Hour = $New_Day = $New_Week = $New_Month = $New_Year = 0 if $Startup or $Reload;
+
+                                # More $New_Second stuff ...
+        $Info{cpu_used} = 0;
+        if ($^O eq 'linux') {
+            open(STAT, "/proc/$$/stat") or print "Error, Can not  open /proc/$$/stat: $!";
+            my @a = split(/\s+/, <STAT>);
+            close STAT;
+                                # Add utime (user time) and ktime (kernal time).  These are in 1/100 second units
+            my $cnt = $a[13] + $a[14];
+            $Info{cpu_used} = ($cnt - $loop_unix_cnt) if $loop_unix_cnt;
+            $Info{memory_virtual} = $a[22] / 1024000;
+            $Info{memory_real}    = $a[23] * 4 / 1000;
+            $loop_unix_cnt = $cnt;
+        }
+        elsif ($^O eq 'freebsd') {
+#           run 'inline', '/sbin/sysctl -a |grep boottime|cut -f 5 -d " " >/tmp/btime';
+#           open(BTIME, "/tmp/btime") or print "\nError: can't open /tmp/btime\n";
+            open(BTIME, '/sbin/sysctl -a |grep boottime|cut -f 5 -d " " |') or print "\nError: can't open /sbin/sysctl -a: $!";
+            $Time_Boot_time = <BTIME>;
+            close BTIME;
+        }
+        else {
+                                # This call takes .2 seconds, so only do it once a minute
+            ($Info{memory_virtual}, $Info{memory_real}) = &memory_used if $New_Minute or $Startup;
+            $Info{cpu_used} = 100*$loop_tickcount_total/1000 if $loop_tickcount_total;
+            $loop_tickcount_total = 0;
+        }
+        $Info{cpu_used} = 100 if $Info{cpu_used} > 100;
+
+        $Tk_objects{label_time} = 'Date: ' . &time_date_stamp(14, $Time);
+        substr($Tk_objects{label_time}, 19, 0) = ' Time: ';
+
+        $Time_Uptime_Seconds = $Time - $Time_Startup_time;
+        my $uptime_days;
+        if ($New_Minute and 48 < ($uptime_days = $Time_Uptime_Seconds / (24 * 3600000))) {
+            print_log "Uptime: $uptime_days days.  Better re-start MisterHouse.  " . 
+                "It will mess up after 49.7 (2**32 mill-seconds) days of uptime";
+            &speak("Please restart misterhouse.  Uptime is $uptime_days days.") if $New_Hour and $Hour > 9 and $Hour < 22;
+        }
+    
+        $Tk_objects{label_uptime_cpu} = sprintf("Uptime Computer: %s",
+                                                &time_diff($Time_Boot_time, (&get_tickcount)/1000, undef, 'numeric'));
+        $Tk_objects{label_uptime_mh}  = sprintf("Uptime Program:  %s",
+                                                &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
+        $Tk_objects{label_cpu_used}    = sprintf("Cpu Used: %5.1f%%", $Info{cpu_used});
+        $Tk_objects{label_cpu_used}   .= sprintf("   Loops/Sec: %4d", $Info{loop_speed});
+        $Tk_objects{label_memory_used} = sprintf("Memory Used (virtual/real): %4.1f/%4.1f Meg",
+                                                 $Info{memory_virtual}, $Info{memory_real}) if $Info{memory_virtual};
+                                # This is grandfathered for old Tk menus
+        $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d", $Info{loop_speed});
+
     }
 
 #   if ($Startup or $New_Minute) {
@@ -3053,6 +3071,9 @@ sub speak {
         elsif ($key =~ /play/i) {
             $play = $value;
         }
+        elsif ($key =~ /volume/i) {
+            $parms{volume} = $value;
+        }
         else {
             print "Warning, speak control not recognized: key=$key value=$value\n";
         }
@@ -3099,6 +3120,9 @@ sub speak {
             return;
         }
     }
+
+    $parms{volume} = $config_parms{sound_volume} unless defined $parms{volume};
+    &Win32::Sound::Volume(int 255 * $parms{volume} / 100) if $OS_win and $parms{volume};
 
     &Speak_pre_hooks(%parms);   # Created by &add_hooks
 
@@ -3687,11 +3711,15 @@ sub write_user_code {
 
 }
 
+
 __END__
 
 
 #
 # $Log$
+# Revision 2.30  2000/10/09 02:24:19  winter
+# - post 2.29 release.  Add new members and sync up code/bruce
+#
 # Revision 2.29  2000/10/01 23:35:24  winter
 # - 2.29 release
 #

@@ -15,7 +15,7 @@ $v_viavoice_off     = new Voice_Cmd($config_parms{viavoice_off_phrase}, 'you wan
                                 # Monitor the Tk button
 my ($tk_vr_mode, $tk_vr_mode_prev);
 $tk_vr_mode = $tk_vr_mode_prev = $Save{vr_mode} if $Reload;
-&tk_radiobutton('VR Mode',  \$tk_vr_mode, ['awake', 'asleep', 'off'], ['Awake', 'Asleep', 'Off']);
+#&tk_radiobutton('VR Mode',  \$tk_vr_mode, ['awake', 'asleep', 'off'], ['Awake', 'Asleep', 'Off']);
 
 #print "db $vr_mode_prev\n";
 if ($tk_vr_mode_prev ne $tk_vr_mode) {
@@ -94,10 +94,13 @@ if (expired $viavoice_awake_timer and $Save{vr_mode} eq 'awake') {
 
 
                                 # Create a command search menu with all the Voice_Cmd words
+# noloop=start
 my $voice_word_list = join(',', &Voice_Cmd::word_list) if $config_parms{voice_cmd} eq 'viavoice';
+$voice_word_list = 'no words listed' unless $voice_word_list;
 $v_command_search = new Voice_Cmd('find a command', 'what words?');
 $v_command_words  = new Voice_Cmd("[$voice_word_list,do it]", '', 0, 'mh_words');
 set_icon $v_command_words 'none';
+# noloop=stop
 
 #$v_viavoice_alphabet = new Voice_Cmd('[a,b,done]', '', 0, 'mh_spell');
 #$v_viavoice_alphabet = new Voice_Cmd('[a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,u,r,s,t,u,v,w,x,y,z,0,1,2,3,4,5,6,7,8,9,done]', '', 0, 'mh_spell');

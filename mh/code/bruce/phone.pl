@@ -1,15 +1,15 @@
 # Category=Phone
 
                                 # Allow for searching for numbers
-&tk_entry('Phone Search', \$Save{phone_search});
+#&tk_entry('Phone Search', \$Save{phone_search});
 if ($Tk_results{'Phone Search'}) {
     print_log "Searching for $Tk_results{'Phone Search'}";
                                 # Search data logged from incoming caller id data.
-    my ($count1, $count2, %results) = &search_dbm("$config_parms{data_dir}/phone/callerid.dbm", $Save{phone_search});
+    my ($count1, $count2, %results) = &dbm_search("$config_parms{data_dir}/phone/callerid.dbm", $Save{phone_search});
                                 # Also search in array created from mh.ini caller_id_file data
     while (my($key, $value) = each %Caller_ID::name_by_number) {
         if ($key =~ /$Save{phone_search}/i or $value =~ /$Save{phone_search}/i) {
-            $value = &read_dbm("$config_parms{data_dir}/phone/callerid.dbm", $key); # Use dbm data for consistency
+            $value = &dbm_read("$config_parms{data_dir}/phone/callerid.dbm", $key); # Use dbm data for consistency
             $results{$key} = $value;
         }
     }
@@ -52,7 +52,7 @@ if (said $v_phone_log_reload) {
 }
 
                                 # Show phone logs
-$v_phone_log_tk  = new  Voice_Cmd('Show the Tk phone log');
+$v_phone_log_tk  = new  Voice_Cmd('Show the phone log');
 $v_phone_log_tk -> set_info('Display a tk popup of all the incoming and outgoing phone calls');
 
 if (said  $v_phone_log_tk) {

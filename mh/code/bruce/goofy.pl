@@ -34,8 +34,10 @@ if (time_random('* 18-22 * * 1-5', 240) or
     speak ("rooms=all " . read_next $april_fools);
 }
 
+$fun_wav = new Voice_Cmd 'Play a goofy sound file';
                                 # One a day random wav file
 if (time_random('* 18-22 * * 1-5', 240) or
-    time_random('*  8-22 * * 0,6', 240)) {
+    time_random('*  8-22 * * 0,6', 240) or
+    said $fun_wav) {
     play(rooms => 'all', file => "fun/*.wav");
 }

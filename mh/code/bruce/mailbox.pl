@@ -1,11 +1,11 @@
 # Category=none
 
-speak "Wireless sensor 1 has been triggered" if state_now $wireless1;
+speak "Wireless sensor 1 has been triggered" if OPENED eq state_now $wireless1;
 
 $timer_mailbox1 = new  Timer();
 $timer_mailbox2 = new  Timer();
 
-if (state_now $mailbox and inactive $timer_mailbox2) {
+if (OPENED eq state_now $mailbox and inactive $timer_mailbox2) {
     speak("rooms=all A Message from your mailbox");
     sleep 2;			# Yucky ... see if this enables playing of wave file.
     play("rooms" => "all", "file" => "Mail_*.wav");

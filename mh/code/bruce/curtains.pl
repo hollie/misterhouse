@@ -53,6 +53,12 @@ if ($state =  said $v_family_curtain or
     $state = state_now $family_curtain) {
     &curtain_on('family', $state);
 }
+$v_basement_curtain  = new  Voice_Cmd('[open,close] the basement curtains');
+if ($state =  said $v_basement_curtain or
+    $state = state_now $basement_curtain) {
+    speak "${state}ing the basement curtains";
+    &curtains_all($state, 'zack', 'family', 'nick');
+}
 
 $v_nick_curtain     = new  Voice_Cmd('[open,close] Nicks curtains');
 if ($state =  said $v_nick_curtain or
@@ -92,8 +98,8 @@ if ($New_Minute) {
         }
     }
     else {
-#       if ($analog{sun_sensor} > 30 and !$Save{sleeping_parents} and $Season eq 'Winter') {
-        if (!$Save{sleeping_parents} and $analog{sun_sensor} > 30 and defined $weather{TempOutdoor} and $weather{TempOutdoor} < 45) {
+#       if ($analog{sun_sensor} > 40 and !$Save{sleeping_parents} and $Season eq 'Winter') {
+        if (!$Save{sleeping_parents} and $analog{sun_sensor} > 40 and defined $weather{TempOutdoor} and $weather{TempOutdoor} < 45) {
             speak "Notice, the sun is bright at $analog{sun_sensor} percent, and it is cold outside " .
                 "at " . round($weather{TempOutdoor}) . " degrees, so I am opening the curtains at $Time_Now";
             &curtains_all(OPEN);
@@ -107,14 +113,19 @@ if ($New_Minute) {
 $timer_curtains = new Timer();
 my @curtains;
 sub curtains_all {
-    my ($action) = @_;
-    print "${action}ing the curtains\n";
+    my ($action, @list)= @_;
+    if (@list) {
+        @curtains = map {$_, $action} @list;
+    }
+    else {
                                 # Do the X10 curtain
-    run_voice_cmd "$action the living room curtains";
-                                # Now do all the others
-    $Save{curtains_state} = $action;
-    @curtains = ('bedroom', $action, 'family' , $action, 'zack', $action, 'nick', $action);
-#    @curtains = ('bedroom', $action, 'nick' , $action, 'zack', $action);
+        run_voice_cmd "$action the living room curtains";
+        @curtains = ('bedroom', $action, 'family' , $action, 'zack', $action, 'nick', $action);
+    }
+
+    print "${action}ing the curtains\n";
+    $Save{curtains_state} = $action unless @list; # Save state if we did all of them
+
     &curtain_on(shift @curtains, shift @curtains);
 #   set $timer_curtains 10, \&curtain_next($action), 3;
     set $timer_curtains 10;
@@ -135,7 +146,7 @@ sub curtain_on {
     speak("$room curtains $action");
 
 #   my %times_open  = qw(bedroom 8.2 nick 6.0 family 6.7 zack 6.5);
-    my %times_open  = qw(bedroom 8.2 nick 6.0 family 1.7 zack 6.5);
+    my %times_open  = qw(bedroom 8.2 nick 6.0 family 3.0 zack 6.5);
     my %times_close = qw(bedroom 6.5 nick 5.0 family 5.5 zack 5.5);
     my $time = ($action eq OPEN) ? $times_open{$room} : $times_close{$room};
 
