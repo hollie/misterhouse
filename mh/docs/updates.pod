@@ -3,8 +3,126 @@
 
 =head1 Mister House Announcement List
 
-- This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
-messages is at http://sourceforge.net/mail/?group_id=1365 )
+
+=begin html
+This is a copy of the mh update announcements made to MisterHouse mailing list, also
+<a href=http://sourceforge.net/mail/?group_id=1365>archived here</a>
+<p>The changelog for the current test release can be found
+<a href=http://misterhouse.net:81/mh/docs/updates.html>can be found here</a>
+
+=end html
+
+=head2 Changes in the current test version
+
+B<New Features:>
+
+B<Bug Fixes and Other Changes:>
+
+
+=head2 Version 2.74 posted on 12/01/2002
+
+Version 2.74 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+B<New Features:>
+
+- Added a mh.ini speak_app parm and speak app=xyz option.  This allows us to code generic common code,
+but still allows us to customize our speech parms.  I updated most of the common code files to 
+use one of the app keys listed in the default speak_app parm.  For example, code/common/internet_email now uses 
+speak app=email, which the mh.ini speak_app parm defaults to voice=male rooms=all.   
+
+- Rewrote internet_im.pl to allow for better echoing of the mh logs.   You can now start sending log data to any 
+authorized im client by typing log: xyz, where xyz is a filter to pick logging data.  
+Example filters are print, speak, play, speak|play, all, and stop (to stop).
+Also added a help command and a pgm option to net_im_send/connect/disconnect so we can use a common function for all im programs
+(e.g. msn, jabber, aol).
+
+- Re-wrote code/common/test_speak.pl and deleted test_voice.pl.
+One change was to use mh.ini specified voices, rather than a hard coded list.
+Most of the 'test speech' commands it creates will work with the NaturalVoices, on linux or Windows.
+
+- Added a 'Select User Code' option to the ia5 MrHouse Home Setup menu.  Similar to the select common code we added
+a few months ago, this allows you to de-select any of your user code files.
+
+- David Norwood and I updated mh/code/common/trigger_code.pl and created a new interface, 
+also under the ia5 MrHouse Home Setup button (or http://localhost:8080/bin/triggers.pl ).
+Trigger code is now stored in code_dir/trigger.mhp, rather than trigger.pl (mhp stands for MH Processed files).
+More documentation is under the trigger_set section of mh/docs/mh.html
+
+- Also created a similar web interface (http://localhost:8080/bin//items.pl
+... 'Edit Items' on the ia5 page) for updating .mht files.  Comments and position of the 
+original .mht file are preserved, and backups are made, so it should be pretty safe :)
+
+- Rob Williams sent in mh/code/public/grafik.pl, his interface to the Lutron Grafik Eye system 
+( http://www.lutron.com/grafikeye/Default.htm ).
+
+- Pete Flaherty posted a mh compatable Audrey image at http://vsa.cape.com/~pjf/MrAudrey.html. 
+He made some updates to http_server to recognize the Photon browser he has on that image.
+
+- Gaetan Lord created mh/web/bin/button2.pl, which allows us to create on-the-fly web buttons 
+where we can pick both the text and an icon.  Gaetan wanted to re-create Ron Klinkien's buttons with French text.
+He also extracted many icons from Ron's buttons into a new dir: mh/web/graphics/icons.
+Like button.pl, it requires the perl GD module.  An example is: /bin/button2.pl?Recent_Incoming_Calls&phone.png
+
+- Gaetan Lord also created lib/FroggyRita.pm for reading temp,pressure,humidity from the 
+sensor sold at http://www.froggyhome.com.  Example is in code/public/froggyrita.pl.
+
+- David Norwood added a new infrared code generator to UIRT2_learning.pl 
+which automatically create codes for many TVs, VCRs, DVDs, etc, using data in a new data/infrared directory.
+The generation routines are in a separate module, IR_Utils.pm,
+so it should be easy to add this feature to other transmitters such as the RedRat.  
+
+
+
+B<Bug Fixes and Other Changes:>
+
+- Steve Switzer added weather_wind_gust_threshold parm to weather_monitor.pl.
+
+- Scott Kennedy suggested we add an http_address parm, so we could tell the web server to use a specific ip address.
+
+- Neil Cherry fixed 'sending log data to Jabber' in common/internet_im.pl.
+
+- Ron Klinkien noticed common/monitor_server.pl was not working. 
+
+- Andrew Drummond noticed active_now and inactive_now were not working for client Socket_Items.
+
+- Fredrik Olsson discovered that 3 character (-vs- 2) id names were not working in X10_Sensor items.
+
+- Dave Lounsberry updated public/vocp_func.pl and added a -colorfill option to bin/image_resize (default is still black)
+
+- Chris Witte suggested we stop buffering the speak, print, and error logs in data/log.
+
+- Cliff Carr noticed that mh's copy of Device/SerialPort.pm was down level.  The latest version now also supports AIX.
+
+- Steve Switzer updated weather_monitor.pl to use the mh.ini a weather_wind_gust_threshold parm 
+and weather_chance_of_rain.pl to announce only a few days worth of rain ... 
+speaking 14 days worth of rain can get kind of long :)
+
+- Axel Brown fixed a 2.73 'socket_close sock port undefined for port http' message.
+
+- David Norwood updated the web server to allow %Included_HTML to handle multiple shtml style includes.
+
+- Moved weather_iB_OWW_client.pl from public to commen with an update from Pete Flaherty
+that allows something other than the localhost to connect to the iButton Weather station server.
+
+- Allow for # noloop end-of-record comment (in addtion to # noloop=start/stop block comments,
+so we can more easily force code out of the mh loop code.
+
+- Added more valid date/time checking, to avoid perl abends in calls to timelocal.
+
+- Updated the MSN IM server in lib/MSN.pm to messenger.hotmail.com.
+
+- Coded a personal event to post the test version of MisterHouse every night.  
+The download page ( http://misterhouse.net/download.html ) now points
+to a current list of updates in the test code.
+
+- Replaced the windows only console pop-up menu with a simple print of key functions, when
+using either the enter or spacebar key.
+
+- Switched photo and status_bar refresh html from meta Refresh to javascript, in hopes it would be more reliable. 
+
 
 
 =head2 Version 2.73 posted on 11/09/2002
@@ -24,6 +142,11 @@ will use the default menu you parsed in your menu.pl code.
 
 - Tim Doyle created code/common/audrey_control.pl.  If you download the audrey apps listed in that code,
 you can control both pen and mail lights, sleep mode, and the built in sounds.
+
+- David Norwood created mh/lib/UIRT2.pm for the UIRT2 send and receive IR interface
+( http://www.fukushima.us/UIRT2/ ).
+He also created mh/code/common/UIRT2_learning.pl, a learning script 
+that provides a web interface for learning infrared codes and importing pronto codes.
 
 - Improved the web select_code interface by adding an Index, Search option, and listing of relevant config_parms.
 
@@ -100,10 +223,6 @@ Also allowed the DueDate to be any valid time_now format.
 
 - Added X10_Sensor (mht type is X10MS) item method light and dark, to return the current light and dark 
 state of MS13 motion sensors.
-
-- Added mh/lib/site/Date/Manip.pm and Manip.txt.  This large module took and extra .5 seconds and 3 meg
-of memory to load, so I decided not to load it by default.  See mh/code/examples/test_dates.pl
-for an example usage.
 
 
 =head2 Version 2.72 posted on 10/12/2002

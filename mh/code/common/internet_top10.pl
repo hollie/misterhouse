@@ -25,7 +25,7 @@ $v_top10_list2-> set_authority('anyone');
 $v_top10_list2-> tie_items($v_top10_list, 1, 'Show');
 
 $state = said $v_top10_list;
-speak  voice => 'male', text => $f_top10_list, display => 0 if $state eq 'Read';
+speak    app => 'top10', text => $f_top10_list, display => 0 if $state eq 'Read';
 display text => $f_top10_list, time => 300, font => 'Times 25 bold', geometry => '+0+0', width => 72, height => 24
 #display text => $f_top10_list, time => 300, font => 'biggest' if $state eq 'Show' or $state eq 'Read';
   if $state eq 'Show' or $state eq 'Read';

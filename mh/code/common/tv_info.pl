@@ -90,7 +90,7 @@ if ($state = changed $f_tv_file or said $v_tv_results) {
         }
     }
     elsif ($state eq 'favorites now') {
-        speak "rooms=all Notice, $msg starting now.  @data" if $show_count > 0;
+        speak "app=tv Notice, $msg starting now.  @data" if $show_count > 0;
     }
     else {
         chomp $summary;         # Drop the cr

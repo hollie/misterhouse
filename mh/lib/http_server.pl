@@ -65,15 +65,9 @@ sub http_read_parms {
     $config_parms{http_fork} = 1 if ($config_parms{http_fork} ne '0') and (!$OS_win or $OS_win and Win32::IsWinNT);
 
 #html_user_agents    = Windows CE=>1,whatever=>2
-    for my $temp (split ',', $config_parms{html_browser_formats}) {
-        my ($agent, $format) = $temp =~ / *(.+) *=> *(\d+)/;
-        $http_agent_formats{$agent} = $format;
-    }
-    for my $temp (split ',', $config_parms{html_browser_sizes}) {
-        my ($agent, $size) = $temp =~ / *(.+) *=> *(\d+)/;
-        $http_agent_sizes{$agent} = $size;
-    }
-    
+    &read_parm_hash(\%http_agent_formats,  $main::config_parms{html_browser_formats}, 1);
+    &read_parm_hash(\%http_agent_sizes,    $main::config_parms{html_browser_sizes}, 1);
+
     undef %html_icons;          # Refresh lib/http_server.pl icons
 
     %password_protect_dirs = map {$_, 1} split ',', $main::config_parms{password_protect_dirs};
@@ -132,6 +126,9 @@ sub http_process_request {
         print "http: Error, not header request.  header=$temp\n" if $config_parms{debug} eq 'http';
         return;
     }
+    
+    $Socket_Ports{http}{data_record} = $header;
+
     $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
     $Http{request} = $header;
     $Http{Referer} = '' unless $Http{Referer}; # Avoid uninitilized var errors
@@ -169,20 +166,23 @@ sub http_process_request {
 
 #   print "db ua=$Http{'User-Agent'}\n";
     if ($Http{'User-Agent'}) {
-        if ($Http{'User-Agent'} =~ /Windows CE/) {
+        if ($Http{'User-Agent'} =~ /Windows CE/i) {
             $Http{'User-Agent'}    =  'MSCE';
         }
-        elsif ($Http{'User-Agent'} =~ /Audrey/) {
+        elsif ($Http{'User-Agent'} =~ /Audrey/i) {
             $Http{'User-Agent'}    =  'Audrey';
         }
-        elsif ($Http{'User-Agent'} =~ /MSIE/) {
+        elsif ($Http{'User-Agent'} =~ /MSIE/i) {
             $Http{'User-Agent'}    =  'MSIE';
         }
-        elsif ($Http{'User-Agent'} =~ /Netscape6/) {
+        elsif ($Http{'User-Agent'} =~ /Netscape6/i) {
             $Http{'User-Agent'}    =  'Netscape6';
         }
-        elsif ($Http{'User-Agent'} =~ /Mozilla/) {
+        elsif ($Http{'User-Agent'} =~ /Mozilla/i) {
             $Http{'User-Agent'}    =  'Mozilla';
+        }
+        elsif ($Http{'User-Agent'} =~ /Photon/i) {
+            $Http{'User-Agent'}    =  'Photon';
         }
     }
     else {
@@ -567,7 +567,7 @@ sub html_unauthorized {
 #       my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
         my $msg .= "<br><B>Unauthorized Mode</B>";
         $msg .= "<li>" . $action . "</li>";
-        $msg .= "Status: <b><a href=SET_PASSWORD yet>Not Logged In</a></b><br>";
+        $msg .= "<br>Status: <b><a href=SET_PASSWORD yet>Not Logged In</a></b><br>";
         return $msg;
     }
 }
@@ -740,7 +740,9 @@ sub html_mh_generated {
         $H_Response = $1 if $1;
         $html = &html_list($get_arg, $auto_refresh);
 #       $html .= "\n$Included_HTML{$get_arg}\n" if $Included_HTML{$get_arg} ;
-        $html .= "\n" . shtml_include($Included_HTML{$get_arg}) . "\n" if $Included_HTML{$get_arg} ;
+        foreach (split "\n", $Included_HTML{$get_arg}) {
+            $html .= shtml_include($_) . "\n";
+        }
         return ($html, $main::config_parms{'html_style_list' . $Http{format}});
     }
     elsif ($get_req =~ /^results$/) {
@@ -2499,6 +2501,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.74  2002/12/02 04:55:20  winter
+# - 2.74 release
+#
 # Revision 1.73  2002/11/10 01:59:57  winter
 # - 2.73 release
 #

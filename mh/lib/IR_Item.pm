@@ -33,12 +33,7 @@ sub set {
     return if &main::check_for_tied_filters($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state);
 
-                                # Since the X10 IR Commander is a bit slow (.5 sec per xmit),
-                                #  lets only send the device code if it is different than last time.
     my $device = $$self{device};
-    $device = '' if $device and  $device eq $device_prev;
-    $device_prev = $$self{device};
-
     $state = uc $state;
 
                                 # Option to make changing channels faster on devices with a timeout
@@ -47,6 +42,9 @@ sub set {
         $state =~ s/,(\d+),/,$1,ENTER,/g;
         $state =~ s/,(\d+)$/,$1,ENTER/g;
         $state =~ s/^(\d+)$/$1,ENTER/g;
+    }
+                                # Option to do nothing to numbers
+    elsif ($$self{code} eq 'noPad') {
     }
                                 # Default is to lead single digit with a 0.  Cover all 4 cases:
                                 #  1,record    stop,2   stop,3,record     4
@@ -87,21 +85,30 @@ sub set {
             $command = $mapped_ir;
         }
         if (lc $$self{interface} eq 'cm17') {
+                                # Since the X10 IR Commander is a bit slow (.5 sec per xmit),
+                                #  lets only send the device code if it is different than last time.
+            $device = '' if $device and  $device eq $device_prev;
+            $device_prev = $$self{device};
             return if &main::proxy_send('cm17', 'send_ir', "$device $command");
             &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, "$device $command");
+            $device = '';       # Use device only on the first command
         } elsif ($$self{interface} eq 'Homevision') {
             &Homevision::send($main::Serial_Ports{Homevision}{object}, $command);
         } elsif ($$self{interface} eq 'ncpuxa') {
             &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $command);
+        } elsif ($$self{interface} eq 'uirt2') {
+            &UIRT2::set($device, $command);
         } else {
             print "IR_Item::set Interface $$self{interface} not supported.\n";
         }
-        $device = '';           # Use device only on the first command
     }
 }
 
 #
 # $Log$
+# Revision 1.12  2002/12/02 04:55:19  winter
+# - 2.74 release
+#
 # Revision 1.11  2002/09/22 01:33:23  winter
 # - 2.71 release
 #

@@ -94,6 +94,8 @@ mh uses about 20% of the cpu and gets about 8 passes per second.</P>
  - cd mh\bin</PRE>
 <PRE>
  - mh.bat (this will call mh.exe or 'perl mh')</PRE>
+<P>Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file names.  
+This program works ok:  <A HREF="http://misterhouse.net/public/unzip.exe">http://misterhouse.net/public/unzip.exe</A></P>
 <P>
 <H2><A NAME="unix users">Unix users</A></H2>
 <PRE>
@@ -224,9 +226,11 @@ an easy and free way to create a .msi file (suggestions welcome).  So for now, t
 full 70 mb 5.1 SDK, available from here:  <A HREF="http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe">http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe</A></P>
 <P>After installing, the default mh.ini voice_text=MS parm will default to the new V5 engine.  Use MSV4 to switch
 back to the old V4 engine.   
-The SDK comes with the voices  MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices.
-For $150, you can get 2 nice 5.1 compatable voices with AT&amp;T Natural Voices TTS engine here: <A HREF="http://www.naturalvoices.com.">http://www.naturalvoices.com.</A>
-(additional voices cost $70).</P>
+The SDK comes with the voices  MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices.</P>
+<P>The AT&amp;T Natural Voices TTS engine ( <A HREF="http://www.naturalvoices.com">http://www.naturalvoices.com</A> ) is the best sounding TTS engine yet. 
+AT&amp;T no longer sells them from their site, but you can get 2 voices from <A HREF="http://www.nextup.com/attnv.html">http://www.nextup.com/attnv.html</A>
+for abour $40 ($25 for the voices, $15 for a nextup product, required to qualify for the voices). 
+Additional voices are $35.</P>
 <P>
 <HR>
 <H1><A NAME="unix detailed install instructions">UNIX Detailed Install Instructions</A></H1>
@@ -237,9 +241,10 @@ For $150, you can get 2 nice 5.1 compatable voices with AT&amp;T Natural Voices 
 <P>If you choose to use the zip file instead, make sure you 
 use the -a to automatically get rid of those pesky /r characters that DOS like to add to newlines.
 Also, the unzip -U switch (contrary to what the help text says), 
-will be needed on newer versions of unzip to preserve case on filenames. 
-Then run the configure script (as root, see quick install instructions) 
-to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.</P>
+will be needed on newer versions of unzip to preserve case on filenames.</P>
+<P>Make sure you run the configure script, even if you used the rpm file.
+This will convert C serial headers to perl headers and (if you used the zip file)
+delete dos/windows only files, and 'chmod +x' on the files in the bin directory.</P>
 <P>There are various examples of how to start/stop mh in mh/bin/misterhouse*.rc</P>
 <P>
 <H2><A NAME="unix step 2, download and compile perl">UNIX Step 2, Download and Compile Perl</A></H2>
@@ -291,9 +296,12 @@ a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to
 <A HREF="http://tcts.fpms.ac.be/synthesis/mbrola.html">http://tcts.fpms.ac.be/synthesis/mbrola.html</A> 
 that has a very nice US english male and female voice.</P>
 <P>Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.</P>
-<P>For $150, you can get 2 nice voices with AT&amp;T Natural Voices TTS linux engine here: <A HREF="http://www.naturalvoices.com">http://www.naturalvoices.com</A>
-(additional voices cost $70).
-Use the voice_text_naturalvoice parm to point to where you have it installed and set voice_text=naturalvoice</P>
+<P>Prior to 11/2002, for $150, you can get 2 nice voices with AT&amp;T Natural Voices TTS linux engine here:
+ <A HREF="http://www.naturalvoices.com">http://www.naturalvoices.com</A> (additional voices cost $70), but for some reason, they no longer sell them from there.
+Now the only supplier we have found is from <A HREF="http://www.nextup.com/attnv.html,">http://www.nextup.com/attnv.html,</A> where additional voices are $35.
+But this site only offers the Windows engine, although the voice data files can be used with either engine.
+If you find a source for the linux engine, let me know.  
+Use the voice_text_naturalvoice parm to point to where you have it installed and set voice_text=naturalvoice.</P>
 <P>The IBM ViaVoice TTS and Voice Recognition engines is no longer available (as of 05/2002) 
 from the IBM site ( <A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A> ), but can still be found here: 
 <A HREF="http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/">http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/</A>
@@ -485,7 +493,7 @@ up your own code and data directories.  Here is an example:</P>
 <P>After mh is up and running, Use <A HREF="http://localhost:8080/bin/select_code.pl">http://localhost:8080/bin/select_code.pl</A>  menu
 (avaliable on the web ia5 MrHouse menu 'Select Code' button) to select which of the 
 standard code files you want to run.  You can add your own custom code files
-to your privte \misterhouse\code directory.</P>
+to your private \misterhouse\code directory.</P>
 <P>The first thing you will want to do is create an items.mht file that declares
 all your X10 items (see mh/code/bruce/items.mht for an example).  Alternativly, you 
 can declare each of your X10_items in any of the code members you use it in.  In either

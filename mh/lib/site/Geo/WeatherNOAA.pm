@@ -506,7 +506,8 @@ sub process_city_hourly {
 	# Format the wind direction and speed
 	#
 	my %compass = qw/N north S south E east W west/;
-	my $direction = join '',map $compass{$_},split(/(\w)\d/g, $in->{WIND});
+#	my $direction = join '',map $compass{$_},split(/(\w)\d/g, $in->{WIND});
+	my $direction = join '',map $compass{$_},split(/(\w)\d/,  $in->{WIND}); # Drop /g to avoid perl 5.8 warning
 	my ($speed) = ($in->{WIND} =~ /(\d+)/);
 	my ($gusts) = ($in->{WIND} =~ /G(\d+)/);
 
@@ -526,7 +527,8 @@ sub process_city_hourly {
     	}
 	if ($in->{PRES}) {
           my %rise_fall = qw/R rising S steady F falling/;
-          my $direction = join '',map $rise_fall{$_},split(/\d(\w)/g, $in->{PRES});
+#         my $direction = join '',map $rise_fall{$_},split(/\d(\w)/g, $in->{PRES});
+          my $direction = join '',map $rise_fall{$_},split(/\d(\w)/,  $in->{PRES});
           $in->{PRES} =~ tr/RSF//d;
           if ($rh_pres) {
                 $rh_pres .= ", and b";

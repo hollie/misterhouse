@@ -23,6 +23,17 @@ something like this:
  $Remote -> tie_event('print_log "MR26 key: $state"');
  set $TV $state if $state = state_now $Remote;
 
+If you want to relay all the of the incoming RF data back out to 
+the powerline, you can use this code: 
+
+$Transmitter = new X10_Item;
+if ($state = state_now $Remote and $state =~ /^X/) {
+    print_log "Relaying X10 data from the MR26: $state";
+    set $Transmitter $state;
+}
+
+You may want to limit this to not relay busy motion detectors.
+
 
 Note on range.  Depending on who knows what, people have reported 
 a maximum range for 10 -> 50 feet from receiver to remote. 
@@ -125,6 +136,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.7  2002/12/02 04:55:20  winter
+# - 2.74 release
+#
 # Revision 1.6  2002/10/13 02:07:59  winter
 #  - 2.72 release
 #

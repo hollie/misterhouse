@@ -5,21 +5,26 @@
 
 #print '+' if &Voice_Text::is_speaking;
 
-
 $house_tagline = new  File_Item("$config_parms{data_dir}/remarks/1100tags.txt");
-$test_speak0 = new Voice_Cmd 'Test speech 0 tagline';
-speak(read_next $house_tagline) if said $test_speak0;
+$test_speak1 = new Voice_Cmd 'Test speech with tagline';
+speak(read_next $house_tagline) if said $test_speak1;
 
 
-$test_speak0a = new Voice_Cmd 'Test speech 0 tagline to a file';
+$test_speak2 = new Voice_Cmd 'Test speech with tagline to a file with [low,normal,high] compression';
 #peak to_file => "$config_parms{data_dir}/test_tts.wav", compression => 'high',
-speak to_file => "$config_parms{data_dir}/test_tts.wav", compression => 'none',
-  text => read_next $house_tagline if said $test_speak0a;
+if ($state = said $test_speak2) {
+    my $file = "$config_parms{data_dir}/test_tts.wav";
+    speak to_file => $file, compression => $state, text => read_current $house_tagline;
+    my $size = int((-s $file)/1000);
+    print_log "File size is $size kbytes";
+    play "$config_parms{data_dir}/test_tts.wav";
+}
 
 
-$test_speak = new Voice_Cmd 'Test speech [start,stop,pause,resume,rewind,fastforward,fast,normal,slow,-6,-4,4,6,10]';
+$test_speak3 = new Voice_Cmd 'Test speech control of [start,stop,pause,resume,rewind,fastforward,fast,normal,slow,-6,-4,4,6,10]';
+$test_speak3 ->set_info('Reads the mh FAQ, allowing you to test the start,stop, ect speak options');
 
-if ($state = state_now $test_speak) {
+if ($state = state_now $test_speak3) {
     if ($state eq 'start') {
         my $text = file_head "$Pgm_Root/docs/faq.txt", 20;
         speak $text;
@@ -29,80 +34,50 @@ if ($state = state_now $test_speak) {
     }
 }
 
-$test_speak2 = new Voice_Cmd 'Test speech voice 1 [Mike,Sam,Mary]';
-if ($state = state_now $test_speak2) {
-    speak "<voice required='name=Microsoft $state'>Testing ${state}'s voice";
+                                # Create a command search menu with all the Voice_Cmd words
+my $voice_name_list = join(',', &Voice_Text::list_voices);  # noloop
+$test_speak4  = new Voice_Cmd "Test speech with voice [$voice_name_list,random,next]";
+$test_speak4  ->set_info('Speak a phrase with the chosen voice');
+speak "voice=$state Testing speech with voice $state" if $state = state_now $test_speak4;
+
+
+$test_speak5 = new Voice_Cmd "Test speech of all voices";
+if (said $test_speak5) {
+    for my $voice (&Voice_Text::list_voice_names) {
+        speak voice => $voice, text => "This is ${voice}'s voice";
+    }
 }
 
-$test_speak3 = new Voice_Cmd 'Test speech voice 2 [Mike,Sam,Mary,child,male,female,random]';
-if ($state = state_now $test_speak3) {
-    speak voice => $state, text => 'testing';
-}
-
-$test_speak4 = new Voice_Cmd 'Test speech voice 3 [Mike,Sam,Mary,child,male,female,random]';
-if ($state = state_now $test_speak4) {
-    speak voice => $state;
-}
-
-$test_speak5 = new Voice_Cmd 'Test speech voice 4 [Mike,Sam,Mary,child,male,female,random]';
-if ($state = state_now $test_speak5) {
-    speak voice => $state, text => "Testing voice $state";
-}
-
-$test_speak6 = new Voice_Cmd 'Test speech volume 1 [0,25,50,75,100,200]';
+$test_speak6 = new Voice_Cmd 'Test speech volume at [1,5,25,50,75,100,200]';
 if ($state = state_now $test_speak6) {
-    speak volume => $state;
-}
-$test_speak7 = new Voice_Cmd 'Test speech volume 2 [0,25,50,75,100,200]';
-if ($state = state_now $test_speak7) {
     speak volume => $state, text => "Testing volume at $state";
 }
 
-
-$test_speak8 = new Voice_Cmd 'Test speech rate 1 [slow,normal,fast,-6,0,6]';
-if ($state = state_now $test_speak8) {
-    speak rate => $state;
-}
-$test_speak9 = new Voice_Cmd 'Test speech rate 2 [slow,normal,fast,-6,0,6]';
-if ($state = state_now $test_speak9) {
+$test_speak7 = new Voice_Cmd 'Test speech rate at [slow,normal,fast,-6,6]';
+if ($state = state_now $test_speak7) {
     speak rate => $state, text => "Testing rate at $state";
 }
 
-
-
-$test_speak10 = new Voice_Cmd 'Default speech output 1 card [1,2,3,4]';
-if ($state = state_now $test_speak10) {
-    speak card => $state;
-}
-$test_speak11 = new Voice_Cmd 'Test speech output 2 card [1,2,3,4]';
-if ($state = state_now $test_speak11) {
+$test_speak8 = new Voice_Cmd 'Test speech output to card [1,2,3,4]';
+if ($state = state_now $test_speak8) {
     speak card => $state, text => "Testing speech to soundcard $state";
 }
 
-#speak card => 3, text => "Testing: $Second" if new_second 10;
+$test_speak9  = new Voice_Cmd "Test speech to room [living,bedroom,all]";
+speak rooms => $state, text => "Attention $state room people.  Hi."    if $state = said $test_speak9;
 
+$test_speak10 = new Voice_Cmd "Test speech to room [living,bedroom,all] with a wav file";
+play  rooms => $state, file => "hello_from_bruce.wav", time => 5       if $state = said $test_speak10;
 
-# Category=Test
+$test_speak11 = new Voice_Cmd "Test speech engine [festival,viavoice,vv_tts,flite,NaturalVoice]";
+speak engine => $state, text => "Speaking with speech engine $state"    if $state = said $test_speak11;
 
-$test_voice_ms = new Voice_Cmd "Speak in many voices";
-
-
-if (said $test_voice_ms) {
-    speak voice => 'Sam',     text => "This is Microsoft Sam's voice";
-    speak voice => 'Mike2',   text => "This is Microsoft Mike's voice";
-    speak voice => 'Mary',    text => "This is Microsoft Mary's voice";
-    speak voice => 'Mike',    text => "This is AT&T Mike's voice";
-    speak voice => 'Crystal', text => "This is AT&T Crystal's voice";
-    speak voice => 'Rich',    text => "This is AT&T Rich's voice";
+$test_voice12 = new Voice_Cmd "Change speech engine to [festival,viavoice,vv_tts,flite,NaturalVoice]";
+if ($state = said $test_voice12) {
+    $config_parms{voice_text} = $state;
+    speak "The default speech engine has been set to $state";
 }
 
-if (0 and said $test_voice_ms) {
-    my $msg;
-    $msg .= &Voice_Text::set_voice('Rich',    "This is AT&T Rich's voice");
-    $msg .= &Voice_Text::set_voice('Crystal', "This is AT&T Crystal's voice");
-    $msg .= &Voice_Text::set_voice('Mike',    "This is AT&T Mike's voice");
-    $msg .= &Voice_Text::set_voice('Mary',    "This is Microsoft Mary's voice");
-    $msg .= &Voice_Text::set_voice('Mike2',   "This is Microsoft Mike's voice");
-    $msg .= &Voice_Text::set_voice('Sam',     "This is Microsoft Sam's voice");
-    speak $msg;
-}
+my $speak_app_keys = join ',', sort keys %speak_apps; # noloop
+$test_speak12 = new Voice_Cmd "Test speech app [$speak_app_keys]";
+speak app => $state, text => "Speaking with with app $state parms" if $state = said $test_speak12;

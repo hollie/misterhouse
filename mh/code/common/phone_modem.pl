@@ -52,10 +52,9 @@ if ($PhoneModemString = said $phone_modem) {
                                 #   - Modem said: FM:07656283xx TO:86733xx
 
         my ($caller, $cid_number, $cid_name, $cid_time) = &Caller_ID::make_speakable($caller_id_data, 2,$language_code);
-        $Save{phone_callerid_data} = sprintf("%02d:%02d %s\n%s", $Hour, $Minute, $cid_number, $caller);
-        $Save{phone_callerid_Time} = $Time;
+
         if ($caller =~ /\.wav$/) {
-            play "rooms=all phone_call.wav,$caller";  # Prefix 'phone call'
+            play "app=phone phone_call.wav,$caller";  # Prefix 'phone call'
         }
         else {
             if ($language_code =~/swiss-german/) {
@@ -76,7 +75,7 @@ if ($PhoneModemString = said $phone_modem) {
             $Save{phone_callerid_data} = sprintf("%02d:%02d %s\n%s", $Hour, $Minute, $cid_number, $caller);
             $Save{phone_callerid_Time} = $Time;
 
-            speak("rooms=all_and_out mode=unmuted $caller");
+            speak("app=phone_and_out mode=unmuted $caller");
             logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",  
                   "$cid_number name=$cid_name data=$caller_id_data line=2");
             logit_dbm("$config_parms{data_dir}/phone/callerid.dbm", $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");

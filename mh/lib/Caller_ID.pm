@@ -165,7 +165,7 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
 #		$caller = "Nummer unterdrückt"  if ($local_area_code_language =~ /swiss-german/gi);
 		$caller = "Nummer unterdrueckt" if ($local_area_code_language =~ /swiss-german/gi);
     }
-    elsif ($last eq "Unavailable" or $name eq '') {
+    elsif ($last eq "Unavailable" and length($number) > 7) {
         $caller = "number $local_number";
 		$caller = "Nummer $local_number" if ($local_area_code_language =~ /swiss-german/gi);
     }
@@ -319,6 +319,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.28  2002/12/02 04:55:19  winter
+# - 2.74 release
+#
 # Revision 1.27  2002/11/10 01:59:57  winter
 # - 2.73 release
 #

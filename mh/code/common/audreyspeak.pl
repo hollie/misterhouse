@@ -61,7 +61,7 @@ You must make certain modifications to your Audrey, as follows:
      </html>
 
 - Set your Audrey's IP address in mh.private.ini
-  Audrey1_IP=127.0.0.1 (change this number to the IP address of your Audrey)
+   Audrey_IPs=Kitchen-192.168.1.89,Bedroom-192.168.1.99
 
 
 =cut

@@ -46,6 +46,8 @@ if (my $caller_id_data = said $NetCallerID || said $v_netcallid_test) {
         $caller = "Call from $caller.  Call is from $caller.";
     }
 
+#   print_log "netcallid debug: $Time $Save{phone_callerid_Time} $caller";
+
                                 # If we have other callerID interfaces (e.g. phone_modem.pl)
                                 # lets not repeat ourselfs here. 
     unless ($Time - $Save{phone_callerid_Time} < 3) {
@@ -53,8 +55,8 @@ if (my $caller_id_data = said $NetCallerID || said $v_netcallid_test) {
         $Save{phone_callerid_Time} = $Time;
 
         unless ($Caller_ID::reject_name_by_number{$cid_number}) {
-#           play rooms => 'all', file => 'ringin.wav,ringin.wav'; # Simulate a phone ring
-            speak("rooms=all_and_out mode=unmuted $caller");
+#           play app => 'phone', file => 'ringin.wav,ringin.wav'; # Simulate a phone ring
+            speak("app=phone $caller");
 #           speak("address=piano $caller");
         }
         logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",  

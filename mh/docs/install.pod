@@ -49,6 +49,9 @@ These are the quick instructions for those of you who, like me, don't like to re
 
  - mh.bat (this will call mh.exe or 'perl mh')
 
+Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file names.  
+This program works ok:  http://misterhouse.net/public/unzip.exe
+
 =head2 Unix users
 
  - Download the the latest rpm, tar, or zip file 
@@ -206,8 +209,11 @@ full 70 mb 5.1 SDK, available from here:  http://download.microsoft.com/download
 After installing, the default mh.ini voice_text=MS parm will default to the new V5 engine.  Use MSV4 to switch
 back to the old V4 engine.   
 The SDK comes with the voices  MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices.
-For $150, you can get 2 nice 5.1 compatable voices with AT&T Natural Voices TTS engine here: http://www.naturalvoices.com.
-(additional voices cost $70).
+
+The AT&T Natural Voices TTS engine ( http://www.naturalvoices.com ) is the best sounding TTS engine yet. 
+AT&T no longer sells them from their site, but you can get 2 voices from http://www.nextup.com/attnv.html
+for abour $40 ($25 for the voices, $15 for a nextup product, required to qualify for the voices). 
+Additional voices are $35.
 
 
 =head1 UNIX Detailed Install Instructions
@@ -292,9 +298,13 @@ that has a very nice US english male and female voice.
 
 Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.
 
-For $150, you can get 2 nice voices with AT&T Natural Voices TTS linux engine here: http://www.naturalvoices.com
-(additional voices cost $70).
-Use the voice_text_naturalvoice parm to point to where you have it installed and set voice_text=naturalvoice
+Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural Voices TTS linux engine here:
+ http://www.naturalvoices.com (additional voices cost $70), but for some reason, they no longer sell them from there.
+Now the only supplier we have found is from http://www.nextup.com/attnv.html, where additional voices are $35.
+But this site only offers the Windows engine, although the voice data files can be used with either engine.
+If you find a source for the linux engine, let me know.  
+Use the voice_text_naturalvoice parm to point to where you have it installed and set voice_text=naturalvoice. 
+
 
 The IBM ViaVoice TTS and Voice Recognition engines is no longer available (as of 05/2002) 
 from the IBM site ( http://www-4.ibm.com/software/speech/dev/sdk_linux.html ), but can still be found here: 

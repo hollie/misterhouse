@@ -158,7 +158,7 @@ if (said $v_mode_toggle) {
         $Save{mode} = 'mute';
     }
                                 # mode => force cause speech even in mute or offline mode
-    &speak(mode => 'unmuted', rooms => 'all', text => "Now in $Save{mode} mode");
+    &speak(mode => 'unmuted', app => 'notice', text => "Now in $Save{mode} mode");
 }
 
 
@@ -274,8 +274,8 @@ if ($Keyboard) {
 }
 
                                 # Monitor if web password was set or unset
-speak 'rooms=all Web password was just set' if $Cookies{password_was_set};
-speak 'rooms=all Notice, an invalid Web password was just specified' if $Cookies{password_was_not_set};
+speak 'app=notice Web password was just set' if $Cookies{password_was_set};
+speak 'app=notice Notice, an invalid Web password was just specified' if $Cookies{password_was_not_set};
 
 
                                 # Those with ups devices can set this seperatly

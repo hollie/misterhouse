@@ -26,29 +26,16 @@ if (my $data = state_now $tv_grid) {
     speak $msg;
     print_log $msg;
 
-                                # Write out a new entry to triggers.new.  This will be processed
-                                # into a self pruning triggers.pl file
-    my $trigger_file = "$config_parms{data_dir}/triggers.new";
-    print_log "Writing to tv programing to $trigger_file";
-    open(TRIGGERS, ">>$trigger_file") or print_log "Error in writing to $trigger_file";
-
-    print TRIGGERS<<eof;
-time_now '$date $start - 00:02'
-  speak "rooms=all \$Time_Now. VCR recording will be started in 2 minutes for $show_name on channel $channel";
-
-time_now '$date $start'
-  speak "VCR recording started";
-  print_log "VCR recording on channel $channel for $show_name";
-  set \$VCR "STOP,$channel,RECORD"; # Stop first, in case we were already finishing recording something else
-
-time_now '$date $stop'
-  speak "VCR recording stopped";
-  set \$VCR "$channel,STOP";
-# run('min', 'IR_cmd VCR,STOP');
-
-eof
-
-    close TRIGGERS;
+    my $vcr_set = ($main::{VCR}) ? 'set' : '# set';
+    &trigger_set("time_now '$date $start - 00:02'",
+                 "speak qq~app=tv \$Time_Now. VCR recording will be started in 2 minutes for $show_name on channel $channel~");
+    &trigger_set("time_now '$date $start'",
+                 "speak 'VCR recording started';\n" . 
+                 "print_log qq~VCR recording on channel $channel for $show_name~;\n" . 
+                 "$vcr_set \$VCR 'STOP,$channel,RECORD';\n");
+    &trigger_set("time_now '$date $stop'",
+                 "speak 'VCR recording stopped';\n" .
+                 "$vcr_set \$VCR '$channel,STOP';");
 
 }
 

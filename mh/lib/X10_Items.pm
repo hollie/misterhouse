@@ -835,8 +835,13 @@ sub add {
     $name = $id unless $name;
     $self->{name} = $name;
 
+                                # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
+    if ($id =~ /^X?(\S)1(\d)/) {
+        $id = $1 . substr 'ABCDEFG', $2, 1;
+    }
+
                                 # Allow for A1 and XA1AJ 
-    if (length $id <= 3) {
+    if (length $id < 3) {
         my $hc = substr $id, 0, 1;
         $id = 'X' . $id . $hc . 'J';
     }
@@ -850,6 +855,8 @@ sub add {
                        "speak \"rooms=all Battery timer for $name expired\"", 7);  
 
     my ($hc, $id2) = $id =~ /X(\S)(\S+)(\S)\S/;
+
+#   print "dbx2 id=$id hc=$hc id=$id2 X$hc${id2}${hc}J \n";
 
     &Serial_Item::add($self, "X$hc${id2}${hc}J", 'motion');
     &Serial_Item::add($self, "X$hc${id2}${hc}K", 'still');
@@ -897,6 +904,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.34  2002/12/02 04:55:20  winter
+# - 2.74 release
+#
 # Revision 1.33  2002/11/10 01:59:57  winter
 # - 2.73 release
 #

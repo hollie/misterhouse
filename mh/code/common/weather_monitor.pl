@@ -28,13 +28,17 @@
 
 =cut
 
+my $weather_wind_gust_threshold=$config_parms{weather_wind_gust_threshold}; # noloop
+$weather_wind_gust_threshold=12 unless $weather_wind_gust_threshold;  # noloop
+
+
 $TempOutdoor  = new Weather_Item 'TempOutdoor';
 $TempIndoor   = new Weather_Item 'TempIndoor';
 $HumidOutdoor = new Weather_Item 'HumidOutdoor';
 $HumidIndoor  = new Weather_Item 'HumidIndoor';
 $WindChill    = new Weather_Item 'WindChill';
 $WindGust     = new Weather_Item 'WindGustSpeed';
-$Windy        = new Weather_Item 'WindGustSpeed > 12';
+$Windy        = new Weather_Item "WindGustSpeed > $weather_wind_gust_threshold";
 $WindGustDir  = new Weather_Item 'WindGustDir';
 $WindAvg      = new Weather_Item 'WindAvgSpeed';
 $WindAvgDir   = new Weather_Item 'WindAvgDir';
@@ -46,7 +50,7 @@ $DewOutdoor   = new Weather_Item 'DewOutdoor';
 
                                 # Try to guess sunny or cloudy, based on an analog sun sensor
 if ($New_Minute) {
-    $Weather{sun_sensor} = $analog{sun_sensor}; # From sensors.pl weeder input
+#    $Weather{sun_sensor} = $analog{sun_sensor}; # From sensors.pl weeder input
     if (time_greater_than("$Time_Sunrise + 2:00") and
         time_less_than   ("$Time_Sunset  - 5:00")) {
         $Weather{Conditions} = ($Weather{sun_sensor} > 40) ? 'Clear' : 'Cloudy';
@@ -209,12 +213,12 @@ if (state $Windy and
     not $Save{sleeping_parents}) {
     if ($Weather{WindGustSpeed} > ($Save{WindGustMax} + 5)) {
         $Save{WindGustMax} = $Weather{WindGustSpeed};
-        speak "rooms=all Weather alert.  The wind is now gusting at " . round($Weather{WindGustSpeed}) . " MPH.";
+        speak "app=notice Weather alert.  The wind is now gusting at " . round($Weather{WindGustSpeed}) . " MPH.";
         set $timer_wind_gust 120*60;
     }
     elsif (inactive $timer_wind_gust) {
         set $timer_wind_gust 120*60;
-        speak "rooms=all Weather alert.  A wind gust of " . round($Weather{WindGustSpeed}) . " MPH was just recorded.";
+        speak "app=notice Weather alert.  A wind gust of " . round($Weather{WindGustSpeed}) . " MPH was just recorded.";
     }
 }
 $Save{WindGustMax} = 0 if $New_Day;

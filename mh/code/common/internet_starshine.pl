@@ -68,7 +68,7 @@ if (done_now $starshine_check_p or $state eq 'list') {
             if ($Dark and time_now '$time - 0:02') {
                 my \$msg = "Notice: Starshine 3 satellite will have a flare in 2 minutes ";
                 \$msg .= "at an altitude of $a[4], azimuth of $a[5].";
-                speak "rooms=all \$msg";
+                speak "app=timer \$msg";
                 display \$msg, 600;
                 set \$starshine_timer 120 + $sec;
             }
@@ -88,11 +88,11 @@ my %starshine_timer_intervals = map {$_, 1} (15,30,90);
 if ($New_Second and my $time_left = int seconds_remaining $starshine_timer) {
     if ($starshine_timer_intervals{$time_left}) {
         my $pitch = int 10*(1 - $time_left/60);
-        speak "pitch=$pitch $time_left seconds till flash";
+        speak "app=timer pitch=$pitch $time_left seconds till flash";
     }
 }
 if (expired $starshine_timer) {
-    speak "pitch=10 rooms=all_and_out Starshine flash now occuring";
+    speak "app=timer pitch=10 Starshine flash now occuring";
     play 'timer2';              # Set in event_sounds.pl
 }
 

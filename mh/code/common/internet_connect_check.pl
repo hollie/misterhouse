@@ -50,7 +50,7 @@ if (done_now $ping_test) {
             logit "$config_parms{data_dir}/logs/internet_down.log", "Net up.  Was $Save{ping_test_results}.  Downtime: $time_diff";
             $time_diff = time_diff $Save{ping_test_time}, $Time, 'minute';
 #           play file => 'timer', mode => 'unmute'; # Set in event_sounds.pl
-            speak "rooms=all The internet connection is back up after $time_diff";
+            speak "app=notice The internet connection is back up after $time_diff";
             display text => "The internet connection is back up  (was $Save{ping_test_results}).  Time=$time_diff", 
               time => 0, window_name => 'Internet Connect Check', append => 'bottom';
         }
@@ -64,7 +64,7 @@ if (done_now $ping_test) {
             $Save{ping_test_time}    = $Time;
         }
         elsif (++$Save{ping_test_count} == 3) {
-            speak 'rooms=all The internet connection just went down';
+            speak 'app=notice The internet connection just went down';
             display text => 'The internet connection is down',
               time => 0, window_name => 'Internet Connect Check', append => 'bottom';
             logit "$config_parms{data_dir}/logs/internet_down.log", "Net down";

@@ -22,7 +22,7 @@ $v_sun_set-> set_authority('anyone');
 speak "Sunrise today is at $Time_Sunrise, sunset is at $Time_Sunset." if said $v_sun_set;
 
 speak "Notice, the sun is now rising at $Time_Sunrise" if time_now $Time_Sunrise and !$Save{sleeping_parents};
-speak "rooms=all Notice, the sun is now setting at $Time_Sunset"  if time_now $Time_Sunset;
+speak "app=notice Notice, the sun is now setting at $Time_Sunset"  if time_now $Time_Sunset;
 
 
 $v_moon_info1 = new Voice_Cmd "When is next [new,full] moon";
@@ -49,7 +49,7 @@ if ($state = said $v_moon_info3) {
 
 $full_moon = new File_Item("$config_parms{data_dir}/remarks/full_moon.txt");
 if ($Moon{phase} eq 'Full' and time_random('* 8-22 * * *', 240)) {
-    speak "rooms=all Notice, tonight is a full moon.  " . (read_next $full_moon);
+    speak "app=notice Notice, tonight is a full moon.  " . (read_next $full_moon);
 }
 
 

@@ -283,8 +283,6 @@ the 'universal relay kit' from http://jameco.com (do a search for
 'relay card' or 128910).   The $60 gets you 8 relays.  Here is 
 some more info:
 
-=over
-
 1. The board is sold as 8 relays complete, upgradable to 16.  If you only
 want to use 8 relays(in a limited fashion), the kit is all you need.
 
@@ -307,7 +305,6 @@ extra 8 pin dip switches to do that.
 
 7. All of these parts are available from jameco for nominal extra cost. 
 
-=back
 
 The HomeBase.pm module to supports the JDS interfaces, http://www.jdstechnologies.com .
 See member mh/code/public/test_homebase.pl for example code.
@@ -642,7 +639,8 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
                       Unlike state_now, state_changed will return undef (false) if
                       the item is set to the same state it is currently in.
 
-     set           :  places the value into the state field (e.g. set $light on)
+     set                 :  places the value into the state field (e.g. set $light on)
+     set_with_timer      :  like set, but will toggle back on/off after the specified time
 
      hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.
 
@@ -969,34 +967,51 @@ Configure Homevision Webserver to report command results.
 
 =item IR_Item
 
-This object controls IR transmiters.  Currently only the X10 IR Commander 
-(http://www.x10.com/products/ux17a_bj2.htm) 
-is supported.  The X10 IR Commander receives commands from the wireless CM17 (firecracker) interface.
+This object controls IR transmiters. The devices currently supported are the
+X10 IR Commander, HomeVision, CPU-XA/Ocelot/Leopard, and UIRT2 (http://www.fukushima.us/UIRT2/).
 
-Currently, you must use the X10 supplied software 
-(http://www.x10.com/commander.htm and/or ftp://ftp.x10.com/pub/applications/commander/)
-to program the IR Commander to 
-use the codes for your various remotes.  
+The X10 IR Commander (http://www.x10.com/products/ux17a_bj2.htm) receives
+commands from the wireless CM17 (firecracker) interface. Currently, you must
+use the X10 supplied software (http://www.x10.com/commander.htm and/or
+ftp://ftp.x10.com/pub/applications/commander/) to program the IR Commander to
+use the codes for your various remotes.
 
   Methods:
-     new $type, $code : Creates a new Item.  
-        Here are the valid types:
+     new $type, $code, $interface, $mapref : Creates a new Item.  
+
+        $type is the type of device being controlled.  Default is TV.
+        Here are the only valid types for the X10 IR Commander:
            TV, VCR, CAB, CD, SAT, DVD
-        Currently, $code can be any of he following:
-           2digit  : this is the default if $code is not specified
-           3digit  : 3 digits are transmitted for channels
+
+        $code specifies how numbers will be treated.  Default is 2digit.
+           noPad   : numbers are not modified
+           2digit  : single digits will be padded with a leading zero 
+           3digit  : numbers will be padded to 3 digits with leading zeros 
            addEnter: adds an ENTER command after any numbers, to make 
                      changing channels faster on devices that wait for a
-                     timeout (e.g. Ocelot).
+                     timeout (e.g. Sony TVs).
 
+        $interface is the transmitter to be used.  Default is cm17.
+           cm17    : X10 IR Commander
+           homevision: HomeVision
+           ncpuxa  : CPU-XA/Ocelot/Leopard
+           uirt2   : UIRT2 (http://www.fukushima.us/UIRT2/)
+
+        $mapref is a reference to a hash that specifies commands to be
+           mapped to other commands.  This is useful for transmitters
+           like the Ocelot which use slot numbers instead of device and
+             function name pairs.  Default is a reference to a hash containing
+                ON  => POWER,
+                OFF => POWER
+             Which you would not want if you had descrete ON and OFF codes. 
+ 
      state        : Returns the last state that was sent
      state_now    : Returns the state that was sent in the current pass.
      state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
                     time_date stamped states.
 
-     set $command : Sends out commands to the IR device.  Here is a list of valid commands:
-                    Note:  Commands are case insensitive
-
+     set $command : Sends out commands to the IR device.  Here is a list of valid commands for the X10 IR Commander::
+                    Note:  Commands are not case insensitive
         POWER      MUTE      
         CH+        CH-      
         VOL+       VOL-     
@@ -1287,7 +1302,8 @@ ALL_ON and ALL_OFF commands for that house code.  For example:
    $test_lights   = new X10_Item 'O';
    set $test_lights $state if $state = said $v_test_lights;
 
-This item also has a built in timer with the set_with_timer method.  For example,
+Since this item is inherits from Generic_Item, 
+you can use the set_with_timer method.  For example,
 this event will turn on a on a warning light to 20% for 5 seconds:
 
    set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
@@ -2071,6 +2087,10 @@ Use this to play wave or system sound files.  There are 2 modes of calling it:
 
        mode   => 'unmuted'     Forces speech, even in mute and offline mode
 
+       app    => 'xyz'   This uses the parms defined in the xyz section of
+                         the mh.ini speak_app parm.  This allows us to use custom
+                         parms with generic, common code.  
+
        You can control the default mode parm with the mh.ini play_mode parm.
    
 
@@ -2277,6 +2297,10 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
 
        mode    => 'unmuted' Forces speech, even in mute and offline mode
 
+       app     => 'xyz'   This uses the speak parms defined in the xyz section of
+                          the mh.ini speak_app parm.  This allows us to use custom
+                          speak parms with generic, common code.  
+
 
      These options are for the Unix Festival speech engine (but don't work yet):
        rate   => '+-nn%'       (e.g. +10% or -30%)
@@ -2358,6 +2382,11 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
 
     speak to_file => "$config_parms{data_dir}/test_tts.wav",
           text => read_next $house_tagline if $New_Minute;
+
+    speak app => 'email', text => 'You have new email';
+    speak app => 'timer', text => 'The timer has expired';
+
+    More examples can be found in mh/code/common/test_speak.pl
 
 =item time_add
 
@@ -2642,6 +2671,66 @@ Use this function to create radio buttons in the mh tk grid.  If labels are not 
     print_log "Alarm status changed to $state" if $state = state_now $alarm_status;
 
 
+=item trigger_set
+
+=item trigger_get
+
+You can create triggers to easily run mh code on specified events.  When you create a trigger
+with trigger_set, mh will create or modify the code_dir/triggers.mhp file.  
+
+Use the web interface at http://localhost:8080/bin/triggers.pl 
+(also under the ia5 MrHouse Home button) to view and update triggers.
+
+Trigger functions are:
+
+  trigger_set($trigger, $code, $type, $name, $replace)
+
+    Creates or modified an existing trigger.  Only $trigger and $code are
+    required.  $type defaults to OneShot (runs only once) and $name
+    will default to an unique auto-generated name.  If $name is specified 
+    and already exists, $name will be incremented, unless $replace=1.
+
+    Example:
+
+      &trigger_set("time_now '$date $time - 00:02'", 
+                   "speak 'Something cool happens in 2 minutes'");
+
+      &trigger_set("time_now '$Save{wakeup_time}'",
+                   "speak 'Time to wake up'", "NoExpire", "Wakeup Trigger", 1);
+
+      Another example of using triggers is in mh/code/common/tv_grid.pl
+      
+
+  trigger_get($name}
+    Returns ($trigger, $code, $type, $triggered).
+    $triggered is the epoc seconds when the trigger was
+    last tirggered, 0 if it has not been triggered.
+
+  trigger_list
+    Returns a list of trigger names. 
+
+  trigger_delete($name}
+  trigger_copy($name}
+    Delete or copies the specified trigger.
+
+  trigger_active($name)
+  trigger_expired($name)
+    Returns true if the trigger is active or expired.
+
+
+Here are the valid trigger types:
+
+  OneShot  => The trigger will run once, then changed type to Expired
+
+  Expired  => Will be pruned from the triggers.mhp file after one week 
+              and archived in data_dir/triggers.expired.
+
+  NoExpire => Runs on every event and never expires.
+
+  Disabled => Will stay in your triggers.mph file, but will not run.
+
+
+
 =back
 
 See mh/code/examples/tk_examples.pl for more tk_*  examples.
@@ -2796,9 +2885,9 @@ Returns true if connected to the Internet.  If the mh.ini parm net_connect=persi
 returns true.
 
 
-=item net_jabber_send or net_im_send
+=item net_im_send
 
-Used to send and AOL Instant Message or Jabber message across the internet.
+Used to send and AOL Instant Message, Jabber, or MSN message across the internet.
 
 Information on AIM clients (available for various different platforms)
 can be found at http://www.aol.com/aim/faq/getstarted.html . 
@@ -2810,11 +2899,11 @@ can be found at http://www.jabber.com and http://www.jabbercentral.org.
 
  
   Usage:
-    net_jabber_send(option => value);
     net_im_send(option => value);
 
      These are the options:
 
+        pgm         Default aol.  Can also be jabber or msn
         password    Default is mh.ini parm net_jabber_password  or net_aim_password
         from        Default is mh.ini parm net_jabber_name      or net_aim_name
         to          Default is mh.ini parm net_jabber_name_send or net_aim_name_send
@@ -2824,19 +2913,20 @@ can be found at http://www.jabber.com and http://www.jabbercentral.org.
         text        Message
         file        Message.  You can use the text and/or file options.
 
-The first time you send a message, mh will pause for a few seconds while it logs onto AIM or a jabber server.
+The first time you send a message, mh will pause for a few seconds while it logs onto a server.
 Subsequent messages use the same signon, so are sent much faster.
 
-Once you have been logged in, mh will also display incoming jabber messages.  This code has lots of
+Once you have been logged in, mh will also display incoming messages.  This code has lots of
 other possibilites that can be added, since jabber is XML based and very flexable.
 
   Example:
 
-    net_jabber_send(text => "Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}")
+    net_im_send(pgm => 'jabber', text => "Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}")
 
     net_im_send(text => "Internet mail summary for $Date_Now $Time_Now",
                 file => "$config_parms{data_dir}/get_email2.txt") if time_cron '05 12 * * 1-5';
 
+More examples are in mh/code/common/internet_im.pl
 
  
 
@@ -3623,6 +3713,9 @@ speak will pass the file or text to mh.  It simply runs the house program.
     speak "Boo, did I scare you?"
 
 
+=back
+
+
 =head2 Authentication
 
 A one way crypt-ed password authentication scheme can be enabled for the web and telnet.pl interfaces.  
@@ -4286,8 +4379,15 @@ If you are getting the message "Out of environment space" try adding these recor
   autoexec.bat: set comspec=c:\command.com
 
 If you want to use a program generated list in an Item declaration, you need to use add # noloop=start/stop
-comments before and after the code that should preceed the Item.  Here is an example:
+comments before and after the code that should preceed the Item, or add a # noloop comment to the 
+end for the record.  For example:
 
+                 # Example of noloop record comments
+  my $weather_wind_gust_threshold=$config_parms{weather_wind_gust_threshold}; # noloop
+  $weather_wind_gust_threshold=12 unless $weather_wind_gust_threshold;        # noloop
+
+
+                 # Example of noloop block comments
   # noloop=start
   my $mp3names;
   while ( my $mp3name = <d:/library/*.m3u> )
@@ -4470,6 +4570,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.60  2002/12/02 04:55:16  winter
+# - 2.74 release
+#
 # Revision 1.59  2002/11/10 01:59:56  winter
 # - 2.73 release
 #

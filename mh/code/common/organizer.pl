@@ -48,6 +48,8 @@ if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
     print $objDB->LastError unless $objDB->Open;
     my $mycode = "$config_parms{code_dir}/organizer_tasks.pl";
     open(MYCODE, ">$mycode") or print_log "Error in open on $mycode: $!\n";
+    my %emails;
+    &read_parm_hash(\%emails,  $main::config_parms{organizer_email});
     while (!$objDB->EOF) {
         my $complete = $objDB->FieldValue('Complete');
         my $date     = $objDB->FieldValue('DueDate');
@@ -55,21 +57,12 @@ if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
         my $subject  = $objDB->FieldValue('Description');
         my $notes    = $objDB->FieldValue('Notes');
         my $text     = "$name, $subject. $notes";
-        $notes .= "Sent: $Date_Now $Time_Now";
+        $notes .= ".  Sent: $Date_Now $Time_Now";
         $objDB->MoveNext;
         next unless time_less_than("$date + 23:59");  # Skip past and invalid events
         
-        my $email;
-        print "dbx em=$main::config_parms{organizer_email}\n";
-        for my $em1 (split ',', $main::config_parms{organizer_email}) {
-            print "dbx em1\n";
-            if (my ($em2, $em3) = $em1 =~ /(\S+) *=> *(\S+)/) {
-            print "dbx m2=$em2, m3=$em3\n";
-                if (lc $em2 eq lc $name) {
-                    $email .= "net_mail_send to => '$em3', subject => q~$subject~, text => q~$notes~; ";
-                }
-            }
-        }
+        my $email = "net_mail_send to => '$emails{lc $name}', subject => q~$subject~, text => q~$notes~; " 
+          if $emails{lc $name};
 
                                 # Time already specified
         if ($date =~ /\S+ +\S/) {

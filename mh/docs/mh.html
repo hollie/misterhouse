@@ -504,7 +504,7 @@ These parameters can be any time/date string, as recognized by the time_now func
 <H2><A NAME="list of global variables">List of global variables</A></H2>
 <P>Time/Date Variables</P>
 <PRE>
-  $Time_Startup, $Time_Startup_time, $Time_Now, $Date_Now, $Year_Month_Now
+  $Time_Startup, $Time_Startup_time, $Time_Now, $Date_Now, $Date_Now_Speakable, $Year_Month_Now
   $Time_Sunrise, $Time_Sunset, $Time_Sunrise_Twilight, $Time_Sunset_Twilight
   $Second, $Minute, $Hour, $Mday, $Wday, $Day, $Month, $Year, $Holiday
   $New_Msecond_100, $New_Msecond_250, $New_Msecond_500, $New_Second, $New_Minute,
@@ -566,7 +566,7 @@ Note:  These methods currently read the entire file, so if have big files (say, 
      said         : Returns data added to a file since the last call.
                     Only one record is returned per call.
                     This is useful for monitoring log files.
-                    See mh/code/bruce/shoutcast.pl  for an example.</PRE>
+                    See mh/code/bruce/shoutcast_monitor.pl  for an example.</PRE>
 <PRE>
   Examples:
      $f_deep_thoughts = new File_Item(&quot;$Pgm_Root/data/remarks/deep_thoughts.txt&quot;);
@@ -596,7 +596,8 @@ mh is stopped/started.
                       Unlike state_now, state_changed will return undef (false) if
                       the item is set to the same state it is currently in.</PRE>
 <PRE>
-     set           :  places the value into the state field (e.g. set $light on)</PRE>
+     set                 :  places the value into the state field (e.g. set $light on)
+     set_with_timer      :  like set, but will toggle back on/off after the specified time</PRE>
 <PRE>
      hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.</PRE>
 <PRE>
@@ -908,33 +909,52 @@ Configure Homevision Webserver to report command results.
 <P></P>
 <DT><STRONG><A NAME="item_IR_Item">IR_Item</A></STRONG><BR>
 <DD>
-This object controls IR transmiters.  Currently only the X10 IR Commander 
-(http://www.x10.com/products/ux17a_bj2.htm) 
-is supported.  The X10 IR Commander receives commands from the wireless CM17 (firecracker) interface.
-<P>Currently, you must use the X10 supplied software 
-(http://www.x10.com/commander.htm and/or <A HREF="ftp://ftp.x10.com/pub/applications/commander/)">ftp://ftp.x10.com/pub/applications/commander/)</A>
-to program the IR Commander to 
+This object controls IR transmiters. The devices currently supported are the
+X10 IR Commander, HomeVision, CPU-XA/Ocelot/Leopard, and UIRT2 (http://www.fukushima.us/UIRT2/).
+<P>The X10 IR Commander (http://www.x10.com/products/ux17a_bj2.htm) receives
+commands from the wireless CM17 (firecracker) interface. Currently, you must
+use the X10 supplied software (http://www.x10.com/commander.htm and/or
+<A HREF="ftp://ftp.x10.com/pub/applications/commander/)">ftp://ftp.x10.com/pub/applications/commander/)</A> to program the IR Commander to
 use the codes for your various remotes.</P>
 <PRE>
   Methods:
-     new $type, $code : Creates a new Item.  
-        Here are the valid types:
-           TV, VCR, CAB, CD, SAT, DVD
-        Currently, $code can be any of he following:
-           2digit  : this is the default if $code is not specified
-           3digit  : 3 digits are transmitted for channels
+     new $type, $code, $interface, $mapref : Creates a new Item.</PRE>
+<PRE>
+        $type is the type of device being controlled.  Default is TV.
+        Here are the only valid types for the X10 IR Commander:
+           TV, VCR, CAB, CD, SAT, DVD</PRE>
+<PRE>
+        $code specifies how numbers will be treated.  Default is 2digit.
+           noPad   : numbers are not modified
+           2digit  : single digits will be padded with a leading zero 
+           3digit  : numbers will be padded to 3 digits with leading zeros 
            addEnter: adds an ENTER command after any numbers, to make 
                      changing channels faster on devices that wait for a
-                     timeout (e.g. Ocelot).</PRE>
+                     timeout (e.g. Sony TVs).</PRE>
 <PRE>
+        $interface is the transmitter to be used.  Default is cm17.
+           cm17    : X10 IR Commander
+           homevision: HomeVision
+           ncpuxa  : CPU-XA/Ocelot/Leopard
+           uirt2   : UIRT2 (<A HREF="http://www.fukushima.us/UIRT2/">http://www.fukushima.us/UIRT2/</A>)</PRE>
+<PRE>
+        $mapref is a reference to a hash that specifies commands to be
+           mapped to other commands.  This is useful for transmitters
+           like the Ocelot which use slot numbers instead of device and
+             function name pairs.  Default is a reference to a hash containing
+                ON  =&gt; POWER,
+                OFF =&gt; POWER
+             Which you would not want if you had descrete ON and OFF codes. 
+</PRE>
+<PRE>
+
      state        : Returns the last state that was sent
      state_now    : Returns the state that was sent in the current pass.
      state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
                     time_date stamped states.</PRE>
 <PRE>
-     set $command : Sends out commands to the IR device.  Here is a list of valid commands:
-                    Note:  Commands are case insensitive</PRE>
-<PRE>
+     set $command : Sends out commands to the IR device.  Here is a list of valid commands for the X10 IR Commander::
+                    Note:  Commands are not case insensitive
         POWER      MUTE      
         CH+        CH-      
         VOL+       VOL-     
@@ -1209,7 +1229,8 @@ ALL_ON and ALL_OFF commands for that house code.  For example:</P>
    $v_test_lights = new Voice_Cmd 'All lights [on,off]';
    $test_lights   = new X10_Item 'O';
    set $test_lights $state if $state = said $v_test_lights;</PRE>
-<P>This item also has a built in timer with the set_with_timer method.  For example,
+<P>Since this item is inherits from Generic_Item, 
+you can use the set_with_timer method.  For example,
 this event will turn on a on a warning light to 20% for 5 seconds:</P>
 <PRE>
    set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;</PRE>
@@ -1305,7 +1326,10 @@ Here are some examples:</P>
    X10MS,      XA2AJ,  sensor_bathroom,       Sensors|Upstairs
    X10MS,       A4,    sensor_hall,           Sensors|Downstairs,  MS13</PRE>
 <P>With MS13 specified, it will return states named motion,still,light, and dark.
-Without the MS13 model number, the light/dark codes will be ignored.</P>
+Also, methods light and dark will return the current light/dark state.  For example:</P>
+<PRE>
+ speak 'It is dark downstairs' if dark $sensor_downstairs;</PRE>
+<P>Without the MS13 model number, the light/dark codes will be ignored.</P>
 <P></P>
 <DT><STRONG><A NAME="item_RCS_TX15">RCS_TX15</A></STRONG><BR>
 <DD>
@@ -1318,7 +1342,7 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
 <PRE>
   Methods:</PRE>
 <PRE>
-     new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype')
+     new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype', 'break_char')
      add('data_stream', 'state_name')</PRE>
 <PRE>
         'host_port' must be of the form ip_address:port (when creating a client) or 
@@ -1329,6 +1353,10 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
         'datatype'      can be 'raw' or 'record'.  If 'raw', the said
                         method returns data as read.  If record, 
                         said only returns data when reaching a newline.</PRE>
+<PRE>
+        'break_char'    This will be added to data sent with set and, unless datatype=raw,
+                        will be used to break incoming data into state_now records. 
+                        Default is \n\r.</PRE>
 <PRE>
         'name' is optional.  If used you can set debug to this string
         to turn on debug for just this socket data.
@@ -1404,8 +1432,9 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
                                      'router', 'tcp', 'raw');
     set_expect $router_client (Password =&gt; $config_parms{router_password}, Number =&gt; 24,
                                Number =&gt; 4, Number =&gt; 11) if said $router_reboot;</PRE>
-<P>More examples are in mh/code/bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
-my/code/bruce/mh_watchdog.pl, mh/code/examples/socket_test*.pl</P>
+<P>More examples are in mh/code/bruce/telnet.pl,
+mh/code/examples/socket_test*.pl, 
+mh/code/bruce/monitor_shoutcast.pl, bruce/wxserver_server.pl, and bruce/monitor_router.pl</P>
 <P></P>
 <DT><STRONG><A NAME="item_Timer">Timer</A></STRONG><BR>
 <DD>
@@ -1946,6 +1975,10 @@ Use this to play wave or system sound files.  There are 2 modes of calling it:
 <PRE>
        mode   =&gt; 'unmuted'     Forces speech, even in mute and offline mode</PRE>
 <PRE>
+       app    =&gt; 'xyz'   This uses the parms defined in the xyz section of
+                         the mh.ini speak_app parm.  This allows us to use custom
+                         parms with generic, common code.</PRE>
+<PRE>
        You can control the default mode parm with the mh.ini play_mode parm.</PRE>
 <P>If $file_name is a blank or comma delimited list of 
 files, they are played sequentially.  If it is a wild-carded file specification
@@ -2125,6 +2158,10 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
 <PRE>
        mode    =&gt; 'unmuted' Forces speech, even in mute and offline mode</PRE>
 <PRE>
+       app     =&gt; 'xyz'   This uses the speak parms defined in the xyz section of
+                          the mh.ini speak_app parm.  This allows us to use custom
+                          speak parms with generic, common code.</PRE>
+<PRE>
      These options are for the Unix Festival speech engine (but don't work yet):
        rate   =&gt; '+-nn%'       (e.g. +10% or -30%)
        voice  =&gt; 'name'</PRE>
@@ -2206,6 +2243,11 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
 <PRE>
     speak to_file =&gt; &quot;$config_parms{data_dir}/test_tts.wav&quot;,
           text =&gt; read_next $house_tagline if $New_Minute;</PRE>
+<PRE>
+    speak app =&gt; 'email', text =&gt; 'You have new email';
+    speak app =&gt; 'timer', text =&gt; 'The timer has expired';</PRE>
+<PRE>
+    More examples can be found in mh/code/common/test_speak.pl</PRE>
 <P></P>
 <DT><STRONG><A NAME="item_time_add">time_add</A></STRONG><BR>
 <DD>
@@ -2468,6 +2510,59 @@ Use this function to create radio buttons in the mh tk grid.  If labels are not 
     $v_alarm_status -&gt; tie_items($alarm_status);</PRE>
 <PRE>
     print_log &quot;Alarm status changed to $state&quot; if $state = state_now $alarm_status;</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_trigger_set">trigger_set</A></STRONG><BR>
+<DD>
+<DT><STRONG><A NAME="item_trigger_get">trigger_get</A></STRONG><BR>
+<DD>
+You can create triggers to easily run mh code on specified events.  When you create a trigger
+with trigger_set, mh will create or modify the code_dir/triggers.mhp file.
+<P>Use the web interface at <A HREF="http://localhost:8080/bin/triggers.pl">http://localhost:8080/bin/triggers.pl</A> 
+(also under the ia5 MrHouse Home button) to view and update triggers.</P>
+<P>Trigger functions are:</P>
+<PRE>
+  trigger_set($trigger, $code, $type, $name, $replace)</PRE>
+<PRE>
+    Creates or modified an existing trigger.  Only $trigger and $code are
+    required.  $type defaults to OneShot (runs only once) and $name
+    will default to an unique auto-generated name.  If $name is specified 
+    and already exists, $name will be incremented, unless $replace=1.</PRE>
+<PRE>
+    Example:</PRE>
+<PRE>
+      &amp;trigger_set(&quot;time_now '$date $time - 00:02'&quot;, 
+                   &quot;speak 'Something cool happens in 2 minutes'&quot;);</PRE>
+<PRE>
+      &amp;trigger_set(&quot;time_now '$Save{wakeup_time}'&quot;,
+                   &quot;speak 'Time to wake up'&quot;, &quot;NoExpire&quot;, &quot;Wakeup Trigger&quot;, 1);</PRE>
+<PRE>
+      Another example of using triggers is in mh/code/common/tv_grid.pl</PRE>
+<PRE>
+  trigger_get($name}
+    Returns ($trigger, $code, $type, $triggered).
+    $triggered is the epoc seconds when the trigger was
+    last tirggered, 0 if it has not been triggered.</PRE>
+<PRE>
+  trigger_list
+    Returns a list of trigger names.</PRE>
+<PRE>
+  trigger_delete($name}
+  trigger_copy($name}
+    Delete or copies the specified trigger.</PRE>
+<PRE>
+  trigger_active($name)
+  trigger_expired($name)
+    Returns true if the trigger is active or expired.</PRE>
+<P>Here are the valid trigger types:</P>
+<PRE>
+  OneShot  =&gt; The trigger will run once, then changed type to Expired</PRE>
+<PRE>
+  Expired  =&gt; Will be pruned from the triggers.mhp file after one week 
+              and archived in data_dir/triggers.expired.</PRE>
+<PRE>
+  NoExpire =&gt; Runs on every event and never expires.</PRE>
+<PRE>
+  Disabled =&gt; Will stay in your triggers.mph file, but will not run.</PRE>
 <P></P></DL>
 <P>See mh/code/examples/tk_examples.pl for more tk_*  examples.</P>
 <P>
@@ -2615,9 +2710,9 @@ hanging mh with long running ftp sessions.
 Returns true if connected to the Internet.  If the mh.ini parm net_connect=persistent, this always 
 returns true.
 <P></P>
-<DT><STRONG><A NAME="item_net_jabber_send_or_net_im_send">net_jabber_send or net_im_send</A></STRONG><BR>
+<DT><STRONG><A NAME="item_net_im_send">net_im_send</A></STRONG><BR>
 <DD>
-Used to send and AOL Instant Message or Jabber message across the internet.
+Used to send and AOL Instant Message, Jabber, or MSN message across the internet.
 <P>Information on AIM clients (available for various different platforms)
 can be found at <A HREF="http://www.aol.com/aim/faq/getstarted.html">http://www.aol.com/aim/faq/getstarted.html</A> . 
 Tik, a tk based client for use on a Unix os, can be found at <A HREF="http://tarp.linuxos.org/tik">http://tarp.linuxos.org/tik</A> .
@@ -2628,11 +2723,11 @@ can be found at <A HREF="http://www.jabber.com">http://www.jabber.com</A> and <A
 <PRE>
 
   Usage:
-    net_jabber_send(option =&gt; value);
     net_im_send(option =&gt; value);</PRE>
 <PRE>
      These are the options:</PRE>
 <PRE>
+        pgm         Default aol.  Can also be jabber or msn
         password    Default is mh.ini parm net_jabber_password  or net_aim_password
         from        Default is mh.ini parm net_jabber_name      or net_aim_name
         to          Default is mh.ini parm net_jabber_name_send or net_aim_name_send
@@ -2641,17 +2736,18 @@ can be found at <A HREF="http://www.jabber.com">http://www.jabber.com</A> and <A
 <PRE>
         text        Message
         file        Message.  You can use the text and/or file options.</PRE>
-<P>The first time you send a message, mh will pause for a few seconds while it logs onto AIM or a jabber server.
+<P>The first time you send a message, mh will pause for a few seconds while it logs onto a server.
 Subsequent messages use the same signon, so are sent much faster.</P>
-<P>Once you have been logged in, mh will also display incoming jabber messages.  This code has lots of
+<P>Once you have been logged in, mh will also display incoming messages.  This code has lots of
 other possibilites that can be added, since jabber is XML based and very flexable.</P>
 <PRE>
   Example:</PRE>
 <PRE>
-    net_jabber_send(text =&gt; &quot;Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}&quot;)</PRE>
+    net_im_send(pgm =&gt; 'jabber', text =&gt; &quot;Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}&quot;)</PRE>
 <PRE>
     net_im_send(text =&gt; &quot;Internet mail summary for $Date_Now $Time_Now&quot;,
                 file =&gt; &quot;$config_parms{data_dir}/get_email2.txt&quot;) if time_cron '05 12 * * 1-5';</PRE>
+<P>More examples are in mh/code/common/internet_im.pl</P>
 <P></P>
 <P></P>
 <DT><STRONG><A NAME="item_net_mail_send">net_mail_send</A></STRONG><BR>
@@ -3950,8 +4046,14 @@ TaskInfo80, available at <A HREF="http://www.iarsn.com/index.html">http://www.ia
   config.sys:   shell=command.com /e:8000 /p
   autoexec.bat: set comspec=c:\command.com</PRE>
 <P>If you want to use a program generated list in an Item declaration, you need to use add # noloop=start/stop
-comments before and after the code that should preceed the Item.  Here is an example:</P>
+comments before and after the code that should preceed the Item, or add a # noloop comment to the 
+end for the record.  For example:</P>
 <PRE>
+                 # Example of noloop record comments
+  my $weather_wind_gust_threshold=$config_parms{weather_wind_gust_threshold}; # noloop
+  $weather_wind_gust_threshold=12 unless $weather_wind_gust_threshold;        # noloop</PRE>
+<PRE>
+                 # Example of noloop block comments
   # noloop=start
   my $mp3names;
   while ( my $mp3name = &lt;d:/library/*.m3u&gt; )

@@ -46,7 +46,7 @@ sub BEGIN{
 sub read{
 	my $data;
 
-	### print STDERR "audrey_cid: read : checking\n";
+	$debug && print STDERR "audrey_cid: read : checking\n";
 
 	## just get the first msg if there is more than one.
         foreach my $fh ($sel->can_read(0)){
@@ -54,7 +54,7 @@ sub read{
 		$fh->recv($data,1000,0);
 		my ($type,$port,$cid_name,$cid_number)=&unfmt_udp_msg($data);
 		$last_recv=time();
-		print STDERR "audrey_cid: read : msg type $type\n";
+		$debug && print STDERR "audrey_cid: read : msg type $type\n";
 
 		if ($type == &CID_TYPE_INCOMING_CALL()){
 			
@@ -63,7 +63,7 @@ sub read{
 			$cid_number=~s/\s*$//g;      # no trailing spaces
 			$cid_number=~s/\s+/ /g;      # no consecutive space
 			$cid_number=~s/\s/-/g;      # all rmng spaces will be dlm
-			print STDERR "audrey_cid: got: $cid_name $cid_number\n";
+			$debug && print STDERR "audrey_cid: got: $cid_name $cid_number\n";
 			return ($cid_name,$cid_number);
 		}
 	}
@@ -101,7 +101,7 @@ sub subscribe{
 sub _ping_srvr{
 	my ($paddr)=@_;
 	my $buf=&fmt_udp_msg(&CID_TYPE_TEST,$udp_fh->sockport());
-	## print STDERR "audrey_cid: ping:",length($buf),"\n";
+	$debug && print STDERR "audrey_cid: ping:",length($buf),"\n";
 
 	
 	defined(send($udp_fh, $buf, 0, $paddr))    || die "send udp send failed: $!";
@@ -146,7 +146,7 @@ sub status{
 sub fmt_udp_msg{
 	my ($type,$p1,$p2,$p3)=@_;
 	my $buf=pack("I I a64 a64",$type,$p1,$p2,$p3);
-	print STDERR "audrey_cid: fmt: type: $type, p1: $p1\n";
+	$debug && print STDERR "audrey_cid: fmt: type: $type, p1: $p1\n";
 	return $buf;
 }
 #############################################
@@ -157,7 +157,7 @@ sub fmt_udp_msg{
 sub unfmt_udp_msg{
 	my ($msg)=@_;
 	my ($type,$p1,$p2,$p3)=unpack("I I Z64 Z64",$msg);
-	print STDERR "audrey_cid: unfmt: type: $type, p1: $p1 \n";
+	$debug && print STDERR "audrey_cid: unfmt: type: $type, p1: $p1 \n";
 
 	return($type,$p1,$p2,$p3);
 }

@@ -74,8 +74,14 @@ door_monitor_jay.pl
  - Jay Archer's code for using an X10 powerflash and hawkeye motion sensors
    to monitor and control a garage door
 
+froggyrita.pl
+ - Gaetan Lord's code for the temp,pressure,humidity sensor from http://www.froggyhome.com
+
 get_state.php
  - Douglas Parrish's example of how to get mh states from php
+
+grafik.pl
+ - Rob Williams's interfaces to the Lutron Grafik Eye system
 
 hvac_craig.pl
  - Craig Schaeffer's example of a function he uses in 
@@ -296,9 +302,6 @@ weather_com.pl
 
 weather_ec.pl
  - Harald Koch's code for parsing data from weatheroffice.ec.gc.ca into %Weather.
-
-weather_iB_OWW_client.pl
- - Pete Flaherty's code to read data from the OWW 1-wire ibutton weather station daemon.
 
 weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I 

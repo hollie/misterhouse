@@ -54,11 +54,11 @@ $iridium_timer = new Timer;
           my %iridium_timer_intervals = map {$_, 1} (15,30,90);
           if ($iridium_timer_intervals{$time_left}) {
              my $pitch = int 10*(1 - $time_left/60);
-             speak "pitch=$pitch $time_left seconds till flash";
+             speak "app=timer pitch=$pitch $time_left seconds till flash";
           }
        }
        if (expired $iridium_timer) {
-          speak "pitch=10 rooms=all_and_out Iridium flash now occuring";
+          speak "app=timer pitch=10 Iridium flash now occuring";
           play 'timer2';              # Set in event_sounds.pl
        }
 
@@ -84,7 +84,7 @@ eof
             if (\$Dark and time_now '$time - 0:02') {
                 my \$msg = "Notice: $a[9] satellite $a[10] will have a magnitude $a[3] flare in 2 minutes ";
                 \$msg .= "at an altitude of $a[4], azimuth of $a[5].";
-                speak "rooms=all \$msg";
+                speak "app=timer \$msg";
                 display " $time_sec.  \\n" . \$msg, 600;
                 set \$iridium_timer 120 + $sec;
             }

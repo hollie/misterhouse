@@ -3,7 +3,7 @@ package Voice_Text;
 use strict;
 
 use vars '$VTxt_version';
-my (@VTxt, $VTxt_stream1, $VTxt_stream2, $VTxt_festival, $save_mute_esd, $save_change_volume, %pronouncable);
+my (@VTxt, $VTxt_stream1, $VTxt_stream2, $VTxt_festival, $VTxt_mac, $save_mute_esd, $save_change_volume, %pronouncable);
 my (%voice_names, @voice_names, $voice_names_index, $VTxt_pid);
 
 
@@ -11,6 +11,15 @@ my $is_speaking_timer = new Timer;
 
 sub init {
     my ($engine) = @_;
+
+    if ($main::Info{OS_name}=~ /darwin/i) {
+        &my_use("Mac::Sound");
+		&my_use("Mac::Speech");
+        my $voice = $main::config_parms{speak_voice};
+        $voice = 'Albert' unless $voice;
+        my $Mac_voice = $Mac::Speech::Voice{$voice};
+        $VTxt_mac = NewSpeechChannel($Mac_voice); # Need a default voice here?
+    }
     
     if (($main::config_parms{voice_text} =~ /festival/i or $engine and $engine eq 'festival') and
         $main::config_parms{festival_host}) {
@@ -124,7 +133,8 @@ sub speak_text {
     }
 
     elsif ($main::Info{OS_name}=~ /darwin/i) {
-        $speak_pgm = 'osascript';
+        $speak_pgm = 'MacSpeech' unless $speak_pgm;
+#       $speak_pgm = 'osascript' unless $speak_pgm;
     }
 
     elsif ($speak_engine =~ /viavoice/i or $speak_engine =~ /vv_tts/i) {
@@ -237,7 +247,8 @@ sub speak_text {
         if ($fork and $pid) {
             $VTxt_pid = $pid;
         } elsif (!$fork or defined $pid) { 
-            &::socket_close('http'); # Or else browser will wait for child to finish speaking
+                                # Or else browser will wait for child to finish speaking
+            &::socket_close('http') if $main::Socket_Ports{http}{socka};
             my $speak_pgm_arg = '';
             my $speak_pgm_use_stdin = 0;
             my $sound_key = $parms{play};
@@ -307,6 +318,13 @@ sub speak_text {
 #               $speak_pgm_use_stdin = 1;    
 
                 $speak_pgm .= "> /dev/null";
+            }
+            elsif ($speak_pgm eq 'MacSpeech') {
+                my $volume_reset = GetDefaultOutputVolume();
+                SetDefaultOutputVolume(2**$parms{volume}) if $parms{volume};
+                SpeakText($VTxt_mac, $parms{text});
+                SetDefaultOutputVolume(2**$volume_reset)  if $parms{volume};
+#               sleep 1 while SpeechBusy();
             }
             elsif ($speak_pgm eq 'osascript') {
                 $parms{text} =~ s/\"/\'/g;   # Leave ' for use in I've etc
@@ -493,39 +511,39 @@ sub last_spoken {
     &main::speak_log_last($how_many);
 }
 
+sub list_voices {
+#   return @voice_names;
+#   &read_parms unless %voice_names;  # Don't need this ... now called on startup.
+    return (sort keys  %voice_names);
+}
+sub list_voice_names {
+    return @voice_names;
+}
     
-sub read_pronouncable_list {
-    my($pronouncable_list_file) = @_;
-
-    my ($phonemes, $word, $cnt);
-
-    open (WORDS, $pronouncable_list_file) or print "\nError, could not find the pronouncable word file $pronouncable_list_file: $!\n"; 
-
-    undef %pronouncable;
-    while (<WORDS>) {
-        next if /^\#/;
-        ($word, $phonemes) = $_ =~ /^(\S+)\s+(.+)\s*$/;
-        next unless $word;
-        $cnt++;
-        $pronouncable{$word} = $phonemes;
-    }
-    print "Read $cnt entries from $pronouncable_list_file\n";
-    close WORDS;
-
-                                # Read in voice name translations
-    my %temp;
-    for my $voice (split ',', $main::config_parms{voice_names}) {
-        if (my ($v1, $v2) = $voice =~ /(\S+) *=> *(.+)/) {
-            $v2 =~ s/ *$//;         # Drop trailing blanks
-            $voice_names{lc $v1} = $v2;
-            $temp{$v2}++;
-        }
-        else {
-            print "Error parsing voice keyword: $voice\n";
-        }
-    }
+sub read_parms {
+                                # Read in voice name translation and list of available voices
+    &main::read_parm_hash(\%voice_names, $main::config_parms{voice_names});
+    my %temp = reverse %voice_names;
     @voice_names = sort   keys %temp;
     print "Voice names: @voice_names\n";
+
+    my $pronouncable_list_file = $main::config_parms{pronouncable_list_file};
+    if (main::file_change($pronouncable_list_file)) {
+        my ($phonemes, $word, $cnt);
+        open (WORDS, $pronouncable_list_file) or 
+          print "\nError, could not find the pronouncable word file $pronouncable_list_file: $!\n"; 
+        undef %pronouncable;
+        while (<WORDS>) {
+            next if /^\#/;
+            ($word, $phonemes) = $_ =~ /^(\S+)\s+(.+)\s*$/;
+            next unless $word;
+            $cnt++;
+            $pronouncable{$word} = $phonemes;
+        } 
+        print "Read $cnt entries from $pronouncable_list_file\n";
+        close WORDS;
+    }
+
 }
 
 
@@ -626,7 +644,12 @@ sub set_volume {
 sub set_voice {
     my ($voice, $text, $speak_engine) = @_;
 
+    return $text unless $voice;
+
     $speak_engine = $main::config_parms{voice_text} unless $speak_engine;
+
+                         # Override according to mh.ini voice_names list
+    $voice = $voice_names{lc $voice} if $voice_names{lc $voice};
 
                          # Random pick from the list in the mh.ini voice_names parm
     if ($voice eq 'random') {
@@ -649,11 +672,6 @@ sub set_voice {
             $text .= "<voice required='Name=$voice_names[$voice_names_index-1]'>$word</voice> ";
         }
         return $text . '.';     # Add . or last word is not spoken??
-    }
-
-                         # Override according to mh.ini voice_names list
-    if (defined  $voice_names{lc $voice}) {
-        $voice = $voice_names{lc $voice};
     }
 
     if (($VTxt_version and $VTxt_version eq 'msv5') or $speak_engine =~ /naturalvoice/i) {
@@ -730,6 +748,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.41  2002/12/02 04:55:19  winter
+# - 2.74 release
+#
 # Revision 1.40  2002/11/10 01:59:57  winter
 # - 2.73 release
 #

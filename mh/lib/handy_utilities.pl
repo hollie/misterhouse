@@ -93,11 +93,14 @@ sub main::file_tail {
 }
 
 sub main::file_read {
-    my ($file, $scalar, $textmode) = @_;
+    my ($file, $flag, $textmode) = @_;
     open(LOG, "$file") or print "Warning, could not open file_read file $file: $!\n";
     
-    if (wantarray and !$scalar) {
+# $flag = 1 -> Read as a scalar, even if wantarray is true
+# $flag = 2 -> Read as an array, but drop comment records
+    if (wantarray and !($flag and $flag == 1)) {
         my @data = <LOG>;
+        @data = grep(!/^\#/, @data) if $flag == 2;
         close LOG;
         chomp @data;            # Why would we ever want \n here??
         return @data;
@@ -495,7 +498,7 @@ sub main::read_opts {
         next if /^\s*[\#\@]/;
                                 # Allow for multi-line values records
                                 # Allow for key => value continued data
-        if ($key and ($value) = $_ =~ /^\s+([^\#\@]+)/ and $value !~ /=[^\>]/) {
+        if ($key and ($value) = $_ =~ /^\s+([^\#\@]+)/ and $value !~ /^\s*\S+=[^\>]/) {
             $value_continued = 1;
         }
                                 # Look for normal key=value records
@@ -528,10 +531,26 @@ sub main::read_opts {
         else {
             $$ref_parms{$key}  = $value;
         }
-        print main::STDOUT "parm key=$key value=$$ref_parms{$key}\n" if $debug;
+        print main::STDOUT "parm vc=$value_continued key=$key value=$$ref_parms{$key}\n" if $debug;
     }
     close CONFIG;
     return sort keys %{$ref_parms};
+}
+
+# Read a key/value string into a hass: key1 => value, key2 => value2 
+sub main::read_parm_hash {
+    my ($ref, $data, $preserve_case) = @_;
+    for my $temp (split ',', $data) {
+        if (my ($key, $value) = $temp =~ / *(.+?) *=> *(.+)/) {
+            $value =~ s/ *$//;         # Drop trailing blanks
+            $key = lc $key unless $preserve_case;
+            $$ref{$key} = $value;
+#           print "db key=$key, value=$value.\n";
+        }
+        else {
+            print "Error parsing key => value string: t=$temp.\n";
+        }
+    }
 }
 
 sub main::read_record {
@@ -1087,6 +1106,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.60  2002/12/02 04:55:20  winter
+# - 2.74 release
+#
 # Revision 1.59  2002/09/22 01:33:24  winter
 # - 2.71 release
 #

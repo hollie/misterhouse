@@ -36,6 +36,9 @@ Quick Install Instructions
 
      - mh.bat (this will call mh.exe or 'perl mh')
 
+    Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file
+    names. This program works ok: http://misterhouse.net/public/unzip.exe
+
   Unix users
 
      - Download the the latest rpm, tar, or zip file 
@@ -205,9 +208,13 @@ Windows Detailed Install Instructions
     After installing, the default mh.ini voice_text=MS parm will default to
     the new V5 engine. Use MSV4 to switch back to the old V4 engine. The SDK
     comes with the voices MS Mike, Sam, Mary, and (optional) Japanese and
-    Chinese voices. For $150, you can get 2 nice 5.1 compatable voices with
-    AT&T Natural Voices TTS engine here: http://www.naturalvoices.com.
-    (additional voices cost $70).
+    Chinese voices.
+
+    The AT&T Natural Voices TTS engine ( http://www.naturalvoices.com ) is
+    the best sounding TTS engine yet. AT&T no longer sells them from their
+    site, but you can get 2 voices from http://www.nextup.com/attnv.html for
+    abour $40 ($25 for the voices, $15 for a nextup product, required to
+    qualify for the voices). Additional voices are $35.
 
 UNIX Detailed Install Instructions
   UNIX Step 1, Download and Install Mister House
@@ -221,9 +228,12 @@ UNIX Detailed Install Instructions
     automatically get rid of those pesky /r characters that DOS like to add
     to newlines. Also, the unzip -U switch (contrary to what the help text
     says), will be needed on newer versions of unzip to preserve case on
-    filenames. Then run the configure script (as root, see quick install
-    instructions) to delete dos/windows only files, and 'chmod +x' on the
-    files in the bin directory.
+    filenames.
+
+    Make sure you run the configure script, even if you used the rpm file.
+    This will convert C serial headers to perl headers and (if you used the
+    zip file) delete dos/windows only files, and 'chmod +x' on the files in
+    the bin directory.
 
     There are various examples of how to start/stop mh in
     mh/bin/misterhouse*.rc
@@ -300,10 +310,15 @@ UNIX Detailed Install Instructions
     Once you have the festival server running, you can enable mh to use it
     with mh.ini parms voice_text and festival_port.
 
-    For $150, you can get 2 nice voices with AT&T Natural Voices TTS linux
-    engine here: http://www.naturalvoices.com (additional voices cost $70).
-    Use the voice_text_naturalvoice parm to point to where you have it
-    installed and set voice_text=naturalvoice
+    Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural
+    Voices TTS linux engine here: http://www.naturalvoices.com (additional
+    voices cost $70), but for some reason, they no longer sell them from
+    there. Now the only supplier we have found is from
+    http://www.nextup.com/attnv.html, where additional voices are $35. But
+    this site only offers the Windows engine, although the voice data files
+    can be used with either engine. If you find a source for the linux
+    engine, let me know. Use the voice_text_naturalvoice parm to point to
+    where you have it installed and set voice_text=naturalvoice.
 
     The IBM ViaVoice TTS and Voice Recognition engines is no longer
     available (as of 05/2002) from the IBM site (
@@ -549,7 +564,7 @@ Coding your own events
     After mh is up and running, Use http://localhost:8080/bin/select_code.pl
     menu (avaliable on the web ia5 MrHouse menu 'Select Code' button) to
     select which of the standard code files you want to run. You can add
-    your own custom code files to your privte \misterhouse\code directory.
+    your own custom code files to your private \misterhouse\code directory.
 
     The first thing you will want to do is create an items.mht file that
     declares all your X10 items (see mh/code/bruce/items.mht for an

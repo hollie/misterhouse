@@ -55,7 +55,7 @@ sub new {
                                 # If the crc was not given, lets calculate it
     if (length $id == 14) {
         $crc = Hardware::iButton::Connection::crc(0, split(//, pack("b*", $raw_id)));
-        $crc = pack 'c', $crc;
+        $crc = pack 'C', $crc;
     }
     $raw_id .= unpack('b8', $crc);
 
@@ -516,6 +516,9 @@ memory
 
 
 # $Log$
+# Revision 1.20  2002/12/02 04:55:21  winter
+# - 2.74 release
+#
 # Revision 1.19  2002/10/13 02:07:59  winter
 #  - 2.72 release
 #

@@ -125,13 +125,13 @@ if ($state = $v_unread_email->{said}) {
 sub speak_new_mail {
     my $text = file_read "$config_parms{data_dir}/get_email.txt";
     chomp $text;
-    speak "voice=male rooms=all $text" if $text;
+    speak "app=email $text" if $text;
 }
 
 sub speak_unread_mail {
     my $text = file_read "$config_parms{data_dir}/get_email2.txt";
     chomp $text;
-    speak "voice=male rooms=all $text" if $text;
+    speak "app=email $text" if $text;
 }
 
                                 # Allow for email send commands, IF the secret command code matches 

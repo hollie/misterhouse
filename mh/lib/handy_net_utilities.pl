@@ -310,6 +310,8 @@ sub main::net_jabber_signon {
     eval 'use Net::Jabber qw (Client)';
     print "Error in Net::Jabber: $@\n" if $@;
     $jabber_connection = new Net::Jabber::Client;
+#   $jabber_connection = Net::Jabber::Client->new(debuglevel => 2, debugtime  => 1 , debugfile  =>  "/tmp/jabber.log");
+
     unless ($jabber_connection->Connect(hostname => $server, port => $port)) {
         print "  - Error:  Jabber server is down or connection was not allowed. jc=$jabber_connection\n";
         undef $jabber_connection;
@@ -321,7 +323,7 @@ sub main::net_jabber_signon {
                                      iq       => \&jabber::InIQ);
 
     print "  - Sending username\n";
-    $jabber_connection->Connect();
+#   $jabber_connection->Connect();
     my @result = $jabber_connection->AuthSend(username => $name,
                                               password => $password,
                                               resource => $resource);
@@ -423,10 +425,10 @@ sub main::net_jabber_send {
     &main::net_jabber_signon($from, $password, $server, $resource);
     return unless $jabber_connection;
 
-    print "Sending jabber message to $to\n";
-
     $text  = $parms{text};
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
+
+    print "Sending jabber message to $to: $text\n";
 
     $jabber_connection -> MessageSend(to   => $to, body => $text, subject => $subject);
     $jabber_connection -> Process(0);
@@ -544,6 +546,7 @@ sub main::net_msn_send {
         }
     }
 
+
                               # Use an existing connection, or create a new one?
     if (my $to_connection = $msn_connections{$to}) {
         $$to_connection -> sendmsg($text);
@@ -554,11 +557,19 @@ sub main::net_msn_send {
         push(@{$msn_queue{$to}}, $text)
     }
 
+
 }
 
 
 sub main::net_im_signon {
-    my ($name, $password) = @_;
+    my ($name, $password, $pgm) = @_;
+
+    if (lc $pgm eq 'msn') {
+        return &main::net_msn_signon($name, $password);
+    }
+    elsif (lc $pgm eq 'jabber') {
+        return &main::net_jabber_signon($name, $password);
+    }
 
     return if $aim_connection;  # Already signed on
 
@@ -605,9 +616,18 @@ sub main::net_im_signon {
 }
 
 sub main::net_im_signoff {
-    print "disconnecting from aol im\n";
-    undef $aim_connection;
-    &main::MainLoop_post_drop_hook( \&aolim::process, 1 );
+    my ($pgm) = @_;
+    if (lc $pgm eq 'msn') {
+        &main::net_msn_signoff;
+    }
+    elsif (lc $pgm eq 'jabber') {
+        &main::net_jabber_signoff;
+    }
+    else {
+        print "disconnecting from aol im\n";
+        undef $aim_connection;
+        &main::MainLoop_post_drop_hook( \&aolim::process, 1 );
+    }
 }
 
 # IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hi ho</FONT></BODY></HTML>
@@ -660,11 +680,25 @@ sub aolim::process {
 sub main::net_im_send {
     my %parms = @_;
 
+    undef $parms{to} if lc($parms{to}) eq 'default';
+
+                                # Default is aol aim (only because it was first)
+    my $pgm = lc $parms{pgm};
+    if ($pgm eq 'jabber') {
+        &main::net_jabber_send(%parms);
+        return;
+    }
+    elsif ($pgm eq 'msn') {
+        &main::net_msn_send(%parms);
+        return;
+    }
+
     my ($from, $password, $to, $text, $file);
 
     $from     = $parms{from};
     $password = $parms{password};
     $to       = $parms{to};
+
 
     $from     = $main::config_parms{net_aim_name}      unless $from;
     $password = $main::config_parms{net_aim_password}  unless $password;
@@ -1063,6 +1097,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.45  2002/12/02 04:55:20  winter
+# - 2.74 release
+#
 # Revision 1.44  2002/11/10 01:59:57  winter
 # - 2.73 release
 #

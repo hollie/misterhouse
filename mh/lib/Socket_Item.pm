@@ -61,6 +61,7 @@ sub start {
         if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, PeerPort => $port, Proto => $host_proto)) {
             $main::Socket_Ports{$port_name}{sock}  = $sock;
             $main::Socket_Ports{$port_name}{socka} = $sock;
+            $main::Socket_Ports{$port_name}{active_this_pass_flag} = 1;
             $sock->autoflush(1);
             return $sock;
         }
@@ -283,6 +284,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.26  2002/12/02 04:55:19  winter
+# - 2.74 release
+#
 # Revision 1.25  2002/11/10 01:59:57  winter
 # - 2.73 release
 #
