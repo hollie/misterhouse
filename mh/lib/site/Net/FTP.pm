@@ -1,4 +1,9 @@
 # Net::FTP.pm
+
+# 7/28/00 winter :: Change 5 ' close...' to 'CORE::close...' to avoid
+# use diagnostics (perl -w) 'Ambigous call' errors.  
+
+
 #
 # Copyright (c) 1995 Graham Barr <gbarr@ti.com>. All rights reserved.
 # This program is free software; you can redistribute it and/or
@@ -337,7 +342,7 @@ sub get
   }
  while($len > 0 && syswrite($loc,$buf,$len) == $len);
 
- close($loc)
+ CORE::close($loc)
 	unless defined $localfd;
  
  $data->close(); # implied $ftp->response
@@ -482,7 +487,7 @@ sub _store_cmd
    unless($sock->write($buf,$len) == $len)
     {
      $sock->abort;
-     close($loc)
+     CORE::close($loc)
 	unless defined $localfd;
      return undef;
     }
@@ -490,7 +495,7 @@ sub _store_cmd
 
  $sock->close();
 
- close($loc)
+ CORE::close($loc)
 	unless defined $localfd;
 
  ($remote) = $ftp->message =~ /unique file name:\s*(\S*)\s*\)/
@@ -619,7 +624,7 @@ sub _dataconn
  elsif(defined ${*$ftp}{'net_ftp_listen'})
   {
    $data = ${*$ftp}{'net_ftp_listen'}->accept($pkg);
-   close(delete ${*$ftp}{'net_ftp_listen'});
+   CORE::close(delete ${*$ftp}{'net_ftp_listen'});
   }
 
  if($data)
@@ -714,7 +719,7 @@ sub _data_cmd
  return $ftp->_dataconn()
 	if $ok;
 
- close(delete ${*$ftp}{'net_ftp_listen'});
+ CORE::close(delete ${*$ftp}{'net_ftp_listen'});
  
  return undef;
 }

@@ -62,8 +62,8 @@ if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
         run "$config_parms{mp3_program} $file";
     }
     else {
-        speak "Sorry, no soungs found";
-        print_log "$count2 out of $count1 soungs $mp3_search, genre=$mp3_genre";
+        speak "Sorry, no songs found";
+        print_log "$count2 out of $count1 songs $mp3_search, genre=$mp3_genre";
     }
 }
 

@@ -18,9 +18,10 @@ sub socket_item_by_id {
 sub new {
     my ($class, $id, $state, $host_port, $port_name, $host_proto) = @_;
 
-    my $self = {};
+    my $self = {state => ''};
+
     $port_name = $host_port unless $port_name;
-    print "\n\nWarning: duplicate ID codes on different socket_Item objects: id=$id\n\n" if $socket_item_by_id{$id};
+    print "\n\nWarning: duplicate ID codes on different socket_Item objects: id=$id\n\n" if $id and $socket_item_by_id{$id};
     $$self{port_name} = $port_name;
     $$self{host_port} = $host_port;
     $$self{host_protocol} = $host_proto;
@@ -38,7 +39,7 @@ sub set_port {
 sub add {
     my ($self, $id, $state) = @_;
     $$self{state_by_id}{$id} = $state if $id;
-    $$self{id_by_state}{$state} = $id;           # Note: State is optional
+    $$self{id_by_state}{$state} = $id if $state; # Note: State is optional
     push(@{$$self{states}}, $state);
     $socket_item_by_id{$id} = $self if $id;
 #    print "db sid=", %socket_Item::socket_item_by_id, "\n";
@@ -99,25 +100,26 @@ sub is_available {
 }
 
 sub active {
-    my $port_name = @_[0]->{port_name};
+    my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{socka};
 }
 
 sub active_now {
-    my $port_name = @_[0]->{port_name};
+    my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{active_this_pass};
 }
 
 sub inactive_now {
-    my $port_name = @_[0]->{port_name};
+    my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{inactive_this_pass};
 }
 
 sub said {
-    my $port_name = @_[0]->{port_name};
+    my $port_name = $_[0]->{port_name};
     
     my $data;
-    if ($main::Socket_Ports{$port_name}{datatype} eq 'raw') {
+    my $datatype  = $main::Serial_Ports{$port_name}{datatype};
+    if ($datatype and $datatype eq 'raw') {
         $data = $main::Socket_Ports{$port_name}{data};
         $main::Socket_Ports{$port_name}{data} = '';
     }
@@ -129,7 +131,7 @@ sub said {
 }
 
 sub handle {
-    my $port_name = @_[0]->{port_name};
+    my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{socka}; 
 }
 
@@ -185,6 +187,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.14  2000/08/19 01:22:36  winter
+# - 2.27 release
+#
 # Revision 1.13  2000/06/24 22:10:54  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

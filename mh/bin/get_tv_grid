@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2000-07-30 10:16:34 winter>
+#  Last change Time-stamp: <2000-08-12 16:32:33 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -237,7 +237,7 @@ eof
 #  </font></td><td bgcolor=#ffffff colspan=1><font face="Tahoma, Arial, Helvetica, sans-seri" color=#000000 size=1><a href="detail.asp?profileID
 
             my ($pgm_name, $pgm_desc);
-            ($pgm_name, $pgm_desc) = $pgm =~ /profileID.+> *(.+?) *<\/a> *(.+) *<\/td>/ unless $pgm_name;
+            ($pgm_name, $pgm_desc) = $pgm =~ /profileID.+?> *(.+?) *<\/a> *(.+) *<\/td>/ unless $pgm_name;
             if ($pgm_name) {
                 $count3++;
                                 # Clean up the program description
@@ -417,6 +417,9 @@ sub setup {
 
 #
 # $Log$
+# Revision 1.28  2000/08/19 01:20:42  winter
+# - 2.27 release
+#
 # Revision 1.27  2000/08/06 21:56:43  winter
 # - See 2.24 release notes.
 #

@@ -3,11 +3,12 @@ package X10_Item;
 
 my (%items_by_house_code, %appliances_by_house_code);
 
-@X10_Item::ISA = ('Serial_Item', 'Item');
+@X10_Item::ISA = ('Serial_Item');
 
 sub new {
     my ($class, $id, $interface, $module) = @_;
     my $self = {};
+    $$self{state} = '';     # Only items with state defined are controlable from web interface
 
     bless $self, $class;
 
@@ -18,11 +19,51 @@ sub new {
     $id = "X$id";
     $self->{x10_id} = $id;
 
-                                # All ON/OFF for the house code
+                                # Setup house only codes:     e.g. XAO, XAP, XA+20
+                                #  - allow for all bright/dim commands so we can detect incoming signals
     if (length($id) == 2) {
         $self-> add ($id . 'O', 'on');
         $self-> add ($id . 'P', 'off');
+        $self-> add ($id . '+5',  '+5');
+        $self-> add ($id . '+10', '+10');
+        $self-> add ($id . '+15', '+15');
+        $self-> add ($id . '+20', '+20');
+        $self-> add ($id . '+25', '+25');
+        $self-> add ($id . '+30', '+30');
+        $self-> add ($id . '+35', '+35');
+        $self-> add ($id . '+40', '+40');
+        $self-> add ($id . '+45', '+45');
+        $self-> add ($id . '+50', '+50');
+        $self-> add ($id . '+55', '+55');
+        $self-> add ($id . '+60', '+60');
+        $self-> add ($id . '+65', '+65');
+        $self-> add ($id . '+70', '+70');
+        $self-> add ($id . '+75', '+75');
+        $self-> add ($id . '+80', '+80');
+        $self-> add ($id . '+85', '+85');
+        $self-> add ($id . '+90', '+90');
+        $self-> add ($id . '+95', '+95');
+        $self-> add ($id . '-5',  '-5');
+        $self-> add ($id . '-10', '-10');
+        $self-> add ($id . '-15', '-15');
+        $self-> add ($id . '-20', '-20');
+        $self-> add ($id . '-25', '-25');
+        $self-> add ($id . '-30', '-30');
+        $self-> add ($id . '-35', '-35');
+        $self-> add ($id . '-40', '-40');
+        $self-> add ($id . '-45', '-45');
+        $self-> add ($id . '-50', '-50');
+        $self-> add ($id . '-55', '-55');
+        $self-> add ($id . '-60', '-60');
+        $self-> add ($id . '-65', '-65');
+        $self-> add ($id . '-70', '-70');
+        $self-> add ($id . '-75', '-75');
+        $self-> add ($id . '-80', '-80');
+        $self-> add ($id . '-85', '-85');
+        $self-> add ($id . '-90', '-90');
+        $self-> add ($id . '-95', '-95');
     }
+                                # Setup unit-command  codes:  e.g. XA1AJ, XA1AK, XA1+20
     else {
         $self-> add ($id . $hc . 'J', 'on');
         $self-> add ($id . $hc . 'K', 'off');
@@ -97,7 +138,7 @@ sub new {
                                 # We could also allow the following states with normal X10 
                                 # lamp modules if we got smart and tracked the current X10 
                                 # by overriding the set function.
-        if ($module eq 'LM14') {
+        if ($module and $module eq 'LM14') {
             $self-> add ($id . '&P0',   '0%');    # Preset-Dims go from 1 to 63
             $self-> add ($id . '&P1',   '2%'); 
             $self-> add ($id . '&P2',   '4%'); 
@@ -169,11 +210,12 @@ sub set_by_housecode {
 package X10_Appliance;
 
 #@X10_Appliance::ISA = ("Serial_Item");
-@X10_Appliance::ISA = ('X10_Item', 'Item');
+@X10_Appliance::ISA = ('X10_Item');
 
 sub new {
     my ($class, $id, $interface) = @_;
     my $self = {};
+    $$self{state} = '';
 
     bless $self, $class;
 
@@ -196,11 +238,12 @@ sub new {
 
 package X10_Garage_Door;
 
-@X10_Garage_Door::ISA = ('X10_Item', 'Item');
+@X10_Garage_Door::ISA = ('X10_Item');
 
 sub new {
     my ($class, $id, $interface) = @_;
     my $self = {};
+    $$self{state} = ''; 
 
     bless $self, $class;
 
@@ -401,12 +444,13 @@ package X10_IrrigationController;
 
 # More info at: http://ourworld.compuserve.com/homepages/rciautomation/p6.htm
 
-@X10_IrrigationController::ISA = ('Serial_Item', 'Item');
+@X10_IrrigationController::ISA = ('Serial_Item');
 @X10_IrrigationController::Inherit::ISA = @ISA;
 
 sub new {
     my ($class, $id, $interface) = @_;
     my $self = {};
+    $$self{state} = ''; 
 
     bless $self, $class;
 
@@ -558,6 +602,9 @@ sub zone_delay
 
 
 # $Log$
+# Revision 1.10  2000/08/19 01:25:08  winter
+# - 2.27 release
+#
 # Revision 1.9  2000/06/24 22:10:55  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

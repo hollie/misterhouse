@@ -143,7 +143,7 @@ sub send_ir {
 sub send_ir_bits {
     my ($serial_port, $data) = @_;
     &send_bits($serial_port, '1101010110101010' . $data . '10101101'); 
-    my $data = '1000001101111111';
+    $data = '1000001101111111';
     &send_bits($serial_port, '1101010110101010' . $data . '10101101'); 
 }
 

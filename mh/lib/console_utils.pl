@@ -87,7 +87,7 @@ sub choose_menu {
     $CON_OUT->Cursor($oldX, $oldY, $oldS, $oldV);
     $CON_OUT->Title($oldT);
 
-    $CON_OUT->Attr($FG_WHITE | $BG_CYAN);
+#   $CON_OUT->Attr($FG_WHITE | $BG_CYAN);
 
     return $return;
 }
@@ -184,7 +184,7 @@ sub explodeAttr {
     my $top    = $wTop + int($Y/2);
     my $bottom = $wTop + int($Y/2);
 
-    my $cip, $ciop;
+    my ($cip, $ciop);
     for $cip (0..$times) {
         for $ciop ($top..$bottom) {
             $O->FillAttr($Attr, ($right-$left), $left, $ciop);

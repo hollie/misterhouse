@@ -44,8 +44,10 @@ sub new {
 
     bless $self, $class;
 
-    my $id = $self->{id};       # Get the full id
+    $id = $self->{id};       # Get the full id
     $objects_by_id{$id} = $self;
+
+    $$self{state}     = '';     # Will only be listed on web page if state is defined
 
 
     if ($self->{model} eq 'DS1920' ) {
@@ -76,7 +78,7 @@ sub connect {
     if ($connection) {
         return 'iBbutton bus is already connected';
     }
-    print "Creating iButton Connection on port $port\n";
+    printf " - creating %-15s object on port %s\n", 'Ibutton', $port;
     $connection = new Hardware::iButton::Connection $port or
         print "iButton connection error to port $port: $!";
 
@@ -222,8 +224,7 @@ sub set {
 
 sub set_receive {
     my ($self, $state) = @_;
-                                # Only add to the list once per pass
-    &Generic_Item::set_states_for_next_pass($self, $state) unless defined $self->{state_next_pass};
+    &Generic_Item::set_states_for_next_pass($self, $state);
 }
 
 
@@ -311,6 +312,9 @@ memory
 
 
 # $Log$
+# Revision 1.4  2000/08/19 01:25:08  winter
+# - 2.27 release
+#
 # Revision 1.3  2000/06/24 22:10:55  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

@@ -66,7 +66,7 @@ sub main::file_head {
     $records = 3 unless $records;
     while ($records--) {
         my $record = <DATA>;
-        push(@head, $record);
+        push(@head, $record) if $record;
     }
     close DATA;
     return wantarray ? @head : join('', @head);
@@ -192,7 +192,7 @@ sub main::logit {
         my $time_date = &main::time_date_stamp($log_format);
         $log_data = "$time_date $log_data\n";
     }
-    if ($head_tail) {
+    if ($head_tail and -e $log_file) {
         open(LOG, $log_file) or print "Warning, could not open log file $log_file: $!\n";
         my @data = <LOG>;
         unshift @data, $log_data;
@@ -335,34 +335,48 @@ sub main::read_mh_opts {
     my($ref_parms, $Pgm_Path, $debug) = @_;
     my $private_parms = $Pgm_Path . "/mh.private.ini";
     $private_parms = $ENV{mh_parms} if $ENV{mh_parms};
+    $debug = 0 unless $debug;
     &main::read_opts($ref_parms, $Pgm_Path . "/mh.ini", $debug, $Pgm_Path . '/..');
     &main::read_opts($ref_parms, $private_parms, $debug, $Pgm_Path . '/..') if -e $private_parms;
 }
 
 sub main::read_opts {
     my($ref_parms, $config_file, $debug, $pgm_root) = @_;
-    my($key, $value);
+    my($key, $value, $value_continued);
     $pgm_root = $main::Pgm_Root unless $pgm_root;
-    print "Reading config_file $config_file\n";
+                                # If debug == 0 (instead of undef) this is disabled
+    print "Reading config_file $config_file\n" unless defined $debug and $debug == 0;
     open (CONFIG, "$config_file") or print "\nError, could not read config file $config_file\n";
     while (<CONFIG>) {
-        next if /^\#/;
-        ($key, $value) = $_ =~ /(\S+?) *= *([^\#]+)/;
-        next unless $key;
+        next if /^ *\#/;
+                                # Allow for multi-line values records
+        if ($key and ($value) = $_ =~ /^ +([^\#]+)/ and $value !~ /=/) {
+            $value_continued = 1;
+        }
+                                # Look for normal key=value records
+        else {
+            ($key, $value) = $_ =~ /(\S+?) *= *([^\#]+)/;
+            $value_continued = 0;
+            next unless $key;
+        }
 
-        $value =~ s/\s+$//;   # Delete end of value blanks
+        $value =~ s/\s+$//;     # Delete end of value blanks
 
-        if ($value =~ /\$Pgm_Root/) {
-            # substitue in $vars in the .ini file 
-            #  - older perl does not eval to main::value :(
-            #    so we do it the hard way
+         if ($value =~ /\$Pgm_Root/) {
+                                # substitue in $vars in the .ini file 
+                                #  - older perl does not eval to main::value :(
+                                #    so we do it the hard way
             $value =~ s/\$Pgm_Root/$pgm_root/;
-#       eval "\$value = qq[$value]";
+#           eval "\$value = qq[$value]";
         }
 
                                 # Last parm wins (in case we reload parm file)
-#        next if defined $$ref_parms{$key};
-        $$ref_parms{$key} = $value;
+        if ($value_continued) {
+            $$ref_parms{$key} .= $value;
+        }
+        else {
+            $$ref_parms{$key}  = $value;
+        }
         print "parm key=$key value=$value\n" if $debug;
     }
     close CONFIG;
@@ -503,8 +517,6 @@ sub main::run {
     my($mode, $pgm) = @_;
     $pgm = $mode unless $pgm;   # Mode is optional
 
-    print "\nrunning command: $pgm\n";
-
     if ($main::OS_win) {
 
                                 # Dang, Process::Create needs full path name ... use our handy perl which function
@@ -537,6 +549,7 @@ sub main::run {
         my($pgm_path, $pgm_args) = &main::find_pgm_path($pgm);
         $pgm = "$pgm_path $pgm_args";
         $pgm .= " &" unless $mode eq 'inline';
+        print "Running: $pgm\n";
         system($pgm) == 0 or print "Warning, run system error:  pgm=$pgm rc=$?\n";
     }
 }
@@ -893,6 +906,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.38  2000/08/19 01:25:08  winter
+# - 2.27 release
+#
 # Revision 1.37  2000/06/24 22:10:55  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

@@ -48,7 +48,7 @@ sub start {
 #       $cflag = DETACHED_PROCESS;
 #       $cflag = NORMAL_PRIORITY_CLASS;
 
-        print "db start Process: pid=$pid cmd_path=$$self{cmd_path} cmd=$cmd\n" if $main::config_parms{debug};
+        print "Process start: pid=$pid cmd_path=$$self{cmd_path} cmd=$cmd\n" if $main::config_parms{debug};
 
         &Win32::Process::Create($pid, $$self{cmd_path}, $cmd, 0, $cflag , '.') or
             print "Warning, start Process error: cmd_path=$$self{cmd_path}\n -  cmd=$cmd   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
@@ -59,11 +59,11 @@ sub start {
     else {
         $pid = fork;
         if ($pid) {
-            print "db start Process: parent pid=$pid cmd=$cmd\n" if $main::config_parms{debug};
+            print "Process done: parent pid=$pid cmd=$cmd\n" if $main::config_parms{debug};
             $$self{pid} = $pid;
         }
         elsif (defined $pid) {
-            print "db start Process: child cmd=$cmd\n" if $main::config_parms{debug};
+            print "Process start: cmd=$cmd\n" if $main::config_parms{debug};
             exec "$$self{cmd_path} $$self{cmd_args}";
             die "Error in start Process exec for cmd=$$self{cmd}\n";
         }
@@ -82,7 +82,7 @@ sub done {
 }    
 
 sub done_now {
-    return @_[0]->{done_now};
+    return $_[0]->{done_now};
 }    
 
                                 # Check for processes that just finished
@@ -103,7 +103,7 @@ sub harvest {
             $$process{done_now}++;
             $$process{done} = time;
             delete $$process{pid};
-            print "db done_now process=$process pid=$pid cmd=$$process{cmd}\n" if $main::config_parms{debug};
+            print "Process done_now process=$process pid=$pid cmd=$$process{cmd}\n" if $main::config_parms{debug};
         }
         else {
             push(@active_processes2, $process);
@@ -142,6 +142,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.10  2000/08/19 01:22:36  winter
+# - 2.27 release
+#
 # Revision 1.9  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

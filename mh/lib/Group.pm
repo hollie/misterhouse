@@ -2,9 +2,11 @@ use strict;
 
 package Group;
 
+@Group::ISA = ('Generic_Item');
+
 sub new {
     my ($class, @items) = @_;
-    my $self = {};
+    my $self = {state => ''};
     $$self{members} = [];
     &add($self, @items) if @items;
     bless $self, $class;
@@ -27,6 +29,8 @@ sub set {
     my ($self, $state) = @_;
     print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::config_parms{debug};
 
+    &Generic_Item::set_states_for_next_pass($self, $state);
+
     $self->{state} = $state;
     unshift(@{$$self{state_log}}, "$main::Time_Date $state");
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
@@ -40,38 +44,34 @@ sub set {
     my @group = @{$$self{members}};
     my $last_ref = $group[-1];
     my $hc = substr($$last_ref{x10_id}, 1, 1);
-#   print "db hc=$hc lr=$last_ref x=$$last_ref{x10_id}\n";
+#   print "db hc=$hc lr=$last_ref x=$$last_ref{x10_id} inter=$$last_ref{interface}\n";
     for my $ref (@group) {
         if ((ref $ref) !~ /^X10_/ or 
-            $hc ne substr($$ref{x10_id}, 1, 1)) {
+            $hc ne substr($$ref{x10_id}, 1, 1) or
+            $$ref{interface} ne 'cm11') {
             undef $hc;
-            last;
+#            last;
         }
     }
-    if ($hc and $main::config_parms{cm11_port}) {
+
+    if ($hc) {
         for my $ref (@group) {
-            print "Group 1 setting $ref to $state\n" if $main::config_parms{debug};
+            print "Group1 setting $ref to $state\n" if $main::config_parms{debug};
             set $ref 'manual';
-            $ref->{state_next_pass} = $state; # Set the real state, rather than none
+                                # Set the real state, rather than 'manual'
+                                #  - the last element of that array 
+#           $ref->{state_next_pass} = $state;
+            ${$ref->{state_next_pass}}[-1] = $state;
         }
         set $last_ref $state;
     }
     else {
         for my $ref (@group) {
-            print "Group 2 setting $ref to $state\n" if $main::config_parms{debug};
+            print "Group2 setting $ref to $state\n" if $main::config_parms{debug};
             set $ref $state if $ref;
         }
     }
 }    
-
-sub state {
-    return @_[0]->{state};
-} 
-
-sub state_log {
-    my ($self) = @_;
-    return @{$$self{state_log}} if $$self{state_log};
-}
 
 sub list {
     my ($self) = @_;
@@ -81,6 +81,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.8  2000/08/19 01:22:36  winter
+# - 2.27 release
+#
 # Revision 1.7  2000/06/24 22:10:54  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

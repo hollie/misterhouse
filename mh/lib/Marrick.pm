@@ -138,7 +138,7 @@ T :	X : Time since power up or RESET. (Returns length of time)
 
 #
 # $Log$
-# Revision 1.1  2000/06/24 22:10:54  winter
-# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+# Revision 1.2  2000/08/19 01:22:36  winter
+# - 2.27 release
 #
 #

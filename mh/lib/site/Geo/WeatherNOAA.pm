@@ -441,7 +441,7 @@ sub get_city_hourly {
 #	my @values;
 #	push @values, $date, $time, unpack 
 #		'@0 A15 @15 A9 @24 A5 @29 A5 @34 A4 @39 A8 @47 A8 @55 A8', $line;
-    my $city = substr($line, 0, 15);
+    $city = substr($line, 0, 15);
     $line = substr($line, 15);
     my @values = ($date, $time, $city, split(' ', $line));
 

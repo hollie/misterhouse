@@ -1,5 +1,6 @@
 
 # 11/29/98 bwinter ... modified to allow for tables.  Other HTML code is in perl directory
+#  - make sure this replaces the HTML/Formatter.pm file, so tables will be parsed
 
 package HTML::Formatter;
 

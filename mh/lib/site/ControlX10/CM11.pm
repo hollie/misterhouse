@@ -163,7 +163,7 @@ sub format_data {
     $code  = uc($code);
 
     unless ($house_bits = $table_hcodes{$house}) {
-        print "CM11 error, invalid house code: $house\n";
+        print "CM11 error, invalid house code: $house. data=$house_code\n";
         return;
     }
 
@@ -678,6 +678,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.12  2000/08/19 01:25:09  winter
+# - 2.27 release
+#
 # Revision 2.11  2000/04/22 00:11:15  winter
 # - increase receive buffer delay from 40 to 80
 #

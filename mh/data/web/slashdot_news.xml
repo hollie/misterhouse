@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Overclocking The AMD Duron</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/24/0428247</url>
-		<time>2000-06-24 09:28:26</time>
-		<author>timothy</author>
-		<department>faster-pussycat-kill-kill-kill-</department>
-		<topic>amd</topic>
-		<comments>16</comments>
+		<title>Old Atari Design Docs Online</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/2044239</url>
+		<time>2000-08-18 08:44:25</time>
+		<author>Hemos</author>
+		<department>what-the-hell</department>
+		<topic>games</topic>
+		<comments>50</comments>
 		<section>articles</section>
-		<image>topicamd.gif</image>
+		<image>topicgames.jpg</image>
 	</story>
 
 	<story>
-		<title>LinuxFest 2000 - Show Your Support</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/23/2358250</url>
-		<time>2000-06-24 03:57:36</time>
-		<author>emmett</author>
-		<department>emmett-is-a-keynoter-hide-the-children</department>
-		<topic>linuxbiz</topic>
-		<comments>139</comments>
+		<title>Armed Robot Guards - Sorta</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/2033231</url>
+		<time>2000-08-18 04:33:14</time>
+		<author>Hemos</author>
+		<department>put-your-heads-in-the-air</department>
+		<topic>tech</topic>
+		<comments>213</comments>
 		<section>articles</section>
-		<image>topiclinuxbiz.gif</image>
+		<image>topictech2.jpg</image>
 	</story>
 
 	<story>
-		<title>Linux Replaces Sun At Weather.com</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/23/2349244</url>
-		<time>2000-06-23 23:57:32</time>
-		<author>emmett</author>
-		<department>right-on-the-tick</department>
-		<topic>linux</topic>
+		<title>Groening Says The Simpsons Movie Planned</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/2022228</url>
+		<time>2000-08-17 23:45:17</time>
+		<author>Hemos</author>
+		<department>ralph-jesus-does-not-have-wheels</department>
+		<topic>movies</topic>
+		<comments>191</comments>
+		<section>articles</section>
+		<image>topicmovies.gif</image>
+	</story>
+
+	<story>
+		<title>NASA To Build Laser Space Broom For ISS</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/1857216</url>
+		<time>2000-08-17 22:25:20</time>
+		<author>Hemos</author>
+		<department>fun-with-accelerated-light</department>
+		<topic>space</topic>
 		<comments>175</comments>
 		<section>articles</section>
-		<image>topiclinux.gif</image>
+		<image>topicspace.gif</image>
 	</story>
 
 	<story>
-		<title>Salon's Free Software Project (Part 2)</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/23/1247236</url>
-		<time>2000-06-23 18:47:20</time>
-		<author>CmdrTaco</author>
-		<department>stuff-to-read</department>
-		<topic>news</topic>
-		<comments>182</comments>
-		<section>articles</section>
-		<image>topicnews.gif</image>
-	</story>
-
-	<story>
-		<title>Human Genome Mapping Completion TBA</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/23/1643230</url>
-		<time>2000-06-23 17:13:18</time>
+		<title>Transmeta Files For IPO</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/2131248</url>
+		<time>2000-08-17 21:30:19</time>
 		<author>Hemos</author>
-		<department>better-faster-stronger</department>
-		<topic>science</topic>
-		<comments>266</comments>
-		<section>science</section>
-		<image>topicscience.gif</image>
+		<department>it-was-inevitable</department>
+		<topic>transmeta</topic>
+		<comments>142</comments>
+		<section>articles</section>
+		<image>topictransmeta.gif</image>
 	</story>
 
 	<story>
-		<title>Symphony For Dot Matrix Printers</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/23/1641216</url>
-		<time>2000-06-23 16:40:50</time>
+		<title>On Microsoft Porting to Linux/Unix</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/2126207</url>
+		<time>2000-08-17 21:23:08</time>
 		<author>Hemos</author>
-		<department>what-would-beethoven-think</department>
-		<topic>music</topic>
-		<comments>203</comments>
-		<section>articles</section>
-		<image>topicmusic.gif</image>
-	</story>
-
-	<story>
-		<title>XFree86 Enters Wondrous World Of CVS</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/23/1430232</url>
-		<time>2000-06-23 14:39:16</time>
-		<author>Hemos</author>
-		<department>tomorrow---walgreens!</department>
-		<topic>x</topic>
-		<comments>150</comments>
-		<section>articles</section>
-		<image>topicx.jpg</image>
-	</story>
-
-	<story>
-		<title>Hitachi Folds, Rambus Keeps On Rolling</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/23/1350213</url>
-		<time>2000-06-23 13:49:10</time>
-		<author>Hemos</author>
-		<department>pass-go-collect-200$</department>
-		<topic>patents</topic>
-		<comments>149</comments>
-		<section>articles</section>
-		<image>topicpatents.gif</image>
-	</story>
-
-	<story>
-		<title>Cookiegate Explained</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/23/1240214</url>
-		<time>2000-06-23 13:20:07</time>
-		<author>CmdrTaco</author>
-		<department>more-fodder-for-the-conspiracy-theorists</department>
-		<topic>news</topic>
-		<comments>158</comments>
-		<section>articles</section>
-		<image>topicnews.gif</image>
-	</story>
-
-	<story>
-		<title>Microsoft Announces .net</title>
-		<url>http://slashdot.org/article.pl?sid=00/06/23/1226235</url>
-		<time>2000-06-23 12:56:00</time>
-		<author>CmdrTaco</author>
-		<department>submitted-more-times-than-bill-gates-mugshot</department>
+		<department>the-left-hand-knows-not-what-the-right-hand-does</department>
 		<topic>microsoft</topic>
-		<comments>533</comments>
+		<comments>363</comments>
 		<section>articles</section>
 		<image>topicms.gif</image>
+	</story>
+
+	<story>
+		<title>Star Wars Episode 2 Title Leaked</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/2018204</url>
+		<time>2000-08-17 20:17:41</time>
+		<author>Hemos</author>
+		<department>but-what-i-wanted-to-go-to-tashi-station!</department>
+		<topic>starwars</topic>
+		<comments>253</comments>
+		<section>articles</section>
+		<image>topicstarwars.gif</image>
+	</story>
+
+	<story>
+		<title>IBM Open Sourcing AFS</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/1850211</url>
+		<time>2000-08-17 19:35:41</time>
+		<author>Hemos</author>
+		<department>opening-it-to-the-world</department>
+		<topic>ibm</topic>
+		<comments>147</comments>
+		<section>articles</section>
+		<image>topicibm.gif</image>
+	</story>
+
+	<story>
+		<title>Ask The DeCSS Legal Team</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/1836212</url>
+		<time>2000-08-17 18:37:39</time>
+		<author>michael</author>
+		<department>pro-bono</department>
+		<topic>news</topic>
+		<comments>284</comments>
+		<section>interviews</section>
+		<image>topicnews.gif</image>
+	</story>
+
+	<story>
+		<title>DVD/DeCSS: MPAA Wins In New York</title>
+		<url>http://slashdot.org/article.pl?sid=00/08/17/1827208</url>
+		<time>2000-08-17 18:26:30</time>
+		<author>michael</author>
+		<department>good-guys-finish-last</department>
+		<topic>doj</topic>
+		<comments>653</comments>
+		<section>yro</section>
+		<image>topicdoj.jpg</image>
 	</story>
 
 </backslash>

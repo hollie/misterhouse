@@ -6,6 +6,75 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.24 posted on 08/06/00
+
+Version 2.24 was just uploaded to:
+
+  http://misterhouse.sourceforge.net
+  http://misterhouse.net/download
+
+B<New Features:>
+
+- Mark Lamourine set up a SPECs file so I can create a tar and rpm file from our beloved zip file.
+The rpm file installs to the docs to /usr/doc/misterhouse-#.##.  and everything else to /usr/local/mh.
+
+
+- Created mh/code/bruce/monitor_router.pl.  This monitors incoming and outgoing 
+traffic on NetGear RT311 and RT314 routers.  The RT311 is a really nifty 
+$130 firewall/router designed to allow multiple home computers to share 
+internet cable/dsl access.  The RT314 ($180) is the same, with a built in 4 port hub.
+They both can log activity to remote computers via a Syslog connection,
+so we can set up monitor_router.pl to monitor a Syslog udp port to 
+track internet activity.  This is what I used to do with mh/bin/monitor_weblog
+to monitor apache weblogs and monitor_firewall.pl to monitor linux ipchain logs.
+
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Allow Group to inherit Generic_Item methods, like state_now and tie*/untie*.
+
+- Added a get_changed_by method, to detect which object set a tied object.
+
+- Allow for items to have more than one state set per pass.
+Each state will be processed, one per subsequent pass.
+
+- Add a weeder_baudrate mh.ini parm
+
+- Added a delay to when sending phrases set to viavoice on startup, so we avoid 'no data' errors with faster computers.
+
+- Added mh/bin/test_x10.pl as a simple test for those X10 interfaces.
+
+- Added mh/code/examples/test_tie.pl as an example of how to tie/untie items/events.
+
+- Added mh/code/examples/test_group.pl as an example of how to use groups.
+
+- William Steiner found a 2.24 bug with sunrise/sunset on Win95/98 boxes.
+
+- Brad Reed fixed a 2.24 problem with the tk $cpu_used display.
+
+- Craig Schaeffer found a 2.24 problem with Serial_Items with undefined states.
+
+- Brian Klier found a problem with multi-event X10 processing.
+
+- Bill Sobel found a problem when running untie* on some, but not all, child objects.
+
+- Monte discovered that direct X10 commands like 'house XA1AJ' didn't work. 
+Note you can also enter direct X10 commands directly in the Tk Command/search field. 
+
+- CyberLink discovered that mh/code/public/mp3_control_GQmpeg.pl got overwritten in 2.24.
+
+- Improved error processing if voice_cmd=MS and the MS VR engine is not installed.
+
+- Fixed member name parsing, so mh can be in a dir with a . (e.g. misterhouse-2.26).
+
+- Fixed a minor get_tv_grid error with vcr links on shows that cont. between grids.
+
+- Fixed a bug that disabled simultaneous X10 Group action with a CM11.
+
+
+
+
+
 =head2 Version 2.22 posted on 06/24/00
 
 Version 2.22 was just uploaded to:
@@ -42,7 +111,7 @@ or use the indirect object style like this:
 With table data, we should be able to enable gui or web based front end tools for editing.  
 Currently we have defined just one format defined, creativly named A 
 (I suggested we call it Bill, but Bill didn't want the fame), but other formats (e.g. xml) should
-be real easy to implement.
+be easy to implement.
 
 To use, create one or more *.mht (mh table) files in your code directory, specifying the table format with Format=A
 at the top of the table.  Then mh will process (on starup and reload) each record with mh/lib/read_table_A.pl, to create

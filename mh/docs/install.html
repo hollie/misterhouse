@@ -79,13 +79,32 @@ mh uses about 20% of the cpu and gets about 8 passes per second.
 <UL>
 <LI>Download the the misterhouse_src_###.zip from Mister House from: 
 <A HREF="http://misterhouse.net">http://misterhouse.net</A> </LI>
+
+<ul>If using the rpm file:
+<li>rpm -i misterhouse-2.26-1.noarch.rpm
+<li>docs are installed to /usr/doc/misterhouse-#.##, everything else is in /usr/local/mh
+</ul>
+
+<li>If using the tar file:
+<ul>
+<LI>cd to where you want it the mh directory created in (e.g. cd /projects/misterhouse)</LI>
+<LI>tar -xzvf misterhouse_src_###.tar.gz
+</ul>
+
+<li>If using the zip file:
+<ul>
 <LI>cd to where you want it the mh directory created in (e.g. cd /projects/misterhouse)</LI>
 <LI>unzip -aU /downloads/misterhouse_src_###.zip (wherever you downloaded it to) </LI>
 <LI>cd mh/bin </LI>
 <LI>chmod +x configure
+<li>su   (to run configure as root)
 <li>./configure
+<li>exit (to switch back from root)
+</ul>
+
 <li>./mh (if that doesn't work, try: perl mh)
 <li>If you have graphics related errors, turn of the local graphics interface with: ./mh -tk 0
+
 </UL>
 
 </UL>
@@ -131,8 +150,9 @@ and installing packages. Do this by logging on to the internet and typing: </P>
 
 <ul>
 <li>cd \perl\bin (modify to match your directory)
-<li>ppm install Win32::API
+<li>ppm install Win32-API
 <li>ppm install Tk
+<li>ppm install Tk-JPEG
 <li>ppm install DB_File
 </ul>
 
@@ -204,12 +224,13 @@ installed the SDK). Once running, you can use the "Voice Command Options" menu t
 
 <P>The 1 MB zip file installs into 3 MB of disk space.
 
-<P>Change to the directory you want mh installed to (e.g. /projects/misterhouse) and unzip the file(s) using your un-zipper of choice
-(use the -d if using pkunzip to preserve the directory structure).   If using 'unzip', you 
-will want to use the -a to Automatically get rid of those pesky /r characters that DOS like to add to newlines
-Also, the unzip -U switch (contrary to what the help text says), will be needed on newer versions of unzip to preserve case on filenames. 
+<p>Install with the rpm file or the tar.gz file, as detailed in the quick install instructions.
 
-<p>Run the configure script to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
+<P>If you choose to use the zip file instead, make sure you 
+use the -a to automatically get rid of those pesky /r characters that DOS like to add to newlines.
+Also, the unzip -U switch (contrary to what the help text says), 
+will be needed on newer versions of unzip to preserve case on filenames. 
+Then run the configure script (as root) to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 
 <H3><a name=step2_u>Step 2, Download and Compile Perl</a></h3>
 
@@ -231,6 +252,7 @@ also try the CPAN installer like this:
 <li> >su root
 <li> >perl -MCPAN -eshell
 <li>  cpan> install Tk
+<li>  cpan> install Tk::JPEG
 <li>  cpan> install DB_File
 <li>  cpan> exit
 </ul>
@@ -260,7 +282,7 @@ Here is one way to allow non-root access to the microphone:
 
 <p>The viavoice SDK FAQ can be found here at
 a href=http://www-4.ibm.com/software/speech/dev/faq_linux.html>http://www-4.ibm.com/software/speech/dev/faq_linux.html</a>.
-It includes suggestion on what to do if you get rc=90 when you start viavoice_server.
+It includes suggestion on what to do if you get rc=90 when you start viavoice_server (you must first enroll that id).
 The faq also covers how you can move training files and non-English from the (non-free) windows version.
 
 <p>After running the rpm commands, you can find other documentation in 
@@ -269,6 +291,7 @@ create a speech and entrollment ids.  Here is an example of the commands
 that I used (as user id bruce, not root):
 
 <ul>
+<li>. /usr/bin/vvsetenv 
 <li>/usr/lib/ViaVoice/bin/vvuseradm -newuser -userid bruce
 <li>/usr/lib/ViaVoice/bin/vvuseradm -newenrollid -userid bruce -enrollid bruceid
 <li>/usr/lib/ViaVoice/bin/vvuseradm -userid bruce -enrollid bruceid -setdefault
@@ -284,12 +307,12 @@ start mh.
 
 <p>The IBM ViaVoice Outload TTS engine for Linux can also be downloaded from the above IBM sdk url.
 To use it with mh, enable the vvo_server mh.ini parms and download the vvo_server code from
-<a hrev=http://dittos.penguinpowered.com/automation/index.html#software>http://dittos.penguinpowered.com/automation/index.html#software
+<a hrev=http://dittos.yi.org/automation>http://dittos.yi.org/automation
 
 <p>The Festival Speech engine is available from
 <a href=http://www.cstr.ed.ac.uk/projects/festival/download.html>http://www.cstr.ed.ac.uk/projects/festival/download.html</a>
-There are various voices and languages available.  Also, they have Linux binaries there, if for whatever reason, you 
-have problems compiling the source code.
+There are various voices and languages available.  Compiling Fesitval can be a little tricky, 
+so if you can, you will probably want to use the RPM files.
 
 <p>Once you have downloaded in and installed or compiled Festival, you can test it with the following commands:
 <ul>
@@ -481,6 +504,9 @@ your X10 items.
 # Document Change Log
 #
 # $Log$
+# Revision 1.16  2000/08/19 01:22:35  winter
+# - 2.27 release
+#
 # Revision 1.15  2000/05/27 16:40:09  winter
 # - 2.20 release
 #

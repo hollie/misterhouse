@@ -1,0 +1,8 @@
+Protocol Enhancements
+- Ability to name the function to call (multiple JS function support)
+- Ability to send multiple arguments
+- Ability to send messages with LF
+- Backchannel (browser to service) communications
+- StandardMessageFunc param (currently tgtFunction)
+- StandardErrorFunc param
+- Debug support and param

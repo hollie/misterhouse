@@ -41,6 +41,12 @@ mp3_control_mrMP3.pl
 monitor_sump_pump.pl
  - Craig's code to monitor his sump pump
 
+monitor_server.pl
+ - Use to monitor web hits to the mh server
+
+monitor_ipchainlog.pl
+ - Use to a linux ipchain log for web traffic
+
 news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
 

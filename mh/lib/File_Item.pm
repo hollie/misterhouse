@@ -11,7 +11,7 @@ sub new {
 }
 
 sub name {
-    my $filename = @_[0]->{file};
+    my $filename = $_[0]->{file};
                                 # Translate path names if on msdos
     $filename =~ tr|\/|\\| if $main::OS_win;
     return $filename;
@@ -117,7 +117,7 @@ sub read_current {
 }
 
 sub index {
-	return @_[0]->{index};
+	return $_[0]->{index};
 }
 
 sub set_index {

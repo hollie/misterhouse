@@ -15,15 +15,15 @@
 package handy_net_utilities;
 use strict;
 
+                                # Make sure we override any local Formatter with our modified one
+                                #   - the default one does not look into tables
+#se my_Formatter;               #   - Must be in lib/site/HTML dir to work :(
+use HTML::FormatText;
                                 # These are useful for calling from user code directly
 use LWP::Simple;
-use HTML::FormatText;
 use HTML::Parse;
 
 
-                                # Make sure we override any local Formatter with our modified one
-                                #   - the default one does not look into tables
-use my_Formatter;
 #require "$main::Pgm_Root/lib/site/HTML/Formatter.pm";
 
                                 # Translate URL encoded data
@@ -80,8 +80,10 @@ sub main::net_domain_name {
 
                                 # Use a DNS server to find the domain name
     if ($main::DNS_resolver) {
-        print "Searching for Domain Name of $address\n";
+        print "Searching for Domain Name of $address ...";
+        my $time = time;
         my $result = $main::DNS_resolver->search($address);
+        print " took ", time - $time, " seconds\n";
         if ($result) {
             my $answer = ($result->answer)[0]->string;
                                 # answer string looks like this:
@@ -389,7 +391,7 @@ sub main::net_mail_count {
     my %parms = @_;
     return unless my $pop = &main::net_mail_login(%parms);
     my ($msgcnt) = $pop->popstat;
-    print "$msgcnt messages in mailbox $parms{account}\n";
+    print "$msgcnt messages in mailbox $parms{account}\n" unless defined $parms{debug} and $parms{debug} == 0;
 
     return $msgcnt;
 }
@@ -487,6 +489,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.20  2000/08/19 01:25:08  winter
+# - 2.27 release
+#
 # Revision 1.19  2000/06/24 22:10:55  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

@@ -1,30 +1,30 @@
-Title: Overclocking The AMD Duron
-2000-06-24 09:28:26 by timothy  in dept: faster-pussycat-kill-kill-kill-  (amd   16)
+Title: Old Atari Design Docs Online
+2000-08-18 08:44:25 by Hemos  in dept: what-the-hell  (games   50)
 
-Title: LinuxFest 2000 - Show Your Support
-2000-06-24 03:57:36 by emmett  in dept: emmett-is-a-keynoter-hide-the-children  (linuxbiz   139)
+Title: Armed Robot Guards - Sorta
+2000-08-18 04:33:14 by Hemos  in dept: put-your-heads-in-the-air  (tech   213)
 
-Title: Linux Replaces Sun At Weather.com
-2000-06-23 23:57:32 by emmett  in dept: right-on-the-tick  (linux   175)
+Title: Groening Says The Simpsons Movie Planned
+2000-08-17 23:45:17 by Hemos  in dept: ralph-jesus-does-not-have-wheels  (movies   191)
 
-Title: Salon's Free Software Project (Part 2)
-2000-06-23 18:47:20 by CmdrTaco  in dept: stuff-to-read  (news   182)
+Title: NASA To Build Laser Space Broom For ISS
+2000-08-17 22:25:20 by Hemos  in dept: fun-with-accelerated-light  (space   175)
 
-Title: Human Genome Mapping Completion TBA
-2000-06-23 17:13:18 by Hemos  in dept: better-faster-stronger  (science   266)
+Title: Transmeta Files For IPO
+2000-08-17 21:30:19 by Hemos  in dept: it-was-inevitable  (transmeta   142)
 
-Title: Symphony For Dot Matrix Printers
-2000-06-23 16:40:50 by Hemos  in dept: what-would-beethoven-think  (music   203)
+Title: On Microsoft Porting to Linux/Unix
+2000-08-17 21:23:08 by Hemos  in dept: the-left-hand-knows-not-what-the-right-hand-does  (microsoft   363)
 
-Title: XFree86 Enters Wondrous World Of CVS
-2000-06-23 14:39:16 by Hemos  in dept: tomorrow---walgreens!  (x   150)
+Title: Star Wars Episode 2 Title Leaked
+2000-08-17 20:17:41 by Hemos  in dept: but-what-i-wanted-to-go-to-tashi-station!  (starwars   253)
 
-Title: Hitachi Folds, Rambus Keeps On Rolling
-2000-06-23 13:49:10 by Hemos  in dept: pass-go-collect-200$  (patents   149)
+Title: IBM Open Sourcing AFS
+2000-08-17 19:35:41 by Hemos  in dept: opening-it-to-the-world  (ibm   147)
 
-Title: Cookiegate Explained
-2000-06-23 13:20:07 by CmdrTaco  in dept: more-fodder-for-the-conspiracy-theorists  (news   158)
+Title: Ask The DeCSS Legal Team
+2000-08-17 18:37:39 by michael  in dept: pro-bono  (news   284)
 
-Title: Microsoft Announces .net
-2000-06-23 12:56:00 by CmdrTaco  in dept: submitted-more-times-than-bill-gates-mugshot  (microsoft   533)
+Title: DVD/DeCSS: MPAA Wins In New York
+2000-08-17 18:26:30 by michael  in dept: good-guys-finish-last  (doj   653)
 

@@ -2,13 +2,13 @@ use strict;
 
 # Format = A
 #
-# This is Bill Sobel's table definition
+# This is Bill Sobel's (bsobel@vipmail.com) table definition
 #
 # Type         Address/Info            Name                                    Groups                                      Other Info
 #
 #X10I,           J1,                     Outside_Front_Light_Coaches,            Outside|Front|Light|NightLighting
 
-print "Using read_table_A.pl\n";
+print_log "Using read_table_A.pl";
 
 my %groups;
 sub read_table_A {
@@ -28,6 +28,11 @@ sub read_table_A {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "X10_Item('$address', $other)";
+    }
+    elsif($type eq "X10G") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "X10_Garage_Door('$address', $other)";
     }
     elsif($type eq "X10S") {
         ($address, $name, $grouplist) = @item_info;
@@ -53,8 +58,23 @@ sub read_table_A {
         $object = "Weather_Item('$address', '$comparison', '$limit')" if $comparison ne undef;
         $object = "Weather_Item('$address')" if $comparison eq undef;
     }
+    elsif($type eq "STARGATELCD") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateLCDKeypad('$address', $other)";
+    }
+    elsif($type eq "XANTECH") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Xantech_Zone('$address', $other)";
+    }
+    elsif($type eq "SERIAL") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Serial_Item('$address', $other)";
+    }
     else {
-        next;
+        return;
     }
     
     $code .= sprintf "\n\$%-35s =  new %s;\n", $name, $object if $object;
@@ -72,8 +92,8 @@ sub read_table_A {
 
 #
 # $Log$
-# Revision 1.1  2000/06/24 22:10:55  winter
-# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+# Revision 1.2  2000/08/19 01:25:08  winter
+# - 2.27 release
 #
 #
 

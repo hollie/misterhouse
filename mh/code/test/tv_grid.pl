@@ -49,11 +49,12 @@ eof
 }
 
                                 # This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
-$v_get_tv_grid_data = new  Voice_Cmd('Get tv grid data');
+$v_get_tv_grid_data = new  Voice_Cmd('Get tv grid data for [today,the next week]');
 $v_get_tv_grid_data-> set_info('Updates the TV database with the next 7 days of programing via the internet');
-if (said  $v_get_tv_grid_data) {
+if ($state = said  $v_get_tv_grid_data) {
     if (&net_connect_check) {
-        my $pgm = "get_tv_grid -userid $config_parms{clicktv_id} -days 7 ";
+        my $pgm = "get_tv_grid -userid $config_parms{clicktv_id} ";
+        $pgm .= ($state eq 'today') ? '-redo -days 1 ' : '-days 7 ';
         $pgm .= qq[ -hour   "$config_parms{clicktv_hours}"] if $config_parms{clicktv_hours};
 
                                 # Allow data to be stored wherever the alias points to

@@ -38,7 +38,7 @@ sub main::http_read_parms {
         }
     }
             
-    $html_info_overlib++ if $main::config_parms{html_info} =~ 'overlib';
+    $html_info_overlib = 1 if $main::config_parms{html_info} and $main::config_parms{html_info} =~ 'overlib';
 
     undef %html_icons;          # Refresh lib/http_server.pl icons
 }
@@ -46,6 +46,8 @@ sub main::http_read_parms {
 
 sub process_http_request {
     my ($socket, $header) = @_;
+
+    my $time_check = time;
 
     print "db http request: $header\n" if $main::config_parms{debug} eq 'http_get';
 
@@ -57,6 +59,7 @@ sub process_http_request {
                                 # Check for authentication
     if (&password_check(undef, 'http')) {
         my ($user, $password);
+
         while (<$socket>) {
             last unless /\S/;
             $Referer = $1 if /^Referer: (\S+)/;
@@ -92,17 +95,19 @@ sub process_http_request {
 
     $Authorized_html  = "Status: <B><a href=/SET_PASSWORD>" . (($Authorized) ? "Authorized" : "Not Authorized") . "</B></a><br>";
 
+                                # translate from %## back to real characters
+    $header =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+
     my ($get_req, $get_arg) = $header =~ m|^GET (\/[^ \?]+)\??(\S+)? HTTP|;
 
-    $get_arg =~ tr/+/ /;        # translate + back to spaces (e.g. code search tk widget)
-
-                                # translate from %## back to real characters
-    $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+    $get_arg = '' unless $get_arg;
+#   $get_arg =~ tr/+/ /;        # translate + back to spaces (e.g. code search tk widget)
+                                # ...hmmm... maybe not: /SET:&html_list(X10_Item)?$test_house2?+15
 
     $get_req = $main::config_parms{html_file} unless $get_req;
 
     $get_req =~ /^(\/[^\/]+)(.*)/; # Pick dir out of /dir/file
-    if ($file  = $http_dirs{$1}) {
+    if ($1 and $file = $http_dirs{$1}) {
         $file .= "/$2" if $2;
     }
     else {
@@ -115,7 +120,7 @@ sub process_http_request {
     if ($get_req =~ /\/SET_PASSWORD$/) {
         if ($set_password_flag) {
             $set_password_flag = 0;
-            my $msg = $Authorized_html . <br>;
+            my $msg = $Authorized_html . '<br>';
             $msg .= ($Authorized) ? "Authorization flag was set" : "Authorization flag was unset";
             
             if ($get_arg eq 'redir' and $Referer) {
@@ -144,7 +149,6 @@ eof
         return;
     }
 
-
     if (-d $file) {
         my $file2;
                                 # Don't allow bad guys to go up the directory chain
@@ -160,6 +164,7 @@ eof
                 print $socket &html_page("Error", "No index found for directory");
             }
         }
+
     }
     elsif (-e $file) {
         if( &test_req( $socket, $get_req ) ) {
@@ -167,21 +172,41 @@ eof
         }
     }
     elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg, 1)) {
+        my $time_check2 = time;
         print $socket &html_page("", $html, $style);
+        $time_check2 = time - $time_check2;
+        if ($time_check2 > 2) {
+            my $msg = "$Time_Date: http_server write time exceeded: time=$time_check2, req=$get_req,$get_arg";
+            print "\n$msg";
+            &print_log($msg);
+        }
     }        
+                                # Allow for a CODE:&func (e.g. &dir_sort('my_dir'))
+                                #  ... hmmm, no different than RUN:&func, so not needed?
+#   elsif ($get_req =~ /\/CODE\:(\S*)$/) {
+#       $h_response = $1;
+#       print "db CODE command$h_response\n" if $main::config_parms{debug} eq 'http';
+#       &html_response($socket, $h_response);
+#   }
     elsif  ($get_req =~ /\/RUN$/ or
             $get_req =~ /\/RUN\:(\S*)$/) {
         $h_response = $1;
 
-        $get_arg =~ s/^cmd=//;  # Drop the cmd= prefix from form lists.
-        $get_arg =~ tr/\_/ /;   # Put blanks back
-        $get_arg =~ tr/\~/_/;   # Put _ back
-        $get_arg =~ s/\&x=\d+\&y=\d+$//;    # Drop the &x=n&y=n that is tacked on the end when doing image form submits
+        if ($get_arg) {
+            $get_arg =~ s/^cmd=//;  # Drop the cmd= prefix from form lists.
+            $get_arg =~ tr/\_/ /;   # Put blanks back
+            $get_arg =~ tr/\~/_/;   # Put _ back
+            $get_arg =~ s/\&x=\d+\&y=\d+$//;    # Drop the &x=n&y=n that is tacked on the end when doing image form submits
+        }
 
         print "db a=$Authorized RUN get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
 
-        if ($Authorized or $Password_Allow{$get_arg}) {
-            if (&run_voice_cmd($get_arg)) {
+        if ($Authorized or ($get_arg and $Password_Allow{$get_arg})) {
+                                # Allow for RUN:&func  (response function like &dir_sort, with no action)
+            if (!$get_arg) {
+                &html_response($socket, $h_response);
+            }
+            elsif (&run_voice_cmd($get_arg)) {
                 &html_response($socket, $h_response);
             }
             else {
@@ -202,26 +227,29 @@ eof
     elsif ($get_req =~ /\/SET$/ or 
            $get_req =~ /\/SET\:(\S*)$/) {
         $h_response = $1;
-        ($item, $state) = $get_arg =~ /^(\S+)\?(\S+)$/;
 
-        print "db SET item=$item state=$state response=$h_response\n" if $main::config_parms{debug} eq 'http';
-        my $item_speakable = substr($item, 1); # Drop the $ off the object name
-        $item_speakable =~ s/\_/ /g;
-        $item_speakable =~ s/\~/_/g;
-        $state =~ s/\_/ /g;      # No blanks were allowed in a url 
-        $state =~ s/\~/_/g;      # Put _ back
+        if ($get_arg) {
+            ($item, $state) = $get_arg =~ /^(\S+)\?(\S+)$/;
+            my $item_speakable = substr($item, 1); # Drop the $ off the object name
+            $item_speakable =~ s/\_/ /g;
+            $item_speakable =~ s/\~/_/g;
+            $state =~ s/\_/ /g;      # No blanks were allowed in a url 
+            $state =~ s/\~/_/g;      # Put _ back
 
-        my $object = &get_object_by_name($item);
-        my $state_now = $object->{state};
-        my $text = $item_speakable;
-        if ($state_now) {
-            $text .= ($state eq $state_now) ? " set to $state again" : " changed from $state_now to $state";
+                                # This is no longer used??
+            my $object = &get_object_by_name($item);
+            my $state_now = $object->{state};
+            my $text = $item_speakable;
+            if ($state_now) {
+                $text .= ($state eq $state_now) ? " set to $state again" : " changed from $state_now to $state";
+            }
+            else {
+                $text .= " set to $state";
+            }
         }
-        else {
-            $text .= " set to $state";
-        }
+        print "db a=$Authorized SET get_arg=$get_arg response=$h_response item=$item state=$state\n" if $main::config_parms{debug} eq 'http';
 
-        if ($Authorized or $Password_Allow{$item}) {
+        if ($Authorized or $item and $Password_Allow{$item}) {
             eval "set $item '$state'" if $item and $state; # May only have a responce with no item
             &html_response($socket, $h_response,undef,undef);
             # &html_response($socket, $h_response,undef,undef,"speech");
@@ -239,7 +267,7 @@ eof
     elsif  ($get_req =~ /\/SET_VAR$/ or
             $get_req =~ /\/SET_VAR\:(\S*)$/) {
         $h_response = $1;
-
+#       print "Error, no SET_VAR argument: $header\n" unless $get_arg;
         print "db SET_VAR a=$Authorized hr=$h_response\n get_req=$get_req  get_arg=$get_arg\n  \n" if $main::config_parms{debug} eq 'http';
 
                                 # translate from %## back to real characters
@@ -263,7 +291,8 @@ eof
                     else {
                         $$pvar = $states{$item};
                     }
-                    $Tk_results{$html_pointers{$item . "_label"}} = $states{$item};
+                                # This gives uninitilzed errors ... not needed anymore?
+#                   $Tk_results{$html_pointers{$item . "_label"}} = $states{$item};
                 }
                                 # Otherwise, we are trying to pass var name in directly. 
                 else {
@@ -294,6 +323,14 @@ eof
         print $msg;
     }
 
+    $time_check = time - $time_check;
+    if ($time_check > 2) {
+        my $msg = "$Time_Date: http_server time exceeded: time=$time_check, header=$header";
+        print "\n$msg\n";
+        &print_log($msg);
+#       &speak("web sleep of $time_check seconds");
+    }
+
     return ($leave_socket_open_passes, $leave_socket_open_action);
 }
 
@@ -313,7 +350,8 @@ sub test_req {
 
 sub html_mh_generated {
     my ($get_req, $get_arg, $auto_refresh) = @_;
-        my $html;
+    my $html = '';
+
                                 # .html suffix is grandfathered in
     if ($get_req =~ /\/widgets$/) {
         return (&widgets('all'), $main::config_parms{html_style_tk});
@@ -388,7 +426,8 @@ sub html_response {
             print "db hr=$h_response sn=$sub_name sa=$sub_arg\n" if $main::config_parms{debug} eq 'http';
             $sub_ref = \&{$sub_name};
             if (defined &$sub_ref) {
-                $leave_socket_open_action = "&$sub_name('$sub_arg')";
+                $sub_arg = "'$sub_arg'" unless $sub_arg =~ /^[\'\"]/; # Add quotes if needed
+                $leave_socket_open_action = "&$sub_name($sub_arg)";
                 $leave_socket_open_passes = 2; # Probably don't need to wait very long here (e.g. web SET:&html_list)
 #               my $html = &$sub_ref($sub_arg);
 #               print $socket &html_page("", $html);
@@ -398,7 +437,7 @@ sub html_response {
             }
         }
         elsif ($h_response eq 'last_response') {
-            undef $Last_Response;
+            $Last_Response = '';
                                 # Wait for some sort of response ... need a way to 
                                 # specify longer wait times on longer commands.
                                 # By default, we shouldn't put a long time here or
@@ -454,6 +493,7 @@ eof
 
 sub html_last_response {
    my $last_response;
+   $Last_Response = '' unless $Last_Response;
    if ($Last_Response eq 'speak') {
        $last_response = &html_last_spoken;
 #      $last_response = &speak_log_last(1);
@@ -554,7 +594,7 @@ sub GenerateMsAgent
             ' Attempt to load the character from the Microsoft Agent site
             Set LoadRequestURL = Agent.Characters.Load ($Character, "http://agent.microsoft.com/agent2/chars/$Character/$Character.acf") 
 
-        ' It didn't fail so assign Character to loaded character file
+        ' It did not fail so assign Character to loaded character file
         Else 
             ' Assign Character to the loaded character
             Set Character = Agent.Characters("$Character")
@@ -672,7 +712,7 @@ sub html_file {
                                 # Note: These differ from classic .cgi in that they return 
                                 #       the results, rather than print them to stdout.
     elsif ($file =~ /\.pl$/) {
-        @ARGV = split('&', $arg);
+        @ARGV = split('&', $arg) if $arg;
         my $code = join(' ', <HTML>);
 
                                 # I couldn't figure out how to open STDOUT to $socket
@@ -708,7 +748,7 @@ sub html_header {
     my $socket = $_[0];
     my $type = lc($_[1]);
     $type =~ s/^.*\.//;         # remove everything up to the last .
-    my $mime = $mime_types{$type} or 'text/html';
+    my $mime = $mime_types{$type} || 'text/html';
     my $header = qq|HTTP/1.0 200 OK
 Server: MisterHouse
 Content-type: $mime
@@ -725,8 +765,11 @@ sub html_page {
                                 # This meta tag does not work :(
                                 # MS IE does not honor Window-target :(
 #   my $frame2 = qq[<META HTTP-EQUIV="Window-target" CONTENT="$frame">] if $frame;
-    $frame = "Window-target: $frame" if $frame;
     $style = $main::config_parms{html_style} if $main::config_parms{html_style} and !$style;
+    $frame = "Window-target: $frame" if $frame;
+    $frame  = '' unless $frame;  # Avoid -w uninitialized value msg
+    $script = '' unless $script; # Avoid -w uninitialized value msg
+    $title  = '' unless $title;  # Avoid -w uninitialized value msg
     return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
@@ -764,8 +807,7 @@ sub html_category {
 
         my $info = "$category:";
         if ($html_info_overlib) {
-            my @files = &list_files_by_webname($category);
-            if (@files) {
+            if (my @files = &list_files_by_webname($category)) {
                 $info .= '<li>' . join ('<li>', @files);
             }
             $info = qq[onMouseOver="overlib('$info', FIXX, 5, OFFSETY, 50 )" onMouseOut="nd();"];
@@ -786,7 +828,8 @@ sub html_groups {
 
 sub html_items {
     my $h_index;
-    for my $object_type ('X10_Item', 'X10_Appliance', 'Group', 'iButton', 'Serial_Item') {
+#   for my $object_type ('X10_Item', 'X10_Appliance', 'Group', 'iButton', 'Serial_Item') {
+    for my $object_type (@Object_Types) {
         $h_index    .= "<li>" . &html_active_href("list?$object_type", $object_type) . "\n";
     }
     return $h_index;
@@ -822,7 +865,7 @@ sub html_find_icon_image {
 
                                 # Allow for set_icon to set the icon directly
     $name = $object->{icon} if $object->{icon};
-    return if $name eq 'none';
+    return '' if $name eq 'none';
 
                                 # Look for exact matches
     if ($icon = $html_icons{"$name-$state"}) {
@@ -832,19 +875,22 @@ sub html_find_icon_image {
                                 #    and pick the longest named match
     elsif ($type eq 'voice') {
         my ($i1, $i2, $i3, $l1, $l2, $l3);
+        $l1 = $l2 = $l3 = 0;
         for my $member (sort keys %html_icons) {
             next if $member eq 'on' or $member eq 'off';
             my $l = length $member;
-            if($name               =~ /$member/i and $l > $l1) { $i1 = $html_icons{$member}; $l1 = $l};
-            if($object->{text}     =~ /$member/i and $l > $l2) { $i2 = $html_icons{$member}; $l2 = $l};
-            if($object->{filename} =~ /$member/i and $l > $l3) { $i3 = $html_icons{$member}; $l3 = $l};
+            if ($html_icons{$member}) {
+                if($name               =~ /$member/i and $l > $l1) { $i1 = $html_icons{$member}; $l1 = $l};
+                if($object->{text}     =~ /$member/i and $l > $l2) { $i2 = $html_icons{$member}; $l2 = $l};
+                if($object->{filename} =~ /$member/i and $l > $l3) { $i3 = $html_icons{$member}; $l3 = $l};
+            }
 #           print "db n=$name t=$object->{text} $i1,$i2,$i3 l=$l m=$member\n" if $object->{text} =~ /playlist/;
         }
         if    ($i1) {$icon = $i1}
         elsif ($i2) {$icon = $i2} 
         elsif ($i3) {$icon = $i3}
         else {
-            return;         # No match
+            return '';         # No match
         }
     }
                                 # For non-voice items, try State and Item type matches
@@ -853,7 +899,7 @@ sub html_find_icon_image {
         unless ($icon = $html_icons{"$type-$state"} or
                 $icon = $html_icons{$type}          or
                 $icon = $html_icons{$state}) {
-            return;         # No match
+            return '';         # No match
         }
     }
     return "/graphics/$icon";
@@ -878,9 +924,10 @@ sub html_list {
 
     $h_list .= qq[<!-- html_list -->\n];
 
-    if ($webname_or_object_type =~ /^search=(\S+)/) {
+                                # List Items by search keyword
+    if ($webname_or_object_type =~ /^search=(\S*)/) {
         $h_list .= "<!-- html_list search -->\<BASE TARGET='speech'>\n";
-        my @cmd_list = grep /$1/, &list_voice_cmds_match($1);
+        my @cmd_list = &list_voice_cmds_match($1);
         for my $cmd (@cmd_list) {
             my ($file, $cmd2) = $cmd =~ /(.+)\:(.+)/;
             my $cmd3 = $cmd2;
@@ -903,7 +950,7 @@ sub html_list {
         return $h_list;
     }
 
-                                # List Items
+                                # List Items by type
     if (@object_list = sort &list_objects_by_type($webname_or_object_type)) {
         $h_list .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}; url=/list?$webname_or_object_type">\n]
             if $auto_refresh and $main::config_parms{html_refresh_rate};
@@ -918,7 +965,7 @@ sub html_list {
     if (@object_list = &list_objects_by_webname($webname_or_object_type)) {
         $h_list .= "<!-- html_list list_objects_by_webname -->\n";
         $h_list .= &widgets('all', $webname_or_object_type);
-        $h_list .= &html_command_table(sort @object_list);
+        $h_list .= &html_command_table(sort @object_list) if @object_list;
     }
     $h_list .= "<!-- html_list return -->\n";
     return $h_list;
@@ -965,7 +1012,9 @@ sub html_command_table {
     my @objects = map{&get_object_by_name($_)} @object_list;
 
                                 # Sort by sort field, then filename, then object name
-    for my $object (sort {$a->{order} cmp $b->{order} or $a->{filename} cmp $b->{filename} or $a->{text} cmp $b->{text}} @objects) {
+    for my $object (sort {($a->{order} and $b->{order} and $a->{order} cmp $b->{order}) or
+                          ($a->{filename} cmp $b->{filename}) or
+                          (defined $a->{text} and defined $b->{text} and $a->{text} cmp $b->{text})} @objects) {
         my $object_name = $object->{object_name};
         my $state_now   = $object->{state};
         my $filename    = $object->{filename};
@@ -979,6 +1028,8 @@ sub html_command_table {
 
         my ($prefix, $states, $suffix, $h_text, $text_cmd, $ol_info, $state_log, $ol_state_log);
         ($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/;
+        $states = '' unless $states; # Avoid -w uninitialized values error
+        $suffix = '' unless $states;
         my @states = split ',', $states;
 #       my $states_with_select = @states > $config_parms{html_category_select};
         my $states_with_select = length("@states") > $config_parms{html_select_length};
@@ -1135,12 +1186,17 @@ sub html_command_table {
 sub html_item_state {
     my ($object, $object_type) = @_;
     my $object_name  = $object->{object_name};
+    my $object_name2 = &pretty_object_name($object_name);
+
+                                # If not a state item, just list it
+    return qq[<td></td><td align="left"><b>$object_name2</b></td>\n] unless defined $object->{state};
+
     my $filename     = $object->{filename};
     my $state_now    = $object->{state};
-    my $object_name2 = &pretty_object_name($object_name);
     my $html;
+    $state_now = '' unless $state_now; # Avoid -w uninitialized value msg
 
-                                # find icon to show state, if not found show state_now in text.
+                                # Find icon to show state, if not found show state_now in text.
     $html .= qq[<td align="right"><a href='/SET:&html_state_log($object_name)' target='speech'>];
     if (my $h_icon = &html_find_icon_image($object, $object_type)) {
         $html .= qq[<img src="$h_icon" alt="$h_icon" border="0"></a>];
@@ -1179,7 +1235,7 @@ sub html_state_log {
     my $object_name2 = &pretty_object_name($object_name);
     my $html = "<b>$object_name2 states</b><br>\n";
     for my $state (state_log $object) {
-        $html .= "<li>$state</li>\n";
+        $html .= "<li>$state</li>\n" if $state;
     }
     return $html . "\n";
 }
@@ -1222,7 +1278,8 @@ sub vars_save {
         return "<h4>Not Authorized to view Variables</h4>";
     }
     for my $key (sort keys %Save) {
-        push @table_items, "<td align='left'><b>$key:</b> $Save{$key}</td>";
+        my $value = ($Save{$key}) ? $Save{$key} : '';
+        push @table_items, "<td align='left'><b>$key:</b> $value</td>";
     }
     return &table_it(2, 1, 1, @table_items);
 }
@@ -1250,6 +1307,7 @@ sub vars_global {
             for my $key2 (sort eval "keys \%$key") {
                 my $value = eval "\$$key\{'$key2'\}\n";
 #               next unless defined $value;
+                $value = '' unless $value; # Avoid -w uninitialized value msg
                 next if $value =~ /HASH/; # Skip object pointers
                 push @table_items, "<td align='left'><b>\$$key\{$key2\}:</b> $value</td>";
             }
@@ -1298,8 +1356,9 @@ sub widget_label {
     my @table_items;
     for my $pvar (@_) {
         my $label = $$pvar;
-        next unless $label =~ /\S{3}/;   # Drop really short labesl, like tk_eye
-        my ($key, $value) = $label =~ /(.+?\:)(.+)/;
+        next unless $label and $label =~ /\S{3}/;   # Drop really short labesl, like tk_eye
+        my ($key, $value) = $label =~ /(.+?\:)(.*)/;
+        $value = '' unless $value;
         push @table_items, qq[<tr><td align='left' colspan=1><b>$key</b></td>] .
                            qq[<td align='left' colspan=5>$value</td></tr>];
 #       push @table_items, qq[<td align='left' colspan=4>$value</td>];
@@ -1329,6 +1388,7 @@ sub widget_entry {
         else {
             $value = $$pvar;
         }
+        $value = '' unless $value;
         $html .= qq[<INPUT SIZE=10 NAME="$html_pointer_cnt" value="$value">];
         $html .= qq[</td></FORM>\n];
         push @table_items, $html;
@@ -1351,12 +1411,12 @@ sub widget_radiobutton {
         my $text = shift @text;
         $text = $value unless defined $text;
                                 # Allow for state objects
-        my $checked;
-        if ($pvar and ref $pvar ne 'SCALAR' and $pvar->can('set')) {
+        my $checked = '';
+        if (ref $pvar ne 'SCALAR' and $pvar->can('set')) {
             $checked = 'CHECKED' if $pvar->state eq $value;
         }
         else {
-            $checked = 'CHECKED' if $$pvar eq $value;
+            $checked = 'CHECKED' if $$pvar and $$pvar eq $value;
         }
         $html  = qq[<td align='left'><INPUT type="radio" NAME="$html_pointer_cnt" value="$value" $checked ];
         $html .= qq[$checked onClick="form.submit()">$text</td>];
@@ -1376,7 +1436,7 @@ sub widget_checkbutton {
         my $text = shift @_;
         my $pvar = shift @_;
         $html_pointers{++$html_pointer_cnt} = $pvar;
-        my $checked = 'CHECKED' if $$pvar;
+        my $checked = ($$pvar) ? 'CHECKED' : '';
         my $html = qq[<FORM name="widgets_radiobutton" ACTION="SET_VAR:last_response"  target='speech'>\n];
         $html .= qq[<INPUT type="hidden" name="$html_pointer_cnt" value='0'>\n]; # So we can uncheck buttons
         $html .= qq[<td align='left'><INPUT type="checkbox" NAME="$html_pointer_cnt" value="1" $checked onClick="form.submit()">$text</td></FORM>\n];
@@ -1386,6 +1446,51 @@ sub widget_checkbutton {
         push @table_items, qq[<td></td>];
     }
     return @table_items;
+}
+
+
+# dir_index can be called either of these ways:
+#    http://house:8080/RUN:&dir_index('/pictures','date',0)
+#       <!--#include code="&dir_index('/pictures','date',0)"-->
+
+sub dir_index {
+    my ($dir_html, $sortby, $reverse) = @_;
+
+    my $reverse2 = !$reverse;
+    my $dir = $http_dirs{$dir_html};
+    $dir = "$main::config_parms{html_dir}/$dir_html" unless $dir;
+    my $dir_tr = $dir_html;
+    $dir_tr =~ s/\//\%2F/g;
+
+    my $html = qq[<table width=80% border=0 cellspacing=0 cellpadding=0>\n<tr height=50>];
+    $html .= qq[<td><a href="/RUN:&dir_index('$dir_tr','name',$reverse2)">Sort by Name</a></td>\n];
+    $html .= qq[<td><a href="/RUN:&dir_index('$dir_tr','type',$reverse2)">Sort by Type</a></td>\n];
+    $html .= qq[<td><a href="/RUN:&dir_index('$dir_tr','size',$reverse2)">Sort by Size</a></td>\n];
+    $html .= qq[<td><a href="/RUN:&dir_index('$dir_tr','date',$reverse2)">Sort by Date</a></td></tr>\n];
+
+    opendir DIR, $dir or print "http_server: Could not open dir_index dir=$dir: $!\n";
+    my @files = sort readdir DIR;
+    close DIR;
+    my %file_data;
+    for my $file (@files) {
+        ($file_data{$file}{size}, $file_data{$file}{date}) = (stat("$dir/$file"))[7,9];
+        $file_data{$file}{type} = $1 if $file =~ /(\.[^\.]+)$/;
+    }
+    if ($sortby eq 'date' or $sortby eq 'size') {
+        @files = sort {$file_data{$a}{$sortby} <=> $file_data{$b}{$sortby} or $a cmp $b} @files;
+    }
+    elsif ($sortby eq 'type') {
+        @files = sort {$file_data{$a}{$sortby} cmp $file_data{$b}{$sortby} or $a cmp $b} @files;
+    }
+    @files = reverse @files if $reverse;
+    for my $file (@files) {
+        my $file_date = localtime $file_data{$file}{date};
+        $html .= "<tr><td><a href=$dir_html/$file>$file</a></td>\n";
+        $html .= "<td>$file_data{$file}{type}</td>\n";
+        $html .= "<td>$file_data{$file}{size}</td>\n";
+        $html .= "<td>$file_date</td></tr>\n";
+    }
+    return $html . "</table>\n";
 }
 
 
@@ -1416,6 +1521,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.43  2000/08/19 01:25:08  winter
+# - 2.27 release
+#
 # Revision 1.42  2000/06/24 22:10:55  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

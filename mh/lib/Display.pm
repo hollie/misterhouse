@@ -19,9 +19,16 @@ sub read_text {
 
     my ($self) = @_;
 
+    return unless $$self{text};
+
                                 # Gather text to display and find out how wide and tall it is 
     my $file = $$self{text};
-    if (-e $file) { 
+    if ($file =~ /^\S+$/ and -e $file) { 
+        if ($file =~ /\.gif$/i or $file =~ /\.jpg$/i or $file =~ /\.png$/i) {
+            $$self{type} = 'photo';
+            $$self{title} = "Image: $$self{text}";
+            return;
+        }
         $$self{text} = '';
         open IN, $file or die "Error, could not open file $file:$!\n"; 
         while (<IN>) { 
@@ -69,13 +76,8 @@ sub display {
 
                                 # Do these in the calling pgm, so we can conditionally use in mh.bat
     use Tk; 
-#   use Tk::Entry;      # Needed for perl2exe
-#   use Tk::Button;     # Needed for perl2exe
-#   use Tk::Text;       # Needed for perl2exe
-#   use Tk::Scrollbar;      # Needed for perl2exe
-
-#   use Tk::AddScrollbars;  # Needed for perl2exe
-
+    eval "use Tk::JPEG";            # Might not have Tk::JPEG installed
+#   print "\nTk::JPEG not installed\n" if $@;
 
     &read_text($self);
 
@@ -98,26 +100,33 @@ sub display {
     my $b2 = $f1->Button(qw/-text Pause(F1) 
                          -command/ => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1})->pack(-side => 'left'); 
 
-
+    if ($$self{type} and $$self{type} eq 'photo') {
+        $$self{photo1} = $$self{MW}->Photo(-file => $$self{text});
+#       $$self{MW}->Button(-text => 'Photo', -command => sub {$self->destroy}, -image => $$self{photo1}) ->
+        $$self{photo2} = $$self{MW}->Label(-text => 'Photo', -image => $$self{photo1}) ->
+            pack(qw/-expand yes -fill both -side bottom/); 
+    }
+    else {
 # From tk font html docs:
-# Courier, Times, or Helvetica 
-# system,  ansi, device, systemfixed  ansifixed  oemfixed
+#    Courier, Times, or Helvetica 
+#    system,  ansi, device, systemfixed  ansifixed  oemfixed
 
-#   $$self{font} = 'Courier* 10 bold' unless $$self{font};
-#   $$self{font} = 'system'           unless $$self{font};
-#   $$self{font} = 'systemfixed'      if     $$self{font} eq 'fixed';
-    $$self{font} = 'Times 10 bold'   unless $$self{font};
-    $$self{font} = 'Courier 10 bold'  if    $$self{font} eq 'fixed';
+#       $$self{font} = 'Courier* 10 bold' unless $$self{font};
+#       $$self{font} = 'system'           unless $$self{font};
+#       $$self{font} = 'systemfixed'      if     $$self{font} eq 'fixed';
+        $$self{font} = 'Times 10 bold'   unless $$self{font};
+        $$self{font} = 'Courier 10 bold'  if    $$self{font} eq 'fixed';
 
-    # Valid fonts can be listed with xlsfonts 
-    my $t1 = $$self{MW}->Scrolled('Text', -setgrid => 'true',  
-                                  -width => $$self{width}, -height => $$self{height}, 
-                                  -font => $$self{font},
-#                                 -font => 'systemfixed',
-                                  -wrap => 'word', -scrollbars => $$self{scroll}); 
+                                # Valid fonts can be listed with xlsfonts 
+        my $t1 = $$self{MW}->Scrolled('Text', -setgrid => 'true',  
+                                      -width => $$self{width}, -height => $$self{height}, 
+                                      -font => $$self{font},
+#                                     -font => 'systemfixed',
+                                      -wrap => 'word', -scrollbars => $$self{scroll}); 
 
-    $t1->insert(('0.0', $$self{text})); 
-    $t1->pack(qw/-expand yes -fill both -side bottom/); 
+        $t1->insert(('0.0', $$self{text})); 
+        $t1->pack(qw/-expand yes -fill both -side bottom/); 
+    }
 
     $$self{MW}->repeat(1000, sub {return unless $$self{auto_quit}; 
                                   $$self{time}--;  
@@ -152,6 +161,13 @@ sub display {
 sub destroy {
     my ($self) = @_;
     # Normal exit IF Mainloop is local AND we were not called externally
+
+                                # Try to avoid a memory leak with photo objects ... doesn't work :(
+    $$self{photo2}->destroy if $$self{photo2};
+    $$self{photo1}->destroy if $$self{photo1};
+    delete $$self{photo1};
+    delete $$self{photo2};
+
     if ($$self{loop} and $0 =~ /display/) {
         $$self{MW}->destroy;
         exit;
@@ -193,6 +209,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.16  2000/08/19 01:22:36  winter
+# - 2.27 release
+#
 # Revision 1.15  2000/05/06 17:22:16  winter
 # - change default fonts
 #

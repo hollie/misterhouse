@@ -39,6 +39,7 @@ $internet_light= new X10_Item('O6');
 if (my $data = said $speak_server) {
 
     my $msg;
+#   print "db speak_server: $data\n";
 
                                 # Should allow for POST data 
                                 # but GET will work OK for short messages
@@ -75,11 +76,11 @@ if (my $data = said $speak_server) {
             $chatbot = new Chatbot::Eliza "Eliza", "$config_parms{data_dir}/eliza/$chatbot_rule.txt" unless $chatbot;
 
             my $response = $chatbot->transform($msg);
-            $msg = "You said: $msg.\nEliza says: $response";
+            $msg = "$name_short said: $msg.\nEliza says: $response";
         }
         else {
-#           $msg = "Internet message from $name_short: $msg" if $msg;
-            $msg = "Internet message: $msg" if $msg;
+            $msg = "Internet message from $name_short: $msg" if $msg;
+#           $msg = "Internet message: $msg" if $msg;
         }
 
         my $html;

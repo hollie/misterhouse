@@ -128,26 +128,27 @@ sub read_areacode_list {
 
         ($areacode, $state) = $_ =~ /(\d\d\d) All parts of (.+)/;
         ($areacode, $city, $state) = $_ =~ /(\d\d\d)(.*), *(.+)/ unless $state;
-        $city_by_areacode{$areacode} = $city;
-        $state_by_areacode{$areacode} = $state;
         next unless $city;
+        $city_by_areacode{$areacode}  = $city;
+        $state_by_areacode{$areacode} = $state;
 #       print "db code=$areacode state=$state city=$city\n";
     }
     close AREACODE;
 #   &main::print_log("read in $areacode_cnt area codes from $parms{area_code_file}");
-    print "Read in $areacode_cnt area codes from $parms{area_code_file}\n";
+    print "Read $areacode_cnt codes from $parms{area_code_file}\n";
     # If in-state, store city name instead of state name.
     $my_areacode = $parms{local_area_code};
     $my_state = $state_by_areacode{$my_areacode};
-    undef $state_by_areacode{$my_areacode};
-    foreach $areacode (keys %state_by_areacode) {
-        $state_by_areacode{$areacode} = $city_by_areacode{$areacode} if $state_by_areacode{$areacode} eq $my_state;
+
+                                # If withing state, use only city name.
+    for $areacode (keys %state_by_areacode) {
+        $state_by_areacode{$areacode} = $city_by_areacode{$areacode} if $city_by_areacode{$areacode} and 
+            $my_state and $state_by_areacode{$areacode} eq $my_state;
     }
 #   print "db ac=$state_by_areacode{'507'}\n";
 #   print "db my_areacode=$my_areacode ms=$my_state\n";
 #   print "db ac=$state_by_areacode{'612'}\n";
 #   print "db ac=$state_by_areacode{'406'}\n";
-
 }   
 
 sub read_callerid_list {
@@ -171,13 +172,16 @@ sub read_callerid_list {
 #   print "Callerid names: number=$number  name=$name\n";
     }
 #   &main::print_log("read in $callerid_cnt caller ID override names/numbers from $caller_id_file");
-    print "Read in $callerid_cnt caller ID entries from $caller_id_file\n";
+    print "Read $callerid_cnt entries from $caller_id_file\n";
     close CALLERID;
 
 }   
 
 #
 # $Log$
+# Revision 1.15  2000/08/19 01:22:36  winter
+# - 2.27 release
+#
 # Revision 1.14  2000/05/06 16:34:32  winter
 # - 2.15 release
 #

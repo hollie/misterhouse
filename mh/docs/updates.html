@@ -13,6 +13,8 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#Version_2_24_posted_on_08_06_00">Version 2.24 posted on 08/06/00</A></LI>
+		<LI><A HREF="#Version_2_22_posted_on_06_24_00">Version 2.22 posted on 06/24/00</A></LI>
 		<LI><A HREF="#Version_2_20_posted_on_05_27_00">Version 2.20 posted on 05/27/00</A></LI>
 		<LI><A HREF="#Version_2_15_posted_on_05_06_00">Version 2.15 posted on 05/06/00</A></LI>
 		<LI><A HREF="#Version_2_13_posted_on_04_09_00">Version 2.13 posted on 04/09/00</A></LI>
@@ -65,6 +67,301 @@
 list (an archive of all the list messages is at <A
 HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A>
 )
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_24_posted_on_08_06_00">Version 2.24 posted on 08/06/00</A></H2>
+<P>
+Version 2.24 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net">http://misterhouse.sourceforge.net</A>
+  <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Mark Lamourine set up a SPECs file so I can create a tar and rpm file
+from our beloved zip file. The rpm file installs to the docs to
+/usr/doc/misterhouse-#.##. and everything else to /usr/local/mh.
+
+</P>
+<P>
+- Created mh/code/bruce/monitor_router.pl. This monitors incoming and
+outgoing traffic on NetGear RT311 and RT314 routers. The RT311 is a really
+nifty <CODE>$130</CODE> firewall/router designed to allow multiple home
+computers to share internet cable/dsl access. The RT314 ($180) is the same,
+with a built in 4 port hub. They both can log activity to remote computers
+via a Syslog connection, so we can set up monitor_router.pl to monitor a
+Syslog udp port to track internet activity. This is what I used to do with
+mh/bin/monitor_weblog to monitor apache weblogs and monitor_firewall.pl to
+monitor linux ipchain logs.
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Allow Group to inherit Generic_Item methods, like state_now and
+tie*/untie*.
+
+</P>
+<P>
+- Added a get_changed_by method, to detect which object set a tied object.
+
+</P>
+<P>
+- Allow for items to have more than one state set per pass. Each state will
+be processed, one per subsequent pass.
+
+</P>
+<P>
+- Add a weeder_baudrate mh.ini parm
+
+</P>
+<P>
+- Added a delay to when sending phrases set to viavoice on startup, so we
+avoid 'no data' errors with faster computers.
+
+</P>
+<P>
+- Added mh/bin/test_x10.pl as a simple test for those X10 interfaces.
+
+</P>
+<P>
+- Added mh/code/examples/test_tie.pl as an example of how to tie/untie
+items/events.
+
+</P>
+<P>
+- Added mh/code/examples/test_group.pl as an example of how to use groups.
+
+</P>
+<P>
+- William Steiner found a 2.24 bug with sunrise/sunset on Win95/98 boxes.
+
+</P>
+<P>
+- Brad Reed fixed a 2.24 problem with the tk <CODE>$cpu_used</CODE>
+display.
+
+</P>
+<P>
+- Craig Schaeffer found a 2.24 problem with Serial_Items with undefined
+states.
+
+</P>
+<P>
+- Brian Klier found a problem with multi-event X10 processing.
+
+</P>
+<P>
+- Bill Sobel found a problem when running untie* on some, but not all,
+child objects.
+
+</P>
+<P>
+- Monte discovered that direct X10 commands like 'house XA1AJ' didn't work.
+Note you can also enter direct X10 commands directly in the Tk
+Command/search field. 
+
+</P>
+<P>
+- CyberLink discovered that mh/code/public/mp3_control_GQmpeg.pl got
+overwritten in 2.24.
+
+</P>
+<P>
+- Improved error processing if voice_cmd=MS and the MS VR engine is not
+installed.
+
+</P>
+<P>
+- Fixed member name parsing, so mh can be in a dir with a . (e.g.
+misterhouse-2.26).
+
+</P>
+<P>
+- Fixed a minor get_tv_grid error with vcr links on shows that cont.
+between grids.
+
+</P>
+<P>
+- Fixed a bug that disabled simultaneous X10 Group action with a CM11.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_22_posted_on_06_24_00">Version 2.22 posted on 06/24/00</A></H2>
+<P>
+Version 2.22 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A>
+  <A HREF="http://misterhouse.sourceforge.net">http://misterhouse.sourceforge.net</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Updated all items that have states (Voice_Cmd, Serial_Item, X10_Item,
+iButton, IR_Item) to inherit Generic_Item methods. This allows for easier
+maintance of common methods.
+
+</P>
+<P>
+- Bill Sobel and I came up with 2 new methods for Generic_Item: tie_items
+and tie_event. Per the above change, this is inherited by all state items.
+When an item's state changes, so will the state of all items tied to it.
+For example, if we have this:
+
+</P>
+<P>
+<PRE>  $indoor_fountain   = new X10_Appliance 'C3';
+  $v_indoor_fountain = new Voice_Cmd 'Indoor fountain [on,off]';
+</PRE>
+</P>
+<P>
+Then instead of this:
+
+</P>
+<P>
+<PRE>  set $indoor_fountain $state if $state = state_now $v_indoor_fountain;
+</PRE>
+</P>
+<P>
+We can do this:
+
+</P>
+<P>
+<PRE>  $v_indoor_fountain -&gt; tie_items($indoor_fountain);
+</PRE>
+</P>
+<P>
+or use the indirect object style like this:
+
+</P>
+<P>
+<PRE>  tie_items $v_indoor_fountain $indoor_fountain;
+</PRE>
+</P>
+<P>
+- Another Bill Sobel idea was to allow for table based entries for codeing
+mh objects and events. With table data, we should be able to enable gui or
+web based front end tools for editing. Currently we have defined just one
+format defined, creativly named A (I suggested we call it Bill, but Bill
+didn't want the fame), but other formats (e.g. xml) should be easy to
+implement.
+
+</P>
+<P>
+To use, create one or more *.mht (mh table) files in your code directory,
+specifying the table format with Format=A at the top of the table. Then mh
+will process (on starup and reload) each record with
+mh/lib/read_table_A.pl, to create *.mhp (mh processed) files, which are
+then processed with all your other, normal mh code.
+
+</P>
+<P>
+Examples are in mh/code/bruce/*.mht and mh/code/test/*.mht. If you want to
+create another table format, all you need to do is create a
+mh/lib/read_table_xyz.pl member, then set Format=xyz.
+
+</P>
+<P>
+- Updated tk_radiobutton and tk_entry so they can now use state objects,
+like Generic_Item. This allows for easier triggering and auto-saving of Tk
+entered changes. Here is an example (from mh/code/examples/tk_examples.pl):
+
+</P>
+<P>
+<PRE>  $mp3_search_text =  new Generic_Item;
+  $mp3_search_text -&gt; tie_event('print_log &quot;mp3 search text is now $state&quot;');
+  &amp;tk_entry('mp3 Search', $mp3_search_text);
+</PRE>
+</P>
+<P>
+- Douglas Nakakihara sent in a pointer mrMP3, a mh compatable Windows mp3
+player he wrote. The mh code he wrote to control it, along with a download
+url, is in mh/code/public/mp3_control_mrMP3.pl
+
+</P>
+<P>
+- Added an example of how to push data from mh to a java applet I got from
+the Linux Home Automation mailing list (http://linuxha.sourceforge.net)
+called tattler, written by John W. Klar. To test, include
+mh/code/test/tattler.pl with your code and point your java enabled browser
+to <A
+HREF="http://localhost:8080/tattler">http://localhost:8080/tattler</A>
+
+</P>
+<P>
+- Bill Sobel added X10_IrrigationController to support the RCI X10 based
+sprinkler system ( <A
+HREF="http://ourworld.compuserve.com/homepages/rciautomation/p6.htm">http://ourworld.compuserve.com/homepages/rciautomation/p6.htm</A>
+).
+
+</P>
+<P>
+- Added initial (untested) support for sending X10 commands via the Marrick
+interface.
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Bill Sobel has updated mh/lib/compool.pm and added mh/lib/weather.pm
+
+</P>
+<P>
+- Dan Wilga sent in various improvements to http_server.pl, including
+correctly mime-typing external files.
+
+</P>
+<P>
+- Brent Gross added a -type option to ftp, so we can upload/download binary
+files also.
+
+</P>
+<P>
+- Monte Freeman cleaned up and reformated mh/bin/mh.ini
+
+</P>
+<P>
+- Fixed get_tv_grid to work with a new clicktv format.
+
+</P>
+<P>
+- Fixed a bug in sendkeys_find_window that could cause mh to hang if the
+program was not able to start.
+
+</P>
+<P>
+- Changed mh to not create empty _loopcode subroutines.
+
+</P>
+<P>
+- Commented out the Cyan console color change, for win32 mh users. If
+anyone wants this as an option, let me know.
 
 </P>
 <P>

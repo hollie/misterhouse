@@ -24,19 +24,22 @@ sub serial_item_by_id {
 
 sub new {
     my ($class, $id, $state, $port_name) = @_;
-    my $self = {};
+    my $self = {state => ''};
 #   print "\n\nWarning: duplicate ID codes on different Serial_Item objects:\n " .
 #         "id=$id state=$state states=@{${$serial_item_by_id{$id}}{states}}\n\n" if $serial_item_by_id{$id};
     $$self{port_name} = $port_name;
     &add($self, $id, $state);
     bless $self, $class;
-    $self->set_interface($port_name) if $id =~ /^X/;
+    $self->set_interface($port_name) if $id and $id =~ /^X/;
     return $self;
 }
 sub add {
     my ($self, $id, $state) = @_;
+                                # Allow for Serial_Item's without states
+    $state = 'default_state' unless defined $state;
+
     $$self{state_by_id}{$id} = $state if $id;
-    $$self{id_by_state}{$state} = $id;           # Note: State is optional
+    $$self{id_by_state}{$state} = $id;
     push(@{$$self{states}}, $state);
     push(@{$serial_items_by_id{$id}}, $self) if $id;
 }
@@ -125,10 +128,10 @@ sub stop {
 }
 
 sub said {
-    my $port_name = @_[0]->{port_name};
+    my $port_name = $_[0]->{port_name};
     my $datatype  = $main::Serial_Ports{$port_name}{datatype};
     
-    if ($datatype eq 'raw') {
+    if ($datatype and $datatype eq 'raw') {
         if (my $data = $main::Serial_Ports{$port_name}{data}) {
             $main::Serial_Ports{$port_name}{data} = '';
             return $data;
@@ -162,8 +165,7 @@ sub set_data {
 
 sub set_receive {
     my ($self, $state) = @_;
-                                # Only add to the list once per pass
-    &Generic_Item::set_states_for_next_pass($self, $state) unless defined $self->{state_next_pass};
+    &Generic_Item::set_states_for_next_pass($self, $state);
 }
 
 sub set_dtr {
@@ -192,8 +194,10 @@ sub set_rts {
 
 sub set {
     my ($self, $state) = @_;
-                                # Only add to the list once per pass
-    &Generic_Item::set_states_for_next_pass($self, $state) unless defined $self->{state_next_pass};
+                                # Allow for Serial_Item's without states
+    $state = 'default_state' unless defined $state; 
+
+    &Generic_Item::set_states_for_next_pass($self, $state);
 
     return unless %main::Serial_Ports;
 
@@ -212,14 +216,19 @@ sub set {
 
     return if $main::Save{mode} eq 'offline';
 
-    if ($$self{interface} eq 'cm11') {
+    my $interface = $$self{interface};
+    $interface = 'none' unless $interface;
+    if ($interface eq 'cm11') {
                                 # If code is &P##, prefix with item code.
         if (substr($serial_data, 0, 1) eq '&') {
             $serial_data = $self->{x10_id} . $serial_data;
         }
-                                # Extended data will have & starting the function code
-                                #  - e.g. XO7&P23 -> Device O7 to Preset Dim code 23
-        if (substr($serial_data, 3, 1) eq '&') {
+                                # Allow for:
+                                # - Extended data will have & starting the function code 
+                                #   e.g. XO7&P23 -> Device O7 to Preset Dim code 23
+                                # - Bright/dim on house codes: e.g. XA+20 (but not XA1A+20)
+        if (length $serial_data > 3 and substr($serial_data, 3, 1) eq '&' or
+            $serial_data =~ /^\S\S[\+\-]/) {
             &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 1));
         }
                                 # Normal data ... call once for the Unit code, once for the Function code
@@ -228,25 +237,25 @@ sub set {
             &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 3)) if length($serial_data) > 3;
         }
     }
-    elsif ($$self{interface} eq 'cm17') {
+    elsif ($interface eq 'cm17') {
                                 # cm17 wants XA1K, not XA1AK
         substr($serial_data, 3, 1) = '';
         &ControlX10::CM17::send($main::Serial_Ports{cm17}{object}, substr($serial_data, 1));
     }
-    elsif ($$self{interface} eq 'homevision') {
+    elsif ($interface eq 'homevision') {
         print "Using homevision to send: $serial_data\n";
         &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
     }
-    elsif ($$self{interface} eq 'homebase') {
+    elsif ($interface eq 'homebase') {
         print "Using homebase to send: $serial_data\n";
         &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 1, 2));
         &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 3)) if length($serial_data) > 2;
     }
-    elsif ($$self{interface} eq 'houselinc') {
+    elsif ($interface eq 'houselinc') {
         print "Using houselinc to send: $serial_data\n";
         &HouseLinc::send_X10($main::Serial_Ports{HouseLinc}{object}, $serial_data);
     }
-    elsif ($$self{interface} eq 'marrick') {
+    elsif ($interface eq 'marrick') {
         print "Using marrick to send: $serial_data\n";
         &Marrick::send_X10($main::Serial_Ports{Marrick}{object}, $serial_data);
     }
@@ -301,7 +310,7 @@ sub set {
         }
         else {
             my $datatype  = $main::Serial_Ports{$port_name}{datatype};
-            $serial_data .= "\r" unless $datatype eq 'raw';
+            $serial_data .= "\r" unless $datatype and $datatype eq 'raw';
             my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
             
 #           &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::config_parms{debug} eq 'serial';
@@ -339,6 +348,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.39  2000/08/19 01:22:36  winter
+# - 2.27 release
+#
 # Revision 1.38  2000/06/24 22:10:54  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

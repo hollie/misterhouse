@@ -6,57 +6,57 @@ my ($VTxt, $VTxt_festival, $VTxt_Outloud, $save_mute_esd, $save_change_volume, %
 
 sub init {
 
-	if ($main::config_parms{voice_text} =~ /festival/i) {
-		print "Creating festival TTS socket\n";
-		my $festival_address = "$main::config_parms{festival_host}:$main::config_parms{festival_port}";
-		$VTxt_festival = new  Socket_Item(undef, undef, $festival_address);
-		start $VTxt_festival;
+    if ($main::config_parms{voice_text} =~ /festival/i) {
+        print "Creating festival TTS socket\n";
+        my $festival_address = "$main::config_parms{festival_host}:$main::config_parms{festival_port}";
+        $VTxt_festival = new  Socket_Item(undef, undef, $festival_address);
+        start $VTxt_festival;
         if ($main::config_parms{festival_init_cmds}) {
             print "Data sent to festival: $main::config_parms{festival_init_cmds}\n";
             set $VTxt_festival qq[$main::config_parms{festival_init_cmds}];
         }
-	}
-	if ($main::config_parms{voice_text} =~ /vvo_speak/i) {
-		print "Creating ViaVoice Outloud socket\n";
-		my $vvo_speak_address = "$main::config_parms{vvo_host}:$main::config_parms{vvo_port}";
-		$VTxt_Outloud = new  Socket_Item(undef, undef, $vvo_speak_address);
-		start $VTxt_Outloud;
-	}
+    }
+    if ($main::config_parms{voice_text} =~ /vvo_speak/i) {
+        print "Creating ViaVoice Outloud socket\n";
+        my $vvo_speak_address = "$main::config_parms{vvo_host}:$main::config_parms{vvo_port}";
+        $VTxt_Outloud = new  Socket_Item(undef, undef, $vvo_speak_address);
+        start $VTxt_Outloud;
+    }
 
-	if ($main::config_parms{voice_text} =~ /ms/i and $main::OS_win) {
-		print "Creating voice MS TTS object\n";
-#       	$VTxt = CreateObject OLE 'Speech.VoiceText';
-		$VTxt = Win32::OLE->new('Speech.VoiceText');
-		unless ($VTxt) {
-			print "\n\nError, could not create Speech TTS object.  ", Win32::OLE->LastError(), "\n\n";
-			return;
-		}
+    if ($main::config_parms{voice_text} =~ /ms/i and $main::OS_win) {
+        print "Creating MS TTS object\n";
+#           $VTxt = CreateObject OLE 'Speech.VoiceText';
+        $VTxt = Win32::OLE->new('Speech.VoiceText');
+        unless ($VTxt) {
+            print "\n\nError, could not create Speech TTS object.  ", Win32::OLE->LastError(), "\n\n";
+            return;
+        }
 
-		print "Registering the MS TTS object\n";
-		$VTxt->Register("Local PC", "perl voice_text.pm");
-#		print "Setting speed\n";
-#		$VTxt->{Enabled} = 1;
-#		my $speed_old = $VTxt->{'Speed'};
-    	}
-    	return $VTxt;
+#       print "Registering the MS TTS object\n";
+        $VTxt->Register("Local PC", "perl voice_text.pm");
+#       print "Setting speed\n";
+#       $VTxt->{Enabled} = 1;
+#       my $speed_old = $VTxt->{'Speed'};
+        }
+        return $VTxt;
 }
 
 sub speak_text {
-	my(%parms) = @_;
-	my $pgm_root = $main::Pgm_Root;
+    my(%parms) = @_;
+    my $pgm_root = $main::Pgm_Root;
 
-	unless ($VTxt or $VTxt_festival or $VTxt_Outloud ) {
-		unless ($main::config_parms{voice_text}) {
-			print "Can not speak.  mh.ini entry for voice_text is disabled. Phrase=$parms{text}\n";
-		} else {
-			print "Can not speak.  Voice_Text object failed to create. Phrase=$parms{text}\n";
-       	 	}
-        	return;
-	}
+    unless ($VTxt or $VTxt_festival or $VTxt_Outloud ) {
+        unless ($main::config_parms{voice_text}) {
+            print "Can not speak.  mh.ini entry for voice_text is disabled. Phrase=$parms{text}\n";
+        } else {
+            print "Can not speak.  Voice_Text object failed to create. Phrase=$parms{text}\n";
+            }
+            return;
+    }
 
-	$parms{text} = force_pronounce($parms{text}) if %pronouncable;
+    $parms{text} = force_pronounce($parms{text}) if %pronouncable;
 
-	if ($VTxt_festival) {
+    if ($VTxt_festival) {
 #<SABLE>
 #<SPEAKER NAME="male1">
 #<VOLUME LEVEL="loud">
@@ -84,58 +84,59 @@ sub speak_text {
             $parms{text} = $prefix . $parms{text} . $suffix;
         }
         print "Data sent to festival: $parms{text}\n";
-		set $VTxt_festival qq[(SayText "$parms{text}")];
-	}
+        set $VTxt_festival qq[(SayText "$parms{text}")];
+    }
 
-	if ($VTxt_Outloud) {
-		set $VTxt_Outloud "speak";
-		print "Data sent to vvo_speak: speak\n";
-		$parms{text} =~ s/[\r,\n]/ /g;	# some text has returns and newlines, text must be one one line.
-		print "Data sent to vvo_speak: $parms{text}\n";
-		set $VTxt_Outloud qq[$parms{text}];
-	}
+    if ($VTxt_Outloud) {
+        set $VTxt_Outloud "speak";
+        print "Data sent to vvo_speak: speak\n";
+        $parms{text} =~ s/[\r,\n]/ /g;  # some text has returns and newlines, text must be one one line.
+        print "Data sent to vvo_speak: $parms{text}\n";
+        set $VTxt_Outloud qq[$parms{text}];
+    }
 
-	if ($VTxt) {
+    if ($VTxt) {
 
-		# Turn off vr while speaking ... SB live card will listen while speaking!
-		#  - this doesn't work.  TTS does not start right away.  Best to poll in Voice_Cmd
-#		&Voice_Cmd::deactivate;
+        # Turn off vr while speaking ... SB live card will listen while speaking!
+        #  - this doesn't work.  TTS does not start right away.  Best to poll in Voice_Cmd
+#       &Voice_Cmd::deactivate;
 
-	        my(%priority) = ('normal' => hex(200), 'high' => hex(100), 'veryhigh' => hex(80));
-		my(%type)     = ('statement' => hex(1), 'question' => hex(2), 'command' => hex(4),
+        my(%priority) = ('normal' => hex(200), 'high' => hex(100), 'veryhigh' => hex(80));
+        my(%type)     = ('statement' => hex(1), 'question' => hex(2), 'command' => hex(4),
                          'warning'   => hex(8), 'reading'  => hex(10), 'numbers' => hex(20),
                          'spreadsheet'   => hex(40));
-		$priority{$parms{'priority'}} = $parms{'priority'} if $parms{'priority'} =~ /\d+/; # allow for direct parm
-		$parms{'priority'} = 'normal' unless $priority{$parms{'priority'}};
-		$parms{'type'} = 'statement' unless $type{$parms{'type'}};
-		$parms{'speed'} = 170 unless defined $parms{'speed'};
+        $parms{type} = 'statement'  unless $parms{'type'};
+        $parms{speed} = 170         unless $parms{'speed'};
+        $parms{priority} = 'normal' unless $parms{priority};
+        $priority{$parms{'priority'}} = $parms{'priority'} if $parms{'priority'} =~ /\d+/; # allow for direct parm
         
-#		$VTxt->{'Speed'} = $parms{'speed'} if defined $parms{'speed'};
-		my ($priority, $type, $voice);
-		$priority = $priority{$parms{'priority'}};
-		$type = $type{$parms{'type'}};
+#       $VTxt->{'Speed'} = $parms{'speed'} if defined $parms{'speed'};
+        my ($priority, $type, $voice);
+        $priority = $priority{$parms{'priority'}};
+        $type = $type{$parms{'type'}};
                                 # Unfortunatly, the voice controls do not work with the 
                                 # '95 vintage Centigram text->speech engine :(
-#       	print "priority=$priority type=$type flag=", $priority | $type, "\n";
-        	$voice = qq[\\Vce=Speaker="$parms{voice}"\\] if $parms{voice};
-#       	$voice = q[\Chr="Angry"\\];
-#       	$voice = q[\\\\Vol=2222\\\\];
-#       	$voice = q[\\VOL=2222\\];
-#       	$voice = q[/Vol=2222/];
-#       	print "text=$parms{'text'}\n";
-#       	print "voice=$voice\n";
+#           print "priority=$priority type=$type flag=", $priority | $type, "\n";
+        $voice = qq[\\Vce=Speaker="$parms{voice}"\\] if $parms{voice};
+        $voice = '' unless $voice;
+#           $voice = q[\Chr="Angry"\\];
+#           $voice = q[\\\\Vol=2222\\\\];
+#           $voice = q[\\VOL=2222\\];
+#           $voice = q[/Vol=2222/];
+#           print "text=$parms{'text'}\n";
+#           print "voice=$voice\n";
 
-#       	$VTxt->Speak($voice . $parms{'text'}, ($priority | $type));
-#       	$VTxt->Speak($voice . $parms{'text'}, $priority, "Vce=Speaker=Biff")
-#       	print "Sending text to Speak object with voice=$voice type=$type, prioirty=$priority ...";
-#       	$VTxt->Speak($voice . $parms{'text'}, $priority, $voice);
-#       	$VTxt->Speak($voice . $parms{'text'}, $priority);
-#       	$VTxt->Speak($voice . $parms{'text'}, $type, $priority);
+#           $VTxt->Speak($voice . $parms{'text'}, ($priority | $type));
+#           $VTxt->Speak($voice . $parms{'text'}, $priority, "Vce=Speaker=Biff")
+#           print "Sending text to Speak object with voice=$voice type=$type, prioirty=$priority ...";
+#           $VTxt->Speak($voice . $parms{'text'}, $priority, $voice);
+#           $VTxt->Speak($voice . $parms{'text'}, $priority);
+#           $VTxt->Speak($voice . $parms{'text'}, $type, $priority);
 
-        	$VTxt->Speak($voice . $parms{'text'}, $priority);
+        $VTxt->Speak($voice . $parms{'text'}, $priority);
 
-#       	$VTxt->Speak($parms{'text'}, ($priority | $type));
-#       	$VTxt->Speak('Hello \Chr="Angry"\ there. Bruce is \Vce=Speaker=Biff\ a very smart idiot guy.', hex('201'));
+#           $VTxt->Speak($parms{'text'}, ($priority | $type));
+#           $VTxt->Speak('Hello \Chr="Angry"\ there. Bruce is \Vce=Speaker=Biff\ a very smart idiot guy.', hex('201'));
 
                                 # From Agent SpeechOutputTags2zip.doc
 #   Chr=Normal,Monotone,Whisper
@@ -187,17 +188,17 @@ sub read_pronouncable_list {
         $cnt++;
         $pronouncable{$word} = $phonemes;
     }
-    print "Read in $cnt pronouncable entries from $pronouncable_list_file\n";
+    print "Read $cnt entries from $pronouncable_list_file\n";
     close WORDS;
 }
 
 sub force_pronounce {
     my($phrase) = @_;
-	print "input  phrase is '$phrase'\n" if $main::config_parms{debug} eq 'voice';
+    print "input  phrase is '$phrase'\n" if $main::config_parms{debug} eq 'voice';
     for my $word (keys %pronouncable) {
         $phrase =~ s/\b$word\b/$pronouncable{$word}/gi;
     }
-	print "output phrase is '$phrase'\n" if $main::config_parms{debug} eq 'voice';
+    print "output phrase is '$phrase'\n" if $main::config_parms{debug} eq 'voice';
     return $phrase;
 }
     
@@ -205,6 +206,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.20  2000/08/19 01:22:36  winter
+# - 2.27 release
+#
 # Revision 1.19  2000/05/06 16:34:32  winter
 # - 2.15 release
 #

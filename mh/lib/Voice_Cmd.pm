@@ -14,7 +14,7 @@ my $confirm_timer = &Timer::new();
 sub init {
 
     if ($main::config_parms{voice_cmd} =~ /ms/i and $main::OS_win) {
-        print "Creating MS voice command object\n";
+        print "Creating MS VR object\n";
         $Win32::OLE::Warn = 1;   # Warn if ole fails
 #       $Win32::OLE::Warn = 3;   # Die  if ole fails
         $Vcmd_ms  = &create_voice_command_object;
@@ -48,7 +48,7 @@ sub reset {
     else {
         undef %cmd_num_by_text;
         undef %cmd_by_num;
-        &remove_voice_cmds;
+#       &remove_voice_cmds;  No need ... only reloading code here
     }
 }
 
@@ -92,9 +92,8 @@ sub create_voice_command_object {
 
     return unless $main::OS_win;
 
-    print "Creating voice VR object\n";
+#   print "Creating MS voice VR object\n";
 
-#   $Vcmd_ms = CreateObject OLE 'Speech.VoiceCommand';
     $Vcmd_ms = Win32::OLE->new('Speech.VoiceCommand');
 
     unless ($Vcmd_ms) {
@@ -103,6 +102,11 @@ sub create_voice_command_object {
     }
 
     $Vcmd_ms->Register("Local PC");
+    if (Win32::OLE->LastError()) {
+        print "\n\nError, could not Register ms Speech VR object\n";
+        delete $main::config_parms{voice_cmd}; # Disable for future reloads 
+        return;
+    }
 
     print "Awakeing speech command.  Currently it is at ", $Vcmd_ms->{Awake}, "\n" if $main::config_parms{debug} eq 'voice';
     $Vcmd_ms->{Awake} = 1;
@@ -163,7 +167,9 @@ sub check_for_voice_cmd {
         $text = substr($text, 1); # Drop the leading 00 byte (not sure why we get that)
 
         $noise_this_pass = $text;
-        ($cmd_heard) = $text =~ /^Said: (.+)/;
+#       ($cmd_heard) = $text =~ /^Said: (.+)/;
+        ($cmd_heard) = $text =~ /Said: (.+)/; # Patch from the list ... not sure why this is needed
+
         if (defined $cmd_heard) {
             $noise_this_pass = 0;
             $number = $cmd_num_by_text{$cmd_heard};
@@ -258,7 +264,7 @@ sub remove_voice_cmds {
         $Vmenu_ms->{Active} = 0;
         my ($vitems_removed, $number);
         $vitems_removed = 0;
-        print "Removing $cmd_num voice items ... ";
+        print "Removing voice items ... ";
         foreach $number (keys %cmd_by_num) {
             $Vmenu_ms->Remove($number);
             $vitems_removed++;
@@ -331,6 +337,7 @@ sub _register {
     my $text  = $self->{text};
     my $vocab = $self->{vocab};
     my $info  = $self->{info};  # Dang, info gets set AFTER we define the object :(
+    $info = '' unless $info;
     $vocab = "mh" unless $vocab;
     my $description = "$text: $info\n";
 #   print "Voice_Cmd text: $text\n";
@@ -357,13 +364,17 @@ sub _register {
     $index1 = $index2 = 0;
     $i = 0;
     while (1) {
-        my $cmd;
+        my $cmd = '';
         for my $j (0 .. $index_last) {
+            $data[$j]{index} = 0 unless $data[$j]{index};
             $cmd .= $data[$j]{text}[$data[$j]{index}];
         }
-        my $state = $data[$index_state]{text}[$data[$index_state]{index}];
-                                      # These commands have no real states ... there is no enumeration
-        $state = 1 if $state eq $cmd; #  - avoid saving the whole name as state.  Too much for state_log displays
+        my $state = $data[$index_state]{text}[$data[$index_state]{index}] if defined $index_state;
+
+                                # These commands have no real states ... there is no enumeration
+                                #  - avoid saving the whole name as state.  Too much for state_log displays
+        $state = 1 if !$state or $state eq $cmd;
+
         my $cmd_num = &_register2($self, $cmd, $vocab, $description);
         $cmd_state_by_num{$cmd_num} = $state;
 
@@ -388,16 +399,16 @@ sub _increment_indexes {
             $index1 = 0;
                                 # Find the next unused index2 group entry
             while (1) {
-                $index2++;
-                last if $data[$index2]{index} < $data[$index2]{last} or $index2 > $index_last;
+                last if ++$index2 > $index_last;
+                last if $data[$index2]{index} < $data[$index2]{last};
             }
             $data[$index2]{index}++;
         }
         else {
                                 # Find the next unused index1 group entry
             while (1) {
-                $index1++;
-                last if $data[$index1]{index} < $data[$index1]{last} or $index1 > $index_last;
+                last if ++$index1 > $index_last;
+                last if $data[$index1]{index} < $data[$index1]{last};
             }
             $index2 = $index1 if $index1 > $index2;
                                 # Reset indexes and index1
@@ -437,14 +448,15 @@ sub _register2 {
 
                                 # Always re-add the ms voice cmd
     if ($Vmenu_ms) {
-#	    print "Voice cmd num=$cmd_num text = ", $text, ".\n";
-        $Vmenu_ms->Add($cmd_num, $text, $vocab, $des);
+#	    print "Voice cmd num=$cmd_num text=$text v=$vocab des=$des\n";
+        $Vmenu_ms->Add($cmd_num, $text, $vocab, $des) if $text;
         print Win32::OLE->LastError() if Win32::OLE->LastError(0);
     }
                                 # If it is not in the default vocabulary, save it and add it later
     if ($Vcmd_viavoice and $Vcmd_viavoice->active) {
         if ($vocab eq '' or $vocab eq 'mh') {
             $Vcmd_viavoice->set($text);
+            select undef, undef, undef, .01; # Need this for now to avoid viavoice_server 'no data' error
         }
         else {
             push(@{$cmd_text_by_vocab{$vocab}}, $text);
@@ -566,6 +578,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.23  2000/08/19 01:22:36  winter
+# - 2.27 release
+#
 # Revision 1.22  2000/06/24 22:10:54  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

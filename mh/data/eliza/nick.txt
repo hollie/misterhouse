@@ -64,7 +64,7 @@ key: xblank -1
     reasmb: I hate mimes!
     reasmb: Cat got your tongue?
     reasmb: Don't tell me you have too much carpel tunnel syndrome to type in just a few measly letters!
-    reasmb: Did your fingers get shot off in Vietnam or are you just too lazy to type in a message?
+    reasmb: Did your fingers get shot off or are you just too lazy to type in a message?
 key: xnone -1
   decomp: *
 	reasmb: NetHack will show you the way!

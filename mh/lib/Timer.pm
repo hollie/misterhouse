@@ -1,6 +1,6 @@
 
-package Timer;
 use strict;
+package Timer;
 
 my ($class, $self, $id, $state, $action, $repeat, @timers_with_actions, $resort_timers_with_actions, $timer_loop_count);
 
@@ -41,7 +41,7 @@ sub delete_timer_with_action {
     while ($i <= $#timers_with_actions) {
         print "testing i=$i timer=$timer\n" if $main::config_parms{debug} eq 'misc';
         if ($timers_with_actions[$i] eq $timer) {
-            print "db deleing timer $timer\n";
+#           print "db deleting timer $timer\n";
             splice(@timers_with_actions, $i, 1);
             last;
         }
@@ -49,10 +49,12 @@ sub delete_timer_with_action {
     }
 }
 
+
 sub new {
-    ($class, $id, $state) = @_;
-    $self = {};
-    bless $self, $class;
+    my ($class, $id, $state) = @_;
+    my $self = {};
+                                # Not sure why this gives an error without || Timer
+    bless $self, $class || 'Timer';
     return $self;
 }
 
@@ -82,7 +84,7 @@ sub set {
         $self->{repeat}      = $repeat;
         if ($action) {
             $self->{action} = $action;
-            print "action timer s=$self a=$action s=$state\n" if $main::config_parms{debug} eq 'misc'
+            print "action timer s=$self a=$action s=$state\n" if $main::config_parms{debug} eq 'misc';
             &delete_timer_with_action($self); # delete possible previous 
             push(@timers_with_actions, $self);
             $resort_timers_with_actions = 1;
@@ -94,6 +96,10 @@ sub set {
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
 }    
+
+sub resort_timers_with_actions {
+    $resort_timers_with_actions = 1;
+}
 
 sub unset {
     ($self) = @_;
@@ -248,6 +254,9 @@ sub inactive {
 
 #
 # $Log$
+# Revision 1.15  2000/08/19 01:22:36  winter
+# - 2.27 release
+#
 # Revision 1.14  2000/02/12 06:11:37  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

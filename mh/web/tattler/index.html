@@ -1,0 +1,40 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>Tattler test</title>
+
+	<script>
+	  function tattle(msg) {
+	  	alert("Pong: "+msg);
+	  }
+	  function Mess(msg) {
+	  	alert("Mess: "+msg);
+	  }
+	</script>
+  </head>
+
+  <body>
+    <h1>Tattler test</h1>
+
+<p>If this is working, MisterHouse should send you 3 javascript popup messages, one every 10 seconds, with a random tagline.
+<p>Click refresh to cycle another set of popups.
+
+<p>	<applet code="tattler.class" archive="/tattler/tattler.jar" width=150 height=25 mayscript>
+	  <param name="dstPort" value=7010></param>
+	  <param name="tgtFunction" value="Mess"></param>
+		
+	</applet>
+
+  </body>
+
+<p>WARNING:  IE 5.0 (maybe others?) has a problem that it will crash if you leave this page before it 
+has closed the connection!  Wait for the 'thanks for dropping by' message, then exit.
+
+
+<p>Tattler applet complements of John W. Klar, Jr.  More info
+<a href=/tattler/README.txt>in this README</a>.  Latest version is
+<a href=http://www.projectplasma.com/tattler/index.html>here</a>
+
+<p>Here is the <a href=/tattler/tattleClientThread.java.txt>tattleClientThread.java source code</a>
+<p>Here is the <a href=http://misterhouse.net/mh/code/test/tattler.pl>MisterHouse server code</a>
+</html>

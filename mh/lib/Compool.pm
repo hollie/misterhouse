@@ -27,7 +27,7 @@
 #
 #    Add these entries to your mh.ini file:
 #
-#    Compool_port=COM2
+#    Compool_serial_port=COM2
 # 
 #    bsobel@vipmail.com'
 #    May 16, 2000
@@ -46,16 +46,16 @@ my (%Compool_Data,@compool_command_list,$temp);
 #
 # This code create the serial port and registers the callbacks we need
 #
-sub startup
+sub serial_startup
 {
-    if ($::config_parms{Compool_port}) 
+    if ($::config_parms{Compool_serial_port}) 
     {
         my($speed) = $::config_parms{Compool_baudrate} || 9600;
-        if (&::serial_port_create('Compool', $::config_parms{Compool_port}, $speed, 'none', 'raw')) 
+        if (&::serial_port_create('Compool', $::config_parms{Compool_serial_port}, $speed, 'none', 'raw')) 
         {
             init($::Serial_Ports{Compool}{object}); 
-            &::MainLoop_pre_add_hook( \&Compool::UserCodePreHook,  1 );
-            &::MainLoop_post_add_hook(\&Compool::UserCodePostHook, 1 );
+            &::MainLoop_pre_add_hook( \&Compool::UserCodePreHook,   1 );
+            &::MainLoop_post_add_hook( \&Compool::UserCodePostHook, 1 );
         }
     }
 }
@@ -130,47 +130,54 @@ sub UserCodePreHook
                                 # WES handle object invocation.  Loop thru all current commands and
                                 # set tied objects to the corosponding state.
                                 my $object;
+                                my @tied_item_activation_list;
                                 foreach $object (@compool_item_list)
                                 {
                                     if($object->state_now)
                                     {
-                                        #unshift(@{$$object{state_log}}, "$main::Time_Date $object->state_now");
-                                        #pop @{$$object{state_log}} if @{$$object{state_log}} > $main::config_parms{max_state_log_entries};
-
-                                        print "Object link: starting enumeration\n" if $main::config_parms{debug} eq 'events';
-                                        my $ref;
-                                        foreach $ref (@{$object->{'objects'}})
-                                        {
-                                            my $state;
+                                        push(@tied_item_activation_list, $object);
+                                    }
+                                }
+                                &main::check_for_tied_events(@tied_item_activation_list);
+=pod
+                                my $object;
+                                foreach $object (@compool_item_list)
+                                {
+                                    if($object->state_now)
+                                    {
+                                        print "Object link: starting enumeration for object=$object\n" if $::config_parms{debug} eq 'events';
+                                        my ($ref, $state);
+                                        for $ref (@{$object->{'tied_objects'}}) {
                                             $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
-                                            print "Object link: Setting $ref->[0] to $state\n" if $main::config_parms{debug} eq 'events';
+                                            print "Object link: Setting $ref->[0] to $state\n" if $::config_parms{debug} eq 'events';
                                             $ref->[0]->set($state);
                                         }
-                                        foreach $ref (@{$object->{'objects:'.lc($object->state)}})
-                                        {
-                                            my $state;
+                                        for $ref (@{$object->{'tied_objects:'.lc($object->state)}}) {
                                             $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
-                                            print "Object link: Setting $ref->[0] to $state\n" if $main::config_parms{debug} eq 'events';
+                                            print "Object link: Setting $ref->[0] to $state\n" if $::config_parms{debug} eq 'events';
                                             $ref->[0]->set($state);
                                         }
 
-                                        print "Event link: starting enumeration\n" if $main::config_parms{debug} eq 'events';
-                                        foreach $ref (@{$object->{'events'}})
-                                        {
-                                            print "Event link: starting eval\n" if $main::config_parms{debug} eq 'events';
-                                            package main;   
-                                            eval $ref->[0];
+                                        for $ref (@{$object->{'tied_events'}}) {
+                                            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
+                                            print "Event link: starting eval\n" if $::config_parms{debug} eq 'events';
+                                            package main;
+                                            eval "$ref->[0]";
+                                            print $@ if $@;
                                             package Compool;
+
                                         }
-                                        foreach $ref (@{$object->{'events:'.lc($object->state)}})
-                                        {
-                                            print "Event link: starting eval\n" if $main::config_parms{debug} eq 'events';
-                                            package main;   
-                                            eval $ref->[0];
+                                        for $ref (@{$object->{'tied_events:'.lc($object->state)}}) {
+                                            $state = ($ref->[1] ne undef) ? $ref->[1] : $object->state;
+                                            print "Event link: starting eval\n" if $::config_parms{debug} eq 'events';
+                                            package main;
+                                            eval "$ref->[0]";
+                                            print $@ if $@;
                                             package Compool;
                                         }
                                     }
                                 }
+=cut
                             }
                         }
                         else
@@ -608,6 +615,9 @@ sub get_heatsource_now
 sub send_command
 {
     my ($serial_port, $command) = @_;
+
+    return if $serial_port == undef;
+
     my $Compool_Command_Header = "\xFF\xAA\x00\x01\x82\x09";
 
     my $Checksum = unpack("%16C*", $Compool_Command_Header . $command) % 65536;
@@ -674,9 +684,11 @@ sub read_packet
 #
 package Compool_Item;
 
+@Compool_Item::ISA = ('Generic_Item');
+
 sub new 
 {
-    my ($class, $device, $serial_port, $comparison, $limit) = @_;
+    my ($class, $device, $comparison, $limit, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Compool}{object} if ($serial_port == undef);
 
     if(($comparison ne undef) and ($comparison ne '<' and $comparison ne '>' and $comparison ne '='))
@@ -685,7 +697,7 @@ sub new
         return;
     }
 
-    my $self = {device => $device, serial_port => $serial_port, comparison => $comparison, limit => $limit};
+    my $self = {device => $device, comparison => $comparison, limit => $limit, serial_port => $serial_port};
     bless $self, $class;
 
     push(@compool_item_list,$self);
@@ -849,50 +861,6 @@ sub set_with_timer
 {
     my ($self, $targetstate, $time) = @_;
     return &Compool::set_device_with_timer($self->{serial_port}, $self->{device}, $targetstate, $time);
-}
-
-sub state_log {
-    my ($self) = @_;
-    return @{$$self{state_log}} if $$self{state_log};
-}
-
-sub add_object
-{
-    return unless $main::Reload;
-    my ($self) = shift @_;
-    my ($object, $state, $desiredstate);
-    ($object, $state, $desiredstate) = @_ if $self->{comparison} eq undef;
-    ($object, $desiredstate) = @_ if $self->{comparison} ne undef;
-
-    if($state eq undef)
-    {
-        push(@{$self->{'objects'}}, [$object, $desiredstate]);
-    }
-    else
-    {
-        push(@{$self->{'objects:'.lc($state)}}, [$object, $desiredstate]);
-    }
-    return;
-}
-
-sub add_event
-{
-    return unless $main::Reload;
-    my ($self) = shift @_;
-    my ($event, $state);
-    ($event, $state) = @_ if $self->{comparison} eq undef;
-    ($event) = @_ if $self->{comparison} ne undef;
-
-    my ($self, $event, $state) = @_;
-    if($state eq undef)
-    {
-        push(@{$self->{'events'}}, [$event]);
-    }
-    else
-    {
-        push(@{$self->{'events:'.lc($state)}}, [$event]);
-    }
-    return;
 }
 
 1;

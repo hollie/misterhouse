@@ -270,7 +270,7 @@ Here are 2 LCD displays with programable serial interfaces:
 
   http://www.crystalfontz.com/products/634/index.html  $60
 
-  http://linuxcentral.com/products/modm/  $80 ($101 with keypad interface)
+  http://linuxcentral.com  $80 ($101 with keypad interface)
 
 The first display is a bit newer, bigger, brighter, cheaper.  But the second
 one has a version that include a 4x4 keypad interface (keypad available from
@@ -305,11 +305,14 @@ Good sources of information on the WX200/WM918 weather stations are at
 http://wx200.planetfall.com/  and  http://www.weatherwatchers.org/wxstation/WX-200/ .
 $200->$300 at Radio Shack or $200 from http://www.heartlandamerica.com (search for weather, model WW22- 3350)
 
+There is also now a new WMR-918, which is a wireless version, available for about $350.  An mh interface is being worked on.
+
 iButton is a family of devices that can all talk to a '1 wire' interface.
 Here are some urls and prices:
 
   http://www.ibutton.com (pick shop online)
-    - $15 DS9097U-009 + DS1402D-DR8l for the serial interface
+    - $15 DS9097U-009 or -S09 + DS1402D-DR8l for the serial interface
+      Note:  The DS9097, DS9097E, or parallel port adaptors will not work with mh
     -  $3 DS1990A-F5  for 64 bit ID buttons.
  
   http://www.pointsix.com
@@ -350,8 +353,6 @@ important ones and their defaults:
 =item code_dir=\mh\code\test
 
 Points to the directory that has the user code files in it.
-  
- 
 
 =item html_root=$Pgm_Root/web
 
@@ -359,15 +360,22 @@ Points to the directory that has the user code files in it.
 
 Points to where the web interface html files are.
 
-   
-
 =item http_port=8080
 
 Use 80 if you want to use the normal web port (i.e. http://localhost ).
 If using something other than 80 (because you already have a web server 
 running), add :port to url (e.g.  http://localhost:8080 ).
 
- 
+=item server_telnet_port=23
+
+Use 23 to enable access via 'telnet localhost', if you are running the mh/code/testtelnet.pl member.
+If you use a different port, you can still get to the port with 'telnet localhost port_number'.
+
+=item diagnostics=1
+
+Set this (or w=1) to enable perl -w warning messages on potential code errors. 
+mh runs about 10% slower with this option on.
+
 
 =item run=perl_script
 
@@ -376,13 +384,6 @@ arbitrary perl script, without having to have perl installed.   See the get_weat
 or set_clock.bat files for examples.   This also allows is to use the mh run command to spawn a separate
 mh process to run longer running perl steps, even if we do not have perl installed.  A Win32 'fork' command
 would be cleaner, but alas, no forks.
-
- 
-
-=item server1_port=23
-
-Use 23 to enable access via 'telnet localhost', if you are running the mh/code/testtelnet.pl member.
-If you use a different port, you can still get to the port with 'telnet localhost port_number'.
 
  
 
@@ -513,7 +514,7 @@ You can use this object to store and query arbitrary data.  This is more useful 
 code files, since 'my' variables are local to a code file.  States of these items are also saved/restored when
 mh is stopped/started.
 
-All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd) inherit all Generic_Item methods.
+All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd, Group) inherit all Generic_Item methods.
 
   Methods:
      new
@@ -521,12 +522,21 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
      state_now    :
      set          :
 
-     tie_items($item)  :  If the state of the generic_item changes, then 
-                          the state of $item will be set to that same state
+     tie_items($item)   :  If the state of the generic_item changes, then 
+                           the state of $item will be set to that same state
+     untie_items($item) :  Untie $item
 
-     tie_events($code) :  It the state of the generic_item changes, then
-                          Code string $code will trigger, with the variable
-                          $state getting expanded.
+     tie_events($code)  :  It the state of the generic_item changes, then
+                           Code string $code will trigger, with the variable
+                           $state getting expanded.
+     untie_items($code) :  Untie $code
+
+     get_chaged_by      :  Returns which tied object caused this objects state to change.
+
+The tie/untie methods can be done conditionally, so you can change what is tied to what on the fly.
+If you do this, however, you need to also make sure you also make the tie* methode call 
+on $Reload, as the objects tie items/events are currently not stored between reloads.
+
 
   Examples:
      $tv_grid = new Generic_Item;
@@ -544,6 +554,16 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
      $v_indoor_fountain  = new Voice_Cmd 'Indoor fountain [on,off]';
      $v_indoor_fountain -> tie_items($indoor_fountain);
      $v_indoor_fountain -> tie_event('speak "Ok, fountain was turned $state"');
+
+     if ($state = state_now $test_button) {
+        my $ref = get_changed_by $test_button;
+        print_log "Test button's was set to $state by $ref->{object_name}" if $ref;
+     }
+
+
+See mh/code/examples/generic_item.pl for more examples.
+See mh/code/examples/test_tie.pl for more examples on how to tie/untie items/events.
+
 
 =item Group
 
@@ -563,6 +583,8 @@ You can use this object to group and operate on groups of items:
      $outside_lights-> add($light4, $light5);
      $outside_lights-> add($light6);
      set $outside_lights ON if time_now("$Time_Sunset + 0:15");
+
+See mh/code/examples/test_group.pl for more examples.
 
 
 =item iButton_Item
@@ -890,6 +912,8 @@ will show up as a popup window
                           and is_available $tnc_output; 
 
 
+See mh/code/examples/serial_port_examples.pl for more Serial_Item examples.
+
 
 =item X10_Item
 
@@ -1037,8 +1061,8 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
 
     $Vcmd_viavoice = new  main::Socket_Item(undef, undef, 'localhost:3234', 'viavoice');
 
-    More examples are in mh/code/bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
-    my/code/bruce/mh_watchdog.pl, and mh/code/test/socket_test.pl
+More examples are in mh/code/bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
+my/code/bruce/mh_watchdog.pl, and mh/code/test/socket_test.pl
 
 
 =item Timer
@@ -1155,6 +1179,7 @@ this is useful as these commands can also be run from the Tk, web, telnet, and f
     $v_fan   = new Voice_Cmd 'Fan [on,off]', 'Ok, I turned the fan $v_indoor_fountain->{said}';
     $v_fan   = new Voice_Cmd 'Fan [on,off]', 'Ok, I turned the fan %STATE%';
 
+See mh/code/examples/Voice_Cmd_enumeration.pl for more Voice_Cmd examples
 
 In addition to the said command on a specific object, you can use
 &Voice_Cmd::said_this_pass  to detect which command was spoken this pass and 
@@ -1181,6 +1206,17 @@ See mh/code/bruce/lcdproc.pl for more examples.
 
 =over
 
+
+=item browser
+
+Calls up the web browser defined my the mh.ini browser parm
+
+  Examples: 
+
+    browser 'http://misterhouse.net';
+    browser "$config_parms{tracking_dir}/today.html" if said $v_show_tracking;
+
+
 =item convert_k2f
 
 =item convert_c2f
@@ -1204,7 +1240,7 @@ Converts 0->360 degrees into north, north east, east, etc
 
 =item display
 
-Displays the specified string or file.
+Displays the specified text string, text file contents, or bitmap (.gif or .jpg).
 
   Usage:
 
@@ -1217,8 +1253,9 @@ Displays the specified string or file.
 
   Examples:
 
-    display("Internet message: $msg", 300, 'Internet message'); 
-    display($f_trivia_answer;);
+    display "Internet message: $msg", 300, 'Internet message'; 
+    display $f_trivia_answer;
+    display '/pictures/photo.jpg';
   
 
 =item file_changed (or older name of file_change)
@@ -1323,6 +1360,8 @@ Appends data into a log file.  Use file_write to write over a file.
       $log_format=## =>  Every log entry is preceded with a time_date stamp.
                          ## is passed to &time_date_stamp to determine the format.
                          Also, /r/n is stripped so we get only one record per call.
+
+                         The default  $log_format is 14.
 
       $head_tail     =>  If 1, data is logged to the top of the file, otherwise
                          it is added to the bottom.
@@ -1780,6 +1819,8 @@ Use this function to create radio buttons in the mh tk grid.  If labels are not 
 
 =back
 
+See mh/code/examples/tk_examples.pl for more tk_*  examples.
+
 =head2 List of Internet functions
 
 =over 4
@@ -2039,6 +2080,27 @@ An example of how to create these logs is in mh/code/bruce/phone.pl
   Usage: 
     display_callers (no argument -> uses latest logs) 
     display_callers 1997_11  (Look only at November, 1997 logs) 
+
+=item get_ceiva
+
+get_ceiva gets pictures from the 'now showing' folder of a Ceiva.com web page.
+
+  Usage: 
+   get_ceiva [options]
+
+    -h        => This help text
+
+    -username xyz => xyz is a ceiva member name
+    -password xyz => xyz is a ceiva password
+    -frame_id xyz => xyz is a ceiva frame_id
+
+    -outdir xyz   => xyz the directory the pictures will be put in
+    -browser xyz  => xyz is the path to your html browser
+    -reget        => Re-fetch the files, even if they look current
+
+  Examples:
+    get_ceiva -outdir /pictures/ceiva
+    get_ceiva -reget
 
 
 =item get_email
@@ -2684,6 +2746,15 @@ Then call them like this:
  <!--#include code="&web_func1"-->
  <!--#include code="&web_func2"-->
 
+One useful built in function is &dir_index, which can be used to create a directory
+listing of files in selected directories.  For example, if you have a web
+directory called pictures, create an index.shtml file, and include
+the following line:
+  
+    <!--#include code="&dir_index('/pictures','name',0)"-->
+
+You can have &dir_index sort by name, type, size, or date.  Set the 3rd argument to 1 for reverse sort order.
+See mh/web/graphics/index.shtml for an example.
 
 If you want to have only a few specific html controls, you can write your own html using the
 RUN, SET, and SET_VAR url keywords to control mh.  Here are a few examples:
@@ -2732,6 +2803,11 @@ Here are some examples demonstrating these options:
  the user defined function &my_response:
 
   <FORM ACTION="SET_VAR:&my_response">Test 1<INPUT SIZE=5 NAME="$Save{test_input1}"</form>
+
+You can also use RUN:h_response without a command.
+For example, if you want to get a directory listing, sorted by date (recent on top):
+
+  <a href=http://localhost:8080/RUN:&dir_index('/pictures','date',1)>List pictures by date </a>
 
 
 =head2 Voice Recognition (VR) and Text To Speech (TTS) on windows
@@ -2832,9 +2908,9 @@ called, use the &MainLoop_pre_add_hook and &MainLoop_post_add_hook functions to 
 
 =head1 KNOWN LIMITATIONS AND BUGS
 
-The JDS interface is untested.
+=head2 General bugs/limitations
 
-The web interface does not reset colors.
+The JDS and Marrick interface modules are untested.
 
 mh also has the the 'windows 49.7 day bug' (2**32 milliseconds) that has been in the news lately: 
 http://www.news.com/News/Item/0,4,33117,00.html?st.ne.ni.rel .
@@ -2853,29 +2929,13 @@ The problem is there are two different IO.DLL files, one in the FTP module and o
 Do a find in IO.DLL in your perl directory, and rename the one in the tk path. 
 
 
-Under windows, if 'run' calls give you an 'out of environment memory' error, create a command.pif
+=head2 Windows bugs/limitations
+
+If 'run' calls give you an 'out of environment memory' error, create a command.pif
 and change the memory, initial environment from auto to 4k.
 
-The compiled version of mh on linux gives a Segmentation fault on exit, but otherwise runs OK.
-
-The following functions do not work under Unix/Linux:
-
- - Voice Recognition IS supported under linux using IBM's ViaVoice SDK.
-   Potential candidates for VR engines other non-linux unix platforms are:
-
-     http://cslu.cse.ogi.edu/index.html 
-     http://WWW.ISIP.MsState.Edu/projects/speech_recognition/
-     http://www.tmt.de/~stephan/ears.html
-
- - The control keys from the console window do not work
-   (e.g. F1 to reload, F3 to exit).  Ctl-C works :)
-
- - Disk drive info (need to port from DriveInfo to df)
-
- - Linux KDE users should uncheck "Apply fonts and colors to non-KDE apps", 
-   or the black text on white windows shows up as white text.
-
-Windows Activestate perl 5.6 build 613 leaks memory.  On my box about 30 Meg a day. 
+Activestate perl 5.6 build 613 and 616 leaks memory.  On my box about 30 Meg, once a day. 
+Displaying .gif and .jpg files also leaks about 10x the picture size (e.g 10 50k photos -> 5 meg).
 
 Some people are getting CRC errors when running iButton code under Windows NT.
 
@@ -2883,6 +2943,25 @@ Adding, deleting, or changing Voice commands does is not recognized by the Windo
 applicatino while it is running.
 You have to exit and restart MSVoice, then restart mh to get it to recognize new commands.
 Hopefully we can get this to work with release 5.0 of the MS Speech SDK.
+
+
+=head2 Unix bugs/limitations
+
+Voice Recognition IS supported under linux using IBM's ViaVoice SDK.
+Potential candidates for VR engines other non-linux unix platforms are:
+
+     http://www.speech.cs.cmu.edu/sphinx/
+     http://cslu.cse.ogi.edu/index.html 
+     http://WWW.ISIP.MsState.Edu/projects/speech_recognition/
+     http://www.tmt.de/~stephan/ears.html
+
+The control keys from the console window do not work
+(e.g. F1 to reload, F3 to exit).  Ctl-C works :)
+
+Disk drive info (need to port from DriveInfo to df)
+
+Linux KDE users should uncheck "Apply fonts and colors to non-KDE apps", 
+or the black text on white windows shows up as white text.
 
 =head1 AUTHORS
 
@@ -2907,6 +2986,10 @@ Here is a list of articles written about MisterHouse:
   http://www.faribault.k12.mn.us/brian/aprs/
 
   http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf
+
+  http://www.itknowledge.com/tpj/issues/vol5_1/tpj0501-0006.html
+    (User login to The Perl Journal is required)
+
 
 The Circuit Cellar Ink article includes a diagram of how 
 to set up a house PA system, so you can control which rooms MisterHouse talks to.
@@ -2953,6 +3036,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.25  2000/08/19 01:22:35  winter
+# - 2.27 release
+#
 # Revision 1.24  2000/06/24 22:10:54  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

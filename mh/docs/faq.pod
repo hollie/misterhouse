@@ -242,13 +242,13 @@ You can also use something like mh/code/test/mhsend_server.pl
 and then read/write to sockets directly from non-mh web server cgi scripts.
 Or have the web server script simply call mh/bin/mhsend to run mh commands.
 
-=head 1.16 Is there a front-end tool for defining/editing mh items/events?
+=head2 1.16 Is there a front-end tool for defining/editing mh items/events?
 
 Not yet, but you can now define items/events in a table-like format.
 This should allow us to enable a gui or web based front end tools for editing.  
 
 Currently we have defined just one format defined, creativly named A,
-but other formats (e.g. xml) should be real easy to implement.
+but other formats (e.g. XML) should be easy to implement.
 
 To use, create one or more *.mht (mh table) files in your code directory, specifying the table format with Format=A
 at the top of the table.  Then mh will process (on starup and reload) each record with mh/lib/read_table_A.pl, to create
@@ -262,24 +262,34 @@ If you want to create another table format, all you need to do is create a mh/li
 
 =head2 2.1: How do I debug syntax errors in my code?
 
-This is an area that needs some work.  When mh loads your code in, it does so
-with a perl 'eval' function.  If there are errors in that code, eval often does
-not point to the specific line with the problem.
-
-The best error information is in the mh console window.  There is a tk window
-that will pop up, but unfortunatly, I have not figured out how to capture 
-the more relevant error message from the console window.
-
-I think the best solution here is some sort of mh/perl lint checker.  That
-will look at member code directly.  If we have the main interpretor
-see the error, instead of the eval function, the error messages will be
-easier to diagnose.
+If there are syntax errors in your code, most of them will be caught on startup or reload.
+The error, and (hopefully) relevant code member and/or line number, will show up in 
+your console, and if running Tk, in a Tk window on reload.
 
 When you go to write new code, first start mh with old code that works, then edit or copy in 
 your new code and do a mh Reload.  Fixing errors with code Reloads is much 
 quicker than trying to fix them on mh startup.  You can add/delete the .pl suffix
 on code members between reloads to enable/disable them.
 
+Some errors (e.g. too few/many {} around code) will point to a misleading line number.
+In these cases, if you can not find the file with the error, 
+you can try a new option: mh -error_by_file 1 .
+This will try loading one file at a time untill the error is found, but
+it runs pretty slow and may not work with members that have # noloop directives.
+
+Some errors will only show up after mh triggers events.  The first time this happens, a console/tk message
+will be displayed, and a message spoken.  Since these errors might happen on sequential passes of mh, subsequent errors 
+are only listed in the console window.  If more than 10 occur, another window is displayed,
+and the code member there error was in is disabled.
+
+All of these on-the-fly errors are logged in the file mh_temp.error_log in your code directory.
+This is useful if you are not running tk and the error has scrolled out of your console window.
+
+You can enable the perl diagnostics module (same as perl -w) to get additional warnings on potential 
+coding errors.  Either use mh -diagnostics 1 or set diagnostics=1 in your mh.ini.  This takes
+about 1 meg more of memory and causes mh to run about 10% slower, but the messages it displays
+often point to valid problems.
+To simplify coding, the 'uninitialized value' warnings disabled in the user code processing.
 
 =head2 2.2: How should I code events that should occur only at infrequently, or 
 only at Startup?
@@ -625,14 +635,16 @@ Here is a rough timeline of MisterHouse development:
  - 04/00 Added support for X10's IR Commander transmiter
  - 05/00 Added voice modem, ISDN modem, and Compool support.
  - 05/00 Article in The Perl Journal #17
+ - 06/00 Mailing list reaches 300 members
+ - 06/00 Added support for table item/event input and tie_items/tie_events. 
 
 =head2 6.2: Who is that Bruce guy anyway?
 
 Bruce (Winter) is the the main author of MisterHouse.
 He has a day job with IBM in Rochester, Minnesota, designing integrated circuits.
 He got started with Home Automation as one of the first ECS users in '86 and started the ECS mailing list
-in early '94.  He loves getting slaughtered by his twin boys in Quake death matches, hiking
-in his boyhood state of Montana, and playing his digital piano.
+in '94.  He loves getting slaughtered by his twin boys in Quake death matches, hiking
+in his boyhood state of Montana, and playing a digital piano.
 
 =head2 6.3: Why open source?
 
@@ -651,20 +663,26 @@ Here are some useful/related Home Automation links:
   Dan Hoehnens most excellent collection of HA links:
     http://www.infinet.com/~dhoehnen/ha/list.html
 
+  Over 500 links on about everything with HA:
+    http://home-automation.org/
+
   Lots of good tutorials and articles are here:
     http://hometoys.com/
 
   X10 has many of its products documented here:
     http://www.x10.com/support/support_manuals.htm
 
+  Lots of good X10 data can be found here:
+    http://www.geocities.com/ido_bartana/toc.htm
+
   Europeans can get X10 stuff from
     http://www.intellihome.be 
 
   Neil Cherry has created a home for linux related Home Automation programs at
-  http://linuxha.sourceforge.net 
+    http://linuxha.sourceforge.net 
 
   Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
-  http://the-labs.com/HomeAppliance/
+    http://the-labs.com/HomeAppliance/
 
 
 =head2 6.5: How can I use cvs to co-develop core mh code?
@@ -798,6 +816,9 @@ else on the list, the ThermoCRON iButton is different yet again.
 
 #
 # $Log$
+# Revision 1.16  2000/08/19 01:22:35  winter
+# - 2.27 release
+#
 # Revision 1.15  2000/06/24 22:10:54  winter
 # - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
 #

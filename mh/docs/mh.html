@@ -41,6 +41,13 @@
 
 	<LI><A HREF="#NOTES">NOTES</A></LI>
 	<LI><A HREF="#KNOWN_LIMITATIONS_AND_BUGS">KNOWN LIMITATIONS AND BUGS</A></LI>
+	<UL>
+
+		<LI><A HREF="#General_bugs_limitations">General bugs/limitations</A></LI>
+		<LI><A HREF="#Windows_bugs_limitations">Windows bugs/limitations</A></LI>
+		<LI><A HREF="#Unix_bugs_limitations">Unix bugs/limitations</A></LI>
+	</UL>
+
 	<LI><A HREF="#AUTHORS">AUTHORS</A></LI>
 	<LI><A HREF="#SEE_ALSO">SEE ALSO</A></LI>
 	<LI><A HREF="#COPYRIGHT">COPYRIGHT</A></LI>
@@ -177,7 +184,7 @@ There is also a FAQ that covers misc topics in
 <P>
 Items and events are defined by using your favorite text editor and
 creating members of perl code in a directory of your choice. For example,
-all the code that runs my house is in the /mh/code/Bruce directory.  
+all the code that runs my house is in the /mh/code/bruce directory.  
 
 </P>
 <P>
@@ -243,7 +250,8 @@ Here are the basic steps of the mh program:
 </PRE>
 </P>
 <P>
-<PRE>       Objects are evaluated and created. 
+<PRE>       Optional *.mht files are processed by mh/lib/read_table_*.pl, creating *.mhp files
+       Objects are evaluated and created. 
        Everything else is put into a &amp;user_loop function (at the end of mh_temp.user_code file).
 </PRE>
 </P>
@@ -458,10 +466,10 @@ from the Netherlands ($3 shipping):
 </PRE>
 </P>
 <P>
-In addition to the mh/Bruce/irman.html code, there there is free winamp,
-windows, and linux software for it. The schematics that it is built from
-are also posted on the net (elsewhere), but for $30, it hardly seems worth
-building it from scratch.
+In addition to the mh/code/bruce/irman.html code, there there is free
+winamp, windows, and linux software for it. The schematics that it is built
+from are also posted on the net (elsewhere), but for $30, it hardly seems
+worth building it from scratch.
 
 </P>
 <P>
@@ -473,7 +481,7 @@ Here are 2 LCD displays with programable serial interfaces:
 </PRE>
 </P>
 <P>
-<PRE>  <A HREF="http://linuxcentral.com/products/modm/">http://linuxcentral.com/products/modm/</A>  $80 ($101 with keypad interface)
+<PRE>  <A HREF="http://linuxcentral.com">http://linuxcentral.com</A>  $80 ($101 with keypad interface)
 </PRE>
 </P>
 <P>
@@ -489,8 +497,8 @@ HREF="http://lcdproc.omnipotent.net">http://lcdproc.omnipotent.net</A>
 
 </P>
 <P>
-An example on how to use these displays is in mh/Bruce/lcdproc.pl. See the
-header of that file for more info.
+An example on how to use these displays is in mh/code/bruce/lcdproc.pl. See
+the header of that file for more info.
 
 </P>
 <P>
@@ -508,10 +516,6 @@ written for them:
 </P>
 <P>
 <PRE> <A HREF="http://www.nirvis.com/">http://www.nirvis.com/</A>  $180 2-way IR device
-</PRE>
-</P>
-<P>
-<PRE> <A HREF="http://www.ibutton.com/index.html">http://www.ibutton.com/index.html</A>  Inexpensive 2 wire iButtons
 </PRE>
 </P>
 <P>
@@ -540,13 +544,19 @@ HREF="http://www.heartlandamerica.com">http://www.heartlandamerica.com</A>
 
 </P>
 <P>
+There is also now a new WMR-918, which is a wireless version, available for
+about $350. An mh interface is being worked on.
+
+</P>
+<P>
 iButton is a family of devices that can all talk to a '1 wire' interface.
 Here are some urls and prices:
 
 </P>
 <P>
 <PRE>  <A HREF="http://www.ibutton.com">http://www.ibutton.com</A> (pick shop online)
-    - $15 DS9097U-009 + DS1402D-DR8l for the serial interface
+    - $15 DS9097U-009 or -S09 + DS1402D-DR8l for the serial interface
+      Note:  The DS9097, DS9097E, or parallel port adaptors will not work with mh
     -  $3 DS1990A-F5  for 64 bit ID buttons.
  
   <A HREF="http://www.pointsix.com">http://www.pointsix.com</A>
@@ -554,6 +564,8 @@ Here are some urls and prices:
     - $10 for a 1 port relay card
     - $10 for a 2 port digital input or ouptut card
     - $6  for a 1820 temperature sensor
+    - Info on how to wire up a 1 wire bus: 
+      <A HREF="http://www.pointsix.com/cgi-bin/PointSix.cgi?AppNotes&amp">http://www.pointsix.com/cgi-bin/PointSix.cgi?AppNotes&amp</A>;app010
 </PRE>
 </P>
 <P>
@@ -596,8 +608,6 @@ a few of the more important ones and their defaults:
 <DT><STRONG><A NAME="item_code_dir">code_dir=\mh\code\test</A></STRONG><DD>
 <P>
 Points to the directory that has the user code files in it.
-  
- 
 
 </P>
 <DT><STRONG><A NAME="item_html_root">html_root=$Pgm_Root/web</A></STRONG><DD>
@@ -605,10 +615,6 @@ Points to the directory that has the user code files in it.
 <P>
 Points to where the web interface html files are.
 
-</P>
-<P>
-<PRE>   
-</PRE>
 </P>
 <DT><STRONG><A NAME="item_http_port">http_port=8080</A></STRONG><DD>
 <P>
@@ -618,9 +624,18 @@ than 80 (because you already have a web server running), add :port to url
 (e.g. <A HREF="http://localhost:8080">http://localhost:8080</A> ).
 
 </P>
+<DT><STRONG><A NAME="item_server_telnet_port">server_telnet_port=23</A></STRONG><DD>
 <P>
-<PRE> 
-</PRE>
+Use 23 to enable access via 'telnet localhost', if you are running the
+mh/code/testtelnet.pl member. If you use a different port, you can still
+get to the port with 'telnet localhost port_number'.
+
+</P>
+<DT><STRONG><A NAME="item_diagnostics">diagnostics=1</A></STRONG><DD>
+<P>
+Set this (or w=1) to enable perl -w warning messages on potential code
+errors. mh runs about 10% slower with this option on.
+
 </P>
 <DT><STRONG><A NAME="item_run">run=perl_script</A></STRONG><DD>
 <P>
@@ -631,17 +646,6 @@ set_clock.bat files for examples. This also allows is to use the mh run
 command to spawn a separate mh process to run longer running perl steps,
 even if we do not have perl installed. A Win32 'fork' command would be
 cleaner, but alas, no forks.
-
-</P>
-<P>
-<PRE> 
-</PRE>
-</P>
-<DT><STRONG><A NAME="item_server1_port">server1_port=23</A></STRONG><DD>
-<P>
-Use 23 to enable access via 'telnet localhost', if you are running the
-mh/code/testtelnet.pl member. If you use a different port, you can still
-get to the port with 'telnet localhost port_number'.
 
 </P>
 <P>
@@ -807,7 +811,7 @@ meg) we want to read, we should invent some new methods.
 <PRE>     said         : Returns data added to a file since the last call.
                     Only one record is returned per call.
                     This is useful for monitoring log files.
-                    See mh/code/Bruce/shoutcast.pl  for an example.
+                    See mh/code/bruce/shoutcast.pl  for an example.
 </PRE>
 </P>
 <P>
@@ -832,9 +836,13 @@ meg) we want to read, we should invent some new methods.
 <P>
 You can use this object to store and query arbitrary data. This is more
 useful than 'my' variables, if you need to share data between code files,
-since 'my' variables are local to a code file. Maybe we should
-allow/default this data to be saved between mh sessions, like $Save{}
-entries??
+since 'my' variables are local to a code file. States of these items are
+also saved/restored when mh is stopped/started.
+
+</P>
+<P>
+All other items that have states (e.g. X10_Item, Serial_Item, iButton,
+Voice_Cmd, Group) inherit all Generic_Item methods.
 
 </P>
 <P>
@@ -844,6 +852,30 @@ entries??
      state_now    :
      set          :
 </PRE>
+</P>
+<P>
+<PRE>     tie_items($item)   :  If the state of the generic_item changes, then 
+                           the state of $item will be set to that same state
+     untie_items($item) :  Untie $item
+</PRE>
+</P>
+<P>
+<PRE>     tie_events($code)  :  It the state of the generic_item changes, then
+                           Code string $code will trigger, with the variable
+                           $state getting expanded.
+     untie_items($code) :  Untie $code
+</PRE>
+</P>
+<P>
+<PRE>     get_chaged_by      :  Returns which tied object caused this objects state to change.
+</PRE>
+</P>
+<P>
+The tie/untie methods can be done conditionally, so you can change what is
+tied to what on the fly. If you do this, however, you need to also make
+sure you also make the tie* methode call on $Reload, as the objects tie
+items/events are currently not stored between reloads.
+
 </P>
 <P>
 <PRE>  Examples:
@@ -857,6 +889,31 @@ entries??
      speak &quot;Your wakeup time is set for $state&quot; if $state = state_now $wakeup_time;
      speak &quot;Time to wake up&quot; if time_now state $wakeup_time;
 </PRE>
+</P>
+<P>
+<PRE>   # Since Voice_Cmd objects inherit Generic_Items methods, we can 
+   # use tie_items and tie_event like this:
+</PRE>
+</P>
+<P>
+<PRE>     $indoor_fountain    = new X10_Appliance('OB');
+     $v_indoor_fountain  = new Voice_Cmd 'Indoor fountain [on,off]';
+     $v_indoor_fountain -&gt; tie_items($indoor_fountain);
+     $v_indoor_fountain -&gt; tie_event('speak &quot;Ok, fountain was turned $state&quot;');
+</PRE>
+</P>
+<P>
+<PRE>     if ($state = state_now $test_button) {
+        my $ref = get_changed_by $test_button;
+        print_log &quot;Test button's was set to $state by $ref-&gt;{object_name}&quot; if $ref;
+     }
+</PRE>
+</P>
+<P>
+See mh/code/examples/generic_item.pl for more examples. See
+mh/code/examples/test_tie.pl for more examples on how to tie/untie
+items/events.
+
 </P>
 <DT><STRONG><A NAME="item_Group">Group</A></STRONG><DD>
 <P>
@@ -880,6 +937,10 @@ You can use this object to group and operate on groups of items:
      $outside_lights-&gt; add($light6);
      set $outside_lights ON if time_now(&quot;$Time_Sunset + 0:15&quot;);
 </PRE>
+</P>
+<P>
+See mh/code/examples/test_group.pl for more examples.
+
 </P>
 <DT><STRONG><A NAME="item_iButton_Item">iButton_Item</A></STRONG><DD>
 <P>
@@ -1322,6 +1383,10 @@ over the command text.
                           and is_available $tnc_output; 
 </PRE>
 </P>
+<P>
+See mh/code/examples/serial_port_examples.pl for more Serial_Item examples.
+
+</P>
 <DT><STRONG><A NAME="item_X10_Item">X10_Item</A></STRONG><DD>
 <P>
 Same as Serial_Item, except the 'X' prefix is prepended, to indicate an X10
@@ -1549,9 +1614,10 @@ in mh.ini)
 </PRE>
 </P>
 <P>
-<PRE>    More examples are in mh/code/Bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
-    my/code/Bruce/mh_watchdog.pl, and mh/code/test/socket_test.pl
-</PRE>
+More examples are in mh/code/bruce/telnet.pl,
+mh/code/public/Brian/tracker.pl, my/code/bruce/mh_watchdog.pl, and
+mh/code/test/socket_test.pl
+
 </P>
 <DT><STRONG><A NAME="item_Timer">Timer</A></STRONG><DD>
 <P>
@@ -1620,7 +1686,7 @@ specified interval.
 </PRE>
 </P>
 <P>
-<PRE>    See mh/code/Bruce/timer_minutes.pl and timer_seconds.pl for more examples.
+<PRE>    See mh/code/bruce/timer_minutes.pl and timer_seconds.pl for more examples.
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_Voice_Cmd">Voice_Cmd</A></STRONG><DD>
@@ -1677,7 +1743,7 @@ run from the Tk, web, telnet, and file interfaces.
 </P>
 <P>
 <PRE>        Vocabularies are enabled by default.  The default vocabulary
-        is 'misterhouse'.  See code/Bruce/viavoice_control.pl for examples.
+        is 'misterhouse'.  See mh/code/bruce/viavoice_control.pl for examples.
         This code allows you to switch between 'awake', 'asleep', and 'off' VR modes.
 </PRE>
 </P>
@@ -1721,6 +1787,10 @@ run from the Tk, web, telnet, and file interfaces.
 </PRE>
 </P>
 <P>
+See mh/code/examples/Voice_Cmd_enumeration.pl for more Voice_Cmd examples
+
+</P>
+<P>
 In addition to the said command on a specific object, you can use
 &amp;Voice_Cmd::said_this_pass to detect which command was spoken this pass
 and &amp;Voice_Cmd::noise_this_pass to detect if noise was detected this
@@ -1745,7 +1815,7 @@ pass (this function currently only works with viavoice).
 </PRE>
 </P>
 <P>
-See mh/code/Bruce/lcdproc.pl for more examples.
+See mh/code/bruce/lcdproc.pl for more examples.
 
 </P>
 </DL>
@@ -1753,6 +1823,20 @@ See mh/code/Bruce/lcdproc.pl for more examples.
 <HR>
 <H2><A NAME="List_of_functions">List of functions</A></H2>
 <DL>
+<DT><STRONG><A NAME="item_browser">browser</A></STRONG><DD>
+<P>
+Calls up the web browser defined my the mh.ini browser parm
+
+</P>
+<P>
+<PRE>  Examples: 
+</PRE>
+</P>
+<P>
+<PRE>    browser '<A HREF="http://misterhouse.net">http://misterhouse.net</A>';
+    browser &quot;$config_parms{tracking_dir}/today.html&quot; if said $v_show_tracking;
+</PRE>
+</P>
 <DT><STRONG><A NAME="item_convert_k2f">convert_k2f</A></STRONG><DD>
 <DT><STRONG><A NAME="item_convert_c2f">convert_c2f</A></STRONG><DD>
 <P>
@@ -1783,7 +1867,8 @@ Converts 0-&gt;360 degrees into north, north east, east, etc
 </P>
 <DT><STRONG><A NAME="item_display">display</A></STRONG><DD>
 <P>
-Displays the specified string or file.
+Displays the specified text string, text file contents, or bitmap (.gif or
+.jpg).
 
 </P>
 <P>
@@ -1806,8 +1891,9 @@ Displays the specified string or file.
 </PRE>
 </P>
 <P>
-<PRE>    display(&quot;Internet message: $msg&quot;, 300, 'Internet message'); 
-    display($f_trivia_answer;);
+<PRE>    display &quot;Internet message: $msg&quot;, 300, 'Internet message'; 
+    display $f_trivia_answer;
+    display '/pictures/photo.jpg';
   
 </PRE>
 </P>
@@ -1958,6 +2044,10 @@ Appends data into a log file. Use file_write to write over a file.
 <PRE>      $log_format=## =&gt;  Every log entry is preceded with a time_date stamp.
                          ## is passed to &amp;time_date_stamp to determine the format.
                          Also, /r/n is stripped so we get only one record per call.
+</PRE>
+</P>
+<P>
+<PRE>                         The default  $log_format is 14.
 </PRE>
 </P>
 <P>
@@ -2180,7 +2270,7 @@ and value.
 </PRE>
 </P>
 <P>
-<PRE>  See mh/code/Bruce/phone.pl and mh/bin/display_callers for examples.
+<PRE>  See mh/code/bruce/phone.pl and mh/bin/display_callers for examples.
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_SendKeys">SendKeys WaitForAnyWindow sendkeys_find_window</A></STRONG><DD>
@@ -2506,6 +2596,7 @@ grid.
 </P>
 <P>
 <PRE>   Usage:
+    &amp;tk_entry('Entry label:', $state_based_object);
     &amp;tk_entry('Entry label:', \$variable);
     &amp;tk_entry('Entry label:', \$variable, 'Entry label2:, \$variable2);
 </PRE>
@@ -2524,7 +2615,12 @@ The $variable is copied to $Tk_results{'Entry label:'} only after the RETURN key
 </PRE>
 </P>
 <P>
-<PRE>   Example:
+Now you can now also use a state based object (like Generic_Item) to
+store/monitor/change the tk_entry text.  
+
+</P>
+<P>
+<PRE>   Examples:
 </PRE>
 </P>
 <P>
@@ -2534,6 +2630,12 @@ The $variable is copied to $Tk_results{'Entry label:'} only after the RETURN key
        set_watch $f_tv_file;
        undef $Tk_results{'TV search'};
     }
+</PRE>
+</P>
+<P>
+<PRE>   $mp3_search_text =  new Generic_Item;
+   $mp3_search_text -&gt; tie_event('print_log &quot;mp3 search text is now $state&quot;');
+   &amp;tk_entry('mp3 Search', $mp3_search_text);
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_tk_label">tk_label tk_mlabel</A></STRONG><DD>
@@ -2568,13 +2670,14 @@ not specified, the values are displayed.
 </P>
 <P>
 <PRE>   Usage:
+    &amp;tk_radiobutton('Button label:', $state_based_object, ['value1', 'value2', 'value3']);
     &amp;tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3']);
     &amp;tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3'], 
                                                  ['label1', 'label2', 'label3']);
 </PRE>
 </P>
 <P>
-<PRE>   Example:
+<PRE>   Examples:
 </PRE>
 </P>
 <P>
@@ -2584,7 +2687,27 @@ not specified, the values are displayed.
                     ['None', 'GPS', 'WX', 'All']);
 </PRE>
 </P>
+<P>
+<PRE>    my $alarm_states = &quot;Disarmed,Disarming,Arming,Armed,Violated,Exit Delay,Entry Delay&quot;;
+    my @alarm_states = split ',', $alarm_states;
+    $alarm_status    = new Generic_Item;
+    &amp;tk_radiobutton('Security Status', $alarm_status, [@alarm_states]);
+</PRE>
+</P>
+<P>
+<PRE>    $v_alarm_status  = new Voice_Cmd &quot;Set the alarm to [$alarm_states]&quot;;
+    $v_alarm_status -&gt; tie_items($alarm_status);
+</PRE>
+</P>
+<P>
+<PRE>    print_log &quot;Alarm status changed to $state&quot; if $state = state_now $alarm_status;
+</PRE>
+</P>
 </DL>
+<P>
+See mh/code/examples/tk_examples.pl for more tk_* examples.
+
+</P>
 <P>
 <HR>
 <H2><A NAME="List_of_Internet_functions">List of Internet functions</A></H2>
@@ -2606,7 +2729,7 @@ separate process and mh will not get hung up while waiting.
 </PRE>
 </P>
 <P>
-<PRE>    Other examples are in mh/code/Bruce/internet_data.pl
+<PRE>    Other examples are in mh/code/bruce/internet_data.pl
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_get_ip_addresses">get_ip_addresses</A></STRONG><DD>
@@ -2701,6 +2824,7 @@ Used to ftp data to or from an ftp server:
             file            Name local/remote file to get/put
             file_remote     Name of remote file (if different from local file)
             command         get/put/delete.
+            type            ascii/binary  (default is ascii)
 </PRE>
 </P>
 <P>
@@ -2950,13 +3074,46 @@ window.
 <P>
 Use this to display a Tk window with a list of the incoming and outgoing
 phone logs. An example of how to create these logs is in
-mh/code/Bruce/phone.pl
+mh/code/bruce/phone.pl
 
 </P>
 <P>
 <PRE>  Usage: 
     display_callers (no argument -&gt; uses latest logs) 
     display_callers 1997_11  (Look only at November, 1997 logs) 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_get_ceiva">get_ceiva</A></STRONG><DD>
+<P>
+get_ceiva gets pictures from the 'now showing' folder of a Ceiva.com web
+page.
+
+</P>
+<P>
+<PRE>  Usage: 
+   get_ceiva [options]
+</PRE>
+</P>
+<P>
+<PRE>    -h        =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -username xyz =&gt; xyz is a ceiva member name
+    -password xyz =&gt; xyz is a ceiva password
+    -frame_id xyz =&gt; xyz is a ceiva frame_id
+</PRE>
+</P>
+<P>
+<PRE>    -outdir xyz   =&gt; xyz the directory the pictures will be put in
+    -browser xyz  =&gt; xyz is the path to your html browser
+    -reget        =&gt; Re-fetch the files, even if they look current
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    get_ceiva -outdir /pictures/ceiva
+    get_ceiva -reget
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_get_email">get_email</A></STRONG><DD>
@@ -3048,7 +3205,7 @@ file names, and playlist files.
 <P>
 get_tv_grid gets a TV grid/schedule from the web (clicktv.com) and changes
 so it to be used by the MisterHouse program to create VCR and TV event
-reminders. See mh/code/Bruce/tv_grid.pl for a mh event example that uses
+reminders. See mh/code/bruce/tv_grid.pl for a mh event example that uses
 get_tv_grid.
 
 </P>
@@ -3129,7 +3286,7 @@ get_tv_grid.
 <P>
 get_tv_info returns info about tv programs that match the requested parms.
 It uses a database created by the get_tv_grid program. See
-mh/code/Bruce/tv_info.pl for examples on how to use this from mh.
+mh/code/bruce/tv_info.pl for examples on how to use this from mh.
 
 </P>
 <P>
@@ -3597,7 +3754,7 @@ by mh once a day and the results are stored in the
 <DT><STRONG><A NAME="item_trivia">trivia</A></STRONG><DD>
 <P>
 This will update trivia question and answer files from the specified
-database. See mh/code/Bruce/trivia.pl for an example of how to call it from
+database. See mh/code/bruce/trivia.pl for an example of how to call it from
 mh.
 
 </P>
@@ -3670,7 +3827,7 @@ as will the tk_geometry parm in mh.ini.
 <P>
 tk_xxx widgets can be added anywhere in your mh code, not just the
 tk_widgets.pl member. See the weather_monitor.pl, internet_mail.pl, and
-tk_eye.pl members in code/Bruce for examples.
+tk_eye.pl members in mh/code/bruce for examples.
 
 </P>
 <P>
@@ -3942,6 +4099,20 @@ Then call them like this:
 </PRE>
 </P>
 <P>
+One useful built in function is &amp;dir_index, which can be used to create
+a directory listing of files in selected directories. For example, if you
+have a web directory called pictures, create an index.shtml file, and
+include the following line: &lt;!--#include
+code=``&amp;dir_index('/pictures','name',0)''--&gt;
+
+</P>
+<P>
+You can have <CODE>&amp;dir_index</CODE> sort by name, type, size, or date.
+Set the 3rd argument to 1 for reverse sort order. See
+mh/web/graphics/index.shtml for an example.
+
+</P>
+<P>
 If you want to have only a few specific html controls, you can write your
 own html using the RUN, SET, and SET_VAR url keywords to control mh. Here
 are a few examples:
@@ -4018,6 +4189,15 @@ Here are some examples demonstrating these options:
 </PRE>
 </P>
 <P>
+You can also use RUN:h_response without a command. For example, if you want
+to get a directory listing, sorted by date (recent on top):
+
+</P>
+<P>
+<PRE>  &lt;a href=<A HREF="http://localhost:8080/RUN:&amp">http://localhost:8080/RUN:&amp</A>;dir_index('/pictures','date',1)&gt;List pictures by date &lt;/a&gt;
+</PRE>
+</P>
+<P>
 <HR>
 <H2><A NAME="Voice_Recognition_VR_and_Text_">Voice Recognition (VR) and Text To Speech (TTS) on windows</A></H2>
 <P>
@@ -4081,7 +4261,7 @@ engines with Festival.
 
 </P>
 <P>
-For vr with viavoice, use mh/code/Bruce/viavoice_control.pl
+For vr with viavoice, use mh/code/bruce/viavoice_control.pl
 
 </P>
 <P>
@@ -4182,11 +4362,10 @@ functions. For example:
 <HR>
 <H1><A NAME="KNOWN_LIMITATIONS_AND_BUGS">KNOWN LIMITATIONS AND BUGS</A></H1>
 <P>
-The JDS interface is untested.
-
-</P>
+<HR>
+<H2><A NAME="General_bugs_limitations">General bugs/limitations</A></H2>
 <P>
-The web interface does not reset colors.
+The JDS and Marrick interface modules are untested.
 
 </P>
 <P>
@@ -4220,48 +4399,17 @@ rename the one in the tk path.
 
 </P>
 <P>
-Under windows, if 'run' calls give you an 'out of environment memory'
-error, create a command.pif and change the memory, initial environment from
-auto to 4k.
+<HR>
+<H2><A NAME="Windows_bugs_limitations">Windows bugs/limitations</A></H2>
+<P>
+If 'run' calls give you an 'out of environment memory' error, create a
+command.pif and change the memory, initial environment from auto to 4k.
 
 </P>
 <P>
-The compiled version of mh on linux gives a Segmentation fault on exit, but
-otherwise runs OK.
-
-</P>
-<P>
-The following functions do not work under Unix/Linux:
-
-</P>
-<P>
-<PRE> - Voice Recognition IS supported under linux using IBM's ViaVoice SDK.
-   Potential candidates for VR engines other non-linux unix platforms are:
-</PRE>
-</P>
-<P>
-<PRE>     <A HREF="http://cslu.cse.ogi.edu/index.html">http://cslu.cse.ogi.edu/index.html</A> 
-     <A HREF="http://WWW.ISIP.MsState.Edu/projects/speech_recognition/">http://WWW.ISIP.MsState.Edu/projects/speech_recognition/</A>
-     <A HREF="http://www.tmt.de/~stephan/ears.html">http://www.tmt.de/~stephan/ears.html</A>
-</PRE>
-</P>
-<P>
-<PRE> - The control keys from the console window do not work
-   (e.g. F1 to reload, F3 to exit).  Ctl-C works :)
-</PRE>
-</P>
-<P>
-<PRE> - Disk drive info (need to port from DriveInfo to df)
-</PRE>
-</P>
-<P>
-<PRE> - Linux KDE users should uncheck &quot;Apply fonts and colors to non-KDE apps&quot;, 
-   or the black text on white windows shows up as white text.
-</PRE>
-</P>
-<P>
-Windows Activestate perl 5.6 build 613 leaks memory. On my box about 30 Meg
-a day. 
+Activestate perl 5.6 build 613 and 616 leaks memory. On my box about 30
+Meg, once a day. Displaying .gif and .jpg files also leaks about 10x the
+picture size (e.g 10 50k photos -&gt; 5 meg).
 
 </P>
 <P>
@@ -4274,6 +4422,35 @@ Adding, deleting, or changing Voice commands does is not recognized by the
 Windows MSVoice applicatino while it is running. You have to exit and
 restart MSVoice, then restart mh to get it to recognize new commands.
 Hopefully we can get this to work with release 5.0 of the MS Speech SDK.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Unix_bugs_limitations">Unix bugs/limitations</A></H2>
+<P>
+Voice Recognition IS supported under linux using IBM's ViaVoice SDK.
+Potential candidates for VR engines other non-linux unix platforms are:
+
+</P>
+<P>
+<PRE>     <A HREF="http://www.speech.cs.cmu.edu/sphinx/">http://www.speech.cs.cmu.edu/sphinx/</A>
+     <A HREF="http://cslu.cse.ogi.edu/index.html">http://cslu.cse.ogi.edu/index.html</A> 
+     <A HREF="http://WWW.ISIP.MsState.Edu/projects/speech_recognition/">http://WWW.ISIP.MsState.Edu/projects/speech_recognition/</A>
+     <A HREF="http://www.tmt.de/~stephan/ears.html">http://www.tmt.de/~stephan/ears.html</A>
+</PRE>
+</P>
+<P>
+The control keys from the console window do not work (e.g. F1 to reload, F3
+to exit). Ctl-C works :)
+
+</P>
+<P>
+Disk drive info (need to port from DriveInfo to df)
+
+</P>
+<P>
+Linux KDE users should uncheck ``Apply fonts and colors to non-KDE apps'',
+or the black text on white windows shows up as white text.
 
 </P>
 <P>
@@ -4322,6 +4499,11 @@ Here is a list of articles written about MisterHouse:
 </PRE>
 </P>
 <P>
+<PRE>  <A HREF="http://www.itknowledge.com/tpj/issues/vol5_1/tpj0501-0006.html">http://www.itknowledge.com/tpj/issues/vol5_1/tpj0501-0006.html</A>
+    (User login to The Perl Journal is required)
+</PRE>
+</P>
+<P>
 The Circuit Cellar Ink article includes a diagram of how to set up a house
 PA system, so you can control which rooms MisterHouse talks to.
 
@@ -4359,6 +4541,13 @@ at <A
 HREF="http://linuxha.sourceforge.net">http://linuxha.sourceforge.net</A> .
 This project is developing daemons for various interfaces (e.g. ADI Ocelot,
 CPUXA, and HCS II) that hopefully we can then link to with mh.   
+
+</P>
+<P>
+Rene Mueller has a nice set of web pages with lots of info on
+HomeAppliances at <A
+HREF="http://the-labs.com/HomeAppliance/">http://the-labs.com/HomeAppliance/</A>
+
 
 </P>
 <P>
