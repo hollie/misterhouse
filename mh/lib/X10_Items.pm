@@ -1,7 +1,9 @@
 
 package X10_Item;
 
-my (%items_by_house_code, %appliances_by_house_code);
+#use strict;
+
+my (%items_by_house_code, %appliances_by_house_code, $sensorinit);
 
 #&main::Reload_post_hook(\&X10_Item::reset, 1) if $Startup;
 
@@ -9,6 +11,7 @@ sub reset {
 #   print "\n\nRunning X10_Item reset\n\n\n";
     undef %items_by_house_code;
     undef %appliances_by_house_code;
+    $sensorinit = 0;
 }
 
 @X10_Item::ISA = ('Serial_Item');
@@ -754,7 +757,6 @@ sub new {
 package X10_Sensor;
 
 @X10_Sensor::ISA = ('Serial_Item');
-$sensorinit=0;
 
 sub init {
     &::print_log("Calling Serial_match_add_hook");
@@ -764,7 +766,7 @@ sub init {
 
 sub new {
     my ($class, $id, $name) = @_;
-    my $self = &Serial_Item::new();
+    my $self = &Serial_Item::new('Serial_Item');
     
     $$self{state} = '';
     bless $self, $class;
@@ -802,14 +804,17 @@ sub sensorhook {
 
     #If I received something from this battery-powered transmitter, the battery 
     #must still be good, so reset the countdown timer (12 more hours):
-    $ref->{battery_timer}->{$item}->set(60*60*12, 
-                     "print_log \"Battery timer for $name expired\"", 7);  
+    $ref->{battery_timer}->{$item}->set(12*60*60, 
+                     "speak \"Battery timer for $name expired\"", 7);  
 }
 
 return 1;
 
 
 # $Log$
+# Revision 1.21  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.20  2001/06/27 03:45:14  winter
 # - 2.54 release
 #

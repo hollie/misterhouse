@@ -2,8 +2,10 @@
 package Voice_Text;
 use strict;
 
-my ($VTxt, $VTxt_version, $VTxt_festival, $speak_pgm, $save_mute_esd, $save_change_volume, %pronouncable);
-my ($ViaVoiceTTS); #mod for ViaVoiceTTS
+use vars '$VTxt_version';
+my ($VTxt, $VTxt_stream, $VTxt_festival, $speak_pgm, $save_mute_esd, $save_change_volume, %pronouncable);
+my ($ViaVoiceTTS); 
+
 
 my $is_speaking_timer = new Timer;
 
@@ -49,6 +51,7 @@ sub init {
         unless ($VTxt_version eq 'msv4') {
             if ($VTxt = Win32::OLE->new('Sapi.SpVoice')) {
                 $VTxt_version = 'msv5';
+                $VTxt_stream = Win32::OLE->new('Sapi.SpFileStream');
             }
             else {
                 $VTxt_version = 'msv4';
@@ -130,8 +133,15 @@ sub speak_text {
             }
             $parms{text} = $prefix . $parms{text} . $suffix;
         }
-        print "Data sent to festival: $parms{text}\n";
-        set $VTxt_festival qq[(SayText "$parms{text}")];
+
+        if ($parms{to_file}) {
+            print "Festival saving speech to_file: $parms{to_file}\n";
+            set $VTxt_festival qq[(utt.save.wave (SayText "hello world") "$parms{to_file}" "riff")];
+        }
+        else {
+            print "Data sent to festival: $parms{text}\n";
+            set $VTxt_festival qq[(SayText "$parms{text}")];
+        }
     }
 
     if ($ViaVoiceTTS or $main::config_parms{voice_text} =~ /vv_tts/i) {
@@ -204,13 +214,14 @@ ProgCode
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
             if ($parms{to_file}) {
-                my $stream = Win32::OLE->new('Sapi.SpFileStream');
-                $stream->Open($parms{to_file}, 3, 0);
-                $VTxt->{AudioOutputStream} = $stream;
+                $VTxt_stream->Open($parms{to_file}, 3, 0);
+                my $old_stream = $VTxt->{AudioOutputStream};
+                $VTxt->{AudioOutputStream} = $VTxt_stream;
                 $VTxt->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
-                $stream->Close;
-                &main::print_log("Text->wav file:  $parms{to_file}");
-                &main::play($parms{to_file});
+                $VTxt_stream->Close;
+                $VTxt->{AudioOutputStream} = $old_stream;
+#               &main::print_log("Text->wav file:  $parms{to_file}");
+#               &main::play($parms{to_file});
             }
             else {
 #               $VTxt->Speak($parms{text}, 1 + 2 + 8); # Flags: 1=async  2=pruge  8=XML
@@ -328,18 +339,24 @@ sub set_pitch {
             return;
         }
     }
+    else {
+        return $text;
+    }
 }
 
 
 sub set_rate {
     my ($rate, $text) = @_;
+
                                 # Only MS TTS for now
-    return unless $VTxt;
+    return $text unless $VTxt;
+
     if ($VTxt_version eq 'msv4') {
-        return $VTxt->{Speed} = 250     if $rate eq 'fast';
-        return $VTxt->{Speed} = 200     if $rate eq 'normal';
-        return $VTxt->{Speed} = 150     if $rate eq 'slow';
-        return $VTxt->{Speed} = $rate   if $rate =~ /^\d+$/
+        $VTxt->{Speed} = 250     if $rate eq 'fast';
+        $VTxt->{Speed} = 200     if $rate eq 'normal';
+        $VTxt->{Speed} = 150     if $rate eq 'slow';
+        $VTxt->{Speed} = $rate   if $rate =~ /^\d+$/;
+        return $text;
     }
     else {
         $rate =  4 if $rate eq 'fast';
@@ -354,6 +371,7 @@ sub set_rate {
             return;
         }
     }
+
 }
 
 sub set_volume {
@@ -368,6 +386,9 @@ sub set_volume {
             $VTxt->{Volume} = $volume;
             return;
         }
+    }
+    else {
+        return $text;
     }
 }
 
@@ -425,6 +446,9 @@ sub set_voice {
             }
         }
     }
+    else {
+        return $text;
+    }
 }
 
 
@@ -442,6 +466,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.29  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.28  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

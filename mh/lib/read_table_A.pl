@@ -147,6 +147,11 @@ sub read_table_A {
         $code .= sprintf "}\n";
         return $code;
     }
+    elsif($type eq "IBUTTON") {
+        ($address, $name, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "iButton('$address', $other)";
+    }
     else {
         return;
     }
@@ -177,6 +182,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.10  2001/10/21 01:22:33  winter
+# - 2.60 release
+#
 # Revision 1.9  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

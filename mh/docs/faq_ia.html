@@ -1,0 +1,109 @@
+<HTML>
+<HEAD>
+<TITLE>Internet Appliances with MisterHouse FAQ</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<BODY>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#internet appliances with misterhouse faq">Internet Appliances with MisterHouse FAQ</A></LI>
+	<LI><A HREF="#what is an internet appliance">What is an internet appliance</A></LI>
+	<LI><A HREF="#what is an epod">What is an epod</A></LI>
+	<LI><A HREF="#what is an audrey">What is an Audrey</A></LI>
+	<UL>
+
+		<LI><A HREF="#how to boot audrey to a mh page">How to boot Audrey to a mh page</A></LI>
+		<LI><A HREF="#how to stop the audrey from autoupating">How to stop the Audrey from auto-upating</A></LI>
+	</UL>
+
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<HR>
+<H1><A NAME="internet appliances with misterhouse faq">Internet Appliances with MisterHouse FAQ</A></H1>
+<P>This will try to cover info an tips on using various internet applinaces
+like the Epods and Audrey with MisterHouse.</P>
+<P>
+<HR>
+<H1><A NAME="what is an internet appliance">What is an internet appliance</A></H1>
+<P>A broad term used to cover any thing cheaper than a computer that hooks up 
+to an ethernet port.  A couple of examples:</P>
+<PRE>
+ - Web browsers used as touch screens
+ - Ethernet connected MP3 players
+ - Internet radios</PRE>
+<P>
+<HR>
+<H1><A NAME="what is an epod">What is an epod</A></H1>
+<P>An epod is a hacked WinCE webpad. 640x480 color
+touchpad display, 16MB memory, cf and pcmcia slot. I connect mine wirelessly
+using a D-Link card/access point. Epods are selling for about $300 on EBay.
+Check out:</P>
+<PRE>
+  <A HREF="http://www.geocities.com/epodsfiles/">http://www.geocities.com/epodsfiles/</A>
+  <A HREF="http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&amp">http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&amp</A>;Board=EpodsOne</PRE>
+<P>
+<HR>
+<H1><A NAME="what is an audrey">What is an Audrey</A></H1>
+<P>In Fall of 2001, the discontinued 3Com Audrey were being liquidated 
+by tigerdirect.com for $90 (originally $500).  With a 640x480 LCD
+touchscreen, it makes for a nice web appliance / touch control pannel.</P>
+<P>Here are some helpful links:</P>
+<PRE>
+ Order: <A HREF="http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=M975-9000%20P">http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=M975-9000%20P</A>
+ Hack:  <A HREF="http://www.audreyhacking.com/">http://www.audreyhacking.com/</A>
+ Faq:   <A HREF="http://www.3rdmoon.com/crusso/audrey/">http://www.3rdmoon.com/crusso/audrey/</A>
+ List:  <A HREF="http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&amp">http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&amp</A>;Board=3Com_Audrey&amp;Idle
+ OS:    <A HREF="http://www.qnxstart.com/">http://www.qnxstart.com/</A></PRE>
+<P>
+<H2><A NAME="how to boot audrey to a mh page">How to boot Audrey to a mh page</A></H2>
+<P>From Ron Wright from some other site on 10/2001</P>
+<P>I has hacking away and realized that the 
+/data/XML/channels/.countertop/TEMPLATE directory has 
+the default index.shtml that loads up when Audrey 
+boots. So I tried adding a refresh meta tag to this 
+file and rebooted. It worked just as I had hoped it would.</P>
+<P>Now it loads the intro screen for a few seconds 
+(5 in my case) and then ``refreshes'' to open my control 
+panel for the house. Works great and appears to be safe 
+enough for my wife to use now.</P>
+<P>Just add this tag to the index.shtml file mentioned 
+above. I added mine just below the first meta tag:</P>
+<PRE>
+ &lt;meta HTTP-EQUIV=&quot;refresh&quot; CONTENT=&quot;5;URL=<A HREF="http://192.168.0.1:8080/audrey/audrey.html&quot">http://192.168.0.1:8080/audrey/audrey.html&quot</A>;&gt;</PRE>
+<P>
+<H2><A NAME="how to stop the audrey from autoupating">How to stop the Audrey from auto-upating</A></H2>
+<P>From Ron Wright from some other site on 10/2001</P>
+<P>I have also edited the kcrontab file to keep Audrey from
+trying to update her channels.  I found before doing this,
+everytime she tried an update it was changing the page
+back to default audrey welcome.  Also the initial reason
+for the above change.  This just makes it one better.</P>
+<P>Losing kcrontab entries</P>
+<P>If you have the root shell hack on the audrey options panel, you can.</P>
+<P>1) Get into the shell 
+ cd /config
+ cat kcrontab &gt;kcrontab.sav
+ exit</P>
+<P>2) Deselect broadband and all the download times</P>
+<P>3) go back to the shell
+ cd /config
+ edit kcrontab.sav to save what you want
+ cp kcrontab.sav kcrontab</P>
+<P>All better</P>
+<P>BTW My kcrontab looks like this</P>
+<PRE>
+ -MemDefrag;15;19;*;*;*
+ setitime;23;19;*;*;*
+ maild;/5;*;*;*;*</PRE>
+
+</BODY>
+
+</HTML>

@@ -1,5 +1,5 @@
-The trivia answer is.
-  2: Dogs..
+The trivia answer is:
+  3: Montana..
 
-Once again, the trivia answer is.
-  2: Dogs..
+Once again, the trivia answer is:
+  3: Montana..

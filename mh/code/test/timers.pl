@@ -98,8 +98,8 @@ if ($New_Second) {
             next;
         }
         $i++;
-        next if $time_left < 10;
         $time_left = int $time_left;
+        next if $time_left < 10;
         $time_left /=   60 if $timer->{unit} eq 'minute';
         $time_left /= 3600 if $timer->{unit} eq 'hour';
         my $pitch = int 10*(1 - $time_left/5);

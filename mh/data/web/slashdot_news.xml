@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Return to Castle Wolfenstein Test for Linux</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/23/0256250</url>
-		<time>2001-09-23 03:15:45</time>
+		<title>Nautilus 1.0.5 Release</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/2359224</url>
+		<time>2001-10-20 01:58:10</time>
 		<author>michael</author>
-		<department>chaingun-fun</department>
-		<topic>127</topic>
-		<comments>86</comments>
+		<department>ah-eazel-we-hardly-knew-ye</department>
+		<topic>131</topic>
+		<comments>0</comments>
 		<section>articles</section>
-		<image>topicgames.jpg</image>
+		<image>topicgnome.gif</image>
 	</story>
 
 	<story>
-		<title>Afghanistan Is Like Nothing You've Ever Seen</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/22/228250</url>
-		<time>2001-09-22 23:52:13</time>
+		<title>Magnetic Fluids</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/1423251</url>
+		<time>2001-10-19 23:19:05</time>
 		<author>michael</author>
-		<department>daily-deliveries-of-coffins</department>
-		<topic>103</topic>
-		<comments>648</comments>
+		<department>flux-capacitor</department>
+		<topic>159</topic>
+		<comments>32</comments>
 		<section>articles</section>
+		<image>topictoys.gif</image>
+	</story>
+
+	<story>
+		<title>Desktop Biodetectors</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/2230210</url>
+		<time>2001-10-19 22:26:59</time>
+		<author>michael</author>
+		<department>two-steps-toward-gattaca-one-step-back</department>
+		<topic>126</topic>
+		<comments>39</comments>
+		<section>science</section>
+		<image>topictech2.gif</image>
+	</story>
+
+	<story>
+		<title>SSSCA Hearing October 25th: Free Software Threatened</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/1954207</url>
+		<time>2001-10-19 20:30:52</time>
+		<author>timothy</author>
+		<department>register-your-xerographic-devices-please</department>
+		<topic>103</topic>
+		<comments>230</comments>
+		<section>yro</section>
 		<image>topicus.gif</image>
 	</story>
 
 	<story>
-		<title>Legislating Insecure Encryption</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/22/228211</url>
-		<time>2001-09-22 22:06:05</time>
-		<author>michael</author>
-		<department>no-deadbolts-for-you</department>
-		<topic>93</topic>
-		<comments>211</comments>
+		<title>Intel kills Consumer Electronics</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/198245</url>
+		<time>2001-10-19 20:08:13</time>
+		<author>CmdrTaco</author>
+		<department>todays-economy-is-much-less-fun</department>
+		<topic>118</topic>
+		<comments>61</comments>
 		<section>articles</section>
-		<image>topicencryption.gif</image>
+		<image>topicintel.gif</image>
 	</story>
 
 	<story>
-		<title>Monty Python and the Search for the Holy Lego</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/22/195235</url>
-		<time>2001-09-22 20:32:18</time>
-		<author>michael</author>
-		<department>things-man-was-not-meant-to-know</department>
-		<topic>133</topic>
-		<comments>173</comments>
-		<section>articles</section>
-		<image>topichumor.gif</image>
-	</story>
-
-	<story>
-		<title>Immersive HDTV</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/22/1855207</url>
-		<time>2001-09-22 19:13:11</time>
-		<author>michael</author>
-		<department>red-lens-blue-lens</department>
-		<topic>129</topic>
-		<comments>58</comments>
-		<section>articles</section>
-		<image>topictv.jpg</image>
-	</story>
-
-	<story>
-		<title>Robots Go To War</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/22/1544254</url>
-		<time>2001-09-22 17:46:55</time>
-		<author>michael</author>
-		<department>somebody-forgot-the-first-law</department>
-		<topic>103</topic>
-		<comments>186</comments>
-		<section>articles</section>
-		<image>topicus.gif</image>
-	</story>
-
-	<story>
-		<title>Are There Any Fun Tech Jobs Left?</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/07/2026254</url>
-		<time>2001-09-22 16:32:44</time>
+		<title>Nurturing Ideas Into Open Source Projects?</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/1917251</url>
+		<time>2001-10-19 19:05:42</time>
 		<author>Cliff</author>
-		<department>a-place-where-you-enjoy-your-work</department>
+		<department>birthing-the-code</department>
 		<topic>99</topic>
-		<comments>486</comments>
+		<comments>92</comments>
 		<section>askslashdot</section>
 		<image>topicnews.gif</image>
 	</story>
 
 	<story>
-		<title>Michael Jackson Releases Uncopyable CD</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/22/1320242</url>
-		<time>2001-09-22 15:20:14</time>
-		<author>CmdrTaco</author>
-		<department>everyone-likes-a-challange</department>
-		<topic>141</topic>
-		<comments>394</comments>
-		<section>articles</section>
-		<image>topicmusic.gif</image>
-	</story>
-
-	<story>
-		<title>Analysis of New Internet Wiretap Laws</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/22/0045251</url>
-		<time>2001-09-22 14:00:50</time>
+		<title>VIA to Create Pentium 4 'Clone'</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/1829255</url>
+		<time>2001-10-19 18:29:10</time>
 		<author>michael</author>
-		<department>body-cavity-search</department>
-		<topic>158</topic>
-		<comments>158</comments>
+		<department>lawsuits-galore</department>
+		<topic>137</topic>
+		<comments>97</comments>
 		<section>articles</section>
-		<image>topicprivacy.gif</image>
+		<image>topichardware.gif</image>
 	</story>
 
 	<story>
-		<title>Non Photo Realistic Quake</title>
-		<url>http://slashdot.org/article.pl?sid=01/09/22/1244248</url>
-		<time>2001-09-22 13:04:11</time>
+		<title>Physics and Archaeology</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/1636214</url>
+		<time>2001-10-19 16:35:15</time>
+		<author>michael</author>
+		<department>captain-caveman</department>
+		<topic>134</topic>
+		<comments>150</comments>
+		<section>science</section>
+		<image>topicscience.gif</image>
+	</story>
+
+	<story>
+		<title>Quirky Engineers Gone the Way of the Dinosaur?</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/1451235</url>
+		<time>2001-10-19 15:11:26</time>
 		<author>Hemos</author>
-		<department>a-new-skin-on-things</department>
-		<topic>112</topic>
-		<comments>82</comments>
+		<department>what-happens-to-the-engineers</department>
+		<topic>99</topic>
+		<comments>279</comments>
 		<section>articles</section>
-		<image>topicquake.gif</image>
+		<image>topicnews.gif</image>
+	</story>
+
+	<story>
+		<title>Why Linux is About to Lose</title>
+		<url>http://slashdot.org/article.pl?sid=01/10/19/1313222</url>
+		<time>2001-10-19 14:32:28</time>
+		<author>CmdrTaco</author>
+		<department>dammit-now-i-gotta-reformat</department>
+		<topic>106</topic>
+		<comments>558</comments>
+		<section>articles</section>
+		<image>topiclinux.gif</image>
 	</story>
 
 </backslash>

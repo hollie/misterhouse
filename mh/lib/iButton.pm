@@ -8,6 +8,18 @@ package iButton;
 
 my (%connections, %objects_by_id, %buttons_active);
 
+#
+#  Create serial port(s) according to mh.ini
+#
+
+use Hardware::iButton::Connection;
+
+sub serial_startup {
+    my ($instance) = @_;
+    my $port = $main::config_parms{$instance . "_serial_port"};
+    &iButton::connect($port) if $port;
+}
+
 sub usleep {
     my($usec) = @_;
 #   print "sleep2 $usec\n";
@@ -456,6 +468,9 @@ memory
 
 
 # $Log$
+# Revision 1.13  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.12  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

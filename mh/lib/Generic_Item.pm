@@ -121,6 +121,18 @@ sub set_info {
     }
 }
 
+sub set_label {
+    return unless $main::Reload;
+    my ($self, $label) = @_;
+                                # Set it
+    if (defined $label) {
+        $self->{label} = $label;
+    }
+    else {                      # Return it
+        return $self->{label};
+    }
+}
+
 sub set_authority {
     return unless $main::Reload;
     my ($self, $who) = @_;
@@ -281,6 +293,9 @@ sub delete_old_tied_times {
 
 #
 # $Log$
+# Revision 1.15  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.14  2001/05/06 21:07:26  winter
 # - 2.51 release
 #

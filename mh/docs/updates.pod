@@ -6,6 +6,113 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.60 posted on 10/20/2001
+
+Version 2.60 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+B<New Features:>
+
+- David Norwood added the option to edit private mh.ini parms with a web browser.
+Use http://localhost:8080/bin/iniedit.pl or the new Admin menu the default web page.
+This uses a slightly reformated mh/bin/mh.ini file with embeded help text and categories.
+Also added to support this is http POST requests, but for some reason this currently is slow under Netscape.
+
+
+- Added remote web browser wav file support.  For TTS engines that support speak-to-wav files
+(currently MS TTS 5.1 and maybe Festival), the web server will send create and send a wav
+file for the requested text.  To disable, check the new Mute checkbox at the top of the default webpage,
+or set mh.ini parm webmute=1.
+
+- Added mh.ini net_mail_scan_age parm. 
+This is the age, in minutes, of email to report/scan.
+If blank (the default), get_email (called periodically by internet_mail.pl)
+reports on all mail on your server (as it used to).  
+If your have your mail client set to 'leave mail on server'
+(useful if you want to use appliances like Audrey or remote web servers like HotMail to also read mail),
+you will probably want to set this to something like 15, to match how often inetnet_mail.pl checks for new mail.
+
+- Added a couple of slimed down web pages for Internet Appliances like ePod or Audrey.
+These are the current ones in mh/web (now outlined in mh/web/README.txt):
+
+  ia1 is a slightly slimed down version of the default page.
+  ia2 (was named epods).  Craigs page he uses for his epods.
+  ia3 John Edmonds pages with nice big touchable icons
+  ia4 Ron Wright's pages he wrote for his Audrey
+
+- Updated mh/bin/get_tv_info and code/test/tv_grid.pl to read zap2it.com pages, rather than the now dead clicktv.com. 
+Many thanks to David Norwood and Harald Koch for coming up with the secret cookie recipe!
+Renamed mh.ini parms clicktv_* to tv_* and added tv_provider and zip_code parms.
+Also renamed web/tv/clicktv to web/tv/download.
+
+- Denis Cheong has started work on mh/lib/X10_JR21A.pm, to support the  
+JR21A MouseRemote receiver with corresponding JR20A MouseRemote remote.
+
+- David Norwood added mh/code/public/chimes_cuckoo.pl and chimes_westminster.pl
+to enable poor man's cuckoo and grandfather clocks.
+
+- Ron Klinkien sent in mh/code/public/callerisdn.pl for getting callerid from an ISDN AVM Fritz!Card.
+
+- Denis Cheong created mh/code/public/sensors_lm.pl to get motherboard temperature data 
+from the (linux only) lm sensors program.
+
+- Doug Nakakihara created mh/web/bin/pictureframe.pl and mh/web/misc/pictureframe.shtml
+for serving auto-refreshing pictures to a web browser.  I updated it to use a mh.ini
+pictureframe_dir parm.  Set that var, then use with http://localhost:8080/misc/pictureframe.shtml
+More info in pictureframe.pl.
+Also moved a few other misc files out of mh/web and into the mh/web/misc dir.
+
+- Added mh/doc/faq_ia.html (and .txt) with questions/answers about internet appliances
+like the Epod and Audrey.  Additions welcome!
+
+- Added a State_change hook.  This allows us to add events that trigger when any object changes state,
+so for example we can create state logs that other programs can use to monitor mh activity.
+An example is at the end of mh/code/bruce/test_code_hooks.pl
+
+- Added set_label.  Like set_icon, this can be used to create more readable menus, although it is not used 
+in any menus yet.
+
+
+B<Bug Fixes and Other Changes:>
+
+- Evan Graham fixed a typo enabling the passive ftp option.
+
+- Douglas Parrish updated mh/lib/read_table_A.pl. to add iButton support to mht files.
+
+- Jeff Pagel discovered a startup problem with 2 or more iButton ports.
+See mh/code/bruce/iButton.pl for new details on how to use 2 or more iButton ports.
+The parm names were changed slightly to be consistant with other multiple-port devices,
+although the old parm names are grandfathered in.
+
+- Ingo Dean found mh 2.59 broke speak for viavoice and festival users.
+
+- Geoff Harrison and Joel Moore suggested an (untested) implementation of speak -to_file options for Festival.
+
+- Sam Levine found problems with the Tk pause button and trying to read from blank caller id parms.
+
+- Ken Schumack had unreadable symbol fonts used for tk menus, so we added a new mh.ini tk_font_menus parm,
+which he set to ansi.
+
+- Denis Cheong found a problem with time_now checks when using date_format=ddmmyy
+
+- David Norwood sent in FAQ question 1.20: How can I point MisterHouse to a custom web interface?
+
+- Fixed web Item refresh for browsers without full Referer urls, like Audrey.
+
+- Updated the web server to redirect directory links to add a trailing /,
+(e.g. http://epods -> http://epods/) so we can rely on relative links. 
+
+- Added mh.ini -no_speak errors option to disabled speaking warnings of user code errors.
+
+- Fixed a problem with the X10_Sensor expired battery check.
+
+- Print a warning if password_file is missing.
+
+
+
+
 =head2 Version 2.59 posted on 09/23/2001
 
 Version 2.59 was just uploaded to:
@@ -271,7 +378,7 @@ find_programs finds programs running on networked Windows computers.
 See mh/code/bruce/find_files.pl and monitor_programs.pl for an example.
 
 - Added mh/lib/xml_server.pl, so other xml based programs can get data from mh.
-Point am XML browser (e.g. IE) to: http://localhost:8080/sub?xml
+Point an XML browser (e.g. IE) to: http://localhost:8080/sub?xml
 
 
 B<Bug Fixes and Other Changes:>

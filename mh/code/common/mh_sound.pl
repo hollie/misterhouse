@@ -61,6 +61,10 @@ sub set_volume {
 
     my %parms = @_;
 
+                                # msv5 changes volume with xml tags in lib/Voice_Text.pm
+    return if $parms{text} and $Voice_Text::VTxt_version eq 'msv5';
+
+
                                 # Set a timer since we can not detect when a wav file is done
     set $mh_speakers_timer  $parms{time} if $parms{time}; # Set in &play
     undef $volume_previous;

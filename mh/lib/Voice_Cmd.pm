@@ -270,12 +270,11 @@ sub set {
 
 sub remove_voice_cmds {
 
-    print "Removing voice commands ... ";
     if ($Vmenu_ms) {
         $Vmenu_ms->{Active} = 0;
         my ($vitems_removed, $number);
         $vitems_removed = 0;
-        print "Removing voice items ... ";
+        print "Removing MS voice items ... ";
         foreach $number (keys %cmd_by_num) {
             $Vmenu_ms->Remove($number);
             $vitems_removed++;
@@ -285,7 +284,7 @@ sub remove_voice_cmds {
         print "$vitems_removed voice command were removed\n";
     }
     if ($Vcmd_viavoice) {
-        print "Undefineing the misterhouse viavoice vocabulary\n";
+        print "Undefineing the misterhouse viavoice vocabulary ... ";
         &mic('off');
         $Vcmd_viavoice->set("undefinevocab");
         select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
@@ -293,8 +292,8 @@ sub remove_voice_cmds {
         select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
         undef %cmd_by_num;
         undef %cmd_num_by_text;
+        print "done\n";
     }
-
 }
 
 #    $Vmenu_ms->{Active} = 0;
@@ -601,6 +600,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.33  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.32  2001/05/28 21:14:38  winter
 # - 2.52 release
 #

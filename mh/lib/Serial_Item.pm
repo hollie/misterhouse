@@ -35,6 +35,7 @@ sub new {
 }
 sub add {
     my ($self, $id, $state) = @_;
+
                                 # Allow for Serial_Item's without states
 #   $state = 'default_state' unless defined $state;
     $state = $id  unless defined $state;
@@ -483,6 +484,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.51  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.50  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

@@ -82,10 +82,10 @@ print  QUESTION "  3: ",$a[3],"\n";
 print  QUESTION "  4: ",$a[4],"\n";
 
 
-print  ANSWER "The trivia answer is.\n";
+print  ANSWER "The trivia answer is:\n";
 print  ANSWER "  ",$an,": ",$a[$an],".\n";
 print  ANSWER "\n";
-print  ANSWER "Once again, the trivia answer is.\n";
+print  ANSWER "Once again, the trivia answer is:\n";
 print  ANSWER "  ",$an,": ",$a[$an],".\n";
 
 close INDATA;

@@ -481,17 +481,17 @@ sub main::read_opts {
     print "Reading config_file $config_file\n" unless defined $debug and $debug == 0;
     open (CONFIG, "$config_file") or print "\nError, could not read config file: $config_file\n";
     while (<CONFIG>) {
-        next if /^\s*\#/;
+        next if /^\s*[\#\@]/;
                                 # Allow for multi-line values records
-        if ($key and ($value) = $_ =~ /^\s+([^\#]+)/ and $value !~ /=/) {
+        if ($key and ($value) = $_ =~ /^\s+([^[\#\@]]+)/ and $value !~ /=/) {
             $value_continued = 1;
         }
                                 # Look for normal key=value records
         else {
             next unless ($key, $value) = $_ =~ /(\S+?)\s*=\s*(.*)/;
             if ($value) {
-                $value =~ s/^#.*//; # Delete end of line comments
-                $value =~ s/\s+\#.*//;
+                $value =~ s/^[\#\@].*//; # Delete end of line comments
+                $value =~ s/\s+[\#\@].*//;
             }
             $value_continued = 0;
             next unless $key;
@@ -1071,6 +1071,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.52  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.51  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

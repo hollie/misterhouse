@@ -34,7 +34,7 @@ These are the quick instructions for those of you who, like me, don't like to re
 =head2 Windows users
 
  - Download the the misterhouse_src_###.zip and misterhouse_win_###.zip files
-   from  http://misterhouse.net/download
+   from  http://misterhouse.net:81/download
 
  - cd to where you want the mh directory created in (e.g. c:\misterhouse). 
    Avoid directories with spaces in the name (e.g. \program files\)
@@ -50,7 +50,7 @@ These are the quick instructions for those of you who, like me, don't like to re
 =head2 Unix users
 
  - Download the the latest rpm, tar, or zip file 
-   from http://misterhouse.net/download
+   from http://misterhouse.net:81/download
 
  - If using the rpm file:
      rpm -i misterhouse-#.##-1.noarch.rpm
@@ -94,7 +94,7 @@ See <a href="#Coding_your_own_events">Coding your own events</a> for info on how
 
 I you already have perl installed, you only need to download the main misterhouse_src_###.zip package.  If you do not have perl
 installed, you will also need to download the compiled mh.exe file, which is in the misterhouse_win_###.zip package.
-Both are available from http://misterhouse.net/download .
+Both are available from http://misterhouse.net:81/download .
 
 The 2 MB misterhouse_src_###.zip file installs into 5 MB of disk space.
 The misterhouse_win_###.zip takes an additional 3 MB of disk space.  
@@ -108,7 +108,7 @@ Now unzip the file(s) using your un-zipper of choice
 (use the -d if using pkunzip to preserve the directory structure).
 Look in the mh/lib directory to 
 make sure long file names were preserved (e.g. http_server.pl).  If not, you can download unzip from 
-http://misterhouse.net/public/unzip.exe .
+http://misterhouse.net:81/public/unzip.exe .
 
 =head2 Windows Step 2, Download and Install Perl
 
@@ -167,10 +167,12 @@ You can have both engines installed, and select which to use with the voice_text
 
 =head3 MS SDK 4.0 instructions
 
-You can download the required files from the 4.0 SDK from here: ftp://misterhouse.sourceforge.net/pub/misterhouse/ .
+You can download the required files from the 4.0 SDK from here:   http://www.microsoft.com/downloads/release.asp?ReleaseID=26299
 Note: IE takes a long time (5 minutes) to list that directory (maybe it is listing the 20,000+ dirs in pub).
 An ftp program works much faster.
-Or you can also get the files here: http://misterhouse.net/public/speech
+
+Or you can avoid the installing the whole SDK by downloading just the required files
+from here: http://misterhouse.net:81/public/speech
 Avoid downloading with Netscape, as for some reason it does not load the file as a binary file. 
 Verify the file sizes match these:
 
@@ -204,7 +206,7 @@ MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices that come with th
 
 =head2 UNIX Step 1, Download and Install Mister House
 
-Download the rpm, tar, or zip file from http://misterhouse.net/download .
+Download the rpm, tar, or zip file from http://misterhouse.net:81/download .
 
 Install the file as detailed in the quick install instructions.
 
@@ -406,7 +408,7 @@ supports the X10 CM11 (aka ActiveHome) and CM17 (aka Firecracker)
 interfaces and all the Weeder kits (analog, digital, x10, phone, available from from 
 http://www.weedtech.com ).
 Other supported hardware is listed in
-http://misterhouse.net/mh.html#List_of_supported_hardware_inter .
+http://misterhouse.net:81/mh.html#List_of_supported_hardware_inter .
 
 
 Currently, the X10 guys have a $50 deal for an ActiveHome kit, which includes the CM11 interface.

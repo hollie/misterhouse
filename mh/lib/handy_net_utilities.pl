@@ -199,7 +199,7 @@ sub main::net_ftp {
     print "Logging into web server $server as $user...\n";
 
     my $ftp;
-    unless ($ftp = Net::FTP->new($server, timeout => 120, passive => $passive)) {
+    unless ($ftp = Net::FTP->new($server, timeout => 120, Passive => $passive)) {
         print "Unable to connect to ftp server $server: $@\n";
         return "failed on connect";
     }
@@ -694,6 +694,8 @@ sub main::net_mail_count {
     return $msgcnt;
 }
 
+use Date::Parse;                # For str2time
+
 sub main::net_mail_summary {
 
     my %parms = @_;
@@ -705,12 +707,16 @@ sub main::net_mail_summary {
 #   }
 
     $parms{first}  = 1             unless $parms{first};
+    $parms{age}    = 24*60         unless $parms{age};
     ($parms{last}) = $pop->popstat unless $parms{last};
 
     $main::config_parms{net_mail_scan_size} = 2000 unless $main::config_parms{net_mail_scan_size};
     
     my %msgdata;
-    foreach my $msgnum ($parms{first} .. $parms{last}) {
+                                # Rather than 
+#   foreach my $msgnum ($parms{first} .. $parms{last}) {
+    my $msgnum = $parms{last};
+    while ($msgnum) {
         print "getting msg $msgnum\n" if $main::config_parms{debug} eq 'net';
         my $msg_ptr = $pop->top($msgnum, $main::config_parms{net_mail_scan_size});
         my ($date, $from, $from_name, $to, $replyto, $subject, $header, $header_flag, $body);
@@ -742,8 +748,12 @@ sub main::net_mail_summary {
 #       $from_name =~ s/ (\S)\. / $1 /;  # Drop the "." after middle initial abreviation.
         print "Warning, no From name found: from=$from, header=$header\n" unless $from_name;
 
-#       print "db from_name=$from_name from=$from\n";
-        print "msgnum=$msgnum  date=$date from=$from to=$to subject=$subject\n" if $main::config_parms{debug} eq 'net';
+        my $age_msg = int((time -  str2time($date)) / 60);
+        print "msgnum=$msgnum  age=$age_msg date=$date from=$from to=$to subject=$subject\n" if $parms{debug} or $main::config_parms{debug} eq 'net';
+
+#       print "db m=$msgnum mf=$parms{first} a=$age_msg a=$parms{age} \n";
+        last if $age_msg > $parms{age};
+
         push(@{$msgdata{date}},      $date);
         push(@{$msgdata{to}},        $to);
         push(@{$msgdata{replyto}},   $replyto);
@@ -753,6 +763,7 @@ sub main::net_mail_summary {
         push(@{$msgdata{header}},    $header);
         push(@{$msgdata{body}},      $body);
         push(@{$msgdata{number}},    $msgnum);
+        last if --$msgnum < $parms{first};
     }
 
     return \%msgdata;
@@ -792,6 +803,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.34  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.33  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

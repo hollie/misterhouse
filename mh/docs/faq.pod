@@ -289,8 +289,6 @@ If you want to create another table format, all you need to do is create a mh/li
 There is seperate FAQ on the FRS topic in
 <a href="faq_frs.html">mh/docs/faq_frs.html</a>
 
-=end html
-
 
 =head2 1.18: Is there a way to tell if MH is shutdown correctly or not?
 
@@ -310,7 +308,38 @@ code in mh/code/common/mh_control.pl will set $Power_Supply, so you can do somet
     speak 'You should have bought a ups';
  }
 
-Bruce
+
+=head2 1.19: How can I use an Internet Appliance with MisterHouse?
+
+=begin html
+There is seperate FAQ on varous Internet Appliances in
+<a href="faq_ia.html">mh/docs/faq_ia.html</a>
+
+=end html
+
+
+=head2 1.20: How can I point MisterHouse to a custom web interface?
+
+From David Norwood on 10/2001
+
+Here's a way to configure Misterhouse so you can have your own custom web
+interface AND still have access to web pages that are introduced with new
+releases (like the Audrey pages).
+
+Let's assume your misterhouse distribution is in /misterhouse/mh and your
+custom html files are in /misterhouse/web/custom.   Set these private.ini
+parameters:
+
+ html_dir=$Pgm_Root/web
+ html_file=/custom/index.html
+ html_alias_custom=/custom       /misterhouse/web/custom
+
+Now your custom web pages will come up by default, but you will still have
+access to the latest and greatest "mh4" and "ia*" interfaces.  Your pages
+will not be over-written by new releases.  If you need another directory
+for, say, your audrey interface, just add another html_alias_whatever
+parameter.
+
 
 
 
@@ -581,6 +610,14 @@ The best fix would be to replace OSS with ALSA. http://www.alsa-project.org.
 The ALSA drivers directly support multiplexing the dsp devices. 
 The only problem is they currently support fewer cards than the OSS drivers that come with the Linux kernel.
 Check out the web page and see if your card is supported. If it is, the best avenue would be replacing OSS with ALSA.
+
+From Dave Lounsberry and Denis Cheong on 10/2001:
+
+Problem: The speech stutters and then stops half way through, and I end up with 'hung' vv_tts.pl
+processes that do not complete.
+
+Solution: You need to use ViaVoice_Outloud 5.0 with "any" ALSA driver.
+ViaVoice Outloud 5.1 does not work with ALSA, but it seems that downgrading to 5.0 fixes it.
 
 =head2 3.2 How can I set the default volume level for Festival?
 
@@ -1028,6 +1065,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.26  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.25  2001/05/28 21:14:38  winter
 # - 2.52 release
 #

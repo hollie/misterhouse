@@ -25,6 +25,9 @@ my %mime_types = (
                   'wmls'  => 'text/vnd.wap.wmlscript',
                   'wbmp'  => 'image/vnd.wap.wbmp',  
                   'bmp'   => 'image/bmp',
+                  'au'    => 'audio/basic',
+                  'snd'   => 'audio/basic',
+                  'wav'   => 'audio/x-wav',
                   'wmls'  => 'text/vnd.wap.wmlscript',
                   'wmlc'  => 'application/vnd.wap.wmlc',
                   'wmlsc' => 'application/vnd.wap.wmlscriptc',
@@ -32,7 +35,7 @@ my %mime_types = (
 
 
 my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs, %http_agent_formats);
-sub main::http_read_parms {
+sub http_read_parms {
     
                                 # html_alias1=/aprs=>e:/misterhouse/web/aprs
     for my $parm (keys %main::config_parms) {
@@ -111,6 +114,8 @@ sub process_http_request {
         $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
         $Http{request} = $header;
     }
+    $Http{Referer} = '' unless $Http{Referer}; # Avoid uninitilized var errors
+
     logit "$config_parms{data_dir}/logs/server_header.$Year_Month_Now.log",  "$header data:$temp";;
 
                                 # Look at type of browser, via User-Agent key
@@ -126,6 +131,9 @@ sub process_http_request {
    
     if ($Http{'User-Agent'} =~ /Windows CE/) {
         $Http{'User-Agent'}    =  'MSCE';
+    }
+    elsif ($Http{'User-Agent'} =~ /Audrey/) {
+        $Http{'User-Agent'}    =  'Audrey';
     }
     elsif ($Http{'User-Agent'} =~ /MSIE/) {
         $Http{'User-Agent'}    =  'MSIE';
@@ -147,10 +155,29 @@ sub process_http_request {
 
     print "http a=$Authorized format=$Http{format} ua=$Http{'User-Agent'} web_format=$config_parms{web_format}\n" if $main::config_parms{debug} eq 'http';
 
-    my ($get_req, $get_arg) = $header =~ m|^GET (\/[^ \?]+)\??(\S+)? HTTP|;
+    my ($req_typ, $get_req, $get_arg) = $header =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
+
+    if ($req_typ eq "POST") {
+        $get_arg .= '&' if $get_arg;
+        my $cl = $Http{'Content-Length'} || $Http{'Content-length'}; # Netscape uses lower case l
+        print "http POST query has $cl bytes of args\n" if $main::config_parms{debug} eq 'http';
+        my $buf;
+        read $socket, $buf, $cl;
+        $get_arg .= $buf;
+#       shutdown($socket->fileno(), 0);   # "how":  0=no more receives, 1=sends, 2=both
+    }
 
 #query-replace-regexp "said \\([$a-z_]+\\)" "\\1->{said}" nil)
-    $get_req = $main::config_parms{'html_file' . $Http{format}} unless $get_req;
+    if (!$get_req or $get_req eq '/') {
+        $get_req = $main::config_parms{'html_file' . $Http{format}};
+        my $referer = "http://$Http{Host}";
+                                # Some browsers (e.g. Audrey) do not echo port in Host data
+        $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
+        $referer .= "/$get_req";
+        print $socket &http_redirect($referer);
+        return;
+    }
+
     $get_arg = '' unless $get_arg;
     logit "$config_parms{data_dir}/logs/server_http.$Year_Month_Now.log",  "$Socket_Ports{http}{client_ip_address} $get_req $get_arg";
 
@@ -473,7 +500,7 @@ sub html_unauthorized {
     }
 }
 
-sub get_local_file {
+sub http_get_local_file {
     my ($get_req) = @_;
     my ($http_dir, $http_member) = $get_req =~ /^(\/[^\/]+)(.*)/;
     my $file;
@@ -490,10 +517,21 @@ sub get_local_file {
 sub test_for_file {
     my ($socket, $get_req, $get_arg, $no_header, $no_print) = @_;
 
-    my ($file, $http_dir) = &get_local_file($get_req);
+    my ($file, $http_dir) = &http_get_local_file($get_req);
 
                                 # Check for index files in directory
     if (-d $file) {
+                                # If the url does not have a trailing /, redirect it, so
+                                # we can get browsers to work with relative links
+        unless ($file =~ m|/$|) {
+            my $referer = "http://$Http{Host}";
+                                # Some browsers (e.g. Audrey) do not echo port in Host data
+            $referer .= ":$config_parms{http_port}" if $config_parms{http_port} and $referer !~ /$config_parms{http_port}$/;
+            $referer .= "$get_req/";
+            print $socket &http_redirect($referer);
+        }
+
+
         my $file2;
         for my $default (split ',', $main::config_parms{'html_default' . $Http{format}}) {
             $file2 = "$file/$default";
@@ -672,7 +710,7 @@ sub html_response {
 #           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
 #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
-        elsif ($h_response =~ /^http:\S+$/i or $h_response =~ /^referer$/i) {
+        elsif ($h_response =~ /^http:\S+$/i or $h_response =~ /^reff?erer$/i) {
                                 # Wait a few passes before refreshing page, in case mh states changed
             $h_response = $Http{Referer} if $h_response =~ /^referer$/i;
 #           $leave_socket_open_action = "&http_redirect('$h_response')"; # mh uses &html_page, so this does not work
@@ -717,6 +755,16 @@ sub html_last_response {
     my ($last_response, $script, $style);
     $last_response = &last_response;
     $Last_Response = '' unless $Last_Response;
+
+                                # Create a tts wav file
+    my $tts_text = $last_response;
+    my $webmute = 1 if $Cookies{webmute} or $config_parms{webmute} or !$tts_text;
+    unless ($webmute) {
+        $tts_text =~ s/^[\d\/\: ]+(AM|PM)//;
+        $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
+        &speak(to_file => "$config_parms{html_dir}/http_server.wav", text => $tts_text);
+    }
+
     if ($Last_Response eq 'speak') {
                                 # Allow for MSagent
         if ($browser =~ /^MS/ and $Cookies{msagent} and $main::config_parms{'html_msagent_script' . $Http{format}}) {
@@ -736,6 +784,10 @@ sub html_last_response {
 
     $last_response = substr $last_response, 0, $length if $length;
     $style = "$main::config_parms{'html_style_speak' . $Http{format}}" unless $style;
+
+                                # Create autoplay wav file
+    $last_response .= "\n<br><EMBED SRC='/http_server.wav' WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n" 
+        unless $webmute;
 
     return $last_response, $style, $script;
 }
@@ -767,6 +819,7 @@ sub html_last_spoken {
     else {
         $h_response = "<h4>Not Logged In</h4>";
     }
+
     return "$h_response\n", $main::config_parms{'html_style_speak' . $Http{format}};
 }
 
@@ -850,8 +903,15 @@ sub html_file {
                                 # Note: These differ from classic .cgi in that they return 
                                 #       the results, rather than print them to stdout.
     elsif ($file =~ /\.pl$/) {
+                                # Check if authorized
+        unless ($Authorized or $Password_Allow{$file}) {
+            $file =~ s/.*\///;
+            return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
+        }
+
+        @ARGV = '';             # Have to clear previous args
         @ARGV = split('&&', $arg) if $arg;
-        my $code = join(' ', <HTML>);
+        my $code = join('', <HTML>);
 
                                 # I couldn't figure out how to open STDOUT to $socket
 #       open(OLDOUT_H, ">&STDOUT"); # Copy old handle
@@ -878,6 +938,12 @@ sub mime_header {
     my ($extention) = $_[0] =~ /.+\.(\S+)$/;
     my $mime = $mime_types{lc $extention} || 'text/html';
     return qq[HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n\n];
+}
+
+                                # This returns real dirs, given html alias
+sub html_alias {
+    my ($dir) = @_;
+    return $http_dirs{$dir};
 }
 
 sub html_page {
@@ -1076,6 +1142,22 @@ sub html_list {
                 return "<h3>MS agent has been turned Off</h3>";
             }
         }
+                                # Check for webmute checkbox
+        if ($webname_or_object_type =~ /webmute=1/) {
+            unless ($Cookies{webmute}) {
+                $Cookies{webmute} = 1;
+                $Cookie .= "Set-Cookie: webmute=1 ; ; path=/;\n";
+                return "<h3>Web wav files have been disabled</h3>";
+            }
+        }
+        else {
+            if ($Cookies{webmute}) {
+                $Cookies{webmute} = 0;
+                $Cookie .= "Set-Cookie: webmute=0 ; ; path=/;\n";
+                return "<h3>Web wav files have been enabled</h3>";
+            }
+        }
+
                                 # Search for matching Voice_Cmd and Tk Widgets
         $h_list .= "<!-- html_list list_objects_by_search=$search -->\n";
         my %seen;
@@ -1090,7 +1172,9 @@ sub html_list {
         $h_list .= &widgets('search', $search);
         $h_list .= &html_command_table(sort @object_list);
         return $h_list;
+
     }
+
 
                                 # Check for authority based searches
     if ($webname_or_object_type =~ /authority=(\S*)/) {
@@ -1419,8 +1503,9 @@ sub html_item_state {
     my $use_select = 1 if @states > 2 and length("@states") > $config_parms{'html_select_length' . $Http{format}};
 
     if ($use_select) {
-#       $html .= qq[<FORM action="/SET;&html_list($object_type)?" method="get">\n];
-        $html .= qq[<FORM action="SET;referer?" method="get">\n];
+                                # Some browsers (e.g. Audrey) do not have full url in Referer :(
+        my $referer = ($Http{Referer} =~ m|/\S+?/\S+|) ? 'referer' : "&html_list($object_type)";
+        $html .= qq[<FORM action="/SET;$referer?" method="get">\n];
         $html .= qq[<INPUT type="hidden" name="select_item" value="$object_name">\n]; # So we can uncheck buttons
     }
 
@@ -1442,10 +1527,12 @@ sub html_item_state {
                                 # Add brighten/dim arrows on X10 Items
     $html .= qq[<td align="left"><b>];
     if ($isa_X10) {
+                                # Some browsers (e.g. Audrey) do not have full url in Referer :(
+        my $referer = ($Http{Referer} =~ m|/\S+?/\S+|) ? 'referer' : "&html_list($object_type)";
+
                                 # Note:  Use hex 2B = +, as + means spaces in most urls
-#       $html .= qq[<a href='SET;&html_list($object_type)?$object_name?%2B15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
-        $html .= qq[<a href='SET;referer?$object_name?%2B15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
-        $html .= qq[<a href='SET;referer?$object_name?-15'>  <img src='/graphics/a1-.gif' alt='-' border='0'></a> ];
+        $html .= qq[<a href='SET;$referer?$object_name?%2B15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
+        $html .= qq[<a href='SET;$referer?$object_name?-15'>  <img src='/graphics/a1-.gif' alt='-' border='0'></a> ];
     }
 
                                 # Add Select states
@@ -1473,8 +1560,9 @@ sub html_item_state {
         }
     
         if ($state_toggle) {
-            $html .= qq[<a href='SET;referer?$object_name=$state_toggle'>$object_name2</a>];
-#           $html .= qq[<a href='SET;&html_list($object_type)?$object_name?$state_toggle'>$object_name2</a>];
+                                # Some browsers (e.g. Audrey) do not have full url in Referer :(
+            my $referer = ($Http{Referer} =~ m|/\S+?/\S+|) ? 'referer' : "&html_list($object_type)";
+            $html .= qq[<a href='SET;$referer?$object_name=$state_toggle'>$object_name2</a>];
         }
         else {
             $html .= $object_name2;
@@ -1488,6 +1576,8 @@ sub html_item_state {
         for my $state (@states) {
             next unless $state;
             my $state_short = substr $state, 0, 5;
+                                # Some browsers (e.g. Audrey) do not have full url in Referer :(
+            my $referer = ($Http{Referer} =~ m|/\S+?/\S+|) ? 'referer' : "&html_list($object_type)";
             $html .= qq[ <a href='SET;referer?$object_name=$state'>$state_short</a>];
         }
     }
@@ -1545,8 +1635,10 @@ sub pretty_object_name {
 my $socket_fork_count = 0;
 sub print_socket_fork {
     my ($socket, $html) = @_;
+    return unless $html;
     my $length = length $html;
                                 # These sizes are picked a bit randomly.  Don't need to fork on small files
+                                #  - A few Win98 users had problems, but unix is ok
     if (($main::config_parms{http_fork} or !$OS_win) and
         ($length > 2000 and !&is_local_address() or $length > 10000)) {
         print "http_server: printing with forked socket: l=$length s=$socket\n" if $main::config_parms{debug} eq 'http';
@@ -1726,7 +1818,7 @@ sub vxml_form {
     unshift @goto,    ($parms{prev}) ? "#$parms{prev}" : '_lastanchor';
     unshift @action,  '';
     unless ($parms{help}) {
-        $parms{help} = 'Speak or key one of ' . scalar @grammar . 'commands: ';
+        $parms{help} = 'Speak or key one of ' . scalar @grammar . ' commands: ';
         my $i = 1;
         for my $cmd (@grammar) {
             $parms{help} .= $i++ . ": $cmd, ";
@@ -1952,7 +2044,7 @@ sub dir_index {
     $sortby = '' unless $sortby; # Avoid uinit warnings
     my $reverse2 = ($reverse) ? 0 : 1;
     my $sort_order = ($reverse) ? '+' : '-' ;
-    my ($dir) = &get_local_file($dir_html);
+    my ($dir) = &http_get_local_file($dir_html);
     my $dir_tr = $dir_html;
     $dir_tr =~ s/\//\%2F/g;
 
@@ -2055,6 +2147,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.62  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.61  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

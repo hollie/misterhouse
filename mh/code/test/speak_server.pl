@@ -78,17 +78,23 @@ if (my ($name, $name_short) = net_domain_name_done 'server_speak') {
 
             my $response = $chatbot->transform($msg);
 #           $msg = "$name_short said: $msg.\nEliza says: $response";
-            $msg  = "<voice required='Name=Microsoft Sam'\>$name_short said: ";
-            $msg .= "<voice required='Name=Microsoft Mike'>$msg.</voice>\n";
-            $msg .= "Eliza says: <voice required='gender=female'>$response.</voice>";
+            my  $msg2  = "<voice required='Name=Microsoft Sam'\>$name_short said: ";
+            $msg2 .= "<voice required='Name=Microsoft Mike'>$msg.</voice>\n";
+            $msg2 .= "Eliza says: <voice required='gender=female'>$response.</voice>";
+            print "db r=$response\n";
+            $msg = $msg2;
         }
         else {
             $msg = "Internet message from $name_short: <voice required='gender=male'/>$msg" if $msg;
 #           $msg = "Internet message: $msg" if $msg;
         }
 
+        &speak(to_file => "$config_parms{data_dir}/speak_server.wav", text => $msg);
+
         my $html;
         ($html = $msg) =~ s/\n/\n<br>/g;
+        $html .=  "\n<br><EMBED SRC='http://misterhouse.net:8080/data/speak_server.wav' WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
+
         set $speak_server &html_page("", "<h3>The Message spoken:</h3>$html");
 
 #        display($msg, 120, "Internet Message from $name") unless
@@ -110,7 +116,8 @@ if (my ($name, $name_short) = net_domain_name_done 'server_speak') {
 
     stop $speak_server;     # Tell the client we got the message
 
-    $msg = substr $msg, 0, 200;
+    $msg = substr $msg, 0, 600;
+    print "db ms=$msg\n";
     if ($config_parms{internet_speak_flag} eq 'all' or
         $config_parms{internet_speak_flag} eq 'some' and $speak_server_data =~ /^GET /) {
         speak voice => 'mike', text => $msg;

@@ -63,16 +63,11 @@ This will log all 'print' statements to /mh/test1.log and turn on all serial rel
 
 =head2 Installation
 
+
+=begin html
 The system requirements and installation instructions are detailed in 
-
-=begin html
 <a href="install.html">mh/docs/install.html</a>
-
-=end html
-
-There is also a FAQ that covers misc topics in
-
-=begin html
+<p>There is also a FAQ that covers misc topics in
 <a href="faq.html">mh/docs/faq.html</a>
 
 =end html
@@ -251,7 +246,8 @@ A nice summary of the different X10 controlers is here:
 http://www.geocities.com/ido_bartana/Which_controller.html
 
 Europeans can get X10 stuff from  http://www.intellihome.be , 
-http://www.hwg-telekom.de , http://www.digihouse.com.au , and Eon3 http://www.eon3.com
+http://www.hwg-telekom.de , http://www.digihouse.com.au , http://www.eon3.com, 
+www.madomotique.com, www.letsautomate.com, and www.laser.com .
 
 Weeder Technologies, http://www.weedtech.com , offers the following kits
 priced from $30 to $50 each.  All of these kits can share the same serial port:
@@ -339,10 +335,6 @@ at http://lcdproc.omnipotent.net
 An example on how to use these displays is in mh/code/bruce/lcdproc.pl.  See the 
 header of that file for more info.
 
-Using a these devices, and a new MP3 perl module/player, we should be able
-to build ourselves a mh based home MP3 Stereo!  Someone has already built
-a perl base one at http://aelix.cs.iastate.edu/lcdat/
-
 Here are a few other devices which look useful, but have not had code written for them:
 
  http://www.nirvis.com/  $180 2-way IR device
@@ -419,6 +411,14 @@ for some sort of home inventory purpose, their software does not do that.  The p
 you use their software, you must agree to a Licence that says you will only use the scanner with their
 software.  Hopefully they will not notice or care that small group of us HA guys are using it
 without their software (other people who have written similar code have gotten cease-and-desist letters).
+
+
+=begin html
+Info on an LCD internet appliances that makes an affordable touch screen controlers in 
+the MisterHouse Internet Appliance FAQ here:
+<a href="faq_ia.html">mh/docs/ia.html</a>
+
+=end html
 
 =head2 List of startup options
 
@@ -634,6 +634,14 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
 
      set_authority('anyone') : Bypasses password control
 
+     set_icon : Point to the icon member you want the web interface to use.
+                See the 'Customizing the web interface' section of this document for details.
+
+     set_info : Adds additional information.  This will show up as a popup window
+                on the web interface, when the mouse hovers over the command text.
+
+     set_label: Specify a text label, useful for creating touch screen interfaces.
+
 
 The tie/untie methods can be done conditionally, so you can change what is tied to what on the fly.
 If you do this, however, you need to also make sure you also make the tie* method call 
@@ -817,12 +825,12 @@ The first 2 characters are the iButton family type.  Here is a list of family ty
     $v_iButton_connect = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
     if ($state = said $v_iButton_connect) {
       if ($state eq 'Connect') {
-        print_log &iButton::connect($config_parms{ibutton_port});
-        print_log &iButton::connect($config_parms{ibutton_port2});
+        print_log &iButton::connect($config_parms{iButton_serial_port});
+        print_log &iButton::connect($config_parms{iButton_2_serial_port});
       }
       else {
         print_log &iButton::disconnect;
-        print_log &iButton::disconnect, $config_parms{ibutton_port2};
+        print_log &iButton::disconnect, $config_parms{iButton_2_serial_port};
       }
     }
 
@@ -830,7 +838,7 @@ The first 2 characters are the iButton family type.  Here is a list of family ty
     speak 'Hi Bruce'  if ON  eq state_now $ib_bruce;
     speak 'Later'     if OFF eq state_now $ib_bruce;
 
-    $ib_relay1 = new iButton '12000000123456ff', $config_parms{ibutton_port2};
+    $ib_relay1 = new iButton '12000000123456ff', $config_parms{iButton_2_serial_port};
     $v_iButton_relay1    = new Voice_Cmd "Turn relay1 [on,off]";
     if ($state = said $v_iButton_relay1) {
        print_log "Setting iButton relay1 to $state";
@@ -1652,7 +1660,7 @@ Calls up the web browser defined my the mh.ini browser parm
 
   Examples: 
 
-    browser 'http://misterhouse.net';
+    browser 'http://misterhouse.net:81';
     browser "$config_parms{tracking_dir}/today.html" if said $v_show_tracking;
 
 
@@ -2879,6 +2887,12 @@ It will create the following files:
 You can create a get_email_rule.pl file to control how this program summarizes
 mail.  See get_email_rule_example.pl for an example.
 
+Use the mh.ini net_mail_scan_age parm to set the age, in minutes, of email to report/scan.
+If blank, (default), get_email reports on all mail on your server.
+If your have your mail client set to 'leave mail on server'
+(useful if you want to use appliances like Audrey to also read mail),
+you will probably want to set this to something like 15.
+
 Here is an example of how to call it from mh (see mh/code/test/internet_mail.pl 
 for the complete example):
 
@@ -2965,8 +2979,8 @@ Creates a DBM for use by get_tv_info.
     -h        => This help text
     -help     => This help text
 
-    -userid xyz   => xyz is your clicktv userid.  Go to http://www.clicktv.com  to create
-                     one, or to find the generic one that matches your local tv schedule.
+    -zip xyz      => xyz is your zip code
+    -provider xyz => xyz is your TV provider ID.  See note below
 
     -day xyz      => xyz is the day  to get/filter.  Default is today.
     -hour xyz     => xyz is the hour to get/filter.  Default is 6pm.
@@ -3002,6 +3016,12 @@ Creates a DBM for use by get_tv_info.
     get_tv_grid -day 25 -hour 4pm -outfile my_tv.html
     get_tv_grid -days 7 -hour all
     get_tv_grid -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8080
+
+  Note on finding your provider ID:
+   Enter your zip code at http://tvlistings2.zap2it.com/
+   View the html source and pick the number from value='nnnnnn'
+   by doing a string search for you provider.  For example:
+      <OPTION value="255248">Charter Communications - Rochester</OPTION>
 
 
 =item get_tv_info
@@ -3541,7 +3561,8 @@ Something like this could be used to create different menus for different LCD co
     $lcd_data{living2}{menu_group} = 'all';
   }
 
-To test your menus, point your browser to http://localhost:8080/sub?menu_html
+To test your menus, point your browser to http://localhost:8080/sub?menu_html 
+To view auto-generated menus, try http://localhost:8080/sub?menu_html(mh)
 
 If you have a LCD supported by lcdproc  program ( http://lcdproc.omnipotent.net )
 (e.g. crystalfontz or matrix-orbital), you can use mh/code/bruce/lcdproc.pl to display menus.
@@ -3828,7 +3849,7 @@ SET, RUN, or SUB can use an optional h_response field to decide what html will b
    last_spoken      The last spoken item will be returned
    filexyz.html     The contents of filexyz.html will be returned
    string           string will be returned
-   Referer          The browser will be re-directed back to the calling page
+   referer          The browser will be re-directed back to the calling page
    http://url       The browser will be re-directed to url
    blank:           A list of recently spoken text will be returned
 
@@ -3885,9 +3906,34 @@ For example, if you want to get a directory listing, sorted by date (recent on t
 
   <a href=http://localhost:8080/RUN;&dir_index('/pictures','date',1)>List pictures by date </a>
 
-Finally, you can specify a subroutine to run that generates response html.  For example:
+Here is an example of using a subroutine to generate html:
 
    http://misterhouse.net:8080/SUB;tellme_menu(,,html)
+
+You can also use a seperate web server (e.g. Apache or ISS) to serve pages that control MisterHouse. 
+For example:
+
+  Turn lamp
+  <a href="http://localhost:8080/SET;referer?$light1?on">on</a>
+  <a href="http://localhost:8080/SET;referer?$light1?off">off</a>
+
+To enable on-the-fly icons to that show current item states, add this function to your code:
+
+ sub web_icon_state {
+     my ($item) = @_;
+     my $obj   = &get_object_by_name($item);
+     my $state = $obj->state;
+     my $icon  = "$main::config_parms{html_dir}/graphics/$state.gif";
+     print "db icon=$icon s=$state i=$item\n";
+     my $image = file_read $icon;
+     return $image;
+ }
+
+Then add this to your html:
+
+  <img src=http://localhost:8081/sub?web_icon_state('$light1')>
+
+
 
 
 =head2 Voice Recognition (VR) and Text To Speech (TTS) on windows
@@ -3999,13 +4045,14 @@ Here is a list of all the code hook locations:
 
   MainLoop_pre   => Run before user code 
   MainLoop_post  => Run before user code 
-  Serial_match   => Run when incoming serial data matches
+  Serial_match   => Run when incoming serial data matches and object
+  State_change   => Run when objects change states
   Play_pre       => Run before playing wav files
   Play_post      => Run after  playing wav files
   Speak_pre      => Run before speaking text files
   Speak_post     => Run after  speaking text files
 
-For more examples on code hooks, see mh/code/test_code_hooks.pl
+For more examples on code hooks, see mh/code/bruce/test_code_hooks.pl
 
 
 =head1 KNOWN LIMITATIONS AND BUGS
@@ -4072,7 +4119,7 @@ and <a href="authors.html">a bunch of fellow home hackers</a>
 
 =head1 SEE ALSO
 
-mh can be download from http://misterhouse.net
+mh can be download from http://misterhouse.net:81
 
 Here is a list of articles written about MisterHouse:
 
@@ -4133,6 +4180,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.47  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.46  2001/09/23 19:28:11  winter
 # - 2.59 release
 #

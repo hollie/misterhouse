@@ -210,6 +210,7 @@ sub find_match {
                         my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
 #                       my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$vcr_time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
                         $vcr_link =~ s/://g;
+                        $pgm_name =~ s/\*+//g; # Change **show name** => show name
                         my $temp = "\n$match_cnt.  $pgm_name.  $channel_name Channel $channel_number.  ";
 
                         my $print_date = $pgm_date;
@@ -490,6 +491,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.21  2001/10/21 01:22:31  winter
+# - 2.60 release
+#
 # Revision 1.20  2001/08/12 04:02:57  winter
 # - 2.57 update
 #

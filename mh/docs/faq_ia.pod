@@ -1,0 +1,98 @@
+=pod
+
+=head1 Internet Appliances with MisterHouse FAQ
+
+This will try to cover info an tips on using various internet applinaces
+like the Epods and Audrey with MisterHouse.
+
+=head1 What is an internet appliance
+
+A broad term used to cover any thing cheaper than a computer that hooks up 
+to an ethernet port.  A couple of examples:
+
+ - Web browsers used as touch screens
+ - Ethernet connected MP3 players
+ - Internet radios
+ 
+
+=head1 What is an epod
+
+An epod is a hacked WinCE webpad. 640x480 color
+touchpad display, 16MB memory, cf and pcmcia slot. I connect mine wirelessly
+using a D-Link card/access point. Epods are selling for about $300 on EBay.
+Check out:
+
+  http://www.geocities.com/epodsfiles/
+  http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=EpodsOne
+
+
+=head1 What is an Audrey
+
+In Fall of 2001, the discontinued 3Com Audrey were being liquidated 
+by tigerdirect.com for $90 (originally $500).  With a 640x480 LCD
+touchscreen, it makes for a nice web appliance / touch control pannel.
+
+Here are some helpful links:
+
+ Order: http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=M975-9000%20P
+ Hack:  http://www.audreyhacking.com/
+ Faq:   http://www.3rdmoon.com/crusso/audrey/
+ List:  http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=3Com_Audrey&Idle
+ OS:    http://www.qnxstart.com/
+
+=head2 How to boot Audrey to a mh page
+
+From Ron Wright from some other site on 10/2001
+
+I has hacking away and realized that the 
+/data/XML/channels/.countertop/TEMPLATE directory has 
+the default index.shtml that loads up when Audrey 
+boots. So I tried adding a refresh meta tag to this 
+file and rebooted. It worked just as I had hoped it would.
+
+Now it loads the intro screen for a few seconds 
+(5 in my case) and then "refreshes" to open my control 
+panel for the house. Works great and appears to be safe 
+enough for my wife to use now.
+
+Just add this tag to the index.shtml file mentioned 
+above. I added mine just below the first meta tag:
+
+ <meta HTTP-EQUIV="refresh" CONTENT="5;URL=http://192.168.0.1:8080/audrey/audrey.html">
+
+
+=head2 How to stop the Audrey from auto-upating
+
+From Ron Wright from some other site on 10/2001
+
+I have also edited the kcrontab file to keep Audrey from
+trying to update her channels.  I found before doing this,
+everytime she tried an update it was changing the page
+back to default audrey welcome.  Also the initial reason
+for the above change.  This just makes it one better.
+
+Losing kcrontab entries
+
+If you have the root shell hack on the audrey options panel, you can.
+
+1) Get into the shell 
+ cd /config
+ cat kcrontab >kcrontab.sav
+ exit
+
+2) Deselect broadband and all the download times
+
+3) go back to the shell
+ cd /config
+ edit kcrontab.sav to save what you want
+ cp kcrontab.sav kcrontab
+
+All better
+
+BTW My kcrontab looks like this
+
+ -MemDefrag;15;19;*;*;*
+ setitime;23;19;*;*;*
+ maild;/5;*;*;*;*
+
+

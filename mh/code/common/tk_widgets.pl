@@ -10,7 +10,7 @@ if ($Reload) {
                                 #       web widgets with -tk 0
     if ($MW) {
         $MW->bind('<F1>' => \&read_code);
-        $MW->bind('<F2>' => \&pause);
+        $MW->bind('<F2>' => \&toggle_pause);
         $MW->bind('<F3>' => \&sig_handler); 
         $MW->bind('<F4>' => \&toggle_debug); 
         $MW->bind('<F5>' => \&toggle_log); 

@@ -377,7 +377,7 @@ sub menu_html {
     $menu_group = 'default' unless $menu_group;
     $menu       = $Menus{$menu_group}{menu_list}[0] unless $menu;
 
-    my $html;
+    my $html = "<h1>";
     my $item = 0;
     my $ptr = $Menus{$menu_group};
     for my $ptr2 (@{$$ptr{$menu}{items}}) {
@@ -530,7 +530,7 @@ sub menu_vxml {
                                 # Get a list of all menus, then build vxml forms
     my @menus     = &menu_submenus  ($menu_group, $menu_start, 99);
     my @forms     = &menu_vxml_forms($menu_group, @menus);
-    my $greeting  = &vxml_audio('greeting', 'Welcome to Mister House', 'tellme_welcome.wav', "#$menu_start");
+    my $greeting  = &vxml_audio('greeting', 'Welcome to Mister House', '/misc/tellme_welcome.wav', "#$menu_start");
     my $vxml_vars = "<var name='prev_menu'/>\n<var name='prev_item'/>\n";
     return &vxml_page($vxml_vars . $greeting . "@forms");
 }
@@ -799,6 +799,9 @@ return 1;
 
 #
 # $Log$
+# Revision 1.7  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.6  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

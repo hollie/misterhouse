@@ -78,7 +78,7 @@ mh uses about 20% of the cpu and gets about 8 passes per second.</P>
 <H2><A NAME="windows users">Windows users</A></H2>
 <PRE>
  - Download the the misterhouse_src_###.zip and misterhouse_win_###.zip files
-   from  <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A></PRE>
+   from  <A HREF="http://misterhouse.net:81/download">http://misterhouse.net:81/download</A></PRE>
 <PRE>
  - cd to where you want the mh directory created in (e.g. c:\misterhouse). 
    Avoid directories with spaces in the name (e.g. \program files\)</PRE>
@@ -96,7 +96,7 @@ mh uses about 20% of the cpu and gets about 8 passes per second.</P>
 <H2><A NAME="unix users">Unix users</A></H2>
 <PRE>
  - Download the the latest rpm, tar, or zip file 
-   from <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A></PRE>
+   from <A HREF="http://misterhouse.net:81/download">http://misterhouse.net:81/download</A></PRE>
 <PRE>
  - If using the rpm file:
      rpm -i misterhouse-#.##-1.noarch.rpm
@@ -134,7 +134,7 @@ See <a href="#Coding_your_own_events">Coding your own events</a> for info on how
 <H2><A NAME="windows step 1, download and install mister house">Windows Step 1, Download and Install Mister House</A></H2>
 <P>I you already have perl installed, you only need to download the main misterhouse_src_###.zip package.  If you do not have perl
 installed, you will also need to download the compiled mh.exe file, which is in the misterhouse_win_###.zip package.
-Both are available from <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A> .</P>
+Both are available from <A HREF="http://misterhouse.net:81/download">http://misterhouse.net:81/download</A> .</P>
 <P>The 2 MB misterhouse_src_###.zip file installs into 5 MB of disk space.
 The misterhouse_win_###.zip takes an additional 3 MB of disk space.  
 The compiled version is not any faster, it is just more convenient
@@ -146,7 +146,7 @@ Now unzip the <CODE>file(s)</CODE> using your un-zipper of choice
 (use the -d if using pkunzip to preserve the directory structure).
 Look in the mh/lib directory to 
 make sure long file names were preserved (e.g. http_server.pl).  If not, you can download unzip from 
-<A HREF="http://misterhouse.net/public/unzip.exe">http://misterhouse.net/public/unzip.exe</A> .</P>
+<A HREF="http://misterhouse.net:81/public/unzip.exe">http://misterhouse.net:81/public/unzip.exe</A> .</P>
 <P>
 <H2><A NAME="windows step 2, download and install perl">Windows Step 2, Download and Install Perl</A></H2>
 <P>You can skip this step if you downloaded the compiled version of Mister House.</P>
@@ -187,16 +187,18 @@ The DCOM 1.3 upgrade is 1.2 Meg and available at
 <A HREF="http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp">http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp</A> .
 If you don't have this update, mh will run, but you may occasionally see windows (like control pannel or install shield)
 not start right away, especially if you run without the Tk interface (mh -tk 0).</P>
-<P>You can use either the old 4.0 or new 5.1 Microsoft speech engines.
+<P>You can use either the old 4.0 or new 5.1 or both Microsoft speech engines.
 This mh release supports the 5.1 TTS engines, but not the VR engine yet. 
-The 5.1 TTS engines have more option (e.g. on the fly voice selection, XML flag support).
+The 5.1 TTS engines have more option (e.g. on the fly voice selection, XML flag support),
+but does not work on Win 95. 
 You can have both engines installed, and select which to use with the voice_text=MSV4 or MSV5 mh.ini parm.</P>
 <P>
 <H3><A NAME="ms sdk 4.0 instructions">MS SDK 4.0 instructions</A></H3>
-<P>You can download the required files from the 4.0 SDK from here: <A HREF="ftp://misterhouse.sourceforge.net/pub/misterhouse/">ftp://misterhouse.sourceforge.net/pub/misterhouse/</A> .
+<P>You can download the required files from the 4.0 SDK from here:   <A HREF="http://www.microsoft.com/downloads/release.asp?ReleaseID=26299">http://www.microsoft.com/downloads/release.asp?ReleaseID=26299</A>
 Note: IE takes a long time (5 minutes) to list that directory (maybe it is listing the 20,000+ dirs in pub).
-An ftp program works much faster.
-Or you can also get the files here: <A HREF="http://misterhouse.net/public/speech">http://misterhouse.net/public/speech</A>
+An ftp program works much faster.</P>
+<P>Or you can avoid the installing the whole SDK by downloading just the required files
+from here: <A HREF="http://misterhouse.net:81/public/speech">http://misterhouse.net:81/public/speech</A>
 Avoid downloading with Netscape, as for some reason it does not load the file as a binary file. 
 Verify the file sizes match these:</P>
 <PRE>
@@ -214,17 +216,17 @@ can be downloaded from <A HREF="http://www.nextup.com/TextAloud/SpeechEngine/voi
 <H3><A NAME="ms sdk 5.1 instructions">MS SDK 5.1 instructions</A></H3>
 <P>In theory, the 5.1 MS TTS and VR engines can be installed separately, but they are distributed from Microsoft
 only as .msm files, which can only be used by a program that creates .msi install files.  I have not yet found
-an easy way to create a .msi file (suggestions welcome).  So for now, the only option is to install the 70 mb
-5.1 SDK, available from here:  <A HREF="http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe">http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe</A></P>
+an easy and free way to create a .msi file (suggestions welcome).  So for now, the only option is to install the 
+full 70 mb 5.1 SDK, available from here:  <A HREF="http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe">http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe</A></P>
 <P>After installing, the default mh.ini voice_text=MS parm will default to the new V5 engine.  Use MSV4 to switch
 back to the old V4 engine.   So far, the only voices I have found for the V5 engines are the 
-MS Mike, Sam, and Mary voices that come with the SDK.</P>
+MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices that come with the SDK.</P>
 <P>
 <HR>
 <H1><A NAME="unix detailed install instructions">UNIX Detailed Install Instructions</A></H1>
 <P>
 <H2><A NAME="unix step 1, download and install mister house">UNIX Step 1, Download and Install Mister House</A></H2>
-<P>Download the rpm, tar, or zip file from <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A> .</P>
+<P>Download the rpm, tar, or zip file from <A HREF="http://misterhouse.net:81/download">http://misterhouse.net:81/download</A> .</P>
 <P>Install the file as detailed in the quick install instructions.</P>
 <P>If you choose to use the zip file instead, make sure you 
 use the -a to automatically get rid of those pesky /r characters that DOS like to add to newlines.
@@ -385,7 +387,7 @@ supports the X10 CM11 (aka ActiveHome) and CM17 (aka Firecracker)
 interfaces and all the Weeder kits (analog, digital, x10, phone, available from from 
 <A HREF="http://www.weedtech.com">http://www.weedtech.com</A> ).
 Other supported hardware is listed in
-<A HREF="http://misterhouse.net/mh.html#List_of_supported_hardware_inter">http://misterhouse.net/mh.html#List_of_supported_hardware_inter</A> .</P>
+<A HREF="http://misterhouse.net:81/mh.html#List_of_supported_hardware_inter">http://misterhouse.net:81/mh.html#List_of_supported_hardware_inter</A> .</P>
 <P>Currently, the X10 guys have a $50 deal for an ActiveHome kit, which includes the CM11 interface.
  Check it out at <A HREF="http://www.x10.com">http://www.x10.com</A> .
 See FAQ question 6.5 for more info on X10.</P>

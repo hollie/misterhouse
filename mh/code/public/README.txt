@@ -38,6 +38,14 @@ callerid_doug*
  - Caller ID for modem, from Doug Parrish.  Ties into a DB file and has an
    optional PHP page.
 
+callerisdn.pl
+ - Ron Klinkien's code for monitoring callerid on  AVM Fritz!Card
+   (ISDN4BSD or ISDN4Linux required)
+
+chimes_cuckoo.pl
+chimes_westminster.pl
+ - David Norwood's code for chimeing like cuckoo and grandfather clocks.
+
 Compool*.pl
  - Bill Sobel's code for monitoring and controling ComPool pool/spa equipment.
    You can get/set time, get/set temperature, and get/set equipment states.    
@@ -141,12 +149,19 @@ send_numeric_page.pl
 send_alpha_page.pl
  - David's code for sending alphanumberic pages using the linux bip program
 
+sensors_lm.pl
+ - Denis Cheong's code to get motherboard temperature data from the (linux only) lm sensors program.
+
 slinke_*
  - Brian Paulsen's examples of calling the Slinke.pm module he wrote.
    We don't have this integrated into mh yet.
 
 sprinklers_*.pl 
  - Brian Rudy and Bill Sobel's code for sprinklers
+
+sms1.pl
+ - Roger Bille's quick and dirty perl script to play with SMS 
+using a GSM modem phone without keyboard and display but with RS232.
 
 test_homebase.pl
  - example code on how to talk to the homebase (JDS star*) interfaces

@@ -1,21 +1,24 @@
 # Category = iButtons
 
-# Ray Dzek created a nice 'how to get started with iButton guide' at
-#    http://www.solarbugs.com/home/ibutton.htm
+=begin comment
 
-# Enable iButton support by using the mh.ini ibutton_port parm.
-# Use this parm to change degrees unit from F to C: default_temp=Celsius 
-#
-# If you have more than one ibutton_port, add something like this:
-#   print_log &iButton::connect($config_parms{ibutton_port2}) if $Startup;
-#   $ib_relay1 = new iButton '12000000123456ff', $config_parms{ibutton_port2};
-#
-# You can buy iButton stuff here:
-#    http://www.iButton.com/index.html
-#    http://www.pointsix.com
-# 
-# More info on coding iButton_Item is in mh/docs/mh.html
-#
+ Ray Dzek created a nice 'how to get started with iButton guide' at
+    http://www.solarbugs.com/home/ibutton.htm
+
+ Enable iButton support by using these mh.ini parms:
+   iButton_tweak         = 0      # Set to 1 to tweak timings if it appears not to work
+   iButton_serial_port   = COM1
+   iButton_2_serial_port = COM2   # If you have more than one ibutton port
+   iButton_3_serial_port = COM2   # If you have more than one ibutton port
+   default_temp = Celsius         # If you want to change degress unit from F to C
+
+ You can buy iButton stuff here:
+    http://www.iButton.com/index.html
+    http://www.pointsix.com
+ 
+ More info on coding iButton_Item is in mh/docs/mh.html
+
+=cut
 
 $v_iButton_connect   = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
 $v_iButton_connect  -> set_info('Use this to free up the serial port or test the iButton start/stop calls');
@@ -35,13 +38,12 @@ $v_iButton_relay1   -> set_authority('anyone');
 if ($state = said $v_iButton_connect) {
     print "$state the iButton bus";
     if ($state eq 'Connect') {
-        print_log &iButton::connect($config_parms{ibutton_port});
+        print_log &iButton::connect($config_parms{iButton_serial_port});
     }
     else {
         print_log &iButton::disconnect;
     }
 }
-print_log &iButton::connect($config_parms{ibutton_port2}) if $Startup and $config_parms{ibutton_port2};
 
                                 # This is how to code the 16 character iButton id:
                                 #  - Allow either any of the following formats (crc is optional):
@@ -115,15 +117,15 @@ if (new_minute 2) {
                                 # List all iButton devices
 if (said $v_iButton_list) {
     print_log "List of ibuttons:\n" . &iButton::scan_report;
-    print_log "List of ibuttons on 2nd ibutton:\n" . &iButton::scan_report(undef, $config_parms{ibutton_port2})
-        if $config_parms{ibutton_port2};
+    print_log "List of ibuttons on 2nd ibutton:\n" . &iButton::scan_report(undef, $config_parms{iButton_2_serial_port})
+        if $config_parms{iButton_2_serial_port};
 }
 
                                 # Pick how often to check the bus ... it takes about 6 ms per device.
                                 # You can use the 'start a by name speed benchmark' command
                                 # to see how much time this is taking
 &iButton::monitor('01') if $New_Second;
-&iButton::monitor('01', $config_parms{ibutton_port2} ) if $New_Second and $config_parms{ibutton_port2};
+&iButton::monitor('01', $config_parms{iButton_2_serial_port} ) if $New_Second and $config_parms{iButton_2_serial_port};
 #iButton::monitor if $New_Msecond_500;
 
 

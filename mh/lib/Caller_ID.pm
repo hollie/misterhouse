@@ -221,25 +221,28 @@ sub read_areacode_list {
 #   print "Reading area code table ... ";
 
     my ($area_code_file, %city_by_areacode, $city, $state, $areacode, $areacode_cnt);
-    open (AREACODE, $parms{area_code_file}) or 
-        print "\nError, could not find the area code file $parms{area_code_file}: $!\n";
-
-    while (<AREACODE>) {
-        next if /^\#/;
-        $areacode_cnt++;
-        $_ =~ s/\(.+?\)//;      # Delete descriptors like (Southern) Texas ... too much to speak
+    if ($parms{area_code_file}) {
+        open (AREACODE, $parms{area_code_file}) or 
+            print "\nError, could not find the area code file $parms{area_code_file}: $!\n";
+        
+        while (<AREACODE>) {
+            next if /^\#/;
+            $areacode_cnt++;
+            $_ =~ s/\(.+?\)//;      # Delete descriptors like (Southern) Texas ... too much to speak
                                 #406 All parts of Montana
 
-        ($areacode, $state) = $_ =~ /(\d\d\d) All parts of (.+)/;
-        ($areacode, $city, $state) = $_ =~ /(\d\d\d)(.*), *(.+)/ unless $state;
-        next unless $city;
-        $city_by_areacode{$areacode}  = $city;
-        $state_by_areacode{$areacode} = $state;
+            ($areacode, $state) = $_ =~ /(\d\d\d) All parts of (.+)/;
+            ($areacode, $city, $state) = $_ =~ /(\d\d\d)(.*), *(.+)/ unless $state;
+            next unless $city;
+            $city_by_areacode{$areacode}  = $city;
+            $state_by_areacode{$areacode} = $state;
 #       print "db code=$areacode state=$state city=$city\n";
-    }
-    close AREACODE;
+        }
+        close AREACODE;
 #   &main::print_log("read in $areacode_cnt area codes from $parms{area_code_file}");
-    print "Read $areacode_cnt codes from $parms{area_code_file}\n";
+        print "Read $areacode_cnt codes from $parms{area_code_file}\n";
+    }
+
     # If in-state, store city name instead of state name.
     @my_areacodes = split /[, ]+/, $parms{local_area_code};
     $my_areacode  = $my_areacodes[0];
@@ -266,24 +269,30 @@ sub read_callerid_list {
 #   print "Reading override phone list ... \n";
 
     undef %name_by_number;
-    open (CALLERID, $caller_id_file) or print "\nError, could not find the area code file $caller_id_file: $!\n";
+    if ($caller_id_file) {
+        open (CALLERID, $caller_id_file) or print "\nError, could not find the caller id file $caller_id_file: $!\n";
 
-    while (<CALLERID>) {
-        next if /^\#/;
-        ($number, $name) = $_ =~ /^(\S+) +(.+) *$/;
-        next unless $name;
-        $callerid_cnt++;
-        $name_by_number{$number} = $name;
-#   print "Callerid names: number=$number  name=$name\n";
+        while (<CALLERID>) {
+            next if /^\#/;
+            ($number, $name) = $_ =~ /^(\S+) +(.+) *$/;
+            next unless $name;
+            $callerid_cnt++;
+#           $number =~ s/-//g;
+            $name_by_number{$number} = $name;
+#           print "Callerid names: number=$number  name=$name\n";
+        }
+#       &main::print_log("read in $callerid_cnt caller ID override names/numbers from $caller_id_file");
+        print "Read $callerid_cnt entries from $caller_id_file\n";
+        close CALLERID;
     }
-#   &main::print_log("read in $callerid_cnt caller ID override names/numbers from $caller_id_file");
-    print "Read $callerid_cnt entries from $caller_id_file\n";
-    close CALLERID;
 
 }   
 
 #
 # $Log$
+# Revision 1.24  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
 # Revision 1.23  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

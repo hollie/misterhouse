@@ -74,6 +74,10 @@ sub setup {
 
                                 # Read file with results from last email check
     my @data = &file_read("$config_parms{data_dir}/get_email.data");
+
+                                # Allow age-based mail reading, rather than unread mail
+    undef @data if $config_parms{net_mail_scan_age};
+
     for my $data (@data) {
         chomp $data;
         my($account, @list) = split($;, $data);
@@ -120,9 +124,13 @@ sub check_accounts {
             unlink("$config_parms{data_dir}/email/latest.html");
         }
         elsif ($msgcnt > $msgcnt_prev) {
+
 #           print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
-            my $msgptr = &net_mail_summary(account => $account, first => $msgcnt_prev+1,
-                                           last => $msgcnt, debug => $config_parms{debug});
+
+            my $msgptr = &net_mail_summary(account => $account,
+                                           first => $msgcnt_prev+1, last => $msgcnt, 
+                                           age   => $config_parms{net_mail_scan_age},
+                                           debug => $config_parms{debug});
             
             if ($$msgptr{from_name}) {
                 my @list = @{$$msgptr{from_name}};
@@ -269,6 +277,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.26  2001/10/21 01:22:31  winter
+# - 2.60 release
+#
 # Revision 1.25  2001/06/27 03:45:11  winter
 # - 2.54 release
 #

@@ -1,29 +1,29 @@
 Mister House Install Instructions
 System Requirements
-    Mister House has been tested on Windows 95, 98, NT, 2000, and
-    the unix OSes Linux, FreeBSD, and AIX. In theory, much of the
-    function should run on any platform that can run Perl.
+    Mister House has been tested on Windows 95, 98, NT, 2000, and the unix
+    OSes Linux, FreeBSD, and AIX. In theory, much of the function should run
+    on any platform that can run Perl.
 
-    The core Mister House code will use between 10 and 30 Megabytes
-    of memory. On Windows, the VR (Voice Recognition) function takes
-    about 10 MB and the TTS (Text To Speech) function takes about 15
-    MB. On Linux, the Festival TTS engine takes about 20-30 MB of
-    memory. So, with TTS enabled, on Windows you can get by with 32
-    Meg, but you will need 64 Meg or more to run with low speech
-    latency. See FAQ question 1.2 for more info on memory usage.
+    The core Mister House code will use between 10 and 30 Megabytes of
+    memory. On Windows, the VR (Voice Recognition) function takes about 10
+    MB and the TTS (Text To Speech) function takes about 15 MB. On Linux,
+    the Festival TTS engine takes about 20-30 MB of memory. So, with TTS
+    enabled, on Windows you can get by with 32 Meg, but you will need 64 Meg
+    or more to run with low speech latency. See FAQ question 1.2 for more
+    info on memory usage.
 
-    The cpu time used -vs- loops per second is controllable. On a
-    100 MHz Pentium with a 100 ms sleep time, mh uses about 20% of
-    the cpu and gets about 8 passes per second.
+    The cpu time used -vs- loops per second is controllable. On a 100 MHz
+    Pentium with a 100 ms sleep time, mh uses about 20% of the cpu and gets
+    about 8 passes per second.
 
 Quick Install Instructions
-    These are the quick instructions for those of you who, like me,
-    don't like to read instructions:
+    These are the quick instructions for those of you who, like me, don't
+    like to read instructions:
 
   Windows users
 
      - Download the the misterhouse_src_###.zip and misterhouse_win_###.zip files
-       from  http://misterhouse.net/download
+       from  http://misterhouse.net:81/download
 
      - cd to where you want the mh directory created in (e.g. c:\misterhouse). 
        Avoid directories with spaces in the name (e.g. \program files\)
@@ -31,7 +31,7 @@ Quick Install Instructions
      - unzip \downloads\misterhouse_src_###.zip (wherever you downloaded it to)
 
      - unzip \downloads\misterhouse_win_###.zip (wherever you downloaded it to)
-     
+ 
      - cd mh\bin
 
      - mh.bat (this will call mh.exe or 'perl mh')
@@ -39,7 +39,7 @@ Quick Install Instructions
   Unix users
 
      - Download the the latest rpm, tar, or zip file 
-       from http://misterhouse.net/download
+       from http://misterhouse.net:81/download
 
      - If using the rpm file:
          rpm -i misterhouse-#.##-1.noarch.rpm
@@ -64,13 +64,12 @@ Quick Install Instructions
 
   Tips
 
-    To use less memory and cpu, or if you get graphics related
-    errors, you can run without the local gui inteface with: mh -tk
-    0
+    To use less memory and cpu, or if you get graphics related errors, you
+    can run without the local gui inteface with: mh -tk 0
 
     The default setup runs all the test scripts in the mh\code\test
-    directory. Point your web browser to http://localhost:8080 and
-    try out a few commands. Also try 'telnet localhost 1234' and
-    type one of the commands you saw on the web interface (e.g. 'say
-    something good to Bruce').
+    directory. Point your web browser to http://localhost:8080 and try out a
+    few commands. Also try 'telnet localhost 1234' and type one of the
+    commands you saw on the web interface (e.g. 'say something good to
+    Bruce').
 
