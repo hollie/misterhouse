@@ -1,0 +1,38 @@
+<HTML>
+<HEAD>
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+<TITLE>Barcode Scan</TITLE>
+
+<SCRIPT>
+function clearit() {
+//document.barcode.submit();
+  self.focus();
+  document.barcode.$barcode_scan.focus();
+  document.barcode.$barcode_scan.select();
+//document.barcode.$barcode_scan.value = '';
+}
+</SCRIPT>
+
+<!-- authority=anyone -->
+
+</HEAD>
+<BODY onLoad="self.focus();document.barcode.$barcode_scan.focus();
+              document.barcode.$barcode_scan.value = '.0.cGf2.ENr7C3vYE3n0D3n2CNPZC3nZ.';
+              document.barcode.$barcode_scan.select();">
+<BASE TARGET='speech'>
+
+<H3>Barcode Scan</H3>
+
+<FORM name="barcode" ACTION='SET_VAR:&file_read("$config_parms{html_dir}/misc/barcode_search.html",1)'
+      target='speech' onSubmit="clearit();">
+<p>Scan data into here: <INPUT type='text' SIZE=80 NAME="$barcode_scan" value="" onChange="clearit();">
+</FORM>
+
+<br>If you don't have a scanner, try pasting in these examples:
+<ul>
+<li>Perl Cookbook: .0.cGen.ENr7CNz1DNPXCxDWCa.</li>
+<li>Abbey Road: .0.fHmc.C3r0Dhr3DxD3Dxf3.</li>
+<li>Sneakers Video: .0.fHmc.C3P1E3P7CNf7CxbZ.</li>
+</ul>
+</BODY>
+</HTML>

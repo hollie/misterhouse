@@ -1,0 +1,14 @@
+<HTML>
+<header>
+<!-- More info is in mh/web/bin/pictureframe.pl -->
+
+<!--Change the value after CONTENT to adjust seconds before refresh-->
+<meta HTTP-EQUIV='Refresh' CONTENT='20;URL=pictureframe.shtml'>
+
+<title>!Audrey Picture Frame</title>
+</header>
+
+<!--#include file="/bin/pictureframe.pl"-->
+
+</body>
+</HTML>

@@ -1,0 +1,14 @@
+<html><body>
+<base target ="invisible">
+<!--#include code="&html_header('Control MP3 JukeBox')" -->
+<table width="100%" border="0">
+<tr>
+<td><a href="RUN?Set_the_house_mp3_player_to_Play"><img src="/ia5/entertain/images/play.gif" alt='Play' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Stop"><img src="/ia5/entertain/images/stop.gif" alt='Stop' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Pause"><img src="/ia5/entertain/images/pause.gif" alt='Pause' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Previous_Song"><img src="/ia5/entertain/images/prev.gif" alt='Prev' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Next_Song"><img src="/ia5/entertain/images/next.gif" alt='Next' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Volume_Down"><img src="/ia5/entertain/images/voldown.gif" alt='Volume Down' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Volume_Up"><img src="/ia5/entertain/images/volup.gif" alt='Volume Up' border="0"></a></td>
+</tr></table>
+</center>
