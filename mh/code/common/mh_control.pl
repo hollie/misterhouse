@@ -66,18 +66,19 @@ if ($Startup and $Save{mh_exit} and $Save{mh_exit} ne 'normal') {
     display "MisterHouse auto restarted: $Save{mh_exit}", 0;
 }
 
-$v_reboot = new  Voice_Cmd 'Reboot the computer';
+$v_reboot = new  Voice_Cmd '[Reboot,Shut Down] the computer';
 $v_reboot-> set_info('Do this only if you really mean it!  Windows only');
 
-if (said $v_reboot and $OS_win) {
+if ($state = said $v_reboot and $OS_win) {
 #   if ($Info{OS_name} eq 'Win95') {
 #        speak "Sorry, the reboot option does not work on Win95";
 #   }
     if ($Info{OS_name} eq 'NT') {
         my $machine = $ENV{COMPUTERNAME};
         speak "The computer $machine will reboot in 1 minute.";
-        Win32::InitiateSystemShutdown($machine, 'Rebooting in 1 minutes', 60, 1, 1);
-        &exit_pgm;
+        my $reboot = ($state eq 'Reboot') ? 1 : 0;
+        Win32::InitiateSystemShutdown($machine, 'Rebooting in 1 minute', 60, 1, $reboot);
+#       &exit_pgm;
     }
                                 # In theory, either of these work for Win98/WinMe
     elsif ($Info{OS_name} eq 'WinMe') {
@@ -105,11 +106,12 @@ if (said $v_reboot and $OS_win) {
 #For example, to restart Windows forcefully, without querying any running programs, use the following command line: 
 #rundll32.exe shell32.dll,SHExitWindowsEx 6 
 
-#$v_reboot_abort = new  Voice_Cmd("Abort the reboot");
-#if (said $v_reboot_abort and $OS_win) {
-#  Win32::AbortSystemShutdown('HOUSE');
-#  speak("OK, the reboot has been aborted.");
-#}
+$v_reboot_abort = new  Voice_Cmd("Abort the reboot");
+if (said $v_reboot_abort and $OS_win) {
+    my $machine = $ENV{COMPUTERNAME};
+    Win32::AbortSystemShutdown($machine);
+    speak("OK, the reboot has been aborted.");
+}
 
 $v_debug = new  Voice_Cmd("Set debug to [X10,serial,http,misc,startup,socket,off]");
 $v_debug-> set_info('Controls what kind of debug is printed to the console');
@@ -144,14 +146,11 @@ if (said $v_mode_toggle) {
 
 
                                 # Search for strings in user code
-#&tk_entry('Code Search', \$Save{mh_code_search}, 'Debug flag', \$config_parms{debug});
+#&tk_entry('Code Search', $search_code_string) if $Run_Members{mh_control};
 
 $search_code_string = new Generic_Item; # Set from web menu mh/web/ia5/house/search.shtml
 
-if ($temp = quotemeta $Tk_results{'Code Search'} or
-    $temp = state_now $search_code_string) {
-
-    undef $Tk_results{'Code Search'};
+if ($temp = state_now $search_code_string) {
     print "Searching for code $temp";
     my ($results, $count, %files);
     $count = 0;
@@ -288,7 +287,29 @@ if (said $v_clear_cache) {
     $cmd .= " $config_parms{html_dir}/cache/*.jpg";
     $cmd =~ s|/|\\|g if $OS_win;
     system $cmd;
+    $cmd .= " $config_parms{html_dir}/cache/*.wav";
+    $cmd =~ s|/|\\|g if $OS_win;
+    system $cmd;
     print_log "Ran: $cmd";
 }
 
-    
+                                # Archive old logs
+if ($New_Month) {
+    print_log "Archiving old print/speak logs";
+    my $print_log = "$config_parms{data_dir}/print.log";
+    my $speak_log = "$config_parms{data_dir}/speak.log";
+    rename "$print_log.old", "$print_log.old2";
+    rename "$speak_log.old", "$speak_log.old2";
+}
+
+
+                                # Allow for commands to be entered via tk or web
+$run_command = new Generic_Item; # Set from web menu mh/web/ia5/house/search.shtml
+#&tk_entry('Run Command', $run_command) if $Run_Members{mh_control};
+
+if ($temp = state_now $run_command) {
+    my $set_by = get_set_by $run_command;
+    print_log "Running External $set_by command: $temp";
+    &process_external_command($temp, 1, $set_by);
+}
+

@@ -21,11 +21,11 @@ HTTP::Headers::Util - Header value parsing utility functions
 
 =head1 DESCRIPTION
 
-This module provide a few functions that helps parsing and
+This module provides a few functions that helps parsing and
 construction of valid HTTP header values.  None of the functions are
 exported by default.
 
-The following functions are provided:
+The following functions are available:
 
 =over 4
 
@@ -34,7 +34,7 @@ The following functions are provided:
 
 This function will parse the header values given as argument into a
 list of anonymous arrays containing key/value pairs.  The function
-know how to deal with ",", ";" and "=" as well as quoted values after
+knows how to deal with ",", ";" and "=" as well as quoted values after
 "=".  A list of space separated tokens are parsed as if they were
 separated by ";".
 
@@ -42,7 +42,7 @@ If the @header_values passed as argument contains multiple values,
 then they are treated as if they were a single value separated by
 comma ",".
 
-This means that this function is useful to parse header fields that
+This means that this function is useful for parsing header fields that
 follow this syntax (BNF as from the HTTP/1.1 specification, but we relax
 the requirement for tokens).
 
@@ -64,7 +64,7 @@ the requirement for tokens).
   value             = token | quoted-string
 
 Each I<header> is represented by an anonymous array of key/value
-pairs.  If a token is recognized then the value will be C<undef>.
+pairs.  The value for a simple token (not part of a parameter) is C<undef>.
 Syntactically incorrect headers will not necessary be parsed as you
 would want.
 
@@ -123,15 +123,15 @@ sub split_header_words
 
 =item join_header_words( @arrays )
 
-This will do the opposite convertion of what split_header_words()
-does.  It takes a list of anonymous arrays as argument (or a list of
-key/value pairs) and produce a single header value.  Attribute values
+This will do the opposite of the conversion done by split_header_words().
+It takes a list of anonymous arrays as arguments (or a list of
+key/value pairs) and produces a single header value.  Attribute values
 are quoted if needed.
 
 Example:
 
    join_header_words(["text/plain" => undef, charset => "iso-8859/1"]);
-   join_header_words(""text/plain" => undef, charset => "iso-8859/1");
+   join_header_words("text/plain" => undef, charset => "iso-8859/1");
 
 will both return the string:
 

@@ -59,7 +59,7 @@ if ($state = said $v_iButton_connect) {
 
 $ib_bruce  = new iButton '0100000546e3fc7a';
 $ib_laurie = new iButton '01000005498963';
-$ib_zach   = new iButton '0100000546e566';
+$ib_zack   = new iButton '0100000546e566';
 $ib_nick   = new iButton '0100000549919d';
 
 $ib_temp1  = new iButton '100000003054c4';
@@ -74,14 +74,14 @@ my @ib_temps = ($ib_temp1, $ib_temp2, $ib_temp3, $ib_temp4);
 $ib_relay1   = new iButton '120000001187d206';
 
 $remark_nick = new File_Item "$config_parms{data_dir}/remarks/nick.txt";
-$remark_zach = new File_Item "$config_parms{data_dir}/remarks/zack.txt";
+$remark_zack = new File_Item "$config_parms{data_dir}/remarks/zack.txt";
 $remark_bad  = new File_Item "$config_parms{data_dir}/remarks/personal_bad.txt", 'Ok';
 $remark_good = new File_Item "$config_parms{data_dir}/remarks/personal_good.txt", 'Ok';
 $f_deep_thoughts_ib = new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
 
 speak voice => 'random', text => read_random $remark_nick if ON  eq state_now $ib_nick;
-#peak read_next   $remark_zach if ON  eq state_now $ib_zach;
-speak voice => 'random', text => read_next $f_deep_thoughts_ib if ON  eq state_now $ib_zach;
+#peak read_next   $remark_zack if ON  eq state_now $ib_zack;
+speak voice => 'random', text => read_next $f_deep_thoughts_ib if ON  eq state_now $ib_zack;
 speak voice => 'random', text => read_next $remark_bad  if ON  eq state_now $ib_bruce;
 play "fun/*.wav"               if ON  eq state_now $ib_laurie;
 

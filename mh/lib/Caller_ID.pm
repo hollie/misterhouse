@@ -1,7 +1,7 @@
 package Caller_ID;
 use strict;
 
-use vars '%name_by_number', '%state_by_areacode';
+use vars '%name_by_number', '%reject_name_by_number', '%state_by_areacode';
 my ($my_areacode, @my_areacodes, $my_state);
 
 
@@ -263,7 +263,7 @@ sub read_areacode_list {
 
 sub read_callerid_list {
     
-    my($caller_id_file) = @_;
+    my($caller_id_file,$reject_caller_id_file) = @_;
 
     my ($number, $name, $callerid_cnt);
 
@@ -274,6 +274,7 @@ sub read_callerid_list {
     if ($caller_id_file) {
         open (CALLERID, $caller_id_file) or print "\nError, could not find the caller id file $caller_id_file: $!\n";
 
+        $callerid_cnt = 0;
         while (<CALLERID>) {
             next if /^\#/;
             ($number, $name) = $_ =~ /^(\S+) +(.+) *$/;
@@ -288,10 +289,32 @@ sub read_callerid_list {
         close CALLERID;
     }
 
+    undef %reject_name_by_number;
+    if ($reject_caller_id_file) {
+        open (CALLERID, $reject_caller_id_file) or print "\nError, could not find the reject caller id file $reject_caller_id_file: $!\n";
+
+        $callerid_cnt = 0;
+        while (<CALLERID>) {
+            next if /^\#/;
+            ($number, $name) = $_ =~ /^(\S+) +(.+) *$/;
+            next unless $name;
+            $callerid_cnt++;
+#           $number =~ s/-//g;
+            $reject_name_by_number{$number} = $name;
+#           print "Callerid names: number=$number  name=$name\n";
+        }
+#       &main::print_log("read in $callerid_cnt caller ID override names/numbers from $reject_caller_id_file");
+        print "Read $callerid_cnt entries from $reject_caller_id_file\n";
+        close CALLERID;
+    }
+
 }   
 
 #
 # $Log$
+# Revision 1.26  2002/05/28 13:07:51  winter
+# - 2.68 release
+#
 # Revision 1.25  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

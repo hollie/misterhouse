@@ -159,8 +159,9 @@ sub set_data {
 }
 
 sub set_receive {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state, 'serial');
+    my ($self, $state, $set_by) = @_;
+    $set_by = 'serial' unless $set_by;
+    &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
 }
 
 sub set_dtr {
@@ -376,6 +377,9 @@ sub send_x10_data {
         &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},
                                 substr($serial_data, 1));
     }
+    elsif ($interface eq 'bx24') {
+        &X10_BX24::SendX10($serial_data);
+    }
     elsif ($interface eq 'lynx10plc') 
     {
 	# marrick PLC wants XA1K
@@ -474,6 +478,9 @@ sub set_interface {
         if ($main::Serial_Ports{cm11}{object}) {
             $interface = 'cm11';
         }
+        elsif ($main::Serial_Ports{BX24}{object}) {
+            $interface = 'bx24';
+        }
         elsif ($main::Serial_Ports{Homevision}{object}) {
             $interface = 'homevision';
         }
@@ -509,6 +516,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.56  2002/05/28 13:07:51  winter
+# - 2.68 release
+#
 # Revision 1.55  2002/03/31 18:50:39  winter
 # - 2.66 release
 #

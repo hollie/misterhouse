@@ -56,7 +56,9 @@
 This file (mh/docs/install.html) is for the installation instructions.
 The main Mister House documentation is in <a href="mh.html">mh.html</a>.
 A list of update announcements is in <a href="updates.html">updates.html</a> 
-There is also a <a href="faq.html">faq.html</a> to cover misc. topics.<P>
+There is also a <a href="faq.html">faq.html</a> to cover misc. topics and a  
+<a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
+for other user-supplied documentation.<P>
 <HR>
 <H1><A NAME="system requirements">System Requirements</A></H1>
 <P>Mister House has been tested on all the Windows OSes (95, 98, ME, NT, 2000, XP)
@@ -220,8 +222,9 @@ only as .msm files, which can only be used by a program that creates .msi instal
 an easy and free way to create a .msi file (suggestions welcome).  So for now, the only option is to install the 
 full 70 mb 5.1 SDK, available from here:  <A HREF="http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe">http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe</A></P>
 <P>After installing, the default mh.ini voice_text=MS parm will default to the new V5 engine.  Use MSV4 to switch
-back to the old V4 engine.   So far, the only voices I have found for the V5 engines are the 
-MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices that come with the SDK.</P>
+back to the old V4 engine.   
+The SDK comes with the voices  MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices.
+For $100, you can get 2 nice 5.1 compatable voices with AT&amp;T Natural Voices TTS SDK here: <A HREF="http://www.naturalvoices.com.">http://www.naturalvoices.com.</A></P>
 <P>
 <HR>
 <H1><A NAME="unix detailed install instructions">UNIX Detailed Install Instructions</A></H1>
@@ -285,13 +288,16 @@ a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to
 that has a very nice US english male and female voice.</P>
 <P>Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.</P>
 <P>The IBM ViaVoice TTS engine for Linux is available from
-<A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A>
-To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
+<A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A> .
+Here is the download link: <A HREF="http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm">http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm</A></P>
+<P>To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
 <A HREF="http://www.reednet.org/ViaVoiceTTS">http://www.reednet.org/ViaVoiceTTS</A>  , then set your mh.ini voice_text=vv_tts or voice_text=viavoice
 (vv_tts is a bit fancier, queing up speech and has more mh.ini options).</P>
-<P>The IBM ViaVoice Voice Recognition engine is also available from
-<A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A> .
-Download and install (as root) these 2 rpms:
+<P>The IBM ViaVoice Voice Recognition engine is no longer available (as of 05/2002) from
+<A HREF="http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm.">http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm.</A> 
+These instructions are here for future reference, in hopes that the modules 
+will become available again.</P>
+<P>Download and install (as root) these rpms:
 </P>
 <PRE>
 

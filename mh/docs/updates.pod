@@ -6,6 +6,209 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.68 posted on 05/28/2002
+
+Version 2.68 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+B<New Features:>
+
+- Bill Sobel added lib/AudiotronPlayer.pm, to support the Turtle Beach AudioTron. 
+Bill also made updates to these modules:  Stargate485.pm, Stargate.pm, weather_vw.pm, Xantech.pm, and Compool.pm.
+
+- Pete Flaherty's created code/public/weather_iB_OWW_client.pl to read data from the OWW 1-wire ibutton weather station daemon
+( http://www.simon.melhuish.net/projects/oww/ ).
+
+- Added voice, compression, and deep thought buttons to the web/speak and ia5/web/speak pages.
+
+- Added alt text tags to most of the web pages, including the ia5 pages, so image-less browsers can see.
+
+- Added last_response data to internet_im.pl, so it returns the results from commands.
+Also added mh.ini parm password_allow_im to specifiy what im users can type commands.
+
+- Re-wrote mh/web/bin/status_line.pl to make it programable.   In now supports 2 types of javascript clocks
+and you can pick the order and contents of data it displays.  See html_status_line in mh/bin/mh.ini for more info.
+
+- Added a javascript clock to the photos.pl page, currently enabled for Audrey only, since they 
+have limited space on the status line for a clock.
+
+- Re-wrote the web interface to menus (mh/web/bin/menu.pl) and added a Menus link from the top of the ia5 web page.
+Also added a set_menu_default function so we can have different default starting menus, 
+depending on the type and location (e.g. ip address) of the browser.   See mh/code/test/menu.pl for an example.
+
+
+
+B<Bug Fixes and Other Changes:>
+
+- Alan Womack noticed we would mis-evaluated external commands that started with 'set ...'
+We also improved security with this option.
+
+- Kevin Wambsganz noticed that $Pgm_Root was only being substituted once in a multi-path code_dir.
+
+- Scott Reston added mh/code/examples/x10_cycle_light1.pl for cycling through various light states 
+
+- Kent Noonan found a 2.67 problem with #include code=&sub directives.
+
+- William Steiner fixed a problem with web organizer events with the ' character.
+
+- Bob Hughes fixed a negative lat/long postition report problem in the ham radio aprs mh/code/bruce/tracking_aprs.pl.
+We also took out the Bruce specific stuff.
+
+- Steve Switzer suggested a few updates to internet_im.pl.
+
+- Timothy Spaulding added a mh.ini parm caller_id_reject_file, which puts numbers into $Caller_ID::reject_name_by_number
+
+- Brent Gross added mkdir to the net_ftp command.
+
+- Don Wilde fixed read_dir in lib/ibutton.pm to turn off the switch after checking wind direction.
+
+- Created mh/web/public for misc. files that go with various mh/code/public files.  
+
+- Mickey Argo sent in mh/code/public/wintv_radio.pl and mh/web/public/wintv_radio.html.  
+
+- Fixed the response to vxml (voice xml) commands (some responses were not returning vxml). 
+
+- Enabled voice_names for ViaVoice and added an example in mh.ini.
+
+- Enable last_response data to return display and print_log data in telnet.pl.  Also improved telnet password authorization.
+
+- Added MSNim_Status hook in internet_im.pl for detecting buddy status.
+
+- Fixed internet_data.pl top 10 list url and a parsing hang.
+
+- Fixed last_response called from menu code.
+
+- Changed mh.ini parm html_browser_sizes default for MSCE browsers (e.g. Aquapad and Compaq IA1) 
+from 640 to 800 and updated web/bin/photos.pl web photo code to 
+use &http_agent_size to dictate the size of the touch grids and help screen.
+
+- Return 'housecode' from set_by if an X10_Item is set on/off with with All on/off.
+
+- Updated the dailystrip comics code to version 1.0.24.
+
+- Added 'Send test e mail to the cell phone' to internet_mail.pl.  Dropped mh/bin/sprint_pcs.
+
+
+
+=head2 Version 2.67 posted on 05/04/2002
+
+Version 2.67 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+B<New Features:>
+
+- The remote web wav files wave files are now created in the background.  
+To support this, the Voice_Text::is_speaking function now works accurately
+for all the unix TTS engines (except festival, which still uses a timer).
+The generated wav files are now stored in mh/web/cache, and have $Second
+append to them, to allow simultaneous multiple web clients.
+
+- Added support for the AT&T Natural Voices TTS engine ( href=http://www.naturalvoices.com ).
+
+- Added mh.ini parm voice_names, so we can correlate generic voice names to specific names. 
+For example, here is my entry (more examples in mh.ini):
+
+  voice_names = female=>Crystal, male=>Rich16, male1=>Rich16,
+                male2=>Mike, Rich=>Rich16, Mary=>Crystal, Sam=>Mike
+
+
+- Allow for a user speech subroutine to be called from the speak function, with mh.ini parm voice_text = &user_sub.
+See mh/code/public/speak_mbrola.pl for an example.
+
+- Replaced mh/code/test/speak_server.pl with the much cleaner eliza_server.pl.   
+If you use the eliza web interface, you will need to replace this in your user code also
+and delete any speak_server parms you have in your .ini file.
+
+- Gaetan Lord created mh/lib/X10_BX24.pm to support the BX24 X10 Transceiver, info at http://www.laser.com/dhouston
+
+- Andrew Drummond created mh/lib/dss_interface.pm and mh/code/public/dss_interface.pl
+to provide serial port control of most dss receivers.
+
+- Scott Reston suggested we create a new Generic_Item state_changed method.
+Like state_now, it will return the object's state
+only for one pass after the object is set, but 
+unlike state_now, state_changed will return undef (false) if
+the item is set to the same state it is currently in.
+
+- Kevin Wambsganz suggested we allow multiple code paths, 
+so the mh.ini code_dir parm can now be a comma delimited set of directories.
+
+- Also put in support for multiple mh.ini files by using a 
+comma delimited list of files in your mh_parms env var.
+
+- Holly Sommer found an perl module for the MSN instant messanger.  
+Also added a message callback to the AOL AIM code and modified
+the Jabber_Message callback to return data consistent with MSN and AIM.   These changes allowed me to 
+merge example code for all 3 of into mh/code/test/internet_im.pl, so I dropped internet_jabber.pl.
+This code now also supports turning on and off logging of all speak and print_log data to any of the im clients.
+
+- Paul Chamberlain set up a TWiki web-based collaboration site for 
+user-supplied MisterHouse documentation here: http://tifster.tzo.com/wiki/bin/view/Misterhouse
+
+- Fred Frey created mh/bin/send_verison for sending messages to verison phones
+
+- Clive Freedman created mh/code/public/chart_xl.pl for generating html that calls Excel via activex to chart log data.
+
+- Robert Rozman created mh/code/public/pictures_files.pl that uses a dbm to index a photo database.
+
+
+B<Bug Fixes and Other Changes:>
+
+- Scott Reston added code/examples/x10_set_group.pl
+
+- Chris Witte suggested we allow multiple args to print_log, as print does.
+
+- Kip Gebhardt noticed that password_protect=all was not protecting all web pages.
+
+- Bob Hughes noticed that older browsers had some broken links for some
+auto-generated GD icons with blanks in the text (e.g. 'X10 Items').
+
+- Mark Miller found a 2.66 bug in display that would display previous, not requested, text.
+
+- Alan Womack sent in a bunch of spelling/typo fixes for the mh docs.
+
+- Joseph Gaston noticed that .shtml #include file="code.pl?item1&item2" args were not parsed correctly.
+
+- Mike Bruno and Harald Koch created faq question 3.4:  How do I get Mister House to start up automatically when my linux box boots
+
+- Kevin Wambsganz created mh/bin/misterhouse_SuSe.rc for system startup under SuSE.
+
+- Alex Hsia and Bob Hughes helped find and fix a 2.66 problem with INC in dailystrips use of LWP/UserAgent.
+
+- Kevin Wambsganz added mh.ini parm lib_dir, so you can add or override .pl library files.
+
+- Ron Klinkien updated and created some more ia5 icons.
+
+- Riad Wahby updated the AOL AIM module to work with a recent AOL change.
+
+- Alan Womack suggested we add a web/tk option for typing in commands, like we can type with the external bin/house command.  
+Added this under the ia5 search menu.
+
+- Allow for .mht table files with objects that have multiple states.  See mh/code/test/test_x10.mht for an example.
+
+- Test for X10_Item, not 'light' or 'lite', in button.pl to determine if it is a bright/dimable item.
+
+- Added mh/bin/do_nothing and allow for a Process_Item start cmd override.
+This allows us to bypass a long running process without changing much code.
+For example: start $p_top10_list 'do_nothing';
+
+- Keep one month of data in the data_dir/speak-print_log.old files.
+Data gets moved to .old2 files at the first of the month.
+
+- Fixed a 2.66 problem with udp socket data being ignored.
+
+- Fixed an old (2.45?) Timer problem where the timer expire time was reset on reload or restart.  
+Also enabled timers that expired during the reload/restart to be triggered on startup.
+
+- Added mh/web/bin/status_line_clock.pl, which includes a javascript clock.  Looks ok on an Audrey,
+but is not centered on IE or Netscape.
+
+
+
 =head2 Version 2.66 posted on 03/31/2002
 
 Version 2.66 was just uploaded to:

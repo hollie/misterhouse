@@ -6,6 +6,7 @@ sub get_email_rule {
 
 #   print "Debug in get_email_rule: to=$to from=$from subject=$subject\n";
 
+    my $from_words = () = $from = /\S+/g;
 
     return                         if $from_full =~ /newsletter/; # Covers [newsletter@x10.com]
     return 'The S F gals'          if $to =~ /FEM-SF/;
@@ -28,6 +29,7 @@ sub get_email_rule {
     return 'filtered - klug'       if $to =~ /klug/;           # filtered -> will not be spoken (like blank)
     return 'filtered no store'     if $from =~ /\S+[0-9]{3,}/; # If we get a joe#### type address, assume it is junk mail.
     return 'filtered no store'     if $from =~ /[0-9]{5,}/;    # If we get a ######  type address, assume it is junk mail.
+    return 'filtered no store'     if $from_words > 3;
 #   return 'junk mail'             if $from =~ /[0-9]{5,}/;    # If we get a ######  type address, assume it is junk mail.
 
     $from =~ s/\./ Dot /g ;     # ...change "." to the word "Dot"
@@ -35,5 +37,7 @@ sub get_email_rule {
 
     return $from;
 }
+
+# from=Multiple Lenders Compete for your Loan 
 
 return 1;

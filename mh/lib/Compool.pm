@@ -413,16 +413,19 @@ sub set_device
     }
     else
     {
-        print "Invalid state passed to Compool::_set_device\n";
+        print "Invalid state $targetstate passed to Compool::_set_device\n";
         return;
     }
 
     my $targetprimary;
     my $targetbit = 0;
+    my $byteuseenable;
+#    my $comparebit;
 
     SWITCH: for($targetdevice)
     {
     $targetprimary = 8;
+    $byteuseenable = 4;
     /spa/i 	    && do { $targetbit = 1;   last SWITCH; };
     /pool/i 	    && do { $targetbit = 2;   last SWITCH; };
     /aux1/i 	    && do { $targetbit = 4;   last SWITCH; };
@@ -432,11 +435,12 @@ sub set_device
     /aux5/i 	    && do { $targetbit = 64;  last SWITCH; };
     /aux6/i 	    && do { $targetbit = 128; last SWITCH; };
     $targetprimary = 9;
+    $byteuseenable = 8;
     /remote/i 	    && do { $targetbit = 1;   last SWITCH; };
     /display/i 	    && do { $targetbit = 2;   last SWITCH; };
     /delaycancel/i  && do { $targetbit = 4;   last SWITCH; };
     /spare1/i 	    && do { $targetbit = 8;   last SWITCH; };
-    /aux7/i 	    && do { $targetbit = 16;  last SWITCH; };
+    /aux7/i 	    && do { $targetbit = 16;  $byteuseenable = 4; last SWITCH; };
     /spare2/i 	    && do { $targetbit = 32;  last SWITCH; };
     /spare3/i 	    && do { $targetbit = 64;  last SWITCH; };
     /spare4/i 	    && do { $targetbit = 128; last SWITCH; };
@@ -450,17 +454,18 @@ sub set_device
     #
     # Determine if we need to toggle the device to get it into the right state.
     #
-    if(($targetstate == 0) && (($currentstate & $targetbit) == 0))
-    {
-        return 0;
-    }
-    elsif(($targetstate == 1) && (($currentstate & $targetbit) == $targetbit))
-    {
-        return 0;
-    }
+    #//&? These bits are wrong for the secondary equipment.  Removing check and letting queuing handle it
+#    if(($targetstate == 0) && (($currentstate & $targetbit) == 0))
+#    {
+#        return 0;
+#    }
+#    elsif(($targetstate == 1) && (($currentstate & $targetbit) == $targetbit))
+#    {
+#        return 0;
+#    }
 
     # Sending to primary equipment field or secondary equipment field?
-    ($targetprimary == 8) ? return queue_command($serial_port, "\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x00\x04", $targetdevice, $targetstate == 1 ? "on" : "off") : return queue_command($serial_port, "\x00\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x08", $targetdevice, $targetstate == 1 ? "on" : "off");
+    ($targetprimary == 8) ? return queue_command($serial_port, "\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x00" . pack("C",$byteuseenable), $targetdevice, $targetstate == 1 ? "on" : "off") : return queue_command($serial_port, "\x00\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00" . pack("C",$byteuseenable), $targetdevice, $targetstate == 1 ? "on" : "off");
 }
 
 sub set_device_with_timer 

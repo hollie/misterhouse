@@ -8,7 +8,8 @@ my %Windows;
 
 sub new {
     my ($class, @parms) = @_;
-    my %parms = @parms unless @parms %2;
+    my %parms;
+    %parms = @parms unless @parms %2;
     unless ($parms{text}) {
         ($parms{text}, $parms{time}, $parms{title}, $parms{font},
          $parms{window_name}, $parms{append}) = @parms;
@@ -33,7 +34,6 @@ sub read_text {
     my @data;
     if ($$self{text} =~ /^\S+$/ and -e $$self{text}) { 
         $file = $$self{text};
-#       print "db testing $file\n";
         if ($file =~ /\.gif$/i or $file =~ /\.jpg$/i or $file =~ /\.png$/i) {
             $$self{type} = 'photo';
             $$self{title} = "Image: $file";
@@ -81,7 +81,6 @@ sub read_text {
 sub display {
     
     my ($self) = @_;
-
                                 # Do these in the calling pgm, so we can conditionally use in mh.bat
     use Tk; 
     eval "use Tk::JPEG";        # Might not have Tk::JPEG installed
@@ -115,7 +114,6 @@ sub display {
         my $l = length $$self{text};
 #       my $fsize = int($w / 50);
         my $fsize = int($w / ($l / 18));
-        print "db l=$l fs=$fsize\n";
         $$self{font}     = "Times $fsize bold";
         $$self{width}    = 72;
         $$self{height}   = 24;
@@ -154,6 +152,7 @@ sub display {
 
                                 # Valid fonts can be listed with xlsfonts 
         my $t1;
+
         if ($reuse_flag) {
             $t1 = $Windows{$$self{window_name}}{t1};
             if ($$self{append} eq 'bottom') {
@@ -286,6 +285,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.23  2002/05/28 13:07:51  winter
+# - 2.68 release
+#
 # Revision 1.22  2002/03/31 18:50:36  winter
 # - 2.66 release
 #

@@ -200,10 +200,11 @@ sub process {
     $self->send_display if $$self{refresh};
 
                                 # Displayed delayed last response text
-    if ($main::Menus{last_response_loop} and $main::Menus{last_response_loop} <= $main::Loop_Count) {
-        $main::Menus{last_response_loop} = 0;
-#       &main::menu_lcd_display($self, &main::last_response, $main::Menus{last_response_menu});
-        &main::menu_lcd_display($main::Menus{last_response_object}, &main::last_response, $main::Menus{last_response_menu});
+    if ($main::Menus{menu_data}{last_response_loop} and $main::Menus{menu_data}{last_response_loop} <= $main::Loop_Count) {
+        $main::Menus{menu_data}{last_response_loop} = 0;
+#       &main::menu_lcd_display($self, &main::last_response, $main::Menus{menu_data}{last_response_menu});
+        &main::menu_lcd_display($main::Menus{menu_data}{last_response_object}, &main::last_response,
+                                $main::Menus{menu_data}{last_response_menu});
     }
 
 }
@@ -213,6 +214,9 @@ sub process {
 
 #
 # $Log$
+# Revision 1.6  2002/05/28 13:07:51  winter
+# - 2.68 release
+#
 # Revision 1.5  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

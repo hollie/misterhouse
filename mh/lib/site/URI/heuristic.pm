@@ -4,46 +4,49 @@ package URI::Heuristic;
 
 =head1 NAME
 
-uf_urlstr - Expand URL using heuristics
+uf_uristr - Expand URI using heuristics
 
 =head1 SYNOPSIS
 
- use URI::Heuristic qw(uf_urlstr);
- $url = uf_urlstr("perl");             # http://www.perl.com
- $url = uf_urlstr("www.sol.no/sol");   # http://www.sol.no/sol
- $url = uf_urlstr("aas");              # http://www.aas.no
- $url = uf_urlstr("ftp.funet.fi");     # ftp://ftp.funet.fi
- $url = uf_urlstr("/etc/passwd");      # file:/etc/passwd
+ use URI::Heuristic qw(uf_uristr);
+ $u = uf_uristr("perl");             # http://www.perl.com
+ $u = uf_uristr("www.sol.no/sol");   # http://www.sol.no/sol
+ $u = uf_uristr("aas");              # http://www.aas.no
+ $u = uf_uristr("ftp.funet.fi");     # ftp://ftp.funet.fi
+ $u = uf_uristr("/etc/passwd");      # file:/etc/passwd
 
 =head1 DESCRIPTION
 
-This module provide functions that expand strings into real absolute
-URLs using some builtin heuristics.  Strings that already represent
-absolute URLs (i.e. start with a C<scheme:> part) are never modified
+This module provides functions that expand strings into real absolute
+URIs using some builtin heuristics.  Strings that already represent
+absolute URIs (i.e. start with a C<scheme:> part) are never modified
 and are returned unchanged.  The main use of these functions are to
-allow abbreviated URLs similar to what many web browsers allow for URLs
+allow abbreviated URIs similar to what many web browsers allow for URIs
 typed in by the user.
 
 The following functions are provided:
 
 =over 4
 
-=item uf_urlstr($str)
+=item uf_uristr($str)
 
-The uf_urlstr() function will try to make the string passed as
-argument into a proper absolute URL string.  The "uf_" prefix stands
-for "User Friendly".
+The uf_uristr() function will try to make the string passed as argument 
+into a proper absolute URI string.  The "uf_" prefix stands for "User 
+Friendly".  Under MacOS, it assumes that any string with a common URL 
+scheme (http, ftp, etc.) is a URL rather than a local path.  So don't name 
+your volumes after common URL schemes and expect uf_uristr() to construct 
+valid file: URL's on those volumes for you, because it won't.
 
-=item uf_url($str)
+=item uf_uri($str)
 
-This functions work the same way as uf_urlstr() but it will
-return a C<URI::URL> object.
+This functions work the same way as uf_uristr() but it will
+return a C<URI> object.
 
 =back
 
 =head1 ENVIRONMENT
 
-If the hostname portion of a URL does not contain any dots, then
+If the hostname portion of a URI does not contain any dots, then
 certain qualified guesses will be made.  These guesses are governed be
 the following two environment variables.
 
@@ -85,7 +88,7 @@ use vars qw(@EXPORT_OK $VERSION $MY_COUNTRY %LOCAL_GUESSING $DEBUG);
 
 require Exporter;
 *import = \&Exporter::import;
-@EXPORT_OK = qw(uf_url uf_urlstr);
+@EXPORT_OK = qw(uf_uri uf_uristr uf_url uf_urlstr);
 $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 eval {
@@ -104,21 +107,14 @@ eval {
  'uk' => [qw(www.ACME.co.uk www.ACME.org.uk www.ACME.ac.uk)],
  'au' => [qw(www.ACME.com.au www.ACME.org.au www.ACME.edu.au)],
  'il' => [qw(www.ACME.co.il www.ACME.org.il www.ACME.net.il)],
- # send corrections and new entries to <aas@sn.no>
+ # send corrections and new entries to <gisle@aas.no>
 );
 
 
-sub uf_url ($)
-{
-    require URI::URL;
-    URI::URL->new(uf_urlstr($_[0]));
-}
-
-
-sub uf_urlstr ($)
+sub uf_uristr ($)
 {
     local($_) = @_;
-    print STDERR "uf_urlstr: resolving $_\n" if $DEBUG;
+    print STDERR "uf_uristr: resolving $_\n" if $DEBUG;
     return unless defined;
 
     s/^\s+//;
@@ -130,17 +126,26 @@ sub uf_urlstr ($)
     } elsif (/^(ftp|gopher|news|wais|http|https)\./) {
 	$_ = "$1://$_";
 
-    } elsif (m,^/,      ||          # absolute file name
+    } elsif ($^O ne "MacOS" && 
+	    (m,^/,      ||          # absolute file name
 	     m,^\.\.?/, ||          # relative file name
 	     m,^[a-zA-Z]:[/\\],)    # dosish file name
+	    )
     {
 	$_ = "file:$_";
 
+    } elsif ($^O eq "MacOS" && m/:/) {
+        # potential MacOS file name
+	unless (m/^(ftp|gopher|news|wais|http|https|mailto):/) {
+	    require URI::file;
+	    my $a = URI::file->new($_)->as_string;
+	    $_ = ($a =~ m/^file:/) ? $a : "file:$a";
+	}
     } elsif (/^\w+([\.\-]\w+)*\@(\w+\.)+\w{2,3}$/) {
 	$_ = "mailto:$_";
 
     } elsif (!/^[.+\-\w]+:/) {      # no scheme specified
-	if (s/^(\w+(?:\.\w+)*)([\/:\?\#]|$)/$2/) {
+	if (s/^([-\w]+(?:\.[-\w]+)*)([\/:\?\#]|$)/$2/) {
 	    my $host = $1;
 
 	    if ($host !~ /\./ && $host ne "localhost") {
@@ -166,7 +171,7 @@ sub uf_urlstr ($)
 
 		my $guess;
 		for $guess (@guess) {
-		    print STDERR "uf_urlstr: gethostbyname('$guess')..."
+		    print STDERR "uf_uristr: gethostbyname('$guess')..."
 		      if $DEBUG;
 		    if (gethostbyname($guess)) {
 			print STDERR "yes\n" if $DEBUG;
@@ -183,9 +188,24 @@ sub uf_urlstr ($)
 
 	}
     }
-    print STDERR "uf_urlstr: ==> $_\n" if $DEBUG;
+    print STDERR "uf_uristr: ==> $_\n" if $DEBUG;
 
     $_;
+}
+
+sub uf_uri ($)
+{
+    require URI;
+    URI->new(uf_uristr($_[0]));
+}
+
+# legacy
+*uf_urlstr = \*uf_uristr;
+
+sub uf_url ($)
+{
+    require URI::URL;
+    URI::URL->new(uf_uristr($_[0]));
 }
 
 1;

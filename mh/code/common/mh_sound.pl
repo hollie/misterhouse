@@ -73,9 +73,9 @@ sub set_volume {
     undef $volume_previous;
     my $volume = $parms{volume};
     $volume = $config_parms{sound_volume} unless defined $volume;
-    $volume = 100 if $volume > 100;
 #   print_log "Setting volume to $volume";
     return unless $volume;      # Leave volume at last (manual?) setting
+    $volume = 100 if $volume > 100;
 
     if ($Info{Volume_Control} eq 'Win32::Sound') {
                                 # Store previous volume

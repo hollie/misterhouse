@@ -6,7 +6,9 @@
 This file (mh/docs/install.html) is for the installation instructions.
 The main Mister House documentation is in <a href="mh.html">mh.html</a>.
 A list of update announcements is in <a href="updates.html">updates.html</a> 
-There is also a <a href="faq.html">faq.html</a> to cover misc. topics.
+There is also a <a href="faq.html">faq.html</a> to cover misc. topics and a  
+<a href=http://tifster.tzo.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
+for other user-supplied documentation.
 
 =end html
 
@@ -200,8 +202,9 @@ an easy and free way to create a .msi file (suggestions welcome).  So for now, t
 full 70 mb 5.1 SDK, available from here:  http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe
 
 After installing, the default mh.ini voice_text=MS parm will default to the new V5 engine.  Use MSV4 to switch
-back to the old V4 engine.   So far, the only voices I have found for the V5 engines are the 
-MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices that come with the SDK.   
+back to the old V4 engine.   
+The SDK comes with the voices  MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices.
+For $100, you can get 2 nice 5.1 compatable voices with AT&T Natural Voices TTS SDK here: http://www.naturalvoices.com.
 
 
 =head1 UNIX Detailed Install Instructions
@@ -290,8 +293,11 @@ To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
 http://www.reednet.org/ViaVoiceTTS  , then set your mh.ini voice_text=vv_tts or voice_text=viavoice
 (vv_tts is a bit fancier, queing up speech and has more mh.ini options).
 
-The IBM ViaVoice Voice Recognition engine is also available from
-http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm
+The IBM ViaVoice Voice Recognition engine is no longer available (as of 05/2002) from
+http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm. 
+These instructions are here for future reference, in hopes that the modules 
+will become available again.
+
 Download and install (as root) these rpms:
   
   tar -xvf viavoice_asr_sdk_3.tar  ( 3 MB)
@@ -516,7 +522,4 @@ When you want to upgrade to a newer verion of mh, follow these steps:
  rename mh mh_old
  unzip \downloads\misterhouse_src_###.zip
  unzip \downloads\misterhouse_win_###.zip
-
-
-
 

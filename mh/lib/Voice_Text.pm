@@ -3,7 +3,7 @@ package Voice_Text;
 use strict;
 
 use vars '$VTxt_version';
-my (@VTxt, $VTxt_stream, $VTxt_festival, $save_mute_esd, $save_change_volume, %pronouncable);
+my (@VTxt, $VTxt_stream1, $VTxt_stream2, $VTxt_festival, $save_mute_esd, $save_change_volume, %pronouncable, %voice_names, @voice_names, $VTxt_pid);
 
 
 my $is_speaking_timer = new Timer;
@@ -14,7 +14,7 @@ sub init {
     if ($main::config_parms{voice_text} =~ /festival/i or $engine and $engine eq 'festival') {
         print "Creating festival TTS socket\n";
         my $festival_address = "$main::config_parms{festival_host}:$main::config_parms{festival_port}";
-        $VTxt_festival = new  Socket_Item(undef, undef, $festival_address, 'festival');
+        $VTxt_festival = new  Socket_Item(undef, undef, $festival_address, 'festival', 'tcp', 'raw');
         if (start $VTxt_festival) {
             if ($main::config_parms{festival_init_cmds}) {
                 print "Data sent to festival: $main::config_parms{festival_init_cmds}\n";
@@ -39,15 +39,15 @@ sub init {
                     next if $main::config_parms{voice_text_cards} and $main::config_parms{voice_text_cards} !~ /$i/;
                     my $object = $outputs->Item($i-1);
                     my $des    = $object->GetDescription;
-                    print "  Sound card $i: $des\n";
+                    print " - Sound card $i: $des\n";
                     $VTxt[$i] = Win32::OLE->new('Sapi.SpVoice');
                     $VTxt[$i] ->{AudioOutput} = $object;
                 }
                 $VTxt[0] = $VTxt[1]; # Default to the first card;
 
                                 # Create an object for to_file calls
-                $VTxt_stream = Win32::OLE->new('Sapi.SpVoice');
-                
+                $VTxt_stream1 = Win32::OLE->new('Sapi.SpVoice');
+               
             }
             else {
                 $VTxt_version = 'msv4';
@@ -65,8 +65,9 @@ sub init {
             $VTxt[0]->Register("Local PC", "perl voice_text.pm");
 #           $VTxt[0]->{Enabled} = 1;
         }
-        print "  Engine used:  $VTxt_version\n";
+        print " - Engine used:  $VTxt_version\n";
     }
+
 }
 
 sub speak_text {
@@ -75,15 +76,17 @@ sub speak_text {
     if ($parms{address}) {
         my @address = split ',', $parms{address}; 
         delete $parms{address};
-        $parms{to_file} = "$main::config_parms{html_dir}/speak_address.wav";
+        $parms{to_file} = "$main::config_parms{html_dir}/cache/speak_address.$main::Second.wav";
+
         &speak_text(%parms);
         package main;   # So the we do not have to use $main::
         for my $address (@address) {
             my $address_code = $config_parms{voice_text_address_code};
             $address_code =~ s|\$address|$address|;
-            $address_code =~ s|\$url|http://$Info{IPAddress_local}:$config_parms{http_port}/speak_address.wav|;
+            $address_code =~ s|\$url|http://$Info{IPAddress_local}:$config_parms{http_port}/cache/speak_address.$main::Second.wav|;
             print "Voice_text running address code: $address_code\n" if $main::config_parms{debug} eq 'voice';
             eval $address_code;
+            print "voice_text_address_code eval error: $@" if $@;
         }
         return;
     }
@@ -93,10 +96,15 @@ sub speak_text {
         $vtxt_default = $VTxt[0] if $parms{text};
         $VTxt[0] = $VTxt[$parms{card}];
     }
+
     
-                                # Only MSVoice currently tells us when it is done
-                                # For all others, set a timer with a rough guess
-    set $is_speaking_timer (1 + (length $parms{text}) / 10) unless @VTxt;
+                                # Use this as a rough guess if other methods fail
+				# - Must trigger timer this pass, not next, or http server
+				#   will return before we start!  Hence, call to set_from_last_pass
+    unless (@VTxt) {
+        set $is_speaking_timer (1 + (length $parms{text}) / 10);
+        set_from_last_pass $is_speaking_timer;
+    }
 
     my ($speak_pgm, $speak_engine);
     $speak_engine = $parms{engine};
@@ -110,6 +118,7 @@ sub speak_text {
 
     if ($speak_engine =~ /viavoice/i or $speak_engine =~ /vv_tts/i) {
         $parms{voice} = $main::config_parms{viavoice_voice} unless $parms{voice};
+        $parms{voice} = $voice_names{lc $parms{voice}} if $voice_names{lc $parms{voice}};
         my %voice_table = (male => 1, female => 2, child => 3, elder_female => 7, elder_male => 8);
         $parms{voice} = $voice_table{lc $parms{voice}} if $voice_table{lc $parms{voice}};
     }
@@ -126,7 +135,7 @@ sub speak_text {
     }
 
     $parms{text} = &set_rate($parms{rate},     $parms{text}) if $parms{rate}; # Allow for slow,normal,fast,wpm:###
-    $parms{text} = &set_voice($parms{voice},   $parms{text}) if $parms{voice};
+    $parms{text} = &set_voice($parms{voice},   $parms{text}, $speak_engine) if $parms{voice};
     $parms{text} = &set_volume($parms{volume}, $parms{text}) if $parms{volume};
     $parms{text} = &set_pitch($parms{pitch},   $parms{text}) if $parms{pitch};
 
@@ -140,10 +149,18 @@ sub speak_text {
     
     return unless $parms{text} or $parms{play};
 
-    if ($speak_engine =~ /festival/i) {
+    if ($speak_engine =~ /^&/) {
+        $speak_engine =~ s/^&/&main::/;
+        eval "$speak_engine(%parms)";
+        print "Voice_Text $speak_engine eval error: $@" if $@;
+    }
+    elsif ($speak_engine =~ /festival/i) {
         &init('festival') unless $VTxt_festival;
+
+				# Clear out buffer, so is_speaking works
+	$main::Socket_Ports{festival}{data_record} = '';
+	$main::Socket_Ports{festival}{data}        = '';
     
-        print "\ndb1 $parms{voice} or $parms{volume} or $parms{rate} or $VTxt_festival\n";
         print "\ndb2 $parms{voice} or $parms{volume} or $parms{rate} or $VTxt_festival\n" if !active $VTxt_festival;
 
         if ($parms{to_file}) {
@@ -151,17 +168,21 @@ sub speak_text {
             $parms{to_file} = "$main::Pgm_Path/$1" if $parms{to_file} =~ /^\.\/(.+)/;
             $parms{text} = qq[(utt.save.wave (utt.synth (Utterance Text "$parms{text}")) "$parms{to_file}" "riff")];
             if (active $VTxt_festival) {
+		$parms{text} =~ s/<\/?speaker.*?>//ig; # Server does not do sable
                 print "Voice_text TTS:  Festival saving to file via server: $parms{to_file}\n" if $main::config_parms{debug} eq 'voice';
                 set $VTxt_festival $parms{text};
+		unless ($parms{async}) {
                                           # Wait for server to respond that it is done
-                my $sock = $main::Socket_Ports{festival}{sock};
-                my $i;
-                while ($i++ < 50) {
-                    select undef, undef, undef, .1;
-                    if (my $nfound = &main::socket_has_data($sock)) {
-                        last;
-                    }
-                }
+		    my $sock = $main::Socket_Ports{festival}{sock};
+		    my $i;
+		    while ($i++ < 100) {
+			print '-';
+			select undef, undef, undef, .1;
+			if (my $nfound = &main::socket_has_data($sock)) {
+			    last;
+			}
+		    }
+		}
             }
             else {
                 my $file = "$main::config_parms{data_dir}/mh_temp.festival.txt";
@@ -179,9 +200,6 @@ sub speak_text {
                 $parms{rate}   = '-50%'  if $parms{rate}   eq 'slow';
                 $parms{rate}   = '+50%'  if $parms{rate}   eq 'fast';
                 $parms{volume} = 'quiet' if $parms{volume} eq 'soft';
-                if ($parms{voice}) {
-                    $text = qq[<SPEAKER NAME="$parms{voice}"> $text </SPEAKER>];
-                }
                 if ($parms{volume}) {
                     $text = qq[<VOLUME LEVEL="$parms{volume}"> $text </VOLUME>];
                 }
@@ -201,12 +219,11 @@ sub speak_text {
         }
     }
     elsif ($speak_pgm) {
-        my $self = {};
-        my $fork = 1 unless $parms{to_file}; # Must wait for to_file requests, so http requests work
+        my $fork = 1 unless $parms{to_file} and !$parms{async}; # Must wait for to_file requests, so http requests work
         my $pid = fork if $fork;
         $SIG{CHLD}  = "IGNORE";                   # eliminate zombies created by FORK()
         if ($fork and $pid) {
-            $$self{pid} = $pid;
+            $VTxt_pid = $pid;
         } elsif (!$fork or defined $pid) { 
             my $speak_pgm_arg = '';
             my $sound_key = $parms{play};
@@ -275,11 +292,11 @@ sub speak_text {
         }
     }
     elsif ($VTxt[0]) {
-        print "Voice_Text.pm ms_tts: VTxt=$VTxt[0] text=$parms{'text'}\n" if $main::config_parms{debug} eq 'voice';
+        print "Voice_Text.pm ms_tts: comp=$parms{compression} VTxt=$VTxt[0] text=$parms{'text'}\n" 
+          if $main::config_parms{debug} eq 'voice';
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
             if ($parms{to_file}) {
-                my $stream = Win32::OLE->new('Sapi.SpFileStream');
 # From sdk SpeechAudioFormatType:
 # SAFT8kHz8BitMono            =  4 (16k for for 4 words)
 # SAFT8kHz16BitMono           =  6 (32k)
@@ -291,28 +308,33 @@ sub speak_text {
 # SAFTCCITT_uLaw_8kHzMono     = 48 (176k)
 # SAFTADPCM_8kHzMono          = 56 (176k)
 # SAFTGSM610_8kHzMono         = 64 (88k?? ... this is the same as the default)
-# SAFTGSM610_11kHzMono        = 65 (3k) 
-# SAFTGSM610_22kHzMono        = 66 (5k)
+# SAFTGSM610_11kHzMono        = 65 (3k .. not useable on CE3 CompaQ IA1) 
+# SAFTGSM610_22kHzMono        = 66 (5k .. not choppy like above 11kHz mode)
 # SAFTGSM610_44kHzMono        = 67 (9k)
-                $stream->{Format}->{Type} = 4;
-                $stream->{Format}->{Type} = 22 if $parms{compression} eq 'low';
-                $stream->{Format}->{Type} = 65 if $parms{compression} eq 'high';
-                $stream->Open($parms{to_file}, 3, 0);
-                $VTxt_stream->{AudioOutputStream} = $stream;
-                $VTxt_stream->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
-                $stream->Close;
-                undef $stream;
-#               &main::print_log("Text->wav file:  $parms{to_file}");
-#               &main::play($parms{to_file});
+                $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
+                $VTxt_stream2->{Format}->{Type} = 4;
+                $VTxt_stream2->{Format}->{Type} = 22 if $parms{compression} eq 'low';
+                $VTxt_stream2->{Format}->{Type} = 66 if $parms{compression} eq 'high';
+                $VTxt_stream2->Open($parms{to_file}, 3, 0);
+                $VTxt_stream1->{AudioOutputStream} = $VTxt_stream2;
+                if ($parms{async}) {
+                    $VTxt_stream1->Speak($parms{text}, 1 + 8); # Flags: 1=async 8=XML
+                }
+                else {
+                    $VTxt_stream1->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
+                    $VTxt_stream2->Close;
+                    undef $VTxt_stream2;
+#                   &main::print_log("Text->wav file:  $parms{to_file}");
+#                   &main::play($parms{to_file});
+                }
             }
             else {
-#               $VTxt[0]->Speak($parms{text}, 1 + 2 + 8); # Flags: 1=async  2=pruge  8=XML
+#               $VTxt[0]->Speak($parms{text}, 1 + 2 + 8); # Flags: 1=async  2=purge  8=XML
                 $VTxt[0]->Speak($parms{text}, 1 +     8);
             }
         }
                                                                 # Older engine
         else {
-
             if ($parms{to_file}) {
                 &main::print_log("speak -to_file not supported with tts engine msv4.  Text=$parms{text}");
                 return;
@@ -320,7 +342,7 @@ sub speak_text {
         
         # Turn off vr while speaking ... SB live card will listen while speaking!
         #  - this doesn't work.  TTS does not start right away.  Best to poll in Voice_Cmd
-#       &Voice_Cmd::deactivate;
+#           &Voice_Cmd::deactivate;
 
             my(%priority) = ('normal' => hex(200), 'high' => hex(100), 'veryhigh' => hex(80));
             my(%type)     = ('statement' => hex(1), 'question' => hex(2), 'command' => hex(4),
@@ -355,22 +377,54 @@ sub speak_text {
 }
 
 sub is_speaking {
-#    print " vt=$VTxt[0] .. ";
     if (@VTxt and $VTxt[0]) {
         if ($VTxt_version eq 'msv5') {
+                                # I think these are the same??  I did not benchmark for speed.
+#           return $VTxt[0]->WaitUntilDone(0);
             return 2 == ($VTxt[0]->Status->{RunningState});
         }
         else {
             return $VTxt[0]->{IsSpeaking};
         }
     }
-    elsif ($VTxt_festival and active $is_speaking_timer) {
-        my $state = said $VTxt_festival;
-        unset $is_speaking_timer if $state;
-        return active $is_speaking_timer;
+    elsif ($VTxt_pid) {
+	return 1 unless waitpid($VTxt_pid, 1);
+	unset $is_speaking_timer;
+	undef $VTxt_pid;
+	return 0;
     }
     else {
         return active $is_speaking_timer;
+    }
+}
+
+sub is_speaking_wav {
+    if ($VTxt_stream1) {
+                                # I RunningState does not work with streams, but
+                                # WaitUntilDone does (returns 0 while speaking)
+        my $rc = $VTxt_stream1->WaitUntilDone(0);
+        if ($rc) {
+            $VTxt_stream2->Close;
+            undef $VTxt_stream2;
+        }
+        return !$rc;
+    }
+				# Festival will echo back when it is done generating speech
+				# Note: This does NOT work with live speech, as it finished
+				#       generating that before it finishes speaking it.
+    elsif ($VTxt_festival and active $is_speaking_timer) {
+				# Either of these should work
+#       my $d=&main::socket_has_data($main::Socket_Ports{festival}{sock});
+        my $s = said $VTxt_festival;
+#	print "s=$s d=$d ";
+	if ($s) {
+	    unset $is_speaking_timer;
+            select undef, undef, undef, .2; # Need this ?
+	}
+        return active $is_speaking_timer;
+    }
+    else {
+	return &is_speaking();
     }
 }
 
@@ -399,7 +453,23 @@ sub read_pronouncable_list {
     }
     print "Read $cnt entries from $pronouncable_list_file\n";
     close WORDS;
+
+                                # Read in voice name translations
+    my %temp;
+    for my $voice (split ',', $main::config_parms{voice_names}) {
+        if (my ($v1, $v2) = $voice =~ /(\S+) *=> *(.+)/) {
+            $v2 =~ s/ *$//;         # Drop trailing blanks
+            $voice_names{lc $v1} = $v2;
+            $temp{$v2}++;
+        }
+        else {
+            print "Error parsing voice keyword: $voice\n";
+        }
+    }
+    @voice_names = sort keys %temp;
+    print "Voice names: @voice_names\n";
 }
+
 
 sub set_mode {
     my ($mode) = lc shift;
@@ -476,7 +546,11 @@ sub set_volume {
     my ($volume, $text) = @_;
                                 # Only MS TTS v5 for now
     if ($VTxt_version eq 'msv5') {
-                                # If text is given, set for just this text with XML.  Otherwise change the default
+                                # AT&T docs say range is 0 -> 200, but
+                                # I saw no difference between 100 and 200
+#       $volume *= 2;           # Volume range is 0 -> 200
+ 
+                               # If text is given, set for just this text with XML.  Otherwise change the default
         if ($text) {
             return "<volume level='$volume'/> " . $text;
         }
@@ -491,26 +565,35 @@ sub set_volume {
 }
 
 sub set_voice {
-    my ($voice, $text) = @_;
-    $voice = lc $voice;
-                                # Only MS TTS v5 for now
+    my ($voice, $text, $speak_engine) = @_;
+
+                         # Random pick from the list in the mh.ini voice_names parm
+    if ($voice eq 'random') {
+        my $i = int((@voice_names) * rand);
+        $voice = $voice_names[$i];
+        print "Setting random voice.  i=$i voice=$voice\n" if $main::config_parms{debug} eq 'voice';
+    }
+                         # Override according to mh.ini voice_names list
+    if (defined  $voice_names{lc $voice}) {
+        $voice = $voice_names{lc $voice};
+    }
+
     if ($VTxt_version eq 'msv5') {
         my $spec;
-        $voice = lc $voice;
-        if ($voice =~ /female/) {
+        if ($voice =~ /female/i) {
             $spec .= "Gender=Female;";
         }
-        elsif ($voice =~ /male/) {
+        elsif ($voice =~ /male/i) {
             $spec .= "Gender=Male;";
         }
-        if ($voice =~ /child/) {
+        if ($voice =~ /child/i) {
             $spec .= "Age=Child;";
         }
-        elsif ($voice =~ /grownup/) {
+        elsif ($voice =~ /grownup/i) {
             $spec .= "Age=!Child;";
         }
-
-        if ($voice =~ /random/) {
+                                # Old code
+        if (0 and $voice =~ /random/) {
             my (@voices, $object);
 #           @voices = Win32::OLE::in $VTxt[0]->GetVoices($spec);
                                 # Filter out unusual voices
@@ -526,14 +609,16 @@ sub set_voice {
         }
 
         unless ($spec) {
-            $spec = "Name=Microsoft $voice";
+#           $spec = "Name=Microsoft $voice";
+#           $spec = "Name=ATT DTNV 1.3 $voice";
+            $spec = "Name=$voice";
         }
 
         print "Setting ms voice ($voice) to spec=$spec\n" if $main::config_parms{debug} eq 'voice';
 
                                 # If text is given, set for just this text with XML.  Otherwise change the default
         if ($text) {
-            return "<voice required='$spec'/> " . $text;
+            return "<voice required='$spec'> " . $text . " </voice>";
         }
                                 # First voice returned is the best fit
         else {
@@ -543,6 +628,9 @@ sub set_voice {
                 return;
             }
         }
+    }
+    elsif ($voice and $speak_engine =~ /festival/i) {
+        return "<SPEAKER NAME='$voice'> " . $text . " </SPEAKER>";
     }
     else {
         return $text;
@@ -564,6 +652,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.36  2002/05/28 13:07:51  winter
+# - 2.68 release
+#
 # Revision 1.35  2002/03/31 18:50:39  winter
 # - 2.66 release
 #

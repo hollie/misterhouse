@@ -15,7 +15,10 @@ sub menu_parse {
 
                                 # Find all the valid Voice_Cmd text
     for my $object (map {&get_object_by_name($_)} &list_objects_by_type('Voice_Cmd')) {
-        $voice_cmd_list{$$object{text}} = $object;
+                                # Pick first of {a,b} enumerations (e.g. {tell me,what is} )
+        my $text = $$object{text};
+        $text =~ s/\{([^,]+).+?\}/$1/g;
+        $voice_cmd_list{$text} = $object;
     }
 
 
@@ -24,6 +27,7 @@ sub menu_parse {
         my ($type, $data) = $_ =~ /^\s*(\S+)\:\s*(.+?)\s*$/;
         next if /^\s*\#/;       # Ignore comments
         $data =~ s/\s+\#.+//;   # Ignore comments
+
                                 # Pull out 'start menu' records:  M: Lights 
         if ($type eq 'M') {
             $menu = $data;
@@ -52,10 +56,12 @@ sub menu_parse {
         }
                                 # States can be found in item text and Action/Response records
         my ($prefix, $states, $suffix) = $data =~ /(.*)\[(.+)\](.*)/;
+
         if ($states) {
             $menus{$menu}{items}  [$index]{$type . 'prefix'}  = $prefix;
             $menus{$menu}{items}  [$index]{$type . 'suffix'}  = $suffix;
             @{$menus{$menu}{items}[$index]{$type . 'states'}} = split ',', $states;
+
 
                                 # Create a states menu for each unique set of states
             if ($type eq 'D') {
@@ -221,7 +227,12 @@ sub menu_create {
             my $authority = $object->get_authority;
 #           next unless $authority =~ /anyone/ or 
 #                       $config_parms{tellme_pin} and $Cookies{vxml_cookie} eq $config_parms{tellme_pin};
-            $menu .= sprintf "  D: %-50s  # %-25s %10s\n", $$object{text}, $object_name, $authority;
+
+                                # Pick first of {a,b} enumerations (e.g. {tell me,what is} )
+            my $text = $$object{text};
+            $text =~ s/\{([^,]+).+?\}/$1/g;
+
+            $menu .= sprintf "  D: %-50s  # %-25s %10s\n", $text, $object_name, $authority;
         }
     }
     &file_write($file, $menu_top . $menu);
@@ -256,7 +267,7 @@ sub menu_run {
     $display   = '' unless defined $display; 
     $response  = '' unless defined $response;
 
-    $Menus{response_format} = $format;
+    $Menus{menu_data}{response_format} = $format;
 
                                 # Allow anyone to run set_authority('anyone') commands
     my $ref;
@@ -268,6 +279,7 @@ sub menu_run {
     $authority = $Password_Allow{$display}     unless $authority;
     $authority = $Password_Allow{$cmd}         unless $authority;
     $authority = $Menus{$menu_group}{$menu}{'default:P'} unless $authority;
+    $authority = '' unless $authority;
 
     $Socket_Ports{http}{client_ip_address} = '' unless $Socket_Ports{http}{client_ip_address};
     my $msg = "menu_run: a=$Authorized,$authority f=$format ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu i=$item s=$state a=$action r=$response";
@@ -301,8 +313,8 @@ sub menu_run {
         }
     }
 
-    $Menus{last_response_menu}       = $menu;
-    $Menus{last_response_menu_group} = $menu_group;
+    $Menus{menu_data}{last_response_menu}       = $menu;
+    $Menus{menu_data}{last_response_menu_group} = $menu_group;
 
     if ($response and lc $response eq 'none' and $format eq 'l') {
         return;
@@ -319,6 +331,7 @@ sub menu_run {
         $response = "Set to $state" unless $response;
     }
 
+
     if ($response and $response =~ /^eval (.+)/) {
         print "Running eval on: $1\n";
         $response = eval $1;
@@ -329,7 +342,7 @@ sub menu_run {
 
     if (!$response or $response eq 'last_response') {
         if ($format eq 'l') {
-            $Menus{last_response_loop} = $Loop_Count + 3;
+            $Menus{menu_data}{last_response_loop} = $Loop_Count + 3;
             return;
         }
                                 # Everything else comes via http_server
@@ -356,8 +369,10 @@ sub menu_run_response {
     elsif ($format and $format eq 'v') {
 #       my $http_root = "http://$config_parms{http_server}:$config_parms{http_port}";
         my $http_root = '';     # Full url is no longer required :)
-        my $goto      = "${http_root}sub?menu_vxml($Menus{last_response_menu_group})#$Menus{last_response_menu}";
+        my $goto      = "${http_root}sub?menu_vxml($Menus{menu_data}{last_response_menu_group})#$Menus{menu_data}{last_response_menu}";
+        print "db1 gt=$goto\n";
         my $vxml = qq|<form><block><audio>$response</audio><goto next='$goto'/></block></form>|;
+#       my $vxml = qq|<form><block><audio>$response</audio><goto expr="'$goto'"/></block></form>|;
         return &vxml_page($vxml);
     }
     elsif ($format and $format eq 'h') {
@@ -378,12 +393,10 @@ sub menu_html {
     $menu       = $Menus{$menu_group}{menu_list}[0] unless $menu;
 
     my @k = keys %main::Menus;
-    print "\n\ndbx1 k=@k m=$menu\n";
 
     my $html = "<h1>";
     my $item = 0;
     my $ptr = $Menus{$menu_group};
-    print "dbx2 g=$menu_group p=$ptr\n";
     for my $ptr2 (@{$$ptr{$menu}{items}}) {
         my $goto = $$ptr2{goto};
                                 # Action item
@@ -573,7 +586,9 @@ sub menu_vxml_forms {
                 }
                                 # States menu
                 elsif ($$ptr{A} eq 'state_select') {
-                    $goto = "${http_root}sub?menu_run($menu_group,{prev_menu},{prev_item},$item,v)";
+#                   $goto = "${http_root}sub?menu_run($menu_group,{prev_menu},{prev_item},$item,v)";
+# db1x
+                    $goto = "${http_root}sub?menu_run($menu_group,' + prev_menu + ',' + prev_item + ',$item,v)";
                 }
                                 # One state
                 else {
@@ -709,7 +724,7 @@ sub menu_lcd_navigate {
         }
     }
     elsif ($key eq 'enter') {
-        $Menus{last_response_object} = $lcd;
+        $Menus{menu_data}{last_response_object} = $lcd;
 
                                 # Run an action
         if ($ptr and $$ptr{A}) {
@@ -798,11 +813,24 @@ sub menu_format_list {
     }
 }        
 
+                                # Call this to set default menus
+sub set_menu_default {
+    my ($menu_group, $menu, $address) = @_;
+    $Menus{menu_data}{defaults}{$address} = join $;, $menu_group, $menu;
+}
+sub get_menu_default {
+    my ($address) = @_;
+    return split $;, $Menus{menu_data}{defaults}{$address};
+}
+
 return 1;
 
 
 #
 # $Log$
+# Revision 1.9  2002/05/28 13:07:52  winter
+# - 2.68 release
+#
 # Revision 1.8  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

@@ -34,7 +34,7 @@ $v_barcode_mode-> tie_event('print_log "Scanner set to $state mode"');
 
 $barcode_scan   = new Generic_Item;
 $barcode_scan  -> set_authority('anyweb');
-&tk_entry('Barcode', $barcode_scan);
+#&tk_entry('Barcode', $barcode_scan);
                                 # Scan starts with Alt-F10
 $MW->bind('<Key-F10>', sub {$Tk_objects{entry}{$barcode_scan}->focus()}) if $MW and $Reload;
 

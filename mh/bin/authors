@@ -8,13 +8,13 @@ use strict;
 
 my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan 
                      Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
-                     ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call);
+                     ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call No Peet Rewrote);
 my @bogus_last  = qw(Homelink House Group Report Programs Aqualink WinTV);
 
 undef $/;
 my $f = <>;
 my %a;
-while ($f =~ /([A-Z][a-zA-Z\.\']+) ([A-Z][a-zA-Z\']+\.?) /gms) {
+while ($f =~ /([A-Z][a-zA-Z\.\']+) ([A-Z][a-zA-Z\']+)[ \.\,]/gms) {
     my ($first, $last) = ($1, $2);
     next if $first =~ /^[A-Z]+$/;  # Not all uppercase
     next if $last  =~ /^[A-Z]+$/;  # Not all uppercase

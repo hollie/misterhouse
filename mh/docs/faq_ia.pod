@@ -2,7 +2,7 @@
 
 =head1 Internet Appliances with MisterHouse FAQ
 
-This will try to cover info an tips on using various internet applinaces
+This will try to cover info and tips on using various internet appliances
 like the Epods and Audrey with MisterHouse.
 
 =head1 What is an internet appliance

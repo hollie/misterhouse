@@ -42,13 +42,14 @@ $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 use strict;
 use Carp ();
-use HTTP::Status 'RC_INTERNAL_SERVER_ERROR';
+use HTTP::Status ();
+use HTTP::Response;
 require HTML::HeadParser;
 
 my %ImplementedBy = (); # scheme => classname
 
 
-=item $prot = new HTTP::Protocol;
+=item $prot = LWP::Protocol->new()
 
 The LWP::Protocol constructor is inherited by subclasses. As this is a
 virtual base class this method should B<not> be called directly.
@@ -113,11 +114,11 @@ sub implementor
     $ic = "LWP::Protocol::nntp" if $scheme eq 'news'; #XXX ugly hack
     no strict 'refs';
     # check we actually have one for the scheme:
-    unless (defined @{"${ic}::ISA"}) {
+    unless (@{"${ic}::ISA"}) {
 	# try to autoload it
 	eval "require $ic";
 	if ($@) {
-	    if ($@ =~ /^Can't locate/) { #' #emacs get confused by '
+	    if ($@ =~ /Can't locate/) { #' #emacs get confused by '
 		$ic = '';
 	    } else {
 		die "$@\n";
@@ -221,8 +222,8 @@ sub collect
     elsif (!ref($arg)) {
 	# filename
 	open(OUT, ">$arg") or
-	    return new HTTP::Response RC_INTERNAL_SERVER_ERROR,
-			  "Cannot write to '$arg': $!";
+	    return HTTP::Response->new(&HTTP::Status::RC_INTERNAL_SERVER_ERROR,
+			  "Cannot write to '$arg': $!");
         binmode(OUT);
         local($\) = ""; # ensure standard $OUTPUT_RECORD_SEPARATOR
 	while ($content = &$collector, length $$content) {
@@ -259,8 +260,8 @@ sub collect
 	}
     }
     else {
-	return new HTTP::Response RC_INTERNAL_SERVER_ERROR,
-				  "Unexpected collect argument  '$arg'";
+	return HTTP::Response->new(&HTTP::Status::RC_INTERNAL_SERVER_ERROR,
+				  "Unexpected collect argument  '$arg'");
     }
     $response;
 }
@@ -295,7 +296,7 @@ for examples of usage.
 
 =head1 COPYRIGHT
 
-Copyright 1995-1997 Gisle Aas.
+Copyright 1995-2000 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

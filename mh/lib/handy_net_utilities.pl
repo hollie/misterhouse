@@ -85,7 +85,7 @@ sub main::net_connect_check {
     }
 }
 
-my ($DNS_resolver_request, $DNS_resolver_address, $DNS_resolver_requester, $DNS_resolver_time);
+my ($DNS_resolver_request, $DNS_resolver_address, $DNS_resolver_requester, $DNS_resolver_time, %DNS_cache);
 
                                 # This is the good, background way
 sub main::net_domain_name_start {
@@ -96,7 +96,17 @@ sub main::net_domain_name_start {
                          if $main::Socket_Ports{$DNS_resolver_address} and
                             $main::Socket_Ports{$DNS_resolver_address}{client_ip_address};
 
-    if ($main::DNS_resolver) {
+    $DNS_cache{$DNS_resolver_address} = 'local' if &main::is_local_address($DNS_resolver_address);
+
+                                # Cache the data.  If cached, return results immediately,
+                                # in addition to triggering net_domain_name_done
+    if ($DNS_cache{$DNS_resolver_address}) {
+        $DNS_resolver_request++;
+        $DNS_resolver_time = time - 100; # Pretend we time out, so we also respond on next _done check
+                                # If cached, return data
+        return &net_domain_name_parse2($DNS_cache{$DNS_resolver_address});
+    }
+    elsif ($main::DNS_resolver) {
         $DNS_resolver_request = $main::DNS_resolver->bgsend($DNS_resolver_address);
         $DNS_resolver_time = time;
 #       print "db $main::Time_Date DNS starting search $main::Time, t=$DNS_resolver_time, a=$DNS_resolver_address\n";
@@ -105,20 +115,27 @@ sub main::net_domain_name_start {
         $DNS_resolver_request++;
         $DNS_resolver_time = time - 100; # Pretend we time out, so we respond on the next pass
     }
+    return;
 }
+
 sub main::net_domain_name_done {
     my ($requester) = @_;
     return unless $DNS_resolver_request and $requester eq $DNS_resolver_requester;
-    my $result;
 #   print "db $DNS_resolver_time, t=$Time r=$requester, r2=$DNS_resolver_requester\n";
-    if ((time - $DNS_resolver_time) > 5) {
+    my $result;
+    if ($DNS_cache{$DNS_resolver_address}) {
+        undef $DNS_resolver_request;
+        return &net_domain_name_parse2($DNS_cache{$DNS_resolver_address});
+    }
+    elsif ((time - $DNS_resolver_time) > 5) {
 #       print "db $main::Time_Date DNS ending   search $main::Time, t=$DNS_resolver_time, a=$DNS_resolver_address\n";
         print "DNS search timed out for $DNS_resolver_address\n" if $main::DNS_resolver;
+        undef $DNS_resolver_request;
+        return;
     }
-    else {
-        return unless $main::DNS_resolver->bgisready($DNS_resolver_request);
-        $result = $main::DNS_resolver->bgread($DNS_resolver_request);
-    }
+
+    return unless $main::DNS_resolver->bgisready($DNS_resolver_request);
+    $result = $main::DNS_resolver->bgread($DNS_resolver_request);
     undef $DNS_resolver_request;
     return &net_domain_name_parse($result, $DNS_resolver_address);
 }
@@ -131,6 +148,10 @@ sub main::net_domain_name {
                $main::Socket_Ports{$address}{client_ip_address};
 
     return if &main::is_local_address($address);
+
+    if ($DNS_cache{$address}) {
+        return &net_domain_name_parse2($DNS_cache{$address});
+    }
 
     my $result;
     if ($main::DNS_resolver) {
@@ -165,11 +186,16 @@ sub net_domain_name_parse {
                                 #  9.37.208.64.in-addr.arpa.   86400 IN PTR crawler1.googlebot.com.
         $domain_name = (split(' ', $string))[4] if $string;
     }
+    $DNS_cache{$address} = $domain_name;
+    return &net_domain_name_parse2($domain_name);
+}
 
+sub net_domain_name_parse2 {
+    my ($domain_name) = @_;
     my @domain_name  = split('\.', $domain_name);
     my $domain_name2 = $domain_name[-2];
     $domain_name2 .= ('.' . $domain_name[-1]) if $domain_name[-1] !~ /(net)|(com)|(org)/;
-    print "db ip=$address dn=$domain_name dn2=$domain_name2\n" if $main::config_parms{debug} eq 'net';
+    print "db dn=$domain_name dn2=$domain_name2\n" if $main::config_parms{debug} eq 'net';
     return wantarray ? ($domain_name, $domain_name2) : $domain_name;
 }
 
@@ -246,6 +272,12 @@ sub main::net_ftp {
             return "failed on delete";
         }
     }
+    elsif ($command eq 'mkdir') {
+        unless ($ftp->mkdir($file_remote)) {
+            print " \x07Unable to make dir $file_remote from $server: $@\n";
+            return "failed on mkdir";
+        }
+    }
     else {
         print "Bad ftp command: $command\n";
         return "bad ftp command: $command";
@@ -256,13 +288,18 @@ sub main::net_ftp {
     return "was successful";
 }
 
-my ($aim_connection, $jabber_connection);
+my ($aim_connection, $jabber_connection, $msn_connection, %msn_connections, %msn_queue);
 
 
 sub main::net_jabber_signon {
     return if $jabber_connection;  # Already signed on
 
     my ($name, $password, $server, $resource, $port) = @_;
+
+    $name     = $main::config_parms{net_jabber_name}      unless $name;
+    $password = $main::config_parms{net_jabber_password}  unless $password;
+    $server   = $main::config_parms{net_jabber_server}    unless $server;
+    $resource = $main::config_parms{net_jabber_resource}  unless $resource;
 
     $server   = 'jabber.com' unless $server;
     $port     = 5222         unless $port;
@@ -331,8 +368,9 @@ sub jabber::InMessage {
 #   my $resource = $message->GetResource();
 #   my $subject  = $message->GetSubject();
     my $body     = $message->GetBody();
-    &main::display("$main::Time_Date $from\nMessage:  " . $body, 0, "Jabber Message from $from", 'fixed');
-    &main::Jabber_Message_hooks($sid, $message);
+#   &main::display("$main::Time_Date $from\nMessage:  " . $body, 0, "Jabber Message from $from", 'fixed');
+#   &main::Jabber_Message_hooks($sid, $message, 'jabber');
+    &main::Jabber_Message_hooks($from, $body, 'jabber');
 }
 
 
@@ -355,8 +393,8 @@ sub jabber::InPresence {
     my $from     = $presence->GetFrom();
     my $type     = $presence->GetType();
     my $status   = $presence->GetStatus();
-    &main::display("$main::Time_Date $from\nPresence:  " . $status, 0, "Jabber Presence from $from", 'fixed');
-    &main::Jabber_Presence_hooks($sid, $presence);
+#   &main::display("$main::Time_Date $from\nPresence:  " . $status, 0, "Jabber Presence from $from.", 'fixed');
+    &main::Jabber_Presence_hooks($from, $status, undef, 'jabber');
 #   print $presence->GetXML(),"\n";
 }
 
@@ -395,9 +433,130 @@ sub main::net_jabber_send {
 
 }
 
+sub main::net_msn_signon {
+    my ($name, $password) = @_;
+
+    return if $msn_connection;  # Already signed on
+
+    $name     = $main::config_parms{net_msn_name}      unless $name;
+    $password = $main::config_parms{net_msn_password}  unless $password;
+
+    print "Logging onto MSN with name=$name ... \n";
+
+    eval 'use MSN';
+    if ($@) {
+        print "MSN eval error: $@\n";
+        return;
+    }
+    $msn_connection = MSN->new();
+
+                             # Currently does not have a way to verify login??
+    $msn_connection->connect($name, $password, '', 
+                                     {
+                                      Status  => \&MSN::status, 
+                                      Answer  => \&MSN::answer, 
+                                      Message => \&MSN::message, 
+                                      Join    => \&MSN::join }, 0);
+#    print "MSN logon error: $main::IM_ERR -> $Net::MSNIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
+#    undef $msn_connection;
+#    return;
+
+    &main::MainLoop_post_add_hook( \&MSN::process, 1, $msn_connection, 0);
+}
+
+
+sub MSN::status {
+   my ($self, $username, $newstatus) = @_;
+   print "MSN ${username}'s status changed from " . $self->buddystatus($username) . " to $newstatus.\n";
+   &main::MSNim_Status_hooks($username, $newstatus, $self->buddystatus($username), 'MSN');
+}
+
+sub MSN::message {
+   my ($self, $name, $name2, $text) = @_;
+   print "MSN Message received: $name, $name2, $text\n";
+   &main::MSNim_Message_hooks($name, $text, 'MSN');
+   $msn_connections{$name} = $self;
+   &MSN::send_queue($name);
+}
+
+sub MSN::join {
+   my ($self, $username) = @_;
+   print "MSN Join: $username\n";
+   $msn_connections{$username} = $self;
+   &MSN::send_queue($username);
+}
+
+sub MSN::answer {
+   my ($self, $username) = @_;
+   print "MSN Answer:  $username\n";
+   $$self->sendmsg("Hello from MisterHouse to $username");
+   $msn_connections{$username} = $self;
+   &MSN::send_queue($username);
+}
+
+sub MSN::send_queue {
+    my ($username) = @_;
+    return unless  $msn_queue{$username};
+    my $connection = $msn_connections{$username};
+    my $msg;
+    while (defined($msg = shift @{$msn_queue{$username}})) {
+        print "MSN sending: $username, $msg\n";
+        $$connection->sendmsg($msg);
+    }
+}
+
+sub main::net_msn_send {
+    my %parms = @_;
+
+    my ($from, $password, $to, $text, $file);
+
+    $from     = $parms{from};
+    $password = $parms{password};
+    $to       = $parms{to};
+
+    $from     = $main::config_parms{net_msn_name}      unless $from;
+    $password = $main::config_parms{net_msn_password}  unless $password;
+    $to       = $main::config_parms{net_msn_name_send} unless $to;
+
+    unless ($from and $password and $to) {
+        print "\nError, net_msn_send called with a missing argument:  from=$from to=$to password=$password\n";
+        return;
+    }
+    print "Sending MSN message to $to\n";
+    $text  = $parms{text};
+    $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
+
+    unless ($msn_connection) {
+        &main::net_msn_signon($from, $password);
+                                # Gotta wait until we are logged on until we send the msg
+        for (1..40) {
+            print ".";
+            select undef, undef, undef, .1;
+#           &MSN::process($msn_connection, 0);
+            $msn_connection->process(0);
+        }
+    }
+
+                              # Use an existing connection, or create a new one?
+    if (my $to_connection = $msn_connections{$to}) {
+        $$to_connection -> sendmsg($text);
+    }
+    else {
+        print "Calling MSN user $to\n";
+        $msn_connection -> call($to);
+        push(@{$msn_queue{$to}}, $text)
+    }
+
+}
+
+
+
 sub main::net_im_signon {
     my ($name, $password) = @_;
     return if $aim_connection;  # Already signed on
+
+    $name     = $main::config_parms{net_aim_name}      unless $name;
+    $password = $main::config_parms{net_aim_password}  unless $password;
 
     print "Logging onto AIM with name=$name ... \n";
 
@@ -434,21 +593,24 @@ sub main::net_im_signon {
 # IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hi ho</FONT></BODY></HTML>
 sub aolim::callback {
     my ($type, $name, $arg, $text) = @_;
+    print "db t=$type, n=$name, a=$arg, t=$text\n";
     if ($type eq 'ERROR') {
         my $error = "$Net::AOLIM::ERROR_MSGS{$name}";
         $error =~ s/\$ERR_ARG/$arg/g;
         print "AOL AIM error: $error\n";
     }
     elsif ($type eq 'IM_IN') {
-        my $time = &main::time_date_stamp(5);
-        my $text2 = "$name ($time:$main::Second): " .
-          HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($text));
-        &main::display(text => $text2, time => 0, window_name => 'AIM', append => 'top');
+#       my $time = &main::time_date_stamp(5);
+        my $text2 = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($text));
+        chomp $text2;
+#       &main::display(text => "$name ($time:$main::Second): " . $text2, time => 0, window_name => 'AIM', append => 'top');
+        &main::AOLim_Message_hooks($name, $text2, 'AOL');
     }
     else {
         print "AOL AIM data: t=$type name=$name a=$arg text=$text\n";
     }
 }
+
 
 sub aolim::process {
     return unless $main::New_Second;
@@ -850,6 +1012,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.41  2002/05/28 13:07:52  winter
+# - 2.68 release
+#
 # Revision 1.40  2002/03/31 18:50:40  winter
 # - 2.66 release
 #

@@ -54,6 +54,14 @@ if ($state = $v_send_email_test->{said}) {
     }
 }
 
+
+$cell_phone_test = new Voice_Cmd 'Send test e mail to the cell phone';
+$cell_phone_test-> set_info("Send a test message to the cell phone");
+
+if (said $cell_phone_test) {
+    net_mail_send subject => 'Hi from MisterHouse: $Time_Now', to => $config_parms{cell_phone};
+}
+
                                 # Check for recent email since last received by mail program
                                 # Do it with a get_email process, so mh will not pause
 #&tk_radiobutton('Check email', \$Save{email_check}, ['no', 'yes']);
@@ -109,13 +117,13 @@ if ($state = $v_unread_email->{said}) {
 sub speak_new_mail {
     my $text = file_read "$config_parms{data_dir}/get_email.txt";
     chomp $text;
-    speak "voice=mike rooms=all $text" if $text;
+    speak "voice=male rooms=all $text" if $text;
 }
 
 sub speak_unread_mail {
     my $text = file_read "$config_parms{data_dir}/get_email2.txt";
     chomp $text;
-    speak "voice=mike rooms=all $text" if $text;
+    speak "voice=male rooms=all $text" if $text;
 }
 
                                 # Allow for email send commands, IF the secret command code matches 

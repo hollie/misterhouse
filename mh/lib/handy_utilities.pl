@@ -95,8 +95,8 @@ sub main::file_read {
     
     if (wantarray and !$scalar) {
         my @data = <LOG>;
-        chomp @data;            # Why would we ever want \n here??
         close LOG;
+        chomp @data;            # Why would we ever want \n here??
         return @data;
     }
                                 # Read is faster than <> (?)
@@ -122,7 +122,7 @@ sub main::file_write {          # Same as fileit
 
 sub main::file_cat {
     my ($file1, $file2, $position) = @_;
-    if ($position eq 'top') {
+    if ($position and $position eq 'top') {
         open(LOG1, $file1)    or print "Warning, could not open file_cat $file1: $!\n";
         open(LOG2, $file2)    or print "Warning, could not open file_cat $file2: $!\n";
         binmode LOG1;
@@ -446,12 +446,20 @@ sub main::plural_check {
 
 sub main::read_mh_opts {
     my($ref_parms, $Pgm_Path, $debug, $parm_file) = @_;
-    my $private_parms = $Pgm_Path . "/mh.private.ini";
-    $private_parms = $ENV{mh_parms} if $ENV{mh_parms};
     $debug = 0 unless $debug;
-    &main::read_opts($ref_parms, $parm_file, $debug, $Pgm_Path . '/..') if $parm_file and -e $parm_file;
-    &main::read_opts($ref_parms, $Pgm_Path . "/mh.ini", $debug, $Pgm_Path . '/..') if $Pgm_Path . "/mh.ini";
-    &main::read_opts($ref_parms, $private_parms, $debug, $Pgm_Path . '/..') if -e $private_parms;
+
+    my @parm_files;
+    push @parm_files, $parm_file if $parm_file;
+    push @parm_files, $Pgm_Path . '/mh.ini';
+    push @parm_files, $Pgm_Path . '/mh.private.ini';
+    push @parm_files, split ',', $ENV{mh_parms} if $ENV{mh_parms};
+
+    print "Reading parm files: @parm_files\n";
+    for my $file (@parm_files) {
+        next unless -e $file;
+        print "  Reading parm file: $file\n" if $debug;
+        &main::read_opts($ref_parms, $file, $debug, $Pgm_Path . '/..');
+    }
 
                                 # Look for parm values that reference other vars (e.g.  $config_parms{data_dir}/data/email)
                                 # Need to do this AFTER all the parms are read in, so we can eval correctly
@@ -483,7 +491,8 @@ sub main::read_opts {
     while (<CONFIG>) {
         next if /^\s*[\#\@]/;
                                 # Allow for multi-line values records
-        if ($key and ($value) = $_ =~ /^\s+([^\#\@]+)/ and $value !~ /=/) {
+                                # Allow for key => value continued data
+        if ($key and ($value) = $_ =~ /^\s+([^\#\@]+)/ and $value !~ /=[^\>]/) {
             $value_continued = 1;
         }
                                 # Look for normal key=value records
@@ -1072,6 +1081,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.56  2002/05/28 13:07:52  winter
+# - 2.68 release
+#
 # Revision 1.55  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

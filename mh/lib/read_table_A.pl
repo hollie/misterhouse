@@ -8,14 +8,15 @@ use strict;
 #
 #X10I,           J1,                     Outside_Front_Light_Coaches,            Outside|Front|Light|NightLighting
 
-print_log "Using read_table_A.pl";
+#print_log "Using read_table_A.pl";
 
-my %groups;
+my (%groups, %objects);
 
 sub read_table_init_A {
                                 # reset known groups
 	print_log "Initialized read_table_A.pl";
 	%groups=();
+	%objects=();
 }
 
 sub read_table_A {
@@ -84,6 +85,11 @@ sub read_table_A {
         ($address, $name, $grouplist) = @item_info;
         $object = "Mp3Player('$address')";
     }
+    elsif($type eq "AUDIOTRON") {
+        require 'AudiotronPlayer.pm';
+        ($address, $name, $grouplist) = @item_info;
+        $object = "AudiotronPlayer('$address')";
+    }
     elsif($type eq "WEATHER") {
         ($address, $name, $grouplist) = @item_info;
 #       ($address, $comparison, $limit) = $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
@@ -91,46 +97,55 @@ sub read_table_A {
         $object = "Weather_Item('$address')";
     }
     elsif($type eq "SG485LCD") {
+        require 'Stargate485.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateLCDKeypad('$address', $other)";
     }
     elsif($type eq "SG485RCSTHRM") {
+        require 'Stargate485.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateRCSThermostat('$address', $other)";
     }
     elsif($type eq "STARGATEDIN") {
+        require 'Stargate.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateDigitalInput('$address', $other)";
     }
     elsif($type eq "STARGATEVAR") {
+        require 'Stargate.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateVariable('$address', $other)";
     }
     elsif($type eq "STARGATEFLAG") {
+        require 'Stargate.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateFlag('$address', $other)";
     }
     elsif($type eq "STARGATERELAY") {
+        require 'Stargate.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateRelay('$address', $other)";
     }
     elsif($type eq "STARGATETHERM") {
+        require 'Stargate.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateThermostat('$address', $other)";
     }
     elsif($type eq "STARGATEPHONE") {
+        require 'Stargate.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateTelephone('$address', $other)";
     }
     elsif($type eq "XANTECH") {
+        require 'Xantech.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Xantech_Zone('$address', $other)";
@@ -166,7 +181,11 @@ sub read_table_A {
         return;
     }
     
-    $code .= sprintf "\n\$%-35s =  new %s;\n", $name, $object if $object;
+    if ($object) {
+        my $code2 = sprintf "\n\$%-35s =  new %s;\n", $name, $object;
+        $code2 =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
+        $code .= $code2;
+    }
 
     $grouplist = '' unless $grouplist; # Avoid -w uninialized errors
     for my $group (split('\|', $grouplist)) {
@@ -175,8 +194,8 @@ sub read_table_A {
         }
         else {
             $code .= sprintf "\$%-35s =  new Group;\n", $group unless $groups{$group};
-            $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name;
-            $groups{$group}++;
+            $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name unless $groups{$group}{$name};
+            $groups{$group}{$name}++;
         }
 
         if(lc($group) eq 'hidden')
@@ -192,6 +211,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.12  2002/05/28 13:07:52  winter
+# - 2.68 release
+#
 # Revision 1.11  2001/11/18 22:51:43  winter
 # - 2.61 release
 #

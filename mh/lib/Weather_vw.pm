@@ -80,15 +80,22 @@ sub UpdateVwWeather
         @temp = split /,/;
     }
 
-    if(@temp != 39)
+    # Old style files have 25 entries, new apparently 39
+    if(@temp != 24 and @temp != 39)
     {
         print "Invalid data read from weather file $file\n";
         return;
     }
 
-
     # Check to see if weather data is current
-    ($wversion, $wyear, $wmonth, $wday, $whour, $wmin) = @temp;
+    if(@temp == 24)
+    {
+        ($wyear, $wmonth, $wday, $whour, $wmin) = @temp;
+    }
+    else
+    {
+        ($wversion, $wyear, $wmonth, $wday, $whour, $wmin) = @temp;
+    }
     $wdate = sprintf("%02d%02d%4d", $wmonth, $wday, $wyear);
 
     my $time_diff = ($hour + $min/60) - ($whour + $wmin/60);
@@ -111,6 +118,10 @@ sub UpdateVwWeather
     my $raintotal_prev = $main::Weather{RainTotal};
 
     my $i = 0;
+    if(@temp == 24)
+    {
+        $i = 1;
+    }
     map{$main::Weather{$weather_vwtype[$i++]} = $_} @temp;
 
     $main::Weather{HumidOutdoor} = 100 if $main::Weather{HumidOutdoor} > 100;

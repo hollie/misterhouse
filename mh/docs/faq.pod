@@ -745,6 +745,323 @@ taken the plunge yet and tried to find out where in the serial port driver
 the bug exists (I guess I am hoping that someone else will do it).
 
 
+Here is some useful serial info from Bob Hughes:
+
+Here is another way to look at the current serial port settings
+
+  setserial -a /dev/ttySX  where "X" is the port
+
+To set the serial port baud rate 9600
+
+  setserial /dev/ttyS0 baud_base 9600
+
+You can use setserial -G to get a list of current setting and have them
+in a format that can be fed back into setserial...
+
+  setserial -G /dev/ttyS0
+
+You can put setserial setting in /etc/rc.local so the port is ready for
+your interface program once boot up is complete
+
+
+
+=head2 3.4: How do I get Mister House to start up automatically when my linux box boots 
+
+Check out various .rc startup scripts in mh/bin/*.rc
+
+Here is a good tutorial note from Mike Bruno  on 4/2002
+
+OK, here's the quick and dirty on startup scripts.
+
+(You also may wish to check out
+http://www.linux-mandrake.com/en/doc/82/en/ref.html/sysv.html
+which is where I pulled some of the stuff you'll
+find below)
+
+Just for reference, there's two methodologies that
+are used for bringing up Unix systems: BSD and SysV.
+Mandrake uses SysV.  BSD is initially simpler, but
+the SysV method is more flexible.  The names of the
+methods and their merits should not really concern
+you at the moment, its just background in case
+someone jumps out of the woods and asks you.
+
+I should also mention that there may be some sort
+of fancy graphical interface into all this.  But
+its much more satisfying to get your hands dirty
+and roll your own solution.
+
+
+The boot scripts are located in /etc/rc.d.  If you
+look in there, you'll find several subdirectories
+named init.d and rc0.d -> rc6.d.  The rc?.d directories
+correspond directly to the various runlevels that
+Unix supports.  Runlevel is a set of predefined modes
+that define what the system does.
+Mandrake has the runlevels defined as
+
+ 0: complete machine stop;
+
+ 1: single-user mode; to be used in the event of major 
+    problems or system recovery;
+
+ 2: multi-user mode, without networking;
+
+ 3: Multi-user mode, but this time with networking;
+
+ 4: unused;
+
+ 5: like 3, but also launches the graphical login interface;
+
+ 6: restart.
+
+If your machine comes up and immediately goes into
+an X-Window interface, then its default runlevel is 5.
+
+When you say 'reboot' or 'shutdown -r now', what you
+are really doing is putting the system into runlevel 6.
+
+When things have gone completely to shreds (typically after
+hardware failure or severe operator error ;), you want to
+get the machine into runlevel 1 - there are minimal 
+services running and only one person can be logged in 
+at a time.
+
+Now, on to the nitty-gritty.
+
+The init.d subdirectory is where all the startup/shutdown
+scripts are kept.  They are all text files, and you can
+get a good idea of their format by cracking one open
+(I'd recommend a short one) and looking at it.  You don't
+need to be an expert in shell programming to get the gist
+of it.  
+
+These scripts are called with one arguement (more on how
+that arguement gets supplied later).  Virtually all scripts
+have the start and stop arguement, most have a restart, and
+then some have all sorts of custom ones.  Lets look at a 
+quick example.
+
+This is an init script for starting up Apache.
+Most are more cluttered, but not really more complicated.
+
+ -----------------
+ #!/bin/sh
+ #
+ # Start the Apache web server
+ #
+
+ case "$1" in
+    'start')
+       /usr/sbin/apachectl start ;;
+    'stop')
+       /usr/sbin/apachectl stop ;;
+    'restart')
+       /usr/sbin/apachectl restart ;;
+    *)
+       echo "usage $0 start|stop|restart" ;;
+ esac
+ -----------------
+
+Anything after a # is a comment, except for the first line.
+If that is #!, then the shell starts up the command
+interpreter specified (in this case another /bin/sh) and
+sends all the following commands through that.  
+(Don't know how far into Linux you are yet, but suffice 
+it to say that shell scripts are like batch files on
+steroids).
+
+Moving down, we get to the first line of code.  This is just
+like a case statement in C, except for the syntax 
+(case block ends with a esac, which, of course, is case backwards).
+$x are the positional parameters of the program
+($0 is the name of the program, $1 is the first arguement, etc.)
+
+The rest of the script is pretty self-explanatory.
+This particular one is easy as all the complicated parts
+are handled by apachectl.
+
+So that's all well and good, but how and when does it
+get called?  OK, lets go back to the rc0.d -> rc6.d directories.
+Looking in there, you can see a bunch of files that start
+with K or S and a number.  If you're using a color ls, 
+then you'll notice that they are a different color and there
+might even be a @ after the name.  That's because these are
+all symlinks to the real files in the init.d directory.
+
+When the system enters a runlevel, it goes into the
+appropriate /etc/rc.d/rc?.d directory and begins 
+executing the files in there.  If the file begins 
+with a K, then the symlink gets called with a stop
+(kill) arguement; if it starts with an S the symlink
+is called with a start arguement.  
+
+So if rc5.d has these links in it
+
+ K15postgresql@  K60atd@      S15netfs@   S60lpd@        S90xfs@
+ K20nfs@         K96pcmcia@   S20random@  S60nfs@        S99linuxconf@
+ K20rstatd@      S05apmd@     S30syslog@  S66yppasswdd@  S99local@
+ K20rusersd@     S10network@  S40crond@   S75keytable@
+ K20rwhod@       S11portmap@  S50inet@    S85gpm@
+ K30sendmail@    S12ypserv@   S55named@   S85httpd@
+ K35smb@         S13ypbind@   S55routed@  S85sound@
+
+the system is going to kill off postgress, nfs, rstatd, etc first
+(in that order).  Then its going to start apmd, network, portmap, etc.
+(in that order).
+
+OK, so now you have a rough background in how the system starts.
+So how do you get mh working in it?
+
+The easiest way is to go into init.d, copy an existing file,
+and edit that. (Remember, you're root.  Type carefully)
+
+ cp httpd mh
+ vi mh
+
+and change the lines so that they look something
+like this
+
+ -----------------
+ #!/bin/sh
+ #
+ # Start mh
+ #
+
+ set mh_parms=/home/house/misterhouse/mh.private.ini
+
+ case "$1" in
+    'start')
+       /home/house/misterhouse/mh/mh & ;;
+    'stop')
+       killall mh ;;
+    'restart')
+       killall mh
+       sleep 5
+       /home/house/misterhouse/mh/mh & ;;
+    *)
+       echo "usage $0 start|stop|restart" ;;
+ esac
+ -----------------
+
+This is very, very sloppy, but you get the idea.
+
+Before you go further, TEST IT!  Just call it by
+hand from the command line like
+
+ /etc/rc.d/init.d/mh start
+
+ /etc/rc.d/init.d/mh stop
+
+etc.
+
+(you'll need to include the full path as init.d is
+not in your PATH and neither is the currect directory for root)
+
+Once you've gotten all the bugs worked out and its working
+the way you like it, figure out which runlevels you want
+this to be running in.  I'd guess 3 and 5, but its up 
+to you.
+
+Change into rc3.d.  Figure out when you want mh to start
+compared to all the other programs.  I'd guess you'd want
+to let everything else go first, then light up mh.  
+So we'll give it a number of 99, effectively going last.
+Make the symlink like this
+
+ ln -s /etc/rc.d/init.d/mh S99mh
+
+Do the same thing in rc5.d
+
+Now, you'll also want to have a good clean shutdown.
+So you'll have to take care of runlevels 0 and 6.
+Here, you'll want mh to get killed off early in 
+the process, so give it a low number, say 01.
+
+ ln -s /etc/rc.d/init.d/mh K01mh
+
+You'll also want to do the same in rc1.d
+
+
+Another option is to use a package called daemontools, available at
+
+ http://cr.yp.to/daemontools.html
+
+His take on why you should use it is at
+
+ http://cr.yp.to/daemontools/faq/create.html
+
+Its essentially inetd with the features it should have.
+
+When the system comes up, the daemontools program
+svscan starts and then starts up any programs
+you've asked it to.  Those programs are then
+monitored and get restarted if they die.  The
+good part here is that you can control any
+program from the command line without editing
+files
+
+ svc -h /service/yourdaemon: sends HUP
+ svc -t /service/yourdaemon: sends TERM, and
+        automatically restarts the daemon after it dies
+ svc -d /service/yourdaemon: sends TERM, and leaves the service down
+ svc -u /service/yourdaemon: brings the service back up
+ svc -o /service/yourdaemon: runs the service once
+
+
+-------------------------
+
+The following is from Harald Koch on 04/2002
+
+I'll offer an alternate method. Neither is really better or worse; it
+depends on your environment and requirements.
+
+I have a strong preference for running mission critical software
+directly from init, instead of from startup scripts; init will
+automatically restart software that crashes. I do this with misterhouse,
+SSH, and a database that I run.
+
+init is controlled from a file called (usually) /etc/inittab. Here's my
+MH entry from inittab:
+
+ mh:2345:respawn:/home/mhouse/mhinit
+
+This tells init to run "/home/mhouse/mhinit" when the computer is in any
+multi-user mode (see Mike's message for a definition of runlevels), and
+to run it again when it exits.
+
+And here's my script:
+
+ ----- /home/mhouse/mhinit -----
+ #!/bin/sh
+
+ mhhome=/home/mhouse
+
+ cd ${mhhome}
+
+ exec >> error_log 2>&1
+
+ export PATH=${mhhome}/mh/bin:${mhhome}/bin:$PATH
+ export mh_parms=${mhhome}/mh.ini
+
+ # rotate logs
+ /bin/mv log.3 log.4
+ /bin/mv log.2 log.3
+ /bin/mv log.1 log.2
+ /bin/mv log.0 log.1
+ /bin/mv log   log.0
+
+ # start
+ exec ${mhhome}/mh/bin/mh -log_file ${mhhome}/log
+
+ ----- /home/mhouse/mhinit -----
+
+This method *does* make it harder to stop MH, because you have to edit
+/etc/inittab, change the "respawn" to "off", and then run "telinit q" to
+tell init to re-read the config file.
+
+On the other hand, it means that MH will restart itself automatically
+even if it exits due to bad code, which does happen to me occaisionally.
 
 
 
@@ -886,7 +1203,10 @@ Here is a rough timeline of MisterHouse development:
  - 11/01 New web interface, Audrey pictureframes, multiple sound cards.
  - 12/01 Wireless wmr968 and Ultimeter2000 weather stations, Lynx10 X10 support.
  - 01/02 Xmms, audrey callerid, Linksys rounter, TTS flite engine, standard CGIs.
- - 03/01 GD on-the-fly web buttons, support for comics, xmms, redrat.
+ - 03/02 GD on-the-fly web buttons, support for comics, xmms, redrat.
+ - 04/02 Added web calendar, contact, todo list, and tk photo slideshow
+ - 05/02 Improved TTS support, TWiki web site, and support for DSS units, BX24 interface, and MSN,  
+
 
 Audrey support, more MS TTS controls, call waiting callerid
 
@@ -1173,6 +1493,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.30  2002/05/28 13:07:49  winter
+# - 2.68 release
+#
 # Revision 1.29  2002/03/02 02:36:50  winter
 # - 2.65 release
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-#  Last change Time-stamp: <2002-03-30 18:20:10 winter>
+#  Last change Time-stamp: <2002-05-25 15:11:58 winter>
 
 =begin comment
 
@@ -44,7 +44,7 @@ Options are:
 
 -p, --prefix      Prefix to use on scaled files.  Default is sm1
 
--s, --size        May be given as a percentage or as a number of pixels.
+    --size        May be given as a percentage or as a number of pixels.
                   If a percentage is given, the image will be scaled to 
                   that percentage. If a number is given, the image will be
                   scaled so that its largest dimension (height or width)
@@ -61,6 +61,8 @@ Options are:
 
 -r, --replace     Replace exisiting resized image.  Default is -r 0.
 
+-s, --skip xyz    Skip pictures that start with xyz
+
 -a, --annotate    Annotate image with text (does not work)
 
 -v, --verbose     Also print errata about exising photos  
@@ -71,7 +73,7 @@ Examples:
 
  image_resize -d pictures
  image_resize -d . -e jpg,gif -p small
- image_resize -d . -s 200x200 -border 0
+ image_resize -d . --size 200x200 --border 0
 
 DONE
     exit;
@@ -83,14 +85,14 @@ use File::Find;
 use Getopt::Long;
 
                                 # Declare parms and defaults
-my($size, $dir, $exts, $border, $replace, $annotate, $prefix, $help, $verbose) =
-    ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', 0, 0);
+my($size, $dir, $exts, $border, $replace, $annotate, $prefix, $skip, $help, $verbose) =
+    ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', '', 0, 0);
 my (%exts, $rc, %counts, $file_in, $file_out);
 $counts{resized} = $counts{existed} = 0;
 
                                 # Changes defaults if specified on command line
 &help if (!GetOptions('size:s' => \$size, 'directory=s' => \$dir, 'file_in=s' => \$file_in, 'file_out=s' => \$file_out,
-                      'prefix:s' => \$prefix, 'extensions:s' => \$exts,
+                      'prefix:s' => \$prefix, 'skip:s' => \$skip, 'extensions:s' => \$exts,
                       'border=s' => \$border, 'replace=s' => \$replace, 'anotate=s' => \$annotate,
                       'help' => \$help, 'verbose' => \$verbose) or $help or !($dir or ($file_in and $file_out)));
 
@@ -119,6 +121,7 @@ sub get_img() {
         my ($root, $ext) = $file =~ /(.+)\.(.+)/;
         return unless $ext and $exts{lc $ext};
         return if $root =~ /^${prefix}_/;
+        return if $skip and $root =~ /^${skip}/;
         my $file_new = "${prefix}_$root.$ext";
         if (-f $file_new and !$replace) {
             print "  $File::Find::dir/$file_new \tfiles already exists\n" if $verbose;
@@ -157,6 +160,9 @@ sub resize_img{
 
 #
 # $Log$
+# Revision 1.6  2002/05/28 13:07:47  winter
+# - 2.68 release
+#
 # Revision 1.5  2002/03/31 18:50:36  winter
 # - 2.66 release
 #

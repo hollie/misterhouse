@@ -10,9 +10,9 @@ LWP::UserAgent - A WWW UserAgent class
 =head1 SYNOPSIS
 
  require LWP::UserAgent;
- $ua = new LWP::UserAgent;
+ $ua = LWP::UserAgent->new;
 
- $request = new HTTP::Request('GET', 'file://localhost/etc/motd');
+ $request = HTTP::Request->new('GET', 'file://localhost/etc/motd');
 
  $response = $ua->request($request); # or
  $response = $ua->request($request, '/tmp/sss'); # or
@@ -29,52 +29,52 @@ core of libwww-perl library. For simple uses this class can be used
 directly to dispatch WWW requests, alternatively it can be subclassed
 for application-specific behaviour.
 
-In normal usage the application creates a UserAgent object, and then
-configures it with values for timeouts proxies, name, etc. The next
-step is to create an instance of C<HTTP::Request> for the request that
+In normal use the application creates a UserAgent object, and then
+configures it with values for timeouts, proxies, name, etc. It next
+creates an instance of C<HTTP::Request> for the request that
 needs to be performed. This request is then passed to the UserAgent
 request() method, which dispatches it using the relevant protocol,
 and returns a C<HTTP::Response> object.
 
 The basic approach of the library is to use HTTP style communication
-for all protocol schemes, i.e. you will receive an C<HTTP::Response>
-object also for gopher or ftp requests.  In order to achieve even more
-similarities with HTTP style communications, gopher menus and file
-directories will be converted to HTML documents.
+for all protocol schemes, i.e. you also receive an C<HTTP::Response>
+object for gopher or ftp requests.  In order to achieve even more
+similarity to HTTP style communications, gopher menus and file
+directories are converted to HTML documents.
 
 The request() method can process the content of the response in one of
-three ways: in core, into a file, or into repeated calls of a
+three ways: in core, into a file, or into repeated calls to a
 subroutine.  You choose which one by the kind of value passed as the
 second argument to request().
 
-The in core variant simply returns the content in a scalar attribute
-called content() of the response object, and is suitable for small
+The in core variant simply stores the content in a scalar 'content' attribute
+of the response object and is suitable for small
 HTML replies that might need further parsing.  This variant is used if
 the second argument is missing (or is undef).
 
 The filename variant requires a scalar containing a filename as the
-second argument to request(), and is suitable for large WWW objects
-which need to be written directly to the file, without requiring large
+second argument to request() and is suitable for large WWW objects
+which need to be written directly to the file without requiring large
 amounts of memory. In this case the response object returned from
-request() will have empty content().  If the request fails, then the
-content() might not be empty, and the file will be untouched.
+request() will have an empty content attribute.  If the request fails, then the
+content might not be empty, and the file will be untouched.
 
 The subroutine variant requires a reference to callback routine as the
 second argument to request() and it can also take an optional chuck
-size as third argument.  This variant can be used to construct
+size as the third argument.  This variant can be used to construct
 "pipe-lined" processing, where processing of received chuncks can
 begin before the complete data has arrived.  The callback function is
 called with 3 arguments: the data received this time, a reference to
 the response object and a reference to the protocol object.  The
-response object returned from request() will have empty content().  If
-the request fails, then the the callback routine will not have been
-called, and the response->content() might not be empty.
+response object returned from request() will have empty content.  If
+the request fails, then the the callback routine is not
+called, and the response->content might not be empty.
 
-The request can be aborted by calling die() within the callback
+The request can be aborted by calling die() in the callback
 routine.  The die message will be available as the "X-Died" special
 response header field.
 
-The library also accepts that you put a subroutine reference as
+The library also allows you to use a subroutine reference as
 content in the request object.  This subroutine should return the
 content (possibly in pieces) when called.  It should return an empty
 string when there is no more content.
@@ -94,11 +94,8 @@ require LWP::MemberMixin;
 @ISA = qw(LWP::MemberMixin);
 $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
-
-require URI::URL;
-require HTTP::Request;
-require HTTP::Response;
-
+use HTTP::Request ();
+use HTTP::Response ();
 use HTTP::Date ();
 
 use LWP ();
@@ -107,11 +104,8 @@ use LWP::Protocol ();
 
 use Carp ();
 
-use AutoLoader ();
-*AUTOLOAD = \&AutoLoader::AUTOLOAD;  # import the AUTOLOAD method
 
-
-=item $ua = new LWP::UserAgent;
+=item $ua = LWP::UserAgent->new;
 
 Constructor for the UserAgent.  Returns a reference to a
 LWP::UserAgent object.
@@ -147,7 +141,7 @@ sub new
 This method dispatches a single WWW request on behalf of a user, and
 returns the response received.  The C<$request> should be a reference
 to a C<HTTP::Request> object with values defined for at least the
-method() and url() attributes.
+method() and uri() attributes.
 
 If C<$arg> is a scalar it is taken as a filename where the content of
 the response is stored.
@@ -173,6 +167,8 @@ sub simple_request
 	unless $method;
     return HTTP::Response->new(&HTTP::Status::RC_BAD_REQUEST, "URL missing")
 	unless $url;
+    return HTTP::Response->new(&HTTP::Status::RC_BAD_REQUEST, "URL must be absolute")
+	unless $url->scheme;
 
     LWP::Debug::trace("$method $url");
 
@@ -189,7 +185,7 @@ sub simple_request
 	$protocol = LWP::Protocol::create($scheme);
     };
     if ($@) {
-	$@ =~ s/\s+at\s+\S+\s+line\s+\d+\.?\s*//;  # remove file/line number
+	$@ =~ s/\s+at\s+\S+\s+line\s+\d+.*//;  # remove file/line number
 	return HTTP::Response->new(&HTTP::Status::RC_NOT_IMPLEMENTED, $@)
     }
 
@@ -202,12 +198,13 @@ sub simple_request
     # Set User-Agent and From headers if they are defined
     $request->header('User-Agent' => $agent) if $agent;
     $request->header('From' => $from) if $from;
+    $request->header('Range' => "bytes=0-$max_size") if $max_size;
     $cookie_jar->add_cookie_header($request) if $cookie_jar;
 
     # Transfer some attributes to the protocol object
     $protocol->parse_head($parse_head);
     $protocol->max_size($max_size);
-    
+
     my $response;
     if ($use_eval) {
 	# we eval, and turn dies into responses below
@@ -216,7 +213,7 @@ sub simple_request
 					   $arg, $size, $timeout);
 	};
 	if ($@) {
-	    $@ =~ s/\s+at\s+\S+\s+line\s+\d+\.?\s*//;
+	    $@ =~ s/\s+at\s+\S+\s+line\s+\d+.*//;
 	    $response =
 	      HTTP::Response->new(&HTTP::Status::RC_INTERNAL_SERVER_ERROR,
 				  $@);
@@ -237,7 +234,7 @@ sub simple_request
 =item $ua->request($request, $arg [, $size])
 
 Process a request, including redirects and security.  This method may
-actually send several different simple reqeusts.
+actually send several different simple requests.
 
 The arguments are the same as for C<simple_request()>.
 
@@ -254,7 +251,9 @@ sub request
     my $code = $response->code;
     $response->previous($previous) if defined $previous;
 
-    LWP::Debug::debug('Simple result: ' . HTTP::Status::status_message($code));
+    LWP::Debug::debug('Simple response: ' .
+		      (HTTP::Status::status_message($code) ||
+		       "Unknown code $code"));
 
     if ($code == &HTTP::Status::RC_MOVED_PERMANENTLY or
 	$code == &HTTP::Status::RC_MOVED_TEMPORARILY) {
@@ -263,10 +262,15 @@ sub request
 	my $referral = $request->clone;
 
 	# And then we update the URL based on the Location:-header.
-	# Some servers erroneously return a relative URL for redirects,
-	# so make it absolute if it not already is.
-	my $referral_uri = (URI::URL->new($response->header('Location'),
-					  $response->base))->abs(undef,1);
+	my $referral_uri = $response->header('Location');
+	{
+	    # Some servers erroneously return a relative URL for redirects,
+	    # so make it absolute if it not already is.
+	    local $URI::ABS_ALLOW_RELATIVE_SCHEME = 1;
+	    my $base = $response->base;
+	    $referral_uri = $HTTP::URI_CLASS->new($referral_uri, $base)
+		            ->abs($base);
+	}
 
 	$referral->url($referral_uri);
 
@@ -293,48 +297,51 @@ sub request
     {
 	my $proxy = ($code == &HTTP::Status::RC_PROXY_AUTHENTICATION_REQUIRED);
 	my $ch_header = $proxy ?  "Proxy-Authenticate" : "WWW-Authenticate";
-	my $challenge = $response->header($ch_header);
-	unless (defined $challenge) {
+	my @challenge = $response->header($ch_header);
+	unless (@challenge) {
 	    $response->header("Client-Warning" => 
 			      "Missing Authenticate header");
 	    return $response;
 	}
 
 	require HTTP::Headers::Util;
-	$challenge =~ tr/,/;/;  # "," is used to separate auth-params!!
-	($challenge) = HTTP::Headers::Util::split_header_words($challenge);
-	my $scheme = lc(shift(@$challenge));
-	shift(@$challenge); # no value
-	$challenge = { @$challenge };  # make rest into a hash
-	for (keys %$challenge) {       # make sure all keys are lower case
-	    $challenge->{lc $_} = delete $challenge->{$_};
-	}
+	CHALLENGE: for my $challenge (@challenge) {
+	    $challenge =~ tr/,/;/;  # "," is used to separate auth-params!!
+	    ($challenge) = HTTP::Headers::Util::split_header_words($challenge);
+	    my $scheme = lc(shift(@$challenge));
+	    shift(@$challenge); # no value
+	    $challenge = { @$challenge };  # make rest into a hash
+	    for (keys %$challenge) {       # make sure all keys are lower case
+		$challenge->{lc $_} = delete $challenge->{$_};
+	    }
 
-	unless ($scheme =~ /^([a-z]+(?:-[a-z]+)*)$/) {
-	    $response->header("Client-Warning" => 
-			      "Bad authentication scheme '$scheme'");
-	    return $response;
-	}
-	$scheme = $1;  # untainted now
-	my $class = "LWP::Authen::\u$scheme";
-	$class =~ s/-/_/g;
-	
-	no strict 'refs';
-	unless (defined %{"$class\::"}) {
-	    # try to load it
-	    eval "require $class";
-	    if ($@) {
-		if ($@ =~ /^Can\'t locate/) {
-		    $response->header("Client-Warning" =>
-				      "Unsupport authentication scheme '$scheme'");
-		} else {
-		    $response->header("Client-Warning" => $@);
-		}
+	    unless ($scheme =~ /^([a-z]+(?:-[a-z]+)*)$/) {
+		$response->header("Client-Warning" => 
+				  "Bad authentication scheme '$scheme'");
 		return $response;
 	    }
+	    $scheme = $1;  # untainted now
+	    my $class = "LWP::Authen::\u$scheme";
+	    $class =~ s/-/_/g;
+	
+	    no strict 'refs';
+	    unless (%{"$class\::"}) {
+		# try to load it
+		eval "require $class";
+		if ($@) {
+		    if ($@ =~ /^Can\'t locate/) {
+			$response->header("Client-Warning" =>
+					  "Unsupported authentication scheme '$scheme'");
+		    } else {
+			$response->header("Client-Warning" => $@);
+		    }
+		    next CHALLENGE;
+		}
+	    }
+	    return $class->authenticate($self, $proxy, $challenge, $response,
+					$request, $arg, $size);
 	}
-	return $class->authenticate($self, $proxy, $challenge, $response,
-				    $request, $arg, $size);
+	return $response;
     }
     return $response;
 }
@@ -343,7 +350,7 @@ sub request
 =item $ua->redirect_ok
 
 This method is called by request() before it tries to do any
-redirects.  It should return a true value if the redirect is allowed
+redirects.  It should return a true value if a redirect is allowed
 to be performed. Subclasses might want to override this.
 
 The default implementation will return FALSE for POST request and TRUE
@@ -400,9 +407,9 @@ sub get_basic_credentials
     my($self, $realm, $uri, $proxy) = @_;
     return if $proxy;
 
-    my $netloc = $uri->netloc;
-    if (exists $self->{'basic_authentication'}{$netloc}{$realm}) {
-	return @{ $self->{'basic_authentication'}{$netloc}{$realm} };
+    my $host_port = $uri->host_port;
+    if (exists $self->{'basic_authentication'}{$host_port}{$realm}) {
+	return @{ $self->{'basic_authentication'}{$host_port}{$realm} };
     }
 
     return (undef, undef);
@@ -430,7 +437,7 @@ the requesting user agent.  The address should be machine-usable, as
 defined in RFC 822.  The from value is send as the "From" header in
 the requests.  There is no default.  Example:
 
-  $ua->from('aas@sn.no');
+  $ua->from('gaas@cpan.org');
 
 =item $ua->timeout([$secs])
 
@@ -452,7 +459,7 @@ TRUE.  Do not turn this off, unless you know what you are doing.
 =item $ua->max_size([$bytes])
 
 Get/set the size limit for response content.  The default is undef,
-which means that there is not limit.  If the returned response content
+which means that there is no limit.  If the returned response content
 is only partial, because the size limit was exceeded, then a
 "X-Content-Range" header will be added to the response.
 
@@ -473,20 +480,6 @@ sub use_alarm
 	if @_ > 1 && $^W;
     "";
 }
-
-
-# Declarations of AutoLoaded methods
-sub clone;
-sub is_protocol_supported;
-sub mirror;
-sub proxy;
-sub env_proxy;
-sub no_proxy;
-sub _need_proxy;
-
-
-1;
-__END__
 
 
 =item $ua->clone;
@@ -512,7 +505,7 @@ sub clone
 
 You can use this method to query if the library currently support the
 specified C<scheme>.  The C<scheme> might be a string (like 'http' or
-'ftp') or it might be an URI::URL object reference.
+'ftp') or it might be an URI object reference.
 
 =cut
 
@@ -520,13 +513,14 @@ sub is_protocol_supported
 {
     my($self, $scheme) = @_;
     if (ref $scheme) {
-	# assume we got a reference to an URI::URL object
-	$scheme = $scheme->abs->scheme;
+	# assume we got a reference to an URI object
+	$scheme = $scheme->scheme;
     } else {
-	Carp::croak("Illeal scheme '$scheme' passed to is_protocol_supported")
+	Carp::croak("Illegal scheme '$scheme' passed to is_protocol_supported")
 	    if $scheme =~ /\W/;
 	$scheme = lc $scheme;
     }
+    local($SIG{__DIE__});  # protect agains user defined die handlers
     return LWP::Protocol::implementor($scheme);
 }
 
@@ -544,7 +538,7 @@ sub mirror
     my($self, $url, $file) = @_;
 
     LWP::Debug::trace('()');
-    my $request = new HTTP::Request('GET', $url);
+    my $request = HTTP::Request->new('GET', $url);
 
     if (-e $file) {
 	my($mtime) = (stat($file))[9];
@@ -608,20 +602,16 @@ proxy URL for a single access scheme.
 
 sub proxy
 {
-    my($self, $key, $proxy) = @_;
+    my $self = shift;
+    my $key  = shift;
 
-    LWP::Debug::trace("$key, $proxy");
+    LWP::Debug::trace("$key @_");
 
-    if (!ref($key)) {   # single scalar passed
-	my $old = $self->{'proxy'}{$key};
-	$self->{'proxy'}{$key} = $proxy;
-	return $old;
-    } elsif (ref($key) eq 'ARRAY') {
-	for(@$key) {    # array passed
-	    $self->{'proxy'}{$_} = $proxy;
-	}
-    }
-    return undef;
+    return map $self->proxy($_, @_), @$key if ref $key;
+
+    my $old = $self->{'proxy'}{$key};
+    $self->{'proxy'}{$key} = shift if @_;
+    return $old;
 }
 
 =item $ua->env_proxy()
@@ -631,11 +621,17 @@ specify proxies like this (sh-syntax):
 
   gopher_proxy=http://proxy.my.place/
   wais_proxy=http://proxy.my.place/
-  no_proxy="my.place"
+  no_proxy="localhost,my.domain"
   export gopher_proxy wais_proxy no_proxy
 
 Csh or tcsh users should use the C<setenv> command to define these
-envirionment variables.
+environment variables.
+
+On systems with case-insensitive environment variables there exists a
+name clash between the CGI environment variables and the C<HTTP_PROXY>
+environment variable normally picked up by env_proxy().  Because of
+this C<HTTP_PROXY> is not honored for CGI scripts.  The
+C<CGI_HTTP_PROXY> environment variable can be used instead.
 
 =cut
 
@@ -643,6 +639,12 @@ sub env_proxy {
     my ($self) = @_;
     my($k,$v);
     while(($k, $v) = each %ENV) {
+	if ($ENV{REQUEST_METHOD}) {
+	    # Need to be careful when called in the CGI environment, as
+	    # the HTTP_PROXY variable is under control of that other guy.
+	    next if $k =~ /^HTTP_/;
+	    $k = "HTTP_PROXY" if $k eq "CGI_HTTP_PROXY";
+	}
 	$k = lc($k);
 	next unless $k =~ /^(.*)_proxy$/;
 	$k = $1;
@@ -680,35 +682,23 @@ sub no_proxy {
 sub _need_proxy
 {
     my($self, $url) = @_;
+    $url = $HTTP::URI_CLASS->new($url) unless ref $url;
 
-    $url = new URI::URL($url) unless ref $url;
-
-    LWP::Debug::trace("($url)");
-
-    # check the list of noproxies
-
-    if (@{ $self->{'no_proxy'} }) {
-	my $host = $url->host;
-	return undef unless defined $host;
-	my $domain;
-	for $domain (@{ $self->{'no_proxy'} }) {
-	    if ($host =~ /$domain$/) {
-		LWP::Debug::trace("no_proxy configured");
-		return undef;
+    my $scheme = $url->scheme || return;
+    if (my $proxy = $self->{'proxy'}{$scheme}) {
+	if (@{ $self->{'no_proxy'} }) {
+	    if (my $host = eval { $url->host }) {
+		for my $domain (@{ $self->{'no_proxy'} }) {
+		    if ($host =~ /\Q$domain\E$/) {
+			LWP::Debug::trace("no_proxy configured");
+			return;
+		    }
+		}
 	    }
 	}
+	LWP::Debug::debug("Proxied to $proxy");
+	return $HTTP::URI_CLASS->new($proxy);
     }
-
-    # Currently configured per scheme.
-    # Eventually want finer granularity
-
-    my $scheme = $url->scheme;
-    if (exists $self->{'proxy'}{$scheme}) {
-
-	LWP::Debug::debug('Proxied');
-	return new URI::URL($self->{'proxy'}{$scheme});
-    }
-
     LWP::Debug::debug('Not proxied');
     undef;
 }
@@ -724,7 +714,7 @@ F<lwp-mirror> for examples of usage.
 
 =head1 COPYRIGHT
 
-Copyright 1995-1997 Gisle Aas.
+Copyright 1995-2000 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

@@ -4,7 +4,21 @@
 use strict;
 
 package LWP::Protocol::https;
-require Net::SSL;  # from Crypt-SSLeay
+
+# Figure out which SSL implementation to use
+use vars qw($SSL_CLASS);
+if ($IO::Socket::SSL::VERSION) {
+    $SSL_CLASS = "IO::Socket::SSL"; # it was already loaded
+} else {
+    eval { require Net::SSL; };     # from Crypt-SSLeay
+    if ($@) {
+	require IO::Socket::SSL;
+	$SSL_CLASS = "IO::Socket::SSL";
+    } else {
+	$SSL_CLASS = "Net::SSL";
+    }
+}
+
 
 use vars qw(@ISA);
 
@@ -15,11 +29,11 @@ sub _new_socket
 {
     my($self, $host, $port, $timeout) = @_;
     local($^W) = 0;  # IO::Socket::INET can be noisy
-    my $sock = Net::SSL->new(PeerAddr => $host,
-			     PeerPort => $port,
-			     Proto    => 'tcp',
-			     Timeout  => $timeout,
-			    );
+    my $sock = $SSL_CLASS->new(PeerAddr => $host,
+			       PeerPort => $port,
+			       Proto    => 'tcp',
+			       Timeout  => $timeout,
+			      );
     unless ($sock) {
 	# IO::Socket::INET leaves additional error messages in $@
 	$@ =~ s/^.*?: //;

@@ -50,7 +50,7 @@ sub delete_timer_with_action {
     my ($timer) = @_;
     my $i = 0;
     while ($i <= $#timers_with_actions) {
-        print "testing i=$i timer=$timer\n" if $main::config_parms{debug} eq 'misc';
+        print "testing i=$i timer=$timer\n" if $main::config_parms{debug} eq 'timer';
         if ($timers_with_actions[$i] eq $timer) {
 #           print "db deleting timer $timer\n";
             splice(@timers_with_actions, $i, 1);
@@ -91,8 +91,13 @@ sub restore_string {
 sub restore_self_set {
     my ($self) = @_;
     my $expire_time = $self->{expire_time};
-    return if !$expire_time or $expire_time < main::get_tickcount;
-    set $self $self->{period}, $self->{action}, $self->{repeat};
+                                # Announced expired timers on restart/reload
+#   return if !$expire_time or $expire_time < main::get_tickcount;
+    return if !$expire_time;
+                                # Need to set NOW, not on next pass, so expire_time can be set
+#   set $self $self->{period}, $self->{action}, $self->{repeat};
+    @{$self->{set_next_pass}} = ($self->{period}, $self->{action}, $self->{repeat});
+    &set_from_last_pass($self);
     $self->{expire_time} = $expire_time;
 }
 
@@ -110,7 +115,7 @@ sub set {
     ($self, $state, $action, $repeat) = @_;
 
     my @c = caller;
-#   print "db1 $main::Time_Date running set s=$self s=$state c=@c\n";
+#   print "db1 $main::Time_Date running set s=$self s=$state a=$action t=$self->{text} c=@c\n";
     return if &main::check_for_tied_filters($self, $state);
 
                                 # Set states for NEXT pass, so expired, active, etc,
@@ -138,7 +143,7 @@ sub set_from_last_pass {
         $self->{repeat}      = $repeat;
         if ($action) {
             $self->{action} = $action;
-            print "action timer s=$self a=$action s=$state\n" if $main::config_parms{debug} eq 'misc';
+            print "action timer s=$self a=$action s=$state\n" if $main::config_parms{debug} eq 'timer';
             &delete_timer_with_action($self); # delete possible previous 
             push(@timers_with_actions, $self);
             $resort_timers_with_actions = 1;
@@ -170,7 +175,7 @@ sub run_action {
     ($self) = @_;
     if (my $action = $self->{action}) {
         my $action_type = ref $action;
-        print "Executing timer subroutine ref=$action_type   action=$action\n"  if $main::config_parms{debug} eq 'misc';
+        print "Executing timer subroutine ref=$action_type   action=$action\n"  if $main::config_parms{debug} eq 'timer';
 # Note: passing in a sub ref will cause problems on code reloads.
 # So the 2nd of these 2 would be the better choice:
 #    set $kids_bedtime_timer 10, \&kids_bedtime2;
@@ -352,6 +357,9 @@ sub query {
 
 #
 # $Log$
+# Revision 1.24  2002/05/28 13:07:51  winter
+# - 2.68 release
+#
 # Revision 1.23  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

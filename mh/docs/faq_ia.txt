@@ -1,6 +1,6 @@
 Internet Appliances with MisterHouse FAQ
-    This will try to cover info an tips on using various internet applinaces
-    like the Epods and Audrey with MisterHouse.
+    This will try to cover info and tips on using various internet
+    appliances like the Epods and Audrey with MisterHouse.
 
 What is an internet appliance
     A broad term used to cover any thing cheaper than a computer that hooks

@@ -33,8 +33,8 @@ LWP::RobotUA - A class for Web Robots
 
 This class implements a user agent that is suitable for robot
 applications.  Robots should be nice to the servers they visit.  They
-should consult the F<robots.txt> file to ensure that they are welcomed
-and they should not send too frequent requests.
+should consult the F</robots.txt> file to ensure that they are welcomed
+and they should not make requests too frequently.
 
 But, before you consider writing a robot take a look at
 <URL:http://info.webcrawler.com/mak/projects/robots/robots.html>.
@@ -67,7 +67,7 @@ same methods. In addition the following methods are provided:
 =item $ua = LWP::RobotUA->new($agent_name, $from, [$rules])
 
 Your robot's name and the mail address of the human responsible for
-the robot (i.e. you) is required by the constructor.
+the robot (i.e. you) are required by the constructor.
 
 Optionally it allows you to specify the I<WWW::RobotRules> object to
 use.
@@ -107,11 +107,11 @@ default is 1 minute.
 
 =item $ua->use_sleep([$boolean])
 
-Get/set a value indicating wether the UA should sleep() if request
-arrive to fast (before $ua->delay minutes has passed).  The default is
+Get/set a value indicating whether the UA should sleep() if requests
+arrive too fast (before $ua->delay minutes has passed).  The default is
 TRUE.  If this value is FALSE then an internal SERVICE_UNAVAILABLE
 response will be generated.  It will have an Retry-After header that
-indicate when it is OK to send another request to this server.
+indicates when it is OK to send another request to this server.
 
 =cut
 
@@ -148,7 +148,7 @@ sub rules {
 
 Returns the number of documents fetched from this server host. Yes I
 know, this method should probably have been named num_visits() or
-something like that :-(
+something like that. :-(
 
 =cut
 
@@ -196,7 +196,6 @@ sub simple_request
 	# fetch "robots.txt"
 	my $robot_url = $request->url->clone;
 	$robot_url->path("robots.txt");
-	$robot_url->params(undef);
 	$robot_url->query(undef);
 	LWP::Debug::debug("Requesting $robot_url");
 
@@ -207,9 +206,16 @@ sub simple_request
 	my $robot_res = $self->request($robot_req);
 	my $fresh_until = $robot_res->fresh_until;
 	if ($robot_res->is_success) {
-	    LWP::Debug::debug("Parsing robot rules");
-	    $self->{'rules'}->parse($robot_url, $robot_res->content, 
-				    $fresh_until);
+	    my $c = $robot_res->content;
+	    if ($robot_res->content_type =~ m,^text/, && $c =~ /Disallow/) {
+		LWP::Debug::debug("Parsing robot rules");
+		$self->{'rules'}->parse($robot_url, $c, $fresh_until);
+	    }
+	    else {
+		LWP::Debug::debug("Ignoring robots.txt");
+		$self->{'rules'}->parse($robot_url, "", $fresh_until);
+	    }
+
 	} else {
 	    LWP::Debug::debug("No robots.txt file found");
 	    $self->{'rules'}->parse($robot_url, "", $fresh_until);
@@ -225,7 +231,7 @@ sub simple_request
 	  &HTTP::Status::RC_FORBIDDEN, 'Forbidden by robots.txt';
     }
 
-    my $netloc = $request->url->netloc;
+    my $netloc = $request->url->host_port;
     my $wait = $self->host_wait($netloc);
 
     if ($wait) {
@@ -251,7 +257,7 @@ sub simple_request
 
 =item $ua->as_string
 
-Returns a text that describe the state of the UA.
+Returns a string that describes the state of the UA.
 Mainly useful for debugging.
 
 =cut
@@ -277,7 +283,7 @@ L<LWP::UserAgent>, L<WWW::RobotRules>
 
 =head1 COPYRIGHT
 
-Copyright 1996-1997 Gisle Aas.
+Copyright 1996-2000 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

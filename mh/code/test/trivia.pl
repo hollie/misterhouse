@@ -3,8 +3,8 @@
 my $f_trivia_question = "$config_parms{data_dir}/trivia_question.txt";
 my $f_trivia_answer   = "$config_parms{data_dir}/trivia_answer.txt";
 
-$v_trivia_next1    = new  Voice_Cmd('What is the [Current,next Science,next Entertainment,next Mixed,next Sports] trivia question');
-$v_trivia_next2    = new  Voice_Cmd('Display the [Current,next Science,next Entertainment,next Mixed,next Sports] trivia question');
+$v_trivia_next1    = new  Voice_Cmd('What is the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question');
+$v_trivia_next2    = new  Voice_Cmd('Display the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question');
 $v_trivia_answer   = new  Voice_Cmd('[What is,Display] the trivia answer');
 
 $v_trivia_next2   -> set_authority('anyone');
@@ -14,8 +14,14 @@ my $cat;
 if (($cat = said $v_trivia_next1 or $cat = said $v_trivia_next2) and $cat =~ /next / or
     time_cron '0 6 * * * ') {
     $cat =~ s/next //;
-    $cat = 'Mixed' unless $cat;
-    @ARGV = ($cat);		# Pass catagory to the 'do'ed program
+#   $cat = 'Mixed'  unless $cat;
+    $cat = 'Random' unless $cat;
+    if ($cat eq 'Random') {
+        my @cats = qw(Science Entertainment Mixed Sports);
+        $cat = $cats[int((@cats) * rand)];
+    }
+
+#   @ARGV = ($cat);		# Pass catagory to the 'do'ed program
 #   do "$Pgm_Path/trivia";      # Use do so we can run from compiled mh, without perl installed
     &trivia_next($cat);
     print_log "Trivia question has been refreshed";
@@ -68,7 +74,7 @@ sub trivia_next {
     $a[4] = &trivia_trim(substr($r, 132, 20)) . ".";
     my $an= substr($r, 152, 1);
     
-    print  QUESTION "Todays Trivia Question.
+    print  QUESTION "Todays $cat Trivia Question.
  $q
   1: $a[1]
   2: $a[2]
@@ -82,7 +88,7 @@ One more time.  The Trivia Question is:
   4: $a[4]
 ";
 
-    print  ANSWER "The trivia answer is:
+    print  ANSWER "The $cat trivia answer is:
   $an: $a[$an]
 
 Once again, the trivia answer is:

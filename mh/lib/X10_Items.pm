@@ -185,9 +185,9 @@ sub set {
 }
 
 sub set_receive {
-    my ($self, $state) = @_;
+    my ($self, $state, $set_by) = @_;
     &set_x10_level($self, $state);
-    $self->SUPER::set_receive($state);
+    $self->SUPER::set_receive($state, $set_by);
 }
 
                                 # Try to keep track of X10 brightness level of older, dumb one-way, X10 modules
@@ -226,14 +226,14 @@ sub set_by_housecode {
     my ($hc, $state) = @_;
     for my $object (@{$items_by_house_code{$hc}}) {
         print "Setting X10 House code $hc item $object to $state\n" if $main::config_parms{debug} eq 'X10';
-        $object->set_receive($state);
+        $object->set_receive($state, 'housecode');
     }
 
     return if $state eq 'on';     # All lights on does not effect appliances
 
     for my $object (@{$appliances_by_house_code{$hc}}) {
         print "Setting X10 House code $hc appliance $object to $state\n" if $main::config_parms{debug} eq 'X10';
-        $object->set_receive($state);
+        $object->set_receive($state, 'housecode');
     }
         
 }
@@ -832,6 +832,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.27  2002/05/28 13:07:51  winter
+# - 2.68 release
+#
 # Revision 1.26  2002/03/31 18:50:40  winter
 # - 2.66 release
 #

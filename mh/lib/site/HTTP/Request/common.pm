@@ -45,18 +45,39 @@ sub POST
     }
 
     if (ref $content) {
-	if (lc($ct) eq 'multipart/form-data') {    #XXX: boundary="..."
+	if ($ct =~ m,^multipart/form-data\s*(;|$),i) {
+	    require HTTP::Headers::Util;
+	    my @v = HTTP::Headers::Util::split_header_words($ct);
+	    Carp::carp("Multiple Content-Type headers") if @v > 1;
+	    @v = @{$v[0]};
+
 	    my $boundary;
-	    ($content, $boundary) = form_data($content, $boundary);
-	    $boundary = qq("$boundary") if $boundary =~ /\W/;
-	    $ct = qq(multipart/form-data; boundary=$boundary);
+	    my $boundary_index;
+	    for (my @tmp = @v; @tmp;) {
+		my($k, $v) = splice(@tmp, 0, 2);
+		if (lc($k) eq "boundary") {
+		    $boundary = $v;
+		    $boundary_index = @v - @tmp - 1;
+		    last;
+		}
+	    }
+
+	    ($content, $boundary) = form_data($content, $boundary, $req);
+
+	    if ($boundary_index) {
+		$v[$boundary_index] = $boundary;
+	    } else {
+		push(@v, boundary => $boundary);
+	    }
+
+	    $ct = HTTP::Headers::Util::join_header_words(@v);
 	} else {
-	    # We use a temporary URI::URL object to format
+	    # We use a temporary URI object to format
 	    # the application/x-www-form-urlencoded content.
-	    require URI::URL;
-	    my $url = URI::URL->new('http:');
+	    require URI;
+	    my $url = URI->new('http:');
 	    $url->query_form(ref($content) eq "HASH" ? %$content : @$content);
-	    $content = $url->equery;
+	    $content = $url->query;
 	}
     }
 
@@ -88,7 +109,7 @@ sub _simple_req
 
 sub form_data   # RFC1867
 {
-    my($data, $boundary) = @_;
+    my($data, $boundary, $req) = @_;
     my @data = ref($data) eq "HASH" ? %$data : @$data;  # copy
     my $fhparts;
     my @parts;
@@ -162,23 +183,55 @@ sub form_data   # RFC1867
 	unshift(@parts, "--$boundary$CRLF");
 	push(@parts, "$CRLF--$boundary--$CRLF");
 
+	# See if we can generate Content-Length header
+	my $length = 0;
+	for (@parts) {
+	    if (ref $_) {
+	 	my ($head, $f) = @$_;
+		my $file_size;
+		unless ( -f $f && ($file_size = -s _) ) {
+		    # The file is either a dynamic file like /dev/audio
+		    # or perhaps a file in the /proc file system where
+		    # stat may return a 0 size even though reading it
+		    # will produce data.  So we cannot make
+		    # a Content-Length header.  
+		    undef $length;
+		    last;
+		}
+	    	$length += $file_size + length $head;
+	    } else {
+		$length += length;
+	    }
+        }
+        $length && $req->header('Content-Length' => $length);
+
 	# set up a closure that will return content piecemeal
 	$content = sub {
 	    for (;;) {
-		return unless @parts;
+		unless (@parts) {
+		    defined $length && $length != 0 &&
+		    	Carp::croak "length of data sent did not match calculated Content-Length header.  Probably because uploaded file changed in size during transfer.";
+		    return;
+		}
 		my $p = shift @parts;
 		unless (ref $p) {
 		    $p .= shift @parts while @parts && !ref($parts[0]);
+		    defined $length && ($length -= length $p);
 		    return $p;
 		}
 		my($buf, $fh) = @$p;
-		my $n = read($fh, $buf, 2048, length($buf));
+		my $buflength = length $buf;
+		my $n = read($fh, $buf, 2048, $buflength);
 		if ($n) {
+		    $buflength += $n;
 		    unshift(@parts, ["", $fh]);
 		} else {
 		    close($fh);
 		}
-		return $buf if length $buf;
+		if ($buflength) {
+		    defined $length && ($length -= $buflength);
+		    return $buf 
+	    	}
 	    }
 	};
 
@@ -189,9 +242,8 @@ sub form_data   # RFC1867
       CHECK_BOUNDARY:
 	{
 	    for (@parts) {
-		if (index($_, "--$boundary") >= 0) {
+		if (index($_, $boundary) >= 0) {
 		    # must have a better boundary
-		    #warn "Need something better that '$boundary' as boundary\n";
 		    $boundary = boundary(++$bno);
 		    redo CHECK_BOUNDARY;
 		}
@@ -209,7 +261,7 @@ sub form_data   # RFC1867
 
 sub boundary
 {
-    my $size = shift || return "000";
+    my $size = shift || return "xYzZY";
     require MIME::Base64;
     my $b = MIME::Base64::encode(join("", map chr(rand(256)), 1..$size*3), "");
     $b =~ s/[\W]/X/g;  # ensure alnum only
@@ -248,14 +300,14 @@ is exactly equivalent to the following call
 
   HTTP::Request->new(GET => $url)
 
-but is less clutter.  It also reads better when used together with the
+but is less cluttered.  It also reads better when used together with the
 LWP::UserAgent->request() method:
 
   my $ua = new LWP::UserAgent;
   my $res = $ua->request(GET 'http://www.sn.no')
   if ($res->is_success) { ...
 
-You can also initialize the header values in the request by specifying
+You can also initialize header values in the request by specifying
 some key/value pairs as optional arguments.  For instance:
 
   $ua->request(GET 'http://www.sn.no',
@@ -276,7 +328,7 @@ Like GET() but the method in the request is PUT.
 
 =item POST $url, [$form_ref], [Header => Value,...]
 
-This works mostly like GET() with POST as method, but this function
+This works mostly like GET() with POST as the method, but this function
 also takes a second optional array or hash reference parameter
 ($form_ref).  This argument can be used to pass key/value pairs for
 the form content.  By default we will initialize a request using the
@@ -309,7 +361,7 @@ with the following interpretation:
   [ $file, $filename, Header => Value... ]
 
 The first value in the array ($file) is the name of a file to open.
-This file will be read an its content placed in the request.  The
+This file will be read and its content placed in the request.  The
 routine will croak if the file can't be opened.  Use an C<undef> as $file
 value if you want to specify the content directly.  The $filename is
 the filename to report in the request.  If this value is undefined,
@@ -366,10 +418,12 @@ value, then you get back a request object with a subroutine closure as
 the content attribute.  This subroutine will read the content of any
 files on demand and return it in suitable chunks.  This allow you to
 upload arbitrary big files without using lots of memory.  You can even
-upload infinite files like F</dev/audio> if you wish.  Another
-difference is that there will be no Content-Length header defined for
-the request if you use this feature.  Not all servers (or server
-applications) like this.
+upload infinite files like F</dev/audio> if you wish; however, if
+the file is not a plain file, there will be no Content-Length header 
+defined for the request.  Not all servers (or server
+applications) like this.  Also, if the file(s) change in size between
+the time the Content-Length is calculated and the time that the last
+chunk is delivered, the subroutine will C<Croak>.
 
 =back
 
@@ -380,7 +434,7 @@ L<HTTP::Request>, L<LWP::UserAgent>
 
 =head1 COPYRIGHT
 
-Copyright 1997-1998, Gisle Aas
+Copyright 1997-2000, Gisle Aas
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

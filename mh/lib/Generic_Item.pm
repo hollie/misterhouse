@@ -12,9 +12,10 @@ sub new {
     my ($class) = @_;
     my $self = {};
                                 # Use undef ... '' will return as defined
-    $$self{state}     = undef;
-    $$self{said}      = undef;
-    $$self{state_now} = undef;
+    $$self{state}         = undef;
+    $$self{said}          = undef;
+    $$self{state_now}     = undef;
+    $$self{state_changed} = undef;
     bless $self, $class;
     return $self;
 }
@@ -94,6 +95,9 @@ sub said {
 
 sub state_now {
     return $_[0]->{state_now};
+}
+sub state_changed {
+    return $_[0]->{state_changed};
 }
 
 sub state_log {
@@ -223,10 +227,11 @@ sub set_states_for_next_pass {
     push @states_from_previous_pass, $ref unless $ref->{state_next_pass} and @{$ref->{state_next_pass}};
     push @{$ref->{state_next_pass}}, $state;
 
-                                # Set the state_log
+                                # Avoid -w unintialized variable errors
     $state  = '' if !$state or $state eq '1';
-                                # Log non-blank states
-    unshift(@{$$ref{state_log}}, "$main::Time_Date $state") if $state or (ref $ref) eq 'Voice_Cmd';
+    $set_by = '' unless $set_by;
+                                # Set the state_log ... log non-blank states
+    unshift(@{$$ref{state_log}}, "$main::Time_Date $state set_by=$set_by") if $state or (ref $ref) eq 'Voice_Cmd';
     pop @{$$ref{state_log}} if $$ref{state_log} and @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
 
                                 # Reset this (used to detect which tied item triggered the set)
@@ -239,6 +244,7 @@ sub reset_states {
     my $ref;
     while ($ref = shift @reset_states) {
         undef $ref->{state_now};
+        undef $ref->{state_changed};
         undef $ref->{said};
     }
 
@@ -247,13 +253,18 @@ sub reset_states {
     my @items_with_more_states;
     while ($ref = shift @states_from_previous_pass) {
         my $state = shift @{$ref->{state_next_pass}};
-        $ref->{state_prev}  = $ref->{state};
-        $ref->{change_pass} = $main::Loop_Count;
-        $ref->{state}       = $state;
-        $ref->{said}        = $state;
-        $ref->{state_now}   = $state;
+        $ref->{state_prev}    = $ref->{state};
+        $ref->{change_pass}   = $main::Loop_Count;
+        $ref->{state}         = $state;
+        $ref->{said}          = $state;
+        $ref->{state_now}     = $state;
         push @reset_states, $ref;
         push @items_with_more_states, $ref if @{$ref->{state_next_pass}};
+        if (( defined $state and !defined $ref->{state_prev}) or 
+            (!defined $state and  defined $ref->{state_prev}) or 
+            ( defined $state and  defined $ref->{state_prev} and $state ne $ref->{state_prev})) {
+            $ref->{state_changed} = $state;
+        }
     }
     @states_from_previous_pass = @items_with_more_states;
 
@@ -373,6 +384,9 @@ sub get_web_style {
 
 #
 # $Log$
+# Revision 1.19  2002/05/28 13:07:51  winter
+# - 2.68 release
+#
 # Revision 1.18  2002/03/31 18:50:38  winter
 # - 2.66 release
 #

@@ -12,6 +12,12 @@ sub authenticate
                                                   $request->url, $proxy);
     return $response unless defined $user and defined $pass;
 
+    my $nc = sprintf "%08X", ++$ua->{authen_md5_nonce_count}{$auth_param->{nonce}};
+    my $cnonce = sprintf "%8x", time;
+
+    my $uri = $request->url->path_query;
+    $uri = "/" unless length $uri;
+
     my $md5 = new MD5;
 
     my(@digest);
@@ -21,7 +27,11 @@ sub authenticate
 
     push(@digest, $auth_param->{nonce});
 
-    $md5->add(join(":", $request->method, $request->url->path));
+    if ($auth_param->{qop}) {
+	push(@digest, $nc, $cnonce, $auth_param->{qop});
+    }
+
+    $md5->add(join(":", $request->method, $uri));
     push(@digest, $md5->hexdigest);
     $md5->reset;
 
@@ -30,9 +40,13 @@ sub authenticate
     $md5->reset;
 
     my %resp = map { $_ => $auth_param->{$_} } qw(realm nonce opaque);
-    @resp{qw(username uri response)} = ($user, $request->url->path, $digest);
+    @resp{qw(username uri response algorithm)} = ($user, $uri, $digest, "MD5");
 
-    my(@order) = qw(username realm nonce uri response);
+    if($auth_param->{qop} eq "auth") {
+	@resp{qw(qop cnonce nc)} = ("auth", $cnonce, $nc);
+    }
+
+    my(@order) = qw(username realm qop algorithm uri nonce nc cnonce response);
     if($request->method =~ /^(?:POST|PUT)$/) {
 	$md5->add($request->content);
 	my $content = $md5->hexdigest;
@@ -51,7 +65,7 @@ sub authenticate
 
     my $auth_header = $proxy ? "Proxy-Authorization" : "Authorization";
     my $auth_value  = "Digest " . join(", ", @pairs);
-    
+
     # Need to check this isn't a repeated fail!
     my $r = $response;
     while ($r) {

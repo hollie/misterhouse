@@ -34,7 +34,7 @@ $v_sun_set-> set_authority('anyone');
 speak "Sunrise today is at $Time_Sunrise, sunset is at $Time_Sunset." if said $v_sun_set;
 
 speak "Notice, the sun is now rising at $Time_Sunrise" if time_now $Time_Sunrise and !$Save{sleeping_parents};
-speak "rooms=all Notice, the sun is now seting at $Time_Sunset"  if time_now $Time_Sunset;
+speak "rooms=all Notice, the sun is now setting at $Time_Sunset"  if time_now $Time_Sunset;
 
 
 

@@ -1,3 +1,6 @@
+
+use vars '%weather';  # In case this is not defined
+
 my $data = "<h3>Time: $Time_Now</h3>";
 
 print "Testing http .pl argument passint\n";

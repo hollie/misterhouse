@@ -106,7 +106,7 @@ sub check_accounts {
     my  $day = ('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')[$wday];
 
 #   my $msgcnt_flag = 'Email:';
-    my $msgcnt_flag;
+    my ($msgcnt_flag, $msg_latest);
     for my $account (@email_accounts) {
         print "checking account=$account "  unless $config_parms{quiet};
         
@@ -206,8 +206,9 @@ sub check_accounts {
                     $html .= "<b>To:</b>$to<br>\n<b>From:</b> <a href='mailto:$from'>$name</a><br>\n<b>Reply to:</b> <a href='mailto:$replyto'>$replyto</a><br>\n<b>Subject:</b>$subject<br>\n";
                     $html .= "<blockquote>$body</blockquote><br><hr>\n";
 
-                                # This gets reset whenever mail has been received
-                    logit("$config_parms{data_dir}/email/latest.html", $html, 0);
+                                            # Track the latest mail separately
+#                   logit("$config_parms{data_dir}/email/latest.html", $html, 0);
+                    $msg_latest .= $html;                              
 
                                 # Log by account and day of week
                     my  $log = "$config_parms{data_dir}/email/${account}_${day}.shtml";
@@ -235,6 +236,12 @@ sub check_accounts {
                 $results_new .= &make_name_list($account, @{$email_prev{$account}});
 
             }
+        }
+
+        if ($msg_latest) {
+                                # If new mail is age based, need to reset latest.html every time
+            unlink("$config_parms{data_dir}/email/latest.html") if $config_parms{net_mail_scan_age};
+            logit("$config_parms{data_dir}/email/latest.html", $msg_latest, 0);
         }
 
         $msgcnt_flag .= sprintf("%3d", $msgcnt);
@@ -295,6 +302,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.29  2002/05/28 13:07:47  winter
+# - 2.68 release
+#
 # Revision 1.28  2001/12/16 21:48:40  winter
 # - 2.62 release
 #

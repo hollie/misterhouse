@@ -37,17 +37,19 @@ sub restore_string {
 
 
 sub start {
-    my ($self) = @_;
+    my ($self, $cmd_override) = @_;
     $$self{cmd_index} = 0;
-    &start_next($self);
+    &start_next($self, $cmd_override);
 #   print "\ndb start total=@{$$self{cmds}}\n";
 }
 
 sub start_next {
-    my ($self) = @_;
+    my ($self, $cmd_override) = @_;
 
     my ($cmd) = @{$$self{cmds}}[$$self{cmd_index}];
     $$self{cmd_index}++;
+
+    $cmd = $cmd_override if $cmd_override;
 
                                 # If $cmd starts with &, assume it is an internal function
                                 # that requires an eval.  perl abends fails with the new win32 fork :(
@@ -226,6 +228,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.18  2002/05/28 13:07:51  winter
+# - 2.68 release
+#
 # Revision 1.17  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

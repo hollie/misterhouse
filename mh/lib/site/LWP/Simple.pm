@@ -35,11 +35,11 @@ The following functions are provided (and exported) by this module:
 
 The get() function will fetch the document identified by the given URL
 and return it.  It returns C<undef> if it fails.  The $url argument can
-be either a simple string or a reference to a URI::URL object.
+be either a simple string or a reference to a URI object.
 
 You will not be able to examine the response code or response headers
 (like 'Content-Type') when you are accessing the web using this
-function.  If you need this information you should use the full OO
+function.  If you need that information you should use the full OO
 interface (see L<LWP::UserAgent>).
 
 =item head($url)
@@ -53,8 +53,8 @@ successful.
 =item getprint($url)
 
 Get and print a document identified by a URL. The document is printed
-on STDOUT as data is received from the network.  If the request fails,
-then the status code and message is printed on STDERR.  The return
+to STDOUT as data is received from the network.  If the request fails,
+then the status code and message are printed on STDERR.  The return
 value is the HTTP response code.
 
 =item getstore($url, $file)
@@ -65,7 +65,7 @@ return value is the HTTP response code.
 =item mirror($url, $file)
 
 Get and store a document identified by a URL, using
-I<If-modified-since>, and checking of the I<Content-Length>.  Returns
+I<If-modified-since>, and checking the I<Content-Length>.  Returns
 the HTTP response code.
 
 =back
@@ -118,11 +118,11 @@ The HTTP::Status classification functions are:
 
 =item is_success($rc)
 
-Check if response code indicated successfull request.
+True if response code indicated a successful request.
 
 =item is_error($rc)
 
-Check if response code indicated that an error occured.
+True if response code indicated that an error occured.
 
 =back
 
@@ -218,11 +218,11 @@ sub head ($)
 
     if ($response->is_success) {
 	return $response unless wantarray;
-	return ($response->header('Content-Type'),
-		$response->header('Content-Length'),
+	return (scalar $response->header('Content-Type'),
+		scalar $response->header('Content-Length'),
 		HTTP::Date::str2time($response->header('Last-Modified')),
 		HTTP::Date::str2time($response->header('Expires')),
-		$response->header('Server'),
+		scalar $response->header('Server'),
 	       );
     }
     return;
@@ -236,7 +236,11 @@ sub getprint ($)
 
     my $request = HTTP::Request->new(GET => $url);
     local($\) = ""; # ensure standard $OUTPUT_RECORD_SEPARATOR
-    my $response = $ua->request($request, sub { print $_[0] });
+    my $callback = sub { print $_[0] };
+    if ($^O eq "MacOS") {
+	$callback = sub { $_[0] =~ s/\015?\012/\n/g; print $_[0] }
+    }
+    my $response = $ua->request($request, $callback);
     unless ($response->is_success) {
 	print STDERR $response->status_line, " <URL:$url>\n";
     }
@@ -269,7 +273,7 @@ sub _get
 {
     my $url = shift;
     my $ret;
-    if (!$FULL_LWP && $url =~ m,^http://([^/:]+)(?::(\d+))?(/\S*)?$,) {
+    if (!$FULL_LWP && $url =~ m,^http://([^/:\@]+)(?::(\d+))?(/\S*)?$,) {
 	my $host = $1;
 	my $port = $2 || 80;
 	my $path = $3;

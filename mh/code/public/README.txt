@@ -45,6 +45,9 @@ callerisdn.pl
  - Ron Klinkien's code for monitoring callerid on  AVM Fritz!Card
    (ISDN4BSD or ISDN4Linux required)
 
+chart_xl.pl
+ - Clive Freedman's code for generating html that calls Excel via activex to chart log data.
+
 chimes_cuckoo*.pl
 chimes_westminster.pl
  - David Norwood's code for chimeing like cuckoo and grandfather clocks.
@@ -59,6 +62,9 @@ copycode.pl
 
 date_functions.pl
  - Jeff Crum's functions for dealing with dates (e.g. finding labor day).
+
+dss_interface.pl
+ - Andrew Drummond's code for providing serial port control of most dss receivers.
 
 dialup_unix.pl
  - Gaetan linny Lord's code for starting/stopping a dialup ppp connection in linux.
@@ -162,6 +168,9 @@ pa_control_evan_test.pl
 phone_logs_kieran.pl
  - Kieran Ames' code for summarizing recent callers.  Also see mh/code/bruce/phone_logs.pl
 
+pictures_filess.pl
+ - Robert Rozman's code that uses a dbm to index a photo database.
+
 printer_control.pl
  - Paul Wilkinson's example of how to turn a printer on/off based on a unix print spool file.
 
@@ -201,6 +210,13 @@ sensors_lm.pl
 slinke_*
  - Brian Paulsen's examples of calling the Slinke.pm module he wrote.
    We don't have this integrated into mh yet.
+
+speak_mbrola.pl
+ - Example of using the mbrola TTS engine. 
+
+speak_server.pl
+ - Older code, now replaced with mhsend_server.pl and eliza_server.pl.
+   If on windows, also see voice_client/server.pl
 
 sprinklers_*.pl 
  - Brian Rudy and Bill Sobel's code for sprinklers
@@ -248,6 +264,9 @@ based on the forecast.
 weather_ec.pl
  - Harald Koch's code for parsing data from weatheroffice.ec.gc.ca into %Weather.
 
+weather_iB_OWW_client.pl
+ - Pete Flaherty's code to read data from the OWW 1-wire ibutton weather station daemon.
+
 weather_pollen.pl
  - Kent Noonan's code for monitoring pollen counts
 
@@ -285,15 +304,13 @@ weather_monitor_ultimeter2000.pl
 weather_monitor_wmr968.pl
  - Tom Vanderpool's code for the wireless wmr968 (aka Radio Shack Accuweather) weather station.
 
-webcam_lite.html
 webcam_lite.pl
  - Mike's code for allowing visitors to his webcam site to flash lights and
-   type in TTS messages.
+   type in TTS messages.  Also see mh/web/public/webcam_lite.html
 
-webcam_ron.html
 webcam_ron.pl
  - Ron Klinkien's code for using a command line frame grabber to create
-   a simple webcam.
+   a simple webcam. Also see mh/web/public/webcam_ron.shtml
 
 weeder_david.pl
  - David Lounsberry's code for controling hist HVAC system with a Solid State Relay weeder board!
@@ -308,6 +325,10 @@ wintvpvr_grid.pl
  - Jeff Ferris's code for controlling a Hauppage WinTV PVR USB to record TV
    shows using the tv_grid web pages.
 
+wintv_radio.pl
+ - Mickey Argo's code for controling the radio on a wintv card.  Also see mh/web/public/wintv_radio.html
+
+
 x10_video_security.pl
  - Mark Holm's code for a video surveillance system using X10 XCAM cameras and motion sensors.
 
@@ -316,6 +337,7 @@ Xmms_jukebox.pl
 Xmms_x10_control.pl
  - Gaetan Lord's files for controling the linux xmms mp3 player.  
    These files also interact with the web interface at /music/xmms (mh/web/music/xmms)
+   More info in mh/web/music/xmms/README*
    Also see mp3_control_xmms.pl.
 
 ------------

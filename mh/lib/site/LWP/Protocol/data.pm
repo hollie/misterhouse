@@ -1,10 +1,12 @@
 #
 # $Id$
 #
-# Implements access to data:-URLs as specified in
-# draft-masinter-url-data-02.txt
+# Implements access to data:-URLs as specified in RFC 2397
+
 
 package LWP::Protocol::data;
+use strict;
+use vars qw(@ISA);
 
 require HTTP::Response;
 require HTTP::Status;
@@ -27,7 +29,8 @@ sub request
     }
 
     # check method
-    if ($request->method ne 'GET') {
+    my $method = $request->method;
+    unless ($method eq 'GET' || $method eq 'HEAD') {
 	return new HTTP::Response &HTTP::Status::RC_BAD_REQUEST,
 				  'Library does not allow method ' .
 				  "$method for 'data:' URLs";
@@ -36,8 +39,7 @@ sub request
     my $url = $request->url;
     my $response = new HTTP::Response &HTTP::Status::RC_OK, "Document follows";
 
-    my($media_type, $params) = $url->media_type;
-    $media_type .= ";$params" if $params;
+    my $media_type = $url->media_type;
 
     my $data = $url->data;
     $response->header('Content-Type'   => $media_type,
@@ -45,7 +47,7 @@ sub request
 		      'Date'           => time2str(time),
 		      'Server'         => "libwww-perl-internal/$LWP::VERSION"
 		     );
-    $response->content($data);
+    $response->content($data) if $method ne "HEAD";
 
     return $response;
 }

@@ -7,10 +7,11 @@ my $f_top10_html = "$config_parms{data_dir}/web/top10_list.html";
 
 #$f_top10_html2 = new File_Item($f_top10_html); # Needed if we use run instead of process_item
 
-#$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/lateshow/topten/ $f_top10_html");
-#$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/network/tvshows/mini/lateshow/index.shtml $f_top10_html");
-#$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/latenight/lateshow/# $f_top10_html");
-$p_top10_list = new Process_Item("get_url http://www.cbs.com/latenight/lateshow/# $f_top10_html");
+#p_top10_list = new Process_Item("get_url http://marketing.cbs.com/lateshow/topten/ $f_top10_html");
+#p_top10_list = new Process_Item("get_url http://marketing.cbs.com/network/tvshows/mini/lateshow/index.shtml $f_top10_html");
+#p_top10_list = new Process_Item("get_url http://marketing.cbs.com/latenight/lateshow/# $f_top10_html");
+#p_top10_list = new Process_Item("get_url http://www.cbs.com/latenight/lateshow/# $f_top10_html");
+$p_top10_list = new Process_Item("get_url http://www.cbs.com/latenight/lateshow/top_ten/ $f_top10_html");
 
 $v_top10_list  = new  Voice_Cmd('[Get,Read,Show] the top 10 list');
 $v_top10_list -> set_info("This is David Lettermans famoust Top 10 List"); 
@@ -33,7 +34,8 @@ if (said $v_top10_list eq 'Get') {
     if (-s $f_top10_html > 10 and
         time_date_stamp(6, $f_top10_html) eq time_date_stamp(6)) {
         print_log "Top 10 list is current";
-        set $v_top10_list 'Show';
+#       set $v_top10_list 'Show';
+        start $p_top10_list 'do_nothing';  # Fire the process with no-op, so we can still run the parsing code for debug
     }
     else {
         if (&net_connect_check) {
@@ -65,12 +67,16 @@ if (done_now $p_top10_list) {
 #<tr valign="top"><td width="290" valign="top" align="center"><font class="toptentitle">Top Ten Signs You've Hired A Bad NFL Referee</font></td></tr>
 #   $text =~ s/^.+?the Top Ten List for/The Top Ten list for/is;
 #   $text =~ s/^.+?Top Ten/Top Ten/is;
-    $text =~ s/.+(Top Ten.+?.+10\.)/$1/is;
+    $text =~ s/^.+(Top Ten.+?.+10\.)/$1/is;
 
                                 # Delete data past the last line: 1. xxxxx\n
     $text =~ s/(.+?\n\s *1\..+?)\n.+/$1\n/s;
                                 # Add a period at the end of line, if needed
     $text =~ s/([^\.\?\!])\n/$1\.\n/g;
+                                # Drop the (name) at the end of each line (name of presentor)
+    $text =~ s/\(.+?\)[ \.]+\n/\n/g;
+                                # Only one blank line per item.
+    $text =~ s/\n\s+\n/\n\n/g;
                                 # Make sure the number at the beginning as a space.
     $text =~ s/(\n[\d]+)\.?/$1\. /g;
 
@@ -109,9 +115,13 @@ $v_show_internet_weather_data-> set_authority('anyone');
 if ($state = said  $v_show_internet_weather_data or changed $f_weather_forecast) {
     print_log "Weather $state displayed";
     if ($state eq 'forecast') {
+        my $name = name $f_weather_forecast;
+        print "displaying $f_weather_forecast $name\n";
         display name $f_weather_forecast;
+        display $name;
     }
     else {
+        print "displaying $f_weather_conditions\n";
         display name $f_weather_conditions;
 # Parse data.  Here is an example:
 # At 6:00 AM, Rochester, MN conditions were  at  55 degrees , wind was south at

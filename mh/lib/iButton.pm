@@ -346,6 +346,9 @@ sub read_dir {
     $this->{ "12" }->set_switch( CHANNEL_B => 1);
     my $c = $connections{ $this->{ PORT } };
 
+    my @iButtons = $c->scan( "01" );
+    $this->{ "12" }->set_switch( CHANNEL_B => 1);
+
     my @dirs;
     for ( 1..10 ) {
 	my @iButtons = $c->scan( "01" );
@@ -373,8 +376,9 @@ sub read_dir {
 	}
     }
     else {
-	warn "Got $#dirs direction readings\n";
-	return undef;
+        warn "Got $#dirs direction readings\n";
+        $this->{ "12" }->set_switch( CHANNEL_B => 0);
+        return undef;
     }
 
     my %DIRS = ( 0 => "N", 1 => "NNE",  2 => "NE",  3 => "ENE", 4  => "E",  5 => "ESE",  6 => "SE", 7  => "SSE",
@@ -382,6 +386,7 @@ sub read_dir {
 	       );
 
     $this->set_receive( $DIRS{ $dir } );
+    $this->{ "12" }->set_switch( CHANNEL_B => 0);
     return $DIRS{ $dir };
 }
 
@@ -471,6 +476,9 @@ memory
 
 
 # $Log$
+# Revision 1.17  2002/05/28 13:07:52  winter
+# - 2.68 release
+#
 # Revision 1.16  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

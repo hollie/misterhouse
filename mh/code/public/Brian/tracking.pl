@@ -117,9 +117,9 @@ $tnc_output = new Serial_Item ('CONV','converse','serial1');
 $tnc_output -> add            ('?WX?','wxquery','serial1');
 $tnc_output -> add            (sprintf("=%2d%05.02fN/0%2d%05.02fW- *** %s MisterHouse Tracking System - ICQ#659962 ***",
                                        int($config_parms{latitude}),
-                                       ($config_parms{latitude} - int($config_parms{latitude}))*60,
+                                       abs ($config_parms{latitude} - int($config_parms{latitude}))*60,
                                        int($config_parms{longitude}),
-                                       ($config_parms{longitude} -int($config_parms{longitude}))*60,
+                                       abs ($config_parms{longitude} -int($config_parms{longitude}))*60,
                                        $config_parms{tracking_callsign}),
                                        ,'position','serial1');
 

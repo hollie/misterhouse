@@ -112,18 +112,16 @@ sub request
     LWP::Debug::debug($ftp->message);
 
     # Get & fix the path
-    my @path =  $url->path_components;
-    shift(@path);  # There will always be an empty first component
-    pop(@path) while @path && $path[-1] eq '';  # remove empty tailing comps
+    my @path =  grep { length } $url->path_segments;
     my $remote_file = pop(@path);
     $remote_file = '' unless defined $remote_file;
 
-    my $params = $url->params;
-    if (defined($params) && $params eq 'type=a') {
-	$ftp->ascii;
-    } else {
+#    my $params = $url->params;
+#    if (defined($params) && $params eq 'type=a') {
+#	$ftp->ascii;
+#    } else {
 	$ftp->binary;
-    }
+#    }
 
     for (@path) {
 	LWP::Debug::debug("CWD $_");

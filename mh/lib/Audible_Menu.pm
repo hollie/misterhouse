@@ -207,8 +207,8 @@ sub process {
     $self->speak_next if expired $timer and $$self{active};
 
                                 # Speak delayed last response text
-    if ($main::Menus{last_response_loop} and $main::Menus{last_response_loop} <= $main::Loop_Count) {
-        $main::Menus{last_response_loop} = 0;
+    if ($main::Menus{menu_data}{last_response_loop} and $main::Menus{menu_data}{last_response_loop} <= $main::Loop_Count) {
+        $main::Menus{menu_data}{last_response_loop} = 0;
         $self->speak_next;
     }
 

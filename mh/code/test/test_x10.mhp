@@ -44,3 +44,17 @@ if ($v_test_appliance_state = said $v_test_appliance) {
   set $test_appliance $v_test_appliance_state;
   speak "Turning test appliance $v_test_appliance_state";
 }
+# Here are some examples of adding multiple states to the same item
+
+$motion                              =  new Serial_Item('XPJ', 'on');
+$Motion                              =  new Group;
+$Motion                              -> add($motion);
+
+$motion                              -> add ('XPK', 'off');
+
+$motion_unit                         =  new Serial_Item('XP6', 'computer room');
+$Motion                              -> add($motion_unit);
+
+$motion_unit                         -> add ('XP7', 'bedroom');
+
+$motion_unit                         -> add ('XP8', 'bedroom dark');

@@ -200,9 +200,10 @@ Windows Detailed Install Instructions
     hsdk51.exe
 
     After installing, the default mh.ini voice_text=MS parm will default to
-    the new V5 engine. Use MSV4 to switch back to the old V4 engine. So far,
-    the only voices I have found for the V5 engines are the MS Mike, Sam,
-    Mary, and (optional) Japanese and Chinese voices that come with the SDK.
+    the new V5 engine. Use MSV4 to switch back to the old V4 engine. The SDK
+    comes with the voices MS Mike, Sam, Mary, and (optional) Japanese and
+    Chinese voices. For $100, you can get 2 nice 5.1 compatable voices with
+    AT&T Natural Voices TTS SDK here: http://www.naturalvoices.com.
 
 UNIX Detailed Install Instructions
   UNIX Step 1, Download and Install Mister House
@@ -292,15 +293,22 @@ UNIX Detailed Install Instructions
     with mh.ini parms voice_text and festival_port.
 
     The IBM ViaVoice TTS engine for Linux is available from
-    http://www-4.ibm.com/software/speech/dev/sdk_linux.html To use it with
-    mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
-    http://www.reednet.org/ViaVoiceTTS , then set your mh.ini
+    http://www-4.ibm.com/software/speech/dev/sdk_linux.html . Here is the
+    download link:
+    http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm
+
+    To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module
+    from http://www.reednet.org/ViaVoiceTTS , then set your mh.ini
     voice_text=vv_tts or voice_text=viavoice (vv_tts is a bit fancier,
     queing up speech and has more mh.ini options).
 
-    The IBM ViaVoice Voice Recognition engine is also available from
-    http://www-4.ibm.com/software/speech/dev/sdk_linux.html . Download and
-    install (as root) these 2 rpms:
+    The IBM ViaVoice Voice Recognition engine is no longer available (as of
+    05/2002) from
+    http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm. These
+    instructions are here for future reference, in hopes that the modules
+    will become available again.
+
+    Download and install (as root) these rpms:
 
       tar -xvf viavoice_asr_sdk_3.tar  ( 3 MB)
       tar -xvf viavoice_dict_rtk_3.tar (78 MB)

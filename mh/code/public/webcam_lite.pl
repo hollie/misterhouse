@@ -6,6 +6,7 @@
 # I use mh to allow visitors to flash the light on webcam  and type in voice
 # messages for the TTS system
 
+# Use with mh/web/public/webcam_lite.html
 
 # Category=WebCam
 

@@ -1,13 +1,7 @@
 #
-# Use these mh.ini parms:
-#
-# Stargate_module      = Stargate
-# Stargate_serial_port = COM1
-# Stargate_baudrate    = 9600
-#
-#
 # From Misterhouse HomeBase.pm
 #
+
 #            I/ODevice         Offset
 #
 #    TimeCommander-Plus         0x00    1-16
@@ -476,12 +470,12 @@ sub SetVariableState
     for my $current_object (@stargatevariable_object_list) 
     {
         next unless $current_object->{address} == $address;
-
+        
         my $newstate;
-        $newstate = $state if $current_object->state ne $state;
+        $newstate = $state if $current_object->state() ne $state;
 
-        print "Stargate Variable #" . $current_object->{address} . " state change to $newstate\n" if $newstate;
-        $current_object->set_states_for_next_pass($newstate) if $newstate;
+        print "Stargate Variable #" . $current_object->{address} . " state change to $newstate\n" if $newstate ne undef;
+        $current_object->set_states_for_next_pass($newstate) if $newstate ne undef;
     }
 }
 
@@ -525,7 +519,6 @@ sub SetRelayState
 sub ParseThermostatData
 {
     my ($address, $subcommand, $data) = @_;
-    print "Called ParseTherostatData(" . $address . $subcommand . $data . ")\n" if $main::config_parms{debug} eq 'stargate';
 
     # Temperature change
     if($subcommand eq 0x00)
@@ -624,12 +617,10 @@ sub ParseVariableUpload
 sub ParseThermostatUpload
 {
     my ($data) = @_;
-    print "Called ParseThermostatUpload()" if $main::config_parms{debug} eq 'stargate';
 
     # Ignore the data unless we requested it (it would mean we are out of sync)
     return unless @Thermostat_Upload_List > 0;
 
-    print "Still in sync" if $main::config_parms{debug} eq 'stargate';
     my ($address) = shift @Thermostat_Upload_List;
     my ($requesttime) = shift @Thermostat_Upload_List;
 
@@ -878,7 +869,7 @@ sub set_time
     }
 
     # Set daylight savings flag, this should be in mh.private.ini if your area uses DST
-    $isdst = "01";
+    $isdst = "00";                          # was 01
     #
     #print ("DST=$isdst Y=$Year M=$Month D=$Mday DOW=$Wday H=$Hour M=$Minute\n");
     my $set_time = sprintf("%04x%04x%02x%02x%02d%02d%02d%02d%02d%02d",

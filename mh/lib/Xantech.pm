@@ -65,6 +65,8 @@ sub UserCodePreHook
         &::check_for_generic_serial_data('Xantech');
         if (my $data = $::Serial_Ports{Xantech}{data_record}) 
         {
+            print "Xantech data=$data\n" if($::config_parms{debug} eq 'xantech');
+
             my ($f1,$f2,$f3,$f4,$f5,$f6,$f7,$f8,$f9,$f10,$f11,$f12,$f13) = $data =~ /\s*(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)/;
 
             #        ::print_log "Xantech Data: " . $data . "\n";

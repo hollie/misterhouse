@@ -28,7 +28,7 @@ The really short form:
 =cut
 
 ###################################################################
-# Copyright (C) 2000 Riad Wahby <rsw@mit.edu> All rights reserved #
+# Copyright 2000-02 Riad Wahby <rsw@jfet.org> All rights reserved #
 # This program is free software.  You may redistribute it and/or  #
 # modify it under the same terms as Perl itself.                  #
 ###################################################################
@@ -42,6 +42,7 @@ sub srv_socket;
 sub pw_roast;
 sub norm_uname;
 sub toc_format_msg;
+sub toc_format_login_msg;
 sub toc_send_im;
 sub add_buddies;
 sub remove_buddies;
@@ -113,7 +114,7 @@ $SFLAP_TLV_TAG = 1;
 $SFLAP_HEADER_LEN = 6;
 
 # Net::AOLIM version
-$VERSION = "1.2";
+$VERSION = "1.4";
 
 # number of arguments that server messages have:
 %SERVER_MSG_ARGS = ( 'SIGN_ON' => 1,
@@ -214,7 +215,7 @@ values are optional):
     'login_timeout' => timeout in seconds to wait for a response to the
                        toc_signon packet.  Default is 0 (infinite)
     'aim_agent' => agentname (max 200 char) 
-                Default is AOLIM:$Version 1.2$
+                Default is AOLIM:$Version VERSION$
                 There have been some reports that changing this 
                 may cause TOC servers to stop responding to signon 
                 requests
@@ -369,7 +370,7 @@ sub signon
 	
 	return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_SIGNON, $so_sflap_signon, 1, 1)));
 	
-	$so_toc_ascii = $imsg->toc_format_msg('toc_signon',$imsg->{'login_server'},$imsg->{'login_port'},$imsg->{'unamenorm'},$imsg->{'roastedp'},'english',$imsg->{'aim_agent'});
+	$so_toc_ascii = $imsg->toc_format_login_msg('toc_signon',$imsg->{'login_server'},$imsg->{'login_port'},$imsg->{'unamenorm'},$imsg->{'roastedp'},'english',$imsg->{'aim_agent'});
 	
 	return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $so_toc_ascii, 0, 0)));
 	
@@ -458,7 +459,7 @@ sub read_sflap_packet
 
 # unless we get a valid read, we return an unknown error
 
-    unless (defined(recv $$im_socket, $rsp_header, $SFLAP_HEADER_LEN, 0))
+    unless (defined(recv $$im_socket, $rsp_header, $SFLAP_HEADER_LEN, 0) && (length($rsp_header) == $SFLAP_HEADER_LEN))
     {
 	$main::IM_ERR = $SFLAP_ERR_READ;
 	return undef;
@@ -471,7 +472,7 @@ sub read_sflap_packet
 # now we pull down more bytes equal to the length field in
 # the previous read
 
-    unless (defined(recv $$im_socket, $rsp_recv_packet, $rsp_dlen, 0))
+    unless (defined(recv $$im_socket, $rsp_recv_packet, $rsp_dlen, 0) && (length($rsp_recv_packet) == $rsp_dlen))
     {
 	$main::IM_ERR = $SFLAP_ERR_READ;
 	return undef;
@@ -762,7 +763,7 @@ sub toc_format_msg
 #
     my $imsg = shift @_;
     my $toc_command = shift @_;
-    my %escaped;
+    my $escaped;
     my $finalmsg;
     
     unless (defined $toc_command)
@@ -786,6 +787,64 @@ sub toc_format_msg
     }
 
     $finalmsg = $toc_command . $finalmsg;
+    
+    return $finalmsg;
+}
+
+=pod
+
+=head2 $aim->toc_format_login_msg($command[, $arg1[, arg2[, ...]]])
+
+This method formats a login message properly for sending to the TOC
+server.  That is, all fields are escaped, but only the user_agent
+field is quoted.  Fields are separated with spaces as specified in the
+TOC protocol.
+
+Note that the login procedure calls this function automatically; the
+user will probably never need to use it.
+
+See B<TOC(7)> and B<ROLLING YOUR OWN> below.
+
+=cut
+
+sub toc_format_login_msg
+{
+#
+# this takes at least one argument.
+# the first argument will be returned unaltered
+# at the beginning of the string which is a
+# join (with spaces) of the remaining arguments
+# after they have been properly escaped and quoted.
+#
+    my $imsg = shift @_;
+    my $toc_command = shift @_;
+    my $useragentstr = pop @_;
+    my $escaped;
+    my $finalmsg;
+    
+    unless (defined $toc_command)
+    {
+	$main::IM_ERR = $SFLAP_ERR_ARGS;
+	return undef;
+    }
+
+    if (@_)
+    {
+	foreach $arg (@_)
+	{
+	    $escaped = $arg;
+	    $escaped =~ s/([\$\{\}\[\]\(\)\"\\\'])/\\$1/g;
+	    $finalmsg .= ' ' . $escaped. '';
+	}
+    }
+    else
+    {
+	$finalmsg = "";
+    }
+
+    $useragentstr =~ s/([\$\{\}\[\]\(\)\"\\\'])/\\$1/g;
+
+    $finalmsg = $toc_command . $finalmsg . ' "' . $useragentstr . '"';
     
     return $finalmsg;
 }
@@ -1031,10 +1090,10 @@ sub set_srv_buddies
 
     $srv_buddy_list =~ s/^CONFIG://;
 
-    return unless @srv_buddies = split "\n", $srv_buddy_list;
+    return unless (@srv_buddies = split "\n", $srv_buddy_list);
+
     for ($i=0; $i < scalar (@srv_buddies); $i++)
     {
-        my $x = scalar (@srv_buddies);
 	if ($srv_buddies[$i] =~ /^g\s*(.*)/)
 	{
 	    my $group = $1;
@@ -2425,30 +2484,71 @@ See also B<TOC(7)>.
 
 =head1 AUTHOR
 
-Copyright (C) 2000 Riad Wahby E<lt>B<rsw@mit.edu>E<gt> All rights reserved
+Copyright 2000-02 Riad Wahby E<lt>B<rsw@jfet.org>E<gt> All rights reserved
 This program is free software.  You may redistribute it and/or
 modify it under the same terms as Perl itself.
 
 =head1 HISTORY
 
 B<0.01>
+
     Initial Beta Release. (7/7/00)
 
 B<0.1>
+
     First public (CPAN) release. (7/14/00)
 
 B<0.11>
+
     Re-release under a different name with minor changes to the 
     documentation. (7/16/00)
 
 B<0.12>
+
     Minor modification to fix a condition in which the server's
     connection closing could cause an infinite loop.
 
 B<1.0>
+
     Changed the client agent string to TOC1.0 to fix a problem where
     connections were sometimes ignored.  Also changed the default signon
     port to 5198 and the login port to 1234.
+
+B<1.1>
+
+    Changed the client agent string again, this time to what seems
+    like the "correct" format, which is
+            PROGRAM:$Version info$
+    Also added the ability to set a login timeout in case the SIGN_ON
+    packet never comes.
+
+B<1.2>
+
+    Fixed a bug in toc_chat_invite that made it ignore some of its
+    arguments.  This should fix various problems with using this
+    subroutine.  Thanks to Mike Golvach for pointing this out.
+
+B<1.3>
+
+    Changed (defined @tci_buddies) to (@tci_buddies) in toc_chat_invite.
+    Fixed a potential infinite loop in set_srv_buddies involving an
+    off-by-one error in a for() test.  Thanks to Bruce Winter for
+    pointing this out.
+
+B<1.4> 
+
+    Changed the way that Net::AOLIM sends the login command string
+    because AOL apparently changed their server software, breaking the
+    previous implementation.  The new method requires that only the
+    user agent string be in double quotes; all other fields should not
+    be quoted.  Note that this does not affect the user interface at
+    all---it's all handled internally.  Thanks to Bruce Winter, Fred
+    Frey, Aryeh Goldsmith, and tik for help in tracking down and
+    fixing this error.
+
+    Also added additional checks to read_sflap_packet so that if the
+    other end of the connection dies we don't go into an infinite
+    loop.  Thanks to Chris Nelson for pointing this out.
 
 =cut
 

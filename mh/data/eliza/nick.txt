@@ -331,7 +331,7 @@ key: you 0
     reasmb: goto alike
   decomp: * you are *
     reasmb: What makes you think I am (2) ? Is it my pink shoes?
-    reasmb: Yep, I am definitely (2).  Every since I was 3.  Na Na.
+    reasmb: Yep, I am definitely (2).  Ever since I was 3.  Na Na.
     reasmb: Do you sometimes wish you were (2) ? Bwahahahaha!
     reasmb: Perhaps you would like to be (2). Perhaps you would kill to be (2)
   decomp: * you* me *

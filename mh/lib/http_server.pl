@@ -22,13 +22,14 @@ my %mime_types = (
                   'png'   => 'image/png',
                   'gif'   => 'image/gif',
                   'jpg'   => 'image/jpeg',
-                  'wml'   => 'text/vnd.wap.wml',
-                  'wmls'  => 'text/vnd.wap.wmlscript',
                   'wbmp'  => 'image/vnd.wap.wbmp',  
                   'bmp'   => 'image/bmp',
                   'au'    => 'audio/basic',
+                  'pls'   => 'audio/x-scpls',
                   'snd'   => 'audio/basic',
                   'wav'   => 'audio/x-wav',
+                  'wml'   => 'text/vnd.wap.wml',
+                  'wmls'  => 'text/vnd.wap.wmlscript',
                   'wmls'  => 'text/vnd.wap.wmlscript',
                   'wmlc'  => 'application/vnd.wap.wmlc',
                   'wmlsc' => 'application/vnd.wap.wmlscriptc',
@@ -159,7 +160,10 @@ sub http_process_request {
 #Agent: Mozilla/4.76 [en] (Windows NT 5.0; U)
 #Agent: Mozilla/4.7 [en] (X11; I; Linux 2.2.14-15mdk i686)
 #Agent: Mozilla/4.76 [en] (X11; U; Linux 2.2.16-22jjg i686)
-   
+#Audrey:     Mozilla/4.7 (Win98; Audrey)   
+#Compaq IA1: Mozilla/4.0 (compatible; MSIE 4.01; Windows CE; MSN Companion 2.0; 800x600; Compaq).
+#Aquapad:    Mozilla/4.0 (compatible; MSIE 4.01; Windows NT Windows CE)
+
     if ($Http{'User-Agent'}) {
         if ($Http{'User-Agent'} =~ /Windows CE/) {
             $Http{'User-Agent'}    =  'MSCE';
@@ -224,7 +228,7 @@ sub http_process_request {
     $get_arg =~ tr/\+/ /;       # translate + back to spaces (e.g. code search tk widget)
                                 # Real + will be in %## form (e.g. /SET;&html_list(X10_Item)?$test_house2?%2B15)
 
-    $get_arg =~ s/\&/&&/g;      # translate & to &&, so %## & will not trigger && splits
+    $get_arg =~ s/\&/&&/g;      # translate & to &&, since we translate %##  to & before splitting
 
                                 # translate from %## back to real characters
                                 # Ascii table: http://www.bbsinc.com/symbol.html 
@@ -237,11 +241,8 @@ sub http_process_request {
                                 # Store so that include files have access to parent args
     $ENV{HTTP_QUERY_STRING}  = $get_arg;
 
-                                # See if the request was for a file
-    if (&test_for_file($socket, $get_req, $get_arg)) {
-    }
                                 # Prompt for password
-    elsif ($get_req =~ /SET_PASSWORD$/) {
+    if ($get_req =~ /SET_PASSWORD$/) {
         if ($config_parms{password_menu} eq 'html') {
             if ($get_req =~ /^\/UNSET_PASSWORD$/) {
                 $Authorized = 0;
@@ -317,7 +318,9 @@ sub http_process_request {
         }
         return;
     }
-
+                                # See if the request was for a file
+    if (&test_for_file($socket, $get_req, $get_arg)) {
+    }
                                 # Test for RUN commands
     elsif  ($get_req =~ /\/RUN$/i or
             $get_req =~ /\/RUN[\:\;](\S*)$/i) {
@@ -572,6 +575,7 @@ sub http_get_local_file {
 sub test_for_file {
     my ($socket, $get_req, $get_arg, $no_header, $no_print) = @_;
 
+
     my ($file, $http_dir) = &http_get_local_file($get_req);
     return 0 unless $file;
 
@@ -591,6 +595,7 @@ sub test_for_file {
         my $file2;
         for my $default (split ',', $main::config_parms{'html_default' . $Http{format}}) {
             $file2 = "$file/$default";
+#           print "dbx gr=$get_req f=$file f2=$file2\n";
             last if -e $file2;
         }
         if (-e $file2) {
@@ -720,6 +725,7 @@ sub html_sub {
     my ($sub_name, $sub_arg, $sub_ref);
 
     $data = '&' . $data if $data and $data !~/^&/; # Avoid & character in the url ... messes up Tellme
+    $data =~ s/\=\&+$//;   # Goofy wapalizer (http://www.gelon.net) appends this??
 
                                 # Allow for &sub1 and &sub1(args)
     if ((($sub_name, $sub_arg) = $data =~ /^\&(\S+?)\((.+)\)$/) or
@@ -727,6 +733,7 @@ sub html_sub {
         $sub_arg = '' unless defined $sub_arg; # Avoid uninit warninng
 #       $sub_ref = \&{$sub_name};  # This does not work ... code refs are always auto-created :(
 #       if (defined $sub_ref) {
+
                                 # The %main:: array will have a glob for all subs (and vars)
         if ($main::{$sub_name}) {
             print "html_sub: a=$Authorized pa=$Password_Allow{'&$sub_name'} data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n" if $main::config_parms{debug} eq 'http';
@@ -831,25 +838,6 @@ sub html_last_response {
     $last_response = &last_response;
     $Last_Response = '' unless $Last_Response;
 
-                                # Create a tts wav file
-    my $tts_text = $last_response;
-                                # Skip if on the local box
-    my $webmute;
-    $webmute = 1 if ($Socket_Ports{http}{client_ip_address} eq '127.0.0.1') or !$tts_text;
-    if (defined $Cookies{webmute}) {
-        $webmute = 1 if $Cookies{webmute};
-    }
-    else {
-        $webmute = 1 if $config_parms{webmute};
-    }
-    unless ($webmute) {
-        $tts_text =~ s/^[\d\/\: ]+(AM|PM)//;
-        $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
-        &speak(to_file => "$config_parms{html_dir}/http_server.wav", text => $tts_text,
-               compression => (&is_local_address()) ? 'normal' : 'high');
-               
-    }
-
     if ($Last_Response eq 'speak') {
                                 # Allow for MSagent
         if ($browser =~ /^MS/ and $Cookies{msagent} and $main::config_parms{'html_msagent_script' . $Http{format}}) {
@@ -870,11 +858,65 @@ sub html_last_response {
     $last_response = substr $last_response, 0, $length if $length;
     $style = "$main::config_parms{'html_style_speak' . $Http{format}}" unless $style;
 
-                                # Create autoplay wav file
-    $last_response .= "\n<br><EMBED SRC='/http_server.wav' WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n" 
-        unless $webmute;
+    return($last_response, $style, $script);
+}
 
-    return $last_response, $style, $script;
+sub http_speak_to_wav_start {
+    my ($tts_text, $voice, $compression) = @_;
+
+                                # Try to To minimized the problem of 2 web browsers 
+                                # talking at the same time by using a semi-random .wav file name
+    my $wav_file = "cache/http_server.$Second.wav";
+
+                                # Skip if on the local box
+    my $webmute;
+    $webmute = 1 if ($Socket_Ports{http}{client_ip_address} eq '127.0.0.1') or !$tts_text;
+    if (defined $Cookies{webmute}) {
+        $webmute = 1 if $Cookies{webmute};
+    }
+    else {
+        $webmute = 1 if $config_parms{webmute};
+    }
+    return 0 if $webmute;
+
+    $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
+    ($compression = (&is_local_address()) ? 'low' : 'high') unless $compression;
+    &Voice_Text::speak_text(voice => $voice, to_file => "$config_parms{html_dir}/$wav_file", 
+                            text => $tts_text, compression => $compression, async => 1);
+
+                   # Some browsers (e.g. Audrey) do not echo port in Host data
+    my $ref = "http://$Http{Host}";
+    $ref .= ":$config_parms{http_port}" if $config_parms{http_port} and $ref !~ /$config_parms{http_port}$/;
+    $ref .= "/$wav_file";
+
+    return $ref;
+}
+
+sub http_speak_to_wav_finish {
+    my ($tts_text, $wav_file) = @_;
+
+    my $html = $tts_text;
+
+                                # Create autoplay wav file
+# EMBED and BGSOUND works with IE (EMBED did not work with older IE)
+# EMBED and BGSOUND works with WINCE on Compaq IA1
+# EMBED             works with Audrey
+# EMBED             works with Netscape  (with plugin)
+# EMBED             works with Konqueror (with plugin)
+# Embed gives controls, BGSOUND is invisible
+# Volume, with and without %, does not work (at least not in IE or Audrey)
+    if ($wav_file) {
+#       $html .= "\n<br><EMBED SRC='$wav_file' VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
+#       $html .= "\n<br><BGSOUND SRC='$wav_file' VOLUME=20>\n";
+        $html .= "\n<br><EMBED SRC='$wav_file'  VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n" . 
+                       "<NOEMBED><BGSOUND SRC='$wav_file'></NOEMBED>\n";
+#       $html .= "<a href='$wav_file'>Listen to wav</a>\n";
+    }
+
+                                # Without this, IE loads the file too quick??
+    select undef, undef, undef, 0.10; # Not sure why we need this
+
+    return($html);
 }
 
 
@@ -958,6 +1000,7 @@ sub html_file {
                 $get_arg = '' unless defined $get_arg; # Avoid uninitalized var msg
                 if ($directive eq 'file') {
                     eval "\$get_req = qq[$get_req]";  # Resolve $vars in file specs (e.g. config_parm{web_href...}
+                    $get_arg =~ s/\&/&&/g; # translate & to &&, since we translate %##  to & before splitting
                     if (my $html_file = &test_for_file($socket, $get_req, $get_arg, 1, 1)) {
                         $html .= $html_file;
                     }
@@ -1033,7 +1076,7 @@ sub html_cgi {
                                 # Need to redirect print/printf from STDOUT to $socket
 
                                 # Method 1.  Works except on Win95/98
-    $config_parms{http_cgi_method} = 2 unless $config_parms{http_cgi_method};
+    $config_parms{http_cgi_method} = 1 unless $config_parms{http_cgi_method};
     if ($config_parms{http_cgi_method} == 1) {
         open OLD_HANDLE, ">&STDOUT"  or print "\nhttp .pl error: can not backup STDOUT: $!\n";
         if (my $fileno = $socket->fileno()) {
@@ -1068,7 +1111,6 @@ sub html_cgi {
     eval $code;
     print "Error in http eval: $@" if $@;
 
-    print "db h=$html\n";
     if ($config_parms{http_cgi_method} == 1) {
         $socket->close();
         open  STDOUT, ">&OLD_HANDLE"  or print "\nhttp .pl error: can not redir STDIN to orig value: $!\n";
@@ -1199,7 +1241,7 @@ sub html_category {
         }
                                   # Create buttons with GD module if available
         if ($Info{module_GD}) {
-            $h_index .= qq[<a href=list?$category $info accesskey=$accesskey><img src="/bin/button.pl?$category" border="0"></a>\n]; }
+            $h_index .= qq[<a href=list?$category $info accesskey=$accesskey><img src="/bin/button.pl?$category" alt='$category' border="0"></a>\n]; }
         else {
             $h_index .= "<li>" . qq[<a href=list?$category $info accesskey=$accesskey>$category</a>\n];
         }
@@ -1213,7 +1255,7 @@ sub html_groups {
                                   # Create buttons with GD module if available
         if ($Info{module_GD}) {
             my $name = &pretty_object_name($group);
-            $h_index .= qq[<a href=list?group=$group><img src="/bin/button.pl?$name" border="0"></a>\n];
+            $h_index .= qq[<a href=list?group=$group><img src="/bin/button.pl?$name" alt='$name' border="0"></a>\n];
         }
         else {
             $h_index    .= "<li>" . &html_active_href("list?group=$group", &pretty_object_name($group)) . "\n";
@@ -1229,7 +1271,7 @@ sub html_items {
         next if $object_type eq 'Voice_Cmd'; # Already covered under Category
                                   # Create buttons with GD module if available
         if ($Info{module_GD}) {
-            $h_index .= qq[<a href=list?$object_type><img src="/bin/button.pl?$object_type" border="0"></a>\n];
+            $h_index .= qq[<a href=list?$object_type><img src="/bin/button.pl?$object_type" alt='$object_type' border="0"></a>\n];
         }
         else {
             $h_index    .= "<li>" . &html_active_href("list?$object_type", $object_type) . "\n";
@@ -1528,6 +1570,7 @@ sub html_command_table {
             my $h_icon = &html_find_icon_image($object, 'voice')) {
 #           my $alt = $object->{info} . " ($h_icon)";
             my $alt = $h_icon;
+            $alt =~ s/.*?([^\/]+)\..*/$1/; # Use just the base file name
             $html = qq[<input type='image' src="$h_icon" alt="$alt" border="0">\n];
 #           $html = qq[<img src="$h_icon" alt="$h_icon" border="0">];
         }
@@ -1719,7 +1762,7 @@ sub html_item_state {
              $config_parms{'html_target_speech' . $Http{format}}. "'>";
 
     if (my $h_icon = &html_find_icon_image($object, $object_type)) {
-        $html .= qq[<img src="$h_icon" alt="$h_icon" border="0"></a>];
+        $html .= qq[<img src="$h_icon" alt="$object_name" border="0"></a>];
     } 
     elsif ($state_now and 8 > length $state_now) {
         $html .= $state_now . '</a>&nbsp';
@@ -1985,6 +2028,7 @@ sub vars_global {
            my $value = ${$key};
 #          next unless defined $value;
            next if $value =~ /HASH/; # Skip object pointers
+           next if $key eq 'Password';
            push @table_items, "<td align='left'><b>\$$key:</b> $value</td>";
         } 
         elsif (defined %{$key}) {
@@ -2080,7 +2124,7 @@ sub vxml_form {
             $filled  .= qq|  <result name='$i'>\n|;
             $filled  .= qq|   <audio>$text</audio>\n| unless $text eq 'previous';
             $filled  .= qq|   $action[$i-1]\n| if $action[$i-1];
-            $filled  .= qq|   <goto next='$goto[$i-1]'/>\n  </result>\n|;
+            $filled  .= qq|   <goto expr="'$goto[$i-1]'"/>\n  </result>\n|;
         }
         $i++;
     }
@@ -2384,6 +2428,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.69  2002/05/28 13:07:52  winter
+# - 2.68 release
+#
 # Revision 1.68  2002/03/31 18:50:41  winter
 # - 2.66 release
 #
