@@ -79,9 +79,9 @@ $remark_bad  = new File_Item "$config_parms{data_dir}/remarks/personal_bad.txt",
 $remark_good = new File_Item "$config_parms{data_dir}/remarks/personal_good.txt", 'Ok';
 $f_deep_thoughts_ib = new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
 
-speak read_random $remark_nick if ON  eq state_now $ib_nick;
+speak voice => 'random', text => read_random $remark_nick if ON  eq state_now $ib_nick;
 #peak read_next   $remark_zach if ON  eq state_now $ib_zach;
-speak read_next   $f_deep_thoughts_ib if ON  eq state_now $ib_zach;
+speak voice => 'random', text => read_next $f_deep_thoughts_ib if ON  eq state_now $ib_zach;
 speak voice => 'random', text => read_next $remark_bad  if ON  eq state_now $ib_bruce;
 play "fun/*.wav"               if ON  eq state_now $ib_laurie;
 

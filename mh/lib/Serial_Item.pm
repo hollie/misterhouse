@@ -242,7 +242,7 @@ sub set {
         if ($serial_data =~ /(\d+)%/) {
             $serial_data = '&P' . int ($1 * 63 / 100 + 0.5);
         }
-                                # Make sure that &P codes have the house code prefixed
+                                # Make sure that &P codes have the house_unit code prefixed
                                 #  - e.g. device A1 -> A&P1
         if ($serial_data =~ /&P/) {
             $serial_data = substr($self->{x10_id}, 1, 1) . $serial_data;
@@ -251,6 +251,13 @@ sub set {
                                 #  - e.g. A&P1 -> A1A&P1
         if (substr($serial_data, 1, 1) eq '&') {
             $serial_data = $self->{x10_id} . $serial_data;
+        }
+
+                                # Make sure that +-\d codes have the house_unit code prefixed
+                                #  - e.g. device +12 -> A1A+12
+                                # Also round of to the nearest 5
+        if ($serial_data =~ /^X?[\+\-]?\d+$/) {
+            $serial_data = $self->{x10_id} . substr($self->{x10_id}, 1, 1) . $serial_data;
         }
    
         &main::print_log("X10: Outgoing data=$serial_data") if $main::config_parms{x10_errata} >= 4;
@@ -502,6 +509,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.55  2002/03/31 18:50:39  winter
+# - 2.66 release
+#
 # Revision 1.54  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

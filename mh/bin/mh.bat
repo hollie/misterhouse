@@ -5,7 +5,11 @@
 @rem It checks exit codes so it can loop if a non-requested exit occured
 @rem Note:  This must be run from the mh\bin directory
 
-@rem Gather up arguments into one var
+@rem Gather up arguments into one var. to pass to mh.exe or mh.pl file
+@rem  shift drops first arg off and moves arg 2 to arg 1, arg 3 to arg 2
+@rem  etc, on each pass of the loop until there are not more args,
+@rem  then program continues from START
+
 set pgmargs=
 set noloop=0
 :GETARGS

@@ -50,11 +50,11 @@ eof
 
                                 # This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
 $v_get_tv_grid_data1 = new  Voice_Cmd('[Get,reget,redo] tv grid data for today');
-$v_get_tv_grid_data7 = new  Voice_Cmd('[Get,reget,redo] tv grid data for the next week');
+$v_get_tv_grid_data2 = new  Voice_Cmd('[Get,reget,redo] tv grid data for the next 2 weeks');
 $v_get_tv_grid_data1-> set_info('Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.');
-if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data7) {
+if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data2) {
     if (&net_connect_check) {
-        my $days = (said $v_get_tv_grid_data7) ? 7 : 1;
+        my $days = (said $v_get_tv_grid_data2) ? 14 : 1;
         $state = ($state eq 'Get') ? '' : "-$state";
 
                                 # Call with -db sat to use sat_* parms instead of tv_* parms

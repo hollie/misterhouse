@@ -1,10 +1,10 @@
 # Category=MisterHouse
 
-$v_reload_code = new  Voice_Cmd("{Reload,re load} code");
+$v_reload_code = new  Voice_Cmd("[,Force] {Reload,re load} code");
 $v_reload_code-> set_info('Load new mh.ini, icon, and/or code changes');
-if (state_now $v_reload_code) {
+if ($state = state_now $v_reload_code) {
                                 # Must be done before the user code eval
-    push @Nextpass_Actions, \&read_code;
+    push @Nextpass_Actions, ($state eq 'Force') ? \&read_code_forced : \&read_code;
 #   read_code();
 #   $Run_Members{mh_control} = 2; # Reset, so the mh_temp.user_code decrement works
 }
@@ -15,7 +15,7 @@ read_table_files if said $v_read_tables;
 $v_set_password = new  Voice_Cmd("Set the password");
 if (said $v_set_password) {
     @ARGV = ();
-    do "$Pgm_PathU/set_password";
+    do "set_password";
 }
 
 $v_uptime = new  Voice_Cmd("What is your up time", 0);
@@ -61,7 +61,8 @@ $v_restart_mh = new Voice_Cmd 'Restart Mister House';
 $v_restart_mh-> set_info('Restart mh.  This will only work if you are start mh with mh/bin/mhl');
 &exit_pgm(1) if said $v_restart_mh;
 
-if ($Startup and $Save{mh_exit} ne 'normal') {
+# This will be abend.  Allow for no msg on first time use where this flag is not set yet.
+if ($Startup and $Save{mh_exit} and $Save{mh_exit} ne 'normal') {
     display "MisterHouse auto restarted: $Save{mh_exit}", 0;
 }
 

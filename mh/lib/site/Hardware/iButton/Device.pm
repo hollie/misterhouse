@@ -734,6 +734,9 @@ sub read_temperature_scratchpad {
 sub read_temperature {
     my($self) = @_;
 
+    my $c = $self->{'connection'};
+    return if !$c->id_on_wire( $self->id() );
+
     for ( 0..1 ) {
 	my $data = $self->read_temperature_scratchpad( $_ );
 	if ( $data ) {
@@ -761,6 +764,9 @@ sub read_temperature {
 
 sub read_temperature_hires {
     my($self) = @_;
+
+    my $c = $self->{'connection'};
+    return if !$c->id_on_wire( $self->id() );
 
     for ( 0..1 ) {
 	my $data = $self->read_temperature_scratchpad( $_ );

@@ -36,6 +36,7 @@ if (said  $v_get_internet_data) {
         run_voice_cmd 'Update stock quotes';                 # From stock.pl
 #       run_voice_cmd 'Check for new Ceiva photos';          # From ceiva.pl
         run_voice_cmd 'Update the daily comic strips';       # From comics_dailystrip.pl
+        run_voice_cmd 'Get on this day';                     # new_onthisday.pl
 
         print_log "Done with getting internet data";
     }

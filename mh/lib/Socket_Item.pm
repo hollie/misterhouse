@@ -25,6 +25,7 @@ sub new {
     print "\n\nWarning: duplicate ID codes on different socket_Item objects: id=$id\n\n" if $id and $socket_item_by_id{$id};
     $$self{port_name} = $port_name;
     $$self{host_port} = $host_port;
+    $$self{server} = 1 if $host_port and $host_port !~ /(\S+)\:(\S+)/;
     $$self{host_protocol} = $host_proto;
     $main::Socket_Ports{$port_name}{host_port} = $host_port if $host_port;
     $main::Socket_Ports{$port_name}{datatype}  = $datatype  if $datatype;
@@ -268,6 +269,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.21  2002/03/31 18:50:39  winter
+# - 2.66 release
+#
 # Revision 1.20  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

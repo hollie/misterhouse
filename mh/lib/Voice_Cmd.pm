@@ -259,7 +259,7 @@ sub check_for_voice_cmd {
                                 # This will set voice items for the NEXT pass ... do not want it active
                                 # for the current pass, because we do not know where we are in the user code loop
 sub set {
-    my ($self, $state, $set_by) = @_;
+    my ($self, $state, $set_by, $no_log) = @_;
     $set_by = 'unknown' unless $set_by;
     if ($$self{disabled}) {
         &main::print_log("Disabled command not run: $self->{text_by_state}{$state}");
@@ -267,7 +267,7 @@ sub set {
     }
     return if &main::check_for_tied_filters($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
-    &main::print_log("Running: $self->{text_by_state}{$state}");
+    &main::print_log("Running: $self->{text_by_state}{$state}") unless $no_log;
     print "db1 set voice cmd $self to $state\n" if $main::config_parms{debug} eq 'voice';
 }
 
@@ -608,6 +608,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.39  2002/03/31 18:50:39  winter
+# - 2.66 release
+#
 # Revision 1.38  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

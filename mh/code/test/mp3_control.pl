@@ -20,10 +20,10 @@ if ($config_parms{mp3_program_control} eq 'wactrl') {
                         'Volume up' => 'volup', 'Volume down' => 'voldown');
 }
 else {
-    $mp3_states = "Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat";
+    $mp3_states = "Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat,Restart,Shoutcast Connect";
     %winamp_commands = ('Next Song' => 'next', 'Previous Song' => 'prev',
                         'Toggle Shuffle' => 'shuffle', 'Toggle Repeat' => 'repeat',
-                        'Volume Up' => 'volumeup', 'Volume Down' => 'volumedown');
+                        'Volume Up' => 'volumeup', 'Volume Down' => 'volumedown', 'Shoutcast Connect' => 'shoutcast_connect');
 }
 # noloop=stop
 

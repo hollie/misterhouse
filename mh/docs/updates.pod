@@ -6,6 +6,134 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.66 posted on 03/31/2002
+
+Version 2.66 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+B<New Features:>
+
+- Robert Rozman sent in the mh/web/organizer files, a set of calendar, contacts, and tasks cgi scripts from verysimple.com.
+Copy the default mh/data/organizer files to your own data dir and point to that dir with the new mh.ini organizer_dir parm. 
+I updated the default mh.ini calendar href links used in ia5/calendar to use these scripts, rather than the yahoo pages.
+Since these are conventional cgi scripts, they require the ability to redirct STDOUT
+(same thing required with the recent windows http_fork support).
+This works on unix and NT/2K/XP boxes, but not on many (any?) win95/98 boxes.
+
+- Created mh/code/test/organizer.pl, which monitors that new organizer calendar, and creates 
+mh events to speak when a calender event occurs.
+
+- Added mh.ini web_href_calendar_history parm, used in the ia5 calander page.  
+The default points to the results of mh/code/public/news_onthisday.pl, which now works again.
+
+- Added a speak -compression option, currently only for the MS V5 TTS engine.
+This option picks the .wav format to use when using -to_file to save TTS to a file.
+Options are (example sizes are for a short 4 word phrase): 
+
+   high => GSM 6.10 11 kHz   mono ( 3k.  Not usable on an Audrey),  
+ normal => PCM  8 kHz  8 bit mono (16k.  New default)
+    low => PCM 22 kHz 16 bit mono (88k.  Old default)
+
+Also updated speak_server.pl and http_server webmute=0 to use -high if request was from a remote browser.
+
+- Updated X10_Item so that the ##% states (e.g. 10% or 75%) can be used with normal (older, cheaper) modules.
+mh will now use what it thinks the current brightness level is to come up with a +-## 
+bright/dim command.  If the module was off, it will first be turned to full on, since the 
+older modules can not be dimmed from an off state.
+
+- To support the above change, but still allow preset-able modules to use ##% preset levels,
+we added a 3rd parm to X10_Item (the 2nd parm is what X10 interface
+you want to use, if you don't want the default).  Those of you with newer 2-way modules that 
+support preset dims (e.g. LM14) will want to specify 'preset' or 'LM14'.
+Here is an example, in normal and mht form:
+
+  $light1 = new X10_Item('O1', '', 'preset');
+  X10I,  O2,  light2, All_Lights|Upstairs,   ,LM14
+
+- Added mh.ini html_status_line* parms, so you can point to a custom status line at the bottom 
+of your ia5 and photos page.  Default is web/bin/status_line_small/big.pl, depending if you
+are browsing from a small browser (e.g. Audrey or WinCE) or not.
+Bob Hughes fixed a bug to re-enabled the sunrise icon.
+
+- Brian Paulson added Generic_Item methods set_web_style and get_web_style, to allow us to pick the
+web style of dropdown, radio, or url for Voice_Cmd objects.
+An example is in mh/code/examples/test_web_styles.pl.
+
+- Richard Phillips added code/public/mp3_playlist_xmms.pl for linux, 
+so that now *all* the playlist functions, mp3 database, 
+etc available in the standard ia5 jukebox work 'just dinky keen fine'.
+
+- David Norwood and I created mh/code/public/tk_photos.pl, like the web photo slideshow, but 
+displays locally and full screen.  Use keys n,p,q for next, previous, and quit.
+If you have Image::Magick installed (or run mh.exe) and have a fast box, you can try
+setting mh.ini parm photo_resize=1 to have the images resized on-the-fly to full screen (causes mh pauses on slower boxes).
+
+- Added a 2nd, $second parameter to time_now and time_cron.
+Use this to specify which second to fire on.  If not specified, the default is still $Second == 0 (i.e. minute boundaries).
+Set to '*' to fire on all passes for the matched minute(s). 
+Note, we had recently added a more limited 2nd parm to time_cron, so if you used this, change it from '1' to '*'.
+
+- Added the option to specify default speak options with mh.ini parms.
+For example, if you want to have a default volume of 40, use speak_volume=40.   
+If you want to have all speech go to files, use speak_file=file_name.
+
+
+B<Bug Fixes and Other Changes:>
+
+- Reverted the windows mh.exe back to perl 5.0 (it was 5.6 in the 2.65 release).  
+Except for the Jabber code, 5.0 still does everything that 5.6 does, and there seems to be fewer memory problems for most.
+
+- Modify INC path to look for mh/lib before, not after, the locally installed libs.  This avoids inconsistencies
+with older/newer modules installed locally.  Also modify INC before we process mh -run commands, so you can use
+the local mh lib modules when calling various mh/bin scrips.  Also added a lib/site_win* dirs
+so we can support Windows sendkey on both 5.0 and 5.6.
+
+- Added a mh.ini gd parm, to allow the GD web page icons to be turned off.
+
+- Brian Paulson added code to the ibutton modules to verify the chip is on the bus before trying to read it's temperature. 
+
+- Harald Koch updated bin/get_weather_ec (Canadian weather data) with more reliable table parsing.  
+
+- Gary Sanders found a problem with passing & data to web scripts, like iniedit.pl.
+
+- Kent Noonan fixed logos in get_tv_grid when using multiple providers.
+
+- Craig Schaeffer found a 2.65 get_tv_grid problem in searching for favorite tv shows, 
+and Scott Johnston found an INC problem where it would not find LWP modules.
+
+- Kent Noonan updated lib/RedRat.pm to allow for saving and setting of states.
+
+- Bob Hughes sent in some fixes for the new web button code.
+
+- Scott Reston added a _stopped state to X10_Sensor.  We also fixed it so the 2 character id option works.  
+
+- Kevin Wambsganz and I added $ENV{HTTP_QUERY_STRING}, which reflects the current web page's arguments.
+This lets use use parent shtml page arguments in child includes.
+
+- Added -height, -width, and -geometry options to display.  Used in internet_data.pl top 10 list display, 
+along with a bigger font so we can read the tk display from across the room.
+
+- Added a 'Force reload code' option and call this from a 'Build mp3 database', so new songs are shown without restarting mh.
+
+- Fixed timers.pl 'Cancel all timers'
+
+- Fixed a 2.65 bug that messed up mh client sockets on perl 5.0
+
+- Added a 'List status of all code files' commands so we can review if any code files are disabled.
+
+- Added 'Back' buttons to the upper left quadrant of the LED clock and photo pages.
+
+- Enabled the web ia5 WebMute and MSAgent speech settings page, using a new mh/web/bin/set_cookie.pl function.
+
+- Changed the default for mh.ini parm http_fork.  If not specified, it now defaults to 
+1 (on) for unix and NT/2K/XP and 0 (off) for win 95/98/me.  
+Also, setting it to 0 will now disable if on unix also, for those having problems with forks there.
+
+- Fixed a memory leak problem when displaying .gif or .jpg images with tk.
+
+
 =head2 Version 2.65 posted on 03/01/2002
 
 Version 2.65 was just uploaded to:
@@ -4127,7 +4255,8 @@ page (see http://www.isl.net/~winter/online for an example of what that page loo
 
 Version 1.27 was just uploaded to http://www.isl.net/~winter/house/programs.  Lots of new tricks and changes:
 
-- linux support!  Except for a few minor things like VR and serial port IO :)  Still, there should be enough function on a linux to be useful.
+- With some help from David DellaNave, we now have mh working on linux!  
+Except for a few minor things like VR and serial port IO :)  Still, there should be enough function on a linux to be useful.
 TTS (with the Festival speech engine installed) and all the internet, telnet, and web function works.
 Details on installation are in the README.HTML and limitations are documented at the bottom of mh.html
 

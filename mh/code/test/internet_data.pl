@@ -21,8 +21,11 @@ $v_top10_list2-> set_info("This is David Lettermans famoust Top 10 List");
 $v_top10_list2-> set_authority('anyone');
 $v_top10_list2-> tie_items($v_top10_list, 1, 'Show');
 
-speak  voice => 'male', text => $f_top10_list if said $v_top10_list eq 'Read';
-display $f_top10_list if said $v_top10_list eq 'Show';
+$state = said $v_top10_list;
+speak  voice => 'male', text => $f_top10_list, display => 0 if $state eq 'Read';
+display text => $f_top10_list, time => 300, font => 'Times 25 bold', geometry => '+0+0', width => 72, height => 24
+#display text => $f_top10_list, time => 300, font => 'biggest' if $state eq 'Show' or $state eq 'Read';
+  if $state eq 'Show' or $state eq 'Read';
 
 if (said $v_top10_list eq 'Get') {
 
@@ -30,7 +33,7 @@ if (said $v_top10_list eq 'Get') {
     if (-s $f_top10_html > 10 and
         time_date_stamp(6, $f_top10_html) eq time_date_stamp(6)) {
         print_log "Top 10 list is current";
-        display $f_top10_list, 300;
+        set $v_top10_list 'Show';
     }
     else {
         if (&net_connect_check) {
@@ -73,7 +76,7 @@ if (done_now $p_top10_list) {
 
     file_write($f_top10_list, $text);
 
-    display $f_top10_list;
+    set $v_top10_list 'Show';
 }
 
 

@@ -52,7 +52,7 @@ if ($state = $test_input1) {
                                 # Note: This will set test_output widget
         speak 'running tk_entry';
         @ARGV = (\$Save{test_output}, "Enter test output data:");
-        do "$Pgm_PathU/tk_entry";
+        do "tk_entry";
     }
                                 # Test str2time
     elsif ($state eq 'h') {

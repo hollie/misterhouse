@@ -10,7 +10,9 @@ $v_deep_thought_next-> set_authority('anyone');
 fileit($f_deep_thought, read_next $f_deep_thoughts) if said $v_deep_thought_next;
 
 if ($state = said $v_deep_thought or $state = said $v_deep_thought_next) {
-    ($state eq 'Read') ? speak $f_deep_thought : display $f_deep_thought;
+    speak   $f_deep_thought if $state eq 'Read';
+    display $f_deep_thought if $state eq 'What is';
+    display text => $f_deep_thought, font => 25 if $state eq 'Display';
 }
 
 $house_tagline = new  File_Item("$config_parms{data_dir}/remarks/1100tags.txt");

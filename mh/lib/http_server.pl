@@ -61,6 +61,8 @@ sub http_read_parms {
             
     $html_info_overlib = 1 if $main::config_parms{html_info} and $main::config_parms{html_info} =~ 'overlib';
 
+    $config_parms{http_fork} = 1 if ($config_parms{http_fork} ne '0') and (!$OS_win or $OS_win and Win32::IsWinNT);
+
 #html_user_agents    = Windows CE=>1,whatever=>2
     for my $temp (split ',', $config_parms{html_browser_formats}) {
         my ($agent, $format) = $temp =~ / *(.+) *=> *(\d+)/;
@@ -132,11 +134,12 @@ sub http_process_request {
     $Http{request} = $header;
     $Http{Referer} = '' unless $Http{Referer}; # Avoid uninitilized var errors
     ($Http{Host_address}) = $Http{Host} =~ /([^\:]+)/ if $Http{Host}; # Drop the port, if present
+    $Http{Client_address} = $Socket_Ports{http}{client_ip_address};
 
     if ($Http{Cookie}) {
         for my $key_value (split ';', $Http{Cookie}) {
             my ($key2, $value2) = $key_value =~ /(\S+)=(\S+)/;
-            $Cookies{$key2} = $value2 if $value2;
+            $Cookies{$key2} = $value2 if defined $value2;
         }
     }
     if ($Http{Authorization}) {
@@ -216,7 +219,6 @@ sub http_process_request {
         return;
     }
 
-    $get_arg = '' unless defined $get_arg;
     logit "$config_parms{data_dir}/logs/server_http.$Year_Month_Now.log",  "$Socket_Ports{http}{client_ip_address} $get_req $get_arg";
 
     $get_arg =~ tr/\+/ /;       # translate + back to spaces (e.g. code search tk widget)
@@ -232,6 +234,8 @@ sub http_process_request {
 
 #   print "http: gr=$get_req ga=$get_arg\n" if $main::config_parms{debug} eq 'http';
 
+                                # Store so that include files have access to parent args
+    $ENV{HTTP_QUERY_STRING}  = $get_arg;
 
                                 # See if the request was for a file
     if (&test_for_file($socket, $get_req, $get_arg)) {
@@ -830,12 +834,20 @@ sub html_last_response {
                                 # Create a tts wav file
     my $tts_text = $last_response;
                                 # Skip if on the local box
-    my $webmute = 1 if $Cookies{webmute} or $config_parms{webmute} or 
-        !$tts_text or $Socket_Ports{http}{client_ip_address} eq '127.0.0.1';
+    my $webmute;
+    $webmute = 1 if ($Socket_Ports{http}{client_ip_address} eq '127.0.0.1') or !$tts_text;
+    if (defined $Cookies{webmute}) {
+        $webmute = 1 if $Cookies{webmute};
+    }
+    else {
+        $webmute = 1 if $config_parms{webmute};
+    }
     unless ($webmute) {
         $tts_text =~ s/^[\d\/\: ]+(AM|PM)//;
         $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
-        &speak(to_file => "$config_parms{html_dir}/http_server.wav", text => $tts_text);
+        &speak(to_file => "$config_parms{html_dir}/http_server.wav", text => $tts_text,
+               compression => (&is_local_address()) ? 'normal' : 'high');
+               
     }
 
     if ($Last_Response eq 'speak') {
@@ -936,16 +948,16 @@ sub html_file {
                                 # Example:  <li>Version: <!--#include var="$Version"--> ...
 #           if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=[\"\']([^\"\']+)[\"\'] *--\>(.*)/) {
             if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
-                 print "Http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
-                 $html .= $prefix;
+                print "Http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
+                $html .= $prefix;
                                 # tellme vxml does not like comments in the middle of things :(
                                 # - also had problems with comments inside td elements, so lets skip this
                                 #   e.g.: " <td <!--#include file="motion.pl?timer_motion_main"--> > 
-#                $html .= "\n<\!-- The following is from include $directive = $data -->\n" unless $file =~ /\.vxml$/;
-                 my ($get_req, $get_arg) = $data =~ m|(\/?[^ \?]+)\??(\S+)?|;
-                 $get_arg = '' unless defined $get_arg; # Avoid uninitalized var msg
-                 if ($directive eq 'file') {
-#                   eval "\$get_req = qq[$get_req]";  # Not needed?
+#               $html .= "\n<\!-- The following is from include $directive = $data -->\n" unless $file =~ /\.vxml$/;
+                my ($get_req, $get_arg) = $data =~ m|(\/?[^ \?]+)\??(\S+)?|;
+                $get_arg = '' unless defined $get_arg; # Avoid uninitalized var msg
+                if ($directive eq 'file') {
+                    eval "\$get_req = qq[$get_req]";  # Resolve $vars in file specs (e.g. config_parm{web_href...}
                     if (my $html_file = &test_for_file($socket, $get_req, $get_arg, 1, 1)) {
                         $html .= $html_file;
                     }
@@ -989,24 +1001,13 @@ sub html_file {
         }
 
         @ARGV = '';             # Have to clear previous args
-        @ARGV = split(/[&]+/, $arg) if defined $arg;
-
+        @ARGV = split(/&&/, $arg) if defined $arg;
 
                                 # Allow for regular STDOUT cgi scripts
         if ($code =~ /^\S+perl/) {
-            print "http: running cgi script: $file\n";
-            open OLD_HANDLE, ">&STDOUT"  or print "\nhttp .pl error: can not backup STDOUT: $!\n";
-            if (my $fileno = $socket->fileno()) {
-                print "http: cgi redirecting socket fn=$fileno s=$socket\n" if $main::config_parms{debug} eq 'http';
-                open STDOUT, ">&$fileno" or warn "http .pl error: Can not redirect STDOUT: $!\n";
-                print STDOUT "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-Type: text/html\nCache-control: no-cache\n\n";
-                eval $code;
-                print "Error in http eval: $@" if $@;
-                $socket->close();
-                open  STDOUT, ">&OLD_HANDLE"  or print "\nhttp .pl error: can not redir STDIN to orig value: $!\n";
-                close OLD_HANDLE;
-                return;
-            }
+            print "http: running cgi script: $file\n" if $main::config_parms{debug} eq 'http';
+            &html_cgi($socket, $code, $arg);
+            return;
         }
         else {
             $html = eval $code;
@@ -1024,6 +1025,60 @@ sub html_file {
     }
     close HTML;
     return $html;
+}
+
+sub html_cgi {
+    my ($socket, $code, $arg) = @_;
+    my $html;
+                                # Need to redirect print/printf from STDOUT to $socket
+
+                                # Method 1.  Works except on Win95/98
+    $config_parms{http_cgi_method} = 2 unless $config_parms{http_cgi_method};
+    if ($config_parms{http_cgi_method} == 1) {
+        open OLD_HANDLE, ">&STDOUT"  or print "\nhttp .pl error: can not backup STDOUT: $!\n";
+        if (my $fileno = $socket->fileno()) {
+            print "http: cgi redirecting socket fn=$fileno s=$socket\n" if $main::config_parms{debug} eq 'http';
+                                # This is the step that fails on win98 :(
+            open STDOUT, ">&$fileno" or warn "http .pl error: Can not redirect STDOUT to $fileno: $!\n";
+        }
+    }
+                                # Method 2.  If CGI is used (e.g. organizer scripts), this
+                                #    gives this error on eval: Undefined subroutine CGI::delete
+    else {
+        package Override_print;
+        sub TIEHANDLE { bless $_[1], $_[0]; }
+        sub PRINT  { my $coderef = shift; $coderef->(@_); }
+        sub PRINTF { my $coderef = shift; $coderef->(@_); }
+#       sub DELETE { }
+        sub define_print   (&) {   tie(*STDOUT, "Override_print", @_); }
+        sub undefine_print (&) { untie(*STDOUT); }
+        
+        package Main;
+        Override_print::define_print { $html .= shift };
+    }
+    
+    print "HTTP/1.0 200 OK\nServer: MisterHouse\nCache-control: no-cache\n";
+
+                                # Setup up vars so pgms like CGI.pm work ok
+    $arg =~ s/&&/&/g;
+    $ENV{QUERY_STRING}      = $arg;
+    $ENV{REQUEST_METHOD}    = 'GET';
+    eval '&CGI::initialize_globals';  # Need this or else CGI.pm global vars are not reset
+    local $^W = 0;  # Avoid redefined sub msgs
+    eval $code;
+    print "Error in http eval: $@" if $@;
+
+    print "db h=$html\n";
+    if ($config_parms{http_cgi_method} == 1) {
+        $socket->close();
+        open  STDOUT, ">&OLD_HANDLE"  or print "\nhttp .pl error: can not redir STDIN to orig value: $!\n";
+        close OLD_HANDLE;
+    }
+    else {
+        Override_print::undefine_print { };
+        print $socket $html;
+        $socket->close();
+    }
 }
 
 sub mime_header {
@@ -1279,37 +1334,6 @@ sub html_list {
                                 # This means the form was submited ... check for search keyword
     if (my ($search) = $webname_or_object_type =~ /search=(.*)/) {
 
-                                # Check for msagent checkbox
-        if ($webname_or_object_type =~ /msagent=1/) {
-            unless ($Cookies{msagent}) {
-                $Cookies{msagent} = 1;
-                $Cookie .= "Set-Cookie: msagent=1 ; ; path=/;\n";
-                return "<h3>MS agent has been turned On</h3>";
-            }
-        }
-        else {
-            if ($Cookies{msagent}) {
-                $Cookies{msagent} = 0;
-                $Cookie .= "Set-Cookie: msagent=0 ; ; path=/;\n";
-                return "<h3>MS agent has been turned Off</h3>";
-            }
-        }
-                                # Check for webmute checkbox
-        if ($webname_or_object_type =~ /webmute=1/) {
-            unless ($Cookies{webmute}) {
-                $Cookies{webmute} = 1;
-                $Cookie .= "Set-Cookie: webmute=1 ; ; path=/;\n";
-                return "<h3>Web wav files have been disabled</h3>";
-            }
-        }
-        else {
-            if ($Cookies{webmute}) {
-                $Cookies{webmute} = 0;
-                $Cookie .= "Set-Cookie: webmute=0 ; ; path=/;\n";
-                return "<h3>Web wav files have been enabled</h3>";
-            }
-        }
-
                                 # Search for matching Voice_Cmd and Tk Widgets
         $h_list .= "<!-- html_list list_objects_by_search=$search -->\n";
         my %seen;
@@ -1322,7 +1346,7 @@ sub html_list {
             push @object_list, $object_name;
         }
         $h_list .= &widgets('search', $search);
-        $h_list .= &html_command_table(sort @object_list);
+        $h_list .= &html_command_table(@object_list);
         return $h_list;
 
     }
@@ -1343,7 +1367,7 @@ sub html_list {
 
         $h_list .= "<!-- html_list list_objects_by_authority=$search -->\n";
 #       $h_list .= &widgets('search', $1);
-        $h_list .= &html_command_table(sort @object_list);
+        $h_list .= &html_command_table(@object_list);
         return $h_list;
     }
 
@@ -1378,11 +1402,12 @@ sub html_list {
     if (@object_list = &list_objects_by_webname($webname_or_object_type)) {
         $h_list .= "<!-- html_list list_objects_by_webname -->\n";
         $h_list .= &widgets('all', $webname_or_object_type);
-        $h_list .= &html_command_table(sort @object_list) if @object_list;
+        $h_list .= &html_command_table(@object_list) if @object_list;
         return $h_list;
     }
 
 }
+
 
 sub table_it {
     my ($cols, $border, $space, @items) = @_;
@@ -1524,26 +1549,51 @@ sub html_command_table {
 
         $html .= qq[<b>$prefix</b>] if $prefix;
 
+	my $web_style = get_web_style $object;
+	if ( !defined $web_style ) {
+	    if ( $states_with_select ) {
+		$web_style = "dropdown";
+	    }
+	    elsif ( $states ) {
+		$web_style = "url";
+	    }
+	}
+
                                 # Use a SELECT dropdown with 4 or more states
-        if ($states_with_select) {
+        my $currState = state $object;
+        if ($web_style eq "dropdown") {
             $html .= qq[<SELECT name="select_cmd" onChange="form.submit()">\n];
 #           $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
             $msagent_cmd1 = "$prefix (";
-            my $selected = 'SELECTED';
             for my $state (@states) {
+                my $selected = $currState && $state eq $currState ? "selected" : "";
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
                 $text_cmd =~ tr/ /\_/;  
-                $html .= qq[<option value="$text_cmd"$selected>$state\n];
+                $html .= qq[<option $selected value="$text_cmd">$state</option>\n];
                 $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
                 $msagent_cmd1 .= "$state|" if $state;
-                $selected = '';
+            }
+            substr($msagent_cmd1, -1, 1) =  ") $suffix";
+            $html .= qq[</SELECT>\n];
+        }
+        elsif ( $web_style eq "radio" ) {
+#           $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
+            $msagent_cmd1 = "$prefix (";
+            for my $state (@states) {
+                my $selected = $currState && $state eq $currState ? "checked" : "";
+                my $text_cmd = "$prefix$state$suffix";
+                $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
+                $text_cmd =~ tr/ /\_/;  
+                $html .= qq[<INPUT type="radio" name="select_cmd" $selected onChange="form.submit()" value="$text_cmd"/>$state\n];
+                $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
+                $msagent_cmd1 .= "$state|" if $state;
             }
             substr($msagent_cmd1, -1, 1) =  ") $suffix";
             $html .= qq[</SELECT>\n];
         }
                                 # Use hrefs with 2 or 3 states
-        elsif ($states) {
+        elsif ( $web_style eq "url" ) {
             my $hrefs;
             $msagent_cmd1 = "$prefix (";
             for my $state (@states) {
@@ -1695,7 +1745,7 @@ sub html_item_state {
         $html .= qq[<SELECT name="select_state" onChange="form.submit()">\n];
         $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
         for my $state (@states) {
-            my $state_short = substr $state, 0, 5;
+            my $state_short = substr $state, 0, 15;
             $html .= qq[<option value="$state">$state_short\n];
 #           $html .= qq[<a href='SET;&html_list($object_type)?$object_name?$state'>$state</a> ];
         }
@@ -1730,7 +1780,7 @@ sub html_item_state {
     unless ($use_select) {
         for my $state (@states) {
             next unless $state;
-            my $state_short = substr $state, 0, 5;
+            my $state_short = substr $state, 0, 15;
                                 # Some browsers (e.g. Audrey) do not have full url in Referer :(
             my $referer = ($Http{Referer} =~ /html$/) ? 'referer' : "&html_list($object_type)";
             $html .= qq[ <a href='SET;$referer?$object_name=$state'>$state_short</a>];
@@ -1794,7 +1844,7 @@ sub print_socket_fork {
     $socket_fork_data{length} = $length;
                                 # These sizes are picked a bit randomly.  Don't need to fork on small files
                                 #  - A few Win98 users had problems, but unix is ok
-    if (($main::config_parms{http_fork} or !$OS_win) and
+    if (($main::config_parms{http_fork}) and
         ($length > 3000 and !&is_local_address() or $length > 10000)) {
         print "http: printing with forked socket: l=$length s=$socket\n" if $main::config_parms{debug} eq 'http';
         if ($OS_win) {
@@ -2334,6 +2384,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.68  2002/03/31 18:50:41  winter
+# - 2.66 release
+#
 # Revision 1.67  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

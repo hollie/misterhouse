@@ -351,9 +351,31 @@ sub delete_old_tied_times {
     undef @items_with_tied_times;
 }
 
+sub set_web_style {
+    my ( $self, $style ) = @_;
+
+    my %valid_styles = map { $_ => 1 } qw( dropdown radio url );
+
+    if ( !$valid_styles{ lc( $style ) } ) {
+	&main::print_log( "Invalid style ($style) passed to set_web_style.  Valid choices are: " . join( ", ", sort keys %valid_styles ) );
+	return;
+    }
+
+    $self->{ web_style } = lc( $style );
+}
+
+sub get_web_style {
+    my $self = shift;
+
+    return if !exists $self->{ web_style };
+    return $self->{ web_style };
+}
 
 #
 # $Log$
+# Revision 1.18  2002/03/31 18:50:38  winter
+# - 2.66 release
+#
 # Revision 1.17  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

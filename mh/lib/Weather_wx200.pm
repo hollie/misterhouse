@@ -215,8 +215,9 @@ sub wx_wind {
         $$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill});
     }
 
-    $$wptr{SummaryWind} = sprintf("Wind avg/gust:%3d /%3d  from the %s",
-                                  $$wptr{WindAvgSpeed}, $$wptr{WindGustSpeed}, &main::convert_direction($$wptr{WindAvgDir}));
+    $$wptr{Wind} = sprintf("%3d /%3d from the %s",
+                           $$wptr{WindAvgSpeed}, $$wptr{WindGustSpeed}, &main::convert_direction($$wptr{WindAvgDir}));
+    $$wptr{SummaryWind} = "Wind avg/gust:$$wptr{Wind}";
 
     print "wind = $$wptr{WindGustSpeed}, $$wptr{WindAvgSpeed}, $$wptr{WindGustDir}, $$wptr{WindAvgDir} chill=$$wptr{WindChill}\n" 
         if $debug;
@@ -239,6 +240,9 @@ sub wx_time {
 
 #
 # $Log$
+# Revision 1.7  2002/03/31 18:50:40  winter
+# - 2.66 release
+#
 # Revision 1.6  2001/11/18 22:51:43  winter
 # - 2.61 release
 #

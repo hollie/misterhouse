@@ -126,7 +126,7 @@ mp3_control_mrMP3.pl
  - Douglas Nakakihara's code to control a Windows Media Player based mp3 player
    he wrote called mrMP3
 
-mp3_control_xmms.pl
+mp3_control_xmms.pl, mp3_playlist_xmms.pl
  - Richard Phillips's code for controling the xmms MP3 player for Linux.
  - Also see xmms_*.pl members
 
@@ -220,6 +220,9 @@ tv_info_clive.pl
 
 tv_info_ge.pl
  - Stoll Thomas's code for tv queries of german stations (uses mh/bin/get_tv_info_ge) via http://www.tvspielfilm.de
+
+tk_photos.pl
+ - David Norwood's code for displaying a local, full screen photo slideshow using tk.
 
 video_inline.pl
  - Kent Noonan's code for controling the inline video scan doubler

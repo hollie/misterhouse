@@ -31,5 +31,5 @@ eof
 
     $msg =~ s/(\S)\n/$1 /g;            # Strip the cr, so it autowraps
 #   print $msg;
-    display $msg;
+    display text => $msg, geometry => '+0+0';
 }

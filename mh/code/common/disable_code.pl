@@ -16,18 +16,30 @@ if ($Reload) {
 }
 
 
-$v_toggle_run_members = new Voice_Cmd "[Disable,Enable] all code files";
+$v_toggle_run_members = new Voice_Cmd "[Disable,Enable,List status of] all code files";
 $v_toggle_run_members-> set_info('Use this for debug.  Turns all code files on or off');
 
 if ($state = said $v_toggle_run_members) {
     print_log "$state all code members";
-    $state = ($state eq 'Disable') ? 0 : 1;
-    undef %code_members_off;
-    for my $member (keys %Run_Members) {
+    my $new_state = ($state eq 'Disable') ? 0 : 1;
+    undef %code_members_off if $new_state;
+    my ($list, $cnt1, $cnt2);
+    $cnt1 = $cnt2 = 0;
+    for my $member (sort keys %Run_Members) {
+        $cnt1++;
         next if $member eq 'disable_code' or $member eq 'mh_control';
-        $Run_Members{$member} = $state;
-        $code_members_off{$member} = 1 unless $state;
+        if ($state eq 'List status of') {
+            unless ($Run_Members{$member}) {
+                $list .= ",$member";
+                $cnt2++;
+            }
+        }
+        else {
+            $Run_Members{$member} = $new_state;
+            $code_members_off{$member} = 1 unless $new_state;
+        }
     }
+    print_log "$cnt2 of $cnt1 members are disabled:  $list" if $state eq 'List status of';
     $Save{code_members_off} = join ',', sort keys %code_members_off;
 }
 

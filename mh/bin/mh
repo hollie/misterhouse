@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-02-28 17:30:28 winter>
+#  Last change Time-stamp: <2002-03-30 21:37:18 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -26,16 +26,20 @@ use strict;
 
 my ($Pgm_Name, $Revision, $usage);
 				# So we can get at it from other packages
-use vars qw(%config_parms %config_parms_startup $Pgm_Path $Version $Version_date);
+use vars qw(%config_parms %config_parms_startup $Pgm_Path $Version $Version_date %Info);
 
 BEGIN {
+    $Info{Perl_compiled} = 1 unless $^X =~ /perl/i;
 
     ($Version) = q$Revision$ =~ /: (\S+)/; # Auto-updated by CVS
+    $Version .= " (compiled)" if $Info{Perl_compiled};
 
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /^(.*)[\\\/]([^.]+)/i;
-    ($Pgm_Name) = $0 =~ /([^.]+)/i unless $Pgm_Name;
-
+            # $0=path to mh/bin, $^X=path to perl, unlessed compiled mh.exe
+    ($Pgm_Path, $Pgm_Name) = $0  =~ /^(.*)[\\\/]([^.]+)/;
+    ($Pgm_Path, $Pgm_Name) = $^X =~ /^(.*)[\\\/]([^.]+)/ if $Info{Perl_compiled};
+                               # $0=mh if we run from mh/bin
     unless ($Pgm_Path) {
+        ($Pgm_Name) = $0 =~ /([^.]+)/i;
         use Cwd;
         $Pgm_Path = cwd();
                                 # When we do system calls in Dos, we need \, not /
@@ -95,7 +99,7 @@ use vars '%Serial_Ports';       # So we can get at it from the Serial_Item packa
 use vars '%Socket_Ports';
 use vars '%Save';
 use vars '%Persistent';         # Uses Dumper for dynamic objects e.g. timers.pl
-use vars '%Info', '$OS_win';
+use vars '$OS_win';
 use vars '%Password_Allow';     # So we can see check it from http_server.pl
 use vars '%Disabled_Commands';  # So we can access fro Voice_Cmd.pm
 use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
@@ -120,13 +124,27 @@ sub ReadMode {};                # In case Readkey is not installed
 sub ReadKey  {};
 
 BEGIN {
+    &setup_INC;
     &check_for_run_cmd;
     &print_version;
-    &setup_INC;
     &check_usage;
     &read_parms;
     &use_conditional_modules;
     print "Loading other modules\n";
+
+    sub setup_INC {
+                                # For some weird reason, we get a startup abend this is evaled after we change INC with perl2exe :(
+        eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)"
+            if $Info{Perl_compiled};
+
+                                # Pick local mh modules first, over any site install ones
+        unshift (@INC, './../lib', './../lib/site', '.');
+        if ($^O eq 'MSWin32') {
+            push @INC, (&Win32::BuildNumber() < 600) ? './../lib/site_win50' : './../lib/site_win56';
+        }
+        require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
+    }
+
 
     sub check_for_run_cmd {
                                 # This lets us use mh as a perl interpreter for running arbitrary perl code
@@ -150,15 +168,12 @@ BEGIN {
     }
 
     sub print_version {
+        
+        $Version_date = localtime((stat $0)[9]);
+        $Version_date = localtime((stat $ENV{sourceExe})[9]) if $ENV{sourceExe}; # Older 3.x perl2exe
 
-        $Info{Perl_compiled} = 1 unless $^X =~ /perl/i;
-        
-        $Version_date= localtime((stat $0)[9]);
-        $Version .= " (compiled)" if $Info{Perl_compiled};
-        
-#       ($Pgm_PathU = $Pgm_Path) =~ tr/\\/\//;
-        $Pgm_PathU = '.';       # I don't think we really need this anymore, since we chdir to mh/bin
-        $Pgm_Root = "$Pgm_PathU/..";
+        $Pgm_PathU = '.';       # Since we now chdir, this is obsolete, but still used in some user code :(
+        $Pgm_Root  = './..';
        
         $OS_win = ($^O eq "MSWin32") ? 1 : 0;
 
@@ -198,34 +213,10 @@ BEGIN {
 
     }
 
-    sub setup_INC {
-                                # For some weird reason, we get errors if this is evaled before we change INC with perl2exe :(
-        eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)"
-            if $Info{Perl_compiled};
-
-        print "Setting up INC path ...";
-                                # Note, use lib messes up perl2exe, but eval use lib does not.  Either use 
-                                #  eval use lib (only once, because it is slow in perl2exe) or comment out use lib
-                                #  when compiling and use perl5lib env.  Yuck.
-                                #  - can not seem to get perl2exe to honor this.  Guess we have to make sure
-                                #    everything is compile by adding it to lib/mh_perl2exe_list.pl
-#       eval "use lib '$Pgm_PathU/../lib', '$Pgm_PathU/../lib/site', '$Pgm_PathU', '../lib', '../lib/site', '.'";
-#       eval "use lib '$Pgm_PathU/../lib', '$Pgm_PathU/../lib/site', '$Pgm_PathU'";
-                                # Use a push instead of a use lib, so we make sure the site perl libs come first, not last
-                                #  - We need to support perl 5.005 and 5.6 at the same time.  5.005 win32 binaries
-                                #    are distributed with mh (so user does not have to install them).
-                                #    5.6 users will be required to install them
-        push    (@INC, "$Pgm_PathU/../lib", "$Pgm_PathU/../lib/site", "$Pgm_PathU");
-#       unshift (@INC, "$Pgm_PathU/../lib", "$Pgm_PathU/../lib/site", "$Pgm_PathU");
-#       print "Error in use lib: $@\n" if $@;   # Dang .. this error check messes up the compiled version!??  Gives 'can not find lib.pm' message
-        print " done\n";
-        require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
-    }
-
                                 # Get legal options from .ini file
     sub check_usage {
         my (@parms1, @parms2);
-        push @parms1, &file_read($Pgm_PathU . "/mh.ini");
+        push @parms1, &file_read("./mh.ini");
         push @parms1, &file_read($ENV{mh_parms}) if $ENV{mh_parms};
         for (@parms1) {
             push(@parms2, "$1=s") if /^([^\s\#]+)\s*=/;
@@ -251,10 +242,9 @@ BEGIN {
     sub read_parms {
 
         my $debug = 1 if $config_parms_startup{debug} and $config_parms_startup{debug} eq 'startup';
-        &main::read_mh_opts(\%config_parms, $Pgm_PathU, $debug);
+        &main::read_mh_opts(\%config_parms, '.', $debug);
 
                                 # We need to honor starup parms, but a total reset messes up the tk debug button interface
-
 #       %config_parms = (%config_parms, %config_parms_startup); # Last one (startup parms) wins
         for my $parm (keys %config_parms_startup) {
             $config_parms{$parm} = $config_parms_startup{$parm};
@@ -350,8 +340,8 @@ BEGIN {
 
         }
                                           # Use GD for http server, if it is installed and has newFrom methods
-        eval "use GD";
-        $Info{module_GD} = (!$@ and $GD::VERSION > 1.18) ? 1 : 0;
+        eval "use GD" if $config_parms{gd};
+        $Info{module_GD} = ($config_parms{gd} and !$@ and $GD::VERSION and $GD::VERSION > 1.18) ? 1 : 0;
 
         if ($config_parms{tk}) {
             print "Loading Tk modules ";
@@ -377,6 +367,7 @@ BEGIN {
                 $config_parms{rrd_dir} = '';
             }
         }
+
 
     }
 
@@ -443,6 +434,7 @@ sub setup {
     use constant ON      => 'on';
     use constant OFF     => 'off';
     use constant DIM     => 'dim';
+    use constant BRIGHTEN=> 'brighten';
     use constant TOGGLE  => 'toggle';
     use constant STATUS  => 'status';
     use constant OPEN    => 'open';
@@ -486,10 +478,10 @@ sub setup {
     $Info{IPAddress_external} = $config_parms{ipaddress_external} if $config_parms{ipaddress_external};
     $Info{IPAddress_external} = $Info{IPAddress_local} unless $Info{IPAddress_external};
 
-    $config_parms{code_dir}         = $Pgm_PathU . "/../code"        unless $config_parms{code_dir};
-    $config_parms{code_dir_common } = $Pgm_PathU . "/../code_common" unless $config_parms{code_dir_common};
+    $config_parms{code_dir}         = "./../code"        unless $config_parms{code_dir};
+    $config_parms{code_dir_common } = "./../code_common" unless $config_parms{code_dir_common};
 
-    $config_parms{log_file}         = $Pgm_PathU . "/../mh.log"      unless $config_parms{log_file};
+    $config_parms{log_file}         = "./../mh.log"      unless $config_parms{log_file};
 
                                 # Make various directories, if missing
     mkdir ("$config_parms{data_dir}/logs", 0777) unless -d "$config_parms{data_dir}/logs";
@@ -563,7 +555,7 @@ sub setup {
 
         next unless $config_parms{$parm};
         if ($parm =~ /^(.+?)([:_]?\d*)_(serial|server)_port/) {
-            if (-e "$Pgm_PathU/../lib/$1.pm") {
+            if (-e "./../lib/$1.pm") {
                 print "Found managed $3 port=$1$2\nMH will now require $1.pm and call $1::$3_startup($1$2)\n" 
                     if $config_parms{debug} eq 'startup';
                 require "$1.pm";
@@ -579,7 +571,7 @@ sub setup {
                                 # weather_vwlog_module=Weather_vw
         if ($parm =~ /^(\S+?)_module/) {
             my $module = "$config_parms{$parm}.pm";
-            if (-e "$Pgm_PathU/../lib/$module" or 
+            if (-e "./../lib/$module" or 
                 -e "$config_parms{code_dir}/$module") {
                 my $startup = "&$config_parms{$parm}" . '::startup';
                 print "Found managed $module module\nMH will now require $module and call $startup\n" 
@@ -992,8 +984,11 @@ sub check_for_cm11_data {
         if ($data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object})) {
 
                                 # Process status requests
+# C2STATUS_ONC2
+# C3C3STATUS_OFFC3C3STATUS_OFF
             if ($data =~ /STATUS/) {
-                my ($house, $device, $state) = $data =~ /(\S)(\S)STATUS_(\S+)/;
+#               my ($house, $device, $state) = $data =~ /(\S)(\S)STATUS_(\S+)/;
+                my ($house, $device, $state) = $data =~ /(\S)(\S)STATUS_(ON|OFF)/;
                 $state = 'J' if $state eq 'ON';
                 $state = 'K' if $state eq 'OFF';
                 my $event_data = 'X' . $house . $device . $house . $state;
@@ -1335,7 +1330,6 @@ sub check_for_socket_data {
                     $Socket_Ports{$port_name}{data}              = $data;
                     $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
                     print "socket: $port_name nfound=$nfound client=$client_number" if $config_parms{debug} eq $port_name;
-                    push(@active_ports, $port_name);
                     $server_active = 1;
                     last;
                 }
@@ -1343,17 +1337,13 @@ sub check_for_socket_data {
             }
         }
         unless ($server_active) {
-               # Check for mh client sockets (only one active socket possible)
-            if ($Socket_Ports{$port_name}{socka}) {
-                push(@active_ports, $port_name);
+                                 # Check for sockets where mh is a client, not a server (only one active socket possible)
+            if (!$Socket_Ports{$port_name}{port}) {
+                $server_active = 1 if $Socket_Ports{$port_name}{socka};
             }
-
-                                # Else look for new clients
-            if (my $nfound = &socket_has_data($sock)) {
-                my $new_sock = $sock->accept();
-                next unless $new_sock; # Can be undef it socket was killed
+                                 # Else look for new clients
+            elsif (my $nfound = &socket_has_data($sock) and my $new_sock = $sock->accept()) {
                 $new_sock->autoflush(1); # Not sure if this does anything?
-#               $new_sock->autoflush(0); # Not sure if this does anything?
                                                # Log the address of the client
                 my $peer = $new_sock->peername;
                 my ($port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
@@ -1361,22 +1351,24 @@ sub check_for_socket_data {
                 $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
                 $Socket_Ports{$port_name}{socka} = $new_sock;
                 $Socket_Ports{$port_name}{active_this_pass} = 1;
-                
+                    
                 push @{$Socket_Ports{$port_name}{clients}}, [$new_sock, $client_ip_address, undef];
                 delete $Socket_Ports{$port_name}{data}; # Delete data from previous session
                 $Socket_Ports{$port_name}{client_number} = @{$Socket_Ports{$port_name}{clients}} - 1;
                 
                 logit "$config_parms{data_dir}/logs/server.$Year_Month_Now.log",  "$port_name $client_ip_address";
                 print "\nsocket: $port_name active sock=$new_sock client=$client_ip_address.\n" if $config_parms{debug} eq $port_name;
-                
-                push(@active_ports, $port_name);
+                    
+                $server_active = 1;
             }
         }
+        push(@active_ports, $port_name) if $server_active;
     }
 
                                            # See if any active ports have data
     for my $port_name (@active_ports) {
         my $sock = $Socket_Ports{$port_name}{socka};
+        my $nfound = &socket_has_data($sock);
         if (my $nfound = &socket_has_data($sock)) {
 #           print "socket: $port_name nfound=$nfound " if $config_parms{debug} eq $port_name;
             if ($nfound < 0) {
@@ -1384,7 +1376,7 @@ sub check_for_socket_data {
                                 #   from &run (system start) processes !?! ... maybe IO sockets do not need this?
                                 # Not sure how to shutdown IO handles ... this gives 'bad symbol on filehandle' error
 #               shutdown($sock->fileno(), 2);   # "how":  0=no more receives, 1=sends, 2=both
-                print "socket: closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
+                print "socket:  closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
                 &socket_close($port_name);
             }
             else {
@@ -1616,13 +1608,13 @@ sub convert_direction {
 
 sub display {
     my @parms = @_;
-                                # Check for fancy key => value options
+                                # Allow for either positional or key=value form
     my %parms = @parms unless @parms %2;
-    if ($parms{text}) {
-        @parms = ($parms{text}, $parms{time}, $parms{title}, $parms{font},
-                  $parms{window_name}, $parms{append});
+    unless ($parms{text}) {
+        ($parms{text}, $parms{time}, $parms{title}, $parms{font},
+         $parms{window_name}, $parms{append}) = @parms;
     }
-    my $text = $parms[0];
+    my $text = $parms{text};
     return unless $text;        # No data
 
                                 # If it is a file, read it
@@ -1644,10 +1636,10 @@ sub display {
 
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
-        $parms[2] = $Time_Now              unless $parms[2]; # Default Title
-        $parms[3] = $config_parms{tk_font} unless $parms[3];
+        $parms{title} = $Time_Now              unless $parms{title}; # Default Title
+        $parms{font}  = $config_parms{tk_font} unless $parms{font};
                                 # Do not display if from web, unless display time is requested
-        new Display(@parms) unless ($leave_socket_open_passes and !defined $parms[1]);
+        new Display(%parms) unless ($leave_socket_open_passes and !defined $parms{time});
     }
     else {
 #       &print_log(@parms);
@@ -2816,7 +2808,12 @@ sub process_x10_chunks {
         }
         else {
             print "  No match found: $event_data_chunk\n" if $config_parms{debug} eq 'X10';
-            &print_log("X10: Unmatched incoming data_chunk=$event_data_chunk") if $config_parms{x10_errata} >= 2;
+            my($hc, $fc) = $event_data_chunk =~ /X(\S)(\S)/;
+            $fc = 'ON'      if $fc eq 'J';
+            $fc = 'OFF'     if $fc eq 'K';
+            $fc = 'ALL_ON'  if $fc eq 'O';
+            $fc = 'ALL_OFF' if $fc eq 'P';
+            &print_log("X10: Unmatched incoming data_chunk=$event_data_chunk ($hc $fc)") if $config_parms{x10_errata} >= 2;
             $pos += 2;
         }
     }
@@ -2826,9 +2823,12 @@ sub process_x10_chunks {
     return $flag_found;
 }
 
+sub read_code_forced {
+    &read_code('forced');
+}
 
 sub read_code {
-
+    my ($reload_mode) = @_;
     my (@files, $file, $file_dir, $file_dir2, $file_path, $file_path2, @files_read, @files_changed, @files_changed2, $file_time, %noload_files);
 
     $Reread = 1;
@@ -2903,7 +2903,7 @@ sub read_code {
         $files_deleted++;
     }
     &print_log("   $files_deleted files deleted, " . (@files_changed2+0) . " files changed: @files_changed2") unless $Startup;
-    &read_user_code(@files_changed) if @files_changed or $files_deleted;
+    &read_user_code(@files_changed) if @files_changed or $files_deleted or $reload_mode eq 'forced';
 #   speak(@files_changed+0 . " files were read.");
 
 #   &tk_setup_cascade_menus if $MW;
@@ -3232,13 +3232,13 @@ sub run_after_delay {
 }
 
 sub run_voice_cmd {
-    my ($cmd, $vocab, $set_by) = @_;
+    my ($cmd, $vocab, $set_by, $no_log) = @_;
     $vocab = 'mh' unless $vocab; # Default
     my ($ref, $said, $vocab_cmd) = &Voice_Cmd::voice_item_by_text(lc($cmd));
     print "run_voice_cmd cmd=$cmd ref=$ref said=$said vocab=$vocab_cmd set_by=$set_by\n" if $config_parms{debug} eq 'misc';
 #   print_log "cmd=$cmd";
     if ($ref and $vocab eq $vocab_cmd) {
-        set $ref $said, $set_by;
+        set $ref $said, $set_by, $no_log;;
 #       $ref->{said} = $said;
         return $ref;
     }
@@ -3783,6 +3783,7 @@ sub socket_restart {
                                 # and using $bit_out=$bit_in
 sub socket_has_data {
     my($sock, $timeout) = @_;
+#   return unless $sock;  # Should never happen
     $timeout = 0 unless $timeout;
     my $rbit = '';
     vec($rbit, $sock->fileno(), 1) = 1; # This had an unintilized var??
@@ -3809,12 +3810,14 @@ sub speak {
     $rooms        = $parms{rooms}   if $parms{rooms};
     $display_time = $parms{display} if $parms{display};
 
+    my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression);
+
                                 # Allow for parms in text if done the simple way
     while (($key, $value, $phrase_new) = $phrase =~ /^\s*(\S+)=(\S*)\s(.*)/s) {
         $key = lc $key;
                                 # Not all TTS engines have all these options ... this is a superset
         print "Warning, speak control not recognized: key=$key value=$value\n"
-            unless grep $key eq $_, qw(engine address room rooms mode display play volume time voice pitch card);
+            unless grep $key eq $_, @speak_parms;
         
         if ($key =~ /room[s]?/) {
             $rooms = $value;
@@ -3830,13 +3833,19 @@ sub speak {
         $phrase      = $phrase_new;
     }
 
+                                # Allow for defaults to be specified in parmfile
+    for my $parm (@speak_parms) {
+        my $value = $config_parms{"speak_$parm"};
+        $parms{$parm} = $value if defined $value and !defined $parms{$parm};
+    }
+
     if ($phrase =~ /\.wav$/) {
         &play('file' => $phrase, 'rooms' => $rooms);
         return;
     }
 
-    $display_time = 120 if $phrase !~ /\n/ and -f $phrase;
-    &display($phrase, $display_time) if defined $display_time;
+    $display_time = 120 if !$display_time and $phrase !~ /\n/ and -f $phrase;
+    &display($phrase, $display_time) if $display_time;
 
                                 # If we are dealing with a file, slurp it up into one string
     if ($phrase !~ /\n/ and (-f $phrase or $phrase =~ /\.txt$/)) {
@@ -3920,7 +3929,15 @@ sub speak_log_last {
 
 
 sub time_cron {
-    return unless $New_Minute or $_[1] == 1;  # Only on minute boundarys, unless second argument is 1
+    my ($time_date, $second) = @_;
+                                # Only on minute boundarys unless $second parm is used
+    if (defined $second) {
+        return unless $second eq '*' or $New_Second and $second == $Second;
+    }
+    else {
+        return unless $New_Minute;
+    }
+
     my @cron = split(' ', $_[0]);
     my (@cron_now, $field, $entry, $low, $high);
 
@@ -3974,8 +3991,15 @@ sub time_less_or_equal {
 }
 
 sub time_now {
-    return unless $New_Minute;  # Only on minute boundarys
-    my ($time_date) = @_;
+    my ($time_date, $second) = @_;
+                                # Only on minute boundarys unless $second parm is used
+    if (defined $second) {
+        return unless $second eq '*' or $New_Second and $second == $Second;
+    }
+    else {
+        return unless $New_Minute;
+    }
+
     return unless $time_date =~ /\S/;                 # Ignore empty entries
     return if     $time_date eq 'none';               # For use in bypassing timed events easily
 
@@ -4519,6 +4543,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.66  2002/03/31 18:48:55  winter
+# - 2.66 release
+#
 # Revision 2.65  2002/03/02 02:32:59  winter
 # - 2.65 release
 #

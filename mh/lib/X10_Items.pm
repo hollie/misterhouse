@@ -17,13 +17,15 @@ sub reset {
 @X10_Item::ISA = ('Serial_Item');
 
 sub new {
-    my ($class, $id, $interface) = @_;
+    my ($class, $id, $interface, $type) = @_;
     my $self = {};
     $$self{state} = '';     # Only items with state defined are controlable from web interface
 
     bless $self, $class;
 
 #   print "\n\nWarning: duplicate ID codes on different X10_Item objects: id=$id\n\n" if $serial_item_by_id{$id};
+
+    $self->{type} = $type;
 
     if ($id) {
         my $hc = substr($id, 0, 1);
@@ -158,6 +160,25 @@ sub set {
         }
         &main::print_log("Toggling X10_Item object $self->{object_name} from $$self{state} to $state");
     }
+
+                                # Allow for dd% light levels on older devices by monitoring current level
+    my $presetable = 1 if $self->{type} and $self->{type} eq 'LM14';
+#   print "db ps=$presetable t=$self->{type}\n";
+    if (!$presetable and $state =~ /^(\d+)\%/) {
+        my $level = $1;
+        my $level_now = $self->{level};
+        unless (defined $level_now) {
+            print "dbx setting to on before dim\n";
+            $self->set(ON);      # First turn it on, then go to specified level
+            $level_now = 100;
+        }
+        my $level_diff = $level - $level_now;
+                                # Round of to nearest 5, since cm11 only does by 5
+        $level_diff = 5 * int $level_diff/5;
+        &main::print_log("Changing light by $level_diff ($level - $level_now)") if $main::config_parms{x10_errata} >= 3;
+        $state = $level_diff;
+    }
+
     $state = "+$state" if $state =~ /^\d+$/; # In case someone trys a state of 30 instead of +30.
     &set_x10_level($self, $state);
     $self->SUPER::set($state);
@@ -191,7 +212,7 @@ sub set_x10_level {
         $level = 100   if $state eq 'on' and !defined $level; # Only if we used to be off. 
         $level = undef if $state eq 'off'; # Dimming from off starts at 100% :(
     }
-#   print "db l=$level s=$state\n\n";
+#   print "dbx1 l=$level s=$state\n\n";
     $$self{level} = $level;
 }        
 
@@ -765,7 +786,7 @@ sub new {
     &X10_Sensor::init() unless $sensorinit;
 
     &X10_Sensor::add($self, $id, $name);
-
+    
     return $self;
 }
 
@@ -783,7 +804,12 @@ sub add {
     $self->{battery_timer}->{$id}->set(24*60*60, 
                        "speak \"rooms=all Battery timer for $name expired\"", 7);  
 
-    return &Serial_Item::add(@_);
+    &Serial_Item::add($self, $id, $name);
+                                # create item for off signal
+    substr($id, -1, 1 ) = 'K';
+    $name .= '_stopped';
+    &Serial_Item::add($self, $id, $name);
+    return;
 }
 
 sub sensorhook {
@@ -806,6 +832,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.26  2002/03/31 18:50:40  winter
+# - 2.66 release
+#
 # Revision 1.25  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

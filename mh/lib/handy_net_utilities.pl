@@ -20,22 +20,14 @@ use strict;
                                 #   - This is a mess.  Really need to have mh libs first, not last.
                                 #   - The latest code DOES tables, but have no spaces between elements
                                 #     which is needed by stuff like internet_iridium.pl  :(
-#use HTML::FormatText;
-#BEGIN { require '../lib/site/HTML/FormatText.pm' }
-BEGIN { 
-#    unshift (@INC, "./../lib/site");
-    require './../lib/site/HTML/FormatText.pm';
-    local $SIG{__WARN__} = sub { return if $_[0] =~ /redefined at/ };
-    require './../lib/site/HTML/Parser.pm';
-    require './../lib/site/HTML/Parse.pm';    # Without these we get HTML::Parser errors ... not sure why
-#    require './../lib/site/HTML/Formatter.pm';
-#    require './../lib/site/HTML/TableExtract.pm';
-#    require './../lib/site/HTML/TreeBuilder.pm';
-#    shift @INC;
-}
+#BEGIN { 
+#    require './../lib/site/HTML/FormatText.pm';
+#    local $SIG{__WARN__} = sub { return if $_[0] =~ /redefined at/ };
+#    require './../lib/site/HTML/Parse.pm';    # Without these we get HTML::Parser errors ... not sure why
+#}
                                 # These are useful for calling from user code directly
-#se HTML::FormatText;
-#use HTML::Parse;
+use HTML::FormatText;
+use HTML::Parse;
 use LWP::Simple;
 
 
@@ -858,6 +850,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.40  2002/03/31 18:50:40  winter
+# - 2.66 release
+#
 # Revision 1.39  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

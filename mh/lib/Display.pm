@@ -7,13 +7,16 @@ use strict;
 my %Windows;
 
 sub new {
-    my ($class, $text, $time, $title, $font, $window_name, $append) = @_;
-    $time = 120 unless defined $time;
-    my $auto_quit = 1 unless $time == 0; 
-    $title = 'Display Text' unless $title;
-    my $self = {text => $text, time => $time, title => $title,
-                auto_quit => $auto_quit, font => $font, 
-                window_name => $window_name, append => $append};
+    my ($class, @parms) = @_;
+    my %parms = @parms unless @parms %2;
+    unless ($parms{text}) {
+        ($parms{text}, $parms{time}, $parms{title}, $parms{font},
+         $parms{window_name}, $parms{append}) = @parms;
+    }
+    $parms{time} = 120 unless defined $parms{time};
+    $parms{auto_quit} = 1 unless $parms{time} == 0; 
+    $parms{title} = 'Display Text' unless $parms{title};
+    my $self = {%parms};
     bless $self, $class;
     &display($self);
     return $self;
@@ -45,18 +48,17 @@ sub read_text {
         @data = split /\n/, $$self{text};
     }
                                 # Find width and height of text
+    my ($width, $height);
     while (@data) {
         $_ = shift @data;
         my $length = length;
-        $$self{width} = $length if !$$self{width} or $length > $$self{width}; 
-        $$self{height}++; 
-        $$self{height} += int($length/100); # Add more rows if we are line wrapping
+        $width = $length if !$width or $length > $width; 
+        $height++; 
+        $height += int($length/100); # Add more rows if we are line wrapping
         $$self{text} .= $_ if $file;
     } 
-
-    
-    $$self{height} += 2;           # Allow for some margin
-    $$self{width}  += 2;
+    $$self{height} = $height + 2 unless $$self{height};
+    $$self{width}  = $width  + 2 unless $$self{width};
 
     if ($$self{height} < 5) { 
         $$self{height} = 5; 
@@ -64,14 +66,9 @@ sub read_text {
     if ($$self{width} < 20) { 
         $$self{width} = 20; 
     }
-    
-    if ($$self{height} > 40) { 
-        $$self{height} = 40; 
-        $$self{scroll} = 'e'; 
-    }
-    else { 
-        $$self{scroll} = 0; 
-    }
+
+    $$self{scroll} = 'oe' unless defined $$self{scroll};
+
     if ($$self{width} > 150) { 
         $$self{width} = 150; 
     }
@@ -111,6 +108,19 @@ sub display {
         $$self{loop} = 1;
     } 
 
+    if (lc $$self{font} eq 'biggest') {
+        $$self{geometry} = '+0+0';
+        my $w = $$self{MW}->screenwidth;
+                                # Heurstic numbers (e.g. screen=1280 -> font=25)
+        my $l = length $$self{text};
+#       my $fsize = int($w / 50);
+        my $fsize = int($w / ($l / 18));
+        print "db l=$l fs=$fsize\n";
+        $$self{font}     = "Times $fsize bold";
+        $$self{width}    = 72;
+        $$self{height}   = 24;
+    }
+
     my $l;
     unless ($reuse_flag) {
         $$self{MW}->withdraw;       # Hide until we are resized
@@ -126,7 +136,6 @@ sub display {
     }
 
     if ($$self{type} and $$self{type} eq 'photo') {
-        print "db pic\n";
         $$self{photo1} = $$self{MW}->Photo(-file => $$self{text});
 #       $$self{MW}->Button(-text => 'Photo', -command => sub {$self->destroy}, -image => $$self{photo1}) ->
         $$self{photo2} = $$self{MW}->Label(-text => 'Photo', -image => $$self{photo1}) ->
@@ -189,6 +198,9 @@ sub display {
     
     $$self{MW}->bind('<F1>' => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1}); 
 
+                                # Set optional geometry
+    &set_geometry($self);
+
                                 # Try everything to get focus
     unless ($reuse_flag) {
 #       $$self{MW}->tkwait('visibility', $$self{MW}); 
@@ -204,13 +216,31 @@ sub display {
 
 }
 
+
+sub set_geometry {
+    my ($self) = @_;
+    my $window = $$self{MW};
+    if (lc $$self{geometry} eq 'center') {
+#       $window->idletasks;
+        my $width  = $window->reqwidth;
+        my $height = $window->reqheight;
+        my $x = int(($window->screenwidth  / 2) - ($width  / 2));
+        my $y = int(($window->screenheight / 2) - ($height / 2));
+        $window->geometry($width . "x" . $height . "+" . $x . "+" . $y);
+    }
+    else {
+        $window->geometry($$self{geometry});
+    }
+} 
+
 sub destroy {
     my ($self) = @_;
     # Normal exit IF Mainloop is local AND we were not called externally
 
-                                # Try to avoid a memory leak with photo objects ... doesn't work :(
+                                # Try to avoid a memory leak with photo objects. 
+                                # Destroy does not clean up the Photo memory, only delete.
+    $$self{photo1}->delete  if $$self{photo1};
     $$self{photo2}->destroy if $$self{photo2};
-    $$self{photo1}->destroy if $$self{photo1};
     delete $$self{photo1};
     delete $$self{photo2};
     delete $Windows{$$self{window_name}} if $$self{window_name};
@@ -256,6 +286,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.22  2002/03/31 18:50:36  winter
+# - 2.66 release
+#
 # Revision 1.21  2001/12/16 21:48:41  winter
 # - 2.62 release
 #

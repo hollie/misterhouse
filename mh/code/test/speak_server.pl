@@ -90,13 +90,15 @@ if (my ($name, $name_short) = net_domain_name_done 'server_speak') {
         }
 
         $msg =~ s/<\/?voice.*?>//g unless $OS_win;  # Drop XML speech tags
-        &speak(to_file => "$config_parms{html_dir}/speak_server.wav", text => $msg);
+
+        my $compression = (is_local_address $name) ? 'normal' : 'high';
+        &speak(to_file => "$config_parms{html_dir}/speak_server.wav", compression => $compression, text => $msg);
 
         my $html;
         ($html = $msg) =~ s/\n/\n<br>/g;
         $html .=  "\n<br><EMBED SRC='http://$Http{Host_address}:$config_parms{http_port}/speak_server.wav' WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
 
-        set $speak_server &html_page("", $html);
+        set $speak_server &html_page('', $html, '');
 
 #        display($msg, 120, "Internet Message from $name") unless
 #            $msg =~ /^Internet light set/;

@@ -726,6 +726,7 @@ You can use this object to group and operate on groups of items:
   Methods:
      new(@item_list)
      add(@item_list)
+     list
      set  
      state        : Returns the last state that the group was set to
      state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
@@ -737,6 +738,10 @@ You can use this object to group and operate on groups of items:
      $outside_lights-> add($light4, $light5);
      $outside_lights-> add($light6);
      set $outside_lights ON if time_now("$Time_Sunset + 0:15");
+
+     for my $item (list $outside_lights) {
+         print "member = $item->{object_name}\n";
+     }
 
 See mh/code/examples/test_group.pl for more examples.
 
@@ -1136,6 +1141,9 @@ Serial_Item is used whenever you want read or write serial port data.
      set_order: Contols the order that the commands are listed in web Category list.
                 The default is alphabetically by file, then by name.
 
+     set_web_style: Contols the style of we form used.  Can be dropdown, radio, or url.
+                    See mh/code/examples/test_web_styles.pl
+
 will show up as a popup window
                 on the web interface, when the mouse hovers over the command text.
 
@@ -1238,25 +1246,31 @@ of a device with the level method.  For example:
 If you have one of the newer (more expensive) LM14A/PLM21 2 way X10 pro lamp modules, you can 
 tell mh to send an extended X10 codes that let them be set directly to a specific brightness level
 using a Preset Dim extended code.
-The older modules can only be brightened/dimed.
 
-The 64 extened X10 Preset Dim codes can used most easily by using the '#%' state. 
+The 64 extened X10 Preset Dim codes can used most easily by using the '##%' state. 
 Note this differs from the +-# states described above, which increase/decrease brightness
-relative to the current state.  The #% state goes directly to that level, independent of the
+relative to the current state.  The ##% state goes directly to that level, independent of the
 existing state.
 
 If you have a LM14 lamp module (or any other module that supports Preset Dims),
-you can use the #% preset dim states.  For example:
+you can use the ##% preset dim states.  Set the 3rd X10_Item parm to 'preset' or 'LM14' to specify 
+you are using a module that supports preset dims.  For example:
 
-  $test_light2 = new X10_Lamp('O7', 'CM11');
+  $test_light2 = new X10_Item('O7', undef, 'preset');
   $v_test_light2 = new Voice_Cmd("Set test light to [on,off,bright,dim,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%]");
   set $test_light2 $state if $state = said $v_test_light2;
 
 You can also use them directly, using &P## (## = 1->64) as shown in this example:
 
-  $test_light1 = new X10_Item('O7');
+  $test_light1 = new X10_Item('O7', 'CM11', 'LM14');
   $v_test_light1 = new Voice_Cmd("Set test light to [on,off,bright,dim,&P3,&P10,&P30,&P40,&P50,&P60]");
   set $test_light1 $state if $state = said $v_test_light1;
+
+The older X10 modules can only be brightened/dimed relative to their current state.
+If you specify a specific brightness level with ##% (e.g. 10% or 90%) when using an older
+X10 module, mh will use what it thinks the current brightness level is to come up with a +-## 
+bright/dim command.  If the module was off, it will first be turned to full on, since the 
+older modules can not be dimmed from an off state.
 
 
 There is another set of Preset Dim commands that are used by some modules (e.g. the RCS TX15 thermostate).
@@ -1799,6 +1813,8 @@ Displays the specified text string, text file contents, or bitmap (.gif or .jpg)
       $font  is the font (default is mh.ini parm tk_font).
       $window_name will re-use an exisiting display window of the same name.
       $append can be top or bottom.  Only meaningful with $window_name.
+      width and height overrides the auto-calculated values based on text
+      geomeotry places the window: +X+Y (e.g. +0+0 for upper left)
  
   Examples:
 
@@ -1807,6 +1823,9 @@ Displays the specified text string, text file contents, or bitmap (.gif or .jpg)
     display '/pictures/photo.jpg';
     display text => $log, time => 0, font => 'fixed', window_name => 'log';
     display text => $text, time => 0, window_name => 'AIM', append => 'top';
+
+    display text => $f_top10_list, time => 300, font => 'Times 25 bold',
+            geometry => '+0+0', width => 72, height => 24;
 
 
 If -tk 1 (i.e. Tk is installed and used), the data is displayed in a Tk popup window.
@@ -2152,7 +2171,10 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
    Options mode:
      speak(option => 'value', text => 'text to speak');
     
-     Options are:
+   Default options can be specified with mh.ini parms, using a 
+     speak_ prefix.  For example:  speak_voice = mike
+
+   Options are:
        address => 'ip_address' Use this to push TTS synthesized wav files to 
                                remote computers that are enabled to received
                                pushed wav files (e.g. Audreys).  Configure 
@@ -2196,7 +2218,8 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
 
        card   => d (d = 1,2,3...) Picks which sound card to used (V5 only)
 
-       to_file => xyz.  Saves speech to file xyz, then plays the file.
+       to_file     => xyz.  Saves speech to file xyz, then plays the file.
+       compression => low,normal,high  How much to compress the to_file file.
 
    With the MS TTS V4 engine, the rate parm effects all subsequent
    spoken text (volume and voice parms do nothing).
@@ -2312,9 +2335,10 @@ The cron time format matches the unix cron format.
 
       You can use a comma delimited list for any of these fields.  * matches all values.
 
-By default time_cron only operates on the pass when a new minute starts.
-This can be overridden if the parameter 1 is added - this may be useful if a
-movement sensor is to trigger different events at different times.
+By default time_cron only operates on the pass when a new minute starts (i.e. $Second == 0).
+This can be overridden using a 2nd 'second' parameter to specify which second to trigger on.
+If this is set to '*', it returns true for all passes for the minutes that it matches on.
+This may be useful if a movement sensor is to trigger different events at different times.
 
 
    Examples:
@@ -2322,12 +2346,12 @@ movement sensor is to trigger different events at different times.
                  # Speak time every 15 minutes, between 7 am and 8:45 am on weekdays only  
     speak $Time_Now  if time_cron '0,15,30,45 7,8 * * 1-5';
 
-                 # Change PA speaker mode at 9 pm, every day
-    pa_sleep_mode('kids', 1) if time_cron '* 21 * * * ';
+                 # Change PA speaker mode 30 seconds past at 9 pm, every day
+    pa_sleep_mode('kids', 1) if time_cron('* 21 * * * ', 30);
 
 
     if (state_now $movement_sensor eq ON and !$Save{woken_up} and
-        time_cron('* 6-9 * * 1', 1) )  {
+        time_cron('* 6-9 * * 1', '*') )  {
        speak "It is Monday morning. Remember to put the rubbish out.";
        $Save{woken_up} = 1;
     }
@@ -2353,7 +2377,13 @@ these functions will return a true value for every pass that they are true.
 
 time_now is evaluate to true for the 1 pass that matches the specified time/date.  Date is optional.
 You can specify + or - offset, in hours:minutes:seconds.  Time can include AM/PM or be in 24 hour 
-format.  The best way to see how it works is to look the following examples:
+format.  
+
+A optional  2nd 'second' parameter can be used to specify which $Second it 
+returns true on (default is on a new minute, $Second == 0).
+If this is set to '*', it returns true for all passes for the minute that it matches on.
+
+The best way to see how it works is to look the following examples:
 
    Examples:
 
@@ -2361,8 +2391,8 @@ format.  The best way to see how it works is to look the following examples:
      set $backyard_light ON if time_now("$Time_Sunset + 0:15");
      set $left_bedroom_light +50 if $Weekday and time_now "$wakeup_time - 0:01";
      speak "Remember dentist appointment" if time_now '5/27/98 8:15 AM';
-     run('min', 'IR_cmd VCR,4,RECORD') if time_now '2/07 18:00';
-     run('min', 'IR_cmd VCR,STOP') if time_now "$date $stop - 00:02";
+     run('min', 'IR_cmd VCR,4,RECORD') if time_now('2/07 17:59', 45);
+     run('min', 'IR_cmd VCR,STOP') if time_now "$date $stop - 00:01";
 
 =item time_random
 
@@ -4256,6 +4286,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.52  2002/03/31 18:50:36  winter
+# - 2.66 release
+#
 # Revision 1.51  2002/03/02 02:36:50  winter
 # - 2.65 release
 #

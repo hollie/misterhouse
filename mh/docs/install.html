@@ -161,10 +161,11 @@ Activestate has provided ppm (Perl Package Manager), a nifty new way of automati
 and installing packages. Do this by logging on to the internet and typing:</P>
 <PRE>
    cd \perl\bin (modify to match your directory)
-   perl ppm install Win32-API  (ppm is ppm.pl in older perls)
-   perl ppm install Tk
-   perl ppm install Tk-JPEG
-   perl ppm install DB_File</PRE>
+   perl ppm.bat install Win32-API  (ppm.bat may be ppm or ppm.pl in older perls)
+   perl ppm.bat install Tk
+   perl ppm.bat install Tk-JPEG
+   perl ppm.bat install DB_File
+   perl ppm.bat install GD</PRE>
 <P>The Tk package is about 2 MB, so it will take a while. If you are behind a www proxy firewall, 
 try setting the environment variable http_proxy=http://proxy-server:port
 If you have problems installing the files with ppm over the internet, you can download the files 
@@ -256,6 +257,7 @@ also try the CPAN installer like this:</P>
   cpan&gt; install Term::ReadKey
   cpan&gt; install Time::HiRes
   cpan&gt; install Audio::Mixer  (if on Linux)
+  cpan&gt; install GD
   cpan&gt; exit</PRE>
 <P>There are some example start/stop/restart .rc files in mh/bin/misterhouse*.rc</P>
 <P>

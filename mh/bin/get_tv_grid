@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2002-03-01 08:18:18 winter>
+#  Last change Time-stamp: <2002-03-29 21:42:38 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -34,17 +34,6 @@
 #
 #---------------------------------------------------------------------------
 use strict;
-require "RedirAgent.pm";
-#require "SMSAgent.pm";
-require 'handy_utilities.pl';      # For read_mh_opts 
-#require 'handy_net_utilities.pl';  # For net_mail_send <-- causes probs in perl 5.6.1 with -w flag!
-
-use Getopt::Long;
-use LWP::Simple;
-use LWP::UserAgent;
-use HTTP::Cookies;
-use HTTP::Request::Common;
-use vars '%config_parms';  # Not a my, as called from handy_net_utils
 
 #======================================================================
 # Version info
@@ -56,6 +45,18 @@ BEGIN {
    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
+
+require "RedirAgent.pm";
+#require "SMSAgent.pm";
+require 'handy_utilities.pl';      # For read_mh_opts 
+require 'handy_net_utilities.pl';  # For net_mail_send <-- causes probs in perl 5.6.1 with -w flag!
+
+use Getopt::Long;
+use LWP::Simple;
+use LWP::UserAgent;
+use HTTP::Cookies;
+use HTTP::Request::Common;
+use vars '%config_parms';  # Not a my, as called from handy_net_utils
 
 
 #======================================================================
@@ -181,7 +182,7 @@ sub days_from_now
 
    $month++;
    $year += 1900;
-   #$day = sprintf("%02d", $day);
+   $day = sprintf("%02d", $day);
    #print "days_from_now: Returning $day - $month - $year \n";
    return ($dow, $down, $day, $month, $year);
 }
@@ -264,8 +265,8 @@ sub setup
 
    $parms{zip} || die "Missing zipcode!";
    $parms{provider} || die "Missing provider!";
-   $parms{channel_min} = '1'    unless $parms{channel_min};
-   $parms{channel_max} = '9999' unless $parms{channel_max};
+   $parms{channel_min} = '1'     unless $parms{channel_min};
+   $parms{channel_max} = '99999' unless $parms{channel_max};
    $parms{label} = "VCR" unless $parms{label};  # This can also be an image link
    $parms{days}  = 1 unless $parms{days};
    $parms{redo}  = 1 if $parms{reget};
@@ -404,7 +405,7 @@ sub login
    # First submission, to obtain the ASPSESSIONID cookie
    #------------------------------------------------------------
    #submitRequest( HTTP::Request->new( GET => $url ), "out1.txt" );
-   print "1 of 4\n";
+   print "1 of 4\n" if $parms{debug};
    my $submitResult = 0;
    $submitResult = submitRequest( HTTP::Request->new( GET => $url ), "out1.txt" );
    if ( 1 != $submitResult )
@@ -421,7 +422,7 @@ sub login
       ."SubmitZipCode=Continue" );
    $req_zip->content_type('application/x-www-form-urlencoded');
    #submitRequest( $req_zip, "out2.txt" );
-   print "2 of 4\n";
+   print "2 of 4\n" if $parms{debug};
    $submitResult = submitRequest( $req_zip );
    if ( 1 != $submitResult )
    {
@@ -443,7 +444,7 @@ sub login
       ."ziptype=new" );
    $req_prov->content_type('application/x-www-form-urlencoded');
    #submitRequest( $req_prov, "out3.txt" );
-   print "3 of 4\n";
+   print "3 of 4\n" if $parms{debug};
    $submitResult = submitRequest( $req_prov );
    if ( 1 != $submitResult )
    {
@@ -457,7 +458,7 @@ sub login
    # dates/times
    #------------------------------------------------------------
    my $req_allChans = HTTP::Request->new(GET => $url.'listings_redirect.asp?spp=0');
-   print "4 of 4\n";
+   print "4 of 4\n" if $parms{debug};
    $submitResult = submitRequest( $req_allChans );
    if ( 1 != $submitResult )
    {
@@ -499,7 +500,7 @@ sub fetchDataToFile
       #------------------------------------------------------------
       if ( ! $didLogIn )
       {
-         print "Logging in...\n";
+         print "Logging in...\n"  if $parms{debug};
          $didLogIn = login();
          if ( 1 != $didLogIn )
          {
@@ -1138,10 +1139,10 @@ sub fetchLoop
          {
             use File::Copy;
             copy($outfile, "$parms{outdir}/index.html");
-#           if ($parms{mail_to}) 
-#           {
-#               &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year");
-#           }
+            if ($parms{mail_to}) 
+              {
+                  &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year");
+              }
          }
       }
    }
@@ -1151,6 +1152,24 @@ sub fetchLoop
    #-------------------------------------------------------
    &delete_old_data unless $parms{keep_old};
    return 1;
+}
+
+                                # Email default page
+sub mail_file {
+    my ($mailto, $mailserver, $file, $subject) = @_;
+    $mailserver = 'localhost' unless $mailserver;
+    $parms{mail_baseref} = 'localhost' unless $parms{mail_baseref};
+    print "$Pgm_Name is now mailing $file to $mailto\n";
+    my $date = localtime;
+                                # From handy_net_utilities
+    &net_mail_send(subject => $subject,
+                   server  => $mailserver,
+                   from    => $Pgm_Name,
+                   to      => $mailto,
+                   baseref => $parms{mail_baseref},
+                   file    => $file,
+                   mime    => 1);
+    return;
 }
 
 #======================================================================

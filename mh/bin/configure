@@ -6,6 +6,7 @@ rm -f RasDial.txt rasdial.*
 rm -f *.bat *.exe *.EXE *.wbt
 rm -rf ../lib/site/Win32*
 rm -rf ../lib/site/auto/Win32*
+rm -rf ../lib/site_win*
 
 echo Chmod scripts to executables...
 chmod +x *

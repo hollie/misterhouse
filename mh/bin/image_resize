@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-#  Last change Time-stamp: <2002-02-24 15:20:14 winter>
+#  Last change Time-stamp: <2002-03-30 18:20:10 winter>
 
 =begin comment
 
@@ -32,10 +32,15 @@ sub help {
 $0 scales down image files in a directory and all of its subdirectories.
 
 Usage: $0 -d dir [OPTIONS]
+Usage: $0 --file_in input --file_out output [OPTIONS]
 
 Options are:
 
--d, --directory   Directory to begin looking for files in.  Required.
+-d, --directory   Directory to begin looking for files in.  
+                  This or --file_in and --file_out are required
+
+--file_in         File to resize.  --directory option is ignored
+--file_out        Output file when using --file_in
 
 -p, --prefix      Prefix to use on scaled files.  Default is sm1
 
@@ -80,13 +85,14 @@ use Getopt::Long;
                                 # Declare parms and defaults
 my($size, $dir, $exts, $border, $replace, $annotate, $prefix, $help, $verbose) =
     ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', 0, 0);
-my (%exts, $rc, %counts);
+my (%exts, $rc, %counts, $file_in, $file_out);
 $counts{resized} = $counts{existed} = 0;
 
                                 # Changes defaults if specified on command line
-&help if (!GetOptions('size:s' => \$size, 'directory=s' => \$dir, 'prefix:s' => \$prefix, 'extensions:s' => \$exts,
+&help if (!GetOptions('size:s' => \$size, 'directory=s' => \$dir, 'file_in=s' => \$file_in, 'file_out=s' => \$file_out,
+                      'prefix:s' => \$prefix, 'extensions:s' => \$exts,
                       'border=s' => \$border, 'replace=s' => \$replace, 'anotate=s' => \$annotate,
-                      'help' => \$help, 'verbose' => \$verbose) or $help or !$dir);
+                      'help' => \$help, 'verbose' => \$verbose) or $help or !($dir or ($file_in and $file_out)));
 
                                 # Creates a hash of valid image extensions
 map {$exts{$_} = 1}  split(/[ ,]/, $exts);
@@ -98,7 +104,13 @@ my ($size_w, $size_h) = split 'x', $size;
                                 # Recurses, starting from within the current directory, 
 print "\nShrinking images to $size with border=$border\n";
 
-find(\&get_img, $dir);
+if ($file_in and $file_out) {
+    $counts{resized}++;
+    &resize_img($file_in, $file_out);
+}
+else {
+    find(\&get_img, $dir);
+}
 print " - Resized $counts{resized} images ($counts{existed} images not replaced)\n";
 
 sub get_img() {
@@ -114,33 +126,40 @@ sub get_img() {
             return;
         }
         $counts{resized}++;
-        print "  $File::Find::dir/$file  \t-> $file_new \tcreated from\n";
-        my $img = new Image::Magick;
-        warn($rc) if $rc = $img->Read($file);
-# Resize is not in the older versions ... no need for it unless we use blur or filter
-#       warn($rc) if $rc = $img->Resize(geometry => $size);
-        warn($rc) if $rc = $img->Scale(geometry => $size);
-        if ($border) {
-            my ($w, $h) = $img->Get('columns', 'rows');
-            $w = ($size_w - $w) / 2;
-            $h = ($size_h - $h) / 2;
-            warn($rc) if $rc = $img->Border(geometry => $size, width => $w, height => $h, fill => 'black');
-        }
-                                # Does not work ... gives Warning 315: no delegates configuration file found (delegates.mgk)
-        if ($annotate) {
-            $annotate = $file if $annotate == 1;
-            warn($rc) if $rc = $img->Annotate(text => $annotate, font => 'Fixed', stroke => 'black', pointsize => 10, x => 10, y => 10);
-        }
-        warn($rc) if $rc = $img->Write($file_new);
-
+        &resize_img($file, $file_new);
                                 # Change time-date stampe to match the original file
         my ($atime, $mtime) = (stat($file))[8,9];
         utime($atime, $mtime, $file_new);    
     }
+}
+sub resize_img{
+    my ($file, $file_new) = @_;
+    print "  $file  \t-> $file_new\n";
+    my $img = new Image::Magick;
+    warn($rc) if $rc = $img->Read($file);
+# Resize is not in the older versions ... no need for it unless we use blur or filter
+#   warn($rc) if $rc = $img->Resize(geometry => $size);
+    warn($rc) if $rc = $img->Scale(geometry => $size);
+    if ($border) {
+        my ($w, $h) = $img->Get('columns', 'rows');
+        $w = ($size_w - $w) / 2;
+        $h = ($size_h - $h) / 2;
+        warn($rc) if $rc = $img->Border(geometry => $size, width => $w, height => $h, fill => 'black');
+    }
+                                # Does not work ... gives Warning 315: no delegates configuration file found (delegates.mgk)
+    if ($annotate) {
+        $annotate = $file if $annotate == 1;
+        warn($rc) if $rc = $img->Annotate(text => $annotate, font => 'Fixed', stroke => 'black', pointsize => 10, x => 10, y => 10);
+    }
+    warn($rc) if $rc = $img->Write($file_new);
+
 }   
 
 #
 # $Log$
+# Revision 1.5  2002/03/31 18:50:36  winter
+# - 2.66 release
+#
 # Revision 1.4  2002/03/02 02:36:49  winter
 # - 2.65 release
 #

@@ -65,7 +65,7 @@ sub init {
             $VTxt[0]->Register("Local PC", "perl voice_text.pm");
 #           $VTxt[0]->{Enabled} = 1;
         }
-        print " engine used: $VTxt_version\n";
+        print "  Engine used:  $VTxt_version\n";
     }
 }
 
@@ -129,11 +129,14 @@ sub speak_text {
     $parms{text} = &set_voice($parms{voice},   $parms{text}) if $parms{voice};
     $parms{text} = &set_volume($parms{volume}, $parms{text}) if $parms{volume};
     $parms{text} = &set_pitch($parms{pitch},   $parms{text}) if $parms{pitch};
-    
+
     $parms{text} = force_pronounce($parms{text}) if %pronouncable;
 
-              # These mess up -text "text" calls and not useful when speaking?
+                                # These mess up -text "text" calls and not useful when speaking?
     $parms{text} =~ s/\"//g unless $parms{no_mod};
+
+                                # Drop XML speech tags unless supported
+    $parms{text} =~ s/<\/?voice.*?>//g unless $VTxt_version eq 'msv5';
     
     return unless $parms{text} or $parms{play};
 
@@ -277,6 +280,23 @@ sub speak_text {
                                 # Allow option to save speech to a wav file
             if ($parms{to_file}) {
                 my $stream = Win32::OLE->new('Sapi.SpFileStream');
+# From sdk SpeechAudioFormatType:
+# SAFT8kHz8BitMono            =  4 (16k for for 4 words)
+# SAFT8kHz16BitMono           =  6 (32k)
+# SAFT11kHz8BitMono           =  8 (22k)
+# SAFT11kHz16BitMono          = 10 (44k)
+# SAFT22kHz16BitMono          = 22 (88k ... this is the default)
+# SAFTCCITT_ALaw_8kHzMono     = 41 (16k)
+# SAFTTrueSpeech_8kHz1BitMono = 40 (2k .. the most compressed, but not useable by Audrey)
+# SAFTCCITT_uLaw_8kHzMono     = 48 (176k)
+# SAFTADPCM_8kHzMono          = 56 (176k)
+# SAFTGSM610_8kHzMono         = 64 (88k?? ... this is the same as the default)
+# SAFTGSM610_11kHzMono        = 65 (3k) 
+# SAFTGSM610_22kHzMono        = 66 (5k)
+# SAFTGSM610_44kHzMono        = 67 (9k)
+                $stream->{Format}->{Type} = 4;
+                $stream->{Format}->{Type} = 22 if $parms{compression} eq 'low';
+                $stream->{Format}->{Type} = 65 if $parms{compression} eq 'high';
                 $stream->Open($parms{to_file}, 3, 0);
                 $VTxt_stream->{AudioOutputStream} = $stream;
                 $VTxt_stream->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
@@ -292,6 +312,11 @@ sub speak_text {
         }
                                                                 # Older engine
         else {
+
+            if ($parms{to_file}) {
+                &main::print_log("speak -to_file not supported with tts engine msv4.  Text=$parms{text}");
+                return;
+            }
         
         # Turn off vr while speaking ... SB live card will listen while speaking!
         #  - this doesn't work.  TTS does not start right away.  Best to poll in Voice_Cmd
@@ -310,7 +335,7 @@ sub speak_text {
             my ($priority, $type, $voice);
             $priority = $priority{$parms{'priority'}};
             $type = $type{$parms{'type'}};
-            $voice = qq[\\Vce=Speaker="$parms{voice}"\\] if $parms{voice};
+#           $voice = qq[\\Vce=Speaker="$parms{voice}"\\] if $parms{voice};
             $voice = '' unless $voice;
             
             print "Voice_Text.pm ms_tts: VTxt=$VTxt[0] text=$parms{'text'}\n" if $main::config_parms{debug} eq 'voice';
@@ -539,6 +564,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.35  2002/03/31 18:50:39  winter
+# - 2.66 release
+#
 # Revision 1.34  2002/03/02 02:36:51  winter
 # - 2.65 release
 #

@@ -30,8 +30,9 @@ if ('Build' eq said $v_mp3_build_list) {
 }
 
 if (done_now $p_mp3_build_list) {
-    speak "mp3 database build is done";
     ($mp3names, %mp3files) = &mp3_playlists;
+    speak 'mp3 database build is done';
+    run_voice_cmd 'Force Reload code';  # Pick up new playlists
 }
 
                                 # Search the mp3 database
@@ -78,6 +79,7 @@ sub mp3_search {
     $count1 = $count2 = 0;
     for my $i (0 .. @files) {
         $count1++;
+        print "db t=$titles[$i] mp3g=$genres[$i]\n";
         if (!$mp3_search or
             $titles[$i]  =~ /$mp3_search/i or
             $artists[$i] =~ /$mp3_search/i or

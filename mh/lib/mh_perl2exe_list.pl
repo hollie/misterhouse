@@ -8,8 +8,11 @@ print "Starting mh_perl2exe_list.pl ...";
 
 # Naw, lets use  "eval 'use lib...'" instead
 
+use CGI;             # Used in mh/web/organizer scripts
+use GD;              # Used by web on-the-fly buttons
+
 #use lib;
-#use lib '.';
+use lib '.';
 #use my_lib;
 
 use Tk;
@@ -76,10 +79,7 @@ use HTTP::Request::Common;      # Used by get_tv_grid, etc
 use Display;
 
 # These are new with 5.6
-use File::Glob;
-# Took out setupsup
-# Took out jpeg
-# Took out aim
+#use File::Glob;
 
 print " done\n";
 

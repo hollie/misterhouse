@@ -14,6 +14,7 @@
 	<LI><A HREF="#mister house announcement list">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#version 2.65 posted on 03/01/2002">Version 2.65 posted on 03/01/2002</A></LI>
 		<LI><A HREF="#version 2.64 posted on 01/23/2002">Version 2.64 posted on 01/23/2002</A></LI>
 		<LI><A HREF="#version 2.63 posted on 01/19/2002">Version 2.63 posted on 01/19/2002</A></LI>
 		<LI><A HREF="#version 2.62 posted on 12/16/2001">Version 2.62 posted on 12/16/2001</A></LI>
@@ -87,6 +88,88 @@
 <H1><A NAME="mister house announcement list">Mister House Announcement List</A></H1>
 <P>- This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at <A HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A> )</P>
+<P>
+<H2><A NAME="version 2.65 posted on 03/01/2002">Version 2.65 posted on 03/01/2002</A></H2>
+<P>Version 2.65 was just uploaded to:</P>
+<PRE>
+  <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
+  <A HREF="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</A></PRE>
+<P><STRONG>New Features:</STRONG></P>
+<P>- Ron Klinkien updated the default ia5 web interface.  Amongst other changes, he added more
+customized icons and he and I created nifty web/bin/*button*.pl routines for 
+creating .jpg buttons on the fly if the perl GD module is installed (mh.exe has GD 
+compiled in).  These are cached in a new web/cache dir.</P>
+<P>- Upgraded the windows compiled mh.exe from perl 5.002 to 5.6.  My perl2exe registration key did not 
+migrate to the new version and I have not yet sprung another $50 for the upgrade,
+so you will see a message and small delay when you exit mh.exe.
+One obscure problem I noticed (with this new mh.exe only) is that file OPEN calls with a DATA filehandle
+cause an abend!  DATA can be special in perl, so should be avoided.
+The only place I had this in my code was in the phone_logs.pl member (I renamed DATA to PLOG).</P>
+<P>- Upgraded windows Setupsup.pm to a 5.6 compatible version.  This means that we can start using sendkeys
+to control other Windows programs again.
+If you are still on a pre5.6 perl and use this function, install the older version into your local perl dir
+(email me for details).  Pre5.6 users will also now need to also install Win32::Api locally (see install docs),
+as it is no longer include in the mh/lib/site path.</P>
+<P>- Renamed get_changed_by to get_set_by and added these as valid return values:  web, tk, telnet, vr, xcmd, serial.
+Also added it as an option to run_voice_cmd.  Examples are in code/test/internet_jabber.pl and code/examples/test_set_by.pl</P>
+<P>- Allow for multiple clients to connect to a mh socket server. 
+For example, you can now have multiple telnet clients (if you run telnet.pl). 
+Also added an optional 3rd parm to the Socket_Item set method which can be 
+'all' (send to all connected clients), ip_address (a regular expresion of the ip <CODE>address(s)</CODE> you want to send to,
+or client_number (which client to send to, 0 .. #).   See telnet.pl for an example.</P>
+<P>- Allow for multiple html_alias directories for the same web root, where the last one wins.
+So, for example, to override some of the icons in mh/web/graphics, 
+use html_alias2_graphics=path_to_your_icons  as a 2nd graphics dir parm.</P>
+<P>- Added mh/code/test/comic_dailystrips.pl to update a new web/comics dir.
+Modify the mh.ini comics parm with any from the over 300 comics listed in web/comics/dailystrips/strips.def.
+Like the tv data, you can change the mh.ini html_alias_comics parm to store the comics out of the mh distro path.</P>
+<P>- Gaetan Lord created mh/code/common/Xmms_* files for controlling the linux xmms mp3 player.
+He also updated his xmms jukebox at mh/web/music/xmms (was in mh/web/misc/mp3_control_xmms.pl)
+</P>
+<PRE>
+
+- Roger Bille sent in the files in mh/code/public/Roger.
+This code is targeting APRS, including generating this aprs hub status page: <A HREF="http://ahubswe.net/ahub.html">http://ahubswe.net/ahub.html</A></PRE>
+<P>- Stoll Thomas created mh/bin/get_tv_*_ge for retreiving and and searching german tv shows via <A HREF="http://www.tvspielfilm.de">http://www.tvspielfilm.de</A></P>
+<P>- Harald Koch created mh/code/public/weather_ec.pl and bin/get_weather_ec for parsing Canadian weather data 
+from weatheroffice.ec.gc.ca into %Weather.</P>
+<P>- David Lounsberry sent in mh/code/public/weeder_david.pl, hvac_david.pl, and rrd.pl
+which show how he monitors 14 iButton buttons and the 
+new Solid State Relay weeder board to control his HVAC system.</P>
+<P>- Kent Noonan created lib/RedRat.pm and code/public/redrat.pl and redrat_capture to control IR devices with the 
+RedRat interface:  <A HREF="http://www.dodgies.demon.co.uk/index.html">http://www.dodgies.demon.co.uk/index.html</A></P>
+<P><STRONG>Bug Fixes and Other Changes:</STRONG></P>
+<P>- Joe Blecher updated mh/lib/LynxX10PLC.pm to autoconfigure on startup.</P>
+<P>- Yangmin Shen noticed is_speaking was broken for festival users.</P>
+<P>- Mickey Argo sent in mh/code/examples/volume_level_reset_httpq.pl as an example of how 
+to reset mp3 volume levels using httpq</P>
+<P>- Harald Koch also fixed a problem with running a Process_Item on an internal function on unix.</P>
+<P>- Brian Paulson sent in mh/code/public/iButton_ws_brian.pl.</P>
+<P>- Brian Paulson also added a ibutton_line_length mh.ini parm.  It defaults to LONG, 
+which matches what the previous code did.  If you have had problems here, try setting it to SHORT.</P>
+<P>- Tom Witmer made a bunch of updates to get_tv_grid, including getting it to work again after 
+some changes on the clicktv end.  His changes are outlined at
+<A HREF="http://www.angelfire.com/co4/mister_tom/tvmods.html">http://www.angelfire.com/co4/mister_tom/tvmods.html</A></P>
+<P>- Tom Vanderpool and I created web/bin/tagline.pl, used by the main ia5 page for a random remark.</P>
+<P>- Harald Koch updated mh/code/bruce/inernet_jabber.pl
+to add code hooks for processing jabber commands (jabber is an open source XML instant messaging program).
+He also fixed a mh exit problem if a jabber connection was lost.</P>
+<P>- Tom Vanderpool noticed a recent mh problem where it exited when speaking with voice_text=ms, but no ms engine installed.</P>
+<P>- Kevin Wambsganz noticed that the $New_Msecond flags were not syncronized with the $New_Second flag.</P>
+<P>- Kent Noonan found a bug where Voice_Cmd states of 0 were returned as 1.  
+For example, 1 was returned for both the 0 and 1 states here:  $ir = new Voice_Cmd 'Press [0,1,2]');</P>
+<P>- Joseph Gaston updated the HomeVision module mh/lib/HVweb_Item.pm.</P>
+<P>- Harald Koch added FAQ question:  Where is perl program code located?</P>
+<P>- David Norwood fixed the web ini editor commit option and the handling of ' and &amp; characters.</P>
+<P>- Re-enabled sound_program=vv_tts</P>
+<P>- Updated web/ia5/speak page to not have a hard coded ip address by using $Http{Host_address}.</P>
+<P>- Added mh.ini proxy parm, used by get_url and get_tv_grid to enable use behind proxy firewalls.</P>
+<P>- Deleted some of the older web interfaces from mh/bin/web.  If anyone wants them back, let me know.</P>
+<P>- Updated the default ia5 page to honor a new mh.ini photo_time_startup parm. 
+Set this to a large number to disable the photo slideshow.</P>
+<P>- Added jump-to option to photos slideshow (click on photo number).</P>
+<P>- Also added a help screen to the photos slideshow when in background mode (like when called from an Audrey). 
+Touch the center of the screen to activate.</P>
 <P>
 <H2><A NAME="version 2.64 posted on 01/23/2002">Version 2.64 posted on 01/23/2002</A></H2>
 <P>Version 2.64 was just uploaded to:</P>

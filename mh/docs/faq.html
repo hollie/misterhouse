@@ -33,6 +33,7 @@
 		<LI><A HREF="#1.18: is there a way to tell if mh is shutdown correctly or not">1.18: Is there a way to tell if MH is shutdown correctly or not?</A></LI>
 		<LI><A HREF="#1.19: how can i use an internet appliance with misterhouse">1.19: How can I use an Internet Appliance with MisterHouse?</A></LI>
 		<LI><A HREF="#1.20: how can i point misterhouse to a custom web interface">1.20: How can I point MisterHouse to a custom web interface?</A></LI>
+		<LI><A HREF="#1.21: where is perl program code located">1.21: Where is perl program code located?</A></LI>
 	</UL>
 
 	<LI><A HREF="#2: misterhouse coding questions">2: MisterHouse coding questions</A></LI>
@@ -349,6 +350,33 @@ access to the latest and greatest ``mh4'' and ``ia*'' interfaces.  Your pages
 will not be over-written by new releases.  If you need another directory
 for, say, your audrey interface, just add another html_alias_whatever
 parameter.</P>
+<P>
+<H2><A NAME="1.21: where is perl program code located">1.21: Where is perl program code located?</A></H2>
+<P>From Harald Koch on 2/2002.</P>
+<P>There are (at least) three different locations for scripts:</P>
+<P>/mh/bin - standalone programs (such as get_weather, get_tv_grid); they
+    are called from the main MH process via ``run'' or a Process_Item;
+    they do not get any environment or variables from the main MH
+    program, and typically return results to MH by writing output files
+    which MH later reads.</P>
+<PRE>
+    MH typically looks for external programs here, and also programs
+    here typically assume they're being run from this directory; they
+    try to find files in ../lib, for example.</PRE>
+<P>$config_parms{code_dir} - scripts in this directory are (after some
+    parsing) loaded into the middle of the MH event loop, and the
+    commands in them run constantly. They run within the MH environment,
+    and can use all the variables available there.</P>
+<P>$config_parms{html_dir} - scripts in this directory are run by the HTTP
+    server, and are expected to return blobs of HTML. They too run
+    inside the MH process, and can access all variables, subroutines,
+    etc.</P>
+<P>Each script directory has a different purpose, and programs in one are
+generally not terribly useful in another. My weather processing, for
+example, has scripts in all three places; mh/bin/get_weather_ca is the
+standalone that fetches/parses HTML, code/weather_ec.pl is the script
+that creates and processes voice commands and timer events, and then I
+have scripts in /web/weather/ that format the HTML for display.</P>
 <P>
 <HR>
 <H1><A NAME="2: misterhouse coding questions">2: MisterHouse coding questions</A></H1>
@@ -753,7 +781,8 @@ When creating a hash, you can pass it a set of key/value pairs via a list, so in
  - 10/01 Web mh.ini editing, remote browse TTS support, zap2it tv pages.
  - 11/01 New web interface, Audrey pictureframes, multiple sound cards.
  - 12/01 Wireless wmr968 and Ultimeter2000 weather stations, Lynx10 X10 support.
- - 01/02 Xmms, audrey callerid, Linksys rounter, TTS flite engine, standard CGIs.</PRE>
+ - 01/02 Xmms, audrey callerid, Linksys rounter, TTS flite engine, standard CGIs.
+ - 03/01 GD on-the-fly web buttons, support for comics, xmms, redrat.</PRE>
 <P>Audrey support, more MS TTS controls, call waiting callerid</P>
 <P>
 <H2><A NAME="6.2: who is that bruce guy anyway">6.2: Who is that Bruce guy anyway?</A></H2>

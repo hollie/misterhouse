@@ -5,7 +5,7 @@
                                 # Example on how to send an email command
                                 # - This string can be in either the subject or the body of the email
                                 #      Subject line is:  command:x y z  code:xyz
-$v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10]', 'Ok, will do');
+$v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10,11]', 'Ok, will do');
 $v_send_email_test-> set_info('Send commands to test remote email commands');
 if ($state = $v_send_email_test->{said}) {
     if (&net_connect_check) {
@@ -45,6 +45,7 @@ if ($state = $v_send_email_test->{said}) {
 
                                 # Test a request file via email
         &net_mail_send(subject => "command:request $config_parms{caller_id_file}  code:$config_parms{net_mail_command_code}") if $state == 10;
+        &net_mail_send(subject => "command:set \$camera_light TOGGLE code:$config_parms{net_mail_command_code}") if $state == 11;
 
         speak "Test message has been sent";
     }
@@ -140,7 +141,8 @@ sub scan_subjects {
                      }
                  }
                  else {
-                     if (run_voice_cmd $command) {
+                     if (&process_external_command($command, 0 , 'email')) {
+#                    if (run_voice_cmd $command) {
                          speak "Running email command: $command";
                          $results = "Command was run: $command";
                      }

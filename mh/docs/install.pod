@@ -283,14 +283,16 @@ Once you have the festival server running, you can enable mh to use it with mh.i
 
 
 The IBM ViaVoice TTS engine for Linux is available from
-http://www-4.ibm.com/software/speech/dev/sdk_linux.html
+http://www-4.ibm.com/software/speech/dev/sdk_linux.html .
+Here is the download link: http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm
+
 To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
 http://www.reednet.org/ViaVoiceTTS  , then set your mh.ini voice_text=vv_tts or voice_text=viavoice
 (vv_tts is a bit fancier, queing up speech and has more mh.ini options).
 
 The IBM ViaVoice Voice Recognition engine is also available from
-http://www-4.ibm.com/software/speech/dev/sdk_linux.html .
-Download and install (as root) these 2 rpms:
+http://www6.software.ibm.com/devcon/devcon/docs/vvsdkrt.htm
+Download and install (as root) these rpms:
   
   tar -xvf viavoice_asr_sdk_3.tar  ( 3 MB)
   tar -xvf viavoice_dict_rtk_3.tar (78 MB)

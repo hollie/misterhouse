@@ -1143,5 +1143,29 @@ sub scan_alarm {
     return @buttons;
 }
 
+sub id_on_wire {
+    my $self = shift;
+    my $id = uc(shift);
+
+    my @x;
+    while ( $id =~ m/(..)/g ) {
+	push @x, hex( $1 );
+    }
+
+    my $foundID = 0;
+    my @buttons = $self->FindDevices( SERIAL => [ @x[ 0, 6, 5, 4, 3, 2, 1, 7 ] ] );
+    foreach my $i ( @buttons ) {
+	my $button = "";
+	foreach my $j ( @$i[0, 6, 5, 4, 3, 2, 1, 7 ] ) {
+	    $button .= sprintf( "%02X", $j );
+	}
+	if ( $id eq $button ) {
+	    $foundID = 1;
+	    last;
+	}
+    }
+
+    return $foundID;
+}
 
 1;

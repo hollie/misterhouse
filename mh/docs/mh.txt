@@ -204,8 +204,7 @@ DESCRIPTION
         $date = $1, $year = $2, $time = $3 if $data =~ /(.+), (\d\d\d\d) - (.+) EST /;
 
        On Windows systems, path names can use the Unix convention of / instead
-       of the DOS convention of \.  You can also use \, by typically you must
-       'escape it' (e.g. 'c:\\mh' instead of 'c:\mh').  
+       of the DOS convention of \.
 
   List of supported hardware interfaces
 
@@ -305,14 +304,14 @@ DESCRIPTION
     The CPU-XA, Ocelot, and Leopard controlers from Applied Digital Inc
     (http://www.appdig.com/adicon.html ) are supported thru network calls to
     the cpuxad deamon, part of the XALIB package, available at
-    http://members.home.net/ncherry/common/cpuxad
+    http://mywebpages.comcast.net/ncherry/common/cpuxad
 
     There is a $30 (assembled) pic base IR receiver you can order from the
     Netherlands ($3 shipping):
 
       http://www.evation.com/irman/ 
 
-    In addition to the mh/code/bruce/irman.html code, there there is free
+    In addition to the mh/code/public/irman.pl code, there there is free
     winamp, windows, and linux software for it. The schematics that it is
     built from are also posted on the net (elsewhere), but for $30, it
     hardly seems worth building it from scratch.
@@ -614,7 +613,10 @@ DESCRIPTION
                                    $time can be in either time_cron or time_now format.
              untie_time($time)   : Untie $time
 
-             get_chaged_by       : Returns which tied object caused this objects state to change.
+             get_set_by          : Returns what caused this object to change.  Values either:
+                                    - A tied object
+                                    - web, tk, telnet, vr, xcmd, serial
+                                   An example is in mh/code/examples/test_set_by.pl
 
              set_states(@states) : Sets valid states to @states
              add_states(@states) : Adds @states to the list of valid states
@@ -669,7 +671,7 @@ DESCRIPTION
              $v_indoor_fountain -> tie_event('speak "Ok, fountain was turned $state"');
 
              if ($state = state_now $test_button) {
-                my $ref = get_changed_by $test_button;
+                my $ref = get_set_by $test_button;
                 print_log "Test button's was set to $state by $ref->{object_name}" if $ref;
              }
 
@@ -1317,6 +1319,12 @@ DESCRIPTION
                              - If the specified state has not been defined with 'new' or 'add', 
                                the state data is sent.  Otherwise the data_stream associated
                                with that state is sent.
+                             - If there is more than one client connected to this port, an
+                               optional 3rd parm can be used to pick which client set to.  
+                               Values are:
+                                  - 'all' (send to all connected clients),
+                                  - ip_address (a regular expresion of the ip address(s) you want to send to,
+                                  - client_number (which client to send to, 0 .. #). 
 
              set_echo     : Use this to control echoing of incoming characters:
                              set_echo $my_socket 0   -> Do not echo incoming characters
@@ -3686,8 +3694,12 @@ DESCRIPTION
         pre-defined mh-generated lists, point to a .pl file and have that
         perl code return the desired html. Note, this currently differs from
         how a classic cgi program would work (they return the html as
-        STDOUT). Some examples of this can be found in the mh/web/test/*.pl
+        STDOUT). Some examples of this can be found in the mh/web/bin/*.pl
         files.
+
+        If you want to run with a classic cgi that return html so STDOUT,
+        specify #!/local/bin/perl on the first line of your file. An example
+        is in mh/web/bin/test_cgi.pl
 
         One other note on .pl web files. You can have them use variables you
         define in your mh user code, but only if those variables are defined
