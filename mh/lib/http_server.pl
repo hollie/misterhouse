@@ -57,8 +57,8 @@ sub process_http_request {
 
     my ($get_req, $get_arg) = $header =~ m|^GET (\/[^ \?]+)\??(\S+)? HTTP|;
 
+    $get_arg =~ tr/+/ /;        # translate + back to spaces
                                 # translate from %## back to real characters
-#   $get_arg =~ tr/+/ /;        #  - not sure why we needed this??
     $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
     $get_req = $main::config_parms{html_file} unless $get_req;
@@ -436,15 +436,16 @@ sub html_file {
             if (my ($prefix, $directive, $data, $suffix) = $_ =~ /(.*)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
                  print "db http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
                 print $socket $prefix;
+                 my ($get_req, $get_arg) = $data =~ m|(\/[^ \?]+)\??(\S+)?|;
                 if ($directive eq 'file') {
                     if (-e ($file = "$main::config_parms{html_dir}/$data")) {
                         &html_file($socket, $file);
                     }
-                    elsif (my ($html) = &html_mh_generated("/$data")) {
+                    elsif (my ($html) = &html_mh_generated($get_req, $get_arg)) {
                         print $socket $html;
                     }
                     else {
-                        print "Error, shtml file directive not recognized: $data\n";
+                        print "Error, shtml file directive not recognized: req=$get_req arg=$get_arg\n";
                     }
                 }
                 elsif ($directive eq 'var' or $directive eq 'code') {
@@ -989,6 +990,9 @@ Cookie: w3ibmID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.36  2000/02/15 04:38:59  winter
+# - fix list?xyz shtml include.  Fix + -> ' ' on entry bug
+#
 # Revision 1.35  2000/02/13 03:57:27  winter
 #  - 2.00 release.  New web server interface
 #
