@@ -3,7 +3,6 @@
 
 =head1 Mister House Announcement List
 
-
 =begin html
 This is a copy of the mh update announcements made to MisterHouse mailing list, also
 <a href=http://sourceforge.net/mail/?group_id=1365>archived here</a>
@@ -32,51 +31,47 @@ Version 2.76 was just uploaded to:
   http://misterhouse.sf.net/download.html
   http://misterhouse.net:81/download.html
 
-
 B<New Features:>
 
 - Pete Flaherty posted his updated 02-1 Audrey image at http://vsa.cape.com/~pjf/MrAudrey.html. 
 
-- Andrew Drummond send in mh/lib/Acid.pm, so we can 
-display callerid data from mh on one or more Audrey units running the acid program,
-which is included in Pete's nifty Audrey image.
-This is automatically enabled from Bill's new CID_Server code, which is called in common/callerid.pl.
+- Bill Sobel is back :)  Lots of updates from him this release:
 
-- Added a  get_parm_file function, so we can tell if a parm was overridden or not.  This allowed us to 
-fixed the ia5 weather page to not display the 'click to set parm' button if the weather parm has already been overridden.
+ - AudiotronPlayer.pm fixes for latest firmware, support password if set in .ini file.
+ - Compool.pm fixes for solar power.
+ - DSC_Alarm: supports proxy config.
+ - Varios small updates to http_server.pl.
+ - read_table_a.pl: new x10 transmiter, yacclient and wakeonline stuff
+ - stargate.pm: Fixes, digital relay updates, ir support (initial)
+ - stargate485.pm: LCD keypad digit support
+ - telephony_item: base work for dialed ability (we now log outgoing 
+   calls as well if the CID hardware detects DTMF and reports them)
+ - xantech.pm: made some logging optional
+ - internet_weather.pl  added nws_city .ini parm nws_city= paramter which overrides city if set
+ - allow a return_state in set_with_timer 
 
-- Bill Sobel updates:
-Audiotron player:  Fixed for latest firmware, support password if set in .ini file
-CID_Server, caller id server with initial YAC implementation (can add others here fairly easy)  Needs yacserver. and yacserver.bat in the MH directory.
-Compool.pm fixes for solar power
-DSC_Alarm: supports proxy config
-http_server.pl: bug fixes
-read_table_a.pl: new x10 transmiter, yacclient and wakeonline stuff
-Like an X10_Item, but will not be set by incoming X10 data.  Simulates transmit only devices like keypads.
+- Bill Sobel created lib/WakeOnLan.pm, for waking up computers from susbend or hibernated states
+from mh via a lan connection.  See code/public/wakeup_on_lan.pl for more info.
 
-serial_item.pm: looping fixes
-stargate.pm: Fixes, digital relay updates, ir support (initial)
-stargate485.pm: LCD keypad digit support
-telephony_item: base work for dialed ability (we now log outgoing calls as well if the CID hardware detects DTMF and reports them)
-wakeonlan.pm: wakeonlan module
-x10_items: x10 transmitter definition
-xantech.pm: made some logging optional
-mh.: serial port/proxy fixes
-internet_weather.pl  added nws_city .ini parm nws_city= paramter which overrides city if set
-- set_with_timer 
- - return_state option
- - state can be blank
+- Bill Sobel created lib/CID_Server, so mh can share callerid data with other callerid clients,
+with initial support for the YAC client from http://www.sunflowerhead.com/software/yac.
+To enable, see common/callerid.pl for an example of adding a CID_Server_YAC object.
+To support this, we also created bin/send_ip_msg for sending generic messages with tcp.
 
-- Bill Sobel created lib/WakeOnLan.pm.  See code/public/wakeup_on_lan.pl for more info.
+- Andrew Drummond sent in lib/Acid.pm, which I added to Bill's CID_Server, to broadcast 
+callerid data to Audrey Acid clients, which is included in Pete's nifty Audrey image.
 
 - Another Bill Sobel idea was to allow for sets of states in one string.   To start with
 we have allowed for ~ seperated sets of states and delays.  For example,  $object->set(s1~t1~s2~t2...sn~tn)
 would set states s1, s2, ... sn, with delays for t1, t2, ... tn.
 We may update this in the next release with other options that Bill posted earlier.
 
+- Bill Sobel and I added a  get_parm_file function, so we can tell if a config_parm was overridden or not.  This allowed us to 
+fixed the ia5 weather page to not display the 'click to set parm' button if the weather parm has already been overridden.
+
 - Jason Sharpee et all updated the new CID modules.  We also updated code/common/callerid.pl announcement 
-to $format1, which includes City and State if out of City and/or State.  Also enabled RING for Telephone_Interface
-and added some different 'Test callerid #' tests.
+to $format1, which includes City and State if the call is from out of City and/or State.
+Also enabled RING for Telephone_Interface and added some different 'Test callerid #' tests.
 
 - Steve Switzer and I updated telnet.pl to use the new respond function.  
 To allow for security between different sessions on the same box, 
@@ -86,8 +81,8 @@ we added new code that allows us to write to a Socket_Item by its socket handle.
 to be played before non-interactive speech event to avoid the startled spouse effect, so we created mh/code/common/speak_chime.pl.  
 
 - Brian Paulsen suggested we use Data::Dumper on the %Save data, like we do with the %Persistant data,
-so now we can store nested data in %Save ( e.g. $Save{TEMPS} = { BASEMENT => 70, LIVING_ROOM => 40};  )
-I also updated the save/restore code to allow for ~ characters in the state and state_log.
+so now we can store nested data in %Save ( e.g. $Save{temp_setpoints} = { basement => 70, living_room => 40};  )
+I also updated the save/restore code to allow for ~ characters in the state and state_log for objects.
 
 - Added set_timeout and timed_out methods for Process_Item.  See code/examples/test_process.pl for an example.
 
