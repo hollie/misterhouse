@@ -1,0 +1,39 @@
+Hi
+
+This subdirectory define a basic jukebox for Linux
+It need few things to be set before you could use this program
+
+
+This software use xmms to run the jukebox
+It relies on Xmms-perl module from CPAN to send command to the jukebox
+This need to be installed.
+
+There is 3 parameters who need to be set in the mh.ini file
+mp3_program        declare the xmms program with is complete path
+mp3_playlist_dir   define the main playlist directory
+html_alias_jukebox alias to the directory containing the web jukebox application
+
+Create a new directory, and put all the file from this package
+Let say we put everything in /usr/local/mh/code/web_jukebox
+
+define the path with html_alias_jukebox in mh.ini as
+  html_alias_jukebox = /jukebox /usr/local/mh/code/web_jukebox
+
+
+Then define playlist
+
+Under the main playlist directory, declared by mp3_playlist_dir in mh.ini, 
+you have multiple directory.  Each of them contains playlist file.
+A playlist file will contains a list of MP3 file, with their complete path
+All the playlist filename should end by ".m3u"
+
+Then all the directory under mp3_playlist_dir, will be accessible via the interface.
+On my system, I declare few directory
+artist, album, rock, techno, classical.
+
+You also need the XmmsControl.pl,this file should be part of the distribution.
+
+Once all the step are done, you could access the jukebox via the misterhouse
+webpage under /jukebox
+
+

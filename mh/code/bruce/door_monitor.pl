@@ -1,13 +1,16 @@
 # Category=none
 
+#@ Monitors door and movement sensors
+
 $timer_garage_door = new  Timer();
 my $garage_door_time;
 if($state = state_now $garage_door) {
 #   print "db garage door state=$state, t=$Time l=$Loop_Count\n";
                          # Ignore mh startup noise and add a bit of hysteresis
-    unless ($state eq 'init' or ($Time - $garage_door_time) < 2) {
+    unless ($state eq 'init' or ($Time - $garage_door_time) < 7) {
         set $timer_garage_door 300;
         play('rooms' => 'all', 'file' => "garage_door_" . $state . "*.wav");
+        print_msg "Garage door $state";
     }
     $garage_door_time = $Time;
 }
@@ -40,10 +43,15 @@ if ($temp = state_now $garage_door_v) {
 }
 
 $timer_front_door = new  Timer();
-if ($state = state_now $front_door  and $state ne 'init' and inactive $timer_front_door) {
-    set $timer_front_door 30;
-    play(mode => 'unmuted', 'rooms' => 'all', 'file' => "front_door_" . $state . "_Zach1.wav");
+
+if ($state = state_now $front_door  and $state ne 'init') {
+    set $timer_front_door ($state eq 'opened') ? 30 : 0;
+#    play(mode => 'unmuted', 'rooms' => 'all', volume => 10, 'file' => "front_door_" . $state . ".wav");
+    print_log "front_door_" . $state . ".wav";
+    print_msg "Front door $state";
+#   play(mode => 'unmuted', 'rooms' => 'all', 'file' => "front_door_" . $state . "_Zach1.wav");
 }
+
 if (expired $timer_front_door and state $front_door eq OPENED) {
     speak(mode => 'unmuted', text => 'The front door has been left open');
     set $timer_front_door 120;
@@ -67,7 +75,7 @@ if (expired $timer_back_door and state $back_door eq OPENED) {
 
 $timer_garage_movement = new  Timer();
 if (state_now $garage_movement) {
-    set $garage_light ON;
+#    set $garage_light ON;
     if (inactive $timer_garage_movement) {
         play('rooms' => 'all', 'file' => "garage_movement*.wav");
 #       speak("Something is in the garage.");
@@ -76,7 +84,7 @@ if (state_now $garage_movement) {
     set $timer_garage_door 1200;
 }
 if (expired $timer_garage_movement) {
-    set $garage_light OFF;
+#    set $garage_light OFF;
 }
 
 if (state_now $garage_door or
@@ -105,6 +113,19 @@ unless ($Save{sleeping_parents}) {
         set $timer_bathroom_movement 5;
     }
 } 
+
+#if (state_now $sensor_bathroom eq 'motion') {
+#    set $bathroom_light ON;
+#}
+#if (state_now $sensor_bathroom eq 'still') {
+#    set $bathroom_light OFF;
+#}
+
+# If we tried to turn the light off, and it went back on because of the motion
+# sensor detected a light change as motion, lets auto-dim it gradually.
+# ... not done yet ...
+#if (state_now $sensor_bathroom eq 'motion') {
+#}
 
                                 # These items do 24 hour battery tests
 #$sensor_hall     = new X10_Sensor 'XA2AJ', 'Hall';

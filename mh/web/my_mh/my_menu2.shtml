@@ -1,0 +1,8 @@
+<html><body>
+<!--#include code="&html_header('My Menu2')" -->
+
+<li><a target=speech href="run?what_is_your_up_time">Up Time</a>
+<li><a href="/list?Appliances">Appliances</a>
+
+</body>
+</html>

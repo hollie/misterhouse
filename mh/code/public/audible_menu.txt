@@ -1,0 +1,37 @@
+From David Norwood [judapeno@gte.net or dnorwood2@yahoo.com] on 5/18/2001:
+
+I have written an audible menu module for people, like myself, who are
+severely physically disabled due to neurological disease, stroke, or spinal
+chord injury and can no longer use conventional remotes to control their TV,
+stereo, etc.  In my case, six years with ALS has left me paralyzed from the
+neck down and dependant on a ventilator for breath.
+
+Often these people can use one or more adaptive switches such as these:
+
+  http://www.enablingdevices.com/shop/enter.html?target=Specially_Created_Switch___Modules.html
+
+The problem then is how to multiplex this limited number of input signals
+(perhaps only one) into the functionality required to perform numerous tasks.
+Here is how the audible menu works: One or two switches are wired to an X10
+remote control (for wireless access) or directly wired to the PC via either
+the parallel port, serial port, or mouse.  When the first switch is activated, the
+computer starts reading a menu using text-to-speech.  When it gets to
+command or submenu you want, you activate the switch again.  An optional
+second switch speeds things up by allowing you to stop the menu, go to top
+of menu, or go to the previous menu without having to wait for the current
+menu to complete.
+
+A friend of mine modified an X10 Palm Pad Remote for me and wrote this
+description of how he did it:
+
+  http://www.geocities.com/dnorwood2/x10remotemod/
+
+Thank you to Bruce and all the Misterhouse contributors who have created such
+a great solution enabler!  You have allowed me to regain at least a little
+control over my environment
+
+If there are others using Misterhouse to help people with disabilities, I
+would to hear from you.
+
+David
+

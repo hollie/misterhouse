@@ -1,8 +1,9 @@
 # Category=Music
 
+#@ Monitor a ShoutCast streaming audio server for winamp clients
+ 
 =begin comment
 
-Monitor a ShoutCast streaming audio server for winamp clients
 
 There are 2 ways to doing this:
   - tail the log file with the said File_Item method
@@ -85,6 +86,11 @@ $shoutcast_log    = new File_Item($config_parms{shoutcast_log});
 $v_shoutcast_server = new  Voice_Cmd '[Start,Stop] the shoutcast server monitor';
 $v_shoutcast_server-> set_info('The shoutcast server monitor announces when new listeners come');
 
+print  "Shoutcast server close\n"   if inactive_now $shoutcast_server;
+print "Shoutcast server started\n"  if   active_now $shoutcast_server;
+print_log "Shoutcast server close"   if inactive_now $shoutcast_server;
+print_log "Shoutcast server started" if   active_now $shoutcast_server;
+
 if (($Startup or $New_Minute or said $v_shoutcast_server eq 'Start') and 
     $config_parms{shoutcast_server} and 
     !active $shoutcast_server and
@@ -125,7 +131,8 @@ if ($config_parms{shoutcast_server} and $state = said $shoutcast_server or
 #<12/30/00@07:16:59> [dest: 192.168.0.2] connection closed (15 seconds) (UID: 78)[L: 0]<12/30/00@14:40:14> [dest: 192.168.0.2] starting stream (UID: 84)[L: 1]...
                                 # Greedy ... will only keep the last one
                                 # Ignore data on startup ... it has buffer of old listeners
-    if ($Time > (30 + $Time_Startup_time) and
+#   if ($Time > (30 + $Time_Startup_time) and
+    if ($Loop_Count > 200 and
         $state =~ s/.+dest:/dest:/) {
 #       print "db t=$Time,$Time_Startup_time s=$state\n";
         $shoutcast_record = $state;
@@ -147,9 +154,13 @@ if (my ($domain_name, $name_short) = net_domain_name_done 'shoutcast') {
     $name_short =~ s/[\d\.]/ /g; # Get rid of digits and dots
     $name_short = 'unknown' if $name_short =~ /^ *$/ or is_local_address $ip_address;
 
-    my $msg = plural_check "DJ now has $Save{shoutcast_users} listeners.";
-    $msg .= ($status =~ /starting stream/) ? '  Hello to ' : '  Goodbye ';
-    $msg .=  $name_short;
+    my $msg = ($status =~ /starting stream/) ? 
+      "DJ as a new listener.  There are now $Save{shoutcast_users} listeners." : 
+      "DJ now has $Save{shoutcast_users} listeners." ;
+#  IP forwarded, so we no longer have the ip address of the listener, so skip the name part
+#   my $msg = plural_check "DJ now has $Save{shoutcast_users} listeners.";
+#   $msg .= ($status =~ /starting stream/) ? '  Hello to ' : '  Goodbye ';
+#   $msg .=  $name_short;
     
     $msg = "The DJ is dead.  $name_short is sad" if $status =~ /unavailable/;
     
@@ -164,7 +175,7 @@ if (my ($domain_name, $name_short) = net_domain_name_done 'shoutcast') {
     
     if ($time_since_last_visit > 20 and $config_parms{internet_speak_flag} ne 'none' and $name_short ne 'local') {
 #       speak "rooms=all $msg";
-        speak $msg;
+        speak "voice=female $msg";
     }
     else {
         print_log $msg;

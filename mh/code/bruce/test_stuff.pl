@@ -1,6 +1,8 @@
 
 # Category = Test
 
+#@ Test stuff :)
+
                                 # These 2 vars are general purpose test vars, used by various
                                 # sections of this testbed code member.
 
@@ -143,12 +145,12 @@ if ($state = $test_input1) {
 #        print_log "Setting X10 test light 1 to $state";
 #        set $test_light_1 $state;
     }
-    elsif ($state eq 'r') {
-        my $test_light_2 = new X10_Item('D5', 'CM11');
-        print_log "Setting X10 test light 2 to $state";
-        $state = (ON eq state $test_light_2) ? OFF : ON;
-        set $test_light_2 $state;
-    }
+#    elsif ($state eq 'r') {
+#        my $test_light_2 = new X10_Item('D5', 'CM11');
+#        print_log "Setting X10 test light 2 to $state";
+#        $state = (ON eq state $test_light_2) ? OFF : ON;
+#        set $test_light_2 $state;
+#    }
     elsif ($state eq 's') {
         run 'mplayer.exe /play /close c:\win98\media\canyon.mid';
 #        print "Last change:" . (state_log $camera_light)[0] . ".\n";

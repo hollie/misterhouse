@@ -1,0 +1,63 @@
+ 
+Format = A
+#
+# See mh/lib/read_table_A.pl  for definition of Format=A items
+#
+ 
+#
+# Type    Address   Name                   Groups                                      Other Info
+#
+# My inputs on Comfort are either "Doors" or "PIRs"
+#
+
+SERIAL,    IP0100,  Front_Door, 	All_Lights|Comfort|Doors, CLOSED, serial_comfort
+SERIAL,    IP0101,  Front_Door, 	All_Lights|Comfort|Doors, OPEN, serial_comfort
+
+SERIAL,    IP0700,  Cellar_Door, 	All_Lights|Comfort|Doors, CLOSED, serial_comfort
+SERIAL,    IP0701,  Cellar_Door, 	All_Lights|Comfort|Doors, OPEN, serial_comfort
+
+SERIAL,    IP0800,  Balcony_Door,   	All_Lights|Comfort|Doors, CLOSED, serial_comfort
+SERIAL,    IP0801,  Balcony_Door,   	All_Lights|Comfort|Doors, OPEN, serial_comfort
+
+SERIAL,    IP0900,  Computer_Room_Door,	All_Lights|Comfort|Doors, CLOSED, serial_comfort
+SERIAL,    IP0901,  Computer_Room_Door,	All_Lights|Comfort|Doors, OPEN, serial_comfort
+
+SERIAL,    IP0A00,  Garage_Back_Door, 	All_Lights|Comfort|Doors, CLOSED, serial_comfort
+SERIAL,    IP0A01,  Garage_Back_Door, 	All_Lights|Comfort|Doors, OPEN, serial_comfort
+
+SERIAL,    IP0B00,  Garage_Front_Door, 	All_Lights|Comfort|Doors, CLOSED, serial_comfort
+SERIAL,    IP0B01,  Garage_Front_Door, 	All_Lights|Comfort|Doors, OPEN, serial_comfort
+ 
+
+#
+# Testing comfort output - This doesn't work ! (Not sure why yet)
+#
+SERIAL,    \x03O!0100\r,  Test,		All_Lights|Comfort, OFF, serial_comfort
+SERIAL,    \x03O!0101\r,  Test,		All_Lights|Comfort, ON, serial_comfort
+
+
+
+
+SERIAL,    IP0200,  Hall_PIR,   	All_Lights|Comfort|PIRs, OFF, serial_comfort
+SERIAL,    IP0201,  Hall_PIR,   	All_Lights|Comfort|PIRs, ON, serial_comfort
+
+SERIAL,    IP0300,  Cellar_PIR,   	All_Lights|Comfort|PIRs, OFF, serial_comfort
+SERIAL,    IP0301,  Cellar_PIR,   	All_Lights|Comfort|PIRs, ON, serial_comfort
+
+SERIAL,    IP0400,  Utility_Room_PIR, 	All_Lights|Comfort|PIRs, OFF, serial_comfort
+SERIAL,    IP0401,  Utility_Room_PIR,  	All_Lights|Comfort|PIRs, ON, serial_comfort
+
+SERIAL,    IP0500,  Shower_Room_PIR, 	All_Lights|Comfort|PIRs, OFF, serial_comfort
+SERIAL,    IP0501,  Shower_Room_PIR,  	All_Lights|Comfort|PIRs, ON, serial_comfort
+
+SERIAL,    IP0600,  Garage_PIR, 	All_Lights|Comfort|PIRs, OFF, serial_comfort
+SERIAL,    IP0601,  Garage_PIR,  	All_Lights|Comfort|PIRs, ON, serial_comfort
+
+SERIAL,    IP0C00,  Spare1,     	All_Lights|Comfort|PIRs, OFF, serial_comfort
+SERIAL,    IP0C01,  Spare1,     	All_Lights|Comfort|PIRs, ON, serial_comfort
+
+SERIAL,    IP0D00,  Dark_Sensor, 	All_Lights|Comfort|PIRs, OFF, serial_comfort
+SERIAL,    IP0D01,  Dark_Sensor, 	All_Lights|Comfort|PIRs, ON, serial_comfort
+
+SERIAL,    IP0E00,  Garden_PIR,   	All_Lights|Comfort|PIRs, OFF, serial_comfort
+SERIAL,    IP0E01,  Garden_PIR,   	All_Lights|Comfort|PIRs, ON, serial_comfort

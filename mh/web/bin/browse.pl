@@ -7,11 +7,8 @@
 my ($url) = @ARGV;
 
 my ($file) = &http_get_local_file($url);
-my $data   = &file_read($file);
-
-# Why do we need this?  Seems like we might want \r+, 
-# but that does not get rid of the extra lines?
-$data =~ s/\n+//g;
+my $data   = &file_read($file, 0, 1);
+$data =~ s/\n/\r/g;
 
 return &html_page('', "<PRE>$data</PRE>");
 

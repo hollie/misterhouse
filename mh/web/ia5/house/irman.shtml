@@ -1,0 +1,17 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Programming IRMan Interface')" -->
+<br>
+<font size=2>
+Type the name of the button in the test_input2 field, and press Start.
+<a href="/widgets_entry">Enter name here</a><br><br>
+<a href="/RUN:last_response?Start_programming_IRman_codes"><img src="../entertain/images/play.gif" border=0></a>
+&nbsp;&nbsp;
+<a href="/RUN:last_response?Stop_programming_IRman_codes"><img src="../entertain/images/stop.gif" border=0></a><br>
+</font>
+</body>
+</html>

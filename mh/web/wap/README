@@ -1,0 +1,27 @@
+
+The current wap interface is done with the .menu files.  
+See mh/code/bruce/menu.pl
+
+
+-------------
+
+Some info from Jeffrey Ferris on WAP:
+
+WAP: Wireless Application Protocol.  WML is XML for wireless things, like phones.
+
+Then there are "Decks" and "Cards" within a wml page...The deck is
+essentially the page, cards are various small wap-bite-sized chunks of the
+deck...I think.  :) Right now, I'm doing single-deck, single-card. A good
+basic intro/overview is at
+
+http://www.wapdesign.org.uk/tutorial.html
+
+Slightly more detail at
+http://www.wirelessdevnet.com/training/WAP/WML.html
+
+and you need these mime types:
+.wml	text/vnd.wap.wml
+.wmls	text/vnd.wap.wmlscript
+.wbmp	image/vnd.wap.wbmp
+
+ 

@@ -1,0 +1,6 @@
+
+# This has stuff specific to my house (won't work with test dir).
+
+ M: Sounds
+    D: Speakers [on,off]
+    D: Music [on,off]

@@ -1,0 +1,86 @@
+use strict;
+
+
+my %parms;
+use Getopt::Long;
+if (!&GetOptions(\%parms, 'h', 'help', 'directory=s') or 
+    !@ARGV or $parms{h} or $parms{help}) { print<<eof;
+
+$Pgm_Name takes two seperate directories and mirrors them.
+
+
+  Usage:
+
+   $Pgm_Name [options] dir1 dir2 
+    	
+    -h        => This help text
+
+   Examples:
+    $Pgm_Name -directory /backup/misc //misterhouse.net/bin
+	Where as dir1 is the directory that you wish to mirror to dir2 
+
+eof
+    exit;
+}
+
+
+use File::Copy;
+ 	my $targetDir = "@ARGV";
+	my $sourceDir = "$parms{directory}";
+
+ 	opendir(SOURCEDIR, $sourceDir) or warn "cannot open $sourceDir.\n" ;
+	my @sourceFiles = sort readdir(SOURCEDIR);
+    	opendir(TARGETDIR, $targetDir) or warn "Can't open target directory $targetDir.\n";
+    	my @targetFiles = sort readdir(TARGETDIR);
+
+	my $sourceFileName = shift (@sourceFiles);
+	my $targetFileName = shift (@targetFiles);
+	
+	foreach $sourceFileName(@sourceFiles) {
+			if (-d "$sourceDir/$sourceFileName"){
+				next;
+			}
+			elsif (-e "$targetDir/$sourceFileName"){
+				my $source_file_name_modified_a = (-s "$sourceDir/$sourceFileName");
+				my $target_file_name_modified_a = (-s "$targetDir/$sourceFileName");
+				if ($target_file_name_modified_a ne $source_file_name_modified_a){
+					copy("$sourceDir/$sourceFileName", "$targetDir/$sourceFileName") or warn "Can't copy $sourceFileName.\n";
+								}		
+				else {
+				
+					next;
+				}
+			}
+			
+			elsif (!-e "targetDir/$sourceFileName"){	
+				copy("$sourceDir/$sourceFileName", "$targetDir/$sourceFileName") or warn "Can't copy $sourceFileName.\n";
+			}
+	}
+
+	#lets try this again but backwards
+	foreach $targetFileName(@targetFiles) {
+			if (-d "$targetDir/$targetFileName"){
+				next;
+			}
+			elsif (-e "$sourceDir/$targetFileName"){
+				my $source_file_name_modified_b = (-s "$targetDir/$targetFileName");
+				my $target_file_name_modified_b = (-s "$sourceDir/$targetFileName");
+				if ($target_file_name_modified_b ne $source_file_name_modified_b){
+					copy("$targetDir/$targetFileName", "$sourceDir/$targetFileName") or warn "Can't copy $targetFileName.\n";
+				
+				}		
+				else {
+			
+					next;
+				}
+			
+				next;
+			}
+			
+			elsif (!-e "$sourceDir/$targetFileName"){
+		
+				copy("$targetDir/$targetFileName", "$sourceDir/$targetFileName") or warn "Can't copy $targetFileName.\n";
+			}
+	}
+	close(TARGETDIR);
+	close(SOURCEDIR);

@@ -1,5 +1,6 @@
 # Category=Test
 
+#@ Test code hooks
 
                                 # Test the Sound/Play hooks
 #&Play_pre_add_hook (\&test_play_hook)  if $Reload;

@@ -1,0 +1,330 @@
+
+/L1"Misterhouse/Perl" Line Comment = # Block Comment On = =begin Block
+Comment Off = =cut Escape Char = \ File Extensions = PL
+/Delimiters = ~!@$%^&*()+=|\/{}[]:;"'<> 	,.?/
+/Indent Strings = "{"
+/Unindent Strings = "}"
+/Function String = "%[ ^t]++sub[ ^t]+^([a-z0-9_]+^)[ {^p]"
+/C1
+-A -B -C -M -O -R -S -T -W -X -b -c -d -e -f -g -k -l -o -p -r -s -t -u
+-w -x -z
+__DATA__ __END__ __FILE__ __LINE__
+continue
+do
+else elsif
+for foreach
+goto
+if
+last local
+my
+next no
+our
+package
+redo return require
+sub
+until unless use
+while
+/C2
+accept alarm atan2
+bind binmode bless
+caller chdir chmod chomp chop chown chr chroot close closedir connect
+cos crypt
+dbmclose dbmopen defined delete die dump
+each endgrent endhostent endnetent endprotoent endpwent endservent eof
+eval exec exit exp exists
+fcntl fileno flock fork formline format
+getc getgrent getgrgid getgrname gethostbyaddr gethostbyname gethostent
+getlogin getnetbyaddr getnetbyname getnetent getpeername getpgrp getppid
+getpriority getprotobyname getprotobynumber getprotoent getpwent
+getpwnam getpwuid getservbyname getservbyport getservent getsockname
+getsockopt glob gmtime grep
+hex
+index int ioctl
+join
+keys kill
+lc lcfirst length link listen localtime log lstat
+map mkdir msgctl msgget msgrcv msgsnd
+new
+oct open opendir ord
+pack pipe pop pos print printf push
+quotemeta
+rand read readdir readline readlink recv ref rename reset reverse
+rewinddir rindex rmdir
+scalar seek seekdir select semctl semgett semop send setgrent
+sethostent setnetent setpgrp setpriority setprotoent setpwent setservent
+setsockopt shift shmctl shmget shmread shmwrite shutdown sin sleep
+socket socketpair sort splice split sprintf sqrt srand stat study substr
+symlink syscall sysopen sysread system syswrite
+tell telldir tie tied time times truncate
+uc ucfirst umask undef unlink unpack unshift utime
+values vec
+wait waitpid wantarray warn write
+/C3
+AUTOLOAD
+and
+BEGIN
+CORE
+DESTROY
+eq
+END
+ge gt
+le lt
+ne not
+m
+or
+q qq qw qx
+SUPER
+s
+tr
+UNIVERSAL
+x xor
+y
+/C4"Global Variables"
+Authorized
+Category
+Cookies
+Dark
+Date_Now
+Date_Now_Speakable
+Day
+DelayOccured
+Disabled_Commands
+Hour 
+Http
+Info
+Last_Response
+Loop_Count
+Mday
+Minute
+Month
+Moon
+New_Day
+New_Hour
+New_Minute
+New_Month
+New_Msecond_100
+New_Msecond_250
+New_Msecond_500
+New_Second
+New_Week
+New_Year
+Password
+Password_Allow
+Persistent
+Pgm_Path
+Pgm_Root
+Reload
+Reread
+Season
+Second
+Startup
+Time
+Time_Boot_time
+Time_Date
+Time_Increment
+Time_Now
+Time_Of_Day
+Time_Startup
+Time_Startup_time
+Time_Sunrise
+Time_Sunrise_Twilight
+Time_Sunset
+Time_Sunset_Twilight
+Time_Uptime_Seconds
+Version
+Version_date
+Version_tk
+Wday
+Weekday
+Weekend
+Year
+Year_Month_Now
+/C5"Objects"
+File_Item
+Generic_Item
+Group
+iButton_Item
+IR_Item
+LCD
+Process_Item
+Serial_Item
+Weather_Item
+X10_Item
+X10_Appliance
+X10_Garage_Door
+X10_IrrigationController
+X10_Switchlinc
+X10_Ote
+X10_Sensor
+RCS_TX15
+Socket_Item
+Timer
+Voice_Cmd
+DSC_Alarm
+/C6"Methods"
+active
+active_now
+add
+add_states
+alarm_now    
+changed
+check_key    
+done
+done_now
+expired
+get_chaged_by       
+get_states          
+handle
+hidden
+hours_remaining
+hours_remaining_now
+inactive
+inactive_now
+index
+is_available 
+is_stopped   
+load
+minutes_remaining
+minutes_remaining_now
+mode
+name
+new
+read_all     
+read_current 
+read_head    
+read_next    
+read_random  
+read_tail    
+read_temp    
+restore_data
+run_action 
+said
+seconds_remaining
+seconds_remaining_now
+set
+set_authority
+set_data
+set_dtr      
+set_echo     
+set_expect   
+set_icon 
+set_index    
+set_info 
+set_key 
+set_order
+set_port     
+set_rcs      
+set_states
+set_watch
+start
+state_log    
+state_now    
+stop
+tie_events
+tie_filter
+tie_items
+tie_time
+unset
+untie_filter
+untie_items
+untie_time
+user
+zone
+/C7"Functions"
+add_sound
+browser
+convert_k2f
+convert_c2f
+convert_direction
+dbm_write
+dbm_write
+dbm_read
+dbm_search
+display
+file_changed 
+file_unchanged
+file_diff
+file_read
+file_write
+file_cat
+file_head 
+file_tail
+filter_cr
+logit
+play
+print_log
+print_msg
+print_speaklog
+round
+run
+run_after_delay
+run_voice_cmd
+SendKeys 
+WaitForAnyWindow 
+SetWindowText 
+GetWindowText 
+SetFocus 
+EnumChildWindows 
+sendkeys_find_window
+speak
+time_add
+time_diff
+time_date_stamp
+time_cron
+time_greater_than
+time_less_than
+time_greater_or_equal
+time_less_or_equal
+time_now
+time_random
+tk_button 
+tk_mbutton
+tk_checkbutton
+tk_entry
+tk_label 
+tk_mlabel
+tk_radiobutton
+get
+get_ip_addresses
+html_unescape
+new_second
+new_minute
+new_hour
+net_domain_name
+net_domain_name_start
+net_domain_name_done
+net_ping
+net_ftp
+net_connect_check
+net_jabber_send
+net_im_send
+net_mail_send
+net_mail_count
+net_mail_summary
+net_mail_read
+/C8"Companion Programs"
+alpha_page
+backup_data
+display
+display_callers
+find_files
+find_programs
+get_ceiva
+get_email
+get_mp3_data
+get_tv_grid
+get_tv_info
+get_url
+get_weather
+house
+ical_load
+mhl
+net_ftp
+outlook_read
+report_weblog
+mhsend
+monitor_weblog
+set_clock
+set_password
+speak
+trivia

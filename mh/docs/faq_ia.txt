@@ -36,6 +36,7 @@ What is an Audrey
     http://vsa.cape.com/~pjf/MrAudrey.html
 
   Some common hacks
+
     Here are some common/useful hacks (edit these file to these values):
 
       echo 1 > /config/BROWSER_AllowNewWindow
@@ -60,6 +61,7 @@ What is an Audrey
     power button which also disable browser refreshes.
 
   Remote Audrey browsing and control
+
     Create a HOSTS entry to point to your audrey address (available from the
     About Audrey -> Provile icon on the Audrey Options menu). For example,
     edit c:/WINNT/system32/drivers/etc/hosts and add 192.168.0.101 Audrey).
@@ -75,6 +77,7 @@ What is an Audrey
      http://audrey/gpio.shtml?0 (screen off, 3 for on)
 
   How to boot Audrey to a mh page
+
     From Ron Wright from some other site on 10/2001
 
     I has hacking away and realized that the
@@ -93,6 +96,7 @@ What is an Audrey
      <meta HTTP-EQUIV="refresh" CONTENT="5;URL=http://192.168.0.1:8080/audrey/audrey.html">
 
   How to stop the Audrey from auto-upating
+
     From Ron Wright from some other site on 10/2001
 
     I have also edited the kcrontab file to keep Audrey from trying to
@@ -120,6 +124,7 @@ What is an Audrey
      maild;/5;*;*;*;*
 
   How to share files
+
     Assuming a hacked shell like DaveC-Img10-23-01, you can share access
     Windows shared folders with this command
 
@@ -134,6 +139,7 @@ What is an Audrey
     /kojak/remotemount.sh, called from /kojak/go
 
   How to play mp3 files
+
     From Tony Perrie on 10/2001:
 
     Assuming a hacked shell like DaveC-Img10-23-01.
@@ -153,6 +159,7 @@ What is an Audrey
      slay -P 5 phplay
 
   How to push speech to remote Audreys
+
     There are 2 ways to do remotely play wav files on an Audrey. One plays a
     wav file in the foreground by creating a popup window, the other uses
     playsound_noph to play wav files in the background. Both ways requre you

@@ -1,5 +1,7 @@
 # Category=HVAC
 
+#@ Heating and fan control
+
 
                                 # Turn attic fan on if warmer inside, in the summer
 if ($Weather{TempOutdoor} > 55 and

@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+# mrHouse       This shell script takes care of starting and stopping \
+#               MisterHouse Home Automation Software.
+#
+# processname: /usr/local/mh/bin/mh
+# 
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration and check that networking is up.
+if [ -f /etc/sysconfig/network ] ; then
+	. /etc/sysconfig/network
+	[ ${NETWORKING} = "no" ] && exit 0
+fi
+
+[ -x /usr/local/mh/bin/mh ] || exit 0
+
+prog=mh
+
+RETVAL=0
+
+start () {
+    # start daemon
+    export LANG=en_US
+    cd /usr/local/mh/bin/
+    daemon /usr/local/mh/bin/mh -tk 0 &
+    RETVAL=$?
+    echo -n $"Starting $prog: "
+    echo
+    [ $RETVAL = 0 ] && touch /var/lock/subsys/mh
+    return $RETVAL
+}
+
+stop () {
+    # stop daemon
+    killproc /usr/local/mh/bin/mh
+    RETVAL=$?
+    echo -n $"Stopping $prog: "
+    echo
+    [ $RETVAL = 0 ] && rm -f /var/lock/subsys/mh
+    return $RETVAL
+}
+
+restart () {
+    stop
+    start
+    RETVAL=$?
+    return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    status)
+	status /usr/local/mh/bin/mh
+	RETVAL=$?
+	;;
+    restart)
+	restart
+	;;
+    *)
+        echo $"Usage: $0 {start|stop|restart|status}"
+        RETVAL=1
+esac
+
+exit $RETVAL

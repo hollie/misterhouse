@@ -1,0 +1,74 @@
+
+# This is a simple test menu
+
+M: Main
+	D: Voice_Mail
+	D: Security
+	D: Control
+	D: Modes
+	D: Music
+	D: Camera
+	D: Weather
+
+M: Voice_Mail
+	D: New Messages
+		A: &Stargate::voicemail(0,'first','ic');
+	D: Caller ID
+		A: &Stargate::voicemail(0,'cid','ic');
+	D: Stop
+		A: &Stargate::voicemail(0,'stop','ic');
+	D: Repeat
+		A: &Stargate::voicemail(0,'repeat','ic');
+	D: Back
+		A: &Stargate::voicemail(0,'back','ic');
+	D: Forward
+		A: &Stargate::voicemail(0,'forward','ic');
+	D: Delete
+		A: &Stargate::voicemail(0,'delete','ic');
+	D: All
+		A: &Stargate::voicemail(0,'all','ic');
+	D: Next
+		A: &Stargate::voicemail(0,'next','ic');
+M: Security
+	D: Away alarm [on,off]
+		A: $away_alarm->set($state)
+	D: Away alarm status
+		A: speak "Away alarm is " . $away_alarm->state()
+
+M: Control
+	D: All Lights off
+		A: $Inside_Lights->set(OFF)
+	D: Driveway light [on,off]
+		A: $driveway_garage_light->set($state)
+
+M: Modes
+	D: Family [standard,isolate,romantic,off,romantic2]
+		A: family_mode($state)
+	D: Bedroom [standard, romantic, off]
+		A: bedroom_mode($state)
+
+M: Music
+	D: Alternative
+		A: music_alt();
+	D: Next
+		A: music_next();
+	D: Stop
+		A: music_stop();
+
+M: Camera
+	D: Front
+		A: set_camera_front();
+	D: Garage
+		A: set_camera_garage();
+	D: Back
+		A: set_camera_back();
+	D: Porch
+		A: set_camera_porch();
+M: Weather
+	D: Temperature
+		A: what is the outside temperature
+	D: Wind	
+		A: what is the wind speed
+	D: Forecast2
+		A: get_short_weather_forecast();
+

@@ -7,7 +7,10 @@
 
 my ($list_name) = @ARGV;
 
-my ($html, $i, @objects);
+my $html_refrate = $config_parms{html_refresh};
+$html_refrate = '' unless $html_refrate;
+
+my ($html, $htm_hdr, $i, @objects);
 
                                 # Request by type or by group name?
 @objects = &list_objects_by_type($list_name);
@@ -20,9 +23,23 @@ for my $item (sort @objects) {
     next if $object->{hidden};
     
     my $state = state_level $object if $object->isa('X10_Item');
+    $state = state $object if $object->isa('Fan_Light') or $object->isa('Fan_Motor');
     $state = 'unk' unless $state;
 
     my $state_new = (!defined $state or $state eq 'off') ? 'on' : 'off';
+
+    if ($object->isa('Fan_Motor')) {
+      if ($state eq 'off') {
+         $state_new = 'low';
+      } elsif ($state eq 'low') {
+         $state_new = 'med';
+      } elsif ($state eq 'med') {
+         $state_new = 'high';
+      } else {
+         $state_new = 'off';
+      }
+    }
+
     my $name   = &pretty_object_name($item);
 
     my $icon;
@@ -59,8 +76,14 @@ for my $item (sort @objects) {
 }
 
 #$html = "<html><body>\n<base target ='output'>\n" . 
-$html = "<html><body>\n" .
-  &html_header('Control Items') . "
+if ( $html_refrate  ) {
+    $htm_hdr = "<html><head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"". $html_refrate . ";\"><\/head><body>\n"; 
+}
+else {
+    $htm_hdr = "<html><body>\n" ;  
+}
+    
+$html = $htm_hdr .  &html_header('Control Items') . "
 <table width='100%' border='0'>
 <center>
  <table cellSpacing=4 cellPadding=0 width='100%' border=0>  

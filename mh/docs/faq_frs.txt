@@ -5,6 +5,7 @@
     are beginning to repeat, so, here's a mini FAQ:
 
   1.    What are FRS radios?
+
     Cheap, UHF two way radios licensed by the FCC in the US only for "Family
     Radio Service". They have 14 possible frequencies and various add on
     "privacy" or "sub" codes, which is a VERY MISLEADING term. The packing
@@ -30,6 +31,7 @@
     Fry's, even Target and Wal Mart.
 
   2.    What does FRS have to do with MH?
+
     Brian Rigsby posted to the list around 10/9/2000 that he'd connected an
     FRS radio to a PC running mh. He could then transmit voice commands from
     an FRS radio in his hand and hear mh's responses back via the radio.
@@ -42,6 +44,7 @@
     topic.
 
   3.    How do you hook it up?
+
     Search the archives and see Brian's post and the many follow ups. But,
     basically, you put the "earphone/ext speaker" jack on the FRS to the
     "mic in" on the PC. You put the "speaker out" or "line out" from the PC
@@ -68,6 +71,7 @@
     work with mh.
 
   4.    Is it legal?
+
     Extremely Doubtful.
 
     See this FAQ
@@ -90,6 +94,7 @@
     regs about this, but civil liability in the U.S. can be pretty wacky.
 
   5.    Is it secure?
+
     NO! ABSOLUTELY NOT! And the statements regarding security on much of the
     retail packaging for FRS are WRONG!
 
@@ -121,6 +126,7 @@
     the FCC regs for FRS service.
 
   6.    Does this mean other people can issue commands to mh?
+
     YES. What happens after that is partially dependent on the Voice
     Recongition software you run. If you decide to try this, think CAREFULLY
     about what mh is capable of doing via voice command. Assume that someone
@@ -128,14 +134,17 @@
     it through.
 
   7.    Will my & mh's conversation(s) upset other people using FRS?  Will they call the FCC?
+
     Possible and possibly.
 
   8.    What about voice recognition accuracy?
+
     If trained to your voice, the pioneers report very, very high accuracy.
     With enough training, this may slightly contribute to security, but I'm
     not going to count on it...
 
   9.    What's the range?
+
     All (decent) FRS radios transmit at 1/2 watt (500mw). This is a lot of
     power for a handheld. Being UHF, line-of-sight has much more to do with
     range than distance. While the manufacturers generally list "2 miles",

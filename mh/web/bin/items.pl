@@ -22,9 +22,11 @@ sub web_items_list {
     my $html = &html_header('Items Menu');
     $html  = qq|
 <HTML><HEAD><TITLE>Items Menu</TITLE></HEAD><BODY>\n<a name='Top'></a>$html
-Use this page to review or update your .mht file.
-A backup is made and comments and record order are preserved.
-To update existing items, enter/change the field and hit Enter.
+Use this page to review or update your .mht file.|;
+    $html .= qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font>| unless $Authorized eq 'admin';
+    $html .= qq|A backup is made and comments and record order are preserved.
+To update existing items, enter/change the field and hit Enter.| if $Authorized eq 'admin';
+    $html .= qq|
 
 <script>
 function openparmhelp(parm1){
@@ -72,7 +74,7 @@ $form_type
 <input type=input name=other1   size=10 value=''>
 <input type=input name=other2   size=10 value=''>
 <td></form><tr>
-|;
+| if $Authorized eq 'admin';
 
                                 # Parse table data
     undef @file_data;
@@ -128,8 +130,10 @@ $form_type
             my @item_info = split(',\s+', $record, $headers);
 
             $html .= "<tr>";
-            $html .= "<td><a href=/SUB;/bin/items.pl?web_item_copy($pos)>Copy</a>";
-            $html .= "    <a href=/SUB;/bin/items.pl?web_item_delete($pos)>Delete</a></td> ";
+            $html .= "<td>";
+            $html .= "<a href=/SUB;/bin/items.pl?web_item_copy($pos)>Copy</a>" if $Authorized eq 'admin';
+            $html .= "    <a href=/SUB;/bin/items.pl?web_item_delete($pos)>Delete</a>" if $Authorized eq 'admin';
+            $html .= "</td> ";
             $html .= "<td>$item_info[0]</td> ";
             for my $field (1 .. $headers - 1) {
                 $html .= &html_form_input_set_func('web_item_set_field', "/bin/items.pl", "$pos,$field", $item_info[$field]);

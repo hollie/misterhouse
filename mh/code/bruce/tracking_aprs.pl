@@ -1,9 +1,9 @@
 # Category=Vehicles
 
-=begin comment
+#@ Code for tracking cars with GPS sensors and aprs enabled ham radios.  
+#@ Example hardware is listed <a href=http://www.gpstracker.com>here</a>
 
-Example of Tracking equipment available can be found here:
-  http://www.gpstracker.com
+=begin comment
 
 This is a subset of what is in Brian's tracking.pl #
 code.  It only does GPS tracking.                  #
@@ -107,7 +107,7 @@ $v_wx_query = new Voice_Cmd("APRS Weather Query");
 $v_wx_query-> set_info('Send out a weather query to nearby APRS weather stations');
 if ($state = said $v_wx_query) {
     set $tnc_output 'wxquery';
-    speak "Weather query requested";
+    respond "Weather query requested";
 }
 
 $v_send_test_email = new Voice_Cmd("Send APRS email to myself");
@@ -116,14 +116,14 @@ set_info $v_send_test_email 'Use an APRS internet gateway to send a test email f
 if ($state = said $v_send_test_email) {
     print_log "aprs mail sent to $config_parms{net_mail_user}\@$config_parms{net_mail_server}";
     set $tnc_output ":EMAIL    :$config_parms{net_mail_user}\@$config_parms{net_mail_server} Test E-Mail - $Time";
-    speak "Email sent";
+    respond "Email sent";
 }
 
 $v_send_test_icq = new Voice_Cmd("Send APRS ICQ msg to myself");
 $v_send_test_icq-> set_info('Send a test ICQ message, via a ham radio APRS connection');
 if ($state = said $v_send_test_icq) {
     set $tnc_output ":ICQSERVE :967794 Test Msg - $Time";
-    speak "ICQ message sent";
+    respond "ICQ message sent";
 }
 
                                 # Process incoming APRS data
@@ -149,7 +149,7 @@ if (my $APRSString = said $tnc_output) {
 #       KC0EQV-9>APRS:$GPRMC,031831,A,3616.6824,N,11502.3395,W,064.2,245.3,010801,013.7,E*60
 
     my ($callsign, $tocall, $data) = $APRSString =~ /(\S+?)\>(\S+?)\:(\S+)/;
-    print "db callsign=$callsign tocall=$tocall data=$data\n" if $config_parms{debug} eq 'aprs';
+    print "db callsign=$callsign tocall=$tocall data=$data\n" if $Debug{'aprs'};
 
     my ($GPSTime, $GPSLatitude, $GPSLongitude, $GPSSpeed, $GPSCourse) = (split(',', $data))[1, 3, 5, 7, 8];
 
@@ -175,7 +175,7 @@ if (my $APRSString = said $tnc_output) {
         my $GPSDistance = &great_circle_distance($GPSLatitude, $GPSLongitude, $config_parms{latitude}, abs $config_parms{longitude});
         
                                 # Skip if the car has not moved since last time or its been a while (unless distant internet data)
-        if (($config_parms{debug} eq 'aprs') or
+        if (($Debug{'aprs'}) or
             (abs($callsign_data{$callsign}{distance} - $GPSDistance) > .1) or
             (($Time - $callsign_data{$callsign}{time_logged}) > 1800 and $GPSDistance < 500)) {
                 
@@ -243,7 +243,7 @@ if (my $APRSString = said $tnc_output) {
                              ($callsign2 =~ /$config_parms{tracking_speakflag}/i);
                 
             if ($track_flag or $config_parms{tracking_speakflag} eq 'all' or $config_parms{tracking_speakflag} eq 'GPS') {
-                speak "rooms=all voice=male " . $msg3;
+                speak "rooms=all voice=male3 " . $msg3;
                 $msg3 = ucfirst $msg3;
                 set $monitor_vehicles $msg3;
 
@@ -294,11 +294,11 @@ if (my $APRSString = said $tnc_output) {
                 if ($gps_names{$callsign}{group} eq 'family') {
                     if (!$Save{"aprs_track_$callsign2"} and $GPSDistance > 20) {
                         $Save{"aprs_track_$callsign2"} = $Time;
-                        speak "voice=male2 $callsign2 is $GPSDistance miles from home.  Starting an internet aprs monitor";
+                        speak "voice=female2 $callsign2 is $GPSDistance miles from home.  Starting an internet aprs monitor";
                     }
                     elsif ($Save{"aprs_track_$callsign2"} and $GPSDistance < 20) {
                         $Save{"aprs_track_$callsign2"} = 0;
-                        speak "voice=male2 $callsign2 is $GPSDistance miles from home.  Stopping the internet aprs monitor";
+                        speak "voice=female2 $callsign2 is $GPSDistance miles from home.  Stopping the internet aprs monitor";
                     }
                 }
             }
@@ -328,7 +328,7 @@ $aprs_whereis  = new Voice_Cmd "Where is [$gps_tracked]";
 $aprs_whereis-> set_info('This will give the last known location of our cars');
 $aprs_whereis-> set_authority('anyone');
 print_log "debug aprs $state." if $state = said $aprs_whereis;
-speak $Save{"aprs_whereis_$state"} if $state = said $aprs_whereis;
+respond $Save{"aprs_whereis_$state"} if $state = said $aprs_whereis;
 
 $v_send_tracking = new Voice_Cmd 'Send tracking log';
 $v_send_tracking-> set_info('Send the APRS car tracking log to instant message.');
@@ -394,7 +394,7 @@ if ($New_Week) {
     file_cat "$config_parms{tracking_dir}/week1.txt",  "$config_parms{tracking_dir}/old/${Year_Month_Now}.txt",  'top';
     rename   "$config_parms{tracking_dir}/week1.html", "$config_parms{tracking_dir}/week2.html"  or print_log "Error in aprs rename 2: $!";
     rename   "$config_parms{tracking_dir}/week1.txt",  "$config_parms{tracking_dir}/week2.txt"   or print_log "Error in aprs rename 2: $!";
-    my $html = qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n<table>\n];
+    my $html = qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n];
     logit "$config_parms{tracking_dir}/week1.html", $html, 1;
 
 }
@@ -421,7 +421,7 @@ $aprs_location_name = new Generic_Item;
 if ($state = state_now $aprs_location_name) {
     my $loc = state_now $aprs_location_loc;
     print_log "aprs log: $state at $loc";
-    speak "Updated location of $state";
+    respond "Updated location of $state";
     $loc = sprintf "%-24s,   %9.6f,  %9.6f   # %s\n", $state, split(',', $loc), &time_date_stamp($config_parms{time_format_log} , $Time);
     logit "$config_parms{data_dir}/tracking.pos", $loc, 0 unless $state =~ /^test/;
     &reload_aprs_data;          # So the above update takes effect

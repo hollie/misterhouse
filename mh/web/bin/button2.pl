@@ -476,8 +476,8 @@ sub FindFile {
 #}
 
 #$Log$
-#Revision 1.1  2003/06/26 11:20:24  zylantha
-#Files missing from CVS added from release 2.81
+#Revision 1.2  2004/01/25 05:14:08  cwitte
+#cwitte sync to 2.86 tarball
 #
 #Revision 1.2  2002/12/01 06:23:18  gaetan
 #First release to public

@@ -1,5 +1,7 @@
 # Category=Other
 
+#@ Lists various items.  Standard items are listed in items.mht
+
 my ($temp, $state, $ref);
    
 # Various X10 items
@@ -17,17 +19,18 @@ $garage_movement      = new Serial_Item('XI2');   # Do not respond to XIJ (on), 
 $garage_movement     -> set_icon('motion');
 
 # These are the dark/light signals that the motions sensors send ... ignore them
-$motion_sensor_ignore =  new Serial_Item('XA3AJ');
-$motion_sensor_ignore -> add            ('XA3AK');
-$motion_sensor_ignore -> add            ('XA5AJ');
-$motion_sensor_ignore -> add            ('XA3');
-$motion_sensor_ignore -> add            ('XA5');
-$motion_sensor_ignore -> add            ('XAJ');
-$motion_sensor_ignore -> add            ('XAK');
-$motion_sensor_ignore ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
+#$motion_sensor_ignore =  new Serial_Item('XA3AJ');
+#$motion_sensor_ignore -> add            ('XA3AK');
+#$motion_sensor_ignore -> add            ('XA5AJ');
+#$motion_sensor_ignore -> add            ('XA3');
+#$motion_sensor_ignore -> add            ('XA5');
+#$motion_sensor_ignore -> add            ('XAJ');
+#$motion_sensor_ignore -> add            ('XAK');
+#$motion_sensor_ignore ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
 
 $sensor_hall        ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
 $sensor_bathroom    ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
+$garage_lights      ->{no_speak} = 1; # Avoid speaking by pa_control.pl
 
 $bathroom_light     ->set_icon('motion');
 $bathroom_light     ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
@@ -128,22 +131,23 @@ $garage_door_button  = new  Serial_Item('DAHH', ON);
 $garage_door_button -> add             ('DALH', OFF);
 
 # PA relay items
-$pa_study            = new  Serial_Item('DBHA', ON);
-$pa_study           -> add             ('DBLA', OFF);
-$pa_family           = new  Serial_Item('DBHB', ON);
-$pa_family          -> add             ('DBLB', OFF);
-$pa_shop             = new  Serial_Item('DBHC', ON); 
-$pa_shop            -> add             ('DBLC', OFF);
-$pa_radio            = new  Serial_Item('DBHD', ON);
-$pa_radio           -> add             ('DBLD', OFF);
-$pa_bedroom          = new  Serial_Item('DBHE', ON);
-$pa_bedroom         -> add             ('DBLE', OFF);
-$pa_nick             = new  Serial_Item('DBHF', ON);
-$pa_nick            -> add             ('DBLF', OFF);
-$pa_zack             = new  Serial_Item('DBHG', ON);
-$pa_zack            -> add             ('DBLG', OFF);
-$pa_living           = new  Serial_Item('DBHH', ON);
-$pa_living          -> add             ('DBLH', OFF);
+
+#$pa_study            = new  Serial_Item('DBHA', ON);
+#$pa_study           -> add             ('DBLA', OFF);
+#$pa_family           = new  Serial_Item('DBHB', ON);
+#$pa_family          -> add             ('DBLB', OFF);
+#$pa_shop             = new  Serial_Item('DBHC', ON); 
+#$pa_shop            -> add             ('DBLC', OFF);
+#$pa_radio            = new  Serial_Item('DBHD', ON);
+#$pa_radio           -> add             ('DBLD', OFF);
+#$pa_bedroom          = new  Serial_Item('DBHE', ON);
+#$pa_bedroom         -> add             ('DBLE', OFF);
+#$pa_nick             = new  Serial_Item('DBHF', ON);
+#$pa_nick            -> add             ('DBLF', OFF);
+#$pa_zack             = new  Serial_Item('DBHG', ON);
+#$pa_zack            -> add             ('DBLG', OFF);
+#$pa_living           = new  Serial_Item('DBHH', ON);
+#$pa_living          -> add             ('DBLH', OFF);
 
 $mh_toggle_mode = new  Serial_Item('XPG', 'toggle');
 tie_event $mh_toggle_mode "run_voice_cmd 'Toggle the house mode'";

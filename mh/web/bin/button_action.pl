@@ -11,7 +11,7 @@ my ($state, $x, $y) = $state_xy =~ /(\S+)\?(\d+),(\d+)/;
 #print "db ln=$list_name, i=$item, s=$state_xy xy=$x,$y\n";
 
                                 # Do not dim the dishwasher :)
-unless (eval qq|$item->isa('X10_Appliance')|) {
+unless (eval qq|$item->isa('X10_Appliance') or $item->isa('Fan_Motor')|) {
     $state = 'dim'      if $x < 40;   # Left  side of image
     $state = 'brighten' if $x > 110;  # Right side of image
 }

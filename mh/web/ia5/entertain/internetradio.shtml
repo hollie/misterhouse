@@ -1,0 +1,15 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Internet Radio Channels')" -->
+<font size=2>
+<a href="http://www.npr.org/realmedia/24hour.ram"><b>NPR LIVE</a><br>
+<a href="http://www.omroep.nl/cgi-bin/rmlive?radio3fm">Radio 3FM</a><br>
+<a href="http://www.tros.com/cgi-bin/ram?pnm://cyberradio.tros.com/live_isdn.ra">Tros Radio</a><br>
+<a href="http://news.bbc.co.uk/olmedia/cta/progs/rn/bulletin.ram">BBC Radio</a><br>
+</font>
+</body>
+</html>

@@ -1,5 +1,7 @@
 # Category=HVAC
 
+#@ Control the hardwired, relay controle, curtains, and an X10 controled curtain
+
                                 # Toggle the x10 curtain controler
 if (!$Save{sleeping_parents}){
     if ($Season eq 'Summer') {

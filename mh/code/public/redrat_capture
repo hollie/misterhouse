@@ -1,0 +1,109 @@
+#!/usr/bin/perl
+
+use strict;
+
+# Change this to point to your mh dir
+# If on windows, swap the 2 Device:: records with the to Win32:: ones
+
+use lib '/misterhouse/mh/lib/site';
+
+$|=1;
+
+my $port=shift || &cmdline;
+my $file=shift || &cmdline;
+
+sub cmdline {
+	print <<"eof";
+$0 is supposed to ease signal capture from the redrat2
+This program will prompt you for a device, and a button 
+then write the appropriate perl script to create the objects
+for misterhouse. If nothing else it will write easily editable
+code to use for a beginning point to get you going with the redrat
+this works for me on linux your mileage will vary.
+
+Usage:
+  $0 DEVICE FILE
+\tdevice is the port of the redrat (/dev/ttyR33) 
+\tfile is the file that you want written to
+WARNING:
+\tfile will be overwritten if it exists
+eof
+
+	exit;
+}
+
+#se Win32::SerialPort;
+use Device::SerialPort;
+
+#y $PortObj = new Win32::SerialPort($port)  or die "Can not open $port: $^E\n";
+my $PortObj = new Device::SerialPort($port) or die "Can not open $port: $^E\n";
+
+$PortObj->baudrate(19200);  
+$PortObj->parity('none');
+$PortObj->databits(8);
+$PortObj->stopbits(1);
+$PortObj->handshake('none');  # none, rts, dtr, xoff
+#$PortObj->buffers(4096, 4096);  # read, write
+
+$PortObj->write_settings;
+
+my $device;
+my $button;
+
+open(CODEFILE,">$file") || die "Can't open $file $!\n";
+
+print "What device are you capturing? ";
+$device=<STDIN>;
+chomp($device);;
+
+print(CODEFILE "\$$device=new RedRat;\n")||die "can't write to file $!\n";;
+
+print "What button? ";
+$button=<STDIN>;
+chomp($button);
+
+my $bytes=$PortObj->write("[S]");
+while (1) {
+    my $data .= $PortObj->input;
+    if ($data =~ /(\[.+\])/) {
+	    my $tmpdata=$1;
+	    if (!($tmpdata =~ /\[#00\]/) ) {
+        	print " Read in data: $tmpdata\n";
+	###change [SF.... to [PF.... from signal to play..
+		$tmpdata =~ s/\[S/[P/;
+	###remove #XX checksum from the end.
+		$tmpdata =~ s/#..]/]/;
+		print CODEFILE "\$$device->add(\"$button\",\"$tmpdata\");\n";
+		print "What button? (quit to exit)  ";
+		$button=<STDIN>;
+		chomp($button);
+		if ($button eq "quit") {
+			last;
+		}
+		$bytes=$PortObj->write("[S]");
+	    } else {
+		print "Ready for capture\n";
+	    }
+    }
+    sleep 1;
+}
+close(CODEFILE);
+
+=begin comment
+
+Other options
+
+    $PortObj->xon_limit(100);      # bytes left in buffer
+    $PortObj->xoff_limit(100);     # space left in buffer
+    $PortObj->xon_char(0x11);
+    $PortObj->xoff_char(0x13);
+    $PortObj->eof_char(0x0);
+    $PortObj->event_char(0x0);
+    $PortObj->error_char(0);       # for parity errors
+    $PortObj->read_interval(100);    # max time between read char (milliseconds)
+    $PortObj->read_char_time(5);     # avg time between read char
+    $PortObj->read_const_time(100);  # total = (avg * bytes) + const 
+    $PortObj->write_char_time(5);
+    $PortObj->write_const_time(100);
+
+=cut

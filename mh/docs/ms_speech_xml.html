@@ -1,0 +1,489 @@
+<html xmlns:v="urn:schemas-microsoft-com:vml"
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40">
+
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=windows-1252">
+<meta name=ProgId content=Word.Document>
+<meta name=Generator content="Microsoft Word 9">
+<meta name=Originator content="Microsoft Word 9">
+<link rel=File-List href="./ms_speech_xml_files/filelist.xml">
+<link rel=Edit-Time-Data href="./ms_speech_xml_files/editdata.mso">
+<!--[if !mso]>
+<style>
+v\:* {behavior:url(#default#VML);}
+o\:* {behavior:url(#default#VML);}
+w\:* {behavior:url(#default#VML);}
+.shape {behavior:url(#default#VML);}
+</style>
+<![endif]-->
+<title>Microsoft Speech SDK </title>
+<!--[if gte mso 9]><xml>
+ <o:DocumentProperties>
+  <o:Author>Bruce Winter</o:Author>
+  <o:LastAuthor>Bruce Winter</o:LastAuthor>
+  <o:Revision>1</o:Revision>
+  <o:TotalTime>0</o:TotalTime>
+  <o:Created>2001-09-19T13:06:00Z</o:Created>
+  <o:LastSaved>2001-09-19T13:06:00Z</o:LastSaved>
+  <o:Pages>7</o:Pages>
+  <o:Words>1667</o:Words>
+  <o:Characters>9504</o:Characters>
+  <o:Lines>79</o:Lines>
+  <o:Paragraphs>19</o:Paragraphs>
+  <o:CharactersWithSpaces>11671</o:CharactersWithSpaces>
+  <o:Version>9.4119</o:Version>
+ </o:DocumentProperties>
+</xml><![endif]-->
+<style>
+<!--
+ /* Font Definitions */
+@font-face
+	{font-family:Wingdings;
+	panose-1:5 0 0 0 0 0 0 0 0 0;
+	mso-font-charset:2;
+	mso-generic-font-family:auto;
+	mso-font-pitch:variable;
+	mso-font-signature:0 268435456 0 0 -2147483648 0;}
+ /* Style Definitions */
+p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{mso-style-parent:"";
+	margin:0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman";
+	mso-fareast-font-family:"Times New Roman";}
+h1
+	{margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:1;
+	font-size:24.0pt;
+	font-family:"Times New Roman";
+	mso-font-kerning:18.0pt;
+	font-weight:bold;}
+h2
+	{margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:2;
+	font-size:18.0pt;
+	font-family:"Times New Roman";
+	font-weight:bold;}
+h3
+	{margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:3;
+	font-size:13.5pt;
+	font-family:"Times New Roman";
+	font-weight:bold;}
+a:link, span.MsoHyperlink
+	{color:blue;
+	text-decoration:underline;
+	text-underline:single;}
+a:visited, span.MsoHyperlinkFollowed
+	{color:blue;
+	text-decoration:underline;
+	text-underline:single;}
+p
+	{margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman";
+	mso-fareast-font-family:"Times New Roman";}
+code
+	{mso-ascii-font-family:"Courier New";
+	mso-fareast-font-family:"Courier New";
+	mso-hansi-font-family:"Courier New";
+	mso-bidi-font-family:"Courier New";}
+pre
+	{margin:0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	tab-stops:45.8pt 91.6pt 137.4pt 183.2pt 229.0pt 274.8pt 320.6pt 366.4pt 412.2pt 458.0pt 503.8pt 549.6pt 595.4pt 641.2pt 687.0pt 732.8pt;
+	font-size:10.0pt;
+	font-family:"Courier New";
+	mso-fareast-font-family:"Courier New";}
+@page Section1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.25in 1.0in 1.25in;
+	mso-header-margin:.5in;
+	mso-footer-margin:.5in;
+	mso-paper-source:0;}
+div.Section1
+	{page:Section1;}
+ /* List Definitions */
+@list l0
+	{mso-list-id:336075686;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-1034099644 -932575768 -834124042 -1018290600 -1769837048 -1196666416 -123065174 61231976 1387061454 -1130613732;}
+@list l0:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+ol
+	{margin-bottom:0in;}
+ul
+	{margin-bottom:0in;}
+-->
+</style>
+<!--[if gte mso 9]><xml>
+ <o:shapedefaults v:ext="edit" spidmax="1027"/>
+</xml><![endif]--><!--[if gte mso 9]><xml>
+ <o:shapelayout v:ext="edit">
+  <o:idmap v:ext="edit" data="1"/>
+ </o:shapelayout></xml><![endif]-->
+</head>
+
+<body lang=EN-US link=blue vlink=blue style='tab-interval:.5in'>
+
+<div class=Section1>
+
+<p class=MsoNormal><a
+href="http://go.microsoft.com/fwlink?linkid=288&amp;clcid=0x409" target="_blank"></a><!--[if gte vml 1]><v:shapetype
+ id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t"
+ path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
+ <v:stroke joinstyle="miter"/>
+ <v:formulas>
+  <v:f eqn="if lineDrawn pixelLineWidth 0"/>
+  <v:f eqn="sum @0 1 0"/>
+  <v:f eqn="sum 0 0 @1"/>
+  <v:f eqn="prod @2 1 2"/>
+  <v:f eqn="prod @3 21600 pixelWidth"/>
+  <v:f eqn="prod @3 21600 pixelHeight"/>
+  <v:f eqn="sum @0 0 1"/>
+  <v:f eqn="prod @6 1 2"/>
+  <v:f eqn="prod @7 21600 pixelWidth"/>
+  <v:f eqn="sum @8 21600 0"/>
+  <v:f eqn="prod @7 21600 pixelHeight"/>
+  <v:f eqn="sum @10 21600 0"/>
+ </v:formulas>
+ <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
+ <o:lock v:ext="edit" aspectratio="t"/>
+</v:shapetype><v:shape id="_x0000_s1026" type="#_x0000_t75" alt="The Microsoft.com Speech website"
+ href="http://go.microsoft.com/fwlink?linkid=288&amp;clcid=0x409"
+ target="_blank" style='position:absolute;margin-left:-1.75pt;margin-top:0;
+ width:38.25pt;height:28.5pt;z-index:1;mso-wrap-distance-left:0;
+ mso-wrap-distance-top:0;mso-wrap-distance-right:0;mso-wrap-distance-bottom:0;
+ mso-position-horizontal:right;mso-position-horizontal-relative:text;
+ mso-position-vertical-relative:line' o:allowoverlap="f" o:button="t">
+ <w:wrap type="square"/>
+</v:shape><![endif]--><![if !vml]><a
+href="http://go.microsoft.com/fwlink?linkid=288&amp;clcid=0x409" target="_blank"><img
+border=0 width=51 height=38 src="./ms_speech_xml_files/image001.gif"
+align=right alt="The Microsoft.com Speech website" v:shapes="_x0000_s1026"></a><![endif]><a
+href="http://go.microsoft.com/fwlink?linkid=288&amp;clcid=0x409" target="_blank"></a><span
+style='font-size:13.5pt'>Microsoft Speech SDK</span> <o:p></o:p></p>
+
+<p class=MsoNormal>SAPI 5.1 <o:p></o:p></p>
+
+
+<div class=MsoNormal>
+
+<hr size=1 width="100%" noshade color=red align=left>
+
+</div>
+
+
+<h1>XML TTS Tutorial<o:p></o:p></h1>
+
+<h2>SAPI XML TTS for Application Developers<o:p></o:p></h2>
+
+<p>SAPI text-to-speech (TTS) extensible markup language (XML) tags fall into several
+categories.<o:p></o:p></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo1;tab-stops:list .5in'><a href="#Voice_State_Control">Voice
+     state control</a> <o:p></o:p></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo1;tab-stops:list .5in'><a
+     href="#Direct_Item_Insertion">Direct item insertion</a> <o:p></o:p></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo1;tab-stops:list .5in'><a
+     href="#Voice_Context_Control">Voice context control</a> <o:p></o:p></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo1;tab-stops:list .5in'><a href="#Voice_Selection">Voice
+     selection</a> <o:p></o:p></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo1;tab-stops:list .5in'><a
+     href="#Custom_Pronunciation">Custom Pronunciation</a> <o:p></o:p></li>
+</ul>
+
+<h3>Voice state control tags<o:p></o:p></h3>
+
+<p>SAPI TTS XML supports five tags that control the state of the current voice:
+Volume, Rate, Pitch, Emph, and Spell.<o:p></o:p></p>
+
+<h3>Volume<o:p></o:p></h3>
+
+<p>The Volume tag controls the volume of a voice. The tag can be empty, in
+which case it applies to all subsequent text, or it can have content, in which
+case it only applies to that content.<o:p></o:p></p>
+
+<p>The Volume tag has one required attribute: Level. The value of this
+attribute should be an integer between zero and one hundred. Values outside of
+this range will be truncated.<o:p></o:p></p>
+
+<pre><code>&lt;volume level=&quot;50&quot;&gt;<o:p></o:p></code></pre><pre><code>This text should be spoken at volume level fifty.<o:p></o:p></code></pre><pre><code><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>&lt;volume level=&quot;100&quot;&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">      </span>This text should be spoken at volume level one hundred.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>&lt;/volume&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span><o:p></o:p></code></pre><pre><code>&lt;/volume&gt;<o:p></o:p></code></pre><pre><code><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></code></pre><pre><code>&lt;volume level=&quot;80&quot;/&gt;<o:p></o:p></code></pre><pre><code>All text which follows should be spoken at volume level eighty.<o:p></o:p></code></pre>
+
+<p>One hundred represents the default volume of a voice. Lower values represent
+percentages of this default. That is, 50 corresponds to 50% of full volume.<o:p></o:p></p>
+
+<p>Values specified using the Volume tag will be combined with values specified
+programmatically (using ISpVoice::SetVolume). For example, if you combine a
+SetVolume( 50 ) call with a &lt;volume level=&quot;50&quot;&gt; tag, the volume
+of the voice should be 25% of its full volume.<o:p></o:p></p>
+
+<h3>Rate<o:p></o:p></h3>
+
+<p>The Rate tag controls the rate of a voice. The tag can be empty, in which
+case it applies to all subsequent text, or it can have content, in which case
+it only applies to that content.<o:p></o:p></p>
+
+<p>The Rate tag has two attributes, Speed and AbsSpeed, one of which must be
+present. The value of both of these attributes should be an integer between
+negative ten and ten. Values outside of this range may be truncated by the
+engine (but are not truncated by SAPI). The AbsSpeed attribute controls the
+absolute rate of the voice, so a value of ten always corresponds to a value of
+ten, a value of five always corresponds to a value of five.<o:p></o:p></p>
+
+<pre><code>&lt;rate absspeed=&quot;5&quot;&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>This text should be spoken at rate five.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>&lt;rate absspeed=&quot;-5&quot;&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">      </span>This text should be spoken at rate negative five.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>&lt;/rate&gt;<o:p></o:p></code></pre><pre><code>&lt;/rate&gt;<o:p></o:p></code></pre><pre><code>&lt;rate absspeed=&quot;10&quot;/&gt;<o:p></o:p></code></pre>
+
+<p>All text which follows should be spoken at rate ten.<o:p></o:p></p>
+
+<h3>Speed<o:p></o:p></h3>
+
+<p>The Speed attribute controls the relative rate of the voice. The absolute
+value is found by adding each Speed to the current absolute value.<o:p></o:p></p>
+
+<pre><code>&lt;rate speed=&quot;5&quot;&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>This text should be spoken at rate five.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">      </span>&lt;rate speed=&quot;-5&quot;&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">         </span>This text should be spoken at rate zero.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">      </span>&lt;/rate&gt;<o:p></o:p></code></pre><pre><code>&lt;/rate&gt;<o:p></o:p></code></pre>
+
+<p>Zero represents the default rate of a voice, with positive values being
+faster and negative values being slower. Values specified using the Rate tag
+will be combined with values specified programmatically (using
+ISpVoice::SetRate).<o:p></o:p></p>
+
+<h3>Pitch<o:p></o:p></h3>
+
+<p>The Pitch tag controls the pitch of a voice. The tag can be empty, in which
+case it applies to all subsequent text, or it can have content, in which case
+it only applies to that content.<o:p></o:p></p>
+
+<p>The Pitch tag has two attributes, Middle and AbsMiddle, one of which must be
+present. The value of both of these attributes should be an integer between
+negative ten and ten. Values outside of this range may be truncated by the
+engine (but are not truncated by SAPI).<o:p></o:p></p>
+
+<p>The AbsMiddle attribute controls the absolute pitch of the voice, so a value
+of ten always corresponds to a value of ten, a value of five always corresponds
+to a value of five.<o:p></o:p></p>
+
+<pre><code>&lt;pitch absmiddle=&quot;5&quot;&gt;<o:p></o:p></code></pre><pre><code>This text should be spoken at pitch five.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>&lt;pitch absmiddle=&quot;-5&quot;&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">      </span>This text should be spoken at pitch negative five.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>&lt;/pitch&gt;<o:p></o:p></code></pre><pre><code>&lt;/pitch&gt;<o:p></o:p></code></pre><pre><code>&lt;pitch absmiddle=&quot;10&quot;/&gt;<o:p></o:p></code></pre>
+
+<p>All text which follows should be spoken at pitch ten.<o:p></o:p></p>
+
+<p>The Middle attribute controls the relative pitch of the voice. The absolute
+value is found by adding each Middle to the current absolute value.<o:p></o:p></p>
+
+<pre><code>&lt;pitch middle=&quot;5&quot;&gt;<o:p></o:p></code></pre><pre><code>This text should be spoken at pitch five.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>&lt;pitch middle=&quot;-5&quot;&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">      </span>This text should be spoken at pitch zero.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>&lt;/pitch&gt;<o:p></o:p></code></pre><pre><code>&lt;/pitch&gt;<o:p></o:p></code></pre>
+
+<p>Zero represents the default middle pitch for a voice, with positive values
+being higher and negative values being lower.<o:p></o:p></p>
+
+<h3>Emph<o:p></o:p></h3>
+
+<p>The Emph tag instructs the voice to emphasize a word or section of text. The
+Emph tag cannot be empty. The following word should be emphasized.<o:p></o:p></p>
+
+<pre><code>&lt;emph&gt; boo &lt;/emph&gt;!<o:p></o:p></code></pre>
+
+<p>The method of emphasis may vary from voice to voice.<o:p></o:p></p>
+
+<h3>Spell<o:p></o:p></h3>
+
+<p>The Spell tag forces the voice to spell out all text, rather than using its
+default word and sentence breaking rules, normalization rules, and so forth.
+All characters should be expanded to corresponding words (including
+punctuation, numbers, and so forth). The Spell tag cannot be empty.<o:p></o:p></p>
+
+<pre><code>&lt;spell&gt;<o:p></o:p></code></pre><pre><code>These words should be spelled out.<o:p></o:p></code></pre><pre><code>&lt;/spell&gt;<o:p></o:p></code></pre><pre><code>These words should not be spelled out.<o:p></o:p></code></pre>
+
+<h3>Direct item insertion tags<o:p></o:p></h3>
+
+<p>Three tags are supported that applications the ability to insert items
+directly at some level: Silence, Pron, and Bookmark.<o:p></o:p></p>
+
+<h3>Silence<o:p></o:p></h3>
+
+<p>The Silence tag inserts a specified number of milliseconds of silence into
+the output audio stream. This tag must be empty, and must have one attribute,
+Msec.<o:p></o:p></p>
+
+<pre><code>Five hundred milliseconds of silence &lt;silence msec=&quot;500&quot;/&gt; just occurred.<o:p></o:p></code></pre>
+
+<h3>Pron<o:p></o:p></h3>
+
+<p>The Pron tag inserts a specified pronunciation. The voice will process the sequence
+of phonemes exactly as they are specified. This tag can be empty, or it can
+have content. If it does have content, it will be interpreted as providing the
+pronunciation for the enclosed text. That is, the enclosed text will not be
+processed as it normally would be.<o:p></o:p></p>
+
+<p>The Pron tag has one attribute, Sym, whose value is a string of white space
+separated phonemes.<o:p></o:p></p>
+
+<pre><code>&lt;pron sym=&quot;h eh 1 l ow &amp; w er 1 l d &quot;/&gt;<o:p></o:p></code></pre><pre><code>&lt;pron sym=&quot;h eh 1 l ow &amp; w er 1 l d&quot;&gt; hello world &lt;/pron&gt;<o:p></o:p></code></pre>
+
+<h3>Bookmark<o:p></o:p></h3>
+
+<p>The Bookmark tag inserts a bookmark event into the output audio stream. Use
+this event to signal the application when the audio corresponding to the text
+at the Bookmark tag has been reached. The Bookmark tag must be empty.<o:p></o:p></p>
+
+<p>The Bookmark tag has one attribute, Mark, whose value is a string. This
+value can then be used to differentiate between bookmark events (each of which
+will contain the string value from their corresponding tag).<o:p></o:p></p>
+
+<p>The application will receive an event here,<o:p></o:p></p>
+
+<pre><code>&lt;bookmark mark=&quot;bookmark_one&quot;/&gt;<o:p></o:p></code></pre>
+
+<p>and another one here <o:p></o:p></p>
+
+<pre><code>&lt;bookmark mark=&quot;bookmark_two&quot;/&gt;<o:p></o:p></code></pre>
+
+<h3>Voice context control tags<o:p></o:p></h3>
+
+<p>Two tags provide context to the current voice: PartOfSp and Context. Those
+tags enable the voice to determine how to deal with the text it is processing.
+With both of these tags, the extent to which voices use the context may vary.<o:p></o:p></p>
+
+<h3>PartOfSp<o:p></o:p></h3>
+
+<p>The PartOfSp tag provides the voice with the part of speech of the enclosed
+word(s). Use this tag to enable the voice to pronounce a word with multiple
+pronunciations correctly depending on its part of speech. The PartOfSp tag
+cannot be empty.<o:p></o:p></p>
+
+<p>The PartOfSp tag has one attribute, Part, which takes a string corresponding
+to a SAPI part of speech as its attribute. Only SAPI defined parts of speech
+are supported - &quot;Unknown&quot;, &quot;Noun&quot;, &quot;Verb&quot;,
+&quot;Modifier&quot;, &quot;Function&quot;, &quot;Interjection&quot;.<o:p></o:p></p>
+
+<pre><code>&lt;partofsp part=&quot;noun&quot;&gt; A &lt;/partofsp&gt; is the first letter of the alphabet.<o:p></o:p></code></pre><pre><code>Did you &lt;partofsp part=&quot;verb&quot;&gt; record &lt;/partofsp&gt; that &lt;partofsp part=&quot;noun&quot;&gt; record &lt;/partofsp&gt;?<o:p></o:p></code></pre>
+
+<h3>Context<o:p></o:p></h3>
+
+<p>The Context tag provides the voice with information which the voice may then
+use to determine how to normalize special items, like dates, numbers, and
+currency. Use this tag to enable the voice to distinguish between confusable
+date formats (see the example, below). The Context tag cannot be empty.<o:p></o:p></p>
+
+<p>The Context tag has one attribute, Id, which takes a string corresponding to
+the context of the enclosed text. Several contexts are defined by SAPI and are
+more likely to be recognized by SAPI compliant voices, but any string may be
+used. See documentation for a particular voice for more details.<o:p></o:p></p>
+
+<pre><code>&lt;context id=&quot;date_mdy&quot;&gt; 03/04/01 &lt;/context&gt; should be March fourth, two thousand one.<o:p></o:p></code></pre><pre><code>&lt;context id=&quot;date_dmy&quot;&gt; 03/04/01 &lt;/context&gt; should be April third, two thousand one.<o:p></o:p></code></pre><pre><code>&lt;context id=&quot;date_ymd&quot;&gt; 03/04/01 &lt;/context&gt; should be April first, two thousand four.<o:p></o:p></code></pre>
+
+<h3>Voice Selection Tags<o:p></o:p></h3>
+
+<p>There are two tags which can be used (potentially) to change the current
+voice: Voice and Lang.<o:p></o:p></p>
+
+<h3>Voice<o:p></o:p></h3>
+
+<p>The Voice tag selects a voice based on its attributes, Age, Gender,
+Language, Name, Vendor, and VendorPreferred. The tag can be empty, in which
+case it changes the voice for all subsequent text, or it can have content, in
+which case it only changes the voice for that content.<o:p></o:p></p>
+
+<p>The Voice tag has two attributes: Required and Optional. These correspond
+exactly to the required and optional attributes parameters to <a
+href="..\VB_SpObjectTokenCategory_EnumerateTokens.htm">ISpObjectTokenCategory_EnumerateTokens</a>
+and <a href="..\helper_spfindbesttoken.htm">SpFindBestToken</a> functions. The
+selected voice follows exactly the same rules as the latter of these two
+functions. That is, all the required attributes are present, and more optional
+attributes are present than with the other installed voices (if several voices
+have equal numbers of optional attributes one is selected at random). See <a
+href="tokensandregistrysettings.htm">Object Tokens and Registry Settings</a>
+for more details.<o:p></o:p></p>
+
+<p>In addition, the attributes of the current voice are always added as
+optional attributes when the Voice tag is used. This means that, a voice which
+is more similar to the current voice will be selected over one which is less
+similar.<o:p></o:p></p>
+
+<p>If no voice is found that matches all of the required attributes, no voice
+change will occur.<o:p></o:p></p>
+
+<p>The default voice should speak this sentence.<o:p></o:p></p>
+
+<pre><code>&lt;voice required=&quot;Gender=Female;Age!=Child&quot;&gt;<o:p></o:p></code></pre>
+
+<p>A female non-child should speak this sentence, if one exists.<o:p></o:p></p>
+
+<pre><code>&lt;voice required=&quot;Age=Teen&quot;&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>A teen should speak this sentence - if a female, non-child teen is present, she will be selected over a male teen, for example.<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>&lt;/voice&gt;<o:p></o:p></code></pre><pre><code>&lt;/voice&gt;<o:p></o:p></code></pre>
+
+<h3>Lang<o:p></o:p></h3>
+
+<p>The Lang tag selects a voice based solely on its Language attribute. The tag
+can be empty, in which case it changes the voice for all subsequent text; or it
+can have content, in which case it only changes the voice for that content.<o:p></o:p></p>
+
+<p>The Lang tag has one attribute, LangId. This attribute should be a LANGID,
+such as 409 (U.S. English) or 411 (Japanese). Note that these numbers are
+hexadecimal, but without the typical &quot;0x&quot;.<o:p></o:p></p>
+
+<p>The Lang tag is a shortened version of the Voice tag with the Required
+attribute containing &quot;Language=xxx&quot;. So the following examples should
+produce exactly the same results:<o:p></o:p></p>
+
+<pre><code>&lt;voice required=&quot;Language=409&quot;&gt;<o:p></o:p></code></pre><pre><code>A U.S. English voice should speak this.<o:p></o:p></code></pre><pre><code>&lt;/voice&gt;<o:p></o:p></code></pre><pre><code>&lt;lang langid=&quot;409&quot;&gt;<o:p></o:p></code></pre><pre><code><span style="mso-spacerun: yes">   </span>A U.S. English voice should speak this.<o:p></o:p></code></pre><pre><code>&lt;/lang&gt;<o:p></o:p></code></pre>
+
+<h2>Custom Pronunciation<o:p></o:p></h2>
+
+<p>An alternative to using the &lt;P&gt; tag with the DISP and PRON attributes
+is to use custom pronunciation. Using custom pronunciation, tags in the form of
+the following.<o:p></o:p></p>
+
+<pre><code>&lt;P DISP=&quot;disp&quot; PRON=&quot;pron&quot;&gt;word&lt;/P&gt;<o:p></o:p></code></pre>
+
+<p>can be written as<o:p></o:p></p>
+
+<pre><code>&lt;P&gt;/disp/word/pron;&lt;/P&gt;<o:p></o:p></code></pre>
+
+<p>More specifically, if you want to recognize the word hello only when it is
+pronounced as ah and display greeting when recognized, you would normally use
+something like the following.<o:p></o:p></p>
+
+<pre><code>&lt;P DISP=&quot;greeting&quot; PRON=&quot;ah&quot;&gt;hello&lt;/P&gt;<o:p></o:p></code></pre>
+
+<p>Using custom pronunciation, the above would translate to the following.<o:p></o:p></p>
+
+<pre><code>&lt;P&gt;/greeting/hello/ah;&lt;/P&gt;<o:p></o:p></code></pre>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+</div>
+
+</body>
+
+</html>

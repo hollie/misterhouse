@@ -123,26 +123,38 @@ sub process_city_zone {
 		next if ($key =~ /EXTENDED/);
 
 
-		$warnings_done = 1 if ( ($key) && ($value) );
-		#print "\n\nWARN_DONE: $warnings_done\n";
+		$warnings_done = 1 if ( ($key) and ($value) );
+		#print "WARN_DONE: $warnings_done\n";
 
 		if ($warnings_done) {
-			if ( ($key =~ s/^\.//) && ($value) && ($key) ) {
+			if ( ($key =~ s/^\.//) and ($value) and ($key) ) {
 				# Add VALUE to KEY (new key)
 				$key =~ s/^\.//;
 				$key = ucfirst_words($key);
 				$forecast_item = $key;
 				$forecast{$forecast_item} .= $value;
 			}
-			else {
+			elsif ( $forecast_item ) {
 				# Add KEY (with data) to OLD KEY (FORECAST_ITEM)
 				$forecast{$forecast_item} .= ' ' . $key;
 				$forecast{$forecast_item} .= ', ' . $value if $value;
 			}
+			else {
+				# print "LINE IGNORED\n";
+			}
 		}
-		elsif ( (!$key) && ($value) ) {
-			$value = ucfirst lc $value;
-			push @warnings, $value;
+		elsif (! $warnings_done ) {                                     
+			if ( (!$key) and ($value) ) {                           
+					$value = ucfirst lc $value;                     
+					push @warnings, $value;                         
+			}                                                       
+			elsif ( ($key) and (!$value) ) {                        
+					$key = ucfirst lc $key;                         
+					push @warnings, $key;                           
+			}
+		}
+		else {
+			# line ignored
 		}
 	}
 
@@ -222,7 +234,7 @@ sub make_noaa_table {
 
 	$fileopt ||= 'get';
 	$max_items && $max_items--;
-	$max_items ||= 5;
+	$max_items ||= 4;
 	
 	my $med_bg   = $main::med_bg || '#ddddff';
 	my $light_bg = $main::light_bg || '#eeeeff';
@@ -527,8 +539,9 @@ sub process_city_hourly {
     	}
 	if ($in->{PRES}) {
           my %rise_fall = qw/R rising S steady F falling/;
+# bbw Avoide a perl 5.8 warning
 #         my $direction = join '',map $rise_fall{$_},split(/\d(\w)/g, $in->{PRES});
-          my $direction = join '',map $rise_fall{$_},split(/\d(\w)/,  $in->{PRES});
+          my $direction = join '',map $rise_fall{$_},split(/\d(\w)/, $in->{PRES});
           $in->{PRES} =~ tr/RSF//d;
           if ($rh_pres) {
                 $rh_pres .= ", and b";

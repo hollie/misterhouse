@@ -1,0 +1,92 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+</head>
+
+<body background="graphics/background_02.gif" text="#333399">
+<table width="600" border="0" cellspacing="10" cellpadding="0">
+  <tr align="left" valign="middle"> 
+    <td width="42">
+      <a href="http://www.yahoo.com">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+      </a>
+    </td>
+    <td width="135"><b>Yahoo.com</b></td>
+    <td width="42">
+      <a href="http://localhost:8080/RUN;http://localhost:8080/btns.shtml?Your_MH_cmd_here">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+      </a>
+    </td>
+    <td width="135"><b>MH Command</b></td>
+    <td width="42">
+       <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="134"><b></b></td>
+  </tr>
+  <tr align="left" valign="middle"> 
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="135"><b>&nbsp;</b></td>
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="135"><b>&nbsp;</b></td>
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="134"><b></b></td>
+  </tr>
+  <tr align="left" valign="middle"> 
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="135"><b>&nbsp;</b></td>
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="135"><b>&nbsp;</b></td>
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="134"><b></b></td>
+  </tr>
+  <tr align="left" valign="middle"> 
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="135"><b>&nbsp;</b></td>
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="135"><b>&nbsp;</b></td>
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="134"><b></b></td>
+  </tr>
+  <tr align="left" valign="middle"> 
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="135"><b>&nbsp;</b></td>
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="135"><b>&nbsp;</b></td>
+    <td width="42">
+      <img src="graphics/btn_chrome.gif" width="42" height="42" border="0">
+    </td>
+    <td width="134"><b></b></td>
+  </tr>
+</table>
+<table width="500" border="0" cellspacing="0" cellpadding="10">
+  <tr>
+    <td>
+      <!--#include file="/ia6/date.pl"--><br>
+      <!--#include file="/data/web/weatherpoint.txt"-->
+	</td>
+  </tr>
+</table>
+</body>
+</html>

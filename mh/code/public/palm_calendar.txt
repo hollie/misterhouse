@@ -1,0 +1,27 @@
+From Axel Brown on 09/2002
+
+I've attached some scripts that may be of interest to you for MH users that
+have Palm Pilots. I've avoided requiring any extra Perl modules (even tho that
+would have made the job simpler!). They are not entirely modular and somewhat
+personalized in places, but then again that could be said for most of the
+scripts in mh/code/public :)
+
+ -  palm_calendar.pl
+This watches for changes in either mine or my wife's Palm datebook.dat
+files. Any changes will trigger the makeMHCalendar script.
+
+ - plam_calendar / palm_calendar.pl
+(these do not live in users code folder, they just need to be in the path. 
+I have mine in ~/bin ) 
+These two scripts combine to import one or more Palm Desktop datebook.dat
+files into the MH Calendar format.  I used the Palm Desktop's files rather
+than the "Hotsync'd" files so even users who don't own a Palm PDA can still
+use the scripts since the Palm Desktop is a free download from www.palm.com
+and can be used as a standalone personal information manager (instead of that
+bug ridden memory hog we know as Outlook!). I've added a few columns to the
+calendar.tab file. ALARM (which is then used by a subsequent script to create
+organizer_events.pl) and WHO for designating the owner of the entry since
+there can be multiple sources. palmdb.pl takes 1st arg is path to calendar.tab
+file, 2nd .. nth args are list pairs (path to Palm data folder [space] Name of
+owner when announcing events).
+

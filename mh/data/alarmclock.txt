@@ -1,0 +1,38 @@
+
+# This is used by alarmclock.pl to announce simple reminders
+# Format: time_spec  | reminder to be spoken
+# where time_spec can be in time_now or time_cron format.
+# See mh/docs/mh.html for more info on the time_* formats.
+# Set the mh.ini alarm_function parm to optionally call a function
+# for further processing (e.g. im or email reminders)
+
+# Time_cron format:  minutes hours dom month dow
+#   minutes: 0-59
+#   hours:   0-23
+#   dom:     1-31  (day of month)
+#   month:   1-12
+#   dow:     0-6   (day of week 0=Sunday 6=Saturday)
+
+0 10-21 * * *              | rooms=all It is now $Time_Now
+
+# Test for trailing ! to send im and email once a minute
+#* * * * *                 | It is now $Time_Now !
+
+
+# Some time_now examples
+5/27/98 8:15 AM            | Remember dentist appointment!
+12/25 10 am                | Ho, Ho, Ho, Merry Christmas
+
+# More time_cron examples
+
+#0 17,19 * * 4             | rooms=all display=0 Time to take out the garbage
+#0 7     * * 5             | Remember to take out the garbage
+
+#0 8,10,14,18,22 8 6 *     | Today is Mal's birthday ... remember to give him a call !
+
+
+0 10,14,18,22    25 12 *  | Ho, Ho, Ho, Merry Christmas
+0 10,12,14,18,22 1  1 *   | Happy, happy, new year one and all
+0 9,13,20    31,1 12,1 *  | Yearly notice: Write down car mileage
+30 8,13,20 1,7 1,4,6,9 *  | Tax notice: Send in estimated tax payment.
+

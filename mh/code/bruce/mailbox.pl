@@ -1,5 +1,7 @@
 # Category=none
 
+#@ Monitors the mailbox sensor across the street
+
 speak "Wireless sensor 1 has been triggered" if OPENED eq state_now $wireless1;
 
 $timer_mailbox1 = new  Timer();

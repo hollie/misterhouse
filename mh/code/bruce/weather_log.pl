@@ -1,5 +1,8 @@
 # Category=Weather
 
+#@ Logs weather data
+  
+
                                 # Use Generic_Item so we can save between reloads/restarts
 my @weather_vars = qw(TempIndoor TempOutdoor WindChill HumidIndoor HumidOutdoor WindAvgSpeed sun_sensor);
 $weather_stats = new Generic_Item;

@@ -1,0 +1,32 @@
+ID	DATE	TIME	EVENT	CATEGORY	DETAILS
+1	2001.10.2	10:20	Test Event	Test	This is a test event to make sure data entry is working.
+2	2002.3.16	2:57 pm	test		
+3	2002.3.19	12:52 pm	test		
+4	2002.3.29	6:27 pm	test		
+5	2002.3.29	7:26 pm	test 2		
+6	2002.4.20	7 pm	Look at the stars		
+7	2002.5.6	10:20 PM	test it's now "time"		
+8	2002.5.6	10:19 PM	test hi there		
+9	2002.6.2	2 pm	David's Open House		
+10	2002.6.2	3 pm 	David's Open House		
+11	2002.6.2	4 pm 	David's Open House		
+12	2002.6.6	8 am	Pay Estimated Tax		
+13	2002.6.4		test		
+14	2002.6.8		Seep in		
+15	2002.6.6		Mow the lawn		
+16	2002.6.30	8:18 pm	test again		
+17	2002.10.12	1:15 pm		test1	
+18	2002.10.12	1:17 pm	test2		hi
+19	2002.10.12	1:53 pm	test3		hi
+20	2002.11.29	8:03 pm	test 1		test from organizer<CR><LF>
+21	2003.2.3	7:30 am	Bruce Dentist		Bruce has a dentist appointment
+22	2003.1.4	10:40 am	Visit Tom at 11		
+23	2003.9.30	8 pm	Prep garage		Bruce, unhook the garage door
+24	2003.10.1	8 am	Remember garage door		
+25	2003.12.5	9 pm	nick test tommorow		
+26	2003.11.3	6 pm	Zack class at Public Health Dept, 6->9		
+27	2003.11.3	8 am	Zack, remember class		
+28	2003.11.2	9 pm	Zack, remember class tomorrow		
+29	2003.11.17	3:30 pm	Zack, remember Appointment		
+30	2003.11.16	9 pm	Zack, remember appointment tomorrow		
+31	2003.11.30	3:16	testing bruce		test for Bruce

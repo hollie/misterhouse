@@ -1,0 +1,7 @@
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="default.css">
+</head>
+<h1>X-10 Items</h1>
+<!--#include file="list?X10_Item"-->
+</html>

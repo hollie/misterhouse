@@ -83,6 +83,12 @@ if (my $filter = $config_parms{photo_filter}) {
     $photo_name = '...' . substr($photo_name, -60) if $browser_size < 800 and length $photo_name > 60;
 }
 
+if (my $filter = $config_parms{photo_filter2}) {
+    my @filter = split ' ', $filter;
+    $big_photo  =~ s/$filter[0]/$filter[1]/;
+    $photo_name =~ s/$filter[0]/$filter[1]/;
+}
+
                                 # Set up refresh control
 #$time = 10;
 my $time2 = $time * 1000;
@@ -102,7 +108,7 @@ my $refresh = "<meta HTTP-EQUIV='Refresh' CONTENT='$time;URL=/bin/photos.pl?$i_n
 #    window.location.replace( "/bin/photos.pl?$i_n&sync" );
 
 $refresh =~ s/&sync// if $config_parms{photo_nosync};
-$refresh = ' ' if $parm eq 'pause';
+$refresh = ' ' if $parm eq 'pause' or $time == 0;
 
                                 # Create header html with optional search
 my $header = "<font size='3' color='#ff0000'><a href=/misc/photo_search.html>$i</a> : 

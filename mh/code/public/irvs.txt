@@ -1,0 +1,40 @@
+
+From Walter Leemput on 7/24/2001:
+
+The last week I was busy with integrating a IVR (Interactive Voice Response
+system) in MH.  I must say with good results. At this moment i'm able to put
+on the lights and set the heating all over the world with any DTMF fixed or
+mobile phone.
+
+The system asks first a 4 digit pincode for autentication and then you enter
+the main menu where you have the choice to set the lights or set the heating
+with pressing 1 or 2. The system will acknowledge the command by saying the
+set temperature or set lamp status.. Offcourse this is just a example. Other
+things are also possible by changing the script, this is with a little Perl
+knowledge easy .
+
+The system is using any ordinary 33k6/56K voicemodem (#atcls=8 voicemode
+supported) I'm using a internal 33K6 voicemodem which is working well.  I was
+searching for any (free) IVR application which are not so much available and I
+found the following module.  The IVR module i downloaded on
+http://search.cpan.org/search?dist=Ivrs (LINUX) Also mgetty/vgetty
+distribution is a alternative but they run not in Perl (c appl) and i have no
+experience with this.  The Ivrs module is a free Perl module which interface
+with any Rockwell compatible voicemodem.
+
+The voicemodem is working with raw voice files and wav->raw conversion tools
+are included in the distribution. Any other information and examples you can
+find in the included Ivrs documentation.  I made a example Perl script (ivr)
+which enables you to put on 2 lamps en set the heating. Its also possible to
+go back in the mainmenu and go 1 level back.
+
+The IVR script is communicating with MH via a socket. Therefore I created a
+socket server in MH (socket.pl) which listen to port 1235. The only thing this
+server does is get the command in and run this as a external command and send
+positive or negative ack to the IVR script when command is executed or not. I
+personally use TTS generated WAV voiceprompts and convert this via the
+wav->raw tool to raw format. This is temporary, as naturally spoken
+voiceprompts have better quality.  The script (run_ivr.sh) restart the IVR
+script when the caller ends the call.  Mabe this is a nice feature to include
+in your distribution. (I'm happy to do something back..)
+

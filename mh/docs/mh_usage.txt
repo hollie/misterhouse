@@ -1,0 +1,1027 @@
+Fri 11/01/2002 00:00:01 city=Tinley Park state=IL name=Rob
+Fri 11/01/2002 00:00:01 city=Mesa state=AZ name=Matt Beland
+Fri 11/01/2002 00:00:01 city=San Jose state=CA name=Brian Rudy
+Fri 11/01/2002 00:00:01 city=Frisco state=TX name=Danal Estes
+Fri 11/01/2002 00:00:01 city=Shawnee Mission state=KS name=John Edmonds
+Fri 11/01/2002 00:00:01 city=Topeka state=KS name=Jason Linhart
+Fri 11/01/2002 00:00:01 city=Cary state=NC name=Dave Klavon
+Fri 11/01/2002 00:00:01 city=Somerville state=NJ name=Ernie Oporto
+Fri 11/01/2002 00:00:01 city=Bellevue state=WA name=Martin Dey
+Fri 11/01/2002 00:00:01 city=Rochester state=MN name=Bruce Winter
+Fri 11/01/2002 00:00:01 city=Enon state=OH name=Bruce Rahn
+Fri 11/01/2002 00:00:01 city=Montpelier state=VA name=Mike Dodd
+Fri 11/01/2002 00:00:01 city=Geneva state=FL name=Cullen Simpson
+Fri 11/01/2002 00:00:01 city=Pittsburgh state=PA name=Kevin Olalde
+Fri 11/01/2002 00:00:01 city=North Olmsted state=OH name=Doug Mackie
+Fri 11/01/2002 00:00:01 city=Hopkins state=MN name=Evan Graham
+Fri 11/01/2002 00:00:01 city=Princeton state=NJ name=Uwe E. Bilger
+Fri 11/01/2002 00:00:01 city=London state=England, UK name=Clive Freedman
+Fri 11/01/2002 00:00:01 city=Gastonia state=NC name=Brian Olliff
+Fri 11/01/2002 00:00:01 city=Oakland state=ME name=Rick McFarland
+Fri 11/01/2002 00:00:01 city=Chesterfield state=MO name=David M. Hans
+Fri 11/01/2002 00:00:01 city=Lafayette state=CO name=Jerry Heim
+Fri 11/01/2002 00:00:01 city=Lancaster state=PA name=Jerry Shenk
+Fri 11/01/2002 00:00:01 city=Ontario state=NY name=Craig Schaeffer
+Fri 11/01/2002 00:00:01 city=Easley state=SC name=Bill Bass
+Fri 11/01/2002 00:00:01 city=Noblesville state=IN name=Thomas Kotowski
+Fri 11/01/2002 00:00:01 city=Nyk”ping state=Sweden name=Roger Bille
+Fri 11/01/2002 00:00:01 city=Erwin state=TN name=Dartrunner
+Fri 11/01/2002 00:00:01 city=Lindenhurst state=NY name=Kieran Ames
+Fri 11/01/2002 00:00:01 city=Faribault state=MN name=Brian Klier
+Fri 11/01/2002 00:00:01 city=Kapolei state=HI name=Eric P. Brandt
+Fri 11/01/2002 00:00:01 city=Snohomish state=WA name=Letcher Ross
+Fri 11/01/2002 00:00:01 city=NW England state=UK name=Stuart Grimshaw
+Fri 11/01/2002 00:00:01 city=Guilford state=CT name=Edward  W. Akeyson
+Fri 11/01/2002 00:00:01 city=Peoria state=IL name=Dan
+Fri 11/01/2002 00:00:01 city=Dronfield state=UK name=Nick Parker
+Fri 11/01/2002 00:00:01 city=San Rafael state=CA name=Spacky
+Fri 11/01/2002 00:00:01 city=Los Gatos state=CA name=blavagna
+Fri 11/01/2002 00:00:01 city=Ipswitch state=MA name=Jim Faria
+Fri 11/01/2002 00:00:01 city=Rantoul state=IL name=Williams Steiner
+Fri 11/01/2002 00:00:01 city=Erlanger state=KY name=Brian Moynihan
+Fri 11/01/2002 00:00:01 city=Waterloo state=IA name=Dave Smart
+Fri 11/01/2002 00:00:01 city=The Hague state=The Netherlands name=
+Fri 11/01/2002 00:00:01 city=Portage state=MI name=James
+Fri 11/01/2002 00:00:01 city=Chicago state=IL name=Steve
+Fri 11/01/2002 00:00:01 city=Durham state=NC name=Thomas B. Clark
+Fri 11/01/2002 00:00:01 city=Beach City state=OH name=Chris Belloni
+Fri 11/01/2002 00:00:01 city=Topeka state=KS name=Brent DeShazer
+Fri 11/01/2002 00:00:01 city=West River state=MD name=Bob Kressley
+Fri 11/01/2002 00:00:01 city=Orlando state=FL name=Ben Miller
+Fri 11/01/2002 00:00:01 city=Neshanic Station state=NJ name=Ron
+Fri 11/01/2002 00:00:01 city=Pottstown state=PA name=Ron
+Fri 11/01/2002 00:00:01 city=Ozark state=MO name=Brian Rigsby
+Fri 11/01/2002 00:00:01 city=Pinckney state=MI name=Joel Moore
+Fri 11/01/2002 00:00:01 city=Bessemer state=AL name=
+Fri 11/01/2002 00:00:01 city=Herndon state=VA name=Bill Blackwood
+Fri 11/01/2002 00:00:01 city=Cortez state=CO name=todd daniel
+Fri 11/01/2002 00:00:01 city=Madison state=WI name=Lance Dunn
+Fri 11/01/2002 00:00:01 city=Morgan Hill state=CA name=Ray
+Fri 11/01/2002 00:00:01 city=Palatine state=IL name=
+Fri 11/01/2002 00:00:01 city=Edmonds state=WA name=myocom
+Fri 11/01/2002 00:00:01 city=Atlanta state=GA name=Nuglops
+Fri 11/01/2002 00:00:01 city=Syndey state=Australia name=Paul Wilkinson
+Fri 11/01/2002 00:00:01 city=Stockholm state=Sweden name=Samuel Bagfors
+Fri 11/01/2002 00:00:01 city=Wexford state=PA name=
+Fri 11/01/2002 00:00:01 city=Rijen state=The Netherlands name=
+Fri 11/01/2002 00:00:01 city=Reading state=England, UK name=Lee
+Fri 11/01/2002 00:00:01 city=Minneapolis state=MN name=
+Fri 11/01/2002 00:00:01 city=Yorktown state=VA name=Cliff Carr
+Fri 11/01/2002 00:00:01 city=San Antonio state=TX name=Mickey Argo
+Fri 11/01/2002 00:00:01 city=Spokane state=WA name=alan
+Fri 11/01/2002 00:00:01 city=Vineyard Haven state=MA name=
+Fri 11/01/2002 00:00:01 city=Austin state=TX name=Doug Parrish
+Fri 11/01/2002 00:00:01 city=Sliedrecht state=The Netherlands name=Ron
+Fri 11/01/2002 00:00:01 city=Waterville state=ME name=Rick McFarland
+Fri 11/01/2002 00:00:01 city=Anchorage state=AK name=Leareth
+Fri 11/01/2002 00:00:01 city=Columbia state=TN name=Paul C
+Fri 11/01/2002 00:00:01 city=Collegeville state=PA name=Frank Gallagher
+Fri 11/01/2002 00:00:01 city=Louisville state=KY name=Eric Vitiello
+Fri 11/01/2002 00:00:01 city=Austin state=TX name=Jeff Ferris
+Fri 11/01/2002 00:00:01 city=Milton Keynes state=UK name=The Titley family
+Fri 11/01/2002 00:00:01 city=Nottingham state=UK name=
+Fri 11/01/2002 00:00:01 city=Hilton state=NY name=Gary Costanzo
+Fri 11/01/2002 00:00:01 city=Harrisburg state=SD name=Jim Maloney
+Fri 11/01/2002 00:00:01 city=Jamison state=PA name=John Waters
+Fri 11/01/2002 00:00:01 city=Auburn Hills state=MI name=
+Fri 11/01/2002 00:00:01 city=Centreville state=AL name=Terry Roussell
+Fri 11/01/2002 00:00:01 city=Houston state=TX name=
+Fri 11/01/2002 00:00:01 city=Dallas state=TX name=nf0
+Fri 11/01/2002 00:00:01 city=Tucker state=GA name=Monte Freeman
+Fri 11/01/2002 00:00:01 city=San Diego state=CA name=Christopher Horner
+Fri 11/01/2002 00:00:01 city=Marietta state=GA name=Craig Richardson
+Fri 11/01/2002 00:00:01 city=Stafford state=NY name=
+Fri 11/01/2002 00:00:01 city=Sewickley state=PA name=Charles
+Fri 11/01/2002 00:00:01 city=Riverside state=CA name=Joe Thompson
+Fri 11/01/2002 00:00:01 city=Phoenixville state=PA name=Bob Bellini (N2IGU)
+Fri 11/01/2002 00:00:01 city=Syndey state=Australia name=Chris Debenham
+Fri 11/01/2002 00:00:01 city=Saint Joseph state=MO name=
+Fri 11/01/2002 00:00:01 city=Portsmouth state=England name=Stephen
+Fri 11/01/2002 00:00:01 city=Thousand Oaks state=CA name=David Norwood
+Fri 11/01/2002 00:00:01 city=Apopka state=FL name=David R. McCoy
+Fri 11/01/2002 00:00:01 city=Mankato state=MN name=
+Fri 11/01/2002 00:00:01 city=Austin state=TX name=bonzo3671
+Fri 11/01/2002 00:00:01 city=Springfield state=IL name=Samuel Penning
+Fri 11/01/2002 00:00:01 city=Kingsport state=TN name=Mike Pearce
+Fri 11/01/2002 00:00:01 city=Beaverton state=OR name=
+Fri 11/01/2002 00:00:01 city=Auburn state=WA name=
+Fri 11/01/2002 00:00:01 city=Helsingborg state=Sweden name=
+Fri 11/01/2002 00:00:01 city=Grand Ronde state=OR name=Driver
+Fri 11/01/2002 00:00:01 city=Halifax state=NS, Canada name=Steve Murphy
+Fri 11/01/2002 00:00:01 city=Salt Lake City state=UT name=
+Fri 11/01/2002 00:00:01 city=Champaign state=IL name=Fenghua Zong
+Fri 11/01/2002 00:00:01 city=Moses Lake state=WA name=
+Fri 11/01/2002 00:00:01 city=Marseille state=France name=Jean-Marie
+Fri 11/01/2002 00:00:01 city=Columbus state=OH name=Bobster
+Fri 11/01/2002 00:00:01 city=hyderabad state=India name=jawahar mundlapati
+Fri 11/01/2002 00:00:01 city=San Angelo state=TX name=Tony Gies
+Fri 11/01/2002 00:00:01 city=Watertown state=MA name=
+Fri 11/01/2002 00:00:01 city=Garden City state=KS name=Dusty D. Wilson
+Fri 11/01/2002 00:00:01 city=Brooklyn state=NY name=Alex
+Fri 11/01/2002 00:00:01 city=Huntington Beach state=CA name=
+Fri 11/01/2002 00:00:01 city=Almere state=The Netherlands name=Jesper Larsen
+Fri 11/01/2002 00:00:01 city=Wake Forest state=NC name=Tom Price
+Fri 11/01/2002 00:00:01 city=Randolph state=VT name=Bill and Scott McGrath
+Fri 11/01/2002 00:00:01 city=spijkenisse state=The Netherlands name=
+Fri 11/01/2002 00:00:01 city=East Falmouth state=MA name=Pete Flaherty
+Fri 11/01/2002 00:00:01 city=San Diego state=CA name=KILNA
+Fri 11/01/2002 00:00:01 city=Portland state=OR name=John Martin
+Fri 11/01/2002 00:00:01 city=Beaufort state=SC name=
+Fri 11/01/2002 00:00:01 city=Lancaster state=PA name=Dave Lynch
+Fri 11/01/2002 00:00:01 city=Littleton state=CO name=jensen
+Fri 11/01/2002 00:00:01 city=Canton state=CT name=Derek Jacobs
+Fri 11/01/2002 00:00:01 city=Wichita state=KS name=
+Fri 11/01/2002 00:00:01 city=Chandler state=AZ name=
+Fri 11/01/2002 00:00:01 city=Fayetteville state=NY name=Scott
+Fri 11/01/2002 00:00:01 city=Eunice state=LA name=Ron Wright
+Fri 11/01/2002 00:00:01 city=Linwood state=NJ name=
+Fri 11/01/2002 00:00:01 city=Dayton state=OH name=David and Beth Lairson
+Fri 11/01/2002 00:00:01 city=Des Plaines state=IL name=sanjay seth
+Fri 11/01/2002 00:00:01 city=Tunbridge Wells state=UK name=Kevin Peat
+Fri 11/01/2002 00:00:01 city=Pataskala state=OH name=Nic Brink
+Fri 11/01/2002 00:00:01 city=Calgary state=AB, Canada name=Mark Perrin
+Fri 11/01/2002 00:00:01 city=Sammamish state=WA name=Clay Jackson
+Fri 11/01/2002 00:00:01 city=Royal Oak state=MI name=
+Fri 11/01/2002 00:00:01 city=Charlotte state=NC name=
+Fri 11/01/2002 00:00:01 city=Tomah state=WI name=Rich Owens
+Fri 11/01/2002 00:00:01 city=Holden state=MA name=Carlos Mora
+Fri 11/01/2002 00:00:01 city=Montvale state=NJ name=Brian Paulsen
+Fri 11/01/2002 00:00:01 city=Allen state=TX name=Ken Diliberto
+Fri 11/01/2002 00:00:01 city=  state=ON, Canada name=Mike Frisch
+Fri 11/01/2002 00:00:01 city=Honolulu state=HI name=Jeff Schmidt
+Fri 11/01/2002 00:00:01 city=Frisco state=TX name=Tim Doyle
+Fri 11/01/2002 00:00:01 city=Scottsdale state=AZ name=Jason
+Fri 11/01/2002 00:00:01 city=Louisville state=KY name=P Clark
+Fri 11/01/2002 00:00:01 city=Honolulu state=HI name=TERAMAN
+Fri 11/01/2002 00:00:01 city=Charlotte state=NC name=
+Fri 11/01/2002 00:00:01 city=Arnold state=MD name=
+Fri 11/01/2002 00:00:01 city=Phillipsburg state=NJ name=Ingo Dean
+Fri 11/01/2002 00:00:01 city=Wilmington state=DE name=
+Fri 11/01/2002 00:00:01 city=San Martin state=CA name=
+Fri 11/01/2002 00:00:01 city=Henderson state=MN name=walt meffert
+Fri 11/01/2002 00:00:01 city=Stockholm state=Sweden name=G”ran Hellstr”m
+Fri 11/01/2002 00:00:01 city=Manassas state=VA name=John Harrell
+Fri 11/01/2002 00:00:01 city=Raleigh state=NC name=
+Fri 11/01/2002 00:00:01 city=Denton state=TX name=
+Fri 11/01/2002 00:00:01 city=Louisville state=KY name=Bill
+Fri 11/01/2002 00:00:01 city=Kansas City state=MO name=
+Fri 11/01/2002 00:00:01 city=Garland state=TX name=Tom
+Fri 11/01/2002 00:00:01 city=Redlands state=CA name=
+Fri 11/01/2002 00:00:01 city=North Lewisburg state=OH name=Larry Roudebush
+Fri 11/01/2002 00:00:01 city=Allen state=TX name=Mike Kaylor
+Fri 11/01/2002 00:00:01 city=Redmond state=WA name=
+Fri 11/01/2002 00:00:01 city=San Antonio state=TX name=
+Fri 11/01/2002 00:00:01 city=West Covina state=CA name=Jeff Kloythanomsup
+Fri 11/01/2002 00:00:01 city=San Francisco state=CA name=Jason Miller
+Fri 11/01/2002 00:00:01 city=Longville state=LA name=
+Fri 11/01/2002 00:00:01 city=Eastman state=GA name=
+Fri 11/01/2002 00:00:01 city=Las Vegas state=NV name=
+Fri 11/01/2002 00:00:01 city=New Orleans state=LA name=dennis obrien
+Fri 11/01/2002 00:00:01 city=Antioch state=TN name=
+Fri 11/01/2002 00:00:01 city=Los Angeles state=CA name=
+Fri 11/01/2002 00:00:01 city=Saint Charles state=MO name=Derek Bemis
+Fri 11/01/2002 00:00:01 city=Tewksbury state=MA name=
+Fri 11/01/2002 00:00:01 city=Louisville state=KY name=Clark
+Fri 11/01/2002 00:00:01 city=Wellington state=NZ name=John
+Fri 11/01/2002 00:00:01 city=Manchester state=UK name=Dr. John D. Goodchild
+Fri 11/01/2002 00:00:01 city=Portland state=OR name=Don Hoffman
+Fri 11/01/2002 00:00:01 city=Toronto state=ON, Canada name=Chris MacDonald
+Fri 11/01/2002 00:00:01 city=Metairie state=LA name=
+Fri 11/01/2002 00:00:01 city=Lehi state=UT name=Ryan Erickson
+Fri 11/01/2002 00:00:01 city=Wichita state=KS name=Paul D. Wiebe
+Fri 11/01/2002 00:00:01 city=Westport state=CT name=
+Fri 11/01/2002 00:00:01 city=Bay City state=TX name=radmaxNtx
+Fri 11/01/2002 00:00:01 city=Bryan state=TX name=David Mooney
+Fri 11/01/2002 00:00:01 city=Wiesbaden state=Germany name=U.Peter
+Fri 11/01/2002 00:00:01 city=Velp state=The Netherlands name=
+Fri 11/01/2002 00:00:01 city=San Jose state=CA name=
+Fri 11/01/2002 00:00:01 city=Ottawa state=ON, Canada name=Michael F Ryan
+Fri 11/01/2002 00:00:01 city=Hardy state=VA name=Davide Biagioni Pedretti
+Fri 11/01/2002 00:00:01 city=Sunnyside state=NY name=Claes
+Fri 11/01/2002 00:00:01 city=W Hartford state=CT name=Yoda
+Fri 11/01/2002 00:00:01 city=Canajoharie state=NY name=Daryl Rush
+Fri 11/01/2002 00:00:01 city=Independence state=MO name=
+Fri 11/01/2002 00:00:01 city=Pflugerville state=TX name=
+Fri 11/01/2002 00:00:01 city=Newark state=CA name=Fred
+Fri 11/01/2002 00:00:01 city=Melbourne state=Australia name=Brett Mackie
+Fri 11/01/2002 00:00:01 city=Kranj state=Slovenia name=
+Fri 11/01/2002 00:00:01 city=Shawnee Mission state=KS name=Scott M
+Fri 11/01/2002 00:00:01 city=Torrington state=CT name=Mike Boratko
+Fri 11/01/2002 00:00:01 city=Sunnyside state=NY name=
+Fri 11/01/2002 00:00:01 city=Pescadero state=CA name=Dean Hodgkinson
+Fri 11/01/2002 00:00:01 city=Kennedale state=TX name=Cruz Pitre
+Fri 11/01/2002 00:00:01 city=Mesa state=AZ name=
+Fri 11/01/2002 00:00:01 city=Seneca state=SC name=
+Fri 11/01/2002 00:00:01 city=Edmonton state=AB, Canada name=
+Fri 11/01/2002 00:00:01 city=George Town/Grand Cayman Island state=Mexico name=
+Fri 11/01/2002 00:00:01 city=Bella Vista state=AR name=Kent Verge
+Fri 11/01/2002 00:00:01 city=Monterey state=Mexico name=Luis Manuel Lepe
+Fri 11/01/2002 00:00:01 city=Allen state=TX name=Matt Smith
+Fri 11/01/2002 00:00:01 city=Florence state=MS name=Brad Lovejoy
+Fri 11/01/2002 00:00:01 city=Melbourne state=Australia name=Richard Phillips
+Fri 11/01/2002 00:00:01 city=New York state=NY name=kehmi
+Fri 11/01/2002 00:00:01 city=Helsinki state=Finland name=Kaj Blomster
+Fri 11/01/2002 00:00:01 city=Cincinnati state=OH name=Auggie
+Fri 11/01/2002 00:00:01 city=Farmingdale state=NY name=
+Fri 11/01/2002 00:00:01 city=Eden Prairie state=MN name=
+Fri 11/01/2002 00:00:01 city=Lulea/Sweden state=Sweden name=Stefan O
+Fri 11/01/2002 00:00:01 city=Casper state=WY name=Robert Schulz
+Fri 11/01/2002 00:00:01 city=Hillsboro state=KS name=Tim Litwiller
+Fri 11/01/2002 00:00:01 city=Newton state=KS name=Business Computer Center
+Fri 11/01/2002 00:00:01 city=Hannover state=Germany name=Peter
+Fri 11/01/2002 00:00:01 city=Desert Hot Springs state=CA name=
+Fri 11/01/2002 00:00:01 city=Kailua state=HI name=sjk
+Fri 11/01/2002 00:00:01 city=Hugelshofen state=Switzerland name=Thomas Stoll
+Fri 11/01/2002 00:00:01 city=Miami state=FL name=Leonard Jenkins
+Fri 11/01/2002 00:00:01 city=Lahore state=Pakistan name=
+Fri 11/01/2002 00:00:01 city=Columbus state=OH name=Mark Snow
+Fri 11/01/2002 00:00:01 city=Lynn state=MA name=Ben Jackson
+Fri 11/01/2002 00:00:01 city=Collinsville state=IL name=Matt Cleland
+Fri 11/01/2002 00:00:01 city=Champs Sur Marne state=France name=
+Fri 11/01/2002 00:00:01 city=Valley Park state=MO name=Jeff Crum
+Fri 11/01/2002 00:00:01 city=Dayton state=OH name=David Dwyer
+Fri 11/01/2002 00:00:01 city=Houston state=TX name=CJ
+Fri 11/01/2002 00:00:01 city=Woodbury state=NJ name=Jed
+Fri 11/01/2002 00:00:01 city=Columbus state=OH name=Mark Snow
+Fri 11/01/2002 00:00:01 city=Fort Bragg state=CA name=control freak
+Fri 11/01/2002 00:00:01 city=Holliston state=MA name=Peter Simpson
+Fri 11/01/2002 00:00:01 city=Pflugerville state=TX name=Ken Braud
+Fri 11/01/2002 00:00:01 city=Rochester state=MN name=
+Fri 11/01/2002 00:00:01 city=Phoenix state=AZ name=Karla Ines
+Fri 11/01/2002 00:00:01 city=Cumberland Center state=ME name=
+Fri 11/01/2002 00:00:01 city=Redford state=MI name=Duane
+Fri 11/01/2002 00:00:01 city=Panama City state=Panama name=
+Fri 11/01/2002 00:00:01 city=Richmond state=VA name=
+Fri 11/01/2002 00:00:01 city=Universal City state=TX name=
+Fri 11/01/2002 00:00:01 city=Bothell state=WA name=Beland Family
+Fri 11/01/2002 00:00:01 city=Mesa state=AZ name=Shane Justice
+Fri 11/01/2002 00:00:01 city=Batavia state=IL name=Wally Kissel
+Fri 11/01/2002 00:00:01 city=Barberton state=OH name=Todd Wade
+Fri 11/01/2002 00:00:01 city=Pittsburgh state=PA name=
+Fri 11/01/2002 00:00:01 city=Almere state=The Netherlands name=Walter Flaat
+Fri 11/01/2002 00:00:01 city=Santiago state=CHILE name=
+Fri 11/01/2002 00:00:01 city=Attica state=KS name=
+Fri 11/01/2002 00:00:01 city=Brisbane state=Australia name=shane hingst
+Fri 11/01/2002 00:00:01 city=Seattle state=WA name=R Williams
+Fri 11/01/2002 00:00:01 city=Parksley state=VA name=
+Fri 11/01/2002 00:00:01 city=Keller state=TX name=N5UWP
+Fri 11/01/2002 00:00:01 city=  state= name=Anders Baardsgaard
+Fri 11/01/2002 00:00:01 city=Seattle state=WA name=Blackavar
+Fri 11/01/2002 00:00:01 city=Yakima state=WA name=J. Miller
+Fri 11/01/2002 00:00:01 city=Kill Devil Hills state=NC name=greeks
+Fri 11/01/2002 00:00:01 city=Zephyrhills state=FL name=
+Fri 11/01/2002 00:00:01 city=Charlotte state=NC name=
+Fri 11/01/2002 00:00:01 city=Concord state=NC name=Brian Ward
+Fri 11/01/2002 00:00:01 city=Trenton state=NJ name=
+Fri 11/01/2002 00:00:01 city=Istanbul state=Turkey name=Moses
+Fri 11/01/2002 00:00:01 city=Abiko state=Japan name=
+Fri 11/01/2002 00:00:01 city=Houston state=TX name=
+Fri 11/01/2002 00:00:01 city=Comstock Park state=MI name=Bill Baron
+Fri 11/01/2002 00:00:01 city=Montreal state=PQ, Canada name=Normand
+Fri 11/01/2002 00:00:01 city=Portage state=MI name=
+Fri 11/01/2002 00:00:01 city=Newark state=DE name=
+Fri 11/01/2002 00:00:01 city=Grenoble state=France name=Olivier HALLER
+Fri 11/01/2002 00:00:01 city=Harlingen state=TX name=Greg Campbell
+Fri 11/01/2002 00:00:01 city=Lake Worth state=FL name=
+Fri 11/01/2002 00:00:01 city=Austin state=TX name=Tom Hartsell
+Fri 11/01/2002 00:00:01 city=Siloam Springs state=AR name=Mark Miller
+Fri 11/01/2002 00:00:01 city=Hudson state=MA name=
+Fri 11/01/2002 00:00:01 city=Drexel Hill state=PA name=Kevin
+Fri 11/01/2002 00:00:01 city=Morton Grove state=IL name=Rich
+Fri 11/01/2002 00:00:01 city=North Charleston state=SC name=James Armstrong
+Fri 11/01/2002 00:00:01 city=Atlanta state=GA name=Jaber
+Fri 11/01/2002 00:00:01 city=Bay City state=TX name=radmax
+Fri 11/01/2002 00:00:01 city=Perrysburg state=OH name=Talon
+Fri 11/01/2002 00:00:01 city=Alberton state=MT name=METHDOXIA
+Fri 11/01/2002 00:00:01 city=Temple state=NH name=
+Fri 11/01/2002 00:00:01 city=Orlando state=FL name=Will H
+Fri 11/01/2002 00:00:01 city=Chesterfield state=SC name=
+Fri 11/01/2002 00:00:01 city=Hamilton state=OH name=Chad Douglas
+Fri 11/01/2002 00:00:01 city=Fort Dodge state=IA name=
+Fri 11/01/2002 00:00:01 city=Parksley state=VA name=
+Fri 11/01/2002 00:00:01 city=Roswell state=GA name=
+Fri 11/01/2002 00:00:01 city=Sammamish state=WA name=Clay Jackson
+Fri 11/01/2002 00:00:01 city=Smyrna state=GA name=Nick Pope
+Fri 11/01/2002 00:00:01 city=Highland Falls state=NY name=Roger Reynolds
+Fri 11/01/2002 00:00:01 city=Columbia state=NJ name=nj
+Fri 11/01/2002 00:00:01 city=  state= name=Lazar Obradovic
+Fri 11/01/2002 00:00:01 city=Wilmington state=NC name=
+Fri 11/01/2002 00:00:01 city=Waterlooville state=UK name=Pete Miller
+Fri 11/01/2002 00:00:01 city=Phoenix state=AZ name=Gary Bryce
+Fri 11/01/2002 00:00:01 city=Elgin state=IL name=
+Fri 11/01/2002 00:00:01 city=Savannah state=GA name=
+Fri 11/01/2002 00:00:01 city=Daytona Beach state=FL name=
+Fri 11/01/2002 00:00:01 city=Noblesville state=IN name=
+Fri 11/01/2002 00:00:01 city=Patra state=Greece name=mplekos
+Fri 11/01/2002 00:00:01 city=Littleton state=CO name=
+Fri 11/01/2002 00:00:01 city=Manor state=TX name=
+Fri 11/01/2002 00:00:01 city=Aliso Viejo state=CA name=
+Fri 11/01/2002 00:00:01 city=Albuquerque state=NM name=
+Fri 11/01/2002 00:00:01 city=Lisbon state=Portugal name=Pedro Nogueira
+Fri 11/01/2002 00:00:01 city=Brussels state=Belgium name=Fredrik
+Fri 11/01/2002 00:00:01 city=  state=Brazil name=Piero B. Contezini
+Fri 11/01/2002 00:00:01 city=Valparaiso state=IN name=
+Fri 11/01/2002 00:00:01 city=Milford state=CT name=Chris and Kathy H.
+Fri 11/01/2002 00:00:01 city=Fayetteville state=NY name=
+Fri 11/01/2002 00:00:01 city=Lisbon state=Portugal name=Pedro Fernandes
+Fri 11/01/2002 00:00:01 city=Buxton state=UK name=Robin Edwards
+Fri 11/01/2002 00:00:01 city=Seattle state=WA name=Robert Williams
+Fri 11/01/2002 00:00:01 city=Redwood City state=CA name=Don Gafford
+Fri 11/01/2002 00:00:01 city=Marietta state=GA name=Keith Webb
+Fri 11/01/2002 00:00:01 city=Sparks state=NV name=Harry Monster
+Fri 11/01/2002 00:00:01 city=Phillipsburg state=NJ name=Ingo Dean
+Fri 11/01/2002 00:00:01 city=Chattanooga state=TN name=Alvin Parrish
+Fri 11/01/2002 00:00:01 city=  state= name=John Phillips
+Fri 11/01/2002 00:00:01 city=Chambersburg state=PA name=
+Fri 11/01/2002 00:00:01 city=Jacksonville state=FL name=John A. Yonn
+Fri 11/01/2002 00:00:01 city=Canehill state=AR name=Veigo
+Fri 11/01/2002 00:00:01 city=Austin state=TX name=Jeff
+Fri 11/01/2002 00:00:01 city=Jordanstown state=Ireland name=
+Fri 11/01/2002 00:00:01 city=Albuquerque state=NM name=Lee Maisel
+Fri 11/01/2002 00:00:01 city=Saskatoon state=SK, Canada name=
+Fri 11/01/2002 00:00:01 city=Provence-Alpes-C“te d'Azur state=Nice, France name=Cyril
+Fri 11/01/2002 00:00:01 city=Bastogne state=Belgium name=
+Fri 11/01/2002 00:00:01 city=Phoenix state=AZ name=Scott Ostrander
+Fri 11/01/2002 00:00:01 city=Peoria state=IL name=Yangmin Shen
+Fri 11/01/2002 00:00:01 city=Round Rock state=TX name=matt
+Fri 11/01/2002 00:00:01 city=Tulsa state=OK name=Ed Meyer
+Fri 11/01/2002 00:00:01 city=Owensboro state=KY name=Magnus Ullberg
+Fri 11/01/2002 00:00:01 city=Cincinnati state=OH name=Andrew Miller
+Fri 11/01/2002 00:00:01 city=Hamden state=CT name=Derek J. Hunt
+Fri 11/01/2002 00:00:01 city=Ellicott City state=MD name=
+Fri 11/01/2002 00:00:01 city=Grass Valley state=CA name=Sean Walker
+Fri 11/01/2002 00:00:01 city=Utrecht state=The Netherlands name=Robin van Oosten
+Fri 11/01/2002 00:00:01 city=Waterloo state=ON, Canada name=
+Fri 11/01/2002 00:00:01 city=Eatontown state=NJ name=Jeff Huyler
+Fri 11/01/2002 00:00:01 city=Santa Barbara state=CA name=
+Fri 11/01/2002 00:00:01 city=Rochester state=NY name=
+Fri 11/01/2002 00:00:01 city=Minneapolis state=MN name=Tim Manson
+Fri 11/01/2002 00:00:01 city=Kirksville state=MO name=Matt Kingston
+Fri 11/01/2002 00:00:01 city=Lake Charles state=LA name=Luke Roussell
+Fri 11/01/2002 00:00:01 city=Belle Vernon state=PA name=
+Fri 11/01/2002 00:00:01 city=Laguna Niguel state=CA name=
+Fri 11/01/2002 00:00:01 city=Syracuse state=NY name=
+Fri 11/01/2002 00:00:01 city=Brownsville state=TX name=Armando Castaneda
+Fri 11/01/2002 00:00:01 city=Northampton state=PA name=
+Fri 11/01/2002 00:00:01 city=Manchester state=NH name=Drewid
+Fri 11/01/2002 00:00:01 city=Rockvale state=TN name=Harrison
+Fri 11/01/2002 00:00:01 city=Tallahassee state=FL name=Richard Feezel
+Fri 11/01/2002 00:00:01 city=  state= name=Ali W
+Fri 11/01/2002 00:00:01 city=Lenexa state=KS name=
+Fri 11/01/2002 00:00:01 city=Rochester state=NY name=
+Fri 11/01/2002 00:00:01 city=Guaynabo state=PR name=
+Fri 11/01/2002 00:00:01 city=Hartford state=AL name=MrRat
+Fri 11/01/2002 00:00:01 city=  state= name=Gaetan Lord
+Fri 11/01/2002 00:00:01 city=Reno state=NV name=Jim Freeman
+Fri 11/01/2002 00:00:01 city=Cary state=NC name=Jeff Hewett
+Fri 11/01/2002 00:00:01 city=Sveg state=Sweden name=
+Fri 11/01/2002 00:00:01 city=Salt Lake City state=UT name=Robert Mecklenburg
+Fri 11/01/2002 00:00:01 city=Hamden state=CT name=John Baird
+Fri 11/01/2002 00:00:01 city=Kewanee state=IL name=Denny Reiter
+Fri 11/01/2002 00:00:01 city=Lynge/Denmark state=Denmark name=Per
+Fri 11/01/2002 00:00:01 city=Liverpool state=England name=Bazza
+Fri 11/01/2002 00:00:01 city=Ottawa state=ON, Canada name=Fred
+Fri 11/01/2002 00:00:01 city=The Hague state=The Netherlands name=Roland Wijnen
+Fri 11/01/2002 00:00:01 city=Apopka state=FL name=
+Fri 11/01/2002 00:00:01 city=Middleton state=WI name=Ben Schmitt
+Fri 11/01/2002 00:00:01 city=Franklin state=MA name=Robert Williams
+Fri 11/01/2002 00:00:01 city=Orlando state=FL name=DFL
+Fri 11/01/2002 00:00:01 city=Vaasa state=Finland name=
+Fri 11/01/2002 00:00:01 city=Rio de Janeiro state=Brazil name=
+Fri 11/01/2002 00:00:01 city=Dayton state=OH name=Dean Campbell
+Fri 11/01/2002 00:00:01 city=Huntsville state=AL name=
+Fri 11/01/2002 00:00:01 city=Sioux Center state=IA name=
+Fri 11/01/2002 00:00:01 city=Plainfield state=IL name=Bob
+Fri 11/01/2002 00:00:01 city=Ottawa state=ON, Canada name=Jeff Siddall
+Fri 11/01/2002 00:00:01 city=Grand Rapids state=MI name=
+Fri 11/01/2002 00:00:01 city=Paris state=France name=Despagne
+Fri 11/01/2002 00:00:01 city=  state= name=James Derrick
+Fri 11/01/2002 00:00:01 city=San Francisco state=CA name=Kip Gebhardt
+Fri 11/01/2002 00:00:01 city=San Jose state=CA name=Augusto
+Fri 11/01/2002 00:00:01 city=Dracut state=MA name=Gerald Prater
+Fri 11/01/2002 00:00:01 city=Mooresville state=NC name=
+Fri 11/01/2002 00:00:01 city=Rochester state=NY name=Kris
+Fri 11/01/2002 00:00:01 city=Mount Airy state=MD name=Steve Bochniewicz
+Fri 11/01/2002 00:00:01 city=Davey state=NE name=
+Fri 11/01/2002 00:00:01 city=Beaverton state=OR name=
+Fri 11/01/2002 00:00:01 city=Kingston state=NH name=Bob Littlefield
+Fri 11/01/2002 00:00:01 city=Davisburg state=MI name=
+Fri 11/01/2002 00:00:01 city=Saint Robert state=MO name=Ed Appleberry
+Fri 11/01/2002 00:00:01 city=Tucson state=AZ name=David Clark
+Fri 11/01/2002 00:00:01 city=Pittsburgh state=PA name=Kenny Unice
+Fri 11/01/2002 00:00:01 city=Columbia state=MO name=Philip
+Fri 11/01/2002 00:00:01 city=Highland state=IN name=Steven Neel
+Fri 11/01/2002 00:00:01 city=Pearl City state=HI name=
+Fri 11/01/2002 00:00:01 city=Grand Rapids state=MI name=Allen Derusha
+Fri 11/01/2002 00:00:01 city=La Mesa state=CA name=
+Fri 11/01/2002 00:00:01 city=Lisle state=IL name=
+Fri 11/01/2002 00:00:01 city=Alpharetta state=GA name=
+Fri 11/01/2002 00:00:01 city=Monroe Township state=NJ name=Neil Cherry (Linux Home Automation)
+Fri 11/01/2002 00:00:01 city=Rochester state=NY name=Steve Switzer
+Fri 11/01/2002 00:00:01 city=San Jose state=CA name=chatty
+Fri 11/01/2002 00:00:01 city=Oklahoma City state=OK name=
+Fri 11/01/2002 00:00:01 city=Red Banks state=MS name=JULIO ROSQUETE
+Fri 11/01/2002 00:00:01 city=Roswell state=GA name=David Eshelman
+Fri 11/01/2002 00:00:01 city=Plano state=TX name=
+Fri 11/01/2002 00:00:01 city=Ottawa state=ON, Canada name=Jeff Siddall
+Fri 11/01/2002 00:00:01 city=Mission state=BC, Canada name=Dan Kubb
+Fri 11/01/2002 00:00:01 city=Somewhere in state=France or Belgium name=Axel
+Fri 11/01/2002 00:00:01 city=Montreal state=PQ, Canada name=Yannick Moussette
+Fri 11/01/2002 00:00:01 city=Plano state=TX name=Kevin
+Fri 11/01/2002 00:00:01 city=Oronoco state=MN name=
+Fri 11/01/2002 00:00:01 city=Santa Cruz state=CA name=Oliver
+Fri 11/01/2002 00:00:01 city=Delaware state=OH name=
+Fri 11/01/2002 00:00:01 city=Lima state=OH name=
+Fri 11/01/2002 00:00:01 city=Fruitland state=ID name=
+Fri 11/01/2002 00:00:01 city=Ontario state=OR name=
+Fri 11/01/2002 00:00:01 city=Payette state=ID name=
+Fri 11/01/2002 00:00:01 city=Clarks Summit state=PA name=Tom
+Fri 11/01/2002 00:00:01 city=Paris state=France name=G. Despagne
+Fri 11/01/2002 00:00:01 city=Fort Collins state=CO name=
+Fri 11/01/2002 00:00:01 city=Blue Springs state=MO name=Christa
+Fri 11/01/2002 00:00:01 city=Cleveland state=OH name=Andrew
+Fri 11/01/2002 00:00:01 city=Austin state=TX name=
+Fri 11/01/2002 00:00:01 city=Jersey City state=NJ name=Petros Michalis
+Fri 11/01/2002 00:00:01 city=Fountain Valley state=CA name=PAUL KELLY
+Fri 11/01/2002 00:00:01 city=Oklahoma City state=OK name=
+Fri 11/01/2002 00:00:01 city=Christiana state=TN name=
+Fri 11/01/2002 00:00:01 city=Little Rock state=AR name=Jeff
+Fri 11/01/2002 00:00:01 city=Auburn state=CA name=Panda Vista Ranch
+Fri 11/01/2002 00:00:01 city=San Diego state=CA name=
+Fri 11/01/2002 00:00:01 city=Livingston state=NJ name=
+Fri 11/01/2002 00:00:01 city=Paradise state=CA name=Bob Hughes
+Fri 11/01/2002 00:00:01 city=Redmond state=WA name=Davepl
+Fri 11/01/2002 00:00:01 city=Toronto state=ON, Canada name=Sarah Nordstrom
+Fri 11/01/2002 00:00:01 city=Draveil state=France name=
+Fri 11/01/2002 00:00:01 city=Delray Beach state=FL name=Art Holden
+Fri 11/01/2002 00:00:01 city=Decatur state=GA name=Jeff Reed
+Fri 11/01/2002 00:00:01 city=Madison state=WI name=
+Fri 11/01/2002 00:00:01 city=Tucson state=AZ name=
+Fri 11/01/2002 00:00:01 city=Scottsdale state=AZ name=Jason
+Fri 11/01/2002 00:00:01 city=Drexel Hill state=PA name=Joseph Gaston
+Fri 11/01/2002 00:00:01 city=Slinger state=WI name=
+Fri 11/01/2002 00:00:01 city=Lees Summit state=MO name=Dave Lounsberry
+Fri 11/01/2002 00:00:01 city=Bayamon state=PR name=Luis Diaz
+Fri 11/01/2002 00:00:01 city=Pensacola state=FL name=Daniel
+Fri 11/01/2002 00:00:01 city=Newark state=DE name=Steve Kay
+Fri 11/01/2002 00:00:01 city=Northridge state=CA name=Juan Sharrer
+Fri 11/01/2002 00:00:01 city=Waukesha state=WI name=
+Fri 11/01/2002 00:00:01 city=Phenix City state=AL name=
+Fri 11/01/2002 00:00:01 city=Columbus state=OH name=Wesley Haines
+Fri 11/01/2002 00:00:01 city=Laurel state=DE name=Steve Bailey
+Fri 11/01/2002 00:00:01 city=Saratoga Springs state=NY name=JohnR
+Fri 11/01/2002 00:00:01 city=Aberdeen state=Scotland name=Mark V. Marooth
+Fri 11/01/2002 00:00:01 city=River Falls state=WI name=
+Fri 11/01/2002 00:00:01 city=Paris state=France name=Marc
+Fri 11/01/2002 00:00:01 city=Allen state=TX name=Mike Kaylor
+Fri 11/01/2002 00:00:01 city=Brookshire state=TX name=Ron S
+Fri 11/01/2002 00:00:01 city=Minneapolis state=MN name=Fenghua Zong
+Fri 11/01/2002 00:00:01 city=Arlington state=TX name=Paul Sturm
+Fri 11/01/2002 00:00:01 city=Sugar Grove state=IL name=Chris
+Fri 11/01/2002 00:00:01 city=San Marcos state=TX name=Daniel
+Fri 11/01/2002 00:00:01 city=Sussex state=NJ name=
+Fri 11/01/2002 00:00:01 city=Melbourne state=FL name=
+Fri 11/01/2002 00:00:01 city=Santa Monica state=CA name=max kelly
+Fri 11/01/2002 00:00:01 city=Schertz state=TX name=
+Fri 11/01/2002 00:00:01 city=Nashville state=TN name=
+Fri 11/01/2002 00:00:01 city=Escondido state=CA name=
+Fri 11/01/2002 00:00:01 city=Montpellier state=France name=
+Fri 11/01/2002 00:00:01 city=Allen state=TX name=
+Fri 11/01/2002 00:00:01 city=Beaverton state=OR name=
+Fri 11/01/2002 00:00:01 city=Hertfordshire state=UK name=Bazyle Butcher
+Fri 11/01/2002 00:00:01 city=Sugar Land state=TX name=Vassilis
+Fri 11/01/2002 00:00:01 city=Sainte-Julienne    state=CA name=Nathalie
+Fri 11/01/2002 00:00:01 city=Albuquerque state=NM name=Brendan
+Fri 11/01/2002 00:00:01 city=Pittsfield state=MA name=
+Fri 11/01/2002 00:00:01 city=Hudson state=NH name=
+Fri 11/01/2002 00:00:01 city=Merrimack state=NH name=
+Fri 11/01/2002 00:00:01 city=Monmouth state=ME name=
+Fri 11/01/2002 00:00:01 city=Beacon Falls state=CT name=Daniel Arnold
+Fri 11/01/2002 00:00:01 city=Norwalk state=CT name=
+Fri 11/01/2002 00:00:01 city=Saddle Brook state=NJ name=
+Fri 11/01/2002 00:00:01 city=Princeton Junction state=NJ name=
+Fri 11/01/2002 00:00:01 city=Brooklyn state=NY name=
+Fri 11/01/2002 00:00:01 city=Troy state=NY name=Phil Szeliga
+Fri 11/01/2002 00:00:01 city=State College state=PA name=Todd Troxell
+Fri 11/01/2002 00:00:01 city=Wallingford state=PA name=
+Fri 11/01/2002 00:00:01 city=Kennett Square state=PA name=
+Fri 11/01/2002 00:00:01 city=West Chester state=PA name=
+Fri 11/01/2002 00:00:01 city=Gilbertsville state=PA name=
+Fri 11/01/2002 00:00:01 city=Germantown state=MD name=
+Fri 11/01/2002 00:00:01 city=Phoenix state=MD name=
+Fri 11/01/2002 00:00:01 city=Chapel Hill state=NC name=
+Fri 11/01/2002 00:00:01 city=Durham state=NC name=
+Fri 11/01/2002 00:00:01 city=Jacksonville  state=FL name=Chris Bono
+Fri 11/01/2002 00:00:01 city=Fort Lauderdale state=FL name=Ken Maier
+Fri 11/01/2002 00:00:01 city=Ridgeland  state=MS name=
+Fri 11/01/2002 00:00:01 city=Cleveland state=OH name=
+Fri 11/01/2002 00:00:01 city=Massillon  state=OH name=
+Fri 11/01/2002 00:00:01 city=Brighton state=MI name=
+Fri 11/01/2002 00:00:01 city=Bay City state=MI name=Tom Schafer
+Fri 11/01/2002 00:00:01 city=Milwaukee state=WI name=Jason Sharpee
+Fri 11/01/2002 00:00:01 city=Hopkins state=MN name=
+Fri 11/01/2002 00:00:01 city=Adolph state=MN name=
+Fri 11/01/2002 00:00:01 city=Minot state=ND name=
+Fri 11/01/2002 00:00:01 city=Leawood state=KS name=
+Fri 11/01/2002 00:00:01 city=Lincoln state=NE name=
+Fri 11/01/2002 00:00:01 city=Bossier City state=LA name=Christopher Cicle
+Fri 11/01/2002 00:00:01 city=The Colony state=TX name=
+Fri 11/01/2002 00:00:01 city=Mc Kinney state=TX name=
+Fri 11/01/2002 00:00:01 city=Waco state=TX name=Debi Jo
+Fri 11/01/2002 00:00:01 city=Richmond state=TX name=Diego Romero
+Fri 11/01/2002 00:00:01 city=Sugar Land state=TX name=
+Fri 11/01/2002 00:00:01 city=Alvin state=TX name=
+Fri 11/01/2002 00:00:01 city=Dickinson state=TX name=
+Fri 11/01/2002 00:00:01 city=Denver state=CO name=
+Fri 11/01/2002 00:00:01 city=Orem state=UT name=
+Fri 11/01/2002 00:00:01 city=Albuquerque state=NM name=
+Fri 11/01/2002 00:00:01 city=Los Alamos state=NM name=John deVries
+Fri 11/01/2002 00:00:01 city=Ladera Ranch state=CA name=
+Fri 11/01/2002 00:00:01 city=Palo Alto state=CA name=Rob Williams
+Fri 11/01/2002 00:00:01 city=Dublin state=CA name=Rob Scott
+Fri 11/01/2002 00:00:01 city=Auburn state=CA name=John Crunk
+Fri 11/01/2002 00:00:01 city=Auburn state=CA name=
+Fri 11/01/2002 00:00:01 city=Portland state=OR name=
+Fri 11/01/2002 00:00:01 city=Olympia state=WA name=
+Fri 11/01/2002 00:00:01 city=Battle Ground state=WA name=
+Fri 11/01/2002 00:00:01 city=Buenos Aires state=Argentina name=Shad'Kian Ash
+Fri 11/01/2002 00:00:01 city=Newbury state=England name=Max Lock
+Fri 11/01/2002 00:00:01 city=Newcastle state=Australia name=Neil Wrightson
+Fri 11/01/2002 00:00:01 city=Salzgitter state=Germany name=
+Fri 11/01/2002 00:00:01 city=Saskatoon state=SK, Canada name=
+Fri 11/01/2002 00:00:01 city=Bournemouth state=England name=
+Fri 11/01/2002 00:00:01 city=Lille state=France name=
+Fri 11/01/2002 00:00:01 city=  state=Belgium name=
+Fri 11/01/2002 00:00:01 city=  state=Japan name=
+
+# Above came from Kieran's manually massaged spreadsheet from 11/24/00 -> 11/2002
+Sun 11/10/02 10:05:02 city=Budapest state=Hungary name=
+Sun 11/10/02 12:40:03 city=Houston state=TX name=Lincoln Foreman
+Sun 11/10/02 13:18:16 city=Fort Bragg  state=CA name=FiddleStix
+Mon 11/11/02 17:36:05 city=Buford state=GA name=SuperShawn
+Mon 11/11/02 22:16:11 city=Woodbridge state=VA name=
+Tue 11/12/02 13:03:44 city=El Paso state=TX name=
+Tue 11/12/02 15:14:48 city=Quebec state=Canada name=
+Tue 11/12/02 17:13:38 city=Casper state=WY name=
+Wed 11/13/02 08:56:32 city=Armonk state=NY name=
+Wed 11/13/02 14:59:03 city=North Manchester state=IN name=Clint Wilson
+Wed 11/13/02 17:02:57 city=Hyrum state=Ut name=Chuck kimber
+Fri 11/15/02 05:40:47 city=Philadelphia state=PA name=
+Sat 11/16/02 09:51:52 city=Madrid state=Spain name=Harry
+Sun 11/17/02 19:47:45 city=Davie state=FL name=
+Sun 11/17/02 19:54:02 city=Ashburn state=VA name=Jennifer P
+Mon 11/18/02 18:18:18 city=Raleigh state=NC name=
+Tue 11/19/02 16:26:50 city=san jose state=ca name=
+Wed 11/20/02 17:17:16 city=winnipeg state=canada name=
+Wed 11/20/02 22:37:53 city=Anthem state=AZ name=
+Thu 11/21/02 04:29:20 city=edmonton state=canada name=
+Thu 11/21/02 07:10:07 city=Sao Paulo state=Brazil name=Julio Antonio Siqueira
+Thu 11/21/02 13:06:39 city=Raleigh state=NC name=
+Fri 11/22/02 13:02:16 city=Cambridge state=MA name=
+Fri 11/22/02 19:28:14 city=Idabel state=OK name=Scott
+Sat 11/23/02 21:20:40 city=Phoenix state=AZ name=
+Sun 11/24/02 02:02:40 city=altadena state=ca name=
+Sun 11/24/02 18:07:14 city=flint state=mi name=
+Mon 11/25/02 12:48:38 city=Fort Lauderdale state=FL name=
+Wed 11/27/02 10:50:26 city=gijon state=spain name=Diego
+Wed 11/27/02 10:51:20 city=Oviedo state=Spain name=Diego
+Wed 11/27/02 15:48:34 city=Oyster Bay state=NY name=
+Thu 11/28/02 20:55:16 city=Mobile state=AL name=
+Sat 11/30/02 08:00:07 city=Palaiseau state=France name=Guy LEBA
+Sat 11/30/02 18:00:15 city=Mesa state=AZ name=
+Sun 12/01/02 00:13:48 city=Tallinn state=Estonia name=Mouser
+Sun 12/01/02 22:44:11 city=Knoxville state=tn name=
+Mon 12/02/02 14:26:24 city=Dartmouth state=Canada name=Scott Hurst
+Mon 12/02/02 18:41:56 city=Santiago state=CHILE name=
+Tue 12/03/02 02:27:19 city=Hollis state=AR name=Chris Rowland
+Tue 12/03/02 15:45:15 city=boise state=id name=
+Wed 12/04/02 00:14:45 city=San Diego state=CA name=Allen Porter
+Thu 12/05/02 10:20:27 city=paris state=france name=
+Fri 12/06/02 09:03:16 city=Scottsdale state=AZ name=Eric Anderson
+Fri 12/06/02 19:07:31 city=Fleet state=England name=Keith Smith
+Sun 12/08/02 17:30:17 city=frisco state=tx name=
+Sun 12/08/02 21:41:23 city=Santa Ana state=CA name=Greg
+Sun 12/08/02 23:18:52 city=Norwalk state=CT name=
+Mon 12/09/02 12:23:28 city=rochester state=mn name=
+Mon 12/09/02 18:26:13 city=Sandusky state=OH name=
+Tue 12/10/02 02:46:00 city=Etyek state=Hungary name=
+Tue 12/10/02 14:09:35 city=Centurion state=South Africa name=Ruben
+Wed 12/11/02 01:20:54 city=Louisville state=KY name=
+Sun 12/15/02 21:16:42 city=Buford state=GA name=John Schult
+Mon 12/16/02 00:30:26 city=Great Falls state=MT name=
+Mon 12/16/02 02:08:35 city=Starkville state=MS name=
+Tue 12/17/02 15:21:30 city=Clermont state=FL name=
+Fri 12/20/02 13:56:12 city=london state=England name=
+Fri 12/20/02 15:59:04 city=Ashburn state=VA name=
+Mon 12/23/02 15:09:24 city=ottumwa state=IA name=
+Tue 12/24/02 11:55:45 city=Cramlington state=England name=James Derrick
+Thu 12/26/02 18:10:11 city=Paal state=Belgium name=
+Thu 12/26/02 18:29:27 city=SAcramento state=CA name=
+Thu 12/26/02 19:20:37 city=Fredericksburg state=VA name=okeson
+Fri 12/27/02 12:15:36 city=draveil state=france name=
+Sat 12/28/02 05:19:45 city=Louisville state=Ky name=Brian Warren
+Sat 12/28/02 07:16:43 city=Plymouth state=United Kingdom name=Jason Ellmers
+Sun 12/29/02 21:38:00 city=Fort Collins state=CO name=Tarah Hofmann
+Mon 12/30/02 00:43:54 city=cranston state=ri name=
+Mon 12/30/02 14:36:49 city=Gilbert state=AZ name=
+Tue 12/31/02 15:41:46 city=Tampa state=FL name=Joe
+Tue 12/31/02 17:30:16 city=Martinsburg state=WV name=
+Wed 01/01/03 07:20:05 city=sheffield state=UK name=
+Wed 01/01/03 18:43:28 city=St. Louis state=MO name=
+Wed 01/01/03 20:38:21 city=paal state=belgium name=
+Thu 01/02/03 05:13:01 city=Istanbul state=TURKEY name=Nas
+Fri 01/03/03 20:24:50 city=McKinney state=TX name=
+Sat 01/04/03 23:27:42 city=Palo Alto state=ca name=rob Williams
+Mon 01/06/03 23:13:46 city=Springfield state=MO name=Chad Albert
+Tue 01/07/03 13:27:27 city=buenos aires state=argentina name=edy
+Wed 01/08/03 16:07:35 city=birmingham state=al name=
+Wed 01/08/03 17:55:57 city=Redondo Beach state=CA name=
+Fri 01/10/03 03:34:26 city=madurai state=india name=rajanga boopathy.m
+Fri 01/10/03 07:48:33 city=montreal state=Canada name=
+Fri 01/10/03 15:27:23 city=benton state=pa name=
+Sat 01/11/03 14:18:48 city=kansas city state=mo name=
+Sun 01/12/03 08:55:04 city=Ede state=NL name=Michel van Osenbruggen
+Sun 01/12/03 12:18:18 city=torello state=sp name=
+Sun 01/12/03 16:37:43 city=Knoxville state=TN name=
+Mon 01/13/03 14:22:11 city=rochester state=MN name=
+Wed 01/15/03 14:19:17 city=eastpointe state=mi name=jim
+Wed 01/15/03 15:04:07 city=montreal state=PQ, canada name=
+Fri 01/17/03 04:12:18 city=Mt. Juliet state=TN name=
+Fri 01/17/03 10:59:47 city=Jackson state=MS name=Brad Lovejoy
+Fri 01/17/03 14:09:48 city=saskatoon state=SK, Canada name=
+Sun 01/19/03 16:27:45 city=Prescott Valley state=CA name=Steve
+Sun 01/19/03 20:54:42 city=Vagnharad state=Sweden name=
+Mon 01/20/03 02:45:45 city=Beaverton state=OR name=JF
+Tue 01/21/03 08:36:56 city=Göteborg state=Sweden name=
+Tue 01/21/03 22:19:52 city=Burlington state=NC name=
+Thu 01/23/03 08:43:25 city=Oslo state=Norway name=
+Thu 01/23/03 14:20:12 city=Eugene state=OR name=
+Sat 01/25/03 11:23:50 city=Madrid state=Spain name=
+Sat 01/25/03 18:37:15 city=Woodlyn state=PA name=KyleYankan
+Tue 01/28/03 11:53:25 city=arlington state=va name=
+Tue 01/28/03 15:29:14 city=Maryville state=TN name=TheStosh
+Sun 02/02/03 01:34:24 city=edmonton state=ca name=
+Sun 02/02/03 05:42:21 city=bonn state=de name=
+Mon 02/03/03 00:45:03 city=Shoreview state=MN name=
+Mon 02/03/03 21:02:19 city=franklin  state=MA name=
+Tue 02/04/03 20:17:22 city=Auckland state=New Zealand name=
+Wed 02/05/03 22:04:35 city=Liberty state=MO name=
+Fri 02/07/03 08:09:49 city=toronto state=ca name=
+Sun 02/09/03 01:14:22 city=Gillett state=WI name=
+Sun 02/09/03 15:28:49 city=Palo Alto state=CA name=
+Mon 02/10/03 00:52:44 city=Orange state=CA name=Tony Zuanich
+Mon 02/10/03 01:05:21 city=iowa city state=ia name=
+Wed 02/12/03 12:31:37 city=Glendale state=CA name=Chris
+Thu 02/13/03 21:26:03 city=Austin state=TX name=Jeff Wherrett
+Thu 02/13/03 23:16:58 city=Portland state=OR name=Adam
+Sun 02/16/03 01:36:27 city=columbus state=oh name=
+Sun 02/16/03 12:47:20 city=pomponne state=france name=beretzki
+Sun 02/16/03 12:50:35 city=West Covina state=CA name=
+Mon 02/17/03 15:33:42 city=Esteio state=Brazil name=Rogerio Altmeyer
+Mon 02/17/03 17:49:34 city=AV state=CA name=
+Mon 02/17/03 23:19:03 city=Kansas City state=MO name=
+Wed 02/19/03 12:04:05 city=eire state=pa name=
+Wed 02/19/03 12:09:42 city=Detroit state=MI name=Mike Kelly
+Fri 02/21/03 08:18:10 city=paris state=france name=
+Fri 02/21/03 14:13:22 city=Fond du Lac state=Wi name=
+Mon 02/24/03 10:37:09 city=france state=angers name=
+Mon 02/24/03 16:03:21 city=salt lake state=ut name=
+Mon 02/24/03 21:16:17 city=toronto state=ON, Canada name=fc
+Tue 02/25/03 16:45:27 city=Toronto state=Canada name=
+Thu 02/27/03 02:12:08 city=trieste state=it name=
+Sat 03/01/03 14:02:29 city=Varazdin state=Croatia name=
+Sat 03/01/03 17:07:41 city=atlanta state=GA name=Rich
+Sun 03/02/03 14:20:24 city=Portland state=OR name=97202
+Wed 03/05/03 17:03:52 city=Rockland state=Canada name=Norm
+Thu 03/06/03 05:34:39 city=tallinn state=estonia name=
+Thu 03/06/03 11:51:32 city=columbus state=oh name=
+Thu 03/06/03 20:01:57 city=Sydney state=Australia name=
+Fri 03/07/03 12:04:46 city=Orlando state=FL name=
+Sat 03/08/03 13:56:36 city=montreal state=canada name=
+Sat 03/08/03 17:44:18 city=Lublin state=Poland name=
+Sat 03/08/03 23:12:38 city=Vancouver state=Canada name=
+Sun 03/09/03 09:04:00 city=st. louis state=mo name=
+Mon 03/10/03 14:03:29 city=Lubbock state=TX name=Stanley Chen
+Mon 03/10/03 14:32:04 city=Huntsville  state=AL name=Todd Ridgeway
+Wed 03/12/03 16:40:04 city=Long Beach state=ca name=
+Fri 03/14/03 20:02:18 city=Kingston state=NH name=Bob Littlefield
+Sat 03/15/03 11:47:42 city=Kiskunhalas state=Hungary name=
+Sun 03/16/03 01:37:30 city=tulsa state=OK name=
+Sun 03/16/03 06:11:51 city=paris state=fr name=
+Tue 03/18/03 20:41:51 city=Rochester state=mn name=
+Wed 03/19/03 20:39:42 city=Bucyrus state=OH name=
+Sat 03/22/03 00:55:53 city=Ankara state=Turkey (Turkiye) name=Selim Temizer
+Mon 03/24/03 15:08:32 city=Payson state=UT name=Kyle Quist
+Wed 03/26/03 16:54:25 city=atlanta state=ga name=
+Thu 03/27/03 06:57:44 city=Kernersville state=NC name=mschell
+Fri 03/28/03 14:57:48 city=Edmonton state=Alberta Canada name=
+Mon 03/31/03 11:55:47 city=Pomona state=NY name=
+Wed 04/02/03 06:58:53 city=Johannesburg state=South Africa name=Peter Bellis
+Sat 04/05/03 15:08:11 city=Grover Beach state=CA name=Clyde
+Mon 04/07/03 14:20:01 city=Dayton state=OH name=Gregg Liming
+Mon 04/07/03 22:24:56 city=Jamaica Plain state=MA name=Jorge
+Tue 04/08/03 16:37:08 city=Philadelphia state=PA name=Douglas Marshall Johnson
+Wed 04/09/03 11:38:37 city=Blacksurg state=VA name=
+Thu 04/10/03 07:04:25 city=Columbus state=Oh name=
+Thu 04/10/03 19:12:13 city=  state=VA name=
+Fri 04/11/03 11:01:33 city=Saint Paul state=MN name=
+Fri 04/11/03 22:14:29 city=Huntersville state=NC name=
+Sat 04/12/03 19:56:27 city=Marathon state=FL name=
+Mon 04/14/03 16:38:45 city=sarasota state=fl name=
+Fri 04/18/03 13:20:33 city=Springfield state=MO name=Chad Albert
+Fri 04/18/03 14:19:18 city=Cambridge state=MA name=
+Fri 04/18/03 19:36:44 city=Winnipeg state=MB, Canada name=Paul
+Sat 04/19/03 22:19:41 city=San Juan Capistrano state=CA name=Dan Busarow
+Sun 04/20/03 18:09:38 city=Fortuna state=CA name=Sunny Fortuna!
+Mon 04/21/03 22:06:52 city=Valrico state=fl name=
+Wed 04/23/03 02:41:00 city=redmond state=wa name=
+Wed 04/23/03 12:43:56 city=Novi state=Mi name=
+Fri 04/25/03 01:54:56 city=Saint-Edouard state=PQ, Canada name=
+Sat 04/26/03 09:03:42 city=Theodore state=AL name=James B Dyer
+Sun 04/27/03 07:42:40 city=Lisboa state=Portugal name=
+Sun 04/27/03 10:34:36 city=Kansas city state=ks name=
+Mon 04/28/03 12:20:16 city=cupertino state=ca name=
+Mon 04/28/03 12:20:58 city=Palo Alto state=CA name=
+Tue 04/29/03 17:23:40 city=paris state=France name=
+Wed 04/30/03 09:21:14 city=  state=Germany name=
+Wed 04/30/03 20:03:34 city=Lisbon state=Pt name=tolas
+Thu 05/01/03 09:55:26 city=Bakersfield state=CA name=Tekati
+Fri 05/02/03 09:50:30 city=Old Saybrook state=CT name=Malachai
+Fri 05/02/03 09:51:50 city=North Haven state=CT name=Art Fregeau, K1WMQ
+Fri 05/02/03 10:17:21 city=Hong Kong state=HK name=LC
+Fri 05/02/03 10:59:05 city=Midland state=MI name=
+Fri 05/02/03 11:18:14 city=newark state=de name=
+Fri 05/02/03 12:07:48 city=orlando state=fl name=
+Fri 05/02/03 12:38:09 city=Irvine state=CA name=
+Fri 05/02/03 12:41:05 city=Urbana state=IL name=
+Fri 05/02/03 13:18:12 city=Fort Lauderdale state=fl name=
+Fri 05/02/03 13:37:10 city=South Amboy state=NJ name=
+Fri 05/02/03 14:16:08 city=boise state=id name=
+Fri 05/02/03 14:22:06 city=Cambridge state=MA name=USA
+Fri 05/02/03 14:43:16 city=Virginia Beach state=va name=
+Fri 05/02/03 15:27:43 city=Palo Alto state=CA name=
+Fri 05/02/03 15:44:45 city=seattle state=wa name=
+Fri 05/02/03 15:45:46 city=houston state=tx name=
+Fri 05/02/03 16:02:19 city=austin state=tx name=
+Fri 05/02/03 16:06:16 city=dallas state=tx name=breston
+Fri 05/02/03 16:09:30 city=Boston state=MA name=
+Fri 05/02/03 17:10:54 city=Houston state=TX name=
+Fri 05/02/03 17:11:28 city=Virum state=Denmark name=
+Fri 05/02/03 17:42:38 city=Mountain View state=CA name=
+Fri 05/02/03 18:02:00 city=Reading state=England name=
+Fri 05/02/03 18:05:40 city=Apai state=Samoa name=
+Fri 05/02/03 18:17:50 city=Kings Lynn state=UK name=Gavin Bolton
+Fri 05/02/03 18:28:50 city=Blacksburg state=VA name=
+Fri 05/02/03 18:55:12 city=San Jose state=CA name=Brian M.
+Fri 05/02/03 20:29:11 city=montreal state=PQ, Canada name=
+Fri 05/02/03 22:41:31 city=Redmond state=WA name=
+Sat 05/03/03 16:39:26 city=Berlin state=OH name=
+Sat 05/03/03 17:30:48 city=Orlando state=FL name=
+Sun 05/04/03 00:32:34 city=middletown state=ct name=
+Sun 05/04/03 11:55:30 city=Manhasset state=NY name=Brownstine
+Sun 05/04/03 17:34:29 city=Brooklyn state=MI name=Ross Towbin
+Mon 05/05/03 08:42:20 city=Starkville state=MS name=
+Mon 05/05/03 14:45:45 city=Richmond state=VA name=Craig Bailey
+Mon 05/05/03 16:11:47 city=hudson state=MA name=
+Mon 05/05/03 16:11:59 city=  state=MA name=
+Mon 05/05/03 16:46:51 city=Kodak state=TN name=William McKeehan
+Mon 05/05/03 18:12:29 city=houston state=tx name=
+Tue 05/06/03 06:47:29 city=Cardiff state=United Kingdom name=
+Tue 05/06/03 09:40:21 city=Santa Barbara state=Ca name=
+Wed 05/07/03 00:15:16 city=kennesaw state=ga name=
+Wed 05/07/03 14:47:06 city=Toronto state=ON, Canada name=
+Thu 05/08/03 00:11:33 city=Washington state=DC name=
+Thu 05/08/03 08:31:52 city=Fairmont state=MN name=Jeff Johnson
+Thu 05/08/03 22:33:55 city=phoenix state=az name=
+Fri 05/09/03 01:07:30 city=Vancouver state=BC, Canada name=
+Fri 05/09/03 14:32:38 city=Huntingdon, Cambs state=UK name=Adam Courtney
+Wed 05/14/03 10:18:07 city=Watretown state=ct name=
+Wed 05/14/03 10:18:23 city=waterbury state=ct name=
+Thu 05/15/03 14:43:09 city=Prague state=CZ name=Praha
+Fri 05/16/03 19:44:09 city=warren state=MI name=
+
+# Edited by Richard Sleegers on 06/09/03 to bring old entries to new format and remove duplicates
+
+Sun 05/18/03 04:53:56 city=Calgary state=Canada name=
+Sun 05/18/03 08:09:57 city=Steelville state=MO name=Kevin
+Mon 05/19/03 19:03:20 city=cincinnati state=oh name=
+Tue 05/20/03 03:53:01 city=hertfordshire state=uk name=
+Tue 05/20/03 09:57:07 city=Salem state=IL name=Steen Munter
+Tue 05/20/03 13:10:54 city=McMinnville state=OR name=Rick Howd
+Tue 05/20/03 21:48:11 city=brisbane state=australia name=
+Wed 05/21/03 02:02:45 city=Sydney state=NSW name=
+Wed 05/21/03 16:06:49 city=Veenendaal state=The Netherlands name=Jaap van Ekris
+Fri 05/23/03 01:35:31 city=melbourne state=victoria name=
+Sat 05/24/03 09:50:52 city=Chicago state=IL name=Victor Ramirez
+Sat 05/24/03 21:37:21 city=Perth state=Australia name=mockid
+Sun 05/25/03 00:17:35 city=Burlington state=NC name=
+Sun 05/25/03 07:17:36 city=wINNIPEG state=MANITOBA name=GERRY
+Sun 05/25/03 08:46:28 city=breda state=netherlands name=
+Sun 05/25/03 22:30:46 city= state=Virginia name=
+Mon 05/26/03 08:31:15 city=Saarbrücken state=Germany name=sx
+Mon 05/26/03 10:02:31 city=Ballwin state=MO name=
+Mon 05/26/03 22:58:56 city=Helmond state=NB, netherlands name=Vince
+Tue 05/27/03 09:22:29 city=spain state=madrid name=
+Tue 05/27/03 12:51:15 city=Daytona state=FL name=Harry Seldon
+Wed 05/28/03 05:35:42 city=Gothenburg state=Sweden name=
+Wed 05/28/03 05:51:07 city=norwood state=ma name=
+Mon 06/02/03 05:08:30 city=Sydney state=Australia name=Simon
+Wed 06/04/03 18:11:42 city=Liverpool state=UK name=
+Thu 06/05/03 00:46:58 city=beijing state=china name=
+Sat 06/07/03 21:31:19 city=Apex state=NC name=
+Sun 06/08/03 00:43:02 city=Gainesville state=FL name=
+Sun 06/08/03 16:56:35 city=houston state=tx name=
+Mon 06/09/03 07:46:55 city=San Leon state=Tx name=tjePoint
+Tue 06/10/03 07:15:28 city=antwerpen state=belgium name=
+Tue 06/10/03 18:51:32 city=Bragança state=Portugal name=Filipe
+Wed 06/11/03 03:53:28 city=pittsburgh state=pa name=
+Thu 06/12/03 15:10:23 city=helsinki state=finland name=
+Fri 06/13/03 21:13:44 city=Montgomery state=IN name=Todd Riker
+Sat 06/14/03 20:31:31 city=bronx state=ny name=
+Sun 06/15/03 15:39:47 city=Daytona Beach state=FL name=
+Mon 06/16/03 10:05:33 city=Bunnik state=The Netherlands name=Alfred Wouterse
+Tue 06/17/03 17:52:00 city=Inkom state=ID name=Casey Harris
+Thu 06/19/03 22:35:24 city=Streamwood state=IL name=George
+Fri 06/20/03 08:23:43 city=Hamilton state=OH name=LaGory
+Fri 06/20/03 08:58:47 city=rockledge state=fl name=
+Fri 06/20/03 10:12:48 city=Racine state=WI name=SkaBoyTD
+Mon 06/23/03 14:23:21 city=Austin state=TX name=
+Mon 06/23/03 18:25:09 city=Irmo state=SC name=Frank E.
+Tue 06/24/03 10:10:54 city=Charleston state=SC name=
+Tue 06/24/03 14:33:52 city=Buenos Aires state=Argentina name=Diego
+Tue 06/24/03 21:18:57 city=Santa Fe state=TX name=Steve D. Perkins
+Tue 06/24/03 21:22:24 city=Santa Fe state=TX name=Steve D. Perkins
+Wed 06/25/03 11:09:42 city=Faribault state=MN name=
+Thu 06/26/03 05:45:09 city=Aarhus state=Denmark name=
+Thu 06/26/03 17:19:59 city=rochester state=mn name=
+Fri 06/27/03 11:41:22 city=London state=England name=David Ross
+Fri 06/27/03 11:58:28 city=boise state=ID name=ski
+Fri 06/27/03 14:50:15 city=Waltham state=MA name=Jim Duda
+Mon 06/30/03 20:38:58 city=Lancaster state=PA name=
+Wed 07/02/03 15:49:31 city=Highland Park state=NJ name=Xev
+Thu 07/03/03 07:14:02 city=milano state=it name=
+Thu 07/03/03 07:33:12 city=rome state=italy name=
+Thu 07/03/03 13:02:44 city=Henderson state=Nevada name=Feinberg
+Thu 07/03/03 23:25:39 city=Lafayette state=CO name=
+Fri 07/04/03 14:55:37 city=Saskatoon state=Canada name=Glenn Chubak
+Sat 07/05/03 17:06:08 city=bangalore state=india name=
+Sat 07/05/03 17:06:28 city=new delhi state=india name=
+Mon 07/07/03 03:07:48 city=Bordeaux state=France name=Pierrick DINTRAT
+Tue 07/08/03 02:02:58 city=Hyderabad state=AP,INDIA name=Vamsi
+Tue 07/08/03 08:29:12 city=paris state=france name=
+Wed 07/09/03 20:56:10 city=sterling state=va name=
+Thu 07/10/03 19:14:54 city=Ciudad de México state=México name=Chema
+Fri 07/11/03 15:27:27 city=London state=United Kingdom name=
+Sat 07/12/03 04:56:49 city=Yakima state=WA name=
+Sun 07/13/03 13:34:45 city=Eagan state=MN name=
+Sun 07/13/03 16:12:35 city=london state=UK name=
+Wed 07/16/03 22:37:07 city=Grafton state=VA name=Nick Turner
+Thu 07/17/03 10:17:33 city=Coventry state=CT name=Ken Tarwood
+Fri 07/18/03 22:30:34 city=Brooklyn state=NY name=
+Sat 07/19/03 09:16:30 city=Burlington state=CT name=
+Wed 07/23/03 22:25:15 city=Starkville state=MS name=
+Thu 07/24/03 07:55:38 city=stockholm state=se name=
+Fri 07/25/03 07:49:35 city=Ain Saade state=Lebanon name=ArcticCat
+Fri 07/25/03 13:06:41 city=Wilsonville state=OR name=
+Fri 07/25/03 14:26:29 city=Albuquerque state=NM name=
+Sat 07/26/03 15:57:03 city=Clamart state=France name=
+Sun 07/27/03 17:50:07 city=Austin state=TX name=Patrick Bulteel
+Tue 07/29/03 04:45:49 city=Beverly Hills state=CA name=Dave
+Wed 07/30/03 14:26:07 city=New York state=NY name=
+Thu 07/31/03 06:23:24 city=Sant Antoni de Vilamajor state=Barcelona, SPAIN name=David
+Thu 07/31/03 14:52:30 city=Colorado Springs state=CO name=Jason Mullenix
+Fri 08/01/03 03:21:11 city=athens state=greece name=
+Wed 08/06/03 22:43:43 city=Chapel Hill state=NC name=Steve
+Thu 08/07/03 23:03:14 city=Roanoke state=TX name=Patrick
+Sat 08/09/03 06:33:39 city=houston state=texas name=
+Mon 08/11/03 13:24:45 city=VANCOUVER state=Canada name=
+Wed 08/13/03 08:04:26 city=cumming state=ga name=
+Wed 08/13/03 10:29:11 city=winnipeg state=canada name=
+Wed 08/13/03 13:33:03 city=portage state=in name=
+Sat 08/16/03 03:45:08 city=Amsterdam state=Netherlands name=
+Sat 08/16/03 05:50:50 city=buffalo state=ny name=
+Sat 08/16/03 14:57:47 city=Andover state=MA name=
+Sun 08/17/03 11:44:08 city=Leawood state=KS name=Chris Blackburn
+Mon 08/18/03 22:12:53 city=Edmonton state=ab name=
+Thu 08/28/03 14:11:24 city=Lansing state=Mi name=
+Fri 08/29/03 19:25:30 city=tacoma state=WA name=
+Sat 08/30/03 10:35:17 city=South Bend state=In. name=Sarah
+Sun 08/31/03 05:15:16 city=Perth state=Australia name=David Rowe
+Mon 09/01/03 05:54:54 city=Bacau state=Romania name=Bogdan
+Mon 09/01/03 18:20:49 city=Troy state=NY name=Ryan
+Wed 09/03/03 22:58:59 city=Clayton state=NC name=Jeff
+Thu 09/04/03 10:04:14 city=philadelphia state=pa name=
+Thu 09/04/03 11:17:37 city=Foster City state=CA name=AA
+Sat 09/06/03 15:09:54 city=Apex state=NC name=
+Sun 09/07/03 22:16:27 city=Brooklyn state=MI name=Ross Towbin
+Mon 09/08/03 07:50:26 city=melrose state=ma name=
+Mon 09/08/03 10:46:08 city=Ljubljana state=Slovenia name=
+Wed 09/10/03 02:36:37 city=Bucharest state=Romania name=Nemo
+Wed 09/10/03 11:51:20 city=northfield state=mn name=
+Thu 09/11/03 07:04:23 city=Bruxelles state=BE name=mystik_cool
+Thu 09/11/03 15:15:01 city=Boise state=ID name=
+Sat 09/13/03 15:14:26 city=Caracas state=Venezuela name=Javier Díaz B.
+Sat 09/13/03 18:19:44 city=Montreal state=Canada name=John Archell
+Sat 09/13/03 18:38:45 city=Montreal state=Canada name=John Archell
+Mon 09/15/03 04:41:16 city=meadows place state=tx name=
+Mon 09/15/03 21:59:45 city=eagan state=mn name=bob henkel
+Wed 09/17/03 18:22:13 city=San Martin - Bs As state=Argentina name=MrSpock
+Thu 09/18/03 12:49:58 city=Tiel state=Netherlands name=Timo
+Thu 09/18/03 22:20:05 city=anacortes state=wa name=
+Fri 09/19/03 22:24:17 city=Orlando state=FL name=
+Tue 09/23/03 15:12:01 city=Norwalk state=CT name=
+Wed 09/24/03 08:43:55 city=Santa Fe state=TX name=Michael M. Moore
+Wed 09/24/03 15:35:31 city=Rochester state=MN name=
+Wed 09/24/03 16:50:23 city=biella state=italy name=gigio
+Wed 09/24/03 17:25:03 city=allen state=tx name=
+Wed 09/24/03 21:22:43 city=Tenterfield state=NSW Australia name=
+Thu 09/25/03 10:03:40 city=Concord state=NC name=Mike McDonough
+Thu 09/25/03 21:15:46 city=Corona state=CA name=Eric Marti
+Fri 09/26/03 15:25:15 city=Faribault state=MN name=
+Tue 09/30/03 12:23:36 city=Monza state=Italy name=Davide
+Tue 09/30/03 15:27:18 city=reading state=uk name=
+Tue 09/30/03 16:27:54 city=Dallas state=TX name=
+Thu 10/02/03 15:46:17 city=Cergy state=FRance name=CLOVIROLA
+Tue 10/07/03 22:55:53 city=Warrensburg state=MO name=Marietta Walker
+Wed 10/08/03 05:51:22 city=Barcelona state=spain name=
+Wed 10/08/03 07:32:36 city=Pietermaritzburg state=South Africa name=Nico
+Thu 10/09/03 02:17:44 city=seoul state=korea name=
+Fri 10/10/03 08:30:03 city=houston state=tx name=
+Sat 10/11/03 17:10:44 city=ottawa state=ON name=morrison12@yahoo.com
+Sun 10/12/03 12:28:30 city=Zoetermeer state=Netherlands name=
+Mon 10/13/03 18:41:03 city=Phoenix state=AZ name=
+Tue 10/14/03 00:13:23 city=Split state=Croatia name=
+Tue 10/14/03 19:33:46 city=Austin state=TX name=Brandon
+Wed 10/15/03 01:49:38 city=wolcott state=ny name=
+Thu 10/16/03 15:41:31 city=PARIS state=FRANCE name=ThM
+Fri 10/17/03 00:00:13 city=Greenville state=NC name=Jon Scott
+Fri 10/17/03 12:05:18 city=Columbus state=OH name=Ed Bailey
+Fri 10/17/03 15:28:12 city=brooklyn state=ny name=
+Mon 10/20/03 00:00:08 city=Janakpur state=Nepal name=Manoj Lal
+Tue 10/21/03 13:05:56 city=Atlanta state=GA name=
+Fri 10/24/03 14:32:09 city=Oslo state=Norway name=harrall
+Fri 10/24/03 19:23:16 city=Cranston state=RI name=
+Sat 10/25/03 10:19:47 city=Kerava state=Finland name=JukkaS
+Sat 10/25/03 12:46:20 city=Zwolle state=Netherlands name=Partiris
+Mon 10/27/03 10:47:05 city=cumming state=ga name=
+Wed 10/29/03 06:16:55 city=Hilvarenbeek state=Netherlands name=sander pouwelse
+Wed 10/29/03 21:25:03 city=adelaide state=australia name=
+Thu 10/30/03 12:18:08 city=Lecco state=Italy name=Enrico
+Fri 10/31/03 22:24:40 city=Philadelphia state=PA name=MaxRISC
+Sat 11/01/03 04:03:22 city=k.lumpur state=malaysia name=mash
+Sat 11/01/03 20:23:09 city=Canby state=OR name=
+Sat 11/01/03 20:23:15 city=Canby state=OR name=
+Sun 11/02/03 09:30:10 city=Austin state=TX name=
+Mon 11/03/03 15:30:15 city=stockholm state=sweden name=
+Mon 11/03/03 16:59:39 city=Monroe state=NC name=S
+Tue 11/04/03 09:24:44 city=Barcelona state=Spain name=jimilg
+Thu 11/06/03 02:43:13 city=Mexico City state=Mexico name=Chiluca
+Sun 11/09/03 09:54:06 city=hampton state=va name=
+Thu 11/13/03 13:20:18 city=GARDEN CITY state=NY name=
+Sat 11/15/03 13:07:21 city=Oklahoma City state=OK name=
+Sun 11/16/03 15:54:17 city=Newton state=MA name=
+Tue 11/18/03 11:26:22 city=rende state=italy name=gianfranco
+Wed 11/19/03 01:08:17 city=Kierzyna state=PL name=
+Wed 11/19/03 03:06:11 city=Derby state=ks name=
+Wed 11/19/03 10:23:04 city=Ottawa state=Canada name=Michael Villeneuve
+Wed 11/19/03 22:24:03 city=spokane state=wa name=
+Thu 11/20/03 15:06:52 city=Savannah state=GA name=
+Thu 11/20/03 19:33:42 city=Paris state=FRANCE name=frakass
+Fri 11/21/03 10:38:07 city=stockholm state=sweden name=
+Fri 11/21/03 13:38:53 city=Reutlingen state=Germany name=
+Sat 11/22/03 07:14:16 city=Rostock state=Germany name=Lennart
+Sat 11/22/03 22:14:54 city=Scotia state=NY name=George Chapek
+Mon 11/24/03 00:31:37 city=Athens state=GA name=Sol
+Mon 11/24/03 03:25:17 city=manisa state=TR name=
+Mon 11/24/03 15:40:37 city=London state=ON, Canada name=Richard Sleegers
+Tue 11/25/03 04:18:02 city=Houston state=TX name=
+Sat 11/29/03 10:31:49 city=Portland state=oR name=
+Mon 12/01/03 23:49:32 city=durham state=NC name=
+Tue 12/02/03 00:50:23 city=bellingham state=wa name=
+Tue 12/02/03 00:57:09 city=bellingham state=wa name=
+Tue 12/02/03 14:12:05 city=montreal state=qc name= 
+Wed 12/03/03 12:25:13 city=Barcelona state=Spain name=
+Wed 12/03/03 20:45:14 city=Bristol state=TN name=
+Thu 12/04/03 15:22:12 city=San Antonio state=TX name=
+Sat 12/06/03 15:08:43 city=Fairfax state=VA name=
+Mon 12/08/03 07:54:04 city=Ironton state=OH name=
+Mon 12/08/03 13:54:00 city=Brussels state=belgium name=
+Sun 12/14/03 06:06:34 city=FRANCE state=LILLE name=
+Sun 12/14/03 10:01:15 city=arlon state=belgium name=
+Sun 12/14/03 11:10:19 city=Amstelveen state=The Netherlands name=Sietse Visser
+Sun 12/14/03 18:52:48 city=show low state=az name=
+Sun 12/14/03 22:53:36 city=Chandler state=AZ name=Dan
+Mon 12/15/03 14:43:37 city=Fredericksburg state=VA name=Mark Thomas
+Mon 12/15/03 17:13:36 city=sosnowiec state=poland name=ireo
+Mon 12/15/03 21:27:41 city=buffalo state=ny name=
+Tue 12/16/03 01:15:58 city=G³ogów state=Poland name=
+Tue 12/16/03 10:54:44 city=Pittsburgh state=PA name=Russ
+Tue 12/16/03 21:59:31 city=Durham state=NC name=Rick Steeves
+Wed 12/17/03 23:15:07 city=Reston state=VA name=Nebert
+Thu 12/18/03 15:42:04 city=fort collins state=co name=
+Thu 12/18/03 20:11:07 city=greenacres state=FL name=John
+Sat 12/20/03 09:43:15 city=Reggio Emilia state=IT name=Dino 
+Sat 12/20/03 19:30:43 city=Tucson state=AZ name=Ted Frohling
+Sun 12/21/03 10:26:11 city=Fayetteville state=AR name=
+Sun 12/21/03 13:45:17 city=Andilly - Paris state=France name=Gautier Pascal
+Sun 12/21/03 14:27:22 city=tiel state=netherlands name=

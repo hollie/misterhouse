@@ -99,6 +99,7 @@ my $category = $catorder[0];
 $category = $args{Category} if $args{Category};
 
 if (defined $args{Commit} and $args{Commit} eq "Commit") {
+    return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
     return commit();
 }
 elsif (defined $args{MakeDoc}) {
@@ -159,8 +160,11 @@ sub edit {
 # scf
 # 'Note' had to be moved to here
     my $data = '
-       <br>
-        Note: Commit will resort and filter out comments.
+       <br>';
+    $data .= '<font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font><br>' unless $Authorized eq 'admin';
+    $data .= '
+        Note: Commit will resort and filter out comments.' if $Authorized eq 'admin';
+    $data .= '
         <FORM method=post>
     ';
 
@@ -174,12 +178,17 @@ sub edit {
     }
 
     $data .= '
-        </select>
+        </select>';
+    $data .= '
         <input type=submit name="Switch" value="Switch">&nbsp;&nbsp;
         <input type=submit name="Commit" value="Commit">
-        <input type=reset name="Reset Values" value="Reset Values"></td></tr>
+        <input type=reset name="Reset Values" value="Reset Values">' if $Authorized eq 'admin';
+    $data .= '
+        </td></tr>
     ';
     my $rowcount=0;
+    my $disabledhtml = '';
+    $disabledhtml = ' disabled' unless $Authorized eq 'admin';
     foreach (@order) {
         next if $categories{$_} ne $category;
         my $rowbgcolor="#FFFFFF";
@@ -191,10 +200,13 @@ sub edit {
             $data .= '>Help</a>';
             $data .= '&nbsp;';
         }
+
         $data .= "<b>$_</b></td><td>";
-        $data .= '<input type=text size=30 name="' . $_ . '" value="';
-        $data .= map_chars($cparms{$_}) . '"><input type=button value="Set Default" onClick="' . $_ . ".value='";
-        $data .= (defined $dparms{$_} ? map_chars($dparms{$_}) : '') . "'\"></td></tr>\n";
+        $data .= '<input' . $disabledhtml . ' type=text size=30 name="' . $_ . '" value="';
+        $data .= map_chars($cparms{$_}) . '">';
+        $data .= '<input type=button value="Set Default" onClick="' . $_ . ".value='" if $Authorized eq 'admin';
+        $data .= (defined $dparms{$_} ? map_chars($dparms{$_}) : '') . "'\">" if $Authorized eq 'admin';
+        $data .= "</td></tr>\n";
         $rowcount++;
     }
 
@@ -219,7 +231,8 @@ sub edit {
         </td><td><input type=text size=20 name="AddValue4" value=""></td></tr>
         </table>
         <p><em>Note, user defined parameters will appear in the Other category.
-        To remove a user defined parameter later, clear its value.
+        To remove a user defined parameter later, clear its value.' if $Authorized eq 'admin';
+    $data .= '
         </form>
     ';
 

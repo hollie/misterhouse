@@ -1,5 +1,7 @@
 # Category=TV
 
+#@ TV and VCR events
+
 $TV  = new IR_Item 'TV';
 $VCR = new IR_Item 'VCR', '3digit';
 

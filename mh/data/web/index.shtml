@@ -1,0 +1,12 @@
+<html>
+<title>MisterHouse Web Cache Directory</title>
+<link rel="STYLESHEET" href="/default.css" type="text/css">
+</head>
+
+<body>
+<h3>MisterHouse Web Cache Directory</h3>
+
+<!--#include code="&dir_index('/web')"-->
+
+</body> 
+</html>

@@ -85,7 +85,8 @@ $form_code
         $html .= "<tr>\n";
 
         $html .= "<td><a href=/SUB;/bin/triggers.pl?trigger_copy('$name2')>Copy</a>\n";
-        $html .= "    <a href=/SUB;/bin/triggers.pl?trigger_delete('$name2')>Delete</a></td>\n";
+        $html .= "    <a href=/SUB;/bin/triggers.pl?trigger_delete('$name2')>Delete</a>\n";
+        $html .= "    <a href=/SUB;/bin/triggers.pl?trigger_run('$name2')>Run</a></td>\n";
 
         $html .= &html_form_input_set_func('trigger_rename', '/bin/triggers.pl', $name, $name);
 

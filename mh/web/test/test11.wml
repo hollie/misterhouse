@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!DOCTYPE wml PUBLIC "-//PHONE.COM//DTD WML 1.1//EN" "http://www.phone.com/dtd/wml11.dtd" >
+<wml>
+  <template><do type="prev" label="Prev1"><prev/></do></template>
+ 
+ <card id='Test'>
+  <onevent type='onenterforward'><refresh>
+    <setvar name='prev_menu' value='Test'/>
+  </refresh></onevent>
+  <p>Test
+  <select name='prev_value'>
+    <option onpick='#Lights'>Lights</option>
+    <option onpick='#Demo1'>Demo1</option>
+    <option onpick='#Demo2'>Demo2</option>
+    <option onpick='/sub?menu_wml(default,Demo3)'>Demo3</option>
+   </select></p>
+ </card>
+
+ <card id='Lights'>
+  <onevent type='onenterforward'><refresh>
+    <setvar name='prev_menu' value='Lights'/>
+  </refresh></onevent>
+  <p>Lights
+  <select name='prev_value'>
+    <option onpick='/sub?menu_wml(default,Bedroom)'>Bedroom</option>
+    <option onpick='/sub?menu_wml(default,Living)'>Living</option>
+    <option onpick='/sub?menu_wml(default,Outside)'>Outside</option>
+    <option onpick='/sub?menu_wml(default,Fans)'>Fans</option>
+    <option onpick='#Demo1'>Demo1</option>
+   </select></p>
+ </card>
+
+</wml>

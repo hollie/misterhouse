@@ -1,5 +1,7 @@
 # Category=MisterHouse
 
+#@ Runs various startup initialization events.
+
                                 # Set default speaking volume
                                 # Note:  This sets max volume with mstts.  
                                 # volume=100 would use 100% of the default, not 100%
@@ -52,10 +54,4 @@ sub digital_read {
         $state = $$ref{state_by_id}{$id};
         $ref->{state} = $state;
     }
-}
-
-                                # Restart slideshows
-if ($Startup) {
-    run_voice_cmd 'set piano audrey to photo screen';
-    run_voice_cmd 'set kitchen audrey to photo screen';
 }

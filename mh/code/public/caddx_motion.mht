@@ -1,0 +1,30 @@
+Format = A
+##
+# Type    Address   Name                   Groups Other Info
+ZONE,       1,      zone_1,     Security
+ZONE,       2,      zone_2,     Security
+ZONE,       3,      zone_3,     Security
+ZONE,       4,      zone_4,     Security
+ZONE,       5,      zone_5,     Security
+ZONE,       6,      zone_6,     Security
+ZONE,       7,      zone_7,     Security
+ZONE,       8,      zone_8,     Security
+ZONE,       9,      zone_9,     Security
+ZONE,       10,      zone_10,     Security
+ZONE,       11,      zone_11,     Security
+ZONE,       12,      zone_12,     Security
+ZONE,       13,      zone_13,     Security
+ZONE,       14,      zone_14,     Security
+ZONE,       15,      zone_15,     Security
+ZONE,       16,      zone_16,     Security
+ZONE,       17,      zone_17,     Security
+ZONE,       18,      zone_18,     Security
+ZONE,       19,      zone_19,     Security
+ZONE,       20,      zone_20,     Security
+ZONE,       21,      zone_21,     Security
+ZONE,       22,      zone_22,     Security
+ZONE,       23,      zone_23,     Security
+ZONE,       24,      zone_24,     Security
+ZONE,       25,      zone_25,     Security
+ZONE,	armed_partition1,	caddx_armed
+ZONE,	stay_partition1,		caddx_stay

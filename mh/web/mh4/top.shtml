@@ -1,0 +1,110 @@
+<html>
+<head>
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+</head>
+
+<body>
+
+<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>
+<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>
+
+<BASE TARGET='left'>
+
+  <table border="0" cellspacing="0">
+    <tr>
+
+      <td width="70" align="center">
+        <A HREF="category.shtml"
+         onMouseOver="overlib('List Voice Command Cateogries.', RIGHT, ABOVE, HEIGHT, 1, WIDTH, 250)" onMouseOut="nd();">
+        <h4>Commands</h4></a>
+      </td>
+
+      <td width="50" align="center">
+        <A HREF="items.shtml"
+         onMouseOver="overlib('List Items Types.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>Items</h4></a>
+      </td>
+
+      <td width="60" align="center">
+        <A HREF="groups.shtml"
+         onMouseOver="overlib('List Items Groups.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>Groups</h4></a>
+      </td>
+
+      <td width="60" align="center"> 
+        <A HREF="widgets.html"
+         onMouseOver="overlib('List Widgets and Variables.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>Widgets</h4></a>
+      </td>
+
+      <td width="50" align="center"> 
+        <A HREF="other.html"
+         onMouseOver="overlib('Other Miscellaneous Commands.', RIGHT, ABOVE, HEIGHT, 1, WIDTH, 250)" onMouseOut="nd();">
+        <h4>Other</h4></a>
+      </td>
+
+      <td width="50" align="center"> 
+        <A HREF="help.shtml"
+         onMouseOver="overlib('MisterHouse help and documentation.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>Help</h4></a>
+      </td>
+
+      <td width="50" align="center"> 
+        <A HREF="admin.shtml"
+         onMouseOver="overlib('Admin Functions.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>Admin</h4></a>
+      </td>
+
+      <td width="50" align="center">
+        <a HREF="/speech" target="speech"
+         onMouseOver="overlib('Refresh the Speech Log.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>Speech</h4></a>
+      </td>
+
+      <td width="40" align="center">
+        <a HREF="/print_log" target="speech"
+         onMouseOver="overlib('Refresh the Print Log.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>Log</h4></a>
+      </td>
+
+      <td width="30" align="center">
+        <a href=/tv target="_BLANK"
+         onMouseOver="overlib('List the TV Schedule.', RIGHT, ABOVE, HEIGHT, 1)" onMouseOut="nd();">
+        <h4>TV</h4></a>
+      </td>
+
+      <td width="50" align="center">
+        <a HREF="/SET_PASSWORD" target="control"
+         onMouseOver="overlib('Set or Unset Authorization Password.', RIGHT, ABOVE, HEIGHT, 1, WIDTH, 300)" onMouseOut="nd();">
+        <h4>Login</h4></a>
+      </td>
+
+      <BASE TARGET='top'>
+
+      <td width="90" align="center" 
+         onMouseOver="overlib('Use MS Agent for remote VR and TTS (IE only).', LEFT, ABOVE, HEIGHT, 1, WIDTH, 350, OFFSETX, 50)" onMouseOut="nd();">
+         <h4>
+  <!--#include file="/bin/set_cookie.pl?msagent&MSAgent"-->
+         </h4>
+      </td>
+
+      <td width="90" align="center" 
+         onMouseOver="overlib('Create a play wave files on the browser', LEFT, ABOVE, HEIGHT, 1, WIDTH, 350, OFFSETX, 50)" onMouseOut="nd();">
+         <h4>
+  <!--#include file="/bin/set_cookie.pl?webmute&WebMute"-->
+         </h4>
+      </td>
+
+<form action="list" target="control">
+      <td width="200" align="top"
+         onMouseOver="overlib('Search for a Voice Command.', LEFT, ABOVE, HEIGHT, 1, WIDTH, 250, OFFSETX, 50)" onMouseOut="nd();">
+        <h4 align='left'> Search: &nbsp; <input align='left' SIZE="7" NAME="search"></h4>
+      </td>
+</form>
+
+    </tr>
+  </table>
+</body>
+</html>
+
+

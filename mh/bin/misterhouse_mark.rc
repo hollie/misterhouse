@@ -1,0 +1,37 @@
+From Mark Mabry on 10/2001
+
+I start mh with a SysV init script.  I've included it below (beware the line 
+wrapping).  It uses the start-stop-daemon to start and stop mh.  I have no 
+idea if it stops mh gracefully (but would be curious to know).
+
+The key point here is that start-stop-daemon has the "--chuid" option which 
+sets the uid of mh to my uid, 'mark', in this case.
+
+Oh, yeah, mh.sh is a shell script that sets a few mh env vars before calling 
+mh.  This is essential since it also puts mh into the background, something 
+most daemons do automatically.  start-stop-daemon assumes that the executable 
+will background itself.
+
+I use the Debian Linux distro.  I am not certain, if start-stop-daemon comes 
+with other distros, but you could download it yourself, if you like.
+
+
+-----------------------/etc/init.d/mh-------------
+
+PID=/tmp/mh.pid
+DAEMON=/usr/local/mh/mh.sh
+
+case "$1" in
+  start)
+    echo -n "Starting Misterhouse Daemon: mh"
+    start-stop-daemon --start --quiet --make-pidfile --pidfile $PID --chuid mark --exec $DAEMON
+    echo "."
+    ;;
+  stop)
+    echo -n "Stopping Misterhouse: mh"
+    start-stop-daemon --stop --quiet --pidfile $PID --exec $DAEMON
+    echo "."
+    ;;
+esac
+
+exit 0

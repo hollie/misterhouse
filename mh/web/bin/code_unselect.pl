@@ -34,8 +34,10 @@ function openparmhelp(parm1){
 <BODY>
 <a name='Top'></a>
 $html
-The following fils are all the code files in you code_dir list:  $config_parms{code_dir}.
-Simply uncheck files you want to disable or check to re-enable.
+The following fils are all the code files in you code_dir list:  $config_parms{code_dir}.|;
+    $html .= qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font>| unless $Authorized eq 'admin';
+    $html .= qq|Simply uncheck files you want to disable or check to re-enable.| if $Authorized eq 'admin';
+    $html .= qq|
 <CENTER><FORM ACTION="/bin/code_unselect.pl" method=post>
 <TABLE BORDER="0" cellspacing="0" cellpadding="0" width="100%">
 <tr><td colspan="2"><B>Search</B> (file or description): <input  align='left' size='25' name='search'>&nbsp;<INPUT TYPE='submit' VALUE='Search'>
@@ -70,6 +72,7 @@ Simply uncheck files you want to disable or check to re-enable.
         }
 
         my $checked = (!$files_deselected{$file}) ? 'CHECKED' : '';
+        $checked .= ' disabled' unless $Authorized eq 'admin';
         my $description  = '';
         my %file_parms;
         my $parms_list;
@@ -77,6 +80,8 @@ Simply uncheck files you want to disable or check to re-enable.
         for my $line (&file_read($file_path)) {
             $description  .= $1 if $line =~ /^\#\@(.*)/;
             $category = $1      if $line =~ /^#\s*Category\s*=\s*(.*)/i;
+	    $category =~ s/\s+$//; # Drop trailing whitespace
+
                                 # Ignore $config_parm{$xyz} entries
             while ($line =~ /config_parms{([^\$]+)}/g) {
                $file_parms{$1}++ unless $standard_parms{$1};
@@ -114,7 +119,9 @@ Simply uncheck files you want to disable or check to re-enable.
     
                                 # Create html
     my $lastcategory = '';
-    my $submit_html = "<INPUT TYPE='submit' VALUE='Process selected files'>";
+    my $submit_html = "<INPUT TYPE='submit' VALUE='Process selected files'";
+    $submit_html .= ' disabled' unless $Authorized eq 'admin';
+    $submit_html = $submit_html . ">";
     my $rowcount=0;
     for my $module (sort {lc($a) cmp lc($b)} keys %modules) {
         my ($category) = $module =~ /(.*)\|.*/;

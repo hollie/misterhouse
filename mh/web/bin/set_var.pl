@@ -30,6 +30,7 @@ if (defined $value) {
     }
     else {
 #       eval qq|$var = "$value"|;  # If we use ", we mess up stuff like: set $camera_light TOGGLE
+        $value =~ s/'/\\'/g;
         eval qq|$var = '$value'|;
     }
     print "\nError in set_var.pl: $@\n" if $@;

@@ -24,10 +24,10 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
   &html_header('Recent Outgoing Calls') . "
 
 <table width=100% cellspacing=2><tbody><font face=COURIER size=2>
-<tr id='resultrow' bgcolor='#9999CC' class='wvtheader'>
-<th align='middle'>Time</th>
-<th align='middle'>Number</th>
-<th align='middle'>Name</th>
+ <tr id='resultrow' bgcolor='#9999CC' class='wvtheader'>
+<th align='left'>Time</th>
+<th align='left'>Number</th>
+<th align='left'>Name</th>
 $html_calls
 </font></tbody></table>
 

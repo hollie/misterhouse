@@ -93,6 +93,7 @@ for my $parm (@parms) {
         else {
             $html .= qq[$Save{mode}\n];
         }
+	use vars '$mh_volume';  # In case we don't have mh_sound
         if ($mh_volume) {
             my $sl_vol = state $mh_volume;
             $html .= qq[($sl_vol%)\n];

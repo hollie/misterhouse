@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+     <!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+       "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+ <a href=/RUN:last_response?When_is_next_full_moon>Moon info</a><BR>
+ <a href=/RUN:last_response?Display_the_next_deep_thought>Deep Thought</a><br>
+ <a href=/RUN:last_response?When_will_the_sun_set>Sun Rise/Set</a><BR>
+ <a href=/RUN:last_response?Show_internet_weather_forecast>Weather forecast</a><BR>
+ <a href=/RUN:Referer?WebCam_light_on  >WebCam Light On  (cmd)</a><BR>
+ <a href=/RUN:Referer?WebCam_light_off >WebCam Light Off (cmd)</a><BR>
+ <a href=/SET:Referer?$webcam_light?on >WebCam Light On  ($)</a><BR>
+ <a href=/SET:Referer?$webcam_light?off>WebCam Light Off ($)</a><BR>
+ <a href=/SET:Referer?webcam_light=on  >WebCam Light On  (no $)</a><BR>
+ <a href=/SET:Referer?webcam_light=off >WebCam Light Off (no $)</a><BR>
+</wml>

@@ -1,5 +1,15 @@
 # Category = Time
 
+#@ Wakeup events
+
+# Wake up Zack for Saturday job
+
+if (time_cron '0 8 * * 6' or
+    time_now '8:01 am' and $Day eq 'Sat') {
+  speak "room=zack Zack, time to wake up.  Really.   Time to wake up now.  Ok?  Ok!";
+  run_voice_cmd 'open Zacks curtains';
+}
+
 $wakeup_bypass = new Voice_Cmd 'Skip next wakeup time';
 if (state_now $wakeup_bypass) {
     speak 'Ok, no alarm today';
@@ -17,7 +27,8 @@ if ((time_cron '00 23,0-4 * * * ' or time_now '10:30 pm') and
     $Save{mode_set} = 'auto';
     $Save{mode} = 'mute';
     $Save{sleeping_parents} = 1;
-    $Save{sleeping_kids} = 1;
+    $Save{sleeping_nick} = 1;
+    $Save{sleeping_zack} = 1;
     $Save{heat_temp} = 65;
 }
 
@@ -29,12 +40,14 @@ if ($Save{mode} eq 'mute' and
     $Save{mode} = 'normal';
     $Save{mode_set} = '';
     $Save{sleeping_parents} = 0;
-    $Save{sleeping_kids} = 1;
+    $Save{sleeping_nick} = 0;
+    $Save{sleeping_zack} = 0;
     $Save{heat_temp} = 68;
 }
 
 $Save{sleeping_parents} = 0 if time_now '11:00 am';
-$Save{sleeping_kids}    = 0 if time_now '11:00 am';
+$Save{sleeping_nick}    = 0 if time_now '11:00 am';
+$Save{sleeping_zack}    = 0 if time_now '11:00 am';
 
 #return;                         # Summertime!
 
@@ -73,17 +86,17 @@ if ((time_now($Save{wakeup_time}) and $Weekday and $Save{mode} ne 'offline' and
         $Save{mode} = 'normal';
         $Save{mode_set} = '';
 #       $Save{sleeping_parents} = 0;
-        $Save{sleeping_kids} = 0;
+        $Save{sleeping_nick} = 0;
+#       $Save{sleeping_zack} = 0;
         speak "rooms=bedroom mode=unmute Good morning Parents.  It is now $Time_Now on $Date_Now_Speakable.";
         speak "rooms=bedroom mode=unmute The outside temperature is " . round($Weather{TempOutdoor}) . " degrees";
         
         run_voice_cmd 'Check for school closing';
 
-        set $left_bedroom_light ON;
-        sleep 4;			# Need a way to send 2 x10 items simultaneously or get weeder to work OK.
+        set $left_bedroom_light  ON;
         set $right_bedroom_light ON;
         
-        set $TV 'power,12';
+#        set $TV 'power,12';
 #       set $TV 'power,51';
 #       run "ir_cmd TV,POWER,5,1";
 
@@ -94,15 +107,19 @@ if ((time_now($Save{wakeup_time}) and $Weekday and $Save{mode} ne 'offline' and
 
 }
 
-if ($Save{wakeup_time}) {
-    speak $Time_Now          if time_cron '0,15,30,45 6,7,8 * * 1-5';
-    run_voice_cmd  'What is the forecasted chance of rain'     if time_cron '31 6 * * 1-5';
-    run_voice_cmd  'Read the top 10 list'                      if time_cron '35 6 * * 1-5';
-    run_voice_cmd  'Read the next deep thought'                if time_cron '37 6 * * 1-5';
+if ($Save{wakeup_time} and $Weekday) {
+
+    speak $Time_Now if time_cron '0,15,30,45 6,7,8 * * 1-5';
+    speak voice => 'next', text => read_next $house_tagline    if time_now "$Save{wakeup_time} + 11";
+    run_voice_cmd  'What is the forecasted chance of rain'     if time_now "$Save{wakeup_time} + 14";
+    run_voice_cmd  'Read the top 10 list'                      if time_now "$Save{wakeup_time} + 17";
+    run_voice_cmd  'Read the next deep thought'                if time_now "$Save{wakeup_time} + 20";
+
 #    run_voice_cmd  'What is the next Random trivia question'   if time_cron '38 6 * * 1-5';
 #    run_voice_cmd  'What is the trivia answer'                 if time_cron '40 6 * * 1-5';
 #   set $living_curtain ON   if time_cron '0  7 * * 1-5';
 #   speak "My Thought for the day: " . read_next $house_tagline if time_cron '12 7 * * 1-5';
+
 }
 
 

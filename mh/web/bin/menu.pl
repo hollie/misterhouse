@@ -136,6 +136,7 @@ sub menu_list {
     my $item = 0;
     my $ptr = $Menus{$menu_group};
     my $menu = pop @menus;
+#   print "dbx1 mg=$menu_group m=$menu p=$ptr\n";
     for my $ptr2 (@{$$ptr{$menu}{items}}) {
         my ($href, $text);
         my $target = '';

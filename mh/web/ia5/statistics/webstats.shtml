@@ -1,0 +1,11 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Web Server Statistics')" -->
+<pre><font size=1>
+<!--#include file="/data/logs/server_hits.$Year_Month_Now.log"-->
+</pre></font>
+</body></html>

@@ -1,0 +1,27 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('TV Shortcuts')" -->
+<table border="0" cellpadding="3" cellspacing="3" width="100%">
+<tr>
+<td width="33%" align="center">
+<img border="0" src="images/tv1.gif"></td>
+<td width="33%" align="center">
+<img border="0" src="images/tv2.gif"></td>
+<td width="33%" align="center">
+<img border="0" src="images/tv3.gif"></td>
+</tr>
+<tr>
+<td width="33%" align="center">
+<img border="0" src="images/mtv.gif"></td>
+<td width="33%" align="center">
+<img border="0" src="images/discovery.gif"></td>
+<td width="33%" align="center">
+<img border="0" src="images/cnn.gif"></td>
+</tr>
+</table>
+</body>
+</html>

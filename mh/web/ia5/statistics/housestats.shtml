@@ -1,0 +1,13 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('House Server Statistics')" -->
+<center>
+<img src="stats/system.gif" border=0></a><br><br>
+<img src="stats/storage.gif" border=0></a><br><br>
+<img src="stats/packets.gif " border=0></a><br>
+</center>
+</body></html>

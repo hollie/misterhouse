@@ -1,4 +1,7 @@
 # Category=Test
+
+#@ This has simple examples for controling and monitoring X10 data.
+
  
 my $light_states = 'on,brighten,dim,off';
 my $state;

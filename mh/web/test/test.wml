@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!DOCTYPE wml PUBLIC "-//PHONE.COM//DTD WML 1.1//EN" "http://www.phone.com/dtd/wml11.dtd" >
+<wml>
+ <card id='Test'>
+  <p>Test 1</p>
+  <p>Test 4</p>
+ </card>
+</wml>

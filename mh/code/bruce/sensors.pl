@@ -1,5 +1,7 @@
 # Category=none
 
+#@ Monitors analog weeder sensors
+
 				# Read analog sensors every minute
 				#  - avoid second = 0 ... lots of stuff happens on a new minute
 #set $analog_request_a 'reset' if $New_Second and $Second == 20;
@@ -13,12 +15,13 @@ if (time_cron '* * * * *' and defined state $temp_outside) {
     $analog{humidity_inside} = round((57/81) * 100 * (state $humidity_inside / 5000), 1);
     $analog{humidity_outside}= round((48/53) * 100 * (state $humidity_outside / 5000), 1);
     $analog{sun_sensor}      = round((100/60)* 100 * (state $sun_sensor / 5000), 0);
+    $Weather{sun_sensor} = $analog{sun_sensor}; # Used in weather_monitor.pl
     $analog{temp_outside}= convert_k2f(state $temp_outside/10);
 #   $analog{temp_bed}=     convert_k2f(state $temp_bed/10);
     $analog{temp_living}=  convert_k2f(state $temp_living/10);
     $analog{temp_nick}=    convert_k2f(state $temp_nick/10);
     $analog{temp_zack}=    convert_k2f(state $temp_zack/10);
-    print_log "sun=$analog{sun_sensor} temp_in=$analog{temp_living} temp_out=$analog{temp_outside}";
+#    print_log "sun=$analog{sun_sensor} temp_in=$analog{temp_living} temp_out=$analog{temp_outside}";
 #    logit("e:/logs/DATAHI.log", "Humidity Downstairs $analog{humidity_inside}");
 #    logit("e:/logs/DATAHO.log", "Humidity Outside    $analog{humidity_outside}");
 #    logit("e:/logs/DATASS.log", "Sensor          $analog{sun_sensor}");
@@ -71,18 +74,3 @@ sub analog_read {
     }
 }
  
-
-
-
-                                # Try to guess sunny or cloudy, based on an analog sun sensor
-if ($New_Minute) {
-    $Weather{sun_sensor} = $analog{sun_sensor}; # From sensors.pl weeder input
-    if (time_greater_than("$Time_Sunrise + 2:00") and
-        time_less_than   ("$Time_Sunset  - 5:00")) {
-        $Weather{Conditions} = ($Weather{sun_sensor} > 40) ? 'Clear' : 'Cloudy';
-    }
-    else {
-        $Weather{Conditions} = 'Unknown';
-    }
-}
-

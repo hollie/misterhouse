@@ -1,0 +1,456 @@
+Layout 01h,Interface Configuration Message
+Byte 1,Message number
+Bytes 2-5,Firmware version (i.e. 1.00 (ASCII))
+Byte 6,Supported transition message flags (1)
+Bit 0,(00h) Reserved
+Bit 1,(01h) Interface Configuration Message
+Bit 2,(02h) Reserved
+Bit 3,(03h) Reserved
+Bit 4,(04h) Zone Status Message
+Bit 5,(05h) Zones Snapshot Message
+Bit 6,(06h) Partition Status Message
+Bit 7,(07h) Partitions Snapshot Message
+Byte 7,Supported transition message flags (2)
+Bit 0,(08h) System Status Message
+Bit 1,(09h) X-10 Message Received
+Bit 2,(0Ah) Log Event Message
+Bit 3,(0Bh) Keypad Message Received
+Bit 4,(0Ch) Reserved
+Bit 5,(0Dh) Reserved
+Bit 6,(0Eh) Reserved
+Bit 7,(0Fh) Reserved
+Byte 8,Supported request / command flags (1)
+Bit 0,(20h) Reserved
+Bit 1,(21h) Interface Configuration Request
+Bit 2,(22h) Reserved
+Bit 3,(23h) Zone Name Request
+Bit 4,(24h) Zone Status Request
+Bit 5,(25h) Zones Snapshot Request
+Bit 6,(26h) Partition Status Request
+Bit 7,(27h) Partitions Snapshot Request
+Byte 9,Supported request / command flags (2)
+Bit 0,(28h) System Status Request
+Bit 1,(29h) Send X-10 Message
+Bit 2,(2Ah) Log Event Request
+Bit 3,(2Bh) Send Keypad Text Message
+Bit 4,(2Ch) Keypad Terminal Mode Request
+Bit 5,(2Dh) Reserved
+Bit 6,(2Eh) Reserved
+Bit 7,(2Fh) Reserved
+Byte 10,Supported request / command flags (3)
+Bit 0,(30h) Program Data Request
+Bit 1,(31h) Program Data Command
+Bit 2,(32h) User Information Request with PIN
+Bit 3,(33h) User Information Request without PIN
+Bit 4,(34h) Set User Code Command with PIN
+Bit 5,(35h) Set User Code Command without PIN
+Bit 6,(36h) Set User Authorization Command with PIN
+Bit 7,(37h) Set User Authorization Command without PIN
+Byte 11,Supported request / command flags (4)
+Bit 0,(38h) Reserved
+Bit 1,(39h) Reserved
+Bit 2,(3Ah) Store Communication Event Command
+Bit 3,(3Bh) Set Clock / Calendar Command
+Bit 4,(3Ch) Primary Keypad Function with PIN
+Bit 5,(3Dh) Primary Keypad Function without PIN
+Bit 6,(3Eh) Secondary Keypad Function
+Bit 7,(3Fh) Zone Bypass Toggle
+
+Layout 03h,zone name message
+Byte 1,Message number
+Byte 2,{zone} number (0= zone 1)
+Byte 3,Zone name character 1
+Byte 4,Zone name character 2
+Byte 5,Zone name character 3
+Byte 6,Zone name character 4
+Byte 7,Zone name character 5
+Byte 8,Zone name character 6
+Byte 9,Zone name character 7
+Byte 10,Zone name character 8
+Byte 11,Zone name character 9
+Byte 12,Zone name character 10
+Byte 13,Zone name character 11
+Byte 14,Zone name character 12
+Byte 15,Zone name character 13
+Byte 16,Zone name character 14
+Byte 17,Zone name character 15
+Byte 18,Zone name character 16
+Bytes 3-18,{zone_name}
+
+Layout 04h,zone status message
+Byte 1,Message number
+Byte 2,{zone} number (0= zone 1)
+Byte 3,Partition mask
+Bit 0,Partition 1 enable
+Bit 1,Partition 2 enable
+Bit 2,Partition 3 enable
+Bit 3,Partition 4 enable
+Bit 4,Partition 5 enable
+Bit 5,Partition 6 enable
+Bit 6,Partition 7 enable
+Bit 7,Partition 8 enable
+Byte 4,Zone type flags (1)
+Bit 0,Fire
+Bit 1,24 Hour
+Bit 2,Key-switch
+Bit 3,Follower
+Bit 4,Entry / exit  delay 1
+Bit 5,Entry / exit delay 2
+Bit 6,Interior
+Bit 7,Local only
+Byte 5,Zone type flags (2)
+Bit 0,Keypad sounder
+Bit 1,Yelping siren
+Bit 2,Steady siren
+Bit 3,Chime
+Bit 4,Bypassable
+Bit 5,Group bypassable
+Bit 6,Force armable
+Bit 7,Entry guard
+Byte 6,Zone type flags (3)
+Bit 0,Fast loop response
+Bit 1,Double EOL tamper
+Bit 2,Trouble
+Bit 3,Cross zone
+Bit 4,Dialer delay
+Bit 5,Swinger shutdown
+Bit 6,Restorable
+Bit 7,Listen in
+Byte 7,Zone condition flags (1)
+Bit 0,{faulted} Faulted (or delayed trip)
+Bit 1,{tampered} Tampered
+Bit 2,{trouble} Trouble
+Bit 3,{bypassed} Bypassed
+Bit 4,Inhibited (force armed)
+Bit 5,Low battery
+Bit 6,Loss of supervision
+Bit 7,Reserved
+Byte 8,Zone condition flags (2)
+Bit 0,{alarm_memory} Alarm memory
+Bit 1,Bypass memory
+Bit 2,Reserved
+Bit 3,Reserved
+Bit 4,Reserved
+Bit 5,Reserved
+Bit 6,Reserved
+Bit 7,Reserved
+
+Layout 05h,Zones snapshot message
+Byte 1,Message number
+Byte 2,{zone_offset} (0= start at zone 1)
+Byte 3,Zone 1 & 2 (+offset) status flags
+Bit 0,Zone 1 faulted (or delayed trip)
+Bit 1,Zone 1 bypass (or inhibited)
+Bit 2,"Zone 1 trouble (tamper, low battery, or lost)"
+Bit 3,Zone 1 alarm memory
+Bit 4,Zone 2 faulted (or delayed trip)
+Bit 5,Zone 2 bypass (or inhibited)
+Bit 6,"Zone 2 trouble (tamper, low battery, or lost)"
+Bit 7,Zone 2 alarm memory
+Byte 4,Zone 3 & 4 (+offset) status flags
+Bit 0,Zone 3 faulted (or delayed trip)
+Bit 1,Zone 3 bypass (or inhibited)
+Bit 2,"Zone 3 trouble (tamper, low battery, or lost)"
+Bit 3,Zone 3 alarm memory
+Bit 4,Zone 4 faulted (or delayed trip)
+Bit 5,Zone 4 bypass (or inhibited)
+Bit 6,"Zone 4 trouble (tamper, low battery, or lost)"
+Bit 7,Zone 4 alarm memory
+Byte 3,Zone 1 & 2 (+offset) status flags
+Bits 0-3,{Zone1} zsnap
+Bits 4-7,{Zone2} zsnap
+Byte 4,Zone 3 & 4 (+offset) status flags
+Bits 0-3,{Zone3} zsnap
+Bits 4-7,{Zone4} zsnap
+Byte 5,Zone 5 & 6 (+offset) status flags
+Bits 0-3,{Zone5} zsnap
+Bits 4-7,{Zone6} zsnap
+Byte 6,Zone 7 & 8 (+offset) status flags
+Bits 0-3,{Zone7} zsnap
+Bits 4-7,{Zone8} zsnap
+Byte 7,Zone 9 & 10 (+offset) status flags
+Bits 0-3,{Zone9} zsnap
+Bits 4-7,{Zone10} zsnap
+Byte 8,Zone 11 & 12 (+offset) status flags
+Bits 0-3,{Zone11} zsnap
+Bits 4-7,{Zone12} zsnap
+Byte 9,Zone 13 & 14 (+offset) status flags
+Bits 0-3,{Zone13} zsnap
+Bits 4-7,{Zone14} zsnap
+Byte 10,Zone 15 & 16 (+offset) status flags
+Bits 0-3,{Zone15} zsnap
+Bits 4-7,{Zone16} zsnap
+
+Layout 06h,Partition Status Message
+Byte 1,Message number
+Byte 2,{hex_partition} Partition number (0= partition 1)
+Byte 3,Partition condition flags (1)
+Bit 0,Bypass code required
+Bit 1,Fire trouble
+Bit 2,Fire
+Bit 3,Pulsing Buzzer
+Bit 4,TLM fault memory
+Bit 5,reserved
+Bit 6,{armed}
+Bit 7,Instant
+Byte 4,Partition condition flags (2)
+Bit 0,Previous Alarm
+Bit 1,Siren on
+Bit 2,Steady siren on
+Bit 3,Alarm memory
+Bit 4,Tamper
+Bit 5,Cancel command entered
+Bit 6,Code entered
+Bit 7,Cancel pending
+Byte 5,Partition condition flags (3)
+Bit 0,Reserved
+Bit 1,Silent exit enabled
+Bit 2,Entryguard ({stay} mode)
+Bit 3,{chime} mode on
+Bit 4,Entry
+Bit 5,Delay expiration warning
+Bit 6,Exit1
+Bit 7,Exit2
+Byte 6,Partition condition flags (4)
+Bit 0,LED extinguish
+Bit 1,Cross timing
+Bit 2,Recent closing being timed
+Bit 3,Reserved
+Bit 4,Exit error triggered
+Bit 5,Auto home inhibited
+Bit 6,Sensor low battery
+Bit 7,Sensor lost supervision
+Byte 7,Last user number
+Byte 8,Partition condition flags (5)
+Bit 0,Re-exit active
+Bit 1,Force arm triggered by auto arm
+Bit 2,{ready} to arm
+Bit 3,Ready to force arm
+Bit 4,Valid PIN accepted
+Bit 5,Chime on (sounding)
+Bit 6,Error beep (triple beep)
+Bit 7,Tone on (activation tone)
+Byte 9,Partition condition flags (6)
+Bit 0,Entry 1
+Bit 1,Open period
+Bit 2,Alarm sent using phone number 1
+Bit 3,Alarm sent using phone number 2
+Bit 4,Alarm sent using phone number 3
+Bit 5,Zone bypassed
+Bit 6,Keyswitch armed
+Bit 7,Delay Trip in progress (common zone)
+
+Layout 07h,Partitions Snapshot message
+Byte 1,Message number
+Byte 2,{partition1} psnap condition flags
+Byte 3,{partition2} psnap condition flags
+Byte 4,{partition3} psnap condition flags
+Byte 5,{partition4} psnap condition flags
+Byte 6,{partition5} psnap condition flags
+Byte 7,{partition6} psnap condition flags
+Byte 8,{partition7} psnap condition flags
+Byte 9,{partition8} psnap condition flags
+
+
+Layout 08h,System Status Message
+Byte 1,Message number
+Byte 2,Panel ID number
+Byte 3,
+Bit 0,Line seizure
+Bit 1,Off hook
+Bit 2,Initial handshake received
+Bit 3,Download in progress
+Bit 4,Dialer delay in progress
+Bit 5,Using backup phone
+Bit 6,Listen in active
+Bit 7,Two way lockout
+Byte 4,
+Bit 0,Ground fault
+Bit 1,Phone fault
+Bit 2,Fail to communicate
+Bit 3,Fuse fault
+Bit 4,Box tamper
+Bit 5,Siren tamper / trouble
+Bit 6,Low Battery
+Bit 7,AC fail
+Byte 5,
+Bit 0,Expander box tamper
+Bit 1,Expander AC failure
+Bit 2,Expander low battery
+Bit 3,Expander loss of supervision
+Bit 4,Expander auxiliary output over current
+Bit 5,Auxiliary communication channel failure
+Bit 6,Expander bell fault
+Bit 7,Reserved
+Byte 6,
+Bit 0,6 digit PIN enabled
+Bit 1,Programming token in use
+Bit 2,PIN required for local download
+Bit 3,Global pulsing buzzer
+Bit 4,Global Siren on
+Bit 5,Global steady siren 
+Bit 6,Bus device has line seized
+Bit 7,Bus device has requested sniff mode
+Byte 7,
+Bit 0,Dynamic battery test
+Bit 1,AC power on
+Bit 2,Low battery memory
+Bit 3,Ground fault memory
+Bit 4,Fire alarm verification being timed
+Bit 5,Smoke power reset
+Bit 6,50 Hz line power detected
+Bit 7,Timing a high voltage battery charge
+Byte 8,
+Bit 0,Communication since last autotest
+Bit 1,Power up delay in progress
+Bit 2,Walk test mode
+Bit 3,Loss of system time
+Bit 4,Enroll requested
+Bit 5,Test fixture mode
+Bit 6,Control shutdown mode
+Bit 7,Timing a cancel window
+Byte 9,
+Bit 0,reserved
+Bit 1,reserved
+Bit 2,reserved
+Bit 3,reserved
+Bit 4,reserved
+Bit 5,reserved
+Bit 6,reserved
+Bit 7,Call back in progress
+Byte 10,
+Bit 0,Phone line faulted
+Bit 1,Voltage present interrupt active
+Bit 2,House phone off hook
+Bit 3,Phone line monitor enabled
+Bit 4,Sniffing
+Bit 5,Last read was off hook
+Bit 6,Listen in requested
+Bit 7,Listen in trigger
+Byte 11,
+Bit 0,Valid partition 1
+Bit 1,Valid partition 2
+Bit 2,Valid partition 3
+Bit 3,Valid partition 4
+Bit 4,Valid partition 5
+Bit 5,Valid partition 6
+Bit 6,Valid partition 7
+Bit 7,Valid partition 8
+Byte 12,Communicator stack pointer
+
+Layout 09h,X10 Message Received
+Byte 1,Message number
+Byte 2,House code (0=house A)
+Byte 3,Unit code (0=unit 1)
+Byte 4,X-10 function code (see table that follows)
+
+Layout 0ah,Log Event Message
+Byte 1,Message number
+Byte 2,Event number of this message
+Byte 3,Total log size (number of log entries allowed)
+Byte 4,Event type
+Bits 0-6,See type definitions in table that follows
+Bit 7,Non-reporting event if not set
+Byte 5,Zone / User / Device number
+Byte 6,"Partition number (0=partition 1, if relevant)"
+Byte 7,Month (1-12)
+Byte 8,Day (1-31)
+Byte 9,Hour (0-23)
+Byte 10,Minute (0-59)
+
+Layout 0bh,Keypad Message Received
+Byte 1,Message number
+Byte 2,Keypad address
+Byte 3,Key value
+
+Layout 10h,Program Data Reply
+Byte 1,Message number
+Byte 2,Device’s buss address
+Byte 3,Upper logical location / offset
+Bits 0-3,Bits 8-11 of logical location
+Bit 4,"Segment size (0=byte, 1=nibble)"
+Bit 5,Must be 0
+Bit 6,"Segment offset (0-none, 1=8 bytes)"
+Bit 7,Must be 0
+Byte 4,Bits 0-7 of logical location
+Byte 5,Location length / data type
+Bits 0-4,Number of segments in location (0=1 segment)
+Bits 5-7,"Data type : 0=Binary,1=Decimal,2=Hex,3=Asc"
+Byte 6,Data byte 
+Byte 7,Data byte 
+Byte 8,Data byte 
+Byte 9,Data byte 
+Byte 10,Data byte 
+Byte 11,Data byte 
+Byte 12,Data byte 
+Byte 13,Data byte 
+
+Layout 12h,User Information Reply
+Byte 1,Message number
+Byte 2,User Number (1=user 1)
+Byte 3,PIN digits 1 & 2
+Bits 0-3,PIN digit 1
+Bits 4-7,PIN digit 2
+Byte 4,PIN digits 3 & 4
+Bits 0-3,PIN digit 3
+Bits 4-7,PIN digit 4
+Byte 5,PIN digits 5 & 6
+Bits 0-3,PIN digit 5 (pad with 0 if 4 digit PIN)
+Bits 4-7,PIN digit 6 (pad with 0 if 4 digit PIN)
+Byte 6,Authority flags (if bit 7 is clear)
+Bit 0,Reserved
+Bit 1,Arm only
+Bit 2,Arm only (during close window) 
+Bit 3,Master / program 
+Bit 4,Arm / disarm
+Bit 5,Bypass enable
+Bit 6,Open / close report enable
+Bit 7,Must be a 0
+Byte 6,Authority flags (if bit 7 is set)
+Bit 0,Output 1 enable
+Bit 1,Output 2 enable
+Bit 2,Output 3 enable
+Bit 3,Output 4 enable
+Bit 4,Arm / disarm
+Bit 5,Bypass enable
+Bit 6,Open / close report enable
+Bit 7,Must be a 1
+Byte 7,Authorized partition(s) mask
+Bit 0,Authorized for partition 1
+Bit 1,Authorized for partition 2
+Bit 2,Authorized for partition 3
+Bit 3,Authorized for partition 4
+Bit 4,Authorized for partition 5
+Bit 5,Authorized for partition 6
+Bit 6,Authorized for partition 7
+Bit 7,Authorized for partition 8
+
+Layout 1ch,Command/Request Failed
+Byte 1,Message Number
+
+Layout 1dh,Positive Acknowledgement
+Byte 1,Message Number
+
+Layout 1eh,Negative Acknowledgement
+Byte 1,Message Number
+
+Layout 1fh,Message Rejected
+Byte 1,Message Number
+
+Layout zsnap,Zone snapshot layout (msg 05h detail)
+Byte 1,Zone snapshot nibble (msg 05h detail)
+Bit 0,Zone {faulted} (or delayed trip)
+Bit 1,Zone {bypassed} (or inhibited)
+Bit 2,"Zone {trouble} (tamper, low battery, or lost)"
+Bit 3,Zone {alarm_memory}
+
+Layout psnap,Partition snapshot layout (msg 07h detail)
+Byte 1,Partition snapshot layout (msg 07h detail)
+Bit 0,Partition {valid} partition
+Bit 1,Partition {ready}
+Bit 2,Partition {armed}
+Bit 3,Partition {stay} mode
+Bit 4,Partition {chime} mode
+Bit 5,Partition  {any entry} delay
+Bit 6,Partition {any exit} delay
+Bit 7,Partition {previous alarm}

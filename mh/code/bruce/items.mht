@@ -8,33 +8,45 @@ Format = A
 # Type    Address   Name                   Groups                                      Other Info
 #
 
-X10A,       B3,     family_tv,             Appliances|Downstairs|Art_Room
-X10A,       C2,     attic_fan,             Appliances|Outside|Garage   
-X10A,       C3,     fountain,              Appliances|Outside|Backyard
+GROUP, Garage,      Property(0;0;20;20)
+GROUP, Living_Room, Property(20;0;30;20)
+GROUP, Bedroom,     Property(50;0;20;20)
+GROUP, Backyard,    Property(0;20;70;15)
+
+#GROUP, Upstairs,    Property(0;0;50;20)
+#GROUP, Downstairs,  Property(0;30;50;20)
+#GROUP, Living_Room, Upstairs(0;0;30;20)
+#GROUP, Bedroom,     Upstairs(30;0;20;20)
+
+
+X10A,       C2,     attic_fan,             Appliances|Outside|Garage(15;15)
+X10A,       C3,     fountain,              Appliances|Outside|Backyard(65;10)
 X10A,       O9,     living_room_fan,       Appliances|Upstairs|Living_Room,  CM17
-#10A,       O9,     living_room_fan,       Appliances|Upstairs|Living_Room
-X10A,       O11,    indoor_fountain,       Appliances|Upstairs|Living_Room
-X10A,       P9,     bedroom_fan,           Appliances|Upstairs|Bedroom
+#X10A,       O9,     living_room_fan,       Appliances|Upstairs|Living_Room(5;12)
+X10A,       O11,    indoor_fountain,       Appliances|Upstairs|Living_Room(13;18)
+X10A,       P9,     bedroom_fan,           Appliances|Upstairs|Bedroom(11;10)
 
 #10I,       A4,     study_light,           All_Lights|Downstairs|Study
 X10I,       A2,     hall_light,            All_Lights|Downstairs|Bathroom
-X10I,       A4,     bathroom_light,        All_Lights|Upstairs|Bathroom,          , preset
-X10I,       C4,     backyard_light,        All_Lights|Outside|Backyard
-X10I,       I5,     driveway_light,        All_Lights|Outside|Garage
-X10I,       I3,     garage_light,          All_Lights|Outside|Garage
-X10I,       I4,     garage_lights,         All_Lights|Outside|Garage
-X10I,       O5,     pedestal_light,        All_Lights|Upstairs|Living_Room
-X10I,       O6,     living_light,          All_Lights|Upstairs|Living_Room
-X10I,       O7,     camera_light,          All_Lights|Upstairs|Living_Room,        , LM14
+X10I,       A4,     bathroom_light,        All_Lights|Upstairs|Bathroom|Living_Room(27;4),          , preset
+X10I,       C4,     backyard_light,        All_Lights|Outside|Backyard(65;5)
+X10I,       I5,     driveway_light,        All_Lights|Outside|Garage(15;0)
+X10I,       J1,     garage_light,          All_Lights|Outside|Garage(10;20)
+X10I,       I1,     garage_lights,         All_Lights|Outside|Garage(10;10)
+X10I,       O5,     living_fan_light,      All_Lights|Upstairs|Living_Room(5;15)
+X10I,       O6,     living_light,          All_Lights|Upstairs|Living_Room(10;17)
+X10I,       OD,     living_halogen,        All_Lights|Upstairs|Living_Room(6;15)
+X10I,       F4,     camera_light,          All_Lights|Upstairs|Living_Room(15;10),        , LM14
 #10I,       O7,     camera_light2,         All_Lights|Upstairs|Living_Room,   CM11 
+X10I,       M5,     family_room_light,     All_Lights|Downstairs
 X10I,       NF,     nick_reading_light,    All_Lights|Downstairs|Nicks_Room
-X10I,       P2,     bedroom_reading_light, All_Lights|Upstairs|Bedroom
-X10I,       P5,     bedroom_fan_light,     All_Lights|Upstairs|Bedroom
-X10I,       P6,     left_bedroom_light,    All_Lights|Upstairs|Bedroom
-X10I,       P7,     right_bedroom_light,   All_Lights|Upstairs|Bedroom
-X10I,       O8,     christmas_lights,      All_Lights|Upstairs|Living_Room|Christmas
-X10I,       O2,     blue_light,            All_Lights|Upstairs|Living_Room
-X10I,       P3,     christmas_lights_bed,  All_Lights|Upstairs|Bedroom|Christmas
+X10I,       P2,     bedroom_reading_light, All_Lights|Upstairs|Bedroom(10;20)
+X10I,       P5,     bedroom_fan_light,     All_Lights|Upstairs|Bedroom(10;10)
+X10I,       P6,     left_bedroom_light,    All_Lights|Upstairs|Bedroom(18;8)
+X10I,       P7,     right_bedroom_light,   All_Lights|Upstairs|Bedroom(3;18)
+X10I,       O8,     christmas_lights,      All_Lights|Upstairs|Living_Room(2;7)|Christmas
+X10I,       O2,     blue_light,            All_Lights|Upstairs|Living_Room(2;10)
+X10I,       P3,     christmas_lights_bed,  All_Lights|Upstairs|Bedroom(2;5)|Christmas
 X10I,       N8,     christmas_lights_nick, All_Lights|Downstairs|Nicks_Room|Christmas
 
 #D1
@@ -49,22 +61,24 @@ X10MS,       A4,    sensor_bathroom,       Sensors,  MS13
 
 
 # Bedroom x10 items
-SERIAL,    XP8,    bedroom_curtain,   , open
-SERIAL,    XPC,    bedroom_curtain,   , close
+#SERIAL,    XP8,    bedroom_curtain,   , open
+#SERIAL,    XPC,    bedroom_curtain,   , close
 SERIAL,    XP8PJ,  bedroom_curtain,   , open
 SERIAL,    XP8PK,  bedroom_curtain,   , close
 
 # Family room x10 items
-SERIAL,    XM8,    family_curtain,    , open
-SERIAL,    XMC,    family_curtain,    , close
-SERIAL,    XAFAJ,  family_curtain,    , open
-SERIAL,    XAFAK,  family_curtain,    , close
+SERIAL,    XM8M8,    family_curtain,    , open
+SERIAL,    XM8M7,    family_curtain,    , close
+#SERIAL,    XMC,    family_curtain,    , close
+#SERIAL,    XAFAJ,  family_curtain,    , open
+#SERIAL,    XAFAK,  family_curtain,    , close
 
-SERIAL,    XM6,    basement_curtain,  , open
-SERIAL,    XMA,    basement_curtain,  , close
+SERIAL,    XM6J,    basement_curtain,  , open
+SERIAL,    XM6K,    basement_curtain,  , close
+#SERIAL,    XMA,    basement_curtain,  , close
  
-SERIAL,    XM5,    toggle_backyard_light
-SERIAL,    XM9,    toggle_fountain
+#SERIAL,    XM5,    toggle_backyard_light
+#SERIAL,    XM9,    toggle_fountain
 
 
 # Nick's room 
@@ -74,8 +88,9 @@ SERIAL,    XAGAJ,  nick_curtain,  , open
 SERIAL,    XAGAK,  nick_curtain,  , close
 
 # Zack's room 
-SERIAL,    XM7,    zack_curtain,  , open
-SERIAL,    XMB,    zack_curtain,  , close
+SERIAL,    XM7M7,  zack_curtain,  , open
+SERIAL,    XM7M8,  zack_curtain,  , close
+#ERIAL,    XMB,    zack_curtain,  , close
 
 SERIAL,    XH2,    laundry_timer, , on
 SERIAL,    XH3,    laundry_timer, , off
@@ -85,11 +100,11 @@ SERIAL,    XH3,    laundry_timer, , off
 
 SERIAL,   XH1,   request_temp
 SERIAL,   XK1,   request_temp
-SERIAL,   XM1,   request_temp
+SERIAL,   XM4M4,   request_temp
 SERIAL,   XN1,   request_temp
-SERIAL,   XO1,   request_temp
+SERIAL,   XO4O4,   request_temp
 SERIAL,   XP1,   request_temp
-SERIAL,   XH1,   request_temp
+
 
 # Test
 #SERIAL,    XP1PJP2PJ,  speakers12,   Living, ON
@@ -114,7 +129,16 @@ IBUTTON, 01000005498963,    ib_laurie
 IBUTTON, 0100000546e566,    ib_zack
 IBUTTON, 0100000549919d,    ib_nick
 
-IBUTTON, 100000003054c4,    ib_temp1
+IBUTTON, 100000003054c4,    ib_temp1,   Living_Room(13;10)
 IBUTTON, 1000000029b992,    ib_temp2
 IBUTTON, 100000002995aa,    ib_temp3
 IBUTTON, 1000000029a364,    ib_temp4
+
+
+# 2 way debug
+#X10I,  A1,  Test_light_dave,  Test|Lights,  CM11,  LM14a
+
+
+X10I, F4, fr_lamp1, All_Lights, ,preset
+X10I, F4, fr_lamp2, All_Lights, ,LM14a
+X10I, F4, fr_lamp3, All_Lights, ,LM14a

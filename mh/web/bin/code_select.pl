@@ -36,8 +36,11 @@ function openparmhelp(parm1){
 $html
 The following are standardized MisterHouse code files which need no
 modifications, but which may require settings in your ini file to
-activate properly. Simply check those that you'd like to run and
-they'll be automatically activated within MisterHouse.
+activate properly.|;
+    $html .= qq| Simply check those that you'd like to run and
+they'll be automatically activated within MisterHouse.| if $Authorized eq 'admin';
+    $html .= qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font>| unless $Authorized eq 'admin';
+    $html .= qq|
 <CENTER><FORM ACTION="/bin/code_select.pl" method=post>
 <TABLE BORDER="0" cellspacing="0" cellpadding="0" width="100%">
 <tr><td colspan="2"><B>Search</B> (file or description): <input  align='left' size='25' name='search'>&nbsp;<INPUT TYPE='submit' VALUE='Search'>
@@ -55,6 +58,7 @@ they'll be automatically activated within MisterHouse.
     for my $file (@files_read) {
         next unless $file =~ /.pl$/i;
         my $checked = ($files_selected{$file}) ? 'CHECKED' : '';
+        $checked .= ' disabled' unless $Authorized eq 'admin';
         my $description  = '';
         my %file_parms;
         my $parms_list;
@@ -62,6 +66,8 @@ they'll be automatically activated within MisterHouse.
         for my $line (&file_read("$config_parms{code_dir_common}/$file")) {
             $description  .= $1 if $line =~ /^\#\@(.*)/;
             $category = $1      if $line =~ /^#\s*Category\s*=\s*(.*)/i;
+	    $category =~ s/\s+$//; # Drop trailing whitespace
+
                                 # Ignore $config_parm{$xyz} entries
             while ($line =~ /config_parms{([^\$]+)}/g) {
                $file_parms{$1}++ unless $standard_parms{$1};
@@ -98,7 +104,9 @@ they'll be automatically activated within MisterHouse.
     
                                 # Create html
     my $lastcategory = '';
-    my $submit_html = "<INPUT TYPE='submit' VALUE='Process selected files'>";
+    my $submit_html = "<INPUT TYPE='submit' VALUE='Process selected files'";
+    $submit_html .= ' disabled' unless $Authorized eq 'admin';
+    $submit_html .= ">";
     my $rowcount=0;
     for my $module (sort {lc($a) cmp lc($b)} keys %modules) {
         my ($category) = $module =~ /(.*)\|.*/;

@@ -4,20 +4,12 @@ my $html_calls;
 my @logs   = &read_phone_logs1('callerid');
 my @calls  = &read_phone_logs2(100, @logs);
 for my $r (@calls) {
-    my ($time, $num, $name) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/;
+    my ($time, $num, $name, $line, $type) = $r =~ /date=(.+) number=(.+) name=(.+) line=(.*) type=(.*)/;
+    ($time, $num, $name) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/ unless $name;
     next unless $num;
-    $html_calls .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'><td nowrap>$time</td><td nowrap>$num</td><td nowrap>$name</td></tr>";
+    next unless $line;
+    $html_calls .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'><td nowrap>$time</td><td nowrap><a href=\"phone_search.pl?search=$num\">$num</a></td><td nowrap>$name</td><td nowrap>$line</td></tr>";
 }
-
-#my $html_calls;
-#open(DATA, "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log");
-#for my $r (reverse <DATA>) {
-#    my ($time, $num, $name, $line) = $r =~ /(.+\d+:\d+:\d+) (.+) name=(.+) data=.+ line=(\S+)/;
-#    $html_calls .= "<tr id='resultrow' vAlign=center bgColor='#cccccc'><td nowrap>$time</td><td nowrap>$num</td>";
-#    $html_calls .= "<td nowrap>$name</td><td nowrap>$line</td></tr>";
-#}
-#close DATA;
-
 
 #my $html = "<html><body>\n<base target ='output'>\n" . 
 my $html = "<html>
@@ -31,9 +23,10 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
   &html_header('Recent Incoming Calls') . "
 <table width=100% cellspacing=2><tbody><font face=COURIER size=2>
 <tr id='resultrow' bgcolor='#9999CC' class='wvtheader'>
-<th align='middle'>Time</th>
-<th align='middle'>Number</th>
-<th align='middle'>Name</th>
+<th align='left'>Time</th>
+<th align='left'>Number</th>
+<th align='left'>Name</th>
+<th align='left'>Line</th>
 $html_calls
 </font></tbody></table>
 </body>
