@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-05-27 21:38:13 winter>
+#  Last change Time-stamp: <2001-05-31 20:33:52 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -394,6 +394,7 @@ sub setup {
 
     use Astro::MoonPhase;
     use Astro::SunTime;
+    use SunriseHL;
 #   use Barcode;
     use File::Basename;
     use File::Copy;             # So we copy files
@@ -514,20 +515,31 @@ sub setup {
         my $port     = $config_parms{$port_name . "_port"};
         my $proto    = $config_parms{$port_name . "_protocol"};
         my $datatype = $config_parms{$port_name . "_datatype"};
+        my $break    = $config_parms{$port_name . "_break"};
 
         $proto    = 'tcp'      unless $proto;
         $datatype = 'buffered' if $port_name eq 'http';
         $datatype = 'buffered' if $config_parms{$port_name . "_buffer"}; # Grandfathered syntax
         $datatype = '' unless $datatype;
+        $break = "[\r\n]+" unless $break;
+        eval qq[\$break = "$break"];
 
         printf " - creating %-15s on %3s %5s %s\n", $port_name, $proto, $port, $datatype;
 
         $Socket_Ports{$port_name}{port}     = $port;
         $Socket_Ports{$port_name}{protocol} = $proto;
         $Socket_Ports{$port_name}{datatype} = $datatype;
+        $Socket_Ports{$port_name}{break}    = $break;
 
         &socket_open($port_name);
     }
+                                # Create a mh proxy object
+    if ($config_parms{mh_proxy_server}) {
+        use vars '$mh_proxy_server', '%mh_proxy_interfaces';
+        $mh_proxy_server = new Socket_Item(undef, undef, $config_parms{mh_proxy_server});
+        %mh_proxy_interfaces = map {lc $_, 1} split ',', $config_parms{mh_proxy_interfaces};
+    }
+
     
     for my $port_name (@Generic_Serial_Ports) {
         &serial_port_create($port_name, $config_parms{$port_name . "_port"},
@@ -1212,7 +1224,7 @@ sub check_for_socket_data {
         &socket_close('http');
     }
 
-    my (@ports_with_data, @active_ports, $recheck_flag);
+    my (@active_ports, @ports_with_data, $recheck_flag);
 
                                 # See which ports are active
                                 #  - could probably use a smarter select check here, rather than loop for each port
@@ -1318,20 +1330,27 @@ sub check_for_socket_data {
             print $sock $byte unless $char eq 13 or $char eq 10;
         }
 
-     
-                                # Break data on newlines
+    }
+
+                                # Look for 'records' based on break separator
+                                #  - this data may have been read from a previous pass
+    for my $port_name (keys %Socket_Ports) {
         next unless $Socket_Ports{$port_name}{data};
-        while (my($record, $remainder) = $Socket_Ports{$port_name}{data} =~ /(.+?)[\r\n]+(.*)/) {
-            if ($config_parms{debug} eq $port_name) {
+     
+                                # Look for data separator (default is newline)
+        my $break = $config_parms{"${port_name}_break"};
+        $break = "[\r\n]+";
+        while (my($record, $remainder) = $Socket_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s) {
+#           if ($config_parms{debug} eq $port_name) {
 #               print "$port_name record=$record.  hex=", unpack('H*', $record), "\n";
 #               print "$port_name remainder=$remainder.  hex=", unpack('H*', $remainder), "\n";
-            }
+#           }
             $Socket_Ports{$port_name}{data_record} = $record;
             $Socket_Ports{$port_name}{data}        = $remainder;
             
-
             if ($port_name eq 'http') {
                 if ($record =~ /^ *GET /) {
+                    my $sock = $Socket_Ports{$port_name}{socka};
                     ($leave_socket_open_passes, $leave_socket_open_action) = &process_http_request($sock, $record);
                     print "http lso=$leave_socket_open_passes sock=$sock.\n" if $config_parms{debug} eq $port_name;
                     unless ($leave_socket_open_passes) {
@@ -1358,8 +1377,8 @@ sub check_for_socket_data {
                 last; 
             }
         }
+#       print "http rf=$recheck_flag lc=$Loop_Count.  \n";
     }
-#   print "http rf=$recheck_flag lc=$Loop_Count.  \n";
     return $recheck_flag;
 }    
 
@@ -2644,6 +2663,23 @@ sub process_x10_chunks {
     return $flag_found;
 }
 
+sub proxy_send {
+    my ($type, @data) = @_;
+    if (my $proxy = $mh_proxy_server) {
+        $proxy->start unless $proxy->active;
+        if ($proxy->active) {
+            $proxy->set(join $;, $type, @data);
+            my $response = $proxy->said_next;
+            return 1 if $response =~ /data sent/;
+            &print_log("mh proxy data not not sent: $response.  type=$type data=@data");
+        }
+        else {
+            &print_log('mh proxy not active');
+        }
+    }
+    return 0;
+}
+
 sub read_code {
     my (@files, $file, $file_dir, $file_dir2, $file_path, $file_path2, @files_read, @files_changed, @files_changed2, $file_time, %noload_files);
 
@@ -3246,6 +3282,7 @@ sub set_global_vars {
                     $Year = $year_unix + 1900;
                     $Year += 100 if $Year < 1970;
                     &set_sun_time; # Get new sunrise/sunset times for the new day
+#                   &set_sun_time_new; # Get new sunrise/sunset times for the new day
                     &set_moon_data; # Get new sunrise/sunset times for the new day
 
                                 # Calander info at: http://www.pip.dknet.dk/~pip10160/cal/calendar20.txt
@@ -3439,6 +3476,22 @@ sub serial_port_open {
 
 
 
+sub set_sun_time_new {
+    print "Latitude: $config_parms{latitude},  Longitude:  $config_parms{longitude},  Time Zone: $config_parms{time_zone}\n";
+    my ($year, $month, $day, $dst) = (localtime(time))[5,4,3,8];
+    $month++;
+    my @parms = ($year,$month,$day,$config_parms{longitude},$config_parms{latitude},$config_parms{time_zone},$dst);
+    ($Time_Sunrise, $Time_Sunset) = sunrise(@parms, -0.833);
+    ($Time_Sunrise_Twilight, $Time_Sunset_Twilight) =  sunrise(@parms, -6);
+    local $_;
+    for ($Time_Sunrise, $Time_Sunset, $Time_Sunrise_Twilight, $Time_Sunset_Twilight) {
+        $_ = time_to_ampm($_);
+    }
+    print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
+    print "sunrise twilight=$Time_Sunrise_Twilight sunset twilight=$Time_Sunset_Twilight\n";
+}
+
+
 sub set_sun_time {
                                 # Use abs to allow for negative longitude and time_zone
                                 # The silly Astro::Sun_Time module requires negative long and time zone
@@ -3448,10 +3501,10 @@ sub set_sun_time {
     print "Latitude: $config_parms{latitude},  Longitude: $config_parms{longitude},  Time Zone: $config_parms{time_zone}\n";
     $Time_Sunrise = time_to_ampm &sun_time(type => 'rise', @parms);
     $Time_Sunset  = time_to_ampm &sun_time(type => 'set',  @parms);
-    print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
 
     $Time_Sunrise_Twilight = time_to_ampm &sun_time(type => 'rise', twilight => $config_parms{twilight}, @parms);
     $Time_Sunset_Twilight  = time_to_ampm &sun_time(type => 'set',  twilight => $config_parms{twilight}, @parms);
+    print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
     print "sunrise twilight=$Time_Sunrise_Twilight sunset twilight=$Time_Sunset_Twilight\n";
 }
 
@@ -4277,6 +4330,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.53  2001/06/01 12:54:00  winter
+# - test release
+#
 # Revision 2.52  2001/05/28 21:13:07  winter
 # - 2.52 release
 #
