@@ -108,6 +108,12 @@ sub send_display {
     my $object = $$self{object};
 
     if ($$self{type} eq 'lcdproc') {
+                                # Sometimes we loose the socket connection, so restart
+        unless ($object->active) {
+            print "\n\ndb LCD.pm lcdproc not active ... restarting\n\n";
+            $self->start;
+        }
+                
                                 # Send only changed lines
         my ($data, $line);
         for my $i (0 .. $$self{dy_max}) {
@@ -207,6 +213,9 @@ sub process {
 
 #
 # $Log$
+# Revision 1.4  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.3  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

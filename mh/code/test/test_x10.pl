@@ -1,5 +1,5 @@
 # Category=Test
-
+ 
 my $light_states = 'on,brighten,dim,off';
 my $state;
 

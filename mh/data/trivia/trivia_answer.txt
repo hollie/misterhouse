@@ -1,5 +1,5 @@
 The trivia answer is.
-  4: 1620..
+  2: Dogs..
 
 Once again, the trivia answer is.
-  4: 1620..
+  2: Dogs..

@@ -1,30 +1,30 @@
-Title: Korean Air Mission Critical Systems Moved to Linux
-2001-08-11 09:32:26 by Hemos  in dept: good-work-tux  (linuxbiz   31)
+Title: Return to Castle Wolfenstein Test for Linux
+2001-09-23 03:15:45 by michael  in dept: chaingun-fun  (127   86)
 
-Title: Linux 2.4.8 is Out
-2001-08-11 05:43:13 by michael  in dept: so-much-for-my-2.4.7-installation  (linux   101)
+Title: Afghanistan Is Like Nothing You've Ever Seen
+2001-09-22 23:52:13 by michael  in dept: daily-deliveries-of-coffins  (103   648)
 
-Title: How to Burn a Magnesium NeXT Cube
-2001-08-11 04:42:45 by CmdrTaco  in dept: to-much-spare-time  (humor   98)
+Title: Legislating Insecure Encryption
+2001-09-22 22:06:05 by michael  in dept: no-deadbolts-for-you  (93   211)
 
-Title: Protecting Clients: Legal Impact of Filesharing Network Design
-2001-08-11 02:17:51 by michael  in dept: when-lawyers-attack  (doj   97)
+Title: Monty Python and the Search for the Holy Lego
+2001-09-22 20:32:18 by michael  in dept: things-man-was-not-meant-to-know  (133   173)
 
-Title: Quake 4 Announced
-2001-08-11 00:54:21 by michael  in dept: dust-off-the-railgun  (quake   232)
+Title: Immersive HDTV
+2001-09-22 19:13:11 by michael  in dept: red-lens-blue-lens  (129   58)
 
-Title: FreeCiv 1.12.0 Released
-2001-08-10 23:14:23 by CmdrTaco  in dept: games-people-play  (games   182)
+Title: Robots Go To War
+2001-09-22 17:46:55 by michael  in dept: somebody-forgot-the-first-law  (103   186)
 
-Title: Triana Mothballed
-2001-08-10 22:39:02 by Hemos  in dept: nada-mas-triana  (space   168)
+Title: Are There Any Fun Tech Jobs Left?
+2001-09-22 16:32:44 by Cliff  in dept: a-place-where-you-enjoy-your-work  (99   486)
 
-Title: Court Decision Favors Rambus
-2001-08-10 20:01:19 by Hemos  in dept: and-it-goes-on-and-on  (patents   123)
+Title: Michael Jackson Releases Uncopyable CD
+2001-09-22 15:20:14 by CmdrTaco  in dept: everyone-likes-a-challange  (141   394)
 
-Title: Ask Sam Lantinga About SDL On PS2 And More
-2001-08-10 18:30:56 by timothy  in dept: talk-about-cross-platform  (news   153)
+Title: Analysis of New Internet Wiretap Laws
+2001-09-22 14:00:50 by michael  in dept: body-cavity-search  (158   158)
 
-Title: Code Red III
-2001-08-10 17:48:50 by CmdrTaco  in dept: are-we-there-yet-mommy  (microsoft   725)
+Title: Non Photo Realistic Quake
+2001-09-22 13:04:11 by Hemos  in dept: a-new-skin-on-things  (112   82)
 

@@ -7,10 +7,10 @@ By David Norwood, dnorwood2@yahoo.com
                by Bruce Winter and many contributors
 
 This module uses text-to-speech and input from one or two switches
-to provide access to Misterhouse's menu system for people with 
+to provide access to the Misterhouse menu system for people with 
 severe physical disabilities. 
 
-See mh/code/examples/audible_menu.pl for example usage.
+See mh/code/public/audible_menu.pl for example usage.
 
 =cut
 
@@ -61,9 +61,9 @@ sub check_key {
     my $key;
 
     return unless $key = $$self{input}->state_now or $key = $main::Keyboard;
-    $key = lc chr $key if $key > 2 and $main::OS_win;
+    $key = lc chr $key if $key =~ /^\d+$/ and $key > 2 and $main::OS_win;
 
-    #print "$key\n";
+#   print "$key\n";
     my $ptr  = $$self{menu_ptr}{items}[$$self{cy}];
 
     if ($key eq $$self{enter}) {

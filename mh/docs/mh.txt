@@ -754,7 +754,7 @@ DESCRIPTION
              scan        $family, $port : Returns a object list of iButton devices that match $family 
              scan_report $family, $port : Returns a report of      iButton devices that match $family 
 
-             monitor $port, $family : Checks the one wire bus for iButton activity
+             monitor $family, $port : Checks the one wire bus for iButton activity
 
              connect $port       : Connect to the one wire bus.  Note you can now have multiple
                                    iButton interfaces on multiple COM ports.
@@ -837,7 +837,7 @@ DESCRIPTION
               }
               else {
                 print_log &iButton::disconnect;
-                print_log &iButton::disconnect, 'ibutton_port2;
+                print_log &iButton::disconnect, $config_parms{ibutton_port2};
               }
             }
 
@@ -845,7 +845,7 @@ DESCRIPTION
             speak 'Hi Bruce'  if ON  eq state_now $ib_bruce;
             speak 'Later'     if OFF eq state_now $ib_bruce;
 
-            $ib_relay1 = new iButton '12000000123456ff', 'ibutton_port2';
+            $ib_relay1 = new iButton '12000000123456ff', $config_parms{ibutton_port2};
             $v_iButton_relay1    = new Voice_Cmd "Turn relay1 [on,off]";
             if ($state = said $v_iButton_relay1) {
                print_log "Setting iButton relay1 to $state";
@@ -883,9 +883,12 @@ DESCRIPTION
              new $type, $code : Creates a new Item.  
                 Here are the valid types:
                    TV, VCR, CAB, CD, SAT, DVD
-                Currently, $code simply controls if 2 or 3 digits are transmited for channels:
-                   2digit  (this is the default if $code is not spedified)
-                   3digit
+                Currently, $code can be any of he following:
+                   2digit  : this is the default if $code is not specified
+                   3digit  : 3 digits are transmited for channels
+                   addEnter: adds an ENTER command after any numbers, to make 
+                             changing channels faster on devices that wait for a
+                             timeout (e.g. Ocelot).
 
              state        : Returns the last state that was sent
              state_now    : Returns the state that was sent in the current pass.
@@ -2067,7 +2070,15 @@ DESCRIPTION
                rooms  => 'room_names'  You need to code a &Speak_pre_add_hook to enable
                                        this.  See mh/code/bruce/pa_control for an example.
                volume => dd            How loud (dd = 0->100).  
-               mode   => 'unmuted'     Forces speech, even in mute and offline mode
+
+               mode   => 'unmuted' Forces speech, even in mute and offline mode
+
+               mode   => any of the following (currently only for the MS TTS engine):
+                stop, pause, resume, rewind, fastforward, slow, normal, fast, ###
+                ### is words per minute.  For example:  speak mode => 200
+
+               rate   => fast,normal,slow,### (currently only for the MS TTS engine)
+                         ### is words per minute.
 
              These options are for the Festival speech engine (but don't work yet):
                rate   => '+-nn%'       (e.g. +10% or -30%)
@@ -2088,6 +2099,8 @@ DESCRIPTION
           
             $Save{mode} = 'mute' if time_cron '0 10-21 * * 1-5';
             speak 'mode=unmuted  The front door just opened';
+            speak mode => 'pause';
+            speak mode => 'resume', rate => 120;
 
     time_add
         Use this to add/delete an offset to a time value, using the

@@ -77,10 +77,13 @@ if (my ($name, $name_short) = net_domain_name_done 'server_speak') {
             $chatbot = new Chatbot::Eliza "Eliza", "../data/eliza/$chatbot_rule.txt" unless $chatbot;
 
             my $response = $chatbot->transform($msg);
-            $msg = "$name_short said: $msg.\nEliza says: $response";
+#           $msg = "$name_short said: $msg.\nEliza says: $response";
+            $msg  = "<voice required='Name=Microsoft Sam'\>$name_short said: ";
+            $msg .= "<voice required='Name=Microsoft Mike'>$msg.</voice>\n";
+            $msg .= "Eliza says: <voice required='gender=female'>$response.</voice>";
         }
         else {
-            $msg = "Internet message from $name_short: $msg" if $msg;
+            $msg = "Internet message from $name_short: <voice required='gender=male'/>$msg" if $msg;
 #           $msg = "Internet message: $msg" if $msg;
         }
 
@@ -110,7 +113,7 @@ if (my ($name, $name_short) = net_domain_name_done 'server_speak') {
     $msg = substr $msg, 0, 200;
     if ($config_parms{internet_speak_flag} eq 'all' or
         $config_parms{internet_speak_flag} eq 'some' and $speak_server_data =~ /^GET /) {
-        speak $msg;
+        speak voice => 'mike', text => $msg;
     }
     elsif ($msg and length $msg < 400) {
         print_log $msg unless $msg =~ /^sound_/;

@@ -104,7 +104,7 @@ sub check_for_data {
                 &main::process_serial_data($state) if $state; # Set states on X10_Items
             }
             else {
-                print "MR26 Bad X10 data: $n1,$n2$b2 house=$house unit=$unit\n";
+                print "MR26 Bad X10 data: n1=$n1 n2=$n2 b2=$b2\n";
             }
         }
         &main::main::print_log("MR26 Code: $state") if $main::config_parms{debug} eq 'MR26';
@@ -124,6 +124,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.5  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.4  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

@@ -8,7 +8,7 @@
 #
 # If you have more than one ibutton_port, add something like this:
 #   print_log &iButton::connect($config_parms{ibutton_port2}) if $Startup;
-#   $ib_relay1 = new iButton '12000000123456ff', 'ibutton_port2';
+#   $ib_relay1 = new iButton '12000000123456ff', $config_parms{ibutton_port2};
 #
 # You can buy iButton stuff here:
 #    http://www.iButton.com/index.html
@@ -41,6 +41,7 @@ if ($state = said $v_iButton_connect) {
         print_log &iButton::disconnect;
     }
 }
+print_log &iButton::connect($config_parms{ibutton_port2}) if $Startup and $config_parms{ibutton_port2};
 
                                 # This is how to code the 16 character iButton id:
                                 #  - Allow either any of the following formats (crc is optional):
@@ -74,7 +75,7 @@ $remark_good = new File_Item "$config_parms{data_dir}/remarks/personal_good.txt"
 
 speak read_random $remark_nick if ON  eq state_now $ib_nick;
 speak read_next   $remark_zach if ON  eq state_now $ib_zach;
-speak read_next   $remark_bad  if ON  eq state_now $ib_bruce;
+speak voice => 'random', text => read_next $remark_bad  if ON  eq state_now $ib_bruce;
 play "fun/*.wav"               if ON  eq state_now $ib_laurie;
 
 if ($state = said $v_iButton_relay1) {
@@ -112,12 +113,17 @@ if (new_minute 2) {
 }
 
                                 # List all iButton devices
-print_log "List of ibuttons:\n" . &iButton::scan_report if said $v_iButton_list;
+if (said $v_iButton_list) {
+    print_log "List of ibuttons:\n" . &iButton::scan_report;
+    print_log "List of ibuttons on 2nd ibutton:\n" . &iButton::scan_report(undef, $config_parms{ibutton_port2})
+        if $config_parms{ibutton_port2};
+}
 
                                 # Pick how often to check the bus ... it takes about 6 ms per device.
                                 # You can use the 'start a by name speed benchmark' command
                                 # to see how much time this is taking
 &iButton::monitor('01') if $New_Second;
+&iButton::monitor('01', $config_parms{ibutton_port2} ) if $New_Second and $config_parms{ibutton_port2};
 #iButton::monitor if $New_Msecond_500;
 
 

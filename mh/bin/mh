@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-08-21 22:04:14 winter>
+#  Last change Time-stamp: <2001-09-23 14:25:53 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -285,7 +285,8 @@ BEGIN {
             print "\nError in loading module=Win32::Console:\n  $@\n" if $@;
 
             &my_use("Win32::OLE");
-#           &my_use("Win32::OLE qw(EVENTS)"); # EVENTS forces single-threaded apartment, so outlook.pl MAPI works
+#           &my_use("Win32::OLE qw(in with EVENTS)"); # EVENTS forces single-threaded apartment, so outlook.pl MAPI works
+#           use Win32::OLE qw(in with EVENTS);
 
 #           &my_use("Win32::OLE::lite");
             &my_use("Win32::Process");
@@ -409,6 +410,7 @@ sub setup {
     use Net::FTP;               # For uploading stuff
     use Text::Wrap;
     use Time::Local;            # For timelocal
+    use Time::DaysInMonth;      # For days_in (and is_leap?)
 
     if ($config_parms{DNS_server}) {
         print "Loading DNS code ...";
@@ -505,8 +507,8 @@ sub setup {
     for my $parm (keys %config_parms) {
         next unless $config_parms{$parm}; # Ingore blank parms
         push(@Server_Ports, $1)         if $parm =~ /(http)_port/;
-        push(@Server_Ports, $1)         if $parm =~ /(server\S+)_port/;
-        push(@Generic_Serial_Ports, $1) if $parm =~ /(serial\S+)_port/;
+        push(@Server_Ports, $1)         if $parm =~ /^(server\S+)_port/;
+        push(@Generic_Serial_Ports, $1) if $parm =~ /^(serial\S+)_port/;
     }
 #   print "Server         ports defined: @Server_Ports\n" if @Server_Ports;
 #   print "Generic serial ports defined: @Generic_Serial_Ports\n" if @Generic_Serial_Ports;
@@ -929,9 +931,18 @@ sub check_for_action {
 
     &MainLoop_pre_hooks()            unless $Disable == 12; # Created by &add_hooks
 
+    my $tic1 = &get_tickcount;
+    $Benchmark_Members{' OTHER'} += $tic1 - $loop_tickcount1 if $Benchmark_Members{on_off_flag};
+
+    select undef, undef, undef, $Loop_Sleep_Time / 1000 if $Loop_Sleep_Time;
+    my $tic2 = &get_tickcount;
+    $loop_tickcount1 += ($tic2 - $tic1);
+
                                 # Use eval to catch minor errors without abending
                                 #  - about 10% slower (170 -> 150)
+#   &loop_code;
     &eval_user_code_loop             unless $Disable == 13;
+    $Benchmark_Members{' USER'}  += &get_tickcount - $tic2 if $Benchmark_Members{on_off_flag};
 
     &MainLoop_post_hooks()           unless $Disable == 14;  # Created by &add_hooks
 
@@ -2424,6 +2435,8 @@ sub print_speaklog {
     unshift (@Speak_Log, "$Time_Date $data");
     pop @Speak_Log if @Speak_Log > $config_parms{max_log_entries};
 
+    $data =~ s/<voice .+?>//g;  # Drop XML speech tags
+
     if ($Tk_objects{speak_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
                                 # move to the bottom, messing up any manual scrolling
@@ -2697,6 +2710,7 @@ sub process_x10_chunks {
 
 
 sub read_code {
+
     my (@files, $file, $file_dir, $file_dir2, $file_path, $file_path2, @files_read, @files_changed, @files_changed2, $file_time, %noload_files);
 
     $Reread = 1;
@@ -2973,8 +2987,8 @@ sub read_user_code {
                                 #     Can also do a return if $Reload in the method, and leave it in the loop
 
             if ($object or
-                $record =~ /^my\s/ or                 # Global 'my'
-                $record =~ /^use vars\s/ or           # Global 'use vars'
+                $record =~ /^my[\s\(]/ or             # Global 'my'
+                $record =~ /^use +vars\s/ or          # Global 'use vars'
                 $record =~  /^\s*hidden\s/ or         # These only needs to be done on code load
                 $record =~ /->\s*hidden/   or
                 $record =~  /^\s*set_authority\s/ or
@@ -3023,6 +3037,8 @@ sub read_user_code {
 
         $member_name =~ s/ /_/g;     # Crazy people use blanks in member names
 
+        next unless $sub_code{$member_name};
+
         push @Sub_Code, 
                 "#-------------------------------------------------\n\n" .
                 "sub ${member_name}_loopcode {\n" .
@@ -3044,8 +3060,6 @@ sub read_user_code {
     
     push(@Loop_Code, "\n}");
 #   push(@Loop_Code, "\n   \$Startup = 0; \$Reload = 0; \$Reread = 0;\n}");
-    undef $user_code;
-#   $user_code  = "\nuse strict 'subs';\nuse strict 'refs';\nuse strict 'vars';\n";
 
 
                                 # 'use vars' allows us to keep use strict vars, but also 
@@ -3168,7 +3182,7 @@ sub set_global_vars {
         $DelayOccured = $time_now - $prev_time;
         unless ($config_parms{no_log} =~ /pause/) {
             my $volume = int 100 * $DelayOccured / 30;
-            &play(file => 'mh_problem', volume => $volume); # Defined in event_sounds.pl
+            &play(file => 'mh_pause', volume => $volume); # Defined in event_sounds.pl
             print_log "mh paused for $DelayOccured seconds (v=$volume)";
             logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  "mh paused for $DelayOccured seconds";
         }
@@ -3311,7 +3325,6 @@ sub set_global_vars {
                                 #  For March Equinox= 365.2421376Y+.0.0679190Y^2-0.0027879Y^3
                                 #  For September Equinox=1721325.6978+365.2425055Y-0.1266890Y^2+0.0019401Y^3
                                 # These season dates are averages
-
                     my @seasons = split(',', $config_parms{seasons});
 
                     if ($Month < 3 or ($Month == 3 and $Mday < 20) or ($Month == 12 and $Mday > 20)) {
@@ -3329,16 +3342,31 @@ sub set_global_vars {
 
                                 # Check/Set the $Holiday var
                     if ($config_parms{holiday_dates}) {
-                        print "Checking holiday dates $config_parms{holiday_dates}\n";
+#                       print "Checking holiday dates $config_parms{holiday_dates}\n";
                         undef $Holiday;
                         for my $date_des (split ',', $config_parms{holiday_dates}) {
-                            my($month, $mday, $des) = $date_des =~ m|(\d+)/(\d+)\s*(.*)|;
-                            if ($month == $Month and $mday == $Mday) {
-                                &print_log("Today is a holiday: $des");
-                                $des = 1 unless $des; # Description is optional
-                                $Holiday = $des;
+                            my($month, $mday, $wday, $week, $year, $des);
+                            if (($month, $wday, $week, $des) = $date_des =~ m|(\d+)/(\d+)\^(-?\d+)\s*(.*)|) {
+                                my $week2 = ($week < 0) ?  int((days_in($Year, $Month) - $Mday + 7)/7) : int(($Mday + 6)/7);
+#                               print "db0 m=$month wday=$wday week=$week week2=$week2 des=$des\n";
+                                if ($month == $Month and $wday == $Wday) {
+                                    if (($week > 0 and int(($Mday + 6)/7) == $week) or
+                                        ($week < 0 and int((days_in($Year, $Month) - $Mday + 7)/7) == abs($week))){
+                                        $des = 1 unless $des; # Description is optional
+                                        $Holiday = $des;
+                                    }
+                                }
+                            }
+                            elsif (($month, $mday, $year, $des) = $date_des =~ m|(\d+)/(\d+)/?(\d*)\s*(.*)|) {
+#                               print "db1 m=$month y=$year des=$des\n";
+                                next if $year and $year != $Year;
+                                if ($month == $Month and $mday == $Mday) {
+                                    $des = 1 unless $des; # Description is optional
+                                    $Holiday = $des;
+                                }
                             }
                         }
+                        print "Holiday notice:  $Month/$Mday/$Year $Holiday\n" if $Holiday;
                     }
 
                     if ($prev_month ne $Month) {
@@ -3384,7 +3412,7 @@ sub set_global_vars {
         $Info{cpu_used} = 100 if $Info{cpu_used} > 100;
 
         $Tk_objects{label_time} = 'Date: ' . &time_date_stamp(14, $Time);
-        substr($Tk_objects{label_time}, 19, 0) = ' Time: ';
+        substr($Tk_objects{label_time}, 19, 0) = '  Time: ';
 
         $Time_Uptime_Seconds = $Time - $Time_Startup_time;
         my $uptime_days;
@@ -3577,6 +3605,10 @@ sub socket_open {
     my $proto = $Socket_Ports{$port_name}{protocol};
     my $port  = $Socket_Ports{$port_name}{port};
     print "Opening socket port $port_name on port $port\n" if $config_parms{debug} eq $port_name;
+    unless ($port) {
+        print "\nError, no port specified for ip server $port_name\n";
+        return;
+    }
     if ($proto eq 'tcp') {
         $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'tcp', Reuse => 1, Listen => 10) or 
             die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port_name}_port in mh.ini\n";
@@ -3681,12 +3713,7 @@ sub speak {
         &print_speaklog($speaklog);
     }
     
-    $Last_Response = 'speak';
-
-    &Voice_Text::speak_mode($parms{mode}) if $parms{mode}; # Allow for pause,resume,stop,speed,etc
-    &Voice_Text::speak_mode($parms{rate}) if $parms{rate}; # Allow for slow,normal,fast,wpm:###
-
-    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
+    $Last_Response = 'speak';   # Queried by http_server
 
                                 # Check if we want to speak web requested data
     if ($leave_socket_open_passes) {
@@ -3696,8 +3723,7 @@ sub speak {
         }
     }
 
-#   &set_volume($parms{volume});
-    &Speak_pre_hooks(%parms);   # Created by &add_hooks
+    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
 
                                 # Lowercase all uppercase text ... 
                                 #  if it > 4 characters (don't want to mess up acronyms)
@@ -3712,8 +3738,7 @@ sub speak {
         print_log "Data is unspeakable!  phrase=", substr($phrase, 0, 40), " ...\n";
     }
     else {
-#   &write_socket("speak", "no_popup 1 $rooms", $phrase);
-#   print "spoken text: $phrase\n";
+        $parms{text} = $phrase;
 
                                 # If we have a 1/2 duplex sound card, we want to wait a bit before speaking
                                 # or else the speech will get qued.
@@ -3725,11 +3750,12 @@ sub speak {
                 select undef, undef, undef, $delay / 1000;
             }
         }
-        $parms{text} = $phrase;
+#       &set_volume($parms{volume});
+        &Speak_pre_hooks(%parms);   # Created by &add_hooks
         &Voice_Text::speak_text(%parms);
+        &Speak_post_hooks(%parms);   # Created by &add_hooks
     }
 
-    &Speak_post_hooks(%parms);   # Created by &add_hooks
 
 }
 
@@ -3808,6 +3834,10 @@ sub time_now {
                                 # Allow time_now to match to the nearest minute, not the exact second
                                 #  - if we add a 'catchup mode', we can go back to checking on the exact second
     my $time_now = &my_str2time($time_date);
+    unless ($time_now) {
+        my @caller = caller;    # This is not useful in user_code eval :(
+        print "Bad time_now format:  $time_date  caller=@caller\n";
+    }
 #   print "db td=$time_date t=$Time tn=$time_now\n";
     return ($Time >= $time_now and $Time < $time_now+60);
 }
@@ -4262,6 +4292,9 @@ sub tk_radiobutton {
 
 sub write_user_code {
 
+    undef $user_code;
+#   $user_code  = "\nuse strict 'subs';\nuse strict 'refs';\nuse strict 'vars';\n";
+
                                 # join with '' so 'eof' markers are in col 1
     $user_code .= join('', @Item_Code, "\n", @Sub_Code, 
                        "#-----------------------------------\n\nsub loop_code { \n\n", @Loop_Code);
@@ -4276,7 +4309,8 @@ sub write_user_code {
     &eval_user_code_load;       # Look for real bad errors, caught when defining subroutine
     &object_states_restore;     # Must be after Item_code variables have been defined
 
-    &Reload_post_hooks();       # Created by &add_hooks (after object states have been restored)
+                                # Created by &add_hooks (after object states have been restored)
+    &Reload_post_hooks();       # Note:  I don't think this is useful, as user code loop has not been run yet to add any hooks!
 
     print "Activate the voice commands\n";
     &Voice_Cmd::activate;
@@ -4333,6 +4367,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.59  2001/09/23 19:26:53  winter
+# - 2.59 release
+#
 # Revision 2.58  2001/08/22 03:04:31  winter
 # - test release
 #

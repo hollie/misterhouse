@@ -1,124 +1,124 @@
-<?xml version="1.0" encoding="ISO-8859-1"?><backslash
+<?xml version="1.0"?><backslash
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Korean Air Mission Critical Systems Moved to Linux</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/10/1933204</url>
-		<time>2001-08-11 09:32:26</time>
-		<author>Hemos</author>
-		<department>good-work-tux</department>
-		<topic>linuxbiz</topic>
-		<comments>31</comments>
-		<section>articles</section>
-		<image>topiclinuxbiz.gif</image>
-	</story>
-
-	<story>
-		<title>Linux 2.4.8 is Out</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/11/0543253</url>
-		<time>2001-08-11 05:43:13</time>
+		<title>Return to Castle Wolfenstein Test for Linux</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/23/0256250</url>
+		<time>2001-09-23 03:15:45</time>
 		<author>michael</author>
-		<department>so-much-for-my-2.4.7-installation</department>
-		<topic>linux</topic>
-		<comments>101</comments>
-		<section>articles</section>
-		<image>topiclinux.gif</image>
-	</story>
-
-	<story>
-		<title>How to Burn a Magnesium NeXT Cube</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/10/1646241</url>
-		<time>2001-08-11 04:42:45</time>
-		<author>CmdrTaco</author>
-		<department>to-much-spare-time</department>
-		<topic>humor</topic>
-		<comments>98</comments>
-		<section>articles</section>
-		<image>topichumor.gif</image>
-	</story>
-
-	<story>
-		<title>Protecting Clients: Legal Impact of Filesharing Network Design</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/10/2049225</url>
-		<time>2001-08-11 02:17:51</time>
-		<author>michael</author>
-		<department>when-lawyers-attack</department>
-		<topic>doj</topic>
-		<comments>97</comments>
-		<section>articles</section>
-		<image>topicdoj.jpg</image>
-	</story>
-
-	<story>
-		<title>Quake 4 Announced</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/11/0044248</url>
-		<time>2001-08-11 00:54:21</time>
-		<author>michael</author>
-		<department>dust-off-the-railgun</department>
-		<topic>quake</topic>
-		<comments>232</comments>
-		<section>articles</section>
-		<image>topicquake.gif</image>
-	</story>
-
-	<story>
-		<title>FreeCiv 1.12.0 Released</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/10/1614252</url>
-		<time>2001-08-10 23:14:23</time>
-		<author>CmdrTaco</author>
-		<department>games-people-play</department>
-		<topic>games</topic>
-		<comments>182</comments>
+		<department>chaingun-fun</department>
+		<topic>127</topic>
+		<comments>86</comments>
 		<section>articles</section>
 		<image>topicgames.jpg</image>
 	</story>
 
 	<story>
-		<title>Triana Mothballed</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/10/1949215</url>
-		<time>2001-08-10 22:39:02</time>
-		<author>Hemos</author>
-		<department>nada-mas-triana</department>
-		<topic>space</topic>
-		<comments>168</comments>
-		<section>science</section>
-		<image>topicspace.gif</image>
+		<title>Afghanistan Is Like Nothing You've Ever Seen</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/22/228250</url>
+		<time>2001-09-22 23:52:13</time>
+		<author>michael</author>
+		<department>daily-deliveries-of-coffins</department>
+		<topic>103</topic>
+		<comments>648</comments>
+		<section>articles</section>
+		<image>topicus.gif</image>
 	</story>
 
 	<story>
-		<title>Court Decision Favors Rambus</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/10/1916259</url>
-		<time>2001-08-10 20:01:19</time>
-		<author>Hemos</author>
-		<department>and-it-goes-on-and-on</department>
-		<topic>patents</topic>
-		<comments>123</comments>
+		<title>Legislating Insecure Encryption</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/22/228211</url>
+		<time>2001-09-22 22:06:05</time>
+		<author>michael</author>
+		<department>no-deadbolts-for-you</department>
+		<topic>93</topic>
+		<comments>211</comments>
 		<section>articles</section>
-		<image>topicpatents.gif</image>
+		<image>topicencryption.gif</image>
 	</story>
 
 	<story>
-		<title>Ask Sam Lantinga About SDL On PS2 And More</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/10/1736243</url>
-		<time>2001-08-10 18:30:56</time>
-		<author>timothy</author>
-		<department>talk-about-cross-platform</department>
-		<topic>news</topic>
-		<comments>153</comments>
+		<title>Monty Python and the Search for the Holy Lego</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/22/195235</url>
+		<time>2001-09-22 20:32:18</time>
+		<author>michael</author>
+		<department>things-man-was-not-meant-to-know</department>
+		<topic>133</topic>
+		<comments>173</comments>
 		<section>articles</section>
+		<image>topichumor.gif</image>
+	</story>
+
+	<story>
+		<title>Immersive HDTV</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/22/1855207</url>
+		<time>2001-09-22 19:13:11</time>
+		<author>michael</author>
+		<department>red-lens-blue-lens</department>
+		<topic>129</topic>
+		<comments>58</comments>
+		<section>articles</section>
+		<image>topictv.jpg</image>
+	</story>
+
+	<story>
+		<title>Robots Go To War</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/22/1544254</url>
+		<time>2001-09-22 17:46:55</time>
+		<author>michael</author>
+		<department>somebody-forgot-the-first-law</department>
+		<topic>103</topic>
+		<comments>186</comments>
+		<section>articles</section>
+		<image>topicus.gif</image>
+	</story>
+
+	<story>
+		<title>Are There Any Fun Tech Jobs Left?</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/07/2026254</url>
+		<time>2001-09-22 16:32:44</time>
+		<author>Cliff</author>
+		<department>a-place-where-you-enjoy-your-work</department>
+		<topic>99</topic>
+		<comments>486</comments>
+		<section>askslashdot</section>
 		<image>topicnews.gif</image>
 	</story>
 
 	<story>
-		<title>Code Red III</title>
-		<url>http://slashdot.org/article.pl?sid=01/08/10/162207</url>
-		<time>2001-08-10 17:48:50</time>
+		<title>Michael Jackson Releases Uncopyable CD</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/22/1320242</url>
+		<time>2001-09-22 15:20:14</time>
 		<author>CmdrTaco</author>
-		<department>are-we-there-yet-mommy</department>
-		<topic>microsoft</topic>
-		<comments>725</comments>
+		<department>everyone-likes-a-challange</department>
+		<topic>141</topic>
+		<comments>394</comments>
 		<section>articles</section>
-		<image>topicms.gif</image>
+		<image>topicmusic.gif</image>
+	</story>
+
+	<story>
+		<title>Analysis of New Internet Wiretap Laws</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/22/0045251</url>
+		<time>2001-09-22 14:00:50</time>
+		<author>michael</author>
+		<department>body-cavity-search</department>
+		<topic>158</topic>
+		<comments>158</comments>
+		<section>articles</section>
+		<image>topicprivacy.gif</image>
+	</story>
+
+	<story>
+		<title>Non Photo Realistic Quake</title>
+		<url>http://slashdot.org/article.pl?sid=01/09/22/1244248</url>
+		<time>2001-09-22 13:04:11</time>
+		<author>Hemos</author>
+		<department>a-new-skin-on-things</department>
+		<topic>112</topic>
+		<comments>82</comments>
+		<section>articles</section>
+		<image>topicquake.gif</image>
 	</story>
 
 </backslash>

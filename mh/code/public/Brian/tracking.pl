@@ -572,9 +572,10 @@ if ($APRSString = said $tnc_output) {
             # --- Do the following for all received GPS Strings
 
             # Calculate distance station is away
-            $GPSDistance = (sin $GPSLatitude) * (sin $config_parms{latitude}) + (cos $GPSLatitude) * (cos $config_parms{latitude}) * (cos ($config_parms{longitude}-$GPSLongitude));
-            $GPSDistance = 1.852 * 60 * atan2(sqrt(1 - $GPSDistance * $GPSDistance), $GPSDistance);
-            $GPSDistance = $GPSDistance / 1.6093440;
+		$GPSDistance = &great_circle_distance($GPSLatitude, $GPSLongitude, $config_parms{latitude}, $config_parms{longitude});
+            #$GPSDistance = (sin $GPSLatitude) * (sin $config_parms{latitude}) + (cos $GPSLatitude) * (cos $config_parms{latitude}) * (cos ($config_parms{longitude}-$GPSLongitude));
+            #$GPSDistance = 1.852 * 60 * atan2(sqrt(1 - $GPSDistance * $GPSDistance), $GPSDistance);
+            #$GPSDistance = $GPSDistance / 1.6093440;
             $GPSDistance = round($GPSDistance, 1);
 
             # Calculate bearing from the Position file
@@ -582,9 +583,10 @@ if ($APRSString = said $tnc_output) {
                 ($GPSTempCompPlace, $GPSTempCompLat, $GPSTempCompLong) = (split(',', $GPSTempCompLine))[0, 1, 2];
 
                 # Calculate distance station is away from pos file
-                $GPSTempCompDist = (sin $GPSLatitude) * (sin $GPSTempCompLat) + (cos $GPSLatitude) * (cos $GPSTempCompLat) * (cos ($GPSTempCompLong-$GPSLongitude));
-                $GPSTempCompDist = 1.852 * 60 * atan2(sqrt(1 - $GPSTempCompDist * $GPSTempCompDist), $GPSTempCompDist);
-                $GPSTempCompDist = $GPSTempCompDist / 1.6093440;
+		    $GPSTempCompDist = &great_circle_distance($GPSLatitude, $GPSLongitude, $GPSTempCompLat, $GPSTempCompLong);
+                #$GPSTempCompDist = (sin $GPSLatitude) * (sin $GPSTempCompLat) + (cos $GPSLatitude) * (cos $GPSTempCompLat) * (cos ($GPSTempCompLong-$GPSLongitude));
+                #$GPSTempCompDist = 1.852 * 60 * atan2(sqrt(1 - $GPSTempCompDist * $GPSTempCompDist), $GPSTempCompDist);
+                #$GPSTempCompDist = $GPSTempCompDist / 1.6093440;
                 $GPSTempCompDist = round($GPSTempCompDist, 1);
 
                 if ($GPSTempCompDist < 15 and $GPSTempCompDist < $GPSCompDist) {
@@ -916,7 +918,7 @@ if ($APRSString = said $tnc_output) {
 
             else {
                 print_log "Incoming Message from $APRSCallsign: $PacketPart";
-                speak "Incoming Message from $APRSCallsign. $PacketPart";
+                #speak "Incoming Message from $APRSCallsign. $PacketPart";
                 # THIS IS A STATUS PAGE EVENT
                     #if (time_greater_than("22:00") and time_less_than("15:00")) {
                     #$page_icq = "$PacketPart";
@@ -988,9 +990,10 @@ if ($APRSString = said $tnc_output) {
                 $WXLongitudeMinutes = (substr($PacketPart, 20, 5));
                 $WXLongitude = ($WXLongitudeDegrees + ($WXLongitudeMinutes / 60));
 
-                $WXDistance = (sin $WXLatitude) * (sin $config_parms{latitude}) + (cos $WXLatitude) * (cos $config_parms{latitude}) * (cos ($config_parms{longitude}-$WXLongitude));
-                $WXDistance = 1.852 * 60 * atan2(sqrt(1 - $WXDistance * $WXDistance), $WXDistance);
-                $WXDistance = $WXDistance / 1.6093440;
+		    $WXDistance = &great_circle_distance($WXLatitude, $WXLongitude, $config_parms{latitude}, $config_parms{longitude});
+                #$WXDistance = (sin $WXLatitude) * (sin $config_parms{latitude}) + (cos $WXLatitude) * (cos $config_parms{latitude}) * (cos ($config_parms{longitude}-$WXLongitude));
+                #$WXDistance = 1.852 * 60 * atan2(sqrt(1 - $WXDistance * $WXDistance), $WXDistance);
+                #$WXDistance = $WXDistance / 1.6093440;
                 $WXDistance = round($WXDistance, 1);
 
                 # Calculate if station is north/west/east/south of ours
@@ -1048,9 +1051,10 @@ if ($APRSString = said $tnc_output) {
                 ($WXTempCompPlace, $WXTempCompLat, $WXTempCompLong) = (split(',', $WXTempCompLine))[0, 1, 2];
 
                 # Calculate distance station is away from pos file
-                $WXTempCompDist = (sin $WXLatitude) * (sin $WXTempCompLat) + (cos $WXLatitude) * (cos $WXTempCompLat) * (cos ($WXTempCompLong-$WXLongitude));
-                $WXTempCompDist = 1.852 * 60 * atan2(sqrt(1 - $WXTempCompDist * $WXTempCompDist), $WXTempCompDist);
-                $WXTempCompDist = $WXTempCompDist / 1.6093440;
+		    $WXTempCompDist = &great_circle_distance($WXLatitude, $WXLongitude, $WXTempCompLat, $WXTempCompLong);
+                #$WXTempCompDist = (sin $WXLatitude) * (sin $WXTempCompLat) + (cos $WXLatitude) * (cos $WXTempCompLat) * (cos ($WXTempCompLong-$WXLongitude));
+                #$WXTempCompDist = 1.852 * 60 * atan2(sqrt(1 - $WXTempCompDist * $WXTempCompDist), $WXTempCompDist);
+                #$WXTempCompDist = $WXTempCompDist / 1.6093440;
                 $WXTempCompDist = round($WXTempCompDist, 1);
 
                 if ($WXTempCompDist < 150 and $WXTempCompDist < $WXCompDist) {
@@ -1348,4 +1352,20 @@ if ($APRSString = said $tnc_output) {
     #}
 
     }
+}
+
+sub great_circle_distance {
+    my ($lat1, $lon1, $lat2, $lon2) = map {&degrees_to_radians($_)} @_;
+#   my $radius = 6367; # km
+    my $radius = 3956; # miles
+    my $d = (sin(($lat2 - $lat1) / 2)) ** 2  + cos($lat1) * cos($lat2) *
+(sin(($lon2 - $lon1) / 2)) ** 2;
+    $d = $radius * 2 * atan2(sqrt($d), sqrt(1 - $d));
+#   print "db d=$d l=$lat1,$lon1,$lat2,$lon2\n";
+    return round($d, 1);
+}
+
+#EGIN { $::pi = 4 * atan2(1,1); }
+sub degrees_to_radians {
+    return $_[0] * 3.14159265 / 180.0;
 }

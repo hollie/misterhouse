@@ -134,7 +134,9 @@ sub mx {
 		@mxlist = sort { $a->preference <=> $b->preference } @mxlist;
 	}
 
-	return defined @mxlist ? @mxlist : ();
+# bbw This gives a warning with -w
+#	return defined @mxlist ? @mxlist : ();
+	return (@mxlist) ? @mxlist : ();
 }
 
 sub yxrrset {

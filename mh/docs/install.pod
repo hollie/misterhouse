@@ -126,10 +126,10 @@ Activestate has provided ppm (Perl Package Manager), a nifty new way of automati
 and installing packages. Do this by logging on to the internet and typing:
 
    cd \perl\bin (modify to match your directory)
-   perl ppm.pl install Win32-API
-   perl ppm.pl install Tk
-   perl ppm.pl install Tk-JPEG
-   perl ppm.pl install DB_File
+   perl ppm install Win32-API  (ppm is ppm.pl in older perls)
+   perl ppm install Tk
+   perl ppm install Tk-JPEG
+   perl ppm install DB_File
 
 The Tk package is about 2 MB, so it will take a while. If you are behind a www proxy firewall, 
 try setting the environment variable http_proxy=http://proxy-server:port
@@ -159,7 +159,14 @@ http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp .
 If you don't have this update, mh will run, but you may occasionally see windows (like control pannel or install shield)
 not start right away, especially if you run without the Tk interface (mh -tk 0).
 
-The new MS 5.0 Speech SDK is not yet compatable with MisterHouse (it does not support OLE calls).
+You can use either the old 4.0 or new 5.1 or both Microsoft speech engines.
+This mh release supports the 5.1 TTS engines, but not the VR engine yet. 
+The 5.1 TTS engines have more option (e.g. on the fly voice selection, XML flag support),
+but does not work on Win 95. 
+You can have both engines installed, and select which to use with the voice_text=MSV4 or MSV5 mh.ini parm.
+
+=head3 MS SDK 4.0 instructions
+
 You can download the required files from the 4.0 SDK from here: ftp://misterhouse.sourceforge.net/pub/misterhouse/ .
 Note: IE takes a long time (5 minutes) to list that directory (maybe it is listing the 20,000+ dirs in pub).
 An ftp program works much faster.
@@ -171,7 +178,6 @@ Verify the file sizes match these:
    6935288 Aug  6  2000 mscsrgl.exe
    1013356 Aug  6  2000 speech_api.zip
 
-
 Running msttsl.exe will install the TTS engine.  mscsrgl.exe will install the VR engine. 
 Unzip speech_api.zip, then run spchapi.exe to install the speech API.  
 
@@ -181,6 +187,17 @@ Once running, you can use the "Voice Command Options" menu from the green V in y
 
 Other TTS engines, including those for British English, Dutch, French, German, Italian, Portuguese, and Spanish
 can be downloaded from http://www.nextup.com/TextAloud/SpeechEngine/voices.html
+
+=head3 MS SDK 5.1 instructions
+
+In theory, the 5.1 MS TTS and VR engines can be installed separately, but they are distributed from Microsoft
+only as .msm files, which can only be used by a program that creates .msi install files.  I have not yet found
+an easy and free way to create a .msi file (suggestions welcome).  So for now, the only option is to install the 
+full 70 mb 5.1 SDK, available from here:  http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe
+
+After installing, the default mh.ini voice_text=MS parm will default to the new V5 engine.  Use MSV4 to switch
+back to the old V4 engine.   So far, the only voices I have found for the V5 engines are the 
+MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices that come with the SDK.   
 
 
 =head1 UNIX Detailed Install Instructions
@@ -418,29 +435,51 @@ Support for any device that speaks with sockets over your network can be added u
 =head1 Coding your own events
 
 After you have played with the the default test code for a bit, you will want to start setting
-up your own code directory. 
+up your own code and data directories.  Here is an example:
+
+   c:--+
+       +--misterhouse--+        <--- my copy of mh.ini lives here
+                       +--code      <--- my code
+                       +--data      <--- my data
+                       +--sounds    <--- my sounds
+                       +--mh----+   <--- mh installed here
+                                +--bin
+                                +--code
+                                +--data
+                                +--docs
+                                +--lib
+                                +--sounds
+                                +--web
+
+
 Assuming you have mh installed in c:\misterhouse\mh, the steps might looks something like this
 (using the DOS commands, as I think unix guys can make the translation :):
 
  mkdir c:\misterhouse\code 
  mkdir c:\misterhouse\data
+ mkdir c:\misterhouse\sounds
 
  copy  c:\misterhouse\mh\code\test\trivia.pl c:\misterhouse\code
  copy  c:\misterhouse\mh\bin\mh.example.ini  c:\misterhouse\mh.private.ini
- xcopy c:\misterhouse\mh\data           c:\misterhouse\data /s
+ xcopy c:\misterhouse\mh\data                c:\misterhouse\data /s
+
 
  edit  c:\misterhouse\mh.private.ini
+
    - Delete all the records from your mh.private.ini that you don't change 
      since the default mh\bin\mh.ini will also be read.
-     Set code_dir=c:\misterhouse\code
-     Set data_dir=c:\misterhouse\data
+
+   - Change these entries
+      code_dir         = C:\misterhouse\code
+      data_dir         = C:\misterhouse\data
+      sound_dir        = C:\misterhouse\sounds
+       
 
  On windows, add this to your autoexec.bat:
    set mh_parms=c:\misterHouse\mh.private.ini
 
  On unix, add this to /etc/profile or like place:
    export mh_parms=/prog/misterhouse/mh.private.ini
-       
 
 Now when you run mh, it will read just the *.pl files in c:\misterhouse\code.  
 After mh is up and running, copy in the other members from mh/code/test that

@@ -73,7 +73,7 @@ if (said $v_reboot and $OS_win) {
 #   }
     if ($Info{OS_name} eq 'NT') {
         speak "The house computer will reboot in 1 minute.";
-        Win32::InitiateSystemShutdown('HOUSE', 'Rebooting in 5 minutes', 60, 1, 1);
+        Win32::InitiateSystemShutdown('HOUSE', 'Rebooting in 1 minutes', 60, 1, 1);
         &exit_pgm;
     }
                                 # In theory, either of these work for Win98/WinMe

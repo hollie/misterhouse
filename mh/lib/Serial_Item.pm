@@ -232,7 +232,7 @@ sub set {
     $interface = 'none' unless $interface;
 
                                 # First deal with X10 strings...
-    if ($serial_data =~ /^X/) {
+    if ($serial_data =~ /^X/ or $self->isa('X10_Item')) {
                                 # allow for xx% (e.g. 1% -> &P1)
                                 #  ... need to allow for multiple X10 commands data here?
         if ($serial_data =~ /(\d+)%/) {
@@ -240,7 +240,7 @@ sub set {
         }
                                 # Make sure that &P codes have the house code prefixed
                                 #  - e.g. device A1 -> A&P1
-        if ($serial_data =~ /^X&P/) {
+        if ($serial_data =~ /&P/) {
             $serial_data = substr($self->{x10_id}, 1, 1) . $serial_data;
         }
                                 # If code is &P##, prefix with item code.
@@ -483,6 +483,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.50  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.49  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

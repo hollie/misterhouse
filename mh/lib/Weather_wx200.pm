@@ -7,11 +7,12 @@ package Weather_wx200;
  This mh code reads data from the wx200 Weather station
 
  To use it, add these mh.ini parms
-  serial_wx200_port=\\.\COM7
-  serial_wx200_baudrate=9600
-  serial_wx200_handshake=dtr
-  serial_wx200_datatype=raw
-  serial_wx200_module=weather_wx200
+  serial_wx200_port      = COM7
+  serial_wx200_baudrate  = 9600
+  serial_wx200_handshake = dtr
+  serial_wx200_datatype  = raw
+  serial_wx200_module    = weather_wx200
+  serial_wx200_skip      =  # Use to ignore bad sensor data.  e.g. TempOutdoor,HumidOutdoor,WindChill
   altitude = 1000 # In feet, used to find sea level barometric pressure
 
  A complete usage example is at:
@@ -22,10 +23,11 @@ package Weather_wx200;
 
 =cut
 
-my $wx200_port;
+my ($wx200_port, %skip);
 sub startup {
     $wx200_port = new  Serial_Item(undef, undef, 'serial_wx200');
     &::MainLoop_pre_add_hook(\&Weather_wx200::update_wx200_weather, 1 );
+    %skip = map {$_, 1} split(',', $main::config_parms{serial_wx200_skip}) if $main::config_parms{serial_wx200_skip};
 }
 
 sub update_wx200_weather {
@@ -96,8 +98,8 @@ sub wx_humid {
     my ($wptr, $debug, @data) = @_;
     $data[8]  = 0x99 if $data[8]  > 0x99; # Can return 0xee (238) in sub zero weather
     $data[20] = 0x99 if $data[20] > 0x99; # Can return 0xee (238) in sub zero weather
-    $$wptr{HumidIndoor}  = sprintf('%x', $data[8]);
-    $$wptr{HumidOutdoor} = sprintf('%x', $data[20]);
+    $$wptr{HumidIndoor}  = sprintf('%x', $data[8])  unless $skip{HumidIndoor};
+    $$wptr{HumidOutdoor} = sprintf('%x', $data[20]) unless $skip{HumidOutdoor};
     print "humidity = $$wptr{HumidIndoor}, $$wptr{HumidOutdoor}\n" if $debug;
 #   $wx_counts{time}++;
 }
@@ -106,8 +108,8 @@ sub wx_humid {
 
 sub wx_temp {
     my ($wptr, $debug, @data) = @_;
-    $$wptr{TempIndoor}  = &wx_temp2(@data[1..2]);
-    $$wptr{TempOutdoor} = &wx_temp2(@data[16..17]);
+    $$wptr{TempIndoor}  = &wx_temp2(@data[1..2])   unless $skip{TempIndoor};
+    $$wptr{TempOutdoor} = &wx_temp2(@data[16..17]) unless $skip{TempOutdoor};
     print "temp = $$wptr{TempIndoor}, $$wptr{TempOutdoor}\n"  if $debug;
 
     if ($$wptr{WindChill} and $$wptr{HumidIndoor}) {
@@ -139,19 +141,21 @@ sub wx_temp2 {
 
 sub wx_baro {
     my ($wptr, $debug, @data) = @_;
-    $$wptr{Barom}    = sprintf('%x%02x', $data[2], $data[1]);
+    $$wptr{Barom} = sprintf('%x%02x', $data[2], $data[1]) unless  $skip{Barom};
                                 # This number is the same on my unit, so lets compensate 
                                 #  - add 1 mill-bars per 10 meters (altitude is in feet)
-    $$wptr{BaromSea} = sprintf('%x%02x%02x', 0x0f & $data[5], $data[4], $data[3]);
-    substr($$wptr{BaromSea}, -1, 0) = '.';
-    if ($main::config_parms{altitude}) {
-        $$wptr{BaromSea} = $$wptr{Barom} + $main::config_parms{altitude}/(10 * 3.28);
+    unless ($skip{BaromSea}) {
+        $$wptr{BaromSea} = sprintf('%x%02x%02x', 0x0f & $data[5], $data[4], $data[3]);
+        substr($$wptr{BaromSea}, -1, 0) = '.';
+        if ($main::config_parms{altitude}) {
+            $$wptr{BaromSea} = $$wptr{Barom} + $main::config_parms{altitude}/(10 * 3.28);
+        }
     }
 
     $data[18] = 0x00 if $data[18] == 0xee; # Returns 0xee (238) in sub zero weather
 
-    $$wptr{DewIndoor}  =  &main::convert_c2f(sprintf('%x', $data[7]));
-    $$wptr{DewOutdoor} =  &main::convert_c2f(sprintf('%x', $data[18]));
+    $$wptr{DewIndoor}  =  &main::convert_c2f(sprintf('%x', $data[7]))  unless $skip{DewIndoor};
+    $$wptr{DewOutdoor} =  &main::convert_c2f(sprintf('%x', $data[18])) unless $skip{DewOutdoor};
     print "baro = $$wptr{Barom}, $$wptr{BaromSea} dew=$$wptr{DewIndoor}, $$wptr{DewOutdoor}\n"  if $debug;
 #   $wx_counts{baro}++;
 }
@@ -166,12 +170,12 @@ sub wx_baro {
 
 sub wx_rain {
     my ($wptr, $debug, @data) = @_;
-    $$wptr{RainRate} = sprintf('%x%02x', 0x0f & $data[2], $data[1]);
-    $$wptr{RainYest} = sprintf('%x%02x',        $data[4], $data[3]);
-    $$wptr{RainTotal}= sprintf('%x%02x',        $data[6], $data[5]);
-    $$wptr{RainRate} = sprintf('%3.1f', $$wptr{RainRate} / 25.4);
-    $$wptr{RainYest} = sprintf('%3.1f', $$wptr{RainYest} / 25.4);
-    $$wptr{RainTotal}= sprintf('%3.1f', $$wptr{RainTotal}/ 25.4);
+    $$wptr{RainRate} = sprintf('%x%02x', 0x0f & $data[2], $data[1]) unless $skip{RainRate};
+    $$wptr{RainYest} = sprintf('%x%02x',        $data[4], $data[3]) unless $skip{RainYest};
+    $$wptr{RainTotal}= sprintf('%x%02x',        $data[6], $data[5]) unless $skip{RainTotal};
+    $$wptr{RainRate} = sprintf('%3.1f', $$wptr{RainRate} / 25.4)    unless $skip{RainRate};
+    $$wptr{RainYest} = sprintf('%3.1f', $$wptr{RainYest} / 25.4)    unless $skip{RainYest};
+    $$wptr{RainTotal}= sprintf('%3.1f', $$wptr{RainTotal}/ 25.4)    unless $skip{RainTotal};
     print "rain = $$wptr{RainRate}, $$wptr{RainYest}, $$wptr{RainTotal}\n"  if $debug;
 
     $$wptr{SummaryRain} = sprintf("Rain Recent/Total: %3.1f / %4.1f  Barom: %4d",
@@ -191,19 +195,25 @@ sub wx_rain {
 
 sub wx_wind {
     my ($wptr, $debug, @data) = @_;
-    $$wptr{WindGustSpeed} = sprintf('%x%02x', 0x0f & $data[2], $data[1]);
-    $$wptr{WindAvgSpeed}  = sprintf('%x%02x', 0x0f & $data[5], $data[4]);
-    substr($$wptr{WindGustSpeed}, -1, 0) = '.';
-    substr($$wptr{WindAvgSpeed}, -1, 0)  = '.';
                                 # Convert from meters/sec to miles/hour  = 1609.3 / 3600
-    $$wptr{WindGustSpeed} = sprintf('%3d', $$wptr{WindGustSpeed} * 2.237);
-    $$wptr{WindAvgSpeed}  = sprintf('%3d', $$wptr{WindAvgSpeed}  * 2.237);
-    $$wptr{WindGustDir}   = sprintf('%x%01x', $data[3], $data[2] >> 4);
-    $$wptr{WindAvgDir}    = sprintf('%x%01x', $data[6], $data[5] >> 4);
+    unless ($skip{WindGustSpeed}) {
+        $$wptr{WindGustSpeed} = sprintf('%x%02x', 0x0f & $data[2], $data[1]);
+        substr($$wptr{WindGustSpeed}, -1, 0) = '.';
+        $$wptr{WindGustSpeed} = sprintf('%3d', $$wptr{WindGustSpeed} * 2.237);
+        $$wptr{WindGustDir}   = sprintf('%x%01x', $data[3], $data[2] >> 4);
+    }
+    unless ($skip{WindAvgSpeed}) {
+        $$wptr{WindAvgSpeed}  = sprintf('%x%02x', 0x0f & $data[5], $data[4]);
+        substr($$wptr{WindAvgSpeed}, -1, 0)  = '.';
+        $$wptr{WindAvgSpeed}  = sprintf('%3d', $$wptr{WindAvgSpeed}  * 2.237);
+        $$wptr{WindAvgDir}    = sprintf('%x%01x', $data[6], $data[5] >> 4);
+    }
 
-    $$wptr{WindChill} = sprintf('%x', $data[16]);
-    $$wptr{WindChill} *= -1 if 0x20 & $data[21];
-    $$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill});
+    unless ($skip{WindChill}) {
+        $$wptr{WindChill} = sprintf('%x', $data[16]);
+        $$wptr{WindChill} *= -1 if 0x20 & $data[21];
+        $$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill});
+    }
 
     $$wptr{SummaryWind} = sprintf("Wind avg/gust:%3d /%3d  from the %s",
                                   $$wptr{WindAvgSpeed}, $$wptr{WindGustSpeed}, &main::convert_direction($$wptr{WindAvgDir}));
@@ -229,6 +239,9 @@ sub wx_time {
 
 #
 # $Log$
+# Revision 1.5  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.4  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

@@ -2083,31 +2083,50 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
      Options are:
        rooms  => 'room_names'  You need to code a &Speak_pre_add_hook to enable
                                this.  See mh/code/bruce/pa_control for an example.
-       volume => dd            How loud (dd = 0->100).  
 
        mode   => 'unmuted' Forces speech, even in mute and offline mode
-
-       mode   => any of the following (currently only for the MS TTS engine):
-        stop, pause, resume, rewind, fastforward, slow, normal, fast, ###
-        ### is words per minute.  For example:  speak mode => 200
-
-       rate   => fast,normal,slow,### (currently only for the MS TTS engine)
-                 ### is words per minute.
 
      These options are for the Festival speech engine (but don't work yet):
        rate   => '+-nn%'       (e.g. +10% or -30%)
        voice  => 'name' 
- 
+
+     These options are currently for the MS TTS engine only.
+       mode   => any of the following
+        stop, pause, resume, rewind, fastforward, slow, normal, fast, dd
+
+       voice  => 'name'
+                 Example voices: Mike,Mary,Sam,random,male,female
+
+       volume => dd (dd = 0 -> 100).  
+
+       rate   => fast,normal,slow,dd
+                 For the V4 engine, dd is words per minute.
+                 For the V5 engine, dd is -10 -> 10 for slowest to fastest
+
+       pitch  => dd (dd = -10 -> 10)
+
+       to_file => xyz.  Saves speech to file xyz, then plays the file.
+
+   With the MS TTS V4 engine, the rate parm effects all subsequent
+   spoken text (volume and voice parms do nothing).
+
+   With the MS TTS V5 engine, the volume, rate, and voice parms will effect
+   only the specified text.   If you want to change the default for all text,
+   specify the parm, but no text (e.g. speak voice => 'Sam')
+
+   The MS TTS V5 engine also supports embedded XML parms for other controls (e.g. pitch,
+   silence, pronounce, emphasis).   See mh/doc/ms_speech_xml_example.* for examples.
+
    Examples:
 
-    $test_voice1 = new Voice_Cmd "Say something with a [loud,soft] voice";
-    $test_voice2 = new Voice_Cmd "Say something at a [fast,slow] speed";
-    $test_voice3 = new Voice_Cmd "Say something in voice [male1,female1]";
+    $test_voice1 = new Voice_Cmd "Say something with at a volume of [50,100]";
+    $test_voice2 = new Voice_Cmd "Say something at a [fast,slow,normal] speed";
+    $test_voice3 = new Voice_Cmd "Say something in voice [male,female]";
 
     speak(volume => $state, 
-          text => "This is an example of $state text")    if $state = said $test_voice1;
+          text => "This is an example at a volume of $state")    if $state = said $test_voice1;
     speak(rate   => $state,
-          text => "This is an example of $state text")    if $state = said $test_voice2;
+          text => "This is an example at a rate of $state")    if $state = said $test_voice2;
     speak(voice  => $state,
           text => "This is an example of a $state voice") if $state = said $test_voice3;
   
@@ -2115,7 +2134,11 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
     speak 'mode=unmuted  The front door just opened';
     speak mode => 'pause';
     speak mode => 'resume', rate => 120;
+ 
+    speak "Now I am really, <pitch absmiddle='10'/>really excited!"
 
+    speak to_file => "$config_parms{data_dir}/test_tts.wav",
+          text => read_next $house_tagline if $New_Minute;
 
 =item time_add
 
@@ -3646,8 +3669,10 @@ In all of the above examples, .gif was used as an example, but any browser compa
 If you want to add new icons, some good sources are at
 http://www.freegraphicland.com/ ,
 http://www.graphsearch.com/ ,
-http://www.add-soft.com/icons/index.html , and
-http://www.rad.kumc.edu/icons/icons.htm
+http://www.add-soft.com/icons/index.html , 
+http://www.rad.kumc.edu/icons/icons.htm  and 
+http://www.engineeringplastics.com/HomeSeerIcons/
+
 
 Important note:  If you do play with adding/deleteing/renaming icons, you will want to do a reload before 
 refreshing your browser.  The icon directory is cached by mh (for efficiency).  If no code has changed,
@@ -4108,6 +4133,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.46  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.45  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

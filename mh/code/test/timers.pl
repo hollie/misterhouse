@@ -33,7 +33,7 @@ if (state_now $timer_time) {
     $timer->{time} = $time;
     $timer->{unit} = $unit;
     set $timer $seconds, "&expired_timer( '$time $unit', qq|$timer_text|)";
-    speak "A $time $unit $timer_text timer has been set." ;
+    speak "voice=mike A $time $unit $timer_text timer has been set." ;
     print_log "$time $unit ($seconds seconds) $timer_text timer started";
 }
 
@@ -47,7 +47,7 @@ sub expired_timer {
     else {
         $text2 = 'Timer expired';
     }
-    speak "rooms=all volume=100 Notice: $text2.  The $time $text timer just expired";
+    speak "voice=mike pitch=10 rooms=all volume=100 Notice: $text2.  The $time $text timer just expired";
     play 'timer';
 }    
     
@@ -56,7 +56,7 @@ sub expired_timer {
 $v_minute_timer = new  Voice_Cmd('Set a timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,25,30,45,60,90,120] minutes');
 $v_minute_timer-> set_info('Set a minute timer.  Time remaining will be periodically announced');
 if ($state =  said $v_minute_timer) {
-    speak "A timer has been set for $state minutes";
+    speak "voice=mike A timer has been set for $state minutes";
     set $timer_time "$state minuts";
 #   set $timer_text 'minite';
 }
@@ -73,14 +73,14 @@ if ($state = said $v_list_timers) {
             $time_left /= 3600 if $timer->{unit} eq 'hour';
             $time_left = round $time_left, 1;
             if ($timer->{text}) {
-                speak "$timer->{text} in " . &plural($time_left, $timer->{unit}) ;
+                speak "voice=mike $timer->{text} in " . &plural($time_left, $timer->{unit}) ;
             } else {
-                speak &plural($time_left, $timer->{unit}) . " left on the timer" ;
+                speak "voice=mike" . &plural($time_left, $timer->{unit}) . " left on the timer" ;
             }
         }
     }
     else {
-        speak 'There are no active timers';
+        speak 'voice=mike There are no active timers';
     }
 }		
 
@@ -102,11 +102,12 @@ if ($New_Second) {
         $time_left = int $time_left;
         $time_left /=   60 if $timer->{unit} eq 'minute';
         $time_left /= 3600 if $timer->{unit} eq 'hour';
+        my $pitch = int 10*(1 - $time_left/5);
         if ($timer_reminder_intervals{$time_left}) {
             if ($timer->{text}) {
-                speak "$timer->{text} in " . &plural($time_left, $timer->{unit}) ;
+                speak "voice=mike pitch=$pitch $timer->{text} in " . &plural($time_left, $timer->{unit}) ;
             } else {
-                speak &plural($time_left, $timer->{unit}) . " left on the timer" ;
+                speak "voice=mike pitch=$pitch " . &plural($time_left, $timer->{unit}) . " left on the timer" ;
             }
         }
     }

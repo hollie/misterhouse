@@ -262,7 +262,7 @@ sub main::net_jabber_signon {
 
     print "Logging onto $server:$port with name=$name resource=$resource\n";
 
-    eval 'use Net::Jabber';
+    eval 'use Net::Jabber qw (Client)';
     print "Error in Net::Jabber: $@\n" if $@;
     $jabber_connection = new Net::Jabber::Client;
     unless ($jabber_connection->Connect(hostname => $server, port => $port)) {
@@ -305,19 +305,23 @@ sub jabber::process {
 }
 
 sub jabber::InMessage {
-    my $message  = new Net::Jabber::Message(@_);
+    my $sid = shift;
+    my $message = shift;
+
 #   my $type     = $message->GetType();
     my $from     = $message->GetFrom();
 #   my $to       = $message->GetTo();
-    my $resource = $message->GetResource();
+#   my $resource = $message->GetResource();
 #   my $subject  = $message->GetSubject();
     my $body     = $message->GetBody();
-    &main::display("$main::Time_Date $from ($resource)\nMessage:  " . $body, 0, "Jabber Message from $from", 'fixed');
+    &main::display("$main::Time_Date $from\nMessage:  " . $body, 0, "Jabber Message from $from", 'fixed');
 }
 
 
 sub jabber::InIQ {
-    my $iq    = new Net::Jabber::IQ(@_);
+    my $sid = shift;
+    my $iq = shift;
+    
     my $from  = $iq->GetFrom();
     my $type  = $iq->GetType();
     my $query = $iq->GetQuery();
@@ -326,7 +330,9 @@ sub jabber::InIQ {
 }
 
 sub jabber::InPresence {
-    my $presence = new Net::Jabber::Presence(@_);
+    my $sid = shift;
+    my $presence = shift;
+
     my $from     = $presence->GetFrom();
     my $type     = $presence->GetType();
     my $status   = $presence->GetStatus();
@@ -786,6 +792,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.33  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.32  2001/06/27 03:45:14  winter
 # - 2.54 release
 #

@@ -116,23 +116,23 @@ sub monitor {
     @ib_list = &scan($family, $port);       # monitor just the button devices
     $count = @ib_list;
 #   print "ib count=$count l=@ib_list.\n";
-    %buttons_dropped = %buttons_active;
+    %buttons_dropped = %{$buttons_active{$port}} if $buttons_active{$port};
 #   print "db read $count devices\n";
     for $ib (@ib_list) {
         $id = $ib->id;
         $object = $objects_by_id{$id};
-        if ($buttons_active{$id}) {
+        if ($buttons_active{$port}{$id}) {
             delete $buttons_dropped{$id};
         }
         else {
             print "New device: $id\n";
-            $buttons_active{$id}++;
+            $buttons_active{$port}{$id}++;
             set_receive $object 'on' if $object;
         }
     }
     for my $id (sort keys %buttons_dropped) {
         print "Device dropped: $id\n";
-        delete $buttons_active{$id};
+        delete $buttons_active{$port}{$id};
         set_receive $object 'off' if $object = $objects_by_id{$id};
     }
 }
@@ -456,6 +456,9 @@ memory
 
 
 # $Log$
+# Revision 1.12  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.11  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

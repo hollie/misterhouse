@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2000-12-21 12:32:39 winter>
+#  Last change Time-stamp: <2001-09-04 08:25:28 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      outlook_read
@@ -108,7 +108,8 @@ my($items);                     # Globals
 
 sub setup {
                                 # Use EVENTS to run OLE as a single-threaded apartment, so MAPI.Session works
-    use Win32::OLE qw(EVENTS);
+    use Win32::OLE qw(valof EVENTS);
+    use Win32::OLE::Variant;    # Simply including this somehow auto-converts $start and $end times from Win32::OLE::Variant objects ?
 
     require 'handy_utilities.pl'; # For misc. functions (e.g. time/date stamp routines)
 
@@ -209,8 +210,9 @@ sub find_items {
 
         my ($start, $end);
         if ($parms{version} eq '97') {
-            $start = $item->Start;
-            $end   = $item->End;
+            $start = valof $item->{Start};
+            $end   = valof $item->End;
+#           print "db end=", $end->Date("M'/'d'/'yyyy"), "\n";
         }
         else {
             $start = $item->StartTime;
@@ -304,6 +306,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.8  2001/09/23 19:26:53  winter
+# - 2.59 release
+#
 # Revision 1.7  2000/12/21 18:54:14  winter
 # - 2.38 release
 #

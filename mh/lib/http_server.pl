@@ -61,7 +61,7 @@ sub main::http_read_parms {
     %password_protect_dirs = map {$_, 1} split ',', $main::config_parms{password_protect_dirs};
 
                                 # Set defaults for all html_ parms for alternate browser user-agent web_formats
-    for my $parm (grep /^html_/, keys %main::config_parms) {
+    for my $parm (grep /^html_.*[^\d]$/, keys %main::config_parms) {
         $main::config_parms{$parm . '1'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '1'};
         $main::config_parms{$parm . '2'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '2'};
         $main::config_parms{$parm . '3'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '3'};
@@ -124,11 +124,11 @@ sub process_http_request {
 #Agent: Mozilla/4.7 [en] (X11; I; Linux 2.2.14-15mdk i686)
 #Agent: Mozilla/4.76 [en] (X11; U; Linux 2.2.16-22jjg i686)
    
-    if ($Http{'User-Agent'} =~ /MSIE/) {
-        $Http{'User-Agent'} =  'MSIE';
-    }
-    elsif ($Http{'User-Agent'} =~ /Windows CE/) {
+    if ($Http{'User-Agent'} =~ /Windows CE/) {
         $Http{'User-Agent'}    =  'MSCE';
+    }
+    elsif ($Http{'User-Agent'} =~ /MSIE/) {
+        $Http{'User-Agent'}    =  'MSIE';
     }
     elsif ($Http{'User-Agent'} =~ /Mozilla/) {
         $Http{'User-Agent'}    =  'Mozilla';
@@ -140,13 +140,12 @@ sub process_http_request {
     else {
         $Http{format} = $http_agent_formats{$Http{'User-Agent'}} if $http_agent_formats{$Http{'User-Agent'}};
     }
-#   print "dbz format=$Http{format} ua=$Http{'User-Agent'} web_format=$config_parms{web_format}\n";
 
     if ($config_parms{password_menu} eq 'html' and $Password and $Cookies{password}) {
         $Authorized = ($Cookies{password} eq $Password) ? 1 : 0
     }
 
-    print "Password flag set to $Authorized\n" if $main::config_parms{debug} eq 'http';
+    print "http a=$Authorized format=$Http{format} ua=$Http{'User-Agent'} web_format=$config_parms{web_format}\n" if $main::config_parms{debug} eq 'http';
 
     my ($get_req, $get_arg) = $header =~ m|^GET (\/[^ \?]+)\??(\S+)? HTTP|;
 
@@ -270,7 +269,9 @@ sub process_http_request {
             $get_arg =~ s/select_cmd=//;  # Drop the cmd=  prefix from form lists.
             $get_arg =~ tr/\_/ /;   # Put blanks back
             $get_arg =~ tr/\~/_/;   # Put _ back
-            $get_arg =~ s/&&?x=\d+&&y=\d+&?//; # Drop the &&x=n&&y=n that is tacked on when doing image form submits
+                                # Drop the &&x=n&&y=n that is tacked on (before or after) when doing image form submits
+            $get_arg =~ s/&&x=\d+&&y=\d+//;
+            $get_arg =~ s/x=\d+&&y=\d+&&//;
         }
 
         my ($ref) = &Voice_Cmd::voice_item_by_text(lc($get_arg));
@@ -718,7 +719,7 @@ sub html_last_response {
     $Last_Response = '' unless $Last_Response;
     if ($Last_Response eq 'speak') {
                                 # Allow for MSagent
-        if ($browser eq 'MSIE' and $Cookies{msagent} and $main::config_parms{'html_msagent_script' . $Http{format}}) {
+        if ($browser =~ /^MS/ and $Cookies{msagent} and $main::config_parms{'html_msagent_script' . $Http{format}}) {
             $script = file_read "$config_parms{'html_dir' . $Http{format}}/$config_parms{'html_msagent_script' . $Http{format}}";
             $script =~ s/<!-- *speak_text *-->/$last_response/;
         }
@@ -1376,7 +1377,7 @@ sub html_command_table {
             qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] . 
                 $html if $html_info_overlib;
 
-    if ($Http{'User-Agent'} eq 'MSIE' and $Cookies{msagent} and $main::config_parms{'html_msagent_script_vr' . $Http{format}}) {
+    if ($Http{'User-Agent'} =~ /^MS/ and $Cookies{msagent} and $main::config_parms{'html_msagent_script_vr' . $Http{format}}) {
         my $msagent_file = file_read "$config_parms{'html_dir' . $Http{format}}/$config_parms{'html_msagent_script_vr' . $Http{format}}";
         $msagent_file =~ s/<!-- *vr_cmds *-->/$msagent_script1/;
         $msagent_file =~ s/<!-- *vr_select *-->/$msagent_script2/;
@@ -2054,6 +2055,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.61  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.60  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

@@ -460,7 +460,7 @@ sub main::read_mh_opts {
         my $value = $$ref_parms{$parm};
                                 # Just do config parms ... this function is called by lots
                                 # of programs (e.g. get_url), so other mh vars are not always there.
-        if ($value =~ /\$config_parms/) {
+        if ($value and $value =~ /\$config_parms/) {
                                 # Do this, since %config_parms may be a 'my' var, which can not
                                 # be change directly outside of the main program.
             $value =~ s/\$config_parms/\$\$ref_parms/g;
@@ -516,7 +516,7 @@ sub main::read_opts {
         else {
             $$ref_parms{$key}  = $value;
         }
-        print "parm key=$key value=$value\n" if $debug;
+        print "parm key=$key value=$$ref_parms{$key}\n" if $debug;
     }
     close CONFIG;
     return sort keys %{$ref_parms};
@@ -1071,6 +1071,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.51  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.50  2001/06/27 03:45:14  winter
 # - 2.54 release
 #

@@ -61,6 +61,8 @@ my $socket_speak_loop;
 #if (my $data = $Socket_Ports{server_telnet}{data_record}) {
 if (my $data = said $telnet_server) {
 
+    set $telnet_server "\r\n";
+
     print_log "server port 1 data: $data";
     
     if (lc($data) eq 'hi') {

@@ -1,13 +1,13 @@
 Todays Trivia Question.
- What year did the Pilgrims first    land in America?                  
-  1: 1498.
-  2: 1525.
-  3: 1587.
-  4: 1620.
+ What kind of creatures are the      Canary Islands named for?         
+  1: Birds.
+  2: Dogs.
+  3: Fish.
+  4: Bears.
   
 One more time.  The Trivia Question is:
- What year did the Pilgrims first    land in America?                  
-  1: 1498.
-  2: 1525.
-  3: 1587.
-  4: 1620.
+ What kind of creatures are the      Canary Islands named for?         
+  1: Birds.
+  2: Dogs.
+  3: Fish.
+  4: Bears.

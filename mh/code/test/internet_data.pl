@@ -9,7 +9,8 @@ my $f_top10_html = "$config_parms{data_dir}/web/top10_list.html";
 
 #$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/lateshow/topten/ $f_top10_html");
 #$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/network/tvshows/mini/lateshow/index.shtml $f_top10_html");
-$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/latenight/lateshow/ $f_top10_html");
+#$p_top10_list = new Process_Item("get_url http://marketing.cbs.com/latenight/lateshow/# $f_top10_html");
+$p_top10_list = new Process_Item("get_url http://www.cbs.com/latenight/lateshow/# $f_top10_html");
 
 $v_top10_list  = new  Voice_Cmd('[Get,Read,Show] the top 10 list');
 $v_top10_list -> set_info("This is David Lettermans famoust Top 10 List"); 
@@ -20,7 +21,7 @@ $v_top10_list2-> set_info("This is David Lettermans famoust Top 10 List");
 $v_top10_list2-> set_authority('anyone');
 $v_top10_list2-> tie_items($v_top10_list, 1, 'Show');
 
-speak   $f_top10_list if said $v_top10_list eq 'Read';
+speak  voice => 'male', text => $f_top10_list if said $v_top10_list eq 'Read';
 display $f_top10_list if said $v_top10_list eq 'Show';
 
 if (said $v_top10_list eq 'Get') {
@@ -54,11 +55,17 @@ if (done_now $p_top10_list) {
 
     my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
 
+                                # Delete &nbsb
+    $text =~ s/\240/ /g;
+
                                 # Delete text preceeding the list
+#<tr valign="top"><td width="290" valign="top" align="center"><font class="toptentitle">Top Ten Signs You've Hired A Bad NFL Referee</font></td></tr>
 #   $text =~ s/^.+?the Top Ten List for/The Top Ten list for/is;
-    $text =~ s/^.+?Top Ten/Top Ten/is;
+#   $text =~ s/^.+?Top Ten/Top Ten/is;
+    $text =~ s/.+(Top Ten.+?.+10\.)/$1/is;
+
                                 # Delete data past the last line: 1. xxxxx\n
-    $text =~ s/(.+\n *1\..+?)\n.+/$1\n/s;
+    $text =~ s/(.+?\n\s *1\..+?)\n.+/$1\n/s;
                                 # Add a period at the end of line, if needed
     $text =~ s/([^\.\?\!])\n/$1\.\n/g;
                                 # Make sure the number at the beginning as a space.

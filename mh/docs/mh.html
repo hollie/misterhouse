@@ -1198,7 +1198,7 @@ with an object:
 </PRE>
 </P>
 <P>
-<PRE>     monitor $port, $family : Checks the one wire bus for iButton activity
+<PRE>     monitor $family, $port : Checks the one wire bus for iButton activity
 </PRE>
 </P>
 <P>
@@ -1297,7 +1297,7 @@ characters are the iButton family type. Here is a list of family types:
       }
       else {
         print_log &amp;iButton::disconnect;
-        print_log &amp;iButton::disconnect, 'ibutton_port2;
+        print_log &amp;iButton::disconnect, $config_parms{ibutton_port2};
       }
     }
 </PRE>
@@ -1309,7 +1309,7 @@ characters are the iButton family type. Here is a list of family types:
 </PRE>
 </P>
 <P>
-<PRE>    $ib_relay1 = new iButton '12000000123456ff', 'ibutton_port2';
+<PRE>    $ib_relay1 = new iButton '12000000123456ff', $config_parms{ibutton_port2};
     $v_iButton_relay1    = new Voice_Cmd &quot;Turn relay1 [on,off]&quot;;
     if ($state = said $v_iButton_relay1) {
        print_log &quot;Setting iButton relay1 to $state&quot;;
@@ -1356,9 +1356,12 @@ to program the IR Commander to use the codes for your various remotes.
      new $type, $code : Creates a new Item.  
         Here are the valid types:
            TV, VCR, CAB, CD, SAT, DVD
-        Currently, $code simply controls if 2 or 3 digits are transmited for channels:
-           2digit  (this is the default if $code is not spedified)
-           3digit
+        Currently, $code can be any of he following:
+           2digit  : this is the default if $code is not specified
+           3digit  : 3 digits are transmited for channels
+           addEnter: adds an ENTER command after any numbers, to make 
+                     changing channels faster on devices that wait for a
+                     timeout (e.g. Ocelot).
 </PRE>
 </P>
 <P>
@@ -3099,7 +3102,21 @@ Passes specified text to the TTS program. There are 2 modes of calling it:
        rooms  =&gt; 'room_names'  You need to code a &amp;Speak_pre_add_hook to enable
                                this.  See mh/code/bruce/pa_control for an example.
        volume =&gt; dd            How loud (dd = 0-&gt;100).  
-       mode   =&gt; 'unmuted'     Forces speech, even in mute and offline mode
+</PRE>
+</P>
+<P>
+<PRE>       mode   =&gt; 'unmuted' Forces speech, even in mute and offline mode
+</PRE>
+</P>
+<P>
+<PRE>       mode   =&gt; any of the following (currently only for the MS TTS engine):
+        stop, pause, resume, rewind, fastforward, slow, normal, fast, ###
+        ### is words per minute.  For example:  speak mode =&gt; 200
+</PRE>
+</P>
+<P>
+<PRE>       rate   =&gt; fast,normal,slow,### (currently only for the MS TTS engine)
+                 ### is words per minute.
 </PRE>
 </P>
 <P>
@@ -3126,6 +3143,8 @@ Passes specified text to the TTS program. There are 2 modes of calling it:
   
     $Save{mode} = 'mute' if time_cron '0 10-21 * * 1-5';
     speak 'mode=unmuted  The front door just opened';
+    speak mode =&gt; 'pause';
+    speak mode =&gt; 'resume', rate =&gt; 120;
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_time_add">time_add</A></STRONG><DD>

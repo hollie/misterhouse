@@ -10,7 +10,7 @@ $request_time       -> add             ('XN4');
 $request_time       -> add             ('XO4');
 $request_time       -> add             ('XP4');
 
-speak "rooms=$request_time->{room} It is $Time_Now" if state_now $request_time;
+speak "rooms=$request_time->{room} volume=100 It is now $Time_Now" if state_now $request_time;
 
 $v_what_time = new  Voice_Cmd('{What time is it,Tell me the time}', 0);
 $v_what_time-> set_info('Says the Time and Date');
@@ -21,6 +21,8 @@ if (said $v_what_time) {
     my $temp = "It is $Holiday" if $Holiday;
     speak "It is $Time_Now on $Date_Now_Speakable. $temp";
 }
+
+speak "Today is $Holiday" if $Holiday and time_cron '30 9,12,19 * * *';
 
 $v_sun_set = new  Voice_Cmd('When will the sun set', 0);
 $v_sun_set-> set_info("Calculates sunrise and sunset for latitude=$config_parms{latitude}, longitude=$config_parms{longitude}");

@@ -41,8 +41,12 @@ $test_volume = new Voice_Cmd 'Test volume at [5,20,60,100]';
 $test_volume-> tie_event('speak "volume=$state Testing volume at $state%"');
 
                                 # Currently, this only works with the MS Voice TTS
-$test_speak_mode = new Voice_Cmd 'Set speech to [stop,pause,resume,rewind,fastforward,fast,normal,slow,100,300]';
+$test_speak_mode = new Voice_Cmd 'Set speech to [stop,pause,resume,rewind,fastforward,fast,normal,slow,-5,5]';
 $test_speak_mode-> tie_event('speak mode => $state');
+
+                                # Currently, this only works with the MS Voice TTS
+$test_ms_speech_xml = new Voice_Cmd 'Test xml speech tags';
+speak "$Pgm_Root/docs/ms_speech_xml_example.txt" if said $test_ms_speech_xml;
 
                                 # Set hooks so set_volume is called whenever speak or play is called
 &Speak_pre_add_hook(\&set_volume) if $Reload;

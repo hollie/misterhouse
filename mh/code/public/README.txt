@@ -64,6 +64,9 @@ ical.pl
    Similar to mh/code/bruce/outlook.pl and mh/bin/outlook_read (for windows).
    Set this mh.ini parm: calendar_file=/home/dbl/.calendar
 
+ImageWebSub.pl
+ - Samuel Bagfors example of a web icon selecting function
+
 internet_earthquake.pl
 internet_earthquake_cal.pl
  - Tim Doyle's script for monitoring earthquakes.

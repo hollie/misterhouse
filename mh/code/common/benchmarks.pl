@@ -43,14 +43,30 @@ if ($speed_benchmark_count and (new_second 5 or $state)) {
     my $log = "Benchmark report.  Loop count=$speed_benchmark_count.  The following is in milliseconds\n";
     my $by_speed = (state $v_speed_benchmark =~ /speed/) ? 1 : 0;
     my @log;
-    for my $member (sort {$by_speed and ($Benchmark_Members{$b} <=> $Benchmark_Members{$a}) or $a cmp $b} keys %Run_Members) {
+    for my $member (sort {$by_speed and ($Benchmark_Members{$b} <=> $Benchmark_Members{$a}) or $a cmp $b}
+                    ' OTHER', ' USER', keys %Run_Members) { # Use Run_Members so we get all members on the 1st pass
         push @log, sprintf "  %-22s avg=%5.2f total=%5d", $member, $Benchmark_Members{$member} / $speed_benchmark_count, $Benchmark_Members{$member};
     }
-                                # Double up columns so it fits on without scrolling when there are lots of members
-    my $i = int $#log/2;
-    for my $j (0 .. $i) {
-        $log .= $log[$j] . " | " . $log[$j+$i] . "\n";
+                                # Double or triple up columns so it fits on without scrolling when there are lots of members
+    if ($#log > 100) {
+        my $i = 1 + int $#log/3;
+        for my $j (0 .. $i) {
+            $log .= $log[$j] . " | " . $log[$j+$i] . " | " . $log[$j+2*$i] . "\n";
+        }
     }
+    elsif ($#log > 20) {
+        my $i = 1 + int $#log/2;
+        print "db2 i=$i l=$#log\n";
+        for my $j (0 .. $i) {
+            $log .= $log[$j] . " | " . $log[$j+$i] . "\n";
+        }
+    }
+    else {
+        for my $j (0 .. $#log) {
+            $log .= $log[$j] . "\n";
+        }
+    }
+
     file_write "$config_parms{data_dir}/logs/benchmark.log", $log;
     display text => $log, time => 0, font => 'fixed', window_name => 'benchmarks';
 }

@@ -30,7 +30,7 @@ sub read_text {
     my @data;
     if ($$self{text} =~ /^\S+$/ and -e $$self{text}) { 
         $file = $$self{text};
-        print "db testing $file\n";
+#       print "db testing $file\n";
         if ($file =~ /\.gif$/i or $file =~ /\.jpg$/i or $file =~ /\.png$/i) {
             $$self{type} = 'photo';
             $$self{title} = "Image: $file";
@@ -72,8 +72,8 @@ sub read_text {
     else { 
         $$self{scroll} = 0; 
     }
-    if ($$self{width} > 100) { 
-        $$self{width} = 100; 
+    if ($$self{width} > 150) { 
+        $$self{width} = 150; 
     }
     if ($$self{append}) {
         $$self{width} = 100;
@@ -254,6 +254,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.20  2001/09/23 19:28:11  winter
+# - 2.59 release
+#
 # Revision 1.19  2001/05/28 21:14:38  winter
 # - 2.52 release
 #

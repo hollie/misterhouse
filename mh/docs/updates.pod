@@ -6,6 +6,77 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.59 posted on 09/23/2001
+
+Version 2.59 was just uploaded to:
+
+  http://misterhouse.sourceforge.net/download.html
+  http://misterhouse.net/download.html
+
+B<New Features:>
+
+- Lowered %cpu used by improving cache hits by sleeping twice per loop, rather than once.
+My linux box showed a 30% reduction in cpu used with the same passes per second.
+My Win 2k box showed cpu used going from 4->20% to 0->4% used (sleep time=10, Loops/sec 30, Pentium III 600 mhz).
+You may want to cut your sleep time in half (e.g. 100 -> 50) to keep the same loops/sec speed.
+Another benifit to this change is the speed benchmark table now shows less dependence on 
+code position (abc members used to get run faster than xyz members, because the xyz members got swapped from
+cache more often).
+Also added OTHER and USER entries to the speed benchmark table, to measure time spent in and out of the user code loop. 
+ 
+- Added support for the new Windows MS Voice SDK 5.1 TTS engine (but not the VR engine yet).  
+This allows for control of volume, rate, pitch, and voice.  For example:
+
+  speak voice => 'Mike', volume => 50, rate => -5, text => 'Hi';
+  speak voice => 'Mary', volume =>100, pitch => 5, text => 'Bye';
+
+To set the defaults, call speak without text (e.g. speak voice => 'Sam').
+The new engines also supports embedded XML parms for other on-the-fly controls (e.g. pitch, silence, pronounce, emphasis).
+Another new speak option is to_file, so you can save the synthesized speech to a file, then play it.
+For examples, see mh/doc/ms_speech_xml_example.*, mh/docs/mh.*, and mh/code/bruce/test_speak.pl.
+A pointer to the 5.1 download is in the MS SDK 5.1 instructions  secion of mh/docs/install.*
+Note:  5.1 drops support for Win95.
+
+- Rob Walker suggested and David Norwood implemented an Emacs like date specification for day-of-week type holidays
+(e.g. Labor Day).  David also populated the mh.ini holiday_dates parm with popular holidays.
+
+- Roger Bille sent in mh/code/public/sms1.pl as an example of how to interface to SMS with a GSM modem.
+
+
+B<Bug Fixes and Other Changes:>
+
+- John Edmonds discovered that MS CE browsers (e.g. epods) were not picking up the alternate browser pages.
+
+- Robin Edwards discovered a problem with web commands from Netscape 6.1.
+
+- Ron Klinkien updated mh/code/public/webcam_ron.shtml
+
+- Samuel Bagfors sent in mh/code/public/ImageWebSub.pl as an example of a web icon selecting function.
+
+- Walter Leemput found a memory leak in the reload code command (doubled memory after 4-5 reloads).
+
+- Harald Koch sent in an update so mh works with the latest Jabber (an open source instant messanger service). 
+This requires perl 5.6+ as well as current modules from CPAN (the Activestate ppm ones are too old).
+See the header in mh/code/test/internet_jabber.pl with more info.
+
+- Donald Mason discovered that preset-dim X10 codes ##% were disabled in the 2.57 release.
+
+- Jeff Pagel discovered the iButton monitor didn't work with more than one ibutton port.
+
+- Added a serial_wx200_skip option to turn off specified weather sensors  ... guess who had lost one in a lightning storm :{
+
+- The latest Windows perl builds from Activestate (6.28+) have fixed the leak memory problem,
+although initial virtual memory used is bigger by about 40%.  
+Real memory used and passes-per-second are about the same.
+
+- Updated outlook_read to work with perl 5.6 (dates were being returned as Win32::OLE::Variant objects).
+
+- Updated HTML table extraction to work with perl 5.6.
+
+- Updated internet_data.pl to work with the latest Letterman top 10 list.
+
+
+
 =head2 Version 2.57 posted on 08/12/2001
 
 Version 2.57 was just uploaded to:

@@ -509,6 +509,13 @@ sub tr_start {
     1;
 }
 sub tr_end {}
+
+# 09/12/01 bwinter Add space to table elements ... somehow perl 5.6 did not have them??
+sub td_start { 
+    shift->hspace(1);
+    1;
+}
+sub td_end {}
 #-----------------------------
 
 
@@ -548,6 +555,21 @@ sub vspace
 	$self->{vspace} = $new;
     } else {
 	$self->{vspace} = $min;
+    }
+    $old;
+}
+
+sub hspace
+{
+    my($self, $min, $add) = @_;
+    my $old = $self->{hspace};
+    if (defined $old) {
+	my $new = $old;
+	$new += $add || 0;
+	$new = $min if $new < $min;
+	$self->{hspace} = $new;
+    } else {
+	$self->{hspace} = $min;
     }
     $old;
 }
