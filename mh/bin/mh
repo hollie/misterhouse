@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-12-21 12:51:54 winter>
+#  Last change Time-stamp: <2001-01-15 19:46:35 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -80,7 +80,7 @@ my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
 my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
-my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, @Item_Code, @Item_Code_Objects);
+my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
 my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
@@ -116,9 +116,8 @@ sub Win32::DriveInfo::DrivesInUse;
 sub RRDs::update;
 sub RRDs::error; 
 
-sub ReadMode {};                   # In case Readkey is not installed
+sub ReadMode {};                # In case Readkey is not installed
 sub ReadKey  {};
-
 
 &setup;
 &read_code;                     # Load all menus
@@ -312,6 +311,14 @@ BEGIN {
             &my_use("Device::SerialPort");  # Unix Posix verion of Win32 SerialPort
             eval "use Term::ReadKey"; # Used for $Keyboard
             print "\nTerm::ReadKey not installed ... keyboard monitoring disabled\n" if $@;
+            eval "use Time::HiRes('gettimeofday')";   # Used for gettimeofday for sub-second timing
+            if ($@) {
+                print "\nTime::HiRes not installed ... benchmark timing is disabled\n";
+                $Info{HiRes} = 0;
+            }
+            else {
+                $Info{HiRes} = 1;
+            }
         }
 
         if ($config_parms{tk}) {
@@ -611,6 +618,12 @@ sub setup {
         close UPTIME;
         $Time_Boot_time = time - $uptime; 
     }
+    elsif ($^O eq 'freebsd') {
+        open(SYSCTL,"/sbin/sysctl -a |") or print "\nError: can't open /sbin/sysctl -a: $!";;
+        while (<SYSCTL>) {last if (/boottime/)}
+        $Time_Boot_time = $1 if (/ sec[ =]+(\d+)/);
+        close(SYSCTL);
+    }
 
     $exit_flag = 0;
     $config_parms{sleep_time} = 50 unless defined $config_parms{sleep_time};
@@ -844,7 +857,7 @@ sub check_for_action {
                                 # Do window loop here, to check for pause mode exit
     if ($MW) {
         $Loop_Tk_Passes = 100 if $Loop_Tk_Passes >100; # Make sure we don't have too many passes
-        $Loop_Tk_Passes = 1   if $Loop_Tk_Passes < 1;  # Make sure we make at least one pass
+        $Loop_Tk_Passes = 1   if $Loop_Tk_Passes <= 0;  # Make sure we make at least one pass
         for (1 .. $Loop_Tk_Passes) {
             my $tk_activity;
             $tk_activity = DoOneEvent(0xFF); # Avoid Constants ... we get compile errors if -tk 0
@@ -1040,7 +1053,7 @@ sub check_for_keyboard_input {
             $Keyboard = $key;
         }
         ReadMode 'normal';      # Or else we loose echo when mh exits.  Benchmark shows no slowdown.
-        $Keyboard = $keystring if length $keystring > 2;
+        $Keyboard = $keystring if $keystring and length $keystring > 2;
     }
 
     return unless $Keyboard;
@@ -1159,6 +1172,7 @@ sub check_for_socket_data {
                 my $new_sock = $sock->accept();
                 next unless $new_sock; # Can be undef it socket was killed
                 $new_sock->autoflush(1); # Not sure if this does anything?
+#               $new_sock->autoflush(0); # Not sure if this does anything?
                 $Socket_Ports{$port_name}{socka} = $new_sock;
                 $Socket_Ports{$port_name}{active_this_pass} = 1;
                 delete $Socket_Ports{$port_name}{data}; # Delete data from previous session
@@ -1372,9 +1386,15 @@ sub convert_direction {
 
 
 sub display {
+    my @parms = @_;
+                                # Check for fancy key => value options
+    my %parms = @parms unless @parms %2;
+    if ($parms{text}) {
+        @parms = ($parms{text}, $parms{time}, $parms{title}, $parms{font}, $parms{window_name});
+    }
+    my $text = $parms[0];
 
                                 # If it is a file, read it
-    my $text = $_[0];
     if ($text =~ /^\S+$/ and -e $text) { 
         open IN, $text or print "Error in sub display, could not open file $text:$!\n"; 
         local $/ = undef;       # Slurp the whole file at once
@@ -1391,14 +1411,14 @@ sub display {
 
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
-        $_[2] = $Time_Now              unless $_[2]; # Default Title
-        $_[3] = $config_parms{tk_font} unless $_[3];
+        $parms[2] = $Time_Now              unless $parms[2]; # Default Title
+        $parms[3] = $config_parms{tk_font} unless $parms[3];
                                 # Do not display if from web, unless display time is requested
-        new Display(@_) unless ($leave_socket_open_passes and !defined $_[1]);
+        new Display(@parms) unless ($leave_socket_open_passes and !defined $parms[1]);
     }
     else {
-#       &print_log(@_);
-        print "display call with -tk 0.  Text=@_\n";
+#       &print_log(@parms);
+        print "display call with -tk 0.  Text=@parms\n";
     }
 
 }
@@ -1804,8 +1824,7 @@ sub object_states_restore {
 #  - for example, maybe you just ran on a test module on the previous pass
     open  SAVE, $restore_state_file;
     my @states = <SAVE>;
-    open SAVE,  "$restore_state_file.unused";
-    push @states, <SAVE>;
+    open SAVE,  "$restore_state_file.unused" and push @states, <SAVE>;
     open SAVE, ">$restore_state_file.unused";
 
 #   &speak("Error, Mr. Bruce, restoring an empty state file!") if !@states and $Info{User} eq 'winter';
@@ -1818,9 +1837,11 @@ sub object_states_restore {
     while (my $state = pop @states) {
         print "restoring state: $state" if $config_parms{debug} eq 'misc';
         my $rc = eval $state;
-        if ($@ or $rc eq 'var not used') {
+        if ($@) {
+            print " Error in save: eval $state\n   $@";
+        }
+        elsif ($rc) {
             print SAVE $state;  # These are unused for this call of mh
-#       print " Error: $@";
             print " - Save stated not used:\n rc=$rc  state=$state\n" if $config_parms{debug} eq 'misc';
         }
     }
@@ -1955,7 +1976,8 @@ sub password_check {
         }
         else {
             my $client = $Socket_Ports{$port}{client_ip_address};
-#           print "db client=$client port=$port allowed=$config_parms{password_allow_clients}\n";
+#           my $rc = $client and grep $client =~ /$_/, @Password_Allow_Clients;;
+#           print "db rc=$rc client=$client port=$port allowed=$config_parms{password_allow_clients}\n";
 #           return if $client and -1 < index $config_parms{password_allow_clients}, $client;
             return if $client and grep $client =~ /$_/, @Password_Allow_Clients;
 
@@ -1978,7 +2000,9 @@ sub play {
         %parms = @_;
     }
     $parms{mode} = '' unless $parms{mode};
-     
+    $parms{retry} = 5 unless $parms{retry};
+    $parms{retry}--;
+
                                 # Allow for add_sound %Sounds keys ... if not specified in play call
     my $sound_key = $parms{file};
     if ($Sounds{$sound_key}) {
@@ -1989,11 +2013,11 @@ sub play {
 
                                 # Do not log System our sound_ files (these are played frequently)
     &print_speaklog($Save{mode} . ": (" . basename($parms{file}) . ")")  unless
-        $parms{file} =~ /^sound_/ or $parms{file} =~/^System/;
+        $parms{file} =~ /sound_/ or $parms{file} =~/^System/;
 
     print "Playing wave file $parms{file}\n" if $config_parms{debug} eq 'misc';
 
-    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} ne 'unmuted';
+    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
 
     my $play_parm = $parms{mode};
     $play_parm = 'wait' if !$play_parm and $config_parms{play_mode} eq 'wait';
@@ -2066,15 +2090,17 @@ sub play {
         }
                                 # If no success, try again later
         unless ($played_ok) {
-            $parms{retry} = 4 unless $parms{retry};
-            if (--$parms{retry} > 0) {
+            if ($parms{retry} > 0) {
                 my $play_timer = new Timer;
                 my $replay_parms = '';
                 for my $key (sort keys %parms) {
-                    $replay_parms .= qq['$key' => '$parms{$key}', ];
+                    my $value = $parms{$key};
+                    $value = $file if $key eq 'file'; # Just the current file
+                    $replay_parms .= qq['$key' => '$value', ];
                 }
                 set $play_timer 1, "&play($replay_parms)";
-                print "Waiting to play sound file, pass $parms{retry}, &play{$replay_parms}\n";
+#               print "Waiting to play sound file, pass $parms{retry}, &play{$replay_parms}\n";
+                print "Waiting to play sound file, pass=$parms{retry} file=$file\n";
             }
             else {
                 print "Gave up trying to play sound file: $file\n";
@@ -2489,7 +2515,8 @@ sub read_table_files {
                                 # Process tables of various, user-defined formats
     for my $file (@files_read) {
         next if $noload_files{$file};
-        (my $table_code_file = "$file_dir/$file") =~ s/\.mht$/.mhp/;
+        (my $table_code_file = "$file_dir/$file") =~ s/\.mht$/.mhp/i;
+        print_log "Translating $file_dir/$file -> $table_code_file";
         open  TABLE_IN,  "$file_dir/$file";
         open  TABLE_OUT, ">$table_code_file" or print_log "Error in writing to $table_code_file";
         print TABLE_OUT "#\n# Do NOT edit this file.  It was auto-generated from $file.\n#\n";
@@ -2520,7 +2547,7 @@ sub read_table_files {
         }
         close TABLE_IN;
         close TABLE_OUT;
-        print_log "Table format not recognized: $format" unless $format;
+        print_log "Table format not recognized: file=$file mhp_file=$table_code_file." unless $format;
     }
 
 }
@@ -2571,6 +2598,7 @@ sub read_user_code {
     undef @Item_Code;
     undef @Item_Code_Objects;
     undef %Run_Members;
+    undef %Benchmark_Members;
     undef %file_by_object_name;
     undef %object_names_by_file;
     undef %object_names_by_webname;
@@ -2684,10 +2712,12 @@ sub read_user_code {
                 "#-------------------------------------------------\n\n" .
                 "sub ${member_name}_loopcode {\n" .
                 "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
-                "     speak 'Multiple eval errors in $member_name.  Code was disabled';" .
+                "        speak 'Multiple eval errors in $member_name.  Code was disabled';" .
                 "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
+                "   my \$benchmark_tickcount = &get_tickcount if \$Benchmark_Members{on_off_flag};\n" .
 #               " print 'db running ${member_name}';" .
                 $code .
+                "   \$Benchmark_Members{'$member_name'} += &get_tickcount - \$benchmark_tickcount if \$benchmark_tickcount and \$Benchmark_Members{on_off_flag};\n" .
                 "\n} # End of $member_name";
         }
         $member_sort_order{$member_name} = 9 unless defined $member_sort_order{$member_name};
@@ -2895,7 +2925,10 @@ sub set_global_vars {
                 $New_Hour = 1;
                 $prev_hour = $Hour;
 
-                if (&time_less_than('11:59') and &time_greater_than('5:00') ) {
+                if (&time_less_than('5:00')) {
+                    $Time_Of_Day = 'night';
+                }
+                elsif (&time_less_than('11:59')) {
                     $Time_Of_Day = 'morning';
                 }
                 elsif (&time_less_than('17:00')) {
@@ -2997,13 +3030,6 @@ sub set_global_vars {
             $Info{memory_virtual} = $a[22] / 1024000;
             $Info{memory_real}    = $a[23] * 4 / 1000;
             $loop_unix_cnt = $cnt;
-        }
-        elsif ($^O eq 'freebsd') {
-#           run 'inline', '/sbin/sysctl -a |grep boottime|cut -f 5 -d " " >/tmp/btime';
-#           open(BTIME, "/tmp/btime") or print "\nError: can't open /tmp/btime\n";
-            open(BTIME, '/sbin/sysctl -a |grep boottime|cut -f 5 -d " " |') or print "\nError: can't open /sbin/sysctl -a: $!";
-            $Time_Boot_time = <BTIME>;
-            close BTIME;
         }
         else {
                                 # This call takes .2 seconds, so only do it once a minute
@@ -3276,7 +3302,7 @@ sub speak {
     
     $Last_Response = 'speak';
 
-    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} ne 'unmuted';
+    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
 
                                 # Check if we want to speak web requested data
     if ($leave_socket_open_passes) {
@@ -3901,6 +3927,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.40  2001/01/16 01:48:31  winter
+# - test release
+#
 # Revision 2.39  2000/12/21 18:54:14  winter
 # - 2.38 release
 #
