@@ -51,7 +51,33 @@ sub speak_text {
 	}
 
 	if ($VTxt_festival) {
-		print "Data sent to festival: $parms{text}\n";
+#<SABLE>
+#<SPEAKER NAME="male1">
+#<VOLUME LEVEL="loud">
+#<RATE SPEED="-10%">
+# text
+#</RATE>
+#</VOLUME>
+#</SPEAKER>
+#</SABLE>
+        if ($parms{voice} or $parms{volume} or $parms{rate}) {
+            my $prefix = qq[<SABLE>];
+            my $suffix = qq[</SABLE>];
+            if ($parms{voice}) {
+                $prefix .= qq[<SPEAKER NAME="$parms{voice}">];
+                $suffix = qq[</SPEAKER>] . $suffix;
+            }
+            if ($parms{volume}) {
+                $prefix .= qq[<VOLUME LEVEL="$parms{volume}">];
+                $suffix = qq[</VOLUME>]. $suffix;
+            }
+            if ($parms{rate}) {
+                $prefix .= qq[<RATE SPEED="$parms{rate}">];
+                $suffix = qq[</RATE>] . $suffix;
+            }
+            $parms{text} = $prefix . $parms{text} . $suffix;
+        }
+        print "Data sent to festival: $parms{text}\n";
 		set $VTxt_festival qq[(SayText "$parms{text}")];
 	}
 
@@ -144,6 +170,9 @@ sub set_vvo_option {
 
 #
 # $Log$
+# Revision 1.18  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.17  2000/02/20 04:47:55  winter
 # -2.01 release
 #

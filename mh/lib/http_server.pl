@@ -12,7 +12,7 @@ my($html_pointer_cnt, %html_pointers);
 
 
 my (%http_dirs, %html_icons, $html_info_overlib);
-sub http_read_parms {
+sub main::http_read_parms {
     
                                 # html_alias1=/aprs=>e:/misterhouse/web/aprs
     for my $parm (keys %main::config_parms) {
@@ -473,6 +473,7 @@ sub html_print_log {
         $h_response .= "<a href=/print_log>Refresh Print Log</a>\n";
         my @last_printed = &main::print_log_last($main::config_parms{max_log_entries});
         for my $text (@last_printed) {
+            $text =~ s/\n/\n<br>/g;
             $h_response .= "<li>$text\n";
         }
     }
@@ -846,7 +847,7 @@ sub html_command_table {
                                 #  - Building a dummy href for Netscap only kind of works, so lets skip it.
 #       $ol_info .= qq[<a href="javascript:void(0);" ];
         if ($html_info_overlib) {
-            $ol_info = $object->{description};
+            $ol_info = $object->{info};
             $ol_info = "$prefix ... $suffix" if !$ol_info and ($prefix or $suffix);
             $ol_info = $text   unless $ol_info;
             $ol_info = "$filename: $ol_info";
@@ -889,7 +890,7 @@ sub html_command_table {
                                 # Do the icon entry
         if ($main::config_parms{html_category_icons} and
             my $h_icon = &html_find_icon_image($object, 'voice')) {
-#           my $alt = $object->{description} . " ($h_icon)";
+#           my $alt = $object->{info} . " ($h_icon)";
             my $alt = $h_icon;
             $html = qq[<input type='image' src="$h_icon" alt="$alt" border="0">\n];
 #           $html = qq[<img src="$h_icon" alt="$h_icon" border="0">];
@@ -1044,7 +1045,7 @@ sub html_info {
     my $object = &get_object_by_name($object_name);
     my $object_name2 = &pretty_object_name($object_name);
     my $html = "<b>$object_name2 info</b><br>\n";
-    $html .= $object->{description};
+    $html .= $object->{info};
     return $html;
 }
 
@@ -1255,6 +1256,9 @@ Cookie: w3ibmID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.40  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.39  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

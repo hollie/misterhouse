@@ -239,7 +239,7 @@ sub check_for_voice_cmd {
             &main::speak($response) if $response;
         }
         else {
-            &main::speak("I heard " . $cmd_heard);
+            &main::speak("I heard " . $cmd_heard) if $cmd_heard;
         }
 
 
@@ -353,10 +353,11 @@ sub new {
 my (@data, $index1, $index2, $index_last);
 sub _register {
     my ($self) = @_;
-    my $text = $self->{text};
+    my $text  = $self->{text};
     my $vocab = $self->{vocab};
+    my $info  = $self->{info};  # Dang, info gets set AFTER we define the object :(
     $vocab = "mh" unless $vocab;
-    my $description = "none for $text\n";
+    my $description = "$text: $info\n";
 #   print "Voice_Cmd text: $text\n";
 
                                 # Break phrase into [] {} chunks
@@ -513,7 +514,7 @@ sub set_order {
 sub set_info {
     return unless $main::Reload;
     my ($self, $text) = @_;
-    $self->{description} = $text;
+    $self->{info} = $text;
 }
 
 sub said {
@@ -616,6 +617,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.21  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.20  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

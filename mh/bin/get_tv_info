@@ -69,7 +69,7 @@ It uses a database created by the get_tv_grid program.
   Examples:
     $Pgm_Name -channels "4-12" -lengths 2
     $Pgm_Name -channels "4,6,12" -times "7 pm"
-    $Pgm_Name -dates "7/4-7/11" -keys "star trek,dilbert"
+    $Pgm_Name -dates "7/4-7/11" -keys "star trek, er ,dilbert"
     $Pgm_Name -dates +14 -keys computer             
 
 eof
@@ -323,6 +323,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.9  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.8  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

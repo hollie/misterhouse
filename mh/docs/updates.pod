@@ -6,7 +6,70 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
-=head2 mh ver 2.11 posted on 03/09/00
+=head2 Version 2.13 posted on 04/08/00
+
+Version 2.13 was just uploaded to:
+
+  http://misterhouse.net/download
+  http://misterhouse.sourceforge.net
+
+B<New Features:>
+
+- Added IR_Item to support the new X10 IR transmiter, available for $50 at http://www.x10.com/products/ux17a_bj2.htm .
+Documentation is in mh.pod and example is in mh/code/test/tv.pl. 
+Also updated tv_grid.pl to use IR_Item instead of the older, one-for-all mh/bin/ir_cmd
+
+- Added Kevin's mh/code/public/x10_ma26.pl code for monitoring the X10 wireless mouse receiver.
+This also monitors other X10 rf traffic, so may prove to be a good way to improve latency on things 
+like X10 motion sensors.
+
+- Craig S. added a iButton read_switch method, for the DS2407 switch.  He also has started on
+code for monitoring the Dallas 1 wire weather station:  mh/code/public/iButton_ws.pl
+
+- Added volume, rate, and voice options to the speak function.
+An example is in mh/code/test/test_voice.pl.
+Unfortunatly, these don't work yet.  I don't think the MS TTS engine can be controled (with perl via OLE anyway),
+and I couldn't get my Festival speech engine to use the SABLE parms that Neil posted.  
+Maybe a newer version of Festival will work ... if someone gets this to work with Festival, let me know. 
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Documented iButton_Item in mh/docs/mh.html
+
+- Updated mh to be compatable with the new 5.6 perl release.  Note, the install.html instructions now specify
+a required step for perl 5.6+ Win32 users:  ppm install Win32::API.  Without this you will get "illegal operionation" popup.
+
+- Updated code to be compatable with the new Tk 8.020 release (was getting Can't locate delgate.al errors).
+
+- Fixed a Windows bug that cause mh to hang while wav files were played.
+They are now played asynchronously.
+
+- Added Kevin's fix to CM11.pm to fix the problem he was having with not receiving all incoming X10 signals.
+
+- Fixed a bug introduced in 2.11 that disabled dialup on Windows.
+
+- Disabled the mh/web/overlib.js tracking.
+
+- Fixed a bug where mh would respond with "I heard" when using the ms speech recognition engine.
+
+- Added David's linux mp3 control code as code to mh/code/public/mp3_control_GQmpeg.pl.
+
+- Added Brian Klier's example of a custom status pannel page to mh/code/public/statuspannel.pl and .shtml.  
+Also added a screenshot of what Brian's mh page looks like at http://misterhouse.net/pictures/brian.gif.
+If anyone else wants to send in screenshots of their mh web
+interfaces, send them my way and I'll post them.
+
+- Refreshed Tom K.'s mh/code/public/news_*.pl members
+
+- Added an optional net_mail_account_server_send parm, to allow for accounts that have different
+send and receive (stmp/pop) mail servers.
+
+- Changed tv_grid.pl to use the optional mh.ini html_alias_tv parm, so you can put 
+your tv pages in a directory other than the main mh/web directory, enabling easier upgrades.
+
+
+
+=head2 Version 2.11 posted on 03/09/00
 
 Version 2.11 was just uploaded to:
 

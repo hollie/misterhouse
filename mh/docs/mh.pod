@@ -231,6 +231,10 @@ includes a 2 way X10 CM11 interface a lamp module and a couple of remote control
 They also sell the CM17 firecracker interface which mh supports, but is a one way interface
 only (does not receive X10 signals).
 
+X10.com also sells a $50 IR transimiter that works through the CM17 interface.  
+Info is at http://www.x10.com/products/ux17a_bj2.htm.  This is supported
+via the mh IR_Item object.
+
 Weeder Technologies, http://www.weedtech.com , offers the following kits
 priced from $30 to $50 each.  All of these kits can share the same serial port:
 
@@ -508,7 +512,7 @@ You can use this object to group and operate on groups of items:
      new(@item_list)
      add(@item_list)
      set  
-     state        : Contains the last state that the group was set to
+     state        : Returns the last state that the group was set to
      state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
                     time_date stamped states.
 
@@ -518,6 +522,200 @@ You can use this object to group and operate on groups of items:
      $outside_lights-> add($light4, $light5);
      $outside_lights-> add($light6);
      set $outside_lights ON if time_now("$Time_Sunset + 0:15");
+
+
+=item iButton_Item
+
+This is used to query and/or control an iButton device (for more info on iButton, see the hardware section).
+To enable ibutton support in mh, set the mh.ini parm ibutton_port.
+
+  Methods:
+     new $id
+
+     set $state   : Sets the item to the specified state.
+
+     state        : Returns the last state that was received or sent
+
+     state_now    : Returns the state that was received or sent in the current pass.
+
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+
+     read_temp    : Returns the temperature of temperature devices.
+
+
+   In addition to the above, all of the methods provided by the Hardware/iButton/Device.pm 
+   module are available (documented in mh/lib/site/Hardware/iButton/Device.pm).
+   
+   
+   These methods are also part of the iButton module, but not associated with an object: 
+
+     scan        $family : Returns a object list of iButton devices that match $family 
+     scan_report $family : Returns a report of      iButton devices that match $family 
+
+     monitor             : Checks the one wire bus for iButton activity
+
+     connect             : Connect to the one wire bus
+
+     disconnect          : Disconnect to the one wire bus
+
+
+   The $id required when creating new iButton_Item is the 16 hex character (64 bit) iButton id that
+   is unique to every device.  This is often printed on the larger devices.  If not, you can use: 
+
+      $v_iButton_list      = new Voice_Cmd "List all the iButton buttons";
+      print_log &iButton::scan_report if said $v_iButton_list;
+
+   The last 2 characters are CRC bits and are optional.  If missing (i.e. you only specify 
+   the first 14 characters), mh will calculate it.
+   
+   The first 2 characters are the iButton family type.  Here is a list of family types:  
+
+     Field Index:
+      ------------
+      (1) Family code in hex
+      (2) Number of regular memory pages
+      (3) Length of regular memory page in bytes
+      (4) Number of status memory pages
+      (5) Length of status memory page in bytes
+      (6) Max communication speed (0 regular, 1 Overdrive)
+      (7) Memory type (see below)
+      (8) Part number in iButton package
+      (9) Part number in non-iButton package
+      (10) Brief descriptions
+      
+      (1)   (2)  (3)  (4)  (5)  (6)  (7)   (8)   (9)   (10)
+      -------------------------------------------------------
+      01,    0,   0,   0,   0,   1,   0, DS1990A,DS2401,Unique Serial Number
+      02,    0,   0,   0,   0,   0,   0, DS1991,DS1205, MultiKey iButton
+      04,   16,  32,   0,   0,   0,   1, DS1994,DS2404,4K-bit NVRAM with Clock
+      05,    0,   0,   0,   0,   0,   0, DS2405,,Single Addressable Switch
+      06,   16,  32,   0,   0,   0,   1, DS1993,DS2403,4K-bit NVRAM
+      08,    4,  32,   0,   0,   0,   1, DS1992,DS2402,1K-bit NVRAM
+      09,    4,  32,   1,   8,   1,   2, DS1982,DS2502,1K-bit EPROM
+      0A,   64,  32,   0,   0,   1,   1, DS1995,DS2416,16K-bit NVRAM
+      0B,   64,  32,  40,   8,   1,   3, DS1985,DS2505,16K-bit EPROM
+      0C,  256,  32,   0,   0,   1,   1, DS1996,DS2464,64K-bit NVRAM
+      0F,  256,  32,  64,   8,   1,   3, DS1986,DS2506,64K-bit EPROM
+      10,    0,   0,   0,   0,   0,   0, DS1920,DS1820,Temperature iButton with
+      Trips
+      11,    2,  32,   1,   8,   0,   2, DS1981,DS2501,512-bit EPROM
+      12,    4,  32,   1,   8,   0,   4, DS2407,,Dual Addressable Switch
+      13,   16,  32,  34,   8,   0,   3, DS1983,DS2503,4K-bit EPROM
+      14,    1,  32,   0,   0,   0,   5, DS1971,DS2430A,256-bit EEPROM, plus
+      64-bit
+      OTP
+      15,    0,   0,   0,   0,   1,   0, DS87C900,,Lock Processor
+      16,    0,   0,   0,   0,   0,   0, DS1954,,Crypto iButton
+      18,    4,  32,   0,   0,   1,   6, DS1963S,4K-bit Transaction iButton with
+      SHA
+      1A,   16,  32,   0,   0,   1,   6, DS1963,,4K-bit Transaction iButton
+      1C,    4,  32,   0,   0,   1,   6, DS2422,,1K-bit EconoRAM with Counter
+      Input
+      1D,   16,  32,   0,   0,   1,   6, DS2423,,4K-bit EconoRAM with Counter
+      Input
+      1F,    0,  32,   0,   0,   0,   0, DS2409,,One-Wire Net Coupler
+      20,    3,   8,   0,   0,   1,   9, DS2450,,Quad A-D Converter
+      21,   16,  32,   0,   0,   1,   8, DS1921,,Temperature Recorder iButton
+      23,   16,  32,   0,   0,   1,   7, DS1973,DS2433,4K-bit EEPROM
+      40,   16,  32,   0,   0,   0,   1, DS1608,,Battery Pack Clock
+
+
+  Examples:
+
+    $v_iButton_connect = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
+    if ($state = said $v_iButton_connect) {
+      if ($state eq 'Connect') {
+        print_log &iButton::connect($config_parms{iButton_port});
+      }
+      else {
+        print_log &iButton::disconnect;
+      }
+    }
+
+    $ib_bruce  = new iButton '010000012345ef';
+    speak 'Hi Bruce'  if ON  eq state_now $ib_bruce;
+    speak 'Later'     if OFF eq state_now $ib_bruce;
+
+    $ib_relay1 = new iButton '12000000123456ff';
+    $v_iButton_relay1    = new Voice_Cmd "Turn relay1 [on,off]";
+    if ($state = said $v_iButton_relay1) {
+       print_log "Setting iButton relay1 to $state";
+       set $ib_relay1 $state;
+    }
+
+    $ib_temp1  = new iButton '1000000029a14f';
+    $ib_temp2  = new iButton '1000000029f5d6';
+    my @ib_temps = ($ib_temp1, $ib_temp2);
+
+    $v_iButton_readtemp  = new Voice_Cmd "Read the iButton temperature [1,2]";
+    if ($state = said $v_iButton_readtemp) {
+       my $b = $ib_temps[$state-1];
+       my $temp = read_temp $b;
+       print_log "Temp for sensor $state: $temp F";
+       logit("$config_parms{data_dir}/iButton_temps.log",  "$state: $temp");
+    }
+    if ($New_Second and !($Minute % 5)) {
+       run_voice_cmd 'Read the iButton temperature 1' if $Second == 11;
+       run_voice_cmd 'Read the iButton temperature 2' if $Second == 22;
+    }
+
+
+
+=item IR_Item
+
+This object controls IR transmiters.  Currently only the X10 IR Commander 
+(http://www.x10.com/products/ux17a_bj2.htm) 
+is supported.  The X10 IR Commander receives commands from the wireless CM17 (firecracker) interface.
+
+Currently, you must use the X10 supplied software 
+(http://www.x10.com/commander.htm and/or ftp://ftp.x10.com/pub/applications/commander/)
+to program the IR Commander to 
+use the codes for your various remotes.  
+
+  Methods:
+     new $type    : Creates a new Item.  Here are the valid types:
+         TV, VCR, CAB, CD, SAT, DVD
+
+     state        : Returns the last state that was sent
+     state_now    : Returns the state that was sent in the current pass.
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+
+     set $command : Sends out commands to the IR device.  Here is a list of valid commands:
+                    Note:  Commands are case insensitive
+
+        POWER      MUTE      
+        CH+        CH-      
+        VOL+       VOL-     
+        1          2        
+        3          4        
+        5          6        
+        7          8        
+        9          0        
+        MENU       ENTER    
+        FF         REW      
+        RECORD     PAUSE     
+        PLAY       STOP     
+        AVSWITCH   DISPLAY  
+        UP         DOWN      
+        LEFT       RIGHT    
+        SKIPDOWN   SKIPUP   
+        TITLE      SUBTITLE 
+        EXIT       OK       
+        RETURN   
+
+
+  Examples:
+
+    $TV = new IR_Item 'TV';
+    $v_tv_control = new  Voice_Cmd("tv [power,on,off,mute,vol+,vol-,ch+,ch-]");
+    set $TV $state if $state = said $v_tv_control;
+
+    $VCR = new IR_Item 'vcr';
+    set $VCR "12,RECORD" if time_cron('59 19 * * 3');
+    set $VCR "STOP"      if time_cron('00 20 * * 3');
+
 
 =item Process_Item
 
@@ -571,9 +769,9 @@ Serial_Item is used whenever you want read or write serial port data.
            For the generic ports (serial1, serial2, ...), incoming data is processed
            only by user specified 'said' methods.
 
-     state        : Contains the last state that was received or sent
+     state        : Returns the last state that was received or sent
 
-     state_now    : Contains the state that was received or sent in the current pass.
+     state_now    : Returns the state that was received or sent in the current pass.
 
      state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
                     time_date stamped states.
@@ -599,7 +797,7 @@ Serial_Item is used whenever you want read or write serial port data.
                    }   
 
 
-     said         : Contains a data record received by the port.  
+     said         : Returns a data record received by the port.  
                      - Characters are spooled into one record until a '\n' (newline) is
                        received.  Only then does 'said $item' become valid, and it is
                        reset as soon as the said method is executed.  
@@ -746,9 +944,9 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
      buffer       : If set to 1, data will be read one line at a time (faster)
                     If set to 0, the default, data will be read one character at a time.
 
-     state        : Contains the last state that was received or sent
+     state        : Returns the last state that was received or sent
 
-     state_now    : Contains the state that was received or sent in the current pass.
+     state_now    : Returns the state that was received or sent in the current pass.
 
      set          : Sets the item to the specified state.
                      - If the specified state has not been defined with 'new' or 'add', 
@@ -760,7 +958,7 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
                      set_echo $my_socket 1   -> echo incoming characters
                      set_echo $my_socket '*' -> echo incoming characters with *
 
-     said         : Contains a data record received by the port.  
+     said         : Returns a data record received by the port.  
                      - Characters are spooled into one record until a '\n' (newline) is
                        received.  Only then does 'said $item' become valid, and it is
                        reset as soon as the said method is executed.  
@@ -1116,8 +1314,13 @@ Use this to play wave or system sound files.  There are 2 modes of calling it:
      play(option => 'value', file => $file_name);
 
      Options are:
-       room => 'room_name'   You need to code a pa_stub.pl routine to allow this
-                             to work with your PA relays.
+       rooms => 'room_names'  You need to code a pa_stub.pl routine to allow this
+                              to work with your PA relays.
+       time  => $time         The amount of time to leave the PA speakers on for rooms
+       mode  => $mode         $mode can be:
+         wait : mh will pause (hang), until wav file finishes
+         loop : mh will loop on the wav file
+         stop : mh will stop playing the previous file
 
 If $file_name is a blank or comma delimited list of 
 files, they are played sequentially.  If it is a wild-carded file specification
@@ -1141,11 +1344,14 @@ Sounds menu to change their associated wav files:
 
    Examples:
 
+                        # Play a random 'garage open/close' wav file
      if($state = state_now $garage_door) {   # $state will be open or close
-       play(file => "garage_door_" . $state . "*.wav");
+       play(rooms => 'all', file => "garage_door_" . $state . "*.wav");
      }
 
      play(file => 'SystemAsterisk') if $Reload;
+
+     play "fun/*.wav" if time_cron '* 9 * * 6';
 
 
 =item print_log
@@ -1263,10 +1469,28 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
      speak(option => 'value', text => "text to speak");
     
      Options are:
-       rooms => 'room_name'   You need to code a pa_stub.pl routine to allow this
+       rooms  => 'room_name'   You need to code a pa_stub.pl routine to allow this
                               to work with your PA relays.
-       mode  => 'unmuted'     Forces speech, even in mute and offline mode
-   
+       mode   => 'unmuted'     Forces speech, even in mute and offline mode
+
+     These options are for the Festival speech engine (but don't work yet):
+       volume => 'loud' or 'soft'
+       rate   => '+-nn%'       (e.g. +10% or -30%)
+       voice  => 'name' 
+ 
+   Examples:
+
+    $test_voice1 = new Voice_Cmd "Say something with a [loud,soft] voice";
+    $test_voice2 = new Voice_Cmd "Say something at a [fast,slow] speed";
+    $test_voice3 = new Voice_Cmd "Say something in voice [male1,female1]";
+
+    speak(volume => $state, 
+          text => "This is an example of $state text")    if $state = said $test_voice1;
+    speak(rate   => $state,
+          text => "This is an example of $state text")    if $state = said $test_voice2;
+    speak(voice  => $state,
+          text => "This is an example of a $state voice") if $state = said $test_voice3;
+  
 
 
 =item time_date_stamp
@@ -1825,7 +2049,11 @@ See mh/code/Bruce/tv_grid.pl for a mh event example that uses get_tv_grid.
                      If this file is missing or old, a new file will be retreived from
                      the web.
 
-    -outfile xyz  => xyz the filtered output file.  Default is web/tv/day_hour.html
+    -outfile xyz  => xyz the filtered output file. 
+                     Default is -outdir/day_hour.html
+
+    -outdir  xyz  => xyz the directory the outfiles will be put in.
+                     Default is mh.ini parm html_dir/tv
 
     -label xyz    => Use xyz as the link lable.  Default is "Set the Vcr"
 
@@ -2566,6 +2794,11 @@ to set up a house PA system, so you can control which rooms MisterHouse talks to
 
 You can suscribe and/or view the mailing list at
 http://sourceforge.net/mail/?group_id=1365
+You can view the archive at
+http://lists.sourceforge.net/pipermail/misterhouse-users/
+and search it at 
+http://lists.sourceforge.net/mailman/listinfo/misterhouse-users
+
 
 An older list with a searchable archive at <a href=http://www.onelist.com/messages/MisterHouse>here</a>).
 
@@ -2596,6 +2829,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.21  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.20  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

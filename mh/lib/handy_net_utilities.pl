@@ -36,7 +36,7 @@ sub main::html_unescape {
 my ($prev_time, $prev_state);
 sub main::net_connect_check {
     
-    return 1 if  !$main::OS_Win or lc($main::config_parms{net_connect}) eq 'persistent';
+    return 1 if  !$main::OS_win or lc($main::config_parms{net_connect}) eq 'persistent';
 
                                 # We don't need to check this more than once a second
     return $prev_state if ($prev_time == time);
@@ -256,6 +256,7 @@ sub main::net_mail_send {
     $filename= $parms{filename};
 
     $account = $main::config_parms{net_mail_send_account}         unless $server;
+    $server  = $main::config_parms{"net_mail_${account}_server_send"}  unless $server;
     $server  = $main::config_parms{"net_mail_${account}_server"}  unless $server;
     $server = 'localhost'                                         unless $server;
     $from    = $main::config_parms{"net_mail_${account}_address"} unless $from;
@@ -474,6 +475,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.17  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.16  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

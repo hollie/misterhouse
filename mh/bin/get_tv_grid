@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2000-03-03 13:20:09 winter>
+#  Last change Time-stamp: <2000-04-08 17:53:46 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -23,7 +23,7 @@ BEGIN {
 }
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "reget", "redo",
+if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "outdir=s", "reget", "redo",
                  "channels=s", "userid:s", "debug", "label", "keep_old",
                  "mail_to=s", "mail_server=s", "mail_baseref=s",
                  "days=s", "day=s", "hour=s") or @ARGV or
@@ -49,8 +49,10 @@ Creates a DBM for use by get_tv_info.
     -infile  xyz  => xyz is  original input file.   Default is 
                      web/tv/clicktv/day_hour.html.  If this file is missing
                      or old, a new file will be retreived from the web.
-    -outfile xyz  => xyz the filtered output file.  Default is 
-                     web/tv/day_hour.html
+    -outfile xyz  => xyz the filtered output file. 
+                     Default is -outdir/day_hour.html
+    -outdir  xyz  => xyz the directory the outfiles will be put in.
+                     Default is mh.ini parm html_dir/tv
     -label xyz    => Use xyz as the link lable.  Default is "Set the Vcr".
     -reget        => Re-read  the clicktv web page, even if a recent file it
                      already exists.
@@ -78,14 +80,14 @@ for my $day_data (@days) {
     my ($down, $dow, $day, $month, $year, $day_time) = split(' ', $day_data);
     for my $hour (@hours) {
         print "Checking day=$day hour=$hour\n" if $parms{debug};
-        $outfile = "$config_parms{html_dir}/tv/${day}_$hour.html" unless $parms{outfile};
+        $outfile = "$parms{outdir}/${day}_$hour.html" unless $parms{outfile};
         if ($parms{redo} or !(-e $outfile) or (8 < -M $outfile) or (4000 > -s $outfile)) {
             &get_url($hour, $day, $month, $year);
             &filter_url_clicktv($hour, $down, $dow, $day, $month, $year, $day_time);
         }
         if ($day == (localtime(time))[3] and $hour >= 17 and $hour < 20) {
             use File::Copy;
-            copy($outfile, "$config_parms{html_dir}/tv/index.html");
+            copy($outfile, "$parms{outdir}/index.html");
             if ($parms{mail_to}) {
                 &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "TV Schedule for $dow, $month/$day/$year");
             }
@@ -111,7 +113,7 @@ sub get_url {
 #http://listings.clicktv.com/listings.asp?profileID=%247A%247B%2489%247A&WSN=WSERVER10&gDate=8A31A1999&gHour=20&gChRow=1
 #http://listings.clicktv.com/listings.asp?profileID=%247A%247B%2489%247A&cid=tvd
     $infile = $parms{infile};
-    $infile = "$config_parms{html_dir}/tv/clicktv/${day}_$hour.html" unless $infile;
+    $infile = "$parms{outdir}/clicktv/${day}_$hour.html" unless $infile;
                                 # File must exist, be younger than a week old, and have > 1k bytes
     if ((-e $infile) and (8 > -M $infile) and (4000 < -s $infile) and !$parms{reget}) {
         print "Reusing file: $infile\n";
@@ -383,9 +385,15 @@ sub setup {
     use DB_File;
     tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
     tie (%DBM2, 'DB_File',  $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
+
+    $parms{outdir} = "$config_parms{html_dir}/tv" unless $parms{outdir};
 }
+
 #
 # $Log$
+# Revision 1.25  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.24  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

@@ -16,8 +16,8 @@ door_monitor_jay.pl
  - Jay Archers cod for using an X10 powerflash and hawkeye motion sensors
    to monitor and control a garage door
 
-ibutton.pl
- - Bruce's example on reading/writing to iButtons 
+iButton_ws.pl
+ - Craig Schaeffer's code for monitoring the iButton weather station
 
 internet_ip_update.p
  - Updates IP servers/web pages with IP addresses
@@ -26,6 +26,9 @@ Garage_Door.pl
 Garage_Door.txt
  - From Danal Estes.  Uses the X10_Items X10_Garage_Door object
    to receive Extended X10 data from Stanley modules.
+
+mp3_control_GQmpeg.pl
+ - Dave Lounsberry's code for controling the GQmpge.pl player on linux
 
 monitor_sump_pump.pl
  - Craig's code to monitor his sump pump
@@ -63,6 +66,9 @@ webcam_lite.pl
  - Mike's code for allowing visitors to his webcam site to flash lights and
    type in TTS messages.
 
+x10_ma26.txt
+ - Kevin Olande's code for reading data from an X10 wireless mouse receiver.
+   Also reads normal X10 traffic!
 
 ------------
 

@@ -32,8 +32,9 @@ BEGIN {
 }
 
 use Getopt::Long;
-use vars "%config_parms";
-if (!&GetOptions(\%config_parms, "h", "help") or @ARGV or $config_parms{h} or $config_parms{help}) {  
+use vars qw(%config_parms %config_parms_startup);
+if (!&GetOptions(\%config_parms_startup, 'debug', 'h', 'help') or 
+    @ARGV or $config_parms_startup{h} or $config_parms_startup{help}) {  
     print<<eof; 
 
   $Pgm_Name (version $Version) gets mail stuff.
@@ -60,6 +61,9 @@ sub setup {
     $private_parms = $ENV{mh_parms} if $ENV{mh_parms};
     &main::read_opts(\%config_parms, $Pgm_Path . "/mh.ini");
     &main::read_opts(\%config_parms, $private_parms) if -e $private_parms;
+    for my $parm (keys %config_parms_startup) {
+        $config_parms{$parm} = $config_parms_startup{$parm};
+    }
 
                                 # Get email parms
     for my $parm (sort keys %config_parms) {
@@ -93,7 +97,7 @@ sub check_accounts {
     my $msgcnt_flag = 'Email:';
     for my $account (@email_accounts) {
         print "checking account=$account ";
-        my $msgcnt = &net_mail_count(account => $account);
+        my $msgcnt = &net_mail_count(account => $account, debug => $config_parms{debug});
 
         $msgcnt_flag .= sprintf("%3d", $msgcnt);
 
@@ -105,7 +109,8 @@ sub check_accounts {
         }
         elsif ($msgcnt > $msgcnt_prev) {
 #           print "There are $msgcnt mail messages for $account\n";
-            my $msgptr = &net_mail_summary(account => $account, first => $msgcnt_prev+1, last => $msgcnt);
+            my $msgptr = &net_mail_summary(account => $account, first => $msgcnt_prev+1,
+                                           last => $msgcnt, debug => $config_parms{debug});
             
             if ($$msgptr{from_name}) {
                 my @list = @{$$msgptr{from_name}};
@@ -168,6 +173,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.16  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.15  2000/02/20 04:47:54  winter
 # -2.01 release
 #

@@ -1,9 +1,9 @@
 
 ######################################################
 # Klier Home Automation - Tracking Module            #
-# Version 4.61 ALPHA (release for MH 1.70)           #
+# Version 4.8 ALPHA (release for MH 1.91)            #
 # By: Brian J. Klier, N0QVC                          #
-# August 14, 1999                                    #
+# January 1, 2000                                    #
 # E-Mail: klier@lakes.com                            #
 # Webpage: http://www.faribault.k12.mn.us/brian      #
 ######################################################
@@ -11,6 +11,17 @@
 # For more information on hardware needed for this system to function:
 #   - Check out http://www.faribault.k12.mn.us/brian/aprs    and
 #               http://www.faribault.k12.mn.us/brian/aprs/mine
+#
+# New in Version 4.8:
+#   - Added HTML Based Logging (from Bruce's tracking_bruce.pl) for GPS's.
+#
+# New in Version 4.7:
+#   - Added Speaking of POSFILE Positions for Weather Stations
+#
+# New in Version 4.62:
+#   - Fixed problem with tracking_withname and speaking EVERY position
+#     instead of checking to see if it was the same as the last one.
+#   - Added ability to respond to ?WX? queries with current temperature.
 #
 # New in Version 4.6:
 #   - 4.61 ALPHA - Continued work on proper implementation.
@@ -35,7 +46,7 @@
 
 # Declare Variables
 
-my ($GPSSpeakString, $GPSSpeakString2, $WXSpeakString, $CurrentTemp);
+use vars '$GPSSpeakString', '$GPSSpeakString2', '$WXSpeakString', '$WXSpeakString2', '$CurrentTemp', '$WXWindDirVoice', '$WXWindSpeed', '$WXHrPrecip';
 
 my ($APRSFoundAPRS, $APRSPacketDigi, $GPSTime, $APRSStatus, $MsgLine);
 my ($GPSLatitudeDegrees, $GPSLatitudeMinutes, $GPSLongitudeDegrees, $GPSCallsign);
@@ -46,6 +57,13 @@ my (@gpscomplines, $GPSTempCompPlace, $GPSTempCompDist, $GPSTempCompLine);
 my ($GPSTempCompLat, $GPSTempCompLong);
 my ($GPSCompPlace, $GPSCompLat, $GPSCompLong, $GPSCompDist);
 my ($GPSCompLstBr, $GPSCompLstBrLat, $GPSCompLstBrLon);
+
+# Added 4.7
+my ($WXTempCompPlace, $WXTempCompDist, $WXTempCompLine);
+my ($WXTempCompLat, $WXTempCompLong);
+my ($WXCompPlace, $WXCompLat, $WXCompLong, $WXCompDist);
+my ($WXCompLstBr, $WXCompLstBrLat, $WXCompLstBrLon);
+
 my (@namelines, $TempName, $TempNameCall, $TempNameName);
 
 my (@wxgraphinlines, $WXTempGraphLine, $WXTempGraphTime);
@@ -62,8 +80,7 @@ my ($GPSSpeakString3, $MessageAck, $APRSCallsignVoice, $HamCall, $HamName);
 my ($WXTime, $WXLatitudeDegrees, $WXLatitudeMinutes, $WXLongitudeDegrees);
 my ($WXLongitudeMinutes, $WXLatitude, $WXLongitude, $WXDistance, $WXTemp);
 my ($WXLstBr, $WXLstBrLat, $WXLstBrLon);
-my ($WXCallsign, $WXWindDir, $WXWindSpeed, $WXWindDirVoice);
-my ($WXHrPrecip, $WX24HrPrecip, $RealAPRSCallsign);
+my ($WXCallsign, $WXWindDir, $WX24HrPrecip, $RealAPRSCallsign);
 my ($CurrentTempDist, $WXWindChill, $CurrentChill);
 my ($LastWXCallsign, $LastWXTemp, $LastWXDistance, $LastWXWindDir);
 my ($LastWXWindSpeed, $LastWXWindChill, $APRSCallsignNoSSID);
@@ -229,13 +246,21 @@ if ($state = said $v_send_test_email) {
 $v_send_test_icq = new Voice_Cmd("Send test ICQ msg to myself");
 
 if ($state = said $v_send_test_icq) {
-    $i = ":ICQSERVE :659962 Test Msg - " . $CurrentTemp . " degrees.{1";
+    $i = ":ICQSERVE :659962 Test Message - " . $CurrentTemp . " degrees.{1";
     set $tnc_output $i;
 }
 
-# Procedure to Log Temperature and Stats every 5 minutes
+# Added 4.7
+$v_register_icqserve = new Voice_Cmd("Register on ICQServe (Do Once)");
 
-if (time_cron('0,5,10,15,20,25,30,35,40,45,50,55 * * * *') or $Startup) {
+if ($state = said $v_register_icqserve) {
+    $i = ":ICQSERVE :REGISTER 659962 {1";
+    set $tnc_output $i;
+}
+
+# Procedure to Log Temperature and Stats every 10 minutes
+
+if (time_cron('0,10,20,30,40,50 * * * *') or $Startup) {
     logit("$Pgm_Path/../web/mh/weather.html", "<FONT SIZE=-2>Temp: $CurrentTemp &nbsp;&nbsp;&nbsp;Wind Chill: $CurrentChill &nbsp;&nbsp;&nbsp;Wind: $LastWXWindDir/$LastWXWindSpeed &nbsp;&nbsp;&nbsp;Precipitation: $WXHrPrecip/$WX24HrPrecip<BR></FONT>");
     logit("$Pgm_Path/../data/logs/weather.log", ",$CurrentTemp,$LastWXWindDir,$LastWXWindSpeed,$WXHrPrecip,$WX24HrPrecip");
 }
@@ -245,6 +270,8 @@ if (time_cron('0,5,10,15,20,25,30,35,40,45,50,55 * * * *') or $Startup) {
 if (time_cron('0 0 * * *')) {
     print_log "Backing up Weather Log.";
     open(WXGRAPHIN, ">$Pgm_Path/../data/logs/weather.log");    # CLEAR Log
+    close WXGRAPHIN;
+    open(WXGRAPHIN, ">$Pgm_Path/../web/mh/weather.html");      # CLEAR Log
     close WXGRAPHIN;
     #copy("$Pgm_Path/../data/logs/weather.log", "$Pgm_Path/../data/logs/weather.bak.log") or print_log "Error in copying: $!";
 }
@@ -314,8 +341,8 @@ if (time_cron('15 * * * *') or $Startup or $Reload or $state = said $v_make_grap
 
 # Procedure to occasionally send out APRS Position Report and Status String
 
-set $tnc_output 'position' if time_cron('0,30 * * * *');
 if (time_cron('0,30 * * * *')) {
+    set $tnc_output 'position';
     $APRSStatus = ">Frnt Move $motion_detector_frontdoor->{state}-Bck Move $motion_detector_backdoor->{state}-Kitc Move $motion_detector_kitchen->{state}-Temp: $CurrentTemp";
     set $tnc_output $APRSStatus;
 }
@@ -606,12 +633,12 @@ if ($APRSString = said $tnc_output) {
                 $GPSCourseVoice = "north-northwest" if ($GPSCourse >= 320 and $GPSCourse <= 341);
                 $GPSCourseVoice = "north" if ($GPSCourse >= 342 and $GPSCourse <= 360);
 
+                if ($config_parms{tracking_withname} == 1)
+                    {$GPSCallsign = $HamName};
+
                 # If It's not the same as the last report, say it.
 
                 if ((($GPSCallsign ne $LastGPSCallsign) || ($GPSDistance ne $LastGPSDistance)) and ($GPSSpeed ne '0')) {
-
-                    if ($config_parms{tracking_withname} == 1)
-                        {$GPSCallsign = $HamName};
 
                     if ($config_parms{tracking_shortannounce} == 0)
                         {$GPSSpeakString = "$GPSCallsign is $GPSDistance miles $GPSLstBr of us, heading $GPSCourseVoice at $GPSSpeed miles an hour.  $GPSSpeakString2"};
@@ -636,9 +663,6 @@ if ($APRSString = said $tnc_output) {
 
                 if ((($GPSCallsign ne $LastGPSCallsign) || ($GPSDistance ne $LastGPSDistance)) and ($GPSSpeed eq '0')) {
 
-                    if ($config_parms{tracking_withname} == 1)
-                        {$GPSCallsign = $HamName};
-
                     if ($config_parms{tracking_shortannounce} == 0)
                         {$GPSSpeakString = "$GPSCallsign is $GPSDistance miles $GPSLstBr of us, and is stationary.  $GPSSpeakString2"};
 
@@ -662,10 +686,11 @@ if ($APRSString = said $tnc_output) {
             # If It's a $GPGGA String,
 
             if (substr($PacketPart, 0, 6) eq '$GPGGA') {
-                if (($GPSCallsign ne $LastGPSCallsign) || ($GPSDistance ne $LastGPSDistance)) {
 
-                    if ($config_parms{tracking_withname} == 1)
-                        {$GPSCallsign = $HamName};
+                if ($config_parms{tracking_withname} == 1)
+                    {$GPSCallsign = $HamName};
+        
+                if (($GPSCallsign ne $LastGPSCallsign) || ($GPSDistance ne $LastGPSDistance)) {
 
                     if ($config_parms{tracking_shortannounce} == 0)
                         {$GPSSpeakString = "$GPSCallsign is $GPSDistance miles $GPSLstBr of us.  $GPSSpeakString2"};
@@ -691,8 +716,34 @@ if ($APRSString = said $tnc_output) {
             $LastGPSDistance = $GPSDistance;
             $LastGPSLstBr = $GPSLstBr;
 
+            # NEW IN 4.8
+            # Prototype Log File Procedure for Tracking
+
+            $i = -$GPSLongitude;
+            $j = $GPSLatitude;
+            $k = qq[<li>$Date_Now $Time_Now: <a href=\"http://www.mapblast.com/mblast/map.mb?];
+            $k .= qq[&GC=X:$i|Y:$j|LT:$j|LN:$i|LS:16000|&IC=$j:$i:100:$GPSCallsign $GPSCourseVoice $GPSSpeed MPH&CMD=MAP\">];
+            $k .= qq[\n$GPSSpeakString</a>\n\n];
+            logit "$config_parms{html_dir}/mh/tracking/today.html", $k, 0;
+            logit "$config_parms{html_dir}/mh/tracking/week1.html", $k, 0;
+
+            if ($New_Day) {
+                unlink "$config_parms{html_dir}/mh/tracking/today.html";
+            }
+
+#            if ($New_Week) {
+#                file_cat "$config_parms{html_dir}/mh/tracking/week2.html", "$config_parms{html_dir}/tracking/old/${Year_Month_Now}.html";
+#                rename "$config_parms{html_dir}/mh/tracking/week1.html", "$config_parms{html_dir}/tracking/week2.html"  or print_log "Error in aprs rename 2: $!";
+
+                # Add an index entry for the new months entry in aprs/old
+
+                if ($New_Month) {
+                   my $html = qq[<li><a href=\"$Year_Month_Now.html\">$Year_Month_Now.html</a>\n];
+                   logit "$config_parms{html_dir}/mh/tracking/old/index.html", $k, 0;
+                }
+#            }
         }                                           #  **END** GPS Parse
-            
+
         # Send E-Mail from APRS messages with "EMAIL2"
 
         if (substr($PacketPart, 0, 6) eq 'EMAIL2') {
@@ -734,7 +785,8 @@ if ($APRSString = said $tnc_output) {
 
             ($CallsignPart, $CallsignPart, $PacketPart) = (split(':', $APRSString))[0, 1, 2];
             print_log "Incoming Bulletin from $APRSCallsign: $PacketPart";
-            speak "Incoming Bulletin from $APRSCallsign. $PacketPart";
+            ## REMMED THIS NEXT STATEMENT OUT FOR SANITY
+            #speak "Incoming Bulletin from $APRSCallsign. $PacketPart";
         }
 
         # If It's an APRS Message, either say it or process the voice command:
@@ -773,6 +825,26 @@ if ($APRSString = said $tnc_output) {
 
             elsif (substr($PacketPart, 0, 3) eq 'ack') {
                 print_log "Acknowledgement received from $RealAPRSCallsign";
+            }
+
+            # NEW in 4.62 - Respond to ?WX? requests with the temperature.
+
+            elsif (substr($PacketPart, 0, 4) eq '?WX?') {
+                $i = $RealAPRSCallsign . $k . ":ack" . $MessageAck;
+                set $tnc_output $i;
+                $i = ":" . $RealAPRSCallsign . $k . ": Current Temperature: $CurrentTemp.{4";
+                set $tnc_output $i;
+                $MsgLine = "";
+            }
+
+            # NEW in 4.62 - Respond to ?PHONE? requests with last call.
+
+            elsif (substr($PacketPart, 0, 7) eq '?PHONE?') {
+                $i = $RealAPRSCallsign . $k . ":ack" . $MessageAck;
+                set $tnc_output $i;
+                $i = ":" . $RealAPRSCallsign . $k . ": Last Call: $PhoneName ($PhoneNumber){6";
+                set $tnc_output $i;
+                $MsgLine = "";
             }
 
             # If it's not a voice command, than assume it's a standard message:
@@ -817,6 +889,17 @@ if ($APRSString = said $tnc_output) {
             $WXWindChill = "";
             $WXHrPrecip = "";
             $WX24HrPrecip = "";
+            # Added in 4.7
+            $WXLstBr = "";
+            $WXLstBrLat = "";
+            $WXLstBrLon = "";
+            $WXCompPlace = "";
+            $WXCompLat = "";
+            $WXCompLong = "";
+            $WXCompDist = "9999";
+            $WXSpeakString2 = "";
+            $WXTempCompPlace = "";
+            $WXTempCompDist = "";
 
             # If It's a DOS Weather String,
 
@@ -892,6 +975,46 @@ if ($APRSString = said $tnc_output) {
             $WXWindDirVoice = "north-northwest" if ($WXWindDir >= 320 and $WXWindDir <= 341);
             $WXWindDirVoice = "north" if ($WXWindDir >= 342 and $WXWindDir <= 360);
 
+#######
+# Added 4.7
+
+            # Calculate bearing from the Position file
+            foreach $WXTempCompLine (@gpscomplines) {
+                ($WXTempCompPlace, $WXTempCompLat, $WXTempCompLong) = (split(',', $WXTempCompLine))[0, 1, 2];
+
+                # Calculate distance station is away from pos file
+                $WXTempCompDist = (sin $WXLatitude) * (sin $WXTempCompLat) + (cos $WXLatitude) * (cos $WXTempCompLat) * (cos ($WXTempCompLong-$WXLongitude));
+                $WXTempCompDist = 1.852 * 60 * atan2(sqrt(1 - $WXTempCompDist * $WXTempCompDist), $WXTempCompDist);
+                $WXTempCompDist = $WXTempCompDist / 1.6093440;
+                $WXTempCompDist = round($WXTempCompDist, 1);
+
+                if ($WXTempCompDist < 150 and $WXTempCompDist < $WXCompDist) {
+                    $WXCompPlace = $WXTempCompPlace;
+                    $WXCompDist = $WXTempCompDist;
+                    $WXCompLat = $WXTempCompLat;
+                    $WXCompLong = $WXTempCompLong;
+                }
+            }
+
+            # Calculate if station is north/west/east/south of POSFILE
+            $WXCompLstBrLat = ($WXCompLat - $WXLatitude);
+            $WXCompLstBrLon = ($WXCompLong - $WXLongitude);
+            if ($WXCompLstBrLat < 0 and $WXCompLstBrLon < 0) {$WXCompLstBr = 'northwest'};
+            if ($WXCompLstBrLat > 0 and $WXCompLstBrLon < 0) {$WXCompLstBr = 'southwest'};
+            if ($WXCompLstBrLat < 0 and $WXCompLstBrLon > 0) {$WXCompLstBr = 'northeast'};
+            if ($WXCompLstBrLat > 0 and $WXCompLstBrLon > 0) {$WXCompLstBr = 'southeast'};
+            if ($WXCompLstBrLat <= 0 and (abs($WXCompLstBrLon) * 2) < abs($WXCompLstBrLat)) {$WXCompLstBr = 'north'};
+            if ($WXCompLstBrLat >= 0 and (abs($WXCompLstBrLon) * 2) < abs($WXCompLstBrLat)) {$WXCompLstBr = 'south'};
+            if ($WXCompLstBrLon <= 0 and (abs($WXCompLstBrLat) * 2) < abs($WXCompLstBrLon)) {$WXCompLstBr = 'west'};
+            if ($WXCompLstBrLon >= 0 and (abs($WXCompLstBrLat) * 2) < abs($WXCompLstBrLon)) {$WXCompLstBr = 'east'};
+
+            # Add bearing from station in position file IF it's a new position report
+            if ((($WXCallsign ne $LastWXCallsign) || ($WXDistance ne $LastWXDistance)) and ($GPSCompDist ne '9999')) {
+                $WXSpeakString2 = "Station is located $WXCompDist miles $WXCompLstBr of $WXCompPlace.";
+            }
+
+#######
+
             if (substr($PacketPart, 35, 1) eq 'T') {  # If a traditional,
                 $WXTemp = (substr($PacketPart, 36, 3));
                 # Get rid of those damn 0's in the Temperature
@@ -936,6 +1059,8 @@ if ($APRSString = said $tnc_output) {
                     $WXSpeakString = "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is out of the $WXWindDirVoice at $WXWindSpeed miles an hour.";
                     if ($WXTemp <= 45 and $WXTemp ne $WXWindChill) {$WXSpeakString = $WXSpeakString . "  The winnd chill is $WXWindChill."};
                     if ($WXHrPrecip != 0) {$WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour."};
+                    # NEW in 4.7 - Add bearing from POSFILE
+                    $WXSpeakString = $WXSpeakString . "  $WXSpeakString2";
 
                     print_log "$WXSpeakString";
 
@@ -949,6 +1074,8 @@ if ($APRSString = said $tnc_output) {
                 if ((($WXCallsign ne $LastWXCallsign) || ($WXDistance ne $LastWXDistance) || ($WXTemp ne $LastWXTemp)) and ($WXWindSpeed eq '0')) {
                     $WXSpeakString = "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is calm.";
                     if ($WXHrPrecip != 0) {$WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour."};
+                    # NEW in 4.7 - Add bearing from POSFILE
+                    $WXSpeakString = $WXSpeakString . "  $WXSpeakString2";
 
                     print_log "$WXSpeakString";
 
@@ -1012,6 +1139,8 @@ if ($APRSString = said $tnc_output) {
                     $WXSpeakString = "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is out of the $WXWindDirVoice at $WXWindSpeed miles an hour.";
                     if ($WXTemp <= 45 and $WXTemp ne $WXWindChill) {$WXSpeakString = $WXSpeakString . "  The winnd chill is $WXWindChill."};
                     if ($WXHrPrecip != 0) {$WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour."};
+                    # NEW in 4.7 - Add bearing from POSFILE
+                    $WXSpeakString = $WXSpeakString . "  $WXSpeakString2";
 
                     print_log "$WXSpeakString";
 
@@ -1025,6 +1154,8 @@ if ($APRSString = said $tnc_output) {
                 if ((($WXCallsign ne $LastWXCallsign) || ($WXDistance ne $LastWXDistance) || ($WXTemp ne $LastWXTemp)) and ($WXWindSpeed eq '0')) {
                     $WXSpeakString = "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is calm.";
                     if ($WXHrPrecip != 0) {$WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour."};
+                    # NEW in 4.7 - Add bearing from POSFILE
+                    $WXSpeakString = $WXSpeakString . "  $WXSpeakString2";
 
                     print_log "$WXSpeakString";
 
@@ -1153,3 +1284,4 @@ if ($APRSString = said $tnc_output) {
 
     }
 }
+

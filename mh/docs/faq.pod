@@ -523,6 +523,8 @@ Here is a rough timeline of MisterHouse development:
  - 11/99 HomeVision support
  - 11/99 Mailing list reaches 200 members
  - 01/00 Moved the mailing list and CVS repostitory to sourceforge.net
+ - 02/00 Re-worked the web interface
+ - 03/00 Added support for iButtons
 
 =head2 6.2: Who is that Bruce guy anyway?
 
@@ -530,7 +532,7 @@ Bruce (Winter) is the the main author of MisterHouse.
 He has a day job with IBM in Rochester, Minnesota, designing integrated circuits.
 He got started with Home Automation as one of the first ECS users in '86 and started the ECS mailing list
 in early '94.  He loves getting slaughtered by his twin boys in Quake death matches, hiking
-in Montana, and playing his digital piano.
+in his boyhood state of Montana, and playing his digital piano.
 
 =head2 6.3: Why open source?
 
@@ -551,6 +553,9 @@ Here are some useful/related Home Automation links:
 
   Lots of good tutorials and articles are here:
     http://hometoys.com/
+
+  X10 has many of its products documented here:
+    http://www.x10.com/support/support_manuals.htm
 
 =head2 6.5: How can I use cvs to co-develop core mh code?
 
@@ -654,6 +659,9 @@ that are much more expense.
 
 #
 # $Log$
+# Revision 1.12  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.11  2000/03/10 04:09:01  winter
 # - Add Ibutton support and more web changes
 #

@@ -3,7 +3,7 @@
 #  File:
 #     monitor_weblog
 #
-#  Last emacs update Time-stamp: <2000-02-16 08:16:15 winter>
+#  Last emacs update Time-stamp: <2000-04-09 09:24:19 winter>
 #
 #  Description:
 #     See help text below
@@ -88,7 +88,8 @@ while (1) {
 
                                 # Restart log if it hasn't changed in a while
                                 #  - This allows us to not get stuck following a rotated log file
-    $log_pos  = &open_log($log_file) if ($last_active + 3600*8) < time;
+#   $log_pos  = &open_log($log_file) if ($last_active + 3600*8) < time;
+    $log_pos  = &open_log($log_file) if ($hour == 3 and $min == 30 and $sec < 5) ;
 
     seek(LOG, $log_pos, 0);     # Reset end of file flag
     while (<LOG>) {
@@ -170,6 +171,9 @@ sub speak {
 
 #
 # $Log$
+# Revision 1.10  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
 # Revision 1.9  2000/02/20 04:47:54  winter
 # -2.01 release
 #
