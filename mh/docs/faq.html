@@ -1,0 +1,1088 @@
+<HTML>
+<HEAD>
+<TITLE>1: MisterHouse operational questions</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<BODY>
+
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#1_MisterHouse_operational_quest">1: MisterHouse operational questions</A></LI>
+	<UL>
+
+		<LI><A HREF="#1_1_What_OSes_can_it_run_on_">1.1: What OSes can it run on?</A></LI>
+		<LI><A HREF="#1_2_How_can_I_make_it_run_faste">1.2: How can I make it run faster and use less memory?</A></LI>
+		<LI><A HREF="#1_3_How_can_I_easily_upgrade_to">1.3: How can I easily upgrade to the latest version of mh?</A></LI>
+		<LI><A HREF="#1_4_How_does_mh_ini_work_">1.4: How does mh.ini work?</A></LI>
+		<LI><A HREF="#1_5_Can_I_run_run_mh_in_a_fast">1.5: Can I run run mh in a 'fast debug mode'?</A></LI>
+		<LI><A HREF="#1_6_How_are_the_X10_and_Serial_">1.6: How are the X10 and Serial Items implemented, indpendent of the platform?</A></LI>
+		<LI><A HREF="#1_7_mh_seems_way_too_complicate">1.7: mh seems way too complicated.  How can I run something simple?</A></LI>
+		<LI><A HREF="#1_8_Is_there_a_way_I_can_have_d">1.8: Is there a way I can have direct X10 control with a simple perl script?</A></LI>
+		<LI><A HREF="#1_9_Can_I_send_mh_commands_from">1.9: Can I send mh commands from other programs?</A></LI>
+		<LI><A HREF="#1_11_How_can_I_debug_a_problem_">1.11: How can I debug a problem?</A></LI>
+		<LI><A HREF="#1_12_How_can_I_debug_time_event">1.12: How can I debug time event problem?</A></LI>
+		<LI><A HREF="#1_13_What_are_the_advantages_di">1.13: What are the advantages/disadvantages to running the compiled versions of mh?</A></LI>
+		<LI><A HREF="#1_14_How_does_mh_read_and_use_t">1.14: How does mh read and use the user code in code_dir</A></LI>
+	</UL>
+
+	<LI><A HREF="#2_MisterHouse_coding_questions">2: MisterHouse coding questions</A></LI>
+	<UL>
+
+		<LI><A HREF="#2_1_How_do_I_debug_syntax_error">2.1: How do I debug syntax errors in my code?</A></LI>
+		<LI><A HREF="#2_2_How_should_I_code_events_th">2.2: How should I code events that should occur only at infrequently, or </A></LI>
+		<LI><A HREF="#2_3_How_should_I_structure_my_P">2.3: How should I structure my Perl code?</A></LI>
+		<LI><A HREF="#2_4_Can_I_create_global_variabl">2.4: Can I create global variables that can be shared between code members?</A></LI>
+		<LI><A HREF="#2_5_How_can_I_move_code_out_of_">2.5: How can I move code out of the loop code?</A></LI>
+		<LI><A HREF="#2_6_How_can_I_add_my_own_subrou">2.6: How can I add my own subroutines?</A></LI>
+		<LI><A HREF="#2_7_What_other_special_global_v">2.7: What other special global variables are there?</A></LI>
+		<LI><A HREF="#2_8_Can_I_use_mh_to_control_oth">2.8: Can I use mh to control other windows</A></LI>
+		<LI><A HREF="#2_9_What_data_is_saved_when_mh_">2.9: What data is saved when mh is exited and restarted?</A></LI>
+		<LI><A HREF="#2_10_How_can_I_turn_a_bunch_of_">2.10: How can I turn a bunch of lights on/off all at once?</A></LI>
+		<LI><A HREF="#2_11_How_do_I_get_mh_to_stop_te">2.11: How do I get mh to stop telling the time each minute?</A></LI>
+		<LI><A HREF="#2_12_Can_do_I_send_mh_comands_v">2.12: Can do I send mh comands via email?</A></LI>
+		<LI><A HREF="#2_13_How_can_I_control_Command_">2.13: How can I control Command Categories</A></LI>
+	</UL>
+
+	<LI><A HREF="#3_Linux_specific_questions">3: Linux specific questions</A></LI>
+	<UL>
+
+		<LI><A HREF="#3_1_When_I_run_Viavoice_and_fes">3.1: When I run Viavoice and festival at the same time I get &quot;Can't open output file '/dev/dsp'&quot;</A></LI>
+	</UL>
+
+	<LI><A HREF="#4_Windows_specific_questions">4: Windows specific questions</A></LI>
+	<UL>
+
+		<LI><A HREF="#4_1_mh_seems_to_cause_some_wind">4.1: mh seems to cause some windows to hang</A></LI>
+	</UL>
+
+	<LI><A HREF="#5_Perl_questions">5: Perl questions</A></LI>
+	<UL>
+
+		<LI><A HREF="#5_1_Whats_the_best_way_to_learn">5.1: Whats the best way to learn perl?</A></LI>
+	</UL>
+
+	<LI><A HREF="#6_Misc_questions">6: Misc questions</A></LI>
+	<UL>
+
+		<LI><A HREF="#6_1_Misterhouse_Timeline">6.1: Misterhouse Timeline</A></LI>
+		<LI><A HREF="#6_2_Who_is_that_Bruce_guy_anywa">6.2: Who is that Bruce guy anyway?</A></LI>
+		<LI><A HREF="#6_3_Why_open_source_">6.3: Why open source?</A></LI>
+		<LI><A HREF="#6_4_Misc_Home_Automation_links">6.4: Misc Home Automation links</A></LI>
+		<LI><A HREF="#6_5_How_can_I_use_cvs_to_co_dev">6.5: How can I use cvs to co-develop core mh code?</A></LI>
+		<LI><A HREF="#6_5_What_is_X10_">6.5 What is X10?</A></LI>
+	</UL>
+
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<HR>
+<H1><A NAME="1_MisterHouse_operational_quest">1: MisterHouse operational questions</A></H1>
+<P>
+<HR>
+<H2><A NAME="1_1_What_OSes_can_it_run_on_">1.1: What OSes can it run on?</A></H2>
+<P>
+It has been tested on Windows 95, 98, NT 4.0, and 2K. On Unix, it has been
+run on Linux, AIX, and Sun.
+
+</P>
+<P>
+In theory, any OS that runs perl should be able to run mh. In practice,
+some platforms will likely have strange Serial Interfaces (e.g. Mac?), so
+the Serial IO related function would take some work.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_2_How_can_I_make_it_run_faste">1.2: How can I make it run faster and use less memory?</A></H2>
+<P>
+On my Celron 400 Mhz computer running Windows 98, using 60 code files with
+6000 lines of code, mh takes 10% the cpu, running at 9 passes per second
+and using about 20 MB of memory. 
+
+</P>
+<P>
+If you are happy with the Web interface and don't need the Tk interface,
+turn it off by editing the Tk mh.ini parm or run:
+
+</P>
+<P>
+<PRE>   mh -tk 0
+</PRE>
+</P>
+<P>
+If you want the tk window, but don't use the Command/Items/Group pull down
+menus, try:
+
+</P>
+<P>
+<PRE>   mh -tk_comands 0 -tk_items 0 -tk_groups 0
+</PRE>
+</P>
+<P>
+You can turn off the tk 'eye' that bounces back and forth by deleting the
+tk_eye.pl code file.
+
+</P>
+<P>
+You can speed up / slow down mh, using more/less cpu, by mh.ini sleep_time
+parm. 
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_3_How_can_I_easily_upgrade_to">1.3: How can I easily upgrade to the latest version of mh?</A></H2>
+<P>
+Point your mh.ini code_dir, data_dir, and html_dir parms to somplace other
+than your mh path. Then you should be able to rename your old mh directory
+and unzip the new one in its place without loosing anything. Also keep your
+mh.private.ini somewhere else (see next question).
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_4_How_does_mh_ini_work_">1.4: How does mh.ini work?</A></H2>
+<P>
+All the entries in mh.ini are read on mh Startup and on a Reload. They are
+stored in the <CODE>%config_parms</CODE> array. So, for example, if you
+added:
+
+</P>
+<P>
+<PRE>  myparm1=a b c
+</PRE>
+</P>
+<P>
+Then, mh would set $config_parms{myparm1} = 'a b c';
+
+</P>
+<P>
+These parms also defined what are legal startup values, so if you want to
+try a different value, instead of editing your mh.ini, you can run:
+
+</P>
+<P>
+<PRE>  mh -myparm1 'd e f'
+</PRE>
+</P>
+<P>
+Rather then edit the default mh.ini file, the best approach is to copy just
+the parms you want to change to your own .ini file (e.g. mh.private.ini),
+then set the environmental variable mh_parms to point where you keep that
+file (see the header of mh/bin/mh.ini for more detail).
+
+</P>
+<P>
+While the <CODE>%config_parms</CODE> array IS refreshed on a mh Reload,
+some parms are only used on mh startup (e.g. http_port), so will only be
+reloaded when you re-start mh.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_5_Can_I_run_run_mh_in_a_fast">1.5: Can I run run mh in a 'fast debug mode'?</A></H2>
+<P>
+Funny you should ask :) Check out the time_start, time_stop, and
+time_increment parms in the mh.ini file. Here are some examples:
+
+</P>
+<P>
+<PRE>   mh -time_start 0 -time_stop 24 -tk 0 -voice_text 0
+   mh -time_start &quot;6 AM&quot; -time_stop &quot;11 PM&quot;  -time_increment 1
+   mh -time_start &quot;5/14 7:10&quot; -time_stop &quot;5/15 10 PM&quot; -time_increment 300
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="1_6_How_are_the_X10_and_Serial_">1.6: How are the X10 and Serial Items implemented, indpendent of the platform?</A></H2>
+<P>
+This answer is authored by Bill Birthisel, author of the SerialPort and
+CommPort modules.
+
+</P>
+<P>
+The user works with an X10_Item which reflects physical hardware and the
+state of that hardware. The user ``loop'' code deals with the state and
+conditions which alter it. This code is independent of OS and specific to
+mh.
+
+</P>
+<P>
+X10_Items talk to Serial_Items which implement a software protocol required
+by the model and type of the actual hardware. The Serial_Items can use
+protocol translator modules such as CM11.pm, HomeBase.pm, and CM17.pm. But
+the output is platform-independent serial commands to the next layer. The
+protocol translator modules are publicly available outside mh and may be
+used by code other than Serial_Items. These modules will eventually be on
+CPAN. The code is still independent of OS. Other Serial_Item types,
+including ``generic'' read/write ports, also exist.
+
+</P>
+<P>
+Win32::SerialPort.pm and Device::SerialPort.pm are CPAN modules which
+actually implement the serial command interface. Device::SerialPort is a
+clone of its Win32 cousin. These modules handle high-level OS issues
+including device names, configuration files, and validation of port
+settings.
+
+</P>
+<P>
+Each also calls a CPAN module to handle low-level interfacing to the OS and
+the serial driver: Win32API::CommPort.pm or POSIX.pm (you guessed correctly
+;-)
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_7_mh_seems_way_too_complicate">1.7: mh seems way too complicated.  How can I run something simple?</A></H2>
+<P>
+Copy mh\code\test\test_x10.pl into your own code dir (e.g. c:\mh_code).
+Then run:
+
+</P>
+<P>
+mh -code_dir c:\mh_code
+
+</P>
+<P>
+You can then use <A HREF="http://localhost:8080">http://localhost:8080</A>
+for control. If you also want the local Tk windows, also copy the tk* code
+files.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_8_Is_there_a_way_I_can_have_d">1.8: Is there a way I can have direct X10 control with a simple perl script?</A></H2>
+<P>
+If all you want to do is control X10 devices with a cron job or from your
+own cgi scripts, running mh is probably overkill. You can send X10 commands
+using either the ActiveHome interface (CM11) or the cheaper Firecracker
+interface (CM17) using the modules and documentation found in
+mh/lib/site/ControlX10 or download them from CPAN. Examples can be found in
+mh/lib/site/test_cm11.pl and test_cm17.pl.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_9_Can_I_send_mh_commands_from">1.9: Can I send mh commands from other programs?</A></H2>
+<P>
+You can send mh commands (Voice_Cmd text strings) from other programs in
+one of 3 ways:
+
+</P>
+<P>
+- Write commands to the file specified in the mh.ini xcmd_file parm. By
+default this is mh/house_cmd.txt. See mh/bin/house and mh/bin/house.bat for
+examples.
+
+</P>
+<P>
+- Use mh/bin/mhsend to send commands via sockets (can be over the
+internet). If you have run mh/bin/set_password, the mhsend -password parm
+is required. To enable this, include the code mh/test/code/mhsend_server.pl
+in your code directory.  
+
+</P>
+<P>
+You can also control mh remotely via email (see faq question 'Can do I send
+mh comands via email?'), telnet sessions (if running
+mh/code/test/telent.pl), and via the built in web server.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_11_How_can_I_debug_a_problem_">1.11: How can I debug a problem?</A></H2>
+<P>
+Lots of debug errata can be controled with the mh -debug switch. Most of
+this code is probably meaningful only if you dig into the source code, so
+most people probably will not use it unless you are generating debug to
+send to the author. To create a log file with debug in it, run:
+
+</P>
+<P>
+<PRE>  mh -log debug.log -debug xyz
+</PRE>
+</P>
+<P>
+Where xyz can be any of the following:
+
+</P>
+<P>
+<PRE>  X10    
+  serial 
+  socket
+  startup
+  homebase
+  misc
+  http
+  port_name of socket port
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="1_12_How_can_I_debug_time_event">1.12: How can I debug time event problem?</A></H2>
+<P>
+One way is to create a code member that contains just the event you are
+trying to debug, then run mh on just that one member. For example, create a
+member called \temp\test_time.pl with this code:
+
+</P>
+<P>
+<PRE>  print &quot;min=$Minute\n&quot; if $New_Minute;
+  print &quot;hour=$Hour\n&quot;  if $New_Hour;
+  print &quot;debug1 it is now $Time_Now\n&quot; if time_now &quot;11:59 PM&quot;;
+  print &quot;debug2 it is now $Time_Now\n&quot; if time_now &quot;23:59&quot;;
+  print &quot;debug3 it is now $Time_Now\n&quot; if time_now &quot;12:00 AM&quot;;
+  print &quot;debug4 it is now $Time_Now\n&quot; if time_now &quot;00:00&quot;;
+ 
+</PRE>
+</P>
+<P>
+Then run mh using these parameters:
+
+</P>
+<P>
+<PRE>  mh -code_dir \temp -tk 0 -time_start '12/15 11:58 pm' -time_start '12/16 12:01 am'
+</PRE>
+</P>
+<P>
+Note, you can run this test mh quickly without stoping your normal mh.  
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_13_What_are_the_advantages_di">1.13: What are the advantages/disadvantages to running the compiled versions of mh?</A></H2>
+<P>
+Advantages:
+
+</P>
+<UL>
+<LI>
+<P>
+You don't need the latest version of perl installed
+
+</P>
+<LI>
+<P>
+You don't have to install additional perl modules
+
+</P>
+</UL>
+<P>
+Disadvantages:
+
+</P>
+<UL>
+<LI>
+<P>
+For some reason, starting mh with the compiled versions is slower. On my
+windows box, it is 10 seconds -vs- 20 seconds.
+
+</P>
+<LI>
+<P>
+You can apply quick patches to mh, -vs- downloading a larger, less
+frequently updated mh.exe file.
+
+</P>
+</UL>
+<P>
+The memory and cpu used, once mh is started, is the same.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="1_14_How_does_mh_read_and_use_t">1.14: How does mh read and use the user code in code_dir</A></H2>
+<P>
+Each time mh is started or a Reload is done, mh will re-read all the .pl
+code members in the code_dir directory (this is a mh.ini parm) and the file
+code_dir/mh_temp.user_code is created. All of the objects and global
+variables (see FAQ question 2.4), are put at top of this file, and
+everything else is put in seperate subroutines, one for each file read. A
+<CODE>&amp;loop_code</CODE> subroutine is also created (at the very bottom
+of mh_temp.user_code), that calls each member subroutine.
+
+</P>
+<P>
+After creating this file, mh runs the perl eval function on its contents.
+This re-creates all the objects, global variables, and code_dir member
+subroutines. Then mh goes back into its normal loop where it queries
+various input data (e.g. serial, tcp/ip, voice, time), updates objects and
+variables, evals the <CODE>&amp;loop_code</CODE> code (it does an eval,
+rather then execute it directly, so we can trap errors and not kill mh),
+sleeps for a bit, then repeats.
+
+</P>
+<P>
+<HR>
+<H1><A NAME="2_MisterHouse_coding_questions">2: MisterHouse coding questions</A></H1>
+<P>
+<HR>
+<H2><A NAME="2_1_How_do_I_debug_syntax_error">2.1: How do I debug syntax errors in my code?</A></H2>
+<P>
+This is an area that needs some work. When mh loads your code in, it does
+so with a perl 'eval' function. If there are errors in that code, eval
+often does not point to the specific line with the problem.
+
+</P>
+<P>
+The best error information is in the mh console window. There is a tk
+window that will pop up, but unfortunatly, I have not figured out how to
+capture the more relevant error message from the console window.
+
+</P>
+<P>
+I think the best solution here is some sort of mh/perl lint checker. That
+will look at member code directly. If we have the main interpretor see the
+error, instead of the eval function, the error messages will be easier to
+diagnose.
+
+</P>
+<P>
+When you go to write new code, first start mh with old code that works,
+then edit or copy in your new code and do a mh Reload. Fixing errors with
+code Reloads is much quicker than trying to fix them on mh startup. You can
+add/delete the .pl suffix on code members between reloads to enable/disable
+them.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="2_2_How_should_I_code_events_th">2.2: How should I code events that should occur only at infrequently, or 
+only at Startup?</A></H2>
+<P>
+You can use the <CODE>$Startup</CODE> or <CODE>$Reload</CODE> variables for
+events that should only occur when mh is Started, or when code is Reloaded.
+Note that <CODE>$Reload</CODE> is also true when <CODE>$Startup</CODE> is
+true.
+
+</P>
+<P>
+To run events infrequently, you can use the modulus operator (%),
+$New_Second/Hour/Day/Month/Year variables, or the Time_Now/Time_Cron
+functions to control events.
+
+</P>
+<P>
+The <CODE>$New_xxx</CODE> variables are 1 (true) for each pass that the xxx
+variable gets incremented, and 0 for all other passes. For example,
+<CODE>$New_Hour</CODE> is true for one pass when <CODE>$Hour</CODE> changes
+from one hour to another.
+
+</P>
+<P>
+Here are some examples:
+
+</P>
+<P>
+<PRE>  print_log &quot;Only at startup&quot; if $Startup;
+</PRE>
+</P>
+<P>
+<PRE>  print_log &quot;Every 5 minutes&quot; if $New_Minute and !($Minute % 5);
+</PRE>
+</P>
+<P>
+<PRE>  print_log &quot;At 10:05 pm&quot; if time_now '10:05 PM';
+</PRE>
+</P>
+<P>
+<PRE>  print_log &quot;Every weekday at 2:15 am&quot; time_cron '2 15 * * 1-5';
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="2_3_How_should_I_structure_my_P">2.3: How should I structure my Perl code?</A></H2>
+<P>
+Pretty much anyway you want! You may want to put object definitions all in
+one member (e.g. mh/code/Bruce/items.pl) so you can easily change device
+codes, or you may want to define the objects in the file members you use
+them in.
+
+</P>
+<P>
+If the same object is defined in multiple members, it will still work ok,
+although some object types (e.g. Voice_Item) will warn about duplicate
+names.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="2_4_Can_I_create_global_variabl">2.4: Can I create global variables that can be shared between code members?</A></H2>
+<P>
+Yep. All objects definitions (e.g. <CODE>$light</CODE> = new
+<CODE>X10_Item('C5'))</CODE> are always shared. They are pulled out of the
+member loop by mh.
+
+</P>
+<P>
+All other variable declarations must be made using with 'my' or 'use vars':
+
+</P>
+<P>
+<PRE>   my ($my_var1, $my_var2);
+   use vars '$my_var1', '$my_var2';
+   use vars qw($my_var1 $my_var2);
+</PRE>
+</P>
+<P>
+The last example uses the qw function (Quote Words) to save you from the '
+and , punctuation.
+
+</P>
+<P>
+If you code a 'my' or 'use var' record that starts in column 1, mh will
+pull these records out of the member loop code (as it did with object
+definitions), so that the variable can now be shared with other code
+members.
+
+</P>
+<P>
+If the 'my' or 'use var' record does not start in column 1, the variable
+declaration is left in with the rest of the member code and is local to
+that member.
+
+</P>
+<P>
+If you want to use the variable with any mh/web/*.pl script when creating
+mh web pages, you must use 'use vars', as 'my' variables can not be shared
+with the server.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="2_5_How_can_I_move_code_out_of_">2.5: How can I move code out of the loop code?</A></H2>
+<P>
+Sometimes you may need to have mh run code out of the loop code. For
+example, if you want to create a Voice_Cmd object that has states that are
+read from a file. Since objects are moved out of the loop code by mh, we
+need to also move any other code used to define that object.
+
+</P>
+<P>
+You can tell mh to do this using '# noloop=start/stop' comments. For
+example:
+
+</P>
+<P>
+<PRE>   # noloop=start
+   my $mp3names;
+   while ( my $mp3name = &lt;d:/songs/*.mp3&gt; ) {
+      $mp3name =~ s#^.*/##;  # remove path
+      $mp3name =~ s#\..*$##; # remove extension
+      $mp3names .= &quot;,&quot; if $mp3names;
+      $mp3names .= $mp3name;
+   }
+  # noloop=stop
+</PRE>
+</P>
+<P>
+<PRE>  $v_play_music = new Voice_Cmd(&quot;Play [$mp3names]&quot;);
+  if ($state = said $v_play_music) {
+     speak &quot;Playing song $state&quot;;
+     run(&quot;winamp d:/songs/$state.mp3&quot;)
+  }
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="2_6_How_can_I_add_my_own_subrou">2.6: How can I add my own subroutines?</A></H2>
+<P>
+You can add your own subroutines anywhere in any of your code files. These
+can then be called by that member or any other member. Here is a couple of
+examples:
+
+</P>
+<P>
+<PRE>   print_log &amp;mysub1(9990, 9);
+</PRE>
+</P>
+<P>
+<PRE>   sub mysub1 {
+      my ($a, $b) = @_;
+      my $c = $a + $b;
+      return &quot;The answer is: $a + $b = $c&quot;;
+   }
+</PRE>
+</P>
+<P>
+<PRE>   $v_bedroom_curtain  = new  Voice_Cmd('[open,close] the bedroom curtains');
+   &amp;curtain_on('bedroom', $state) if $state = said $v_bedroom_curtain;
+</PRE>
+</P>
+<P>
+<PRE>   sub curtain_on {
+       my($room, $action) = @_;
+       set $curtain_updown  $action;
+       eval &quot;set \$curtain_$room ON;&quot;;
+   }
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="2_7_What_other_special_global_v">2.7: What other special global variables are there?</A></H2>
+<P>
+Here are a few:
+
+</P>
+<P>
+<PRE>  $Pgm_Path is the directory that that mh/bin/mh is found in.
+  $Pgm_Root is one directory above $Pgm_Path
+  $OS_win is true on windows, false otherwise.  $^O will reflect the OS name.
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="2_8_Can_I_use_mh_to_control_oth">2.8: Can I use mh to control other windows</A></H2>
+<P>
+On Windows (95,98, NT), you can use the SendKeys to send keystrokes to
+other windows. See mh.html for details.
+
+</P>
+<P>
+If anyone knows of an equivalent function for linux, let me know. Linux is
+usually clever enough to have command line options, so there is less of a
+need here.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="2_9_What_data_is_saved_when_mh_">2.9: What data is saved when mh is exited and restarted?</A></H2>
+<P>
+The state of all objects (Timer Serial_Item X10_Item X10_Appliance
+File_Item Generic_Item) and all the <CODE>$Save</CODE> variables.
+
+</P>
+<P>
+Every 5 minutes while mh is running, and whenever mh is exited, the state
+of these variables are saved to your code directory in a member called
+mh_temp.saved_states. When you start mh, this member is run to restore the
+states.
+
+</P>
+<P>
+You can make up any members to the <CODE>$Save</CODE> array. For example,
+you can use $Save{sleeping_cat} to track whenever your cat is asleep.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="2_10_How_can_I_turn_a_bunch_of_">2.10: How can I turn a bunch of lights on/off all at once?</A></H2>
+<P>
+You can turn all the lights on a single house code on/off by specifying
+just the house code letter. For example:
+
+</P>
+<P>
+<PRE>   $v_bedroom_lights = new Voice_Cmd('Bedroom lights [on,off]');
+   $bedroom_lights   = new X10_Item('P');
+   set $bedroom_lights $state if $state = said $v_bedroom_lights;
+</PRE>
+</P>
+<P>
+You can also create a group of X10 items. Here is an example that would
+turn all lights on/off in several rooms.  
+
+</P>
+<P>
+<PRE>  $all_lights_bed    = new X10_Item('P');
+  $all_lights_living = new X10_Item('O');
+  $all_lights  = new Group($all_lights_bed, $all_lights_living);
+</PRE>
+</P>
+<P>
+<PRE>  $v_lights_all = new  Voice_Cmd('All lights [on,off]');
+  set $all_lights $state if $state = said $v_lights_all;
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="2_11_How_do_I_get_mh_to_stop_te">2.11: How do I get mh to stop telling the time each minute?</A></H2>
+<P>
+Out of the box, mh defaults to running all the code in the mh/code/test
+directory. Once you have played around with the example code, you will want
+to create your own code directory (probably somewhere other than in
+mh/code, so you can easily upgrade to new versions of mh), and copy just
+the code members you find useful. Members test_tagline and the hello_speak
+members are the main sources of the periodic test speech.
+
+</P>
+<P>
+If you want to use the Tk interface, make sure you copy tk_*.pl members.
+See the FAQ question 'How does mh.ini work' on how to modify the code_dir
+parm to point to your new code directory.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="2_12_Can_do_I_send_mh_comands_v">2.12: Can do I send mh comands via email?</A></H2>
+<P>
+Set the mh.ini net_mail_command_code parm to a secret code, and copy
+mh/code/test/internet_mail.pl into your code directory. Now you can send
+email with the following string either in the subject or the body of your
+email:
+
+</P>
+<P>
+<PRE>  command:your command    code:your_code
+</PRE>
+</P>
+<P>
+The internet_mail.pl code periodicaly runs the get_email process and then
+scans for the above string. If found, it will send a confirmation email
+saying either ``command run'', ``command not found'', or ``command not
+authorized''.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="2_13_How_can_I_control_Command_">2.13: How can I control Command Categories</A></H2>
+<P>
+All Voice_Cmd objects are listed in the Tk Command pull down and Web
+Category list. These lists are organize by Category, which is specified
+with a Category=value comment in the user code. For example:
+
+</P>
+<P>
+<PRE>  # Category=Timers
+</PRE>
+</P>
+<P>
+This can be specified multiple times in the same file, with the most recent
+specification appling to all subsequent Voice_Cmd entries.
+
+</P>
+<P>
+If a file does not have a # Category record, the file name will be used.
+
+</P>
+<P>
+<HR>
+<H1><A NAME="3_Linux_specific_questions">3: Linux specific questions</A></H1>
+<P>
+<HR>
+<H2><A NAME="3_1_When_I_run_Viavoice_and_fes">3.1: When I run Viavoice and festival at the same time I get &quot;Can't open output file '/dev/dsp'&quot;</A></H2>
+<P>
+Answer complements of Brent L Johnson.
+
+</P>
+<P>
+The problem is, festival or another sound program, is locking your dsp
+device. The sound drivers that come stock in the Linux kernel do not allow
+more than one program to access the /dev/dsp at one time. If you are using
+RedHat, you can use ESD to multiplex the soundcard usage. The problem is,
+not all sound programs are esd aware. Festival and Viavoice do not directly
+support esd. ESD does have a workaround that _sometimes_ works with non-esd
+aware programs. Try starting your sound programs, festival and viavoice
+under esddsp. For example: ``esddsp festival --server &amp;''. I had some
+success with this route but it doesn't always work because of sampling
+rates and such. 
+
+</P>
+<P>
+The best fix would be to replace OSS with ALSA. <A
+HREF="http://www.alsa-project.org.">http://www.alsa-project.org.</A> The
+ALSA drivers directly support multiplexing the dsp devices. The only
+problem is they currently support fewer cards than the OSS drivers that
+come with the Linux kernel. Check out the web page and see if your card is
+supported. If it is, the best avenue would be replacing OSS with ALSA.
+
+</P>
+<P>
+<HR>
+<H1><A NAME="4_Windows_specific_questions">4: Windows specific questions</A></H1>
+<P>
+<HR>
+<H2><A NAME="4_1_mh_seems_to_cause_some_wind">4.1: mh seems to cause some windows to hang</A></H2>
+<P>
+If you are experiencing problems with windows not popping up when they
+should (e.g. control panel or install shield), you will want to install
+DCOM 1.3, available from here:
+
+</P>
+<P>
+<PRE>  <A HREF="http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp">http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp</A>
+</PRE>
+</P>
+<P>
+Note, I had run all the 'Windows updates', including the Service Pack 2,
+but I still had the problem until I installed the above.
+
+</P>
+<P>
+For Windows 95, the update is at:
+
+</P>
+<P>
+<PRE>  <A HREF="http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp">http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp</A>
+  
+=head2 4.2: How do I set setup networking between Windows boxes
+</PRE>
+</P>
+<P>
+You need to have the TCP/IP protocol enabled for your Networking Interface
+Card (NIC). If you use a modem to reach the internet, you already have
+TCP/IP enable for the dial up adaptor, but you need to seperately enable it
+for your NIC card, using the control panel Network icon.
+
+</P>
+<P>
+You can find instuctions on how to do this at: <A
+HREF="http://win98central.acauth.com/inside98/networking.htm">http://win98central.acauth.com/inside98/networking.htm</A>
+.  
+
+</P>
+<P>
+IP addresses that start with 10. (e.g. 10.0.0.1) are reserved for internal
+lans, so you can use 10.0.0.1, 10.0.0.2, etc.
+
+</P>
+<P>
+<HR>
+<H1><A NAME="5_Perl_questions">5: Perl questions</A></H1>
+<P>
+<HR>
+<H2><A NAME="5_1_Whats_the_best_way_to_learn">5.1: Whats the best way to learn perl?</A></H2>
+<P>
+Using MisterHouse ;-) Much more fun that trying to code up that report
+generator at work! Some good books are referenced in mh.html.
+
+</P>
+<P>
+<HR>
+<H1><A NAME="6_Misc_questions">6: Misc questions</A></H1>
+<P>
+<HR>
+<H2><A NAME="6_1_Misterhouse_Timeline">6.1: Misterhouse Timeline</A></H2>
+<P>
+Here is a rough timeline of MisterHouse development:
+
+</P>
+<P>
+<PRE> - 12/96 Coded a predecessor called House_Menu
+ -  8/98 Re-wrote everything, called it MisterHouse
+ -  9/98 Uploaded to the web
+ - 10/98 Created compiled version.
+ - 11/98 First known user.
+ - 01/99 Started a mailing list at onelist.com
+ - 02/99 Ported mh to Unix/Linux
+ - 03/99 Article in Popular Home Automation
+ - 05/99 Registered misterhouse.net domain name (misterhouse.com is owned 
+         by misterhouse.it,  an Italian Real Estate company ... go figure!)
+ - 06/99 Added CM17 &amp; HomeBase support
+ - 06/99 Article in HomeToys: <A HREF="http://hometoys.com/htinews/jun99/articles/winter/winter.htm">http://hometoys.com/htinews/jun99/articles/winter/winter.htm</A>
+ - 08/99 Mailing list reaches 100 members
+ - 09/99 Added LCDproc and IRman support
+ - 10/99 Article in Circuit Cellar Ink: href=<A HREF="http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf">http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf</A>
+ - 11/99 Linux VR using IBM's ViaVoice
+ - 11/99 HomeVision support
+ - 11/99 Mailing list reaches 200 members
+ - 01/00 Moved the mailing list and CVS repostitory to sourceforge.net
+ - 02/00 Re-worked the web interface
+ - 03/00 Added support for iButtons
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="6_2_Who_is_that_Bruce_guy_anywa">6.2: Who is that Bruce guy anyway?</A></H2>
+<P>
+Bruce (Winter) is the the main author of MisterHouse. He has a day job with
+IBM in Rochester, Minnesota, designing integrated circuits. He got started
+with Home Automation as one of the first ECS users in '86 and started the
+ECS mailing list in early '94. He loves getting slaughtered by his twin
+boys in Quake death matches, hiking in his boyhood state of Montana, and
+playing his digital piano.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="6_3_Why_open_source_">6.3: Why open source?</A></H2>
+<P>
+Because open source only has 2 syllables, and proprietary has 5. 
+
+</P>
+<P>
+That and MisterHouse has developed much faster with the help of a wider
+user base and help from other coders than it would have if it were
+proprietary.  
+
+</P>
+<P>
+Plus it feels good to give stuff back to the growing open source community.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="6_4_Misc_Home_Automation_links">6.4: Misc Home Automation links</A></H2>
+<P>
+Here are some useful/related Home Automation links:
+
+</P>
+<P>
+<PRE>  Dan Hoehnens most excellent collection of HA links:
+    <A HREF="http://www.infinet.com/~dhoehnen/ha/list.html">http://www.infinet.com/~dhoehnen/ha/list.html</A>
+</PRE>
+</P>
+<P>
+<PRE>  Lots of good tutorials and articles are here:
+    <A HREF="http://hometoys.com/">http://hometoys.com/</A>
+</PRE>
+</P>
+<P>
+<PRE>  X10 has many of its products documented here:
+    <A HREF="http://www.x10.com/support/support_manuals.htm">http://www.x10.com/support/support_manuals.htm</A>
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="6_5_How_can_I_use_cvs_to_co_dev">6.5: How can I use cvs to co-develop core mh code?</A></H2>
+<P>
+To get started with cvs, there are instructions at:
+
+</P>
+<P>
+<PRE> <A HREF="http://sfdocs.sourceforge.net/sfdocs/site/cvs.php">http://sfdocs.sourceforge.net/sfdocs/site/cvs.php</A>
+</PRE>
+</P>
+<P>
+For those on windows, you can find instructions for installing cvs and ssh
+(the secure shell used at sourceforge) at:
+
+</P>
+<P>
+<PRE> <A HREF="http://sfdocs.sourceforge.net/sfdocs/site/user/newproject-howto.php">http://sfdocs.sourceforge.net/sfdocs/site/user/newproject-howto.php</A>
+</PRE>
+</P>
+<P>
+Here is the command to check out the mh repository. Do this someplace other
+than your main mh directory. It does not include all the mh code (some of
+which came from CPAN and is maintained elsewhere), so you will not be able
+to run out of this directory. Also change username to your sourceforge id:
+
+</P>
+<P>
+<PRE>  cd \sourceforge
+  cvs -d:ext:username@cvs.misterhouse.sourceforge.net:/cvsroot/misterhouse co mh
+</PRE>
+</P>
+<P>
+When you have code you want to check in, you would do it with somethink
+like this:
+
+</P>
+<P>
+<PRE>  cp \mh\lib\http_server.pl \sourceforge\mh\lib
+  cd \sourceforge\mh\lib
+  cvs commit http_server.pl
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="6_5_What_is_X10_">6.5 What is X10?</A></H2>
+<P>
+The people at <A HREF="http://www.x10.com">http://www.x10.com</A> sell
+affordable devices that communicate with each other over normal household
+power lines.  
+
+</P>
+<P>
+The most common modules are the Lamp module and the Appliance module. Both
+sell for around $10-$15. The lamp module has can turn up to 300 watt lamps
+on, off, and various levels of bright. The appliance module is an on/off
+relay.
+
+</P>
+<P>
+The 2 most popular X10 PC interfaces are the <CODE>$50</CODE>
+ActiveHome/CM11 and the <CODE>$6</CODE> Firecracker/CM17.
+
+</P>
+<P>
+The CM17 is a transmit only interface. In addition to being almost free,
+another advantage is it is wireless. It is a small, 1 inch box that just
+dangles off of your serial port and transmits to a receiver that plugs into
+the wall. The other advantage to the CM17 is gives instant ON/OFF control
+to the relay built into the wireless receiver. All other X10 devices have
+about a 1/2 second delay to send and receive the protocol over the power
+lines.
+
+</P>
+<P>
+The CM11 is a 2 way interface, so you can program mh events to react to X10
+motion sensor and button pushes from various X10 controlers (e.g. keychain
+and palmpads). Some of the newer, more expensive modules, like the
+<CODE>$35</CODE> LM14A lamp module, allow you to query their status, so you
+can determine it status even if it were manually turned on or off.
+
+</P>
+<P>
+If decide you splurge for the CM11 activehome kit, you might as well also
+get the Firecracker kit. For the extra $6, you also get a few extra modules
+and mh can support both the CM11 and the CM17 on the same port. 
+
+</P>
+<P>
+There is lots of great X10 info at <A
+HREF="http://www.geocities.com/ido_bartana">http://www.geocities.com/ido_bartana</A>
+, including information on using and buying X10 hardward outside of the US.
+
+</P>
+<P>
+Here is some more info, copied from a misterhouse-users post by Kevin
+Olalde. 
+
+</P>
+<P>
+The firecracker hardware, CM17 which plugs into the PC, can only send radio
+frequency (RF) commands to devices. With the kit you will also get a
+transceiver, TM751, that receives commands from the CM17 and relays
+commands for the house code it's set to via your power lines. You also get
+a lamp module, LM465, which can be control with via the transceiver. With
+the PalmPad or the CM17 you send RF commands to the TM751, those commands
+are then relayed to the lamp module (or other power line receiver modules,
+like light switches). All of this is one way communications, the LM465 lamp
+module and the TM751 transceiver are not capable of reporting status. The
+TM751 doubles as an appliance module hard coded to unit 1. You can only
+control it though RF commands, it does not respond to power pline commands.
+
+</P>
+<P>
+The next step I took was to order the Active Home kit. With it you get
+(among other stuff), another transceiver, RR501, and another computer
+interface, CM11A. The RR501 works like the TM751, in that it receives RF
+commands, and relays then on to the power line. A difference is that the
+RR501 can report it's status. The computer interface, CM11A, can send power
+line commands (you use computer software to tell the interface what
+commands to send), 'sees' all commands being sent over the power line (and
+reports those commands to computer software), and can ask modules for their
+status. The RR501 also doubles as an appliance module, it can be set to
+unit code 1 or 9, and can be controlled with both RF and power line
+commands.
+
+</P>
+<P>
+The majority of the devices, lamp modules, appliance modules, wall
+switches, ..... are one way devices, they can only receive. I have no
+historical perspective, but it looks as though that was the way the
+original X10 spec went, one way only.
+
+</P>
+<P>
+There are devices that can report their current status to something like
+the CM11A, but I haven't used any of then (except for the RR501), since
+that are much more expense.
+
+</P>
+<P>
+<PRE>  <A HREF="http://www.x10.com/products/x10_lm465.htm">http://www.x10.com/products/x10_lm465.htm</A>  one way lamp module from X10, $13
+  <A HREF="http://www.x10.com/products/x10_lm14a.htm">http://www.x10.com/products/x10_lm14a.htm</A>  two way lamp module from X10, $33
+</PRE>
+</P>
+
+</BODY>
+
+</HTML>

@@ -1,0 +1,55 @@
+
+                      RASDIAL95 1.1 (4/3/98)
+		 Command-line Remote Access Dialer for Windows 95
+
+
+RASDIAL95 is a command-line remote access (dial-up networking) dialer for
+Windows 95.  It's based on the RASDIAL command on Windows NT and the usage 
+is very similar.  RASDIAL95 will allow you to dial and hangup a remote
+access phone entry.
+
+USAGE:
+	To dial:
+		rasdial95 entryname [username [password]] [/DOMAIN:domain]
+				  [/PHONE:phonenumber] [/CALLBACK:callbacknumber]
+			The entry name is the name of the icon that is in the dial-up
+			networking folder.  Enclose the entry name in double quotes if
+			it contains spaces.
+			If the phone number is specified, it overrides the number stored
+			in the dial-up connection icon.
+
+	To disconnect:
+		rasdial95 [entryname] /DISCONNECT
+			If an entry name is not specified, the first connection will be
+			disconnected.
+
+	To list connected entries:
+		rasdial95
+
+ERROR LEVELS:
+	For integration into batch files, the following errorlevels are
+	returned by RASDIAL95:
+	
+	0:	When dialing, errorlevel 0 is returned if the specified entry
+	    was successfully dialed or if it was already connected.
+		When hanging up, errorlevel 0 is returned if the specified
+		entry was successfully hanged up or if it was not connected.
+
+	1:  Errorlevel 1 is returned if the dial or hangup command fails.
+
+	2:	Errorlevel 2 is returned if the dial command was aborted by
+		the user with Control-C or Control-Break.
+
+REVISION HISTORY:
+
+1.0	(11/08/97):
+	o	Initial release
+
+1.1	(4/3/98):
+	o	Allowed the phone number and callback number to be specified on 
+		the command line.
+	o	Added control-break handling to properly abort the dial command.
+
+
+Please send comments and suggestions to:
+Claudio Fahey <claudio@osz.com>

@@ -1,0 +1,728 @@
+#
+#        Configuration variables for MisterHouse programs
+#
+# Change log is at the bottom
+#
+#  Notes:
+#
+#      Rather than edit this file, create your own 'mh.private.ini' file
+#      and override just the values you need to.  Then set the mh_parms
+#      environmental variable to point to this file.  By default it will look 
+#      for in mh/bin/mh.private.ini.
+#
+#         Examples on how to set environmental parms:
+#
+#           On Windows systems, add this to your autoexec.bat
+#               set mh_parms=c:\misterhouse\mh.ini
+#
+#           Or set up a bat file with something like this:
+#              
+#              set mh_parms=c:\misterhouse\mh.ini
+#              c:
+#              cd \misterhouse\bin
+#              mh
+#
+#
+#           On linux   systems, add this to your /etc/profile:
+#               export mh_parms=/prog/Misterhouse/mh.ini
+#
+#      See the 'Coding your own event' section of mh/docs/install.html for more info
+#
+#      By changing the following parms, you can keep the mh distributions files
+#      seperate from your local files (makes upgrades easier):
+#        - code_dir
+#        - data_dir
+#        - html_dir
+#
+#      You can also override any of these parameters from the command 
+#      line.  For example:
+#
+#          mh -code_dir /prog/Misterhouse/my_code
+#             -data_dir /prog/Misterhouse/my_data
+#             -html_dir /prog/Misterhouse/my_web
+#
+#
+
+#------
+# Point to the directory that has the user code files in it
+# Note: $Pgm_Root is the directory that mh is installed in (e.g. x:\mh)
+#------
+code_dir=$Pgm_Root/code/test
+
+#------
+# Point to the directory that has the user data files (e.g. logs, TV database)
+# Note: $Pgm_Root is the directory that mh is installed in (e.g. x:\mh)
+#------
+data_dir=$Pgm_Root/data
+sound_dir=$Pgm_Root/sounds
+
+# This is the program to use to play sound files on unix.  If you don't have a sound card
+# or don't want sound files played, set this to blank.
+sound_program=play
+
+#------
+# Point to the html file that is used for the web interface.
+# - html_dir     points to the default dir (i.e. what you get with http://localhost:8080/)
+# - html_default points to the member names used when the URL points to a directory.
+# - html_alias*  points to other directories that are not subdirectories of html_dir
+# - html_style*  points to the Style sheets used to control fonts/colors
+#
+# - See \mh\web\mh\mh.html, section 'Customizing the Web Interface' for more documentation
+#
+# Note: As with many mh parms, if you want to quickly try most of the following,
+#   you can you can use the mh reload button/function, then refresh  
+#   your webpage.  You do not have to exit mh
+#
+#------
+# (note, html_root will do the same a html_dir).
+html_dir=$Pgm_Root/web
+
+#html_alias_aprs     = /aprs      e:/misterhouse/web/aprs
+#html_alias_tv       = /tv        e:/misterhouse/web/tv
+#html_alias_graphics = /graphics  e:/misterhouse/mh/web/graphics
+
+#tml_file=mh1/index.html
+#tml_file=mh2/index.html
+#tml_file=mh3/index.html
+html_file=mh4/index.html
+html_default=index.html,index.shtml
+
+html_style                 =<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+html_style_control         =<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+html_style_tk              =<LINK REL="STYLESHEET" HREF="/tk.css" TYPE="text/css">
+html_style_speak           =<LINK REL="STYLESHEET" HREF="/list.css" TYPE="text/css">
+html_style_print           =<LINK REL="STYLESHEET" HREF="/list.css" TYPE="text/css">
+html_style_list            =<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+
+html_table_size = 3        # Used in listing Group, Item, and widget_entry lists
+html_category_filename=0   # Turn the filenames column  on/off in the Category command list
+html_category_states=0     # Turn the state_log column  on/off in the Category command list
+html_category_icons=1      # Turn icons                 on/off in the Category command list
+html_category_border=1     # Turn table borders         on/off in the Category command list
+html_category_cols=2       # Use 1 or 2 columns of commands per row
+html_select_length=30      # The number of characters needed before we switch from links to a select dropdown list
+                           #  - if you dislike dropdown lists, set this to 9999.  
+html_refresh_rate=60       # Refresh the speak/print logs every ## seconds.  Set to 0 to disable
+html_info=overlib_link     # Use this to enable the javascript popups for Voice_Cmd set_info data and log data
+                           #  - Netscape users can set this to overlib_link to get dummy log,info link entries
+                           #  - Explorer users can set this to overlib and avoid the redundant log,info links
+
+#------
+# Skip the files listed in no_load (e.g. mh -no_load "test1.pl,test2.pl")
+#------
+no_load=
+
+
+                          # Which browser to use to display html (e.g. html button)
+                          # Use the short name to avoid blanks (e.g. program files)
+#browser=D:\Netscape\Communicator\Program\netscape.exe
+#browser=c:\progra~1\Netscape\Navigator\Program\netscape.exe
+browser=explorer
+
+#------
+# logfile will cause tha program errata to be stored in the specified file
+# rather than echoed to the screen.  Useful for debug.
+#------
+log_file=       # Default is to echo to the screen
+
+#------
+# These password options control access to mh functions over the intra/internet
+#
+#  - password_file is the place you want to keep your encripted password.  Default
+#    is data_dir/.password.  Use mh/bin/set_password to create the file
+#    If this file does not exist (i.e. you have not run set_password)
+#    the web server, telnet.pl, and mhsend will allow full access to everyone.
+#
+#  - password_allow_file is used to list commands and/or items that can be
+#    controlled without password protection (e.g. demo/harmless commands).
+#
+#  - password_allow_clients is the (comma delimited) list of ip addresses of clients 
+#    you want to bypass password protection from (e.g. boxes on your intranet)
+#
+#  - password_protect controls what requires a password to be displayed.
+#    Possible values are:
+#       all -> All of the web pages (i.e. nothing will be displayed without a password)
+#       log -> The web speak and print logs.
+#   widgets -> All of the widgets.
+#      vars -> The Global and Save variables.
+#      none -> Same as blank.  Anyone can look at all of the web pages
+#             (they still will need a password for control).
+#
+#------
+password_file=$Pgm_Root/data/.password 
+password_allow_file=$Pgm_Root/data/password_allow
+password_allow_clients=localhost,127.0.0.1
+password_protect=logs,widgets,vars
+
+#------
+# Set the file used for passing in external commands.  Used by house.bat to pass in commands.
+# - Make sure this matches what is in house.bat (for dos) or house (for unix)
+#------
+xcmd_file=$Pgm_Root/house_cmd.txt
+
+#------
+# Location data
+#   - sunrise/set items need lat/long.  lat/long example: 44 degrees 30 minutes -> 44.5
+#   - city, state, and country  are for internet weather data.
+#------
+# You can use http://www.mapblast.com to verify latitude and longitude
+# Here is a map our neighborhood: http://www.vicinity.com/gif?&CT=44.08150:-92.50374:4000:&FAM=mapblast&
+# Satalite view available via:  http://terraserver.microsoft.com/GetPageByLatLon.asp
+# 
+# The time_zone parm is the difference between GMT (Greenich Mean Time -- London) and your
+# local time.  If running Windows, use can find the value in the the Clock Tray Time Zone.
+# You can also pick it off a map time zone data at 
+#   http://aa.usno.navy.mil/AA/faq/docs/world_tzones.html
+# Use positve numbers for time_zone and for latitude 
+# (e.g. use lat=+44 and time_zone=+6 instead of -44 and -6). 
+# Time Zone examples:
+#  - Sydney       ->  10
+#  - Cairo        ->   2
+#  - London       ->   0
+#  - Buenos Aires ->   3
+#  - USA Eastern  ->   5
+#  - USA Pasific  ->   8
+# After making changes here, you can run sun_time from the command line to test and verify
+# with data from http://aa.usno.navy.mil/AA/data/docs/RS_OneYear.html
+#
+# Note: If you have the TZ enviromental variable set, that will override this time_zone value!
+#
+
+latitude=44.08150
+longitude=92.50374
+time_zone=6
+
+# Use time_format to control the format of $Time_Now.  Either 12 (for AMPM) or 24
+# Use date_format to control the format of various dates vars.  
+#   - mmddyy (US month/day) or ddmmyy (non-US day/month)
+#   - mmddyyyy or ddmmyyy for 4 digit year
+time_format=12
+date_format=mmddyy
+
+country=US
+city=Rochester
+state=MN
+
+# This is used to set the $Season variable, according to month & equinox
+#        Dec    Mar    Jun   Sep
+seasons=Winter,Spring,Summer,Fall          # Northern hemisphere
+#easons=Summer,Autumn,Winter,Spring        # Southern hemisphere
+
+
+# The $Holiday variable is set on any comma-delimited dates listed here.  
+#  - $Holiday is set to the description string following the date (e.g. New Year)
+#  - If the description is not specified, $Holiday is set to 1 (e.g. 1/1, 12/25)
+# Need a clever way to find changing dates like:
+#  Memorial day:  Last Monday in May
+#  Labor    day:  First Monday in September
+#  Thanksging:    Last Thursday in November
+holiday_dates=1/1 New Year, 7/4 Independence Day, 12/25 Christmas, 9/6 Labor Day
+
+  
+#----
+# Phone info --- needed only if you have a caller ID interface
+#---
+local_area_code=507
+area_code_file=$Pgm_Root/data/phone/phone.area_codes.list
+caller_id_file=$Pgm_Root/data/phone/phone.caller_id.list.example
+
+# http_port:
+#    Use 80 if you want to use the normal web port (i.e. http://localhost)
+#    If using something other than 80 (because you already have a web server 
+#    running), add :port to url (e.g.  http://localhost:8080)
+#    If you are having problems with this, you may want to try
+#    a different port, in case a different service is using this port.
+# http_server: 
+#    Used when generating urls (e.g. get_tv_grid).
+#
+http_port=8080
+http_server=localhost
+
+#----
+# server options
+#  - Used if you want mister_house to service tcpip socket calls from
+#    other clients.  For an example, see code/test/telnet.pl.  Set to blank to disable.
+#    Specify as many servers as needed.  server_name_port (_name is a # or any arbitrary string)
+#
+#  - Options are:
+#       port   -> The socket port number. 
+#       echo   -> If 1, the data received is echoed back to the sender
+#       buffer -> If 1, data is read a line at a time.  Otherwise, one character at a time.
+#---
+server1_port=1234
+server1_echo=1
+server1_buffer=0
+server2_port=1235
+server2_echo=1
+server2_buffer=0
+
+server_speak_port=8082    # Used by the speak_server.pl code, called by speak.cgi script
+server_speak_buffer=1
+
+server_mhsend_port=8084     # Used by the mhsend_server.pl
+server_mhsend_buffer=1
+
+                          # Used to determine if web accesses are local or not 
+                          # (e.g. mh/code/Bruce/monitor_server.pl)
+local_addresses=localhost,127.0.0.1
+
+#----
+# voice command options
+#  - Used if you want Mister House to do voice recognition and voice synthesis. 
+#    See the mh/docs/install.html on how to install various speech engines.
+#
+#  - voice_text can be MS, festival, vvo_speak (for IBM's viavoice Outloud)
+#    or any combination of the three (e.g. festival,vvo_speak).  Set to blank to disable.
+#
+#  - voice_cmd  can be MS, viavoice, or blank to disable
+#
+#  - If you have viavoice_server running, run the mh code member 
+#    mh/code/Bruce/viavoice_control.pl to enable the following parms: 
+#
+#    - viavoice_host:           Point to the box viavoice is running on (currently linux only)
+#                               Note:  you can have mh running on windows, and viavoice running on linux.
+#
+#    - viavoice_port:           Currently hard coded in viavoice_server at 3234
+#
+#    - viavoice_awake_phrase:   Command(s) to that will switch mh into active mode (all commands
+#                               recognized) from asleep mode.
+#    - viavoice_awake_response: This is what is said (or played) when entering awake mode
+#    - viavoice_awake_time:     Stay in awake mode for this many seconds after the last command 
+#                               was heard.  Then it switches to asleep mode. Set to 0 or blank to
+#                               disable (always stay in awake mode). 
+#
+#    - viavoice_asleep_phrase:  Command{s} to put mh into asleep mode.
+#    - viavoice_asleep_response:This is what it said (or played) when entering sleep mode
+#    - viavoice_asleep_sound:   Sound or text to speak when awake_time timer switches to asleep mode. 
+#
+#    - viavoice_off_phrase:     Command{s} used to turn the viavoice microphone off.
+#
+#---
+voice_cmd=MS              # Voice recognition
+voice_text=MS             # Voice synthesis
+
+festival_host=            # Set to localhost if festival is on your local computer
+festival_port=1314
+
+viavoice_host=localhost
+viavoice_port=3234
+viavoice_awake_phrase={please wake up,hey mister house}
+viavoice_awake_response=whats up?
+viavoice_awake_time=60
+viavoice_asleep_phrase={go to sleep,change to sleep mode}
+viavoice_asleep_response=Ok, later.
+viavoice_timeout_response=Later.
+#iavoice_timeout_response=sound_scratch1.wav
+viavoice_off_phrase={turn the microphone off}
+
+
+                          # If you want to use IBM Viavoice Outloud for linux, you can run 
+                          # the vvo_speak and set these parms.  More info is at
+                          #   http://dittos.penguinpowered.com/automation/index.html#software
+vvo_host=localhost 
+vvo_port=3235 
+vvo_level=0 
+vvo_verbose=1 
+vvo_mute_esd=1 
+
+
+#---
+# serial_ports
+#  - points to the serial ports for various interfaces
+#  - set to blank to disable
+#  - on windows, use COM1, COM2, ... COMn 
+#  - on linux, use /dev/ttyS0 for COM1, /dev/ttyS1 for COM2, etc.
+#  -    Note:  To allow the port to written to by any user id, run this command as root:
+#                 chmod o+w /dev/ttyS0
+#
+#  - Port names can be one of the following:
+#       weeder_port
+#       cm11_port (For X10 ActiveHome interface)
+#       cm17_port (For X10 Firecracker interface)
+#       HomeBase_port
+#       serial#_port (# is 1 .. whatever)
+#  - For generic serial#_ports:
+#        handshake can be 'none' or 'dtr'
+#        datatype options:
+#           records -> data is split on \n (cr).  The 'said' method
+#                      will return data only when a new line has been
+#                      completely read.  This is the default.
+#           raw     -> data is not split.  The 'said' method returns
+#                      whatever has been read into the buffer when called.
+#
+# For those of you lucky enought to have lots of ports and unlucky enough to be on 
+# an NT box, here is a pointer on using ports above 9:
+#    http://support.microsoft.com/support/kb/articles/Q115/8/31.asp?LNG=ENG&SA=TECH&FR=1
+# The gist is that you must previx the port with a \\.\  (e.g. \\\\.\\COM10)
+#
+#---
+
+#
+#cm11_port=/dev/ttyS0
+#weeder_port=COM6
+
+weeder_port=
+cm11_port=
+cm17_port=
+ibutton_port=
+
+HomeBase_port=
+HomeBase_baudrate=9600                  # Use 9600 for Stargate, 2400 for Timecommander
+
+Homevision_port=
+Homevision_baudrate=19200
+
+serial1_port=
+serial1_baudrate=
+serial1_handshake=
+serial1_datatype=
+serial2_port=
+serial2_baudrate=
+serial2_handshake=
+serial2_datatype=
+
+#------
+# These parms control the internets logons for www and mail updating and reading
+#------
+
+# net_connection values
+#  -  persistent -> if you have a 24 hour connection
+#  -  dialup     -> to allow mh to autodial under windows
+#      - if dialup, the other 3 parms can be used by Windows users to auto-connect to the internet
+net_connect=persistent
+#et_connect=dialup
+net_connect_entry=                      # The Dial Up Networking entry you want to use
+net_connect_name=                       # The name you give to your ISP when you logon
+net_connect_password=                   # The password          "
+                                    
+net_www_server=                         # Address to web server.  This is the default for the ftp command.
+net_www_user=                       
+net_www_password=                   
+net_www_dir=                            # Default directory on the server
+                                    
+                                        # Change 'account_1', 'account_2', ect to a name you
+                                        # make up for your account(s).  Add as many as you want (e.g. account_3 ...)
+                                        # For example, I use: bruce_at_home and laurel_at_home.
+                                        # See code/test/internet_mail.pl for an example of how
+                                        # to check mail from these accounts
+                                        # Use server_send only if your send and receive (stmp/pop) 
+                                        # servers are different
+net_mail_account_1_server=          
+net_mail_account_1_server_send=          
+net_mail_account_1_user=            
+net_mail_account_1_password=        
+net_mail_account_1_address=             # Address to put in "from" address of sent mail
+                                    
+net_mail_account_2_server=          
+net_mail_account_2_user=            
+net_mail_account_2_password=        
+net_mail_account_2_address=             # Address to put in "from" address of sent mail
+                                    
+net_mail_send_account=account_1         # Points to the account used for sending mail with net_mail_send
+
+net_mail_command_code=                  # Used in code member internet_mail.pl to confirm authorized email commands
+                                        # If left blank, commands via email is disabled.
+
+                                        # If you want to send an instanat message to an AOL AIM
+                                        # client fill in these parms:
+net_aim_name_send=                      #  - Default name to send messages to
+net_aim_name=                           #  - Logon name   to send messages from
+net_aim_password=                       #  - Logon password
+
+
+internet_speak_flag=all                 # Used to control how chatty things like monitor_server.pl is
+                                    
+                                        # Go to clicktv.com and get your own id
+                                        #  - use string after profileID and before &WSN in
+                                        #    the url you seen when viewing your listing
+                                        #    e.g.   ...profileID=%247A%247B%2489%247A&WSN=WSERVER13...
+                                        # Then mh/code/test/tv_grid.pl will daily call get_tv_grid
+                                        # to update your tv database and web pages
+                                        # Also, mh/code/test/tv_info.pl can be used for queries
+clicktv_id=%247A%247B%2489%247A 
+clicktv_hours=02,06,10,14,18,22         # Which hours to get, when get_tv_grid -hours all is used
+
+                                        # Set favorite shows, to be searched with tv_info.pl
+                                        #  - note: these are substrings/regular-exprestions,
+                                        #    so use show1, er ,show2   not  show1,er,show2 
+favorite_tv_shows = Voyager,dilbert,family guy,Ally McBeal,South Park,mystery science,West Wing
+
+
+# If you want to use the &net_domain_name function, point this to a Domain Name Server
+# If you don't use this function, leave this blank and save a bit of memory and startup time.
+# On Windows, you can find your DNS server under 'Control Panel->Network->TCP/IP->DNS configuration'
+# Use ',' between server names.  For example:
+#     DNS_server=24.2.204.33,24.2.204.34
+#
+# With this set, you can query the domain name of the last client to access the web server like so:
+#
+#     my $domain_name = &net_domain_name($Socket_Ports{http}{client_ip_address});
+#
+# An example of this can be found in mh/code/test/monitor_server.pl
+# Note: if your DNS server is slow, this can slow mh down, as it waits for the DNS server responses.
+# 
+DNS_server=
+
+#------
+# Dynamic IP parms - used by internet_ip_update.pl
+#------
+# DIPS (http://postmodem.com) and TZO (http://www.tzo.com) are 2 services that will assign 
+# your dynamic IP address to a static name.  You can fill in the following parms and 
+# use the test/internet_ip.pl code to automatically update them.
+
+dips_password=
+
+tzo_name=your_name.tzo.com
+tzo_email=user@isp.com  
+#zo_key=TZO-####-####-####-#######
+tzo_key=
+
+#-----
+# Stock symbols.  Used by stocks.pl code
+#-----
+stocks = IBM MS CISCO
+
+#------
+# Brian's Tracking Program Parameters
+#------
+tracking_dir=/misterhouse/web/aprs        # Where to put the tracking data
+tracking_callsign=                        # Ham Callsign
+tracking_speakflag=0                      #  0 = No Speaking
+                                          #  1 = Speak GPS Reports Only
+                                          #  2 = Speak WX Reports Only
+                                          #  3 = All Speaking
+tracking_trackself=1                      # This parameter should equal "1" if
+                                          # GPS Speaking is off and you still want
+                                          # to hear tracking from your own mobile
+tracking_shortannounce=1                  #  0 = When Speaking Tracking
+                                          #      Information, this will
+                                          #      announce both distance from
+                                          #      this station and distance
+                                          #      from waypoint.
+                                          #  1 = Only Distance from waypoint.
+tracking_withname=1                       #  0 = If tracking.nam available,
+                                          #      announce callsign instead
+                                          #      of given name.
+                                          #  1 = Announce Given name instead
+                                          #      of callsign.
+                                          #  2 = Announce given name AND
+                                          #      callsign.
+
+
+
+# This parm points the directory with mp3 files.  Used by mp3_control.pl and mp3_playlist.pl
+#  - mp3_dir can have subdirectories, and can be multiple, comma-seperated dirs
+#  - mp3_program_control can be either:
+#      wactrl (windows only, included in mh/bin dir)
+#      httpq  (a winamp plugin, available at: http://karv.dyn.dhs.org/winamp )
+#
+mp3_program=c:\winamp\winamp.exe
+#p3_program_control=httpq
+mp3_program_control=wactrl
+mp3_program_password=pass
+mp3_program_port=4800
+mp3_dir=c:/mp3,//house/c/mp3
+#mp3_extention=mp3
+mp3_extention=m3u
+
+
+#------
+# Other parms
+#------
+
+debug=0                          # Turn debug on
+
+                                 # This file will have the current mh 'process ID'
+                                 # On linux, you can then use something like this to control mh:
+                                 #   alias mhreload='kill -HUP  `cat /var/run/mh.pid`'
+                                 #   alias   mhkill='kill -KILL `cat /var/run/mh.pid`'
+pid_file=$Pgm_Root/data/mh.pid
+
+sleep_time=100                   # loop sleep time, in milliseconds.  Smaller means more passes, more cpu used.
+
+delay_speak=                     # Use to get 1/2 duplex sound cards working.  Value is milliseconds.  Debug use.
+
+max_log_entries=50               # The maximum number of speak and print log records to displayed by the web server.
+max_state_log_entries=10         # The maximum number of state log entries kept for each item.
+
+                                 # What protcol to use in the &ping function.  Options are tcp, udp, icmp, none
+ping_protocol=icmp               # Default is icmp.  none will mean ping will always return true.
+
+                                 # Control the local tk (gui) window.  You may want this off because it takes a fair 
+                                 # amount of cpu/memory and because of the problems some linux users have had with tk.
+tk=1
+tk_passes=10                     # Number of tk passes per loop pass.  Bigger means faster Tk windows, more cpu used.
+tk_commands=1                    # Create a tk Commands menu.  Takes more startup time and memory (a little)
+tk_items=1                       # Create a tk Items menu.     Takes more startup time and memory (a fair amount)
+tk_groups=1                      # Create a tk Groups menu.    Takes more startup time and memory (very little)
+
+                                 # Initial window size and position:  WWWxHHH+X+Y
+                                 #  - X and Y are in pixels. 
+                                 #    Use -X to position from the right edge -Y from the bottom
+                                 #  - On Windows boxes WWW and HHH seem to be in character units.  Start small,
+                                 #    then use the Reload(F1) function to evaluate.
+#tk_geometry=50x5-0+0   
+tk_geometry=+0+0   
+
+tk_display_callers_geometry=10x5+5+5
+
+
+                                 # This defines the window of time (in milliseconds) that incoming
+                                 # sequential X10 keystrokes would be strung together. 
+                                 # To not have a time window, set this to a large number.
+x10_multikey_delay=5000         
+
+                                 # Question and SystemAsterisk are windows system sounds
+#sound_error=Question
+#sound_reload=SystemAsterisk
+sound_error=sound_beep1.wav
+sound_reload=sound_click1.wav
+
+#------
+# Use time_start and time_stop to run mh in 'fast test mode', useful for 
+# debugging events.  The time_increment parm sets how many simulated seconds
+# to increment per pass.  Default is 60.
+# Use time_start and time_stop to run mh in 'fast test mode' (one simulated second per loop).
+# Useful for debuging events.  If only time_start is specified, normal mode will resume
+# when the current time is reached.  If time_stop is specified, mh will exit when reached.
+# These paramaters can be any time/date string, as recognized by the time_now function (see docs)
+# Examples: 
+#    mh -time_start 0 -time_stop 24 -tk 0 -voice_text 0
+#    mh -time_start "6 AM" -time_stop "11 PM"  -time_increment 1
+#    mh -time_start "5/14 7:10" -time_stop "5/15 10 PM" -time_increment 300
+#------
+
+time_start=
+time_stop=
+time_increment=
+
+
+
+#
+# $Log$
+# Revision 1.1  2000/05/04 17:11:48  cwitte
+# moved from zip distribution 2.13 to sourceforge. Installed as text (not binary).
+#
+# Revision 1.39  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
+# Revision 1.38  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
+# Revision 1.37  2000/02/20 04:47:54  winter
+# -2.01 release
+#
+# Revision 1.36  2000/02/13 03:57:27  winter
+#  - 2.00 release.  New web server interface
+#
+# Revision 1.35  2000/02/12 05:33:34  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
+# Revision 1.34  2000/01/27 13:29:31  winter
+# - update version number
+#
+# Revision 1.33  2000/01/13 13:37:06  winter
+# - add vvo_ parms
+#
+# Revision 1.32  1999/12/12 23:55:59  winter
+# - added index.shtml to html_default.  Add other html_styles,
+#   date_format, and net_mail_command_code.
+#
+# Revision 1.31  1999/11/21 02:55:07  winter
+# - add viavoice, homevision, homebase_baudrate, clicktv_hours and sound_program
+#
+# Revision 1.30  1999/11/08 02:12:29  winter
+# - add time_format, viavoice, and Country
+#
+# Revision 1.29  1999/10/09 20:34:39  winter
+# - add max_log_entries and password_protect=all option
+#
+# Revision 1.28  1999/09/27 03:10:46  winter
+# - add sound_dir, password_allow_client, server_mhsend, sound_*, and mp3_program parms
+#
+# Revision 1.27  1999/09/12 16:11:59  winter
+# - renamed html_root.  Added data_dir, holiday_dates, mp3_dir, tk_commands/groups.
+#
+# Revision 1.26  1999/08/30 00:19:50  winter
+# - add more tracking parms.  Break up some long lines
+#
+# Revision 1.25  1999/08/01 01:18:17  winter
+# - add browser, password_allow_file, local_addresses
+#
+# Revision 1.24  1999/07/21 21:07:46  winter
+# - add cm17, password_protect.  Change html_file default.
+#
+# Revision 1.23  1999/07/05 22:29:38  winter
+# - added html_defaul.  Change server_speak_port default.
+#
+# Revision 1.22  1999/06/27 20:11:22  winter
+# - add note about mh_parm var
+#
+# Revision 1.21  1999/06/20 22:29:22  winter
+# - add DNS_server option
+#
+# Revision 1.20  1999/05/30 21:14:58  winter
+# -add X10_multikey_delay, time_start,stop,increment, and net_mail_send_account
+#
+# Revision 1.19  1999/04/29 12:36:06  winter
+# - add buffer option on socket
+#
+# Revision 1.18  1999/03/28 00:29:44  winter
+# - add ping_protocol
+#
+# Revision 1.17  1999/03/21 17:41:16  winter
+# - add serial#_datatype
+#
+# Revision 1.16  1999/03/12 04:33:59  winter
+# - improve info on lat/long and time_zone.
+# - allow for multiple mail accounts.
+# - add pid_file
+#
+# Revision 1.15  1999/02/21 00:31:49  winter
+# - add password_file, tracking_*, and tk_items
+#
+# Revision 1.14  1999/02/08 00:41:40  winter
+# - add tk_geometry.  Default net_connect to persistant
+#
+# Revision 1.13  1999/02/01 00:10:15  winter
+# - add more comments on telnet server
+#
+# Revision 1.12  1999/01/30 20:00:27  winter
+# - add net_connect, dips, and tzo parms
+#
+# Revision 1.11  1999/01/24 21:01:20  winter
+# - add clicktv_id
+#
+# Revision 1.10  1999/01/24 20:11:53  winter
+# - add $Pgm_Root (instead of hardcoded /mh dir)
+# - Set html_root from web/mh to web, and change html_file from index... to mh/index...
+# - Add City, State for weather forcast data
+# - Add Festival TTS engine options
+# - add echo option to server config
+#
+# Revision 1.9  1999/01/13 14:17:19  winter
+# - change web index default.  Add new socket server parms.  Add no_load option.
+#
+# Revision 1.8  1998/12/10 14:38:52  winter
+# - add html_dir and html_file so we can tailor the web interface
+#
+# Revision 1.7  1998/12/07 14:40:17  winter
+# - default to voice_cmd and voice_text on.  mh will complain, but will not die if not installed
+#
+# Revision 1.6  1998/11/30 04:36:52  winter
+# - lots of updates.  Add serial1/2, alow for %TEMP% in xcmd_file.
+#
+# Revision 1.5  1998/09/19 20:34:33  winter
+# - change default to tk=1.  Default sleep_time=100.
+#
+# Revision 1.4  1998/09/16 12:56:37  winter
+# - add tk and debug options
+#
+# Revision 1.3  1998/09/12 22:10:36  winter
+# - rename server to server_port.  Add homebase.
+#
+# Revision 1.2  1998/08/29 20:45:35  winter
+# - add net parms.  add cm11_serial parm.
+#
+#
+

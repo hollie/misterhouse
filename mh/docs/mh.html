@@ -1,0 +1,4259 @@
+<HTML>
+<HEAD>
+<TITLE>B<mh> - MisterHouse Home Automation Program</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<BODY>
+
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#NAME">NAME</A></LI>
+	<LI><A HREF="#SYNOPSIS">SYNOPSIS</A></LI>
+	<UL>
+
+		<LI><A HREF="#Usage_Options">Usage Options</A></LI>
+		<LI><A HREF="#Usage_Examples">Usage Examples</A></LI>
+		<LI><A HREF="#Installation">Installation</A></LI>
+	</UL>
+
+	<LI><A HREF="#DESCRIPTION">DESCRIPTION</A></LI>
+	<UL>
+
+		<LI><A HREF="#mh_overview">mh overview</A></LI>
+		<LI><A HREF="#Perl_Info">Perl Info</A></LI>
+		<LI><A HREF="#List_of_supported_hardware_inter">List of supported hardware interfaces</A></LI>
+		<LI><A HREF="#List_of_startup_options">List of startup options</A></LI>
+		<LI><A HREF="#List_of_global_variables">List of global variables</A></LI>
+		<LI><A HREF="#List_of_objects_and_their_method">List of objects and their methods</A></LI>
+		<LI><A HREF="#List_of_functions">List of functions</A></LI>
+		<LI><A HREF="#List_of_tk_widget_functions">List of tk widget functions</A></LI>
+		<LI><A HREF="#List_of_Internet_functions">List of Internet functions</A></LI>
+		<LI><A HREF="#List_of_companion_programs">List of companion programs</A></LI>
+		<LI><A HREF="#Authentication">Authentication</A></LI>
+		<LI><A HREF="#Customizing_the_Tk_Interface">Customizing the Tk Interface</A></LI>
+		<LI><A HREF="#Customizing_the_Web_Interface">Customizing the Web Interface</A></LI>
+		<LI><A HREF="#Voice_Recognition_VR_and_Text_">Voice Recognition (VR) and Text To Speech (TTS) on windows</A></LI>
+		<LI><A HREF="#Voice_Recognition_VR_and_Text_">Voice Recognition (VR) and Text To Speech (TTS) on Unix</A></LI>
+	</UL>
+
+	<LI><A HREF="#NOTES">NOTES</A></LI>
+	<LI><A HREF="#KNOWN_LIMITATIONS_AND_BUGS">KNOWN LIMITATIONS AND BUGS</A></LI>
+	<LI><A HREF="#AUTHORS">AUTHORS</A></LI>
+	<LI><A HREF="#SEE_ALSO">SEE ALSO</A></LI>
+	<LI><A HREF="#COPYRIGHT">COPYRIGHT</A></LI>
+	<LI><A HREF="#DISCLAIMER">DISCLAIMER</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<HR>
+<H1><A NAME="NAME">NAME</A></H1>
+<P>
+<STRONG>mh</STRONG> - MisterHouse Home Automation Program
+
+</P>
+<P>
+<HR>
+<H1><A NAME="SYNOPSIS">SYNOPSIS</A></H1>
+<P>
+<STRONG>mh</STRONG> is a perl program for time, event, web, socket, and voice based home
+control functions. It currently runs on Windows 95/98/NT and on Unix
+platforms, including Linux.
+
+</P>
+<P>
+perl objects are used for various types of objects to give a powerful but
+concise programming interface. Here is some example code:
+
+</P>
+<P>
+<PRE>   $dishwasher = new X10_Item 'B1';         # B1 is the dishwasher X10 code 
+   set $dishwasher ON if time_now '10:30 PM';
+</PRE>
+</P>
+<P>
+<PRE>   speak &quot;I am now closing the curtains at $Time_Now&quot; if time_now &quot;$Time_Sunset + 0:15&quot;; 
+   speak &quot;The time is $Time_Now&quot; if time_cron '30,35,40,45,50 6 * * 1-5'; 
+</PRE>
+</P>
+<P>
+<PRE>   play(file =&gt; 'stairs_creek*.wav') if state_now $movement_sensor eq ON;
+</PRE>
+</P>
+<P>
+<PRE>   $v_bedroom_curtain = new Voice_Cmd '[open,close] the bedroom curtains';
+   curtain_on('bedroom', $state) if $state = said $v_bedroom_curtain;
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="Usage_Options">Usage Options</A></H2>
+<P>
+<STRONG>mh</STRONG> [options] [files]
+
+</P>
+<P>
+<STRONG>options</STRONG> are controlled in the mh\bin\mh.ini file. You can override the default
+mh.ini parameters in a 'private' parm file and point to that with a
+mh_parms environmental variable. 
+
+</P>
+<P>
+<STRONG>files</STRONG> is a list of members in the -code_dir that you want to run. The default is
+to run all .pl files.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Usage_Examples">Usage Examples</A></H2>
+<P>
+These give the help text:
+
+</P>
+<P>
+<PRE>   mh -h
+   mh -help
+</PRE>
+</P>
+<P>
+This is the normal usage:
+
+</P>
+<P>
+<PRE>   mh
+</PRE>
+</P>
+<P>
+This will only run the 3 specified members:
+
+</P>
+<P>
+<PRE>   mh items.pl test1.pl test2.pl
+</PRE>
+</P>
+<P>
+This will disable the tk interface and change the code dir to the Bruce
+directory:
+
+</P>
+<P>
+<PRE>   mh -tk 0 -code_dir c:\mh\code\Bruce
+</PRE>
+</P>
+<P>
+This will log all 'print' statements to /mh/test1.log and turn on all
+serial related debug messages:
+
+</P>
+<P>
+<PRE>   mh -log_file test1.log -debug serial
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="Installation">Installation</A></H2>
+<P>
+The system requirements and installation instructions are detailed in 
+
+</P>
+<a href="install.html">mh/docs/install.html</a>
+
+<P>
+There is also a FAQ that covers misc topics in
+
+</P>
+<a href="faq.html">mh/docs/faq.html</a>
+
+<P>
+<HR>
+<H1><A NAME="DESCRIPTION">DESCRIPTION</A></H1>
+<P>
+<HR>
+<H2><A NAME="mh_overview">mh overview</A></H2>
+<P>
+Items and events are defined by using your favorite text editor and
+creating members of perl code in a directory of your choice. For example,
+all the code that runs my house is in the /mh/code/Bruce directory.  
+
+</P>
+<P>
+After starting mh, in addition to the timed, serial, or X10 based events
+that you defined, you can trigger mh actions with any of the following:
+
+</P>
+<P>
+<PRE>  - Voice commands.  On Windows platforms, you can use the MSVOICE icon in your tray 
+    (the green V) to control the Voice Recognition (VR) mode (manual, 
+    keyword-activated, or continuous). You also select your TTS (Text To Speech) 
+    voice with MSVOICE.
+</PRE>
+</P>
+<P>
+<PRE>    On Unix platforms you can use the Festival TTS engine and pick among different
+    accents and languages.  On Linux, you can install IBM's ViaVoice SDK 
+    to enable Voice Recognition. 
+</PRE>
+</P>
+<P>
+<PRE>  - A web browser pointed to <A HREF="http://localhost:8080">http://localhost:8080</A> .  In addition to several
+    example web interfaces, if you are familiar with HTML, you can write your 
+    own customized interface.
+</PRE>
+</P>
+<P>
+<PRE>  - Typing any voice command in a telnet window.  This is customizable
+    with the telnet.pl module.
+</PRE>
+</P>
+<P>
+<PRE>  - Typing any voice command in the command box in the mh tk gui window.
+</PRE>
+</P>
+<P>
+<PRE>  - Typing any voice command from a dos box, using the mh/bin/house command
+</PRE>
+</P>
+<P>
+<PRE>  - Having any program write voice commands to the 'xcmd_file' (see mh.ini)
+</PRE>
+</P>
+<P>
+<PRE>  - Triggering on user defined Socket or Serial port events.
+</PRE>
+</P>
+<P>
+Here are the basic steps of the mh program:
+
+</P>
+<P>
+<PRE>   1: Read config files and initialize things
+ 
+       Setup the OLE Text To Speech (TTS) object or Festival socket port
+       Setup the OLE Voice Recognition object or socket to the viavoice_server on linux
+       Setup the serial objects 
+       Setup the tcp socket ports
+</PRE>
+</P>
+<P>
+<PRE>   2: Read and evaluate/compile the user event code into the mh_temp.user_code file:
+</PRE>
+</P>
+<P>
+<PRE>       Objects are evaluated and created. 
+       Everything else is put into a &amp;user_loop function (at the end of mh_temp.user_code file).
+</PRE>
+</P>
+<P>
+<PRE>   3: Loop until exit, each pass executing:
+</PRE>
+</P>
+<P>
+<PRE>       Set global time/date variables 
+       Check for voice commands 
+       Read/write socket data 
+       Read/write serial data 
+       Check for timers actions 
+       Check for external command files 
+       Evaluate the &amp;user_loop function 
+       Sleep for a while (default is 100 milliseconds), so mh does not hog the cpu.
+</PRE>
+</P>
+<P>
+The interpreted nature of perl allows us to change/add/delete an event
+member quickly, without re-starting mh. After changing code, you tell mh to
+re-load the user event code (step 2 above). If there is a syntax error with
+the new code, the previous version of the code is re-loaded.
+
+</P>
+<P>
+Re-loading 20 event members with 1500 lines of event code takes about 2
+seconds. With a 50 millisecond sleep time, mh takes about 2-&gt;5% of the
+cpu and loops about 18 times per second on our our 150 MHz PPro system.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Perl_Info">Perl Info</A></H2>
+<P>
+There is lots of good perl info is at <A
+HREF="http://www.perl.com">http://www.perl.com</A> . The reference book is
+``Programming Perl, 2nd edition'' by Larry Wall, Tom Christensen, &amp;
+Randall Schwartz. ISBN 1-56592-149-6. It is available from <A
+HREF="http://www.oreilly.com">http://www.oreilly.com</A> . ``The Perl
+Cookbook'' is another good book that has a ton of examples in it.
+
+</P>
+<P>
+For those of you using the compiled, instead of the interpreted, version of
+mh, the standard perl documentation can be found at <A
+HREF="http://www.perl.com/pub/v/documentation">http://www.perl.com/pub/v/documentation</A>
+, <A
+HREF="http://language.perl.com/CPAN/doc/manual/html/index.html">http://language.perl.com/CPAN/doc/manual/html/index.html</A>
+and/or <A
+HREF="http://www.activestate.com/ActivePerl/docs">http://www.activestate.com/ActivePerl/docs</A>
+
+
+</P>
+<P>
+Perl can be a pretty intimidating language to learn, due to its many
+options and functions, but for the purposes of using it to code mh events,
+there are only a few simple rules to keep in mind. Here are a few of them:
+
+</P>
+<P>
+<PRE>   Variables start with a $ 
+</PRE>
+</P>
+<P>
+<PRE>   Strings are quoted with ' or &quot;. Use &quot; if you want variables within 
+   the string to be substituted. 
+</PRE>
+</P>
+<P>
+<PRE>   Commands end with ; 
+</PRE>
+</P>
+<P>
+<PRE>   Comments start with # 
+</PRE>
+</P>
+<P>
+<PRE>   You can implement block comments with =begin, =cut records, as follows:
+       
+      print &quot;this will run\n&quot;;
+</PRE>
+</P>
+<P>
+<PRE>      =begin
+      print &quot;this&quot;;
+      print &quot; will not run\n&quot;;
+      =cut
+</PRE>
+</P>
+<P>
+<PRE>      print &quot;all done\n&quot;;
+</PRE>
+</P>
+<P>
+<PRE>   Do loops start and end with { }
+</PRE>
+</P>
+<P>
+<PRE>   If statements can be done either of the following ways:
+   
+      if (test) {action} 
+      action if test;
+</PRE>
+</P>
+<P>
+<PRE>   If tests are == (or !=) for numeric data and eq (or ne) for string data.
+</PRE>
+</P>
+<P>
+<PRE>   Object methods can be specified 2 ways.
+   Here are both examples on how use the method 'set' for an X10 object:
+</PRE>
+</P>
+<P>
+<PRE>      set $dishwasher ON;    # Indirect object form
+      $dishwasher-&gt;set(ON);  # Classic 'object oriented' form
+</PRE>
+</P>
+<P>
+<PRE>   Regular expressions are used to parse strings.  They are very powerful
+   and can be quite complex, but here are a few simple rules:
+</PRE>
+</P>
+<P>
+<PRE>      They are triggered with the =~ operator
+      By default, they are delimited with //
+      .  stands for any character (including blanks)
+      \S stands for non blank characters (\s is for blanks)
+      \d stands for digits
+      * is a modifier that means 'zero or more of the previous type of character'
+      + is a modifier that means 'one  or more of the previous type of character'
+      ? is a modifier that means 'zero or one  of the previous type of character'
+      () captures whatever is inside for use via $1, $2, $3, etc
+</PRE>
+</P>
+<P>
+<PRE>   For example:
+</PRE>
+</P>
+<P>
+<PRE>    $data = 'Mar 25, 1998 - 11:53 AM EST / 1998.03.25 1653 UTC';
+    $date = $1, $year = $2, $time = $3 if $data =~ /(.+), (\d\d\d\d) - (.+) EST /;
+</PRE>
+</P>
+<P>
+<PRE>   On Windows systems, path names can use the Unix convention of / instead
+   of the DOS convention of \.  You can also use \, by typically you must
+   'escape it' (e.g. 'c:\\mh' instead of 'c:\mh').  
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="List_of_supported_hardware_inter">List of supported hardware interfaces</A></H2>
+<P>
+You can get the ActiveHome kit for <CODE>$50</CODE> from at <A
+HREF="http://www.x10.com">http://www.x10.com</A> . This includes a 2 way
+X10 CM11 interface a lamp module and a couple of remote controllers. They
+also sell the CM17 firecracker interface which mh supports, but is a one
+way interface only (does not receive X10 signals).
+
+</P>
+<P>
+X10.com also sells a <CODE>$50</CODE> IR transimiter that works through the
+CM17 interface. Info is at <A
+HREF="http://www.x10.com/products/ux17a_bj2.htm.">http://www.x10.com/products/ux17a_bj2.htm.</A>
+This is supported via the mh IR_Item object.
+
+</P>
+<P>
+Weeder Technologies, <A
+HREF="http://www.weedtech.com">http://www.weedtech.com</A> , offers the
+following kits priced from <CODE>$30</CODE> to <CODE>$50</CODE> each. All
+of these kits can share the same serial port:
+
+</P>
+<P>
+<PRE>   2 way X10 interface 
+   12 bit Digital IO (can be input or output, switch or button) 
+   8 port Analog IO, 10 bit resolution 
+   Caller ID, name and number 
+   Outgoing DTMF phone monitor
+</PRE>
+</P>
+<P>
+The HomeBase.pm module to supports the JDS interfaces, <A
+HREF="http://www.jdstechnologies.com">http://www.jdstechnologies.com</A> .
+See member mh/code/public/test_homebase.pl for example code.
+
+</P>
+<P>
+The Homevison.pm module to supports HomeVision controler, <A
+HREF="http://www.csi3.com/homevis2.htm">http://www.csi3.com/homevis2.htm</A>
+. This controler does 2 way X10, 2 way IR, 24 digital IO, and can output
+its menus to TV. See member mh/code/public/test_homevision.pl for example
+code.
+
+</P>
+<P>
+There is a <CODE>$30</CODE> (assembled) pic base IR receiver you can order
+from the Netherlands ($3 shipping):
+
+</P>
+<P>
+<PRE>  <A HREF="http://www.evation.com/irman/">http://www.evation.com/irman/</A> 
+</PRE>
+</P>
+<P>
+In addition to the mh/Bruce/irman.html code, there there is free winamp,
+windows, and linux software for it. The schematics that it is built from
+are also posted on the net (elsewhere), but for $30, it hardly seems worth
+building it from scratch.
+
+</P>
+<P>
+Here are 2 LCD displays with programable serial interfaces:
+
+</P>
+<P>
+<PRE>  <A HREF="http://www.crystalfontz.com/products/634/index.html">http://www.crystalfontz.com/products/634/index.html</A>  $60
+</PRE>
+</P>
+<P>
+<PRE>  <A HREF="http://linuxcentral.com/products/modm/">http://linuxcentral.com/products/modm/</A>  $80 ($101 with keypad interface)
+</PRE>
+</P>
+<P>
+The first display is a bit newer, bigger, brighter, cheaper. But the second
+one has a version that include a 4x4 keypad interface (keypad available
+from DigiKey for $20). Both are 4 lines x 20 characters (they also have a
+4x40, but no keypad interface). I ordered the 2nd one from linuxcentral,
+with a keypad from <A
+HREF="http://www.digikey.com">http://www.digikey.com</A> (pn CKN6011-ND or
+GH5010-ND). A comparison of the 2, plus some nifty linux software for them,
+can be found at <A
+HREF="http://lcdproc.omnipotent.net">http://lcdproc.omnipotent.net</A>
+
+</P>
+<P>
+An example on how to use these displays is in mh/Bruce/lcdproc.pl. See the
+header of that file for more info.
+
+</P>
+<P>
+Using a these devices, and a new MP3 perl module/player, we should be able
+to build ourselves a mh based home MP3 Stereo! Someone has already built a
+perl base one at <A
+HREF="http://aelix.cs.iastate.edu/lcdat/">http://aelix.cs.iastate.edu/lcdat/</A>
+
+
+</P>
+<P>
+Here are a few other devices which look useful, but have not had code
+written for them:
+
+</P>
+<P>
+<PRE> <A HREF="http://www.nirvis.com/">http://www.nirvis.com/</A>  $180 2-way IR device
+</PRE>
+</P>
+<P>
+<PRE> <A HREF="http://www.ibutton.com/index.html">http://www.ibutton.com/index.html</A>  Inexpensive 2 wire iButtons
+</PRE>
+</P>
+<P>
+<PRE> <A HREF="http://www.cc-concepts.com/">http://www.cc-concepts.com/</A>  iButton DigiLock interface as electronic keychain
+</PRE>
+</P>
+<P>
+The Serial_Item object can read and write to any serially connect device.
+There is example code in the code/public directory that shows how to
+interface to a ham radio TNC receiver to decode and track a GPS
+transmitters position.  
+
+</P>
+<P>
+Byterunner offers lots of types of serial cards: <A
+HREF="http://www.byterunner.com">http://www.byterunner.com</A>
+
+</P>
+<P>
+Good sources of information on the WX200/WM918 weather stations are at <A
+HREF="http://wx200.planetfall.com/">http://wx200.planetfall.com/</A> and <A
+HREF="http://www.weatherwatchers.org/wxstation/WX-200/">http://www.weatherwatchers.org/wxstation/WX-200/</A>
+.
+
+</P>
+<P>
+iButton is a family of devices that can all talk to a '1 wire' interface.
+Here are some urls and prices:
+
+</P>
+<P>
+<PRE>  <A HREF="http://www.ibutton.com">http://www.ibutton.com</A> (pick shop online)
+    - $15 DS9097U-009 + DS1402D-DR8l for the serial interface
+    -  $3 DS1990A-F5  for 64 bit ID buttons.
+ 
+  <A HREF="http://www.pointsix.com">http://www.pointsix.com</A>
+    - They also sell the $15 interface (under iButton Products) 
+    - $10 for a 1 port relay card
+    - $10 for a 2 port digital input or ouptut card
+    - $6  for a 1820 temperature sensor
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="List_of_startup_options">List of startup options</A></H2>
+<P>
+The complete list of valid startup options is in the mh.ini file. Here are
+a few of the more important ones and their defaults:
+
+</P>
+<DL>
+<DT><STRONG><A NAME="item_code_dir">code_dir=\mh\code\test</A></STRONG><DD>
+<P>
+Points to the directory that has the user code files in it.
+  
+ 
+
+</P>
+<DT><STRONG><A NAME="item_html_root">html_root=$Pgm_Root/web</A></STRONG><DD>
+<DT><STRONG><A NAME="item_html_file">html_file=mh_default/index.html</A></STRONG><DD>
+<P>
+Points to where the web interface html files are.
+
+</P>
+<P>
+<PRE>   
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_http_port">http_port=8080</A></STRONG><DD>
+<P>
+Use 80 if you want to use the normal web port (i.e. <A
+HREF="http://localhost">http://localhost</A> ). If using something other
+than 80 (because you already have a web server running), add :port to url
+(e.g. <A HREF="http://localhost:8080">http://localhost:8080</A> ).
+
+</P>
+<P>
+<PRE> 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_run">run=perl_script</A></STRONG><DD>
+<P>
+This parms allow the compile mh.exe to act as a general purpose perl
+interpreter, so we can run any arbitrary perl script, without having to
+have perl installed. See the get_weather.bat, get_tv_grid.bat, or
+set_clock.bat files for examples. This also allows is to use the mh run
+command to spawn a separate mh process to run longer running perl steps,
+even if we do not have perl installed. A Win32 'fork' command would be
+cleaner, but alas, no forks.
+
+</P>
+<P>
+<PRE> 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_server1_port">server1_port=23</A></STRONG><DD>
+<P>
+Use 23 to enable access via 'telnet localhost', if you are running the
+mh/code/testtelnet.pl member. If you use a different port, you can still
+get to the port with 'telnet localhost port_number'.
+
+</P>
+<P>
+<PRE> 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_debug">debug=</A></STRONG><DD>
+<DT><STRONG><A NAME="item_log">log=</A></STRONG><DD>
+<P>
+You can use the -debug and -log and options to turn on debug and/or log the
+console errata to a file. For example:
+
+</P>
+<P>
+<PRE>  mh -debug http -log http_socket.log
+</PRE>
+</P>
+<P>
+will turn on socket related debug messages and log all errata to the file
+http_socket.log
+
+</P>
+<P>
+<PRE> 
+  
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_time_start">time_start=</A></STRONG><DD>
+<DT><STRONG><A NAME="item_time_stop">time_stop=</A></STRONG><DD>
+<DT><STRONG><A NAME="item_time_increment">time_increment=</A></STRONG><DD>
+<P>
+Use time_start and time_stop to run mh in 'fast test mode', useful for
+debugging events. The time_increment parm sets how many simulated seconds
+to increment per pass. Default is 60. If only time_start is specified,
+normal mode will resume when the current time is reached. If time_stop is
+specified, mh will exit when reached. These parameters can be any time/date
+string, as recognized by the time_now function (see docs)
+
+</P>
+<P>
+Here are some examples:
+
+</P>
+<P>
+<PRE>  mh -time_start 0 -time_stop 24 -tk 0 -voice_text 0
+  mh -time_start &quot;6 AM&quot; -time_stop &quot;11 PM&quot;  -time_increment 1
+  mh -time_start &quot;5/14 7:10&quot; -time_stop &quot;5/15 10 PM&quot; -time_increment 300
+ 
+</PRE>
+</P>
+</DL>
+<P>
+<HR>
+<H2><A NAME="List_of_global_variables">List of global variables</A></H2>
+<P>
+Time/Date Variables
+
+</P>
+<P>
+<PRE>  $Time_Startup, $Time_Startup_time, $Time_Sunrise, $Time_Sunset
+  $Time_Now, $Date_Now, $Year_Month_Now
+  $Second, $Minute, $Hour, $Mday, $Wday, $Day, $Month, $Year, $Holiday
+  $New_Second, $New_Minute, $New_Hour, $New_Day, $New_Month, $New_Year
+  $Season, $Weekday, $Weekend $Time_Of_Day
+  %Moon
+</PRE>
+</P>
+<P>
+The complete list of global variables can be found on the Widgets menu of
+the default web page or at the top of mh/bin/mh.
+
+</P>
+<P>
+The <CODE>%Moon</CODE> array has $Moon{phase}, $Moon{brightness},
+$Moon{age}, and $Moon{new,first,full,last} entries.  
+
+</P>
+<P>
+The <CODE>$Time_Now</CODE> and <CODE>$Date_Now</CODE> variables return a
+formated time and date.
+
+</P>
+<P>
+The $New_* variables are true only on the pass that we enter a new Second,
+Minute, Hour, etc.
+
+</P>
+<P>
+<CODE>$Startup</CODE> is true on the first pass after starting mh.
+
+</P>
+<P>
+<CODE>$Reload</CODE> is true when the <CODE>Reload(F1)</CODE> is requested
+AND the code been reloaded because one or more code members have been
+changed.
+
+</P>
+<P>
+<CODE>$Reread</CODE> is always true after <CODE>Reload(F1),</CODE> even if
+no code members have changed.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="List_of_objects_and_their_method">List of objects and their methods</A></H2>
+<DL>
+<DT><STRONG><A NAME="item_File_Item">File_Item</A></STRONG><DD>
+<P>
+You can use File_Item to read a line of data from a file. Note: These
+methods currently read the entire file, so if have big files (say, &gt;1
+meg) we want to read, we should invent some new methods.
+
+</P>
+<P>
+<PRE>  Methods:
+     new('file_name')
+</PRE>
+</P>
+<P>
+<PRE>     name         : Returns 'file_name'
+</PRE>
+</P>
+<P>
+<PRE>     read_all     : Returns contents for the file. If used in a list context,
+                    a list is returned, otherwise a string of all the lines.
+</PRE>
+</P>
+<P>
+<PRE>     read_head    : Returns the first few lines of a file.  See file_head.
+     read_tail    : Returns the last  few lines of a file.  See file_tail.
+</PRE>
+</P>
+<P>
+<PRE>     read_random  : Reads a random record. 
+                    This also re-sets the index to the random position.
+</PRE>
+</P>
+<P>
+<PRE>     read_next    : Reads the next record, according to the index.
+     read_current : Reads the current record, according to the index.
+</PRE>
+</P>
+<P>
+<PRE>     index        : Which record was last read.  A couple of notes:
+                      - The index is saved between mh sessions.
+                      - If you use a File_Item that does not yet have 
+                        an index set, a random index will be used and stored.
+     set_index    : Set the index. 
+</PRE>
+</P>
+<P>
+<PRE>     set_watch('flag') : Sets the 'changed' time check.  
+</PRE>
+</P>
+<P>
+<PRE>     changed      : Returns 0 if the file was not changed since a set_watch call.
+                    When the file changes:
+                     - If 'flag' was specified in the new method, 'flag' is returned.
+                     - Otherwise, it returns the number of seconds since a set_watch call.
+</PRE>
+</P>
+<P>
+<PRE>     said         : Returns data added to a file since the last call.
+                    Only one record is returned per call.
+                    This is useful for monitoring log files.
+                    See mh/code/Bruce/shoutcast.pl  for an example.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+     $f_deep_thoughts = new File_Item(&quot;$Pgm_Root/data/remarks/deep_thoughts.txt&quot;);
+     my $thought = read_next $f_deep_thoughts;
+     set_index $f_deep_thoughts 1;
+</PRE>
+</P>
+<P>
+<PRE>     $f_weather_forecast = new File_Item(&quot;$Pgm_Root/data/web/weather_forecast.txt&quot;);
+     set_watch $f_weather_forecast;
+     display name $f_weather_forecast if changed $f_weather_forecast;
+</PRE>
+</P>
+<P>
+<PRE>     $shoutcast_log = new File_Item 'd:/shoutcast/sc_serv.log';  
+     print &quot;Log data: $state&quot; if $New_Second and $state = said $shoutcast_log;
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_Generic_Item">Generic_Item</A></STRONG><DD>
+<P>
+You can use this object to store and query arbitrary data. This is more
+useful than 'my' variables, if you need to share data between code files,
+since 'my' variables are local to a code file. Maybe we should
+allow/default this data to be saved between mh sessions, like $Save{}
+entries??
+
+</P>
+<P>
+<PRE>  Methods:
+     new
+     state        :
+     state_now    :
+     set          :
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+     $tv_grid = new Generic_Item;
+     set $tv_grid 'channel 2 from 7:00 to 8:00 on 1/24 for This Old House';
+     speak &quot;tv set to $state&quot; if $state = state_now $tv_grid;
+</PRE>
+</P>
+<P>
+<PRE>     $wakeup_time = new Generic_Item;
+     speak &quot;Your wakeup time is set for $state&quot; if $state = state_now $wakeup_time;
+     speak &quot;Time to wake up&quot; if time_now state $wakeup_time;
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_Group">Group</A></STRONG><DD>
+<P>
+You can use this object to group and operate on groups of items:
+
+</P>
+<P>
+<PRE>  Methods:
+     new(@item_list)
+     add(@item_list)
+     set  
+     state        : Returns the last state that the group was set to
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+     $outside_lights = new Group($light1, $light2, $light3);
+     $outside_lights-&gt; add($light4, $light5);
+     $outside_lights-&gt; add($light6);
+     set $outside_lights ON if time_now(&quot;$Time_Sunset + 0:15&quot;);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_iButton_Item">iButton_Item</A></STRONG><DD>
+<P>
+This is used to query and/or control an iButton device (for more info on
+iButton, see the hardware section). To enable ibutton support in mh, set
+the mh.ini parm ibutton_port.
+
+</P>
+<P>
+<PRE>  Methods:
+     new $id
+</PRE>
+</P>
+<P>
+<PRE>     set $state   : Sets the item to the specified state.
+</PRE>
+</P>
+<P>
+<PRE>     state        : Returns the last state that was received or sent
+</PRE>
+</P>
+<P>
+<PRE>     state_now    : Returns the state that was received or sent in the current pass.
+</PRE>
+</P>
+<P>
+<PRE>     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+</PRE>
+</P>
+<P>
+<PRE>     read_temp    : Returns the temperature of temperature devices.
+</PRE>
+</P>
+<P>
+<PRE>   In addition to the above, all of the methods provided by the Hardware/iButton/Device.pm 
+   module are available (documented in mh/lib/site/Hardware/iButton/Device.pm).
+   
+   
+   These methods are also part of the iButton module, but not associated with an object: 
+</PRE>
+</P>
+<P>
+<PRE>     scan        $family : Returns a object list of iButton devices that match $family 
+     scan_report $family : Returns a report of      iButton devices that match $family 
+</PRE>
+</P>
+<P>
+<PRE>     monitor             : Checks the one wire bus for iButton activity
+</PRE>
+</P>
+<P>
+<PRE>     connect             : Connect to the one wire bus
+</PRE>
+</P>
+<P>
+<PRE>     disconnect          : Disconnect to the one wire bus
+</PRE>
+</P>
+<P>
+<PRE>   The $id required when creating new iButton_Item is the 16 hex character (64 bit) iButton id that
+   is unique to every device.  This is often printed on the larger devices.  If not, you can use: 
+</PRE>
+</P>
+<P>
+<PRE>      $v_iButton_list      = new Voice_Cmd &quot;List all the iButton buttons&quot;;
+      print_log &amp;iButton::scan_report if said $v_iButton_list;
+</PRE>
+</P>
+<P>
+<PRE>   The last 2 characters are CRC bits and are optional.  If missing (i.e. you only specify 
+   the first 14 characters), mh will calculate it.
+   
+   The first 2 characters are the iButton family type.  Here is a list of family types:  
+</PRE>
+</P>
+<P>
+<PRE>     Field Index:
+      ------------
+      (1) Family code in hex
+      (2) Number of regular memory pages
+      (3) Length of regular memory page in bytes
+      (4) Number of status memory pages
+      (5) Length of status memory page in bytes
+      (6) Max communication speed (0 regular, 1 Overdrive)
+      (7) Memory type (see below)
+      (8) Part number in iButton package
+      (9) Part number in non-iButton package
+      (10) Brief descriptions
+      
+      (1)   (2)  (3)  (4)  (5)  (6)  (7)   (8)   (9)   (10)
+      -------------------------------------------------------
+      01,    0,   0,   0,   0,   1,   0, DS1990A,DS2401,Unique Serial Number
+      02,    0,   0,   0,   0,   0,   0, DS1991,DS1205, MultiKey iButton
+      04,   16,  32,   0,   0,   0,   1, DS1994,DS2404,4K-bit NVRAM with Clock
+      05,    0,   0,   0,   0,   0,   0, DS2405,,Single Addressable Switch
+      06,   16,  32,   0,   0,   0,   1, DS1993,DS2403,4K-bit NVRAM
+      08,    4,  32,   0,   0,   0,   1, DS1992,DS2402,1K-bit NVRAM
+      09,    4,  32,   1,   8,   1,   2, DS1982,DS2502,1K-bit EPROM
+      0A,   64,  32,   0,   0,   1,   1, DS1995,DS2416,16K-bit NVRAM
+      0B,   64,  32,  40,   8,   1,   3, DS1985,DS2505,16K-bit EPROM
+      0C,  256,  32,   0,   0,   1,   1, DS1996,DS2464,64K-bit NVRAM
+      0F,  256,  32,  64,   8,   1,   3, DS1986,DS2506,64K-bit EPROM
+      10,    0,   0,   0,   0,   0,   0, DS1920,DS1820,Temperature iButton with
+      Trips
+      11,    2,  32,   1,   8,   0,   2, DS1981,DS2501,512-bit EPROM
+      12,    4,  32,   1,   8,   0,   4, DS2407,,Dual Addressable Switch
+      13,   16,  32,  34,   8,   0,   3, DS1983,DS2503,4K-bit EPROM
+      14,    1,  32,   0,   0,   0,   5, DS1971,DS2430A,256-bit EEPROM, plus
+      64-bit
+      OTP
+      15,    0,   0,   0,   0,   1,   0, DS87C900,,Lock Processor
+      16,    0,   0,   0,   0,   0,   0, DS1954,,Crypto iButton
+      18,    4,  32,   0,   0,   1,   6, DS1963S,4K-bit Transaction iButton with
+      SHA
+      1A,   16,  32,   0,   0,   1,   6, DS1963,,4K-bit Transaction iButton
+      1C,    4,  32,   0,   0,   1,   6, DS2422,,1K-bit EconoRAM with Counter
+      Input
+      1D,   16,  32,   0,   0,   1,   6, DS2423,,4K-bit EconoRAM with Counter
+      Input
+      1F,    0,  32,   0,   0,   0,   0, DS2409,,One-Wire Net Coupler
+      20,    3,   8,   0,   0,   1,   9, DS2450,,Quad A-D Converter
+      21,   16,  32,   0,   0,   1,   8, DS1921,,Temperature Recorder iButton
+      23,   16,  32,   0,   0,   1,   7, DS1973,DS2433,4K-bit EEPROM
+      40,   16,  32,   0,   0,   0,   1, DS1608,,Battery Pack Clock
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>    $v_iButton_connect = new Voice_Cmd &quot;[Connect,Disconnect] to the iButton bus&quot;;
+    if ($state = said $v_iButton_connect) {
+      if ($state eq 'Connect') {
+        print_log &amp;iButton::connect($config_parms{iButton_port});
+      }
+      else {
+        print_log &amp;iButton::disconnect;
+      }
+    }
+</PRE>
+</P>
+<P>
+<PRE>    $ib_bruce  = new iButton '010000012345ef';
+    speak 'Hi Bruce'  if ON  eq state_now $ib_bruce;
+    speak 'Later'     if OFF eq state_now $ib_bruce;
+</PRE>
+</P>
+<P>
+<PRE>    $ib_relay1 = new iButton '12000000123456ff';
+    $v_iButton_relay1    = new Voice_Cmd &quot;Turn relay1 [on,off]&quot;;
+    if ($state = said $v_iButton_relay1) {
+       print_log &quot;Setting iButton relay1 to $state&quot;;
+       set $ib_relay1 $state;
+    }
+</PRE>
+</P>
+<P>
+<PRE>    $ib_temp1  = new iButton '1000000029a14f';
+    $ib_temp2  = new iButton '1000000029f5d6';
+    my @ib_temps = ($ib_temp1, $ib_temp2);
+</PRE>
+</P>
+<P>
+<PRE>    $v_iButton_readtemp  = new Voice_Cmd &quot;Read the iButton temperature [1,2]&quot;;
+    if ($state = said $v_iButton_readtemp) {
+       my $b = $ib_temps[$state-1];
+       my $temp = read_temp $b;
+       print_log &quot;Temp for sensor $state: $temp F&quot;;
+       logit(&quot;$config_parms{data_dir}/iButton_temps.log&quot;,  &quot;$state: $temp&quot;);
+    }
+    if ($New_Second and !($Minute % 5)) {
+       run_voice_cmd 'Read the iButton temperature 1' if $Second == 11;
+       run_voice_cmd 'Read the iButton temperature 2' if $Second == 22;
+    }
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_IR_Item">IR_Item</A></STRONG><DD>
+<P>
+This object controls IR transmiters. Currently only the X10 IR Commander
+(http://www.x10.com/products/ux17a_bj2.htm) is supported. The X10 IR
+Commander receives commands from the wireless CM17 (firecracker) interface.
+
+</P>
+<P>
+Currently, you must use the X10 supplied software
+(http://www.x10.com/commander.htm and/or <A
+HREF="ftp://ftp.x10.com/pub/applications/commander/)">ftp://ftp.x10.com/pub/applications/commander/)</A>
+to program the IR Commander to use the codes for your various remotes.  
+
+</P>
+<P>
+<PRE>  Methods:
+     new $type    : Creates a new Item.  Here are the valid types:
+         TV, VCR, CAB, CD, SAT, DVD
+</PRE>
+</P>
+<P>
+<PRE>     state        : Returns the last state that was sent
+     state_now    : Returns the state that was sent in the current pass.
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+</PRE>
+</P>
+<P>
+<PRE>     set $command : Sends out commands to the IR device.  Here is a list of valid commands:
+                    Note:  Commands are case insensitive
+</PRE>
+</P>
+<P>
+<PRE>        POWER      MUTE      
+        CH+        CH-      
+        VOL+       VOL-     
+        1          2        
+        3          4        
+        5          6        
+        7          8        
+        9          0        
+        MENU       ENTER    
+        FF         REW      
+        RECORD     PAUSE     
+        PLAY       STOP     
+        AVSWITCH   DISPLAY  
+        UP         DOWN      
+        LEFT       RIGHT    
+        SKIPDOWN   SKIPUP   
+        TITLE      SUBTITLE 
+        EXIT       OK       
+        RETURN   
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>    $TV = new IR_Item 'TV';
+    $v_tv_control = new  Voice_Cmd(&quot;tv [power,on,off,mute,vol+,vol-,ch+,ch-]&quot;);
+    set $TV $state if $state = said $v_tv_control;
+</PRE>
+</P>
+<P>
+<PRE>    $VCR = new IR_Item 'vcr';
+    set $VCR &quot;12,RECORD&quot; if time_cron('59 19 * * 3');
+    set $VCR &quot;STOP&quot;      if time_cron('00 20 * * 3');
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_Process_Item">Process_Item</A></STRONG><DD>
+<P>
+You can use this object to run external programs. On Win32 systems, the
+Win32::Process function is used. On Unix systems, the fork function is
+used. On either system, the following methods work in the same way:
+
+</P>
+<P>
+<PRE>  Methods:
+     new('program arguments')
+     set('program arguments')
+</PRE>
+</P>
+<P>
+<PRE>     start          : Starts the process.
+</PRE>
+</P>
+<P>
+<PRE>     stop           : Stops the process.
+                      If not process is specified, all active Process_Items are stopped.
+</PRE>
+</P>
+<P>
+<PRE>     done           : Returns the time (seconds since epoch) that the process finished.  If
+                      the process has been started, but has not yet finished, it returns 0.
+</PRE>
+</P>
+<P>
+<PRE>     done_now       : Is true for the pass that the process finished on.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+     my $slashdot_news = &quot;$Pgm_Root/data/web/slashdot_news.txt&quot;;
+     $p_slashdot_news = new Process_Item(&quot;get_slashdot_news &gt; $slashdot_news&quot;);
+     start $p_slashdot_news if time_now('6:30 AM');
+     display $slashdot_news if done_now $p_slashdot_news;
+</PRE>
+</P>
+<P>
+<PRE>     $p_report_weblog = new Process_Item;
+     if (time_now '2 AM') {
+         set   $p_report_weblog &quot;report_weblog /mh/data/logs/server.$Year_Month_Now.log&quot;;
+         start $p_report_weblog;
+     }
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_Serial_Item">Serial_Item</A></STRONG><DD>
+<P>
+Serial_Item is used whenever you want read or write serial port data.
+
+</P>
+<P>
+<PRE>  Methods:
+     new('data_stream', 'state_name', 'serial_port')
+     add('data_stream', 'state_name')
+</PRE>
+</P>
+<P>
+<PRE>        If 'serial_port' is not specified, then:
+           For outgoing X10 data, the first valid port from this list is used:
+               cm11, cm17, homevision, homebase, weeder, serial1, serial2, ...
+           For other outgoing data, the first valid port from this list is used:
+               weeder, serial1, serial2, ...
+</PRE>
+</P>
+<P>
+<PRE>           For incoming data, the 'serial_port' parm is not important, as 
+           data from the cm11, homebase, and weeder ports is processed in the same way.
+</PRE>
+</P>
+<P>
+<PRE>           For the generic ports (serial1, serial2, ...), incoming data is processed
+           only by user specified 'said' methods.
+</PRE>
+</P>
+<P>
+<PRE>     state        : Returns the last state that was received or sent
+</PRE>
+</P>
+<P>
+<PRE>     state_now    : Returns the state that was received or sent in the current pass.
+</PRE>
+</P>
+<P>
+<PRE>     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+</PRE>
+</P>
+<P>
+<PRE>     set_dtr      : Sets/resets the DTR line
+     set_rcs      : Sets/resets the RCS line.  For example:
+</PRE>
+</P>
+<P>
+<PRE>                      set_dtr $port 1;
+                      set_rcs $port 0;
+</PRE>
+</P>
+<P>
+<PRE>     set          : Sets the item to the specified state.
+                     - If the specified state has not been defined with 'new' or 'add', 
+                       the state data is sent.  Otherwise the data_stream associated
+                       with that state is sent.
+</PRE>
+</P>
+<P>
+<PRE>     set_data     : Use this to put data back into the serial read buffer.  Typically used
+                    when you have processed only some of the serial data, and you want to 
+                    put the rest back because it is incomplete.  Here is an example:
+</PRE>
+</P>
+<P>
+<PRE>                   if (my $data = said $wx200_port) {
+                      my $remainder = &amp;read_wx200($data, \%weather);
+                      set_data $wx200_port $remainder if $remainder;
+                   }   
+</PRE>
+</P>
+<P>
+<PRE>     said         : Returns a data record received by the port.  
+                     - Characters are spooled into one record until a '\n' (newline) is
+                       received.  Only then does 'said $item' become valid, and it is
+                       reset as soon as the said method is executed.  
+</PRE>
+</P>
+<P>
+<PRE>                     - Note: If you want to process binary serial data, specify 
+                             serial#_datatype=raw in the mh.ini file.  This
+                             will cause said to return any data read immediately, 
+                             rather than buffering up data until a newline is read.
+</PRE>
+</P>
+<P>
+<PRE>     start        : Re-starts the serial port after a stop command or after starting 
+                    with the port already in use.
+</PRE>
+</P>
+<P>
+<PRE>     stop         : Stops using the serial port for this item.  That allows other programs
+                    to share the port (e.g. let mh use the modem for caller ID, but turn
+                    that function off when using the modem to call out).
+</PRE>
+</P>
+<P>
+<PRE>     is_stopped   : True if the port is not active
+     is_available : True if the port is not in used by another program
+</PRE>
+</P>
+<P>
+<PRE>     set_icon : Point to the icon member you want the web interface to use.
+                See the 'Customizing the web interface' section of this document for details.
+</PRE>
+</P>
+<P>
+<PRE>     set_info : Adds additional information.  This will show up as a popup window
+                on the web interface, when the mouse hovers over the command text.
+</PRE>
+</P>
+<P>
+<PRE>     set_order: Contols the order that the commands are listed in web Category list.
+                The default is alphabetically by file, then by name.
+</PRE>
+</P>
+<P>
+will show up as a popup window on the web interface, when the mouse hovers
+over the command text.
+
+</P>
+<P>
+<PRE>  Examples:
+     $garage_movement = new Serial_Item('XI2');
+     speak &quot;Someone is in the garage&quot; if state_now $garage_movement;
+</PRE>
+</P>
+<P>
+<PRE>     $tnc_output = new Serial_Item ('CONV', 'converse', 'serial1');
+     $tnc_output -&gt; add            ('?WX?', 'wxquery');
+     set $tnc_output 'converse';
+     set $tnc_output &quot;EMAIL    :userid\@computers.com Test E-Mail - $CurrentTemp deg.{0&quot;;
+     my $serial_data = said $tnc_output;
+</PRE>
+</P>
+<P>
+<PRE>     $v_tnc_close = new  Voice_Cmd(&quot;close the tnc serial port&quot;);
+     stop  $tnc_output if said $v_tnc_close;
+     start $tnc_output if $New_Minute and is_stopped $tnc_output
+                          and is_available $tnc_output; 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_X10_Item">X10_Item</A></STRONG><DD>
+<P>
+Same as Serial_Item, except the 'X' prefix is prepended, to indicate an X10
+command, and it has pre-defined states 'on', 'off'. 'brighten', 'dim', and
+'+5'-&gt;'+95 and '-5'-&gt;'-95'. The +-## states increase/decrease
+brightness by ## percent.
+
+</P>
+<P>
+You can specify a 2nd argument, if you are using more than one X10
+interface and you want to control an X10_Item with a specific interface.
+For example, if you want to control the local module on a RF Transeiver,
+you can tell mh to use the RF CM17 interface, like this:
+
+</P>
+<P>
+<PRE>    $test_light = new X10_Item('A1', 'CM17');
+</PRE>
+</P>
+<P>
+Note that the X10 device code is numbered 1-&gt;9,A-&gt;F. For example
+device 16 in house code P would be PF.
+
+</P>
+<P>
+If a single character is use (e.g. <CODE>X10_Item('D')),</CODE> then 'on'
+and 'off' states are translated to ALL_ON and ALL_OFF commands for that
+house code. For example:
+
+</P>
+<P>
+<PRE>   $v_test_lights = new Voice_Cmd(&quot;All lights [on,off]&quot;);
+   $test_lights   = new X10_Item(&quot;O&quot;);
+   set $test_lights $state if $state = said $v_test_lights;
+</PRE>
+</P>
+<P>
+This item also has a built in timer with the set_with_timer method. For
+example, this event will turn on a on a warning light to 20% for 5 seconds:
+
+</P>
+<P>
+<PRE>   set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
+</PRE>
+</P>
+<P>
+If you have one of the newer (more expensive) LM14A/PLM21 2 way X10 pro
+lamp modules, you can tell mh to send an extended X10 codes that let them
+be set directly to a specific brightness level using a Preset Dim extended
+code. The older modules can only be brightened/dimed.
+
+</P>
+<P>
+The 64 extened X10 Preset Dim codes can used most easily by using the '#%'
+state. Note this differs from the +-# states described above, which
+increase/decrease brightness relative to the current state. The #% state
+goes directly to that level, independent of the existing state.
+
+</P>
+<P>
+To use the #% preset dim states, you need to use a 3rd argument on X10_Item
+to tell it that you have a LM14 lamp module (the only module that currently
+supports Preset Dim). For example:
+
+</P>
+<P>
+<PRE>  $test_light2 = new X10_Lamp('O7', 'CM11', 'LM14');
+  $v_test_light2 = new Voice_Cmd(&quot;Set test light to [on,off,bright,dim,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%]&quot;);
+  set $test_light2 $state if $state = said $v_test_light2;
+</PRE>
+</P>
+<P>
+You can also use them directly, using &amp;P## (## = 1-&gt;64) as shown in
+this example:
+
+</P>
+<P>
+<PRE>  $test_light1 = new X10_Item('O7');
+  $v_test_light1 = new Voice_Cmd(&quot;Set test light to [on,off,bright,dim,&amp;P3,&amp;P10,&amp;P30,&amp;P40,&amp;P50,&amp;P60]&quot;);
+  set $test_light1 $state if $state = said $v_test_light1;
+</PRE>
+</P>
+<P>
+There is another set of Preset Dim commands that are used by some modules
+(e.g. the RCS TX15 thermostate). These 32 non-extended Preset Dim codes can
+be coded directly, using the following table:
+
+</P>
+<P>
+<PRE>  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15   PRESET_DIM1
+  M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
+</PRE>
+</P>
+<P>
+<PRE>  16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31  PRESET_DIM2
+  M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
+</PRE>
+</P>
+<P>
+For example:
+
+</P>
+<P>
+<PRE>  $TX10 = new Serial_Item('XM4' . 'E' . 'PRESET_DIM1', 'Increase temp');  #preset  8='E'
+  $TX10 -&gt; add           ('XM4' . 'F' . 'PRESET_DIM1', 'Decrease temp');  #preset  9='F'
+  $TX10 -&gt; add           ('XM4' . 'O' . 'PRESET_DIM2', 'Preset on');      #preset 18='O'
+  $TX10 -&gt; add           ('XM4' . 'P' . 'PRESET_DIM2', 'Preset off');     #preset 19='P'
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_X10_Appliance">X10_Appliance</A></STRONG><DD>
+<P>
+Same as X10_Item, except it has only has pre-defined states 'on' and 'off'
+
+</P>
+<DT><STRONG><A NAME="item_RCS_TX15">RCS_TX15</A></STRONG><DD>
+<P>
+Craig is working on this one.
+
+</P>
+<DT><STRONG><A NAME="item_Socket_Item">Socket_Item</A></STRONG><DD>
+<P>
+You can use the Socket_Item object to read and/or write to TCP/IP socket
+ports.  
+
+</P>
+<P>
+<PRE>  Methods:
+</PRE>
+</P>
+<P>
+<PRE>     new('data_stream', 'state_name', 'host_port', 'name')
+     add('data_stream', 'state_name')
+</PRE>
+</P>
+<P>
+<PRE>        'host_port' must be of the form ip_address:port or 
+        it must match a server* parm in mh.ini (e.g. server1).
+</PRE>
+</P>
+<P>
+<PRE>        'name' is optional.  If used you can set debug to this string
+        to turn on debug for just this socket data.
+        
+     set_port     : Allows you to change the server_name/port.
+</PRE>
+</P>
+<P>
+<PRE>     buffer       : If set to 1, data will be read one line at a time (faster)
+                    If set to 0, the default, data will be read one character at a time.
+</PRE>
+</P>
+<P>
+<PRE>     state        : Returns the last state that was received or sent
+</PRE>
+</P>
+<P>
+<PRE>     state_now    : Returns the state that was received or sent in the current pass.
+</PRE>
+</P>
+<P>
+<PRE>     set          : Sets the item to the specified state.
+                     - If the specified state has not been defined with 'new' or 'add', 
+                       the state data is sent.  Otherwise the data_stream associated
+                       with that state is sent.
+</PRE>
+</P>
+<P>
+<PRE>     set_echo     : Use this to control echoing of incoming characters:
+                     set_echo $my_socket 0   -&gt; Do not echo incoming characters
+                     set_echo $my_socket 1   -&gt; echo incoming characters
+                     set_echo $my_socket '*' -&gt; echo incoming characters with *
+</PRE>
+</P>
+<P>
+<PRE>     said         : Returns a data record received by the port.  
+                     - Characters are spooled into one record until a '\n' (newline) is
+                       received.  Only then does 'said $item' become valid, and it is
+                       reset as soon as the said method is executed.  
+</PRE>
+</P>
+<P>
+<PRE>     handle       : Returns the socket handle, so you can loop on reading/writing data
+                    to it directly.
+</PRE>
+</P>
+<P>
+<PRE>     start        : Connect to the specified port.  This allows mh to act as a client,
+                    rather than a server, and initiate communications with a server.
+</PRE>
+</P>
+<P>
+<PRE>     stop         : This will drop the client or server from mh and free up the port.
+</PRE>
+</P>
+<P>
+<PRE>     active       : True if the port is active
+     active_now   : True for the mh pass that the socket first becomes active.
+     inactive_now : True for the mh pass that the socket first becomes inactive.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>    $socket_server = new  Socket_Item(undef, undef, 'server_speak');
+    if (my $data = said $socket_server) {
+       print &quot;speak_server socket data: $data\n&quot;;
+       speak $data;
+    }
+</PRE>
+</P>
+<P>
+<PRE>    my $lcdproc_address = 'misterhouse:13666';
+    $lcdproc = new  Socket_Item(undef, undef, $lcdproc_address, 'lcdproc');
+</PRE>
+</P>
+<P>
+<PRE>    $Vcmd_viavoice = new  main::Socket_Item(undef, undef, 'localhost:3234', 'viavoice');
+</PRE>
+</P>
+<P>
+<PRE>    More examples are in mh/code/Bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
+    my/code/Bruce/mh_watchdog.pl, and mh/code/test/socket_test.pl
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_Timer">Timer</A></STRONG><DD>
+<P>
+The Timer object can be used to run an action one or more times, at a
+specified interval.
+
+</P>
+<P>
+<PRE>  Methods:
+</PRE>
+</P>
+<P>
+<PRE>    new        : Used to create the object.
+</PRE>
+</P>
+<P>
+<PRE>    set($period, $action, $cycles)
+        $period is the timer period in seconds
+        $action (optional) is the command to run when the timer expires
+        $cycles (optional) is how many times to repeat the timer
+</PRE>
+</P>
+<P>
+<PRE>    unset      : Unset the timer.  'set $my_timer 0' has the same effect.
+</PRE>
+</P>
+<P>
+<PRE>    active     : Returns true if the timer is still running.
+    inactive   : Returns true if the timer is has expired or has not been set.
+    expired    : Returns true for the one pass after the timer has expired.
+</PRE>
+</P>
+<P>
+<PRE>    run_action : Runs the timers action, even if the timer has not expired.
+</PRE>
+</P>
+<P>
+<PRE>    hours_remaining,   hours_remaining_now
+    minutes_remaining, minutes_remaining_now
+    seconds_remaining, seconds_remaining_now
+</PRE>
+</P>
+<P>
+<PRE>        These methods return the hours, minutes or seconds remaining on the timer.
+        The _now methods only return the remaining time on the hour, minute,
+        or second boundary.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:    
+</PRE>
+</P>
+<P>
+<PRE>    $timer_laundary = new  Timer;
+    $v_laundary_timer = new  Voice_Cmd('Laundary timer [on,off]');
+    if ($state =  said $v_laundary_timer) {
+       if ($state eq ON) {
+          play('rooms' =&gt; 'shop', 'file' =&gt; 'cloths_started.wav');
+          set $timer_laundary 35*60, 'speak &quot;rooms=all The laundary clothes done&quot;', 4;
+       }
+       else {
+          speak 'rooms=shop The laundry timer has been turned off.';
+          unset $timer_laundary;
+       }
+    }
+</PRE>
+</P>
+<P>
+<PRE>    See mh/code/Bruce/timer_minutes.pl and timer_seconds.pl for more examples.
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_Voice_Cmd">Voice_Cmd</A></STRONG><DD>
+<P>
+Use the Voice_Cmd object to create voice commands. Even without a Voice
+Recognition engine installed, this is useful as these commands can also be
+run from the Tk, web, telnet, and file interfaces.
+
+</P>
+<P>
+<PRE>  Methods:
+     new($command, $response, $confirm, $vocabulary)
+</PRE>
+</P>
+<P>
+<PRE>        $command can be a simple string (e.g. 'What time is it') or it can 
+        include a list of 'states' (e.g. 'Turn the light [on,off]').  The state
+        enumeration group is a comma delimited string surrounded with [].
+</PRE>
+</P>
+<P>
+<PRE>        In addition to one state enumeration group, you can specify any number
+        of phrase enumeration groups.  These are comma delimited strings
+        surounded by {} (e.g. 'Turn the {family room,downstairs} TV [on,off]').
+        Use this when you have several different ways to describe the same thing.
+</PRE>
+</P>
+<P>
+<PRE>        $response is the text or wave file that will be played back when the
+        VR engine detects this command.  If not defined, the response 
+        is : &quot;you said $command&quot;
+</PRE>
+</P>
+<P>
+<PRE>        You can put %STATE% or any variable in the response string and have it
+        substituted/evaluated when the response is spoken
+</PRE>
+</P>
+<P>
+<PRE>        $confirm is either 0 or 1 (default is 0).  If set to 1, then mh will
+        ask 'Confirm with a yes or a no'.  If yes or no is not heard within
+        10 seconds, the command is aborted.
+</PRE>
+</P>
+<P>
+<PRE>        $vocabulary allows you to define multiple vocabularies.  You 
+        can then use these functions to enable and disable the vocabularies:
+</PRE>
+</P>
+<P>
+<PRE>             &amp;Voice_Cmd::enablevocab($vocabulary)
+             &amp;Voice_Cmd::disablevocab($vocabulary)
+</PRE>
+</P>
+<P>
+<PRE>        Vocabularies are enabled by default.  The default vocabulary
+        is 'misterhouse'.  See code/Bruce/viavoice_control.pl for examples.
+        This code allows you to switch between 'awake', 'asleep', and 'off' VR modes.
+</PRE>
+</P>
+<P>
+<PRE>        NOTE:  
+           Currently only the viavoice VR engine (mh.ini parm voice_cmd=viavoice)
+           will use the $response, $confirm, and $vocabulary_name options.
+           We may be able to create a viavoice_server for windows, but that would
+           probably not be free like it is on linux.  If you have a linux box
+           on your network, you can have your windows mh use the linux
+           viavoice_server process.
+ 
+</PRE>
+</P>
+<P>
+<PRE>     said  : Is true for the one pass after the command was issued.
+             If the command was built from a list of possible states, 
+             then said returns the state that matches.
+</PRE>
+</P>
+<P>
+<PRE>     state : Returns the same thing as said, except it is valid for all passes,
+             not just the pass after the command was issued.
+ 
+     set_icon : Point to the icon member you want the web interface to use.
+                See the 'Customizing the web interface' section of this document for details.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:        
+    $v_backyard_light = new  Voice_Cmd 'Backyard Light [on,off]';
+    set $backyard_light $state if $state = said $v_backyard_light;
+</PRE>
+</P>
+<P>
+<PRE>    $v_test1 = new Voice_Cmd '{turn,set} the {living,famliy} room {light,lights} [on,off]';
+    $v_test2 = new Voice_Cmd '{Please, } tell me the time';
+    $v_test3 = new Voice_Cmd '{What time is it,Tell me the time}';
+    $v_fan   = new Voice_Cmd 'Fan [on,off]', 'Ok, I turned the fan $v_indoor_fountain-&gt;{said}';
+    $v_fan   = new Voice_Cmd 'Fan [on,off]', 'Ok, I turned the fan %STATE%';
+</PRE>
+</P>
+<P>
+In addition to the said command on a specific object, you can use
+&amp;Voice_Cmd::said_this_pass to detect which command was spoken this pass
+and &amp;Voice_Cmd::noise_this_pass to detect if noise was detected this
+pass (this function currently only works with viavoice).  
+
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>   if (my $speak_num = &amp;Voice_Cmd::said_this_pass) {
+      my $text = &amp;Voice_Cmd::text_by_num($speak_num);
+      print_log &quot;spoken text: $speak_num, $text&quot;;
+   }
+</PRE>
+</P>
+<P>
+<PRE>   if (my $text = &amp;Voice_Cmd::noise_this_pass) {
+      print_log &quot;Noise detected&quot; if $text eq 'Noise';
+   }
+</PRE>
+</P>
+<P>
+See mh/code/Bruce/lcdproc.pl for more examples.
+
+</P>
+</DL>
+<P>
+<HR>
+<H2><A NAME="List_of_functions">List of functions</A></H2>
+<DL>
+<DT><STRONG><A NAME="item_convert_k2f">convert_k2f</A></STRONG><DD>
+<DT><STRONG><A NAME="item_convert_c2f">convert_c2f</A></STRONG><DD>
+<P>
+Converts from degrees Kelvin/Centigrade to Farenheight
+
+</P>
+<P>
+<PRE>  Example: 
+</PRE>
+</P>
+<P>
+<PRE>    $weather{TempF} = convert_c2f($weather{TempC});
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_convert_direction">convert_direction</A></STRONG><DD>
+<P>
+Converts 0-&gt;360 degrees into north, north east, east, etc
+
+</P>
+<P>
+<PRE>  Example: 
+</PRE>
+</P>
+<P>
+<PRE>    speak &quot;Wind speed is &quot; . round($weather{WindAvgSpeed}) .
+          &quot; from the &quot; . convert_wind_direction($weather{WindAvgDir});
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_display">display</A></STRONG><DD>
+<P>
+Displays the specified string or file.
+
+</P>
+<P>
+<PRE>  Usage:
+</PRE>
+</P>
+<P>
+<PRE>    display($file_or_text, $time, $title, $font);
+</PRE>
+</P>
+<P>
+<PRE>      $file_or_text can be a file or a text string.
+      $time  (optional) is how long (in seconds) till the box will auto-close.
+             Defaults to 120.  Use 0 to disable auto-close.
+      $title (optional) is the title of the display box.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>    display(&quot;Internet message: $msg&quot;, 300, 'Internet message'); 
+    display($f_trivia_answer;);
+  
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_file_changed">file_changed (or older name of file_change)</A></STRONG><DD>
+<P>
+Returns 1 if the specified file has change since last checked. Returns 0 if
+the file has not changed. Returns undef if we don't know (i.e. first check
+after mh was started). 
+
+</P>
+<P>
+<PRE>  Example:
+</PRE>
+</P>
+<P>
+<PRE>    print_log &quot;File $file has change&quot; if file_change($file);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_file_unchanged">file_unchanged</A></STRONG><DD>
+<P>
+Returns 0 if the specified file has change since last checked. Returns 1 if
+the file has not changed. Returns undef if we don't know (i.e. first check
+after mh was started). 
+
+</P>
+<P>
+<PRE>  Example:
+</PRE>
+</P>
+<P>
+<PRE>    my $watchdog_file = '//dm/d/misterhouse/mh/data/mh.time';
+    if (file_unchanged $watchdog_file) {
+        speak &quot;MisterHouse has stopped running on the Nick's box&quot;;
+        set_with_timer $watchdog_light '20%', 5;
+    }
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_file_diff">file_diff</A></STRONG><DD>
+<P>
+Returns true if the contents of the 2 specified files are different.
+
+</P>
+<P>
+<PRE>  Example:
+</PRE>
+</P>
+<P>
+<PRE>    print_log &quot;Files are different&quot; if file_diff($file1, $file2);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_file_read">file_read</A></STRONG><DD>
+<P>
+Reads data from a file. If used in a list context, a list is returned,
+otherwise a string of all the lines.
+
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>     @data = file_read($file);
+     $data = file_read($file);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_file_write">file_write</A></STRONG><DD>
+<P>
+Writes data into a file. Like logit, except it writes over, rather than
+appends to, a file.
+
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>     file_write($file, $data);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_file_cat">file_cat</A></STRONG><DD>
+<P>
+Concatonates data from one file onto another.
+
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>    file_cat $file, $file_total;
+</PRE>
+</P>
+<P>
+<PRE>    file_cat &quot;$config_parms{html_dir}/aprs/week2.html&quot;, &quot;$config_parms{html_dir}/aprs/old/${Year_Month_Now}.html&quot;;
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_file_head">file_head file_tail</A></STRONG><DD>
+<P>
+Returns the first/last few lines of a file
+
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>     @data = file_head($file, $lines);
+     $data = file_tail($file, $lines);
+</PRE>
+</P>
+<P>
+<PRE>   If $lines is not specified, the default is 3.
+   If used in a list context, a list is returned,
+   otherwise a string of all the requested lines is returned.
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_filter_cr">filter_cr</A></STRONG><DD>
+<P>
+Returns the given string, with carriage returns and line feeds filtered out
+
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>    print_log filter_cr get &quot;$url/play?p=$config_parms{mp3_program_password}&quot;;
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_logit">logit</A></STRONG><DD>
+<P>
+Appends data into a log file. Use file_write to write over a file.
+
+</P>
+<P>
+<PRE>  Usage:
+</PRE>
+</P>
+<P>
+<PRE>    logit($log_file, $log_data, $log_format, $head_tail);
+</PRE>
+</P>
+<P>
+<PRE>      $log_format=0  =&gt;  Data is written as is, no /n, no time_date stamp.
+</PRE>
+</P>
+<P>
+<PRE>      $log_format=## =&gt;  Every log entry is preceded with a time_date stamp.
+                         ## is passed to &amp;time_date_stamp to determine the format.
+                         Also, /r/n is stripped so we get only one record per call.
+</PRE>
+</P>
+<P>
+<PRE>      $head_tail     =&gt;  If 1, data is logged to the top of the file, otherwise
+                         it is added to the bottom.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>   logit(&quot;$Pgm_Root/data/logs/wx200.$Year_Month_Now.log&quot;,  $data, 0);
+   logit(&quot;$Pgm_Root/data/phone/logs/callerid.$Year_Month_Now.log&quot;, &quot;$cid_number $cid_name&quot;);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_logit_dbm">logit_dbm</A></STRONG><DD>
+<P>
+Logs data into a dbm file. If data for that key exists, it is overwritten.
+dbm files are useful if you want to store key-value data or hash arrays
+onto disk for later use.
+
+</P>
+<P>
+<PRE>  Usage:
+</PRE>
+</P>
+<P>
+<PRE>    logit_dbm($log_file, $log_key, $log_data);
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>    logit_dbm(&quot;$Pgm_Root/data/phone/callerid.dbm&quot;,
+              $cid_number, &quot;$Time_Now $Date_Now $Year name=$cid_name&quot;);
+</PRE>
+</P>
+<P>
+<PRE>    See display_callers for an example of how to read dbm files.
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_play">play</A></STRONG><DD>
+<P>
+Use this to play wave or system sound files. There are 2 modes of calling
+it:
+
+</P>
+<P>
+<PRE>   Simple mode:
+     play  $file_name
+</PRE>
+</P>
+<P>
+<PRE>   Options mode:
+     play(option =&gt; 'value', file =&gt; $file_name);
+</PRE>
+</P>
+<P>
+<PRE>     Options are:
+       rooms =&gt; 'room_names'  You need to code a pa_stub.pl routine to allow this
+                              to work with your PA relays.
+       time  =&gt; $time         The amount of time to leave the PA speakers on for rooms
+       mode  =&gt; $mode         $mode can be:
+         wait : mh will pause (hang), until wav file finishes
+         loop : mh will loop on the wav file
+         stop : mh will stop playing the previous file
+</PRE>
+</P>
+<P>
+If <CODE>$file_name</CODE> is a blank or comma delimited list of files,
+they are played sequentially. If it is a wild-carded file specification
+(e.g. ``movement*.wav''), then a file is picked at random from the files
+that match.
+
+</P>
+<P>
+If the file does not include a path specification, the file is looked for
+in the mh/sounds directory.
+
+</P>
+<P>
+If the file starts with System or with sound_, the sound file is NOT logged
+in the speak log.
+
+</P>
+<P>
+Here are the names of some of the Windows System sounds. Use the Control
+Panel Sounds menu to change their associated wav files:
+
+</P>
+<P>
+<PRE>   - MenuPopup
+   - SystemDefault
+   - SystemAsterisk
+   - SystemExclamation
+   - SystemExit
+   - SystemHand
+   - SystemQuestion
+   - SystemStart
+</PRE>
+</P>
+<P>
+<PRE>   Examples:
+</PRE>
+</P>
+<P>
+<PRE>                        # Play a random 'garage open/close' wav file
+     if($state = state_now $garage_door) {   # $state will be open or close
+       play(rooms =&gt; 'all', file =&gt; &quot;garage_door_&quot; . $state . &quot;*.wav&quot;);
+     }
+</PRE>
+</P>
+<P>
+<PRE>     play(file =&gt; 'SystemAsterisk') if $Reload;
+</PRE>
+</P>
+<P>
+<PRE>     play &quot;fun/*.wav&quot; if time_cron '* 9 * * 6';
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_print_log">print_log
+=item print_msg
+=item print_speaklog</A></STRONG><DD>
+<P>
+Use these to print to the various logs. These logs are listed in Tk and web
+frames.
+
+</P>
+<P>
+print_log is typically used for fairly frequent, not too important
+messages.
+
+</P>
+<P>
+print_msg is typically used for less frequent, more important messages.
+
+</P>
+<P>
+print_speaklog is called by the speak and play functions, so should not be
+normally used in user code.
+
+</P>
+<P>
+<PRE> 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_run">run</A></STRONG><DD>
+<P>
+You can use the run function to run a program as a separate process. On
+Windows, the perl Win32::Process function is used, and on Unix, the program
+is forked with &amp;.
+
+</P>
+<P>
+If you specify 'inline' as the first argument, the program will not be a
+background process/forked. mh will pause until the program is done.
+
+</P>
+<P>
+<PRE>  Examples:
+     run('IR_cmd VCR,3,6,RECORD');  # Start a VCR recording
+     run 'rasdial /disconnect';     # Log off from the net (on Windows)
+     run 'inline', 'some_fast_command_here';
+     run 'mplayer.exe /play /close c:\win98\media\canyon.mid'; # Play a midi file
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_run_voice_cmd">run_voice_cmd</A></STRONG><DD>
+<P>
+You can use this to have one event trigger another voice command event.
+
+</P>
+<P>
+<PRE>   Example:
+</PRE>
+</P>
+<P>
+<PRE>      run_voice_cmd 'Get the top10 list' if time_now('6:30 AM');
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_read_dbm">read_dbm</A></STRONG><DD>
+<P>
+Read data from a dbm file. If a key is passed, only that one record is
+returned. Otherwise, the whole dbm is read.
+
+</P>
+<P>
+<PRE>  Usage: 
+</PRE>
+</P>
+<P>
+<PRE>    $value = read_dbm($dbm_file, $key);
+    %data  = read_dbm($dbm_file);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_search_dbm">search_dbm</A></STRONG><DD>
+<P>
+Search a dbm file for matches to a string. It currently searches both key
+and value.
+
+</P>
+<P>
+<PRE>  Usage: 
+</PRE>
+</P>
+<P>
+<PRE>    ($count_searched, $count_matched, %results) = search_dbm($dbm_file, $search_string);
+</PRE>
+</P>
+<P>
+<PRE>  See mh/code/Bruce/phone.pl and mh/bin/display_callers for examples.
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_SendKeys">SendKeys WaitForAnyWindow sendkeys_find_window</A></STRONG><DD>
+<P>
+On Windows systems, use these functions to control other programs. Full
+documentation is mh/lib/site/Win32/setupsup.html.  
+
+</P>
+<P>
+<PRE>   SendKeys($window, $keystr, $activate, [$timeout])
+   WaitForAnyWindow($title, \$window, $timeout, [$refresh])
+</PRE>
+</P>
+<P>
+WaitForAnyWindow will set the window handle for the window that matches the
+(sub)string specified in $title. 
+
+</P>
+<P>
+SendKeys sends the keys. Here is an excerpt of the valid key list:
+
+</P>
+<P>
+<PRE>   ALT+ alt down ALT- alt up CTRL+ ctrl down CTRL- ctrl up SHIFT+ shift down SHIFT- shift up
+   TAB tabulator RET return ESC escape BACK backspace DEL delete INS insert HELP help
+   LEFT arrow left RIGHT arrow right UP arrow up DN arrow down PGUP page up PGDN page down
+   BEG pos1 END end F1 function 1 ... F12 function 12
+   NUM0 0 on the num block ... NUM9 9 on the num block 
+   NUM* multiply key on the num block 
+   NUM+ add key on the num block NUM- minus key on the num block NUM/ divide key on the num block 
+</PRE>
+</P>
+<P>
+sendkeys_find_window is an mh subroutine that calls WaitForAnyWindow. If
+the window is not found and <CODE>$program</CODE> is specified, it will
+start <CODE>$program</CODE> and wait for the window to appear, then return
+the window handle.
+
+</P>
+<P>
+<PRE>   sendkey_find_window($title, [$program]);
+  
+</PRE>
+</P>
+<P>
+Here are a few examples:
+
+</P>
+<P>
+<PRE>                    # Start winamp, if it is not running
+   unless (&amp;WaitForAnyWindow('Winamp', \$window, 100,100)) {
+       print_log &quot;Starting winamp&quot;;
+       run $config_parms{mp3_program};
+   }
+</PRE>
+</P>
+<P>
+<PRE>                    # Send/receive mail, using sendkeys_find_window to start the program 
+                    # if it is not already running
+   if (my $window = &amp;sendkeys_find_window('Outlook', 'D:\msOffice\Office\OUTLOOK.EXE')) {
+      my $keys = '\\alt+\\tss\\alt-\\';  # For Outlook Express
+      my $keys = '\\alt\\te\\ret\\';     # For Outlook
+      &amp;SendKeys($window, $keys, 1, 500);
+   }
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_speak">speak</A></STRONG><DD>
+<P>
+Passes specified text to the TTS program. There are 2 modes of calling it:
+
+</P>
+<P>
+<PRE>   Simple mode:
+     speak &quot;text to speak&quot;
+</PRE>
+</P>
+<P>
+<PRE>   Options mode:
+     speak(option =&gt; 'value', text =&gt; &quot;text to speak&quot;);
+    
+     Options are:
+       rooms  =&gt; 'room_name'   You need to code a pa_stub.pl routine to allow this
+                              to work with your PA relays.
+       mode   =&gt; 'unmuted'     Forces speech, even in mute and offline mode
+</PRE>
+</P>
+<P>
+<PRE>     These options are for the Festival speech engine (but don't work yet):
+       volume =&gt; 'loud' or 'soft'
+       rate   =&gt; '+-nn%'       (e.g. +10% or -30%)
+       voice  =&gt; 'name' 
+ 
+   Examples:
+</PRE>
+</P>
+<P>
+<PRE>    $test_voice1 = new Voice_Cmd &quot;Say something with a [loud,soft] voice&quot;;
+    $test_voice2 = new Voice_Cmd &quot;Say something at a [fast,slow] speed&quot;;
+    $test_voice3 = new Voice_Cmd &quot;Say something in voice [male1,female1]&quot;;
+</PRE>
+</P>
+<P>
+<PRE>    speak(volume =&gt; $state, 
+          text =&gt; &quot;This is an example of $state text&quot;)    if $state = said $test_voice1;
+    speak(rate   =&gt; $state,
+          text =&gt; &quot;This is an example of $state text&quot;)    if $state = said $test_voice2;
+    speak(voice  =&gt; $state,
+          text =&gt; &quot;This is an example of a $state voice&quot;) if $state = said $test_voice3;
+  
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_time_date_stamp">time_date_stamp</A></STRONG><DD>
+<P>
+You can use this function to return a time/date string.
+
+</P>
+<P>
+<PRE>  Usage:
+</PRE>
+</P>
+<P>
+<PRE>    time_date_stamp($format, $file_or_time);
+</PRE>
+</P>
+<P>
+<PRE>    $format can be any of the following:
+</PRE>
+</P>
+<P>
+<PRE>      1:   Monday, 08/26/96  11:01 PM
+      2:   Monday Jul 27 14:00 1996  (seems to be more compatable with javascript parsing)
+      3:   Monday Jul 27 at 6 AM
+      4:   6:05 AM on Monday, Jul 27
+      5:   6:05 AM
+      6:   Mon, Jul 27
+      7:   Mon 01:02PM 
+      8:   6:05 (skip the AM PM)
+      9:   04/14/97 10:28 PM 
+     10:   year_month, with leading 0, so log files are sorted ok (e.g. 97_01)
+     11:   01/31/98 (mm/dd/yy)
+     12:   04/14/97 14:28:00 
+     13:   14:28:33
+     14:   Mon 04/14/99 14:28:00
+</PRE>
+</P>
+<P>
+The second argument can be either time (in epoc seconds) or a file, where
+it will use the time that it was last modified. The default is
+<CODE>$Time</CODE> (current time).
+
+</P>
+<P>
+<PRE>    $lcd_data{1} = &amp;time_date_stamp(14, $Time);
+</PRE>
+</P>
+<P>
+<PRE>    speak &quot;File was changed today&quot; if time_date_stamp(6, $file) eq time_date_stamp(6);
+</PRE>
+</P>
+<P>
+Note: The mh.ini time_format and date_format parms can be used to modify
+these formats to non-us standards (e.g. no AM/PM, use dd/mm instead of
+mm/dd).
+
+</P>
+<DT><STRONG><A NAME="item_time_cron">time_cron</A></STRONG><DD>
+<P>
+The cron time format matches the unix cron format.
+
+</P>
+<P>
+<PRE>    Cron Format:
+      minutes hours day_of_month month day_of_week
+ 
+        minutes: 0-59
+        hours:   0-23
+        dom:     1-31  (day of month)
+        month:   1-12
+        dow:     0-6   (day of week 0=Sunday 6=Saturday)
+</PRE>
+</P>
+<P>
+<PRE>      You can use a comma delimited list for any of these fields.  * matches all values.
+</PRE>
+</P>
+<P>
+<PRE>   Examples:
+</PRE>
+</P>
+<P>
+<PRE>                 # Speak time every 15 minutes, between 7 am and 8 am on weekdays only  
+    speak $Time_Now  if time_cron '0,15,30,45 7,8 * * 1-5';
+</PRE>
+</P>
+<P>
+<PRE>                 # Change PA speaker mode at 9 pm, every day
+    pa_sleep_mode('kids', 1) if time_cron '* 21 * * * ';
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_time_greater_than">time_greater_than</A></STRONG><DD>
+<DT><STRONG><A NAME="item_time_less_than">time_less_than</A></STRONG><DD>
+<P>
+These return true if the specified time is greater or less than the current
+time. Format can have the same sorts of offsets as described in time_now
+below. Note unlike time_now which is only true once, these functions will
+return a true value for every pass that they are true.
+
+</P>
+<P>
+<PRE>   Example: curtain_on('bedroom', OPEN) if 
+                    time_cron('22 6 * * 1-5') and 
+                    time_greater_than(&quot;$Time_Sunrise + 0:15&quot;);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_time_now">time_now</A></STRONG><DD>
+<P>
+time_now is evaluate to true for the 1 pass that matches the specified
+time/date. Date is optional. You can specify + or - offset, in
+hours:minutes:seconds. Time can include AM/PM or be in 24 hour format. The
+best way to see how it works is to look the following examples:
+
+</P>
+<P>
+<PRE>   Examples:
+</PRE>
+</P>
+<P>
+<PRE>     run_voice_cmd 'close the living room curtains'  if time_now $Time_Sunset;
+     set $backyard_light ON if time_now(&quot;$Time_Sunset + 0:15&quot;);
+     set $left_bedroom_light +50 if $Weekday and time_now &quot;$wakeup_time - 0:01&quot;;
+     speak &quot;Remember dentist appointment&quot; if time_now '5/27/98 8:15 AM';
+     run('min', 'IR_cmd VCR,4,RECORD') if time_now '2/07 18:00';
+     run('min', 'IR_cmd VCR,STOP') if time_now &quot;$date $stop - 00:02&quot;;
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_time_random">time_random</A></STRONG><DD>
+<P>
+Use time_random to code random events. It uses the same time format as
+time_cron, but includes frequency parameter that specifies how often the
+event should trigger.
+
+</P>
+<P>
+<PRE>  Usage:
+     time_random($cron_spec, $frequency)
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>              # Speak something goofy once an hour on weekends
+    speak(read_next $april_fools) if time_random('* 8-22 * * 0,6', 60);
+</PRE>
+</P>
+<P>
+<PRE>              # Toggle a light on an off randomly every 30 minutes
+    if (time_random('* 18-22 * * *', 30)) {
+      $state = (ON eq state $bedroom_light) ? OFF : ON;
+      set $bedroom_light $state;
+    }
+</PRE>
+</P>
+</DL>
+<P>
+<HR>
+<H2><A NAME="List_of_tk_widget_functions">List of tk widget functions</A></H2>
+<DL>
+<DT><STRONG><A NAME="item_tk_button">tk_button tk_mbutton</A></STRONG><DD>
+<P>
+Use these functions to add a Tk button widget to the mh tk grid (tk_button)
+or the tk menu_bar (tk_mbutton). <A
+HREF="#item__tk_button">&amp;tk_button</A> will accept multiple variables,
+displaying them in a row in the grid.
+
+</P>
+<P>
+<PRE>   Usage:
+    &amp;tk_mbutton('Button Name', \&amp;subroutine);
+    &amp;tk_button('Button1', \&amp;sub1);
+    &amp;tk_button('Button1', \&amp;sub1, 'Button2', \&amp;sub2,'Button3', \&amp;sub3);
+</PRE>
+</P>
+<P>
+<PRE>   Examples:
+</PRE>
+</P>
+<P>
+<PRE>    &amp;tk_mbutton('Help', \&amp;help);
+    &amp;tk_button('Reload(F1)', \&amp;read_code, 'Pause (F2)', \&amp;pause,
+               ' Exit (F3) ', \&amp;sig_handler, 'Debug(F4)',  \&amp;toggle_debug,
+               'Log(F5)', \&amp;toggle_log);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_tk_checkbutton">tk_checkbutton</A></STRONG><DD>
+<P>
+tk_checkbutton adds a Tk checkbutton widget to the mh tk grid. It will
+accept multiple variables, displaying them in a row in the grid.
+
+</P>
+<P>
+<PRE>   Usage:
+    &amp;tk_checkbutton('text',  \&amp;var1);
+    &amp;tk_checkbutton('test1', \&amp;var1, 'text22', \&amp;var22, 'text3', \&amp;var33);
+</PRE>
+</P>
+<P>
+<PRE>   Examples:
+</PRE>
+</P>
+<P>
+<PRE>    &amp;tk_checkbutton('Debug on', \$config_parms{debug});
+    &amp;tk_checkbutton('Sleeping Parents', \$Save{sleeping_parents}, 
+                    'Sleeping Kids', \$Save{sleeping_kids});
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_tk_entry">tk_entry</A></STRONG><DD>
+<P>
+Use this function to allow for arbitrary data to be entered via the mh tk
+grid.
+
+</P>
+<P>
+<PRE>   Usage:
+    &amp;tk_entry('Entry label:', \$variable);
+    &amp;tk_entry('Entry label:', \$variable, 'Entry label2:, \$variable2);
+</PRE>
+</P>
+<P>
+<PRE>   Example:
+    &amp;tk_entry('Sleep time:', \$Loop_Sleep_Time);
+    &amp;tk_entry('Test in 1', \$Save{test_input1}, 'Test in 2', \$Save{test_input2});
+</PRE>
+</P>
+<P>
+<PRE> 
+Note:  The $variable reflects the data, as it is being entered.  If you want to test on the data
+only after the RETURN key has been hit, use %Tk_results array.
+The $variable is copied to $Tk_results{'Entry label:'} only after the RETURN key has been entered. 
+</PRE>
+</P>
+<P>
+<PRE>   Example:
+</PRE>
+</P>
+<P>
+<PRE>    &amp;tk_entry('TV search', \$Save{tv_search});
+    if ($state = $Tk_results{'TV search'}) {
+       run qq[get_tv_info -times all -keys &quot;$state&quot;];
+       set_watch $f_tv_file;
+       undef $Tk_results{'TV search'};
+    }
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_tk_label">tk_label tk_mlabel</A></STRONG><DD>
+<P>
+Use these functions to add a Tk label widget to the mh tk grid (tk_label)
+or the tk menu_bar (tk_mlabel). <A HREF="#item__tk_label">&amp;tk_label</A>
+will accept multiple variables, displaying them in a row in the grid.
+
+</P>
+<P>
+<PRE>   Usage:
+   
+     &amp;tk_mlabel(\$variable);
+     &amp;tk_label(\$variable);
+     &amp;tk_label(\$variable1, \$variable2, \$variable3);
+</PRE>
+</P>
+<P>
+<PRE>   Example:
+</PRE>
+</P>
+<P>
+<PRE>     &amp;tk_mlabel(\$Save{email_flag});
+     $Save{email_flag} = file_read &quot;$Pgm_Root/data/get_email.flag&quot;;
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_tk_radiobutton">tk_radiobutton</A></STRONG><DD>
+<P>
+Use this function to create radio buttons in the mh tk grid. If labels are
+not specified, the values are displayed.
+
+</P>
+<P>
+<PRE>   Usage:
+    &amp;tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3']);
+    &amp;tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3'], 
+                                                 ['label1', 'label2', 'label3']);
+</PRE>
+</P>
+<P>
+<PRE>   Example:
+</PRE>
+</P>
+<P>
+<PRE>    &amp;tk_radiobutton('Mode',  \$Save{mode}, ['normal', 'mute', 'offline']);
+    &amp;tk_radiobutton('Debug', \$config_parms{debug}, [1, 0], ['On', 'Off']);
+    &amp;tk_radiobutton('Tracking', \$config_parms{tracking_speakflag}, [0,1,2,3],
+                    ['None', 'GPS', 'WX', 'All']);
+</PRE>
+</P>
+</DL>
+<P>
+<HR>
+<H2><A NAME="List_of_Internet_functions">List of Internet functions</A></H2>
+<DL>
+<DT><STRONG><A NAME="item_get">get</A></STRONG><DD>
+<P>
+This function will retrieve data from the web (http web pages or ftp
+files). If the web page is large or the site is slow, you may want to use a
+Process_Item call to the get_url program, so the request can be done as a
+separate process and mh will not get hung up while waiting.
+
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>    my $html = get '<A HREF="http://marketing.cbs.com/lateshow/topten">http://marketing.cbs.com/lateshow/topten</A>';
+</PRE>
+</P>
+<P>
+<PRE>    Other examples are in mh/code/Bruce/internet_data.pl
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_get_ip_addresses">get_ip_addresses</A></STRONG><DD>
+<P>
+Returns the numeric IP address of the specified hostname. If hostname is
+blank, localhost is used. If used in a list context, all associated IP
+address are returned (e.g. dial up address and local address).
+
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>    print_log &quot;Current IP address &quot; . get_ip_address;
+</PRE>
+</P>
+<P>
+<PRE>                       #  Echo dynamic IP address to the Tk gui
+    if ($New_Minute and net_connect_check) {
+         $Tk_objects{ip_address} = &quot;IP address: &quot; . get_ip_address;
+    }   
+    tk_label(\$Tk_objects{ip_address});
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_html_unescape">html_unescape</A></STRONG><DD>
+<P>
+Un-escapes ``%xx'' data back into the original characters. Use on HTML FORM
+data.
+
+</P>
+<P>
+<PRE> 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_net_domain_name">net_domain_name function</A></STRONG><DD>
+<P>
+This will return the domain_name of the last client to access the specified
+port. If the mh.ini DNS_server parm is NOT set, it will return the IP
+address instead. You can also pass it a IP address, instead of a server
+port name.
+
+</P>
+<P>
+If used in an array context, it returns the full domain name, and a short
+version of the domain name (e.g. 'www.ibm.com' and 'ibm').
+
+</P>
+<P>
+<PRE>  Examples:
+</PRE>
+</P>
+<P>
+<PRE>   my $domain_name = &amp;net_domain_name('http');
+   my ($name, $name_short) = &amp;net_domain_name('server_speak');
+   my ($name, $name_short) = &amp;net_domain_name('204.146.18.33');
+     Restults $name = 'www.ibm.com', $name_short = 'ibm';
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_net_ping">net_ping</A></STRONG><DD>
+<P>
+Checks to see if an IP address is available. Returns true if pingable.
+
+</P>
+<P>
+<PRE>  Example:
+    
+    &amp;ping($host);           #  Default protocol is specified in mh.ini
+    &amp;ping($host, $protocol);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_net_ftp">net_ftp</A></STRONG><DD>
+<P>
+Used to ftp data to or from an ftp server:
+
+</P>
+<P>
+<PRE>  Usage:
+</PRE>
+</P>
+<P>
+<PRE>    net_ftp(option1 =&gt; $value1, option2 =&gt; value2 ...);
+      
+       These are the possible options:
+</PRE>
+</P>
+<P>
+<PRE>            server          Default is mh.ini parm net_www_server
+            user            Default is mh.ini parm net_www_user
+            password        Default is mh.ini parm net_www_password
+            dir             Default is mh.ini parm net_www_dir
+            file            Name local/remote file to get/put
+            file_remote     Name of remote file (if different from local file)
+            command         get/put/delete.
+</PRE>
+</P>
+<P>
+<PRE>   Example:
+</PRE>
+</P>
+<P>
+<PRE>     net_ftp(file =&gt; 'index.html', command =&gt; 'put');
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_net_connect_check">net_connect_check</A></STRONG><DD>
+<P>
+Returns true if connected to the Internet. If the mh.ini parm
+net_connect=persistent, this always returns true.
+
+</P>
+<DT><STRONG><A NAME="item_net_im_send">net_im_send</A></STRONG><DD>
+<P>
+Used to send and Instant Message across the internet. Currently only the
+AIM clients are supported. More information on AIM clients (available for
+various different platforms) can be found at <A
+HREF="http://www.aol.com/aim/faq/getstarted.html">http://www.aol.com/aim/faq/getstarted.html</A>
+. Tik, a tk based client for use on a Unix os, can be found at <A
+HREF="http://tarp.linuxos.org/tik">http://tarp.linuxos.org/tik</A> . You
+can register for an AIM name at <A
+HREF="http://www.aol.com/aim/faq/registration.html">http://www.aol.com/aim/faq/registration.html</A>
+.
+
+</P>
+<P>
+<PRE> 
+  Usage:
+    net_im_send(option =&gt; value);
+</PRE>
+</P>
+<P>
+<PRE>     These are the options:
+</PRE>
+</P>
+<P>
+<PRE>        password    Default is mh.ini parm net_aim_password
+        from        Default is mh.ini parm net_aim_name
+        to          Default is mh.ini parm net_aim_name_send
+</PRE>
+</P>
+<P>
+<PRE>        text        Message
+        file        Message.  You can use the text and/or file options.
+</PRE>
+</P>
+<P>
+The first time you send a message, mh will pause for a few seconds while it
+logs onto AIM. Subsequent messages use the same signon, so are sent much
+faster.
+
+</P>
+<P>
+<PRE>  Example:
+</PRE>
+</P>
+<P>
+<PRE>    net_im_send(text =&gt; &quot;Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}&quot;)
+</PRE>
+</P>
+<P>
+<PRE>    net_im_send(text =&gt; &quot;Internet mail summary for $Date_Now $Time_Now&quot;,
+                file =&gt; &quot;$config_parms{data_dir}/get_email2.txt&quot;) if time_cron '05 12 * * 1-5';
+</PRE>
+</P>
+<P>
+<PRE> 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_net_mail_send">net_mail_send</A></STRONG><DD>
+<P>
+Used to send email. Usage: <CODE>net_mail_send(option</CODE> =&gt; value);
+
+</P>
+<P>
+<PRE>     These are the options:
+</PRE>
+</P>
+<P>
+<PRE>        server      Default is mh.ini parm net_mail_ACCOUNT_server
+        from        Default is mh.ini parm net_mail_ACCOUNT_address
+        to          Default is mh.ini parm net_mail_ACCOUNT_address
+</PRE>
+</P>
+<P>
+<PRE>        account     This is the ACCOUNT field used in finding the above parms.
+                    It defaults to the mh.ini parm net_mail_send_account.
+</PRE>
+</P>
+<P>
+<PRE>        subject     Default is 'Email from Mister House'
+        text        Body of the message
+        file        File with the body of the message.
+</PRE>
+</P>
+<P>
+<PRE>        mime        Set to 1 if you want mail sent in mime format (e.g. file has html)
+        baseref     If sending html with mime =&gt; 1, use this to set the BASE HREF
+</PRE>
+</P>
+<P>
+<PRE>  Example:
+</PRE>
+</P>
+<P>
+<PRE>    net_mail_send(text =&gt; &quot;Test email sent at $Time_Now\n\n&quot;);
+</PRE>
+</P>
+<P>
+<PRE>    net_mail_send(account =&gt; 'Bruce', to =&gt; 'winter@misterhouse.net', text =&gt; $msg);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_net_mail_count">net_mail_count</A></STRONG><DD>
+<P>
+Returns the number of email message on the specified account.
+
+</P>
+<P>
+<PRE>  Usage:
+    net_mail_count(option =&gt; value);
+</PRE>
+</P>
+<P>
+<PRE>     These are the options:
+</PRE>
+</P>
+<P>
+<PRE>        server      Default is mh.ini parm net_mail_ACCOUNT_server
+        user        Default is mh.ini parm net_mail_ACCOUNT_user
+        password    Default is mh.ini parm net_mail_ACCOUNT_password
+</PRE>
+</P>
+<P>
+<PRE>        account     This is the ACCOUNT field used in finding the above parms.
+                    It defaults to the mh.ini parm net_mail_send_account.
+</PRE>
+</P>
+<P>
+<PRE>  Example:
+</PRE>
+</P>
+<P>
+<PRE>    my $count = net_mail_count(account =&gt; 'Bruce');
+    speak &quot;Email account Bruce has $count new email messages&quot;;
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_net_mail_summary">net_mail_summary</A></STRONG><DD>
+<P>
+This returns a pointer to a hash array containing info on mail for a
+specified email account. Check out the mh/bin/get_email program for a usage
+example. Rather than call this with mh code directly, calling get_email
+with a Process_Item, so mh does not pause while email is being checked. See
+mh/code/test/internet_mail.pl for an example.
+
+</P>
+<P>
+<PRE> 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_net_mail_read">net_mail_read</A></STRONG><DD>
+<P>
+Returns a list array of pointers to data read from an email account. This
+is not tested and needs to be documented.
+
+</P>
+<P>
+<PRE> 
+</PRE>
+</P>
+</DL>
+<P>
+<HR>
+<H2><A NAME="List_of_companion_programs">List of companion programs</A></H2>
+<P>
+These programs are included in mh mh/bin directory. Most of these are meant
+to be called from mh events, as separate processes, but they can also be
+run stand alone. You can get the help text for most of these programs with
+the -h option (e.g. get_tv_grid -h).
+
+</P>
+<DL>
+<DT><STRONG><A NAME="item_alpha_page">alpha_page</A></STRONG><DD>
+<P>
+<PRE>  alpha_page sends alphanumeric page.
+</PRE>
+</P>
+<P>
+<PRE>  Usage:
+</PRE>
+</P>
+<P>
+<PRE>    alpha_page [options]
+</PRE>
+</P>
+<P>
+<PRE>      -h              =&gt; This help text
+      -help           =&gt; This help text
+      -name xxx       =&gt; name of recipient (must be defined in mh.ini)
+      -pin xxx        =&gt; pin number
+      -message xxx    =&gt; text of message to send
+</PRE>
+</P>
+<P>
+<PRE>  Example:
+    alpha_page -pin 123456 -message 'Bring home bread and milk'
+    alpha_page -name craig -message 'Bring home bread and milk'
+</PRE>
+</P>
+<DT><STRONG>display</STRONG><DD>
+<P>
+Use this to display a string of text or the contents of a file using a Tk
+window.
+
+</P>
+<P>
+<PRE>  Usage:
+     display -options  text_or_file
+</PRE>
+</P>
+<P>
+<PRE>  Options:
+    -time  xxx to have the window auto-close in xxx seconds.  Set to 0 for no auto-close.
+    -font  xxx to pick the font
+    -title xxx to set the window title
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    display weather_forcast.txt
+    display -title 'triva answer' c:/data/triva_answer.txt
+    display &quot;Remember to take out the garbage&quot; -time 0
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_display_callers">display_callers</A></STRONG><DD>
+<P>
+Use this to display a Tk window with a list of the incoming and outgoing
+phone logs. An example of how to create these logs is in
+mh/code/Bruce/phone.pl
+
+</P>
+<P>
+<PRE>  Usage: 
+    display_callers (no argument -&gt; uses latest logs) 
+    display_callers 1997_11  (Look only at November, 1997 logs) 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_get_email">get_email</A></STRONG><DD>
+<P>
+Use this program to check all the email accounts defined in your mh.ini
+file. It will create the following files:
+
+</P>
+<P>
+<PRE>  mh/data/get_email.data 
+     It uses this database so see what email is new
+     since it was last called.   To get a complete
+     list of all email (not just new/recent mail).
+     delete this file before running get_email
+</PRE>
+</P>
+<P>
+<PRE>  mh/data/get_mail.txt 
+     This summarizes how much mail there is and from who.
+     Here is an example of what the file might look like:
+</PRE>
+</P>
+<P>
+<PRE>       Email account bruce has 2 new email messages from John Doe and Bill Gates
+</PRE>
+</P>
+<P>
+<PRE>  mh/data/get_mail.flag
+     This has a string of digits, one for each account,
+     that shows how much mail is each account.  
+</PRE>
+</P>
+<P>
+You can create a get_email_rule.pl file to control how this program
+summarizes mail. See get_email_rule_example.pl for an example.
+
+</P>
+<P>
+Here is an example of how to call it from mh (see
+mh/code/test/internet_mail.pl for the complete example):
+
+</P>
+<P>
+<PRE>  $p_get_email = new Process_Item('get_email');
+  start $p_get_email if !$Save{sleeping_parents} and 
+                        $New_Minute and !($Minute % 20) and &amp;net_connect_check;
+</PRE>
+</P>
+<P>
+<PRE>  if (done_now $p_get_email) {
+      my $email_text = file_read &quot;$Pgm_Root/data/get_email.txt&quot;;
+      speak &quot;rooms=all $email_text&quot; if $email_text;
+      $Save{email_flag} = file_read &quot;$Pgm_Root/data/get_email.flag&quot;;
+  }
+  &amp;tk_mlabel(\$Save{email_flag});
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_get_mp3_data">get_mp3_data</A></STRONG><DD>
+<P>
+get_mp3_data reads mp3 directories and stores the results in a dbm file.
+This data is used by mh/test/mp3_playlist/pl to search/play mp3 tag data,
+file names, and playlist files.
+
+</P>
+<P>
+<PRE>  Usage:
+</PRE>
+</P>
+<P>
+<PRE>   get_mp3_data [options] dir1 dir2 etc
+</PRE>
+</P>
+<P>
+<PRE>    -h        =&gt; This help text
+    -help     =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -dbm  xyz =&gt; Stores the data in dbm file xyz.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    get_mp3_data c:\mp3 d:\mp3
+    get_mp3_data -dbm e:\mh\data\mp3_dbm c:\mp3
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_get_tv_grid">get_tv_grid</A></STRONG><DD>
+<P>
+get_tv_grid gets a TV grid/schedule from the web (clicktv.com) and changes
+so it to be used by the MisterHouse program to create VCR and TV event
+reminders. See mh/code/Bruce/tv_grid.pl for a mh event example that uses
+get_tv_grid.
+
+</P>
+<P>
+<PRE>  Usage:
+    get_tv_grid [options] 
+</PRE>
+</P>
+<P>
+<PRE>  Options:
+    -h        =&gt; This help text
+    -help     =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -userid xyz   =&gt; xyz is your clicktv userid.  Go to <A HREF="http://www.clicktv.com">http://www.clicktv.com</A>  to create
+                     one, or to find the generic one that matches your local tv schedule.
+</PRE>
+</P>
+<P>
+<PRE>    -day xyz      =&gt; xyz is the day  to get/filter.  Default is today.
+    -hour xyz     =&gt; xyz is the hour to get/filter.  Default is 6pm.
+                     Can also be 'all' to get all hours.
+</PRE>
+</P>
+<P>
+<PRE>    -days xyz     =&gt; xyz is the number of days to get/filter, starting with -day.
+</PRE>
+</P>
+<P>
+<PRE>    -channels xyz =&gt; xyz is the number of channels to filter.  Default is 999.
+</PRE>
+</P>
+<P>
+<PRE>    -infile  xyz  =&gt; xyz is  original input file.   Default is web/tv/clicktv/day_hour.html
+                     If this file is missing or old, a new file will be retreived from
+                     the web.
+</PRE>
+</P>
+<P>
+<PRE>    -outfile xyz  =&gt; xyz the filtered output file. 
+                     Default is -outdir/day_hour.html
+</PRE>
+</P>
+<P>
+<PRE>    -outdir  xyz  =&gt; xyz the directory the outfiles will be put in.
+                     Default is mh.ini parm html_dir/tv
+</PRE>
+</P>
+<P>
+<PRE>    -label xyz    =&gt; Use xyz as the link lable.  Default is &quot;Set the Vcr&quot;
+</PRE>
+</P>
+<P>
+<PRE>    -reget        =&gt; Re-read  the clicktv web page, even if a recent file it already exists.
+    -redo         =&gt; Re-write -outfile xyz, even if it already exists.             
+</PRE>
+</P>
+<P>
+<PRE>    -debug        =&gt; turn on debug info
+</PRE>
+</P>
+<P>
+<PRE>    -mail_to      xyz =&gt; Will email the charts to xyz
+    -mail_server  xyz =&gt; xyz is the SMTP host.  Default is localhost
+    -mail_baseref xyz =&gt; xyz is the http address of your mh server.  Needed if you want to
+                         control mh from the emailed web page
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    get_tv_grid -day 25 -hour 4pm -outfile my_tv.html
+    get_tv_grid -days 7 -hour all
+    get_tv_grid -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8080
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_get_tv_info">get_tv_info</A></STRONG><DD>
+<P>
+get_tv_info returns info about tv programs that match the requested parms.
+It uses a database created by the get_tv_grid program. See
+mh/code/Bruce/tv_info.pl for examples on how to use this from mh.
+
+</P>
+<P>
+<PRE>  Usage:
+    get_tv_info [options]
+</PRE>
+</P>
+<P>
+<PRE>  Options:
+    -h        =&gt; This help text
+    -help     =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -channels xyz =&gt; Will return info only for channel numbers xyz.
+                     Default is all the channels found by get_tv_grid.
+    -dates    xyz =&gt; Will return info only for dates xyz.
+                     Default is today.  Format: month/day (e.g. 4/22).
+    -time     xyz =&gt; Will return info only for shows that start at xyz.
+                     Default is '6pm-10pm'.  Use 'all' for all hours.
+                     Valid formats: 1 pm, 1PM, 13, 13:00.
+    -lengths  xyz =&gt; Will return info only for shows that are xyz hours long.
+                     Default is any length.
+    -keys     xyz =&gt; Will return info only for shows that have keywords
+                     in the xyz list in their title or description.
+</PRE>
+</P>
+<P>
+<PRE>      All of the above parms support these formats:
+         : comma-seperated values (e.g. -dates 7/4,7/5,7/6)
+         : - delimited ranges     (e.g. -dates 7/4-7/6)
+         : + adder spec           (e.g. -dates 7/4+2)
+           Starting spec is optional (e.g. -dates +2)
+</PRE>
+</P>
+<P>
+<PRE>    -debug        =&gt; turn on debug info
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    get_tv_info -channels &quot;4-12&quot; -lengths 2
+    get_tv_info -channels &quot;4,6,12&quot; -time &quot;7 pm&quot;
+    get_tv_info -dates &quot;7/4-7/11&quot; -keys &quot;star trek,dilbert&quot;
+    get_tv_info -dates +14 -keys computer
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_get_url">get_url</A></STRONG><DD>
+<P>
+get_url gets a web page and echos it to STDOUT or a local file.
+
+</P>
+<P>
+<PRE>  Usage:
+    get_url url [local_file]
+</PRE>
+</P>
+<P>
+<PRE>    If local_file is specified, data is stored there,
+    otherwise it is echoed to STDOUT.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    get_url <A HREF="http://marketing.cbs.com/lateshow/topten/">http://marketing.cbs.com/lateshow/topten/</A> $f_top10_html;
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_get_weather">get_weather</A></STRONG><DD>
+<P>
+get_weather gets weather info NOAA web servers. 
+
+</P>
+<P>
+<PRE>  Usage:
+    get_weather [options] 
+</PRE>
+</P>
+<P>
+<PRE>  Options:
+    -h         =&gt; This help text
+    -help      =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -city     xxx =&gt; xxx is the City  you want.
+    -state    xxx =&gt; xxx is the State you want.
+</PRE>
+</P>
+<P>
+<PRE>    -data     xxx =&gt; xxx is either conditions, forecast, or all.  Default is all.
+</PRE>
+</P>
+<P>
+<PRE>    -refresh  xxx =&gt; xxx is the number of minutes old the cached data can
+                     before it will be refreshed from the net. 
+                     The default is 60 minutes.
+</PRE>
+</P>
+<P>
+<PRE>    -no_log       =&gt; Unless this option is used, the results also get filed 
+                     into the mh/data/web directory
+</PRE>
+</P>
+<P>
+<PRE>  Example:
+    get_weather -city Rochester -state MN
+</PRE>
+</P>
+<P>
+Here is an example mh event for calling get_weather as a background process
+using the 'run' function:
+
+</P>
+<P>
+<PRE>  $v_get_internet_weather_data  = new  Voice_Cmd('Get internet weather data');
+  $v_show_internet_weather_data = new  Voice_Cmd('Show internet weather data');
+  if (said  $v_get_internet_weather_data) {
+     run &quot;get_weather -city $config_parms{city} -state $config_parms{state}&quot;;
+     set_watch $f_weather_forecast;
+  }
+  if (said  $v_show_internet_weather_data or changed $f_weather_forecast) {
+     print_log &quot;Weather data displayed&quot;;
+     display name $f_weather_forecast;
+     display name $f_weather_conditions;
+  }
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_house">house</A></STRONG><DD>
+<P>
+This is a simple shell that echos whatever you type into the 'xcmd_file'.
+The name of the 'xcmd_file' is specified in mh.ini. If mh detects this
+file, it will read and execute its contents, then delete it.
+
+</P>
+<P>
+<PRE>  Examples:
+    house speak hi there
+    house display c:\autoexec.bat
+    house Turn the backyard light on
+    house XAJAK
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_mhl">mhl</A></STRONG><DD>
+<P>
+You can use mhl to start mh (rather than calling mh directly) to help
+ensure that mh will always be running. This is a simple shell will restart
+mh if it detects that mh exited abnormally. You can pass in the same
+startup parms to mhl as you us for mh.
+
+</P>
+<DT><STRONG><A NAME="item_outlook_read">outlook_read</A></STRONG><DD>
+<P>
+outlook_read reads MS Outlook (a windows mail/calendar program) folder data
+and optionally creates a mh code file to implement calendar events.
+
+</P>
+<P>
+<PRE>  Usage:
+    outlook_read [options]
+</PRE>
+</P>
+<P>
+<PRE>  Options:
+    -help    -&gt; help text
+</PRE>
+</P>
+<P>
+<PRE>    -version xyz -&gt; Version of Outlook.  Use 98 if you have Outlook 98.
+</PRE>
+</P>
+<P>
+<PRE>    -quiet       -&gt; do not echo data to STDOUT
+    -debug       -&gt; print out debug
+</PRE>
+</P>
+<P>
+<PRE>    -folder xyz  -&gt; Get data from folder xyz.  It can be one of the following:
+                      Deleted, Outbox, SentMail, Inbox, Calendar (default),
+                      Contacts, Journal, Notes, Tasks
+</PRE>
+</P>
+<P>
+<PRE>    -pl_file xyz -&gt; Write out a mh perl code file.  These are the various
+                    formats of Calendar subjects:
+</PRE>
+</P>
+<P>
+<PRE>                      vcr channel_num show_name (e.g. VCR 8 Dilbert)
+                      voice_command  (e.g. Christmas lights on)
+                      message_to_speak (e.g. Today is national geek day)
+</PRE>
+</P>
+<P>
+<PRE>                    Note:  If the text is not a vcr or voice_command, it
+                           will be treated as a messages.
+</PRE>
+</P>
+<P>
+<PRE>    -date xyz    -&gt; Get data with a start_time on date xyz.  Default is today.
+    -date_end xyz-&gt; Get data with a start_time between -date and -date_end
+    -days xyz    -&gt; Look out xyz days from -date.  Default is 1 day.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    outlook_read -help
+    outlook_read -date 1/17
+    outlook_read -date 12/25/97 -days 2
+    outlook_read -pl_file /projects/mhcode/outlook_events.pl
+    outlook_read
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_report_weblog">report_weblog</A></STRONG><DD>
+<P>
+report_weblog reads MisterHouse and/or Apache server logs and generates
+report graphs and optionally email them.
+
+</P>
+<P>
+Usage:
+
+</P>
+<P>
+<PRE>  report_weblog [options] logfile(s)
+</PRE>
+</P>
+<P>
+<PRE>    -h        =&gt; This help text
+    -help     =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -ignore    xyz =&gt; A comma-delimited list of ip address to ignore.
+</PRE>
+</P>
+<P>
+<PRE>    -mailto     xyz =&gt; Will email the charts to xyz
+    -mailserver xyz =&gt; xyz is the SMTP host.  Default is localhost
+</PRE>
+</P>
+<P>
+<PRE>    -runid      xyz =&gt; All graphs will have xyz as a prefix.  Default is blank.
+    -outdir     xyz =&gt; All graphs be stored in directory xyz.  Default is .
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    report_weblog -mailto 'bruce@misterhouse.net' /var/log/httpd/access_log
+    report_weblog -mailto winters@home.net -mailserver 24.2.1.70 e:/mh/data/logs/server.1999_07.log
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_mhsend">mhsend</A></STRONG><DD>
+<P>
+mhsend allows you to send data to mh over the intra/internet. Data can be
+logged, filed, spoken, displayed, or run. The data processed by
+mh/code/test/mhsend_server.pl
+
+</P>
+<P>
+Password authorization code hasn't been added yet ...
+
+</P>
+<P>
+<PRE>  mhsend sends data to the MisterHouse program, through the internet/intranet.
+</PRE>
+</P>
+<P>
+<PRE>  The following flags control what the companion mh server.pl code does:
+</PRE>
+</P>
+<P>
+<PRE>    -file xxx    -&gt; Files the data into mh/data/mhsend/xxx
+</PRE>
+</P>
+<P>
+<PRE>    -log xxx     -&gt; Logs  the data into mh/data/mhsend/xxx.log
+</PRE>
+</P>
+<P>
+<PRE>    -run         -&gt; Runs the data as command.
+</PRE>
+</P>
+<P>
+<PRE>    -display xxx -&gt; Displays the data.  xxx is how log to leave the display up.
+</PRE>
+</P>
+<P>
+<PRE>    -speak       -&gt; Speaks and displays the data.
+</PRE>
+</P>
+<P>
+<PRE>    -pwfile xxx  -&gt; Points to a password file.  If
+</PRE>
+</P>
+<P>
+<PRE>  Usage:
+    mhsend 'hi there'
+    mhsend -display 60 hi there Bruce
+    mhsend -port 8083 -host misterhouse.net 'hi there'
+    mhsend -speak file_to_speak.txt
+    mhsend -file file1 file_to_send.txt
+    mhsend -log This is a good url:  <A HREF="http://goodplace.com">http://goodplace.com</A>
+    echo 'hi there' | mhsend -stdin
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_monitor_weblog">monitor_weblog</A></STRONG><DD>
+<P>
+monitor_weblog monitors a Apache server log file. When the server logs
+hits, this code will summarize them and pass them onto the MisterHouse
+speak_server.pl code via a tcp/ip socket.
+
+</P>
+<P>
+Usage:
+
+</P>
+<P>
+<PRE>  monitor_weblog [options] logfile
+</PRE>
+</P>
+<P>
+<PRE>    -h        =&gt; This help text
+    -help     =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -mh_server xyz =&gt; The ip address of your MisterHouse box.
+    -mh_port   xyz =&gt; The ip port you set mh.ini server_speak to.
+    -ignore    xyz =&gt; A comma-delimited list of ip address to ignore.
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    monitor_weblog -mh_server house -ignore 'house,10.0.0.1' /var/log/httpd/access_log
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_set_clock">set_clock</A></STRONG><DD>
+<P>
+set_clock sets the clock according to the time from an internet connected
+NIST atomic clock server. Instead of requiring accurate time zone
+information, set_clock will simply set the time minute and second, but will
+keep to the nearest hour it was already set to.
+
+</P>
+<P>
+<PRE>  Usage:
+    set_clock [options] 
+</PRE>
+</P>
+<P>
+<PRE>  Options:
+    -h         =&gt; This help text
+    -help      =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -no_set    =&gt; Do NOT set the clock, only list the difference in time.
+</PRE>
+</P>
+<P>
+<PRE>    -ignore xyz=&gt; Do NOT reset the local clock if the time is more then xyz minutes off.
+                  Default=10
+</PRE>
+</P>
+<P>
+<PRE>    -method xyz=&gt; xyz can be inet_time, http, or socket.  Default is socket.
+</PRE>
+</P>
+<P>
+<PRE>    -server xyz=&gt; xyz is the server to get the clock data from.  Here are a few:
+                    time-a.timefreq.bldrdoc.gov:14  (default)
+                    time.nist.gov:??
+                    time-nw.nist.gov:??
+</PRE>
+</P>
+<P>
+<PRE>  Example:
+    set_clock 
+    set_clock -server time-a.timefreq.bldrdoc.gov:14
+</PRE>
+</P>
+<P>
+<PRE>  More info about NIST clock servers if available at:
+    <A HREF="http://www.boulder.nist.gov/doc-tour/atomic_clock.html">http://www.boulder.nist.gov/doc-tour/atomic_clock.html</A>
+</PRE>
+</P>
+<P>
+Here is an example call from mh. Since this is typically quick, we do it
+here with a 'do' instead of a call with Process_Item:
+
+</P>
+<P>
+<PRE>   if (time_cron '7 6 * * * ') {
+     my $status = do &quot;$Pgm_Path/set_clock&quot;; 
+     speak $status unless $Save{sleeping_parents};
+   }
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_set_password">set_password</A></STRONG><DD>
+<P>
+set_password creates and/or queries the mh password file, using the crypt
+function. If this password is set, then web and telnet access will prompt
+for it. To reset the password, delete the mh/data/.password file.
+
+</P>
+<P>
+<PRE>  Usage:
+    set_password [options] 
+</PRE>
+</P>
+<P>
+<PRE>  Options:
+    -h         =&gt; This help text
+    -help      =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -password xxx =&gt; xxx is the password to check.
+                     If not used, a TK popup window will prompt for it.
+</PRE>
+</P>
+<P>
+<PRE>    -pw_file xxx  =&gt; xxx is the file that the crypt-ed password is read/written to.
+                     Default is mh/data/.password
+</PRE>
+</P>
+<P>
+<PRE>  Example:
+    set_password 
+</PRE>
+</P>
+<DT><STRONG>speak</STRONG><DD>
+<P>
+speak will pass the file or text to mh. It simply runs the house program.
+Example: speak ``Boo, did I scare you?''
+
+</P>
+<P>
+<PRE> 
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_sun_time">sun_time</A></STRONG><DD>
+<P>
+sun_time calculates sunrise and sunset times. This is automatically called
+by mh once a day and the results are stored in the
+<CODE>$Time_Sunrise</CODE> and <CODE>$Time_Sunset</CODE> variables.
+
+</P>
+<P>
+<PRE>  Usage:
+    sun_time [options]
+</PRE>
+</P>
+<P>
+<PRE>  Options:
+    -latitude  xxx    Default is for Rochester, MN 
+    -longitude  xxx 
+    -time_zone xxx
+    -day_of_year xxx  Default is current day
+    -no_dst  Do NOT adjust for Daylight Savings time
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    sun_time -latitude 44.01 -longitude 92.28 -time_zone 6
+    sun_time -day_of_year 300
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_trivia">trivia</A></STRONG><DD>
+<P>
+This will update trivia question and answer files from the specified
+database. See mh/code/Bruce/trivia.pl for an example of how to call it from
+mh.
+
+</P>
+</DL>
+<P>
+<HR>
+<H2><A NAME="Authentication">Authentication</A></H2>
+<P>
+A one way crypt-ed password authentication scheme can be enabled for the
+web and telnet.pl interfaces.  
+
+</P>
+<P>
+The location of the crypt-ed password is controlled with the mh.ini
+password_file parm. The default location is in $Pgm_Root/data/.password.
+
+</P>
+<P>
+If this file does not exist, the telnet.pl and web interface will be enable
+for anyone and everyone. If it does exist, and the correct password is not
+entered, the telnet.pl and web function will not implement the requested
+commands.
+
+</P>
+<P>
+The set_password command is used to create and check this password. If you
+are running the un-compiled perl and do not have Tk installed, the password
+will have to be passed in with the -password parm (set_password -h for more
+help). This can be run from a shell prompt or with the mh mh_control ``set
+the password'' command.
+
+</P>
+<P>
+If you want to change the password, delete the password file and rerun
+set_password.
+
+</P>
+<P>
+When prompted for UserName and Password from your web browser, you can
+leave UserName blank ... it is not used.
+
+</P>
+<P>
+Netscape appears to allow you to re-try a password, but MS Explorer must be
+re-started if you want to enter a different password.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Customizing_the_Tk_Interface">Customizing the Tk Interface</A></H2>
+<P>
+You can modify what the Tk window displays by modifying the tk_frame.pl and
+tk_widgets.pl members. tk_frame.pl controls the general layout and size of
+the various scrolled lists. Modifying this member takes a little knowledge
+of perl Tk.  
+
+</P>
+<P>
+tk_widgets.pl shows how you can add widgets to display various info and
+allow for buttons for manual control. The mh tk_xxx subroutines used here
+will add widgets to either the menu_bar or to the 'grid' frame defined in
+tk_frame.pl.
+
+</P>
+<P>
+Any change to tk_frame.pl or tk_widgets will be evaluated on a code reload,
+as will the tk_geometry parm in mh.ini.
+
+</P>
+<P>
+tk_xxx widgets can be added anywhere in your mh code, not just the
+tk_widgets.pl member. See the weather_monitor.pl, internet_mail.pl, and
+tk_eye.pl members in code/Bruce for examples.
+
+</P>
+<P>
+The tk_xxx widgets are 'packed' into the menu_bar or grid in the order that
+they are evaluated. You can use the 'Position' directive at the top of your
+member.pl code to control this. Position=1 is reserved for the tk_frame.pl
+member, as this must be evaluated first.
+
+</P>
+<P>
+Note, you can also use native Perl tk commands, or create or override the
+tk_xxx subroutines in your own code for more flexibility.
+
+</P>
+<P>
+For more info on the tk_xxx widgets, see look in the mh functions section
+of this document.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Customizing_the_Web_Interface">Customizing the Web Interface</A></H2>
+<P>
+You can write your own Web page interface. The examples under mh/web are
+frame html files that dictate the shape and positions of various
+mh-generated html frames.  
+
+</P>
+<P>
+You can use the html_root and html_file mh.ini parms to point to the
+directory and default web page. The html_default parm are the member names
+used when the URL points to a directory.
+
+</P>
+<P>
+The html_style mh.ini parm points to a style sheet that will be loaded for
+all mh-generated pages. Style sheets allow default control of colors and
+fonts.
+
+</P>
+<P>
+There are other, html_* parms in the mh.ini file to control how the
+auto-generated html data looks. For example, you can control table sizes
+and auto refresh rates. See the mh.ini file for more info.
+
+</P>
+<P>
+The web Items and Groups displays will use icons to indicate the object
+state. Icons will be searched for in the mh/graphics directory according to
+the objects icon method, the object name, the object state, and the object
+type. For example, given this code:
+
+</P>
+<P>
+<PRE>    $fountain = new X10_Appliance('C3');
+    set_icon $fountain 'water';
+</PRE>
+</P>
+<P>
+The search order for the ON state will be:
+
+</P>
+<P>
+<PRE>    water-on.gif
+    fountain-on.gif
+    x10_appliance-on.gif
+    on.gif  
+</PRE>
+</P>
+<P>
+The web Category display will try to match icons to Voice_Cmd objects using
+the icon method, object name, voice command text, and filename. For
+example, given this code from the member internet_data.pl:
+
+</P>
+<P>
+<PRE> $v_set_clock = new  Voice_Cmd('Set the clock via the internet');
+ set_icon $v_set_clock 'time';
+</PRE>
+</P>
+<P>
+The search order will be:
+
+</P>
+<P>
+<PRE> Look for icons that match time
+ Look for icons that match set_clock
+ Look for icons that match words in 'Set the clock via the internet'
+ Look for icons that match internet_data.pl
+</PRE>
+</P>
+<P>
+All icons in the graphics directory are compared to each of the above. The
+first match (by search order) is used. If there are multiple matches, the
+match with the longest word is used. For example, if we had icons names
+'clock.gif' and 'internet.gif' (but no 'time.gif'), 'internet.gif' would be
+used.
+
+</P>
+<P>
+In all of the above examples, .gif was used as an example, but any browser
+compatable graphics file can be used (e.g. .png and .jpg). If you want to
+add new icons, some good sources are at <A
+HREF="http://www.freegraphicland.com/">http://www.freegraphicland.com/</A>
+, <A HREF="http://www.graphsearch.com/">http://www.graphsearch.com/</A> ,
+<A
+HREF="http://www.add-soft.com/icons/index.html">http://www.add-soft.com/icons/index.html</A>
+, and <A
+HREF="http://www.rad.kumc.edu/icons/icons.htm">http://www.rad.kumc.edu/icons/icons.htm</A>
+
+
+</P>
+<P>
+Important note: If you do play with adding/deleteing/renaming icons, you
+will want to do a reload before refreshing your browser. The icon directory
+is cached by mh (for efficiency). If no code has changed, the reload will
+run very quickly.
+
+</P>
+<P>
+You can use the following html addresses to have mh return dynaically
+generated html:
+
+</P>
+<P>
+<PRE>  /category
+    This will list all the Voice_Cmds, sorted by categories.  Categories are the member names of the 
+    user code, or the value in the Category=value field specified in the user code.
+    Items are also listed by Group, and Object Type
+</PRE>
+</P>
+<P>
+<PRE>  /list?Category
+    This can be used to list just the commands in the specified Category.
+</PRE>
+</P>
+<P>
+<PRE>  /group
+    This will return all the Group Items
+</PRE>
+</P>
+<P>
+<PRE>  /group?$group_name
+    This will return all the objects in $group_name
+</PRE>
+</P>
+<P>
+<PRE>  /items
+    This will return all the non Voice Objects (e.g. X10_Items)
+</PRE>
+</P>
+<P>
+<PRE>  /items?object_type
+    This will return all the objects of type object_type
+</PRE>
+</P>
+<P>
+<PRE>  /widgets
+    This lists all the Tk widgets.
+</PRE>
+</P>
+<P>
+<PRE>  /widgets_label
+    This returns just the label widgets
+</PRE>
+</P>
+<P>
+<PRE>  /widgets_entry
+    This returns just the entry widgets
+</PRE>
+</P>
+<P>
+<PRE>  /widgets_radiobutton
+    This returns just the radiobutton widgets
+</PRE>
+</P>
+<P>
+<PRE>  /widgets_checkbox
+    This returns just the checkbox widgets
+</PRE>
+</P>
+<P>
+<PRE>  /speech
+    This lists the most recently spoken text
+</PRE>
+</P>
+<P>
+<PRE>  /print_log
+    This lists the most recently print_log text.
+</PRE>
+</P>
+<P>
+If you want to generate your own html on-the-fly (like a cgi program
+would), instead of pointing to a .html file or or one of the above
+pre-defined mh-generated lists, point to a .pl file and have that perl code
+return the desired html. Note, this currently differs from how a classic
+cgi program would work (they return the html as STDOUT). Some examples of
+this can be found in the mh/web/test/*.pl files.    
+
+</P>
+<P>
+One other note on .pl web files. You can have them use variables you define
+in your mh user code, but only if those variables are defined with ``use
+vars '$my_var1', '$my_var2'''. Variables defined with ``my ($my_var1,
+$my_var2)'' are local only to the mh loop, and would not be available to
+any web .pl program.
+
+</P>
+<P>
+In addition to calling the above mh-generated html directly, you can embed
+these lists in your own html using the server-side-include syntax. If the
+extention on your html is .shtml (for server-side html) then mh will parse
+the html, looking for the following string:
+
+</P>
+<P>
+<PRE>   &lt;!--#include file=&quot;your_directive&quot;--&gt;
+</PRE>
+</P>
+<P>
+Anytime the above string is found, it will replace that record with
+whatever you specify in ``your_directive''. ``your_directive'' can either
+be another html (or shtml) file, or it can be one of the mh-generated lists
+from above. For example:
+
+</P>
+<P>
+<PRE>  &lt;!--#include file=&quot;/mh/other_links.html&quot;--&gt;
+  &lt;!--#include file=&quot;category&quot;--&gt;
+  &lt;!--#include file=&quot;/mh_default/test/test1.pl&quot;--&gt;
+</PRE>
+</P>
+<P>
+You can use an #include var= directive, like file= above except it returns
+the contents of an mh variable. For example:
+
+</P>
+<P>
+<PRE>  &lt;li&gt;&lt;b&gt;Version:&lt;/b&gt; &lt;!--#include var=&quot;$Version&quot;--&gt;
+</PRE>
+</P>
+<P>
+This what is used in the mh 'About' web button to return the mh version.
+
+</P>
+<P>
+If you want to have only a few specific html controls, you can write your
+own html using the RUN, SET, and SET_VAR url keywords to control mh. Here
+are a few examples:
+
+</P>
+<P>
+<PRE> &lt;a href=<A HREF="http://localhost:8080/SET">http://localhost:8080/SET</A>?$test_lights?off &gt;Turn the test light off&lt;/a&gt;
+ &lt;a href=<A HREF="http://localhost:8080/SET_VAR">http://localhost:8080/SET_VAR</A>?$Save{test_input1}?abc &gt;Load test_input1 with abc&lt;/a&gt;
+ &lt;a href=<A HREF="http://localhost:8080/RUN?WebCam_light_on">http://localhost:8080/RUN?WebCam_light_on</A> &gt;WebCam light on&lt;/a&gt;
+</PRE>
+</P>
+<P>
+The SET command can set any object defined in your user code to a valid
+state. The SET_VAR command can set a variable to any arbitrary value. The
+RUN command can run any voice command. Use '_' to replace blanks in the
+command string.
+
+</P>
+<P>
+SET, SET_VAR, and RUN can use an optional response field to decide what
+html will be returned:
+
+</P>
+<P>
+<PRE>  Format:
+   SET_VAR:h_response?$var?value
+   SET:h_response?object?value
+   RUN:h_response?command
+</PRE>
+</P>
+<P>
+<PRE>  Where h_response can be one of the following:
+   &amp;function:      The results of &amp;function will be returned
+   &amp;function(arg): The results of &amp;function(arg) will be returned
+   last_response:  The last displayed or spoken text. 
+   last_displayed: The last displayed text will be returned
+   last_spoken:    The last spoken item will be returned
+   filexyz.html:   The contents of filexyz.html will be returned
+   string:         string will be returned
+   blank:          A list of recently spoken text will be returned
+</PRE>
+</P>
+<P>
+Here are some examples demonstrating these options:
+
+</P>
+<P>
+<PRE> This returns the last spoken line:
+  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN:last_spoken?WebCam_light_on">http://localhost:8080/RUN:last_spoken?WebCam_light_on</A> &gt;Light on&lt;/a&gt;
+</PRE>
+</P>
+<P>
+<PRE> This returns the string &quot;Thanks for playing&quot;
+  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN:Thanks_for_playing?WebCam_light_off">http://localhost:8080/RUN:Thanks_for_playing?WebCam_light_off</A> &gt;Light off&lt;/a&gt;
+</PRE>
+</P>
+<P>
+<PRE> This returns the contents of the mh/web/test/test3.html file:
+  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN:test/test3.html?WebCam_light_+50">http://localhost:8080/RUN:test/test3.html?WebCam_light_+50</A> &gt;+50&lt;/a&gt;
+</PRE>
+</P>
+<P>
+<PRE> This returns a list of recently spoken text:
+  &lt;li&gt;&lt;a href=<A HREF="http://localhost:8080/RUN?WebCam_light_-50">http://localhost:8080/RUN?WebCam_light_-50</A> &gt;-50&lt;/a&gt;
+</PRE>
+</P>
+<P>
+<PRE> This will allow for text input, using a html FORM, and returning the the results form
+ the user defined function &amp;my_response:
+</PRE>
+</P>
+<P>
+<PRE>  &lt;FORM ACTION=&quot;SET_VAR:&amp;my_response&quot;&gt;Test 1&lt;INPUT SIZE=5 NAME=&quot;$Save{test_input1}&quot;&lt;/form&gt;
+</PRE>
+</P>
+<P>
+<HR>
+<H2><A NAME="Voice_Recognition_VR_and_Text_">Voice Recognition (VR) and Text To Speech (TTS) on windows</A></H2>
+<P>
+VR and TTS options are controlled with the Microsoft Voice application. It
+shows up as a 'green V' in your icon tray. Right clicking on this icon
+brings various menus for configuring your VR and TTS options.
+
+</P>
+<P>
+You can pick between 3 VR modes, by right clicking on the MS Voice icon, or
+toggle between the modes by left clicking on the icon.
+
+</P>
+<P>
+<PRE>  - Listening for Voice Commands
+</PRE>
+</P>
+<P>
+<PRE>    This mode will listen to anything and everything.  You can get lots of false
+    recognition in noisy environments in this mode.
+</PRE>
+</P>
+<P>
+<PRE>  - Not listening
+</PRE>
+</P>
+<P>
+<PRE>    In this mode, VR will be turned on only when you hold down an activation key or
+    move the mouse to a screen corner, depending on which 'Listening Mode' you
+    pick in the 'Voice Command Options' menu.
+</PRE>
+</P>
+<P>
+<PRE>  - Paused listening 
+</PRE>
+</P>
+<P>
+<PRE>    This mode only listens for a specific trigger keyword.  If heard, then it
+    temporarily switches to normal listening mode. The trigger keyword is listed 
+    as your 'Computer Name' in the 'Voice Command Options' menu.
+</PRE>
+</P>
+<P>
+You can improve your Voice Recognition accuracy by talking through a 10
+minute training session. Right click on the MS Voice icon and pick 'Voice
+Command Options', then click on the 'Advanced' tab, and finally click on
+the 'Optional Training' button.
+
+</P>
+<P>
+You can pick the voice and speed of the TTS by clicking on the 'Computer
+Voice' tab on the same 'Voice Command Options' dialog.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Voice_Recognition_VR_and_Text_">Voice Recognition (VR) and Text To Speech (TTS) on Unix</A></H2>
+<P>
+Need notes on how to use viavoic on linux and how to enable different TTS
+engines with Festival.
+
+</P>
+<P>
+For vr with viavoice, use mh/code/Bruce/viavoice_control.pl
+
+</P>
+<P>
+<HR>
+<H1><A NAME="NOTES">NOTES</A></H1>
+<P>
+This section has info that doesn't fit well anywhere else. Probably be
+better as a FAQ.
+
+</P>
+<P>
+My hope is that mh will grow into a group project. There is so many, almost
+unlimited possibilities in Home Automation, that no one person could hope
+to implement them all.
+
+</P>
+<P>
+If you feel so inclined, please send me any code that you develop that you
+think others might be interested in, and I'll include it in the
+distribution.
+
+</P>
+<P>
+If you would rather see it mh in your windows tray, rather in the taskbar,
+here is a useful utility that will let you move any program to the tray: <A
+HREF="http://www.teamcti.com/TrayIt">http://www.teamcti.com/TrayIt</A>
+
+</P>
+<P>
+Another handy utility for windows 95/98 users will help you monitor how
+much cpu and memory mh takes. TaskInfo80, available at <A
+HREF="http://www.iarsn.com/index.html">http://www.iarsn.com/index.html</A>
+
+</P>
+<P>
+If you are getting the message ``Out of environment space'' try adding
+these records:
+
+</P>
+<P>
+<PRE>  config.sys:   shell=command.com /e:8000 /p
+  autoexec.bat: set comspec=c:\command.com
+</PRE>
+</P>
+<P>
+If you want to use a program generated list in an Item declaration, you
+need to use add # noloop=start/stop comments before and after the code that
+should preceed the Item. Here is an example:
+
+</P>
+<P>
+<PRE>  # noloop=start
+  my $mp3names;
+  while ( my $mp3name = &lt;d:/library/*.m3u&gt; )
+   {
+    $mp3name =~ s#^.*/##;  # remove path
+    $mp3name =~ s#\..*$##; # remove extension
+    $mp3names .= &quot;,&quot; if $mp3names;
+    $mp3names .= $mp3name;
+   }
+  # noloop=stop
+</PRE>
+</P>
+<P>
+<PRE>  $v_play_music = new Voice_Cmd(&quot;Play [$mp3names]&quot;);
+  if ($state = said $v_play_music) {
+    ... more code here ...
+</PRE>
+</P>
+<P>
+<HR>
+<H1><A NAME="KNOWN_LIMITATIONS_AND_BUGS">KNOWN LIMITATIONS AND BUGS</A></H1>
+<P>
+The JDS interface is untested.
+
+</P>
+<P>
+The web interface does not reset colors.
+
+</P>
+<P>
+mh also has the the 'windows 49.7 day bug' (2**32 milliseconds) that has
+been in the news lately: <A
+HREF="http://www.news.com/News/Item/0,4,33117,00.html?st.ne.ni.rel">http://www.news.com/News/Item/0,4,33117,00.html?st.ne.ni.rel</A>
+.
+
+</P>
+<P>
+Under windows, TK windows do not get focus and some keys and shortcuts do
+not work. Worse yet, the 'tear off' line (the dashed line on the pull down
+menus) causes mh to hang. Perl/tk on unix does not have either of these
+problems. Hopefully this will get fixed with the next release of perl/Tk.
+Note: if you have an old perl/tk (older than 8.0012), things are even more
+messed up.
+
+</P>
+<P>
+If you have perl installed, you may get this message:
+
+</P>
+<P>
+<PRE>  Can't find 'boot_IO' symbol ...
+</PRE>
+</P>
+<P>
+The problem is there are two different IO.DLL files, one in the FTP module
+and one in the TK module. Do a find in IO.DLL in your perl directory, and
+rename the one in the tk path. 
+
+</P>
+<P>
+Under windows, if 'run' calls give you an 'out of environment memory'
+error, create a command.pif and change the memory, initial environment from
+auto to 4k.
+
+</P>
+<P>
+The compiled version of mh on linux gives a Segmentation fault on exit, but
+otherwise runs OK.
+
+</P>
+<P>
+The following functions do not work under Unix/Linux:
+
+</P>
+<P>
+<PRE> - Voice Recognition IS supported under linux using IBM's ViaVoice SDK.
+   Potential candidates for VR engines other non-linux unix platforms are:
+</PRE>
+</P>
+<P>
+<PRE>     <A HREF="http://cslu.cse.ogi.edu/index.html">http://cslu.cse.ogi.edu/index.html</A> 
+     <A HREF="http://WWW.ISIP.MsState.Edu/projects/speech_recognition/">http://WWW.ISIP.MsState.Edu/projects/speech_recognition/</A>
+     <A HREF="http://www.tmt.de/~stephan/ears.html">http://www.tmt.de/~stephan/ears.html</A>
+</PRE>
+</P>
+<P>
+<PRE> - The control keys from the console window do not work
+   (e.g. F1 to reload, F3 to exit).  Ctl-C works :)
+</PRE>
+</P>
+<P>
+<PRE> - Disk drive info (need to port from DriveInfo to df)
+</PRE>
+</P>
+<P>
+<PRE> - Linux KDE users should uncheck &quot;Apply fonts and colors to non-KDE apps&quot;, 
+   or the black text on white windows shows up as white text.
+</PRE>
+</P>
+<P>
+<HR>
+<H1><A NAME="AUTHORS">AUTHORS</A></H1>
+<P>
+Bruce Winter <A
+HREF="mailto:bruce@misterhouse.net">bruce@misterhouse.net</A> <A
+HREF="http://misterhouse.net">http://misterhouse.net</A>
+
+</P>
+<P>
+<HR>
+<H1><A NAME="SEE_ALSO">SEE ALSO</A></H1>
+<P>
+mh can be download from <A
+HREF="http://misterhouse.net">http://misterhouse.net</A>
+
+</P>
+<P>
+Here is a list of other online mh sites:
+
+</P>
+<P>
+<PRE>  <A HREF="http://www.archer-online.net">http://www.archer-online.net</A>
+</PRE>
+</P>
+<P>
+Here is a list of articles written about MisterHouse:
+
+</P>
+<P>
+<PRE>  <A HREF="http://www.hometoys.com/htinews/jun99/articles/winter/winter.htm">http://www.hometoys.com/htinews/jun99/articles/winter/winter.htm</A>
+</PRE>
+</P>
+<P>
+<PRE>  <A HREF="http://linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html">http://linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html</A>
+</PRE>
+</P>
+<P>
+<PRE>  <A HREF="http://www.faribault.k12.mn.us/brian/aprs/">http://www.faribault.k12.mn.us/brian/aprs/</A>
+</PRE>
+</P>
+<P>
+<PRE>  <A HREF="http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf">http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf</A>
+</PRE>
+</P>
+<P>
+The Circuit Cellar Ink article includes a diagram of how to set up a house
+PA system, so you can control which rooms MisterHouse talks to.
+
+</P>
+<P>
+You can suscribe and/or view the mailing list at <A
+HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A>
+You can view the archive at <A
+HREF="http://lists.sourceforge.net/pipermail/misterhouse-users/">http://lists.sourceforge.net/pipermail/misterhouse-users/</A>
+and search it at <A
+HREF="http://lists.sourceforge.net/mailman/listinfo/misterhouse-users">http://lists.sourceforge.net/mailman/listinfo/misterhouse-users</A>
+
+
+</P>
+<P>
+An older list with a searchable archive at &lt;a
+href=http://www.onelist.com/messages/MisterHouse&gt;here&lt;/a&gt;).
+
+</P>
+<P>
+Jan Dubois has a fun page of other ticks you can do with perl at <A
+HREF="http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.html">http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.html</A>
+
+
+</P>
+<P>
+Mark Komarinski wrote a fun article showing how to get started with
+MisterHouse on Linux at <A
+HREF="http://www.linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html">http://www.linuxworld.com/linuxworld/lw-1999-10/lw-10-mrhouse.html</A>
+
+
+</P>
+<P>
+The comp.home.automation newsgroup is another handy resource, especially
+for X10 related questions.
+
+</P>
+<P>
+<HR>
+<H1><A NAME="COPYRIGHT">COPYRIGHT</A></H1>
+<P>
+Copyright (C) 1998-2000 Bruce Winter. All rights reserved.
+
+</P>
+<P>
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU public license. 
+
+</P>
+<P>
+<HR>
+<H1><A NAME="DISCLAIMER">DISCLAIMER</A></H1>
+<P>
+This program will most likely not cause your house to self destruct, but if
+it does, please don't call my lawyer. Actually, I suppose you could try to
+call my lawyer, since I don't have one I don't think you will get too far
+(grin).
+
+</P>
+
+</BODY>
+
+</HTML>

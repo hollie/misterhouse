@@ -1,0 +1,55 @@
+
+Net::AIM v0.01 README Thu Jul 29 19:49:00 EDT 1999
+
+Description:
+	This module is an implementation of the AOL Instant Messenger TOC 
+protocol.  This is the first release meaning it won't contain EVERYTHING. 
+It is based on Net::IRC so it has the exact same interface and event 
+driven OO model.  I will be fixing the bugs and posting revisions soon.
+
+
+Prerequisites:
+	Net::AIM requires Perl version 5.004 or higher to install and run.
+	Also IO::* is needed.
+
+The latest version of Perl can be found at:
+http://www.perl.com/CPAN/src/latest.tar.gz (for UNIX), or at
+http://www.perl.com/CPAN/ports/ for various non-Unix machines.
+
+
+Installation:
+	perl Makefile.PL
+        make
+        make install
+	pray
+
+
+	To make it run from this dir, just do the following:
+		ln -s . Net
+		./aimtest <sn> <pass>
+
+
+Included Scripts:
+	A test script (aimtest) is included which is similiar to the Net::IRC 
+irctest script.  Ahhh who am I kidding it is practically irctest after 
+"perl -pi -e's/irc/aim/g'". Just run ./aimtest provided perl is located in 
+/usr/bin
+
+	Usage: ./aimtest <screenname> <password>
+
+
+
+
+Copyright info:
+This module copyright (c) 1999 Aryeh Goldsmith <aryeh@ironarmadillo.com>. 
+All rights reserved.  This program is free software; you can redistribute it 
+and/or modify it under the same terms as Perl itself.
+
+I hope to have current information about the project posted at:
+http://projects.aryeh.net/Net-AIM/
+
+If you would like to contribute to this project or would like to just send me
+some feedback please direct email to me at aryeh@ironarmadillo.com. 
+Thanx folks!   
+
+aryeh 
