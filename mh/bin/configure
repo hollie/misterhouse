@@ -1,0 +1,38 @@
+#!/bin/sh
+
+echo
+echo Deleting pesky bat files
+rm -f *.bat
+
+echo Chmod scripts to executables
+chmod +x *
+
+echo Deleting other windows only file
+rm RasDial.txt
+rm rasdial.*
+rm *.exe
+rm *.EXE
+rm *.wbt
+rm -rf ../lib/site/Win32*
+rm -rf ../lib/site/auto/Win32*
+
+# h2ph On everything would be overkill ... only do what we need.
+# Probably should check to see if it has already been done, but I guess it 
+# doesn't hurt to do it again.
+#  
+echo Converting C headers to Perl headers for mh/lib/site/Device/SerialPort.pm
+#cd /usr/include; h2ph -r -l .
+pushd /usr/include
+h2ph asm/termios.h
+h2ph asm/termbits.h
+h2ph asm/posix_types.h
+h2ph asm/ioctls.h
+h2ph asm/ioctl.h
+h2ph linux/posix_types.h
+popd
+
+echo
+echo All done.  See docs/README.html and docs/mh.html for more info.
+echo Run mh with: ./mh
+echo
+

@@ -1,0 +1,206 @@
+#!/usr/bin/perl
+# -*- Perl -*-
+#--------------------------------------------------------------------------- 
+#  File: 
+#      get_mail
+#  Description: 
+#      A perl script to retreive mail info from multiple email accounts
+#  Author: 
+#      Bruce Winter    bruce@misterhouse.net
+#  Latest version: 
+#      http://misterhouse.net/mh/bin/get_email
+#  Change log: 
+#    03/26/99  Created. 
+#
+#  This software is licensed under the terms of the GNU public license.  
+#  Copyright 1999 Bruce Winter 
+#
+#--------------------------------------------------------------------------- 
+
+use strict; 
+
+#package get_mail;               # So we can do the faster 'do' from mh, and not mess it up.
+
+my ($Pgm_Path, $Pgm_Name, $Version);
+use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
+BEGIN {
+    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    $Pgm_Root = "$Pgm_Path/..";
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # Use BEGIN eval to keep perl2exe happy
+}
+
+use Getopt::Long;
+use vars "%config_parms";
+if (!&GetOptions(\%config_parms, "h", "help") or @ARGV or $config_parms{h} or $config_parms{help}) {  
+    print<<eof; 
+
+  $Pgm_Name (version $Version) gets mail stuff.
+
+  Usage: 
+    $Pgm_Name 
+    $Pgm_Name -h
+
+eof
+
+  exit; 
+}
+
+&setup;
+&check_accounts;
+
+my (@email_accounts, %email_prev, $email_rule, $results_new, $results_unread);
+sub setup {
+
+    require 'handy_utilities.pl';
+    require 'handy_net_utilities.pl';
+
+    my $private_parms = $Pgm_Path . "/mh.private.ini";
+    $private_parms = $ENV{mh_parms} if $ENV{mh_parms};
+    &main::read_opts(\%config_parms, $Pgm_Path . "/mh.ini");
+    &main::read_opts(\%config_parms, $private_parms) if -e $private_parms;
+
+                                # Get email parms
+    for my $parm (sort keys %config_parms) {
+        next unless $config_parms{$parm}; # Ignore blank parms
+        next if $parm =~ /net_mail_send/; # Ignore the send mail account
+        push(@email_accounts, $1) if $parm =~ /net_mail_(\S+)_server/;
+        push(@email_accounts, '') if $parm =~ /net_mail_server/;
+    }
+    print "Email accounts to check: @email_accounts\n";
+
+                                # Read file with results from last email check
+    my @data = &file_read("$config_parms{data_dir}/get_email.data");
+    for my $data (@data) {
+        chomp $data;
+        chomp $data;
+        my($account, @list) = split($;, $data);
+        $email_prev{$account} = \@list;
+    }
+
+    if (-e 'get_email_rule.pl') {
+        print "Requiring external get_email_rule.pl file\n";
+        require 'get_email_rule.pl';
+        $email_rule = 1;
+    }
+}
+
+sub check_accounts {
+
+    my $email_file_data;
+    my $msgcnt_flag = 'Email:';
+    for my $account (@email_accounts) {
+        print "checking account=$account ";
+        my $msgcnt = &net_mail_count(account => $account);
+
+        $msgcnt_flag .= sprintf("%3d", $msgcnt);
+
+                                # If count is < last time, assume we have read previous messages and reset for next pass
+                                # If count is > last time, read only new messages
+        my $msgcnt_prev = @{$email_prev{$account}} if $email_prev{$account};
+        if (defined $msgcnt and $msgcnt < $msgcnt_prev) {
+            delete $email_prev{$account};
+        }
+        elsif ($msgcnt > $msgcnt_prev) {
+#           print "There are $msgcnt mail messages for $account\n";
+            my $msgptr = &net_mail_summary(account => $account, first => $msgcnt_prev+1, last => $msgcnt);
+            
+            if ($$msgptr{from_name}) {
+                my @list = @{$$msgptr{from_name}};
+                
+                                # Use a rule to modify name of sender
+                                # Changing $name will modify @list ($name is an implicit alias).
+                my $cnt = 0;
+                for my $name (@list) {
+                    
+                    my $subject = $$msgptr{subject}[$cnt];
+                    my $to      = $$msgptr{to}[$cnt];
+
+                    $name = &get_email_rule($name, $to, $subject) if $email_rule;
+
+                                # See if we want to read the body of the message
+                    print "Reading text for subect=$subject\n";
+#                   my $bodyptr = &net_mail_read(account => $account, first => $cnt, last => $cnt);
+
+                                # Log the subject 
+                    logit("$config_parms{data_dir}/get_email.scan",
+                          "From:$$msgptr{from}[$cnt]  To:$to  Subject:$subject  Body:$$msgptr{body}[$cnt]");
+
+                    $cnt++;
+                }
+                @list = grep(/\S/, @list); # Delete blank names (filtered out from the above get_email_rule)
+                next unless $cnt = @list;
+
+                                # Add to previously read names
+                push(@{$email_prev{$account}}, @list);
+
+                $results_new .= &make_name_list($account, @{$email_prev{$account}});
+            }
+        }
+        $results_unread .= &make_name_list($account, @{$email_prev{$account}});
+
+                                # Save parsed data, so we don't have to re-read next time
+        $email_file_data .= (join($;, $account, @{$email_prev{$account}}) . "\n") if
+            $email_prev{$account} and @{$email_prev{$account}};
+
+    }
+    &file_write("$config_parms{data_dir}/get_email.data", $email_file_data);
+    &file_write("$config_parms{data_dir}/get_email.txt",  $results_new);
+    &file_write("$config_parms{data_dir}/get_email2.txt",  $results_unread);
+    &file_write("$config_parms{data_dir}/get_email.flag", $msgcnt_flag);
+    print "\nNew\n", $results_new;
+    print "\nUnread\n", $results_unread;
+}
+
+sub make_name_list {
+    my ($account, @list) = @_;
+  
+    my $account2 = $account;
+    $account2 =~ tr/_/ /; # Make speakable
+    my $cnt = @list;
+    return unless $cnt;
+#   return ("Email account $account2 has " . plural($cnt, 'new email message') . 
+    return ("$account2 has " . plural($cnt, 'new message') . 
+        " from " . &speakify_list(@list) . ".\n");
+}
+
+#
+# $Log$
+# Revision 1.1  2000/01/19 13:59:20  winter
+# Initial revision
+#
+# Revision 1.12  1999/12/12 23:57:12  winter
+# - add body of mail text to the log.
+#
+# Revision 1.11  1999/11/27 23:29:24  winter
+# - add logit to .subjects file
+#
+# Revision 1.10  1999/10/02 22:39:39  winter
+# - move @list push to AFTER we run get_email_rule
+#
+# Revision 1.9  1999/09/27 03:11:57  winter
+# - point to data_dir parm, not hardcoded /data/
+#
+# Revision 1.8  1999/09/12 16:55:47  winter
+# *** empty log message ***
+#
+# Revision 1.7  1999/09/12 16:15:12  winter
+# - added get_email2.txt for unread mail
+#
+# Revision 1.6  1999/08/30 00:20:48  winter
+# - add mh_parm check.  Sort on email account names
+#
+# Revision 1.5  1999/06/20 22:31:05  winter
+# *** empty log message ***
+#
+# Revision 1.4  1999/05/30 21:17:28  winter
+# - Udated so it will not list blank names
+#
+# Revision 1.3  1999/05/04 13:42:26  winter
+# - add chomp to email data read (fixes re-announcing data bug)
+#
+# Revision 1.2  1999/03/28 00:35:16  winter
+# - create from mh internet_mail.pl
+#
+#

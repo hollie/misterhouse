@@ -1,0 +1,273 @@
+#!/usr/bin/perl
+# -*- Perl -*- 
+#---------------------------------------------------------------------------
+#  File:
+#      set_clock
+#  Description:
+#      See help text below
+#  Author:
+#      Bruce Winter   bruce@misterhouse.net
+#  Latest version:
+#      http://misterhouse.net/mh/bin/set_clock
+#  Change log:
+#    11/15/98  Created.
+#
+#---------------------------------------------------------------------------
+
+use strict;
+
+my ($Pgm_Path, $Pgm_Name);
+BEGIN {
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+}
+
+my ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+
+print "Command: $Pgm_Name @ARGV\n";
+print "Version: $Version\n";
+
+my %parms;
+use Getopt::Long;
+if (!&GetOptions(\%parms, "h", "help", "server=s", "method=s", "ignore=s", "no_set", "log=s") or @ARGV or 
+    ($parms{h} or $parms{help})) {
+    print<<eof;
+
+$Pgm_Name sets the clock according to the time from a NIST atomic clock server
+Instead of requiring accurate time zone information, $Pgm_Name will simply set 
+the time minute and second, but will keep to the nearest hour it was already
+set to.
+
+Usage:
+
+  $Pgm_Name [options] 
+
+    -h         => This help text
+    -help      => This help text
+
+    -no_set    => Do NOT set the clock, only list the difference in time.
+
+    -ignore xyz=> Do NOT reset the local clock if the time is more then xyz minutes off. Default=10
+
+    -method xyz=> xyz can be inet_time, http, or socket.  Default is socket.
+
+    -log    xyz=> Log the time deltas to log file xyz
+
+    -server xyz=> xyz is the server to get the clock data from.  Here are a few:
+                    time-a.timefreq.bldrdoc.gov:14  (default)
+                    time.nist.gov:??
+                    time-nw.nist.gov:??
+
+  Example:
+    $Pgm_Name 
+    $Pgm_Name -server time-a.timefreq.bldrdoc.gov:14
+
+  More info about NIST servers if availble at:
+    http://www.boulder.nist.gov/doc-tour/atomic_clock.html
+
+eof
+
+  exit;
+}
+
+$parms{server} = 'time-a.timefreq.bldrdoc.gov:14' unless $parms{server};
+$parms{method} = 'socket' unless $parms{method};
+
+$parms{ignore} = 10 unless defined $parms{ignore};
+my ($data_logged, $data_returned);
+
+open (LOG, ">>$parms{log}") or print "Warning, could not open log file $parms{log}: $!\n";
+
+print "Requesting the time from $parms{server} using $parms{method} method\n";
+
+#use my_lib "$Pgm_Path/../lib";      # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
+#use my_lib "$Pgm_Path/../lib/site"; # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
+BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN eval to keep perl2exe happy
+
+
+my $time_record;
+my($julian_date, $date, $hour, $min, $sec);
+if ($parms{method} eq 'inet_time') {
+    eval "use Net::Time qw(inet_time)";
+    $parms{server} =~ s/\:\d+//;
+    my $time_server = inet_time($parms{server}, 'tcp');
+    ($sec, $min, $hour) = (localtime($time_server))[0,1,2];
+    print "$parms{server} server_time: $hour:$min:$sec\n";
+}
+else {
+    if ($parms{method} eq 'http') {
+        sub get($);
+        eval "use LWP::Simple";
+        $time_record = get "http://$parms{server}";
+    }
+    else {
+#perl2exe_include IO::Socket
+        eval "use IO::Socket";
+        if (my $sock = new IO::Socket::INET->new(PeerAddr => $parms{server}, Proto => 'tcp')) {
+            while (<$sock>) {
+                $time_record .= $_;
+            }
+            close $sock;
+        }
+        else {
+            print "Could not creat a socket to $parms{server}: $@\n";
+        }
+    }
+    $time_record =~ s/\n//g;
+    ($julian_date, $date, $hour, $min, $sec) = $time_record =~ /(\S+) (\S+) (\d+):(\d+):(\d+) / if $time_record;
+    print "time_record:  $time_record\n";
+}
+
+#$sec--;            # Crude adjustment for network and program latency.
+
+my($old_sec, $old_min, $old_hour, $mday, $mon, $year, $wday) = (localtime(time))[0,1,2,3,4,5,6];
+$mon++;             # Jan = 0
+$date = sprintf("%02d-%02d-%02d", $year, $mon, $mday); # Use local date for logging
+if (defined $sec) {
+    printf("Time from NIST   : %02d:%02d:%02d\n", $hour, $min, $sec);
+    printf("Time local       : %02d:%02d:%02d\n", $old_hour, $old_min, $old_sec);
+    
+    my $min_diff = $min - $old_min;
+    my $new_hour = $old_hour;
+
+    if (abs($min_diff) > $parms{ignore} and abs($min_diff) < (60 - $parms{ignore})) {
+        $data_logged = "System clock NOT adjusted because difference of $min_diff minutes > $parms{ignore} minutes (-ignore parm)";
+        print $data_logged, "\n";
+        printf(LOG "%s %02d:%02d:%02d  %s\n", $date, $old_hour, $old_min, $old_sec, $data_logged);
+        close LOG;
+        return $data_logged if caller;
+        exit;
+    }
+    if ($min_diff >= (60 - $parms{ignore})) {
+        $new_hour--;
+    }
+    elsif ($min_diff <= ($parms{ignore} - 60)) {
+        $new_hour++;
+    }
+    
+    my $sec_diff = 60*(60*$new_hour + $min) + $sec - (60*(60*$old_hour + $old_min) + $old_sec);
+    if ($parms{no_set}) {
+        $data_logged = "System clock NOT adjusted because of -no_set parm.";
+    }
+    elsif ($sec_diff == 0) {
+        $data_logged = "No adjustment needed.";
+    }
+    else {
+        my $time_new = "$new_hour:$min:$sec";
+        printf("Time local new   : %02d:%02d:%02d\n", $new_hour, $min, $sec);
+        my $rc;
+        if ($^O eq "MSWin32") {
+            $rc=system("time $time_new");
+        }
+        else {
+            $rc=system("date -s '$time_new'");
+        }
+        if ($rc) {
+            $data_logged = "System clock NOT adjusted due to time command error.";
+        }
+        else {
+            $data_logged = "System clock adjusted.";
+        }
+    }
+
+    print "$sec_diff second difference.  $data_logged\n";
+    printf(LOG "%s %02d:%02d:%02d  %s second error.  $data_logged\n", $date, $old_hour, $old_min, $old_sec, $sec_diff);
+    $data_returned = "$sec_diff second difference.  $data_logged";
+}
+else {
+    print "Error from server.  Data recieved: $time_record\n";
+    printf(LOG "%s %02d:%02d:%02d  Internet error\n", $date, $old_hour, $old_min, $old_sec);
+    $data_returned = "System clock not adjusted due to an internet error";
+}
+
+close LOG;
+return $data_returned if caller;
+
+__END__
+
+
+# From http://www.boulder.nist.gov/doc-tour/atomic_clock.html
+
+FROM: http://132.163.135.130:14/
+      http://time-a.timefreq.bldrdoc.gov:14
+
+Not sure of the ports on these 2:
+time.nist.gov
+time-nw.nist.gov
+
+
+51130 98-11-13 13:30:21 00 0 0 561.5 UTC(NIST) * 
+
+               49825 95-04-18 22:24:11 50 0 0 50.0 UTC(NIST) *
+           |     |        |     | | |  |      |      |
+These are the last +     |        |     | | |  |      |      |
+five digits of the       |        |     | | |  |      |      |
+Modified Julian Date     |        |     | | |  |      |      |
+                 |        |     | | |  |      |      |
+Year, Month and Day <----+        |     | | |  |      |      |
+                          |     | | |  |      |      |
+Hour, minute, and second of the <-+     | | |  |      |      |
+current UTC at Greenwich.               | | |  |      |      |
+                            | | |  |      |      |
+DST - Daylight Savings Time code <------+ | |  |      |      |
+00 means standard time(ST), 50 means DST  | |  |      |      |
+99 to 51 = Now on ST, goto DST when local | |  |      |      |
+time is 2:00am, and the count is 51.      | |  |      |      |
+49 to 01 = Now on DST, goto ST when local | |  |      |      |
+time is 2:00am, and the count is 01.      | |  |      |      |
+                              | |  |      |      |
+Leap second flag is set to "1" when <-----+ |  |      |      |
+a leap second will be added on the last     |  |      |      |
+day of the current UTC month.  A value of   |  |      |      |
+"2" indicates the removal of a leap second. |  |      |      |
+                                |  |      |      |
+Health Flag.  The normal value of this    <-+  |      |      |
+flag is 0.  Positive values mean there may     |      |      |
+be an error with the transmitted time.         |      |      |
+                                               |      |      |
+The number of milliseconds ACTS is advancing <-+      |      |
+the time stamp, to account for network lag.           |      |
+                                                      |      |
+Universal Time Coordinated from the National <--------+      |
+Institute of Standards & Technology.                         |
+                                                             |
+The instant the "*" appears, is the exact time. <------------+
+
+eof
+
+#
+# $log: set_clock,v $
+# Revision 1.11  1999/09/12 16:59:19  winter
+# *** empty log message ***
+#
+# Revision 1.10  1999/03/21 17:38:09  winter
+# - email change
+#
+# Revision 1.9  1999/02/08 00:38:58  winter
+# - do eval use libs, so we only call what we need
+#
+# Revision 1.8  1999/02/04 14:35:49  winter
+# - add inet_time method
+#
+# Revision 1.7  1999/01/30 02:15:40  winter
+# *** empty log message ***
+#
+# Revision 1.6  1999/01/30 02:14:20  winter
+# - add, and default to, socket method
+#
+# Revision 1.5  1999/01/23 23:11:13  winter
+# - break out from .bat file
+#
+# Revision 1.4  1998/12/10 14:38:24  winter
+# - fix log date format.
+#
+# Revision 1.3  1998/12/07 14:43:49  winter
+# - add logging.
+#
+# Revision 1.2  1998/11/15 21:57:44  winter
+# - added pgm Version
+#
+# Revision 1.1  1998/11/15 21:53:14  winter
+# - created.
+#
+#

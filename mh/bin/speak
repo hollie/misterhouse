@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# This is the unix version.  speak.bat is the dos version
+
+house speak $*

@@ -1,0 +1,248 @@
+# Got this data from http://www.the-acr.com/codes/usa2.htm  (9/21/99)
+011 [ International Access Code ] 
+200 [ Reserved - Service Access Code ] 
+201 Morristown, Newark and Jersey City, (Northeast) New Jersey 
+202 Washington, District of Columbia 
+203 Fairfield & New Haven County, Connecticut 
+204 All parts of Manitoba, CANADA 
+205 All parts of Alabama 
+206 Seattle, Tacoma and Vancouver, (Western) Washington 
+207 All parts of Maine 
+208 All parts of Idaho 
+209 Fresno and Stockton, (Central) California 
+210 San Antonio, (Southern) Texas [512 until 1 Nov 1992] 
+211 [ Coin-operated Telephone Refunds ] 
+212 New York City (Manhattan only), New York 
+213 Los Angeles, California 
+214 Dallas, (Northeast) Texas 
+215 Allentown, Chester and Philadelphia, (Southeast) Pennsylvania 
+216 Akron, Cleveland, Massillon and Youngstown, (Northeast) Ohio 
+217 Springfield and Champaign-Urbana, (South Central) Illinois 
+218 Duluth, (Northern) Minnesota 
+219 Gary, Hammond, Fort Wayne and South Bend, (Northern) Indiana 
+228 Southern Mississippi 
+240 Western Maryland 
+242 Bahamas 
+246 Barbados 
+248 OaklandCounty,Michigan 
+250 BritishColumbia, Canada 
+253 Kent & Tacoma, Washington (South of Seattle) 
+254 Central Texas, Waco 
+264 Anguilla 
+268 Amtogia, Antigua and Barbuda 
+281 Houston,TX suburbs 
+284 British Virgin Islands 
+300 [ Reserved - Service Access Code ] 
+301 Silver Spring and Frederick, (Southern and Western) Maryland 
+302 All parts of Delaware 
+303 Boulder, Denver and Grand Junction, (Northern and Western) Colorado 
+304 All parts of West Virginia 
+305 Fort Lauderdale, Key West and Miami, (Southeast) Florida 
+306 All parts of Saskatchewan, CANADA 
+307 All parts of Wyoming 
+308 North Platte and Grand Island, (Western) Nebraska 
+309 Moline, Rock Island and Peoria, (West Central) Illinois 
+310 Parts of Los Angeles, California 
+311 [ Reserved - Special Function ] 
+312 Chicago, Illinois 
+313 Detroit and Ann Arbor, (Eastern) Michigan 
+314 Saint Louis and Columbia, (Eastern) Missouri 
+315 Oswego, Syracuse and Utica, (North Central) New York 
+316 Dodge City and Wichita, (Southern) Kansas 
+317 Indianapolis and Kokomo, (Central) Indiana 
+318 Lake Charles and Shreveport, (Western) Louisiana 
+319 Dubuque, Cedar Rapids and Iowa City, (Eastern) Iowa 
+320 Central Minnesota, St. Cloud 
+330 Northeaster Ohio: Akron, Canton, Youngstown 
+334 Southern Alabama: Mobile, Montgomery 
+360 Bellingham, Washington 
+336 North Carolina 
+340 U.S. Virgin Islands 
+345 Cayman Islands 
+352 Northern Florida 
+360 Western Washington state 
+400 [ Reserved - Service Access Code ] 
+401 All parts of Rhode Island 
+402 Lincoln and Omaha, (Eastern) Nebraska 
+403 Alberta, Yukon Territory and (Western) Northwest Territories, CANADA 
+404 Atlanta, (Northern) Georgia 
+405 Oklahoma City, (Southern and Western) Oklahoma 
+406 All parts of Montana 
+407 Orlando, West Palm Beach, (Eastern) Florida 
+408 San Jose and Sunnyvale, (Central Coastal/Silicon Valley) California 
+409 Galveston and Port Arthur, (Southeast) Texas 
+410 Baltimore and Annapolis, (Eastern) Maryland 
+411 [ Local Directory Assistance ] 
+412 Pittsburgh and New Castle, (Western) Pennsylvania 
+413 Springfield and Pittsfield, (Western) Massachusetts 
+414 Green Bay, Milwaukee and Racine, (Eastern) Wisconsin 
+415 San Francisco, (West Bay Area) California 
+416 Toronto, (South Central) Ontario, CANADA 
+417 Joplin and Springfield, (Southwest) Missouri 
+418 Quebec City, (Northeast) Quebec, CANADA 
+419 Toledo and Lima, (Northwest) Ohio 
+423 Eastern Tennessee: Chattanooga 
+425 Western Washington: Bellevue, Redmond, Renton & Everett (North & East of Seattle) 
+435 Utah 
+440 Northeastern Ohio 
+441 Bermuda 
+443 Eastern Maryland 
+450 Suburban Montreal area, Quebec 
+473 Grenadaand Carriacou 
+500 [ Reserved - Service Access Code ] 
+501 All parts of Arkansas 
+502 Louisville and Paducah, (Western) Kentucky 
+503 Most parts of Oregon 
+504 Baton Rouge and New Orleans, (Eastern) Louisiana 
+505 All parts of New Mexico 
+506 All parts of New Brunswick, CANADA 
+507 Rochester, Austin and Winona, (Southern) Minnesota 
+508 Worcester, Framingham and New Bedford, (Eastern) Massachusetts 
+509 Spokane and Walla Walla, (Eastern) Washington 
+510 Oakland, (East Bay Area) California 
+511 [ Reserved - Special Function ] 
+512 Austin and Corpus Christi, (Southern) Texas 
+513 Cincinnati and Dayton, (Southwest) Ohio 
+514 Montreal, (Southern) Quebec, CANADA 
+515 Des Moines and Fort Dodge, (Central) Iowa 
+516 Hempstead, (Long Island) New York 
+517 Lansing and Saginaw, (Central) Michigan 
+518 Albany and Schenectady, (Northeast) New York 
+519 London, (Southwest) Ontario, CANADA 
+520 Arizona: Flagstaff, Winslow 
+530 Northeastern California 
+540 Central Virginia Area 
+541 Oregon: Eugene 
+561 Southeast Florida: Belle Glade, Boca Raton, Ft. Pierce 
+562 Los Angeles Metro area 
+573 Columbia, Missouri 
+580 Western Oklahoma 
+600 [ Reserved - Service Access Code ] 
+601 All parts of Mississippi 
+602 Most parts of Arizona 
+603 All parts of New Hampshire 
+604 All parts of British Columbia, CANADA 
+605 All parts of South Dakota 
+606 Ashland and Covington, (Eastern) Kentucky 
+607 Binghamton, Elmira and Ithaca, (South Central) New York 
+608 Beloit and Madison, (Southwest) Wisconsin 
+609 Atlantic City, Camden and Trenton, (Southern) New Jersey 
+610 [Telex II (TWX) Service for CANADA] 
+611 [ Repair Service ] 
+612 Minneapolis and Saint Paul, (Central) Minnesota 
+613 Ottawa, (Southeast) Ontario, CANADA 
+614 Columbus and Zanesville, (Southeast) Ohio 
+615 Chattanooga and Nashville, (Eastern) Tennessee 
+616 Battle Creek and Grand Rapids, (Western) Michigan 
+617 Boston and surrounding area, (Eastern) Massachusetts 
+618 Alton and Centralia, (Southern) Illinois 
+619 San Diego, Palm Springs and the Imperial Valley, California 
+626 Suburban Los Angeles 
+630 Chicago Metro area 
+649 Turks and Caicos Islands 
+650 San Francisco area, CA 
+660 Northwestern Missouri 
+664 Montserrat 
+678 Atlanta Metro area 
+700 Value Added Information Service Access Code (varies by LD carrier) 
+701 All parts of North Dakota 
+702 All parts of Nevada 
+703 Arlington and Roanoke, (Northern and Western) Virginia 
+704 Charlotte and Salisbury, (Western) North Carolina 
+705 North Bay, (Northern) Ontario, CANADA 
+706 [Formerly Tijuana, (Northwest) MEXICO equivalent to +52 6X XXX XXX] 
+706 Augusta, Columbus and Rome, (Northern) Georgia 
+707 Eureka, Napa and Santa Rosa, (North Coastal) California 
+708 Aurora, Elgin, Evanston and Waukegan, (Northeast) Illinois 
+709 All parts of Newfoundland and Labrador, CANADA 
+710 [ Government Special Services ] 
+711 [ Reserved - Special Function ] 
+712 Council Bluffs and Sioux City, (Western) Iowa 
+713 Houston and surrounding area, Texas 
+714 Orange County, California 
+715 Eau Claire and Wausau, (Northern) Wisconsin 
+716 Buffalo, Niagara Falls and Rochester, (Western) New York 
+717 Harrisburg, Pottsville and Scranton, (East Central) Pennsylvania 
+718 New York City (Bronx, Brooklyn, Queens, Staten Island), New York 
+719 Colorado Springs and Pueblo, (Southeast) Colorado 
+724 South Western Pennsylvania 
+732 Central New Jersey 
+734 South Eastern Michigan 
+740 South Eastern Ohio 
+757 Eastern Virginia 
+758 St. Lucia 
+760 Southern California 
+765 Central Indiana 
+767 Dominica 
+770 Parts of Atlanta & Northern Georgia 
+773 Chicago Metro Area 
+781 Suburban Boston, MA 
+784 St. Vincent and Grenadines 
+785 Northern Kansas 
+787 Puerto Rico 
+800 "Toll-Free" Incoming WATS Service Access Code 
+801 All parts of Utah 
+802 All parts of Vermont 
+803 Most parts of South Carolina 
+804 Charlottesville, Norfolk and Richmond, (Southeast) Virginia 
+805 Bakersfield, Ventura and Simi Valley, (South Central) California 
+806 Amarillo, (North Panhandle) Texas 
+807 Thunder Bay and Fort William, (Northwest) Ontario, CANADA 
+808 All parts of Hawaii 
+809 Bahamas, Bermuda, Puerto Rico, the Virgin Islands, etc. 
+810 future: northern part of present area 313 in Michigan 
+811 [ Reserved - Special Function ] 
+812 Bloomington, Evansville and Terre Haute, (Southern) Indiana 
+813 Fort Myers, St. Petersburg and Tampa, (Southwest) Florida 
+814 Altoona and Erie, (West Central) Pennsylvania 
+815 Freeport, Joliet and Rockford, (Northern) Illinois 
+816 Kansas City and Saint Joseph, (Northwest) Missouri 
+817 Fort Worth, Temple and Waco, (North Central) Texas 
+818 Pasadena and San Fernando (area north of Los Angeles), California 
+819 Hull and Sherbrooke, (Western) Quebec and (Eastern) N.W. Territories, CANADA 
+830 San Antonio area, TX 
+843 Coastal South Carolina 
+847 Chicago Mmetro area 
+850 Florida panhandles 
+860 Connecticut: Hartford, Litchfield, Middlesex, New London, Tolland and Windham Counties 
+864 Greenville, South Carolina 
+867 Yukon /NWT, Canada 
+868 Trinidad & Tobago 
+869 St. Kitts & Nevis Islands 
+870 Arkansas 
+876 Jamaica 
+900 Mass Calling and Value Added Information Service Access Code 
+901 Memphis and Jackson, (Western) Tennessee 
+902 All parts of Prince Edward Island and Nova Scotia, CANADA 
+903 Texarkana and Paris, (Northeast) Texas 
+904 Jacksonville and Pensacola, (Northern) Florida 
+905 [Formerly Mexico City, (Northern) MEXICO equivalent to +52 5 XXX XXXX] 
+905 to be formed by splitting 416 (Ontario) 
+906 Sault Ste. Marie and Marquette, (Upper North) Michigan 
+907 All parts of Alaska 
+908 Elizabeth and New Brunswick, (Central) New Jersey 
+909 [ has been Telenet Communications Data Network ] 
+909 Riverside and San Bernardino, California [currently 714] 
+910 Davidson County, NC 
+911 [ Police/Fire Emergency Service ] 
+912 Macon and Savannah, (Southern) Georgia 
+913 Salina and Topeka, (Northern) Kansas 
+914 New Rochelle, White Plains and Poughkeepsie, (Southern) New York 
+915 Abilene, El Paso and Odessa, (Western) Texas 
+916 Sacramento and Davis, (Northern) California 
+917 Cellular and Paging for New York City 
+918 Muskogee and Tulsa, (Northeast) Oklahoma 
+919 Greenville, Raleigh and Winston-Salem, (Eastern) North Carolina 
+920 South Eastern Wisconsin 
+925 Walnut Creek area, California 
+931 Central Tennessee 
+937 Cincinnati area 
+940 Central Texas 
+941 Southwestern Florida: Ft. Myers 
+949 Southern OrangeCounty, CA 
+954 Southern Florida: Ft. Lauderdale, Hollywood, Pompano Beach 
+956 San Antonio area, TX 
+970 Northern / Western Colorado: Aspen, Breckenridge, Vail 
+972 Dallas,TX Suburbs 
+973 Northern New Jersey 
+978 Northern Massachusetts 
