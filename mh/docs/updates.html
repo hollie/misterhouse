@@ -13,6 +13,7 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#Version_2_27_posted_on_08_18_00">Version 2.27 posted on 08/18/00</A></LI>
 		<LI><A HREF="#Version_2_24_posted_on_08_06_00">Version 2.24 posted on 08/06/00</A></LI>
 		<LI><A HREF="#Version_2_22_posted_on_06_24_00">Version 2.22 posted on 06/24/00</A></LI>
 		<LI><A HREF="#Version_2_20_posted_on_05_27_00">Version 2.20 posted on 05/27/00</A></LI>
@@ -71,9 +72,9 @@ HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?g
 </P>
 <P>
 <HR>
-<H2><A NAME="Version_2_24_posted_on_08_06_00">Version 2.24 posted on 08/06/00</A></H2>
+<H2><A NAME="Version_2_27_posted_on_08_18_00">Version 2.27 posted on 08/18/00</A></H2>
 <P>
-Version 2.24 was just uploaded to:
+Version 2.27 was just uploaded to:
 
 </P>
 <P>
@@ -198,6 +199,185 @@ between grids.
 </P>
 <P>
 - Fixed a bug that disabled simultaneous X10 Group action with a CM11.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_24_posted_on_08_06_00">Version 2.24 posted on 08/06/00</A></H2>
+<P>
+Version 2.24 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A>
+  <A HREF="http://misterhouse.sourceforge.net">http://misterhouse.sourceforge.net</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Added a <CODE>&amp;dir_index</CODE> html function, so we can now get
+sortable file name type, date, and size listings of selected directories.
+Enable it by creating a index.shtml file that calls &amp;dir_index. Try <A
+HREF="http://localhost:8080/graphics">http://localhost:8080/graphics</A>
+(mh/web/graphics/index.shtml) as an example, or look for
+<CODE>&amp;dir_index</CODE> in mh.html.
+
+</P>
+<P>
+- Enabled showing of gif and jpg files with the display function (e.g.
+display /pictures/pic1.gif). Unfortunately, it looks like both perl 522 and
+616 leak memory with each picture displayed. If you are using the
+uncompiled version of mh and want to display jpg files, you will need to
+run:
+
+</P>
+<P>
+<PRE>   windows: ppm install Tk-JPEG 
+   unix:    perl -MCPAN -e 'install Tk::JPEG'
+</PRE>
+</P>
+<P>
+- Made many small changes to allow us to the option of running with the
+perl Diagnostics module (enables the 'perl -w' option). This enables a ton
+of warning messages that often point out potential coding errors. To
+enable, set the mh.ini parm diagnostics (or w) to 1, or just run: mh -w 1
+This takes about 1 meg more of memory and causes mh to run about 10%
+slower, but the messages it displays often point to valid problems.
+
+</P>
+<P>
+- Improved processing of errors that do not show up on reload (i.e. only
+triggered by an event). The first time this happens, a console/tk message
+will be displayed, and a message spoken. Since these errors might happen on
+sequential passes of mh, subsequent errors are only listed in the console
+window. If more than 10 occur, another window is displayed, and the code
+member there error was in is disabled.
+
+</P>
+<P>
+- Improved messages when you load user code with perl errors. It should now
+point to the correct line number of the error, including those nasty
+'global symbol' errors.
+
+</P>
+<P>
+The only exception I have seen is if you have too few/many {} around code.
+In these cases, if you can not find the file with the error, you can try a
+new option: mh -error_by_file 1 . This will try loading one file at a time
+until the error is found, but it runs pretty slow and may not work with
+members that have # noloop directives.
+
+</P>
+<P>
+- New untie_items and untie_event methods. All the tie/untie methods now
+allow for on-the-fly calls, instead of being set just on code reload. If
+you do use these conditionally, make sure you also call the methods on
+$Reload, as the tie states are not saved between reloads.
+
+</P>
+<P>
+- Reworked how mh processes the merging/breaking of X10 strings to provide
+consistent monitoring of longer X10 strings that might be broken up by the
+receiver (e.g. DSC Alarm panel).
+
+</P>
+<P>
+- Created mh/bin/get_ceiva and mh/code/bruce/ceiva.pl. This code will
+download and display new pictures that are deposited in electronic picture
+frame folders at <A HREF="http://www.ceiva.com">http://www.ceiva.com</A> .
+As various relatives deposit pictures there for my Dad's picture frame, we
+get the new pictures also! get_ceiva is an example of how perl can log onto
+a site that uses cookies for user/password security.
+
+</P>
+<P>
+- Brian Paulsen wrote a Slinke.pm module to send/receive IR data from the
+Nirva Slink-e interface. His examples are in mh/code/public/slinke*, but it
+has not been integrated into mh yet.
+
+</P>
+<P>
+- Bill Sobel made some changes/additions to mh/lib members Compool.pl,
+DSC_Alarm.pm, Stargate485.pm, Xantech.pm, and read_table_A.pl. The Xantech
+code is the initial pass at controlling the Xantech preamp. The Stargate485
+is his first pass at interfacing with the stargate (and the stargatelcd
+keypads) via the 485 interface. 
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Ron Wright spotted an recent error with the VCR start/stop times in
+get_tv_grid html.
+
+</P>
+<P>
+- Brian Paulsen's sent in a fix to avoid repeating voice commands when
+using Viavoice.
+
+</P>
+<P>
+- Bradford Reed helped fix an error with group commands on CM17 controlled
+X10 items.
+
+</P>
+<P>
+- Bill Sobel sent in a patch that allows for auto-loading of new or
+user-defined mh/lib modules (e.g. Compool.pm). These new object types will
+also show up in the tk and web menues.
+
+</P>
+<P>
+- Fixed the on.gif blinking status icon so it will also blink in Netscape.
+
+</P>
+<P>
+- Fixed the html_info= tag in mh.ini (html popups accidently got disabled
+in 2.22)
+
+</P>
+<P>
+- Added mh.ini x10_errata parm, so you can turn up/down the print_log
+errata on X10 data.
+
+</P>
+<P>
+- Allow for muli-line mh.ini parms (see mh/bin/mh.ini favorite_tv_shows for
+an example)
+
+</P>
+<P>
+- Added mh/code/examples/generic_item.pl
+
+</P>
+<P>
+- Added a -quiet option to get_email and get_tv_info, so you can avoid mh
+console clutter.
+
+</P>
+<P>
+- Added browser function. This simply calls the browser defined by mh.ini
+browser parm on the specified url or file.
+
+</P>
+<P>
+- Moved Tk* widgets from various mh/test/code files into tk_widgets.pl, for
+easier ordering.
+
+</P>
+<P>
+- Dropped the B prefix on incoming bright/dim decoding and added bright/dim
+states to house X10_Items. This allows us to monitor bright/dim commands
+easier.
 
 </P>
 <P>

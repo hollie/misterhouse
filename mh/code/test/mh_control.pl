@@ -74,8 +74,8 @@ if ($state = said $v_mode) {
     print_log "The house is now in $state mode.";
 }
 
-$mh_mode = new  Serial_Item('XPG', 'toggle');
-if ('toggle' eq state_now $mh_mode) {
+$v_mode_toggle = new  Voice_Cmd("Toggle the house mode");
+if (said $v_mode_toggle) {
     if ($Save{mode} eq 'mute') {
         $Save{mode} = 'offline';
     }
@@ -155,4 +155,15 @@ if (said $v_list_serial_items) {
     }
     my $results = join "\n", sort @results;
     display $results, 60, 'Serial Items', 'fixed';
+}
+
+
+                                # Echo serial matches
+&Serial_match_add_hook(\&serial_match_log) if $Reload;
+
+sub serial_match_log {
+    my ($ref, $state, $event) = @_;
+    return unless $event =~ /^X/; # Echo only X10 events
+    my $name = substr $$ref{object_name}, 1;
+    print_log "$event: $name $state";
 }

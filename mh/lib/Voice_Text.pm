@@ -2,7 +2,7 @@
 package Voice_Text;
 use strict;
 
-my ($VTxt, $VTxt_festival, $VTxt_Outloud, $save_mute_esd, $save_change_volume, %pronouncable);
+my ($VTxt, $VTxt_festival, $VV_TTS, $save_mute_esd, $save_change_volume, %pronouncable);
 
 sub init {
 
@@ -16,45 +16,49 @@ sub init {
             set $VTxt_festival qq[$main::config_parms{festival_init_cmds}];
         }
     }
-    if ($main::config_parms{voice_text} =~ /vvo_speak/i) {
-        print "Creating ViaVoice Outloud socket\n";
-        my $vvo_speak_address = "$main::config_parms{vvo_host}:$main::config_parms{vvo_port}";
-        $VTxt_Outloud = new  Socket_Item(undef, undef, $vvo_speak_address);
-        start $VTxt_Outloud;
+    if ($main::config_parms{voice_text} =~ /vv_tts/i) {
+        my $pgm_root = $main::Pgm_Root;
+        $VV_TTS = qq[$main::Pgm_Path/vv_tts.pl];
+        $VV_TTS .= " -prescript " . $main::config_parms{vv_tts_prescript} if $main::config_parms{vv_tts_prescript};
+        $VV_TTS .= " -postscript " . $main::config_parms{vv_tts_postscript} if $main::config_parms{vv_tts_postscript};
+        $VV_TTS .= " -playcmd " . $main::config_parms{vv_tts_playcmd} if $main::config_parms{vv_tts_playcmd};
+        $VV_TTS .= " -default_sound " . $main::config_parms{vv_tts_default_sound} if $main::config_parms{vv_tts_default_sound};
+        print "VV TTS command string: $VV_TTS\n";
     }
+    
 
     if ($main::config_parms{voice_text} =~ /ms/i and $main::OS_win) {
         print "Creating MS TTS object\n";
-#           $VTxt = CreateObject OLE 'Speech.VoiceText';
+#       $VTxt = CreateObject OLE 'Speech.VoiceText';
         $VTxt = Win32::OLE->new('Speech.VoiceText');
         unless ($VTxt) {
             print "\n\nError, could not create Speech TTS object.  ", Win32::OLE->LastError(), "\n\n";
             return;
         }
-
+        
 #       print "Registering the MS TTS object\n";
         $VTxt->Register("Local PC", "perl voice_text.pm");
 #       print "Setting speed\n";
 #       $VTxt->{Enabled} = 1;
 #       my $speed_old = $VTxt->{'Speed'};
-        }
-        return $VTxt;
+    }
+    return $VTxt;
 }
 
 sub speak_text {
     my(%parms) = @_;
     my $pgm_root = $main::Pgm_Root;
+    
+    $parms{text} = force_pronounce($parms{text}) if %pronouncable;
 
-    unless ($VTxt or $VTxt_festival or $VTxt_Outloud ) {
+    unless ($VTxt or $VV_TTS or $VTxt_festival ) {
         unless ($main::config_parms{voice_text}) {
             print "Can not speak.  mh.ini entry for voice_text is disabled. Phrase=$parms{text}\n";
         } else {
             print "Can not speak.  Voice_Text object failed to create. Phrase=$parms{text}\n";
-            }
-            return;
+        }
+        return;
     }
-
-    $parms{text} = force_pronounce($parms{text}) if %pronouncable;
 
     if ($VTxt_festival) {
 #<SABLE>
@@ -87,16 +91,32 @@ sub speak_text {
         set $VTxt_festival qq[(SayText "$parms{text}")];
     }
 
-    if ($VTxt_Outloud) {
-        set $VTxt_Outloud "speak";
-        print "Data sent to vvo_speak: speak\n";
-        $parms{text} =~ s/[\r,\n]/ /g;  # some text has returns and newlines, text must be one one line.
-        print "Data sent to vvo_speak: $parms{text}\n";
-        set $VTxt_Outloud qq[$parms{text}];
+    if ($VV_TTS) {
+        my $self = {};
+        my $pid = fork;
+        $SIG{CHLD}  = "IGNORE";                   # eliminate zombies created by FORK()
+        if ($pid) {
+            $$self{pid} = $pid;
+        } elsif (defined $pid) {
+            my $vv_tts_arg = "";;
+            if ($parms{play}) {
+                if ($parms{play} =~ /^System/ or $parms{play} =~ /^[\\\/]/ or $parms{play} =~ /^\S\:/) {
+                    $vv_tts_arg .= " -play $parms{play} ";
+                } else {
+                    $vv_tts_arg .= " -play $main::config_parms{sound_dir}/$parms{play} ";
+                }
+            }
+            if ($parms{text}) {
+                $vv_tts_arg .= " -text '$parms{text}'";
+            }
+            print "db start TTS: $VV_TTS $vv_tts_arg\n" if $main::config_parms{debug};
+            exec qq[$VV_TTS $vv_tts_arg];
+            die 'cant exec $VV_TTS';
+        }
     }
-
+    
     if ($VTxt) {
-
+        
         # Turn off vr while speaking ... SB live card will listen while speaking!
         #  - this doesn't work.  TTS does not start right away.  Best to poll in Voice_Cmd
 #       &Voice_Cmd::deactivate;
@@ -166,13 +186,6 @@ sub last_spoken {
 }
 
     
-sub set_vvo_option {
-    my ($command, $setting) = @_;
-    set $VTxt_Outloud $command;
-    set $VTxt_Outloud $setting;
-    return;
-}
-
 sub read_pronouncable_list {
     my($pronouncable_list_file) = @_;
 
@@ -206,6 +219,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.21  2000/09/09 21:19:11  winter
+# - 2.28 release
+#
 # Revision 1.20  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

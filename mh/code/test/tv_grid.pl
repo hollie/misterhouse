@@ -12,6 +12,14 @@ if (my $data = state_now $tv_grid) {
                                 # http://house:8080/SET?$tv_grid?channel_2_from_7:00_to_8:00
 
     my($channel, $start, $stop, $date, $show_name) = $data =~ /(\d+) from (\S+) to (\S+) on (\S+) for (.*)/;
+
+    unless ($start) {
+        my $msg = "Bad tv_grid time: $data";
+        speak $msg;
+        print_log $msg;
+        return;
+    }
+
     my $msg = "Programing vcr for $show_name.  Channel $channel from $start to $stop on $date.";
     speak $msg;
     print_log $msg;

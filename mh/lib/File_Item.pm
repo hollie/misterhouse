@@ -17,6 +17,15 @@ sub name {
     return $filename;
 }
 
+sub restore_string {
+    my ($self) = @_;
+
+    my $index = $self->{index};
+    my $restore_string = $self->{object_name} . "->{index} = $index" if $index;
+
+    return $restore_string;
+}
+
 sub set_watch {
     my ($self, $flag) = @_;
     my $file = $self->{file};

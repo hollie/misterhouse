@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-08-18 18:48:49 winter>
+#  Last change Time-stamp: <2000-09-09 16:00:57 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -77,19 +77,17 @@ use vars qw($Version_tk);
 
 my ($Pgm_PathU);
 my (@Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
-my ($Loop_Speed, $Loop_Speed2, $Loop_Speed3);
+my ($Loop_Speed);
 my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
 my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, @Item_Code, @Item_Code_Objects);
 my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
-my (%object_names_by_file, %object_names_by_type, %object_names_by_webname);
+my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
 my (%prev_serial_event, @Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
 my ($CON_IN, $CON_OUT);
 #use vars '$CON_IN', '$CON_OUT';
-
-my($loop_tickcount_wtk, $loop_tickcount_wotk, $loop_tickcount_passes);
 
 my($state, $temp);              # Some generic useful vars
 
@@ -340,11 +338,15 @@ sub setup {
     }
 
     use File::Copy;             # So we copy files
+    use File::Basename;
 #   use FreezeThaw qw(freeze thaw cmpStr safeFreeze cmpStrHard);
 #   use Date::Parse;        # For str2time
     use Time::Local;            # For timelocal
     use LWP::Simple;            # For pgms like set_clock that need to grab data from urls
     use Net::FTP;               # For uploading stuff
+
+#   use Data::Dumper qw(Dumper DumperX);
+
 
     if ($config_parms{DNS_server}) {
         print "Loading DNS code ...";
@@ -377,6 +379,8 @@ sub setup {
     use Caller_ID;
 
     use Astro::MoonPhase;
+    use Astro::SunTime;
+
     use Text::Wrap;
 
     use constant;               # To keep perl2exe happy
@@ -415,7 +419,7 @@ sub setup {
     $SIG{BREAK} = \&sig_handler if  $OS_win;  # Exit cleanly with BREAK
     $SIG{KILL}  = \&sig_handler;              # Exit cleanly with a kill signal
     $SIG{HUP}   = \&read_code   if !$OS_win;  # Reload code (alias mhreload per info in mh.ini file)
-    $SIG{PIPE}  = 'IGNORE';                   # Web browsers can shut down sockets while we are sending data 
+    $SIG{PIPE}  = \&sig_handler_pipe;         # Web browsers can shut down sockets while we are sending data 
     $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
     
     $config_parms{code_dir} = $Pgm_PathU . "/../code" unless $config_parms{code_dir};
@@ -536,6 +540,10 @@ sub setup {
             &HomeBase::init($Serial_Ports{HomeBase}{object}); # Turn on Echo mode
         }
     }
+    if ($config_parms{ncpuxa_port}) {
+        require 'ncpuxa_mh.pm';
+        &ncpuxa_mh::init($config_parms{ncpuxa_port}); # Create socket connection
+    }
 
     if ($config_parms{ibutton_port}) {
         &my_use("Hardware::iButton::Connection;");
@@ -572,8 +580,6 @@ sub setup {
     }
 
     $exit_flag = 0;
-#   $Loop_Sleep_Time = 0;
-#   $Loop_Sleep_Time = 20;
     $config_parms{sleep_time} = 50 unless defined $config_parms{sleep_time};
     $Loop_Sleep_Time = $config_parms{sleep_time};
     $config_parms{tk_passes} = 10 unless $config_parms{tk_passes};
@@ -584,7 +590,8 @@ sub setup {
     $Time = time;
 
     ($Second, $Minute, $Hour, $Mday, $Month, $Year) = localtime $Time; # Needed in my_str2time;
-    $Time_Date = &time_date_stamp(12, $Time);  # Needed by print_log
+
+    $Time_Date = &time_date_stamp($config_parms{time_format_log} , $Time);  # Needed by print_log
 
     $Month++;
 
@@ -637,6 +644,7 @@ sub setup {
 
     $config_parms{max_log_entries} = 50 unless defined $config_parms{max_log_entries};
     $config_parms{max_state_log_entries} = 10 unless defined $config_parms{max_state_log_entries};
+    $config_parms{time_format_log} = 12 unless $config_parms{time_format_log};
 
     print "Done with setup\n\n";
 
@@ -651,7 +659,11 @@ sub setup {
 my (%hook_pointers, %hook_pointers_persistent, %hook_locations);
 sub add_hook_code {
 
-    %hook_locations = ( MainLoop_pre => 1, MainLoop_post => 1  );
+    %hook_locations = ( MainLoop_pre => 1, MainLoop_post => 1,
+                        Serial_match => 1,
+                        Play_pre => 1,     Play_post => 1,
+                        Speak_pre => 1,    Speak_post => 1
+                        );
 
     for my $location (keys %hook_locations){
         my($accessors) = "
@@ -719,9 +731,10 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
 
                                 # call all hooks with user specified args, if any
    sub run_hooks_ {
-       my($location) = @_;
+#      my($location) = @_;
+       my $location = shift @_;
        for my $hook (&get_hooks_($location)){
-           &$hook(@_)
+           &$hook(@_);          # Pass parms to hook
        }
    }
 
@@ -754,14 +767,16 @@ sub browser {
     run "$config_parms{browser} $file";
 }
 
-my ($leave_socket_open_passes, $leave_socket_open_action);
+my ($loop_tickcount1, $loop_tickcount_total);
 sub check_for_action {
 
-    my $loop_tickcount1 = (&get_tickcount);
+    &exit_pgm if $exit_flag;
+    my $loop_tickcount1 = &get_tickcount;
 
+                                # Do window loop here, to check for pause mode exit
     if ($MW) {
         $Loop_Tk_Passes = 100 if $Loop_Tk_Passes >100; # Make sure we don't have too many passes
-        $Loop_Tk_Passes = 1 if $Loop_Tk_Passes < 1;    # Make sure we make at least one pass
+        $Loop_Tk_Passes = 1   if $Loop_Tk_Passes < 1;  # Make sure we make at least one pass
         for (1 .. $Loop_Tk_Passes) {
             my $tk_activity;
             $tk_activity = DoOneEvent(0xFF); # Avoid Constants ... we get compile errors if -tk 0
@@ -769,17 +784,14 @@ sub check_for_action {
 #           $tk_activity = DoOneEvent(0x1E); 
 #           $tk_activity = DoOneEvent(0x02); 
         }
-#   print "tk_activity=$tk_activity\n" if $tk_activity;
     }
+    &check_for_keyboard_input;
+    return if $pause_mode;
 
-    my $loop_tickcount2 = (&get_tickcount);
-
-    &exit_pgm if $exit_flag;
     &set_global_vars;
     &Process_Item::harvest;          # Check for done processes
     &Generic_Item::reset_states;     # Reset states for all objects that are 'ISA Item' objects
     &Voice_Cmd::check_for_voice_cmd; # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
-    &check_for_keyboard_input;
     &check_for_serial_data if %Serial_Ports;
     &check_for_socket_data if %Socket_Ports;
     &check_for_timer_actions;
@@ -794,24 +806,18 @@ sub check_for_action {
 
     &MainLoop_post_hooks();     # Created by &add_hooks
 
-                                # Keep track of ticks per pass (average per second)
-    my $loop_tickcount3 = (&get_tickcount);
-    $loop_tickcount_wtk  += $loop_tickcount3 - $loop_tickcount1;
-    $loop_tickcount_wotk += $loop_tickcount3 - $loop_tickcount2;
-    $loop_tickcount_passes++;
-    
-    if ($New_Second) {
-        my $loop_tickcount;
-        $loop_tickcount = $loop_tickcount_wtk / $loop_tickcount_passes;
-        $Loop_Speed2 = sprintf("%3d", 1000/$loop_tickcount) if $loop_tickcount;
-        $loop_tickcount = $loop_tickcount_wotk / $loop_tickcount_passes;
-        $Loop_Speed3 = sprintf("%3d", 1000/$loop_tickcount) if $loop_tickcount;
-#       print "db $loop_tickcount2 tc=$loop_tickcount $loop_tickcount_passes $loop_tickcount $Loop_Speed2\n";
-        $loop_tickcount_wtk = $loop_tickcount_wotk = $loop_tickcount_passes = 0;
+                                # Do the tk_setup_cascade_menus AFTER the first eval code, so we can test Tk widget objects
+    if ($MW) {
+        &tk_setup_cascade_menus if $Reload;
+        &tk_setup_geometry      if $Reread;
     }
 
+    $loop_tickcount_total += &get_tickcount - $loop_tickcount1;
 
-#   exit 1 if $number > 6;
+    if ($Reread) {
+        $Startup = 0; $Reload = 0; $Reread = 0;
+    }
+
 }
 
 sub check_for_cm11_data {
@@ -964,7 +970,8 @@ sub check_for_keyboard_input {
         read_code();
     }
     elsif ($key eq 'F2') {
-        print "Key F2 pressed.  Sorry, I don't want to pause!  Pause is not implemented yet :)\n";
+        print "Key F2 pressed.\n";
+        &pause;
     }
     elsif ($key eq 'F3') {
         print "Key F3 pressed.  Exiting\n";
@@ -1032,6 +1039,7 @@ sub check_for_serial_data {
 #   &iButton::monitor if $config_parms{ibutton_port} and if $New_Second;
 }
 
+my ($leave_socket_open_passes, $leave_socket_open_action);
 sub check_for_socket_data {
 
                                 # Time to finish the http GET from 2 passes ago with a list of spoken data
@@ -1722,58 +1730,25 @@ sub object_states_restore {
 sub object_states_save {
     my ($object_type, $var, $expire_time, $state);
 
+    print "Saving object states ...";
     my $restore_state;
                                 # Save states on user specifed Save keys
     for $var (keys %Save) {
         no strict 'refs';
         if ($Save{$var}) {
-            $restore_state .= &object_states_save_check("\$Save{$var} = q~$Save{$var}~;") . "\n";
+            $restore_state .= &object_states_save_check("\$Save{'$var'} = q~$Save{$var}~;") . "\n";
         }
         print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'misc';
     }
                                 # Save states of all objects
-#   for $object_type (qw(File_Item Timer Group Serial_Item X10_Item X10_Appliance X10_Garage_Door Generic_Item Voice_Cmd iButton)) {
     for $object_type (@Object_Types) {
         for $var (keys %{$file_by_object_name{$object_type}}) {
             print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'misc';
-
-            no strict 'refs';
-            my $ref = eval "\\$var";
-            my $restore_var;
-
-            if ($object_type eq 'File_Item') {
-                my $index = $$ref->{index};
-                if ($index) {
-                    $restore_var = $var . "->{index} = $index"; 
-                }
-            }
-            elsif ($object_type eq 'Timer') {
-                $expire_time = $$ref->{expire_time};
-                next if $expire_time and $expire_time < &get_tickcount;
-                if ($expire_time) {
-                    $restore_var  = "set $var " . $$ref->{period} if $$ref->{period};
-                    $restore_var .= ", qq|" . $$ref->{action} . "|" if $$ref->{action};
-                    $restore_var .= ", " . $$ref->{repeat} if $$ref->{repeat};
-                    $restore_var .= ";  ";
-                    $restore_var .= $var . "->{expire_time} = $expire_time;" if $expire_time;
-                }
-            }
-            else {
-                $state = $$ref->{state};
-                $restore_var = &object_states_save_check($var . "->{state} = q~$state~") if $state;
-            }
-
-            $restore_state .= "if (defined $var) {$restore_var} else {'var not used'}\n" if $restore_var;
-
-                                # Save state_log data, if defined
-            if ($$ref->{state_log} and my $state_log = join($;, @{$$ref->{state_log}})) {
-                $state_log =~ s/\n/ /g; # Avoid new-lines on restored vars
-                my $restore_log = '@{' . $var . "->{state_log}} = split(\$;, q~$state_log~)";
-                $restore_state .= "if (defined $var) {$restore_log} else {'var not used'}\n";
-            }
+            my $ref = $objects_by_object_name{$var};
+            my $restore_string =  &object_states_save_check($ref->restore_string) if $ref->can('restore_string');
+            $restore_state .= "if (defined $var) {$restore_string} else {'var not used'}\n" if $restore_string;
         }
     }
-
                                 # Do not write file on startup ($restore_state should be empty)
     if ($restore_state) {
         return unless $restore_state;
@@ -1785,12 +1760,14 @@ sub object_states_save {
         print_log("Object states saved") if $config_parms{debug} eq 'misc';
         print "Save object states:  restore_state=\n$restore_state\n" if $config_parms{debug} eq 'misc';
     }
+    print " done\n";
    
 }
 
 
 sub object_states_save_check {
     my ($save_string) = @_;
+    return unless $save_string;
 
                                 # These are old tests
 #    if ($state =~ /\~/) {
@@ -1871,13 +1848,19 @@ sub password_check {
     }
 }
 
-sub pa_stub {
-    my ($rooms) = @_;
-#   print "Do nothing pa_stub: rooms=$rooms\n";
-}
-
+                                # Toggle pause mode
 sub pause {
-    display "Sorry, not implemented yet";
+    if ($pause_mode) {
+        &print_log('Leaving pause mode');
+        print "Leaving pause mode\n";
+        $pause_mode = 0;
+    }
+    else {
+        &print_log('Entering pause mode');
+        print "Entering pause mode\n";
+        $pause_mode = 1;
+    }
+#   display "Sorry, not implemented yet";
 }
 
 sub play {
@@ -1891,7 +1874,8 @@ sub play {
     }
     $parms{mode} = '' unless $parms{mode};
         
-    &print_speaklog($Save{mode} . ": " . $parms{file}) unless $parms{file} =~ /^sound_/ or $parms{file} =~/^System/;
+#   &print_speaklog($Save{mode} . ": " . $parms{file}) unless $parms{file} =~ /^sound_/ or $parms{file} =~/^System/;
+    &print_speaklog($Save{mode} . ": (" . basename($parms{file}) . ")")  unless $parms{file} =~/^System/;
 
     print "Playing wave file $parms{file}\n" if $config_parms{debug} eq 'misc';
 
@@ -1901,8 +1885,6 @@ sub play {
     $play_parm = 'wait' if !$play_parm and $config_parms{play_mode} eq 'wait';
 
     $parms{time} = 5 unless $parms{time};
-
-    &pa_stub($parms{rooms}, $parms{time});
 
 #   &write_socket("play", "$rooms", $file);
 
@@ -1945,14 +1927,8 @@ sub play {
         }
         print "playing file=$file parm=$play_parm\n" if $config_parms{debug} eq 'misc';
 
-                                # Try playing the sound a few time ... SND_NOSTOP will let the 
-                                # previous sound file finish playing.
-                                # This would be easier if we had a 'is_playing' test
-#       unless(1 == Win32::Sound::Play($file, $play_parm | SND_NOSTOP)) {
-#          print "creating playit_timer for file=$file\n";
-#          my $play_laundary = new Timer;
-#          set $play_laundary 1, "play('file' => '$file')", 4;
-#       }
+        &Play_pre_hooks(%parms);# Created by &add_hooks
+#       system($config_parms{sound_program_prescript}) if $config_parms{sound_program_prescript};
 
         my $i;
         while ($i++ < 3) {
@@ -1961,6 +1937,10 @@ sub play {
             if (!$OS_win) {
                 next if $file =~ /^System/;
                 last unless $config_parms{sound_program};
+                if ($config_parms{sound_program} =~ /vv_tts/i) {	# use vv_tts for play also
+                    speak(play=>"$file", nolog=>1);
+                    last;
+                }
                 print "running: play $file\n";
                 system("$config_parms{sound_program} $file &");
                 last if 0 == $?;
@@ -1970,9 +1950,11 @@ sub play {
             }
             print "Waiting to play sound file, pass $i, file=$file\n";
             sleep 1;
-            &pa_stub($parms{rooms}, $parms{time}); # reset pa time
         }
-#       print "Problem playing $file\n" unless 1 == Win32::Sound::Play($file, $play_parm);
+
+        &Play_post_hooks(%parms); # Created by &add_hooks
+#       system($config_parms{sound_program_postscript}) if $config_parms{sound_program_postscript};
+
     }
 
 }
@@ -2122,7 +2104,7 @@ sub process_serial_data {
                 set_receive $ref $event_data;
             }
                                 # Allow for other processing
-            &serial_stub($ref, $state, $event_data);
+            &Serial_match_hooks($ref, $state, $event_data);   # Created by &add_hooks
         }
     }
 
@@ -2175,7 +2157,8 @@ sub process_serial_data {
 
                                 # Code incoming bright/dim with the same syntax as outgoing:  e.g XA+20   XB-30
                                 #  - this allows matching with house code items: e.g. new X10_Item('A');
-                &process_serial_data('X' . substr($event_data, 1) . $dim_level);
+                $prev_serial_event{$event_type}{time} = 0; # Disable merging with raw data
+                &process_serial_data('X' . substr($event_data, 1, 1) . $dim_level);
                 return 1;
             }
                                 # Check to see if X10 strings got run together (XA1A2 ->  XA1 XA2)
@@ -2211,6 +2194,8 @@ sub process_serial_data {
 
 sub process_x10_chunks {
     my ($event_data, $event_type) = @_;
+    return 0 if $event_data =~ /PRESET_DIM/ or $event_data =~ /STATUS/;
+
     my $length = length($event_data);
     my $pos = 1;
     my $flag_found = 0;
@@ -2218,11 +2203,18 @@ sub process_x10_chunks {
     while ($pos < $length) {
         print "X10 db: try breaking $event_data into 4 and 2 character chunks:\n" if $config_parms{debug} eq 'X10';
                                 # Look for 4 character match
+                                #  - also match raw bright/dim commands (XaBcd is a match if B=L or M)
         if ($event_data_chunk = 'X' . substr($event_data, $pos, 4) and
-            &Serial_Item::serial_items_by_id($event_data_chunk)) {
+            (&Serial_Item::serial_items_by_id($event_data_chunk)) or
+            (substr($event_data, $pos) =~ /^\S[ML]/)) {
             print "  Found match: $event_data_chunk\n" if $config_parms{debug} eq 'X10';
                                 # Process this data one pass at a time (e.g. multi keypad entries)
             push(@serial_data_buffer, $event_data_chunk);
+            $flag_found = 1;
+            $pos += 4;
+        }
+                                # Ignore processed bright/dim commands (Xa+dd)
+        elsif (substr($event_data, $pos) =~ /^\S[\+\-]/) {
             $flag_found = 1;
             $pos += 4;
         }
@@ -2310,21 +2302,7 @@ sub read_code {
     &read_user_code(@files_changed) if @files_changed or $files_deleted;
 #   speak(@files_changed+0 . " files were read.");
 
-    if ($MW) {
-        &tk_setup_cascade_menus;
-#       $Tk_objects{cmd_list}->insert(0, &list_voice_cmds_match('')) if $Startup; # Init with all commands
-#       $Tk_objects{cmd_list}->insert(0, &list_voice_cmds_match('')) if $Startup and $Tk_objects{cmd_list};
-
-                                # Allow geometry resizing on reload, but only if it has changed, 
-                                # so we don't mess up manual changes.
-        if ($config_parms{tk_geometry} and
-            ($Startup or 
-             $config_parms{tk_geometry} ne $config_parms{tk_geometry_startup})) {
-            $MW->geometry($config_parms{tk_geometry});
-            $config_parms{tk_geometry_startup} = $config_parms{tk_geometry};
-        }
-
-    }
+#   &tk_setup_cascade_menus if $MW;
 
 }
 
@@ -2486,6 +2464,7 @@ sub read_user_code {
             }
 
                                 # Find global records
+                                #  - only if has 0 to 3 blanks in front of it
                                 #  - Methods can be of either form:
                                 #     $object -> method (parms)
                                 #     method $object parms
@@ -2497,8 +2476,8 @@ sub read_user_code {
                 $record =~ /^\s*set_icon\s/ or        # set_icon  only needs to be done on code load
                 $record =~ /^\s*set_info\s/ or        # set_info  only needs to be done on code load
                 $record =~ /^\s*set_order\s/ or       # set_order only needs to be done on code load
-                $record =~ /->\s*add[\s\(]/ or
-                $record =~ /^\s*add\s/) {
+                $record =~ /^\s{0,3}\S+\s*->\s*add[\s\(]/ or
+                $record =~ /^\s{0,3}add\s/) {
                 $noloop_statement_flag = 1; # Allow for multi-record statements
             }
 
@@ -2545,7 +2524,8 @@ sub read_user_code {
         ($webname =~ /startup/i) ?  unshift(@Loop_Code, $temp) : push(@Loop_Code, $temp);
     }
     
-    push(@Loop_Code, "\n   \$Startup = 0; \$Reload = 0; \$Reread = 0;\n}");
+    push(@Loop_Code, "\n}");
+#   push(@Loop_Code, "\n   \$Startup = 0; \$Reload = 0; \$Reread = 0;\n}");
     undef $user_code;
 #   $user_code  = "\nuse strict 'subs';\nuse strict 'refs';\nuse strict 'vars';\n";
 
@@ -2622,16 +2602,10 @@ sub sendkeys_find_window {
 }
 
 
-sub serial_stub {
-    my ($ref, $state, $event) = @_;
-#   print "Do nothing serial_stub: state=$state event=$event\n";
-}
-
-
 my ($loop_speed_cnt, $loop_unix_cnt, $prev_time, $prev_sec, $prev_min, $prev_hour, $prev_mday, $prev_month, $prev_year);
 sub set_global_vars {
 
-    # Need to get smart and do this only every second/hour/etc.
+                                # Need to get smart and do this only every second/hour/etc.
     $loop_speed_cnt++;
     $Loop_Count++;
     &Timer::increment_timer_loop; # Needed so we can have 'expired' work multiple times per pass
@@ -2701,7 +2675,9 @@ sub set_global_vars {
         $Month++;
         $Day = (qw(Sun Mon Tue Wed Thu Fri Sat))[$Wday];
         $prev_sec = $Second;
-        $Time_Date = &time_date_stamp(12, $Time);  # 12 for to include date, 13 without date
+
+        
+        $Time_Date = &time_date_stamp($config_parms{time_format_log}, $Time);
 
 
         my ($cpu_used, $memory_used_virtual, $memory_used_real);
@@ -2718,10 +2694,6 @@ sub set_global_vars {
             $memory_used_virtual = $a[22] / 1024000;
             $memory_used_real    = $a[23] * 4 / 1000;
             $loop_unix_cnt = $cnt;
-                                # Since we don't have sub-second gettick, we can not do projected max-loops.
-            $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d",
-                                                        $Loop_Speed);
-
         }
         elsif ($^O eq 'freebsd') {
 #           run 'inline', '/sbin/sysctl -a |grep boottime|cut -f 5 -d " " >/tmp/btime';
@@ -2731,13 +2703,9 @@ sub set_global_vars {
             close BTIME;
         }
         else {
-            if ($Loop_Speed2 and $Loop_Speed2 > 2) {
-                $cpu_used = 100*$Loop_Speed/$Loop_Speed2;
-                $cpu_used = 100 if $cpu_used > 100;
-                
-                $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d/%4d/%4d",
-                                                        $Loop_Speed, $Loop_Speed2, $Loop_Speed3);
-            }
+            $cpu_used = 100*$loop_tickcount_total/1000;
+            $cpu_used = 100 if $cpu_used > 100;
+            $loop_tickcount_total = 0;
         }
 
         $Tk_objects{label_time} = 'Date: ' . &time_date_stamp(14, $Time);
@@ -2755,10 +2723,12 @@ sub set_global_vars {
                                                 &time_diff($Time_Boot_time, (&get_tickcount)/1000, undef, 'numeric'));
         $Tk_objects{label_uptime_mh}  = sprintf("Uptime Program:  %s",
                                                 &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
-        $Tk_objects{label_cpu_used}   = sprintf("Cpu Used: %5.1f%%", $cpu_used);
-        $Tk_objects{label_cpu_used}  .= sprintf("    Memory Used (virtual/real): %4.1f/%4.1f Meg",
-                                                $memory_used_virtual, $memory_used_real) if $memory_used_virtual;
-
+        $Tk_objects{label_cpu_used}    = sprintf("Cpu Used: %5.1f%%", $cpu_used);
+        $Tk_objects{label_cpu_used}   .= sprintf("   Loops/Sec: %4d", $Loop_Speed);
+        $Tk_objects{label_memory_used} = sprintf("Memory Used (virtual/real): %4.1f/%4.1f Meg",
+                                                 $memory_used_virtual, $memory_used_real) if $memory_used_virtual;
+                                # This is grandfathered for old Tk menus
+        $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d", $Loop_Speed);
 
                                 # Note: use eq instead of ==, so 0 does not eq ''
                                 # This could happen if mh were started at midnight (hour=0)
@@ -2937,22 +2907,13 @@ sub serial_port_open {
 #   print "np=@serial_parms\n";
 }
 
+
 sub set_sun_time {
-    my @args = ();
-    push @args, "-time_zone", $config_parms{time_zone} if defined $config_parms{time_zone};
-    push @args, "-latitude",  $config_parms{latitude}  if defined $config_parms{latitude};
-    push @args, "-longitude", $config_parms{longitude} if defined $config_parms{longitude};
-    my $pgm;
-    if ($OS_win) {
-        $pgm = "$Pgm_Path\\sun_time.bat @args";
-    }
-    else {
-        $pgm = "$Pgm_PathU/sun_time @args";
-    }
-    print "sun_time @args: ";
-    my $results = `$pgm`;
-    ($Time_Sunrise, $Time_Sunset) = $results =~ /Sunrise=([\S ]+) +Sunset=([\S ]+)/;
-    print "rise=$Time_Sunrise set=$Time_Sunset\n";
+    my @parms = (latitude  =>  $config_parms{latitude}, longitude => -$config_parms{longitude}, 
+                 time_zone => -$config_parms{time_zone});
+    $Time_Sunrise = time_to_ampm &sun_time(type => 'rise', @parms);
+    $Time_Sunset  = time_to_ampm &sun_time(type => 'set',  @parms);
+    print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
 }
 
 sub set_moon_data {
@@ -2985,11 +2946,13 @@ sub set_moon_data {
     $Moon{last}       = &time_date_stamp(15, $Moon{time_last});
 
     print "The next full moon is on $Moon{full}\n";
-
 }
 
 sub sig_handler {
     $exit_flag = 1;
+}
+sub sig_handler_pipe {
+    print "\nBroken pipe\n";
 }
 
 sub socket_close {
@@ -2997,7 +2960,7 @@ sub socket_close {
     my $sock = $Socket_Ports{$port_name}{socka};
     print "Closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
     unless ($sock) {
-        print "Error, sock undefined for port $port_name\n";
+        print "Error, socket_close sock port undefined for port $port_name\n";
     }
     else {
         close $sock;
@@ -3021,14 +2984,16 @@ sub socket_has_data {
 }
 
 sub speak {
-    my ($rooms, $display_time, $key, $value, $phrase_new,  %parms);
+    my ($rooms, $display_time, $key, $value, $phrase_new,  %parms, $play, $nolog);
 
     my ($phrase) = @_;          # Simple way ... no parms
 
     if (@_ > 1) {               # Fancy way key=value way
         %parms = @_;
         $phrase = $parms{text};
-        print "Error, no text keyword in speak command.  Parms= @_\n" unless $phrase;
+    	$play = $parms{play};
+    	$nolog = $parms{nolog};
+        print "Error, no text keyword in speak command.  Parms= @_\n" unless $phrase or $play;
     }
     $parms{mode} = '' unless $parms{mode};
 
@@ -3046,11 +3011,16 @@ sub speak {
         elsif ($key =~ /display/i) {
             $display_time = $value;
         }
+        elsif ($key =~ /play/i) {
+            $play = $value;
+        }
         else {
             print "Warning, speak control not recognized: key=$key value=$value\n";
         }
         $phrase = $phrase_new;
     }
+    $parms{rooms} = $rooms;     # For passing to pre_hook
+
     $display_time = $parms{display} if $parms{display};
 
     if ($phrase =~ /\.wav$/) {
@@ -3072,8 +3042,13 @@ sub speak {
         close TEXT;
     }
 
-    &print_speaklog($Save{mode} . ": " . $phrase);
-
+    my $speaklog = $Save{mode} . ": ";
+    if (!$nolog) {
+    	$speaklog .= "(" . basename($play) . ") " if $play;		# put sound in () to show the sound played.
+    	$speaklog .= $phrase if $phrase;
+        &print_speaklog($speaklog);
+    }
+    
     $Last_Response = 'speak';
 
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} ne 'unmuted';
@@ -3086,7 +3061,7 @@ sub speak {
         }
     }
 
-    &pa_stub($rooms) if $rooms;
+    &Speak_pre_hooks(%parms);   # Created by &add_hooks
 
                                 # Lowercase all uppercase text ... 
                                 #  if it > 4 characters (don't want to mess up acronyms)
@@ -3096,7 +3071,7 @@ sub speak {
                                 #    anything between ! thru ~
                                 # We do this check in case something (like serial_server)
                                 # goes out of control ... we don't want to hear garbage!
-    if ($phrase !~ /^[\n\r\t !-~]+$/) {
+    if ($phrase !~ /^[\n\r\t !-~]+$/ and !$play) {
         print "Data is unspeakable!  phrase=$phrase\n";
         print_log "Data is unspeakable!  phrase=", substr($phrase, 0, 40), " ...\n";
     }
@@ -3117,6 +3092,8 @@ sub speak {
         $parms{text} = $phrase;
         &Voice_Text::speak_text(%parms);
     }
+
+    &Speak_post_hooks(%parms);   # Created by &add_hooks
 
 }
 
@@ -3248,7 +3225,17 @@ sub tk_setup_windows {
 
 }
 
-#y $memory_prev;
+sub tk_setup_geometry {
+                                # Allow geometry resizing on reload, but only if it has changed, 
+                                # so we don't mess up manual changes.
+    if ($config_parms{tk_geometry} and
+        ($Startup or 
+         $config_parms{tk_geometry} ne $config_parms{tk_geometry_startup})) {
+        print "Setting tk geomotry to $config_parms{tk_geometry}\n";
+        $MW->geometry($config_parms{tk_geometry});
+        $config_parms{tk_geometry_startup} = $config_parms{tk_geometry};
+    }
+}
 
 sub tk_setup_cascade_menus {
 
@@ -3271,6 +3258,7 @@ sub tk_setup_cascade_menus {
                 my $text     = $object->{text};
 
                 next unless $text;  # Only do voice items
+                next if $$object{hidden};
 
                                 # Create category menu ... now that we know it will have entries!
                 unless ($Tk_objects{menu_command_by_cat}{$category}) {
@@ -3331,6 +3319,8 @@ sub tk_setup_cascade_menus {
                                 # Sort by filename first, then object name
             for my $object (sort {$a->{filename} cmp $b->{filename} or $a->{object_name} cmp $b->{object_name}} @objects) {
 
+                next if $$object{hidden};
+
                                 # We must delete old ones first, otherwise we get a memory leak!
                                 #  - this one does not help!  Still leaks about .3 mb per reload with 40 or so items :(
 #               $Tk_objects{menu_items_by_object}{$object}->delete(0, 'end')if $Tk_objects{menu_items_by_object}{$object};
@@ -3356,6 +3346,7 @@ sub tk_setup_cascade_menus {
         for my $group_name (&list_objects_by_type('Group')) {
             my $group = &get_object_by_name($group_name);
             next unless $group;
+            next if $$group{hidden};
             $group_name = &pretty_object_name($group_name);
 
             $Tk_objects{menu_groups_by_group}{$group} = $Tk_objects{menu_groups}->menu->Menu;
@@ -3366,6 +3357,7 @@ sub tk_setup_cascade_menus {
 
                                 # Sort by filename first, then object name
             for my $object (sort {$a->{filename} cmp $b->{filename} or $a->{object_name} cmp $b->{object_name}} list $group) {
+                next if $$object{hidden};
                 if (my $menu = &tk_object_states($object, 'menu_groups')) {
                     $Tk_objects{menu_items_by_object}{$object} = $menu;
                     my $filename = $object->{filename};
@@ -3655,6 +3647,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.28  2000/09/09 21:16:23  winter
+# - 2.28 release
+#
 # Revision 2.27  2000/08/19 00:58:57  winter
 # - 2.27 release.  Lots of small bug fixes.
 #

@@ -126,7 +126,7 @@ sub main::net_ftp {
 
     return unless $server and $user and $password;
 
-    print "Logging into web server $server...\n";
+    print "Logging into web server $server as $user...\n";
 
     my $ftp;
     unless ($ftp = Net::FTP->new($server)) {
@@ -137,6 +137,9 @@ sub main::net_ftp {
         print "Unable to login to $server as $user: $@\n";
         return "failed on login";
     }
+
+    print " - doing a $type $command local=$file remote=$file_remote\n";
+
     unless ($ftp->cwd($dir)) {
         print "Unable to chdir to $dir on ftp server $server: $@\n";
         return "failed on change dir";
@@ -166,31 +169,147 @@ sub main::net_ftp {
         }
     }
     else {
+        print "Bad ftp command: $command\n";
         return "bad ftp command: $command";
     }
 
-    print join("\n", $ftp->dir($file));
+    print join("\n", $ftp->dir($file_remote)) if $command eq 'put';
     $ftp->quit;
-    print "File $file has been uploaded\n";
     return "was successful";
 }
 
-use Net::AIM;
-my $aim = new Net::AIM;
-my $aim_connection;
+my ($aim_connection, $jabber_connection);
+
+
+sub main::net_jabber_signon {
+    return if $jabber_connection;  # Already signed on
+
+    my ($name, $password, $server, $resource, $port) = @_;
+
+    $server   = 'jabber.com' unless $server;
+    $port     = 5222         unless $port;
+    $resource = 'none'       unless $resource;
+
+    print "Logging onto $server:$port with name=$name resource=$resource\n";
+
+    eval 'use Net::Jabber';
+    $jabber_connection = new Net::Jabber::Client;
+    unless ($jabber_connection->Connect(hostname => $server, port => $port)) {
+        print "  - Error:  Jabber server is down or connection was not allowed. jc=$jabber_connection\n";
+        return;
+    }
+
+    $jabber_connection->SetCallBacks(message  => \&jabber::InMessage,
+                                     presence => \&jabber::InPresence,
+                                     iq       => \&jabber::InIQ);
+
+    print "  - Sending username\n";
+    $jabber_connection->Connect();
+    my @result = $jabber_connection->AuthSend(username => $name,
+                                              password => $password,
+                                              resource => $resource);
+    if ($result[0] ne "ok") {
+        print "  - Error: Jabber Authorization failed: $result[0] - $result[1]\n";
+        return;
+    }
+
+# Not sure we need this ... perl2exe mh.exe failed on GetItems Query
+#    print "  - Getting Roster to tell server to send presence info\n";
+#    $jabber_connection->RosterGet();
+
+    print "  - Sending presence to tell world that we are logged in\n";
+    $jabber_connection->PresenceSend();
+    
+    &main::MainLoop_post_add_hook( \&jabber::process, 1 );
+
+}
+
+sub jabber::process {
+    return unless $main::New_Second;
+    unless (defined $jabber_connection->Process(0)) {
+        print "\nJabber connection died\n";
+        undef $jabber_connection;
+        &main::MainLoop_post_drop_hook( \&jabber::process, 1 );
+    }
+}
+
+sub jabber::InMessage {
+    my $message  = new Net::Jabber::Message(@_);
+#   my $type     = $message->GetType();
+    my $from     = $message->GetFrom();
+#   my $to       = $message->GetTo();
+    my $resource = $message->GetResource();
+#   my $subject  = $message->GetSubject();
+    my $body     = $message->GetBody();
+    &main::display("$main::Time_Date $from ($resource)\nMessage:  " . $body, 0, "Jabber Message from $from", 'fixed');
+}
+
+
+sub jabber::InIQ {
+    my $iq    = new Net::Jabber::IQ(@_);
+    my $from  = $iq->GetFrom();
+    my $type  = $iq->GetType();
+    my $query = $iq->GetQuery();
+    my $xmlns = $query->GetXMLNS();
+    &main::display("$main::Time_Date $from\nIQ $query:  " . $xmlns, 0, "Jabber IQ from $from", 'fixed');
+}
+
+sub jabber::InPresence {
+    my $presence = new Net::Jabber::Presence(@_);
+    my $from     = $presence->GetFrom();
+    my $type     = $presence->GetType();
+    my $status   = $presence->GetStatus();
+    &main::display("$main::Time_Date $from\nPresence:  " . $status, 0, "Jabber Presence from $from", 'fixed');
+#   print $presence->GetXML(),"\n";
+}
+
+sub main::net_jabber_send {
+    my %parms = @_;
+
+    my ($from, $password, $to, $text, $file);
+
+    $from     = $parms{from};
+    $password = $parms{password};
+    $to       = $parms{to};
+
+    $from     = $main::config_parms{net_jabber_name}      unless $from;
+    $password = $main::config_parms{net_jabber_password}  unless $password;
+    $to       = $main::config_parms{net_jabber_name_send} unless $to;
+
+    unless ($from and $password and $to) {
+        print "\nError, net_jabber_send called with a missing argument:  from=$from to=$to password=$password\n";
+        return;
+    }
+                                # This will take a few seconds to connect the first time
+    &main::net_jabber_signon($from, $password);
+    return unless $jabber_connection;
+
+    print "Sending jabber message to $to\n";
+
+    $text  = $parms{text};
+    $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
+
+    $jabber_connection -> MessageSend(to   => $to, body => $text);
+    $jabber_connection -> Process(0);
+
+}
+
 
 sub main::net_im_signon {
     my ($name, $password) = @_;
     return if $aim_connection;  # Already signed on
 
-    print "Logging onto AIM with name=$name\n";
-    $aim_connection = $aim->newconn(Screenname => $name, Password   => $password);
+    print "Logging onto AIM with name=$name ... ";
 
-    print "Error, can not connect to AIM" unless $aim_connection;
-    print "aim=$aim ac=$aim_connection";
+    eval 'use Net::AIM';
+    my $aim = new Net::AIM;
 
-    $aim->do_one_loop() if $aim; # This will do the sign on
-    print " ... logged on\n";
+    unless ($aim_connection = $aim->newconn(Screenname => $name, Password   => $password)) {
+        print "Error, can not create AIM connection object\n";
+    }
+                                # Logon occurs here
+                                # Not sure how to test for successful logon
+    $aim->do_one_loop();
 }
 
 
@@ -207,9 +326,15 @@ sub main::net_im_send {
     $password = $main::config_parms{net_aim_password}  unless $password;
     $to       = $main::config_parms{net_aim_name_send} unless $to;
 
+    unless ($from and $password and $to) {
+        print "\nError, net_im_send called with a missing argument:  from=$from to=$to password=$password\n";
+        return;
+    }
+                                # This will take a few seconds to connect the first time
     &main::net_im_signon($from, $password);
+    return unless $aim_connection;
 
-    print "Sending im message to $to ";
+    print "Sending aim message to $to ";
 
     $text  = $parms{text};
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
@@ -489,6 +614,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.21  2000/09/09 21:19:11  winter
+# - 2.28 release
+#
 # Revision 1.20  2000/08/19 01:25:08  winter
 # - 2.27 release
 #

@@ -176,8 +176,8 @@ eof
         print $socket &html_page("", $html, $style);
         $time_check2 = time - $time_check2;
         if ($time_check2 > 2) {
-            my $msg = "$Time_Date: http_server write time exceeded: time=$time_check2, req=$get_req,$get_arg";
-            print "\n$msg";
+            my $msg = "http_server write time exceeded: time=$time_check2, req=$get_req,$get_arg";
+            print "\n$Time_Date: $msg";
             &print_log($msg);
         }
     }        
@@ -325,8 +325,8 @@ eof
 
     $time_check = time - $time_check;
     if ($time_check > 2) {
-        my $msg = "$Time_Date: http_server time exceeded: time=$time_check, header=$header";
-        print "\n$msg\n";
+        my $msg = "http_server time exceeded: time=$time_check, header=$header";
+        print "\n$Time_Date: $msg\n";
         &print_log($msg);
 #       &speak("web sleep of $time_check seconds");
     }
@@ -945,7 +945,11 @@ sub html_list {
     if ($webname_or_object_type =~ /^group=(\S+)/) {
         $h_list .= "<!-- html_list group = $webname_or_object_type -->\n";
         my $object = &get_object_by_name($1);
-        my @table_items = map{&html_item_state($_, $webname_or_object_type)} list $object;
+        my @objects = list $object;
+                                # Ignore objects marked as hidden
+        @objects = grep !$$_{hidden}, list $object;
+
+        my @table_items = map{&html_item_state($_, $webname_or_object_type)} @objects;
         $h_list .= &table_it($config_parms{html_table_size}, 0, 0, @table_items);
         return $h_list;
     }
@@ -956,6 +960,10 @@ sub html_list {
             if $auto_refresh and $main::config_parms{html_refresh_rate};
         $h_list .= "<!-- html_list list_objects_by_type = $webname_or_object_type -->\n";
         my @objects = map{&get_object_by_name($_)} @object_list;
+
+                                # Ignore objects marked as hidden
+        @objects = grep !$$_{hidden}, @objects;
+
         my @table_items = map{&html_item_state($_, $webname_or_object_type)} @objects;
         $h_list .= &table_it($main::config_parms{html_table_size}, 0, 0, @table_items);
         return $h_list;
@@ -1020,6 +1028,8 @@ sub html_command_table {
         my $filename    = $object->{filename};
         my $text        = $object->{text};
         next unless $text;      # Only do voice items
+        next if $$object{hidden};
+
         $list_count++;
 
                                 # Find the states and create the test label
@@ -1521,6 +1531,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.44  2000/09/09 21:19:11  winter
+# - 2.28 release
+#
 # Revision 1.43  2000/08/19 01:25:08  winter
 # - 2.27 release
 #

@@ -52,7 +52,7 @@ if (done_now $p_top10_list) {
                                 # Delete data past the last line: 1. xxxxx\n
     $text =~ s/(.+\n *1\..+?)\n.+/$1\n/s;
                                 # Add a period at the end of line, if needed
-#   $text =~ s/([^\.\?\!])\n/$1\.\n/g;
+    $text =~ s/([^\.\?\!])\n/$1\.\n/g;
 
     file_write($f_top10_list, $text);
 

@@ -106,13 +106,15 @@ if (my $data = said $speak_server) {
 
     stop $speak_server;     # Tell the client we got the message
 
-    if ($config_parms{internet_speak_flag} eq 'none') {
-        print_log $msg;
-    }
-    elsif ($msg and length $msg < 400) {
+    $msg = substr $msg, 0, 200;
+    if ($config_parms{internet_speak_flag} eq 'all' or
+        $config_parms{internet_speak_flag} eq 'some' and $data =~ /^GET /) {
         speak $msg;
     }
-
+    elsif ($msg and length $msg < 400) {
+        print_log $msg unless $msg =~ /^sound_/;
+    }
+    
 }
 
 

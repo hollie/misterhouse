@@ -6,9 +6,96 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
-=head2 Version 2.24 posted on 08/06/00
+=head2 Version 2.28 posted on 09/09/00
 
-Version 2.24 was just uploaded to:
+Version 2.28 was just uploaded to:
+
+  http://misterhouse.sourceforge.net
+  http://misterhouse.net/download
+
+B<New Features:>
+
+- Added hidden method to most objects.  If you set to 1 (e.g. $item1->hidden(1) ), then
+the object will not show up on Tk or web menus.
+
+- David Norwood added support for Applied Digital CPU-XA/Ocelot interfaces via 
+the cpuxad daemon server from Mark Day's xalib package (unix only).
+xalib is available from David at judapeno@gte.net .
+Enable with the new ncpuxa_port mh.ini parm.
+
+- Brad Reed has coded a ViaVoiceTTS.pm module that calls the IBM's ViaVoice TTS engine directly from perl.  
+David Lounsberry worked with Brad to add hooks into mh using mh/bin/vv_tts.pl.
+Since this is a more direct/flexible interface than what we had with David's vvo_speak server,
+David decided to take out mh support for vvo_speak.
+To install Brad's module, follow his instructions at http://sammy.reednet.org/~breed/ViaVoiceTTS
+then set the mh.ini voice_text parm to vv_tts
+
+- Added Serial_match, Play_pre, Play_post, Speak_pre, and Speak_post code hooks, like the Mainloop hooks 
+we added a few months ago.  These give us more flexibility than the &serial_stub and &pa_stub subroutines
+that were in mh, so those have been removed.  If you were using one of those stub subroutines, 
+add these lines to your code (see mh/code/bruce/pa_control.pl for an example):
+
+  &Serial_match_add_hook(\&serial_stub) if $Reload;
+  &Speak_pre_add_hook(\&pa_stub)        if $Reload;
+  &Play_pre_add_hook (\&pa_stub)        if $Reload;
+
+- Added &net_jabber_send, like the &net_im_send function we have for sending messages to AIM clients.
+Jabber is a new, open, XML based protocol for instant messaging.  You can get free IDs and client for various
+platforms at http://jabbercentral.com or http://www.jabber.com .  We can also code mh events to respond
+to incoming Jabber messages.  Currently, it will simply pop up a tk display window.
+
+- Allow Process_Item to run multiple commands in series.  This way we can build simple batch/shell type 
+scripts within mh, and run them as a detached, monitored process.  
+See mh/code/examples/test_process.pl for an example.
+
+- Allow Process_Item to run internal mh subroutines.  If the command passed to Process_Item starts with
+a & (e.g. &main::net_ftp), then the command is run with eval, rather than an external system command.
+This allows us to call long running internal mh functions
+with a Process_Item fork, so we can avoid mh pauses.  This currently only works on unix systems.
+In theory it will also work with Win32 perl 5.6+, but on my box, perl abended when I tried it :(
+
+- Added mh/bin/net_ftp, with the same options as the mh &net_ftp function.  This
+allows us the option of doing ftp commands with separate processes, so mh does not pause.
+See mh/code/examples/test_ftp.pl and/or mh/docs/mh.html for an example.
+
+- Bill Sobel had the great idea of moving the code that saves states from mh into the various object models,
+so now we can customize the various objects to save whatever data should be persistent between
+mh restart/reloads, using a &restore_string object method.
+
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Cullen Simpson found a 2.27 problem with X10 bright/dim decoding.
+
+- Bill Sobel found a problem with decoding incoming PRESET_DIM commands.
+
+- Ron Wright found yet another mis-decoding of bright/dim commands that would sometimes trigger the wrong events.
+
+- Justin Matlock inspired the addition of &serial_match_log to mh_control.pl.
+This will do a &print_log the object names that match incoming serial (e.g. X10) data.  
+
+- Switched to the Cpan Astro/SunTime.pm module, to avoid the problems some people were having calling sun_time.
+
+- Fixed a problem with ViaVoice recognition after a code reload.
+
+- Add mh.ini parm time_format_log, so you can choose the time_date format for the speak and print logs.
+Any &time_date_stamp function format is valid.  Set to 16 to get date hh:mm:ss am/pm (e.g. 04/14/97  2:28:00 PM).
+(see mh.html for other format examples).
+
+- Implemented the pause function (F2 from the tk or dos console).
+
+- Added a small delay in &read_counter funcion of ibutton device.pm.
+
+- Used an older compiler so mh.exe works on more boxes.
+
+- Added $Loop_Speed to Tk Cpu Used widget.  Moved memory used (unix only) to $Tk_objects{label_memory_used}.
+
+
+
+
+=head2 Version 2.27 posted on 08/18/00
+
+Version 2.27 was just uploaded to:
 
   http://misterhouse.sourceforge.net
   http://misterhouse.net/download
@@ -17,7 +104,6 @@ B<New Features:>
 
 - Mark Lamourine set up a SPECs file so I can create a tar and rpm file from our beloved zip file.
 The rpm file installs to the docs to /usr/doc/misterhouse-#.##.  and everything else to /usr/local/mh.
-
 
 - Created mh/code/bruce/monitor_router.pl.  This monitors incoming and outgoing 
 traffic on NetGear RT311 and RT314 routers.  The RT311 is a really nifty 
@@ -70,6 +156,114 @@ Note you can also enter direct X10 commands directly in the Tk Command/search fi
 - Fixed a minor get_tv_grid error with vcr links on shows that cont. between grids.
 
 - Fixed a bug that disabled simultaneous X10 Group action with a CM11.
+
+
+
+=head2 Version 2.24 posted on 08/06/00
+
+Version 2.24 was just uploaded to:
+
+  http://misterhouse.net/download
+  http://misterhouse.sourceforge.net
+
+B<New Features:>
+
+- Added a &dir_index html function, so we can now get 
+sortable file name type, date, and size listings of selected directories.  
+Enable it by creating a index.shtml file that calls &dir_index.
+Try http://localhost:8080/graphics (mh/web/graphics/index.shtml) as an example,
+or look for &dir_index in mh.html.
+
+- Enabled showing of gif and jpg files with the display function 
+(e.g. display /pictures/pic1.gif).
+Unfortunately, it looks like both perl 522 and 616 leak memory with each picture displayed.
+If you are using the uncompiled version of
+mh and want to display jpg files, you will need to run:
+
+   windows: ppm install Tk-JPEG 
+   unix:    perl -MCPAN -e 'install Tk::JPEG'
+
+
+- Made many small changes to allow us to the option of running with the 
+perl Diagnostics module (enables the 'perl -w' option).
+This enables a ton of warning messages that often point out potential coding errors.
+To enable, set the mh.ini parm diagnostics (or w) to 1, or just run: mh -w 1
+This takes about 1 meg more of memory and causes mh to run about 10% slower, but the messages it displays
+often point to valid problems.
+
+- Improved processing of errors that do not show up on reload (i.e. only triggered 
+by an event). The first time this happens, a console/tk message
+will be displayed, and a message spoken.  Since these errors might happen on sequential passes of mh, subsequent errors 
+are only listed in the console window.  If more than 10 occur, another window is displayed,
+and the code member there error was in is disabled.
+
+- Improved messages when you load user code with perl errors.
+It should now point to the correct line number of the error, 
+including those nasty 'global symbol' errors.
+
+The only exception I have seen is if you have too few/many {} around code.
+In these cases, if you can not find the file with the error, 
+you can try a new option: mh -error_by_file 1 .
+This will try loading one file at a time until the error is found, but
+it runs pretty slow and may not work with members that have # noloop directives.
+
+- New untie_items and untie_event methods.
+All the tie/untie methods now allow for on-the-fly calls, 
+instead of being set just on code reload.  If you do use these conditionally,
+make sure you also call the methods on $Reload, as the tie states
+are not saved between reloads.
+
+- Reworked how mh processes the merging/breaking of X10 strings to provide consistent 
+monitoring of longer X10 strings that might be broken up by the receiver (e.g. DSC Alarm panel).
+
+- Created mh/bin/get_ceiva and mh/code/bruce/ceiva.pl.  
+This code will download and display new pictures that are deposited in 
+electronic picture frame folders at http://www.ceiva.com .  
+As various relatives deposit pictures there for my Dad's picture frame,
+we get the new pictures also!  get_ceiva is an example of how
+perl can log onto a site that uses cookies for user/password security.
+
+- Brian Paulsen wrote a Slinke.pm module to send/receive IR data from
+the Nirva Slink-e interface.   His examples are in mh/code/public/slinke*,
+but it has not been integrated into mh yet.
+
+- Bill Sobel made some changes/additions  to mh/lib members 
+Compool.pl, DSC_Alarm.pm, Stargate485.pm, Xantech.pm, and read_table_A.pl.
+The Xantech code is the initial pass at controlling the Xantech preamp.
+The Stargate485 is his first pass at interfacing with the stargate
+(and the stargatelcd keypads) via the 485 interface. 
+
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Ron Wright spotted an recent error with the VCR start/stop times in get_tv_grid html.
+
+- Brian Paulsen's sent in a fix to avoid repeating voice commands when using Viavoice.
+
+- Bradford Reed helped fix an error with group commands on CM17 controlled X10 items.
+
+- Bill Sobel sent in a patch that allows for auto-loading of new or user-defined mh/lib modules
+(e.g. Compool.pm).  These new object types will also show up in the tk and web menues.
+
+- Fixed the on.gif blinking status icon so it will also blink in Netscape.
+
+- Fixed the html_info= tag in mh.ini (html popups accidently got disabled in 2.22)
+
+- Added mh.ini x10_errata parm, so you can turn up/down the print_log errata on X10 data.
+
+- Allow for muli-line mh.ini parms (see mh/bin/mh.ini favorite_tv_shows for an example)
+
+- Added mh/code/examples/generic_item.pl
+
+- Added a -quiet option to get_email and get_tv_info, so you can avoid mh console clutter.
+
+- Added browser function.  This simply calls the browser defined by mh.ini browser parm on the specified
+url or file.
+
+- Moved Tk* widgets from various mh/test/code files into tk_widgets.pl, for easier ordering.
+
+- Dropped the B prefix on incoming bright/dim decoding and added bright/dim states to house X10_Items.
+This allows us to monitor bright/dim commands easier.
 
 
 

@@ -2,7 +2,7 @@ use strict;
 
 package Socket_Item;
 
-@Serial_Item::ISA = ('Generic_Item');
+@Socket_Item::ISA = ('Generic_Item');
 
 my (%socket_item_by_id);
 
@@ -187,6 +187,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.15  2000/09/09 21:19:11  winter
+# - 2.28 release
+#
 # Revision 1.14  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

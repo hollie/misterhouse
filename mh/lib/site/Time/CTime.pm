@@ -4,6 +4,7 @@ package Time::CTime;
 require 5.000;
 
 use Time::Timezone;
+use Time::CTime;
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(ctime asctime strftime);
@@ -15,7 +16,7 @@ use strict;
 use vars qw(@DoW @DayOfWeek @MoY @MonthOfYear %strftime_conversion $VERSION);
 use vars qw($template $sec $min $hour $mday $mon $year $wday $yday $isdst);
 
-$VERSION = 98.06_09_02;
+$VERSION = 99.06_22_01;
 
 CONFIG: {
     @DoW = 	   qw(Sun Mon Tue Wed Thu Fri Sat);
@@ -34,6 +35,8 @@ CONFIG: {
 	'd',	sub { sprintf("%02d", $mday); },
 	'D',	sub { sprintf("%02d/%02d/%02d", $mon+1, $mday, $year%100) },
 	'e',	sub { sprintf("%2d", $mday); },
+	'f',	sub { fracprintf ("%3.3f", $sec); },
+	'F',	sub { fracprintf ("%6.6f", $sec); },
 	'h',	sub { $MoY[$mon] },
 	'H',	sub { sprintf("%02d", $hour) },
 	'I',	sub { sprintf("%02d", $hour % 12 || 12) },
@@ -53,8 +56,8 @@ CONFIG: {
 	'U',	sub { wkyr(0, $wday, $yday) },
 	'w',	sub { $wday },
 	'W',	sub { wkyr(1, $wday, $yday) },
-	'y',	sub { $year%100 },
-	'Y',	sub { $year%100 + ( $year%100<70 ? 2000 : 1900) },
+	'y',	sub { sprintf("%02d",$year%100) },
+	'Y',	sub { $year + 1900 },
 	'x',	sub { sprintf("%02d/%02d/%02d", $mon + 1, $mday, $year%100) },
 	'X',	sub { sprintf("%02d:%02d:%02d", $hour, $min, $sec) },
 	'Z',	sub { &tz2zone(undef,undef,$isdst) }
@@ -63,10 +66,17 @@ CONFIG: {
 
 }
 
+sub fracprintf {
+    my($t,$s) = @_;
+    my($p) = sprintf($t, $s-int($s));
+    $p=~s/^0+//;
+    $p;
+}
+
 sub asctime_n {
     my($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst, $TZname) = @_;
     ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst, $TZname) = localtime($sec) unless defined $min;
-    $year += ($year < 70) ? 2000 : 1900;
+    $year += 1900;
     $TZname .= ' ' 
 	if $TZname;
     sprintf("%s %s %2d %2d:%02d:%02d %s%4d",
@@ -105,7 +115,7 @@ sub strftime {
     local ($template, $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = @_;
 
     undef $@;
-    $template =~ s/%([%aAbBcdDehHIjklmMnopQrRStTUwWxXyYZ])/&{$Time::CTime::strftime_conversion{$1}}()/egs;
+    $template =~ s/%([%aAbBcdDefFhHIjklmMnopQrRStTUwWxXyYZ])/&{$Time::CTime::strftime_conversion{$1}}()/egs;
     die $@ if $@;
     return $template;
 }
@@ -133,9 +143,11 @@ Time::CTime -- format times ala POSIX asctime
 	%b	month abbr
 	%B 	month
 	%c 	ctime format: Sat Nov 19 21:05:57 1994
-	%d 	numeric day of the month
-	%e 	DD
+	%d 	DD
 	%D 	MM/DD/YY
+	%e 	numeric day of the month
+	%f 	floating point seconds (milliseconds): .314
+	%F 	floating point seconds (microseconds): .314159
 	%h 	month abbr
 	%H 	hour, 24 hour clock, leading 0's)
 	%I 	hour, 12 hour clock, leading 0's)
@@ -177,5 +189,9 @@ libraries.
 
 Written by David Muir Sharnoff <muir@idiom.com>.
 
-Tthe starting point for this package was a posting by 
+The starting point for this package was a posting by 
 Paul Foley <paul@ascent.com> 
+
+Copyright (C) 1996-1999 David Muir Sharnoff.  All Rights Reserved.
+Use and redistribution allowed at user's own risk.
+

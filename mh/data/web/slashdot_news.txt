@@ -1,30 +1,30 @@
-Title: Old Atari Design Docs Online
-2000-08-18 08:44:25 by Hemos  in dept: what-the-hell  (games   50)
+Title: Vinton Cerf Says Carnivore Source Best Left Closed
+2000-09-09 06:04:02 by timothy  in dept: he-that-is-so-wise-in-the-ways-of-science  (censorship   120)
 
-Title: Armed Robot Guards - Sorta
-2000-08-18 04:33:14 by Hemos  in dept: put-your-heads-in-the-air  (tech   213)
+Title: Trailer for First Person Shooter Documentary
+2000-09-09 02:25:30 by Hemos  in dept: behind-the-curtains-with-quake  (games   103)
 
-Title: Groening Says The Simpsons Movie Planned
-2000-08-17 23:45:17 by Hemos  in dept: ralph-jesus-does-not-have-wheels  (movies   191)
+Title: Hackers And Mysticism?
+2000-09-08 23:16:06 by Cliff  in dept: what-do-you-believe-in  (slashdot   680)
 
-Title: NASA To Build Laser Space Broom For ISS
-2000-08-17 22:25:20 by Hemos  in dept: fun-with-accelerated-light  (space   175)
+Title: Company Uses Grain Elevators for Internet Access
+2000-09-08 22:24:32 by Hemos  in dept: broadcasting-to-the-midwest  (internet   200)
 
-Title: Transmeta Files For IPO
-2000-08-17 21:30:19 by Hemos  in dept: it-was-inevitable  (transmeta   142)
+Title: RealNetworks Settles Lawsuit With Streambox
+2000-09-08 20:07:52 by timothy  in dept: just-double-rot13-everything-then-sue-"violators"  (news   214)
 
-Title: On Microsoft Porting to Linux/Unix
-2000-08-17 21:23:08 by Hemos  in dept: the-left-hand-knows-not-what-the-right-hand-does  (microsoft   363)
+Title: Destroying The Myth Of The Web-Safe Palette
+2000-09-08 18:44:02 by timothy  in dept: illusions-of-childhood  (graphics   316)
 
-Title: Star Wars Episode 2 Title Leaked
-2000-08-17 20:17:41 by Hemos  in dept: but-what-i-wanted-to-go-to-tashi-station!  (starwars   253)
+Title: Nokia Media Terminal
+2000-09-08 16:30:44 by Hemos  in dept: pretty-GOOD  (hardware   116)
 
-Title: IBM Open Sourcing AFS
-2000-08-17 19:35:41 by Hemos  in dept: opening-it-to-the-world  (ibm   147)
+Title: MP3 Player Released For Handspring Visor
+2000-09-08 15:22:09 by Hemos  in dept: maybe-i-need-to-switch  (pilot   177)
 
-Title: Ask The DeCSS Legal Team
-2000-08-17 18:37:39 by michael  in dept: pro-bono  (news   284)
+Title: MontaVista Rolls Out Fully Preemptable Linux
+2000-09-08 14:14:19 by Hemos  in dept: expanding-the-realm  (linux   261)
 
-Title: DVD/DeCSS: MPAA Wins In New York
-2000-08-17 18:26:30 by michael  in dept: good-guys-finish-last  (doj   653)
+Title: Riding The Space Elevator
+2000-09-08 13:30:16 by Hemos  in dept: where's-willy-wonka  (space   400)
 

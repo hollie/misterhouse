@@ -5,26 +5,63 @@ package Process_Item;
 my (@active_processes, @done_processes);
 
 sub new {
-    my ($class, $cmd) = @_;
+    my ($class, @cmds) = @_;
     my $self = {};
-    &set($self, $cmd) if $cmd;  # Optional.  Can be specified later with set.
+    &set($self, @cmds) if @cmds;  # Optional.  Can be specified later with set.
     bless $self, $class;
     return $self;
 }
 
+                                # Allow for multiple, serially executed, commands
 sub set {
-    my ($self, $cmd) = @_;
-
-    my($cmd_path, $cmd_args) = &main::find_pgm_path($cmd); # From handy functions
-
-    $$self{cmd} = "$cmd_path $cmd_args";
-    $$self{cmd_path} = $cmd_path;
-    $$self{cmd_args} = $cmd_args;
+    my ($self, @cmds) = @_;
+    @{$$self{cmds}} = @cmds;
 }
 
+sub add {
+    my ($self, @cmds) = @_;
+    push @{$$self{cmds}}, @cmds;
+    print "\ndb add @cmds=@cmds.  total=@{$$self{cmds}}\n";
+}
+
+                                # This is called by mh on exit to save persistant data
+sub restore_string {
+    return;
+}
+
+
 sub start {
-    my ($self, $run_mode) = @_;
-    my $cmd = $$self{cmd};
+    my ($self) = @_;
+    $$self{cmd_index} = 0;
+    &start_next($self);
+    print "\ndb start total=@{$$self{cmds}}\n";
+}
+
+sub start_next {
+    my ($self) = @_;
+
+    my ($cmd) = @{$$self{cmds}}[$$self{cmd_index}];
+    $$self{cmd_index}++;
+
+                                # If $cmd starts with &, assume it is an internal function
+                                # that requires an eval.  perl abends fails with the new win32 fork :(
+    my $type = (substr($cmd, 0, 1) eq '&') ? 'eval' : 'external';
+
+    my ($cmd_path, $cmd_args);
+
+    if ($type eq 'eval') {
+        if ($main::OS_win and ($ENV{sourceExe} or &Win32::BuildNumber() < 600)) {
+            my $msg = "Sorry, Process_Item eval fork only supported with windows perl build 5.6 or later.\n   cmd=$cmd";
+            print "$msg\n";
+            &main::print_log($msg);
+            return;
+        }
+    }
+    else {
+        ($cmd_path, $cmd_args) = &main::find_pgm_path($cmd); # From handy_utilities
+        $cmd = "$cmd_path $cmd_args";
+    }
+
     my ($cflag, $pid);
                                 # Check to see if we have a previous 'start' to this object
                                 # has not finished yet.
@@ -33,7 +70,7 @@ sub start {
         print "  The process will not be restarted:  cmd=$cmd\n";
         return;
     }
-    if ($main::OS_win) {
+    if ($main::OS_win and $type ne 'eval') {
                                 # A blank cflag will result in stdout to mh window. 
                                 # Also, this runs beter, without as much problem with 'out ov env space' problems.
                                 # Also, with DETACH, console window is generated and it does not close, so 'done' does not work.
@@ -48,27 +85,34 @@ sub start {
 #       $cflag = DETACHED_PROCESS;
 #       $cflag = NORMAL_PRIORITY_CLASS;
 
-        print "Process start: pid=$pid cmd_path=$$self{cmd_path} cmd=$cmd\n" if $main::config_parms{debug};
+        print "Process start: cmd_path=$cmd_path cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
 
-        &Win32::Process::Create($pid, $$self{cmd_path}, $cmd, 0, $cflag , '.') or
-            print "Warning, start Process error: cmd_path=$$self{cmd_path}\n -  cmd=$cmd   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
+        &Win32::Process::Create($pid, $cmd_path, $cmd, 0, $cflag , '.') or
+            print "Warning, start Process error: cmd_path=$cmd_path\n -  cmd=$cmd   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
 
         $$self{pid} = $pid;
-        $pid->Wait(10000) if $run_mode eq 'inline'; # Wait for process
+#       $pid->Wait(10000) if $run_mode eq 'inline'; # Wait for process
     }
     else {
         $pid = fork;
         if ($pid) {
-            print "Process done: parent pid=$pid cmd=$cmd\n" if $main::config_parms{debug};
+            print "Process start: parent pid=$pid type=$type cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
             $$self{pid} = $pid;
         }
         elsif (defined $pid) {
-            print "Process start: cmd=$cmd\n" if $main::config_parms{debug};
-            exec "$$self{cmd_path} $$self{cmd_args}";
-            die "Error in start Process exec for cmd=$$self{cmd}\n";
+            print "Process start: child type=$type cmd=$cmd\n" if $main::config_parms{debug} eq 'process';
+            if ($type eq 'eval') {
+                eval $cmd;
+                print "Process Eval results: $@\n";
+                exit;
+            }
+            else {
+                exec "$cmd_path $cmd_args";
+                die "Error in start Process exec for cmd=$cmd\n";
+            }
         }
         else {
-            print "Error in start Process fork for cmd=$$self{cmd}\n";
+            print "Error in start Process fork for cmd=$cmd\n";
         }
     }
     push(@active_processes, $self);
@@ -99,11 +143,20 @@ sub harvest {
         next unless $pid;       # In case somehow we already harvested his pid
         if (($main::OS_win and $pid->Wait(0)) or 
             (!$main::OS_win and waitpid($pid, 1))) {
-            push(@done_processes, $process);
-            $$process{done_now}++;
-            $$process{done} = time;
-            delete $$process{pid};
-            print "Process done_now process=$process pid=$pid cmd=$$process{cmd}\n" if $main::config_parms{debug};
+
+                                # Mark as done or start the next cmd?
+            if ($$process{cmd_index} < @{$$process{cmds}}) {
+                print "Process starting next cmd process=$process pid=$pid index=$$process{cmd_index}\n";
+                delete $$process{pid};
+                &start_next($process);
+            }
+            else {
+                push(@done_processes, $process);
+                $$process{done_now}++;
+                $$process{done} = time;
+                delete $$process{pid};
+                print "Process done_now process=$process pid=$pid cmd=@{$$process{cmds}}\n" if $main::config_parms{debug} eq 'process';
+            }
         }
         else {
             push(@active_processes2, $process);
@@ -121,7 +174,7 @@ sub stop {
         my $pid = $$process{pid};
         next unless $pid;
         delete $$process{pid};
-        print "\nKilling unfinished process id $pid for $process cmd $$process{cmd}\n";
+        print "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n";
         if ($main::OS_win) {
 #           $pid->Suspend() or print "Warning 1, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
 #           $pid->Resume() or print "Warning 1a, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
@@ -142,6 +195,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.11  2000/09/09 21:19:11  winter
+# - 2.28 release
+#
 # Revision 1.10  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

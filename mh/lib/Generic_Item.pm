@@ -27,6 +27,33 @@ sub get_changed_by {
     return $_[0]->{changed_by};
 }
 
+                                # This is called by mh on exit to save persistant data
+sub restore_string {
+    my ($self) = @_;
+
+    my $state       = $self->{state};
+    my $restore_string = $self->{object_name} . "->{state} = q~$state~;\n" if $state;
+
+    if ($self->{state_log} and my $state_log = join($;, @{$self->{state_log}})) {
+        $state_log =~ s/\n/ /g; # Avoid new-lines on restored vars
+        $restore_string .= '@{' . $self->{object_name} . "->{state_log}} = split(\$;, q~$state_log~);";
+    }
+
+    return $restore_string;
+}
+
+sub hidden {
+    return unless $main::Reload;
+    my ($self, $flag) = @_;
+                                # Set it
+    if (defined $flag) {
+        $self->{hidden} = $flag;
+    }
+    else {                      # Return it, but this currently only will work on $Reload.
+        return $self->{hidden};
+    }
+}
+
 sub state {
     return $_[0]->{state};
 #   my $state = $_[0]->{state}
@@ -49,13 +76,25 @@ sub state_log {
 sub set_icon {
     return unless $main::Reload;
     my ($self, $icon) = @_;
-    $self->{icon} = $icon;
+                                # Set it
+    if (defined $icon) {
+        $self->{icon} = $icon;
+    }
+    else {                      # Return it
+        return $self->{icon};
+    }
 }
 
 sub set_info {
     return unless $main::Reload;
     my ($self, $text) = @_;
-    $self->{info} = $text;
+                                # Set it
+    if (defined $text) {
+        $self->{info} = $text;
+    }
+    else {                      # Return it
+        return $self->{info};
+    }
 }
 
 sub set_states_for_next_pass {
@@ -144,6 +183,9 @@ sub untie_event {
 
 #
 # $Log$
+# Revision 1.8  2000/09/09 21:19:11  winter
+# - 2.28 release
+#
 # Revision 1.7  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

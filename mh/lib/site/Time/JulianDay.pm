@@ -17,9 +17,9 @@ use strict;
 use integer;
 
 # constants
-use vars qw($brit_jd $jd_1970_1_1 $VERSION);
+use vars qw($brit_jd $jd_epoch $jd_epoch_remainder $VERSION);
 
-$VERSION = 96.032702;
+$VERSION = 99.061501;
 
 # calculate the julian day, given $year, $month and $day
 sub julian_day
@@ -47,8 +47,7 @@ sub gm_julian_day
     my($sec, $min, $hour, $mon, $year, $day, $month);
     ($sec, $min, $hour, $day, $mon, $year) = gmtime($secs);
     $month = $mon + 1;
-    $year += 100 if $year < 70;
-    $year += 1900 if $year < 171;
+    $year += 1900;
     return julian_day($year, $month, $day)
 }
 
@@ -58,8 +57,7 @@ sub local_julian_day
     my($sec, $min, $hour, $mon, $year, $day, $month);
     ($sec, $min, $hour, $day, $mon, $year) = localtime($secs);
     $month = $mon + 1;
-    $year += 100 if $year < 70;
-    $year += 1900 if $year < 171;
+    $year += 1900;
     return julian_day($year, $month, $day)
 }
 
@@ -106,13 +104,29 @@ sub inverse_julian_day
         return ($y, $m, $d);
 }
 
-$jd_1970_1_1 = 2440588;
+{
+	my($sec, $min, $hour, $day, $mon, $year) = gmtime(0);
+	$year += 1900;
+	if ($year == 1970 && $mon == 0 && $day == 1) {
+		# standard unix time format
+		$jd_epoch = 2440588;
+	} else {
+		$jd_epoch = julian_day($year, $mon+1, $day);
+	}
+	$jd_epoch_remainder = $hour*3600 + $min*60 + $sec;
+}
 
 sub jd_secondsgm
 {
 	my($jd, $hr, $min, $sec) = @_;
 
-	return (($jd - $jd_1970_1_1) * 86400 + $hr * 3600 + $min * 60 + $sec);
+	my($r) =  (($jd - $jd_epoch) * 86400 
+		+ $hr * 3600 + $min * 60 
+		- $jd_epoch_remainder);
+
+	no integer;
+	return ($r + $sec);
+	use integer;
 }
 
 sub jd_secondslocal
@@ -126,8 +140,7 @@ sub jd_secondslocal
 sub jd_timelocal
 {
 	my ($sec,$min,$hours,$mday,$mon,$year) = @_;
-	$year += 100 if $year < 70;
-	$year += 1900 if $year < 1900;
+	$year += 1900 unless $year > 1000;
 	my $jd = julian_day($year, $mon+1, $mday);
 	my $jds = jd_secondsgm($jd, $hours, $min, $sec);
 	return $jds - tz_local_offset($jds);
@@ -137,8 +150,7 @@ sub jd_timelocal
 sub jd_timegm
 {
 	my ($sec,$min,$hours,$mday,$mon,$year) = @_;
-	$year += 100 if $year < 70;
-	$year += 1900 if $year < 1900;
+	$year += 1900 unless $year > 1000;
 	my $jd = julian_day($year, $mon+1, $mday);
 	return jd_secondsgm($jd, $hours, $min, $sec);
 }

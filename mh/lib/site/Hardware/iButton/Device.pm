@@ -725,6 +725,8 @@ sub read_counter{
     $c->write("\xff\x01\xff\xff\xff\xff\xff\xff\xff\xff\xff");
     $c->read(4);
 
+    usleep(25000);              # Needed for reliable counter reads
+
     my $buf = $c->read(4);
     my $counter= unpack("V", $buf);
 

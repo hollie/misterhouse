@@ -432,7 +432,7 @@ sub _register2 {
                                 #  - point to new Voice_Cmd object pointer
     if ($Vcmd_viavoice and $cmd_num_by_text{$text}) {
         $cmd_by_num{$cmd_num_by_text{$text}} = $self;
-        return;
+        return $cmd_num_by_text{$text};
     }
 
 #   return $cmd_num_by_text{$text} if $cmd_num_by_text{$text};
@@ -578,6 +578,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.24  2000/09/09 21:19:11  winter
+# - 2.28 release
+#
 # Revision 1.23  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

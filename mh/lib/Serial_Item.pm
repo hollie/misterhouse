@@ -259,6 +259,10 @@ sub set {
         print "Using marrick to send: $serial_data\n";
         &Marrick::send_X10($main::Serial_Ports{Marrick}{object}, $serial_data);
     }
+    elsif ($interface eq 'ncpuxa') {
+        print "Using ncpuxa to send: $serial_data\n";
+        &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
+    }
     else {
         $port_name = 'Homevision' if !$port_name and $main::Serial_Ports{Homevision}{object}; #Since it's multifunction, it should be default
         $port_name = 'weeder'  if !$port_name and $main::Serial_Ports{weeder}{object};
@@ -341,6 +345,10 @@ sub set_interface {
         elsif ($main::Serial_Ports{Marrick}{object}) {
             $interface = 'marrick';
         }
+        elsif ($main::config_parms{ncpuxa_port}) {
+            $interface = 'ncpuxa';
+        }
+
     }
     $$self{interface} = lc($interface) if $interface;
 }
@@ -348,6 +356,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.40  2000/09/09 21:19:11  winter
+# - 2.28 release
+#
 # Revision 1.39  2000/08/19 01:22:36  winter
 # - 2.27 release
 #

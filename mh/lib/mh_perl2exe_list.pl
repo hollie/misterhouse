@@ -27,6 +27,13 @@ use Tk::JPEG;        # Needed for perl2exe
 
 use Net::DNS::Resolver;  # Needed find_domain_name
 
+use Net::AIM;
+use Net::Jabber;
+use XML::Stream; 
+use File::Spec;                 # Used by Jabber
+use File::Spec::Unix;           # Used by Jabber
+use File::Spec::Win32;          # Used by Jabber
+
                                 # Note: 'use lib' will causes us not to find AddScroolbars, even with the following!
 #use Tk::AddScrollbars; # Needed for perl2exe
 #use Tk::Scrollbars;	# Needed for perl2exe

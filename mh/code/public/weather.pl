@@ -75,7 +75,7 @@ if (done_now $p_weather_page) {
     $text = HTML::FormatText->new(leftmargin => 0, rightmargin => 150)->format(HTML::TreeBuilder->new()->parse($html));
 
     # chop off stuff we don't care to hear read
-    $text =~ s/.+Add this sticker to your homepage\!(.+)/$1/s;
+    $text =~ s/.+\Forecast as of (.+)/Forecast as of $1/s;
     $text =~ s/(.+)Please Visit Our Sponsors.+/$1/s;
 
 

@@ -712,6 +712,7 @@ sub main::time_date_stamp {
 # 13:  13:52:24
 # 14:  Sun 12/25/99 13:52:24
 # 15:  Sunday, December 25th
+# 16:  04/14/97  2:28:00 PM
 
     my($style, $time_or_file) = @_;
     my $time;
@@ -789,6 +790,8 @@ sub main::time_date_stamp {
                                $day, @day_month, $year, $hour, $min, $sec) }
     elsif ($style == 15) {$time_date_stamp = sprintf("%s, %s %s",
                                $day_long, $month_long, &main::plural2($mday)) }
+    elsif ($style == 16) {$time_date_stamp = sprintf("%02d/%02d/$year_format %02d:%02d:%02d %s",
+                               @day_month, $year, $hour, $min, $sec, $ampm) }
 
     return wantarray ? ($time_date_stamp, $sec, $min, $hour, $ampm, $day_long, $mon, $mday, $year) : $time_date_stamp;
 }
@@ -906,6 +909,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.39  2000/09/09 21:19:11  winter
+# - 2.28 release
+#
 # Revision 1.38  2000/08/19 01:25:08  winter
 # - 2.27 release
 #
