@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Vinton Cerf Says Carnivore Source Best Left Closed</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/09/0439226</url>
-		<time>2000-09-09 06:04:02</time>
-		<author>timothy</author>
-		<department>he-that-is-so-wise-in-the-ways-of-science</department>
-		<topic>censorship</topic>
-		<comments>120</comments>
+		<title>First Digital Computer Dates back to 1944</title>
+		<url>http://slashdot.org/article.pl?sid=00/10/01/0042253</url>
+		<time>2000-10-01 03:42:08</time>
+		<author>CmdrTaco</author>
+		<department>older-then-my-286</department>
+		<topic>tech</topic>
+		<comments>115</comments>
 		<section>articles</section>
-		<image>topiccensorship.gif</image>
+		<image>topictech2.jpg</image>
 	</story>
 
 	<story>
-		<title>Trailer for First Person Shooter Documentary</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/08/2225241</url>
-		<time>2000-09-09 02:25:30</time>
-		<author>Hemos</author>
-		<department>behind-the-curtains-with-quake</department>
+		<title>Michael Abrash on The Xbox</title>
+		<url>http://slashdot.org/article.pl?sid=00/10/01/0022252</url>
+		<time>2000-10-01 02:22:36</time>
+		<author>CmdrTaco</author>
+		<department>whats-he-got-to-say</department>
 		<topic>games</topic>
-		<comments>103</comments>
+		<comments>120</comments>
 		<section>articles</section>
 		<image>topicgames.jpg</image>
 	</story>
 
 	<story>
-		<title>Hackers And Mysticism?</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/07/1630213</url>
-		<time>2000-09-08 23:16:06</time>
+		<title>Apple Advertises "1-Click" Licensing</title>
+		<url>http://slashdot.org/article.pl?sid=00/10/01/0015226</url>
+		<time>2000-10-01 00:25:15</time>
+		<author>CmdrTaco</author>
+		<department>isn't-that-depressing</department>
+		<topic>apple</topic>
+		<comments>232</comments>
+		<section>articles</section>
+		<image>topicapple.gif</image>
+	</story>
+
+	<story>
+		<title>Rambus going after AMD &amp; Transmeta</title>
+		<url>http://slashdot.org/article.pl?sid=00/09/30/212246</url>
+		<time>2000-09-30 21:10:07</time>
+		<author>CmdrTaco</author>
+		<department>going-in-for-the-kill</department>
+		<topic>patents</topic>
+		<comments>154</comments>
+		<section>articles</section>
+		<image>topicpatents.gif</image>
+	</story>
+
+	<story>
+		<title>2 Views of Hackers</title>
+		<url>http://slashdot.org/article.pl?sid=00/09/30/1434228</url>
+		<time>2000-09-30 16:34:01</time>
+		<author>CmdrTaco</author>
+		<department>now-thats-an-interesting-piece</department>
+		<topic>media</topic>
+		<comments>207</comments>
+		<section>articles</section>
+		<image>topicmedia.gif</image>
+	</story>
+
+	<story>
+		<title>New Material Responds to Touch Pressure</title>
+		<url>http://slashdot.org/article.pl?sid=00/09/30/1431247</url>
+		<time>2000-09-30 15:31:11</time>
+		<author>CmdrTaco</author>
+		<department>let-me-type-that-up-on-my-sleeve-a-minute</department>
+		<topic>tech</topic>
+		<comments>103</comments>
+		<section>articles</section>
+		<image>topictech2.jpg</image>
+	</story>
+
+	<story>
+		<title>Sega Pushes ISONews, and They Push Back</title>
+		<url>http://slashdot.org/article.pl?sid=00/09/30/1419236</url>
+		<time>2000-09-30 14:23:06</time>
+		<author>CmdrTaco</author>
+		<department>sounds-like-they-got-a-good-lawyer</department>
+		<topic>doj</topic>
+		<comments>221</comments>
+		<section>articles</section>
+		<image>topicdoj.jpg</image>
+	</story>
+
+	<story>
+		<title>Lunar Landing Historical Site?</title>
+		<url>http://slashdot.org/article.pl?sid=00/09/30/0938222</url>
+		<time>2000-09-30 13:37:34</time>
+		<author>michael</author>
+		<department>give-a-hoot,-don't-pollute</department>
+		<topic>space</topic>
+		<comments>135</comments>
+		<section>articles</section>
+		<image>topicspace.gif</image>
+	</story>
+
+	<story>
+		<title>Merits Of The Different Journaling Filesystems?</title>
+		<url>http://slashdot.org/article.pl?sid=00/09/28/1958220</url>
+		<time>2000-09-30 11:58:06</time>
 		<author>Cliff</author>
-		<department>what-do-you-believe-in</department>
-		<topic>slashdot</topic>
-		<comments>680</comments>
-		<section>askslashdot</section>
-		<image>topicslashdot.gif</image>
-	</story>
-
-	<story>
-		<title>Company Uses Grain Elevators for Internet Access</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/08/2224243</url>
-		<time>2000-09-08 22:24:32</time>
-		<author>Hemos</author>
-		<department>broadcasting-to-the-midwest</department>
-		<topic>internet</topic>
-		<comments>200</comments>
-		<section>articles</section>
-		<image>topicinternet.gif</image>
-	</story>
-
-	<story>
-		<title>RealNetworks Settles Lawsuit With Streambox</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/08/1826217</url>
-		<time>2000-09-08 20:07:52</time>
-		<author>timothy</author>
-		<department>just-double-rot13-everything-then-sue-"violators"</department>
-		<topic>news</topic>
-		<comments>214</comments>
-		<section>articles</section>
-		<image>topicnews.gif</image>
-	</story>
-
-	<story>
-		<title>Destroying The Myth Of The Web-Safe Palette</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/08/1622204</url>
-		<time>2000-09-08 18:44:02</time>
-		<author>timothy</author>
-		<department>illusions-of-childhood</department>
-		<topic>graphics</topic>
-		<comments>316</comments>
-		<section>articles</section>
-		<image>topicgraphics3.gif</image>
-	</story>
-
-	<story>
-		<title>Nokia Media Terminal</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/08/142218</url>
-		<time>2000-09-08 16:30:44</time>
-		<author>Hemos</author>
-		<department>pretty-GOOD</department>
-		<topic>hardware</topic>
-		<comments>116</comments>
-		<section>articles</section>
-		<image>topichardware.gif</image>
-	</story>
-
-	<story>
-		<title>MP3 Player Released For Handspring Visor</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/08/1222219</url>
-		<time>2000-09-08 15:22:09</time>
-		<author>Hemos</author>
-		<department>maybe-i-need-to-switch</department>
-		<topic>pilot</topic>
-		<comments>177</comments>
-		<section>articles</section>
-		<image>topicpilot.gif</image>
-	</story>
-
-	<story>
-		<title>MontaVista Rolls Out Fully Preemptable Linux</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/08/1417247</url>
-		<time>2000-09-08 14:14:19</time>
-		<author>Hemos</author>
-		<department>expanding-the-realm</department>
+		<department>advantages-and-disadvantages</department>
 		<topic>linux</topic>
-		<comments>261</comments>
-		<section>articles</section>
+		<comments>274</comments>
+		<section>askslashdot</section>
 		<image>topiclinux.gif</image>
 	</story>
 
 	<story>
-		<title>Riding The Space Elevator</title>
-		<url>http://slashdot.org/article.pl?sid=00/09/08/1330246</url>
-		<time>2000-09-08 13:30:16</time>
-		<author>Hemos</author>
-		<department>where's-willy-wonka</department>
-		<topic>space</topic>
-		<comments>400</comments>
+		<title>CPHack Appeal Denied</title>
+		<url>http://slashdot.org/article.pl?sid=00/09/30/0911202</url>
+		<time>2000-09-30 10:50:41</time>
+		<author>michael</author>
+		<department>heavy-thunderbolt</department>
+		<topic>censorship</topic>
+		<comments>38</comments>
 		<section>articles</section>
-		<image>topicspace.gif</image>
+		<image>topiccensorship.gif</image>
 	</story>
 
 </backslash>

@@ -6,6 +6,12 @@
 
 <BASE TARGET='control'>
 
+<b>Open Access</b>
+<li><a href="/barcode_scan.html">Scan a barcode</a></li>
+<li><a href="/list?Informational">Informational</a>
+
+<hr>
+<b>Password protected</b>
 <!--#include file="/category"-->
 
 </body>

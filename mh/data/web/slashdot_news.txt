@@ -1,30 +1,30 @@
-Title: Vinton Cerf Says Carnivore Source Best Left Closed
-2000-09-09 06:04:02 by timothy  in dept: he-that-is-so-wise-in-the-ways-of-science  (censorship   120)
+Title: First Digital Computer Dates back to 1944
+2000-10-01 03:42:08 by CmdrTaco  in dept: older-then-my-286  (tech   115)
 
-Title: Trailer for First Person Shooter Documentary
-2000-09-09 02:25:30 by Hemos  in dept: behind-the-curtains-with-quake  (games   103)
+Title: Michael Abrash on The Xbox
+2000-10-01 02:22:36 by CmdrTaco  in dept: whats-he-got-to-say  (games   120)
 
-Title: Hackers And Mysticism?
-2000-09-08 23:16:06 by Cliff  in dept: what-do-you-believe-in  (slashdot   680)
+Title: Apple Advertises "1-Click" Licensing
+2000-10-01 00:25:15 by CmdrTaco  in dept: isn't-that-depressing  (apple   232)
 
-Title: Company Uses Grain Elevators for Internet Access
-2000-09-08 22:24:32 by Hemos  in dept: broadcasting-to-the-midwest  (internet   200)
+Title: Rambus going after AMD &amp; Transmeta
+2000-09-30 21:10:07 by CmdrTaco  in dept: going-in-for-the-kill  (patents   154)
 
-Title: RealNetworks Settles Lawsuit With Streambox
-2000-09-08 20:07:52 by timothy  in dept: just-double-rot13-everything-then-sue-"violators"  (news   214)
+Title: 2 Views of Hackers
+2000-09-30 16:34:01 by CmdrTaco  in dept: now-thats-an-interesting-piece  (media   207)
 
-Title: Destroying The Myth Of The Web-Safe Palette
-2000-09-08 18:44:02 by timothy  in dept: illusions-of-childhood  (graphics   316)
+Title: New Material Responds to Touch Pressure
+2000-09-30 15:31:11 by CmdrTaco  in dept: let-me-type-that-up-on-my-sleeve-a-minute  (tech   103)
 
-Title: Nokia Media Terminal
-2000-09-08 16:30:44 by Hemos  in dept: pretty-GOOD  (hardware   116)
+Title: Sega Pushes ISONews, and They Push Back
+2000-09-30 14:23:06 by CmdrTaco  in dept: sounds-like-they-got-a-good-lawyer  (doj   221)
 
-Title: MP3 Player Released For Handspring Visor
-2000-09-08 15:22:09 by Hemos  in dept: maybe-i-need-to-switch  (pilot   177)
+Title: Lunar Landing Historical Site?
+2000-09-30 13:37:34 by michael  in dept: give-a-hoot,-don't-pollute  (space   135)
 
-Title: MontaVista Rolls Out Fully Preemptable Linux
-2000-09-08 14:14:19 by Hemos  in dept: expanding-the-realm  (linux   261)
+Title: Merits Of The Different Journaling Filesystems?
+2000-09-30 11:58:06 by Cliff  in dept: advantages-and-disadvantages  (linux   274)
 
-Title: Riding The Space Elevator
-2000-09-08 13:30:16 by Hemos  in dept: where's-willy-wonka  (space   400)
+Title: CPHack Appeal Denied
+2000-09-30 10:50:41 by michael  in dept: heavy-thunderbolt  (censorship   38)
 

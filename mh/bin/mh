@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-09-09 16:00:57 winter>
+#  Last change Time-stamp: <2000-10-01 18:13:57 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -68,12 +68,12 @@ eof
 }
                                 # Use var instead of my so we can get these in the http_server.pl scripts
 use vars qw($Time_Start_time $Time_Stop_time $Time_Increment $Time_Startup $Time_Startup_time $Time_Boot_time $Time_Uptime_Seconds);
-use vars qw($Time_Sunrise $Time_Sunset %Moon $Time_Now $Time_Date $Date_Now $Date_Now_Speakable $Year_Month_Now);
+use vars qw($Time_Sunrise $Time_Sunrise_Twilight $Time_Sunset $Time_Sunset_Twilight %Moon $Time_Now $Time_Date $Date_Now $Date_Now_Speakable $Year_Month_Now);
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
-use vars qw($Version_tk);
+use vars qw($Version_tk $Password);
 
 my ($Pgm_PathU);
 my (@Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
@@ -189,7 +189,8 @@ BEGIN {
         print "Pgm  version: $Version      Last updated: $Version_date\n";
         $Info{Perl_version} = $];
                                 # BuildNumber doesn't work with perl2exe compile :(
-        $Info{Perl_version} .= " Build " . &Win32::BuildNumber() if $OS_win and !$ENV{sourceExe};
+                                #  - use eval to avoid problems with earlier version (e.g. build 502)
+        $Info{Perl_version} .= " Build " . eval "&Win32::BuildNumber()" if $OS_win and !$ENV{sourceExe};
         print "Perl version: $Info{Perl_version}\n";
         print "OS   version: $^O $Info{OS_name} $Info{OS_version} $Info{OS_filesystem}\n";
         print "Other       : user=$Info{User} pid=$$ box=$Info{Machine} cpu=$ENV{PROCESSOR_ARCHITECTURE}-$ENV{PROCESSOR_LEVEL}\n";
@@ -337,16 +338,21 @@ sub setup {
         &print_version;
     }
 
-    use File::Copy;             # So we copy files
+    use Astro::MoonPhase;
+    use Astro::SunTime;
+#   use Barcode;
     use File::Basename;
-#   use FreezeThaw qw(freeze thaw cmpStr safeFreeze cmpStrHard);
-#   use Date::Parse;        # For str2time
-    use Time::Local;            # For timelocal
-    use LWP::Simple;            # For pgms like set_clock that need to grab data from urls
-    use Net::FTP;               # For uploading stuff
-
+    use File::Copy;             # So we copy files
+    use Fcntl;                  # To enable O_RDWR|O_CREAT
+#   use Date::Parse;            # For str2time
 #   use Data::Dumper qw(Dumper DumperX);
-
+#   use FreezeThaw qw(freeze thaw cmpStr safeFreeze cmpStrHard);
+    use IO::Socket;
+    use LWP::Simple;            # For pgms like set_clock that need to grab data from urls
+#   use MIME::Base64;           # Needed for uudecode/uuencode in http_server and mhsend_server
+    use Net::FTP;               # For uploading stuff
+    use Text::Wrap;
+    use Time::Local;            # For timelocal
 
     if ($config_parms{DNS_server}) {
         print "Loading DNS code ...";
@@ -355,11 +361,7 @@ sub setup {
         $DNS_resolver->nameservers(split(',', $config_parms{DNS_server}));
         print " DNS set to $config_parms{DNS_server}\n";
     }
-
-    use IO::Socket;
     &my_use("DB_File");         # Need by get_tv_grid
-    use Fcntl;                  # To enable O_RDWR|O_CREAT
-#   use MIME::Base64;           # Needed for uudecode/uuencode in http_server and mhsend_server
 
     use Timer;                  # This needs to be first, as it is used in Voice_Cmd (and elsewhere?)
     use File_Item;
@@ -377,11 +379,6 @@ sub setup {
     use Voice_Cmd;
     use Voice_Text;
     use Caller_ID;
-
-    use Astro::MoonPhase;
-    use Astro::SunTime;
-
-    use Text::Wrap;
 
     use constant;               # To keep perl2exe happy
     use constant ON  => 'on';
@@ -656,11 +653,12 @@ sub setup {
 
 
                                 # This code allows us to add dynamic user code hooks at various places.
-my (%hook_pointers, %hook_pointers_persistent, %hook_locations);
+my (%hook_pointers, %hook_pointers_persistent, %hook_locations, %hook_parms);
 sub add_hook_code {
 
     %hook_locations = ( MainLoop_pre => 1, MainLoop_post => 1,
                         Serial_match => 1,
+                        Reload_pre   => 1, Reload_post  => 1,
                         Play_pre => 1,     Play_post => 1,
                         Speak_pre => 1,    Speak_post => 1
                         );
@@ -677,7 +675,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
   }
 
    sub add_hook_ {
-       my($location, $hook, $persistent) = @_;
+       my($location, $hook, $persistent, @parms) = @_;
     
        unless( defined( $hook_locations{$location} ) ){
            warn "Invalid hook location $location\n";
@@ -685,7 +683,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
        }
        
        unless( ref $hook eq 'CODE' ){
-           warn "Hook must be a code reference\n";
+           warn "Hook must be a code reference: hook=$hook\n";
            return 0;
        }
        
@@ -693,7 +691,8 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
        
        push( @{$hook_pointers{$location}}, $hook );
        push( @{$hook_pointers_persistent{$location}}, $hook ) if $persistent;
-       
+       @{$hook_parms{$hook}} = @parms;
+
        return 1;
    }
 
@@ -734,7 +733,10 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
 #      my($location) = @_;
        my $location = shift @_;
        for my $hook (&get_hooks_($location)){
-           &$hook(@_);          # Pass parms to hook
+                                # Allow for parms passed in mh, and parms specified
+                                # with addhook.
+           my @parms = (@_, @{$hook_parms{$hook}});
+           &$hook(@parms); 
        }
    }
 
@@ -764,7 +766,7 @@ sub browser {
                                 # Translate unix/perl / to dos \
     $file =~ s|/|\\|g if $OS_win and $file !~ /^http/i;
 
-    run "$config_parms{browser} $file";
+    run qq[$config_parms{browser} "$file"];
 }
 
 my ($loop_tickcount1, $loop_tickcount_total);
@@ -918,6 +920,14 @@ sub check_for_Homevision_data {
     }
 }
 
+sub check_for_ncpuxa_data {
+    my $data = &ncpuxa_mh::read($config_parms{ncpuxa_port});
+    if ($data) {
+        print "ncpuxa data=$data\n" if $config_parms{debug} =~ /ncpuxa|serial/i;
+        &process_serial_data($data);
+    }
+}
+
 sub check_for_HomeBase_data {
     my $data = &HomeBase::read($Serial_Ports{HomeBase}{object});
     if ($data) {
@@ -1000,7 +1010,8 @@ sub toggle_log {
         $state = 'on';
         $logfile = $config_parms{log_file};
         $logfile = 'mh_log.txt' unless $logfile;
-        print "Key F5 pressed.  Output will be logged into $logfile\n";
+        print     "Key F5 pressed.  Output will be logged into $logfile\n";
+        &print_log("Key F5 pressed.  Output will be logged into $logfile");
         open(OLDOUT, ">&STDOUT"); # Copy old handle
         open(OLDERR, ">&STDERR"); # Copy old handle
         open STDOUT, ">>$logfile" or print "\nError, could not open logfile $logfile: $!\n";
@@ -1015,7 +1026,8 @@ sub toggle_log {
         open(STDOUT, ">&OLDOUT");
         close OLDOUT;
         close OLDERR;
-        print "STDOUT has been restored\n";
+        print     "STDOUT has been restored\n";
+        &print_log("STDOUT has been restored");
     }
 }
 
@@ -1031,6 +1043,7 @@ sub check_for_serial_data {
     &check_for_cm11_data if $Serial_Ports{cm11}{object};
     &check_for_Homevision_data if $Serial_Ports{Homevision}{object};
     &check_for_HomeBase_data if $Serial_Ports{HomeBase}{object};
+    &check_for_ncpuxa_data if $config_parms{ncpuxa_port};
     &check_for_generic_serial_data('weeder') if $Serial_Ports{weeder}{object};
     for my $port_name (@Generic_Serial_Ports) {
         &check_for_generic_serial_data($port_name) if $Serial_Ports{$port_name}{object};
@@ -1045,8 +1058,9 @@ sub check_for_socket_data {
                                 # Time to finish the http GET from 2 passes ago with a list of spoken data
     if ($leave_socket_open_passes and --$leave_socket_open_passes == 0 and my $sock = $Socket_Ports{http}{socka}) {
         print "closing http port with action: $leave_socket_open_action\n" if $config_parms{debug} eq 'http';
-        my $html = &html_page("", eval($leave_socket_open_action));
+        my @data = eval($leave_socket_open_action);
         print "Error in http lso action: $@\n" if $@;
+        my $html = &html_page("", @data);
         print $sock $html;
         &socket_close('http');
     }
@@ -1135,10 +1149,12 @@ sub check_for_socket_data {
             &socket_close($port_name);
         }
 
+        $Socket_Ports{$port_name}{data} .= $data if defined $data;
+        print "$port_name data=$Socket_Ports{$port_name}{data}..\n" if $config_parms{debug} eq $port_name;
 
                                 # If raw mode, return data as is
         if ($Socket_Ports{$port_name}{datatype} and $Socket_Ports{$port_name}{datatype} eq 'raw') {
-            $Socket_Ports{$port_name}{data_record} = $data;  # No not break data on newlines
+#           $Socket_Ports{$port_name}{data_record} = $data;  # No not break data on newlines
             next;
         }
 
@@ -1153,9 +1169,7 @@ sub check_for_socket_data {
             print $sock $byte unless $char eq 13 or $char eq 10;
         }
 
-        $Socket_Ports{$port_name}{data} .= $data if defined $data;
-        print "$port_name data=$Socket_Ports{$port_name}{data}..\n" if $config_parms{debug} eq $port_name;
-      
+     
                                 # Break data on newlines
         next unless $Socket_Ports{$port_name}{data};
         while (my($record, $remainder) = $Socket_Ports{$port_name}{data} =~ /(.+?)[\r\n]+(.*)/) {
@@ -1316,6 +1330,7 @@ sub display {
 
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
+        $_[2] = $Time_Now              unless $_[2]; # Default Title
         $_[3] = $config_parms{tk_font} unless $_[3];
         new Display(@_) unless $leave_socket_open_passes;
     }
@@ -1346,7 +1361,7 @@ sub eval_user_code_load {
                                 # Skip Subroutine xyz redfined warnings, as we do this a lot on reload
     local $SIG{__WARN__} = sub {
         return if $_[0] =~ /redefined at/;
-        $@ = "\n$Time_Now Opps1: $_[0]"; 
+        $@ = "\n$Time_Date Oops1: $_[0]"; 
         print "$@\n";
 #       play('file' => $config_parms{sound_error});
     };
@@ -1409,6 +1424,8 @@ sub eval_user_code_load {
         &eval_user_code_reset;
         eval $user_code;
         &object_states_restore; # Put vars back to their last know state
+        &Reload_post_hooks();   # Created by &add_hooks (after object states have been restored)
+
         print "Activate voice menu\n";
         &Voice_Cmd::activate;
         play('file' => $config_parms{sound_error});
@@ -1427,7 +1444,7 @@ sub eval_user_code_loop {
                                 # Dis-regard -w uninitialzed value warnings.
     local $SIG{__WARN__} = sub {
         return if $_[0] =~ /uninitialized value/ or $_[0] =~ /redefined at/;
-        print "\n$Time_Now Opps2: $_[0]\n";
+        print "\n$Time_Date Oops2: $_[0]\n";
 #       play('file' => $config_parms{sound_error});
     };
     eval "&loop_code";
@@ -1476,6 +1493,7 @@ sub eval_user_code_reset {
     &Socket_Item::reset;        # So we can check for duplicate items
     &Serial_Item::reset;        # So we can check for duplicate items
     &Voice_Cmd::reset;          # So we can check for duplicate voice commands.
+    &X10_Item::reset;           # Reset some list arrays
     &reset_hook_code;           # This frees up old user code hooks
 }
 
@@ -1555,7 +1573,7 @@ sub get_object_by_name {
 }      
 
 sub help {
-    &browser("$Pgm_Path/../docs/mh.html");
+    &browser("$Pgm_Path/../docs/index.html");
 }
 
 sub is_local_address {
@@ -1626,7 +1644,7 @@ sub monitor_commands {
                                 # use our own str2time here so we can do arithmitic offsets
 sub my_str2time {
     my($time_date_arg) = @_;
-    return 0 unless defined $time_date_arg;
+    return 0 if !defined $time_date_arg or $time_date_arg eq 'none';
     my ($monthf, $mdayf, $yearf, $time_date_time, $hourf, $minf, $am_pm);
     my ($op, $offset, $sec_offset, $hour_offset, $min_offset);
     my $time_date = eval(qq["$time_date_arg"]);   # Use eval for on-the-fly variable substitution
@@ -1730,7 +1748,7 @@ sub object_states_restore {
 sub object_states_save {
     my ($object_type, $var, $expire_time, $state);
 
-    print "Saving object states ...";
+    print "$Time_Date: Saving object states ...";
     my $restore_state;
                                 # Save states on user specifed Save keys
     for $var (keys %Save) {
@@ -1792,7 +1810,6 @@ sub object_states_save_check {
 }
 
 
-my ($Password);
 sub password_read {
     my $pw_file = $config_parms{password_file};
     $pw_file = "$config_parms{data_dir}/.password" unless $pw_file;
@@ -1874,8 +1891,9 @@ sub play {
     }
     $parms{mode} = '' unless $parms{mode};
         
-#   &print_speaklog($Save{mode} . ": " . $parms{file}) unless $parms{file} =~ /^sound_/ or $parms{file} =~/^System/;
-    &print_speaklog($Save{mode} . ": (" . basename($parms{file}) . ")")  unless $parms{file} =~/^System/;
+                                # Do not log System our sound_ files (these are played frequently)
+    &print_speaklog($Save{mode} . ": (" . basename($parms{file}) . ")")  unless
+        $parms{file} =~ /^sound_/ or $parms{file} =~/^System/;
 
     print "Playing wave file $parms{file}\n" if $config_parms{debug} eq 'misc';
 
@@ -2107,15 +2125,12 @@ sub process_serial_data {
             &Serial_match_hooks($ref, $state, $event_data);   # Created by &add_hooks
         }
     }
-
                                 # Check for string type items (e.g. caller ID or analog data)
     elsif (@refs = &Serial_Item::serial_items_by_id($event_type)) {
+        $matched = 1;
         for $ref (@refs) {
             set_receive $ref $event_data;
         }
-    }
-    else {
-        print_log "Unmatched incoming serial data=$event_data";
     }
 
 
@@ -2186,7 +2201,9 @@ sub process_serial_data {
         }
 
         print_log "X10: Unmatched incoming data=$event_data" if !$matched and $config_parms{x10_errata} >= 2;
-
+    }
+    else {
+        print_log "Unmatched incoming serial data=$event_data" unless $matched;
     }
 
     return $matched;
@@ -2473,9 +2490,14 @@ sub read_user_code {
             if ($object or
                 $record =~ /^my\s/ or                 # Global 'my'
                 $record =~ /^use vars\s/ or           # Global 'use vars'
-                $record =~ /^\s*set_icon\s/ or        # set_icon  only needs to be done on code load
-                $record =~ /^\s*set_info\s/ or        # set_info  only needs to be done on code load
-                $record =~ /^\s*set_order\s/ or       # set_order only needs to be done on code load
+                $record =~  /^\s*hidden\s/ or         # hidden    only needs to be done on code load
+                $record =~ /->\s*hidden/ or           # hidden    only needs to be done on code load
+                $record =~  /^\s*set_icon\s/ or       # set_icon  only needs to be done on code load
+                $record =~ /->\s*set_icon/ or         # set_icon  only needs to be done on code load
+                $record =~  /^\s*set_info\s/ or       # set_info  only needs to be done on code load
+                $record =~ /->\s*set_info/ or         # set_info  only needs to be done on code load
+                $record =~  /^\s*set_order\s/ or      # set_order only needs to be done on code load
+                $record =~ /->\s*set_order/ or        # set_order only needs to be done on code load
                 $record =~ /^\s{0,3}\S+\s*->\s*add[\s\(]/ or
                 $record =~ /^\s{0,3}add\s/) {
                 $noloop_statement_flag = 1; # Allow for multi-record statements
@@ -2616,10 +2638,18 @@ sub set_global_vars {
     $New_Week   = 0;
     $New_Month  = 0;
     $New_Year   = 0;
-                                # Avoid -w uninitilized variable warning
+
+    my $time_now = time;
     if ($Startup) {
-        $prev_time = 0;
+        $prev_time = $time_now - 1;
         $prev_min = $prev_hour = $prev_mday = $prev_month = $prev_year = '';
+    }
+                                # If mh got hung up doing something, lets go to catch up mode
+    elsif (!$Time_Start_time and $prev_time < ($time_now - 1)) {
+        my $diff = $time_now - $prev_time;
+        print_log "mh paused for $diff seconds";
+        $Time_Start_time = $prev_time;
+        $Time_Increment = 1;
     }
 
                                 # Check for test mode, where we cycle one second per loop
@@ -2635,10 +2665,12 @@ sub set_global_vars {
         }
                                 # All caught up, go to normal mode
         if (!$Time_Stop_time and $Time_Start_time and $Time > time) {
-            my $msg = "Caught up from start time of $config_parms{time_start}";
-            print $msg;
-            print_log $msg;
-            &speak($msg);
+            if ($config_parms{time_start}) {
+                my $msg = "Caught up from start time of $config_parms{time_start}";
+                print $msg;
+                print_log $msg;
+                &speak($msg);
+            }
             $Loop_Sleep_Time = $config_parms{sleep_time};
             $Loop_Tk_Passes = $config_parms{tk_passes};
             undef $Time_Start_time;
@@ -2655,6 +2687,7 @@ sub set_global_vars {
                                 # If clock was reset to a past time, keep old time till we catch up.
                                 # This way, we do not repeat time base events (like running set_clock.bat again)
     $Time = $prev_time if $prev_time > $Time;
+
 
     unless ($prev_time == $Time) {
         $Loop_Speed = $loop_speed_cnt;
@@ -2703,7 +2736,7 @@ sub set_global_vars {
             close BTIME;
         }
         else {
-            $cpu_used = 100*$loop_tickcount_total/1000;
+            $cpu_used = 100*$loop_tickcount_total/1000 if $loop_tickcount_total;
             $cpu_used = 100 if $cpu_used > 100;
             $loop_tickcount_total = 0;
         }
@@ -2908,12 +2941,17 @@ sub serial_port_open {
 }
 
 
+
 sub set_sun_time {
-    my @parms = (latitude  =>  $config_parms{latitude}, longitude => -$config_parms{longitude}, 
+    my @parms = (latitude  =>  $config_parms{latitude}, longitude => -$config_parms{longitude},
                  time_zone => -$config_parms{time_zone});
     $Time_Sunrise = time_to_ampm &sun_time(type => 'rise', @parms);
     $Time_Sunset  = time_to_ampm &sun_time(type => 'set',  @parms);
     print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
+
+    $Time_Sunrise_Twilight = time_to_ampm &sun_time(type => 'rise', twilight => $config_parms{twilight}, @parms);
+    $Time_Sunset_Twilight  = time_to_ampm &sun_time(type => 'set',  twilight => $config_parms{twilight}, @parms);
+    print "sunrise twilight=$Time_Sunrise_Twilight sunset twilight=$Time_Sunset_Twilight\n";
 }
 
 sub set_moon_data {
@@ -2966,8 +3004,9 @@ sub socket_close {
         close $sock;
     }
     delete $Socket_Ports{$port_name}{socka};
-    delete $Socket_Ports{$port_name}{sock} if $port_name =~ /\:/; # Client, not server, socket
-#   print "\n\ndb stop closing socket $port_name.\n";
+    delete $Socket_Ports{$port_name}{sock} if
+        $Socket_Ports{$port_name}{host_port} and 
+        $Socket_Ports{$port_name}{host_port} =~ /\:/; # Client, not server, socket
     $Socket_Ports{$port_name}{inactive_this_pass} = 1;
     $Socket_Ports{$port_name}{active_this_pass} = 0;
 
@@ -3004,7 +3043,7 @@ sub speak {
     $rooms = $parms{rooms};
     undef $display_time;
                                 # Allow for parms in text if done the simple way
-    while (($key, $value, $phrase_new) = $phrase =~ /^\s*(\S+)=(\S*)\s(.+)/s) {
+    while (($key, $value, $phrase_new) = $phrase =~ /^\s*(\S+)=(\S*)\s(.*)/s) {
         if ($key =~ /room[s]?/i) {
             $rooms = $value;
         }
@@ -3385,6 +3424,8 @@ sub tk_object_states {
 
     return unless  $object->{states}; # Only create menus for objects with states 
     my @states = @{$object->{states}};
+    my $object_type = ref $object;
+    @states = split ',', $config_parms{x10_menu_states} if $object_type eq 'X10_Item' or $object_type eq 'Group';
     return unless $states[0];
     
     $menu = $Tk_objects{$menu_parent}->menu->Menu unless $menu; # Create a new menu unless given
@@ -3618,10 +3659,14 @@ sub write_user_code {
     open(USERCODE, ">$user_code_file") or print "Can not open debug user code file $user_code_file: $!\n";
     print USERCODE $user_code;
     close USERCODE;
+
+    &Reload_pre_hooks();        # Not sure if/when this would be used.
                                
     &eval_user_code_reset;      # Re-initialize stuff
     &eval_user_code_load;       # Look for real bad errors, caught when defining subroutine
-    &object_states_restore; # Must be after Item_code variables have been defined
+    &object_states_restore;     # Must be after Item_code variables have been defined
+
+    &Reload_post_hooks();       # Created by &add_hooks (after object states have been restored)
 
     print "Activate the voice commands\n";
     &Voice_Cmd::activate;
@@ -3647,6 +3692,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.29  2000/10/01 23:35:24  winter
+# - 2.29 release
+#
 # Revision 2.28  2000/09/09 21:16:23  winter
 # - 2.28 release
 #

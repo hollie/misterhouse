@@ -35,6 +35,19 @@ case `uname -a` in
  ;;
 esac
 
+if [ `uname -m` = 'sparc' ] ; then                                            
+  h2ph asm-sparc64/termios.h                                                  
+  h2ph asm-sparc/termios.h                                                    
+  h2ph asm-sparc64/termbits.h                                                 
+  h2ph asm-sparc/termbits.h                                                   
+  h2ph asm-sparc64/posix_types.h                                              
+  h2ph asm-sparc/posix_types.h                                                
+  h2ph asm-sparc64/ioctls.h                                                   
+  h2ph asm-sparc/ioctls.h                                                     
+  h2ph asm-sparc64/ioctl.h                                                    
+  h2ph asm-sparc/ioctl.h                                                      
+fi                                                                            
+
 cd $curdir
 
 echo

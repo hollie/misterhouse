@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2000-04-12 21:42:58 winter>
+#  Last change Time-stamp: <2000-09-15 23:25:37 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      outlook_read
@@ -189,7 +189,7 @@ sub find_items {
     if ($parms{version} eq '97') {
         my $criteria;
         if ($parms{folder} eq 'Calendar') {
-            my $criteria = qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
+            $criteria = qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
         }
         $item = $items->Find($criteria); 
         print "item=$item items=$items  crit=$criteria\n" if $parms{debug};
@@ -304,6 +304,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.6  2000/10/01 23:35:25  winter
+# - 2.29 release
+#
 # Revision 1.5  2000/05/06 16:39:05  winter
 # - 2.15 release
 #

@@ -3,16 +3,16 @@
 #  File:
 #     report_weblog
 #
-#  Last emacs update Time-stamp: <1999-12-06 07:39:17 winter>
+#  Last emacs update Time-stamp: <2000-09-15 07:46:36 winter>
 #
 #  Description:
 #     See help text below
 #
 #  Author:
-#      Bruce Winter    brucewinter@home.net  http://members.home.net/winters
+#      Bruce Winter    bruce@misterhouse.net 
 #
 #  Latest version:
-#      http://members.home.net/winters/house/programs
+#      http://misterhouse.net
 #
 #  Inspired by: 
 #     http://www.itknowledge.com/tpj/programs/Issue_14/On_The_Fly_Plots/tally_hourly.pl
@@ -304,6 +304,9 @@ sub mail_report {
 }
 #
 # $Log$
+# Revision 1.9  2000/10/01 23:35:25  winter
+# - 2.29 release
+#
 # Revision 1.8  2000/01/27 13:30:39  winter
 # - update version number
 #

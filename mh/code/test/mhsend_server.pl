@@ -59,7 +59,7 @@ if (my $header = said $mhsend_server) {
         $response = "Data was displayed for $action_arg seconds";
     }        
     elsif ($action eq 'speak') {
-        if ($msg < 400) {
+        if (length $msg < 400) {
             speak $msg;
             $response  = "Data was spoken";
         }
@@ -89,7 +89,7 @@ if (my $header = said $mhsend_server) {
     }
 
     print_log $response;
-    print $response;
+    print "mhsend_server: $response\n";
     print $handle $response;
 
     close $handle;

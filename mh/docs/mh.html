@@ -457,6 +457,12 @@ code.
 
 </P>
 <P>
+The CPU-XA, Ocelot, and Leopard controlers from Applied Digital Inc
+(http://www.appdig.com/adicon.html ) are supported thru network calls to
+the cpuxad deamon, part of the XALIB package.  
+
+</P>
+<P>
 There is a <CODE>$30</CODE> (assembled) pic base IR receiver you can order
 from the Netherlands ($3 shipping):
 
@@ -854,6 +860,10 @@ Voice_Cmd, Group) inherit all Generic_Item methods.
 </PRE>
 </P>
 <P>
+<PRE>     hidden(1/0)        :  If set to 1, the object will not show up on Tk or Web menus.
+</PRE>
+</P>
+<P>
 <PRE>     tie_items($item)   :  If the state of the generic_item changes, then 
                            the state of $item will be set to that same state
      untie_items($item) :  Untie $item
@@ -1202,8 +1212,24 @@ used. On either system, the following methods work in the same way:
 </P>
 <P>
 <PRE>  Methods:
-     new('program arguments')
-     set('program arguments')
+     new('program1 arguments', 'program2 arguments', ...)
+     set('program1 arguments', 'program2 arguments', ...)
+     add('program3 arguments', 'program4 arguments', ...)
+</PRE>
+</P>
+<P>
+<PRE>        If you specify more than one program, they are run sequentially.  done_now returns
+        1 after the last program is done.
+</PRE>
+</P>
+<P>
+<PRE>        If program starts with &amp;, then 'program arguments' is eval-ed as an internal mh function.
+        Otherwise, 'program arguments' is run as an external command.
+</PRE>
+</P>
+<P>
+<PRE>        On Windows, the &amp;-&gt; eval trick is supposed to work with perl 5.6+ (which has fork), but
+        unfortunatly, it causes perl to crash often, so is probably not useful yet.
 </PRE>
 </P>
 <P>
@@ -1238,6 +1264,26 @@ used. On either system, the following methods work in the same way:
          set   $p_report_weblog &quot;report_weblog /mh/data/logs/server.$Year_Month_Now.log&quot;;
          start $p_report_weblog;
      }
+</PRE>
+</P>
+<P>
+<PRE>                    # Example of multiple commands
+     $test_process1 = new Process_Item;
+     set $test_process1 'sleep 1', 'sleep 2';
+     add $test_process1 'sleep 1';
+</PRE>
+</P>
+<P>
+<PRE>                    # Example of running an internal mh subroutine
+    $v_test_ftp = new Voice_Cmd 'Test background ftp [get,put]';
+    $p_test_ftp = new Process_Item;
+    if ($state = said $v_test_ftp) {
+      set $p_test_ftp &quot;&amp;main::net_ftp(file =&gt; '/tmp/junk1.txt', &quot; .
+                      &quot;file_remote =&gt; 'incoming/junk1.txt',&quot; . 
+                      &quot;command =&gt; '$state')&quot;;
+      start $p_test_ftpb;
+    }
+    print_log &quot;Ftp command done&quot; if done_now $p_test_ftp;
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_Serial_Item">Serial_Item</A></STRONG><DD>
@@ -2181,9 +2227,9 @@ Panel Sounds menu to change their associated wav files:
 <PRE>     play &quot;fun/*.wav&quot; if time_cron '* 9 * * 6';
 </PRE>
 </P>
-<DT><STRONG><A NAME="item_print_log">print_log
-=item print_msg
-=item print_speaklog</A></STRONG><DD>
+<DT><STRONG><A NAME="item_print_log">print_log</A></STRONG><DD>
+<DT><STRONG><A NAME="item_print_msg">print_msg</A></STRONG><DD>
+<DT><STRONG><A NAME="item_print_speaklog">print_speaklog</A></STRONG><DD>
 <P>
 Use these to print to the various logs. These logs are listed in Tk and web
 frames.
@@ -2414,6 +2460,8 @@ You can use this function to return a time/date string.
      12:   04/14/97 14:28:00 
      13:   14:28:33
      14:   Mon 04/14/99 14:28:00
+     15:   Sunday, December 25th
+     16:   04/14/97  2:28:00 PM
 </PRE>
 </P>
 <P>
@@ -2803,7 +2851,9 @@ Checks to see if an IP address is available. Returns true if pingable.
 </P>
 <DT><STRONG><A NAME="item_net_ftp">net_ftp</A></STRONG><DD>
 <P>
-Used to ftp data to or from an ftp server:
+Used to ftp data to or from an ftp server. There is also a stand alone
+version of this command in mh/bin/net_ftp, so you can run this command with
+a run or a Process_Item to avoid hanging mh with long running ftp sessions.
 
 </P>
 <P>
@@ -2843,17 +2893,34 @@ Used to ftp data to or from an ftp server:
      print_log &quot;net_ftp put results: $rc&quot;;
 </PRE>
 </P>
+<P>
+<PRE>   
+    $v_test_ftp = new Voice_Cmd 'Test background ftp [get,put]';
+    $p_test_ftp = new Process_Item;
+    if ($state = said $v_test_ftp) {
+      set $p_test_ftp
+          &quot;net_ftp -file c:\junk1.txt -file_remote incoming/junk1.txt &quot; . 
+          &quot;-command $state -server misterhouse.net &quot; . 
+          &quot;-user anonymous -password bruce\@misterhouse.net&quot;;
+      start $p_test_ftp;
+    }
+    print_log &quot;Ftp command done&quot; if done_now $p_test_ftp;
+</PRE>
+</P>
 <DT><STRONG><A NAME="item_net_connect_check">net_connect_check</A></STRONG><DD>
 <P>
 Returns true if connected to the Internet. If the mh.ini parm
 net_connect=persistent, this always returns true.
 
 </P>
-<DT><STRONG><A NAME="item_net_im_send">net_im_send</A></STRONG><DD>
+<DT><STRONG><A NAME="item_net_jabber_send">net_jabber_send or net_im_send</A></STRONG><DD>
 <P>
-Used to send and Instant Message across the internet. Currently only the
-AIM clients are supported. More information on AIM clients (available for
-various different platforms) can be found at <A
+Used to send and AOL Instant Message or Jabber message across the internet.
+
+</P>
+<P>
+Information on AIM clients (available for various different platforms) can
+be found at <A
 HREF="http://www.aol.com/aim/faq/getstarted.html">http://www.aol.com/aim/faq/getstarted.html</A>
 . Tik, a tk based client for use on a Unix os, can be found at <A
 HREF="http://tarp.linuxos.org/tik">http://tarp.linuxos.org/tik</A> . You
@@ -2863,8 +2930,16 @@ HREF="http://www.aol.com/aim/faq/registration.html">http://www.aol.com/aim/faq/r
 
 </P>
 <P>
+Information on Jabber clients (many open sourced clients are available for
+different platforms AND the protocol is open) can be found at <A
+HREF="http://www.jabber.com">http://www.jabber.com</A> and <A
+HREF="http://www.jabbercentral.org.">http://www.jabbercentral.org.</A>
+
+</P>
+<P>
 <PRE> 
   Usage:
+    net_jabber_send(option =&gt; value);
     net_im_send(option =&gt; value);
 </PRE>
 </P>
@@ -2873,9 +2948,11 @@ HREF="http://www.aol.com/aim/faq/registration.html">http://www.aol.com/aim/faq/r
 </PRE>
 </P>
 <P>
-<PRE>        password    Default is mh.ini parm net_aim_password
-        from        Default is mh.ini parm net_aim_name
-        to          Default is mh.ini parm net_aim_name_send
+<PRE>        password    Default is mh.ini parm net_jabber_password  or net_aim_password
+        from        Default is mh.ini parm net_jabber_name      or net_aim_name
+        to          Default is mh.ini parm net_jabber_name_send or net_aim_name_send
+        server      Default is mh.ini parm net_jabber_server (e.g. jaber.com)
+        resource    Default is mh.ini parm net_jabber_resource (this can be left blank)
 </PRE>
 </P>
 <P>
@@ -2885,8 +2962,14 @@ HREF="http://www.aol.com/aim/faq/registration.html">http://www.aol.com/aim/faq/r
 </P>
 <P>
 The first time you send a message, mh will pause for a few seconds while it
-logs onto AIM. Subsequent messages use the same signon, so are sent much
-faster.
+logs onto AIM or a jabber server. Subsequent messages use the same signon,
+so are sent much faster.
+
+</P>
+<P>
+Once you have been logged in, mh will also display incoming jabber
+messages. This code has lots of other possibilites that can be added, since
+jabber is XML based and very flexable.
 
 </P>
 <P>
@@ -2894,7 +2977,7 @@ faster.
 </PRE>
 </P>
 <P>
-<PRE>    net_im_send(text =&gt; &quot;Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}&quot;)
+<PRE>    net_jabber_send(text =&gt; &quot;Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}&quot;)
 </PRE>
 </P>
 <P>
@@ -3437,6 +3520,38 @@ mh if it detects that mh exited abnormally. You can pass in the same
 startup parms to mhl as you us for mh.
 
 </P>
+<DT><STRONG>net_ftp</STRONG><DD>
+<P>
+net_ftp sends, receives, or deletes a file to remote site via ftp. There is
+also an identical net_ftp function, if you want to call it directly from
+mh.
+
+</P>
+<P>
+<PRE>  Usage:
+    net_ftp -option value -option value ...
+</PRE>
+</P>
+<P>
+<PRE>    Where -option can be any of the following
+       server          Default is mh.ini parm net_www_server
+       user            Default is mh.ini parm net_www_user
+       password        Default is mh.ini parm net_www_password
+       dir             Default is mh.ini parm net_www_dir
+</PRE>
+</P>
+<P>
+<PRE>       file            Name local/remote file to get/put
+       file_remote     Name of remote file (if different from file)
+       command         get/put/delete.
+       type            ascii/binary  (default is ascii)
+</PRE>
+</P>
+<P>
+<PRE>  Example:
+    net_ftp -command put -file junk1.txt -file_remote /tmp/junk1.txt
+</PRE>
+</P>
 <DT><STRONG><A NAME="item_outlook_read">outlook_read</A></STRONG><DD>
 <P>
 outlook_read reads MS Outlook (a windows mail/calendar program) folder data
@@ -3719,37 +3834,6 @@ for it. To reset the password, delete the mh/data/.password file.
 speak will pass the file or text to mh. It simply runs the house program.
 Example: speak ``Boo, did I scare you?''
 
-</P>
-<P>
-<PRE> 
-</PRE>
-</P>
-<DT><STRONG><A NAME="item_sun_time">sun_time</A></STRONG><DD>
-<P>
-sun_time calculates sunrise and sunset times. This is automatically called
-by mh once a day and the results are stored in the
-<CODE>$Time_Sunrise</CODE> and <CODE>$Time_Sunset</CODE> variables.
-
-</P>
-<P>
-<PRE>  Usage:
-    sun_time [options]
-</PRE>
-</P>
-<P>
-<PRE>  Options:
-    -latitude  xxx    Default is for Rochester, MN 
-    -longitude  xxx 
-    -time_zone xxx
-    -day_of_year xxx  Default is current day
-    -no_dst  Do NOT adjust for Daylight Savings time
-</PRE>
-</P>
-<P>
-<PRE>  Examples:
-    sun_time -latitude 44.01 -longitude 92.28 -time_zone 6
-    sun_time -day_of_year 300
-</PRE>
 </P>
 <DT><STRONG><A NAME="item_trivia">trivia</A></STRONG><DD>
 <P>
@@ -4357,6 +4441,34 @@ functions. For example:
 <PRE>  sub test_hook_pre  { print &quot;&lt;&quot;; }
   sub test_hook_post { print &quot;&gt;&quot;; }
 </PRE>
+</P>
+<P>
+If you want your hook code to last between code reloads (e.g. added by
+startup code from a module), set the persistant flag by passing a 1 as a
+2nd argument. For example:
+
+</P>
+<P>
+<PRE>  &amp;main::MainLoop_post_drop_hook( \&amp;jabber::process, 1 );
+</PRE>
+</P>
+<P>
+Here is a list of all the code hook locations:
+
+</P>
+<P>
+<PRE>  MainLoop_pre   =&gt; Run before user code 
+  MainLoop_post  =&gt; Run before user code 
+  Serial_match   =&gt; Run when incoming serial data matches
+  Play_pre       =&gt; Run before playing wav files
+  Play_post      =&gt; Run after  playing wav files
+  Speak_pre      =&gt; Run before speaking text files
+  Speak_post     =&gt; Run after  speaking text files
+</PRE>
+</P>
+<P>
+For more examples on code hooks, see mh/code/test_code_hooks.pl
+
 </P>
 <P>
 <HR>

@@ -108,6 +108,10 @@ if (active $telnet_server and $socket_speak_loop == $Loop_Count) {
 
                                 # Example of how enable inputing random data from a telnet session
                                 # In your telnet, type:  set $wakeup_time '10 am'
-$wakeup_time = new Generic_Item;
-speak "Your wakeup time is set for $state" if $state = state_now $wakeup_time;
-speak "Time to wake up" if time_now state $wakeup_time;
+$wakeup_time_test = new Generic_Item;
+$wakeup_time_test ->set_states (qw(6:00am 6:20am 6:40am 7:00am 7:20am 7:40am 8:00am none));
+
+speak "Your wake up time is set for $state" if $state = state_now $wakeup_time_test;
+speak "Time to wake up" if time_now state $wakeup_time_test;
+
+

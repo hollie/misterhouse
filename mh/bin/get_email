@@ -76,7 +76,6 @@ sub setup {
     my @data = &file_read("$config_parms{data_dir}/get_email.data");
     for my $data (@data) {
         chomp $data;
-        chomp $data;
         my($account, @list) = split($;, $data);
         $email_prev{$account} = \@list;
     }
@@ -147,7 +146,7 @@ sub check_accounts {
         $results_unread .= &make_name_list($account, @{$email_prev{$account}});
 
                                 # Save parsed data, so we don't have to re-read next time
-        $email_file_data .= (join($;, $account, @{$email_prev{$account}}) . "\n") if
+        $email_file_data .= (join($;, $account, @{$email_prev{$account}})) . "\n" if
             $email_prev{$account} and @{$email_prev{$account}};
 
     }
@@ -175,6 +174,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.19  2000/10/01 23:35:24  winter
+# - 2.29 release
+#
 # Revision 1.18  2000/08/06 21:56:43  winter
 # - See 2.24 release notes.
 #

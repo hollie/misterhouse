@@ -1,5 +1,3 @@
-# Category=Weather
-
 # The script creates the weather text that MisterHouse will speak from the
 # web page you've chosen.  If this script is called "weather.txt", please
 # rename it to "weather.pl" adn place into your MisterHouse code directory.
@@ -13,34 +11,23 @@
 
 # ernie_oporto@mentorg.com
 # October 7, 1999
-#
-# Updated May 7, 2000 to use zip code searching (if defined in config file)
-# bsobel@vipmail.com'
 
 my $Country = $config_parms{country};
 my $StateProvince = $config_parms{state};
 my $CityPage = $config_parms{city};
-my $ZipCode = $config_parms{zipcode};
 
 my $text;
 
 my $HtmlFindFlag=0;
-
-# noloop=start
 my $WeatherURL="http://www.wunderground.com/$Country/$StateProvince/$CityPage";
-$WeatherURL="http://www.wunderground.com/cgi-bin/findweather/getForecast?query=$ZipCode" if $ZipCode;
-$WeatherURL =~s/ /%20/g;
-# noloop=stop
+my $WeatherFile=(split(/\./, (split(/\//,$WeatherURL))[5] ))[0];
 
-#my $WeatherFile=(split(/\./, (split(/\//,$WeatherURL))[5] ))[0];
-my $WeatherFile=$CityPage;
 my $f_weather_page = "$config_parms{data_dir}/web/$WeatherFile.txt";
 my $f_weather_html = "$config_parms{data_dir}/web/$WeatherFile.html";
-$p_weather_page = new Process_Item("get_url \"$WeatherURL\" \"$f_weather_html\"");
+$p_weather_page = new Process_Item("get_url $WeatherURL/index.html:80 $f_weather_html");
 $v_weather_page = new  Voice_Cmd('[Get,Read,Show] internet weather');
-$v_weather_page-> set_info("Weather conditions and forecast for $config_parms{city}, $config_parms{state}  $config_parms{country}");
 
-#speak($f_weather_page)   
+
 if (said $v_weather_page eq 'Read') {
     $text = file_read $f_weather_page;
     speak $text;
@@ -57,7 +44,7 @@ if (said $v_weather_page eq 'Get') {
     }
     else {
         if (&net_connect_check) {
-            print_log "Retrieving $WeatherFile weather...";
+            print_log "Retrieving $WeatherFile weather...$WeatherURL";
 
             # Use start instead of run so we can detect when it is done
             start $p_weather_page;
@@ -76,16 +63,15 @@ if (done_now $p_weather_page) {
 
     # chop off stuff we don't care to hear read
     $text =~ s/.+\Forecast as of (.+)/Forecast as of $1/s;
-    $text =~ s/(.+)Please Visit Our Sponsors.+/$1/s;
+    $text =~ s/(.+)Forecast Weather Graph.+/$1/s;
 
 
     # convert any weather related acronyms or abbreviations to readable forms
 
-                                # HTML::FormatText converts &#176; to the 'degrees' string °.
-                                # which is ascii decimal 176 or hex b0.
-#   $text =~ s/\&\#176\;/ degrees /g;
+    # HTML::FormatText converts &#176; to the 'degrees' string °.
+    # which is ascii decimal 176 or hex b0.
     $text =~ s/\xb0/ degrees /g;
-
+    # weed out all other unwanted verbage
     $text =~ s/\q&nbsp\;/ /g;
     $text =~ s/\[IMAGE\]//g;
     $text =~ s/\(Click for forecast\)//g;

@@ -13,6 +13,8 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#Version_2_posted_on_09_09_00">Version 2.?? posted on 09/09/00</A></LI>
+		<LI><A HREF="#Version_2_28_posted_on_09_09_00">Version 2.28 posted on 09/09/00</A></LI>
 		<LI><A HREF="#Version_2_27_posted_on_08_18_00">Version 2.27 posted on 08/18/00</A></LI>
 		<LI><A HREF="#Version_2_24_posted_on_08_06_00">Version 2.24 posted on 08/06/00</A></LI>
 		<LI><A HREF="#Version_2_22_posted_on_06_24_00">Version 2.22 posted on 06/24/00</A></LI>
@@ -68,6 +70,199 @@
 list (an archive of all the list messages is at <A
 HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A>
 )
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_posted_on_09_09_00">Version 2.?? posted on 09/09/00</A></H2>
+<P>
+Version 2.?? was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net">http://misterhouse.sourceforge.net</A>
+  <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Brian Rudy sent in mh/public/aws_weather.pl for getting weather data from
+aws web sites.
+
+</P>
+<P>
+- Mark Lamourine sent in a patch for mh/bin/configure for sparc boxes.
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_28_posted_on_09_09_00">Version 2.28 posted on 09/09/00</A></H2>
+<P>
+Version 2.28 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net">http://misterhouse.sourceforge.net</A>
+  <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Added hidden method to most objects. If you set to 1 (e.g.
+$item1-&gt;hidden(1) ), then the object will not show up on Tk or web
+menus.
+
+</P>
+<P>
+- David Norwood added support for Applied Digital CPU-XA/Ocelot interfaces
+via the cpuxad daemon server from Mark Day's xalib package (unix only).
+xalib is available from David at <A
+HREF="mailto:judapeno@gte.net">judapeno@gte.net</A> . Enable with the new
+ncpuxa_port mh.ini parm.
+
+</P>
+<P>
+- Brad Reed has coded a ViaVoiceTTS.pm module that calls the IBM's ViaVoice
+TTS engine directly from perl. David Lounsberry worked with Brad to add
+hooks into mh using mh/bin/vv_tts.pl. Since this is a more direct/flexible
+interface than what we had with David's vvo_speak server, David decided to
+take out mh support for vvo_speak. To install Brad's module, follow his
+instructions at <A
+HREF="http://sammy.reednet.org/~breed/ViaVoiceTTS">http://sammy.reednet.org/~breed/ViaVoiceTTS</A>
+then set the mh.ini voice_text parm to vv_tts
+
+</P>
+<P>
+- Added Serial_match, Play_pre, Play_post, Speak_pre, and Speak_post code
+hooks, like the Mainloop hooks we added a few months ago. These give us
+more flexibility than the <CODE>&amp;serial_stub</CODE> and
+<CODE>&amp;pa_stub</CODE> subroutines that were in mh, so those have been
+removed. If you were using one of those stub subroutines, add these lines
+to your code (see mh/code/bruce/pa_control.pl for an example):
+
+</P>
+<P>
+<PRE>  &amp;Serial_match_add_hook(\&amp;serial_stub) if $Reload;
+  &amp;Speak_pre_add_hook(\&amp;pa_stub)        if $Reload;
+  &amp;Play_pre_add_hook (\&amp;pa_stub)        if $Reload;
+</PRE>
+</P>
+<P>
+- Added &amp;net_jabber_send, like the <CODE>&amp;net_im_send</CODE>
+function we have for sending messages to AIM clients. Jabber is a new,
+open, XML based protocol for instant messaging. You can get free IDs and
+client for various platforms at <A
+HREF="http://jabbercentral.com">http://jabbercentral.com</A> or <A
+HREF="http://www.jabber.com">http://www.jabber.com</A> . We can also code
+mh events to respond to incoming Jabber messages. Currently, it will simply
+pop up a tk display window.
+
+</P>
+<P>
+- Allow Process_Item to run multiple commands in series. This way we can
+build simple batch/shell type scripts within mh, and run them as a
+detached, monitored process. See mh/code/examples/test_process.pl for an
+example.
+
+</P>
+<P>
+- Allow Process_Item to run internal mh subroutines. If the command passed
+to Process_Item starts with a &amp; (e.g. &amp;main::net_ftp), then the
+command is run with eval, rather than an external system command. This
+allows us to call long running internal mh functions with a Process_Item
+fork, so we can avoid mh pauses. This currently only works on unix systems.
+In theory it will also work with Win32 perl 5.6+, but on my box, perl
+abended when I tried it :(
+
+</P>
+<P>
+- Added mh/bin/net_ftp, with the same options as the mh
+<CODE>&amp;net_ftp</CODE> function. This allows us the option of doing ftp
+commands with separate processes, so mh does not pause. See
+mh/code/examples/test_ftp.pl and/or mh/docs/mh.html for an example.
+
+</P>
+<P>
+- Bill Sobel had the great idea of moving the code that saves states from
+mh into the various object models, so now we can customize the various
+objects to save whatever data should be persistent between mh
+restart/reloads, using a <CODE>&amp;restore_string</CODE> object method.
+
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Cullen Simpson found a 2.27 problem with X10 bright/dim decoding.
+
+</P>
+<P>
+- Bill Sobel found a problem with decoding incoming PRESET_DIM commands.
+
+</P>
+<P>
+- Ron Wright found yet another mis-decoding of bright/dim commands that
+would sometimes trigger the wrong events.
+
+</P>
+<P>
+- Justin Matlock inspired the addition of
+<CODE>&amp;serial_match_log</CODE> to mh_control.pl. This will do a
+<CODE>&amp;print_log</CODE> the object names that match incoming serial
+(e.g. X10) data.  
+
+</P>
+<P>
+- Switched to the Cpan Astro/SunTime.pm module, to avoid the problems some
+people were having calling sun_time.
+
+</P>
+<P>
+- Fixed a problem with ViaVoice recognition after a code reload.
+
+</P>
+<P>
+- Add mh.ini parm time_format_log, so you can choose the time_date format
+for the speak and print logs. Any <CODE>&amp;time_date_stamp</CODE>
+function format is valid. Set to 16 to get date hh:mm:ss am/pm (e.g.
+04/14/97 2:28:00 PM). (see mh.html for other format examples).
+
+</P>
+<P>
+- Implemented the pause function (F2 from the tk or dos console).
+
+</P>
+<P>
+- Added a small delay in <CODE>&amp;read_counter</CODE> funcion of ibutton
+device.pm.
+
+</P>
+<P>
+- Used an older compiler so mh.exe works on more boxes.
+
+</P>
+<P>
+- Added <CODE>$Loop_Speed</CODE> to Tk Cpu Used widget. Moved memory used
+(unix only) to $Tk_objects{label_memory_used}.
 
 </P>
 <P>

@@ -5,19 +5,20 @@
                                 # Example on how to send an email command
                                 # - This string can be in either the subject or the body of the email
                                 #      Subject line is:  command:x y z  code:xyz
-$v_send_email_test = new  Voice_Cmd('Send test e mail', 'Ok, will do');
+$v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3]', 'Ok, will do');
 $v_send_email_test-> set_info('Send commands to test remote email commands');
-if (said $v_send_email_test) {
+if ($state = said $v_send_email_test) {
     if (&net_connect_check) {
                                 # Use to => 'user@xyz.com', or default to your own address (from net_mail_user in mh.ini)
+        &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date") if $state == 1;
 
                                 # Send a command in the subject
         &net_mail_send(subject => "command:What time is it  code:$config_parms{net_mail_command_code}",
-                       text => "I have been running for " . &time_diff($Time_Startup_time, time));
+                       text => "I have been running for " . &time_diff($Time_Startup_time, time)) if $state == 2;
 
                                 # Send a command in the body
         &net_mail_send(subject => "test command in body of text",
-                       text => "command:What is your up time?  code:$config_parms{net_mail_command_code}");
+                       text => "command:What is your up time?  code:$config_parms{net_mail_command_code}") if $state == 3;
         speak "Test message has been sent";
     }
     else {
@@ -31,7 +32,7 @@ if (said $v_send_email_test) {
 $p_get_email = new Process_Item('get_email -quiet');
 $v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a second and I will check for new email');
 $v_recent_email-> set_info('Download and summarize new email headers');
-if (said $v_recent_email or ($Save{email_check} eq 'yes' and !$Save{sleeping_parents} and
+if (said $v_recent_email or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
                              $New_Minute and !($Minute % 10) and &net_connect_check)) { 
     start $p_get_email;
 }
@@ -55,7 +56,7 @@ $v_unread_email-> set_info('Summarize unread email headers and optionally call O
 $read_email = new Serial_Item('XOD');
 if ($state = said $v_unread_email or 
     state_now $read_email or
-    time_cron('55 7-21 * * *')) { 
+    time_cron('51 7-21 * * *')) { 
 #   time_cron('55 16,17,19,21 * * *')) { 
     &speak_unread_mail unless $Save{email_check} eq 'no';
     if ($state eq 'Read' or state_now $read_email) {

@@ -7,6 +7,9 @@ more complex, functioning code.
 
 -----------
 
+AudioControl.pl
+ - Bill Sobel's example of using Mp3Player.pm object
+
 calllog.pl          
  - Caller ID for modem.  Modified from mh/code/public/Brian/calllog.pl
    by Ernie O. to use the CallerID.pm state and names arrays.
@@ -66,6 +69,9 @@ slinke_*
  - Brian Paulsen's examples of calling the Slinke.pm module he wrote.
    We don't have this integrated into mh yet.
 
+sprinklers_*.pl 
+ - Brian Rudy and Bill Sobel's code for sprinklers
+
 test_homebase.pl
  - example code on how to talk to the homebase (JDS star*) interfaces
 
@@ -74,6 +80,14 @@ test_homevision.pl
 
 voicemodem.pl
  - Brian Klier's code for interfacing to a voice modem.  
+
+weather.pl
+ - Earnie Oporto's weather script that queries wunderground web sites
+
+aws_weather.pl
+weather_aws.pl
+weather_monitor_aws.pl
+ - Brian Rudy's weather scripts for AWS live web weather sites
 
 weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I 

@@ -95,6 +95,7 @@ sub load_playlist {
             $mp3files{$name} = $file;
         }
     }
+    return 'none_found' unless $mp3names;
     chop $mp3names;         # Drop last ,
     print "mp3 playlists: $mp3names \n";
     return $mp3names, %mp3files;

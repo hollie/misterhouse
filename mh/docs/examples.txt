@@ -1,0 +1,110 @@
+
+#-----------------------------------
+# Some time controled light examples
+#-----------------------------------
+$nick_reading_light = new X10_Item('N5');
+if (time_now "9:00 PM") {
+    speak "I just turned on Nick's reading light";
+    set $nick_reading_light ON;
+}
+
+$backyard_light     = new X10_Item('C4');
+if (time_now "$Time_Sunset + 0:15") {
+    speak "I just turned the backyard light on at $Time_Now";
+    set $backyard_light ON;
+}
+
+$christmas_light    = new X10_Item('A5');
+set $christmas_lights  ON if time_cron('00 18 * 12,1 *');
+set $christmas_lights OFF if time_cron('30 22 * 12,1 *');
+
+#-----------------------------------
+# Example of voice commands
+#-----------------------------------
+$pa_radio            = new  Serial_Item('DBHD', ON);
+$pa_radio           -> add             ('DBLD', OFF);
+$v_pa_radio = new  Voice_Cmd('Radio [on,off]');
+set $pa_radio $state if $state = said $v_pa_radio;
+
+$humidity_inside     = new  Serial_Item('AE5');
+$v_downstairs_humidity = new  Voice_Cmd('What is the downstairs humidity');
+speak('The downstairs humidity is ' . state_now $humidity_inside . ' %') if said $v_downstairs_humidity;
+
+#-----------------------------------
+# Example of a timer
+#-----------------------------------
+$laundry_timer       = new  Serial_Item('XH2', ON);
+$laundry_timer      -> add             ('XH3', OFF);
+$v_laundary_timer = new  Voice_Cmd('Laundary timer [on,off]');
+$timer_laundary = new  Timer;
+if ($state =  said $v_laundary_timer or
+    $state = state_now $laundry_timer) {
+    if ($state eq ON) {
+	play('rooms' => 'shop', 'file' => 'cloths_started.wav');
+	set $timer_laundary 35*60, 'speak "rooms=all The laundary clothes are ready to move on"', 4;
+    }
+    else {
+	speak 'rooms=shop The laundry timer has been turned off.';
+	set $timer_laundary 0;
+    }
+}
+
+#-----------------------------------
+# Example of a door monitor
+#-----------------------------------
+$timer_garage_door = new  Timer();
+$garage_door         = new  Serial_Item('DCCH', 'opened');
+$garage_door        -> add             ('DCCL', 'closed');
+if($state = state_now $garage_door) {
+    set $timer_garage_door 120;
+    play('rooms' => 'all', 'file' => "garage_door_" . $state . "*.wav");
+}
+
+if ((time_cron('0,5,10,15,30,45 22,23 * * *') and 
+    ('opened' eq ($garage_door->{state})) and
+    inactive $timer_garage_door)) {
+    speak("The garage door has been left opened.  I am now closing it.");
+    set $garage_door_button ON;
+    set $garage_door_button OFF;
+}
+
+#-----------------------------------
+# Example of how to wake up somebody
+#-----------------------------------
+
+if (said $v_wakeup_parents) {
+    $sleeping_parents = 0;
+    &pa_sleep_mode('all', 0);
+    speak("rooms=all Good morning everybody.  It is now $Time_Now on $Date_Now.");
+    speak("rooms=all The outside temperature is " . convert_k2f((state $temp_outside)/10) . "degrees");
+    speak("rooms=all Sunrise today is at $Time_Sunrise, sunset is at $Time_Sunset");
+    readit("\\house\c\data\weather_conditions.txt");
+    readit("-rooms bedroom //house/c/homepage/mail/mail.txt");
+
+    set $left_bedroom_light ON;
+    set $right_bedroom_light ON;
+
+    runit("min", "ir_cmd TV,POWER,5,1");
+
+    &curtain_on('bedroom', 'open');
+}
+
+
+#-----------------------------------
+# Example of how to process phone data
+#-----------------------------------
+
+$callerid            = new  Serial_Item('I'); # Incoming callerid
+$phonetone           = new  Serial_Item('O'); # Outgoing calls
+
+if ($caller_id_data = state_now $callerid) {
+    speak("rooms=all " . &Caller_ID::make_speakable($caller_id_data));
+    my ($cid_date, $cid_number, $cid_name) = unpack("A13A13A15", $caller_id_data);
+    logit("//house/c/mh/data/callerid.$Year_Month_Now.log",  "$cid_number $cid_name");
+    logit_dbm("//house/c/mh/data/callerid.dbm", $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");
+}
+
+logit("//house/c/mh/data/phone.$Year_Month_Now.log", $phonetone_data)
+    if $phonetone_data = state_now $phonetone;
+
+runit("min", "display_callers.bat") if state_now $display_calls;
