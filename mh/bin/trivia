@@ -32,7 +32,8 @@ my $qn = <COUNT>;
 close COUNT;
 my $file;
 open (COUNT, $file = ">$data_dir/$cat.cnt") or die "Error, could not open output file $file: $!\n";
-$qn = 0 if $qn > 500;
+$qn = 0 if $qn >= 500;
+$qn = 0 if $qn >= 250 and $cat eq 'Mixed';
 print COUNT ++$qn;
 close COUNT;
 

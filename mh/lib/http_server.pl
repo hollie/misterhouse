@@ -287,7 +287,7 @@ sub process_http_request {
                 $text .= " set to $state";
             }
         
-            $authority = eval qq[$item->get_authority if $item->isa('Generic_Item');];
+            $authority = eval qq[$item->get_authority if $item and $item->isa('Generic_Item');];
             print "SET authority eval error: $@\n" if $@;
             $authority = $Password_Allow{$item} unless $authority;
         }
@@ -328,7 +328,7 @@ sub process_http_request {
                     $authority = 0;
                     next;
                 }
-                my $set_authority = eval qq[$item->get_authority if $item->isa('Generic_Item');];
+                my $set_authority = eval qq[$item->get_authority if $item and $item->isa('Generic_Item');];
                 print "SET_VAR authority eval error: $@\n" if $@;
                 unless ($set_authority or $Password_Allow{$item}) {
                     $authority = 0;
@@ -359,7 +359,7 @@ sub process_http_request {
                                 # Otherwise, we are trying to pass var name in directly. 
                 else {
                                 # Can be a scalar or a object
-                    my $eval_cmd =  qq[($item->isa('Generic_Item')) ? (set $item "$state") : ($item = "$state")];
+                    my $eval_cmd =  qq[($item and $item->isa('Generic_Item')) ? ($item->set("$state")) : ($item = "$state")];
                     print "SET_VAR eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
                     eval $eval_cmd;
                     print "SET_VAR eval error: $@\n" if $@;
@@ -401,10 +401,10 @@ sub process_http_request {
 
 sub html_authorized {
     if ($Authorized) {
-        return "Status: <B><a href=/UNSET_PASSWORD>Authorized</a><br>";
+        return "Status: <b><a href=/UNSET_PASSWORD>Authorized</a></b><br>";
     }
     else {
-        return "Status: <B><a href=/SET_PASSWORD>Not Authorized</a><br>";
+        return "Status: <b><a href=/SET_PASSWORD>Not Authorized</a></b><br>";
     }
 }
 
@@ -745,10 +745,12 @@ Content-type: $mime
     return length($header);
 }
 
-
 sub html_page {
     my ($title, $body, $style, $script, $frame) = @_;
-#   print "db html_page=$title\n$body\n";
+
+    return http_redirect($body)    if $body =~ /^http:\S+$/i;
+    return http_redirect($Referer) if $body =~ /^Referer$/i;
+    #   print "db html_page=$title\n$body\n";
                                 # This meta tag does not work :(
                                 # MS IE does not honor Window-target :(
 #   my $frame2 = qq[<META HTTP-EQUIV="Window-target" CONTENT="$frame">] if $frame;
@@ -761,6 +763,7 @@ sub html_page {
 HTTP/1.0 200 OK
 Server: MisterHouse
 Content-Type: text/html
+Cache-control: no-cache
 $Cookie
 $frame
 
@@ -778,6 +781,14 @@ $body
 
 </BODY>
 </HTML>
+eof
+}
+
+sub http_redirect {
+    my ($url) = @_;
+    return <<eof;
+HTTP/1.0 301 Moved Temporarily
+Location:$url
 eof
 }
 
@@ -1022,7 +1033,7 @@ sub html_command_table {
     my (@object_list) = @_;
     my ($html, @htmls);
     my $list_count = 0;
-    my ($msagent_cmd1, $msagent_cmd2, $msagent_script1, $msagent_script2, $msagent_script3 );
+    my ($msagent_cmd1, $msagent_script1, $msagent_script2 );
 
     my @objects = map{&get_object_by_name($_)} @object_list;
 
@@ -1129,22 +1140,22 @@ sub html_command_table {
         if ($states_with_select) {
             $html .= qq[<SELECT name="select_cmd" onChange="form.submit()">\n];
             $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
-            $msagent_cmd1 = "$prefix ( ";
+            $msagent_cmd1 = "$prefix (";
             for my $state (@states) {
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
                 $text_cmd =~ tr/ /\_/;  
                 $html .= qq[<option value="$text_cmd">$state\n];
-                $msagent_cmd1 .= " $state | ";
-                $msagent_cmd2 = $text_cmd;
+                $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
+                $msagent_cmd1 .= "$state|" if $state;
             }
-            substr($msagent_cmd1, -2, 2) =  " ) $suffix";
+            substr($msagent_cmd1, -1, 1) =  ") $suffix";
             $html .= qq[</SELECT>\n];
         }
                                 # Use hrefs with 2 or 3 states
         elsif ($states) {
             my $hrefs;
-            $msagent_cmd1 = "$prefix ( ";
+            $msagent_cmd1 = "$prefix (";
             for my $state (@states) {
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
@@ -1160,11 +1171,11 @@ sub html_command_table {
                                 # We could add ol_info here, so netscape kind of works, but this 
                                 # would be redundant and ineffecient.
                 $hrefs .= qq[<a href='/RUN:last_response?$text_cmd'>$state</a> ];
-                $msagent_cmd1 .= " $state | ";
-                $msagent_cmd2 = $text_cmd;
+                $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
+                $msagent_cmd1 .= "$state|" if $state;
 #               $hrefs .= qq[<a href='/RUN:last_response?$text_cmd' $ol_info>$state</a> ];
             }
-            substr($msagent_cmd1, -2, 2) =  " ) $suffix";
+            substr($msagent_cmd1, -1, 1) =  ") $suffix";
             $html .= $hrefs;
         }
                                 # Just display the text, when no states
@@ -1175,7 +1186,6 @@ sub html_command_table {
             $html .= qq[<b>$text</b>];
             $html .= qq[<input type="hidden" name="select_cmd" value='$text_cmd'>\n];
             $msagent_cmd1 = $text;
-            $msagent_cmd2 = $text_cmd;
         }
 
         $html .= qq[<b>$suffix</b>] if $suffix;
@@ -1197,8 +1207,11 @@ sub html_command_table {
         my $msagent_id = substr $object_name, 1;
 #       $msagent_script1 .= qq[minijeff.Commands.Add "Run_Command", "$text", "$msagent_cmd1", True, True\n];
 #       $msagent_script2 .= qq[Case "$msagent_id"\n   $msagent_id\n];
-#       $msagent_script3 .= qq[Sub  $msagent_id\n   window.open "/RUN:last_response?$msagent_cmd2","speech"\nEnd Sub\n];
-        $msagent_script1 .= qq[minijeff.Commands.Add "$msagent_id", "$text", "$msagent_cmd1", True, True\n];
+#       $msagent_script1 .= qq[minijeff.Commands.Add "$msagent_id", "$text", "$msagent_cmd1", True, True\n];
+        $msagent_cmd1 =~ s/\[\]//; # Drop [] on stateless commands
+        my $msagent_cmd2 = $msagent_cmd1;
+        $msagent_cmd2 =~ s/\|/,/g;
+        $msagent_script1 .= qq[minijeff.Commands.Add "$msagent_id", "$msagent_cmd2", "$msagent_cmd1", True, True\n];
         $msagent_script2 .= qq[Case "$msagent_id"\n   Run_Command(UserInput.voice)\n];
     }
 
@@ -1212,7 +1225,6 @@ sub html_command_table {
         my $msagent_file = file_read "$config_parms{html_dir}/$config_parms{html_msagent_script_vr}";
         $msagent_file =~ s/<!-- *vr_cmds *-->/$msagent_script1/;
         $msagent_file =~ s/<!-- *vr_select *-->/$msagent_script2/;
-#       $msagent_file =~ s/<!-- *vr_subs *-->/$msagent_script3/;
         $html = $msagent_file . $html;
     }
 
@@ -1243,6 +1255,7 @@ sub html_item_state {
                                 # If >2 possible states, add a Select pull down form
     my @states;
     @states = @{$object->{states}} if $object->{states};
+#   print "db on=$object_name ix10=$isa_X10 s=@states\n";
     @states = split ',', $config_parms{x10_menu_states} if $isa_X10;
     @states = qw(on off) if $object->isa('X10_Appliance');
     my $use_select = 1 if @states > 2;
@@ -1601,6 +1614,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.47  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.46  2000/10/09 02:31:13  winter
 # - 2.30 update
 #

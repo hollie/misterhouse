@@ -16,7 +16,7 @@ function would take some work.
 =head2 1.2: How can I make it run faster and use less memory?
 
 On my Celron 400 Mhz computer running Windows 98, using 60 code files with 6000 lines of code,
-mh takes 10% the cpu, running at 9 passes per second and using about 20 MB of memory. 
+mh takes 10% the cpu, running at 9 passes per second and using about 30 MB of memory. 
 
 If you are happy with the Web interface and don't need the Tk interface, turn it off
 by editing the Tk mh.ini parm or run:
@@ -269,6 +269,16 @@ at the top of the table.  Then mh will process (on starup and reload) each recor
 
 Examples are in mh/code/bruce/*.mht and mh/code/test/*.mht. 
 If you want to create another table format, all you need to do is create a mh/lib/read_table_xyz.pl member, then set Format=xyz.
+
+=head2 1.17: How can I use Family Radios with MisterHouse?
+
+=begin html
+There is seperate FAQ on the FRS topic in
+<a href="faq_frs.html">mh/docs/faq_frs.html</a>
+
+=end html
+
+
 
 
 =head1 2: MisterHouse coding questions
@@ -835,6 +845,9 @@ else on the list, the ThermoCRON iButton is different yet again.
 
 #
 # $Log$
+# Revision 1.18  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.17  2000/10/09 02:31:13  winter
 # - 2.30 update
 #

@@ -11,6 +11,13 @@ use strict;
 print_log "Using read_table_A.pl";
 
 my %groups;
+
+sub read_table_init_A {
+                                # reset known groups
+	print_log "Initialized read_table_A.pl";
+#	%groups=();
+}
+
 sub read_table_A {
     my ($record) = @_;
 
@@ -103,6 +110,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.4  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.3  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

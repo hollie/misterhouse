@@ -62,8 +62,7 @@ sub set {
     print "Sending IR_Item command $device $state\n";
     my $mapped_ir;
     for my $command (split(',', $state)) {
-        $command  = 'POWER'     if $command eq 'ON';
-        $command  = 'POWER'     if $command eq 'OFF';
+
                                 # Lets build our own delay
         if ($command eq 'DELAY') {
             select undef, undef, undef, 0.3; # Give it a chance to get going before doing other commands
@@ -91,6 +90,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.6  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.5  2000/10/09 02:31:13  winter
 # - 2.30 update
 #

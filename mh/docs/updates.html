@@ -13,6 +13,7 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#Version_2_32_posted_on_10_21_00">Version 2.32 posted on 10/21/00</A></LI>
 		<LI><A HREF="#Version_2_29_posted_on_10_01_00">Version 2.29 posted on 10/01/00</A></LI>
 		<LI><A HREF="#Version_2_28_posted_on_09_09_00">Version 2.28 posted on 09/09/00</A></LI>
 		<LI><A HREF="#Version_2_27_posted_on_08_18_00">Version 2.27 posted on 08/18/00</A></LI>
@@ -70,6 +71,184 @@
 list (an archive of all the list messages is at <A
 HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A>
 )
+
+</P>
+<P>
+<HR>
+<H2><A NAME="Version_2_32_posted_on_10_21_00">Version 2.32 posted on 10/21/00</A></H2>
+<P>
+Version 2.32 was just uploaded to:
+
+</P>
+<P>
+<PRE>  <A HREF="http://misterhouse.sourceforge.net/download">http://misterhouse.sourceforge.net/download</A>
+  <A HREF="http://misterhouse.net/download">http://misterhouse.net/download</A>
+</PRE>
+</P>
+<P>
+<STRONG>New Features:</STRONG>
+
+
+
+</P>
+<P>
+- Added mh.ini code_dir_common, like code_dir, but for common code files.
+Moved the tk*, mh_control, mhsend_server, and benchmark .pl files into
+there. This should ease the mh upgrade process. To pick up the default
+mh/code/common versions of these files, delete these files from your
+code_dir.
+
+</P>
+<P>
+- Added mh/code/common/mh_sound.pl . This currently does 3 things:
+
+</P>
+<P>
+1: I figured out a way to work around the bug in Win32::Sound::Volume, so
+we can now control volume each time we call speak and play (any suggestions
+on how to patch this for unix?). Defaults to a new mh.ini sound_volume
+parm. Set to blank to disable auto-volume adjustment. Use either of these
+formats to override the default volume (range 0-&gt;100):
+
+</P>
+<P>
+<PRE>  speak 'volume=100 Hello from Mr. Bruce';
+  speak volume =&gt; 5, text =&gt; 'Hello from Mr. Bruce';
+</PRE>
+</P>
+<P>
+2: mh_sound also sets a mh_speakers object, which can be used to turn
+relays on/off before and after TTS and wave file sounds for room speaker
+control (see mh/code/bruce/pa_control.pl).
+
+</P>
+<P>
+3: Plays the mh.ini sound_pre wav file before all sounds. Useful if you
+want to add delay and/or an activation noise for things like VOX (Voice
+Activated) Radios .
+
+</P>
+<P>
+- Figured out a way to monitor memory usage from NT/2k, using
+Win32::PerfLib. Added mh/code/common/monitor_memory.pl as an aid to finding
+code members that leak memory (works on unix and NT/2k only).
+
+</P>
+<P>
+- Danal Estes made various updates to Bill's DCS_Alarm code, including
+support for multiple serial ports. See mh/lib/DSC_Alarm.pm and
+mh.pod/txt/html for more info. 
+
+</P>
+<P>
+- Bill Sobel came up with the idea of using a http redirect command to
+allow mh to return the browser back to the calling web page, or some other
+arbitrary web page. Use either 'Referer' or 'http://your_url' as the
+response string. For example:  
+
+</P>
+<P>
+<PRE> &lt;a HREF=&quot;<A HREF="http://misterhouse.net:8080/SET:Referer">http://misterhouse.net:8080/SET:Referer</A>?$camera_light&amp;on&quot;&gt;Light on&lt;/a&gt;
+</PRE>
+</P>
+<P>
+<PRE> &lt;a HREF=&quot;<A HREF="http://misterhouse.net:8080/SET:http://misterhouse.net">http://misterhouse.net:8080/SET:http://misterhouse.net</A>?$camera_light&amp;off&quot;&gt;Light off&lt;/a&gt;
+</PRE>
+</P>
+<P>
+<STRONG>Examples, Bug Fixes, and Minor Changes:</STRONG>
+
+
+
+</P>
+<P>
+- Fixed the MsAgent code added last time so it works with all VR commands.
+
+</P>
+<P>
+- Fixed a memory leak in barcode_scan.pl.
+
+</P>
+<P>
+- Fixed a bug in mh_control.pl that disabled web based code reloads after
+the first reload.
+
+</P>
+<P>
+- Fixed SunTime.pm calculation for -time_zone 0 
+
+</P>
+<P>
+- Fixed mh/bin/trivia to reset count correctly (messed up after 250
+questions).
+
+</P>
+<P>
+- Fenghua Zong found a problem with Timer actions being corrupted by a
+object state save.
+
+</P>
+<P>
+- Wally Kissel found a bug that disabled MS VR after a code reload.
+
+</P>
+<P>
+- Chris Witte sent in a patch to fix dissapearing Group problem when
+reloading changes in format=A tables.
+
+</P>
+<P>
+- Danel Estes noted that Serial_Items without defined state strings
+returned 'default_state'. We switched it back to return the ID string like
+it used to.
+
+</P>
+<P>
+- Ingo Dean discovered that incoming DIM/BRIGHT commands crashed mh when
+using a non-CM11 interface (e.g. HomeVision).
+
+</P>
+<P>
+- David Norwood updated the ncpuxa code (Applied Digital interfaces) to
+allow for preset dim working on LM14A and Leviton units.
+
+</P>
+<P>
+- Bill Sobel ran into a problem where mh went into an X10 loop, with a
+house code and a device code each setting each other off. To avoid this, mh
+now checks and avoids sending out the same X10 code on consecutive passes.
+
+</P>
+<P>
+- Bill sent in a http_server update to disable caching.
+
+</P>
+<P>
+- Improved iButton reliabilty on Windows. I can now used it again from
+NT/2k.
+
+</P>
+<P>
+- Modified read_file to chomp newlines, when used in an array context.
+
+</P>
+<P>
+- Added mh/lib/site/HTML/TableExtract.pm
+
+</P>
+<P>
+- Added +-100 to X10_Item (max/min use to be +-95), so we can do full
+bright/dims.
+
+</P>
+<P>
+- Added the mh.ini no_log parm. use no_log=pause to turn of the 'mh paused'
+message.
+
+</P>
+<P>
+- Added FAQ entry 1.17: How can I use Family Radios with MisterHouse?' and
+pointed it to Danel Estes's Family Radio Service FAQ mh/docs/faq_frs.html.
 
 </P>
 <P>
@@ -1199,9 +1378,9 @@ mh/bin/ir_cmd
 
 </P>
 <P>
-- Added Kevin's mh/code/public/x10_ma26.pl code for monitoring the X10
-wireless mouse receiver. This also monitors other X10 rf traffic, so may
-prove to be a good way to improve latency on things like X10 motion
+- Added Kevin Olande's mh/code/public/x10_ma26.pl code for monitoring the
+X10 wireless mouse receiver. This also monitors other X10 rf traffic, so
+may prove to be a good way to improve latency on things like X10 motion
 sensors.
 
 </P>
@@ -1248,7 +1427,7 @@ They are now played asynchronously.
 
 </P>
 <P>
-- Added Kevin's fix to CM11.pm to fix the problem he was having with not
+- Added Kevin O.'s fix to CM11.pm to fix the problem he was having with not
 receiving all incoming X10 signals.
 
 </P>
@@ -1266,7 +1445,7 @@ speech recognition engine.
 
 </P>
 <P>
-- Added David's linux mp3 control code as code to
+- Added David L.'s linux mp3 control code as code to
 mh/code/public/mp3_control_GQmpeg.pl.
 
 </P>
@@ -1377,7 +1556,8 @@ not be able to view that data.
 
 </P>
 <P>
-- Included Craig's sump pump code and Tom's news_* code to mh/code/public.
+- Included Craig S.'s sump pump code and Tom's news_* code to
+mh/code/public.
 
 </P>
 <P>
@@ -1435,7 +1615,7 @@ not also create a tk popup window.
 
 </P>
 <P>
-- Added Tom's <CODE>$Time_Of_Day</CODE> global var (morning, afternoon,
+- Added Tom K.'s <CODE>$Time_Of_Day</CODE> global var (morning, afternoon,
 evening, and night)
 
 </P>
@@ -1862,7 +2042,7 @@ what is assigned to what.
 </P>
 <P>
 - If you are using an CM11, the Group object will now control all X10
-devices simultaneously, rather than sequentially. Thanks Nic Brink for
+devices simultaneously, rather than sequentially. Thanks to Nic Brink for
 pointing out this option.
 
 </P>
@@ -2879,8 +3059,8 @@ mh.html).
 
 </P>
 <P>
-- Added Charles javascript to the mh/web/mh_default/category.shtml. The
-only example that uses it is the 'deep thought' button.
+- Added Charles C.'s javascript to the mh/web/mh_default/category.shtml.
+The only example that uses it is the 'deep thought' button.
 
 </P>
 <P>
@@ -3280,7 +3460,7 @@ reponse be a user defined function. See mh.html for more info.
 </P>
 <P>
 - Moved Brian K's code from mh/code/public to mh/code/public/Brian. Added
-Mike's webcam code. I'd be happy to distribute any other code, for those
+Mike M's webcam code. I'd be happy to distribute any other code, for those
 brave enough :)
 
 </P>

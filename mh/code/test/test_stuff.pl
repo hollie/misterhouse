@@ -105,8 +105,9 @@ if ($state = $test_input1) {
                                 # This is windows only for now
     elsif ($state eq 'n') {
         print_log "Testing volume control";
-        play(file => "hello_from_bruce.wav", volume => '20%');
-        play(file => "hello_from_bruce.wav", volume => '100%');
+#        play(file => "hello_from_bruce.wav", volume => '20%');
+        speak 'volume=100 Hello from Mr. Bruce';
+#        speak volume => 5, text => 'Hello from Mr. Bruce';
     }
                                 # Test Setupsup sendkeys
                                 #  - documentaion is in mh/site/Win32/setupsup.html

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-10-08 20:39:33 winter>
+#  Last change Time-stamp: <2000-10-21 21:24:07 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -1221,6 +1221,7 @@ sub check_for_tied_events {
     my @objects = @_;
     for my $object1 (@objects) {
 #       my $state1 = lc $object1 -> state;
+        next unless $object1->isa('Generic_Item'); # Safeguard ... should not need this
         my $state1 =    $object1 -> state;
 
         print "Object link: starting enumeration for object=$object1 state=$state1\n" if $config_parms{debug} eq 'events';
@@ -1910,10 +1911,6 @@ sub play {
 
 #   &write_socket("play", "$rooms", $file);
 
-    $parms{volume} = $config_parms{sound_volume} unless defined $parms{volume};
-    &Win32::Sound::Volume(int 255 * $parms{volume} / 100) if $OS_win and $parms{volume};
-    
-
     no strict 'subs';       # For non-win OS
     if (lc($play_parm) eq 'stop') {
         &Win32::Sound::Stop();
@@ -1929,11 +1926,13 @@ sub play {
         $play_parm = SND_ASYNC; # Do not wait.
     }
 
-    my $file;
+ 
+#   &set_volume($parms{volume});
+    &Play_pre_hooks(%parms);# Created by &add_hooks
 
     my @files = split(/[, ]/, $parms{file});
 #   $play_parm = 0 if @files > 1; # If more than one file, wait.
-    for $file (@files) {
+    for my $file (@files) {
                                 # Check for SystemXYZ or //server or \file or c:\file
         unless ($file =~ /^System/ or $file =~ /^[\\\/]/ or $file =~ /^\S\:/) {
             $file = "$config_parms{sound_dir}/$file";
@@ -1953,7 +1952,6 @@ sub play {
         }
         print "playing file=$file parm=$play_parm\n" if $config_parms{debug} eq 'misc';
 
-        &Play_pre_hooks(%parms);# Created by &add_hooks
 #       system($config_parms{sound_program_prescript}) if $config_parms{sound_program_prescript};
 
         my $i;
@@ -1978,10 +1976,11 @@ sub play {
             sleep 1;
         }
 
-        &Play_post_hooks(%parms); # Created by &add_hooks
 #       system($config_parms{sound_program_postscript}) if $config_parms{sound_program_postscript};
 
     }
+
+    &Play_post_hooks(%parms); # Created by &add_hooks
 
 }
 
@@ -2174,7 +2173,9 @@ sub process_serial_data {
             if ($length == 5 and ($f_code eq 'M' or $f_code eq 'L')) {
                                 # hmmm, this may not be a good idea for non-cm11 users, but
                                 # I don't think non-cm11 interfaces will generate this??
-                my $dim_level = &ControlX10::CM11::dim_level_decode(substr($event_data, 3));
+#               my $dim_level = &ControlX10::CM11::dim_level_decode(substr($event_data, 3)) if $config_parms{cm11_port};
+#               return 1 unless $dim_level;
+                my $dim_level = &x10_dim_level_decode(substr($event_data, 3));
                 $dim_level = ($f_code eq 'M') ? '+' . $dim_level : '-' . $dim_level;
                 print_log "X10: Dim/bright level=$dim_level event=$event_data " if $config_parms{x10_errata} >= 3;
 
@@ -2198,7 +2199,7 @@ sub process_serial_data {
             print "X10: Merged string data=$event_data2\n" if $config_parms{debug} eq 'X10' or $config_parms{x10_errata} >= 3;
                                 # See if it matches as one string
             if (&Serial_Item::serial_items_by_id($event_data2)) {
-                print_log "X10: Event found for merged data=$event_data2\n" if $config_parms{x10_errata} >= 3;
+                print_log "X10: Event found for merged data=$event_data2" if $config_parms{x10_errata} >= 3;
                 push(@serial_data_buffer, $event_data2);
                 return 1;
             }
@@ -2310,7 +2311,12 @@ sub read_code {
     undef @files_changed2;
     my %files_deleted = %file_code_times;
     %noload_files = map {$_, 1} split(',', $config_parms{no_load});
+    my %files_seen;
     for $file (@files_read) {
+        if ($files_seen{$file}++) { # Read first occurance only
+#           print "Warning, duplicate file: $file\n";
+            next;
+        }
         (print "File skipped due to -noload: $file\n"), next if $noload_files{$file};
         $file_path  = "$file_dir/$file";
         $file_path2 = "$file_dir2/$file";
@@ -2319,7 +2325,8 @@ sub read_code {
         delete $files_deleted{$file_path2};
         die "\nError, can not find file $file_path\n" unless -e $file_path;
         $file_time = (stat($file_path))[9];
-        next if $file_code_times{$file_path} and $file_time == $file_code_times{$file_path};  # File has not changed since last call
+                                # File has not changed since last call
+        next if $file_code_times{$file_path} and $file_time == $file_code_times{$file_path}; 
         delete $User_Code{$file_path};
         push(@files_changed, $file_path);
         push(@files_changed2, $file);
@@ -2373,15 +2380,22 @@ sub read_table_files {
         print TABLE_OUT "#\n# Do NOT edit this file.  It was auto-generated from $file.\n#\n";
         print TABLE_OUT "# Category = none\n\n";
         my $format;
+        my %formats_seen;
         while (<TABLE_IN>) {
-            $format = $1 if / *Format = (\S+)/i;
-                                # These code reading subroutines are in mh/lib/read_table.pl
-            require "read_table_$format.pl" if $format;
-
             if (/^\s*#/) {      # comment line
                 print TABLE_OUT $_;
+                next;
             }
-            elsif ($format) {
+            $format = $1 if / *Format *= *(\S+)/i;
+            if ($format) {
+                                # These code reading subroutines are in mh/lib/read_table.pl
+                                # Run the Init function on Reload
+                if(!$formats_seen{$format}++){  
+                    require "read_table_$format.pl" ;
+                    print TABLE_OUT eval "&read_table_init_$format(\$_)";
+                    print "Error in &read_table_$format: $@\n" if $@;
+                }
+
                 chomp;          # Drop newline
                 s/\s*$//;       # Drop end of line blanks
                 print TABLE_OUT eval "&read_table_$format(\$_)";
@@ -2666,7 +2680,7 @@ sub set_global_vars {
                                 # If mh got hung up doing something, lets go to catch up mode
     elsif (!$Time_Start_time and $prev_time < ($time_now - 2)) {
         my $diff = $time_now - $prev_time;
-        print_log "mh paused for $diff seconds";
+        print_log "mh paused for $diff seconds" unless $config_parms{no_log} =~ /pause/;
         $Time_Start_time = $prev_time;
         $Time_Increment = 1;
     }
@@ -2890,7 +2904,8 @@ sub set_global_vars {
             if file_change($config_parms{pronouncable_list_file}) or $Startup;
     }
     # Save object states every 5 minutes, in case mh is aborted without a proper shutdown
-    &object_states_save if $New_Minute and !($Minute % 5);
+#    &object_states_save if $New_Minute and !($Minute % 5);
+    &object_states_save if $New_Minute;
 
 }
 
@@ -3121,9 +3136,7 @@ sub speak {
         }
     }
 
-    $parms{volume} = $config_parms{sound_volume} unless defined $parms{volume};
-    &Win32::Sound::Volume(int 255 * $parms{volume} / 100) if $OS_win and $parms{volume};
-
+#   &set_volume($parms{volume});
     &Speak_pre_hooks(%parms);   # Created by &add_hooks
 
                                 # Lowercase all uppercase text ... 
@@ -3712,11 +3725,35 @@ sub write_user_code {
 }
 
 
+sub x10_dim_level_decode {
+    my ($code) = @_;
+
+    my %table_hcodes = qw(A 0110  B 1110  C 0010  D 1010  E 0001  F 1001  G 0101  H 1101
+                          I 0111  J 1111  K 0011  L 1011  M 0000  N 1000  O 0100  P 1100);
+    my %table_dcodes = qw(1 0110  2 1110  3 0010  4 1010  5 0001  6 1001  7 0101  8 1101
+                          9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
+                          A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
+
+                                # Convert bit string to decimal
+    my $level_b = $table_hcodes{substr($code, 0, 1)} . $table_dcodes{substr($code, 1, 1)};
+    my $level_d = unpack('C', pack('B8', $level_b));
+                                # Varies from 36 to 201, by 11, then to 210 as a max.
+                                # 16 different values.  Round to nearest 5%, max of 95.
+    my $level_p = int(100 * $level_d / 211); # Do not allow 100% ... not a valid state?
+    $level_p = $level_p - ($level_p % 5);
+    print "CM11 debug: dim_code=$code leveld=$level_d level_p=$level_p\n" if $main::config_parms{debug} eq 'X10';
+    return $level_p;
+}
+
+
 __END__
 
 
 #
 # $Log$
+# Revision 2.32  2000/10/22 16:44:57  winter
+# - 2.32 release
+#
 # Revision 2.31  2000/10/13 19:47:57  danal
 # DSC_Alarm.pm support via changes to managed serial startup calls
 #

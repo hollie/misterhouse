@@ -3,7 +3,7 @@
 #  File:
 #     report_weblog
 #
-#  Last emacs update Time-stamp: <2000-09-15 07:46:36 winter>
+#  Last emacs update Time-stamp: <2000-10-10 08:22:05 winter>
 #
 #  Description:
 #     See help text below
@@ -18,7 +18,7 @@
 #     http://www.itknowledge.com/tpj/programs/Issue_14/On_The_Fly_Plots/tally_hourly.pl
 #
 #  Requires Gnuplot, available from:
-#     http://www.geocities.com/SiliconValley/Foothills/6647/index.html
+#     http://www.gnuplot.org
 #
 #  Change log:
 #    07/27/99  Created.  CVS log at bottom.
@@ -304,6 +304,9 @@ sub mail_report {
 }
 #
 # $Log$
+# Revision 1.10  2000/10/22 16:48:28  winter
+# - 2.32 release
+#
 # Revision 1.9  2000/10/01 23:35:25  winter
 # - 2.29 release
 #

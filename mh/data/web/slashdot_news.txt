@@ -1,30 +1,30 @@
-Title: Mini-Robot Available For Wreaking Havoc At Home
-2000-10-08 07:27:49 by timothy  in dept: zoop-zoop-zoop  (toys   63)
+Title: Civil Engineering with Atomic Detonations
+2000-10-22 08:08:40 by michael  in dept: earth-shattering-news  (news   48)
 
-Title: Titanium As Cheap As Aluminum?
-2000-10-08 02:30:06 by timothy  in dept: minitower-case-please  (science   241)
+Title: NHK Plans 50-Year Digital Archive
+2000-10-22 05:39:28 by timothy  in dept: tetsujin.org-is-neat-too  (tv   76)
 
-Title: Time Warner To Change DVD Region Coding System?
-2000-10-07 21:15:16 by Hemos  in dept: maybe-could-be  (tech   327)
+Title: Linus Speaks With c't On Clean Design And ReiserFS
+2000-10-21 23:59:32 by timothy  in dept: Kernelentwickler  (linux   176)
 
-Title: First Transmeta Notebook
-2000-10-07 18:07:26 by CmdrTaco  in dept: getting-less-vaporous-every-day  (tech   120)
+Title: What To Do If Linux Sneaks Onto Your Network
+2000-10-21 21:59:56 by timothy  in dept: what-to-do-if-kidnapped-by-lucy-liu  (linux   384)
 
-Title: Year 2000 Ig-Nobels Released
-2000-10-07 17:42:52 by Hemos  in dept: laugh-till-you-cry  (humor   122)
+Title: Mapping The Net And Hunting Down Evil
+2000-10-21 20:43:54 by CmdrTaco  in dept: my-heart-has-been-darkened-by-the-internet  (Privacy   193)
 
-Title: Skiing Down Everest
-2000-10-07 15:51:33 by michael  in dept: stupid-things-to-do-before-breakfast  (news   112)
+Title: Hong Kong Smart Identity Cards In 2003
+2000-10-21 19:08:37 by timothy  in dept: at-least-china's-not-an-autocratic-dictatorship  (Privacy   134)
 
-Title: Slashnet Forum Chat Log
-2000-10-07 14:19:58 by Hemos  in dept: here's-the-goods  (slashdot   217)
+Title: Amiga, Inc. Announces AmigaOne Spec... Sort Of.
+2000-10-21 18:02:51 by CmdrTaco  in dept: phoenix-wallowing-in-its-grave  (amiga   127)
 
-Title: Planets Without Stars
-2000-10-07 13:18:00 by michael  in dept: excession  (space   124)
+Title: Microsoft's First Ad Targeting Linux
+2000-10-21 17:24:15 by CmdrTaco  in dept: not-bad-considering-linux-doesn't-matter  (microsoft   505)
 
-Title: Turbolinux CEO Sees A One-Distribution Future
-2000-10-07 11:52:49 by timothy  in dept: monocular-vision  (linux   161)
+Title: OS-Independent Web Banking?
+2000-10-21 17:19:01 by Cliff  in dept: the-internet-isn't-all-mac-and-windows-you-know  (news   226)
 
-Title: Time To Re-Evaluate Microsoft's Linux Myths Page?
-2000-10-07 05:19:47 by Cliff  in dept: do-these-still-hold-true-today  (news   399)
+Title: Quake As An Architectural Design Tool
+2000-10-21 13:33:22 by timothy  in dept: now-watch-them-charge-extra-for-this;)-  (quake   193)
 

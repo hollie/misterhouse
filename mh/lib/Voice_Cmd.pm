@@ -48,7 +48,7 @@ sub reset {
     else {
         undef %cmd_num_by_text;
         undef %cmd_by_num;
-#       &remove_voice_cmds;  No need ... only reloading code here
+        &remove_voice_cmds;     # Must reload here, or cmd_by_num gets messed up
     }
 }
 
@@ -260,6 +260,7 @@ sub set {
 
 sub remove_voice_cmds {
 
+    print "Removing voice commands ... ";
     if ($Vmenu_ms) {
         $Vmenu_ms->{Active} = 0;
         my ($vitems_removed, $number);
@@ -578,6 +579,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.25  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.24  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

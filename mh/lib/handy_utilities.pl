@@ -24,6 +24,7 @@ sub Win32::IsWinNT;
 sub Win32::IsWin95;
 sub Win32::GetTickCount;
 sub Win32::DriveInfo::DrivesInUse;
+sub Win32::Sound::Volume;
 #sub Win32::PerfLib;
 
 package handy_utilities;
@@ -89,15 +90,16 @@ sub main::file_tail {
 sub main::file_read {
     my ($file, $scalar) = @_;
     open(LOG, "$file") or print "Warning, could not open file_read file $file: $!\n";
-    binmode LOG;
     
     if (wantarray and !$scalar) {
         my @data = <LOG>;
+        chomp @data;            # Why would we ever want \n here??
         close LOG;
         return @data;
     }
                                 # Read is faster than <> (?)
     else {
+        binmode LOG;            # Don't use this on wantarray ... chomp will only get \n, not \r\n
         my ($data, $buffer);
         while (read(LOG, $buffer, 8*2**10)) {
             $data .= $buffer;
@@ -421,7 +423,7 @@ sub main::read_mh_opts {
     my $private_parms = $Pgm_Path . "/mh.private.ini";
     $private_parms = $ENV{mh_parms} if $ENV{mh_parms};
     $debug = 0 unless $debug;
-    &main::read_opts($ref_parms, $parm_file, $debug, $Pgm_Path . '/..') if -e $parm_file;
+    &main::read_opts($ref_parms, $parm_file, $debug, $Pgm_Path . '/..') if $parm_file and -e $parm_file;
     &main::read_opts($ref_parms, $Pgm_Path . "/mh.ini", $debug, $Pgm_Path . '/..') if $Pgm_Path . "/mh.ini";
     &main::read_opts($ref_parms, $private_parms, $debug, $Pgm_Path . '/..') if -e $private_parms;
 }
@@ -432,7 +434,7 @@ sub main::read_opts {
     $pgm_root = $main::Pgm_Root unless $pgm_root;
                                 # If debug == 0 (instead of undef) this is disabled
     print "Reading config_file $config_file\n" unless defined $debug and $debug == 0;
-    open (CONFIG, "$config_file") or print "\nError, could not read config file $config_file\n";
+    open (CONFIG, "$config_file") or print "\nError, could not read config file: $config_file\n";
     while (<CONFIG>) {
         next if /^ *\#/;
                                 # Allow for multi-line values records
@@ -995,6 +997,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.42  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.41  2000/10/09 02:31:13  winter
 # - 2.30 update
 #

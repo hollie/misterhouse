@@ -11,6 +11,7 @@
 $barcode_data   = new Generic_Item;
 $barcode_mode   = new Generic_Item;
 $barcode_mode  -> set_states('web', 'add inventory', 'delete inventory', 'query inventory', 'clear inventory');
+
 $v_barcode_mode = new Voice_Cmd('Change barcode scan to [web,add inventory,delete inventory,query inventory,clear inventory] mode');
 $v_barcode_mode-> set_info('Controls what you want to do with barcode scans.  Web will create urls, inventory updates a database');
 $v_barcode_mode-> tie_items($barcode_mode);

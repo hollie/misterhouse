@@ -28,6 +28,7 @@
 		<LI><A HREF="#1_14_How_does_mh_read_and_use_t">1.14: How does mh read and use the user code in code_dir</A></LI>
 		<LI><A HREF="#1_15_How_can_I_control_mh_from_a">1.15 How can I control mh from a non-mh web server like Apache?</A></LI>
 		<LI><A HREF="#1_16_Is_there_a_front_end_tool_f">1.16 Is there a front-end tool for defining/editing mh items/events?</A></LI>
+		<LI><A HREF="#1_17_How_can_I_use_Family_Radio">1.17: How can I use Family Radios with MisterHouse?</A></LI>
 	</UL>
 
 	<LI><A HREF="#2_MisterHouse_coding_questions">2: MisterHouse coding questions</A></LI>
@@ -107,7 +108,7 @@ the Serial IO related function would take some work.
 <P>
 On my Celron 400 Mhz computer running Windows 98, using 60 code files with
 6000 lines of code, mh takes 10% the cpu, running at 9 passes per second
-and using about 20 MB of memory. 
+and using about 30 MB of memory. 
 
 </P>
 <P>
@@ -137,6 +138,24 @@ tk_eye.pl code file.
 You can speed up / slow down mh, using more/less cpu, by mh.ini sleep_time
 parm. 
 
+</P>
+<P>
+Here are some memory stats: 
+
+</P>
+<P>
+<PRE>  Linux
+    10 Meg   &lt;- mh -tk 0 mh_control.pl (run just one code file)
+    12 Meg   &lt;- mh -tk 0               (run all the test code)
+    17 Meg   &lt;- mh                     (run all the test code with tk gui on)
+ 
+  Windows
+    18 Meg   &lt;- mh -tk 0 mh_control.pl (run just one code file)
+    20 Meg   &lt;- mh -tk 0               (run all the test code)
+    27 Meg   &lt;- mh                     (run all the test code with tk gui on)
+ 
+   
+</PRE>
 </P>
 <P>
 <HR>
@@ -482,6 +501,12 @@ create another table format, all you need to do is create a
 mh/lib/read_table_xyz.pl member, then set Format=xyz.
 
 </P>
+<P>
+<HR>
+<H2><A NAME="1_17_How_can_I_use_Family_Radio">1.17: How can I use Family Radios with MisterHouse?</A></H2>
+There is seperate FAQ on the FRS topic in
+<a href="faq_frs.html">mh/docs/faq_frs.html</a>
+
 <P>
 <HR>
 <H1><A NAME="2_MisterHouse_coding_questions">2: MisterHouse coding questions</A></H1>
@@ -1036,6 +1061,12 @@ HREF="http://www.sapien.com/PrimalSCRIPT.htm">http://www.sapien.com/PrimalSCRIPT
 
 </P>
 <P>
+Doug likes <CODE>$20</CODE> shareware CodeWhiz: <A
+HREF="http://www.incatec.com">http://www.incatec.com</A> . Colored
+commands, auto indent, auto remark/unremark, line #s, etc.
+
+</P>
+<P>
 <HR>
 <H1><A NAME="6_Misc_questions">6: Misc questions</A></H1>
 <P>
@@ -1072,6 +1103,10 @@ Here is a rough timeline of MisterHouse development:
  - 05/00 Article in The Perl Journal #17
  - 06/00 Mailing list reaches 300 members
  - 06/00 Added support for table item/event input and tie_items/tie_events. 
+ - 08/00 Enable perl -w checks, .jpg and .gif, and Slinke support.
+ - 08/00 Added rpm and tarballs, NetGear router support
+ - 09/00 Added ViaVoiceTTS.pm, Jabber, and Applied Digital cpuxad support
+ - 10/00 Added barcode scanner and MS Agent support
 </PRE>
 </P>
 <P>

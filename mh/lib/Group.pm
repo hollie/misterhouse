@@ -21,6 +21,8 @@ sub add {
     unless ($$self{states}) {
         my $first_item = ${$$self{members}}[0];
         @{$$self{states}} = @{$$first_item{states}} if $first_item and $$first_item{states};
+        @{$$self{states}} = split ',', $main::config_parms{x10_menu_states} if $first_item->isa('X10_Item');
+#       @{$$self{states}} = qw(on off)                                      if $first_item->isa('X10_Appliance');
         print "Group states: @{$$self{states}}\n" if $first_item and $$self{states} and $main::config_parms{debug}; #&?? WES
     }
 }
@@ -48,6 +50,7 @@ sub set {
     for my $ref (@group) {
         if ((ref $ref) !~ /^X10_/ or 
             $hc ne substr($$ref{x10_id}, 1, 1) or
+            substr($$ref{x10_id}, 2, 1) eq '' or # Can not group set a house code
             $$ref{interface} ne 'cm11') {
             undef $hc;
 #            last;
@@ -81,6 +84,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.10  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.9  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

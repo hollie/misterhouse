@@ -1,4 +1,4 @@
-# Category=Internet
+# Category=MisterHouse
 #
 # This code will read incoming data from a socket port and do stuff with it.
 # An example client that talks with this is mh/bin/mhsend

@@ -7,10 +7,9 @@
 #               for Misterhouse, http://www.misterhouse.net
 #               by Bruce Winter and many contributors
 
-# Requires cpuxad, part of the XALIB package by Mark A. Day.  The 
-# ftp server for XALIB has been down for a while, so email me if you 
-# need it.  I also have a patch to cpuxad to allow it to work with 
-# this module.  The cpuxad daemon only runs on Unix/Linux. 
+# Requires cpuxad, part of the XALIB package by Mark A. Day available 
+# here: http://members.home.net/ncherry/common/cpuxad
+# The cpuxad daemon only runs on Unix/Linux. 
  
 # To use this interface, add the following line to your mh.ini file:
 
@@ -24,6 +23,7 @@ package ncpuxa_mh;
 
 
 use ncpuxa;
+use ControlX10::CM11;		# required for dim_level_convert 
 
 my %controlsock;
 my %monitorsock;
@@ -41,6 +41,19 @@ sub send {
 	my $hostport = shift;
 	my $data = shift;
 
+	#Preset dim level for LM14A and Leviton units
+	if (my ($house, $unit, $level) = 
+	    $data =~ /^X([A-P])([0-9A-G]).&P([0-9]+)/) {
+		$house = unpack('C', $house) - 65; #Get code from ASCII
+		$unit = int($unit) - 1 if $unit =~ /[1-9]/;
+		$unit = unpack('C', $unit) - 56 if $unit =~ /[A-G]/;
+		$level = int($level) - 1;
+		ncpuxa::send_x10_leviton_level($controlsock{$hostport},
+			$house, $unit, $level);
+		return;
+	}
+
+	#Standard X10
 	if (my ($house, $unit, $func) = $data =~ /^X([A-P])([0-9A-G]).(.*)/) {
 		my $repeat = 1;
 		$house = unpack('C', $house) - 65; #Get code from ASCII
@@ -58,6 +71,7 @@ sub send {
 			#Brighten n-times
 			$func = 21, $repeat = int($1/6.5), last if $func =~ /^\+([0-9]*)/;
 
+			
 
 			#else (if it falls through to here...
 			print "ncpuxa_mh::send X10 data $data unimplemented\n";

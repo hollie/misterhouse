@@ -8,6 +8,7 @@ $VERSION = 0.01;
 
 # 09/03/00 :: winter Make ParseDate optional.  It is overkill and I could not get it to
 #                    compile in perl2exe.  It gave runaway comment errors :(
+# 10/12/00 :: winter Change time_zone check to defined, to allow for time_zone 0 
 
 use POSIX;
 
@@ -26,9 +27,9 @@ sub sun_time
    my %params = @_;
 
    my $type = $params{type} || 'rise';
-   my $latitude = $params{latitude} || 38.74274;
-   my $longitude = $params{longitude} || -90.560143;
-   my $time_zone = $params{time_zone} || -6;
+   my $latitude  = (defined $params{latitude})  ? $params{latitude}  : 38.74274;
+   my $longitude = (defined $params{longitude}) ? $params{longitude} :-90.560143;
+   my $time_zone = (defined $params{time_zone}) ? $params{time_zone} : -6;
 
    my $time;
    if ($params{date}) {

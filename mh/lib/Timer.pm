@@ -65,7 +65,7 @@ sub restore_string {
     return if !$expire_time or $expire_time < &main::get_tickcount;
 
     my $restore_string  = "set $self->{object_name} $self->{period} " if $self->{period};
-    $restore_string .= ", qq|$self->{action}|" if $self->{action};
+    $restore_string .= ", q|$self->{action}|" if $self->{action};
     $restore_string .= ", $self->{repeat}"     if $self->{repeat};
     $restore_string .= ";  ";
     $restore_string .= $self->{object_name} . "->{expire_time} = $expire_time;" if $expire_time;
@@ -269,6 +269,9 @@ sub inactive {
 
 #
 # $Log$
+# Revision 1.17  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.16  2000/09/09 21:19:11  winter
 # - 2.28 release
 #

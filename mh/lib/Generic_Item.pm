@@ -164,9 +164,11 @@ sub reset_states {
     my @items_with_more_states;
     while ($ref = shift @states_from_previous_pass) {
         my $state = shift @{$ref->{state_next_pass}};
-        $ref->{state}     = $state;
-        $ref->{said}      = $state;
-        $ref->{state_now} = $state;
+        $ref->{state_prev}  = $ref->{state};
+        $ref->{change_pass} = $main::Loop_Count;
+        $ref->{state}       = $state;
+        $ref->{said}        = $state;
+        $ref->{state_now}   = $state;
         push @reset_states, $ref;
         push @items_with_more_states, $ref if @{$ref->{state_next_pass}};
     }
@@ -222,6 +224,9 @@ sub untie_event {
 
 #
 # $Log$
+# Revision 1.10  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.9  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

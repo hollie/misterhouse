@@ -96,9 +96,9 @@ DDN_NMBR= 9932562
 #I03/22 20:00 PAY PHONE
 
     if ($caller = $name_by_number{$number}) {
-        if ($caller =~ /\.wav$/) {
-            $caller = "phone_call.wav,$caller,phone_call.wav,$caller";  # Prefix 'phone call'
-        }
+#        if ($caller =~ /\.wav$/) {
+#            $caller = "phone_call.wav,$caller,phone_call.wav,$caller";  # Prefix 'phone call'
+#       }
     }
     elsif ($last eq "Private") {
         $caller = "a blocked phone number";
@@ -205,6 +205,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.17  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.16  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

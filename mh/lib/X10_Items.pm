@@ -51,6 +51,7 @@ sub new {
         $self-> add ($id . '+85', '+85');
         $self-> add ($id . '+90', '+90');
         $self-> add ($id . '+95', '+95');
+        $self-> add ($id . '+100', '+100');
         $self-> add ($id . '-5',  '-5');
         $self-> add ($id . '-10', '-10');
         $self-> add ($id . '-15', '-15');
@@ -70,6 +71,7 @@ sub new {
         $self-> add ($id . '-85', '-85');
         $self-> add ($id . '-90', '-90');
         $self-> add ($id . '-95', '-95');
+        $self-> add ($id . '-100', '-100');
     }
                                 # Setup unit-command  codes:  e.g. XA1AJ, XA1AK, XA1+20
                                 # Note: The 0%->100% states are handled directly in Serial_Item.pm
@@ -97,6 +99,7 @@ sub new {
         $self-> add ($id . $hc . '+85', '+85');
         $self-> add ($id . $hc . '+90', '+90');
         $self-> add ($id . $hc . '+95', '+95');
+        $self-> add ($id . $hc . '+100', '+100');
         $self-> add ($id . $hc . '-5',  '-5');
         $self-> add ($id . $hc . '-10', '-10');
         $self-> add ($id . $hc . '-15', '-15');
@@ -116,9 +119,10 @@ sub new {
         $self-> add ($id . $hc . '-85', '-85');
         $self-> add ($id . $hc . '-90', '-90');
         $self-> add ($id . $hc . '-95', '-95');
+        $self-> add ($id . $hc . '-100', '-100');
 
                                 # These are added because perl interprets +10 the
-                                # same as 10.  Ideally people '+10'
+                                # same as 10.  Ideally people would use '+10'
         $self-> add ($id . $hc . '+5',  5); # Allow for numeric (5 instead of '+5');
         $self-> add ($id . $hc . '+10', 10);
         $self-> add ($id . $hc . '+15', 15);
@@ -138,6 +142,7 @@ sub new {
         $self-> add ($id . $hc . '+85', 85);
         $self-> add ($id . $hc . '+90', 90);
         $self-> add ($id . $hc . '+95', 95);
+        $self-> add ($id . $hc . '+100', 100);
 
         $self-> add ($id . $hc . 'STATUS', 'status');
         $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
@@ -580,6 +585,9 @@ sub zone_delay
 
 
 # $Log$
+# Revision 1.12  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.11  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

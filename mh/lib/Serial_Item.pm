@@ -36,7 +36,8 @@ sub new {
 sub add {
     my ($self, $id, $state) = @_;
                                 # Allow for Serial_Item's without states
-    $state = 'default_state' unless defined $state;
+#   $state = 'default_state' unless defined $state;
+    $state = $id  unless defined $state;
 
     $$self{state_by_id}{$id} = $state if $id;
     $$self{id_by_state}{$state} = $id;
@@ -189,10 +190,6 @@ sub set {
                                 # Allow for Serial_Item's without states
     $state = 'default_state' unless defined $state; 
 
-    &Generic_Item::set_states_for_next_pass($self, $state);
-
-    return unless %main::Serial_Ports;
-
     my $serial_id;
     if (defined $self->{id_by_state}{$state}) {
         $serial_id = $self->{id_by_state}{$state};
@@ -201,6 +198,22 @@ sub set {
         $serial_id = $state;
     }
     my $serial_data = $serial_id;
+
+                                # Avoid sending the same X10 code on consecutive passes.
+                                # It is pretty easy to create a loop with
+                                # tied items, groups, house codes, etc.  Just ask Bill S. :)
+#   print "db state=$state, sp=$self->{state_prev},  loop=$main::Loop_Count, lcp==$self->{change_pass}\n";
+    if ($serial_id =~ /^X/ and $state eq $self->{state_prev} and 
+        $self->{change_pass} >= ($main::Loop_Count - 1)) {
+        my $item_name = $self->{object_name};
+        print "X10 item set skipped on consecutive pass.  item=$item_name state=$state id=$serial_id\n";
+        return;
+    }
+
+    &Generic_Item::set_states_for_next_pass($self, $state);
+
+    return unless %main::Serial_Ports;
+
 
     my $port_name = $self->{port_name};
 
@@ -327,7 +340,7 @@ sub set {
 
                                 # Check for X10 All-on All-off house codes
     if ($serial_data =~ /^X(\S)([OP])$/) {
-        print "X10: mh set House code $1 set to $2\n" if $main::config_parms{debug} eq 'X10';
+        print "db l=$main::Loop_Count X10: mh set House code $1 set to $2\n" if $main::config_parms{debug} eq 'X10';
         my $state = ($2 eq 'O') ? 'on' : 'off';
         &X10_Item::set_by_housecode($1, $state);
     }
@@ -361,9 +374,6 @@ sub set_interface {
         if ($main::Serial_Ports{cm11}{object}) {
             $interface = 'cm11';
         }
-        elsif ($main::Serial_Ports{cm17}{object}) {
-            $interface = 'cm17';
-        }
         elsif ($main::Serial_Ports{Homevision}{object}) {
             $interface = 'homevision';
         }
@@ -379,6 +389,9 @@ sub set_interface {
         elsif ($main::config_parms{ncpuxa_port}) {
             $interface = 'ncpuxa';
         }
+        elsif ($main::Serial_Ports{cm17}{object}) {
+            $interface = 'cm17';
+        }
 
     }
     $$self{interface} = lc($interface) if $interface;
@@ -387,6 +400,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.42  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.41  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

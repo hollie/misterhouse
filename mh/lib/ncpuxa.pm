@@ -4,10 +4,9 @@
 
 # By David Norwood, dnorwood2@yahoo.com
 
-# Requires cpuxad, part of the XALIB package by Mark A. Day.  The
-# ftp server for XALIB has been down for a while, so email me if you
-# need it.  I also have a patch to cpuxad to allow it to work with
-# this module.  The cpuxad daemon only runs on Unix/Linux.
+# Requires cpuxad, part of the XALIB package by Mark A. Day available 
+# here: http://members.home.net/ncherry/common/cpuxad
+# The cpuxad daemon only runs on Unix/Linux.
 
 
 package ncpuxa;
@@ -88,7 +87,8 @@ sub check_read_error {
 	my $i = shift;
 
 	$i = -1 if (! defined($i));
-	printf("ncpuxa read failed: error %d, %d\n", $ret, $i) if $i != 0;
+	#printf("ncpuxa read failed: error %d, %d\n", $ret, $i) if $i != 0;
+	$i != 0;
 }
 
 sub check_write_error {

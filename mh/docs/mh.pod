@@ -261,11 +261,12 @@ module prints all events that DSC logs to the even buffer.  These events include
 arms/disarms/alarms, user code(s) that performed action(s), installer access, etc.
 DSC does not log individual zone open/close nor 'entry chime' events.
 See the mh/lib/DSC_Alarm.pm for further information.
-See also the DCS_Alarm item below.
+See also the DSC_Alarm item below.
 
 The CPU-XA, Ocelot, and Leopard controlers from Applied Digital Inc
 (http://www.appdig.com/adicon.html ) are supported thru
-network calls to the cpuxad deamon, part of the XALIB package.  
+network calls to the cpuxad deamon, part of the XALIB package, 
+available at http://members.home.net/ncherry/common/cpuxad
 
 There is a $30 (assembled) pic base IR receiver you can order from the
 Netherlands ($3 shipping):
@@ -2984,13 +2985,15 @@ SET, SET_VAR, and RUN can use an optional response field to decide what html wil
    RUN:h_response?command
 
   Where h_response can be one of the following:
-   &function:      The results of &function will be returned
-   &function(arg): The results of &function(arg) will be returned
-   last_response:  The last displayed or spoken text. 
-   last_displayed: The last displayed text will be returned
-   last_spoken:    The last spoken item will be returned
-   filexyz.html:   The contents of filexyz.html will be returned
-   string:         string will be returned
+   &function       The results of &function will be returned
+   &function(arg)  The results of &function(arg) will be returned
+   last_response   The last displayed or spoken text. 
+   last_displayed  The last displayed text will be returned
+   last_spoken     The last spoken item will be returned
+   filexyz.html    The contents of filexyz.html will be returned
+   string          string will be returned
+   Referer         The browser will be re-directed back to the calling page
+   http://url      The browser will be re-directed to url
    blank:          A list of recently spoken text will be returned
 
 Here are some examples demonstrating these options:
@@ -3017,6 +3020,16 @@ Here are some examples demonstrating these options:
 
   <FORM ACTION="SET_VAR:barcode_search.html"  target='speech'>
   <p>Scan data into here: <INPUT SIZE=60 NAME="$barcode_scan" value=""></FORM>
+
+
+ This will redirect the browser back to the calling page:
+
+  <a HREF="http://misterhouse.net:8080/SET:Referer?$camera_light&on">Light on</a>
+
+ This will redirect the browser to misterhouse.net
+
+  <a HREF="http://misterhouse.net:8080/SET:http://misterhouse.net?$camera_light&off">Light off</a>
+
 
 You can also use RUN:h_response without a command.
 For example, if you want to get a directory listing, sorted by date (recent on top):
@@ -3267,6 +3280,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.30  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
 # Revision 1.29  2000/10/13 19:56:02  danal
 # DSC_Alarm items documented
 #

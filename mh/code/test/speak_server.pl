@@ -61,7 +61,7 @@ if (my $data = said $speak_server) {
                                 # Check to see if this was an internet light request
         if ($data =~ /internet_light=([^\/ ]+)/i) {
             $msg = "Internet light set to '$1'";
-            set_with_timer $internet_light $1, 60 unless $Save{sleeping_parents};
+#           set_with_timer $internet_light $1, 60 unless $Save{sleeping_parents};
         }
                                 # If textarea name="ELIZA", then call up the psychologist
                                 # using the specified rule. 
