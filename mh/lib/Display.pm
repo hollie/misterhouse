@@ -184,7 +184,7 @@ sub display {
 
     $$self{MW}->repeat(1000, sub {return unless $$self{auto_quit}; 
                                   $$self{time}--;  
-                                  $l->configure(textvariable => \$$self{time}); # Shouldn't have to do this
+                                  $l->configure(-textvariable => \$$self{time}); # Shouldn't have to do this
 #                                 print "$$self{time} mw=$$self{MW}\n";
                                   $self->destroy unless $$self{time} > 0; 
 #                                 $b->configure(-text => "Quit (or ESC) auto-quit in $$self{time} seconds (F1 to toggle auto-quit)");; 
@@ -287,6 +287,9 @@ while (1) {
 
 #
 # $Log$
+# Revision 1.25  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.24  2002/12/24 03:05:08  winter
 # - 2.75 release
 #

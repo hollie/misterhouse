@@ -1,4 +1,5 @@
 # Category = MisterHouse
+# Position = 1
 
 #@ Monitors trigger code, used by code like tv_grid and the web alarm page,
 #@ that specifies events that trigger actions.  View, add, modify, or
@@ -16,8 +17,8 @@ $prev_triggers = &file_read($trigger_file) if $Reload and -e $trigger_file;
 $prev_script   = &file_read($script_file)  if $Reload and -e $script_file;
 
 &Exit_add_hook(\&triggers_save) if $Reload;
-&triggers_save      if new_minute 5;
 &triggers_read      if $Startup;
+&triggers_save      if new_minute 5;
 &trigger_write_code if $trigger_write_code_flag;
 
 
@@ -60,7 +61,7 @@ sub trigger_write_code {
     my $script;
     foreach my $name (trigger_list()) {
         my ($trigger, $code, $type, $triggered) = trigger_get($name);
-        
+        next unless $trigger; 
         $script .= "\n# name=$name type=$type\n";
         $script .= "if (($trigger) and &trigger_active('$name')) {\n";
         $script .= "    &trigger_expire('$name');\n";
@@ -89,6 +90,7 @@ sub triggers_save {
     $data1 = $data2 = '';
     foreach my $name (trigger_list()) {
         my ($trigger, $code, $type, $triggered) = trigger_get($name);
+        next unless $trigger; 
         $data  = "name=$name type=$type triggered=$triggered\n";
         $data .=  $trigger . "\n";
         $data .=  $code . ";\n";
@@ -131,18 +133,19 @@ sub triggers_save {
 sub trigger_set {
     my ($trigger, $code, $type, $name, $replace, $triggered) = @_;
 
-    print "trigger: trigger=$trigger code=$code name=$name\n" if $Debug{'trigger'};
+    print "trigger_set: trigger=$trigger code=$code name=$name\n" if $Debug{'trigger'};
     return unless $trigger and $code; 
 
                                 # Find a uniq name    
-    if ($triggers{$name} and $replace) {
+    if (exists $triggers{$name} and $replace) {
         print_log "trigger $name already exists, modifying";
     }
     else {
         $name = time_date_stamp(12) unless $name;
-        if ($triggers{$name}) {
+        if (exists $triggers{$name}) {
             my $i = 2;
-            while ($triggers{"$name $i"}) { $i++; }
+            while (exists $triggers{"$name $i"}) { $i++; }
+            print_log "trigger $name already exists, adding '$i' to name";
             $name = "$name $i";
         }
     }
@@ -160,11 +163,14 @@ sub trigger_set {
 
 sub trigger_get {
     my $name = shift;
+    return 0 unless exists $triggers{$name};
+    return 1 unless wantarray;
     return $triggers{$name}{trigger}, $triggers{$name}{code}, $triggers{$name}{type}, $triggers{$name}{triggered};
 }
 
 sub trigger_delete {
     my $name = shift;
+    return unless exists $triggers{$name};
     delete $triggers{$name};
     $trigger_write_code_flag++;
     return;
@@ -173,6 +179,7 @@ sub trigger_delete {
 sub trigger_copy {
     my $name = shift;
     my $name2 = "$name 2";
+    return unless exists $triggers{$name};
     if (my ($r, $i) = $name =~ /(.+) (\d+)$/) {
         $name2 = "$r " . ++$i;
     }
@@ -185,6 +192,7 @@ sub trigger_copy {
 
 sub trigger_rename {
     my ($name1, $name2) = @_;
+    return unless exists $triggers{$name1};
     $triggers{$name2}{trigger}   = $triggers{$name1}{trigger};
     $triggers{$name2}{code}      = $triggers{$name1}{code};
     $triggers{$name2}{type}      = $triggers{$name1}{type};
@@ -201,18 +209,19 @@ sub trigger_list {
 sub trigger_active {
     my $name = shift;
 #   print "db n=$name t=$triggers{$name}{type} e=!$triggers{$name}{triggered}\n";
-    return ($triggers{$name}{type} eq 'NoExpire' or $triggers{$name}{type} eq 'OneShot');
+    return (exists $triggers{$name} and 
+        ($triggers{$name}{type} eq 'NoExpire' or $triggers{$name}{type} eq 'OneShot'));
 }
 
 sub trigger_expired {
     my $name = shift; 
-    return ($triggers{$name}{type} eq 'Expired');
+    return (exists $triggers{$name} and $triggers{$name}{type} eq 'Expired');
 }
 
 sub trigger_expire {
     my $name = shift; 
     $triggers{$name}{triggered} = $Time;
-    return unless $triggers{$name}{type} eq 'OneShot';
+    return unless exists $triggers{$name} and $triggers{$name}{type} eq 'OneShot';
 #   print "db setting name=$name expire_time=$Time\n";
     $triggers{$name}{type}      = 'Expired';
     return;

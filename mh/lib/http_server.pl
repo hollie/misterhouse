@@ -249,7 +249,8 @@ sub http_process_request {
         return;
     }
 
-    logit "$config_parms{data_dir}/logs/server_http.$Year_Month_Now.log",  "$Socket_Ports{http}{client_ip_address} $get_req $get_arg";
+    logit "$config_parms{data_dir}/logs/server_http.$Year_Month_Now.log",  "$Socket_Ports{http}{client_ip_address} $get_req $get_arg" 
+       unless $config_parms{no_log} =~ /http_local/ and &is_local_address();
 
     $get_arg =~ tr/\+/ /;       # translate + back to spaces (e.g. code search tk widget)
                                 # Real + will be in %## form (e.g. /SET;&html_list(X10_Item)?$test_house2?%2B15)
@@ -277,7 +278,8 @@ sub http_process_request {
             my $html = &html_authorized;
             $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
             $html .= &html_password('')  . '<br>';
-            print $socket &html_page(undef, $html, undef, undef, undef);
+	    print "dbx1 tplr\n";
+            print $socket &html_page(undef, $html, undef, undef, undef, undef);
         }
         else {
             my $html = &html_authorized;
@@ -551,7 +553,7 @@ sub html_password {
     $menu = $config_parms{password_menu} unless $menu;
     my $html;
     if ($menu eq 'html') {
-        $html  = qq[<BODY onLoad="self.focus();document.pw.password.focus()">\n];
+        $html  = qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n];
 #       $html .= qq[<BASE TARGET='_top'>\n];
         $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n];
 #       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
@@ -915,14 +917,15 @@ sub html_last_response {
             $script =~ s/<!-- *speak_text *-->/$last_response/;
         }
     }
-    elsif ($Last_Response eq 'display') {
-        $last_response =~ s/\n/\n<br>/g; # Add breaks on newlines
-    }
     elsif ($Last_Response eq 'print_log') {
         ($last_response, $style) = &html_print_log;
     }
     elsif (!$last_response) {
         $last_response = "<br><b>No response resulted from the last command</b>";
+    }
+#   elsif ($Last_Response eq 'display') {
+    else {
+        $last_response =~ s/\n/\n<br>/g; # Add breaks on newlines
     }
 
     $last_response = substr $last_response, 0, $length if $length;
@@ -1161,6 +1164,7 @@ sub html_file {
                                 # Check if authorized
         my $user_required = lc $1 if $code =~ /^# *authority: *(\S+) *$/smi;
         $file =~ s/.*\///;      # Drop path to file
+	
         $user_required = $Password_Allow{$file} if $Password_Allow{$file};
 
         unless (&authority_check($user_required)) {
@@ -1386,7 +1390,11 @@ eof
 #Cache-Control: max-age=1000000
 
     my $html;
-    $html = $script . "\n" if $script;
+    if ($script) {
+      print "dbx1 s=$script\n\n";
+       $script = qq[<SCRIPT LANGUAGE="JavaScript">$script></SCRIPT>\n] unless $script =~ / script /i;
+       $html = $script . "\n";
+    }
 $html .= "<HTML>
 <HEAD>
 $style
@@ -2731,6 +2739,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.83  2003/11/23 20:26:02  winter
+#  - 2.84 release
+#
 # Revision 1.82  2003/09/02 02:48:46  winter
 #  - 2.83 release
 #

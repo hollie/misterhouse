@@ -85,6 +85,9 @@ sub set {
 sub get_object_name {
     return $_[0]->{object_name};
 }
+sub set_by {
+    $_[0]->{set_by} = $_[1];
+}
 sub get_set_by {
     return $_[0]->{set_by};
 }
@@ -266,7 +269,8 @@ sub set_with_timer {
                                 # Reuse timer for this object if it exists
     $$self{timer} = &Timer::new() unless $$self{timer};
     my $object = $self->{object_name};
-    my $action = "set $object '$state_change'";
+#   my $action = "set $object '$state_change'";
+    my $action = "set $object '$state_change', $object";  # Set set_by to  itself??
 #   my $action = "&X10_Items::set($object, '$state_change')";
 #   print "db Setting x10 timer $x10_timer: self=$self time=$time action=$action\n";
 #   $x10_timer->set($time, $action);
@@ -582,6 +586,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.30  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.29  2003/09/02 02:48:46  winter
 #  - 2.83 release
 #

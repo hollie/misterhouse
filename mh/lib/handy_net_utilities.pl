@@ -214,7 +214,11 @@ sub main::net_ftp {
     my $type        = $parms{type};
     my $passive     = $parms{passive};
     my $timeout     = $parms{timeout};
+
+    $timeout  = $main::config_parms{net_ftp_timeout} unless $timeout;
+
     $timeout = 20 unless $timeout;
+
 
     $server   = $main::config_parms{net_www_server} unless $server;
     $user     = $main::config_parms{net_www_user} unless $user;
@@ -580,17 +584,19 @@ sub main::net_im_signon {
     $port = 1234                                       unless $port;  # This is the default
     my $buddies  = $main::config_parms{net_aim_buddies};
 
-    print "Logging onto AIM with name=$name ... \n";
+    my $timeout = 10 unless $main::config_parms{net_aim_timeout};
+    print "Logging onto AIM with name=$name (timeout=$timeout) ... \n";
 
     eval 'use Net::AOLIM';
     if ($@) {
         print "Net::AOLIM eval error: $@\n";
         return;
     }
+
     $aim_connection = Net::AOLIM->new("username" => $name, 
                                       "password" => $password,
                                       "port" => $port,
-                                      'login_timeout' => 10,
+                                      'login_timeout' => $timeout,
                                       "callback" => \&aolim::callback,
                                       "allow_srv_settings" => 0 );
     $aim_connection -> add_buddies("friends", $name);
@@ -751,6 +757,7 @@ sub main::net_mail_send_old {
 
     use Net::SMTP;
     print "Logging into mail server $server to send msg to $to\n";
+
     unless ($smtp = Net::SMTP->new($server, Timeout => 10, Debug => $parms{debug})) {
         print "Unable to log into mail server $server: $@\n";
         return;
@@ -765,6 +772,7 @@ sub main::net_mail_send_old {
 sub main::net_mail_send {
     my %parms = @_;
     my ($from, $to, $subject, $text, $server, $port, $smtp, $account, $mime, $baseref, $file, $filename);
+    my ($smtpusername, $smtppassword, $smtpencrypt );
 
     $server  = $parms{server};
     $port    = $parms{port};
@@ -777,6 +785,9 @@ sub main::net_mail_send {
     $text    = $parms{text};
     $file    = $parms{file};
     $filename= $parms{filename};
+    $smtpusername= $parms{smtpusername};
+    $smtppassword= $parms{smtppassword};
+    $smtpencrypt= $parms{smtpencrypt};
 
     $account = $main::config_parms{net_mail_send_account}         unless $account;
     $server  = $main::config_parms{"net_mail_${account}_server_send"}       unless $server;
@@ -788,6 +799,13 @@ sub main::net_mail_send {
     $to      = $main::config_parms{"net_mail_${account}_address"} unless $to;
     $subject = "Email from Mister House"                          unless $subject;
     $baseref = 'localhost'                                        unless $baseref;
+
+    my $timeout = 20 unless $main::config_parms{"net_mail_${account}_server_send_timeout"};
+
+    $smtpusername= $main::config_parms{"net_mail_${account}_user"} unless $smtpusername;
+    $smtppassword= $main::config_parms{"net_mail_${account}_password"} unless $smtppassword;
+    $smtpencrypt= $main::config_parms{"net_mail_${account}_password_encrypt"} unless $smtpencrypt;
+    $smtpencrypt= "PLAIN" unless $smtpencrypt;
 
                                 # Allow for multiple recepients
     if ($to =~ /[,;]/) {
@@ -874,24 +892,30 @@ sub main::net_mail_send {
                                        To => $to);
         }
         
-        
         my $method = $main::config_parms{net_mail_send_method};
         $method = 'smtp' if !$method and $^O eq 'MSWin32';
         print "  - MIME email sent with net_mail_send_method $method\n";
         if ($method eq 'smtp') {
-          MIME::Lite->send($method, $server, Timeout => 20, Port => $port);
+          MIME::Lite->send($method, $server, Timeout => $timeout, Port => $port);
         }
         elsif ($method) {
           MIME::Lite->send('sendmail', $method);
         }
-        $message->send($server, Timeout => 20);
+        $message->send($server, Timeout => $timeout);
     }
     else {
-        use Net::SMTP;
-        unless ($smtp = Net::SMTP->new($server, Timeout => 10, Port => $port, Debug => $parms{debug})) {
-            print "Unable to log into mail server $server $port: $@\n";
-            return;
+        use Net::SMTP_auth;
+	use Net::SMTP;
+	use Authen::SASL;
+
+        unless ($smtp = Net::SMTP_auth->new($server, Timeout => $timeout, Port => $port, Debug => $parms{debug})) {
+            print "Unable to Authenticate on mail server $server $port: $@\n";
+	    return;
         }
+	print 'Authenticating SMTP using encryption ' , $smtpencrypt , " for username ", $smtpusername, "\n" if $parms{debug};
+				# set SMTP username and password if we have them
+	$smtp->auth($smtpencrypt, $smtpusername, $smtppassword) if ($smtpusername and $smtppassword); 
+
         $smtp->mail($from) if $from;
         $smtp->to($to);
         $smtp->data("Subject: $subject\n", "To: $to\n", "From: $from\n\n", $text);
@@ -902,34 +926,43 @@ sub main::net_mail_send {
 
 sub main::net_mail_login {
     my %parms = @_;
-    my ($user, $password, $server, $port, $pop, $account);
+    my ($user, $password, $server, $port, $pop, $account, $ping);
 
     $user     = $parms{user};
     $password = $parms{password};
     $server   = $parms{server};
     $port     = $parms{port};
+    $ping    = $parms{ping};
     $account  = ($parms{account}) ? "net_mail_" . $parms{account} : "net_mail";
     $user     = $main::config_parms{$account . "_user"} unless $user;
     $password = $main::config_parms{$account . "_password"} unless $password;
     $server   = $main::config_parms{$account . "_server"} unless $server;
     $port     = $main::config_parms{$account . "_server_port"} unless $port;
     $port     = 110 unless $port;
+    $ping     = $main::config_parms{$account . "_server_ping"} unless $ping;
+    $ping     = 'on' unless $ping;
 
-    print "net_mail_read error: mh.ini ${account}_user parm is missing\n" unless $user;
-    print "net_mail_read error: mh.ini ${account}_password parm is missing\n" unless $password;
-    print "net_mail_read error: mh.ini ${account}_server parm is missing\n" unless $server;
+    print "net_mail_login error: mh.ini ${account}_user parm is missing\n" unless $user;
+    print "net_mail_login error: mh.ini ${account}_password parm is missing\n" unless $password;
+    print "net_mail_login error: mh.ini ${account}_server parm is missing\n" unless $server;
 
     return unless $server and $user and $password;
 
                                 # This will time out in 1-2 seconds, -vs- 30 seconds for pop login
-    unless (&main::net_ping($server)) {
+#   print "Server ping test set to ", $ping , "\n" ;
+    if  ( lc $ping eq 'on' ) {
+      unless ( &main::net_ping($server))  {
         print "Can not ping mail server: $server\n";
+        print " email check aborted\n";
         return;
+      }
     }
 
+    my $timeout = 20 unless $main::config_parms{$account . "_timeout"};
+
     use Net::POP3;
-#   print "Logging into $server\n";
-    unless ($pop = Net::POP3->new($server, Timeout => 10, Port => $port, Debug => $parms{debug})) {
+    print "Logging into $server\n";
+    unless ($pop = Net::POP3->new($server, Timeout => $timeout, Port => $port, Debug => $parms{debug})) {
         print "Can not open connection to $server $port: $@\n";
         return;
     }
@@ -1065,15 +1098,16 @@ sub main::net_mail_read {
     $parms{first}  = 1             unless $parms{first};
     ($parms{last}) = $pop->popstat unless $parms{last};
 
-    my @msgdata;
-    foreach my $msgnum ($parms{first} .. $parms{last}) {
-        print "getting msg $msgnum\n";
-        my $msg_ptr = $pop->get($msgnum);
-        $msgdata[$msgnum] = $msg_ptr;
-#       print "msg=@{$msgdata[$msgnum]}\n";
-    }
+    my @msgs = $parms{first} .. $parms{last};
+    @msgs = split /[, ]/, $parms{msgnum} if $parms{msgnum};
 
-    return \@msgdata;
+    my @msgdata;
+    for my $msgnum (@msgs) {
+        print "net_mail_read reading msg $msgnum\n";
+        my $msg_ptr = $pop->get($msgnum);
+        push @msgdata, "@{$msg_ptr}";
+    }
+    return @msgdata;
 }
 
                                 # Dangerous method here!
@@ -1097,10 +1131,22 @@ sub main::net_ping {
     my ($host, $protocol) = @_;
     use Net::Ping;
                                 # icmp requires root
-    $protocol = $main::config_parms{ping_protocol};
+    $protocol = $main::config_parms{ping_protocol} || $main::config_parms{net_ping_protocol};
     return 1 if $protocol eq 'none';
     $protocol = ($> ? 'tcp' : 'icmp') unless $protocol;
-    my $p = Net::Ping->new($protocol);
+
+    my $p;
+    my $timeout = $main::config_parms{ping_timeout} || $main::config_parms{net_ping_timeout};
+    if (defined $timeout) {
+      # use the user-defined timeout
+      print "Using a timeout of $timeout seconds for Net::Ping\n";
+      $p = Net::Ping->new($protocol,$timeout);
+    } else {
+      # use the default timeout of Net::Ping (which is 5 seconds)
+      print "Using Net::Ping's default timeout\n";
+      $p = Net::Ping->new($protocol);
+    }
+
     return $p->ping($host);
 }
 
@@ -1108,6 +1154,14 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.52  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
+#
+#  Mod by Pete Flaherty for Autenticated SMTP 09/12/03
+#  with lots of great help from Ross Towbin
+#  Requires Net:SMTP_auth , Authen::SASL
+#
 # Revision 1.51  2003/09/02 02:48:46  winter
 #  - 2.83 release
 #

@@ -2,13 +2,28 @@
 
 #@ This deals with logging onto the net periodically/automatically
 
-
                                 # Get net data periodically
 if (time_cron('58 9,16 * * 0,6') or
     time_cron('15 6,17 * * 1-5')) {
     run_voice_cmd 'Get internet data';
 }
 
+if ($Startup or $Reload)
+{
+	
+#       $Flags{internet_data_cmds}{'Send ip address to the web page'}++;     # From internet_ip_update
+#       $Flags{internet_data_cmds}{'Send ip address to the web servers'}++;  # From internet_ip_update
+
+        $Flags{internet_data_cmds}{'Set the clock via the internet'}++;      # From time_info.pl
+        $Flags{internet_data_cmds}{'Get internet weather data'}++;           # From internet_data
+        $Flags{internet_data_cmds}{'Get the top 10 list'}++;                 # From internet_data
+#       $Flags{internet_data_cmds}{'Get tv grid data for today'}++;          # From tv_grid.pl
+        $Flags{internet_data_cmds}{'Get tv grid data for the next 2 weeks'}++;  # From tv_grid.pl
+#       $Flags{internet_data_cmds}{'Update stock quotes'}++;                 # From stock.pl ... do this with triggers now
+#       $Flags{internet_data_cmds}{'Check for new Ceiva photos'}++;          # From ceiva.pl
+        $Flags{internet_data_cmds}{'Update the daily comic strips'}++;       # From comics_dailystrip.pl
+        $Flags{internet_data_cmds}{'Get on this day'}++;                     # new_onthisday.pl
+}
 
                                 # This really needs to be forked, as it can take a while, and mh will hang!
 $timer_net_connect = new Timer;
@@ -26,19 +41,9 @@ if (said  $v_get_internet_data) {
         set $timer_net_connect 40, "run_voice_cmd 'Get internet data'";
     }
     else {
-#       run_voice_cmd 'Send ip address to the web page';     # From internet_ip_update
-#       run_voice_cmd 'Send ip address to the web servers';  # From internet_ip_update
-
-        run_voice_cmd 'Set the clock via the internet';      # From time_info.pl
-        run_voice_cmd 'Get internet weather data';           # From internet_data
-        run_voice_cmd 'Get the top 10 list';                 # From internet_data
-#       run_voice_cmd 'Get tv grid data for today';          # From tv_grid.pl
-        run_voice_cmd 'Get tv grid data for the next 2 weeks';  # From tv_grid.pl
-        run_voice_cmd 'Update stock quotes';                 # From stock.pl
-#       run_voice_cmd 'Check for new Ceiva photos';          # From ceiva.pl
-        run_voice_cmd 'Update the daily comic strips';       # From comics_dailystrip.pl
-        run_voice_cmd 'Get on this day';                     # new_onthisday.pl
-
+		for my $cmd (sort keys %{$Flags{internet_data_cmds}}) {
+			run_voice_cmd $cmd;
+		}
         print_log "Done with getting internet data";
     }
 }

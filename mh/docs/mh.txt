@@ -661,7 +661,7 @@ DESCRIPTION
                                    the state of $item will be set to that same state
              untie_items($item)  : Untie $item
 
-             tie_events($code)   : It the state of the generic_item changes, then
+             tie_event($code)   : It the state of the generic_item changes, then
                                    Code string $code will trigger, with the variable
                                    $state getting expanded.
              untie_items($code)  : Untie $code
@@ -1145,6 +1145,8 @@ DESCRIPTION
 
              done_now       : Is true for the pass that the process finished on.
 
+             pid            : Returns the process id
+
              timed_out      : Returns the time when the process timed out.  
                               done_now will still trigger for a timed_out process.
 
@@ -1488,6 +1490,7 @@ DESCRIPTION
     X10_Ote;
         This supports the OTE X10 themostat from Ouellet Canada.
 
+    X10_TempLinc
     X10_Sensor
         Do you have any of those handy little X10 MS12A battery-powered
         motion sensors? Here's your answer - use the X10_Sensor instead of
@@ -2543,7 +2546,10 @@ DESCRIPTION
 
                pitch  => dd (dd = -10 -> 10)
 
-               card   => d (d = 1,2,3...) Picks which sound card to used (V5 only)
+               card   => d (d = 1,2,3...) Picks which sound card to used (MSV5 only)
+                         d can also be a text string, if you use the mh.ini voice_text_cards option
+                         to define which cards to enable (e.g. voice_text_cards = live,audigy).
+                         To output to more than one card, specify a comma delimited list.
 
                to_file => xyz.  Saves speech to file xyz.
 
@@ -2749,6 +2755,24 @@ DESCRIPTION
             print 'test value=2'  if time_random '* * * * *',  2; # Fires every other minute;
             print 'test value=10' if time_random '* * * * *', 10; # Fires every other 10th minute;
             print 'test value=1'  if time_random '* * * * *',  1; # Fires every minute (not useful)
+
+    time_random_offset
+        Use time_random_offset to code a random time around a time_now
+        formated time. It takes two arguments. The first is the same as the
+        time_now function, '6:45 PM' for example. The second is an offset in
+        minutes (60), seconds (:45), or minutes and seconds (2:30). The
+        function returns true at some random time between the time specified
+        and the offset.
+
+        The offset can only be positive and if you restart between the time
+        specified and the random offset, it won't fire.
+
+          Usage:
+             time_random_offset($time_now_spec, $offset)
+
+          Examples:
+
+             speak "random test" if &time_random_offset('1:20 pm', '1:23');
 
   List of tk widget functions
     tk_button tk_mbutton

@@ -24,7 +24,11 @@ sub new {
 
     bless $self, $class;
 
+    $self->set_interface($interface);
+
 #   print "\n\nWarning: duplicate ID codes on different RCS objects: id=$id\n\n" if $serial_item_by_id{$id};
+
+	print " - creating RCSx10 Interface on $interface\n";
 
     $id = "X$id";
     $self->{x10_id} = $id;
@@ -72,10 +76,11 @@ sub new {
         $self -> add ($id . 'A' . $hc . 'PRESET_DIM2', 'Echo:' . $RCS_table_send_cmd[16+$i], 'echo');
 
         # unit 11,12,13,14,15,16 -> report temperature
-        $self -> add ($id . 'B' . $hc . 'PRESET_DIM1', -60 + $i . " degrees ", 'temp'); 
-        $self -> add ($id . 'B' . $hc . 'PRESET_DIM2', -44 + $i . " degrees ", 'temp'); 
-        $self -> add ($id . 'C' . $hc . 'PRESET_DIM1', -28 + $i . " degrees ", 'temp'); 
-        $self -> add ($id . 'C' . $hc . 'PRESET_DIM2', -12 + $i . " degrees ", 'temp'); 
+# Disabled by default to minimize menu select lists size (do you really want to set your thermostat to -60?
+#        $self -> add ($id . 'B' . $hc . 'PRESET_DIM1', -60 + $i . " degrees ", 'temp'); 
+#        $self -> add ($id . 'B' . $hc . 'PRESET_DIM2', -44 + $i . " degrees ", 'temp'); 
+#        $self -> add ($id . 'C' . $hc . 'PRESET_DIM1', -28 + $i . " degrees ", 'temp'); 
+#        $self -> add ($id . 'C' . $hc . 'PRESET_DIM2', -12 + $i . " degrees ", 'temp'); 
         $self -> add ($id . 'D' . $hc . 'PRESET_DIM1',   4 + $i . " degrees ", 'temp'); 
         $self -> add ($id . 'D' . $hc . 'PRESET_DIM2',  20 + $i . " degrees ", 'temp'); 
         $self -> add ($id . 'E' . $hc . 'PRESET_DIM1',  36 + $i . " degrees ", 'temp');
@@ -87,8 +92,6 @@ sub new {
 
         $i++;
     }
-
-    $self->set_interface($interface);
 
     return $self;
 }
@@ -114,7 +117,7 @@ sub set {
         $self->{cmd_type}{$state} eq 'request') {
             #print "set last_cmd=";
             #print $self->{id_by_state}{$state};
-            $$self{last_cmd} = $self->{id_by_state}{$state};
+            #$$self{last_cmd} = $self->{id_by_state}{$state};
             $$self{last_cmd} = $state;
             $$self{last_cmd_type} = $self->{cmd_type}{$state};
     }
@@ -147,6 +150,8 @@ sub list_by_type {
     print "RCS_item list: self=$self members=@{$$self{members_by_type}{$cmd_type}}\n" if $main::Debug{rcs};
     return sort @{$$self{members_by_type}{$cmd_type}};
 }
+
+1;
 
 #
 # Revision 1.1  1999/12/11 14:30:00  cschaeffer

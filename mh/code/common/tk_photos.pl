@@ -106,7 +106,7 @@ sub photo_change {
         my $rc;
         warn($rc) if $rc = $img->Read($jpeg);
                                 # This step takes 1-2 seconds
-        warn($rc) if $rc = $img->Scale(geometry => '1280x1024');
+        warn($rc) if $rc = $img->Scale(-geometry => '1280x1024');
         warn($rc) if $rc = $img->Write($photo_temp_file);
         &photo_insert($photo_temp_file);
     }

@@ -2,7 +2,11 @@
 
 # Note: These examples assume you have enabled generic serial ports
 #       by editing the serialx parms in mh.ini (or mh.private.ini)
-
+#
+# For example:  serial1_port     = COM1
+#               serial1_baudrate = 9600
+#               serial2_port     = COM2
+#
                                 # Examples on how to send data to a generic serial port 
                                 # You can rename serial1* to serial_xyz*
 $init_strings  = new  Serial_Item('your init string 1', 'init1', 'serial1');

@@ -21,7 +21,118 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 B<New Features:>
 
+- Sean Walker is working interfacing to the Sphinx2 VR engine on linux.  
+Instructions are at http://sean.surfmy.net/projects/mh/index.html
+
+- Amauri Viguera added support for integrating mh with HTPC (Home Theater PC menuing program for TVs). 
+Details are here: http://www.viguera.net/other/projects/myhtpc/myhtpc.readme.html
+
+- Pete Flaherty and Ross Towbin added SMTP authenticaion for email checking.  Set a new net_mail_*_password_encryp mh.ini option.
+Pete also added a new net_mail_*_ping option you can set to off if your mail server is not pingable.
+
+- David Norwood created time_random_offset to code a random time around a time_now formated time.  
+For example, to fire a random time within 60 minutes after 1:20 pm:
+
+     speak "random test" if  time_random_offset '1:20 pm', 60;
+
+- Sean Walker and I updated common/internet_logon.pl to use a new %Flags hash to control
+what commands to fire when getting internet data.  Now used in stocks.pl.
+
+- David Norwood created a new trigger function, used to control internet data commands ....
+
+- Jim Duda created code/common/proxy_client_server.pl to provide a meshed networking interface between a set of misterhouse computers.
+
+- Kirk Bauer created lib/Fan_Control.pm for controling Hampton Bay RF ceiling fans.  
+He has instructions here: http://www.linux.kaybee.org:81/tabs/fancontrol/
+
+- Created code/common/email_motion.pl to copy images from email sending, motion triggered netcams to a folder for remove web viewing.  
+I now have my garage and driveway camera images logged to here:  http://misterhouse.net:8080/web/motion/
+
+- Created code/common/slimp3_display.pl to display spoken text to a list of slimp3 players ( http://www.slimdevices.com )
+
+- Jason Sharpe created code/common/xAP_command.pl, a xAP server that will run requested commands and send respond results back.
+
+
+
 B<Bug Fixes and Other Changes:>
+
+- Jason Sharpe updated his new set of Base_Item objects as well as a small Timer.pm update.
+
+- Greg Limming update the Celstia TTS option to allow for aliased voice names.
+
+- Updated dailystrips comic script from 1.0.25 to 1.0.28
+
+- Added a voice_text_card option, so you can pick the default sound card used.  
+Also allowed for text card names (e.g. audigy or live) in addition to the numeric card name (e.g. card=2)
+in the voice_text_cards/voice_text_card parms  and speak card= options (currently only for Windows).
+
+- Robert Mann made some formating changes to the web phone scripts.
+
+- David Norwood created code/examples/x10_unit_relay.pl as an example of how to relay an X10 signal
+
+- Nick Maddock noticed we forgot to implenent the Generic_Item.pm set_by method, as specified in the mh doc.
+
+- Craig Schaeffer fixed an obscure bug where mh would mis-trigger M1 and M2 codes when processing PRESET_DIM1/2 data.
+
+- Craig Schaeffer also noticed an X10 proxy bug where merged data would get process twice.
+
+- Updated bin/report_weblogs to parse the current mh http_server format.
+
+- Jason Sharpe fixed an 'Error in respond: respond=$object' error in sub respond in bin/mh.
+
+- Srdan Lasic noticed &speakify_numbers was only returning the suffix (e.g. rd instead of 3rd).  
+He also noticed that we didn't honor date_formats when parsing mh.ini holidays parm.
+
+- Added a speak_mh_room parm, so you can turn off speech to the main mh box when using speech proxies.
+For example, if you use speak_mh_room=study, then speech would go to the mh soundcard only when speak rooms=all or rooms=study.
+
+- Jason Sharpe noticed we did not propogate set_by when using the set_with_timer method.
+
+- Kent Noonan and I enabled the set_casesensitve method for Serial_Items, so we could send out serial data without it getting lower-cased.
+
+- Kirk Bauer sent in code/examples/x10_flash_light.pl as an example of how to flash an X10 light.
+
+- Pete Flaherty added a ini parameter html_refresh=xx, so you can have web page created by web/bin/list_items.pl automatically refresh after xx seconds.
+
+- Paul Estes added support for the NCID Client/Server Network Caller ID Package ( http://ncid.sourceforge.net/ ) in code/public/callerid_ncid.pl
+
+- Added a &list_groups_by_object function, so we can find all groups an object is a member of.  
+See code/examples/list_groups.pl for an example.
+
+- Added export LANG=C to bin/mhl, to fix a memory leak problem many RedHat 8 users were seeing.
+
+- Gregg Liming fixed a voice mapping bug for the Cepstral engine=theta in lib/Voice_Text.
+
+- Steve Switzer sent in bin/misterhouse.steve-fedora.rc, a startup script example for fedora Linux.
+
+- David Norwood took out the $SIG{CHLD} in lib/Voice_Text.pm, since it is handled in bin/mh.
+
+- Robert Hughes updated code/common/internet_weather.pl to detect calm winds.
+
+- Craig Schaeffer noticed a bug where mh could loop when parsing a specific X10 string.
+
+- Chris Barrett updated lib/handy_net_utilites.pl to enable these new mh.ini timeout parms:
+net_ftp_timeout, net_aim_timeout, net_mail_*_timeout, net_ping_timeout
+
+- Steve Switzer posted some magic javascript to refresh the Login icon (top frame) when entering the web password.
+
+- Allow for speak card= parm to specify a comma delimted list of cards, rather than only one card at a time,
+to speak to more than one card at the same time.
+
+- Fixed a 2.83 bug that would ignore the password_allow_file and disable_command files.
+
+- Allow for no_log = http_local to disable logging local http hits.
+
+- Timothy Spaulding added X10_TempLinc to lib/X10_Items.pm to support this X10 temperature sensing device:  http://www.smarthome.com/1625.HTML
+
+- Robert Hughes and I updated http_server.pl to add <br> html breaks on new lines by default, for html returned data 
+(e.g. the eartquake and news data displays better now in web browsers).
+
+- Updated bin/get_tv_grid for a recent zap2it change that disabled the -provider_name option
+
+- Craig Schaeffer made some minor updates to RCS_Item.pm
+
+- George Clark updated Tk calls to be compatable with the latest Tk modules (adding a - prefix to option names).
 
 
 =head2 Version 2.83 posted on 09/01/2003
@@ -549,6 +660,9 @@ so speech can be directed to the box that send the mhsend request.
 - Claes Johansson made a keypad fix in lib/LCD.pm for LCDProc users.
 
 - Mark Miller noticed we pointed to the wrong directory with the web ia5 Iridium Flares button.
+
+- Created code/examples/x10_multievent_with_delay.pl as an example of how to send a series of X10 commands with delays 
+between them (e.g. you want to sequence a series of X10 cameras ON).
 
 
 =head2 Version 2.78 posted on 02/07/2003

@@ -68,10 +68,11 @@ sub read_table_A {
         ($address, $name, $grouplist) = @item_info;
         $object = "X10_IrrigationController('$address')";
     }
-    elsif($type eq "X10T") {
+   elsif($type eq "X10T") {
         require 'RCS_Item.pm';
-        ($address, $name, $grouplist) = @item_info;
-        $object = "RCS_Item('$address')";
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "RCS_Item('$address', $other)";
     }
     elsif($type eq "X10MS") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -276,7 +277,19 @@ sub read_table_A {
             $code .= "use caddx;\n";
         }
     }
-    elsif ($type eq "PA") {
+    elsif($type eq 'FANLIGHT') {
+        require 'Fan_Control.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Fan_Light('$address', $other)";
+    }
+    elsif($type eq 'FANMOTOR') {
+        require 'Fan_Control.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Fan_Motor('$address', $other)";
+    }
+   elsif ($type eq "PA") {
         require 'PAobj.pm';
         my $pa_type;
         ($address, $name, $grouplist, $other, $pa_type, @other) = @item_info;
@@ -367,6 +380,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.20  2003/11/23 20:26:02  winter
+#  - 2.84 release
+#
 # Revision 1.19  2003/09/02 02:48:46  winter
 #  - 2.83 release
 #

@@ -3,7 +3,8 @@ package Voice_Text;
 use strict;
 
 use vars '$VTxt_version';
-my (@VTxt, $VTxt_stream1, $VTxt_stream2, $VTxt_festival, $VTxt_mac, $save_mute_esd, $save_change_volume, %pronouncable);
+my (@VTxt, $VTxt_stream1, $VTxt_stream2, %VTxt_cards, $VTxt_festival, $VTxt_mac);
+my ($save_mute_esd, $save_change_volume, %pronouncable);
 my (%voice_names, @voice_names, $voice_names_index, $VTxt_pid);
 
 
@@ -48,14 +49,25 @@ sub init {
                 my $outputs = $test->GetAudioOutputs;
                 my $count   = $outputs->Count;
                 for my $i (1 .. $count) {
-                    next if $main::config_parms{voice_text_cards} and $main::config_parms{voice_text_cards} !~ /$i/;
                     my $object = $outputs->Item($i-1);
                     my $des    = $object->GetDescription;
+                    if ($main::config_parms{voice_text_cards}) {
+                        my $flag = 0;
+                        for my $card (split ',', $main::config_parms{voice_text_cards}) {
+                            if ($i eq $card or $des =~ /$card/i) {
+                                $flag = 1;
+                                $VTxt_cards{$card} = $i;
+                            }
+                        }
+                        next unless $flag;
+                    }
                     print " - Sound card $i: $des\n";
                     $VTxt[$i] = Win32::OLE->new('Sapi.SpVoice');
                     $VTxt[$i] ->{AudioOutput} = $object;
+                                # Pick the default card, if specified
+                    $VTxt[0] = $VTxt[$i] if $des =~ /$main::config_parms{voice_text_card}/i;
                 }
-                $VTxt[0] = $VTxt[1]; # Default to the first card;
+                $VTxt[0] = $VTxt[1] unless $VTxt[0]; # Default to the first card if specified one not found
 
                                 # Create an object for to_file calls
                 $VTxt_stream1 = Win32::OLE->new('Sapi.SpVoice');
@@ -105,8 +117,10 @@ sub speak_text {
                                 # If text is specified, save the default output, so we can set it back
     my $vtxt_default;
     if ($parms{card}) {
+        my $card = $parms{card};
+        $card = $VTxt_cards{$card} if $VTxt_cards{$card};  # Allow for text card name
         $vtxt_default = $VTxt[0] if $parms{text};
-        $VTxt[0] = $VTxt[$parms{card}];
+        $VTxt[0] = $VTxt[$card];
     }
 
     
@@ -149,6 +163,9 @@ sub speak_text {
         $parms{voice} = $voice_names{lc $parms{voice}} if $voice_names{lc $parms{voice}};
         my %voice_table = (male => 1, female => 2, child => 3, elder_female => 7, elder_male => 8);
         $parms{voice} = $voice_table{lc $parms{voice}} if $voice_table{lc $parms{voice}};
+    }
+    elsif ($speak_engine =~ /theta/i) {
+        $parms{voice} = $voice_names{lc $parms{voice}} if $voice_names{lc $parms{voice}};
     }
 
 
@@ -262,7 +279,7 @@ sub speak_text {
         my $fork = 1 unless $parms{to_file} and !$parms{async}; # Must wait for to_file requests, so http requests work
 
         my $pid = fork if $fork;
-        $SIG{CHLD}  = "IGNORE";                   # eliminate zombies created by FORK()
+#       $SIG{CHLD}  = "IGNORE";                   # eliminate zombies created by FORK() ... we do this in bin/mh
         if ($fork and $pid) {
             $VTxt_pid = $pid;
         } elsif (!$fork or defined $pid) { 
@@ -363,7 +380,7 @@ sub speak_text {
                     $speak_pgm_arg .= qq[ -e 'set $parms{volume_reset}'];
                 }
             }
-            elsif ($speak_engine eq 'theta') {
+            elsif ($speak_engine =~ /theta/i) {
 	    
                 $speak_pgm_arg .= " -S $parms{pitch}"   if $parms{pitch};
                 $speak_pgm_arg .= " -r $parms{rate}"    if $parms{rate};
@@ -786,6 +803,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.49  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.48  2003/09/02 02:48:46  winter
 #  - 2.83 release
 #

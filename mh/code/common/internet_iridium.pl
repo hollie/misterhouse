@@ -58,7 +58,9 @@ $iridium_timer = new Timer;
           my %iridium_timer_intervals = map {$_, 1} (15,30,90);
           if ($iridium_timer_intervals{$time_left}) {
              my $pitch = int 10*(1 - $time_left/60);
+             $pitch = '';	# Skip this idea ... not all TTS engines do pitch that well
              speak "app=timer pitch=$pitch $time_left seconds till flash";
+
           }
        }
        if (expired $iridium_timer) {

@@ -43,7 +43,8 @@ if ($config_parms{mh_proxyreg_port} and
                                 # Process incoming requests from the real mh
 if ($state = said $proxy_server) {
     my ($interface, $function, @data) = split $;, $state;
-    print "Proxy data received from mh: interface=$interface function=$function data=@data.\n" if $Debug{'proxy'};
+    my $client = $Socket_Ports{'server_proxy'}{client_ip_address};
+    print "Proxy data received from mh: client=$client, interface=$interface function=$function data=@data.\n" if $Debug{'proxy'};
 
     if ($function eq 'send_serial_data') {
         &Serial_Item::send_serial_data($interface, $data[0]);

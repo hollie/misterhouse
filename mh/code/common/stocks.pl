@@ -48,4 +48,21 @@ if ($state = said $v_stock_quote) {
 #&tk_label(\$Save{stock_data1});
 #&tk_label(\$Save{stock_data2});
 
+# Instead of controling with internet_data.pl, lets allow the user to control via triggers
 
+#$Flags{internet_data_cmds}{'Update stock quotes'}++ if ($Startup or $Reload);
+
+if ($Reload and $Run_Members{'trigger_code'}) { 
+    if ($Run_Members{'internet_dialup'}) { 
+        eval qq(
+            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Update stock quotes'", 'NoExpire', 'get stocks') 
+              unless &trigger_get('get stocks');
+        );
+    }
+    else {
+        eval qq(
+            &trigger_set("time_cron '5 9-13 * * 1-5'", "run_voice_cmd 'Update stock quotes'", 'NoExpire', 'get stocks') 
+              unless &trigger_get('get stocks');
+        );
+    }
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2003-09-01 16:50:06 winter>
+#  Last change Time-stamp: <2003-11-22 17:14:59 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -398,6 +398,14 @@ sub submitRequest
          $res = $ua->request( $request );
       }
    }
+
+
+# Could use this instead of the is_redirect check below
+#   package myUserAgent;
+#   @ISA=qw(LWP::UserAgent);
+#   sub redirect_ok { return 1; }
+#   package main;
+
 
    if ($res->is_redirect) 
    {
@@ -1306,7 +1314,7 @@ sub get_providers {
     }
     close PROVIDERS; 
     foreach (split /<\/OPTION>/i, $list) {
-        if (/\<OPTION value="(\d+)"\>(.+)/i) {
+        if (/OPTION +value="(\d+)"\ *> *([^\&\;]+)/i) {
             $providers{$2} = $1;
             print "Provider $1\t$2\n" if $parms{debug} or $parms{get_providers};
         }

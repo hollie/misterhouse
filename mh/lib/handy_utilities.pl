@@ -898,7 +898,7 @@ sub main::speakify_numbers {
     else {
         $suffix = 'th';
     }
-    return $suffix;
+    return $number . $suffix;
 }
 
 sub main::speakify_list {
@@ -1223,6 +1223,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.67  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.66  2003/07/06 17:55:12  winter
 #  - 2.82 release
 #

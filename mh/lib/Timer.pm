@@ -184,7 +184,8 @@ sub run_action {
         if ($action_type eq 'CODE') {
             &{$action};
         }
-        else {
+        elsif ($action_type eq '') {
+#	    &::print_log("Action");
             package main;   # Had to do this to get the 'speak' function recognized without having to &main::speak() it
             my $timer_name = $self->{object_name};  # So we can use this in the timer action eval
             $state = $self->{object_name};  # So we can use this in the timer action eval
@@ -192,6 +193,11 @@ sub run_action {
             package Timer;
             print "\nError in running timer action: action=$action\n error: $@\n" if $@;
         }
+	else
+	{
+		$action->set('off',$self);
+	}
+
     }
 }
 
@@ -330,6 +336,7 @@ sub restart {
 sub stop {
     ($self) = @_;
     $self->{time} = undef;
+    $self->{expire_time} = undef;
 }
 
 sub pause {
@@ -359,6 +366,9 @@ sub query {
 
 #
 # $Log$
+# Revision 1.27  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.26  2003/02/08 05:29:23  winter
 #  - 2.78 release
 #

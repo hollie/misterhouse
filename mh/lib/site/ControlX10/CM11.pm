@@ -97,6 +97,7 @@ sub receive_buffer {
 
     my $data;
     return undef unless $data = &read($serial_port, 1); 
+
 #   my $data = &read($serial_port);
 
     my @bytes = split //, $data;
@@ -282,6 +283,8 @@ sub send {
                                 # Note: Skip the power fail check, because we the
                                 # checksum might be the power fail flag (0xa5)
     my $data_rcv = &read($serial_port, 0, 1); 
+#   my $data_rcv;
+#   return unless $data_rcv = &read($serial_port, 0, 1);
 
     my $data_d = unpack('C', $data_rcv);
 
@@ -731,6 +734,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.19  2003/11/23 20:26:02  winter
+#  - 2.84 release
+#
 # Revision 2.18  2003/03/09 19:34:42  winter
 #  - 2.79 release
 #

@@ -188,6 +188,12 @@ sub done {
     return ($$self{pid}) ? 0 : 1;
 }    
 
+
+sub pid {
+    my ($self) = @_;
+    return $$self{pid};
+}
+
 sub timed_out {
     my ($self) = @_;
     return ($$self{timed_out}) ? 1 : 0;
@@ -273,6 +279,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.25  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.24  2003/09/02 02:48:46  winter
 #  - 2.83 release
 #

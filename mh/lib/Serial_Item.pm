@@ -212,7 +212,9 @@ sub set {
     else {
         $serial_id = $state;
     }
-    my $serial_data = uc $serial_id;  # uc since other mh processing can lc it to avoid state sensitivity
+				# uc since other mh processing can lc it to avoid state sensitivity
+    my $serial_data = $serial_id;
+    $serial_id = uc $serial_id unless defined $self->{states_casesensitive};
 
     return if &set_prev_pass_check($self, $serial_id);
 
@@ -370,7 +372,7 @@ sub send_serial_data {
         my $datatype  = $main::Serial_Ports{$port_name}{datatype};
         my $prefix    = $main::Serial_Ports{$port_name}{prefix};
 
-        $serial_data = $prefix . $serial_data if $prefix ne '';
+        $serial_data = $prefix . $serial_data if $prefix and $prefix ne '';
         $serial_data .= "\r" unless $datatype and $datatype eq 'raw';
 
         my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
@@ -549,6 +551,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.67  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.66  2003/09/02 02:48:46  winter
 #  - 2.83 release
 #

@@ -3,7 +3,7 @@
 #  File:
 #     report_weblog
 #
-#  Last emacs update Time-stamp: <2003-05-12 07:31:23 winter>
+#  Last emacs update Time-stamp: <2003-09-21 21:42:53 winter>
 #
 #  Description:
 #     See help text below
@@ -115,7 +115,7 @@ sub read_data {
 #Sat, Jul 31  9:15 AM server_speak 200.200.200.5
 #Fri, Nov  5  9:39 PM server_speak 200.200.200.5
 #Fri 11/05/99 21:47:48 server_speak 200.200.200.5
-
+#Sun 09/21/03 20:29:07 192.168.0.81 /ia5/images/wind.gif 
                                 # Read Apache log
             my ($client, $day, $hour, $min) = $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):(\d+):\d+ [\d+-]+\]!;
                                 # Alternate form of Apache log
@@ -125,6 +125,7 @@ sub read_data {
                 my $ampm;
                 ($day, $hour, $min, $ampm, $client) = $_ =~ m!^\S+, +\S+ +(\d+) +(\d+):(\d+) (\S+) \S+ (\S+)!;
                 ($day, $hour, $min, $ampm, $client) = $_ =~ m!^\S+ +\S+ +(\d+) +(\d+):(\d+):\d+ +\S+ (\S+)! unless $client;
+                ($day, $hour, $min, $client)        = $_ =~ m!^\S+ +\S+ +(\d+):(\d+):\d+ (\S+)! unless $client; # Current format
 #                print "db d=$day h=$hour ap=$ampm m=$min c=$client r=$_\n";
                 $hour += 12 if $ampm eq 'PM' and $hour != 12;
             }
@@ -306,6 +307,9 @@ sub mail_report {
 }
 #
 # $Log$
+# Revision 1.12  2003/11/23 20:25:51  winter
+#  - 2.84 release
+#
 # Revision 1.11  2003/06/01 21:54:40  winter
 #  - 2.81 release
 #

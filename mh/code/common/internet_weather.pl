@@ -19,12 +19,13 @@ $f_weather_conditions = new File_Item("$config_parms{data_dir}/web/weather_condi
 
 if (said  $v_get_internet_weather_data) {
     if (&net_connect_check) {
-                                # Detatch this, as it may take 10-20 seconds to retreive
-                                # Another, probably better way, to do this is with the
-                                # Process_Item, as is with p_top10_list above
-        my $city = $config_parms{city};
+        # Detatch this, as it may take 10-20 seconds to retreive
+        # Another, probably better way, to do this is with the
+        # Process_Item, as is with p_top10_list above
+	my $city = $config_parms{city};
         $city = $config_parms{nws_city} if defined $config_parms{nws_city};
         run qq|get_weather -city "$city" -zone "$config_parms{zone}" -state $config_parms{state}|;
+
 
         set_watch $f_weather_forecast;
         print_log "Weather data requested for $city, $config_parms{state} zone=$config_parms{zone}";
@@ -37,6 +38,7 @@ if (said  $v_get_internet_weather_data) {
 $v_show_internet_weather_data = new  Voice_Cmd('Show internet weather [forecast,conditions]');
 $v_show_internet_weather_data-> set_info('Display previously downloaded weather data');
 $v_show_internet_weather_data-> set_authority('anyone');
+
 if ($state = said  $v_show_internet_weather_data or changed $f_weather_forecast) {
     print_log "Weather $state displayed";
     if ($state eq 'forecast') {
@@ -45,19 +47,31 @@ if ($state = said  $v_show_internet_weather_data or changed $f_weather_forecast)
     }
     else {
         display name $f_weather_conditions;
-# Parse data.  Here is an example:
-# At 6:00 AM, Rochester, MN conditions were  at  55 degrees , wind was south at
-#    5 mph.  The relative humidity was 100%, and barometric pressure was
-#    rising from 30.06 in.
+	##
+        # Parse data.  Here is an example:
+        # At 6:00 AM, Rochester, MN conditions were  at  55 degrees , wind was south at
+        #    5 mph.  The relative humidity was 100%, and barometric pressure was
+        #    rising from 30.06 in.
+	##
         my $conditions = read_all $f_weather_conditions;
         $conditions =~ s/\n/ /g;
         $Weather{TempInternet}  = $1 if $conditions =~ /(\d+) degrees/i;
         $Weather{HumidInternet} = $1 if $conditions =~ /(\d+)\%/;
-        $Weather{BaromInternet} = $1 if $conditions =~ /([\d\.]+) in\./;
-        $Weather{WindInternet}  = $1 if $conditions =~ /wind (.+?)\./;
-        print_log "Internet weather Temp=$Weather{TempInternet} Humid=$Weather{HumidInternet} " . 
-                  "Wind=$Weather{WindInternet} Pres=$Weather{BaromInternet}";
+        $Weather{BaromInternet} = $1 if $conditions =~ /([\d\.]+) in./;
+
+        my $Wind_Speed = "calm" if $conditions =~ /calm/;
+
+        if ($Wind_Speed ne "calm") {
+              $Weather{WindInternet}  = $1 if $conditions =~ /wind\s+was\s+(.+?)\./;
+              $Weather{WindInternet}  =~ s/^\s+//;
+        }
+        else {
+              $Weather{WindInternet}  = $Wind_Speed;
+        }
+        print_log "Internet weather: Temp=$Weather{TempInternet} deg
+                                       Humid=$Weather{HumidInternet} \%
+                                       Wind=$Weather{WindInternet}
+                                       Pres=$Weather{BaromInternet} in" ; 
+		   #if $config_parms{debug} eq 'weather';
     }
 }
-
-

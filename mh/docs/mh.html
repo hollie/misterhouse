@@ -741,7 +741,7 @@ mh is stopped/started.
 </dd>
 <dd>
 <pre>
-     tie_events($code)   : It the state of the generic_item changes, then
+     tie_event($code)   : It the state of the generic_item changes, then
                            Code string $code will trigger, with the variable
                            $state getting expanded.
      untie_items($code)  : Untie $code</pre>
@@ -1403,6 +1403,10 @@ On Unix systems, the fork function is used.  On either system, the following met
 </dd>
 <dd>
 <pre>
+     pid            : Returns the process id</pre>
+</dd>
+<dd>
+<pre>
      timed_out      : Returns the time when the process timed out.  
                       done_now will still trigger for a timed_out process.</pre>
 </dd>
@@ -1870,6 +1874,8 @@ For the Switchlinc controllers:
 This supports the OTE X10 themostat from Ouellet Canada.
 </dd>
 <p></p>
+<dt><strong><a name="item_x10_templinc">X10_TempLinc</a></strong><br />
+</dt>
 <dt><strong><a name="item_x10_sensor">X10_Sensor</a></strong><br />
 </dt>
 <dd>
@@ -3426,7 +3432,10 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
 </dd>
 <dd>
 <pre>
-       card   =&gt; d (d = 1,2,3...) Picks which sound card to used (V5 only)</pre>
+       card   =&gt; d (d = 1,2,3...) Picks which sound card to used (MSV5 only)
+                 d can also be a text string, if you use the mh.ini voice_text_cards option
+                 to define which cards to enable (e.g. voice_text_cards = live,audigy).
+                 To output to more than one card, specify a comma delimited list.</pre>
 </dd>
 <dd>
 <pre>
@@ -3724,6 +3733,33 @@ Frequency is the average number of minutes between occurrences.
     print 'test value=2'  if time_random '* * * * *',  2; # Fires every other minute;
     print 'test value=10' if time_random '* * * * *', 10; # Fires every other 10th minute;
     print 'test value=1'  if time_random '* * * * *',  1; # Fires every minute (not useful)</pre>
+</dd>
+<p></p>
+<dt><strong><a name="item_time_random_offset">time_random_offset</a></strong><br />
+</dt>
+<dd>
+Use time_random_offset to code a random time around a time_now formated time.  
+It takes two arguments.  The first is the same as the time_now function,
+'6:45 PM' for example.  The second is an offset in minutes (60), seconds
+(:45), or minutes and seconds (2:30).  The function returns true at some
+random time between the time specified and the offset.
+</dd>
+<dd>
+<p>The offset can only be positive and if you restart between the time
+specified and the random offset, it won't fire.</p>
+</dd>
+<dd>
+<pre>
+  Usage:
+     time_random_offset($time_now_spec, $offset)</pre>
+</dd>
+<dd>
+<pre>
+  Examples:</pre>
+</dd>
+<dd>
+<pre>
+     speak &quot;random test&quot; if &amp;time_random_offset('1:20 pm', '1:23');</pre>
 </dd>
 <p></p></dl>
 <p>

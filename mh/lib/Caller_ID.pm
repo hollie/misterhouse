@@ -119,6 +119,12 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         print "phone number=$number name=$name\n";
         print "\nCaller_ID format=4 not parsed: d=$data date=$date time=$time number=$number name=$name\n" unless $name;
     }
+# NCID data=CID:*DATE*10202003*TIME*0019*NMBR*2125551212*MESG*NONE*NAME*INFORMATION*
+# http://ncid.sourceforge.net/
+    elsif ($format == 5) {
+        ($date, $time, $number, $name) = $data =~/CID:\*DATE\*(\d{8})\*TIME\*(\d{4})\*NMBR\*(\d{10})\*MESG\*.*\*NAME\*([^\*]+)\*$/;
+	print "phone number=$number name=$name\n";
+      }
     else {
         ($time, $number, $name) = unpack("A13A13A15", $data);
     }
@@ -319,6 +325,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.29  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.28  2002/12/02 04:55:19  winter
 # - 2.74 release
 #

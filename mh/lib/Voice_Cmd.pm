@@ -6,7 +6,7 @@ use strict;
 my ($cmd_num);
 my (%cmd_by_num, %cmd_state_by_num, %cmd_num_by_text, %cmd_text_by_num, %cmd_text_by_vocab);
 my (%cmd_word_list, %cmd_vocabs);
-my ($Vcmd_ms, $Vmenu_ms, $Vcmd_viavoice);
+my ($Vcmd_ms, $Vmenu_ms, $Vcmd_viavoice, $Vcmd_sphinx2);
 my ($last_cmd_time, $last_cmd_num, $last_cmd_num_confirm, $last_cmd_flag, $noise_this_pass );
 
 my $confirm_timer = &Timer::new();
@@ -34,6 +34,13 @@ sub init {
         &disablevocab('mh_confirm');
         &mic('on');
     }
+    if ($main::config_parms{voice_cmd} =~ /sphinx2/i) {
+        my $port = $main::config_parms{sphinx2_host} . ':' . $main::config_parms{sphinx2_port};
+        print "Creating Sphinx2 command object on $port\n";
+        #$Vcmd_sphinx2 = new  Socket_Item(undef, undef, 'server_sphinx2');
+        $Vcmd_sphinx2 = new  main::Socket_Item(undef, undef, $port, 'sphinx2');
+		start $Vcmd_sphinx2;
+	}
 
 }
 
@@ -82,6 +89,15 @@ sub activate {
             &disablevocab($vocab);  # Disabled by default
         }
     }
+	if ($Vcmd_sphinx2 and $Vcmd_sphinx2->active){
+		$Vcmd_sphinx2->set('NEWVOCAB');
+		for my $phrase (&voice_items('mh', 'no_category'))
+		{
+            select undef, undef, undef, .001; #Don't know if necessary
+			$Vcmd_sphinx2->set($phrase);
+		}
+		$Vcmd_sphinx2->set('ENDNEWVOCAB');
+	}
 }
 
 sub deactivate {
@@ -214,6 +230,12 @@ sub check_for_voice_cmd {
 
         }
         print "db vv: n=$number cmd=$cmd_heard text=$text.\n" if $main::Debug{voice};
+    }
+    if ($Vcmd_sphinx2 and my $text = said $Vcmd_sphinx2) {
+	$text =~ s/\n//g;#For some odd reason we get the odd \n stuck here.
+	$cmd_heard = lc $text;
+	$number = $cmd_num_by_text{$cmd_heard};
+        print "db sphinx2: n=$number cmd=$cmd_heard text=$text.\n" if $main::config_parms{debug} eq 'voice';
     }
 
                                 # Set states, if a command was triggered
@@ -611,6 +633,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.46  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.45  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #

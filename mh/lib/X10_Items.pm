@@ -773,6 +773,80 @@ sub set {
     $self->SUPER::set($state, $set_by);
 }
 
+package X10_TempLinc;
+
+@X10_TempLinc::ISA = ('X10_Item');
+
+# this is smarthome.com part number 1625
+# it can be setup to request temperature with the STATUS state, or automatically
+# send out temperature change
+# it uses the same temperature translation that the RCS bi-directional
+# thermostat uses.
+# it should use its own house code because it needs unit codes 11-16
+# to be used to received the preset_dim commands for temperature degrees.
+# However, in theory, (I haen't ried it yet), you could used the same house code with unit codes
+# 1-10 if absolutely needed.
+#
+# Example:
+# $Garage_TempLinc = new X10_TempLinc('P')
+#
+# request current temperature
+# $Garage_TempLinc->set(STATUS);
+#
+# handle temperature changes as reported by the sensor
+# if (state_now $Garage_TempLinc)
+# {
+#    speak "The temperature in the garage is now $Garage_TempLinc->{state}";
+#  }
+
+sub new
+{
+  my ($class, $id, $interface) = @_;
+  my $self = {};
+  $$self{state} = '';
+  bless $self, $class;
+#  print "\n\nWarning: duplicate ID codes on different TempLinc objects: id=$id\n\n" if $serial_item_by_id{$id};
+  my $hc = substr($id, 0, 1);
+  push @{$TempLinc_by_house_code{$hc}}, $self;
+  $id = "X$id";
+  $self->{x10_id} = $id;
+
+  # request temperature is standalone outside the loop
+  # manually added a unit code here as it would not work with out one, Serial_Item expects this
+  # when parsing the x10 commands.  I used '1' as the unit code as this is dedicated to a single house code.
+  $self-> add ($id . '1' . $hc . 'STATUS', 'status');
+
+  my $i = 0;
+  # looping through to setup the recognized states for the object
+  for my $hc (qw(M N O P C D A B E F G H K L I J))
+  {
+
+    #  unit 1,2,3,9 -> send setpoint -> unused for TempLinc sensor, cannot do a setpoint
+    # unit 4 -> send command -> unused for TempLinc sensor cannot send commands
+    # unit 5 -> request status -> only Request Temp is allowed and doing this outside of loop
+    # unit 6 -> report status -> unused for TempLinc sensor, no status to report
+    # unit 10 -> echo responses -> unused for TempLinc sensor,no response to echo
+    # unit 11,12,13,14,15,16 -> report temperature -> something we can use with the TempLinc
+    $self -> add ($id . 'B' . $hc . 'PRESET_DIM1', -60 + $i . " degrees ");
+    $self -> add ($id . 'B' . $hc . 'PRESET_DIM2', -44 + $i . " degrees ");
+    $self -> add ($id . 'C' . $hc . 'PRESET_DIM1', -28 + $i . " degrees ");
+    $self -> add ($id . 'C' . $hc . 'PRESET_DIM2', -12 + $i . " degrees ");
+    $self -> add ($id . 'D' . $hc . 'PRESET_DIM1',   4 + $i . " degrees ");
+    $self -> add ($id . 'D' . $hc . 'PRESET_DIM2',  20 + $i . " degrees ");
+    $self -> add ($id . 'E' . $hc . 'PRESET_DIM1',  36 + $i . " degrees ");
+    $self -> add ($id . 'E' . $hc . 'PRESET_DIM2',  52 + $i . " degrees ");
+    $self -> add ($id . 'F' . $hc . 'PRESET_DIM1',  68 + $i . " degrees ");
+    $self -> add ($id . 'F' . $hc . 'PRESET_DIM2',  84 + $i . " degrees ");
+    $self -> add ($id . 'G' . $hc . 'PRESET_DIM1', 100 + $i . " degrees ");
+    $self -> add ($id . 'G' . $hc . 'PRESET_DIM2', 116 + $i . " degrees ");
+
+    $i++;
+  }
+
+  $self->set_interface($interface);
+  return $self;
+}
+
 #  Ote themostate from Ouellet Canada
 package X10_Ote;
 @X10_Ote::ISA = ('X10_Item');
@@ -970,6 +1044,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.40  2003/11/23 20:26:01  winter
+#  - 2.84 release
+#
 # Revision 1.39  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #

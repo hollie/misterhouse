@@ -12,7 +12,7 @@
   serial_wx200_baudrate  = 9600
   serial_wx200_handshake = dtr
   serial_wx200_datatype  = raw
-  serial_wx200_module    = weather_wx200
+  serial_wx200_module    = Weather_wx200
   serial_wx200_skip      =  # Use to ignore bad sensor data.  e.g. TempOutdoor,HumidOutdoor,WindChill
   altitude = 1000 # In feet, used to find sea level barometric pressure
 
