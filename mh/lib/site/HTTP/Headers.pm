@@ -508,6 +508,7 @@ sub server            { (shift->_header('Server',           @_))[0] }
 sub from              { (shift->_header('From',             @_))[0] }
 sub referer           { (shift->_header('Referer',          @_))[0] }
 sub warning           { (shift->_header('Warning',          @_))[0] }
+*referrer = \&referer;  # on tchrist's request
 
 sub www_authenticate  { (shift->_header('WWW-Authenticate', @_))[0] }
 sub authorization     { (shift->_header('Authorization',    @_))[0] }

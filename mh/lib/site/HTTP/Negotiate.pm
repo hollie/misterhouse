@@ -83,7 +83,7 @@ sub choose ($;$)
     }
 
     if ($DEBUG) {
-	print "Netgotiantion parameters in the request\n";
+	print "Negotiation parameters in the request\n";
 	for $type (keys %accept) {
 	    print " $type:\n";
 	    for $name (keys %{$accept{$type}}) {
@@ -141,7 +141,7 @@ sub choose ($;$)
 	# If the variant's media-type has not charset parameter,
 	# or the variant's charset is US-ASCII, or if no Accept-Charset
 	# field is present, then the value assigned is "qc=1".  If the
-	# variantæs charset is listed in the Accept-Charset field,
+	# variant's charset is listed in the Accept-Charset field,
 	# then the value assigned is "qc=1.  Otherwise, if the variant's
 	# charset is not listed in the provided Accept-Encoding field,
 	# then the value assigned is "qc=0".
@@ -299,7 +299,7 @@ choose - choose a variant of a document to serve (HTTP content negotiation)
 
 =head1 DESCRIPTION
 
-This module provide a complete implementation of the HTTP content
+This module provides a complete implementation of the HTTP content
 negotiation algorithm specified in F<draft-ietf-http-v11-spec-00.ps>
 chapter 12.  Content negotiation allows for the selection of a
 preferred content representation based upon attributes of the
@@ -309,22 +309,21 @@ in the request.
 The variants are ordered by preference by calling the function
 choose().
 
-The first parameter is a description of the variants that we can
-choose among.  The variants are described by a reference to an array.
+The first parameter is reference to an array of the variants to
+choose among.
 Each element in this array is an array with the values [$id, $qs,
 $content_type, $content_encoding, $charset, $content_language,
-$content_length].  The meaning of these values are described
+$content_length] whose meanings are described
 below. The $content_encoding and $content_language can be either a
 single scalar value or an array reference if there are several values.
 
-The second optional parameter is a reference to the request headers.
-This is used to look for "Accept*" headers.  You can pass a reference
-to either a HTTP::Request or a HTTP::Headers object.  If this
+The second optional parameter is either a HTTP::Headers or a HTTP::Request
+object which is searched for "Accept*" headers.  If this
 parameter is missing, then the accept specification is initialized
 from the CGI environment variables HTTP_ACCEPT, HTTP_ACCEPT_CHARSET,
 HTTP_ACCEPT_ENCODING and HTTP_ACCEPT_LANGUAGE.
 
-In array context, choose() returns a list of variant
+In an array context, choose() returns a list of variant
 identifier/calculated quality pairs.  The values are sorted by
 quality, highest quality first.  If the calculated quality is the same
 for two variants, then they are sorted by size (smallest first). I<E.g.>:
@@ -334,7 +333,7 @@ for two variants, then they are sorted by size (smallest first). I<E.g.>:
 Note that also zero quality variants are included in the return list
 even if these should never be served to the client.
 
-In scalar context, it returns the identifier of the variant with the
+In a scalar context, it returns the identifier of the variant with the
 highest score or C<undef> if none have non-zero quality.
 
 If the $HTTP::Negotiate::DEBUG variable is set to TRUE, then a lot of
@@ -350,8 +349,8 @@ C<undef> instead.
 
 =item identifier
 
-This is just some string that you use as a name for the variant.  The
-identifier of the preferred variant is returned by choose().
+This is a string that you use as the name for the variant.  This
+identifier for the preferred variants returned by choose().
 
 =item qs
 
@@ -392,8 +391,8 @@ content media type.  The most common content encodings are:
 
 =item content-charset
 
-This is the character set used when the variant contains textual
-content.  The charset value should generally be C<undef> or one of these:
+This is the character set used when the variant contains text.
+The charset value should generally be C<undef> or one of these:
 
   us-ascii
   iso-8859-1 ... iso-8859-9
@@ -412,7 +411,7 @@ language is in this context a natural language spoken, written, or
 otherwise conveyed by human beings for communication of information to
 other human beings.  Computer languages are explicitly excluded.
 
-The language tags are the same as those defined by RFC-1766.  Examples
+The language tags are defined by RFC-1766.  Examples
 are:
 
   no               Norwegian
@@ -478,8 +477,8 @@ Accept-Encoding means that no content encoding is acceptable.  Example:
 
 =item Accept-Language
 
-This field is similar to Accept, but restrict the set of natural
-languages that are preferred as a response.  Each language may be
+This field is similar to Accept, but restricts the set of natural
+languages that are preferred in a response.  Each language may be
 given an associated quality value which represents an estimate of the
 user's comprehension of that language.  For example:
 

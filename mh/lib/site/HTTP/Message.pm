@@ -34,6 +34,9 @@ use strict;
 use vars qw($VERSION $AUTOLOAD);
 $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
+$HTTP::URI_CLASS ||= "URI::URL";
+eval "require $HTTP::URI_CLASS"; die $@ if $@;
+
 =item $mess = new HTTP::Message;
 
 This is the object constructor.  It should only be called internally

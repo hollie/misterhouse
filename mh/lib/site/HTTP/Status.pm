@@ -25,10 +25,9 @@ HTTP::Status - HTTP Status code processing
 =head1 DESCRIPTION
 
 I<HTTP::Status> is a library of routines for defining and
-classification of HTTP status codes for libwww-perl.  Status codes are
+classifying HTTP status codes for libwww-perl.  Status codes are
 used to encode the overall outcome of a HTTP response message.  Codes
-correspond to those defined in F<draft-ietf-http-v11-spec-rev-03> (an
-update to RFC 2068).
+correspond to those defined in RFC 2616 and RFC 2518.
 
 =head1 CONSTANTS
 
@@ -37,6 +36,7 @@ names:
 
    RC_CONTINUE				(100)
    RC_SWITCHING_PROTOCOLS		(101)
+   RC_PROCESSING                        (102)
 
    RC_OK				(200)
    RC_CREATED				(201)
@@ -45,6 +45,7 @@ names:
    RC_NO_CONTENT			(204)
    RC_RESET_CONTENT			(205)
    RC_PARTIAL_CONTENT			(206)
+   RC_MULTI_STATUS                      (207)
 
    RC_MULTIPLE_CHOICES			(300)
    RC_MOVED_PERMANENTLY			(301)
@@ -72,6 +73,9 @@ names:
    RC_UNSUPPORTED_MEDIA_TYPE		(415)
    RC_REQUEST_RANGE_NOT_SATISFIABLE     (416)
    RC_EXPECTATION_FAILED		(417)
+   RC_UNPROCESSABLE_ENTITY              (422)
+   RC_LOCKED                            (423)
+   RC_FAILED_DEPENDENCY                 (424)
 
    RC_INTERNAL_SERVER_ERROR		(500)
    RC_NOT_IMPLEMENTED			(501)
@@ -79,6 +83,7 @@ names:
    RC_SERVICE_UNAVAILABLE		(503)
    RC_GATEWAY_TIMEOUT			(504)
    RC_HTTP_VERSION_NOT_SUPPORTED	(505)
+   RC_INSUFFICIENT_STORAGE              (507)
 
 =cut
 
@@ -97,6 +102,7 @@ $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 my %StatusCode = (
     100 => 'Continue',
     101 => 'Switching Protocols',
+    102 => 'Processing',                      # WebDAV
     200 => 'OK',
     201 => 'Created',
     202 => 'Accepted',
@@ -104,6 +110,7 @@ my %StatusCode = (
     204 => 'No Content',
     205 => 'Reset Content',
     206 => 'Partial Content',
+    207 => 'Multi-Status',                    # WebDAV
     300 => 'Multiple Choices',
     301 => 'Moved Permanently',
     302 => 'Found',
@@ -129,12 +136,16 @@ my %StatusCode = (
     415 => 'Unsupported Media Type',
     416 => 'Request Range Not Satisfiable',
     417 => 'Expectation Failed',
+    422 => 'Unprocessable Entity',            # WebDAV
+    423 => 'Locked',                          # WebDAV
+    424 => 'Failed Dependency',               # WebDAV
     500 => 'Internal Server Error',
     501 => 'Not Implemented',
     502 => 'Bad Gateway',
     503 => 'Service Unavailable',
     504 => 'Gateway Timeout',
     505 => 'HTTP Version Not Supported',
+    507 => 'Insufficient Storage',            # WebDAV
 );
 
 my $mnemonicCode = '';
