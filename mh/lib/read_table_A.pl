@@ -385,6 +385,13 @@ sub read_table_A {
     $grouplist = '' unless $grouplist; # Avoid -w uninialized errors
     for my $group (split('\|', $grouplist)) {
         $group =~ s/ *$//;
+        $group =~ s/^ //;
+
+        if(lc($group) eq 'hidden') {
+            $code .= sprintf "\$%-35s -> hidden(1);\n", $name;
+            next;
+        }
+
         if ($name eq $group) {
             print_log "mht object and group name are the same: $name  Bad idea!";
         } else {
@@ -401,9 +408,6 @@ sub read_table_A {
             $groups{$group}{$name}++;
         }
 
-        if(lc($group) eq 'hidden') {
-            $code .= sprintf "\$%-35s -> hidden(1);\n", $name;
-        }
     }
 
     return $code;
@@ -413,6 +417,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.26  2005/03/20 19:02:02  winter
+# *** empty log message ***
+#
 # Revision 1.25  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

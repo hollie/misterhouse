@@ -26,7 +26,7 @@
 <td align='left'>
 <b>Perl:</b></td>
 <td align='left'>
-<!--#include var="$]"--></td>
+<!--#include code="sprintf '%vd', $^V;"--></td>
 </tr><tr>
 <td align='left'>
 <b>User:</b></td>
@@ -58,7 +58,7 @@
 <td align='left'>
 <a href="http://tifster.com/wiki/bin/view/Misterhouse" target="main"><IMG alt=TWiki  src="images/TWiki.gif"  border=0></a>
 </td>
-<td><FONT size=1>Read the TWiki for online 
+<td><FONT size=1>Read the TWiki for online
       advice.</FONT>     </td>
 
 </tr>

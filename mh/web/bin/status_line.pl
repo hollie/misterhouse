@@ -114,6 +114,10 @@ for my $parm (@parms) {
         $Weather{Summary_Short} = '' unless $Weather{Summary_Short};
         $html .= qq[&nbsp;<img src='/ia5/images/temp.gif' border=0>&nbsp;$Weather{Summary_Short}\n];
     }
+    elsif ($parm eq 'weather_long') {
+        $Weather{Summary} = '' unless $Weather{Summary};
+        $html .= qq[&nbsp;<img src='/ia5/images/temp.gif' border=0>&nbsp;$Weather{Summary}\n];
+    }
 
     elsif ($parm eq 'wind') {
         my $html_wind = $Weather{Wind};

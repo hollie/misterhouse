@@ -253,7 +253,9 @@ UNIX Detailed Install Instructions
   UNIX Step 1, Download and Install Mister House
     If you are running Debian, Russ Knize created a Debian package,
     available here:
-    http://www.knizefamily.net/russ/software/misterhouse.html .
+    http://www.knizefamily.net/russ/software/misterhouse.html . Some have
+    reported problems with this and have better luck with the standard tar
+    file on Debian.
 
     Otherwise, download the rpm, tar, or zip file from
     http://misterhouse.net/download .

@@ -8,6 +8,7 @@
 <tbody>
 <td valign="top" align="left" width="100%">
 <a href="/misc/mp3.html"><img src="images/mp3jukebox.gif" alt='MP3 Jukebox' border="0"></a><br>
+<a href="/media/mhmedia.html"><img src="images/mhmedia.gif" alt='Media Player' border="0"></a><br>
 <a href='<!--#include var="$config_parms{web_href_tv}" -->'>
 <img src="images/tvtoday.gif" alt='Tv Today' img='TV Today' border="0"></a><br>
 <a href='<!--#include var="$config_parms{web_href_tv2}" -->'>

@@ -94,6 +94,52 @@ sub read_irp_files {
 	closedir IRPDIR;
 }
 
+sub get_dvc_files {
+	opendir DVCDIR, $devicelib_dir;
+	my @dvc_list; 
+	foreach (grep {/\.DVC$/i} readdir DVCDIR) {
+		push @dvc_list, $_; 
+	} 
+	closedir DVCDIR;
+ 	return sort @dvc_list; 
+}
+
+sub read_dvc_file {
+	my $file = shift; 
+	open DVC, "$devicelib_dir/$file";
+	my (%parms, %prontos, $in_keys);
+	while (<DVC>) {
+		chomp; 
+		$in_keys = 1 if /\[Key Codes\]/;
+		if ($in_keys) {
+			if (my ($key, $pronto) = /(.+?)\s*=\s*(0000 .+)/) {
+				$key = uc $key; 
+				$prontos{$key} = $pronto; 
+			}  
+			elsif (my ($key, $device_code, $function_code) = /(.+?)\s*=\s*(.+?)\s*[,;]\s*(.+)/) {
+				$key = uc $key; 
+				$prontos{$key} = &IR_Utils::generate_pronto($parms{protocol}, $device_code, $function_code);
+			}  
+			elsif (my ($key, $function_code) = /(.+?)\s*=\s*[,;]?\s*(.+)/) {
+				$key = uc $key; 
+				$prontos{$key} = &IR_Utils::generate_pronto($parms{protocol}, $parms{device code}, $function_code);
+			}  
+		}
+		else {
+			if (my ($key, $value) = /(.+)\s*=\s*(.+)\s*/) {
+				$key = lc $key; 
+				$parms{$key} = $value; 
+			} 
+		}  
+	} 
+	close DVC;
+	my $device = "unknown";
+	$device = $parms{manufacturer} if $parms{manufacturer};
+	$device .= " $parms{model}" if $parms{model};
+	$device .= " $parms{device}" if $parms{device};
+	return uc $device, 3, %prontos; 
+}
+
 sub get_protocols {
 	return sort keys %protocols;
 }

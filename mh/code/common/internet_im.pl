@@ -98,6 +98,14 @@ if ($Reload) {
     &Jabber_Presence_add_hook(\&im_status);
     &ICQim_Status_add_hook   (\&im_status);
 
+                                # Allow for auto-connect on startup (otherwise connects only when sending)
+    if ($Startup) {
+        &net_im_signon(undef, undef, 'aim')    if $config_parms{net_aim_autoconnect};
+        &net_im_signon(undef, undef, 'msn')    if $config_parms{net_msn_autoconnect};
+        &net_im_signon(undef, undef, 'icq')    if $config_parms{net_icq_autoconnect};
+        &net_im_signon(undef, undef, 'jabber') if $config_parms{net_jabber_autoconnect};
+    }
+
     &Log_add_hook(\&im_log);
 
     for my $user (split /[,]+/, $config_parms{password_allow_im}) {

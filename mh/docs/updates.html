@@ -16,6 +16,7 @@
 	<ul>
 
 		<li><a href="#changes_in_the_current_test_version">Changes in the current test version</a></li>
+		<li><a href="#version_2_98_posted_on_03_20_2005">Version 2.98 posted on 03/20/2005</a></li>
 		<li><a href="#version_2_97_posted_on_01_23_2005">Version 2.97 posted on 01/23/2005</a></li>
 		<li><a href="#version_2_96_posted_on_11_22_2004">Version 2.96 posted on 11/22/2004</a></li>
 		<li><a href="#version_2_95_posted_on_09_25_2004">Version 2.95 posted on 09/25/2004</a></li>
@@ -130,6 +131,51 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 (updated nightly) can be found
 <a href=http://misterhouse.net/mh/docs/updates.html>here, in the test release updates file</a>.<p><strong>New Features:</strong></p>
 <p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>
+</p>
+<h2><a name="version_2_98_posted_on_03_20_2005">Version 2.98 posted on 03/20/2005</a></h2>
+<p>Version 2.98 was just uploaded to:</p>
+<p><strong>New Features:</strong></p>
+<p>- Axel Brown created code/common/mh_release.pl which
+monitors the MisterHouse release page and lets the user know if there is a newer version of MisterHouse available.</p>
+<p>- Axel Brown created code/common/monitor_router_lingo.pl to monitor and optionally reboot a VoIP Lingo router.</p>
+<p>- Matthew Williams created code/public/weather-metar.pl for getting weather provided the international standard METAR format.
+Similar to code/common/internet_weather_metar.pl.  He also added a weather_long option to web/bin/status_line.pl</p>
+<p>- Pete Flaherty created common/mhmedia_xine.pl and web/media for controling Xine Media player,
+available via a new Media Center button on the ia5 entertainment page.
+Currently for Linux only, but Xine Windows support is planned.</p>
+<p>- Pete Flaherty created code/public/phone_merlin.pl and an example for interfacing to the Merlin phone system.</p>
+<p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>- Dominique Benoliel fixed a 2.97 wind conversion problem in lib/weather_wmr968.pm</p>
+<p>- Added a check to web/bin/items.pl to avoid creating any mh items with embeded blanks.</p>
+<p>- Chris Barrett noticed a typo in lib/Telephony_Interface.  A callerid should have been caller_id in this check:
+config_parms{caller_id_format} eq 'number only';</p>
+<p>- Axel Brown updated bin/mh set the volume on a per sound basis on unix when using the standard play program.</p>
+<p>- Patched bin/mh to avoid this message that Lee Varga noticed:  Undefined subroutine: main::respond_UserCode  main::respond_UserCode</p>
+<p>- Craig ? found a 2.97 problem in handy_net_utilities.pl that caused the which function to not run the dailystrip code on
+some systems (switched -x file test to -f).</p>
+<p>- Jason Sharpee added a mos_precip_change (rain prediction) funciton to code/public/weather_mos_forecast.pl.</p>
+<p>- Jason Sharpee patched set_by problem he noticed with tied_item objects.</p>
+<p>- Jason Sharpee patched lib/X10_Items.pm to assume a ON to a non-presetable item means 100% light level.</p>
+<p>- Jacò Botha found a problem with code_unselect on windows not deselecting code on Windows due to a case sensitve issue.</p>
+<p>- Pete Flaherty updated code/common/audrey_control2.pl to use get_url instead of get to avoid mh pauses.</p>
+<p>- Jason Sharpee re-wrote lib/Base_Item.pm and Light_Item.pm to add features, fix bugs, and clean up the code.</p>
+<p>- Bradley Erickson notice that lib/HomeBase.pm did not work with X10 house code M.</p>
+<p>- Pete Flaherty updated docs/faq_ia.pod with the latest info on his <a href="http://mraudrey.net">http://mraudrey.net</a> project.</p>
+<p>- Matthew Williams updated web/bin/shopping_list.pl, changing the modify option to update list.
+Also included the default data/shopping_list.txt that was left out in the last release.</p>
+<p>- Heath Pitts found a memory leak problem with .mht entries with blanks in the group records.</p>
+<p>- Pete Flaherty updated web/bin/phone_out.pl to display optional additional data.</p>
+<p>- David Norwood updated the common/USB_UIRT_learning.pl to handle two part raw codes.</p>
+<p>- Rob Walker noticed that mht entries flagged with 'hidden' group flags, inadvertantly created groups called hidden.</p>
+<p>- Rob Walker and I updated web/bin/floorplan.pl to not require the $om object.</p>
+<p>- Gregg Becnel fixed a bug in collect_accum in code/public/caddx.pl</p>
+<p>- James Bacus noticed code/common/callerid.pl would repeate the callerid data twice, if you only had one callerid device defined.</p>
+<p>- Rob Walker and I updated code/common/internet_im.pl to allow for new autoconnect parms,
+so that mh can log into im services at startup, rather than only when they first need to send data.
+To enable, set net_aim_autoconnect=1 (or _msn_, _icq_, or _jabber).</p>
+<p>- Added a list of defined constants (e.g. ON =&gt; 'on') to the 'List of global variables' of docs/mh.pod.
+Also added MOTION and STILL</p>
 <p>
 </p>
 <h2><a name="version_2_97_posted_on_01_23_2005">Version 2.97 posted on 01/23/2005</a></h2>

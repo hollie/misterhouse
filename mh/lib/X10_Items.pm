@@ -179,6 +179,12 @@ sub set {
                                 # Allow for dd% light levels on older devices by monitoring current level
     my $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
 #   print "db ps=$presetable t=$self->{type}\n";
+
+                                # If we are currently in a dim state, then make an 'on' really a 100%
+    if (!$presetable and $state eq 'on' and $self->state() =~ /^[-+]?\d+/) {
+        $state = "100%";
+    }
+
     if (!$presetable and $state =~ /^(\d+)\%/) {
         my $level = $1;
         my $level_now = $self->{level};
@@ -1074,6 +1080,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.48  2005/03/20 19:02:01  winter
+# *** empty log message ***
+#
 # Revision 1.47  2005/01/23 23:21:45  winter
 # *** empty log message ***
 #

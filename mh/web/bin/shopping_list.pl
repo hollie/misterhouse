@@ -1,5 +1,5 @@
 # Shopping List
-# Version 1.0
+# Version 1.1
 # Matthew Williams
 #
 # This file should be placed in mh/web/bin.  I link to it through a my_mh page.
@@ -21,6 +21,22 @@
 #
 # shopping_columns determines how many items are displayed per column
 # This is useful to tuning the output to match your screen resolution
+#
+# Revision History:
+#
+# Version 1.1: Matthew Williams
+# - changed "modify" button to "update list" to prevent confusion
+#
+# Version 1.0: Matthew Williams
+# - intial release
+#
+# Revision History:
+#
+# Version 1.1: Matthew Williams
+# - changed "modify" button to "update list" to prevent confusion
+#
+# Version 1.0: Matthew Williams
+# - intial release
 #
 
 my $file=$config_parms{shopping_list};
@@ -163,7 +179,7 @@ if ($param{'action'} eq 'add item') {
 	return $html;
 }
 
-if (($param{'action'} eq 'modify') or ($param{'action'} eq 'clear all')) {
+if (($param{'action'} eq 'update list') or ($param{'action'} eq 'clear all')) {
 	open (OLDLIST,$file) || return shoppingListError("$file: $!");
 	open (NEWLIST,">$tempFile") || return shoppingListError("$tempFile: $!");
 	while (<OLDLIST>) {
@@ -174,7 +190,7 @@ if (($param{'action'} eq 'modify') or ($param{'action'} eq 'clear all')) {
 		/^\[(.+)\]$/ && do { print NEWLIST "$_\n"; next; };
 		/^(.+)=(.+)$/ && do {
 			my $newVal='0';
-			if ($param{'action'} eq 'modify') {
+			if ($param{'action'} eq 'update list') {
 				$newVal=$param{$1} eq 'on' ? '1' : '0';
 			}
 			print NEWLIST "$1=".$newVal."\n"; next;};
@@ -185,7 +201,7 @@ if (($param{'action'} eq 'modify') or ($param{'action'} eq 'clear all')) {
 	if ($param{'action'} eq 'clear all') {
 		$html.="<h3>All Items Cleared</h3>\n";
 	}
-	$html.= "<h3>Modifications Saved</h3>\n";
+	$html.= "<h3>List Updated</h3>\n";
 }
 
 if ( $printing) {
@@ -208,7 +224,7 @@ while (<SHOPLIST>)
 		if ($printing) {
 			#$html.="</table><table>\n";
 		} else {
-		$html.=qq[</table><input type=submit name="action" value="modify">\n];
+		$html.=qq[</table><input type=submit name="action" value="update list">\n];
 		$html.=qq[<input type=submit name="action" value="print preview">\n];
 		$html.=qq[<input type=submit name="action" value="print">\n];
 		$html.=qq[<input type=submit name="action" value="add item">\n];

@@ -254,6 +254,9 @@ phone_identifier.pl
 phone_logs_kieran.pl
  - Kieran Ames' code for summarizing recent callers.  Also see mh/code/bruce/phone_logs.pl
 
+phone_merlin.pl
+ - Pete Flaherty's test code for talking to the Merlin phone system.
+
 phonelogger.tgz
  - Walter Leemput's code to allow a linux box to monitor DTMF, callerid, and phone messages via a soundcard.
 
@@ -409,6 +412,9 @@ weather_ec.pl
 
 weather_email_breaking.pl
  - Larry Roudebush's code for announcing important weather info from email alerts.
+
+weather_metar.pl
+- Matthew Williams's code for getting weather provided the international standard METAR format.
 
 weather_mos_forecast.pl
  - Jason Sharpee's code to decode MOS forecast data.

@@ -626,6 +626,24 @@ the web widgets menu.
 These values can also be checked using the web widgets menu.
 This is a handy place to put data you might want to display in .shml web pages.
 
+These constants are defined, so we can use them without quoting them
+(e.g. if $state eq ON instead of  if $state eq 'on'):
+
+  ON      => 'on';
+  OFF     => 'off';
+  DIM     => 'dim';
+  BRIGHTEN=> 'brighten';
+  TOGGLE  => 'toggle';
+  STATUS  => 'status';
+  OPEN    => 'open';
+  CLOSE   => 'close';
+  OPENED  => 'opened';
+  CLOSED  => 'closed';
+  MOTION  => 'motion';
+  STILL   => 'still';
+
+
+
 =head2 List of objects and their methods
 
 =over
@@ -733,7 +751,7 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
         Note, this is turnded off by default for Serial_Item objects.
         To enable, run:   $object -> state_overload(ON);
 
-     set_casesensitive   : By default, states are all lowercased, to allow for case 
+     set_casesensitive   : By default, states are all lowercased, to allow for case
                            insensitive tests.  To avoid this (for example on Serial Interfaces
                            that are case sensitive), call this method.
 
@@ -5117,6 +5135,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.78  2005/03/20 19:01:56  winter
+# *** empty log message ***
+#
 # Revision 1.77  2005/01/23 23:21:40  winter
 # *** empty log message ***
 #

@@ -14,7 +14,14 @@
 #@ Further information on the MrAudrey Image may be seen at
 #@ http://www.mraudrey.net -or- http://vsa.cape.com/~pjf
 #@
-#   MRU 20041125-04, v0.14 Pete Flaherty
+#  MRU 20050214-04, 	
+#  v0.16 Pete Flaherty - initial relase
+
+#  v0.17 Pete Flaherty - updates to use get_url over a get
+
+#  V0.18 Pete Flaherty - updated parse, eliminates text part getting called
+#	now it only sends out by IP
+	
 =begin comment
 
 The following comments are from the original code
@@ -49,6 +56,7 @@ my $listNM = ("all");
     #Get all the Audrey listings from the ini file, and make an array of them
     for my $ip (split ',', $config_parms{Audrey_IPs}) {
 	( $Aname[$Acount], $Aip[$Acount] ) = split '-', $ip ;
+	$Aip[$Acount] =~ s/\s*$//;
         print "$Aname[$Acount], $Aip[$Acount]\n";
 	$listNM = $listNM . ",$Aname[$Acount]";
 	$Acount++;
@@ -171,6 +179,7 @@ sub audrey_ip {
     #Get all the Audrey listings from the ini file, and make an array of them
     for my $ip (split ',', $config_parms{Audrey_IPs}) {
 	( $Aname[$Acount], $Aip[$Acount] ) = split '-', $ip ;
+	$Aip[$Acount] =~ tr/\s//;
         print "$Aname[$Acount], $Aip[$Acount]\n";
 	#$listNM +=",$Aname[$Acount]";
 	$Acount++;
@@ -199,6 +208,7 @@ sub audrey_ip {
     }
     $list = $list2 if $list2;
     print "list output $list\n";
+    $list =~ s/\s*$//;
     return $list;
 }
 
@@ -208,17 +218,19 @@ sub audrey_ip {
 sub audrey {
     my ($mode, $astate, $list) = @_;
     for my $address (split ',', &audrey_ip($list)) {
-
+      if ( substr($address,0,1) ne ' ' ) {
 	# some verbosity to the console about what were doing
-	print "Setting Audrey $mode to $astate for $address\n";
-
-        if ($mode eq 'top_led') {
+	print "Setting Audrey $mode to $astate for $address!\n";
+	$address =~ s/\s*$//; #remove trailing whitespace if there
+        my $audrey_cmd = "";
+	
+	if ($mode eq 'top_led') {
             print_log "$address Audrey top led set to $astate";
             $state = 0 if $astate eq 'off';
             $state = 2 if $astate eq 'blink';
-            $state = 1
- if $astate eq 'on';
-            get "http://$address/led.shtml?t$state";
+            $state = 1 if $astate eq 'on';
+            #get "http://$address/led.shtml?t$state";
+            $audrey_cmd = "http://$address/led.shtml?t$state";
         }
 
         if ($mode eq 'mail_led') {
@@ -226,7 +238,8 @@ sub audrey {
             $state = 0 if $astate eq 'off';
             $state = 2 if $astate eq 'blink';
             $state = 1 if $astate eq 'on';
-            get "http://$address/led.shtml?m$state";
+            #get "http://$address/led.shtml?m$state";
+            $audrey_cmd = "http://$address/led.shtml?m$state";
         }
 
         if ($mode eq 'both_leds') {
@@ -234,35 +247,42 @@ sub audrey {
             $state = 0 if $astate eq 'off';
             $state = 2 if $astate eq 'blink';
             $state = 1 if $astate eq 'on';
-            get "http://$address/led.shtml?t$state m$state";
+            #get "http://$address/led.shtml?t$state m$state";
+            $audrey_cmd = "'http://$address/led.shtml?t$state m$state'";
         }
         elsif ($mode eq 'screen') {
             print_log "$address Audrey screen set to $astate";
             $state = 0 if $astate eq 'off';
             $state = 1 if $astate eq 'on';
-            get "http://$address/screen.shtml?$state";
+            #$get "http://$address/screen.shtml?$state";
+            $audrey_cmd = "http://$address/screen.shtml?$state";
         }
         elsif ($mode eq 'photos') {
             print_log "$address Audrey to photo screen";
-            get "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
+            #get "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
+            $audrey_cmd = "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
         }
 	elsif ($mode eq 'music') {
             print_log "$address Audrey Music set to $astate";
             $state = 0 if $astate eq 'Stop';
             $state = 1 if $astate eq 'Play';
-            get "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
+            #get "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
+            $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
         }
 	elsif ($mode eq 'volume') {
             print_log "$address Audrey volume set to $astate";
             $state = $astate;
-            get "http://$address/cgi-bin/volume?$astate";
+            #get "http://$address/cgi-bin/volume?$astate";
+            $audrey_cmd = "http://$address/cgi-bin/volume?$astate";
         }
 	elsif ($mode eq 'reboot') {
-            print_log "$address Audrey $astate";
+            print_log "$address. Audrey $astate";
             $state = $astate;
-            get "http://$address/reboot.shtml";
-        }
-
+            #get "http://$address/reboot.shtml";
+            $audrey_cmd = "http://$address/reboot.shtml";
+	}
+      run "get_url -quiet $audrey_cmd /dev/null" ;
+      }
 
     }
 }

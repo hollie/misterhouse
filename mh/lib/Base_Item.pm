@@ -151,7 +151,8 @@ sub set
 				if ( ( $obj->can('writable') and $obj->writable ) or 
 					( ! $obj->can('writable') ) ) { #check for "settable" objects
                &::print_log($self->get_object_name() . "::set($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
-					$obj->set($p_state,$p_setby,$p_response);
+#					$obj->set($p_state,$p_setby,$p_response);
+					$obj->set($p_state,$self,$p_response);
 				}
 			}
 		}

@@ -22,8 +22,87 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 B<New Features:>
 
+B<Bug Fixes and Other Changes:>
+
+
+
+=head2 Version 2.98 posted on 03/20/2005
+
+Version 2.98 was just uploaded to:
+
+
+B<New Features:>
+
+- Axel Brown created code/common/mh_release.pl which
+monitors the MisterHouse release page and lets the user know if there is a newer version of MisterHouse available.
+
+- Axel Brown created code/common/monitor_router_lingo.pl to monitor and optionally reboot a VoIP Lingo router.
+
+- Matthew Williams created code/public/weather-metar.pl for getting weather provided the international standard METAR format.
+Similar to code/common/internet_weather_metar.pl.  He also added a weather_long option to web/bin/status_line.pl
+
+- Pete Flaherty created common/mhmedia_xine.pl and web/media for controling Xine Media player,
+available via a new Media Center button on the ia5 entertainment page.
+Currently for Linux only, but Xine Windows support is planned.
+
+- Pete Flaherty created code/public/phone_merlin.pl and an example for interfacing to the Merlin phone system.
+
 
 B<Bug Fixes and Other Changes:>
+
+- Dominique Benoliel fixed a 2.97 wind conversion problem in lib/weather_wmr968.pm
+
+- Added a check to web/bin/items.pl to avoid creating any mh items with embeded blanks.
+
+- Chris Barrett noticed a typo in lib/Telephony_Interface.  A callerid should have been caller_id in this check:
+config_parms{caller_id_format} eq 'number only';
+
+- Axel Brown updated bin/mh set the volume on a per sound basis on unix when using the standard play program.
+
+- Patched bin/mh to avoid this message that Lee Varga noticed:  Undefined subroutine: main::respond_UserCode  main::respond_UserCode
+
+- Craig ? found a 2.97 problem in handy_net_utilities.pl that caused the which function to not run the dailystrip code on
+some systems (switched -x file test to -f).
+
+- Jason Sharpee added a mos_precip_change (rain prediction) funciton to code/public/weather_mos_forecast.pl.
+
+- Jason Sharpee patched set_by problem he noticed with tied_item objects.
+
+- Jason Sharpee patched lib/X10_Items.pm to assume a ON to a non-presetable item means 100% light level.
+
+- Jacò Botha found a problem with code_unselect on windows not deselecting code on Windows due to a case sensitve issue.
+
+- Pete Flaherty updated code/common/audrey_control2.pl to use get_url instead of get to avoid mh pauses.
+
+- Jason Sharpee re-wrote lib/Base_Item.pm and Light_Item.pm to add features, fix bugs, and clean up the code.
+
+- Bradley Erickson notice that lib/HomeBase.pm did not work with X10 house code M.
+
+- Pete Flaherty updated docs/faq_ia.pod with the latest info on his http://mraudrey.net project.
+
+- Matthew Williams updated web/bin/shopping_list.pl, changing the modify option to update list.
+Also included the default data/shopping_list.txt that was left out in the last release.
+
+- Heath Pitts found a memory leak problem with .mht entries with blanks in the group records.
+
+- Pete Flaherty updated web/bin/phone_out.pl to display optional additional data.
+
+- David Norwood updated the common/USB_UIRT_learning.pl to handle two part raw codes.
+
+- Rob Walker noticed that mht entries flagged with 'hidden' group flags, inadvertantly created groups called hidden.
+
+- Rob Walker and I updated web/bin/floorplan.pl to not require the $om object.
+
+- Gregg Becnel fixed a bug in collect_accum in code/public/caddx.pl
+
+- James Bacus noticed code/common/callerid.pl would repeate the callerid data twice, if you only had one callerid device defined.
+
+- Rob Walker and I updated code/common/internet_im.pl to allow for new autoconnect parms,
+so that mh can log into im services at startup, rather than only when they first need to send data.
+To enable, set net_aim_autoconnect=1 (or _msn_, _icq_, or _jabber).
+
+- Added a list of defined constants (e.g. ON => 'on') to the 'List of global variables' of docs/mh.pod.
+Also added MOTION and STILL
 
 
 =head2 Version 2.97 posted on 01/23/2005
@@ -350,7 +429,6 @@ B<Bug Fixes and Other Changes:>
 - Pete Flaherty fixed a few minor javascript typos in some of the web pages.
 
 - Thomas Stoll noticed a 2.92 problem with TOGGLEing states and an case sensitive state problem.
-
 
 
 =head2 Version 2.93 posted on 07/18/2004

@@ -1541,6 +1541,16 @@ sub html_category {
 sub html_groups {
     my $h_index;
     for my $group (&list_objects_by_type('Group')) {
+
+                                # No need to list empty groups
+        my $object = &get_object_by_name($1);
+        print "db1 o=$object 1=$1\n";
+        if ($object and $object->can('list')) {
+            next unless grep !$$_{hidden}, list $object;
+        }
+        my @l = list $object;
+        print "db2 o=$object 1=$1 l=@l.\n";
+
                                   # Create buttons with GD module if available
         if ($Info{module_GD}) {
             my $name = &pretty_object_name($group);
@@ -2863,6 +2873,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.95  2005/03/20 19:02:02  winter
+# *** empty log message ***
+#
 # Revision 1.94  2005/01/23 23:21:45  winter
 # *** empty log message ***
 #

@@ -94,7 +94,7 @@ if ($^O eq 'MSWin32') {
 	sub PrintError {
 		my $errno = Win32::GetLastError();
 		my $errstr = Win32::FormatMessage($errno);
-		printf("\n\t*** ERROR: errno=%d (0x%02x), %s", $errno, $errno, $errstr); #CJB
+		printf("\n\t*** ERROR: errno=%d, %s", $errno, $errstr);
 	}
 
 	# UUIRTDRV_API BOOL PASCAL UUIRTGetDrvInfo(unsigned int *puDrvVersion);
@@ -116,9 +116,6 @@ if ($^O eq 'MSWin32') {
 
 	# UUIRTDRV_API BOOL PASCAL UUIRTClose(HUUHANDLE hHandle);
 	Win32::API->Import('uuirtdrv', 'BOOL UUIRTClose(HUUHANDLE hHandle)');
-
-	# UUIRTDRV_API BOOL PASCAL UUIRTGetDrvVersion(unsigned int *puDrvVersion);	
-	Win32::API->Import('uuirtdrv', 'BOOL UUIRTGetDrvVersion(PUINT puDrvVersion)');	
 }
 
 END {if ($^O eq 'MSWin32') {UUIRTClose($DrvHandle);}}
@@ -127,24 +124,10 @@ sub startup {
 	&::MainLoop_pre_add_hook(  \&USB_UIRT::check_for_data, 1 );
 	$db = tie (%DBM,  'DB_File', $dbm_file) or print "\nError, can not open dbm file $dbm_file: $!";
 	if ($^O eq 'MSWin32') {
-		print "Querying USB-UIRT device driver information...\n"; 
-		my $DrvInfo; 
-		if (UUIRTGetDrvInfo($DrvInfo)) { 
-			printf("** USB-UIRT Driver Info: 0x%04x\n", $DrvInfo); 
-		} else {
-			PrintError();
-		}
-
-		my $DrvVersion; 
-		if (UUIRTGetDrvVersion($DrvVersion)) {
-			my $A = int($DrvVersion / 1000);
-			$DrvVersion -= $A*1000;
-			my $B = int($DrvVersion / 100);
-			$DrvVersion -= $B*100;
-			my $C = int($DrvVersion / 10);
-			$DrvVersion -= $C*10;
-			my $D = int($DrvVersion);
-			printf("** USB-UIRT DLL (uuirtdrv.dll) Version: %d.%d.%d.%d\n",$A,$B,$C,$D);
+		print "Quering USB-UIRT device driver information...\n";
+		my $DrvVersion;
+		if (UUIRTGetDrvInfo($DrvVersion)) {
+			printf("** USB-UIRT Driver Info: 0x%04x\n\n", $DrvVersion);
 		} else {
 			PrintError();
 		}
@@ -294,13 +277,12 @@ sub set {
 	$device = uc shift;
 	$function = uc shift;
 	return unless defined $device and defined $function;
-	push @transmit_queue, "$device$;$function";
+      push @transmit_queue, "$device$;$function";
 }
 
 sub send_ir_code {
 	return if &main::get_tickcount - $transmit_timeout < 0;
 	my $code = $DBM{shift @transmit_queue};
-	return if $code eq "";
 	if ($code =~ s/^R//i) {
 		transmit_raw($code);
 	}
@@ -361,14 +343,14 @@ sub get_version {
             $protocol_minor = $UirtInfo->{protVersion}&0xff;
             $firmware_month = $UirtInfo->{fwDateMonth};
             $firmware_day = $UirtInfo->{fwDateDay};
-            $firmware_year = $UirtInfo->{fwDateYear};        
+            $firmware_year = $UirtInfo->{fwDateYear};        # Bruce update this line for correct display on win32 platforms
         } else {
 	    PrintError();
         }
     } else {
 	usb_uirt_send(0x23);
 	my $ret = get_response(8);
-        printf("USB_UIRT: get_version returned 0x%X\n",$ret) unless ($ret == 0x21);
+    printf("USB_UIRT: get_version returned 0x%X\n",$ret) unless ($ret == 0x21);
 	($firmware_minor, $firmware_major, $protocol_minor, $protocol_major, $firmware_day, $firmware_month, $firmware_year)
 	    = unpack 'C*', $ret;
     }
@@ -404,14 +386,13 @@ sub set_moderaw {
 	@learned = ();
 	usb_uirt_send(0x24);
 	my $ret = get_response(1);
-	printf("USB_UIRT: get_moderaw returned 0x%X\n",$ret) unless ($ret == 0x21);
+    printf("USB_UIRT: get_moderaw returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
 
 sub set_modeuir {
 	$learning = 0;
 	usb_uirt_send(0x20);
 	my $ret = get_response(1);
-printf("USB_UIRT: get_modeuir returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
 
 sub get_response {
@@ -423,12 +404,29 @@ sub get_response {
 }
 
 sub transmit_raw {
- 	my @bytes = unpack('C*', pack 'H*', shift);
-	splice @bytes, 4, 0, $#bytes - 3;
+	my $code = shift; 
+	my ($code1, $code2) = split ' ', $code;  
+	if ($code2) {
+		my ($frequency, $repeat, $code1) = unpack 'a2a2a*', $code1;
+		$code1 = $frequency . '01' . $code1; 
+		$code2 = $frequency . $repeat . $code2; 
+	}
+	my $both;
+	$both = 1 if $code1 and $code2;
+	foreach $code ($code1, $code2) {
+		my @bytes = unpack('C*', pack 'H*', $code);
+		splice @bytes, 4, 0, $#bytes - 3;
+		usb_uirt_send(0x36, $#bytes + 2, @bytes);
+		if ($both) {
+			my ($count, $ret, $giveup);
+			until ($count > 0 or $giveup > 2000) {
+				($count, $ret) = $main::Serial_Ports{USB_UIRT}{object}->read(1);
+				$giveup++;
+			}
+			$both = 0;
+		}
+	}
 	$transmit_timeout = &main::get_tickcount + 500;
-#	my $t = 0.10;
-#	foreach (@bytes) {$t += $_}
-	usb_uirt_send(0x36, $#bytes + 2, @bytes);
 	my $ret = get_response(1);
 	printf("USB_UIRT: transmit_raw returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
@@ -473,7 +471,7 @@ sub transmit_pronto {
 			if ($word > 0x7f) {
 				push @raw, ($word >> 8) | 0x80;
 			}
-			push @raw, $word & 0xff;
+   			push @raw, $word & 0xff;
 			$length--;
 		}
 		splice @raw, 4, 0, $#raw - 3;
@@ -489,7 +487,7 @@ sub transmit_pronto {
 	}
 	$transmit_timeout = &main::get_tickcount + 500;
 	my $ret = get_response(1);
-	printf("USB_UIRT: transmit_pronto returned 0x%X\n",$ret) unless ($ret == 0x21);
+    printf("USB_UIRT: transmit_pronto returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
 
 sub transmit_struct {
@@ -497,7 +495,7 @@ sub transmit_struct {
 	$transmit_timeout = &main::get_tickcount + 500;
 	usb_uirt_send(0x37, $#bytes + 2, @bytes);
 	my $ret = get_response(1);
-	printf("USB_UIRT: transmit_struct returned 0x%X\n",$ret) unless ($ret == 0x21);
+    printf("USB_UIRT: transmit_struct returned 0x%X\n",$ret) unless ($ret == 0x21);
 }
 
 sub usb_uirt_send {
@@ -648,18 +646,25 @@ sub raw_to_pronto {
 	push @bytes, 0;
 	my $units = $frequency ? 1000.0/$frequency : 0;
 	push @bytes, $units ? round($units/.241246) : 0;
+	my $second = 0;
 	if ($code1 =~ s/^R//i) {
 					# this is the new usb-uirt raw format without a count
-		my @raw = unpack 'C*', pack 'H*', $code1;
-		my $inter = (shift @raw) * 256 + shift @raw;
-		$inter = round($inter * 51.2/$units);
-		my $count;
-		while (my $byte = shift @raw) {
-			push @bytes, ($byte & 0x80) ? ($byte & 0x7f) << 8 | shift @raw : $byte;
-			$count++;
+		push @bytes, 0;
+		push @bytes, 0;
+		foreach my $code ($code1, $code2) {
+			next unless $code; 
+			my @raw = unpack 'C*', pack 'H*', $code;
+			my $inter = (shift @raw) * 256 + shift @raw;
+			$inter = round($inter * 51.2/$units);
+			my $count;
+			while (my $byte = shift @raw) {
+				push @bytes, ($byte & 0x80) ? ($byte & 0x7f) << 8 | shift @raw : $byte;
+				$count++;
+			}
+			push @bytes, $inter;
+			$bytes[ $second ? 3 : 2 ] = round($count/2);
+			$second++;
 		}
-		push @bytes, $inter;
-		splice @bytes, 2, 0, round($count/2), 0;
 	}
 	else {
 					# this is just an exploded version of struct
@@ -745,6 +750,7 @@ sub set_ir_code {
 		$frequency = 40 unless $frequency;
 		$frequency = round(2500 / $frequency);
 		$code = 'R' . (unpack 'H4', pack 'CC', $frequency, $repeat) . $code1;
+		$code .= ' ' . $code2 if $code2;
 	}
 	elsif ($code1 =~ /^0000 /) {
 		$code1 =~ s/[^0-9a-f ]//igs;
@@ -770,12 +776,13 @@ sub get_ir_code {
 	my ($frequency1, $repeat1, $code1, $frequency2, $repeat2, $code2);
 	my $code = $DBM{"$device$;$function"};
 	if ($code =~ s/^R//i) {
-		($frequency1, $repeat1, $code1) = unpack 'a2a2a*', $code;
+		($code1, $code2) = split ' ', $code;  
+		($frequency1, $repeat1, $code1) = unpack 'a2a2a*', $code1;
 		$code1 = 'R' . $code1;
 		$frequency1 = unpack 'C', pack 'H2', $frequency1;
 		$frequency1 = $frequency1 ? round(2500 / $frequency1) : 0;
 		$repeat1 = unpack 'C', pack 'H2', $repeat1;
-		$repeat2 = unpack 'C', pack 'H2', $repeat2;
+		$repeat2 = $repeat1;
 	}
 	elsif ($code =~ /^P/i) {
 #		print "db get $code\n";

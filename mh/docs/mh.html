@@ -603,6 +603,21 @@ the web widgets menu.</p>
 <p>%Misc is a hash in which other miscellaneous data can be stored.
 These values can also be checked using the web widgets menu.
 This is a handy place to put data you might want to display in .shml web pages.</p>
+<p>These constants are defined, so we can use them without quoting them
+(e.g. if $state eq ON instead of  if $state eq 'on'):</p>
+<pre>
+  ON      =&gt; 'on';
+  OFF     =&gt; 'off';
+  DIM     =&gt; 'dim';
+  BRIGHTEN=&gt; 'brighten';
+  TOGGLE  =&gt; 'toggle';
+  STATUS  =&gt; 'status';
+  OPEN    =&gt; 'open';
+  CLOSE   =&gt; 'close';
+  OPENED  =&gt; 'opened';
+  CLOSED  =&gt; 'closed';
+  MOTION  =&gt; 'motion';
+  STILL   =&gt; 'still';</pre>
 <p>
 </p>
 <h2><a name="list_of_objects_and_their_methods">List of objects and their methods</a></h2>
@@ -761,7 +776,7 @@ mh is stopped/started.
 </dd>
 <dd>
 <pre>
-     set_casesensitive   : By default, states are all lowercased, to allow for case 
+     set_casesensitive   : By default, states are all lowercased, to allow for case
                            insensitive tests.  To avoid this (for example on Serial Interfaces
                            that are case sensitive), call this method.</pre>
 </dd>

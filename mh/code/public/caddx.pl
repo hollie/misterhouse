@@ -4,7 +4,7 @@
 #  File:
 #      caddx.pl
 #  Description:
-#      A perl script that interfaces to the caddx nx584 and/or nx8e 
+#      A perl script that interfaces to the caddx nx584 and/or nx8e
 #  Author:
 #      chris witte <cwitte@xmlhq.com>
 #
@@ -14,16 +14,16 @@
 #
 #  Documentation is in POD format at the bottom of this file.
 #
-#  This free software is licensed under the terms of the GNU public license. 
+#  This free software is licensed under the terms of the GNU public license.
 #  Copyright 2002 Chris Witte
 #
 #---------------------------------------------------------------------------
 #
 #  Revision Log
 # 0.01:   Initial public release/beta
-# 
+#
 # 0.03:   Added Win32 support
-#         Added command line configurability 
+#         Added command line configurability
 #         Added perlpod documentation.
 #         Call set_clock after inactivity to sync the RTC.
 #         Added support for more than 8 zones
@@ -31,10 +31,10 @@
 #         Added multiple (configurable) debug levels
 #         Fixed a checksum calculation bug.
 #         Included a missing library file (caddx_parse) in the release.
-# 
+#
 # 0.04:   Force ack bad csum after 5 consecutive retries.
 #         Debug info is logged for this event regardless of debug mode.
-# 
+#
 # 0.05:   Default win log file to c:/ha/data
 # 0.06:   Explicit GNU license info in header
 #---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ my $debug_msg;
 my $debug_sum;
 my $debug_io;
 my $debug_udp;
-	
+
 my @debug_raw;
 my $report_version;
 my $net_dest="127.0.0.1";
@@ -114,9 +114,9 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 if($report_version){
 	print "$0: version $version\n";
 	exit(0);
-			
+
 }
-				
+
 
 # removed leading slash for windows folks
 my $debug_log=new RollFileHandle(">> $log_dir/caddx.log.%m%d");
@@ -190,17 +190,17 @@ sub verify_msg{
 		$data=substr($raw,1); # dump first byte;
 		chop($data);         # dump last byte;
 		my $sum=substr($data,-4,4); # get checksum
-		substr($data,-4,4)=""; # dump checksum 
+		substr($data,-4,4)=""; # dump checksum
 		print "verify_msg: sum: [$sum]\n";
 		print "verify_msg: data: [$data]\n";
-		
+
 		my $encode=pack("H*",$data);
 		my $calc_sum=&fletcher_sum($encode);
 		my $ascii_sum=unpack("H*",$calc_sum);
 		print "verify_msg: calc_sum: [$ascii_sum]\n";
 	}
 
-	
+
 }
 sub fletcher_sum{
 	my ($msg)=@_;
@@ -216,23 +216,23 @@ sub fletcher_sum{
 		$sum1+=$c;
 		$sum1&=255;   # force 8bit math
 		if($sum1==255){$sum1=0;}
-		
+
 		if(255 - $sum2 < $sum1) {$sum2++;}
 		$sum2+=$sum1;
 		$sum2&=255;   # force 8bit math
 		if($sum2==255){$sum2=0;}
-	
-		
+
+
 		my $h1=sprintf("%x",$sum1);
 		my $h2=sprintf("%x",$sum2);
 		$debug_sum && print "hex: $hex  ord: $c s1:$h1 s2:$h2\n";
-		
+
 	}
 	return(pack("CC",$sum1,$sum2));
 }
 sub dump{
 	my ($msg,$context,$force_dump)=@_;
-	
+
 	return unless ($debug_msg || $force_dump);
 	my $hhmmss=&fmt_hhmmss;
 	print $debug_log "$hhmmss [$context] dump:\t";
@@ -258,7 +258,7 @@ sub dump{
 
 
 BEGIN {
-	## Unshift to catch MH libs from default install 
+	## Unshift to catch MH libs from default install
 	## (caddx.pl in mh/code/public/)
 	unshift (@INC, './../../lib', './../../lib/site', '.');
 
@@ -383,7 +383,7 @@ while(1){
 		&check_q("read timeout");   ## since we've been inactive for a while...
 		&set_clock();   ## debug msg to see if we're still talking
 	}
-		
+
 
 
 	my($start,$lth,$msg)=unpack("a C a*",$accum);
@@ -392,7 +392,7 @@ while(1){
 	$msg_num &=63;   ## just bits 0-5
 	if($lth && (length($accum) == $lth +4)){
 		$msg_recv_time=Time::HiRes::time();
-		
+
 		## touchy error when checksum ends in "\x0a" ("\n")
 		##   the regex honors the \n as eol and leaves it in the
 		##   string, and zaps part of the msg instead:: use substr
@@ -416,7 +416,7 @@ while(1){
 				my $phash=&{$caddx::parse::laycode{$key}}($msg);
 				&show_parsed($phash->{_parsed_},$key);
 				&process_msg($msg_num,$phash);
-				
+
 			}
 			else{
 				$debug_sum && print "NO  rtn for $key\n";
@@ -431,8 +431,8 @@ while(1){
 			}
 			&apply_ack($msg_num);
 			&check_q("message processed");
-			
-			
+
+
 			$consecutive_csum_fail=0;   # reset with good msg
 		}
 		else{
@@ -462,9 +462,9 @@ while(1){
 		&reset_accum();        # empty out the accumulator
 		$debug_io && print "got a msg!!\n"
 		## got a msg!!
-		
+
 		#my $msg="action=scanner_input&data=$result&";
-		#$udp_fh->send($msg);	
+		#$udp_fh->send($msg);
 		#print "sent udp: [$msg]\n";
 		#for(my $x=0;$x<length($result);$x++){
 		#	printf("[%02x]",ord(substr($result,$x,1)));
@@ -482,39 +482,44 @@ sub reset_accum{
 		my $now=time();
 		$debug_io && print "WARNING: flushed stale data [$accum] $accum_age $now\n";
 	}
-		
+
 	$accum="";
 	$accum_age=0;
 	$unstuff_pending=0;
 }
 ###############################################################
 ##  this rtn will collect each character scanned into the accumulator.
-##  if the age of the data already in the accumulator is too old, 
-##  flush the old data before collecting the new, so that unrelated 
+##  if the age of the data already in the accumulator is too old,
+##  flush the old data before collecting the new, so that unrelated
 ##  data is not dumped together (could have been noise on the serial
 ##  port, partial msg...)
 ##
 ###############################################################
+
 sub collect_accum{
-	my ($char)=@_;
-	if($accum_age +2  < time()){   #shouldn't take over 1 second
-		&reset_accum();
-		$accum_age=time();
-	}
-	if($unstuff_pending){
-		chop $accum;  # lose the prior x7d
-		my $orig_char=$char;
-		$char=ord($char) ^ ord("\x20");
-		$char=pack("C",$char);
-		
-		$debug_io && printf("UNSTUFFED %02x gave %02x\n",ord($orig_char),ord($char));
-		$unstuff_pending=0;
-	}
-	elsif($char eq "\x7d"){    #don't unstuff an unstuffed 7d :-)
-		$unstuff_pending=1;
-	}
-	$accum .= $char;
+       my ($char)=@_;
+       if($accum_age +2  < time()){   #shouldn't take over 1 second
+           &reset_accum();
+           $accum_age=time();
+       }
+       if($unstuff_pending){
+           my $orig_char=$char;
+           $char=ord($char) ^ ord("\x20");
+           $char=pack("C",$char);
+
+           $debug_io && printf("UNSTUFFED %02x gave
+                                 %02x\n",ord($orig_char),ord($char));
+           $unstuff_pending=0;
+       }
+       elsif($char eq "\x7d"){    #don't unstuff an unstuffed 7d :-)
+           $debug_io && printf("STUFFED %02x Found\n",
+                               ord($char));
+           $unstuff_pending=1;
+           $char = "";
+       }
+       $accum .= $char;
 }
+
 ###########################################################
 ##  set_clock will send a msg to the controller w/ the current
 ##    date, time.
@@ -526,7 +531,7 @@ sub set_clock{
 	return unless($last_set_clock + 3600  < $now);
 	$debug_msg && print "set clock processing\n";
 	$last_set_clock=$now;
-	
+
 	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=
 		localtime($now);
 	my $time_hex=pack("C C C C C C",
@@ -537,7 +542,7 @@ sub set_clock{
 		$min,
 		$wday + 1);
 	my $time_fmt=unpack("H*",$time_hex);
-	
+
 	&dump($time_hex, "time_hex");
 	&dump($time_fmt, "time_fmt");
 	# my $clock_msg=&build_msg("3b" . $time_fmt);
@@ -545,13 +550,13 @@ sub set_clock{
 	## my $clock_msg=&build_msg("3b01090e070703");
 	&dump($clock_msg,"tentative set_clock");
 	&queue_msg($clock_msg);
-	
+
 }
 ###########################################################
 ##  get_zone_name will send a msg to the controller requesting
-##    the name of a given zone. 
+##    the name of a given zone.
 ##
-##  apparently, these names are stored in the keypads not the 
+##  apparently, these names are stored in the keypads not the
 ##    main controller?!?!  anyway, so far i haven't found
 ##    a way to set the zone name from this interface :-(
 ##
@@ -562,7 +567,7 @@ sub get_zone_name{
 	my $zone_msg=&build_msg("23" . sprintf("%02d",$zone-1));
 	&dump($zone_msg,"tentative zone_name_msg");
 	&queue_msg($zone_msg);
-	
+
 }
 ###########################################################
 ##  get_zone_status will send a msg to the controller requesting
@@ -575,11 +580,11 @@ sub get_zone_status{
 	my $zone_msg=&build_msg("24" . sprintf("%02d",$zone-1));
 	&dump($zone_msg,"tentative zone_status_msg");
 	&queue_msg($zone_msg);
-	
+
 }
 ###########################################################
 ##  toggle_zone_bypass will toggle the bypass condition for
-##    a given zone. 
+##    a given zone.
 ##
 ##
 ###########################################################
@@ -588,7 +593,7 @@ sub toggle_zone_bypass{
 	$debug_msg && print "toggle zone bypass invoked\n";
 	my $zone_msg=&build_msg("3f" . sprintf("%02d",$zone-1));
 	&queue_msg($zone_msg);
-	
+
 }
 ###########################################################
 ##  get_zone_snap will send a msg to the controller requesting
@@ -602,7 +607,7 @@ sub get_zone_snap{
 	my $zone_msg=&build_msg("25" . sprintf("%02d",$zone-1));
 	&dump($zone_msg,"tentative zone_snap");
 	&queue_msg($zone_msg);
-	
+
 }
 ###########################################################
 ##  get_partition status will send a msg to the controller requesting
@@ -615,7 +620,7 @@ sub get_partition_status{
 	$debug_msg && print "get part status invoked\n";
 	my $msg=&build_msg("26" . sprintf("%02d",$part-1));
 	&queue_msg($msg);
-	
+
 }
 ###########################################################
 ##  get_partition_snap will send a msg to the controller requesting
@@ -627,7 +632,7 @@ sub get_partition_snap{
 	$debug_msg && print "get partition snap invoked\n";
 	my $msg=&build_msg("27");
 	&queue_msg($msg);
-	
+
 }
 ###########################################################
 ##  get_user_info will send a msg to the controller requesting
@@ -672,7 +677,7 @@ sub put_keypad_data{
 }
 ###########################################################
 ##  queue_msg will put an outbound msg to the controller in
-##    the xmit queue.  there can only be one pending msg to 
+##    the xmit queue.  there can only be one pending msg to
 ##    the controller at a time, and in may need to be acked
 ##    before the next msg can go.
 ##
@@ -687,12 +692,12 @@ sub queue_msg{
 	$new_q->{xmit_time}=0;
 	$new_q->{msgnum}=substr($msg,2,1);
 	push(@xmit_q,$new_q);
-	
+
 	&check_q("message added");
 }
 ###########################################################
 ##  check_q will check to see if there is a msg in the q
-##    that is eligible for (re)xmit 
+##    that is eligible for (re)xmit
 ##
 ###########################################################
 sub check_q{
@@ -704,7 +709,7 @@ sub check_q{
 
 	# is there a msg in queue that is eligible for send/resend
 	if($xmit_q[0] && $xmit_q[0]{xmit_time}+3 < time()){
-			
+
 		$xmit_q[0]{xmit_count}++;
 		$xmit_q[0]{xmit_time}=Time::HiRes::time();
 		$ob->PRINT($xmit_q[0]{msg});
@@ -736,7 +741,7 @@ sub apply_ack{
 				&rm_pending_xmit("mate");
 			}
 			else{
-	
+
 				$debug_io && printf("pending msg  [%02x] not ack'ed by [%02x]\n",
 					ord($xmit_q[0]{msgnum}),
 					ord($msghex));
@@ -771,7 +776,7 @@ sub rm_pending_xmit{
 	$debug_io && print "rm_pending_ack shrinking the xmit q b/c [$rsn]\n";
 	&dump ('',"rm_pending_ack shrinking the xmit q b/c [$rsn]");
 	my $complete_msg=shift @xmit_q;
-	
+
 	if($debug_io){
 		my $elapsed_time=$relieve_time - $complete_msg->{submit_time};
 		my $process_time=$relieve_time - $complete_msg->{xmit_time};
@@ -782,7 +787,7 @@ sub rm_pending_xmit{
 	}
 	$reply_pending=0;
 	&check_q();
-	
+
 }
 #####################################
 ##  wake_up is an alarm handler that will
@@ -822,7 +827,7 @@ sub process_msg{
 		my $zsnap_rtn;
 		if($caddx::parse::laycode{ZSNAP}){
 			$zsnap_rtn=$caddx::parse::laycode{ZSNAP};
-			
+
 		}
 		else{
 			print "no layout for zsnap\n";
@@ -847,7 +852,7 @@ sub process_msg{
 				&cache_info($zone,"trouble",$phash->{trouble});
 				&cache_info($zone,"bypassed",$phash->{bypassed});
 				&cache_info($zone,"alarm_memory",$phash->{alarm_memory});
-				
+
 			}
 		}
 	}
@@ -865,7 +870,7 @@ sub process_msg{
 		my $psnap_rtn;
 		if($caddx::parse::laycode{PSNAP}){
 			$psnap_rtn=$caddx::parse::laycode{PSNAP};
-			
+
 		}
 		else{
 			print "no layout for psnap\n";
@@ -891,7 +896,7 @@ sub process_msg{
 			&cache_info($pkey,"armed",$phash->{armed});
 			&cache_info($pkey,"stay",$phash->{stay});
 			&cache_info($pkey,"chime",$phash->{chime});
-			
+
 		}
 	}
 	## &cache_dump();
@@ -899,8 +904,8 @@ sub process_msg{
 ##########################################################
 ##  cache_info will cache a local status of the controller
 ##    msgs, so that we know the status of all of the zones.
-##   
-##    when the status changes, call cache_modified to 
+##
+##    when the status changes, call cache_modified to
 ##       perform zone change notification.
 ##########################################################
 sub cache_info{
@@ -926,7 +931,7 @@ sub cache_info{
 		&cache_modified("new",@_);
 	}
 	$zone_hash{$key1}{$key2}=$data;
-	
+
 }
 #####################################
 ##  cache_modified is tripped when the status
@@ -945,7 +950,7 @@ sub cache_modified{
 	print "cache modified: $key1 $key2\n";
 
 	if($key2 eq "faulted"){
-		&udp_send("zone=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n");	
+		&udp_send("zone=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n");
 	}
 
 
@@ -973,9 +978,9 @@ sub cache_dump{
 			foreach my $key2 (sort keys %$zh){
 				print "cadump: [$key] : [$key2] [$zh->{$key2}]\n";
 			}
-		} 
+		}
 	}
-		
+
 }
 #####################################
 ##  debug rtn to dump parsed msg.
@@ -1034,7 +1039,7 @@ sent to.  Used in combination with --udp_port.
 (Win32 default is c:/ha/data)
 
 =item -version
-Report version and exit. 
+Report version and exit.
 
 =item --debug=xxx  Invoke debug mode (verbose) where xxx can be 1 or more of:
 
@@ -1060,7 +1065,7 @@ Report version and exit.
 
 This Program will currently interrogate the caddx controller on startup
 to get the zone name information configured into the controller, as well
-as the current zone/partition status information.  It then listens for 
+as the current zone/partition status information.  It then listens for
 transition events from the caddx controller and forwards changes that are
 detected via UDP messages to another process (Presumably misterhouse).
 There is no acknowledgement code on the UDP messages, so the best configuration
@@ -1095,7 +1100,7 @@ NX-584 should be similar:
   Location #211 Seg #1   (Enable requests via serial port)
    2     (Interface configuration request)
    4     (Zone name request)
-   5     (Zone status request)  
+   5     (Zone status request)
    6     (zone snapshot request)
    7     (partition status request)
    8     (partition snapshot request)
@@ -1127,7 +1132,7 @@ FootNotes
 
 The following packages are required:
 
-=item PodParser  
+=item PodParser
 
 (Included in Most Linux Distributions- PPM install required on Win32)
 
@@ -1158,9 +1163,9 @@ Panel gets into odd locked state with a message that doesn't pass checksum.
 The communication link doesn't seem to have clobbered the msg, because it is
 consistent.  Either the panel checksum calculation, (or ours), is broken.
 Currently, the only way to break out of this is to force an ACK.
-This release of the code will force an ACK after 5 failed checksums in order 
-to prevent a deadlock condition. If this happens, it is logged as such 
-(regardless of debug mode). Please report the message that triggered the 
+This release of the code will force an ACK after 5 failed checksums in order
+to prevent a deadlock condition. If this happens, it is logged as such
+(regardless of debug mode). Please report the message that triggered the
 forced ACK, so that we can find a more palatable solution.
 
 =back

@@ -46,7 +46,7 @@ function openparmhelp(parm1){
         }
     }
 
-    $web_item_file_name = @file_paths[0] unless $web_item_file_name;  # Default 
+    $web_item_file_name = @file_paths[0] unless $web_item_file_name;  # Default
     $web_item_file_name = $1 if $ARGV[0] =~ /^file=(\S+)/;
 
                                 # Create a form to pick which file
@@ -54,11 +54,11 @@ function openparmhelp(parm1){
     $html .= &html_form_select('file', 1, $web_item_file_name, @file_paths) . "</td></form></tr>\n";
 
                                 # Create form to add an item
-    my $form_type = 
+    my $form_type =
       &html_form_select('type', 0, 'X10 Light (X10I)',
                         'X10 Appliance (X10A)', 'X10 Light (X10I)', 'X10 Ote (X10O)',
                         'X10 SwitchLinc (X10SL)', 'X10 Garage Door (X10G)', 'X10 Irrigation (X10S)',
-                        'X10 RCS (X10T)',  'X10 Motion Sensor (X10MS)', 
+                        'X10 RCS (X10T)',  'X10 Motion Sensor (X10MS)',
                         qw(SERIAL VOICE IBUTTON  GENERIC COMPOOL MP3PLAYER AUDIOTRON WEATHER SG485LCD SG485RCSTHRM STARGATEDIN STARGATEVAR STARGATEFLAG STARGATERELAY STARGATETHERM STARGATEPHONE XANTECH));
 
 #form action='/bin/items.pl?add' method=post>
@@ -111,10 +111,10 @@ $form_type
 
                                 # Sort in type order
     for my $type (sort keys %item_pos) {
-    
+
         my @headers = ($headers{$type}) ? @{$headers{$type}} : @{$headers{default}};
         my $headers = 1 + @headers;
-        
+
         $html .= "<table border><tr><td colspan=$headers><B>$type</B>\n";
         $html .= "(<a name='$type' href='#Top'>back to top</a>)</td></tr>\n";
 
@@ -141,7 +141,7 @@ $form_type
             $html .= "</tr>\n";
         }
         $html .= "</table>\n";
-        
+
     }
     return &html_page('', $html);
 }
@@ -152,7 +152,7 @@ sub web_item_set_field {
     my ($pos, $field) = $pos_field =~ /(\d+),(\d+)/;
 
     my $record = @file_data[$pos];
-    
+
     my @item_info = split(',\s+', $record);
     $item_info[$field] = $data;
 
@@ -162,7 +162,7 @@ sub web_item_set_field {
         $item .= ', ' if @item_info;
         $record .= sprintf("%-20s", $item);
     }
-    
+
     $file_data[$pos] = $record;
 #   print "db2 p=$pos f=$field d=$data r=$record\n";
 
@@ -199,7 +199,9 @@ sub web_item_add {
         my $record;
         for my $p (@parms) {
             $p =~ s/.+ \((\S+)\)/$1/;  # Change 'X10 Light (X10I)'  to X10I
+            $p =~ s/ +/_/g;            # Blanks not allowed?
             $record .= "$p,  ";
+#            print "db p=$p\n";
         }
 #       print "db r=$record\n";
         $file_data[@file_data] = $record;
@@ -225,9 +227,9 @@ sub web_item_help {
                 Item    => 'Item name to tie this voice command to',
                 Phrase  => 'Voice_Cmd Text',
                 Other   => 'Other stuff :)');
-                
+
     my $help = $help{$field};
-    
+
     return $help;
-    
+
 }

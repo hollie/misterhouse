@@ -600,6 +600,22 @@ sub main::read_parm_hash {
     }
 }
 
+sub main::read_parm_hash {
+    my ($ref, $data, $preserve_case, $ref2) = @_;
+    for my $temp (split ',', $data) {
+        if (my ($key, $value) = $temp =~ / *(.+?) *=> *(.+)/) {
+            $value =~ s/ *$//;         # Drop trailing blanks
+            $key = lc $key unless $preserve_case;
+            $$ref{$key} = $value;
+            push @$ref2, $key if $ref2;
+#           print "db key=$key, value=$value.\n";
+        }
+        else {
+            print "Error parsing key => value string: t=$temp.\n";
+        }
+    }
+}
+
 sub main::get_parm_file {
     my ($ref_parms, $param_name) = @_;
 #   print "Test=" . $param_name . ":" . $$ref_parms{$param_name} . ":" . $$ref_parms{$param_name . "_MHINTERNAL_filename"} . "\n";
@@ -1202,13 +1218,13 @@ sub main::which {
         chop $path if $path =~ /\\$/; # Drop trailing slash
         my $pgm_path = "$path/$pgm";
         if ($main::OS_win) {
-            return "$pgm_path.bat" if -x "$pgm_path.bat";
-            return "$pgm_path.exe" if -x "$pgm_path.exe";
-            return "$pgm_path.com" if -x "$pgm_path.com";
+            return "$pgm_path.bat" if -f "$pgm_path.bat";
+            return "$pgm_path.exe" if -f "$pgm_path.exe";
+            return "$pgm_path.com" if -f "$pgm_path.com";
         }
-        return $pgm_path if -x $pgm_path;
+        return $pgm_path if -f $pgm_path;
     }
-    return $pgm if -x $pgm;     # Covers the fully qualified $pgm name
+    return $pgm if -f $pgm;     # Covers the fully qualified $pgm name
     return;                     # Didn't find it
 }
 
@@ -1284,6 +1300,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.77  2005/03/20 19:02:02  winter
+# *** empty log message ***
+#
 # Revision 1.76  2005/01/23 23:21:45  winter
 # *** empty log message ***
 #

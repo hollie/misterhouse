@@ -3,7 +3,7 @@
 
 File:
 	floorplan.pl
-	
+
 Description:
 	Provides a function to render an HTML table from the objects in the group
 	passed as a parameter.
@@ -22,7 +22,7 @@ Usage:
     http://localhost:8080/bin/floorplan.pl
     http://localhost:8080/bin/floorplan.pl?Property
     http://localhost:8080/bin/floorplan.pl?Upstairs
-	
+
 Bugs:
 	-  Recursion is in use. Be carefull of problems with referencing the parent
 	group from a child element.  Someone could add a max_level in there to be safe.
@@ -30,10 +30,10 @@ Bugs:
 	-  If you overlap item co-ordinates, be carefull.  I dont have Z-order checking
 	in here either yet and can makes tables get goofy.   Your table will look correct if
 	all of your coords are correct. "Garbage in -> Garbage out"
-	
-Special Thanks to: 
+
+Special Thanks to:
 	Bruce Winter - MH
-		
+
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
 
@@ -47,8 +47,15 @@ return &html_page('FloorPlan', "No $object_name Group found to generate a floorp
 
 my $html = "<meta http-equiv='refresh' content='10;URL='>";
 #$html .= "<title>Floorplan</title>";
-$html .= "People Count: " . $om->people() . "<br>";
-$html .= "Minimum Count: " . $om->min_count() . "<br>";
+
+                                # $om is optional
+use vars '$om';
+if ($om) {
+    $html .= "People Count: " . $om2->people() . "<br>";
+    $html .= "Minimum Count: " . $om2->min_count() . "<br>";
+}
+
+
 $html .= &web_fp($object);
 
 return &html_page('FloorPlan', $html);
@@ -84,8 +91,8 @@ sub web_fp #render table representation of objects and their co-ordinates
 						$l_xmax=$w if $l_xmax < $w;
 						$l_ymax=$h if $l_ymax < $h;
 					}
-				} 
-			} 
+				}
+			}
 		}
 		$l_html.= web_fp_item($p_obj) . "<br>";
 		if (@l_objs > 0) {
@@ -100,7 +107,7 @@ sub web_fp #render table representation of objects and their co-ordinates
 				$l_html.= "\t<td width='" . $l_xscale . "' height='" . $l_yscale . "'>";
 				$l_html.= "</td>\n";
 				for (my $x=0;$x<=$l_xmax;$x++)
-				{	
+				{
 					$l_obj = $l_fp[$x][$y];
 					if ($l_obj ne "") { #Only do if object is at coordinates
 						if ( $l_rendered{$l_obj} eq '' ) {
@@ -124,7 +131,7 @@ sub web_fp #render table representation of objects and their co-ordinates
 						$l_html.= "</td>\n";
 					}
 				}
-				
+
 				$l_html.="</tr>\n";
 			}
 			$l_html.= "</table>\n";
@@ -152,7 +159,7 @@ sub web_fp_item #render all items based on type
 
 #	print "--$p_obj:". $p_obj->state;
 	$l_text=$$p_obj{object_name} . ":" . $p_obj->state;
-	if ($p_obj->isa('Light_Item') or 
+	if ($p_obj->isa('Light_Item') or
 	$p_obj->isa('Fan_Light') or
 	$p_obj->isa('Weeder_Light') or
         $p_obj->isa('X10_Item')) {
@@ -162,7 +169,7 @@ sub web_fp_item #render all items based on type
 		} else {
 			$l_image='fp-light-on.gif';
 			$l_state='off';
-		}	
+		}
 	} elsif ($p_obj->isa('Group')) {
 		$l_text=web_fp_filter_name($p_obj->{object_name});
 	} elsif ($p_obj->isa('Motion_Item')) {
@@ -173,7 +180,7 @@ sub web_fp_item #render all items based on type
 			$l_image='x.gif';
 		} else {
 			$l_image='fp-motion-off.gif';
-		}	
+		}
 	} elsif ($p_obj->isa('Door_Item')) {
 		if ($p_obj->state eq 'open') {
 			$l_image='fp-door-open.png';
@@ -183,7 +190,7 @@ sub web_fp_item #render all items based on type
 		} else {
 			$l_image='fp-door-closed.png';
 		   $l_state='open';
-		}	
+		}
 	} elsif ($p_obj->isa('Photocell_Item')) {
 		if ($p_obj->state eq 'dark') {
 			$l_image='fp-dark-on.gif';
@@ -191,7 +198,7 @@ sub web_fp_item #render all items based on type
 			$l_image='x.gif';
 		} else {
 			$l_image='fp-dark-off.gif';
-		}	
+		}
 	} elsif ($p_obj->isa('Presence_Monitor')) {
 		if ($p_obj->state eq 'occupied') {
 			$l_image='fp-people.gif';
@@ -199,7 +206,7 @@ sub web_fp_item #render all items based on type
 			$l_image='a1+.gif';
 		} else {
 			$l_image='1pixel.gif';
-		}	
+		}
 	} elsif ($p_obj->isa('Appliance_Item')) {
 
 #	} elsif ($p_obj->isa('Camera_Item')) {
@@ -209,7 +216,7 @@ sub web_fp_item #render all items based on type
 #			$l_anchor= "<a href='/bin/SUB;web_fp_camera_popup?" . $p_obj->{object_name} . "'>";
 #		} else {
 #			$l_image='camera.gif';
-#		}	
+#		}
 	} elsif ($p_obj->isa('HVAC_Item')) {
 
 	} elsif ($p_obj->isa('Temperature_Item')) {
@@ -236,7 +243,7 @@ sub web_fp_item #render all items based on type
 		$l_html.="<img src='/graphics/$l_image' border=0 alt='$l_text'>";
 	} else {
 		$l_html.= "<font size='-2'>$l_text</font>";
-	}		
+	}
 	if ($l_state ne '') {
 		$l_html.="</a>";
 	}

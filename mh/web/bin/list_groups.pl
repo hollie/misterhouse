@@ -9,10 +9,16 @@ for my $group (sort &list_objects_by_type('Group')) {
     my $h = "<td align='middle'>";
     my $name = &pretty_object_name($group);
 
+                                # No need to list empty groups
+    my $object = &get_object_by_name($group);
+    if ($object and $object->can('list')) {
+        next unless grep !$$_{hidden}, list $object;
+    }
+
                                   # Use custom icons if they exist, else GD if installed, else simply text $name
     my $link = $name;
     my $group2= lc $group;
-    $group2 =~ s/[ _\$]//g; 
+    $group2 =~ s/[ _\$]//g;
     my $image = "/graphics/group-$group2.gif";
     if (&http_get_local_file($image)) {
         $link = qq|<img src="$image" alt='$name' border="0">|;
@@ -29,12 +35,12 @@ for my $group (sort &list_objects_by_type('Group')) {
 }
 
 
-#html = "<html><body>\n<base target ='output'>\n" . 
+#html = "<html><body>\n<base target ='output'>\n" .
 $html = "<html><body>\n" .
   &html_header('Browse Groups') . "
 <table width='100%' border='0'>
 <center>
- <table cellSpacing=4 cellPadding=0 width='100%' border=0>  
+ <table cellSpacing=4 cellPadding=0 width='100%' border=0>
 <tr>$html</tr>
 </table>
 </center>

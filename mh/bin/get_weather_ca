@@ -85,7 +85,8 @@ use Date::Parse;
 use Date::Format;
 
 $parms{city}  = $config_parms{weather_city} unless $parms{city};
-$parms{city}  = 'yyz'                       unless $parms{city};
+#$parms{city}  = 'yyz'                       unless $parms{city};
+$parms{city}  = 'on-117'                       unless $parms{city};
 
 my $WeatherURL;
 $WeatherURL = sprintf 'http://text.weatheroffice.ec.gc.ca/forecast/city_e.html?%s&b_templatePrint=true', $parms{city};

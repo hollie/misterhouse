@@ -18,6 +18,7 @@
 	<li><a href="#what_is_an_audrey">What is an Audrey</a></li>
 	<ul>
 
+		<li><a href="#mraudrey__misterhouse___audrey___hacks_______">MrAudrey (MisterHouse + Audrey + hacks + ...)</a></li>
 		<li><a href="#some_common_hacks">Some common hacks</a></li>
 		<li><a href="#remote_audrey_browsing_and_control">Remote Audrey browsing and control</a></li>
 		<li><a href="#how_to_boot_audrey_to_a_mh_page">How to boot Audrey to a mh page</a></li>
@@ -67,27 +68,47 @@ by tigerdirect.com for $90 (originally $500).  With a 640x480 LCD
 touchscreen, it makes for a nice web appliance / touch control pannel.</p>
 <p>Here are some helpful links:</p>
 <pre>
- Order: <a href="http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=M975-9000%20P">http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=M975-9000%20P</a>
- Hack:  <a href="http://www.audreyhacking.com/">http://www.audreyhacking.com/</a>
- Ether: <a href="http://www.ppetru.net/audrey/#ether">http://www.ppetru.net/audrey/#ether</a>
- Faq:   <a href="http://www.3rdmoon.com/crusso/audrey/">http://www.3rdmoon.com/crusso/audrey/</a>
- List:  <a href="http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&amp;Board=3Com_Audrey&amp;Idle">http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&amp;Board=3Com_Audrey&amp;Idle</a>
- OS:    <a href="http://www.openqnx.com/">http://www.openqnx.com/</a></pre>
-<p>Pete Flaherty posted a mh compatable Audrey image at <a href="http://vsa.cape.com/~pjf/MrAudrey.html">http://vsa.cape.com/~pjf/MrAudrey.html</a></p>
+ Order: check ebay listings (average cost ~$50 )
+ 
+ Hack:     <a href="http://www.audreyhacking.com/">http://www.audreyhacking.com/</a>
+ Ether:    <a href="http://www.ppetru.net/audrey/#ether">http://www.ppetru.net/audrey/#ether</a>
+ Faq:      <a href="http://www.3rdmoon.com/crusso/audrey/">http://www.3rdmoon.com/crusso/audrey/</a>
+ List:     <a href="http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&amp;Board=3Com_Audrey&amp;Idle">http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&amp;Board=3Com_Audrey&amp;Idle</a>
+ OS:       <a href="http://www.openqnx.com/">http://www.openqnx.com/</a>
+ MrAudrey: <a href="http://mraudrey.net">http://mraudrey.net</a></pre>
+<pre>
+   features already included in the MrAudrey Image will be denoted with ** in the remainder of this FAQ</pre>
+<p>
+</p>
+<h2><a name="mraudrey__misterhouse___audrey___hacks________pete_flahertys_mraudrey_site_contains_a_compilation_of_the_information_and_hacks_listed_in_this_faq__the_site_has_information_on_just_about_anything_audrey_related__and_a_forum_to_help_with_questions_">MrAudrey (MisterHouse + Audrey + hacks + ...)
+Pete Flahertys MrAudrey Site contains a compilation of the information and hacks listed in this FAQ.
+ The site has information on just about anything audrey related, and a forum to help with questions.</a></h2>
+<pre>
+
+The MrAudrey image was created specifically for use with MisterHouse. Many of the features and hacks on this
+faq are already installed and ready to run.  Additional packages and channel content are availabe through the
+mraudrey package manager.  The image has been designed for flexibility and ease of customization. There are 
+many features on this image that are simply not on any other.</pre>
+<p>MisterHouse Channel content was the original design focus. Adding all the standard functionality that 
+users were hacking into their images was a natural addition And easy customization and access to essential
+parameters was achieved through the unique package manager and settings pages. Giving the MisterHouse community
+the most unique and functional audrey image around</p>
 <p>
 </p>
 <h2><a name="some_common_hacks">Some common hacks</a></h2>
 <p>Here are some common/useful hacks (edit these file to these values):</p>
 <pre>
   echo 1 &gt; /config/BROWSER_AllowNewWindow
-  echo 0 &gt; /config/SYSTEM_ScreenSaveSecs  (disable auto-shutdown)</pre>
+  echo 0 &gt; /config/SYSTEM_ScreenSaveSecs  (disable auto-shutdown)
+  ** available through the MrAudrey 'photon' menu</pre>
 <p>To improve color resolution (do this on boot, before browser starts)
-  echo 0 &gt; /config/BROWSER_Use256Colors</p>
+  echo 0 &gt; /config/BROWSER_Use256Colors
+  ** set by default</p>
 <p>If you press the Browser button while the browser is already visible, the menu will slide away.</p>
 <p>You may want to increase the size on these:</p>
 <pre>
  /config/BROWSER_ImageCacheSizeKB 2048 (Had problems increasing this to 20000)
- /config/BROWSER_CacheSize        5000 (I changed to 50000</pre>
+ /config/BROWSER_CacheSize        5000 (I changed to 50000) ** MrAudrey default</pre>
 <p>Here are some instructions to allow turning the screen on/off remotely:</p>
 <pre>
  <a href="http://homepage.mac.com/deandavis/audrey/AudreyOnOff.html">http://homepage.mac.com/deandavis/audrey/AudreyOnOff.html</a></pre>
@@ -111,7 +132,9 @@ and add 192.168.0.101 Audrey).</p>
 <p>
 </p>
 <h2><a name="how_to_boot_audrey_to_a_mh_page">How to boot Audrey to a mh page</a></h2>
-<p>From Ron Wright from some other site on 10/2001</p>
+<p>&gt;From Ron Wright from some other site on 10/2001
+** MrAudrey channels are pre configured for MH, and can be set to 
+   start on any available MH page</p>
 <p>I has hacking away and realized that the 
 /data/XML/Channels/.countertop/TEMPLATE directory has 
 the default index.shtml that loads up when Audrey 
@@ -124,16 +147,18 @@ enough for my wife to use now.</p>
 <p>Just add this tag to the index.shtml file mentioned 
 above. I added mine just below the first meta tag:</p>
 <pre>
- &lt;meta HTTP-EQUIV=&quot;refresh&quot; CONTENT=&quot;5;URL=<a href="http://192.168.0.1:8080/audrey/audrey.html">http://192.168.0.1:8080/audrey/audrey.html</a>&quot;&gt;</pre>
+ &lt;meta HTTP-EQUIV=&quot;refresh&quot; CONTENT=&quot;5;URL=<a href="http://192.168.0.1:8080/audrey/audrey.html">http://192.168.0.1:8080/audrey/audrey.html</a>&quot;&gt;
+ ** MrAudrey has a master setting for your MH server, available through a settings page</pre>
 <p>
 </p>
 <h2><a name="how_to_stop_the_audrey_from_autoupating">How to stop the Audrey from auto-upating</a></h2>
-<p>From Ron Wright from some other site on 10/2001</p>
+<p>&gt;From Ron Wright from some other site on 10/2001</p>
 <p>I have also edited the kcrontab file to keep Audrey from
 trying to update her channels.  I found before doing this,
 everytime she tried an update it was changing the page
 back to default audrey welcome.  Also the initial reason
-for the above change.  This just makes it one better.</p>
+for the above change.  This just makes it one better.
+** MrAudrey already has these disabled</p>
 <p>Losing kcrontab entries</p>
 <p>If you have the root shell hack on the audrey options panel, you can.</p>
 <p>1) Get into the shell 
@@ -155,7 +180,9 @@ for the above change.  This just makes it one better.</p>
 </p>
 <h2><a name="how_to_share_files">How to share files</a></h2>
 <p>Assuming a hacked shell like DaveC-Img10-23-01, 
-you can share access Windows shared folders with this command</p>
+you can share access Windows shared folders with this command
+** MrAudrey has these and other methods for mounting remote systems
+   and there is a menu entry that can me easily changed to ease this</p>
 <pre>
  /nto/bin/fs-cifs -a //windows_box:ip_address:/share_name /directory user password</pre>
 <p>For example:</p>
@@ -167,8 +194,10 @@ called from /kojak/go</p>
 <p>
 </p>
 <h2><a name="how_to_play_mp3_files">How to play mp3 files</a></h2>
-<p>From Tony Perrie on 10/2001:</p>
-<p>Assuming a hacked shell like DaveC-Img10-23-01.</p>
+<p>&gt;From Tony Perrie on 10/2001:</p>
+<p>Assuming a hacked shell like DaveC-Img10-23-01.
+** MrAudrey supports this, as well as PhJukebox, and plaympeg_noph methods
+   playmepg_noph has support for the MisterHouse jukebox too</p>
 <p>I setup a little shell script to start the photon player:</p>
 <pre>
  export MPEGAUDIOBUFFERSIZE=300000
@@ -183,7 +212,8 @@ from skipping with:</p>
  slay -P 5 phplay</pre>
 <p>
 </p>
-<h2><a name="how_to_push_speech_to_remote_audreys">How to push speech to remote Audreys</a></h2>
+<h2><a name="how_to_push_speech_to_remote_audreys____mraudrey__installed_and_enabled_by_default__in_background_mode_">How to push speech to remote Audreys
+** MrAudrey - installed and enabled by default (in background mode)</a></h2>
 <p>There are 2 ways to do remotely play wav files on an Audrey.  One plays a wav file in the foreground by 
 creating a popup window, the other uses playsound_noph to play wav files in the background.  
 Both ways requre you first enable remote control (see 'Remote Audrey browsing and control' above).</p>
@@ -223,7 +253,6 @@ Here are the commands I used from my Audrey to copy the files from my windows ho
 </p>
 <p>And use the speak and play examples from above.
 More examples are in mh/code/bruce/audrey.pl
-
 </p>
 
 </body>

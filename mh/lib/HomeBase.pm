@@ -230,7 +230,8 @@ sub send_X10 {
 
     my ($house_bits, $code_bits, $function, $header);
 
-    unless ($house_bits = $table_hcodes{uc($house)}) {
+    $house_bits = $table_hcodes{uc($house)};
+    unless (defined $house_bits) {
         print "Error, invalid HomeBase X10 house code: $house\n";
         return;
     }
@@ -247,13 +248,13 @@ sub send_X10 {
     print "Bad HomeBase X10 transmition sent=$sent\n" unless 10 == $sent;
 }
 
-# Valid digitis 0-9, * # 
+# Valid digitis 0-9, * #
 # OnHook = +
 # OffHook = ^
 # Pause = ,
 # CallerID C
 # HookFlash !
-sub send_telephone 
+sub send_telephone
 {
     my ($serial_port, $phonedata) = @_;
     print "\ndb sending HomeBase telephone command: $phonedata\n" if lc($main::config_parms{debug}) eq 'homebase';
@@ -268,9 +269,9 @@ sub send_telephone
 my $serial_data;                # Holds left over serial data
 
 sub read {
-    
+
     return undef unless $::New_Msecond_100;
-    
+
     my ($serial_port, $no_block) = @_;
 
     my %table_hcodes = qw(6  A 7  B 4  C 5  D 8  E 9  F a  G b H
@@ -348,6 +349,9 @@ return 1;           # for require
 # Modified by Bob Steinbeiser 2/12/00
 #
 # $Log$
+# Revision 1.13  2005/03/20 19:02:01  winter
+# *** empty log message ***
+#
 # Revision 1.12  2001/03/24 18:08:38  winter
 # - 2.47 release
 #

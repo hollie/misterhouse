@@ -91,6 +91,8 @@ to the array so I had to compensate for that where it occurred.
 # 01/23/05   1.8   Dominique Benoliel
 # - make necessary conversions. Store data in global weather variable and use
 #   the mh parameters weather_uom_...
+# 01/24/05   1.9   Dominique Benoliel
+# - fix a problem with wind data
 # =============================================================================
 =cut
 my ($wmr968_port, %skip);
@@ -182,40 +184,6 @@ sub read_wmr968 {
 
         # Process the data
         &{$$dtp[2]}($wptr, $debug, @data2);
-
-	# Make some conversion if necessary
-        if ($main::config_parms{weather_uom_temp} eq 'C') {
-      		$$wptr{TempOutdoor} = $$wptr{TempOutdoor_ws};
-      		$$wptr{TempIndoor} = $$wptr{TempIndoor_ws};
-      		$$wptr{TempSpare1} = $$wptr{TempSpare1_ws};
-      		$$wptr{TempSpare2} = $$wptr{TempSpare2_ws};
-      		$$wptr{TempSpare3} = $$wptr{TempSpare3_ws};
-      		$$wptr{DewSpare1} = $$wptr{DewSpare1_ws};
-      		$$wptr{DewSpare2} = $$wptr{DewSpare2_ws};
-      		$$wptr{DewSpare3} = $$wptr{DewSpare3_ws};
-      		$$wptr{DewOutdoor} = $$wptr{DewOutdoor_ws};
-      		$$wptr{DewIndoor} = $$wptr{DewIndoor_ws};
-      		$$wptr{WindChill} = $$wptr{WindChill_ws};
-    		}
-        if ($main::config_parms{weather_uom_baro} eq 'mb') {
-      		$$wptr{Barom} = $$wptr{Barom_ws};
-      		$$wptr{BaromSea} = $$wptr{BaromSea_ws};
-    		}
-    	if ($main::config_parms{weather_uom_wind} eq 'kph') {
-      		$$wptr{WindGustSpeed} = &main::convert_mile2km($$wptr{WindGustSpeed});
-      		$$wptr{WindAvgSpeed} = &main::convert_mile2km($$wptr{WindAvgSpeed});
-    		}
-    	if ($main::config_parms{weather_uom_wind} eq 'm/s') {
-      		$$wptr{WindGustSpeed} = $$wptr{WindGustSpeed_ws};
-      		$$wptr{WindAvgSpeed} = $$wptr{WindAvgSpeed_ws};
-                }
-   	if ($main::config_parms{weather_uom_rain} eq 'mm') {
-      		$$wptr{RainTotal} = $$wptr{RainTotal_ws};
-      		$$wptr{RainYest} = $$wptr{RainYest_ws};
-    		}
-    	if ($main::config_parms{weather_uom_rainrate} eq 'mm/hr') {
-      		$$wptr{RainRate} = $$wptr{RainRate_ws};
-    		}
     }
 }
 
@@ -298,14 +266,21 @@ sub wx_rain {
     #$$wptr{SummaryRain} = sprintf("Rain Recent/Total: %3.1f / %4.1f  Barom: %4d",
     #                              $$wptr{RainYest}, $$wptr{RainTotal}, $$wptr{Barom});
 
+   if ($main::config_parms{weather_uom_rain} eq 'mm') {
+      		$$wptr{RainTotal} = $$wptr{RainTotal_ws};
+      		$$wptr{RainYest} = $$wptr{RainYest_ws};
+    		}
+   if ($main::config_parms{weather_uom_rainrate} eq 'mm/hr') {
+      		$$wptr{RainRate} = $$wptr{RainRate_ws};
+    		}
     print "** RAIN GAUGE : $main::Time_Date\n" if $debug;
     print "       BatRain         ($$wptr{BatRain})\n" if $debug;
     print "       RainRateOver    ($$wptr{RainRateOver})\n" if $debug;
     print "       RainTotalOver   ($$wptr{RainTotalOver})\n" if $debug;
     print "       YesterdayOver   ($$wptr{RainYestOver})\n" if $debug;
-    print "       RainRate        ($$wptr{RainRate_ws} mm/h) ($$wptr{RainRate} in/hr)\n" if $debug;
-    print "       RainTotal       ($$wptr{RainTotal_ws} mm) ($$wptr{RainTotal} in)\n" if $debug;
-    print "       RainYest        ($$wptr{RainYest_ws} mm) ($$wptr{RainYest} in)\n" if $debug;
+    print "       RainRate        ($$wptr{RainRate_ws} mm/h) ($$wptr{RainRate})\n" if $debug;
+    print "       RainTotal       ($$wptr{RainTotal_ws} mm) ($$wptr{RainTotal})\n" if $debug;
+    print "       RainYest        ($$wptr{RainYest_ws} mm) ($$wptr{RainYest})\n" if $debug;
     print "       RainTotalStartDate ($$wptr{RainTotalStartDate})\n" if $debug;
 }
 #=============================================================================
@@ -374,15 +349,26 @@ sub wx_wind {
     # Maybe better to deplace this in ".._monitor_.." script because problem with french langage
     #$$wptr{SummaryWind} = sprintf("Wind avg/gust:%3d /%3d  from the %s",
     #        $$wptr{WindAvgSpeed}, $$wptr{WindGustSpeed}, &main::convert_direction($$wptr{WindAvgDir}));
+    if ($main::config_parms{weather_uom_wind} eq 'kph') {
+      		$$wptr{WindGustSpeed} = &main::convert_mile2km($$wptr{WindGustSpeed});
+      		$$wptr{WindAvgSpeed} = &main::convert_mile2km($$wptr{WindAvgSpeed});
+    		}
 
+    if ($main::config_parms{weather_uom_wind} eq 'm/s') {
+      		$$wptr{WindGustSpeed} = $$wptr{WindGustSpeed_ws};
+      		$$wptr{WindAvgSpeed} = $$wptr{WindAvgSpeed_ws};
+                }
+    if ($main::config_parms{weather_uom_temp} eq 'C') {
+      		$$wptr{WindChill} = $$wptr{WindChill_ws};
+    		}
     print "** ANEMOMETER : $main::Time_Date\n" if $debug;
     print "       BatWind         ($$wptr{BatWind})\n" if $debug;
     print "       WindGustOver    ($$wptr{WindGustOver})\n" if $debug;
     print "       WindAvgOver     ($$wptr{WindAvgOver})\n" if $debug;
-    print "       WindGustSpeed   ($$wptr{WindGustSpeed_ws} m/s) ($$wptr{WindGustSpeed} mph)\n" if $debug;
+    print "       WindGustSpeed   ($$wptr{WindGustSpeed_ws} m/s) ($$wptr{WindGustSpeed})\n" if $debug;
     print "       WindGustDir     ($$wptr{WindGustDir})\n" if $debug;
-    print "       WindAvgSpeed    ($$wptr{WindAvgSpeed_ws} m/s) ($$wptr{WindAvgSpeed} mph)\n"  if $debug;
-    print "       WindChill       ($$wptr{WindChill_ws} C) ($$wptr{WindChill} F)\n" if $debug;
+    print "       WindAvgSpeed    ($$wptr{WindAvgSpeed_ws} m/s) ($$wptr{WindAvgSpeed})\n"  if $debug;
+    print "       WindChill       ($$wptr{WindChill_ws} C) ($$wptr{WindChill})\n" if $debug;
     print "       WindChillNoData ($$wptr{WindChillNoData})\n" if $debug;
     print "       WindChillOver   ($$wptr{WindChillOver})\n" if $debug;
 }
@@ -486,23 +472,30 @@ unless ($skip{Barom}) {
    # mb unit by default
    # $$wptr{BaromSea} = $$wptr{BaromSea_ws};
    # Calculate pressure sea level
-   $$wptr{BaromSea_ws} = $$wptr{Barom_ws} + ($main::config_parms{altitude} / ($main::config_parms{ratio_sea_baro} * 3.2808399))
-     if $main::config_parms{ratio_sea_baro};
+   $$wptr{BaromSea_ws} = $$wptr{Barom_ws} + ($main::config_parms{altitude} / ($main::config_parms{ratio_sea_baro} * 3.2808399));
    # Convert mb to in
    $$wptr{BaromSea} = sprintf('%.2f',$$wptr{BaromSea_ws} * .0295301);
    }
 
+   if ($main::config_parms{weather_uom_baro} eq 'mb') {
+      		$$wptr{Barom} = $$wptr{Barom_ws};
+      		$$wptr{BaromSea} = $$wptr{BaromSea_ws};
+    		}
+   if ($main::config_parms{weather_uom_temp} eq 'C') {
+      		$$wptr{TempIndoor} = $$wptr{TempIndoor_ws};
+      		$$wptr{DewIndoor} = $$wptr{DewIndoor_ws};
+    		}
 print "** BARO-THERMO-HYGROMETER : $main::Time_Date\n" if $debug;
 print "       Device type     ($data[2])\n" if $debug;
 print "       BatIndoor       ($$wptr{BatIndoor})\n" if $debug;
-print "       TempIndoor      ($$wptr{TempIndoor_ws} C) ($$wptr{TempIndoor} F)\n" if $debug;
+print "       TempIndoor      ($$wptr{TempIndoor_ws} C) ($$wptr{TempIndoor})\n" if $debug;
 print "       TempIndoorOverUnder ($$wptr{TempIndoorOverUnder})\n" if $debug;
 print "       HumidIndoor     ($$wptr{HumidIndoor})\n" if $debug;
-print "       DewIndoor       ($$wptr{DewIndoor_ws} C) ($$wptr{DewIndoor} F)\n" if $debug;
+print "       DewIndoor       ($$wptr{DewIndoor_ws} C) ($$wptr{DewIndoor})\n" if $debug;
 print "       DewIndoorUnder  ($$wptr{DewIndoorUnder})\n" if $debug;
 print "       WxTendency      ($$wptr{WxTendency})\n" if $debug;
-print "       Barom           ($$wptr{Barom_ws} mb) ($$wptr{Barom} in)\n" if $debug;
-print "       BaromSea        ($$wptr{BaromSea_ws} mb) ($$wptr{BaromSea} in)\n" if $debug;
+print "       Barom           ($$wptr{Barom_ws} mb) ($$wptr{Barom})\n" if $debug;
+print "       BaromSea        ($$wptr{BaromSea_ws} mb) ($$wptr{BaromSea})\n" if $debug;
 }
 #=============================================================================
 # THERMO HYGRO THERMO-HYGROMETER (OUTSIDE)
@@ -547,12 +540,16 @@ unless ($skip{DewOutdoor}) {
 	# Convert C to F
 	$$wptr{DewOutdoor} = &main::convert_c2f($$wptr{DewOutdoor_ws});
 }
+     if ($main::config_parms{weather_uom_temp} eq 'C') {
+      		$$wptr{TempOutdoor} = $$wptr{TempOutdoor_ws};
+      		$$wptr{DewOutdoor} = $$wptr{DewOutdoor_ws};
+    		}
 print "** THERMO-HYGROMETER : $main::Time_Date\n" if $debug;
 print "       BatOutdoor       ($$wptr{BatOutdoor})\n" if $debug;
-print "       TempOutdoor      ($$wptr{TempOutdoor_ws} C) ($$wptr{TempOutdoor} F)\n" if $debug;
+print "       TempOutdoor      ($$wptr{TempOutdoor_ws} C) ($$wptr{TempOutdoor})\n" if $debug;
 print "       TempOutdoorOverUnder ($$wptr{TempOutdoorOverUnder})\n" if $debug;
 print "       HumidOutdoor     ($$wptr{HumidOutdoor})\n" if $debug;
-print "       DewOutdoor       ($$wptr{DewOutdoor_ws} C) ($$wptr{DewOutdoor} F)\n" if $debug;
+print "       DewOutdoor       ($$wptr{DewOutdoor_ws} C) ($$wptr{DewOutdoor})\n" if $debug;
 print "       DewOutdoorUnder  ($$wptr{DewOutdoorUnder})\n" if $debug;
 
 }
@@ -611,14 +608,18 @@ if ($data[2] == 2) {
 	$$wptr{"DewSpare$copy"} = &main::convert_c2f($$wptr{"DewSpare$copy"."_ws"});
    }
  }
+   if ($main::config_parms{weather_uom_temp} eq 'C') {
+      		$$wptr{"TempSpare$copy"} = $$wptr{"TempSpare$copy"."_ws"};
+        	$$wptr{"DewSpare$copy"} = $$wptr{"DewSpare$copy"."_ws"};
+    		}
 print "** EXTRA THERMO(ONLY/HYGROMETER) #$copy : $main::Time_Date\n" if $debug;
 print "       Device type     ($data[2])\n" if $debug;
 print "       ChannelSpare    ($$wptr{ChannelSpare})\n" if $debug;
 print "       BatSpare$copy       (".$$wptr{"BatSpare$copy"}.")\n" if $debug;
-print "       TempSpare$copy      (" . $$wptr{"TempSpare$copy"."_ws"} . " C) (" . $$wptr{"TempSpare$copy"} . " F)\n" if $debug;
+print "       TempSpare$copy      (" . $$wptr{"TempSpare$copy"."_ws"} . " C) (" . $$wptr{"TempSpare$copy"} . ")\n" if $debug;
 print "       TempSpareOverUnder$copy (".$$wptr{"TempSpareOverUnder$copy"}.")\n" if $debug;
 print "       HumidSpare$copy     (".$$wptr{"HumidSpare$copy"}.")\n" if $debug;
-print "       DewSpare$copy       (" . $$wptr{"DewSpare$copy"."_ws"} . " C) (" . $$wptr{"DewSpare$copy"} . " F)\n" if $debug;
+print "       DewSpare$copy       (" . $$wptr{"DewSpare$copy"."_ws"} . " C) (" . $$wptr{"DewSpare$copy"} . ")\n" if $debug;
 print "       DewSpareUnder$copy  (".$$wptr{"DewSpareUnder$copy"}.")\n" if $debug;
 }
 #=============================================================================
@@ -672,7 +673,7 @@ return $f968;
 # 2001/11/18 v1.0 of Weather_wmr968.pm based on Bruce's Weather_wx200.pm
 #
 # $Log$
-# Revision 1.5  2005/01/23 23:21:45  winter
+# Revision 1.6  2005/03/20 19:02:01  winter
 # *** empty log message ***
 #
 # Revision 1.4  2004/02/01 19:24:35  winter

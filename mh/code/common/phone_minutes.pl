@@ -102,7 +102,7 @@ if (done_now $p_phone_minutes) {
 
 if ($Reload and $Run_Members{'trigger_code'}) {
     eval qq(
-        &trigger_set("time_now '7 pm' and \\\$Save{phone_minutes_left} < 10", "run_voice_cmd 'Check phone minutes'", 'NoExpire', 'speak phone minutes')
+        &trigger_set("time_now '7 pm'", "run_voice_cmd 'Check phone minutes'", 'NoExpire', 'speak phone minutes')
           unless &trigger_get('speak phone minutes');
     );
 }

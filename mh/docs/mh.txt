@@ -595,6 +595,22 @@ DESCRIPTION
     values can also be checked using the web widgets menu. This is a handy
     place to put data you might want to display in .shml web pages.
 
+    These constants are defined, so we can use them without quoting them
+    (e.g. if $state eq ON instead of if $state eq 'on'):
+
+      ON      => 'on';
+      OFF     => 'off';
+      DIM     => 'dim';
+      BRIGHTEN=> 'brighten';
+      TOGGLE  => 'toggle';
+      STATUS  => 'status';
+      OPEN    => 'open';
+      CLOSE   => 'close';
+      OPENED  => 'opened';
+      CLOSED  => 'closed';
+      MOTION  => 'motion';
+      STILL   => 'still';
+
   List of objects and their methods
     File_Item
         You can use File_Item to read a line of data from a file. Note:
@@ -699,7 +715,7 @@ DESCRIPTION
                 Note, this is turnded off by default for Serial_Item objects.
                 To enable, run:   $object -> state_overload(ON);
 
-             set_casesensitive   : By default, states are all lowercased, to allow for case 
+             set_casesensitive   : By default, states are all lowercased, to allow for case
                                    insensitive tests.  To avoid this (for example on Serial Interfaces
                                    that are case sensitive), call this method.
 

@@ -34,7 +34,7 @@ sub new {
     $$self{name} = $name;
     $$self{type} = $type;
     $$self{port} = $port;
-    &open_port($self);
+    &open_port($self) if $port;
     push(@{$list_objects{$name}}, $self);
     unless ($hooks_added++) {
         &::Reload_pre_add_hook(   \&Telephony_Interface::reload_reset,   1);
@@ -91,7 +91,7 @@ sub check_for_data {
             if (($caller_id_data{$port} =~ /NAME.+NU?MBE?R/s) or
                 ($caller_id_data{$port} =~ /NU?MBE?R.+NAME/s) or
                 ($caller_id_data{$port} =~ /NU?MBE?R.+MESG/s) or
-                ($caller_id_data{$port} =~ /NU?MBE?R/ and $main::config_parms{callerid_format} eq 'number only') or
+                ($caller_id_data{$port} =~ /NU?MBE?R/ and $main::config_parms{caller_id_format} eq 'number only') or
                 ($caller_id_data{$port} =~ /END MSG/s) or         # UK format
                 ($caller_id_data{$port} =~ /FM:/)) {
                 &::print_log("Callerid: $caller_id_data{$port}");
