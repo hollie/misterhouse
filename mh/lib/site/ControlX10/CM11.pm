@@ -131,7 +131,7 @@ sub receive_buffer {
                                    # Add device code back in, since this is not included in status :(
                $function = $Last_Dcode . $function if $function =~ /^STATUS/;
                                    # Handle Vehicle Interface RF Receiver extended code - assume length of 3 for extended
-               $extended_count = 3 if $function == 'Z';
+               $extended_count = 3 if $function eq 'Z';
 
                $data .= $house . $function;
                  print "CM11 db: data=$data\n" if $DEBUG;
@@ -654,6 +654,9 @@ under the same terms as Perl itself. 20 December 1999.
 
 #
 # $Log$
+# Revision 2.9  2000/02/12 00:51:32  danal
+# Corrected incorrect compare of Extended Code that could cause false "unknown X10 data".
+#
 # Revision 2.08  2000/01/29 20:07:01  winter
 # - add $no_power_fail_check.
 #
