@@ -38,22 +38,14 @@
 #                                                                #
 ##################################################################
 
-# Note: This original version (October 2000) exposes 
-# only "new" & "said", where "said" contains the raw data
-# from the printer module.
-#
-# It is my intent to expose object methods (such as 
-# "state") in a future release.  This may lead to 
-# incompatible changes in existing methods.
-# Danal Estes, October 9, 2000
-
 use strict;
 
 package DSC_Alarm;
 
-@DSC_Alarm::ISA = ('Serial_Item');
+@DSC_Alarm::ISA = ('Generic_Item');
 
 my @DSC_Alarm_Ports;
+my %DSC_Alarm_Objects;
 
 #
 #  Create serial port(s) according to mh.ini
@@ -100,15 +92,26 @@ sub UserCodePreHook
     for my $port_name (@DSC_Alarm_Ports) {
       &::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
       my $data = $::Serial_Ports{$port_name}{data_record};
-      &::logit("$::config_parms{data_dir}/logs/$port_name.$::Year_Month_Now.log", "$data") if $data;
-      ::print_log "DSC_Alarm port $port_name data = $data, $::Loop_Count\n" if $data and $::config_parms{debug} eq 'DSC';
+      next if !$data;
+      &::logit("$::config_parms{data_dir}/logs/$port_name.$::Year_Month_Now.log", "$data");
+      ::print_log "DSC_Alarm port $port_name data = $data, $::Loop_Count\n" if $::config_parms{debug} eq 'DSC';
+
+      my @object_refs = @{$DSC_Alarm_Objects{$port_name}};
+      while (my $self = pop @object_refs) {
+        $self->{user} = $2   if $data =~ /^.*User (|Code)\s+(\d+).*/;
+        set $self "Armed"    if $data =~ /^.*System\s+Armed in (.*) Mode/;    
+        $self->{mode} = $1;
+        set $self "Disarmed" if $data =~ /^.*System\s+Opening.*/;
+        set $self "Alarm"    if $data =~ /^.*System\s+Alarm Zone\s+(\d+).*/;
+        $self->{zone} = $1;
+      }
     }
 }
 
 sub UserCodePostHook
 {
     #
-    # Reset data for _now functions
+    # Reset data for said function
     #
     for my $port_name (@DSC_Alarm_Ports) {
       $::Serial_Ports{$port_name}{data_record} =''; 
@@ -122,15 +125,40 @@ sub UserCodePostHook
 sub new {
     my ($class, $port_name) = @_;
     $port_name = 'DSC_Alarm' if !$port_name;
-    my $self = {state => ''};
+
+    my $self = {};
+    $$self{state}     = '';
+    $$self{said}      = '';
+    $$self{state_now} = '';
     $$self{port_name} = $port_name;
     bless $self, $class;
+
+    push @{$DSC_Alarm_Objects{$port_name}}, $self;
+    restore_data $self ('user', 'zone');
+
     return $self;
 }
 
 sub said {
     my $port_name = $_[0]->{port_name};
     return $main::Serial_Ports{$port_name}{data_record};
+}
+
+sub user {
+    my $instance = $_[0]->{port_name};
+    my $user     = $_[0]->{user};
+    my $name = $main::config_parms{$instance . '_user_' . $user};
+    $name = $user if !$name;
+    return $name;
+}
+
+sub alarm_now {
+    return 'Alarm' eq $_[0]->{state_now};
+}
+
+sub zone {
+    return if !alarm_now $_[0];
+    return $_[0]->{zone};
 }
 
 
