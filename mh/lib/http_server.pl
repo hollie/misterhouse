@@ -45,7 +45,7 @@ sub http_read_parms {
         next unless $parm =~ /^html_alias(\d*)_(\S+)/;
         my $alias   = '/' . $2;
         my $dir = $main::config_parms{$parm};
-                                # Allow for old style alias
+                                # Allow for old style alias (with blanks in dir name)
         if ($dir =~ /(\S+)\s+(\S+)/) {
             $alias = $1;
             $dir   = $2;
@@ -534,7 +534,11 @@ sub html_password {
         $html  = qq[<BODY onLoad="self.focus();document.pw.password.focus()">\n];
         $html .= qq[<BASE TARGET='_top'>\n];
         $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n];
-        $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
+
+#       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
+        $html .= qq[<h3>Password:</H3><INPUT size=10 name='password' type='password'>\n];
+        $html .= qq[<INPUT type=submit value='Go'>\n</FORM>\n];
+
     }
     else {
         $html  = qq[HTTP/1.0 401 Unauthorized\n];
@@ -2495,6 +2499,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.72  2002/09/22 01:33:24  winter
+# - 2.71 release
+#
 # Revision 1.71  2002/08/22 04:33:20  winter
 # - 2.70 release
 #

@@ -205,8 +205,9 @@ Windows Detailed Install Instructions
     After installing, the default mh.ini voice_text=MS parm will default to
     the new V5 engine. Use MSV4 to switch back to the old V4 engine. The SDK
     comes with the voices MS Mike, Sam, Mary, and (optional) Japanese and
-    Chinese voices. For $100, you can get 2 nice 5.1 compatable voices with
-    AT&T Natural Voices TTS SDK here: http://www.naturalvoices.com.
+    Chinese voices. For $150, you can get 2 nice 5.1 compatable voices with
+    AT&T Natural Voices TTS engine here: http://www.naturalvoices.com.
+    (additional voices cost $70).
 
 UNIX Detailed Install Instructions
   UNIX Step 1, Download and Install Mister House
@@ -266,9 +267,10 @@ UNIX Detailed Install Instructions
     You can skip this step if you do not want to enable VR or TTS.
 
     The simplest and fastest TTS engine is flite, availale from
-    http://www.speech.cs.cmu.edu/flite . After compiling, simply copy the
-    flite binary to mh/bin and set voice_text = flite. If on linux, you can
-    pick up a copy (3 meg) here: http://misterhouse.net:81/public/flite.gz
+    http://www.speech.cs.cmu.edu/flite . After compiling, point to where the
+    flite binary is with the voice_text_file parm and set voice_text =
+    flite. If on linux, you can pick up a copy (3 meg, 7 meg unziped) here:
+    http://misterhouse.net:81/public/flite.gz
 
     The Festival Speech engine is available from
     http://www.cstr.ed.ac.uk/projects/festival/download.html . There are
@@ -297,6 +299,11 @@ UNIX Detailed Install Instructions
 
     Once you have the festival server running, you can enable mh to use it
     with mh.ini parms voice_text and festival_port.
+
+    For $150, you can get 2 nice voices with AT&T Natural Voices TTS linux
+    engine here: http://www.naturalvoices.com (additional voices cost $70).
+    Use the voice_text_naturalvoice parm to point to where you have it
+    installed and set voice_text=naturalvoice
 
     The IBM ViaVoice TTS and Voice Recognition engines is no longer
     available (as of 05/2002) from the IBM site (

@@ -16,7 +16,7 @@ sub new {
     $device = 'TV' unless $device;
     $$self{device} = uc $device;
     $$self{code} = $code if $code;
-    $interface = 'CM17' unless $interface;
+    $interface = 'cm17' unless $interface;
     $$self{interface} = $interface;
     $mapref = \%default_map unless $mapref;
     $$self{mapref} = $mapref;
@@ -86,8 +86,8 @@ sub set {
         if ($mapped_ir = $$self{mapref}->{$command}) {
             $command = $mapped_ir;
         }
-        if ($$self{interface} eq 'CM17') {
-            return if &main::proxy_send('CM17', 'send_ir', "$device $command");
+        if (lc $$self{interface} eq 'cm17') {
+            return if &main::proxy_send('cm17', 'send_ir', "$device $command");
             &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, "$device $command");
         } elsif ($$self{interface} eq 'Homevision') {
             &Homevision::send($main::Serial_Ports{Homevision}{object}, $command);
@@ -102,6 +102,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.11  2002/09/22 01:33:23  winter
+# - 2.71 release
+#
 # Revision 1.10  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

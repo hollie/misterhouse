@@ -3,6 +3,115 @@ Mister House Announcement List
     mailing list (an archive of all the list messages is at
     http://sourceforge.net/mail/?group_id=1365 )
 
+  Version 2.72 posted on 09/21/2002
+
+    Version 2.71 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+      http://misterhouse.net:81/download.html
+
+    New Features:
+
+    - Added the option to use additional mh instances as proxies to allow
+    for remote ports (e.g. 'mh in the barn'), distributed lan-based speech,
+    or buffering of slow serial data to avoid the 'mh pause' problem. See
+    'Use distributed MisterHouse proxies' in mh/docs/mh.* (
+    http://misterhouse.net/mh.html#use%20distributed%20misterhouse%20proxies
+    )
+
+    - Created mh/code/public/speak_proxy.pl as an example of how to allow
+    for speech to distributed mh proxies using the speak rooms= parm.
+
+    - Added speak voice=next and voice=all options. For each speak call,
+    voice=next will cycle through to the next available voice, as listed in
+    the mh.ini voice_names parm. voice=all is a goofy option, inspired by
+    the fun songs at dictionaraoke.org, that will select a different voice
+    for each word in a phrase. This only works with XML enabled TTS engines
+    (MSV5 and linux naturalvoices), but just as well as it is not very
+    intelligible :) For those with other engines, you can use
+    mh/code/public/speak_voices.pl to do the same thing by synthesizing each
+    word to seperate wav files, then use Audio::Wav to concatonate them into
+    one wav file.
+
+    - Added mh.ini parm sleep_count, so we can control how often mh sleeps
+    per pass. Default is now 5 (was 2) and I lowered the default sleep_time
+    parm from 50 to 10 (milliseconds). By sleeping more often for less time,
+    total %cpu use is decreased, since active code does not don't swap out
+    of cache as often.
+
+    - Ron Klinkien and Paul Wilkinson enabled the great sounding AT&T
+    NaturalVoices TTS engine on Linux. ($150 from
+    http://www.naturalvoices.com ) Use the voice_text_naturalvoice parm to
+    point to where you have it installed and set voice_text=naturalvoice. As
+    with the Windows version, you can use the speak voice=name option to
+    pick a non-default voice.
+
+    - Jason Sharpe and I added several new methods: Generic_Item
+    get_idle_time and Group member_changed and member_changed_log. This
+    allows us to use Group items to monitor sets of sensors for detecting
+    occupancy states. This change means that Group states will change
+    whenever a member's state changes, but these can be distinguised from
+    full group state changes (member only state changes are prefixed with
+    'member'). See an example of these new methods in Jason's occupancy
+    algorithm in mh/code/public/monitor_occupancy_jason.pl.
+
+    - Richard Morgan's sent in mh/code/public/cbus_v1.0.zip, his set of code
+    for talking to CBUS devices via the Australian Clipsal CGATE interface.
+
+    Bug Fixes and Other Changes:
+
+    - Tom Christian sent in an update that allows for spaces in mh.ini web
+    alias parms.
+
+    - Steve Switzer noticed that get_set_by always returned 'serial' for
+    Serial_Item. Also changed this to return an object name, rather than
+    object, if set by a tied item.
+
+    - Scott Johnston noticed a 2.70 problem with Festival server not being
+    used. Also uniquified files when calling the one-the-fly festival.
+
+    - Steve Switzer found a 2.67 bug where get_email_rule.pl would filter
+    out most email announcements.
+
+    - Dean Junk sent in mh/code/public/process_weather1.pl, his code for
+    using weather forecasts to control his sprinkler systsm.
+
+    - Craig Schaeffer sent in mh/code/public/hvac_craig.pl as an example of
+    a function he uses in his HVAC setup to do a smart heat/cool setback
+    cycle.
+
+    - Brian Rudy sent in mh/code/public/monitor_occupancy_brian.pl as an
+    example of how he monitors multiple motion sensors to determine activity
+    in the house.
+
+    - Clive Freedman created web/bin/code_search.pl to improve the web ia5
+    search menu 'code search' output.
+
+    - Steve Flick sent in mh/code/public/x10_power_reset.pl as an example of
+    how to reset the X10 items in a group after a power reset.
+
+    - David Norwood updated bin/get_tv_grid to correctly delete old data for
+    shows starting after 11:30pm. If you have a big data_dir/tv_programs.dbm
+    file, you may want to delete it then run 'redo tv grid data for the next
+    2 weeks' to clean up the old dbm file and speed up tv searches. My
+    search time went from 60 seconds to 10 seconds. We also changed the
+    default -purge option from 14 days to 2 days. David fixed a problem with
+    bin/get_tv_info with shows that ended at midnight and changed the
+    default -increment option from 5 to 30 minutes, so searches are faster.
+
+    - Brent DeShazer notice a 2.68 problem where viavoice would always speak
+    'Mike' when using the default voice_names parm.
+
+    - Max Lock enabled channel A/B selection for iButtom DS2406 switches.
+    For example: $ib_relay1 = new iButton $id, undef, 'B'; set $relay1 ON;
+
+    - Fixed a 2.70 problem (perl 5.0 windows users only) which misplaced 2
+    Win32 modules.
+
+    - Updated map graphics links generated in code/bruce/tracking_aprs.pl.
+    Mapblast changed its urls, so I switched to call vicinity.com directly
+    via a new script at mh/web/bin/display_map.pl
+
   Version 2.70 posted on 08/22/2002
 
     Version 2.70 was just uploaded to:
@@ -392,7 +501,7 @@ Mister House Announcement List
     clients.
 
     - Added support for the AT&T Natural Voices TTS engine (
-    href=http://www.naturalvoices.com ).
+    http://www.naturalvoices.com ).
 
     - Added mh.ini parm voice_names, so we can correlate generic voice names
     to specific names. For example, here is my entry (more examples in

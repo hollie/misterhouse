@@ -17,10 +17,15 @@ sub add {
     my ($self, @items) = @_;
 
                                 # Dang, no way to get $self->{object_name} here (it is saved later in user_code)
-                                # Note much use without it ... who would do this anyway :)
+                                # Not much use without it ... who would do this anyway :)
 #   &main::display("Warning, Group containts itself! $self.  Bad idea.") if grep $_ eq $self, @items;
 
     push(@{$$self{members}}, @items);
+
+                                # This allows us to monitor changed members
+	for my $ref (@items) {
+		$ref->tie_items($self, undef, 'member changed');
+	}
 
                                 # Define group states according to the first item
     unless ($$self{states}) {
@@ -33,13 +38,31 @@ sub add {
 }
 
 sub set {
-    my ($self, $state) = @_;
+    my ($self, $state, $set_by) = @_;
     print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::config_parms{debug} eq 'group';
 
-    return if &main::check_for_tied_filters($self, $state);
-    &Generic_Item::set_states_for_next_pass($self, $state);
+                                # This means we were called by the above 
+                                # tie_items when a member changed
+    if ($state =~ /member changed/) {
+        $state = $set_by->{state};
+       
+        print "Group member set: set_by=$set_by member=$set_by->{object_name} state=$state\n" if $main::config_parms{debug} eq 'group';
 
-    $self->{state} = $state;
+        &Generic_Item::set_states_for_next_pass($self, "member $state", $set_by);
+
+                                # Log only when a different member fires
+                                # This allows us to do stuff like movement direction detection easier
+    	if (!$$self{member_changed_log} or $set_by ne ${$$self{member_changed_log}}[0]) {
+           unshift(@{$$self{member_changed_log}}, $set_by);
+           pop @{$$self{member_changed_log}} if @{$$self{member_changed_log}} > 20;
+        }
+        return;
+    }
+
+    return if &main::check_for_tied_filters($self, $state);
+    &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
+
+
     unshift(@{$$self{state_log}}, "$main::Time_Date $state");
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
@@ -72,12 +95,12 @@ sub set {
 #           $ref->{state_next_pass} = $state;
             ${$ref->{state_next_pass}}[-1] = $state;
         }
-        set $last_ref $state;
+        set $last_ref $state, $set_by;
     }
     else {
         for my $ref (@group) {
             print "Group2 setting $ref to $state\n" if $main::config_parms{debug} eq 'group';
-            set $ref $state if $ref;
+            set $ref $state, $set_by if $ref;
         }
     }
 }    
@@ -88,8 +111,26 @@ sub list {
     return sort @{$$self{members}};  # Hmmm, to sort or not to sort.
 }
 
+
+sub member_changed {
+	my ($self) = @_;
+    if ($self->{state_now} =~ /^member /) {
+#       print "dbx1 s=$self sn=$self->{state_now}  sb=$self->{set_by}\n";
+        return $self->{set_by};
+    }
+}
+
+sub member_changed_log {
+	my ($self) = @_;
+    return unless $$self{member_changed_log};
+	return @{$$self{member_changed_log}};
+}
+
 #
 # $Log$
+# Revision 1.17  2002/09/22 01:33:23  winter
+# - 2.71 release
+#
 # Revision 1.16  2001/08/12 04:02:58  winter
 # - 2.57 update
 #

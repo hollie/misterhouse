@@ -71,7 +71,8 @@ $ib_temp4  = new iButton '1000000029a364';
 
 my @ib_temps = ($ib_temp1, $ib_temp2, $ib_temp3, $ib_temp4);
 
-$ib_relay1   = new iButton '120000001187d206';
+$ib_relay1   = new iButton '120000001187d206', undef, 'A';
+$ib_relay2   = new iButton '120000001187d206', undef, 'B';
 
 $remark_nick = new File_Item "$config_parms{data_dir}/remarks/nick.txt";
 $remark_zack = new File_Item "$config_parms{data_dir}/remarks/zack.txt";
@@ -90,33 +91,40 @@ if ($state = said $v_iButton_relay1) {
     set $ib_relay1 $state;
 }
 
+                                # Monitor state changes in temp buttons
+for my $ib (0 .. $#ib_temps) {
+    if (my $temp = $ib_temps[$ib]->state_now) {
+        my $ib_name = substr $ib_temps[$ib]->{object_name}, 1;
+        print_log "Temp for sensor $ib_name: $temp degrees";
+        update_rrd($ib_name, $temp);
+        logit("$config_parms{data_dir}/iButton_temps.log",  "$ib_name: $temp");
+    }
+}
+
+                                # Read one temp
 if ($state = said $v_iButton_readtemp) {
     my $ib = $ib_temps[$state - 1];
     my $temp = read_temp $ib;
-    print_log "Temp for sensor $state: $temp degrees";
+    print "dbx temp=$temp\n";
+#    read_temp $ib;              # This will trigger a state change
 }
 
-                                # List all iButton temperatures.  This can take a while
+                                # List all iButton temperatures.  This can take a while ... best us a proxy
 if (said $v_iButton_readtemps) {
     print_log "Reading iButton temperatures";
 #   my @ib_list = &iButton::scan('10'); # gets DS1920/DS1820 devices  22 for DS1822 devices
 #   for my $ib (@ib_list) {
     for my $ib (@ib_temps) {
-#       my $temp = $ib->read_temperature_hires();
-        my $temp = read_temp $ib;
-        print_log "ID:" . $ib->serial() . "  Temp: $temp degrees" if defined $temp;
+        read_temp $ib;
     }
 }
-
                                 # Log temp sensor periodically ... not too often as this is slow
 my $ibutton_temp_device = 0;
 if (new_minute 2) {
     $ibutton_temp_device = 1 if ++$ibutton_temp_device > 4;
     my $ib = $ib_temps[$ibutton_temp_device - 1];
-    my $temp = read_temp $ib;
-    my $ib_name = substr $$ib{object_name}, 1;
-    update_rrd($ib_name, $temp);
-    logit("$config_parms{data_dir}/iButton_temps.log",  "$state: $temp");
+#   my $temp = read_temp $ib;
+    read_temp $ib;
 }
 
                                 # List all iButton devices

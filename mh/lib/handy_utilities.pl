@@ -203,7 +203,7 @@ sub main::get_tickcount {
     }
     else {
         if ($main::Info{HiRes}) {
-            my ($sec, $usec) = &main::gettimeofday; # From Time::HiRes
+            my ($sec, $usec) = &main::gettimeofday(); # From Time::HiRes
             $time = 1000 * $sec + $usec / 1000;
         }
         else {
@@ -1087,6 +1087,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.59  2002/09/22 01:33:24  winter
+# - 2.71 release
+#
 # Revision 1.58  2002/08/22 04:33:20  winter
 # - 2.70 release
 #

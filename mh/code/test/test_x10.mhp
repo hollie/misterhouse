@@ -30,6 +30,7 @@ $test_appliance                      =  new X10_Appliance('B2', );
 $Appliances                          =  new Group;
 $Appliances                          -> add($test_appliance);
 $Test                                -> add($test_appliance);
+# VOICE entries default to [ON,OFF]
 
 my $v_test_light1_state;
 $v_test_light1 = new Voice_Cmd("Test light [ON,OFF,BRIGHT,DIM]");

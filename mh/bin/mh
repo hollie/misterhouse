@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-08-17 22:37:24 winter>
+#  Last change Time-stamp: <2002-09-21 19:10:41 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -77,17 +77,19 @@ use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
 use vars qw($Version_tk $Password $DelayOccured);
+use vars qw(%User_Code);
 
 my ($Pgm_PathU);
 my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
 my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
-my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
+my (@Loop_Code, @Sub_Code, %Run_Members, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
 my ($user_code, $user_code_last_good, @code_dirs);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
 my (@Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
+my (%proxy_servers);
 my ($CON_IN, $CON_OUT);
 #use vars '$CON_IN', '$CON_OUT';
 
@@ -468,7 +470,7 @@ sub setup {
         if (1) {
             $CON_IN = new Win32::Console STD_INPUT_HANDLE;
             $CON_OUT= new Win32::Console STD_OUTPUT_HANDLE; 
-            $CON_OUT->Title("MisterHouse");
+            $CON_OUT->Title($config_parms{title});
 #           use vars '$FG_WHITE', '$BG_CYAN';
 #           &explodeAttr($CON_OUT, $FG_WHITE | $BG_CYAN);
 #           $CON_OUT->Attr($FG_WHITE | $BG_CYAN);
@@ -524,21 +526,21 @@ sub setup {
         my $port     = $config_parms{$port_name . "_port"};
         my $proto    = $config_parms{$port_name . "_protocol"};
         my $datatype = $config_parms{$port_name . "_datatype"};
-        my $break    = $config_parms{$port_name . "_break"};
+#        my $break    = $config_parms{$port_name . "_break"};
 
         $proto    = 'tcp'      unless $proto;
         $datatype = 'buffered' if $port_name eq 'http';
         $datatype = 'buffered' if $config_parms{$port_name . "_buffer"}; # Grandfathered syntax
         $datatype = '' unless $datatype;
-        $break = "[\r\n]+" unless $break;
-        eval qq[\$break = "$break"];
+#       $break = "[\r\n]+" unless $break;
+#       eval qq[\$break = "$break"];
 
         printf " - creating %-15s on %3s %5s %s\n", $port_name, $proto, $port, $datatype;
 
         $Socket_Ports{$port_name}{port}     = $port;
         $Socket_Ports{$port_name}{protocol} = $proto;
         $Socket_Ports{$port_name}{datatype} = $datatype;
-        $Socket_Ports{$port_name}{break}    = $break;
+#       $Socket_Ports{$port_name}{break}    = $break;
 
         &socket_open($port_name);
     }
@@ -607,7 +609,16 @@ sub setup {
             }
         }
         
+                                # Start up sockets on proxy ports
+        if (my ($interface) = $parm =~ /(\S+)_port$/ and $config_parms{$parm} =~ /^proxy +(\S+)/i) {
+            my $address = $1;
+            printf " - creating %-15s proxy on %s\n", $interface, $address;
+            next if $proxy_servers{$address}; # Only need/want one
+            $proxy_servers{$address} = new Socket_Item(undef, undef, $address);
+            $proxy_servers{$address}->start;
+        }
     }
+
 
     if ($config_parms{weeder_port}) {
         $config_parms{weeder_baudrate} = 1200 unless $config_parms{weeder_baudrate};
@@ -615,7 +626,10 @@ sub setup {
         $Serial_Ports{weeder}{process_data} = 1;
     }
 
-    if ($config_parms{cm11_port}) {
+    if ($config_parms{cm11_port} =~ /proxy/i) {
+        $Serial_Ports{'cm11'}{object} = 'proxy';
+    }
+    elsif ($config_parms{cm11_port}) {
         require 'ControlX10/CM11.pm';
         &serial_port_create('cm11', $config_parms{cm11_port}, 4800, 'none');
                                 # Reset the CM11 so we don't get old X10 incoming data
@@ -652,7 +666,10 @@ sub setup {
     }
 
                                 # Do this one last, as it can share a serial port.
-    if ($config_parms{cm17_port}) {
+    if ($config_parms{cm17_port} =~ /proxy/i) {
+        $Serial_Ports{'cm17'}{object} = 'proxy';
+    }
+    elsif ($config_parms{cm17_port}) {
         require 'ControlX10/CM17.pm';
         &serial_port_create('cm17', $config_parms{cm17_port});
     }
@@ -681,12 +698,14 @@ sub setup {
     }
 
     $exit_flag = 0;
-    $config_parms{sleep_time} = 50 unless defined $config_parms{sleep_time};
-    $Loop_Sleep_Time = $config_parms{sleep_time};
-    $config_parms{tk_passes} = 10 unless $config_parms{tk_passes};
+    $config_parms{sleep_time}    = 50 unless defined $config_parms{sleep_time};
+    $config_parms{sleep_count}   =  2 unless defined $config_parms{sleep_count};
+    $config_parms{tk_passes}     = 10 unless $config_parms{tk_passes};
     $config_parms{tk_font}       = 'Times 10 bold'   unless $config_parms{tk_font};
     $config_parms{tk_font_fixed} = 'Courier 10 bold' unless $config_parms{tk_font_fixed};
-    $Loop_Tk_Passes = $config_parms{tk_passes};
+
+    $Loop_Tk_Passes  = $config_parms{tk_passes};
+    $Loop_Sleep_Time = $config_parms{sleep_time};
 
     $Time = time;
 
@@ -788,7 +807,8 @@ my (%hook_pointers, %hook_locations);
 sub add_hook_code {
 
     %hook_locations = ( MainLoop_pre => 1, MainLoop_post => 1,
-                        Serial_match => 1, State_change => 1,
+                        Serial_data  => 1, Serial_match => 1,
+                        State_change => 1, iButton_receive => 1,
                         Reload_pre   => 1, Reload_post  => 1,
                         Play_pre => 1,     Play_post => 1,
                         Speak_pre => 1,    Speak_post => 1,
@@ -921,7 +941,8 @@ sub browser {
     run qq[$config_parms{browser} "$file"];
 }
 
-my ($loop_tickcount1, $loop_tickcount2, $loop_tickcount3, $loop_tickcount4, $loop_tickcount_total, $Disable);
+my ($loop_tickcount1, $loop_tickcount2, $loop_tickcount3, $loop_tickcount4, $loop_tickcount_total);
+my ($loop_sleep_total, $Disable);
 sub check_for_action {
     &exit_pgm if $exit_flag;
 
@@ -951,29 +972,34 @@ sub check_for_action {
     &Process_Item::harvest           unless $Disable == 4;  # Check for done processes
     &Generic_Item::reset_states      unless $Disable == 5;  # Reset states for all objects that are 'ISA Item' objects
     &Voice_Cmd::check_for_voice_cmd  unless $Disable == 6;  # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
-    &check_for_serial_data           unless $Disable == 7;
-    &check_for_socket_data_http      unless $Disable == 8;
-    &check_for_socket_data           unless $Disable == 9;
-    &check_for_tied_times            unless $Disable == 10 and !$New_Minute;
-    &Timer::check_for_timer_actions  unless $Disable == 11;
-    &check_for_external_command_file unless $Disable == 12;
-
-    &MainLoop_pre_hooks()            unless $Disable == 13; # Created by &add_hooks
+    &check_for_proxy_data            unless $Disable == 7;
+    &check_for_serial_data           unless $Disable == 8;
+    &check_for_socket_data_http      unless $Disable == 9;
+    &check_for_socket_data           unless $Disable == 10;
+    &check_for_tied_times            unless $Disable == 11 and !$New_Minute;
+    &Timer::check_for_timer_actions  unless $Disable == 12;
+    &check_for_external_command_file unless $Disable == 13;
 
     my $tic1 = &get_tickcount;
     $Benchmark_Members{' OTHER'} += $tic1 - $loop_tickcount1 if $Benchmark_Members{on_off_flag};
 
-    select undef, undef, undef, $Loop_Sleep_Time / 1000 if $Loop_Sleep_Time;
-    my $tic2 = &get_tickcount;
-    $loop_tickcount1 += ($tic2 - $tic1);
-
                                 # Use eval to catch minor errors without abending
                                 #  - about 10% slower (170 -> 150)
-#   &loop_code;
-    &eval_user_code_loop             unless $Disable == 13;
-    $Benchmark_Members{' USER'}  += &get_tickcount - $tic2 if $Benchmark_Members{on_off_flag};
+    &MainLoop_pre_hooks()            unless $Disable == 14; # Created by &add_hooks
 
-    &MainLoop_post_hooks()           unless $Disable == 14;  # Created by &add_hooks
+                                # Safegard from sleeping too much 
+    my $max_sleep = 500;
+    $max_sleep = int $max_sleep / $config_parms{sleep_count} if $config_parms{sleep_count};
+    $Loop_Sleep_Time = $max_sleep if $max_sleep < $Loop_Sleep_Time;  
+
+#   &loop_code;
+    &eval_user_code_loop             unless $Disable == 15;
+    &MainLoop_post_hooks()           unless $Disable == 16;  # Created by &add_hooks
+
+                                # Substract out time spent sleeping
+    my $tic2 = &get_tickcount - $loop_sleep_total;
+    $Benchmark_Members{' USER'} += $tic2 - $tic1 if $Benchmark_Members{on_off_flag};
+    $loop_tickcount_total       += $tic2 - $loop_tickcount1;
 
                                 # Do the tk_setup_cascade_menus AFTER the first eval code, so we can test Tk widget objects
     if ($MW) {
@@ -981,7 +1007,6 @@ sub check_for_action {
         &tk_setup_geometry      if $Reread;
     }
 
-    $loop_tickcount_total += &get_tickcount - $loop_tickcount1;
 
     if ($Reread) {
         $Startup = 0; $Reload = 0; $Reread = 0;
@@ -1002,33 +1027,7 @@ sub check_for_cm11_data {
 #   if ($data_d == 0x5a) {
     if ($data_d == 0x5a or $data_d == 0xa5) {
         if ($data = &ControlX10::CM11::receive_buffer($Serial_Ports{cm11}{object})) {
-
-                                # Process status requests
-# C2STATUS_ONC2
-# C3C3STATUS_OFFC3C3STATUS_OFF
-            if ($data =~ /STATUS/) {
-#               my ($house, $device, $state) = $data =~ /(\S)(\S)STATUS_(\S+)/;
-                my ($house, $device, $state) = $data =~ /(\S)(\S)STATUS_(ON|OFF)/;
-                $state = 'J' if $state eq 'ON';
-                $state = 'K' if $state eq 'OFF';
-                my $event_data = 'X' . $house . $device . $house . $state;
-                if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
-                    for my $ref (@refs) {
-                        if ($state = $$ref{state_by_id}{$event_data}) {
-#                           set_receive $ref $state;
-                            $ref->{state} = $state;
-                            print "CM11 Status results: data=$data event_data=$event_data state=$state\n" 
-                                if $config_parms{debug} eq 'X10';
-                        }
-                    }
-                }
-                else {
-                    &print_log("Status request on undefined state: data=$data event_data=$event_data");
-                }
-            }
-            else {
-                &process_serial_data("X" . $data);
-            }
+            &process_serial_data("X" . $data);
         }
     }
 }
@@ -1231,6 +1230,33 @@ sub toggle_pause {
 #   display "Sorry, not implemented yet";
 }
 
+
+sub check_for_proxy_data {
+    for my $address (keys %proxy_servers) {
+        my $proxy = $proxy_servers{$address};
+                   # If proxy is down, this is slow, so don't do it every pass
+        $proxy->start if &new_second(5) and !$proxy->active;
+        if (my $data = $proxy->said) {
+            my ($type, @data) = split $;, $data;
+            print "mh proxy server data: $type, @data.\n" if $config_parms{debug} eq 'proxy';
+            if ($type eq 'serial') {
+                &process_serial_data($data[0]);
+            }
+            elsif ($type eq 'set_receive') {
+                eval "$data[0] -> set_receive('$data[1]')";
+                print "proxy set_receive eval error: $@" if $@;
+            }
+            elsif ($type eq 'set') {
+                eval "$data[0] -> set('$data[1]')";
+                print "proxy set eval error: $@" if $@;
+            }
+            else {
+                &print_log( "Error, unknown proxy data: $type\n");
+            }
+        }
+    }
+}
+
 my @serial_data_buffer;
 sub check_for_serial_data {
     return unless %Serial_Ports;
@@ -1241,7 +1267,7 @@ sub check_for_serial_data {
         return;
     }
 
-    &check_for_cm11_data if $Serial_Ports{cm11}{object};
+    &check_for_cm11_data if $Serial_Ports{cm11}{object} and $Serial_Ports{cm11}{object} ne 'proxy';
     &check_for_Homevision_data if $Serial_Ports{Homevision}{object};
     &check_for_HomeBase_data if $Serial_Ports{HomeBase}{object};
     &check_for_ncpuxa_data if $config_parms{ncpuxa_port};
@@ -1255,6 +1281,8 @@ my ($leave_socket_open_passes, $leave_socket_open_action, $leave_socket_open_che
 use vars '%socket_fork_data';
 
 sub check_for_socket_data_http {
+
+    return unless $config_parms{http_port};
 
                                 # These must be closed only AFTER the 'forked' Win32 process is done
     if ($OS_win and $socket_fork_data{process} and $socket_fork_data{process}->Wait(0)) {
@@ -1475,7 +1503,8 @@ sub check_for_socket_data {
      
                                 # Look for data separator (default is newline)
         my $break = $config_parms{"${port_name}_break"};
-        $break = "[\r\n]+";
+        $break = "[\r\n]+" unless $break;
+#        $break = "[\r\n]+";
 
         if ( my($record, $remainder) = $Socket_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s) {
             $Socket_Ports{$port_name}{data_record} = $record;
@@ -1527,9 +1556,9 @@ sub check_for_tied_events {
                     if ($object2->can('set')) {
                                 # Make sure we don't get into a loop with cross-tied objects
                         unless ($object1->{set_by} eq $object2) {
-                            $object2->set($state2);
 #                           $object2->{set_by} = $object1->{object_name};
-                            $object2->{set_by} = $object1;
+#                           $object2->{set_by} = $object1;
+                            $object2->set($state2, $object1);
                         }
                     }
                     else {
@@ -1601,8 +1630,8 @@ sub check_for_tied_times {
                     my $log_msg = $$ref{tied_times}{$time}{$state};
                     &print_log($log_msg) unless $log_msg eq '1';
                     if ($ref->can('set')) {
-                        $ref->set($state);
-                        $ref->{set_by} = 'tied_time';
+#                       $ref->{set_by} = 'tied_time';
+                        $ref->set($state, 'tied_time');
                     }
                     else {
                         print "tie_items object can not set: $ref->{object_name}\n";
@@ -2051,9 +2080,6 @@ sub monitor_commands {
     while (1) {
 #       print '-' if $config_parms{debug};
         &check_for_action;
-        next unless $Loop_Sleep_Time; # Avoid -w uninialized errors
-        $Loop_Sleep_Time = 1000 if $Loop_Sleep_Time > 1000; # Don't go over a second
-        select undef, undef, undef, $Loop_Sleep_Time / 1000 if $Loop_Sleep_Time;
     }
 }
 
@@ -2374,6 +2400,8 @@ sub play {
 
     $parms{time} = 5 unless $parms{time};
 
+    $parms{rooms} = $parms{room} if $parms{room}; # Allow for room or rooms
+
 #   &write_socket("play", "$rooms", $file);
 
     no strict 'subs';       # For non-win OS
@@ -2659,17 +2687,47 @@ sub process_external_command {
 my (@prev_x10_events, %prev_x10_units, $prev_x10_units_reset);
 sub process_serial_data {
     my ($event_data, $prev_pass) = @_;
-    my ($state, $ref, @refs, $matched);
 
     return unless $event_data;
+
+                                # Allow for other processing
+    &Serial_data_hooks($event_data);   # Created by &add_hooks
 
     my ($event_type, $event_data1) = $event_data =~ /^(\S)(\S*)/;
     
     print "Serial data: event_type=$event_type, event_data=$event_data\n" 
         if $config_parms{debug} eq 'serial' or $config_parms{debug} eq 'X10';
 
-                                # Track previous X10 data
+    my ($state, $ref, @refs, $matched);
     if ($event_type eq 'X') {
+
+                                # Process CM11 status requests
+# C2STATUS_ONC2
+# C3C3STATUS_OFFC3C3STATUS_OFF
+        if ($event_data1 =~ /STATUS/) {
+#           my ($house, $device, $state) = $event_data1 =~ /(\S)(\S)STATUS_(\S+)/;
+            my ($house, $device, $state) = $event_data1 =~ /(\S)(\S)STATUS_(ON|OFF)/;
+            $state = 'J' if $state eq 'ON';
+            $state = 'K' if $state eq 'OFF';
+            my $event_data = 'X' . $house . $device . $house . $state;
+            if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
+                for my $ref (@refs) {
+                    if ($state = $$ref{state_by_id}{$event_data}) {
+#                       set_receive $ref $state;
+                        $ref->{state} = $state;
+                        print "CM11 Status results: data=$event_data1 event_data=$event_data state=$state\n" 
+                            if $config_parms{debug} eq 'X10';
+                    }
+                }
+            }
+            else {
+                &print_log("Status request on undefined state: data=$event_data1 event_data=$event_data");
+            }
+            return;
+        }
+
+                                # Track previous X10 data
+
                                 # Ignore duplicate X10 entries
                                 #  - We might have a CM11 and a MR26 both receiving the same data
         for my $i (0 .. 4) {
@@ -2694,11 +2752,11 @@ sub process_serial_data {
         for $ref (@refs) {
 #           print "db et=$event_type ed=$event_data o=$ref->{object_name}\n";
             if ($state = $$ref{state_by_id}{$event_data}) {
-                set_receive $ref $state;
+                set_receive $ref $state, 'serial';
                 print "Serial event=$event_data state=$state\n" if $config_parms{debug} eq 'serial';
             }
             else {
-                set_receive $ref $event_data;
+                set_receive $ref $event_data, 'serial';
             }
                                 # Allow for other processing
             &Serial_match_hooks($ref, $state, $event_data);   # Created by &add_hooks
@@ -2709,7 +2767,7 @@ sub process_serial_data {
         $matched = 1;
         for $ref (@refs) {
 #           print "db et=$event_type ed=$event_data o=$ref->{object_name}\n";
-            set_receive $ref $event_data;
+            set_receive $ref $event_data, 'serial';
         }
     }
 
@@ -2815,9 +2873,46 @@ sub process_serial_data {
     return $matched;
 }
 
+                                # This is called by mh/lib/Serial_Item.pm
 sub proxy_send {
-    return 0;                   # Overriden by proxy_client.pl code member
+    my ($interface, $function, @data) = @_;
+
+    my $address;
+    if ($function eq 'speak' or $function eq 'play' or $function eq 'ibutton') {
+        $address = $interface;
+    }
+    else {
+        return 0 unless $Serial_Ports{$interface}{object} eq 'proxy';
+        $address = $config_parms{$interface . '_port'};
+    }
+    $address =~ s/proxy +//;
+    
+    my $proxy = $proxy_servers{$address};
+
+    print "proxy int=$interface f=$function a=$address p=$proxy d=@data\n" if $config_parms{debug} eq 'proxy';
+    $proxy->start unless $proxy->active;
+    if ($proxy->active) {
+        $proxy->set(join $;, $function, @data);
+    }
+    else {
+        print_log "Error, proxy port not active for proxy: function=$function int=$interface address=$address";
+        return 0;
+    }
+    return 1;
 }
+
+                                # This is called by mh/lib/iButton.pm
+sub proxy_receive {
+    my ($address) = @_;
+    $address =~ s/proxy +//;
+    my $proxy = $proxy_servers{$address};
+    my $data = $proxy->said_next;
+                                # Receive again because have both \r and \n on a 
+                                # Socket_Item set, and both will trigger <>
+#   $proxy->said_next;
+    return split $;, $data;
+}
+
 
 sub process_x10_chunks {
     my ($event_data, $event_type) = @_;
@@ -2896,6 +2991,8 @@ sub read_code {
     @Password_Allow_Clients = split /[, ]+/, $config_parms{password_allow_clients};
 
     &read_table_files;           # Re-create table code file, if any table file changed
+
+    push @Requested_Files, split ',', $config_parms{only_load};
 
     if (@Requested_Files) {
         @files_read = @Requested_Files;
@@ -3236,7 +3333,6 @@ sub read_user_code {
         ($webname =~ /startup/i) ?  unshift(@Loop_Code, $temp) : push(@Loop_Code, $temp);
     }
     
-    push(@Loop_Code, "\n}");
 #   push(@Loop_Code, "\n   \$Startup = 0; \$Reload = 0; \$Reread = 0;\n}");
 
 
@@ -3592,7 +3688,13 @@ sub set_global_vars {
         else {
                                 # This call takes .2 seconds, so only do it once a minute
             ($Info{memory_virtual}, $Info{memory_real}) = &memory_used if $New_Minute or $Startup;
+
+                                # Calculate a rolling average ... naw, per second good so we can match to taskman
+#            @loop_tickcount_totals = 5 x $loop_tickcount_total unless @loop_tickcount_totals;
+#            shift @loop_tickcount_totals;
+#            push @loop_tickcount_totals, $loop_tickcount_total;
             $Info{cpu_used} = 100*$loop_tickcount_total/1000 if $loop_tickcount_total;
+            $Info{cpu_used} /= 2; # Heuristic ... maybe due to un-accounted for sleeps in non-user code?
             $loop_tickcount_total = 0;
         }
         $Info{cpu_used} = 100 if $Info{cpu_used} > 100;
@@ -3864,6 +3966,7 @@ sub speak {
     }
     $parms{mode}  = '' unless $parms{mode};
     $rooms        = $parms{rooms}   if $parms{rooms};
+    $rooms        = $parms{room}    if $parms{room};
     $display_time = $parms{display} if $parms{display};
 
     my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression);
@@ -3914,10 +4017,10 @@ sub speak {
         close TEXT;
     }
 
-    $parms{mode} = $Save{mode} unless $parms{mode};
+    my $mode = $parms{mode} || $Save{mode};
 
     if (!$nolog) {
-        my $speaklog = $parms{mode} . ": ";
+        my $speaklog = $mode . ": ";
     	$speaklog = "card=$parms{card}: " if $parms{card};
     	$speaklog = "to_file: "           if $parms{to_file};
     	$speaklog .= "(" . basename($play) . ") " if $play;		# put sound in () to show the sound played.
@@ -3955,7 +4058,7 @@ sub speak {
     &Log_hooks('speak', $phrase, %parms);   # Created by &add_hooks
 
                         # Do not speak to the default card if muted or offline
-    return if $parms{mode} and ($parms{mode} eq 'mute' or $parms{mode} eq 'offline') and
+    return if $mode and ($mode eq 'mute' or $mode eq 'offline') and
         !($parms{to_file} or $parms{card});
 
                                 # Lowercase all uppercase text ... 
@@ -4127,7 +4230,7 @@ sub tk_setup_windows {
     $MW->bind('Alt-Key-r'   => \&read_code);
     $MW->bind('Alt-Key-x'   => \&sig_handler);
 
-    $MW->title("MisterHouse $Version  PID: $$");
+    $MW->title("$config_parms{title} $Version  PID: $$");
 
                                 # Create menu bar and buttons
     $Tk_objects{menu_bar} = $MW->Frame->pack(-anchor => 'w', -side => 'top', expand => 0, fill => 'x');
@@ -4546,15 +4649,36 @@ sub tk_radiobutton {
     $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(text => $label)->grid(@widgets, -sticky => 'w');
 }
 
+                                # This sub sleeps, and times how long it slept
+sub sleep_time {
+    my ($sleep_time) = @_;
+    return 0 unless $sleep_time;
+    my $tic1 = &get_tickcount;
+    select undef, undef, undef, $sleep_time / 1000;
+    return &get_tickcount - $tic1;
+}
+
 
 sub write_user_code {
 
     undef $user_code;
 #   $user_code  = "\nuse strict 'subs';\nuse strict 'refs';\nuse strict 'vars';\n";
 
+                                 # Add sleeps 1/$i-th way through user code.
+                                 # Improves cache usage for less %cpu than 1 big sleep.
+    my $sleep_call = "   \$loop_sleep_total += &sleep_time(\$Loop_Sleep_Time);\n";
+    my $j = int @Loop_Code / ($config_parms{sleep_count} - 1) if $config_parms{sleep_count} > 1;
+    for my $k (0 .. $config_parms{sleep_count}-2) {
+        my $pos = $k * $j;
+        splice @Loop_Code, $pos+$k, 0, $sleep_call;;
+    }
+    push @Loop_Code, $sleep_call if $config_parms{sleep_count} > 0;
+
                                 # join with '' so 'eof' markers are in col 1
     $user_code .= join('', @Item_Code, "\n", @Sub_Code, 
-                       "#-----------------------------------\n\nsub loop_code { \n\n", @Loop_Code);
+                       "#-----------------------------------\n\n",
+                       "sub loop_code { \n\n   \$loop_sleep_total = 0;\n",
+                       @Loop_Code,  "\n}");
     my $user_code_file = "$config_parms{data_dir}/mh_temp.user_code";
     open(USERCODE, ">$user_code_file") or print "Can not open debug user code file $user_code_file: $!\n";
     print USERCODE $user_code;
@@ -4624,6 +4748,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.71  2002/09/22 01:30:54  winter
+# - 2.71 release
+#
 # Revision 2.70  2002/08/22 04:27:33  winter
 # - 2.70 release
 #

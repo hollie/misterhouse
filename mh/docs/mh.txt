@@ -627,8 +627,10 @@ DESCRIPTION
                                    $time can be in either time_cron or time_now format.
              untie_time($time)   : Untie $time
 
+             get_idle_time       : Returns number of seconds since the last state change
+
              get_set_by          : Returns what caused this object to change.  Values either:
-                                    - A tied object
+                                    - Name of the object
                                     - web, tk, telnet, vr, xcmd, serial
                                    An example is in mh/code/examples/test_set_by.pl
 
@@ -723,9 +725,21 @@ DESCRIPTION
              add(@item_list)
              list
              set  
-             state        : Returns the last state that the group was set to
+
+             state    
+             state_now    :  Like the Generic_Item methods, these return 
+                             the last state that the group was set to.
+                             If a group member changed, these methods will
+                             return 'member $state_name' rather than just '$state_name'.
+                             You can use the member_changed or get_set_by methods
+                             to see which member changed. 
+                                                  
              state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
                             time_date stamped states.
+
+             member_changed:      Returns a member object whenever one changes
+             member_changed_log:  Returns a list of recenty changed members.
+                                  The first one was the most recently changed.
 
           Examples:
              $outside_lights = new Group($light1, $light2, $light3);
@@ -737,7 +751,14 @@ DESCRIPTION
                  print "member = $item->{object_name}\n";
              }
 
-        See mh/code/examples/test_group.pl for more examples.
+             if (my $member = member_changed $outside_lights) {
+                print_log "Outside light $member->{object_name} changed"
+             }
+
+             my @members = member_changed_log $sensors;
+
+        See mh/code/examples/test_group.pl and
+        mh/code/public/monitor_occupancy_jason.pl for more examples.
 
     iButton_Item
         This is used to query and/or control an iButton device (for more
@@ -745,9 +766,10 @@ DESCRIPTION
         support in mh, set the mh.ini parm ibutton_port.
 
           Methods:
-             new $id, $port
+             new $id, $port, $channel
                If $port is not specified, the port of the first iButton::connect
                will be used.
+               $channel (used for switches like the DS2406) defaults to A
 
              set $state   : Sets the item to the specified state.
 
@@ -867,14 +889,15 @@ DESCRIPTION
             speak 'Hi Bruce'  if ON  eq state_now $ib_bruce;
             speak 'Later'     if OFF eq state_now $ib_bruce;
 
-            $ib_relay1 = new iButton '12000000123456ff', $config_parms{iButton_2_serial_port};
+            $ib_relay1 = new iButton '12000000123456ff', undef, 'A';
+            $ib_relay2 = new iButton '12000000123456ff', undef, 'B';
             $v_iButton_relay1    = new Voice_Cmd "Turn relay1 [on,off]";
             if ($state = said $v_iButton_relay1) {
                print_log "Setting iButton relay1 to $state";
                set $ib_relay1 $state;
             }
 
-            $ib_temp1  = new iButton '1000000029a14f';
+            $ib_temp1  = new iButton '1000000029a14f', $config_parms{iButton_2_serial_port};
             $ib_temp2  = new iButton '1000000029f5d6';
             my @ib_temps = ($ib_temp1, $ib_temp2);
 
@@ -1294,7 +1317,11 @@ DESCRIPTION
 
     X10_IrrigationController;
         For this sprinkler device:
-        http://ourworld.compuserve.com/homepages/rciautomation/p6.htm
+        http://ourworld.compuserve.com/homepages/rciautomation/p6.htm which
+        looks the same as the IrrMaster 4-zone sprinkler controller listed
+        here:
+        http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC
+        569027
 
     X10_Switchlinc;
         For the Switchlinc controllers:
@@ -2174,7 +2201,13 @@ DESCRIPTION
                 stop, pause, resume, rewind, fastforward, slow, normal, fast, dd
 
                voice  => 'name'
-                         Example voices: Mike,Mary,Sam,random,male,female
+                 This can be any voice listed in the mh.ini voic_names parm or 
+                 any of the following:
+                    random => randomly selects a voice
+                    next   => selects the next voice in the voice_names list
+                    all    => uses a different voice for each word.  Note this was
+                              inspired by dictionaraoke.org, but not all that useful.
+                              Only works with xml enabled engines (MSV5 and NaturalVoice)
 
                volume => dd (dd = 0 -> 100).  
 
@@ -4032,6 +4065,57 @@ DESCRIPTION
         http://www.speech.cs.cmu.edu/flite/
 
         For vr with ViaVoice, use mh/code/bruce/viavoice_control.pl
+
+  Use distributed MisterHouse proxies
+
+        There are several reasons you might want to run one or more extra
+        proxy versions of MisterHouse:
+
+         - Allows the real real mh to not pause while reading or
+           writing to slow interfaces (e.g. X10 CM11, CM17, or iButton).
+
+         - You can monitor and control remote serial ports.  For 
+           example, an old PC running MisterHouse in a barn,
+           or an internet connected PC in a vacation home.
+
+         - Sharing of interfaces between different mh boxes.
+           For example, you can run a test version of MisterHouse
+           to debug new code without buying a 2nd interface.
+
+         - Use small, quiet, low power PC's in differnet rooms to 
+           distribute speech from your main MisterHouse with
+           the speak rooms= parm, using eithernet instead of a 
+           relay / PA wiring scheme. 
+
+        To run a proxy mh, copy and modify the mh/bin/mh_proxy.ini and
+        mh_proxy (unix) or mh_proxy.bat (windows) files. Then run mh_proxy.
+        If you have tk installed, you may want to run mh_proxy -tk 1 while
+        debugging.
+
+        On your main mh box, change your mh.ini port parms to point to the
+        address:port of the proxy box, like this:
+
+         cm11_port           = proxy localhost:9001
+         cm17_port           = proxy localhost:9001
+         iButton_serial_port = proxy localhost:9001
+
+        You can start or restart either the main mh or mh_proxy before or
+        after the other one and they should sync up. So far, only the CM11,
+        CM17 interfaces and iButton state_now and read_temp methods are
+        proxy enabled. Support for other iButton methods or serial
+        interfaces can be added as needed.
+
+        If you want to distribute speech to mh_proxy machines, see
+        mh/code/public/speak_proxy.pl for example code.
+
+        Here are some small $400->$500 computers that might be good for
+        distributed speech and/or ports:
+
+         http://www.cappuccinopc.com/espressopc.asp  (6"x5"x1.5")  (0.9Lbs) .
+         http://www.enpc.com/cgi-bin/enpc/ESPRESSO.html?mv_pc=Dealnews
+
+         http://216.136.224.156/hoct12/minpcpeniii1.html  2.2 Ibs Dimensions: 6" x 5.75" x 2.25"
+         http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=N52-1042
 
 NOTES
         This section has info that doesn't fit well anywhere else. Probably

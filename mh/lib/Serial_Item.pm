@@ -160,7 +160,7 @@ sub set_data {
 
 sub set_receive {
     my ($self, $state, $set_by) = @_;
-    $set_by = 'serial' unless $set_by;
+#   $set_by = 'serial' unless $set_by;
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
 }
 
@@ -189,7 +189,7 @@ sub set_rts {
 
 
 sub set {
-    my ($self, $state) = @_;
+    my ($self, $state, $set_by) = @_;
     return if &main::check_for_tied_filters($self, $state);
 
                                 # Allow for Serial_Item's without states
@@ -222,7 +222,7 @@ sub set {
         return;
     }
 
-    &Generic_Item::set_states_for_next_pass($self, $state, 'serial');
+    &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
 
     return unless %main::Serial_Ports;
 
@@ -351,10 +351,10 @@ sub set {
             print "Serial_Item: Setting duplicate state: id=$serial_id item1=$$self{object_name} item2=$$ref{object_name}\n" 
                 if $main::config_parms{debug} eq 'serial';
             if ($state = $$ref{state_by_id}{$serial_id}) {
-                $ref->set_receive($state);
+                $ref->set_receive($state, $set_by);
             }
             else {
-                $ref->set_receive($serial_id);
+                $ref->set_receive($serial_id, $set_by);
             }
         }
     }
@@ -522,6 +522,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.58  2002/09/22 01:33:23  winter
+# - 2.71 release
+#
 # Revision 1.57  2002/07/01 22:25:28  winter
 # - 2.69 release
 #

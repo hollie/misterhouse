@@ -170,7 +170,7 @@ sub set {
         my $level = $1;
         my $level_now = $self->{level};
         unless (defined $level_now) {
-            print "dbx setting to on before dim\n";
+#           print "dbx setting to on before dim\n";
             $self->set(ON);      # First turn it on, then go to specified level
             $level_now = 100;
         }
@@ -502,6 +502,9 @@ sub new {
 package X10_IrrigationController;
 
 # More info at: http://ourworld.compuserve.com/homepages/rciautomation/p6.htm
+# This looks the same as the IrrMaster 4-zone sprinkler controller
+#  listed here: http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027
+
 
 @X10_IrrigationController::ISA = ('Serial_Item');
 @X10_IrrigationController::Inherit::ISA = @ISA;
@@ -730,7 +733,7 @@ sub new {
 @preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
                         M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
 sub set {
-    my ($self, $state) = @_;
+    my ($self, $state, $set_by) = @_;
 
                                 # Use preset_dims for ##% data
     if ($state =~ /^(\d+)\%/) {
@@ -740,7 +743,7 @@ sub set {
         print "Switchlink X10 dim: $state -> $state2\n";
         $state = $state2;
     }
-    $self->SUPER::set($state);
+    $self->SUPER::set($state, $set_by);
 }
 
 #  Ote themostate from Ouellet Canada
@@ -868,6 +871,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.31  2002/09/22 01:33:24  winter
+# - 2.71 release
+#
 # Revision 1.30  2002/08/22 13:45:50  winter
 # - 2.70 release
 #

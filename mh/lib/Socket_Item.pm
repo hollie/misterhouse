@@ -64,8 +64,8 @@ sub start {
             return $sock;
         }
         else {
-            print "Socket_Item client start error:  could not start a tcp client socket\n";
-            print " - host=$host port=$port: $@\n";
+            print "Socket_Item client start error:  could not start a tcp client socket\n" .
+              " - host=$host port=$port: $@\n";
         }
     }
     else {
@@ -94,12 +94,12 @@ sub is_available {
 #            $sock->autoflush(1);
         }
         else {
-            print "Socket_Item client start error:  could not start a tcp client socket on host $host port $port: $@\n";
+            print "Socket_Item client is_available error:  could not test a tcp client socket on host $host port $port: $@\n";
             return 0;
         }
     }
     else {
-        print "Socket_Item client start error:  address is not in the form host:port.  open failed.  address=$host_port\n";
+        print "Socket_Item client is_available error:  address is not in the form host:port.  open failed.  address=$host_port\n";
         return 0;
     }
 }
@@ -174,7 +174,7 @@ sub set {
 
     my $port_name = $self->{port_name};
 
-    print "Socket_Item: self=$self port=$port_name state=$state data=$socket_data\n" if $main::config_parms{debug} eq 'socket';
+    print "Socket_Item: self=$self port=$port_name state=$state ip=$ip_address data=$socket_data\n" if $main::config_parms{debug} eq 'socket';
 
     return if $main::Save{mode} eq 'offline';
 
@@ -197,7 +197,7 @@ sub set {
             else {
                 for my $ptr (@{$main::Socket_Ports{$port_name}{clients}}) {
                     my ($socka, $client_ip_address, $data) = @{$ptr};
-                    print "Testing socket client ip address: $client_ip_address\n" if $main::config_pamrs{debug} eq 'socket';
+                    print "Testing socket client ip address: $client_ip_address\n" if $main::config_parms{debug} eq 'socket';
                     push @sockets, $socka if $client_ip_address =~ /$ip_address/ or $ip_address eq 'all';
                 }
             }
@@ -219,6 +219,7 @@ sub set {
                                 # unix telnet or other pgms (e.g. viavoice_server)
     my $datatype  = $main::Socket_Ports{$port_name}{datatype};
     $socket_data .= "\r\n" unless $datatype and $datatype eq 'raw';
+#   $socket_data .=   "\n" unless $datatype and $datatype eq 'raw';
 
     for my $sock (@sockets) {
         print "db print to $sock: $socket_data\n" if $main::config_parms{debug} eq 'socket';
@@ -270,6 +271,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.23  2002/09/22 01:33:23  winter
+# - 2.71 release
+#
 # Revision 1.22  2002/07/01 22:25:28  winter
 # - 2.69 release
 #

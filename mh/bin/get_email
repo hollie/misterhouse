@@ -33,7 +33,7 @@ BEGIN {
 
 use Getopt::Long;
 use vars qw(%config_parms %config_parms_startup);
-if (!&GetOptions(\%config_parms_startup, 'quiet', 'debug', 'h', 'help') or 
+if (!&GetOptions(\%config_parms_startup, 'quiet', 'debug', 'h', 'help', 'net_mail_scan_age=s') or 
     @ARGV or $config_parms_startup{h} or $config_parms_startup{help}) {  
     print<<eof; 
 
@@ -302,6 +302,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.30  2002/09/22 01:33:22  winter
+# - 2.71 release
+#
 # Revision 1.29  2002/05/28 13:07:47  winter
 # - 2.68 release
 #

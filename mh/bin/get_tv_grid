@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2002-08-22 19:36:28 winter>
+#  Last change Time-stamp: <2002-09-18 19:48:19 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -215,7 +215,7 @@ sub setup
    # Process Incoming Parameters, defaulting as necessary
    #------------------------------------------------------------
    $parms{preserveRaw} = 0 unless ( $parms{preserveRaw} );
-   $parms{purge}    = 14 unless $parms{purge};
+   $parms{purge}    = 2 unless $parms{purge};
    $parms{timebars} = 5 unless $parms{timebars};
    $parms{tableChannels} = 40 unless $parms{tableChannels};
    $parms{days}    = 1 unless $parms{days};
@@ -1064,9 +1064,21 @@ sub delete_old_data {
    my $pgm_date = "$month/$day";
    print "Deleting old data from $parms{purge} days ago: $pgm_date ...\n";
    my @channels = keys %DBM2;
-   for my $channel_number (@channels) {
-       for my $hour (00 .. 23) {
-           for my $min ('00', '30') {
+
+#   for my $channel_number (@channels) {
+#       for my $hour (00 .. 23) {
+#           for my $min ('00', '30') {
+
+   for my $hour (00 .. 27) {
+       $hour = '0' . $hour if $hour < 10;
+       my $rawfile = "$parms{outdir}/download/"
+            ."${month}_${day}_${hour}_$parms{duration}.html";
+       my $outfile = "$parms{outdir}/${day}_${hour}.html";
+       unlink $rawfile if -f $rawfile;
+       unlink $outfile if -f $outfile;
+       for my $min ('00', '30') {
+           for my $channel_number (@channels) {
+
                my $db_key = join($;, $channel_number, $pgm_date, "$hour:$min");
 #               print "deleting $db_key\n" if $parms{debug};
                delete $DBM{$db_key};
@@ -1113,21 +1125,6 @@ sub fetchLoop
          my $outfile = "$parms{outdir}/${day}_${startHour}.html";
          $outfile = $parms{outfile} if ( $parms{outfile} );
 
-
-         #------------------------------------------------------------
-         # Find listing for "prime time" and make it the default index file.
-         # Also, email it to someone if we have the means of doing so.
-         #------------------------------------------------------------
-         if ( $day == (localtime(time))[3] and $startHour >  17 and $startHour <= 20) 
-         {
-            use File::Copy;
-            copy($outfile, "$parms{outdir}/index.html");
-            if ($parms{mail_to}) 
-              {
-                  &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year");
-              }
-         }
-
          #------------------------------------------------------------
          # If output file already exists, and is recent enough, use
          # keep it instead of re-downloading. 
@@ -1159,6 +1156,20 @@ sub fetchLoop
          {
             print "Removing raw file: [$rawFile]\n" if ($parms{debug});
             unlink( $rawFile );
+         }
+
+         #------------------------------------------------------------
+         # Find listing for "prime time" and make it the default index file.
+         # Also, email it to someone if we have the means of doing so.
+         #------------------------------------------------------------
+         if ( $day == (localtime(time))[3] and $startHour >  17 and $startHour <= 20) 
+         {
+            use File::Copy;
+            copy($outfile, "$parms{outdir}/index.html");
+            if ($parms{mail_to}) 
+              {
+                  &mail_file($parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year");
+              }
          }
 
       }

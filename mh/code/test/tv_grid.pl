@@ -94,3 +94,4 @@ if (time_cron "50 * * * *") {
         copy "$tvdir/$tvfile", "$tvdir/index.html";
     }
 }
+

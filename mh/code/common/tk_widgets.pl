@@ -36,6 +36,7 @@ if ($Reload) {
 #   &tk_label(\$weather{SummaryRain}) if $Run_Members{weather_monitor};
 
     &tk_entry("Sleep time", \$Loop_Sleep_Time, "Tk passes", \$Loop_Tk_Passes);
+#   &tk_entry("Sleep time", \$Loop_Sleep_Time, "Sleep count", \$config_parms{sleep_count});  ... only works on reload
 
                                 # $search_code_string is defined in mh/code/common/mh_control.pl
     &tk_entry('Code Search', $search_code_string,    'Debug flag', \$config_parms{debug}) if $Run_Members{mh_control};

@@ -6,19 +6,20 @@ sub get_email_rule {
 
 #   print "Debug in get_email_rule: to=$to from=$from subject=$subject\n";
 
-    my $from_words = () = $from = /\S+/g;
+    my $from_words = () = $from =~ /\S+/g;
 
     return                         if $from_full =~ /newsletter/; # Covers [newsletter@x10.com]
     return 'The S F gals'          if $to =~ /FEM-SF/;
     return 'The S F gals'          if $to =~ /sfpanet/;
     return                         if $subject =~ /\[TINI\]/;
     return                         if $subject =~ /\[ECS\]/;
+    return                         if $subject =~ /\[ProGear\]/;
     return                         if $to      =~ /\.NET\@/;
     return 'The HA guys'           if $subject =~ /\[LHA/;
     return                         if $from =~ /InfoBeat/;
     return                         if $from =~ /TipWorld/;
     return                         if $from =~ /X10 Newsletter/;
-    return                         if $subject =~ /test \d+/;
+#   return                         if $subject =~ /test \d+/;
     return 'filtered no store'     if $from =~ /get tv grid/; # no store -> will not store in data/email
     return                         if $from =~ /Cron Daemon/;
     return 'The Mister House guys' if $subject =~ /\[misterhouse-/;

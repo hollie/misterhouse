@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2001-10-12 07:55:30 winter>
+#  Last change Time-stamp: <2002-08-29 08:39:32 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      outlook_read
@@ -66,7 +66,7 @@ a mh code file to implement calendar events.
   Options:
     -help    -> help text
 
-    -version xyz -> Version of Outlook.  Use 98 if you have Outlook 98.
+    -version xyz -> Use 98 if you have Outlook 98, otherwise leave do not use.
 
     -quiet       -> do not echo data to STDOUT
     -debug       -> print out debug
@@ -114,8 +114,9 @@ sub setup {
     require 'handy_utilities.pl'; # For misc. functions (e.g. time/date stamp routines)
 
                                 # Apparently the 97 way also works for Outlook 2000, so let that be the default.
-    $parms{version} = '97' unless $parms{version};
-    $parms{version} = '97' if $parms{version} eq '2000';
+#   $parms{version} = '97' unless $parms{version};
+#   $parms{version} = '97' if $parms{version} eq '2000';
+    $parms{version} = '97' if $parms{version} ne '98';
 
                                 # O97 data, commented out, from help on "Outlook Constants" in  Z:\VALUPACK\MOREHELP\Vbaoutl.hlp
                                 # O98 data, from http://www.cdolive.com/cdo10.htm 
@@ -308,6 +309,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.10  2002/09/22 01:33:22  winter
+# - 2.71 release
+#
 # Revision 1.9  2001/10/21 01:22:31  winter
 # - 2.60 release
 #

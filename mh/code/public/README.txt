@@ -51,6 +51,11 @@ callerisdn.pl
  - Ron Klinkien's code for monitoring callerid on  AVM Fritz!Card
    (ISDN4BSD or ISDN4Linux required)
 
+
+cbus_v1.0.zip
+ - Richard Morgan's code for talking to CBUS devices via Clipsal CGATE 
+( http://www.clipsal.com.au )
+
 chart_xl.pl
  - Clive Freedman's code for generating html that calls Excel via activex to chart log data.
 
@@ -82,6 +87,12 @@ door_monitor_jay.pl
 get_state.php
  - Douglas Parrish's example of how to get mh states from php
 
+hvac_craig.pl
+ - Craig Schaeffer's example of a function he uses in 
+   his HVAC setup to do a smart heat/cool setback cycle.
+
+ - David Lounsberry's code to monitor 14 different iButtons and control HVAC with a weeder board!
+ 
 hvac_david.pl
  - David Lounsberry's code to monitor 14 different iButtons and control HVAC with a weeder board!
  
@@ -93,7 +104,7 @@ iButton_ws_brian.pl
 
 iButton_ws_ernie.pl
  - Ernie Oporto's iButton code.  Includes an example for reading a
-DS2438-based humidity sensor using the Honeywell HIH-3605/3610. 
+   DS2438-based humidity sensor using the Honeywell HIH-3605/3610. 
 
 iButton_ws_client.pl
  - Doug Mackie's code for for getting iButton weather station data from Henriksen's tcp server
@@ -132,7 +143,8 @@ internet_starshine.pl
    a StarShine satellite is about to occur.
 
 irman.pl
- - Code to receive IR signals from the $30 irman box, available http://evation.com/irman/interface.txt
+ - Code to receive IR signals from the $30 irman box, available at 
+   http://evation.com/irman/interface.txt
 
 irvs*
  - Walter Leemput's example of a DTFM driven phone menu, using the 
@@ -160,6 +172,14 @@ monitor_server.pl
 
 monitor_ipchainlog.pl
  - Use to a linux ipchain log for web traffic
+
+monitor_occupancy_brian.pl
+ - Brian Rudy's example of monitoring multiple motion sensors to determine
+   activity in the house.
+
+monitor_occupancy_jason.pl
+ - An example of Jason Sharpe's algorithm for monitoring multiple motion
+   sensors to determine activity away and sleep status.
 
 omnistat.pl
  - Kent Noonan's preliminary code for controling HAI Omnistat Communicating 
@@ -234,6 +254,14 @@ speak_server.pl
  - Older code, now replaced with mhsend_server.pl and eliza_server.pl.
    If on windows, also see voice_client/server.pl
 
+speak_voices.pl
+ - A goofy example of speaking with a different voice for each word.
+   This also demonstrates how to read and write wav files.
+
+speak_proxy.pl
+ - An example of how to allow for speech to distributed mh proxies 
+   using the speak rooms= parm.
+
 sprinklers_*.pl 
  - Brian Rudy and Bill Sobel's code for sprinklers
 
@@ -251,7 +279,8 @@ tv_info_clive.pl
  - Clive Freedman's code for tv queries (derived from mh/code/bruce/tv_info.pl
 
 tv_info_ge.pl
- - Stoll Thomas's code for tv queries of german stations (uses mh/bin/get_tv_info_ge) via http://www.tvspielfilm.de
+ - Stoll Thomas's code for tv queries of german stations (uses mh/bin/get_tv_info_ge) 
+   via http://www.tvspielfilm.de
 
 tk_photos.pl
  - David Norwood's code for displaying a local, full screen photo slideshow using tk.
@@ -267,12 +296,12 @@ voice_client/server.pl
 
 v4l_pvr.pl
  - David Norwood's Personal Video Recorder (PVR) script for Linux systems.
-It can record shows picked from the TV listings or shows that match a list of keywords.
-It has a basic web interface for controlling all its functionality.   
+   It can record shows picked from the TV listings or shows that match a list of keywords.
+   It has a basic web interface for controlling all its functionality.   
 
 v4l_radio.pl
  - David Norwood's code for Linux that allows you to stream music from a video4linux
-compatible FM tuner card to shoutcast clients on your network.  
+   compatible FM tuner card to shoutcast clients on your network.  
 
 
 weather.pl
@@ -283,9 +312,9 @@ weather_com.pl
 
 weather_chance_of_rain.pl
  - David Norwood's script that parses rain info from the weather forecasts
-downloaded by get_weather (US only).  If rain is forecasted, it will be
-announced.  There is also some example code for skipping sprinkler cycles
-based on the forecast.
+   downloaded by get_weather (US only).  If rain is forecasted, it will be
+   announced.  There is also some example code for skipping sprinkler cycles
+   based on the forecast.
 
 weather_ec.pl
  - Harald Koch's code for parsing data from weatheroffice.ec.gc.ca into %Weather.
@@ -302,7 +331,8 @@ weather_sbweather.pl
 
 weather_vw.pl
  - An example of using Virtual Weatherstation ( http://www.ambientsw.com ) log data.
-   Includes Clay Jackson's example of logging weather data to APRSWXNET: http://www.findu.com/aprswxnet.html
+   Includes Clay Jackson's example of logging weather data to
+   APRSWXNET: http://www.findu.com/aprswxnet.html
    For example:  http://www.findu.com/cgi-bin/wxpage.cgi?n7qnm 
 
 weather_wrtv.pl
@@ -350,11 +380,15 @@ wintvpvr_grid.pl
    shows using the tv_grid web pages.
 
 wintv_radio.pl
- - Mickey Argo's code for controling the radio on a wintv card.  Also see mh/web/public/wintv_radio.html
+ - Mickey Argo's code for controling the radio on a wintv card. 
+   Also see mh/web/public/wintv_radio.html
 
 
 x10_video_security.pl
  - Mark Holm's code for a video surveillance system using X10 XCAM cameras and motion sensors.
+
+x10_power_reset.pl
+ - Example of how to reset X10 items after a power reset
 
 Xmms_Control.pl
 Xmms_jukebox.pl

@@ -39,6 +39,7 @@
 		<LI><A HREF="#customizing the web interface">Customizing the Web Interface</A></LI>
 		<LI><A HREF="#voice recognition (vr) and text to speech (tts) on windows">Voice Recognition (VR) and Text To Speech (TTS) on windows</A></LI>
 		<LI><A HREF="#voice recognition (vr) and text to speech (tts) on unix">Voice Recognition (VR) and Text To Speech (TTS) on Unix</A></LI>
+		<LI><A HREF="#use distributed misterhouse proxies">Use distributed MisterHouse proxies</A></LI>
 	</UL>
 
 	<LI><A HREF="#notes">NOTES</A></LI>
@@ -611,8 +612,10 @@ mh is stopped/started.
                            $time can be in either time_cron or time_now format.
      untie_time($time)   : Untie $time</PRE>
 <PRE>
+     get_idle_time       : Returns number of seconds since the last state change</PRE>
+<PRE>
      get_set_by          : Returns what caused this object to change.  Values either:
-                            - A tied object
+                            - Name of the object
                             - web, tk, telnet, vr, xcmd, serial
                            An example is in mh/code/examples/test_set_by.pl</PRE>
 <PRE>
@@ -698,10 +701,22 @@ You can use this object to group and operate on groups of items:
      new(@item_list)
      add(@item_list)
      list
-     set  
-     state        : Returns the last state that the group was set to
+     set</PRE>
+<PRE>
+     state    
+     state_now    :  Like the Generic_Item methods, these return 
+                     the last state that the group was set to.
+                     If a group member changed, these methods will
+                     return 'member $state_name' rather than just '$state_name'.
+                     You can use the member_changed or get_set_by methods
+                     to see which member changed.</PRE>
+<PRE>
      state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
                     time_date stamped states.</PRE>
+<PRE>
+     member_changed:      Returns a member object whenever one changes
+     member_changed_log:  Returns a list of recenty changed members.
+                          The first one was the most recently changed.</PRE>
 <PRE>
   Examples:
      $outside_lights = new Group($light1, $light2, $light3);
@@ -712,7 +727,13 @@ You can use this object to group and operate on groups of items:
      for my $item (list $outside_lights) {
          print &quot;member = $item-&gt;{object_name}\n&quot;;
      }</PRE>
-<P>See mh/code/examples/test_group.pl for more examples.</P>
+<PRE>
+     if (my $member = member_changed $outside_lights) {
+        print_log &quot;Outside light $member-&gt;{object_name} changed&quot;
+     }</PRE>
+<PRE>
+     my @members = member_changed_log $sensors;</PRE>
+<P>See mh/code/examples/test_group.pl and mh/code/public/monitor_occupancy_jason.pl for more examples.</P>
 <P></P>
 <DT><STRONG><A NAME="item_iButton_Item">iButton_Item</A></STRONG><BR>
 <DD>
@@ -720,9 +741,10 @@ This is used to query and/or control an iButton device (for more info on iButton
 To enable iButton support in mh, set the mh.ini parm ibutton_port.
 <PRE>
   Methods:
-     new $id, $port
+     new $id, $port, $channel
        If $port is not specified, the port of the first iButton::connect
-       will be used.</PRE>
+       will be used.
+       $channel (used for switches like the DS2406) defaults to A</PRE>
 <PRE>
      set $state   : Sets the item to the specified state.</PRE>
 <PRE>
@@ -835,14 +857,15 @@ The first 2 characters are the iButton family type.  Here is a list of family ty
     speak 'Hi Bruce'  if ON  eq state_now $ib_bruce;
     speak 'Later'     if OFF eq state_now $ib_bruce;</PRE>
 <PRE>
-    $ib_relay1 = new iButton '12000000123456ff', $config_parms{iButton_2_serial_port};
+    $ib_relay1 = new iButton '12000000123456ff', undef, 'A';
+    $ib_relay2 = new iButton '12000000123456ff', undef, 'B';
     $v_iButton_relay1    = new Voice_Cmd &quot;Turn relay1 [on,off]&quot;;
     if ($state = said $v_iButton_relay1) {
        print_log &quot;Setting iButton relay1 to $state&quot;;
        set $ib_relay1 $state;
     }</PRE>
 <PRE>
-    $ib_temp1  = new iButton '1000000029a14f';
+    $ib_temp1  = new iButton '1000000029a14f', $config_parms{iButton_2_serial_port};
     $ib_temp2  = new iButton '1000000029f5d6';
     my @ib_temps = ($ib_temp1, $ib_temp2);</PRE>
 <PRE>
@@ -1238,6 +1261,8 @@ For the Stanley Garage Door status transmitter.  See mh/code/public/Danal/Garage
 <DT><STRONG><A NAME="item_X10_IrrigationController%3B">X10_IrrigationController;</A></STRONG><BR>
 <DD>
 For this sprinkler device:  <A HREF="http://ourworld.compuserve.com/homepages/rciautomation/p6.htm">http://ourworld.compuserve.com/homepages/rciautomation/p6.htm</A>
+which looks the same as the IrrMaster 4-zone sprinkler controller
+listed here: <A HREF="http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027">http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027</A>
 <P></P>
 <DT><STRONG><A NAME="item_X10_Switchlinc%3B">X10_Switchlinc;</A></STRONG><BR>
 <DD>
@@ -2108,7 +2133,13 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
         stop, pause, resume, rewind, fastforward, slow, normal, fast, dd</PRE>
 <PRE>
        voice  =&gt; 'name'
-                 Example voices: Mike,Mary,Sam,random,male,female</PRE>
+         This can be any voice listed in the mh.ini voic_names parm or 
+         any of the following:
+            random =&gt; randomly selects a voice
+            next   =&gt; selects the next voice in the voice_names list
+            all    =&gt; uses a different voice for each word.  Note this was
+                      inspired by dictionaraoke.org, but not all that useful.
+                      Only works with xml enabled engines (MSV5 and NaturalVoice)</PRE>
 <PRE>
        volume =&gt; dd (dd = 0 -&gt; 100).</PRE>
 <PRE>
@@ -3831,6 +3862,45 @@ same 'Voice Command Options' dialog.</P>
 <P>There is a now also a Festival lite ending that looks promising at
 <A HREF="http://www.speech.cs.cmu.edu/flite/">http://www.speech.cs.cmu.edu/flite/</A></P>
 <P>For vr with ViaVoice, use mh/code/bruce/viavoice_control.pl</P>
+<P>
+<H2><A NAME="use distributed misterhouse proxies">Use distributed MisterHouse proxies</A></H2>
+<P>There are several reasons you might want to run one or more extra proxy versions of MisterHouse:</P>
+<PRE>
+ - Allows the real real mh to not pause while reading or
+   writing to slow interfaces (e.g. X10 CM11, CM17, or iButton).</PRE>
+<PRE>
+ - You can monitor and control remote serial ports.  For 
+   example, an old PC running MisterHouse in a barn,
+   or an internet connected PC in a vacation home.</PRE>
+<PRE>
+ - Sharing of interfaces between different mh boxes.
+   For example, you can run a test version of MisterHouse
+   to debug new code without buying a 2nd interface.</PRE>
+<PRE>
+ - Use small, quiet, low power PC's in differnet rooms to 
+   distribute speech from your main MisterHouse with
+   the speak rooms= parm, using eithernet instead of a 
+   relay / PA wiring scheme.</PRE>
+<P>To run a proxy mh,  copy and modify the mh/bin/mh_proxy.ini 
+and mh_proxy (unix) or mh_proxy.bat (windows) files.
+Then run mh_proxy.  If you have tk installed, you may want to run mh_proxy -tk 1 while debugging.</P>
+<P>On your main mh box, change your mh.ini port parms to point to the address:port of the proxy box, like this:</P>
+<PRE>
+ cm11_port           = proxy localhost:9001
+ cm17_port           = proxy localhost:9001
+ iButton_serial_port = proxy localhost:9001</PRE>
+<P>You can start or restart either the main mh or mh_proxy before or after the other one and they should sync up.
+So far, only the CM11, CM17 interfaces and iButton state_now and read_temp methods are proxy enabled.
+Support for other iButton methods or serial interfaces can be added as needed.</P>
+<P>If you want to distribute speech to mh_proxy machines, 
+see mh/code/public/speak_proxy.pl for example code.</P>
+<P>Here are some small $400-&gt;$500 computers that might be good for distributed speech and/or ports:</P>
+<PRE>
+ <A HREF="http://www.cappuccinopc.com/espressopc.asp">http://www.cappuccinopc.com/espressopc.asp</A>  (6&quot;x5&quot;x1.5&quot;)  (0.9Lbs) .
+ <A HREF="http://www.enpc.com/cgi-bin/enpc/ESPRESSO.html?mv_pc=Dealnews">http://www.enpc.com/cgi-bin/enpc/ESPRESSO.html?mv_pc=Dealnews</A></PRE>
+<PRE>
+ <A HREF="http://216.136.224.156/hoct12/minpcpeniii1.html">http://216.136.224.156/hoct12/minpcpeniii1.html</A>  2.2 Ibs Dimensions: 6&quot; x 5.75&quot; x 2.25&quot;
+ <A HREF="http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=N52-1042">http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=N52-1042</A></PRE>
 <P>
 <HR>
 <H1><A NAME="notes">NOTES</A></H1>

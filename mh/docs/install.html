@@ -225,7 +225,8 @@ full 70 mb 5.1 SDK, available from here:  <A HREF="http://download.microsoft.com
 <P>After installing, the default mh.ini voice_text=MS parm will default to the new V5 engine.  Use MSV4 to switch
 back to the old V4 engine.   
 The SDK comes with the voices  MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices.
-For $100, you can get 2 nice 5.1 compatable voices with AT&amp;T Natural Voices TTS SDK here: <A HREF="http://www.naturalvoices.com.">http://www.naturalvoices.com.</A></P>
+For $150, you can get 2 nice 5.1 compatable voices with AT&amp;T Natural Voices TTS engine here: <A HREF="http://www.naturalvoices.com.">http://www.naturalvoices.com.</A>
+(additional voices cost $70).</P>
 <P>
 <HR>
 <H1><A NAME="unix detailed install instructions">UNIX Detailed Install Instructions</A></H1>
@@ -270,8 +271,8 @@ The default (press enter) usually is good for most questions.</P>
 <H2><A NAME="unix step 3, download and install a speech engines">UNIX Step 3, Download and Install a Speech Engines</A></H2>
 <P>You can skip this step if you do not want to enable VR or TTS.</P>
 <P>The simplest and fastest TTS engine is flite, availale from <A HREF="http://www.speech.cs.cmu.edu/flite">http://www.speech.cs.cmu.edu/flite</A> .
-After compiling, simply copy the flite binary to mh/bin and set voice_text = flite.
-If on linux, you can pick up a copy (3 meg) here: <A HREF="http://misterhouse.net:81/public/flite.gz">http://misterhouse.net:81/public/flite.gz</A></P>
+After compiling, point to where the flite binary is with the voice_text_file parm and set voice_text = flite.
+If on linux, you can pick up a copy (3 meg, 7 meg unziped) here: <A HREF="http://misterhouse.net:81/public/flite.gz">http://misterhouse.net:81/public/flite.gz</A></P>
 <P>The Festival Speech engine is available from
 <A HREF="http://www.cstr.ed.ac.uk/projects/festival/download.html">http://www.cstr.ed.ac.uk/projects/festival/download.html</A> .
 There are various voices and languages available.  Compiling Fesitval can be a little tricky, 
@@ -290,6 +291,9 @@ a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to
 <A HREF="http://tcts.fpms.ac.be/synthesis/mbrola.html">http://tcts.fpms.ac.be/synthesis/mbrola.html</A> 
 that has a very nice US english male and female voice.</P>
 <P>Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.</P>
+<P>For $150, you can get 2 nice voices with AT&amp;T Natural Voices TTS linux engine here: <A HREF="http://www.naturalvoices.com">http://www.naturalvoices.com</A>
+(additional voices cost $70).
+Use the voice_text_naturalvoice parm to point to where you have it installed and set voice_text=naturalvoice</P>
 <P>The IBM ViaVoice TTS and Voice Recognition engines is no longer available (as of 05/2002) 
 from the IBM site ( <A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A> ), but can still be found here: 
 <A HREF="http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/">http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/</A>

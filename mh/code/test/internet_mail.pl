@@ -106,7 +106,8 @@ $v_unread_email-> set_info('Summarize unread email headers and optionally call O
 if ($state = $v_unread_email->{said}) {
     &speak_unread_mail unless $Save{email_check} eq 'no';
     if ($state eq 'Read') {
-        if (my $window = &sendkeys_find_window('Outlook', 'D:\msOffice\Office\OUTLOOK.EXE')) {
+        if (my $window = &sendkeys_find_window('Outlook', 'C:\Program Files\Microsoft Office\Office\OUTLOOK.EXE')) {
+#       if (my $window = &sendkeys_find_window('Outlook', 'D:\msOffice\Office\OUTLOOK.EXE')) {
 #           my $keys = '\\alt+\\tss\\alt-\\';  # For Outlook Express
             my $keys = '\\alt\\te\\ret\\';     # For Outlook
             &SendKeys($window, $keys, 1, 500);

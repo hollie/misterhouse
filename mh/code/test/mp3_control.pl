@@ -42,7 +42,8 @@ $v_mp3_control5 = new  Voice_Cmd("Set the phone mp3 player to [$mp3_states]");
                                 # Control kid music
 $v_mp3_control_boys  = new Voice_Cmd '{Turn, } {Boy,boys} music [on,off]';
 $v_mp3_control_boys -> set_info('One stop shopping for loud music control :)');
-$mp3_control_boys_off = new Serial_Item 'XPD', 'off';
+$mp3_control_boys_off = new Serial_Item 'XPD', 'off';   # Bedroom
+$mp3_control_boys_off -> add           ('XND', 'off');  # Nick's room
 
 if ($state = said $v_mp3_control_boys or
     $state = state_now $mp3_control_boys_off or 

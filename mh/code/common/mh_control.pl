@@ -283,14 +283,14 @@ $Power_Supply = new Generic_Item;
 if ($ControlX10::CM11::POWER_RESET) {
     $ControlX10::CM11::POWER_RESET = 0;
     set $Power_Supply 'Restored';
-    print_log 'Power reset detected';
-    display time => 0, text => "Detected a CM11 power reset";
+    print_log 'CM11 power reset detected';
 }
 
                                 # Set back to normal 1 pass after restored
 if (state_now $Power_Supply eq 'Restored') {
-    print_log 'Power has been restored';
+    speak 'Power has been restored';
     set $Power_Supply 'Normal';
+    display time => 0, text => "Detected a power reset";
 }
 
 

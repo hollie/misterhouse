@@ -359,6 +359,13 @@ access to the latest and greatest ``mh4'' and ``ia*'' interfaces.  Your pages
 will not be over-written by new releases.  If you need another directory
 for, say, your audrey interface, just add another html_alias_whatever
 parameter.</P>
+<P>You can now also override just specific pages from an existing web interface.
+For example, create your own web/ia5 and web/ia5/security
+directories, then add this mh.ini parm to point to it:</P>
+<PRE>
+ html_alias2_ia5    = /misterhouse/web/ia5</PRE>
+<P>Then copy the original ia5 security file/files and modify (e.g. main.shtml
+and drop or update the refresh record).</P>
 <P>
 <H2><A NAME="1.21: where is perl program code located">1.21: Where is perl program code located?</A></H2>
 <P>From Harald Koch on 2/2002.</P>
@@ -593,7 +600,8 @@ For example, to 'debounce' a doorbell button, (i.e. don't trigger it twice withi
     M    - dim 
     dd%  - Sets module to this brightness level
     +-dd - Bright/dims by this amount</PRE>
-<P>For more examples, take a look at mh/lib/X10_Items.pm</P>
+<P>This format was inherited from the weeder interface protocol. 
+For more examples, take a look at mh/lib/X10_Items.pm</P>
 <P>
 <HR>
 <H1><A NAME="3: linux specific questions">3: Linux specific questions</A></H1>

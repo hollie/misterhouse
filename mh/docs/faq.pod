@@ -348,6 +348,16 @@ will not be over-written by new releases.  If you need another directory
 for, say, your audrey interface, just add another html_alias_whatever
 parameter.
 
+You can now also override just specific pages from an existing web interface.
+For example, create your own web/ia5 and web/ia5/security
+directories, then add this mh.ini parm to point to it:
+
+ html_alias2_ia5    = /misterhouse/web/ia5
+
+Then copy the original ia5 security file/files and modify (e.g. main.shtml
+and drop or update the refresh record).
+
+
 
 =head2 1.21: Where is perl program code located?
 
@@ -648,7 +658,7 @@ MH sees X10 data in this format:
     dd%  - Sets module to this brightness level
     +-dd - Bright/dims by this amount
 
-
+This format was inherited from the weeder interface protocol. 
 For more examples, take a look at mh/lib/X10_Items.pm
 
 
@@ -1232,9 +1242,10 @@ Here is a rough timeline of MisterHouse development:
  - 03/02 GD on-the-fly web buttons, support for comics, xmms, redrat.
  - 04/02 Added web calendar, contact, todo list, and tk photo slideshow
  - 05/02 Improved TTS support, TWiki web site, and support for DSS units, BX24 interface, and MSN,  
- - 05/30 Rewrote web menu interface, added AudioTron support and improved im support.
- - 06/24 Registered misterhouse.com domain name.
- - 07/03 XML mht support, Concept alarm, web keyboard shortcuts.
+ - 05/02 Rewrote web menu interface, added AudioTron support and improved im support.
+ - 06/02 Registered misterhouse.com domain name.
+ - 08/02 Caddx alarm, iButton humidity sensor, undo, light/dark hawkey sensor
+ - 09/02 Proxy mh, improved %cpu used, Group member and idle_time methods, Linux NaturalVoice, Clipsal CBUS
 
 
 Audrey support, more MS TTS controls, call waiting callerid
@@ -1581,6 +1592,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.33  2002/09/22 01:33:22  winter
+# - 2.71 release
+#
 # Revision 1.32  2002/08/22 04:33:20  winter
 # - 2.70 release
 #

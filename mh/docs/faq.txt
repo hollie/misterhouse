@@ -306,6 +306,15 @@
     directory for, say, your audrey interface, just add another
     html_alias_whatever parameter.
 
+    You can now also override just specific pages from an existing web
+    interface. For example, create your own web/ia5 and web/ia5/security
+    directories, then add this mh.ini parm to point to it:
+
+     html_alias2_ia5    = /misterhouse/web/ia5
+
+    Then copy the original ia5 security file/files and modify (e.g.
+    main.shtml and drop or update the refresh record).
+
   1.21: Where is perl program code located?
 
     From Harald Koch on 2/2002.
@@ -613,7 +622,8 @@ only at Startup?
         dd%  - Sets module to this brightness level
         +-dd - Bright/dims by this amount
 
-    For more examples, take a look at mh/lib/X10_Items.pm
+    This format was inherited from the weeder interface protocol. For more
+    examples, take a look at mh/lib/X10_Items.pm
 
 3: Linux specific questions
   3.1: When I run Viavoice and festival at the same time I get "Can't open output file '/dev/dsp'"

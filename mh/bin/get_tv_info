@@ -61,7 +61,7 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
     -started   yes => Will include shows which have already started
     -early_am  xyz => Adds info for shows after midnight.
                       Formats are same as for to times.
-    -increment xyz => Time increment is xyz minutes (5 or 30). Default is 5.
+    -increment xyz => Time increment is xyz minutes (5 or 30). Default is 30.
     -lengths   xyz => Will return info only for shows that are xyz hours long.
                       Default is any length.
 
@@ -163,8 +163,8 @@ sub find_match {
                             $match_key = 1;
                             print "$key ";
 # The next 2 lines highlight the selected key-word(s), using the selected symbol in mh.ini
-                            $pgm_desc =~ s/$key/$symbol$symbol$key$symbol/gi;
-                            $pgm_name =~ s/$key/$symbol$symbol$key$symbol/gi;
+                            $pgm_desc =~ s/($key)/$symbol$symbol\1$symbol/gi;
+                            $pgm_name =~ s/($key)/$symbol$symbol\1$symbol/gi;
                     
                             last;
                         }
@@ -314,7 +314,7 @@ sub setup {
 
     $parms{name}     = 'TV'    	     unless $parms{name};
     $parms{times}    = '6pm-10pm'    unless $parms{times};
-    $parms{increment}= 5             unless $parms{increment};
+    $parms{increment}= 30            unless $parms{increment};
     $parms{all}      = "all"         if lc($parms{times}) eq 'all';
     $parms{times}    = '0+23.99'     if lc($parms{times}) eq 'all';
     $parms{dates}    = $date_today   unless $parms{dates};
@@ -485,7 +485,7 @@ sub hour24_to_ampm {
         $hour -= 24 if ($hour >  24 );
         return ($hour) . ":$min AM";
     }
-    if ($hour >= 12) {
+    elsif ($hour >= 12) {
         $hour -= 12 if ($hour > 12 );
         return ($hour) . ":$min PM";
     }
@@ -495,17 +495,6 @@ sub hour24_to_ampm {
     }
 }
 
-
-sub hour24_to_ampm {
-    my ($hour, $min) = split(':', @_[0]);
-    if ($hour >= 12) {
-        $hour -= 12 if ($hour > 12 );
-        return ($hour) . ":$min PM";
-    }
-    else {
-        return "$hour:$min AM";
-    }
-}
 
 sub ampm_to_hour24 {
     my ($hour, $min, $ampm) = @_[0] =~ /(\d+):?(\d*) *(\S*)/;
@@ -518,6 +507,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.28  2002/09/22 01:33:22  winter
+# - 2.71 release
+#
 # Revision 1.27  2002/07/01 22:25:25  winter
 # - 2.69 release
 #

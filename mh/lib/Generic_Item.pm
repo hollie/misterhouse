@@ -35,11 +35,19 @@ sub set {
     &set_states_for_next_pass($self, $state, $set_by);
 }
 
+sub get_object_name {
+    return $_[0]->{object_name};
+}
 sub get_set_by {
     return $_[0]->{set_by};
 }
 sub get_changed_by {            # Grandfathered old syntax
     return $_[0]->{set_by};
+}
+
+sub get_idle_time {
+    return undef unless  $_[0]->{set_time};
+    return $main::Time - $_[0]->{set_time};
 }
 
                                 # This is called by mh on exit to save persistant data
@@ -49,6 +57,7 @@ sub restore_string {
     my $state       = $self->{state};
     my $restore_string = $self->{object_name} . "->{state} = q~$state~;\n" if $state;
     $restore_string = $self->{object_name} . "->{count} = q~$self->{count}~;\n" if $self->{count};
+    $restore_string = $self->{object_name} . "->{set_time} = q~$self->{set_time}~;\n" if $self->{set_time};
 
     if ($self->{state_log} and my $state_log = join($;, @{$self->{state_log}})) {
         $state_log =~ s/\n/ /g; # Avoid new-lines on restored vars
@@ -230,13 +239,24 @@ sub set_states_for_next_pass {
                                 # Avoid -w unintialized variable errors
     $state  = '' if !$state or $state eq '1';
     $set_by = '' unless $set_by;
+
+                                # Reset this (used to detect which tied item triggered the set)
+                                #  - Default to self if not specified ... naw, not sure why we would need it set to self??
+#   $ref->{set_by} = ($set_by) ? $set_by : $ref;
+    $ref->{set_by} = $set_by;
+
+                                # If set by another object, find/use object name
+    my $set_by_type = ref($set_by);
+#   print "dbx1 sb=$set_by r=$set_by_type\n";
+    $set_by = $set_by->{object_name} if $set_by_type and $set_by_type ne 'SCALAR';
+
+                                # Uset in get_idle_time
+    $ref->{set_time} = $main::Time;
+
                                 # Set the state_log ... log non-blank states
     unshift(@{$$ref{state_log}}, "$main::Time_Date $state set_by=$set_by") if $state or (ref $ref) eq 'Voice_Cmd';
     pop @{$$ref{state_log}} if $$ref{state_log} and @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
 
-                                # Reset this (used to detect which tied item triggered the set)
-                                #  - Default to self if not specified
-    $ref->{set_by} = ($set_by) ? $set_by : $ref;
 }
 
                                 # You can use this for an undo function
@@ -394,6 +414,9 @@ sub get_web_style {
 
 #
 # $Log$
+# Revision 1.21  2002/09/22 01:33:23  winter
+# - 2.71 release
+#
 # Revision 1.20  2002/08/22 04:33:20  winter
 # - 2.70 release
 #
