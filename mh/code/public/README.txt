@@ -17,6 +17,11 @@ callerid.pl
 internet_ip_update.p
  - Updates IP servers/web pages with IP addresses
 
+Garage_Door.pl
+Garage_Door.txt
+ - From Danal Estes.  Uses the X10_Items X10_Garage_Door object
+   to receive Extended X10 data from Stanley modules.
+
 rcs.pl
  - Craig's code to run RCS X10 thermostats.
 
