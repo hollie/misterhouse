@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-05-14 14:00:24 winter>
+#  Last change Time-stamp: <2000-05-21 16:31:24 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -187,10 +187,10 @@ BEGIN {
         print "\nCommand: $Pgm_Name @ARGV\n";
         print "Pgm  path   : $Pgm_Path\n";
         print "Pgm  version: $Version      Last updated: $Version_date\n";
-        my $perl_version = $];
+        $Info{Perl_version} = $];
                                 # BuildNumber doesn't work with perl2exe compile :(
-        $perl_version .= " Build " . &Win32::BuildNumber() if $OS_win and !$ENV{sourceExe};
-        print "Perl version: $perl_version\n";
+        $Info{Perl_version} .= " Build " . &Win32::BuildNumber() if $OS_win and !$ENV{sourceExe};
+        print "Perl version: $Info{Perl_version}\n";
         print "OS   version: $^O $Info{OS_name} $Info{OS_version} $Info{OS_filesystem}\n";
         print "Other       : user=$Info{User} pid=$$ box=$Info{Machine} cpu=$ENV{PROCESSOR_ARCHITECTURE}-$ENV{PROCESSOR_LEVEL}\n";
         print "\n";
@@ -200,7 +200,8 @@ BEGIN {
     sub check_usage {
 
                                 # Get legal options from .ini file
-        my $parmfile = $Pgm_PathU . "/$Pgm_Name.ini";
+#       my $parmfile = $Pgm_PathU . "/$Pgm_Name.ini";
+        my $parmfile = $Pgm_PathU . "/mh.ini";
         open (PARMS, $parmfile) or die "Error, could not open parmfile $parmfile: $!\n";
         my @parms;
         while (<PARMS>) {
@@ -589,9 +590,102 @@ sub setup {
     $main::config_parms{max_log_entries} = 50 unless defined $main::config_parms{max_log_entries};
     $main::config_parms{max_state_log_entries} = 10 unless defined $main::config_parms{max_state_log_entries};
 
+    &add_hook_code;
+
     print "Done with setup\n\n";
 
 }
+
+                                # This code allows us to add dynamic user code hooks at various places.
+my %hook_pointers;
+sub add_hook_code {
+
+    my %hook_locations = ( MainLoop_pre => 1, MainLoop_post => 1  );
+
+    for my $location (keys %hook_locations){
+        my($accessors) = "
+sub ${location}_add_hook  { return add_hook_ ( '$location', \@_ ) }
+sub ${location}_drop_hook { return drop_hook_( '$location', \@_ ) }
+sub ${location}_get_hooks { return get_hooks_( '$location' ) }
+sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
+";
+      eval $accessors;
+      die "Eval error $@\n" if $@;
+  }
+
+   sub add_hook_ {
+       my($location, $hook, $first) = @_;
+    
+       unless( defined( $hook_locations{$location} ) ){
+           warn "Invalid hook location $location\n";
+           return 0;
+       }
+       
+       unless( ref $hook eq 'CODE' ){
+           warn "Hook must be a code reference\n";
+           return 0;
+       }
+       
+       $hook_pointers{$location} = [] unless defined ($hook_pointers{$location});
+       
+       if( $first ){
+           unshift( @{$hook_pointers{$location}}, $hook );
+       } else {
+           push( @{$hook_pointers{$location}}, $hook );
+       }
+       
+       return 1;
+   }
+
+   sub drop_hook_ {
+       my($location, $hook, $first ) = @_;
+      
+       unless( defined( $hook_locations{$location} ) ){
+           warn "Invalid hook location $location\n";
+           return 0;
+       }
+       
+       if( defined ($hook_pointers{$location}) ){
+           my($h)=$hook_pointers{$location};
+           my($i)=-1;
+           
+           if( $first ){ # look starting at the front
+               for( $i=0; $i <= $#{$h}; $i++ ) {
+                   last if ($hook == $h->[$i] );
+               }
+           } 
+           else { # look starting at the back
+               for ( $i=$#{$h}; $i >= 0; $i-- ) {
+                   last if ($hook == $h->[$i] );
+               }
+           }
+
+                                # delete if the index returned is in range
+           if ($i >=0 and $i <= $#{$h} ){
+               splice( @{$h}, $i, 1 );
+               return 1;
+           }
+       }
+       
+       warn "specified hook not found: $location\n";
+       return 0;
+   }
+
+   sub get_hooks_ {
+       my($location) = shift; 
+       return defined $hook_pointers{$location} ? @{$hook_pointers{$location}} : ();
+   }
+
+                                # call all hooks with user specified args, if any
+   sub run_hooks_ {
+       my($type, $location) = @_;
+       for my $hook (&get_hooks_($type,$location)){
+           &$hook(@_)
+       }
+   }
+
+}
+
 
                 # The remaining subroutines are in alphabetical order
 
@@ -626,10 +720,14 @@ sub check_for_action {
     &check_for_timer_actions;
     &check_for_external_command_file;
 
+    &MainLoop_pre_hooks();      # Created by &add_hooks
+
                                 # Use eval to catch minor errors without abending
                                 #  - about 10% slower (170 -> 150)
     eval_user_code("&loop_code()", 2);
 #    &loop_code;
+
+    &MainLoop_post_hooks();     # Created by &add_hooks
 
                                 # Reset the states on the state_now Serial_Items and voice states
 #    while (@reset_states) {
@@ -995,7 +1093,6 @@ sub check_for_socket_data {
             $Socket_Ports{$port_name}{data_record} = $record;
             $Socket_Ports{$port_name}{data}        = $remainder;
             
-            print "dbx r=$record r=$remainder\n";
             if ($port_name eq 'http') {
                 if ($record =~ /^ *GET /) {
                     ($leave_socket_open_passes, $leave_socket_open_action) = &process_http_request($sock, $record);
@@ -1023,7 +1120,6 @@ sub check_for_socket_data {
                 last; 
             }
         }
-        print "dbx done\n";
     }
 
 }    
@@ -1591,8 +1687,8 @@ sub play {
 
     return if ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} ne 'unmuted';
 
-
-    my $play_parm = $parms{'mode'};
+    my $play_parm = $parms{mode};
+    $play_parm = 'wait' if !$play_parm and $config_parms{play_mode} eq 'wait';
 
     $parms{time} = 5 unless $parms{time};
 
@@ -2017,6 +2113,7 @@ sub read_user_code {
         my ($member_name) = $file =~ /([^\\\/]+).pl$/i;
         $Run_Members{$member_name}++;
         push(@Sub_Code, "sub ${member_name}_loopcode {\n");
+#       push(@Sub_Code, " print 'db running ${member_name}';");
 
         $webname = $member_name;
         $noloop_flag = 0;
@@ -3139,9 +3236,10 @@ sub write_user_code {
     close USERCODE;
 
     # Re-initialize stuff
-    &Socket_Item::reset;    # So we can check for duplicate items
-    &Serial_Item::reset;    # So we can check for duplicate items
-    &Voice_Cmd::reset;      # So we can check for duplicate voice commands.  Also remove old voice cmds
+    &Socket_Item::reset;        # So we can check for duplicate items
+    &Serial_Item::reset;        # So we can check for duplicate items
+    &Voice_Cmd::reset;          # So we can check for duplicate voice commands.  Also remove old voice cmds
+    undef %hook_pointers;       # So we only free up old user code hooks
 
     eval_user_code($user_code, 1);     # Look for real bad errors, caught when defining subroutine
     &object_states_restore; # Must be after Item_code variables have been defined
@@ -3170,6 +3268,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.19  2000/05/21 22:08:56  winter
+# - add &add_hooks, so we can have user defined callbacks
+#
 # Revision 2.18  2000/05/14 19:01:02  winter
 # *** empty log message ***
 #
