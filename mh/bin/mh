@@ -2981,6 +2981,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.96  2000/01/27 13:28:04  winter
+# - add time_random
+#
 # Revision 1.95  2000/01/26 14:32:38  winter
 # - ignore empty $time_date spec, and add time_random
 #
