@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2004-04-21 18:23:54 winter>
+#  Last change Time-stamp: <2004-05-18 09:04:08 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -487,7 +487,11 @@ sub setup {
     use File::Basename;
 #   use File::Copy;             # So we copy files
     use Fcntl;                  # To enable O_RDWR|O_CREAT
-#   use Date::Parse;            # For str2time ... currently use HTTP::Date str2time in http_server ... seems smaller
+
+#   use HTTP::Date qw(time2str str2time);
+    use HTTP::Date qw(time2str);
+    use Date::Parse qw(str2time); # This str2time is more robust than the HTTP::Date one
+
 #   use Data::Dumper qw(Dumper DumperX);
     use Data::Dumper;
 #   use Date::Manip;            # This modules takes .5 second to load and uses 3 meg!
@@ -2342,7 +2346,7 @@ sub file_changed {
     }
 
 #    print "Warning, file_change file does not exist: $file\n" unless -e $file;
-#    print "db file_change file=$file time=$file_time time_old=$file_change_times{$file}\n";
+    print "db file_change file=$file time=$file_time time_old=$file_change_times{$file}\n" if $Debug{file};
                                 # 1st time we look at a file, return 'unknown' (-1)
     unless (defined $file_change_times{$file}) {
         $file_change_times{$file} = $file_time;
@@ -2350,7 +2354,7 @@ sub file_changed {
     }
     return 0 if $file_time == $file_change_times{$file}; # File has not changed since last call
     $file_change_times{$file} = $file_time;              # Reset time
-    print "File changed: time=$file_time file=$file\n" if $Debug{misc};
+    print "File changed: time=$file_time file=$file\n" if $Debug{file};
     return 1;
 }
 
@@ -5860,6 +5864,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.91  2004/06/06 21:29:28  winter
+# *** empty log message ***
+#
 # Revision 2.90  2004/05/02 22:05:08  winter
 # *** empty log message ***
 #
