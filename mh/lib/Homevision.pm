@@ -17,15 +17,14 @@
 
 
 
-
-
 use strict;
 
 package Homevision;
 
 my $temp;
 my $serial_data;                # Holds left over serial data
-
+my $saveCode;
+my $outCode;
 
 
 sub init {
@@ -216,13 +215,14 @@ sub read {
 
     my ($data);
     if ($data = $serial_port->input) {
+#       print "db Homevision data1=$data\n";
 #       print "db Homevision serial data1=$data\n" if lc($main::config_parms{debug}) =~ /homevision/;
 
         $serial_data .= $data;  #Append to remainder from last time
 #       print "db Homevision serial data2=$serial_data\n" if lc($main::config_parms{debug}) =~ /homevision/;
-
+        
         my ($record, $remainder);
-	$serial_data =~ tr/\n\001//sd;  #Strip terminators except \r
+ 	$serial_data =~ tr/\n\001//sd;  #Strip terminators except \r
 
 	#Special routine for ECS relaying only: command responses must be immediate
 	if ( (defined $main::config_parms{ECS_port}) && (($record) = $serial_data =~ /^([0-9]+ Cmd: )$/))
@@ -235,8 +235,11 @@ sub read {
 	    $serial_data = "";
 	}
 
+	my %table_hcodes = qw(6  A 7  B 4  C 5  D 8  E 9  F a  G b H
+				  e  I f  J c  K d  L 0  M 1  N 2  O 3 P);
+	my %table_dcodes = qw(On J    Off K    Bright L    Dim M);
 
-        while (($record, $remainder) = $serial_data =~ /(.+?)\r(.*)/) {
+	while (($record, $remainder) = $serial_data =~ /(.+?)\r(.*)/) {
             $serial_data = $remainder; # Might have part of the next record left over
 #            print "db Homevision serial data3=$record remainder=$remainder\n" if lc($main::config_parms{debug}) =~ /homevision/;
 	    
@@ -248,12 +251,6 @@ sub read {
 	    }
 
 #	    print "Homevision report: $record\n" if lc($main::config_parms{debug}) =~ /homevision/;
-
-	
-	    my %table_hcodes = qw(6  A 7  B 4  C 5  D 8  E 9  F a  G b H
-				  e  I f  J c  K d  L 0  M 1  N 2  O 3 P);
-	    my %table_dcodes = qw(On J    Off K    Bright L    Dim M);
-	    
 	    
 	    {
 		my($hvcode) = $record =~ /^([0-9A-F]*)/;
@@ -261,14 +258,15 @@ sub read {
 		
 		if (my($house, $code) = $string =~ /X-10 House\/Unit : ([A-P]) ([0-9]+)$/)
 		{
-		    $code = &makehex($code);
-		    return "X" . $house . chop($code);
+		    $code = substr(&makeX10hex($code),1,1);
+		    $code = chop($code);
+		    print "Homevision returns: X" . $house . $code . "\n";
+		    return "X" . $house . $code;
 		}
 		elsif ( my($house, $func) = $string =~ /X-10 .* : ([A-P]) (.*)$/ )
 		{
-#		    return "X" . $house . $table_dcodes{$func};
-		    #Argh... Misterhouse doesn't like the housecode here
-		    return "X" . $table_dcodes{$func};   
+		    print "Homevision returns: X" . $house . $table_dcodes{$func} . "\n";  
+		    return "X" . $house . $table_dcodes{$func};
 		}
 		elsif ( my($input, $state) = $string =~ /Input Port Changed.*: \#([0-9A-F]+) (Low|High)/ )
 		{
@@ -347,12 +345,40 @@ sub makehex
     return $hex;
 }
 
+sub makeX10hex 
+{
+    my($dec) = @_;
+
+    my $hex = "";
+
+    if ($dec > 255)			
+    {
+	#My decimal to hex code sucks....
+	#Plus, I don't know if I'm on a big-endian or little-endian machine anyway...
+	warn "Homevision::makehex error: $dec is too big to be a byte...";
+	return undef;
+    }
+	
+    while ($dec>16)
+    {
+
+	my $byte = int($dec/17); #Byte
+	$dec = $dec % 17;     #Remainder
+	$hex .= substr('0123456789ABCDEFG', $byte, 1);
+    }
+
+    $hex .= substr('0123456789ABCDEFG', $dec, 1);
+    
+    $hex = "0$hex" if length($hex) == 1;
+
+    return $hex;
+}
 return 1;           # for require
 
 
 # $Log$
-# Revision 1.3  2000/04/27 23:28:18  winter
-# - Ingo Dean's latest changes
+# Revision 1.4  2000/05/03 04:10:27  aceautomator
+# # Updated to correctly report X10 codes per the mh convention
 #
 # Revision 1.2  2000/01/27 13:42:03  winter
 # - update version number
