@@ -1352,12 +1352,12 @@ If you have an sensor that detects and sends codes for daytime and nighttime (li
 pass in a model number of MS13.  For the id, you can use the 2 character, or 5 character X10 code.
 Here are some examples:          
 
-  $sensor_hall = new X10_Sensor('A4', 'MS13');
+  $sensor_hall = new X10_Sensor('A4', 'sensor_hall', 'MS13');
 
  .mht table examples:
 
-   X10MS,      XA2AJ,  sensor_bathroom,       Sensors
-   X10MS,       A4,    sensor_hall,           Sensors,  MS13
+   X10MS,      XA2AJ,  sensor_bathroom,       Sensors|Upstairs
+   X10MS,       A4,    sensor_hall,           Sensors|Downstairs,  MS13
 
 With MS13 specified, it will return states named motion,still,light, and dark.
 Without the MS13 model number, the light/dark codes will be ignored.
@@ -4346,6 +4346,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.56  2002/08/22 13:45:43  winter
+# - 2.70 release
+#
 # Revision 1.55  2002/08/22 04:33:20  winter
 # - 2.70 release
 #

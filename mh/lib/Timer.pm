@@ -186,6 +186,8 @@ sub run_action {
         }
         else {
             package main;   # Had to do this to get the 'speak' function recognized without having to &main::speak() it
+            my $timer_name = $self->{object_name};  # So we can use this in the timer action eval
+            $state = $self->{object_name};  # So we can use this in the timer action eval
             eval $action;
             package Timer;
             print "\nError in running timer action: action=$action\n error: $@\n" if $@;
@@ -357,6 +359,9 @@ sub query {
 
 #
 # $Log$
+# Revision 1.25  2002/08/22 13:45:50  winter
+# - 2.70 release
+#
 # Revision 1.24  2002/05/28 13:07:51  winter
 # - 2.68 release
 #

@@ -37,7 +37,8 @@ Currently it only changes the last changed X10_Item, but could be updated to all
 
 - Clint Dimick suggested we add a light/dark state option to X10_Sensor.  This is enabled if you pass in MS13
 (the model number of the popular X10 Hawkeye motion sensor)
-to the end of your mht X10MS table entry (see X10_Sensor in doc/mh.pod for an example)
+to the end of your mht X10MS table entry (see X10_Sensor in doc/mh.pod for an example).
+State names are now motion/still and light/dark (if MS13 is specified).
 
 
 B<Bug Fixes and Other Changes:>

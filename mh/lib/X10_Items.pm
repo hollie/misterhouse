@@ -800,8 +800,10 @@ sub init {
     $sensorinit = 1;
 }
 
+                                # Note: name is require, as $self->{object_name} is not
+                                # set yet on startup :(
 sub new {
-    my ($class, $id, $name) = @_;
+    my ($class, $id, $name, $type) = @_;
     my $self = &Serial_Item::new('Serial_Item');
     
     $$self{state} = '';
@@ -809,22 +811,22 @@ sub new {
 
     &X10_Sensor::init() unless $sensorinit;
 
-    &X10_Sensor::add($self, $id, $name);
+    &X10_Sensor::add($self, $id, $name, $type);
     
     return $self;
 }
 
 sub add {
-    my ($self, $id, $name) = @_;
+    my ($self, $id, $name, $type) = @_;
 
                                 # Allow for A1 and XA1AJ 
-    if (length $id == 2) {
+    if (length $id <= 3) {
         my $hc = substr $id, 0, 1;
         $id = 'X' . $id . $hc . 'J';
     }
 
-    &::print_log("Adding X10_Sensor timer for $id, $self, $name")   
-    if $main::config_parms{debug} eq 'X10_Sensor';;
+    &::print_log("Adding X10_Sensor timer for $id, name=$name type=$type")   
+      if $main::config_parms{debug} eq 'X10_Sensor';
 
     $self->{battery_timer}->{$id} = new Timer;
                                 #24 hour countdown
@@ -833,21 +835,15 @@ sub add {
 
     my ($hc, $id2) = $id =~ /X(\S)(\S+)(\S)\S/;
 
-                                # Use $name to allow for light/dark mode.  
-                                # $name is usually redundant with object name anyway.
-    if ($name =~ /ms13/i) {
-        &Serial_Item::add($self, "X$hc${id2}${hc}J", 'motion');
-        &Serial_Item::add($self, "X$hc${id2}${hc}K", 'still');
+    &Serial_Item::add($self, "X$hc${id2}${hc}J", 'motion');
+    &Serial_Item::add($self, "X$hc${id2}${hc}K", 'still');
+
+    if ($type and $type =~ /ms13/i) {
         $id2++;
         $id2 = 1 if $id2 eq 'H' or $id2 eq '17';
         &Serial_Item::add($self, "X$hc${id2}${hc}K", 'light');
         &Serial_Item::add($self, "X$hc${id2}${hc}J", 'dark');
     }
-    else {
-        &Serial_Item::add($self, "X$hc${id2}${hc}J", $name);
-        &Serial_Item::add($self, "X$hc${id2}${hc}K", $name . '_stopped');
-    }
-
 
     return;
 }
@@ -872,6 +868,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.30  2002/08/22 13:45:50  winter
+# - 2.70 release
+#
 # Revision 1.29  2002/08/22 04:33:20  winter
 # - 2.70 release
 #

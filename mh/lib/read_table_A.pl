@@ -67,9 +67,8 @@ sub read_table_A {
     }
     elsif($type eq "X10MS") {
         ($address, $name, $grouplist, @other) = @item_info;
-        @other =  $name unless @other; # If no name specified, default to object name
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "X10_Sensor('$address', $other)";
+        $object = "X10_Sensor('$address', '$name', $other)";
     }
     elsif($type eq "COMPOOL") {
         ($address, $name, $grouplist) = @item_info;
@@ -227,6 +226,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.14  2002/08/22 13:45:50  winter
+# - 2.70 release
+#
 # Revision 1.13  2002/08/22 04:33:20  winter
 # - 2.70 release
 #
