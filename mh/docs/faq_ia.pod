@@ -36,6 +36,7 @@ Here are some helpful links:
 
  Order: http://www.tigerdirect.com/applications/SearchTools/item-details.asp?sku=M975-9000%20P
  Hack:  http://www.audreyhacking.com/
+ Ether: http://www.ppetru.net/audrey/#ether
  Faq:   http://www.3rdmoon.com/crusso/audrey/
  List:  http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=3Com_Audrey&Idle
  OS:    http://www.qnxstart.com/
@@ -90,7 +91,7 @@ Assuming you have already done the above AudreyOnOff hack, try these urls:
 From Ron Wright from some other site on 10/2001
 
 I has hacking away and realized that the 
-/data/XML/channels/.countertop/TEMPLATE directory has 
+/data/XML/Channels/.countertop/TEMPLATE directory has 
 the default index.shtml that loads up when Audrey 
 boots. So I tried adding a refresh meta tag to this 
 file and rebooted. It worked just as I had hoped it would.
