@@ -347,6 +347,7 @@ sub menu_run_response {
     $response = &last_response if $response and $response eq 'last_response';
     $response = 'all done' unless $response;
     if ($format and $format eq 'w') {
+        $response =~ s/&/&amp;/g; # jm 20010614 - Replace the & with &amp; for wml menus, otherwise the UP browser gives you a compile error
         my $wml = qq|<head><meta forua="true" http-equiv="Cache-Control" content="max-age=0"/></head>\n|;
         $wml   .= qq|<template><do type="accept" label="Prev."><prev/></do></template>\n|;
         $wml   .= qq|<card><p>$response</p></card>|;
