@@ -92,7 +92,8 @@ sub receive_buffer {
     # Lets not wait for data (use no_block option), or we loop too long and mh slows way down
 
     # let the 0xc3 ack take hold ... emperically derived ... 1/2 misses at 20 ms
-    select undef, undef, undef, 40 / 1000;
+    #   - increase from 40 to 80, based on other CM11s.
+    select undef, undef, undef, 80 / 1000;
 
 
     my $data;
@@ -677,6 +678,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.11  2000/04/22 00:11:15  winter
+# - increase receive buffer delay from 40 to 80
+#
 # Revision 2.10  2000/02/12 06:11:37  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #
