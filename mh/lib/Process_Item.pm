@@ -7,7 +7,7 @@ my (@active_processes, @done_processes);
 sub new {
     my ($class, $cmd) = @_;
     my $self = {};
-    &set($self, $cmd);
+    &set($self, $cmd) if $cmd;  # Optional.  Can be specified later with set.
     bless $self, $class;
     return $self;
 }
@@ -142,6 +142,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.9  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.8  2000/01/27 13:42:24  winter
 # - update version number
 #

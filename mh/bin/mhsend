@@ -136,10 +136,11 @@ sub send {
     shutdown $socket, 1;        # This closes writes, but still allows reads
 
     print "Response: ";
-    <$socket>;                  # First record is blank (not sure why)
+#   <$socket>;                  # First record is blank (not sure why)
     while (<$socket>) {
         print $_;
     }
+    print "\n";
 }    
 
                                 # Not sure about this ...

@@ -11,13 +11,14 @@ my($Authorized, $Authorized_html, $set_password_flag, $Browser, $Referer);
 my($html_pointer_cnt, %html_pointers);
 
 
-my (%http_dirs, %html_icons);
+my (%http_dirs, %html_icons, $html_info_overlib);
 sub http_read_parms {
     
                                 # html_alias1=/aprs=>e:/misterhouse/web/aprs
     for my $parm (keys %main::config_parms) {
         next unless $parm =~ /^html_alias/;
-        next unless $main::config_parms{$parm} =~ /(\S+) +(\S+)/;
+        next unless $main::config_parms{$parm} =~ /(\S+)\s+(\S+)/;
+                                # This doesn't work ??
         print " - html alias: $1 => $2\n" if $main::config_parms{debug} eq 'http';
         if (-d $2) {
             $http_dirs{$1} = $2;
@@ -27,6 +28,8 @@ sub http_read_parms {
         }
     }
             
+    $html_info_overlib++ if $main::config_parms{html_info} =~ 'overlib';
+
     undef %html_icons;          # Refresh lib/http_server.pl icons
 }
 
@@ -80,7 +83,8 @@ sub process_http_request {
 
     my ($get_req, $get_arg) = $header =~ m|^GET (\/[^ \?]+)\??(\S+)? HTTP|;
 
-    $get_arg =~ tr/+/ /;        # translate + back to spaces
+    $get_arg =~ tr/+/ /;        # translate + back to spaces (e.g. code search tk widget)
+
                                 # translate from %## back to real characters
     $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
@@ -150,7 +154,7 @@ eof
     elsif (-e $file) {
         &html_file($socket, $file, $get_arg);
     }
-    elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg)) {
+    elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg, 1)) {
         print $socket &html_page("", $html, $style);
     }        
     elsif  ($get_req =~ /\/RUN$/ or
@@ -267,7 +271,7 @@ eof
 
     }
     else {
-        my $msg = "Unrecognized html request: get_req=$get_req   get_arg=$get_arg<p>  header=$header\n";
+        my $msg = "Unrecognized html request: get_req=$get_req   get_arg=$get_arg  header=$header\n";
         print $socket &html_page("Error", $msg);
         print $msg;
     }
@@ -276,7 +280,7 @@ eof
 }
 
 sub html_mh_generated {
-    my ($get_req, $get_arg) = @_;
+    my ($get_req, $get_arg, $auto_refresh) = @_;
         my $html;
                                 # .html suffix is grandfathered in
     if ($get_req =~ /\/widgets$/) {
@@ -289,7 +293,8 @@ sub html_mh_generated {
         return ($html, $main::config_parms{html_style_tk});
     }
     elsif ($get_req =~ /\/widgets_label$/) {
-        $html = qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}; url=/widgets_label">\n] if $main::config_parms{html_refresh_rate};
+        $html = qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}; url=/widgets_label">\n] 
+            if $auto_refresh and $main::config_parms{html_refresh_rate};
         return ($html . &widgets('label'), $main::config_parms{html_style_tk});
     }
     elsif ($get_req =~ /\/widgets_entry$/) {
@@ -300,6 +305,12 @@ sub html_mh_generated {
     }
     elsif ($get_req =~ /\/widgets_checkbox$/) {
         return (&widgets('checkbutton'), $main::config_parms{html_style_tk});
+    }
+    elsif ($get_req =~ /\/vars_save$/) {
+        return (&vars_save, $main::config_parms{html_style_tk});
+    }
+    elsif ($get_req =~ /\/vars_global$/) {
+        return (&vars_global, $main::config_parms{html_style_tk});
     }
     elsif ($get_req =~ /\/speech(.html)?$/) {
         return (&html_last_spoken, $main::config_parms{html_style_speak});
@@ -317,7 +328,7 @@ sub html_mh_generated {
         return (&html_items, $main::config_parms{html_style_category});
     }
     elsif ($get_req  =~ /\/?list$/) {
-        $html = &html_list($get_arg);
+        $html = &html_list($get_arg, $auto_refresh);
         return ($html, $main::config_parms{html_style_list});
     }
     elsif ($get_req =~ /\/results$/) {
@@ -411,16 +422,20 @@ sub html_last_response {
        ($last_response) = &display_log_last(1);
                                 # Add breaks on newlines
        $last_response =~ s/\n/\n<br>/g;
-       $last_response = "<br><b>$last_response</b>";
+#      $last_response = "<br>$last_response";
    }
    elsif ($Last_Response eq 'print_log') {
-       ($last_response) = &print_log_last(1);
+       ($last_response) = &html_print_log;
+#      ($last_response) = &print_log_last(1);
    }
    else {
        $last_response = "<br><b>No response resulted from the last command</b>";
    }
 
-   return $last_response;
+ 
+   return qq[<FONT FACE="courier"><b>$last_response</b></FONT>];
+#  return qq[<FONT SIZE="+2">$last_response</FONT>];
+#  return $last_response;
 }
 
 sub html_last_displayed {
@@ -504,7 +519,7 @@ sub html_file {
                     if (-e $file) {
                         &html_file($socket, $file);
                     }
-                    elsif (my ($html) = &html_mh_generated($get_req, $get_arg)) {
+                    elsif (my ($html) = &html_mh_generated($get_req, $get_arg, 0)) {
                         print $socket $html;
                     }
                     else {
@@ -592,10 +607,26 @@ eof
 
 sub html_category {
     my $h_index;
+
+    $h_index = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] . 
+        qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] if $html_info_overlib;
+
     for my $category (&list_code_webnames) {
                                 # Only list a category if it has commands
-        next unless &html_list($category) =~ /RUN/;
-        $h_index    .= "<li>" . &html_active_href("list?$category", $category) . "\n";
+                                #  - hmmm, this takes a while :(
+#       next unless &html_list($category) =~ /RUN/;
+        next if $category =~ /^none$/;
+
+        my $info = "$category:";
+        if ($html_info_overlib) {
+            my @files = &list_files_by_webname($category);
+            if (@files) {
+                $info .= '<li>' . join ('<li>', @files);
+            }
+            $info = qq[onMouseOver="overlib('$info', FIXX, 5, OFFSETY, 50 )" onMouseOut="nd();"];
+        }
+        $h_index .= "<li>" . qq[<a href=list?$category $info>$category</a>\n];
+#       $h_index    .= "<li>" . &html_active_href("list?$category", $category) . "\n";
     }
     return $h_index;
 }
@@ -610,7 +641,7 @@ sub html_groups {
 
 sub html_items {
     my $h_index;
-    for my $object_type ('X10_Item', 'X10_Appliance', 'Group', 'Serial_Item') {
+    for my $object_type ('X10_Item', 'X10_Appliance', 'Group', 'iButton', 'Serial_Item') {
         $h_index    .= "<li>" . &html_active_href("list?$object_type", $object_type) . "\n";
     }
     return $h_index;
@@ -694,7 +725,7 @@ sub html_find_icon_image {
 
 sub html_list {
 
-    my($webname_or_object_type) = @_;
+    my($webname_or_object_type, $auto_refresh) = @_;
     my ($object, @object_list, $num, $h_list);
     
     $h_list .= "<center><b>$webname_or_object_type</b> &nbsp &nbsp &nbsp &nbsp $Authorized_html</center>\n";
@@ -710,7 +741,7 @@ sub html_list {
             my $cmd3 = $cmd2;
             $cmd3 =~ tr/\_/\~/; # Swizzle _ to ~, so we can use _ for blanks
             $cmd3 =~ tr/ /\_/; # Blanks are not allowed in urls
-            $h_list .= "<li><i>$file</i>: <a href='RUN?$cmd3'>$cmd2</a>\n";
+            $h_list .= "<li><i>$file</i>: <a href='/RUN:last_response?$cmd3'>$cmd2</a>\n";
 #           $h_list .= "<li><a href='RUN?$cmd3'>$cmd2</a>\n";
         }
         $h_list  .= "\n";
@@ -718,7 +749,7 @@ sub html_list {
         return $h_list;
     }
 
-                                # Treat groups and item lists the same way
+                                # List Groups (treat them the same as Items)
     if ($webname_or_object_type =~ /^group=(\S+)/) {
         $h_list .= "<!-- html_list group = $webname_or_object_type -->\n";
         my $object = &get_object_by_name($1);
@@ -727,8 +758,10 @@ sub html_list {
         return $h_list;
     }
 
+                                # List Items
     if (@object_list = sort &list_objects_by_type($webname_or_object_type)) {
-        $h_list .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}; url=/list?$webname_or_object_type">\n] if $main::config_parms{html_refresh_rate};
+        $h_list .= qq[<META HTTP-EQUIV="REFRESH" CONTENT="$main::config_parms{html_refresh_rate}; url=/list?$webname_or_object_type">\n]
+            if $auto_refresh and $main::config_parms{html_refresh_rate};
         $h_list .= "<!-- html_list list_objects_by_type = $webname_or_object_type -->\n";
         my @objects = map{&get_object_by_name($_)} @object_list;
         my @table_items = map{&html_item_state($_, $webname_or_object_type)} @objects;
@@ -736,6 +769,7 @@ sub html_list {
         return $h_list;
     }
 
+                                # List Voice_Cmds, by Category
     if (@object_list = &list_objects_by_webname($webname_or_object_type)) {
         $h_list .= "<!-- html_list list_objects_by_webname -->\n";
         $h_list .= &widgets('all', $webname_or_object_type);
@@ -780,13 +814,13 @@ sub table_it {
 
 sub html_command_table {
     my (@object_list) = @_;
-    my ($h_ret, @htmls);
+    my ($html, @htmls);
     my $list_count = 0;
 
     my @objects = map{&get_object_by_name($_)} @object_list;
 
-                                # Sort by filename first, then object name
-    for my $object (sort {$a->{filename} cmp $b->{filename} or $a->{text} cmp $b->{text}} @objects) {
+                                # Sort by sort field, then filename, then object name
+    for my $object (sort {$a->{order} cmp $b->{order} or $a->{filename} cmp $b->{filename} or $a->{text} cmp $b->{text}} @objects) {
         my $object_name = $object->{object_name};
         my $state_now   = $object->{state};
         my $filename    = $object->{filename};
@@ -798,71 +832,158 @@ sub html_command_table {
                                 #  - pick the first {a,b,c} phrase enumeration 
         $text =~ s/\{(.+?),.+?\}/$1/g;
 
-        my ($prefix, $states, $suffix, $h_text, $text_cmd);
+        my ($prefix, $states, $suffix, $h_text, $text_cmd, $ol_info, $state_log, $ol_state_log);
         ($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/;
+        my @states = split ',', $states;
+#       my $states_with_select = @states > $config_parms{html_category_select};
+        my $states_with_select = length("@states") > $config_parms{html_select_length};
 
                                 # Do the filename entry
         push @htmls, qq[<td align='left' valign='center'>$filename</td>\n] if $main::config_parms{html_category_filename};
 
+                                # Build the info and statelog overlib strings
+                                #  - Netscape only supports onmouse over on hrefs :(
+                                #  - Building a dummy href for Netscap only kind of works, so lets skip it.
+#       $ol_info .= qq[<a href="javascript:void(0);" ];
+        if ($html_info_overlib) {
+            $ol_info = $object->{description};
+            $ol_info = "$prefix ... $suffix" if !$ol_info and ($prefix or $suffix);
+            $ol_info = $text   unless $ol_info;
+            $ol_info = "$filename: $ol_info";
+            $ol_info =~ s/\'/\\\'/g;
+            $ol_info =~ s/\"/\\\'/g;
+            my $height = 20;
+            if ($states_with_select and $html_info_overlib) {
+                $ol_info .= '<li>' . join ('<li>', @states);
+                $height += 20 * @states;
+            }
+            my $row = $list_count;
+            $row /= 2 if $main::config_parms{html_category_cols} == 2;
+            $height = $row * 25 if $row * 25 < $height;
+#           my $ol_pos = ($list_count > 5) ? 'ABOVE, HEIGHT, $height' : 'RIGHT';
+            my $ol_pos = "ABOVE, HEIGHT, $height";
+            $ol_info = qq[onMouseOver="overlib('$ol_info', $ol_pos)" onMouseOut="nd();"];
+
+                                # Summarize state log entries
+            unless ($main::config_parms{html_category_states}) {
+                my @states_log = state_log $object;
+                while (my $state = shift @states_log) {
+                    if (my ($date, $time, $state) = $state =~ /(\S+) (\S+) *(.*)/) {
+                        $ol_state_log .= "<li>$date $time <b>$state</b> ";
+                    }
+                }
+                $ol_state_log = "unknown" unless $ol_state_log;
+                $ol_state_log = qq[onMouseOver="overlib('$ol_state_log', RIGHT)" onMouseOut="nd();"];
+            }
+        }
+
+                                # Put in a dummy link, so we can get netscape state_log info
+        if ($config_parms{html_info} eq 'overlib_link') {
+#           $html  = qq[<a href="javascript:void(0);" $ol_info>info</a><br> ];
+            $html  = qq[<a href='/SET:&html_info($object_name)'$ol_info>info</a><br> ];
+            $html .= qq[<a href='/SET:&html_state_log($object_name)'$ol_state_log>log</a> ];
+            push @htmls, qq[<td align='left' valign='center'>$html</td>\n];
+        }
+
+
+                                # Do the icon entry
+        if ($main::config_parms{html_category_icons} and
+            my $h_icon = &html_find_icon_image($object, 'voice')) {
+#           my $alt = $object->{description} . " ($h_icon)";
+            my $alt = $h_icon;
+            $html = qq[<input type='image' src="$h_icon" alt="$alt" border="0">\n];
+#           $html = qq[<img src="$h_icon" alt="$h_icon" border="0">];
+        }
+        else {
+            $html = qq[<input type='submit' border='1' value='Run'>\n];
+        }
 
                                 # Start the form before the icon
                                 #  - outside of td so the table is shorter
                                 #  - allows the icon to be a submit
-        my $form = qq[<FORM action="/RUN:last_response" method="get" target='speech'>\n];
+        my $form = qq[<FORM action="/RUN:last_response" method="get">\n];
 
 
-                                # Do the icon entry
-        my $des = $object->{description};
-        if ($main::config_parms{html_category_icons} and
-            my $h_icon = &html_find_icon_image($object, 'voice')) {
-            $des = $h_icon unless $des;
-            $h_ret = qq[<input type='image' src="$h_icon" alt="$des" border="0">\n];
-#           $h_ret = qq[<img src="$h_icon" alt="$h_icon" border="0">];
-        }
-        else {
-            $h_ret = qq[<input type='submit' border='1' value='Run'>\n];
-        }
-        push @htmls, qq[$form<td align='left' valign='center'>$h_ret</td>\n];
+        push @htmls, qq[$form  <td align='left' valign='center' $ol_state_log>$html</td>\n];
 
-        $h_ret  = qq[<td align='left'>];
-        $h_ret .= qq[<b>$prefix</b>] if $prefix;
-        if ($states) {
-            $h_ret .= qq[<SELECT name="cmd" onChange="form.submit()">\n];
-            $h_ret .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
-            for my $state (split(',', $states)) {
+
+                                # Now do the main text entry
+        $html  = qq[<td align='left' $ol_info> ];
+
+        $html .= qq[<b>$prefix</b>] if $prefix;
+
+                                # Use a SELECT dropdown with 4 or more states
+        if ($states_with_select) {
+            $html .= qq[<SELECT name="cmd" onChange="form.submit()">\n];
+            $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
+            for my $state (@states) {
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
                 $text_cmd =~ tr/ /\_/;  
-                $h_ret .= qq[<option value="$text_cmd">$state\n];
+                $html .= qq[<option value="$text_cmd">$state\n];
             }
-            $h_ret .= qq[</SELECT>\n];
+            $html .= qq[</SELECT>\n];
         }
+                                # Use hrefs with 2 or 3 states
+        elsif ($states) {
+            my $hrefs;
+            for my $state (@states) {
+                my $text_cmd = "$prefix$state$suffix";
+                $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
+                $text_cmd =~ tr/ /\_/;  
+                                # Use the first entry as the default one, used when clicking on the icon
+                if ($hrefs) {
+                    $hrefs .= qq[, ] if $hrefs;
+                }
+                else {
+                    $html .= qq[<input type="hidden" name="cmd" value='$text_cmd'>\n];
+                }
+
+                                # We could add ol_info here, so netscape kind of works, but this 
+                                # would be redundant and ineffecient.
+                $hrefs .= qq[<a href='/RUN:last_response?$text_cmd'>$state</a> ];
+#               $hrefs .= qq[<a href='/RUN:last_response?$text_cmd' $ol_info>$state</a> ];
+            }
+            $html .= $hrefs;
+        }
+                                # Just display the text, when no states
         else {
             my $text_cmd = $text;
             $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
             $text_cmd =~ tr/ /\_/; 
-            $h_ret .= qq[<b>$text_cmd</b>];
-            $h_ret .= qq[<input type="hidden" name="cmd" value='$text_cmd'>\n];
+            $html .= qq[<b>$text</b>];
+            $html .= qq[<input type="hidden" name="cmd" value='$text_cmd'>\n];
         }
 
-        $h_ret .= qq[<b>$suffix</b>] if $suffix;
+        $html .= qq[<b>$suffix</b>] if $suffix;
+        push @htmls, qq[$html</td></FORM>\n]; 
 
-                                # Do the text entry
-        push @htmls, qq[$h_ret</td></FORM>\n];
-
-                                # Do the state log entry
-        if (my ($date, $time, $state) = (state_log $object)[0] =~ /(\S+) (\S+) (.+)/) {
-            $state = '' if $state eq $text; # This command has no states
-            $h_ret = "<NOBR><a href='/SET:&html_state_log($object_name)' target='speech'>$date $time</a></NOBR> <b>$state</b>";
-        }
-        else {
-            $h_ret = "unknown";
+                                # Do the states_log entry
+        if ($main::config_parms{html_category_states}) {
+            if (my ($date, $time, $state) = (state_log $object)[0] =~ /(\S+) (\S+) *(.*)/) {
+                $state_log = "<NOBR><a href='/SET:&html_state_log($object_name)'>$date $time</a></NOBR> <b>$state</b>";
+            }
+            else {
+                $state_log = "unknown";
+            }
+            push @htmls, qq[<td align='left' valign='center'>$state_log</td>\n\n];
         }
         
-        push @htmls, qq[<td align='left' valign='center'>$h_ret</td>\n\n];
     }
-    my $i = ($main::config_parms{html_category_filename}) ? 4 : 3; 
-    return &table_it($i, $main::config_parms{html_category_border}, 0,  @htmls);
+
+                                # Create final html
+    $html = "<BASE TARGET='speech'>\n";
+    $html = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] . 
+            qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] . 
+            $html if $html_info_overlib;
+
+    my $cols = 2;
+    $cols += 1 if $main::config_parms{html_category_filename};
+    $cols += 1 if $main::config_parms{html_category_states};
+    $cols += 1 if $main::config_parms{html_info} eq 'overlib_link';
+    $cols *= 2 if $main::config_parms{html_category_cols} == 2;
+
+    return  $html . &table_it($cols, $main::config_parms{html_category_border}, 0,  @htmls);
 }
 
                                 # List current object state
@@ -872,16 +993,16 @@ sub html_item_state {
     my $filename     = $object->{filename};
     my $state_now    = $object->{state};
     my $object_name2 = &pretty_object_name($object_name);
-    my $h_ret;
+    my $html;
 
                                 # find icon to show state, if not found show state_now in text.
-    $h_ret .= qq[<td align="right"><a href='/SET:&html_state_log($object_name)' target='speech'>];
+    $html .= qq[<td align="right"><a href='/SET:&html_state_log($object_name)' target='speech'>];
     if (my $h_icon = &html_find_icon_image($object, $object_type)) {
-        $h_ret .= qq[<img src="$h_icon" alt="$h_icon" border="0">];
+        $html .= qq[<img src="$h_icon" alt="$h_icon" border="0"></a>];
     } else {
-        $h_ret .= $state_now;
+        $html .= $state_now . '</a>&nbsp';
     }
-    $h_ret .= qq[</a> </td>\n];
+    $html .= qq[</td>\n];
 
     my $state_toggle;
     if ($state_now eq ON) {
@@ -894,27 +1015,37 @@ sub html_item_state {
     else {
         $state_toggle = ON;
     }
-#    $h_ret .= qq[<td align="left"><b><a onClick='history.go(0)' href='/SET:hi_there?$object_name?$state_toggle'>$object_name2</a></b></td>\n];
-    $h_ret .= qq[<td align="left"><b>];
+#    $html .= qq[<td align="left"><b><a onClick='history.go(0)' href='/SET:hi_there?$object_name?$state_toggle'>$object_name2</a></b></td>\n];
+    $html .= qq[<td align="left"><b>];
     if ($object_type eq 'X10_Item' or $object_type =~ /^group/i) {
-#       $h_ret .= qq[<a href='/SET:&html_list($object_type)?$object_name?+15'>+</a> ];
-        $h_ret .= qq[<a href='/SET:&html_list($object_type)?$object_name?+15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
-        $h_ret .= qq[<a href='/SET:&html_list($object_type)?$object_name?-15'><img src='/graphics/a1-.gif' alt='-' border='0'></a> ];
+#       $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?+15'>+</a> ];
+                                # Note:  Use hex 2B = +, as + means spaces in most urls
+        $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?%2B15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
+        $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?-15'><img src='/graphics/a1-.gif' alt='-' border='0'></a> ];
     }
-    $h_ret .= qq[<a href='/SET:&html_list($object_type)?$object_name?$state_toggle'>$object_name2</a>];
-    $h_ret .= qq[</b></td>\n];
-    return $h_ret;
+    $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?$state_toggle'>$object_name2</a>];
+    $html .= qq[</b></td>\n];
+    return $html;
 }
 
 sub html_state_log {
     my ($object_name) = @_;
     my $object = &get_object_by_name($object_name);
     my $object_name2 = &pretty_object_name($object_name);
-    my $h_ret = "<b>$object_name2 states</b><br>\n";
+    my $html = "<b>$object_name2 states</b><br>\n";
     for my $state (state_log $object) {
-        $h_ret .= "<li>$state</li>\n";
+        $html .= "<li>$state</li>\n";
     }
-    return $h_ret . "\n";
+    return $html . "\n";
+}
+
+sub html_info {
+    my ($object_name) = @_;
+    my $object = &get_object_by_name($object_name);
+    my $object_name2 = &pretty_object_name($object_name);
+    my $html = "<b>$object_name2 info</b><br>\n";
+    $html .= $object->{description};
+    return $html;
 }
 
 sub html_active_href {
@@ -939,11 +1070,61 @@ sub pretty_object_name {
     return $name;
 }
 
+
+sub vars_save {
+    my @table_items;
+    unless ($Authorized or $main::config_parms{password_protect} !~ /vars/i) {
+        return "<h4>Not Authorized to view Variables</h4>";
+    }
+    for my $key (sort keys %Save) {
+        push @table_items, "<td align='left'><b>$key:</b> $Save{$key}</td>";
+    }
+    return &table_it(2, 1, 1, @table_items);
+}
+
+sub vars_global {
+    my @table_items;
+    unless ($Authorized or $main::config_parms{password_protect} !~ /vars/i) {
+        return "<h4>Not Authorized to view Variables</h4>";
+    }
+
+    for my $key (sort keys %main::) {
+                                # Assume all the global vars we care about are $Ab... 
+        next if $key !~ /^[A-Z][a-z]/ or $key =~ /\:/;
+        next if $key eq 'Save' or $key eq 'Tk_objects'; # Covered elsewhere
+        next if $key eq 'Socket_Ports';
+
+        no strict 'refs';
+        if (defined ${$key}) {
+           my $value = ${$key};
+#          next unless defined $value;
+           next if $value =~ /HASH/; # Skip object pointers
+           push @table_items, "<td align='left'><b>\$$key:</b> $value</td>";
+        } 
+        elsif (defined %{$key}) {
+            for my $key2 (sort eval "keys \%$key") {
+                my $value = eval "\$$key\{$key2\}\n";
+#               next unless defined $value;
+                next if $value =~ /HASH/; # Skip object pointers
+                push @table_items, "<td align='left'><b>\$$key\{$key2\}:</b> $value</td>";
+            }
+        }
+    }
+    return &table_it(2, 1, 1, @table_items);
+}
+
 sub widgets {
     my ($request_type, $request_category) = @_;
+
+    unless ($Authorized or $main::config_parms{password_protect} !~ /widgets/i) {
+        return "<h4>Not Authorized to view Widgets</h4>";
+    }
+
     my @table_items;
+    my $cols = 6;
     for my $ptr (@Tk_widgets) {
         my @data = @$ptr;
+
 
         my $category = shift @data;
         $category =~ s/ /_/;
@@ -952,6 +1133,7 @@ sub widgets {
         next if $request_category and $request_category ne $category;
 
         if ($type eq 'label') {
+#            $cols = 2;
             push @table_items, &widget_label(@data);
         }
         elsif ($type eq 'entry') {
@@ -964,7 +1146,7 @@ sub widgets {
             push @table_items, &widget_checkbutton(@data);
         }
     }
-    return &table_it(6, 0, 0, @table_items);
+    return &table_it($cols, 0, 0, @table_items);
 }
 
 sub widget_label {
@@ -972,8 +1154,12 @@ sub widget_label {
     for my $pvar (@_) {
         my $label = $$pvar;
         next unless $label =~ /\S{3}/;   # Drop really short labesl, like tk_eye
-        $label =~ s/(.+?\:)/<b>$1<\/b>/; # Bold the label part
-        push @table_items, qq[<tr><td align='left' colspan=6>$label</td></tr>];
+        my ($key, $value) = $label =~ /(.+?\:)(.+)/;
+        push @table_items, qq[<tr><td align='left' colspan=1><b>$key</b></td>] .
+                           qq[<td align='left' colspan=5>$value</td></tr>];
+#       push @table_items, qq[<td align='left' colspan=4>$value</td>];
+#       $label =~ s/(.+?\:)/<b>$1<\/b>/; # Bold the label part
+#       push @table_items, qq[<tr><td align='left' colspan=6>$label</td></tr>];
     }
     return @table_items;
 }
@@ -1069,6 +1255,9 @@ Cookie: w3ibmID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.39  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.38  2000/02/24 14:02:41  winter
 # - fixed a Category and icon bug.  Add description option.
 #

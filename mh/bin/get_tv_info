@@ -56,6 +56,7 @@ It uses a database created by the get_tv_grid program.
                      Default is any length.
     -keys     xyz => Will return info only for shows that have keywords     
                      in the xyz list in their title or description.
+                     Note: xyz can be a regular expresion (e.g. -keys "^ER$") 
 
       All of the above parms support these formats:
          : comma-seperated values (e.g. -dates 7/4,7/5,7/6)
@@ -322,6 +323,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.8  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.7  2000/01/27 13:23:00  winter
 # - update version number
 #

@@ -6,9 +6,95 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
-=head2 mh ver 2.01 posted on 02/19/00
+=head2 mh ver 2.11 posted on 03/09/00
 
-Version 2.01 was just uploaded to:
+Version 2.11 was just uploaded to:
+
+  http://misterhouse.net/download
+  http://misterhouse.sourceforge.net
+
+
+B<New Features:>
+
+- Added Brian Warner's iButton perl modules.  I have tested it with a
+Id button (DS1990), temp sensors (DS1820) and the 2 channel digital IO (DS2406, via 
+the sixpoint.com TR1 relay card).  Examples on talking to these devices are in 
+mh/code/test/ibutton.pl.   A couple of urls with prices are listed 
+in the hardware section of mh/docs/mh.html.
+I converted the iButton modules to use Bill's SerialPort module, so it now works
+on Windows as well as Linux!
+
+- Split mh/code/bruce/phone.pl into phone.pl, phone_weeder.pl, phone_modem.pl, and phone_logs.pl.
+This should allow caller ID modem users another option.  phone.pl differs from the 
+mh/public/calllog.pl code that Brian and Ernie O. put together.  The phone_modem.pl code is a bit 
+simpler (e.g. no auto-hangup), but it logs data for use with display_callers.
+
+- Reworked the default web page again (now mh/web/mh4).  This now uses the javascript overlib.js
+library from Erik Bosrup.  This allows us to use a new Voice_Cmd 
+set_info method to display additional information in a pop-up box
+that will show up when your mouse hovers over the command text.  
+Unfortunately this does not work with Netscape because onMouseOver only
+works with href tags, so I added a special option for Netscape users that adds small info and log links.
+This option can be turned off with a new new mh.ini parm, along with several other
+other new html related parms.  For example, you can now control
+if and when a dropdown select list gets used for Voice_Cmd states.
+As with many mh.ini parms, you can use the Reload function to quickly test/play 
+with these options, without restarting mh.
+
+- Added support for winamp plugin httpq to mp3_control.pl and mp3_playlist.pl.
+This lets mh control mp3s on any computer in your network.
+A new mh.ini parm mp3_program_control lets you choose between this and the windows only wactl program.
+Also added code from Nicholas Brink for a 'Random Song' option.
+
+- Added code to monitor_shoutcast.pl so it can re-connect the player to the server if disconnected or stopped.
+My shoutcast server should be up most of the time now, if any of you want to stop by and say hi:
+http://misterhouse.net:8080/speak/
+
+- Added Global and Save variables to the web widget menu.
+
+- Added widgets and vars as mh.ini password_protect options.
+When used (the default), computers other than those listed in password_allow_clients,
+will not be able to view that data.
+
+
+B<Bug Fixes and Minor Changes:>
+
+- Included Craig's sump pump code  and Tom's news_* code to mh/code/public.
+
+- Added Voice_Cmd set_order method so you can control the order that the commands are listed
+in web Category list.  The default is alphabetically by file, then by name.
+
+- Pointed to a new top 10 list url in internet_data.pl
+
+- Put time-date stamp back into the speech log
+
+- Check for valid serial state data before saving, to avoid object state restore eval errors.
+
+- Added a head_tail option to logit, so we can log records to the top (instead of the bottom) of a file
+(e.g. tracking_bruce.pl).
+
+- Added mh/code/examples/test_open2.pl as an example of how to read/write
+to another program's STDIN/STDOUT
+
+- Fixed a mh.exe problem with mail related steps.
+
+- Fixed a bug that disabled brightening lights via the web interface
+
+- Disabled auto-refresh on .shtml included html, per suggestion from Ron W.
+
+- Fixed a bug where the web category name was lost on a code reload.
+
+- Allow /graphics to be an http_alias.
+
+- A web request to display data will now only display to the web page and not also
+create a tk popup window.
+
+- Added Tom's $Time_Of_Day global var (morning, afternoon, evening, and night)
+
+
+=head2 mh ver 2.1 posted on 02/19/00
+
+Version 2.1 was just uploaded to:
 
   http://misterhouse.net/download
   http://misterhouse.sourceforge.net

@@ -32,19 +32,29 @@ sub main::html_unescape {
                                 #   print "Time used: ", timestr(timethis(1000, '&net_connect_check')), "\n";
                                 #   Call to dun::checkconnect took 100 ms (100 calls -> 10 seconds)
                                 # Could use dun if we checked only once per second?
+                                # Don't know how to check on non-windows OS
 my ($prev_time, $prev_state);
 sub main::net_connect_check {
     
-    return 1 if lc($main::config_parms{net_connect}) eq 'persistent';
+    return 1 if  !$main::OS_Win or lc($main::config_parms{net_connect}) eq 'persistent';
 
                                 # We don't need to check this more than once a second
     return $prev_state if ($prev_time == time);
     $prev_time = time;
 #   return &Win32::DUN::CheckConnect;
 
-                                # Windows NT does not appeart to store this (at least a reg diff didn't show much)
+                                # Windows NT does not seem to store this in a handy spot, like win98
+                                #  - Jim Maloney found this key, but we think it is unique to his machine :(
+#   my $status = &main::registry_get('HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{C69045CE-7095-4A59-8837-FC8AA04F49BB}', 'NTEContextList');
+#   if (unpack('H8', $status) > 0) {
+#       print "Internet connection found\n";
+#       return $prev_state = 1;
+#   }
+
                                 # Windows 95/98
     my $status = &main::registry_get('HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\RemoteAccess', 'Remote Connection');
+
+ 
 #   print "db s=", unpack('H8', $status), ".\n";
     if (unpack('H8', $status) eq '01000000') {
 #       print "Internet connection found\n";
@@ -232,7 +242,7 @@ sub main::net_mail_send_old {
                         
 sub main::net_mail_send {
     my %parms = @_;
-    my ($from, $to, $subject, $text, $server, $smtp, $account, $mime, $baseref, $file);
+    my ($from, $to, $subject, $text, $server, $smtp, $account, $mime, $baseref, $file, $filename);
 
     $server  = $parms{server};
     $account = $parms{account};
@@ -243,6 +253,7 @@ sub main::net_mail_send {
     $baseref = $parms{baseref};
     $text    = $parms{text};
     $file    = $parms{file};
+    $filename= $parms{filename};
 
     $account = $main::config_parms{net_mail_send_account}         unless $server;
     $server  = $main::config_parms{"net_mail_${account}_server"}  unless $server;
@@ -264,6 +275,7 @@ sub main::net_mail_send {
     if ($mime) {
         eval "use MIME::Lite";
         if ($@) {
+            print "Error in use MIME::Lite: $@\n";
             print "To use email, you need to install MIME::Lite\n";
             print " - linux: perl -MCPAN -eshell    install MIME::Lite\n";
             print " - windows: ppm -install MIME-Lite\n";
@@ -271,17 +283,17 @@ sub main::net_mail_send {
         }
 
                                 # Modify the html so it has a BASE HREF and the links work in a mail reader
-        $text =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{mail_baseref}">|i;
+        $text =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{baseref}">|i;
         
-        my ($file_member) = $file =~ /([^\\\/]+)$/;
+        ($filename) = $file =~ /([^\\\/]+)$/ unless $filename;
 
-        my $message = MIME::Lite->new(From => $main::Pgm_Name,
+        my $message = MIME::Lite->new(From => $from,
                                       Subject => $subject,
                                       Type  => 'text/html',
                                       Encoding => '8bit',
                                       Data => $text,
 #                                     Path => $file,
-                                      Filename => $file_member,
+                                      Filename => $filename,
                                       To => $to);
         if ($^O eq "MSWin32") {
             print "Using built in smtp code with server $server\n";
@@ -462,6 +474,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.16  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.15  2000/02/12 06:11:37  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

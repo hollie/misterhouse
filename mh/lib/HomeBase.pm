@@ -18,7 +18,7 @@ sub read_time {
     if (6 == ($temp = $serial_port->write("##%06\r"))) {
         select undef, undef, undef, 100 / 1000; # Give it a chance to respond
         if (my $data = $serial_port->input) {
-            print "HomeBase time string: $data\n";
+            #print "HomeBase time string: $data\n";
                                 # Not sure about $second.  $wday looks like year, not 0-7??
             my ($year, $month, $mday, $wday, $hour, $minute, $second) = unpack("A2A2A2A2A2A2A2", $data);
             print "Homebase time:  $hour:$minute:$second $month/$mday/$year\n";
@@ -43,16 +43,27 @@ sub read_log {
                                 # May need to paste data together to find real line breaks
         my @log;
         my $buffer;
+
+        # Read data in a buffer string
         while (my $data = $serial_port->input) {
             $buffer .= $data;
-            print "Homebase data: $data\n";
             select undef, undef, undef, 100 / 1000; # Need more/less/any delay here???
         }
-        while (my($record, $remainder) = $buffer =~ /(.+?)[\r\n]+(.*)/) {
-            push(@log, $record);
-            print "HomeBase log record: $record\n";
-            $buffer = $remainder;
-        }
+
+        # Filter out extraneous stuff before splitting into list
+        $buffer =~ s/##0\r\n//g;
+        $buffer =~ s/!!.*\r\n//g;
+
+        @log = split /\r\n/, $buffer;
+
+        #my $elem;
+        #foreach $elem (@log) {
+        #        # Check for real log record
+        #        if ( $elem =~ /^\d+\// ) {
+        #                print "-->$elem<--\n";
+        #        }
+        #}
+
         my $count = @log;
         print "$count HomeBase log records were read\n";
         return @log;
@@ -63,6 +74,7 @@ sub read_log {
     }
 }
 
+#       Homebase log sample format
 #HomeBase log record: r call
 #09/29 10:03:54 Downstairs Unoccupied
 #09/29 11:58:14 Call from Mom
@@ -70,12 +82,12 @@ sub read_log {
 #HomeBase log record:  space door opened
 #09/29 15:22:13 Downstairs is Occupied
 #09/29 15:24:00 Call from Mom
-#09/29 15:43:06 
+#09/29 15:43:06
 
 
 sub clear_log {
     my ($serial_port) = @_;
-    print "Clearing HomeBase log\n";
+    #print "Clearing HomeBase log\n";
     if (6 == $serial_port->write("##%16\r")) {
         print "HomeBase log cleared\n";
         return 1;
@@ -97,7 +109,7 @@ sub read_flags {
             my ($header, $flags) = $data =~ /(\S+?)[\n\r]+(\S+)/;
             my $l = length $flags;
             $l /= 2;
-            print "Flag string has $l bits: $flags\n";
+            #print "Flag string has $l bits: $flags\n";
                                 # There are 2 characters per flag
 #           push(@flags, split('', $flags));
             while ($flags) {
@@ -120,10 +132,12 @@ sub read_variables {
         select undef, undef, undef, 100 / 1000; # Give it a chance to respond
                                 # May need to paste data together to find real line breaks
         my @vars;
+        my $buffer;
         while (my $data = $serial_port->input) {
-            push(@vars, $data);
-            print "HomeBase variable record: $data\n";
+            $buffer .= $data unless ( $data =~ /#/ ); # ##0 is end of list marker
+            select undef, undef, undef, 100 / 1000; # Need more/less/any delay here???
         }
+        @vars = split /\r\n/, $buffer;
         my $count = @vars;
         print "$count HomeBase var records were read\n";
         print "Homebase did not respond to read_flags request\n" unless defined @vars;
@@ -134,20 +148,40 @@ sub read_variables {
     }
 }
 
-    
+# Set Time
+# this command was decoded empirically from Starate/WinEVM interaction
+# Homebase (Stargate) command is ##%05AAAALLLLTTSSYYMMDDRRHHMMCC
+# AAAA = Latitude, LLLL = Longitude, TT=Timezone (05=EST)
+# SS="Is daylight savings time used in your area?" (01=Yes)
+# YY=Year, MM=Month, DD=Day, RR=DOW (Seems to be ignored, but set as
+#       Th=01, Wen=02, Tu=04, Mo=08, Sun=10, Sat=20)
+# CC=00 (Checksum? doesn't appear to be used)
+
 sub set_time {
     my ($serial_port) = @_;
-# ##%05AAAALLLLTTSSYYMMDDRRHHMMCC
     my ($Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst) = localtime time;
     $Month++;
     $Wday++;
     my $localtime = localtime time;
-    $Wday = 2 ** (7 - $Wday);
-    if ($Yday > 255) {
-        $Yday -= 256;
-        $Wday *= 2;
+
+    # Week day setting seems to be ignored by stargate, so set it to 00
+    $Wday = 0;
+    # Bruce's weekday calculation, Mon=1, Sun=7)
+      # $Wday = 2 ** (7 - $Wday);
+      # if ($Yday > 255) {
+      #    $Yday -= 256;
+      #    $Wday *= 2;
+      # }
+
+    # Fix Year 2000 = 100 thing??
+    if ($Year ge 100) {
+        $Year -= 100;
     }
-    $isdst = ($isdst) ? 0x10 : 0x00;
+
+    # Set daylight savings flag, this should be in mh.private.ini if your area uses DST
+    $isdst = "01";
+    #
+    #print ("DST=$isdst Y=$Year M=$Month D=$Mday DOW=$Wday H=$Hour M=$Minute\n");
     my $set_time = sprintf("%04x%04x%02x%02x%02d%02d%02d%02d%02d%02d",
                            $main::config_parms{latitude},
                            $main::config_parms{longitude},
@@ -159,7 +193,9 @@ sub set_time {
                            $Wday,
                            $Hour,
                            $Minute);
-    my $checksum = sprintf("%02x", unpack("%8C*", $set_time));
+    #Checksum not required, so set it to 00
+    #my $checksum = sprintf("%02x", unpack("%8C*", $set_time));
+    my $checksum = "00";
     print "HomeBase set_time=$set_time checksum=$checksum\n";
 
     if (32 == ($temp = $serial_port->write("##%05" . $set_time . $checksum . "\r"))) {
@@ -171,7 +207,7 @@ sub set_time {
         return -1;
     }
 
-    
+
 }
 
 sub send_X10 {
@@ -243,7 +279,7 @@ sub read {
 
             return undef unless $bytes[0] eq '0'; # Only look at x10 data for now
             return undef unless $bytes[1] eq '0' or $bytes[1] eq '1'; # Only look at receive data for now
-            
+
             my ($house, $device);
             unless ($house = $table_hcodes{lc($bytes[3])}) {
                 print "Error, not a valid HomeBase house code: $bytes[3]\n";
@@ -276,7 +312,7 @@ return 1;           # for require
 #print pack('B8', '01101011');   # -> k   To go from bit to string
 #print unpack('C', 'k');         # -> 107 To go from string to decimal
 #print   pack('C', 107);         # -> k   To go from decimal to srting
-#printf("%0.2lx", 107);          # -> 6b  To go to decimal -> hex 
+#printf("%0.2lx", 107);          # -> 6b  To go to decimal -> hex
 #print hex('6b');                # -> 107 to go from hex -> decimal
 
 # Examples:
@@ -285,13 +321,11 @@ return 1;           # for require
 # 0xc3 -> 195 -> |-
 # 0x3c -> 60 -> <
 
+# Modified by Bob Steinbeiser 2/12/00
 #
 # $Log$
-# Revision 1.9  2000/01/27 13:41:38  winter
-# - update version number
-#
-# Revision 1.8  2000/01/19 13:23:03  winter
-# - commit changes from a long time ago.
+# Revision 1.10  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
 #
 # Revision 1.7  1999/09/12 16:56:41  winter
 # - more debug

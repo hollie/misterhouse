@@ -1,6 +1,6 @@
 ############################################################
 #  Klier Home Automation - Caller ID Module for Rockwell   #
-#  Version 2.1a Release                                    #
+#  Version 2.2 Release                                     #
 #  By: Brian J. Klier, N0QVC                               #
 #  Thanks for the mucho help from: Bruce Winter            #
 #  E-Mail: klier@lakes.com                                 #
@@ -8,6 +8,9 @@
 ############################################################
 
 # Category=Phone
+
+# New in Version 2.2:
+# - Added ability to recite phone numbers of callers with no name given.
 
 # Modem Caller ID Information looks like the following
 # DATE = 990305
@@ -47,11 +50,21 @@ if ((said $v_phone_lastcaller) || (state_now $request_phone_stuff eq 'on')) {
     foreach $CallLogTempLine (@callloglines) {
         $NumofCalls = $NumofCalls + 1;
         ($PhoneDateLog, $PhoneTimeLog, $PhoneNameLog, $PhoneNumberLog) = (split('`', $CallLogTempLine))[0, 1, 2, 3];
-        if ($PhoneNameLog eq 'Out of the Area' and $PhoneDateLog ne $Date_Now) {
+        if ($PhoneNameLog eq 'Out of the Area' and $PhoneDateLog ne $Date_Now
+            and $PhoneNumberLog eq '') {
             speak "At $PhoneTimeLog on $PhoneDateLog, an unidentified party called.";
         }
-        if ($PhoneNameLog eq 'Out of the Area' and $PhoneDateLog eq $Date_Now) {
+        if ($PhoneNameLog eq 'Out of the Area' and $PhoneDateLog eq $Date_Now
+            and $PhoneNumberLog eq '') {
             speak "At $PhoneTimeLog, an unidentified party called.";
+        }
+        if ($PhoneNameLog eq 'Out of the Area' and $PhoneDateLog ne $Date_Now
+            and $PhoneNumberLog ne '') {
+            speak "At $PhoneTimeLog on $PhoneDateLog, an unidentified party called. Call back at $PhoneNumberLog.";
+        }
+        if ($PhoneNameLog eq 'Out of the Area' and $PhoneDateLog eq $Date_Now
+            and $PhoneNumberLog ne '') {
+            speak "At $PhoneTimeLog, an unidentified party called. Call back at $PhoneNumberLog.";
         }
         if ($PhoneNameLog ne 'Out of the Area' and $PhoneDateLog ne $Date_Now) {
             speak "At $PhoneTimeLog on $PhoneDateLog, $PhoneNameLog called. Call back at $PhoneNumberLog.";
@@ -178,8 +191,8 @@ if ($PhoneModemString = said $phone_modem) {
         # Put pauses in between area code, exchange, and number for
         # announce reasons
 
-        if (length($PhoneNumber == 7)) {$PhoneNumber = substr($PhoneNumber, 0, 3) . "." . substr($PhoneNumber, 3, 4)};
-        if (length($PhoneNumber == 10)) {$PhoneNumber = substr($PhoneNumber, 0, 3) . "." . substr($PhoneNumber, 3, 3) . "." . substr($PhoneNumber, 6, 4)};
+        if ((length($PhoneNumber) == 7)) {$PhoneNumber = substr($PhoneNumber, 0, 3) . "." . substr($PhoneNumber, 3, 4)};
+        if ((length($PhoneNumber) == 10)) {$PhoneNumber = substr($PhoneNumber, 0, 3) . "." . substr($PhoneNumber, 3, 3) . "." . substr($PhoneNumber, 6, 4)};
 
         # Put Spaces in the Phone Number for Announce Reasons
 
@@ -197,9 +210,13 @@ if ($PhoneModemString = said $phone_modem) {
         print CALLLOG "$PhoneDate`$PhoneTime`$caller`$PhoneNumber\n";
         close CALLLOG;
 
-        if ($PhoneName eq "Out of the Area") {
+        if ($PhoneName eq "Out of the Area" and $PhoneNumber eq '') {
             print_msg "PHONE: Caller's Identification not available.";
             speak "Caller's Identification not available.";
+        }
+        elsif ($PhoneName eq "Out of the Area" and $PhoneNumber ne '') {
+            print_msg "PHONE: Caller's Identification not available.";
+            speak "Unknown caller calling. Number is $PhoneNumber.";
         }
         else {
             print_msg "PHONE: $caller is calling. Number is $PhoneNumber.";
@@ -238,3 +255,4 @@ if ($New_Minute and is_stopped $phone_modem and is_available $phone_modem) {
     print_msg "MODEM Reinitialized...";
     print_log "MODEM Reinitialized...";
 }
+

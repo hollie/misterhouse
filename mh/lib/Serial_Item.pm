@@ -157,6 +157,7 @@ sub said {
 }
 
 sub set_icon {
+    return unless $main::Reload;
     my ($self, $icon) = @_;
     $self->{icon} = $icon;
 }
@@ -362,6 +363,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.35  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.34  2000/02/13 03:57:27  winter
 #  - 2.00 release.  New web server interface
 #

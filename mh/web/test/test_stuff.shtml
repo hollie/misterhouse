@@ -18,8 +18,11 @@
 <p> Test list?group
 <!--#include file="/list?Group"-->
 
-<p> Test list
-<!--#include file="/list"-->
+<p> Test widget labels
+<!--#include file="/widgets_label?"-->
+
+<p> Test widget buttons
+<!--#include file="/widgets_radiobutton?"-->
 
 <p>This is an example of running a command using RUN with html reponse of 'last_displayed'
 

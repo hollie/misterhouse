@@ -10,13 +10,14 @@ more complex, functioning code.
 calllog.pl          
  - Caller ID for modem.  Modified from mh/code/public/Brian/calllog.pl
    by Ernie O. to use the CallerID.pm state and names arrays.
-
-callerid.pl
- - Another, simpler example on processing modem Caller ID data.
+   Another example of logging phone data can be found in mh/code/bruce/phone*
 
 door_monitor_jay.pl
  - Jay Archers cod for using an X10 powerflash and hawkeye motion sensors
    to monitor and control a garage door
+
+ibutton.pl
+ - Bruce's example on reading/writing to iButtons 
 
 internet_ip_update.p
  - Updates IP servers/web pages with IP addresses
@@ -25,6 +26,12 @@ Garage_Door.pl
 Garage_Door.txt
  - From Danal Estes.  Uses the X10_Items X10_Garage_Door object
    to receive Extended X10 data from Stanley modules.
+
+monitor_sump_pump.pl
+ - Craig's code to monitor his sump pump
+
+news*.pl
+ - Tom K. code for getting news and info from various web pages
 
 rcs.pl
  - Craig's code to run RCS X10 thermostats.
@@ -48,6 +55,9 @@ weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I 
    wrote a direct interface for the Wx200 weather station (code/Bruce/weather_wx200.pl).
 
+weather_wrtv.pl
+ - Tom K. example on geting weather from his local news web page
+
 webcam_lite.html
 webcam_lite.pl
  - Mike's code for allowing visitors to his webcam site to flash lights and
@@ -59,7 +69,7 @@ webcam_lite.pl
 mh/code/public/Brian:
 
 calllog.pl          
- - Caller ID for modem
+ - Caller ID for modem.
 
 klier.pl            
  - Misc code from Brian.  Includes examples of how to control winamp.

@@ -283,9 +283,9 @@ Here are a few other devices which look useful, but have not had code written fo
 
  http://www.nirvis.com/  $180 2-way IR device
 
- http://www.ibutton.com/index.html  Inexpensive 2 wire Ibuttons
+ http://www.ibutton.com/index.html  Inexpensive 2 wire iButtons
 
- http://www.cc-concepts.com/  Ibutton DigiLock interface as electronic keychain
+ http://www.cc-concepts.com/  iButton DigiLock interface as electronic keychain
 
 
 
@@ -297,6 +297,20 @@ Byterunner offers lots of types of serial cards: http://www.byterunner.com
 
 Good sources of information on the WX200/WM918 weather stations are at
 http://wx200.planetfall.com/  and  http://www.weatherwatchers.org/wxstation/WX-200/ .
+
+
+iButton is a family of devices that can all talk to a '1 wire' interface.
+Here are some urls and prices:
+
+  http://www.ibutton.com (pick shop online)
+    - $15 DS9097U-009 + DS1402D-DR8l for the serial interface
+    -  $3 DS1990A-F5  for 64 bit ID buttons.
+ 
+  http://www.pointsix.com
+    - They also sell the $15 interface (under iButton Products) 
+    - $10 for a 1 port relay card
+    - $10 for a 2 port digital input or ouptut card
+    - $6  for a 1820 temperature sensor
 
 
 =head2 List of startup options
@@ -389,10 +403,11 @@ Time/Date Variables
   $Time_Now, $Date_Now, $Year_Month_Now
   $Second, $Minute, $Hour, $Mday, $Wday, $Day, $Month, $Year, $Holiday
   $New_Second, $New_Minute, $New_Hour, $New_Day, $New_Month, $New_Year
-  $Season, $Weekday, $Weekend
+  $Season, $Weekday, $Weekend $Time_Of_Day
   %Moon
 
-The complete list of global variables can be found at the top of mh/bin/mh.
+The complete list of global variables can be found on the Widgets menu of the default web page
+or at the top of mh/bin/mh.
 
 The %Moon array has 
 $Moon{phase}, $Moon{brightness}, $Moon{age}, and $Moon{new,first,full,last} entries.  
@@ -606,6 +621,15 @@ Serial_Item is used whenever you want read or write serial port data.
 
      set_icon : Point to the icon member you want the web interface to use.
                 See the 'Customizing the web interface' section of this document for details.
+
+     set_info : Adds additional information.  This will show up as a popup window
+                on the web interface, when the mouse hovers over the command text.
+
+     set_order: Contols the order that the commands are listed in web Category list.
+                The default is alphabetically by file, then by name.
+
+will show up as a popup window
+                on the web interface, when the mouse hovers over the command text.
 
   Examples:
      $garage_movement = new Serial_Item('XI2');
@@ -1030,19 +1054,32 @@ Returns the first/last few lines of a file
    If used in a list context, a list is returned,
    otherwise a string of all the requested lines is returned.
 
+
+=item filter_cr
+
+Returns the given string, with carriage returns and line feeds filtered out
+
+  Examples:
+
+    print_log filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
+
+
 =item logit
 
 Appends data into a log file.  Use file_write to write over a file.
 
   Usage:
 
-    logit($log_file, $log_data, $log_format);
+    logit($log_file, $log_data, $log_format, $head_tail);
 
       $log_format=0  =>  Data is written as is, no /n, no time_date stamp.
 
       $log_format=## =>  Every log entry is preceded with a time_date stamp.
                          ## is passed to &time_date_stamp to determine the format.
                          Also, /r/n is stripped so we get only one record per call.
+
+      $head_tail     =>  If 1, data is logged to the top of the file, otherwise
+                         it is added to the bottom.
 
   Examples:
 
@@ -1137,6 +1174,7 @@ mh will pause until the program is done.
      run('IR_cmd VCR,3,6,RECORD');  # Start a VCR recording
      run 'rasdial /disconnect';     # Log off from the net (on Windows)
      run 'inline', 'some_fast_command_here';
+     run 'mplayer.exe /play /close c:\win98\media\canyon.mid'; # Play a midi file
 
 
 =item run_voice_cmd
@@ -2421,15 +2459,12 @@ possibilities in Home Automation, that no one person could hope to implement the
 
 If you feel so inclined, please send me any code that you develop that you think others
 might be interested in, and I'll include it in the distribution.
-http://hotfiles.zdnet.com/cgi-bin/texis/swlib/hotfiles/info.html?fcode=0011U3
 
-If you would rather see it in the try, another utility si 
-trayer at http://home1.pacific.net.sg/~ngkf/trayer .   This program can move any program you want
-from your taskbar to your tray, and optionally, you can use the tray button to launch the app.
+If you would rather see it mh in your windows tray, rather in the taskbar, here is a 
+useful utility that will let you move any program to the tray: http://www.teamcti.com/TrayIt
 
-Another handy utility that will help you monitor how much cpu and memory mh takes is 
-TaskInfo80, available at 
-http://www.iarsn.com/index.html
+Another handy utility for windows 95/98 users will help you monitor how much cpu and memory mh takes.
+TaskInfo80, available at http://www.iarsn.com/index.html
 
 If you are getting the message "Out of environment space" try adding these records:
 
@@ -2545,7 +2580,7 @@ The comp.home.automation newsgroup is another handy resource, especially for X10
 
 =head1 COPYRIGHT
 
-Copyright (C) 1998,1999 Bruce Winter. All rights reserved.
+Copyright (C) 1998-2000 Bruce Winter. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify it under the 
 terms of the GNU public license. 
@@ -2561,6 +2596,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.20  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.19  2000/02/20 04:47:54  winter
 # -2.01 release
 #

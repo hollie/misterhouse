@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2000-02-10 22:14:35 winter>
+#  Last change Time-stamp: <2000-03-03 13:20:09 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      get_tv_grid
@@ -328,33 +328,23 @@ sub mail_file {
     my ($mailto, $mailserver, $file, $subject) = @_;
     $mailserver = 'localhost' unless $mailserver;
     $parms{mail_baseref} = 'localhost' unless $parms{mail_baseref};
-    print "Mailing $file to $mailto\n";
-    eval "use MIME::Lite";
-    if ($@) {
-        print "To use email, you need to install MIME::Lite\n";
-        print " - linux: perl -MCPAN -eshell    install MIME::Lite\n";
-        print " - windows: ppm -install MIME-Lite\n";
-        return;
-    }
+    print "$Pgm_Name is now mailing $file to $mailto\n";
     my $date = localtime;
                                 # Modify the html so it has a BASE HREF and the links work in a mail reader
-    my $html = &file_read($file);
-    $html =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{mail_baseref}">|i;
+#   my $html = &file_read($file);
+#   $html =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{mail_baseref}">|i;
 
-    my $message = MIME::Lite->new(From => $Pgm_Name,
-                                  Subject => $subject,
-                                  Type  => 'text/html',
-                                  Encoding => '8bit',
-                                  Data => $html,
-#                                 Path => $file,
-                                  Filename => 'tv_grid.html',
-                                  To => $mailto);
-    if ($^O eq "MSWin32") {
-        print "Using built in smtp code with server $mailserver\n";
-        MIME::Lite->send('smtp', $mailserver, Timeout => 20);
-    }
-    print "Sending report to $mailto\n";
-    $message->send;
+                                # From handy_net_utilities
+    &net_mail_send(subject => $subject,
+                   server  => $mailserver,
+                   from    => $Pgm_Name,
+                   to      => $mailto,
+                   baseref => $parms{mail_baseref},
+#                  filename=> 'tv_grid.html',
+#                  text    => $html,
+                   file    => $file,
+                   mime    => 1);
+
     return;
 }
 sub setup {
@@ -396,6 +386,9 @@ sub setup {
 }
 #
 # $Log$
+# Revision 1.24  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.23  2000/02/12 05:33:34  winter
 # - commit lots of changes, in preperation for mh release 2.0
 #

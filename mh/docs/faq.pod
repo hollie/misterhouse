@@ -605,6 +605,8 @@ If decide you splurge for the CM11 activehome kit, you might as well also get th
 For the extra $6, you also get a few extra modules and mh can support both the CM11 and the CM17 
 on the same port. 
 
+There is lots of great X10 info at http://www.geocities.com/ido_bartana , 
+including information on using and buying X10 hardward outside of the US.
 
 Here is some more info, copied from a misterhouse-users post by Kevin Olalde. 
 
@@ -652,6 +654,9 @@ that are much more expense.
 
 #
 # $Log$
+# Revision 1.11  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.10  2000/02/20 04:47:54  winter
 # -2.01 release
 #

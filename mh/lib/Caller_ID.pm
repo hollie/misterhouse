@@ -29,27 +29,37 @@ NAME=ARCHER L       NMBR=5071234567
 
 RING
 
+RING RING DATE=0224 NAME=ONMBR=5072884388 
+
 =cut end
 
 
 # Switch name strings so first last, not last first.
 # Use only the 1st two blank delimited fields, as the 3rd, 4th are usually just initials or incomplete
 
-    my ($number, $name, $time, $last, $first, $middle, $areacode, $local_number, $caller);
+    my ($number, $name, $time, $date, $last, $first, $middle, $areacode, $local_number, $caller);
 
 # Last First M
 # Last M First
 
     if ($format == 2) {
-        ($number, $name) = $data =~ /NMBR = (\S+).*NAME = ([\S ]+)/s;
+        ($date)   = $data =~ /DATE *= *(\S+)/s;
+        ($time)   = $data =~ /TIME *= *(\S+)/s;
+        $time = "$date $time";
+        ($number) = $data =~ /NMBR *= *(\S+)/s;
+        ($name)   = $data =~ /NAME *= *(.+)/s;
+        $name = substr($name, 0, 15);
+        $name = 'Unavailable' if $name =~ /^ONMBR/; # Jay's exception
         ($last, $first, $middle) = split(' ', $name);
+        substr($number, 6, 0) = '-';
+        substr($number, 3, 0) = '-';
     }
     else {
         ($time, $number, $name) = unpack("A13A13A15", $data);
     }
     ($last, $first, $middle) = split(' ', $name);
     $first = ucfirst(lc($first));
-    $first = ucfirst(lc($middle)) if length($first) == 1; # Last M First format
+    $first = ucfirst(lc($middle)) if length($first) == 1 and $middle; # Last M First format
     $last  = ucfirst(lc($last));
 
     ($areacode, $local_number) = $number =~ /(\d+)-(\S+)/;
@@ -161,6 +171,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.13  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.12  2000/02/20 04:47:54  winter
 # -2.01 release
 #
@@ -197,4 +210,6 @@ sub read_callerid_list {
 #
 
 1;
+
+
 

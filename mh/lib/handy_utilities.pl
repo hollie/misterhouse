@@ -128,6 +128,14 @@ sub main::file_cat {
     close LOG2;
 }
 
+                                # This drops carrage returns and line feeds
+sub main::filter_cr {
+    my ($data) = @_;
+    $data =~ s/[\n\r]//g;
+    return $data;
+}
+
+
                                 # Used by &run and Process_Item ... must find pgm source for Win32::process
 sub main::find_pgm_path {
     my($pgm) = @_;
@@ -137,7 +145,7 @@ sub main::find_pgm_path {
 #   print "db pgm_path=$pgm_path\n";
 
     unless($pgm_path = &main::which($pgm_path)) {
-        print "Warning, new Process:  Can not find path to pgm=$pgm_path args=$pgm_args\n";
+        print "Warning, new Process:  Can not find path to pgm=$pgm\n";
 #       return;
     }
                                 # This is in desperation ... see notes on &run and &process_item $cflag. 
@@ -177,16 +185,23 @@ sub main::get_tickcount {
 
 
 sub main::logit {
-    my ($log_file, $log_data, $log_format) = @_;
+    my ($log_file, $log_data, $log_format, $head_tail) = @_;
     $log_format = 14 unless defined $log_format;
-    open(LOG, ">>$log_file") or print "Warning, could not open log file $log_file: $!\n";
-    if ($log_format == 0) {
-        print LOG $log_data;
+    unless ($log_format == 0) {
+        $log_data =~ s/[\n\r]+/ /g; # So log only takes one line.
+        my $time_date = &main::time_date_stamp($log_format);
+        $log_data = "$time_date $log_data\n";
+    }
+    if ($head_tail) {
+        open(LOG, $log_file) or print "Warning, could not open log file $log_file: $!\n";
+        my @data = <LOG>;
+        unshift @data, $log_data;
+        open(LOG, ">$log_file") or print "Warning, could not open log file $log_file: $!\n";
+        print LOG @data;
     }
     else {
-        my $time_date = &main::time_date_stamp($log_format);
-        $log_data =~ s/[\n\r]+/ /g; # So log only takes one line.
-        print LOG "$time_date $log_data\n";
+        open(LOG, ">>$log_file") or print "Warning, could not open log file $log_file: $!\n";
+        print LOG $log_data;
     }
     close LOG;
 }
@@ -874,6 +889,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.36  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.35  2000/02/20 04:47:55  winter
 # -2.01 release
 #

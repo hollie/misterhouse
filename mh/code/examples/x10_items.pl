@@ -25,3 +25,8 @@ $v_bedroom_lights_all = new Voice_Cmd("All Bedroom lights [on,off]");
 set $all_bedroom_lights $state if $state = said $v_bedroom_lights_all;
 
 
+
+                                # X10_Items/appliances have a built in timer
+$v_test1 = new Voice_Cmd "Outside lights off in [1,5,10,30,60] minutes";
+set_with_timer $outside_lights ON, $state*60 if $state = said $v_test1;
+

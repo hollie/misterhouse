@@ -216,7 +216,8 @@ sub check_for_voice_cmd {
         $ref->{said}  = $said;
         $ref->{state} = $said;
 
-        unshift(@{$$ref{state_log}}, "$main::Time_Date $said");
+        my $log = ($said == 1) ? "$main::Time_Date" : "$main::Time_Date $said";
+        unshift(@{$$ref{state_log}}, $log);
         pop @{$$ref{state_log}} if @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
 
         push(@reset_states, $ref);
@@ -251,7 +252,8 @@ sub check_for_voice_cmd {
         $ref->{state} = $ref->{said_next_pass};
         push(@reset_states, $ref);
 
-        unshift(@{$$ref{state_log}}, "$main::Time_Date $ref->{said_next_pass}");
+        my $log = ($ref->{said} == 1) ? "$main::Time_Date" : "$main::Time_Date $ref->{said}";
+        unshift(@{$$ref{state_log}}, "$log");
         pop @{$$ref{state_log}} if @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
 
 
@@ -384,6 +386,8 @@ sub _register {
             $cmd .= $data[$j]{text}[$data[$j]{index}];
         }
         my $state = $data[$index_state]{text}[$data[$index_state]{index}];
+                                      # These commands have no real states ... there is no enumeration
+        $state = 1 if $state eq $cmd; #  - avoid saving the whole name as state.  Too much for state_log displays
         my $cmd_num = &_register2($self, $cmd, $vocab, $description);
         $cmd_state_by_num{$cmd_num} = $state;
 
@@ -495,8 +499,21 @@ sub _clean_text_string {
 }
 
 sub set_icon {
+    return unless $main::Reload;
     my ($self, $icon) = @_;
     $self->{icon} = $icon;
+}
+
+sub set_order {
+    return unless $main::Reload;
+    my ($self, $order) = @_;
+    $self->{order} = $order;
+}
+
+sub set_info {
+    return unless $main::Reload;
+    my ($self, $text) = @_;
+    $self->{description} = $text;
 }
 
 sub said {
@@ -599,6 +616,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.20  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
 # Revision 1.19  2000/02/20 04:47:54  winter
 # -2.01 release
 #
