@@ -1,0 +1,14 @@
+<html>
+<title>MisterHouse Email Directory</title>
+<link rel="STYLESHEET" href="/default.css" type="text/css">
+</head>
+
+<body>
+
+<h3>Summary</h3>
+<!--#include file="/email/summary.html"-->
+
+<!--#include code="&dir_index('/email', 'date', 1, '_\S+.shtml|latest')"-->
+
+</body> 
+</html>
