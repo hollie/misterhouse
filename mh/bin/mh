@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2001-02-26 19:44:02 winter>
+#  Last change Time-stamp: <2001-03-24 11:29:44 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -73,7 +73,7 @@ use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
-use vars qw($Version_tk $Password);
+use vars qw($Version_tk $Password $DelayOccured);
 
 my ($Pgm_PathU);
 my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
@@ -84,7 +84,7 @@ my (%User_Code, @Loop_Code, @Sub_Code, %Run_Members, %Benchmark_Members, @Item_C
 my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
-my (@prev_x10_events, @Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
+my (@Generic_Serial_Ports, @Server_Ports, , %Local_Addresses, @Local_Addresses, @Password_Allow_Clients);
 my ($CON_IN, $CON_OUT);
 #use vars '$CON_IN', '$CON_OUT';
 
@@ -98,6 +98,7 @@ use vars '%Save';
 use vars '%Persistent';         # Uses Dumper for dynamic objects e.g. timers.pl
 use vars '%Info', '$OS_win';
 use vars '%Password_Allow';     # So we can see check it from http_server.pl
+use vars '%Disabled_Commands';  # So we can access fro Voice_Cmd.pm
 use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
 use vars '$DNS_resolver';
 
@@ -426,6 +427,7 @@ sub setup {
     require 'handy_net_utilities.pl';   # For misc. net functions (e.g. net_mail_read)
     require 'console_utils.pl';
     require 'http_server.pl';
+    require 'menu_code.pl';
 
     if ($OS_win) {
 
@@ -849,7 +851,7 @@ sub browser {
     run qq[$config_parms{browser} "$file"];
 }
 
-my ($loop_tickcount1, $loop_tickcount2, $loop_tickcount3, $loop_tickcount4, $loop_tickcount_total);
+my ($loop_tickcount1, $loop_tickcount2, $loop_tickcount3, $loop_tickcount4, $loop_tickcount_total, $Disable);
 sub check_for_action {
     &exit_pgm if $exit_flag;
 
@@ -869,28 +871,30 @@ sub check_for_action {
 #           $tk_activity = DoOneEvent(0x02); 
         }
     }
-    &check_for_keyboard_input;
-    &check_for_nextpass_actions;
+    $Disable = 0 unless $Disable; # Debug run times problems by turning off sections of code
+
+    &check_for_keyboard_input        unless $Disable == 1;
+    &check_for_nextpass_actions      unless $Disable == 2;
     return if $pause_mode;
 
-    &set_global_vars;
-    &Process_Item::harvest;          # Check for done processes
-    &Generic_Item::reset_states;     # Reset states for all objects that are 'ISA Item' objects
-    &Voice_Cmd::check_for_voice_cmd; # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
-    &check_for_serial_data if %Serial_Ports;
-    while (1) {last unless &check_for_socket_data}; # Allow for multiple http gets per pass, for faster web response
-    &check_for_tied_times  if $New_Minute;
-    &Timer::check_for_timer_actions;
-    &check_for_external_command_file;
+    &set_global_vars                 unless $Disable == 3;
+    &Process_Item::harvest           unless $Disable == 4;  # Check for done processes
+    &Generic_Item::reset_states      unless $Disable == 5;  # Reset states for all objects that are 'ISA Item' objects
+    &Voice_Cmd::check_for_voice_cmd  unless $Disable == 6;  # Do this even if VR is not installed, so we can do web and manual run_voice_cmd
+    &check_for_serial_data           unless $Disable == 7;
+                                # Allow for multiple http gets per pass, for faster web response
+    while ($Disable != 8) {last unless &check_for_socket_data};
+    &check_for_tied_times            unless $Disable == 9 and !$New_Minute;
+    &Timer::check_for_timer_actions  unless $Disable == 10;
+    &check_for_external_command_file unless $Disable == 11;
 
-    &MainLoop_pre_hooks();      # Created by &add_hooks
+    &MainLoop_pre_hooks()            unless $Disable == 12; # Created by &add_hooks
 
                                 # Use eval to catch minor errors without abending
                                 #  - about 10% slower (170 -> 150)
-    &eval_user_code_loop;
-#   &loop_code;
+    &eval_user_code_loop             unless $Disable == 13;
 
-    &MainLoop_post_hooks();     # Created by &add_hooks
+    &MainLoop_post_hooks()           unless $Disable == 14;  # Created by &add_hooks
 
                                 # Do the tk_setup_cascade_menus AFTER the first eval code, so we can test Tk widget objects
     if ($MW) {
@@ -976,14 +980,14 @@ sub check_for_generic_serial_data {
         $Serial_Ports{$port_name}{object}->reset_error;
     }
 
-    $Serial_Ports{$port_name}{data} .= $data if $data;
+    $Serial_Ports{$port_name}{data} .= $data if defined($data);
 
     print "  serial name=$port_name type=$Serial_Ports{$port_name}{datatype} data2=$Serial_Ports{$port_name}{data}...\n" 
-        if $data and ($config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name);
+        if defined($data) and ($config_parms{debug} eq 'serial' or $config_parms{debug} eq $port_name);
 
                                 # Check to see if we have a carrage return yet
-    if ($Serial_Ports{$port_name}{data} and
-        (!defined $Serial_Ports{$port_name}{datatype} or $Serial_Ports{$port_name}{datatype} ne 'raw')) {
+    if (defined($Serial_Ports{$port_name}{data}) and
+        (!defined($Serial_Ports{$port_name}{datatype}) or $Serial_Ports{$port_name}{datatype} ne 'raw')) {
         while (my($record, $remainder) = $Serial_Ports{$port_name}{data} =~ /(.+?)[\r\n]+(.*)/s) {
             &print_log("Data from $port_name: $record.  remainder=$remainder.") if $config_parms{debug} eq 'serial';
             $Serial_Ports{$port_name}{data_record} = $record;
@@ -1140,6 +1144,7 @@ sub toggle_pause {
 
 my @serial_data_buffer;
 sub check_for_serial_data {
+    return unless %Serial_Ports;
                                 # Process remaining serial items from previous pass
     if (my $data = shift @serial_data_buffer) {
         print "Running serial_data_buffer string: $data\n" if $config_parms{debug} eq 'X10';
@@ -1163,7 +1168,7 @@ my ($leave_socket_open_passes, $leave_socket_open_action);
 sub check_for_socket_data {
 
                                 # Time to finish the http GET from 2 passes ago with a list of spoken data
-    if ($leave_socket_open_passes and --$leave_socket_open_passes == 0 and my $sock = $Socket_Ports{http}{socka}) {
+    if ($leave_socket_open_passes and --$leave_socket_open_passes <= 0 and my $sock = $Socket_Ports{http}{socka}) {
         print "closing http port with action: $leave_socket_open_action\n" if $config_parms{debug} eq 'http';
         my @data = eval($leave_socket_open_action);
         print "Error in http lso action: $@\n" if $@;
@@ -1198,7 +1203,7 @@ sub check_for_socket_data {
                 my ($port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
                 my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
                 $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
-                logit("$config_parms{data_dir}/logs/server.$Year_Month_Now.log",  "$port_name $client_ip_address");
+                logit "$config_parms{data_dir}/logs/server.$Year_Month_Now.log",  "$port_name $client_ip_address" unless $port_name eq 'http';
                 print "\n$port_name active sock=$new_sock client=$client_ip_address.\n" if $config_parms{debug} eq $port_name;
             }
         }
@@ -1222,6 +1227,7 @@ sub check_for_socket_data {
             }
         }
     }
+
                                 # Get data from active ports
     for my $port_name (@ports_with_data) {
         my $sock = $Socket_Ports{$port_name}{socka};
@@ -1596,6 +1602,7 @@ my $usercode_error_flag;
 sub eval_user_code_loop {
 
                                 # Dis-regard -w uninitialzed value warnings.
+                                #  - also seems to save a lot of cpu time in loop_code
     local $SIG{__WARN__} = sub {
         return if $_[0] =~ /uninitialized value/ or $_[0] =~ /redefined at/;
         print "\n$Time_Date Oops2: $_[0]\n";
@@ -1605,7 +1612,8 @@ sub eval_user_code_loop {
 #        print "\n$Time_Date Dieing: $_[0]\n";
 #        exit 1;
 #    };
-    eval "&loop_code";
+#   &loop_code;
+    eval "&loop_code";          # Not too much slower ... catches more errors
     if ($@) {
                                 # Display usercode errors only once
         if ($usercode_error_flag) {
@@ -1764,12 +1772,44 @@ sub is_local_address {
     return grep $address =~ /$_/, @Local_Addresses;
 }
 
+sub last_response {
+    $Last_Response = '' unless $Last_Response;
+    my $last_response;
+    if ($Last_Response eq 'speak') {
+        ($last_response) = &speak_log_last(1);
+        $last_response =~ s/\n/  /g;         # Remove line breaks
+        $last_response =~ s/^.+?: //s;       # Remove time/date/status portion of log entry
+    }
+    elsif ($Last_Response eq 'display') {
+        ($last_response) = &display_log_last(1);
+    }
+    elsif ($Last_Response eq 'print_log') {
+        ($last_response) = &print_log_last(1);
+    }
+    return $last_response;
+}
+
 sub list_code_files {
     return sort {lc($a) cmp lc($b)} keys %object_names_by_file;    # Case insensitive sort
 }
 sub list_code_webnames {
+    my ($type) = @_;
     my @a = keys %object_names_by_webname;
-    return sort {lc($a) cmp lc($b)} keys %object_names_by_webname; # Case insensitive sort
+
+                                # If object type was requested, return only categores that had that type
+    if ($type) {
+        my %categories;
+        for my $category (@a) {
+            for my $object_name (&list_objects_by_webname($category)) {
+                my $object = &get_object_by_name($object_name);
+                next unless $object and $object->isa($type);
+                $categories{$category} = 1;
+            }
+        }
+        @a = keys %categories;
+    }
+
+    return sort {lc($a) cmp lc($b)} @a;
 }
 sub list_files_by_webname {
     my ($webname) = @_;
@@ -2049,17 +2089,17 @@ sub password_read {
 
                                 # This disables password protection for the specified commands/items
         if ($pw_file = $config_parms{password_allow_file}) { 
-            open(PASSWD, $pw_file) or print "Could not open password_allow_file $pw_file: $!\n";
-            my $count = 0;
-            while (<PASSWD>) {
-                next if /^\#/ or /^\s*$/;
-                chomp;
-                $Password_Allow{$_}++;
-                $count++;
-            }
-            close PASSWD;
-            print "Read in $count items from the password_allow file\n";
+            my @records = grep !(/^\#/ or /^\s*$/), &file_read($pw_file);
+            print "Read in ", scalar @records, " items from $pw_file\n";
+            %Password_Allow = map {$_, 1} @records;
         }
+    }
+                                # This allows for disabling commands without modifing code
+                                # - for example, 'reboot the computer' in mh/code/common/mh_control.pl
+    if ($pw_file = $config_parms{disabled_commands}) { 
+        my @records = grep !(/^\#/ or /^\s*$/), &file_read($pw_file);
+        print "Read in ", scalar @records, " commands from from $pw_file\n";
+        %Disabled_Commands = map {lc $_, 1} @records;
     }
 }
 
@@ -2355,6 +2395,7 @@ sub process_external_command {
     return 1;
 }
 
+my (@prev_x10_events, %prev_x10_units, $prev_x10_units_reset);
 sub process_serial_data {
     my ($event_data, $prev_pass) = @_;
     my ($event_type, $state, $ref, @refs, $matched);
@@ -2392,7 +2433,6 @@ sub process_serial_data {
         }
     }
 
-
                                 # Check for merged or broken X10 data
     if ($event_type eq 'X') {
 
@@ -2404,6 +2444,28 @@ sub process_serial_data {
             unshift @prev_x10_events, {time => $loop_tickcount1, data => substr($event_data, 1)};
         }
 
+                                # Track last selected items list (reset if a non-unit code string is found)
+                                #  - For example:  XA1A2ALxx would set both units A1 and A2 to dim level xx
+                                #    Not yet used for on/off codes: XA1A2AJ would set A1 to manual, and A2 to off
+        my $length = length $event_data;
+        my $pos = 1;
+        while ($pos < $length) {
+            my $unit = substr($event_data, $pos, 2);
+            if ($unit =~ /([A-P][1-9A-G])/) {
+                undef %prev_x10_units if $prev_x10_units_reset;
+                $prev_x10_units_reset = 0;
+                $prev_x10_units{$unit} = 1;
+            }
+            else {
+                $prev_x10_units_reset = 1;
+                undef %prev_x10_units if $unit =~ /[A-P][OP]/; # Reset list if we see a all on/off
+                last if $unit =~ /[A-P][LM]/; # The rest of the string is bright/dim codes
+            }
+            $pos += 2;
+        }
+        print "X10: Previous units=", keys %prev_x10_units, " reset_flag=$prev_x10_units_reset\n" if $config_parms{debug} eq 'X10';
+                
+        
                                 # Check for codes All-on All-off
         if ($event_data =~ /^X(\S)([OP])$/) {
             print "X10: House code $1 set to $2\n" if $config_parms{debug} eq 'X10' or $config_parms{x10_errata} >= 3;
@@ -2428,10 +2490,15 @@ sub process_serial_data {
                 $dim_level = ($f_code eq 'M') ? '+' . $dim_level : '-' . $dim_level;
                 print_log "X10: Dim/bright level=$dim_level event=$event_data " if $config_parms{x10_errata} >= 3;
 
-                                # Code incoming bright/dim with the same syntax as outgoing:  e.g XA+20   XB-30
-                                #  - this allows matching with house code items: e.g. new X10_Item('A');
+                                # Code incoming bright/dim with the same syntax as outgoing:  e.g XA+20 XB-30
+                                #  - Process for house code: e.g. new X10_Item('A');
+                                #  - Process for all previously selected unit codes.
                 undef @prev_x10_events; # Disable merging with raw data
-                &process_serial_data('X' . substr($event_data, 1, 1) . $dim_level);
+#               print "db pxd=$prev_x10_events[1]{data} dim=$dim_level ed=$event_data\n";
+                my $hc = substr($event_data, 1, 1);
+                for my $unit ('', keys %prev_x10_units) {
+                    &process_serial_data('X' . $unit . $hc . $dim_level);
+                }
                 return 1;
             }
                                 # Check to see if X10 strings got run together (XA1A2 ->  XA1 XA2)
@@ -2568,7 +2635,7 @@ sub read_code {
     my %files_seen;
     for $file (@files_read) {
         if ($files_seen{$file}++) { # Read first occurance only
-#           print "Warning, duplicate file: $file\n";
+            print "Warning, duplicate file: $file\n";
             next;
         }
         next if $file =~ /^read_table/; # Ignore table file readers in the user dir
@@ -2720,7 +2787,7 @@ sub read_user_code {
     undef %object_names_by_type;
     undef %files_by_webname;
 
-    my %member_sort_order;
+    my (%member_sort_order, %sub_code);
     for $file (sort sort_user_code keys %User_Code) {
         print "Reading $file\n" if $config_parms{debug} eq 'misc';
  
@@ -2821,19 +2888,11 @@ sub read_user_code {
         }
                                 # Only create subroutine if this file had event code
         if ($code_flag) {
+            $sub_code{$member_name} = $code;
             $Run_Members{$member_name} = 1;
-            push @Sub_Code, 
-                "#-------------------------------------------------\n\n" .
-                "sub ${member_name}_loopcode {\n" .
-                "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
-                "        speak 'Multiple eval errors in $member_name.  Code was disabled';" .
-                "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
-                "   my \$benchmark_tickcount = &get_tickcount if \$Benchmark_Members{on_off_flag};\n" .
-#               " print 'db running ${member_name}';" .
-                $code .
-                "   \$Benchmark_Members{'$member_name'} += &get_tickcount - \$benchmark_tickcount if \$benchmark_tickcount and \$Benchmark_Members{on_off_flag};\n" .
-                "\n} # End of $member_name";
         }
+
+
         $member_sort_order{$member_name} = 9 unless defined $member_sort_order{$member_name};
         
 #       ($webname =~ /startup/i) ?  unshift(@Loop_Code, $temp) : push(@Loop_Code, $temp);
@@ -2841,6 +2900,19 @@ sub read_user_code {
                                 # Sort Loop_Code into desired order
     for my $member_name (sort {$member_sort_order{$a} <=> $member_sort_order{$b} or 
                                $a cmp $b} keys %Run_Members) {
+
+        push @Sub_Code, 
+                "#-------------------------------------------------\n\n" .
+                "sub ${member_name}_loopcode {\n" .
+                "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" . 
+                "        speak 'Multiple eval errors in $member_name.  Code was disabled';" .
+                "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
+                "   my \$benchmark_tickcount = &get_tickcount if \$Benchmark_Members{on_off_flag};\n" .
+#               " print 'db running ${member_name}';" .
+                $sub_code{$member_name} .
+                "   \$Benchmark_Members{'$member_name'} += &get_tickcount - \$benchmark_tickcount if \$benchmark_tickcount and \$Benchmark_Members{on_off_flag};\n" .
+                "\n} # End of $member_name";
+
         $temp = "    \$Run_Members{'$member_name'}++, &${member_name}_loopcode, \$Run_Members{'$member_name'}-- if \$Run_Members{'$member_name'};\n";
                                 # Running eval on each member code is too ineffecient
                                 #  - At sleep_time=1, my I went from 60 pps, 2% cpu, to 30 pps, 25% cpu
@@ -2961,6 +3033,7 @@ sub set_global_vars {
     $New_Week        = 0;
     $New_Month       = 0;
     $New_Year        = 0;
+    $DelayOccured    = 0;
 
     my $time_now = time;
     if ($Startup) {
@@ -2969,8 +3042,8 @@ sub set_global_vars {
     }
                                 # If mh got hung up doing something, lets go to catch up mode
     elsif (!$Time_Start_time and $prev_time < ($time_now - 2)) {
-        my $diff = $time_now - $prev_time;
-        print_log "mh paused for $diff seconds" unless $config_parms{no_log} =~ /pause/;
+        $DelayOccured = $time_now - $prev_time;
+        print_log "mh paused for $DelayOccured seconds" unless $config_parms{no_log} =~ /pause/;
         $Time_Start_time = $prev_time;
         $Time_Increment  = 1;
         $config_parms{sleep_time} = $Loop_Sleep_Time; # In case we manually change it after startup
@@ -3226,6 +3299,8 @@ sub set_global_vars {
 
 sub serial_port_create {
     my ($name, $port, $baudrate, $handshake, $datatype) = @_;
+
+    $port = '\\\\.\\' . $port if $Info{OS_name} eq 'NT' and $port =~ /^com\d{2}\z/i;
 
     unless ($name and $port) {
         print "\n\nError, serial port data missing: name=$name port=$port\n\n";
@@ -3589,6 +3664,18 @@ sub time_less_than {
     return $Time < &my_str2time($time_date);
 }
 
+sub time_greater_or_equal {
+    my ($time_date) = @_;
+    my $time2 = &my_str2time($time_date);
+    return 0 if $time2 == 0;    # Time_date string was invalid
+    return $Time >= $time2;
+}
+
+sub time_less_or_equal {
+    my ($time_date) = @_;
+    return $Time <= &my_str2time($time_date);
+}
+
 sub time_now {
     return unless $New_Minute;  # Only on minute boundarys
     my ($time_date) = @_;
@@ -3681,7 +3768,7 @@ sub tk_setup_cascade_menus {
         print "Creating Tk Command menu\n";
         $Tk_objects{menu_commands}->menu->delete(0, 'end'); # Delete old menus
 
-        for my $category (&list_code_webnames) {
+        for my $category (&list_code_webnames('Voice_Cmd')) {
 
             next if $category =~ /^none$/;
 
@@ -3692,7 +3779,7 @@ sub tk_setup_cascade_menus {
 
             for my $cmd (&list_objects_by_webname($category)) {
                 my $object = &get_object_by_name($cmd);
-                my $text     = $object->{text};
+                my $text   = $object->{text};
 
                 next unless $text;  # Only do voice items
                 next if $$object{hidden};
@@ -4122,6 +4209,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.47  2001/03/24 17:58:33  winter
+# - 2.47 release
+#
 # Revision 2.46  2001/02/27 01:45:33  winter
 # - test release with faster http calls
 #
