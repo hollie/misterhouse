@@ -123,7 +123,8 @@ $robot_timer2    = new Timer;
 
 if ($state = said $robot_keepawake) {
     if ($state eq 'keepawake') {
-        set $robot_timer2 5*60, 'set $robot "LeftArmIn"', -1;
+#       set $robot_timer2 5*60, 'set $robot "LeftArmIn"', -1;
+        set $robot_timer2 5*60, 'set $robot "Stop"', -1;
         print_log 'Robot will be tickled every 5 minutes to keep him awake';
     }
     elsif ($state eq 'letsleep') {

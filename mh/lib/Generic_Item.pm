@@ -6,14 +6,13 @@ require Tie::Hash;
 @Generic_Item_Hash::ISA = ('Tie::ExtraHash');
 
 sub STORE { 
-  my $oldValue = $_[0][0]{$_[1]};
-  $_[0][0]{$_[1]} = $_[2];
+    my $oldValue = $_[0][0]{$_[1]};
+    $_[0][0]{$_[1]} = $_[2];
 
-				# Call property_changed if old and new are different
-  if((defined($oldValue) != defined($_[2])) or (defined $oldValue and $oldValue ne $_[2])) {
-    $_[0][1]->property_changed($_[1],$_[2], $oldValue);
-  }
-
+                # Call property_changed if old and new are different
+    if((defined($oldValue) != defined($_[2])) or (defined $oldValue and $oldValue ne $_[2])) {
+        $_[0][1]->property_changed($_[1],$_[2], $oldValue);
+    }
 }
 
 
@@ -122,7 +121,7 @@ sub set_process {
         }
     }
 
-    return ($self, $state, $set_by, $respond) = @_;
+    return ($self, $state, $set_by, $respond);
 
 }
 
@@ -339,7 +338,7 @@ sub reset_count {
 
 sub set_count {
     my ($self,$val) = @_;
-    				# Set it
+                    # Set it
     if (defined $val) {
         $self->{count} = $val;
     }
@@ -350,7 +349,7 @@ sub set_count {
 
 sub get_count {
     my ($self,$val) = @_;
-    				# Set it
+                    # Set it
     if (defined $val) {
         $self->{count} = $val;
     }
@@ -382,8 +381,8 @@ sub get_authority {
 }
 
 sub set_type {
-	my ($self, $type) = @_;
-	$$self{type}=$type;
+    my ($self, $type) = @_;
+    $$self{type}=$type;
 }
 
 sub get_type {
@@ -400,7 +399,7 @@ sub set_fp_location {
 sub get_fp_location {
     my ($self) = @_;
     if (! defined @{$$self{location}} ) { return }
-   return @{$$self{location}};
+    return @{$$self{location}};
 }
 
 sub set_fp_nodes {
@@ -422,9 +421,9 @@ sub set_fp_icons {
 sub get_fp_icons {
     my ($self) = @_;
     if ($$self{fp_icons}) {
-	return %{$$self{fp_icons}};
+        return %{$$self{fp_icons}};
     } else {
-	return undef;
+        return undef;
     }
 }
 
@@ -446,9 +445,9 @@ sub get_states {
 sub set_states_for_this_pass {
     my ($self, $state, $set_by, $target) = @_;
 
-				# Log states, process set_by and target
+                # Log states, process set_by and target
     ($set_by, $target) = &set_state_log($self, $state, $set_by, $target);
-				# Set state
+                # Set state
     &reset_states2($self, $state, $set_by, $target);
 }
 
@@ -456,10 +455,10 @@ sub set_states_for_this_pass {
 sub set_states_for_next_pass {
     my ($self, $state, $set_by, $target) = @_;
 
-				# Log states, process set_by and target
+                # Log states, process set_by and target
     ($set_by, $target) = &set_state_log($self, $state, $set_by, $target);
 
-				# Track which objects we need to process next pass
+                # Track which objects we need to process next pass
     push @states_from_previous_pass, $self unless $self->{state_next_pass} and @{$self->{state_next_pass}};
 
                                 # Store this for use on next pass
@@ -523,7 +522,7 @@ sub reset_states {
         my $set_by = shift @{$ref->{setby_next_pass}};
         my $target = shift @{$ref->{target_next_pass}};
 
-	&reset_states2($ref, $state, $set_by, $target);
+        &reset_states2($ref, $state, $set_by, $target);
     }
     @states_from_previous_pass = @items_with_more_states;
 }
@@ -538,16 +537,15 @@ sub reset_states2 {
     $ref->{set_by}        = $set_by;
     $ref->{target}        = $target;
     if (( defined $state and !defined $ref->{state_prev}) or 
-	(!defined $state and  defined $ref->{state_prev}) or 
-	( defined $state and  defined $ref->{state_prev} and $state ne $ref->{state_prev})) {
-	$ref->{state_changed} = $state;
+        (!defined $state and  defined $ref->{state_prev}) or 
+        ( defined $state and  defined $ref->{state_prev} and $state ne $ref->{state_prev})) {
+        $ref->{state_changed} = $state;
     }
-				# This allows for an 'undo' function
+                                # This allows for an 'undo' function
     unless ($ref->isa('Voice_Cmd')) {
-	unshift @recently_changed, $ref;
-	pop     @recently_changed if @recently_changed > 20;
+        unshift @recently_changed, $ref;
+        pop     @recently_changed if @recently_changed > 20;
     }
-
                                 # Set/fire tied objects/events
                                 #  - do it in main, so eval works ok
     &main::check_for_tied_events($ref);
@@ -558,7 +556,7 @@ sub tie_items {
     my ($self, $object, $state, $desiredstate, $log_msg) = @_;
     $state         = 'all_states' unless defined $state;
     $desiredstate  = $state       unless defined $desiredstate;
-    $log_msg = 1            unless $log_msg;
+    $log_msg = 1                  unless $log_msg;
     return if $$self{tied_objects}{$object}{$state}{$desiredstate};
     $$self{tied_objects}{$object}{$state}{$desiredstate} = [$object, $log_msg];
 }
@@ -648,8 +646,8 @@ sub set_web_style {
     my %valid_styles = map { $_ => 1 } qw( dropdown radio url );
 
     if ( !$valid_styles{ lc( $style ) } ) {
-	&main::print_log( "Invalid style ($style) passed to set_web_style.  Valid choices are: " . join( ", ", sort keys %valid_styles ) );
-	return;
+        &main::print_log( "Invalid style ($style) passed to set_web_style.  Valid choices are: " . join( ", ", sort keys %valid_styles ) );
+        return;
     }
 
     $self->{ web_style } = lc( $style );
@@ -657,18 +655,20 @@ sub set_web_style {
 
 sub get_web_style {
     my $self = shift;
-
     return if !exists $self->{ web_style };
     return $self->{ web_style };
 }
 
 sub user_data {
-	my $self = shift;
-	return \%{$$self{user_data}};
+    my $self = shift;
+    return \%{$$self{user_data}};
 }
 
 #
 # $Log$
+# Revision 1.39  2004/07/30 23:26:38  winter
+# *** empty log message ***
+#
 # Revision 1.38  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #

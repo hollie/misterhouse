@@ -20,7 +20,7 @@ use strict;
                                 #   - This is a mess.  Really need to have mh libs first, not last.
                                 #   - The latest code DOES tables, but have no spaces between elements
                                 #     which is needed by stuff like internet_iridium.pl  :(
-#BEGIN { 
+#BEGIN {
 #    require './../lib/site/HTML/FormatText.pm';
 #    local $SIG{__WARN__} = sub { return if $_[0] =~ /redefined at/ };
 #    require './../lib/site/HTML/Parse.pm';    # Without these we get HTML::Parser errors ... not sure why
@@ -57,7 +57,7 @@ sub main::net_connect_check {
                          # Linux
     if ( $^O eq "linux" ) {
         my $if = lc($main::config_parms{net_connect_if});
-        if ( $if eq "" ) { 
+        if ( $if eq "" ) {
             print "mh.ini parm net_connect and net_connect_if is not defined.  net connection assumed.\n";
             return $prev_state = 1;
         }
@@ -66,7 +66,7 @@ sub main::net_connect_check {
             if ( $_ =~ /$if/ ) {
                 return $prev_state = 1;
             }
-        }  
+        }
         &main::print_log("net_connect_check: interface $if not active.");
         return $prev_state = 0;
     }
@@ -293,7 +293,7 @@ sub main::net_ftp {
     return "was successful";
 }
 
-my ($aim_connection, $jabber_connection, $msn_connection, %msn_connections, %msn_queue);
+my ($aim_connection, $icq_connection, $jabber_connection, $msn_connection, %msn_connections, %msn_queue);
 
 
 sub main::net_jabber_signon {
@@ -344,7 +344,7 @@ sub main::net_jabber_signon {
 
     print "  - Sending presence to tell world that we are logged in\n";
     $jabber_connection->PresenceSend();
-    
+
     &main::MainLoop_post_add_hook( \&jabber::process, 1 );
 
 }
@@ -384,7 +384,7 @@ sub jabber::InMessage {
 sub jabber::InIQ {
     my $sid = shift;
     my $iq = shift;
-    
+
     my $from  = $iq->GetFrom();
     my $type  = $iq->GetType();
     my $query = $iq->GetQuery();
@@ -458,11 +458,11 @@ sub main::net_msn_signon {
     $msn_connection = MSN->new();
 
                              # Currently does not have a way to verify login??
-    $msn_connection->connect($name, $password, '', 
+    $msn_connection->connect($name, $password, '',
                                      {
-                                      Status  => \&MSN::status, 
-                                      Answer  => \&MSN::answer, 
-                                      Message => \&MSN::message, 
+                                      Status  => \&MSN::status,
+                                      Answer  => \&MSN::answer,
+                                      Message => \&MSN::message,
                                       Join    => \&MSN::join }, 0);
 #    print "MSN logon error: $main::IM_ERR -> $Net::MSNIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
 #    undef $msn_connection;
@@ -575,20 +575,50 @@ sub main::net_im_signon {
     elsif (lc $pgm eq 'jabber') {
         return &main::net_jabber_signon($name, $password);
     }
+    elsif (lc $pgm eq 'icq') {
+	    return &main::net_icq_signon($name, $password, $port);
+    }
+    return &main::net_aol_signon($name, $password, $port);
+}
 
-    return if $aim_connection;  # Already signed on
+sub main::net_aol_signon {
+    my ($name, $password, $pgm, $port) = @_;
 
-    $name     = $main::config_parms{net_aim_name}      unless $name;
-    $password = $main::config_parms{net_aim_password}  unless $password;
-    $port = $main::config_parms{net_aim_port}          unless $port;
+    # Already signed on?
+    unless ($aim_connection) {
+        $aim_connection = main::get_toc_connection("AIM",$name,$password,$port,\&aolim::callback,\&aolim::process);
+    }
+    return $aim_connection;
+}
+
+sub main::net_icq_signon {
+    my ($name, $password, $pgm, $port) = @_;
+
+    # Already signed on?
+    unless ($icq_connection) {
+        $icq_connection = main::get_toc_connection("ICQ",$name,$password,$port,\&icq::callback,\&icq::process);
+    }
+    return $icq_connection;
+}
+
+sub main::get_toc_connection {
+
+    my ($network,$name,$password,$port,$callback,$process) = @_;
+    my $im_connection;
+    my $lnet = lc($network);
+
+    $name     = $main::config_parms{'net_' . $lnet . '_name'}      unless $name;
+    $password = $main::config_parms{'net_' . $lnet . '_password'}  unless $password;
+    $port = $main::config_parms{'net_' . $lnet . '_port'}          unless $port;
 #   $port = 23                                         unless $port;  # This can get through some firewalls?
     $port = 1234                                       unless $port;  # This is the default
-    my $buddies  = $main::config_parms{net_aim_buddies};
+    my $login_port = $main::config_parms{'net_' . $lnet . '_login_port'};
+    my $buddies  = $main::config_parms{'net_' . $lnet . '_buddies'};
 
-    my $timeout = $main::config_parms{net_aim_timeout};
+    my $timeout = $main::config_parms{'net_' . $lnet . '_timeout'};
     $timeout = 10 unless $timeout;
 
-    print "Logging onto AIM with name=$name (timeout=$timeout) ... \n";
+    print "Logging onto $network with name=$name (timeout=$timeout) ... \n";
 
     eval 'use Net::AOLIM';
     if ($@) {
@@ -596,36 +626,28 @@ sub main::net_im_signon {
         return;
     }
 
-    $aim_connection = Net::AOLIM->new("username" => $name, 
-                                      "password" => $password,
-                                      "port" => $port,
+    $im_connection = Net::AOLIM->new("username" => $name,
+                                     "password" => $password,
+                                     "port" => $port,
+                                     "login_port" => $login_port,
                                       'login_timeout' => $timeout,
-                                      "callback" => \&aolim::callback,
-                                      "allow_srv_settings" => 0 );
-    $aim_connection -> add_buddies("friends", $name);
+                                     "callback" => $callback,
+                                     "allow_srv_settings" => 0 );
+    $im_connection -> add_buddies("friends", $name);
 
     for (split /,/, $buddies) {
-        print "Adding AOL AIM buddy $_\n";
-        $aim_connection -> add_buddies("friends", $_);
+        print "Adding $network buddy $_\n";
+        $im_connection -> add_buddies("friends", $_);
     }
 
-    unless (defined($aim_connection->signon)) {
-        print "AIM logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
-        undef $aim_connection;
-        return;
+    unless (defined($im_connection->signon)) {
+        print "$network logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
+        return undef;
     }
 
-    &main::MainLoop_post_add_hook( \&aolim::process, 1 );
+    &main::MainLoop_post_add_hook( $process, 1 );
 
-                                # This is the old way
-#    eval 'use Net::AIM';
-#    unless ($aim_connection = $aim->newconn(Screenname => $name, Password   => $password)) {
-#        print "Error, can not create AIM connection object\n";
-#    }
-                                # Logon occurs here
-                                # Not sure how to test for successful logon
-#   $aim->do_one_loop();
-
+    return $im_connection;
 }
 
 sub main::net_im_signoff {
@@ -636,6 +658,11 @@ sub main::net_im_signoff {
     elsif (lc $pgm eq 'jabber') {
         &main::net_jabber_signoff;
     }
+    elsif (lc $pgm eq 'icq') {
+        print "disconnecting from icq\n";
+        undef $icq_connection;
+        &main::MainLoop_post_drop_hook( \&icq::process, 1);
+    }
     else {
         print "disconnecting from aol im\n";
         undef $aim_connection;
@@ -643,6 +670,8 @@ sub main::net_im_signoff {
     }
 }
 
+# Since ICQ buddy names are numbers only we can share buddies_status
+# without worrying about conflicts
 my %buddies_status;
 # IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hiho</FONT></BODY></HTML>
 sub aolim::callback {
@@ -667,16 +696,48 @@ sub aolim::callback {
         }
         elsif ($arg eq 'F') {
             $status = 'off';
-        } 
+        }
+	my $status_old = $buddies_status{$name};
         if ($buddies_status{$name} ne $status) {
             print "AOL AIM Buddy $name logged $status.\n";
             $buddies_status{$name} = $status;
         }
-        &main::AOLim_Status_hooks($name, $status, 'AOL');
+        &main::AOLim_Status_hooks($name, $status, $status_old, 'AOL');
     }
 }
 
-
+# IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hiho</FONT></BODY></HTML>
+sub icq::callback {
+    my ($type, $name, $arg, $text) = @_;
+#   print "db t=$type, n=$name, a=$arg, t=$text\n";
+    if ($type eq 'ERROR') {
+        my $error = "$Net::AOLIM::ERROR_MSGS{$name}";
+        $error =~ s/\$ERR_ARG/$arg/g;
+        print "ICQ error: $error\n";
+    }
+    elsif ($type eq 'IM_IN') {
+#       my $time = &main::time_date_stamp(5);
+        my $text2 = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($text));
+        chomp $text2;
+#       &main::display(text => "$name ($time:$main::Second): " . $text2, time => 0, window_name => 'ICQ', append => 'top');
+        &main::ICQim_Message_hooks($name, $text2, 'ICQ');
+    }
+    elsif ($type eq 'UPDATE_BUDDY') {
+        my $status;
+        if ($arg eq 'T') {
+            $status = 'on';
+        }
+        elsif ($arg eq 'F') {
+            $status = 'off';
+        }
+	my $status_old = $buddies_status{$name};
+        if ($buddies_status{$name} ne $status) {
+            print "ICQ Buddy $name logged $status.\n";
+            $buddies_status{$name} = $status;
+        }
+        &main::ICQim_Status_hooks($name, $status, $status_old, 'ICQ');
+    }
+}
 
 
 sub aolim::process {
@@ -686,6 +747,16 @@ sub aolim::process {
         print "AIM logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
         undef $aim_connection;
         &main::MainLoop_post_drop_hook( \&aolim::process, 1 );
+    }
+}
+
+sub icq::process {
+    return unless $main::New_Second;
+    if (!defined $icq_connection or !defined $icq_connection->ui_dataget(0)) {
+        print "\nICQ connection died\n";
+        print "ICQ logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
+        undef $icq_connection;
+        &main::MainLoop_post_drop_hook( \&icq::process, 1 );
     }
 }
 
@@ -706,26 +777,33 @@ sub main::net_im_send {
         return;
     }
 
-    my ($from, $password, $to, $text, $file);
+    my ($from, $password, $to, $text, $file, $im_connection);
 
     $from     = $parms{from};
     $password = $parms{password};
     $to       = $parms{to};
 
-
-    $from     = $main::config_parms{net_aim_name}      unless $from;
-    $password = $main::config_parms{net_aim_password}  unless $password;
-    $to       = $main::config_parms{net_aim_name_send} unless $to;
+    if ($pgm eq 'icq') {
+        $from     = $main::config_parms{net_icq_name}      unless $from;
+        $password = $main::config_parms{net_icq_password}  unless $password;
+        $to       = $main::config_parms{net_icq_name_send} unless $to;
+    }
+    else {
+        $from     = $main::config_parms{net_aim_name}      unless $from;
+        $password = $main::config_parms{net_aim_password}  unless $password;
+        $to       = $main::config_parms{net_aim_name_send} unless $to;
+    }
 
     unless ($from and $password and $to) {
         print "\nError, net_im_send called with a missing argument:  from=$from to=$to password=$password\n";
         return;
     }
                                 # This will take a few seconds to connect the first time
-    &main::net_im_signon($from, $password);
-    return unless $aim_connection;
+    $im_connection = &main::net_im_signon($from, $password, $parms{pgm});
 
-    print "Sending aim message to $to\n";
+    return unless $im_connection;
+
+    print "Sending $parms{pgm} message to $to\n";
 
     $text  = $parms{text};
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
@@ -743,19 +821,19 @@ sub main::net_im_send {
 		my $line = "";
 	    while (scalar(@lines))
         {
-		    	
+
 		    if (((length $line) + (length $lines[0])) > 900)
 			{
-				$aim_connection -> toc_send_im($to, $line) if $line;
+				$im_connection -> toc_send_im($to, $line) if $line;
 			    $line = "";
 			}
-		    $line = $line . (shift @lines) . "\n"; 
+		    $line = $line . (shift @lines) . "\n";
         }
-		$aim_connection -> toc_send_im($to, $line) if $line;
+		$im_connection -> toc_send_im($to, $line) if $line;
     }
     else
     {
-        $aim_connection -> toc_send_im($to, $text);
+        $im_connection -> toc_send_im($to, $text);
     }
 }
 
@@ -924,7 +1002,7 @@ sub main::net_mail_send {
                                        Filename => $filename,
                                        To => $to);
         }
-        
+
         my $method = $main::config_parms{net_mail_send_method};
         $method = 'smtp' if !$method and $^O eq 'MSWin32';
         print "  - MIME email sent with net_mail_send_method $method\n";
@@ -948,7 +1026,7 @@ sub main::net_mail_send {
         }
 	print 'Authenticating SMTP using encryption ' , $smtpencrypt , " for username ", $smtpusername, "\n" if $parms{debug};
 				# set SMTP username and password if we have them
-	$smtp->auth($smtpencrypt, $smtpusername, $smtppassword) if ($smtpusername and $smtppassword); 
+	$smtp->auth($smtpencrypt, $smtpusername, $smtppassword) if ($smtpusername and $smtppassword);
 
         $smtp->mail($from) if $from;
         $smtp->to($to);
@@ -1051,9 +1129,9 @@ sub main::net_mail_summary {
     ($parms{last}) = $pop->popstat unless $parms{last};
 
     $main::config_parms{net_mail_scan_size} = 2000 unless $main::config_parms{net_mail_scan_size};
-    
+
     my %msgdata;
-                                # Rather than 
+                                # Rather than
 #   foreach my $msgnum ($parms{first} .. $parms{last}) {
     my $msgnum = $parms{last};
     while ($msgnum) {
@@ -1063,7 +1141,7 @@ sub main::net_mail_summary {
         $header_flag = 1;
         my $i = 0;
         for (@$msg_ptr) {
-            last if $i++ > 200; # The scan_size parm above doesn't work? 
+            last if $i++ > 200; # The scan_size parm above doesn't work?
 #           print "dbx net_mail_summary hf=$header_flag r=$_\n" if $_ =~ /winter/i or $to =~ /winter/;
             if ($header_flag) {
 #               chomp;
@@ -1229,6 +1307,9 @@ sub main::net_socket_check {
 
 #
 # $Log$
+# Revision 1.58  2004/07/30 23:26:38  winter
+# *** empty log message ***
+#
 # Revision 1.57  2004/05/02 22:22:17  winter
 # *** empty log message ***
 #

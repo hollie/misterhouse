@@ -48,13 +48,19 @@ sub main::display_alpha {
 # [COMMAND CODE][FILE LABEL] <esc> [Display Position][Mode Code] Special Specifier [ASCII MESSAGE]
 #  Command Code AA ->  write (A) to label A
 
-    $parms{color} = 'green' unless $parms{color};
-    $parms{mode}  = 'hold'  unless $parms{mode};
+    $parms{color}   = 'green' unless $parms{color};
+    $parms{wipeout} = 'hold'  unless $parms{mode};
 
     my $init  = "\0\0\0\0\0\001" . "Z00" . "\002";  # Nul, StartOfHeader=01, Type=Z, Address=00, StartOfText=02
     my $cmd   = "AA";          # Write to Lable A
     my $pos   = "\x1B\x20";    # Middle is best. Top=\x22, Bottom=\x26, Fill=\x30
-    my %mode  = ( rotate => "\x61", hold => "\x62", flash => "\x63" );
+    my %mode  = ( rotate   => "\x61", hold     => "\x62", flash    => "\x63", auto      => "\x64", 
+                  rollup   => "\x65", rolldown => "\x66", rollleft => "\x67", rollright => "\x68",
+                  wipeup   => "\x69", wipedown => "\x6A", wipeleft => "\x6B", wiperight => "\x6C",
+                  rollup2  => "\x6D", rainbow  => "\x6E", auto2    => "\x6F",
+                  wipein2  => "\x70", wipeou2  => "\x71", wipein   => "\x72", wipeout   => "\x73",
+                  rotates  => "\x74", 
+                );
     my %color = (      red => "\x31",    green => "\x32",  amber => "\x33", darkred => "\x34", 
                  darkgreen => "\x35",    brown => "\x36", orange => "\x37",  yellow => "\x38",
                   rainbow1 => "\x39", rainbow2 => "\x41",    mix => "\x42",    auto => "\x43",   off => "\x30",);

@@ -50,7 +50,8 @@ try{
       if (x%2==0) {resultrow[x].style.backgroundColor='#DDDDDD';}
     }
   }
-};catch(er){}
+}
+catch(er){}
 // -->
 </script>
 ];

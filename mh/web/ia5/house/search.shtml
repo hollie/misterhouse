@@ -57,7 +57,8 @@
 try{
   document.forms[0].search.focus();
   document.forms[0].search.select();
-};catch(er){}
+}
+catch(er){}
 // -->
 </script>
 </html>

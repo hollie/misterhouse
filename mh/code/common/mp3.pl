@@ -2,7 +2,7 @@
 
 #@ This is the core mp3 script.  It is used by the <a href='/misc/mp3.html'>MP3 Jukebox web interface</a>
 #@ to manage songs and playlists.  Also enable either mp3_winamp.pl or mp3_xmms.pl to control your mp3 player.
-#@ Set mp3_dir to a comma separated list of directories where you keep mp3 or playlist (m3u, pls) files.  
+#@ Set mp3_dir to a comma separated list of directories where you keep mp3 or playlist (m3u, pls) files.
                                 # Build the mp3 database
 $v_mp3_build_list = new Voice_Cmd '[Build,Load] the {mp3,m p 3} database', '';
 $v_mp3_build_list-> set_info("Builds/loads an mp3 database for these directories: $config_parms{mp3_dir}");
@@ -31,6 +31,7 @@ if ('Build' eq said $v_mp3_build_list) {
 
 if (done_now $p_mp3_build_list) {
     speak "mp3 database build is done";
+    print_log "Finished updating mp3 database";
     ($mp3names, %mp3files) = &mp3_playlists;
 }
 
@@ -84,7 +85,7 @@ sub mp3_search {
             push @results, $i;
         }
     }
-    @results = sort {uc($artists[$a]) cmp uc($artists[$b])} @results; 
+    @results = sort {uc($artists[$a]) cmp uc($artists[$b])} @results;
     foreach my $i (@results) {
             my $file = $files[$i];
             $results2 .= "$file\n";
@@ -171,8 +172,8 @@ if ($state = said $v_what_playing) {
 sub mp3_find_all {
     my ($mp3_tag) = @_;
 
-    my @artists; 
-    @artists   = split $;, $mp3_dbm{artist} if $mp3_tag eq 'album'; 
+    my @artists;
+    @artists   = split $;, $mp3_dbm{artist} if $mp3_tag eq 'album';
     my @files  = split $;, $mp3_dbm{file};
 
     my $count = -1;
@@ -189,19 +190,19 @@ sub mp3_find_all {
 }
 
 sub mp3_play_search_results {
-    my $enqueue = shift; 
+    my $enqueue = shift;
     my $file = "$config_parms{data_dir}/mp3_search_results.m3u";
 
     if ($enqueue) {
-        mp3_queue $file; 
+        mp3_queue $file;
     }
     else {
-        mp3_play $file; 
+        mp3_play $file;
     }
 }
 
 
-# Internet radio code 
+# Internet radio code
 
 my $f_radio_stations = "$config_parms{data_dir}/web/radio_stations.html";
 $v_get_radio_stations = new Voice_Cmd 'Get internet radio station list';
@@ -231,7 +232,7 @@ sub mp3_radio_stations {
             push @data, "$station$;$url$;$bandwidth$;$style";
         }
     }
-    return @data; 
+    return @data;
 }
 
 my $f_radio_playlist = "$config_parms{data_dir}/web/radio_playlist.pls";
@@ -242,9 +243,9 @@ if (done_now $p_get_radio_playlist) {
 }
 
 sub mp3_radio_play {
-    my $url = shift; 
+    my $url = shift;
     $p_get_radio_playlist -> set("get_url $url $f_radio_playlist");
     $p_get_radio_playlist -> start;
 }
 
-#run_voice_cmd 'Get internet radio station list' if $Reload; 
+#run_voice_cmd 'Get internet radio station list' if $Reload;

@@ -16,7 +16,8 @@ if ($Reread or expired $display_alpha_timer or (new_minute and inactive $display
     $display .= ' ' . int($Weather{TempIndoor}) . ' ' . int($Weather{TempOutdoor});
     $display .= ' ' . substr($Day, 0, 1) . $Mday;
 #   $display .= ' ' . substr($Day, 0, 3);
-    display device => 'alpha', color => 'amber', text => $display;
+    $display .= ' ' . $Save{display_text} if $Save{display_text} and ($Time - $Save{display_time}) < 400;
+    display device => 'alpha', color => 'amber', text => $display, mode => 'wipeout';
 }
 
                  # Allow for various incoming xAP data to be displayed
@@ -63,6 +64,7 @@ if ($state = state_now $xap_monitor_display_alpha) {
         $text = $$p{'now.playing'}{artist} . ': ' . 
                 $$p{'now.playing'}{title};
         $color = 'orange';
+        $duration = 10;
     }
     if ($text) {
         $mode     = 'rotate' unless $mode;
@@ -87,3 +89,16 @@ sub Display_Alpha::send_hook {
     display %parms;
     set $display_alpha_timer 30;
 }
+
+my $display_alpha_modes = 'rotate,hold,flash,auto,rollup,rolldown,rollleft,rollright,' .
+  'wipeup,wipedown,wipeleft,wiperight,rollup2,rainbow,auto2,' .
+  'wipein,wipeout,wipein2,wipeout2,rotates';
+
+my $display_alpha_colors = 'red,green,amber,darkred,darkgreen,brown,orange,yellow,rainbow1,rainbow2,mix,auto,off';
+
+$display_alpha_test1 = new Voice_Cmd "Test alpha display mode [$display_alpha_modes]";
+$display_alpha_test2 = new Voice_Cmd "Test alpha display color [$display_alpha_colors]";
+
+display device => 'alpha', text => "Testing alpha mode $state",  mode  => $state if $state = said $display_alpha_test1;
+display device => 'alpha', text => "Testing alpha color $state", color => $state if $state = said $display_alpha_test2;
+

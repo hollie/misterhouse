@@ -2,19 +2,49 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
-    - Pete Flaherty updated the web mp3 interface, adding delete and jump
-    support to the popup player/playlist and in mp3_xmms and mp3_winamp to
-    be more interactive between the control and the playlist.
+    Bug Fixes and Other Changes:
+
+  Version 2.94 posted on 07/30/2004
+    Version 2.94 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+
+    New Features:
+
+    - Axel Brown updated common/internet_im.pl to add support for ICQ.
+    Enable with mh.ini net_icq_name and net_icq_password.
+
+    - Raul Rodriguez updated common/mp3_slimserver.pl to optionaly and
+    transparently direct mh/slimserver music to networked computers.
+
+    Bug Fixes and Other Changes:
+
+    - Pete Flaherty fixed a few minor javascript typos in some of the web
+    pages.
+
+    - Thomas Stoll noticed a 2.92 problem with TOGGLEing states and an case
+    sensitive state problem.
+
+  Version 2.93 posted on 07/18/2004
+    Version 2.93 was just uploaded to:
+
+      http://misterhouse.sf.net/download.html
+
+    New Features:
+
+    - Pete Flaherty updated the web mp3 interface, adding delete, jump, and
+    playlist on/off toggle button on the remote popup player/playlist and
+    updated mp3_xmms and mp3_winamp to be more interactive between the
+    control and the playlist.
 
     - John Dillenburg wrote lib/Motion_Tracker.pm, experimenting with the
-    occupancy monitoring stuff and deciding it was too complicated for my
+    occupancy monitoring stuff and deciding it was too complicated for his
     application. Motion_Tracker takes a motion sensor object as a parameter
     and sets up a timer everytime motion is detected. It ignores the 'off'
     messages from the sensors. This allows the timeouts to be set on the
-    computer rather than on each sensor individually. The object is also
-    very careful to save and restore it's state through restarts, especially
-    the time the last motion was detected. This insures that the occupied
-    state will evetually expire, even after restarts.
+    computer rather than on each sensor individually. The object state is
+    restored through restarts, so the occupied state will eventually expire,
+    even after restarts.
 
     Bug Fixes and Other Changes:
 
@@ -24,8 +54,8 @@ Mister House Announcement List
     - David Norwood fixed a bug in stocks.pl that kept price drops from
     being announced.
 
-    - Lowered the default MR26_multireceive_delay from 1500 to 400 ( ment to
-    do that in 2.92, but Bill Young noticed that I didn't). Also added a
+    - Lowered the default MR26_multireceive_delay from 1500 to 400 (I ment
+    to do that in 2.92, but Bill Young noticed that I didn't). Also added a
     W800_multireceive_delay to the X10_W800* modules, but left the default
     at 1500, since Bill mentioned that those module does not filter repeats
     like the MR26 does.
@@ -1827,11 +1857,11 @@ Mister House Announcement List
      - read_table_a.pl: new x10 transmiter, yacclient and wakeonline stuff
      - stargate.pm: Fixes, digital relay updates, ir support (initial)
      - stargate485.pm: LCD keypad digit support
-     - telephony_item: base work for dialed ability (we now log outgoing 
+     - telephony_item: base work for dialed ability (we now log outgoing
        calls as well if the CID hardware detects DTMF and reports them)
      - xantech.pm: made some logging optional
      - internet_weather.pl  added nws_city .ini parm nws_city= paramter which overrides city if set
-     - allow a return_state in set_with_timer 
+     - allow a return_state in set_with_timer
 
     - Bill Sobel created lib/WakeOnLan.pm, for waking up computers from
     susbend or hibernated states from mh via a lan connection. See
@@ -3121,7 +3151,7 @@ Mister House Announcement List
     save TTS to a file. Options are (example sizes are for a short 4 word
     phrase):
 
-       high => GSM 6.10 11 kHz   mono ( 3k.  Not usable on an Audrey),  
+       high => GSM 6.10 11 kHz   mono ( 3k.  Not usable on an Audrey),
      normal => PCM  8 kHz  8 bit mono (16k.  New default)
         low => PCM 22 kHz 16 bit mono (88k.  Old default)
 
@@ -4725,7 +4755,7 @@ Mister House Announcement List
 
       Read_table_A: added support for stargate thermostat items
 
-      Stargate485.pm: added support for stargate thermostats 
+      Stargate485.pm: added support for stargate thermostats
       (RCS 485 thermostats, should be able to be used even
       without the stargate eventually).  Also fixed RTS bug
       that caused it to hog the serial line.
@@ -4769,7 +4799,7 @@ Mister House Announcement List
     - Added Generic_Item toggle state so we toggle devices ON/OFF like this:
 
          set $light TOGGLE   if new_second 10;
-    or 
+    or
          set $light 'toggle' if new_second 10;
 
     - mh.ini parm html_select_length (controls when drop down select forms
@@ -5641,7 +5671,7 @@ Mister House Announcement List
     uncompiled version of mh and want to display jpg files, you will need to
     run:
 
-       windows: ppm install Tk-JPEG 
+       windows: ppm install Tk-JPEG
        unix:    perl -MCPAN -e 'install Tk::JPEG'
 
     - Made many small changes to allow us to the option of running with the
@@ -5908,7 +5938,7 @@ Mister House Announcement List
     - Added these new bugs to the mh.html bug list:
 
       Windows Activestate perl 5.6 build 613 leaks memory
-      when running mh.  On my box about 30 Meg a day. 
+      when running mh.  On my box about 30 Meg a day.
 
       Some people are getting CRC errors when running iButton
       code under Windows NT.
@@ -6427,7 +6457,7 @@ Mister House Announcement List
 
       $v_fan = new Voice_Cmd 'Fan [on,off]',
                'Ok, I turned the fan $v_indoor_fountain->{said}';
- 
+
       $v_fan = new Voice_Cmd 'Fan [on,off]',
                'Ok, I turned the fan %STATE%';
 
@@ -6897,7 +6927,7 @@ Mister House Announcement List
     mh_default to mh1. You can play/change with the different web pages by
     pointing to:
 
-      http://localhost:8080/mh_chaz 
+      http://localhost:8080/mh_chaz
       http://localhost:8080/mh1
       http://localhost:8080/mh2
 
@@ -7172,8 +7202,8 @@ Mister House Announcement List
     running something like:
 
         get_tv_grid -hour all -days 2
-  
-      If you already have been running this, you can use the mh/web/tv/clicktv 
+
+      If you already have been running this, you can use the mh/web/tv/clicktv
       files already downloaded and quickly update the database with:
 
         get_tv_grid -hour all -days 2 -redo
@@ -7183,7 +7213,7 @@ Mister House Announcement List
         get_tv_info -channels 4
         get_tv_info -keys dilbert
 
-      Now you can search the database using the voice commands or 
+      Now you can search the database using the voice commands or
       tk entry widget setup by mh/test/tv_info.pl.
 
     - The get_tv_* programs use the DB_File DBM, rather than the built in
@@ -7276,9 +7306,9 @@ Mister House Announcement List
           my $msg = "Internet message: " . &html_unescape($Save{web_text1});
           speak $msg;
           &display($msg, 120, 'webcam text'); # 120 seconds till autoclose
-          $Save{web_text1} = ''; 
+          $Save{web_text1} = '';
       }
-  
+
     - Fixed it so the compiled versions no longer have to be started from
     the mh/bin directory.
 

@@ -43,8 +43,9 @@ var isPhoton = navigator.userAgent.indexOf("Photon") != -1;
 isAudrey = (isAudrey | isPhoton ) ;
 
 function ReLoadMe() {
-    window.location.reload() ;
-	if ( isAudrey == false ) {	
+    self.window.location.reload() ;
+        var ListON = readCookie('Playlist');
+	if ( isAudrey == false && ListON == 'OPEN') {	
 	    var targeturl = '/misc/mplist.html'; 
 	    window.open(targeturl,'mp3list' );
         }
@@ -55,7 +56,7 @@ function Get_PlayList() {
 var targeturl = '/misc/mplist.html'; 
 
 var ListON = readCookie('Playlist');
-    if ( ListON != 'OPEN'){
+    if ( ListON != 'OPEN' | ListON == null ){
         //eraseCookie('Playlist');
 	createCookie('Playlist','OPEN','1');
 
@@ -93,7 +94,7 @@ function Action(act){
     var listWinNM = 'mp3list';
     var targeturl = '/misc/mplist.html'; 
     var ListON = readCookie('Playlist');
-    if (ListON == 'OPEN'){
+    if (ListON == 'OPEN' && ListON != null ){
 	if ( isAudrey == false ) {	
 	    window.open(targeturl,'mp3list' );
         }
@@ -101,8 +102,8 @@ function Action(act){
 	    reload();
 	}
     }
-
 }
+
 function TimeConv(time) {
  PlayMins = 0 ;
  PlaySecs = 0 ;
@@ -195,10 +196,10 @@ if (isAudrey == true ){
 
 
 <td>&nbsp &nbsp &nbsp &nbsp &nbsp</td>
-<td><Input type='button' name='bk' value='<<' onClick='Action('Previous_Song')'></td>
-<td><Input type='button' name='st' value=' || ' onClick='Action('Stop')'></td>
-<td><Input type='button' name='pl' value=' > ' onClick='Action('Play')'></td>
-<td><Input type='button' name='ff' value='>>' onClick='Action('Next_Song')'></td>
+<td><Input type='button' name='bk' value='<<' onClick='Action("Previous_Song")'></td>
+<td><Input type='button' name='st' value=' || ' onClick='Action("Stop")'></td>
+<td><Input type='button' name='pl' value=' > ' onClick='Action("Play")'></td>
+<td><Input type='button' name='ff' value='>>' onClick='Action("Next_Song")'></td>
 
 <script>
 if (isAudrey == false) {

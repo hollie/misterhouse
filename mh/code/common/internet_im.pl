@@ -15,25 +15,29 @@
 
 Set these mh.ini parms:
 
-   net_aim_name=     
-   net_aim=password= 
+   net_aim_name=
+   net_aim=password=
    net_aim_name_send=
 
-   net_msn_name=     
-   net_msn_password= 
+   net_icq_name=
+   net_icq_password=
+   net_icq_name_send=
+
+   net_msn_name=
+   net_msn_password=
    net_msn_name_send=
 
-   net_jabber_name=     
-   net_jabber_password= 
+   net_jabber_name=
+   net_jabber_password=
    net_jabber_server=     (e.g. jabber.com)
    net_jabber_resource=   (optional)
    net_jabber_name_send=
 
-The code libs for AOL and MSN are included in mh. 
+The code libs for AOL and MSN are included in mh.
 
 Jabber is an open, XML based protocol for instant messaging.
 You can get free IDs and client for various platforms at
-  http://jabbercentral.com or http://www.jabber.com . 
+  http://jabbercentral.com or http://www.jabber.com .
 
 Jabber requires perl 5.6+ (for Unicode support) and these modules from CPAN:
   Net::Jabber
@@ -51,31 +55,31 @@ If on Linux (or the above does not work on Windows) try:
 
 =cut
 
-$v_im_test = new  Voice_Cmd 'Send a [AOL,MSN,jabber] test message';
-$v_im_test-> set_info('Send a test message to the default AOL, MSN, or jabber address');
+$v_im_test = new  Voice_Cmd 'Send a [AOL,ICQ,MSN,jabber] test message';
+$v_im_test-> set_info('Send a test message to the default AOL, ICQ, MSN, or jabber address');
 
 if ($state = said $v_im_test) {
     my $msg = "MisterHouse uptime: $Tk_objects{label_uptime_cpu}";
     net_im_send(text => $msg, pgm => $state);
 }
 
-$v_im_signon = new Voice_Cmd 'Connect to [AOL,MSN,jabber]';
+$v_im_signon = new Voice_Cmd 'Connect to [AOL,ICQ,MSN,jabber]';
 $v_im_signon-> set_info('Disconnect, then re-Connect to the specified im servers');
 if ($state = said $v_im_signon) {
     &net_im_signoff($state);
     &net_im_signon(undef, undef, $state);
 }
 
-$v_im_signoff = new Voice_Cmd 'Disconnect from [AOL,MSN,jabber]';
+$v_im_signoff = new Voice_Cmd 'Disconnect from [AOL,ICQ,MSN,jabber]';
 $v_im_signoff-> set_info('Disconnect from the specified im servers');
 if ($state = said $v_im_signoff) {
     &net_im_signoff($state);
 }
 
 
-$v_im_logdata1 = new  Voice_Cmd 'Start sending log data to [AOL,MSN,jabber]';
+$v_im_logdata1 = new  Voice_Cmd 'Start sending log data to [AOL,ICQ,MSN,jabber]';
 $v_im_logdata1-> set_info('Start sending mh print_log and speak data to the default im address');
-$v_im_logdata2 = new  Voice_Cmd  'Stop sending log data to [AOL,MSN,jabber]';
+$v_im_logdata2 = new  Voice_Cmd  'Stop sending log data to [AOL,ICQ,MSN,jabber]';
 
 $log_to_im_list{"$state default"} = 'all' if $state = said $v_im_logdata1;
 delete $log_to_im_list{"$state default"}  if $state = said $v_im_logdata2;
@@ -87,10 +91,12 @@ if ($Reload) {
     &AOLim_Message_add_hook  (\&im_message);
     &MSNim_Message_add_hook  (\&im_message);
     &Jabber_Message_add_hook (\&im_message);
+    &ICQim_Message_add_hook  (\&im_message);
 
     &AOLim_Status_add_hook   (\&im_status);
     &MSNim_Status_add_hook   (\&im_status);
     &Jabber_Presence_add_hook(\&im_status);
+    &ICQim_Status_add_hook   (\&im_status);
 
     &Log_add_hook(\&im_log);
 
@@ -117,7 +123,10 @@ sub im_log {
 
 sub im_status {
     my ($user, $status, $status_old, $pgm) = @_;
-    print_log "IM: pgm=$pgm status $user changed from $status_old to $status";
+    my $msg = "";
+    $msg = "changed from $status_old to $status" if $status ne $status_old;
+    $msg = "is now $status" unless $status_old;
+    print_log "IM: pgm=$pgm status $user $msg" if $msg ne "";
 }
 
 sub im_message {
@@ -130,6 +139,8 @@ sub im_message {
 
     print "IM: RUN a=$authority,$im_data{password_allow}{$from} from=$from text=$text\n"  if $main::Debug{im};
     return if $text =~ /^i\'m away/i;
+    return if $text =~ /^Sorry, I ran out for a bit/i;
+    return if $text =~ /^I am currently away from the computer/i;
 
     my $msg;
     if ($text =~ /^(login|logon): *(\S*)$/i) {
@@ -141,7 +152,7 @@ sub im_message {
                 run_after_delay 120, "&im_logoff('$pgm', '$from')";
                 $im_data{password_allow_temp}{$from} = $user;
                 $msg = "$user login accepted. You will be logged out in 2 minutes.";
-                $msg .= "\nRun set_password to create a password.  Global authorization enabled until then" 
+                $msg .= "\nRun set_password to create a password.  Global authorization enabled until then"
                   unless -e $config_parms{password_file};
             } else {
                 $msg = 'Invalid Password';
@@ -231,4 +242,3 @@ sub im_logoff {
         &net_im_send(pgm => $pgm, to => $screenname, text => 'You have been logged out. Type login, to login again.');
     }
 }
-
