@@ -354,9 +354,9 @@ directories, then add this mh.ini parm to point to it:
 
  html_alias2_ia5    = /misterhouse/web/ia5
 
-Then copy the original ia5 security file/files and modify (e.g. main.shtml
-and drop or update the refresh record).
-
+For example, you can change the ia5 Security menu to point to different webcams or floorplan 
+images by creating your own web/ia5/security directory with just the files you want to 
+modify.  
 
 
 =head2 1.21: Where is perl program code located?
@@ -1612,6 +1612,9 @@ This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of 
 
 #
 # $Log$
+# Revision 1.35  2002/11/10 01:59:56  winter
+# - 2.73 release
+#
 # Revision 1.34  2002/10/13 02:07:58  winter
 #  - 2.72 release
 #

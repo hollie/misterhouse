@@ -1,87 +1,34 @@
-
-# Category=Internet
-
-# Monitor mh running on other boxes, speaking out when they go down
-# for whatever reason.
+# Category=MisterHouse
 
                                 # Update a file once a minute so another box
                                 # can do the watchdog thing
-my $watchdog_file1 = "$config_parms{data_dir}/mh.time"; 
-file_write $watchdog_file1 , $Time if $New_Minute;
+my $watchdog_file1 = "$config_parms{data_dir}/monitor_mh.time"; 
+file_write $watchdog_file1 , $Time if new_second 30;
 
-#return;                         # Turn off till Nick's computer is fixed
+                                # Keep an eye on another box on the network
+my $watchdog_file2 = '//c2/c/misterhouse/data/monitor_mh.time';
+my $watchdog_file3 = '//warp/c/mh/data/monitor_mh.time';
 
-                                # Declare various things to keep an eye on
-my $watchdog_file2 = '//dm/d/misterhouse/mh/data/mh.time';
-my $watchdog_file3 = '//c2/g/misterhouse/mh/data/mh.time';
+                                # Set file_change flag at startup
+#file_change $watchdog_file2 if $Reload;
+file_change $watchdog_file3 if $Reload;
 
-#my $watchdog_socket_address = 'misterhouse.net';
-my $watchdog_socket_address = '192.168.0.2';
-$watchdog_socket = new  Socket_Item(undef, undef, $watchdog_socket_address);
-
-$watchdog_light = new X10_Item('O7', 'CM11',  'LM14');
-
-                                # In case it trys to come on at night, make it dim
-if (time_now '11 PM' or time_now '11:30 PM') {
-    set $watchdog_light '15%';
-    set $watchdog_light OFF;
-}
-if (time_now '8 AM') {
-    set $watchdog_light '75%';
-    set $watchdog_light OFF;
-}
-
-        
-
-                                # Periodically check stuff
-$v_check_servers = new Voice_Cmd 'Check servers';
-if ($New_Minute and !($Minute % 15) or said $v_check_servers) {
-#if ($New_Hour or said $v_check_servers) {
-
-                                # Check to see if Nick's MisterHouse is running
-                                #  - note: file_change undef means we don't know (startup)
-    if (file_unchanged $watchdog_file2) {
-        my $msg = 'Nick, MisterHouse is not running on D M';
-        display $msg, 5;
-        speak "rooms=all $msg";
-        print_log $msg;
-        set_with_timer $watchdog_light '10%', 3 unless $Save{sleeping_parents};
+                                # Periodically check other mh boxes
+if (new_minute 10) {
+    my $msg;
+#    if (!file_change $watchdog_file2) {
+#        $msg = 'Bruce, MisterHouse is not running C2';
+#    }
+    if (!file_change $watchdog_file3) {
+        $msg = 'Bruce, MisterHouse is not running on Warp';
     }
-
-    if (file_unchanged $watchdog_file3) {
-        my $msg = 'MisterHouse has stopped running on the C2 box';
-        display $msg, 5;
-        speak "rooms=all $msg";
-        print_log $msg;
-        set_with_timer $watchdog_light '20%', 5 unless $Save{sleeping_parents};
-    }
-
-                                # Check to make sure the socket server ports are
-                                # still working using a test client socket
-    for my $server ('http', 'server_speak') {
-        my $port = $config_parms{$server . '_port'};
-        set_port $watchdog_socket "$watchdog_socket_address:$port";
-        unless (is_available $watchdog_socket) {
-            my $msg = "Notice, the $server server is down";
-            speak "rooms=all $msg";
-            display $msg, 0;
-            run_voice_cmd "Restart the $server port";
-        }
-    }
-
-}
-
-$v_restart_server = new Voice_Cmd 'Restart the [http,server_speak] port';
-if ($state = said $v_restart_server) {
-    &socket_close($state);
-    if($Socket_Ports{$state}{sock} = new IO::Socket::INET->
-       new(LocalPort => $config_parms{$state.'_port'}, Proto => 'tcp', Reuse => 1, Listen => 10)) {
-        print_log "Port $state was restarted";
+    if ($msg) {
+        speak $msg;
+        get "http://kitchen/cgi-bin/SetLEDState?2";
+        logit("$config_parms{data_dir}/logs/monitor_mh.log", $msg); 
     }
     else {
-        print_log "Port $state was not restarted:  $@";
+        get "http://kitchen/cgi-bin/SetLEDState?0";
     }
 }
-
-
 

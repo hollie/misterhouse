@@ -54,8 +54,8 @@ if (defined($state = state_now $eliza_data)) {
         $eliza = new Chatbot::Eliza "Eliza", "../data/eliza/$rule.txt" unless $eliza;
         my $response = $eliza->transform($msg);
         $voice = 'mike' unless $voice;
-        $msg  = "$name_short said: " . &Voice_Text::set_voice($voice,   $msg);
-        $msg .= "  Eliza says: "     . &Voice_Text::set_voice('female', $response);
+        $msg  = "$name_short said: " . &Voice_Text::set_voice($voice, $msg);
+        $msg .= "  Eliza says: "     . &Voice_Text::set_voice($voice, $response);
     }
     print "Speaking eliza data with voice=$voice, compression=$wavcomp\n";
 #   speak card => 3, compression => $wavcomp, text => $msg;

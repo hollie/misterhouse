@@ -22,16 +22,16 @@ $v_curtain_living-> set_info("Use change if this X10 toggled curtain gets out of
 $timer_curtain_living = new Timer();
 
 if ($state = said $v_curtain_living or
-    $state = state_now $curtain_living eq 'manual') {
+    'manual' eq ($state = state_now $curtain_living)) {
     if (active $timer_curtain_living) {
         speak "Curtain timer in use";
     }
     elsif ($state eq OPEN  and $Save{curtain_living} eq OPENED or
-        $state eq CLOSE and $Save{curtain_living} eq CLOSED) {
+           $state eq CLOSE and $Save{curtain_living} eq CLOSED) {
         speak "Curtain is already $Save{curtain_living}";
     }
     else {
-        $state = 'do' if $state == 1; # X10 button
+        $state = 'do' if $state eq 'manual'; # X10 button
         speak "I am ${state}ing the living room curtains";
         print_log "Changing curtains from  $Save{curtain_living} to $state";
         unless ($state eq 'change') {
@@ -57,7 +57,8 @@ $v_basement_curtain  = new  Voice_Cmd('[open,close] the basement curtains');
 if ($state =  said $v_basement_curtain or
     $state = state_now $basement_curtain) {
     speak "${state}ing the basement curtains";
-    &curtains_all($state, 'zack', 'family', 'nick');
+#   &curtains_all($state, 'zack', 'family', 'nick');
+    &curtains_all($state,         'family', 'nick');
 }
 
 $v_nick_curtain     = new  Voice_Cmd('[open,close] Nicks curtains');
@@ -66,7 +67,7 @@ if ($state =  said $v_nick_curtain or
     &curtain_on('nick', $state);
 }
 
-$v_zack_curtain     = new  Voice_Cmd('[open,close] Zachs curtains');
+$v_zack_curtain     = new  Voice_Cmd('[open,close] Zacks curtains');
 if ($state =  said $v_zack_curtain or
     $state = state_now $zack_curtain) {
     &curtain_on('zack', $state);
@@ -82,13 +83,13 @@ if ($state =  said $v_all_curtains) {
                                 # Find average data
                                 # sun_sensor data is percent of max sun 
 if ($New_Minute) {
-#   print "db curtains=$Save{curtains_state} sun=$analog{sun_sensor} temp=$weather{TempOutdoor}\n";
+#   print "db curtains=$Save{curtains_state} sun=$analog{sun_sensor} temp=$Weather{TempOutdoor}\n";
     if ($Save{curtains_state} eq OPEN) {
                                 # Close when it gets dark
-#       if (defined $analog{sun_sensor} and $analog{sun_sensor} < 20 and defined $weather{TempOutdoor} and $weather{TempOutdoor} < 50) {
-        if ($analog{sun_sensor} > 0     and $analog{sun_sensor} < 20 and defined $weather{TempOutdoor} and $weather{TempOutdoor} < 50) {
+#       if (defined $analog{sun_sensor} and $analog{sun_sensor} < 20 and defined $Weather{TempOutdoor} and $Weather{TempOutdoor} < 50) {
+        if ($analog{sun_sensor} > 0     and $analog{sun_sensor} < 20 and defined $Weather{TempOutdoor} and $Weather{TempOutdoor} < 50) {
             speak "Notice, the sun is dim at $analog{sun_sensor} percent, and it is cold outside " .
-                "at " . round($weather{TempOutdoor}) . " degrees, so I'm closing the curtains at $Time_Now";
+                "at " . round($Weather{TempOutdoor}) . " degrees, so I'm closing the curtains at $Time_Now";
             &curtains_all(CLOSE);
         }
                                 # Close at sunset, as a backup
@@ -99,9 +100,9 @@ if ($New_Minute) {
     }
     else {
 #       if ($analog{sun_sensor} > 40 and !$Save{sleeping_parents} and $Season eq 'Winter') {
-        if (!$Save{sleeping_parents} and $analog{sun_sensor} > 40 and defined $weather{TempOutdoor} and $weather{TempOutdoor} < 45) {
+        if (!$Save{sleeping_parents} and $analog{sun_sensor} > 50 and defined $Weather{TempOutdoor} and $Weather{TempOutdoor} < 45) {
             speak "Notice, the sun is bright at $analog{sun_sensor} percent, and it is cold outside " .
-                "at " . round($weather{TempOutdoor}) . " degrees, so I am opening the curtains at $Time_Now";
+                "at " . round($Weather{TempOutdoor}) . " degrees, so I am opening the curtains at $Time_Now";
             &curtains_all(OPEN);
         }
     }
@@ -120,7 +121,8 @@ sub curtains_all {
     else {
                                 # Do the X10 curtain
         run_voice_cmd "$action the living room curtains";
-        @curtains = ('bedroom', $action, 'family' , $action, 'zack', $action, 'nick', $action);
+#       @curtains = ('bedroom', $action, 'family' , $action, 'zack', $action, 'nick', $action);
+        @curtains = ('bedroom', $action, 'family' , $action,                  'nick', $action);
     }
 
     print "${action}ing the curtains\n";

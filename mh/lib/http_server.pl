@@ -374,7 +374,7 @@ sub http_process_request {
     }
                                 # Test for subroutine call.  Note we can have both a SUB action and a SUB response
     elsif  ($get_req =~ /\/SUB$/i or
-            $get_req =~ /\/SUB[\:\;](\S*)$/i) {
+            $get_req =~ /\/SUB[\:\;](.*)$/i) {
         $h_response = $1;
                                 # Run the subroutine (if authorized)
         my($msg, $action) = &html_sub($get_arg, 1);
@@ -764,7 +764,7 @@ sub html_sub {
         $data = "$1,xy=$2|$3)";
     }
                                 # Allow for &sub1 and &sub1(args)
-    if ((($sub_name, $sub_arg) = $data =~ /^\&(\S+?)\((.+)\)$/) or
+    if ((($sub_name, $sub_arg) = $data =~ /^\&(\S+?)\((.*)\)$/) or
         (($sub_name)           = $data =~ /^\&(\S+)$/)) {
         $sub_arg = '' unless defined $sub_arg; # Avoid uninit warninng
 #       $sub_ref = \&{$sub_name};  # This does not work ... code refs are always auto-created :(
@@ -2499,6 +2499,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.73  2002/11/10 01:59:57  winter
+# - 2.73 release
+#
 # Revision 1.72  2002/09/22 01:33:24  winter
 # - 2.71 release
 #

@@ -16,7 +16,7 @@ sub socket_item_by_id {
 }
 
 sub new {
-    my ($class, $id, $state, $host_port, $port_name, $host_proto, $datatype) = @_;
+    my ($class, $id, $state, $host_port, $port_name, $host_proto, $datatype, $break) = @_;
 
 #    print "dbx1 creating socket on port $host_port name=$port_name\n";
     my $self = {state => ''};
@@ -29,6 +29,7 @@ sub new {
     $$self{host_protocol} = $host_proto;
     $main::Socket_Ports{$port_name}{host_port} = $host_port if $host_port;
     $main::Socket_Ports{$port_name}{datatype}  = $datatype  if $datatype;
+    $main::Socket_Ports{$port_name}{break}     = $break     if $break;
     &add($self, $id, $state);
     bless $self, $class;
     return $self;
@@ -137,9 +138,18 @@ sub said {
 
 sub said_next {
     my $port_name = $_[0]->{port_name};
-    my $handle = $main::Socket_Ports{$port_name}{socka};
-    my $data = <$handle>;
-    chomp $data;
+    my $sock = $main::Socket_Ports{$port_name}{socka};
+    my $data;
+    my $datatype  = $main::Socket_Ports{$port_name}{datatype};
+    my $break     = $main::Socket_Ports{$port_name}{break};
+                 # Assume break on \n unless we specify datatype or break char
+    unless ($data or $break) {
+        $data = <$sock>;
+        chomp $data;
+    }
+    else {
+        recv($sock, $data, 1500, 0); 
+    }
     return $data;
 }
 
@@ -198,7 +208,7 @@ sub set {
                 for my $ptr (@{$main::Socket_Ports{$port_name}{clients}}) {
                     my ($socka, $client_ip_address, $data) = @{$ptr};
                     print "Testing socket client ip address: $client_ip_address\n" if $main::config_parms{debug} eq 'socket';
-                    push @sockets, $socka if $client_ip_address =~ /$ip_address/ or $ip_address eq 'all';
+                    push @sockets, $socka if $socka and $client_ip_address =~ /$ip_address/ or $ip_address eq 'all';
                 }
             }
         }
@@ -218,10 +228,12 @@ sub set {
                                 # Dos telnet wants to see \r.  Doesn't seem to hurt
                                 # unix telnet or other pgms (e.g. viavoice_server)
     my $datatype  = $main::Socket_Ports{$port_name}{datatype};
-    $socket_data .= "\r\n" unless $datatype and $datatype eq 'raw';
-#   $socket_data .=   "\n" unless $datatype and $datatype eq 'raw';
+    my $break     = $main::Socket_Ports{$port_name}{break};
+    $break = "\r\n" unless $break or ($datatype and $datatype eq 'raw');
+    $socket_data .= $break;
 
     for my $sock (@sockets) {
+        next unless $sock; # Shouldn't need this ?
         print "db print to $sock: $socket_data\n" if $main::config_parms{debug} eq 'socket';
         print $sock $socket_data;
     }
@@ -271,6 +283,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.25  2002/11/10 01:59:57  winter
+# - 2.73 release
+#
 # Revision 1.24  2002/10/13 02:07:59  winter
 #  - 2.72 release
 #

@@ -64,12 +64,26 @@ if ($state = changed $f_tv_file or said $v_tv_results) {
     my @data = read_all $f_tv_file;
     shift @data;            # Drop summary;
 
+    my $i = 0;
+    foreach my $line (@data) {
+        if (my ($title, $channel, $start, $end) = 
+          $line =~ /^\d+\.\s+(.+)\.\s+\S+\s+Channel (\d+).+From ([0-9: APM]+) till ([0-9: APM]+)\./) {
+            if ($state eq 'favorites now') {
+                $data[$i] = "$title Channel $channel.\n";
+            }
+            else {
+                $data[$i] = "$start Channel $channel $title.\n";
+            }
+        }
+        $i++;
+    }
+
     my $msg = "There ";
     $msg .= ($show_count > 1) ? " are " : " is ";
     $msg .= plural($show_count, 'favorite show');
     if ($state eq 'favorites today') {
         if ($show_count > 0) {
-            speak "$msg on today.";
+            speak "$msg on today. @data";
         }
         else {
             speak "There are no favorite shows on today";
@@ -80,7 +94,7 @@ if ($state = changed $f_tv_file or said $v_tv_results) {
     }
     else {
         chomp $summary;         # Drop the cr
-        speak $summary;
+        speak "$summary @data ";
     }
     display $f_tv_info2 if $show_count;
 }

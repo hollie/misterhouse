@@ -1,5 +1,12 @@
 # Category=Other
 
+# tini is a serial/ibutton <-> tcpip interface
+# More tini info at: 
+#   http://www.ibutton.com/TINI/index.html
+#
+# This is not all that useful yet.  
+
+
                                 # Periodically probe a Dallas Semi. TINI server for data
 
 my $f_tini_web_html = "$config_parms{data_dir}/web/tini.html";

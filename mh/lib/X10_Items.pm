@@ -164,7 +164,7 @@ sub set {
     }
 
                                 # Allow for dd% light levels on older devices by monitoring current level
-    my $presetable = 1 if $self->{type} and $self->{type} eq 'LM14';
+    my $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
 #   print "db ps=$presetable t=$self->{type}\n";
     if (!$presetable and $state =~ /^(\d+)\%/) {
         my $level = $1;
@@ -184,6 +184,12 @@ sub set {
     $state = "+$state" if $state =~ /^\d+$/; # In case someone trys a state of 30 instead of +30.
     &set_x10_level($self, $state);
     $self->SUPER::set($state, $set_by);
+
+                                # Set objects that match House Code commands
+    if (length($self->{x10_id}) == 2) {
+        my $hc = substr $self->{x10_id}, 1; # Drop the X prefix
+        &set_by_housecode($hc, $state);
+    }
 }
 
 sub set_receive {
@@ -212,7 +218,9 @@ sub set_x10_level {
     }
     else {
         $level = 100   if $state eq 'on' and !defined $level; # Only if we used to be off. 
-        $level = undef if $state eq 'off'; # Dimming from off starts at 100% :(
+                                # Dimming from off starts at 100%, unless it is presetable
+        $level = undef if $state eq 'off' and 
+          !($self->{type} and $self->{type} =~ /(lm14|preset)/i);
     }
 #   print "dbx1 l=$level s=$state\n\n";
     $$self{level} = $level;
@@ -815,6 +823,8 @@ sub new {
     &X10_Sensor::init() unless $sensorinit;
 
     &X10_Sensor::add($self, $id, $name, $type);
+
+    restore_data $self ('dark'); # Save dark flag between restarts
     
     return $self;
 }
@@ -822,20 +832,21 @@ sub new {
 sub add {
     my ($self, $id, $name, $type) = @_;
 
+    $name = $id unless $name;
+    $self->{name} = $name;
+
                                 # Allow for A1 and XA1AJ 
     if (length $id <= 3) {
         my $hc = substr $id, 0, 1;
         $id = 'X' . $id . $hc . 'J';
     }
 
-    $name = 'unknown' unless $name;
-
     &::print_log("Adding X10_Sensor timer for $id, name=$name type=$type")   
       if $main::config_parms{debug} eq 'X10_Sensor';
 
-    $self->{battery_timer}->{$id} = new Timer;
-                                #24 hour countdown
-    $self->{battery_timer}->{$id}->set(24*60*60, 
+                                #24 hour countdown Timer
+    $self->{battery_timer} = new Timer;
+    $self->{battery_timer}-> set(24*60*60, 
                        "speak \"rooms=all Battery timer for $name expired\"", 7);  
 
     my ($hc, $id2) = $id =~ /X(\S)(\S+)(\S)\S/;
@@ -854,25 +865,41 @@ sub add {
 }
 
 sub sensorhook {
-    my ($ref, $name, $item) = @_;
+    my ($ref, $state, $data) = @_;
 
-    #Does it have a battery_timer?
-    return unless $ref->{battery_timer}->{$item};
+#   print "dbx1 x10_sensor hook ref=$ref name=$state item=$data\n";
 
-    &::print_log("X10_Sensor::sensorhook: resetting $ref->{battery_timer}->{$item}") 
-    if $main::config_parms{debug} eq 'X10_Sensor';
+                                # Match only on this item's events
+    return unless $ref->{state_by_id}{$data};
+                                # Make sure this is a X10_Sensor item
+    return unless $ref->{battery_timer};
 
+    ($ref->{dark} = 0) if $state eq 'light';
+    ($ref->{dark} = 1) if $state eq 'dark'; 
 
-    #If I received something from this battery-powered transmitter, the battery 
-    #must still be good, so reset the countdown timer (12 more hours):
-    $ref->{battery_timer}->{$item}->set(12*60*60, 
-                     "speak \"Battery timer for $name expired\"", 7);  
+    &::print_log("X10_Sensor::sensorhook: resetting $ref->{battery_timer}") 
+      if $main::config_parms{debug} eq 'X10_Sensor';
+
+# If I received something from this battery-powered transmitter, the battery 
+# must still be good, so reset the countdown timer (12 more hours):
+    $ref->{battery_timer}->set(12*60*60, 
+                     "speak \"Battery timer for $ref->{name} expired\"", 7);  
+}
+
+sub light {
+    return !$_[0]->{dark};
+}
+sub dark { 
+    return  $_[0]->{dark};
 }
 
 return 1;
 
 
 # $Log$
+# Revision 1.33  2002/11/10 01:59:57  winter
+# - 2.73 release
+#
 # Revision 1.32  2002/10/13 02:07:59  winter
 #  - 2.72 release
 #

@@ -1,8 +1,3 @@
-  -rw-rw-rw-   1 winter   root     6388 Aug 10  2001 internet_earthquakes_cal.pl
-  -rw-rw-rw-   1 winter   root     4190 Nov 12  2001 internet_starshine.pl
-  -rw-rw-rw-   1 winter   root    16156 Nov 17  2001 aqualink.pl
-  -rw-rw-rw-   1 winter   root     6495 Nov 16  2001 voice_server.pl
-
 mh/code/public:
 
 This directory has working, ready to use, applications.  Unlike the 
@@ -229,6 +224,9 @@ send_alpha_page.pl
 sensors_lm.pl
  - Denis Cheong's code to get motherboard temperature data from the (linux only) lm sensors program.
 
+sensors_water.pl
+ - Jeff Pagel's example for sensing water in the basement.
+ 
 slinke_*
  - Brian Paulsen's examples of calling the Slinke.pm module he wrote.
    We don't have this integrated into mh yet.
@@ -271,6 +269,9 @@ tv_info_ge.pl
 video_inline.pl
  - Kent Noonan's code for controling the inline video scan doubler
 
+vocp_func.pl
+ - Dave Lounsberry's code for monitoring linux vocp logs for callerid and voice mail.
+
 voicemodem.pl
  - Brian Klier's code for interfacing to a voice modem.  
 
@@ -299,9 +300,6 @@ weather_ec.pl
 weather_iB_OWW_client.pl
  - Pete Flaherty's code to read data from the OWW 1-wire ibutton weather station daemon.
 
-weather_pollen.pl
- - Kent Noonan's code for monitoring pollen counts
-
 weather_sbweather.pl
  - Code for reading log files from the SBweather program.  I used to use this before I 
    wrote a direct interface for the Wx200 weather station (code/Bruce/weather_wx200.pl).
@@ -325,9 +323,6 @@ wxserver_server.pl
    wxserver_client.pl will get data from any wxserver.  wxserver_server.pl
    will serve the data in the mh %weather array.
    Tony also has code at his site that will serve data from a Peet Brother's weather station.
-
-weather_aws.pl
- - Brian Rudy's weather scripts for AWS live web weather sites
 
 weather_monitor_ultimeter2000.pl
  - Kent Noonan's code for the Peet Bros Ultimeter 2000 weather station

@@ -93,7 +93,8 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         print "phone number=$number numberTo=$numberTo name=$name\n";
 
         $name = substr($name, 0, 15);
-        $name = 'Unavailable' if $name =~ /^O$/; # Jay's & Chaz's exceptions
+#       $name = 'Unavailable' if $name =~ /^O$/; # Jay's & Chaz's exceptions
+        $name = 'Out of Area' if $name =~ /^O$/; # Jay's & Chaz's exceptions
         $name = 'Private'     if $name =~ /^P$/; # Chaz's exception
         $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/; # Chaz's exception
         ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
@@ -116,7 +117,7 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         ($date, $time, $number, $name) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.+?)\+*$/;
         $name = 'Unknown' if $name =~ /unknown/i;
         print "phone number=$number name=$name\n";
-        print "\nCaller_ID format=3 not parsed: d=$data date=$date time=$time number=$number name=$name\n" unless $name;
+        print "\nCaller_ID format=4 not parsed: d=$data date=$date time=$time number=$number name=$name\n" unless $name;
     }
     else {
         ($time, $number, $name) = unpack("A13A13A15", $data);
@@ -161,11 +162,15 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
     }
     elsif ($last eq "Private"  or $number eq "P") {
         $caller = "a blocked phone number";
-		$caller = "Nummer unterdrückt" if ($local_area_code_language =~ /swiss-german/gi);
+#		$caller = "Nummer unterdrückt"  if ($local_area_code_language =~ /swiss-german/gi);
+		$caller = "Nummer unterdrueckt" if ($local_area_code_language =~ /swiss-german/gi);
     }
     elsif ($last eq "Unavailable" or $name eq '') {
         $caller = "number $local_number";
 		$caller = "Nummer $local_number" if ($local_area_code_language =~ /swiss-german/gi);
+    }
+    elsif ($last eq "Unknown" and $number =~ /^\d{3}/) { # From Steve Switzer: An unknown name, but phone number is known.
+        $caller = $local_number;
     }
     elsif ($last eq "Out-of-area" or $last eq "Out" or $number eq "O") {
         $caller = "an out of area number";
@@ -198,15 +203,17 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
 				$caller .= " from $state_by_areacode{$areacode}";
 			}
         }
-        else 
-		{
-			if ($local_area_code_language =~ /swiss-german/gi)
-			{
-				$caller .= " aus Vorwahl $areacode";
-			}
-			else
-			{
-    	        $caller .= " from area code $areacode";
+        else {
+                             # Add spaces so 507 is not five hundred and seven
+            my $areacode_speakable='';
+            for my $cid_areacode_bit ($areacode =~ /./g) {
+                $areacode_speakable .= $cid_areacode_bit . " ";
+            }
+			if ($local_area_code_language =~ /swiss-german/gi) {
+                $caller .= " aus Vorwahl $areacode_speakable";
+            }
+			else {
+                $caller .= " from area code $areacode_speakable";
 			}
         }
     }
@@ -312,6 +319,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.27  2002/11/10 01:59:57  winter
+# - 2.73 release
+#
 # Revision 1.26  2002/05/28 13:07:51  winter
 # - 2.68 release
 #

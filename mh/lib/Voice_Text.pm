@@ -172,8 +172,6 @@ sub speak_text {
         $main::Socket_Ports{festival}{data_record} = '';
         $main::Socket_Ports{festival}{data}        = '';
     
-        print "\ndb2 $parms{voice} or $parms{volume} or $parms{rate} or $VTxt_festival\n";
-
         if ($parms{to_file}) {
                                        # Change from relative to absolute path
             $parms{to_file} = "$main::Pgm_Path/$1" if $parms{to_file} =~ /^\.\/(.+)/;
@@ -239,6 +237,7 @@ sub speak_text {
         if ($fork and $pid) {
             $VTxt_pid = $pid;
         } elsif (!$fork or defined $pid) { 
+            &::socket_close('http'); # Or else browser will wait for child to finish speaking
             my $speak_pgm_arg = '';
             my $speak_pgm_use_stdin = 0;
             my $sound_key = $parms{play};
@@ -265,6 +264,14 @@ sub speak_text {
                 $speak_pgm_arg .= " -playcmd "        . $main::config_parms{vv_tts_playcmd} if $main::config_parms{vv_tts_playcmd};
                 $speak_pgm_arg .= " -default_sound "  . $main::config_parms{vv_tts_default_sound} if $main::config_parms{vv_tts_default_sound};
                 $speak_pgm_arg .= " -default_volume " . $main::config_parms{sound_volume} if $main::config_parms{sound_volume};
+                if ($main::config_parms{vv_tts_pa_control} and $main::config_parms{xcmd_file}) {
+                	$speak_pgm_arg .= ' -pa_control -xcmd_file ' . $main::config_parms{xcmd_file};
+                	if ($parms{rooms}) {
+                		$speak_pgm_arg .= ' -rooms ' . $parms{rooms};
+                    } else {
+                		$speak_pgm_arg .= ' -rooms default';
+                    }
+                }
                 $speak_pgm_arg .= ' -debug '   if $main::config_parms{debug} eq 'voice';
                 $speak_pgm_arg .= ' -nomixer ' if $main::config_parms{vv_tts_nomixer};
 
@@ -517,13 +524,14 @@ sub read_pronouncable_list {
             print "Error parsing voice keyword: $voice\n";
         }
     }
-    @voice_names = sort keys %temp;
+    @voice_names = sort   keys %temp;
     print "Voice names: @voice_names\n";
 }
 
 
 sub set_mode {
     my ($mode) = lc shift;
+    print "Setting mode to $mode\n" if $mode and $main::config_parms{debug} eq 'voice';
                                 # Only MS TTS for now
     if (@VTxt) {
         if ($VTxt_version eq 'msv5') {
@@ -618,6 +626,8 @@ sub set_volume {
 sub set_voice {
     my ($voice, $text, $speak_engine) = @_;
 
+    $speak_engine = $main::config_parms{voice_text} unless $speak_engine;
+
                          # Random pick from the list in the mh.ini voice_names parm
     if ($voice eq 'random') {
         my $i = int((@voice_names) * rand);
@@ -689,7 +699,7 @@ sub set_voice {
             return "<voice required='$spec'> " . $text . " </voice>";
         }
                                 # First voice returned is the best fit
-        else {
+        elsif ($VTxt_version) {
             for my $object (Win32::OLE::in $VTxt[0]->GetVoices($spec)) {
                 print "Setting voice ($voice) to $spec: $object\n" if $main::config_parms{debug} eq 'voice';
                 $VTxt[0]->{Voice} = $object;
@@ -720,6 +730,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.40  2002/11/10 01:59:57  winter
+# - 2.73 release
+#
 # Revision 1.39  2002/10/13 02:07:59  winter
 #  - 2.72 release
 #

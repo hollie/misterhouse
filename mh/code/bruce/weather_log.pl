@@ -5,20 +5,18 @@ my @weather_vars = qw(TempIndoor TempOutdoor WindChill HumidIndoor HumidOutdoor 
 $weather_stats = new Generic_Item;
 $weather_stats-> restore_data('count', (map {$_ . '_min', $_ . '_max', $_ . '_avg'} @weather_vars)) if $Reload;
 
-$weather{sun_sensor} = $analog{sun_sensor};
-
                                 # Log data and keep stats
-if ($New_Minute and !($Minute % 1)) {
+if (new_minute 1) {
     logit "$config_parms{data_dir}/logs/weather.$Year_Month_Now.log",
     sprintf("tin=%4.1f tout=%4.1f wc=%4.1f hi=%4.1f ho=%4.1f wind=%4.1f sun=%4.1f cnt=%5d",
-            (map {$weather{$_}} @weather_vars), $$weather_stats{count});
+            (map {$Weather{$_}} @weather_vars), $$weather_stats{count});
 
     for my $var (@weather_vars) {
-        next unless $weather{$var} =~ /\d/ and $$weather_stats{$var . '_max'} =~ /\d/ ;
+        next unless $Weather{$var} =~ /\d/ and $$weather_stats{$var . '_max'} =~ /\d/ ;
 #       print "db v=$var ", $$weather_stats{$var . '_min'} . $$weather_stats{$var . '_max'} . $$weather_stats{$var . '_avg'}. "\n";
-        $$weather_stats{$var . '_min'}  = $weather{$var} if $weather{$var} < $$weather_stats{$var . '_min'};
-        $$weather_stats{$var . '_max'}  = $weather{$var} if $weather{$var} > $$weather_stats{$var . '_max'};
-        $$weather_stats{$var . '_avg'} += $weather{$var};
+        $$weather_stats{$var . '_min'}  = $Weather{$var} if $Weather{$var} < $$weather_stats{$var . '_min'};
+        $$weather_stats{$var . '_max'}  = $Weather{$var} if $Weather{$var} > $$weather_stats{$var . '_max'};
+        $$weather_stats{$var . '_avg'} += $Weather{$var};
     }
     $$weather_stats{count}++;
 }

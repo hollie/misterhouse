@@ -3,11 +3,19 @@
 $v_fountain = new  Voice_Cmd('Fountain [on,off]');
 $v_fountain-> set_info('Controls the backyard fountain');
 
+$freezing = new Weather_Item 'TempOutdoor < 32';
+if (state_now $fountain eq ON and state $freezing) {
+    speak "Sorry, fountains don't work too well when frozen";
+    set $fountain OFF
+}
+
 #set $fountain $state if $state = said $v_fountain;
 tie_items $v_fountain $fountain;
 tie_event $v_fountain 'speak "Ok, fountain was turned $state"';
 
- set $fountain   ON if $Season eq 'Summer' and time_cron('00 20 * * *');
+# Off for vacation
+# set $fountain   ON if $Month > 4 and $Month < 9 and time_cron('00 20 * * *');
+
 #set $fountain   ON if $Season eq 'Summer' and time_cron('00 08 * * *');
 set $fountain  OFF if time_cron('00,30 22,23 * * *');
 set $fountain  OFF if time_cron('00,30 09    * * *');
@@ -33,7 +41,7 @@ $v_indoor_fountain-> tie_event('speak "Ok, fountain was turned $state"');
 #et $indoor_fountain $state if $state = said $v_indoor_fountain;
 
 set $indoor_fountain  OFF if time_cron('00,30 10 * * *');
-#set $indoor_fountain  ON  if time_cron('30 7 * * 1-5');
+set $indoor_fountain  ON  if time_cron('30 6 * * 1-5');
 set $indoor_fountain  OFF if time_cron('30 8 * * 1-5');
 
 

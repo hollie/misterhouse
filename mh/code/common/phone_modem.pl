@@ -43,10 +43,11 @@ if ($PhoneModemString = said $phone_modem) {
                                 # Ignore garbage data (ascii is between ! thru ~)
     $PhoneModemString = '' if $PhoneModemString !~ /^[\n\r\t !-~]+$/;
     $caller_id_data .= ' ' . $PhoneModemString;
-#   print "Modem said: $PhoneModemString\n";
-#   print "Modem data: $caller_id_data\n";
-#   if ($PhoneModemString =~ /NMBR/) {    # Use this if your modem does is number only (does not return NAME)
-	if ($PhoneModemString =~ /NAME/ || $PhoneModemString =~ /FM:/) {
+    print "Modem data: $PhoneModemString\n" if $config_parms{debug} eq 'phone';
+	if ($caller_id_data =~ /NAME.+NMBR/ or
+        $caller_id_data =~ /NMBR.+NAME/ or
+        $caller_id_data =~ /FM:/) {
+        print_log "Modem callerid: $caller_id_data\n";
                                 # Example of data from Switzerland
                                 #   - Modem said: FM:07656283xx TO:86733xx
 
@@ -66,15 +67,20 @@ if ($PhoneModemString = said $phone_modem) {
             }
         }
 
-# Speak wav file to Audrey address kitchen and bedroom
-#       speak("address=kitchen,bedroom Gender=female Voice=2 Pitch=10 Breathiness=1 Volume=100 $caller");
-#       speak("address=piano $caller");
+        print_log "Modem callerid data: number=$cid_number name=$cid_name time=$cid_time data=$caller_id_data\n"
+          if $config_parms{debug} eq 'phone';
 
-        speak("rooms=all_and_out mode=unmuted $caller");
-        print "callerid data: number=$cid_number name=$cid_name time=$cid_time data=$caller_id_data\n";
-        logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",  
-              "$cid_number name=$cid_name data=$caller_id_data line=2");
-        logit_dbm("$config_parms{data_dir}/phone/callerid.dbm", $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");
+                                # If we have other callerID interfaces (e.g. phone_netcallerid.pl)
+                                # lets not repeat ourselfs here. 
+        unless ($Time - $Save{phone_callerid_Time} < 3) {
+            $Save{phone_callerid_data} = sprintf("%02d:%02d %s\n%s", $Hour, $Minute, $cid_number, $caller);
+            $Save{phone_callerid_Time} = $Time;
+
+            speak("rooms=all_and_out mode=unmuted $caller");
+            logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",  
+                  "$cid_number name=$cid_name data=$caller_id_data line=2");
+            logit_dbm("$config_parms{data_dir}/phone/callerid.dbm", $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");
+        }
         undef $caller_id_data;
 
         # Optionally log calls that are not in our database.

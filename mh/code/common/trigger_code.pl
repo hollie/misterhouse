@@ -1,7 +1,7 @@
 # Category = MisterHouse
 
-#@ Monitors trigger code, used by code like tv_grid, that specifies
-#@ events that run only a limited number of times.
+#@ Monitors trigger code, used by code like tv_grid and the web alarm page,
+#@ that specifies events that run only a limited number of times.
 
 use vars '@trigger_data';
 

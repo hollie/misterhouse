@@ -64,7 +64,10 @@ $cell_phone_test = new Voice_Cmd 'Send test e mail to the cell phone';
 $cell_phone_test-> set_info("Send a test message to the cell phone");
 
 if (said $cell_phone_test) {
-    net_mail_send subject => 'Hi from MisterHouse: $Time_Now', to => $config_parms{cell_phone};
+    speak "Test email sent to cell phone";
+    net_mail_send to => $config_parms{cell_phone},
+      subject => 'MisterHouse test',
+      text    => "I sent this at $Time_Now";
 }
 
                                 # Check for recent email since last received by mail program

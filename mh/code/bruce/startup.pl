@@ -1,5 +1,10 @@
 # Category=MisterHouse
 
+                                # Set default speaking volume
+                                # Note:  This sets max volume with mstts.  
+                                # volume=100 would use 100% of the default, not 100%
+#speak volume => 75 if $Startup;
+
 $v_initialize_serial_port = new  Voice_Cmd("Initialize the serial port");
 $v_initialize_serial_port-> set_info('This will initialize the weeder digital ports.  Automatically done on startup'); 
 
@@ -22,6 +27,8 @@ if (said $v_initialize_serial_port or $Startup) {
     set $digital_read_port_c;
 #   speak("Serial port initialized");
 }
+
+                                # At startup, read the state of the digital inputs
 &digital_read($temp) if $temp = state_now $digital_read_results;
 
 sub digital_read {
@@ -45,4 +52,10 @@ sub digital_read {
         $state = $$ref{state_by_id}{$id};
         $ref->{state} = $state;
     }
+}
+
+                                # Restart slideshows
+if ($Startup) {
+    run_voice_cmd 'set piano audrey to photo screen';
+    run_voice_cmd 'set kitchen audrey to photo screen';
 }

@@ -51,12 +51,35 @@ if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
     while (!$objDB->EOF) {
         my $complete = $objDB->FieldValue('Complete');
         my $date     = $objDB->FieldValue('DueDate');
-        my $text     = $objDB->FieldValue('AssignedTo') . ', ' . $objDB->FieldValue('Description') . '. ' . $objDB->FieldValue('Notes');
+        my $name     = $objDB->FieldValue('AssignedTo');
+        my $subject  = $objDB->FieldValue('Description');
+        my $notes    = $objDB->FieldValue('Notes');
+        my $text     = "$name, $subject. $notes";
+        $notes .= "Sent: $Date_Now $Time_Now";
         $objDB->MoveNext;
-        next unless time_less_than("$date 11:59 pm");  # Skip past and invalid events
-        print MYCODE "if (time_now '$date  8 am') {speak q~Task notice.  $text~};\n";
-        print MYCODE "if (time_now '$date 12 pm') {speak q~Task notice.  $text~};\n";
-        print MYCODE "if (time_now '$date  7 pm') {speak q~Task notice.  $text~};\n";
+        next unless time_less_than("$date + 23:59");  # Skip past and invalid events
+        
+        my $email;
+        print "dbx em=$main::config_parms{organizer_email}\n";
+        for my $em1 (split ',', $main::config_parms{organizer_email}) {
+            print "dbx em1\n";
+            if (my ($em2, $em3) = $em1 =~ /(\S+) *=> *(\S+)/) {
+            print "dbx m2=$em2, m3=$em3\n";
+                if (lc $em2 eq lc $name) {
+                    $email .= "net_mail_send to => '$em3', subject => q~$subject~, text => q~$notes~; ";
+                }
+            }
+        }
+
+                                # Time already specified
+        if ($date =~ /\S+ +\S/) {
+            print MYCODE "if (time_now '$date') {speak q~Task notice.  $text~; $email};\n";
+        }
+        else {
+            print MYCODE "if (time_now '$date  8 am') {speak q~Task notice.  $text~; $email};\n";
+            print MYCODE "if (time_now '$date 12 pm') {speak q~Task notice.  $text~; $email};\n";
+            print MYCODE "if (time_now '$date  7 pm') {speak q~Task notice.  $text~; $email};\n";
+        }
     }
     close MYCODE;
     $objDB->Close;

@@ -465,7 +465,7 @@ sub main::net_msn_signon {
 }
 
 sub main::net_msn_signoff {
-    print "disconnecting from jabber\n";
+    print "disconnecting from msn\n";
     undef $msn_connection;
     &main::MainLoop_post_drop_hook( \&MSN::process, 1 );
 }
@@ -564,6 +564,7 @@ sub main::net_im_signon {
 
     $name     = $main::config_parms{net_aim_name}      unless $name;
     $password = $main::config_parms{net_aim_password}  unless $password;
+    my $buddies  = $main::config_parms{net_aim_buddies};
 
     print "Logging onto AIM with name=$name ... \n";
 
@@ -578,6 +579,12 @@ sub main::net_im_signon {
                                       "callback" => \&aolim::callback,
                                       "allow_srv_settings" => 0 );
     $aim_connection -> add_buddies("friends", $name);
+
+    for (split /,/, $buddies) {
+        print "Adding AOL AIM buddy $_\n";
+        $aim_connection -> add_buddies("friends", $_);
+    }
+
     unless (defined($aim_connection->signon)) {
         print "AIM logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
         undef $aim_connection;
@@ -598,7 +605,7 @@ sub main::net_im_signon {
 }
 
 sub main::net_im_signoff {
-    print "disconnecting from jabber\n";
+    print "disconnecting from aol im\n";
     undef $aim_connection;
     &main::MainLoop_post_drop_hook( \&aolim::process, 1 );
 }
@@ -619,6 +626,18 @@ sub aolim::callback {
 #       &main::display(text => "$name ($time:$main::Second): " . $text2, time => 0, window_name => 'AIM', append => 'top');
         &main::AOLim_Message_hooks($name, $text2, 'AOL');
     }
+    elsif ($type eq 'UPDATE_BUDDY') {
+        my $status;
+        if ($arg eq 'T') {
+            $status = 'on';
+        }
+        elsif ($arg eq 'F') {
+            $status = 'off';
+        } 
+        print "AOL AIM Buddy $name logged $status.\n";
+        &main::AOLim_Status_hooks($name, $status, 'AOL');
+    }
+
                                   # Sometimes name, arg, and text are empty,
                                   # but type=2 once a minute, so don't print that
     elsif ($name or $arg or $text) {
@@ -1044,6 +1063,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.44  2002/11/10 01:59:57  winter
+# - 2.73 release
+#
 # Revision 1.43  2002/10/13 02:07:59  winter
 #  - 2.72 release
 #

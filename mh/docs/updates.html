@@ -14,6 +14,7 @@
 	<LI><A HREF="#mister house announcement list">Mister House Announcement List</A></LI>
 	<UL>
 
+		<LI><A HREF="#version 2.72 posted on 10/12/2002">Version 2.72 posted on 10/12/2002</A></LI>
 		<LI><A HREF="#version 2.71 posted on 09/21/2002">Version 2.71 posted on 09/21/2002</A></LI>
 		<LI><A HREF="#version 2.70 posted on 08/22/2002">Version 2.70 posted on 08/22/2002</A></LI>
 		<LI><A HREF="#version 2.69 posted on 07/03/2002">Version 2.69 posted on 07/03/2002</A></LI>
@@ -94,6 +95,59 @@
 <H1><A NAME="mister house announcement list">Mister House Announcement List</A></H1>
 <P>- This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at <A HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A> )</P>
+<P>
+<H2><A NAME="version 2.72 posted on 10/12/2002">Version 2.72 posted on 10/12/2002</A></H2>
+<P>Version 2.72 was just uploaded to:</P>
+<PRE>
+  <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
+  <A HREF="http://misterhouse.net:81/download.html">http://misterhouse.net:81/download.html</A></PRE>
+<P><STRONG>New Features:</STRONG></P>
+<P>- Enabled the new proxy option on most Serial items.  I have tested it with these interfaces:
+cm11, cm17, iButton, weeder, mr26, wx200 weather, modem, netcallerid, and ham tnc.  
+Also added notifications if either the proxy or main mh detect the other is not responding.</P>
+<P>- Tim Doyle and I re-organized 80+ .pl code files from the code/test, public, and bruce directories.  
+into the mh/code/common code dir.
+The code/test directory now only has a few example .mht and .menu files left.
+You can select which of the common .pl
+code files you want to run, along with the code files in your private code_dir, 
+with the new <A HREF="http://localhost:8080/bin/select_code.pl">http://localhost:8080/bin/select_code.pl</A> interface 
+(the 'Select Code' button on the ia5 MrHouse Home menu).
+Current users default to just 11 core MisterHouse code files pre-selected.
+New users will default to an additional set 40 code files, most of what used to be in the test dir.
+We can move other public code files to the common directory by moving any user-specific data into mh.ini parms.</P>
+<P>- Tim Doyle also created mh/code/modules/audreyspeak.pl to send all speech and played files to Audreys.</P>
+<P>- Tim Doyle and I transformed Doug Nakakihara's alarmclock_doug.pl code into mh/code/common/alarmclock.pl.
+Copy and modify the mh/data/alarmclock.txt file to create easy one line alarms with optional im and/or email function.</P>
+<P>- Axel Brown sent in mh/code/public/palm_calendar.* files for copying palm calendar entries to the mh organizer calendar.
+He also sent in public/organizer_axel.pl, which allows for variable ALARM times (not just 15 mins) and ``no
+specified time'' events. It also announces the owner of the event (currently hard coded for his family names).</P>
+<P>- David Norwood added mh/lib/UIR.pm.
+This module will report incoming infrared signals in the Misterhouse log output.  You can use
+these signal codes to create triggers that can control your MP3 player, DVD software, etc.</P>
+<P>- Marc Mosthav created mh/lib/X10_RedRat.pm.  
+He wrote this to allow mh to send X10 traffic via IR -&gt; RF, so he didn't have to 
+worry about phase coupling problems.  
+The path is mh X10 -&gt; X10_RedRat.pm -&gt; RedRat.pm -&gt; IR -&gt; RF -&gt; X10 receiver.</P>
+<P>- Added a send_x10_data code hook, so we can more easily add X10 interfaces without modifying core mh code.</P>
+<P>- Updated organizer.pl to also announce web entered tasks, in addition to calander events.</P>
+<P>- Jon Boehm and I added 'speak_text=program osascript' option for Mac OS X users.   
+Also added some Mac OS X install hints from Jon to docs/install.*</P>
+<P><STRONG>Bug Fixes and Other Changes:</STRONG></P>
+<P>- Jason Sharpee and Bill Sobel made a bunch of updates to lib/Startgate.pm</P>
+<P>- Axel Brown dropped newlines from text spoken in code/public/speak_proxy.pl</P>
+<P>- Steve Switzer updated proxy_server to not send data when not connected.</P>
+<P>- Steve Switzer noticed set_by was not set to web when changes were made to X10_Items via the web interface.</P>
+<P>- Brian Klier noticed that get_url corrupted image files on windows (needed binmode set).</P>
+<P>- Ryan Pomaski noticed that X10 9-&gt;16 unit bright/dim codes were not being decoded by the X10_MR26.pm code.</P>
+<P>- David Norwood fixed bin/get_tv_grid (changed GET to POST) so it worked better with http proxies.</P>
+<P>- Jon Boehm found a 2.71 bug that caused most item states not to be saved between restarts.</P>
+<P>- Larry Roudebush created mh/code/public/internet_ip_update_larry.pl for finding ip address from whatismyip.com
+and public/mirror_directory for mirroring 2 directories.</P>
+<P>- Added net_mail_delete, to delete mail on servers.  Example in mh/code/examples/email_delete.pl</P>
+<P>- Changed bin/mh, mh.bat, mhl, mh_proxy.bat, and mh_proxy 
+to better restart on accidental exit (tests on mh.startup rather than mh.started)</P>
+<P>- Dropped the 'redo' option in bin/get_tv_grid.pl.  Data will always be re-parsed when called.</P>
+<P>- Broke internets_data.pl into mh/code/common/internet_top10.pl, internet_weather, and internet_time.</P>
 <P>
 <H2><A NAME="version 2.71 posted on 09/21/2002">Version 2.71 posted on 09/21/2002</A></H2>
 <P>Version 2.71 was just uploaded to:</P>

@@ -29,6 +29,7 @@ my $f_weather_html = "$config_parms{data_dir}/web/$WeatherFile.html";
 $p_weather_page = new Process_Item("get_url $WeatherURL $f_weather_html");
 $v_weather_page = new  Voice_Cmd('[Get,Read,Show] internet weather');
 $v_weather_page-> set_info("Weather conditions and forecast for $config_parms{city}, $config_parms{state}  $config_parms{country}");
+$v_weather_page-> set_authority('anyone');
 
 #speak($f_weather_page)   
 if (said $v_weather_page eq 'Read') {
@@ -76,7 +77,8 @@ if (done_now $p_weather_page) {
 #   $text =~ s/\&\#176\;/ degrees /g;
     $text =~ s/\xb0/ degrees /g;
 
-    $text =~ s/\q&nbsp\;/ /g;
+#   $text =~ s/\q&nbsp\;/ /g;
+    $text =~ s/\&nbsp\;/ /g;
     $text =~ s/\[IMAGE\]//g;
     $text =~ s/\(Click for forecast\)//g;
     $text =~ s/approx./ approximately /g;

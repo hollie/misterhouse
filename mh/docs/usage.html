@@ -1,6 +1,6 @@
 <html>
 <head>
-<!-- Last emacs update Time-stamp: <2002-08-02 08:30:46 winter> -->
+<!-- Last emacs update Time-stamp: <2002-11-09 16:18:53 winter> -->
 <link rel="STYLESHEET" href="/default.css" type="text/css">
 <title>Usage</title>
 </head>
@@ -8,30 +8,24 @@
 
 <h3>Where in the World are the ... MisterHouse guys</h3>
 
-<p>Thanks to Kieran Ames for compiling this map of mh users.
 Here is the <a href=mh_usage_table.html>table of cities/states/countries</a>
 
+<p>If you want to log your city into the usage table, enter your City and State or Country here:
 
-<hr>
-
-<img src=http://misterhouse.net:81/mh_usage_map.jpg> 
-
-<p>Kieran is no longer updating the map, but if you want to log your name to the usage table, feel free to your location here:
-
-<form action="http://misterhouse.net:8080/SET:last_displayed">
-<input name="usage_loc" size=30 value="your_zip_code"> 
-<input name="usage_name" size=30 value="Name (optional)"> 
+<form action="http://misterhouse.net:8080/bin/mh_usage.pl">
+<input name="city" size=20> City <br>
+<input name="state" size=20"> State (2 letter state) or Country name<br>
+<input name="name" size=20 > Name (optional) <br>
 <input type=submit value="Send data"> 
 </form> 
 
-If out of USA, use city/country or latitude/longitude. Here are a couple of places you can look up lat/long:
-<ul>
-<li><a href=http://www.heavens-above.com/countries.asp>heavens-above.com</a>
-<li><a href=http://www.astro.com/cgi-bin/atlw3/aq.cgi>astro.com</a>
-</ul>
 
 <p>The above data is processed with this mh code: 
-<a href=http://misterhouse.net:81/mh/code/bruce/mh_usage.pl>mh/code/bruce/mh_usage.pl</a>
+<a href=http://misterhouse.net:8080/bin/browse.pl?/bin/mh_usage.pl>mh_usage.pl</a>
+
+<p> Here is an older map of users compiled by Kieran Ames.
+<p>
+<img src=http://misterhouse.net:81/mh_usage_map.jpg> 
 
 
 
@@ -39,6 +33,15 @@ If out of USA, use city/country or latitude/longitude. Here are a couple of plac
 <P><script>
 document.write("<FONT SIZE=-1>Last modified " + document.lastModified)
 </script>
+
+
+<!--
+If out of USA, use city/country or latitude/longitude. Here are a couple of places you can look up lat/long:
+<ul>
+<li><a href=http://www.heavens-above.com/countries.asp>heavens-above.com</a>
+<li><a href=http://www.astro.com/cgi-bin/atlw3/aq.cgi>astro.com</a>
+</ul>
+-->
 
 </body>
 </html>

@@ -20,7 +20,7 @@ See mh/bin/mh.ini for the various photo_* parms
 
 =cut
 
-use Tk::JPEG;
+my_use "Tk::JPEG" if $Reload;
 
 $photo_slideshow         = new Voice_Cmd '[Start,Stop,Next,Previous] the photo slideshow';
 

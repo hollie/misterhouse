@@ -16,7 +16,7 @@ if (said $v_zip_code) {
 
 if (done_now $p_zip_code) {
     speak 'Zip of source code is done';
-    copy 'c:/misterhouse/upload/misterhouse_src_test.zip', '//misterhouse.net/public';
+    copy 'c:/misterhouse/upload/misterhouse_src_test.zip', '//misterhouse/public';
 }
 
 
@@ -31,6 +31,6 @@ if (said $v_zip_win) {
 start $p_zip_win2 if done_now $p_zip_win1;
 if (done_now $p_zip_win2) {
     speak 'Zip of windows code is done';
-    copy 'c:/misterhouse/upload/misterhouse_win_test.zip', '//misterhouse.net/public';
+    copy 'c:/misterhouse/upload/misterhouse_win_test.zip', '//misterhouse/public';
 }
 

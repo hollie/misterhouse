@@ -13,19 +13,32 @@ $all_lights_on_living= new Serial_Item('XOI');
 $all_lights_on_bed   = new Serial_Item('XPI');
       
 $garage_movement_light= new Serial_Item('XI1'); 
-$garage_movement      = new Serial_Item('XI2');   # Do not responde to XIJ (on), so do not use X10_Item
-set_icon $garage_movement 'motion';
+$garage_movement      = new Serial_Item('XI2');   # Do not respond to XIJ (on), so do not use X10_Item
+$garage_movement     -> set_icon('motion');
 
-   
-$movement_sensor      = new  Serial_Item('XAJ', ON);
-$movement_sensor ->     add             ('XAK', OFF);
-set_icon $movement_sensor 'motion';
+# These are the dark/light signals that the motions sensors send ... ignore them
+$motion_sensor_ignore =  new Serial_Item('XA3AJ');
+$motion_sensor_ignore -> add            ('XA3AK');
+$motion_sensor_ignore -> add            ('XA5AJ');
+$motion_sensor_ignore -> add            ('XA3');
+$motion_sensor_ignore -> add            ('XA5');
+$motion_sensor_ignore -> add            ('XAJ');
+$motion_sensor_ignore -> add            ('XAK');
+$motion_sensor_ignore ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
 
-#movement_sensor_unit = new  Serial_Item('XA1', 'stair');
-$movement_sensor_unit = new  Serial_Item('XA2', 'hall');
-$movement_sensor_unit-> add             ('XA3', 'stair');
-$movement_sensor_unit-> add             ('XA4', 'bathroom');
-#$movement_sensor_unit-> add             ('XA5', 'bathroom2');
+$sensor_hall        ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
+$sensor_bathroom    ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
+
+$bathroom_light     ->set_icon('motion');
+$bathroom_light     ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
+$toggle_bathroom_light = new Serial_Item('XPE', 'toggle');
+$toggle_bathroom_light ->tie_items($bathroom_light);
+
+#print_log "db bathroom sensor: $state" if $state = state_now $sensor_bathroom;
+#print_log "db hall     sensor: $state" if $state = state_now $sensor_hall;
+
+$hall_light         ->set_icon('motion');
+$hall_light         ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
 
 # Living room x10 items
 $toggle_attic_fan    = new Serial_Item('XOA', 'toggle');
@@ -33,61 +46,12 @@ $toggle_attic_fan->    add            ('XPA', 'toggle');
 $display_calls       = new Serial_Item('XOF');
 
 
-# Bedroom x10 items
-$bedroom_curtain     = new  Serial_Item('XP8', OPEN);
-$bedroom_curtain    -> add             ('XPC', CLOSE);
-$bedroom_curtain    -> add             ('XP8PJ', OPEN);
-$bedroom_curtain    -> add             ('XP8PK', CLOSE);
-
-# Family room x10 items
-$family_curtain      = new  Serial_Item('XM8', OPEN);
-$family_curtain     -> add             ('XMC', CLOSE);
-$family_curtain     -> add             ('XAFAJ', OPEN);
-$family_curtain     -> add             ('XAFAK', CLOSE);
-
-$basement_curtain      = new  Serial_Item('XM6', OPEN);
-$basement_curtain     -> add             ('XMA', CLOSE);
-
-#$tramp_timer         = new  Serial_Item('XM6', ON);
-#$tramp_timer        -> add             ('XMA', OFF);
-
-$toggle_backyard_light= new Serial_Item('XM5');
-$toggle_fountain     = new Serial_Item('XM9'); # Family room
-#toggle_fountain    -> add            ('XO9'); # Living room
-
-# Nick's room 
-$nick_curtain        = new  Serial_Item('XNCNK', OPEN);
-$nick_curtain       -> add             ('XNCNJ', CLOSE);
-$nick_curtain       -> add             ('XAGAJ', OPEN);
-$nick_curtain       -> add             ('XAGAK', CLOSE);
-
-# Zack's room 
-#zack_curtain        = new  Serial_Item('XJ8', OPEN);
-#zack_curtain       -> add             ('XJC', CLOSE);
-$zack_curtain        = new  Serial_Item('XM7', OPEN);
-$zack_curtain       -> add             ('XMB', CLOSE);
-#$zack_curtain       -> add             ('XAEAJ', OPEN);
-#$zack_curtain       -> add             ('XAEAK', CLOSE);
-
-$laundry_timer       = new  Serial_Item('XH2', ON);
-$laundry_timer      -> add             ('XH3', OFF);
-
-# Comment x10 buttons
-
-$request_temp        = new  Serial_Item('XH1');
-$request_temp       -> add             ('XJ1');
-$request_temp       -> add             ('XK1');
-$request_temp       -> add             ('XM1');
-$request_temp       -> add             ('XN1');
-$request_temp       -> add             ('XO1');
-$request_temp       -> add             ('XP1');
-
 $test_3              = new  Serial_Item('XO3');
 $test_16             = new  Serial_Item('XOG');
   
 # Analog items
 #$analog_request_a    = new  Serial_Item('AES', 'reset');
-$analog_request_a    = new  Serial_Item('AES');
+$analog_request_a    = new  Serial_Item('AES', 'request');
 $analog_results      = new  Serial_Item('A');
 $temp_zack           = new  Serial_Item('AE1');
 $temp_living         = new  Serial_Item('AE2');
@@ -183,4 +147,15 @@ $pa_living          -> add             ('DBLH', OFF);
 
 $mh_toggle_mode = new  Serial_Item('XPG', 'toggle');
 tie_event $mh_toggle_mode "run_voice_cmd 'Toggle the house mode'";
+
+
+# This is an example of how to create a Voice_Cmd 
+# control for all X10 items. 
+
+my $list_x10_items = join ',', &list_objects_by_type('X10_Item');
+$list_x10_on  = new Voice_Cmd "X10 Turn on  [$list_x10_items]";
+$list_x10_off = new Voice_Cmd "X10 Turn off [$list_x10_items]";
+
+eval "$state->set(ON)"  if $state = state_now $list_x10_on;
+eval "$state->set(OFF)" if $state = state_now $list_x10_off;
 

@@ -5,14 +5,16 @@
 #@ AquaLink RS Pool Control system.
 #@ 
 #@ Set the following parameters in your mh.private.ini file:
-#@ serial1_port=COM9
-#@ serial1_baudrate=9600
-#@ serial1_handshake=none
-#@ serial1_datatype=records
+#@ aqualink_port=COM9
+#@ aqualink_baudrate=9600
+#@ aqualink_handshake=none
+#@ aqualink_datatype=records
 
 =begin comment
 
 aqualink.pl
+ 1.2 Moved spa.log to log directory - 10/16/02
+     Added back some logging routines that were previously lost
  1.1 Misc enhancements by Tim Doyle <tim@greenscourt.com> - 11/17/2001
      Fixed AUX naming bug
      Queries pool data at startup and saves data for use later (like on Audrey pages)
@@ -61,12 +63,6 @@ if ( $Startup ) {
   set $jandy "#COSMSGS=1";                       #Tell us when things change
 #  set $jandy "#OPTIONS?";                        #Get the Power Center Options
 }
-
-#if ($New_Minute) {
-#  if ($SpaReady eq 'true') {
-#    set $jandy "#SPATMP?";
-#  }
-#}
 
 if ( $data = said $jandy ) {
   $data =~ s/\n//;
@@ -249,6 +245,7 @@ if ( $data = said $jandy ) {
         play(rooms => 'all', file => "alert.wav");
       }
       $Save{PoolTemp} = $value;
+      &logpool;
     }
 
     if ( $command eq 'PUMP' ) {
@@ -256,6 +253,13 @@ if ( $data = said $jandy ) {
         speak "The pool pump is currently $value.";
       } else {
         speak "The pool pump has been turned $value.";
+# I used this when it was below freezing for extra insurance
+#        if (lc($value) eq 'off') {
+#          run_voice_cmd 'Turn the pool pump ON';
+#          play('file' => 'alert.wav');
+#          speak "The pool pump just turned off. Turning it back on.";
+#          run_after_delay 2, "run_voice_cmd 'Turn the pool cleaner ON'";
+#        }
       }
       $Save{PoolPump} = $value;
     }
@@ -294,10 +298,16 @@ if ( $data = said $jandy ) {
     if ( $command eq 'SPATMP' ) {
       speak "The spa is currently $value degrees.";
       $Save{PoolSpaTemp} = $value;
+      &logspa("heat");
 
       if ($SpaHeating) {
-        if ($value > 99) { $SpaHeating = 0; }
-        &logspa("heat");
+        if ($value > 95) { 
+          $SpaHeating = 0; 
+          speak "It is now ready.";
+        } else {
+          my $TimeLeft = int((96-$value)/.7);  # My heater can raise the spa temp 7 degrees in 10 minutes
+          speak "It should be ready in $TimeLeft minutes.";
+        }
       }
     }
 
@@ -453,13 +463,13 @@ if ($state = said $v_pool_cleaner_chk) {
 }
 
 #This bombs out as I have the cleaner instead - have it check and do this instead
-$v_pool_AUX1_set = new Voice_Cmd("Turn the pool $AUX1 [ON,OFF]");
+$v_pool_AUX1_set = new Voice_Cmd("Turn the $AUX1 [ON,OFF]");
 if ($state = said $v_pool_AUX1_set) {
   set $jandy "#AUX1=$state";
   $AUX1mode = 'set';
 }
 
-$v_pool_AUX1_chk = new Voice_Cmd("Check the pool $AUX1 status");
+$v_pool_AUX1_chk = new Voice_Cmd("Check the $AUX1 status");
 if ($state = said $v_pool_AUX1_chk) {
   if ($Cleaner eq '1') {
     speak "Your system doesn't use AUX 1 - Use Cleaner instead";
@@ -469,25 +479,25 @@ if ($state = said $v_pool_AUX1_chk) {
   }
 }
 
-$v_pool_AUX2_set = new Voice_Cmd("Turn the pool $AUX2 [ON,OFF]");
+$v_pool_AUX2_set = new Voice_Cmd("Turn the $AUX2 [ON,OFF]");
 if ($state = said $v_pool_AUX2_set) {
   set $jandy "#AUX2=$state";
   $AUX2mode = 'set';
 }
 
-$v_pool_AUX2_chk = new Voice_Cmd("Check the pool $AUX2 status");
+$v_pool_AUX2_chk = new Voice_Cmd("Check the $AUX2 status");
 if ($state = said $v_pool_AUX2_chk) {
   set $jandy "#AUX2?";
   $AUX2mode = 'check';
 }
 
-$v_pool_AUX3_set = new Voice_Cmd("Turn the pool $AUX3 [ON,OFF]");
+$v_pool_AUX3_set = new Voice_Cmd("Turn the $AUX3 [ON,OFF]");
 if ($state = said $v_pool_AUX3_set) {
   set $jandy "#AUX3=$state";
   $AUX3mode = 'set';
 }
 
-$v_pool_AUX3_chk = new Voice_Cmd("Check the pool $AUX3 status");
+$v_pool_AUX3_chk = new Voice_Cmd("Check the $AUX3 status");
 if ($state = said $v_pool_AUX3_chk) {
   set $jandy "#AUX3?";
   $AUX3mode = 'check';
@@ -543,12 +553,18 @@ if ($Startup) {
 
 sub logspa {
   my $text = @_;
-  my $spadb = "$config_parms{data_dir}/spa.log"; 
+  my $spadb = "$config_parms{data_dir}/log/spa.log"; 
   open(SPADB, ">>$spadb");
   print SPADB "$Date_Now $Time_Now $Save{PoolSpaTemp} $Save{PoolAirTemp} $text\n";
   close SPADB;
 }
 
+sub logpool {
+  my $pooldb = "$config_parms{data_dir}/log/pool.log"; 
+  open(POOLDB, ">>$pooldb");
+  print POOLDB "$Date_Now $Time_Now $Save{PoolTemp} $Save{PoolAirTemp}\n";
+  close POOLDB;
+}
 
 
 #Commands

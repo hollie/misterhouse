@@ -70,7 +70,7 @@ if ($state = said $v_im_signon) {
     &net_jabber_signon    if $state eq 'jabber';
 }
 
-$v_im_signoff = new Voice_Cmd 'Disconnect from [AOL,MSN.jabber]';
+$v_im_signoff = new Voice_Cmd 'Disconnect from [AOL,MSN,jabber]';
 $v_im_signoff-> set_info('Disconnect from the configured jabber server');
 if ($state = said $v_im_signoff) {
     &net_im_signoff       if $state eq 'AOL';
@@ -93,6 +93,7 @@ if ($Reload) {
     &MSNim_Message_add_hook  (\&im_message);
     &Jabber_Message_add_hook (\&im_message);
 
+    &AOLim_Status_add_hook   (\&im_status);
     &MSNim_Status_add_hook   (\&im_status);
     &Jabber_Presence_add_hook(\&im_status);
 
@@ -126,7 +127,8 @@ sub im_message {
 #       if (&run_voice_cmd($text, undef, 'msnim')) {
         if (&process_external_command($text, 1, 'im')) {
 #           $msg = "Command was run";
-            $im_data{loop_count} = $Loop_Count + 2; # Give us 2 passes to wait for any resulting speech
+            $im_data{loop_count} = $Loop_Count + 4; # Give us 2 passes to wait for any resulting speech
+            print "dbx1 lc=$Loop_Count\n";
             $im_data{pgm}  = $pgm;
             $im_data{from} = $from;
             $Last_Response = '';
@@ -158,6 +160,7 @@ sub send_im {
 if ($im_data{loop_count} and $im_data{loop_count} == $Loop_Count) {
     my $last_response = &last_response;
     $last_response = 'No response' unless $last_response;
+    $last_response = substr $last_response, 0, 500; # im clients are wimpy
     send_im($im_data{pgm}, $im_data{from}, "$Last_Response: $last_response");
 }
 

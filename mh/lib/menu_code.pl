@@ -22,10 +22,11 @@ sub menu_parse {
     }
 
 
-    my $menu_states_cnt = 'states0';
+    my $menu_states_cnt = 'states0000';
     for (split /\n/, $template) {
-        my ($type, $data) = $_ =~ /^\s*(\S+)\:\s*(.+?)\s*$/;
+        next unless /\S/;       # Ignore blank lines
         next if /^\s*\#/;       # Ignore comments
+        my ($type, $data) = $_ =~ /^\s*(\S+)\:\s*(.+?)\s*$/;
         $data =~ s/\s+\#.+//;   # Ignore comments
 
                                 # Pull out 'start menu' records:  M: Lights 
@@ -163,6 +164,7 @@ sub menu_parse {
                                 # Create a sorted menu list
     @{$menus{menu_list_sorted}} = sort {$menus{$a}{level} <=> $menus{$b}{level}} @{$menus{menu_list}};
 
+    return $Menus{$menu_group}; 
 }
 
                                 # Find just one level of submenus
@@ -498,12 +500,16 @@ sub menu_wml_cards {
     for my $menu (@menus) {
         my $wml = "\n <card id='$menu'>\n";
                                 # Save the menu name in a var (unless it is a states menu)
-        unless ($menu =~ /^states\d+$/) {
-            $wml .= "  <onevent type='onenterforward'><refresh>\n";
-            $wml .= "    <setvar name='prev_menu' value='$menu'/>\n";
-            $wml .= "  </refresh></onevent>\n";
+        $wml .= "  <onevent type='onenterforward'><refresh>\n";
+        if ($menu =~ /^states\d+$/) {
+            $wml .= qq|    <setvar name='prev_value' value="\$my_value"/>\n|;
         }
-        $wml .= "  <p>$menu\n  <select name='prev_value'>\n";
+        else {
+            $wml .= qq|    <setvar name='prev_menu'  value='$menu'/>\n|;
+        }
+        $wml .= "  </refresh></onevent>\n";
+
+        $wml .= "  <p>$menu\n  <select name='my_value'>\n";
 # ivalue=0 does not seem to change anything
 #                              <select name='prev_value' ivalue='0'>
 # Not sure what select grouping does
@@ -540,7 +546,7 @@ sub menu_wml_cards {
             else {
                 my $goto = $$ptr{goto};
                 $goto = ($menus{$goto}) ? "#$goto" : "/sub?menu_wml($menu_group,$goto)";
-                $wml .= "    <option onpick='$goto'>$$ptr{D}</option>\n";
+                $wml .= "    <option value='$item' onpick='$goto'>$$ptr{D}</option>\n";
             }
             $item++;
         }
@@ -846,6 +852,9 @@ return 1;
 
 #
 # $Log$
+# Revision 1.12  2002/11/10 01:59:57  winter
+# - 2.73 release
+#
 # Revision 1.11  2002/08/22 04:33:20  winter
 # - 2.70 release
 #

@@ -7,7 +7,106 @@
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
 
-=head2 Version 2.72 posted on 10/13/2002
+=head2 Version 2.73 posted on 11/09/2002
+
+Version 2.73 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+  http://misterhouse.net:81/download.html
+
+B<New Features:>
+
+- Jason Sharpee added mh/lib/Numbered_Menu.pm for navigating menus with numeric keypads like phones.
+It differers from Audible_Menu.pm, which uses just one key to select menu items as they are read, 
+in that you can use numbered keys to jump to the desired item.
+You can try this out with your keyboard number pad by enabling the new code/common/keyboard_numbered_menu.pl code, which 
+will use the default menu you parsed in your menu.pl code.
+
+- Tim Doyle created code/common/audrey_control.pl.  If you download the audrey apps listed in that code,
+you can control both pen and mail lights, sleep mode, and the built in sounds.
+
+- Improved the web select_code interface by adding an Index, Search option, and listing of relevant config_parms.
+
+
+B<Bug Fixes and Other Changes:>
+
+- Jason Sharpee noticed were were not logging 0 and 1 states in Generic_Item state_log.
+
+- Steve Switzer made some speak tweaks to CallerID.pm
+
+- Brian Rudy fix a problem with the return code from the play function on perl 5.8 on linux.
+
+- David Lounsberry updated vv_tts to allow for pa control and a text_first option.
+See mh/code/public/pa_control_vv_tts.pl for an example.
+Sean Walker updated vv_tts.pl to ignore +-1 volume changes, to not respond to round off errors.
+We also added a no_log=xcmd option, to turn off errata when using xcmd a lot, like with the above change.
+
+- Kyle Kirkland added another sprinkler example to code/public.
+
+- Tim Doyle added a AOLim_Status so we can detect when buddies listed in the new net_aim_buddies parm log on and off.
+Tim also updated his common/aqualink.pl code.
+
+- Joseph Gaston created mh/code/public/internet_ip_update_hn.pl for use with DNS servers from hn.org.
+He also made some updates to the HomeVision mh/lib/HVweb_Item.pm module.
+
+- Brian Rudy updated weather_aws.pl (now in code/common)
+adding support for weather_monitor.pl, weather_log.pl, and
+the weather and wind web page status line parameters.
+
+- Robert Mecklenburg noticed the 'preset' X10_Item parm (to flag presetable modules) was not working,
+and that, for preset-able modules, the dim level was not stored after an OFF command.
+
+- Robert Mecklenburg also noticed that outgoing house commands (e.g. A1 All Off) did not 
+set the states of mh X10 objects on those housecodes.
+
+- Tim Doyle fixed removing of old msvoice commands on code reload.
+
+- Larry Roudebush noticed that wap (phone) menus did not work right on menus with states.
+
+- Jeff Pagel sent in mh/code/public/sensor_water.pl an an example for sensing water in the basement.
+
+- Neil Wrightson noticed the .mht read_table code did not process extra iButton arguments correctly.
+
+- David Lounsberry created mh/code/public/vocp_func.pl for monitoring linux vocp logs for callerid and voice mail.
+
+- David Norwood modified the spoken common/tv_info.pl code summary. 
+
+- Richard Koch noticed his modem callerid didn't work over a mh proxy.  To fix this, I made a small update
+to the proxy protcol, so if you upgrade your main mh, you will need to upgrade your proxy mh also.
+
+- Tim Doyle came up with a scheme to allow easy updates of the web local weather radar image, using
+your mh.ini zip code.  This new option is at the bottom of the ia5 local weather page.
+
+- Changed alarmclock.txt speperator from / to |, so we can support dates in time_now formats.x
+
+- Moved the print, speak, and error logs from data_dir to data_dir/logs.
+Also changed the default mh.ini pid_file parm from mh/data to $config_parms{data_dir},
+so multiple mh runs (e.g. mh and mh_proxy) can write their own pid file.
+
+- Moved these files to code/common:  weather_pollen.pl
+
+- Created mh/code/examples/x10_sunrise.pl as an example of how to slowly turn on an X10 light using a timer.
+
+- Added a mh.ini web_refresh parm so we can control the web screen saver.  
+Defaults to the previous photo script, but can be changed to clock or whatever.
+
+- Moved Bruce specific stuff out of mh/code/common/iButton.pl into mh/code/bruce/iButton_bruce.pl
+
+- Fixed a web server problem on unix where the browser would wait for host TTS speech to finish 
+(forgot to close the http port on the child after forkint).
+
+- Added an organizer_email parm to allow email to the web organizer todo AssignedTo name.  
+Also allowed the DueDate to be any valid time_now format. 
+
+- Added X10_Sensor (mht type is X10MS) item method light and dark, to return the current light and dark 
+state of MS13 motion sensors.
+
+- Added mh/lib/site/Date/Manip.pm and Manip.txt.  This large module took and extra .5 seconds and 3 meg
+of memory to load, so I decided not to load it by default.  See mh/code/examples/test_dates.pl
+for an example usage.
+
+
+=head2 Version 2.72 posted on 10/12/2002
 
 Version 2.72 was just uploaded to:
 

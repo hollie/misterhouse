@@ -10,7 +10,7 @@ if ($state = said $v_webcam_light) {
 #   set $webcam_light 'dim';
 #   set $webcam_light 'off';
 #   set $webcam_light 'on';
-   my $domain_name = &net_domain_name($Socket_Ports{http}{client_ip_address});
+#   my $domain_name = &net_domain_name($Socket_Ports{http}{client_ip_address});
 #  my $domain_name = &net_domain_name('24.6.1.184');
    my $msg = "The webcam light was just turned $state";
 #   my $msg = "The webcam light was just turned $state by address $Socket_Ports{http}{client_ip_address}";

@@ -1,20 +1,42 @@
 # Category=none
 
 $timer_garage_door = new  Timer();
+my $garage_door_time;
 if($state = state_now $garage_door) {
-    unless ($state eq 'init') {
+#   print "db garage door state=$state, t=$Time l=$Loop_Count\n";
+                         # Ignore mh startup noise and add a bit of hysteresis
+    unless ($state eq 'init' or ($Time - $garage_door_time) < 2) {
         set $timer_garage_door 300;
         play('rooms' => 'all', 'file' => "garage_door_" . $state . "*.wav");
     }
+    $garage_door_time = $Time;
 }
 
 # Note:  testing on state $item seems to reset it!! use $item->{state} instead :(
 if ((time_cron('0,5,10,15,30,45 22,23 * * *') and 
     (OPENED eq ($garage_door->{state})) and
     inactive $timer_garage_door)) {
-    &speak(mode => 'unmuted', text => "The garage door has been left opened.  I am now closing it.");
-    set $garage_door_button ON;
-    set $garage_door_button OFF;
+#    &speak(mode => 'unmuted', text => "The garage door has been left opened.  I am now closing it.");
+#    set $garage_door_button ON;
+#    set $garage_door_button OFF;
+}
+
+$garage_door_v = new Voice_Cmd '[open,close,change] {the} garage door';
+if ($temp = state_now $garage_door_v) {
+    $state = state $garage_door;
+    print_log "Garage door is $state.  Request=$temp\n";
+    if ($state eq 'open' and $temp eq 'open') {
+        speak 'The garage door is already opened';
+    }
+    elsif ($state eq 'close' and $temp eq 'close') {
+        speak 'The garage door is already closed';
+    }
+    else {
+        speak $temp . 'ing the garage door';
+        set $garage_door_button ON;
+        select undef, undef, undef, .100;
+        set $garage_door_button OFF;
+    }
 }
 
 $timer_front_door = new  Timer();
@@ -36,7 +58,7 @@ if ($state = state_now $back_door and $state ne 'init' and inactive $timer_back_
 #   speak("Back door $state");
 }
 if (expired $timer_back_door and state $back_door eq OPENED) {
-    speak("The back door has been left open");
+    speak(mode => 'unmuted', text => 'The back door has been left open');
     set $timer_back_door 240;
 }
 
@@ -47,11 +69,11 @@ $timer_garage_movement = new  Timer();
 if (state_now $garage_movement) {
     set $garage_light ON;
     if (inactive $timer_garage_movement) {
-    play('rooms' => 'all', 'file' => "garage_movement*.wav");
+        play('rooms' => 'all', 'file' => "garage_movement*.wav");
 #       speak("Something is in the garage.");
     }
-    set $timer_garage_movement 300;
-    set $timer_garage_door 300;
+    set $timer_garage_movement 1200;
+    set $timer_garage_door 1200;
 }
 if (expired $timer_garage_movement) {
     set $garage_light OFF;
@@ -61,31 +83,29 @@ if (state_now $garage_door or
     state_now $garage_entry_door or
     state_now $entry_door or
     state_now $front_door) {
-    set $timer_garage_movement 300;
+    set $timer_garage_movement 1200;
     set $timer_garage_door 300;
-    set $timer_stair_movement 150;
+#   set $timer_stair_movement 150;
 }
 
-$timer_stair_movement = new  Timer();
-$bathroom_timer  = new Timer();
-#speak("stair creek")      if state_now $movement_sensor eq ON;
+                                # Check the movement sensors
 
-#print_log "movement sensor: " . (state $movement_sensor_unit) if state_now $movement_sensor;
+$timer_hall_movement     = new Timer;
+$timer_bathroom_movement = new Timer;
 
-if (state_now $movement_sensor eq ON and 
-    inactive $timer_stair_movement and
-    !$Save{sleeping_parents}) {
-    set $timer_stair_movement 60;
-#    set $timer_stair_movement 150;
-    if ((state $movement_sensor_unit) eq 'stair') {
-        play('file' => "stairs_creek*.wav");
+unless ($Save{sleeping_parents}) {
+    if (state_now $hall_light        eq ON and inactive $timer_hall_movement) {
+#       play file => 'timer', rooms => 'all', mode => 'unmuted'; # Girl detector
+        play 'movement1';       # Defined in event_sounds.pl
+#       play 'file' => 'stairs_creek*.wav';
+        set $timer_hall_movement 3;
     }
-    elsif ((state $movement_sensor_unit) eq 'hall') {
-        play(rooms => 'all', file => 'sound_hall*.wav');
-#       speak "rooms=all boys in the hall";
-    }
-    elsif ((state $movement_sensor_unit) eq 'bathroom') {
-        print_log 'bathroom movement';
-        set $bathroom_timer 5;
+    elsif (state_now $bathroom_light eq ON and inactive $timer_bathroom_movement) {
+#       play 'movement1';       # Defined in event_sounds.pl
+        set $timer_bathroom_movement 5;
     }
 } 
+
+                                # These items do 24 hour battery tests
+#$sensor_hall     = new X10_Sensor 'XA2AJ', 'Hall';
+#$sensor_bathroom = new X10_Sensor 'XA4AJ', 'Bathroom';

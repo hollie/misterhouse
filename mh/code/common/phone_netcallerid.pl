@@ -4,7 +4,6 @@
 #@ This will announce caller id and call waiting id names
 #@ using the $30 NetCallerID device.
 #@ from <a href=http://ugotcall.com/nci.htm>ugotcall.com</a>
-#@ also available from <a href=http://www.cyberguys.com>cyberguys.com</a>
 #@ Use these mh.ini parms:
 #@   serial_netcallerid_port     = COM2
 #@   serial_netcallerid_baudrate = 4800
@@ -30,9 +29,12 @@
 
 
 $NetCallerID = new Serial_Item (undef, undef, 'serial_netcallerid');
+$v_netcallid_test = new Voice_Cmd('test netcallerid');
 
                                 # Speak incoming callerID data and log it
-if (my $caller_id_data = said $NetCallerID) {
+if (my $caller_id_data = said $NetCallerID || said $v_netcallid_test) {
+
+    if (said $v_netcallid_test) {$caller_id_data="###DATE10072333...NMBR8015551212...NAMEUNKNOWN+++"; print_log "Test phone call requested.";}
     
     print_log "NetCallerID data=$caller_id_data";
 
@@ -51,7 +53,7 @@ if (my $caller_id_data = said $NetCallerID) {
         $Save{phone_callerid_Time} = $Time;
 
         unless ($Caller_ID::reject_name_by_number{$cid_number}) {
-            play rooms => 'all', file => 'ringin.wav,ringin.wav'; # Simulate a phone ring
+#           play rooms => 'all', file => 'ringin.wav,ringin.wav'; # Simulate a phone ring
             speak("rooms=all_and_out mode=unmuted $caller");
 #           speak("address=piano $caller");
         }
@@ -61,9 +63,4 @@ if (my $caller_id_data = said $NetCallerID) {
     }
 }
 
-                                # Log outgoing phone numbers
-if ($state = state_now $phonetone) {
-    logit("$config_parms{data_dir}/phone/logs/phone.$Year_Month_Now.log", $state);
-    print_log "Phone data: $state";
-}
 

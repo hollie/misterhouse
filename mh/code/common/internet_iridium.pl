@@ -29,7 +29,8 @@ run_voice_cmd 'get iridium flares' if $New_Week;
 my $iridium_check_e = "$config_parms{code_dir}/iridium_check_events.pl";
 my $iridium_check_f = "$config_parms{data_dir}/web/iridium.html";
 my $iridium_check_u = "http://www.heavens-above.com/iridium.asp?" . 
-                      "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7";
+                      "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&" .
+                      "loc=$config_parms{city}";
 $iridium_check_p = new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
 #$iridium_check_p = new Process_Item "get_url '$iridium_check_u' '$iridium_check_f'";
 
@@ -46,7 +47,23 @@ if (done_now $iridium_check_p or $state eq 'list') {
 
     my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
     open(MYCODE, ">$iridium_check_e") or print_log "Error in writing to $iridium_check_e";
-    print MYCODE "\$iridium_timer = new Timer; # Re-define here in case we turn off internet_iridium.pl\n\n";
+
+    print MYCODE <<'eof';
+$iridium_timer = new Timer;
+        if ($New_Second and my $time_left = int seconds_remaining $iridium_timer) {
+          my %iridium_timer_intervals = map {$_, 1} (15,30,90);
+          if ($iridium_timer_intervals{$time_left}) {
+             my $pitch = int 10*(1 - $time_left/60);
+             speak "pitch=$pitch $time_left seconds till flash";
+          }
+       }
+       if (expired $iridium_timer) {
+          speak "pitch=10 rooms=all_and_out Iridium flash now occuring";
+          play 'timer2';              # Set in event_sounds.pl
+       }
+
+eof
+
     for (split "\n", $text) {
         if (/Iridium \d+$/) {
             s/\xb0//g;          # Drop ^o (degree) symbol
@@ -82,18 +99,6 @@ eof
 }
 
                                 # This timer will be triggered by the timer set in the above MYCODE
-$iridium_timer = new Timer;
-my %iridium_timer_intervals = map {$_, 1} (15,30,90);
-if ($New_Second and my $time_left = int seconds_remaining $iridium_timer) {
-    if ($iridium_timer_intervals{$time_left}) {
-        my $pitch = int 10*(1 - $time_left/60);
-        speak "pitch=$pitch $time_left seconds till flash";
-    }
-}
-if (expired $iridium_timer) {
-    speak "pitch=10 rooms=all_and_out Iridium flash now occuring";
-    play 'timer2';              # Set in event_sounds.pl
-}
 
 =begin example
 

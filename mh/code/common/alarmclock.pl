@@ -9,7 +9,7 @@
 
 my (@alarmdata);
                   # If alarm data file changed read new data
-if(($New_Second and file_changed("$config_parms{data_dir}/alarmclock.txt")) or $Reload) {
+if(($New_Minute and file_changed("$config_parms{data_dir}/alarmclock.txt")) or $Reload) {
     print "Reading alarm clock data ($Date_Now $Time_Now):\n";
     @alarmdata = ();
     open(ALARMDATA,"$config_parms{data_dir}/alarmclock.txt");
@@ -27,9 +27,11 @@ if(($New_Second and file_changed("$config_parms{data_dir}/alarmclock.txt")) or $
 
 if ($New_Minute) {
     for my $data (@alarmdata) {
-        my ($alarm_time, $alarm_msg) = split '/', $data, 2;
+        my ($alarm_time, $alarm_msg) = split '\|', $data, 2;
 
-        my @a = split ' ',$alarm_time;
+#       print "test alrm: time=$alarm_time msg=$alarm_msg d=$data\n";
+
+        my @a = split ' ', $alarm_time;
         if ((@a == 5 and &time_cron($alarm_time)) or
             (@a != 5 and &time_now($alarm_time))){
                            # Use eval to eval $Time_Now ect in msg

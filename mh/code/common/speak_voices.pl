@@ -14,8 +14,6 @@ Nice demonstration of reading and writing wav files though :)
 
 =cut
 
-# Category=Informational
-
 $voices_speak_many = new Voice_Cmd 'Test speech with many voices [1,2,3]';
 
 if ($state = said $voices_speak_many) {

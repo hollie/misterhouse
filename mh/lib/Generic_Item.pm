@@ -237,10 +237,6 @@ sub set_states_for_next_pass {
     push @states_from_previous_pass, $ref unless $ref->{state_next_pass} and @{$ref->{state_next_pass}};
     push @{$ref->{state_next_pass}}, $state;
 
-                                # Avoid -w unintialized variable errors
-    $state  = '' if !$state or $state eq '1';
-    $set_by = '' unless $set_by;
-
                                 # Reset this (used to detect which tied item triggered the set)
                                 #  - Default to self if not specified ... naw, not sure why we would need it set to self??
 #   $ref->{set_by} = ($set_by) ? $set_by : $ref;
@@ -255,6 +251,9 @@ sub set_states_for_next_pass {
     $ref->{set_time} = $main::Time;
 
                                 # Set the state_log ... log non-blank states
+                                # Avoid -w unintialized variable errors
+    $state  = '' unless defined $state;
+    $set_by = '' unless defined $set_by;
     unshift(@{$$ref{state_log}}, "$main::Time_Date $state set_by=$set_by") if $state or (ref $ref) eq 'Voice_Cmd';
     pop @{$$ref{state_log}} if $$ref{state_log} and @{$$ref{state_log}} > $main::config_parms{max_state_log_entries};
 
@@ -415,6 +414,9 @@ sub get_web_style {
 
 #
 # $Log$
+# Revision 1.23  2002/11/10 01:59:57  winter
+# - 2.73 release
+#
 # Revision 1.22  2002/10/13 02:07:59  winter
 #  - 2.72 release
 #

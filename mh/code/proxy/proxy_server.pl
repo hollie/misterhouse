@@ -20,7 +20,7 @@ See 'Using distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
 
 =cut
 
-$proxy_server  = new  Socket_Item(undef, undef, 'server_proxy');
+$proxy_server  = new  Socket_Item(undef, undef, 'server_proxy', undef, undef, undef, "\035");
 
 #print '.';                      # A heartbeat
 
@@ -43,6 +43,7 @@ if ($state = said $proxy_server) {
         if ($function2 eq 'scan_report') {
             my $result = &iButton::scan_report();
             $result =~ s/\n/$;/g;
+            print "dbx sr=$result.\n";
             set $proxy_server $result, 'all';
         }
         elsif ($function2 eq 'read_temp') {
@@ -62,6 +63,7 @@ if ($state = said $proxy_server) {
 &Serial_data_add_hook(\&proxy_serial_data) if $Reload;
 sub proxy_serial_data {
     my ($data, $interface) = @_;
+    return unless $data;
     print_log "Proxy serial data sent to mh: interface=$interface data=$data." if $config_parms{debug} eq 'proxy';
     if ($proxy_server->active()) {
         set $proxy_server join($;, 'serial', $data, $interface), 'all'; # all writes out to all clients

@@ -1,17 +1,17 @@
 # Category = Internet
 
-#@ Use this to monitor if your internet connection is up or down
+#@ Uses ping to monitor if your internet connection is up or down
+#@ Useful for those with cable or dsl modems that often go down for hours at a time
 
                                 # Enable this code (with 'Ping test on') to notify you 
                                 # when your internet connection goes up or down.
-                                # Useful for those with cable modems that often go down for
-                                # hours at a time.
+                                # Useful for those with cable or dsl modems that often go
+                                # down for hours at a time.
                                 # Note: we use a process item to 'fork' the ping, as it
                                 #       might hang if the net connection is down.  
 
 my $ping_test_results = "$config_parms{data_dir}/ping_results.txt";
 my $ping_test_cmd     = ($OS_win) ? 'ping -n 1 ' : 'ping -c 1 ';
-#y $ping_test_host    = '24.213.60.73'; # bresnanlink.net
 my $ping_test_host    = 'google.com';
 $ping_test   =  new Process_Item $ping_test_cmd . $ping_test_host;
 $ping_test   -> set_output($ping_test_results);
@@ -22,7 +22,8 @@ $v_ping_test -> set_info("Run a ping test to see if there is an internet connect
 
 $Save{ping_test_flag} = ($state eq 'on') ? 1 : 0 if $state = said $v_ping_test and $state ne 'run';
 
-if (($Save{ping_test_flag} and new_minute 2) or $state) {
+                                # Check more often if it is down, to cut down on traffic
+if (($Save{ping_test_flag} and new_minute($Save{ping_test_results} eq 'up' ? 10 : 2)) or $state) {
     unlink $ping_test_results;
     start  $ping_test unless $state eq 'off';
 }
@@ -49,9 +50,9 @@ if (done_now $ping_test) {
             logit "$config_parms{data_dir}/logs/internet_down.log", "Net up.  Was $Save{ping_test_results}.  Downtime: $time_diff";
             $time_diff = time_diff $Save{ping_test_time}, $Time, 'minute';
 #           play file => 'timer', mode => 'unmute'; # Set in event_sounds.pl
-#           speak 'rooms=nick mode=unmute The cable modem is back up';
-            speak "rooms=all The cable modem is back up after $time_diff";
-            display "The cable modem is back up  (was $Save{ping_test_results}).  Time=$time_diff", 0;
+            speak "rooms=all The internet connection is back up after $time_diff";
+            display text => "The internet connection is back up  (was $Save{ping_test_results}).  Time=$time_diff", 
+              time => 0, window_name => 'Internet Connect Check', append => 'bottom';
         }
         $Save{ping_test_results} =  'up';
     }
@@ -63,8 +64,9 @@ if (done_now $ping_test) {
             $Save{ping_test_time}    = $Time;
         }
         elsif (++$Save{ping_test_count} == 3) {
-            speak 'rooms=all The cable modem just went down';
-            display 'The cable modem is down', 0;
+            speak 'rooms=all The internet connection just went down';
+            display text => 'The internet connection is down',
+              time => 0, window_name => 'Internet Connect Check', append => 'bottom';
             logit "$config_parms{data_dir}/logs/internet_down.log", "Net down";
         }
         print_log "Internet is $Save{ping_test_results}";

@@ -2,9 +2,10 @@
 
 
                                 # Turn attic fan on if warmer inside, in the summer
-if ($weather{TempOutdoor} > 55 and
+if ($Weather{TempOutdoor} > 55 and
     $Season eq 'Summer' and
-    $weather{TempOutdoor} < ($weather{TempIndoor} - 1) and
+    $Weather{TempOutdoor} < ($Weather{TempIndoor} - 1) and
+    $Weather{TempIndoor}  > 80 and
     (time_cron '0 0,2,5 * * *')) {
     print "fan on\n";
     set $attic_fan ON;
@@ -17,19 +18,19 @@ if (time_cron '0 1,3,6 * * *') {
 
                                 # Turn furnace and ceiling fans on when the Winter 
                                 # solar heat needs to be distrubuted
-if ($weather{TempOutdoor} < 50 and
+if ($Weather{TempOutdoor} < 50 and
     state $furnace_fan eq OFF and
     ($Season eq 'Fall' or $Season eq 'Winter') and
-    $weather{TempIndoor} > 76 and
+    $Weather{TempIndoor} > 76 and
     $Hour > 9 and $Hour < 16) {
-    speak "Notice, the sun as warmed us up to $weather{TempIndoor} degrees, so I am turning the fans on at $Time_Now";
+    speak "Notice, the sun as warmed us up to $Weather{TempIndoor} degrees, so I am turning the fans on at $Time_Now";
     set $furnace_fan ON;
     set $living_room_fan ON;
     set $bedroom_fan ON;
 }
                                 # Turn them off after it has cooled down, or in late afternoon
-if (state $furnace_fan eq ON and $weather{TempIndoor} and ($weather{TempIndoor} < 74 or $Hour > 18)) {
-    speak "Notice, it has cooled down to $weather{TempIndoor} degrees, so I am turning the fans off at $Time_Now";
+if (state $furnace_fan eq ON and $Weather{TempIndoor} and ($Weather{TempIndoor} < 74 or $Hour > 18)) {
+    speak "Notice, it has cooled down to $Weather{TempIndoor} degrees, so I am turning the fans off at $Time_Now";
     set $furnace_fan OFF;
     set $living_room_fan OFF;
     set $bedroom_fan OFF;
@@ -41,26 +42,45 @@ if (state $furnace_fan eq ON and $weather{TempIndoor} and ($weather{TempIndoor} 
 #&tk_radiobutton('Heat Temp', \$Save{heat_temp}, [60, 64, 66, 68, 70]);
 
                                 # Turn the heat on
-my $hyster = 1;
 $state = state $furnace_heat;
-if   ($state eq OFF and $weather{TempIndoor} and $weather{TempIndoor} < $Save{heat_temp}) {
+my $hyster = 1;
+if   ($state eq OFF and $Weather{TempIndoor} and $Weather{TempIndoor} < ($Save{heat_temp} - $hyster)) {
     my $heat_time_diff = &time_diff($Save{heat_time}, $Time);
-    speak "Turning furnace heat on after $heat_time_diff at $weather{TempIndoor} degrees";
-    print_log "Furnace heat has been turned $state: temp=$weather{TempIndoor} time=$heat_time_diff";
-    logit("$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log",  "state=on   temp=$weather{TempIndoor}  time=$heat_time_diff  ");
+    speak "Turning furnace heat on after $heat_time_diff at $Weather{TempIndoor} degrees";
+    print_log "Furnace heat has been turned on: temp=$Weather{TempIndoor} time=$heat_time_diff";
+    logit("$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log",  "state=on   temp=$Weather{TempIndoor}  time=$heat_time_diff  ");
     set $furnace_heat ON;
     $Save{heat_time} = $Time;
 }    
                                 # Turn the heat off
-elsif ($state eq ON and $weather{TempIndoor} and $weather{TempIndoor} > ($Save{heat_temp} + $hyster)) {
+elsif ($state eq ON and $Weather{TempIndoor} and $Weather{TempIndoor} > ($Save{heat_temp} + $hyster)) {
     my $heat_time_diff = &time_diff($Save{heat_time}, $Time);
-    speak "Turning furnace heat off after $heat_time_diff at $weather{TempIndoor} degrees";
-    print_log "Furnace heat has been turned $state: temp=$weather{TempIndoor} time=$heat_time_diff";
-    logit("$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log",  "state=off  temp=$weather{TempIndoor}  time=$heat_time_diff");
-    set $furnace_heat OFF;
+    speak "Turning furnace heat off after $heat_time_diff at $Weather{TempIndoor} degrees";
+    print_log "Furnace heat has been turned off: temp=$Weather{TempIndoor} time=$heat_time_diff";
+    logit("$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log",  "state=off  temp=$Weather{TempIndoor}  time=$heat_time_diff");
     set $furnace_heat OFF;
     $Save{heat_time} = $Time;
 }    
+                                # Safeguard to make we don't leave the furnace heat on if somehow its state got lost
+                                #  - skip if we already set for this pass
+if (new_minute 10 and !$furnace_heat->{state_next_pass}) {
+    if (($Weather{TempIndoor} and $Weather{TempIndoor} > ($Save{heat_temp} + $hyster + 0.5)) and $Weather{TempOutdoor} < 50) {
+        if ($state ne OFF) {
+            my $heat_time_diff = $Time - $Save{heat_time};
+            $heat_time_diff = &time_diff($heat_time_diff);
+            my $msg = "Danger Will Winterson, the furnace has been left on for $heat_time_diff.";
+            $msg .=   "The outdoor temperature is $Weather{TempOutdoor} degrees and indoor is $Weather{TempIndoor} degrees";
+            $msg .=   "I am turning that silly furnace off";
+            display $msg, 0;
+            speak $msg;
+        }
+        print_log "Furnace heat was left on.  Turning off at $Weather{TempIndoor} degrees";
+        set $furnace_heat OFF;
+    }
+                                # If we think it is off, lets fire the relay again to make sure
+    print "db furnace state=$state\n";
+    set $furnace_heat OFF if $state eq OFF;
+}
 
 
                                 # Manual controls

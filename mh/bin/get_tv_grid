@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2002-10-12 14:26:47 winter>
+#  Last change Time-stamp: <2002-10-29 19:11:31 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -410,7 +410,7 @@ sub login
    #submitRequest( HTTP::Request->new( GET => $url ), "out1.txt" );
    print "1 of 4\n" if $parms{debug};
    my $submitResult = 0;
-   $submitResult = submitRequest( HTTP::Request->new( GET => $url ), "out1.txt" );
+   $submitResult = submitRequest( HTTP::Request->new( GET => $url ), "$config_parms{data_dir}/out1.txt" );
    if ( 1 != $submitResult )
    {
       return -1;

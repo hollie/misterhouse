@@ -12,7 +12,7 @@ $v_deep_thought_next-> set_authority('anyone');
 fileit($f_deep_thought, read_next $f_deep_thoughts) if said $v_deep_thought_next;
 
 if ($state = said $v_deep_thought or $state = said $v_deep_thought_next) {
-    speak   voice=> 'random', text => $f_deep_thought if $state eq 'Read';
+    speak   voice=> 'next', text => $f_deep_thought if $state eq 'Read';
     display $f_deep_thought if $state eq 'What is';
     display text => $f_deep_thought, font => 25 if $state eq 'Display';
 }

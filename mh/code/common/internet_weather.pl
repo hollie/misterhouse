@@ -1,8 +1,13 @@
 # Category = Weather
 
-#@ Retrieves current weather conditions and forecasts using bin/get_weather
+#@ Retrieves current weather conditions and forecasts using bin/get_weather (US only).
 #@ You will need to set the city, zone, and state parms in your ini file.
-#@ See help in mh.ini for more info.
+#@ To verify your city, click <a href="http://iwin.nws.noaa.gov/iwin/iwdspg1.html">here</a>,
+#@ then click on your state, then click on "Hourly Reports".  If your city 
+#@ is not listed in the report, pick the closest one.  The zone is usually 
+#@ the same as your city, but not always.  To verify your zone, 
+#@ hit the Back button and click on "Zone Forecast".  Zone names preceed each 
+#@ forecast and each is followed by a hyphen. 
 
                                 # Get the forcast and current weather data from the internet
 $v_get_internet_weather_data = new  Voice_Cmd('Get internet weather data');
@@ -20,7 +25,7 @@ if (said  $v_get_internet_weather_data) {
         run "get_weather -city $config_parms{city} -zone $config_parms{zone} -state $config_parms{state}";
 
         set_watch $f_weather_forecast;
-        speak "Weather data requested";
+        print_log "Weather data requested";
     }
     else {
 	    speak "Sorry, you must be logged onto the net";

@@ -3,14 +3,14 @@
 				# Read analog sensors every minute
 				#  - avoid second = 0 ... lots of stuff happens on a new minute
 #set $analog_request_a 'reset' if $New_Second and $Second == 20;
-set $analog_request_a  if $New_Second and $Second == 20;
+set $analog_request_a 'request'  if $New_Second and $Second == 20;
 &analog_read($temp) if $temp = state_now $analog_results;
 
 # Make an ECS like log entry every 5 minutes
 my %analog;
 #if (time_cron('0,5,10,15,20,25,30,35,40,45,50,55 * * * *')) {
-if (time_cron('* * * * *') or $Startup) {
-    $analog{humidity_inside} = round((57/81) * 100 * (state_now $humidity_inside / 5000), 1);
+if (time_cron '* * * * *' and defined state $temp_outside) {
+    $analog{humidity_inside} = round((57/81) * 100 * (state $humidity_inside / 5000), 1);
     $analog{humidity_outside}= round((48/53) * 100 * (state $humidity_outside / 5000), 1);
     $analog{sun_sensor}      = round((100/60)* 100 * (state $sun_sensor / 5000), 0);
     $analog{temp_outside}= convert_k2f(state $temp_outside/10);
@@ -18,7 +18,7 @@ if (time_cron('* * * * *') or $Startup) {
     $analog{temp_living}=  convert_k2f(state $temp_living/10);
     $analog{temp_nick}=    convert_k2f(state $temp_nick/10);
     $analog{temp_zack}=    convert_k2f(state $temp_zack/10);
-#    print_log "sun=$analog{sun_sensor} temp_in=$analog{temp_living} temp_out=$analog{temp_outside}";
+    print_log "sun=$analog{sun_sensor} temp_in=$analog{temp_living} temp_out=$analog{temp_outside}";
 #    logit("e:/logs/DATAHI.log", "Humidity Downstairs $analog{humidity_inside}");
 #    logit("e:/logs/DATAHO.log", "Humidity Outside    $analog{humidity_outside}");
 #    logit("e:/logs/DATASS.log", "Sensor          $analog{sun_sensor}");
@@ -30,10 +30,15 @@ if (time_cron('* * * * *') or $Startup) {
 }
 
 my %analog_data_avg_data;
+
+# Old boards look like this:   AE2954 2947 2616 2933 2749 1663 2183 1830
+# New boards look like this:   A2954 2947 2616 2933 2749 1663 2183 1830
+
+
 sub analog_read {
     my($analog_data) = @_;
-    my $analog_port = substr($analog_data, 0, 2);
-    my @temp = split(' ', substr($analog_data, 2));
+    my ($analog_port, $temp) = $analog_data =~ /^([A-Z]+)(.+)/;
+    my @temp = split(' ', $temp);
 				# We can only deal with 8 bit speakings ... single bit readings do not say which bit is which
     if (@temp == 8) {
         my $bit;
@@ -68,4 +73,16 @@ sub analog_read {
  
 
 
+
+                                # Try to guess sunny or cloudy, based on an analog sun sensor
+if ($New_Minute) {
+    $Weather{sun_sensor} = $analog{sun_sensor}; # From sensors.pl weeder input
+    if (time_greater_than("$Time_Sunrise + 2:00") and
+        time_less_than   ("$Time_Sunset  - 5:00")) {
+        $Weather{Conditions} = ($Weather{sun_sensor} > 40) ? 'Clear' : 'Cloudy';
+    }
+    else {
+        $Weather{Conditions} = 'Unknown';
+    }
+}
 

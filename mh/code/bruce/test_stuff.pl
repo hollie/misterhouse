@@ -1,5 +1,5 @@
 
-# Category=Other
+# Category = Test
 
                                 # These 2 vars are general purpose test vars, used by various
                                 # sections of this testbed code member.
@@ -52,7 +52,7 @@ if ($state = $test_input1) {
                                 # Note: This will set test_output widget
         speak 'running tk_entry';
         @ARGV = (\$Save{test_output}, "Enter test output data:");
-        do "$Pgm_PathU/tk_entry";
+        do "tk_entry";
     }
                                 # Test str2time
     elsif ($state eq 'h') {
@@ -105,8 +105,9 @@ if ($state = $test_input1) {
                                 # This is windows only for now
     elsif ($state eq 'n') {
         print_log "Testing volume control";
-        play(file => "hello_from_bruce.wav", volume => '20%');
-        play(file => "hello_from_bruce.wav", volume => '100%');
+#        play(file => "hello_from_bruce.wav", volume => '20%');
+        speak 'volume=100 Hello from Mr. Bruce';
+#        speak volume => 5, text => 'Hello from Mr. Bruce';
     }
                                 # Test Setupsup sendkeys
                                 #  - documentaion is in mh/site/Win32/setupsup.html
@@ -162,7 +163,7 @@ if ($state = $test_input1) {
 #       print time_date_stamp(13) . "\n";
     }
     elsif ($state eq 't') {
-
+        print "Log running display jpg gif test";
 		display "$config_parms{html_dir}/graphics/funny_face.gif";
 		display "$config_parms{html_dir}/graphics/funny_face.jpg";
     }
@@ -200,5 +201,13 @@ if ($Save{test_input2} =~ /load (\S+)/) {
     print "eval results: $@\n";
 }
 
+
+$toggle_gd = new Voice_Cmd 'Toggle GD on/off';
+
+if (said $toggle_gd) {
+    $Info{module_GD} = ($Info{module_GD}) ? 0 : 1;
+    print_log "GD toggled to $Info{module_GD}";
+}
+ 
 
 

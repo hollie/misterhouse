@@ -51,3 +51,12 @@ sub test_hook_1 { print "-"; }
 sub test_hook_2 { print "="; }
 sub test_hook_3 { print "#"; }
 
+
+                                # Echo serial matches
+#&State_change_add_hook(\&state_change_log) if $Reload;
+
+sub state_change_log {
+    my ($ref, $state) = @_;
+    my $name = substr $$ref{object_name}, 1;
+    print_log "State change: $name $state";
+}

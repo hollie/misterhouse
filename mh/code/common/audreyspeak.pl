@@ -1,4 +1,4 @@
-# Category = MisterHouse
+# Category = Audrey
 
 #@ This module allows MisterHouse to capture and send all speech and played
 #@ wav files to an Audrey internet appliance. See the detailed instructions
@@ -90,7 +90,8 @@ sub play_to_audrey {
 if (file_changed "$config_parms{html_dir}/toAudrey.wav") {
     my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
     for my $ip (split ',', $config_parms{Audrey_IPs}) {
-        run "get_url http://$ip/mhspeak.shtml?http://$MHWeb/toAudrey.wav";
+        $ip =~ s/\S+\-//;
+        run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb/toAudrey.wav /dev/null";
     }
 }
 

@@ -216,14 +216,16 @@ For $150, you can get 2 nice 5.1 compatable voices with AT&T Natural Voices TTS 
 
 Download the rpm, tar, or zip file from http://misterhouse.net:81/download .
 
-Install the file as detailed in the quick install instructions.
+Install the file as detailed in the quick install instructions.  
 
 If you choose to use the zip file instead, make sure you 
 use the -a to automatically get rid of those pesky /r characters that DOS like to add to newlines.
 Also, the unzip -U switch (contrary to what the help text says), 
 will be needed on newer versions of unzip to preserve case on filenames. 
-Then run the configure script (as root, see quick install instructions) 
-to delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
+
+Make sure you run the configure script, even if you used the rpm file.
+This will convert C serial headers to perl headers and (if you used the zip file)
+delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 
 There are various examples of how to start/stop mh in mh/bin/misterhouse*.rc
 
@@ -520,7 +522,7 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
 After mh is up and running, Use http://localhost:8080/bin/select_code.pl  menu
 (avaliable on the web ia5 MrHouse menu 'Select Code' button) to select which of the 
 standard code files you want to run.  You can add your own custom code files
-to your privte \misterhouse\code directory.
+to your private \misterhouse\code directory.
 
 The first thing you will want to do is create an items.mht file that declares
 all your X10 items (see mh/code/bruce/items.mht for an example).  Alternativly, you 

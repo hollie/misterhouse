@@ -537,7 +537,7 @@ Here are some examples:
 
 Time/Date Variables
 
-  $Time_Startup, $Time_Startup_time, $Time_Now, $Date_Now, $Year_Month_Now
+  $Time_Startup, $Time_Startup_time, $Time_Now, $Date_Now, $Date_Now_Speakable, $Year_Month_Now
   $Time_Sunrise, $Time_Sunset, $Time_Sunrise_Twilight, $Time_Sunset_Twilight
   $Second, $Minute, $Hour, $Mday, $Wday, $Day, $Month, $Year, $Holiday
   $New_Msecond_100, $New_Msecond_250, $New_Msecond_500, $New_Second, $New_Minute,
@@ -610,7 +610,7 @@ Note:  These methods currently read the entire file, so if have big files (say, 
      said         : Returns data added to a file since the last call.
                     Only one record is returned per call.
                     This is useful for monitoring log files.
-                    See mh/code/bruce/shoutcast.pl  for an example.
+                    See mh/code/bruce/shoutcast_monitor.pl  for an example.
 
   Examples:
      $f_deep_thoughts = new File_Item("$Pgm_Root/data/remarks/deep_thoughts.txt");
@@ -1395,6 +1395,10 @@ Here are some examples:
    X10MS,       A4,    sensor_hall,           Sensors|Downstairs,  MS13
 
 With MS13 specified, it will return states named motion,still,light, and dark.
+Also, methods light and dark will return the current light/dark state.  For example:
+
+ speak 'It is dark downstairs' if dark $sensor_downstairs;
+
 Without the MS13 model number, the light/dark codes will be ignored.
 
 =item RCS_TX15
@@ -1410,7 +1414,7 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
 
   Methods:
 
-     new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype')
+     new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype', 'break_char')
      add('data_stream', 'state_name')
 
         'host_port' must be of the form ip_address:port (when creating a client) or 
@@ -1421,6 +1425,10 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
         'datatype'      can be 'raw' or 'record'.  If 'raw', the said
                         method returns data as read.  If record, 
                         said only returns data when reaching a newline.
+
+        'break_char'    This will be added to data sent with set and, unless datatype=raw,
+                        will be used to break incoming data into state_now records. 
+                        Default is \n\r.
 
         'name' is optional.  If used you can set debug to this string
         to turn on debug for just this socket data.
@@ -1497,8 +1505,10 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
     set_expect $router_client (Password => $config_parms{router_password}, Number => 24,
                                Number => 4, Number => 11) if said $router_reboot;
 
-More examples are in mh/code/bruce/telnet.pl, mh/code/public/Brian/tracker.pl,
-my/code/bruce/mh_watchdog.pl, mh/code/examples/socket_test*.pl
+More examples are in mh/code/bruce/telnet.pl,
+mh/code/examples/socket_test*.pl, 
+mh/code/bruce/monitor_shoutcast.pl, bruce/wxserver_server.pl, and bruce/monitor_router.pl
+
 
 
 =item Timer
@@ -4460,6 +4470,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.59  2002/11/10 01:59:56  winter
+# - 2.73 release
+#
 # Revision 1.58  2002/10/13 02:07:58  winter
 #  - 2.72 release
 #

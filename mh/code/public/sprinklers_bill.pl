@@ -28,6 +28,8 @@ Bill
 #X10A,           M5,                     Sprinklers_Front_Lawn,Outside|Irrigation
 #X10A,           M6,                     Sprinklers_Rear_Shrubs_Left,Outside|Irrigation
 
+=cut 
+
 #noloop=start
 
 # Morning watering cycle

@@ -1,8 +1,6 @@
 # Category=Music
 
 
-my @speakers = ($pa_study, $pa_family, $pa_shop, $pa_nick, $pa_bedroom, $pa_zack, $pa_living);
-
 $v_pa_radio = new  Voice_Cmd('Music [on,off]');
 $v_pa_radio-> set_info('Play the phone "music on hold" over the PA system');
 
@@ -11,79 +9,58 @@ if ($state = said $v_pa_radio) {
     run_voice_cmd "speakers $state";
 }
 
+                                # These are set in my items.pl
+my @speakers = ($pa_study, $pa_family, $pa_shop, $pa_nick, $pa_bedroom, $pa_zack, $pa_living);
+
 $v_pa_speakers = new  Voice_Cmd('speakers [on,off]');
 $v_pa_speakers-> set_info('Turn all the PA speakers on/off');
 
-if ($state = said $v_pa_speakers) {
+                                # Add a fail-safe turn speakers off timer
+$pa_speaker_timer = new Timer;
+set $pa_speaker_timer 60 if state $mh_speakers eq ON;
+
+if ($state = said $v_pa_speakers or expired $pa_speaker_timer) {
+    $state = 'off' unless $state;
     for $ref (@speakers) {
         set $ref $state;
     }
 }
 
-run_voice_cmd 'speakers off' if expired $speaking_off_timer;
-
-my ($speaking_flag, $action_flag, $is_speaking);
-
-                # See if we should turn any pa speakers ON
-
-                # Note, a call to is_speaking seems to be expensive ... mip meter drops from
-                # 220 to 170 with this call :(
-
-                # Also, I think this helps avoid the following perl bug 
-                # noted by perl ole dude jan.dubois@ibm.net (Jan Dubois) :
-# When Perl initializes the OLE subsystem then OLE creates a message loop and a 
-# hidden top level window for the current thread (Perl interpreter). Perl itself 
-# never processes the message loop, but all OLE calls do (because OLE uses the 
-# message loop to synchronize access to OLE objects). When *any* application tries 
-# to start a DDE session it _sends_ WM_DDE_INITIATE to all top level application 
-# windows (including the hidden window of the Perl thread). This sending happens 
-# synchronously (send, not post) and the application wait to receive either an ACK 
-# or a NAK from all the top level windows. 
-
-# This means that the application will hang until it either times out or until the 
-# Perl program spins its message loop by calling another OLE method or accessing 
-# another OLE property. 
-
-# In the latest version of Win32::OLE (from libwin32-0.12) I have added 
-# Win32::OLE->Uninitialize() and Win32::OLE->SpinMessageloop  class methods. The 
-# first can be called when you don't expect to do any more OLE work and the second 
-# allows you to dispatch messages during long calculations. I'm investigating 
-# delegating all OLE work to a second proxy thread, but that is messy and may take 
-# some while to implement. 
-
-$is_speaking =  &Voice_Text::is_speaking;
-
-if (!$speaking_flag and ($is_speaking or active $speaking_timer)) {
-    $speaking_flag = 1;
-    $action_flag = 0;
+                                # $mh_speakers set in mh/code/common/volume.pl
+my $pa_action_flag;
+if (state_now $mh_speakers eq ON) {
+    $pa_action_flag = 0;
+    &pa_sleep_mode('parents', $Save{sleeping_parents});
+    &pa_sleep_mode('kids',    $Save{sleeping_kids});
     for $ref (@speakers) {
+#       print "db pa ref=$ref ws=$ref->{while_speaking}\n";
         if ($ref->{while_speaking}) {
-            $action_flag = 1;
+            $pa_action_flag = 1;
             $ref->{state} = ON unless $ref->{sleeping};
         }
     }
 }
 
-                # See if we should turn any pa speakers OFF
-if ($speaking_flag and !($is_speaking or active $speaking_timer)) {
-    $speaking_flag = 0;
-    $action_flag = 0;
+                                # See if we should turn any pa speakers OFF
+if (state_now $mh_speakers eq OFF) {
+    $pa_action_flag = 0;
     for $ref (@speakers) {
         if ($ref->{while_speaking}) {
-            $action_flag = 1;
+            $pa_action_flag = 1;
             $ref->{state} = OFF;
             $ref->{while_speaking} = 0;
         }
     }
 }
 
-                # Messy code to set the PA port by byte, not bit 
-if ($action_flag) {
-    $action_flag = 0;
+                                # Messy code to set the PA port by byte, not bit 
+if ($pa_action_flag) {
+    $pa_action_flag = 0;
     my ($bit, $byte_string);
 #   for $bit ('A' .. 'H') {
     for $bit (reverse('A' .. 'H')) {
         if ($ref = &Serial_Item::serial_item_by_id("DBL$bit")) {
+# nwb   if ($ref = &Serial_Item::serial_item_by_id("AL$bit")) {
             $state = $ref->{state};
         }
         else {
@@ -95,10 +72,12 @@ if ($action_flag) {
 #   my $send = "DBWb" . $byte_string;
 #   my $send = "DBW\$" . pack('B8', $byte_string) . "   ";   ... hmmm, when byte = 0000, end of sent record is not detected :(
     my $send = "DBWh" . sprintf("%0.2x", unpack('C', pack('B8', $byte_string)));
+# nwb  $send = "AW"   . sprintf("%0.2x", unpack('C', pack('B8', $byte_string)));
 #   print "\ndb byte_string=$byte_string send=$send...\n";
 
 #    print "pa_control serial results: ", $main::serial_port->write($send . "\r"), ".\n";
-    $main::Serial_Ports{weeder}{object}->write($send . "\r") if $main::Serial_Ports{weeder}{object};
+#   $main::Serial_Ports{weeder}{object}->write($send . "\r")    if $main::Serial_Ports{weeder}{object};
+    &Serial_Item::send_serial_data('weeder', $send . "\r") if $main::Serial_Ports{weeder}{object};
 
 #    if (&main::write_socket("serial", " ",  $send . "\r")) {
 #   print "Error writing to socket\n";
@@ -133,6 +112,7 @@ sub serial_stub {
     my $object_type = ref $ref;
     return unless $object_type eq "X10_Item";
     return unless $object_name;
+    return if     $ref->{no_log}; # Ignore motion sensors
 
     $object_name =~ s/_/ /g;
     $room = $ref->{room};
@@ -140,35 +120,34 @@ sub serial_stub {
     speak("rooms=$room $object_name");
 }
 
-$speaking_timer     = new  Timer;
-$speaking_off_timer = new  Timer;
-
 &Speak_pre_add_hook(\&pa_stub) if $Reload;
 &Play_pre_add_hook (\&pa_stub) if $Reload;
 
 sub pa_stub {
     my (%parms) = @_;
-#   my ($rooms, $timer_amount) = @_;
-    my ($rooms, $timer_amount) = ($parms{rooms}, $parms{timer_amount});
-    
+    my $rooms = $parms{rooms};
+                                # This is another way of setting rooms (e.g. bruce/x10_keypads.pl)
+    if ($mh_speakers->{rooms}) {
+        $rooms = $mh_speakers->{rooms};
+        $mh_speakers->{rooms} = '';
+    }
     my $room;
-#   print "db override pa_rooms stub rooms=$rooms timer=$timer_amount\n";
                 # Must use time for stuff like play where we can not detect when done
-    set $speaking_timer $timer_amount if $timer_amount;
-    set $speaking_off_timer 30; # failsafe to keep speakers off by default
     $rooms = '' unless $rooms;
     for $room (split(',', $rooms)) {
         $room = lc $room;
         if ($room =~ /all/i) {
             for $ref (@speakers) {
-                                # Lets skip outside pa speaker unless specified
-                next if $ref->{object_name} =~ /family/ and $room ne 'all_and_out';
+                                # Lets skip outside pa speaker unless specified or it is after hours
+                next if $ref->{object_name} =~ /family/ and 
+                    ($room ne 'all_and_out' or time_greater_than '10 pm' or time_less_than '8 am');
                 $ref->{while_speaking} = 1 unless ON eq $ref->state;
             }
         }
         else {
-            no strict 'refs';
-            ${"pa_$room"}->{while_speaking} = 1;
+#           no strict 'refs';
+#           ${"pa_$room"}->{while_speaking} = 1;
+            eval "\${pa_$room}->{while_speaking} = 1";
         }
     }       
 } 

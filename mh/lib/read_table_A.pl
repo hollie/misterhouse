@@ -172,7 +172,7 @@ sub read_table_A {
         return $code;
     }
     elsif($type eq "IBUTTON") {
-        ($address, $name, @other) = @item_info;
+        ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "iButton('$address', $other)";
     }
@@ -181,15 +181,15 @@ sub read_table_A {
     elsif($type eq "ZONE") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-	if($other){
-		$object = "Sensor_Zone('$address',$other)";
-	}
-	else{
-		$object = "Sensor_Zone('$address')";
-	}
-	if( ! $packages{caddx}++ ) {   # first time for this object type?
-		$code .= "use caddx;\n";
-	}
+        if($other){
+            $object = "Sensor_Zone('$address',$other)";
+        }
+        else{
+            $object = "Sensor_Zone('$address')";
+        }
+        if( ! $packages{caddx}++ ) {   # first time for this object type?
+            $code .= "use caddx;\n";
+        }
     }
     else {
         print "\nUnrecognized .mht entry: $record\n";
@@ -226,6 +226,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.15  2002/11/10 01:59:57  winter
+# - 2.73 release
+#
 # Revision 1.14  2002/08/22 13:45:50  winter
 # - 2.70 release
 #
