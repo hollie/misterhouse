@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-01-26 08:31:42 winter>
+#  Last change Time-stamp: <2000-01-27 19:43:26 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -333,6 +333,7 @@ sub setup {
 
     use IO::Socket;
     &my_use("DB_File");         # Need by get_tv_grid
+    use Fcntl;                  # To enable O_RDWR|O_CREAT
 #   use MIME::Base64;           # Needed for uudecode/uuencode in http_server and mhsend_server
 
     use Timer;                  # This needs to be first, as it is used in Voice_Cmd (and elsewhere?)
@@ -1394,7 +1395,7 @@ sub object_states_save {
         print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'misc';
     }
                                 # Save states of all objects
-    foreach $object_type (qw(Timer Serial_Item X10_Item X10_Appliance File_Item Generic_Item)) {
+    foreach $object_type (qw(Timer Serial_Item X10_Item X10_Appliance X10_Garage_Door File_Item Generic_Item)) {
         foreach $var (keys %{$file_by_object_name{$object_type}}) {
             no strict 'refs';
             my $ref = eval "\\$var";
@@ -1402,6 +1403,7 @@ sub object_states_save {
             print "Saving state for $object_type $var\n" if $config_parms{debug} eq 'misc';
             if ($object_type eq 'Serial_Item' or
                 $object_type eq 'Generic_Item' or
+                $object_type eq 'X10_Garage_Door' or
                 $object_type eq 'X10_Appliance' or
                 $object_type eq 'X10_Item') {
                 $state = $$ref->{state};
@@ -2981,6 +2983,9 @@ __END__
 
 #
 # $Log$
+# Revision 1.97  2000/01/28 02:40:20  winter
+# -add use Fcntl and X10 Garage_Door
+#
 # Revision 1.96  2000/01/27 13:28:04  winter
 # - add time_random
 #
