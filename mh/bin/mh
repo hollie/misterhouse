@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2004-05-18 09:04:08 winter>
+#  Last change Time-stamp: <2004-07-04 00:40:24 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -91,7 +91,7 @@ my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
 my (@Server_Ports, , %Local_Addresses, @Local_Addresses, %Passwords, @Password_Allow_Clients);
-my (%proxy_servers, %speak_apps);
+my (%proxy_servers, %app_parms);
 my ($CON_IN, $CON_OUT);
 
 my($state, $temp);              # Some generic useful vars
@@ -266,8 +266,10 @@ BEGIN {
         print "Read parm files: @files\n";
 
                                 # Read in speak parms per application
-        &main::read_parm_hash(\%speak_apps,  $main::config_parms{speak_apps_default});
-        &main::read_parm_hash(\%speak_apps,  $main::config_parms{speak_apps});
+        &main::read_parm_hash(\%{$app_parms{speak}},   $main::config_parms{speak_apps_default});
+        &main::read_parm_hash(\%{$app_parms{speak}},   $main::config_parms{speak_apps});
+        &main::read_parm_hash(\%{$app_parms{display}}, $main::config_parms{display_apps_default});
+        &main::read_parm_hash(\%{$app_parms{display}}, $main::config_parms{display_apps});
 
                                 # We need to honor starup parms, but a total reset messes up the tk debug button interface
 #       %config_parms = (%config_parms, %config_parms_startup); # Last one (startup parms) wins
@@ -545,6 +547,8 @@ sub setup {
     use X10_Items;
     use iButton;
     use LCD;
+    use xAP_Items;
+
                                 # Base_Items
     use Base_Item;
     use Door_Item;
@@ -667,6 +671,8 @@ sub setup {
 
         &socket_open($port_name);
     }
+
+    &xAP::startup;              # Start the xAP/xPL sockets, in lib/xAP_Items.pm
 
     
     for my $port_name (@Generic_Serial_Ports) {
@@ -2078,8 +2084,9 @@ sub display {
 
                                 # Allow for either positional or key=value form
 #   my %parms = @parms unless @parms %2;  # Wierd bug with this?  %parms is rember from previous call!
-    my %parms;
-    %parms = @parms unless @parms %2;
+
+    my %parms = &parse_func_parms(@_);
+    &set_app_parms(\%parms, 'display');     # Set parms according to an optional app parm
 
     unless (defined $parms{text}) {
         ($parms{text}, $parms{time}, $parms{title}, $parms{font},
@@ -2104,6 +2111,16 @@ sub display {
     $Last_Response = 'display' unless $Last_Response eq 'speak';
 #   $leave_socket_open_passes= 1 if $leave_socket_open_passes;
     return if $Respond_Target =~ /^web/;
+
+                                # Allow for display_device functions (e.g. lib/Display_Alpha.pm display_alpha)
+    if ($parms{device}) {
+        my $func = "display_$parms{device}";
+        if ($main::{$func}) {
+            no strict 'refs';
+            &$func(%parms);
+            return;
+        }
+    }
     
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
@@ -2997,8 +3014,6 @@ sub phrase_match {
     return @{$list2{$d_min2}};
 }
         
-
-
 sub play {
     my %parms;
 
@@ -3008,20 +3023,8 @@ sub play {
     else {
         %parms = @_;
     }
-
-                                # Set parms according to an optional app parm
-    if (my $app = $parms{app}) {
-        if ($speak_apps{$app}) {
-            for my $temp (split ' ', $speak_apps{$app}) {
-                my ($key, $value) = $temp =~ /(\S+)=(\S*)/;
-                $parms{$key} = $value unless $parms{$key};
-                print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $Debug{play};
-            }
-        }
-        else {
-            print "Voice_Text: speak -app $app not listed in mh.ini speak_apps parms\n";
-        }
-    }
+                                
+    &set_app_parms(\%parms, 'speak');     # Set parms according to an optional app parm
 
     $parms{mode} = '' unless $parms{mode};
     $parms{retry} = 5 unless $parms{retry};
@@ -3724,10 +3727,10 @@ sub read_code {
 
         @files_read = grep(/^[a-z0-9].*\.(pl|mhp)$/i, @files_read); # Must start with alphanumeric ... emacs edited checkpoints can start with #
 
+
     }
-				# Uniq-ify the list
-    my %list =map {$_, 1} @files_read;
-    @files_read = sort keys %list;
+    @files_read = map {lc} @files_read if $OS_win;  # So we catch duplicate members with different cases
+    @files_read = uniqify  @files_read;  # Uniq-ify the list
 
 #   print "           files: @files_read\n";
     my $count = @files_read;
@@ -3927,6 +3930,22 @@ sub read_table_files {
         print_log "Table format not recognized: file=$file mhp_file=$table_code_file." unless $format;
     }
 
+}
+
+sub set_app_parms {
+    my ($parms, $func) = @_;
+    if (my $app = $$parms{app}) {
+        if ($app_parms{$func}{$app}) {
+            for my $temp (split ' ', $app_parms{$func}{$app}) {
+                my ($key, $value) = $temp =~ /(\S+)=(\S*)/;
+                $$parms{$key} = $value unless $$parms{$key};
+                print "db app=$app t=$app_parms{$func}{$app} k=$key v=$value.\n" if $Debug{parms};
+            }
+        }
+        else {
+            print "app_parms: func=$func -app $app not listed in mh.ini ${func}_apps parms\n" if $Debug{parms};
+        }
+    }
 }
 
 sub setup_DBI {
@@ -4979,7 +4998,9 @@ sub respond_object_set {
 sub speak {
     my ($rooms, $display_time, $play);
 
-    my (%parms) = &parse_func_parms(@_);
+    my %parms = &parse_func_parms(@_);
+    &set_app_parms(\%parms, 'speak');     # Set parms according to an optional app parm
+
     my $phrase = $parms{text};
 
     print "Voice_Text: speak @_\n" if $Debug{voice};
@@ -4989,20 +5010,6 @@ sub speak {
 #   print "Warning, speak control not recognized: key=$key value=$value\n"
 #            unless grep $key eq $_, @speak_parms;
 
-
-                                # Set parms according to an optional app parm
-    if (my $app = $parms{app}) {
-        if ($speak_apps{$app}) {
-            for my $temp (split ' ', $speak_apps{$app}) {
-                my ($key, $value) = $temp =~ /(\S+)=(\S*)/;
-                $parms{$key} = $value unless $parms{$key};
-                print "db app=$app t=$speak_apps{$app} k=$key v=$value.\n" if $Debug{voice};
-            }
-        }
-        else {
-            print "Voice_Text: speak -app $app not listed in mh.ini speak_apps parms\n";
-        }
-    }
     if ($main::Info{OS_name}=~ /darwin/i) {   # Should go into Voice::Text?
       print "Trying to speak $phrase\n";
       speak_mac ($phrase);
@@ -5164,7 +5171,11 @@ sub time_cron {
         return unless $New_Minute;
     }
 
-    my @cron = split(' ', $_[0]);
+# This is not useful?  
+#   my $time_date2 = eval(qq["$time_date"]);   # Use eval for on-the-fly variable substitution
+#   print "Error in time_cron: time=$time_date  error=$@\n" if $@;
+#   my @cron = split(' ', $time_date2);
+    my @cron = split(' ', $time_date);
     my (@cron_now, $field, $entry, $low, $high);
 
     unless (@cron == 5) {
@@ -5864,6 +5875,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.92  2004/07/05 23:23:29  winter
+# *** empty log message ***
+#
 # Revision 2.91  2004/06/06 21:29:28  winter
 # *** empty log message ***
 #
