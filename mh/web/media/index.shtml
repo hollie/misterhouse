@@ -1,0 +1,12 @@
+<html>
+<title>MisterHouse web/media Directory</title>
+<link rel="STYLESHEET" href="/default.css" type="text/css">
+</head>
+
+<body>
+<h3>MisterHouse mh/media Directory</h3>
+
+<!--#include code="&dir_index('/media')"-->
+
+</body> 
+</html>
