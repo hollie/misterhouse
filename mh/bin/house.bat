@@ -12,7 +12,7 @@
 @rem Make sure xcmd_file matches with the mh.ini parm
 
 @rem cmd_file=%TEMP%\house_cmd.txt
-set xcmd_file=\mh\house_cmd.txt
+set xcmd_file=\temp\house_cmd.txt
 
 @echo off
 @rem Loop so we can have more than 9 arguments (not sure what happens after %9)

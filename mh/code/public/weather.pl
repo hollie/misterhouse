@@ -1,3 +1,5 @@
+# Category=Weather
+
 # The script creates the weather text that MisterHouse will speak from the
 # web page you've chosen.  If this script is called "weather.txt", please
 # rename it to "weather.pl" adn place into your MisterHouse code directory.
@@ -11,21 +13,32 @@
 
 # ernie_oporto@mentorg.com
 # October 7, 1999
+#
+# Updated May 7, 2000 to use zip code searching (if defined in config file)
+# bsobel@vipmail.com'
 
 my $Country = $config_parms{country};
 my $StateProvince = $config_parms{state};
 my $CityPage = $config_parms{city};
+my $ZipCode = $config_parms{zipcode};
 
 my $text;
 
 my $HtmlFindFlag=0;
-my $WeatherURL="http://www.wunderground.com/$Country/$StateProvince/$CityPage";
-my $WeatherFile=(split(/\./, (split(/\//,$WeatherURL))[5] ))[0];
 
+# noloop=start
+my $WeatherURL="http://www.wunderground.com/$Country/$StateProvince/$CityPage";
+$WeatherURL="http://www.wunderground.com/cgi-bin/findweather/getForecast?query=$ZipCode" if $ZipCode;
+$WeatherURL =~s/ /%20/g;
+# noloop=stop
+
+#my $WeatherFile=(split(/\./, (split(/\//,$WeatherURL))[5] ))[0];
+my $WeatherFile=$CityPage;
 my $f_weather_page = "$config_parms{data_dir}/web/$WeatherFile.txt";
 my $f_weather_html = "$config_parms{data_dir}/web/$WeatherFile.html";
-$p_weather_page = new Process_Item("get_url $WeatherURL $f_weather_html");
+$p_weather_page = new Process_Item("get_url \"$WeatherURL\" \"$f_weather_html\"");
 $v_weather_page = new  Voice_Cmd('[Get,Read,Show] internet weather');
+$v_weather_page-> set_info("Weather conditions and forecast for $config_parms{city}, $config_parms{state}  $config_parms{country}");
 
 #speak($f_weather_page)   
 if (said $v_weather_page eq 'Read') {

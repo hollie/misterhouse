@@ -6,6 +6,85 @@
 - This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at http://sourceforge.net/mail/?group_id=1365 )
 
+=head2 Version 2.20 posted on 05/27/00
+
+Version 2.20 was just uploaded to:
+
+  http://misterhouse.net/download
+  http://misterhouse.sourceforge.net
+
+B<New Features:>
+
+- Danal Estes has added mh/code/public/Danal/ISDN*.pl and Cat_Box.pl.  
+The ISDN code monitors incoming and outgoing
+calls for ISDN modems, including caller ID processing. 
+He also added/mh/bin/set_ip_3com_tzo to get the Internet connection from a 3com ISDN
+Lan Modem and sets TZO service appropriately.
+
+- Added server_*_protocol=udp, and server_*_datatype=raw options to socket servers
+specified in mh.ini.   datatype=raw, like the serial_*_datatype parm, 
+allows for raw/binary or record based data.
+Also allow for udp in Socket_Port clients.
+
+- Frank Varnavas and Bill Sobel came up with the option to add user callback functions, so you can have 
+user functions called, once per loop, before and/or after all the other user code is run.
+For an example, look for &MainLoop_pre_add_hook in mh/docs/mh.html.
+
+- Bill Sobel added mh/code/public/Compool* files, for monitoring and controling ComPool pool/spa equipment.
+
+
+B<Examples, Bug Fixes, and Minor Changes:>
+
+- Added mh.ini parm play_mode, so you can control the default mode for playing wav files (e.g. wait so older
+sound cards will only try to play one thing at a time).
+
+- Allowed the mh.ini local_addresses and password_allow_clients parms to be regular expressions.
+
+- Added internet_speak_flag so you can control if all, local, or none speech data will 
+be spoken when requested from the web interface.
+
+- Change speak log to include file contents, not just file name.
+
+- Tom Kotowski updated his mh/code/public/news* files.  He also added a Drudge Report file.
+
+- Bill Sobel updated mh/code/public/internet_ip_update.pl to allow for sending email and 
+finding NAT/firewall ip addresses.
+
+- Bill Sobel sent in a update to mh/code/public/weather.pl so it can find weather by zipcode.
+
+- Fixed a bug introduced in 2.15 in the code used to read the weeder analog module (code/bruce/sensors.pl).
+
+- Fixed a problem with parsing HTML TABLE data, introduced in 2.13 for those who are on perl 5.6.  
+
+- Fixed an error in mh.ini comment.  Now reads "use positve numbers longitude", not latitude. 
+
+- Fred Richards reports that a Tk "font doesn't exist at PERL2EXE_STORAGE/Tk/Widget.pm" error was fixed 
+with this version of mh.exe, probably due to Tk being upgraded from version 8.020 to 8.021.
+
+- Changed to a simpler way of reading tcp socket data (thanks go to Danal).
+
+- Renamed server1 to server_telnet in mh.ini and code/test/telnet.pl
+
+- Added FAQ question 6.7 What do I need to use the iButtons?
+
+- Added FAQ question 5.2 What are good editors to use with perl?
+
+- Added these new bugs to the mh.html bug list:
+
+  Windows Activestate perl 5.6 build 613 leaks memory
+  when running mh.  On my box about 30 Meg a day. 
+
+  Some people are getting CRC errors when running iButton
+  code under Windows NT.
+
+  Adding, deleting, or changing Voice commands does is not
+  recognized by the Windows MSVoice application while it
+  is running.  You have to exit and restart MSVoice, then
+  restart mh to get it to recognize new commands.
+  Hopefully we can get this to work with release 5.0
+  of the MS Speech SDK.
+
+
 
 =head2 Version 2.15 posted on 05/06/00
 
@@ -15,6 +94,7 @@ Version 2.15 was just uploaded to:
   http://misterhouse.sourceforge.net
 
 B<New Features:>
+
 
 - Brian Klier is working on some nifty code to 
 interface with a voice modem in mh/code/public/voicemodem.pl.

@@ -11,7 +11,7 @@ sub new {
 
     bless $self, $class;
 
-    print "\n\nWarning: duplicate ID codes on different X10_Item objects: id=$id\n\n" if $serial_item_by_id{$id};
+#   print "\n\nWarning: duplicate ID codes on different X10_Item objects: id=$id\n\n" if $serial_item_by_id{$id};
 
     my $hc = substr($id, 0, 1);
     push @{$items_by_house_code{$hc}}, $self;
@@ -177,7 +177,7 @@ sub new {
 
     bless $self, $class;
 
-    print "\n\nWarning: duplicate ID codes on different X10_Appliance objects: id=$id\n\n" if $serial_item_by_id{$id};
+#   print "\n\nWarning: duplicate ID codes on different X10_Appliance objects: id=$id\n\n" if $serial_item_by_id{$id};
 
     my $hc = substr($id, 0, 1);
     push @{$appliances_by_house_code{$hc}}, $self;
@@ -207,7 +207,7 @@ sub new {
     print "\n\nWarning: X10_Garage_Door object should not specify unit code; ignored\n\n" if length($id) > 1;
     my $hc = substr($id, 0, 1); 
     $id = "X$hc" . 'Z';
-    print "\n\nWarning: duplicate ID codes on different X10_Garage_Door objects: id=$id\n\n" if $serial_item_by_id{$id};
+#   print "\n\nWarning: duplicate ID codes on different X10_Garage_Door objects: id=$id\n\n" if $serial_item_by_id{$id};
     $self->{x10_id} = $id;
 
 # Returned state is "bbbdccc"
@@ -400,6 +400,9 @@ sub new {
 
 
 # $Log$
+# Revision 1.8  2000/05/27 16:40:10  winter
+# - 2.20 release
+#
 # Revision 1.7  2000/02/20 04:47:55  winter
 # -2.01 release
 #

@@ -547,6 +547,38 @@ Using MisterHouse ;-)  Much more fun that trying to code up that report generato
 Some good books are referenced in mh.html.
 
 
+=head2 5.2 What are good editors to use with perl?
+
+Codeing perl is much easier and less error prone if you use an programing
+editor that automatically highlights and indents code.
+
+One very popular and powerful (and free) editor is Emacs: http://www.gnu.org/software/emacs/. 
+A pre-compiled windows version can be found here: http://www.gnu.org/software/emacs/windows/ntemacs.html
+
+Alan Jackson liks vim: http://www.vim.org. "Does syntax highlighting quite nicely for perl"
+
+Kieran Ames likes UltraEdit32: http://www.ultraedit.com.
+"I swear by UltraEdit32 available at 
+It works fully functional for 30 days and then expires.
+Registration goes for around $30. I'm coding Perl all day long and would die without it!
+Fairly thin and goes the distance with just about any language you'd want to use."
+
+Bill Sobel sent a pointer to J: http://www.armedbear.org/.
+"I was using notepad and switched to 'J' and open source development editor.
+The author, Peter Graves, is a
+coworker of mine and all around swell guy.  This java based editor already
+includes Perl syntax highlighting and Peter is pretty quick about
+fixes/changes."
+
+Mark Yocom writes "I myself have grown fond of PrimalSCRIPT, which handles Perl, Java (and
+JScript & JavaScript), HTML, ASP, LotusScript, Livewire, Python, SQL, Tcl,
+REXX, VBScript, and good old fashioned .BAT/.CMD files.  In addition to the
+obligatory syntax coloring, it also has a number of other handy features.
+It's spendy, but a trial version is available at their website:
+http://www.sapien.com/PrimalSCRIPT.htm "
+
+
+
 
 =head1 6: Misc questions
 
@@ -576,6 +608,8 @@ Here is a rough timeline of MisterHouse development:
  - 02/00 Re-worked the web interface
  - 03/00 Added support for iButtons
  - 04/00 Added support for X10's IR Commander transmiter
+ - 05/00 Added voice modem, ISDN modem, and Compool support.
+ - 05/00 Article in The Perl Journal #17
 
 =head2 6.2: Who is that Bruce guy anyway?
 
@@ -637,7 +671,7 @@ When you have code you want to check in, you would do it with somethink like thi
   cd \sourceforge\mh\lib
   cvs commit http_server.pl
 
-=head2 6.5 What is X10?
+=head2 6.6 What is X10?
 
 The people at http://www.x10.com sell affordable devices that communicate with each other over 
 normal household power lines.  
@@ -708,11 +742,43 @@ that are much more expense.
   http://www.x10.com/products/x10_lm14a.htm  two way lamp module from X10, $33
 
 
+=head2 6.7 What do I need to use the iButtons?
+
+Here is a post from Clay Jackson
+
+Right now, I've got 3 sensors (DS1822, in the three-lead package, inside an
+epoxy filled soda straw) at the end of 150' of Radio Shack "flat" cable,
+talking to a DS9097U (the U is CRITICAL) with no problems.  On the bench, I
+had another 2 sensors on the end of a 50' cable (for a total of 5 sensors).
+When I strung the 50' cable, I must have crimped a lead, because it now
+meters "closed" and when it was plugged into the "net", I got no readings.
+
+I also have an HA5 from Point-Six; that I'm gonna play with soon. The code
+Bruce did is for the 9097U, so that's why I started there (and, it's
+cheaper).  The 9097U has all the "passive" pull-up stuff the data sheets
+talk about (courtesy of a DS2048 inside the DB9); so I'm hoping it will do
+the trick.  Anyway, I'll keep the list posted as things progress.
+
+Bottom line - all I needed was Bruce's code, a 9097U from Dallas, the
+sensors and some Radio Shack "phone" cable.
+
+One more thing to watch - as best I can tell, Dallas has not standardized
+their thermal devices with respect to their outputs.  For example, the
+DS1820 and DS1920  both return a 9 bit value that's basically an integer.
+However, the DS1822 returns a VARIABLE length value (12 bits by default),
+with a binary point between the 3rd and 4th digits.  According to someone
+else on the list, the ThermoCRON iButton is different yet again.
+
+
+
 =cut
 
 
 #
 # $Log$
+# Revision 1.14  2000/05/27 16:40:09  winter
+# - 2.20 release
+#
 # Revision 1.13  2000/05/06 16:41:43  winter
 # - 2.15 release
 #

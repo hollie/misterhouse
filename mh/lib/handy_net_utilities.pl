@@ -17,9 +17,14 @@ use strict;
 
                                 # These are useful for calling from user code directly
 use LWP::Simple; 
-use my_Formatter;               # This one allows for tables
 use HTML::FormatText;
 use HTML::Parse;
+
+
+                                # Make sure we override any local Formatter with our modified one
+                                #   - the default one does not look into tables
+use my_Formatter;
+#require "$main::Pgm_Root/lib/site/HTML/Formatter.pm";
 
                                 # Translate URL encoded data
 sub main::html_unescape {
@@ -104,7 +109,7 @@ sub main::net_ftp {
     my $dir         = $parms{dir};
     my $file        = $parms{file};
     my $file_remote = $parms{file_remote};
-    $file_remote = $file unless $file_remote;
+    $file_remote    = $file unless $file_remote;
     my $command     = $parms{command};
 
     $server   = $main::config_parms{net_www_server} unless $server;
@@ -135,7 +140,7 @@ sub main::net_ftp {
     }
     if ($command eq 'put') {
         unless ($ftp->put($file, $file_remote)) {
-            print " \x07Unable to put file $file into $server: $@\n";
+            print " \x07Unable to put file $file into $server as $file_remote: $@\n";
             return "failed on put";
         }
     }
@@ -475,6 +480,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.18  2000/05/27 16:40:10  winter
+# - 2.20 release
+#
 # Revision 1.17  2000/04/09 18:03:19  winter
 # - 2.13 release
 #

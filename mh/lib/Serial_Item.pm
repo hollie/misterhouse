@@ -17,7 +17,7 @@ sub serial_items_by_id {
                                 # For backward compatability, return just the first item
 sub serial_item_by_id {
     my($id) = @_;
-    my @refs = serial_items_by_id{$id};
+    my @refs = &serial_items_by_id($id);
     return $refs[0];
 }
 
@@ -153,7 +153,6 @@ sub said {
     else {
         if (my $data = $main::Serial_Ports{$port_name}{data_record}) {
             $main::Serial_Ports{$port_name}{data_record} = ''; # Maybe this should be reset in main loop??
-            print "dbzz $data\n" if $port_name eq 'serial_modem';
             return $data;
         }
         else {
@@ -272,6 +271,10 @@ sub set {
         &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 1, 2));
         &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 3)) if length($serial_data) > 2;
     }
+    elsif ($$self{interface} eq 'houselinc') {
+        print "Using houselinc to send: $serial_data\n";
+        &HouseLinc::send_X10($main::Serial_Ports{HouseLinc}{object}, $serial_data);
+    }
     else {
         $port_name = 'Homevision' if !$port_name and $main::Serial_Ports{Homevision}{object}; #Since it's multifunction, it should be default
         $port_name = 'weeder'  if !$port_name and $main::Serial_Ports{weeder}{object};
@@ -363,12 +366,18 @@ sub set_interface {
         elsif ($main::Serial_Ports{HomeBase}{object}) {
             $interface = 'homebase';
         }
+        elsif ($main::Serial_Ports{HouseLinc}{object}) {
+            $interface = 'houselinc';
+        }
     }
     $$self{interface} = lc($interface) if $interface;
 }
 
 #
 # $Log$
+# Revision 1.37  2000/05/27 16:40:10  winter
+# - 2.20 release
+#
 # Revision 1.36  2000/05/06 16:34:32  winter
 # - 2.15 release
 #

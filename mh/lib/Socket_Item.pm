@@ -14,13 +14,14 @@ sub socket_item_by_id {
 }
 
 sub new {
-    my ($class, $id, $state, $host_port, $port_name) = @_;
+    my ($class, $id, $state, $host_port, $port_name, $host_proto) = @_;
 
     my $self = {};
     $port_name = $host_port unless $port_name;
     print "\n\nWarning: duplicate ID codes on different socket_Item objects: id=$id\n\n" if $socket_item_by_id{$id};
     $$self{port_name} = $port_name;
     $$self{host_port} = $host_port;
+    $$self{host_protocol} = $host_proto;
     &add($self, $id, $state);
     bless $self, $class;
     return $self;
@@ -43,12 +44,14 @@ sub add {
 
 sub start {
     my ($self) = @_;
-    my $port_name = $self->{port_name};
-    my $host_port = $self->{host_port};
+    my $port_name  = $self->{port_name};
+    my $host_port  = $self->{host_port};
+    my $host_proto = $self->{host_protocol};
+    $host_proto = 'tcp' unless $host_proto;
     my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
     if ($port) {
         print "Socket Item connecting to $host on port $port\n" if $main::config_parms{debug} eq 'socket';
-        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, PeerPort => $port, Proto => 'tcp')) {
+        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, PeerPort => $port, Proto => $host_proto)) {
             $main::Socket_Ports{$port_name}{sock}  = $sock;
             $main::Socket_Ports{$port_name}{socka} = $sock;
             $sock->autoflush(1);
@@ -70,11 +73,13 @@ sub stop {
 
 sub is_available {
     my ($self) = @_;
-    my $host_port = $self->{host_port};
+    my $host_port  = $self->{host_port};
+    my $host_proto = $self->{host_protocol};
+    $host_proto = 'tcp' unless $host_proto;
     my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
     if ($port) {
         print "Socket Item testing to $host on port $port\n" if $main::config_parms{debug} eq 'socket';
-        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, PeerPort => $port, Proto => 'tcp')) {
+        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, PeerPort => $port, Proto => $host_proto)) {
             return 1;
 #            $main::Socket_Ports{$port_name}{sock}  = $sock;
 #            $main::Socket_Ports{$port_name}{socka} = $sock;
@@ -118,7 +123,7 @@ sub said {
     my $port_name = @_[0]->{port_name};
     
     my $data;
-    if ($main::Serial_Ports{$port_name}{datatype} eq 'raw') {
+    if ($main::Socket_Ports{$port_name}{datatype} eq 'raw') {
         $data = $main::Socket_Ports{$port_name}{data};
         $main::Socket_Ports{$port_name}{data} = '';
     }
@@ -186,6 +191,9 @@ sub set {
 
 #
 # $Log$
+# Revision 1.12  2000/05/27 16:40:10  winter
+# - 2.20 release
+#
 # Revision 1.11  2000/05/14 16:19:20  winter
 # - add check for datatype raw
 #

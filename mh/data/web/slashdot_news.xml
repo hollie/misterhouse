@@ -1,114 +1,124 @@
 <?xml version="1.0"?><backslash
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
- <story>
-    <title>"TV" Domain Sells For $50 Million</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/08/1921250</url>
-    <time>2000-04-09 10:20:10</time>
-    <author>Hemos</author>
-    <department>dear-lord</department>
-    <topic>internet</topic>
-    <comments>32</comments>
-    <section>articles</section>
-    <image>topicinternet.jpg</image>
-  </story>
- <story>
-    <title>Extra-Solar Planet Is Probably Just A Star</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/08/1918236</url>
-    <time>2000-04-09 04:16:47</time>
-    <author>Hemos</author>
-    <department>but-i-always-wanted-to-be-a-star</department>
-    <topic>space</topic>
-    <comments>79</comments>
-    <section>science</section>
-    <image>topicspace.gif</image>
-  </story>
- <story>
-    <title>Saga Of TriStrata</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/08/1256250</url>
-    <time>2000-04-08 23:55:20</time>
-    <author>Hemos</author>
-    <department>fun-with-company-start-ups</department>
-    <topic>encryption</topic>
-    <comments>97</comments>
-    <section>articles</section>
-    <image>topicencryption.gif</image>
-  </story>
- <story>
-    <title>Manic Depressive Geeks</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/08/107204</url>
-    <time>2000-04-08 21:21:11</time>
-    <author>emmett</author>
-    <department>better-living-through-science</department>
-    <topic>science</topic>
-    <comments>245</comments>
-    <section>articles</section>
-    <image>topicscience.gif</image>
-  </story>
- <story>
-    <title>Human Rights and Echelon</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/08/1651257</url>
-    <time>2000-04-08 20:41:19</time>
-    <author>michael</author>
-    <department>listening-in</department>
-    <topic>Privacy</topic>
-    <comments>127</comments>
-    <section>yro</section>
-    <image>topicprivacy.gif</image>
-  </story>
- <story>
-    <title>Never Mind The Bollocks, Here's Emmett</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/08/1155239</url>
-    <time>2000-04-08 19:38:56</time>
-    <author>emmett</author>
-    <department>like-the-sex-pistols-needs-an-accordionist</department>
-    <topic>music</topic>
-    <comments>178</comments>
-    <section>articles</section>
-    <image>topicmusic.gif</image>
-  </story>
- <story>
-    <title>Are There MP3/CD Player Combinations?</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/07/1733250</url>
-    <time>2000-04-08 17:20:29</time>
-    <author>Cliff</author>
-    <department>this-would-be-cool</department>
-    <topic>toys</topic>
-    <comments>228</comments>
-    <section>askslashdot</section>
-    <image>topictoys.gif</image>
-  </story>
- <story>
-    <title>Minix Now Under BSD License</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/08/0915202</url>
-    <time>2000-04-08 16:10:53</time>
-    <author>Hemos</author>
-    <department>released-under-new-management</department>
-    <topic>bsd</topic>
-    <comments>289</comments>
-    <section>articles</section>
-    <image>topicfreebsd.gif</image>
-  </story>
- <story>
-    <title>FSF General Counsel Eben Moglen Talks On Upside</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/08/095218</url>
-    <time>2000-04-08 13:03:39</time>
-    <author>Hemos</author>
-    <department>interesting-guy</department>
-    <topic>gnu</topic>
-    <comments>165</comments>
-    <section>articles</section>
-    <image>topicgnu.jpg</image>
-  </story>
- <story>
-    <title>Retailers Want Moratorium On New Internet Taxes Nixed</title>
-    <url>http://slashdot.org/article.pl?sid=00/04/08/0222248</url>
-    <time>2000-04-08 10:40:02</time>
-    <author>timothy</author>
-    <department>feeling-your-pain-feeling-it-good</department>
-    <topic>usa</topic>
-    <comments>222</comments>
-    <section>articles</section>
-    <image>topicus.gif</image>
-  </story>
+	<story>
+		<title>Optical Microchip Breakthrough In Canada?</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/27/0459256</url>
+		<time>2000-05-27 10:38:44</time>
+		<author>timothy</author>
+		<department>it's-*never*-a-good-time-to-buy-a-computer</department>
+		<topic>tech</topic>
+		<comments>1</comments>
+		<section>articles</section>
+		<image>topictech2.jpg</image>
+	</story>
+
+	<story>
+		<title>What Will the Internet of the Future Be Like?</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/23/2035207</url>
+		<time>2000-05-27 10:33:14</time>
+		<author>Cliff</author>
+		<department>peering-into-the-next-century</department>
+		<topic>internet</topic>
+		<comments>1</comments>
+		<section>askslashdot</section>
+		<image>topicinternet.jpg</image>
+	</story>
+
+	<story>
+		<title>Linux On Alpha To Power Streaming Media Boxes</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/27/0227206</url>
+		<time>2000-05-27 05:29:48</time>
+		<author>timothy</author>
+		<department>64-bit-out-the-wazoo</department>
+		<topic>linuxbiz</topic>
+		<comments>52</comments>
+		<section>articles</section>
+		<image>topiclinuxbiz.gif</image>
+	</story>
+
+	<story>
+		<title>Advertising Via GPS</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/26/124207</url>
+		<time>2000-05-26 23:59:40</time>
+		<author>emmett</author>
+		<department>if-you-build-it-they-will-shop</department>
+		<topic>hardware</topic>
+		<comments>182</comments>
+		<section>articles</section>
+		<image>topichardware.gif</image>
+	</story>
+
+	<story>
+		<title>Super-Fast Hard Drives</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/26/127220</url>
+		<time>2000-05-26 21:06:24</time>
+		<author>emmett</author>
+		<department>can-you-say-video-production</department>
+		<topic>hardware</topic>
+		<comments>192</comments>
+		<section>articles</section>
+		<image>topichardware.gif</image>
+	</story>
+
+	<story>
+		<title>Best Way to Get Kids Started in Programming?</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/21/1919205</url>
+		<time>2000-05-26 19:18:29</time>
+		<author>Cliff</author>
+		<department>getting-started-at-an-early-age</department>
+		<topic>programming</topic>
+		<comments>914</comments>
+		<section>askslashdot</section>
+		<image>topicprogramming.gif</image>
+	</story>
+
+	<story>
+		<title>Internet-Ready Houses For Sale</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/26/1740258</url>
+		<time>2000-05-26 17:45:21</time>
+		<author>Hemos</author>
+		<department>would-you-pay-extra-for-one?</department>
+		<topic>internet</topic>
+		<comments>211</comments>
+		<section>articles</section>
+		<image>topicinternet.jpg</image>
+	</story>
+
+	<story>
+		<title>At Last And At Length: Lars Speaks</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/26/1251220</url>
+		<time>2000-05-26 16:00:17</time>
+		<author>timothy</author>
+		<department>parental-guidance-suggested</department>
+		<topic>music</topic>
+		<comments>1151</comments>
+		<section>interviews</section>
+		<image>topicmusic.gif</image>
+	</story>
+
+	<story>
+		<title>Smell Of Fresh Cut Grass Trademarked</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/26/1240257</url>
+		<time>2000-05-26 14:40:37</time>
+		<author>Hemos</author>
+		<department>dear-lord</department>
+		<topic>patents</topic>
+		<comments>261</comments>
+		<section>articles</section>
+		<image>topicpatents.gif</image>
+	</story>
+
+	<story>
+		<title>Evil Geniuses In A Nutshell</title>
+		<url>http://slashdot.org/article.pl?sid=00/05/26/0339220</url>
+		<time>2000-05-26 14:00:33</time>
+		<author>timothy</author>
+		<department>funny-"ha-ha"-not-funny-"lithium-time"</department>
+		<topic>humor</topic>
+		<comments>153</comments>
+		<section>books</section>
+		<image>topichumor.gif</image>
+	</story>
+
 </backslash>

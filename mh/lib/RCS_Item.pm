@@ -22,7 +22,7 @@ sub new {
 
     bless $self, $class;
 
-    print "\n\nWarning: duplicate ID codes on different RCS objects: id=$id\n\n" if $serial_item_by_id{$id};
+#   print "\n\nWarning: duplicate ID codes on different RCS objects: id=$id\n\n" if $serial_item_by_id{$id};
 
     $id = "X$id";
     $self->{x10_id} = $id;

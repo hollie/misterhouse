@@ -235,7 +235,8 @@ X10.com also sells a $50 IR transimiter that works through the CM17 interface.
 Info is at http://www.x10.com/products/ux17a_bj2.htm.  This is supported
 via the mh IR_Item object.
 
-Europeans can get X10 stuff from  http://www.intellihome.be 
+Europeans can get X10 stuff from  http://www.intellihome.be and
+http://www.hwg-telekom.de
 
 Weeder Technologies, http://www.weedtech.com , offers the following kits
 priced from $30 to $50 each.  All of these kits can share the same serial port:
@@ -953,21 +954,22 @@ Craig is working on this one.
 
 You can use the Socket_Item object to read and/or write to TCP/IP socket ports.  
 
+Server socket ports are specified with mh.ini parms (see 'server options' in mh.ini)
+
   Methods:
 
-     new('data_stream', 'state_name', 'host_port', 'name')
+     new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol')
      add('data_stream', 'state_name')
 
         'host_port' must be of the form ip_address:port or 
         it must match a server* parm in mh.ini (e.g. server1).
 
+        'host_protocol' can be 'tcp' or 'udp'.  Default is 'tcp'
+
         'name' is optional.  If used you can set debug to this string
         to turn on debug for just this socket data.
         
      set_port     : Allows you to change the server_name/port.
-
-     buffer       : If set to 1, data will be read one line at a time (faster)
-                    If set to 0, the default, data will be read one character at a time.
 
      state        : Returns the last state that was received or sent
 
@@ -984,9 +986,11 @@ You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
                      set_echo $my_socket '*' -> echo incoming characters with *
 
      said         : Returns a data record received by the port.  
-                     - Characters are spooled into one record until a '\n' (newline) is
-                       received.  Only then does 'said $item' become valid, and it is
-                       reset as soon as the said method is executed.  
+                     - Note: If you want to process binary socket data, specify 
+                             server_*_datatype = raw in the mh.ini file.  This
+                             will cause said to return any data read immediately, 
+                             rather than buffering up data until a newline is read.
+
 
      handle       : Returns the socket handle, so you can loop on reading/writing data
                     to it directly.
@@ -1343,11 +1347,15 @@ Use this to play wave or system sound files.  There are 2 modes of calling it:
                               to work with your PA relays.
        time  => $time         The amount of time to leave the PA speakers on for rooms
        mode  => $mode         $mode can be:
-         wait : mh will pause (hang), until wav file finishes
-         loop : mh will loop on the wav file
-         stop : mh will stop playing the previous file
+         wait  : mh will pause (hang), until wav file finishes
+         loop  : mh will loop on the wav file
+         stop  : mh will stop playing the previous file
+         async : mh will play wave file asynchronously (in the background).  This is the default.
 
        mode   => 'unmuted'     Forces speech, even in mute and offline mode
+
+       You can control the default mode parm with the mh.ini play_mode parm.
+   
 
 If $file_name is a blank or comma delimited list of 
 files, they are played sequentially.  If it is a wild-carded file specification
@@ -1821,6 +1829,12 @@ Used to ftp data to or from an ftp server:
 
      net_ftp(file => 'index.html', command => 'put');
 
+     my $rc = net_ftp(
+        file => 'c:/junk1.txt', file_remote => 'incoming/junk1.txt',
+        command => 'put', server => 'misterhouse.net',  
+        user => 'anonymous', password => 'bruce@misterhouse.net');
+     print_log "net_ftp put results: $rc";
+
 =item net_connect_check
 
 Returns true if connected to the Internet.  If the mh.ini parm net_connect=persistent, this always 
@@ -2287,8 +2301,6 @@ Usage:
 mhsend allows you to send data to mh over the intra/internet.  Data can be logged, filed, spoken, displayed,
 or run.  The data processed by mh/code/test/mhsend_server.pl
 
-Password authorization code hasn't been added yet ...
-
   mhsend sends data to the MisterHouse program, through the internet/intranet.
 
   The following flags control what the companion mh server.pl code does:
@@ -2303,7 +2315,7 @@ Password authorization code hasn't been added yet ...
 
     -speak       -> Speaks and displays the data.
 
-    -pwfile xxx  -> Points to a password file.  If
+    -pwfile xxx  -> Points to a password file. 
 
   Usage:
     mhsend 'hi there'
@@ -2761,6 +2773,24 @@ comments before and after the code that should preceed the Item.  Here is an exa
   if ($state = said $v_play_music) {
     ... more code here ...
 
+If you want to have a user defined function called once perl loop, but you want it before or after all the other user code has been
+called, use the &MainLoop_pre_add_hook and &MainLoop_post_add_hook functions to add callbacks to your functions.  For example:
+
+  $v_hook_pre_add   = new Voice_Cmd 'Add  pre  code hook';
+  $v_hook_pre_drop  = new Voice_Cmd 'Drop pre  code hook';
+  $v_hook_post_add  = new Voice_Cmd 'Add  post code hook';
+  $v_hook_post_drop = new Voice_Cmd 'Drop post code hook';
+
+  &MainLoop_pre_add_hook(  \&test_hook_pre)  if said $v_hook_pre_add;
+  &MainLoop_pre_drop_hook( \&test_hook_pre)  if said $v_hook_pre_drop;
+  &MainLoop_post_add_hook( \&test_hook_post) if said $v_hook_post_add;
+  &MainLoop_post_drop_hook(\&test_hook_post) if said $v_hook_post_drop;
+
+  sub test_hook_pre  { print "<"; }
+  sub test_hook_post { print ">"; }
+
+
+
 
 =head1 KNOWN LIMITATIONS AND BUGS
 
@@ -2774,7 +2804,7 @@ http://www.news.com/News/Item/0,4,33117,00.html?st.ne.ni.rel .
 Under windows, TK windows do not get focus and some keys and shortcuts do not work.  Worse yet, the 
 'tear off' line (the dashed line on the pull down menus) causes mh to hang.  Perl/tk on unix does not
 have either of these problems.
-Hopefully this will get fixed with the next release of perl/Tk.  Note: if you have an old perl/tk (older
+Hopefully this will get fixed in a future release of perl/Tk.  Note: if you have an old perl/tk (older
 than 8.0012), things are even more messed up.
 
 If you have perl installed, you may get this message:
@@ -2807,7 +2837,14 @@ The following functions do not work under Unix/Linux:
  - Linux KDE users should uncheck "Apply fonts and colors to non-KDE apps", 
    or the black text on white windows shows up as white text.
 
+Windows Activestate perl 5.6 build 613 leaks memory.  On my box about 30 Meg a day. 
 
+Some people are getting CRC errors when running iButton code under Windows NT.
+
+Adding, deleting, or changing Voice commands does is not recognized by the Windows MSVoice
+applicatino while it is running.
+You have to exit and restart MSVoice, then restart mh to get it to recognize new commands.
+Hopefully we can get this to work with release 5.0 of the MS Speech SDK.
 
 =head1 AUTHORS
 
@@ -2853,7 +2890,8 @@ perl on windows at http://opensource.activestate.com/authors/jandubois/Perl/TPC3
 The comp.home.automation newsgroup is another handy resource, especially for X10 related questions.
 
 Neil Cherry has created a home for linux related Home Automation programs at
-http://linuxha.sourceforge.net
+http://linuxha.sourceforge.net .  This project is developing daemons for various interfaces
+(e.g. ADI Ocelot, CPUXA, and HCS II) that hopefully we can then link to with mh.   
 
 
 =head1 COPYRIGHT
@@ -2874,6 +2912,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.23  2000/05/27 16:40:09  winter
+# - 2.20 release
+#
 # Revision 1.22  2000/05/06 16:41:43  winter
 # - 2.15 release
 #

@@ -21,7 +21,7 @@ if (said $v_physics_web eq 'Get') {
     }
     else {
         if (&net_connect_check) {
-            print_log "Retrieving on this day in history from the net ...";
+            print_log "Retrieving Physics Web News Stories from the net ...";
 
             # Use start instead of run so we can detect when it is done
             start $p_physics_web;
@@ -36,18 +36,22 @@ if (done_now $p_physics_web) {
     $text = "Physics Web News items: \n";
     for (file_read "$f_physics_web_html") {
 
-	if (m!<a href=.+of News';return true;">(<font color=blue>)??(\w)+</!){
-		$text .= "$1\n";
-	}
+#	if (m!<a href=.+of News';return true;">(<font color=blue>)??(\w)+</!){
+#		$text .= "$1\n";
+#		$text =~ s!</?\w>!!g;
+#	}
 	
 
-	if ((m!(\[\d.+)<\w>!)and $count <=5){
+#	if ((m!(\[\d.+)<\w>!)and $count <3){
+	if ((m!(\[\d.+)!)and $count <3){
 		$text .= "$1\n";
+		$text =~ s!</?\w>!!g;
 		$count++;
 	}
   
       }
-   
+    $text =~ s![/[|\]]!!g;
+    $text =~ s!\(.+\)!!g;
     file_write($f_physics_web, $text);
     display $f_physics_web;
 }

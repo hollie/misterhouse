@@ -33,14 +33,13 @@ if (done_now $p_ap_breaking_news) {
     my $html = file_read $f_ap_breaking_news_html;                           
     my ( $text, $count);
 
-    $text = "Five AP Breaking news items: \n";
+    $text = "Five Associated Press Breaking news items: \n";
     for (file_read "$f_ap_breaking_news_html") {
 
    	if((m!href="/ap/breaking/\w+\.html">([\w\.\s,'":]+)</a>!) and $count <5){
-			$text  .= "$1\n";	
 			$count++;
-        	}
-		
+			$text  .= "$count $1\n";	
+        	}		
       }    
 
     file_write($f_ap_breaking_news, $text);

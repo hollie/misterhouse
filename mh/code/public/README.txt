@@ -12,8 +12,12 @@ calllog.pl
    by Ernie O. to use the CallerID.pm state and names arrays.
    Another example of logging phone data can be found in mh/code/bruce/phone*
 
+Compool*.pl
+ - Bill Sobel's code for monitoring and controling ComPool pool/spa equipment.
+   You can get/set time, get/set temperature, and get/set equipment states.    
+
 door_monitor_jay.pl
- - Jay Archers cod for using an X10 powerflash and hawkeye motion sensors
+ - Jay Archer's code for using an X10 powerflash and hawkeye motion sensors
    to monitor and control a garage door
 
 iButton_ws.pl
@@ -34,7 +38,7 @@ monitor_sump_pump.pl
  - Craig's code to monitor his sump pump
 
 news*.pl
- - Tom K. code for getting news and info from various web pages
+ - Tom Kotowski's code for getting news and info from various web pages
 
 rcs.pl
  - Craig's code to run RCS X10 thermostats.
