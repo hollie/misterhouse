@@ -274,6 +274,7 @@ sub callerid {
   }
   
   my $cid_speak_name = ''; # for now...
+  my $cid_name = ''; # for now...
   # Long term logs
   logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",  "$cid_nmbr $cid_name");
   logit_dbm("$config_parms{data_dir}/phone/callerid.dbm", $cid_nmbr, "$Time_Now $Date_Now $Year name=$cid_name");
