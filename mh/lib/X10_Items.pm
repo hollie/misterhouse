@@ -14,7 +14,7 @@ sub reset {
 @X10_Item::ISA = ('Serial_Item');
 
 sub new {
-    my ($class, $id, $interface, $module) = @_;
+    my ($class, $id, $interface) = @_;
     my $self = {};
     $$self{state} = '';     # Only items with state defined are controlable from web interface
 
@@ -584,7 +584,30 @@ sub zone_delay
 }
 
 
+package X10_Switchlinc;
+
+@X10_Switchlinc::ISA = ('X10_Item');
+
+sub new {
+    my $self = &X10_Item::new(@_);
+    my $id = $self->{x10_id};
+    $self-> add ($id . 'OGNGMGPGMG', 'clear');
+    $self-> add ($id . 'OGPGMGPGMG', 'setramprate');
+    $self-> add ($id . 'PGNGMGOGMG', 'setonlevel');
+    $self-> add ($id . 'MGNGOGPG',   'addscenemembership');
+    $self-> add ($id . 'OGPGMGNG',   'deletescenemembership');
+    $self-> add ($id . 'NGOGPGMG',   'setsceneramprate');
+    $self-> add ($id . 'MGNGPGOGPG', 'disablex10transmit');
+    $self-> add ($id . 'OGMGPGOGPG', 'enablex10transmit');
+
+    return $self;
+}
+
+
 # $Log$
+# Revision 1.13  2000/11/12 21:02:38  winter
+# - 2.34 release
+#
 # Revision 1.12  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

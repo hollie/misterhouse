@@ -105,6 +105,7 @@ sub check_accounts {
         my $msgcnt_prev = @{$email_prev{$account}} if $email_prev{$account};
         if (defined $msgcnt and $msgcnt < $msgcnt_prev) {
             delete $email_prev{$account};
+            unlink("$config_parms{data_dir}/email/latest.html");
         }
         elsif ($msgcnt > $msgcnt_prev) {
 #           print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
@@ -121,16 +122,40 @@ sub check_accounts {
                     
                     my $subject = $$msgptr{subject}[$cnt];
                     my $to      = $$msgptr{to}[$cnt];
+                    my $from    = $$msgptr{from}[$cnt];
+                    my $body    = $$msgptr{body}[$cnt];
 
                     $name = &get_email_rule($name, $to, $subject) if $email_rule;
 
-                                # See if we want to read the body of the message
                     print "Reading text for subject=$subject\n" unless $config_parms{quiet};
-#                   my $bodyptr = &net_mail_read(account => $account, first => $cnt, last => $cnt);
 
-                                # Log the subject 
+                                # Scan/summarize email
+                                #  - .scan is deleted in code_dir/internet_mail.pl after scanning for commands
+                                #  - .html will be deleted (in get_email) only after email has been read
                     logit("$config_parms{data_dir}/get_email.scan",
-                          "From:$$msgptr{from}[$cnt]  To:$to  Subject:$subject  Body:$$msgptr{body}[$cnt]");
+                          "From:$$msgptr{from}[$cnt]  To:$to  Subject:$subject  Body:$body");
+                    
+                    use HTML::Entities; # So we can encode stuff like <bruce@misterhouse.net>
+                    $to      = encode_entities $to;
+                    $from    = encode_entities $from;
+                    $subject = encode_entities $subject;
+                    $body    = encode_entities $body;
+#                   $body    = encode_entities $body, "\200-\377<>&";
+
+#                   my $html = 'Date: ' . &time_date_stamp($config_parms{time_format_log} , time) . "<br>\n";
+                    my $html = 'Date: ' . &time_date_stamp(14, time) . "<br>\n"; # Log format same as .scan logit
+                    $html .= "To:$to<br>\nFrom:$from<br>\nSubject:$subject<br>\n";
+                    $html .= "<blockquote><pre>$body</pre></blockquote><br>\n<hr>";
+
+                                # This gets reset whenever mail has been received
+                    logit("$config_parms{data_dir}/email/latest.html", $html, 0);
+
+                                # Log by account and day of week
+                    my $wday = (localtime)[6];
+                    my  $day = ('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')[$wday];
+                    my  $log = "$config_parms{data_dir}/email/${account}_$day.html";
+                    unlink $log if time - (stat $log)[9] > 3600*24; # Reset if from last week
+                    logit($log, $html, 0);
 
                     $cnt++;
                 }
@@ -174,6 +199,9 @@ sub make_name_list {
 
 #
 # $Log$
+# Revision 1.20  2000/11/12 21:01:02  winter
+# - 2.34 release
+#
 # Revision 1.19  2000/10/01 23:35:24  winter
 # - 2.29 release
 #

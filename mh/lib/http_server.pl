@@ -7,7 +7,7 @@ use strict;
 
 my ($leave_socket_open_passes, $leave_socket_open_action);
 
-my($Authorized, $password_html, $Browser, $Referer, $MSAgent, $Cookie);
+my($Authorized, $password_html, $Browser, $Referer, $MSAgent, $Cookie, $H_Response);
 my($html_pointer_cnt, %html_pointers);
 
 my %mime_types = (
@@ -35,7 +35,7 @@ else {
 
         
 
-my (%http_dirs, %html_icons, $html_info_overlib);
+my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs);
 sub main::http_read_parms {
     
                                 # html_alias1=/aprs=>e:/misterhouse/web/aprs
@@ -55,6 +55,9 @@ sub main::http_read_parms {
     $html_info_overlib = 1 if $main::config_parms{html_info} and $main::config_parms{html_info} =~ 'overlib';
 
     undef %html_icons;          # Refresh lib/http_server.pl icons
+
+    print "db $main::config_parms{password_protect_dirs}\n";
+    %password_protect_dirs = map {$_, 1} split ',', $main::config_parms{password_protect_dirs};
 }
 
 
@@ -63,11 +66,11 @@ sub process_http_request {
 
     my $time_check = time;
 
-    print "db http request: $header\n" if $main::config_parms{debug} eq 'http_get';
+    print "Http request: $header\n" if $main::config_parms{debug} eq 'http_get';
 
     $leave_socket_open_passes = 0;
 
-    my ($text, $h_response, $h_index, $h_list, $item, $state, $file);
+    my ($text, $h_response, $h_index, $h_list, $item, $state);
     undef $h_response;
 
     $Authorized = &password_check(undef, 'http') ? 0 : 1; # If no $Password or local address, defaults to authorized
@@ -75,6 +78,7 @@ sub process_http_request {
 
                                 # Read http header data (need $Browser parm)
     $Browser = $Referer = $MSAgent = $Cookie = '';
+    $H_Response = 'last_response';
     while (<$socket>) {
         last unless /\S/;
         $Referer = $1 if /^Referer: (\S+)/;
@@ -93,32 +97,26 @@ sub process_http_request {
                                 #User-Agent: Mozilla/4.6 [en] (Win98; I)
         if (/^User-Agent:/) {
             $Browser = (/MSIE/) ? "IE" : "Netscape";
-            print "db Browser=$Browser  $_\n" if $main::config_parms{debug} eq 'http';
+            print "Browser=$Browser  $_" if $main::config_parms{debug} eq 'http';
         }
     }
-    print "db Password flag set to $Authorized\n" if $main::config_parms{debug} eq 'http';
-
-                                # translate from %## back to real characters
-    $header =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+    print "Password flag set to $Authorized\n" if $main::config_parms{debug} eq 'http';
 
     my ($get_req, $get_arg) = $header =~ m|^GET (\/[^ \?]+)\??(\S+)? HTTP|;
 
-    $get_arg = '' unless $get_arg;
-#   $get_arg =~ tr/+/ /;        # translate + back to spaces (e.g. code search tk widget)
-                                # ...hmmm... maybe not: /SET:&html_list(X10_Item)?$test_house2?+15
-
     $get_req = $main::config_parms{html_file} unless $get_req;
+    $get_arg = '' unless $get_arg;
 
-    $get_req =~ /^(\/[^\/]+)(.*)/; # Pick dir out of /dir/file
-    if ($1 and $file = $http_dirs{$1}) {
-        $file .= "/$2" if $2;
-    }
-    else {
-        $file = "$main::config_parms{html_dir}/$get_req";
-    }
+    $get_arg =~ tr/\+/ /;       # translate + back to spaces (e.g. code search tk widget)
+                                # Real + will be in %## form (e.g. /SET:&html_list(X10_Item)?$test_house2?%2B15)
 
+                                # translate from %## back to real characters
+                                # Ascii table: http://www.bbsinc.com/symbol.html 
+                                #  - get_req may have h_response with %## chars in it
+    $get_req =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+    $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
-    print "db web data requested:  get=$get_req arg=$get_arg file=$file.\n  header=$header\n" if $main::config_parms{debug} eq 'http';
+    print "Web data requested:  get=$get_req arg=$get_arg\n  header=$header\n" if $main::config_parms{debug} eq 'http';
 
                                 # Prompt for password
     if ($get_req =~ /SET_PASSWORD$/) {
@@ -154,7 +152,7 @@ sub process_http_request {
         return;
     }
                                 # Process the html password form
-    if ($get_req =~ /^\/SET_PASSWORD_FORM$/) {
+    elsif ($get_req =~ /^\/SET_PASSWORD_FORM$/) {
         my ($password) = $get_arg =~ /password=(\S+)/;
         my ($html);
         if (&password_check($password, 'http')) {
@@ -171,8 +169,7 @@ sub process_http_request {
         return;
     }
 
-
-    if (!$Authorized and lc $main::config_parms{password_protect} eq 'all') {
+    elsif (!$Authorized and lc $main::config_parms{password_protect} eq 'all') {
         $h_response  = "<center><h3>MisterHouse password_protect set to all.  Password required for all functions</h3>\n";
         $h_response .= "<h3><a href=/SET_PASSWORD?redir>Login</a></h3></center>";
 
@@ -180,28 +177,11 @@ sub process_http_request {
         return;
     }
 
-    if (-d $file) {
-        my $file2;
-                                # Don't allow bad guys to go up the directory chain
-        if( &test_req( $socket, $get_req ) ) {
-            for my $default (split(',', $main::config_parms{html_default})) {
-                $file2 = "$file/$default";
-                last if -e $file2;
-            }
-            if (-e $file2) {
-                &html_file($socket, $file2, $get_arg, 1);
-            }
-            else {
-                print $socket &html_page("Error", "No index found for directory");
-            }
-        }
+                                # See if the request was for a file
+    elsif (&test_for_file($socket, $get_req, $get_arg)) {
+    }
 
-    }
-    elsif (-e $file) {
-        if( &test_req( $socket, $get_req ) ) {
-            &html_file($socket, $file, $get_arg, 1);
-        }
-    }
+                                # See if request was for an auto-generated page
     elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg, 1)) {
         my $time_check2 = time;
         print $socket &html_page("", $html, $style);
@@ -212,13 +192,7 @@ sub process_http_request {
             &print_log($msg);
         }
     }        
-                                # Allow for a CODE:&func (e.g. &dir_sort('my_dir'))
-                                #  ... hmmm, no different than RUN:&func, so not needed?
-#   elsif ($get_req =~ /\/CODE\:(\S*)$/) {
-#       $h_response = $1;
-#       print "db CODE command$h_response\n" if $main::config_parms{debug} eq 'http';
-#       &html_response($socket, $h_response);
-#   }
+                                # Test for RUN commands
     elsif  ($get_req =~ /\/RUN$/ or
             $get_req =~ /\/RUN\:(\S*)$/) {
         $h_response = $1;
@@ -235,7 +209,7 @@ sub process_http_request {
         print "RUN authority eval error: $@\n" if $@;
         $authority = $Password_Allow{$get_arg} unless $authority;
 
-        print "db a=$Authorized,$authority RUN get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
+        print "RUN a=$Authorized,$authority get_arg=$get_arg response=$h_response\n" if $main::config_parms{debug} eq 'http';
 
         if ($Authorized or $authority) {
                                 # Allow for RUN:&func  (response function like &dir_sort, with no action)
@@ -260,76 +234,27 @@ sub process_http_request {
             print $socket &html_page("", $msg);
         }
     }
-    elsif ($get_req =~ /\/SET$/ or 
-           $get_req =~ /\/SET\:(\S*)$/) {
-        $h_response = $1;
-        my $authority;
-        
-        if ($get_arg) {
-            $get_arg =~ s/select_item=//;  # Drop the item= prefix from form lists.
-            $get_arg =~ s/select_state=//; # Drop the item= prefix from form lists.
-#           ($item, $state) = $get_arg =~ /^(\S+)\?(\S+)$/;
-            ($item, $state) = $get_arg =~ /^(\S+)[\?\&](\S+)$/;
-            my $item_speakable = substr($item, 1); # Drop the $ off the object name
-            $item_speakable =~ s/\_/ /g;
-            $item_speakable =~ s/\~/_/g;
-            $state =~ s/\_/ /g;      # No blanks were allowed in a url 
-            $state =~ s/\~/_/g;      # Put _ back
+                                # Allow for either SET or SET_VAR 
+    elsif  ($get_req =~ /\/SET(_VAR)?$/ or
+            $get_req =~ /\/SET(_VAR)?\:(\S*)$/) {
+        $h_response = $2;
+#       print "Error, no SET argument: $header\n" unless $get_arg;
 
-                                # This is no longer used??
-            my $object = &get_object_by_name($item);
-            my $state_now = $object->{state};
-            my $text = $item_speakable;
-            if ($state_now) {
-                $text .= ($state eq $state_now) ? " set to $state again" : " changed from $state_now to $state";
-            }
-            else {
-                $text .= " set to $state";
-            }
-        
-            $authority = eval qq[$item->get_authority if $item and $item->isa('Generic_Item');];
-            print "SET authority eval error: $@\n" if $@;
-            $authority = $Password_Allow{$item} unless $authority;
-        }
-
-        print "db a=$Authorized,$authority SET get_arg=$get_arg response=$h_response item=$item state=$state\n" if $main::config_parms{debug} eq 'http';
-
-        if ($Authorized or $authority) {
-            eval "set $item '$state'" if $item and $state; # May only have a response with no item
-            &html_response($socket, $h_response,undef,undef);
-            # &html_response($socket, $h_response,undef,undef,"speech");
-        }
-        else {
-                                # Just refresh the screen, don't give a bad boy msg
-                                #  - this way we don't mess up the Items display frame
-#            my $msg = "<a href=/speech>Refresh Recently Spoken Text</a><br>\n";
-#            $msg .= "<br><B>Unauthorized Mode.</B> Authorization flag was not set, to the following was NOT performed<p>";
-#            $msg .= "<li>set $item '$state'</li>";
-#            print $socket &html_page("", $msg);
-            &html_response($socket, $h_response,undef,undef);
-        }
-    }
-    elsif  ($get_req =~ /\/SET_VAR$/ or
-            $get_req =~ /\/SET_VAR\:(\S*)$/) {
-        $h_response = $1;
-#       print "Error, no SET_VAR argument: $header\n" unless $get_arg;
-
-                                # translate from %## back to real characters
-#        $get_arg =~ tr/+/ /;
-#        $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+                                # Change select_item=$item&select_state=abc to $item=abc
+        $get_arg =~ s/select_item=(\S+)\&select_state=/$1=/; 
 
                                 # See if any variables require authorization
         my $authority = 1;
         unless ($Authorized) {
             for my $temp (split('&', $get_arg)) {
-                next unless ($item, $state) = $temp =~ /(\S+)=(.*)/;
+                next unless ($item, $state) = $temp =~ /(\S+)[\?\=](.*)/;
 
                 if ($item =~ /^\d+$/) { # Can't do html_pointer yet ... need to switch to Tk objects
                     $authority = 0;
                     next;
                 }
                 my $set_authority = eval qq[$item->get_authority if $item and $item->isa('Generic_Item');];
-                print "SET_VAR authority eval error: $@\n" if $@;
+                print "SET authority eval error: $@\n" if $@;
                 unless ($set_authority or $Password_Allow{$item}) {
                     $authority = 0;
                     last;
@@ -337,11 +262,15 @@ sub process_http_request {
             }
         }
 
-        print "db SET_VAR a=$Authorized,$authority hr=$h_response\n get_req=$get_req  get_arg=$get_arg\n  \n" if $main::config_parms{debug} eq 'http';
+        print "SET a=$Authorized,$authority hr=$h_response get_req=$get_req  get_arg=$get_arg\n" if $main::config_parms{debug} eq 'http';
 
         if ($Authorized or $authority) {
             for my $temp (split('&', $get_arg)) {
-                ($item, $state) = $temp =~ /(\S+)=(.*)/;
+                ($item, $state) = $temp =~ /(\S+)[\?\=](.*)/;
+
+                $state =~ s/\_/ /g;      # No blanks were allowed in a url 
+                $state =~ s/\~/_/g;      # Put _ back
+
                                 # If item name is only digits, this implies tk_widgets, where we used html_pointer_cnt as an index
                 if ($item =~ /^\d+$/) {
                     my $pvar = $html_pointers{$item};
@@ -358,26 +287,29 @@ sub process_http_request {
                 }
                                 # Otherwise, we are trying to pass var name in directly. 
                 else {
+                                # WAP pages don't allow for $ in url, so make it optional
+                    $item = "\$". $item unless substr($item, 0, 1) eq "\$";
+
                                 # Can be a scalar or a object
                     my $eval_cmd =  qq[($item and $item->isa('Generic_Item')) ? ($item->set("$state")) : ($item = "$state")];
-                    print "SET_VAR eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
+                    print "SET eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
                     eval $eval_cmd;
-                    print "SET_VAR eval error: $@\n" if $@;
+                    print "SET eval error: $@\n" if $@;
                 }
             }            
             &html_response($socket, $h_response);
         }
         else {
-                                # IE does not support the Window-frame flag :(
-                                # So we can not give the 'unauthorized' message without messing up the widget frame.
-            if (0 and $Browser eq 'IE') {
-#               print $socket &html_page("", &widgets ); # Refresh frame
-            }
-            else {
+            if ($h_response =~ /^last_/) {
                 my $msg = "<a href=/speech>Refresh Recently Spoken Text</a><br>\n";
                 $msg .= "<br><B>Unauthorized Mode.</B> Authorization flag was not set, to the following was NOT performed<p>";
-                $msg .= "<li>set $get_req $get_arg</li>";
-                print $socket &html_page("", $msg, undef, undef, 'control');
+                $msg .= "<li>" . $get_arg . "</li>";
+                print $socket &html_page("", $msg);
+            }
+            else {
+                                # Just refresh the screen, don't give a bad boy msg
+                                #  - this way we don't mess up the Items display frame
+                &html_response($socket, $h_response,undef,undef);
             }
         }
 
@@ -401,15 +333,55 @@ sub process_http_request {
 
 sub html_authorized {
     if ($Authorized) {
-        return "Status: <b><a href=/UNSET_PASSWORD>Authorized</a></b><br>";
+        return "Status: <b><a href=/UNSET_PASSWORD>Logged In</a></b><br>";
     }
     else {
-        return "Status: <b><a href=/SET_PASSWORD>Not Authorized</a></b><br>";
+        return "Status: <b><a href=/SET_PASSWORD>Not Logged In</a></b><br>";
     }
 }
 
-sub test_req {
-    my ($socket, $get_req) = @_;
+sub test_for_file {
+    my ($socket, $get_req, $get_arg) = @_;
+
+    my ($http_dir, $http_member) = $get_req =~ /^(\/[^\/]+)(.*)/;
+    my $file;
+    if ($http_dir and $file = $http_dirs{$http_dir}) {
+        $file .= "/$http_member" if $http_member;
+    }
+    else {
+        $file = "$main::config_parms{html_dir}/$get_req";
+    }
+
+                                # Check for index files in directory
+    if (-d $file) {
+        my $file2;
+        for my $default (split ',', $main::config_parms{html_default}) {
+            $file2 = "$file/$default";
+            last if -e $file2;
+        }
+        if (-e $file2) {
+            $file = $file2;
+        }
+        else {
+            print $socket &html_page("Error", "No index found for directory");
+            return 1;
+        }
+    }
+
+    if (-e $file) {
+        &html_file($socket, $file, $get_arg, 1) if &test_file_req($socket, $get_req, $http_dir);
+        return 1;
+    }
+    else {
+        return 0;               # No file found ... check for other types of http requests
+    }
+}
+
+                                # Check for illicit or password protected dirs
+sub test_file_req {
+    my ($socket, $get_req, $http_dir) = @_;
+
+                                # Don't allow bad guys to go up the directory chain
     $get_req =~ s#/\./#/#g;                                     # /./ -> /
     $get_req =~ s#//+#/#g;                                      # // -> /
     1 while( $get_req =~ s#/(?!\.\.)[^/]+/\.\.(/|$)#$1# );      # /foo/../ -> /
@@ -418,6 +390,14 @@ sub test_req {
         print $socket &html_page("Error", "Access denied: $_[1]");
         return 0;
     }
+                                # Verify the directory is not password protected
+    if ($password_protect_dirs{$http_dir} and !$Authorized) {
+        my $html = "<h4>Directory $http_dir requires Login password access</h4>\n";
+        $html   .= "<h4><a href=/SET_PASSWORD?redir>Login</a></h4>";
+        print $socket &html_page($html);
+        return 0;
+    }
+
     return 1;
 }
 
@@ -470,7 +450,8 @@ sub html_mh_generated {
     elsif ($get_req =~ /\/items$/) {
         return (&html_items, $main::config_parms{html_style_category});
     }
-    elsif ($get_req  =~ /\/?list$/) {
+    elsif ($get_req  =~ /\/list:?(\S*)$/) {
+        $H_Response = $1 if $1;
         $html = &html_list($get_arg, $auto_refresh);
         return ($html, $main::config_parms{html_style_list});
     }
@@ -486,17 +467,13 @@ sub html_response {
     my ($socket, $h_response) = @_;
     my $file;
 
-                                # This should have been done already?
-#    $h_response =~ tr/+/ /;
-#    $h_response =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
-
-    print "db html response: $h_response\n" if $main::config_parms{debug} eq 'http';
+    print "html response: $h_response\n" if $main::config_parms{debug} eq 'http';
     if ($h_response) {
         my ($sub_name, $sub_arg, $sub_ref);
                                 # Allow for &sub1 and &sub1(args)
         if ((($sub_name, $sub_arg) = $h_response =~ /^\&(\S+)\((\S+)\)$/) or
             (($sub_name)           = $h_response =~ /^\&(\S+)$/)) {
-            print "db hr=$h_response sn=$sub_name sa=$sub_arg\n" if $main::config_parms{debug} eq 'http';
+            print "html_response=$h_response sn=$sub_name sa=$sub_arg\n" if $main::config_parms{debug} eq 'http';
             $sub_ref = \&{$sub_name};
             if (defined $sub_ref) {
                 $sub_arg = "'$sub_arg'" unless $sub_arg =~ /^[\'\"]/; # Add quotes if needed
@@ -509,7 +486,7 @@ sub html_response {
                 print $socket &html_page("", "Web html function not found: &$sub_name $sub_ref");
             }
         }
-        elsif ($h_response eq 'last_response') {
+        elsif ($h_response =~ /^last_response_?(\S*)/) {
             $Last_Response = '';
                                 # Wait for some sort of response ... need a way to 
                                 # specify longer wait times on longer commands.
@@ -517,7 +494,7 @@ sub html_response {
                                 # we way too many passes for the 'no response message'
                                 # from many commands that do not respond
             $leave_socket_open_passes = 3; 
-            $leave_socket_open_action = "&html_last_response('$Browser')";
+            $leave_socket_open_action = "&html_last_response('$Browser', $1)";
         }
         elsif ($h_response eq 'last_displayed') {
             $leave_socket_open_passes = 3;
@@ -529,12 +506,21 @@ sub html_response {
 #           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
 #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
-        elsif (-e ($file = "$main::config_parms{html_dir}/$h_response")) {
+        elsif (&test_for_file($socket, $h_response)) {
                                 # Allow for files to be modified on the fly, so wait a pass
-            $leave_socket_open_passes = 3;
-            &html_file($socket, $file, '', 1);
+                                #  ... naw, use &file_read if you need to wait (e.g. barcode_scan.shtml)
+#       elsif (-e ($file = "$main::config_parms{html_dir}/$h_response")) {
+#           $leave_socket_open_passes = 3;
+#           &html_file($socket, $file, '', 1);
 #           $leave_socket_open_action = "&html_file(\$Socket_Ports{http}{socka}, '$file', '', 1)";
 #           $leave_socket_open_action = "file_read '$file')";
+        }
+        elsif ($h_response =~ /^http:\S+$/i or $h_response =~ /^referer$/i) {
+                                # Wait a few passes before refreshing page, in case mh states changed
+            $h_response = $Referer if $h_response =~ /^referer$/i;
+#           $leave_socket_open_action = "&http_redirect('$h_response')"; # mh uses &html_page, so this does not work
+            $leave_socket_open_action = "'$h_response'"; # &html_page will use referer if only a url is given
+            $leave_socket_open_passes = 3;
         }
         else {
             $h_response =~ tr/\_/ /; # Put blanks back
@@ -553,15 +539,17 @@ sub html_response {
 }
 
 sub html_last_response {
-    my ($browser) = @_;
+    my ($browser, $length) = @_;
     my ($last_response, $script);
     $Last_Response = '' unless $Last_Response;
     if ($Last_Response eq 'speak') {
-        $last_response = &html_last_spoken;
+#       $last_response = &html_last_spoken;
+        $last_response = &speak_log_last(1);
+        $last_response =~ s/\n/  /g;         # Remove line breaks
+        $last_response =~ s/^.+?: //s;       # Remove time/date/status portion of log entry
                                 # Allow for MSagent
         if ($browser eq 'IE' and $MSAgent and $main::config_parms{html_msagent_script}) {
-            (my $speech) = &speak_log_last(1);
-            $script = GenerateMsAgent($speech);
+            $script = GenerateMsAgent($last_response);
         }
     }
     elsif ($Last_Response eq 'display') {
@@ -574,15 +562,14 @@ sub html_last_response {
     else {
         $last_response = "<br><b>No response resulted from the last command</b>";
     }
- 
+
+    $last_response = substr $last_response, 0, $length if $length;
+
     return $last_response, $main::config_parms{html_style_speak}, $script;
 }
 
 sub GenerateMsAgent {
     my ($text) = @_;
-
-    $text =~ s/\n/  /g;         # Remove line breaks
-    $text =~ s/^.+?: //s;       # Remove time/date/status portion of log entry
 
     my $script = file_read "$config_parms{html_dir}/$config_parms{html_msagent_script}";
     $script =~ s/<!-- *speak_text *-->/$text/;
@@ -613,7 +600,7 @@ sub html_last_spoken {
         }
     }
     else {
-        $h_response = "<h3>Recently Spoken Text:  Not Authorized</h3>";
+        $h_response = "<h4>Not Logged In</h4>";
     }
     return $h_response .= "\n";
 }
@@ -631,7 +618,7 @@ sub html_print_log {
         }
     }
     else {
-        $h_response = "<h3>Print Log:  Not Authorized</h3>";
+        $h_response = "<h4>Not Logged In</h4>";
     }
     return $h_response .= "\n";
 }
@@ -651,27 +638,17 @@ sub html_file {
                                 # Allow for 'server side include' directives
                                 #  <!--#include file="whatever"-->
     if ($file =~ /\.shtml$/) {
-        print "db processing server side include file: $file\n" if $main::config_parms{debug} eq 'http';
+        print "Processing server side include file: $file\n" if $main::config_parms{debug} eq 'http';
         while (<HTML>) {
                                 # Example:  <li>Version: <!--#include var="$Version"--> ...
             if (my ($prefix, $directive, $data, $suffix) = $_ =~ /(.*)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
-                 print "db http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
+                 print "Http include: $directive=$data\n" if $main::config_parms{debug} eq 'http';
                  print $socket $prefix;
                  print $socket "\n<\!-- The following is from include $directive = $data -->\n";
                  my ($get_req, $get_arg) = $data =~ m|(\/[^ \?]+)\??(\S+)?|;
                 if ($directive eq 'file') {
 
-                                # Look for file in alias dirs
-                    $get_req =~ /^(\/[^\/]+)(.*)/; # Pick dir out of /dir/file
-                    if ($file  = $http_dirs{$1}) {
-                        $file .= "/$2" if $2;
-                    }
-                    else {
-                        $file = "$main::config_parms{html_dir}/$get_req";
-                    }
-
-                    if (-e $file) {
-                        &html_file($socket, $file);
+                    if (&test_for_file($socket, $get_req, $get_arg)) {
                     }
                     elsif (my ($html) = &html_mh_generated($get_req, $get_arg, 0)) {
                         print $socket $html;
@@ -681,7 +658,7 @@ sub html_file {
                     }
                 }
                 elsif ($directive eq 'var' or $directive eq 'code') {
-                    print "db processing server side include: var=$data\n" if $main::config_parms{debug} eq 'http';
+                    print "Processing server side include: var=$data\n" if $main::config_parms{debug} eq 'http';
                     print $socket eval "return $data";
                     print "Error in eval: $@" if $@;
                 }
@@ -712,7 +689,7 @@ sub html_file {
 
         my $results = eval $code;
         print "Error in http eval: $@" if $@;
-        print "db http_server  .pl file results:$results.\n" if $main::config_parms{debug} eq 'http';
+        print "Http_server  .pl file results:$results.\n" if $main::config_parms{debug} eq 'http';
         print $socket $results;
     }
                                 # Regular files.  read is faster than <>
@@ -749,8 +726,7 @@ sub html_page {
     my ($title, $body, $style, $script, $frame) = @_;
 
     return http_redirect($body)    if $body =~ /^http:\S+$/i;
-    return http_redirect($Referer) if $body =~ /^Referer$/i;
-    #   print "db html_page=$title\n$body\n";
+
                                 # This meta tag does not work :(
                                 # MS IE does not honor Window-target :(
 #   my $frame2 = qq[<META HTTP-EQUIV="Window-target" CONTENT="$frame">] if $frame;
@@ -846,7 +822,7 @@ sub html_find_icon_image {
     $name =~ s/^v_//;           # remove v_ in voice commands
 
     $state = 'dim' if $state =~ /^[+-]?\d+$/ or $state =~ /\d+\%/;
-    print "db find_icon: object_name=$name, type=$type, state=$state\n" if $main::config_parms{debug} eq 'http';
+    print "Find_icon: object_name=$name, type=$type, state=$state\n" if $main::config_parms{debug} eq 'http';
 
     my ($icon, $member);
     unless (%html_icons) {
@@ -950,7 +926,7 @@ sub html_list {
             my $cmd3 = $cmd2;
             $cmd3 =~ tr/\_/\~/; # Swizzle _ to ~, so we can use _ for blanks
             $cmd3 =~ tr/ /\_/; # Blanks are not allowed in urls
-            $h_list .= "<li><i>$file</i>: <a href='/RUN:last_response?$cmd3'>$cmd2</a>\n";
+            $h_list .= "<li><i>$file</i>: <a href='/RUN:$H_Response?$cmd3'>$cmd2</a>\n";
 #           $h_list .= "<li><a href='RUN?$cmd3'>$cmd2</a>\n";
         }
         $h_list  .= "\n";
@@ -1125,7 +1101,7 @@ sub html_command_table {
                                 # Start the form before the icon
                                 #  - outside of td so the table is shorter
                                 #  - allows the icon to be a submit
-        my $form = qq[<FORM action="/RUN:last_response" method="get">\n];
+        my $form = qq[<FORM action="/RUN:$H_Response" method="get">\n];
 
                                 # Icon button
         push @htmls, qq[$form  <td align='left' valign='center' width='0%' $ol_state_log>$html</td>\n];
@@ -1139,15 +1115,17 @@ sub html_command_table {
                                 # Use a SELECT dropdown with 4 or more states
         if ($states_with_select) {
             $html .= qq[<SELECT name="select_cmd" onChange="form.submit()">\n];
-            $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
+#           $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
             $msagent_cmd1 = "$prefix (";
+            my $selected = 'SELECTED';
             for my $state (@states) {
                 my $text_cmd = "$prefix$state$suffix";
                 $text_cmd =~ tr/\_/\~/; # Blanks are not allowed in urls
                 $text_cmd =~ tr/ /\_/;  
-                $html .= qq[<option value="$text_cmd">$state\n];
+                $html .= qq[<option value="$text_cmd"$selected>$state\n];
                 $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
                 $msagent_cmd1 .= "$state|" if $state;
+                $selected = '';
             }
             substr($msagent_cmd1, -1, 1) =  ") $suffix";
             $html .= qq[</SELECT>\n];
@@ -1170,10 +1148,10 @@ sub html_command_table {
 
                                 # We could add ol_info here, so netscape kind of works, but this 
                                 # would be redundant and ineffecient.
-                $hrefs .= qq[<a href='/RUN:last_response?$text_cmd'>$state</a> ];
+                $hrefs .= qq[<a href='/RUN:$H_Response?$text_cmd'>$state</a> ];
                 $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
                 $msagent_cmd1 .= "$state|" if $state;
-#               $hrefs .= qq[<a href='/RUN:last_response?$text_cmd' $ol_info>$state</a> ];
+#               $hrefs .= qq[<a href='/RUN:$H_Response?$text_cmd' $ol_info>$state</a> ];
             }
             substr($msagent_cmd1, -1, 1) =  ") $suffix";
             $html .= $hrefs;
@@ -1261,7 +1239,8 @@ sub html_item_state {
     my $use_select = 1 if @states > 2;
 
     if ($use_select) {
-        $html .= qq[<FORM action="/SET:&html_list($object_type)?" method="get">\n];
+#       $html .= qq[<FORM action="/SET:&html_list($object_type)?" method="get">\n];
+        $html .= qq[<FORM action="/SET:referer?" method="get">\n];
         $html .= qq[<INPUT type="hidden" name="select_item" value="$object_name">\n]; # So we can uncheck buttons
     }
 
@@ -1283,8 +1262,9 @@ sub html_item_state {
     $html .= qq[<td align="left"><b>];
     if ($isa_X10) {
                                 # Note:  Use hex 2B = +, as + means spaces in most urls
-        $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?%2B15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
-        $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?-15'><img src='/graphics/a1-.gif' alt='-' border='0'></a> ];
+#       $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?%2B15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
+        $html .= qq[<a href='/SET:referer?$object_name?%2B15'><img src='/graphics/a1+.gif' alt='+' border='0'></a> ];
+        $html .= qq[<a href='/SET:referer?$object_name?-15'>  <img src='/graphics/a1-.gif' alt='-' border='0'></a> ];
     }
 
                                 # Add Select states
@@ -1309,7 +1289,8 @@ sub html_item_state {
     }
     
     if ($state_toggle) {
-        $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?$state_toggle'>$object_name2</a>];
+        $html .= qq[<a href='/SET:referer?$object_name=$state_toggle'>$object_name2</a>];
+#       $html .= qq[<a href='/SET:&html_list($object_type)?$object_name?$state_toggle'>$object_name2</a>];
     }
     else {
         $html .= $object_name2;
@@ -1469,7 +1450,7 @@ sub widget_entry {
 
         push @table_items, qq[<td align=left><b>$label:</b></td>];
                                 # Put form outside of td, or else td gets too high
-        my $html = qq[<FORM name="widgets_entry" ACTION="SET_VAR:last_response"  target='speech'> <td align='left'>];
+        my $html = qq[<FORM name="widgets_entry" ACTION="/SET:$H_Response"  target='speech'> <td align='left'>];
         $html_pointers{++$html_pointer_cnt} = $pvar;
         $html_pointers{$html_pointer_cnt . "_label"} = $label;
 
@@ -1495,7 +1476,7 @@ sub widget_entry {
 sub widget_radiobutton {
     my @table_items;
     my ($label, $pvar, $pvalue, $ptext) = @_;
-    my $html = qq[<FORM name="widgets_radiobutton" ACTION="SET_VAR:last_response"  target='speech'>\n];
+    my $html = qq[<FORM name="widgets_radiobutton" ACTION="/SET:$H_Response"  target='speech'>\n];
     $html .= qq[<td align='left'><b>$label</b></td>];
     push @table_items, $html;
     $html_pointers{++$html_pointer_cnt} = $pvar;
@@ -1530,7 +1511,7 @@ sub widget_checkbutton {
         my $pvar = shift @_;
         $html_pointers{++$html_pointer_cnt} = $pvar;
         my $checked = ($$pvar) ? 'CHECKED' : '';
-        my $html = qq[<FORM name="widgets_radiobutton" ACTION="SET_VAR:last_response"  target='speech'>\n];
+        my $html = qq[<FORM name="widgets_radiobutton" ACTION="/SET:$H_Response"  target='speech'>\n];
         $html .= qq[<INPUT type="hidden" name="$html_pointer_cnt" value='0'>\n]; # So we can uncheck buttons
         $html .= qq[<td align='left'><INPUT type="checkbox" NAME="$html_pointer_cnt" value="1" $checked onClick="form.submit()">$text</td></FORM>\n];
         push @table_items, $html;
@@ -1542,8 +1523,9 @@ sub widget_checkbutton {
 }
 
 
-# dir_index can be called either of these ways:
+# dir_index can be called with this fun url:
 #    http://house:8080/RUN:&dir_index('/pictures','date',0)
+# or with a record in a .shtml file like this:
 #       <!--#include code="&dir_index('/pictures','date',0)"-->
 
 sub dir_index {
@@ -1614,6 +1596,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.48  2000/11/12 21:02:38  winter
+# - 2.34 release
+#
 # Revision 1.47  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

@@ -13,7 +13,7 @@
 	<LI><A HREF="#Mister_House_Announcement_List">Mister House Announcement List</A></LI>
 	<UL>
 
-		<LI><A HREF="#Version_2_32_posted_on_10_21_00">Version 2.32 posted on 10/21/00</A></LI>
+		<LI><A HREF="#Version_2_32_posted_on_10_22_00">Version 2.32 posted on 10/22/00</A></LI>
 		<LI><A HREF="#Version_2_29_posted_on_10_01_00">Version 2.29 posted on 10/01/00</A></LI>
 		<LI><A HREF="#Version_2_28_posted_on_09_09_00">Version 2.28 posted on 09/09/00</A></LI>
 		<LI><A HREF="#Version_2_27_posted_on_08_18_00">Version 2.27 posted on 08/18/00</A></LI>
@@ -75,7 +75,7 @@ HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?g
 </P>
 <P>
 <HR>
-<H2><A NAME="Version_2_32_posted_on_10_21_00">Version 2.32 posted on 10/21/00</A></H2>
+<H2><A NAME="Version_2_32_posted_on_10_22_00">Version 2.32 posted on 10/22/00</A></H2>
 <P>
 Version 2.32 was just uploaded to:
 
@@ -162,7 +162,7 @@ response string. For example:
 
 </P>
 <P>
-- Fixed the MsAgent code added last time so it works with all VR commands.
+- Fixed the MsAgent code added last time so it works with all VR commands. 
 
 </P>
 <P>
@@ -172,10 +172,6 @@ response string. For example:
 <P>
 - Fixed a bug in mh_control.pl that disabled web based code reloads after
 the first reload.
-
-</P>
-<P>
-- Fixed SunTime.pm calculation for -time_zone 0 
 
 </P>
 <P>
@@ -195,6 +191,11 @@ object state save.
 <P>
 - Chris Witte sent in a patch to fix dissapearing Group problem when
 reloading changes in format=A tables.
+
+</P>
+<P>
+- Stephen Merrony found a problem with SunTime.pm calculation for
+-time_zone 0.
 
 </P>
 <P>
@@ -233,7 +234,8 @@ NT/2k.
 
 </P>
 <P>
-- Added mh/lib/site/HTML/TableExtract.pm
+- Added mh/lib/site/HTML/TableExtract.pm and
+mh/lib/site/Win32API/Resources.pm and Resources.html
 
 </P>
 <P>
@@ -242,7 +244,7 @@ bright/dims.
 
 </P>
 <P>
-- Added the mh.ini no_log parm. use no_log=pause to turn of the 'mh paused'
+- Added the mh.ini no_log parm. Use no_log=pause to turn of the 'mh paused'
 message.
 
 </P>

@@ -6,15 +6,16 @@ my ($class, $self, $id, $state, $action, $repeat, @timers_with_actions, $resort_
 
 sub expired_timers_with_actions {
     my @expired_timers = ();
-    # Keep the timers in order for effecient checking
+                                # Keep the timers in order for effecient checking
     if ($resort_timers_with_actions) {
         @timers_with_actions = sort { $a->{expire_time} <=> $b->{expire_time} } @timers_with_actions;
         $resort_timers_with_actions = 0;
     }
 
+#   print "db twa=@timers_with_actions\n";
     while (@timers_with_actions) {
         $self = $timers_with_actions[0];
-#   print "db3 s=$self ex=$self->{expire_time}\n";
+#       print "db3 s=$self ex=$self->{expire_time}\n";
         if (!$self->{expire_time}) {
             shift @timers_with_actions; # These timers were 'unset' ... delete them
         }       
@@ -29,7 +30,7 @@ sub expired_timers_with_actions {
             }
         }
         else {
-            last;       # The first timer has not expired yet, so don't check the others
+            last;               # The first timer has not expired yet, so don't check the others
         }
     }
     return @expired_timers;
@@ -71,6 +72,15 @@ sub restore_string {
     $restore_string .= $self->{object_name} . "->{expire_time} = $expire_time;" if $expire_time;
 
     return $restore_string;
+}
+
+                                # Use this to re-start dynamic timers after reload
+sub restore_self_set {
+    my ($self) = @_;
+    my $expire_time = $self->{expire_time};
+    return if !$expire_time or $expire_time < &main::get_tickcount;
+    set $self $self->{period}, $self->{action}, $self->{repeat};
+    $self->{expire_time} = $expire_time;
 }
 
 sub state {
@@ -269,6 +279,9 @@ sub inactive {
 
 #
 # $Log$
+# Revision 1.18  2000/11/12 21:02:38  winter
+# - 2.34 release
+#
 # Revision 1.17  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

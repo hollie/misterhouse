@@ -249,9 +249,18 @@ DESCRIPTION
     X10, 2 way IR, 24 digital IO, and can output its menus to TV.
     See member mh/code/public/test_homevision.pl for example code.
 
+    The DSC_Alarm.pm module supports the DSC PC5400 serial printer
+    interface. This module prints all events that DSC logs to the
+    even buffer. These events include arms/disarms/alarms, user
+    code(s) that performed action(s), installer access, etc. DSC
+    does not log individual zone open/close nor 'entry chime'
+    events. See the mh/lib/DSC_Alarm.pm for further information. See
+    also the DSC_Alarm item below.
+
     The CPU-XA, Ocelot, and Leopard controlers from Applied Digital
     Inc (http://www.appdig.com/adicon.html ) are supported thru
-    network calls to the cpuxad deamon, part of the XALIB package.
+    network calls to the cpuxad deamon, part of the XALIB package,
+    available at http://members.home.net/ncherry/common/cpuxad
 
     There is a $30 (assembled) pic base IR receiver you can order
     from the Netherlands ($3 shipping):
@@ -1277,6 +1286,80 @@ DESCRIPTION
 
         See mh/code/bruce/lcdproc.pl for more examples.
 
+    DSC_Alarm
+        DSC_Alarm module supports the DSC PC5400 serial printer
+        interface. This allows mh to be aware of events that DSC
+        alarm systems log to their event buffers.
+
+          Note: This original version (October 2000) exposes 
+          only "new" & "said", where "said" contains the raw data
+          from the printer module.
+
+          It is my intent to expose object methods (such as 
+          "state") in a future release.  This may lead to 
+          incompatible changes in existing methods.
+
+          Danal Estes, October 9, 2000
+
+          Required mh.ini entries:
+            DSC_Alarm_serial_port=COM1 or /dev/ttys0
+            DSC_Alarm_baudrate=4800
+
+          Multiple instances may be supported by adding instance
+          numbers to the parms as in:
+            DSC_Alarm:1_serial_port=COMx or /dev/ttysx
+            DSC_Alarm:1_baudrate=4800
+            DSC_Alarm:2_serial_port=COMy or /dev/ttysx
+            DSC_Alarm:2_baudrate=4800
+
+          Methods:
+             new('alarm-name')
+
+                Where 'alarm-name' is the prefix used in the mh.ini entry 'DSC_Alarm_serial_port=xyz'. 
+                The 'alarm-name' argument defaults to 'DSC_Alarm' if not specified.
+
+             said         : Returns the last serial data received.  Valid for 1 pass only.
+
+          Examples:
+            mh.ini entry of 'DSC_Alarm_serial_port=com2' 
+                
+            $DSC_Alarm = new DSC_Alarm;
+            if (my $log = said $DSC_Alarm) {
+               print_log "Alarm system data = $log\n";
+            }
+
+            mh.ini entry of 'DSC_Alarm:2_serial_port=com5' 
+                
+            $DSC_test = new DSC_Alarm('DSC_Alarm:2');
+            if (my $log = said $DSC_test) {
+               print_log "Alarm system data = $log\n";
+            }
+
+          Examples of typical DSC alarm system event/log entries:
+
+        Mon 10/09/00 17:09:00 DSC_Alarm.pm Initialized Mon 10/09/00
+        17:10:16 17:10 10/09/00 System [*1] Access by User Mon
+        10/09/00 17:12:28 17:12 10/09/00 System Partial Closing Mon
+        10/09/00 17:12:28 17:12 10/09/00 System Bypass Zone 1 Mon
+        10/09/00 17:12:28 17:12 10/09/00 System Bypass Zone 2 Mon
+        10/09/00 17:12:28 17:12 10/09/00 System Bypass Zone 4 Mon
+        10/09/00 17:12:29 17:12 10/09/00 System Closing by User Code
+        40 Mon 10/09/00 17:12:29 17:12 10/09/00 System Armed in Away
+        Mode Mon 10/09/00 17:12:45 17:12 10/09/00 System Opening by
+        User Code 2 Mon 10/09/00 17:14:42 17:14 10/09/00 System
+        Closing by User Code 40 Mon 10/09/00 17:14:43 17:14 10/09/00
+        System Armed in Away Mode Mon 10/09/00 17:14:47 17:14
+        10/09/00 System Opening by User Code 40 Mon 10/09/00
+        17:22:28 17:22 10/09/00 System [*1] Access by User Mon
+        10/09/00 17:33:39 DSC_Alarm.pm Initialized Tue 10/10/00
+        09:47:38 09:47 10/10/00 System Closing by User Code 40 Tue
+        10/10/00 09:47:38 09:47 10/10/00 System Armed in Away Mode
+        Tue 10/10/00 17:48:42 17:48 10/10/00 System Opening by User
+        Code 40 Tue 10/10/00 23:37:33 23:37 10/10/00 System Closing
+        by User Code 40 Tue 10/10/00 23:37:33 23:37 10/10/00 System
+        Armed in Away Mode Wed 10/11/00 07:38:11 07:38 10/11/00
+        System Opening by User Code 40
+
   List of functions
 
     browser
@@ -1472,6 +1555,7 @@ DESCRIPTION
              Options are:
                rooms => 'room_names'  You need to code a pa_stub.pl routine to allow this
                                       to work with your PA relays.
+               volume=> dd            How loud (dd = 0->100).  
                time  => $time         The amount of time to leave the PA speakers on for rooms
                mode  => $mode         $mode can be:
                  wait  : mh will pause (hang), until wav file finishes
@@ -1613,11 +1697,11 @@ DESCRIPTION
             
              Options are:
                rooms  => 'room_name'   You need to code a pa_stub.pl routine to allow this
-                                      to work with your PA relays.
+                                       to work with your PA relays.
+               volume => dd            How loud (dd = 0->100).  
                mode   => 'unmuted'     Forces speech, even in mute and offline mode
 
              These options are for the Festival speech engine (but don't work yet):
-               volume => 'loud' or 'soft'
                rate   => '+-nn%'       (e.g. +10% or -30%)
                voice  => 'name' 
          
@@ -2855,13 +2939,15 @@ DESCRIPTION
        RUN:h_response?command
 
       Where h_response can be one of the following:
-       &function:      The results of &function will be returned
-       &function(arg): The results of &function(arg) will be returned
-       last_response:  The last displayed or spoken text. 
-       last_displayed: The last displayed text will be returned
-       last_spoken:    The last spoken item will be returned
-       filexyz.html:   The contents of filexyz.html will be returned
-       string:         string will be returned
+       &function       The results of &function will be returned
+       &function(arg)  The results of &function(arg) will be returned
+       last_response   The last displayed or spoken text. 
+       last_displayed  The last displayed text will be returned
+       last_spoken     The last spoken item will be returned
+       filexyz.html    The contents of filexyz.html will be returned
+       string          string will be returned
+       Referer         The browser will be re-directed back to the calling page
+       http://url      The browser will be re-directed to url
        blank:          A list of recently spoken text will be returned
 
     Here are some examples demonstrating these options:
@@ -2888,6 +2974,14 @@ DESCRIPTION
 
       <FORM ACTION="SET_VAR:barcode_search.html"  target='speech'>
       <p>Scan data into here: <INPUT SIZE=60 NAME="$barcode_scan" value=""></FORM>
+
+     This will redirect the browser back to the calling page:
+
+      <a HREF="http://misterhouse.net:8080/SET:Referer?$camera_light&on">Light on</a>
+
+     This will redirect the browser to misterhouse.net
+
+      <a HREF="http://misterhouse.net:8080/SET:http://misterhouse.net?$camera_light&off">Light off</a>
 
     You can also use RUN:h_response without a command. For example,
     if you want to get a directory listing, sorted by date (recent

@@ -412,6 +412,10 @@ sub main::net_mail_send {
 
     return unless $server and $to;
 
+                                # Auto-detect mime type
+    ($mime) = $file =~ /(txt,pl,zip|exe|jpg|gif|png|html)$/ unless $mime;
+    $mime = 'text' if $mime eq 'txt' or $mime eq 'pl';
+
     if ($mime) {
         eval "use MIME::Lite";
         if ($@) {
@@ -421,20 +425,58 @@ sub main::net_mail_send {
             print " - windows: ppm -install MIME-Lite\n";
             return;
         }
-
-                                # Modify the html so it has a BASE HREF and the links work in a mail reader
-        $text =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{baseref}">|i;
-
+        my $message;
         ($filename) = $file =~ /([^\\\/]+)$/ unless $filename;
-
-        my $message = MIME::Lite->new(From => $from,
-                                      Subject => $subject,
-                                      Type  => 'text/html',
-                                      Encoding => '8bit',
-                                      Data => $text,
-#                                     Path => $file,
-                                      Filename => $filename,
-                                      To => $to);
+        if ($mime eq 'text') {
+            $message = MIME::Lite->new(From => $from,
+                                       Subject => $subject,
+                                       Type  => 'text,plain',
+                                       Encoding => '8bit',
+                                       Data => $text,
+                                       Filename => $filename,
+                                       To => $to);
+        }
+        elsif ($mime eq 'zip') {
+            $message = MIME::Lite->new(From => $from,
+                                       Subject => $subject,
+                                       Type  => 'application,zip',
+                                       Encoding => 'base64',
+                                       Data => $text,
+                                       Filename => $filename,
+                                       To => $to);
+        }
+        elsif ($mime eq 'bin' or $mime eq 'exe') {
+            $message = MIME::Lite->new(From => $from,
+                                       Subject => $subject,
+                                       Type  => 'application,octet-stream',
+                                       Encoding => 'base64',
+                                       Data => $text,
+                                       Filename => $filename,
+                                       To => $to);
+        }
+        elsif ($mime eq 'jpg' or $mime eq 'gif' or $mime eq 'png') {
+            $message = MIME::Lite->new(From => $from,
+                                       Subject => $subject,
+                                       Type  => 'image,$mime',
+                                       Encoding => 'base64',
+                                       Data => $text,
+                                       Filename => $filename,
+                                       To => $to);
+        }
+                                # Default to html
+        else {
+                                # Modify the html so it has a BASE HREF and the links work in a mail reader
+            $text =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{baseref}">|i;
+            $message = MIME::Lite->new(From => $from,
+                                       Subject => $subject,
+                                       Type  => 'text/html',
+                                       Encoding => '8bit',
+                                       Data => $text,
+#                                      Path => $file,
+                                       Filename => $filename,
+                                       To => $to);
+        }
+        
         if ($^O eq "MSWin32") {
             print "Using built in smtp code with server $server\n";
             MIME::Lite->send('smtp', $server, Timeout => 20);
@@ -537,7 +579,7 @@ sub main::net_mail_summary {
     my %msgdata;
     foreach my $msgnum ($parms{first} .. $parms{last}) {
         print "getting msg $msgnum\n" if $main::config_parms{debug} eq 'net';
-        my $msg_ptr = $pop->top($msgnum, 15); # The first 15 records should include some of the body text
+        my $msg_ptr = $pop->top($msgnum, 200); # Limit the number of records read
         my ($date, $from, $from_name, $to, $subject, $header, $header_flag, $body);
         $header_flag = 1;
         for (@$msg_ptr) {
@@ -615,6 +657,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.23  2000/11/12 21:02:38  winter
+# - 2.34 release
+#
 # Revision 1.22  2000/10/01 23:29:40  winter
 # - 2.29 release
 #

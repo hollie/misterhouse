@@ -27,6 +27,7 @@ use ControlX10::CM11;		# required for dim_level_convert
 
 my %controlsock;
 my %monitorsock;
+my $save_unit = 1;
 
 sub init {
 	my $hostport = shift;
@@ -42,64 +43,65 @@ sub send {
 	my $data = shift;
 
 	#Preset dim level for LM14A and Leviton units
-	if (my ($house, $unit, $level) = 
-	    $data =~ /^X([A-P])([0-9A-G]).&P([0-9]+)/) {
+	if (my ($house, $level) = $data =~ /^X([A-P])&P(\d+)$/) {
 		$house = unpack('C', $house) - 65; #Get code from ASCII
-		$unit = int($unit) - 1 if $unit =~ /[1-9]/;
-		$unit = unpack('C', $unit) - 56 if $unit =~ /[A-G]/;
 		$level = int($level) - 1;
 		ncpuxa::send_x10_leviton_level($controlsock{$hostport},
-			$house, $unit, $level);
+			$house, $save_unit, $level);
 		return;
 	}
 
-	#Standard X10
-	if (my ($house, $unit, $func) = $data =~ /^X([A-P])([0-9A-G]).(.*)/) {
-		my $repeat = 1;
+	#X10 Unit code
+	if (my ($house, $unit) = $data =~ /^X([A-P])([0-9A-G])$/) {
 		$house = unpack('C', $house) - 65; #Get code from ASCII
 		$unit = int($unit) - 1 if $unit =~ /[1-9]/;
 		$unit = unpack('C', $unit) - 56 if $unit =~ /[A-G]/;
-		{
-			$func = 18, last if $func eq "J"; #On
-			$func = 19, last if $func eq "K"; #Off
-			$func = 21, last if $func eq "L"; #Brighten once
-			$func = 20, last if $func eq "M"; #Dim once
-
-			#Dim n-times
-			$func = 20, $repeat = int($1/6.5), last if $func =~ /^\-([0-9]*)/;
-
-			#Brighten n-times
-			$func = 21, $repeat = int($1/6.5), last if $func =~ /^\+([0-9]*)/;
-
-			
-
-			#else (if it falls through to here...
-			print "ncpuxa_mh::send X10 data $data unimplemented\n";
-			return;
-		}
+		$save_unit = $unit;
 		ncpuxa::send_x10($controlsock{$hostport}, $house, $unit, 1);
+		return;
+	}
+	
+	#Standard X10 function
+	if (my ($house, $func) = $data =~ /^X([A-P])([H-W])$/) {
+		if    ($func eq 'L') {
+			$func = 'M';
+		}
+		elsif ($func eq 'M') {
+			$func = 'L';
+		}
+		$house = unpack('C', $house) - 65; #Get code from ASCII
+		$func  = unpack('C', $func ) - 72 + 16; #Get code from ASCII
+		ncpuxa::send_x10($controlsock{$hostport}, $house, $func, 1);
+		return;
+	}
+
+	#Dim/Bright n-times
+	if (my ($house, $sign, $percent) = $data =~ /^X([A-P])([\+\-])(\d+)$/) {
+		$house = unpack('C', $house) - 65; #Get code from ASCII
+		my $repeat = int($percent/6.5);
+		$func = ($sign eq '-' ? "20" : "21");
 		ncpuxa::send_x10($controlsock{$hostport}, $house, $func, $repeat);
 		return;
 	}
-	elsif (my ($irnum) = $data =~ /^IRSlot([0-9]+)$/) {
+	
+	#Send local IR
+	if (my ($irnum) = $data =~ /^IRSlot([0-9]+)$/) {
 		$irnum = int($irnum);
 		ncpuxa::local_ir($controlsock{$hostport}, $irnum);
 		return;
 	}
-	elsif (my ($relay, $state) = $data =~ /^OUTPUT([0-9]+)(high|low)/i) {
+	
+	#Set Relay
+	if (my ($relay, $state) = $data =~ /^OUTPUT([0-9]+)(high|low)$/i) {
 		my $module = 1;
 		$relay = int($relay);
 		$state = ($state =~ /high/i ? "1" : "0");
 		ncpuxa::set_relay($controlsock{$hostport}, $module, $relay, $state);
 		return;
 	}
-	else {
-		# Unimplemented
-		print "ncpuxa_mh::send unimplemented command $data\n";
-		return;
-	}
 
-	# not reached
+	#Unimplemented
+	print "ncpuxa_mh::send unimplemented command $data\n";
 	return;
 }
 

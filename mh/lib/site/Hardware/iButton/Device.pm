@@ -520,40 +520,49 @@ sub read_temperature_scratchpad {
     my($self) = @_;
     my $c = $self->{'connection'};
 
-    $c->reset();
-    $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
-    $c->write("\x39"); # set a 524ms pullup
-    $c->read(1); # response to config command
-    $c->reset();
-    $self->select();
-    $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
-    $c->write("\xef"); # arm the pullup
-    $c->write("\xf1"); # terminate pulse (??)
-    $c->read(1); # response to 0xf1
-    $c->mode(&Hardware::iButton::Connection::SET_DATA_MODE);
-    $c->send("\x44"); # start conversion. need to do a 0.5s strong pullup.
-    $c->read(1); # read back 0x44
-    # wait
-    usleep(750*1000); # wait .75s
-    $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
-    $c->write("\xed"); # disarm pullup
-    $c->write("\xf1"); # terminate pulse
-    $c->read(1); # response??
+    my $trys = 6;               # dpl mod
 
-    $c->reset();
-    $self->select();
+    for (my $loop=1;$loop <= $trys;$loop++) {
+#       print "read_temperature_scratchpad: pass $loop of $trys\n";
+        $c->reset();
+        $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
+        $c->write("\x39"); # set a 524ms pullup
+        $c->read(1); # response to config command
+        $c->reset();
+        $self->select();
+        $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
+        $c->write("\xef"); # arm the pullup
+        $c->write("\xf1"); # terminate pulse (??)
+        $c->read(1); # response to 0xf1
+        $c->mode(&Hardware::iButton::Connection::SET_DATA_MODE);
+        $c->send("\x44"); # start conversion. need to do a 0.5s strong pullup.
+        $c->read(1); # read back 0x44
+                                # wait
+        usleep(750*1000); # wait .75s
+        $c->mode(&Hardware::iButton::Connection::SET_COMMAND_MODE);
+        $c->write("\xed"); # disarm pullup
+        $c->write("\xf1"); # terminate pulse
+        $c->read(1); # response??
 
-    # read scratchpad, bytes 0 and 1 (LSB and MSB)
-    $c->send("\xbe"); $c->read(1);
-    $c->send("\xff" x 9);
-    my $scratchpad = $c->read(9);
-    $c->reset();
-    # check CRC in last byte.
-    if (Hardware::iButton::Connection::crc(0, split(//,$scratchpad))) {
-	warn("scratchpadcrc was wrong");
+        $c->reset();
+        $self->select();
+
+                                # read scratchpad, bytes 0 and 1 (LSB and MSB)
+        $c->send("\xbe"); $c->read(1);
+        $c->send("\xff" x 9);
+        my $scratchpad = $c->read(9);
+        $c->reset();
+                                # check CRC in last byte.
+        if (Hardware::iButton::Connection::crc(0, split(//,$scratchpad))) {
+            warn("scratchpadcrc was wrong on pass $loop");
+        }
+        else {
+            print "scratchpad correct on pass $loop of $trys\n" if $loop > 1;
+            return $scratchpad;
+        }
     }
-    return $scratchpad;
 }
+
 
 =head2 read_temperature
 
@@ -725,7 +734,7 @@ sub read_counter{
     $c->write("\xff\x01\xff\xff\xff\xff\xff\xff\xff\xff\xff");
     $c->read(4);
 
-    usleep(25000);              # Needed for reliable counter reads
+    usleep(25000);              # dpl Needed for reliable counter reads
 
     my $buf = $c->read(4);
     my $counter= unpack("V", $buf);

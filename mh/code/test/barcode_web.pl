@@ -3,7 +3,7 @@
 #   Takes data from barcode_scan.pl and points to relevant web sites
 #
 
-return unless 'web' eq state $barcode_mode;
+return unless 'web' eq state $barcode_mode or ! state $barcode_mode;
 
 if (my $scan = state_now $barcode_data) {
     my ($type, $code, $isbn) = split ' ', $scan;

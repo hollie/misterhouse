@@ -279,7 +279,7 @@ sub read {
                                 # read_Interval is not in the unix Device/Serialport.pm
                                 # - But This works best with high speed ports and windows NT/2000
     if ($^O eq 'MSWin32') {
-        $self->{s}->read_interval(10); # Time to wait after last byte received
+        $self->{s}->read_interval(20); # Time to wait after last byte received
     }
     else {
         $self->{s}->read_char_time(20); # avg time between read char

@@ -66,7 +66,8 @@ $remark_zach = new File_Item("$config_parms{data_dir}/remarks/zack.txt");
 $remark_bad   = new File_Item("$config_parms{data_dir}/remarks/personal_bad.txt", 'Ok');
 $remark_good  = new File_Item("$config_parms{data_dir}/remarks/personal_good.txt", 'Ok');
 
-speak read_next $remark_nick if ON  eq state_now $ib_nick;
+#peak read_next $remark_nick if ON  eq state_now $ib_nick;
+speak read_random $remark_nick if ON  eq state_now $ib_nick;
 speak read_next $remark_zach if ON  eq state_now $ib_zach;
 speak read_next $remark_bad  if ON  eq state_now $ib_bruce;
 #peak 'bye'                  if OFF eq state_now $ib_bruce;

@@ -119,16 +119,34 @@ sub main::file_write {          # Same as fileit
 }
 
 sub main::file_cat {
-    my ($file1, $file2) = @_;
-    open(LOG1, "$file1")   or print "Warning, could not open file_cat $file1: $!\n";
-    open(LOG2, ">>$file2") or print "Warning, could not open file_cat $file2: $!\n";
-    binmode LOG1;
-    binmode LOG2;
-    while (<LOG1>) {
-        print LOG2 $_;
+    my ($file1, $file2, $position) = @_;
+    if ($position eq 'top') {
+        open(LOG1, $file1)    or print "Warning, could not open file_cat $file1: $!\n";
+        open(LOG2, $file2)    or print "Warning, could not open file_cat $file2: $!\n";
+        binmode LOG1;
+        binmode LOG2;
+        my @data = (<LOG1>, <LOG2>);
+        open(LOG2, ">$file2") or print "Warning, could not open file_cat $file2: $!\n";
+        binmode LOG2;
+        while (@data) {
+            my $r = shift @data;
+            print LOG2 $r;
+        }
+        close LOG1;
+        close LOG2;
     }
-    close LOG1;
-    close LOG2;
+                                # Default is to cat to the bottom
+    else {
+        open(LOG1, "$file1")   or print "Warning, could not open file_cat $file1: $!\n";
+        open(LOG2, ">>$file2") or print "Warning, could not open file_cat $file2: $!\n";
+        binmode LOG1;
+        binmode LOG2;
+        while (<LOG1>) {
+            print LOG2 $_;
+        }
+        close LOG1;
+        close LOG2;
+    }
 }
 
                                 # This drops carrage returns and line feeds
@@ -484,7 +502,8 @@ sub main::read_record {
     close DATA;
 
     if (lc($index) eq 'random') {
-        srand(time);
+                                # Perl 5.004+ will self-randomize
+#       srand(time);
         $index = 1 + int((@records) * rand);
     }
     else {
@@ -997,6 +1016,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.43  2000/11/12 21:02:38  winter
+# - 2.34 release
+#
 # Revision 1.42  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

@@ -191,8 +191,9 @@ sub set {
     $state = 'default_state' unless defined $state; 
 
     my $serial_id;
-    if (defined $self->{id_by_state}{$state}) {
-        $serial_id = $self->{id_by_state}{$state};
+                                # Lowercase (e.g. treat ON the same as on ... so X10_Items is simpler)
+    if (defined $self->{id_by_state}{lc $state}) {
+        $serial_id = $self->{id_by_state}{lc $state};
     }
     else {
         $serial_id = $state;
@@ -214,7 +215,6 @@ sub set {
 
     return unless %main::Serial_Ports;
 
-
     my $port_name = $self->{port_name};
 
     print "Serial_Item: port=$port_name self=$self state=$state data=$serial_data interface=$$self{interface}\n" 
@@ -224,62 +224,59 @@ sub set {
 
     my $interface = $$self{interface};
     $interface = 'none' unless $interface;
-    if ($interface eq 'cm11') {
-                                # Allow for xx% (e.g. 1% -> &P1)
-        if ($serial_data =~ /(\d+)%/) {
-            $serial_data = '&P' . int ($1 * 63 / 100 + 0.5);
-        }
+
+                                # First deal with X10 strings...
+                                # allow for xx% (e.g. 1% -> &P1)
+    if ($serial_data =~ /(\d+)%/) {
+        $serial_data = '&P' . int ($1 * 63 / 100 + 0.5);
+    }
                                 # Make sure that &P codes have the house code prefixed
                                 #  - e.g. device A1 -> A&P1
-        if ($serial_data =~ /^&P/) {
-            $serial_data = substr($self->{x10_id}, 1, 1) . $serial_data;
-        }
+    if ($serial_data =~ /^&P/) {
+        $serial_data = substr($self->{x10_id}, 1, 1) . $serial_data;
+    }
                                 # If code is &P##, prefix with item code.
                                 #  - e.g. A&P1 -> A1A&P1
-        if (substr($serial_data, 1, 1) eq '&') {
-            $serial_data = $self->{x10_id} . $serial_data;
+    if (substr($serial_data, 1, 1) eq '&') {
+        $serial_data = $self->{x10_id} . $serial_data;
+    }
+   
+                                # Allow for long strings like this: XAGAGAGAG (e.g. SmartLinc control)
+                                #  - break it into individual codes (XAG  XAG  XAG)
+    if ($serial_data =~ /^X/) {
+        $serial_data =~ s/^X//;
+        my $serial_chunk;
+        while ($serial_data) {
+            if ($serial_data =~ /^([A-P]STATUS)(\S*)/ or
+                $serial_data =~ /^([A-P]PRESET_DIM1)(\S*)/ or
+                $serial_data =~ /^([A-P]PRESET_DIM2)(\S*)/ or
+                $serial_data =~ /^([A-P][1-9A-W])(\S*)/ or
+                $serial_data =~ /^([A-P]\&P\d+)(\S*)/ or 
+                $serial_data =~ /^([A-P]\d+\%)(\S*)/ or 
+                $serial_data =~ /^([A-P][\+\-]?\d+)(\S*)/) {
+                $serial_chunk = $1;
+                $serial_data  = $2;
+                &send_x10_data($self, 'X' . $serial_chunk, $interface);
+            }
+            else {
+                print "Serial_Item error, X10 string not parsed: $serial_data.\n";
+                return;
+            }
         }
-                                # Allow for:
-                                # - Extended data will have & starting the function code 
-                                #   e.g. XO7&P23 -> Device O7 to Preset Dim code 23
-                                # - Bright/dim on house codes: e.g. XA+20 (but not XA1A+20)
-#        if (length $serial_data > 3 and substr($serial_data, 3, 1) eq '&' or
-#            $serial_data =~ /^\S\S[\+\-]/) {
-#            &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 1));
-#        }
-                                # Normal data ... call once for the Unit code, once for the Function code
-#        else {
-            &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 1, 2));
-            &ControlX10::CM11::send($main::Serial_Ports{cm11}{object}, substr($serial_data, 3)) if length($serial_data) > 3;
-#        }
+        return;
     }
-    elsif ($interface eq 'cm17') {
-                                # cm17 wants XA1K, not XA1AK
-        substr($serial_data, 3, 1) = '';
-        &ControlX10::CM17::send($main::Serial_Ports{cm17}{object}, substr($serial_data, 1));
-    }
+
+                                # Now deal with all other Serial strings
     elsif ($interface eq 'homevision') {
         print "Using homevision to send: $serial_data\n";
         &Homevision::send($main::Serial_Ports{Homevision}{object}, $serial_data);
-    }
-    elsif ($interface eq 'homebase') {
-        print "Using homebase to send: $serial_data\n";
-        &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 1, 2));
-        &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 3)) if length($serial_data) > 2;
-    }
-    elsif ($interface eq 'houselinc') {
-        print "Using houselinc to send: $serial_data\n";
-        &HouseLinc::send_X10($main::Serial_Ports{HouseLinc}{object}, $serial_data);
-    }
-    elsif ($interface eq 'marrick') {
-        print "Using marrick to send: $serial_data\n";
-        &Marrick::send_X10($main::Serial_Ports{Marrick}{object}, $serial_data);
     }
     elsif ($interface eq 'ncpuxa') {
         print "Using ncpuxa to send: $serial_data\n";
         &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
     }
     else {
+                                # Pick a default port, if not specified
         $port_name = 'Homevision' if !$port_name and $main::Serial_Ports{Homevision}{object}; #Since it's multifunction, it should be default
         $port_name = 'weeder'  if !$port_name and $main::Serial_Ports{weeder}{object};
         $port_name = 'serial1' if !$port_name and $main::Serial_Ports{serial1}{object};
@@ -292,37 +289,6 @@ sub set {
         unless ($main::Serial_Ports{$port_name}{object}) {
             print "Error, serial port for $port_name has not been set: data=$serial_data\n";
             return;
-        }
-        
-                                # Weeder table does not match what we defined in CM11,CM17,X10_Items.pm
-                                #  - Dim -> L, Bright -> M,  AllOn -> I, AllOff -> H
-        if ($port_name eq 'weeder' and
-            my ($device, $house, $command) = $serial_data =~ /^X(\S\S)(\S)(\S+)/) {
-
-                                # Allow for +-xx%
-            my $dim_amount = 3;
-            if ($command =~ /[\+\-]\d+/) {
-                $dim_amount = int(10 * abs($command) / 100); # about 10 levels to 100%
-                $command = ($command > 0) ? 'L' : 'M';
-            }
-                
-            if ($command eq 'M') {
-                $command =  'L' . (($house . 'L') x $dim_amount);
-            }
-            elsif ($command eq 'L') {
-                $command =  'M' . (($house . 'M') x $dim_amount);
-            }
-            elsif ($command eq 'O') {
-                $command =  'I';
-            }
-            elsif ($command eq 'P') {
-                $command =  'H';
-            }
-            $serial_data = 'X' . $device . $house . $command;
-
-				# Give weeder a chance to do the previous command
-				# Surely there must be a better way!
-            select undef, undef, undef, 1.2;
         }
 
         if (lc($port_name) eq 'homevision') {
@@ -339,6 +305,7 @@ sub set {
     }
 
                                 # Check for X10 All-on All-off house codes
+                                #  - If found, set states of all X10_Items on that housecode
     if ($serial_data =~ /^X(\S)([OP])$/) {
         print "db l=$main::Loop_Count X10: mh set House code $1 set to $2\n" if $main::config_parms{debug} eq 'X10';
         my $state = ($2 eq 'O') ? 'on' : 'off';
@@ -367,6 +334,104 @@ sub set {
 
 }    
 
+my $x10_save_unit;
+sub send_x10_data {
+    my ($self, $serial_data, $interface) = @_;
+    my ($isfunc);
+
+    if ($serial_data =~ /^X[A-P][1-9A-G]$/) {
+        $isfunc = 0;
+        $x10_save_unit = $serial_data;
+    }
+    else {
+        $isfunc = 1;
+    }
+    print "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n" if $main::config_parms{debug} eq 'X10';
+
+    if ($interface eq 'cm11') {
+                                # cm11 wants individual codes without X
+        &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},
+                                substr($serial_data, 1));
+    }
+    elsif ($interface eq 'cm17') {
+                                # cm17 wants A1K, not XA1AK
+        &ControlX10::CM17::send($main::Serial_Ports{cm17}{object},
+                                substr($x10_save_unit, 1) . substr($serial_data, 2)) if $isfunc;
+    }
+    elsif ($interface eq 'homevision') {
+                                # homevision wants XA1AK
+        if ($isfunc) {
+            print "Using homevision to send: " .
+                $x10_save_unit . substr($serial_data, 1) . "\n";
+            &Homevision::send($main::Serial_Ports{Homevision}{object},
+                              $x10_save_unit . substr($serial_data, 1));
+        }
+    }
+    elsif ($interface eq 'homebase') {
+                                # homebase wants individual codes without X
+        print "Using homebase to send: $serial_data\n";
+        &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 1));
+    }
+    elsif ($interface eq 'houselinc') {
+                                # houselinc wants XA1AK
+        if ($isfunc) {
+            print "Using houselinc to send: " .
+                $x10_save_unit . substr($serial_data, 1) . "\n";
+            &HouseLinc::send_X10($main::Serial_Ports{HouseLinc}{object},
+                                 $x10_save_unit . substr($serial_data, 1));
+        }
+    }
+    elsif ($interface eq 'marrick') {
+                                # marrick wants XA1AK
+        if ($isfunc) {
+            print "Using marrick to send: " .
+                $x10_save_unit . substr($serial_data, 1) . "\n";
+            &Marrick::send_X10($main::Serial_Ports{Marrick}{object},
+                               $x10_save_unit . substr($serial_data, 1));
+        }
+    }
+    elsif ($interface eq 'ncpuxa') {
+                                # ncpuxa wants individual codes with X
+        print "Using ncpuxa to send: $serial_data\n";
+        &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
+    }
+    elsif ($interface eq 'weeder') {
+                                # Weeder table does not match what we defined in CM11,CM17,X10_Items.pm
+                                #  - Dim -> L, Bright -> M,  AllOn -> I, AllOff -> H
+        my ($device, $house, $command) = $serial_data =~ /^X(\S\S)(\S)(\S+)/;
+
+                                # Allow for +-xx%
+        my $dim_amount = 3;
+        if ($command =~ /[\+\-]\d+/) {
+            $dim_amount = int(10 * abs($command) / 100); # about 10 levels to 100%
+            $command = ($command > 0) ? 'L' : 'M';
+        }
+        if ($command eq 'M') {
+            $command =  'L' . (($house . 'L') x $dim_amount);
+        }
+        elsif ($command eq 'L') {
+            $command =  'M' . (($house . 'M') x $dim_amount);
+        }
+        elsif ($command eq 'O') {
+            $command =  'I';
+        }
+        elsif ($command eq 'P') {
+            $command =  'H';
+        }
+        $serial_data = 'X' . $device . $house . $command;
+
+        $main::Serial_Ports{weeder}{object}->write($serial_data);
+
+				# Give weeder a chance to do the previous command
+				# Surely there must be a better way!
+        select undef, undef, undef, 1.2;
+    }
+
+    else {
+        print "\nError, X10 interface not found: interface=$interface, data=$serial_data\n";
+    }
+}
+
 sub set_interface {
     my ($self, $interface) = @_;
                                 # Set the default interface
@@ -392,6 +457,9 @@ sub set_interface {
         elsif ($main::Serial_Ports{cm17}{object}) {
             $interface = 'cm17';
         }
+        elsif ($main::Serial_Ports{weeder}{object}) {
+            $interface = 'weeder';
+        }
 
     }
     $$self{interface} = lc($interface) if $interface;
@@ -400,6 +468,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.43  2000/11/12 21:02:38  winter
+# - 2.34 release
+#
 # Revision 1.42  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

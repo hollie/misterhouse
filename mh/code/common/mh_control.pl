@@ -30,13 +30,17 @@ $v_reboot = new  Voice_Cmd("Reboot the computer");
 $v_reboot-> set_info('Do this only if you really mean it!  Windows only');
 
 if (said $v_reboot and $OS_win) {
-    if (Win32::IsWin95) {
-        speak "Sorry, the reboot option does not work on Win95";
+#   if ($Info{OS_name} eq 'Win95') {
+#        speak "Sorry, the reboot option does not work on Win95";
+#   }
+    if ($Info{OS_name} eq 'NT') {
+        speak "The house computer will reboot in 1 minute.";
+        Win32::InitiateSystemShutdown('HOUSE', 'Rebooting in 5 minutes', 60, 1, 1);
+        &exit_pgm;
     }
     else {
-        speak "The house computer will reboot in 5 minutes.";
-#       Win32::InitiateSystemShutdown('HOUSE', 'Rebooting in 5 minutes', 300, 1, 1);
         run 'rundll32.exe shell32.dll,SHExitWindowsEx 6 ';
+        &exit_pgm;
     }
 }
 
@@ -165,7 +169,7 @@ sub serial_match_log {
     my ($ref, $state, $event) = @_;
     return unless $event =~ /^X/; # Echo only X10 events
     my $name = substr $$ref{object_name}, 1;
-    print_log "$event: $name $state";
+    print_log "$event: $name $state" if $config_parms{x10_errata} > 1;
 }
 
                                 # Allow control of individual members

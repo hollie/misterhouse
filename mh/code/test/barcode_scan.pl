@@ -11,9 +11,11 @@
 $barcode_data   = new Generic_Item;
 $barcode_mode   = new Generic_Item;
 $barcode_mode  -> set_states('web', 'add inventory', 'delete inventory', 'query inventory', 'clear inventory');
+$barcode_mode  -> set_authority('anyone');
 
 $v_barcode_mode = new Voice_Cmd('Change barcode scan to [web,add inventory,delete inventory,query inventory,clear inventory] mode');
 $v_barcode_mode-> set_info('Controls what you want to do with barcode scans.  Web will create urls, inventory updates a database');
+$v_barcode_mode-> set_authority('anyone');
 $v_barcode_mode-> tie_items($barcode_mode);
 $v_barcode_mode-> tie_event('print_log "Scanner set to $state mode"');
 
@@ -32,7 +34,8 @@ if ($state = state_now $barcode_scan) {
 
     $state =~ s/^\..+?\./\./;   # Drop the scanner Serial Number data from the logs
     ${$$barcode_scan{state_log}}[0] = "$Time_Date $state";
-    print_log "Barcode scan: $state";
+    my $mode = state $barcode_mode;
+    print_log "Barcode scan: mode=$mode data=$state";
 #   $$barcode_scan{state} = $state;
     set $barcode_scan '';       # Reset tk field
 

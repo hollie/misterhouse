@@ -6,7 +6,7 @@ package iButton;
 
 @iButton::ISA = ('Generic_Item');
 
-my ($connection, %objects_by_id, %buttons_active);
+my (%connections, %objects_by_id, %buttons_active);
 
 sub usleep {
     my($usec) = @_;
@@ -15,7 +15,8 @@ sub usleep {
 }
 
 sub new {
-    my ($class, $id) = @_;
+    my ($class, $id, $port) = @_;
+
 
                                 # iButton::Device needs to see a mucked up binary string
 
@@ -40,10 +41,14 @@ sub new {
     }
     $raw_id .= unpack('b8', $crc);
 
+
+    $port = $connections{default} unless $port;
+    my $connection = $connections{$port};
+
  	my $self = Hardware::iButton::Device->new($connection, $raw_id);
 
     bless $self, $class;
-
+    $self->{port}  = $port;
     $id = $self->{id};       # Get the full id
     $objects_by_id{$id} = $self;
 
@@ -75,35 +80,42 @@ sub new {
                                 # Called on mh startup
 sub connect {
     my ($port) = @_;
-    if ($connection) {
+                                # The first port used is the default
+    $connections{default} = $port unless $connections{default};
+
+    if ($connections{$port}) {
         return 'iBbutton bus is already connected';
     }
     printf " - creating %-15s object on port %s\n", 'Ibutton', $port;
-    $connection = new Hardware::iButton::Connection $port or
+    $connections{$port} = new Hardware::iButton::Connection $port or
         print "iButton connection error to port $port: $!";
 
-    if ($connection) {
-#        print "Reseting iButton connection: $connection\n";
-        $connection->reset();
+    if ($connections{$port}) {
+#        print "Reseting iButton connection: port=$port $connections{$port}\n";
+        $connections{$port}->reset();
     }
     return 'iButton connection has been made';
 }
 
 sub disconnect {
-    if (!$connection) {
+    my ($port) = @_;
+    $port = $connections{default} unless $port;
+    if (!$connections{$port}) {
         return 'iButton bus is already disconnected';
     }
     else {
-        my $serialport = $connection->{s};
+        my $serialport = $connections{$port}->{s};
         $serialport->close;
-        undef $connection;
+        undef $connections{$port};
         return 'iButton bus has been disconnected';
     }
 }
 
                                 # Called for each mh loop
 sub monitor {
-    return unless $connection;
+    my ($port) = @_;
+    $port = $connections{default} unless $port;
+    return unless $connections{$port};
     my (@ib_list, $count, $ib, $id, $object, %buttons_dropped);
 #   @ib_list = &scan;
 #   print "db calling scan\n";
@@ -132,8 +144,9 @@ sub monitor {
 }
 
 sub read_switch {
-    return unless $connection;
-    my ($self,) = @_;
+    my ($self) = @_;
+    my $connection;
+    return unless $connection = $connections{$self->{port}};
 
 #    $Hardware::iButton::Connection::debug = 1;
 
@@ -157,8 +170,10 @@ sub read_switch {
 }
 
 sub read_temp {
-    return unless $connection;
     my ($self) = @_;
+    my $connection;
+    return unless $connection = $connections{$self->{port}};
+
     my $temp = 0;
     if ($self->{model} eq 'DS1920' ) {
         push (@iButton::ISA, "Hardware::iButton::Device::DS1920");
@@ -174,24 +189,23 @@ sub read_temp {
     my $temp_c = sprintf("%3.2f", $temp);
     my $temp_f = sprintf("%3.2f", $temp*9/5 +32);
 
-
     set_receive $self $temp_f;
 
     return wantarray ? ($temp_f, $temp_c) : $temp_f;
 }
 
 sub scan {
-    return unless $connection;
-    my ($family) = @_;
-    my @list = $connection->scan($family);
+    my ($family, $port) = @_;
+    $port = $connections{default} unless $port;
+    return unless $connections{$port};
+    my @list = $connections{$port}->scan($family);
     return if $list[0] == undef;
     return @list;
 }
 
 sub scan_report {
-    return unless $connection;
-    my ($family) = @_;
-    my @ib_list = &iButton::scan($family);
+    my ($family, $port) = @_;
+    my @ib_list = &iButton::scan($family, $port);
     my $report;
     for my $ib (@ib_list) {
         $report .= "Device type:" . $ib->family . "  ID:" .
@@ -201,8 +215,9 @@ sub scan_report {
 }
 
 sub set {
-    return unless $connection;
     my ($self, $state) = @_;
+    my $connection;
+    return unless $connection = $connections{$self->{port}};
 #    $connection->reset;
     $self->select;
     $self->{state} = $state;
@@ -314,6 +329,9 @@ memory
 
 
 # $Log$
+# Revision 1.6  2000/11/12 21:02:38  winter
+# - 2.34 release
+#
 # Revision 1.5  2000/10/09 02:31:13  winter
 # - 2.30 update
 #

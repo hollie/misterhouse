@@ -37,7 +37,7 @@ sub set {
     unshift(@{$$self{state_log}}, "$main::Time_Date $state");
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
-                                # If we are using a CM11 (and not a CM17),
+                                # If we are using a CM11 or similar (and not a CM17),
                                 # and they are all X10 objects with the same house code, 
                                 # then we can get fancy and control X10 devices all at once by 
                                 # defering the set command for the group to the last object
@@ -51,9 +51,9 @@ sub set {
         if ((ref $ref) !~ /^X10_/ or 
             $hc ne substr($$ref{x10_id}, 1, 1) or
             substr($$ref{x10_id}, 2, 1) eq '' or # Can not group set a house code
-            $$ref{interface} ne 'cm11') {
+            $$ref{interface} !~ /cm11|ncpuxa|homebase/) {
             undef $hc;
-#            last;
+            last;
         }
     }
 
@@ -84,6 +84,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.11  2000/11/12 21:02:38  winter
+# - 2.34 release
+#
 # Revision 1.10  2000/10/22 16:48:29  winter
 # - 2.32 release
 #

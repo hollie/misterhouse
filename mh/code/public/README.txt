@@ -26,6 +26,12 @@ door_monitor_jay.pl
 iButton_ws.pl
  - Craig Schaeffer's code for monitoring the iButton weather station
 
+ical.pl
+ - David Lounsberry's code to run the mh/bin/ical_load program to create
+   mh events based on the unix ical calander program.
+   Similar to mh/code/bruce/outlook.pl and mh/bin/outlook_read (for windows).
+   Set this mh.ini parm: calendar_file=/home/dbl/.calendar
+
 internet_ip_update.p
  - Updates IP servers/web pages with IP addresses
 
@@ -52,6 +58,19 @@ monitor_ipchainlog.pl
 
 news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
+ - Brian Rigsby did news_yahoo.pl
+
+rrd_graph
+rrd_create.sh
+rrd_create.bat
+ - David Lounsberry's example of how to create graphs using  rrdtool.
+   Download from http://ee-staff.ethz.ch/~oetiker/webtools/rrdtool/
+   You can see David's plots at: http://dittos.yi.org/automation/plots/temps.html 
+   See &update_rrd in mh/code/bruce/iButton.pl for an example of logging data.
+   To install RRDs.pm on windows, download the i386 distro, then from
+   the perl-shared directory, run:  ppm install rrds.ppd
+   After installing RRDs.pm, set the rrd_dir mh.ini parm to enable from mh.
+   Edit and use rrd_create to initialize the RRD databases.
 
 rcs.pl
  - Craig's code to run RCS X10 thermostats.

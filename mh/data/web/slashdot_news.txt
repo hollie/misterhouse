@@ -1,30 +1,30 @@
-Title: Civil Engineering with Atomic Detonations
-2000-10-22 08:08:40 by michael  in dept: earth-shattering-news  (news   48)
+Title: Cantametrix Plans To Track All MP3s On The Web
+2000-11-12 09:45:18 by timothy  in dept: even-the-awful-ones?  (music   64)
 
-Title: NHK Plans 50-Year Digital Archive
-2000-10-22 05:39:28 by timothy  in dept: tetsujin.org-is-neat-too  (tv   76)
+Title: Hacking the City
+2000-11-12 06:10:32 by michael  in dept: you-can-take-that-to-the-bank  (money   150)
 
-Title: Linus Speaks With c't On Clean Design And ReiserFS
-2000-10-21 23:59:32 by timothy  in dept: Kernelentwickler  (linux   176)
+Title: Ejection From Fastest Known Revolving Neutron Star
+2000-11-12 03:49:06 by timothy  in dept: spin-spin-spin  (space   75)
 
-Title: What To Do If Linux Sneaks Onto Your Network
-2000-10-21 21:59:56 by timothy  in dept: what-to-do-if-kidnapped-by-lucy-liu  (linux   384)
+Title: A Path To Perfect Lenses?
+2000-11-11 23:29:54 by timothy  in dept: sounds-like-a-dream  (science   136)
 
-Title: Mapping The Net And Hunting Down Evil
-2000-10-21 20:43:54 by CmdrTaco  in dept: my-heart-has-been-darkened-by-the-internet  (Privacy   193)
+Title: CIA Chat Room Violates The Company's Policy
+2000-11-11 20:20:17 by timothy  in dept: should'na-dun-dat-fellas  (usa   170)
 
-Title: Hong Kong Smart Identity Cards In 2003
-2000-10-21 19:08:37 by timothy  in dept: at-least-china's-not-an-autocratic-dictatorship  (Privacy   134)
+Title: The 3Dsia Project: More Than A 3DWM
+2000-11-11 19:01:05 by CmdrTaco  in dept: wouldn't-that-be-excellent  (x   202)
 
-Title: Amiga, Inc. Announces AmigaOne Spec... Sort Of.
-2000-10-21 18:02:51 by CmdrTaco  in dept: phoenix-wallowing-in-its-grave  (amiga   127)
+Title: "KDE 2.0 Development" Is Online (And OPL)
+2000-11-11 17:39:31 by timothy  in dept: or-wait-a-few-days-for-the-print-version  (kde   145)
 
-Title: Microsoft's First Ad Targeting Linux
-2000-10-21 17:24:15 by CmdrTaco  in dept: not-bad-considering-linux-doesn't-matter  (microsoft   505)
+Title: Is The Public Key Infrastructure Outdated?
+2000-11-11 16:17:23 by CmdrTaco  in dept: something-to-think-about  (encryption   113)
 
-Title: OS-Independent Web Banking?
-2000-10-21 17:19:01 by Cliff  in dept: the-internet-isn't-all-mac-and-windows-you-know  (news   226)
+Title: IBM Ships First 22" 200dpi Displays
+2000-11-11 15:07:35 by timothy  in dept: my-laptop-will-be-huge!  (ibm   170)
 
-Title: Quake As An Architectural Design Tool
-2000-10-21 13:33:22 by timothy  in dept: now-watch-them-charge-extra-for-this;)-  (quake   193)
+Title: Microsoft Is Indoctrinating Children, Shouldn't We?
+2000-11-11 11:11:11 by Cliff  in dept: getting-the-tools-in-the-hands-of-the-next-generation  (news   406)
 

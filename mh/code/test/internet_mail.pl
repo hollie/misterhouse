@@ -5,7 +5,7 @@
                                 # Example on how to send an email command
                                 # - This string can be in either the subject or the body of the email
                                 #      Subject line is:  command:x y z  code:xyz
-$v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3]', 'Ok, will do');
+$v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9]', 'Ok, will do');
 $v_send_email_test-> set_info('Send commands to test remote email commands');
 if ($state = said $v_send_email_test) {
     if (&net_connect_check) {
@@ -19,6 +19,28 @@ if ($state = said $v_send_email_test) {
                                 # Send a command in the body
         &net_mail_send(subject => "test command in body of text",
                        text => "command:What is your up time?  code:$config_parms{net_mail_command_code}") if $state == 3;
+
+                                # Send attachements of different types
+                                #  - Note mime parm is optional if file ends with that extention
+        &net_mail_send(subject => 'test a file attachement',
+                       baseref => 'localhost:8080',
+                       file    => '../web/mh4/widgets.html', mime  => 'html') if $state == 4;
+
+        &net_mail_send(subject => 'test a file attachement',
+                       file    => 'c:/temp/test1.zip') if $state == 5;
+
+        &net_mail_send(subject => 'test a file attachement',
+                       file    => 'c:/temp/test.tar.gz', mime => 'bin') if $state == 6;
+
+        &net_mail_send(subject => 'test a file attachement',
+                       file    => '../web/graphics/goofy.gif') if $state == 7;
+
+        &net_mail_send(subject => 'test a file attachement',
+                       file    => '../docs/faq.txt') if $state == 8;
+
+        &net_mail_send(subject => 'test a file attachement',
+                       file    => '../docs/faq.html') if $state == 9;
+
         speak "Test message has been sent";
     }
     else {

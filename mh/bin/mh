@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-10-28 16:27:58 winter>
+#  Last change Time-stamp: <2000-11-11 23:14:50 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -71,7 +71,7 @@ use vars qw($Time_Start_time $Time_Stop_time $Time_Increment $Time_Startup $Time
 use vars qw($Time_Sunrise $Time_Sunrise_Twilight $Time_Sunset $Time_Sunset_Twilight %Moon $Time_Now $Time_Date $Date_Now $Date_Now_Speakable $Year_Month_Now);
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
-use vars qw($Season $Weekday $Weekend $Holiday $Time_Of_Day);
+use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category);
 use vars qw($Version_tk $Password);
 
@@ -95,10 +95,12 @@ use vars '$MW';                 # So that programs that we 'do' can use the top 
 use vars '%Serial_Ports';       # So we can get at it from the Serial_Item package.
 use vars '%Socket_Ports';
 use vars '%Save';
+use vars '%Persistent';         # Uses Dumper for dynamic objects e.g. timers.pl
 use vars '%Info', '$OS_win';
 use vars '%Password_Allow';     # So we can see check it from http_server.pl
 use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
 use vars '$DNS_resolver';
+
 
                                 # Pre-declare these so we don't fail on non-windows platforms
 sub Win32::GetOSVersion;
@@ -110,6 +112,9 @@ sub Win32::IsWinNT;
 sub Win32::IsWin95;
 sub Win32::GetTickCount;
 sub Win32::DriveInfo::DrivesInUse;
+                                # Pre-declare these in case RRDs is not installed
+sub RRDs::update;
+sub RRDs::error; 
 
 
 &setup;
@@ -167,18 +172,21 @@ BEGIN {
 
 # Win95:  MSWin32 Win95  B 4 0 67306684 1 FAT32
 # Win98:  MSWin32 Win95    4 10 67766222 1 FAT
+# 2K:     MSWin32 NT Service Pack 1,5,0,2195,2 NTFS
+
 
         if ($OS_win) {
-            $Info{OS_version} = join(' ', Win32::GetOSVersion);
+            $Info{OS_version} = join(',', Win32::GetOSVersion);
             $Info{OS_name} = 'NT' if Win32::IsWinNT;
-            $Info{OS_name} = 'Win95' if Win32::IsWin95;
+            $Info{OS_name} = 'Win95' if Win32::IsWin95 ;
+            $Info{OS_name} = 'Win98' if Win32::IsWin95 and (Win32::GetOSVersion)[2] > 0;
             $Info{OS_filesystem} = Win32::FsType;
             $Info{User} = Win32::LoginName;
             $Info{Machine} = Win32::NodeName;
         }
         else {
             $Info{OS_name} = $^O;
-            $Info{User} = $ENV{USER};
+            $Info{User}    = $ENV{USER};
             $Info{Machine} = $ENV{HOSTNAME};
         }
 
@@ -251,6 +259,9 @@ BEGIN {
 
         print "User   Code Directory: $config_parms{code_dir}\n";
         print "System Code Directory: $config_parms{code_dir_common}\n" if $config_parms{code_dir_common};
+
+        unshift @INC, $config_parms{code_dir}; # So we can add/override modules locally
+
     }
 
     sub use_conditional_modules {
@@ -317,6 +328,16 @@ BEGIN {
                 &my_use("Display");
             }
         }
+
+                                # Allow for Round Robin database logs
+        if ($config_parms{rrd_dir}) {
+            eval "use RRDs";
+            if ($@) {
+                print "\nError, perl RRDs.pm is not installed.\n  - Either install or unset the rrd_dir mh.ini parm\n\n";
+                $config_parms{rrd_dir} = '';
+            }
+        }
+
     }
 
 }                               # End BEGIN
@@ -348,6 +369,7 @@ sub setup {
     use Fcntl;                  # To enable O_RDWR|O_CREAT
 #   use Date::Parse;            # For str2time
 #   use Data::Dumper qw(Dumper DumperX);
+    use Data::Dumper;
 #   use FreezeThaw qw(freeze thaw cmpStr safeFreeze cmpStrHard);
     use IO::Socket;
     use LWP::Simple;            # For pgms like set_clock that need to grab data from urls
@@ -625,11 +647,6 @@ sub setup {
     if ($config_parms{tk}) {
         &tk_setup_windows;
     }
-
-#   $xcmd_file = "$config_parms{temp_dir}/house_cmd.cmd" if $config_parms{xcmd_file};
-#   print "X command file: $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
-                                # Use eval to change $ENV{temp} to the real value ... this is done in read_opts now
-#    eval "\$config_parms{xcmd_file} = qq[$config_parms{xcmd_file}]";
 
     print "External command file (xcmd_file): $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
 
@@ -1105,7 +1122,7 @@ sub check_for_socket_data {
     for my $port_name (@active_ports) {
         my $sock = $Socket_Ports{$port_name}{socka};
         if (my $nfound = &socket_has_data($sock)) {
-            print "\n$port_name nfound=$nfound\n" if $config_parms{debug} eq $port_name;
+            print "$port_name nfound=$nfound " if $config_parms{debug} eq $port_name;
             if ($nfound < 0) {
                                 # Note, must do a shutdown here ... a close does not close handles
                                 #   from &run (system start) processes !?! ... maybe IO sockets do not need this?
@@ -1143,7 +1160,7 @@ sub check_for_socket_data {
             }
         }
 
-        print "\n sock=$sock lso=$leave_socket_open_passes data=$data.\n"  if $config_parms{debug} eq $port_name;
+        print " sock=$sock lso=$leave_socket_open_passes data=$data"  if $config_parms{debug} eq $port_name;
 
                                 # Need to do this or the socket never closes!
                                 # For some reason, nfound = 1 (instead of -1) unless we do this.
@@ -1155,7 +1172,7 @@ sub check_for_socket_data {
         }
 
         $Socket_Ports{$port_name}{data} .= $data if defined $data;
-        print "$port_name data=$Socket_Ports{$port_name}{data}..\n" if $config_parms{debug} eq $port_name;
+        print "$port_name data=$Socket_Ports{$port_name}{data}" if $config_parms{debug} eq $port_name;
 
                                 # If raw mode, return data as is
         if ($Socket_Ports{$port_name}{datatype} and $Socket_Ports{$port_name}{datatype} eq 'raw') {
@@ -1179,8 +1196,8 @@ sub check_for_socket_data {
         next unless $Socket_Ports{$port_name}{data};
         while (my($record, $remainder) = $Socket_Ports{$port_name}{data} =~ /(.+?)[\r\n]+(.*)/) {
             if ($config_parms{debug} eq $port_name) {
-                print "$port_name record=$record.  hex=", unpack('H*', $record), "\n";
-                print "$port_name remainder=$remainder.  hex=", unpack('H*', $remainder), "\n";
+#               print "$port_name record=$record.  hex=", unpack('H*', $record), "\n";
+#               print "$port_name remainder=$remainder.  hex=", unpack('H*', $remainder), "\n";
             }
             $Socket_Ports{$port_name}{data_record} = $record;
             $Socket_Ports{$port_name}{data}        = $remainder;
@@ -1189,7 +1206,7 @@ sub check_for_socket_data {
             if ($port_name eq 'http') {
                 if ($record =~ /^ *GET /) {
                     ($leave_socket_open_passes, $leave_socket_open_action) = &process_http_request($sock, $record);
-                    print "db lso=$leave_socket_open_passes sock=$sock.\n" if $config_parms{debug} eq $port_name;
+                    print "http lso=$leave_socket_open_passes sock=$sock.\n" if $config_parms{debug} eq $port_name;
                     unless ($leave_socket_open_passes) {
                         print "4 closing socket port $port_name\n" if $config_parms{debug} eq $port_name;
                                 # We must sleep here for a bit, or else Netscape sometimes
@@ -1724,9 +1741,9 @@ sub object_states_restore {
 #  - for example, maybe you just ran on a test module on the previous pass
     open  SAVE, $restore_state_file;
     my @states = <SAVE>;
-    open  SAVE, "$restore_state_file.unused";
-    push(@states, <SAVE>);
-    open(SAVE, ">$restore_state_file.unused");
+    open SAVE,  "$restore_state_file.unused";
+    push @states, <SAVE>;
+    open SAVE, ">$restore_state_file.unused";
 
 #   &speak("Error, Mr. Bruce, restoring an empty state file!") if !@states and $Info{User} eq 'winter';
 
@@ -1747,6 +1764,19 @@ sub object_states_restore {
     use strict 'vars'; 
     close SAVE;
     print "Object states restored\n";
+
+                                # Restore Persistent data
+    $Persistent{timers} = [];   # In case we don't read in any
+    if (-e  "$restore_state_file.persistent") {
+        my $persistent_data = file_read "$restore_state_file.persistent";
+        eval $persistent_data;
+        print "Error in Persistent data restore: $@\n" if $@;
+        
+                                # Must resart each timer
+        for my $timer (@{$Persistent{timers}}) {
+            $timer->restore_self_set;
+        }
+    }
 
     &Timer::resort_timers_with_actions;
 }
@@ -1774,16 +1804,19 @@ sub object_states_save {
         }
     }
                                 # Do not write file on startup ($restore_state should be empty)
+    my $restore_state_file = "$config_parms{code_dir}/mh_temp.saved_states";
     if ($restore_state) {
         return unless $restore_state;
 
-        my $restore_state_file = "$config_parms{code_dir}/mh_temp.saved_states";
         open  SAVE, ">$restore_state_file" or print "Can not open saved_states file $restore_state_file: $!\n";
         print SAVE $restore_state;
         close SAVE;
         print_log("Object states saved") if $config_parms{debug} eq 'misc';
         print "Save object states:  restore_state=\n$restore_state\n" if $config_parms{debug} eq 'misc';
     }
+
+                                # Save Persistent data
+    file_write "$restore_state_file.persistent", Data::Dumper->Dump([\%Persistent], [qw(*Persistent)]);
    
 }
 
@@ -2064,6 +2097,7 @@ sub process_external_command {
 #       eval $eval_cmd;
 #       print_log "\nError in running external eval command: cmd=$eval_cmd\n error: $@\n" if $@;
 #   }
+    print "Running external command: $cmd\n";
     if (&run_voice_cmd(lc($cmd))) {
         print_log "Running cmd:$cmd";
     }
@@ -2640,22 +2674,33 @@ sub run_voice_cmd {
 }
 
 
+
 sub sendkeys_find_window {
     my ($title, $program) = @_;
-    my $window;
-    unless (&WaitForAnyWindow($title, \$window, 100, 200)) {
+    return unless $OS_win;
+                                # We don't have a Setupsup 5.6 version yet :(
+    if ($] >= 5.006) {
         print_log "Starting $program";
         run $program;
         print     "Waiting for $title\n";
-        &WaitForAnyWindow($title, \$window, 2000, 200); # Wait for 2 seconds
         select undef, undef, undef, 0.5; # Give it a chance to get going
     }
-    if ($window) {
-        print_log "Found window $title: $window";
-        return $window;
-    }
     else {
-        print_log "Sorry, could not find or start $title for $program";
+        my $window;
+        unless (&WaitForAnyWindow($title, \$window, 100, 200)) {
+            print_log "Starting $program";
+            run $program;
+            print     "Waiting for $title\n";
+            &WaitForAnyWindow($title, \$window, 2000, 200); # Wait for 2 seconds
+            select undef, undef, undef, 0.5; # Give it a chance to get going
+        }
+        if ($window) {
+            print_log "Found window $title: $window";
+            return $window;
+        }
+        else {
+            print_log "Sorry, could not find or start $title for $program";
+        }
     }
 }
 
@@ -2752,6 +2797,7 @@ sub set_global_vars {
         if ($prev_min ne $Minute) {
             $New_Minute = 1;
             $prev_min = $Minute;
+
             $Time_Now  = &time_date_stamp(5, $Time);
                                 # Drop the : so 18:00 is pronounced 1800, not 18
                                 #  - but then 20:00 is proununced 2 thousand, not 20 hundred :(
@@ -2839,6 +2885,14 @@ sub set_global_vars {
                         }
                     }
                 }
+            }
+                                # This must be run AFTER startup sun_time call
+            if (&time_less_than(  $Time_Sunrise_Twilight) or 
+                &time_greater_than($Time_Sunset_Twilight)) {
+                $Dark = 1;
+            }
+            else {
+                $Dark = 0;
             }
         }
         $New_Second = $New_Minute = $New_Hour = $New_Day = $New_Week = $New_Month = $New_Year = 0 if $Startup or $Reload;
@@ -3754,6 +3808,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.34  2000/11/12 21:01:02  winter
+# - 2.34 release
+#
 # Revision 2.33  2000/10/28 21:33:38  winter
 # - fix random and x10 string merging
 #

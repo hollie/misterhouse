@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Civil Engineering with Atomic Detonations</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/22/0812225</url>
-		<time>2000-10-22 08:08:40</time>
+		<title>Cantametrix Plans To Track All MP3s On The Web</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/12/0450221</url>
+		<time>2000-11-12 09:45:18</time>
+		<author>timothy</author>
+		<department>even-the-awful-ones?</department>
+		<topic>music</topic>
+		<comments>64</comments>
+		<section>articles</section>
+		<image>topicmusic.gif</image>
+	</story>
+
+	<story>
+		<title>Hacking the City</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/12/0511251</url>
+		<time>2000-11-12 06:10:32</time>
 		<author>michael</author>
-		<department>earth-shattering-news</department>
-		<topic>news</topic>
-		<comments>48</comments>
+		<department>you-can-take-that-to-the-bank</department>
+		<topic>money</topic>
+		<comments>150</comments>
 		<section>articles</section>
-		<image>topicnews.gif</image>
+		<image>topicmoney.gif</image>
 	</story>
 
 	<story>
-		<title>NHK Plans 50-Year Digital Archive</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/21/1441217</url>
-		<time>2000-10-22 05:39:28</time>
+		<title>Ejection From Fastest Known Revolving Neutron Star</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/12/0341255</url>
+		<time>2000-11-12 03:49:06</time>
 		<author>timothy</author>
-		<department>tetsujin.org-is-neat-too</department>
-		<topic>tv</topic>
-		<comments>76</comments>
+		<department>spin-spin-spin</department>
+		<topic>space</topic>
+		<comments>75</comments>
 		<section>articles</section>
-		<image>topictv.jpg</image>
+		<image>topicspace.gif</image>
 	</story>
 
 	<story>
-		<title>Linus Speaks With c't On Clean Design And ReiserFS</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/21/199214</url>
-		<time>2000-10-21 23:59:32</time>
+		<title>A Path To Perfect Lenses?</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/11/2230236</url>
+		<time>2000-11-11 23:29:54</time>
 		<author>timothy</author>
-		<department>Kernelentwickler</department>
-		<topic>linux</topic>
-		<comments>176</comments>
+		<department>sounds-like-a-dream</department>
+		<topic>science</topic>
+		<comments>136</comments>
 		<section>articles</section>
-		<image>topiclinux.gif</image>
+		<image>topicscience.gif</image>
 	</story>
 
 	<story>
-		<title>What To Do If Linux Sneaks Onto Your Network</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/21/183230</url>
-		<time>2000-10-21 21:59:56</time>
+		<title>CIA Chat Room Violates The Company's Policy</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/11/191225</url>
+		<time>2000-11-11 20:20:17</time>
 		<author>timothy</author>
-		<department>what-to-do-if-kidnapped-by-lucy-liu</department>
-		<topic>linux</topic>
-		<comments>384</comments>
+		<department>should'na-dun-dat-fellas</department>
+		<topic>usa</topic>
+		<comments>170</comments>
 		<section>articles</section>
-		<image>topiclinux.gif</image>
+		<image>topicus.gif</image>
 	</story>
 
 	<story>
-		<title>Mapping The Net And Hunting Down Evil</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/21/1654206</url>
-		<time>2000-10-21 20:43:54</time>
+		<title>The 3Dsia Project: More Than A 3DWM</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/11/1519218</url>
+		<time>2000-11-11 19:01:05</time>
 		<author>CmdrTaco</author>
-		<department>my-heart-has-been-darkened-by-the-internet</department>
-		<topic>Privacy</topic>
-		<comments>193</comments>
+		<department>wouldn't-that-be-excellent</department>
+		<topic>x</topic>
+		<comments>202</comments>
 		<section>articles</section>
-		<image>topicprivacy.gif</image>
+		<image>topicx.jpg</image>
 	</story>
 
 	<story>
-		<title>Hong Kong Smart Identity Cards In 2003</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/21/133203</url>
-		<time>2000-10-21 19:08:37</time>
+		<title>"KDE 2.0 Development" Is Online (And OPL)</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/11/160215</url>
+		<time>2000-11-11 17:39:31</time>
 		<author>timothy</author>
-		<department>at-least-china's-not-an-autocratic-dictatorship</department>
-		<topic>Privacy</topic>
-		<comments>134</comments>
+		<department>or-wait-a-few-days-for-the-print-version</department>
+		<topic>kde</topic>
+		<comments>145</comments>
 		<section>articles</section>
-		<image>topicprivacy.gif</image>
+		<image>topickde.gif</image>
 	</story>
 
 	<story>
-		<title>Amiga, Inc. Announces AmigaOne Spec... Sort Of.</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/21/173206</url>
-		<time>2000-10-21 18:02:51</time>
+		<title>Is The Public Key Infrastructure Outdated?</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/11/1517235</url>
+		<time>2000-11-11 16:17:23</time>
 		<author>CmdrTaco</author>
-		<department>phoenix-wallowing-in-its-grave</department>
-		<topic>amiga</topic>
-		<comments>127</comments>
+		<department>something-to-think-about</department>
+		<topic>encryption</topic>
+		<comments>113</comments>
 		<section>articles</section>
-		<image>topicamiga.gif</image>
+		<image>topicencryption.gif</image>
 	</story>
 
 	<story>
-		<title>Microsoft's First Ad Targeting Linux</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/21/1644248</url>
-		<time>2000-10-21 17:24:15</time>
-		<author>CmdrTaco</author>
-		<department>not-bad-considering-linux-doesn't-matter</department>
-		<topic>microsoft</topic>
-		<comments>505</comments>
+		<title>IBM Ships First 22" 200dpi Displays</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/11/1457202</url>
+		<time>2000-11-11 15:07:35</time>
+		<author>timothy</author>
+		<department>my-laptop-will-be-huge!</department>
+		<topic>ibm</topic>
+		<comments>170</comments>
 		<section>articles</section>
-		<image>topicms.gif</image>
+		<image>topicibm.gif</image>
 	</story>
 
 	<story>
-		<title>OS-Independent Web Banking?</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/20/2242201</url>
-		<time>2000-10-21 17:19:01</time>
+		<title>Microsoft Is Indoctrinating Children, Shouldn't We?</title>
+		<url>http://slashdot.org/article.pl?sid=00/11/10/1955217</url>
+		<time>2000-11-11 11:11:11</time>
 		<author>Cliff</author>
-		<department>the-internet-isn't-all-mac-and-windows-you-know</department>
+		<department>getting-the-tools-in-the-hands-of-the-next-generation</department>
 		<topic>news</topic>
-		<comments>226</comments>
+		<comments>406</comments>
 		<section>askslashdot</section>
 		<image>topicnews.gif</image>
-	</story>
-
-	<story>
-		<title>Quake As An Architectural Design Tool</title>
-		<url>http://slashdot.org/article.pl?sid=00/10/21/0355210</url>
-		<time>2000-10-21 13:33:22</time>
-		<author>timothy</author>
-		<department>now-watch-them-charge-extra-for-this;)-</department>
-		<topic>quake</topic>
-		<comments>193</comments>
-		<section>articles</section>
-		<image>topicquake.gif</image>
 	</story>
 
 </backslash>

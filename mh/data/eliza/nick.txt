@@ -3,7 +3,7 @@
 # This was modified by son Nick.  Probably should not be used
 # by those of a sensitive nature :)
 #
-initial: <sigh> Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
+initial: Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
 initial: It is a good day to die.
 initial: Hello, I am a computer program. (I wouldn't include that, but it seems obvious that you need the reminder)
 initial: Please tell me what's been bothering you. I might even not make fun of you for it.
@@ -169,7 +169,7 @@ key: perhaps 0
     reasmb: Why the uncertain tone ? Wait, I don't wanna know.
     reasmb: Can't you be more positive ? Look at the bright side and all that B.S.?
     reasmb: You aren't sure ? Well of course you aren't. No one is ever sure of anything. Nothing is real. Take the red pill!
-    reasmb: Don't you know ? I know I know, but I thought you knew too. <sigh>
+    reasmb: Don't you know ? I know I know, but I thought you knew too. sigh
 	reasmb: How likely would you estimate that is ? About the chances of something thinking you were smart?
 key: name 15
   decomp: *
@@ -199,8 +199,8 @@ key: hello 0
     reasmb: Hi.  Got any good problems for me today? I hope not ... I can't take much more.
     reasmb: Howdee do.  How's your karma today?  I hope it is not as bad as the last guy's.
     reasmb: Hi hi.  How's we feeling today?  I hope you don't have the flu ... I don't want to catch it again.
-    reasmb: <sigh> Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
-    reasmb: Well well well, I can see that Taco Bell has closed and you've come to drool over something other than a burrito. <cough cough> fatso <cough cough>
+    reasmb: Just great, another bum on the internet who's got a 'good' question for me. Make it quick!
+    reasmb: Well well well, I can see that Taco Bell has closed and you've come to drool over something other than a burrito. 
     reasmb: Please tell me what's been bothering you. I might even not make fun of you for it.
     reasmb: Is something troubling you? Please say yes, I love it when people are depressed!
     reasmb: Hello--wait, you're not the mail daemon! Go away!
@@ -232,7 +232,7 @@ key: are 0
   decomp: * are you *
     reasmb: Why are you interested in whether I am (2) or not ? I didn't know you cared...
     reasmb: Would you prefer if I weren't (2) ? I didn't know you cared...
-    reasmb: Perhaps I am (2) in your fantasies. <snicker>
+    reasmb: Perhaps I am (2) in your fantasies.
     reasmb: Do you sometimes think I am (2) ? Well, guess again!
     reasmb: goto what
 	reasmb: Would it matter to you ? I didn't know you cared...
@@ -283,7 +283,7 @@ key: i 0
     reasmb: What would getting (3) mean to you ?
     reasmb: What does wanting (3) have to do with this discussion ? Nothing? I thought not!
   decomp: * i am* @sad *
-    reasmb: I am sorry to hear that you are (3). <cough cough> bwahahahaha <cough cough>
+    reasmb: I am sorry to hear that you are (3). bwahahahaha cough, cough
     reasmb: Do you think coming here will help you not to be (3) ? Don't come here, that was just something put there by my makers!
     reasmb: I'm sure it's not pleasant to be (3), but I wouldn't know.
     reasmb: Can you explain what made you (3) ? I thought not.
@@ -348,7 +348,7 @@ key: you 0
     reasmb: Really, I (2) you ? Ya think so? Is it so?
     reasmb: Do you wish to believe I (2) you ? You just go and think whatever you want.
     reasmb: Suppose I did (2) you -- what would that mean ? It's not what you're thinking...
-    reasmb: Does someone else believe I (2) you ? Must I repeat myself or are you going to turn me off? <cough cough> you do <cough cough>
+    reasmb: Does someone else believe I (2) you ? Must I repeat myself or are you going to turn me off? cough, cough.  you do?
   decomp: * you *
     reasmb: We were discussing you -- not me. I don't really care about you, but it's better than you knowing about me.
     reasmb: Oh, I (2) ? What about you (2) ? Huh? Punk?!
@@ -360,7 +360,7 @@ key: yes 0
     reasmb: Come on, can't you just elaborate a teensy weensy bit? (Meaning, don't talk to me and I won't have to talk to you)
     reasmb: Please yell at me some more. I really really like it!
     reasmb: Why don't you go walk the dog or something? Don't say you have a cat, cuz cats look just like dogs to me...
-    reasmb: I don't see.  You are as murky as sea water. Have you ever been 20,000 leagues under the sea? <snicker>
+    reasmb: I don't see.  You are as murky as sea water. Have you ever been 20,000 leagues under the sea?  snicker.
     reasmb: I do not understand, and I never want to.
 key: no 0
    decomp: * no one *
@@ -393,7 +393,7 @@ key: my 2
     reasmb: I hate black people. What? They can hear me? Someone edit this part out!
     reasmb: Your kidding!  Your (2) ? HAHAHAHA!!!
     reasmb: I find that hard to believe.  Your (2) ? Get real!
-    reasmb: Give me a break.  Your (2) ??? <snicker>
+    reasmb: Give me a break.  Your (2) ??? snicker.
     reasmb: Do you really thing the rest of the world cares about your (2) ?
     reasmb: Is it important to you that your (2) ?
     reasm_for_memory: Let's discuss further why your (2).
@@ -625,7 +625,7 @@ key: daemon
 key: @uncool 10
   decomp: * i like*@uncool *
     reasmb: Your question has caused a GPF
-    reasmb: <shudder> I <shudder> can't <thrash> take <thrash> it <crash>
+    reasmb: shudder. I can't take it.
     reasmb: You like that?! YOU WILL BE SLAUGHTERED AND THEN PUT IN A GERBER SHIPMENT FOR BABIES TO EAT!!!
   decomp: * i hate*@uncool *
     reasmb: Good!

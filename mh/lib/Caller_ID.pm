@@ -100,13 +100,13 @@ DDN_NMBR= 9932562
 #            $caller = "phone_call.wav,$caller,phone_call.wav,$caller";  # Prefix 'phone call'
 #       }
     }
-    elsif ($last eq "Private") {
+    elsif ($last eq "Private"  or $number eq "P") {
         $caller = "a blocked phone number";
     }
-    elsif ($last eq "Unavailable") {
+    elsif ($last eq "Unavailable" or $name eq '') {
         $caller = "number $local_number";
     }
-    elsif ($last eq "Out-of-area" or $last eq "Out") {
+    elsif ($last eq "Out-of-area" or $last eq "Out" or $number eq "O") {
         $caller = "an out of area number";
     }
     elsif ($last eq "Pay") {
@@ -205,6 +205,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.18  2000/11/12 21:02:38  winter
+# - 2.34 release
+#
 # Revision 1.17  2000/10/22 16:48:29  winter
 # - 2.32 release
 #
