@@ -453,7 +453,8 @@ sub http_process_request {
 
         if ($Authorized or $authority) {
             for my $temp (split('&&', $get_arg)) {
-                ($item, $state) = $temp =~ /(\S+)[\?\=](.*)/;
+                                # /s allows for multi-line arguments, like you get from textarea form elements
+                ($item, $state) = $temp =~ /(\S+?)[\?\=](.*)/s;
 #               print "db i=$item s=$state a=$get_arg t=$temp\n";
 
                 $state =~ s/\_/ /g;      # No blanks were allowed in a url 
@@ -2418,7 +2419,15 @@ sub widget_label {
     my @table_items;
     my $search = shift @_;
     for my $pvar (@_) {
-        my $label = $$pvar;
+                                # Allow for state objects
+        my $label;
+        print "db pvar=$pvar\n";
+        if (ref $pvar ne 'SCALAR' and $pvar->can('set')) {
+            $label = $pvar->state;
+        }
+        else {
+            $label = $$pvar;
+        }
         next unless $label and $label =~ /\S{3}/;   # Drop really short labels, like tk_eye
         next if $search and $label !~ /$search/i;
         my ($key, $value) = $label =~ /(.+?\:)(.*)/;
@@ -2643,6 +2652,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.77  2003/01/18 03:32:42  winter
+#  - 2.77 release
+#
 # Revision 1.76  2003/01/12 20:39:21  winter
 #  - 2.76 release
 #

@@ -71,7 +71,9 @@ if (my $header = said $mhsend_server) {
     }
     elsif ($action eq 'run') {
         $msg =~ s/\n|\r//g;
-        if (&run_voice_cmd($msg)) {
+#       if (&run_voice_cmd($msg)) {
+        my $respond = "object_set name=mhsend_server";
+        if (&process_external_command($msg, 0, 'mhsend', $respond)) {
             $response = "Command was run: $msg";
         }
         else {

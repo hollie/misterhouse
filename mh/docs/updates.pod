@@ -21,7 +21,35 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 B<New Features:>
 
+- No new features.  Hoping for a fairly stable and bug free release this time :)
+
+
 B<Bug Fixes and Other Changes:>
+
+- Kevin Olalde found a 2.76 bug that would ignore user private parms for a few bin/get_* programs.
+
+- Fixed a 2.76 bug when displaying web label widgets: 'not a SCALAR reference at ../lib/http_server.pl line 2421'
+
+- David Norwood updated http_server.pl to allow for multi-line data from things like textarea form elements.
+
+- Bob Hughes updated the clock in status_line.pl to re-align better on browser resize.
+
+- Michael Ryan noticed we were missing the respond function for vr triggered events.
+
+- Wally Kissel noticed a problem with web SET data (from Eliza) with ? in the string.
+
+- David Norwood  updated the UIRT2 files, fixing a few problems with
+learning and changed the display of codes to uppercase to be compatible with Girder.  
+
+- Created a smart file_backup function, now used by web iniedit and item edit scripts.  
+
+- Fixed the web iniedit script to drop file= entries, 
+not to drop multi-line mh.ini data (e.g. like voice_names),
+and to re-read parms after iniedit changes.
+
+- Disabled closing of Tk windows, which would cause mh errors.  Now you get a popup that advices to use the File->Exit option.
+
+
 
 
 =head2 Version 2.76 posted on 01/12/2003
@@ -49,6 +77,7 @@ B<New Features:>
  - xantech.pm: made some logging optional
  - internet_weather.pl  added nws_city .ini parm nws_city= paramter which overrides city if set
  - allow a return_state in set_with_timer 
+
 
 - Bill Sobel created lib/WakeOnLan.pm, for waking up computers from susbend or hibernated states
 from mh via a lan connection.  See code/public/wakeup_on_lan.pl for more info.
@@ -163,6 +192,8 @@ This code monitors router traffic via udp broadcasts from NetGear and LinkSys ro
 - Joseph Gaston fixed a net_mail_send bug when account was specified, but not server.
 
 - Danal Estes updated the code he uses in his house in code/public/Danal.
+
+- Updated the xAP code to work with Patrick's latest hub.
 
 
 

@@ -13,8 +13,8 @@ sub init {
     my ($engine) = @_;
 
     if ($main::Info{OS_name}=~ /darwin/i) {
-        &my_use("Mac::Sound");
-		&my_use("Mac::Speech");
+        &main::my_use("Mac::Sound");
+		&main::my_use("Mac::Speech");
         my $voice = $main::config_parms{speak_voice};
         $voice = 'Albert' unless $voice;
         my $Mac_voice = $Mac::Speech::Voice{$voice};
@@ -747,6 +747,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.44  2003/01/18 03:32:42  winter
+#  - 2.77 release
+#
 # Revision 1.43  2003/01/12 20:39:20  winter
 #  - 2.76 release
 #

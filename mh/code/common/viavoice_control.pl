@@ -100,6 +100,7 @@ if (expired $viavoice_awake_timer and $Save{vr_mode} eq 'awake') {
 my $voice_word_list = join(',', &Voice_Cmd::word_list) if $config_parms{voice_cmd} eq 'viavoice';
 $voice_word_list = 'no words listed' unless $voice_word_list;
 $v_command_search = new Voice_Cmd('find a command', 'what words?');
+print "db viavoice word list: $voice_word_list\n";
 $v_command_words  = new Voice_Cmd("[$voice_word_list,do it]", '', 0, 'mh_words');
 set_icon $v_command_words 'none';
 # noloop=stop
@@ -117,6 +118,7 @@ if (said $v_command_search) {
 }
 
 if ($state = said $v_command_words) {
+    print "db vvs=$state.\n";
     if ($state eq 'do it') {
         my @list = &list_voice_cmds_match($viavoice_cmd);
         my $count = @list;

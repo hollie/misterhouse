@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2003-01-12 14:29:06 winter>
+#  Last change Time-stamp: <2003-01-17 20:44:48 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -258,11 +258,11 @@ BEGIN {
 
     sub read_parms {
 
+        $config_parms{debug_old} = $config_parms{debug};
         my $debug = 1 if $config_parms_startup{debug} and $config_parms_startup{debug} eq 'startup';
         $debug = 1 if $config_parms{debug} eq 'parms';
         my @files = &main::read_mh_opts(\%config_parms, '.', $debug);
         print "Read parm files: @files\n";
-
 
                                 # Read in speak parms per application
         &main::read_parm_hash(\%speak_apps,  $main::config_parms{speak_apps_default});
@@ -273,6 +273,8 @@ BEGIN {
         for my $parm (keys %config_parms_startup) {
             $config_parms{$parm} = $config_parms_startup{$parm};
         }
+
+        $config_parms{debug} = $config_parms{debug_old} if defined $config_parms{debug_old};
 
     }
 
@@ -830,7 +832,7 @@ sub setup {
     unshift @Error_Log, "$Time_Date ---------- Restart ---------- ";
 
 
-    print "Archiving previous log files\n";
+    print "Archiving previous $config_parms{data_dir}/logs/*.log files\n";
 
                # These files will get archived by mh/code/common/mh_control.pl
     file_cat $print_log, $print_log . ".old";
@@ -2257,13 +2259,7 @@ sub mht_item_add {
 sub mht_item_file_write {
     my ($file, $data_ptr) = @_;
     print "Writing out to mht file $file\n";
-                                # Back it up if it is older than a few minutes
-    if (($Time - (stat $file)[9]) > 60*10) {
-        print "Backing up mht file $file\n";
-        copy "$file.old2", "$file.old3" if -e "$file.old2";
-        copy "$file.old1", "$file.old2" if -e "$file.old1";
-        copy  $file, "$file.old1";
-    }
+    &file_backup($file);
     &file_write($file, join("\n", @$data_ptr));
 }
 
@@ -2648,6 +2644,7 @@ sub play {
     &Log_hooks('play', $parms{file}, %parms);   # Created by &add_hooks
 
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $mode !~ /unmute/i;
+    return if $parms{file} eq 'none';
 
     my $play_parm = $parms{mode};
     $play_parm = 'wait' if !$play_parm and $config_parms{play_mode} eq 'wait';
@@ -3258,9 +3255,7 @@ sub read_code {
 
     print_log "Re-reading $ENV{mh_parms} and mh.ini";
 
-    $config_parms{debug_old} = $config_parms{debug};
     read_parms unless $Startup; # Re-read .ini parms, in case they changed
-    $config_parms{debug} = $config_parms{debug_old};
     
     &read_misc_parms();         # Reread misc files/parms
 
@@ -4421,6 +4416,9 @@ sub respond_speak {
 sub respond_tk {
     &respond_default(@_);
 }
+sub respond_vr {
+    &respond_default(@_);
+}
 sub respond_web {
     &respond_default(@_);
 }
@@ -4715,6 +4713,8 @@ sub tk_setup_windows {
     $MW = MainWindow->new; 
     $MW->withdraw;              # Hide the window until we are all setup
 
+                                # Guard gains accidental MH exits (without this we would get "Failed to AUTOLOAD Tk..." errors
+    $MW->protocol('WM_DELETE_WINDOW', sub { &display("To exit, use the File->Exit pulldown\n", 5) } );
 
                                 # Keep startup value so we resize only if it has changed since startup,
                                 # and we don't mess with manual changes. 
@@ -5105,7 +5105,7 @@ sub tk_label {
 sub tk_mlabel {
     return unless $Reload;
 
-    push(@Tk_widgets, [$Category, 'label', @_]);
+    push(@Tk_widgets, [$Category, 'label', $_[0]]);
 
     return unless $MW and $Tk_objects{menu_bar};
     my ($pvar, $name) = @_;
@@ -5256,6 +5256,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.77  2003/01/18 03:28:11  winter
+#  - 2.77 release
+#
 # Revision 2.76  2003/01/12 20:31:02  winter
 #  - 2.76 release
 #

@@ -21,7 +21,6 @@ Quick Install Instructions
     like to read instructions:
 
   Windows users
-
      - Download the the misterhouse_src_###.zip and misterhouse_win_###.zip files
        from  http://misterhouse.net:81/download
 
@@ -40,7 +39,6 @@ Quick Install Instructions
     names. This program works ok: http://misterhouse.net/public/unzip.exe
 
   Unix users
-
      - Download the the latest rpm, tar, or zip file 
        from http://misterhouse.net:81/download
 
@@ -66,7 +64,6 @@ Quick Install Instructions
      - ./mhl (if that doesn't work, try: mh or perl mh)
 
   Tips
-
     To use less memory and cpu, or if you get graphics related errors, you
     can run without the local gui inteface with: mh -tk 0
 
@@ -78,7 +75,6 @@ Quick Install Instructions
 
 Windows Detailed Install Instructions
   Windows Step 1, Download and Install Mister House
-
     I you already have perl installed, you only need to download the main
     misterhouse_src_###.zip package. If you do not have perl installed, you
     will also need to download the compiled mh.exe file, which is in the
@@ -100,7 +96,6 @@ Windows Detailed Install Instructions
     can download unzip from http://misterhouse.net:81/public/unzip.exe .
 
   Windows Step 2, Download and Install Perl
-
     You can skip this step if you downloaded the compiled version of Mister
     House.
 
@@ -146,7 +141,6 @@ Windows Detailed Install Instructions
     including the Tk module (used to be seperate).
 
   Windows Step 3, Download and Install the Speech Engines
-
     You can skip this step if you do not want to enable TTS and VR, but much
     of the fun of Mister House comes from the 2-way speech. If you are
     running Windows 2000 or XP, the older V4 TTS engine is probably already
@@ -171,7 +165,6 @@ Windows Detailed Install Instructions
     to use with the voice_text=MSV4 or MSV5 mh.ini parm.
 
    MS SDK 4.0 instructions
-
     You can download the required files from the 4.0 SDK Suite from here:
     http://www.microsoft.com/downloads/release.asp?ReleaseID=26299 . Get
     SAPI4SDKSUITE.exe - 40 MB. Simply run the .exe to install.
@@ -204,7 +197,6 @@ Windows Detailed Install Instructions
     http://www.nextup.com/TextAloud/SpeechEngine/voices.html
 
    MS SDK 5.1 instructions
-
     In theory, the 5.1 MS TTS and VR engines can be installed separately,
     but they are distributed from Microsoft only as .msm files, which can
     only be used by a program that creates .msi install files. I have not
@@ -227,7 +219,6 @@ Windows Detailed Install Instructions
 
 UNIX Detailed Install Instructions
   UNIX Step 1, Download and Install Mister House
-
     Download the rpm, tar, or zip file from
     http://misterhouse.net:81/download .
 
@@ -248,7 +239,6 @@ UNIX Detailed Install Instructions
     mh/bin/misterhouse*.rc
 
   UNIX Step 2, Download and Compile Perl
-
     Most, if not all, UNIX installations now have perl installed by default.
     If for some reason, yours does not or if it is an older version of perl,
     you can downloaded the latest from http://www.perl.com .
@@ -282,7 +272,6 @@ UNIX Detailed Install Instructions
     mh/bin/misterhouse*.rc
 
   UNIX Step 3, Download and Install a Speech Engines
-
     You can skip this step if you do not want to enable VR or TTS.
 
     The simplest and fastest TTS engine is flite, availale from

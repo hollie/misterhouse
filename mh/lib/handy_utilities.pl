@@ -56,6 +56,20 @@ sub main::batch {
 }
 
 
+sub main::file_backup {
+    my ($file) = @_;
+                                # Back it up if it is older than a few minutes old
+    if (($main::Time - (stat $file)[9]) > 60*10) {
+        print  "Backing up file: $file to $file.backup\n";
+        unlink "$file.backup4" if -e "$file.backup4";
+        rename "$file.backup3", "$file.backup4" if -e "$file.backup4";
+        rename "$file.backup2", "$file.backup3" if -e "$file.backup2";
+        rename "$file.backup1", "$file.backup2" if -e "$file.backup1";
+        rename $file, "$file.backup1";
+    }
+}
+
+
 sub main::fileit {              # Same as file_write
     my ($file, $data) = @_;
     open(LOG, ">$file") or print "Warning, could not open fileit file $file: $!\n";
@@ -451,20 +465,20 @@ sub main::plural_check {
 
 
 sub main::read_mh_opts {
-    my($ref_parms, $Pgm_Path, $debug, $parm_file) = @_;
+    my($ref_parms, $pgm_path, $debug, $parm_file) = @_;
     $debug = 0 unless $debug;
 
     my @parm_files;
     push @parm_files, $parm_file if $parm_file;
-    push @parm_files, "$::Pgm_Path/mh.ini";
-    push @parm_files, "$::Pgm_Path/mh.private.ini";
+    push @parm_files, "$pgm_path/mh.ini";
+    push @parm_files, "$pgm_path/mh.private.ini";
     push @parm_files, split ',', $ENV{mh_parms} if $ENV{mh_parms};
 
     print "Reading parm files: @parm_files\n" if $debug;
     for my $file (@parm_files) {
         next unless -e $file;
         print "  Reading parm file: $file\n" if $debug;
-        &main::read_opts($ref_parms, $file, $debug, $Pgm_Path . '/..');
+        &main::read_opts($ref_parms, $file, $debug, $pgm_path . '/..');
     }
 
                                 # Look for parm values that reference other vars (e.g.  $config_parms{data_dir}/data/email)
@@ -531,7 +545,8 @@ sub main::read_opts {
         }
         else {
             $$ref_parms{$key}  = $value;
-            if ($config_file eq "$::Pgm_Path/mh.ini") {
+                                # This is the main mh/bin/mh.ini parmfile
+            if ($config_file eq './mh.ini') {
                 delete $$ref_parms{$key . "_MHINTERNAL_filename"};
             }
             else {
@@ -1126,6 +1141,9 @@ sub main::which {
 
 #
 # $Log$
+# Revision 1.63  2003/01/18 03:32:42  winter
+#  - 2.77 release
+#
 # Revision 1.62  2003/01/12 20:39:21  winter
 #  - 2.76 release
 #

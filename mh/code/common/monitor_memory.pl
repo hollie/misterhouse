@@ -71,10 +71,11 @@ if (expired $t_memory_check) {
         $Run_Members{$memory_leak_member} = 0;
         print_log "Memory leak test: disabled $memory_leak_member";
         set $t_memory_check 20*60;
+#       set $t_memory_check 5;
         $Info{memory_virtual_test} = $Info{memory_virtual};
     }
     else {
-        print_log "Memory leak test finished";
+        speak "Memory leak test finished";
     }
 }
     
