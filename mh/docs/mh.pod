@@ -2178,6 +2178,11 @@ The cron time format matches the unix cron format.
 
       You can use a comma delimited list for any of these fields.  * matches all values.
 
+By default time_cron only operates on the pass when a new minute starts.
+This can be overridden if the parameter 1 is added - this may be useful if a
+movement sensor is to trigger different events at different times.
+
+
    Examples:
 
                  # Speak time every 15 minutes, between 7 am and 8:45 am on weekdays only  
@@ -2186,6 +2191,12 @@ The cron time format matches the unix cron format.
                  # Change PA speaker mode at 9 pm, every day
     pa_sleep_mode('kids', 1) if time_cron '* 21 * * * ';
 
+
+    if (state_now $movement_sensor eq ON and !$Save{woken_up} and
+        time_cron('* 6-9 * * 1', 1) )  {
+       speak "It is Monday morning. Remember to put the rubbish out.";
+       $Save{woken_up} = 1;
+    }
 
 
 =item time_greater_than
@@ -4076,6 +4087,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.43  2001/05/28 21:22:46  winter
+# - 2.52 release
+#
 # Revision 1.42  2001/05/28 21:14:38  winter
 # - 2.52 release
 #

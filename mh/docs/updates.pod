@@ -54,6 +54,8 @@ the MR26a to relay RF X10 commands to the powerline.
 - Wally Kissel noticed that display file.gif (or .jpg) was no longer worked.
 Turns out it was busted way back in 2.41!
 
+- Clive Freedman added an time_cron option to allow it to test on all passes, not just New_Minute passes.
+
 - Kieran Ames send in mh/code/public/phone_logs.pl.
 
 - Allow for strings with odd characters like & to be processed in html forms.
