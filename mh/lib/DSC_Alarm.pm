@@ -108,7 +108,8 @@ sub UserCodePreHook
           $self->{zone} = $1;
         }
       } else {
-        ::print_log "DSC_Alarm.pm Warning: Data received on port $port_name, but no user script objects defined\n"
+        ::print_log "DSC_Alarm.pm Warning: Data received on port $port_name, but no user script objects defined\n";
+        my $warn_once = new DSC_Alarm($port_name);  # Create dummy object to avoid repetitious log messages.
       }
     }
   }
