@@ -183,9 +183,9 @@ sub set_time {
     #
     #print ("DST=$isdst Y=$Year M=$Month D=$Mday DOW=$Wday H=$Hour M=$Minute\n");
     my $set_time = sprintf("%04x%04x%02x%02x%02d%02d%02d%02d%02d%02d",
-                           $main::config_parms{latitude},
-                           $main::config_parms{longitude},
-                           $main::config_parms{time_zone},
+                           abs($main::config_parms{latitude}),
+                           abs($main::config_parms{longitude}),
+                           abs($main::config_parms{time_zone}),
                            $isdst,
                            $Year,
                            $Month,
@@ -348,6 +348,9 @@ return 1;           # for require
 # Modified by Bob Steinbeiser 2/12/00
 #
 # $Log$
+# Revision 1.12  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.11  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

@@ -160,9 +160,12 @@ webcam_lite.pl
  - Mike's code for allowing visitors to his webcam site to flash lights and
    type in TTS messages.
 
-x10_ma26.txt
- - Kevin Olande's code for reading data from an X10 wireless mouse receiver.
-   Also reads normal X10 traffic!
+x10_ma26*
+ - Kevin Olande's and Wally Kissel's code for reading data from an X10
+   wireless mouse receiver.   Also reads normal X10 traffic!
+
+x10_video_security.pl
+ - Mark Holm's code for a video surveillance system using X10 XCAM cameras and motion sensors.
 
 ------------
 

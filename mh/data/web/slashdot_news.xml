@@ -2,123 +2,123 @@
 xmlns:backslash="http://slashdot.org/backslash.dtd">
 
 	<story>
-		<title>Physics of Billiards</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/24/0457216</url>
-		<time>2001-02-24 08:55:52</time>
+		<title>Programmers for Scientific Research?</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/24/0251208</url>
+		<time>2001-03-24 11:43:16</time>
 		<author>michael</author>
-		<department>pocket-pool</department>
-		<topic>science</topic>
-		<comments>68</comments>
-		<section>articles</section>
-		<image>topicscience.gif</image>
-	</story>
-
-	<story>
-		<title>Python Painfully Ported to Palm; Plan is "Peer-to-Peer"</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/24/0430220</url>
-		<time>2001-02-24 05:26:25</time>
-		<author>michael</author>
-		<department>proactive-PDA-programming</department>
+		<department>do-it-yourself</department>
 		<topic>programming</topic>
-		<comments>91</comments>
-		<section>articles</section>
+		<comments>1</comments>
+		<section>askslashdot</section>
 		<image>topicprogramming.gif</image>
 	</story>
 
 	<story>
-		<title>Turn-Based Games: What Happened?</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/24/0056212</url>
-		<time>2001-02-24 02:53:16</time>
+		<title>Eurorights Launched</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/24/0328209</url>
+		<time>2001-03-24 08:22:14</time>
 		<author>michael</author>
-		<department>itchy-trigger-finger</department>
-		<topic>games</topic>
-		<comments>211</comments>
-		<section>articles</section>
-		<image>topicgames.jpg</image>
-	</story>
-
-	<story>
-		<title>OpenNaps Targeted; Gnutella "Validated"</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/23/1959235</url>
-		<time>2001-02-23 23:15:00</time>
-		<author>jamie</author>
-		<department>gnu-complete-me</department>
-		<topic>music</topic>
-		<comments>374</comments>
+		<department>noble-intentions,-slim-odds</department>
+		<topic>news</topic>
+		<comments>44</comments>
 		<section>yro</section>
-		<image>topicmusic.gif</image>
+		<image>topicnews.gif</image>
 	</story>
 
 	<story>
-		<title>IBM CPRM Plan Replaced with Similar Copy-Prevention Plan</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/23/2134255</url>
-		<time>2001-02-23 22:15:47</time>
+		<title>Court of Appeals Overturns Indiana Video Game Ordinance</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/24/0343233</url>
+		<time>2001-03-24 05:34:43</time>
 		<author>michael</author>
-		<department>old-wine-in-new-bottles</department>
-		<topic>ibm</topic>
-		<comments>228</comments>
-		<section>yro</section>
-		<image>topicibm.gif</image>
-	</story>
-
-	<story>
-		<title>Yamauchi Puts the Game Industry In Its Place</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/23/2050213</url>
-		<time>2001-02-23 21:19:32</time>
-		<author>Hemos</author>
-		<department>letting-people-know-how-he-thinks</department>
-		<topic>games</topic>
-		<comments>241</comments>
+		<department>fatality!</department>
+		<topic>censorship</topic>
+		<comments>111</comments>
 		<section>articles</section>
-		<image>topicgames.jpg</image>
+		<image>topiccensorship.gif</image>
 	</story>
 
 	<story>
-		<title>Linux.com Chats with BioWare Regarding "Neverwinter Nights"</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/23/1647254</url>
-		<time>2001-02-23 19:32:03</time>
-		<author>Hemos</author>
-		<department>please-let-me-be-a-beta-tester</department>
-		<topic>games</topic>
-		<comments>167</comments>
+		<title>NSA Inside?</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/24/0225209</url>
+		<time>2001-03-24 02:58:21</time>
+		<author>michael</author>
+		<department>maybe-they-could-have-a-little-swirly-logo</department>
+		<topic>linux</topic>
+		<comments>170</comments>
 		<section>articles</section>
-		<image>topicgames.jpg</image>
+		<image>topiclinux.gif</image>
 	</story>
 
 	<story>
-		<title>CowboyNeal Speaks</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/23/1532251</url>
-		<time>2001-02-23 18:00:06</time>
-		<author>Roblimo</author>
-		<department>greatful-dead-fans-need-love-too</department>
-		<topic>slashdot</topic>
-		<comments>279</comments>
-		<section>interviews</section>
-		<image>topicslashdot.gif</image>
+		<title>Interview with Dominic Lachowicz of Abiword</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/24/0048246</url>
+		<time>2001-03-24 00:53:19</time>
+		<author>michael</author>
+		<department>macro-virus-support-optional</department>
+		<topic>gnome</topic>
+		<comments>70</comments>
+		<section>articles</section>
+		<image>topicgnome.gif</image>
 	</story>
 
 	<story>
-		<title>ESR's Art of Unix Programming Updated</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/23/1721202</url>
-		<time>2001-02-23 17:30:48</time>
+		<title>Zooming in on the GeForce 3</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/23/2051242</url>
+		<time>2001-03-23 23:47:14</time>
 		<author>CmdrTaco</author>
-		<department>stuff-to-read</department>
+		<department>pixels-for-dinner</department>
+		<topic>graphics</topic>
+		<comments>139</comments>
+		<section>articles</section>
+		<image>topicgraphics3.gif</image>
+	</story>
+
+	<story>
+		<title>IBM Linux Watch v2.0</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/23/2033231</url>
+		<time>2001-03-23 22:28:41</time>
+		<author>CmdrTaco</author>
+		<department>isn't-that-special</department>
+		<topic>pilot</topic>
+		<comments>147</comments>
+		<section>articles</section>
+		<image>topicpilot.gif</image>
+	</story>
+
+	<story>
+		<title>Michael Abrash's Black Book For Download</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/23/194254</url>
+		<time>2001-03-23 21:00:19</time>
+		<author>CmdrTaco</author>
+		<department>epic-tomes-available-online</department>
 		<topic>programming</topic>
-		<comments>156</comments>
+		<comments>160</comments>
 		<section>articles</section>
 		<image>topicprogramming.gif</image>
 	</story>
 
 	<story>
-		<title>N2H2 Drops Plans to Sell Student Web-Browsing Information</title>
-		<url>http://slashdot.org/article.pl?sid=01/02/23/1451251</url>
-		<time>2001-02-23 16:42:11</time>
-		<author>michael</author>
-		<department>N2H2-does-not-drop-plans-to-censor-those-students</department>
-		<topic>Privacy</topic>
-		<comments>101</comments>
+		<title>New Linux Worm</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/23/1850206</url>
+		<time>2001-03-23 20:45:08</time>
+		<author>CmdrTaco</author>
+		<department>worming-its-way-around</department>
+		<topic>bug</topic>
+		<comments>359</comments>
 		<section>articles</section>
-		<image>topicprivacy.gif</image>
+		<image>topicbug.jpg</image>
+	</story>
+
+	<story>
+		<title>Red Hat Breaks Even, Beats Street Estimate</title>
+		<url>http://slashdot.org/article.pl?sid=01/03/23/1837205</url>
+		<time>2001-03-23 18:52:37</time>
+		<author>Hemos</author>
+		<department>downing-in-submissions</department>
+		<topic>redhat</topic>
+		<comments>253</comments>
+		<section>articles</section>
+		<image>topicredhat.gif</image>
 	</story>
 
 </backslash>

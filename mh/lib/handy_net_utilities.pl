@@ -17,11 +17,11 @@ use strict;
 
                                 # Make sure we override any local Formatter with our modified one
                                 #   - the default one does not look into tables
-#se my_Formatter;               #   - Must be in lib/site/HTML dir to work :(
-use HTML::FormatText;
+#use HTML::FormatText;
+BEGIN { require '../lib/site/HTML/FormatText.pm' }
                                 # These are useful for calling from user code directly
-use LWP::Simple;
 use HTML::Parse;
+use LWP::Simple;
 
 
 #require "$main::Pgm_Root/lib/site/HTML/Formatter.pm";
@@ -79,7 +79,8 @@ sub main::net_domain_name_start {
 
                                 # Allow for port name to be used.
     $DNS_resolver_address = $main::Socket_Ports{$DNS_resolver_address}{client_ip_address}
-                         if $main::Socket_Ports{$DNS_resolver_address}{client_ip_address};
+                         if $main::Socket_Ports{$DNS_resolver_address} and
+                            $main::Socket_Ports{$DNS_resolver_address}{client_ip_address};
 
     if ($main::DNS_resolver) {
         $DNS_resolver_request = $main::DNS_resolver->bgsend($DNS_resolver_address);
@@ -112,7 +113,8 @@ sub main::net_domain_name {
     my ($address) = @_;
                                 # Allow for port name to be used.
     $address = $main::Socket_Ports{$address}{client_ip_address}
-            if $main::Socket_Ports{$address}{client_ip_address};
+            if $main::Socket_Ports{$address} and
+               $main::Socket_Ports{$address}{client_ip_address};
 
     my $result;
     if ($main::DNS_resolver) {
@@ -366,6 +368,7 @@ sub main::net_im_signon {
     }
     $aim_connection = Net::AOLIM->new("username" => $name, 
                                       "password" => $password,
+                                      'login_timeout' => 10,
                                       "callback" => \&aolim::callback,
                                       "allow_srv_settings" => 0 );
     $aim_connection -> add_buddies("friends", $name);
@@ -769,6 +772,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.28  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.27  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

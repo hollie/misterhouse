@@ -139,6 +139,7 @@ sub done_now {
 
                                 # Check for processes that just finished
 sub harvest {
+
                                 # Unset done_now flag from previous pass
     my $process;
     while ($process = shift @done_processes) {
@@ -203,6 +204,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.15  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.14  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

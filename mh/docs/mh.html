@@ -33,6 +33,7 @@
 		<LI><A HREF="#List_of_Internet_functions">List of Internet functions</A></LI>
 		<LI><A HREF="#List_of_companion_programs">List of companion programs</A></LI>
 		<LI><A HREF="#Authentication">Authentication</A></LI>
+		<LI><A HREF="#Customizing_the_Menu_interfaces">Customizing the Menu interfaces</A></LI>
 		<LI><A HREF="#Customizing_the_Tk_Interface">Customizing the Tk Interface</A></LI>
 		<LI><A HREF="#Customizing_the_Web_Interface">Customizing the Web Interface</A></LI>
 		<LI><A HREF="#Voice_Recognition_VR_and_Text_">Voice Recognition (VR) and Text To Speech (TTS) on windows</A></LI>
@@ -289,7 +290,7 @@ cpu and loops about 18 times per second on our our 150 MHz PPro system.
 <P>
 There is lots of good perl info is at <A
 HREF="http://www.perl.com">http://www.perl.com</A> . The reference book is
-``Programming Perl, 2nd edition'' by Larry Wall, Tom Christensen, &amp;
+``Programming Perl, 3rd edition'' by Larry Wall, Tom Christensen, &amp;
 Randall Schwartz. ISBN 1-56592-149-6. It is available from <A
 HREF="http://www.oreilly.com">http://www.oreilly.com</A> . ``The Perl
 Cookbook'' is another good book that has a ton of examples in it.
@@ -1704,14 +1705,14 @@ device 16 in house code P would be PG.
 
 </P>
 <P>
-If a single character is use (e.g. <CODE>X10_Item('D')),</CODE> then 'on'
-and 'off' states are translated to ALL_ON and ALL_OFF commands for that
-house code. For example:
+If a single character is use (e.g. X10_Item 'D'), then 'on' and 'off'
+states are translated to ALL_ON and ALL_OFF commands for that house code.
+For example:
 
 </P>
 <P>
-<PRE>   $v_test_lights = new Voice_Cmd(&quot;All lights [on,off]&quot;);
-   $test_lights   = new X10_Item(&quot;O&quot;);
+<PRE>   $v_test_lights = new Voice_Cmd 'All lights [on,off]';
+   $test_lights   = new X10_Item 'O';
    set $test_lights $state if $state = said $v_test_lights;
 </PRE>
 </P>
@@ -1722,6 +1723,18 @@ example, this event will turn on a on a warning light to 20% for 5 seconds:
 </P>
 <P>
 <PRE>   set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
+</PRE>
+</P>
+<P>
+After doing one or more bright/dim/on/off commands, you can query the
+current brightness level of a device with the level method. For example:
+
+</P>
+<P>
+<PRE>   if ($state = state_now $pedestal_light) {
+      my $level = level $pedestal_light;
+      print_log &quot;Pedestal light state=$state, level=$level&quot;
+   }
 </PRE>
 </P>
 <P>
@@ -1790,6 +1803,46 @@ For example:
 <DT><STRONG><A NAME="item_X10_Appliance">X10_Appliance</A></STRONG><DD>
 <P>
 Same as X10_Item, except it has only has pre-defined states 'on' and 'off'
+
+</P>
+<DT><STRONG><A NAME="item_X10_Garage_Door">X10_Garage_Door;</A></STRONG><DD>
+<P>
+For the Stanely Garage Door status transmitter. See
+mh/code/public/Danal/Garage_Door.pl
+
+</P>
+<DT><STRONG><A NAME="item_X10_IrrigationController">X10_IrrigationController;</A></STRONG><DD>
+<P>
+For this sprinkler device: <A
+HREF="http://ourworld.compuserve.com/homepages/rciautomation/p6.htm">http://ourworld.compuserve.com/homepages/rciautomation/p6.htm</A>
+
+
+</P>
+<DT><STRONG><A NAME="item_X10_Switchlinc">X10_Switchlinc;</A></STRONG><DD>
+<P>
+For the Switchlinc controlers: 
+
+</P>
+<P>
+<PRE>     # Just picked this device to use to send the clear
+  $Office_Light_Torch-&gt;set(&quot;clear&quot;);
+     # Send a command to each group member to make it listen
+  $SwitchlincDisable-&gt;set(&quot;off&quot;);
+     # Just picked this device item to send the command
+  $Office_Light_Torch-&gt;set(&quot;disablex10transmit&quot;);
+</PRE>
+</P>
+<DT><STRONG><A NAME="item_X10_Ote">X10_Ote;</A></STRONG><DD>
+<P>
+Not sure what this is :)
+
+</P>
+<DT><STRONG><A NAME="item_X10_Sensor">X10_Sensor;</A></STRONG><DD>
+<P>
+Do you have any of those handy little X10 MS12A battery-powered motion
+sensors? Here's your answer - use the X10_Sensor instead of the Serial_Item
+when you define it, and your house will notice when your sensor hasn't been
+tripped in 24 hours, allowing you to check on the batteries.
 
 </P>
 <DT><STRONG><A NAME="item_RCS_TX15">RCS_TX15</A></STRONG><DD>
@@ -1949,7 +2002,8 @@ specified interval.
 <P>
 <PRE>    set($period, $action, $cycles)
         $period is the timer period in seconds
-        $action (optional) is the command to run when the timer expires
+        $action (optional) is the code (either a string or a code
+                 reference) to run when the timer expires
         $cycles (optional) is how many times to repeat the timer
 </PRE>
 </P>
@@ -1999,7 +2053,20 @@ specified interval.
 </PRE>
 </P>
 <P>
-<PRE>    See mh/code/bruce/timer_minutes.pl and timer_seconds.pl for more examples.
+<PRE>                   # This example uses an anonymous subroutine
+    $v_test_delay = new  Voice_Cmd 'Test timer with [1,5,10] seconds';
+    if ($state = said $v_test_delay) {
+       print_log &quot;Starting $state second timer test&quot;;
+       my  $timer = new Timer;
+       set $timer $state, sub {
+          print_log &quot;Ending $state second timer test&quot;;
+       }
+#      set $timer $state, &quot;print_log 'Ending $state second timer test'&quot;;
+    }
+</PRE>
+</P>
+<P>
+<PRE>    See mh/code/bruce/timers.pl for more examples
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_Voice_Cmd">Voice_Cmd</A></STRONG><DD>
@@ -2207,6 +2274,17 @@ buffers.
 </P>
 <P>
 <PRE>     zone         : Zone number that caused Alarm. Valid only when alarm_now is true.
+    
+     mode         : Returns arming mode. Valid only when state = Armed.
+                    Stay = System armed in stay mode; User pressed F1 key before arming.
+                    Away = System armed in away mode; User pressed F2 key (or nothing) before arming
+</PRE>
+</P>
+<P>
+<PRE>                    Note: Most DSC systems will not arm in &quot;Stay&quot; mode unless at least one zone
+                          is defined as a &quot;Stay/Away&quot; zone.  Also, even when &quot;Away&quot; mode is requested
+                          system will be in &quot;Stay&quot; mode unless a delay zone is violated during the
+                          exit delay.
 </PRE>
 </P>
 <P>
@@ -2797,6 +2875,31 @@ background process/forked. mh will pause until the program is done.
      run 'mplayer.exe /play /close c:\win98\media\canyon.mid'; # Play a midi file
 </PRE>
 </P>
+<DT><STRONG><A NAME="item_run_after_delay">run_after_delay</A></STRONG><DD>
+<P>
+You can use this to create events with built in delays without causing mh
+to pause
+
+</P>
+<P>
+<PRE>   Example:
+</PRE>
+</P>
+<P>
+<PRE>                   # After 2 seconds, this evals the print_log string
+     run_after_delay 2, &quot;print_log 'Ending delay test 1'&quot;;
+</PRE>
+</P>
+<P>
+<PRE>                   # This runs anonymous subs to print after 2 and 3 seconds.
+     run_after_delay 2, sub {
+       print_log &quot;Printed after 2 seconds&quot;;
+       run_after_delay 1, sub {
+         print_log &quot;Printed after 1 more second seconds&quot;;
+       }
+     }
+</PRE>
+</P>
 <DT><STRONG><A NAME="item_run_voice_cmd">run_voice_cmd</A></STRONG><DD>
 <P>
 You can use this to have one event trigger another voice command event.
@@ -3069,12 +3172,14 @@ The cron time format matches the unix cron format.
 </PRE>
 </P>
 <DT><STRONG><A NAME="item_time_greater_than">time_greater_than</A></STRONG><DD>
+<DT><STRONG><A NAME="item_time_greater_or_equal">time_greater_or_equal</A></STRONG><DD>
 <DT><STRONG><A NAME="item_time_less_than">time_less_than</A></STRONG><DD>
+<DT><STRONG><A NAME="item_time_less_or_equal">time_less_or_equal</A></STRONG><DD>
 <P>
-These return true if the specified time is greater or less than the current
-time. Format can have the same sorts of offsets as described in time_now
-below. Note unlike time_now which is only true once, these functions will
-return a true value for every pass that they are true.
+These return true if the specified time is greater, less than, or equal to
+the current time. Format can have the same sorts of offsets as described in
+time_now below. Note unlike time_now which is only true once, these
+functions will return a true value for every pass that they are true.
 
 </P>
 <P>
@@ -3737,6 +3842,52 @@ the -h option (e.g. get_tv_grid -h).
     alpha_page -name craig -message 'Bring home bread and milk'
 </PRE>
 </P>
+<DT><STRONG><A NAME="item_backup_data">backup_data</A></STRONG><DD>
+<P>
+backup_data walks directories and stores selected files to gziped tar
+files.
+
+</P>
+<P>
+<PRE>  Usage:
+</PRE>
+</P>
+<P>
+<PRE>   backup_data [options] dir1 dir2 etc
+</PRE>
+</P>
+<P>
+<PRE>    -h        =&gt; This help text
+</PRE>
+</P>
+<P>
+<PRE>    -file xyz =&gt; Name of tar file.  Default is backup
+    -size xyz =&gt; Do NOT store files &gt; xyz KBytes.  Default is 100
+    -skip xyz =&gt; Skip any file or dir that matches regex xyz
+    -age  xyz =&gt; Only back up files changed in the last xyz days
+</PRE>
+</P>
+<P>
+<PRE>    -no_zip   =&gt; Do NOT gzip the tar file.
+    -no_zip   =&gt; Do NOT suffix the files with date stamp.
+</PRE>
+</P>
+<P>
+<PRE>    -int      =&gt; Use the internal perl tar and gzip modules, rather
+                 then external tar and gzip programs.  This is slower
+                 and users more memory (&gt; the data being tared).
+</PRE>
+</P>
+<P>
+<PRE>  Examples:
+    backup_data /www
+    backup_data -size 10 -no_zip -int /usr/local/bin
+    backup_data -file /backup/misc /bin //misterhouse.net/bin
+    backup_data -file /backup/mh -skip &quot;(/tv$)|(/articles$)&quot; /misterhouse
+    backup_data -file /backup/mh_articles  -size 100000 /misterhouse/articles
+    backup_data -file /backup/docs -age 30 -size 100000 /docs
+</PRE>
+</P>
 <DT><STRONG>display</STRONG><DD>
 <P>
 Use this to display a string of text or the contents of a file using a Tk
@@ -4190,10 +4341,14 @@ See outlook_read for a Windows solution.
 </P>
 <DT><STRONG><A NAME="item_mhl">mhl</A></STRONG><DD>
 <P>
-You can use mhl to start mh (rather than calling mh directly) to help
-ensure that mh will always be running. This is a simple shell will restart
-mh if it detects that mh exited abnormally. You can pass in the same
-startup parms to mhl as you us for mh.
+A unix script you can use mhl to start mh (rather than calling mh directly)
+to help ensure that mh will always be running. This is a simple shell will
+restart mh if it detects that mh exited abnormally. You can pass in the
+same startup parms to mhl as you us for mh.
+
+</P>
+<P>
+On windows, this function is built into the mh.bat script.
 
 </P>
 <DT><STRONG>net_ftp</STRONG><DD>
@@ -4565,6 +4720,209 @@ leave UserName blank ... it is not used.
 Netscape appears to allow you to re-try a password, but MS Explorer must be
 re-started if you want to enter a different password.
 
+</P>
+<P>
+<HR>
+<H2><A NAME="Customizing_the_Menu_interfaces">Customizing the Menu interfaces</A></H2>
+<P>
+You can nested create menus that let you query mh data or control mh items
+or commands. You can use use any or all of these interfaces to walk through
+menus:
+
+</P>
+<P>
+<PRE>  Web browser:        <A HREF="http://localhost/sub?menu_html">http://localhost/sub?menu_html</A>
+  WAP phone:          <A HREF="http://localhost/sub?menu_wml">http://localhost/sub?menu_wml</A>
+  Tellme.com phone:   <A HREF="http://localhost/sub?menu_vxml">http://localhost/sub?menu_vxml</A>  
+  LCD keypads:        see mh/code/bruce/lcdproc.pl for an example
+</PRE>
+</P>
+<P>
+To enable, use mh/code/bruce/menu.pl to read in menu files. The format of
+the menu files is a simple text file, where each record is prefixed with a
+record type character. Here is an example:
+
+</P>
+<P>
+<PRE> M: Main            # Top level menu can have any name
+    D: HVAC
+    D: Lights
+ M: HVAC
+    D: Indoor temperature
+       R: At $Time_Date, the temperature is $Weather{TempIndoor}
+    D: Living fan [on,off] 
+       A: set $living_fan $state
+    D: Outdoor temperature
+       A: What is the outdoor temperature
+       R: last_response
+ M: Lights
+    D: Camera [+,-,^,v]    
+       A: Camera light [on,off,+30,-30]
+    D: Bedroom [on,off,+30,-30]
+    M: Outside
+ M: Outside
+    D: Garage Light [on,off,+30,-30]
+    D: Backyard Light [on,off,+30,-30]
+</PRE>
+</P>
+<P>
+These are the record types:
+
+</P>
+<P>
+<PRE> M:  Menu screen
+ D:  text to Display as a menu choice
+ A:  what Action to run (either a voice cmd or code to eval)
+ R:  what Response to display.  last_response will pick up the last mh response
+</PRE>
+</P>
+<P>
+This specifies 3 Menu (M:) records that creates a Main menu, with 2
+submenus, HVAC and Lights.  
+
+</P>
+<P>
+The HVAC 'Indoor temperature' display record (D:) will respond (R:) with
+the indoor <CODE>$Weather</CODE> data.
+
+</P>
+<P>
+The 'Living fan' entry will evaluate the 'set <CODE>$living_fan</CODE>
+$state' action (A:) record to set the fan to the specified (on or off)
+state.
+
+</P>
+<P>
+The 'Outdoor temperature' record will run a Voice_Cmd action (A:), and
+respond with the last data printed or spoken by mh (the results of the
+outdoor temperature command).
+
+</P>
+<P>
+The 'Camera light' record also runs a Voice_Cmd action. To save (LCD)
+display space, the on,off,+30,-30 Action states were renamed on the Display
+record to +,-,^,v.    
+
+</P>
+<P>
+The 'Bedroom' record matches a Voice_Cmd exactly, so no action record is
+required.
+
+</P>
+<P>
+The last Outside Light records are a 3rd level menu, nested under the 2nd
+level Lights menu. There are no limits to how deep you can nest menus and
+they can be in any order you want in the file.
+
+</P>
+<P>
+You can have different sets of menus, for use with different interfaces or
+users. For example, the default menu.pl looks like this:
+
+</P>
+<P>
+<PRE>    my $menu_mh   = menu_create &quot;$config_parms{code_dir}/mh_temp.menu&quot;;
+    my $menu_test = file_read   &quot;$config_parms{code_dir}/test.menu&quot;;
+    menu_parse $menu_test, 'default';
+    menu_parse $menu_mh,   'mh'; # This menu has all the mh voice commands
+</PRE>
+</P>
+<P>
+menu_create creates the example mh_temp.menu file for all voice commands
+and returns it into $menu_mh. <CODE>$menu_test</CODE> has the test menu,
+similar to the above example. You can specify the menu group (e.g. default
+or mh) when calling any of the menu interface subroutines. For the above
+menu.pl:
+
+</P>
+<P>
+<PRE>  Either of these will get the 'default' test menu:
+    <A HREF="http://misterhouse.net:8080/sub?menu_wml">http://misterhouse.net:8080/sub?menu_wml</A>
+    <A HREF="http://misterhouse.net:8080/sub?menu_wml">http://misterhouse.net:8080/sub?menu_wml</A>(default)
+</PRE>
+</P>
+<P>
+<PRE>  This will get the auto-generated 'mh' entry for all voice commands:
+    <A HREF="http://misterhouse.net:8080/sub?menu_wml">http://misterhouse.net:8080/sub?menu_wml</A>(mh)
+</PRE>
+</P>
+<P>
+If you want a starting point to customize your own menus, you can find an
+auto-generated menu for all the mh Voice_Cmds in the mh_temp.menu file in
+your code directory. This file is re-generated on reload, so copy and edit
+this file, then point menu.pl at your edited copy.
+
+</P>
+<P>
+To test your menus, point your browser to <A
+HREF="http://localhost:8080/sub?menu_html">http://localhost:8080/sub?menu_html</A>
+
+
+</P>
+<P>
+If you have a LCD supported by lcdproc program ( <A
+HREF="http://lcdproc.omnipotent.net">http://lcdproc.omnipotent.net</A> )
+(e.g. crystalfontz or matrix-orbital), you can use mh/code/bruce/lcdproc.pl
+to display menus. Currently only the linux version of lcdproc supports the
+keypad option on the maxrix-orbital displays. Several other mh'ers are
+writing similar code for their LCD displays.
+
+</P>
+<P>
+If you have a 24x7 internet connection, you can walk the menus with either
+a WAP compatable cell phone, or using voice commands with any phone via a
+Voice Portal like <A
+HREF="http://studio.tellme.com.">http://studio.tellme.com.</A>
+
+</P>
+<P>
+For cell phones, simply point your phone to <A
+HREF="http://your_domain/menu_wml.">http://your_domain/menu_wml.</A> You
+can test your menus with a web based phone simulator at <A
+HREF="http://www.gelon.net">http://www.gelon.net</A> , or download a phone
+simlator from <A HREF="http://phone.com">http://phone.com</A> . Other
+browsers are listed at <A
+HREF="http://www.palowireless.com/wap/browsers.asp">http://www.palowireless.com/wap/browsers.asp</A>
+
+
+</P>
+<P>
+Tellme.com currently offers free 1-800 access to their VR and TTS engines,
+using vxml (Voice XML) menus. You can view the mh vxml menus by pointing a
+XML compatable browser (e.g. IE) to this address:
+
+</P>
+<P>
+<PRE>   <A HREF="http://localhost:8080/sub?menu_vxml">http://localhost:8080/sub?menu_vxml</A>
+</PRE>
+</P>
+<P>
+When ready to try with tellme, sign up for a free developer id, which will
+be your extention number. I used Home0 (46630). Then you can go to to my
+studio and enter your url:
+
+</P>
+<P>
+<PRE>   <A HREF="http://studio.tellme.com/mystudio/mystudio.cgi">http://studio.tellme.com/mystudio/mystudio.cgi</A>
+</PRE>
+</P>
+<P>
+<PRE>   <A HREF="http://your_domain/sub?menu_vxml">http://your_domain/sub?menu_vxml</A>
+</PRE>
+</P>
+<P>
+where your_domain is your domain name or ip address. To test, dial:
+1-800-555-8965 (VXML) and enter your devloper ID and Pin.  
+
+</P>
+<P>
+When you have it working, click on the MyExtentions, enter the same URL and
+check the enable checkbox. Now you can dial:
+
+</P>
+<P>
+<PRE>   1-800-555-8355  (wait for 'tellme more') 1-yourextention
+</PRE>
 </P>
 <P>
 <HR>
@@ -4949,7 +5307,7 @@ will be returned:
 <PRE>  Format:
    SET:h_response?$object?value 
    RUN:h_response?command
-   SUB:sub_name(arg1,arg2)
+   SUB:h_response?sub_name(arg1,arg2)
 </PRE>
 </P>
 <P>
@@ -5425,7 +5783,7 @@ HREF="http://the-labs.com/HomeAppliance/">http://the-labs.com/HomeAppliance/</A>
 <HR>
 <H1><A NAME="COPYRIGHT">COPYRIGHT</A></H1>
 <P>
-Copyright (C) 1998-2000 Bruce Winter. All rights reserved.
+Copyright (C) 1998-2001 Bruce Winter. All rights reserved.
 
 </P>
 <P>

@@ -258,6 +258,10 @@ sub check_for_voice_cmd {
                                 # for the current pass, because we do not know where we are in the user code loop
 sub set {
     my ($self, $state) = @_;
+    if ($$self{disabled}) {
+        &main::print_log("Disabled command not run: $self->{text_by_state}{$state}");
+        return;
+    }
     return if &main::check_for_tied_filters($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state);
     &main::print_log("Running: $self->{text_by_state}{$state}");
@@ -390,6 +394,8 @@ sub _register {
         $self->{text_by_state}{$state} = $cmd;
         $cmd_state_by_num{$cmd_num} = $state;
 
+        $self->{disabled} = 1 if $main::Disabled_Commands{lc $cmd};
+
 #	    print "cmd_num=$cmd_num cmd=$cmd state=$state\n";
         last if &_increment_indexes > $index_last;
     }
@@ -438,7 +444,7 @@ sub _increment_indexes {
 sub _register2 {
     my($self, $text, $vocab, $des) = @_;
     $text = &_clean_text_string($text);
-#   push(@{$self->{texts}}, $text);
+    push(@{$self->{texts}}, $text); # e.g. tellme_menu.pl
 
                                 # With viavoice, only add at startup or when adding a new command
                                 #  - point to new Voice_Cmd object pointer
@@ -594,6 +600,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.30  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.29  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

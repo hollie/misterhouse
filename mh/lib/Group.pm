@@ -52,7 +52,7 @@ sub set {
         if ((ref $ref) !~ /^X10_/ or 
             $hc ne substr($$ref{x10_id}, 1, 1) or
             substr($$ref{x10_id}, 2, 1) eq '' or # Can not group set a house code
-            $$ref{interface} !~ /cm11|ncpuxa|homebase/) {
+            $$ref{interface} !~ /cm11|ncpuxa|homebase|stargate/) {
             undef $hc;
             last;
         }
@@ -85,6 +85,9 @@ sub list {
 
 #
 # $Log$
+# Revision 1.14  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.13  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

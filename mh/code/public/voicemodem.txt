@@ -3,8 +3,11 @@ Feb 2001 update:
   using perl.   Currently looks like unix only, but there was mention
   of a windows effort also:
 
-        http://search.cpan.org/doc/MUKUND/Ivrs-0.06/Ivrs.pm
+     http://search.cpan.org/doc/MUKUND/Ivrs-0.06/Ivrs.pm
 
+  Here is a unix program that can be used to create raw voice modem files:
+
+     http://home.sprynet.com/~cbagwell/sox.html
 
 -------------
 Got this from Brian Klier

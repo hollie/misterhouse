@@ -130,7 +130,7 @@ try setting the environment variable http_proxy=http://proxy-server:port
 If you have problems installing the files with ppm over the internet, you can download the files 
 and install them from local storage. For example, to install the Tk package: 
 
-  download and unzip Tk.zip from http://www.activestate.com/packages/zips to c:\temp
+  download and unzip Tk.zip from http://www.activestate.com/PPMPackages/zips to c:\temp
   ppm install c:\temp\Tk.ppd 
 
 All other required packages should either be in the mh distribution or is now installed by default in the 
@@ -155,6 +155,9 @@ not start right away, especially if you run without the Tk interface (mh -tk 0).
 
 The new MS 5.0 Speech SDK is not yet compatable with MisterHouse (it does not support OLE calls).
 You can download the required files from the 4.0 SDK from here: ftp://misterhouse.sourceforge.net/pub/misterhouse/ .
+Note: IE takes a long time (5 minutes) to list that directory (maybe it is listing the 20,000+ dirs in pub). 
+Netscape or command line ftp work much faster.
+Or you can also get the files here:  http://misterhouse.net/public/speech .
 
 Running msttsl.exe will install the TTS engine.  mscsrgl.exe will install the VR engine. 
 Unzip speech_api.zip, then run spchapi.exe to install the speech API.  
@@ -203,6 +206,7 @@ also try the CPAN installer like this:
   cpan> install Time::HiRes
   cpan> exit
 
+There are some example start/stop/restart .rc files in mh/bin/misterhouse*.rc
 
 =head2 Step 3, Download and Install a Speech Engines
 

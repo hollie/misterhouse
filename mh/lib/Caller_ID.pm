@@ -2,7 +2,7 @@ package Caller_ID;
 use strict;
 
 use vars '%name_by_number', '%state_by_areacode';
-my ($my_areacode, $my_state);
+my ($my_areacode, @my_areacodes, $my_state);
 
 sub make_speakable {
     my($data, $format) = @_;
@@ -124,7 +124,8 @@ DDN_NMBR= 9932562
     }
 
     print "ac=$areacode state_by_area_code=$state_by_areacode{$areacode}\n";
-    unless ($areacode == $my_areacode or !$areacode or $caller =~ /\.wav/) {
+#   unless ($areacode == $my_areacode or !$areacode or $caller =~ /\.wav/) {
+    unless (!$areacode or (grep $_ == $areacode, @my_areacodes) or $caller =~ /\.wav/) {
         if ($state_by_areacode{$areacode}) {
             $caller .= " from $state_by_areacode{$areacode}";
         }
@@ -165,7 +166,8 @@ sub read_areacode_list {
 #   &main::print_log("read in $areacode_cnt area codes from $parms{area_code_file}");
     print "Read $areacode_cnt codes from $parms{area_code_file}\n";
     # If in-state, store city name instead of state name.
-    $my_areacode = $parms{local_area_code};
+    @my_areacodes = split /[, ]+/, $parms{local_area_code};
+    $my_areacode  = $my_areacodes[0];
     $my_state = $state_by_areacode{$my_areacode};
 
                                 # If withing state, use only city name.
@@ -207,6 +209,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.20  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.19  2000/12/03 19:38:55  winter
 # - 2.36 release
 #

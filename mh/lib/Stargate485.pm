@@ -94,7 +94,7 @@ sub UserCodePreHook
                 &::print_log("Data from Stargate485: $record.  remainder=$remainder.") if $::config_parms{debug} eq 'serial';
                 $::Serial_Ports{'Stargate485'}{data_record} = $record;
                 $::Serial_Ports{'Stargate485'}{data} = $remainder;
-                if($::config_parms{debug} eq 'Stargate')
+                if($::config_parms{debug} eq 'Stargate485')
                 {
                     print "Data: " . $record . "\n"  unless substr($record,1,2) eq 'TP' and (substr($record,5,1) eq 'Q' or substr($record,6,1) eq 'A');
                 }
@@ -113,23 +113,36 @@ sub UserCodePreHook
         }
     }    
 
-    if(@stargate485_command_list > 0 && $transmitok && !$::Serial_Ports{'Stargate485'}{data})
+    if($::New_Msecond_250 && @stargate485_command_list > 0 && $transmitok)
     {
-        $::Serial_Ports{Stargate485}{object}->rts_active(1);		
-        select (undef, undef, undef, .10); 	# Sleep a bit
-
-        $::Serial_Ports{Stargate485}{object}->write("\r");
-
-        if(@stargate485_command_list > 0)
+        if($::Serial_Ports{Stargate}{object})
         {
+            #while(@stargate485_command_list > 0)
+            #{
             (my $output) = shift @stargate485_command_list;
-            print "Stargate 485bus transmit: " .$output . "\n";
-            $::Serial_Ports{Stargate485}{object}->write($output . "\r");
+            print "Stargate COM1 to 485bus transmit: " .$output . "\n" if lc($main::config_parms{debug}) eq 'stargate485';
+            &Stargate::send_command($::Serial_Ports{Stargate}{object},"rs485",$output);
+            #$::Serial_Ports{Stargate}{object}->write("##%a507" . $output . "\r");
+            #}
         }
-        select (undef, undef, undef, .30); 	# Sleep a bit
+        elsif(!$::Serial_Ports{'Stargate485'}{data})
+        {
+            $::Serial_Ports{Stargate485}{object}->rts_active(1);		
+            select (undef, undef, undef, .10); 	# Sleep a bit
 
-        $::Serial_Ports{Stargate485}{object}->rts_active(0);		
-        select (undef, undef, undef, .10); 	# Sleep a bit
+            $::Serial_Ports{Stargate485}{object}->write("\r");
+
+            #while(@stargate485_command_list > 0)
+            #{
+            (my $output) = shift @stargate485_command_list;
+            print "Stargate 485bus transmit: " .$output . "\n" if lc($main::config_parms{debug}) eq 'stargate485';
+            $::Serial_Ports{Stargate485}{object}->write($output . "\r");
+            #}
+            select (undef, undef, undef, .30); 	# Sleep a bit
+
+            $::Serial_Ports{Stargate485}{object}->rts_active(0);		
+            select (undef, undef, undef, .10); 	# Sleep a bit
+        }
     }
 }
 
@@ -228,63 +241,63 @@ sub ParseThermostatData
             if($record =~ /\sFM=(\d+)/)
             {
                 $object->set_states_for_next_pass("zonefanmode") if($object->{zonefanmode} ne $1);
-                $object->set_states_for_next_pass("zonefanmode:" . &StargateThermostat::ReturnString($1)) if($object->{zonefanmode} ne $1);
+                $object->set_states_for_next_pass("zonefanmode:" . &StargateRCSThermostat::ReturnString($1)) if($object->{zonefanmode} ne $1);
                 $object->{zonefanmode} = $1;
             }
 
             if($record =~ /\sH1A=(\d+)/)
             {
                 $object->set_states_for_next_pass("heatingstage1") if($object->{heatingstage1} ne $1);
-                $object->set_states_for_next_pass("heatingstage1:" . &StargateThermostat::ReturnString($1)) if($object->{heatingstage1} ne $1);
+                $object->set_states_for_next_pass("heatingstage1:" . &StargateRCSThermostat::ReturnString($1)) if($object->{heatingstage1} ne $1);
                 $object->{heatingstage1} = $1;
             }
 
             if($record =~ /\sH2A=(\d+)/)
             {
                 $object->set_states_for_next_pass("heatingstage2") if($object->{heatingstage2} ne $1);
-                $object->set_states_for_next_pass("heatingstage2:" . &StargateThermostat::ReturnString($1)) if($object->{heatingstage2} ne $1);
+                $object->set_states_for_next_pass("heatingstage2:" . &StargateRCSThermostat::ReturnString($1)) if($object->{heatingstage2} ne $1);
                 $object->{heatingstage2} = $1;
             }
 
             if($record =~ /\sC1A=(\d+)/)
             {
                 $object->set_states_for_next_pass("coolingstage1") if($object->{coolingstage1} ne $1);
-                $object->set_states_for_next_pass("coolingstage1:" . &StargateThermostat::ReturnString($1)) if($object->{coolingstage1} ne $1);
+                $object->set_states_for_next_pass("coolingstage1:" . &StargateRCSThermostat::ReturnString($1)) if($object->{coolingstage1} ne $1);
                 $object->{coolingstage1} = $1;
             }
 
             if($record =~ /\sC2A=(\d+)/)
             {
                 $object->set_states_for_next_pass("coolingstage2") if($object->{coolingstage2} ne $1);
-                $object->set_states_for_next_pass("coolingstage2:" . &StargateThermostat::ReturnString($1)) if($object->{coolingstage2} ne $1);
+                $object->set_states_for_next_pass("coolingstage2:" . &StargateRCSThermostat::ReturnString($1)) if($object->{coolingstage2} ne $1);
                 $object->{coolingstage2} = $1;
             }
 
             if($record =~ /\sFA=(\d+)/)
             {
                 $object->set_states_for_next_pass("fanstatus") if($object->{fanstatus} ne $1);
-                $object->set_states_for_next_pass("fanstatus:" . &StargateThermostat::ReturnString($1)) if($object->{fanstatus} ne $1);
+                $object->set_states_for_next_pass("fanstatus:" . &StargateRCSThermostat::ReturnString($1)) if($object->{fanstatus} ne $1);
                 $object->{fanstatus} = $1;
             }
 
             if($record =~ /\sSCP=(\d+)/)
             {
                 $object->set_states_for_next_pass("shortcycle") if($object->{shortcycle} ne $1);
-                $object->set_states_for_next_pass("shortcycle:" . &StargateThermostat::ReturnString($1)) if($object->{shortcycle} ne $1);
+                $object->set_states_for_next_pass("shortcycle:" . &StargateRCSThermostat::ReturnString($1)) if($object->{shortcycle} ne $1);
                 $object->{shortcycle} = $1;
             }
 
             if($record =~ /\sSM=(O|H|C|A|I)/)
             {
                 $object->set_states_for_next_pass("systemmode") if($object->{systemmode} ne $1);
-                $object->set_states_for_next_pass("systemmode:" . &StargateThermostat::ReturnString($1)) if($object->{systemmode} ne $1);
+                $object->set_states_for_next_pass("systemmode:" . &StargateRCSThermostat::ReturnString($1)) if($object->{systemmode} ne $1);
                 $object->{systemmode} = $1;
             }
 
             if($record =~ /\sSF=(\d+)/)
             {
                 $object->set_states_for_next_pass("fancommand") if($object->{fancommand} ne $1);
-                $object->set_states_for_next_pass("fancommand:" . &StargateThermostat::ReturnString($1)) if($object->{fancommand} ne $1);
+                $object->set_states_for_next_pass("fancommand:" . &StargateRCSThermostat::ReturnString($1)) if($object->{fancommand} ne $1);
                 $object->{fancommand} = $1;
             }
         }
@@ -364,8 +377,8 @@ sub UnInvertText
 #
 # Item object version (this lets us use object links and events)
 #
-package StargateThermostat;
-@StargateThermostat::ISA = ('Generic_Item');
+package StargateRCSThermostat;
+@StargateRCSThermostat::ISA = ('Generic_Item');
 
 sub new 
 {
@@ -425,21 +438,21 @@ sub set
         # Valid mode $state is 0/O for off 1/H for heat, 2/C for cool, and 3/A for auto
         /^zonemode/i        && do { return $self->SendTheromostatCommand("M", uc(substr($state,1))) };
         # Valid mode $state is 0 or 1
-        /^zonefanmode/i     && do { return $self->ReturnCommand("F", ReturnCommand($state)) };
+        /^zonefanmode/i     && do { return $self->SendTheromostatCommand("F", ReturnCommand($state)) };
         # Valid mode $state is 0/O for off 1/H for heat, 2/C for cool, and 3/A for auto
         /^systemmode/i      && do { return $self->SendTheromostatCommand("SM", uc(substr($state,1))) };
         # Valid mode $state is 0 or 1
-        /^systemfanmode/i   && do { return $self->ReturnCommand("SF", ReturnCommand($state)) };
+        /^systemfanmode/i   && do { return $self->SendTheromostatCommand("SF", ReturnCommand($state)) };
         # Valid mode $state is 0 or 1
-        /^ventdamper/i      && do { return $self->ReturnCommand("V", ReturnCommand($state)) };
+        /^ventdamper/i      && do { return $self->SendTheromostatCommand("V", ReturnCommand($state)) };
         # Valid mode $state is a temperature value
-        /^outside/i         && do { return $self->ReturnCommand("OT", $state) };
+        /^outside/i         && do { return $self->SendTheromostatCommand("OT", $state) };
         # Valid mode $state is a temperature value
-        /^remote/i          && do { return $self->ReturnCommand("RT", $state) };
+        /^remote/i          && do { return $self->SendTheromostatCommand("RT", $state) };
         # Valid mode $state is 0 or 1
-        /^setback/i         && do { return $self->ReturnCommand("BF", ReturnCommand($state)) };
+        /^setback/i         && do { return $self->SendTheromostatCommand("BF", ReturnCommand($state)) };
         # Valid mode $state is 0 or 1
-        /^text/i            && do { return $self->ReturnCommand("TM", '"' . $state . '"') };
+        /^text/i            && do { return $self->SendTheromostatCommand("TM", '"' . $state . '"') };
     }
 
     return undef;
@@ -462,6 +475,7 @@ sub state
         /^setpoint/i        && do { return $self->{setpoint}};
         /^zonemode/i        && do { return ReturnString($self->{zonemode})};
         /^zonefanmode/i     && do { return ReturnString($self->{zonefanmode})};
+        /^fanmode/i         && do { return ReturnString($self->{zonefanmode})};
 
         /^heatingstage1/i   && do { return ReturnString($self->{heatingstage1})};
         /^heatingstage2/i   && do { return ReturnString($self->{heatingstage2})};
@@ -473,6 +487,7 @@ sub state
         /^scp/i             && do { return ReturnString($self->{shortcycle})};
 
         /^systemmode/i      && do { return ReturnString($self->{systemmode})};
+        /^mode/i            && do { return ReturnString($self->{systemmode})};
         /^fancommand/i      && do { return ReturnString($self->{fancommand})};
     }
 
@@ -501,10 +516,13 @@ sub ReturnCommand
 
     SWITCH: for ( $data )
     {
-        /on/i               && do { return "0"};   
-        /0/i                && do { return "0"};   
-        /off/               && do { return "1"};   
+        /on/i               && do { return "1"};   
         /1/                 && do { return "1"};   
+        /0/                 && do { return "0"};   
+        /off/i              && do { return "0"};   
+#       /h/i                && do { return "1"};
+#       /c/i                && do { return "2"};
+#       /a/i                && do { return "3"};
     }
     return undef;
 }
@@ -514,6 +532,7 @@ sub SendTheromostatCommand
     my ($self, $device, $state) = @_;
     return undef unless defined $state;
     my $output = sprintf("A=%u Z=%u O=MH %s=%s", $self->{address}, $self->{zone}, $device, $state);
+    print "StargateThermostat output $output\n" if $::config_parms{debug} eq 'Stargate485';
     push(@stargate485_command_list, $output);
     return 1;
 }

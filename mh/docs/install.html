@@ -106,7 +106,7 @@ to read instructions:
 </PRE>
 </P>
 <P>
-<PRE> - mhl.bat (this will call mh.exe or 'perl mh')
+<PRE> - mh.bat (this will call mh.exe or 'perl mh')
 </PRE>
 </P>
 <P>
@@ -686,14 +686,13 @@ installed in c:\misterhouse\mh, the steps might looks something like this
 </P>
 <P>
 <PRE> mkdir c:\misterhouse\code 
+ mkdir c:\misterhouse\data
 </PRE>
 </P>
 <P>
 <PRE> copy  c:\misterhouse\mh\test\trivia.pl c:\misterhouse\code
-</PRE>
-</P>
-<P>
-<PRE> copy  c:\misterhouse\mh\bin\mh.ini c:\misterhouse\mh.ini
+ copy  c:\misterhouse\mh\bin\mh.ini     c:\misterhouse\mh.ini
+ xcopy c:\misterhouse\mh\data           c:\misterhouse\data /s
 </PRE>
 </P>
 <P>
@@ -701,6 +700,7 @@ installed in c:\misterhouse\mh, the steps might looks something like this
    - Delete all the records from your mh.ini that you don't change 
      since the default mh\bin\mh.ini will also be read.
      Set code_dir=c:\misterhouse\code
+     Set data_dir=c:\misterhouse\data
 </PRE>
 </P>
 <P>

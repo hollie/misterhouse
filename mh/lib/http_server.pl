@@ -7,21 +7,27 @@ use strict;
 
 my ($leave_socket_open_passes, $leave_socket_open_action);
 
-use vars '%Cookies';
-
-my($Authorized, $password_html, $Browser, $Referer, $Host, $Cookie, $H_Response);
+use vars qw(%Http %Cookies);
+my($Authorized, $password_html, $Cookie, $H_Response);
 my($html_pointer_cnt, %html_pointers);
 
 my %mime_types = (
-    'htm'  => 'text/html',
-    'html' => 'text/html',
-    'shtml'=> 'text/html',
-    'vxml' => 'text/html',
-    'pl'   => 'text/html',
-    'txt'  => 'text/plain',
-    'png'  => 'image/png',
-    'gif'  => 'image/gif',
-    'jpg'  => 'image/jpeg',
+                  'htm'   => 'text/html',
+                  'html'  => 'text/html',
+                  'shtml' => 'text/html',
+                  'vxml'  => 'text/html',
+                  'pl'    => 'text/html',
+                  'txt'   => 'text/plain',
+                  'png'   => 'image/png',
+                  'gif'   => 'image/gif',
+                  'jpg'   => 'image/jpeg',
+                  'wml'   => 'text/vnd.wap.wml',
+                  'wmls'  => 'text/vnd.wap.wmlscript',
+                  'wbmp'  => 'image/vnd.wap.wbmp',  
+                  'bmp'   => 'image/bmp',
+                  'wmls'  => 'text/vnd.wap.wmlscript',
+                  'wmlc'  => 'application/vnd.wap.wmlc',
+                  'wmlsc' => 'application/vnd.wap.wmlscriptc',
 );
 
 if ($config_parms{password_menu} eq 'html') {
@@ -77,32 +83,38 @@ sub process_http_request {
 
     $Authorized = &password_check(undef, 'http') ? 0 : 1; # If no $Password or local address, defaults to authorized
 
-                                # Read http header data (need $Browser parm)
-    $Browser = $Host = $Referer = $Cookie = '';  undef %Cookies;
+                                # Read http header data
+    $Cookie = '';  undef %Cookies; undef %Http;
     $H_Response = 'last_response';
+    my $temp;
     while (<$socket>) {
-#       print "db http header=$_";
         last unless /\S/;
-        $Host    = $1 if /^Host: (\S+)/;
-        $Referer = $1 if /^Referer: (\S+)/;
+        $temp .= $_;
+        my ($key, $value) = /(\S+?)\: ?(.+?)[\n\r]+/;
+
                                 # User-Agent: Mozilla/4.0 (compatible; MSIE 5.0; Windows 98)
                                 # User-Agent: Mozilla/4.6 [en] (Win98; I)
-        if (/^User-Agent:/) {
-            $Browser = (/MSIE/) ? "IE" : "Netscape";
-            print "Browser=$Browser  $_" if $main::config_parms{debug} eq 'http';
-        }
-                                # This is used/set in vxml menus
-        if (/^Cookie: (.+)/) {
-            for my $key_value (split ';', $1) {
-                my ($key, $value) = $key_value =~ /(\S+)=(\S+)/;
-                $Cookies{$key} = $value;
+        $value = 'MSIE' if $key eq 'User-Agent' and $value =~ /MSIE/;
+
+        $Http{$key} = $value;
+        print "db http header key=$key value=$value.\n" if $main::config_parms{debug} eq 'http';
+
+        if ($key eq 'Cookie') {
+            for my $key_value (split ';', $value) {
+                my ($key2, $value2) = $key_value =~ /(\S+)=(\S+)/;
+                $Cookies{$key2} = $value2;
             }
         }
-        if (/^Authorization: Basic (\S+)/) {
-            my ($user, $password) = split(':', &uudecode($1));
-            $Authorized = (&password_check($password, 'http')) ? 0 : 1;
+        if ($key eq 'Authorization') {
+            if ($value =~ /Basic (\S+)/) {
+                my ($user, $password) = split(':', &uudecode($1));
+                $Authorized = (&password_check($password, 'http')) ? 0 : 1;
+            }
         }
+        $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
+        $Http{request} = $header;
     }
+    logit "$config_parms{data_dir}/logs/server_header.$Year_Month_Now.log",  "$header data:$temp";;
 
     if ($config_parms{password_menu} eq 'html' and $Password and $Cookies{password}) {
         $Authorized = ($Cookies{password} eq $Password) ? 1 : 0
@@ -115,6 +127,7 @@ sub process_http_request {
 
     $get_req = $main::config_parms{html_file} unless $get_req;
     $get_arg = '' unless $get_arg;
+    logit "$config_parms{data_dir}/logs/server_http.$Year_Month_Now.log",  "$Socket_Ports{http}{client_ip_address} $get_req $get_arg";
 
     $get_arg =~ tr/\+/ /;       # translate + back to spaces (e.g. code search tk widget)
                                 # Real + will be in %## form (e.g. /SET:&html_list(X10_Item)?$test_house2?%2B15)
@@ -164,7 +177,7 @@ sub process_http_request {
     elsif ($get_req =~ /^\/SET_PASSWORD_FORM$/) {
         my ($password) = $get_arg =~ /password=(\S+)/;
         my ($html);
-        my ($name, $name_short) = net_domain_name 'http';
+        my ($name, $name_short) = &net_domain_name('http');
         if (&password_check($password, 'http')) {
             $Authorized = 0;
             $html =  &html_authorized . $password_html . qq[<b>Password was incorrect</b>\n];
@@ -209,15 +222,15 @@ sub process_http_request {
         }
     }        
                                 # Test for RUN commands
-    elsif  ($get_req =~ /\/RUN$/ or
-            $get_req =~ /\/RUN\:(\S*)$/) {
+    elsif  ($get_req =~ /\/RUN$/i or
+            $get_req =~ /\/RUN\:(\S*)$/i) {
         $h_response = $1;
 
         if ($get_arg) {
             $get_arg =~ s/select_cmd=//;  # Drop the cmd=  prefix from form lists.
             $get_arg =~ tr/\_/ /;   # Put blanks back
             $get_arg =~ tr/\~/_/;   # Put _ back
-            $get_arg =~ s/\&x=\d+\&y=\d+$//;    # Drop the &x=n&y=n that is tacked on the end when doing image form submits
+            $get_arg =~ s/&?x=\d+&y=\d+&?//; # Drop the &x=n&y=n that is tacked on when doing image form submits
         }
 
         my ($ref) = &Voice_Cmd::voice_item_by_text(lc($get_arg));
@@ -246,14 +259,41 @@ sub process_http_request {
             print $socket &html_page("", &html_unauthorized($get_arg, $h_response));
         }
     }
-                                # Allow for simple sub calls (avoid & character ... messes up Tellme)
-    elsif  ($get_req =~ /\/SUB\:(\S+)$/) {
-        $h_response = '&' . $1;
-        &html_response($socket, $h_response);
+                                # Test for subroutine call.  Note we can have both a SUB action and a SUB response
+    elsif  ($get_req =~ /\/SUB$/i or
+            $get_req =~ /\/SUB\:(\S*)$/i) {
+        $h_response = $1;
+                                # Run the subroutine (if authorized)
+        my($msg, $action) = &html_sub($get_arg, 1);
+        if ($msg) {
+            print $socket &html_page("", $msg);
+        }
+        elsif ($action) {
+            my $response = eval $action;
+            print "\nError in html SUB: $@\n" if $@;
+                                # Check for a response sub
+            if (my($msg, $action) = &html_sub($response)) {
+                if ($msg) {
+                    print $socket &html_page("", $msg);
+                }
+                else {
+                    $leave_socket_open_action = $action;
+                    $leave_socket_open_passes = 3; # Wait a few passes, so multi-pass events can settle (e.g. barcode_web.pl)
+                }
+            }
+            elsif ($response) {
+                print $socket $response;
+            }
+            elsif (!$h_response) {
+                $h_response = 'last_response';
+            }
+        }
+                                # Generate a response IF requested (i.e. no default)
+        &html_response($socket, $h_response) if $h_response;
     }
                                 # Allow for either SET or SET_VAR 
-    elsif  ($get_req =~ /\/SET(_VAR)?$/ or
-            $get_req =~ /\/SET(_VAR)?\:(\S*)$/) {
+    elsif  ($get_req =~ /\/SET(_VAR)?$/i or
+            $get_req =~ /\/SET(_VAR)?\:(\S*)$/i) {
         $h_response = $2;
 #       print "Error, no SET argument: $header\n" unless $get_arg;
 
@@ -272,7 +312,7 @@ sub process_http_request {
                 }
                                 # WAP pages don't allow for $ in url, so make it optional
                 $item = "\$". $item unless substr($item, 0, 1) eq "\$";
-                my $set_authority = eval qq[$item->get_authority if $item and $item->isa('Generic_Item');];
+                my $set_authority = eval qq[$item->get_authority if $item and ref($item) and $item->isa('Generic_Item');];
                 print "SET authority eval error: $@\n" if $@;
                 unless ($set_authority or $Password_Allow{$item}) {
                     $authority = 0;
@@ -310,7 +350,7 @@ sub process_http_request {
                     $item = "\$". $item unless substr($item, 0, 1) eq "\$";
 
                                 # Can be a scalar or a object
-                    my $eval_cmd =  qq[($item and $item->isa('Generic_Item')) ? ($item->set("$state")) : ($item = "$state")];
+                    my $eval_cmd = qq[($item and ref($item) and $item->isa('Generic_Item')) ? ($item->set("$state")) : ($item = "$state")];
                     print "SET eval: $eval_cmd\n" if $main::config_parms{debug} eq 'http';
                     eval $eval_cmd;
                     print "SET eval error: $@\n" if $@;
@@ -398,7 +438,7 @@ sub test_for_file {
             $file = $file2;
         }
         else {
-            print $socket &html_page("Error", "No index found for directory");
+            print $socket &html_page("Error", "No index found for directory $get_req");
             return 1;
         }
     }
@@ -498,38 +538,45 @@ sub html_mh_generated {
     }
 }
 
+sub html_sub {
+    my ($data, $sub_required) = @_;
+    return unless $data;
+    my ($sub_name, $sub_arg, $sub_ref);
+
+    $data = '&' . $data if $data and $data !~/^&/; # Avoid & character in the url ... messes up Tellme
+
+                                # Allow for &sub1 and &sub1(args)
+    if ((($sub_name, $sub_arg) = $data =~ /^\&(\S+)\((\S+)\)$/) or
+        (($sub_name)           = $data =~ /^\&(\S+)$/)) {
+        $sub_arg = '' unless $sub_arg; # Avoid uninit warninng
+#       $sub_ref = \&{$sub_name};  # This does not work ... code refs are always auto-created :(
+#       if (defined $sub_ref) {
+                                # The %main:: array will have a glob for all subs (and vars)
+        if ($main::{$sub_name}) {
+            print "html_sub: a=$Authorized data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n" if $main::config_parms{debug} eq 'http';
+                                # Check for authorization
+            if ($Authorized or $Password_Allow{"&$sub_name"}) {
+                $sub_arg = "'$sub_arg'" if $sub_arg and $sub_arg !~ /^[\'\"]/; # Add quotes if needed
+                return(undef, "&$sub_name($sub_arg)");
+            }
+            else {
+                return("Web response function not authorized: &$sub_name $sub_arg");
+            }
+        }
+        else {
+            return("Web html function not found: &$sub_name $sub_ref") if $sub_required;
+        }
+    }
+    return;
+}
+
 sub html_response {
     my ($socket, $h_response) = @_;
     my $file;
 
     print "html response: $h_response\n" if $main::config_parms{debug} eq 'http';
     if ($h_response) {
-        my ($sub_name, $sub_arg, $sub_ref);
-                                # Allow for &sub1 and &sub1(args)
-        if ((($sub_name, $sub_arg) = $h_response =~ /^\&(\S+)\((\S+)\)$/) or
-#           (($sub_name)           = $h_response =~ /^\SUB_(\S+)$/) or
-            (($sub_name)           = $h_response =~ /^\&(\S+)$/)) {
-            $sub_arg = '' unless $sub_arg; # Avoid uninit warninng
-
-            unless ($Authorized or $Password_Allow{"&$sub_name"}) {
-                print $socket &html_page("", "Web response function not authorized: &$sub_name $sub_arg");
-                return;
-            }
-
-            print "html_response=$h_response sn=$sub_name sa=$sub_arg\n" if $main::config_parms{debug} eq 'http';
-            $sub_ref = \&{$sub_name};
-            if (defined $sub_ref) {
-                $sub_arg = "'$sub_arg'" if $sub_arg and $sub_arg !~ /^[\'\"]/; # Add quotes if needed
-                $leave_socket_open_action = "&$sub_name($sub_arg)";
-                $leave_socket_open_passes = 3; # Wait a few passes, so multi-pass events can settle (e.g. barcode_web.pl)
-#               my $html = &$sub_ref($sub_arg);
-#               print $socket &html_page("", $html);
-            }
-            else {
-                print $socket &html_page("", "Web html function not found: &$sub_name $sub_ref");
-            }
-        }
-        elsif ($h_response =~ /^last_response_?(\S*)/) {
+        if ($h_response =~ /^last_response_?(\S*)/) {
             $Last_Response = '';
                                 # Wait for some sort of response ... need a way to 
                                 # specify longer wait times on longer commands.
@@ -537,7 +584,7 @@ sub html_response {
                                 # we way too many passes for the 'no response message'
                                 # from many commands that do not respond
             $leave_socket_open_passes = 3; 
-            $leave_socket_open_action = "&html_last_response('$Browser', $1)";
+            $leave_socket_open_action = qq|&html_last_response('$Http{"User-Agent"}', $1)|;
         }
         elsif ($h_response eq 'last_displayed') {
             $leave_socket_open_passes = 3;
@@ -549,6 +596,22 @@ sub html_response {
 #           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
 #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
+        elsif ($h_response =~ /^http:\S+$/i or $h_response =~ /^referer$/i) {
+                                # Wait a few passes before refreshing page, in case mh states changed
+            $h_response = $Http{Referer} if $h_response =~ /^referer$/i;
+#           $leave_socket_open_action = "&http_redirect('$h_response')"; # mh uses &html_page, so this does not work
+            $leave_socket_open_action = "'$h_response'"; # &html_page will use referer if only a url is given
+            $leave_socket_open_passes = 3;
+        }
+        elsif (my($msg, $action) = &html_sub($h_response)) {
+            if ($msg) {
+                print $socket &html_page("", $msg);
+            }
+            else {
+                $leave_socket_open_action = $action;
+                $leave_socket_open_passes = 3; # Wait a few passes, so multi-pass events can settle (e.g. barcode_web.pl)
+            }
+        }
         elsif (&test_for_file($socket, $h_response)) {
                                 # Allow for files to be modified on the fly, so wait a pass
                                 #  ... naw, use &file_read if you need to wait (e.g. barcode_scan.shtml)
@@ -557,13 +620,6 @@ sub html_response {
 #           &html_file($socket, $file, '', 1);
 #           $leave_socket_open_action = "&html_file(\$Socket_Ports{http}{socka}, '$file', '', 1)";
 #           $leave_socket_open_action = "file_read '$file')";
-        }
-        elsif ($h_response =~ /^http:\S+$/i or $h_response =~ /^referer$/i) {
-                                # Wait a few passes before refreshing page, in case mh states changed
-            $h_response = $Referer if $h_response =~ /^referer$/i;
-#           $leave_socket_open_action = "&http_redirect('$h_response')"; # mh uses &html_page, so this does not work
-            $leave_socket_open_action = "'$h_response'"; # &html_page will use referer if only a url is given
-            $leave_socket_open_passes = 3;
         }
         else {
             $h_response =~ tr/\_/ /; # Put blanks back
@@ -580,29 +636,24 @@ sub html_response {
 
     }
 }
-
 sub html_last_response {
     my ($browser, $length) = @_;
     my ($last_response, $script);
+    $last_response = &last_response;
     $Last_Response = '' unless $Last_Response;
     if ($Last_Response eq 'speak') {
-#       $last_response = &html_last_spoken;
-        ($last_response) = &speak_log_last(1);
-        $last_response =~ s/\n/  /g;         # Remove line breaks
-        $last_response =~ s/^.+?: //s;       # Remove time/date/status portion of log entry
                                 # Allow for MSagent
-        if ($browser eq 'IE' and $Cookies{msagent} and $main::config_parms{html_msagent_script}) {
+        if ($browser eq 'MSIE' and $Cookies{msagent} and $main::config_parms{html_msagent_script}) {
             $script = GenerateMsAgent($last_response);
         }
     }
     elsif ($Last_Response eq 'display') {
-        ($last_response) = &display_log_last(1);
         $last_response =~ s/\n/\n<br>/g; # Add breaks on newlines
     }
     elsif ($Last_Response eq 'print_log') {
         ($last_response) = &html_print_log;
     }
-    else {
+    elsif (!$last_response) {
         $last_response = "<br><b>No response resulted from the last command</b>";
     }
 
@@ -616,180 +667,110 @@ sub html_last_response {
 #   $msg .= "<li>" . $action . "</li>";
 
 
-$Password_Allow{'&vxml_last_response'} = 'anyone';
-sub vxml_last_response {
-    $Last_Response = '' unless $Last_Response;
-    my $last_response;
-    if ($Last_Response eq 'speak') {
-        ($last_response) = &speak_log_last(1);
-        $last_response =~ s/\n/  /g;         # Remove line breaks
-        $last_response =~ s/^.+?: //s;       # Remove time/date/status portion of log entry
-    }
-    elsif ($Last_Response eq 'display') {
-        ($last_response) = &display_log_last(1);
-#       $last_response =~ s/\n/\n<br>/g; # Add breaks on newlines
-    }
-    elsif ($Last_Response eq 'print_log') {
-        ($last_response) = &print_log_last(1);
-    }
-    else {
-        $last_response = "No response from the last command";
-    }
-    return &vxml_page(text => $last_response);
-}
 
 sub vxml_page {
-    my %parms = @_;
-    my ($audio, $grammar, $grammar_html, $help);
-    $parms{timeout} = 60 unless $parms{timeout};
+    my ($vxml) = @_;
 
-    $parms{goto} = "SET:&tellme_menu(main)" unless $parms{goto};
-    my ($goto_html, $goto_vxml);
-    $goto_vxml = $parms{goto};
-    unless ($goto_vxml =~ /^http/i) {
-        $goto_vxml = '/' . $goto_vxml unless $goto_vxml =~ /^\//;
-                                # Tellme.com does not pass the port name in, but local
-                                # test browsers do, so use it only if it has a port specified.
-        if ($Host =~ /\:/) {
-            $goto_vxml = 'http://' . $Host . $goto_vxml;
-        }
-        else {
-            $goto_vxml = "http://$config_parms{http_server}:$config_parms{http_port}" . $goto_vxml;
-        }
-    }
-    $goto_html = $goto_vxml;
-    $goto_html =~ s/tellme_menu/tellme_menu_html/;
-    $goto_html =~ s/&vxml_last_response/last_response/;
-    $goto_vxml =~ s/&/&amp;/g;
+    my $header = "Content-type: text/xml";
+#   $header    = $Cookie . $header if $Cookie;
 
-    $parms{mode} = 'vxml' unless $parms{mode};
-
-    $parms{response} = qq|<audio>You said {session.result}</audio>| unless defined $parms{response};
-    $help = $parms{help};
-
-    if ($parms{text} or $parms{wav}) {
-        $audio  = qq|<audio |;
-        $audio .= qq|src="$parms{wav}"| if $parms{wav};
-        $audio .= qq|>$parms{text}</audio>|;
-    }
-
-    if ($parms{grammar}) {
-        my ($cmd1, $cmd2, $i);
-        $i = -1;
-        for my $item ('help', @{$parms{grammar}}) {
-            $help .= $item . ',   ' unless $parms{help};
-
-            my $cmd = $item;
-            $cmd =~ s/[\+%]//g; # These are illegal characters for grammar
-#           $cmd =~ s/\?/\??/g; # Avoid ? in voice_cmd ... don't know how to pass them via tellme
-            $cmd = lc $cmd;
-            $cmd =~ s/\&//g; # These are illegal characters for grammar
-
-            unless (($cmd1, $cmd2) = $cmd =~ /(.+?) => (.+)/) {
-                $cmd1 = $cmd2 = $cmd;
-                $cmd1 = "($cmd1)";
-                $cmd1 = "dtmf-$i $cmd1" if $i++ < 10;
-            }
-            
-            $cmd2 =~ tr/ /\_/; # Blanks are not allowed xml names
-            $grammar      .= qq|[$cmd1] {<option "$cmd2">}\n|;
-            my $goto_vxml  = $goto_vxml;
-            my $goto_html2 = $goto_html;
-            $goto_vxml  =~ s/{session.result}/$cmd2/;
-            $goto_html2 =~ s/{session.result}/$cmd2/;
-            $grammar_html .= qq|<li> <a href=$goto_vxml>vxml</a> : <a href=$goto_html2>$i $cmd1</a>\n|;
-        }
-        $help = "Speak one of the following $i: $help" unless $parms{help};
-        $grammar = qq|<grammar><![CDATA[[\n$grammar]]]></grammar>|;
-    }
-    elsif ($parms{grammar_src}) {
-        $grammar = qq|<grammar src="$parms{grammar_src}"/>|;
-    }
-
-    if ($grammar) {
-        $audio = qq|<prompt>$audio</prompt>| if $audio;
-        $help = "Sorry, no help available" unless $help;
-        my $noinput = qq|Sorry, I did not hear anything.|;
-        my $nomatch = qq|What was that again?|;
-# <assign name="document.caller" expr="{session.ani}"/>
-        $Cookie = "Set-Cookie: vxml_cookie=$parms{cookie}; path=/\n" if $parms{cookie};
-        $Cookies{password_was_valid}++; # So we can monitor from user code
-
-        if ($parms{mode} eq 'html') {
-            my $html = "<b>Audio</b>: $audio\n";
-            $html .= "$grammar_html\n";
-            $html .= "<br><b>No Input</b>: $noinput\n";
-            $html .= "<br><b>No Match</b>: $nomatch\n";
-            $html .= "<br><b>Help</b>:     $help\n";
-            $html .= "<br><b>Repsonse</b>: $parms{response}\n";
-            $html .= "<br><b><a href=$Referer>Previous</a></b>\n";
-            return &html_page('', $html);
-        }
-        else {
-            my $header = "Content-type: text/xml";
-            $header    = $Cookie . $header if $Cookie;
-            return <<eof;
+    return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
 $header
-
 <!DOCTYPE vxml PUBLIC "-//Tellme Networks//Voice Markup Language 1.0//EN"
-"http://resources.tellme.com/toolbox/vxml-tellme.dtd">
+ 'http://resources.tellme.com/toolbox/vxml-tellme.dtd'>
 
 <vxml application="http://resources.tellme.com/lib/universals.vxml">
- <form id="top">
-  <field name="session.result" timeout="$parms{timeout}">
-   $audio
-   $grammar
+
+$vxml
+
+</vxml>
+eof
+
+}
+                                # vxml for audio text/wav followed by a goto
+sub vxml_audio {
+    my ($name, $text, $wav, $goto) = @_;
+    my $vxml;
+    $vxml  = "<form id='$name' anchor='true'>\n <block>\n  <audio ";
+    $vxml .= "src='$wav'" if $wav;
+    $vxml .= ">$text</audio>\n";
+    $vxml .= "  <goto next='$goto'/>\n </block></form>";
+    return $vxml;
+}
+
+                                # vxml for a basic form with grammar.  Called from &menu_vxml
+sub vxml_form {
+    my %parms = @_;
+    my ($prompt, $grammar, $filled);
+    my @grammar = @{$parms{grammar}};
+    my @action  = @{$parms{action}};
+    my @goto    = @{$parms{goto}};
+    my $noinput = 'Sorry, I did not hear anything.';
+    my $nomatch = 'What was that again?';
+    $prompt  = qq|<prompt><audio>$parms{prompt}</audio></prompt>| if $parms{prompt};
+
+                                # Add previous menu option
+    unshift @grammar, 'previous';
+    unshift @goto,    ($parms{prev}) ? "#$parms{prev}" : '_lastanchor';
+    unshift @action,  '';
+    $parms{help}    = "Speak one of " . scalar @grammar . " commands: " . join(', ', @grammar) unless $parms{help};
+
+    my $i = 0;
+    for my $text ('help', @grammar) {
+        my $cmd = $text;
+                                # These are illegal characters for grammar
+        $cmd =~ s/\+/ plus /g;
+        $cmd =~ s/\-/ minus /g;
+        $cmd =~ s/\%/ percent/g;
+        $cmd =~ s/\&//g;
+        $cmd =~ s/\^/ up /g;
+        $cmd = 'down' if $cmd eq 'v';
+#       $cmd =~ s/\?/\??/g; # Avoid ? in voice_cmd ... don't know how to pass them via tellme
+
+        $cmd = lc $cmd;
+        $cmd = "dtmf-$i $cmd" if $i < 10;
+        if ($i == 0) {
+            $grammar .= qq|[$cmd] {<option "help">}\n|;
+        }
+        else {
+            $grammar .= qq|[$cmd] {<option "$i">}\n|;
+            $filled  .= qq|  <result name='$i'>\n|;
+            $filled  .= qq|   <audio>$text</audio>\n| unless $text eq 'previous';
+            $filled  .= qq|   $action[$i-1]\n| if $action[$i-1];
+            $filled  .= qq|   <goto next='$goto[$i-1]'/>\n  </result>\n|;
+        }
+        $i++;
+    }
+    return <<eof;
+ <form id='$parms{name}' anchor='true'>
+  <field name="$parms{name}" timeout="60">
+   $prompt
+   <grammar>
+    <![CDATA[[
+$grammar
+    ]]]>
+   </grammar>
    <noinput>
     <audio>$noinput</audio><reprompt/>
    </noinput>
+   <nomatch> 
+    <audio>$nomatch</audio> 
+    <reprompt/> 
+   </nomatch> 
    <default>
-    <audio>$nomatch</audio><reprompt/>
+    <reprompt/> 
    </default>
    <help>
-    <audio>$help</audio><reprompt/>
+    <audio>$parms{help}</audio><reprompt/>
    </help>
    <filled>
-    $parms{response}
-    <goto next="$goto_vxml"/>
+    $filled
    </filled>
   </field>
  </form>
-</vxml>
 eof
-       }
-    }
-                                # Simple audio response
-    else {
-        $Cookie = "Set-Cookie: vxml_cookie=$parms{cookie}; path=/\n" if $parms{cookie};
-        $Cookies{password_was_valid}++; # So we can monitor from user code
-        if ($parms{mode} eq 'html') {
-            my $html  = $audio;
-            $html .= "<br><a href=$goto_vxml>vxml</a> : <a href=$goto_html>Next</a>\n";
-            $html .= "<br><b><a href=$Referer>Previous</a></b>\n";
-            return &html_page('', $html);
-        }
-        else {
-            my $header = "Content-type: text/xml";
-            $header    = $Cookie . $header if $Cookie;
-            return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-$header
-
-<?xml version="1.0"?>
-<vxml>
- <form>
-  <block>
-   $audio
-   <goto next="$goto_vxml"/>
-  </block>
- </form>
-</vxml>
-eof
-         }
-    }
 }
 
 sub GenerateMsAgent {
@@ -1006,10 +987,7 @@ sub html_category {
     $h_index = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] . 
         qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] if $html_info_overlib;
 
-    for my $category (&list_code_webnames) {
-                                # Only list a category if it has commands
-                                #  - hmmm, this takes a while :(
-#       next unless &html_list($category) =~ /RUN/;
+    for my $category (&list_code_webnames('Voice_Cmd')) {
         next if $category =~ /^none$/;
 
         my $info = "$category:";
@@ -1020,7 +998,7 @@ sub html_category {
             $info = qq[onMouseOver="overlib('$info', FIXX, 5, OFFSETY, 50 )" onMouseOut="nd();"];
         }
         $h_index .= "<li>" . qq[<a href=list?$category $info>$category</a>\n];
-#       $h_index    .= "<li>" . &html_active_href("list?$category", $category) . "\n";
+#       $h_index .= "<li>" . &html_active_href("list?$category", $category) . "\n";
     }
     return $h_index;
 }
@@ -1166,7 +1144,7 @@ sub html_list {
                                 # Check for authority based searches
     if ($webname_or_object_type =~ /authority=(\S*)/) {
         my $search = $1;
-        for my $category (&list_code_webnames) {
+        for my $category (&list_code_webnames('Voice_Cmd')) {
             for my $object_name (sort &list_objects_by_webname($category)) {
                 my $object = &get_object_by_name($object_name);
                 next unless $object and $object->isa('Voice_Cmd');
@@ -1447,7 +1425,7 @@ sub html_command_table {
             qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] . 
                 $html if $html_info_overlib;
 
-    if ($Browser eq 'IE' and $Cookies{msagent} and $main::config_parms{html_msagent_script_vr}) {
+    if ($Http{'User-Agent'} eq 'MSIE' and $Cookies{msagent} and $main::config_parms{html_msagent_script_vr}) {
         my $msagent_file = file_read "$config_parms{html_dir}/$config_parms{html_msagent_script_vr}";
         $msagent_file =~ s/<!-- *vr_cmds *-->/$msagent_script1/;
         $msagent_file =~ s/<!-- *vr_select *-->/$msagent_script2/;
@@ -1867,6 +1845,25 @@ sub dir_index {
 }
 
 
+sub wml_page {
+    my ($wml) = @_;
+    $wml = <<"eof";
+HTTP/1.0 200 OK
+Server: MisterHouse
+Content-Type: text/vnd.wap.wml
+Cache-control: no-cache
+
+<?xml version="1.0"?>
+<!DOCTYPE wml PUBLIC "-//PHONE.COM//DTD WML 1.1//EN"
+			"http://www.phone.com/dtd/wml11.dtd" >
+<wml>
+$wml
+</wml>
+eof
+    return $wml;
+}
+
+
 return 1;           # Make require happy
 
 # Example on updateing 2 frames at once
@@ -1894,6 +1891,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.54  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.53  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

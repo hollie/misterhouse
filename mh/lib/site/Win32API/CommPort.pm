@@ -653,7 +653,9 @@ sub new {
      $CP_ProvChar_start,
      $CP_Filler)= unpack($CP_format1, $CommProperties);
 
-    if (($CP_Length > 64) and ($self->{"_TYPE"} == PST_RS232)) {
+# 03/21/2001 bwinter :: changed when we saw a win 2k port with 64 on it.  Pick 256 randomly :)
+#   if (($CP_Length > 64) and ($self->{"_TYPE"} == PST_RS232)) {
+    if (($CP_Length > 256) and ($self->{"_TYPE"} == PST_RS232)) {
         carp "invalid COMMPROP block length= $CP_Length";
         undef $self;
         return;

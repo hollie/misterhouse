@@ -68,6 +68,9 @@ sub new {
                                 # Called on mh startup
 sub connect {
     my ($port) = @_;
+
+    $port = '\\\\.\\' . $port if $main::Info{OS_name} eq 'NT' and $port =~ /^com\d{2}\z/i;
+
                                 # The first port used is the default
     $connections{default} = $port unless $connections{default};
 
@@ -453,6 +456,9 @@ memory
 
 
 # $Log$
+# Revision 1.9  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.8  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

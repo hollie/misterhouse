@@ -27,6 +27,7 @@ while ($f =~ /([A-Z][a-zA-Z\.\']+) ([A-Z][a-zA-Z\']+\.?) /gms) {
     $a{"$first $last"}++;
 }
 
+my $time_date = localtime;
 print <<eof;
 <html>
 <head>
@@ -37,7 +38,8 @@ print <<eof;
 <h3>List of MisterHouse Authors</h3>
 <p>Here is a list of all the people who made additions to or found bugs in MisterHouse,
 sorted by how many times their names showed up in mh/docs/updates*.pod.
-Created by <a href="http://misterhouse.net/mh/bin/authors">mh/bin/authors</a>
+Created by <a href="http://misterhouse.net/mh/bin/authors">mh/bin/authors</a>.
+<b>Last updated $time_date</b>.
 <hr><table>
 eof
 

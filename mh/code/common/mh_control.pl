@@ -42,9 +42,10 @@ if ($state = said $v_http_control) {
 $http_monitor   = new  Socket_Item(undef, undef, "$config_parms{http_server}:$config_parms{http_port}");
 if ((said $v_http_control eq 'Check') or new_minute 1) {
     unless (start $http_monitor) {
-        print_log 'The http server is down.  Restarting';
-        display text => 'The http server is down.  Restarting', time => 0;
-        socket_close   'http';  # Somehow this gets it going again?
+        my $msg = "The http server $config_parms{http_server}:$config_parms{http_port} is down.  Restarting";
+        print_log $msg;
+        display text => $msg, time => 0;
+        socket_close 'http';    # Somehow this gets it going again?
         stop $http_monitor if active $http_monitor; # Need this?
     }
     else {
@@ -215,40 +216,6 @@ sub serial_match_log {
     return unless $event =~ /^X/; # Echo only X10 events
     my $name = substr $$ref{object_name}, 1;
     print_log "$event: $name $state" if $config_parms{x10_errata} > 1 and !$$ref{no_log};
-}
-
-                                # Allow control of individual members
-
-# noloop=start      This directive allows this code to be run on startup/reload
-
-my $code_members_list = join ',', sort keys %Run_Members;
-my %code_members_off;
-
-# noloop=stop
-
-if ($Reload) {
-    for my $member (split ',', $Save{code_members_off}) {
-        print_log "Member $member has been disabled";
-        $code_members_off{$member}++;
-        $Run_Members{$member} = 0;
-    }
-}
-
-$v_toggle_run_member = new Voice_Cmd "Toggle code member [$code_members_list]";
-$v_toggle_run_member-> set_info('Toggle a code member file on or off');
-
-if (my $member = said $v_toggle_run_member) {
-    if ($code_members_off{$member}) {
-        print_log "Member $member was toggled On";
-        delete $code_members_off{$member};
-        $Run_Members{$member} = 1;
-    }
-    else {
-        print_log "Member $member was toggled Off";
-        $code_members_off{$member} = 1;
-        $Run_Members{$member} = 0;
-    }
-    $Save{code_members_off} = join ',', sort keys %code_members_off;
 }
  
                                 # Allow for keyboard control

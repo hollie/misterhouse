@@ -171,6 +171,7 @@ sub find_match {
                     $min_begin = $min_begin + 24 * 60 if ($min_begin < 6 * 60);
 
                     my $show_ended = 1 if ($min_end < $min_begin or $min_end < $min_now);
+                    my $show_ended = 1 if ($min_end < $min_begin or $min_end < $min_now);
 
                     unless 	(@lengths and !$match_length or
                              ($show_ended and !$parms{all}) or
@@ -198,14 +199,15 @@ sub find_match {
                         my $temp = "\n$match_cnt.  $pgm_name.  $channel_name (Channel $channel_number).  ";
 
                         my $print_date = $pgm_date;
-                        $print_date =~ s/(.+)\/(.+)/$2\/$1/g if ($config_parms{date_format} = "ddmmyy");
+                        $print_date =~ s/(.+)\/(.+)/$2\/$1/g if ($config_parms{date_format} =~ "ddmmyy");
+
                         $temp .= "On $print_date.  " if (@dates > 1 or $pgm_date ne $date_today);
 #                       $temp .= "On $pgm_date.  " if @dates > 1 or $pgm_date ne $date_today;
 
                         $temp .= "From $time_start2 till $time_end2.\n";
                         $match_list1 .= $temp;
                         $match_list1 =~ s/\(.+\)\.//g; 
-                        $match_list1 =~ s/CH/Channel /g if ($config_parms{country} = "UK"); 
+                        $match_list1 =~ s/CH/Channel /g if ($config_parms{country} =~ /UK/); 
                         chomp $temp;
                         $match_list2 .= $temp . $vcr_link. $watch_link. "\n$pgm_desc";
                     }
@@ -334,6 +336,7 @@ sub setup {
     @times    = split_parm($parms{times}, 'times');
     @early_am = split_parm($parms{early_am}, 'early_am');
     push @times, @early_am;
+    $min_begin = &hour_to_min(@times[0]) unless $min_begin;
 
     @lengths  = split_parm($parms{lengths}, 'lengths');
 
@@ -344,22 +347,17 @@ sub setup {
         $t2 >= 360 and $t1 < 360 or $t1 <=> $t2;
     } @times;
 
+
     if ($parms{keyfile}) {
         @keys = file_read("$config_parms{data_dir}/$parms{keyfile}");
     }
     else {
         @keys = split(/,/,  $parms{keys});
     }
+    @keys = grep s/^ *//, @keys;
 
     print "keys  = $parms{keys}\n";
     print "times = $parms{times}\n";
-
-			# Sort @times, but keep 0->5:59 after 23:59
-	@times = sort {
-	my $t1 = &hour_to_min(&ampm_to_hour24($a));
-	my $t2 = &hour_to_min(&ampm_to_hour24($b));
-	$t2 >= 360 and $t1 < 360 or $t1 <=> $t2;
-	} @times;
 
     @channels = sort{$a <=> $b} keys %DBM2 if !@channels or $channels[0] eq 'all';
 
@@ -459,10 +457,12 @@ sub hour_to_min {
     my ($hour, $min) = split(':', @_[0]);
     return $hour * 60 + $min;
 }
+
 sub hour24_to_ampm {
     my ($hour, $min) = split(':', @_[0]);
-    if ($hour > 12) {
-        return ($hour - 12) . ":$min PM";
+    if ($hour >= 12) {
+        $hour -= 12 if ($hour > 12 );
+        return ($hour) . ":$min PM";
     }
     else {
         return "$hour:$min AM";
@@ -470,7 +470,8 @@ sub hour24_to_ampm {
 }
 sub ampm_to_hour24 {
     my ($hour, $min, $ampm) = @_[0] =~ /(\d+):?(\d*) *(\S*)/;
-    $hour += 12 if uc($ampm) eq 'PM' and $hour < 12;
+    $hour += 12 if uc($ampm) eq 'PM' and $hour  < 12;
+    $hour -= 12 if uc($ampm) eq 'AM' and $hour == 12;
     $min = "00" unless $min;
     $hour .= ":$min";
     return $hour;
@@ -478,6 +479,9 @@ sub ampm_to_hour24 {
 
 #
 # $Log$
+# Revision 1.16  2001/03/24 18:08:37  winter
+# - 2.47 release
+#
 # Revision 1.15  2001/02/24 23:18:40  winter
 # - 2.45 release
 #

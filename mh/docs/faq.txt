@@ -122,10 +122,13 @@
     Copy mh\code\test\test_x10.pl into your own code dir (e.g.
     c:\mh_code). Then run:
 
-    mh -code_dir c:\mh_code
+      mh -code_dir c:\mh_code
 
-    You can then use http://localhost:8080 for control. If you also
-    want the local Tk windows, also copy the tk* code files.
+    You can then use http://localhost:8080 for control. This will
+    also run all the code in mh/code/common. To run JUST a specific
+    code member(s), specify it on the command line. For example:
+
+      mh test_x10.pl
 
   1.8: Is there a way I can have direct X10 control with a simple perl script?
 
@@ -719,7 +722,7 @@ only at Startup?
 
   6.3: Why open source?
 
-    Because open source only has 2 syllables, and proprietary has 5.
+    Because open source only has 3 syllables, and proprietary has 5.
 
     That and MisterHouse has developed much faster with the help of
     a wider user base and help from other coders than it would have
@@ -894,6 +897,36 @@ only at Startup?
 
       http://www.x10.com/products/x10_lm465.htm  one way lamp module from X10, $13
       http://www.x10.com/products/x10_lm14a.htm  two way lamp module from X10, $33
+
+    Bill Bass sent in these links to a bunch of links from Phil
+    Kingery's great series of X10 articles at http://hometoys.com
+
+      Which One Should I Use?
+      http://www.hometoys.com/htinews/dec96/articles/kingery/kingery.htm
+
+      Controlling Motors and Transformers
+      http://www.hometoys.com/htinews/apr97/articles/kingery/kingery2.htm
+
+      120/240v Residential Coupling
+      http://www.hometoys.com/htinews/jun97/articles/kingery/kingery3.htm
+
+      Complex Residential Coupling with Considerations for Dim/Bright
+      http://www.hometoys.com/htinews/aug97/articles/kingery/kingery4.htm
+
+      Dim/Bright Commands and Coupler-Repeaters
+      http://www.hometoys.com/htinews/oct97/articles/kingery/kingery5.htm
+
+      Three-Way Switch Circuits
+      http://www.hometoys.com/htinews/dec97/articles/kingery/kingery6.htm
+
+      More Three-Way and Four-Way Switch Circuits
+      http://www.hometoys.com/htinews/feb98/articles/kingery/kingery7.htm
+
+      Troubleshooting Three-Way and Four-Way Switch Circuits
+      http://www.hometoys.com/htinews/apr98/articles/kingery/kingery8.htm
+
+      Noise and Filtering
+      http://www.hometoys.com/htinews/jun98/articles/kingery/kingery9.htm
 
   6.7 What do I need to use the iButtons?
 

@@ -125,29 +125,6 @@ sub new {
         $self-> add ($id . $hc . '-95', '-95');
         $self-> add ($id . $hc . '-100', '-100');
 
-                                # These are added because perl interprets +10 the
-                                # same as 10.  Ideally people would use '+10'
-        $self-> add ($id . $hc . '+5',  5); # Allow for numeric (5 instead of '+5');
-        $self-> add ($id . $hc . '+10', 10);
-        $self-> add ($id . $hc . '+15', 15);
-        $self-> add ($id . $hc . '+20', 20);
-        $self-> add ($id . $hc . '+25', 25);
-        $self-> add ($id . $hc . '+30', 30);
-        $self-> add ($id . $hc . '+35', 35);
-        $self-> add ($id . $hc . '+40', 40);
-        $self-> add ($id . $hc . '+45', 45);
-        $self-> add ($id . $hc . '+50', 50);
-        $self-> add ($id . $hc . '+55', 55);
-        $self-> add ($id . $hc . '+60', 60);
-        $self-> add ($id . $hc . '+65', 65);
-        $self-> add ($id . $hc . '+70', 70);
-        $self-> add ($id . $hc . '+75', 75);
-        $self-> add ($id . $hc . '+80', 80);
-        $self-> add ($id . $hc . '+85', 85);
-        $self-> add ($id . $hc . '+90', 90);
-        $self-> add ($id . $hc . '+95', 95);
-        $self-> add ($id . $hc . '+100', 100);
-
         $self-> add ($id . $hc . 'STATUS', 'status');
         $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
 
@@ -171,8 +148,41 @@ sub set {
         }
         &main::print_log("Toggling X10_Item object $self->{object_name} from $$self{state} to $state");
     }
+    $state = "+$state" if $state =~ /^\d+$/; # In case someone trys a state of 30 instead of +30.
+    &set_x10_level($self, $state);
     $self->SUPER::set($state);
 }
+
+sub set_receive {
+    my ($self, $state) = @_;
+    &set_x10_level($self, $state);
+    $self->SUPER::set_receive($state);
+}
+
+                                # Try to keep track of X10 brightness level of older, dumb one-way, X10 modules
+sub set_x10_level {
+    my ($self, $state) = @_;
+    my $level;
+    $level = $$self{level};
+    if ($state =~ /([\+\-]?)(\d+)/) {
+        $level = 100 unless defined $level; # bright and dim from on or off will start at 100%
+        $level += $state;
+        $level =   0 if $level <   0;
+        $level = 100 if $level > 100;
+    }
+    else {
+        $level = 100   if $state eq 'on' and !defined $level; # Only if we used to be off. 
+        $level = undef if $state eq 'off'; # Dimming from off starts at 100% :(
+    }
+    $$self{level} = $level;
+}        
+
+                                # This returns current brightness level ... see above
+sub level {
+#   print "db2 l=$_[0]->{level} s=$_[0]->{state}\n";
+    return $_[0]->{level};
+} 
+
 
 sub set_with_timer {
     my ($self, $state, $time) = @_;
@@ -200,14 +210,14 @@ sub set_by_housecode {
     my ($hc, $state) = @_;
     for my $object (@{$items_by_house_code{$hc}}) {
         print "Setting X10 House code $hc item $object to $state\n" if $main::config_parms{debug} eq 'X10';
-        set_receive $object $state;
+        $object->set_receive($state);
     }
 
     return if $state eq 'on';     # All lights on does not effect appliances
 
     for my $object (@{$appliances_by_house_code{$hc}}) {
         print "Setting X10 House code $hc appliance $object to $state\n" if $main::config_parms{debug} eq 'X10';
-        set_receive $object $state;
+        $object->set_receive($state);
     }
         
 }
@@ -689,8 +699,7 @@ sub set {
     $self->SUPER::set($state);
 }
 
-
-
+#  Ote themostate from Ouellet Canada
 package X10_Ote;
 @X10_Ote::ISA = ('X10_Item');
 sub new {
@@ -698,13 +707,22 @@ sub new {
     my $self = {};
     $$self{state} = '';
     bless $self, $class;
-    #   print "\n\nWarning: duplicate ID codes on different X10_Appliance  objects: id=$id\n\n" if $serial_item_by_id{$id};
     my $hc = substr($id, 0, 1);
-    push @{$items_by_house_code{$hc}}, $self;
+    push @{$ote_by_house_code{$hc}}, $self;
     $id = "X$id";
     $self->{x10_id} = $id;
-    $self-> add ($id . $hc . 'J', 'on');
-    $self-> add ($id . $hc . 'K', 'off');
+    $self-> add ($id . $hc . 'J', 'eco');
+    $self-> add ($id . $hc . 'K', 'normal');
+    $self-> add ($id . $hc . 'J' . $hc . '+5', 'plus');
+    $self-> add ($id . $hc . 'J' . $hc . '-5', 'moins');
+    $self-> add ($id . $hc . 'J' . $hc . '+5' . $hc . '+5', 'plus2');
+    $self-> add ($id . $hc . 'J' . $hc . '-5' . $hc . '-5', 'moins2');
+    $self-> add ($id . $hc . 'J' . $hc . '+5' . $hc . '+5' . $hc . 'L', 'plus3');
+    $self-> add ($id . $hc . 'J' . $hc . '-5' . $hc . '-5' . $hc . 'M', 'moins3');
+    $self-> add ($id . $hc . 'J', 'off');
+    $self-> add ($id . $hc . 'K', 'on');
+    $self-> add ($id . $hc . '+5', 'brighten');
+    $self-> add ($id . $hc . '-5', 'dim');
     $self-> add ($id . $hc . 'M', 'C+1');
     $self-> add ($id . $hc . 'N', 'C-1');
     $self-> add ($id . $hc . 'L', 'JN');
@@ -714,7 +732,82 @@ sub new {
 }
 
 
+## X10_Sensor -- by Ingo Dean
+##
+## Do you have any of those handy little X10 MS12A battery-powered motion sensors?
+##
+## Ever have the battery die and you didn't notice for weeks?
+##
+## Here's your answer - use the X10_Sensor instead of the Serial_Item when you define
+## it, and your house will notice when your sensor hasn't been tripped in 24 hours,
+## allowing you to check on the batteries.
+##
+## Todo: 
+##      + make the countdown time configurable per sensor
+##      + make the action configurable per sensor
+
+package X10_Sensor;
+
+@X10_Sensor::ISA = ('Serial_Item');
+$sensorinit=0;
+
+sub init {
+    &::print_log("Calling Serial_match_add_hook");
+    &::Serial_match_add_hook( \&X10_Sensor::sensorhook);
+    $sensorinit = 1;
+}
+
+sub new {
+    my ($class, $id, $name) = @_;
+    my $self = &Serial_Item::new();
+    
+    $$self{state} = '';
+    bless $self, $class;
+
+    &X10_Sensor::init() unless $sensorinit;
+
+    &X10_Sensor::add($self, $id, $name);
+
+    return $self;
+}
+
+sub add {
+    my ($self, $id, $name) = @_;
+
+    &::print_log("Adding X10_Sensor timer for $id, $self, $name")   
+    if $main::config_parms{debug} eq 'X10_Sensor';;
+
+    $self->{battery_timer}->{$id} = new Timer;
+                                #24 hour countdown
+    $self->{battery_timer}->{$id}->set(24*60*60, 
+                       "speak \"rooms=all Battery timer for $name expired\"", 7);  
+
+    return &Serial_Item::add(@_);
+}
+
+sub sensorhook {
+    my ($ref, $name, $item) = @_;
+
+    #Does it have a battery_timer?
+    return unless $ref->{battery_timer}->{$item};
+
+    &::print_log("X10_Sensor::sensorhook: resetting $ref->{battery_timer}->{$item}") 
+    if $main::config_parms{debug} eq 'X10_Sensor';
+
+
+    #If I received something from this battery-powered transmitter, the battery 
+    #must still be good, so reset the countdown timer (12 more hours):
+    $ref->{battery_timer}->{$item}->set(60*60*12, 
+                     "print_log \"Battery timer for $name expired\"", 7);  
+}
+
+return 1;
+
+
 # $Log$
+# Revision 1.18  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.17  2001/02/24 23:26:40  winter
 # - 2.45 release
 #

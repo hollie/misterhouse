@@ -1,8 +1,9 @@
 
                                 # Modify this rule for use with get_email
                                 # Rename to get_email_rule.pl to enable
+                                #  - $from_full has the full email address, not just the name portion.
 sub get_email_rule {
-    my ($from, $to, $subject) = @_;
+    my ($from, $to, $subject, $from_full) = @_;
     $from = 'The S F gals'          if $to =~ /FEM-SF/;
     $from = 'The E C S guys'        if $to =~ /ecs/;
     $from = 'The Mister House guys' if $to =~ /misterhouse/;

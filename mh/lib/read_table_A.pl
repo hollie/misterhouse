@@ -21,7 +21,7 @@ sub read_table_init_A {
 sub read_table_A {
     my ($record) = @_;
 
-    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other);
+    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand);
 
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
@@ -35,6 +35,11 @@ sub read_table_A {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "X10_Item('$address', $other)";
+    }
+    elsif($type eq "X10O") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "X10_Ote('$address', $other)";
     }
     elsif($type eq "X10SL") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -76,15 +81,45 @@ sub read_table_A {
 #       $object = "Weather_Item('$address', '$comparison', '$limit')" if $comparison ne undef;
         $object = "Weather_Item('$address')";
     }
-    elsif($type eq "STARGATELCD") {
+    elsif($type eq "SG485LCD") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateLCDKeypad('$address', $other)";
+    }
+    elsif($type eq "SG485RCSTHRM") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateRCSThermostat('$address', $other)";
+    }
+    elsif($type eq "STARGATEDIN") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateDigitalInput('$address', $other)";
+    }
+    elsif($type eq "STARGATEVAR") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateVariable('$address', $other)";
+    }
+    elsif($type eq "STARGATEFLAG") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateFlag('$address', $other)";
+    }
+    elsif($type eq "STARGATERELAY") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateRelay('$address', $other)";
     }
     elsif($type eq "STARGATETHERM") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "StargateThermostat('$address', $other)";
+    }
+    elsif($type eq "STARGATEPHONE") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "StargateTelephone('$address', $other)";
     }
     elsif($type eq "XANTECH") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -95,6 +130,22 @@ sub read_table_A {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Serial_Item('$address', $other)";
+    }
+    elsif($type eq "VOICE") {
+        ($name, @other) = @item_info;
+        $vcommand = join ',', @other;
+        my $fixedname = $name;
+        $fixedname =~ s/_/ /g;
+        if (!($vcommand =~ /.*\[.*/)) {
+            $vcommand .= " [ON,OFF]";
+        }
+        $code .= sprintf "\nmy \$v_%s_state;\n", $name;
+        $code .= sprintf "\$v_%s = new Voice_Cmd(\"%s\");\n", $name, $vcommand;
+        $code .= sprintf "if (\$v_%s_state = said \$v_%s) {\n", $name, $name;
+        $code .= sprintf "  set \$%s \$v_%s_state;\n", $name, $name;
+        $code .= sprintf "  speak \"Turning %s \$v_%s_state\";\n", $fixedname, $name;
+        $code .= sprintf "}\n";
+        return $code;
     }
     else {
         return;
@@ -121,6 +172,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.8  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.7  2001/02/04 20:31:31  winter
 # - 2.43 release
 #

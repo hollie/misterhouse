@@ -82,6 +82,7 @@ sub init
 
     # Initial cleared data for _now commands
     $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet}  = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+    $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Recent} = 0;
     $Compool_Data{$serial_port}{Last_Partial_Packet} = "";
     # Debuging setup for equipment less development
     #$Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} = "\xff\xaa\x0f\x16\x02\x10\x04\x14\x0F\x01\x10\x82\x00\x00\x00\x88\x99\x32\x00\x00\xf0\x80\x05\x55";
@@ -141,6 +142,7 @@ sub UserCodePreHook
                                     substr($Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},9,1) = pack('C',(unpack('C',substr($packet,9,1)) ^ 255));
                                 }
                                 $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} = $packet;
+                                $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Recent} = 1;
 
                                 if(substr($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},8,10) ne substr($Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},8,10))
                                 {
@@ -167,13 +169,13 @@ sub UserCodePreHook
                         elsif(substr($packet,4,1) eq "\x82" && substr($packet,5,1) eq "\x09" && length($packet) >= 17)
                         {
 	                    # Remove bytes from the received data to account for this packet
-                            $packetsize = 9;
+                            $packetsize = 17;
                             if($::config_parms{debug} eq 'compool') {print "Compool command packet recieved\n";}
                         }
                         # Ack packet received
                         elsif(substr($packet,4,1) eq "\x01" && substr($packet,5,1) eq "\x01" && length($packet) >= 9)
                         {
-	                    # Remove bytes from the received data to account for this packet
+                            # Remove bytes from the received data to account for this packet
                             $packetsize = 9;
                             if($::config_parms{debug} eq 'compool') {print "Compool ACK packet recieved\n";}
                             # Remove any command at the head of the queue (but only if it's been sent)
@@ -213,25 +215,35 @@ sub UserCodePreHook
                 if($::config_parms{debug} eq 'compool') { print "Packetsize=$packetsize Length1=" . length($data) . " Length2=" . length(substr($data,$packetsize)) . "\n"; }
                 $Compool_Data{$serial_port}{Last_Partial_Packet} = substr($data,$packetsize);
             }
-        }
 
-        # Require at least 2 seconds between commands to avoide blowing any circuit breakers by turning on 
-        # too many items at once.
-        if((@compool_command_list > 0) && (time - $last_command_time > 2))
-        {
-            # Increment our retry count
-            @compool_command_list[2]++;
+            # Require a recent status packet and at least 2 seconds between commands (delay in order to avoid blowing any circuit breakers by 
+            # turning on too many items at once.
+            if(($Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Recent} == 1) and (@compool_command_list > 0) and (time - $last_command_time > 3))
+            {
+                # Increment our retry count
+                @compool_command_list[2]++;
 
-            # If we've already attempted to turn this item on 4 times, it's time to abort
-            if(@compool_command_list[2] > 4)
-            {
-                remove_command();
-            }
-            else
-            {
-                send_command(@compool_command_list[0], @compool_command_list[1]);
-                # We are about to get a new BAP packet, nuke any holdover data
-                $Compool_Data{@compool_command_list[0]}{Last_Partial_Packet} = "";
+                # If we've already attempted to turn this item on 4 times, it's time to abort
+                if(@compool_command_list[2] > 4)
+                {
+                    remove_command();
+                }
+                else
+                {
+                    # If this is an device set command (these toggle the state) make sure the state isn't already where it was requested
+                    # before continuing.
+                    if((@compool_command_list[3] ne undef) and (get_device(@compool_command_list[0],@compool_command_list[3]) eq @compool_command_list[4]))
+                    {
+                        remove_command();
+                    }
+                    else
+                    {
+                        send_command(@compool_command_list[0], @compool_command_list[1]);
+                        # We are about to get a new BAP packet, nuke any holdover data
+                        $Compool_Data{@compool_command_list[0]}{Last_Partial_Packet} = "";
+                        $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Recent} = 0;
+                    }
+                }
             }
         }
     }
@@ -448,7 +460,7 @@ sub set_device
     }
 
     # Sending to primary equipment field or secondary equipment field?
-    ($targetprimary == 8) ? return queue_command($serial_port, "\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x00\x04") : return queue_command($serial_port, "\x00\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x08");
+    ($targetprimary == 8) ? return queue_command($serial_port, "\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x00\x04", $targetdevice, $targetstate == 1 ? "on" : "off") : return queue_command($serial_port, "\x00\x00\x00" . pack("C",$targetbit) . "\x00\x00\x00\x00\x08", $targetdevice, $targetstate == 1 ? "on" : "off");
 }
 
 sub set_device_with_timer 
@@ -670,11 +682,15 @@ sub get_heatsource_now
 
 sub queue_command
 {
-    my ($serial_port, $command) = @_;
+    my ($serial_port, $command, $targetdevice, $targetstate) = @_;
     push(@compool_command_list, $serial_port);
     push(@compool_command_list, $command);
     # Add a retry count to the list
     push(@compool_command_list, 0);
+    # For devices, add the device and requested state to the ilst
+    push(@compool_command_list, $targetdevice);
+    push(@compool_command_list, $targetstate);
+
     return 1;
 }
 
@@ -684,6 +700,8 @@ sub remove_command
     if(@compool_command_list > 0)
     {
         # Pop the serial port, command, and retry count off the list
+        shift @compool_command_list;
+        shift @compool_command_list;
         shift @compool_command_list;
         shift @compool_command_list;
         shift @compool_command_list;
@@ -711,7 +729,7 @@ sub send_command
 
     $serial_port->dtr_active(1);
     $serial_port->rts_active(1);
-    select (undef, undef, undef, .100); # Sleep a bit
+    select (undef, undef, undef, .05); # Sleep a bit
     if (17 == ($temp = $serial_port->write($Compool_Command_Header . $command . $Checksum))) 
     {
         select (undef, undef, undef, .02); # Sleep a bit

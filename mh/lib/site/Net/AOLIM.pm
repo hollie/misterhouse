@@ -113,7 +113,7 @@ $SFLAP_TLV_TAG = 1;
 $SFLAP_HEADER_LEN = 6;
 
 # Net::AOLIM version
-$VERSION = "1.0";
+$VERSION = "1.1";
 
 # number of arguments that server messages have:
 %SERVER_MSG_ARGS = ( 'SIGN_ON' => 1,
@@ -166,6 +166,7 @@ $main::IM_ERR_ARGS as appropriate.
 		3 => 'Net::AOLIM Error: Exceeded Max Packet Length (1024)',
 		4 => 'Net::AOLIM Error: Reading from server',
 		5 => 'Net::AOLIM Error: Sending to server',
+		6 => 'Net::AOLIM Error: Login timeout',
 		901 => 'General Error: $ERR_ARG not currently available',
 		902 => 'General Error: Warning of $ERR_ARG not currently available',
 		903 => 'General Error: A message has been dropped, you are exceeding the server speed limit',
@@ -210,10 +211,13 @@ values are optional):
     'allow_srv_settings' => <1 | 0> (default 1)
     'login_server' => login server (default login.oscar.aol.com)
     'login_port' => login port (default 5198)
-    'aim_agent' => agentname (max 200 char) (default 'TOC1.0' where 
-		X is the version number)  There have been some reports
-		that changing this may cause TOC servers to stop
-		responding to signon requests
+    'login_timeout' => timeout in seconds to wait for a response to the
+                       toc_signon packet.  Default is 0 (infinite)
+    'aim_agent' => agentname (max 200 char) 
+                Default is AOLIM:$Version 1.1$
+                There have been some reports that changing this 
+                may cause TOC servers to stop responding to signon 
+                requests
 
 callback is the callback function that handles incoming data from the
 server (already digested into command plus args).  This is the meat of
@@ -235,7 +239,7 @@ Returns a blessed instantiation of Net::AOLIM.
 sub new
 {
     my $whatami = shift @_;
-
+    
     while ($key = shift @_)
     {
 	if ($var = shift @_)
@@ -255,7 +259,8 @@ sub new
     $args{'port'} ||= 1234;
     $args{'login_server'} ||= 'login.oscar.aol.com';
     $args{'login_port'} ||= 5198;
-    $args{'aim_agent'} ||= 'TOC1.0';
+    $args{'aim_agent'} ||= 'AOLIM:$Version ' . $VERSION . "\$";
+    $args{'login_timeout'} ||= undef();
 
 # Make a new instance of instmsg and bless it.
 
@@ -279,6 +284,7 @@ sub new
 			'sel' => IO::Select->new(),
 			'pause' => '0',
 			'aim_agent' => $args{'aim_agent'},
+			'login_timeout' => $args{'login_timeout'},
 		    };
 
     bless $new_instmsg, $whatami;
@@ -365,10 +371,19 @@ sub signon
 	
 	$so_toc_ascii = $imsg->toc_format_msg('toc_signon',$imsg->{'login_server'},$imsg->{'login_port'},$imsg->{'unamenorm'},$imsg->{'roastedp'},'english',$imsg->{'aim_agent'});
 	
-	
 	return undef unless (defined ($imsg->send_sflap_packet($SFLAP_TYPE_DATA, $so_toc_ascii, 0, 0)));
 	
-	return undef unless (defined ($so_toc_srv_so = $imsg->read_sflap_packet()));
+	my @ready = $imsg->{'sel'}->can_read($imsg->{'login_timeout'});
+	
+	if (scalar(@ready) > 0)
+	{
+	    return undef unless (defined ($so_toc_srv_so = $imsg->read_sflap_packet()));
+	}
+	else
+	{
+	    $main::IM_ERR = 6;
+	    return undef;
+	}
 	
 	unless ($so_toc_srv_so =~  /SIGN_ON/)
 	{

@@ -5,6 +5,8 @@ use strict;
 my ($VTxt, $VTxt_festival, $VV_TTS, $save_mute_esd, $save_change_volume, %pronouncable);
 my ($ViaVoiceTTS); #mod for ViaVoiceTTS
 
+my $is_speaking_timer = new Timer;
+
 sub init {
 
     if ($main::config_parms{voice_text} =~ /festival/i) {
@@ -55,6 +57,10 @@ sub speak_text {
     my $pgm_root = $main::Pgm_Root;
     
     $parms{text} = force_pronounce($parms{text}) if %pronouncable;
+
+                                # Only MSVoice currently tells us when it is done
+                                # For all others, set a timer with a rough guess
+    set $is_speaking_timer (1 + (length $parms{text}) / 10) unless $VTxt;
 
     unless ($VTxt or $VV_TTS or $VTxt_festival or $ViaVoiceTTS) {
         unless ($main::config_parms{voice_text}) {
@@ -206,8 +212,12 @@ ProgCode
 }
 
 sub is_speaking {
-    return unless $VTxt;
-    return $VTxt->{IsSpeaking};
+    if ($VTxt) {
+        return $VTxt->{IsSpeaking};
+    }
+    else {
+        return active $is_speaking_timer;
+    }
 }
 
                                 # This has been moved to mh.  Leave this stub in so 
@@ -251,6 +261,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.24  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.23  2001/02/24 23:26:40  winter
 # - 2.45 release
 #

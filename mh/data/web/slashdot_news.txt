@@ -1,30 +1,30 @@
-Title: Physics of Billiards
-2001-02-24 08:55:52 by michael  in dept: pocket-pool  (science   68)
+Title: Programmers for Scientific Research?
+2001-03-24 11:43:16 by michael  in dept: do-it-yourself  (programming   1)
 
-Title: Python Painfully Ported to Palm; Plan is "Peer-to-Peer"
-2001-02-24 05:26:25 by michael  in dept: proactive-PDA-programming  (programming   91)
+Title: Eurorights Launched
+2001-03-24 08:22:14 by michael  in dept: noble-intentions,-slim-odds  (news   44)
 
-Title: Turn-Based Games: What Happened?
-2001-02-24 02:53:16 by michael  in dept: itchy-trigger-finger  (games   211)
+Title: Court of Appeals Overturns Indiana Video Game Ordinance
+2001-03-24 05:34:43 by michael  in dept: fatality!  (censorship   111)
 
-Title: OpenNaps Targeted; Gnutella "Validated"
-2001-02-23 23:15:00 by jamie  in dept: gnu-complete-me  (music   374)
+Title: NSA Inside?
+2001-03-24 02:58:21 by michael  in dept: maybe-they-could-have-a-little-swirly-logo  (linux   170)
 
-Title: IBM CPRM Plan Replaced with Similar Copy-Prevention Plan
-2001-02-23 22:15:47 by michael  in dept: old-wine-in-new-bottles  (ibm   228)
+Title: Interview with Dominic Lachowicz of Abiword
+2001-03-24 00:53:19 by michael  in dept: macro-virus-support-optional  (gnome   70)
 
-Title: Yamauchi Puts the Game Industry In Its Place
-2001-02-23 21:19:32 by Hemos  in dept: letting-people-know-how-he-thinks  (games   241)
+Title: Zooming in on the GeForce 3
+2001-03-23 23:47:14 by CmdrTaco  in dept: pixels-for-dinner  (graphics   139)
 
-Title: Linux.com Chats with BioWare Regarding "Neverwinter Nights"
-2001-02-23 19:32:03 by Hemos  in dept: please-let-me-be-a-beta-tester  (games   167)
+Title: IBM Linux Watch v2.0
+2001-03-23 22:28:41 by CmdrTaco  in dept: isn't-that-special  (pilot   147)
 
-Title: CowboyNeal Speaks
-2001-02-23 18:00:06 by Roblimo  in dept: greatful-dead-fans-need-love-too  (slashdot   279)
+Title: Michael Abrash's Black Book For Download
+2001-03-23 21:00:19 by CmdrTaco  in dept: epic-tomes-available-online  (programming   160)
 
-Title: ESR's Art of Unix Programming Updated
-2001-02-23 17:30:48 by CmdrTaco  in dept: stuff-to-read  (programming   156)
+Title: New Linux Worm
+2001-03-23 20:45:08 by CmdrTaco  in dept: worming-its-way-around  (bug   359)
 
-Title: N2H2 Drops Plans to Sell Student Web-Browsing Information
-2001-02-23 16:42:11 by michael  in dept: N2H2-does-not-drop-plans-to-censor-those-students  (Privacy   101)
+Title: Red Hat Breaks Even, Beats Street Estimate
+2001-03-23 18:52:37 by Hemos  in dept: downing-in-submissions  (redhat   253)
 

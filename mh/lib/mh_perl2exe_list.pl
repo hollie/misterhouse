@@ -25,7 +25,8 @@ use Tk::Listbox;     # Needed for perl2exe
 use Tk::Photo;       # Needed for perl2exe
 use Tk::JPEG;        # Needed for perl2exe
 
-use Net::DNS::Resolver;  # Needed find_domain_name
+use Math::Trig;                 # Used in internet_earthquakes.pl
+use Net::DNS::Resolver;         # Needed find_domain_name
 
 use Net::AIM;
 use Net::Jabber;

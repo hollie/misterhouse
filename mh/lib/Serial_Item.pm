@@ -377,6 +377,11 @@ sub send_x10_data {
         print "Using homebase to send: $serial_data\n";
         &HomeBase::send_X10($main::Serial_Ports{HomeBase}{object}, substr($serial_data, 1));
     }
+    elsif ($interface eq 'stargate') {
+                                # Stargate wants individual codes without X
+        print "Using stargate to send: $serial_data\n";
+        &Stargate::send_X10($main::Serial_Ports{Stargate}{object}, substr($serial_data, 1));
+    }
     elsif ($interface eq 'houselinc') {
                                 # houselinc wants XA1AK
         if ($isfunc) {
@@ -473,6 +478,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.46  2001/03/24 18:08:38  winter
+# - 2.47 release
+#
 # Revision 1.45  2001/02/04 20:31:31  winter
 # - 2.43 release
 #
