@@ -199,19 +199,27 @@ sub get_weather_record {
 
 
                                 # Note interesting weather events
-$timer_wind_gust = new Timer();
+$timer_wind_gust  = new Timer();
+$timer_wind_gust2 = new Timer();
 #f (state_now $WindGust > 12 and 
 if (state $Windy and 
     not $Save{sleeping_parents}) {
-    if ($Weather{WindGustSpeed} > ($Save{WindGustMax} + 5)) {
-        $Save{WindGustMax} = $Weather{WindGustSpeed};
-        respond "app=notice Weather alert.  The wind is now gusting at " . round($Weather{WindGustSpeed}) . " MPH.";
-        set $timer_wind_gust 20*60;
+				# Wait for the gust to peak before announcing
+    if ($timer_wind_gust2->{speed} < $Weather{WindGustSpeed}) {
+	$timer_wind_gust2->{speed} = $Weather{WindGustSpeed};
+        $timer_wind_gust2->set(10);
     }
-    elsif (inactive $timer_wind_gust) {
+}
+if (expired $timer_wind_gust2) {
+    my $speed = $timer_wind_gust2->{speed};
+    $timer_wind_gust2->{speed} = 0;
+    if (inactive $timer_wind_gust or
+	10 + $timer_wind_gust->{speed} < $speed) {
+        $timer_wind_gust->{speed} = $speed;
         set $timer_wind_gust 20*60;
-        respond "app=notice Weather alert.  A wind gust of " . round($Weather{WindGustSpeed}) . " MPH was just recorded.";
+        respond "app=notice Weather alert, the wind is gusting at " . round($speed);
     }
+    $Save{WindGustMax} = $speed if $Save{WindGustMax} < $speed; # Save a daily max
 }
 $Save{WindGustMax} = 0 if $New_Day;
 

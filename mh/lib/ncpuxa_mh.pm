@@ -111,9 +111,18 @@ sub send {
 		return;
 	}
 	
+	#Send remote IR
+	if (my ($irnum, $module, $zone) = $data =~ /^IRSlot([0-9]+)@([0-9]+):([0-9]+)$/ ) {
+		$irnum = int($irnum);
+		$module = int($module);
+		$zone = int($zone);
+		ncpuxa::remote_ir($controlsock{$hostport}, $module, $zone, $irnum);
+		return;
+	}
+
 	#Set Relay
-	if (my ($relay, $state) = $data =~ /^OUTPUT([0-9]+)(high|low)$/i) {
-		my $module = 1;
+	if (my ($relay, $state, undef, $module) = $data =~ /^OUTPUT([0-9]+)(high|low)(@([0-9]+))?$/i) {
+		$module = 1 unless defined $module;
 		$relay = int($relay);
 		$state = ($state =~ /high/i ? "1" : "0");
 		ncpuxa::set_relay($controlsock{$hostport}, $module, $relay, $state);

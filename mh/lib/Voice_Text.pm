@@ -28,12 +28,6 @@ sub init {
         my $festival_address = "$main::config_parms{festival_host}:$main::config_parms{festival_port}";
         print "Creating festival TTS socket on $festival_address\n";
         $VTxt_festival = new  Socket_Item(undef, undef, $festival_address, 'festival', 'tcp', 'raw');
-        if (start $VTxt_festival) {
-            if ($main::config_parms{festival_init_cmds}) {
-                print "Data sent to festival: $main::config_parms{festival_init_cmds}\n";
-                set $VTxt_festival qq[$main::config_parms{festival_init_cmds}];
-            }
-        }
     }
     
     if ($main::config_parms{voice_text} =~ /ms/i and $main::OS_win) {
@@ -212,6 +206,15 @@ sub speak_text {
     }
     elsif ($speak_engine =~ /festival/i) {
         &init('festival') unless $VTxt_festival;
+        if ($VTxt_festival and not active $VTxt_festival) {
+            if (start $VTxt_festival) {
+                if ($main::config_parms{festival_init_cmds}) {
+                    print "Data sent to festival: $main::config_parms{festival_init_cmds}\n";
+                    set $VTxt_festival qq[$main::config_parms{festival_init_cmds}];
+                }
+            }
+        }
+
 
 				# Clear out buffer, so is_speaking works
         $main::Socket_Ports{festival}{data_record} = '';
@@ -246,8 +249,10 @@ sub speak_text {
             }
             select undef, undef, undef, .2; # Need this ?
         }
-        elsif ($parms{voice} or $parms{volume} or $parms{rate} or 
-               $parms{text} =~ /<sable>i/ or !$VTxt_festival) {
+		 # Check for sable requests.  Server does not do sable
+        elsif (!$VTxt_festival and 
+	       ($parms{voice} or $parms{volume} or 
+		$parms{rate} or  $parms{text} =~ /<sable>i/)) {
             my $text = $parms{text};
             unless ($text =~ /<sable>i/) {
                 $parms{rate}   = '-50%'  if $parms{rate}   eq 'slow';
@@ -271,8 +276,11 @@ sub speak_text {
 #            system("($main::config_parms{voice_text_festival} --tts $file ; cat $file) &");
         }
         else {
-            print "Data sent to festival: $parms{text}\n" if $main::Debug{voice};
-            set $VTxt_festival qq[(SayText "$parms{text}")];
+            my $text = $parms{text};
+	       # Remove <tags> like </this> as we don't want them read
+            $text =~ s/<[^>]*>//g;
+            print "Data sent to festival: $text\n" if $main::Debug{voice};
+            set $VTxt_festival qq[(SayText "$text")];
         }
     }
     elsif ($speak_pgm) {
@@ -583,7 +591,7 @@ sub read_parms {
     print "Voice names: @voice_names\n";
 
     my $pronouncable_list_file = $main::config_parms{pronouncable_list_file};
-    if ($::Startup or main::file_change($pronouncable_list_file)) {
+    if ($pronouncable_list_file and ($::Startup or main::file_change($pronouncable_list_file))) {
         my ($phonemes, $word, $cnt);
         open (WORDS, $pronouncable_list_file) or 
           print "\nError, could not find the pronouncable word file $pronouncable_list_file: $!\n"; 
@@ -803,6 +811,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.50  2003/12/22 00:25:06  winter
+#  - 2.86 release
+#
 # Revision 1.49  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

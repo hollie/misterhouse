@@ -24,7 +24,7 @@ sub set {
     my ($self, $state, $set_by, $respond) = @_;
 
     # Check for tied or repeated states.
-    return if &main::check_for_tied_filters($self, $state);
+    return if &main::check_for_tied_filters($self, $state, $set_by);
 
     # Some devices may need to see states and substates in a case sensitive manner
     # this flg allows them to do so.
@@ -586,6 +586,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.31  2003/12/22 00:25:05  winter
+#  - 2.86 release
+#
 # Revision 1.30  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

@@ -21,7 +21,92 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 B<New Features:>
 
+- Kirk Bauer created lib/RCSsTR40.pm for the RCS TR40 Theormostate: http://www.resconsys.com/products/stats/serial.htm
+
+- Kirk Bauer created lib/Light_Restriction_Item.pm and updated most of the other Base_Item objects to improve occupancy monitoring
+and allow for on-the-fly object reconnection.
+
+- Jason Sharpe created lib/Telephony_xAP.pm, a xAP Listener for Telephony Events.
+He also created bin/xAP-info.pl, a stand alone program to that interfaces 
+to the Asterisk phone system ( http://www.asterisk.org ) to send incoming and outgoing phone data as xAP data.
+
+- Lennart Lopin created code/public/games_chess.pl for a voice interface to chess.
+
+- Richard Koch created code/public/x10_priority.pl to create a x10_priority_set function method
+for allowing high priority X10 events to get prioritized to get sent first.
+
+- Walter Leemput created code/public/phonelogger.tar.gz to allow a linux box to monitor DTMF, callerid, and phone messages via a soundcard.
+
+- Richard Koch used the Win32 MemMap module to enable the web http server to serve large files better, 
+without causing mh pauses on Windows (Unix did not have this problem).  To enable, use -http_fork memmap.
+Instead of passing the large html file to the forked process via a file, it will pass it via a memory map.
+
+- Paul Estes updated lib/ncpuxa_mh.pm to
+support the SECU-16IR module for transmitting infrared to multiple zones.  
+David Norwood added support for setting relays on multiple modules.  
+
+- Larry Roudebush updated callerid.pl to honor a rejected callers list and added code/common/reject_caller_list.pl 
+and web/bin/rejectcall.pl to manage that list.
+
+
 B<Bug Fixes and Other Changes:>
+
+- Jason Sharpe updated Door_Item.pm, Occupancy_Monitor.pm, and Presence_Monitor.pm.
+
+- Jim Duda updated common/proxy_client_server.pl to be more robust when dealing with dropped clients.
+
+- Kirk Bauer updated lib/Voice_Text.pm to reconnect to the festival server if it got restarted and 
+to strip out sable tags, since they are not supported with the server.
+
+- Robert Hughes reduced the number of earthquakes saved in common/earthquakes*.pl from 1000 to 15, to lower the size of the data_dir/save file.
+
+- David Norwood updated common/comic_dailystrips.pl to use triggers to control when it runs.
+
+- David Norwood added an internet radio feature to the MP3 web interface.
+Added a mp3_running routine to the winamp script so it will work with the mp3 web interface in mh/web/music.  
+ 
+- David Norwood updated common/weather_aws.pl 
+so weather_monitor.pl doesn't report gusts for hours after they have occured.  
+
+- Jason Sharpe made some presence updates to Light_Item allow  countdown timer to be "restart"ed in Timer_Item.
+
+- Timothy Spaulding noticed a 2.84 bug in processing proxy serial barcode data.
+
+- Robert Hughes and I enabed X10 BX24 proxy support by fixing a case sensitvity problem with proxy interface names.
+
+- Brian Rudy and Gregg Liming noticed a 2.84 problem where Serial_Item x10_rf_relay.pl data was not uppercased, so was not parsed.
+
+- Tom Valdes updated common/phone_logs.pl to process Audrey ACID callerid data by allowing for an optional 1- prefix.
+
+- Chris Barrett added a ping function to the CM11.pm module.
+
+- Sean Walker fixed the unix bin/house command.
+
+- Chris Witte updated the mht->xml conversion code to use XML::Twig.
+
+- Alan Simmonds created some smarter 'debounce' code for the X10 RF modules, to help reduce bad data due to noise.
+The X10_MR26, X10_W800, and X10_W800RF modules will now process data only if it is heard twice.
+
+- Paul Estes updated the ia5 phone interface to access Asterisk's vmail.cgi.  See comments in the mh.ini phone_voicemail* parms for details.
+
+- Added a Run option to the Triggers menu (ia5 Events -> Alarms).
+
+- Updated $format1 in CID_Announce.pm to announce number, if it exists, but the number does not.
+
+- Create a net_socket_check function and called it from mp3_winamp.pl, so we can check first to see if a winamp httpq socket
+is open before we try to get data from it.  mp3.pl was calling get_playlist every 10 seconds, which would 
+cause frequent pauses in mh if winamp was not running.
+
+- Updated the 'wind gust' monitor in common/weather_monitor.pl to be a little smarter.
+
+- Added a photo_filter2 parm, to allow small web photos to point to larger, original photos in a different directory.
+
+- Updated X10 status request to fill in set_by with 'status', instead of ''
+
+- Skip merging of X10 data if the source is fast RF x10 data, so we don't mix our X10 data streams.
+
+- Updated X10 RF source data so set_by is 'rf' instead of 'serial'.  
+Enabled tie_filter to use this so we can filter out rf X10 data if needed on some items.
 
 
 =head2 Version 2.85 posted on 11/30/2003
@@ -43,6 +128,7 @@ I renamed common/slimp3_display.pl to display_slimserver.pl and renamed the parm
 
 - Lennart Lopin created code/common/internet_weather_metar.pl for getting international weather data from noaa.gov
 
+- Richard Koch created x10_priority.pl ...
 
 B<Bug Fixes and Other Changes:>
 
@@ -68,6 +154,8 @@ Deleted the duplicate default.css files, changing the default background color f
 - Enabled the common/organizer.pl script by default, since it is needed by the calander web pages.
 
 - Steve Switzer updated bin/misterhouse.steve-fedora.rc, a startup script example for fedora Linux.
+
+- Kirk Bauer updated bin/mhl and bin/mh_proxy to handle arguments better.
 
 
 

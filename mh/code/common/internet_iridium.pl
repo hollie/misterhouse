@@ -93,7 +93,7 @@ eof
                 my \$msg = "Notice: $a[9] satellite $a[10] will have a magnitude $a[3] flare in 2 minutes ";
                 \$msg .= "at an altitude of $a[4], azimuth of $a[5].";
                 speak "app=timer \$msg";
-                display " $time_sec.  \\n" . \$msg, 600;
+                display "Flare will occur at: $time_sec.  \\n" . \$msg, 600;
                 set \$iridium_timer 120 + $sec;
             }
 eof

@@ -331,6 +331,13 @@ sub restart {
     $self->{time} = time;
     $self->{time_adjust} = 0;
     $self->{time_pause}  = 0;
+	if ( $$self{expire_time} ) { # If this timer is countdown type then restart it instead
+#	        $self->{expire_time} = ($$self{period} * 1000) + main::get_tickcount;
+#		push @sets_from_previous_pass, $self;
+#		@{$self->{set_next_pass}} = ($$self{period}, $$self{action}, $$self{repeat});
+		$self->set($$self{period},$$self{action},$$self{repeat});
+	}
+
 }
 
 sub stop {
@@ -366,6 +373,9 @@ sub query {
 
 #
 # $Log$
+# Revision 1.28  2003/12/22 00:25:06  winter
+#  - 2.86 release
+#
 # Revision 1.27  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

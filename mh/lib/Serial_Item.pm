@@ -162,7 +162,7 @@ sub set_data {
 sub set_receive {
     my ($self, $state, $set_by) = @_;
 #   $set_by = 'serial' unless $set_by;
-    return if &main::check_for_tied_filters($self, $state);
+    return if &main::check_for_tied_filters($self, $state, $set_by);
     return if &set_prev_pass_check($self, $state);
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
 }
@@ -193,7 +193,7 @@ sub set_rts {
 
 sub set {
     my ($self, $state, $set_by) = @_;
-    return if &main::check_for_tied_filters($self, $state);
+    return if &main::check_for_tied_filters($self, $state, $set_by);
 
                                 # Allow for Serial_Item's without states
     unless (defined $state) {
@@ -214,7 +214,7 @@ sub set {
     }
 				# uc since other mh processing can lc it to avoid state sensitivity
     my $serial_data = $serial_id;
-    $serial_id = uc $serial_id unless defined $self->{states_casesensitive};
+    $serial_data = uc $serial_data unless defined $self->{states_casesensitive};
 
     return if &set_prev_pass_check($self, $serial_id);
 
@@ -551,6 +551,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.69  2003/12/22 00:25:06  winter
+#  - 2.86 release
+#
 # Revision 1.68  2003/12/01 03:09:52  winter
 #  - 2.85 release
 #

@@ -88,25 +88,7 @@ sub is_available {
     my ($self) = @_;
     my $host_port  = $self->{host_port};
     my $host_proto = $self->{host_protocol};
-    $host_proto = 'tcp' unless $host_proto;
-    my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
-    if ($port) {
-        print "Socket Item testing to $host on port $port\n" if $main::Debug{socket};
-        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, PeerPort => $port, Proto => $host_proto)) {
-            return 1;
-#            $main::Socket_Ports{$port_name}{sock}  = $sock;
-#            $main::Socket_Ports{$port_name}{socka} = $sock;
-#            $sock->autoflush(1);
-        }
-        else {
-            print "Socket_Item client is_available error:  could not test a tcp client socket on host $host port $port: $@\n";
-            return 0;
-        }
-    }
-    else {
-        print "Socket_Item client is_available error:  address is not in the form host:port.  open failed.  address=$host_port\n";
-        return 0;
-    }
+    return &net_socket_check($host_port, $host_proto);
 }
 
 sub active {
@@ -290,6 +272,9 @@ sub set_expect_check {
 
 #
 # $Log$
+# Revision 1.31  2003/12/22 00:25:06  winter
+#  - 2.86 release
+#
 # Revision 1.30  2003/04/20 21:44:07  winter
 #  - 2.80 release
 #

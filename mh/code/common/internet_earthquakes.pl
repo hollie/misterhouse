@@ -136,7 +136,8 @@ if (done_now $p_earthquakes) {
   }
   if ($new_quakes) {
     $Save{quakes} = $new_quakes . $Save{quakes};
-    $Save{quakes} =~ s/^(([^\t]*\t){1,1000}).*/$1/; 
+#   $Save{quakes} =~ s/^(([^\t]*\t){1,1000}).*/$1/; 
+    $Save{quakes} =~ s/^(([^\t]*\t){1,15}).*/$1/;   # Save last 15 quakes
     foreach (split /\t/, $new_quakes) {
       $quake = $_;
       return unless $num < $Earthquake_Count;

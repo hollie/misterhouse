@@ -50,8 +50,8 @@ sub startup {
     &::MainLoop_pre_add_hook(  \&X10_MR26::check_for_data, 1 ) if $main::Serial_Ports{MR26}{object};
 }
 
-my ($prev_data, $prev_time, $prev_loop);
-$prev_data = $prev_time = 0;
+my ($prev_data, $prev_time, $prev_loop, $prev_done);
+$prev_data = $prev_time = $prev_done = 0;
 
 sub check_for_data {
     my ($self) = @_;
@@ -60,14 +60,22 @@ sub check_for_data {
     $main::Serial_Ports{MR26}{data_record} = undef;
     return unless $data;
 
-                                # Data often gets sent multiple times
-                                #  - check time and loop count.  If mh paused (e.g. sending ir data)
+                                # Data gets sent multiple times
+                                #  - Check time and loop count.  If mh paused (e.g. sending ir data)
                                 #    then we better also check loop count.
-   my $time = &main::get_tickcount;
-   return if $data eq $prev_data and ($time < $prev_time + 600 or $main::Loop_Count < $prev_loop + 6);
-   $prev_data = $data;
-   $prev_time = $time;
-   $prev_loop = $main::Loop_Count;
+                                #  - Process data only on the 2nd occurance, to avoid noise
+    my $time = &main::get_tickcount;
+    my $repeat_data = ($data eq $prev_data) && ($time < $prev_time + 1500 or $main::Loop_Count < $prev_loop + 7);
+    return if $repeat_data and $prev_done;
+    $prev_data = $data;
+    $prev_time = $time;
+    $prev_loop = $main::Loop_Count;
+    unless ($repeat_data) {     # UnSet flag and wait for 2nd occurance
+	$prev_done = 0;
+	return;
+    }
+    $prev_done = 1;             # Set flag and process data
+
 
     my $hex = unpack "H*", $data;
     print "MR26 raw data: $hex\n" if $main::Debug{mr26};
@@ -103,6 +111,9 @@ sub check_for_data {
 
 #
 # $Log$
+# Revision 1.11  2003/12/22 00:25:06  winter
+#  - 2.86 release
+#
 # Revision 1.10  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #

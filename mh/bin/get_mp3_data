@@ -61,6 +61,7 @@ sub setup {
 sub read_mp3_dir {
     my($dir) = @_;
     my $buffer;
+    $dir =~ s|[/\\]$||;		# Drop trailing / or \
     print "  - Reading files in $dir\n";
     $counts{dir}++;
     opendir(MP3DIR, $dir) or do {print "Error in dir open: $!\n"; return};
@@ -113,7 +114,9 @@ sub read_mp3_dir {
                 push @{$data[$i]}, $tag_data[$i];
                 $counts{$i}++ if $tag_data[$i];
             }
-            $file =~ s|/|\\|g if $^O eq 'MSWin32';
+	    print "db1 f=$file -> ";
+	    $file =~ s|/|\\|g if $^O eq 'MSWin32';
+	    print "db2 f=$file\n";
             push @{$data[6]}, $file;
         }
     }
@@ -122,6 +125,9 @@ sub read_mp3_dir {
 
 #
 # $Log$
+# Revision 1.5  2003/12/22 00:20:50  winter
+#  - 2.86 release
+#
 # Revision 1.4  2003/01/12 20:38:53  winter
 #  - 2.76 release
 #

@@ -1150,10 +1150,53 @@ sub main::net_ping {
     return $p->ping($host);
 }
 
+
+
+# This method does not seem any faster, and requires another module, use Socket, so lets stick with IO::Socket
+#
+#sub main::net_socket_check {
+#   use Socket;
+#    my ($host_port, $protocol) = @_;
+#    $protocol = 'tcp' unless $protocol;
+#    my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
+#    print "net_socket_check: checking $protocol host=$host port=$port\n" if $main::Debug{socket};
+#    my $proto = getprotobyname($protocol);
+#    my $iaddr = inet_aton $host or print "net_socket_check error, could not find host=$host: $!\n";
+#    my $paddr = sockaddr_in($port, $iaddr);
+#    socket(SOCK, PF_INET, SOCK_STREAM, $proto) or print "net_socket_error, Could not open socket: $!";
+#    my $connect = connect(SOCK, $paddr);
+#    close SOCK;
+#    print "net_socket_check: $protocol host=$host port=$port connect=$connect\n" if $main::Debug{socket};
+#    return $connect;
+#}
+
+sub main::net_socket_check {
+    my ($host_port, $protocol) = @_;
+    $protocol = 'tcp' unless $protocol;
+    my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
+    if ($port) {
+        print "socket_check testing to $protocol on host=$host port=$port\n" if $main::Debug{socket};
+        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, PeerPort => $port, Proto => $protocol, Timeout => 0)) {
+            return 1;
+        }
+        else {
+            print "socket_check:  $protocol port is down on host=$host port=$port: $@\n" if $main::Debug{socket};
+            return 0;
+        }
+    }
+    else {
+        print "socket_check error:  address is not in the host:port form.  address=$host_port\n";
+        return 0;
+    }
+}
+
 1;
 
 #
 # $Log$
+# Revision 1.53  2003/12/22 00:25:06  winter
+#  - 2.86 release
+#
 # Revision 1.52  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

@@ -125,7 +125,8 @@ if (done_now $p_earthquakes_cal) {
   }
   if ($new_quakes) {
     $Save{quakes_cal} = $new_quakes . $Save{quakes_cal};
-    $Save{quakes_cal} =~ s/^(([^\t]*\t){1,1000}).*/$1/;
+#   $Save{quakes_cal} =~ s/^(([^\t]*\t){1,1000}).*/$1/;
+    $Save{quakes_cal} =~ s/^(([^\t]*\t){1,15}).*/$1/;   # Save last 15 quakes
     foreach (split /\t/, $new_quakes) {
       $quake = $_;
       return unless $num < $Earthquake_Count;

@@ -709,7 +709,9 @@ All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd
      untie_items($code)  : Untie $code
 
      tie_filter($filter) : Use this to disable control of the item whenever
-                           $filter returns true.  
+                           $filter returns true.   Variables $state and $set_by
+                           can be used in the $filter test.
+
      untie_filter($filter):Untie $filter
 
      tie_time($time,$state): Sets item to $state if the $time string evaluates true.
@@ -812,6 +814,9 @@ The 2nd optional tie_* argument is a print_log message you want whenever the tie
                            # Disable an item when we are away
     $item1 -> tie_filter('state $status_away eq ON');
     $item1 -> tie_event('print_log "item1 toggled to $state"');
+
+                           # Ignore RF sourced (e.g. W800 or MR26) X10 data
+    $light1 -> tie_filter('$set_by eq "rf"', , 'Ignoring x10 rf data');
 
                            # Disable callerid announcements when we are not at home
     $cid_announce -> tie_filter('state $mode_occupied ne "home"');
@@ -1616,6 +1621,8 @@ Server socket ports are specified with mh.ini parms (see 'server options' in mh.
 
         'name' is optional.  If used you can set debug to this string
         to turn on debug for just this socket data.
+
+     is_available : Returns 1 if the socket is available, 0 if not
         
      set_port     : Allows you to change the server_name/port.
 
@@ -2876,8 +2883,9 @@ specified and the random offset, it won't fire.
 
   Examples:
 
-     speak "random test" if &time_random_offset('1:20 pm', '1:23');
+    speak "random test" if &time_random_offset('1:20 pm', '1:23');
 
+    set $light ON if &time_random_offset(&time_add("$Time_Sunset + :15"), 15));
 
 
 =back 
@@ -3220,6 +3228,20 @@ hanging mh with long running ftp sessions.
 
 Returns true if connected to the Internet.  If the mh.ini parm net_connect=persistent, this always 
 returns true.
+
+
+=item net_socket_check
+
+Returns true if the specified host:port is avilable, 0 otherwise.
+
+  Usage:
+
+    net_socket_check($host_port, $protocol);
+
+  Examples:
+
+    return &net_socket_check("$host:$port");
+
 
 
 =item net_im_send
@@ -4922,6 +4944,9 @@ you will get too far (grin).
 
 #
 # $Log$
+# Revision 1.69  2003/12/22 00:25:05  winter
+#  - 2.86 release
+#
 # Revision 1.68  2003/11/23 20:26:00  winter
 #  - 2.84 release
 #

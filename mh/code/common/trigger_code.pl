@@ -202,6 +202,17 @@ sub trigger_rename {
     return;
 }
 
+sub trigger_run {
+    my $name = shift;
+    return unless exists $triggers{$name};
+    my ($trigger, $code, $type, $triggered) = trigger_get($name);
+    print_log "Running trigger code for: $name";
+    eval $code;
+    print "trigger_run eval error tirgger=$name:\n - $@\n" if $@;
+    return;
+}
+
+
 sub trigger_list {
     return sort keys %triggers;
 }

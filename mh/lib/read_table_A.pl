@@ -301,7 +301,7 @@ sub read_table_A {
         }
 
         if ($config_parms{pa_type} ne $pa_type) {
-            print "ERROR! INI parm \"pa_type\"=$config_parms{pa_type}, but PA item $name is a type of $pa_type. Skipping PA zone.\n";
+            print "ERROR! INI parm \"pa_type\"=$config_parms{pa_type}, but PA item $name is a type of $pa_type. Skipping PA zone.\n - r=$record\n";
             return;
         } else {
             $name = "pa_$name";
@@ -380,6 +380,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.21  2003/12/22 00:25:06  winter
+#  - 2.86 release
+#
 # Revision 1.20  2003/11/23 20:26:02  winter
 #  - 2.84 release
 #

@@ -51,12 +51,23 @@ if ($state = said $proxy_server) {
     }
     elsif ($function eq 'send_x10_data') {
         &Serial_Item::send_x10_data($interface, $data[0]);
+
+        # $proxy_x10_send is a Generic_Item on the host MH used to let
+        # the host know when we are done sending data to an X10 interface.
+        # It is first set on the host MH by x10_priority.pl to the $interface
+        # string and then we set it here to 'idle' when done sending.
+        if ($config_parms{mh_proxy_status} and $proxy_server->active()) {
+           set $proxy_server join($;, 'set', '$proxy_x10_send', 'idle'), 'all';
+        }
     }
     elsif ($function eq 'send_ir') {
         &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, $data[0]);
     }
     elsif ($function eq 'uirt2_send') {
         $main::Serial_Ports{UIRT2}{object}->write(pack 'C*', @data); 
+    }
+    elsif ($function eq 'BX24_Query_Barometer') {
+	$main::Serial_Ports{BX24}{object}->write("B");
     }
     elsif ($function eq 'ibutton') {
         my $function2 = shift @data;

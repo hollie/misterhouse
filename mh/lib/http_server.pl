@@ -41,6 +41,14 @@ my %mime_types = (
 
 
 my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs, %http_agent_formats, %http_agent_sizes);
+
+my ($http_fork_mem, $http_fork_page, $http_fork_count);
+if ($config_parms{http_fork} eq 'memmap') {
+    $http_fork_mem  = new Win32::MemMap;
+    $http_fork_page = $http_fork_mem->GetGranularitySize();
+}
+
+
 sub http_read_parms {
 
                                 # Old style:  html_alias_tv = /tv   $config_parms{data_dir}/tv
@@ -67,7 +75,8 @@ sub http_read_parms {
             
     $html_info_overlib = 1 if $main::config_parms{html_info} and $main::config_parms{html_info} =~ 'overlib';
 
-    $config_parms{http_fork} = 1 if ($config_parms{http_fork} ne '0') and (!$OS_win or $OS_win and Win32::IsWinNT);
+#   $config_parms{http_fork} = 1 if ($config_parms{http_fork} ne '0') and (!$OS_win or $OS_win and Win32::IsWinNT);
+    $config_parms{http_fork} = 1 if ($config_parms{http_fork} eq '')  and (!$OS_win or $OS_win and Win32::IsWinNT);
 
 #html_user_agents    = Windows CE=>1,whatever=>2
     &read_parm_hash(\%http_agent_formats,  $main::config_parms{html_browser_formats}, 1);
@@ -293,7 +302,7 @@ sub http_process_request {
             }
             else {
                                 # No good way to un-Authorized here, so just re-do the pop-up window till it gives up?
-                print "dbx requestor=$name, get_req=$get_req, Authorized=$Authorized\n";
+#               print "dbx requestor=$name, get_req=$get_req, Authorized=$Authorized\n";
                 print $socket &html_password('');
                 print $socket &html_page(undef, "requestor=$name, get_req=$get_req, Authorized=$Authorized");
             }
@@ -1198,7 +1207,12 @@ sub html_file {
     }
     else {
         binmode HTML;
-        my $data = join '', <HTML>;
+#       my $data = join '', <HTML>;
+	       # Read entire file at once instead of line by line ... faster
+        my $data;
+        { local $/ = undef; 
+          $data = join('', <HTML>);
+        }
         $html = &mime_header($file, 1, length $data) unless $no_header;
         $html .= $data;
     }
@@ -1391,7 +1405,7 @@ eof
 
     my $html;
     if ($script) {
-      print "dbx1 s=$script\n\n";
+#      print "dbx1 s=$script\n\n";
        $script = qq[<SCRIPT LANGUAGE="JavaScript">$script></SCRIPT>\n] unless $script =~ / script /i;
        $html = $script . "\n";
     }
@@ -2186,15 +2200,35 @@ sub print_socket_fork {
         ($length > 3000 and !&is_local_address() or $length > 10000)) {
         print "http: printing with forked socket: l=$length s=$socket\n" if $main::Debug{http};
         if ($OS_win) {
+	    if ($main::config_parms{http_fork} eq 'memmap') {
+		$http_fork_count = ($http_fork_count % 65535) + 1; # more than enough :^)
+		my $mapname = "//MemMap/HttpFork" . "$http_fork_count";
+		# seems we need to map this on a virtual memory page boundry
+		my $mapsize = $length + $http_fork_page - ($length % $http_fork_page);
+		my $mem = $http_fork_mem->OpenMem($mapname, $mapsize);
+		$mem->Write(\$html,0);
+
                                 # This ugly fork can only do one at a time :(
-            if ($socket_fork_data{process}) {
-                print "http: defering socket_fork s=$socket\n" if $main::Debug{http};
-                push @{$socket_fork_data{next}}, [$socket, $html];
-                $leave_socket_open_passes = -1; # This will not close the socket
-            }
-            else {
-                &print_socket_fork_win($socket, $html);
-            }
+		if ($socket_fork_data{process}) {
+		    print "http: deferring socket_fork s=$socket mapname=$mapname\n" if $main::Debug{http};
+		    push @{$socket_fork_data{next}}, [$socket, $mem, $http_fork_count];
+		    $leave_socket_open_passes = -1; # This will not close the socket
+		}
+		else {
+		    &print_socket_fork_win($socket, $mem, $http_fork_count);
+		}
+	    }
+	    else {
+                                # This ugly fork can only do one at a time :(
+		if ($socket_fork_data{process}) {
+		    print "http: defering socket_fork s=$socket\n" if $main::Debug{http};
+		    push @{$socket_fork_data{next}}, [$socket, \$html];
+		    $leave_socket_open_passes = -1; # This will not close the socket
+		}
+		else {
+		    &print_socket_fork_win($socket, \$html);
+		}
+	    }
         }
         else {
             &print_socket_fork_unix($socket, $html);
@@ -2210,15 +2244,22 @@ sub print_socket_fork {
 #  Published by New Riders Publishing  ISBN # 1-57870-215-1
 
 sub print_socket_fork_win {
-    my($socket, $html) = @_;
+    my($socket, $ptr, $fork_count) = @_;
     my ($process, $perl, $cmd);
 
     $cmd = 'perl'    if            $perl = &main::which('perl.exe');
     $cmd = 'mh -run' if !$perl and $perl = &main::which('mh.exe');
     if ($cmd) {
-        my $file = "$config_parms{data_dir}/http_fork.html";
-        &file_write($file, $html);
-        $cmd .= " $Pgm_Path/print_socket_fork.pl $file";
+	if ($fork_count) {
+	    my $mapname = "//MemMap/HttpFork" . "$fork_count";
+	    $cmd .= " $Pgm_Path/print_socket_fork_memmap.pl $mapname";
+	}
+	else {
+	    my $file = "$config_parms{data_dir}/http_fork.html";
+	    &file_write($file, $$ptr);
+	    $cmd .= " $Pgm_Path/print_socket_fork.pl $file";
+	}
+
 
                                 # Processes can only inherit Win32 filehandles :(
                                 # We only have 3 available handles (STDOUT,STDIN,STDERR)
@@ -2226,7 +2267,7 @@ sub print_socket_fork_win {
                                 # so make sure we only call this once at a time
         open OLD_HANDLE, ">&STDOUT"  or print "\nsocket_fork error: can not backup STDOUT: $!\n";
         if (my $fileno = $socket->fileno()) {
-            print "http: redirecting socket fn=$fileno s=$socket\n" if $main::Debug{http};
+            print "http: redirecting socket fn=$fileno s=$socket fork=$fork_count\n" if $main::Debug{http};
             unless (open STDOUT,  ">&$fileno") {
                 print "http error: Can not redirect STDOUT: $!\n";
                 print "Older windows (like $Info{OS_name}) can not do this.\n" if Win32::IsWin95;
@@ -2236,6 +2277,7 @@ sub print_socket_fork_win {
             open  STDOUT, ">&OLD_HANDLE"  or print "\nsocket_fork error: can not redir STDIN to orig value: $!\n";
             close OLD_HANDLE;
                                 # Need to close the socket only after the process is done :(
+            $socket_fork_data{forkmem} = $ptr if $fork_count;
             $socket_fork_data{process} = $process;
             $socket_fork_data{socket}  = $socket;
             $leave_socket_open_passes = -1; # This will not close the socket
@@ -2245,7 +2287,14 @@ sub print_socket_fork_win {
     }
     else {
         print "\nsocket_fork_win error: no perl.exe or mh.exe found\n" unless $cmd;
-        print $socket $html;
+	if ($fork_count) {
+	    $ptr->Read(\my $html,0,$ptr->GetDataSize);
+	    $ptr->Close;
+	    print $socket $html;
+	}
+	else {
+	    print $socket $$ptr;
+	}
     }
 
 }
@@ -2739,6 +2788,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.85  2003/12/22 00:25:06  winter
+#  - 2.86 release
+#
 # Revision 1.84  2003/12/01 03:09:52  winter
 #  - 2.85 release
 #

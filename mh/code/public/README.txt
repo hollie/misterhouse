@@ -81,6 +81,9 @@ door_monitor_jay.pl
 froggyrita.pl
  - Gaetan Lord's code for the temp,pressure,humidity sensor from http://www.froggyhome.com
 
+games_chess.pl
+ - Lennart Lopin's voice interface to chess
+
 garage_door_code.pl 
  - Jeff Pagel's code for monitoring and controlling garage doors.
  
@@ -219,6 +222,10 @@ phone_identifier.pl
 
 phone_logs_kieran.pl
  - Kieran Ames' code for summarizing recent callers.  Also see mh/code/bruce/phone_logs.pl
+
+phonelogger.tgz
+ - Walter Leemput's code to allow a linux box to monitor DTMF, callerid, and phone messages via a soundcard.
+
 
 pictures_files1.pl
  - Robert Rozman's code that uses a dbm to index a photo database.
@@ -417,11 +424,15 @@ wintv_radio.pl
    Also see mh/web/public/wintv_radio.html
 
 
-x10_video_security.pl
- - Mark Holm's code for a video surveillance system using X10 XCAM cameras and motion sensors.
-
 x10_power_reset.pl
  - Example of how to reset X10 items after a power reset
+
+x10_priority.pl
+ - Richard Koch code for creating a x10_priority_set function for allowing high priority X10 
+   events to get prioritized to get sent first.
+
+x10_video_security.pl
+ - Mark Holm's code for a video surveillance system using X10 XCAM cameras and motion sensors.
 
 Xmms_Control.pl
 Xmms_jukebox.pl

@@ -13,10 +13,11 @@ use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $POWER_RESET);
 require Exporter;
 
 @ISA = qw(Exporter);
-@EXPORT= qw( send_cm11 receive_cm11 read_cm11 dim_decode_cm11 );
+@EXPORT= qw( send_cm11 receive_cm11 read_cm11 dim_decode_cm11 ping_cm11);
 @EXPORT_OK= qw();
 %EXPORT_TAGS = (FUNC    => [qw( send_cm11   receive_cm11
-                                read_cm11   dim_decode_cm11 )]);
+				read_cm11   dim_decode_cm11 
+ 				ping_cm11 )]);
 
 Exporter::export_ok_tags('FUNC');
 
@@ -47,6 +48,12 @@ sub dim_decode_cm11 {
     return unless ( 1 == @_ );
     return ControlX10::CM11::dim_level_decode ( shift );
 }
+
+sub ping_cm11 {
+    return unless ( 1 == @_ );
+    return ControlX10::CM11::ping ( shift );
+}
+
 
                                 # These tables are used in sending data
 my %table_hcodes  = qw(A 0110  B 1110  C 0010  D 1010  E 0001  F 1001  G 0101  H 1101
@@ -492,6 +499,57 @@ sub setClock {
     print "Bad cm11 checksum acknowledge\n" unless 1 == $serial_port->write($pc_ok);
 }
 
+sub ping {
+    my ($serial_port) = @_;
+    my $ri_on = 0xeb;
+    my $ack   = 0x00;
+    my $done  = 0x55;
+    my $checksum;
+    my $counter;
+    my $maxcounter = 10000;
+    
+    # Send RI Enable code to CM11
+    $serial_port->write(pack('C',$ri_on));
+    
+    $counter = 0;
+    do {
+        $checksum = $serial_port->input;
+        $counter++;
+    } until (($checksum) || ($counter == $maxcounter));
+    
+    return 0 if ($counter == $maxcounter);
+
+    print "cm11::ping - checksum: got: 0x", unpack('H2',$checksum),"\n" if $DEBUG;
+
+    if (($checksum ne pack('C',$ri_on)) && $DEBUG) {
+        print "cm11::ping checksum: expected 0x",unpack('H2',pack('C',$ri_on)),". got: 0x", unpack('H2',$checksum),")\n";
+    }
+
+    # 0x5a is sent by the CM11 if it has data waiting.  If we get this then the CM11 is obviously alive.
+    if ($checksum eq pack('C',0x5a)) {
+        print "cm11::ping - cm11 has data waiting!\n" if $DEBUG;
+        return 1;
+    }
+
+    $serial_port->write(pack('C',$ack));
+
+    $counter = 0;
+    do {
+        $checksum = $serial_port->input;
+        $counter++;
+    } until (($checksum) || ($counter == $maxcounter));
+    
+    print "cm11::ping - checksum: got: 0x", unpack('H2',$checksum),"\n" if $DEBUG;
+
+    if (($checksum ne pack('C',$done)) && $DEBUG) {
+        print "cm11::ping - checksum: expected 0x",unpack('H2',pack('C',$done)),". got: 0x", unpack('H2',$checksum),")\n";
+    }
+
+    print "cm11::ping - counter=$counter\n" if $DEBUG;
+    return 1;
+}
+
+
 return 1;           # for require
 __END__
 
@@ -734,6 +792,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.20  2003/12/22 00:25:06  winter
+#  - 2.86 release
+#
 # Revision 2.19  2003/11/23 20:26:02  winter
 #  - 2.84 release
 #
