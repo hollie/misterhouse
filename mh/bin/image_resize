@@ -1,0 +1,110 @@
+#!/usr/bin/perl -w
+#  Last change Time-stamp: <2001-11-02 21:53:39 winter>
+#---------------------------------------------------------------------------
+#  File:
+#      image_resize
+#  Description:
+#      See help text below
+#  Author:
+#      Bruce Winter    bruce@misterhouse.net   http://misterhouse.net
+#  Original from:
+#       http://www.perlmonks.org/index.pl?node=53367&lastnode_id=74271
+#  Latest version:
+#      http://misterhouse.net:81/mh/bin
+#  Change log:
+#    11/01/2001  Created.
+#
+#---------------------------------------------------------------------------
+
+sub help {
+    print <<DONE;
+
+$0 scales down image files in a directory and all of its subdirectories.
+
+Usage: $0 -d dir [OPTIONS]
+
+Options are:
+
+-d, --directory   Directory to begin looking for files in.  Required.
+
+-p, --prefix      Prefix to use on scaled files.  Default is sm1
+
+-s, --size        May be given as a percentage or as a number of pixels.
+                  If a percentage is given, the image will be scaled to 
+                  that percentage. If a number is given, the image will be
+                  scaled so that its largest dimension (height or width)
+                  is not greater than the given number in pixels.
+                  Default is 640x480
+
+-e, --extensions  Only shrink files that end with the given extensions.  
+                  The list of extensions should be quoted, each extension 
+                  separated by a space.  Valid extensions are all those file 
+                  types supported by PerlMagick.  
+                  Default is "bmp gif jpg jpeg mng pcd pcx png tga tiff xpm"
+
+-b, --border      Add a border to pad out to the --size dimentions
+
+-h, --help        Display this help message.
+
+Examples:
+
+ shrink.pl -d ~/pics -s 400 -e "jpg gif"  
+ shrink.pl -s 40% -e "bmp" -border 0 -p small
+
+DONE
+    exit;
+}
+
+use strict;
+use Image::Magick;
+use File::Find;
+use Getopt::Long;
+
+
+                                # Declare parms and defaults
+my($size, $dir, $exts, $border, $prefix, $help) =
+    ('640x480', '', 'bmp gif jpg jpeg mng pcd pcx png tga tiff xpm', 1, 'sm1', 0);
+my (%exts, $new, $img, $rc);
+
+                                # Changes defaults if specified on command line
+&help if (!GetOptions('size:s' => \$size, 'directory=s' => \$dir, 'prefix' => \$prefix, 'extensions:s' => \$exts,
+                      'border=s' => \$border, 'help' => \$help) or $help or !$dir);
+
+                                # Creates a hash of valid image extensions
+map {$exts{$_} = 1}  split(' ', $exts);
+
+                                # Use SizexSize if only one dimention given
+$size = "${size}x$size" if $size =~ /^\d+$/;
+my ($size_w, $size_h) = split 'x', $size;
+
+                                # Recurses, starting from within the current directory, 
+print "\nShrinking images to $size with border=$border\n";
+find(\&get_img, $dir);
+
+sub get_img() {
+    my ($file) = $_;
+    if (-f $file) {
+        my ($root, $ext) = $file =~ /(.+)\.(.+)/;
+        return unless $ext and $exts{$ext};
+        return if $root =~ /^${prefix}_/;
+        $new = "${prefix}_$root.$ext";
+        print "  $File::Find::dir/$file \t-> $new\n";
+        $img = new Image::Magick;
+        warn($rc) if $rc = $img->Read($file);
+        warn($rc) if $rc = $img->Resize(geometry => $size);
+        if ($border) {
+            my ($w, $h) = $img->Get('columns', 'rows');
+            $w = ($size_w - $w) / 2;
+            $h = ($size_h - $h) / 2;
+            warn($rc) if $rc = $img->Border(geometry => $size, width => $w, height => $h, fill => 'black');
+        }
+        warn($rc) if $rc = $img->Write($new);
+    }
+}   
+
+#
+# $Log$
+# Revision 1.1  2001/11/03 03:54:17  winter
+# - Created
+#
+#
