@@ -1,0 +1,14 @@
+<html>
+<head>
+<title>Missing Page</title>
+</head>
+<body>
+
+<br>This page can not be found:
+
+<a href='http:<!--#include var="$Misc{missing_url}"-->'>
+<!--#include var="$Misc{missing_url}"-->
+</a>
+
+</body>
+</html>
