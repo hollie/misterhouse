@@ -1,0 +1,13 @@
+<HTML>
+<HEAD>
+<LINK href="/include/style.css" type=text/css rel=stylesheet>
+<META HTTP-EQUIV="REFRESH" CONTENT="5">
+</HEAD>
+<BODY>
+<!--#include code="&backgrab"-->
+<FONT class=normal>
+<H3>Backgarden Camera View</H3><BR>
+<IMG SRC="captures/back_latest.jpg" width="320" height="240">
+</FONT>
+</BODY>
+</HTML>
