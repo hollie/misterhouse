@@ -481,7 +481,8 @@ sub _register2 {
         if ($vocab eq '' or $vocab eq 'mh') {
             $Vcmd_viavoice->set($text_vr);
                                 # We need beter handshaking here ... not a delay!
-            select undef, undef, undef, .0001; # Need this for now to avoid viavoice_server 'no data' error
+            select undef, undef, undef, .0002; # Need this for now to avoid viavoice_server 'no data' error
+#           select undef, undef, undef, .0001; # Need this for now to avoid viavoice_server 'no data' error
         }
         else {
             push(@{$cmd_text_by_vocab{$vocab}}, $text_vr);
@@ -601,6 +602,9 @@ sub disablevocab {
 
 #
 # $Log$
+# Revision 1.37  2002/01/23 01:50:33  winter
+# - 2.64 release
+#
 # Revision 1.36  2002/01/19 21:11:12  winter
 # - 2.63 release
 #

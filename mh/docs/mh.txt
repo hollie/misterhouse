@@ -2599,6 +2599,7 @@ DESCRIPTION
                 port        Default is 25 or  parm net_mail_ACCOUNT_server_send_port
                 from        Default is mh.ini parm net_mail_ACCOUNT_address
                 to          Default is mh.ini parm net_mail_ACCOUNT_address
+                            This can be a comma or semicolon delimited list of addresses
 
                 account     This is the ACCOUNT field used in finding the above parms.
                             It defaults to the mh.ini parm net_mail_send_account.
@@ -2622,6 +2623,8 @@ DESCRIPTION
             net_mail_send(text => "Test email sent at $Time_Now\n\n");
 
             net_mail_send(account => 'Bruce', to => 'winter@misterhouse.net', text => $msg);
+
+            net_mail_send to => 'winter@misterhouse.net,santa@claus.net', text => 'hiho';
 
             net_mail_send(subject => 'test an html file attachement',
                           baseref => 'localhost:8080',

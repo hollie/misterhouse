@@ -273,10 +273,10 @@ if (state_now $Power_Supply eq 'Restored') {
 
 
                                 # Repeat last spoken
-$v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message,What did you say}';
+$v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message,What did you say}', '';
 if (said $v_repeat_last_spoken) {
     ($temp = $Speak_Log[0]) =~ s/^.+?: //s; # Remove time/date/status portion of log entry
-    speak $temp;
+    speak "I said $temp";
 }
 
     

@@ -199,5 +199,6 @@ What is an Audrey
 
      voice_text_address_code = run 'get_url -quiet "http://$address/playsound.shtml?$url" /dev/null'
 
-    And use the speak and play examples from above.
+    And use the speak and play examples from above. More examples are in
+    mh/code/bruce/audrey.pl
 

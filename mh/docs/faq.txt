@@ -502,13 +502,12 @@ only at Startup?
   2.11: How do I get mh to stop telling the time each minute?
 
     Out of the box, mh defaults to running all the code in the mh/code/test
-    directory. Once you have played around with the example code, you will
-    want to create your own code directory (probably somewhere other than in
-    mh/code, so you can easily upgrade to new versions of mh), and copy just
-    the code members you find useful. Members test_tagline and the
-    hello_speak members are the main sources of the periodic test speech.
+    directory. Members test_tagline and the hello_speak members are the main
+    sources of the periodic test speech. Once you have played around with
+    the example code, you will want to create your own code directory
+    (probably somewhere other than in mh/code, so you can easily upgrade to
+    new versions of mh), and copy just the code members you find useful.
 
-    If you want to use the Tk interface, make sure you copy tk_*.pl members.
     See the FAQ question 'How does mh.ini work' on how to modify the
     code_dir parm to point to your new code directory.
 
@@ -807,6 +806,15 @@ only at Startup?
      - 01/01 Mailing list reaches 400 members
      - 02/01 2 way AOL AIM messaging, earthquake and satellite tracking.
      - 03/01 Backup program and menu templates for WAP, VXML, and LCD displays.
+     - 05/01 Audible menus, X10 Mr26 support, linux volume control.
+     - 07/01 Browser dependent web pages, zap2it tv support, call waiting callerid.
+     - 09/01 Audrey support, more MS TTS controls.
+     - 10/01 Web mh.ini editing, remote browse TTS support, zap2it tv pages.
+     - 11/01 New web interface, Audrey pictureframes, multiple sound cards.
+     - 12/01 Wireless wmr968 and Ultimeter2000 weather stations, Lynx10 X10 support.
+     - 01/02 Xmms, audrey callerid, Linksys rounter, TTS flite engine, standard CGIs.
+
+    Audrey support, more MS TTS controls, call waiting callerid
 
   6.2: Who is that Bruce guy anyway?
 

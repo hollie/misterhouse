@@ -45,8 +45,11 @@ $test_speak_mode = new Voice_Cmd 'Set speech to [stop,pause,resume,rewind,fastfo
 $test_speak_mode-> tie_event('speak mode => $state');
 
                                 # Currently, this only works with the MS Voice TTS
-$test_ms_speech_xml = new Voice_Cmd 'Test xml speech tags';
-speak "$Pgm_Root/docs/ms_speech_xml_example.txt" if said $test_ms_speech_xml;
+$test_speech_flags = new Voice_Cmd 'Test [xml,sable] speech tags';
+if ($state = said $test_speech_flags) {
+    speak "$Pgm_Root/docs/ms_speech_xml_example.txt" if $state eq 'xml';
+    speak "$Pgm_Root/docs/festival_speech_example.sable" if $state eq 'sable';
+}
 
                                 # Set hooks so set_volume is called whenever speak or play is called
 &Speak_pre_add_hook(\&set_volume) if $Reload;

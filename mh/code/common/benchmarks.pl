@@ -6,19 +6,24 @@
 #    mh -voice_cmd 0 -voice_text 0 -weeder_port none
 #
 
-$v_what_speed = new Voice_Cmd 'What is your speed', 'Calculating';
+$v_what_speed = new Voice_Cmd 'What is your [max,normal] speed', 'Calculating';
 $v_what_speed-> set_info('Runs mh at max speed for a few seconds, then reports Passes Per Second');
 
 $timer_speed_check = new  Timer;
-if (said $v_what_speed) {
-    $Loop_Sleep_Time = 0;
-    $Loop_Tk_Passes = .1;	# 0 gets reset to 1, so use .1
-    set $timer_speed_check 3;
-    print_log "Speeds1 = @Loop_Speeds";
-    print "Note:  tk window is temporily disabled\n";
+if ($state = said $v_what_speed) {
+    if ($state eq 'max') {
+        $Loop_Sleep_Time = 0;
+        $Loop_Tk_Passes = .1;	# 0 gets reset to 1, so use .1
+        set $timer_speed_check 3;
+        print_log "Speeds1 = @Loop_Speeds";
+        print "Note:  tk window is temporily disabled\n";
+    }
+    else {
+        set $timer_speed_check .01;
+    }
 }
 if (expired $timer_speed_check) {
-    speak "$Info{loop_speed} mips";
+    speak "$Info{cpu_used}% of cpu, $Info{loop_speed} mips, and " . (int $Info{memory_real}) . " megabytes";
     $Loop_Sleep_Time = $config_parms{sleep_time};
     $Loop_Tk_Passes  = $config_parms{tk_passes};
     print_log "Speeds2 = @Loop_Speeds";

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-01-16 07:58:30 winter>
+#  Last change Time-stamp: <2002-01-20 20:57:27 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -493,6 +493,10 @@ sub setup {
     $SIG{CHLD} = \&sig_child_death unless $^O eq 'freebsd';
 
 #   $SIG{TTIN} = 'IGNORE';                    # This does not help ReadKey in cbreak mode :(
+
+
+    $Info{IPAddress_local} = (&get_ip_address())[0];
+    $Info{IPAddress_local} = $config_parms{ipaddress_local} if $config_parms{ipaddress_local};
 
     $config_parms{code_dir}         = $Pgm_PathU . "/../code"        unless $config_parms{code_dir};
     $config_parms{code_dir_common } = $Pgm_PathU . "/../code_common" unless $config_parms{code_dir_common};
@@ -2365,13 +2369,13 @@ sub play {
 #           no strict 'subs';   # For non-win OS
         my $played_ok;
 
-                                # Let the speak codee push the wav file
+                                # Let the speak code push the wav file
         if ($parms{address}) {
             copy $file, "$config_parms{html_dir}/speak_address.wav";
             for my $address (split ',', $parms{address}) {
                 my $address_code = $config_parms{voice_text_address_code};
                 $address_code =~ s|\$address|$address|;
-                $address_code =~ s|\$url|http://$Info{Machine}:$config_parms{http_port}/speak_address.wav|;
+                $address_code =~ s|\$url|http://$Info{IPAddress_local}:$config_parms{http_port}/speak_address.wav|;
                 print "play running address code: $address_code\n" if $main::config_parms{debug} eq 'play';
                 eval $address_code;
             }
@@ -3811,7 +3815,8 @@ sub speak {
 
                                 # Lowercase all uppercase text ... 
                                 #  if it > 4 characters (don't want to mess up acronyms)
-    $phrase =~ s/([A-Z]{4,})/ucfirst(lc($1))/eg;
+    $parms{no_mod} = 1 if $phrase =~ /\<sable\>/i;
+    $phrase =~ s/([A-Z]{4,})/ucfirst(lc($1))/eg unless $parms{no_mod};
 
                                 # Ascii codes 030 -> 126 covers normal characters
                                 #    anything between ! thru ~
@@ -4456,6 +4461,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.64  2002/01/23 01:46:17  winter
+# - 2.64 release
+#
 # Revision 2.63  2002/01/19 20:59:19  winter
 # - 2.63 release
 #

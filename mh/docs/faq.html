@@ -499,12 +499,12 @@ command line options, so there is less of a need here.</P>
   set $all_lights $state if $state = said $v_lights_all;</PRE>
 <P>
 <H2><A NAME="2.11: how do i get mh to stop telling the time each minute">2.11: How do I get mh to stop telling the time each minute?</A></H2>
-<P>Out of the box, mh defaults to running all the code in the mh/code/test directory.  Once you have played around
+<P>Out of the box, mh defaults to running all the code in the mh/code/test directory.  
+Members test_tagline and the hello_speak members are the main sources of the periodic test speech.
+Once you have played around
 with the example code, you will want to create your own code directory (probably somewhere other than in mh/code, so 
-you can easily upgrade to new versions of mh), and copy just the code members you find useful.  
-Members test_tagline and the hello_speak members are the main sources of the periodic test speech.</P>
-<P>If you want to use the Tk interface, make sure you copy tk_*.pl members.  
-See the FAQ question 'How does mh.ini work' on how to modify the code_dir parm to point to your new code directory.</P>
+you can easily upgrade to new versions of mh), and copy just the code members you find useful.</P>
+<P>See the FAQ question 'How does mh.ini work' on how to modify the code_dir parm to point to your new code directory.</P>
 <P>
 <H2><A NAME="2.12: can do i send mh comands via email">2.12: Can do I send mh comands via email?</A></H2>
 <P>Set the mh.ini net_mail_command_code parm to a secret code, and copy mh/code/test/internet_mail.pl
@@ -746,7 +746,15 @@ When creating a hash, you can pass it a set of key/value pairs via a list, so in
  - 01/00 SMS and snnp messaging, improved iButton and benchmarking support.
  - 01/01 Mailing list reaches 400 members
  - 02/01 2 way AOL AIM messaging, earthquake and satellite tracking.
- - 03/01 Backup program and menu templates for WAP, VXML, and LCD displays.</PRE>
+ - 03/01 Backup program and menu templates for WAP, VXML, and LCD displays.
+ - 05/01 Audible menus, X10 Mr26 support, linux volume control.
+ - 07/01 Browser dependent web pages, zap2it tv support, call waiting callerid.
+ - 09/01 Audrey support, more MS TTS controls.
+ - 10/01 Web mh.ini editing, remote browse TTS support, zap2it tv pages.
+ - 11/01 New web interface, Audrey pictureframes, multiple sound cards.
+ - 12/01 Wireless wmr968 and Ultimeter2000 weather stations, Lynx10 X10 support.
+ - 01/02 Xmms, audrey callerid, Linksys rounter, TTS flite engine, standard CGIs.</PRE>
+<P>Audrey support, more MS TTS controls, call waiting callerid</P>
 <P>
 <H2><A NAME="6.2: who is that bruce guy anyway">6.2: Who is that Bruce guy anyway?</A></H2>
 <P>Bruce (Winter) is the the main author of MisterHouse.

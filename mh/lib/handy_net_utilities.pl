@@ -18,18 +18,22 @@ use strict;
                                 # Make sure we override any local Formatter with our modified one
                                 #   - the default one does not look into tables
                                 #   - This is a mess.  Really need to have mh libs first, not last.
-                                #   - The latest code DOES tables, but have no spaces between elements :(
+                                #   - The latest code DOES tables, but have no spaces between elements
+                                #     which is needed by stuff like internet_iridium.pl  :(
 #use HTML::FormatText;
 #BEGIN { require '../lib/site/HTML/FormatText.pm' }
 BEGIN { 
 #    unshift (@INC, "./../lib/site");
-    require './../lib/site/HTML/FormatText.pm';
+     require './../lib/site/HTML/FormatText.pm';
+     require './../lib/site/HTML/Parse.pm';    # Without these we get HTML::Parser errors ... not sure why
+     require './../lib/site/HTML/Parser.pm';
 #    require './../lib/site/HTML/Formatter.pm';
 #    require './../lib/site/HTML/TableExtract.pm';
 #    require './../lib/site/HTML/TreeBuilder.pm';
 #    shift @INC;
 }
                                 # These are useful for calling from user code directly
+#se HTML::FormatText;
 use HTML::Parse;
 use LWP::Simple;
 
@@ -61,8 +65,8 @@ sub main::net_connect_check {
     if ( $^O eq "linux" ) {
         my $if = lc($main::config_parms{net_connect_if});
         if ( $if eq "" ) { 
-            print "net_connect_if is not defined\n";
-            return $prev_state = 0;
+            print "mh.ini parm net_connect and net_connect_if is not defined.  net connection assumed.\n";
+            return $prev_state = 1;
         }
         open (PROC,"/proc/net/dev");
         while (<PROC>) {
@@ -841,6 +845,9 @@ sub main::net_ping {
 
 #
 # $Log$
+# Revision 1.38  2002/01/23 01:50:33  winter
+# - 2.64 release
+#
 # Revision 1.37  2002/01/19 21:11:12  winter
 # - 2.63 release
 #

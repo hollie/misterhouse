@@ -82,7 +82,7 @@ sub speak_text {
         for my $address (@address) {
             my $address_code = $config_parms{voice_text_address_code};
             $address_code =~ s|\$address|$address|;
-            $address_code =~ s|\$url|http://$Info{Machine}:$config_parms{http_port}/speak_address.wav|;
+            $address_code =~ s|\$url|http://$Info{IPAddress_local}:$config_parms{http_port}/speak_address.wav|;
             print "Voice_text running address code: $address_code\n" if $main::config_parms{debug} eq 'voice';
             eval $address_code;
         }
@@ -133,7 +133,8 @@ sub speak_text {
     
     $parms{text} = force_pronounce($parms{text}) if %pronouncable;
 
-    $parms{text} =~ s/\"//g;    # These mess up -text "text" calls and not useful when speaking?
+              # These mess up -text "text" calls and not useful when speaking?
+    $parms{text} =~ s/\"//g unless $parms{no_mod};
     
     return unless $parms{text};
 
@@ -165,27 +166,26 @@ sub speak_text {
             }
             select undef, undef, undef, .2; # Need this ?
         }
-        elsif ($parms{voice} or $parms{volume} or $parms{rate} or !active $VTxt_festival) {
-            $parms{rate}   = '-50%'  if $parms{rate} eq 'slow';
-            $parms{rate}   = '+50%'  if $parms{rate} eq 'fast';
-            $parms{volume} = 'quiet' if $parms{volume} eq 'soft';
-            my $prefix = qq[<SABLE>];
-            my $suffix = qq[</SABLE>];
-            if ($parms{voice}) {
-                $prefix .= qq[<SPEAKER NAME="$parms{voice}">];
-                $suffix = qq[</SPEAKER>] . $suffix;
+        elsif ($parms{voice} or $parms{volume} or $parms{rate} or 
+               $parms{text} =~ /<sable>i/ or !active $VTxt_festival) {
+            my $text = $parms{text};
+            unless ($text =~ /<sable>i/) {
+                $parms{rate}   = '-50%'  if $parms{rate}   eq 'slow';
+                $parms{rate}   = '+50%'  if $parms{rate}   eq 'fast';
+                $parms{volume} = 'quiet' if $parms{volume} eq 'soft';
+                if ($parms{voice}) {
+                    $text = qq[<SPEAKER NAME="$parms{voice}"> $text </SPEAKER>];
+                }
+                if ($parms{volume}) {
+                    $text = qq[<VOLUME LEVEL="$parms{volume}"> $text </VOLUME>];
+                }
+                if ($parms{rate}) {
+                    $text = qq[<RATE SPEED="$parms{rate}"> $text </RATE>];
+                }
+                $text = qq[<SABLE> $text </SABLE>];
             }
-            if ($parms{volume}) {
-                $prefix .= qq[<VOLUME LEVEL="$parms{volume}">];
-                $suffix = qq[</VOLUME>]. $suffix;
-            }
-            if ($parms{rate}) {
-                $prefix .= qq[<RATE SPEED="$parms{rate}">];
-                $suffix = qq[</RATE>] . $suffix;
-        }
-            $parms{text} = $prefix . $parms{text} . $suffix;
             my $file = "$main::config_parms{data_dir}/mh_temp.festival.sable";
-            &main::file_write($file, $parms{text});
+            &main::file_write($file, $text);
             print "Voice_text TTS: $main::config_parms{voice_text_festival} --tts $file\n" if $main::config_parms{debug} eq 'voice';
             system("$main::config_parms{voice_text_festival} --tts $file &");
         }
@@ -320,7 +320,7 @@ sub speak_text {
 
     }
     else {
-        print "Can not speak for engine=$speak_engine: Phrase=$parms{text}\n";
+        print "Can not speak for engine=$speak_engine: Phrase=$parms{text}\n" if $engine;
     }
     
     $VTxt[0] = $vtxt_default if $vtxt_default;
@@ -537,6 +537,9 @@ sub force_pronounce {
 
 #
 # $Log$
+# Revision 1.33  2002/01/23 01:50:33  winter
+# - 2.64 release
+#
 # Revision 1.32  2002/01/19 21:11:12  winter
 # - 2.63 release
 #

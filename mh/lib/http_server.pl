@@ -583,6 +583,11 @@ sub test_for_file {
         }
     }
 
+                               # Goofy audrey can add a / suffix to a file request
+    if ($file =~ m|(.+)/$|) {
+        $file = $1;
+    }
+
     if (-e $file) {
         my $html = &html_file($socket, $file, $get_arg, $no_header) if &test_file_req($socket, $get_req, $http_dir);
         if ($no_print) {
@@ -2288,6 +2293,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.66  2002/01/23 01:50:33  winter
+# - 2.64 release
+#
 # Revision 1.65  2002/01/19 21:11:12  winter
 # - 2.63 release
 #

@@ -2546,7 +2546,8 @@ To run commands via email, see FAQ question 2.12: Can do I send mh comands via e
                                       parm net_mail_ACCOUNT_server_send
         port        Default is 25 or  parm net_mail_ACCOUNT_server_send_port
         from        Default is mh.ini parm net_mail_ACCOUNT_address
-        to          Default is mh.ini parm net_mail_ACCOUNT_address</PRE>
+        to          Default is mh.ini parm net_mail_ACCOUNT_address
+                    This can be a comma or semicolon delimited list of addresses</PRE>
 <PRE>
         account     This is the ACCOUNT field used in finding the above parms.
                     It defaults to the mh.ini parm net_mail_send_account.</PRE>
@@ -2570,6 +2571,8 @@ To run commands via email, see FAQ question 2.12: Can do I send mh comands via e
     net_mail_send(text =&gt; &quot;Test email sent at $Time_Now\n\n&quot;);</PRE>
 <PRE>
     net_mail_send(account =&gt; 'Bruce', to =&gt; 'winter@misterhouse.net', text =&gt; $msg);</PRE>
+<PRE>
+    net_mail_send to =&gt; 'winter@misterhouse.net,santa@claus.net', text =&gt; 'hiho';</PRE>
 <PRE>
     net_mail_send(subject =&gt; 'test an html file attachement',
                   baseref =&gt; 'localhost:8080',

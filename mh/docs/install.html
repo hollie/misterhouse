@@ -59,8 +59,8 @@ A list of update announcements is in <a href="updates.html">updates.html</a>
 There is also a <a href="faq.html">faq.html</a> to cover misc. topics.<P>
 <HR>
 <H1><A NAME="system requirements">System Requirements</A></H1>
-<P>Mister House has been tested on Windows 95, 98, NT, 2000,  and the 
-unix OSes Linux, FreeBSD, and AIX.  In theory, much
+<P>Mister House has been tested on all the Windows OSes (95, 98, ME, NT, 2000, XP)
+and the unix OSes Linux, FreeBSD, and AIX.  In theory, much
 of the function should run on any platform that can run Perl.</P>
 <P>The core Mister House code will use between 10 and 30 Megabytes of memory.
 On Windows, the VR (Voice Recognition) function 
@@ -177,8 +177,8 @@ standard Activestate distribution.</P>
 <P>
 <H2><A NAME="windows step 3, download and install the speech engines">Windows Step 3, Download and Install the Speech Engines</A></H2>
 <P>You can skip this step if you do not want to enable TTS and VR, but much of the fun of
-Mister House comes from the 2-way speech. If you are running NT 5.0, you should be able to skip this step,
-as this function should already be installed. The Creative Labs PhoneBlaster software also installs this function.</P>
+Mister House comes from the 2-way speech.
+If you are running Windows 2000 or XP, the older V4 TTS engine is probably already installed.</P>
 <P>If you are running Win95, the Perl OLE interface to the MS speech engines
 require that you have DCOM 1.2 or higher installed.
 The DCOM 1.3 upgrade is 1.2 Meg and available at 
@@ -188,16 +188,16 @@ The DCOM 1.3 upgrade is 1.2 Meg and available at
 If you don't have this update, mh will run, but you may occasionally see windows (like control pannel or install shield)
 not start right away, especially if you run without the Tk interface (mh -tk 0).</P>
 <P>You can use either the old 4.0 or new 5.1 or both Microsoft speech engines.
-This mh release supports the 5.1 TTS engines, but not the VR engine yet. 
-The 5.1 TTS engines have more option (e.g. on the fly voice selection, XML flag support),
+The 5.1 VR engine does not work in mh yet, due to a perl problem handeling COM events.  
+The 5.1 TTS engine has more options (e.g. on the fly voice selection, XML flag support),
 but does not work on Win 95. 
-You can have both engines installed, and select which to use with the voice_text=MSV4 or MSV5 mh.ini parm.</P>
+You can have both V4 and V5 TTS engines installed, and select which to use with the voice_text=MSV4 or MSV5 mh.ini parm.</P>
 <P>
 <H3><A NAME="ms sdk 4.0 instructions">MS SDK 4.0 instructions</A></H3>
-<P>You can download the required files from the 4.0 SDK from here:   <A HREF="http://www.microsoft.com/downloads/release.asp?ReleaseID=26299">http://www.microsoft.com/downloads/release.asp?ReleaseID=26299</A>
-Note: IE takes a long time (5 minutes) to list that directory (maybe it is listing the 20,000+ dirs in pub).
-An ftp program works much faster.</P>
-<P>Or you can avoid the installing the whole SDK by downloading just the required files
+<P>You can download the required files from the 4.0 SDK Suite from here:   <A HREF="http://www.microsoft.com/downloads/release.asp?ReleaseID=26299">http://www.microsoft.com/downloads/release.asp?ReleaseID=26299</A> . 
+Get SAPI4SDKSUITE.exe - 40 MB.  Simply run the .exe to install.</P>
+<P>If you install the above SDK, you can skip the reset of this section. 
+You can avoid the installing the whole SDK by downloading just the required files
 from here: <A HREF="http://misterhouse.net:81/public/speech">http://misterhouse.net:81/public/speech</A>
 Avoid downloading with Netscape, as for some reason it does not load the file as a binary file. 
 Verify the file sizes match these:</P>
@@ -241,7 +241,7 @@ to delete dos/windows only files, and 'chmod +x' on the files in the bin directo
 or if it is an older version of perl, you can downloaded the latest from <A HREF="http://www.perl.com">http://www.perl.com</A> .</P>
 <P>Run 'perl -v' to show your version ... anything above 5.005 should be fine. 
 The current Redhat 5.2 version of Linux comes with 5.004.  This works OK, but we have had some problems 
-compiling the current Tk interface with 5.004, so you may want to upgraded to 5.005.</P>
+compiling the current Tk interface with 5.004, so you may want to upgraded to 5.005 or higher.</P>
 <P>If you want to use
 the Tk interface (used to display logs and various pop-up messages), make sure that the perl Tk package is installed as well.
 If the Tk is not installed, this test will fail:  perl -e ``use Tk''.   If you need it, you can download perl Tk from 
@@ -262,7 +262,8 @@ also try the CPAN installer like this:</P>
 <H2><A NAME="unix step 3, download and install a speech engines">UNIX Step 3, Download and Install a Speech Engines</A></H2>
 <P>You can skip this step if you do not want to enable VR or TTS.</P>
 <P>The simplest and fastest TTS engine is flite, availale from <A HREF="http://www.speech.cs.cmu.edu/flite">http://www.speech.cs.cmu.edu/flite</A> .
-After compiling, simply copy the flite binary to mh/bin and set voice_text = flite.</P>
+After compiling, simply copy the flite binary to mh/bin and set voice_text = flite.
+If on linux, you can pick up a copy (3 meg) here: <A HREF="http://misterhouse.net:81/public/flite.gz">http://misterhouse.net:81/public/flite.gz</A></P>
 <P>The Festival Speech engine is available from
 <A HREF="http://www.cstr.ed.ac.uk/projects/festival/download.html">http://www.cstr.ed.ac.uk/projects/festival/download.html</A> .
 There are various voices and languages available.  Compiling Fesitval can be a little tricky, 
@@ -281,7 +282,7 @@ a /usr/lib/festival/lib/siteinit.scm  file with a list of boxes that you want to
 <A HREF="http://tcts.fpms.ac.be/synthesis/mbrola.html">http://tcts.fpms.ac.be/synthesis/mbrola.html</A> 
 that has a very nice US english male and female voice.</P>
 <P>Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.</P>
-<P>The IBM ViaVoice Outload TTS engine for Linux is available from
+<P>The IBM ViaVoice TTS engine for Linux is available from
 <A HREF="http://www-4.ibm.com/software/speech/dev/sdk_linux.html">http://www-4.ibm.com/software/speech/dev/sdk_linux.html</A>
 To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
 <A HREF="http://www.reednet.org/ViaVoiceTTS">http://www.reednet.org/ViaVoiceTTS</A>  , then set your mh.ini voice_text=vv_tts or voice_text=viavoice

@@ -293,7 +293,7 @@ Download and install (as root) these 2 rpms:
   tar -xvf viavoice_asr_sdk_3.tar  ( 3 MB)
   tar -xvf viavoice_dict_rtk_3.tar (78 MB)
   rpm -ivh ViaVoice_runtime-3.0-1.2.i386.rpm
-  rpm -ivh ViaVoice-sdk-3.0-1.1.i386.rpm
+  rpm -ivh ViaVoice_sdk-3.0-1.1.i386.rpm
 
 Note for our usage, you can get by without 
 the gui menus, so if rpm tells you that you have down level or missing libraries (e.g. libgdk),

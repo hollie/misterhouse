@@ -14,7 +14,7 @@
 	<LI><A HREF="#mister house announcement list">Mister House Announcement List</A></LI>
 	<UL>
 
-		<LI><A HREF="#version 2.63 posted on 01//2002">Version 2.63 posted on 01/??/2002</A></LI>
+		<LI><A HREF="#version 2.63 posted on 01/19/2002">Version 2.63 posted on 01/19/2002</A></LI>
 		<LI><A HREF="#version 2.62 posted on 12/16/2001">Version 2.62 posted on 12/16/2001</A></LI>
 		<LI><A HREF="#version 2.61 posted on 11/18/2001">Version 2.61 posted on 11/18/2001</A></LI>
 		<LI><A HREF="#version 2.60 posted on 10/20/2001">Version 2.60 posted on 10/20/2001</A></LI>
@@ -87,7 +87,7 @@
 <P>- This is a copy of the mh update announcements made to MisterHouse mailing list (an archive of all the list 
 messages is at <A HREF="http://sourceforge.net/mail/?group_id=1365">http://sourceforge.net/mail/?group_id=1365</A> )</P>
 <P>
-<H2><A NAME="version 2.63 posted on 01//2002">Version 2.63 posted on 01/??/2002</A></H2>
+<H2><A NAME="version 2.63 posted on 01/19/2002">Version 2.63 posted on 01/19/2002</A></H2>
 <P>Version 2.63 was just uploaded to:</P>
 <PRE>
   <A HREF="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</A>
@@ -95,39 +95,55 @@ messages is at <A HREF="http://sourceforge.net/mail/?group_id=1365">http://sourc
 <P><STRONG>New Features:</STRONG></P>
 <P>- Chris Witte created mh/lib/audrey_cid.pm and mh/code/public/audrey_cid.pl
 to create a UDP client to request callerid data from the Audrey acid UDP server.</P>
-<P>- David Lounsberry added support for mixer and voice selection to the viavoice TTS driver mh/bin/vv_tts.pl
+<P>- David Lounsberry added support for mixer and voice selection to the viavoice TTS driver mh/bin/vv_tts.pl.
 These changes allow for setting the mixer for the play sound and the voice sound separately.</P>
 <P>- Gaetan Lord created mh/code/public/dialup_unix.pl for starting/stopping ppp dialup connections.  
 He also and added mh.ini parm net_connect_if so unix users could test for ppp dialup connections with &amp;net_connect_check.</P>
 <P>- Gaetan Lord also created mh/web/misc/mp3_xmms.* (unix only, requires Xmms::Remote to be installed).</P>
 <P>- Richard Phillips created mh/code/public/mp3_control_xmms.pl for controling the xmms MP3 player for Linux.</P>
 <P>- Joseph Gaston created mh/lib/HVweb_Item.pm to control a
-Homevision controller via the Homevision web server.  Examples are at the top of the file.</P>
+Homevision controller via the Homevision web server.  Example usage is in mh/code/public/HVweb.pl.</P>
 <P>- Larry Roudebush created mh/code/public/internet_speed_check.pl for measuring ftp updload/download rates.</P>
-<P>- Clay Jackson updated mh/code/public/weather_vw.pl with an example of logging weather data to APRSWXNET.</P>
 <P>- Paul Chamberlain clued me into HTTP '204 No Response', which enables web links that
-do not change the web page.  If you code a html link a h_response of no_response,
-the page will not be changed when you click on the link (does not work with Audrey).  For example:   
-</P>
-<PRE>
-
-  &lt;a href=&quot;RUN;no_response?read_the_house_tagline&quot;&gt;test no_response&lt;/a&gt;</PRE>
-<P>- Linksys router code
-- http cgi server code
-- speak engine= option
-- Added/fixed to_file to festival, viavoice, vv_tts, and flite.  Added instructions on how to install flite.
-with our without festival server.  sable works not on server.</P>
+do not update a web page.  If you code a html link a h_response of no_response,
+the page will not be changed when you click on the link for most browsers (does not work with Audrey). 
+For example: &lt;a href=``RUN;no_response?read_the_house_tagline''&gt;test no_response&lt;/a&gt;</P>
+<P>- Brian Paulsen added self-adapting delay code to the iButton Device.pm code to improve
+read_temperature reliability.</P>
+<P>- Kent Noonan started on mh/lib/Omnistat.pm and mh/code/public/omnistat.pl 
+for controling HAI Omnistat Communicating thermostats (e.g. RC80).
+Kent switched houses before he had a chance to finish test this code.</P>
+<P>- Added Linksys router support to mh/code/bruce/monitor_router.pl.</P>
+<P>- Added web server support for normal cgi scripts, where html is returned via STDOUT.
+To enable, simply make sure that your .pl file you point to has perl on the first record (e.g. #!/usr/bin/perl).</P>
+<P>- Added mh/docs/install.* instructions on how to install the fast unix TTS flite engine.
+Copy it to mh/bin/flite, or point to it with mh.ini parm voice_text_flite.
+If on linux, you can pick up a copy (3 meg) here: <A HREF="http://misterhouse.net:81/public/flite.gz">http://misterhouse.net:81/public/flite.gz</A></P>
+<P>- Added speak engine= option.  The default engine is still specified with the mh.ini voice_text parm, but you can use
+this new option to pick any other (unix) engines you have installed.   For example: speak ``engine=flite Hi'', 
+or speak engine =&gt; 'viavoice' text =&gt; 'Hi'.  Some test code is in mh/code/bruce/test_voice.pl .</P>
+<P>- Added and/or fixed the speak to_file option for festival, viavoice, vv_tts, and flite.</P>
+<P>- Enabled voice, volume, and rate controls for Festival via SABLE xml flags.
+This is done with a direct call to festival, since I couldn't get it to work with festival_server.
+To enable, point to the festival binary with the new voice_text_festival mh.ini parm.
+Non-SABLE TTS calls will still be made to festival_server, if it is running, 
+as it is a bit faster, especially on slower machines.</P>
 <P>- Added speak and play address option for pushing speech to remote browsers.
 For details on how to enable on an Audrey, 
-see mh/docs/faq_ia* question: How to push speech to remote Audreys</P>
+see mh/docs/faq_ia* question: How to push speech to remote Audreys
+Example is in mh/code/bruce/audrey.pl</P>
 <P><STRONG>Bug Fixes and Other Changes:</STRONG></P>
 <P>- David Lounsberry sent in FAQ question 3.3: How do I add a multi-port serial card in linux?</P>
 <P>- Nick Maddock updated get_tv_info so it corretly searches into the next month (e.g. -dates +14 on 12/30 would stop on 1/1).</P>
-<P>- Jeff Pagel sent in mh/code/public/weeder_init.pl as an example of initializing the newer weeder DIO cards.
-This also figures a startup problem some were having with 2.62.</P>
-<P>- Robin Edwards found a 2.62 problem where web widgets were blank on startup, before a code reload.</P>
+<P>- Jeff Pagel sent in mh/code/public/weeder_init.pl as an example of initializing the newer weeder DIO cards.</P>
+<P>- Robin Edwards found a 2.62 problem where web widgets were blank on startup, before a code reload.
+This also fixes a startup problem some were having with 2.62 due to the new trigger code.</P>
+<P>- Clay Jackson updated mh/code/public/weather_vw.pl with an example of logging weather data to APRSWXNET.</P>
 <P>- Fixed perl 5.6 infinite loop problem AOLIM.pm, called by &amp;net_im_send which is used in code internet_im.pl.</P>
 <P>- Allow for  unit=9,10,11..16, instead of 9,A,B,C..F in X10_Item and X10_Appliance.</P>
+<P>- Sped up adding words when running viavoice_server.  If you see any 'no data' errors in the server errata, let me know
+and we will try to get a bit smarter on that interface.</P>
+<P>- Allow for multiple (comma or semicolin delimited) to receipents in &amp;net_mail_send.</P>
 <P>
 <H2><A NAME="version 2.62 posted on 12/16/2001">Version 2.62 posted on 12/16/2001</A></H2>
 <P>Version 2.62 was just uploaded to:</P>
