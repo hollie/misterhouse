@@ -382,8 +382,8 @@ sub new {
 
 
 # $Log$
-# Revision 1.1  2000/01/19 14:00:55  winter
-# Initial revision
+# Revision 1.6  2000/01/27 13:45:00  winter
+# - add Garage_Door
 #
 # Revision 1.5  2000/01/13 13:40:35  winter
 # - added Garage_Door
