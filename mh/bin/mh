@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2002-12-23 17:44:28 winter>
+#  Last change Time-stamp: <2003-01-12 14:29:06 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -343,7 +343,7 @@ BEGIN {
                                 #  - For some reason, perl2exe binary abends here, so we evaled it earlier
             eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus SetWindowText GetWindowText)"
                 unless $Info{Perl_compiled};
-            print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@ and &Win32::BuildNumber < 580;
+            print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@; #  and &Win32::BuildNumber < 580;
 
             eval "use Win32::Sound";
             print "\nError in loading module=Win32::Sound:\n  $@\n" if $@;
@@ -388,8 +388,19 @@ BEGIN {
 
         }
                                           # Use GD for http server, if it is installed and has newFrom methods
-        eval "use GD" if $config_parms{gd};
-        $Info{module_GD} = ($config_parms{gd} and !$@ and $GD::VERSION and $GD::VERSION > 1.18) ? 1 : 0;
+        $Info{module_GD} = 0;
+        if ($config_parms{gd}) {
+            eval "use GD";
+            if ($@) {
+                print "Error in use GD: $@\n\nTo disable this error, set mh.ini parm GD=0\n\n";
+            }
+            elsif ($GD::VERSION and $GD::VERSION < 1.19) {
+                print "GD version needs to be > 1.18. Version=$GD::VERSION\n";
+            }
+            else {
+                $Info{module_GD} = 1;
+            }
+        }
 
         if ($config_parms{tk}) {
             print "Loading Tk modules ";
@@ -445,10 +456,15 @@ sub setup {
 #   use FreezeThaw qw(freeze thaw cmpStr safeFreeze cmpStrHard);
     use IO::Handle;
     use IO::Socket;
+#   use IO::Socket::INET;       # Gives us the INADDR constants, used in xAP.pm ... not in 5.0 :(
     use LWP::Simple;            # For pgms like set_clock that need to grab data from urls
 #   use MIME::Base64;           # Needed for uudecode/uuencode in http_server and mhsend_server
     use Net::FTP;               # For uploading stuff
     use Text::Wrap;
+
+    use Text::PhraseDistance qw(pdistance); # Used in &phrase_match
+    use Text::Levenshtein    qw(distance);  # Used in &phrase_match if we non-exact word matching (runs too long)
+
     use Time::Local;            # For timelocal
     use Time::DaysInMonth;      # For days_in (and is_leap?)
 
@@ -558,6 +574,7 @@ sub setup {
                                 # Find all defined socket and serial ports
     for my $parm (sort keys %config_parms) {
         next unless $config_parms{$parm}; # Ingore blank parms
+        next if $parm =~ /_MHINTERNAL_/;
         push(@Server_Ports, $1)         if $parm =~ /(http)_port/;
         push(@Server_Ports, $1)         if $parm =~ /^(server\S+)_port/;
         push(@Generic_Serial_Ports, $1) if $parm =~ /^(serial\S+)_port/;
@@ -571,6 +588,7 @@ sub setup {
         my $proto    = $config_parms{$port_name . "_protocol"};
         my $datatype = $config_parms{$port_name . "_datatype"};
         my $address  = $config_parms{$port_name . "_address"};
+        $address  = '' unless $address;
 #        my $break    = $config_parms{$port_name . "_break"};
 
         $proto    = 'tcp'      unless $proto;
@@ -580,7 +598,7 @@ sub setup {
 #       $break = "[\r\n]+" unless $break;
 #       eval qq[\$break = "$break"];
 
-        printf " - creating %-15s on %3s %5s %s\n", $port_name, $proto, $port, $datatype;
+        printf " - creating %-15s on %3s %s %5s %s\n", $port_name, $proto, $address, $port, $datatype;
 
         $Socket_Ports{$port_name}{port}     = $port;
         $Socket_Ports{$port_name}{protocol} = $proto;
@@ -614,12 +632,14 @@ sub setup {
                                 #               iButton_1_serial_port = COMx
 
         next unless $config_parms{$parm};
+        next if $parm =~ /_MHINTERNAL_/;
 #       if ($parm =~ /^(.+?)([:_]?\d*)_(serial|server)_port/) {
         if (my ($instance, $type) = $parm =~ /^(.+)_(serial|server)_port/) {
             my $module = $instance;
             $module =~ s/[:_]\d+$//;        # Drop instance suffix
 #           print "\n\ndb i=$instance m=$module p=$parm\n";
-            if (-e "./../lib/$module.pm") {
+           if (-e "./../lib/$module.pm" or
+               -e "$config_parms{code_dir}/$module.pm") {
                 print "Found managed $type port=$instance\nMH will now require $module.pm and call ${module}::${type}_startup($instance)\n" 
                     if $config_parms{debug} eq 'startup';
                 require "$module.pm";
@@ -786,6 +806,8 @@ sub setup {
         &tk_setup_windows;
     }
 
+    print "Reading previous log files\n";
+
                                 # Setup and Read in previous logs
     my $print_log = "$config_parms{data_dir}/logs/print.log";
     my $speak_log = "$config_parms{data_dir}/logs/speak.log";
@@ -807,13 +829,16 @@ sub setup {
     @Error_Log = reverse @log;
     unshift @Error_Log, "$Time_Date ---------- Restart ---------- ";
 
+
+    print "Archiving previous log files\n";
+
                # These files will get archived by mh/code/common/mh_control.pl
     file_cat $print_log, $print_log . ".old";
     file_cat $speak_log, $speak_log . ".old";
     file_cat $error_log, $error_log . ".old";
     open PRINTLOG,  ">$print_log" or die "Error, could not open print logfile $print_log: $!\n";
     open SPEAKLOG,  ">$speak_log" or die "Error, could not open speak logfile $speak_log: $!\n";
-    open ERRORLOG, ">>$error_log" or die "Error, could not open error logfile $error_log: $!\n";
+    open ERRORLOG,  ">$error_log" or die "Error, could not open error logfile $error_log: $!\n";
 
                                 # So we can monitor these files
     PRINTLOG->autoflush(1);
@@ -1300,6 +1325,12 @@ sub check_for_proxy_data {
                     # If port was named, store in that hash, otherwise process
                 if ($data[1]) {
                     $Serial_Ports{$data[1]}{data_record} = $data[0];
+                    if ($Serial_Ports{$data[1]}{process_data}) {
+                        &process_serial_data($data[0]);
+                    }
+                    else {
+                        &Serial_data_hooks($data[0], $data[1]);   # Created by &add_hooks
+                    }
                 }
                 else {
                     &process_serial_data($data[0]);
@@ -1373,14 +1404,15 @@ sub check_for_socket_data_http {
         my @data = eval($leave_socket_open_action);
         print "Error in http lso action: $@\n" if $@;
         my $html = &html_page("", @data);
-        print $sock $html;
+        print $sock $html if $sock;
         &socket_close('http');
         $leave_socket_open_passes = 0;
         $leave_socket_open_action = '';
         $leave_socket_open_check  = '';
     }
 
-    return if $leave_socket_open_passes; # Wait for previous request to finish
+#   return if $leave_socket_open_passes; # Wait for previous request to finish
+    return if $leave_socket_open_action; # Wait for previous request to finish
 
     my $loop_count = 0;
     my $time_check = time;
@@ -1544,7 +1576,7 @@ sub check_for_socket_data {
         }
         else {
             $Socket_Ports{$port_name}{data} .= $data if defined $data;
-            print "socket: port=$port_name data=$data." if $config_parms{debug} eq $port_name;
+            print "socket: port=$port_name data=$data.\n" if $config_parms{debug} eq $port_name;
 
             if (my $echo = $config_parms{"${port_name}_echo"}) {
                                 # Need to loop thru $data here, one byte at a time
@@ -1608,7 +1640,7 @@ sub check_for_tied_events {
 
         &State_change_hooks($object1, $state1); # Created by &add_hooks
 
-        print "Object link: starting enumeration for object=$object1 state=$state1\n" if $config_parms{debug} eq 'events';
+        print "Object link: starting enumeration for object=$object1->{object_name} state=$state1\n" if $config_parms{debug} eq 'events';
 
         for my $key (keys %{$$object1{tied_objects}}) {
 
@@ -1658,19 +1690,27 @@ sub check_for_tied_events {
 
 sub check_for_tied_filters {
     my ($self, $state) = @_;
+
     if ($$self{tied_filters}) {
         for my $filter (keys %{$$self{tied_filters}}) {
-            print "Item tie_fiter test for $self->{object_name} filter: $filter  state:$state\n"  if $config_parms{debug} eq 'filter';
             my $log_msg;
             if ($log_msg = $$self{tied_filters}{$filter}{$state} or
                 $log_msg = $$self{tied_filters}{$filter}{all_states}) {
+                print "Item tie_fiter test for $self->{object_name} filter: $filter  state:$state\n"  if $config_parms{debug} eq 'filters';
                 if (eval $filter) {
-                    print "Item tie_filter triggered for $self->{object_name} $filter\n" if $config_parms{debug} eq 'filter';
+                    print "Item tie_filter triggered for $self->{object_name} $filter\n" if $config_parms{debug} eq 'filters';
                     &print_log($log_msg) unless $log_msg eq '1';
                     return 1;
                 }
             }
         }
+    }
+                               # Check for states with a embeded set_with_timer directive
+    if (my ($s1, $time, $s2) = $state =~ /(.*?)~(.+?)~(.*)/ and
+        $self->can('set_with_timer')) {
+        $self->set_with_timer($s1, $time, $s2);
+        print "Embeded set_with_timer state found for $self->{object_name}: s1=$s1, time=$time, s2=$s2\n"  if $config_parms{debug} eq 'filters';
+        return 1;
     }
 }
 
@@ -1776,7 +1816,7 @@ sub display {
                                 # Assume we were waiting for this and reset http server counter.  Speak has precedence
     $Last_Response = 'display' unless $Last_Response eq 'speak';
 #   $leave_socket_open_passes= 1 if $leave_socket_open_passes;
-    return if $Respond_Target eq 'web';
+    return if $Respond_Target =~ /^web/;
     
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
@@ -1863,7 +1903,8 @@ sub eval_user_code_load {
         }
 
         if ($old_error) {
-            my $error = "\nError in user code:\n  " . &eval_user_code_error($old_error, $user_code);
+            my $error = "\nError in user code file $config_parms{data_dir}/mh_temp.user_code\n\n  " . 
+                &eval_user_code_error($old_error, $user_code);
             print $error;
             &display($error, 60) unless $Startup or !$config_parms{tk};
         }
@@ -1913,7 +1954,8 @@ sub eval_user_code_loop {
         }
         else {
             $usercode_error_flag++;
-            my $error = &eval_user_code_error($@, $user_code);
+            my $error = "Error found in user code file: $config_parms{data_dir}/mh_temp.user_code\n\n";
+            $error .= &eval_user_code_error($@, $user_code);
             print $error;
             &display($error, 0) unless $config_parms{tk};
             &speak("Error found in user code.  Check the error log.") unless $config_parms{no_speak_errors} =~ /error/i;
@@ -1963,6 +2005,9 @@ sub exit_pgm {
     my ($restart) = @_;
     $Save{mh_exit} = ($restart) ? 'restart' : 'normal';
     print "Exiting program: $Save{mh_exit}\n";
+    if ($main::Info{OS_name}=~ /darwin/i) {  # Should go into Voice::Text?
+      Dispose_Speech_Channel();
+    } 
     &Voice_Cmd::remove_voice_cmds if $config_parms{voice_cmd};
     &Exit_hooks();              # Allow user code exits
     &run_kill_processes;        # From handy_utilities ... kills anybody that isn't done yet
@@ -2039,6 +2084,22 @@ sub file_diff {
     close FILE1;
     close FILE2;
     return !("@data1" eq "@data2");
+}
+
+
+                               # Look for the calling program
+                               # Used by Generic_Item set_by
+sub get_calling_sub {
+	my $x=1;   ## don't need to check [0] (self)
+#	print "loopcode_search: ",scalar(localtime(time())),"\n";
+	while(my($pkg, $filename, $line, $subroutine) = caller($x++)) {
+#		print "loopcode_search: $x [$pkg] [$filename][$subroutine]\n";
+		if($subroutine =~ s/^main::(.*)_loopcode$/UserCode [$1.pl]/){
+#           print "loopcode_search: set_by=$subroutine\n";
+			return $subroutine;
+		}
+	}
+	return undef;
 }
 
 sub get_ip_address {
@@ -2372,14 +2433,14 @@ sub object_states_save {
 
     print "$Time_Date: Saving object states ..." unless $config_parms{no_log} =~ /save_state/;
     my ($restore_state, $restore_string);
-                                # Save states on user specifed Save keys
-    for $var (keys %Save) {
-        no strict 'refs';
-        if (defined $Save{$var}) {
-            $restore_state .= &object_states_save_check("\$Save{q~$var~} = q~$Save{$var}~;") . "\n";
-        }
-        print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'save';
-    }
+
+#    for $var (keys %Save) {
+#        no strict 'refs';
+#        if (defined $Save{$var}) {
+#            $restore_state .= &object_states_save_check("\$Save{q~$var~} = q~$Save{$var}~;") . "\n";
+#        }
+#        print "Saving state for Save{$var} = $state\n" if $config_parms{debug} eq 'save';
+#    }
                                 # Save states of all objects
     for $object_type (@Object_Types) {
         for $var (keys %{$file_by_object_name{$object_type}}) {
@@ -2402,8 +2463,12 @@ sub object_states_save {
     }
 
                                 # Save Persistent data
-    file_write "$restore_state_file.persistent", Data::Dumper->Dump([\%Persistent], [qw(*Persistent)]);
-   
+# Not sure why this does not work ... only the first gets saved??
+#   file_write "$restore_state_file.persistent", Data::Dumper->Dump([\%Persistent, \%Save], [qw(*Persistent *Save)]);
+    file_write "$restore_state_file.persistent", 
+       Data::Dumper->Dump([\%Persistent], [qw(*Persistent)]) . 
+       Data::Dumper->Dump([\%Save],       [qw(*Save)]);
+ 
     print " done\n" unless $config_parms{no_log} =~ /save_state/;
 
 }
@@ -2496,6 +2561,44 @@ sub password_check {
         return;                 # No password required if the file does not exist
     }
 }
+
+
+sub phrase_match {
+    my ($phrase) = @_;
+                                # Look for Voice_Cmd matches
+    my (%list1, %list2);
+    my $d_min1 = 999;
+    my $set1 = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    print "phrase_match for: $phrase.\n" if $config_parms{debug} eq 'phrase';
+#   for my $phrase2 (('when will the sun set', 'new moon')) {
+                                 # Do a fast less accurate search on all phrases
+    for my $phrase2 (&Voice_Cmd::voice_items('mh', 'no_category')) {
+        my $d = pdistance($phrase, $phrase2, $set1, \&phrase_match_word, {-cost => [1,0,3], -mode => 'set'});
+        print " - d1=$d phrase=$phrase2.\n" if $config_parms{debug} eq 'phrase';
+        push @{$list1{$d}}, $phrase2 if $d <= $d_min1;
+        $d_min1 = $d if $d < $d_min1;
+    }
+
+    return @{$list1{$d_min1}};   # Skip the rest for now.
+
+                                 # Now do a slow search to narrow in from the above list
+                                 #  ... hmmm, seems to create too small a subset
+    my $d_min2 = 999;
+    my $set2 = 'abcdefghijklmnopqrstuvwxyz0123456789+-%';
+    for my $phrase2 (@{$list1{$d_min1}}) {
+        my $d = pdistance($phrase, $phrase2, $set2, \&distance, {-cost => [1,0,3], -mode => 'set'});
+        print " - d2=$d phrase=$phrase2.\n" if $config_parms{debug} eq 'phrase';
+        push @{$list2{$d}}, $phrase2 if $d <= $d_min2;
+        $d_min2 = $d if $d < $d_min2;
+    }
+
+    return @{$list2{$d_min2}};
+}
+        
+sub phrase_match_word {
+    return $_[0] ne $_[1];
+}
+
 
 
 sub play {
@@ -2809,7 +2912,8 @@ sub process_external_command {
 #       eval $eval_cmd;
 #       print_log "\nError in running external eval command: cmd=$eval_cmd\n error: $@\n" if $@;
 #   }
-    print "Running external command: $cmd\n" unless $config_parms{no_log} =~ /xcmd/;
+    print "Running external command: cmd=$cmd set_by=$set_by respond=$respond_target\n" unless $config_parms{no_log} =~ /xcmd/;
+
     if (&run_voice_cmd(lc($cmd), undef, $set_by, 0, $respond_target)) {
         print_log "Running cmd:$cmd" unless $config_parms{no_log} =~ /xcmd/;
     }
@@ -2820,6 +2924,9 @@ sub process_external_command {
         print_log "\nError in running external set command: cmd=$cmd\n error: $@\n" if $@;
     }
     elsif ($cmd =~ /^speaki?t? (.+)/i) {
+                                 # So speak hooks can react right (e.g. common/speak_chime.pl)
+        $Respond_Target = $respond_target;
+        $Respond_Target = $set_by unless defined $Respond_Target;
         speak($1);
     }
     elsif ($cmd =~ /^display (.+)/i) {
@@ -3622,7 +3729,7 @@ sub run_voice_cmd {
 
                                  # Look for the first Voice_Cmd match
     my ($ref, $said, $vocab_cmd) = &Voice_Cmd::voice_item_by_text(lc($cmd));
-    print "run_voice_cmd cmd=$cmd ref=$ref said=$said vocab=$vocab_cmd set_by=$set_by target=$respond_target\n"
+    print "run_voice_cmd cmd=$cmd ref=$ref said=$said vocab=$vocab_cmd no_log=$no_log set_by=$set_by target=$respond_target\n"
         if $config_parms{debug} eq 'misc';
     if ($ref and $vocab eq $vocab_cmd) {
         set $ref $said, $set_by, $no_log, $respond_target;
@@ -3631,7 +3738,7 @@ sub run_voice_cmd {
                                  # Also look for any Text_Cmd matches
                                  # ... maybe this should go under process_external_command?
                                  # ... if so, web RUN would not work.
-    my $text_cmd_matches = &Text_Cmd::set_matches($cmd);
+    my $text_cmd_matches = &Text_Cmd::set_matches($cmd, $set_by, $no_log, $respond_target);
     
     return ($ref or $text_cmd_matches) ? 1 : 0;
 }
@@ -3928,8 +4035,9 @@ sub set_global_vars {
             $loop_unix_cnt = $cnt;
         }
         else {
-                                # This call takes .2 seconds, so only do it once a minute
-            ($Info{memory_virtual}, $Info{memory_real}) = &memory_used if $New_Minute or $Startup;
+                                # This call takes .2 seconds, so only do it once a minute, and not in fast mode
+            ($Info{memory_virtual}, $Info{memory_real}) = &memory_used if $Startup or
+                ($New_Minute and !($Time_Start_time or $Time_Stop_time));
 
                                 # Calculate a rolling average ... naw, per second good so we can match to taskman
 #            @loop_tickcount_totals = 5 x $loop_tickcount_total unless @loop_tickcount_totals;
@@ -4157,12 +4265,18 @@ sub socket_open {
             die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port_name}_port in mh.ini\n";
     } elsif ($proto eq 'udp') {
         if ($address) {
-            $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(PeerPort => $port, PeerAddr => $address => Proto => 'udp') or 
+            $Socket_Ports{$port_name}{sock} = 
+                new IO::Socket::INET->new(PeerPort => $port, Proto => 'udp',
+                                          PeerAddr => $address, Broadcast => 1) or 
                 die "Couldn't start a udp peer server on $port_name $port: $@\n";
         }
         else {
-            $Socket_Ports{$port_name}{sock} = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp') or 
+            $Socket_Ports{$port_name}{sock} = 
+                new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp', Broadcast => 1, 
+                                          LocalAddr => '0.0.0.0') or 
+#                                         LocalAddr => inet_ntoa(INADDR_ANY)) or 
                 die "Couldn't start a udp server on $port_name $port: $@\n";
+# INADDR_ANY = 0.0.0.0 ... is in IO::Socket::INET, but that is not in perl 5.0 :(
         }
         $Socket_Ports{$port_name}{socka} = $Socket_Ports{$port_name}{sock}; # UDP ports are always "active"
     } else {
@@ -4218,7 +4332,7 @@ sub parse_func_parms {
 
 sub parse_func_parms2 {
     my ($ref, $text) = @_;
-    while (my ($key, $value, $text_new) = $text =~ /^\s*(\S+)=(\S+)\s*(.*)/s) {
+    while (my ($key, $value, $text_new) = $text =~ /^\s*(\S+?)=(\S+)\s*(.*)/s) {
         $text = $text_new;
                                  # If value has leading but not trailing quote, grab till next quote
         if ($value =~ /^[\'\"]([^\'\"]+)$/) {
@@ -4254,6 +4368,8 @@ sub respond {
     print "respond target=$target lr=$Last_Response RT=$Respond_Target lso=$leave_socket_open_passes lsa=leave_socket_open_action a=@_\n" 
         if $config_parms{debug} eq 'respond';
 
+    $leave_socket_open_passes = 1 if $leave_socket_open_passes > 0;
+
                                 # If a file, read the contents
     $parms{text} = &file_read($parms{text}) if $parms{text} =~ /^\S+$/ and -e $parms{text};
 
@@ -4267,6 +4383,10 @@ sub respond {
             $ref->(%parms);
         }
     }
+}
+                                        # Called to tell web server to wait for respond results
+sub respond_wait {
+    $leave_socket_open_passes = 200 if $Respond_Target =~ /^web/; 
 }
 
 sub respond_default {
@@ -4304,13 +4424,26 @@ sub respond_tk {
 sub respond_web {
     &respond_default(@_);
 }
+sub respond_unmuted {
+    my %parms = @_;
+    $parms{mode} = 'unmuted';
+    &speak(%parms);
+}
+
+sub respond_telnet {
+    my %parms = @_;
+    $parms{text} =~ s/\n/\n\r/g;
+    print "respond telnet: client=$parms{client} text=$parms{text}\n" if $config_parms{debug} eq 'respond';
+    eval "\$telnet_server->set(q~$parms{text}~, $parms{arg1})";
+    print "respond telnet eval error: client=$parms{client} text=$parms{text} error=$@\n" if $@;
+}
 
 sub respond_object_set {
     my (%parms) = @_;
     $parms{name} = '$' . $parms{name} unless $parms{name} =~ /^\$/;
-    print "respond object_set: $parms{name}->set(q~$parms{text}~, $parms{arg1}, $parms{arg2})\n";
+    print "respond object_set: $parms{name}->set(q~$parms{text}~, $parms{arg1}, $parms{arg2})\n" if $config_parms{debug} eq 'respond';
     eval "$parms{name}->set(q~$parms{text}~, $parms{arg1}, $parms{arg2})";
-    print "respond_object eval error: name=$parms{name}, arg1=$parms{arg1}, error=$@\n" if $@;
+    print "respond object_set eval error: name=$parms{name}, arg1=$parms{arg1}, error=$@\n" if $@;
 }
 
 sub speak {
@@ -4337,6 +4470,11 @@ sub speak {
         else {
             print "Voice_Text: speak -app $app not listed in mh.ini speak_apps parms\n";
         }
+    }
+    if ($main::Info{OS_name}=~ /darwin/i) {   # Should go into Voice::Text?
+      print "Trying to speak $phrase\n";
+      speak_mac ($phrase);
+      return;
     }
 
     $parms{mode}  = '' unless $parms{mode};
@@ -4384,7 +4522,7 @@ sub speak {
     $Last_Response = 'speak';   # Queried by http_server and telnet_server
 
                                 # Check if we want to speak web requested data
-                                # If Respond_Target is set, let &respond_web handle it
+                                # If Respond_Target is set, let &respond_web handle it?
     if ($leave_socket_open_passes) {
         $leave_socket_open_passes = 1;
 
@@ -4420,9 +4558,12 @@ sub speak {
                                 #    anything between ! thru ~
                                 # We do this check in case something (like serial_server)
                                 # goes out of control ... we don't want to hear garbage!
-    if ($phrase and $phrase !~ /^[\n\r\t !-~]+$/ and !$play) {
-        print "Data is unspeakable!  phrase=$phrase\n";
-        print_log "Data is unspeakable!  phrase=", substr($phrase, 0, 40), " ...\n";
+                                # Lets allow a few unspeakable characters through
+    my $count_non_ascii = $phrase =~ tr/\n\r\t !-~//c;
+    if ($phrase and $count_non_ascii > 10 and !$play) {
+#   if ($phrase and $phrase !~ /^[\n\r\t !-~]+$/ and !$play) {
+        print "Data is unspeakable!  non_ascii=$count_non_ascii, phrase=$phrase\n";
+        print_log "Data is unspeakable!  non_ascii=$count_non_ascii, phrase=", substr($phrase, 0, 40), " ...\n";
     }
     else {
         $parms{text} = $phrase;
@@ -4500,6 +4641,11 @@ sub time_cron {
     }
     return 1;
 
+}
+
+sub time_now_diff {
+    my ($time_date) = @_;
+    return int((&my_str2time($time_date) - $Time)/60);
 }
 
 sub time_greater_than {
@@ -4909,7 +5055,7 @@ sub tk_entry {
 
         if (ref $pvar ne 'SCALAR' and $pvar->can('set')) {
             $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => \$$pvar{state}, width => 8);
-            $Tk_objects{entry}{$pvar}->bind('<Return>', sub { $Tk_results{$label} = $$pvar{state}; $pvar->set($$pvar{state}) } ) ;
+            $Tk_objects{entry}{$pvar}->bind('<Return>', sub { $Tk_results{$label} = $$pvar{state}; $pvar->set($$pvar{state}, 'tk') } ) ;
         }
         else {
             $Tk_objects{entry}{$pvar}  = $Tk_objects{grid}->Entry(-textvariable => $pvar, width => 8);
@@ -4962,10 +5108,18 @@ sub tk_mlabel {
     push(@Tk_widgets, [$Category, 'label', @_]);
 
     return unless $MW and $Tk_objects{menu_bar};
-    my ($pvar) = @_;
-    $Tk_objects{mlabel}{$pvar}->destroy if $Tk_objects{mlabel}{$pvar} and Exists($Tk_objects{mlabel}{$pvar});
-    $Tk_objects{mlabel}{$pvar} = $Tk_objects{menu_bar}->
-        Label(-relief => 'sunken', -textvariable => $pvar, -bg => 'white',  -font => $config_parms{tk_font_fixed})->
+    my ($pvar, $name) = @_;
+
+                                                 # Allow for $name so we can reliable destroy on $Reload.  
+                                                 # $pvar may be %Save or an object that changes on reloads :(
+    $name = $pvar unless $name;
+                                                 # If an object, get its state
+    my $pvar2 = (ref $pvar ne 'SCALAR' and $pvar->can('set')) ? \$$pvar{state} : $pvar;
+#   print "db2 testing mlable pv=$pvar  $Tk_objects{mlabel}{$pvar}\n";
+
+    $Tk_objects{mlabel}{$name}->destroy if $Tk_objects{mlabel}{$name} and Exists($Tk_objects{mlabel}{$name});
+    $Tk_objects{mlabel}{$name} = $Tk_objects{menu_bar}->
+        Label(-relief => 'sunken', -textvariable => $pvar2, -bg => 'white',  -font => $config_parms{tk_font_fixed})->
             pack(qw/-side right -anchor e/); 
 }
 
@@ -5102,6 +5256,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.76  2003/01/12 20:31:02  winter
+#  - 2.76 release
+#
 # Revision 2.75  2002/12/24 02:58:10  winter
 # - 2.75 release
 #
