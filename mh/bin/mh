@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2004-11-20 22:56:32 winter>
+#  Last change Time-stamp: <2005-01-23 16:46:10 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -66,7 +66,7 @@ Examples usage:
     mh
     mh -help
     mh -tk 0 -code_dir c:\\mh\\code\\test
-    mh -log_file test1.log -debug 1 test1.pl
+    mh -debug 1 test1.pl
 
 eof
 
@@ -245,14 +245,18 @@ BEGIN {
             print $usage;
             exit;
        }
-
                                 # If -log_file used, start logging right away
-        my $logfile = $config_parms_startup{log_file};
-        $config_parms{log}++ if $logfile;
-        if ($config_parms{log}) {
-            print "Output will be logged into $logfile\n";
-            open STDOUT, ">$logfile" or die "Error, could not open logfile $logfile: $!\n";
-            &print_version;
+        if (my $logfile = $config_parms_startup{log_file}) {
+                                # Avoid an odd problem with Win32::Process ... it restarts the main process!
+            if ($^O eq "MSWin32" and $PAR::VERSION) {
+                print "\nWarning:  -log_file causes problems with Windows mhe.exe.\n";
+                print "Instead, use redirection like: mh > debug.log\n\n";
+            }
+            else {
+                print "Output will be logged into $logfile\n";
+                open STDOUT, ">$logfile" or die "Error, could not open logfile $logfile: $!\n";
+                &print_version;
+            }
         }
 
     }
@@ -471,6 +475,7 @@ BEGIN {
     }
 
 }                               # End BEGIN
+
 
                                 # Declare all subs, then run code at the bottom
 
@@ -850,6 +855,15 @@ sub setup {
         $Time_Boot_time = $1 if (/ sec[ =]+(\d+)/);
         close(SYSCTL);
     }
+    elsif ($^O eq 'darwin') {
+#    In Darwin, open(SYSCTL) is "/usr/sbin/sysctl"  - whm 4 Dec 2004
+#         -a yields a string: "kern.boottime = Fri Nov 26 13:11:16 2004"
+#         -n yields secs since epoc
+        use vars qw($sysctl);
+        $sysctl = '/usr/sbin/sysctl';
+        $Time_Boot_time = `$sysctl -n kern.boottime`;
+    }
+
 
     $exit_flag = 0;
     $config_parms{sleep_time}    = 50 unless defined $config_parms{sleep_time};
@@ -2064,6 +2078,30 @@ sub convert_f2c {       # Convert degrees fahrenheit to celsius
 }
 sub convert_f2k {       # Convert degrees fahrenheit to kelvin
      sprintf("%3.1f", (5/9)*($_[0] - 32) + 273.15);
+}
+sub convert_mb2in {     # Convert millibars to inches of mercury
+     sprintf("%4.2f", $_[0] * 0.029529987508);
+}
+sub convert_in2mb {     # Convert to inches of mercury to millibars
+     sprintf("%4.2f", $_[0] / 0.029529987508);
+}
+sub convert_km2mile {   # convert kilometers (per hour) to miles (per hour)
+     sprintf("%5.2f", $_[0] / 1.609344);
+}
+sub convert_mile2km {   # convert miles (per hour) to kilometers (per hour)
+     sprintf("%5.2f", $_[0] * 1.609344);
+}
+sub convert_mps2mph {   # convert meters per second to miles per hour
+    sprintf("%5.2f", $_[0] * 2.23693632);
+}
+sub convert_mph2mps {   # convert miles per hour to meters per second
+    sprintf("%5.2f", $_[0] / 2.23693632);
+}
+sub convert_mm2in {	# convert millimeters (per hour) to inches (per hour)
+     sprintf("%5.2f", $_[0] * 0.0393700787402);
+}
+sub convert_in2mm {	# convert inches (per hour) to millimeters (per hour)
+     sprintf("%5.2f", $_[0] / 0.0393700787402);
 }
 
 sub convert_direction {
@@ -4356,7 +4394,7 @@ sub set_global_vars {
             print_log "mh paused for $DelayOccured seconds (volume=$volume)";
         }
         logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  "mh paused for $DelayOccured seconds";
-        if ($DelayOccured > $config_parms{time_catchup_skip}) {
+        if ($DelayOccured > $config_parms{time_catchup_skip} $config_parms{no_log} =~ /pause/) {
             print_log "Skipping catchup mode. Pause of $DelayOccured > $config_parms{time_catchup_skip} seconds";
         }
         else {
@@ -4720,11 +4758,19 @@ sub set_sun_time {
                  time_zone =>  $config_parms{time_zone});
 
     print "Latitude: $config_parms{latitude},  Longitude: $config_parms{longitude},  Time Zone: $config_parms{time_zone}\n";
-    $Time_Sunrise = time_to_ampm &sun_time(type => 'rise', @parms);
-    $Time_Sunset  = time_to_ampm &sun_time(type => 'set',  @parms);
+	$Time_Sunrise = &sun_time(type => 'rise', @parms);
+    $Time_Sunset  = &sun_time(type => 'set',  @parms);
 
-    $Time_Sunrise_Twilight = time_to_ampm &sun_time(type => 'rise', twilight => $config_parms{twilight}, @parms);
-    $Time_Sunset_Twilight  = time_to_ampm &sun_time(type => 'set',  twilight => $config_parms{twilight}, @parms);
+    $Time_Sunrise_Twilight = &sun_time(type => 'rise', twilight => $config_parms{twilight}, @parms);
+    $Time_Sunset_Twilight  = &sun_time(type => 'set',  twilight => $config_parms{twilight}, @parms);
+
+	if ($config_parms{time_format} == 12) {
+		$Time_Sunrise          = time_to_ampm $Time_Sunrise;
+		$Time_Sunset           = time_to_ampm $Time_Sunset;
+		$Time_Sunrise_Twilight = time_to_ampm $Time_Sunrise_Twilight;
+		$Time_Sunset_Twilight  = time_to_ampm $Time_Sunset_Twilight;
+	}
+
     print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
     print "sunrise twilight=$Time_Sunrise_Twilight sunset twilight=$Time_Sunset_Twilight\n";
 }
@@ -5144,6 +5190,7 @@ sub speak {
 
                                 # Do not speak muted or offline
     return if $mode and ($mode eq 'mute' or $mode eq 'offline') and !$parms{to_file};
+
 
                                 # If we have a 1/2 duplex sound card, we want to wait a bit before speaking
                                 # or else the speech will get qued.
@@ -5900,6 +5947,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.97  2005/01/23 23:07:10  winter
+# *** empty log message ***
+#
 # Revision 2.96  2004/11/22 22:42:50  winter
 # *** empty log message ***
 #
