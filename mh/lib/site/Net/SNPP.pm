@@ -1,6 +1,6 @@
 # Net::SNPP.pm
 #
-# Copyright (c) 1995-1997 Graham Barr <gbarr@ti.com>. All rights reserved.
+# Copyright (c) 1995-1997 Graham Barr <gbarr@pobox.com>. All rights reserved.
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
@@ -9,47 +9,20 @@ package Net::SNPP;
 require 5.001;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 use Socket 1.3;
 use Carp;
 use IO::Socket;
 use Net::Cmd;
 use Net::Config;
 
-$VERSION = do { my @r=(q$Revision$=~/\d+/g); sprintf "%d."."%02d"x$#r,@r};
+$VERSION = "1.11"; # $Id$
 @ISA     = qw(Net::Cmd IO::Socket::INET);
-@EXPORT  = qw(CMD_2WAYERROR CMD_2WAYOK CMD_2WAYQUEUED);
+@EXPORT  = (qw(CMD_2WAYERROR CMD_2WAYOK CMD_2WAYQUEUED), @Net::Cmd::EXPORT);
 
-sub CMD_2WAYERROR  { 7 }
-sub CMD_2WAYOK     { 8 }
-sub CMD_2WAYQUEUED { 9 }
-
-sub import
-{
- my $pkg = shift;
- my $callpkg = caller;
- my @export = ();
- my %export;
- my $export;
-
- @export{@_} = (1) x @_;
-
- foreach $export (@EXPORT)
-  {
-   if(exists $export{$export})
-    {
-     push(@export,$export);
-     delete $export{$export};
-    }
-  }
-
- Exporter::export 'Net::SNPP', $callpkg, @export
-	if(@_ == 0 || @export);
-
- @export = keys %export;
- Exporter::export 'Net::Cmd',  $callpkg, @export
-	if(@_ == 0 || @export);
-}
+sub CMD_2WAYERROR  () { 7 }
+sub CMD_2WAYOK     () { 8 }
+sub CMD_2WAYQUEUED () { 9 }
 
 sub new
 {
@@ -61,7 +34,7 @@ sub new
  my $obj;
 
  my $h;
- foreach $host (@{$hosts})
+ foreach $h (@{$hosts})
   {
    $obj = $type->SUPER::new(PeerAddr => ($host = $h), 
 			    PeerPort => $arg{Port} || 'snpp(444)',
@@ -83,7 +56,7 @@ sub new
 
  unless ($obj->response() == CMD_OK)
   {
-   $obj->SUPER::close();
+   $obj->close();
    return undef;
   }
 
@@ -114,8 +87,15 @@ sub send
   {
    my %arg = @_;
 
-   $me->_PAGE($arg{Pager}) || return 0
-	if(exists $arg{Pager});
+   if(exists $arg{Pager})
+    {
+     my $pagers = ref($arg{Pager}) ? $arg{Pager} : [ $arg{Pager} ];
+     my $pager;
+     foreach $pager (@$pagers)
+      {
+       $me->_PAGE($pager) || return 0
+      }
+    }
 
    $me->_MESS($arg{Message}) || return 0
 	if(exists $arg{Message});
@@ -164,6 +144,24 @@ sub help
 
  return $me->_HELP() ? $me->message
 		     : undef;
+}
+
+sub xwho
+{
+ @_ == 1 or croak 'usage: $snpp->xwho()';
+ my $me = shift;
+
+ $me->_XWHO or return undef;
+
+ my(%hash,$line);
+ my @msg = $me->message;
+ pop @msg; # Remove command complete line
+
+ foreach $line (@msg) {
+   $line =~ /^\s*(\S+)\s*(.*)/ and $hash{$1} = $2;
+ }
+
+ \%hash;
 }
 
 sub service_level
@@ -228,18 +226,24 @@ sub two_way
  shift->_2WAY();
 }
 
-sub close
+sub quit
 {
- my $me = shift;
+ @_ == 1 or croak 'usage: $snpp->quit()';
+ my $snpp = shift;
 
- return 1
-   unless (ref($me) && defined fileno($me));
-
- $me->_QUIT && $me->SUPER::close;
+ $snpp->_QUIT;
+ $snpp->close;
 }
 
-sub DESTROY { shift->close }
-sub quit    { shift->close }
+##
+## IO/perl methods
+##
+
+sub DESTROY
+{
+ my $snpp = shift;
+ defined(fileno($snpp)) && $snpp->quit
+}
 
 ##
 ## Over-ride methods (Net::Cmd)
@@ -247,7 +251,19 @@ sub quit    { shift->close }
 
 sub debug_text
 {
- $_[2] =~ s/^((logi|page)\s+\S+\s+)\S*/$1 xxxx/io;
+ $_[2] =~ s/^((logi|page)\s+\S+\s+)\S+/$1 xxxx/io;
+ $_[2];
+}
+
+sub parse_response
+{
+ return ()
+    unless $_[1] =~ s/^(\d\d\d)(.?)//o;
+ my($code,$more) = ($1, $2 eq "-");
+
+ $more ||= $code == 214;
+
+ ($code,$more);
 }
 
 ##
@@ -263,6 +279,7 @@ sub _SEND { shift->command("SEND")->response()  == CMD_OK }
 sub _QUIT { shift->command("QUIT")->response()  == CMD_OK }   
 sub _HELP { shift->command("HELP")->response()  == CMD_OK }   
 sub _DATA { shift->command("DATA")->response()  == CMD_MORE }   
+sub _SITE { shift->command("SITE",@_) }   
 
 # Level 2
 
@@ -274,6 +291,9 @@ sub _HOLD { shift->command("HOLD", @_)->response()  == CMD_OK }
 sub _CALL { shift->command("CALL", @_)->response()  == CMD_OK }   
 sub _SUBJ { shift->command("SUBJ", @_)->response()  == CMD_OK }   
 
+# NonStandard
+
+sub _XWHO { shift->command("XWHO")->response()  == CMD_OK }   
 
 1;
 __END__
@@ -383,7 +403,7 @@ RFC1861
 
 =head1 AUTHOR
 
-Graham Barr <gbarr@ti.com>
+Graham Barr <gbarr@pobox.com>
 
 =head1 COPYRIGHT
 
