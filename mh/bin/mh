@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2000-11-18 22:24:46 winter>
+#  Last change Time-stamp: <2000-11-30 18:38:03 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -45,7 +45,7 @@ BEGIN {
     }
 
 
-    $usage =<<eof;
+    $usage = <<"eof";
 
 Description:
    $Pgm_Name is a perl program for time, event, web, and voice based home control
@@ -270,7 +270,7 @@ BEGIN {
 
         if ($config_parms{diagnostics} or $config_parms{w}) {
             print "Perl diaganotics module (perl -w) has been turned on\n";
-            eval 'use diagnostics' if $config_parms{diagnostics};
+            eval 'use diagnostics';
         }
 #       disable diagnostics;
 
@@ -298,15 +298,13 @@ BEGIN {
                                 #  - setupsup is not yet available for perl 5.6
                                 #  - BuildNumber doesn't work with perl2exe compile 
                                 #  - Loaded from: http://jenda.krynicky.cz/perl/
-            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys)" if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
+            eval "use Win32::Setupsup qw(WaitForAnyWindow SendKeys EnumChildWindows SetFocus)" if $ENV{sourceExe} or &Win32::BuildNumber() < 600;
             print "\nError in loading module=Win32::Setupsup:\n  $@\n" if $@;
 
             eval "use Win32::Sound";
             print "\nError in loading module=Win32::Sound:\n  $@\n" if $@;
 
             &my_use("Win32::SerialPort");
-
-#           &my_use("Win32::SoundEx");      # For Volume control
 
             &my_use("File::DosGlob 'glob'"); # Allow for globbing without perlglob.exe
 
@@ -515,12 +513,12 @@ sub setup {
                             $config_parms{$port_name . "_datatype"});
     }
 
-                                # Create managed serial and server ports 
+                                # Look for user specified modules
                                 # This makes it easy to add new modules
                                 # for new serial/socket devices.  
                                 # Manager must be available in lib directory
-                                #  (e.g. Compool.pm)
     for my $parm (keys %config_parms) {
+                                # Check for serial and server ports modules (e.g. Compool.pm)
         next unless $config_parms{$parm};
         if ($parm =~ /^(\S+?)(:?\d*)_(serial|server)_port/) {
             if (-e "$Pgm_PathU/../lib/$1.pm") {
@@ -532,6 +530,19 @@ sub setup {
             }
             else {
                 print "No $1.pm file found for $parm\n";
+            }
+        }
+                                # Check for other mh.ini specified modules (e.g. Weather_vw.pm)
+                                # weather_vwlog_module=Weather_vw
+        if ($parm =~ /^(\S+?)_module/) {
+            my $module = "$config_parms{$parm}.pm";
+            if (-e "$Pgm_PathU/../lib/$module") {
+                my $startup = "&$config_parms{$parm}" . '::startup';
+                print "Found managed $module module\nMH will now require $module and call $startup\n" 
+                    if $config_parms{debug} eq 'startup';
+                require $module;
+                eval    $startup;
+                print "Startup error on $startup: $@\n" if $@;
             }
         }
     }
@@ -581,14 +592,6 @@ sub setup {
         require 'ControlX10/CM17.pm';
         &serial_port_create('cm17', $config_parms{cm17_port});
     }
-
-#    if($config_parms{weather_sblog_file} or
-#       $config_parms{weather_vwlog_file} or
-#       $config_parms{serial_wx200_port}) {
-#        require 'Weather_Data.pm';
-#        &Weather_Data::Init();
-#    }
-
 
     if ($OS_win) {
         $Time_Boot_time = 0;    # Gettickcount starts at computer boot
@@ -1359,7 +1362,8 @@ sub display {
     if ($config_parms{tk}) {
         $_[2] = $Time_Now              unless $_[2]; # Default Title
         $_[3] = $config_parms{tk_font} unless $_[3];
-        new Display(@_) unless $leave_socket_open_passes;
+                                # Do not display if from web, unless display time is requested
+        new Display(@_) unless ($leave_socket_open_passes and !defined $_[1]);
     }
     else {
 #       &print_log(@_);
@@ -1840,7 +1844,8 @@ sub object_states_save_check {
                                 # This is an effective test
     eval $save_string;
     if ($@) {
-        print "\n\nWARNING, Can not save this wierd state: $save_string. \n - Error: $@\n\n";
+        print "\n\nWARNING, Can not save this wierd state: $save_string. \n - Error: $@\n\n" 
+            if $config_parms{debug} eq 'misc';
         return;
     }
                                 # Can not restore stuff with carrage returns (for now). 
@@ -2229,10 +2234,10 @@ sub process_serial_data {
         }
 
                                 # Check for multi-key X10 commands (e.g. XA1 XAJ -> XA1AJ)
-        my $prev_x10_event;
+        my $prev_x10_event = '';
         for my $i (1 .. 4) {
-            my $prev_time = $prev_x10_events[$i]{time};
-            last unless $prev_time and $prev_time > (&get_tickcount - $config_parms{x10_multikey_delay});
+            my $prev_x10_time = $prev_x10_events[$i]{time};
+            last unless $prev_x10_time and $prev_x10_time > (&get_tickcount - $config_parms{x10_multikey_delay});
             $prev_x10_event = $prev_x10_events[$i]{data} . $prev_x10_event;
         }
         if ($prev_x10_event) {
@@ -2540,18 +2545,17 @@ sub read_user_code {
             if ($object) {
                 print "\n\nWarning, duplicate object name: $object\n\n" if $objects_by_object_name{$object};
                 $file_by_object_name{$type}{$object} = $member_name;
-                push(@{$object_names_by_file{$member_name}}, $object);
-                push(@{$object_names_by_webname{$webname}}, $object);
-                push(@{$object_names_by_type{$type}}, $object);
+                push @{$object_names_by_file{$member_name}}, $object;
+                push @{$object_names_by_webname{$webname}},  $object;
+                push @{$object_names_by_type{$type}},        $object;
 
-#               push(@Item_Code, qq[\$list_of_objects_by_ref{$type}{\\$object} = $object;\n]);
-#               push(@Item_Code, qq[\$list_of_objects_by_ref{$type}{$object} = '$object';\n]);
-                push(@Item_Code_Objects, qq[\$objects_by_object_name{'$object'} = $object;\n]);
+                push @Item_Code_Objects, qq[\$objects_by_object_name{'$object'} = $object;\n];
 
-                push(@Item_Code_Objects, $object . qq[->{category} = "$webname";\n]);
-                push(@Item_Code_Objects, $object . qq[->{filename} = "$member_name";\n]);
-                push(@Item_Code_Objects, $object . qq[->{object_name} = '$object';\n]);
-#               push(@Item_Code_Objects, qq[set_filename $object "$member_name";\n]);
+                push @Item_Code_Objects, $object . qq[->{category} = "$webname";\n];
+                push @Item_Code_Objects, $object . qq[->{filename} = "$member_name";\n];
+                push @Item_Code_Objects, $object . qq[->{object_name} = '$object';\n];
+
+#               push @Item_Code_Objects, qq[set_filename $object "$member_name";\n];
             }
 
                                 # Find global records
@@ -2606,7 +2610,7 @@ sub read_user_code {
                 $code .
                 "\n} # End of $member_name";
         }
-        $member_sort_order{$member_name} = 99999 unless defined $member_sort_order{$member_name};
+        $member_sort_order{$member_name} = 9 unless defined $member_sort_order{$member_name};
         
 #       ($webname =~ /startup/i) ?  unshift(@Loop_Code, $temp) : push(@Loop_Code, $temp);
     }
@@ -2726,7 +2730,7 @@ sub set_global_vars {
 
     my $time_now = time;
     if ($Startup) {
-        $prev_time = $time_now - 1;
+        $prev_time = $Time - 1;
         $prev_min = $prev_hour = $prev_mday = $prev_month = $prev_year = '';
     }
                                 # If mh got hung up doing something, lets go to catch up mode
@@ -3812,6 +3816,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.36  2000/12/03 19:33:47  winter
+# - 2.36 release
+#
 # Revision 2.35  2000/11/19 19:54:28  winter
 # - added %Weather.  Fixed -time_stop accelerated time mode
 #
