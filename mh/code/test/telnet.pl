@@ -39,7 +39,7 @@ if (inactive_now $telnet_server) {
     
 
 				# You can also write text directly out, not using a pre-defined item state
-set $telnet_server "The time is $Time_Now" if $New_Minute and active $telnet_server;
+set $telnet_server "The time is $Time_Now\n\r" if $New_Minute and active $telnet_server;
 
 
 $telnet_client_set = new Voice_Cmd 'Run telnet set test [1,2,3,4,5]';
