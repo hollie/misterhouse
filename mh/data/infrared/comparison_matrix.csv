@@ -1,0 +1,75 @@
+UEIC Protocol ID,Protocol Name in Devices4.xls,Protocol Name in ccf2efc / MakeHex,Protocol Name in KM-Master,Freq Hz,Time Base,Zero,One,Form,First Bit,Default,Define,Modulation,EFC Conversion,Remarks
+00 00 ,Panasonic (old),Old Panasonic,Panasonic (old),"57,600",833,"1,-1","1,-3",";[4 -4],D:5,F:6,~D:5,~F:6,[1 ^100000]",LSB,,,PWM,Panold,
+00 02,Dishplayer (Old),JVC-A -see remarks,Dishplayer (Old),"57,600",400,"1,-7","1,-4","[1 -15];F:8,D:8,[1 -15]",MSB,,,PWM,~LSB,"Add lead-in, repeat portion is JVC-A with One and Zero Reversed - Real protocol is this [1 -15];F:6,U:4,D:6,[1 -15] where U is the unit code"
+00 06,Jerrold,Jerrold,Jerrold,0,,"44,-7500","44,-11000",";F:5,[44 -11000]",,,,,,No Device code in this protocol
+00 0C,NEC1,NEC1,,"38,341",564,"1,-1","1,-3","[16 -8],D:8,S:8,F:8,~F:8,[1 -78];[16 -4 1 -173]",LSB,S=255-D,,,,
+00 0D,Akai,,,"38,095",289,"1,-6.3","1,-2.6",";D:2,F:8,[1 ^25570]",LSB,,,,,
+01 0F,Dishplayer,,Dishplayer,"38,400",535,"1,-5","1,-3","[1 -11];F:6,U:2,D:5,[1 -11]",MSB,U=0,,PWM,~MSB,
+00 14,Mitsubishi,s16a,Mitsubishi,"32,600",304,"1,-3","1,-7",";D:8,F:8,[1 -80]",LSB,,,PWM,LSB,makeHex S16a--This is also known as JVC1 in Devices.xls
+00 18,Electrohome,,,"42,300",381,"-1,1","1,-1","[+1 -4],0:1,31:6,[^45700],[+1 -4],0:1,f:6,[^45700];[+1 -4],0:1,f:6,[^45700]",MSB,,,PPM,,
+00 1A,F12,,F12,"38,168",462,"1,-3","3,-1",";D:3,C:1,F:8,[^54336],D:3,C:1,F:8,[^108672] 'When C=0 then, Form=D:3,C:1,F:8,[^54336],D:3,C:1,F:8 When C=1 then, Form=;D:3,C:1,F:8,[^54336],D:3,C:1,F:8,[^108672] ",LSB,,~C=F(0..0)^F(1..1),,~LSB,
+00 1C,Denon,Denon,Denon,"37,917",264,"1,-3","1,-7",";D:5,F:8,0:2,[1 -165],D:5,~F:8,3:2,[1 -165]",LSB,,,PWM,~LSB,
+00 1C,Sharp,Sharp,Sharp,"37,917",264,"1,-3","1,-7",";D:5,F:8,1:2,[1 -165],D:5,~F:8,2:2,[1 -165]",LSB,,,PWM,~LSB,
+00 1F,Panasonic Combo1,Panasonic,Panasonic Combo1,"37,000",432,"1,-1","1,-3",";[8 -4],2:8,32:8,D:8,S:8,F:8,C:8,[1 -173]",LSB,S=0,C=D^S^F,PWM,LSB,
+00 21,Viewstar,,,"50,473",337,"1, -8"," 1, -5",";F:5,[1 -17]",LSB,,,,,
+00 22,Zenith,,Zenith,"40,244",166,"3,-31,3,-3,3,-25","3,-3,3,-25,3,-31",";[3 -3 3 -25],F:5,[-884] ",MSB,,,PPM,~MSB,ZenithTV
+,,,,"40,244",166,"3,-31,3,-3,3,-25","3,-3,3,-25,3,-31",";[3 -31],F:5,[-884]",MSB,,,,~MSB,ZenithCable
+,,,,"40,244",166,"3,-31,3,-3,3,-25","3,-3,3,-25,3,-31",";[3 -31],F:7,[-884]",MSB,,,,~MSB,ZenithVCR
+,,,,"40,244",166,"3,-31,3,-3,3,-25","3,-3,3,-25,3,-31",";[3 -31],F:6,[-884]",MSB,,,,~MSB,ZenithHD
+00 29,Hamlin,,,"28,800",2986,"0,-1","1,-0",";D:4,F:8,[-4]",LSB,,,,LSB,
+00 2D,RCA,Repeat portion is RCA,RCA (Old),"58,000",460,"1,-2","1,-4","[40 -8],D:4,F:8,~D:4,~F:8,[1 -15];[8 -8],D:4,F:8,~D:4,~F:8,[1 -15]",MSB,,,PWM,~MSB,The long lead in on the first pulse causes problems in certain units -- not on any of my RCA OEM remotes
+00 34,JVC,"JVC1,JVC2",JVC,"38,000",525,"1,-1","1,-3","[16 -8],D:8,F:8,[1 -45];D:8,F:8,[1 -45]",LSB,,,PWM,LSB,
+00 3F,X10,X10,X10,"40,000",650,"2,-13","7,-7",";[8 -8],F:5,~F:5,[23 -8]",LSB,,,PWM,LSB,
+00 45,,,,"37,879",158,"+1,-31","+1,-47",";[+1 -44],T:1,1:1,F:8,[1 ^121950]       'T=Toggle Bit  The Function is really 6 bits but the device number is the same, or a constant 3 bit 111",,,,,,
+00 58,RC-6,,RC-6,"36,000",444,"-1,1","1,-1",";[6 -2],1:1,M:3,[-2 2],D:8,F:8,[-189]   'One Toggle ( Alternate: Form=;[6 -2],1:1,M:3,[2 -2],D:8,F:8,[-189]   'Zero Toggle )",MSB,M=0 ,,PPM,~MSB,
+00 5A,NEC1,NEC,NEC1,"38,000",564,"1,-1","1,-3","[16 -8],D:8,S:8,F:8,~F:8,[1 -78];[16 -4 1 -173]",LSB,S=255-D,,PWM,LSB,NEC in MakeHex
+00 5A,NEC-4,NEC,NEC Generic,"38,218",560,"1,-1","1,-3","[16 -8],D:8,S:8,F:8,~F:8,[1 -73];[16 -4 1 -175]",LSB,S=255-D,,PWM,LSB,
+00 5A,NEC-5,NEC2,NEC Generic,"38,218",560,"1,-1","1,-3",";[16 -8],D:8,S:8,F:8,~F:8,[1 -73]",LSB,S=255-D,,PWM,LSB,
+00 5A,NEC-8,NEC,NEC Generic,"38,218",560,"1,-1","1,-3","[16 -8],D:8,S:8,F:8,~F:8,[1 -73];[16 -4 1 -175]",LSB,S=255-D,,PWM,LSB,
+00 5A,NEC-10,NEC,NEC Generic,"38,218",561,"1,-1","1,-3","[8 -8],D:8,~S:8,F:8,~F:8,[1 -77],[16 -4 1 -81],[8 -8 1 -3 1 -175],[8 -8 1 -3 1 -175],[8 -8 1 -3 1 -175]",LSB,S=255-D,,PWM,LSB,
+00 5A,NEC2,NEC2,NEC2,"38,000",564,"1,-1","1,-3",";[16 -8],D:8,S:8,F:8,~F:8,[1 -78]",LSB,S=255-D,,PWM,LSB,
+00 5A,NEC-28,NEC,NEC Generic,"38,000",563,"1,-1","1,-3","[16 -8],D:8,S:8,F:8,~F:8,[1 -78];[16 -4 1 -175]",LSB,S=255-D,,PWM,LSB,
+00 5A,NEC-30,NEC,NEC Generic,"38,000",550,"1,-1","1,-3","[8 -8],D:8,D:8,F:8,~F:8,[1 -85];[8 -8 1 -1 1 -177]",LSB,,,PWM,LSB,
+00 5A,NEC-31,NEC2,NEC Generic,"38,080",516,"1,-1","1,-3",";[8 -8],D:8,D:8,F:8,~F:8,[1 -90]",LSB,,,PWM,LSB,2nd Device is NOT the compliment
+00 5B,NEC1 38.7kHz,NEC,,"38,000",1117,"1,-1","1,-3","[16 -8],D:8,~S:8,F:8,~F:8,[1 -77],[16 -8]D:8,~S:8,F:8,~F:8,[1 -77],[16 -4 1 -71],[16 -4 1 -71],[16 -4 1 -71]",LSB,S=255-D,,PWM,~LSB,
+00 5C,Proton,,Proton,"37,908",530,"1,-1","1,-3",";[16 -8],D:8,[1 -8],F:8,[1 -40]",LSB,,,PWM,LSB,
+00 5D,Audiovox,,,"40,000",500,"1,-1","1,-3",";[16 -8],D:8,[1 -8],F:8,[1 -40]",LSB,,,PWM,LSB,
+00 5E,Aiwa,s42,Aiwa,"38,000",564,"1,-1","1,-3","[16 -8],D:13,~D:13,F:8,~F:8,[1 -42];[16 -8 1 -165]",LSB,,,PWM,~LSB,Was S42
+00 5F,Pioneer 2CMD,NEC2,Pioneer 2CMD,"40,000",564,"1,-1","1,-3",";[16 -8],D:8,S:8,F:8,~F:8,[1 -78]",LSB,S=255-D,,PWM,LSB,
+00 65,Emerson,Emerson,Emerson,"36,700",872,"1,-1","1,-3",";[4 -4],D:6,F:6,~D:6,~F:6,[1 -39]",LSB,,,PWM,LSB,
+00 6A,Pioneer 3DEV,NEC2,Pioneer 3DEV,"40,000",564,"1,-1","1,-3",";[16 -8],D:8,S:8,F:8,~F:8,[1 -78]",LSB,S=255-D,,PWM,LSB,
+00 78,Sc-Atl-6,,,"57,143",846,"1,-1","1,-3",";[4 -4],D:6,F:6,~D:6,~F:6,[1 -40]",MSB,,,,Sc-Atl-6,
+00 7E,Pioneer DVD,NEC2,Pioneer DVD,"40,000",564,"1,-1","1,-3",";[16 -8],D:8,S:8,F:8,~F:8,[1 -78]",LSB,S=255-D,,PWM,LSB,
+00 92,ReplayTV Official,,ReplayTV Official,"36,000",444,"-1,1","1,-1","[6 -2],1:1,M:3,[-2 2],D:8,S:8,F:8,[-247] 'Zero Toggle '( Alternate: Form=[6 -2],1:1,M:3,[2 -2],D:8,S:8,F:8,[-247] 'One Toggle )",MSB,"S=0   'Unit Code
+M=6   'Mode",,PPM,~MSB,Change name to RC6a?
+00 A4,G.I. 4DTV,,G.I. 4DTV Official,"37,300",992,"1,-1","1,-3",";[5 -2],F:6,D:2,J:1,K:1,L:1,M:1,[1 -60]",LSB,,"M=F(2..2)^F(3..3)^F(5..5)
+L=F(1..1)^F(2..2)^F(4..4)
+K=F(0..0)^F(1..1)^F(3..3)^F(5..5)
+J=F(0..0)^F(3..3)^F(4..4)",PPM,~LSB,
+00 AF,RCA2,RCA,RCA,"58,000",460,"1,-2","1,-4",";[8 -8],D:4,F:8,~D:4,~F:8,[1 -15]",MSB,,,PWM,~MSB,
+00 B6,NEC1,NEC,,"38,000",564,"1,-1","1,-3","[16 -8],D:8,S:8,F:8,~F:8,[1 -78];[16 -4 1 -173]",LSB,S=255-D,,,LSB,"Official NEC1 combination Protocol 2 bytes ist byte is subdevice,  the second is command"
+00 BD,,,,"38,095",500,"-1,1","1,-1","[1 -5],253:8,255:8,[1 -41];[1 -5],F:8,D:8,[1 -161]",LSB,,,PPM,,"Really should be NR17 protocol = [1 -5],1:1,254:8,255:8,[-40];[1 -5],1:1,F:8:D:4,S:4,[-160]"
+00 C4,G.I. Cable,s16b,G.I. Cable,"38,700",490,"1,-4.5","1,-9","[18 -9],F:8,D:4,~C:4,[1 -84];[18 -4.5 1 -178]",LSB,,C=15+D+F(0..3)+F(4..7),PWM,~LSB,
+00 C9,Panasonic,Panasonic,Panasonic,"37,000",432,"1,-1","1,-3",";[8 -4],2:8,32:8,D:8,S:8,F:8,C:8,[1 -173]",LSB,S=0,C=D^S^F,PWM,LSB,
+00 CA,Sony,Sony12,Sony 12/15,"40,000",600,"1,-1","2,-1",";[4 -1],F:7,D:5,[^45000]",LSB,,,PWM,Sony,
+,,Sony15,,"40,000",600,"1,-1","2,-1",";[4 -1],F:7,D:8,[^45000]",LSB,,,PWM,Sony,
+00 CD,,Panasonic,,"37,000",432,"1,-1","1,-3",";[8 -4],2:8,32:8,D:8,S:8,F:8,C:8,[1 -173]",LSB,S=0,C=D^S^F,PWM,LSB,This is the official protocol found on newer remotes like Rob's Panasonic Combo-C is broken for odd sub-device numbers
+00 DE,Sony20,Sony20,Sony20,"40,000",600,"1,-1","2,-1",";[4 -1],F:7,D:5,S:8,[^45000]",LSB,,,PWM,Sony,
+00 E2,NEC2-E2,NEC2 but 40KHz,Pioneer,"40,000",540,"1,-1","1,-3",";[16 -8],D:8,S:8,F:8,~F:8,[1 -40]",LSB,S=255-D,,PWM,LSB,This is the Pioneer Protocol 40KHz
+00 E8,RC-5,RC-5 (changed for 64-127),RC-5,"36,000",889,"1,-1","-1,1",";C:2,T:1,D:5,F:6,[^113778]",MSB,,,PPM,RC5,
+00 E9,,,,"57,600",360,"1,-12","1,-8",;F:5[1 -25],,,,,,Dishplayer (5-bit)
+00 F2,RC-5x,,RC-5x,"36,000",890,"1,-1","-1,1",";C:2,T:1,D:5,[0 -4],F:6,G:6,[^113778]",MSB,,,PPM,RC5,T=Toggle bit
+00 F8,Ampro,,,"38,092",400,"1,-1","1,-3",";[8 -4],D1:8,D2:8,0:8,D3:8,D3:8,F:8,[1 -48]",LSB,,,,,
+00 F8,,,Sharp DVD,"38,000",420,"1,-1","1,-3",";[8 -4],170:8,90:8,D:8,S:8,F:8,1:4,H:1,I:1,J:1,K:1,[1 -48]",LSB,,H=F(4..4)^F(0..0);I=1^F(5..5)^F(1..1);J=F(6..6)^F(2..2);K=1^F(7..7)^F(3..3),,,
+01 11,TiVo Official,,TiVo Official,"38,000",564,"1,-1","1,-3","[16 -8],D:8,S:8,F:8,U:4,~F(4..7):4,[1 -78];[16 -4 1 -173]",LSB,,,PWM,LSB,
+01 82,,,Echostar 2200,"57,142",843,"1,-1","-1,1",";C:2,T:1,D:5,F:6,G:1[^49950]",MSB,,G=D(0..0)+D(1..1)+D(2..2)+D(3..3)+D(4..4)+F(0..0)+F(1..1)+F(2..2)+F(3..3)+F(4..4)+F(5..5),PPM,,SAT_1200 /Echostar 2200
+01 14,,RCA,,"57,300",460,"1,-2","1,-4",";[8 -8],D:4,F:8,~D:4,~F:8,[1 -15]",MSB,,,PWM,~MSB,RCA Official Combination Protocol-most significant nyble of 1st var byte is device; 2nd byte is command
+00 15,,,,"41,845",967,"1,-1","1,-3","D:4,F:6,[1 -38],D:4,F:6,[1 -108];D:4,[1 -54]",MSB,,,,,This is an old Hitachi protocol
+00 6E,,,,"44,400",158,"0,-18","1,-17","D:6,F:6,[^57725]",MSB,,,,,Device Bit Double=Double Every Bit ; Command Bit Double=One After Every Bit
+00 73,,RC5 (also RC5x but not detected by ccf2efc),,"36,000",890,"1,-1","-1,1",";C:2,T:1,D:5,F:6,[^113778]   OR  ;C:2,T:1,D:5,[0 -4],F:6,G:6,[^113778]",MSB,,,,,Can be either RC5 or RC5x depending on Var data
+00 9C,Denon,Denon,,"37,917",264,"1,-3","1,-7",";D:5,F:8,0:2,[1 -165],D:5,~F:8,3:2,[1 -165]",LSB,,,PWM,~LSB,Denon Official Combination Protocol-Device is ~LSB of the most significant 5 bits of Variable byte1
+00 87,,Panasonic(old) but 35KHz,,"34,934",916,"1,-1","1,-3",";[4 -4],D:5,F:6,~D:5,~F:6,[1 -45]",LSB,,,PWM,LSB,"3 Bytes of fixed data called by least two signicficant bits of the variable byte of hex(dev1=3 dec, dev2=1 dec, device 3 = 2 dec)"
+,Some Other Protocols,,,,,,,,,,,,,
+,Electrohome-A1,,,"336,000",382,"-1,1","1,-1","[+1 -5],0:1,31:6,[^45700],[+1 -5],0:1,f:6,[^45700];[+1 -5],0:1,f:6,[^45700]",MSB,,,PPM,,
+,RC-6a (same as Replay),,,"36,000",444,"-1,1","1,-1","[6 -2],1:1,M:3,[-2 2],D:8,S:8,F:8,[-247] 'Zero Toggle '( Alternate: Form=[6 -2],1:1,M:3,[2 -2],D:8,S:8,F:8,[-247] 'One Toggle )",MSB,"S=0   'Unit Code
+M=6   'Mode",,PPM,~MSB,
