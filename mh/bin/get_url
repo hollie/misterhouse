@@ -10,25 +10,34 @@ BEGIN {
     eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
 
-my %config_parms;
+my (%config_parms, %parms);
 
-my $url  = shift;
-if ($url eq '-quiet') {
-    $url  = shift;
-    $config_parms{quiet}++;
-}
+use Getopt::Long;
+#print "get_url: @ARGV\n";
+if (!&GetOptions(\%parms, 'h', 'help',
+                 'quiet', 'cookies=s', 'post=s', 'header=s') or
+    !@ARGV or $parms{h} or $parms{help}) {
 
-if (!$url or $url =~ /^-h/) {
     print<<eof;
 
     $Pgm_Name gets a web page and echos it to STDOUT or a local file.
 
 Usage:
 
-    $Pgm_Name [-quiet] url [local_file]
+    $Pgm_Name [-quiet] [-cookies 'cookiestr'] [-post 'poststr'] [-header header_file] url [local_file]
+
+    -quiet: no output on stdout
+
+    -cookies 'cookiestr': Uses the specified cookie string for the request.
+      The format of 'cookiestr' should be like this: 'name1=val1; name2=val2'.
+
+    -post 'poststr': Makes this a post request with the specified name/value pairs
+      as the form data, such as: 'name1=val1&name2=val2
+
+    -header 'header_file': HTTP headers from the server are stored in this file
 
     If local_file is specified, data is stored there.
-    if local_file = /dev/null, data is not returned.
+    If local_file = /dev/null, data is not returned.
     Otherwise, data is echoed to STDOUT.
 
 
@@ -36,6 +45,7 @@ eof
     exit;
 }
 
+my $url  = shift;
 $url = 'http://' . $url unless $url =~ /^(\S+):\/\//;
 
                                 # Get parms from mh.ini
@@ -46,7 +56,7 @@ require 'handy_utilities.pl';
                                 # background processes in windows really messes up with > :(
 my $file = shift;
 
-if ($config_parms{get_url} eq 'useragent') {
+if (($config_parms{get_url} eq 'useragent') or $parms{post} or $parms{header} or $parms{cookies}) {
     &use_ua;                    # This fails for some people.  Required if using a proxy
 }
 else {
@@ -64,22 +74,38 @@ sub use_ua {
     $config_parms{proxy} = $ENV{HTTP_PROXY}           unless $config_parms{proxy}; # Just in case (lc is the standard)
     $ua -> proxy(['http', 'ftp'] => $config_parms{proxy}) if $config_parms{proxy};
 
-    $ua->timeout([120]);         # Time out after 60 seconds 
+    $ua->timeout([120]);         # Time out after 60 seconds
     $ua->env_proxy();
     $ua->agent($config_parms{get_url_ua}) if $config_parms{get_url_ua};
 
-    my $request = new HTTP::Request('GET', $url);
+    my $request;
+    if ($parms{post}) {
+      $request = new HTTP::Request('POST' => $url);
+      $request->content_type('application/x-www-form-urlencoded');
+      $request->content($parms{post});
+    } else {
+      $request = new HTTP::Request('GET', $url);
+    }
+    if ($parms{cookies}) {
+       $request->header('Cookie' => $parms{cookies});
+    }
     my $response;
-    
+
     if ($file) {
-        print "Retrieving (with ua) $url into $file ..." unless $config_parms{quiet};
+        print "Retrieving (with ua) $url into $file ..." unless $parms{quiet};
         if ($file eq '/dev/null') {
             $response = $ua->request($request);
         }
         else {
             $response = $ua->request($request, $file);   # Old UserAgent code
         }
-        print " url retrieved.\n" unless $config_parms{quiet};
+        print " url retrieved.\n" unless $parms{quiet};
+        if ($parms{header}) {
+           open (OUT, ">$parms{header}") or die "Error, could not open file '$parms{header}' for output: $!\n";
+           binmode OUT;
+           print OUT $response->headers_as_string();
+           close OUT;
+        }
         exit;
     }
     else {
@@ -94,18 +120,18 @@ sub use_ua {
 sub use_get {
     use LWP::Simple;
     if ($file) {
-        print "Retrieving (with simple) $url into $file ..." unless $config_parms{quiet};
-        
+        print "Retrieving (with simple) $url into $file ..." unless $parms{quiet};
+
         # Do not use simple get ... it will not time out :(
         my $data = get $url;
 #       print $data;
         unless ($file eq '/dev/null') {
             if ($data) {
-                open (OUT, ">$file") or die "Error, could not open file $file for output\n";
+                open (OUT, ">$file") or die "Error, could not open file '$file' for output: $!\n";
                 binmode OUT;
                 print OUT $data;
                 close OUT;
-                print " url retrieved\n" unless $config_parms{quiet};
+                print " url retrieved\n" unless $parms{quiet};
             }
             else {
                 print " get failed\n";
@@ -119,6 +145,9 @@ sub use_get {
 
 #
 # $Log$
+# Revision 1.17  2004/09/25 19:51:50  winter
+# *** empty log message ***
+#
 # Revision 1.16  2003/03/09 19:34:32  winter
 #  - 2.79 release
 #
@@ -168,4 +197,3 @@ sub use_get {
 # - created
 #
 #
-
