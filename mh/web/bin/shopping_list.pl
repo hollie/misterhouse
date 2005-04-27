@@ -1,5 +1,5 @@
 # Shopping List
-# Version 1.1
+# Version 1.2
 # Matthew Williams
 #
 # This file should be placed in mh/web/bin.  I link to it through a my_mh page.
@@ -22,19 +22,18 @@
 # shopping_columns determines how many items are displayed per column
 # This is useful to tuning the output to match your screen resolution
 #
+# shopping_email determines which e-mail address will receive the 
+# shopping list.  If blank, will default to net_mail_account_address
+#
 # Revision History:
+# 
+# Version 1.2: Matthew Williams
+# - added section headers to printed output
+# - added ability to send list to an e-mail address
 #
 # Version 1.1: Matthew Williams
 # - changed "modify" button to "update list" to prevent confusion
-#
-# Version 1.0: Matthew Williams
-# - intial release
-#
-# Revision History:
-#
-# Version 1.1: Matthew Williams
-# - changed "modify" button to "update list" to prevent confusion
-#
+# 
 # Version 1.0: Matthew Williams
 # - intial release
 #
@@ -44,6 +43,7 @@ $file = "$Pgm_Root/data/shopping_list.txt" unless $file and -e $file;
 my $printCommand=$config_parms{shopping_print};
 my $tempFile=$file.'.temp';
 my $action;
+my $sectionHeader;
 my $param;
 my %param;
 
@@ -75,7 +75,7 @@ sub shoppingListError {
 
 $param{'action'}='list' unless defined($param{'action'});
 $param{'action'}='list' if $param{'action'} eq 'cancel';
-my $printing=(($param{'action'} eq 'print') or ($param{'action'} eq 'print preview'));
+my $printing=(($param{'action'} eq 'print') or ($param{'action'} eq 'print preview') or ($param{'action'} eq 'e-mail'));
 
 
 $html=qq[
@@ -95,7 +95,6 @@ h4 { font-family: helvetica;
     font-size: 10pt;
     margin:0;
     margin-top: 10;}
-
 </style>
 </head>
 <body>
@@ -205,9 +204,12 @@ if (($param{'action'} eq 'update list') or ($param{'action'} eq 'clear all')) {
 }
 
 if ( $printing) {
-	$html.=qq[<h3>Shopping List</h3>];
+	$html.=qq[<h2>Shopping List</h2>];
 	if ($param{'action'} eq 'print preview') {
 		$html.=qq[<h4>Preview Only<h4>];
+	}
+	if ($param{'action'} eq 'e-mail') {
+		$html.=qq[<h4>E-Mail List<h4>\n];
 	}
 	$html.='<table>';
 }
@@ -222,11 +224,12 @@ while (<SHOPLIST>)
 	/^#/ && do { next; };
 	/^\[(.+)\]$/ && do {
 		if ($printing) {
-			#$html.="</table><table>\n";
+			$sectionHeader="\n</table><h3>$1</h3><table>\n\n";
 		} else {
 		$html.=qq[</table><input type=submit name="action" value="update list">\n];
 		$html.=qq[<input type=submit name="action" value="print preview">\n];
 		$html.=qq[<input type=submit name="action" value="print">\n];
+		$html.=qq[<input type=submit name="action" value="e-mail">\n];
 		$html.=qq[<input type=submit name="action" value="add item">\n];
 		$html.=qq[<input type=submit name="action" value="cancel">\n];
 		$html.=qq[<input type=submit name="action" value="clear all"></p>\n];
@@ -239,6 +242,8 @@ while (<SHOPLIST>)
 		my ($item, $value)=($1,$2);
 		if ($printing) {
 			if ($value==1) {
+				$html.=$sectionHeader;
+				$sectionHeader='';
 				if ($num % $numColumns == 0) {
 					$html.='<tr>';
 				}
@@ -270,4 +275,24 @@ if ($param{'action'} eq 'print') {
 	print PRINTER $html;
 	close (PRINTER);
 }
+
+if ($param {'action'} eq 'e-mail') {
+  if (&net_connect_check) {
+    my $mailtext=$html;
+    $mailtext =~ s/<h2.+?<\/h2>//gs;
+    $mailtext =~ s/<h3>(.*?)<\/h3>/\*\* $1 \*\*/sg;
+    $mailtext =~ s/<title.+?<\/title>//gs;
+    $mailtext =~ s/<style.+?<\/style>//gs;
+    $mailtext =~ s/<.+?>//g;
+    $mailtext =~ s/E-Mail List//g;
+    $mailtext =~ s/^\n+//s;
+    &net_mail_send(subject => 'shopping list', 
+                   text => $mailtext,
+                   to => $config_parms{shopping_email}
+    );
+  } else {
+    $html .= "<h2>Internet connection down - e-mail NOT sent</h2>";
+  }
+}
+
 return &html_page('', $html, '');
