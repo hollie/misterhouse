@@ -200,6 +200,7 @@ sub im_message {
         $msg  = "Type any of the following:\n";
         $msg .= "  find:  xyz  => finds commands that match xyz\n";
         $msg .= "  log:   xyz  => xyz is a filter of what to log.  Can print, speak, play, speak|play, all, and stop\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
+        $msg .= "  var: abc xyz => abc is variable or hash, xyz element in hash to show\n";
         $msg .= "  logon: xyz  => logon with password xyz\n";
         $msg .= "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only sent using current IM program\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
         $msg .= "  any valid MisterHouse voice command(e.g. What time is it)\n";
@@ -207,6 +208,19 @@ sub im_message {
     elsif ($authority eq 'anyone' or $im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from}) {
         if ($authority eq 'admin' and $im_data{password_allow_temp}{$from} ne 'admin') {
             $msg = "Admin logon required";
+        }
+        elsif ($text =~ /^var:\s+(.+)$/i) {
+            no strict 'refs';
+            my @params=split(/\s+/,$1);
+            if ($#params==0) {
+                $msg = "\$$1 = $$1";
+            } elsif ($#params==1) {
+                my $hash=$params[0];
+                my $key=$params[1];
+            	$msg = '$'.$params[0].'{'.$params[1].'} = '.${$params[0]}{$params[1]};
+            } else {
+                $msg = 'Invalid syntax';
+            }
         }
         elsif ($text =~ /^log: (.+)$/i) {
             if (lc $1 eq 'stop') {
