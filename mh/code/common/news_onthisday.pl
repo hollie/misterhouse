@@ -11,29 +11,39 @@ my $f_onthisday_html2 = "$config_parms{data_dir}/web/onthisday_pruned.html";
 
 $p_onthisday = new Process_Item("get_url http://www.nytimes.com/learning/general/onthisday/index.html $f_onthisday_html");
 $v_onthisday = new  Voice_Cmd('[Get,Show] on this day');
+$v_onthisday ->set_info('Get or display the daily calendar facts');
 $v_onthisday ->set_authority('anyone');
 
-if (said $v_onthisday eq 'Get') {
+#***Fix this, wait for process to end THEN parse and write files
+#***Currently a mess, requiring display of news each day
+
+if ((said $v_onthisday eq 'Get')) {
 
     # Do this only if we the file has not already been updated today and it is not empty
     if (-s $f_onthisday_html > 10 and
         time_date_stamp(6, $f_onthisday_html) eq time_date_stamp(6)) {
-        run_voice_cmd 'Show on this day';
-        print_log "onthisday news is current";
+        print_log "Daily calendar facts are current";
     }
     else {
         if (&net_connect_check) {
-            print_log "Retrieving on this day in history from the net ...";
+            print_log "Retrieving daily calendar facts...";
             start $p_onthisday;
-        }        
-    }            
+        }
+    }
 }
 
-if (done_now $p_onthisday or said $v_onthisday eq 'Show') {
-    my $html = file_read $f_onthisday_html;                           
+if (said $v_onthisday eq 'Show') {
+	my $text = file_read $f_onthisday;
+        respond $text;
+}
+
+if (done_now $p_onthisday) {
+
+
+    my $html = file_read $f_onthisday_html;
 
                                 # Pull out date
-#<B>Monday, December&nbsp;23rd</B> 
+#<B>Monday, December&nbsp;23rd</B>
     my ($date) = $html =~ /<B>(\S+, \S+?&nbsp;\S+?)<\/B>/i;
 
                                 # Prune down to main table
@@ -46,11 +56,11 @@ if (done_now $p_onthisday or said $v_onthisday eq 'Show') {
     my $html2 = "<html><body><table>$date\n" . $html;
 #   my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html2));
     my $text = &html_to_text($html2);
+	$text =~ s/<[^>]*>//g;
+#	$text =~ s/<.*\/>//g;
 
 #    $text =~ s/.+?(on this date in)/$1/is;
     file_write($f_onthisday_html2, $html2);
     file_write($f_onthisday, $text);
-    respond $text;
+
 }
-
-

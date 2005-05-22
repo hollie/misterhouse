@@ -51,8 +51,8 @@ my $html = "<meta http-equiv='refresh' content='10;URL='>";
                                 # $om is optional
 use vars '$om';
 if ($om) {
-    $html .= "People Count: " . $om2->people() . "<br>";
-    $html .= "Minimum Count: " . $om2->min_count() . "<br>";
+    $html .= "People Count: "  . $om->people()    . "<br>";
+    $html .= "Minimum Count: " . $om->min_count() . "<br>";
 }
 
 

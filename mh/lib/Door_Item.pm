@@ -15,9 +15,9 @@ Description:
    the same Light_Item.  See Light_Item.pm for various ways to control when
    the light turns on and for how long.
 
-Author:
-	Jason Sharpee/Kirk Bauer
-	jason@sharpee.com/kirk@kaybee.org
+Author(s):
+	Jason Sharpee - jason@sharpee.com
+	Kirk Bauer - kirk@kaybee.org
 
 License:
 	This free software is licensed under the terms of the GNU public license.
@@ -108,7 +108,6 @@ sub set
    } else {
       &::print_log("Door_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{occupancy};
    }
-
    # X10.com door/window security sensor
    if (($p_state eq 'alertmin') or ($p_state eq 'alertmax')) {
       $p_state = 'open';
@@ -125,10 +124,16 @@ sub set
 
    if ($p_state eq 'open') {
       if ($$self{'alarm_action'}) {
-         $$self{m_timerAlarm}->set($$self{'alarm_time'}, $$self{'alarm_action'});
+#         $$self{m_timerAlarm}->set($$self{'alarm_time'}, $$self{'alarm_action'});
+	$$self{m_timerAlarm}->set($$self{'alarm_time'},$self);
       }
       $$self{m_timerCheck}->set($$self{'inactivity_time'}, $self); 
       $$self{last_open} = $::Time;
+   } elsif ($p_setby eq $$self{m_timerAlarm}) { # Alarm timer (needs to loop)
+	package main;
+	eval $$self{'alarm_action'};
+	package Door_Item;
+	$$self{m_timerAlarm}->set($$self{'alarm_time'},$self); #continuous
    } elsif ($p_setby eq $$self{m_timerCheck}) { # Check timer expired
       if ($$self{'inactivity_action'}) {
          package main;

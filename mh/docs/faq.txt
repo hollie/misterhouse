@@ -1323,6 +1323,8 @@ only at Startup?
      - 08/04 Mailing list reaches 600 members.
      - 09/04 Support for SVG floorplans, mp3 ripping, ebay monitoring, siteplayer, irc.
      - 11/04 Support for servo motors, the ESRA robot, cell phone minutes monitoring, motherboard monitoring.
+     - 03/05 Support for serving multimedia files, cell phone minute monitors, shopping lists.
+     - 05/05 Support for distributed xAP speech, bluetooth proximity detection.
 
   6.2: Who is that Bruce guy anyway?
     Bruce (Winter) is the the main author of MisterHouse. He has a day job

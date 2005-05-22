@@ -21,10 +21,11 @@ for my $item (sort @objects) {
     my $object = &get_object_by_name($item);
 
     next if $object->{hidden};
-    
+
     my $state = state_level $object if $object->isa('X10_Item');
-    $state = state $object if $object->isa('Fan_Light') or $object->isa('Fan_Motor');
+    $state = state $object if $object->isa('Fan_Light') or $object->isa('Fan_Motor') or $object->isa('X10_Appliance');
     $state = 'unk' unless $state;
+#	print $state_new . "\n";
 
     my $state_new = (!defined $state or $state eq 'off') ? 'on' : 'off';
 
@@ -75,18 +76,18 @@ for my $item (sort @objects) {
     $html .= "</tr><tr>\n" unless ++$i % 2;
 }
 
-#$html = "<html><body>\n<base target ='output'>\n" . 
+#$html = "<html><body>\n<base target ='output'>\n" .
 if ( $html_refrate  ) {
-    $htm_hdr = "<html><head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"". $html_refrate . ";\"><\/head><body>\n"; 
+    $htm_hdr = "<html><head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"". $html_refrate . ";\"><\/head><body>\n";
 }
 else {
-    $htm_hdr = "<html><body>\n" ;  
+    $htm_hdr = "<html><body>\n" ;
 }
-    
+
 $html = $htm_hdr .  &html_header('Control Items') . "
 <table width='100%' border='0'>
 <center>
- <table cellSpacing=4 cellPadding=0 width='100%' border=0>  
+ <table cellSpacing=4 cellPadding=0 width='100%' border=0>
 $html
 </table>
 </center>

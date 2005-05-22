@@ -10,7 +10,7 @@ $VERSION = 0.01;
 
 # 09/03/00 :: winter Make ParseDate optional.  It is overkill and I could not get it to
 #                    compile in perl2exe.  It gave runaway comment errors :(
-# 10/12/00 :: winter Change time_zone check to defined, to allow for time_zone 0 
+# 10/12/00 :: winter Change time_zone check to defined, to allow for time_zone 0
 # 06/02/01 :: winter Moved from mh/site/lib/Astro and renamed from SunTime.pm
 #                    to avoid picking up old non-mh versions.
 
@@ -53,7 +53,7 @@ sub sun_time
    my $A = 1.5708;
    my $B = 3.14159;
    my $C = 4.71239;
-   my $D = 6.28319;     
+   my $D = 6.28319;
    my $E = 0.0174533 * $latitude;
    my $F = 0.0174533 * $longitude;
    my $G = 0.261799  * $time_zone;
@@ -97,7 +97,7 @@ sub sun_time
       $P += $B;
    }
 
-   my $Q = .39782 * sin($M);            # Solar Declination 
+   my $Q = .39782 * sin($M);            # Solar Declination
    $Q = $Q / sqrt(-$Q * $Q + 1);     # This is how the original author wrote it!
    $Q = atan2($Q, 1);
 
@@ -119,13 +119,16 @@ sub sun_time
    my $hour = int($V);
    my $min  = int(($V - $hour) * 60 + 0.5);
 
+# Not sure about this ... most boxes don't need this.  localtime call already adjusts this.
+#  $hour = &adjust_dst($hour) unless $params{no_dst};
+
    @suntime[2,1,0,8] = ($hour, $min, 0, 0);
 
    @suntime = localtime(mktime(@suntime));	# normalize date structure
 
    return sprintf("%d:%02d", @suntime[2,1]);
 }
-           
+
 sub normalize
 {
    my $Z = shift;
@@ -139,10 +142,19 @@ sub normalize
    return $Z;
 }
 
+sub adjust_dst {
+    my($hour_in) = @_;
+                                # Note: jan -> month=0   sun -> wday=0
+                                # First Sunday in April, Last in October
+    my($sec, $min, $hour, $mday, $month, $year, $wday) = localtime(time);
+    $hour_in++ if (($month > 3   and $month < 9) or
+                   ($month == 3  and ($mday - $wday > 0)) or
+                   ($month == 9 and ($mday - $wday < 25)));
+    return $hour_in;
+}
 
 
-1;           
+
+1;
 
 __END__
-
-

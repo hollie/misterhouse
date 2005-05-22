@@ -28,11 +28,26 @@ if($cid_number){ # did we get anything?
 
 	# Speak incoming callerID data and log it
     
-	
-
 	my $caller=$cid_name;   #probably need to reformat this.
 
-	print_log "callerid info : $cid_number [$cid_name]";
+	if ($caller eq '')
+	{
+		$caller= "Unknown" ;
+	}
+
+	if ($cid_number eq 'Private')
+	{
+		$caller = "Private" ;
+	}
+
+	if ($caller eq 'No Data')
+	{
+		$caller = "Unknown" ;
+	}
+
+	my $cid_string="Call from $caller" ;
+
+	print_log "CallerId info : $cid_number [$cid_name]";
 
 
                                 # If we have other callerID interfaces (e.g. phone_modem.pl)
@@ -42,11 +57,8 @@ if($cid_number){ # did we get anything?
         $Save{phone_callerid_time} = "$Hour:$Minute";
         $Save{phone_callerid_Time} = $Time;
 
-        play rooms => 'all', file => 'ringin.wav,ringin.wav'; # Simulate a phone ring
-        speak("rooms=all_and_out mode=unmuted $caller");
-        logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",  
-              "$cid_number name=$cid_name data=NA line=W");
-        logit_dbm("$config_parms{data_dir}/phone/callerid.dbm", $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");
-    }
-}
-
+#       play rooms => 'all', file => 'ringin.wav,ringin.wav'; # Simulate a phone ring
+# speak "Call from $caller"; # gv added & deleted previous and this statement
+speak voice => 'Female', text => $cid_string ;
+      #  speak("rooms=all_and_out mode=unmuted $caller");
+        logit("$config_parms{data_dir}/phone/logs/caller

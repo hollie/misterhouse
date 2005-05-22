@@ -3,12 +3,12 @@ package ControlX10::CM11;
 #
 # An X10 ActiveHome interface, used by Misterhouse ( http://misterhouse.net )
 #
-# Uses the Windows or Posix SerialPort.pm functions by Bill Birthisel,
+# Uses the Windows or Posix SerialPort.pm fuctions by Bill Birthisel,
 #     available on CPAN
 #
 #-----------------------------------------------------------------------------
 use strict;
-use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $POWER_RESET);
+use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $POWER_RESET $BACKLOG);
 
 require Exporter;
 
@@ -26,7 +26,7 @@ $EXPORT_TAGS{ALL} = \@EXPORT_OK;
 #### Package variable declarations ####
 
 ($VERSION) = q$Revision$ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge
-$DEBUG = 0;
+$DEBUG = 1;
 my $Last_Dcode;
 
 sub send_cm11 {
@@ -96,16 +96,21 @@ sub receive_buffer {
     }
 
     my $pc_ready = pack('C', 0xc3);
-    print "Bad cm11 pc_ready transmition\n" unless 1 == $serial_port->write($pc_ready);
+    print "Bad cm11 pc_ready transmission\n" unless 1 == $serial_port->write($pc_ready);
 
     # Lets not wait for data (use no_block option), or we loop too long and mh slows way down
 
-    # let the 0xc3 ack take hold ... emperically derived ... 1/2 misses at 20 ms
+    # let the 0xc3 ack take hold ... empirically derived ... 1/2 misses at 20 ms
     #   - increase from 40 to 80, based on other CM11s.
-    select undef, undef, undef, 80 / 1000;
+#    select undef, undef, undef, 30 / 1000;
 
     my $data;
-    return undef unless $data = &read($serial_port, 1);
+
+    print "cm11 reading...\n" if $DEBUG;
+    $data = &read($serial_port, 0);
+
+    print "cm11 failed to read\n" unless $data or !$DEBUG;
+    return undef unless $data;
 
 #   my $data = &read($serial_port);
 
@@ -118,16 +123,26 @@ sub receive_buffer {
     $mask   = unpack('B8', $mask);
     my $data_h = unpack('H*',  $data);
     print "receive buffer length=$length, mask=$mask, data_h=$data_h.\n" if $DEBUG;
-
     my ($house, $function, $device, $i, $extended_count);
+    my ($extended_device, $extended_command, $extended_data);
 
     undef $data;
     foreach my $byte (@bytes) {
               # Send extended data into MH as untranslated hex.
         if ($extended_count) {
-           $data .= unpack('H*', $byte);
+           #$data .= unpack('H*', $byte);
            --$extended_count;
            ++$i;
+	   if ($extended_count == 0) { #command
+		$extended_command = $byte;
+	   }
+	   elsif ($extended_count == 1) { #data (on/off or dim level)
+		$extended_data = $byte;
+	   }
+	   else { #must be 2 (unit)
+		$extended_device = $table_dcodes2{substr(unpack('B8', $byte),4,4)};
+	   }
+
         }
         else {
            my $bits = unpack('B8', $byte);
@@ -139,13 +154,17 @@ sub receive_buffer {
 #          print "function=$house$function\n";
 
                                    # Add device code back in, since this is not included in status :(
-               $function = $Last_Dcode . $function if $function =~ /^STATUS/;
-                                   # Handle Vehicle Interface RF Receiver extended code - assume length of 3 for extended
+	#*** But only if it matches house code!  Need hash for this...
+		if ($function =~ /^STATUS/) {
+               $function = $Last_Dcode . $function;
+		}
                $extended_count = 3 if ($function eq 'Z');
+
 ## 2.08, but 'Z' not numeric ##
 ##               $extended_count = 3 if ($function == 'Z');
 
-               $data .= $house . $function;
+
+               $data .= $house . $function unless $function eq "Z";
                  print "CM11 db: data=$data\n" if $DEBUG;
            }
            else {
@@ -155,7 +174,33 @@ sub receive_buffer {
            }
         }
 #       print "byte=$byte, $bits\n";
+
     }
+	if ($extended_command and $DEBUG) { print "extended_command: " . unpack("H*",$extended_command) . " extended_device: " . $extended_device . " extended_data: " . unpack("H*",$extended_data) . "\n"; }
+
+	if ($extended_command eq "1") { #received preset_dim
+		$data .= $house.$extended_device.$house."&P".(unpack("C1",$extended_data));
+	}
+	elsif ($extended_command eq "7") { #Poll from/to module
+		print "Poll $extended_device" if $DEBUG;
+		$data .= $house.$extended_device.$house."POLL";
+	}
+	elsif ($extended_command eq "8") { #Ack on/off/level
+		print "Ack $extended_device:$extended_command:" . unpack("C1", $extended_data) if $DEBUG;
+		#Just check first bit!  ***Need to set level with additional &P
+		if (unpack("C1", $extended_data) - 0x80) {
+			$data .= $house.$extended_device."STATUS_ON";
+		}
+		else {
+			$data .= $house.$extended_device."STATUS_OFF";
+
+		}
+	}
+
+
+	print "cm11 received: $data\n" if $DEBUG;
+
+
     return $data;
 }
 
@@ -189,11 +234,11 @@ sub format_data {
             return;
         }
         $code_bits = '0111';    # Extended code
-        $function = '1';        # Extended transmitions are a function
+        $function = '1';        # Extended transmissions are a function
         $extended = '1';
         $dim_level = 0;         # Dim level is not applicable to extended transmitions.
 
-                                # Hard codeded preset for now ...
+                                # Hard coded preset for now ...
 
                                 # This is not documented!!  By looking at
                                 # ActiveHome errata, it seems the device code is required
@@ -228,7 +273,7 @@ sub format_data {
         $function = '1';
         $extended = '0';
         if ($code eq 'DIM' or $code eq 'M' or $code eq 'BRIGHT' or $code eq 'L') {
-            $dim_level = 34;    # Lets default to 3 bight/dims to go full swing
+            $dim_level = 34;    # Lets default to 3 bright/dims to go full swing
         }
         elsif ($code =~ /^[+-]\d\d$/) {
             $dim_level = abs($code);
@@ -247,7 +292,7 @@ sub format_data {
 
     $header .= '1';             # Bit 2 is always set to a 1 to ensure synchronization
     $header .= $function;       # 0 for address,  1 for function
-    $header .= $extended;       # 0 for standard, 1 for extended transmition
+    $header .= $extended;       # 0 for standard, 1 for extended transmission
 
                                 # Convert from bit to string
     my $b1 = pack('B8', $header);
@@ -273,12 +318,19 @@ sub format_data {
 
 }
 
+
+my $retry_timer;
+
 sub send {
     my ($serial_port, $house_code) = @_;
 
     if (exists $main::Debug{x10}) {
-        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
+#        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
+	$DEBUG = 1;
     }
+
+
+
 
     my ($data_snd, $checksum) = &format_data($house_code);
     return unless $data_snd;
@@ -287,47 +339,77 @@ sub send {
   RETRY:
     print "CM11 send: ", unpack('H*', $data_snd), "\n" if $DEBUG;
 
-    print "Bad cm11 data send transmition\n" unless length($data_snd) == $serial_port->write($data_snd);
+    print "Bad cm11 data send transmission\n" unless length($data_snd) == $serial_port->write($data_snd);
 
                                 # Note: Skip the power fail check, because we the
                                 # checksum might be the power fail flag (0xa5)
-    my $data_rcv = &read($serial_port, 0, 1);
-#   my $data_rcv;
-#   return unless $data_rcv = &read($serial_port, 0, 1);
 
+   my $data_rcv;
+   goto RETRY unless $data_rcv = &read($serial_port, 0, ($checksum == 0xa5)) or $retry_cnt++ < 16;
+
+#   return unless $data_rcv = &read($serial_port, 0, 1);
+    print "cm11 send failed" unless $retry_cnt < 16;
+    return unless $retry_cnt < 16;
     my $data_d = unpack('C', $data_rcv);
 
                                 # Unrelated incoming data ... process and re-start
                                 # Note:  Some checksums will be 0x5a or 0xa5 ... skip this test if so
-    if (($data_d == 0x5a or $data_d == 0xa5) and !($checksum == 0x5a or $checksum == 0xa5)) {
-        print "Data received while xmiting data ... will receive and retry\n";
-        &receive_buffer($serial_port);
-        goto RETRY if $retry_cnt++ < 3;
+    $retry_cnt = 0;
+    if ((($data_d == 0x5a) and ($checksum != 0x5a)) or (($data_d == 0xa5) and ($checksum != 0xa5))) {
+        print "Data received while xmiting data ... will receive and retry CS1:$data_d CS2:$checksum\n";
+        $BACKLOG .= &receive_buffer($serial_port);
+        goto RETRY if $retry_cnt++ < 8;
     }
 
-    if ($checksum != $data_d) {
-        print "Bad checksum in cm11 send: cs1=$checksum cs2=$data_d.  Will retry\n";
-        goto RETRY if $retry_cnt++ < 3;
+
+    if (($data_d == 0x55) and ($checksum != 0x55)) {
+        print "Done signal received while xmiting data ... will retry CS1:$data_d CS2:$checksum\n";
+	goto RETRY if $retry_cnt++ < 8;
+    }
+
+    if ($retry_cnt == 8 and (!$retry_timer or inactive $retry_timer)) {
+	print "Re-scheduling send due to traffic";
+	$retry_timer = new Timer;
+        set $retry_timer 1, "send('$serial_port','$house_code')";
+    }
+
+
+    $retry_cnt = 0;
+    if (($checksum != $data_d)) {
+	if ($data_d) {
+        	print "Bad checksum in cm11 send: cs1=$checksum cs2=$data_d.  Will retry\n";
+        	goto RETRY if $retry_cnt++ < 3;
+	}
+	else {
+		print "No response from cm11.  Please send an X10 signal...\n";
+		#setClock($serial_port);
+		return;
+	}
     }
 
     print "CM11 ack\n" if $DEBUG;
     my $pc_ok    = pack('C', 0x00);
-    print "Bad cm11 acknowledge send transmition\n" unless 1 == $serial_port->write($pc_ok);
-
-    return unless $data_rcv = &read($serial_port);
+    print "Bad cm11 acknowledge send transmission\n" unless 1 == $serial_port->write($pc_ok);
+    $retry_cnt = 0;
+RETRY2:
+    $data_rcv = &read($serial_port);
+    goto RETRY2 unless $data_rcv or $retry_cnt++ < 8;
     $data_d = unpack('C', $data_rcv);
 
-    if ($data_d == 0x55) {
-        print "CM11 done\n" if $DEBUG;
+    if (($data_d == 0x55) and $DEBUG) {
+        print "CM11 done\n";
     }
     # Unrelated incoming data ... process
-    elsif ($data_d == 0x5a or $data_d == 0xa5) {
-        print "Data received while xmiting data ... receive and retry\n";
-        &receive_buffer($serial_port);
-        goto RETRY if $retry_cnt++ < 3;
+    elsif ((($data_d == 0x5a) and ($checksum != 0x5a)) or (($data_d == 0xa5) and ($checksum != 0xa5))) {
+        print "Data received while xmiting data #2 ... will receive and retry CS1:$data_d CS2:$checksum\n";
+        $BACKLOG .= &receive_buffer($serial_port);
+        goto RETRY2 if $retry_cnt++ < 8;
     }
 
-    return $data_d;
+	print "Backlog:$BACKLOG\n" if $DEBUG;
+
+	return $data_d;
+
 }
 
 sub read {
@@ -353,6 +435,7 @@ sub read {
 
                                 # If we received the power-fail string (0xa5), reset with a blank macro command
                                 #  - Protocol.txt says to send macros string, but that did not work.
+
             if ($data_d == 165 and !$no_power_fail_check) {
 
                 print "\nCM11 power fail detected.";
@@ -369,7 +452,7 @@ sub read {
         }
 
         if ($tries) {
-            select undef, undef, undef, 50 / 1000;
+            select undef, undef, undef, 40 / 1000;
         }
     }
 
@@ -386,9 +469,6 @@ sub dim_level_decode {
                           9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
                           A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
 
-    if (exists $main::Debug{x10}) {
-        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
-    }
 
                                 # Convert bit string to decimal
     my $level_b = $table_hcodes{substr($code, 0, 1)} . $table_dcodes{substr($code, 1, 1)};
@@ -403,6 +483,7 @@ sub dim_level_decode {
 }
 
 
+
 sub reset_cm11 {
     return unless ( 1 == @_ ) ; # requires port number to reset
     &enable_RI ( @_ );
@@ -411,35 +492,71 @@ sub reset_cm11 {
 
                                 # This currently gets bad checksums :(
                                 # On windows, it gives Parity Errors.
+				# Not any more :)
 sub enable_RI {
     my ($serial_port) = @_;
     my $ri_on = 0xeb;
     my $ack  = 0x00;
     my $done = 0x55;
     my $checksum;
+    my $retry_cnt = 0;
 
                                 # Send RI Enable code to CM11
+RETRY:
     $serial_port->input;
     $serial_port->write(pack('C',$ri_on));
     do {
         $checksum = $serial_port->input;
-    } until $checksum;
+    } until $checksum or $retry_cnt++ > 3;
 
     if ( $checksum ne pack('C',$ri_on) ) {
-        print "Checksum error in enabling RI: ", unpack('H2',$checksum),"\n";
-        return $checksum;
+
+	if ($checksum eq pack('C',0x5a)) {
+	        print "Data received while xmiting data ... will receive and retry\n";
+		&receive_buffer($serial_port);
+		goto RETRY unless $retry_cnt++ > 3;
+
+	}
+	else {
+		if ($checksum) {
+		        print "Checksum error in enabling RI: ", unpack('H2',$checksum),"\n";
+        		return $checksum;
+		}
+		else {
+		        print "Failed enabling RI","\n";
+        		return $checksum;
+		}
+	}
     }
 
                                 # Tell the CM11 to do it
     $serial_port->write(pack('C',$ack));
-
+RETRY2:
     do {
         $checksum = $serial_port->input;
-    } until $checksum;
+    } until $checksum  or $retry_cnt++ > 3;
 
     if ( $checksum ne pack('C',$done) ) {
-        print "CM11 failed to properly acknowledge execution of RI_Enable\n";
+
+	if ($checksum eq pack('C',0x5a)) {
+	        print "Data received while xmiting data ... will receive and retry\n";
+		&receive_buffer($serial_port);
+		goto RETRY2 unless $retry_cnt++ > 3;
+		print "Failed to enable RI!  Even after 4 tries.  Too many collisions.";
+
+	}
+	else {
+	        print "CM11 failed to properly acknowledge execution of RI_Enable : $checksum\n";
+        	return $checksum;
+	}
     }
+
+
+
+
+
+
+
     return $checksum;
 }
 
@@ -486,7 +603,7 @@ sub setClock {
                            $Yday2,
                            $CodeF);
 #                           $Wday,
-#                           0x03);    # Not sure what is best here.  x10d.c did this.
+#                           0x03);    # Not sure what is best here.  x10 doc did this.
 
     my $results = $serial_port->write($power_reset);
     select undef, undef, undef, 50 / 1000;
@@ -794,6 +911,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.23  2005/05/22 18:13:07  winter
+# *** empty log message ***
+#
 # Revision 2.22  2004/09/25 20:01:20  winter
 # *** empty log message ***
 #

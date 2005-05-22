@@ -2,6 +2,9 @@
 # Category = xAP
 
 #@ xAP command server for MH.  Will run requested commands and send respond results back.
+#@ It also sets the states of any local object items that match, allowing external programs
+#@ to control mh items (e.g. multiple mh systems can have mirrored items)
+
 
 # TODO: probably need to assign a unique id to request so the correct
 # response can always be found amongst many concurrent responses (scalability)
@@ -62,3 +65,21 @@ sub respond_xap
 
 $xap_command_voice = new xAP_Item('command.voice');
 $xap_command_speak = new xAP_Item('command.speak');
+
+
+# Monitor item state requests
+
+$xap_mhouse_item = new xAP_Item('mhouse.item');
+if (state_now $xap_mhouse_item) {
+    my $name = $$xap_mhouse_item{'mhouse.item'}{name};
+    my $item = &get_object_by_name($name);
+    if ($item) {
+        my $state  = $$xap_mhouse_item{'mhouse.item'}{state};
+        my $set_by = $$xap_mhouse_item{'mhouse.item'}{set_by};
+        my $target = $$xap_mhouse_item{'mhouse.item'}{mh_target};
+                                # Use set_by xAP to avoid a loop on mirrored mh systems.
+                                # Generic_Item set checks for this when sending data out to xAP.
+        set $item $state, 'xAP';
+        print "xAP item mirrored: name=$name, state=$state, set_by=$set_by target=$target\n" if $Debug{xap_item};
+    }
+}

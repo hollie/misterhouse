@@ -1,8 +1,12 @@
 mh/code/public:
 
-This directory has working, ready to use, applications.  Unlike the
-code snippets in the code/examples directory, these files are typically
+This directory has code sent in by you, the public.
+Unlike the code snippets in the code/examples directory, these files are typically
 more complex, functioning code.
+
+Much of this code is not actively maintained.   The more common, activly maintained
+code is in the code/common directory.  You can select or deselect that code using
+the web interface.
 
 -----------
 
@@ -222,13 +226,6 @@ omnistat.pl
    thermostats (e.g. RC80).  Kent switched houses before he had a chance
    to finish testing this code.
 
-NetCallerID.pl
- - Timothy Spaulding's code to interface with the $30 NetCallerID box.
-   In addition to normal CallerID, it supports Call Waiting CallerID
-   (callerid while you are on the phone).
-   Also see mh/code/bruce/phone_netcallid.pl for another example.
-   This has been replaced with mh/code/common/callerid.pl
-
 news*.pl
  - Tom Kotowski's code for getting news and info from various web pages
  - Brian Rigsby did news_yahoo.pl
@@ -428,6 +425,10 @@ weather_vw.pl
    Includes Clay Jackson's example of logging weather data to
    APRSWXNET: http://www.findu.com/aprswxnet.html
    For example:  http://www.findu.com/cgi-bin/wxpage.cgi?n7qnm
+
+weather_warning.pl
+ - Dan Hoffard's code that periodically checks the NOAA website for severe
+   watches and warnings in any given area and speaks warning messages
 
 weather_wrtv.pl
  - Tom K. example on geting weather from his local news web page

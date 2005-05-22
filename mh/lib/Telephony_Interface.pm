@@ -26,6 +26,13 @@ sub new {
 #       print "\nTelephony_Interface error, no port specified: name=$name.\n";
     }
 
+                                # Allow for a user defined type
+                                # e.g.  'modem1:ATE1V1X4&C1&D2S0=0#CID=1,38400,dtr'
+    if ($type and $type =~ /(\S+?):(.+)/) {
+        $type = $1;
+        @{$table{$type}} = split ',', $2;
+    }
+
     $type = 'default' unless $type;
     $type = 'default' unless $table{$type}; # In case someone makes up a bad type
 
@@ -51,7 +58,7 @@ sub open_port {
     return if $main::Serial_Ports{$name}; # Already open
     push @list_ports, $name;
     $type_by_port{$name} = $type;
-    my $baudrate  = 38000;
+    my $baudrate  = 38400;
     my $handshake = 'dtr';
     if ($table{$type}) {
         $baudrate  = $table{$type}[1];
@@ -124,6 +131,12 @@ sub process_cid_data {
 
     $data =~ s/[\n\r]//g; # Drop newlines
 
+                                # Clean up Dock-N-Talk data
+#   ###DATE...NMBR5071234567...NAMEDock-N-Talk+++
+#   ###DATE...NMBR...NAME   -MSG OFF-+++
+    return if $data =~ /-MSG OFF-/;
+    $data =~ s/Dock-N-Talk//;
+
     my $type = $type_by_port{$port};
     if ($type eq 'weeder') {
         ($time, $number, $name) = unpack("A13A13A15", $data);
@@ -135,6 +148,7 @@ sub process_cid_data {
 #  ###DATE...NMBR...NAME MESSAGE WAITING+++
         ($date, $time, $number, $name) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.*?)\++$/;
         ($name)                        = $data =~ /NAME(.*?)\++$/ unless $date;
+        ($number)                      = $data =~ /NMBR(.+)\.{3}/ unless $name;
     }
 # NCID data=CID:*DATE*10202003*TIME*0019*NMBR*2125551212*MESG*NONE*NAME*INFORMATION*
 # http://ncid.sourceforge.net/

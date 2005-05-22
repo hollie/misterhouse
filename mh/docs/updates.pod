@@ -19,16 +19,115 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 =end html
 
-
 B<New Features:>
 
 B<Bug Fixes and Other Changes:>
 
 
+=head2 Version 2.99 posted on 05/22/2005
+
+Version 2.99 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+
+
+B<New Features:>
+
+- Pete Flaherty updated his new mhmedia code to collect, display, select/queue various media files, from MH web interface.
+He also created bin/mhmms-server.pl for use on the box Xine is running.
+
+- Pete Flaherty also created docs/faq_mhmedia.* to document his new mhmedia code.
+
+- Chris Barrett created mh/bin/xAP-festival.pl, which provides a simple xAP listener for the Festival text-to-speech synthesizer.
+
+- Gregg Liming added code/common/xap_pa_control.pl, so we can use distributed xAP/xPL TTS speech clients
+(like the new xAP-festival.pl) to create a distributed speech PA system.
+
+- Gregg Liming made numerous great updates to lib/xAP_Items.pm, including
+allowing for the use of the xAP target field, a heartbeat monitor, a section specific state_now option,
+and a new tie_value_converter method for modifying data on the fly.
+
+- Gregg Liming also updated Telephony_xAP.pm and created mh/code/public/asterisk_gregg.pl as an example of interfacing asterisk using xAP.
+
+- Jim Duda  updated code/common/audreyspeak.pl to use the "rooms" parameter instead of the "address" parameter.
+It now also builds a queue of speak and play items such that speak and play events don't stomp on each other.
+
+- Dan Hoffard created code/public/weather_warning.pl to periodically checks the NOAA website for severe
+watches and warnings in any given area and speaks warning messages.
+
+- David Mark made extensive changes to the X10 processing code:
+added additional code for processing commands that were otherwise discarded ($BACKLOG variable),
+tweaked various timeouts and added some additional logic to the send function toeliminate the bad checksums,
+added support for the extended ack (LM14's send these when their states change) and extended preset dim commands,
+and polling is now reported in the logs.
+
+- David Satterfield created code/common/voicemail_vocp.pl to interface to the Linux vocp system: http://www.vocpsystem.com
+
+- Marcus Müller created a xAP driver for his 2-way, multi-zone capable IRTrans interface, available for 99 Euro from http://www.irtrans.com/
+
+- David Norwood created code/common/rss_subscriber.pl for downloading files in rss feeds (e.g. podcasts and torrent files for TV shows).
+
+- Updated common/phone_minutes.pl to work with Cingular (in addition to Sprint and Tmobile).
+
+- Added mh.ini options xap/xpl_enable_items to enable mh to echo mh item state changes to xap/xpl.
+Also added code to common/xAP_command.pl to allow external xAP programs to set states on mh items and
+to allow for multiple mh systems with the common mirrored items.
+
+- Created mh/bin/xAP-bluetooth.pl (called with mh/bin/xAP-bluetooth) and mh/code/common/xAP_bluetooth.pl
+for monitoring when bluetooth enabled devices (e.g. phones) go in and out of range.
+The xAP daemon runs on Linux and requires the bluez lib to be installed (pointers in the header).
+
+
+B<Bug Fixes and Other Changes:>
+
+- Updated lib/Serial_Item.pm to cancel set_with_timer events if mh detects that device was set externally.
+
+- Chris Barrett updated web/bin/phone_out.pl to allow for numbers other than 12 digit numbers.
+
+- Sam Levine noticed a 2.98 typo on web/bin/floorplan.pl
+
+- Mark Radke updated code/common/weather_rrd_update.pl to correctly
+calculates the sea level pressure if the weather_uom_baro variable is set to mb.
+Mark also created code/common/weather_summary.pl to update the $Weather{Summary_Short} used in the web status bar.
+
+- Pete Flaherty updated code/common/phone_logs.pl to format the phone out logs with a bit more data.
+
+- Added $Loop_Count_Reload, so we can see how many passes we have had since the last reload.
+
+- Moved the GD .jpg images created by the web/button* code from html_dir/cache to data_dir/cache
+
+- Chris Barrett fixed two problems with net_mail_send which was creating mime email that was not quite legal.
+
+- Peter Woodall updated common/internet_earthquakes.pl to point to an updated usgs.gov ftp url
+
+- Gianni Veloce updated code/public/audrey_cid.pl
+
+- Tony Hall updated common/stocks.pl to work with new stock data from Yahoo.
+
+- Rick Steeves updated web/comics/dailystrips/strips.def to re-enable Dilbert.  Also updated to the latest version from sf cvs.
+
+- Brian Ujvary updated  X10_IrrigationController in lib/X10_Items.pm to fix issues with a timer, Rain8 All OFF,
+abort requests, and allowed for a second zone cascade request.
+
+- Allow for a user defined modem in lib/Telephony_Interface.pm.
+
+- Updated lib/Telephony_Interface.pm to clean up callerid data from the bluetooth Dock-N-Talk cell phone interface.
+
+- Jason Sharpee updated lib/Door_Item.pm to add a periodic alarm trigger and lib/Stargate.pm to remove "Thermostat parse error" debug message.
+
+- Updated lib/site/Date/*.pm modules to the latest versions.
+
+- David Mark updated code/common/internet_weather.pl to add barometric pressure rising/falling, wind chill,
+and changed the shell command to a processs_item call.
+
+- Nigel Titley sent in code/public/iButton_logcks.pl as an example of how he uses iButtons and a weeder module for a door lock.
+
 
 =head2 Version 2.98 posted on 03/20/2005
 
 Version 2.98 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
 
 
 B<New Features:>
@@ -153,7 +252,7 @@ B<Bug Fixes and Other Changes:>
 
 - William Magill fixed the uptime calculation for OSx.
 
-- Greg Limming update common/xAP_command.pl to allow for targets and ackmsg attributes.
+- Gregg Liming update common/xAP_command.pl to allow for targets and ackmsg attributes.
 
 - David Satterfield noticed that unquoted arguments using the web SUB function were treated as one argument instead of multiple arguments.
 
@@ -223,7 +322,7 @@ and new drive commands.  See header for the list of changes.
 
 - Russ Knize created a Debian package, available here:  http://www.knizefamily.net/russ/software/misterhouse.html
 
-- Greg Limming update lib/xAP_Items.pm so there are now
+- Gregg Liming update lib/xAP_Items.pm so there are now
 two separate listeners/senders and hubs, to support xAP and xPL at the same time.
 He also added  xap_disable and xpl_disable options.
 
@@ -1118,7 +1217,7 @@ B<Bug Fixes and Other Changes:>
 
 - Jason Sharpee updated his new set of Base_Item objects as well as a small Timer.pm update.
 
-- Greg Limming update the Celstia TTS option to allow for aliased voice names.
+- Gregg Liming update the Celstia TTS option to allow for aliased voice names.
 
 - Updated dailystrips comic script from 1.0.25 to 1.0.28
 
@@ -2909,8 +3008,11 @@ auto-generated GD icons with blanks in the text (e.g. 'X10 Items').
 
 - Kevin Wambsganz added mh.ini parm lib_dir, so you can add or override .pl library files.
 
-- Ron Klinkien updated and created some more ia5 icons.
+- o
 
+
+
+Ron Klinkien updated and created some more ia5 icons.
 - Riad Wahby updated the AOL AIM module to work with a recent AOL change.
 
 - Alan Womack suggested we add a web/tk option for typing in commands, like we can type with the external bin/house command.

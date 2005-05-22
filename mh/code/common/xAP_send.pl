@@ -26,10 +26,10 @@ sub xAP_send_x10 {
 }
 
 
-                                # Send spoken data
+                                # Send spoken data, if we have a local speech engine
                                 #  - This is also done in code/common/display_slimserver.pl
+&Speak_parms_add_hook(\&xAP_send_speak, 0) if $Reload && $config_parms{voice_text};
 
-&Speak_parms_add_hook(\&xAP_send_speak, 0) if $Reload;
 
 sub xAP_send_speak {
     my ($parms_ref) = @_;
@@ -40,7 +40,6 @@ sub xAP_send_speak {
                                 # Drop extra blanks and newlines
     $$parms_ref{text} =~ s/[\n\r ]+/ /gm;
 # For the mi4.biz client, documented here: http://www.mi4.biz/modules.php?name=Content&pa=showpage&pid=17
-# ... hmmm, does not seem to work :(
     &xAP::send('xAP', 'tts.speak', 'tts.speak' =>
                {Say => $$parms_ref{text}, Volume => $$parms_ref{volume}, Voice => $$parms_ref{voice}, mode => $$parms_ref{mode},
                 Priority  => $$parms_ref{priority}, Rooms => $$parms_ref{rooms},

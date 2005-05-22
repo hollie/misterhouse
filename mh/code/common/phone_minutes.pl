@@ -19,10 +19,7 @@ if ($state = said $v_phone_minutes) {
         $msg .= " $Save{phone_minutes_left_day} per day for the next $Save{phone_minutes_days} days" if $Save{phone_minutes_left_day};
         speak $msg;
     }
-    elsif ($state eq 'Debug') {
-        $p_phone_minutes->{done_now} = 1;     # Pretend we did this
-    }
-    elsif (&net_connect_check) {
+    elsif ($state eq 'Check' and &net_connect_check) {
         my ($cmd1, $cmd2);
         if (lc $config_parms{cell_phone_provider} eq 'tmobile') {
             $cmd1    = qq[get_url "https://wipcore.t-mobile.com/login" ];
@@ -31,6 +28,18 @@ if ($state = said $v_phone_minutes) {
             $cmd2    = qq[get_url "https://www.t-mobile.com/mytmobile/default.asp" ];
             $cmd2   .= qq[-cookie_file_in "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes2.html"];
             $tmobile_flag = 1;
+        }
+        elsif (lc $config_parms{cell_phone_provider} eq 'cingular') {
+            my ($ac, $pref, $num) = $config_parms{cell_phone_number} =~ /(\d\d\d)(\d\d\d)(\d\d\d\d)/;
+            my $post_data = "CTNAreaCode=$ac&CTNPrefix=$pref&CTNNumber=$num&PASS=$config_parms{cell_phone_password}";
+            $post_data   .= "&event=forward&action=logIn&TF=N&NP=T&IDToken=$config_parms{cell_phone_number}";
+            $cmd1    = qq[get_url "https://www.myaccount.cingular.com/DispatcherServlet" ];
+            $cmd1   .= qq[-post "$post_data&name=/jsp/longTask.jsp" ];
+            $cmd1   .= qq[-cookie_file_out "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes1.html" ];
+                                # Not sure why -post doesn't work here?
+#           $cmd2    = qq[get_url "https://www.myaccount.cingular.com/DispatcherServlet" -post "$post_data&name=/WAServletsLogin" ];
+            $cmd2    = qq[get_url "https://www.myaccount.cingular.com/DispatcherServlet?$post_data&name=/WAServletsLogin" ];
+            $cmd2   .= qq[-cookie_file_in "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes2.html"];
         }
                                 # Default to sprint
         else {
@@ -48,7 +57,7 @@ if ($state = said $v_phone_minutes) {
 
 use HTML::TableExtract;
 
-if (done_now $p_phone_minutes) {
+if (done_now $p_phone_minutes or said $v_phone_minutes eq 'Debug') {
     if (lc $config_parms{cell_phone_provider} eq 'tmobile') {
         if ($tmobile_flag) {
             for (file_read "$config_parms{data_dir}/web/phone_minutes2.html") {
@@ -73,6 +82,17 @@ if (done_now $p_phone_minutes) {
             $Save{phone_minutes_date} = $Time_Date;
             print_log "Phone minutes: plan=$Save{phone_minutes_plan} used=$Save{phone_minutes_used} left=$Save{phone_minutes_left}";
         }
+    }
+    elsif (lc $config_parms{cell_phone_provider} eq 'cingular') {
+        my $html = file_read "$config_parms{data_dir}/web/phone_minutes2.html";
+        my $te = new HTML::TableExtract( headers => [qw(Available Used)] );
+        $te->parse($html);
+        my @cell = $te->rows;
+        $Save{phone_minutes_plan} = round $cell[1][0];
+        $Save{phone_minutes_used} = round $cell[1][1];
+        $Save{phone_minutes_left} = $cell[1][0] - $cell[1][1];
+        $Save{phone_minutes_date} = $Time_Date;
+        print_log "Phone minutes: plan=$Save{phone_minutes_plan} used=$Save{phone_minutes_used} left=$Save{phone_minutes_left}";
     }
 
 # Example of Sprint's minutes remaining html data:

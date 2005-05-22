@@ -63,47 +63,156 @@ You must make certain modifications to your Audrey, as follows:
 - Set your Audrey's IP address in mh.private.ini
    Audrey_IPs=Kitchen-192.168.1.89,Bedroom-192.168.1.99
 
+   The first portion of the audrey ip address, for example,
+   Kitchen and Bedroom in the above, can be used as the "room"
+   parameter in any speak or play command.  For example,
+
+   speak (rooms=> "Bedroom", mode=> "unmuted", text=> "hello in the bedroom");
+   speak (rooms=> "Kitchen", mode=> "unmuted", text=> "hello in the kitchen");
+   speak (rooms=> "all", mode=> "unmuted", text=> "hello everywhere");
 
 =cut
 
 #Tell MH to call our routine each time something is spoken
-&Speak_post_add_hook(\&speak_to_Audrey) if $Reload;
+&Speak_pre_add_hook(\&speak_to_Audrey) if $Reload;
 
+my ($audreyWrIndex, $audreyRdIndex, $audreyMaxIndex, @speakRooms);
 
-#Check our file. If it has changed, tell each Audrey to come and get it!
-if (file_changed "$config_parms{html_dir}/toAudrey.wav") {
+if ($Startup or $Reload) {
+  $audreyWrIndex = 0;
+  $audreyRdIndex = 0;
+  $audreyMaxIndex = 10;
+}
+
+#Check our play file. If it has changed, tell each Audrey to come and get it!
+if ($New_Second && ($audreyRdIndex != $audreyWrIndex)) {
 #   my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
-    my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
-    for my $ip (split ',', $config_parms{Audrey_IPs}) {
-        $ip =~ s/\S+\-//;
-        run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb/toAudrey.wav /dev/null";
+#    my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
+    my $speakFile = "/speakToAudrey$audreyRdIndex.wav";
+    my $MHWeb = hostname() . ":" . $config_parms{http_port};
+    for my $audrey (split ',', $config_parms{Audrey_IPs}) {
+        $audrey =~ /(\S+)\-(\S+)/;
+        my $room = $1;
+        my $ip = $2;
+        my $rooms = @speakRooms[$audreyRdIndex];
+        for my $index (@$rooms) {
+          lc $index;
+          lc $room;
+          if ($index eq $room) {
+            run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb$speakFile /dev/null";
+          }
+        }
+    }
+    $audreyRdIndex++;
+    $audreyRdIndex = 0 if ($audreyRdIndex >= $audreyMaxIndex);
+}
+
+#MH just said something. Generate the same thing to our file (which is monitored above)
+sub speak_to_Audrey {
+    my %parms = @_;
+    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
+    my @rooms = split ',', lc $parms{rooms};
+    if (lc $parms{rooms} =~ /all/) {
+      @rooms = ();
+      for my $audrey (split ',', $config_parms{Audrey_IPs}) {
+        $audrey =~ /(\S+)\-(\S+)/;
+        my $room = $1;
+        my $ip = $2;
+        push @rooms, $room;
+      }
+    } else {
+      my @audreyRooms = ();
+      for my $speakRoom (@rooms) {
+        for my $audrey (split ',', $config_parms{Audrey_IPs}) {
+          $audrey =~ /(\S+)\-(\S+)/;
+          my $room = $1;
+          my $ip = $2;
+          if ($speakRoom eq $room) {
+            push @audreyRooms, $room;
+          }
+        }
+      }
+      @rooms = @audreyRooms;
+    }
+
+    $parms{"to_file"} = $config_parms{html_dir} . "/speakToAudrey" . $audreyWrIndex . ".wav";
+    @speakRooms[$audreyWrIndex] = \@rooms;
+    $parms{rooms} = @rooms;
+    if (@rooms > 0) {
+      &Voice_Text::speak_text(%parms);
+      $audreyWrIndex++;
+      $audreyWrIndex = 0 if ($audreyWrIndex >= $audreyMaxIndex);
     }
 }
 
-#MH just said something. Generate the same thing to our file (which is monitored below)
-sub speak_to_Audrey {
-    my %parms = @_;
-    $parms{"to_file"}="$config_parms{html_dir}/toAudrey.wav";
-    print "Saving speech $parms{text} to $config_parms{html_dir}/toAudrey.wav\n";
-    &Voice_Text::speak_text(%parms);
-}
-
 #Tell MH to call our routine each time a wav file is played
-&Play_post_add_hook(\&play_to_audrey) if $Reload;
+&Play_pre_add_hook(\&play_to_audrey) if $Reload;
 
-#MH just played a wav file. Copy it to our file (which is monitored below)
+#MH just played a wav file. Copy it to our file (which is monitored above)
 sub play_to_audrey {
     my %parms = @_;
-    copy $parms{fileplayed}, "$config_parms{html_dir}/toAudrey.wav";
+    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
+    my @rooms = split ',', lc $parms{rooms};
+    my @files = split(/[, ]/, $parms{file});
+    for my $file (@files) {
+
+      if (-e $file) {
+      }
+                          # Use from common dir only if it is not in the user sound_dir
+                          #  - Can not test for -e in user sound_dir if we have a *.wav spec
+      elsif ( -e "$config_parms{sound_dir_common}/$file" and
+             !-e "$config_parms{sound_dir}/$file") {
+          $file = "$config_parms{sound_dir_common}/$file";
+      }
+      else {
+          $file = "$config_parms{sound_dir}/$file";
+      }
+
+      # If wildcarded file, build an array of all files and pick one
+      if (!-e $file and $file =~ /\*/) {
+          my @files_to_pick = glob $file;
+          my $file_cnt = @files_to_pick;
+          if ($file_cnt > 1) {
+              $file = @files_to_pick[int(rand $file_cnt)];
+#              print "Play picked file $file\n";
+          }
+          else {
+              $file = $files_to_pick[0];
+          }
+      }
+
+      if (lc $parms{rooms} =~ /all/) {
+        @rooms = ();
+        for my $audrey (split ',', $config_parms{Audrey_IPs}) {
+          $audrey =~ /(\S+)\-(\S+)/;
+          my $room = $1;
+          my $ip = $2;
+          push @rooms, $room;
+        }
+      } else {
+        my @audreyRooms = ();
+        for my $speakRoom (@rooms) {
+          for my $audrey (split ',', $config_parms{Audrey_IPs}) {
+            $audrey =~ /(\S+)\-(\S+)/;
+            my $room = $1;
+            my $ip = $2;
+            if ($speakRoom eq $room) {
+              push @audreyRooms, $room;
+            }
+          }
+        }
+        @rooms = @audreyRooms;
+      }
+      if (@rooms > 0) {
+        my $speakFile = $config_parms{html_dir} . "/speakToAudrey" . $audreyWrIndex . ".wav";
+        @speakRooms[$audreyWrIndex] = \@rooms;
+        copy $file, $speakFile;
+        $audreyWrIndex++;
+        $audreyWrIndex = 0 if ($audreyWrIndex >= $audreyMaxIndex);
+      }
+    }
 }
 
-#if ($Reload) {
-#    print "****************************************\n";
-#    my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
-#    for my $ip (split ',', $config_parms{Audrey_IPs}) {
-#        my $html = get "http://$ip/mhspeak.shtml?http://$MHWeb/dummy.wav";
-#   run "get_url http://$ip/mhspeak.shtml?http://$MHWeb/dummy2.wav";
-#my $html = '';
-#        print "located from $ip $html";
-#    }
-#}
+
+
+

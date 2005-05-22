@@ -122,6 +122,7 @@ sub time2str
   {
    @$me = localtime($time);
   }
+ $me->[9] = $time;
  _subs($me,$fmt);
 }
 
@@ -263,6 +264,8 @@ sub format_Oq { roman(format_q(@_)) }
 sub format_Oy { roman(format_y(@_)) }
 sub format_OY { roman(format_Y(@_)) }
 
+sub format_G { int(($_[0]->[9] - 315993600) / 604800) }
+
 1;
 __END__
 
@@ -353,6 +356,7 @@ category of the program's locale.
 	%d 	numeric day of the month, with leading zeros (eg 01..31)
 	%e 	numeric day of the month, without leading zeros (eg 1..31)
 	%D 	MM/DD/YY
+	%G	GPS week number (weeks since January 6, 1980)
 	%h 	month abbr
 	%H 	hour, 24 hour clock, leading 0's)
 	%I 	hour, 12 hour clock, leading 0's)

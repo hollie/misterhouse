@@ -30,8 +30,8 @@ Or have MisterHouse <a target=speech href=RUN;last_response?Read_the_next_deep_t
 <tr><td>
 <input type=submit value="Speak it!">
 
-Rule: <input type=radio name=eliza_rule value=none>None
-      <input type=radio name=eliza_rule value=nick checked>Nick's
+Rule: <input type=radio name=eliza_rule value=none checked>None
+      <input type=radio name=eliza_rule value=nick>Nick's
       <input type=radio name=eliza_rule value=doctor>Classic
       <input type=radio name=eliza_rule value=deutsch>Eliza in German
 </form>

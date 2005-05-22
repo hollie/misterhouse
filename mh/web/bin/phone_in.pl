@@ -7,7 +7,7 @@ for my $r (@calls) {
     my ($time, $num, $name, $line, $type) = $r =~ /date=(.+) number=(.+) name=(.+) line=(.*) type=(.*)/;
     ($time, $num, $name) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/ unless $name;
     next unless $num;
-    next unless $line;
+#   next unless $line;
 
     $html_calls .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
 #    $html_calls .= "<td nowrap><a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a>&nbsp;<a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a></td>";

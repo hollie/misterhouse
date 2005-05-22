@@ -52,10 +52,13 @@ SERIAL,     XP8,    motion_unit,          Motion,   BedRoom dark
 
 
 # Here are some examples of specifying interface and module types
+# If your want to use a non-default X10 interface, specify with the 1st 'other info' field
+# If your X10 module support preset dim,      specify preset in the 2nd 'other info' field
 
 #X10A,       O9,     living_room_fan,       Appliances|Upstairs|LivingRoom(10;10),  CM17
-#X10I,       O7,     camera_light2,         All_Lights|Upstairs|LivingRoom(5;10),   CM11 
+#X10I,       O7,     camera_light2,         All_Lights|Upstairs|LivingRoom(5;10),   CM11
 #X10I,       O7,     camera_light,          All_Lights|Upstairs|LivingRoom(10;5),        , LM14
+#X10I,       O7,     camera_light,          All_Lights|Upstairs|LivingRoom(10;5),        , preset
 
 
 # Here are X10_Sensor examples for detecting motion and brightness

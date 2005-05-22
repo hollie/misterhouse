@@ -56,11 +56,17 @@ sub new
 	bless $self, $class;
 
 	#&xAP::startup if $Reload;
-	$$self{m_xap} = new xAP_Item('Telephony.Info');# if ! defined $p_xap;
-	&main::store_object_data($$self{m_xap},'xAP_Item','Telephony','Telephony'); #if ! defined $p_xap;
-#	$$self{m_xap} = $p_xap if defined $p_xap;
+	$$self{m_xap} = new xAP_Item('Telephony.Info') if ! defined $p_xap;
+	&main::store_object_data($$self{m_xap},'xAP_Item','Telephony','Telephony') if ! defined $p_xap;
+	$$self{m_xap} = $p_xap if defined $p_xap;
 	$$self{m_xap}->tie_items($self);
 	return $self;
+}
+
+sub xap_item
+{
+	my ($self) = @_;
+	return $$self{m_xap};
 }
 
 sub outgoing_hook
@@ -69,7 +75,7 @@ sub outgoing_hook
 	
         $self->cid_number($$p_xap{'outgoing.callcomplete'}{phone});
 	$self->address($$p_xap{'outgoing.callcomplete'}{line});
-	$self->cid_name('Outgoing');
+	$self->cid_name('Unknown');
 	$self->cid_type('N');
 	return 'dialed';
 
@@ -106,9 +112,9 @@ sub set
 	return if &main::check_for_tied_filters($self, $state);
 
 	if ($p_setby eq $$self{m_xap} ) {
-		if (defined $$self{m_xap}{'incoming.callwithcid'} ) {
+		if (defined $$self{m_xap}->state_now('incoming.callwithcid') ) {
 			$state=$self->callerid_hook($p_setby);
-		} elsif (defined $$self{m_xap}{'outgoing.callcomplete'} ) {
+		} elsif (defined $$self{m_xap}->state_now('outgoing.callcomplete') ) {
 			$state=$self->outgoing_hook($p_setby);
 		}
 #		&::print_log("TXAP:$p_state:$p_setby:" . ${$$self{m_xap}}{'incoming.callwithcid'}{phone} . ":");		

@@ -19,10 +19,10 @@
  If you have a wmr918 or wmr968 (wireless) station, change wx200 in
  the above parms to wmr968
 
- For more info on these weather stations, see the comments in 
+ For more info on these weather stations, see the comments in
  mh/lib/Weather_wx200.pm and Weather_wx968.pm
 
- For Rochester, compare against data from: 
+ For Rochester, compare against data from:
    http://www.crh.noaa.gov/arx/prods/MSPCLIRST.html
    http://www.thedrumms.org/Wx.html
 
@@ -81,7 +81,7 @@ if ($state = said $v_what_temp) {
 
 #   my $temp     = round($analog{temp_outside});
 #   my $humidity = round($analog{humidity_outside});
-    
+
     if (defined $Weather{TempOutdoor} and $Weather{TempOutdoor} ne 'unknown') {
         my $temp     = round($Weather{TempOutdoor});
         my $temp_in  = round($Weather{TempIndoor});
@@ -123,7 +123,7 @@ if ($state = said $v_what_temp) {
     }
     else {
         respond "Sorry, no weather info";
-    }   
+    }
 }
 
 $v_what_wind = new  Voice_Cmd('What is the wind speed');
@@ -132,12 +132,12 @@ $v_what_wind-> set_authority('anyone');
 if (said $v_what_wind) {
     undef $temp;
     if ($Weather{WindGustSpeed} == 0  and $Weather{WindGustSpeed} == 0) {
-        $temp .= "There is currently no wind.";  
+        $temp .= "There is currently no wind.";
     }
     else {
-        $temp  .= "The wind is gusting at " . 
+        $temp  .= "The wind is gusting at " .
             round($Weather{WindGustSpeed}) . " MPH from the " . convert_direction($Weather{WindGustDir});
-        $temp .= ".  Average speed is " . 
+        $temp .= ".  Average speed is " .
             round($Weather{WindAvgSpeed}) . " from the " . convert_direction($Weather{WindAvgDir});
     }
     respond $temp;
@@ -153,7 +153,7 @@ if (my $period = said $v_what_rain) {
     # Get last record from the day in question
     my ($number, $unit) = $period =~ /(\d*) ?(\S+)/;
     $number = 1 unless $number;
-    
+
     if ($unit =~ /hour/) {
         $days = $number / 24;
     }
@@ -170,7 +170,7 @@ if (my $period = said $v_what_rain) {
         print "\n\nError in weather_monitor.pl code. period=$period\n";
     }
 #   print "db period=$period unit=$unit number=$number days=$days\n";
-    
+
     my $rain = rain_since($Time - $days * 3600 * 24);
     if ($rain == -1) {
         $temp .= "Sorry, no rainfall data has been collected";
@@ -201,12 +201,13 @@ sub get_weather_record {
                                 # Note interesting weather events
 $timer_wind_gust  = new Timer();
 $timer_wind_gust2 = new Timer();
-#f (state_now $WindGust > 12 and 
-if (state $Windy and 
+#f (state_now $WindGust > 12 and
+if (state $Windy and
     not $Save{sleeping_parents}) {
 				# Wait for the gust to peak before announcing
+    print_log "Wind gust: s1=$timer_wind_gust2->{speed}, s2=$Weather{WindGustSpeed}, t=$weather_wind_gust_threshold" if $Debug{weather};
     if ($timer_wind_gust2->{speed} < $Weather{WindGustSpeed}) {
-	$timer_wind_gust2->{speed} = $Weather{WindGustSpeed};
+        $timer_wind_gust2->{speed} = $Weather{WindGustSpeed};
         $timer_wind_gust2->set(10);
     }
 }
@@ -214,34 +215,36 @@ if (expired $timer_wind_gust2) {
     my $speed = $timer_wind_gust2->{speed};
     $timer_wind_gust2->{speed} = 0;
     if (inactive $timer_wind_gust or
-	10 + $timer_wind_gust->{speed} < $speed) {
+	5 + $timer_wind_gust->{speed} < $speed) {
         $timer_wind_gust->{speed} = $speed;
         set $timer_wind_gust 20*60;
         respond "app=notice Weather alert, the wind is gusting at " . round($speed) . " miles per hour";
     }
     $Save{WindGustMax} = $speed if $Save{WindGustMax} < $speed; # Save a daily max
 }
+$timer_wind_gust->{speed} = 0 if expired $timer_wind_gust;
+
 $Save{WindGustMax} = 0 if $New_Day;
 
-# report the start of the first rain each day 
+# report the start of the first rain each day
 # while raining, report hourly totals and remainder when rain stops
 
 my $firstrain = 0;
 $firstrain = 0 if $New_Day;
 
-$israining_timer = new Timer; 
+$israining_timer = new Timer;
 if (expired $israining_timer) {
     $Weather{IsRaining} = 0 ;
     my $minutes = int(60 - minutes_remaining $rain_report_timer);
     my $rain = rain_since($Time - 60 * $minutes) if $minutes;
-    speak "It rained $rain inches in the past $minutes minutes" if $rain; 
+    speak "It rained $rain inches in the past $minutes minutes" if $rain;
     set $rain_report_timer 0;
 }
 
-$rain_report_timer = new Timer;  
+$rain_report_timer = new Timer;
 if (expired $rain_report_timer and $Weather{IsRaining}) {
     my $rain = rain_since($Time - 60 * 60);
-    speak "It has rained $rain inches in the past hour" if $rain; 
+    speak "It has rained $rain inches in the past hour" if $rain;
     set $rain_report_timer 60 * 60 if $Weather{IsRaining};
 }
 
@@ -261,13 +264,13 @@ if (my $rain = state_now $RainTotal) {
         $Weather{IsRaining}++;
     }
     $raintotal_prev = $rain;
-}                             
+}
 
 sub rain_since {
-    my $time = shift; 
+    my $time = shift;
     my %rain_dbm = read_dbm $rain_file;
 
-    return -1 unless keys %rain_dbm; 
+    return -1 unless keys %rain_dbm;
     my $amount = 0;
     foreach my $event (reverse sort keys %rain_dbm) {
         #print "db e=$event a=$amount r=$rain_dbm{$event}\n";
@@ -275,10 +278,10 @@ sub rain_since {
             $amount += $rain_dbm{$event};
         }
         else {
-            last; 
+            last;
         }
     }
     eval "untie %rain_dbm";
     $amount = round $amount, 2;  # Round to nearest 1/100
-    return $amount; 
+    return $amount;
 }

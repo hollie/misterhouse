@@ -17,7 +17,7 @@ use Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(&strtotime &str2time &strptime);
 
-$VERSION = "2.24";
+$VERSION = "2.27";
 
 my %month = (
 	january		=> 0,
@@ -75,7 +75,7 @@ sub {
   my $dtstr = lc shift;
   my $merid = 24;
 
-  my($year,$month,$day,$hh,$mm,$ss,$zone,$dst);
+  my($year,$month,$day,$hh,$mm,$ss,$zone,$dst,$frac);
 
   $zone = tz_offset(shift) if @_;
 
@@ -85,15 +85,17 @@ sub {
 
   # ignore day names
   $dtstr =~ s#([\d\w\s])[\.\,]\s#$1 #sog;
+  $dtstr =~ s/,/ /g;
   $dtstr =~ s#($daypat)\s*(den\s)?# #o;
   # Time: 12:00 or 12:00:00 with optional am/pm
+
+  return unless $dtstr =~ /\S/;
   
-  if ($dtstr =~ s/(?:^|\s)(\d{4})([-:]?)(\d\d?)\2(\d\d?)(?:[Tt ](\d\d?)(?:([-:]?)(\d\d?)(?:\6(\d\d?)(?:[.,]\d+)?)?)?)?\b/ /) {
-    ($year,$month,$day,$hh,$mm,$ss) = ($1,$3-1,$4,$5,$7,$8);
+  if ($dtstr =~ s/\s(\d{4})([-:]?)(\d\d?)\2(\d\d?)(?:[Tt ](\d\d?)(?:([-:]?)(\d\d?)(?:\6(\d\d?)(?:[.,](\d+))?)?)?)?(?=\D)/ /) {
+    ($year,$month,$day,$hh,$mm,$ss,$frac) = ($1,$3-1,$4,$5,$7,$8,$9);
   }
 
   unless (defined $hh) {
-
     if ($dtstr =~ s#[:\s](\d\d?):(\d\d?)(:(\d\d?)(?:\.\d+)?)?\s*(?:([ap])\.?m?\.?)?\s# #o) {
       ($hh,$mm,$ss) = ($1,$2,$4 || 0);
       $merid = $ampm{$5} if $5;
@@ -107,6 +109,11 @@ sub {
     }
   }
     
+  if (defined $hh and $hh <= 12 and $dtstr =~ s# ([ap])\.?m?\.?\s# #o) {
+    $merid = $ampm{$1};
+  }
+
+
   unless (defined $year) {
     # Date: 12-June-96 (using - . or /)
     
@@ -153,7 +160,7 @@ sub {
     $zone = tz_offset($1);
     return unless defined $zone;
   }
-  elsif ($dtstr =~ s#\s([a-z]{3,4})?([\-\+]?)-?(\d\d?)(\d\d)?(00)?\s# #o) {
+  elsif ($dtstr =~ s#\s([a-z]{3,4})?([\-\+]?)-?(\d\d?):?(\d\d)?(00)?\s# #o) {
     my $m = defined($4) ? "$2$4" : 0;
     my $h = "$2$3";
     $zone = defined($1) ? tz_offset($1) : 0;
@@ -189,6 +196,7 @@ sub {
   $year -= 1900 if defined $year && $year > 1900;
 
   $zone += 3600 if defined $zone && $dst;
+  $ss += "0.$frac" if $frac;
 
   return ($ss,$mm,$hh,$day,$month,$year,$zone);
 }
@@ -230,6 +238,9 @@ sub str2time
  $mm    ||= 0;
  $ss    ||= 0;
 
+ my $frac = $ss - int($ss);
+ $ss = int $ss;
+
  $month = $lt[4]
 	unless(defined $month);
 
@@ -269,7 +280,7 @@ sub str2time
      	        ne join("",(localtime(-1))[0..5]);
  }
 
- return $result;
+ return $result + $frac;
 }
 
 1;
@@ -312,19 +323,10 @@ failure.
 =head1 MULTI-LANGUAGE SUPPORT
 
 Date::Parse is capable of parsing dates in several languages, these are
-English, French, German and Italian. Changing the language is done via
-a static method call, for example
-
-	Date::Parse->language('German');
-
-will cause Date::Parse to attempt to parse any subsequent dates in German.
-
-This is only a first pass, I am considering changing this to be
+English, French, German and Italian.
 
 	$lang = Date::Language->new('German');
 	$lang->str2time("25 Jun 1996 21:09:55 +0100");
-
-I am open to suggestions on this.
 
 =head1 EXAMPLE DATES
 
@@ -341,6 +343,11 @@ Below is a sample list of dates that are known to be parsable with Date::Parse
  21/dec/93 17:05
  1999 10:02:18 "GMT"
  16 Nov 94 22:28:20 PST 
+
+=head1 LIMITATION
+
+Date::Parse uses Time::Local internally, so is limited to only parsing dates
+which result in valid values for Time::Local::timelocal
 
 =head1 BUGS
 

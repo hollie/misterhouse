@@ -1051,7 +1051,7 @@ sub main::net_mail_send {
         if ($mime eq 'text') {
             $message = MIME::Lite->new(From => $from,
                                        Subject => $subject,
-                                       Type  => 'text,plain',
+                                       Type  => 'text/plain',
                                        Encoding => '8bit',
                                        Data => $text,
                                        Filename => $filename,
@@ -1060,7 +1060,7 @@ sub main::net_mail_send {
         elsif ($mime eq 'zip') {
             $message = MIME::Lite->new(From => $from,
                                        Subject => $subject,
-                                       Type  => 'application,zip',
+                                       Type  => 'application/zip',
                                        Encoding => 'base64',
                                        Data => $text,
                                        Filename => $filename,
@@ -1069,7 +1069,7 @@ sub main::net_mail_send {
         elsif ($mime eq 'bin' or $mime eq 'exe') {
             $message = MIME::Lite->new(From => $from,
                                        Subject => $subject,
-                                       Type  => 'application,octet-stream',
+                                       Type  => 'application/octet-stream',
                                        Encoding => 'base64',
                                        Data => $text,
                                        Filename => $filename,
@@ -1078,7 +1078,7 @@ sub main::net_mail_send {
         elsif ($mime eq 'jpg' or $mime eq 'gif' or $mime eq 'png') {
             $message = MIME::Lite->new(From => $from,
                                        Subject => $subject,
-                                       Type  => 'image,$mime',
+                                       Type  => "image/$mime",
                                        Encoding => 'base64',
                                        Data => $text,
                                        Filename => $filename,
@@ -1433,6 +1433,9 @@ sub main::url_changed {
 
 #
 # $Log$
+# Revision 1.62  2005/05/22 18:13:06  winter
+# *** empty log message ***
+#
 # Revision 1.61  2005/01/23 23:21:45  winter
 # *** empty log message ***
 #

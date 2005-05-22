@@ -108,7 +108,7 @@ sub main::file_tail {
     $records = @data if @data < $records;
     @tail = @data[-$records..-1];
     close DATA;
-    return wantarray ? @tail : "@tail";
+    return wantarray ? @tail : join '', @tail;
 }
 
                                 # Find full paths to all files in requested dirs
@@ -585,20 +585,6 @@ sub main::read_opts {
 }
 
 # Read a key/value string into a hass: key1 => value, key2 => value2
-sub main::read_parm_hash {
-    my ($ref, $data, $preserve_case) = @_;
-    for my $temp (split ',', $data) {
-        if (my ($key, $value) = $temp =~ / *(.+?) *=> *(.+)/) {
-            $value =~ s/ *$//;         # Drop trailing blanks
-            $key = lc $key unless $preserve_case;
-            $$ref{$key} = $value;
-#           print "db key=$key, value=$value.\n";
-        }
-        else {
-            print "Error parsing key => value string: t=$temp.\n";
-        }
-    }
-}
 
 sub main::read_parm_hash {
     my ($ref, $data, $preserve_case, $ref2) = @_;
@@ -1300,6 +1286,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.78  2005/05/22 18:13:06  winter
+# *** empty log message ***
+#
 # Revision 1.77  2005/03/20 19:02:02  winter
 # *** empty log message ***
 #

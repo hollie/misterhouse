@@ -74,7 +74,7 @@ if ($state = said $v_list_timers) {
             push (@x10_timers,get_object_by_name($object)->{timer});
         }
     }
-    if (@{$Persistent{timers}},@x10_timers) {
+    if (@{$Persistent{timers}} or @x10_timers) {
         for my $timer (@{$Persistent{timers}},@x10_timers) {
             my $time_left = seconds_remaining $timer;
             next unless $time_left;

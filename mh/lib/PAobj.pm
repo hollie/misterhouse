@@ -20,12 +20,12 @@ Usage:
 	Example initialization:
 
 		use PAobj;
-		$paobj = new PAobj('wdio','weeder');		
+		$paobj = new PAobj('wdio','weeder');
 
         Enable pa_control.pl using "Common code activation" in the IA5 interface
         to activate an instance of this PA code.
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - MH
 	Jason Sharpee - Example Perl Modules to "steal",learn from. :)
 	Ross Towbin - Providing me with code snippets for "setting weeder with more than 8 ports"
@@ -85,11 +85,15 @@ sub init {
 #    }
 
 
-    if ($$self{pa_type} =~ /^wdio/i) { 
+    if ($$self{pa_type} =~ /^wdio/i) {
         $self->init_weeder();
         return 0 unless %pa_weeder_max_port;
     } elsif (lc $$self{pa_type} eq 'x10') {
         print "x10 PA type initialized...\n" if $main::Debug{pa};
+    } elsif (lc $$self{pa_type} eq 'xap') {
+        print "xAP PA type initialized...\n" if $main::Debug{pa};
+    } elsif (lc $$self{pa_type} eq 'xpl') {
+	print "xPL PA type initialized...\n" if $main::Debug{pa};
     } else {
         &::print_log("\n\nWARNING! Unrecognized PA type of \"$$self{pa_type}\". PA code probably will not work.\n\n");
         return 0;
@@ -138,10 +142,10 @@ sub set
     my @speakers = $self->get_speakers($rooms);
     @speakers = $self->get_speakers('') if $#speakers == -1;
     @speakers = $self->get_speakers_speakable($mode,@speakers);
-
     $results = $self->set_weeder($state,@speakers) if substr(lc $$self{pa_type}, 0, 4) eq 'wdio';
     $results = $self->set_x10($state,@speakers) if lc $$self{pa_type} eq 'x10';
-
+#    $results = $self->set_xap($state,@speakers) if lc $$self{pa_type} eq 'xap';
+#    $results = $self->set_xpl($state,@speakers) if lc $$self{pa_type} eq 'xpl';
     select undef, undef, undef, $$self{pa_delay} if $results;
 
     return $results;
@@ -155,17 +159,51 @@ sub set_x10
 
     for my $room (@speakers) {
 	my $ref = &::get_object_by_name("pa_$room");
-        $ref->{state} = $state;
-        my ($id) = $ref->{x10_id};
-        print "db pa set_x10 id: $id, Room: $room\n" if $main::Debug{pa};
-        $pa_x10_hc = substr($id,1,1) unless $pa_x10_hc;
-        $x10_list .= substr($id,1,2);
+        if ($ref) {
+	   $ref->{state} = $state;
+           my ($id) = $ref->{x10_id};
+           print "db pa set_x10 id: $id, Room: $room\n" if $main::Debug{pa};
+           $pa_x10_hc = substr($id,1,1) unless $pa_x10_hc;
+           $x10_list .= substr($id,1,2);
+    	}
     }
 
     $self->print_speaker_states() if $main::Debug{pa};
     $x10_list = 'X' . $x10_list . $pa_x10_hc;
     $x10_list .= ($state eq 'on') ? 'J':'K';
     print "db pa x10 cmd: $x10_list\n" if $main::Debug{pa};
+}
+
+sub set_xap {
+    my ($self,$rooms,$mode,%voiceparms) = @_;
+    my @speakers = $self->get_speakers($rooms);
+    @speakers = $self->get_speakers('') if $#speakers == -1;
+    @speakers = $self->get_speakers_speakable($mode, @speakers);
+    for my $room (@speakers) {
+        my $ref = &::get_object_by_name("paxap_$room");
+        if ($ref) {
+            $ref->send_message($ref->target, $ref->class_name => {say => $voiceparms{text}, voice => $voiceparms{voice} });
+            print "db pa xap cmd: $ref->{object_name} is sending voice text: $voiceparms{text}\n" if $main::Debug{pa};
+        } else {
+            print "unable to locate object: paxap_$room\n" if $main::Debug{pa};
+        }
+    }
+}
+
+sub set_xpl {
+    my ($self,$rooms,$mode,%voiceparms) = @_;
+    my @speakers = $self->get_speakers($rooms);
+    @speakers = $self->get_speakers('') if $#speakers == -1;
+    @speakers = $self->get_speakers_speakable($mode, @speakers);
+    for my $room (@speakers) {
+	my $ref = &::get_object_by_name("paxpl_$room");
+	if ($ref) {
+	    $ref->send_cmnd($ref->target, $ref->class_name => {speech => $voiceparms{text}, voice => $voiceparms{voice} });
+            print "db pa xpl cmd: $ref->{object_name} is sending voice text: $voiceparms{text}\n" if $main::Debug{pa};
+	} else {
+	    print "unable to locate object: paxpl_$room\n" if $main::Debug{pa};
+	}
+    }
 }
 
 sub set_weeder
@@ -176,11 +214,13 @@ sub set_weeder
     my $command='';
     for my $room (@speakers) {
 	my $ref = &::get_object_by_name("pa_$room");
-        $ref->{state} = $state;
-        my ($card,$id) = $ref->{id_by_state}{'on'} =~ /^D?(.)H(.)/s;
-        $weeder_ref{$card}='' unless $weeder_ref{$card};
-        $weeder_ref{$card} .= $id;
-        print "card: $card, id: $id, Room: $room\n" if $main::Debug{pa};
+	if ($ref) {
+            $ref->{state} = $state;
+            my ($card,$id) = $ref->{id_by_state}{'on'} =~ /^D?(.)H(.)/s;
+            $weeder_ref{$card}='' unless $weeder_ref{$card};
+            $weeder_ref{$card} .= $id;
+            print "card: $card, id: $id, Room: $room\n" if $main::Debug{pa};
+	}
     }
 
     $self->print_speaker_states() if $main::Debug{pa};
@@ -207,38 +247,38 @@ sub get_weeder_string
     my $bit_counter=0;
     my ($bit_flag,$state,$ref,$bit,$byte_code,$weeder_code,$id);
 
-    # yea, there are cleaner ways to do this, but this should work 
-    my %decimal_to_hex = qw(0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 A 11 B 12 C 13 D 14 E 15 F); 
-    $byte_code = $bit_counter = 0; 
-    $weeder_code = ''; 
+    # yea, there are cleaner ways to do this, but this should work
+    my %decimal_to_hex = qw(0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 A 11 B 12 C 13 D 14 E 15 F);
+    $byte_code = $bit_counter = 0;
+    $weeder_code = '';
 
     for $bit ('A' .. $pa_weeder_max_port{$card}) {
         $id = $card . 'L' . $bit;
         $id = "D$id" if $$self{pa_type} eq 'wdio_old';
         my $ref = &Serial_Item::serial_item_by_id($id);
-        if ($ref) { 
-            $state = $ref->{state}; 
-        } 
-        else { 
+        if ($ref) {
+            $state = $ref->{state};
+        }
+        else {
             $state = 'off';
-        } 
+        }
 
-        $bit_flag = ($state eq 'on') ? 1 : 0;                # get 0 or 1 
+        $bit_flag = ($state eq 'on') ? 1 : 0;                # get 0 or 1
         print "db get_weeder_string card: $card, bit=$bit state=$bit_flag\n" if $main::Debug{pa};
-        $byte_code += ($bit_flag << $bit_counter);        # get bit in byte position 
+        $byte_code += ($bit_flag << $bit_counter);        # get bit in byte position
 
-        if ($bit_counter++ >= 3) { 
-            # pre-pend our string with the new value 
-            $weeder_code = $decimal_to_hex{$byte_code} . $weeder_code; 
-            $byte_code = $bit_counter = 0; 
-        } 
-    } 
+        if ($bit_counter++ >= 3) {
+            # pre-pend our string with the new value
+            $weeder_code = $decimal_to_hex{$byte_code} . $weeder_code;
+            $byte_code = $bit_counter = 0;
+        }
+    }
 
-    # we have to do this again -- in case we don't have bits on a byte boundry 
-    if ($bit_counter > 0) { 
-        # pre-pend our string with the new value 
-        $weeder_code = $decimal_to_hex{$byte_code} . $weeder_code; 
-    } 
+    # we have to do this again -- in case we don't have bits on a byte boundry
+    if ($bit_counter > 0) {
+        # pre-pend our string with the new value
+        $weeder_code = $decimal_to_hex{$byte_code} . $weeder_code;
+    }
 
     if ($$self{pa_type} eq 'wdio_old') {
         $card = "D$card";
@@ -263,7 +303,6 @@ sub get_speakers
     for my $room (split(/[,;|]/, $rooms)) {
         no strict 'refs';
         my $ref = &::get_object_by_name("pa_$room");
-
         if ($ref) {
             print "pa db: name=$ref->{object_name}\n" if $main::Debug{pa};
             if (UNIVERSAL::isa($ref,'Group')) {
@@ -271,12 +310,20 @@ sub get_speakers
                 for my $grouproom ($ref->list) {
                     $grouproom = $grouproom->get_object_name;
                     $grouproom =~ s/^\$pa_//;
+		    $grouproom =~ s/^\$paxpl_//;
+		    $grouproom =~ s/^\$paxap_//;
                     print "pa db:  - member: $grouproom\n" if $main::Debug{pa};
                     push(@pazones, $grouproom);
                 }
             } else {
                 push(@pazones, $room);
-            }        
+            }
+	} elsif (lc $$self{pa_type} eq 'xpl') {
+	    $ref = &::get_object_by_name("paxpl_$room");
+	    push(@pazones, $room) if $ref;
+	} elsif (lc $$self{pa_type} eq 'xap') {
+            $ref = &::get_object_by_name("paxap_$room");
+	    push(@pazones, $room) if $ref;
         } else {
             &::print_log("WARNING: PA zone of '$room' not found!");
         }
@@ -311,6 +358,8 @@ sub get_speakers_speakable
 
     for my $room (@zones) {
 	my $ref = &::get_object_by_name("pa_$room");
+	$ref = &::get_object_by_name("paxpl_$room") if lc $$self{pa_type} eq 'xpl';
+	$ref = &::get_object_by_name("paxap_$room") if !$ref and $$self{pa_type} eq 'xap';
         print "pa db: ref=$ref\n" if $main::Debug{pa};
         print "pa db: name=$ref->{object_name}\n" if $main::Debug{pa};
         if ($ref->{sleeping} == 0) {
@@ -318,7 +367,7 @@ sub get_speakers_speakable
             my $gss_mode = $ref->{mode};
             if ($gss_mode ne 'sleeping' && ($gss_mode eq 'normal' || $mode eq 'unmuted')) {
                 push(@pazones,$room);
-                print "pa db: pushing $room into array\n" if $main::Debug{pa};
+                print "pa db: pushing $room into pazones array:$#pazones\n" if $main::Debug{pa};
             }
         }
     }
@@ -338,8 +387,16 @@ sub print_speaker_states
     my ($ref,$room);
     for my $speaker (@speakers) {
         $ref = &::get_object_by_name("pa_$speaker");
+	$ref = &::get_object_by_name("paxpl_$speaker") if !$ref and $$self{pa_type} eq 'xpl';
+	$ref = &::get_object_by_name("paxap_$speaker") if !$ref and $$self{pa_type} eq 'xap';
         $room = $ref->{object_name};
-        $room =~ s/^\$pa_//;
+	if ($$self{pa_type} eq 'xpl') {
+	   $room =~ s/^\$paxpl_//;
+	} elsif ($$self{pa_type} eq 'xap') {
+	   $room =~ s/^\$paxap_//;
+	} else {
+           $room =~ s/^\$pa_//;
+	}
         print "db name=$room, state=$ref->{state}\n" if $main::Debug{pa};
     }
 }

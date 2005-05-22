@@ -12,7 +12,7 @@ my ($text, $type, $state, $bg_color, $file_name_only) = @ARGV;
 #print "db t=$text t=$type s=$state bg=$bg_color\n";
 
 #my ($state, $x, $y) = $state_xy =~ /(\S+)\?(\d+),(\d+)/;
-    
+
 $state    = ''  unless $state;
 $type     = ''  unless $type;
 $bg_color = 'white' unless $bg_color;
@@ -29,12 +29,13 @@ $image_file .= "_$state" if $state;
 $image_file =~ s/ /_/g;           # Blanks in file names are nasty
 $image_file = "/cache/$image_file.jpg";
 
+
 my $nocache = 0;
 #$nocache = 1;
-if (-e "$config_parms{html_dir}$image_file" or $nocache) {
+if (-e "$config_parms{data_dir}$image_file" or $nocache) {
     return $image_file if $file_name_only;
 #   print "Returning data from: $image_file\n";
-    my $data = file_read "$config_parms{html_dir}$image_file";
+    my $data = file_read "$config_parms{data_dir}$image_file";
     return &mime_header($image_file, 1, length $data) . $data;
 }
 
@@ -160,7 +161,7 @@ else {
     my $ftwidth = ($font->width);
     my $offset = $imwidth - ($ftwidth * $textsize);
     my $black = $image->colorClosest(50,50,50);
-    $image->string($font, $offset/2-3, 12, $text, $black); 
+    $image->string($font, $offset/2-3, 12, $text, $black);
 }
 
                                 # make the background transparent
@@ -168,10 +169,9 @@ my $white = $image->colorClosest(255,255,255);
 $image->transparent($white);
 
                                 # Write out a copy to the cache
-print "Writing image to cache: $config_parms{html_dir}$image_file\n";
+print "Writing image to cache: $config_parms{data_dir}$image_file\n";
 my $jpeg = $image->jpeg;
-file_write "$config_parms{html_dir}$image_file", $jpeg;
+file_write "$config_parms{data_dir}$image_file", $jpeg;
 
 return $image_file if $file_name_only;
 return &mime_header($image_file, 1, length $jpeg) . $jpeg;
-

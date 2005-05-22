@@ -1412,6 +1412,8 @@ Here is a rough timeline of MisterHouse development:
  - 08/04 Mailing list reaches 600 members.
  - 09/04 Support for SVG floorplans, mp3 ripping, ebay monitoring, siteplayer, irc.
  - 11/04 Support for servo motors, the ESRA robot, cell phone minutes monitoring, motherboard monitoring.
+ - 03/05 Support for serving multimedia files, cell phone minute monitors, shopping lists.
+ - 05/05 Support for distributed xAP speech, bluetooth proximity detection.
 
 
 =head2 6.2: Who is that Bruce guy anyway?
@@ -1859,6 +1861,9 @@ modify.
 
 #
 # $Log$
+# Revision 1.47  2005/05/22 18:12:57  winter
+# *** empty log message ***
+#
 # Revision 1.46  2004/11/22 22:57:20  winter
 # *** empty log message ***
 #

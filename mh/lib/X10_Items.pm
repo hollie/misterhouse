@@ -566,6 +566,7 @@ package X10_IrrigationController;
 
 sub new {
     my ($class, $id, $interface) = @_;
+
     my $self = {};
     $$self{state} = '';
 
@@ -614,6 +615,7 @@ sub new {
 
     $self->{zone_runtimes} = [10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
     $self->{zone_runcount} = 0;
+    $self->{zone_runnning} = 0;
     $self->{zone_delay} = 10;
     $self->{timer} = &Timer::new();
 
@@ -624,6 +626,11 @@ sub set_runtimes
 {
     my ($self) = shift @_;
     my $count = @_;
+
+    if (&Timer::active($self->{timer})) {
+        print "X10_IrrigationController: skipping set_runtimes because of running timer\n" if $main::Debug{x10};
+        return;
+    }
 
     if($count < 1)
     {
@@ -640,6 +647,11 @@ sub set_runtimes
 sub set_rundelay
 {
     my ($self, $rundelay) = @_;
+
+    if (&Timer::active($self->{timer})) {
+        print "X10_IrrigationController: skipping set_rundelay because of running timer\n" if $main::Debug{x10};
+        return;
+    }
 
     if($rundelay < 1)
     {
@@ -658,12 +670,20 @@ sub set
 
     if($state =~ /^(\w+):(.*)/)
     {
-        print "X10_IrrigationController set with times found: state=$1 times=$2\n";# if $main::Debug{x10};
         $state = $1;
-        return if &main::check_for_tied_filters($self, $state);
 
-        my @runtimes = split ',', $2;
-        $self->set_runtimes(@runtimes);
+        if (&Timer::active($self->{timer}))
+        {
+            print "X10_IrrigationController: skipping set_runtimes because of running timer\n" if $main::Debug{x10};
+        }
+        else
+        {
+            print "X10_IrrigationController set with times found: state=$1 times=$2\n";# if $main::Debug{x10};
+            return if &main::check_for_tied_filters($self, $state);
+
+            my @runtimes = split ',', $2;
+            $self->set_runtimes(@runtimes);
+        }
     }
     else
     {
@@ -672,15 +692,24 @@ sub set
 
     if(lc($state) eq 'on')
     {
+        if (&Timer::active($self->{timer})) {
+            print "X10_IrrigationController: skipping zone cascade because of running timer.\n" if $main::Debug{x10};
+            return;
+        }
+
         # Start a cascade
         $self->zone_cascade();
     }
     elsif(lc($state) eq 'off')
     {
         # Kill any outstanding timer
-        $self->{timer}->unset();
+        if (&Timer::active($self->{timer})) {
+            $self->{timer}->unset();
+            print "X10_IrrigationController: zone_cascade aborted\n";
+        }
+
         # Send all off to shutdown controller
-        $self->X10_IrrigationController::Inherit::set('off');
+        $self->all_zones_off();
     }
     else
     {
@@ -689,23 +718,47 @@ sub set
     }
 }
 
+sub all_zones_off
+{
+    my ($self) = @_;
+
+    # Since the WGL Rain8 1-way sprinkler controller does not respond to the "All Off"
+    # command we need to turn off the zone that is currently running to shutdown the
+    # system.  We are tracking the currently running zone using the zone_running variable.
+    if ($main::config_parms{sprinkler_type} == "rain8_1w") {
+        if ($self->{zone_running} > 0 and $self->{zone_running} <= $self->{zone_runcount}) {
+            $self->X10_IrrigationController::Inherit::set($self->{zone_running} . '-off');
+        }
+    }
+
+    $self->X10_IrrigationController::Inherit::set('off');
+}
 
 sub zone_cascade
 {
     my ($self, $zone) = @_;
+
+    # Reuse timer for this object if it exists
+    $self->{timer} = &Timer::new() unless $self->{timer};
 
     # Default to zone 1 (start of run)
     $zone = 1 if $zone eq undef;
 
     # Turn off last zone
     $self->X10_IrrigationController::Inherit::set(($zone - 1) . '-off') unless $zone == 1;
-    # Or turn off all if starting from zone 1
-    $self->X10_IrrigationController::Inherit::set('off') if $zone == 1;
+
+    # Reset the current running zone and turn off all if starting from zone 1
+    if ($zone == 1)
+    {
+        $self->{zone_running} = 0;
+        $self->all_zones_off();    
+    }
 
     print "Zone $zone of $self->{zone_runcount}\n" if $main::Debug{x10};
 
     # Print start message
     print "X10_IrrigationController: zone_cascade start\n" if($zone == 1);
+
     # Print stop message
     print "X10_IrrigationController: zone_cascade complete\n" if($zone > $self->{zone_runcount});
 
@@ -730,7 +783,6 @@ sub zone_cascade
         # Recursion is your friend
         zone_cascade($self,$zone + 1);
     }
-
     return;
 }
 
@@ -746,6 +798,7 @@ sub zone_delay
     my $object = $self->{object_name};
     my $action = "$object->zone_cascade(" . ($zone + 1) . ")";
     &Timer::set($sprinkler_timer, $runtime, $action);
+    $self->{zone_running} = $zone;
     print "X10_IrrigationController: Running zone $zone for " . ($runtime/60) . " minute(s)\n" if $main::Debug{x10};
     return;
 }
@@ -1080,6 +1133,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.49  2005/05/22 18:13:06  winter
+# *** empty log message ***
+#
 # Revision 1.48  2005/03/20 19:02:01  winter
 # *** empty log message ***
 #

@@ -4,26 +4,26 @@
 #@ to get the most recent earthquakes that have occurred and presents
 #@ those that were at least the minimum magnitude(s) specified. You'll
 #@ need to have your latitude and longitude parameters set properly.
-#@ 
+#@
 #@ If you want to customize your magnitude thresholds, set a variable
 #@ like this in your ini file:
-#@ 
+#@
 #@ Earthquake_Magnitudes = 99999 5.5 3000 3.5 100 0
-#@ 
+#@
 #@ You can also set a variable to limit the number of quakes to display.
 #@ To show only the two most recent quakes, regardless of magnitude, set
 #@ the following variables in your ini file:
-#@ 
+#@
 #@ Earthquake_Magnitudes = 99999 0
 #@ Earthquake_Count = 2
 
 =begin comment
 
 internet_quakes.pl
- 1.4 Switched back to get_url after finger stopped working.  Added a 
-     process to automatically download an image showing where the 
+ 1.4 Switched back to get_url after finger stopped working.  Added a
+     process to automatically download an image showing where the
      latest quake was - David Norwood - 1/14/2004
- 1.3 Merged in relative date/time reporting and some other 
+ 1.3 Merged in relative date/time reporting and some other
      modifications made to internet_quakes_cal.pl since it was
      derived from this file - Tim Doyle - 11/11/2001
  1.2 Switched from get_url to get_finger, periodic updates, and
@@ -40,7 +40,7 @@ in the world and presents those that were at least the minimum
 magnitude(s) specified.
 
 When quakes are read, the date/time and location information are converted
-to relative units (i.e. 3 hours ago, yesterday at 5pm, 53 miles away) and 
+to relative units (i.e. 3 hours ago, yesterday at 5pm, 53 miles away) and
 and those that don't meet magnitude thresholds are omitted.
 
 If you want to customize your magnitude thresholds, set a variable
@@ -60,7 +60,7 @@ longitude .ini variable to be negative.
 
 =cut
 
-# Add earthquake image to Informational category web page 
+# Add earthquake image to Informational category web page
 if ($Reload) {
     $Included_HTML{'Informational'} .= qq(<h3>Latest Earthquake<p><img src='/data/web/earthquakes.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
 }
@@ -86,9 +86,10 @@ if ($config_parms{Earthquake_Count}) {
 $f_earthquakes_txt = new File_Item("$config_parms{data_dir}/web/earthquakes.txt");
 $f_earthquakes_gif    = new File_Item("$config_parms{data_dir}/web/earthquakes.gif");
 
-my $image; 
+my $image;
 $p_earthquakes_image = new Process_Item;
-$p_earthquakes = new Process_Item("get_url ftp://ghtftp.cr.usgs.gov/pub/cnss/quake " . $f_earthquakes_txt->name);
+#p_earthquakes = new Process_Item("get_url ftp://ghtftp.cr.usgs.gov/pub/cnss/quake " . $f_earthquakes_txt->name);
+$p_earthquakes = new Process_Item("get_url ftp://hazards.cr.usgs.gov/cnss/quake " . $f_earthquakes_txt->name);
 
 $v_earthquakes =  new  Voice_Cmd('[Get,Show,Read,Clear] recent earthquakes');
 $v_earthquakes -> set_info('Display recent earthquake information');
@@ -146,7 +147,7 @@ if (done_now $p_earthquakes) {
   }
   if ($new_quakes) {
     $Save{quakes} = $new_quakes . $Save{quakes};
-#   $Save{quakes} =~ s/^(([^\t]*\t){1,1000}).*/$1/; 
+#   $Save{quakes} =~ s/^(([^\t]*\t){1,1000}).*/$1/;
     $Save{quakes} =~ s/^(([^\t]*\t){1,21}).*/$1/;   # Save last 21 quakes
     $image = '';
     foreach (split /\t/, $new_quakes) {
@@ -204,7 +205,7 @@ sub calc_age {
     return int($diff/(60*60*24) + .5) . " days ago at $hour ";
 }
 
-# 03/12/30 15:32:35 34.20N 139.13E 33.0 4.4M B NEAR S. COAST OF HONSHU, JAPAN 
+# 03/12/30 15:32:35 34.20N 139.13E 33.0 4.4M B NEAR S. COAST OF HONSHU, JAPAN
 
 sub speak_quake {
     if (my ($qdate, $qtime, $qlatd, $qnoso, $qlong, $qeawe, $qdept, $qmagn, $qqual, $qloca) =
@@ -227,9 +228,9 @@ sub speak_quake {
 
 # lets allow the user to control via triggers
 
-if ($Reload and $Run_Members{'trigger_code'}) { 
+if ($Reload and $Run_Members{'trigger_code'}) {
     eval qq(
-        &trigger_set('\$New_Hour and net_connect_check', "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes') 
+        &trigger_set('\$New_Hour and net_connect_check', "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes')
           unless &trigger_get('get earthquakes');
     );
 }

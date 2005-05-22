@@ -119,6 +119,11 @@
 #  1/15/05   1.9   Pete Flaherty
 # - added ability to specify alternate graph format eg GIF
 #   $config_parms{weather_graph_format}
+# 3/10/05    2.0   Mark Radke
+# - Corrected "SeaLevel" line in Barometric graph to include the
+# - calculation for In/Hg when $config_params{weather_uom_baro} = "in"
+# - changed format for Sealevel pressure in In/Hg to have two (2)
+# - decimal places
 #####################################################################
 use RRDs;
 
@@ -1576,7 +1581,8 @@ for $celgtime (@$tabgtime) {
 .($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fminpress=minpress,0.029529987508,/\"," : "\"CDEF:fminpress=minpress\",")
 ."\"DEF:maxpress=$rrd_dir:press:MAX\","
 .($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:fmaxpress=maxpress,0.029529987508,/\"," : "\"CDEF:fmaxpress=maxpress\",")
-."\"CDEF:seafvar=fvar," . $config_parms{altitude} . "," . $config_parms{ratio_sea_baro} . ",3.2808399,*,/,+\","
+## Calculation for SeaLevel for Millibars and Inches
+.($config_parms{weather_uom_baro} eq 'mb' ? "\"CDEF:seafvar=fvar," . $config_parms{altitude} . "," . $config_parms{ratio_sea_baro} . ",3.2808399,*,/,+\"," : "\"CDEF:seafvar=fvar,0.029529987508," . $config_parms{altitude} . "," . $config_parms{ratio_sea_baro} . ",3.2808399,*,/,*,+\",")
 . qq^
 "CDEF:wipeout=var,UN,INF,UNKN,IF",
 "CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
@@ -1586,12 +1592,23 @@ for $celgtime (@$tabgtime) {
 "AREA:fmaxpress#$colorpress:Absolute barometric pressure",
 "AREA:fminpress#$colorwhite",
 "LINE2:fvar#$colormoypress",
+^
+## one decimal place for millibars (so it will fit on graph) and 2 for inches
+.($config_parms{weather_uom_baro} eq 'mb' ? qq^
 "GPRINT:fminpress:MIN:Min \\\\: %2.1lf",
 "GPRINT:fmaxpress:MAX:Max \\\\: %2.1lf",
 "GPRINT:fvar:AVERAGE:Avg \\\\: %2.1lf",
 "GPRINT:fvar:LAST:Last \\\\: %2.1lf",
 "GPRINT:seafvar:LAST:(sea level \\\\: %2.1lf)\\\\n",
+^ : qq^
+"GPRINT:fminpress:MIN:Min \\\\: %2.2lf",
+"GPRINT:fmaxpress:MAX:Max \\\\: %2.2lf",
+"GPRINT:fvar:AVERAGE:Avg \\\\: %2.2lf",
+"GPRINT:fvar:LAST:Last \\\\: %2.2lf",
+"GPRINT:seafvar:LAST:(sea level \\\\: %2.2lf)\\\\n",
 ^
+)
+
 . ($config_parms{weather_uom_baro} eq 'mb' ? "\"HRULE:1013.25#$colorzero\",":"\"HRULE:29.9#$colorzero\",")
 . qq^
 "AREA:wipeout#$colorna:No data\\\\n",

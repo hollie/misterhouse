@@ -8,11 +8,12 @@ package Date::Language::Dutch;
 use Date::Language ();
 use vars qw(@ISA @DoW @DoWs @MoY @MoYs @AMPM @Dsuf %MoY %DoW $VERSION);
 @ISA = qw(Date::Language);
-$VERSION = "1.01";
+$VERSION = "1.02";
 
 @MoY  = qw(januari februari maart april mei juni juli
            augustus september oktober november december);
 @MoYs = map(substr($_, 0, 3), @MoY);
+$MoYs[2] = 'mrt'; # mrt is more common (Frank Maas)
 @DoW  = map($_ . "dag", qw(zon maan dins woens donder vrij zater));
 @DoWs = map(substr($_, 0, 2), @DoW);
 

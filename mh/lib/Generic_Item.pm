@@ -518,7 +518,7 @@ sub recently_changed {
     return wantarray ? @recently_changed : $recently_changed[0];
 }
 
-                                # Reset, then set, states from previous pass
+                                # Reset, then set, states from previous pass.  Called from bin/mh.
 sub reset_states {
     my $ref;
     while ($ref = shift @reset_states) {
@@ -565,6 +565,34 @@ sub reset_states2 {
                                 # Set/fire tied objects/events
                                 #  - do it in main, so eval works ok
     &main::check_for_tied_events($ref);
+
+                                # Send out to xAP/xPL.  Avoid loops on mirrored mh systems by checking $set_by.
+    my ($send_xap, $send_xpl);
+    $send_xap = 1 if $main::config_parms{xap_enable_items} or $$ref{xap_enable};
+    $send_xap = 0 if defined $$ref{xap_enable} and $$ref{xap_enable} == 0;
+    $send_xpl = 1 if $main::config_parms{xpl_enable_items} or $$ref{xpl_enable};
+    $send_xpl = 0 if defined $$ref{xpl_enable} and $$ref{xpl_enable} == 0;
+    if ($send_xap and $set_by ne 'xAP') {
+        &xAP::send('xAP', 'mhouse.item', 'mhouse.item' =>
+                   {name => $$ref{object_name}, state => $state, state_prev => $$ref{state_prev}, set_by => $set_by, mh_target => $target});
+    }
+    if ($send_xpl and $set_by ne 'xPL') {
+        &xAP::sendXpl('mhouse.item', 'xpl-stat', 'mhouse.item' =>
+                   {name => $$ref{object_name}, state => $state, state_prev => $$ref{state_prev}, set_by => $set_by, mh_target => $target});
+    }
+
+}
+
+sub xAP_enable {
+    return unless $main::Reload;
+    my ($self, $enable) = @_;
+    $self->{xap_enable} = $enable;
+}
+
+sub xPL_enable {
+    return unless $main::Reload;
+    my ($self, $enable) = @_;
+    $self->{xpl_enable} = $enable;
 }
 
 sub tie_items {
@@ -682,6 +710,9 @@ sub user_data {
 
 #
 # $Log$
+# Revision 1.42  2005/05/22 18:13:06  winter
+# *** empty log message ***
+#
 # Revision 1.41  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

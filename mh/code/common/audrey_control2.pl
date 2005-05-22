@@ -14,14 +14,14 @@
 #@ Further information on the MrAudrey Image may be seen at
 #@ http://www.mraudrey.net -or- http://vsa.cape.com/~pjf
 #@
-#  MRU 20050214-04, 	
+#  MRU 20050214-04,
 #  v0.16 Pete Flaherty - initial relase
 
 #  v0.17 Pete Flaherty - updates to use get_url over a get
 
 #  V0.18 Pete Flaherty - updated parse, eliminates text part getting called
 #	now it only sends out by IP
-	
+
 =begin comment
 
 The following comments are from the original code
@@ -179,7 +179,8 @@ sub audrey_ip {
     #Get all the Audrey listings from the ini file, and make an array of them
     for my $ip (split ',', $config_parms{Audrey_IPs}) {
 	( $Aname[$Acount], $Aip[$Acount] ) = split '-', $ip ;
-	$Aip[$Acount] =~ tr/\s//;
+#	$Aip[$Acount] =~ tr/\s//;
+	$Aip[$Acount] =~ s/\s//;
         print "$Aname[$Acount], $Aip[$Acount]\n";
 	#$listNM +=",$Aname[$Acount]";
 	$Acount++;
@@ -223,7 +224,7 @@ sub audrey {
 	print "Setting Audrey $mode to $astate for $address!\n";
 	$address =~ s/\s*$//; #remove trailing whitespace if there
         my $audrey_cmd = "";
-	
+
 	if ($mode eq 'top_led') {
             print_log "$address Audrey top led set to $astate";
             $state = 0 if $astate eq 'off';

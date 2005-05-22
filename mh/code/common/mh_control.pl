@@ -66,7 +66,7 @@ if ((said $v_http_control eq 'Check')) {
     }
 }
 
-        
+
 
 $v_restart_mh = new Voice_Cmd 'Restart Mister House';
 $v_restart_mh-> set_info('Restart mh.  This will only work if you are start mh with mh/bin/mhl');
@@ -122,9 +122,9 @@ if ($state = said $v_reboot and $OS_win) {
 #2 - REBOOT
 #4 - FORCE
 #8 - POWEROFF
-#The above options can be combined into one value to achieve different results. 
-#For example, to restart Windows forcefully, without querying any running programs, use the following command line: 
-#rundll32.exe shell32.dll,SHExitWindowsEx 6 
+#The above options can be combined into one value to achieve different results.
+#For example, to restart Windows forcefully, without querying any running programs, use the following command line:
+#rundll32.exe shell32.dll,SHExitWindowsEx 6
 
 $v_reboot_abort = new  Voice_Cmd("Abort the reboot");
 if (said $v_reboot_abort and $OS_win) {
@@ -180,7 +180,7 @@ if ($temp = state_now $search_code_string) {
     print "Searching for code $temp";
     my ($results, $count, %files);
     $count = 0;
-    $temp =~ s/ /.+/;           # Let 'reload code' match 'reload xyz code' 
+    $temp =~ s/ /.+/;           # Let 'reload code' match 'reload xyz code'
     for my $file (sort keys %User_Code) {
         my $n = 0;
         for (@{$User_Code{$file}}) {
@@ -210,7 +210,7 @@ $v_list_x10_items-> set_info('Generates a report fo all X10 items, sorted by dev
 if (said $v_list_x10_items) {
     print_log "Listing X10 items";
     my @object_list = (&list_objects_by_type('X10_Item'),
-                       &list_objects_by_type('X10_Appliance'), 
+                       &list_objects_by_type('X10_Appliance'),
                        &list_objects_by_type('X10_Garage_Door'));
     my @objects = map{&get_object_by_name($_)} @object_list;
     my $results;
@@ -265,12 +265,12 @@ if (said $v_list_debug_options) {
         for (&file_read($file, 2)) {
             $debug_options{$1}++ if /Debug\{['"]?(\S+?)['"]?\}/;
         }
-    }    
+    }
 
     print "reading user code\n";
     for (@Sub_Code) {
        $debug_options{$1}++ if /Debug\{['"]?(\S+?)['"]?\}/;
-    } 
+    }
 
     for my $key (sort keys %debug_options) {
         if ($prev_index ne substr($key, 0, 1)) {
@@ -293,9 +293,9 @@ sub serial_match_log {
     my $name = substr $$ref{object_name}, 1;
     print_log "$event: $name $state" if $config_parms{x10_errata} > 1 and !$$ref{no_log};
 }
- 
+
                                 # Allow for keyboard control
-if ($Keyboard) {    
+if ($Keyboard) {
     if ($Keyboard eq 'F1') {
         print "Key F1 pressed.  Reloading code\n";
                                 # Must be done before the user code eval
@@ -341,6 +341,16 @@ if (state_now $Power_Supply eq 'Restored') {
     set $Power_Supply 'Normal';
     display time => 0, text => "Detected a power reset";
 }
+
+
+                                # Process any backlogged X10 data
+$x10_backlog_timer = new Timer;
+if ($ControlX10::CM11::BACKLOG) {
+    print "X10:scheduling backlog\n";
+    set $x10_backlog_timer 1, "process_serial_data('X$ControlX10::CM11::BACKLOG',1,undef)";
+    $ControlX10::CM11::BACKLOG = "";
+}
+
 
 
                                 # Repeat last spoken
@@ -424,7 +434,7 @@ $test_command_yo2-> set_info('A short text authorization required command for qu
 respond "Hi to $test_command_yo->{set_by}, $test_command_yo->{target}." if said $test_command_yo;
 respond "Hi to authorized $test_command_yo2->{set_by}, $test_command_yo2->{target}." if said $test_command_yo2;
 
- 
+
 # Set up core MisterHouse modes like  mode_mh (normal/mute/offline), mode_vacation (on/off),
 # mode_scurity (armed/unarmed), mode_sleep (awake/sleeping parents/sleeping kids).
 # These modes can be controled via the web ia5 modes menu.
@@ -451,4 +461,3 @@ if ($state = state_now $mode_sleeping) {
     $Save{sleeping_parents} = ($state eq 'parents' or $state eq 'all') ? 1 : 0;
     $Save{sleeping_kids}    = ($state eq 'kids'    or $state eq 'all') ? 1 : 0;
 }
-

@@ -10,7 +10,10 @@
 <a href='/bin/phone_in.pl'><img src="images/recentcalls.gif" alt='Incoming calls' border=0></a><br>
 <a href='/bin/phone_out.pl'><img src="images/outgoing.gif" alt='Outgoing calls' border=0></a><br>
 <a href='/bin/phone_search.pl'><img src="images/searchcalls.gif" alt='Search' border=0></a><br>
-<a href='/bin/phone_list.pl'><img src="images/blockedcalls.gif" alt='Blocked Calls' border=0></a><br>
+
+<a href='/bin/phone_list.pl'>
+<img src="/bin/button.pl?Phone List" alt='Phone List' border="0"></a><br>
+<!-- <img src="images/blockedcalls.gif" alt='Blocked Calls' border=0></a><br> -->
 
 <!--#include file="/ia5/phone/voicemail.pl" -->
 

@@ -30,6 +30,10 @@ NAME="login_form">
 name="submit" alt="Voicemail">
 </form>];
 }
+elsif ('vocp' eq lc $config_parms{phone_voicemail_type}) {
+    return qq[<a href='sub?vocp_display_voicemail'><img src="images/voicemails.gif" alt='Voice Mail' border=0></a>];
+
+}
 
 else {
     return qq[<a href='voicemail.shtml'><img src="images/voicemails.gif" alt='Voice mail' border=0></a><br>];

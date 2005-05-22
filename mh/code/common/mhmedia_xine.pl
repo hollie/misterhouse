@@ -37,7 +37,9 @@
  V0.02 - 12 Mar 2005  - updated functions and post processing of return data 
  V0.10 - 15 Mar 2005  - initial release, all functions should be active and usable
 			added authentication for the player
- 
+ V0.11 -  4 Apr 2005  - added play DVD function
+ v0.12 -  5 May 2005  - fixed playing files with spaces, will not work with commas
+  
  Note: localhost functionality not tested 
 
 =cut
@@ -55,6 +57,7 @@ $mediaPlaylist = "/root/.xine/playlist.tox" unless $mediaPlaylist ;
 
 my $mediaUser = $config_parms{media_server_user};	#optional login information
 my $mediaPass = $config_parms{media_server_pass};
+my $mediapath = "" unless $config_parms{media_file_path} ;		#used in mhmedia_list web function
 
 $mediacmd   = new  Socket_Item(undef, undef, $mediahost, 'media', 'tcp');
 
@@ -96,7 +99,7 @@ my $cmdlist =
  "Play,Stop,Pause,Up,Down,Left,Right,Select,Menu," .
  "Next Track,Previous Track,Next Chapter,Previous Chapter,Restart," .
  "Volume Down,Volume Up,Mute,Shuffle On,Shuffle Off,Repeat On,Repeat Off," .
- "Panel,Load Playlist,Playlist,track," .
+ "Panel,Play DVD,Load Playlist,Playlist,track," .
  "FastForward,Rewind,Slow,Fullscreen";
 
 $v_mhmedia_control_cmd = new Voice_Cmd("Set the house media player to [" . $cmdlist . "]");
@@ -226,9 +229,14 @@ sub mhmedia_control {
       set $mediacmd "playlist first";
       set $mediacmd "stop";
     }
+    elsif ($state eq 'Play DVD') {
+      set $mediacmd 'mrl add dvd://';
+      set $mediacmd 'playlist last' ;
+    }
     elsif ($state eq 'FastForward') {
       set $mediacmd 'set speed XINE_SPEED_FAST_4';
     }
+    
     elsif ($state eq 'Rewind') {
       set $mediacmd 'set speed XINE_SPEED_SLOW_2';
     }
@@ -318,7 +326,16 @@ print " We had a Mode of $mediaMode ($state)to process ...\n";
 	}
 	print_log "Media Player Mute state is NOT $value" ;    
     
-    }      
+    }
+    
+    ### When we load something in the playlist and need to play it we
+      #  will wait for the mrl to be added and then issue an action
+    elsif ( $mediaMode eq 'Play dVD'){ 
+	set $mediacmd 'playlist last';
+	$mediaMode = '' ;
+	#print " Try to play dvd now\n";
+        }      
+            
 =begin comment
     these queries are setup in a sub routing and need to be returned to caller
     *- is an entry that needs processing and returns other are ok as is
@@ -331,7 +348,6 @@ print " We had a Mode of $mediaMode ($state)to process ...\n";
     *-get_playlist
     *-get_playlist_pos
     *-get_playlist_files
-    *-get_playlist_timestr 
     *-get_playlist_title
     *-get_volume
     *-get_output_timestr
@@ -445,15 +461,25 @@ sub mhmedia_play {
     my $file = shift;
     ##Here we need to see if its a local player or a remote
     #  and wether or not its playing something
-    return 0 unless &mhmedia_running;
-    run qq[$config_parms{mhmedia_program} "$file"];
+    #return 0 unless &mhmedia_running;
+    print " Play this $file \n";
+
+    set $mediacmd "playlist del *";
+    select undef, undef, undef, .050; # # Wait a while
+    my $cmd="mrl add '" . "$file'";
+    set $mediacmd $cmd ;
+    select undef, undef, undef, .050; # # Wait a while
+    set $mediacmd 'play';
+    #run qq[$config_parms{mhmedia_program} "$file"];
     print_log "mhmedia play: $file";
 }
 	## Add a file to the playlist
 sub mhmedia_queue {
     my $file = shift;
-    return 0 unless &mhmedia_running;
-    set $mediacmd 'mrl add $file' ;
+    #return 0 unless &mhmedia_running;
+    print " queue $file";
+    my $cmd="mrl add '" . "$file'";
+    set $mediacmd $cmd ;
     #run qq[$config_parms{mhmedia_program} -e "$file"];
     print_log "mhmedia queued: $file";
 }

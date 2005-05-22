@@ -23,11 +23,13 @@ my %mime_types = (
                   'xml'   => 'text/xml',
                   'xsl'   => 'text/xml',
                   'txt'   => 'text/plain',
-		  'css'   => 'text/css',
+#                 'htc'   => 'text/plain',
+                  'css'   => 'text/css',
                   'png'   => 'image/png',
                   'gif'   => 'image/gif',
                   'jpg'   => 'image/jpeg',
                   'jpeg'  => 'image/jpeg',
+                  'js'    => 'application/x-javascript',
                   'wbmp'  => 'image/vnd.wap.wbmp',
                   'bmp'   => 'image/bmp',
                   'au'    => 'audio/basic',
@@ -569,6 +571,9 @@ sub http_process_request {
 sub html_password {
     my ($menu) = @_;
     $menu = $config_parms{password_menu} unless $menu;
+
+#   return $html_unauthorized unless $Authorized;
+
     my $html;
     if ($menu eq 'html') {
         $html  = qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n];
@@ -978,7 +983,7 @@ sub http_speak_to_wav_start {
 
     $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
     ($compression = (&is_local_address()) ? 'low' : 'high') unless $compression;
-    &Voice_Text::speak_text(voice => $voice, to_file => "$config_parms{html_dir}/$wav_file",
+    &Voice_Text::speak_text(voice => $voice, to_file => "$config_parms{data_dir}/$wav_file",
                             text => $tts_text, compression => $compression, async => 1);
 
                    # Some browsers (e.g. Audrey) do not echo port in Host data
@@ -1544,12 +1549,9 @@ sub html_groups {
 
                                 # No need to list empty groups
         my $object = &get_object_by_name($1);
-        print "db1 o=$object 1=$1\n";
         if ($object and $object->can('list')) {
             next unless grep !$$_{hidden}, list $object;
         }
-        my @l = list $object;
-        print "db2 o=$object 1=$1 l=@l.\n";
 
                                   # Create buttons with GD module if available
         if ($Info{module_GD}) {
@@ -1701,6 +1703,46 @@ $text
 </td>
 </table><br>
 ];
+}
+
+sub html_header_new {
+if ($Authorized) {
+
+    my ($text) = @_;
+    $text = 'Generic Header' unless $text;
+
+    my $color = $config_parms{html_color_header};
+    $color = '#9999cc' unless $color;
+
+return qq[
+$config_parms{html_style}
+<table width=100% bgcolor='$color'>
+<td><center>
+<font size=3 color="black"><b>
+$text
+</b></font></center>
+</td>
+</table><br>
+];
+}
+else {
+my ($text) = @_;
+    $text = 'Sorry Unauthorized to View This Function';
+
+    my $color = $config_parms{html_color_header};
+    $color = '#9999cc' unless $color;
+
+return qq[
+$config_parms{html_style}
+<table width=100% bgcolor='$color'>
+<td><center><meta http-equiv="refresh" content="0;URL=/misc/unauthorized.html">
+<font size=3 color="black"><b>
+$text
+</b></font></center>
+</td>
+</table><br>
+];
+}
 }
 
 sub html_list {
@@ -2873,6 +2915,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.96  2005/05/22 18:13:07  winter
+# *** empty log message ***
+#
 # Revision 1.95  2005/03/20 19:02:02  winter
 # *** empty log message ***
 #

@@ -4,7 +4,7 @@
 #$Id$
 # Create buttons on-the-fly with GD module
 # use blank image template, add icon and text
-# 
+#
 # This script has been created to complement web interface created by Ron Klinkien
 # The main reason, is to provide user with an easy to use button creation interface
 # My personal use, is to keep the same look and feel, but get icon written in french
@@ -23,7 +23,7 @@
 # The script is expecting to find template and icon in the icons_dir defined in mh.ini
 # Note: many directory could be appened by seperating them with ":"
 # You will get better result if the icon are in PNG format to keep color accuracy
-# but output button could be in jpeg 
+# but output button could be in jpeg
 # Icon type could be JPEG PNG , sorry no GIF, it's unsupported by GD
 #
 # configuration in mh.private.ini
@@ -34,7 +34,7 @@
 #             represent RGB value from 0-255 for each color
 # min_x
 # min_y       writable position x,y (upper left) inside the template area
-# max_x      
+# max_x
 # max_y       writable position x,y (lower right) inside the template area
 # button_type Define the output type of button, png or jpeg
 # ttf         Full pathname of a TrueType font
@@ -64,7 +64,7 @@ my $ButtonOK = 1;
 print "\n\n$ScriptName: Entering with [@ARGV]\n" if $Debug{$ScriptName};
 
 my ( $Text, $IconName ) = @ARGV;
-$Text = 'No_Text' unless $Text;  # To avoid errors 
+$Text = 'No_Text' unless $Text;  # To avoid errors
 print "$ScriptName: Argument receive Text=$Text IconName=$IconName\n" if $Debug{$ScriptName};
 
 # validating icon
@@ -80,12 +80,12 @@ $ImageFile =~ s/ *$//;    # Drop trailing blanks
 $ImageFile =~ s/ /_/g;    # Blanks in file names are nasty
 $ImageFile = "/cache/$ImageFile.$ButtonType";
 
-print "$ScriptName: Cache file should be $config_parms{html_dir}/$ImageFile\n" if $Debug{$ScriptName};
+print "$ScriptName: Cache file should be $config_parms{data_dir}/$ImageFile\n" if $Debug{$ScriptName};
 
 # We hit the cache, so we give back the image and exit
-if ( -f "$config_parms{html_dir}/$ImageFile" ) {
-   print "$ScriptName: Hit cached file $config_parms{html_dir}/$ImageFile\n" if $Debug{$ScriptName};
-   my $data = file_read("$config_parms{html_dir}$ImageFile");
+if ( -f "$config_parms{data_dir}/$ImageFile" ) {
+   print "$ScriptName: Hit cached file $config_parms{data_dir}/$ImageFile\n" if $Debug{$ScriptName};
+   my $data = file_read("$config_parms{data_dir}$ImageFile");
    return &mime_header( $ImageFile, 1, length $data ) . $data;
 }
 print "$ScriptName: Cache file not found\n" if $Debug{$ScriptName};
@@ -123,7 +123,7 @@ if ($GDTemplate) {
    my $WorkAreaMaxX = $config_parms{button_max_x} || $Twidth - 3;
    my $WorkAreaMaxY = $config_parms{button_max_y} || $THeight - 3;
    print "$ScriptName: WorkAreaMaxX=$WorkAreaMaxX  WorkAreaMaxY=$WorkAreaMaxY\n" if $Debug{$ScriptName};
- 
+
 
    # copy icon over template, try to center in height
    my ( $IWidth, $IHeight ) = $GDIcon->getBounds();
@@ -161,7 +161,7 @@ if ($GDTemplate) {
       my @Bounds = GD::Image->stringTTF( "0,0,0" , $config_parms{button_ttf} , $PTSize, 0.0, 0, 0, "Nothing" );
       if ( scalar @Bounds == 0 ) {
          print "$ScriptName: Invalid TTF fonts $FontUse\n" ;
-         print "$ScriptName:         maybe GD not configured for TTF, or invalid file\n"; 
+         print "$ScriptName:         maybe GD not configured for TTF, or invalid file\n";
          $ButtonOK = 0;
       } else {
          $UseTTF  = 1;
@@ -201,7 +201,7 @@ if ($GDTemplate) {
          my $nexty = $y + $Bounds[7] -2 ;
          @Bounds = $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y, $lines[1] );
          print "$ScriptName: Text location for line \"$lines[1]\" [$x,$y]\n" if $Debug{$ScriptName};
-         
+
 
          @Bounds = GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0, $lines[0] );
          print "$ScriptName:        Bounds for line \"$lines[0]\" @Bounds\n" if $Debug{$ScriptName};
@@ -258,7 +258,7 @@ if ($GDTemplate) {
           $FontName = "gdSmallFont";
          }
       my $FontWidth=$FontUse->width;;
-      my $FontHeight=$FontUse->height-2; 
+      my $FontHeight=$FontUse->height-2;
 
       print "$ScriptName: Text will be written with font $FontName\n" if $Debug{$ScriptName};
       print "$ScriptName: Font width=$FontWidth height=$FontHeight\n" if $Debug{$ScriptName};
@@ -300,16 +300,16 @@ if ($GDTemplate) {
 
    # Write out a copy to the cache
 
-   if ( index( "JPG JPEG PNG XBM WMP XPM", uc($ButtonType) ) < 0 ) { 
+   if ( index( "JPG JPEG PNG XBM WMP XPM", uc($ButtonType) ) < 0 ) {
       print "$ScriptName: Invalid format type, can't produce $ImageFile\n";
       return;
    }
    my $ButtonFile = $GDTemplate->$ButtonType();
    if ( $ButtonOK ) {
-   print "$ScriptName: Writing button to cache: $config_parms{html_dir}/$ImageFile\n" if $Debug{$ScriptName};
-   file_write( "$config_parms{html_dir}/$ImageFile", $ButtonFile );
+   print "$ScriptName: Writing button to cache: $config_parms{data_dir}/$ImageFile\n" if $Debug{$ScriptName};
+   file_write( "$config_parms{data_dir}/$ImageFile", $ButtonFile );
    } else {
-   print "$ScriptName: Button $config_parms{html_dir}/$ImageFile not written to cache\n";
+   print "$ScriptName: Button $config_parms{data_dir}/$ImageFile not written to cache\n";
    }
 
    return &mime_header( $ImageFile, 1, length $ButtonFile ) . $ButtonFile;
@@ -392,7 +392,7 @@ sub GetTextColor {
 sub OpenImage {
    my $FileName = shift;
    my $ImageType = shift;
-    
+
 #  my ( $Name, $Type ) = split ( /\./, $FileName );
    my ( $Name, $Type ) = $FileName =~ /(.+)\.(\S+)/;
    my $TemplateObject;
@@ -450,19 +450,19 @@ sub OpenImage {
 sub FindFile {
    my $FileName = shift;
    my $ImageType = shift ;
-   if ( -f $FileName ) { 
+   if ( -f $FileName ) {
      print "$ScriptName: FindFile: Will use $FileName" if $Debug{$ScriptName};
-     return $FileName; 
-   } 
+     return $FileName;
+   }
    my @Dir = split (/:/,$config_parms{icons_dir});
-   if (scalar @Dir == 0 ) { 
+   if (scalar @Dir == 0 ) {
       print "$ScriptName: FindFile: $ImageType $FileName not found";
-      return "NO$ImageType"; 
-   } 
+      return "NO$ImageType";
+   }
    foreach my $Dirname ( @Dir ) {
-      if ( -f "$Dirname/$FileName" ) { 
+      if ( -f "$Dirname/$FileName" ) {
       print "$ScriptName: FindFile: Will use $Dirname/$FileName" if $Debug{$ScriptName};
-      return "$Dirname/$FileName"; 
+      return "$Dirname/$FileName";
       }
    }
    print "$ScriptName: FindFile: $ImageType $FileName not found in any icons dir";
@@ -476,6 +476,9 @@ sub FindFile {
 #}
 
 #$Log$
+#Revision 1.5  2005/05/22 18:13:08  winter
+#*** empty log message ***
+#
 #Revision 1.4  2004/02/01 19:24:36  winter
 # - 2.87 release
 #

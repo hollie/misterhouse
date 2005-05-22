@@ -8,7 +8,7 @@ This code is used to list and manipulate your blocked caller list.
 =cut
 
 use strict;
-$^W = 0;   
+$^W = 0;
 my $phone_dir = $::config_parms{caller_id_file};                     # Avoid redefined sub msgs
 
 return &rejected_call_list();
@@ -25,7 +25,7 @@ sub rejected_call_list{
     		$html_calls .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'><td nowrap><a href=/SUB;rej_call_item_delete($pos)>Delete</a>   $number</td><td nowrap>$name</a></td><td nowrap>$sound</td><td nowrap>$type</td></tr>";
 	$pos = $pos + 1;
 	}
-	
+
 	my $html = "<html>
 <head>
 <style>
@@ -34,7 +34,7 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
 </style>
 </head>
 <body>\n" .
-  &html_header('Rejected Call List') . "
+  &html_header('Phone List') . "
 <table width=100% cellspacing=2><tbody><font face=COURIER size=2>
 <tr id='resultrow' bgcolor='#9999CC' class='wvtheader'>
 <th align='left'>Number</th>
@@ -46,7 +46,7 @@ $html_calls
 </body>
 ";
     print "dbx2\n";
- my $form_type = 
+ my $form_type =
       &html_form_select('type', 0, 'Friend', 'Friend', 'Business', 'reject', 'Family');
 
 #form action='/bin/items.pl?add' method=post>
@@ -70,8 +70,8 @@ $form_type
     return $html;
 
 }
-    
- 
+
+
 
 
 
@@ -115,8 +115,8 @@ sub rej_call_item_delete{
 	unlink $phone_dir;
 	for $line (@ReadRejFile) {
 		($number, $name, $sound, $type) = $line =~ /number=(.+) name=(.+) sound=(.*) type=(.*)/;
-		
-		
+
+
 		$number =~ s/\s*$//; #trim the fat off the end
 		$name =~ s/\s*$//; #trim the fat off the end
 		$sound =~ s/\s*$//; #trim the fat off the end
@@ -124,9 +124,9 @@ sub rej_call_item_delete{
 		$writeparms = "$number\t$name\t\t$sound\t\t$type";
 		if ($filePos ne $deletepos){
 			&rej_call_file_write($phone_dir, $writeparms);
-			
+
 		}
-		
+
 
 
 		$filePos = $filePos + 1;
@@ -137,7 +137,7 @@ sub rej_call_item_delete{
 		$writeparms = "0123456789\t\tTest\t\t*\t\treject";
 		&rej_call_file_write($phone_dir, $writeparms);
 	}
-	
+
 	return &http_redirect('/bin/phone_list.pl');
 }
 
@@ -145,14 +145,14 @@ sub rej_call_item_delete{
 
                                 # This function will read in or out phone logs and return
                                 # a list array of all the calls.
-sub read_reject_call_list { 
+sub read_reject_call_list {
     #print "Reading Reject Caller File\n";
     my $phone_dir = "$config_parms{data_dir}/phone";
 	my (@calls);
         my $log_file = "$phone_dir/phone.caller_id.list";
 	print_log "$log_file";
         open (MYFILE, $log_file) or die "Error, could not open file $log_file: $!\n";
-        while (<MYFILE>) { 
+        while (<MYFILE>) {
             my($number, $name, $sound, $type);
 
 #file type example please note the tabs between fields
@@ -175,11 +175,11 @@ sub read_reject_call_list {
 	    $name = '*'			unless $name;
 	    $sound = '*'			unless $sound;
 	    $type = 'general' 	unless $type;
-	
+
 #	    print_log "Number;$number, Name;$name, Sound;$sound, Type;$type\n";
 	    push @calls, sprintf("number=%-12s name=%s sound=%s type=%s", $number, $name, $sound, $type);
-            
-        } 
+
+        }
         close MYFILE;
     return @calls;
 }

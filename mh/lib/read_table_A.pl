@@ -333,11 +333,12 @@ sub read_table_A {
             $code .= "my (%pa_weeder_max_port,%pa_zone_types,%pa_zone_type_by_zone);\n";
         }
 
-        if ($config_parms{pa_type} ne $pa_type) {
+#       if ($config_parms{pa_type} ne $pa_type) {
+        if(1==0) {
             print "ERROR! INI parm \"pa_type\"=$config_parms{pa_type}, but PA item $name is a type of $pa_type. Skipping PA zone.\n - r=$record\n";
             return;
         } else {
-            $name = "pa_$name";
+#           $name = "pa_$name";
 
             $grouplist = "|$grouplist|allspeakers";
             $grouplist =~ s/\|\|/\|/g;
@@ -346,6 +347,7 @@ sub read_table_A {
             $grouplist .= '|hidden';
 
             if ($pa_type =~ /^wdio/i) {
+                $name = "pa_$name";
                    # AHB / ALB  or DBH / DBL
                 $address =~ s/^(\S)(\S)$/$1H$2/;# if $pa_type eq 'wdio';
                 $address = "D$address" if $pa_type eq 'wdio_old';
@@ -363,8 +365,19 @@ sub read_table_A {
 
                 $object = '';
             } elsif (lc $pa_type eq 'x10') {
+                $name = "pa_$name";
                 $other = join ', ', (map {"'$_'"} @other); # Quote data
                 $object = "X10_Appliance('$address', $other)";
+            } elsif (lc $pa_type eq 'xap') {
+                $name = "paxap_$name";
+                $code .= sprintf "\n\$%-35s = new xAP_Item('%s');\n",$name,$address;
+                $code .= sprintf "\$%-35s -> target('%s');\n",$name,$address;
+                $code .= sprintf "\$%-35s -> class_name('%s');\n",$name,$other;
+            } elsif (lc $pa_type eq 'xpl') {
+                $name = "paxpl_$name";
+                $code .= sprintf "\n\$%-35s = new xPL_Item('%s');\n",$name,$address;
+                $code .= sprintf "\$%-35s -> target('%s');\n",$name,$address;
+                $code .= sprintf "\$%-35s -> class_name('%s');\n",$name,$other;
             } else {
                 print "\nUnrecognized .mht entry for PA: $record\n";
                 return;
@@ -417,6 +430,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.27  2005/05/22 18:13:07  winter
+# *** empty log message ***
+#
 # Revision 1.26  2005/03/20 19:02:02  winter
 # *** empty log message ***
 #

@@ -496,8 +496,8 @@ sub ParseThermostatData
     elsif($subcommand eq 0x06)
     {
         # This error message isn't prefaced with another message indicating the unit #, it's included
-        # as the data to this message.
-        print "Stargate Thermostat #$data polling error\n";
+       # as the data to this message.
+#        print "Stargate Thermostat #$data polling error\n";
     }
     else
     {

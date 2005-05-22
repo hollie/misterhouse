@@ -4,7 +4,7 @@
 #@ to occur. There are 66 or so Iridium communications
 #@ satellites that periodically reflect the sun's rays to the ground.
 #@ You must have valid latitude, longitude, and time_zone values set
-#@ in your mh.private.ini file.  Optionally set a mh.ini 
+#@ in your mh.private.ini file.  Optionally set a mh.ini
 #@ iridium_brightness parm to limit announcments of only the brigher flares.
 
 =begin comment
@@ -12,10 +12,10 @@
 There are 66 or so (defunct) Iridium communications satellites that that
 reflect Sun rays at a magnitude -8 (brighter than the brightest star)
 to an observer on the ground when the geometry is correct.  This code
-will announce when one of the short (1-3 second) flashes is about to 
+will announce when one of the short (1-3 second) flashes is about to
 occur, using the lat, long, and time_zone mh.ini parms.
 
-Note: Correct long. and time_zone parms for those of us in the 
+Note: Correct long. and time_zone parms for those of us in the
       Western Hemisphere will be negative numbers.
 
 =cut
@@ -29,7 +29,7 @@ run_voice_cmd 'get iridium flares' if $New_Week;
                                 # so use UCT (GMT+0) and translate.
 my $iridium_check_e = "$Code_Dirs[0]/iridium_check_events.pl";
 my $iridium_check_f = "$config_parms{data_dir}/web/iridium.html";
-my $iridium_check_u = "http://www.heavens-above.com/iridium.asp?" . 
+my $iridium_check_u = "http://www.heavens-above.com/iridium.asp?" .
                       "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&" .
                       "loc=$config_parms{city}";
 $iridium_check_p = new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
@@ -77,7 +77,7 @@ eof
             my @a = split;
 #           print "db t=$text\na=@a\n";
 #           print "db testing time: $a[1]/$a[0] $a[2]\n";
-            $time = my_str2time($config_parms{date_format} =~ /ddmm/ ? 
+            $time = my_str2time($config_parms{date_format} =~ /ddmm/ ?
                                 "$a[0]/$a[1] $a[2]" : "$a[1]/$a[0] $a[2]") +
                                   3600*$config_parms{time_zone};
             $time += 3600 if (localtime)[8]; # Adjust for daylight savings time
@@ -90,11 +90,11 @@ eof
                                 # Create a seperate code file with a time_now for each event
             print MYCODE<<eof;
             if (\$Dark and time_now '$time - 0:02' and $a[3] <= \$config_parms{iridium_brightness}) {
+                set \$iridium_timer 120 + $sec;
                 my \$msg = "Notice: $a[9] satellite $a[10] will have a magnitude $a[3] flare in 2 minutes ";
                 \$msg .= "at an altitude of $a[4], azimuth of $a[5].";
                 speak "app=timer \$msg";
                 display "Flare will occur at: $time_sec.  \\n" . \$msg, 600;
-                set \$iridium_timer 120 + $sec;
             }
 eof
 
@@ -103,7 +103,7 @@ eof
     close MYCODE;
     display $display, 0, 'Iridium list', 'fixed';
 #   display $iridium_check_e;
-    do_user_file $iridium_check_e; # This will enable the above MYCODE 
+    do_user_file $iridium_check_e; # This will enable the above MYCODE
 }
 
                                 # This timer will be triggered by the timer set in the above MYCODE
