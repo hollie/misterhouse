@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2005-03-19 18:55:01 winter>
+#  Last change Time-stamp: <2005-05-07 13:51:52 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -18,7 +18,7 @@
 #  Documentation is in mh/docs/mh.html (from mh.pod) and mh/docs/install.html
 #
 #  This free software is licensed under the terms of the GNU public license.
-#  Copyright 1998-2002 Bruce Winter
+#  Copyright 1998-2005 Bruce Winter
 #
 #---------------------------------------------------------------------------
 
@@ -77,7 +77,7 @@ use vars qw($Time_Sunrise $Time_Sunrise_Twilight $Time_Sunset $Time_Sunset_Twili
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
 use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
-use vars qw($Startup $Reload $Reread $Loop_Count $Last_Response $Category $Respond_Target $Set_By);
+use vars qw($Startup $Reload $Reread $Loop_Count $Loop_Count_Reload $Last_Response $Category $Respond_Target $Set_By);
 use vars qw($Version_tk $DelayOccured %Debug $Authorized);
 use vars qw(%User_Code @Code_Dirs @Generic_Serial_Ports %Misc);
 
@@ -625,12 +625,13 @@ sub setup {
     $Info{IPAddress_external} = $config_parms{ipaddress_external} if $config_parms{ipaddress_external};
     $Info{IPAddress_external} = $Info{IPAddress_local} unless $Info{IPAddress_external};
 
-    $config_parms{log_file}         = "./../mh.log"      unless $config_parms{log_file};
+    $config_parms{log_file}   = "$config_parms{data_dir}/mh.log"  unless $config_parms{log_file};
 
                                 # Make various directories, if missing
-    mkdir ("$config_parms{data_dir}/logs", 0777) unless -d "$config_parms{data_dir}/logs";
-    mkdir ("$config_parms{data_dir}/web", 0777)  unless -d "$config_parms{data_dir}/web";
-    mkdir ("$config_parms{html_dir}/tv", 0777)   unless -d "$config_parms{html_dir}/tv";
+    mkdir ("$config_parms{data_dir}/logs", 0777)         unless -d "$config_parms{data_dir}/logs";
+    mkdir ("$config_parms{data_dir}/web", 0777)          unless -d "$config_parms{data_dir}/web";
+    mkdir ("$config_parms{data_dir}/cache", 0777)        unless -d "$config_parms{data_dir}/cache";
+    mkdir ("$config_parms{html_dir}/tv", 0777)           unless -d "$config_parms{html_dir}/tv";
     mkdir ("$config_parms{html_dir}/tv/clicktv", 0777)   unless -d "$config_parms{html_dir}/tv/clicktv";
 
 #   print "parms=", join(":", %config_parms), "\n";
@@ -1470,7 +1471,7 @@ sub toggle_log {
     if ($config_parms{log}) {
         $state = 'on';
         $logfile = $config_parms{log_file};
-        $logfile = 'mh_log.txt' unless $logfile;
+        $logfile = '$config_parms{data_dir}/mh_log.txt' unless $logfile;
         print     "Key F5 pressed.  Output will be logged into $logfile\n";
         &print_log("Key F5 pressed.  Output will be logged into $logfile");
         open(OLDOUT, ">&STDOUT"); # Copy old handle
@@ -2101,10 +2102,10 @@ sub convert_mps2mph {   # convert meters per second to miles per hour
 sub convert_mph2mps {   # convert miles per hour to meters per second
     sprintf("%5.2f", $_[0] / 2.23693632);
 }
-sub convert_mm2in {	# convert millimeters (per hour) to inches (per hour)
+sub convert_mm2in { # convert millimeters (per hour) to inches (per hour)
      sprintf("%5.2f", $_[0] * 0.0393700787402);
 }
-sub convert_in2mm {	# convert inches (per hour) to millimeters (per hour)
+sub convert_in2mm { # convert inches (per hour) to millimeters (per hour)
      sprintf("%5.2f", $_[0] / 0.0393700787402);
 }
 
@@ -2744,7 +2745,7 @@ sub my_str2time {
         $yearf += 100 if $yearf < 70;
     }
 
-                                # Sill timelocal dies with bad times, and we can not trap
+                                # Silly timelocal dies with bad times, and we can not trap
                                 # a $SIG{_DIE_} without exiting, so check for valid times :(
     if ($secf > 59 or $minf > 59 or $hourf > 23 or $mdayf > 31 or $monthf > 11 or $yearf > 2037 or
         $secf <  0 or $minf <  0 or $hourf <  0 or $mdayf <  0 or $monthf <  0 or $yearf <    0 ) {
@@ -3197,7 +3198,7 @@ sub play {
                                 # Let the speak code push the wav file
                                 # For speak (TTS), this gets done in Voice_Text.pm
         if ($parms{address}) {
-            copy $file, "$config_parms{html_dir}/cache/speak_address.$Second.wav";
+            copy $file, "$config_parms{data_dir}/cache/speak_address.$Second.wav";
             for my $address (split ',', $parms{address}) {
                 my $address_code = $config_parms{voice_text_address_code};
                 $address_code =~ s|\$address|$address|;
@@ -3472,11 +3473,52 @@ sub process_serial_data {
 # C2STATUS_ONC2
 # C3C3STATUS_OFFC3C3STATUS_OFF
 # J5J7STATUS_ON OR  J5J2STATUS_OFF ...  Leviton DHC examples give strange extra 2 characters before STATUS string
-        if ($event_data1 =~ /STATUS/) {
+
+        if ($event_data1 =~ /POLL/) {
+     #***should check for mismatch of house and house2!
+            my ($house, $device, $house2, $level) = $event_data1 =~ /(\S)(\S)(\S)POLL/;
+
+            my $event_data = 'X' . $house . $device;
+            if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
+                for my $ref (@refs) {
+                    if ($ref->{x10_id}) {
+                        &print_log($ref->{x10_id} . $house . "POLL: " . substr($ref->{object_name},1) . " polled");
+                    }
+                }
+            }
+
+            return;
+        }
+        elsif ($event_data1 =~ /&P/) {
+            my ($house, $device, $house2, $level) = $event_data1 =~ /(\S)(\S)(\S)&P(.*)/;
+            $level -= 128 if ($level > 128); #***move this to cm11 module
+            my $level1 = (($level/63) * 100);
+            $level1 = int ( $level1 + 0.5 );
+
+    #***Turn on if off and level <> 0
+    #***Don't return, see below how status preserves additional commands!
+
+                                                              #set level here;
+            my $event_data = 'X' . $house . $device;
+            if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
+                for my $ref (@refs) {
+                    if ($ref->{x10_id}) {
+                #   print "FROM LEVEL:" . $ref->{level} . "\n";
+                #   print "TO LEVEL:" . $level1 . "\n";
+                        &print_log("$ref->{x10_id}&P" . $level . ": " . substr($ref->{object_name},1) . " " . (($level1 > $ref->{level})?"brightened":"dimmed") . " to " . $level1 . '%') if ($ref->{level} != $level1);
+                        $ref->{level} = $level1 if ($ref->{level} != $level1);
+                    }
+                }
+            }
+            return;
+        }
+        elsif ($event_data1 =~ /STATUS/) {
+#           &print_log("ed1:" . $event_data1);
 #           my ($house, $device, $state) = $event_data1 =~ /(\S)(\S)STATUS_(\S+)/;
-            my ($house, $device, $state) = $event_data1 =~ /(\S)(\S)\S{0,2}STATUS_(ON|OFF)/;
+            my ($house, $device, $state) = $event_data1 =~ /(\S)(\S)\S{0,2}STATUS_(\S+)/;
 
-
+            $event_data1 =~ s/\S\SSTATUS_$state//g;
+            $event_data = "X" . $event_data1;
 
             $state = 'J' if $state eq 'ON';
             $state = 'K' if $state eq 'OFF';
@@ -3485,8 +3527,15 @@ sub process_serial_data {
                 for my $ref (@refs) {
                     if ($state = $$ref{state_by_id}{$event_data}) {
 #                       $ref->{state} = $state;
-#                       set_receive $ref $state;
-                        set_receive $ref $state, 'status' if $state ne $ref->{state};
+#                       set_receive $ref $state, 'status' if $state ne $ref->{state};
+                        if (lc($state) ne lc($ref->{state}) and ((lc($ref->{state}) eq "on") or  (lc($ref->{state}) eq "off") or
+                                                                 (lc($ref->{state}) eq "status") or (lc($ref->{state}) eq "manual") )) {
+                            if ((lc($state) eq "on") or (lc($state) eq "off") ) {
+                                &print_log($ref->{x10_id} . ": " . substr($ref->{object_name},1) . " reported new status: $state") if ((lc($ref->{state}) ne 'status') and (lc($ref->{state}) ne 'manual'));
+                                set_receive $ref $state, 'status';
+                            }
+                        }
+
                         print "CM11 Status results: data=$event_data1 event_data=$event_data state=$state\n"
                             if $Debug{x10};
                     }
@@ -3495,21 +3544,23 @@ sub process_serial_data {
             else {
                 &print_log("Status request on undefined state: data=$event_data1 event_data=$event_data");
             }
-            return;
+            return unless $event_data1;
         }
 
                                 # Track previous X10 data
 
                                 # Ignore duplicate X10 entries
                                 #  - We might have a CM11 and a MR26 both receiving the same data
-        for my $i (0 .. 4) {
-            my $time_diff = $loop_tickcount1 - $prev_x10_events[$i]{time} if $prev_x10_events[$i]{time};
-            last unless defined($time_diff) and $time_diff < $config_parms{x10_multireceive_delay};
-#           print "db $event_data1 eq $prev_x10_events[$i]{data}\n";
-            if ($event_data1 eq $prev_x10_events[$i]{data}) {
-                print_log "X10: Duplicate data ignored data=$event_data time=$time_diff"
-                    if $config_parms{x10_errata} >= 3;
-                return;
+        unless ($config_parms{x10_data_allow_dups}) {
+            for my $i (0 .. 4) {
+                my $time_diff = $loop_tickcount1 - $prev_x10_events[$i]{time} if $prev_x10_events[$i]{time};
+                last unless defined($time_diff) and $time_diff < $config_parms{x10_multireceive_delay};
+#               print "db $event_data1 eq $prev_x10_events[$i]{data}\n";
+                if ($event_data1 eq $prev_x10_events[$i]{data}) {
+                    print_log "X10: Duplicate data ignored data=$event_data time=$time_diff"
+                        if $config_parms{x10_errata} >= 3;
+                    return;
+                }
             }
         }
         unless ($prev_pass or $source eq 'rf') {
@@ -3596,6 +3647,7 @@ sub process_serial_data {
 #               return 1 unless $dim_level;
                 my $dim_level = &x10_dim_level_decode(substr($event_data, 3));
                 $dim_level = ($f_code eq 'M') ? '+' . $dim_level : '-' . $dim_level;
+#               $dim_level = ($f_code eq 'M') ? '+' . $dim_level : '-'  $dim_level;
                 print_log "X10: Dim/bright level=$dim_level event=$event_data " if $config_parms{x10_errata} >= 3;
 
                                 # Code incoming bright/dim with the same syntax as outgoing:  e.g XA+20 XB-30
@@ -3617,11 +3669,15 @@ sub process_serial_data {
         }
 
                                 # Check for multi-key X10 commands (e.g. XA1 XAJ -> XA1AJ)
+                                # Optional, to allow for external code to take care of this
+
         my $prev_x10_event = '';
-        for my $i (1 .. 4) {
-            my $prev_x10_time = $prev_x10_events[$i]{time};
-            last unless $prev_x10_time and $prev_x10_time > ($loop_tickcount1 - $config_parms{x10_multikey_delay});
-            $prev_x10_event = $prev_x10_events[$i]{data} . $prev_x10_event;
+        unless ($config_parms{x10_data_no_merge}) {
+            for my $i (1 .. 4) {
+                my $prev_x10_time = $prev_x10_events[$i]{time};
+                last unless $prev_x10_time and $prev_x10_time > ($loop_tickcount1 - $config_parms{x10_multikey_delay});
+                $prev_x10_event = $prev_x10_events[$i]{data} . $prev_x10_event;
+            }
         }
         if ($prev_x10_event) {
             my $event_data2 = 'X' . $prev_x10_event . substr($event_data, 1);
@@ -3699,7 +3755,7 @@ sub proxy_receive {
 
 sub process_x10_chunks {
     my ($event_data, $event_type) = @_;
-    return 0 if $event_data =~ /PRESET_DIM/ or $event_data =~ /STATUS/;
+    return 0 if $event_data =~ /PRESET_DIM/ or $event_data =~ /STATUS/ or $event_data =~ /&P/;
 
     my $length = length($event_data);
     my $pos = 1;
@@ -4067,6 +4123,7 @@ sub read_user_code {
     my ($file, $noloop_flag, $noloop_statement_flag, $pod_flag, $webname);
 
     $Reload = 1;
+    $Loop_Count_Reload = 0;
     undef @Tk_widgets;
 
     for $file (@files) {
@@ -4376,6 +4433,7 @@ sub set_global_vars {
                                 # Need to get smart and do this only every second/hour/etc.
     $loop_speed_cnt++;
     $Loop_Count++;
+    $Loop_Count_Reload++;
     $New_Second      = 0;
     $New_Msecond_500 = 0;
     $New_Msecond_250 = 0;
@@ -4769,18 +4827,18 @@ sub set_sun_time {
                  time_zone =>  $config_parms{time_zone});
 
     print "Latitude: $config_parms{latitude},  Longitude: $config_parms{longitude},  Time Zone: $config_parms{time_zone}\n";
-	$Time_Sunrise = &sun_time(type => 'rise', @parms);
+    $Time_Sunrise = &sun_time(type => 'rise', @parms);
     $Time_Sunset  = &sun_time(type => 'set',  @parms);
 
     $Time_Sunrise_Twilight = &sun_time(type => 'rise', twilight => $config_parms{twilight}, @parms);
     $Time_Sunset_Twilight  = &sun_time(type => 'set',  twilight => $config_parms{twilight}, @parms);
 
-	if ($config_parms{time_format} == 12) {
-		$Time_Sunrise          = time_to_ampm $Time_Sunrise;
-		$Time_Sunset           = time_to_ampm $Time_Sunset;
-		$Time_Sunrise_Twilight = time_to_ampm $Time_Sunrise_Twilight;
-		$Time_Sunset_Twilight  = time_to_ampm $Time_Sunset_Twilight;
-	}
+    if ($config_parms{time_format} == 12) {
+        $Time_Sunrise          = time_to_ampm $Time_Sunrise;
+        $Time_Sunset           = time_to_ampm $Time_Sunset;
+        $Time_Sunrise_Twilight = time_to_ampm $Time_Sunrise_Twilight;
+        $Time_Sunset_Twilight  = time_to_ampm $Time_Sunset_Twilight;
+    }
 
     print "sunrise=$Time_Sunrise sunset=$Time_Sunset\n";
     print "sunrise twilight=$Time_Sunrise_Twilight sunset twilight=$Time_Sunset_Twilight\n";
@@ -5145,7 +5203,9 @@ sub speak {
 
                                 # Check if we want to speak web requested data
                                 # If Respond_Target is set, let &respond_web handle it?
-    if ($leave_socket_open_passes) {
+                                # If room or address, then let it go there rather then the web
+    if ($leave_socket_open_passes and
+        !($parms{room} or $parms{address})) {
         $leave_socket_open_passes = 1;
 
                                            # Intercept speak/log/print/last_response -> web wav
@@ -5961,6 +6021,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.99  2005/05/22 18:02:28  winter
+# *** empty log message ***
+#
 # Revision 2.98  2005/03/20 18:53:39  winter
 # *** empty log message ***
 #
