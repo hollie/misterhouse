@@ -1,0 +1,12 @@
+
+# An example of how to start the xAP-bluetooth.pl daemon.
+# May have occasional problems with > 1 instances competing for the bluetooth interface.
+
+export bt_debug=1
+#export bt_linger=1
+
+# Kill all previous instances
+# /projects/bin/killit bin/xAP-bluetooth.pl
+
+perl /projects/bin/xAP-bluetooth.pl 00:01:02:03:04:05 Bruce -8 &
+perl /projects/bin/xAP-bluetooth.pl 00:01:02:03:04:06 Zack  -2 &

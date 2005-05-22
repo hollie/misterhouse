@@ -1,0 +1,156 @@
+=pod
+
+=head1 The MisterHouse Media How-to
+
+version 0.10 David Vitrant and Pete Flaherty
+
+This is a short description of how to get the Media application up and running with your MisterHouse system.
+
+
+This document was originally written by David Vitrant, who inspired me to write the module in the first place. He was instrumental in the debugging and documentation.
+For the most part this is his how-to, though I have added some additional commentary about using the module with a remote xine player and store.
+
+
+=head2 What's not covered:
+
+=over 2
+
+Setting up a remote media repository, on a machine (that is not the MisterHouse server) that will be running your xine media player (this will be covered in a future revision as details become available)
+
+=back
+
+=head2 Recommendations:
+
+=over 2
+
+This is a general guide and your mileage will vary...
+
+PLEASE NOTE THESE ARE BARE MINIMUM REQUIREMENTS
+
+For a local (MisterHouse server) installation, you will need at least a 1GHz processor
+For a Remote installation you will need a t least a 700MHz processor
+
+For Either installaton
+
+=over 8
+
+=item   *
+Memory: 256M minimum More is recommended (depending on your other system demands)
+
+=item   *
+A capable supported graphics card with TV out (if you want to rebroadcast).  
+
+ This has been tested with nVidea and ATI Radeon cards.
+
+=back
+
+Notes: Processor, Memory and Graphics are very important, as video processing is highly resource intensive, Lack of reasonable power in any of these areas will directly affect the quality of your video playback... again your mileage will vary
+
+=back
+
+
+=head2 Introduction:
+
+=over 2
+
+mhmedia_xine is a module for MisterHouse that lets you control Xine from your MisterHouse web page. It will let you play, stop, toggle full screen, load playlists, as well as most of the amenities that come with xine.
+
+mhmedia is the database, and collection tool to help you organize your media, and playlists (as of this writing this module is not completed).
+
+=back
+
+=head2 Installing:
+
+=over 2
+
+First you need to have MisterHouse installed (download from misterhouse.net)
+
+
+Then download the mhmedia file from: (mhmedia_xine.pl should come with version 2.98 of misterhouse and above)
+
+=over 4
+
+=item
+On linux type “tar xvfz mhmedia.tar.gz” should unpack the file and u should now have a folder.
+
+=item -
+look in the folder and you will have two folders common and web.
+
+=item -
+the file in common should go in your common directory, mine is in /usr/share/misterhouse/code/common
+
+=item -
+move the stuff in the web -> ia5 folder into the entertain directory of your misterhouse (usually under web)
+mine is in : /usr/share/misterhouse/web/ia5/entertain and images in that image folders
+
+=item -
+the media folder should go right in your local web folder mine is in /usr/share/misterhouse/web/media/
+
+=back
+
+=back
+
+=head2 Xine Settings:
+
+=over 2
+
+Xine needs to have a passwd file to allow users to access it from the network.
+Traditionally this is in /home/you/.xine/ and mine is just called passwd.  This file (passwd) contains only this one line “ALL:ALLOW” which allows all your uses to access it.
+You also want in your .xine a playlist.tox file.. call it whatever.. and put whatever playlist you want.. from xine. This playlist will be called up when you start xine from your MisterHouse system.
+
+Now start Xine from command line in the network mode.. do this by typing at a prompt “xine -n” ( this may be on your local MH machine or on a remote machine, that will be serving your media )
+
+
+NOTE: START XINE FROM THE USER THAT WILL BE ACCESSING THE DATA FROM MH.
+
+=back
+
+=head2 MH Settings:
+
+=over 2
+
+Now open a browser and go to your localhost:8080 (or whatever port/url) login as admin and click on MH Home -> MH Setup ->common code activation.
+
+Make sure that mhmedia_xine.pl has a check mark on the left side (is activated) and also click on the EDIT config parms.
+
+The important settings are:
+
+=over 6
+
+=item   *
+media_server_playlist=/root/.xine/playlist.tox
+
+=item   *
+media_server_host_port=localhost:6789
+
+=item   *
+media_server_user=
+
+=item   *
+media_server_pass=
+
+=item   *
+mhmedia_program=
+
+=back
+
+=over 3
+
+the playlist is set to whatever user will be running xine's playlist.. in my case it's in my root directory.
+The host_port tells you what port you will be using (default is 6789) and i added localhost or you can put your ip that worked for me This parameter is in the host:port format, where the host may be either a DNS name (if you run local DNS) or an IP followed by the port (eg media_server_host_port=192.168.1.1:6789 )
+
+=back
+
+I left the rest blank (but it depends on the passwd file you made for user/passwd ) the passwd file in your .xine directory.
+
+As a side note (after you have your setup working) you may want to assign a specific user and password for accessing xine,  For example setting misterhouse:media in the xine passwd file and setting the media_server_user and media_server_pass, would limit access to only MisterHouse for remote controlling the xine player.
+
+mhmedia_server is currently not implimented and does not need to be set, though this setting will be needed to launch xine from within MisterHouse (in the future).
+
+If all goes well and Xine is on you can now go to localhost:8080 ->tv/ radio mp3/player and you should be able to get to a Media Center button right bellow the jukebox button.
+
+If you have elected to run xine on a remote box, access should be similar, simply access your MisterHouse machine as described above.
+
+click on that and enjoy. Check to see if you have a connection to xine by clicking check.. and then on to control.. then enjoy the fun.
+
+=back
