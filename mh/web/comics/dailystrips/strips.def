@@ -1038,13 +1038,13 @@ strip lcd
 	provides latest
 end
 
-# could easily generate
 strip devilspanties
-	name The Devil's Panties
-	homepage http://thedevilspanties.keenspace.com
-	type search
-	searchpattern <IMG.+?SRC="(http://thedevilspanties\.keenspace\.com/comics/.+?\..+?)"
-	provides latest
+        name The Devil's Panties
+        homepage http://devilspanties.keenspot.com
+        type search
+        searchpattern <IMG.+?SRC="(/comics/.+?\..+?)"
+        baseurl http://devilspanties.keenspot.com
+        provides latest
 end
 
 
@@ -1420,9 +1420,9 @@ strip dilbert
         name Dilbert
         artist Scott Adams
         homepage http://www.dilbert.com/comics/dilbert/
-        baseurl $homepage
+	baseurl http://www.dilbert.com
         type search
-        searchpattern <IMG SRC="(/comics/dilbert/archive/images/.+?\.gif)"
+        searchpattern <IMG SRC="(/comics/dilbert/archive/images/.+?\.(gif|jpg))"
         provides latest
 end
 
@@ -1433,11 +1433,6 @@ end
 
 strip ferdnand
 	name Ferd'nand
-	useclass unitedmedia-srch-comics
-end
-
-strip forbetter
-	name For Better or For Worse
 	useclass unitedmedia-srch-comics
 end
 
@@ -1783,12 +1778,6 @@ strip funkywinkerbean
 	name Funky Winkerbean
 	useclass sfgate-gen
 	$1 Funky_Winkerbean
-end
-
-strip hagarthehorrible
-	name Hagar the Horrible
-	useclass sfgate-gen
-	$1 Hagar_The_Horrible
 end
 
 strip mallardfillmore
@@ -4057,7 +4046,7 @@ strip shermanslagoon
 	artist Jim Toomey
 	homepage http://www.slagoon.com
 	type generate
-	imageurl $homepage/dailies/SL%y.%m.%d.gif
+	imageurl $homepage/dailies/SL%y%m%d.gif
 	provides latest
 end
 
@@ -4867,6 +4856,15 @@ strip flick
 	$1 flick
 end
 
+strip forbetter
+       name For Better or For Worse
+       homepage http://www.fborfw.com/strip_fix/
+       type search
+       searchpattern <img.+?src="(/strip_fix/.+?\d{6}.{3}\.(gif|jpg))"
+       baseurl http://www.fborfw.com/
+       provides latest
+end
+
 strip gsg
 	name Gun Street Girl
 	artist Barb Lien and Ryan Howe
@@ -4879,6 +4877,15 @@ strip grift
 	artist Jim Keplinger and Scott Story
 	useclass graphicsmash
 	$1 grift
+end
+
+strip hagarthehorrible
+        name Hagar the Horrible
+        homepage http://seattlepi.nwsource.com/fun/hagar.asp
+        referer http://seattlepi.nwsource.com/fun/hagar.asp
+        imageurl http://pst.rbma.com/content/Hagar_The_Horrible?date=%Y%m%d
+        type generate
+        provides any
 end
 
 strip killroyandtina
