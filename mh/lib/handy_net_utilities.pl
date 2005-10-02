@@ -641,7 +641,7 @@ sub main::net_icq_signon {
 
     # Already signed on?
     unless ($icq_connection) {
-        $icq_connection = main::get_toc_connection("ICQ",$name,$password,$port,\&icq::callback,\&icq::process);
+        $icq_connection = main::get_oscar_connection("ICQ",$name,$password)
     }
     return $icq_connection;
 }
@@ -653,8 +653,6 @@ sub main::get_oscar_connection {
 
     $name     = $main::config_parms{'net_' . $lnet . '_name'}      unless $name;
     $password = $main::config_parms{'net_' . $lnet . '_password'}  unless $password;
-    my $buddies  = $main::config_parms{'net_' . $lnet . '_buddies'};
-
     print "Logging onto $network with name=$name ... \n";
 
     eval 'use Net::OSCAR';
@@ -664,79 +662,27 @@ sub main::get_oscar_connection {
     }
 
     $im_connection = Net::OSCAR->new();
-    $im_connection -> add_buddy("friends", $name);
     $im_connection -> set_callback_im_in(\&oscar::cb_imin);
     $im_connection -> set_callback_buddy_in(\&oscar::cb_buddyin);
     $im_connection -> set_callback_buddy_out(\&oscar::cb_buddyout);
     $im_connection -> set_callback_error(\&oscar::cb_error);
-
-
-    for (split /,/, $buddies) {
-        print "Adding $network buddy $_\n";
-        $im_connection -> add_buddy("friends", $_);
-    }
+    $im_connection -> set_callback_signon_done(\&oscar::cb_signondone);
+    
 
     unless (defined($im_connection->signon (screenname => $name,
 					    password =>$password))) {
         return undef;
     }
 
-    &main::MainLoop_post_add_hook( \&oscar::process, 1 );
+    if ($lnet eq 'aim') {
+       &main::MainLoop_post_add_hook( \&oscar::process_aim, 1 );
+    } else {
+       &main::MainLoop_post_add_hook( \&oscar::process_icq, 1 );
+    }
 
     return $im_connection;
 }
 
-sub main::get_toc_connection {
-
-    my ($network,$name,$password,$port,$callback,$process) = @_;
-    my $im_connection;
-    my $lnet = lc($network);
-
-    $name     = $main::config_parms{'net_' . $lnet . '_name'}      unless $name;
-    $password = $main::config_parms{'net_' . $lnet . '_password'}  unless $password;
-    $port = $main::config_parms{'net_' . $lnet . '_port'}          unless $port;
-#   $port = 23                                         unless $port;  # This can get through some firewalls?
-    $port = 1234                                       unless $port;  # This is the default
-    my $login_port = $main::config_parms{'net_' . $lnet . '_login_port'};
-    my $buddies  = $main::config_parms{'net_' . $lnet . '_buddies'};
-
-    my $timeout = $main::config_parms{'net_' . $lnet . '_timeout'};
-    $timeout = 10 unless $timeout;
-
-    print "Logging onto $network with name=$name (timeout=$timeout) ... \n";
-
-    eval 'use Net::AOLIM';
-    if ($@) {
-        print "Net::AOLIM eval error: $@\n";
-        &::logit("$main::config_parms{data_dir}/logs/net_im.$::Year_Month_Now.log",  "$network error=$@");
-        return;
-    }
-
-    $im_connection = Net::AOLIM->new("username" => $name,
-                                     "password" => $password,
-                                     "port" => $port,
-                                     "login_port" => $login_port,
-                                      'login_timeout' => $timeout,
-                                     "callback" => $callback,
-                                     "allow_srv_settings" => 0 );
-    $im_connection -> add_buddies("friends", $name);
-
-    for (split /,/, $buddies) {
-        print "Adding $network buddy $_\n";
-        $im_connection -> add_buddies("friends", $_);
-    }
-
-    unless (defined($im_connection->signon)) {
-        my $msg = "$network logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)";
-        print "$msg\n";
-        &::logit("$main::config_parms{data_dir}/logs/net_im.$::Year_Month_Now.log",  $msg);
-        return undef;
-    }
-
-    &main::MainLoop_post_add_hook( $process, 1 );
-
-    return $im_connection;
-}
 
 sub main::net_im_signoff {
     my ($pgm) = @_;
@@ -765,12 +711,13 @@ my %buddies_status;
 
 sub oscar::cb_error {
 my ($oscar, $connection, $error, $description, $fatal)=@_;
-  print "OSCAR error: $description\n";
+  my $name=$oscar -> screenname();
+  print "OSCAR error ($name): $description\n";
 }
 
 sub oscar::cb_buddyin {
   my ($oscar, $screenname, $group, $buddydata)=@_;
-
+  
   oscar::buddychange($oscar, $screenname, 'on');
 }
 
@@ -778,6 +725,31 @@ sub oscar::cb_buddyout {
   my ($oscar, $screenname, $group)=@_;
 
   oscar::buddychange($oscar, $screenname, 'off');
+}
+
+sub oscar::cb_signondone {
+  my ($oscar)=@_;
+
+  my $net=oscar::get_net($oscar);
+  my $buddies  = $main::config_parms{'net_' . $net . '_buddies'};
+
+  print "Successfully signed onto $net\n";
+
+  for (split /,/, $buddies) {
+      print "Adding $net buddy $_\n";
+      $oscar -> add_buddy("friends", $_);
+  }
+  $oscar -> commit_buddylist;
+}
+
+sub oscar::get_net {
+  my ($oscar)=@_;
+
+  if ($oscar->screenname() eq $main::config_parms{'net_aim_name'}) {
+     return 'aim';
+  } else {
+    return 'icq';
+  }
 }
 
 sub oscar::buddychange {
@@ -788,7 +760,11 @@ sub oscar::buddychange {
       print "AOL AIM Buddy $screenname logged $status.\n";
       $buddies_status{$screenname} = $status;
   }
-  &main::AOLim_Status_hooks($screenname, $status, $status_old, 'AOL');
+  if (oscar::get_net($oscar) eq 'aim') {
+    &main::AOLim_Status_hooks($screenname, $status, $status_old, 'AOL');
+  } else {
+    &main::ICQim_Status_hooks($screenname, $status, $status_old, 'ICQ');
+  }
 }
 
 sub oscar::cb_imin {
@@ -797,98 +773,37 @@ sub oscar::cb_imin {
   my $plaintext = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($message));
   chomp $plaintext;
 
-  &main::AOLim_Message_hooks($from, $plaintext, 'AOL');
+  my $net=oscar::get_net($oscar);
+  if ($net eq 'aim') {
+    &main::AOLim_Message_hooks($from, $plaintext, 'AOL');
+  } else {
+    &main::ICQim_Message_hooks($from, $plaintext, 'ICQ');
+  }
 }
 
-sub aolim::callback {
-    my ($type, $name, $arg, $text) = @_;
-#   print "db t=$type, n=$name, a=$arg, t=$text\n";
-    if ($type eq 'ERROR') {
-        my $error = "$Net::AOLIM::ERROR_MSGS{$name}";
-        $error =~ s/\$ERR_ARG/$arg/g;
-        print "AOL AIM error: $error\n";
-    }
-    elsif ($type eq 'IM_IN') {
-#       my $time = &main::time_date_stamp(5);
-        my $text2 = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($text));
-        chomp $text2;
-#       &main::display(text => "$name ($time:$main::Second): " . $text2, time => 0, window_name => 'AIM', append => 'top');
-        &main::AOLim_Message_hooks($name, $text2, 'AOL');
-    }
-    elsif ($type eq 'UPDATE_BUDDY') {
-        my $status;
-        if ($arg eq 'T') {
-            $status = 'on';
-        }
-        elsif ($arg eq 'F') {
-            $status = 'off';
-        }
-	my $status_old = $buddies_status{$name};
-        if ($buddies_status{$name} ne $status) {
-            print "AOL AIM Buddy $name logged $status.\n";
-            $buddies_status{$name} = $status;
-        }
-        &main::AOLim_Status_hooks($name, $status, $status_old, 'AOL');
-    }
+sub oscar::process_icq {
+  oscar::process('icq');
 }
 
-# IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hiho</FONT></BODY></HTML>
-sub icq::callback {
-    my ($type, $name, $arg, $text) = @_;
-#   print "db t=$type, n=$name, a=$arg, t=$text\n";
-    if ($type eq 'ERROR') {
-        my $error = "$Net::AOLIM::ERROR_MSGS{$name}";
-        $error =~ s/\$ERR_ARG/$arg/g;
-        print "ICQ error: $error\n";
-    }
-    elsif ($type eq 'IM_IN') {
-#       my $time = &main::time_date_stamp(5);
-        my $text2 = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($text));
-        chomp $text2;
-#       &main::display(text => "$name ($time:$main::Second): " . $text2, time => 0, window_name => 'ICQ', append => 'top');
-        &main::ICQim_Message_hooks($name, $text2, 'ICQ');
-    }
-    elsif ($type eq 'UPDATE_BUDDY') {
-        my $status;
-        if ($arg eq 'T') {
-            $status = 'on';
-        }
-        elsif ($arg eq 'F') {
-            $status = 'off';
-        }
-	my $status_old = $buddies_status{$name};
-        if ($buddies_status{$name} ne $status) {
-            print "ICQ Buddy $name logged $status.\n";
-            $buddies_status{$name} = $status;
-        }
-        &main::ICQim_Status_hooks($name, $status, $status_old, 'ICQ');
-    }
-}
-
-
-sub aolim::process {
-    return unless $main::New_Second;
-    if (!defined $aim_connection or !defined $aim_connection->ui_dataget(0)) {
-        print "\nAOL AIM connection died\n";
-        print "AIM logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
-        undef $aim_connection;
-        &main::MainLoop_post_drop_hook( \&aolim::process, 1 );
-    }
+sub oscar::process_aim {
+  oscar::process('aim');
 }
 
 sub oscar::process {
-  return unless $main::New_Second;
-  $aim_connection->do_one_loop();
-}
+  my ($net)=@_;
 
-sub icq::process {
-    return unless $main::New_Second;
-    if (!defined $icq_connection or !defined $icq_connection->ui_dataget(0)) {
-        print "\nICQ connection died\n";
-        print "ICQ logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
-        undef $icq_connection;
-        &main::MainLoop_post_drop_hook( \&icq::process, 1 );
-    }
+  return unless $main::New_Second;
+
+  my $connection;
+
+  if ($net eq 'icq') {
+    $connection=$icq_connection;
+  } else {
+    $connection=$aim_connection;
+  }
+
+  # not sure how to check if connection is still up
+  $connection->do_one_loop();
 }
 
 sub main::net_im_process_queue {
@@ -981,13 +896,15 @@ sub main::net_im_do_send {
 
     return 0 if $buddies_status{$to} and $buddies_status{$to} ne 'on';
 
-    print "Sending $parms{pgm} message to $to\n";
+
 
 
     $text  = $parms{text};
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
 
-#   return if $text eq '';
+    return if $text eq '';
+    
+    print "Sending $parms{pgm} message to $to\n";
 
     # Chop message up if needed since AIM has a limit of 1024
 
@@ -1537,6 +1454,10 @@ sub main::url_changed {
 
 #
 # $Log$
+# Revision 1.64  2005/10/02 19:27:53  mattrwilliams
+# - added more callbacks for OSCAR object
+# - added ICQ compatibility (I think - untested)
+#
 # Revision 1.63  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #
