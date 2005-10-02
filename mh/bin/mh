@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2005-05-07 13:51:52 winter>
+#  Last change Time-stamp: <2005-10-01 22:05:19 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -553,6 +553,10 @@ sub setup {
     use iButton;
     use LCD;
     use xAP_Items;
+    use xAP_Items;
+    use EIB_Items;
+    use EIB_Device;
+    eval "use BSC";
 
                                 # Base_Items
     use Base_Item;
@@ -681,6 +685,7 @@ sub setup {
     }
 
     &xAP::startup;              # Start the xAP/xPL sockets, in lib/xAP_Items.pm
+    &EIB_Device::startup;       # Start the EIB device, in lib/EIB_Device.pm
 
 
     for my $port_name (@Generic_Serial_Ports) {
@@ -829,6 +834,11 @@ sub setup {
         require 'ncpuxa_mh.pm';
         &ncpuxa_mh::init($config_parms{ncpuxa_port}); # Create socket connection
     }
+    if ($config_parms{use_wish} && $^O eq 'linux' && -d '/dev/x10/') {
+        require 'X10_Wish.pm';
+        $Serial_Ports{'wish'}{object} = 'wish';
+    }
+
 
                                 # Do this one last, as it can share a serial port.
     if ($config_parms{cm17_port}) {
@@ -2349,6 +2359,7 @@ sub eval_user_code_reset {
     &Serial_Item::reset;        # So we can check for duplicate items
     &Voice_Cmd::reset;          # So we can check for duplicate voice commands.
     &X10_Item::reset;           # Reset some list arrays
+    &EIB_Item::reset;           # Reset some list arrays
     &reset_hook_code;           # This frees up old user code hooks
 
                                 # Since we created new objects, lets de-reference all the old ones
@@ -2384,6 +2395,7 @@ sub exit_pgm {
     for my $port (keys %Serial_Ports) {
         my $object = $Serial_Ports{$port}{object};
         $object->close() if $object and $object ne 'proxy';
+        $object->close() if $object and $object ne 'proxy' and $object ne 'wish';
     }
     for my $port (keys %Socket_Ports) {
         my $sock = $Socket_Ports{$port}{sock};
@@ -2836,8 +2848,10 @@ sub object_states_save {
         for $var (keys %{$file_by_object_name{$object_type}}) {
             print "Saving state for $object_type $var\n" if $Debug{save};
             my $ref = $objects_by_object_name{$var};
-            $restore_string =  &object_states_save_check($ref->restore_string) if $ref and $ref->can('restore_string');
-            $restore_state .= "if (defined $var) {$restore_string} else {'var not used'}\n" if $restore_string;
+            if ($ref and $ref->can('restore_string')) {
+                $restore_string =  &object_states_save_check($ref->restore_string);
+                $restore_state .= "if (defined $var) {$restore_string} else {'var not used'}\n" if $restore_string;
+            }
         }
     }
                                  # Do not write file on startup ($restore_state should be empty)
@@ -2849,7 +2863,7 @@ sub object_states_save {
         print SAVE $restore_state;
         close SAVE;
         print_log("Object states saved") if $Debug{save};
-        print "Save object states:  restore_state=\n$restore_state\n" if $Debug{save};
+#       print "Save object states:  restore_state=\n$restore_state\n" if $Debug{save};
     }
 
                                 # Save Persistent data
@@ -3216,25 +3230,35 @@ sub play {
                 last;
             }
             last unless $config_parms{sound_program};
-        my $sound_program = $config_parms{sound_program};
-        if ($config_parms{mp3_program}) {
-        $sound_program = $config_parms{mp3_program} if ($file =~ /.mp3/);
-        }
-        if ($parms{sound_program} ) {
-        $sound_program = $parms{sound_program};
-        }
+            my $sound_program = $config_parms{sound_program};
+            if ($config_parms{mp3_program}) {
+                $sound_program = $config_parms{mp3_program} if ($file =~ /.mp3/);
+            }
+            if ($parms{sound_program} ) {
+                $sound_program = $parms{sound_program};
+            }
             print "running: $sound_program $file\n";
 
                                 # Greg Satz had problems with MAC OS X zombies with system call here
                                 # Some linux guys had problems with problems with rc being mis-set
                                 # with the fork, so default to system calls
-            if ($main::Info{OS_name} eq "OSX") {
-                my $pid = fork;
-                if (defined $pid && $pid == 0) {
+
+            if (($main::Info{OS_name} eq "OSX") or  $config_parms{sound_fork} = "fork") {
+                print_log ("Playing sound file $file with $sound_program") if $Debug{play};
+                my $kid = fork;
+                warn "Cannot fork in &play: $!" unless defined $kid;
+                if ($kid) {
+                    print_log ("Skipping sound file") if $Debug{play};
+                    waitpid($kid,0);
+                    $played_ok = 1;
+                }
+                else {
+                    print_log ("executing sound file") if $Debug{play};
                     exec qq[$sound_program $file];
                     die 'cant exec $sound_program';
+                    exit(0);
                 }
-                $played_ok = 1 if 0 == $?;  # $? is $SIG_CHILD
+                print_log ("$file has played") if $Debug{play};
             }
             else {
                 if ($sound_program =~ /play$/) {
@@ -5103,7 +5127,7 @@ sub respond_rf {
     &respond_default(@_);
 }
 sub respond_tk {
-    &respond_default(@_);
+    &display(@_);
 }
 sub respond_vr {
     &respond_default(@_);
@@ -6021,6 +6045,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.100  2005/10/02 16:48:28  winter
+# *** empty log message ***
+#
 # Revision 2.99  2005/05/22 18:02:28  winter
 # *** empty log message ***
 #
