@@ -172,7 +172,8 @@ sub start_next {
                                 # never dies, so use /bin/true.
 #               exit;
 #               exec '';
-                exec '/bin/true';
+#               exec '/bin/true';
+                exec 'true';
                 die "do nothing exec failed: $!";
             }
             else {
@@ -298,6 +299,9 @@ sub results {
 
 #
 # $Log$
+# Revision 1.30  2005/10/02 23:53:39  winter
+# *** empty log message ***
+#
 # Revision 1.29  2005/01/23 23:21:45  winter
 # *** empty log message ***
 #
