@@ -1,21 +1,25 @@
 
 # This module is an interface for Misterhouse to access the CPU-XA, 
 # Ocelot, and Leopard controlers from Applied Digital Inc: 
-# http://www.appdig.com/adicon.html
+# http://www.appdig.com/adicon_new/index.htm
 
 # By David Norwood, dnorwood2@yahoo.com
-#               for Misterhouse, http://www.misterhouse.net
+#               for Misterhouse, http://www.misterhouse.com
 #               by Bruce Winter and many contributors
 
 # Requires cpuxad, part of the XALIB package by Mark A. Day available 
-# here: http://meltingpot.fortunecity.com/lightsey/52/common/cpuxad/xalib-0.48.tgz
-# The cpuxad daemon runs on Unix/Linux, and on Windows using cygwin. 
- 
+# here: http://mywebpages.comcast.net/ncherry/common/cpuxad/xalib-0.48.tgz
+
+# The cpuxad daemon was written to run on Unix/Linux, but Neil Cherry
+# has compiled the xalib package on Windows using the Cygwin tools and 
+# made it available here: 
+# http://mywebpages.comcast.net/ncherry/common/cpuxad/xalib-0.48_bin.tgz
+
 # To use this interface, add the following line to your mh.ini file:
 
-# ncpuxa_port=localhost:2000
+# ncpuxa_port=localhost:3000
 
-# Where localhost:2000 is the host and network port where cpuxad is
+# Where localhost:3000 is the host and network port where cpuxad is
 # running.
 
 

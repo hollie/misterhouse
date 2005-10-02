@@ -1,4 +1,4 @@
-!/usr/bin/perl
+#!/usr/bin/perl
 # -*- Perl -*-
 
 #---------------------------------------------------------------------
@@ -171,6 +171,9 @@ sub send_page {
 
 #
 # $Log$
+# Revision 1.4  2005/10/02 17:24:45  winter
+# *** empty log message ***
+#
 # Revision 1.3  2004/06/06 21:38:38  winter
 # *** empty log message ***
 #
@@ -181,5 +184,3 @@ sub send_page {
 # - Received from Craig.
 #
 #
-
-

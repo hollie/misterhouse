@@ -217,10 +217,32 @@ sub read_mp3_dir {
 		    undef @tag_data;
 		}
             }
+
+	    if (!$is_mp3) {
+			#stored in artist, album subdirectories with "Music Now" song index prefix
+			if ($file =~ /\/(.*?)\/(.*?)\/\d\d\d\x20(.*).wma/i) {
+				$tag_data[0] = $3;
+				$tag_data[2] = $2;
+				$tag_data[1] = $1;
+				$counts{tag}++;
+			}
+			elsif ($file =~ /\/(.*?)\/(.*?)\/\d\d\d-(.*).wma/i) {
+				$tag_data[0] = $3;
+				$tag_data[2] = $2;
+				$tag_data[1] = $1;
+				$counts{tag}++;
+			} #stored in root as artist - song (Napster does this)
+			elsif ($file =~ /\/(.*?)\x20-\x20(.*).wma/i) {
+				$tag_data[0] = $2;											$tag_data[1] = $1;
+				$counts{tag}++;
+			}
+	    }
+
             for my $i (0 .. 5) {
                 if ($i == 5 && $is_mp3) {
                     $tag_data[$i] = $mp3_genres[$tag_data[$i]] if defined $tag_data[$i];
                 }
+
                 $tag_data[$i] =~ tr/\x20-\x7e//cd; # Drop non-ascii characters
                 $tag_data[$i] =~ s/^\s+//;
                 $tag_data[$i] =~ s/\s+$//;
@@ -242,6 +264,9 @@ sub read_mp3_dir {
 
 #
 # $Log$
+# Revision 1.8  2005/10/02 17:24:45  winter
+# *** empty log message ***
+#
 # Revision 1.7  2004/09/25 19:51:50  winter
 # *** empty log message ***
 #

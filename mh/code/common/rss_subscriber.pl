@@ -1,15 +1,22 @@
 # Category = Media
 
-#@ Use this script to automatically download torrent files for your favorite TV shows.  
+#@ Use this script to automatically download enclosures in RSS feeds (like podcasts) or 
+#@ torrent files for your favorite TV shows.  
 #@ Works well with btlauchmany.py, which is part of the <a href=http://www.bittorrent.com/>standard bittorrent package</a>.
-#@ This script could probably easily be modified to also download podcasts.
+#@ Item titles in the RSS file must match one of the comma separated regular expressions
+#@ in the rss_regexps ini parameter in order to be downloaded. 
+#@ Alternatively, you can specify a regular expression that applies to a particular feed
+#@ by appending a space and the pattern to the feed address in the rss_feeds ini parameter. 
+#@ All files are downloaded to the directory specified by the torrent_dir ini parameter. 
 
 # 03/14/05 created by David Norwood (dnorwood2@yahoo.com)					
+# 09/23/05 added support for podcasts and other feeds with enclosures (dnorwood2@yahoo.com)					
 
 use XML::RAI;
+use XML::RAI::Enclosure;
+        
 
-	
-my $feeds = 'http://unrealtorrents.com/rss.php,http://www.btefnet.com/backend.php,http://arctangent.net/~formatc/dd.rss,http://torrentspy.com/rss.asp';
+my @feeds = split /\s*,\s*/, 'http://unrealtorrents.com/rss.php,http://arctangent.net/~formatc/dd.rss,http://torrentspy.com/rss.asp,http://isohunt.com/js/rss.php?ihq=bullshit+&op=and&iht=,http://del.icio.us/rss/popular/system:media:video .';
 my $regexps = 'family.guy,daily.show';
 my $torrent_dir = "$config_parms{data_dir}/videos";
 my $rss_dbm_file ="$config_parms{data_dir}/rss_file_downloads.dbm";
@@ -21,8 +28,7 @@ $v_rss_file_feed -> set_authority('anyone');
 
 if ($Reload) {
 	$v_rss_file_feed->set_icon('nostat.gif');
-	$feeds = $config_parms{rss_file_feeds} if $config_parms{rss_file_feeds};
-	$regexps = $config_parms{rss_file_regexps} if $config_parms{rss_file_regexps};
+	@feeds = split /\s*,\s*/, $config_parms{rss_file_feeds} if $config_parms{rss_file_feeds};
 	$torrent_dir = "$config_parms{torrent_dir}" if "$config_parms{torrent_dir}";
 	mkdir "$torrent_dir", 0777 unless -d "$torrent_dir";
 	$Included_HTML{'Media'} .= '<!--#include code="&rss_update_html"-->' . "\n\n\n";
@@ -30,9 +36,10 @@ if ($Reload) {
 
 if (state_now $v_rss_file_feed) {
 	my ($i, @cmds);
-	foreach (split ',', $feeds) {
+	foreach my $feed (@feeds) {
 		$i++;
-		push @cmds, "get_url '$_' $config_parms{data_dir}/rss_feed_$i.xml";
+		$feed =~ s/ .*$//;
+		push @cmds, "get_url '$feed' $config_parms{data_dir}/rss_feed_$i.xml";
 		unlink "$config_parms{data_dir}/rss_feed_$i.xml";
 	}
 	set $p_rss_file_feed @cmds;
@@ -40,10 +47,12 @@ if (state_now $v_rss_file_feed) {
 }
 
 if (done_now $p_rss_file_feed) {
-	my ($i);
-	foreach (split ',', $feeds) {
+	my ($i, $regex);
+	foreach my $feed (@feeds) {
 		$i++;
-		&rss_file_process($_, "$config_parms{data_dir}/rss_feed_$i.xml");
+		($regex) = $feed =~ / (.*)$/;
+		$feed =~ s/ .*$//;
+		&rss_file_process($feed, "$config_parms{data_dir}/rss_feed_$i.xml", $regex);
 	}
 }
 
@@ -55,6 +64,7 @@ if (done_now $p_rss_file_download) {
 if (done $p_rss_file_download and @rss_file_download_queue) { 
 	my $args = shift @rss_file_download_queue;
 	($current_file) = $args =~ /^.*\/(.*?)'$/;
+print "d $args\n";
 	set $p_rss_file_download 'get_url ' . $args; 
 	start $p_rss_file_download;
 	print_log "getting $current_file";
@@ -64,34 +74,62 @@ if (done $p_rss_file_download and @rss_file_download_queue) {
 sub rss_file_process {
 	my $url = shift;
 	my $xml = shift;
+	my $reg = shift;
+	$regexps = $config_parms{rss_file_regexps} if $config_parms{rss_file_regexps};
+	$regexps = $reg if $reg;
 	my $list; 
 	@{$list->{data}} = ();
 	my @itemslist = ();
 	return unless -f $xml;
-	my $first = file_read $xml; 
-	$first = file_read $xml; 
+	my $first = file_head $xml, 2; 
 	unless ($first =~ /\<\?xml/i or $first =~ /\<rss/i) {
 		print_log "$xml does not appear to be an XML file";
 		return; 
 	}
-	my $feed = XML::RAI->parsefile($xml);
+	my $tmp = file_read $xml; 
+	$tmp =~ s/\<\/item\>\<item\>/\<\/item\>\n\<item\>/gi; 
+	my $feed;
+	print_log($@), return unless eval '$feed = XML::RAI->parse($tmp)';
 	my $count = $feed->item_count();
 	print_log "Loaded $count item(s) from RSS feed $xml";
 	foreach my $item ( @{$feed->items} ) {
 		my $title = $item->title;
 		my $issued = $item->issued;
 		my $link = $item->link;
-		@itemslist = ( @itemslist, [ $title, $issued, $link ], );
+		my $file;
+		# Handle items with enclosure(s), like podcasts 
 		foreach my $regexp (split(",", $regexps)) {
 			if ($title =~ /$regexp/xi) {
-# print "$title $issued $link r=$regexp[$e]\n";
-				if ($link =~ /\.torrent/i) {
-					my $file = "$title.torrent";
-					$file =~ s/'//g;
-					unless (read_dbm($rss_dbm_file, $file)) {
+				foreach my $enc (XML::RAI::Enclosure->load($item)) {
+					$link = $enc->url;
+					($file) = $link =~ /.*\/(.+?)$/;
+					unless (read_dbm($rss_dbm_file, $file) or grep @rss_file_download_queue, "'$link' '$torrent_dir/$file'") {
 						push @rss_file_download_queue, "'$link' '$torrent_dir/$file'";
 						print_log "queued $file";
 					}
+					$link = "";
+				}
+			}
+		}
+		next unless $link; 
+		# Assume items without enclosures are torrent files 
+		@itemslist = ( @itemslist, [ $title, $issued, $link ], );
+		foreach my $regexp (split(",", $regexps)) {
+			if ($title =~ /$regexp/xi) {
+				# hack to fix isohunt's links 
+				$link =~ s|rss.isohunt.com/btDetails.php\?ihq=.*\&id=|isohunt.com/download.php?mode=bt&id=|;
+				# hack to fix torrentspy's links 
+				$link =~ s/directory.asp\?mode=torrentdetails\&/download.asp?/;
+				$link =~ s/ /+/g;
+				$link =~ s/\'/%27/g;
+				my $file = "$title.torrent";
+				$file =~ s/\// - /g;
+				$file =~ s/\(/\\(/g;
+				$file =~ s/\)/\\)/g;
+				$file =~ s/'//g;
+				unless (read_dbm($rss_dbm_file, $file) or grep @rss_file_download_queue, "'$link' '$torrent_dir/$file'") {
+					push @rss_file_download_queue, "'$link' '$torrent_dir/$file'";
+					print_log "queued $file";
 				}
 			}
 		}

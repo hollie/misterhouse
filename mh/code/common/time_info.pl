@@ -2,16 +2,23 @@
 
 #@ Announces time and date info (e.g. sun/moon times and holidays)
 
-$v_what_time = new  Voice_Cmd('{What time is it,Tell me the time}', 0);
+$v_what_time = new  Voice_Cmd('[Show,Tell me] the time', 0);
 $v_what_time-> set_info('Says the Time and Date');
 $v_what_time-> set_authority('anyone');
 #$v_what_time = new Voice_Cmd("{Please, } tell me the time");
 
-if (said $v_what_time) {
+my $state;
+
+if ($state = said $v_what_time) {
     my $temp = "It is $Holiday" if $Holiday;
               # Avoid really speaking if command was from an Instant Messanger
-    my $mode = (get_set_by $v_what_time eq 'im') ? 'mode=mute' : '';
-    respond "$mode It is $Time_Now on $Date_Now_Speakable. $temp";
+#    my $mode = (get_set_by $v_what_time eq 'im') ? 'mode=mute' : '';
+    if ($state eq 'Tell me') {
+	    respond "target=speak It is $Time_Now on $Date_Now_Speakable. $temp";
+    }
+    else {
+	    respond "It is $Time_Now on $Date_Now. $temp";
+    }
 }
 
 speak "Today is $Holiday" if $Holiday and time_cron '30 9,12,19 * * *';
@@ -21,7 +28,7 @@ $v_sun_set-> set_info("Calculates sunrise and sunset for latitude=$config_parms{
 $v_sun_set-> set_authority('anyone');
 respond "Sunrise today is at $Time_Sunrise, sunset is at $Time_Sunset." if said $v_sun_set;
 
-speak "Notice, the sun is now rising at $Time_Sunrise" if time_now $Time_Sunrise and !$Save{sleeping_parents};
+speak "app=notice Notice, the sun is now rising at $Time_Sunrise" if time_now $Time_Sunrise and !$Save{sleeping_parents};
 speak "app=notice Notice, the sun is now setting at $Time_Sunset"  if time_now $Time_Sunset;
 
 
@@ -48,8 +55,6 @@ if ($state = said $v_moon_info3) {
 }
 
 $full_moon = new File_Item("$config_parms{data_dir}/remarks/full_moon.txt");
-if ($Moon{phase} eq 'Full' and time_random('* 8-22 * * *', 240)) {
-    respond "app=notice Notice, tonight is a full moon.  " . (read_next $full_moon);
+if ($Moon{phase} eq 'Full' and time_now $Time_Sunset) {
+    respond "target=speak app=notice Notice, tonight is a full moon.  " . (read_next $full_moon);
 }
-
-

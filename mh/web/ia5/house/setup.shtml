@@ -43,6 +43,12 @@
 </td>
 <td align='left'>Learn your IRMAN interface remote control codes.</td>
 </tr>
+<tr>
+<td align='left'>
+<a href="/bin/headercontrol.pl"><img src="images/headercontrol.gif"  alt='Header Control'  border="0"></a>
+</td>
+<td align='left'>This is where you can setup if the family or guest password can view certain pages.</td>
+</tr>
 
 <tr><td align='left' colspan=2>
 <p>Other setup links

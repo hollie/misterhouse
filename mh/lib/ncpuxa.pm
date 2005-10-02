@@ -1,15 +1,16 @@
 # This module implements a network client to access the CPU-XA,
 # Ocelot, and Leopard controlers from Applied Digital Inc:
-# http://www.appdig.com/adicon.html
+# http://www.appdig.com/adicon_new/index.htm
 
 # By David Norwood, dnorwood2@yahoo.com
 
 # Requires cpuxad, part of the XALIB package by Mark A. Day available 
-# here: http://meltingpot.fortunecity.com/lightsey/52/common/cpuxad/xalib-0.48.tgz
+# here: http://mywebpages.comcast.net/ncherry/common/cpuxad/xalib-0.48.tgz
 
-# The cpuxad daemon runs nativly on Unix/Linux, but 
-# you can run xalib on Windows using the Cygwin Unix
-# emulation software.  
+# The cpuxad daemon was written to run on Unix/Linux, but Neil Cherry
+# has compiled the xalib package on Windows using the Cygwin tools and 
+# made it available here: 
+# http://mywebpages.comcast.net/ncherry/common/cpuxad/xalib-0.48_bin.tgz
 
 
 package ncpuxa;
@@ -396,7 +397,9 @@ sub cpuxa_process_monitor {
 	vec($rin,fileno($s),1) = 1;
 
 	if (select($rout=$rin, undef, undef, 0)) {
-		$ret = recv($s, $data, LEN_PAG(), MSG_DONTWAIT());
+		# 08/20/05 dnorwood, changed MSG_DONTWAIT() to 0x40 in the following line because 
+		# Windows doesn't have socket.ph
+		$ret = recv($s, $data, LEN_PAG(), 0x40);
 		($data) = $data =~ /([^\000\r\n]*)/;
 	}
 	return $data;

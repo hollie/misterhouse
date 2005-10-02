@@ -487,6 +487,85 @@ DESCRIPTION
     NetCallerID box for $15 from here:
     http://www.dfwmetrotechs.com/misterhouse/calleridorder.html
 
+    Varous routers can be monitored and controled with
+    code/common/monitor_router*.pl
+
+    5/2002: Bill Sobel added lib/AudiotronPlayer.pm, to support the Turtle
+    Beach AudioTron.
+
+    5/2002: Pete Flaherty's created code/public/weather_iB_OWW_client.pl to
+    read data from the OWW 1-wire ibutton weather station daemon
+
+    8/2002: Chris Witte created mh/lib/caddx.pm and mh/code/public/caddx.*
+    for monitoring the outputs from a CADDX nx8e alarm panel.
+
+    9/2002: Richard Morgan's sent in mh/code/public/cbus_v2.0.zip, his set
+    of code for talking to CBUS devices via the Australian Clipsal CGATE
+    interface.
+
+    7/2003: Lincoln Foreman sent in mh/code/public/pha_k256.pl as an example
+    of reading data from Phanderson's K256 kit which can monitor 256 DS1820
+    temperature sensors, 8 bits digital IO, and 11 bits of analog IO.
+    Available for $50 from http://www.phanderson.com/t64.html
+
+    12/2003: Kirk Bauer created lib/RCSsTR40.pm for the RCS TR40
+    Theormostate: http://www.resconsys.com/products/stats/serial.htm
+
+    1/2004: Nick Maddock replaced mh/code/public/alarm_concept.* files with
+    mh/code/public/concept_* for interfacing to the Concept 4000 alarm
+    panel.
+
+    3/2004: Kirk Bauer created lib/Musica.pm to control the Musica
+    whole-house audio system by Netstreams over the RS232 port. This system
+    has provides 6 zones and 4 sources with very nice keypads:
+    http://www.netstreams.com
+
+    4/2004: Dave Hall created code/public/robot_er1.pl for interacting with
+    the Evolution Robotics ER1 robot: http://www.evolution.com/er1/
+
+    7/2004: Kirk Bauer created lib/Tivo_Control.pm for displaying text on a
+    Tivo. See header for details.
+
+    7/204: Created code/common/robot_robosapien.pl for using IR to control
+    the RoboSapien Robot: http://www.robosapienonline.com (got mine for $100
+    at Best Buy). It doesn't do anything practical, but it is a fun toy.
+
+    9/2004: Scott Johnson created mh/code/public/siteplayer.pl as an example
+    of sending digital signals to a $30 siteplayer ethernet interface:
+    http://www.siteplayer.com
+
+    11/2004: Created lib/Servo_Item.pm to supports servo motors via the $40
+    Mini SSC II serial servo control board, available from
+    http://seetron.com .
+
+    11/2004: Created code/common/robot_esra.pl to control the $180 Robodyssy
+    ESRA robot head from http://robodyssey.com . It has 5 servos (eye lid,
+    eyes, lip top/bottom, and an optional neck) which are connected via the
+    Mini SSC II serial servo controler. Pictures and a movie are at
+    http://misterhouse.net/public/robot/ .
+
+    5/2005: Created mh/bin/xAP-bluetooth.pl (called with
+    mh/bin/xAP-bluetooth) and mh/code/common/xAP_bluetooth.pl for monitoring
+    when bluetooth enabled devices (e.g. phones) go in and out of range. The
+    xAP daemon runs on Linux and requires the bluez lib to be installed
+    (pointers in the header).
+
+    10/2005: Dan Wilga created mh/lib/X10_Wish.pm which interfaces to the
+    Linux Wish X10 drivers: http://sourceforge.net/projects/wish . These are
+    the currently supported device: PowerLinc Serial, PowerLinc 1132 USB,
+    CM11A, and Firecracker/CM17A. Currently supports sending, but not
+    receiving, X10 data. More info at the top of lib/X10_Wish.pm.
+
+    10/2005: Brent DeShazer created lib/Display_osd232.pl and
+    code/common/display_osd232.pl for interfacing with Intuitive Curciuts
+    OSD-232 On-screen video overlay interface, available from
+    http://www.icircuits.com/prod_osd232.html
+
+    10/2005: Peter Sjodin added Linux support for EIB (European Installation
+    Bus, info here: http://en.wikipedia.org/wiki/European_Installation_Bus
+    ). New modules are lib/EIB_Items.pm and lib/EIB_Device.pm. Example items
+    are in code/examples/eib_items.mht.
+
   List of startup options
     The complete list of valid startup options is in the mh.ini file. Here
     are a few of the more important ones and their defaults:
@@ -1194,6 +1273,24 @@ DESCRIPTION
             $lcd1 = new LCD  'lcdproc', '192.168.0.5:13666', '4x20', 'default', \%lcd_keymap1;
             $lcd2 = new LCD 'keyboard',               undef, '4x20', 'mh',      \%lcd_keymap2;
 
+    Network_Item
+        This module doesn't do much yet. Currently uses ping to detect when
+        specified ip address is up.
+
+          Methods:
+             new $address, $interval
+
+               $address:  Ip address of the box you want to ping
+               $interval: How often to ping (in seconds)
+
+          Examples:
+
+            $network_house = new Network_Item('192.168.0.2',  10);
+            $network_hp    = new Network_Item('192.168.0.66', 20);
+
+            print_log "house just changed to $state" if      $state = state_changed $network_house;
+            print_log "house is $state" if new_second 15 and $state = state $network_house;
+
     Process_Item
         You can use this object to run external programs. On Win32 systems,
         the Win32::Process function is used. On Unix systems, the fork
@@ -1611,7 +1708,7 @@ DESCRIPTION
 
         Examples:
 
-         set_with_timer  $light1 ON, 600 if $work_room_motion eq motion;
+         set_with_timer  $light1 ON, 600 if $work_room_motion eq 'motion';
 
          speak 'It is dark downstairs' if dark $sensor_downstairs;
 
@@ -3340,6 +3437,7 @@ DESCRIPTION
                             Current recognized types are txt,pl,zip,bin,exe,jpg,gif,png, and html.
                             If not specified, the extention of the file parm is used.
                             Use bin for an arbitary binary file.
+                            Can also be html_inline if you want the html inline, rather than attached.
 
                 baseref     If sending html with mime => 'html', use this to set the BASE HREF
 
@@ -4290,6 +4388,17 @@ DESCRIPTION
     section of this document.
 
   Customizing the Web Interface
+    If you want to just update parts of the default web interface, use this
+    mh.ini parm to point to your own dir:
+
+    html_alias2_ia5 = /misterhouse/web/ia5
+
+    Then override just the members from the default mh/web/ia5 directories
+    that you want to change. For example, to override the security menu,
+    copy mh/web/ia5/security/menu.html to /misterhouse/web/ia5/security and
+    modify. The other files will still be picked up from the default distro
+    dirs.
+
     You can write your own Web page interface. The examples under mh/web are
     frame html files that dictate the shape and positions of various
     mh-generated html frames.

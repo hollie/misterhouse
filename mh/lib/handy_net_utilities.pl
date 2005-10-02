@@ -631,7 +631,7 @@ sub main::net_aol_signon {
 
     # Already signed on?
     unless ($aim_connection) {
-        $aim_connection = main::get_toc_connection("AIM",$name,$password,$port,\&aolim::callback,\&aolim::process);
+        $aim_connection = main::get_oscar_connection("AIM",$name,$password);
     }
     return $aim_connection;
 }
@@ -646,7 +646,45 @@ sub main::net_icq_signon {
     return $icq_connection;
 }
 
+sub main::get_oscar_connection {
+    my ($network,$name,$password) = @_;
+    my $im_connection;
+    my $lnet = lc($network);
 
+    $name     = $main::config_parms{'net_' . $lnet . '_name'}      unless $name;
+    $password = $main::config_parms{'net_' . $lnet . '_password'}  unless $password;
+    my $buddies  = $main::config_parms{'net_' . $lnet . '_buddies'};
+
+    print "Logging onto $network with name=$name ... \n";
+
+    eval 'use Net::OSCAR';
+    if ($@) {
+        print "Net::OSCAR eval error: $@\n";
+        return;
+    }
+
+    $im_connection = Net::OSCAR->new();
+    $im_connection -> add_buddy("friends", $name);
+    $im_connection -> set_callback_im_in(\&oscar::cb_imin);
+    $im_connection -> set_callback_buddy_in(\&oscar::cb_buddyin);
+    $im_connection -> set_callback_buddy_out(\&oscar::cb_buddyout);
+    $im_connection -> set_callback_error(\&oscar::cb_error);
+
+
+    for (split /,/, $buddies) {
+        print "Adding $network buddy $_\n";
+        $im_connection -> add_buddy("friends", $_);
+    }
+
+    unless (defined($im_connection->signon (screenname => $name,
+					    password =>$password))) {
+        return undef;
+    }
+
+    &main::MainLoop_post_add_hook( \&oscar::process, 1 );
+
+    return $im_connection;
+}
 
 sub main::get_toc_connection {
 
@@ -670,6 +708,7 @@ sub main::get_toc_connection {
     eval 'use Net::AOLIM';
     if ($@) {
         print "Net::AOLIM eval error: $@\n";
+        &::logit("$main::config_parms{data_dir}/logs/net_im.$::Year_Month_Now.log",  "$network error=$@");
         return;
     }
 
@@ -688,7 +727,9 @@ sub main::get_toc_connection {
     }
 
     unless (defined($im_connection->signon)) {
-        print "$network logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)\n";
+        my $msg = "$network logon error: $main::IM_ERR -> $Net::AOLIM::ERROR_MSGS{$main::IM_ERR} ($main::IM_ERR_ARGS)";
+        print "$msg\n";
+        &::logit("$main::config_parms{data_dir}/logs/net_im.$::Year_Month_Now.log",  $msg);
         return undef;
     }
 
@@ -721,6 +762,44 @@ sub main::net_im_signoff {
 # without worrying about conflicts
 my %buddies_status;
 # IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hiho</FONT></BODY></HTML>
+
+sub oscar::cb_error {
+my ($oscar, $connection, $error, $description, $fatal)=@_;
+  print "OSCAR error: $description\n";
+}
+
+sub oscar::cb_buddyin {
+  my ($oscar, $screenname, $group, $buddydata)=@_;
+
+  oscar::buddychange($oscar, $screenname, 'on');
+}
+
+sub oscar::cb_buddyout {
+  my ($oscar, $screenname, $group)=@_;
+
+  oscar::buddychange($oscar, $screenname, 'off');
+}
+
+sub oscar::buddychange {
+  my ($oscar, $screenname, $status)=@_;
+
+  my $status_old = $buddies_status{$screenname};
+  if ($buddies_status{$screenname} ne $status) {
+      print "AOL AIM Buddy $screenname logged $status.\n";
+      $buddies_status{$screenname} = $status;
+  }
+  &main::AOLim_Status_hooks($screenname, $status, $status_old, 'AOL');
+}
+
+sub oscar::cb_imin {
+  my ($oscar, $from, $message, $away)=@_;
+
+  my $plaintext = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($message));
+  chomp $plaintext;
+
+  &main::AOLim_Message_hooks($from, $plaintext, 'AOL');
+}
+
 sub aolim::callback {
     my ($type, $name, $arg, $text) = @_;
 #   print "db t=$type, n=$name, a=$arg, t=$text\n";
@@ -797,6 +876,11 @@ sub aolim::process {
     }
 }
 
+sub oscar::process {
+  return unless $main::New_Second;
+  $aim_connection->do_one_loop();
+}
+
 sub icq::process {
     return unless $main::New_Second;
     if (!defined $icq_connection or !defined $icq_connection->ui_dataget(0)) {
@@ -815,17 +899,18 @@ sub main::net_im_process_queue {
     $recipient ||= 'default';
 
     return unless $im_queue{$pgm};
+#   return unless &main::new_second(10); # Throttle outgoing data, so they don't cancel the account! ... not needed?
 
     my $parms;
     my $num_items = scalar @{$im_queue{$pgm}};
     while (defined($parms = shift @{$im_queue{$pgm}}) && $num_items) {
-	&main::print_log("Trying again to send $pgm message to " . $$parms{to});
-	if ($$parms{to} eq $recipient) {
-	    &main::net_im_send(%$parms);
-	} else {
-	    push (@{$im_queue{$pgm}}, $parms);
-	}
-	$num_items--;
+        &main::print_log("Trying again to send $pgm message to " . $$parms{to});
+        if ($$parms{to} eq $recipient) {
+            &main::net_im_send(%$parms);
+        } else {
+            push (@{$im_queue{$pgm}}, $parms);
+        }
+        $num_items--;
     }
 
 } #  main::net_im_process_queue()
@@ -837,6 +922,7 @@ sub main::net_im_send {
     my $pgm = lc $parms{pgm};
     my $to = $parms{to};
     print "net_im_send pgm=$pgm to=$to\n" if $::Debug{im};
+    &::logit("$main::config_parms{data_dir}/logs/net_im.$::Year_Month_Now.log",  "to=$to from=$parms{from} pgm=$pgm text=$parms{text}");
 
     return if &main::net_im_do_send(%parms) != 0;
 
@@ -897,8 +983,11 @@ sub main::net_im_do_send {
 
     print "Sending $parms{pgm} message to $to\n";
 
+
     $text  = $parms{text};
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
+
+#   return if $text eq '';
 
     # Chop message up if needed since AIM has a limit of 1024
 
@@ -916,19 +1005,19 @@ sub main::net_im_do_send {
         {
             if (((length $line) + (length $lines[0])) > 900)
               {
-                  $im_connection -> toc_send_im($to, $line) if $line;
+                  $im_connection -> send_im($to, $line) if $line;
                   $line = "";
               }
             $line = $line . (shift @lines) . "\n";
         }
         if ($line) {
-            my $ret = $im_connection -> toc_send_im($to, $line);
+            my $ret = $im_connection -> send_im($to, $line);
             $message_sent = 0 unless defined $ret;
         }
     }
     else
     {
-        my $ret = $im_connection -> toc_send_im($to, $text);
+        my $ret = $im_connection -> send_im($to, $text);
         $message_sent = 0 unless defined $ret;
     }
     return $message_sent;
@@ -1003,7 +1092,7 @@ sub main::net_mail_send {
     $from    = $main::config_parms{"net_mail_${account}_address"} unless $from;
     $to      = $main::config_parms{"net_mail_${account}_address"} unless $to;
     $subject = "Email from Mister House"                          unless $subject;
-    $baseref = 'localhost'                                        unless $baseref;
+#    $baseref = 'localhost'                                        unless $baseref;
 
     my $timeout = $main::config_parms{"net_mail_${account}_server_send_timeout"};
     $timeout = 20 unless $timeout;
@@ -1022,7 +1111,6 @@ sub main::net_mail_send {
         return;
     }
 
-    $text .= &main::file_read($file) if $file;
 
     print "Sending mail with account $account from $from to $to on $server $port\n";
 
@@ -1034,8 +1122,10 @@ sub main::net_mail_send {
                                 # Auto-detect mime type
                                 #  - do not mime txt files ... best to just display them directly
 #   ($mime) = $file =~ /(pl|zip|exe|jpg|gif|png|html|txt)$/ unless $mime;
-    ($mime) = $file =~ /(pl|zip|exe|jpg|gif|png|html)$/ unless $mime;
-    $mime = 'text' if $mime eq 'txt' or $mime eq 'pl';
+    ($mime) = $file =~ /\.([a-z0-9]+)$/i unless $mime;
+    $mime = lc $mime;
+    $mime = 'unknown' if $file and not $mime;
+    my $mime_message;
 
     if ($mime) {
         eval "use MIME::Lite";
@@ -1048,88 +1138,102 @@ sub main::net_mail_send {
         }
         my $message;
         ($filename) = $file =~ /([^\\\/]+)$/ unless $filename;
-        if ($mime eq 'text') {
-            $message = MIME::Lite->new(From => $from,
+        $message = MIME::Lite->new(
+                                       From => $from,
+                                       To => $to,
                                        Subject => $subject,
-                                       Type  => 'text/plain',
-                                       Encoding => '8bit',
+                                       Type  => 'multipart/mixed',
+        );
+        if ($text) {
+            $message->attach(
+                                       Type  => 'TEXT',
                                        Data => $text,
+            );
+        }
+        if ($mime eq 'text' or $mime eq 'txt' or $mime eq 'pl') {
+            $message->attach(
+                                       Type  => 'text/plain',
+                                       Encoding => '7bit',
+                                       Path => $file,
                                        Filename => $filename,
-                                       To => $to);
+            );
         }
         elsif ($mime eq 'zip') {
-            $message = MIME::Lite->new(From => $from,
-                                       Subject => $subject,
+            $message->attach(
                                        Type  => 'application/zip',
                                        Encoding => 'base64',
-                                       Data => $text,
+                                       Path => $file,
                                        Filename => $filename,
-                                       To => $to);
-        }
-        elsif ($mime eq 'bin' or $mime eq 'exe') {
-            $message = MIME::Lite->new(From => $from,
-                                       Subject => $subject,
-                                       Type  => 'application/octet-stream',
-                                       Encoding => 'base64',
-                                       Data => $text,
-                                       Filename => $filename,
-                                       To => $to);
+            );
         }
         elsif ($mime eq 'jpg' or $mime eq 'gif' or $mime eq 'png') {
-            $message = MIME::Lite->new(From => $from,
-                                       Subject => $subject,
+            $message->attach(
                                        Type  => "image/$mime",
                                        Encoding => 'base64',
-                                       Data => $text,
+                                       Path => $file,
                                        Filename => $filename,
-                                       To => $to);
+            );
         }
-                                # Default to html
-        else {
+        elsif ($mime =~ /html/) {
+            $text = &main::file_read($file) if $file;
+
                                 # Modify the html so it has a BASE HREF and the links work in a mail reader
 				#  - Seems to work anywhere?  Not all html has <HEAD> like it should
-#           $text =~ s|<HEAD>|<HEAD>\n<BASE HREF="http://$parms{baseref}">|i;
-            $text =~ s|<HTML>|<HTML>\n<BASE HREF="http://$parms{baseref}">|i;
-            $message = MIME::Lite->new(From => $from,
-                                       Subject => $subject,
-                                       Type  => 'text/html',
-                                       Encoding => '8bit',
-                                       Data => $text,
-#                                      Path => $file,
+            $text =~ s|(<HTML.*?>)|$1\n<BASE HREF="http://$baseref">|i if $baseref;
+            if ($mime eq 'html_inline') {
+                $message = MIME::Lite->new(From => $from,
+                                           Subject => $subject,
+                                           Type  => 'text/html',
+                                           Encoding => '8bit',
+                                           Data => $text,
+                                           Filename => $filename,
+                                           To => $to);
+            }
+            else {
+                $message->attach(
+                                 Type  => 'text/html',
+                                 Encoding => '8bit',
+                                 Data => $text,
+                                 Filename => $filename,
+                                );
+            }
+        }
+        else {
+            $message->attach(
+                                       Type  => 'application/octet-stream',
+                                       Encoding => 'base64',
+                                       Path => $file,
                                        Filename => $filename,
-                                       To => $to);
+            );
         }
 
-        my $method = $main::config_parms{net_mail_send_method};
-        $method = 'smtp' if !$method and $^O eq 'MSWin32';
-        print "  - MIME email sent with net_mail_send_method $method\n";
-        if ($method eq 'smtp') {
-          MIME::Lite->send($method, $server, Timeout => $timeout, Port => $port);
-        }
-        elsif ($method) {
-          MIME::Lite->send('sendmail', $method);
-        }
-	$message->add('X-Priority' => $priority) if ($priority != 3);
-        $message->send($server, Timeout => $timeout);
+        $message->add('X-Priority' => $priority) if ($priority != 3);
+        $mime_message = $message->as_string;
+    }
+
+    use Net::SMTP_auth;
+    use Net::SMTP;
+    use Authen::SASL;
+
+    unless ($smtp = Net::SMTP_auth->new($server, Timeout => $timeout, Port => $port, Debug => $parms{debug})) {
+        print "Unable to Authenticate on mail server $server $port: $@\n";
+        return;
+    }
+    print 'Authenticating SMTP using encryption ' , $smtpencrypt , " for username ", $smtpusername, "\n" if $parms{debug};
+				# set SMTP username and password if we have them
+    $smtp->auth($smtpencrypt, $smtpusername, $smtppassword) if ($smtpusername and $smtppassword);
+
+    $smtp->mail($from) if $from;
+    $smtp->to($to);
+    if ($mime_message) {
+        $smtp->data();
+        $smtp->datasend($mime_message);
+        $smtp->dataend();
     }
     else {
-        use Net::SMTP_auth;
-        use Net::SMTP;
-        use Authen::SASL;
-
-        unless ($smtp = Net::SMTP_auth->new($server, Timeout => $timeout, Port => $port, Debug => $parms{debug})) {
-            print "Unable to Authenticate on mail server $server $port: $@\n";
-            return;
-        }
-        print 'Authenticating SMTP using encryption ' , $smtpencrypt , " for username ", $smtpusername, "\n" if $parms{debug};
-				# set SMTP username and password if we have them
-        $smtp->auth($smtpencrypt, $smtpusername, $smtppassword) if ($smtpusername and $smtppassword);
-
-        $smtp->mail($from) if $from;
-        $smtp->to($to);
         $smtp->data("X-Priority: $priority\n", "Subject: $subject\n", "To: $to\n", "From: $from\n\n", $text);
-        $smtp->quit;
     }
+    $smtp->quit;
 }
 
 
@@ -1433,7 +1537,7 @@ sub main::url_changed {
 
 #
 # $Log$
-# Revision 1.62  2005/05/22 18:13:06  winter
+# Revision 1.63  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #
 # Revision 1.61  2005/01/23 23:21:45  winter

@@ -827,16 +827,25 @@ sub force_pronounce {
     my($phrase) = @_;
     print "input  phrase is '$phrase'\n" if $main::Debug{voice};
     for my $word (keys %pronouncable) {
-        $phrase =~ s/\b$word\b/$pronouncable{$word}/gi;
+                                # Allow for regexs
+        if ($word =~ /^regex/) {
+            eval "\$phrase =~ $pronouncable{$word}";
+        } else {
+            $phrase =~ s/\b$word\b/$pronouncable{$word}/gi;
+        }
     }
     print "output phrase is '$phrase'\n" if $main::Debug{voice};
     return $phrase;
 }
 
+
 1;
 
 #
 # $Log$
+# Revision 1.55  2005/10/02 17:24:47  winter
+# *** empty log message ***
+#
 # Revision 1.54  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

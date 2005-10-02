@@ -205,11 +205,12 @@ sub set {
     $self->SUPER::set($state, $set_by);
 
                                 # Some presetable devices, like the 6381, will remain addressed
-                                # after a preset command and will and accept subsequent unrelated
+                                # after a preset command and will accept subsequent unrelated
                                 # commands unless they are set to ON.
     if ($self->{type} =~ /preset2/i and $state =~ /^(\d+)\%/) {
-	&Serial_Item::send_x10_data($self->{interface}, 'X' . $self->{x10_id}) ;
-	&Serial_Item::send_x10_data($self->{interface}, 'X' . substr($self->{x10_id},1,1) . 'J') ;
+#	    &Serial_Item::send_x10_data($self->{interface}, 'X' . $self->{x10_id}) ;
+        &Serial_Item::send_x10_data($self->{interface},       $self->{x10_id}) ;
+        &Serial_Item::send_x10_data($self->{interface}, 'X' . substr($self->{x10_id},1,1) . 'J') ;
     }
 
                                 # Set objects that match House Code commands
@@ -751,7 +752,7 @@ sub zone_cascade
     if ($zone == 1)
     {
         $self->{zone_running} = 0;
-        $self->all_zones_off();    
+        $self->all_zones_off();
     }
 
     print "Zone $zone of $self->{zone_runcount}\n" if $main::Debug{x10};
@@ -1133,6 +1134,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.50  2005/10/02 17:24:47  winter
+# *** empty log message ***
+#
 # Revision 1.49  2005/05/22 18:13:06  winter
 # *** empty log message ***
 #

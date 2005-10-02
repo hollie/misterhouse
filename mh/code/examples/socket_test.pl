@@ -1,7 +1,7 @@
 # Category=Other
 
 # This shows an example on how to act as a client to a socket server
- 
+
 my $client1_address = '9.5.169.79:2348';
 $client1 = new  Socket_Item(undef, undef, $client1_address);
 
@@ -37,7 +37,5 @@ if (my $data = said $client1) {
 #   server_myserver_port=8012
 # Then monitor the server port with this:
 
- $myserver = new  Socket_Item(undef, undef, 'myserver');
+ $myserver = new  Socket_Item(undef, undef, 'server_myserver');
  print_log "myserver data: $temp" if $temp = said $myserver;
-
-

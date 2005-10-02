@@ -525,6 +525,12 @@ sub send_x10_data {
 				# Surely there must be a better way!
         select undef, undef, undef, 1.2;
     }
+    elsif ($interface eq 'wish') {
+                                # wish wants individual codes without X
+        &main::print_log("Using wish to send: $serial_data");
+        &Wish::send(substr($serial_data, 1));
+    }
+
 
     else {
         print "\nError, X10 interface not found: interface=$interface, data=$serial_data\n";
@@ -575,6 +581,10 @@ sub set_interface {
         elsif ($main::Serial_Ports{weeder}{object}) {
             $interface = 'weeder';
         }
+        elsif ($main::Serial_Ports{wish}{object}) {
+            $interface = 'wish';
+        }
+
 
     }
     $$self{interface} = lc($interface) if $interface;
@@ -583,6 +593,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.74  2005/10/02 17:24:47  winter
+# *** empty log message ***
+#
 # Revision 1.73  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

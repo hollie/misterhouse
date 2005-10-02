@@ -5,7 +5,7 @@
 #@ Use <a href=/bin/set_parm_tv_provider.pl>/bin/set_parm_tv_provider.pl</a>,
 #@ or edit your mh.ini file, to set the mh.ini tv_provider parm.
 
-                                # Note: This $tv_grid is a special name, used by the get_tv_grid program.  
+                                # Note: This $tv_grid is a special name, used by the get_tv_grid program.
                                 #       Do not change it.
 $tv_grid = new Generic_Item();
 
@@ -35,8 +35,8 @@ if (my $data = state_now $tv_grid) {
     &trigger_set("time_now '$date $start - 00:02'",
                  "speak qq~app=tv \$Time_Now. VCR recording will be started in 2 minutes for $show_name on channel $channel~");
     &trigger_set("time_now '$date $start'",
-                 "speak 'VCR recording started';\n" . 
-                 "print_log qq~VCR recording on channel $channel for $show_name~;\n" . 
+                 "speak 'VCR recording started';\n" .
+                 "print_log qq~VCR recording on channel $channel for $show_name~;\n" .
                  "$vcr_set \$VCR 'STOP,$channel,RECORD';\n");
     &trigger_set("time_now '$date $stop'",
                  "speak 'VCR recording stopped';\n" .
@@ -92,4 +92,3 @@ if (time_cron "50 * * * *") {
         copy "$tvdir/$tvfile", "$tvdir/index.html";
     }
 }
-

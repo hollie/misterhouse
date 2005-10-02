@@ -182,7 +182,7 @@ sub set_xap {
     for my $room (@speakers) {
         my $ref = &::get_object_by_name("paxap_$room");
         if ($ref) {
-            $ref->send_message($ref->target, $ref->class_name => {say => $voiceparms{text}, voice => $voiceparms{voice} });
+            $ref->send_message($ref->target_address, $ref->class_name => {say => $voiceparms{text}, voice => $voiceparms{voice} });
             print "db pa xap cmd: $ref->{object_name} is sending voice text: $voiceparms{text}\n" if $main::Debug{pa};
         } else {
             print "unable to locate object: paxap_$room\n" if $main::Debug{pa};
@@ -198,7 +198,7 @@ sub set_xpl {
     for my $room (@speakers) {
 	my $ref = &::get_object_by_name("paxpl_$room");
 	if ($ref) {
-	    $ref->send_cmnd($ref->target, $ref->class_name => {speech => $voiceparms{text}, voice => $voiceparms{voice} });
+	    $ref->send_cmnd($ref->target_address, $ref->class_name => {speech => $voiceparms{text}, voice => $voiceparms{voice} });
             print "db pa xpl cmd: $ref->{object_name} is sending voice text: $voiceparms{text}\n" if $main::Debug{pa};
 	} else {
 	    print "unable to locate object: paxpl_$room\n" if $main::Debug{pa};

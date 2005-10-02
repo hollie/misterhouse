@@ -6,26 +6,39 @@
 #@ If not running the compiled mhe, you also must install the Crypt::SSLeay Perl module.
 
 $p_phone_minutes =  new Process_Item;
-$v_phone_minutes =  new Voice_Cmd('[Check,Read,Debug] phone minutes');
+$v_phone_minutes =  new Voice_Cmd('[Check,Read,Show,Debug] phone minutes');
 $v_phone_minutes -> set_info('Checks used and remaining cell phone minutes.');
+$v_tmobile_balance =  new Voice_Cmd('[Read,Show] TMobile balance');
+$v_tmobile_balance -> set_info('Reads or shows the current T-Mobile account balance');
+
 
 run_voice_cmd 'Check phone minutes' if time_now '6 am';
 
 my $tmobile_flag;
 
+if ($state = said $v_tmobile_balance) {
+	respond ((($state eq 'Read')?'target=speak ':'') . "Current T-Mobile account balance is $Save{TMobileBalance}");
+}
+
+
 if ($state = said $v_phone_minutes) {
     if ($state eq 'Read') {
+        my $msg = "target=speak You have $Save{phone_minutes_left} phone minutes left.";
+        $msg .= " $Save{phone_minutes_left_day} per day for the next $Save{phone_minutes_days} days" if $Save{phone_minutes_left_day};
+        respond $msg;
+    }
+    elsif ($state eq 'Show') {
         my $msg = "You have $Save{phone_minutes_left} phone minutes left.";
         $msg .= " $Save{phone_minutes_left_day} per day for the next $Save{phone_minutes_days} days" if $Save{phone_minutes_left_day};
-        speak $msg;
+        respond $msg;
     }
     elsif ($state eq 'Check' and &net_connect_check) {
         my ($cmd1, $cmd2);
         if (lc $config_parms{cell_phone_provider} eq 'tmobile') {
-            $cmd1    = qq[get_url "https://wipcore.t-mobile.com/login" ];
-            $cmd1   .= qq[-post "txtMSISDN=$config_parms{cell_phone_number}&txtUserName=$config_parms{cell_phone_username}&txtPassword=$config_parms{cell_phone_password}&tmobile=true" ];
-            $cmd1   .= qq[-cookie_file_out "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes1.html"];
-            $cmd2    = qq[get_url "https://www.t-mobile.com/mytmobile/default.asp" ];
+            $cmd1    = qq[get_url "https://my.t-mobile.com/Login/Default.aspx" ];
+            $cmd1   .= qq[-post "txtMSISDN=$config_parms{cell_phone_username}&txtPassword=$config_parms{cell_phone_password}&__EVENTTARGET=signin" ];
+            $cmd1   .= qq[-cookie_file_out "$config_parms{data_dir}/web/phone_minutes.cookies" -header "$config_parms{data_dir}/web/phone_minutes.headers" "$config_parms{data_dir}/web/phone_minutes1.html"];
+            $cmd2    = qq[get_url "https://my.t-mobile.com/Default.aspx?rp.Logon=true" ];
             $cmd2   .= qq[-cookie_file_in "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes2.html"];
             $tmobile_flag = 1;
         }
@@ -58,15 +71,17 @@ if ($state = said $v_phone_minutes) {
 use HTML::TableExtract;
 
 if (done_now $p_phone_minutes or said $v_phone_minutes eq 'Debug') {
+
     if (lc $config_parms{cell_phone_provider} eq 'tmobile') {
         if ($tmobile_flag) {
-            for (file_read "$config_parms{data_dir}/web/phone_minutes2.html") {
-                if (/("https.*&action=unbilledSummary")/) {
-                    set $p_phone_minutes qq[get_url $1 -cookie_file_in "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes2.html"];
-                    $tmobile_flag = 0;
-                    start $p_phone_minutes;
-                }
-            }
+	    my $html = file_read "$config_parms{data_dir}/web/phone_minutes2.html";
+	    if ($html =~ /(\$\d\.\d\d)/) {
+                $Save{TMobileBalance} = $1;
+                print_log "T-Mobile balance:$1";
+	    }
+            set $p_phone_minutes qq[get_url "https://my.t-mobile.com/Billing" -header "$config_parms{data_dir}/web/phone_minutes.headers" -cookie_file_in "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes2.html"];
+            $tmobile_flag = 0;
+            start $p_phone_minutes;
         }
         else {
             my $html = file_read "$config_parms{data_dir}/web/phone_minutes2.html";
@@ -122,7 +137,7 @@ if (done_now $p_phone_minutes or said $v_phone_minutes eq 'Debug') {
 
 if ($Reload and $Run_Members{'trigger_code'}) {
     eval qq(
-        &trigger_set("time_now '7 pm'", "run_voice_cmd 'Check phone minutes'", 'NoExpire', 'speak phone minutes')
-          unless &trigger_get('speak phone minutes');
+        &trigger_set("time_now '7 pm'", "run_voice_cmd 'Read phone minutes'", 'NoExpire', 'Read phone minutes')
+          unless &trigger_get('Read phone minutes');
     );
 }

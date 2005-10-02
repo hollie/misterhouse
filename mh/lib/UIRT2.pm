@@ -8,6 +8,7 @@ Info available at: http://www.fukushima.us/UIRT2/
 10/03/2002	Created by David Norwood (dnorwood2@yahoo.com)
 12/22/2002	fixed problem with learning and receiving 
 01/04/2003	added support for raw transmitions
+08/04/2005	fixed problem sending 0, added transmit_pronto function
 
 To enable this module, add these entries to your .ini file: 
 
@@ -198,7 +199,7 @@ sub raw_average {
 sub set { 
 	$device = uc shift; 
 	$function = uc shift; 
-	return unless $device and $function;
+	return unless defined $device and defined $function;
       push @transmit_queue, "$device$;$function";
 }
 
@@ -206,6 +207,7 @@ sub send_ir_code {
 	print "$transmit_timeout  " . &main::get_tickcount . "\n" if $main::Debug{UIRT2};
 	return if &main::get_tickcount - $transmit_timeout < 0;
 	my $code = $DBM{shift @transmit_queue};
+	print("IR code not found\n"), return unless $code; 
 	if ($code =~ s/^R(.*)/$1/i) {
 		transmit_raw($code);
 	}
@@ -282,6 +284,24 @@ sub transmit_struct {
 	$transmit_timeout = &main::get_tickcount + 500;
 	uirt2_send(@bytes);
 	my $ret = get_reponse(1);
+}
+
+sub transmit_pronto {
+	my $pronto = shift;
+	my $repeat = shift;
+	my ($frequency, $repeat, $code1, $code2) = (raw_to_struct(pronto_to_raw($pronto, $repeat)));
+	my $frequency_bits = 0;
+	$frequency_bits = 0x80 if $frequency < 39;
+	$frequency_bits = 0xc0 if $frequency < 37;
+	my $code; 
+	if ($code1 =~ /^R/i) {
+		$code = $code1 . (unpack 'H2', pack 'C', $repeat | $frequency_bits);
+	}
+	else {
+		$code = (unpack 'H2', pack 'C', ($code2 ? 0 : $repeat) | $frequency_bits) . $code1 if $code1;
+		$code .= (unpack 'H2', pack 'C', $repeat | $frequency_bits) . $code2 if $code2;
+	}
+	transmit_struct($code);
 }
 
 sub uirt2_send {

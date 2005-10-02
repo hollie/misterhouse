@@ -24,6 +24,9 @@ for my $item (sort @objects) {
 
     my $state = state_level $object if $object->isa('X10_Item');
     $state = state $object if $object->isa('Fan_Light') or $object->isa('Fan_Motor') or $object->isa('X10_Appliance');
+    $state = state $object if $object->isa('EIB1_Item');
+    $state = state_level $object if $object->isa('EIB2_Item');
+
     $state = 'unk' unless $state;
 #	print $state_new . "\n";
 

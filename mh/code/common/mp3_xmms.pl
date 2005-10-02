@@ -263,7 +263,8 @@ sub mp3_running {
 
         #sleep 5 sec to let the process start
         sleep 5;
-        $XmmsStatus = `/sbin/pidof $mp3_program`;
+        # 09/05/05 dnorwood, took out the /sbin/ path to pidof, because it's in /bin on debian 
+        $XmmsStatus = `pidof $mp3_program`;
         chop $XmmsStatus;
         if ( $XmmsStatus eq "" ) {
             print_log "Can't start $mp3_program";

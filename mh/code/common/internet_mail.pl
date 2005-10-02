@@ -32,7 +32,7 @@ if ($state = said $v_send_email_test) {
                                 # Send attachements of different types
                                 #  - Note mime parm is optional if file ends with that extention
         &net_mail_send(subject => 'test an html attachement',
-                       baseref => 'localhost:8080',
+                       baseref => "localhost:$config_parms{http_port}",
                        file    => '../web/mh4/widgets.html', mime  => 'html') if $state == 4;
 
         &net_mail_send(subject => 'test a zip file attachement',

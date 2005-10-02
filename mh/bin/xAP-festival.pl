@@ -17,8 +17,9 @@ use strict;
 use IO::Socket::INET;
 use Getopt::Long;
                                 # Setup constants
+my $FORCE_LOCAL_HUB  = 1;         # set to 0 if no hub or default operation
 my $XAP_PORT       = 3639;
-my $XAP_GUID       = 'FF123400';
+my $XAP_GUID       = 'FFBA8300';
 my $XAP_ME         = 'MHOUSE';
 my $XAP_SOURCE     = 'festival';
 my $XAP_INSTANCE;
@@ -27,6 +28,7 @@ my $HBEAT_INTERVAL = 120;       # Send every 2 minutes
 
 my $room;
 my $target;
+my $xap_listen;
 
 my $help;
 GetOptions(
@@ -71,23 +73,31 @@ my $xap_send = new IO::Socket::INET
   ->new(PeerPort => $XAP_PORT, Proto => 'udp', PeerAddr => inet_ntoa(INADDR_BROADCAST), Broadcast => 1 ) or
   die "Could not create xap sender\n";
 
-                                # If a hub is not active, bind directly for listening
-my $xap_listen = new IO::Socket::INET
-  ->new(LocalAddr=>inet_ntoa(INADDR_ANY), LocalPort => $XAP_PORT, Proto => 'udp', Broadcast => 1 );
-
-if ($xap_listen) {
-    print "No hub active.  Listening on broadcast socket ", $xap_listen->sockport(), "\n" if $debug;
-}
-else {
-                                # Hub is active.  Loop until we find an available port
-    print "Hub is active, search for free relay port\n" if $debug;
-    for my $p ($XAP_PORT .. $XAP_PORT+100) {
+if ($FORCE_LOCAL_HUB) {
+      for my $p (49152 .. 65535) {
         $XAP_PORT = $p;
         last if $xap_listen = new IO::Socket::INET
           ->new(LocalAddr => 'localhost', LocalPort => $p, Proto => 'udp');
-    }
-    die "Could not create xap listener\n" unless $xap_listen;
-    print "Listening on relay socket ", $xap_listen->sockport(), "\n" if $debug;
+      }
+} else {
+
+   $xap_listen = new IO::Socket::INET
+     ->new(LocalAddr=>inet_ntoa(INADDR_ANY), LocalPort => $XAP_PORT, Proto => 'udp', Broadcast => 1 );
+
+   # If a hub is not active, bind directly for listening
+   if ($xap_listen) {
+      print "No hub active.  Listening on broadcast socket ", $xap_listen->sockport(), "\n" if $debug;
+   } else {
+      # Hub is active.  Loop until we find an available port
+      print "Hub is active, search for free relay port\n" if $debug;
+      for my $p (49152 .. 65535) {
+        $XAP_PORT = $p;
+        last if $xap_listen = new IO::Socket::INET
+          ->new(LocalAddr => 'localhost', LocalPort => $p, Proto => 'udp');
+      }
+      die "Could not create xap listener\n" unless $xap_listen;
+      print "Listening on relay socket ", $xap_listen->sockport(), "\n" if $debug;
+   }
 }
 
 &send_heartbeat;

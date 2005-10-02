@@ -763,14 +763,15 @@ sub menu_lcd_navigate {
                                 # Run an action
         $Authorized = 'family'; # So &authority_check passes
         if ($ptr and $$ptr{A}) {
-            my $response = &menu_run("$$lcd{menu_group},$menu,$$lcd{cy},$$lcd{menu_state},l");
+#           my $response = &menu_run("$$lcd{menu_group},$menu,$$lcd{cy},$$lcd{menu_state},l");
+            my $response = &menu_run($$lcd{menu_group}, $menu,$$lcd{cy}, $$lcd{menu_state}, 'l');
             if ($response) {
                 &menu_lcd_display($lcd, $response, $menu);
             }
         }
                                 # Display a response
         elsif ($ptr and $$ptr{R}) {
-            my $response = &menu_run("$$lcd{menu_group},$menu,$$lcd{cy},$$lcd{menu_state},l");
+            my $response = &menu_run($$lcd{menu_group}, $menu,$$lcd{cy}, $$lcd{menu_state}, 'l');
             if ($response) {
                 &menu_lcd_display($lcd, $response, $menu);
             }
@@ -867,6 +868,9 @@ return 1;
 
 #
 # $Log$
+# Revision 1.16  2005/10/02 17:24:47  winter
+# *** empty log message ***
+#
 # Revision 1.15  2005/01/23 23:21:46  winter
 # *** empty log message ***
 #

@@ -20,16 +20,16 @@ $v_onthisday ->set_authority('anyone');
 if ((said $v_onthisday eq 'Get')) {
 
     # Do this only if we the file has not already been updated today and it is not empty
-    if (-s $f_onthisday_html > 10 and
-        time_date_stamp(6, $f_onthisday_html) eq time_date_stamp(6)) {
-        print_log "Daily calendar facts are current";
-    }
-    else {
+    #if (-s $f_onthisday_html > 10 and
+    #    time_date_stamp(6, $f_onthisday_html) eq time_date_stamp(6)) {
+    #    print_log "Daily calendar facts are current";
+    #}
+    #else {
         if (&net_connect_check) {
             print_log "Retrieving daily calendar facts...";
             start $p_onthisday;
         }
-    }
+    #}
 }
 
 if (said $v_onthisday eq 'Show') {
@@ -50,8 +50,13 @@ if (done_now $p_onthisday) {
     $html =~ s|.+(\<tr.+?Today\'s .+)|$1|is;
 
                                # Change relative lines to absolute
-    $html =~ s|href="/|href="http://www.nytimes.com/|g;
-    $html =~ s|href="../|href="http://www.nytimes.com/learning/general/|g;
+    $html =~ s|href="/|href="http://www.nytimes.com/|gi;
+    $html =~ s|href="../|href="http://www.nytimes.com/learning/general/|gi;
+    $html =~ s|src="/|src="http://www.nytimes.com/|gi;
+    $html =~ s|href="archive.html|href="http://www.nytimes.com/learning/general/onthisday/archive.html|gi;
+
+
+
 
     my $html2 = "<html><body><table>$date\n" . $html;
 #   my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html2));
@@ -62,5 +67,6 @@ if (done_now $p_onthisday) {
 #    $text =~ s/.+?(on this date in)/$1/is;
     file_write($f_onthisday_html2, $html2);
     file_write($f_onthisday, $text);
+
 
 }

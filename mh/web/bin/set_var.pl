@@ -19,7 +19,7 @@ my ($var, $resp, $value) = @ARGV;
 if (defined $value) {
 
                                 # Allow un-authorized users to browse only (if listed in password_allow)
-    return 'Not authorized to make set_var updates' unless $Authorized;
+    return &html_page('', 'Not authorized to make set_var updates') unless $Authorized;
 
     $var   =~ s/^var=//;
     $value =~ s/^value=//;
@@ -48,13 +48,10 @@ else {
     $data =~ s/\"/\'/g; # Use hex 27 = '
     $var  =~ s/\"/\'/g;
     $resp =~ s/\"/\'/g;
-    
+
     $html .= qq|<input name='var'   type=hidden value="$var">\n|;
     $html .= qq|<input name='resp'  type=hidden value="$resp">\n|;
     $html .= qq|<input name='value' type=input  value="$data" size=100>\n|;
 
     return &html_page('', $html);
 }
-
-
-

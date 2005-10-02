@@ -11,7 +11,7 @@ audreyspeak.pl
  1.0 Original version by Tim Doyle <tim@greenscourt.com> - 9/10/2002
 
 This script allows MisterHouse to capture and send speech and played
-wav files to an Audrey unit. The original version was based upon Keith 
+wav files to an Audrey unit. The original version was based upon Keith
 Webb's work outlined in his email of 12/23/01.
 
 You must make certain modifications to your Audrey, as follows:
@@ -35,12 +35,12 @@ You must make certain modifications to your Audrey, as follows:
      If you need to start over type a colon to get to the vi command line
      At the colon prompt type "q!" and hit "enter" (this quits without saving)
      If it looks good then at the colon prompt type "wq" to save changes
-     Now restart the Audrey by unplugging it, waiting 30 seconds and 
+     Now restart the Audrey by unplugging it, waiting 30 seconds and
      plugging it back in.
 
 - Install playsound_noph and it's DLL
   1) Grab the zip file from http://www.planetwebb.com/audrey/
-  2) Place playsound_noph    on the Audrey in /nto/photon/bin/ 
+  2) Place playsound_noph    on the Audrey in /nto/photon/bin/
   3) Place soundfile_noph.so on the Audrey in /nto/photon/dll/
 
 - Install mhspeak.shtml on the Audrey
@@ -87,9 +87,9 @@ if ($Startup or $Reload) {
 #Check our play file. If it has changed, tell each Audrey to come and get it!
 if ($New_Second && ($audreyRdIndex != $audreyWrIndex)) {
 #   my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
-#    my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
+    my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
+#   my $MHWeb = hostname() . ":" . $config_parms{http_port};
     my $speakFile = "/speakToAudrey$audreyRdIndex.wav";
-    my $MHWeb = hostname() . ":" . $config_parms{http_port};
     for my $audrey (split ',', $config_parms{Audrey_IPs}) {
         $audrey =~ /(\S+)\-(\S+)/;
         my $room = $1;
@@ -212,7 +212,3 @@ sub play_to_audrey {
       }
     }
 }
-
-
-
-

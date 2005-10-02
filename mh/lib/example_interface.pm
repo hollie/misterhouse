@@ -11,8 +11,8 @@ Use these mh.ini parameters to enable this code:
 
 Here is an example of reading/writing using this object:
 
- $test_example1 = new example_interface('string_on',   ON); 
- $test_example1 ->add                  ('string_off', OFF); 
+ $test_example1 = new example_interface('string_on',   ON);
+ $test_example1 ->add                  ('string_off', OFF);
 
  print "Example 1 data received: $state\n" if $state = state_now $test_example1;
  set $test_example1 OFF if new_second 5;
@@ -23,10 +23,10 @@ Here is another example
  $interface = new example_interface;
  $interface ->add('out123', 'request_status');
  $interface ->add('in123',  'door_open');
- 
+
  set $interface 'request_staus' if $New_Second;
- speak 'Door just opened' if 'door_open' eq state_now $interface; 
-   
+ speak 'Door just opened' if 'door_open' eq state_now $interface;
+
 
 You could also query the incoming serial data directly:
 
@@ -36,7 +36,7 @@ You could also query the incoming serial data directly:
 
 
 Methods (sub) 'startup' or 'serial_startup' are automatically
-called by mh on startup.   
+called by mh on startup.
 
 
 =cut
@@ -56,8 +56,8 @@ sub check_for_data {
     &main::check_for_generic_serial_data('example_interface');
 }
 
-sub default_setstate {
-    my ($self, $state) = @_;
+sub set {
+    my ($self, $state, $set_by) = @_;
 
     my $serial_data;
                                 # Allow for upper/mixed case (e.g. treat ON the same as on ... so X10_Items is simpler)
@@ -73,6 +73,9 @@ sub default_setstate {
 
     print "Setting example_interface to $state -> $serial_data\n";
     $main::Serial_Ports{example_interface}{object}->write($serial_data);
+
+    &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
+
 }
 
 1;

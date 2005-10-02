@@ -11,7 +11,7 @@
 
                                 # Get the forecast and current weather data from the internet
 $v_get_internet_weather_data = new  Voice_Cmd('Get internet weather data');
-$v_get_internet_weather_data-> set_info("Retreive weather conditions and forecasts for $config_parms{city}, $config_parms{state}");
+$v_get_internet_weather_data-> set_info("Retrieves weather conditions and forecasts for $config_parms{city}, $config_parms{state}");
 
 
 $v_show_internet_weather_forecast = new  Voice_Cmd('[Read,Show] internet weather forecast');
@@ -27,36 +27,36 @@ $v_show_internet_weather_forecast-> set_authority('anyone');
 my $weather_forecast_path = "$config_parms{data_dir}/web/weather_forecast.txt";
 my $weather_conditions_path = "$config_parms{data_dir}/web/weather_conditions.txt";
 
-
+$p_weather_forecast = new Process_Item;
 if (said $v_get_internet_weather_data) {
     if (&net_connect_check) {
-    my $city = $config_parms{city};
-    $city = $config_parms{nws_city} if defined $config_parms{nws_city};
-    $p_weather_forecast = new Process_Item(qq|get_weather -state $config_parms{state} -city "$config_parms{city}" -zone "$config_parms{zone}"|);
-    start $p_weather_forecast;
+        my $city = $config_parms{city};
+        $city = $config_parms{nws_city} if defined $config_parms{nws_city};
+        set $p_weather_forecast qq|get_weather -state $config_parms{state} -city "$config_parms{city}" -zone "$config_parms{zone}"|;
+        start $p_weather_forecast;
         print_log "Weather data requested for $city, $config_parms{state}" . (($config_parms{zone})?"zone=$config_parms{zone}":"");
     }
     else {
-        print_log "Sorry, you must be logged onto the net to get the weather";
+	    print_log "Sorry, you must be logged onto the net to get the weather";
     }
 }
 
 if ($state = said $v_show_internet_weather_forecast) {
-    if ($state eq "Read") {
-        respond "target=speak " . $weather_forecast_path;
-    }
-    else {
-        respond $weather_forecast_path;
-    }
+	if ($state eq "Read") {
+		respond "target=speak " . $weather_forecast_path;
+	}
+	else {
+		respond $weather_forecast_path;
+	}
 }
 
 if ($state = said $v_show_internet_weather_conditions) {
-    if ($state eq "Read") {
-        respond "target=speak " . $weather_conditions_path;
-    }
-    else {
-        respond $weather_conditions_path;
-    }
+	if ($state eq "Read") {
+		respond "target=speak " . $weather_conditions_path;
+	}
+	else {
+		respond $weather_conditions_path;
+	}
 }
 
 
@@ -71,51 +71,61 @@ if (done_now $p_weather_forecast) {
         #    5 mph.  The relative humidity was 100%, and barometric pressure was
         #    rising from 30.06 in.
 
-
-        $conditions = read_all $f_weather_conditions;
+    $conditions = read_all $f_weather_conditions;
     if ($conditions =~ /No data available/) {
         print_log "Weather conditions unavailable at this time";
-    }
-    else {
+	}
+	else {
         $conditions =~ s/\n/ /g;
 
-#***Check trigger
-
-        $Weather{TempOutdoor}  = $1 if $conditions =~ /(\d+) degrees/i;
-        $Weather{Humid} = $1 if $conditions =~ /(\d+)\%/;
-        $Weather{Barom} = $1 if $conditions =~ /([\d\.]+) in./;
-        $Weather{BaromDelta} = $1 if $conditions =~ /(rising|falling|steady)/;
-        $Weather{WindGustSpeed} = "N/A";
-        $Weather{WindGustSpeed} = $1 if $conditions =~ /gusting\s+to\s+(\d+)\s+mph/;
+        $Weather{TempInternet}  = $1 if $conditions =~ /(\d+) degrees/i;
+        $Weather{HumidInternet} = $1 if $conditions =~ /(\d+)\%/;
+        $Weather{BaromInternet} = $1 if $conditions =~ /([\d\.]+) in./;
+        $Weather{BaromInternetDelta} = $1 if $conditions =~ /(rising|falling|steady)/;
+        $Weather{WindGustSpeedI} = undef;
+        $Weather{WindGustSpeedI} = $1 if $conditions =~ /gusts\s+up\s+to\s+(\d+)\s+mph/;
 
         if ($conditions =~ /calm/) {
-
-            $Weather{Wind}  = "calm";
-            $Weather{WindSpeed}  = 0;
-            $Weather{WindDirection} = "N/A"
-
+            $Weather{WindI}  = "calm";
+            $Weather{WindSpeedI}  = 0;
+            $Weather{WindDirectionI} = undef;
         }
         else {
-            $Weather{Wind}  = $1 if $conditions =~ /wind\s+was\s+(.+?)\./;
-            ($Weather{WindDirection}, $Weather{WindSpeed}) = $conditions =~ /wind\s+was\s+(\S+)\s+at\s+(.+?)\s+mph\./;
-            $Weather{Wind}  =~ s/^\s+//;
+            $Weather{WindI}  = $1 if $conditions =~ /wind\s+was\s+(.+?)\./;
+            ($Weather{WindDirectionI}, $Weather{WindSpeedI}) = $conditions =~ /wind\s+was\s+(\S+)\s+at\s+(.+?)\s+mph\./;
+            #For RRD
+            #$Weather{WindAvgDir}=$Weather{WindDirection};
+            #$Weather{WindAvgSpeed}=$Weather{WindSpeed};
         }
 
-        $Weather{WindChill} = ($Weather{WindSpeed} > 3 and $Weather{TempOutdoor} <= 50)? 35.74 + .6215 * $Weather{TempOutdoor}- 35.75 * $Weather{WindSpeed}**.16 + .4275 * $Weather{TempOutdoor} * $Weather{WindSpeed}**.16:$Weather{TempOutdoor};
+        $Weather{WindChillI} = int(($Weather{WindSpeedI} > 3 and $Weather{TempInternet} <= 50)? 35.74 + .6215 * $Weather{TempInternet}- 35.75 * $Weather{WindSpeedI}**.16 + .4275 * $Weather{TempInternet} * $Weather{WindSpeedI}**.16:$Weather{TempInternet});
 
-        if ($Weather{WindSpeed} > 20 or $Weather{WindGust} > 30) {
+        if ($Weather{WindChillI} = int($Weather{TempInternet})) {
+            $Weather{WindChillI} = undef;
+        }
+
+        if (int($Weather{WindSpeedI}) > 20 or int($Weather{WindGustSpeed}) > 30) {
             print_log "Weather:Warning: High winds";
-            speak "Warning: Winds at $Weather{WindSpeed} miles per hour";
         }
 
+                                # Allow for writing to standard weather vars if you don't have a local weather station
+        if ($config_parms{weather_use_internet}) {
+            $Weather{TempOutdoor}   = $Weather{TempInternet};
+            $Weather{HumidOutdoor}  = $Weather{HumidInternet};
+            $Weather{Barom}         = $Weather{BaromInternet};
+            $Weather{WindGustSpeed} = $Weather{WindGustPseedI};
+            $Weather{Wind}          = $Weather{WindI};
+            $Weather{WindSpeed}     = $Weather{WindSpeedI};
+            $Weather{WindDirection} = $Weather{WindDirectionI};
+            $Weather{WindChill}     = $Weather{WindChillI};
+        }
 
-        print_log "Weather:Outdoor Temperature is $Weather{TempOutdoor} f";
+        print_log "Weather:Outdoor Temperature is $Weather{TempInternet} f";
         print_log "Weather:Wind is $Weather{Wind}";
-        print_log "Weather:Wind is gusting to $Weather{WindGustSpeed}" if $Weather{WindGustSpeed} ne "N/A" ;
-        #print_log "Weather:Wind Speed is $Weather{WindSpeed} mph";
-        #print_log "Weather:Wind Direction is $Weather{WindDirection}" if $Weather{WindDirection} ne "N/A" ;
-        print_log "Weather:Wind Chill is $Weather{WindChill}" if $Weather{WindChill} ne $Weather{TempOutdoor} ;
+        print_log "Weather:Wind Chill is $Weather{WindChill}" if $Weather{WindChill};
         print_log "Weather:Humidity is $Weather{Humid}%";
-        print_log "Weather:Pressure is $Weather{Barom} and $Weather{BaromDelta}";
-    }
+        print_log "Weather:Pressure is $Weather{BaromInternet} and $Weather{BaromInternetDelta}";
+
+
+	}
 }

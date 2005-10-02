@@ -5,11 +5,11 @@ File:
 	Base_Item.pm
 
 Description:
-   The base object that Door_Item, Motion_Item, Presence_Item, 
+   The base object that Door_Item, Motion_Item, Presence_Item,
    Photocell_Item, and Light_Restriction_Item are derived from.  These
    are all used to provide predictive lighting when used along with
    Occupancy_Monitor.pm
-	
+
 Author:
 	Jason Sharpee
 	jason@sharpee.com
@@ -32,7 +32,7 @@ Usage:
    detector with a delay_off(60), then the light will be turned off 60 seconds
    after the last motion was detected.
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - MH
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -52,7 +52,7 @@ sub new
    $$self{m_write} = 1;
 	$self->initialize();
 	$self->add(@p_objects);
-	
+
 	return $self;
 }
 
@@ -65,12 +65,12 @@ sub initialize
 sub add
 {
 	my ($self,@p_objects) = @_;
-	
+
 	my @l_objects;
 
 	for my $l_object (@p_objects) {
 		if ($l_object->isa('Group_Item') ) {
-			@l_objects = $$l_object{members};		
+			@l_objects = $$l_object{members};
 			for my $obj (@l_objects) {
 				$self->add($obj);
 			}
@@ -83,7 +83,7 @@ sub add
 sub add_item
 {
     my ($self,$p_object) = @_;
-    
+
     $p_object->tie_items($self);
     push @{$$self{m_objects}}, $p_object;
 }
@@ -134,7 +134,7 @@ sub set
 
    #&::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 
-	if (defined $main::DBI) {
+    if ((defined $main::DBI) && $::config_parms{events_table}) {
 		if (defined $p_setby and $p_setby->isa("Generic_Item")) {
 			$main::DBI->prepare("insert into Events (Object,ObjectType,State,Setby) values ('$$self{object_name}','" . ref($self). "','$p_state','" . $p_setby->{object_name} . "');")->execute();
 		} else {
@@ -143,12 +143,12 @@ sub set
 	}
 
 	# Propogate states to all member items
-	if ( defined $$self{m_objects} ) { 
-		my @l_objects = @{$$self{m_objects}};	
+	if ( defined $$self{m_objects} ) {
+		my @l_objects = @{$$self{m_objects}};
 		for my $obj (@l_objects) {
 			if ( $obj ne $p_setby and $obj ne $self ) { # Dont loop
             #&::print_log($self->get_object_name() . "::checking($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
-				if ( ( $obj->can('writable') and $obj->writable ) or 
+				if ( ( $obj->can('writable') and $obj->writable ) or
 					( ! $obj->can('writable') ) ) { #check for "settable" objects
                &::print_log($self->get_object_name() . "::set($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
 #					$obj->set($p_state,$p_setby,$p_response);
@@ -162,7 +162,7 @@ sub set
 
 sub is_member {
     my ($self, $p_object) = @_;
-    
+
     my @l_objects = @{$$self{m_objects}};
     for my $l_object (@l_objects) {
 	if ($l_object eq $p_object) {
@@ -182,7 +182,7 @@ sub find_members {
 			push @l_found, $l_object;
 		}
 	}
-	return @l_found;	
+	return @l_found;
 }
 
 sub presence_value {
@@ -191,7 +191,7 @@ sub presence_value {
 	return $$self{m_presence_value};
 }
 
-sub writable 
+sub writable
 {
 	my ($self) =@_;
 	return $$self{m_write};

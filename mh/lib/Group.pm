@@ -73,37 +73,48 @@ sub set {
                                 # This will be slightly faster and will result in simultaneous
                                 # rather then sequential results.
     my @group = @{$$self{members}};
+    my @like_group;
+    my @unlike_group;
+    my $house_codes = "ABCDEFGHIJKLMNOP";
+    my %house_code_last_ref = qw(A undef B undef C undef D undef E undef F undef G undef H undef I undef J undef K undef L undef M undef N undef O undef P undef);
+    my $like_group_flag = 0;
     my $last_ref = $group[-1];
-    my $hc = substr($$last_ref{x10_id}, 1, 1);
-#   print "db hc=$hc lr=$last_ref x=$$last_ref{x10_id} inter=$$last_ref{interface}\n";
+    my $i = 0;
+    my $hc;
+
     for my $ref (@group) {
-        if ((ref $ref) !~ /^X10_/ or
-            $hc ne substr($$ref{x10_id}, 1, 1) or
-            substr($$ref{x10_id}, 2, 1) eq '' or # Can not group set a house code
-            $$ref{interface} !~ /cm11|ncpuxa|homebase|stargate/) {
-            undef $hc;
-            last;
-        }
+	if ($$ref{x10_id} and substr($$ref{x10_id}, 2, 1) ne '' and $$ref{interface} =~ /cm11|ncpuxa|homebase|stargate/) {
+		$hc = substr($$ref{x10_id}, 1, 1);
+		$house_code_last_ref{$hc} = $ref;		
+	}
     }
 
-    if ($hc) {
-        pop @group;             # No need to set the last item twice
-        for my $ref (@group) {
-            print "Group1 setting $ref to $state\n" if $main::Debug{group};
-            set $ref 'manual';
+    for my $hc (keys %house_code_last_ref) {
+	 my $last_ref = $house_code_last_ref{$hc};
+
+	
+	 if ($last_ref ne 'undef') {
+
+		for my $ref (@group) {
+			if (substr($$ref{x10_id},1,1) eq $hc and $$ref{x10_id} ne $$last_ref{x10_id} and $$ref{interface} =~ /cm11|ncpuxa|homebase|stargate/) {
+            			print "Group setting $$ref{x10_id} to $state\n" if $main::Debug{group};
+		            	set $ref 'manual';
                                 # Set the real state, rather than 'manual'
                                 #  - the last element of that array
-#           $ref->{state_next_pass} = $state;
-            ${$ref->{state_next_pass}}[-1] = $state;
-        }
-        set $last_ref $state, $set_by;
+			        #$ref->{state_next_pass} = $state;
+		                ${$ref->{state_next_pass}}[-1] = $state;
+		        }
+			
+		}
+	        print "Group setting $$last_ref{x10_id} to $state\n" if $main::Debug{group};
+        	set $last_ref $state, $set_by;		
+
+	 }	
+
+
     }
-    else {
-        for my $ref (@group) {
-            print "Group2 setting $ref to $state\n" if $main::Debug{group};
-            set $ref $state, $set_by if $ref;
-        }
-    }
+
+  
 }
 
 sub list {
@@ -142,6 +153,9 @@ sub remove {
 
 #
 # $Log$
+# Revision 1.21  2005/10/02 17:24:47  winter
+# *** empty log message ***
+#
 # Revision 1.20  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

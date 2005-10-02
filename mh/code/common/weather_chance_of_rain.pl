@@ -10,9 +10,9 @@
 weather_chance_of_rain.pl
 1.0 Created by David Norwood (dnorwood2@yahoo.com) 12/7/2001
 
-This script reads the weather forecasts downloaded by mh/bin/get_weather and 
-extracts the percent chance of rain for the various forecast periods in the 
-next week.  If rain is forecast, it will be announced. 
+This script reads the weather forecasts downloaded by mh/bin/get_weather and
+extracts the percent chance of rain for the various forecast periods in the
+next week.  If rain is forecast, it will be announced.
 
 The voice command for get_weather is defined in internet_data.pl and scheduled
 to run in internet_weather.pl.  This script is triggered when a new forecast is
@@ -27,21 +27,35 @@ The get_weather script is for the US only.
 $weather_forecast = new File_Item "$config_parms{data_dir}/web/weather_forecast.txt";
 set_watch $weather_forecast if $Reload;
 
-$v_chance_of_rain = new Voice_Cmd 'What is the forecasted chance of rain';
-$v_chance_of_rain-> set_info('Reports on chance of rain and snow from the mh/bin/get_weather results');
+$v_get_chance_of_rain = new Voice_Cmd 'Get the chance of rain or snow';
+$v_get_chance_of_rain-> set_info('Gets chance of rain or snow from the Internet');
 
-if (said $v_chance_of_rain or ($New_Minute and changed $weather_forecast)) {
+
+$v_chance_of_rain = new Voice_Cmd '[Read,Show] the forecasted chance of rain or snow';
+$v_chance_of_rain-> set_info('Reports on chance of rain or snow from the Internet');
+
+if ($state = said $v_chance_of_rain) {
+	if ($state eq 'Read') {
+		respond 'target=speak ' . $Weather{chance_of_rain};
+	}
+	else {
+		respond $Weather{chance_of_rain};
+	}
+}
+
+if (said $v_get_chance_of_rain or ($New_Minute and changed $weather_forecast)) {
     set_watch $weather_forecast;
 
     my ($days_to_read, $size, $text, $line, $day, $current_day, $forecast, $tomorrow, $chance, %forecasts);
     my @days = ("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday");
 
     $days_to_read=3;
-    $days_to_read=2 unless said $v_chance_of_rain;
+    #$days_to_read=2 unless said $v_chance_of_rain;
 
     ($size) = (stat($weather_forecast->name))[7];
     if ($size < 100) {
-        respond "app=notice Incomplete weather forecast received" if said $v_chance_of_rain;
+        #respond "app=notice Incomplete weather forecast received" if said $v_chance_of_rain;
+        $Weather{chance_of_rain} = 'Incomplete weather forecast received';
         return;
     }
     foreach $day (split $Weather{"Forecast Days"}, /\|/) {
@@ -78,8 +92,9 @@ if (said $v_chance_of_rain or ($New_Minute and changed $weather_forecast)) {
         last unless $days_to_read--;
         $text .= " a $chance percent chance of $precip $day,";
     }
-    unless ($text) { 
-        respond "app=notice There is no rain in the forecast." if said $v_chance_of_rain;
+    unless ($text) {
+        #respond "app=notice There is no rain in the forecast." if said $v_chance_of_rain;
+        $Weather{chance_of_rain} = 'There is no rain or snow in the forecast.';
         return;
     }
     $tomorrow = $days[($Wday + 1) % 7];
@@ -88,14 +103,15 @@ if (said $v_chance_of_rain or ($New_Minute and changed $weather_forecast)) {
     $text =~ s/,$/./;
     $text =~ s/a 8/an 8/g;
     $text =~ s/,([^,]+)$/ and$1/;
+    $Weather{chance_of_rain} = $text;
     $text = 'Notice: ' . $text unless said $v_chance_of_rain;
-    respond "app=notice $text" if said $v_chance_of_rain or $Hour > 7;
+    respond "app=notice $text" if said $v_chance_of_rain;
 }
 
 
 =begin comment
 
-The following code is an example of using the rain forecast to skip sprinkler cycles before and after 
+The following code is an example of using the rain forecast to skip sprinkler cycles before and after
 the rain.
 
 if (time_cron "40 4,16 * * *") {

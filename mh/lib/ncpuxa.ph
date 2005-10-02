@@ -1,4 +1,7 @@
-require '_h2ph_pre.ph';
+# This file was created by running h2ph on cpuxa.h in the xalib distribution 
+
+# 8/12/05 dnorwood, the following line doesn't work on windows and isn't needed anyway 
+#require '_h2ph_pre.ph';
 
 unless(defined(&CMD_DELAY)) {
     sub CMD_DELAY () {	50000;}

@@ -158,7 +158,7 @@ $RRD_LAZY = 0 if $debug;
 
 # Update RRD database every 1 minute
 if ($New_Minute) {
-    my $rrd_TempOutdoor = $Weather{TempOutdoor} or $Weather{TempInternet};
+    my $rrd_TempOutdoor = (defined $Weather{TempOutdoor}) ? $Weather{TempOutdoor} : $Weather{TempInternet};
     $rrd_TempOutdoor = 'U' unless defined $rrd_TempOutdoor;
 
     my $rrd_HumidOutdoor = defined $Weather{HumidOutdoor} ? $Weather{HumidOutdoor} : 'U';

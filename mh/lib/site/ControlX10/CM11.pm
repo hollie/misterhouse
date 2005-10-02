@@ -26,7 +26,7 @@ $EXPORT_TAGS{ALL} = \@EXPORT_OK;
 #### Package variable declarations ####
 
 ($VERSION) = q$Revision$ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge
-$DEBUG = 1;
+$DEBUG = 0;
 my $Last_Dcode;
 
 sub send_cm11 {
@@ -130,17 +130,22 @@ sub receive_buffer {
     foreach my $byte (@bytes) {
               # Send extended data into MH as untranslated hex.
         if ($extended_count) {
-           #$data .= unpack('H*', $byte);
+           $data .= unpack('H*', $byte);
            --$extended_count;
            ++$i;
 	   if ($extended_count == 0) { #command
 		$extended_command = $byte;
+		#print "test1" . unpack('H*', $byte);
 	   }
 	   elsif ($extended_count == 1) { #data (on/off or dim level)
 		$extended_data = $byte;
+		#print "test2" . unpack('H*', $byte);
 	   }
 	   else { #must be 2 (unit)
 		$extended_device = $table_dcodes2{substr(unpack('B8', $byte),4,4)};
+		#print "test3" . unpack('H*', $byte) . "\n";
+		#print "test4" . substr(unpack('B8', $byte),4,4) . "\n";
+		#print "test5" . $extended_device . "\n";
 	   }
 
         }
@@ -155,16 +160,12 @@ sub receive_buffer {
 
                                    # Add device code back in, since this is not included in status :(
 	#*** But only if it matches house code!  Need hash for this...
-		if ($function =~ /^STATUS/) {
-               $function = $Last_Dcode . $function;
-		}
+               $function = $Last_Dcode . $function if $function =~ /^STATUS/;
+                                   # Handle Vehicle Interface RF Receiver extended code - assume length of 3 for extended
                $extended_count = 3 if ($function eq 'Z');
-
 ## 2.08, but 'Z' not numeric ##
 ##               $extended_count = 3 if ($function == 'Z');
-
-
-               $data .= $house . $function unless $function eq "Z";
+               $data .= $house . $function;
                  print "CM11 db: data=$data\n" if $DEBUG;
            }
            else {
@@ -176,29 +177,30 @@ sub receive_buffer {
 #       print "byte=$byte, $bits\n";
 
     }
-	if ($extended_command and $DEBUG) { print "extended_command: " . unpack("H*",$extended_command) . " extended_device: " . $extended_device . " extended_data: " . unpack("H*",$extended_data) . "\n"; }
+	if ($extended_command and $DEBUG) { print "extended_command: " . unpack("H*",$extended_command) . " extended_device: " . $extended_device .  " extended_data: " . unpack("H*",$extended_data); }
 
-	if ($extended_command eq "1") { #received preset_dim
-		$data .= $house.$extended_device.$house."&P".(unpack("C1",$extended_data));
+	if ($extended_command == "1") { #received preset_dim
+		$data = $house.$extended_device.$house."&P".(unpack("C1",$extended_data));
+	print "TEST:".(unpack("C1",$extended_data));
 	}
-	elsif ($extended_command eq "7") { #Poll from/to module
+	elsif ($extended_command == "7") { #Poll from/to module
 		print "Poll $extended_device" if $DEBUG;
-		$data .= $house.$extended_device.$house."POLL";
+		$data = "";
 	}
-	elsif ($extended_command eq "8") { #Ack on/off/level
+	elsif ($extended_command == "8") { #Ack on/off/level
 		print "Ack $extended_device:$extended_command:" . unpack("C1", $extended_data) if $DEBUG;
-		#Just check first bit!  ***Need to set level with additional &P
+		#Just check first bit!  Set level with reset (how?)
 		if (unpack("C1", $extended_data) - 0x80) {
-			$data .= $house.$extended_device."STATUS_ON";
+			$data = $house.$extended_device."STATUS_ON";
 		}
 		else {
-			$data .= $house.$extended_device."STATUS_OFF";
+			$data = $house.$extended_device."STATUS_OFF";
 
 		}
 	}
 
 
-	print "cm11 received: $data\n" if $DEBUG;
+
 
 
     return $data;
@@ -319,14 +321,11 @@ sub format_data {
 }
 
 
-my $retry_timer;
-
 sub send {
     my ($serial_port, $house_code) = @_;
 
     if (exists $main::Debug{x10}) {
-#        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
-	$DEBUG = 1;
+        $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
     }
 
 
@@ -345,36 +344,35 @@ sub send {
                                 # checksum might be the power fail flag (0xa5)
 
    my $data_rcv;
-   goto RETRY unless $data_rcv = &read($serial_port, 0, ($checksum == 0xa5)) or $retry_cnt++ < 16;
+   goto RETRY unless $data_rcv = &read($serial_port, 0, ($checksum == 0xa5)) or $retry_cnt++ < 32;
+
+
+
+
 
 #   return unless $data_rcv = &read($serial_port, 0, 1);
-    print "cm11 send failed" unless $retry_cnt < 16;
-    return unless $retry_cnt < 16;
+    print "cm11 send failed" unless $retry_cnt < 32;
+    return unless $retry_cnt < 32;
     my $data_d = unpack('C', $data_rcv);
 
                                 # Unrelated incoming data ... process and re-start
                                 # Note:  Some checksums will be 0x5a or 0xa5 ... skip this test if so
-    $retry_cnt = 0;
+
     if ((($data_d == 0x5a) and ($checksum != 0x5a)) or (($data_d == 0xa5) and ($checksum != 0xa5))) {
         print "Data received while xmiting data ... will receive and retry CS1:$data_d CS2:$checksum\n";
         $BACKLOG .= &receive_buffer($serial_port);
-        goto RETRY if $retry_cnt++ < 8;
+        goto RETRY if $retry_cnt++ < 32;
     }
 
 
     if (($data_d == 0x55) and ($checksum != 0x55)) {
         print "Done signal received while xmiting data ... will retry CS1:$data_d CS2:$checksum\n";
-	goto RETRY if $retry_cnt++ < 8;
-    }
-
-    if ($retry_cnt == 8 and (!$retry_timer or inactive $retry_timer)) {
-	print "Re-scheduling send due to traffic";
-	$retry_timer = new Timer;
-        set $retry_timer 1, "send('$serial_port','$house_code')";
+	goto RETRY if $retry_cnt++ < 32;
     }
 
 
-    $retry_cnt = 0;
+
+
     if (($checksum != $data_d)) {
 	if ($data_d) {
         	print "Bad checksum in cm11 send: cs1=$checksum cs2=$data_d.  Will retry\n";
@@ -393,17 +391,17 @@ sub send {
     $retry_cnt = 0;
 RETRY2:
     $data_rcv = &read($serial_port);
-    goto RETRY2 unless $data_rcv or $retry_cnt++ < 8;
+    goto RETRY2 unless $data_rcv or $retry_cnt++ < 32;
     $data_d = unpack('C', $data_rcv);
 
-    if (($data_d == 0x55) and $DEBUG) {
-        print "CM11 done\n";
+    if ($data_d == 0x55) {
+        print "CM11 done\n" if $DEBUG;
     }
     # Unrelated incoming data ... process
     elsif ((($data_d == 0x5a) and ($checksum != 0x5a)) or (($data_d == 0xa5) and ($checksum != 0xa5))) {
         print "Data received while xmiting data #2 ... will receive and retry CS1:$data_d CS2:$checksum\n";
         $BACKLOG .= &receive_buffer($serial_port);
-        goto RETRY2 if $retry_cnt++ < 8;
+        goto RETRY2 if $retry_cnt++ < 32;
     }
 
 	print "Backlog:$BACKLOG\n" if $DEBUG;
@@ -417,7 +415,7 @@ sub read {
     my $data;
                                 # Note ... for dim commands > 30, this will time out after 30*50=1.5 seconds
                                 # No harm done, but we would rather not wait :)
-    my $tries = ($no_block) ? 1 : 30;
+    my $tries = ($no_block) ? 1 : 100;
 
     if (exists $main::Debug{x10}) {
         $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
@@ -911,7 +909,7 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
-# Revision 2.23  2005/05/22 18:13:07  winter
+# Revision 2.24  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #
 # Revision 2.22  2004/09/25 20:01:20  winter

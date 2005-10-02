@@ -21,7 +21,6 @@ my ($mp3names, %mp3files) = &mp3_playlists;
 
 my %mp3_dbm;
 if ('Build' eq said $v_mp3_build_list) {
-    speak "Ok, rebuilding";
     my @dirs = split ',', $config_parms{mp3_dir};
     print_log "Updating mp3 database for @dirs";
     set   $p_mp3_build_list "get_mp3_data -dbm $mp3_file @dirs";
@@ -30,7 +29,7 @@ if ('Build' eq said $v_mp3_build_list) {
 }
 
 if (done_now $p_mp3_build_list) {
-    speak "mp3 database build is done";
+    print_log "mp3 database build is done";
     ($mp3names, %mp3files) = &mp3_playlists;
 }
 
@@ -70,7 +69,7 @@ sub mp3_search {
     $count1 = $count2 = 0;
     for my $i (0 .. @files) {
         $count1++;
-        next unless $files[$i] =~ /\.(mp3|ogg)$/i;
+        next unless $files[$i] =~ /\.(mp3|ogg|wma)$/i;
         if (!$mp3_search or
             $titles[$i]  =~ /$mp3_search/i or
             $artists[$i] =~ /$mp3_search/i or
@@ -117,13 +116,14 @@ sub mp3_playlists {
 #       my $name = ucfirst lc $1;
         my $name = $1;
         unless ($mp3files{$name}) {
-            $mp3names .= $name . ',';
+                                # mp3names is only used for voice cmd, so exclude il chs
+            $mp3names .= $name . ',' unless $name =~ /[\[\]\,\|]/;
             $mp3files{$name} = $file;
         }
     }
     return 'none_found' unless $mp3names;
     chop $mp3names;         # Drop last ,
-#   print "mp3 playlists: $mp3names \n";
+    print "mp3 playlists: $mp3names \n";
     return $mp3names, %mp3files;
 }
 
@@ -143,7 +143,7 @@ if ($state = said $v_play_clear_music) {
 }
 
 # The following returns the current song being played
-$v_what_playing = new Voice_Cmd('What is now playing');
+$v_what_playing = new Voice_Cmd('[What track is,Show track] playing now');
 if ($state = said $v_what_playing) {
 #   my $mp3playing = ${&mp3_get_playlist()}[&mp3_get_playlist_pos()];
     my $mp3playing = '';
@@ -153,11 +153,13 @@ if ($state = said $v_what_playing) {
     } else {
 	$mp3playing = &mp3_get_curr_song();
     }
-    speak $mp3playing;
+    $mp3playing = (($state eq 'What track is')?'target=speak ':'') . $mp3playing;
+    respond $mp3playing;
 }
 
 
 	# This can be slow if player is down, so don't do it too often
+	# Should get this dynamically.  No sense in bogging down every 15 seconds
 #if (new_second 15) {
 #   my $ref = &mp3_get_playlist();
 ##  $Save{NowPlaying} = ${$ref}[&mp3_get_playlist_pos()] if $ref;
@@ -180,7 +182,7 @@ sub mp3_find_all {
     my %all;
     foreach my $tag (split $;, $mp3_dbm{$mp3_tag}) {
         $count++;
-        next unless $files[$count] =~ /\.(mp3|ogg)$/i;
+        next unless $files[$count] =~ /\.(mp3|ogg|wma)$/i;
         if ($mp3_tag eq 'album') {
             $tag = "$artists[$count]$;$tag";
         }

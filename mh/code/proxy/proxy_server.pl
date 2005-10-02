@@ -30,7 +30,7 @@ $proxy_server  = new  Socket_Item(undef, undef, 'server_proxy', undef, undef, un
                                 # If you want this, add these mh.ini parms: mh_proxyreg_port, mh_server, and proxy_name
                                 # And run code like in bruce/speak_proxy.pl
 $v_proxy_init = new Voice_Cmd("Reconnect proxy");
-if ($config_parms{mh_proxyreg_port} and 
+if ($config_parms{mh_proxyreg_port} and
     ($Startup or said $v_proxy_init)) {
     print "Connecting to server\n";
     my $s_proxy_init = new Socket_Item(undef, undef,
@@ -64,7 +64,7 @@ if ($state = said $proxy_server) {
         &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, $data[0]);
     }
     elsif ($function eq 'uirt2_send') {
-        $main::Serial_Ports{UIRT2}{object}->write(pack 'C*', @data); 
+        $main::Serial_Ports{UIRT2}{object}->write(pack 'C*', @data);
     }
     elsif ($function eq 'BX24_Query_Barometer') {
 	$main::Serial_Ports{BX24}{object}->write("B");
@@ -93,7 +93,7 @@ if ($state = said $proxy_server) {
         if ($function2 eq 'send_plc') {
 	   &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},$data[0],$data[1]);
         }
-        elsif ($function2 eq 'readDeviceInfo') {   
+        elsif ($function2 eq 'readDeviceInfo') {
 	   &Lynx10PLC::readDeviceInfo($main::Serial_Ports{Lynx10PLC}{object},$data[0]);
         }
     }
@@ -137,7 +137,7 @@ if ($ControlX10::CM11::POWER_RESET) {
 
 
                                 # Allow for keyboard control
-if ($Keyboard) {    
+if ($Keyboard) {
     if ($Keyboard eq 'F1') {
         print "Key F1 pressed.  Reloading code\n";
                                 # Must be done before the user code eval
@@ -156,8 +156,8 @@ if ($Keyboard) {
 $search_code_string = new Generic_Item;
 
 
-                                # Make sure main mh program is still alive
+                                # Make sure main mh program is still alive ... don't announce when sleeping!
 if (new_minute 5 and !active $proxy_server) {
-    speak "Proxy can not talk to Mister House";
+    my $msg = "Proxy can not talk to Mister House";
+    ($Hour > 9 and $Hour < 23) ? speak $msg : print_log $msg;
 }
-

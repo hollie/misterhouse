@@ -1,4 +1,3 @@
-
 =pod
 
 =head1 Mister House Announcement List
@@ -19,9 +18,126 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 =end html
 
+
 B<New Features:>
 
 B<Bug Fixes and Other Changes:>
+
+
+=head2 Version 2.100 posted on 10/02/2005
+
+Version 2.100 was just uploaded to:
+
+  http://misterhouse.sf.net/download.html
+
+
+B<New Features:>
+
+- David Mark maded changes to code/common/news_mquote_oftd.pl, internet_earthquakes.pl, dvd_releases.pl, news_ap_breaking.pl,
+internet_top10.pl, time_info.pl, internet_weather.pl, tv_info.pl, trivia.pl, stocks.pl, internet_top10.pl,
+tv_info.pl, phone_minutes.pl, news_onthisday.pl, and internet_chance_of_rain.pl.
+Many of the changes were to enable speak -vs- show options, using the respond function better.
+
+- Brent DeShazer created lib/Display_osd232.pl and code/common/display_osd232.pl for interfacing with
+Intuitive Curciuts OSD-232 On-screen video overlay interface, available from http://www.icircuits.com/prod_osd232.html
+
+- Werner Lane created lib/Terminal_Menu.pm, code/common/terminal_menu.pl, and bin/terminalmenu-client.pl to allow for 'terminal window' control via SSH.
+Using something like PuTTY, it is fully operated with keys found on a mobile phone: 0-9, #, *, the arrow keys and ENTER.
+Screenshot:  http://misterhouse.net/pictures/terminal-menu_on_nokia.jpg
+
+- Dan Hoffard created code/public/gas_prices.pl to find low gas prices in Fort Worth, TX.
+
+- Howard Plato created code/common/vocp_callerid.pl.  Uses the vocp system to announce and log incoming phone calls.
+
+- Matthew Williams updated handy_net_utilites.pl to switch from Net/AOLIM.pm to Net/OSCAR.pm, so our AOL connections work again :)
+
+- Gregg Liming lib/BSC.pm and code/common/bsc.pl to monitor mh items and send out state changes via xAP BSC and
+to monitor incoming BSC commands and update corresponding mh item states.
+
+- Dan Wilga created mh/lib/X10_Wish.pm which interfaces to the Linux Wish X10 drivers: http://sourceforge.net/projects/wish .
+These are the currently supported device: PowerLinc Serial, PowerLinc 1132 USB, CM11A, and Firecracker/CM17A.
+Currently supports sending, but not receiving, X10 data.  More info at the top of lib/X10_Wish.pm.
+
+- David Satterfield created code/common/phone_vcop.pl to interface to the Linux vocp system: http://www.vocpsystem.com
+
+- Peter Sjodin added Linux support for EIB (European Installation Bus, info here: http://en.wikipedia.org/wiki/European_Installation_Bus ).
+New modules are lib/EIB_Items.pm and lib/EIB_Device.pm.  Example items are in code/examples/eib_items.mht.
+
+- The CaFe Perl Users Group has an online Interview with Bruce about MisterHouse: http://www.bit-man.com.ar/en/CaFePMMisterHouse
+
+- Wally Kissel sent in a presentation on MisterLab which shows how he uses MisterHouse at Fermi Labs:
+http://misterhouse.sf.net/MisterLab.ppt
+
+- Created lib/Network_Item.pm which uses ping to detect when specified ip address is up.
+Examples in docs/mh.* and at the top of lib/Network_Item.pm
+
+
+
+B<Bug Fixes and Other Changes:>
+
+- David Mark changed the &respond_tk function to use &display, rather than respond_default, to tk requested data is more properly displayed.
+
+- David Mark updated common/mp3.pl and bin/get_mp3_data to enable wma files.
+
+- David Mark made more updates to CM11.pm to improve retry transmitions.
+
+- Larry Roudebush noticed we left debug turned on in 2.99 lib/site/ControlX10/CM11.pm
+
+- Larry Roudebush added a mh.ini fork_sound option, which worked better with esdplay on his linux box.
+
+- David Norwood updated net_mail_send to support smtp authentication on messages with mime attachments and
+to support messages that contain both text and a file attachment.
+
+- Updated internet_weather.pl to allow it to writing to standard weather vars if you don't have a local weather station.
+
+- Jim Duda  updated code/common/audreyspeak.pl to undo a 2.99 change involving the local ip address.
+
+- Gregg Liming updated bin/xAP-festival.pl to allow it to work better with hubs.
+
+- Limit outgoing im msgs to every other second, to avoid having im accounts closed due to rapid send messages.
+
+- Werner Lane patched lib/Numbered_Menu.pm to work with a 2.97 update dealing with parms and
+fixed a check for the keyed-in number (string comparison vs numeric comparison) that prevented the
+menu from functioning if more than 10 menu items were available.
+
+- Gregg Liming made a number of updates to lib/xAP_Items.pm .
+
+- Updated &force_prounce in lib/Voice_Text.pl to allow for regular expressions data/pronouncable_words.list
+
+- Todd Riesz noticed that menus Actions were not working for lcd menus.
+
+- Matthew Williams updated web/bin/shopping_list.pl, including options to allow for easier printing and
+a 'at shop' button which brings up a list of items currently in the shopping list.
+
+- Glenn Jensen noticed the ia5 news button wasn't working.
+
+- Brian McKissick noticed bin/alpha_page was missing the leading # in the first line
+
+- Brent Gross updated code/common/comic_dailystrips.pl to allow for email "to" and "basedir"  parms.
+
+- Richard Koch fixed a problem in lib/X10_Item.pm with sending preset dim commands to preset2 devices.
+
+- Dave Hall added mh.ini parm events_table so DBI based event tables are disabled by default in lib/Base_Item.pm
+
+- Gregg Liming update lib/Light_Item.pm to add a always_set_state method.
+Setting it to 0 prevents set states when the value doesn't change.
+
+- Matthew Williams made some updates to web/comics/dailystrips/strips.def
+
+- Gregg Liming updated lib/Telephony_xAP.pm to implement most current xAP schemas for telephony, specifically CID.Meteor and CTI.*.
+The CID.Meteor support addresses both incoming CID hooks and outgoing call logging.
+The CTI.* support addresses MWI message counts (total and read).
+
+- David Norwood updated code/common/mp3.pl to remove playlists with unpronoucable characters from the playlist voice cmd
+and code/common/mp3_xmms.pl to take out the /sbin/ path to pidof, because it's in /bin on debian.
+
+- David Norwood updated code/common/rss_subscriber.pl to add support for podcasts and other RSS feeds with enclosures.
+
+- David Norwood updated code/common/stocks.pl to add back the stock alerts feature.
+
+- David Norwood made various updates to the UIRT2, USB-UIRT, and ncpuxa (Ocelot) code and modules (ncpuxa now work on Windows).
+
+
 
 
 =head2 Version 2.99 posted on 05/22/2005

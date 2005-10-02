@@ -723,7 +723,8 @@ sub test_file_req {
     if ($http_dir and $password_protect_dirs{$http_dir} and !$Authorized) {
         my $html = "<h4>Directory $http_dir requires Login password access</h4>\n";
         $html   .= "<h4><a href=SET_PASSWORD>Login</a></h4>";
-        print $socket &html_page('error', $html);
+#       print $socket &html_page('error', $html);
+        print $socket $html;
         return 0;
     }
 
@@ -1218,7 +1219,8 @@ sub html_file {
         unless (&authority_check($user_required)) {
             my $whoisit = &net_domain_name('http');
             &print_log("$whoisit made an unauthorized request for $file");
-            return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
+#           return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
+            return &html_unauthorized("Not authorized to run perl .pl file: $file");
         }
 
         @ARGV = '';             # Have to clear previous args
@@ -2127,6 +2129,7 @@ sub html_item_state {
     my $object_name2 = &pretty_object_name($object_name);
     my $isa_X10 = UNIVERSAL::isa($object, 'X10_Item');
 #   my $isa_X10 = $object->isa('X10_Item');  # This will abend if object is not an object
+    my $isa_EIB2 = UNIVERSAL::isa($object, 'EIB2_Item');
 
                                 # If not a state item, just list it
     unless ($isa_X10 or UNIVERSAL::isa($object, 'Group') or defined $object->{state} or $object->{states}) {
@@ -2143,7 +2146,11 @@ sub html_item_state {
     @states = @{$object->{states}} if $object->{states};
 #   print "db on=$object_name ix10=$isa_X10 s=@states\n";
     @states = split ',', $config_parms{x10_menu_states} if $isa_X10;
+    @states = split ',', $config_parms{eib2_menu_states} if $isa_EIB2;
+
     @states = qw(on off) if UNIVERSAL::isa($object, 'X10_Appliance');
+    @states = qw(on off) if UNIVERSAL::isa($object, 'EIB1_Item');
+
     my $use_select = 1 if @states > 2 and length("@states") > $config_parms{'html_select_length' . $Http{format}};
 
     if ($use_select) {
@@ -2173,7 +2180,8 @@ sub html_item_state {
 
                                 # Add brighten/dim arrows on X10 Items
     $html .= qq[<td align="left"><b>];
-    if ($isa_X10 and !UNIVERSAL::isa($object, 'X10_Appliance')) {
+    if (($isa_X10 and !UNIVERSAL::isa($object, 'X10_Appliance')) || $isa_EIB2) {
+
                                 # Some browsers (e.g. Audrey) do not have full url in Referer :(
         my $referer = ($Http{Referer} =~ /html$/) ? 'referer' : "&html_list($object_type)";
 
@@ -2915,6 +2923,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.97  2005/10/02 17:24:47  winter
+# *** empty log message ***
+#
 # Revision 1.96  2005/05/22 18:13:07  winter
 # *** empty log message ***
 #

@@ -70,7 +70,10 @@ Usage:
          any light restriction objects (and possibly a Light_Switch_Object).
       manual(X): Set X to 1 to set the light into a full manual mode where
          it will never be turned on or off automatically.
-	
+      always_set_state(X): set X to 0 to only set state when the state
+         changes value.  The default is 1 and allows any number of sets
+         with the same value.
+
 	Input states:
       From a Light_Restriction_Item:
          light_ok: Light can be turned on (light will immediately turn on
@@ -156,6 +159,7 @@ $$self{m_idleAmount} = 0;
 $$self{m_idleState} = undef;
 $$self{m_idleActiveState} = undef;
 	$$self{state}='off';
+	$$self{m_always_set_state} = 1; # the default is to set state regardless of change
 }
 
 sub set
@@ -229,16 +233,39 @@ sub set
 		}
 	}
 
+        if ($self->allow_set_state($l_final_state, $p_setby)) {
 ######### LOG ##############
-	if (defined($l_final_state)) { #Log only actions that do something
-		&::print_log("Light_Item($$self{object_name}):: State->$p_state Event->$l_event_state Handler->$l_handler_state Final->$l_final_state DelayOff->" . $$self{m_timerOff}->active() . " Setby->$p_setby (" . ( ref($p_setby) ? $$p_setby{object_name} :'') . ")") if $main::Debug{light_item};
-	}
+		if (defined($l_final_state)) { #Log only actions that do something
+			&::print_log("Light_Item($$self{object_name}):: State->$p_state Event->$l_event_state Handler->$l_handler_state Final->$l_final_state DelayOff->" . $$self{m_timerOff}->active() . " Setby->$p_setby (" . ( ref($p_setby) ? $$p_setby{object_name} :'') . ")") if $main::Debug{light_item};
+		}
 
 ######### SET LIGHT STATE ##############
-	if (defined($l_final_state)) {
-		$self->SUPER::set($l_final_state,$p_setby,$p_respond);
-#		$self->SUPER::set($l_final_state,$self,$p_respond);
-	}
+		if (defined($l_final_state)) {
+			$self->SUPER::set($l_final_state,$p_setby,$p_respond);
+#			$self->SUPER::set($l_final_state,$self,$p_respond);
+		}
+        }
+}
+
+## used to prevent set state if no change
+sub allow_set_state
+{
+	my ($self, $p_final_state, $p_setby) = @_;
+        my $allow_set = 1;
+        # always allow set states if setby is the timerSync
+	if (!($self->always_set_state()) and ($p_setby ne $$self{m_timerSync})) {
+        	if ($self->state() eq $p_final_state) {
+			$allow_set = 0;
+		}
+        }
+	return $allow_set;
+}
+
+sub always_set_state
+{
+	my ($self, $p_always_set_state) = @_;
+	$$self{m_always_set_state} = $p_always_set_state if defined($p_always_set_state);
+	return $$self{m_always_set_state};
 }
 
 sub get_handler_state

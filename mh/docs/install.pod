@@ -161,10 +161,10 @@ but Randy Kobes has kindly made them available at his site. You can install them
    ppm> install GD
    ppm> install DB_File
    ppm> install Tk-JPEG
-   ppm> install Tk-CursorControl
    ppm> install Win32-Setupsup
    ppm> install DBI        (if you want to interface to a database server)
    ppm> install DBD-mysql  (if you want to interface with a mysql server)
+   ppm> install Scalar-List-Utils (if you want AOL im)
    ppm> exit
 
 The DB_File post-install script doesn't seem to work for most people, so you will need to copy the libdb.dll

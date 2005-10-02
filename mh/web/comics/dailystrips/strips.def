@@ -29,13 +29,14 @@ group bgsunday
 	include arlonjanis askshagg
 end
 
+
 # Class definitions
 class ucomics-srch
-	homepage http://www.ucomics.com/$strip/
-	type search
-	searchpattern <img.+?src=".+?(/$1/(\d+)/$1(\d+).+?)"
-	baseurl http://images.ucomics.com/comics
-	provides latest
+        homepage http://www.ucomics.com/$strip/
+        type search
+        searchpattern <img.+?src=".+?(/$1/(\d+)/$1(\d+).+?)"
+        baseurl http://images.ucomics.com/comics
+        provides latest
 end
 
 class ucomics-gen
@@ -1420,7 +1421,7 @@ strip dilbert
         name Dilbert
         artist Scott Adams
         homepage http://www.dilbert.com/comics/dilbert/
-	baseurl http://www.dilbert.com
+        baseurl http://www.dilbert.com
         type search
         searchpattern <IMG SRC="(/comics/dilbert/archive/images/.+?\.(gif|jpg))"
         provides latest
@@ -1435,6 +1436,16 @@ strip ferdnand
 	name Ferd'nand
 	useclass unitedmedia-srch-comics
 end
+
+strip forbetter
+       name For Better or For Worse
+       homepage http://www.fborfw.com/strip_fix/
+       type search
+       searchpattern <img.+?src="(/strip_fix/.+?\d{6}.{3}\.(gif|jpg))"
+       baseurl http://www.fborfw.com
+       provides latest
+end
+
 
 strip franknernest
 	name Frank & Ernest

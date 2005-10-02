@@ -40,7 +40,7 @@ sub web_trigger_list {
 <BODY>
 <br><a name='Top'></a>
 $html
-To set a time and/or date based alarm, use time_now with any valid time/date spec (e.g. 12/25 7 am).  
+To set a time and/or date based alarm, use time_now with any valid time/date spec (e.g. 12/25 7 am).
 OneShot triggers will expire after they run once.  Change to NoExpire to run every time without expiring.
 Expired items will be pruned to data_dir/triggers.expired one week after they expire.
 The trigger name can be any unique string.
@@ -79,7 +79,7 @@ $form_code
             $type_prev =  $type;
             $html .= "<tr><td colspan=7><B>$type</B> (<a name='$type' href='#Top'>back to top</a>)</td></tr>\n";
         }
-        
+
         my $name2 = $name;
         $name2 =~ s/ /\%20/g;
         $html .= "<tr>\n";
@@ -98,7 +98,7 @@ $form_code
 
         $html .= &html_form_select_set_var("\$triggers{'$name'}{type}", $type,
                                   'OneShot', 'NoExpire', 'Disabled', 'Expired');
-        
+
 
         if ($triggered) {
             my $triggered_date = &time_date_stamp(7, $triggered) if $triggered;
@@ -116,8 +116,8 @@ $form_code
 sub web_trigger_add {
 
                                 # Allow un-authorized users to browse only (if listed in password_allow)
-#   return 'Not authorized to make updates' unless $Authorized eq 'admin';
-    return 'Not authorized to make updates' unless $Authorized;
+    return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
+#   return 'Not authorized to make updates' unless $Authorized;
 
                                 # Process form
     if (@parms) {

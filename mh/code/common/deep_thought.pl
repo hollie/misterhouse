@@ -17,9 +17,9 @@ fileit($f_deep_thought, read_next $f_deep_thoughts) if said $v_deep_thought_next
 
 
 if ($state = said $v_deep_thought or $state = said $v_deep_thought_next) {
-    respond app => 'deep_thought', text => $f_deep_thought if $state eq 'Read';
-    display $f_deep_thought if $state eq 'What is';
-    display text => $f_deep_thought, if $state eq 'Display';
+    respond app => 'deep_thought', target => 'speak', text => $f_deep_thought if $state eq 'Read';
+    respond text => $f_deep_thought if $state eq 'What is';
+    display text => $f_deep_thought if $state eq 'Display';
 }
 
 speak voice => $state, text => $f_deep_thought if $state = said $v_deep_thought_voice;

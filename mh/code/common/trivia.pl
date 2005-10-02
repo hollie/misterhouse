@@ -31,11 +31,11 @@ if (($cat = said $v_trivia_next1 or $cat = said $v_trivia_next2) and $cat =~ /ne
     print_log "Trivia question has been refreshed";
 }
 
-respond $f_trivia_question if said $v_trivia_next1;
-respond $f_trivia_answer   if said $v_trivia_answer eq 'What is';
+respond "target=speak " . $f_trivia_question if said $v_trivia_next1;
+respond "target=speak " . $f_trivia_answer   if said $v_trivia_answer eq 'What is';
 
-display $f_trivia_question if said $v_trivia_next2;
-display $f_trivia_answer   if said $v_trivia_answer eq 'Display';
+respond $f_trivia_question if said $v_trivia_next2;
+respond $f_trivia_answer   if said $v_trivia_answer eq 'Display';
 
 
 sub trivia_next {

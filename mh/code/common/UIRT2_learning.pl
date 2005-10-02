@@ -11,6 +11,7 @@
 
 10/03/2002	Created by David Norwood (dnorwood2@yahoo.com)
 01/14/2003	clicking on devices and functions automatically loads them 
+07/14/2005	added some features from usb uirt learning script like send_ofa_key, dvc_commit 
 
 To enable the UIRT2 module, add these entries to your .ini file: 
 
@@ -106,6 +107,7 @@ sub uirt2_update_html {
       Function Name<br>
       <input value="" size="30" name=$uirt2_function_text>
       <input type=submit value="Learn" name=$uirt2_function_learn><br>
+      <input type=submit value="Create" name=$uirt2_function_new><br>
       <input type=submit name=$uirt2_function_delete value="Delete"><br>
       <input type=submit name=$uirt2_function_rename value="Rename"><br>
       <input type=submit name=$uirt2_function_send value="Send"><br>
@@ -130,13 +132,23 @@ sub uirt2_update_html {
       Device # <input value="" size="10" name=$uirt2_gen_device>
       Function # <input value="" size="10" name=$uirt2_gen_function>
       <input type=submit value="Generate" name=$uirt2_gen_commit><br>
+	Generate from DVC File<br>
+      DVC File <select name="$uirt2_dvc_file">
+      ';
+    my @dvc_files = IR_Utils::get_dvc_files();
+    foreach (@dvc_files) {
+         $html .= '<option>' . $_ . "\n";
+    }
+    $html .= '
+      </select>
+      <input type=submit value="Generate" name=$uirt2_dvc_commit><br>
       </td></tr>
       <tr><td colspan=4>
       Pronto Code<br>
       <textarea name=$uirt2_function_pcode Rows=8 COLS=100 wrap="hard">' . $pronto . '</textarea>  
       <input type=submit value="Import" name=$uirt2_function_import><br>
       You can find Pronto codes at <a target="_BLANK" href="http://www.remotecentral.com">Remote Central</a> and
-      at <a target="_BLANK" href="http://www.premisesystems.com/techsupport/irlibrary">Premise Systems</a>.<p>
+      at <a target="_BLANK" href="http://ir.premisesystems.com/">Premise Systems</a>.<p>
       ';
     my $raw = UIRT2::last_learned();
     $html .= '
@@ -190,6 +202,7 @@ if (state_now $uirt2_device_rename) {
 
 $uirt2_function_list = new Generic_Item;
 $uirt2_function_learn = new Generic_Item;
+$uirt2_function_new = new Generic_Item;
 $uirt2_function_text = new Generic_Item;
 $uirt2_function_load = new Generic_Item;
 $uirt2_function_delete = new Generic_Item;
@@ -271,6 +284,20 @@ if (state_now $uirt2_function_import) {
 	UIRT2::set_ir_code($device, $function, UIRT2::raw_to_struct(UIRT2::pronto_to_raw($uirt2_function_pcode, $repeat)));
 }
 
+if (state_now $uirt2_function_new) {
+	my $device = $current_device;
+	my $code1 = state $uirt2_function_code1;
+	my $code2 = state $uirt2_function_code2;
+	my $frequency = state $uirt2_function_frequency;
+	my $repeat = state $uirt2_function_repeat;
+	$repeat = 1 unless $repeat =~ /^\d+$/;
+	my $funcnew;
+	$funcnew = uc state $uirt2_function_text if state $uirt2_function_text;
+	$current_function = $funcnew if $funcnew;
+	print_log "Creating device $device function $funcnew";
+	UIRT2::set_ir_code($device, $funcnew, $frequency, $repeat, $code1, $code2);
+}
+
 if (state_now $uirt2_function_modify) {
 	my $device = $current_device;
 	my $function = $current_function;
@@ -299,21 +326,37 @@ if (state_now $uirt2_gen_commit) {
 		&IR_Utils::generate_pronto($gen_protocol, $gen_device, $gen_function))));
 }
 
+$uirt2_dvc_file = new Generic_Item;
+$uirt2_dvc_file->set_casesensitive;
+$uirt2_dvc_commit = new Generic_Item;
+
+if (state_now $uirt2_dvc_commit) {
+	my $dvc_file = state $uirt2_dvc_file;
+	my ($device, $repeat, %prontos) = &IR_Utils::read_dvc_file($dvc_file);
+	print_log "Generating device $device from DVC file $dvc_file";
+	foreach my $function (keys %prontos) {
+		UIRT2::set_ir_code($device, $function, UIRT2::raw_to_struct(
+			UIRT2::pronto_to_raw($prontos{$function})));
+	}
+}
+
 sub ofa_html {
 	my $sub_prev;
 	my $mfgs_prev; 
-	my $list = '<h2>Pick a Device to Autogenerate</h2><p><pre>'; 
+	my $list = '<h2>Pick a Device to Autogenerate</h2><p>'; 
 	foreach (&IR_Utils::ofa_bysub) {
 		my ($sub, $type, $mfgs, $code) = split "$;";
-		$list .= "\n$sub ($type)" if "$sub$;$type" ne $sub_prev;
-		$list .= "\n\t$mfgs " if $mfgs ne $mfgs_prev; 
+		$list .= "<p>\n$sub ($type)" if "$sub$;$type" ne $sub_prev;
+		$list .= "<br>\n\t$mfgs " if $mfgs ne $mfgs_prev; 
 		$list .= ", " if $mfgs eq $mfgs_prev; 
 		$list .= "<a target='control' href=" . '"' . 
 		  "SUB;referer?uirt2_add_ofa_device('$mfgs $sub','$type','$code')" . '"' . ">$code</a>"; 
+		$list .= " [<a target='speech' href=" . '"' . 
+		  "SUB;send_ofa_key('$type','$code','POWER')" . '"' . ">test</a>]"; 
 		$sub_prev = "$sub$;$type";
 		$mfgs_prev = $mfgs; 
 	}
-	$list .= '</pre>';
+	$list .= '<p>';
 	return $list; 
 }
 
@@ -328,5 +371,17 @@ sub uirt2_add_ofa_device {
 	}
 	$current_device = uc $device_name;
 	$current_function = '';
+}
+
+sub send_ofa_key {
+	my $type = shift; 
+	my $code = shift; 
+	my $key = shift; 
+	my %keys = &IR_Utils::get_ofa_keys($type, $code);
+	my $efc = $keys{$key};
+	my ($protocol, $device, $function) = &IR_Utils::get_function($type, $code, $efc);
+	print "$type $code $key protocol $protocol efc $efc device $device function $function\n";
+	my ($pronto, $repeat) = &IR_Utils::generate_pronto(uc $protocol, $device, $function);
+	UIRT2::transmit_pronto($pronto, $repeat);
 }
 

@@ -1289,3 +1289,68 @@ Sat 09/25/04 19:49:02 city=sunrise state=fl name=jeff
 Mon 09/27/04 14:34:16 city=Memphis state=TN name=
 Fri 10/01/04 07:14:19 city=Klazienaveen state=Netherlands name=Jasper
 Sat 10/02/04 19:21:38 city=Calgary state=Alberta name=
+Sun 07/24/05 12:00:22 city=Belmopan state=Belize name=
+Sun 07/24/05 12:11:09 city=Saint Margerets state=Belize name=
+Sun 07/24/05 12:11:19 city=Belize City state=Belize name=
+Sun 07/24/05 16:23:26 city=Vaasa state=Finland name=
+Tue 07/26/05 08:51:30 city=Ruston state=La name=
+Tue 07/26/05 09:38:35 city=Washington state=DC name=
+Tue 07/26/05 10:47:48 city=perth state=australia name=
+Tue 07/26/05 12:27:01 city=pittsburgh state=pa name=
+Wed 07/27/05 09:12:20 city=melbourne state=fl name=
+Wed 07/27/05 09:53:21 city=Gainesville state=GA name=
+Wed 07/27/05 13:42:15 city=Plainfield state=IN name=
+Wed 07/27/05 17:56:35 city=Albuquerque state=nm name=
+Thu 07/28/05 11:44:00 city=Atlanta state=GA name=David Cunningham
+Thu 07/28/05 16:16:13 city=tulsa state=ok name=
+Thu 07/28/05 16:39:43 city=copenhagen state=denmark name=
+Thu 07/28/05 21:45:21 city=Chicago state=IL name=
+Fri 07/29/05 07:32:05 city=Terre Haute state=IN name=
+Fri 07/29/05 12:08:57 city=stockholm state=sweden name=
+Fri 07/29/05 18:57:32 city=baton rouge state=la name=
+Fri 07/29/05 22:03:11 city=redding state=CA name=
+Fri 07/29/05 22:47:36 city=melbourne state=australia name=
+Sat 07/30/05 16:41:05 city=bonney lake state=wa name=
+Sun 07/31/05 08:34:07 city=Scottsdale state=az name=
+Sun 07/31/05 14:53:54 city=Charlotte state=NC name=:Lloyd
+Mon 08/01/05 00:01:15 city=Las Vegas state=nv name=
+Mon 08/01/05 04:34:30 city=sydney state=australia name=
+Thu 08/04/05 09:22:08 city=Austin state=TX name=Mark
+Fri 08/05/05 00:01:54 city=tacoma state=wa name=
+Sat 08/06/05 20:06:04 city=Georgetown state=Malaysia name=
+Sun 08/07/05 20:33:23 city=dallas state=TX name=
+Sat 08/13/05 11:13:55 city=Cranberry Township state=PA name=Paul D.
+Sun 08/14/05 19:53:02 city=attalla state=al name=
+Tue 08/16/05 13:38:34 city=Wicklow state=Ireland name=Andrew Byrne
+Tue 08/16/05 15:32:16 city=Elkton state=MD name=
+Tue 08/16/05 15:32:19 city=Elkton state=MD name=
+Tue 08/16/05 15:51:12 city=Aalborg state=Denmark name=
+Thu 08/18/05 09:17:13 city=chico state=CA name=
+Thu 08/18/05 19:01:32 city=Bischwiller state=FR name=Eric
+Thu 08/18/05 19:55:08 city=ocoee state=FL name=
+Sat 08/20/05 13:53:00 city=istanbul state=turkey name=
+Sat 08/27/05 03:17:34 city=Champigny sur Veude state=France name=Jim Morrissey
+Sat 08/27/05 21:53:25 city=london state=uk name=
+Mon 08/29/05 00:40:47 city=Laguna Hills state=CA name=Fritz
+Mon 08/29/05 12:33:08 city=Baltimore state=MD name=
+Tue 09/06/05 02:03:34 city=Reno state=NV name=
+Tue 09/06/05 10:45:08 city=princeton state=nj name=
+Thu 09/08/05 17:08:23 city=Concord state=NC name=
+Fri 09/09/05 04:27:36 city=Nice state=FR name=
+Sat 09/10/05 15:27:32 city=Tehachapi state=CA name=Chapman
+Sun 09/11/05 00:23:14 city=oklahoma city state=ok name=
+Tue 09/13/05 19:26:47 city=San Marcos state=CA name=Scott Mummert
+Wed 09/14/05 21:35:41 city=Idabel state=OK name=
+Thu 09/15/05 13:43:06 city=Centurion state=South Africa name=
+Fri 09/16/05 07:25:30 city=lille state=france name=
+Sun 09/18/05 02:11:13 city=seattle state=wa name=
+Mon 09/19/05 23:22:28 city=Steelville state=MO name=Kevin
+Thu 09/22/05 00:19:16 city=adelaide state=Australia name=
+Fri 09/23/05 17:46:12 city=chandler state=az name=
+Mon 09/26/05 14:53:48 city=curitiba state=Brasil name=
+Mon 09/26/05 14:54:21 city=curitiba state=Brasil name=
+Thu 09/29/05 08:34:08 city=Noord-Scharwoude state=Netherlands name=Frank A
+Thu 09/29/05 12:22:16 city=Birmingham state=Al name=
+Fri 09/30/05 13:52:51 city=chicago state=IL name=
+Sat 10/01/05 17:25:53 city=Melbourne state=australia name=
+Sun 10/02/05 08:53:42 city=wethersfield state=ct name=

@@ -2,15 +2,17 @@
 
 #@ Stock Quote Lookup Module.
 #@ Add the following to your INI file: stocks = IBM MSFT CSCO.
-#@ Stock price changes will be announced if the stocks_thresholds parameter is set 
-#@ and the change exceeds the threshold.  Thresholds can be a point value or a 
-#@ percentage value.  If the parameter contains a single value, the threshold 
-#@ applies to all stocks.  Alternatively, you can set a different one for each 
+#@ Stock price changes will be announced if the stocks_thresholds parameter is set
+#@ and the change exceeds the threshold.  Thresholds can be a point value or a
+#@ percentage value.  If the parameter contains a single value, the threshold
+#@ applies to all stocks.  Alternatively, you can set a different one for each
 #@ symbol like this: stocks_thresholds = IBM:5 MSFT:5% CSCO:15%.
-#@ You can map stock symbols into more pronounceable words using the 
+#@ You can map stock symbols into more pronounceable words using the
 #@ stocks_names parameter like this: stocks_names = CSCO:Cisco_Systems.
 
 
+#&tk_label(\$Save{stock_data1});
+#&tk_label(\$Save{stock_data2});
 
 my @months = (
 	    'January','Febuary','March','April','May','June',
@@ -24,26 +26,22 @@ my %stocks;                     # This is where the data will be stored
 my $stock_url = 'http://quote.yahoo.com/d?f=snl1d1t1c1p2va2bapomwerr1dyj1x\&s=' . join('%20', @stock_symbols);
 my @stock_keys = ('SName', 'LName', 'Last', 'Date', 'Time', 'Change', 'PChange',
                   'Volume', 'Avg Volume', 'Bid', 'Ask', 'Prev Close', 'Open',
-                  'Day Range', '52-Week Range', 'EPS', 'P/E Ratio', 'Div Pay Rate',
+                  'Day Range', '52-Week Range', 'EPS', 'P/E Ratio', 'Div Pay Date',
                   'Div/Share', 'Div Yield', 'Mkt Cap', 'Exchange');
 
-my $f_stock_quote = "$config_parms{data_dir}/web/stocks.html";
-
-$v_stock_quote = new Voice_Cmd '[Update, Get, Read] stock quotes', 'Ok';
+$v_stock_quote = new Voice_Cmd '[Get, Read, Show] stock quotes', 'Ok';
 $v_stock_quote-> set_info("Gets stock info from yahoo for these stocks: $config_parms{stocks}");
 $v_stock_quote-> set_authority('anyone');
-$p_stock_quote = new Process_Item "get_url $stock_url $f_stock_quote";
 $f_stock_quote = new File_Item "$config_parms{data_dir}/web/stocks.html";
+$p_stock_quote = new Process_Item("get_url $stock_url " . $f_stock_quote->name);
 
 
 $state = said $v_stock_quote;
 
-if($state eq 'Update' or $state eq 'Get') {
-
-#Not sure how this works, I have left it in for historical reason, however I would like to find if the Net is up #before connecting as it drops the data from stocks.html
+if ($state eq 'Get') {
 
     unless (&net_connect_check) {
-        speak "Sorry, I can't update stock information, you are not logged onto the net";
+        respond "Sorry, I can't update stock information, you are not logged onto the net";
         return;
     }
     print_log "Getting stock quotes for @stock_symbols";
@@ -51,78 +49,163 @@ if($state eq 'Update' or $state eq 'Get') {
     start $p_stock_quote;
 
 }
+elsif ($state eq 'Read' or $state eq 'Show') {
 
-if($state eq 'Read') {
+    respond ((($state eq 'Read')?'target=speak ':'') . $Save{stock_results});
+
+}
+
+
+if ($Reload) {
+    if ($config_parms{stocks_thresholds} =~ /^[\d\.%]+$/) {
+        my $gthresh = $config_parms{stocks_thresholds};
+        foreach (@stock_symbols) {
+            $stocks{$_}{Threshold} = $gthresh;
+        }
+    }
+    else {
+        foreach (split ' ', $config_parms{stocks_thresholds}) {
+            my ($stock, $thresh) = split ':', $_;
+            $stocks{$stock}{Threshold} = $thresh;
+        }
+    }
+    foreach (split ' ', $config_parms{stocks_names}) {
+        my ($stock, $name) = split ':', $_;
+        $stocks{$stock}{'Speak Name'} = $name;
+        $stocks{$stock}{'Speak Name'} =~ s/_/ /g;
+    }
+}
+
+if (done_now $p_stock_quote) {
+    delete $Save{stock_alert};
+    my $results;
+    my @html = $f_stock_quote->read_all;
+    foreach (@html) {
+        tr/\"//d;          # Drop quotes
+        my @data = split ',';
+        my $stock = $data[0];
+        my $i = 0;
+        map{$stocks{$stock}{$stock_keys[$i++]} = $_} @data;
+        $stocks{$stock}{PChange} =~ s/[-+%]//g;
+        if (my $t = $stocks{$stock}{Threshold}) {
+            my $p = ($t =~ /%/ ? $t : 0);
+            $p =~ s/%//;
+            $t = 0 if $p;
+            if (($t and $t < abs $stocks{$stock}{Change}) or ($p and $p < $stocks{$stock}{PChange})) {
+                $Save{stock_alert} = "Market alert: " unless $Save{stock_alert};
+                $Save{stock_alert} .= $stocks{$stock}{'Speak Name'} ? $stocks{$stock}{'Speak Name'} : $stocks{$stock}{LName};
+                $Save{stock_alert} .= " has " . ($stocks{$stock}{Change} < 0 ? "fallen" : "risen");
+                $Save{stock_alert} .= " $stocks{$stock}{PChange} percent to $stocks{$stock}{Last}. ";
+            }
+        }
+    }
+    respond $Save{stock_alert} if $Save{stock_alert};
+}
+
+
+if (done_now $p_stock_quote) {
 
     my $results;
     my $download_date;
     my $month;
     my $day;
     my $position;
-        
+
     my @html = $f_stock_quote->read_all;
-    
+
     foreach (@html) {
         tr/\"//d;          # Drop quotes
         my @data = split ',';
-        my $stock = @data;
+        my $stock = $data[0];
         my $i = 0;
         map{$stocks{$stock}{$stock_keys[$i++]} = $_} @data;
+        $stocks{$stock}{PChange} =~ s/[-+%]//g;
+
         $stocks{$stock}{Date} =~ s|\/\d{4}||; # Drop the year ... should be obvious :)
 
+
+	#this stuff was removed in last update, breaking my Web interface's ticker! :(
+	#It's not the best formatted data, needs an update for a nicer looking ticker...
+
+        $Save{stock_data1}  = "Quotes: $stocks{$stock}{Date} $stocks{$stock}{Time} " unless $results;
+        $Save{stock_data2}  = 'Change:' unless $results;
+        $Save{stock_data1} .= sprintf("%s:%.2f ", $stocks{$stock}{SName}, $stocks{$stock}{Last});
+        $Save{stock_data2} .= sprintf("%s:%+.2f/%s ", $stocks{$stock}{SName}, $stocks{$stock}{Change}, $stocks{$stock}{PChange});
+
 	#Some stocks are below a dollar, modify the display for dollars and cents.
-		if ($stocks{$stock}{Last} < 1) {
-	    $stocks{$stock}{Last} =  ($stocks{$stock}{Last} * 100) . " cents"; }
-	else {
-	      $stocks{$stock}{Last} =  sprintf("\$%6.3f",$stocks{$stock}{Last});} 
-	
-	#Modify the change to cents as it sounds better.  	
-	$stocks{$stock}{Change} =  ($stocks{$stock}{Change} * 100);      
-	$stocks{$stock}{Change} = "down " . sprintf("\%4.1f cents",$stocks{$stock}{Change}) if $stocks{$stock}{Change} < 0;
-	$stocks{$stock}{Change} = "up " . sprintf("\%4.1f cents",$stocks{$stock}{Change}) if $stocks{$stock}{Change} > 0;
-	$stocks{$stock}{Change} = "not changed "  if $stocks{$stock}{Change} eq 0;
-	
+        if ($stocks{$stock}{Last} < 1) {
+            $stocks{$stock}{Last} =  ($stocks{$stock}{Last} * 100) . " cents"; }
+        else {
+            $stocks{$stock}{Last} =  (sprintf("%6.3f",$stocks{$stock}{Last})) . ' dollars';}
+
+	#Modify the change to cents as it sounds better.
+        $stocks{$stock}{Change} =  ($stocks{$stock}{Change} * 100);
+        $stocks{$stock}{Change2} = "down " . sprintf("%2.1f cents",$stocks{$stock}{Change}) if $stocks{$stock}{Change} < 0;
+        $stocks{$stock}{Change2} = "up " . sprintf("%2.1f cents",$stocks{$stock}{Change}) if $stocks{$stock}{Change} > 0;
+        $stocks{$stock}{Change2} = "unchanged "  if $stocks{$stock}{Change} eq 0;
+
 	#Bring the elemets of the array into a sentence combined with  the above modifiers.
-        $results .= sprintf("%15s at %s was %s, %s or %2.1f\%.\n",
+        $results .= sprintf("%15s at %s was %s, %s or %2.1f%%.\n",
                             $stocks{$stock}{SName},$stocks{$stock}{Time},
-			    $stocks{$stock}{Last}, $stocks{$stock}{Change}, $stocks{$stock}{PChange});
-	
-	#Sick of hearing the date for each stock, ripped out to say only once.    
-	$download_date = $stocks{$stock}{Date};
+                            $stocks{$stock}{Last}, $stocks{$stock}{Change2}, $stocks{$stock}{PChange});
+
+	#Sick of hearing the date for each stock, ripped out to say only once.
+        $download_date = $stocks{$stock}{Date};
+
+
+# And this too:
+
+        if (my $t = $stocks{$stock}{Threshold}) {
+            my $p = ($t =~ /%/ ? $t : 0);
+            $p =~ s/%//;
+            $t = 0 if $p;
+            if (($t and $t < abs $stocks{$stock}{Change}) or ($p and $p < $stocks{$stock}{PChange})) {
+                $Save{stock_alert} = "Market alert: " unless $Save{stock_alert};
+                $Save{stock_alert} .= $stocks{$stock}{'Speak Name'} ? $stocks{$stock}{'Speak Name'} : $stocks{$stock}{Name};
+                $Save{stock_alert} .= " has " . ($stocks{$stock}{Change} < 0 ? "fallen" : "risen");
+                $Save{stock_alert} .= " $stocks{$stock}{PChange} percent to $stocks{$stock}{Last}. ";
+            }
+        }
+
       }
-      
-     #Lets make the date sound half decent. - I'am sure there is an easier way but I come from a C background! 
-     $position = rindex($download_date, "/"); 
+
+# And this:
+
+     speak $Save{stock_alert} if $Save{stock_alert};
+
+     #Lets make the date sound half decent. - I'am sure there is an easier way but I come from a C background!
+     $position = rindex($download_date, "/");
      $month = substr($download_date ,0, $position);
      $day = substr($download_date , $position + 1);
-     
-     speak   "On " . $months[$month-1] . " ". $day . ",\n " . $results;
-     
+     $Save{stock_results} = 'On ' . $months[$month-1] . ' ' . $day . ",\n " . $results;
+
+     print_log "Stock quotes retrieved"
 }
 
 
-# Instead of controling with internet_data.pl, lets allow the user to control via triggers
-#$Flags{internet_data_cmds}{'Update stock quotes'}++ if ($Startup or $Reload);
-
-if ($Reload and $Run_Members{'trigger_code'}) { 
-    if ($Run_Members{'internet_dialup'}) { 
+if ($Reload and $Run_Members{'trigger_code'}) {
+    if ($Run_Members{'internet_dialup'}) {
         eval qq(
-            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Update stock quotes'", 'NoExpire', 'get stocks') 
+            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get stock quotes'", 'NoExpire', 'get stocks')
               unless &trigger_get('get stocks');
         );
     }
     else {
         eval qq(
-            &trigger_set("time_cron '5 9-13 * * 1-5' and net_connect_check", "run_voice_cmd 'Update stock quotes'", 'NoExpire', 'get stocks') 
+            &trigger_set("time_cron '5 9-17 * * 1-5' and net_connect_check", "run_voice_cmd 'Get stock quotes'", 'NoExpire', 'get stocks')
               unless &trigger_get('get stocks');
         );
     }
-}     
+}
+
+
+# 29 Aug 05, David Norwood
+# Added back the stock alerts.
 
 # 24 April 05, Tony Hall
-# Changed code as nothing was being displayed - Yahoo have added an extra field. 
+# Changed code as nothing was being displayed - Yahoo have added an extra field.
 # Tested for both types of coding ie IBM and 'ibm.us'.
 # Now works across world exchanges ie Australia.! i.e 'cuo.ax'. May need some mod to sound better for Pounds (UK).
 # Displays Short Name  rather than Long Name, i.e extra field has been added to @stock_key.
-# Added more voice support, to make it sound more natural.  
+# Added more voice support, to make it sound more natural.
 # Will be adding back the alerts and a pretty up HTML interface to view stocks.

@@ -20,7 +20,7 @@ Usage:
 	Example initialization:
 
 		use CID_Lookup;
-		$cid = new CID_Lookup($telephony_driver);		
+		$cid = new CID_Lookup($telephony_driver);
 
 	Constructor Parameters:
 		ex. $x = new CID_lookup($y);
@@ -41,11 +41,11 @@ Bugs:
 	There isnt a whole lot of error handling currently present in this version.  Drop me
 	an email if you are seeing something odd.
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - MH
 	Tim Doyle - New Area Code format
 	Clive Freeman
-		
+
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
@@ -88,12 +88,12 @@ sub add
 
 	if (defined $p_telephony)
 	{
-		$p_telephony->tie_items($self,"CID");	
-		$p_telephony->tie_items($self,"cid");	
-		#$p_telephony->tie_items($self,"DIALED");	
-		$p_telephony->tie_items($self,"dialed");	
-		$p_telephony->tie_items($self,"RING");	
-		$p_telephony->tie_items($self,"ring");	
+		$p_telephony->tie_items($self,"CID");
+		$p_telephony->tie_items($self,"cid");
+		#$p_telephony->tie_items($self,"DIALED");
+		$p_telephony->tie_items($self,"dialed");
+		$p_telephony->tie_items($self,"RING");
+		$p_telephony->tie_items($self,"ring");
 	}
 }
 
@@ -123,7 +123,7 @@ sub set
 		$self->time_zone("");
 		$self->formated_number("");
 		$self->speakable_number("");
-		$self->ring_count($p_setby->ring_count());		
+		$self->ring_count($p_setby->ring_count());
 		$self->parse_number($p_setby);
 		$self->lookup_info($::config_parms{caller_id_file});
 		$self->lookup_areacode($::config_parms{area_code_file},$::config_parms{state_file});
@@ -132,7 +132,7 @@ sub set
 	}
 	elsif($p_state =~ /^ring/i)
 	{
-		$self->ring_count($p_setby->ring_count());		
+		$self->ring_count($p_setby->ring_count());
 	}
 	$self->SUPER::set($p_state);
 }
@@ -248,7 +248,7 @@ sub parse_name
 {
 	my ($self,$p_Telephony) = @_;
 
-#	my $p_name = $p_Telephony->CIDName();	
+#	my $p_name = $p_Telephony->CIDName();
 	my $p_name = $self->cid_name();
 	$self->cid_name($p_name);
 
@@ -269,15 +269,15 @@ sub parse_name
 		($l_last,$l_first,$l_middle) = split(' ',$p_name);
 		$l_last =~ s/,//g; # remove commas
 		if (length($l_middle) > 1) {
-			$l_middle=''; 
+			$l_middle='';
 		}
-		
+
 	}
 	else
 	{
 		($l_first,$l_middle,$l_last) = split(' ',$p_name);
 		if (length($l_middle) > 1) {
-			$l_last=$l_middle; 
+			$l_last=$l_middle;
 			$l_middle='';
 		}
 	}
@@ -291,10 +291,10 @@ sub parse_name
 sub parse_number
 {
 	my ($self,$p_Telephony) = @_;
-	
+
 	my $l_Number = $p_Telephony->cid_number();
-	
-	
+
+
 	if ($::config_parms{country} =~ /US|CANADA|CA/i)
 	{
 		#US Centric code (just dont use these parameters if you are not US)
@@ -305,14 +305,14 @@ sub parse_number
 		$self->areacode($1);
 		$self->prefix($2);
 		$self->suffix($3);
-		
+
 	}
 	elsif ($::config_parms{country} =~ /UK/i)
 	{
 		#Variable Area codes, so we need to rely on file of area codes?
 		#do this in the lookup area code instead.
 	}
-	
+
 	#just in case we cant resolve area code format, set to number
 	$self->formated_number($p_Telephony->cid_number());
 
@@ -332,7 +332,7 @@ sub lookup_info
 	my $l_CIDNumber;
 	my $l_CIDType;
 
-	if ($p_CIDFile) 
+	if ($p_CIDFile)
 	{
 	        open (CALLERID, $p_CIDFile) or print "\nError, could not find the caller id file $p_CIDFile: $!\n";
 
@@ -340,7 +340,7 @@ sub lookup_info
 		$l_CIDNumber= $self->cid_number();
 		$l_CIDName= $self->cid_name();
 		$l_CIDType= $self->cid_type();
-			
+
 		&::print_log("CID Lookup searching for: $l_CIDNumber, $l_CIDName, $l_CIDType");
 		while (<CALLERID>)
 		{
@@ -351,21 +351,21 @@ sub lookup_info
 			$l_name = undef;
 			$l_file = undef;
 			$l_category = undef;
-			
+
 			#Find number and name first
 			$_ =~ /^([\w\*\-\)\(]+)([\s]+|[,])(.*)/;
 			$l_number=$1;
 			$l_name= $3;
 			$l_name =~ s/^\s*//; #trim junk from beginning
 #			print "CID2:$l_number:$l_name:$l_file:$l_category\n";
-			
+
 			#If more parms are defined use file and category
 			if ($l_name =~ /,|\t/g) #more parms
 			{
 				($l_name,$l_file,$l_category)=split(/\t+|,\s*/,$l_name);
 			}
 #			print "CID2a:$l_number:$l_name:$l_file:$l_category\n";
-				
+
 			$l_name =~ s/\s*$//; #trim the fat off the end
 			$l_name = '*'			unless $l_name;
 			$l_file = '*'			unless $l_file;
@@ -388,11 +388,11 @@ sub lookup_info
 				 $l_type='U'; }
 			if ($l_number=~/I|INTERNATIONAL/i) {
 				 $l_type='I'; }
-			
+
 #			print "CID RowT: $l_number,$l_name,$l_type,$l_file,$l_category";
-			
+
 			#If number matches or no-number types match
-			if ($l_CIDNumber =~/$l_number/i or 
+			if ($l_CIDNumber =~/$l_number/i or
 				($l_CIDType ne 'N' and $l_CIDType eq $l_type) )
 			{
 #				&::print_log("Match CID number $l_number $l_type");
@@ -431,13 +431,13 @@ sub lookup_areacode
 		next if /^\#/;
 		($state_abbrv, $state_name) = $_ =~/(\S+)\s+(.*)/;
 #		chop $state_name;
-		$state_by_abbrv{$state_abbrv} = $state_name;		
+		$state_by_abbrv{$state_abbrv} = $state_name;
 	}
-	
+
 	close STATENAME;
 
-	open (AREACODE, $p_area_code_file) or print "\nError, could not find the area code file $p_area_code_file";
-	
+	open (AREACODE, $p_area_code_file) or print "\nError, could not find the area code file $p_area_code_file\n";
+
 	while (<AREACODE>)
 	{
 		next if /^\#/;
@@ -470,7 +470,7 @@ sub lookup_areacode
 				$self->cid_state($state);
 				$self->cid_state($state_by_abbrv{$state}) if $state_by_abbrv{$state};
 				$self->time_zone($timeoffset);
-			
+
 				#process the formated number
 				$self->formated_number($self->areacode() . "-" . $self->prefix() . "-" . $self->suffix());
 
@@ -478,7 +478,7 @@ sub lookup_areacode
 			}
 		}
 		elsif($::config_parms{country} =~ /UK/i)
-		{		
+		{
 			#UK area codes are variable in length.. Match the beginning
 			#Adapted from Clive Freedman's code.
                                 # Ignore irrelevant lines
@@ -511,14 +511,13 @@ sub lookup_areacode
 		}
 	}
 	close AREACODE;
-	
+
 	#Process the speakable number .. padded with spaces for TTS
 	my $temp_speak = $self->cid_number();
 	$temp_speak=~ s/([0-9])/$1 /g;
 	$self->speakable_number($temp_speak);
-	
 
-}   
+
+}
 
 1;
-

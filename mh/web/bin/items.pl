@@ -59,6 +59,7 @@ function openparmhelp(parm1){
                         'X10 Appliance (X10A)', 'X10 Light (X10I)', 'X10 Ote (X10O)',
                         'X10 SwitchLinc (X10SL)', 'X10 Garage Door (X10G)', 'X10 Irrigation (X10S)',
                         'X10 RCS (X10T)',  'X10 Motion Sensor (X10MS)',
+                        'EIB Switch (EIB1)', 'EIB Switch Group (EIB1G)', 'EIB Dimmer (EIB2)', 'EIB Value (EIB5)', 'EIB Drive (EIB7)',
                         qw(SERIAL VOICE IBUTTON  GENERIC COMPOOL MP3PLAYER AUDIOTRON WEATHER SG485LCD SG485RCSTHRM STARGATEDIN STARGATEVAR STARGATEFLAG STARGATERELAY STARGATETHERM STARGATEPHONE XANTECH));
 
 #form action='/bin/items.pl?add' method=post>
@@ -84,7 +85,7 @@ $form_type
     for my $record (@file_data) {
                                 # Do not list comments
         unless ($record =~ /^\s*\#/ or $record =~ /^\s*$/ or $record =~ /^Format *=/) {
-            my(@item_info) = split(',\s+', $record);
+            my(@item_info) = split(',\s*', $record);
             my $type = shift @item_info;
             push @{$item_pos{$type}}, $pos;
         }
@@ -107,6 +108,11 @@ $form_type
                     SERIAL  => [qw(String Name Groups State Port)],
                     IBUTTON => [qw(ID Name Port Channel)],
                     VOICE   => [qw(Item Phrase)],
+                    EIB1    => ['Address', 'Name', 'Groups', 'Mode'],
+                    EIB1G    => ['Address', 'Name', 'Groups', 'Addresses'],
+                    EIB2    => ['Address', 'Name', 'Groups'],
+                    EIB5    => [qw(Address Name Groups Mode)],
+                    EIB7    => ['Address', 'Name', 'Groups'],
                     default => [qw(Address Name Groups Other)] );
 
                                 # Sort in type order
@@ -127,7 +133,7 @@ $form_type
 
         for my $pos (@{$item_pos{$type}}) {
             my $record = $file_data[$pos];
-            my @item_info = split(',\s+', $record, $headers);
+            my @item_info = split(',\s*', $record, $headers);
 
             $html .= "<tr>";
             $html .= "<td>";
@@ -153,7 +159,7 @@ sub web_item_set_field {
 
     my $record = @file_data[$pos];
 
-    my @item_info = split(',\s+', $record);
+    my @item_info = split(',\s*', $record);
     $item_info[$field] = $data;
 
     $record = '';
@@ -215,6 +221,7 @@ sub web_item_help {
 
     my %help = (Type    => 'Type of object',
                 Address => 'The address of this item',
+                Addresses => 'The addresses of the group members',
                 Name    => 'The name of the object (without the leading $)',
                 Groups  => 'List of groups the item belongs to, seperated by |',
                 Interface => 'The X10 Interface to use (e.g. CM17, CM11)',
@@ -226,6 +233,7 @@ sub web_item_help {
                 Channel => 'When using a switch, choose channel A or B',
                 Item    => 'Item name to tie this voice command to',
                 Phrase  => 'Voice_Cmd Text',
+                Mode    => '\'R\' (readable): generate read request to learn current state at initialization',
                 Other   => 'Other stuff :)');
 
     my $help = $help{$field};

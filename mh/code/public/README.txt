@@ -97,6 +97,9 @@ games_chess.pl
 garage_door_code.pl
  - Jeff Pagel's code for monitoring and controlling garage doors.
 
+gas_prices.pl
+ - Dan Hoffard's code to find low gas prices in For Worth, TX.
+
 get_state.php
  - Douglas Parrish's example of how to get mh states from php
 

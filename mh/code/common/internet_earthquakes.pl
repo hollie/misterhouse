@@ -84,11 +84,12 @@ if ($config_parms{Earthquake_Count}) {
 }
 
 $f_earthquakes_txt = new File_Item("$config_parms{data_dir}/web/earthquakes.txt");
-$f_earthquakes_gif    = new File_Item("$config_parms{data_dir}/web/earthquakes.gif");
+$f_earthquakes_gif = new File_Item("$config_parms{data_dir}/web/earthquakes.gif");
 
 my $image;
+my $speech;
+
 $p_earthquakes_image = new Process_Item;
-#p_earthquakes = new Process_Item("get_url ftp://ghtftp.cr.usgs.gov/pub/cnss/quake " . $f_earthquakes_txt->name);
 $p_earthquakes = new Process_Item("get_url ftp://hazards.cr.usgs.gov/cnss/quake " . $f_earthquakes_txt->name);
 
 $v_earthquakes =  new  Voice_Cmd('[Get,Show,Read,Clear] recent earthquakes');
@@ -107,10 +108,21 @@ if ( $state eq 'Get' ) {
   }
 }
 
-if ( $state eq 'Show' ) {
-  my $text = $Save{quakes};
-  $text =~ s/\t/\n/g;
-  display $text;
+if ( $state  eq 'Show' ) {
+  my $quake;
+  my $num = 0;
+  $speech = '';
+  foreach (split /\t/, $Save{quakes}) {
+    $quake = $_;
+    last unless $num < $Earthquake_Count;
+    $num += parse_quake($quake);
+  }
+  if ($speech) {
+     respond $speech;
+  }
+  else {
+     respond 'No recent earthquakes to report.';
+  }
 }
 
 if ( $state eq 'Clear' ) {
@@ -121,10 +133,17 @@ if ( $state eq 'Clear' ) {
 if ( $state eq 'Read' ) {
   my $quake;
   my $num = 0;
+  $speech = '';
   foreach (split /\t/, $Save{quakes}) {
     $quake = $_;
-    return unless $num < $Earthquake_Count;
-    $num += speak_quake($quake);
+    last unless $num < $Earthquake_Count;
+    $num += parse_quake($quake);
+  }
+  if ($speech) {
+     respond "target=speak $speech";
+  }
+  else {
+     respond 'target=speak No recent earthquakes to report.';
   }
 }
 
@@ -153,7 +172,7 @@ if (done_now $p_earthquakes) {
     foreach (split /\t/, $new_quakes) {
       $quake = $_;
       last unless $num < $Earthquake_Count;
-      $num += speak_quake($quake);
+      $num += parse_quake($quake);
     }
     set $p_earthquakes_image "get_url $image " . $f_earthquakes_gif->name;
     start $p_earthquakes_image if $image;
@@ -202,12 +221,13 @@ sub calc_age {
     elsif ($qhour == 12) {$hour = "12 PM"}
     else {$hour = $qhour - 12 . " PM"}
     return "Yesterday at $hour " if ($qtime > $midnight - 60*60*24);
-    return int($diff/(60*60*24) + .5) . " days ago at $hour ";
+    my $days_ago = int($diff/(60*60*24) + .5);
+    return  "$days_ago day" . (($days_ago > 1)?'s':'') . " ago at $hour ";
 }
 
 # 03/12/30 15:32:35 34.20N 139.13E 33.0 4.4M B NEAR S. COAST OF HONSHU, JAPAN
 
-sub speak_quake {
+sub parse_quake {
     if (my ($qdate, $qtime, $qlatd, $qnoso, $qlong, $qeawe, $qdept, $qmagn, $qqual, $qloca) =
         $_ =~ m!^(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s+(\S+)M\s+(\S)?\s+(.+)! ) {
       $qlatd *= -1 if ( $qnoso eq "S" );
@@ -218,7 +238,9 @@ sub speak_quake {
         if ( $distance <= $_ and $qmagn >= $Magnitude_thresholds{$_}) {
           my $long_reso = abs(5 * round($qlatd/5)) > 45 ? (abs(5 * round($qlatd/5)) > 65 ? 20 : 10) : 5;
           $image = 'http://earthquake.usgs.gov/recenteqsww/Maps/10/' . $long_reso * round(($qlong < 0 ? 360 + $qlong : $qlong)/$long_reso) . '_' . 5 * round($qlatd/5) . '.gif';
-          speak &calc_age("$qdate $qtime") . "a magnitude $qmagn earthquake occurred $distance miles away near $qloca";
+	  $qloca = lc($qloca);
+	  $qloca =~ s/\b(\w)/uc($1)/eg;
+          $speech .= &calc_age("$qdate $qtime") . "a magnitude $qmagn earthquake occurred $distance miles away near $qloca. ";
           return 1;
         }
       }

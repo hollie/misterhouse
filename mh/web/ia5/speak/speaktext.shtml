@@ -44,7 +44,7 @@ show what was <a target=speech href=/speech>recently spoken</a>,
 
 </form>
 
-<!--#include file="/bin/set_cookie.pl?webmute&Set%20<b>On</b>%20to%20disable%20receiving%20local%20wav%20files:%20<b>WebMute</b>"-->
+<!--#include file="/bin/set_cookie.pl?webmute&Set%20<b>On</b>%20to%20disable%20receiving%20local%20wav%20files:%20<b>WebMute</b>&speak"-->
 
 </font>
 

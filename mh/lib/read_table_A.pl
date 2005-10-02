@@ -97,7 +97,11 @@ sub read_table_A {
     elsif($type eq "LIGHT") {
         require 'Light_Item.pm';
 	($object, $name, $grouplist, @other) = @item_info;
-        $object = "Light_Item(\$$object, $other)";
+        if ($object) {
+           $object = "Light_Item(\$$object, $other)";
+        } else {
+           $object = "Light_Item()";
+        }
     }
     elsif($type eq "DOOR") {
         require 'Door_Item.pm';
@@ -371,18 +375,23 @@ sub read_table_A {
             } elsif (lc $pa_type eq 'xap') {
                 $name = "paxap_$name";
                 $code .= sprintf "\n\$%-35s = new xAP_Item('%s');\n",$name,$address;
-                $code .= sprintf "\$%-35s -> target('%s');\n",$name,$address;
+                $code .= sprintf "\$%-35s -> target_address('%s');\n",$name,$address;
                 $code .= sprintf "\$%-35s -> class_name('%s');\n",$name,$other;
             } elsif (lc $pa_type eq 'xpl') {
                 $name = "paxpl_$name";
                 $code .= sprintf "\n\$%-35s = new xPL_Item('%s');\n",$name,$address;
-                $code .= sprintf "\$%-35s -> target('%s');\n",$name,$address;
+                $code .= sprintf "\$%-35s -> target_address('%s');\n",$name,$address;
                 $code .= sprintf "\$%-35s -> class_name('%s');\n",$name,$other;
             } else {
                 print "\nUnrecognized .mht entry for PA: $record\n";
                 return;
             }
         }
+    }
+    elsif($type =~ /^EIB/) {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = $type . "_Item('$address', $other)";
 
     } else {
         print "\nUnrecognized .mht entry: $record\n";
@@ -430,6 +439,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.28  2005/10/02 17:24:47  winter
+# *** empty log message ***
+#
 # Revision 1.27  2005/05/22 18:13:07  winter
 # *** empty log message ***
 #

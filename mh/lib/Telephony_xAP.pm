@@ -46,7 +46,7 @@ use xAP_Items;
 package Telephony_xAP;
 @Telephony_xAP::ISA = ('Telephony_Item');
 
-my $m_xap;
+my ($m_xap, %phone_line_names, @phone_line_names);
 
 #Initialize class
 sub new 
@@ -56,17 +56,33 @@ sub new
 	bless $self, $class;
 
 	#&xAP::startup if $Reload;
-	$$self{m_xap} = new xAP_Item('Telephony.Info') if ! defined $p_xap;
-	&main::store_object_data($$self{m_xap},'xAP_Item','Telephony','Telephony') if ! defined $p_xap;
-	$$self{m_xap} = $p_xap if defined $p_xap;
-	$$self{m_xap}->tie_items($self);
+        if (!($p_xap)) {
+	   $p_xap = new xAP_Item('Telephony.Info');
+	   &main::store_object_data($p_xap,'xAP_Item','Telephony','Telephony');
+        }
+        $$self{xap_listeners}{$p_xap->class_name()} = $p_xap;
+        $$self{xap_listeners}{$p_xap->class_name()}->tie_items($self);
+
+#	$$self{m_xap} = $p_xap if defined $p_xap;
+#	$$self{m_xap}->tie_items($self);
+        $$self{call_duration} = 0;
+        $$self{vm}{changed} = undef;
+
+        # init phone_line_names unless already init'd
+        &read_parms unless %phone_line_names;
+
 	return $self;
 }
 
 sub xap_item
 {
-	my ($self) = @_;
-	return $$self{m_xap};
+	my ($self, $p_class_name) = @_;
+        for my $class_name (keys %{$$self{xap_listeners}}) {
+           if (!($p_class_name) || ($class_name eq $p_class_name)) {
+              return $$self{xap_listeners}{$class_name};
+           }
+        }
+	return undef;
 }
 
 sub outgoing_hook
@@ -75,6 +91,18 @@ sub outgoing_hook
 	
         $self->cid_number($$p_xap{'outgoing.callcomplete'}{phone});
 	$self->address($$p_xap{'outgoing.callcomplete'}{line});
+	$self->cid_name('Unknown');
+	$self->cid_type('N');
+	return 'dialed';
+
+}
+
+sub meteor_out_complete_hook
+{
+	my ($self,$p_xap)= @_;
+	
+        $self->cid_number($$p_xap{'outgoing.callcomplete'}{phone});
+	$self->address(&get_line($p_xap));
 	$self->cid_name('Unknown');
 	$self->cid_type('N');
 	return 'dialed';
@@ -104,25 +132,90 @@ sub callerid_hook
 	return "cid";
 }
 
+sub meteor_in_cid_hook
+{
+	my ($self,$p_xap)= @_;
+	$self->cid_name('');
+	$self->cid_number('');
+	$self->cid_type('');
+	$self->cid_name($$p_xap{'incoming.callwithcid'}{name});
+        $self->cid_number($$p_xap{'incoming.callwithcid'}{phone});
+        $self->cid_type('N'); # N-Normal, P-Private/Blocked, U-Unknown;
+#	&::print_log("CID=====". $$p_xap{'incoming.callwithcid'}{rnname} );
+	if (uc $$p_xap{'incoming.callwithcid'}{rnnumber} eq 'UNAVAILABLE' or 
+		uc $$p_xap{'incoming.callwithcid'}{rnnumber} eq 'WITHHELD' ) {
+	        $self->cid_type('U'); # N-Normal, P-Private/Blocked, U-Unknown;
+	}	
+	$self->address(&get_line($p_xap));
+#	&::print_log("CID====" . $self->cid_number());
+	return "cid";
+}
 
+sub cti_mwi_hook
+{
+	my ($self,$p_xap)= @_;
+        # extract the mailbox name from the subaddress
+        my $subaddress = $p_xap->source() =~ /.+\:(.+)/;
+        my ($vmlabel, $group, $mailboxname) = split(/\./, $subaddress);
+        # for now, we'll concatenate the group and mailbox name back into the asterisk form
+        my $mailboxlabel = $mailboxname . '@' . $group;
+        my $totalmessages = $$p_xap{mwi}{totalmessages};
+        my $readmessages = $$p_xap{mwi}{readmessages};
+        if (($totalmessages) && ($readmessages)) {
+           $self->mwi($mailboxlabel, $totalmessages - $readmessages, $readmessages);
+           return defined($self->mwi_changed()) ? 'mwi' : 'unknown';
+        } else {
+           return 'unknown';
+        }
+}
+
+sub get_line 
+{
+	my ($p_xap)= @_;
+        # extract the mailbox name from the subaddress
+        my $subaddress = $p_xap->source() =~ /.+\:(.+)/;
+        foreach my $line (@phone_line_names) {
+           if ($subaddress eq $line) {
+              return $phone_line_names{$line};
+           }
+        }
+        return 'unknown';
+}
 
 sub set 
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	return if &main::check_for_tied_filters($self, $state);
 
-	if ($p_setby eq $$self{m_xap} ) {
-		if (defined $$self{m_xap}->state_now('incoming.callwithcid') ) {
+        for $class_name (keys %{$$self{xap_listeners}}) {
+           my $xap_listener = $$self{xap_listeners}{$class_name};
+	   if ($p_setby eq $xap_listener ) {
+              if (lc $class_name eq 'telephony.info') {
+		 if (defined $xap_listener->state_now('incoming.callwithcid') ) {
 			$state=$self->callerid_hook($p_setby);
-		} elsif (defined $$self{m_xap}->state_now('outgoing.callcomplete') ) {
+		 } elsif (defined $xap_listener->state_now('outgoing.callcomplete') ) {
 			$state=$self->outgoing_hook($p_setby);
-		}
-#		&::print_log("TXAP:$p_state:$p_setby:" . ${$$self{m_xap}}{'incoming.callwithcid'}{phone} . ":");		
-	}	
+		 }
+#		 &::print_log("TXAP:$p_state:$p_setby:" . ${$$self{m_xap}}{'incoming.callwithcid'}{phone} . ":");
+
+              } elsif (lc $class_name eq 'cid.meteor') {
+		 if (defined $xap_listener->state_now('incoming.callwithcid') ) {
+			$state=$self->meteor_in_cid_hook($p_setby);
+		 } elsif (defined $xap_listener->state_now('outgoing.callcomplete') ) {
+			$state=$self->meteor_out_complete_hook($p_setby);
+		 }
+
+              } elsif ($class_name =~ /cti/i) {
+		 if (defined $xap_listener->state_now('mwi') ) {
+			$state=$self->cti_mwi_hook($p_setby);
+                 }
+              }		
+	   }	
+        }
 
 
-	# Always pass along the state to base class
-	$self->SUPER::set($state,$p_setby, $p_response); 
+	# Always pass along the state to base class unless "unknown"
+	$self->SUPER::set($state,$p_setby, $p_response) unless $state eq 'unknown';
 
 	return;
 }
@@ -186,6 +279,54 @@ sub hook
 	{
 	}
 	return $self->SUPER::hook($p_state);
+}
+
+sub call_duration
+{
+   my ($self, $p_duration) = @_;
+   $$self{call_duration} = $p_duration if defined($p_duration);
+   return $$self{call_duration};
+}
+
+sub mwi
+{
+   my ($self, $p_mailbox, $p_newmessages, $p_readmessages) = @_;
+   if (defined($p_newmessages) && defined($p_readmessages)) {
+      $$self{vm}{changed} = undef;
+      if (!(exists($$self{vm}{$p_mailbox})
+          || ($$self{vm}{$p_mailbox}{newmessages} <> $p_newmessages)
+          || ($$self{vm}{$p_mailbox}{readmessages} <> $p_readmessages)
+      ) {
+         $$self{vm}{changed}{mailbox} = $p_mailbox;
+         $$self{vm}{changed}{newmessages} = $p_newmessages;
+         $$self{vm}{changed}{readmessages} = $p_readmessages;
+      }
+      $$self{vm}{$p_mailbox}{newmessages} = $p_newmessages;
+      $$self{vm}{$p_mailbox}{readmessages} = $p_readmessages;
+   }
+   if (($p_mailbox) && exists($$self{vm}{$p_mailbox})) {
+      my %mwi_info = $$self{vm}{$p_mailbox};
+      return %mwi_info;
+   }
+}
+
+sub mwi_changed
+{
+   my ($self) = @_;
+   if (defined($$self{vm}{changed})) {
+      my %changed = $$self{vm}{changed};
+      return %changed;
+   } else {
+      return undef;
+   }
+}
+
+sub read_parms 
+{
+   &main::read_parm_hash(\%phone_line_names, $main::config_parms{phone_line_names});
+   my $temp = reverse %phone_line_names;
+   @phone_line_names = sort keys %temp;
+
 }
 
 1;

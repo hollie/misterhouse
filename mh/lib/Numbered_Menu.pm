@@ -16,8 +16,8 @@ License:
 
 Usage:
 
-    Read in .menu files with menu_parse (see menu.pl for examples), 
-    then select which menu to use with the first parameter, and 
+    Read in .menu files with menu_parse (see menu.pl for examples),
+    then select which menu to use with the first parameter, and
     the delay you want with the 2nd.
 
 	Example initialization:
@@ -36,8 +36,8 @@ Usage:
 		$i		- Delay between outputing items from the menu.
 				  -1 = Do not automatically advance to the next item
                    0 = Output all items without delay
-				  >0 = Number of seconds of delay time		
-	
+				  >0 = Number of seconds of delay time
+
 	Input states:
 		"start"	    - Starts the menu code and listens to all other input states.
 		"1","2",etc - Selects the numbered item
@@ -49,7 +49,7 @@ Usage:
 
 	Output states:
 		"MENU:xxxxxx"   - Menu named xxxxx
-		"ITEM:x:yyyy"   - Item number x with name yyyyyy (x is '-' at the end of the 
+		"ITEM:x:yyyy"   - Item number x with name yyyyyy (x is '-' at the end of the
 				  menu)
 		"RESPONSE:xxxx" - Reponse xxxx from selected item if any
 		<input states>  - All input states are echoed exactly to the output state as well.
@@ -60,11 +60,11 @@ Bugs:
 	There isnt a whole lot of error handling currently present in this version.  Drop me
 	an email if you are seeing something odd.
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - MH
 	David Norwood - Audible_Menu.pm
 	Bill Sobel - Stargate.pm
-		
+
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
@@ -97,7 +97,7 @@ sub new
 	my $self={};
 
 	bless $self, $p_class;
-	
+
 	$p_delay=3               unless defined $p_delay;
     $p_menugroup = 'default' unless $p_menugroup;
 
@@ -120,7 +120,7 @@ sub set
 
 	if ($p_setby ne $$self{m_outputTimer}) #keep timer states out of the loop
 	{
-		$self->SUPER::set($p_state);		
+		$self->SUPER::set($p_state);
 	}
 
 	if ($p_setby eq $$self{m_outputTimer})
@@ -169,15 +169,15 @@ sub select_menu
     return unless $p_menu;  # Avoid mh abend if I run start twice in a row
 
 	my $menus = $$self{m_menus};
-    
+
 	$$self{m_outputTimer}->set(0); #stop output
 
 #	&::print_log("Selected Menu: $p_menu : $$self{m_menuDepth}");
 	$$self{m_menuCurrent} = $p_menu;
-	
+
     ${$$self{m_menuList}}[$$self{m_menuDepth}] = $p_menu;
 
-	$$self{m_itemIndex} = 1;	
+	$$self{m_itemIndex} = 1;
     return unless $$menus{$$self{m_menuCurrent}}; # Guard against bad menus
 	$$self{m_itemCount} = @{$$menus{$$self{m_menuCurrent}}{items}};
 
@@ -189,11 +189,11 @@ sub select_menu
 #		&::print_log("POP:$$self{m_menuDepth},$l_menuPrevious: $l_itemPrevious : $$item{A}: $$item{Dstates}");
 		if ($$item{A} and $$item{Dstates} )
 		{
-			$self->set_states_for_next_pass("MENU:$$item{Dprefix}command$$item{Dsuffix}");	
+			$self->set_states_for_next_pass("MENU:$$item{Dprefix}command$$item{Dsuffix}");
 		}
 	}
 	else {
-		$self->set_states_for_next_pass("MENU:$$self{m_menuCurrent}");	
+		$self->set_states_for_next_pass("MENU:$$self{m_menuCurrent}");
 	}
 }
 
@@ -204,7 +204,7 @@ sub select_item
 
 	$$self{m_outputTimer}->set(0); #stop output
 
-	if ($p_item gt $$self{m_itemCount})
+	if ($p_item > $$self{m_itemCount})
 	{
 		#ignore bogus entries
 		return;
@@ -220,7 +220,7 @@ sub select_item
 	{
 		if ($$item{Dstates})
 		{
-			$$self{m_menuDepth}++;			
+			$$self{m_menuDepth}++;
 			$self->select_menu($$item{'Dstates_menu'});
 			$self->item_delay();
 		}
@@ -230,11 +230,11 @@ sub select_item
 			my $l_itemPrevious = ${$$self{m_itemList}}[$$self{m_menuDepth}-1]-1;
 			my $l_menuPrevious = ${$$self{m_menuList}}[$$self{m_menuDepth}-1];
 #			&::print_log("MenuPreve: $l_menuPrevious");
-			my $response=&::menu_run("$$self{m_menugroup},$l_menuPrevious,$l_itemPrevious,$l_item,l"); 
+			my $response=&::menu_run($$self{m_menugroup},$l_menuPrevious,$l_itemPrevious,$l_item,"l");
 			if ($response)
 			{
-				$self->set_states_for_next_pass("RESPONSE:$response");	
-			}	
+				$self->set_states_for_next_pass("RESPONSE:$response");
+			}
 			$self->repeat();
 		}
 		else
@@ -242,10 +242,10 @@ sub select_item
 #			&::print_log("ARun Item:$$self{m_menuCurrent} : $p_item");
 			my $l_item = $$self{m_itemCurrent}-1;
 #			&::menu_run("$$self{m_menugroup},$$self{m_menuCurrent},$l_item,$$item{D},l");
-			my $response = &::menu_run("$$self{m_menugroup},$$self{m_menuCurrent},$l_item,,l");
+			my $response = &::menu_run($$self{m_menugroup},$$self{m_menuCurrent},$l_item,undef,"l");
 			if ($response)
 			{
-				$self->set_states_for_next_pass("RESPONSE:$response");	
+				$self->set_states_for_next_pass("RESPONSE:$response");
 			}
 		}
 	}
@@ -253,15 +253,15 @@ sub select_item
 	{
 #		&::print_log("RRun Item:$$self{m_menucurrent} : $p_item");
 		my $l_item = $$self{m_itemCurrent}-1;
-		my $response = &::menu_run("$$self{m_menugroup},$$self{m_menuCurrent},$l_item,,l");
+		my $response = &::menu_run($$self{m_menugroup},$$self{m_menuCurrent},$l_item,undef,"l");
 		if ($response)
 		{
-			$self->set_states_for_next_pass("RESPONSE:$response");	
+			$self->set_states_for_next_pass("RESPONSE:$response");
 		}
 	}
 	else #menu
 	{
-		$$self{m_menuDepth}++;			
+		$$self{m_menuDepth}++;
 		$self->select_menu($$item{D});
 		$self->item_delay();
 	}
@@ -276,7 +276,7 @@ sub start
 
                                 # Allow for parsed menus elsewhere
     unless ($$self{m_menus}) {
-        $$self{m_menus} = $main::Menus{$$self{m_menugroup}}; 
+        $$self{m_menus} = $main::Menus{$$self{m_menugroup}};
     }
 
 	my $menu = $$self{m_menus};
@@ -298,7 +298,7 @@ sub repeat
 	$self->sequence_item();
 }
 
- 
+
 sub next
 {
 	my ($self) = @_;
@@ -310,7 +310,7 @@ sub next
 	}
 	else #End if items
 	{
-		$self->set_states_for_next_pass("ITEM:-:END");	
+		$self->set_states_for_next_pass("ITEM:-:END");
 	}
 }
 
@@ -331,7 +331,7 @@ sub previous
 	}
 	else #End if items
 	{
-		$self->set_states_for_next_pass("ITEM:+:BEGINING");	
+		$self->set_states_for_next_pass("ITEM:+:BEGINING");
 #       $self->exit;            # Walk back to previous menu
 	}
 }
@@ -359,7 +359,7 @@ sub sequence_item
 	}
 	else #End if items
 	{
-		$self->set_states_for_next_pass("ITEM:-:END");	
+		$self->set_states_for_next_pass("ITEM:-:END");
 	}
 }
 
@@ -410,10 +410,9 @@ sub output_item
 		$name = $$item{D};
 	}
 	else
-	{	
+	{
 		$name = $$item{D};
 	}
-	$self->set_states_for_next_pass("ITEM:$p_item:$name");	
+	$self->set_states_for_next_pass("ITEM:$p_item:$name");
 }
 1;
-

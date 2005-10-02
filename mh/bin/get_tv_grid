@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  Last change Time-stamp: <2004-10-11 19:03:04 winter>
+#  Last change Time-stamp: <2005-06-26 18:28:29 winter>
 
 #---------------------------------------------------------------------------
 #  File:
@@ -1337,32 +1337,33 @@ sub fetchLoop
             (4000 < -s $outfile) and !$parms{redo} )
          {
             print "Reusing: $outfile\n";
-            next;
-         }
+        }
+         else {
 
          #------------------------------------------------------------
          # Now retrieve the data, if it needs retrieving.
          #------------------------------------------------------------
-         if ( 1 != fetchDataToFile( $rawFile, $startDay, $startHour ) )
-         {
-            return -1;
-         }
+             if ( 1 != fetchDataToFile( $rawFile, $startDay, $startHour ) )
+               {
+                   return -1;
+               }
 
          #------------------------------------------------------------
          # Process this file for insertion into the DB
          #------------------------------------------------------------
-         processRawFile( time, $startHour, $down, $rawFile, $outfile, $dow, $month, $day, $year );
+             processRawFile( time, $startHour, $down, $rawFile, $outfile, $dow, $month, $day, $year );
 
          #------------------------------------------------------------
          # Delete the raw file, unless we're told to keep it.
          #------------------------------------------------------------
-         if ( !$parms{preserveRaw} )
-         {
-         	foreach ( 0..&prov_count()-1 ) {
-         	   my $file = providerFilename($rawFile,$_);
-               print "Removing raw file: [$file]\n" if ($parms{debug});
-               unlink( $file );
-            }
+             if ( !$parms{preserveRaw} )
+               {
+                   foreach ( 0..&prov_count()-1 ) {
+                       my $file = providerFilename($rawFile,$_);
+                       print "Removing raw file: [$file]\n" if ($parms{debug});
+                       unlink( $file );
+                   }
+               }
          }
 
          #------------------------------------------------------------
@@ -1399,7 +1400,7 @@ sub mail_file {
                    to      => $mailto,
                    baseref => $parms{mail_baseref},
                    file    => $file,
-                   mime    => 1);
+                   mime => 'html_inline');
     return;
 }
 
