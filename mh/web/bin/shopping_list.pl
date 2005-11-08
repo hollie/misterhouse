@@ -1,5 +1,5 @@
 # Shopping List
-# Version 1.5
+# Version 1.6
 # Matthew Williams
 #
 # This file should be placed in mh/web/bin.  I link to it through a my_mh page.
@@ -42,6 +42,10 @@
 #
 # Revision History:
 # 
+# Version 1.6: Matthew Williams
+# - added checkbox on add items screen to allow a new item to be
+#   immediately added to the shopping list
+#
 # Version 1.5: Matthew Williams
 # - changed output of plain text files to be columns
 #
@@ -140,8 +144,9 @@ if ($param{'action'} eq 'add item') {
 		}
 		close (SHOPLIST);
 		$html.=qq[</select></p><p>&nbsp;</p>\n];
-		$html.=qq[<p>Item: <input type=text name="item" size=50></p>\n];
-		$html.=qq[<p>&nbsp;</p><input type=submit name="action" value="add item">\n];
+		$html.=qq[<p>Item: <input type=text name="item" size=50></p><br>];
+		$html.=qq[<p>Add to Shopping List Now: <input type=checkbox name="onlistnow"></p><br>];
+		$html.=qq[<p><input type=submit name="action" value="add item">\n];
 		$html.=qq[<input type=submit name="action" value="cancel"></p>\n];
 		$html.=qq[</form>\n];
 		$html.='';
@@ -150,6 +155,12 @@ if ($param{'action'} eq 'add item') {
 	}
 	open (OLDLIST,$file) || return shoppingListError("$file: $!");
 	my $duplicate=0;
+	my $newvalue;
+	if (defined ($param{'onlistnow'})) {
+	  $newvalue=1;
+	} else {
+		$newvalue=0;
+  }
 	while (<OLDLIST>)
 		{
 		chomp;
@@ -179,7 +190,7 @@ if ($param{'action'} eq 'add item') {
 					next;
 				}
 				if ($foundCategory) {
-					print NEWLIST "$param{'item'}=0\n";
+					print NEWLIST "$param{'item'}=$newvalue\n";
 					print NEWLIST "$_\n";
 					$foundCategory=0;
 					next;
