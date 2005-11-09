@@ -2,7 +2,7 @@
 #
 #@ Weather METAR parser
 #@ 
-#@ V 1.1
+#@ V 1.3
 #@
 #@ To get the closest station name in Canada, go to 
 #@ http://www.flightplanning.navcanada.ca and choose METAR/TAF
@@ -16,7 +16,13 @@
 #
 # by Matthew Williams
 #
+# V 1.3
+# - fixed code to handle RMK without a space after it
+# - allowed for CCA (correction)
 #
+# V 1.2
+# - accounted for change in NavCanada format
+# 
 # V 1.1
 # - added relative humidity calculation based on dewpoint
 # - added humidex calculation
@@ -63,13 +69,15 @@ if (said $v_show_weather) {
 if (done_now $p_weather_metar_page or $Reload) {
   my $html=file_read $file;
   return unless $html;
-
+  
+  # NavCanada changed their format to break reports into multiple lines
+  $html =~ s/\n<br>\n//g;
   my ($winddir, $windspeed, $windgust, $temp, $windchill, $last_report);
   my ($pressure, $weather, $clouds, $winddirname, $windspeedtext);
   my ($pressuretext, $apparenttemp, $dewpoint);
   # apparenttemp is either windchill or humidex
 
-  while ($html =~ m#((METAR) |(SPECI) )?$station \d{6}Z \d{3}\d{2}(G\d{2})?KT .+?\n#g) {
+  while ($html =~ m#((METAR) |(SPECI) )?$station \d{6}Z (CCA )?\d{3}\d{2}(G\d{2})?KT .+?\n#g) {
     $last_report=$&;
     chop $last_report;
     $weather='';
@@ -84,10 +92,11 @@ if (done_now $p_weather_metar_page or $Reload) {
     my $element;
     foreach $element (split (/ /,$last_report)) {
       if ($element eq $station) { next; }; # don't decode station
-      if ($element eq 'RMK') { last; }; # end of current conditions
+      if ($element =~ m#^RMK#) { last; }; # end of current conditions
       if ($element eq 'CAVOK') { $weather .= 'ceiling and visibility OK'; };
       if ($element eq 'SKC' or $element eq 'CLR') { $clouds = 'sky clear '; };
       if ($element eq 'METAR' or $element eq 'SPECI') { next; };
+      if ($element eq 'CCA') { next; }; # correction
       if ($element =~ m#^FEW# ) { $clouds = 'few clouds '; };
       if ($element =~ m#^SCT# ) { $clouds = 'scattered clouds '; };
       if ($element =~ m#^BKN# ) { $clouds = 'broken clouds '; };
