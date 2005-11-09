@@ -1,5 +1,5 @@
 # Shopping List
-# Version 1.6
+# Version 1.61
 # Matthew Williams
 #
 # This file should be placed in mh/web/bin.  I link to it through a my_mh page.
@@ -41,6 +41,10 @@
 # shopping list.  If blank, will default to net_mail_account_address
 #
 # Revision History:
+#
+# Version 1.61: Matthew Williams
+# - fixed bug in 1.6 functionality that prevented it from working when last
+#   category was being chosen for new item
 # 
 # Version 1.6: Matthew Williams
 # - added checkbox on add items screen to allow a new item to be
@@ -66,6 +70,7 @@
 # - intial release
 #
 
+my $shoppinglistdebug=0;
 my $file=$config_parms{shopping_list};
 $file = "$Pgm_Root/data/shopping_list.txt" unless $file and -e $file;
 my $printCommand=$config_parms{shopping_print};
@@ -82,9 +87,33 @@ my $numColumns=$config_parms{shopping_columns};
 $numColumns=4 unless $numColumns;
 my $columnWidth=100/$numColumns.'%';
 
+my $html.=qq[
+<html>
+<head>
+<title>Shopping List</title>
+<style type="text/css">
+p,a { font-family: helvetica;
+    font-size: 10pt;
+    margin:0; }
+a { text-decoration: none; }
+h3 { font-family: helvetica;
+    font-size: 12pt;
+    margin:0;
+    margin-top: 10;}
+h4 { font-family: helvetica;
+    font-size: 10pt;
+    margin:0;
+    margin-top: 10;}
+</style>
+</head>
+<body>
+<form name="main">
+];
+
+
 foreach $param (@ARGV) {
 	$param =~ /^(.+)=(.+)$/ && do {
-		$html.="$1 $2\n";
+		$html.="<p>$1 ** $2</p>\n" if $shoppinglistdebug;
 		$param{$1}=$2;
 		}
 }
@@ -109,29 +138,6 @@ $param{'action'}='list' if $param{'action'} eq 'cancel';
 my $printing=(($param{'action'} eq 'print') or ($param{'action'} eq 'print preview') or ($param{'action'} eq 'e-mail'));
 my $atShop=(($param{'action'} eq 'at shop') or ($param{'action'} eq 'remove items'));
 
-$html=qq[
-<html>
-<head>
-<title>Shopping List</title>
-<style type="text/css">
-p,a { font-family: helvetica;
-    font-size: 10pt;
-    margin:0; }
-a { text-decoration: none; }
-h3 { font-family: helvetica;
-    font-size: 12pt;
-    margin:0;
-    margin-top: 10;}
-h4 { font-family: helvetica;
-    font-size: 10pt;
-    margin:0;
-    margin-top: 10;}
-</style>
-</head>
-<body>
-<form name="main">
-];
-
 
 if ($param{'action'} eq 'add item') {
 	if (($param{'category'} eq 'select') or ($param{'item'} eq '')) {
@@ -155,12 +161,9 @@ if ($param{'action'} eq 'add item') {
 	}
 	open (OLDLIST,$file) || return shoppingListError("$file: $!");
 	my $duplicate=0;
-	my $newvalue;
-	if (defined ($param{'onlistnow'})) {
-	  $newvalue=1;
-	} else {
-		$newvalue=0;
-  }
+	my $newvalue=$param{'onlistnow'} eq 'on' ? '1' : '0';
+	$html.="<p>Param onlistnow is $param{'onlistnow'} so newvalue is $newvalue</p>\n" if $shoppinglistdebug;
+
 	while (<OLDLIST>)
 		{
 		chomp;
@@ -191,6 +194,7 @@ if ($param{'action'} eq 'add item') {
 				}
 				if ($foundCategory) {
 					print NEWLIST "$param{'item'}=$newvalue\n";
+					$html.="<p>$param{'item'}=$newvalue</p>\n" if $shoppinglistdebug;
 					print NEWLIST "$_\n";
 					$foundCategory=0;
 					next;
@@ -202,7 +206,8 @@ if ($param{'action'} eq 'add item') {
 			};
 		}
 		if ($foundCategory) {
-			print NEWLIST "$param{'item'}=0\n";
+			$html.="<p>$param{'item'}=$newvalue</p>\n" if $shoppinglistdebug;
+			print NEWLIST "$param{'item'}=$newvalue\n";
 		}
 
 		close (OLDLIST);
