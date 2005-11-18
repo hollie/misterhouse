@@ -2,7 +2,7 @@
 #
 #@ Weather METAR parser
 #@ 
-#@ V 1.3
+#@ V 1.4
 #@
 #@ To get the closest station name in Canada, go to 
 #@ http://www.flightplanning.navcanada.ca and choose METAR/TAF
@@ -15,6 +15,10 @@
 #@
 #
 # by Matthew Williams
+#
+# V 1.4
+# - based on Michael Brown's suggestion, the Weather hash now contains
+#   values that are nicely rounded.
 #
 # V 1.3
 # - fixed code to handle RMK without a space after it
@@ -61,9 +65,11 @@ $v_show_weather=new Voice_Cmd('show weather');
 
 if (said $v_show_weather) {
   my $metric;
+  my $response='';
   foreach $metric (keys(%Weather)) {
-    respond "Weather $metric is $Weather{$metric}";
+    $response.= "Weather $metric is $Weather{$metric}\n";
   }
+  respond($response);
 }
 
 if (done_now $p_weather_metar_page or $Reload) {
@@ -75,6 +81,7 @@ if (done_now $p_weather_metar_page or $Reload) {
   my ($winddir, $windspeed, $windgust, $temp, $windchill, $last_report);
   my ($pressure, $weather, $clouds, $winddirname, $windspeedtext);
   my ($pressuretext, $apparenttemp, $dewpoint);
+  my $apparenttemp='none';
   # apparenttemp is either windchill or humidex
 
   while ($html =~ m#((METAR) |(SPECI) )?$station \d{6}Z (CCA )?\d{3}\d{2}(G\d{2})?KT .+?\n#g) {
@@ -152,14 +159,18 @@ if (done_now $p_weather_metar_page or $Reload) {
   $windgust =~ s/^G//g;
   $windgust *= 1.85; # convert from knots to km/h
   $temp =~ s/M/-/;
+  # remove leading 0 if present
+  $temp =~ s/^(-?)0/$1/;
+  # remove leading 0 if present
   $dewpoint =~ s/M/-/;
+  $dewpoint =~ s/^(-?)0/%1/;
   $winddirname=qw{ N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW }[(($winddir+11.25)/22.5)%16];
 
   if ($windspeed < 5 or $windspeed > 100 or $temp < -50 or $temp > 5) { 
     $windchill=$temp;
   } else {
     $windchill=13.12+0.6215*$temp-11.37*($windspeed**0.16)+0.3965*$temp*($windspeed**0.16);
-    $apparenttemp=sprintf(' (%.0f)',$windchill);
+    $apparenttemp=$windchill;
   }
   my $vapourPressureSaturation=6.112*10.0**(7.5*$temp/(237.7+$temp));
   my $vapourPressure=6.112*10.0**(7.5*$dewpoint/(237.7+$dewpoint));
@@ -170,7 +181,7 @@ if (done_now $p_weather_metar_page or $Reload) {
   # only report humidex if temperature is at least 20 degrees and 
   # humidex is at least 25 degrees
   if (($temp >= 20) && ($humidex >= 25)) {
-    $apparenttemp=sprintf(' (%.0f)', $humidex);
+    $apparenttemp=$humidex;
   }
 
   if ($windgust > 0 ) {
@@ -184,21 +195,27 @@ if (done_now $p_weather_metar_page or $Reload) {
   } else {  
     $Weather{Wind}="$winddirname at $windspeedtext";
   }
-  $Weather{Summary_Short}=sprintf('%d&deg;C%s %s',$temp, $apparenttemp, $humiditytext);
+
+  my $apparenttemptext='';
+  if ($apparenttemp ne 'none') {
+    $apparenttemptext=sprintf(" (%.0f)",$apparenttemp);
+  }
+  $Weather{Summary_Short}=sprintf('%d&deg;C%s %s',$temp, $apparenttemptext, $humiditytext);
   $Weather{Summary}=$Weather{Summary_Short}." $pressuretext ${clouds}$weather";
   $Weather{TempOutdoor}=$temp;
-  $Weather{WindChill}=$windchill;
-  $Weather{Humidex}=$humidex;
+  $Weather{ApparentTemp}=sprintf("%.0f",$apparenttemp);
+  $Weather{WindChill}=sprintf("%.0f",$windchill);
+  $Weather{Humidex}=sprintf("%.0f",$humidex);
   $Weather{WindAvgDir}=$winddir;
-  $Weather{WindAvgSpeed}=$windspeed;
+  $Weather{WindAvgSpeed}=sprintf("%.0f",$windspeed);
   $Weather{WindGustDir}=$winddir;
   $Weather{DewOutdoor}=$dewpoint;
-  $Weather{HumidOutdoor}=$humidity;
+  $Weather{HumidOutdoor}=sprintf("%.0f",$humidity);
   if ($windgust > 0) {
-    $Weather{WindGustSpeed}=$windgust;
+    $Weather{WindGustSpeed}=sprintf("%.0f",$windgust);
   } else {
-    $Weather{WindGustSpeed}=$windspeed;
+    $Weather{WindGustSpeed}=$Weather{WindAvgSpeed};
   }
-  $Weather{Barom}=$pressure*10;
+  $Weather{Barom}=sprintf("%.1f",$pressure*10);
   print_log "Weather: $Weather{Summary} $Weather{Wind} dewpoint $Weather{DewOutdoor} humidity $Weather{Humid}";
 }
