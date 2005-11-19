@@ -163,7 +163,7 @@ if (done_now $p_weather_metar_page or $Reload) {
   $temp =~ s/^(-?)0/$1/;
   # remove leading 0 if present
   $dewpoint =~ s/M/-/;
-  $dewpoint =~ s/^(-?)0/%1/;
+  $dewpoint =~ s/^(-?)0/$1/;
   $winddirname=qw{ N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW }[(($winddir+11.25)/22.5)%16];
 
   if ($windspeed < 5 or $windspeed > 100 or $temp < -50 or $temp > 5) { 
@@ -217,5 +217,5 @@ if (done_now $p_weather_metar_page or $Reload) {
     $Weather{WindGustSpeed}=$Weather{WindAvgSpeed};
   }
   $Weather{Barom}=sprintf("%.1f",$pressure*10);
-  print_log "Weather: $Weather{Summary} $Weather{Wind} dewpoint $Weather{DewOutdoor} humidity $Weather{Humid}";
+  print_log "Weather: $Weather{Summary} $Weather{Wind} dewpoint $Weather{DewOutdoor} humidity $Weather{HumidOutdoor} pressure $Weather{Barom}";
 }
