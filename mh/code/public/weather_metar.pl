@@ -2,7 +2,7 @@
 #
 #@ Weather METAR parser
 #@ 
-#@ V 1.4
+#@ V 1.6
 #@
 #@ To get the closest station name in Canada, go to 
 #@ http://www.flightplanning.navcanada.ca and choose METAR/TAF
@@ -12,9 +12,17 @@
 #@
 #@ Place name of country (Canada or "other") in mh.ini as weather_metar_country
 #@ Place name of nearest station in mh.ini as weather_metar_station
+#@ Place unit preference (metric or imperial) in mh.ini as weather_metar_units
 #@
 #
 # by Matthew Williams
+#
+# V 1.6
+# - Added imperial units
+#
+# V 1.5
+# - fixed a typo.  I hate typos.  I really should test this thing more before
+#   I send out updates. :-)
 #
 # V 1.4
 # - based on Michael Brown's suggestion, the Weather hash now contains
@@ -37,9 +45,11 @@
 # noloop=start
 my $station=uc($config_parms{weather_metar_station});
 my $country=lc($config_parms{weather_metar_country});
+my $units=lc($config_parms{weather_metar_units});
 
 $station='CYOW' unless $station;
 $country='other' unless $country;
+$units='metric' unless $units;
 
 my $url;
 if ($country eq 'canada') {
@@ -80,7 +90,7 @@ if (done_now $p_weather_metar_page or $Reload) {
   $html =~ s/\n<br>\n//g;
   my ($winddir, $windspeed, $windgust, $temp, $windchill, $last_report);
   my ($pressure, $weather, $clouds, $winddirname, $windspeedtext);
-  my ($pressuretext, $apparenttemp, $dewpoint);
+  my ($metricpressure,$pressuretext, $apparenttemp, $dewpoint);
   my $apparenttemp='none';
   # apparenttemp is either windchill or humidex
 
@@ -94,7 +104,7 @@ if (done_now $p_weather_metar_page or $Reload) {
   
     ($winddir,$windspeed,$windgust)=$last_report =~ m#(\d{3})(\d{2})(G\d{2})?KT#;
     if ($last_report =~ m#(M?\d{2})/(M?\d{2})#) { ($temp,$dewpoint)=($1,$2);  };
-    if ($last_report =~ m#A(\d{4})#) { $pressure=$1*0.03386; };
+    if ($last_report =~ m#A(\d{4})#) { $pressure=$1*0.03386; }; # pressure in mm of mercury
     if ($last_report =~ m#Q(\d{4})#) { $pressure=$1/10; };  # pressure in hPa
     my $element;
     foreach $element (split (/ /,$last_report)) {
@@ -150,8 +160,6 @@ if (done_now $p_weather_metar_page or $Reload) {
     }
   }
   
-  $pressuretext=sprintf('%0.1f kPa',$pressure); # convert to kPa
-
   $weather =~ s/ $//; # remove trailing space
   $weather = 'no precipitation' if $weather eq '';
 
@@ -184,10 +192,24 @@ if (done_now $p_weather_metar_page or $Reload) {
     $apparenttemp=$humidex;
   }
 
-  if ($windgust > 0 ) {
-    $windspeedtext = sprintf ("%.0f (%.0f) km/h",$windspeed,$windgust);
+  my $windunit='km/h';
+  my $tempunit='C';
+  $metricpressure=$pressure;  # need to save metric pressure for $Weather{Barom}
+  if ($units eq 'imperial') {
+    grep {$_=convert_c2f($_)} ($temp, $dewpoint, $apparenttemp, $humidex, $windchill);
+    grep {$_=convert_km2mile($_)} ($windspeed, $windgust);
+    grep {$_/=3.386} ($pressure); # convert from kPa to inHg
+    $tempunit='F';
+    $windunit='mph';
+    $pressuretext=sprintf('%.2f inHg',$pressure);
   } else {
-    $windspeedtext = sprintf ("%.0f km/h",$windspeed);
+    $pressuretext=sprintf('%.1f kPa',$pressure);
+  }
+
+  if ($windgust > 0 ) {
+    $windspeedtext = sprintf ("%.0f (%.0f) $windunit",$windspeed,$windgust);
+  } else {
+    $windspeedtext = sprintf ("%.0f $windunit",$windspeed);
   }
   
   if ($windspeed == 0) {
@@ -200,22 +222,22 @@ if (done_now $p_weather_metar_page or $Reload) {
   if ($apparenttemp ne 'none') {
     $apparenttemptext=sprintf(" (%.0f)",$apparenttemp);
   }
-  $Weather{Summary_Short}=sprintf('%d&deg;C%s %s',$temp, $apparenttemptext, $humiditytext);
+  $Weather{Summary_Short}=sprintf('%d&deg;%s%s %s',$temp, $tempunit, $apparenttemptext, $humiditytext);
   $Weather{Summary}=$Weather{Summary_Short}." $pressuretext ${clouds}$weather";
-  $Weather{TempOutdoor}=$temp;
+  $Weather{TempOutdoor}=sprintf("$.0f",$temp);
   $Weather{ApparentTemp}=sprintf("%.0f",$apparenttemp);
   $Weather{WindChill}=sprintf("%.0f",$windchill);
   $Weather{Humidex}=sprintf("%.0f",$humidex);
   $Weather{WindAvgDir}=$winddir;
   $Weather{WindAvgSpeed}=sprintf("%.0f",$windspeed);
   $Weather{WindGustDir}=$winddir;
-  $Weather{DewOutdoor}=$dewpoint;
+  $Weather{DewOutdoor}=sprintf("%.0f",$dewpoint);
   $Weather{HumidOutdoor}=sprintf("%.0f",$humidity);
   if ($windgust > 0) {
     $Weather{WindGustSpeed}=sprintf("%.0f",$windgust);
   } else {
     $Weather{WindGustSpeed}=$Weather{WindAvgSpeed};
   }
-  $Weather{Barom}=sprintf("%.1f",$pressure*10);
-  print_log "Weather: $Weather{Summary} $Weather{Wind} dewpoint $Weather{DewOutdoor} humidity $Weather{HumidOutdoor} pressure $Weather{Barom}";
+  $Weather{Barom}=sprintf("%.1f",$metricpressure*10);
+  print_log "Weather: $Weather{Summary} $Weather{Wind} dewpoint $Weather{DewOutdoor} humidity $Weather{HumidOutdoor}";
 }
