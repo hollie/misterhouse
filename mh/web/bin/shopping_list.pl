@@ -1,5 +1,5 @@
 # Shopping List
-# Version 1.61
+# Version 1.63
 # Matthew Williams
 #
 # This file should be placed in mh/web/bin.  I link to it through a my_mh page.
@@ -41,6 +41,14 @@
 # shopping list.  If blank, will default to net_mail_account_address
 #
 # Revision History:
+#
+# Version 1.63: Matthew Williams
+# - changed form action from get to post
+#
+# Version 1.62: Matthew Williams
+# - fixed some bad html that was breaking html2ps
+# - pages now validate as strict HTML 4.01 (validator.w3.org)
+# - note that this version was not publicly released
 #
 # Version 1.61: Matthew Williams
 # - fixed bug in 1.6 functionality that prevented it from working when last
@@ -87,7 +95,8 @@ my $numColumns=$config_parms{shopping_columns};
 $numColumns=4 unless $numColumns;
 my $columnWidth=100/$numColumns.'%';
 
-my $html.=qq[
+my $html=qq[
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html>
 <head>
 <title>Shopping List</title>
@@ -107,7 +116,7 @@ h4 { font-family: helvetica;
 </style>
 </head>
 <body>
-<form name="main">
+<form name="main" action="/bin/shopping_list.pl" method="post">
 ];
 
 
@@ -150,10 +159,10 @@ if ($param{'action'} eq 'add item') {
 		}
 		close (SHOPLIST);
 		$html.=qq[</select></p><p>&nbsp;</p>\n];
-		$html.=qq[<p>Item: <input type=text name="item" size=50></p><br>];
-		$html.=qq[<p>Add to Shopping List Now: <input type=checkbox name="onlistnow"></p><br>];
-		$html.=qq[<p><input type=submit name="action" value="add item">\n];
-		$html.=qq[<input type=submit name="action" value="cancel"></p>\n];
+		$html.=qq[<p>Item: <input type="text" name="item" size=50></p><br>];
+		$html.=qq[<p>Add to Shopping List Now: <input type="checkbox" name="onlistnow"></p><br>];
+		$html.=qq[<p><input type="submit" name="action" value="add item">\n];
+		$html.=qq[<input type="submit" name="action" value="cancel"></p>\n];
 		$html.=qq[</form>\n];
 		$html.='';
 		$html.=qq[</body></html>\n];
@@ -216,8 +225,8 @@ if ($param{'action'} eq 'add item') {
 		$html.=qq[<h3>$param{'item'} added to $param{'category'}</h3>];
 	}
 	$html.=qq[<p>&nbsp;</p>];
-	$html.=qq[<p><input type=submit name="action" value="add item">\n];
-	$html.=qq[<input type=submit name="action" value="list"></p>\n];
+	$html.=qq[<p><input type="submit" name="action" value="add item">\n];
+	$html.=qq[<input type="submit" name="action" value="list"></p>\n];
 	$html.=qq[</body></html>];
 	return $html;
 }
@@ -255,12 +264,11 @@ if (($param{'action'} eq 'update list') or ($param{'action'} eq 'clear all') or 
 if ($printing) {
 	$html.=qq[<h2>Shopping List</h2>];
 	if ($param{'action'} eq 'print preview') {
-		$html.=qq[<h4>Preview Only<h4>];
+		$html.=qq[<h4>Preview Only</h4>];
 	}
 	if ($param{'action'} eq 'e-mail') {
-		$html.=qq[<h4>E-Mail List<h4>\n];
+		$html.=qq[<h4>E-Mail List</h4>\n];
 	}
-	$html.='<table>';
 }
 
 open (SHOPLIST, $file) || return shoppingListError("$file: $!");
@@ -272,82 +280,79 @@ $showAll=0 if $atShop==1;
 
 if ($atShop) {
 	$html.=qq[<h2>Shopping List At Shop</h2>];
-	$html.=qq[<input type=submit name="action" value="cancel">];
+	$html.=qq[<p><input type="submit" name="action" value="remove items">];
+	$html.=qq[<input type="submit" name="action" value="cancel"></p>];
 }
 
+my $firstSection=1;
 while (<SHOPLIST>)
 	{
 	chomp;
-	s/^\s*(.*?)\s*$/$1/;
-	/^#/ && do { next; };
-	/^#/ && do { next; };
-	/^\[(.+)\]$/ && do {
+	s/^\s*(.*?)\s*$/$1/; # clear whitespace before and after line
+	/^#/ && do { next; }; # ignore blank lines
+	/^\[(.+)\]$/ && do { # we've found a new section
+	  $sectionHeader='';
+		$num=0;
+		if (!$firstSection) {
+			$sectionHeader.="\n</tr>\n</table>\n";
+		}
+		$firstSection=0;
 		if ($printing) {
-			$sectionHeader="\n</table><h3>$1</h3><table>\n\n";
+			$sectionHeader.="\n<h3>$1</h3><table>\n\n";
 		} else {	
 			if ($atShop) {
-				$sectionHeader=qq[</table><hr><h3>$1</h3><input type=submit name="action" value="remove items">\n];
-				$sectionHeader.=qq[<input type=submit name="action" value="cancel"><table></p>\n];
+				$sectionHeader.=qq[\n<hr><h3>$1</h3><p><input type="submit" name="action" value="remove items">];
+				$sectionHeader.=qq[<input type="submit" name="action" value="cancel"><p><table>\n];
 			} else {
-				$html.=qq[</table><input type=submit name="action" value="update list">\n];
-				$html.=qq[<input type=submit name="action" value="print preview">\n];
-				$html.=qq[<input type=submit name="action" value="print">\n];
-				$html.=qq[<input type=submit name="action" value="e-mail">\n];
-				$html.=qq[<input type=submit name="action" value="add item">\n];
-				$html.=qq[<input type=submit name="action" value="at shop">\n];
-				$html.=qq[<input type=submit name="action" value="cancel">\n];
-				$html.=qq[<input type=submit name="action" value="clear all"></p>\n];
-			$html.=qq[<hr><h3>$1</h3><table width="100%"><colgroup span="$numColumns" width="$columnWidth"><thead>\n];
+				$sectionHeader.=qq[<p><input type="submit" name="action" value="update list">\n];
+				$sectionHeader.=qq[<input type="submit" name="action" value="print preview">\n];
+				$sectionHeader.=qq[<input type="submit" name="action" value="print">\n];
+				$sectionHeader.=qq[<input type="submit" name="action" value="e-mail">\n];
+				$sectionHeader.=qq[<input type="submit" name="action" value="add item">\n];
+				$sectionHeader.=qq[<input type="submit" name="action" value="at shop">\n];
+				$sectionHeader.=qq[<input type="submit" name="action" value="cancel">\n];
+				$sectionHeader.=qq[<input type="submit" name="action" value="clear all"></p>\n];
+				$sectionHeader.=qq[<hr><h3>$1</h3><table width="100%"><colgroup span="$numColumns" width="$columnWidth">\n];
 			}
-		$num=0;
 		}
 		next;
 	};
 	/^(.+)=(.+)$/ && do {
 		my ($item, $value)=($1,$2);
-		if ($printing) {
-			if ($value==1) {
-				$html.=$sectionHeader;
-				$sectionHeader='';
-				if ($num % $numColumns == 0) {
-					$html.='<tr>';
+		if ($atShop and $value==0) {
+		  next;
+    }
+		if ($printing and $value==0) {
+		  next;
+    }
+		$html.=$sectionHeader;
+		$sectionHeader='';
+		if ($num % $numColumns == 0) {
+			if ($num > 0) {
+				$html.="</tr>\n"
 				}
-				$num++;
-				$html.=qq[<td><input type=checkbox>$item\n];
-			}
-		} else {
-			my $checked;
-			if ($atShop) {
-				if ($value==0) {
-					next;
-				}
-				$html.=$sectionHeader;
-				$sectionHeader='';
-				$checked=0;
-			} else {
-				$checked=$value;
-			}
-	
-			if ($num % $numColumns == 0) {
-				$html.='<tr>';
-			}
-			$num++;
-			my $fieldname=$item;
-			$fieldname =~ s/ /%20;/g;
-
-			$html.=qq[<td width="$columnWidth"><input type=checkbox name="$item"]. ($checked ? ' checked' : '') . '>';
-			$html.=qq[<a onClick="document.main.elements['$item'].checked=!document.main.elements['$item'].checked">$item</a>\n];
+			$html.='<tr>';
 		}
-		next;
+		$num++;
+		my $checked=$value; # only used when not printing
+
+		if ($atShop) {
+			$checked=0;
+		}
+		# my $fieldname=$item;
+		# $fieldname =~ s/ /%20;/g;
+
+		if ($printing) {
+		  $html.=qq[<td><input type="checkbox">$item</td>\n];
+		} else {
+			$html.=qq[<td><input type="checkbox" name="$item"]. ($checked ? ' checked' : '') . '>';
+			$html.=qq[<a onClick="document.main.elements['$item'].checked=!document.main.elements['$item'].checked">$item</a></td>\n];
+		}
 	}
 }
 close (SHOPLIST);
 
-if (!$printing) {
-	$html .= "</table></form>\n";
-}
-
-$html.='</body></html>';
+$html.='</tr></table></form></body></html>';
 my $plainText=$html;
 
 # Strip away HTML stuff from mailtext
@@ -390,4 +395,4 @@ if ($param {'action'} eq 'e-mail') {
   }
 }
 
-return &html_page('', $html, '');
+return $html;
