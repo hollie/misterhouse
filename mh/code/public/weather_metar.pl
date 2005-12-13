@@ -2,7 +2,7 @@
 #
 #@ Weather METAR parser
 #@ 
-#@ V 1.6
+#@ V 1.61
 #@
 #@ To get the closest station name in Canada, go to 
 #@ http://www.flightplanning.navcanada.ca and choose METAR/TAF
@@ -16,6 +16,9 @@
 #@
 #
 # by Matthew Williams
+#
+# V 1.61
+# - Fixed typo that corrupted Weather{TempOutdoor}
 #
 # V 1.6
 # - Added imperial units
@@ -224,7 +227,7 @@ if (done_now $p_weather_metar_page or $Reload) {
   }
   $Weather{Summary_Short}=sprintf('%d&deg;%s%s %s',$temp, $tempunit, $apparenttemptext, $humiditytext);
   $Weather{Summary}=$Weather{Summary_Short}." $pressuretext ${clouds}$weather";
-  $Weather{TempOutdoor}=sprintf("$.0f",$temp);
+  $Weather{TempOutdoor}=sprintf("%.0f",$temp);
   $Weather{ApparentTemp}=sprintf("%.0f",$apparenttemp);
   $Weather{WindChill}=sprintf("%.0f",$windchill);
   $Weather{Humidex}=sprintf("%.0f",$humidex);
