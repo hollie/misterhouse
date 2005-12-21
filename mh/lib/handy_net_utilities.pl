@@ -661,22 +661,26 @@ sub main::get_oscar_connection {
         return;
     }
 
-    $im_connection = Net::OSCAR->new();
+    $im_connection = Net::OSCAR->new(capabilities => [qw(buddy_icons extended_status)]);
     $im_connection -> set_callback_im_in(\&oscar::cb_imin);
     $im_connection -> set_callback_buddy_in(\&oscar::cb_buddyin);
     $im_connection -> set_callback_buddy_out(\&oscar::cb_buddyout);
     $im_connection -> set_callback_error(\&oscar::cb_error);
     $im_connection -> set_callback_signon_done(\&oscar::cb_signondone);
-    
+    $im_connection -> set_callback_connection_changed(\&oscar::cb_connectionchanged);
+    $im_connection -> set_callback_buddy_icon_uploaded(\&oscar::cb_buddyiconuploaded);
+    $im_connection -> set_callback_buddylist_ok(\&oscar::cb_buddylistok);
+    $im_connection -> set_callback_buddylist_error(\&oscar::cb_buddylisterror);
 
     unless (defined($im_connection->signon (screenname => $name,
 					    password =>$password))) {
         return undef;
     }
-
     if ($lnet eq 'aim') {
+       $oscar::aim_connected=0;
        &main::MainLoop_post_add_hook( \&oscar::process_aim, 1 );
     } else {
+       $oscar::icq_connected=0;
        &main::MainLoop_post_add_hook( \&oscar::process_icq, 1 );
     }
 
@@ -727,6 +731,31 @@ sub oscar::cb_buddyout {
   oscar::buddychange($oscar, $screenname, 'off');
 }
 
+sub oscar::cb_buddyiconuploaded {
+  my ($oscar)=@_;
+ 
+  my $net=oscar::get_net($oscar);
+
+  print "Set buddy icon for $net\n";
+}
+
+sub oscar::cb_buddylistok {
+  my ($oscar)=@_;
+ 
+  my $net=oscar::get_net($oscar);
+
+  print "Buddy list set ok for $net\n";
+}
+
+sub oscar::cb_buddylisterror {
+  my ($oscar,$error,$what)=@_;
+ 
+  my $net=oscar::get_net($oscar);
+
+  print "Buddy list error for $net: $what\n";
+}
+
+
 sub oscar::cb_signondone {
   my ($oscar)=@_;
 
@@ -734,13 +763,47 @@ sub oscar::cb_signondone {
   my $buddies  = $main::config_parms{'net_' . $net . '_buddies'};
 
   print "Successfully signed onto $net\n";
+  if ($net eq 'aim') {
+    $oscar::aim_connected=1;
+  } else {
+    $oscar::icq_connected=1;
+  }
 
   for (split /,/, $buddies) {
       print "Adding $net buddy $_\n";
       $oscar -> add_buddy("friends", $_);
   }
-  $oscar -> commit_buddylist;
+  my $iconfile=$main::config_parms{"net_${net}_buddy_icon"};
+  if (-r $iconfile) {
+    my $icon=&main::file_read($iconfile);
+    $oscar -> set_icon($icon) if $icon;
+  }
+  $oscar -> commit_buddylist();
 }
+
+sub oscar::cb_connectionchanged {
+  my ($oscar,$connection,$status)=@_;
+
+  my $net=oscar::get_net($oscar);
+  print "Connection status for $net is now $status\n";
+
+  # For some reason, we get a status=deleted when first logging onto
+  # OSCAR.  We only react to 'deleted' if we have previously been connected
+  if ($status eq 'deleted') {
+    if ($net eq 'aim') {
+      if ($oscar::aim_connected==1) {
+        $oscar::aim_connected=0;
+        &main::AOLim_Disconnected_hooks();
+      }
+    } else {
+      if ($oscar::icq_connected==1) {
+        $oscar::icq_connected=0;
+        &main::ICQim_Disconnected_hooks();
+      }
+    }
+  }
+}
+
 
 sub oscar::get_net {
   my ($oscar)=@_;
@@ -833,10 +896,18 @@ sub main::net_im_process_queue {
 
 sub main::net_im_send {
     my %parms = @_;
+   
+    if ($main::Debug{im}) {
+    my $parm;
+      foreach $parm (keys(%parms)) {
+ 	print "net_im_send parm $parm is $parms{$parm}\n";
+      }
+    }
+
                                 # Default is aol aim (only because it was first)
     my $pgm = lc $parms{pgm};
     my $to = $parms{to};
-    print "net_im_send pgm=$pgm to=$to\n" if $::Debug{im};
+    print "net_im_send pgm=$pgm to=$to\n" if $main::Debug{im};
     &::logit("$main::config_parms{data_dir}/logs/net_im.$::Year_Month_Now.log",  "to=$to from=$parms{from} pgm=$pgm text=$parms{text}");
 
     return if &main::net_im_do_send(%parms) != 0;
@@ -853,6 +924,7 @@ sub main::net_im_send {
 sub main::net_im_do_send {
 
     my %parms = @_;
+
 
     undef $parms{to} if lc($parms{to}) eq 'default';
 
@@ -1454,6 +1526,10 @@ sub main::url_changed {
 
 #
 # $Log$
+# Revision 1.65  2005/12/21 15:19:23  mattrwilliams
+# Added AIM/ICQ buddy icon capability.
+# Added hooks for AOL/ICQ connection being lost.
+#
 # Revision 1.64  2005/10/02 19:27:53  mattrwilliams
 # - added more callbacks for OSCAR object
 # - added ICQ compatibility (I think - untested)
