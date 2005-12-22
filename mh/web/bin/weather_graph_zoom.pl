@@ -43,8 +43,30 @@ print "<meta http-equiv='refresh' content='".$rate.";url='>" if $rate;
 &print_prompts($cgi);
 
 if ($cgi->param) {
+  # Print parameters
+#  if (1) {
+#    my @values;
+#    my $key;
+#    print $cgi->br;
+#    my $lib;
+#    foreach $lib ( @INC ) {
+#	print "INC =" . $lib . "\n";
+#	print $cgi->br;
+#    }
+#    print $cgi->br;
+#    foreach $key ($cgi->param) {
+#      print $cgi->br;
+#      print $key . " = ";
+#      @values = $cgi->param($key);
+#      print "VAL", @values, "VAL";
+#      print $cgi->br;
+#    }
+#  }
 
   # Convert begin date in Epoch date
+#  my $day = $cgi->param('debday');
+#  my $month = $cgi->param('debmonth');
+#  my $year = $cgi->param('debyear');
   my $debepochtime = timelocal(0,0,0,$cgi->param('debday'),$cgi->param('debmonth')-1,$cgi->param('debyear')-1900);
 
   # Convert end date in Epoch date
@@ -67,18 +89,6 @@ if ($cgi->param) {
 
   &print_graph;
 
-  # Print parameters
-  #if (1) {
-  #my @values;
-  #my $key;
-  #print $cgi->br;
-  #foreach $key ($cgi->param) {
-  #	print $key . " = ";
-  #	@values = $cgi->param($key);
-  #	print @values;
-  #	print $cgi->br;
-  #	}
-  #    }
 }
 
 print $cgi->end_html;
@@ -133,6 +143,7 @@ my $RRDFILE;
 my %sensor_names;
 my @list_sensors;
 my @list_sensors_names;
+
 
 # Initialisation parameters first call
 if (!$cgi->param) {
@@ -286,6 +297,35 @@ sub convertstepz {
 	return $stepchar;
 }
 #==============================================================================
+# rrdtool 1.2 and newer is picky about colons in the comment line
+#==============================================================================
+sub get_footer1 {
+  my $step;
+  my $datapoint;
+  my $colon;
+  my $footer;
+  my ($step, $datapoint) = @_;
+  if ( $RRDs::VERSION >= 1.2 ) {
+    $colon = '\\\\\:';
+  } else {
+    $colon= ':';
+  }
+  $footer="Step size$colon " . convertstepz($step) . "   Data points$colon $datapoint";
+  return $footer;
+}
+
+sub get_footer2 {
+  my $footer;
+  if ( $RRDs::VERSION >= 1.2 ) {
+    $footer='$footer ' . "= \"$config_parms{weather_graph_footer}\";";
+    eval $footer;
+    $footer =~ s/:/\\\\\:/g;
+  } else {
+    $footer= $config_parms{weather_graph_footer};
+  }
+  return $footer;
+}
+#==============================================================================
 # Build call function RRD::GRAPH for zoom
 #==============================================================================
 sub create_rrdgraph_zoom {
@@ -349,6 +389,13 @@ sub create_rrdgraph_zoom {
   my $strminvar2;
   my $strmaxvar2;
   my $libuom2;
+
+  my $footer1;
+  my $footer2;
+
+  $footer1 = get_footer1($step, $datapoint);
+  $footer2 = get_footer2();
+
   $libuom= "\"Unit of measurement (RRD database)\",";
   $strvar="\"CDEF:fvar=var\",";
   $strminvar="\"CDEF:fmindata=mindata\",";
@@ -452,12 +499,10 @@ sub create_rrdgraph_zoom {
 . ($sensor2 ne "nosensor" ? "\"GPRINT:fvar2:LAST:Last \\\\: %5.1lf\\\\n\",":'')
 . qq^
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna:No data\\\\n",
 ^
-. "\"COMMENT:Step size \: "
-. convertstepz($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
   print "$str_graph" if $debug;

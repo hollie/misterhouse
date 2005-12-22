@@ -481,6 +481,41 @@ sub create_rrdgraph_all {
 	&create_rrdgraph_rainrate unless ($config_parms{weather_graph_skip} =~ /rainrate/);
 }
 #==============================================================================
+# rrdtool 1.2 and newer is picky about colons in the comment line
+# so build the footers differently depending on the version
+#==============================================================================
+sub get_weather_footer1 {
+  my $start;
+  my $step;
+  my $datapoint;
+  my $colon;
+  my $footer;
+  my $starttime;
+  my ($start, $step, $datapoint) = @_;
+  $starttime = CORE::localtime($start);
+  if ( $RRDs::VERSION >= 1.2 ) {
+    $colon = '\\\\:';
+    $starttime =~ s/:/\\\\:/g;
+  } else {
+    $colon= ':';
+  }
+  $footer="Start time$colon $starttime   Step size$colon " . convertstep($step) . "   Data points$colon $datapoint";
+  # print_log "Footer: $footer";
+  return $footer;
+}
+
+sub get_weather_footer2 {
+  my $footer;
+  if ( $RRDs::VERSION >= 1.2 ) {
+    $footer='$footer ' . "= \"$config_parms{weather_graph_footer}\";";
+    eval $footer;
+    $footer =~ s/:/\\\\:/g;
+  } else {
+    $footer= $config_parms{weather_graph_footer};
+  }
+  return $footer;
+}
+#==============================================================================
 # Convert step size in seconds to string format
 # Input : step size in numeric format
 # Output : step size in string format
@@ -538,6 +573,10 @@ sub create_rrdgraph_tempout {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $footer1;
+    my $footer2;
+
+    $footer2 = get_weather_footer2();
 
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
@@ -584,7 +623,7 @@ for $celgtime (@$tabgtime) {
      $err=RRDs::error;
      die "ERROR : function RRDs::fetch : $err\n" if $err;
      $datapoint = $#$array + 1;
-     $starttime = localtime($start);
+     $footer1 = get_weather_footer1($start, $step, $datapoint);
 
      $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_tempout_$celgtime->[0].$rrd_format",
 "--title", "$celgtime->[1]",
@@ -658,12 +697,10 @@ for $celgtime (@$tabgtime) {
 
 "LINE2:fvar#$colortempavg:Average outdoor temperature",
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna",
 ^
-. "\"COMMENT:Start time \: $starttime   Step size \: "
-. convertstep($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
    print "\n$str_graph \n" if $debug;
@@ -704,6 +741,8 @@ sub create_rrdgraph_tempin {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $footer1;
+    my $footer2;
 
     my %sensor_names = @_;
 
@@ -718,6 +757,8 @@ sub create_rrdgraph_tempin {
 	 	}
  	}
     print "Max sensor length name : ",$max,"\n" if $debug;
+
+    $footer2 = get_weather_footer2();
 
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
@@ -762,7 +803,7 @@ for $celgtime (@$tabgtime) {
      $err=RRDs::error;
      die "ERROR : function RRDs::fetch : $err\n" if $err;
      $datapoint = $#$array + 1;
-     $starttime = localtime($start);
+     $footer1 = get_weather_footer1($start, $step, $datapoint);
 
      $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_tempin_$celgtime->[0].$rrd_format",
 "--title", "$celgtime->[1]",
@@ -953,12 +994,10 @@ for $celgtime (@$tabgtime) {
 	:'')
 . qq^
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna",
 ^
-. "\"COMMENT:Start time \: $starttime   Step size \: "
-. convertstep($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
    print "\n$str_graph \n" if $debug;
@@ -996,6 +1035,10 @@ sub create_rrdgraph_winddir {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $footer1;
+    my $footer2;
+
+    $footer2 = get_weather_footer2();
 
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
@@ -1040,7 +1083,7 @@ for $celgtime (@$tabgtime) {
      $err=RRDs::error;
      die "ERROR : function RRDs::fetch : $err\n" if $err;
      $datapoint = $#$array + 1;
-     $starttime = localtime($start);
+     $footer1 = get_weather_footer1($start, $step, $datapoint);
 
      $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_winddir_$celgtime->[0].$rrd_format",
 "--title", "$celgtime->[1]",
@@ -1082,14 +1125,12 @@ for $celgtime (@$tabgtime) {
 "GPRINT:fvar:AVERAGE:Avg \\\\: %3.1lf",
 "GPRINT:fvar:LAST:Last \\\\: %3.1lf\\\\n",
 
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna",
 "COMMENT:(0 N)-(45 NE)-(90 E)-(135 SE)-(180 S)-(225 SW)-(270 W)-(315 NW)-(360 N)\\\\c",
 "COMMENT:\\\\n",
 ^
-. "\"COMMENT:Start time \: $starttime   Step size \: "
-. convertstep($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
    print "\n$str_graph \n" if $debug;
@@ -1128,6 +1169,10 @@ sub create_rrdgraph_humout {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $footer1;
+    my $footer2;
+
+    $footer2 = get_weather_footer2();
 
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
@@ -1172,7 +1217,7 @@ for $celgtime (@$tabgtime) {
      $err=RRDs::error;
      die "ERROR : function RRDs::fetch : $err\n" if $err;
      $datapoint = $#$array + 1;
-     $starttime = localtime($start);
+     $footer1 = get_weather_footer1($start, $step, $datapoint);
 
      $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_humout_$celgtime->[0].$rrd_format",
 "--title", "$celgtime->[1]",
@@ -1212,12 +1257,10 @@ for $celgtime (@$tabgtime) {
 "GPRINT:var:LAST:Last \\\\: %2.1lf\\\\n",
 
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna",
 ^
-. "\"COMMENT:Start time \: $starttime   Step size \: "
-. convertstep($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
    print "\n$str_graph \n" if $debug;
@@ -1253,6 +1296,11 @@ sub create_rrdgraph_humin {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $footer1;
+    my $footer2;
+
+    $footer2 = get_weather_footer2();
+
     my $rrd_format = $config_parms{weather_graph_format} ;
     tr/A-Z/a-z/ for $rrd_format ;
 
@@ -1313,7 +1361,7 @@ for $celgtime (@$tabgtime) {
      $err=RRDs::error;
      die "ERROR : function RRDs::fetch : $err\n" if $err;
      $datapoint = $#$array + 1;
-     $starttime = localtime($start);
+     $footer1 = get_weather_footer1($start, $step, $datapoint);
 
      $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_humin_$celgtime->[0].$rrd_format",
 "--title", "$celgtime->[1]",
@@ -1464,12 +1512,10 @@ for $celgtime (@$tabgtime) {
 	:'')
 . qq^
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna",
 ^
-. "\"COMMENT:Start time \: $starttime   Step size \: "
-. convertstep($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
    print "\n$str_graph \n" if $debug;
@@ -1510,6 +1556,10 @@ sub create_rrdgraph_press {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $footer1;
+    my $footer2;
+
+    $footer2 = get_weather_footer2();
 
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
@@ -1554,7 +1604,7 @@ for $celgtime (@$tabgtime) {
      $err=RRDs::error;
      die "ERROR : function RRDs::fetch : $err\n" if $err;
      $datapoint = $#$array + 1;
-     $starttime = localtime($start);
+     $footer1 = get_weather_footer1($start, $step, $datapoint);
 
      $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_press_$celgtime->[0].$rrd_format",
 "--title", "$celgtime->[1]",
@@ -1601,23 +1651,21 @@ for $celgtime (@$tabgtime) {
 "GPRINT:fvar:LAST:Last \\\\: %2.1lf",
 "GPRINT:seafvar:LAST:(sea level \\\\: %2.1lf)\\\\n",
 ^ : qq^
-"GPRINT:fminpress:MIN:Min \\\\: %2.2lf",
-"GPRINT:fmaxpress:MAX:Max \\\\: %2.2lf",
-"GPRINT:fvar:AVERAGE:Avg \\\\: %2.2lf",
-"GPRINT:fvar:LAST:Last \\\\: %2.2lf",
-"GPRINT:seafvar:LAST:(sea level \\\\: %2.2lf)\\\\n",
+"GPRINT:fminpress:MIN:Min \\\\: %5.2lf",
+"GPRINT:fmaxpress:MAX:Max \\\\: %5.2lf",
+"GPRINT:fvar:AVERAGE:Avg \\\\: %5.2lf",
+"GPRINT:fvar:LAST:Last \\\\: %5.2lf",
+"GPRINT:seafvar:LAST:(sea level \\\\: %5.2lf)\\\\n",
 ^
 )
 
 . ($config_parms{weather_uom_baro} eq 'mb' ? "\"HRULE:1013.25#$colorzero\",":"\"HRULE:29.9#$colorzero\",")
 . qq^
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n\\\\n",
+"AREA:wipeout2#$colorna",
 ^
-. "\"COMMENT:Start time \: $starttime   Step size \: "
-. convertstep($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
    print "\n$str_graph \n" if $debug;
@@ -1656,6 +1704,10 @@ sub create_rrdgraph_windspeed {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $footer1;
+    my $footer2;
+
+    $footer2 = get_weather_footer2();
 
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
@@ -1700,7 +1752,7 @@ for $celgtime (@$tabgtime) {
      $err=RRDs::error;
      die "ERROR : function RRDs::fetch : $err\n" if $err;
      $datapoint = $#$array + 1;
-     $starttime = localtime($start);
+     $footer1 = get_weather_footer1($start, $step, $datapoint);
 
      $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_windspeed_$celgtime->[0].$rrd_format",
 "--title", "$celgtime->[1]",
@@ -1743,12 +1795,10 @@ for $celgtime (@$tabgtime) {
 "GPRINT:fvar:LAST:Last \\\\: %3.1lf\\\\n",
 "HRULE:0#$colorzero",
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna",
 ^
-. "\"COMMENT:Start time \: $starttime   Step size \: "
-. convertstep($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
    print "\n$str_graph \n" if $debug;
@@ -1789,6 +1839,10 @@ sub create_rrdgraph_raintotal {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $footer1;
+    my $footer2;
+
+    $footer2 = get_weather_footer2();
 
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
@@ -1833,7 +1887,7 @@ for $celgtime (@$tabgtime) {
      $err=RRDs::error;
      die "ERROR : function RRDs::fetch : $err\n" if $err;
      $datapoint = $#$array + 1;
-     $starttime = localtime($start);
+     $footer1 = get_weather_footer1($start, $step, $datapoint);
 
      $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_raintotal_$celgtime->[0].$rrd_format",
 "--title", "$celgtime->[1]",
@@ -1879,12 +1933,10 @@ for $celgtime (@$tabgtime) {
 "GPRINT:fsum:LAST:Total \\\\: %5.2lf\\\\n",
 "HRULE:0#$colorzero",
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna",
 ^
-. "\"COMMENT:Start time \: $starttime   Step size \: "
-. convertstep($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
    print "\n$str_graph \n" if $debug;
@@ -1924,6 +1976,10 @@ sub create_rrdgraph_rainrate {
     my $datapoint;
     my $starttime;
     my $secs;
+    my $footer1;
+    my $footer2;
+
+    $footer2 = get_weather_footer2();
 
     $rrd_graph_dir = $config_parms{weather_graph_dir};
     $rrd_dir = $config_parms{weather_data_rrd};
@@ -1972,7 +2028,7 @@ for $celgtime (@$tabgtime) {
      $err=RRDs::error;
      die "ERROR : function RRDs::fetch : $err\n" if $err;
      $datapoint = $#$array + 1;
-     $starttime = localtime($start);
+     $footer1 = get_weather_footer1($start, $step, $datapoint);
 
      $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_rainrate_$celgtime->[0].$rrd_format",
 "--title", "$celgtime->[1]",
@@ -2018,12 +2074,10 @@ for $celgtime (@$tabgtime) {
 "GPRINT:fvar:LAST:Last \\\\: %5.2lf\\\\n",
 "HRULE:0#$colorzero",
 "AREA:wipeout#$colorna:No data\\\\n",
-"AREA:wipeout2#$colorna\\\\n",
+"AREA:wipeout2#$colorna",
 ^
-. "\"COMMENT:Start time \: $starttime   Step size \: "
-. convertstep($step)
-. "   Data points : $datapoint\\\\c\","
-. "\"COMMENT:$config_parms{weather_graph_footer}\\\\c\""
+. "\"COMMENT:$footer1\\\\c\","
+. "\"COMMENT:$footer2\\\\c\""
 . ")";
 
    print "\n$str_graph \n" if $debug;
