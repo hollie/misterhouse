@@ -86,10 +86,20 @@ so position * 22.5 is the rrd graph direction ( assuming it's linier )
 "
 =cut
 
+#
+# in order to get the initialization of the socket to work correctly
+# here we must force misterhouse to keep all of this code out of the loop
+# body. Otherwise the new Socket line will be moved out of the loop body
+# but the config_parms lines are in the loop body which happens afterwards.
+# Without this you must have a definition of the port in an .ini file
+# as the default here gets applied too late. 
+#
+
+# noloop=start
 my $owwhost = $config_parms{owwserver_host_port};
 $owwhost = "localhost:8888" unless $owwhost ;
-
 $ibws   = new  Socket_Item(undef, undef, $owwhost, 'ibws', 'tcp', 'raw');
+# noloop=stop
 
 $ibws_v = new  Voice_Cmd "[Start,Stop,Speak] the ibutton weather station client";
 $ibws_v-> set_info('Connects to the ibutton weather station server');
