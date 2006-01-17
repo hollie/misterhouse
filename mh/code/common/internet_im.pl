@@ -200,7 +200,7 @@ sub im_message {
         $msg  = "Type any of the following:\n";
         $msg .= "  find:  xyz  => finds commands that match xyz\n";
         $msg .= "  log:   xyz  => xyz is a filter of what to log.  Can print, speak, play, speak|play, all, and stop\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
-        $msg .= "  var: abc xyz => abc is variable or hash, xyz element in hash to show\n";
+        $msg .= "  var: abc xyz => abc is variable, hash or reference, xyz element in hash or hash reference to show\n";
         $msg .= "  logon: xyz  => logon with password xyz\n";
         $msg .= "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only sent using current IM program\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
         $msg .= "  any valid MisterHouse voice command(e.g. What time is it)\n";
@@ -211,15 +211,24 @@ sub im_message {
         }
         elsif ($text =~ /^var:\s+(.+)$/i) {
             no strict 'refs';
-            my @params=split(/\s+/,$1);
-            if ($#params==0) {
-                $msg = "\$$1 = $$1";
-            } elsif ($#params==1) {
-                my $hash=$params[0];
-                my $key=$params[1];
-            	$msg = '$'.$params[0].'{'.$params[1].'} = '.${$params[0]}{$params[1]};
+            my ($var,$key)=split(/\s+/,$1);
+           	my $refType=ref(${$var});
+            if ($key eq '') {
+            	if ($refType eq '') {
+	                $msg = "\$$var = $$var";
+				} else {
+					if ($refType eq 'SCALAR') {
+						$msg = "\\$$$var = ${${$var}}";
+					} else {
+						$msg = "Error, \$$var is not a scalar reference, it is a $refType reference.  I need a second parameter";
+					}
+				}
             } else {
-                $msg = 'Invalid syntax';
+            	if ($refType eq '') { # this is a simple hash
+	            	$msg = '$'.$var.'{'.$key.'} = '.${$var}{$key};
+				} else { # this is a reference, assuming a hash or object reference
+					$msg = '$'.$var.'->{'.$key.'} = '.${$var}->{$key};
+				}
             }
         }
         elsif ($text =~ /^log: (.+)$/i) {
