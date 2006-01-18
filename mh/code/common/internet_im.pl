@@ -150,6 +150,7 @@ sub im_message {
     return if $text =~ /^i\'m away/i;
     return if $text =~ /^Sorry, I ran out for a bit/i;
     return if $text =~ /^I am currently away from the computer/i;
+    return if $from =~ /AOL System Msg/i;
 
     my $msg;
     if ($text =~ /^(login|logon): *(\S*)$/i) {
