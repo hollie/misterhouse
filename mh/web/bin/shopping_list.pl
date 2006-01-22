@@ -1,8 +1,14 @@
 # Shopping List
-# Version 1.63
+# Version 1.64
 # Matthew Williams
 #
 # This file should be placed in mh/web/bin.  I link to it through a my_mh page.
+#
+# If you want to be tricky, then this same script can be used to manage multiple lists.
+# Just call the script this way: shopping_list.pl?listName=foobar
+#
+# Now, it will use the file pointer to by the mh param foobar_list
+# The shopping_print... parameters are still used, regardless of which list is being processed.
 #
 # file pointed to by shopping_list should be populated like Windows .ini files
 # with [categories] in square brackets and items=0
@@ -42,6 +48,9 @@
 #
 # Revision History:
 #
+# Version 1.64: Matthew Williams
+# - added ability to manage multiple lists
+#
 # Version 1.63: Matthew Williams
 # - changed form action from get to post
 #
@@ -79,8 +88,22 @@
 #
 
 my $shoppinglistdebug=0;
-my $file=$config_parms{shopping_list};
-$file = "$Pgm_Root/data/shopping_list.txt" unless $file and -e $file;
+my %param;
+
+foreach my $param (@ARGV) {
+	$param =~ /^(.+)=(.+)$/ && do {
+		$html.="<p>$1 ** $2</p>\n" if $shoppinglistdebug;
+		$param{$1}=$2;
+		}
+}
+
+my $listName=$param{listName};
+$listName='shopping' unless $listName;
+
+my $prettyName=ucfirst($listName).' List';
+
+my $file=$config_parms{"${listName}_list"};
+$file = "$Pgm_Root/data/${listName}_list.txt" unless $file and -e $file;
 my $printCommand=$config_parms{shopping_print};
 my $printCommandType=$config_parms{shopping_print_type};
 $printCommandType='pipe' unless $printCommandType eq 'file';
@@ -88,18 +111,17 @@ my $printOutput=$file.'.output';
 my $tempFile=$file.'.temp';
 my $action;
 my $sectionHeader;
-my $param;
-my %param;
 
 my $numColumns=$config_parms{shopping_columns};
 $numColumns=4 unless $numColumns;
 my $columnWidth=100/$numColumns.'%';
 
+
 my $html=qq[
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html>
 <head>
-<title>Shopping List</title>
+<title>$prettyName</title>
 <style type="text/css">
 p,a { font-family: helvetica;
     font-size: 10pt;
@@ -117,13 +139,13 @@ h4 { font-family: helvetica;
 </head>
 <body>
 <form name="main" action="/bin/shopping_list.pl" method="post">
+<input type="hidden" name="listName" value="$listName">
 ];
 
 
-foreach $param (@ARGV) {
-	$param =~ /^(.+)=(.+)$/ && do {
-		$html.="<p>$1 ** $2</p>\n" if $shoppinglistdebug;
-		$param{$1}=$2;
+if ($shoppinglistdebug ) {
+	foreach my $key (keys(%param)) {
+		$html.="<p>$key ** $param{$key}</p>\n";
 		}
 }
 
@@ -132,10 +154,10 @@ sub shoppingListError {
 	return qq[
 <html>
 <head>
-<title>Shopping List Error</title>
+<title>$prettyName Error</title>
 </head>
 <body>
-<h3>Internal Error in Shopping List Script</h3>
+<h3>Internal Error in $prettyName Script</h3>
 <h3>$message</h3>
 </body>
 </html>
@@ -160,7 +182,7 @@ if ($param{'action'} eq 'add item') {
 		close (SHOPLIST);
 		$html.=qq[</select></p><p>&nbsp;</p>\n];
 		$html.=qq[<p>Item: <input type="text" name="item" size=50></p><br>];
-		$html.=qq[<p>Add to Shopping List Now: <input type="checkbox" name="onlistnow"></p><br>];
+		$html.=qq[<p>Add to $prettyName Now: <input type="checkbox" name="onlistnow"></p><br>];
 		$html.=qq[<p><input type="submit" name="action" value="add item">\n];
 		$html.=qq[<input type="submit" name="action" value="cancel"></p>\n];
 		$html.=qq[</form>\n];
@@ -262,7 +284,7 @@ if (($param{'action'} eq 'update list') or ($param{'action'} eq 'clear all') or 
 }
 
 if ($printing) {
-	$html.=qq[<h2>Shopping List</h2>];
+	$html.=qq[<h2>$prettyName</h2>];
 	if ($param{'action'} eq 'print preview') {
 		$html.=qq[<h4>Preview Only</h4>];
 	}
@@ -279,7 +301,7 @@ my $showAll=1;
 $showAll=0 if $atShop==1;
 
 if ($atShop) {
-	$html.=qq[<h2>Shopping List At Shop</h2>];
+	$html.=qq[<h2>$prettyName At Shop</h2>];
 	$html.=qq[<p><input type="submit" name="action" value="remove items">];
 	$html.=qq[<input type="submit" name="action" value="cancel"></p>];
 }
