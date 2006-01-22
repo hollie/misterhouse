@@ -1,8 +1,14 @@
 # Category = Weather
 #
+# Ignore the next two lines if you are not me.
+# I am now internally using an SVN repository.
+#
+# $Revision$
+# $Date$
+#
 #@ Weather METAR parser
 #@ 
-#@ V 1.61
+#@ V 1.62
 #@
 #@ To get the closest station name in Canada, go to 
 #@ http://www.flightplanning.navcanada.ca and choose METAR/TAF
@@ -16,6 +22,10 @@
 #@
 #
 # by Matthew Williams
+#
+# V 1.62
+# - Added ability to add hooks that are called when new forecasts are retrieved.
+# - Added new SummaryLong key to Weather Hash
 #
 # V 1.61
 # - Fixed typo that corrupted Weather{TempOutdoor}
@@ -49,6 +59,7 @@
 my $station=uc($config_parms{weather_metar_station});
 my $country=lc($config_parms{weather_metar_country});
 my $units=lc($config_parms{weather_metar_units});
+my @weather_metar_hooks;
 
 $station='CYOW' unless $station;
 $country='other' unless $country;
@@ -209,16 +220,18 @@ if (done_now $p_weather_metar_page or $Reload) {
     $pressuretext=sprintf('%.1f kPa',$pressure);
   }
 
+  $windspeedtext = sprintf ("%.0f $windunit",$windspeed);
+  my $altwindtext=$windspeedtext;
   if ($windgust > 0 ) {
     $windspeedtext = sprintf ("%.0f (%.0f) $windunit",$windspeed,$windgust);
-  } else {
-    $windspeedtext = sprintf ("%.0f $windunit",$windspeed);
-  }
+  } 
   
   if ($windspeed == 0) {
-    $Weather{Wind}="no wind";
+    $Weather{Wind}='no wind';
+    $altwindtext='no wind';
   } else {  
     $Weather{Wind}="$winddirname at $windspeedtext";
+    $altwindtext="$winddirname at $altwindtext";
   }
 
   my $apparenttemptext='';
@@ -229,18 +242,37 @@ if (done_now $p_weather_metar_page or $Reload) {
   $Weather{Summary}=$Weather{Summary_Short}." $pressuretext ${clouds}$weather";
   $Weather{TempOutdoor}=sprintf("%.0f",$temp);
   $Weather{ApparentTemp}=sprintf("%.0f",$apparenttemp);
-  $Weather{WindChill}=sprintf("%.0f",$windchill);
-  $Weather{Humidex}=sprintf("%.0f",$humidex);
+  $Weather{HumidOutdoor}=sprintf("%.0f",$humidity);
   $Weather{WindAvgDir}=$winddir;
   $Weather{WindAvgSpeed}=sprintf("%.0f",$windspeed);
   $Weather{WindGustDir}=$winddir;
-  $Weather{DewOutdoor}=sprintf("%.0f",$dewpoint);
-  $Weather{HumidOutdoor}=sprintf("%.0f",$humidity);
   if ($windgust > 0) {
     $Weather{WindGustSpeed}=sprintf("%.0f",$windgust);
   } else {
     $Weather{WindGustSpeed}=$Weather{WindAvgSpeed};
   }
+  $Weather{SummaryLong}='Temperature: '.$Weather{TempOutdoor}.'&deg;'.$tempunit;
+  if ($apparenttemp ne 'none') {
+    $Weather{SummaryLong}.='  Apparent Temperature: '.$Weather{ApparentTemp}.'&deg;'.$tempunit;
+  }
+  $Weather{SummaryLong}.='  Humidity: '.$Weather{HumidOutdoor}.'%';
+  $Weather{SummaryLong}.='  Wind: '.$altwindtext;
+  if ($windgust > 0) {
+    $Weather{SummaryLong}.=" gusting to $Weather{WindGustSpeed} $windunit";
+  }
+  $Weather{SummaryLong}.="  Air Pressure: $pressuretext  Sky: ${clouds} Precipitation: $weather";
+  $Weather{WindChill}=sprintf("%.0f",$windchill);
+  $Weather{Humidex}=sprintf("%.0f",$humidex);
+  $Weather{DewOutdoor}=sprintf("%.0f",$dewpoint);
   $Weather{Barom}=sprintf("%.1f",$metricpressure*10);
   print_log "Weather: $Weather{Summary} $Weather{Wind} dewpoint $Weather{DewOutdoor} humidity $Weather{HumidOutdoor}";
+  foreach my $subref (@weather_metar_hooks) {
+    &$subref();
+  }
 }
+
+sub weather_metar_add_hook {
+  my ($subref)=@_;
+  push @weather_metar_hooks,$subref;
+}
+
