@@ -19,7 +19,7 @@
  <img src="images/todo.gif" alt='Todo list' border="0"></a><br>
 
 <a href='<!--#include var="$config_parms{web_href_shopping}" -->'>
- <img src="/bin/button.pl?Shopping" alt='Shopping' border="0"></a><br>
+ <img src="images/shoppinglist.gif" alt='Shopping List' border="0"></a><br>
 
 <!-- <a href="/misc/alarms.shtml"><img src="images/alarms.gif" alt='Alarms' border="0"></a><br> -->
 <a href="/bin/triggers.pl"><img src="images/alarms.gif" alt='Alarms' border="0"></a><br>
