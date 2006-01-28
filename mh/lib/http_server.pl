@@ -1425,7 +1425,7 @@ sub html_page {
     my $date=time2str(time);
 
                                 # Allow for fully formated html
-    if ($body =~ /^\s*<(html|\?xml)/i) {
+    if ($body =~ /^\s*<(!doctype\s*)?(html|\?xml)/i) {
         $body =~ s/\n/\n\r/g;   # Bill S. says this is required to be standards compiliant
 
 # Content-Length is only for binary data!
@@ -2923,6 +2923,9 @@ Cookie: xyzID=19990118162505401224000000
 
 #
 # $Log$
+# Revision 1.98  2006/01/28 02:28:12  mattrwilliams
+# Added <!doctype ...  as a valid start of a complete html page in html_page.
+#
 # Revision 1.97  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #
