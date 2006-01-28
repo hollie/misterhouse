@@ -1,5 +1,5 @@
 # Shopping List
-# Version 1.64
+# Version 1.65
 # Matthew Williams
 #
 # This file should be placed in mh/web/bin.  I link to it through a my_mh page.
@@ -47,6 +47,10 @@
 # shopping list.  If blank, will default to net_mail_account_address
 #
 # Revision History:
+#
+# Version 1.65: Matthew Williams
+# - now using html_page to send complete http headers
+# - removed initial CR from html
 #
 # Version 1.64: Matthew Williams
 # - added ability to manage multiple lists
@@ -117,8 +121,7 @@ $numColumns=4 unless $numColumns;
 my $columnWidth=100/$numColumns.'%';
 
 
-my $html=qq[
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+my $html=qq[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html>
 <head>
 <title>$prettyName</title>
@@ -417,4 +420,4 @@ if ($param {'action'} eq 'e-mail') {
   }
 }
 
-return $html;
+return html_page(undef, $html);
