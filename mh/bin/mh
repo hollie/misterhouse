@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2005-10-01 22:05:19 winter>
+#  Last change Time-stamp: <2006-01-29 14:02:30 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -108,6 +108,8 @@ use vars '%Disabled_Commands';  # So we can access fro Voice_Cmd.pm
 use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
 use vars '$DNS_resolver';
 use vars '%cm11_objects';
+use vars '%ti103_objects';
+
 
                                 # Pre-declare these so we don't fail on non-windows platforms
 sub Win32::GetOSVersion;
@@ -808,6 +810,15 @@ sub setup {
         }
     }
 
+    if ($config_parms{ti103_port}) {
+        require 'ControlX10/TI103.pm';
+        if (&serial_port_create('ti103', $config_parms{ti103_port}, 19200, 'none')) {
+            &ControlX10::TI103::read($Serial_Ports{ti103}{object}, 1);
+            $ti103_objects{timer} = new Timer;
+            $ti103_objects{active} = new Generic_Item;
+        }
+    }
+
 
     if ($config_parms{Homevision_port}) {
         require 'Homevision.pm';
@@ -835,8 +846,14 @@ sub setup {
         &ncpuxa_mh::init($config_parms{ncpuxa_port}); # Create socket connection
     }
     if ($config_parms{use_wish} && $^O eq 'linux' && -d '/dev/x10/') {
-        require 'X10_Wish.pm';
-        $Serial_Ports{'wish'}{object} = 'wish';
+#        require 'X10_Wish.pm';
+#        $Serial_Ports{'wish'}{object} = 'wish';
+        my $instance = 'wish';
+        my $module = 'X10_Wish';
+        require "$module.pm";
+        $Serial_Ports{$instance}{object} = $instance;
+        eval "&${module}::startup('$instance')";
+        print "Startup error on &${module}::startup('$instance'): $@\n" if $@;
     }
 
 
@@ -845,6 +862,16 @@ sub setup {
         require 'ControlX10/CM17.pm';
         &serial_port_create('cm17', $config_parms{cm17_port});
     }
+
+                                 # I guess there is not really much to do here
+    if ($config_parms{iplcs_port}) {
+        require 'iplcs.pm';
+        if (&serial_port_create('iplcs', $config_parms{iplcs_port}, 4800, 'none')) {
+            #$iplcs_objects{timer} = new Timer;
+            #$iplcs_objects{active} = new Generic_Item;
+        }
+    }
+
 
                                 # Store boot time in seconds since epoc
     if ($OS_win) {
@@ -1017,7 +1044,7 @@ sub add_hook_code {
                              State_change iButton_receive
                              Play_pre Play_post Play_parms Speak_pre Speak_post Speak_parms
                              Jabber_Message Jabber_IQ Jabber_Presence
-                             AOLim_Message AOLim_Status ICQim_Message ICQim_Status MSNim_Message MSNim_Status
+                             AOLim_Message AOLim_Status AOLim_Disconnected ICQim_Message ICQim_Status ICQim_Disconnected MSNim_Message MSNim_Status
                              Reload_pre Reload_post Log Exit
                              );
     %hook_locations = map {$_, 1} @hook_locations;
@@ -1215,6 +1242,22 @@ sub check_for_action {
         $Save{mh_exit} = 'abend';
     }
 
+}
+
+sub check_for_ti103_data {
+                # Standard 1-ti103 code
+    my $data = &ControlX10::TI103::read($Serial_Ports{ti103}{object}, 1);
+    return unless $data;
+    my $data_d = unpack('C', $data);    # Convert from string to decimal
+
+                                # Check for the official 0x5a=90 string and 0xa5=165 (I have seen this!)
+    print "mh TI103 data=$data data_d=$data_d\n" if $Debug{x10} and $data;
+#       if ($data_d == 0x5a) {
+    if ($data_d == 0x5a or $data_d == 0xa5) {
+        if ($data = &ControlX10::TI103::receive_buffer($Serial_Ports{ti103}{object})) {
+        &process_serial_data("X" . $data);
+        }
+    }
 }
 
 
@@ -1610,6 +1653,7 @@ sub check_for_serial_data {
         return;
     }
 
+    &check_for_ti103_data if $Serial_Ports{ti103}{object} and $Serial_Ports{ti103}{object} ne 'proxy';
     &check_for_cm11_data if $Serial_Ports{cm11}{object} and $Serial_Ports{cm11}{object} ne 'proxy';
     &check_for_Homevision_data if $Serial_Ports{Homevision}{object};
     &check_for_HomeBase_data if $Serial_Ports{HomeBase}{object};
@@ -2395,7 +2439,7 @@ sub exit_pgm {
     for my $port (keys %Serial_Ports) {
         my $object = $Serial_Ports{$port}{object};
         $object->close() if $object and $object ne 'proxy';
-        $object->close() if $object and $object ne 'proxy' and $object ne 'wish';
+#        $object->close() if $object and $object ne 'proxy' and $object ne 'wish';
     }
     for my $port (keys %Socket_Ports) {
         my $sock = $Socket_Ports{$port}{sock};
@@ -3255,7 +3299,7 @@ sub play {
                 else {
                     print_log ("executing sound file") if $Debug{play};
                     exec qq[$sound_program $file];
-                    die 'cant exec $sound_program';
+                    die "cant exec sound_program: $sound_program";
                     exit(0);
                 }
                 print_log ("$file has played") if $Debug{play};
@@ -4013,7 +4057,7 @@ sub read_table_files {
     return unless @files_read = grep(/^[a-z0-9].*\.$table_type$/i, @files_read);
 
     my $count = @files_read;
-#   print_log "Reading $count .mht table files: @files_read";
+   print_log "Reading $count .mht table files: @files_read";
 
                                 # See if we are supposed to skip any files
     my %noload_files = map {lc($_), 1} (split(',', $config_parms{no_load}),
@@ -5052,6 +5096,13 @@ sub parse_func_parms2 {
 sub respond {
     my (%parms) = &parse_func_parms(@_);
 
+    if ($Debug{respond}) {
+      my $parm;
+      foreach $parm (keys(%parms)) {
+        print "respond parm $parm is $parms{$parm}\n";
+      }
+    }
+
                                 # Get respond from passed parm or global parm
     my $target = $parms{target};
     $target = $Respond_Target unless $target;
@@ -6045,6 +6096,9 @@ __END__
 
 #
 # $Log$
+# Revision 2.101  2006/01/29 20:23:40  winter
+# *** empty log message ***
+#
 # Revision 2.100  2005/10/02 16:48:28  winter
 # *** empty log message ***
 #
