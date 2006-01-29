@@ -19,7 +19,7 @@
 #    RO Xpander-1               0x0a
 #    RO Xpander-2               0x0b
 #    RO Xpander-3               0x0c
-#    RO Xpander-4               0x0d 
+#    RO Xpander-4               0x0d
 
 # For reference on dealing with bits/bytes/strings:
 #
@@ -40,13 +40,13 @@
 
 
 =pod
-    unless ($unithi = $table_iounit{lc($bytes[2])}) 
+    unless ($unithi = $table_iounit{lc($bytes[2])})
 {
     print "$::Time_Now Error, not a valid Stargate IO base: $code\n";
     next;
 }
 
-unless ($unitlo = $table_iounit{lc($bytes[3])}) 
+unless ($unitlo = $table_iounit{lc($bytes[3])})
 {
     print "$::Time_Now Error, not a valid Stargate IO base: $code\n";
     next;
@@ -73,12 +73,12 @@ my $temp;
 #
 sub serial_startup
 {
-    if ($::config_parms{Stargate_serial_port}) 
+    if ($::config_parms{Stargate_serial_port})
     {
         my($speed) = $::config_parms{Stargate_baudrate} || 9600;
-        if (&::serial_port_create('Stargate', $::config_parms{Stargate_serial_port}, $speed, 'none')) 
+        if (&::serial_port_create('Stargate', $::config_parms{Stargate_serial_port}, $speed, 'none'))
         {
-            init($::Serial_Ports{Stargate}{object}); 
+            init($::Serial_Ports{Stargate}{object});
             &::MainLoop_pre_add_hook( \&Stargate::UserCodePreHook,   1);
             &::MainLoop_post_add_hook( \&Stargate::UserCodePostHook, 1 );
         }
@@ -99,7 +99,7 @@ my @Thermostat_Upload_Data;     # We use this to match thermostat uploads to the
 
 my (@stargate_command_list, $transmitok);
 
-sub init 
+sub init
 {
     my ($serial_port) = @_;
     # Echo off
@@ -129,8 +129,8 @@ sub UserCodePreHook
         return;
     }
 
-#    if ($::New_Second and !($::Second % 20)) 
-    if (::new_minute 3) 
+#    if ($::New_Second and !($::Second % 20))
+    if (::new_minute 3)
     {
         RequestThermostatUpload();
         return;
@@ -145,7 +145,7 @@ sub UserCodePreHook
         #    my %table_echocommands = qw (0 0x00 2 0x02 3 0x03 4 0x04 5 0x05 8 0x08 a 0x0a c 0x0c);
 
         my ($data);
-        unless ($data = $serial_port->input) 
+        unless ($data = $serial_port->input)
         {
             # If we do not do this, we may get endless error messages.
             $serial_port->reset_error;
@@ -155,7 +155,7 @@ sub UserCodePreHook
         # We need to allow for data=0, so need to use the defined test.
         undef $data if $data eq '';
 
-        if (defined $data) 
+        if (defined $data)
         {
 	    #print "SG:>$data<\n";
 #           $data =~ s/[\r\n]/\t/g;
@@ -163,7 +163,7 @@ sub UserCodePreHook
 
             $serial_data .= $data;
             print "db Stargate serial data2=$serial_data...\n" if $main::Debug{stargate};
-            while (my($record, $remainder) = $serial_data =~ /(.+?)[\r\n]+(.*)/s) 
+            while (my($record, $remainder) = $serial_data =~ /(.+?)[\r\n]+(.*)/s)
             {
                 #print "** $record\n";
 		$parse_packet=1;
@@ -189,7 +189,7 @@ sub UserCodePreHook
                 # When we get here it's time to clear the caller id flag
                 $last_caller_id = 0;
                 next if $record =~ /(^\d{7,10}.*)/;
-                
+
                 #print "TD=$1\n" if $record =~ /\#\#5f([\d|A|B|C|D|E|F]{8})\z/i;
                 ParseThermostatUpload($1) if $record =~ /\#\#5f([\d|A|B|C|D|E|F]{8})\z/i;
                 next if $record =~ /\#\#5f([\d|A|B|C|D|E|F]{8})\z/i;
@@ -238,11 +238,11 @@ sub ParseEchoCommand
 
     my %table_hcodes = qw(6  A 7  B 4  C 5  D 8  E 9  F a  G b H
                           e  I f  J c  K d  L 0  M 1  N 2  O 3 P);
-    my %table_dcodes = qw(06  1 07  2 04  3 05  4 08  5 09  6 0a  7 0b 8
-                          0e  9 0f  A 0c  B 0d  C 00  D 01  E 02  F 03 B
-                          14  J 1c  K 12  L 1a M
-                          10 ALL_OFF 18 ALL_ON
-                          16 ALL_OFF_LIGHTS);
+   my %table_dcodes = qw(06  1 07  2 04  3 05  4 08  5 09  6 0a  7 0b 8
+                         0e  9 0f  A 0c  B 0d  C 00  D 01  E 02  F 03 B
+                         14  J 1c  K 12  L 1a M 18 O 10 P);
+#                          10 ALL_OFF 18 ALL_ON
+#                         16 ALL_OFF_LIGHTS);
 
     $data = substr($data, 13);
 
@@ -263,21 +263,21 @@ sub ParseEchoCommand
         # Disable using the Stargate for X10 receive if so configured.  I am using the CM11a and just use
         # the stargate for I/O and phone control (bsobel@vipmail.com)
         next if $main::config_parms{Stargate_DisableX10Receive};
-	
+
         my ($house, $device);
-        if (($house = $table_hcodes{lc($bytes[3])}) eq undef) 
+        if (($house = $table_hcodes{lc($bytes[3])}) eq undef)
         {
             print "Error, not a valid Stargate house code: $bytes[3]\n";
             next;
         }
 	  $bytes[1] = $bytes[1] &1;
         my $code = $bytes[1] . $bytes[2];
-        if (($device = $table_dcodes{lc($code)}) eq undef) 
+        if (($device = $table_dcodes{lc($code)}) eq undef)
         {
             print "Error, not a valid Stargate device code: $code\n";
             next;
         }
-        else 
+        else
         {
             my $data = $house . $device;
             print "Stargate X10 receive:$data\n" if $main::Debug{stargate};
@@ -373,7 +373,7 @@ sub RequestThermostatUpload
 {
     ResetThermostatUpload();
 
-    for my $current_object (@stargatethermostat_object_list) 
+    for my $current_object (@stargatethermostat_object_list)
     {
         my $data = "##%5f" . sprintf("%02x", $current_object->{address}-1) . "00\r";
         if($::Serial_Ports{Stargate}{object}->write($data) == length($data))
@@ -399,9 +399,9 @@ sub ParseThermostatUpload
     if($timediff > 30)
     {
         print "Stargate Thermostat out of sync data=$data timediff=$timediff Trying again\n" if $main::Debug{stargate};
-        
+
         ResetThermostatUpload();
-        
+
         # Clear any remaining thermostat states out of the queue by waiting 10 seconds and then try again
         ::run_after_delay 10, sub
         {
@@ -424,7 +424,7 @@ sub ParseThermostatUpload
             my ($address, $data) = split(',', shift @Thermostat_Upload_Data);
 
             print "Stargate Thermostat upload command for address:" . $address . " data=$data\n" if $main::Debug{stargate};
-    
+
             ParseThermostatData($address, 0x00, hex substr($data,0,2));
             ParseThermostatData($address, 0x01, hex substr($data,2,2));
             ParseThermostatData($address, 0x03, hex substr($data,4,2));
@@ -509,7 +509,7 @@ sub SetThermostatState
 {
     my ($address, $state, $statedata) = @_;
 
-    for my $current_object (@stargatethermostat_object_list) 
+    for my $current_object (@stargatethermostat_object_list)
     {
         next unless $current_object->{address}-1 == $address;
 
@@ -532,7 +532,7 @@ sub ParseDigitalInputData
     my %table_iobase = qw(a0 1 c0 2 a2 3 c2 4 a3 5 c3 6 a4 7 c4 8);
 
     my $base;
-    unless ($base = $table_iobase{lc($code)}) 
+    unless ($base = $table_iobase{lc($code)})
     {
         print "$::Time_Now Error, not a valid Stargate IO base: $code\n";
         return;
@@ -545,7 +545,7 @@ sub SetDigitalInputState
 {
     my ($base, $unitstates) = @_;
 
-    for my $current_object (@stargatedigitalinput_object_list) 
+    for my $current_object (@stargatedigitalinput_object_list)
     {
         print $current_object->{address} . " base=$base t1=" . ($base - 1) * 8 . " t2=" . ($base * 8) . "\n" if $main::Debug{stargate};
         # Make sure the item is within the range of 8 status bits returned, skip if not
@@ -572,7 +572,7 @@ sub SetDigitalInputState
 sub ParseTelephoneData
 {
     my ($subcommand, $data) = @_;
-	#print "Parse HERE!$subcommand:$data\n";	
+	#print "Parse HERE!$subcommand:$data\n";
 
     if($subcommand eq 0x05) #ICM DTMF
     {
@@ -669,11 +669,11 @@ sub SetTelephoneState
     my ($address, $state) = @_;
 #    print "SetTelephoneState called with state=$line,$state\n";
 
-    for my $current_object (@stargatetelephone_object_list) 
+    for my $current_object (@stargatetelephone_object_list)
     {
 	next unless lc $current_object->{address} eq lc $address;
 #        next unless $current_object->{address} == $address;
-	
+
 		$current_object->set($state);
         my $newstate;
         $newstate = $state if $current_object->state ne $state;
@@ -728,7 +728,7 @@ sub SetFlagState
 {
     my ($address, $state) = @_;
 
-    for my $current_object (@stargateflag_object_list) 
+    for my $current_object (@stargateflag_object_list)
     {
         next unless $current_object->{address} == $address;
 
@@ -776,10 +776,10 @@ sub SetVariableState
 {
     my ($address, $state) = @_;
 
-    for my $current_object (@stargatevariable_object_list) 
+    for my $current_object (@stargatevariable_object_list)
     {
         next unless $current_object->{address} == $address;
-        
+
         my $newstate;
         $newstate = $state if $current_object->state() ne $state;
 
@@ -795,7 +795,7 @@ sub ParseRelayData
     my %table_iobase = qw(50 1 52 2 53 3 54 4);
 
     my $base;
-    unless ($base = $table_iobase{lc($code)}) 
+    unless ($base = $table_iobase{lc($code)})
     {
         print "$::Time_Now Error, not a valid Stargate IO base: $code\n";
         return;
@@ -808,7 +808,7 @@ sub SetRelayState
 {
     my ($base, $unitstates) = @_;
 
-    for my $current_object (@stargaterelay_object_list) 
+    for my $current_object (@stargaterelay_object_list)
     {
         print $current_object->{address} . " base=$base t1=" . ($base - 1) * 8 . " t2=" . ($base * 8) . "\n" if $main::Debug{stargate};
         # Make sure the item is within the range of 8 status bits returned, skip if not
@@ -836,7 +836,7 @@ sub SetIRState
 {
     my ($address, $state) = @_;
 
-    for my $current_object (@stargateir_object_list) 
+    for my $current_object (@stargateir_object_list)
     {
         next unless $current_object->{address} == $address;
 
@@ -892,19 +892,19 @@ sub send_command
 
     push(@stargate_command_list,$port);
     push(@stargate_command_list,$command);
- 
+
     return;
 }
 
 
-sub read_time 
+sub read_time
 {
     my ($serial_port) = @_;
     print "Reading Stargate time\n";
-    if (6 == ($temp = $serial_port->write("##%06\r"))) 
+    if (6 == ($temp = $serial_port->write("##%06\r")))
     {
         select undef, undef, undef, 100 / 1000; # Give it a chance to respond
-        if (my $data = $serial_port->input) 
+        if (my $data = $serial_port->input)
         {
             #print "Stargate time string: $data\n";
                                 # Not sure about $second.  $wday looks like year, not 0-7??
@@ -912,24 +912,24 @@ sub read_time
             print "Stargate time:  $hour:$minute:$second $month/$mday/$year\n";
             return wantarray ? ($second, $minute, $hour, $mday, $month, $year, $wday) : " $hour:$minute:$second $month/$mday/$year";
         }
-        else 
+        else
         {
             print "Stargate did not respond to read_time request\n";
             return 0;
         }
     }
-    else 
+    else
     {
         print "Stargate bad write on read_time request: $temp\n";
         return 0;
     }
 }
 
-sub read_log 
+sub read_log
 {
     my ($serial_port) = @_;
     print "Reading Stargate log\n";
-    if (6 == ($temp = $serial_port->write("##%15\r"))) 
+    if (6 == ($temp = $serial_port->write("##%15\r")))
     {
         select undef, undef, undef, 100 / 1000; # Give it a chance to respond
                                 # May need to paste data together to find real line breaks
@@ -937,7 +937,7 @@ sub read_log
         my $buffer;
 
         # Read data in a buffer string
-        while (my $data = $serial_port->input) 
+        while (my $data = $serial_port->input)
         {
             $buffer .= $data;
             select undef, undef, undef, 100 / 1000; # Need more/less/any delay here???
@@ -961,7 +961,7 @@ sub read_log
         print "$count Stargate log records were read\n";
         return @log;
     }
-    else 
+    else
     {
         print "Stargate bad write on read_log request: $temp\n";
         return 0
@@ -979,33 +979,33 @@ sub read_log
 #09/29 15:43:06
 
 
-sub clear_log 
+sub clear_log
 {
     my ($serial_port) = @_;
     #print "Clearing Stargate log\n";
-    if (6 == $serial_port->write("##%16\r")) 
+    if (6 == $serial_port->write("##%16\r"))
     {
         print "Stargate log cleared\n";
         return 1;
     }
-    else 
+    else
     {
         print "Bad Stargate log reset\n";
         return 0;
     }
 }
 
-sub read_flags 
+sub read_flags
 {
     my ($serial_port) = @_;
 	$serial_port=$::Serial_Ports{Stargate}{object};
     print "Reading Stargate Flags\n";
-    if (6 == ($temp = $serial_port->write("##%10\r"))) 
+    if (6 == ($temp = $serial_port->write("##%10\r")))
     {
         select undef, undef, undef, 100 / 1000; # Give it a chance to respond
                                 # How may flags?? Best look for end of data character ... \n\n??
         my @flags;
-        while (my $data = $serial_port->input) 
+        while (my $data = $serial_port->input)
         {
             my ($header, $flags) = $data =~ /(\S+?)[\n\r]+(\S+)/;
             my $l = length $flags;
@@ -1013,7 +1013,7 @@ sub read_flags
             #print "Flag string has $l bits: $flags\n";
                                 # There are 2 characters per flag
 #           push(@flags, split('', $flags));
-            while ($flags) 
+            while ($flags)
             {
                 push(@flags, substr($flags, 0, 2));
                 $flags = substr($flags, 2);
@@ -1022,7 +1022,7 @@ sub read_flags
         print "Stargate did not respond to read_flags request\n" unless defined @flags;
         return @flags;
     }
-    else 
+    else
     {
         print "Stargate bad write on read_flags request: $temp\n";
     }
@@ -1036,7 +1036,7 @@ sub read_voicemail_count
 
 	$l_box=sprintf("%02d",$l_box);
 	&::print_log("VM count :$l_box:");
-	if (7 == ($temp = $serial_port->write("##%5c$l_box\r")) or 1) 
+	if (7 == ($temp = $serial_port->write("##%5c$l_box\r")) or 1)
 	{
 	        select undef, undef, undef, 100 / 1000; # Give it a chance to respond
 		#5c0301\r\n  3 old messages 1 new
@@ -1064,9 +1064,9 @@ sub voicemail
 	my %table_commands = qw(first 01 next 02 repeat 04 stop 06 all 07 allnew 08 cid 05 delete 03 back 09 forward 0a);
 	my $l_string;
 
-	&::print_log("Play :$l_command:"); 
+	&::print_log("Play :$l_command:");
 	$l_string = "##%94" . $table_commands{$l_command} . $l_box . "00" . $table_output{$l_output} . "\r";
-	if (7 == ($temp = $serial_port->write($l_string)) or 1) 
+	if (7 == ($temp = $serial_port->write($l_string)) or 1)
 	{
 #	        select undef, undef, undef, 100 / 1000; # Give it a chance to respond
 #		#5c0301\r\n  3 old messages 1 new
@@ -1076,21 +1076,21 @@ sub voicemail
 #		$count{old}=sprintf("%d",$1);
 #		return \%count;
 	}
-	
+
 }
 
 
-sub read_variables 
+sub read_variables
 {
     my ($serial_port) = @_;
     print "Reading Stargate Variables\n";
-    if (6 == ($temp = $serial_port->write("##%12\r"))) 
+    if (6 == ($temp = $serial_port->write("##%12\r")))
     {
         select undef, undef, undef, 100 / 1000; # Give it a chance to respond
                                 # May need to paste data together to find real line breaks
         my @vars;
         my $buffer;
-        while (my $data = $serial_port->input) 
+        while (my $data = $serial_port->input)
         {
             $buffer .= $data unless ( $data =~ /#/ ); # ##0 is end of list marker
             select undef, undef, undef, 100 / 1000; # Need more/less/any delay here???
@@ -1101,7 +1101,7 @@ sub read_variables
         print "Stargate did not respond to read_variables request\n" unless defined @vars;
         return @vars;
     }
-    else 
+    else
     {
         print "Stargate bad write on read_variables request: $temp\n";
     }
@@ -1116,7 +1116,7 @@ sub read_variables
 #       Th=01, Wen=02, Tu=04, Mo=08, Sun=10, Sat=20)
 # CC=00 (Checksum? doesn't appear to be used)
 
-sub set_time 
+sub set_time
 {
     my ($serial_port) = @_;
     my ($Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst) = localtime time;
@@ -1134,7 +1134,7 @@ sub set_time
       # }
 
     # Fix Year 2000 = 100 thing??
-    if ($Year ge 100) 
+    if ($Year ge 100)
     {
         $Year -= 100;
     }
@@ -1159,12 +1159,12 @@ sub set_time
     my $checksum = "00";
     print "Stargate set_time=$set_time checksum=$checksum\n" if $main::Debug{stargate};
 
-    if (32 == ($temp = $serial_port->write("##%05" . $set_time . $checksum . "\r"))) 
+    if (32 == ($temp = $serial_port->write("##%05" . $set_time . $checksum . "\r")))
     {
         print "Stargate time has been updated to $localtime\n";
         return 1;
     }
-    else 
+    else
     {
         print "Stargate bad write on set_time: $temp\n";
         return -1;
@@ -1173,7 +1173,7 @@ sub set_time
 
 }
 
-sub send_X10 
+sub send_X10
 {
     my ($serial_port, $house_code) = @_;
     print "\ndb sending Stargate x10 code: $house_code\n" if $main::Debug{stargate};
@@ -1185,22 +1185,21 @@ sub send_X10
     my %table_hcodes = qw(A 6  B 7  C 4  D 5  E 8  F 9  G a  H b
                           I e  J f  K c  L d  M 0  N 1  O 2  P 3);
     my %table_dcodes = qw(1 06  2 07  3 04  4 05  5 08  6 09  7 0a  8 0b
-                          9 0e  A 0f  B 0c  C 0d  D 00  E 01  F 02  G 03
-                          J 14  K 1c  L 12  M 1a O 18 P 10
-                          ON 14  OFF 1c  BRIGHT 12  DIM 1a
-                          ALL_OFF 10  ALL_ON 18
-                          ALL_OFF_LIGHTS 16);
-
+                         9 0e  A 0f  B 0c  C 0d  D 00  E 01  F 02  G 03
+                         J 14  K 1c  L 12  M 1a O 18 P 10
+                         ON 14  OFF 1c  BRIGHT 12  DIM 1a);
+#                          ALL_OFF 10  ALL_ON 18
+#                          ALL_OFF_LIGHTS 16);
 
     my ($house_bits, $code_bits, $function, $header);
 
-    if (($house_bits = $table_hcodes{uc($house)}) eq undef) 
+    if (($house_bits = $table_hcodes{uc($house)}) eq undef)
     {
         print "Error, invalid Stargate X10 house code: $house\n";
         return;
     }
 
-    if (($code_bits = $table_dcodes{uc($code)}) eq undef) 
+    if (($code_bits = $table_dcodes{uc($code)}) eq undef)
     {
         print "Error, invalid Stargate x10 code: $code\n";
         return;
@@ -1213,13 +1212,13 @@ sub send_X10
     print "Bad Stargate X10 transmition sent=$sent\n" unless 10 == $sent;
 }
 
-# Valid digitis 0-9, * # 
+# Valid digitis 0-9, * #
 # OnHook = +
 # OffHook = ^
 # Pause = ,
 # CallerID C
 # HookFlash !
-sub send_telephone 
+sub send_telephone
 {
     my ($serial_port, $phonedata) = @_;
     print "\ndb sending Stargate telephone command: $phonedata\n" if $main::Debug{stargate};
@@ -1259,16 +1258,16 @@ sub set_audio
 ##%5d010208 LiImConnect
 ##%5d000208 LiImDisConnect
 
-    my ($command) = "##%5d". $table_state{lc($p_state)} . 
+    my ($command) = "##%5d". $table_state{lc($p_state)} .
 			$table_input{lc($p_input)} .
 			$table_output{lc($p_output)} . "\r";
 #        print "Stargate Audio Input: $command\n";
-    if (8 == $serial_port->write($command)) 
+    if (8 == $serial_port->write($command))
     {
   #      print "Stargate Audio Input: $p_input Output: $p_output State: $p_state\n";
         return 1;
     }
-    else 
+    else
     {
  #       print "BAD Stargate Audio Input: $p_input Output: $p_output State: $p_state\n";
         return 0;
@@ -1288,7 +1287,7 @@ package StargateDigitalInput;
 @StargateDigitalInput::ISA = ('Generic_Item');
 my $m_inverted;
 
-sub new 
+sub new
 {
     my ($class, $address, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
@@ -1310,7 +1309,7 @@ sub setstate_invert
     return -1;
 }
 
-sub default_setstate 
+sub default_setstate
 {
     print "Stargate Digital Inputs can not be set\n";
     return -1;
@@ -1319,9 +1318,9 @@ sub default_setstate
 sub invert
 {
     my ($class, $p_invert) = @_;
-    if (defined $p_invert) 
+    if (defined $p_invert)
     {
-        $class->{m_inverted} = $p_invert; 
+        $class->{m_inverted} = $p_invert;
     }
     return $class->{m_inverted};
 }
@@ -1335,7 +1334,7 @@ sub invert
 package StargateVariable;
 @StargateVariable::ISA = ('Generic_Item');
 
-sub new 
+sub new
 {
     my ($class, $address, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
@@ -1375,7 +1374,7 @@ sub default_setstate
     # Our set will only handle a specific value for now (e.g. do a load)
 
     my ($command) = "##%26" . sprintf("%02x%02x01", $self->{address}, $state) . "\r";
-    
+
     #print "Stargate variable command:$command\n";
 
     if (length($command) != $self->{serial_port}->write($command))
@@ -1400,7 +1399,7 @@ sub default_setstate
 package StargateFlag;
 @StargateFlag::ISA = ('Generic_Item');
 
-sub new 
+sub new
 {
     my ($class, $address, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
@@ -1416,7 +1415,7 @@ sub new
 sub default_setstate
 {
     my ($self, $state) = @_;
-    
+
     $state = "set"  if $state eq '1' or $state eq 'set' or $state eq 'on' or $state eq 'yes' or $state eq 'true';
     $state = "clear" if $state eq '0' or $state eq 'clear' or $state eq 'off' or $state eq 'no' or $state eq 'false';
     if($state ne "set" and $state ne "clear")
@@ -1445,7 +1444,7 @@ sub default_setstate
 package StargateRelay;
 @StargateRelay::ISA = ('Generic_Item');
 
-sub new 
+sub new
 {
     my ($class, $address, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
@@ -1473,8 +1472,8 @@ sub default_setstate
     }
 
     # Set
-    my ($command) = "##%330019" . sprintf("%02x%02x", 
-                                          $l_address{$self->{address}}, 
+    my ($command) = "##%330019" . sprintf("%02x%02x",
+                                          $l_address{$self->{address}},
                                           $state eq "set" ? $l_address{$self->{address}} : 0) . "\r";
     #&main::print_log("Stargate relay:$command:");
     if (length($command) != $self->{serial_port}->write($command))
@@ -1494,14 +1493,14 @@ sub default_setstate
 package StargateThermostat;
 @StargateThermostat::ISA = ('Generic_Item');
 
-sub new 
+sub new
 {
     my ($class, $address, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
 
     my $self = {address => $address, serial_port => $serial_port};
     bless $self, $class;
-    $self->restore_data('temp', 'setpoint', 'systemmode', 'fanmode'); 
+    $self->restore_data('temp', 'setpoint', 'systemmode', 'fanmode');
 
     push(@stargatethermostat_object_list, $self);
 
@@ -1591,10 +1590,10 @@ sub ReturnCommand
 
     SWITCH: for ( $data )
     {
-        /on/i               && do { return "1"};   
-        /1/                 && do { return "1"};   
-        /0/                 && do { return "0"};   
-        /off/i              && do { return "0"};   
+        /on/i               && do { return "1"};
+        /1/                 && do { return "1"};
+        /0/                 && do { return "0"};
+        /off/i              && do { return "0"};
         /h/i                && do { return "1"};
         /c/i                && do { return "2"};
         /a/i                && do { return "3"};
@@ -1608,12 +1607,12 @@ sub ReturnString
 
     SWITCH: for ( $data )
     {
-        /0/                 && do { return "off"};   
-        /1/                 && do { return "on"};   
-        /H/                 && do { return "heat"};   
-        /C/                 && do { return "cool"};   
-        /A/                 && do { return "auto"};   
-        /I/                 && do { return "invalid"};   
+        /0/                 && do { return "off"};
+        /1/                 && do { return "on"};
+        /H/                 && do { return "heat"};
+        /C/                 && do { return "cool"};
+        /A/                 && do { return "auto"};
+        /I/                 && do { return "invalid"};
     }
     return "unknown";
 }
@@ -1638,7 +1637,7 @@ sub SendTheromostatCommand
 package StargateTelephone;
 @StargateTelephone::ISA = ('Telephony_Item');
 
-sub new 
+sub new
 {
     my ($class, $address, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
@@ -1651,7 +1650,7 @@ sub new
     return $self;
 }
 
-sub set 
+sub set
 {
     my ($self, $state) = @_;
     return if &main::check_for_tied_filters($self, $state);
@@ -1679,8 +1678,8 @@ sub set
 		$state =~ /ring::([0-9]*)/;
 		$self->ring_count($1);
 		$state = 'ring';
-	}		
-	elsif ($state =~ /^dtmf/i)		
+	}
+	elsif ($state =~ /^dtmf/i)
 	{
 		my ($temp_digit) = $state =~ /dtmf::([0-9,\*,\#,\+,\^])/i;
 		$self->SUPER::dtmf($temp_digit);
@@ -1706,14 +1705,14 @@ sub set
 sub patch
 {
 	my ($self,$p_state)= @_;
-	
+
 	&::print_log("***PATCH ***:" . $self->address() . ":" . $p_state);
 	if ($p_state eq 'on')
 	{
 		&Stargate::set_audio('li',$self->address(),'on');
 		&Stargate::set_audio($self->address(),'lo','on');
 	}
-	elsif (defined $p_state) 
+	elsif (defined $p_state)
 	{
 		&Stargate::set_audio('li',$self->address(),'off');
 		&Stargate::set_audio($self->address(),'lo','off');
@@ -1746,29 +1745,29 @@ sub speak
 	&::speak(%p_phrase);
 #	Is there a way to know when speaking is finished?
 #	$self->patch('off');
-	return $self->SUPER::speak(%p_phrase);	
+	return $self->SUPER::speak(%p_phrase);
 
 }
 sub dtmf
 {
 	my ($self,$p_dtmf) = @_;
-	
+
 	&Stargate::send_telephone($p_dtmf) if defined $p_dtmf;
-	return $self->SUPER::dtmf($p_dtmf);	
+	return $self->SUPER::dtmf($p_dtmf);
 }
 
 sub dtmf_sequence
 {
 	my ($self,$p_dtmf_seq) = @_;
-	
-	&Stargate::send_telephone($p_dtmf_seq) if defined $p_dtmf_seq;		
-	return $self->SUPER::dtmf_sequence($p_dtmf_seq);	
+
+	&Stargate::send_telephone($p_dtmf_seq) if defined $p_dtmf_seq;
+	return $self->SUPER::dtmf_sequence($p_dtmf_seq);
 }
 
 sub hook
 {
 	my ($self,$p_state) = @_;
-	
+
 	if ($p_state eq 'on')
 	{
 		&Stargate::send_telephone($$self{serial_port},'+');
@@ -1788,7 +1787,7 @@ sub hook
 package StargateASCII;
 @StargateASCII::ISA = ('Generic_Item');
 
-sub new 
+sub new
 {
     my ($class, $address, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
@@ -1820,7 +1819,7 @@ sub default_setrawstate
 package StargateVoicemail;
 @StargateVoicemail::ISA = ('Generic_Item');
 
-sub new 
+sub new
 {
     my ($class, $address, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
@@ -1836,7 +1835,7 @@ sub new
 sub default_setstate
 {
     my ($self, $state) = @_;
-    
+
     if($state < 0 or $state > 255)
     {
         print "StargateVoicemail invalid state:$state set (must be 0-255)\n";
@@ -1861,7 +1860,7 @@ sub default_setstate
 package StargateIR;
 @StargateIR::ISA = ('Generic_Item');
 
-sub new 
+sub new
 {
     my ($class, $address, $serial_port) = @_;
     $serial_port = $::Serial_Ports{Stargate}{object} if ($serial_port == undef);
@@ -1932,9 +1931,3 @@ sub default_setstate
     return;
 }
 1;
-
-
-
-
-
-

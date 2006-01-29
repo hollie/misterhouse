@@ -1,13 +1,13 @@
 # Category=Music
 
-#@ 
-#@ This script controls the <a href='http://www.winamp.com'>Winamp MP3 player</a> for Windows. It 
-#@ handles operation of the mp3 player. Enable mp3.pl to manage the MP3 database.  
-#@ This script requires the <a href='http://www.kostaa.com/winamp/'>httpq plug-in</a>
-#@ or wactrl, by david_kindred@iname.com  (windows only, included in mh/bin dir).
-#@ Greater functionality/control is achieved with httpq. 
 #@
-#@ Set mp3_program to where winamp is installed.  For example, 
+#@ This script controls the <a href='http://www.winamp.com'>Winamp MP3 player</a> for Windows. It
+#@ handles operation of the mp3 player. Enable mp3.pl to manage the MP3 database.
+#@ This script requires version 2.0 of the <a> href='http://www.kostaa.com/winamp/'>httpq plug-in</a>
+#@ or wactrl, by david_kindred@iname.com  (windows only, included in mh/bin dir).
+#@ Greater functionality/control is achieved with httpq.
+#@
+#@ Set mp3_program to where winamp is installed.  For example,
 #@   mp3_program=C:\Progra~1\Winamp\winamp.exe
 
 # Supports -debug=winamp for logging, otherwise quiet
@@ -15,11 +15,11 @@
 # Version ??? lets call it 1.01 - 9-16-03 Dan Uribe
 #  Major update to align functions with David's common mp3 code and xmms
 #  Supports a target host or defaults to localhost (Seems to work, but really untested)
-  
-# V1.02 28 Feb 2004 David Noorwood, 
-#	  Update to add mp playing 
 
-# V1.03  1 Mar 2004 Pete Flaherty,  
+# V1.02 28 Feb 2004 David Noorwood,
+#	  Update to add mp playing
+
+# V1.03  1 Mar 2004 Pete Flaherty,
 #	  Updated mp3_output_timestr to deliver consistant data with xmms output of same function
 #         now delivers "mm:ss/MM:SS (xx%)"  where mm:ss is the Elapsed time MM:SS is the Total time
 #         and (xx%) is the elapsed percentage of the total time
@@ -30,9 +30,9 @@
 # noloop=start      This directive allows this code to be run on startup/reload
 my (%winamp_commands, $mp3_states);
 if ($config_parms{mp3_program_control} eq 'wactrl') {
-    $mp3_states = "Play,Stop,Pause,Restart,Rewind,Forward," . 
+    $mp3_states = "Play,Stop,Pause,Restart,Rewind,Forward," .
                   "Next Song,Previous Song,Volume up,Volume down,ontop";
-    %winamp_commands = ('Restart' => 'start', 'Rewind' => 'rew5s', 'Forward' => 'ffwd5s', 
+    %winamp_commands = ('Restart' => 'start', 'Rewind' => 'rew5s', 'Forward' => 'ffwd5s',
                         'Next Song' => 'nextsong', 'Previous Song' => 'prevsong',
                         'Volume up' => 'volup', 'Volume down' => 'voldown');
 }
@@ -43,11 +43,11 @@ else {
                         'Volume Up' => 'volumeup', 'Volume Down' => 'volumedown', 'Shoutcast Connect' => 'shoutcast_connect',
                         'Clear List' => 'delete' );
 }
-my $mp3_host = 'localhost'; 
+my $mp3_host = 'localhost';
 $mp3_host = $config_parms{mp3_program_host} if $config_parms{mp3_program_host};
 # noloop=stop
 
-# Add Player Commands 
+# Add Player Commands
 $v_mp3_control1 = new  Voice_Cmd("Set the house mp3 player to [$mp3_states]");
 &mp3_control($state, $mp3_host)  if $state = said $v_mp3_control1;
 
@@ -60,11 +60,11 @@ sub mp3_control {
 
                                 # This translates from speakable commands to program commands
     $command = $winamp_commands{$command} if $winamp_commands{$command};
-    
+
     $host = $mp3_host unless $host;
     print_log "Setting $host winamp to $command" if $Debug{winamp};
 
-    return 0 unless &mp3_running($host); 
+    return 0 unless &mp3_running($host);
 
     if (&is_httpq) {
         my $url = "http://$host:$config_parms{mp3_program_port}";
@@ -80,7 +80,7 @@ sub mp3_control {
         }
         elsif($command =~ /volume/i){
            $temp = '';
-            # 10 passes is about 20 percent 
+            # 10 passes is about 20 percent
             for my $pass (1 .. 5) {
                 $temp .= filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
             }
@@ -114,12 +114,12 @@ sub mp3_control {
     }
 }
 
-# Play Song, Clear list if present 
+# Play Song, Clear list if present
 sub mp3_play {
 	my $file = shift;
 	return 0 if ($file eq '');
 	my $host = shift || $mp3_host;
-	return 0 unless &mp3_running($host); 
+	return 0 unless &mp3_running($host);
 	$file =~ s/&&/&/g;
 	$file =~ s/\//\\/g;
 	if (&is_httpq) {
@@ -147,7 +147,7 @@ sub mp3_queue {
 	my $file = shift;
 	return 0 if ($file eq '');
 	my $host = shift || $mp3_host;
-	return 0 unless &mp3_running($host); 
+	return 0 unless &mp3_running($host);
 	$file =~ s/&&/&/g;
 	$file =~ s/\//\\/g;
 	if (&is_httpq) {
@@ -184,7 +184,7 @@ sub mp3_clear {
 		}
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 clear: Unsupported" if $Debug{winamp};
 	}
 }
@@ -200,10 +200,10 @@ sub mp3_get_playlist {
 		return \@mp3Queue;
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 get playlist: Unsupported" if $Debug{winamp};
 	}
-	
+
 }
 
         # get current song position
@@ -214,7 +214,7 @@ sub mp3_get_playlist_pos {
 		return get "$url";
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 get playlist pos: Unsupported" if $Debug{winamp};
 	}
 }
@@ -230,7 +230,7 @@ sub mp3_set_playlist_pos {
 		return get "$url";
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 set playlist pos: Unsupported" if $Debug{winamp};
 	}
 }
@@ -257,7 +257,7 @@ sub mp3_playlist_delete {
 		return get "$url";
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 set playlist pos: Unsupported" if $Debug{winamp};
 	}
 }
@@ -272,37 +272,37 @@ sub mp3_get_playlist_files {
 		return \@mp3Queue;
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 get playlist files: Unsupported" if $Debug{winamp};
 	}
 }
 
         # return the time from the song in the playlist position
 sub mp3_get_playlist_timestr {
-    # don't know how to do this 
+    # don't know how to do this
 	print_log "mp3 get playlist timestr: Unsupported" if $Debug{winamp};
 }
 
-        # return the title of the current song 
-sub mp3_get_playlist_title { 
+        # return the title of the current song
+sub mp3_get_playlist_title {
 	my $host = shift || $mp3_host;
 	if (&is_httpq) {
 		my $cPos = get "http://$host:$config_parms{mp3_program_port}/getlistpos?p=$config_parms{mp3_program_password}";
 		return get "http://$host:$config_parms{mp3_program_port}/getplaylisttitle?p=$config_parms{mp3_program_password}&a=$cPos";
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 get playlist title: Unsupported" if $Debug{winamp};
 	}
 }
 
-        # return the current volume 
+        # return the current volume
 sub mp3_get_volume {
-    # don't know how to do this 
+    # don't know how to do this
 	print_log "mp3 get volume: Unsupported" if $Debug{winamp};
 }
 
-        # return the elapsed/total time of current song  
+        # return the elapsed/total time of current song
 sub mp3_get_output_timestr {
 	my $type = shift;
 	my $host = shift || $mp3_host;
@@ -315,18 +315,18 @@ sub mp3_get_output_timestr {
 		        my $tPos = $songPos / 1000;                     #Posintion in miliseconds
             		my $tLen = $songLen ;                           #Length of song in seconds
 	                my $tPct = int ( ( $tPos / $tLen ) *100) ;       # what ist the % played
-		     
+
 		        my $tMin = int( $tPos / 60 );                   #Make outputs in mm:ss format
 			my $tSec = int( $tPos - ( $tMin * 60) );                # we don't care about fractions of mins & secs
 			  if ( $tSec < 10 ){ $tSec = "0$tSec"; }
 			$songPos = "$tMin:$tSec";                       # this should be the elapsed time in MM:SS format
-			
+
 			$tMin = int( $tLen / 60 );
 			$tSec = int( $tLen - ( $tMin * 60) );
 			  if ( $tSec < 10 ){ $tSec = "0$tSec"; }
 			$songLen = "$tMin:$tSec";                       # this should be the Total time in MM:SS format
 
-			return "$songPos/$songLen ($tPct%)"; 
+			return "$songPos/$songLen ($tPct%)";
 #		}
 #		else {
 #			my $tPos = get "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=0";
@@ -334,38 +334,38 @@ sub mp3_get_output_timestr {
 #		}
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 get output timestr: Unsupported" if $Debug{winamp};
 	}
 }
 
 
-        # return the number of songs in the current playlist 
-sub mp3_get_playlist_length { 
+        # return the number of songs in the current playlist
+sub mp3_get_playlist_length {
 	my $host = shift || $mp3_host;
 	if (&is_httpq) {
 		return  get "http://$host:$config_parms{mp3_program_port}/getlistlength?p=$config_parms{mp3_program_password}";
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 get playlist length: Unsupported" if $Debug{winamp};
 	}
 }
 
-        # return 0 if the player is stopped, 1 if playing, 3 if paused 
-sub mp3_playing { 
+        # return 0 if the player is stopped, 1 if playing, 3 if paused
+sub mp3_playing {
 	my $host = shift || $mp3_host;
 	if (&is_httpq) {
 		return  get "http://$host:$config_parms{mp3_program_port}/isplaying?p=$config_parms{mp3_program_password}";
 	}
 	else {
-    # don't know how to do this 
+    # don't know how to do this
 		print_log "mp3 playing: Unsupported" if $Debug{winamp};
 	}
 }
 
-        # try to start winamp if not running and return the status of the player 
-sub mp3_running { 
+        # try to start winamp if not running and return the status of the player
+sub mp3_running {
 	my $host = shift || $mp3_host;
                                 # Start winamp, if it is not already running (windows localhost only)
 	if ($OS_win && $host eq 'localhost' && done $p_winamp_house && ! &sendkeys_find_window('Winamp', $config_parms{mp3_program})) {
@@ -377,8 +377,8 @@ sub mp3_running {
 		return "http://$host:$config_parms{mp3_program_port}/getversion?p=$config_parms{mp3_program_password}";
 	}
 	else {
-    # don't know how to do this 
-		return 1; 
+    # don't know how to do this
+		return 1;
 	}
 }
 
@@ -391,6 +391,4 @@ sub mp3_player_running {
     else {
         return 1;  # Not sure what other methods we have to check here
     }
-}  
-
-
+}

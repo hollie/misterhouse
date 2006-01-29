@@ -99,7 +99,7 @@ sub send {
 		return;
 	}
 
-	#Dim/Bright n-times
+	#Dim/Bright n-percent 
 	if (my ($house, $sign, $percent) = $data =~ /^X([A-P])([\+\-])(\d+)$/) {
 		$house = unpack('C', $house) - 65; #Get code from ASCII
 		my $repeat = int($percent/6.5);
@@ -142,12 +142,13 @@ my $ret;
 my $data;
 my $code;
 
+# 11/27/05, changed "All Lights Off" to report as O to be consistent with other modules 
 my %funcs = (
 	'1', '1', '2', '2', '3', '3', '4', '4', '5', '5', '6', '6', '7', '7', '8', '8', '9', '9', 
 	'10', 'A', '11', 'B', '12', 'C', '13', 'D', '14', 'E', '15', 'F', '16', 'G', 
 	'All Lights On', 'O', 'All Units Off', 'P', 'On', 'J', 'Off', 'K', 'Bright', 'L', 'Dim', 'M', 
 	'Preset Dim 0', 'PRESET_DIM1', 'Preset Dim 1', 'PRESET_DIM2', 
-	'All Lights Off', 'ALL_LIGHTS_OFF', 'Extended Code', 'EXTENDED_CODE', 
+	'All Lights Off', 'P', 'Extended Code', 'EXTENDED_CODE', 
 	'Hail Request', 'HAIL_REQUEST', 'Hail Ack', 'HAIL_ACK', 'Extended Code', 'EXTENDED_DATA', 
 	'Status On', 'STATUS_ON', 'Status Off', 'STATUS_OFF', 'Status', 'STATUS' 
 );

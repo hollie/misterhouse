@@ -43,7 +43,6 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
 <th align='left'>Type</th>
 $html_calls
 </font></tbody></table>
-</body>
 ";
     print "dbx2\n";
  my $form_type =
@@ -65,6 +64,7 @@ $form_type
 <td></form><tr>
 | if $Authorized eq 'admin';
 
+    $html .= "</body></html>";
 
     print "dbx3\n";
     return $html;

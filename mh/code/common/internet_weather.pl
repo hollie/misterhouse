@@ -8,6 +8,9 @@
 #@ the same as your city, but not always.  To verify your zone,
 #@ hit the Back button and click on "Zone Forecast".  Zone names preceed each
 #@ forecast and each is followed by a hyphen.
+#@ To modify when this script is run (or to disable it), go to the
+#@ <a href=/bin/triggers.pl> triggers page </a>
+#@ and modify the 'get internet weather' trigger.
 
                                 # Get the forecast and current weather data from the internet
 $v_get_internet_weather_data = new  Voice_Cmd('Get internet weather data');
@@ -32,7 +35,7 @@ if (said $v_get_internet_weather_data) {
     if (&net_connect_check) {
         my $city = $config_parms{city};
         $city = $config_parms{nws_city} if defined $config_parms{nws_city};
-        set $p_weather_forecast qq|get_weather -state $config_parms{state} -city "$config_parms{city}" -zone "$config_parms{zone}"|;
+        set $p_weather_forecast qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}"|;
         start $p_weather_forecast;
         print_log "Weather data requested for $city, $config_parms{state}" . (($config_parms{zone})?"zone=$config_parms{zone}":"");
     }
@@ -113,7 +116,7 @@ if (done_now $p_weather_forecast) {
             $Weather{TempOutdoor}   = $Weather{TempInternet};
             $Weather{HumidOutdoor}  = $Weather{HumidInternet};
             $Weather{Barom}         = $Weather{BaromInternet};
-            $Weather{WindGustSpeed} = $Weather{WindGustPseedI};
+            $Weather{WindGustSpeed} = $Weather{WindGustSpeedI};
             $Weather{Wind}          = $Weather{WindI};
             $Weather{WindSpeed}     = $Weather{WindSpeedI};
             $Weather{WindDirection} = $Weather{WindDirectionI};
@@ -121,11 +124,22 @@ if (done_now $p_weather_forecast) {
         }
 
         print_log "Weather:Outdoor Temperature is $Weather{TempInternet} f";
-        print_log "Weather:Wind is $Weather{Wind}";
-        print_log "Weather:Wind Chill is $Weather{WindChill}" if $Weather{WindChill};
-        print_log "Weather:Humidity is $Weather{Humid}%";
+        print_log "Weather:Wind is $Weather{WindI}";
+        print_log "Weather:Wind Chill is $Weather{WindChillI}" if $Weather{WindChillI};
+        print_log "Weather:Humidity is $Weather{HumidInternet}%";
         print_log "Weather:Pressure is $Weather{BaromInternet} and $Weather{BaromInternetDelta}";
 
 
 	}
+}
+
+
+# lets allow the user to control via triggers
+
+if ($Reload and $Run_Members{'trigger_code'}) {
+    eval qq(
+        &trigger_set("(time_cron('58 9,16 * * 0,6') or time_cron('15 6,17 * * 1-5')) and net_connect_check",
+          "run_voice_cmd 'Get internet weather data'", 'NoExpire', 'get internet weather')
+          unless &trigger_get('get internet weather');
+    );
 }

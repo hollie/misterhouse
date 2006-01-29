@@ -34,6 +34,38 @@ sub read_table_A {
     if($record =~ /^#/ or $record =~ /^\s*$/) {
        return;
     }
+    # -[ Insteon ]----------------------------------------------------------
+    elsif($type eq "INSTEON") {
+        require 'Insteon_Item.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon_Item('$address', $other)";
+    }
+    elsif($type eq "IPLC") {
+        require 'Insteon_Item.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon_Item('$address', $other)";
+    }
+    elsif($type eq "IPLCI") {
+        require 'Insteon_Item.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon_Item('$address', $other)";
+    }
+    elsif($type eq "IPLCA") {
+        require 'Insteon_Item.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon_Appliance('$address', $other)";
+    }
+    elsif($type eq "IPLCL") {
+        require 'Insteon_Item.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon_Lamp('$address', $other)";
+    }
+    # ----------------------------------------------------------------------
     elsif($type eq "X10A") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -439,6 +471,9 @@ sub read_table_A {
 
 #
 # $Log$
+# Revision 1.29  2006/01/29 20:30:17  winter
+# *** empty log message ***
+#
 # Revision 1.28  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #

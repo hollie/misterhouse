@@ -180,6 +180,9 @@ sub play_to_audrey {
               $file = $files_to_pick[0];
           }
       }
+      # if we can't find the file, skip it, otherwise we will end up
+      # playing an old file copied into one of the speakToAudrey.* files
+      next if ! -e $file;
 
       if (lc $parms{rooms} =~ /all/) {
         @rooms = ();

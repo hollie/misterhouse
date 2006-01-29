@@ -85,7 +85,9 @@ my %table_dcodes2 = qw(0110 1  1110 2  0010 3  1010 4  0001 5  1001 6  0101 7  1
                                 # have to fix it elsewhere (maybe only in bin/mh, $f_code test)
 my %table_fcodes2 = qw(0010 J  0011 K  0100 L  0101 M  0001 O  0000 P
                        0111 Z 1010 PRESET_DIM1 1011 PRESET_DIM2
-                       1101 STATUS_ON   1110 STATUS_OFF 1111 STATUS);
+                       1101 STATUS_ON   1110 STATUS_OFF 1111 STATUS
+                       0110 O 1000 HAIL_REQUEST 1001 HAIL_ACK 1100 EXTENDED_DATA);
+
 
 
 sub receive_buffer {
@@ -909,6 +911,9 @@ under the same terms as Perl itself. 30 January 2000.
 
 #
 # $Log$
+# Revision 2.25  2006/01/29 20:30:17  winter
+# *** empty log message ***
+#
 # Revision 2.24  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #

@@ -45,7 +45,8 @@ if (said $dailystrips_email) {
     &net_mail_send(subject => "Daily Comics for $Date_Now",
                    to => "$to",
                    baseref => "$baseref",
-                   file => "$comics_dir/index.html", mime  => 'html');
+                   file => "$comics_dir/index.html", mime  => 'html_inline');
+#                  file => "$comics_dir/index.html", mime  => 'html');
 }
 
 

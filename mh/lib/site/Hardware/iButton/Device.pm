@@ -145,13 +145,20 @@ use vars qw(%models);
 		    'mintime' => 0,
 		    'maxtime' => .9,
 		   },
-           "20" => {			# Brian Rudy
+		 "1f" => {	
+			 'model' => 'DS2409',
+		    'memsize' => 0,
+		    'memtype' => "??",
+		    'specialfuncs' => "One-Wire Net Coupler",
+		    'class' => 'Hardware::iButton::Device::DS2409',			 
+		 },	 
+     "20" => {			# Brian Rudy
                     'model' => 'DS2450',
                     'memsize' => 4*8/8, # 4 pages of 8 bytes.   
                     'memtype' => "??",
                     'specialfuncs' => "ADC",
                     'class' => 'Hardware::iButton::Device::DS2450'
-                   },
+     },
 	   "21" => {			# STOLL
 		    'model' => 'DS1921',
 		    'memsize' => 2048/8, # yes, really. 2K bytes.
@@ -1162,6 +1169,69 @@ Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 sub read_temperature_hires {
     my $this = shift;
     return $this->read_temperature_18B20( @_ );
+}
+
+package Hardware::iButton::Device::DS2409;
+use Hardware::iButton::Connection;
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+
+sub all_lines_off{
+	my $this = shift;
+  my $serial = pack( "b*", $this->raw_id() );
+	my $c = $this -> {'connection'};
+	my $send;
+	if ($this->reset()) {
+		$send .= "\x55"; #issue "match ROM" command
+		$send .= $serial;
+		$send .= "\x66"; #issue "all lines off" command
+		my $result = $c->owBlock( $send );
+    # now get the last byte of the unpacked result
+    my $rv = unpack("b*",$result);
+    $rv = substr($rv,length($rv)-8,8);
+		# this should be 0x66 (binary 01100110)
+		return ($rv eq '01100110');
+	}
+	return -1;
+}
+sub smart_on_main{
+	my $this = shift;
+  my $serial = pack( "b*", $this->raw_id() );
+	my $c = $this -> {'connection'};
+	my $send;
+	if ($this->reset()) {
+		$send .= "\x55"; #issue "match ROM" command
+		$send .= $serial;
+		$send .= "\xCC"; #issue "smart-on main" command
+		$send .= "\xFF" x 3; #reset stimulus
+		my $result = $c->owBlock( $send );
+#		return unpack("b*",$result);
+		my $rv = unpack("b*",$result);
+    $rv = substr($rv,length($rv)-8,8); #last byte
+		# this should be something other than 0xff (binary 11111111)
+		return ($rv ne '11111111');
+	}
+	return -1;
+}
+sub direct_on_main{
+	my $this = shift;
+  my $serial = pack( "b*", $this->raw_id() );
+	my $c = $this -> {'connection'};
+	my $send;
+	if ($this->reset()) {
+		$send .= "\x55"; #issue "match ROM" command
+		$send .= $serial;
+		$send .= "\xA5"; #issue "direct-on main" command
+		my $result = $c->owBlock( $send );
+    # now get the last byte of the unpacked result
+    my $rv = unpack("b*",$result);
+    $rv = substr($rv,length($rv)-8,8);
+		# this should be 0xA5 (binary 10100101)
+		return ($rv eq '10100101');
+	}
+	return -1;
 }
 
 

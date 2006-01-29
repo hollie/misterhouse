@@ -1114,12 +1114,12 @@ sub sensorhook {
       if $main::Debug{x10_sensor};
 
 # If I received something from this battery-powered transmitter, the battery
-# must still be good, so reset the countdown timer $main::config_parms{MS13_Battery_Timer} hours
-# default is 12 more hours if not specified:
-    $ref->{battery_timer}->set(($main::config_parms{MS13_Battery_timer}) ? $main::config_parms{MS13_Battery_Timer} : 12 *60*60,
+# must still be good, so reset the countdown timer $main::config_parms{MS13_Battery_timer} hours
+# default is 24 more hours if not specified:
+    $ref->{battery_timer}->set(($main::config_parms{MS13_Battery_timer}) ? $main::config_parms{MS13_Battery_timer} : 24 *60*60,
                               (($main::config_parms{MS13_Battery_action}) ?
                                 $main::config_parms{MS13_Battery_action} : "print_log")
-                               .  " \"rooms=all Battery timer for $name expired\"", 7);
+                               .  " \"rooms=all Battery timer for $ref->{name} expired\"", 7);
 }
 
 
@@ -1134,6 +1134,9 @@ return 1;
 
 
 # $Log$
+# Revision 1.51  2006/01/29 20:30:17  winter
+# *** empty log message ***
+#
 # Revision 1.50  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #

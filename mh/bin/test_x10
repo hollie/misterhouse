@@ -2,7 +2,7 @@
 
 # Use this as a stand-alone (outside of mh) way to
 # test a CM11 and/or CM17 X10  device
-#  - set the $interface, $port, $house, and $unit parms 
+#  - set the $interface, $port, $house, and $unit parms
 # then run:
 #   perl test_x10
 
@@ -56,10 +56,13 @@ BEGIN {
         eval "use ControlX10::CM11 qw( :FUNC 2.06 )";
 	    die "$@\n" if ($@);
     }
-    else {
+    elsif ($interface eq 'CM17') {
         eval "use ControlX10::CM17 qw( send_cm17 0.05 )";
 	    die "$@\n" if ($@);
     }
+#    elsif ($interface eq 'TI103') {
+#        send_ti103($device, $house . $unit . $cmd);
+#    }
 
 }
 
@@ -94,5 +97,3 @@ sub toggle {
 
 	$cmd = ($cmd eq 'J') ? 'K' : 'J';
 }
-
-

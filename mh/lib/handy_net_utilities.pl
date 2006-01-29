@@ -721,7 +721,7 @@ my ($oscar, $connection, $error, $description, $fatal)=@_;
 
 sub oscar::cb_buddyin {
   my ($oscar, $screenname, $group, $buddydata)=@_;
-  
+
   oscar::buddychange($oscar, $screenname, 'on');
 }
 
@@ -733,7 +733,7 @@ sub oscar::cb_buddyout {
 
 sub oscar::cb_buddyiconuploaded {
   my ($oscar)=@_;
- 
+
   my $net=oscar::get_net($oscar);
 
   print "Set buddy icon for $net\n";
@@ -741,7 +741,7 @@ sub oscar::cb_buddyiconuploaded {
 
 sub oscar::cb_buddylistok {
   my ($oscar)=@_;
- 
+
   my $net=oscar::get_net($oscar);
 
   print "Buddy list set ok for $net\n";
@@ -749,7 +749,7 @@ sub oscar::cb_buddylistok {
 
 sub oscar::cb_buddylisterror {
   my ($oscar,$error,$what)=@_;
- 
+
   my $net=oscar::get_net($oscar);
 
   print "Buddy list error for $net: $what\n";
@@ -896,14 +896,13 @@ sub main::net_im_process_queue {
 
 sub main::net_im_send {
     my %parms = @_;
-   
+
     if ($main::Debug{im}) {
     my $parm;
       foreach $parm (keys(%parms)) {
  	print "net_im_send parm $parm is $parms{$parm}\n";
       }
     }
-
                                 # Default is aol aim (only because it was first)
     my $pgm = lc $parms{pgm};
     my $to = $parms{to};
@@ -975,7 +974,7 @@ sub main::net_im_do_send {
     $text .= "\n" . &main::file_read($parms{file}) if $parms{file};
 
     return if $text eq '';
-    
+
     print "Sending $parms{pgm} message to $to\n";
 
     # Chop message up if needed since AIM has a limit of 1024
@@ -1526,6 +1525,9 @@ sub main::url_changed {
 
 #
 # $Log$
+# Revision 1.66  2006/01/29 20:30:17  winter
+# *** empty log message ***
+#
 # Revision 1.65  2005/12/21 15:19:23  mattrwilliams
 # Added AIM/ICQ buddy icon capability.
 # Added hooks for AOL/ICQ connection being lost.

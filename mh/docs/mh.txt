@@ -4962,6 +4962,17 @@ NOTES
           $$parms_ref{to_file} = "somename.wav";
       }
 
+    To monitor text sent to print_log, display, play, and speak, try this:
+
+      &Log_add_hook(\&my_log) if $Reload;
+
+      sub my_log {
+          my ($type)  = shift @_;
+          my ($text)  = shift @_;
+          my (%parms) = @_;
+          print "type=$type text=$text\n";
+      }
+
     For more examples on code hooks, see mh/code/examples/test_code_hooks.pl
 
 KNOWN LIMITATIONS AND BUGS

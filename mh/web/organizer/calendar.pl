@@ -12,6 +12,7 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.5.8 - 09/04/05 - Added Audrey (640x480) specific layout (hp)
 # 1.5.7 - 02/15/02 - fixed missing date when inserting new event
 # 1.5.6 - 02/15/02 - fixed FNF bug & improved error reporting
 # 1.5.5 - 01/19/02 - failed attempt to fix FNF bug
@@ -20,7 +21,7 @@
 # 1.5.2 - 08/22/01 - added file locking
 # ----------------------------------------------------------------------------
 
-my $VERSION = "1.5.7";
+my $VERSION = "1.5.8";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -144,9 +145,12 @@ my ($showDefault) = 0;
 #if (length($day) < 2) {$month = "0" . $day}
 
 my ($showDayDetails) = $objCGI->param('vsSD') || 0;
+my ($showforAudrey) = $objCGI->param('vsMA') || 0;
 my ($noShowDayDetails) = 1;
 my ($cellSize) = 25;
 $cellSize = 60 if ($showDayDetails);
+$cellSize = 75 if ($showforAudrey);
+$showDayDetails = 1 if ($showforAudrey);
 $noShowDayDetails = 0 if ($showDayDetails);
 
 my ($nmonth, $nyear, $pmonth, $pyear, $highlightDate);
@@ -219,6 +223,7 @@ print "
 ";
 print "vsDB Module Version " . $objDB->Version . "<br>";
 print "vsLock Module Version " . $objLock->Version;
+print "<br>MisterAudrey Version" if ($showforAudrey);
 print "
 	</font><p>
 	</font>
@@ -242,11 +247,19 @@ sub PrintDefault {
     }
 
     print "<p>\n";
-    print "<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$pmonth&vsYear=$pyear'>Previous Month</a>\n";
-    print "| <a href='$scriptName?vsSD=$showDayDetails&vsMonth=$nmonth&vsYear=$nyear'>Next Month</a>\n";
+    print "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$pmonth&vsYear=$pyear'>Previous Month</a>\n";
+    print "| <a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$nmonth&vsYear=$nyear'>Next Month</a>\n";
 
     print "</font>\n";
-    print "</td><td>\n";
+
+    if (!$showforAudrey) {
+    	print "</td><td>\n";
+    } else {
+	print "<br><br>\n";
+    }
+
+#    print "</td><td>\n"; -- Removed for Audrey
+#     print "<br>\n";
     print "<font size='2' face='arial,helvetica'>\n";
 
     &PrintDay($year,$month,$day,$objDB);
@@ -285,7 +298,7 @@ sub PrintDay {
     print "<td width='250'><font size='2' face='arial,helvetica'><b>Event</b></font></td></tr>\n";
 
     while (!$objMyDb->EOF) {
-	print "<tr><td><a href='$scriptName?vsSD=$showDayDetails&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "'><img src='$detailIcon' border='0'></a></td>";
+	print "<tr><td><a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "'><img src='$detailIcon' border='0'></a></td>";
 	print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("TIME") . "&nbsp;</font></td>";
 	print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("EVENT") . "&nbsp;</font></td></tr>\n";
 	$objMyDb->MoveNext;
@@ -322,9 +335,9 @@ sub PrintMonth {
     print "<p>\n";
     print "<font face='arial,helvetica' size='2'><b>$months[$month-1] $year</b></font>\n";
 	if ($showDayDetails) {
-		print " <font size='1'>[<a href='$scriptName?vsSD=0&vsMonth=$month&vsYear=$year'>Hide Details</a>]</font>\n"
+		print " <font size='1'>[<a href='$scriptName?vsSD=0&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year'>Hide Details</a>]</font>\n"
 	} else {
-		print " <font size='1'>[<a href='$scriptName?vsSD=1&vsMonth=$month&vsYear=$year'>Show Details</a>]</font>\n"
+		print " <font size='1'>[<a href='$scriptName?vsSD=1&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year'>Show Details</a>]</font>\n"
 	}		
     print "<table border='1' cellspacing='0' cellpadding='2'>\n";
 
@@ -362,15 +375,15 @@ sub PrintMonth {
 		$objMyDb->Filter("DATE","eq",$thisDate);
 
 		if ($objMyDb->EOF) {
-		    print "<a $style href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount'>$weekDayCount</a><br>";
+		    print "<a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount'>$weekDayCount</a><br>";
 		} else {
-		    print "<b><a $style href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount'>$weekDayCount</a></b><br>";
+		    print "<b><a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount'>$weekDayCount</a></b><br>";
 		}			
 
 		if ($showDayDetails) {
 		    print "<font size='1'>";
 		    while (!$objMyDb->EOF) {
-			print "<a href='$scriptName?vsSD=$showDayDetails&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&vsID=" . $objMyDb->FieldValue("ID") . "'>" .$objMyDb->FieldValue("EVENT") . "</a><br>";
+			print "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&vsID=" . $objMyDb->FieldValue("ID") . "'>" .$objMyDb->FieldValue("EVENT") . "</a><br>";
 			$objMyDb->MoveNext;
 		    }
 		    print "</font>";

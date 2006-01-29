@@ -11,6 +11,10 @@ The Digimax 210 is a thermostat that sends X10 commands, via RF, to
 a base unit that connects up to a heating & A/C unit to control the
 unit wirelessly.  It seems to be primarily sold in Europe.
 
+Important: The regular W800RF32AE (433Mhz) receivers are not able to receive
+transmissions from the Digimax 210.  Only a small number of "DM Beta" units
+were produced by WGL Designs and they are no longer available.
+
 Chris Barrett/Bill Young
 
 =cut
@@ -36,7 +40,7 @@ sub rf_is_digimax210 {
 
     return (   (   ($rbytes[2] == 0x1e)		# state = fan on
 		|| ($rbytes[2] == 0x2d)		# state = fan off
-		|| ($rbytes[2] == 0x3c))	# state = initialising 
+		|| ($rbytes[2] == 0x3c))	# state = initialising
 	    && (   ($rbytes[3] >=  0  )		# temp between 0 and
 		&& ($rbytes[3] <= 40  )));	#   40 degrees Celcius
 }
@@ -98,6 +102,9 @@ sub rf_process_digimax210 {
 
 #
 # $Log$
+# Revision 1.2  2006/01/29 20:30:17  winter
+# *** empty log message ***
+#
 # Revision 1.1  2004/03/23 02:27:09  winter
 # *** empty log message ***
 #
@@ -106,4 +113,3 @@ sub rf_process_digimax210 {
 # vim: sw=4
 
 1;
-

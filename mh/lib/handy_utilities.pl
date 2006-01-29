@@ -1026,7 +1026,7 @@ sub main::time_date_stamp {
 
                                 # Do NOT convert to AMPM if time_format=24
     $ampm = '';
-    unless ($main::config_parms{time_format} == 24 or $style == 2 or $style == 12 or $style == 13 or $style == 14) {
+    unless ($main::config_parms{time_format} == 24 or $style == 2 or $style == 12 or $style == 13 or $style == 14 or $style == 17) {
         ($time_ampm, $hour, $min, $ampm) = &main::time_to_ampm("$hour:$min");
     }
 
@@ -1286,6 +1286,9 @@ sub main::write_mh_opts {
 
 #
 # $Log$
+# Revision 1.79  2006/01/29 20:30:17  winter
+# *** empty log message ***
+#
 # Revision 1.78  2005/05/22 18:13:06  winter
 # *** empty log message ***
 #

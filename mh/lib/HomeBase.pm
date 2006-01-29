@@ -220,13 +220,13 @@ sub send_X10 {
 
     my %table_hcodes = qw(A 6  B 7  C 4  D 5  E 8  F 9  G a  H b
                           I e  J f  K c  L d  M 0  N 1  O 2  P 3);
-    my %table_dcodes = qw(1 06  2 07  3 04  4 05  5 08  6 09  7 0a  8 0b
-                          9 0e  A 0f  B 0c  C 0d  D 00  E 01  F 02  G 03
-                          J 14  K 1c  L 12  M 1a
-                          ON 14  OFF 1c  BRIGHT 12  DIM 1a
-                          ALL_OFF 10  ALL_ON 18
-                          ALL_OFF_LIGHTS 16);
 
+    my %table_dcodes = qw(1 06  2 07  3 04  4 05  5 08  6 09  7 0a  8 0b
+                         9 0e  A 0f  B 0c  C 0d  D 00  E 01  F 02  G 03
+                         J 14  K 1c  L 12  M 1a O 18 P 10
+                         ON 14  OFF 1c  BRIGHT 12  DIM 1a);
+#                          ALL_OFF 10  ALL_ON 18
+#                          ALL_OFF_LIGHTS 16);
 
     my ($house_bits, $code_bits, $function, $header);
 
@@ -277,10 +277,10 @@ sub read {
     my %table_hcodes = qw(6  A 7  B 4  C 5  D 8  E 9  F a  G b H
                           e  I f  J c  K d  L 0  M 1  N 2  O 3 P);
     my %table_dcodes = qw(06  1 07  2 04  3 05  4 08  5 09  6 0a  7 0b 8
-                          0e  9 0f  A 0c  B 0d  C 00  D 01  E 02  F 03 B
-                          14  J 1c  K 12  L 1a M
-                          10 ALL_OFF 18 ALL_ON
-                          16 ALL_OFF_LIGHTS);
+                         0e  9 0f  A 0c  B 0d  C 00  D 01  E 02  F 03 B
+                         14  J 1c  K 12  L 1a M 18 O 10 P);
+#                          10 ALL_OFF 18 ALL_ON
+#                          16 ALL_OFF_LIGHTS);
 
 
     my ($data);
@@ -349,6 +349,9 @@ return 1;           # for require
 # Modified by Bob Steinbeiser 2/12/00
 #
 # $Log$
+# Revision 1.14  2006/01/29 20:30:17  winter
+# *** empty log message ***
+#
 # Revision 1.13  2005/03/20 19:02:01  winter
 # *** empty log message ***
 #

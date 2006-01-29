@@ -15,7 +15,7 @@ if ($Startup or $Reload)
 #       $Flags{internet_data_cmds}{'Send ip address to the web servers'}++;  # From internet_ip_update
 
         $Flags{internet_data_cmds}{'Set the clock via the internet'}++;      # From time_info.pl
-        $Flags{internet_data_cmds}{'Get internet weather data'}++;           # From internet_data
+#       $Flags{internet_data_cmds}{'Get internet weather data'}++;           # From internet_data
         $Flags{internet_data_cmds}{'Get the top 10 list'}++;                 # From internet_data
 #       $Flags{internet_data_cmds}{'Get tv grid data for today'}++;          # From tv_grid.pl
         $Flags{internet_data_cmds}{'Get tv grid data for the next 2 weeks'}++;  # From tv_grid.pl

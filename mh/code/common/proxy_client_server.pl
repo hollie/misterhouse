@@ -7,7 +7,7 @@
 Use this code to provide a meshed networking interface between
 a set of misterhouse computers.  All computers share a baseline
 mh.private.ini while each individual computer has an additional
-mh.local.private.ini.  Use two ini files in your mh_parms 
+mh.local.private.ini.  Use two ini files in your mh_parms
 environment variable.
 
 All computers can share all resources in the collective.
@@ -26,16 +26,18 @@ overridden in the mh.local.private.ini file for the computer
 which has the resource locally attached.
 
   cm11_port     = proxy livingroom:8085
+  ti103_port    = proxy livingroom:8085
   W800_port     = proxy bedroom:8085
   callerid_port = proxy kitchen:8085
-  
+
 mh.local.private.ini for livingroom
 
-  speak_mh_room      = livingroom 
+  speak_mh_room      = livingroom
   speak_bedroom_port = proxy bedroom:8085
   speak_kitchen_port = proxy kitchen:8085
 
   cm11_port = /dev/tty1
+  ti103_port = /dev/tty1
 
   proxy_name = livingroom
   speak_voice=us2_mbrola
@@ -80,7 +82,7 @@ See 'Use distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
 
 &Play_pre_add_hook (\&proxy_speak_play, 0, 'play')  if $Reload;
 
-# proxy_by_room defines the assignment between "room" name and 
+# proxy_by_room defines the assignment between "room" name and
 # dns network names.  Use the room name for speak and play commands.
 
 my %proxy_by_room = (livingroom => 'linux',
@@ -192,7 +194,7 @@ if ($state = said $proxy_server) {
         &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, $data[0]);
     }
     elsif ($function eq 'uirt2_send') {
-        $main::Serial_Ports{UIRT2}{object}->write(pack 'C*', @data); 
+        $main::Serial_Ports{UIRT2}{object}->write(pack 'C*', @data);
     }
     elsif ($function eq 'ibutton') {
         my $function2 = shift @data;
@@ -227,11 +229,11 @@ if ($state = said $proxy_server) {
         if ($function2 eq 'send_plc') {
             &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},@data);
         }
-        elsif ($function2 eq 'readDeviceInfo') {   
+        elsif ($function2 eq 'readDeviceInfo') {
 	    &Lynx10PLC::readDeviceInfo($main::Serial_Ports{Lynx10PLC}{object},$data[0]);
         }
     }
-    
+
 
 }
 
@@ -277,7 +279,7 @@ if ($ControlX10::CM11::POWER_RESET) {
 
 
                                 # Allow for keyboard control
-if ($Keyboard) {    
+if ($Keyboard) {
     if ($Keyboard eq 'F1') {
         print "Key F1 pressed.  Reloading code\n";
                                 # Must be done before the user code eval
@@ -294,4 +296,3 @@ if ($Keyboard) {
 
                                 # Need this so the default tk_widgets.pl will not fail
 $search_code_string = new Generic_Item;
-

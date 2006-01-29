@@ -1,4 +1,4 @@
-# Category = Informational
+ # Category = Informational
 
 #@ Stock Quote Lookup Module.
 #@ Add the following to your INI file: stocks = IBM MSFT CSCO.
@@ -9,7 +9,9 @@
 #@ symbol like this: stocks_thresholds = IBM:5 MSFT:5% CSCO:15%.
 #@ You can map stock symbols into more pronounceable words using the
 #@ stocks_names parameter like this: stocks_names = CSCO:Cisco_Systems.
-
+#@ To modify when this script is run (or to disable it), go to the 
+#@ <a href=/bin/triggers.pl> triggers page </a>
+#@ and modify the 'get stocks' trigger.
 
 #&tk_label(\$Save{stock_data1});
 #&tk_label(\$Save{stock_data2});
@@ -76,32 +78,6 @@ if ($Reload) {
     }
 }
 
-if (done_now $p_stock_quote) {
-    delete $Save{stock_alert};
-    my $results;
-    my @html = $f_stock_quote->read_all;
-    foreach (@html) {
-        tr/\"//d;          # Drop quotes
-        my @data = split ',';
-        my $stock = $data[0];
-        my $i = 0;
-        map{$stocks{$stock}{$stock_keys[$i++]} = $_} @data;
-        $stocks{$stock}{PChange} =~ s/[-+%]//g;
-        if (my $t = $stocks{$stock}{Threshold}) {
-            my $p = ($t =~ /%/ ? $t : 0);
-            $p =~ s/%//;
-            $t = 0 if $p;
-            if (($t and $t < abs $stocks{$stock}{Change}) or ($p and $p < $stocks{$stock}{PChange})) {
-                $Save{stock_alert} = "Market alert: " unless $Save{stock_alert};
-                $Save{stock_alert} .= $stocks{$stock}{'Speak Name'} ? $stocks{$stock}{'Speak Name'} : $stocks{$stock}{LName};
-                $Save{stock_alert} .= " has " . ($stocks{$stock}{Change} < 0 ? "fallen" : "risen");
-                $Save{stock_alert} .= " $stocks{$stock}{PChange} percent to $stocks{$stock}{Last}. ";
-            }
-        }
-    }
-    respond $Save{stock_alert} if $Save{stock_alert};
-}
-
 
 if (done_now $p_stock_quote) {
 
@@ -113,6 +89,7 @@ if (done_now $p_stock_quote) {
 
     my @html = $f_stock_quote->read_all;
 
+    delete $Save{stock_alert};
     foreach (@html) {
         tr/\"//d;          # Drop quotes
         my @data = split ',';
@@ -159,45 +136,40 @@ if (done_now $p_stock_quote) {
             my $p = ($t =~ /%/ ? $t : 0);
             $p =~ s/%//;
             $t = 0 if $p;
+            $stocks{$stock}{PChange} =~ s/^0*//;
             if (($t and $t < abs $stocks{$stock}{Change}) or ($p and $p < $stocks{$stock}{PChange})) {
                 $Save{stock_alert} = "Market alert: " unless $Save{stock_alert};
-                $Save{stock_alert} .= $stocks{$stock}{'Speak Name'} ? $stocks{$stock}{'Speak Name'} : $stocks{$stock}{Name};
+                $Save{stock_alert} .= $stocks{$stock}{'Speak Name'} ? $stocks{$stock}{'Speak Name'} : $stocks{$stock}{LName};
                 $Save{stock_alert} .= " has " . ($stocks{$stock}{Change} < 0 ? "fallen" : "risen");
                 $Save{stock_alert} .= " $stocks{$stock}{PChange} percent to $stocks{$stock}{Last}. ";
             }
         }
-
-      }
+    }
+    respond $Save{stock_alert} if $Save{stock_alert};
 
 # And this:
 
-     speak $Save{stock_alert} if $Save{stock_alert};
+  #Lets make the date sound half decent. - I'am sure there is an easier way but I come from a C background!
+    $position = rindex($download_date, "/");
+    $month = substr($download_date ,0, $position);
+    $day = substr($download_date , $position + 1);
+    $Save{stock_results} = 'On ' . $months[$month-1] . ' ' . $day . ",\n " . $results;
 
-     #Lets make the date sound half decent. - I'am sure there is an easier way but I come from a C background!
-     $position = rindex($download_date, "/");
-     $month = substr($download_date ,0, $position);
-     $day = substr($download_date , $position + 1);
-     $Save{stock_results} = 'On ' . $months[$month-1] . ' ' . $day . ",\n " . $results;
-
-     print_log "Stock quotes retrieved"
+    print_log "Stock quotes retrieved"
 }
 
 
 if ($Reload and $Run_Members{'trigger_code'}) {
-    if ($Run_Members{'internet_dialup'}) {
-        eval qq(
-            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get stock quotes'", 'NoExpire', 'get stocks')
-              unless &trigger_get('get stocks');
-        );
-    }
-    else {
-        eval qq(
-            &trigger_set("time_cron '5 9-17 * * 1-5' and net_connect_check", "run_voice_cmd 'Get stock quotes'", 'NoExpire', 'get stocks')
-              unless &trigger_get('get stocks');
-        );
-    }
+    eval qq(
+        &trigger_set("time_cron '5 9-17 * * 1-5' and net_connect_check", 
+          "run_voice_cmd 'Get stock quotes'", 'NoExpire', 'get stocks')
+          unless &trigger_get('get stocks');
+    );
 }
 
+
+# 27 Dec 05, David Norwood
+# Someone else also added back the stock alerts in the last release.  I removed the duplicate code. 
 
 # 29 Aug 05, David Norwood
 # Added back the stock alerts.

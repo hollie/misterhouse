@@ -18,10 +18,128 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 =end html
 
-
 B<New Features:>
 
 B<Bug Fixes and Other Changes:>
+
+
+Version 2.101 can be downloaded from here:
+
+  http://misterhouse.sf.net/download.html
+
+
+B<New Features:>
+
+- Howard Plato created code/common/azureus_info.pl to  display and report on bittorrent client Azureus stats.
+
+- Neil Cherry created mh/lib/iplcs.pm and X10_iplcs.pm for Linux support of Smarthome's Insteon interface.
+He also created code/common/iplcs.pl to enable, and code/public/iplc.* to test.  Code is Alpha level.
+More info on Insteon here: http://www.linuxha.com/athome/common/iplcd
+
+- Stéphane Kattoor created code/common/ical.pl to allow for control of mh items from any ICal application
+(e.g. Mozilla, Outlook, or iCal for Mac).   More iCal info here: http://en.wikipedia.org/wiki/ICalendar .
+
+- Matthew Williams added buddy icon capability for AOL/ICQ and added a new callback to notify mh when the AOL/ICQ connection is lost.
+
+- Created a MisterHouse Fraper map, so we can see where we all are:  http://www.frappr.com/misterhouse
+
+- Matthew Williams created a new, spam free, Wiki here:  http://misterhouse.wikispaces.com/
+
+- David Norwood created code/common/weather_tides.pl based on idea by Joey French.
+It collects information about ocean tides, moonrise and moonset from
+the University of Southern Carolina Tide Predictor: http://tbone.biol.sc.edu
+
+- Matthew Williams created lib/K8055.pm, web/bin/k8055.pl, and bin/k8055d.tar.bz2 to support the
+Velleman K8055 USB 5 in, 8 out digital IO card:  http://www.velleman.be/ot/en/product/view/?id=351346
+
+- Dan Hoffard created code/common/LitterFree.pl which uses X10 to cycle the litter box based on cat movmemnt.
+
+- Andrew Baker created code/public/schoolday.pl which creates functions that flag school days.
+
+- David Lynch created mh/lib/TI103.pm for support of ACT's TI-103 interface
+
+- Ron Klinkien has lots of great new info on installing MisterHouse on linux at his wiki: http://mrhousefromscratch.tk
+
+- Jason Spangler updated lib/X10_Wish.pm to send, as well as receive, X10 data via PowerLinc, using the Wish drivers.
+
+
+
+B<Bug Fixes and Other Changes:>
+
+- Matthew Williams made some additional updated handy_net_utilites.pl improve AOL OSCAR.pm support.
+
+- Gregg Liming updated lib/Telephony_xAP.pm to fix a problem with the 2.100 update.
+
+- Brent Gross updated bin/outlook_read  to add a -all option to iterate over all entires,
+and a -dump_body option  to dump the entire body af an entry and not just the subject.
+
+- Howard Plato updated lib/Caller_ID.pm to added a Format=6 option for custom scripts such as vocp_callerid.pl
+
+- David Mark updated lib/Group.pm to fix some 2.100 issues.
+
+- Brent Gross updated common/comic_dailystrip.pl to send html as inline instead of as an attachment.
+
+- Henry Laxen updated web/bin/photos.pl that removes an explicit link to /ia5 rather than the html_file parameter.
+
+- John Wohlers fixed a bug in internet_weather.pl so the nws_city configuration parameter works.
+
+- Matthew Williams updated code/public/weather_metar.pl, including fixing a bug caused by occastional enter a space after "RMK" string.
+Also moved it from code/public to code/common.
+
+- Matthew Williams updated web/bin/shopping_list.pl with a few enhancements and bug fixes.
+
+- Chris Barrett updated lib/X10_Items.pm to fix some Battery timer bugs.
+
+- Chris Barrett fixed a html formating problem in web/bin/phone_list.pl
+
+- Gaetan Lord fixed a bug in time_date_stamp format=17, where it was doing a 12, rather than 24 hour format.
+
+- Neil Cherry updated FAQ 2.15: What is the format of MisterHouse X10 codes?
+
+- Ben Raymond updated iButton.pm to adds (partial) support for DS2409 one-wire net couplers.
+
+- David Mark commented out an uneeded timer in Motion_Item .
+
+- Joel Davidson updated lib/Omnistat.pm
+
+- David Norwood updated uirt2 and usb-uirt, which now use device data in
+mh/data/infrared/devicelib.
+
+- David Norwood updated faq 2.15: What is the format of MisterHouse X10 codes?
+
+- David Norwood updated lib/Serial_Item.pm, CM11.pm, and ncpuxa_mh.pm
+ to add support for sending and receiving some of the rarely used X10 commands.
+
+- David Mark updated lib/Lynx10PLC, Homebase.pm, and Stargate.pm to
+support the O and P (ALL LIGHTS ON, ALL UNITS OFF) X10 commands.
+
+- Zen Tormey fixed a 'AOL System Msg' loop in common/internet_im.pl
+
+- Joe Blecher updated Lynx10PLC.pm file to add support for all EXTENDED_CODE_1 commands.
+Also created new parameter Lynx10PLC_MULTI_DELAY that allows multiple packets to be combined together if they come in separate, but within the specified time of each other.
+
+- David Norwood updated code/common/internet_logon.pl, internet_weather.pl, weather_chance_of_rain.pl
+to make them configurable via triggers.
+
+- David Norwood fixed a parsing bug in rss_subscriber.pl and  removed the duplicate code for from stocks.pl
+
+- Matthew Williams updated code/common/internet_im.pl to allow a var option (e.g. var: Object_name state)
+
+- Andrew Baker added an optional weeder_handshake parm to support his homebuilt board.
+
+- Craig Schaeffer noticed we inadvertantly dropped mh/data/remarks/full_moon.txt
+
+- Tom Valdes created a web icon for the shopping application.
+
+- Bill Young patched X10_RF_security.pm to add support for low battery and tamper indications from wireless devices that support these features.
+The new states generated look like AlertTamperMax or AlertBattLowMax.
+
+- Peter Sjodin and Rob VanHoboken updated the EIB modules to handle of physical addresses,
+allow for timer-driven reading of dimmer state, and added dimmer and drive (EIS 2 and 7) support in web interface.
+
+- Steve Goldman updated web/bin/weather_rrd_update.pl to make it compatable with rrd 1.2
+
+- Rick Steeves fixed some bugs in code/common/*weather* code.
 
 
 =head2 Version 2.100 posted on 10/02/2005

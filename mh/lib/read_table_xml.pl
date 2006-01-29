@@ -73,6 +73,14 @@ my $twig_code_accum;
 #set up the item types
 #I missed the compool(?), as I couldn't see an example anywhere
 my %itemtype;
+
+# Insteon Items
+#itemtype{"INSTEON"} = {object=>"Insteon_Item"};
+$itemtype{"IPLC"}    = {object=>"Insteon_Item"};
+$itemtype{"IPLCA"}   = {object=>"Insteon_Appliance"};
+$itemtype{"IPLCL"}   = {object=>"Insteon_Lamp"};
+$itemtype{"IPLCI"}   = {object=>"Insteon_Item"};
+
 $itemtype{"X10I"} = {object=>"X10_Item"};
 $itemtype{"X10A"} = {object=>"X10_Appliance"};
 $itemtype{"X10O"} = {object=>"X10_Ote"};
@@ -148,19 +156,19 @@ while(my ($key,$hash)=each %itemtype){
 	if(uc($key) =~/STARGATE/) {                
 		   $hash->{"init"}.= "require 'Stargate.pm';\n";
 	}
-	  if(uc($key) =~/SG485/) {
+	if(uc($key) =~/SG485/) {
 		   $hash->{"init"}.= "require 'Stargate485.pm';\n";
-	  }
-	  if(uc($key) =~/XANTECH/) {
+	}
+	if(uc($key) =~/XANTECH/) {
 		   $hash->{"init"}.= "require 'Xantech.pm';\n";
-	  }
-	  if(uc($key) =~/X10T/) {
+	}
+	if(uc($key) =~/X10T/) {
 		   $hash->{"init"}.= "require 'RCS_Item.pm';\n";
-	  }
-	  if(uc($key) =~/^AUDIOTRON/) {
+	}
+	if(uc($key) =~/^AUDIOTRON/) {
 		   $hash->{"init"}.= "require 'AudiotronPlayer.pm';\n";
 	}
-	  if(uc($key) eq"ZONE") {
+	if(uc($key) eq "ZONE") {
 		   $hash->{"init"}.= "use caddx;\n";
 	}
 	if(! defined $hash->{"use_other"}){  ## default is use_other allowed
@@ -170,11 +178,18 @@ while(my ($key,$hash)=each %itemtype){
 		$hash->{"use_addr"}=1;
 	}
 
+	if(uc($key) =~/IPLC/) {                
+		# $hash->{"init"}.= "require 'IPLC.pm';\n";
+	}
+	if(uc($key) =~/INSTEON/) {                
+		#  $hash->{"init"}.= "require 'Insteon.pm';\n";
+	}
+	
 	## syntactical obfuscation to simplify comparison of pre/post xml
 	##   generated code.
-	if($key eq"X10I" 
+	if($key eq "X10I" 
 	|| $key eq "X10A" 
-	||$key eq "SERIAL" 
+	|| $key eq "SERIAL" 
 	|| $key eq "IBUTTON" 	
 	|| $key eq "X10SL" 
 	|| $key eq "LIGHT" 
@@ -183,6 +198,8 @@ while(my ($key,$hash)=each %itemtype){
 	|| $key eq "PHOTOCELL" 
 	|| $key eq "TEMP" 
 	|| $key eq "CAMERA" 
+	|| uc $key =~/^X10/)
+	|| uc $key =~/^IPLC/)
 	|| uc $key =~/^STARGATE/){
 		$hash->{"min_comma"}=1;
 	}

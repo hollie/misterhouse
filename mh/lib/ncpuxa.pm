@@ -397,9 +397,9 @@ sub cpuxa_process_monitor {
 	vec($rin,fileno($s),1) = 1;
 
 	if (select($rout=$rin, undef, undef, 0)) {
-		# 08/20/05 dnorwood, changed MSG_DONTWAIT() to 0x40 in the following line because 
-		# Windows doesn't have socket.ph
-		$ret = recv($s, $data, LEN_PAG(), 0x40);
+		# 11/20/05 dnorwood, removed MSG_DONTWAIT() in the following line because 
+		# it didn't work in Windows 
+		$ret = recv($s, $data, LEN_PAG(), 0);
 		($data) = $data =~ /([^\000\r\n]*)/;
 	}
 	return $data;

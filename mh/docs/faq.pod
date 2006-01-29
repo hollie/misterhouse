@@ -593,15 +593,6 @@ to all subsequent Voice_Cmd entries.
 If a file does not have a # Category record, the file name will be used.
 
 
-=head2 2.14: Common Perl and mh coding errors
-
-=begin html
-Clive Freedman sent in some useful tips on common coding errors in
-<a href="faq_damnblast.html">mh/docs/faq_damnblast.html</a>
-
-=end html
-
-
 =head2 2.14: How can I measure time between two nearly spaced events?
 
 If you are on Windows, or on Unix with the Time::HiRes module installed,
@@ -616,25 +607,86 @@ For example, to 'debounce' a doorbell button, (i.e. don't trigger it twice withi
 
 If you are on unix without Time::HiRes, you can use $LoopCount and count number of passes through the loop code.
 
+
 =head2 2.15: What is the format of MisterHouse X10 codes?
 
-MH sees X10 data in this format:
+At a low level MH sends and receives X10 data in character strings (called
+Serial Items) that start with the letter X. It is usually easier to create an
+X10 Item (or similar) for each X10 device you have and manipulate those
+instead of using X10 strings. Most of the functionality descibed here is
+available in various items in easy to use states.
 
-  XM1MK
-  X - every command will start with this
-  M1 - the house code and unit
-  MK - the house code and the command
+Here is format of Misterhouse X10 strings: X10 strings always begin with an
+uppercase X (all letters in X10 strings must be uppercase.) The X is followed
+by one or more token pairs that are either a housecode and unitcode, or a
+housecode and command.
 
-  K here might be any of the following:
+A housecode is a letter in the range A through P.
+
+A unitcode is a number in the range 1 through 16. Unitcodes above 9 can be
+specified as two digit numbers or their hex equivalent A through G. Okay,
+there is no such thing as hex G, but X10 unitcodes start at 1, not 0. A note
+to X10 interface module developers: the Serial_Item module converts unitcodes
+above 9 to their hex equivalent before passing them to the interface module.
+
+The following four basic X10 commands are the most common and are supported by
+all the interface modules. Each command is listed here followed by the
+corresponding X10 command that is sent or received, plus any notes about its
+use:
+
     J    - ON
     K    - OFF
-    L    - brighten
-    M    - dim
-    dd%  - Sets module to this brightness level
-    +-dd - Bright/dims by this amount
+    L    - Brighten
+    M    - Dim
 
-This format was inherited from the weeder interface protocol.
-For more examples, take a look at mh/lib/X10_Items.pm
+
+These commands are less common and are not supported by all the interface modules:
+
+    O                - All Lights ON
+    P                - All Units OFF
+    STATUS           - accepted by some 2-way X10 devices to request status
+    PRESET_DIM1      - these are the original direct dim commands specified but never used by X10
+    PRESET_DIM2      - still used by some X10 venders, including PCS, SwitchLinc and RCS
+    +#               - increase brightness by # percent, not used for receive
+    -#               - decrease brightness by # percent, not used for receive
+                       Serial_Item rounds # to a multiple of 5 before it's passed to the interface module,
+                       the interface module calculates the number of Bright/Dim commands to send
+                       by multiplying # by 22/100, since there are 22 standard dim levels
+    &P#              - send an extended direct dim command accepted by some X10 devices,
+                       # is the brightness level in the range 0 through 63
+    #%               - same as &P command, but # is a percentage in the range 0 through 100,
+                       Serial_Item converts this to a &P command before it's passed to the interface module,
+                       neither &P nor % are currently used for receive
+    Z##              - intended for sending and receiving EXTENDED_CODE commands with arbitrary extended
+                       hex ## bytes appended, but appears only receive is implemented by the CM11 module,
+                       no other tokens may follow this command
+
+
+These commands are rarely used and only supported for completeness by a few interface modules:
+
+    ALL_LIGHTS_OFF   - reported as P on receive
+    HAIL_REQUEST
+    HAIL_ACK
+    EXTENDED_CODE    - see Z above     EXTENDED_DATA
+    STATUS_ON
+    STATUS_OFF
+
+
+Here are examples of valid X10 strings and what they do:
+
+    XM1MK            - turn off M1
+    XC1C2C3CJ        - turn on C1, C2, and C3 simultaneously
+    XI6IJIKIJIK      - flash I6 twice
+
+
+For more examples, take a look at mh/lib/X10_Items.pm.
+
+Many of the X10 interface modules expect only a housecode/unitcode pair and a
+housecode/command pair, like the first example above.  This makes it
+impossible to send more complicated strings like the other examples, and is
+therefore discouraged. This can't be avoided with interfaces like the CM17 and
+BX24 that transmit using the X10 wireless protocol, since it combines
+housecode, unitcode, and command in one transmission.
 
 
 =head2 2.16: How are states set for each pass though the user code loop?
@@ -667,6 +719,16 @@ ended.  By making states always start at the beginning of the next pass,
 we can insure that all modules see a coherent state in the system.  When
 the states becomes valid, if effects the tied_items (that is when they
 fire) as well as calls to 'state_now'.
+
+
+=head2 2.17: Common Perl and mh coding errors
+
+=begin html
+Clive Freedman sent in some useful tips on common coding errors in
+<a href="faq_damnblast.html">mh/docs/faq_damnblast.html</a>
+
+=end html
+
 
 
 
@@ -1861,6 +1923,9 @@ modify.
 
 #
 # $Log$
+# Revision 1.48  2006/01/29 20:30:14  winter
+# *** empty log message ***
+#
 # Revision 1.47  2005/05/22 18:12:57  winter
 # *** empty log message ***
 #

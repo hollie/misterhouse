@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Last change Time-stamp: <2002-12-21 22:57:24 winter>
+#  Last change Time-stamp: <2005-10-16 22:01:33 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      outlook_read
@@ -14,8 +14,8 @@
 #    12/99  Allow for and default to Outlook '98.
 #
 #  Related info:
-#    OLE calls are a trick to figure out.  The methods for 
-#    searching for Calendar entries changed between Outlook '97 and 
+#    OLE calls are a trick to figure out.  The methods for
+#    searching for Calendar entries changed between Outlook '97 and
 #    Outlook '98.  Here are some links with a few hints:
 #
 #    Outlook 97 links:
@@ -25,7 +25,7 @@
 #
 #    Outlook 98 links:
 #       http://support.microsoft.com/support/kb/articles/Q178/5/08.ASP
-#       http://www.cdolive.com/cdo10.htm 
+#       http://www.cdolive.com/cdo10.htm
 #       http://go.to/mailfaq  (Question 8.5)
 #       z:/VALUPACK/CDO/CDO.hlp (search on Calendar and AppointmentItem)
 #
@@ -49,19 +49,21 @@ if (!&GetOptions(\%parms,
                  "folder=s",
                  "quiet",
                  "debug",
+                 "all",
+                 "dump_body",
                  "pl_file=s",
                  "date=s", "days=s", "date_end=s",
                  "h", "help") or
-    @ARGV > 0 or $parms{h} or $parms{help}) { 
+    @ARGV > 0 or $parms{h} or $parms{help}) {
     print<<eof;
-   
+
 $Pgm_Name reads Outlook folder data and optionally creates
 a mh code file to implement calendar events.
 
   Version: $Version
 
   Usage:
-    $Pgm_Name [options] 
+    $Pgm_Name [options]
 
   Options:
     -help    -> help text
@@ -84,7 +86,7 @@ a mh code file to implement calendar events.
 
                     Note:  If the text is not a vcr or voice_command, it
                            will be treated as a messages.
- 
+
     -date xyz    -> Get data with a start_time on date xyz.  Default is today.
     -date_end xyz-> Get data with a start_time between -date and -date_end
     -days xyz    -> Look out xyz days from -date.  Default is 1 day.
@@ -119,7 +121,7 @@ sub setup {
     $parms{version} = '97' if $parms{version} ne '98';
 
                                 # O97 data, commented out, from help on "Outlook Constants" in  Z:\VALUPACK\MOREHELP\Vbaoutl.hlp
-                                # O98 data, from http://www.cdolive.com/cdo10.htm 
+                                # O98 data, from http://www.cdolive.com/cdo10.htm
     my %ol_folder;
     if ($parms{version} eq '97') {
         %ol_folder = (Deleted => 3,
@@ -158,9 +160,9 @@ sub setup {
 
     my ($Outlook, $folder);
     if ($parms{version} eq '97') {
-        my $Outlook0 = Win32::OLE->new('Outlook.Application') or 
+        my $Outlook0 = Win32::OLE->new('Outlook.Application') or
             die "Error, could not create Outlook object: \n  ", Win32::OLE->LastError;
-        $Outlook  = $Outlook0->GetNamespace("MAPI") or 
+        $Outlook  = $Outlook0->GetNamespace("MAPI") or
             die "Error, could not find Outlook MAPI namespace: \n  ", Win32::OLE->LastError;
     }
     else {
@@ -169,7 +171,7 @@ sub setup {
         $Outlook->Logon;
     }
 
-    my $folder = $Outlook->GetDefaultFolder($folder_number) or 
+    my $folder = $Outlook->GetDefaultFolder($folder_number) or
         die "Error, could not find folder $parms{folder} = $folder_number:\n  ", Win32::OLE->LastError;
 
     if ($parms{version} eq '97') {
@@ -182,9 +184,9 @@ sub setup {
     }
 
     print "folder=$parms{folder},folder_number=$folder_number,folder=$folder,items=$items\n\n" if $parms{debug};
-   
+
     open (PL, ">$parms{pl_file}") or die "Error, could not open PL_File $parms{pl_file} for output: $!\n" if $parms{pl_file};
-    
+
     print PL "\n#@ Auto-generated from bin/outlook_read\n\n";
 
 }
@@ -197,7 +199,12 @@ sub find_items {
         if ($parms{folder} eq 'Calendar') {
             $criteria = qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
         }
-        $item = $items->Find($criteria); 
+        if (!$parms{all}) {
+           $item = $items->Find($criteria);
+        }
+        else {
+           $item = $items->GetFirst;
+        }
         print "item=$item items=$items  crit=$criteria\n" if $parms{debug};
     }
     else {
@@ -214,30 +221,45 @@ sub find_items {
         my $subject = $item->Subject;
 
         my ($start, $end);
-        if ($parms{version} eq '97') {
-            $start = valof $item->{Start};
-            $end   = valof $item->End;
-#           print "db end=", $end->Date("M'/'d'/'yyyy"), "\n";
+
+        if (!$parms{all}) {
+           if ($parms{version} eq '97') {
+               $start = valof $item->{Start};
+               $end   = valof $item->End;
+#              print "db end=", $end->Date("M'/'d'/'yyyy"), "\n";
+           }
+           else {
+               $start = $item->StartTime;
+               $end   = $item->EndTime;
+           }
+                                   # Delete seconds off of start and end times
+           $start =~ s/\:\d\d / /;
+           $end   =~ s/\:\d\d / /;
         }
-        else {
-            $start = $item->StartTime;
-            $end   = $item->EndTime;
-        }
-                                # Delete seconds off of start and end times
-        $start =~ s/\:\d\d / /;
-        $end   =~ s/\:\d\d / /;
-        
+
         printf ("start=%-20s end=%-20s  subject=%s\n", $start, $end, $subject) unless $parms{quiet};
 
-        if (my($channel, $show) = $subject =~ /^ *vcr +(\d+) +(.+)/i) {
-            &create_vcr_event($start, $end, $channel, $show);
+        if( !$parms{dump_body} ) {
+           if (my($channel, $show) = $subject =~ /^ *vcr +(\d+) +(.+)/i) {
+               &create_vcr_event($start, $end, $channel, $show);
+           }
+           else {
+               &create_other_event($start, $subject);
+           }
         }
         else {
-            &create_other_event($start, $subject);
+           my $body = $item->Body;
+#          printf( "$body\n" );
+           &dump_body( $subject, $body );
         }
 
         if ($parms{version} eq '97') {
-            $item = $items->FindNext;
+            if (!$parms{all}) {
+               $item = $items->FindNext;
+            }
+            else {
+               $item = $items->GetNext;
+            }
         }
         else {
             $item = $items->GetNext;
@@ -247,7 +269,7 @@ sub find_items {
 
 sub create_vcr_event {
     my ($start, $end, $channel, $show) = @_;
-    
+
     my $channel_commified;
     if (length($channel) == 1) {
         $channel_commified = "0,$channel";
@@ -255,7 +277,7 @@ sub create_vcr_event {
     else {
         $channel_commified = substr($channel,0,1) . "," . substr($channel,1,1);
     }
-    
+
     print "VCR on channel $channel from $start to $end\n" unless $parms{quiet};
 
     if ($parms{pl_file}) {
@@ -306,11 +328,22 @@ eof
     print PL $string;
 }
 
+
+sub dump_body {
+    my ($subject, $body) = @_;
+
+    print PL "### $subject ####\n\n";
+    print PL $body;
+}
+
 __END__
 
 
 #
 # $Log$
+# Revision 1.12  2006/01/29 20:30:13  winter
+# *** empty log message ***
+#
 # Revision 1.11  2002/12/24 03:05:04  winter
 # - 2.75 release
 #
@@ -344,5 +377,4 @@ __END__
 # Revision 1.1  1999/12/11 23:28:50  winter
 # - Re-wrote, adding Outlook '98
 #
-# 
-
+#

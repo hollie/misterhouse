@@ -15,31 +15,87 @@ sub new {
 
 sub add {
     my ($self, @items) = @_;
+    my @item_states = ();
 
-                                # Dang, no way to get $self->{object_name} here (it is saved later in user_code)
+                                # No way to get $self->{object_name} here (it is saved later in user_code)
                                 # Not much use without it ... who would do this anyway :)
-#   &main::display("Warning, Group containts itself! $self.  Bad idea.") if grep $_ eq $self, @items;
+#   &main::display("Warning, Group contains itself! $self.  Bad idea.") if grep $_ eq $self, @items;
 
     push(@{$$self{members}}, @items);
 
                                 # This allows us to monitor changed members
 	for my $ref (@items) {
 		$ref->tie_items($self, undef, 'member changed');
+
+
+		if ($ref->isa('X10_Item')) {
+			if (can_dim($ref)) {
+				@item_states = split ',', $main::config_parms{x10_menu_states};
+			}
+			else {
+				if ($ref->isa('X10_Camera')) {
+					@item_states = qw(on off);
+				}
+				elsif ($ref->isa('X10_Appliance') or $ref->isa('X10_Appliancelinc')) {
+					@item_states = qw(on off status);
+				}
+
+				else {
+					@item_states = @{$ref->{states}};
+				}
+			}
+
+#			if ($ref->isa('X10_Appliance')) {
+#		        	@item_states = qw(on off status);
+#			}
+#			elsif ($ref->isa('X10_Camera')) { #***Others don't use standard X10 menus (like Scenemaster, Keypadlinc, etc.) Need central function to return menu list per type!
+#				@item_states = qw(on off);
+#			}
+#			else {
+#				@item_states = split ',', $main::config_parms{x10_menu_states};
+#			}
+#
+		}
+
+
+			@item_states = @{$ref->{states}} if $ref and $ref->{states} and !$ref->isa('X10_Sensor') and !$ref->isa('X10_Item');  #***Use the first item found with states for the moment (Need to fix this to aggregate states!)
+
+	}
+	my $count = 1;
+
+	for my $state (@item_states) {
+		if (grep $_ eq $state, @{$$self{states}}) {
+#			print "***Dupe state: $state\n";
+		}
+		elsif ($state and $state !~ /degrees/i) {
+#			print "***Push state: $state\n";
+			push(@{$$self{states}}, $state);
+		}
+#		print "$count. $state\n";
+		$count++;
 	}
 
-                                # Define group states according to the first item
-    unless ($$self{states}) {
-        my $first_item = ${$$self{members}}[0];
-        @{$$self{states}} = @{$$first_item{states}} if $first_item and $$first_item{states};
-        @{$$self{states}} = split ',', $main::config_parms{x10_menu_states} if $first_item->isa('X10_Item');
-#       @{$$self{states}} = qw(on off)                                      if $first_item->isa('X10_Appliance');
-        print "Group states: @{$$self{states}}\n" if $first_item and $$self{states} and $main::Debug{group};
-    }
+        print "Group states: @{$$self{states}}\n" if $$self{states} and $main::Debug{group};
+
+
 }
+
+
+
+
+sub fancy_controller { #check if controller is type to combine
+
+}
+
+sub include_in_group { #check if X10 item is affected by group
+	#check that length > 2 (don't set controllers)
+	#check it is not a transmitter (?)
+}
+
 
 sub set {
     my ($self, $state, $set_by) = @_;
-    print "Group set: $self lights set to $state members @{$$self{members}}\n" if $main::Debug{group};
+    print "Group set: $self set to $state members @{$$self{members}}\n" if $main::Debug{group};
 
                                 # This means we were called by the above
                                 # tie_items when a member changed
@@ -66,61 +122,285 @@ sub set {
     unshift(@{$$self{state_log}}, "$main::Time_Date $state");
     pop @{$$self{state_log}} if @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
-                                # If we are using a CM11 or similar (and not a CM17),
-                                # and they are all X10 objects with the same house code,
-                                # then we can get fancy and control X10 devices all at once by
-                                # defering the set command for the group to the last object
-                                # This will be slightly faster and will result in simultaneous
-                                # rather then sequential results.
-    my @group = @{$$self{members}};
-    my @like_group;
-    my @unlike_group;
+
+
+
+    my $ref = $self;
+    my $x10_state;
+    my $x10_dim_state;
+    my $item;
+    my $controller;
+
+    $x10_state = grep $_ eq $state, (split ',', $main::config_parms{x10_menu_states});
+
+    my @fancy_controllers; #cm11, stargate, etc.
+    my @group = @{$ref->{members}};
+    print 'Number of Members: ' . ($#group + 1) . "\n";
+    print 'State:' . $state . "\n";
+    print "$state is an X10 command\n" if $x10_state;
+
+    for $item (@group) {
+        push @fancy_controllers, $item->{interface} if can_combine($item) and !(grep $_ eq $item->{interface}, @fancy_controllers);
+	print $item->{object_name} . "\n";
+    }
+    print 'Interfaces: ' . ($#fancy_controllers + 1) . "\n";
+
+    if ($x10_state) {
+	$x10_dim_state = !($state =~ /^on$/i or $state =~ /^off$/i or $state =~ /^status/i);
+	if ($#fancy_controllers == -1) {
+		set_group_items($ref, $state);
+	}
+	else {
+
     my $house_codes = "ABCDEFGHIJKLMNOP";
-    my %house_code_last_ref = qw(A undef B undef C undef D undef E undef F undef G undef H undef I undef J undef K undef L undef M undef N undef O undef P undef);
-    my $like_group_flag = 0;
+    my %house_code_last_ref = qw(A 0 B 0 C 0 D 0 E 0 F 0 G 0 H 0 I 0 J 0 K 0 L 0 M 0 N 0 O 0 P 0);
+    #count of X10 items in house code
+    my %house_code_item_count = qw(A 0 B 0 C 0 D 0 E 0 F 0 G 0 H 0 I 0 J 0 K 0 L 0 M 0 N 0 O 0 P 0);
+    #count of X10 items in house code for this group
+    my %house_code_group_item_count = qw(A 0 B 0 C 0 D 0 E 0 F 0 G 0 H 0 I 0 J 0 K 0 L 0 M 0 N 0 O 0 P 0);
+    #count of X10 appliances in house code for this group
+    my %house_code_group_appliance_count = qw(A 0 B 0 C 0 D 0 E 0 F 0 G 0 H 0 I 0 J 0 K 0 L 0 M 0 N 0 O 0 P 0);
+    #count of LM14's in house code for this group (these love to lock up the cm11 when sending back extended status while the cm11 is busy, so do them last) (***Not currently implemented as LM14 extended status can be turned off with config command)
+    my %house_code_group_lm14_count = qw(A 0 B 0 C 0 D 0 E 0 F 0 G 0 H 0 I 0 J 0 K 0 L 0 M 0 N 0 O 0 P 0);
     my $last_ref = $group[-1];
     my $i = 0;
     my $hc;
 
+	#count up all X10 items per house code
+	#only count if item affected by group X10 processing (not a transmitter, controller, TempLinc, etc.)
+
+	for my $object_name (&main::list_objects_by_type('X10_Item')) {
+        	my $object = &main::get_object_by_name($object_name);
+
+		if (is_group_x10_item($object)) {
+			my ($house) = $object->{x10_id} =~ /^X(\S)/;
+			$house_code_item_count{$house}++
+		}
+	}
+
+	for my $object_name (&main::list_objects_by_type('X10_Appliance')) {
+        	my $object = &main::get_object_by_name($object_name);
+		my ($house) = $object->{x10_id} =~ /^X(\S)/;
+		$house_code_item_count{$house}++
+	}
+
+
+
+
+
+
+
+    for $controller (@fancy_controllers) {
+        print "Processing group members on interface:$controller\n";
+
     for my $ref (@group) {
-	if ($$ref{x10_id} and substr($$ref{x10_id}, 2, 1) ne '' and $$ref{interface} =~ /cm11|ncpuxa|homebase|stargate/) {
+	if (is_group_x10_item($ref)) {
 		$hc = substr($$ref{x10_id}, 1, 1);
-		$house_code_last_ref{$hc} = $ref;		
+		if ($x10_dim_state) {
+			$house_code_last_ref{$hc} = $ref if can_dim($ref);
+		}
+		else {
+			$house_code_last_ref{$hc} = $ref;
+		}
+#		$house_code_group_lm14_count{$hc}++ if ($ref->{type} =~ /lm14/i)
+
+		$house_code_group_item_count{$hc}++;
+		$house_code_group_appliance_count{$hc}++ if !can_dim($ref);
+
+
 	}
     }
 
+#testing...
+
+#    for my $hc (keys %house_code_last_ref) {
+#    	print "$hc: " . $house_code_item_count{$hc} . ' ' . $house_code_group_item_count{$hc} . ' '  . $house_code_group_appliance_count{$hc} . "\n"
+#    }
+
+
+
     for my $hc (keys %house_code_last_ref) {
+	if ($house_code_group_item_count{$hc} and $house_code_last_ref{$hc}) { #Are there any items at all in this group for this house code
+	print "House code: $hc\n";
+
 	 my $last_ref = $house_code_last_ref{$hc};
 
-	
-	 if ($last_ref ne 'undef') {
+	#If the group's items in this house code are all that exist we can use "all lights on" (only if there are no appliances) or "all off"
+	#Only done if all items in group are on the same controller and there is more than one item to set for this house code (no need to optimize A1AJ to AO.)  Note that this optimization assumes that all X10 items are defined in items.mht.
+
+	 if ($house_code_item_count{$hc} == $house_code_group_item_count{$hc} and ($state eq 'off' or ($state eq 'on' and $house_code_group_appliance_count{$hc} == 0)) and $#fancy_controllers == 0 and $house_code_item_count{$hc} > 1) {
+		print "Setting $hc to $state with " . (($state eq 'on')?'All Lights On':'All Off') . "\n";
+	        &Serial_Item::send_x10_data($controller, 'X' . $hc . (($state eq 'on')?'O':'P'));
+
+	 }
+         else {
+		if ($house_code_item_count{$hc} == 1 and $last_ref) {
+			if ($last_ref->{interface} eq $controller) {
+				if ($x10_dim_state) {
+					print "Group dimming $$last_ref{object_name} ($$last_ref{x10_id}) to $state on interface $controller\n" if can_dim($ref) and $main::Debug{group};
+		            		set $last_ref $state, $set_by if can_dim($ref);
+				}
+				else {
+					print "Group setting $$last_ref{object_name} ($$last_ref{x10_id}) to $state on interface $controller\n" if $main::Debug{group};
+        				set $last_ref $state, $set_by;
+				}
+			}
+
+		}
+		elsif ($last_ref) { #may not exist if dim command and no dimmers in current house code
 
 		for my $ref (@group) {
-			if (substr($$ref{x10_id},1,1) eq $hc and $$ref{x10_id} ne $$last_ref{x10_id} and $$ref{interface} =~ /cm11|ncpuxa|homebase|stargate/) {
-            			print "Group setting $$ref{x10_id} to $state\n" if $main::Debug{group};
-		            	set $ref 'manual';
+			if (substr($$ref{x10_id}, 1, 1) eq $hc and $$ref{x10_id} ne $$last_ref{x10_id} and $$ref{interface} eq $controller and is_group_x10_item($ref)) {
+				if ($x10_dim_state) {
+					print "Group setting $ref->{object_name} to manual and ultimately dimming $ref->{object_name}" if can_dim($ref) and $main::Debug{group};
+			            	set $ref 'manual', $set_by if can_dim($ref);
+				}
+				else {
+					print "Group setting $ref->{object_name} to manual and ultimately $state... on interface $controller\n" if $main::Debug{group};
+			            	set $ref 'manual', $set_by;
+				}
+
                                 # Set the real state, rather than 'manual'
                                 #  - the last element of that array
 			        #$ref->{state_next_pass} = $state;
 		                ${$ref->{state_next_pass}}[-1] = $state;
 		        }
-			
 		}
-	        print "Group setting $$last_ref{x10_id} to $state\n" if $main::Debug{group};
-        	set $last_ref $state, $set_by;		
+	        print "Group " . (($x10_dim_state)?'dimming':'setting') . " $$last_ref{object_name} ($$last_ref{x10_id}) to $state on interface $controller\n" if $main::Debug{group};
+        	set $last_ref $state, $set_by;
+		}
 
-	 }	
-
+         }
+	}
 
     }
 
-  
+
+            }
+		#Set non-X10 items and items on controllers not capable of multiple addressing (cm17, etc.)
+	    for $item (@group) {
+                set_group_item($item, $state) if !can_combine($item) and is_group_item($item);
+            }
+	}
+    }
+    else {
+		#set one at a time as all items are on old controllers
+		set_group_items($ref, $state);
+
+    }
+
+
+
 }
+
+sub aggregate_states {
+	my $ref = shift;
+
+	my $item;
+	my $state;
+
+	my @group = @{$ref->{members}};
+	my @aggregate_states;
+
+	for $item (@group) {
+		if ($item->isa('Group')) {
+			push @aggregate_states, aggregate_states($item);
+			for $state (@{$item->{states}}) {
+				push @aggregate_states, $state;
+			}
+		}
+
+	}
+	for $state (@aggregate_states) {
+		push @{$ref->{states}}, $state if !(grep $_ eq $state, @{$ref->{states}}) and $state and $state !~ /\x20degrees$/i;
+
+	}
+	return @aggregate_states;
+}
+
+
+#X10 lamps, wall switches and appliances, TempLinc's and non-X10 items
+
+sub is_group_item {
+	my $ref = shift;
+	return (is_group_x10_item($ref) or $ref->isa('X10_TempLinc') or !$ref->isa('X10_Item'))
+}
+
+#x10 controllers, sensors and transmitters are not included in group processing
+#Controllers have two character id's
+#TempLinc's are not included in group X10 processing as they are two characters as well (they are set by standard group processing if the state set is status.)
+
+sub is_group_x10_item {
+	my $ref;
+
+	$ref = shift;
+	return ($ref->{x10_id} and length($ref->{x10_id}) > 2 and !$ref->isa('X10_Transmitter') and !$ref->isa('X10_Sensor'));
+
+}
+
+#Used to exclude X10 appliances, cameras, etc. from dim state processing
+
+sub can_dim {
+	my $ref;
+	$ref = shift;
+	return (grep $_ =~ /^dim/i, @{$ref->{states}});
+}
+
+#X10 lamps, wall switches and appliances on controllers that support manual addressing
+#Currently looks for cm11, ncpuxa, homebase, stargate or lynx (ini parameter needed for this!)
+
+sub can_combine {
+	my $ref;
+	my $can_combine;
+
+	$ref = shift;
+
+	$can_combine = 0;
+	$can_combine = ($ref->{interface} =~ /cm11|ncpuxa|homebase|stargate|lynx/i) if is_group_x10_item($ref);
+        return $can_combine;
+}
+
+#Used to determine whether a state is supported for a specific item
+
+sub set_group_item {
+	my $ref = shift;
+	my $state = shift;
+	print $ref->{object_name} . " has states\n" if $ref->{states};
+	print "$ref->{object_name}:$state\n" if item_state_exists($ref, $state);
+	$ref->set($state) if item_state_exists($ref, $state);
+}
+
+
+
+sub item_state_exists {
+	my $ref = shift;
+	my $state = shift;
+	return (grep $_ eq $state, @{$ref->{states}});
+}
+
+#Sets group member item state if applicable
+
+
+
+
+#Sets all applicable group member items using set_group_item
+
+sub set_group_items {
+	my $ref = shift;
+	my $state = shift;
+        my @group = @{$ref->{members}};
+	my $item;
+
+        for $item (@group) {
+            set_group_item $item, $state if is_group_item($item);
+        }
+}
+
 
 sub list {
     my ($self) = @_;
     print "Group list: self=$self members=@{$$self{members}}\n" if $main::Debug{group};
-    return sort @{$$self{members}};  # Hmmm, to sort or not to sort.
+    return sort @{$$self{members}};
 }
 
 
@@ -153,7 +433,7 @@ sub remove {
 
 #
 # $Log$
-# Revision 1.21  2005/10/02 17:24:47  winter
+# Revision 1.22  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #
 # Revision 1.20  2004/11/22 22:57:26  winter

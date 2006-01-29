@@ -459,7 +459,6 @@ sub set {
 
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
-    my $pos = $self->position();
     my $onoff;
 
     if ($state =~ /(\d+)/) {
@@ -471,13 +470,20 @@ sub set_receive {
 	    $onoff = 'on';
 	}
 	$self->SUPER::set_receive($onoff, $set_by, $target);
-	if (defined $pos && $pos->{state} ne $onoff) {
+	my $pos = $self->position();
+	if (defined $pos && $pos->state_final() ne $onoff) {
 	    $pos->set_receive($onoff, $set_by, $target);
 	}
     }
     elsif ($state eq 'on' || $state eq 'off') {
 	$self->SUPER::set_receive($state, $set_by, $target);
-	$self->{level} = 0 if ($state eq 'off');
+	if ($state eq 'off') {
+	    $self->{level} = 0;
+	    my $val = $self->value();
+	    if (defined $val && $val->state_final() != 0) {
+		$val->set_receive(0, $set_by, $target);
+	    }
+	}
     }
     if ($state eq 'on') {
 	my $value = value $self;
@@ -559,17 +565,29 @@ sub eis_type {
     return '2.1';
 }
 
+# dimmer_timeout: dimmer should have reached stable state. Issue a read request to obtain
+# current value
+sub dimmer_timeout {
+    my ($self) = @_;
+    my $value;
+
+    $value = $self->dimmer()->value();
+    $value->send_read_msg();
+}
+
+
 # set
 #
 # To allow adjusting dimmer value in real-time from for example web interface:
-# If state is set to same value twice, it means "stop"
+# If state is set to same dim/brighten value twice before dimmer timer has expired,
+# it means "stop"
 # for example, first 'dim' means start dimming, second means stop dimming
 # (This behaviour is configurable via configuration parameter "eib_dim_stop_on_repeat")
 sub set {
     my ($self, $state, $set_by, $target) = @_;
     my $subitem;
 
-    if ($::config_parms{eib_dim_stop_on_repeat}) {
+    if ($::config_parms{eib_dim_stop_on_repeat} &&  defined $self->{dimmer_timer}) {
 	if (($state eq 'brighten' && $self->{state} eq 'brighten') ||
 	    ($state eq 'dim' && $self->{state} eq 'dim')) {
 	    $state = 'stop';
@@ -629,7 +647,18 @@ sub set_receive {
 	else {
 	    &main::print_log("No dimmer value subitem for dimmer control $self->{groupaddr}");
 	}
+	$self->{dimmer_timer}->unset() if defined $self->{dimmer_timer};
     }
+    elsif ($state eq 'dim' || $state eq 'brighten') {
+# let some time pass and then issue a read request, to find out the final dimmer level.
+# The time is configurable via configuration parameter "eib_dimmmer_time".
+
+	$self->{dimmer_timer} = new Timer unless defined $self->{dimmer_timer};
+	if ($self->{dimmer_timer}->inactive()) {
+	    my $interval = 0 + $::config_parms{eib_dimmer_timer};
+	    $self->{dimmer_timer}->set($interval, sub {EIB21_Item::dimmer_timeout($self);}, 1);
+	}
+   }
 }
 
 # EIS 2.2: Dimming sub-function "value". Set dimmer to a given brightness level
@@ -638,13 +667,31 @@ sub set_receive {
 
 package EIB22_Item;
 
-# Multiple inheritance -- use encode/deode and set_receive
-# methods from EIB6_Item, the rest from EIB2_Subitem
-@EIB22_Item::ISA = ('EIB6_Item', 'EIB2_Subitem'); # order is important!
+# Multiple inheritance -- use encode/decode methods from EIB6_Item,
+# the rest from EIB2_Subitem
+@EIB22_Item::ISA = ('EIB2_Subitem', 'EIB6_Item'); # order is important!
 
 sub eis_type {
     return '2.2';
 }
+
+# set receive -- detected a "read" or "write" message on the bus.  For
+# readable actuators, don't trust the values in "write" messages, as
+# they may not have been accepted by the actuator. So if it is a
+# write, and the actuator is readable, generate a read request to
+# obtain the actual value from the actuator
+
+sub set_receive {
+    my ($self, $state, $set_by, $target, $read) = @_;
+
+    if (!$read && $self->{readable}) {
+	$self->delayed_read_request();
+    }
+    else {
+	$self->SUPER::set_receive($state, $set_by, $target);
+    }
+}
+
 
 # EIS 2.3: Dimming sub-function "position". Set dimmer to on/off.
 # Values are coded according to EIS 1

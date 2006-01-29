@@ -93,22 +93,42 @@ sub send_msg {
     push @outqueue, ($mref);
 }
 
-# addr2str: Convert an integer to an EIB address string, on the form "1/2/3"
+# addr2str: Convert an integer to an EIB address string, in the form "1/2/3" or "1.2.3"
 sub addr2str {
     my $a = $_[0];
-    my $str = sprintf "%d/%d/%d", $a >> 11, ($a >> 8) & 0x7, $a & 0xff;
+    my $b = $_[1];  # 1 if local (group) address, else physical address
+    my $str ;
+    if ($b == 1) { # logical address used
+        $str = sprintf "%d/%d/%d", ($a >> 11) & 0xf, ($a >> 8) & 0x7, $a & 0xff;
+    }
+    else { # physical address used
+        $str = sprintf "%d.%d.%d", $a >> 12, ($a >> 8) & 0xf, $a & 0xff;
+    }
     return $str;
 }
 
-# str2addr: Convert an EIB address string the form "1/2/3" to an integer
+# str2addr: Convert an EIB address string in the form "1/2/3" or "1.2.3" to an integer
 sub str2addr {
     my $str = $_[0];
-    if (!($str =~ /(\d+)\/(\d+)\/(\d+)/)) {
+    if ($str =~ /(\d+)\/(\d+)\/(\d+)/) { # logical address
+        return ($1 << 11) | ($2 << 8) | $3;
+    }
+    elsif ($str =~ /(\d+)\.(\d+)\.(\d+)/) { # physical address
+        return ($1 << 12) | ($2 << 8) | $3;
+    }
+    else
+    {
 	print "Bad EIB address string: \'$str\'\n";
 	return;
     }
-    return ($1 << 11) | ($2 << 8) | $3;
 }
+
+# addrIsLogical: Is an EIB address logical, i.e. in the form "1/2/3"
+sub addrIsLogical {
+    my $str = $_[0];
+    return ($str =~ /(\d+)\/(\d+)\/(\d+)/)
+}
+
 
 # For mapping between APCI symbols and values
 my @apcicodes = ('read', 'reply', 'write');
@@ -124,7 +144,7 @@ sub decode{
     my ($buf) = @_;
     my %msg;
     my @data;
-    my ($type, $src, $dst, undef, $bytes) = unpack("CxnnxCa*", $buf);
+    my ($type, $src, $dst, $drl, $bytes) = unpack("CxnnCxa*", $buf);
     my $apci;
 
     $apci = vec($bytes, 3, 2);
@@ -136,11 +156,13 @@ sub decode{
     else {
 	$msg{'type'} = 'apci ' . $apci;
     }
+
     $msg{'src'} = addr2str($src);
-    $msg{'dst'} = addr2str($dst);
+    $msg{'dst'} = addr2str($dst, $drl>>7);
 
     @data = unpack ("C" . bytes::length($bytes), $bytes);
     $msg{'data'} = \@data;
+    $msg{'buf'} = unpack ("H*", $buf) if $main::config_parms{eib_errata} >= 4;
     return \%msg;
 }
 
@@ -158,10 +180,11 @@ sub encode {
     }
     $data = $mref->{'data'};
     @msg = (0x11, 			# L_Data.req
-	    0x00, 			# Control field -- priority class 0
+	    0x04, 			# Control field -- priority class high
 	    0x0000, 			# Source address, leave blank
 	    str2addr( $mref->{'dst'}), 	# Destination address
-	    0xe0 | ($#$data + 1), 	# Address type, routing, length
+	    0x60 | ($#$data + 1) | 	# Routing, length and
+	    (addrIsLogical( $mref->{'dst'} ) << 7),   # address type
 	    0x0 | ($APCI >> 2), 	# TPDU type, Sequence no, APCI (msb)
 	    (($APCI & 0x3) << 6) | $$data[0],
 	    );

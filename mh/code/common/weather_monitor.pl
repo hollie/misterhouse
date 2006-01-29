@@ -131,7 +131,7 @@ $v_what_wind-> set_info('The wind speed is measured with our weather station');
 $v_what_wind-> set_authority('anyone');
 if (said $v_what_wind) {
     undef $temp;
-    if ($Weather{WindGustSpeed} == 0  and $Weather{WindGustSpeed} == 0) {
+    if ($Weather{WindGustSpeed} == 0  and $Weather{WindAvgSpeed} == 0) {
         $temp .= "There is currently no wind.";
     }
     else {

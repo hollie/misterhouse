@@ -119,9 +119,9 @@ The system requirements and installation instructions are detailed in
 <a href="install.html">mh/docs/install.html</a>
 <p>There is also a FAQ that covers misc. topics in
 <a href="faq.html">mh/docs/faq.html</a>
-<p>Paul Chamberlain has set up a
-<a href=http://tifster.com/wiki/bin/view/Misterhouse>TWiki web-based collaboration site</a>
-for other user-supplied documentation.Gordon Meyer wrote a <a href="get_to_know_mh.html"> nice getting started article</a>.<p>
+<p>We have a wiki at
+<a href="http://misterhouse.wikispaces.com">http://misterhouse.wikispaces.com</a>
+for user-supplied documentation.<p>Gordon Meyer wrote a <a href="get_to_know_mh.html"> nice getting started article</a>.<p>
 </p>
 <hr />
 <h1><a name="description">DESCRIPTION</a></h1>
@@ -6401,6 +6401,16 @@ rather than by value.  For example, this will add a to_file option to all speak 
   sub speak_parm_update {
       my ($parms_ref) = @_;
       $$parms_ref{to_file} = &quot;somename.wav&quot;;
+  }</pre>
+<p>To monitor text sent to print_log, display, play, and speak, try this:</p>
+<pre>
+  &amp;Log_add_hook(\&amp;my_log) if $Reload;</pre>
+<pre>
+  sub my_log {
+      my ($type)  = shift @_;
+      my ($text)  = shift @_;
+      my (%parms) = @_;
+      print &quot;type=$type text=$text\n&quot;;
   }</pre>
 <p>For more examples on code hooks, see mh/code/examples/test_code_hooks.pl</p>
 <p>

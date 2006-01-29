@@ -3,7 +3,7 @@
 
 Created from Dougs pictureframe.* files
 
-This file is called directly from the browser with: 
+This file is called directly from the browser with:
 
   http://localhost:8080/bin/photos.pl
 
@@ -62,7 +62,7 @@ $i = $#photos if $i > $#photos; # In case new index is smaller
 
                                 # Find previous and next indexes
 my $i_p = ($i == 0)        ? $#photos : $i - 1;
-my $i_n = ($i >= $#photos) ? 0        : $i + 1; 
+my $i_n = ($i >= $#photos) ? 0        : $i + 1;
 $Save{photo_index}      = $i;
 
                                 # Guess at a name for a bigger version of the photo
@@ -112,7 +112,7 @@ $refresh = ' ' if $parm eq 'pause' or $time == 0;
 
                                 # Create header html with optional search
 my $header = '';
-$header="<font size='3' color='#ff0000'><a href=/misc/photo_search.html>$i</a> : 
+$header="<font size='3' color='#ff0000'><a href=/misc/photo_search.html>$i</a> :
 <a href=$big_photo>$photo_name</a></font>" unless $config_parms{photo_no_title};
 $header = "<form action='/bin/photo_search.pl'>
 <input size=15 name='search' onChange='form.submit()'>
@@ -175,7 +175,7 @@ $header
 <tr>
 <td><a href='javascript:history.go(-1)'>              <img src='/graphics/1pixel.gif' width='$width' height='$height' border=$border></a></td>
 <td><a href='$config_parms{photo_url}' target='_top'> <img src='/graphics/1pixel.gif' width='$width' height='$height' border=$border></a></td>
-<td><a href='/ia5/index_menu.shtml'    target='_top'> <img src='/graphics/1pixel.gif' width='$width' height='$height' border=$border></a></td>
+<td><a href='$config_parms{html_file}'    target='_top'> <img src='/graphics/1pixel.gif' width='$width' height='$height' border=$border></a></td>
 <td><a href='/clock/index.html'>                      <img src='/graphics/1pixel.gif' width='$width' height='$height' border=$border></a></td>
 </tr><tr>
 <td><a href='/bin/photos.pl?$i_p'>      <img src='/graphics/1pixel.gif' width='$width' height='$height' border=$border></a></td>
@@ -222,7 +222,7 @@ else {
 <td colspan=6 align='center'>$header</td>
 </tr><tr>
 <td><a href='$config_parms{photo_url}' target='_top'>Main Menu</a></td>
-<td><a href='/ia5/index_menu.shtml' target='_top'>Menus</a></td>
+<td><a href='$config_parms{html_file}' target='_top'>Menus</a></td>
 <td><a href='/bin/photos.pl?$i_p'>Previous</a></td>
 <td><a href='/bin/photos.pl?$i&pause'>Pause</a></td>
 <td><a href='/bin/photos.pl?$i_n'>Next</a></td>
@@ -234,4 +234,3 @@ else {
 }
 
 return &html_page('', $html . "</body></html>");
-

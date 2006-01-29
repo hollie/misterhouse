@@ -119,7 +119,7 @@ sub startup {
 	      $xpl_hub_listen = new Socket_Item(undef, undef, 'xpl_hub_listen');
 	      print " - mh in xPL Hub mode\n";
               # now set up the hub port that will send to mh
-	      $xpl_hub_ports{$port_listen} = &get_xpl_mh_source_info();
+	      $xpl_hub_ports{$port_listen} = &xAP::get_xpl_mh_source_info();
               my $port_name = "xpl_send_$port_listen";
               &open_port($port_listen, 'send', $port_name, 1, 1);
 	   } else {
@@ -156,7 +156,7 @@ sub init_xap_virtual_device {
       # initialize the hub responder port if mh implements a hub
       if (!($::config_parms{xap_nohub})) {
          # now set up the hub port that will send to mh
-         $hub_ports{$port} = &get_xap_mh_source_info($virtual_device_name);
+         $hub_ports{$port} = &xAP::get_xap_mh_source_info($virtual_device_name);
          my $port_name = "xap_send_$port";
          &open_port($port, 'send', $port_name, 1, 1);
       }
@@ -427,7 +427,7 @@ sub _process_incoming_xpl_data {
    $target = '*' if !($target);
 
 	# continue processing unless we are the source (e.g., heart-beat)
-	if (!($source eq &get_xpl_mh_source_info())) {
+	if (!($source eq &xAP::get_xpl_mh_source_info())) {
                                   # Set states in matching xPL objects
            for my $name (&::list_objects_by_type('xPL_Item')) {
                my $o = &main::get_object_by_name($name);
@@ -538,7 +538,7 @@ sub _process_incoming_xap_data {
         $target = '*' if !($target);
 
 	# continue processing if mh is not the source (e.g., heat-beats)
-	if (!($source eq &get_xap_mh_source_info())) {
+	if (!($source eq &xAP::get_xap_mh_source_info())) {
                                   # Set states in matching xAP objects
            for my $name (&::list_objects_by_type('xAP_Item')) {
                my $o = &main::get_object_by_name($name);
@@ -564,7 +564,6 @@ sub _process_incoming_xap_data {
                  }
                }
 
-
                # don't continue if the sender and object are both virtual xap devices
                next if ($objectIsVirtual) and ($senderIsVirtual);
 
@@ -577,14 +576,14 @@ sub _process_incoming_xap_data {
                }
                # check/handle hbeats
                for my $section (keys %{$xap_data}) {
-		  if (lc $class eq 'xap-hbeat') {
-		     if (lc $class eq 'xap-hbeat.alive') {
-			$o->_handle_alive_app();
-		     } else {
-			$o->_handle_dead_app();
-		     }
-		  }
-	       }
+                   if (lc $class eq 'xap-hbeat') {
+                       if (lc $class eq 'xap-hbeat.alive') {
+                           $o->_handle_alive_app();
+                       } else {
+                           $o->_handle_dead_app();
+                       }
+                   }
+               }
                my $regex_class = &wildcard_2_regex($$o{class});
                next unless $class   =~ /$regex_class/i;
 
@@ -618,6 +617,7 @@ sub _process_incoming_xap_data {
                        }
                    }
                }
+
                $state_value = $$o{changed} unless defined $state_value;
       	       print "db3 xap set: n=$name to state=$state_value\n\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
 #	       $$o{state} = $$o{state_now} = $$o{said} == $state_value if defined $state_value;
@@ -756,12 +756,12 @@ sub get_xpl_mh_source_info {
 
 sub is_target {
     my ($target, $source) = @_;
-    return  ( (!($source eq &get_mh_source_info())) &&
+    return  ( (!($source eq &xAP::get_xap_mh_source_info())) &&
 		( (!($target))
 		|| $target eq '*'
 		|| $target eq (&get_mh_vendor_info() . '.*')
 		|| $target eq (&get_mh_vendor_info() . '.' &get_mh_device_info() . '.*')
-		|| $target eq &get_mh_source_info() )	);
+		|| $target eq &xAP::get_xap_mh_source_info() )	);
 
 }
 
@@ -847,7 +847,7 @@ sub sendXapWithHeaderVars {
        if (exists($headerVars{'source'})) {
           $msg .= "source=" . $headerVars{'source'} . "\n";
        } else {
-          $msg .= "source=" . &get_xap_mh_source_info() . "\n";
+          $msg .= "source=" . &xAP::get_xap_mh_source_info() . "\n";
        }
        $msg .= "class=" . $headerVars{'class'} . "\n";
        if (exists($headerVars{'target'})) {
@@ -877,7 +877,7 @@ sub sendXpl {
     if (defined($xpl_send)) {
        my ($target, $msg_type, @data) = @_;
        my ($parms, $msg);
-       $msg  = "xpl-$msg_type\n{\nhop=1\nsource=" . &get_xpl_mh_source_info() . "\n";
+       $msg  = "xpl-$msg_type\n{\nhop=1\nsource=" . &xAP::get_xpl_mh_source_info() . "\n";
        if (defined($target)) {
 	  $msg .= "target=$target\n";
        }
@@ -907,7 +907,7 @@ sub send_xpl_heartbeat {
     my $ip_address = $::Info{IPAddress_local};
     my $msg;
     if ($xpl_send) {
-       $msg  = "xpl-stat\n{\nhop=1\nsource=" . &get_xpl_mh_source_info() . "\ntarget=*\n}\n";
+       $msg  = "xpl-stat\n{\nhop=1\nsource=" . &xAP::get_xpl_mh_source_info() . "\ntarget=*\n}\n";
        $msg .= "hbeat.app\n{\ninterval=$xpl_hbeat_interval\nport=$port\nremote-ip=$ip_address\n}\n";
        $xpl_send->set($msg);
        print "db6 $protocol heartbeat: $msg.\n" if $main::Debug{xpl} and $main::Debug{xpl} == 6;
@@ -928,7 +928,7 @@ sub send_xap_heartbeat {
       my $msg = "xap-hbeat\n{\nv=$xap_version\nhop=1\n";
       $msg .= "uid=" . &get_xap_base_uid($base_ref) . "00" . "\n";
       $msg .= "class=xap-hbeat.$hbeat_type\n";
-      $msg .= "source=" . &get_xap_mh_source_info($base_ref) . "\n";
+      $msg .= "source=" . &xAP::get_xap_mh_source_info($base_ref) . "\n";
       $msg .= "interval=$xap_hbeat_interval_in_secs\nport=$port\npid=$$\n}\n";
       $xap_send->set($msg);
       print "db6 xap heartbeat: $msg.\n" if $main::Debug{xap} and $main::Debug{xap} == 6;
@@ -1136,7 +1136,7 @@ sub default_setstate {
     }
 
     # sending stat info about ourselves?
-    if (lc $$self{source} eq &get_xap_mh_source_info()) {
+    if (lc $$self{source} eq &xAP::get_xap_mh_source_info()) {
         &xAP::sendXap('*', @parms, $$self{class});
     } else {
 	# must be cmnd info to another device addressed by source
@@ -1248,7 +1248,7 @@ sub default_setstate {
     }
 
     # sending stat info about ourselves?
-    if (lc $$self{source} eq &get_xpl_mh_source_info()) {
+    if (lc $$self{source} eq &xAP::get_xpl_mh_source_info()) {
         &xAP::sendXpl('*', @parms, 'stat');
     } else {
     # must be cmnd info to another device addressed by address

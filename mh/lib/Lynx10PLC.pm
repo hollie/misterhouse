@@ -3,18 +3,18 @@
 
 Module: Lynx10PLC.pm
 
-Copyright (c) 2001-2003 Joe Blecher. All rights reserved.
+Copyright (c) 2001-2005 Joe Blecher. All rights reserved.
 This program is free software.  You may modify and/or
 distribute it under the same terms as Perl itself.
 This copyright notice must remain attached to the file.
 
 Author: Joe Blecher  misterhouse@blecherfamily.net
 
-This module implements code to support the Marrick Lynx10-PLC 
+This module implements code to support the Marrick Lynx10-PLC
 controller. See http://www.marrickltd.com/LynX105.htm
 
-Note: This module adds additional capability to the MisterHouse 
-	  application written by Bruce Winter (winter@misterhouse.net). 
+Note: This module adds additional capability to the MisterHouse
+	  application written by Bruce Winter (winter@misterhouse.net).
 
 
 LEGAL DISCLAIMER:
@@ -33,27 +33,32 @@ Revision History
 						 no longer requires that the device be programmed
 						 using the Lynx10-PLC Setup utility under windows
  Version 1.2 9/24/2002 - Changed logging to syslog for linux systems.
-						 Added parameters to set gains for transmit and receive. 
+						 Added parameters to set gains for transmit and receive.
  Version 1.3 2/25/2003 - Added two way support to module.
 						 Updated file to use new mh debug mechanism ($main::Debug)
 
  Version 1.4 4/25/2003 - Updates from Craig Schaeffer to support PRESET_DIM[12] commands.
 						 cmd2payld parser now expects XA1AK command format instead of
-						   previously wanting XA1K. (Need updated Serial_Item.pm) 
-						 Added mode debug output. 
+						   previously wanting XA1K. (Need updated Serial_Item.pm)
+						 Added mode debug output.
 						 Moved stat counter update on the hour to Lynx10PLC.pl (code/common dir)
 						 Added support for Unit Address, and Extended Code 1
-						 Added a number of API methods to allow users to access low level 
+						 Added a number of API methods to allow users to access low level
 						  commands on the Lynx10PLC without having to understand the devices
 						  API.
 
  Version 1.5 5/4/2003  - Fixed bug with DIM/BRIGHT command where level was parsed incorrectly after
                           switching to the XA1AK command format.
- 
+
+ Version 1.6 11/10/2005- Added support for all EXTENDED_CODE_1 commands
+						 Added Lynx10PLC_MULTI_DELAY keyword and support that allows multiple packets
+						 to be combined together if they come in seperate, but within the specified
+						 time of each other.
+
 =head1 .INI PARAMETERS
 
 Use these mh.ini parameters to enable the code:
-  
+
   Lynx10PLC_module = Lynx10PLC
   Lynx10PLC_port=/dev/ttyS0
   Lynx10PLC_baudrate=19200
@@ -65,8 +70,14 @@ These parameters allow you to override the default transmit and receive gain val
 
 This parameter will enable the module to log data using syslogd. This example will log
 data to local5 facility, with priority set to info
- 
+
   Lynx10PLC_LOGGER=/usr/bin/logger -p local5.info --
+
+This parameter will allow you to specify the amount of delay time after a packet has been
+received before sending it onto MH. This allows multiple commands to be glued together.
+This time is in milliseconds
+
+  Lynx10PLC_MULTI_DELAY = 250
 
 =cut
 
@@ -74,13 +85,13 @@ use strict;
 
 package Lynx10PLC;
 require 5.000;
-my $VERSION = "1.4";
+my $VERSION = "1.6";
 my $ID      = "Lynx10PLC.pm";
 
 ########################################################################
 # Lynx10-PLC Definitions
 
-# Network ID Definitions	 	
+# Network ID Definitions
 use constant NETID_NACK					=> 0x00;
 use constant NETID_ACK					=> 0x01;
 use constant NETID_UNDEF				=> 0x02;
@@ -189,44 +200,59 @@ use constant EXCODE_OUTPUTSTATUSACK		=> 0x38;
 
 ########################################################################
 
-my %table_hcodes = qw(0 A 1 B  2 C  3 D  4 E  5 F  6 G  7 H 
+my %table_hcodes = qw(0 A 1 B  2 C  3 D  4 E  5 F  6 G  7 H
 					  8 I 9 J 10 K 11 L 12 M 13 N 14 O 15 P);
-my %table_ucodes = qw(0 1 1 2  2 3  3 4  4 5  5 6  6 7  7 8 
-					  8 9 9 A 10 B 11 C 12 D 13 E 14 F 15 G
-					  OFF K ON J);
+my %table_ucodes = qw(0 1 1 2  2 3  3 4  4 5  5 6  6 7  7 8
+                      8 9 9 A 10 B 11 C 12 D 13 E 14 F 15 G
+                      OFF K ON J ALL_LIGHTS_ON O ALL_OFF P);
 
-my %table_hcodes2 = qw(A 0 B 1 C  2 D  3 E  4 F  5 G  6 H  7 
+my %table_hcodes2 = qw(A 0 B 1 C  2 D  3 E  4 F  5 G  6 H  7
 					   I 8 J 9 K 10 L 11 M 12 N 13 O 14 P 15);
-my %table_ucodes2 = qw(1 0 2 1 3  2 4  3 5  4 6  5 7  6 8  7  
+my %table_ucodes2 = qw(1 0 2 1 3  2 4  3 5  4 6  5 7  6 8  7
 					   9 8 A 9 B 10 C 11 D 12 E 13 F 14 G 15);
 
-my %preset_dim_levels = qw(0 M  1 N  2 O  3 P  4 C  5 D  6 A  7 B  
+my %preset_dim_levels = qw(0 M  1 N  2 O  3 P  4 C  5 D  6 A  7 B
 						   8 E  9 F 10 G 11 H 12 K 13 L 14 I 15 J);
 
 my %preset_dim_levels2 = qw(M 0 N 1 O 2 P 3 C 4 D 5 A 6 B 7
 							E 8 F 9 G 10 H 11 K 12 L 13 I 14 J 15);
 
+my @table_dcodes2 = qw(6 14 2 10 1 9 5 13 7 15 3 11 0 8 4 12);
+
 my ($_netid, $_nodeid, $_seqnum, $_payld, $_paysz, $_chksum, $_paycmd);
 my ($_cmds, %Lynx10PLC);
+my ($_queuedCmds, $_queuedCmdsTime, $multiDelay);
 my ($logger);
 
 my $serial_port;
+
+my $error_detected;
+
+sub get_param
+{
+    return 0 unless ( 1 == @_ );
+    my ($param) = @_;
+    return $Lynx10PLC{$param};
+}
 
 ########################################################################
 #
 # This code create the serial port and registers the callbacks we need
 #
 ########################################################################
-sub startup 
+sub startup
 {
 	$Lynx10PLC{SEQNUM} = 0;
 	$Lynx10PLC{NODEID} = 0;
 	$Lynx10PLC{STATUS_REQUEST} = "";
- 
+
 	&serial_startup;
 
 	# Determine if the logger should be used
 	$logger = $::config_parms{Lynx10PLC_LOGGER};
+
+	# Determine amount of time to allow commands to be combined
+    $multiDelay = $::config_parms{Lynx10PLC_MULTI_DELAY} || 250;
 
 	# Add hook only if serial port was created ok
 	if ($serial_port)
@@ -236,10 +262,10 @@ sub startup
 		receiver_sensitivity($level);
 
 		# Set transmit power
-		my $level = $::config_parms{Lynx10PLC_XMIT_PWR} || 50;
+		$level = $::config_parms{Lynx10PLC_XMIT_PWR} || 50;
 		transmit_power($level);
-	
-		
+
+
 		&::MainLoop_pre_add_hook( \&Lynx10PLC::check_for_data,   1);
 	}
 }
@@ -251,7 +277,7 @@ sub serial_startup
 	if ($::config_parms{Lynx10PLC_port})
 	{
 		my($speed) = $::config_parms{Lynx10PLC_baudrate} || 9600;
-		if (&::serial_port_create('Lynx10PLC', 
+		if (&::serial_port_create('Lynx10PLC',
 			$::config_parms{Lynx10PLC_port}, $speed, 'none'))
 		{
 			$serial_port = $::Serial_Ports{Lynx10PLC}{object};
@@ -263,10 +289,10 @@ sub serial_startup
 			$serial_port->parity("none");
 			$serial_port->stopbits(1);
 			$serial_port->dtr_active(1);
-			$serial_port->rts_active(0);	   
+			$serial_port->rts_active(0);
 			$serial_port->write_settings;
 			select (undef, undef, undef, .100);		 # Sleep a bit
-			
+
 			# Force LynxNet protocol and Legacy Dim Mode 1
 			if (&send(NETID_LYNXNET, pack('C3', LNCMD_WRITENVRAM, 1,3)) == 0)
 			{
@@ -298,7 +324,7 @@ sub transmit_power
 {
     return 0 unless ( 1 == @_ );
     my ($level) = @_;
-    
+
     $level = (256 * $level) / 100;
 
 # The maximum output power is around 3.6v at Transmitter Level 93% (0xEE#= 238)
@@ -307,7 +333,7 @@ sub transmit_power
     $level = 239 if ($level > 239);
 
     $level = 0   if ($level < 0);
-    
+
     &send(NETID_X10, pack('C3', X10_TRANSMITPOWER, X10_EOL, $level));
 }
 
@@ -316,15 +342,15 @@ sub configure_plc
 {
 	return 0 unless ( 1 == @_ );
 	print "Configuring Lynx10-PLC\n";
-	
+
 	my ($speed) = @_;
-	
+
 	# Assert break for 250msec. This puts the Lynx10-PLC at 1200
-	# and legacy lynx-10 mode 
+	# and legacy lynx-10 mode
 	$serial_port->pulse_break_on(500);
 	$serial_port->baudrate(1200);
 	$serial_port->write_settings;
-	
+
 	# determine the correct baud rate value
 	my $legacy = "00";
 	$legacy = "01" if $speed == 2400;
@@ -335,35 +361,47 @@ sub configure_plc
 	$legacy = "06" if $speed == 57600;
 	$legacy = "07" if $speed == 115200;
 	$serial_port->write("M00=" . $legacy . "\r");
-	
+
 	# Set Lynx-Net protocol
 	$serial_port->write("M01=01\r");
-	
+
 	# Reboot the device
 	$serial_port->write("R\r");
-	
+
 	# sleep a bit
 	select (undef, undef, undef, 0.250);
-	
+
 	$serial_port->baudrate($speed);
 	return $serial_port->write_settings;
 }
 
 sub check_for_data
 {
-	my $pkt = &read(1);
+	#my $pkt = &read(1);
+	my ($pkt) = @_;
+    $pkt = &read(1) unless $pkt;
+
+    $_cmds = undef;
 	processPkt($pkt) if ($pkt);
 
-	# Process any pending commands recieved
-	&main::process_serial_data($_cmds) if $_cmds;
-	$_cmds = ();
+	if ($_cmds)
+	{
+    	$_queuedCmds .= $_cmds;
+		$_queuedCmdsTime = &main::get_tickcount;
+	}
+
+    if ($_queuedCmds && ((&main::get_tickcount - $_queuedCmdsTime) >= $multiDelay))
+    {
+		&main::process_serial_data("X" . $_queuedCmds);
+	    $_queuedCmds = undef;
+    }
 }
 
 #################################################################
 # Function: send_plc
 #
 # Description:
-#  This function is used convert an X10 ASCII string into a 
+#  This function is used convert an X10 ASCII string into a
 #  Lynx-Net packet, and then sends it to the PLC.
 #
 # Parameters:
@@ -380,7 +418,7 @@ sub send_plc
 	return unless ( @_ > 1 and @_ < 4);
 
 
-	
+
 	my ($self, $cmd, $module_type) = @_;
 
    	if ($::config_parms{Lynx10PLC_port} =~ 'proxy') {
@@ -400,8 +438,8 @@ sub send_plc
 # Function: cmd2payld
 #
 # Description:
-#  This function is used to convert an ASCII command into the 
-#  LynxNet command payload. 
+#  This function is used to convert an ASCII command into the
+#  LynxNet command payload.
 #
 # Parameters:
 #  $cmd : ASCII command to convert
@@ -453,7 +491,7 @@ sub cmd2payld
 	# Command "&P#" is X10_EXTENDED_CODE_1
 	elsif (my($extended_data) = $code =~ /&P(\d+)/)
 	{
-		if (($extended_data > 0) && ($extended_data <= 64)) 
+		if (($extended_data > 0) && ($extended_data <= 64))
 		{
 			--$extended_data;
 			$payld = pack('C6', X10_EXTENDED_CODE_1, $hc, $uc, X10_EOL, $extended_data, X10_EXTENDED_CODE_1);
@@ -461,21 +499,21 @@ sub cmd2payld
 	}
 
 	# Command "-#" is X10_DIM
-	elsif ($code =~ /^\S-(\d+)$/) 
+	elsif ($code =~ /^\S-(\d+)$/)
 	{
 		my $dim = int(($1 / 100) * $dim_intervals);
-		$payld = pack('C5', X10_DIM, $hc, $uc, X10_EOL, $dim);
+		$payld = pack('C5', X10_DIM, $hc, $uc, X10_EOL, $dim) if $dim;
 	}
 
 	# Command "+#" is X10_BRIGHT
-	elsif ($code =~ /^\S\+(\d+)$/) 
+	elsif ($code =~ /^\S\+(\d+)$/)
 	{
 		my $dim = int(($1 / 100) * $dim_intervals);
-		$payld = pack('C5', X10_BRIGHT, $hc, $uc, X10_EOL, $dim);
+		$payld = pack('C5', X10_BRIGHT, $hc, $uc, X10_EOL, $dim) if $dim;
 	}
 
 	# Command STATUS
-	elsif ($code =~ /^\SSTATUS$/) 
+	elsif ($code =~ /^\SSTATUS$/)
 	{
 		$payld = pack('C4', X10_STATUS_REQUEST, $hc, $uc, X10_EOL);
 		$Lynx10PLC{STATUS_REQUEST} = "$house$device";
@@ -487,14 +525,24 @@ sub cmd2payld
 		$payld = pack('C5', X10_DIM_PRESET,$hc, $uc, X10_EOL, $dim_level);
 	}
 	# just have house code and unit, no code
-	elsif (!$code) 
+	elsif (!$code)
 	{
 		$payld = pack('C4', X10_UNITADDRESS, $hc, $uc, X10_EOL);
 	}
+                                # Command X10_ALL_LIGHTS_ON
+    elsif ($code =~ /^\So/i) {
+                            #Correct form for house code only commands? (uc=0)
+        $payld = pack('C5', X10_ALLLIGHTSON,  $hc, 0, X10_EOL, 6);
+    }
+                                # Command X10_ALL_OFF
+    elsif ($code =~ /^\Sp/i) {
+                            # Correct form for house codeonly commands? (uc=0)
+        $payld = pack('C5', X10_ALLUNITSOFF,  $hc, 0, X10_EOL, 6);
+    }
 
 	debugPrint ("cmd2payld: cmd=$cmd, hc=$hc, uc=$uc, payld=" . unpack('H*', $payld))
-			 if $main::Debug{lynx10plc};
-	&::logit("$::config_parms{data_dir}/logs/x10.log", "out: $cmd", "12");
+		 if $main::Debug{lynx10plc} && $payld;
+	&::logit("$::config_parms{data_dir}/logs/x10.log", "out: $cmd, payld=" . unpack('H*', $payld), "12") if $payld;
 	return $payld;
 }
 
@@ -502,7 +550,7 @@ sub cmd2payld
 # Function: processPkt
 #
 # Description:
-#  This function is used to process a valid LynxNet packet 
+#  This function is used to process a valid LynxNet packet
 #  received from the PLC
 #
 # Parameters:
@@ -519,7 +567,7 @@ sub processPkt
 
 	&splitPkt($pkt);
 
-	debugPrint ("<-- processPkt: netid=" . sprintf("%02X", $_netid) . ", payld: len=$_paysz, data=" . 
+	debugPrint ("<-- processPkt: netid=" . sprintf("%02X", $_netid) . ", payld: len=$_paysz, data=" .
 	    unpack('H*',$_payld)) if $main::Debug{lynx10plc};
 
 	&processPkt_X10 if ($_netid == NETID_X10);
@@ -532,6 +580,8 @@ sub processPkt_LYNXNET
 {
 	return unless $_netid == NETID_LYNXNET;
 	my $msg = "";
+
+	my @data = unpack('C*', $_payld);
 
 	if ($_paycmd == LNCMD_MFGANDMODEL)
 	{
@@ -549,6 +599,17 @@ sub processPkt_LYNXNET
 		$msg = "Firmware Rev=" . unpack('H*', substr($_payld,1,2))
 			if $_paysz == 3;
 	}
+    elsif ($_paycmd == X10_ALLUNITSOFF) {
+        $_cmds .= "X" . $table_hcodes{$data[1]} .
+          $table_ucodes{ALL_OFF} if ($_paysz >= 2);
+    }
+    elsif ($_paycmd == X10_ALLLIGHTSON)
+      {
+          $_cmds .= "X" . $table_hcodes{$data[1]} .
+            $table_ucodes{ALL_LIGHTS_ON} if ($_paysz >= 2);
+      }
+
+
 	debugPrint ("LynxNet $msg") if $msg;
 }
 
@@ -561,20 +622,20 @@ sub processPkt_X10
 	my @data = unpack('C*', $_payld);
 
 	debugPrint (sprintf "paycmd=%02X (%s)", $_paycmd, PayCmdName($_paycmd)) if $main::Debug{lynx10plc};
-	
+
 	if ($_paycmd == X10_UNITADDRESS)
 	{
-		$_cmds = "X" . $table_hcodes{$data[1]} . 
+		$_cmds = $table_hcodes{$data[1]} .
 			$table_ucodes{$data[2]} if ($_paysz >= 3);
 	}
 	elsif ($_paycmd == X10_OFF)
 	{
-		$_cmds .= "X" . $table_hcodes{$data[1]} .
+		$_cmds = $table_hcodes{$data[1]} .
 			$table_ucodes{OFF} if ($_paysz >= 2);
 	}
 	elsif ($_paycmd == X10_ON)
 	{
-		$_cmds .= "X" . $table_hcodes{$data[1]} .
+		$_cmds = $table_hcodes{$data[1]} .
 			$table_ucodes{ON} if ($_paysz >= 2);
 	}
 	elsif ($_paycmd == X10_DIM)
@@ -582,7 +643,7 @@ sub processPkt_X10
 		my $val = unpack('C', substr($_payld,-1,1));
 		if ($val > 0)
 		{
-			$_cmds .= "X-" . $val if ($_paysz >= 2);
+			$_cmds = "-" . $val if ($_paysz >= 2);
 		}
 	}
 	elsif ($_paycmd == X10_BRIGHT)
@@ -590,16 +651,16 @@ sub processPkt_X10
 		my $val = unpack('C', substr($_payld,-1,1));
 		if ($val > 0)
 		{
-			$_cmds .= "X+" . $val if ($_paysz >= 2);
+			$_cmds = "+" . $val if ($_paysz >= 2);
 		}
 	}
 	elsif ($_paycmd == X10_PRESETDIM_1)
 	{
-		$_cmds .= "X" . $preset_dim_levels{$data[1]} . "PRESET_DIM1";
+		$_cmds = $preset_dim_levels{$data[1]} . "PRESET_DIM1";
 	}
 	elsif ($_paycmd == X10_PRESETDIM_2)
 	{
-		$_cmds .= "X" . $preset_dim_levels{$data[1]} . "PRESET_DIM2";
+		$_cmds = $preset_dim_levels{$data[1]} . "PRESET_DIM2";
 	}
 	elsif ($_paycmd == X10_RD_STATCOUNTER)
 	{
@@ -622,11 +683,11 @@ sub processPkt_X10
 			my $hours = unpack('C', substr($_payld,4,1));
 			my $mins  = unpack('C', substr($_payld,5,1));
 			my $secs  = unpack('C', substr($_payld,6,1));
-		
+
 			my $totsecs = ($days*24 + $hours) * 3600 +
 			$mins*60 + $secs;
 			$Lynx10PLC{CARRIERPRESENT} = $totsecs;
-		
+
 			$msg = "LynxNet X10 Uptime         : $days days, $hours:" .
 			sprintf ("%02d:%02d", $mins, $secs);
 		}
@@ -657,7 +718,7 @@ sub processPkt_X10
 		{
 			my $status = unpack('C', substr($_payld,1,1));
 			$msg = "Unknown status";
-			
+
 			$msg = "Ready for commands"			if $status == X10STATUS_OK;
 			$msg = "Transmit buffer full"		if $status == X10STATUS_BUFFERFULL;
 			$msg = "Receiver Decoder Error"		if $status == X10STATUS_RCVRDECODEERR;
@@ -665,6 +726,9 @@ sub processPkt_X10
 			$msg = "X-10 Communications Online" if $status == X10STATUS_COMONLINE;
 			$msg = "Power Failure"				if $status == X10STATUS_POWERFAILURE;
 			$msg = "X10Status: $msg";
+
+			$error_detected = 1 if $status == X10STATUS_COLLISION;
+			$error_detected = 1 if $status == X10STATUS_RCVRDECODEERR;
 		}
 	}
 	elsif ($_paycmd == X10_STATUS_OFF)
@@ -673,8 +737,9 @@ sub processPkt_X10
 		{
 			my $hc = unpack('C', substr($_payld,1,1));
 			$hc = $table_hcodes{$hc};
-			$_cmds .= "X" . $Lynx10PLC{STATUS_REQUEST} . "STATUS_OFF" 
-			if $Lynx10PLC{STATUS_REQUEST} =~ /^$hc/;
+			$_cmds = $hc . "STATUS_OFF";
+#+++			$_cmds = $Lynx10PLC{STATUS_REQUEST} . "STATUS_OFF"
+#			if $Lynx10PLC{STATUS_REQUEST} =~ /^$hc/;
 		}
 	}
 	elsif ($_paycmd == X10_STATUS_ON)
@@ -683,8 +748,9 @@ sub processPkt_X10
 		{
 			my $hc = unpack('C', substr($_payld,1,1));
 			$hc = $table_hcodes{$hc};
-			$_cmds .= "X" . $Lynx10PLC{STATUS_REQUEST} . "STATUS_ON" 
-			if $Lynx10PLC{STATUS_REQUEST} =~ /^$hc/;
+			$_cmds = $hc . "STATUS_ON"
+#			$_cmds = $Lynx10PLC{STATUS_REQUEST} . "STATUS_ON"
+#			if $Lynx10PLC{STATUS_REQUEST} =~ /^$hc/;
 		}
 	}
 
@@ -696,7 +762,7 @@ sub processPkt_X10
 			$hc = $table_hcodes{$hc};
 			$uc = $table_ucodes{$uc};
 
-			debugPrint ("paysz=$_paysz, hc=$hc, uc=$uc, data=$data, command=$command") 
+			debugPrint ("paysz=$_paysz, hc=$hc, uc=$uc, data=$data, command=$command")
 				if $main::Debug{lynx10plc};
 
 			#extended output status
@@ -706,9 +772,13 @@ sub processPkt_X10
 				# B6  0=Lamp, 1=appliance
 				# B5-B0 dim level
 				my $dim_level = $data & 0x3f; #bits 0-5
-				debugPrint (sprintf "dim_level:$dim_level (%d%%)", 
+				debugPrint (sprintf "dim_level:$dim_level (%d%%)",
 					int(100 * $dim_level / 63)+1) if $main::Debug{lynx10plc};
-				$_cmds .= "X" . $hc . $uc . "&P" . $dim_level;
+				$_cmds = $hc . $uc . "&P" . $dim_level;
+			}
+			else
+			{
+				$_cmds .= $hc . sprintf("Z%02x%02x%02x", $table_dcodes2[$table_ucodes2{$uc}], $data, $command);
 			}
 		}
 	}
@@ -717,19 +787,19 @@ sub processPkt_X10
 		printf "LynxNet X10 unhandled command: %02X\n",$_paycmd;
 	}
 
-	debugPrint ($msg) if $msg; 
-	debugPrint ("Lynx10PLC::processPkt_X10: _cmds= " . $_cmds) 
+	debugPrint ($msg) if $msg;
+	debugPrint ("Lynx10PLC::processPkt_X10: _cmds= " . $_cmds)
 		if $main::Debug{lynx10plc} && $_cmds;
 
-	&::logit("$::config_parms{data_dir}/logs/x10.log", "in:  $_cmds", "12");
+	&::logit("$::config_parms{data_dir}/logs/x10.log", "in:  $_cmds, payld=" . unpack('H*', $_payld), "12") if $_cmds;
 }
 
 #############################################################
 # Function: splitPkt
 #
 # Description:
-#  This function is to extract all of the fields from a packet 
-#  and store them in global variables. Because of this, the 
+#  This function is to extract all of the fields from a packet
+#  and store them in global variables. Because of this, the
 #  function is NOT re-entrant.
 #
 # Parameters:
@@ -821,11 +891,11 @@ sub buildPkt
 #  error message is displayed, and the packet is tossed.
 #
 # Parameters:
-#  $no_block	: 0, timeout is 100*50msec=5secs 
+#  $no_block	: 0, timeout is 100*50msec=5secs
 #				 1, timeout is 0secs
 #
 # Returns: packet in pack format, or undef if no packet
-#		  was read.  
+#		  was read.
 #
 #############################################################
 my $readBuf = ();
@@ -838,14 +908,14 @@ sub read
 	while ($tries--)
 	{
 		my $data;
-		
+
 		# read data from serial port
 		if ($data = $serial_port->input)
 		{
 			# Data was read, so append it to the readBuf
 			$readBuf .= $data;
-			
-			print "Data rcvd: len=" . length($data) . ", data=" . 
+
+			print "Data rcvd: len=" . length($data) . ", data=" .
 			unpack('H*',$data) . "\n" if $main::Debug{serial};
 		}
 		else
@@ -853,58 +923,58 @@ sub read
 			# No data read, so reset errors if any
 			$serial_port->reset_error;
 		}
-	
+
 		while (length($readBuf))
 		{
 			my $id = unpack('C', $readBuf);
-			
+
 			# Make sure NetID is valid
 			last if $id == NETID_NACK;
 			last if $id == NETID_ACK;
 			last if $id == NETID_UNDEF;
 			last if $id == NETID_X10;
 			last if $id == NETID_LYNXNET;
-			
+
 			# NetID is unknown, so toss it in the bitbucket
 			print "Unexpected NetID=" . sprintf("%02X", $id) . ". Skipping\n";
 			$readBuf = substr($readBuf,1);
 		}
-	
-		print "readBuf=" . unpack('H*', $readBuf) . "\n" 
+
+		print "readBuf=" . unpack('H*', $readBuf) . "\n"
 			if length($readBuf) && $main::Debug{serial};
-	
+
 		# See if we have a complete packet
 		if (length($readBuf) >= PKTSIZE_MIN)
 		{
 			# split the buffer into individual characters
 			my @data = unpack('C*',$readBuf);
-			
+
 			# Calculate the pktlen based upon information in the packet
 			my $pktlen = $data[PKTSIZE_OFFSET] + PKTSIZE_MIN;
-			
+
 			# Make sure we have enough data for this packet
 			if (length($readBuf) >= $pktlen)
 			{
 				# Extract the packet from the readBuf
 				my $pkt  = substr($readBuf,0,$pktlen);
 				$readBuf = substr($readBuf,$pktlen);
-		
+
 				# Calculate the checksum of the packet. Keep in mind
 				# that the last byte in the packet is the act checksum
 				my $sum  = &checksum($pkt, $pktlen-1);
-			
+
 				# Extract fields from packet
 				&splitPkt($pkt);
-		
+
 				my $status=();
-				$status = sprintf("  Chksum Failed, act=%02X", $sum) 
+				$status = sprintf("  Chksum Failed, act=%02X", $sum)
 				if $sum != $_chksum;
-		
-				my $msg = "RD pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" . 
-					unpack('H*',$pkt) . ", payld=" . unpack('H*',$_payld) . $status; 
-				system ("$logger \"$msg\"") if $logger; 
+
+				my $msg = "RD pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" .
+					unpack('H*',$pkt) . ", payld=" . unpack('H*',$_payld) . $status;
+				system ("$logger \"$msg\"") if $logger;
                 #debugPrint ($msg) if $main::Debug{lynx10plc};
-		
+
 				return $pkt if $sum == $_chksum;
 			}
 		}
@@ -917,7 +987,7 @@ sub read
 # Function: send
 #
 # Description:
-#  This function is used to send a Lynx-Net packet to the 
+#  This function is used to send a Lynx-Net packet to the
 #  serial interface. After the packet is sent, the function will
 #  wait for both the "received", and "completed" packets to return.
 #  If a packet other that these two are recieved, it will be
@@ -940,6 +1010,7 @@ sub send
 	my $tries = 0;
 
   RETRY:
+	$error_detected = 0;
 	print "Lynx10PLC::send: resending packet\n" if $tries;
 	return 0 if $tries++ > 2;
 
@@ -950,9 +1021,9 @@ sub send
 	&splitPkt($pkt);
 	my ($exp_seqnum, $exp_netid) = ($_seqnum, $_netid);
 
-	my $msg = "WR pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" . unpack('H*',$pkt) . 
+	my $msg = "WR pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" . unpack('H*',$pkt) .
 		", payld=" . unpack('H*',$payld);
-	system("$logger \"$msg\"") if $logger; 
+	system("$logger \"$msg\"") if $logger;
 
 	# write packet to serial interface
 	if ( length($pkt) != $serial_port->write($pkt) )
@@ -960,7 +1031,7 @@ sub send
 		print "Bad Lynx10PLC data send transmition\n";
 		goto RETRY;
 	}
-	
+
   ACK_PKT:
 	# Read packet from interface
 	goto RETRY unless $pkt = &read();
@@ -983,12 +1054,15 @@ sub send
 		processPkt($pkt);
 		goto DONE_PKT;
 	}
-	
+
 	# We are expecting a DONE packet at this time.
 
 	# Retry if the NETID is not ours. This is a bad thing at this time.
 	goto RETRY if ($exp_netid != $_netid);
 	goto RETRY if (unpack('C',$_payld) != LNCMD_SUCCESS);
+
+	# Resend the packet if an error  was detected during the send
+    goto RETRY if $error_detected;
 
 	return 1;
 }
@@ -1094,7 +1168,7 @@ sub readAllStats
 	}
 
 	my @other = (X10_CARRIERPRESENT);
-	
+
 	while (scalar @other)
 	{
 		&send(NETID_X10, pack('C2', shift @other, X10_EOL));
@@ -1125,7 +1199,7 @@ sub sendExtendedCode
 {
 	return unless ( 4 == @_ ) ;
 	my($hc, $uc, $cmd, $data) = @_;
-   
+
 	&send(NETID_X10, pack('C6', X10_EXTENDED_CODE_1, $hc, $uc, X10_EOL, $data, $cmd));
 }
 
@@ -1133,7 +1207,7 @@ sub sendX10On
 {
 	return unless ( 2 == @_ ) ;
 	my($hc, $uc) = @_;
-   
+
 	&send(NETID_X10, pack('C4', X10_ON, $hc, $uc, X10_EOL));
 }
 
@@ -1141,7 +1215,7 @@ sub sendX10ff
 {
 	return unless ( 2 == @_ ) ;
 	my($hc, $uc) = @_;
-   
+
 	&send(NETID_X10, pack('C4', X10_OFF, $hc, $uc, X10_EOL));
 }
 
@@ -1149,8 +1223,8 @@ sub sendPresetDim
 {
 	return unless ( 3 == @_ ) ;
 	my($hc, $uc, $level) = @_;
-   
-	&send(NETID_X10, 
+
+	&send(NETID_X10,
 		  pack('C5', X10_DIM_PRESET, $hc, $uc, X10_EOL, $level));
 }
 

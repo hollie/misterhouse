@@ -150,7 +150,7 @@ sub im_message {
     return if $text =~ /^i\'m away/i;
     return if $text =~ /^Sorry, I ran out for a bit/i;
     return if $text =~ /^I am currently away from the computer/i;
-    return if $from =~ /AOL System Msg/i;
+    return if $from =~ /AOL System Msg/i; # Fix for AOL: bot to bot infinite loop - stops replies to AOL's bot.
 
     my $msg;
     if ($text =~ /^(login|logon): *(\S*)$/i) {

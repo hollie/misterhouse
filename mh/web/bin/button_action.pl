@@ -16,6 +16,13 @@ unless (eval qq|$item->isa('X10_Appliance') or $item->isa('Fan_Motor')|) {
     $state = 'brighten' if $x > 110;  # Right side of image
 }
 
+if (eval qq|$item->isa('EIB7_Item')|) { # Motor/drive states are stop/up/down
+    $state = 'stop';
+    $state = 'down' if $x < 40;         # Left  side of image
+    $state = 'up' if $x > 110;          # Right side of image
+}
+
+
 eval qq|$item->set("$state", 'web')|;
 print "button_action.pl eval error: $@\n" if $@;
 
@@ -27,6 +34,3 @@ print "button_action.pl eval error: $@\n" if $@;
 
 my $h = &referer("/bin/list_buttons.pl?$list_name");
 return &http_redirect($h);
-
-
-

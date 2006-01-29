@@ -5,7 +5,7 @@ File:
 	Motion_Item.pm
 
 Description:
-   An abstract object that represents a motion detector that you can add to a 
+   An abstract object that represents a motion detector that you can add to a
    Light_Item.  You typically associate a real motion detector (i.e. a hard-
    wired one or an X10 Hawkeye) to this object.  It will also indicate the
    state of the motion detector on floorplan.pl if given proper coordinates.
@@ -35,7 +35,7 @@ Usage:
    Using from your user code:
       # Attaching to a Light_Item (automatically turns light on)
       $auto_master_bedroom_light->add($motion_master_bedroom);
-	
+
 	Input states:
       on/motion: motion detected
       off/still: motion no longer detected
@@ -56,7 +56,7 @@ Usage:
 
       The default is to log a message in the print log after 24 hours.
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - MH
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -76,7 +76,7 @@ sub initialize
 	$$self{m_timeout} = new Timer() unless $$self{m_timeout};
 	$$self{m_timeout}->set(2*60,$self);
 	$$self{m_timerCheck} = new Timer() unless $$self{m_timerCheck};
-	$$self{m_timerCheck}->set(24*60*60,$self);
+#	$$self{m_timerCheck}->set(24*60*60,$self);
    # Default to a print_log message after 24 hours of inactivity
    $$self{'inactivity_time'} = 24*3600;
 }
@@ -128,7 +128,7 @@ sub delay_off()
 {
 	my ($self,$p_time) = @_;
 	$$self{m_delay_off} = $p_time if defined $p_time;
-	return $$self{m_delay_off};	
+	return $$self{m_delay_off};
 }
 
 # If an inactivity alarm is set, the specified action is executed
@@ -141,4 +141,3 @@ sub set_inactivity_alarm($$$) {
 }
 
 1;
-

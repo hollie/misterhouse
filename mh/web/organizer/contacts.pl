@@ -12,13 +12,14 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.5.3 - 09/09/05
 # 1.5.2 - 02/15/02 - altered toolbar, fixed FNF Error
 # 1.5.1 - 11/22/01 - added search toolbar, removed "eval" when including libs
 # 1.4.4 - 10/02/01 - fixed inconsistent paging behavior
 # 1.4.3 - 08/22/01 - added file locking
 # ----------------------------------------------------------------------------
 
-my $VERSION = "1.5.2";
+my $VERSION = "1.5.3";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -136,6 +137,10 @@ my ($sortField) = $objCGI->param('vsSORT') || "LastName";
 my ($showAll) = $objCGI->param('vsALL') || 0;
 my ($filterField) = $objCGI->param('vsFilterField') || "";
 my ($filterValue) = $objCGI->param('vsFilterValue') || "";
+my ($showforAudrey) = $objCGI->param('vsMA') || 0;
+
+$showAll = 1 if ($showforAudrey);
+
 
 print "<form action='" . $scriptName . "' method='post'>\n";
 
@@ -193,6 +198,7 @@ print "
 ";
 print "vsDB Module Version " . $objDB->Version . "<br>";
 print "vsLock Module Version " . $objLock->Version;
+print "<br>MisterAudrey Version" if ($showforAudrey);
 print "
 	</font><p>
 	</font>
@@ -226,12 +232,14 @@ sub PrintAllRecords {
 	
 	print "<form action='$scriptName' method='GET'>\n";
 	print "<table cellspacing='2' cellpadding='2' border='0'><tr valign='middle'><td bgcolor='$dataDarkColor'>\n";
-	if ($showAll) {
+	if (!$showforAudrey) {
+	  if ($showAll) {
 		print "<input type='button' onclick=\"window.location='$scriptName?vsALL=0';\" value='Show $pageSize Per Page'>";
-	} else {
+	  } else {
 		print "<input type='button' onclick=\"window.location='$scriptName?vsALL=1';\" value='Show All'>";
+	  }
 	}
-	print "&nbsp;<input type='button' onclick=\"window.location='$scriptName?vsSORT=$sortField&vsAP=$activePage&vsCOM=ADD';\" value='New Contact'>\n";
+	print "&nbsp;<input type='button' onclick=\"window.location='$scriptName?vsSORT=$sortField&vsMA=$showforAudrey&vsAP=$activePage&vsCOM=ADD';\" value='New Contact'>\n";
 	print "</td><td>\n";
 	print "</td><td bgcolor='$dataDarkColor'>\n";
 	print "<select name='vsFilterField'>\n";
@@ -247,6 +255,7 @@ sub PrintAllRecords {
 	print "</select>&nbsp;";
 	print "<font face='Arial,Helvetica' size='2'><b>&nbsp;~=&nbsp;</b></font>\n";
 	print "<input type='text' size='10' name='vsFilterValue' value='$filterValue'>&nbsp;";
+	print "<input type='hidden' name='vsMA' value='$showforAudrey'>\n";
 	print "<input type='submit' value='Search'>&nbsp;";
 	if ($filterField && $filterValue) {
 	    print "<input type='submit' value='Clear' onclick=\"this.form.vsFilterValue.value = ''; return true;\">";
@@ -259,12 +268,12 @@ sub PrintAllRecords {
 	print "<tr valign='top' bgcolor='#CCCCCC'>\n";
 	print "<td>&nbsp;</td>\n";
 	foreach $fieldName (@showFields) {
-		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsALL=$showAll&vsSORT=$fieldName&vsFilterField=$filterField&vsFilterValue=$filterValue'>" . $fieldName . "</a></font></b></td>\n";
+		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$fieldName&vsFilterField=$filterField&vsFilterValue=$filterValue'>" . $fieldName . "</a></font></b></td>\n";
 	}
 	print "</tr>\n";
 	while (!$objMyDB->EOF && $count < $visiblePageSize) {
 		print "<tr valign='top' bgcolor='$dataLightColor'>\n";
-		print "<td><font face='arial' size='1'><a href='" . $scriptName . "?vsAP=$activePage&vsSORT=$sortField&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "'><img src='$detailIcon' alt='Details' border='0'></a></font></td>\n";
+		print "<td><font face='arial' size='1'><a href='" . $scriptName . "?vsAP=$activePage&vsMA=$showforAudrey&vsSORT=$sortField&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "'><img src='$detailIcon' alt='Details' border='0'></a></font></td>\n";
 		foreach $fieldName (@showFields) {
 			$fieldValue = $objMyDB->FieldValue($fieldName);
 			$fieldValue = "&nbsp;" if ($fieldValue eq "");
@@ -283,10 +292,10 @@ sub PrintAllRecords {
 
 	print "Result Page " . $activePage . " of " . $pageCount;
 	if ($activePage > 1) {
-		print " <a href='?vsALL=$showAll&vsSORT=$sortField&vsAP=" . ($activePage - 1) . "&vsFilterField=$filterField&vsFilterValue=$filterValue'>Previous</a>";
+		print " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP=" . ($activePage - 1) . "&vsFilterField=$filterField&vsFilterValue=$filterValue'>Previous</a>";
 	}
 	if ($activePage < $pageCount) {
-		print " <a href='?vsALL=$showAll&vsSORT=$sortField&vsAP=" . ($activePage + 1) . "&vsFilterField=$filterField&vsFilterValue=$filterValue'>Next</a>";
+		print " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP=" . ($activePage + 1) . "&vsFilterField=$filterField&vsFilterValue=$filterValue'>Next</a>";
 	}
 	print " (" . $objMyDB->RecordCount . " Records)\n";
 }
@@ -316,13 +325,15 @@ sub PrintCurrentRecord {
 	print "</table>\n";
 	print "<p>\n";
 	print "<input type='hidden' name='vsALL' value='$showAll'>\n";
+	print "<input type='hidden' name='vsMA' value='$showforAudrey'>\n";
 	print "<input type='hidden' name='vsAP' value='$activePage'>\n";
 	print "<input type='hidden' name='vsSORT' value='$sortField'>\n";
 
 	if ($objMyDB->FieldValue("ID")) {
 	    print "<input type='hidden' name='vsCOM' value='UPDATE'>\n";
 	    print "<input type='submit' value='Update'>\n";
-	    print "<input style=\"COLOR: maroon;\" type='reset' value='Delete'  onclick=\"if (confirm('Permenantly delete this contact?')) {self.location='$scriptName?vsSORT=$sortField&vsAP=$activePage&vsALL=$showAll&vsCOM=DELETE&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
+	    print "<input type='hidden' name='vsMA' value='$showforAudrey'>\n";
+	    print "<input style=\"COLOR: maroon;\" type='reset' value='Delete'  onclick=\"if (confirm('Permenantly delete this contact?')) {self.location='$scriptName?vsSORT=$sortField&vsAP=$activePage&vsALL=$showAll&vsMA=$showforAudrey&vsCOM=DELETE&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
 	} else {
 	    print "<input type='hidden' name='vsCOM' value='INSERT'>\n";
 	    print "<input type='submit' value='Add'>\n";

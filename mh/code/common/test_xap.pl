@@ -53,14 +53,15 @@ $clock_xap = new xAP_Item('clock.report', '*', time => {local => '$state'});
 print_log "xap clock time=$state time/date=$$clock_xap{prettylocal}{long}"  if $state = state_now $clock_xap;
 
 #
-# Various other tests for sending out xap data, both with 
+# Various other tests for sending out xap data, both with
 # xAP_Item and using the xAP::send function directly.
 #
 $xap_test = new Voice_Cmd 'Test xap send [0,1,2,3,4]';
 if (defined ($state = said $xap_test)) {
     print_log "Running xap send test $state";
 
-    &xAP::send_heartbeat if $state == 0;
+#   &xAP::send_heartbeat if $state == 0;
+    &xAP::send_xap_heartbeat if $state == 0;
 
     set $outside_light_xap TOGGLE if $state == 1;
 
@@ -92,8 +93,8 @@ $xpl_test = new Voice_Cmd 'Test xpl send [0,1,2,3,4,5,6]';
 if (defined ($state = said $xpl_test)) {
     print_log "Running xpl send tset $state";
 
-    &xAP::send_heartbeat('xAP') if $state == 0;
-    &xAP::send_heartbeat('xPL') if $state == 0;
+#   &xAP::send_heartbeat('xPL') if $state == 0;
+    &xAP::send_xpl_heartbeat() if $state == 0;
 
     set $outside_light_xpl TOGGLE if $state == 1;
 
@@ -127,4 +128,3 @@ sub xpl_speak {
         &xAP::send('xPL', "tonyt-tts.$room", 'tts.basic' => {speech => $parms{text}});
     }
 }
-

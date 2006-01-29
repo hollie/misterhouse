@@ -46,6 +46,7 @@ if ($type eq 'item') {
     ($icon) = &http_get_local_file(&html_find_icon_image($object, 'voice'));
 #   $light = 1 if $text =~ /light/i or $text =~ /lite/i;
     $light = 1 if $object->isa('X10_Item') and !$object->isa('X10_Appliance');
+    $light = 1 if $object->isa('EIB2_Item');
 }
 else {
 # Uncomment this to put in images into group, category icons.  Seem too small to be useful.

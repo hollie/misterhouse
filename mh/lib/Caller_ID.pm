@@ -125,8 +125,15 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         ($date, $time, $number, $name) = $data =~/CID:\*DATE\*(\d{8})\*TIME\*(\d{4})\*NMBR\*(\d{10})\*MESG\*.*\*NAME\*([^\*]+)\*$/;
 	print "phone number=$number name=$name\n";
       }
+# Format 6 for custom scripts such as vocp_callerid.pl
+    elsif ($format == 6) {
+        ($time, $number, $name) = (split /,/, $data);
+	print "CallerID Format 6: phone number=$number name=$name\n";
+      }
     else {
         ($time, $number, $name) = unpack("A13A13A15", $data);
+	print "phone number=$number name=$name\n";
+
     }
 
                                 # Put in the - between 123-456-7891
@@ -325,6 +332,9 @@ sub read_callerid_list {
 
 #
 # $Log$
+# Revision 1.31  2006/01/29 20:30:17  winter
+# *** empty log message ***
+#
 # Revision 1.30  2005/01/23 23:21:44  winter
 # *** empty log message ***
 #

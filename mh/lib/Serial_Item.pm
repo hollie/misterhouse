@@ -268,14 +268,21 @@ sub set {
         $serial_data =~ s/^X//;
         my $serial_chunk;
         while ($serial_data) {
-            if ($serial_data =~ /^([A-P]STATUS)(\S*)/ or
+            if ($serial_data =~ /^([A-P]STATUS_OFF)(\S*)/ or
+                $serial_data =~ /^([A-P]STATUS_ON)(\S*)/ or
+                $serial_data =~ /^([A-P]STATUS)(\S*)/ or
+                $serial_data =~ /^([A-P]ALL_LIGHTS_OFF)(\S*)/ or
+                $serial_data =~ /^([A-P]EXTENDED_CODE)(\S*)/ or
+                $serial_data =~ /^([A-P]EXTENDED_DATA)(\S*)/ or
+                $serial_data =~ /^([A-P]HAIL_REQUEST)(\S*)/ or
+                $serial_data =~ /^([A-P]HAIL_ACK)(\S*)/ or
                 $serial_data =~ /^([A-P]PRESET_DIM1)(\S*)/ or
                 $serial_data =~ /^([A-P]PRESET_DIM2)(\S*)/ or
                 $serial_data =~ /^([A-P][1][0-6])(\S*)/ or
                 $serial_data =~ /^([A-P][1-9A-W])(\S*)/ or
-                $serial_data =~ /^([A-P]\&P\d+)(\S*)/ or         # Pre Dim Cmds
-                $serial_data =~ /^([A-P]Z\S*)/ or                # Scene Cmds for Switchlinc
-                $serial_data =~ /^([A-P]\d+\%)(\S*)/ or
+                $serial_data =~ /^([A-P]\&P\d+)(\S*)/ or         # extended direct dim cmd
+                $serial_data =~ /^([A-P]Z\S*)/ or                # Extended Code cmd with arbitrary extended bytes
+                $serial_data =~ /^([A-P]\d+\%)(\S*)/ or          # these are converted to &P above
                 $serial_data =~ /^([A-P][\+\-]?\d+)(\S*)/) {
                 $serial_chunk = $1;
                 $serial_data  = $2;
@@ -436,6 +443,11 @@ sub send_x10_data {
     }
 
 
+    elsif ($interface eq 'ti103') {
+        print "db1 TI103: Sending x10 data: $serial_data\n" if $main::Debug{ti103};
+        &ControlX10::TI103::send($main::Serial_Ports{ti103}{object}, substr($serial_data, 1));
+    }
+
     elsif ($interface eq 'bx24') {
         &X10_BX24::SendX10($serial_data);
     }
@@ -530,6 +542,18 @@ sub send_x10_data {
         &main::print_log("Using wish to send: $serial_data");
         &Wish::send(substr($serial_data, 1));
     }
+    elsif ($interface eq 'iplcs') {
+	# ncpuxa wants individual codes with X
+        &main::print_log("Using iplcs to send: $serial_data");
+        &iplcs::send($main::Serial_Ports{iplcs}{object}, $serial_data);
+    }
+    elsif ($interface eq 'iplcu') {
+	# ncpuxa wants individual codes with X
+        &main::print_log("Using iplcu to send: $serial_data");
+        &iplcs::send($main::config_parms{iplcu_port}, $serial_data);
+    }
+
+
 
 
     else {
@@ -584,6 +608,9 @@ sub set_interface {
         elsif ($main::Serial_Ports{wish}{object}) {
             $interface = 'wish';
         }
+        elsif ($main::Serial_Ports{iplcs}{object}) {
+            $interface = 'iplcs';
+        }
 
 
     }
@@ -593,6 +620,9 @@ sub set_interface {
 
 #
 # $Log$
+# Revision 1.75  2006/01/29 20:30:17  winter
+# *** empty log message ***
+#
 # Revision 1.74  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #

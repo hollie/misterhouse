@@ -22,7 +22,7 @@ function MM_swapImage() { //v3.0
 }
 //-->
 </script></head>
-<body bgcolor="#ffffff" onload="MM_preloadImages('images/house2.gif','images/news2.gif','images/modes2.gif','images/lights2.gif','images/outside2.gif','images/security2.gif','images/phone2.gif','images/entertain2.gif','images/speak2.gif','images/pictures2.gif','images/calendar2.gif','images/statistics2.gif')">
+<body bgcolor="#ffffff" onload="MM_preloadImages('images/house2.gif','images/news2.gif','images/modes2.gif','images/lights2.gif','images/outside2.gif','images/security2.gif','images/phone2.gif','images/entertain2.gif','images/speak2.gif','images/pictures2.gif','images/calendar2.gif','images/statistics2.gif','images/ShoppingList2.gif')">
 <base target="main">
 <center>
 <table align="center" width="95%" border="0" cellspacing="0" cellpadding="0">
@@ -32,15 +32,15 @@ function MM_swapImage() { //v3.0
 </tr>
 <tr>
 <td width="18%">
-<a href="house/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image1','','images/house2.gif',1)"><img src="images/house1.gif" alt='MisterHouse' border="0" name="Image1"></a> 
+<a href="house/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image1','','images/house2.gif',1)"><img src="images/house1.gif" alt='MisterHouse' border="0" name="Image1"></a>
 </td>
 <td width="12%">&nbsp;</td>
 <td width="18%">
-<a href="news/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image2','','images/news2.gif',1)"><img src="images/news1.gif" alt='Mail and News' border="0" name="Image2"></a> 
+<a href="news/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image2','','images/news2.gif',1)"><img src="images/news1.gif" alt='Mail and News' border="0" name="Image2"></a>
 </td>
 <td width="12%">&nbsp;</td>
 <td width="18%">
-<a href="modes/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image3','','images/modes2.gif',1)"><img src="images/modes1.gif" alt='Modes' border="0" name="Image3"></a> 
+<a href="modes/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image3','','images/modes2.gif',1)"><img src="images/modes1.gif" alt='Modes' border="0" name="Image3"></a>
 </td>
 </tr>
 <tr>
@@ -48,15 +48,15 @@ function MM_swapImage() { //v3.0
   </tr>
 <tr>
 <td width="12%">
-<a href="lights/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image4','','images/lights2.gif',1)"><img src="images/lights1.gif" alt='Lights and Appliances' border="0" name="Image4"></a> 
-</td>
-<td width="12%">&nbsp;</td> 
-<td width="18%">
-<a href="outside/index.shtml" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image5','','images/outside2.gif',1)"><img src="images/outside1.gif" alt='HVAC and Weather' border="0" name="Image5"></a> 
+<a href="lights/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image4','','images/lights2.gif',1)"><img src="images/lights1.gif" alt='Lights and Appliances' border="0" name="Image4"></a>
 </td>
 <td width="12%">&nbsp;</td>
 <td width="18%">
-<a href="security/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image6','','images/security2.gif',1)"><img src="images/security1.gif" alt='Security' border="0" name="Image6"></a> 
+<a href="outside/index.shtml" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image5','','images/outside2.gif',1)"><img src="images/outside1.gif" alt='HVAC and Weather' border="0" name="Image5"></a>
+</td>
+<td width="12%">&nbsp;</td>
+<td width="18%">
+<a href="security/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image6','','images/security2.gif',1)"><img src="images/security1.gif" alt='Security' border="0" name="Image6"></a>
 </td>
 </tr>
 <tr>
@@ -64,7 +64,7 @@ function MM_swapImage() { //v3.0
   </tr>
 <tr>
 <td width="18%">
-<a href="phone/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image7','','images/phone2.gif',1)"><img src="images/phone1.gif" alt='Phone' border="0" name="Image7"></a> 
+<a href="phone/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image7','','images/phone2.gif',1)"><img src="images/phone1.gif" alt='Phone' border="0" name="Image7"></a>
 </td>
 <td width="12%">&nbsp;</td>
 <td width="18%">
@@ -75,7 +75,7 @@ function MM_swapImage() { //v3.0
 <a href="speak/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image9','','images/speak2.gif',1)"><img src="images/speak1.gif" alt='Speech' border="0" name="Image9"></a>
 </td>
 </tr>
- <tr> 
+ <tr>
  <td colspan="5">&nbsp;</td>
  </tr>
 <tr>
