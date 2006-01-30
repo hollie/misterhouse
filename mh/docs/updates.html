@@ -16,6 +16,7 @@
 	<ul>
 
 		<li><a href="#changes_in_the_current_test_version">Changes in the current test version</a></li>
+		<li><a href="#version_2_101_posted_on_01_29_2006">Version 2.101 posted on 01/29/2006</a></li>
 		<li><a href="#version_2_100_posted_on_10_02_2005">Version 2.100 posted on 10/02/2005</a></li>
 		<li><a href="#version_2_99_posted_on_05_22_2005">Version 2.99 posted on 05/22/2005</a></li>
 		<li><a href="#version_2_98_posted_on_03_20_2005">Version 2.98 posted on 03/20/2005</a></li>
@@ -133,10 +134,16 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 (updated nightly) can be found
 <a href=http://misterhouse.net/mh/docs/updates.html>here, in the test release updates file</a>.<p><strong>New Features:</strong></p>
 <p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>
+</p>
+<h2><a name="version_2_101_posted_on_01_29_2006">Version 2.101 posted on 01/29/2006</a></h2>
 <p>Version 2.101 can be downloaded from here:</p>
 <pre>
   <a href="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</a></pre>
 <p><strong>New Features:</strong></p>
+<p>- Matthew Williams created a new, spam free, Wiki here:  <a href="http://misterhouse.wikispaces.com/">http://misterhouse.wikispaces.com/</a></p>
+<p>- Created a MisterHouse Frapper map, so we can see where we all are:  <a href="http://www.frappr.com/misterhouse">http://www.frappr.com/misterhouse</a></p>
+<p>- Ron Klinkien has lots of great new info on installing MisterHouse on linux at his wiki: <a href="http://mrhousefromscratch.tk">http://mrhousefromscratch.tk</a></p>
 <p>- Howard Plato created code/common/azureus_info.pl to  display and report on bittorrent client Azureus stats.</p>
 <p>- Neil Cherry created mh/lib/iplcs.pm and X10_iplcs.pm for Linux support of Smarthome's Insteon interface.
 He also created code/common/iplcs.pl to enable, and code/public/iplc.* to test.  Code is Alpha level.
@@ -144,8 +151,6 @@ More info on Insteon here: <a href="http://www.linuxha.com/athome/common/iplcd">
 <p>- Stéphane Kattoor created code/common/ical.pl to allow for control of mh items from any ICal application
 (e.g. Mozilla, Outlook, or iCal for Mac).   More iCal info here: <a href="http://en.wikipedia.org/wiki/ICalendar">http://en.wikipedia.org/wiki/ICalendar</a> .</p>
 <p>- Matthew Williams added buddy icon capability for AOL/ICQ and added a new callback to notify mh when the AOL/ICQ connection is lost.</p>
-<p>- Created a MisterHouse Fraper map, so we can see where we all are:  <a href="http://www.frappr.com/misterhouse">http://www.frappr.com/misterhouse</a></p>
-<p>- Matthew Williams created a new, spam free, Wiki here:  <a href="http://misterhouse.wikispaces.com/">http://misterhouse.wikispaces.com/</a></p>
 <p>- David Norwood created code/common/weather_tides.pl based on idea by Joey French.
 It collects information about ocean tides, moonrise and moonset from
 the University of Southern Carolina Tide Predictor: <a href="http://tbone.biol.sc.edu">http://tbone.biol.sc.edu</a></p>
@@ -154,7 +159,6 @@ Velleman K8055 USB 5 in, 8 out digital IO card:  <a href="http://www.velleman.be
 <p>- Dan Hoffard created code/common/LitterFree.pl which uses X10 to cycle the litter box based on cat movmemnt.</p>
 <p>- Andrew Baker created code/public/schoolday.pl which creates functions that flag school days.</p>
 <p>- David Lynch created mh/lib/TI103.pm for support of ACT's TI-103 interface</p>
-<p>- Ron Klinkien has lots of great new info on installing MisterHouse on linux at his wiki: <a href="http://mrhousefromscratch.tk">http://mrhousefromscratch.tk</a></p>
 <p>- Jason Spangler updated lib/X10_Wish.pm to send, as well as receive, X10 data via PowerLinc, using the Wish drivers.</p>
 <p><strong>Bug Fixes and Other Changes:</strong></p>
 <p>- Matthew Williams made some additional updated handy_net_utilites.pl improve AOL OSCAR.pm support.</p>
@@ -169,16 +173,15 @@ and a -dump_body option  to dump the entire body af an entry and not just the su
 <p>- Matthew Williams updated code/public/weather_metar.pl, including fixing a bug caused by occastional enter a space after ``RMK'' string.
 Also moved it from code/public to code/common.</p>
 <p>- Matthew Williams updated web/bin/shopping_list.pl with a few enhancements and bug fixes.</p>
-<p>- Chris Barrett updated lib/X10_Items.pm to fix some Battery timer bugs.</p>
+<p>- Chris Barrett updated lib/X10_Items.pm to fix some battery timer bugs.</p>
 <p>- Chris Barrett fixed a html formating problem in web/bin/phone_list.pl</p>
 <p>- Gaetan Lord fixed a bug in time_date_stamp format=17, where it was doing a 12, rather than 24 hour format.</p>
-<p>- Neil Cherry updated FAQ 2.15: What is the format of MisterHouse X10 codes?</p>
-<p>- Ben Raymond updated iButton.pm to adds (partial) support for DS2409 one-wire net couplers.</p>
+<p>- Neil Cherry and David Norwood updated faq 2.15: What is the format of MisterHouse X10 codes?</p>
+<p>- Ben Raymond updated iButton.pm to add (partial) support for DS2409 one-wire net couplers.</p>
 <p>- David Mark commented out an uneeded timer in Motion_Item .</p>
 <p>- Joel Davidson updated lib/Omnistat.pm</p>
 <p>- David Norwood updated uirt2 and usb-uirt, which now use device data in
 mh/data/infrared/devicelib.</p>
-<p>- David Norwood updated faq 2.15: What is the format of MisterHouse X10 codes?</p>
 <p>- David Norwood updated lib/Serial_Item.pm, CM11.pm, and ncpuxa_mh.pm
  to add support for sending and receiving some of the rarely used X10 commands.</p>
 <p>- David Mark updated lib/Lynx10PLC, Homebase.pm, and Stargate.pm to

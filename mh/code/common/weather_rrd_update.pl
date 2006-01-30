@@ -485,9 +485,6 @@ sub create_rrdgraph_all {
 # so build the footers differently depending on the version
 #==============================================================================
 sub get_weather_footer1 {
-  my $start;
-  my $step;
-  my $datapoint;
   my $colon;
   my $footer;
   my $starttime;

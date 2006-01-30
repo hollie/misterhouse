@@ -23,12 +23,21 @@ B<New Features:>
 B<Bug Fixes and Other Changes:>
 
 
+=head2 Version 2.101 posted on 01/29/2006
+
+
 Version 2.101 can be downloaded from here:
 
   http://misterhouse.sf.net/download.html
 
 
 B<New Features:>
+
+- Matthew Williams created a new, spam free, Wiki here:  http://misterhouse.wikispaces.com/
+
+- Created a MisterHouse Frapper map, so we can see where we all are:  http://www.frappr.com/misterhouse
+
+- Ron Klinkien has lots of great new info on installing MisterHouse on linux at his wiki: http://mrhousefromscratch.tk
 
 - Howard Plato created code/common/azureus_info.pl to  display and report on bittorrent client Azureus stats.
 
@@ -40,10 +49,6 @@ More info on Insteon here: http://www.linuxha.com/athome/common/iplcd
 (e.g. Mozilla, Outlook, or iCal for Mac).   More iCal info here: http://en.wikipedia.org/wiki/ICalendar .
 
 - Matthew Williams added buddy icon capability for AOL/ICQ and added a new callback to notify mh when the AOL/ICQ connection is lost.
-
-- Created a MisterHouse Fraper map, so we can see where we all are:  http://www.frappr.com/misterhouse
-
-- Matthew Williams created a new, spam free, Wiki here:  http://misterhouse.wikispaces.com/
 
 - David Norwood created code/common/weather_tides.pl based on idea by Joey French.
 It collects information about ocean tides, moonrise and moonset from
@@ -57,8 +62,6 @@ Velleman K8055 USB 5 in, 8 out digital IO card:  http://www.velleman.be/ot/en/pr
 - Andrew Baker created code/public/schoolday.pl which creates functions that flag school days.
 
 - David Lynch created mh/lib/TI103.pm for support of ACT's TI-103 interface
-
-- Ron Klinkien has lots of great new info on installing MisterHouse on linux at his wiki: http://mrhousefromscratch.tk
 
 - Jason Spangler updated lib/X10_Wish.pm to send, as well as receive, X10 data via PowerLinc, using the Wish drivers.
 
@@ -88,15 +91,15 @@ Also moved it from code/public to code/common.
 
 - Matthew Williams updated web/bin/shopping_list.pl with a few enhancements and bug fixes.
 
-- Chris Barrett updated lib/X10_Items.pm to fix some Battery timer bugs.
+- Chris Barrett updated lib/X10_Items.pm to fix some battery timer bugs.
 
 - Chris Barrett fixed a html formating problem in web/bin/phone_list.pl
 
 - Gaetan Lord fixed a bug in time_date_stamp format=17, where it was doing a 12, rather than 24 hour format.
 
-- Neil Cherry updated FAQ 2.15: What is the format of MisterHouse X10 codes?
+- Neil Cherry and David Norwood updated faq 2.15: What is the format of MisterHouse X10 codes?
 
-- Ben Raymond updated iButton.pm to adds (partial) support for DS2409 one-wire net couplers.
+- Ben Raymond updated iButton.pm to add (partial) support for DS2409 one-wire net couplers.
 
 - David Mark commented out an uneeded timer in Motion_Item .
 
@@ -104,8 +107,6 @@ Also moved it from code/public to code/common.
 
 - David Norwood updated uirt2 and usb-uirt, which now use device data in
 mh/data/infrared/devicelib.
-
-- David Norwood updated faq 2.15: What is the format of MisterHouse X10 codes?
 
 - David Norwood updated lib/Serial_Item.pm, CM11.pm, and ncpuxa_mh.pm
  to add support for sending and receiving some of the rarely used X10 commands.
