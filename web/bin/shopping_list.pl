@@ -1,6 +1,9 @@
 # Shopping List
-# Version 1.65
+# Version 1.66
 # Matthew Williams
+#
+# $Revision$
+# $Date$
 #
 # This file should be placed in mh/web/bin.  I link to it through a my_mh page.
 #
@@ -47,6 +50,11 @@
 # shopping list.  If blank, will default to net_mail_account_address
 #
 # Revision History:
+#
+# Version 1.66: Matthew Williams
+# - added call to insert_keyboard within add_item (virtual_keyboard.pl
+#   needs to be activated).
+# - initial CSS margin-top values now specify pixels to comply with standard
 #
 # Version 1.65: Matthew Williams
 # - now using html_page to send complete http headers
@@ -121,7 +129,8 @@ $numColumns=4 unless $numColumns;
 my $columnWidth=100/$numColumns.'%';
 
 
-my $html=qq[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+my $html=qq[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
 <title>$prettyName</title>
@@ -133,11 +142,11 @@ a { text-decoration: none; }
 h3 { font-family: helvetica;
     font-size: 12pt;
     margin:0;
-    margin-top: 10;}
+    margin-top: 10px;}
 h4 { font-family: helvetica;
     font-size: 10pt;
     margin:0;
-    margin-top: 10;}
+    margin-top: 10px;}
 </style>
 </head>
 <body>
@@ -184,12 +193,13 @@ if ($param{'action'} eq 'add item') {
 		}
 		close (SHOPLIST);
 		$html.=qq[</select></p><p>&nbsp;</p>\n];
-		$html.=qq[<p>Item: <input type="text" name="item" size=50></p><br>];
+		$html.=qq[<p>Item: <input type="text" name="item" id="item" size=50></p><br>];
 		$html.=qq[<p>Add to $prettyName Now: <input type="checkbox" name="onlistnow"></p><br>];
 		$html.=qq[<p><input type="submit" name="action" value="add item">\n];
 		$html.=qq[<input type="submit" name="action" value="cancel"></p>\n];
 		$html.=qq[</form>\n];
 		$html.='';
+		$html.= &insert_keyboard({target => 'item', autocap => 'yes'});
 		$html.=qq[</body></html>\n];
 		return $html;
 	}
