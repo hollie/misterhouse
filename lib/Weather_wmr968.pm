@@ -672,7 +672,7 @@ return $f968;
 
 # 2001/11/18 v1.0 of Weather_wmr968.pm based on Bruce's Weather_wx200.pm
 #
-# $Log$
+# $Log: Weather_wmr968.pm,v $
 # Revision 1.6  2005/03/20 19:02:01  winter
 # *** empty log message ***
 #

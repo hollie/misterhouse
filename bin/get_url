@@ -172,7 +172,7 @@ sub use_get {
 }
 
 #
-# $Log$
+# $Log: get_url,v $
 # Revision 1.18  2004/11/22 22:57:17  winter
 # *** empty log message ***
 #

@@ -14,7 +14,7 @@ M: mh
   D: News
   D: Other
   D: Phone
-  D: Security
+  D: Photos
   D: TV
   D: Test
   D: Time
@@ -22,52 +22,78 @@ M: mh
   D: Vehicles
   D: Voice
   D: Weather
+  D: audrey_bruce
   D: iButtons
-  D: none
+  D: monitor_dj
+  D: monitor_router_bruce
 M: Appliances
+  D: DockNTalk [on,off,toggle]                           # $v_dockntalk                        
   D: Fountain [on,off]                                   # $v_fountain                         
+  D: Garage Cameras [on,off,reset]                       # $v_garage_cameras                   
   D: Indoor fountain [on,off]                            # $v_indoor_fountain                  
 M: Audrey
-  D: Turn Kitchen Audrey power [on,off]                  # $audrey_power_kitchen_v             
-  D: Turn Piano Audrey power [on,off]                    # $audrey_power_piano_v               
   D: Audrey beeps [enabled,disabled,stopped]             # $v_audrey_beeps                     
+  D: Set [all,Kitchen] Audrey both lights blink          # $v_audrey_both_leds_blink           
+  D: Set [all,Kitchen] Audrey both lights off            # $v_audrey_both_leds_off             
+  D: Set [all,Kitchen] Audrey both lights on             # $v_audrey_both_leds_on              
   D: Audrey lights both [on,off,blinking]                # $v_audrey_both_lights               
-  D: Set [,all,Kitchen,Piano,Bedroom] Audrey light blink  # $v_audrey_led_blink                 
-  D: Set [,all,Kitchen,Piano,Bedroom] Audrey light off   # $v_audrey_led_off                   
-  D: Set [,all,Kitchen,Piano,Bedroom] Audrey light on    # $v_audrey_led_on                    
+  D: Set [all,Kitchen] Audrey mail light blink           # $v_audrey_mail_led_blink            
+  D: Set [all,Kitchen] Audrey mail light off             # $v_audrey_mail_led_off              
+  D: Set [all,Kitchen] Audrey mail light on              # $v_audrey_mail_led_on               
   D: Audrey mail light [on,off,blinking]                 # $v_audrey_mail_light                
-  D: Set [,all,Kitchen,Piano,Bedroom] Audrey to photo screen  # $v_audrey_photos                    
+  D: Set [all,Kitchen] Audrey music off                  # $v_audrey_music_off                 
+  D: Set [all,Kitchen] Audrey music on                   # $v_audrey_music_on                  
+  D: Set [all,Kitchen] Audrey to photo screen            # $v_audrey_photos                    
+  D: Reboot [all,Kitchen] Audrey                         # $v_audrey_reboot                    
   D: Push Audrey Button [browser,address_book,date_book,audrey_options,power_button,turn_knob_left,push_knob,turn_knob_right,mail,tab,enter]  # $v_audrey_remote                    
   D: Set Audrey [awake,asleep,toggle]                    # $v_audrey_screen                    
-  D: Set [,all,Kitchen,Piano,Bedroom] Audrey screen off  # $v_audrey_screen_off                
-  D: Set [,all,Kitchen,Piano,Bedroom] Audrey screen on   # $v_audrey_screen_on                 
-  D: Select [Piano,Kitchen,] Audrey                      # $v_audrey_select                    
+  D: Set [all,Kitchen] Audrey screen off                 # $v_audrey_screen_off                
+  D: Set [all,Kitchen] Audrey screen on                  # $v_audrey_screen_on                 
+  D: Select [Kitchen,] Audrey                            # $v_audrey_select                    
   D: Play Audrey sound number [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]  # $v_audrey_sound_play                
   D: Play Audrey sound [cancel,check,copy,cut,delete,help,major_high,menu_close,menu_open,minor_high,minor_low,paste,print,scroll_down,scroll_up,snapshot,warning,go_to_sleep,wake_up]  # $v_audrey_sound_play_by_name           
-  D: Read tag line to [,all,Kitchen,Piano,Bedroom] Audrey  # $v_audrey_tagline                   
+  D: Read tag line to [all,Kitchen] Audrey               # $v_audrey_tagline                   
+  D: Set [all,Kitchen] Audrey top light blink            # $v_audrey_top_led_blink             
+  D: Set [all,Kitchen] Audrey top light off              # $v_audrey_top_led_off               
+  D: Set [all,Kitchen] Audrey top light on               # $v_audrey_top_led_on                
   D: Audrey top light [on,off,blinking]                  # $v_audrey_top_light                 
   D: Set Audrey volume to [1,10,20,25,30,40,50,60,70,75,80,90,100]  # $v_audrey_volume                    
-  D: Set [,all,Kitchen,Piano,Bedroom] Audrey to a wav file  # $v_audrey_wav                       
+  D: Set [all,Kitchen] Audrey Volume to 0                # $v_audrey_volume_0                  
+  D: Set [all,Kitchen] Audrey Volume to 100              # $v_audrey_volume_100                
+  D: Set [all,Kitchen] Audrey Volume to 20               # $v_audrey_volume_20                 
+  D: Set [all,Kitchen] Audrey Volume to 50               # $v_audrey_volume_50                 
+  D: Set [all,Kitchen] Audrey Volume to 75               # $v_audrey_volume_75                 
+  D: Set [all,Kitchen] Audrey to a wav file              # $v_audrey_wav                       
 M: Barcode
   D: List barcoded inventory                             # $v_barcode_inventory          anyone
   D: Change barcode scan to [web,add inventory,delete inventory,query inventory,clear inventory] mode  # $v_barcode_mode               anyone
 M: Entertainment
+  D: [Start,Pause,Resume,Status] bingo                   # $bingo_control                      
+  D: Set bingo time to [2,5,10,15,20]                    # $bingo_time                         
   D: [Update,Clean] the daily comic strips               # $dailystrip_update                  
+  D: Email daily comics                                  # $dailystrips_email                  
   D: Play a goofy sound file                             # $fun_wav                            
-  D: Reindex the photo album [,name,date,random]         # $photo_reindex                      
-  D: Resize new photo album pictures                     # $photo_resize                       
   D: [What is,Read,Display] the deep thought             # $v_deep_thought                     
   D: [What is,Read,Display] the next deep thought        # $v_deep_thought_next          anyone
-  D: Get [Top DVDs,This Week's New DVDs,Last Week's New DVDs,Next Week's New DVDs]  # $v_get_new_dvds                     
+  D: Speak deep thought with voice [anjali,audrey,charles,crystal,damien,duchess,duncan,emily,female,female1,female2,female3,female4,frank,kate,linda,male,male1,male2,male3,mary,mike,paul,robin,sam,random,next]  # $v_deep_thought_voice         anyone
+  D: Get DVD Info                                        # $v_get_new_dvds                     
+  D: [Get,reget] tv grid data for today                  # $v_get_tv_grid_data1                
+  D: [Get,reget] tv grid data for the next 2 weeks       # $v_get_tv_grid_data2                
   D: Please go away                                      # $v_go_away                          
   D: Read the house tagline                              # $v_house_tagline              anyone
   D: Say something mean                                  # $v_personal_remark_bad              
   D: Say something nice                                  # $v_personal_remark_good             
+  D: Read [Top DVDs,This Week's New DVDs,Last Week's New DVDs,Next Week's New DVDs]  # $v_read_new_dvds                    
+  D: Show [Top DVDs,This Week's New DVDs,Last Week's New DVDs,Next Week's New DVDs]  # $v_show_new_dvds                    
   D: [Get,Read,Show] the top 10 list                     # $v_top10_list                       
-  D: Display the top 10 list                             # $v_top10_list2                anyone
   D: [What is,Display] the trivia answer                 # $v_trivia_answer              anyone
   D: What is the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question  # $v_trivia_next1                     
   D: Display the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question  # $v_trivia_next2               anyone
+  D: What TV movies are on channel [$config_parmsfavorite_tv_channel] tonight  # $v_tv_movies1                       
+  D: What TV movies are on at [6pm,7pm,8pm,9pm] tonight  # $v_tv_movies2                       
+  D: [What are,Show] the tv search results               # $v_tv_results                       
+  D: What TV shows are on channel [$config_parmsfavorite_tv_channel] tonight  # $v_tv_shows1                        
+  D: [Show,What are the] favorite TV shows on today      # $v_tv_shows2                        
 M: HVAC
   D: [open,close] all the curtains                       # $v_all_curtains                     
   D: Attic fan [on,off]                                  # $v_attic_fan                        
@@ -90,20 +116,19 @@ M: Informational
   D: When was the last [new,full] moon                   # $v_moon_info2                 anyone
   D: What is the phase of the moon                       # $v_moon_info3                 anyone
   D: Generate weblog reports                             # $v_report_weblog                    
-  D: Check for school closing                            # $v_school_closing                   
-  D: [Show,Update] stock quotes                          # $v_stock_quote                anyone
+  D: [Get, Read, Show] stock quotes                      # $v_stock_quote                anyone
   D: When will the sun set                               # $v_sun_set                    anyone
-  D: What time is it                                     # $v_what_time                  anyone
+  D: [Show,Tell me] the time                             # $v_what_time                  anyone
 M: Internet
   D: Send test e mail to the cell phone                  # $cell_phone_test                    
   D: [enable,disable] local lan code                     # $lan_code                           
   D: Reboot the router                                   # $router_reboot                      
   D: Get internet data                                   # $v_get_internet_data                
-  D: Start sending log data to [AOL,MSN,jabber]          # $v_im_logdata1                      
-  D: Stop sending log data to [AOL,MSN,jabber]           # $v_im_logdata2                      
-  D: Disconnect from [AOL,MSN,jabber]                    # $v_im_signoff                       
-  D: Connect to [AOL,MSN,jabber]                         # $v_im_signon                        
-  D: Send a [AOL,MSN,jabber] test message                # $v_im_test                          
+  D: Start sending log data to [AOL,ICQ,MSN,jabber]      # $v_im_logdata1                      
+  D: Stop sending log data to [AOL,ICQ,MSN,jabber]       # $v_im_logdata2                      
+  D: Disconnect from [AOL,ICQ,MSN,jabber]                # $v_im_signoff                       
+  D: Connect to [AOL,ICQ,MSN,jabber]                     # $v_im_signon                        
+  D: Send a [AOL,ICQ,MSN,jabber] test message            # $v_im_test                          
   D: Log off the net                                     # $v_logoff_net                       
   D: [Log onto,dial] the net                             # $v_logon_to_net                     
   D: Ping test [on,off,run]                              # $v_ping_test                        
@@ -122,6 +147,7 @@ M: Lights
   D: Left bedroom light [on,brighten,dim,off,-10,+10,-30,-50,-80,+30,+50,+80,status]  # $v_left_bedroom_light               
   D: All lights [on,off]                                 # $v_lights_all                       
   D: Living lights [on,off]                              # $v_lights_living                    
+  D: Living room fan light [on,brighten,dim,off,-10,+10,-30,-50,-80,+30,+50,+80,status]  # $v_living_fan_light                 
   D: Living room light [on,brighten,dim,off,-10,+10,-30,-50,-80,+30,+50,+80,status]  # $v_living_light                     
   D: Living room lights [on,off]                         # $v_living_lights_all                
   D: Nicks reading light [on,brighten,dim,off,-10,+10,-30,-50,-80,+30,+50,+80,status]  # $v_nick_reading_light               
@@ -131,8 +157,12 @@ M: Misc
   D: Display Nick's [all,total,daily] game time log      # $check_game_time                    
   D: Check Nick's game time                              # $check_game_time2                   
   D: What programs are running on [localhost,C1,C2,WARP,Z,P90,House]  # $monitor_programs                   
-  D: How much disk space is available on [A,C,D,O,P]     # $v_disk_space                       
+  D: How much disk space is available on [A,C,F,M,N,P,Z]  # $v_disk_space                       
   D: Show disk space                                     # $v_disk_space2                      
+  D: Indicator Light 1 [on,off]                          # $v_indicator_light1                 
+  D: Indicator Light 2 [on,off]                          # $v_indicator_light2                 
+  D: Indicator Light 3 [on,off]                          # $v_indicator_light3                 
+  D: Read Zack phone minutes                             # $v_phone_minutes_zack               
 M: MisterHouse
   D: Run [daily,daily laptop,monthly,monthly laptop] backup  # $backup_process_v                   
   D: Disable code test [.01,.1,.3,.6,1,10,60,300] minutes  # $disable_code                       
@@ -170,13 +200,13 @@ M: MisterHouse
   D: Send a test scan email                              # $v_send_email_scan_test             
   D: Set the [guest,family,admin] password               # $v_set_password                     
   D: [Start a by name,Start a by speed,Stop the] speed benchmark  # $v_speed_benchmark                  
-  D: Toggle code member [alarmclock,appliances,audible_menu,audrey,audrey_control,backup,barcode_inventory,barcode_scan,barcode_web,benchmarks,callerid,cm11_control,comic_dailystrips,computer_disk_space,curtains,date_reminders,deep_thought,disable_code,display_slimserver,door_monitor,dvd_releases,eliza_server,email_misc,email_motion,email_scan,event_sounds,event_sounds_bruce,find_files,get_email_rule,goofy,halloween,heat_cool,iButton,internet_connect_check,internet_data_bruce,internet_earthquakes,internet_im,internet_im_bruce,internet_iridium,internet_logon,internet_mail,internet_slashdot,internet_starshine,internet_time,internet_top10,internet_weather,iridium_check_events,items,items_table,keyboard_numbered_menu,lights,mailbox,menu,menu_bruce,mh_control,mh_sound,mh_zip,mhsend_server,monitor_amazon,monitor_game_time,monitor_house_im,monitor_lan,monitor_memory,monitor_memory_leak,monitor_mh,monitor_programs,monitor_router,monitor_router_bruce,monitor_shoutcast,mp3,mp3_control,mp3_winamp,news_ap_breaking,news_email_breaking,news_mquote_oftd,news_onthisday,news_physics_web,news_yahoo,organizer,organizer_events,organizer_tasks,outlook,pa_control,pa_control_bruce,phone,phone_logs,phone_weeder,photo_index,reports,school_clock,school_closing,sensors,speak_chime,speak_proxy,speak_voices,startup,stocks,telnet,test_code_hooks,test_speak,test_stuff,test_stuff2,test_weather,test_web_functions,test_x10,test_x10_light,time_info,timers,timers2,tk_eye,tk_frames_big,tk_widgets_bruce,tracking_aprs,trigger_code,triggers_table,trivia,tv,tv_grid,tv_info,voice_ms,wakeup,wakeup_on_lan,weather,weather_chance_of_rain,weather_log,weather_monitor,weather_monitor_bruce,weather_pollen,weather_rrd_update,weather_upload,weatherpoint,web_sub,web_sub_ron,webcam_light,wxserver_server,x10_keypads,x10_rf_relay,xAP_news,xAP_weather]  # $v_toggle_run_member                
+  D: Toggle code member [alarmclock,appliances,audible_menu,audrey_bruce,audrey_control,audrey_control2,backup,barcode_inventory,barcode_scan,barcode_web,benchmarks,callerid,callerid_clients,cm11_control,comic_dailystrips,computer_disk_space,curtains,date_reminders,deep_thought,disable_code,display_slimserver,door_monitor,dvd_releases,eliza_server,email_misc,email_motion,email_scan,event_sounds,event_sounds_bruce,find_files,games_bingo,get_email_rule,goofy,halloween,heat_cool,ibutton_bruce,internet_connect_check,internet_earthquakes,internet_im,internet_im_bruce,internet_iridium,internet_logon,internet_mail,internet_slashdot,internet_starshine,internet_time,internet_top10,internet_weather,iridium_check_events,items,items_table,keyboard_numbered_menu,lights,mailbox,menu,menu_bruce,mh_control,mh_sound,mh_zip,mhsend_server,monitor_amazon,monitor_dj,monitor_game_time,monitor_house_im,monitor_lan,monitor_memory,monitor_memory_leak,monitor_mh,monitor_programs,monitor_router,monitor_router_bruce,monitor_shoutcast,monitors,mp3,mp3_control,mp3_winamp,news_ap_breaking,news_email_breaking,news_mquote_oftd,news_onthisday,news_physics_web,news_yahoo,organizer,outlook,pa_control,pa_control_bruce,phone,phone_logs,phone_minutes,phone_weeder,photo_index,reports,sensors,speak,speak_chime,speak_proxy,speak_voices,startup,stocks,telnet,test2,test_code_hooks,test_speak,test_stuff,test_stuff2,test_weather,test_web_functions,test_x10,test_x10_light,time_info,timers,timers2,tk_eye,tk_frames_big,tk_widgets_bruce,tracking_aprs,trigger_code,triggers_table,trivia,tv,tv_grid,tv_info,voice_ms,wakeup,wakeup_on_lan,weather,weather_chance_of_rain,weather_log,weather_monitor,weather_monitor_bruce,weather_pollen,weather_rrd_update,weather_upload,weatherpoint,web_sub,web_sub_ron,webcam_light,webcam_monitor,wxserver_server,x10_keypads,x10_rf_relay,xap_command,xap_news,xap_send,xap_weather]  # $v_toggle_run_member                
   D: [Disable,Enable,List status of] all code files      # $v_toggle_run_members               
   D: What is your up time                                # $v_uptime                     anyone
   D: What is your [max,normal] speed                     # $v_what_speed                       
   D: Zip up misterhouse source code                      # $v_zip_code                         
   D: Zip up misterhouse windows code                     # $v_zip_win                          
-  D: Wakeup computer [C1,C2,P1,Warp,Warp2,HP]            # $wakeup_on_lan                      
+  D: Wakeup computer [C1,C2,P1,Warp,Warp2,HP,SPC]        # $wakeup_on_lan                      
 M: Music
   D: Get internet radio station list                     # $v_get_radio_stations               
   D: [Build,Load] the mp3 database                       # $v_mp3_build_list                   
@@ -186,49 +216,49 @@ M: Music
   D: Set the shoutcast mp3 player to [Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat,Restart,Shoutcast Connect,Add Song,Clear List]  # $v_mp3_control4                     
   D: Set the phone mp3 player to [Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat,Restart,Shoutcast Connect,Add Song,Clear List]  # $v_mp3_control5                     
   D: Turn Boy music [on,off]                             # $v_mp3_control_boys                 
-  D: Set house mp3 player to playlist [test2,test3,BRUCE_SONGS_ALL,JUNK1,TOP_100,bruce_20,top_100_web,top_20,all,all1,goodsome,petey's MIX1,trial,zach1,__00_04_20_04_17_6c,__127.0.0.1,__192.168.0.11,__history,bruce_100,bruce_100_web,house,piano1]  # $v_mp3_playlist1                    
+  D: Set house mp3 player to playlist [test2,test3]      # $v_mp3_playlist1                    
   D: Music [on,off]                                      # $v_pa_radio                         
   D: Clear mp3 playlist                                  # $v_play_clear_music                 
   D: Check the shoutcast player                          # $v_shoutcast_check                  
   D: [Connect,Disconnect] the shoutcast player           # $v_shoutcast_connect                
   D: [Start,Stop] the shoutcast server monitor           # $v_shoutcast_server                 
-  D: What is now playing                                 # $v_what_playing                     
+  D: [What track is,Show track] playing now              # $v_what_playing                     
 M: News
   D: Get the current news                                # $v_all_news                   anyone
-  D: [Get,Read,Show] ap_breaking_news                    # $v_ap_breaking_news                 
+  D: [Read,Show] ap_breaking_news                        # $v_ap_breaking_news           anyone
+  D: Get ap_breaking_news                                # $v_get_ap_breaking_news       anyone
   D: [Get,Read,Show] Motivational Quote of the day       # $v_mquote_otd                 anyone
   D: Tell me the [Top,U S,World,Entertainment,Business,Technology,Science,Health,Sports] news  # $v_news                       anyone
   D: [Get,Show] on this day                              # $v_onthisday                  anyone
   D: [Get,Read,Show] physics_web                         # $v_physics_web                anyone
   D: [Get,Show,Display,Read,Parse] the slashdot news     # $v_slashdot_news              anyone
 M: Other
-  D: X10 Turn off [$hall_light,$bathroom_light,$backyard_light,$driveway_light,$garage_light,$garage_lights,$living_fan_light,$living_light,$living_halogen,$camera_light,$family_room_light,$nick_reading_light,$bedroom_reading_light,$bedroom_fan_light,$left_bedroom_light,$right_bedroom_light,$christmas_lights,$blue_light,$christmas_lights_bed,$christmas_lights_nick,$fr_lamp1,$fr_lamp2,$fr_lamp3,$X10_transmitter,$all_lights_living,$test_x10_all_o,$Light1,$webcam_light]  # $list_x10_off                       
-  D: X10 Turn on  [$hall_light,$bathroom_light,$backyard_light,$driveway_light,$garage_light,$garage_lights,$living_fan_light,$living_light,$living_halogen,$camera_light,$family_room_light,$nick_reading_light,$bedroom_reading_light,$bedroom_fan_light,$left_bedroom_light,$right_bedroom_light,$christmas_lights,$blue_light,$christmas_lights_bed,$christmas_lights_nick,$fr_lamp1,$fr_lamp2,$fr_lamp3,$X10_transmitter,$all_lights_living,$test_x10_all_o,$Light1,$webcam_light]  # $list_x10_on                        
+  D: [open,close,change] garage door                     # $garage_door_v                      
+  D: X10 Turn off [$hall_light,$bathroom_light,$backyard_light,$driveway_light,$garage_light,$garage_lights,$living_fan_light,$living_light,$camera_light,$family_room_light,$nick_reading_light,$bedroom_reading_light,$bedroom_fan_light,$left_bedroom_light,$right_bedroom_light,$christmas_lights,$blue_light,$christmas_lights_bed,$christmas_lights_nick,$indicator_light1,$indicator_light2,$indicator_light3,$fr_lamp1,$fr_lamp2,$fr_lamp3,$X10_transmitter,$garage_light_relay,$all_lights_living,$test_x10_n,$test_x10_all_o,$Light1,$test_house_o,$webcam_light]  # $list_x10_off                       
+  D: X10 Turn on  [$hall_light,$bathroom_light,$backyard_light,$driveway_light,$garage_light,$garage_lights,$living_fan_light,$living_light,$camera_light,$family_room_light,$nick_reading_light,$bedroom_reading_light,$bedroom_fan_light,$left_bedroom_light,$right_bedroom_light,$christmas_lights,$blue_light,$christmas_lights_bed,$christmas_lights_nick,$indicator_light1,$indicator_light2,$indicator_light3,$fr_lamp1,$fr_lamp2,$fr_lamp3,$X10_transmitter,$garage_light_relay,$all_lights_living,$test_x10_n,$test_x10_all_o,$Light1,$test_house_o,$webcam_light]  # $list_x10_on                        
   D: Living room blue light [ON,OFF,bbw1]                # $v_blue_light                       
 M: Phone
-  D: Test callerid [0,1,2,3,4,5,6,7,offhook,UKknown,UK unknown]  # $cid_interface_test                 
+  D: Test callerid [0,1,2,3,4,5,6,7,8,9,offhook,UKknown,UK unknown]  # $cid_interface_test                 
   D: Display recent [incoming,outgoing,] phone calls     # $v_phone_log                        
   D: Show the tk phone log                               # $v_phone_log_tk                     
-M: Security
+  D: [Check,Read,Show,Debug] phone minutes               # $v_phone_minutes                    
+  D: [Read,Show] TMobile balance                         # $v_tmobile_balance                  
+M: Photos
   D: Test email motion                                   # $email_motion_v                     
+  D: Reindex the photo album [,name,date,random]         # $photo_reindex                      
+  D: Resize new photo album pictures                     # $photo_resize                       
 M: TV
-  D: [Get,reget] tv grid data for today                  # $v_get_tv_grid_data1                
-  D: [Get,reget] tv grid data for the next 2 weeks       # $v_get_tv_grid_data2                
   D: tv [power,on,off,mute,vol+,vol-,ch+,ch-,recall]     # $v_tv_control                       
-  D: What TV movies are on channel [all,4-12,4,6,8,9,12] tonight  # $v_tv_movies1                       
-  D: What TV movies are on at [6pm,7pm,8pm,9pm] tonight  # $v_tv_movies2                       
-  D: What are the tv search results                      # $v_tv_results                       
-  D: What TV shows are on channel [5,6,8,9,12,51] tonight  # $v_tv_shows1                        
-  D: What favorite TV shows are on today                 # $v_tv_shows2                        
   D: vcr [vcr_states]                                    # $v_vcr_control                      
 M: Test
+  D: Test house code o [on,off]                          # $test_house                         
   D: Test speech with tagline                            # $test_speak1                        
   D: Test speech to room [living,bedroom,all] with a wav file  # $test_speak10                       
   D: Test speech engine [festival,viavoice,vv_tts,flite,NaturalVoice]  # $test_speak11                       
-  D: Test speech app [chatbot,deep_thought,email,goofy,notice,phone,router,tagline,timer,top10,tv]  # $test_speak12                       
+  D: Test speech app [admin,bingo,chatbot,deep_thought,email,goofy,notice,phone,router,tagline,timer,top10,tv]  # $test_speak12                       
   D: Test speech with tagline to a file with [low,normal,high] compression  # $test_speak2                        
   D: Test speech control of [start,stop,pause,resume,rewind,fastforward,fast,normal,slow,-6,-4,4,6,10]  # $test_speak3                        
-  D: Test speech with voice [anjali,audrey,charles,claire,crystal,crystal8,female,female1,female2,female3,female4,male,male1,male2,male3,mary,mike,mike8,rich,sam,random,next]  # $test_speak4                        
+  D: Test speech with voice [anjali,audrey,charles,crystal,damien,duchess,duncan,emily,female,female1,female2,female3,female4,frank,kate,linda,male,male1,male2,male3,mary,mike,paul,robin,sam,random,next]  # $test_speak4                        
   D: Test speech of all voices                           # $test_speak5                        
   D: Test speech volume at [1,5,25,50,75,100,200]        # $test_speak6                        
   D: Test speech rate at [slow,normal,fast,-6,6]         # $test_speak7                        
@@ -272,6 +302,8 @@ M: Vehicles
   D: Start [the car,the van,] aprs monitor               # $aprs_whereis3m1                    
   D: Stop [the car,the van,] aprs monitor                # $aprs_whereis3m2                    
   D: Test the vehicles tracker [1,2]                     # $test_monitor_vehicles              
+  D: Ping work                                           # $test_ping_work                     
+  D: Ping work 2                                         # $test_ping_work2                    
   D: Send my APRS Position                               # $v_send_position                    
   D: Send APRS email to myself                           # $v_send_test_email                  
   D: Send APRS ICQ msg to myself                         # $v_send_test_icq                    
@@ -283,20 +315,28 @@ M: Voice
 M: Weather
   D: Generate weather graphs                             # $tell_generate_graph                
   D: Get weather test for [New York,Portland,Baltimore]  # $test_weather                       
-  D: What is the forecasted chance of rain               # $v_chance_of_rain                   
+  D: [Read,Show] the forecasted chance of rain or snow   # $v_chance_of_rain             anyone
+  D: Get the chance of rain or snow                      # $v_get_chance_of_rain               
   D: Get internet weather data                           # $v_get_internet_weather_data           
   D: Get Pollen Forecast                                 # $v_get_pollen_forecast              
   D: Get weather point                                   # $v_get_weatherpoint                 
   D: Read Pollen Forecast                                # $v_read_pollen_forecast             
-  D: Show internet weather [forecast,conditions]         # $v_show_internet_weather_data     anyone
+  D: [Read,Show] internet weather conditions             # $v_show_internet_weather_conditions           
+  D: [Read,Show] internet weather forecast               # $v_show_internet_weather_forecast     anyone
   D: [Get,Read,Show,Short] internet weather              # $v_weather_page               anyone
   D: [Show results from,Run] wunderground.com upload     # $v_weather_update                   
   D: How much rain have we had in the last [hour,2 hours,6 hours,12 hours,day,2 days,3 days,4 days,5 days,6 days,week,2 weeks,3 weeks,month,2 months,3 months,4 months,6 months]  # $v_what_rain                        
   D: What is the [,inside,outside] temperature           # $v_what_temp                  anyone
   D: What is the wind speed                              # $v_what_wind                  anyone
+  D: Email [tempout,tempin,windspeed,winddir,raintotal,rainrate,press,humout,humin] weather chart  # $weather_graph_email                
   D: Show the weather log                                # $weather_log                        
+M: audrey_bruce
+  D: Turn Kitchen Audrey [on,off]                        # $audrey_power_kitchen_v             
 M: iButtons
-  D: [Connect,Disconnect] to the iButton bus             # $v_iButton_connect                  
-  D: List all the iButton buttons                        # $v_iButton_list               anyone
-M: none
-  D: [open,close,change] th garage door                  # $garage_door_v                      
+  D: Read the iButton temperature [1,2,3,4]              # $v_iButton_readtemp           anyone
+  D: Read the iButton temperature buttons                # $v_iButton_readtemps                
+  D: Turn on relay1 [on,off]                             # $v_iButton_relay1             anyone
+M: monitor_dj
+  D: Restore Winamp                                      # $winamp_prod                        
+M: monitor_router_bruce
+  D: Check web server hits                               # $check_web_hits                     

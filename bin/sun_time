@@ -168,7 +168,7 @@ sub adjust_dst {
 __END__
 
 #
-# $Log$
+# $Log: sun_time,v $
 # Revision 1.14  2001/08/12 04:02:57  winter
 # - 2.57 update
 #

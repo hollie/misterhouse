@@ -432,7 +432,7 @@ sub remove {
 
 
 #
-# $Log$
+# $Log: Group.pm,v $
 # Revision 1.22  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #

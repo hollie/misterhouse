@@ -11,11 +11,11 @@ $v_zip_win -> set_info('Compile and zip the windows mh.exe to http://misterhouse
 # Note:  run_zip_test calls run_zip which will install copy on linux box also
 
 #p_zip_code = new  Process_Item 'c:/misterhouse/bin/run_zip.bat test';
-$p_zip_code = new  Process_Item 'c:/misterhouse/bin/run_zip_test.bat';
+$p_zip_code = new  Process_Item '//nas/mh/bin/run_zip_test.bat';
 
 if (said $v_zip_code) {
     speak 'Zipping up test code';
-    file_backup '/misterhouse/upload/misterhouse_src_test.zip';
+    file_backup '//nas/mh/upload/misterhouse_src_test.zip';
     set_output $p_zip_code "$config_parms{data_dir}/logs/mh_zip.log";
     start $p_zip_code;
 }
@@ -26,8 +26,8 @@ if (done_now $p_zip_code) {
 }
 
 
-$p_zip_win1 = new  Process_Item 'c:/misterhouse/compile/compile.bat';
-$p_zip_win2 = new  Process_Item 'c:/misterhouse/bin/run_zip_compiled.bat test';
+$p_zip_win1 = new  Process_Item '//nas/mh/compile/compile.bat';
+$p_zip_win2 = new  Process_Item '//nas/mh/bin/run_zip_compiled.bat test';
 
 if (said $v_zip_win) {
     print_log 'Zipping up windows code';
@@ -37,7 +37,7 @@ if (said $v_zip_win) {
 start $p_zip_win2 if done_now $p_zip_win1;
 if (done_now $p_zip_win2) {
     speak 'Zip of windows code is done';
-    copy 'c:/misterhouse/upload/misterhouse_win_test.zip', '//misterhouse/public';
+    copy '//nas/mh/upload/misterhouse_win_test.zip', '//misterhouse/public';
 }
 
 

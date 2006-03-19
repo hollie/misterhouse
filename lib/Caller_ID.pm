@@ -331,7 +331,7 @@ sub read_callerid_list {
 }
 
 #
-# $Log$
+# $Log: Caller_ID.pm,v $
 # Revision 1.31  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #

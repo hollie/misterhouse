@@ -8,7 +8,7 @@
 ;#  You may redistribute only under the terms of the Artistic License,
 ;#  as specified in the README file that comes with the distribution.
 ;#
-;# $Log$
+;# $Log: vsLock.pm,v $
 ;# Revision 1.3  2004/02/01 19:24:35  winter
 ;#  - 2.87 release
 ;#

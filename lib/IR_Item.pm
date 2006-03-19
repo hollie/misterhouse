@@ -133,7 +133,7 @@ sub default_setstate {
 }
 
 #
-# $Log$
+# $Log: IR_Item.pm,v $
 # Revision 1.17  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #

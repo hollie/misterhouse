@@ -263,7 +263,7 @@ sub read_mp3_dir {
 
 
 #
-# $Log$
+# $Log: get_mp3_data,v $
 # Revision 1.8  2005/10/02 17:24:45  winter
 # *** empty log message ***
 #

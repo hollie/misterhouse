@@ -910,7 +910,7 @@ under the same terms as Perl itself. 30 January 2000.
 =cut
 
 #
-# $Log$
+# $Log: CM11.pm,v $
 # Revision 2.25  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #

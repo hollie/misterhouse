@@ -245,7 +245,7 @@ sub wx_time {
 }
 
 #
-# $Log$
+# $Log: Weather_wx200.pm,v $
 # Revision 1.11  2003/07/06 17:55:11  winter
 #  - 2.82 release
 #

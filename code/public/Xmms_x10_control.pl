@@ -104,7 +104,7 @@ if ( state_now $x10_jukebox_playlist_4) {
     }
 }
 
-#$Log$
+#$Log: Xmms_x10_control.pl,v $
 #Revision 1.3  2004/02/01 19:24:20  winter
 # - 2.87 release
 #

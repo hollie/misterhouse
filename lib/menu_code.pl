@@ -867,7 +867,7 @@ return 1;
 
 
 #
-# $Log$
+# $Log: menu_code.pl,v $
 # Revision 1.16  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #

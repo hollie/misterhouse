@@ -111,7 +111,7 @@ sub check_for_data {
 }
 
 #
-# $Log$
+# $Log: X10_MR26.pm,v $
 # Revision 1.13  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #

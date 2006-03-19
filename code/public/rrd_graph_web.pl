@@ -5,7 +5,7 @@
 #
 # put rrd_graph_web.pl and rrd_graph_web.css in /Misterhouse/mh/web/bin
 # run http://your-misterhouse:8080/bin/rrd_graph_web.pl
-# 
+#
 
 use RRDs;
 
@@ -35,7 +35,7 @@ if ($rrd_name){
 } else {
    $t = "1_Week";
    while ($rrd_name = shift @rrd){
-      $rrd = "$config_parms{rrd_dir}/$rrd_name.rrd";  
+      $rrd = "$config_parms{rrd_dir}/$rrd_name.rrd";
       graph();
    }
 }
@@ -72,6 +72,7 @@ sub graph {
 
    my $lasttime = localtime($last);
    my $timenow = localtime(time());
+   $timenow =~ s/:/\\:/g;   # RRD doesn't like colons, so put leading backslashes in
 
    my ($start,$step,$names,$array) = RRDs::fetch $rrd, "AVERAGE", "-s", "$last-$t", "-e", $last ;
    my $ERROR = RRDs::error;
@@ -105,6 +106,9 @@ sub graph {
             "LINE1:ib#ff0000";
 
    # "--lazy",
+
+   my $ERROR = RRDs::error;
+   print_log "RRDs::fetch ERROR: $ERROR\n" if $ERROR;
 
    $html .= qq[  <tr>\n];
    $html .= qq[    <td  rowspan="3"><a href="/bin/graph.pl?$rrd_name" target="_self" >];

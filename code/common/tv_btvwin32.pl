@@ -1,14 +1,14 @@
-# Category=TV
+# Category=Entertainment
 #
 #----------------------------------------------------------------------------
 #  NAME		: BTV Win32
 #  AUTHOR	: amauri viguera (amauri@viguera.net)
-#  DESCRIPTION 	: 
+#  DESCRIPTION 	:
 #@
 #@ Interface with SnapStream's "Personal Video Station" AKA "Beyond TV"
 #@ This module has been tested with MH 2.88+ and BTV 3.4 and above
 #@
-#@ As of version 3.4.4, BTV uses a password-protected MDB file 
+#@ As of version 3.4.4, BTV uses a password-protected MDB file
 #@ to store guide data. This module uses a DSN to connect to this data
 #@ and extract upcoming shows.
 #@
@@ -19,7 +19,7 @@
 #  MH.ini parameters :
 #
 #  - snapstream_timeoffset=[integer]
-#	offset from current timezone vs. time data in the tables. 
+#	offset from current timezone vs. time data in the tables.
 #	as of 3.4.4, this was 4 hours ahead of Eastern
 #  - snapstream_dsnName
 #	Name of ODBC DSN pointing to MDB file
@@ -29,11 +29,11 @@
 #  - snapstream_dsnPwd
 #	Password needed to connect to MDB file.
 #
-#  - debug=snapstream on your private ini will enable progress chatter 
+#  - debug=snapstream on your private ini will enable progress chatter
 #
 #  Notes on configuration :
 #
-#  - You must find the BTV database and set up a DSN pointing to it. 
+#  - You must find the BTV database and set up a DSN pointing to it.
 #  	As of BTV 3.4, this file resides on the following path:
 #	\Documents and Settings\All Users\Application Data\SnapStream\Beyond TV
 #	Filename is SS_PVS_DB.mdb
@@ -120,14 +120,14 @@ if ((time_cron('58,28 * * * *')) or said $v_snapstream_localdb) {
 	my $count;	# shows to look for
 	my $Message;	# ODBC error messages
 	my $match_key; 	# shows found boolean
-	my $symbol;	
+	my $symbol;
 
 	# database-related info
 	my %HashRow = ();
 	my $db      = '';
 	my $Source  = "DSN=$htpc_dsnName;UID=$htpc_dsnUID;PWD=$htpc_dsnPwd";
 	my $TableType = 'U';
-	
+
 	# connect to database
 	print "\tconnecting to DSN ($htpc_dsnName) as $htpc_dsnUID\n" if $Debug{snapstream} ;
 	if ($db = new Win32::ODBC($Source)) {
@@ -147,12 +147,12 @@ if ((time_cron('58,28 * * * *')) or said $v_snapstream_localdb) {
 	$Sql .= "WHERE (((PROGRAM_TABLE.progtitle) IN (" ;
 
 	# build sql string by tacking along the parts of @keys (shows) for the WHERE IN part of the SELECT statement
-	$count=0;	
+	$count=0;
 	for my $key (@keys) {
 		$count++;
 		next if ($key =~ /\#/ or $key !~ /\w/); # drop comments and crap that hasn't been filtered out of the file
 		# escape the quotes (viva Win32::ODBC! :)) - stuff like Punk'd would break it otherwise :)
-		$key =~ s/\'/\'\'/g; 
+		$key =~ s/\'/\'\'/g;
 		# this is important for SQL syntax: add commas IF we're not at the end (last key) - otherwise we break real bad :)
 		if ($count==@keys) {
 			$Sql .= "\'$key\'";
@@ -184,7 +184,7 @@ if ((time_cron('58,28 * * * *')) or said $v_snapstream_localdb) {
 		my ($progtitle, $episodetitle, $channel, $callsign, $scheduled) = ($HashRow{'progtitle'}, $HashRow{'episodetitle'}, $HashRow{'tmschan'}, $HashRow{'stationcallsign'}, $HashRow{'rec_scheduled'}) ;
 		$count = 0 unless $count;
 		# do something with the results
-		print "\tfound $progtitle on $callsign (channel $channel)\n" if $Debug{snapstream}; 
+		print "\tfound $progtitle on $callsign (channel $channel)\n" if $Debug{snapstream};
 		$msg .= "$progtitle" ;
 		$msg .= ", \'$episodetitle\'" if ($episodetitle ne "");
 		$msg .= " channel $channel.\n";
@@ -201,8 +201,8 @@ if ((time_cron('58,28 * * * *')) or said $v_snapstream_localdb) {
 	print OUT1 "\n";
 	print OUT1 "$msg" ;
 	close OUT1;
-	
-	print "db access completed. found $rowcnt matches.\n" if $Debug{snapstream}; 
+
+	print "db access completed. found $rowcnt matches.\n" if $Debug{snapstream};
 
 	# close database and we're done
 	$db->Close() || die Win32::ODBC::Error();
@@ -224,7 +224,7 @@ if ($state = changed $f_tv_file) {
 
 	my $i = 0;
 	foreach my $line (@data) {
-	if (my ($title, $channel, $start, $end) = 
+	if (my ($title, $channel, $start, $end) =
 	  $line =~ /^\d+\.\s+(.+)\.\s+\S+\s+Channel (\d+).+From ([0-9: APM]+) till ([0-9: APM]+)\./) {
 	    if ($state eq 'favorites now') {
 		$data[$i] = "$title Channel $channel.\n";

@@ -180,7 +180,7 @@ sub read_dir {
            
 
 #
-# $Log$
+# $Log: backup_data,v $
 # Revision 1.4  2001/11/18 22:51:42  winter
 # - 2.61 release
 #

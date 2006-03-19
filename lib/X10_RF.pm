@@ -186,7 +186,7 @@ sub rf_set_RF_Item {
 # Data format info on here:  http://www.wgldesigns.com/dataformat.txt
 
 #
-# $Log$
+# $Log: X10_RF.pm,v $
 # Revision 1.4  2004/03/23 01:58:08  winter
 # *** empty log message ***
 #

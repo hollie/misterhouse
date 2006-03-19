@@ -808,7 +808,7 @@ sub oscar::cb_connectionchanged {
 sub oscar::get_net {
   my ($oscar)=@_;
 
-  if ($oscar->screenname() eq $main::config_parms{'net_aim_name'}) {
+  if ($oscar->screenname() eq lc $main::config_parms{'net_aim_name'}) {
      return 'aim';
   } else {
     return 'icq';
@@ -1524,7 +1524,7 @@ sub main::url_changed {
 1;
 
 #
-# $Log$
+# $Log: handy_net_utilities.pl,v $
 # Revision 1.66  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #

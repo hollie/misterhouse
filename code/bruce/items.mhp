@@ -44,13 +44,14 @@ $Appliances                          -> add($fountain);
 $Outside                             -> add($fountain);
 $fountain                            -> set_fp_location(65,10,1,1);
 $Backyard                            -> add($fountain);
+#X10A,       O9,     living_room_fan,       Appliances|Upstairs|Living_Room,  CM17
 
-$living_room_fan                     =  new X10_Appliance('O9', 'CM17');
+$living_room_fan                     =  new X10_Appliance('O9', );
 $Appliances                          -> add($living_room_fan);
 $Upstairs                            =  new Group;
 $Upstairs                            -> add($living_room_fan);
+$living_room_fan                     -> set_fp_location(5,12,1,1);
 $Living_Room                         -> add($living_room_fan);
-#X10A,       O9,     living_room_fan,       Appliances|Upstairs|Living_Room(5;12)
 
 $indoor_fountain                     =  new X10_Appliance('O11', );
 $Appliances                          -> add($indoor_fountain);
@@ -104,6 +105,12 @@ $Outside                             -> add($garage_lights);
 $garage_lights                       -> set_fp_location(10,10,1,1);
 $Garage                              -> add($garage_lights);
 
+$garage_cameras                      =  new X10_Appliance('I3', );
+$All_Lights                          -> add($garage_cameras);
+$Outside                             -> add($garage_cameras);
+$garage_cameras                      -> set_fp_location(10,10,1,1);
+$Garage                              -> add($garage_cameras);
+
 $living_fan_light                    =  new X10_Item('O5', );
 $All_Lights                          -> add($living_fan_light);
 $Upstairs                            -> add($living_fan_light);
@@ -115,19 +122,18 @@ $All_Lights                          -> add($living_light);
 $Upstairs                            -> add($living_light);
 $living_light                        -> set_fp_location(10,17,1,1);
 $Living_Room                         -> add($living_light);
+#10I,       OD,     living_halogen,        All_Lights|Upstairs|Living_Room(6;15)
 
-$living_halogen                      =  new X10_Item('OD', );
-$All_Lights                          -> add($living_halogen);
-$Upstairs                            -> add($living_halogen);
-$living_halogen                      -> set_fp_location(6,15,1,1);
-$Living_Room                         -> add($living_halogen);
+$DockNTalk                           =  new X10_Appliance('OD', );
+$Upstairs                            -> add($DockNTalk);
+$DockNTalk                           -> set_fp_location(6,15,1,1);
+$Living_Room                         -> add($DockNTalk);
+#10I,       F4,     camera_light,          All_Lights|Upstairs|Living_Room(15;10),        , LM14
 
-$camera_light                        =  new X10_Item('F4', '', 'LM14');
+$camera_light                        =  new X10_Item('O7', 'CM11');
 $All_Lights                          -> add($camera_light);
 $Upstairs                            -> add($camera_light);
-$camera_light                        -> set_fp_location(15,10,1,1);
 $Living_Room                         -> add($camera_light);
-#10I,       O7,     camera_light2,         All_Lights|Upstairs|Living_Room,   CM11 
 
 $family_room_light                   =  new X10_Item('M5', );
 $All_Lights                          -> add($family_room_light);
@@ -189,6 +195,22 @@ $All_Lights                          -> add($christmas_lights_nick);
 $Downstairs                          -> add($christmas_lights_nick);
 $Nicks_Room                          -> add($christmas_lights_nick);
 $Christmas                           -> add($christmas_lights_nick);
+
+$indicator_light1                    =  new X10_Item('K1', );
+$Indicator_Lights                    =  new Group;
+$Indicator_Lights                    -> add($indicator_light1);
+$indicator_light1                    -> set_fp_location(1,15,1,1);
+$Living_Room                         -> add($indicator_light1);
+
+$indicator_light2                    =  new X10_Item('K2', );
+$Indicator_Lights                    -> add($indicator_light2);
+$indicator_light2                    -> set_fp_location(2,16,1,1);
+$Living_Room                         -> add($indicator_light2);
+
+$indicator_light3                    =  new X10_Item('K3', );
+$Indicator_Lights                    -> add($indicator_light3);
+$indicator_light3                    -> set_fp_location(3,17,1,1);
+$Living_Room                         -> add($indicator_light3);
 #D1
 #OICE,          Front_Porch_Lights,        Front Porch Lights [ON,OFF]
 
@@ -228,7 +250,7 @@ $basement_curtain                    -> add ('XM6K', 'close');
 #SERIAL,    XMA,    basement_curtain,  , close
 #SERIAL,    XM5,    toggle_backyard_light
 #SERIAL,    XM9,    toggle_fountain
-# Nick's room 
+# Nick's room
 
 $nick_curtain                        =  new Serial_Item('XNCNK', 'open');
 
@@ -237,7 +259,7 @@ $nick_curtain                        -> add ('XNCNJ', 'close');
 $nick_curtain                        -> add ('XAGAJ', 'open');
 
 $nick_curtain                        -> add ('XAGAK', 'close');
-# Zack's room 
+# Zack's room
 
 $zack_curtain                        =  new Serial_Item('XM7M7', 'open');
 
@@ -252,13 +274,12 @@ $laundry_timer                       -> add ('XH3', 'off');
 
 $request_temp                        =  new Serial_Item('XH1', );
 
-$request_temp                        -> add ('XK1', );
-
 $request_temp                        -> add ('XM4M4', );
 
 $request_temp                        -> add ('XN1', );
 
 $request_temp                        -> add ('XO4O4', );
+#ERIAL,   XO1,   request_temp
 
 $request_temp                        -> add ('XP1', );
 # Test
@@ -273,7 +294,7 @@ $request_temp                        -> add ('XP1', );
                                 #     01: For 1990 read only iButton
                                 #     10: For 1820 temperature sensor
                                 #     12: For 2406 input/output module (used in www.pointsix.com TR1 and D2 modules)
-                                #  - The serial is sometimes printed on the iButton can, or can be copied from an 
+                                #  - The serial is sometimes printed on the iButton can, or can be copied from an
                                 #     mh log.  Serial is 12 hex digits, type and crc are both 2 hex digits
                                 #  - If the 1990s were used for security, we would probably want to hide their IDs :)
 

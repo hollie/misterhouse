@@ -215,7 +215,7 @@ sub process {
 
 
 #
-# $Log$
+# $Log: LCD.pm,v $
 # Revision 1.8  2003/04/20 21:44:07  winter
 #  - 2.80 release
 #

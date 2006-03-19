@@ -286,7 +286,7 @@ while (1) {
 }
 
 #
-# $Log$
+# $Log: Display.pm,v $
 # Revision 1.25  2003/11/23 20:26:01  winter
 #  - 2.84 release
 #

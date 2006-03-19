@@ -22,7 +22,7 @@ See 'Use distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
 
 &Play_pre_add_hook (\&proxy_speak_play, 0, 'play')  if $Reload;
 
-my %proxy_by_room = ( dj => '192.168.0.3:8085');
+my %proxy_by_room = ( dj => 'card=1/2');
 #                     piano => '192.168.0.85:8085',
 #                     art   => '192.168.0.100:8085' );
 
@@ -37,6 +37,7 @@ sub proxy_speak_play {
 
     return unless $Run_Members{speak_proxy};
     return unless $parms{text} or $parms{file};
+    return if $parms{card};
 
     print "proxy_play mode=$mode parms: @_\n" if $Debug{'proxy'};
                                 # Drop extra blanks and newlines
@@ -52,7 +53,18 @@ sub proxy_speak_play {
                                 # Filter out the blank parms
         %parms = map {$_, $parms{$_}} grep $parms{$_} =~ /\S+/, keys %parms;
         undef $parms{room};
-        &main::proxy_send($address, $mode, %parms);
+        $parms{nolog} = 1;
+                                # Allow for room by extra sound card or by proxy
+        if ($address =~ /card=(\S+)/) {
+            return if $mode eq 'play'; # Can not play to specific card yet
+            $parms{card} = $1;
+#           print "card=$1 speaking to room=$room t= $parms{text}\n";
+            $Respond_Target = 'none';   # So common/speak_chime does not chime
+            speak %parms;
+        }
+        else {
+            &main::proxy_send($address, $mode, %parms);
+        }
     }
 }
 

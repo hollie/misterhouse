@@ -1133,7 +1133,7 @@ sub dark {
 return 1;
 
 
-# $Log$
+# $Log: X10_Items.pm,v $
 # Revision 1.51  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #

@@ -271,7 +271,7 @@ sub set_expect_check {
 
 
 #
-# $Log$
+# $Log: Socket_Item.pm,v $
 # Revision 1.32  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #

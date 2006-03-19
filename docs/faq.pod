@@ -1922,7 +1922,7 @@ modify.
 
 
 #
-# $Log$
+# $Log: faq.pod,v $
 # Revision 1.48  2006/01/29 20:30:14  winter
 # *** empty log message ***
 #

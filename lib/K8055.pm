@@ -7,6 +7,9 @@
 
 K8055 daemon MisterHouse Interface
 
+  http://www.velleman.be/ot/en/product/view/?id=351346
+
+
 =head1 Credit
 
 Written by Matthew Williams
@@ -48,7 +51,7 @@ Port on hostname to which daemon is listening.
 
 =item B<state_now>
 
-For one pass, will return the name of the input port that has just changed.  
+For one pass, will return the name of the input port that has just changed.
 
   if ($state=$k8055->state_now()) {
     if ($state eq 'digital 5') {
@@ -234,7 +237,7 @@ sub sendCommand {
 
 Returns the value of the given port as read on the last check.
 
-  # returns the last read value of digital port 4 
+  # returns the last read value of digital port 4
   $k8055->readDigital(4);
 
 =cut

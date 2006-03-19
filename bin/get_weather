@@ -141,7 +141,7 @@ else {
 #	get_forecast
 #	print_forecast
 
-# $Log$
+# $Log: get_weather,v $
 # Revision 1.12  2005/01/23 23:21:18  winter
 # *** empty log message ***
 #

@@ -2,6 +2,8 @@
 
 #@ Monitors other mh boxes
 
+return;
+
                                 # Update a file once a minute so another box
                                 # can do the watchdog thing
 my $watchdog_file1 = "$config_parms{data_dir}/monitor_mh.time"; 

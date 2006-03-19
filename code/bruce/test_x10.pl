@@ -1,6 +1,6 @@
 
 #&Serial_data_add_hook(\&check_x10_data) if $Reload;
- 
+
  sub check_x10_data {
    my ($data) = @_;
    print "x10 data: $data\n";
@@ -29,3 +29,5 @@ if ($state = state_now $test_x10_rf2) {
 }
 
 
+#$test_x10_a = new X10_Appliance 'L2';
+#set $test_x10_a TOGGLE if new_second 20;

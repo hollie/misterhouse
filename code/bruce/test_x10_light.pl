@@ -50,8 +50,13 @@ $button1 -> add             ('XI8IK', OFF);
 $button1 -> tie_items($garage_lights);
 
 
-#$test_house_o = new X10_Item 'O';
-#$test_house_o1 = new X10_Item 'O1';
-#print_log "X10 code O  set to $state by $test_house_o->{set_by} " if $state = state_now $test_house_o;
-#print_log "X10 code O1 set to $state by $test_house_o1->{set_by}" if $state = state_now $test_house_o1;
 
+$test_house_o = new X10_Item 'O';
+$test_house   = new Voice_Cmd 'Test house code o [on,off]';
+
+set $test_house_o $state if $state = state_now $test_house;
+
+#$test_house_o1 = new X10_Item 'O1';
+print_log "X10 code O  set to $state by $test_house_o->{set_by} " if $state = state_now $test_house_o;
+
+#print_log "X10 code O1 set to $state by $test_house_o1->{set_by}" if $state = state_now $test_house_o1;

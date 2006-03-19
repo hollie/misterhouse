@@ -5,15 +5,15 @@
                                 # Toggle the x10 curtain controler
 if (!$Save{sleeping_parents}){
     if ($Season eq 'Summer') {
-        run_voice_cmd 'close the living room curtains' 
+        run_voice_cmd 'close the living room curtains'
             if time_cron '0  7 * * 1-5' and $Save{curtain_living} ne CLOSED;
     }
     else {
-        run_voice_cmd 'open the living room curtains' 
+        run_voice_cmd 'open the living room curtains'
             if time_cron '0  7 * * 1-5' and $Save{curtain_living} ne OPENED;
     }
 }
-run_voice_cmd 'close the living room curtains' 
+run_voice_cmd 'close the living room curtains'
     if time_cron '0 18 * * 1-5' and $Save{curtain_living} ne CLOSED;
 
 
@@ -34,7 +34,7 @@ if ($state = said $v_curtain_living or
     }
     else {
         $state = 'do' if $state eq 'manual'; # X10 button
-        speak "I am ${state}ing the living room curtains";
+#       speak "I am ${state}ing the living room curtains";
         print_log "Changing curtains from  $Save{curtain_living} to $state";
         unless ($state eq 'change') {
             $Save{curtain_living} = ($Save{curtain_living} eq OPENED) ? CLOSED : OPENED;
@@ -59,7 +59,7 @@ $v_basement_curtain  = new  Voice_Cmd('[open,close] the basement curtains');
 if ($state =  said $v_basement_curtain or
     $state = state_now $basement_curtain) {
     speak "${state}ing the basement curtains";
-#   &curtains_all($state, 'zack', 'family', 'nick');
+    &curtains_all($state, 'zack', 'family', 'nick');
     &curtains_all($state,         'family', 'nick');
 }
 
@@ -83,8 +83,8 @@ if ($state =  said $v_all_curtains) {
 
 
                                 # Find average data
-                                # sun_sensor data is percent of max sun 
-if ($New_Minute) {
+                                # sun_sensor data is percent of max sun
+if ($New_Minute and ($Time - $Save{curtains_time} > 30*60)) {
 #   print "db curtains=$Save{curtains_state} sun=$analog{sun_sensor} temp=$Weather{TempOutdoor}\n";
     if ($Save{curtains_state} eq OPEN) {
                                 # Close when it gets dark
@@ -94,22 +94,24 @@ if ($New_Minute) {
                 "at " . round($Weather{TempOutdoor}) . " degrees, so I'm closing the curtains at $Time_Now";
             &curtains_all(CLOSE);
         }
-                                # Close at sunset, as a backup
-        if (time_now("$Time_Sunset - 0:30")) {
-            speak("It will be sunset in 30 minutes, so I am now closing the curtains at $Time_Now");
-            &curtains_all(CLOSE);
-        }
     }
     else {
 #       if ($analog{sun_sensor} > 40 and !$Save{sleeping_parents} and $Season eq 'Winter') {
-        if (!$Save{sleeping_parents} and $analog{sun_sensor} > 50 and defined $Weather{TempOutdoor} and $Weather{TempOutdoor} < 45) {
+# 56 % cloudy, snowing, 10 am
+#       if (!$Save{sleeping_parents} and $analog{sun_sensor} > 50 and defined $Weather{TempOutdoor} and $Weather{TempOutdoor} < 45) {
+        if (!$Save{sleeping_parents} and $analog{sun_sensor} > 65 and defined $Weather{TempOutdoor} and $Weather{TempOutdoor} < 45) {
             speak "Notice, the sun is bright at $analog{sun_sensor} percent, and it is cold outside " .
                 "at " . round($Weather{TempOutdoor}) . " degrees, so I am opening the curtains at $Time_Now";
             &curtains_all(OPEN);
         }
     }
-    run_voice_cmd 'close the living room curtains' 
+    run_voice_cmd 'close the living room curtains'
         if time_now $Time_Sunset and $Season eq 'Winter' and $Save{curtain_living} ne CLOSED;
+}
+                                # Close at sunset, as a backup
+if ($Save{curtains_state} eq OPEN and time_now("$Time_Sunset + 0:01")) {
+    speak("I am now closing the curtains at $Time_Now");
+    &curtains_all(CLOSE);
 }
 
 
@@ -117,14 +119,15 @@ $timer_curtains = new Timer();
 my @curtains;
 sub curtains_all {
     my ($action, @list)= @_;
+    $Save{curtains_time} = $Time;
     if (@list) {
         @curtains = map {$_, $action} @list;
     }
     else {
                                 # Do the X10 curtain
 #       run_voice_cmd "$action the living room curtains";
-#       @curtains = ('bedroom', $action, 'family' , $action, 'zack', $action, 'nick', $action);
-        @curtains = ('bedroom', $action, 'family' , $action,                  'nick', $action);
+        @curtains = ('bedroom', $action, 'family' , $action, 'zack', $action, 'nick', $action);
+#       @curtains = ('bedroom', $action, 'family' , $action,                  'nick', $action);
     }
 
     print "${action}ing the curtains\n";
@@ -147,11 +150,11 @@ sub curtain_on {
     return unless $room and $action;
 
 #   speak("rooms=$room $room curtains $action");
-    speak("$room curtains $action");
+#   speak("$room curtains $action");
 
-#   my %times_open  = qw(bedroom 8.2 nick 6.0 family 6.7 zack 6.5);
-    my %times_open  = qw(bedroom 8.2 nick 6.0 family 3.0 zack 6.5);
-    my %times_close = qw(bedroom 6.5 nick 5.0 family 5.5 zack 5.5);
+    my %times_open  = qw(bedroom 8.2 nick 6.0 family 6.4 zack 8.0);
+#   my %times_open  = qw(bedroom 8.2 nick 6.0 family 3.0 zack 6.5);
+    my %times_close = qw(bedroom 6.5 nick 5.0 family 5.5 zack 6.5);
     my $time = ($action eq OPEN) ? $times_open{$room} : $times_close{$room};
 
     # Since we share timer and relay ... one at a time
@@ -159,7 +162,7 @@ sub curtain_on {
         speak "Reset";
         run_action $timer_curtain; # Prematurely turn off the previous curtain's relay
     }
-    
+
     set $timer_curtain $time, "&main::curtain_off('$room');";
     set $curtain_updown  $action;
 
@@ -173,5 +176,3 @@ sub curtain_off {
     eval "set \$curtain_$room OFF;";
     set $curtain_updown  OFF;
 }
-
-

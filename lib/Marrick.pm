@@ -137,7 +137,7 @@ T :	X : Time since power up or RESET. (Returns length of time)
 	    Example: T (Gets run time in format DDD/HH/MM/SS)
 
 #
-# $Log$
+# $Log: Marrick.pm,v $
 # Revision 1.3  2003/02/08 05:29:23  winter
 #  - 2.78 release
 #

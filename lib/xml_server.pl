@@ -160,7 +160,7 @@ eof
 return 1;           # Make require happy
 
 #
-# $Log$
+# $Log: xml_server.pl,v $
 # Revision 1.2  2004/09/25 20:01:20  winter
 # *** empty log message ***
 #

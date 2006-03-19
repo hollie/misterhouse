@@ -1,6 +1,6 @@
 # Category = MisterHouse
 
-#@ common/monitory_memory.pl sets these vars.  This code announces leaks
+#@ This code ancommon/monitory_memory.pl sets these vars.  This code announces leaks
 
 if (new_minute 10 and $Info{memory_virtual_prev}) {
     my $memory_diff = int $Info{memory_virtual} - $Info{memory_virtual_prev};

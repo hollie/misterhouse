@@ -18,7 +18,7 @@ $request_time       -> add             ('XP4');  # Bedroom
 if (state_now $request_time) {
     ($temp = $Time_Now) =~ s/\:00//;   # MS TTS V5 turns :00 into O'clock
 #   ($temp = $Time_Now) =~ s/ [AP]M//; # Drop the AM/PM
-    speak "mode=unumted rooms=$request_time->{room} volume=100 It is now $temp";
+    speak "mode=unmuted rooms=$request_time->{room} volume=100 It is now $temp";
 }
 
 $request_deep_thought  = new Serial_Item('XD1');
@@ -34,7 +34,8 @@ if (state_now $display_calls) {
 
 
 if (state_now $request_temp) {
-    run_voice_cmd 'What is the  temperature', undef, 'human', 1, 'unmuted';
+#   run_voice_cmd 'What is the  temperature', undef, 'human', 1, 'unmuted';
+    run_voice_cmd 'What is the  temperature', undef, 'default', 1, 'unmuted';
     $mh_speakers->{rooms} = $request_temp->{room};
 }
 

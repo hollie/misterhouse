@@ -376,8 +376,9 @@ sub makeX10hex
 return 1;           # for require
 
 
-# $Log$
+# $Log: Homevision.pm,v $
 # Revision 1.4  2000/05/03 04:10:27  aceautomator
+#
 # # Updated to correctly report X10 codes per the mh convention
 #
 # Revision 1.2  2000/01/27 13:42:03  winter

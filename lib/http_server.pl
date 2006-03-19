@@ -1002,6 +1002,7 @@ sub http_speak_to_wav_finish {
     my $html = $tts_text;
 
                                 # Create autoplay wav file
+# CLIENT            works with everything in theory
 # EMBED and BGSOUND works with IE (EMBED did not work with older IE)
 # EMBED and BGSOUND works with WINCE on Compaq IA1
 # EMBED             works with Audrey
@@ -1026,7 +1027,102 @@ sub http_speak_to_wav_finish {
      <FRAME SRC="$wav_file">
    </FRAMESET>
 |;
-        }
+        } # This works!  :)
+        elsif ($format =~ /client/) {
+	# Original audio code tested on all Windows and Mac versions of IE, Netscape, Mozilla, Firefox, Opera and AOL (including the IE3 version for the
+    # Mac that supported VBScript)  In theory it should work on everything, everywhere (at least where WAV files are supported in some fashion.)
+	# WAV portion added here to allow mh to talk to all sound-enabled clients
+	# Tested snippet in IE6 with and without JavaScript and at restricted security levels
+
+		$html .= qq@
+
+<script language="JavaScript">
+
+<!--
+
+function tryObject(sMIMEType) {
+	return (navigator.mimeTypes && navigator.mimeTypes[sMIMEType] && navigator.mimeTypes[sMIMEType].enabledPlugin)
+}
+
+function pluginSupported(sMIMEType, sClass) {
+	if (VBScriptEnabled) return (ObjectVersion(sClass) > 0); else return tryObject(sMIMEType)
+}
+
+function backgroundSound(sURI, sID, sDescription, iLoop) {
+	return ("<bgsound id=\\"" + sID + "\\" volume=\\"20\\" alt=\\"" + sDescription + "\\" src=\\"" + sURI + "\\"" + (defined(iLoop)?" loop=\\"" + iLoop +  "\\"":"") + "><" + "/bgsound>")
+}
+
+function defined(o) {
+	return(typeof(o) != 'undefined')
+}
+
+function activeXBrowser() {
+	return (VBScriptEnabled || !navigator.mimeTypes || !defined(navigator.mimeTypes.length) || (navigator.mimeTypes.length == 0))
+}
+
+function writeAudio(sURI, sDescription, sID, iLoop) {
+
+	if (activeXBrowser()) {
+		document.write(backgroundSound(sURI, sID, sDescription, iLoop));
+
+	}
+	else {
+		if (pluginSupported('audio/x-wav')) {
+			document.write("<embed autostart='true' id=\\"" + sID + "\\" alt=\\"" + sDescription + "\\" src=\\"" + sURI + "\\"><" + "/embed><noembed>" + backgroundSound(sURI, sID, sDescription, iLoop) + "</noembed>");
+		}
+
+		else {
+			document.write(backgroundSound(sURI, sID, sDescription, iLoop));
+		}
+	}
+}
+
+//-->
+
+</script>
+
+<script language="VBScript">
+
+<!--
+
+Function TryActiveXObject(strClass)
+
+	On Error Resume Next
+
+	Dim bTryObject
+
+	bTryObject = False
+
+	If ScriptEngineMajorVersion > 1 Then bTryObject = IsObject(CreateObject(strClass))
+
+	TryActiveXObject = bTryObject
+
+End Function
+
+'-->
+
+</script>
+
+<script language="JavaScript">
+
+<!--
+
+var VBScriptEnabled = (typeof(TryActiveXObject) != 'undefined');
+
+writeAudio('$wav_file');
+
+//-->
+
+</script>
+
+<noscript>
+
+<embed src="$wav_file" autostart="true"></embed><noembed><bgsound volume="20" src="$wav_file" /></noembed>
+
+</noscript>
+
+@;
+	}
         elsif ($format =~ /link/) {
             $html .= "&nbsp;&nbsp;<a href='$wav_file'>Listen to wav</a>\n";
         }
@@ -1041,8 +1137,8 @@ sub http_speak_to_wav_finish {
     }
 
                                 # Without this, IE loads the file too quick??
-    select undef, undef, undef, 0.10; # Not sure why we need this
-
+#    select undef, undef, undef, 0.10; # Not sure why we need this
+                                       # We don't!
     return($html);
 }
 
@@ -2922,7 +3018,7 @@ Cookie: xyzID=19990118162505401224000000
 
 
 #
-# $Log$
+# $Log: http_server.pl,v $
 # Revision 1.98  2006/01/28 02:28:12  mattrwilliams
 # Added <!doctype ...  as a valid start of a complete html page in html_page.
 #

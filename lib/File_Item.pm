@@ -177,7 +177,7 @@ sub set_index {
 
 
 #
-# $Log$
+# $Log: File_Item.pm,v $
 # Revision 1.13  2004/09/25 20:01:19  winter
 # *** empty log message ***
 #

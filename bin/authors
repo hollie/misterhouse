@@ -12,11 +12,12 @@ my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Emai
                      Select Solid Edit Telephony Unit Weather Rio Red About Australian Caller Card
 		     Creative Device Digital Direct Evolution Extended External GHz Gentoo Home
 		     How Iridium Misterhouse Motorola Mythtv Password Server Song Charter Ogg European Another Media Moved Video VoIP
+             Intuitive Package Perl Scalable Southern
 		     );
 my @bogus_last  = qw(Homelink House Group Report Programs Aqualink WinTV CallerID Voices Video Faq
 		     Events Address Station Audio Hat MrHouse Clipsal
 		     Remotes Credit Type Inputs Tivo Robotics Codes Commands Celeron Linux Theatre To Flares
-		     GUIs Management Network Info Media Windows Serial Wireless Acid
+		     GUIs Management Network Info Media Windows Serial Wireless Acid Bay Manager Users
 		     );
 
 undef $/;

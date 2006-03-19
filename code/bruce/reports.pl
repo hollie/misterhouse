@@ -17,5 +17,5 @@ if (done_now $p_report_weblog) {
     print_log "Copying weblog reports";
     copy("$config_parms{data_dir}/logs/mh_month_dayhour.png", "//misterhouse/projects/logs");
     copy("$config_parms{data_dir}/logs/mh_month_day.png", "//misterhouse/projects/logs");
-    run "$config_parms{browser} http://misterhouse.net:81/stats.html";
+    run "$config_parms{browser} http://misterhouse.net/stats.html";
 }

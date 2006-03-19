@@ -96,7 +96,7 @@ sub rf_process_tv_remote {
 #------------------------------------------------------------------------------
 
 #
-# $Log$
+# $Log: X10_RF_tv_remote.pm,v $
 # Revision 1.1  2004/03/23 02:27:09  winter
 # *** empty log message ***
 #

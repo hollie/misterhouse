@@ -1405,7 +1405,7 @@ R <= 0246016688ff06 (7)
 =cut
 
 #
-# $Log$
+# $Log: iplcs.pm,v $
 # Revision 1.1  2006/01/30 00:08:28  winter
 # *** empty log message ***
 #

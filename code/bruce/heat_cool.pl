@@ -7,18 +7,18 @@
 if ($Weather{TempOutdoor} > 55 and
     $Season eq 'Summer' and
     $Weather{TempOutdoor} < ($Weather{TempIndoor} - 1) and
-    $Weather{TempIndoor}  > 80 and
-    (time_cron '0 0,2,5 * * *')) {
+    $Weather{TempIndoor}  > 75 and
+    (time_cron '0 0,2,4,6 * * *')) {
     print "fan on\n";
     set $attic_fan ON;
 }
                                 # Don't leave it on all night long
-if (time_cron '0 1,3,6 * * *') {
+if (time_cron '0 1,3,5,8 * * *') {
     set $attic_fan OFF;
 }
 
 
-                                # Turn furnace and ceiling fans on when the Winter 
+                                # Turn furnace and ceiling fans on when the Winter
                                 # solar heat needs to be distrubuted
 if ($Weather{TempOutdoor} < 50 and
     state $furnace_fan eq OFF and
@@ -37,8 +37,9 @@ if (state $furnace_fan eq ON and $Weather{TempIndoor} and ($Weather{TempIndoor} 
     set $living_room_fan OFF;
     set $bedroom_fan OFF;
 }
-    
-    
+
+
+
                                 # Create a setback thermostat
 #&tk_entry      ('Heat Temp', \$Save{heat_temp});
 #&tk_radiobutton('Heat Temp', \$Save{heat_temp}, [60, 64, 66, 68, 70]);
@@ -53,7 +54,7 @@ if   ($state eq OFF and $Weather{TempIndoor} and $Weather{TempIndoor} < ($Save{h
     logit("$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log",  "state=on   temp=$Weather{TempIndoor}  time=$heat_time_diff  ");
     set $furnace_heat ON;
     $Save{heat_time} = $Time;
-}    
+}
                                 # Turn the heat off
 elsif ($state eq ON and $Weather{TempIndoor} and $Weather{TempIndoor} > ($Save{heat_temp} + $hyster)) {
     my $heat_time_diff = &time_diff($Save{heat_time}, $Time);
@@ -62,10 +63,11 @@ elsif ($state eq ON and $Weather{TempIndoor} and $Weather{TempIndoor} > ($Save{h
     logit("$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log",  "state=off  temp=$Weather{TempIndoor}  time=$heat_time_diff");
     set $furnace_heat OFF;
     $Save{heat_time} = $Time;
-}    
+}
                                 # Safeguard to make we don't leave the furnace heat on if somehow its state got lost
                                 #  - skip if we already set for this pass
-if (new_minute 10 and !$furnace_heat->{state_next_pass}) {
+
+if (new_minute 10 and !($furnace_heat->{state_next_pass} and @{$furnace_heat->{state_next_pass}})) {
     if (($Weather{TempIndoor} and $Weather{TempIndoor} > ($Save{heat_temp} + $hyster + 0.5)) and $Weather{TempOutdoor} < 50) {
         if ($state ne OFF) {
             my $heat_time_diff = $Time - $Save{heat_time};

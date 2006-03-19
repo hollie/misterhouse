@@ -470,7 +470,7 @@ sub read_table_A {
 1;
 
 #
-# $Log$
+# $Log: read_table_A.pl,v $
 # Revision 1.29  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2006-01-29 14:02:30 winter>
+#  Last change Time-stamp: <2006-02-14 22:12:56 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -2438,8 +2438,8 @@ sub exit_pgm {
                                 # Close all ports to be safe
     for my $port (keys %Serial_Ports) {
         my $object = $Serial_Ports{$port}{object};
-        $object->close() if $object and $object ne 'proxy';
-#        $object->close() if $object and $object ne 'proxy' and $object ne 'wish';
+#        $object->close() if $object and $object ne 'proxy';
+        $object->close() if $object and $object ne 'proxy' and $object ne 'wish';
     }
     for my $port (keys %Socket_Ports) {
         my $sock = $Socket_Ports{$port}{sock};
@@ -2449,7 +2449,8 @@ sub exit_pgm {
                                 # we can use in mh_loop to mean accidental exit, 'better restart'
     if ($restart) {
         &print_log("Restarting mh");
-        exit 99;
+#       exit 99;
+        POSIX::_exit(99);       # MUCH faster ... but no DESTROY or END called.
     }
     else {
         print "Bye Bye\n";
@@ -6095,7 +6096,7 @@ __END__
 
 
 #
-# $Log$
+# $Log: mh,v $
 # Revision 2.101  2006/01/29 20:23:40  winter
 # *** empty log message ***
 #

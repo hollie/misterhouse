@@ -91,7 +91,7 @@ sub new {
 }
 
 #
-# $Log$
+# $Log: RF_Item.pm,v $
 # Revision 1.3  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

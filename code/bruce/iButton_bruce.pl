@@ -61,7 +61,7 @@ for my $ib (0 .. $#ib_temps) {
     if (my $temp = $ib_temps[$ib]->state_now) {
         my $ib_name = substr $ib_temps[$ib]->{object_name}, 1;
         print_log "Temp for sensor $ib_name: $temp degrees";
-        update_rrd($ib_name, $temp);
+        update_rrd_ib_temp($ib_name, $temp);
         logit("$config_parms{data_dir}/iButton_temps.log",  "$ib_name: $temp");
     }
 }
@@ -93,15 +93,17 @@ if (new_minute 2) {
 }
 
 
-sub update_rrd {
-    return unless $config_parms{rrd_dir};
+sub update_rrd_ib_temp {
 
 	my ($sensor, $temp) = @_;
+
+    return unless $config_parms{rrd_dir} and -e "$config_parms{rrd_dir}/$sensor.rrd";
+
     my ($rrd_file, $rrd_error);
 
 	$rrd_file = "$config_parms{rrd_dir}/$sensor.rrd";
 	print "Storing $sensor data=$temp in $rrd_file\n";
-	RRDs::update $rrd_file, "$Time:$temp";
+#	RRDs::update $rrd_file, "$Time:$temp";
 	print_log "RRD ERROR: $rrd_error\n" if $rrd_error = RRDs::error;
 }
 

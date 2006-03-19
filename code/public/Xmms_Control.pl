@@ -239,7 +239,7 @@ sub Xmms_Control {
     print_log "Problem with Xmms_Control subroutine";
 }
 
-#$Log$
+#$Log: Xmms_Control.pl,v $
 #Revision 1.3  2004/02/01 19:24:20  winter
 # - 2.87 release
 #

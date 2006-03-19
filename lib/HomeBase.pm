@@ -348,7 +348,7 @@ return 1;           # for require
 
 # Modified by Bob Steinbeiser 2/12/00
 #
-# $Log$
+# $Log: HomeBase.pm,v $
 # Revision 1.14  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #

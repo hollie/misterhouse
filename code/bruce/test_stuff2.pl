@@ -4,7 +4,7 @@
 $test_x10_all_o = new X10_Item 'O';
 print_log "house code O set to $state" if $state = state_now $test_x10_all_o;
 
-speak 'grubbers' if state_now $living_fan_light;
+speak 'fan light' if state_now $living_fan_light;
 
 #if (new_minute) {
 #    print "sp=$Save{sleeping_parents} sz=$Save{sleeping_zack}\n";
@@ -56,7 +56,7 @@ if (said $test_stuff2) {
 #   select undef, undef, undef, 0.1; # New cards need this?
 #    set $furnace_fan  ON;
 }
-        
+
 
 #print "key=$Keyboard" if $Keyboard;
 
@@ -71,3 +71,8 @@ print_log "File has been updated" if $New_Second and file_change "/temp/junk1";
 
 
 #print "db sensor=$sensor_bathroom->{state}\n" if $New_Second;
+
+# Test mirroring objects via xAP
+$test_item1 = new Generic_Item;
+$test_item1 -> xAP_enable(1);
+#$test_item1 -> set(TOGGLE) if new_second 30;

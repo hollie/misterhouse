@@ -20,11 +20,11 @@ if ($state = said $backup_process_v) {
     }
     else {
         set $backup_process
-            $pgm . ' -file d:/backup/linux_bin //misterhouse.net/bin',
-            $pgm . ' -file d:/backup/www -size 1000 -skip "(/eq$)|(/old$)" //misterhouse.net/www //misterhouse.net/public',
-            $pgm . ' -file d:/backup/laurie -size 5000 /l',
-            $pgm . ' -file d:/backup/mh_articles -size 100000 /misterhouse/articles',
-            $pgm . ' -file d:/backup/mh -skip "(/upload$)|(/tv$)|(/compile/p2)|(/articles$)" /misterhouse /bin';
+            $pgm . ' -file f:/backup/linux_bin //misterhouse.net/bin',
+            $pgm . ' -file f:/backup/www -size 1000 -skip "(/eq$)|(/old$)" //misterhouse.net/www //misterhouse.net/public',
+#            $pgm . ' -file f:/backup/laurie -size 5000 /l',
+            $pgm . ' -file f:/backup/mh_articles -size 100000 //nas/mh/articles',
+            $pgm . ' -file f:/backup/mh -skip "(/upload$)|(/tv$)|(/compile/p2)|(/articles$)" //nas/mh /bin';
 #            $pgm . ' -file //misterhouse.net/i/backup/laurie -size 5000 /l',
 #            $pgm . ' -file //misterhouse.net/i/backup/mh_articles -size 100000 /misterhouse/articles',
 #            $pgm . ' -file //misterhouse.net/i/backup/mh -skip "(/upload$)|(/tv$)|(/compile/p2)|(/articles$)" /misterhouse /bin';
@@ -47,4 +47,3 @@ if (said $mirror_cmd) {
 }
 
 speak "rooms=nick Nick, your eq files are copied" if done_now $mirror_process;
-

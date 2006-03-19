@@ -6,12 +6,12 @@
 $f_tv_file = new File_Item("$config_parms{data_dir}/tv_info1.txt");
 
 $v_tv_results = new  Voice_Cmd '[What are,Show] the tv search results';
-$v_tv_movies1 = new  Voice_Cmd('What TV movies are on channel [all,4-12,4,6,8,9,12] tonight');
+$v_tv_movies1 = new  Voice_Cmd('What TV movies are on channel [$config_parms{favorite_tv_channels}] tonight');
 $v_tv_movies2 = new  Voice_Cmd('What TV movies are on at [6pm,7pm,8pm,9pm] tonight');
 $v_tv_movies1-> set_info('Looks for TV shows that are 2-3 hours in length from 6 to 10 pm, on channels:');
 $v_tv_movies2-> set_info('Looks for TV shows that are 2-3 hours in length on all channels, at time:');
 
-$v_tv_shows1 = new  Voice_Cmd('What TV shows are on channel [5,6,8,9,12,51] tonight');
+$v_tv_shows1 = new  Voice_Cmd('What TV shows are on channel [$config_parms{favorite_tv_channels}] tonight');
 $v_tv_shows2 = new  Voice_Cmd('[Show,What are the] favorite TV shows on today');
 $v_tv_shows1-> set_info('Lists all shows on from 6 to 10 pm tonight on channel:');
 $v_tv_shows2-> set_info("Checks to see if any of the following shows in $config_parms{favorite_tv_shows} are on today");
@@ -36,7 +36,7 @@ if ($state = said $v_tv_shows2) {
 }
 elsif (time_cron('0 0 * * *') or $Reload) { #Refresh favorite shows today at midnight
     print_log "Searching for favorite shows on today";
-    run qq[get_tv_info -times all -keys "$config_parms{favorite_tv_shows}" -keyfile $config_parms{favorite_tv_shows_file} -title_only -outfile2 $config_parms{data_dir}\\web\\tv_info3.txt];
+    run qq[get_tv_info -times all -keys "$config_parms{favorite_tv_shows}" -keyfile $config_parms{favorite_tv_shows_file} -title_only -outfile2 $config_parms{data_dir}/web/tv_info3.txt];
 
 }
 
@@ -99,7 +99,7 @@ if (($state = changed $f_tv_file) or (my $state2 = said $v_tv_results)) {
             	respond "target=speak app=tv $msg on today. $list";
 	    }
 	    else {
-		respond "app=tv $msg on today. $list";
+		respond "app=tv $msg on today. $list\n";
             }
         }
         else {

@@ -191,7 +191,7 @@ sub speak_old {
 #
 
 #
-# $Log$
+# $Log: monitor_weblog,v $
 # Revision 1.14  2003/06/01 21:54:40  winter
 #  - 2.81 release
 #

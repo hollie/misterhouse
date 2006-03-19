@@ -475,7 +475,7 @@ sub FindFile {
 #   1;
 #}
 
-#$Log$
+#$Log: button2.pl,v $
 #Revision 1.5  2005/05/22 18:13:08  winter
 #*** empty log message ***
 #

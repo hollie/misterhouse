@@ -122,7 +122,7 @@ sub wmi_processes {
 
 
 #
-# $Log$
+# $Log: find_programs,v $
 # Revision 1.1  2001/05/28 21:22:46  winter
 # - 2.52 release
 #

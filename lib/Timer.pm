@@ -365,7 +365,7 @@ sub query {
 1;
 
 #
-# $Log$
+# $Log: Timer.pm,v $
 # Revision 1.32  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

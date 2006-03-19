@@ -298,7 +298,7 @@ sub results {
 
 
 #
-# $Log$
+# $Log: Process_Item.pm,v $
 # Revision 1.30  2005/10/02 23:53:39  winter
 # *** empty log message ***
 #

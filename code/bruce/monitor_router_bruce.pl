@@ -64,3 +64,11 @@ sub check_router_times {
     }
 }
 
+
+
+$check_web_hits  = new Voice_Cmd 'Check web server hits';
+
+if (said $check_web_hits) {
+    speak "$Save{server_hits_hour} web hits from $Save{server_clients_hour} clients in the last hour. " .
+          "$Save{server_hits_day} web hits from $Save{server_clients_day} clients in the last day.";
+}

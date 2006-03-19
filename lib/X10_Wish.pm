@@ -20,7 +20,6 @@ From Jason Spangler, jasons@wumple.com, on 12/2005:
 - Sending immediately after a receive was always dropped the send for me, so I added
   a one second delay when sending right after a receive.
 
-
 From Dan Wilga on 9/2005:
 
 - When installing the wish/x10dev driver from sourceforge
@@ -51,7 +50,9 @@ From Dan Wilga on 9/2005:
 
 
 use strict;
+
 use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+
 
 require Exporter;
 require Fcntl;
@@ -72,7 +73,7 @@ $EXPORT_TAGS{ALL} = \@EXPORT_OK;
 # @X10_Wish::ISA = ('Generic_Item');
 
 my %last_dev;
-my %hex2int = qw( 0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 A 10 B 11 C 12 D 13 E 14 F 15 );
+my %hex2int = qw( 0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 A 10 B 11 C 12 D 13 E 14 F 15 G 16 );
 my $readlength = 512;
 
 # file handle of log device file
@@ -97,14 +98,12 @@ sub checkDebug
 {
     my $debug = 0;
 
-
     if (exists $main::Debug{x10}) {
         $debug = ($main::Debug{x10} >= 1) ? 1 : 0;
     }
 
     return $debug;
 }
-
 
 sub startup {
    my ($instance) = @_;
@@ -167,7 +166,6 @@ sub write_dev {
 
     my $dev = "/dev/x10/\L$hc".$hex2int{$unit};
     &main::print_log("Wish::write_dev to $dev, data=$state") if checkDebug();
-
     if (!open( DEV, ">$dev" )) {
         &main::print_log("Failed to open $dev: $!");
         return;
@@ -298,7 +296,12 @@ sub check_for_data {
       elsif ($4 eq 'ALL_LIGHTS_OFF' ) {
           $extraCode = 'P';
       }
-
+      elsif ($4 eq 'PRESETDIMLOW' ) {
+          $extraCode = 'PRESET_DIM1';
+      }
+      elsif ($4 eq 'PRESETDIMHIGH' ) {
+          $extraCode = 'PRESET_DIM2';
+      }
 
       if ($extraCode) {
           $X10Code = 'X' . $3 . $extraCode;

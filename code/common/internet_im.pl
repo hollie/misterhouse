@@ -199,8 +199,11 @@ sub im_message {
     }
     elsif ($text =~ /^help/) {
         $msg  = "Type any of the following:\n";
-        $msg .= "  find:  xyz  => finds commands that match xyz\n";
-        $msg .= "  log:   xyz  => xyz is a filter of what to log.  Can print, speak, play, speak|play, all, and stop\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
+        $msg .= "  find:  xyz  => finds voice commands that match xyz\n";
+        $msg .= "  findcmd:  xyz  => finds objects that match xyz\n";
+        $msg .= "  speak:  xyz  => speaks text xyz\n";
+        $msg .= "  cmd: xyz state => set object xyz to state\n";
+        $msg .= "  log: xyz  => xyz is a filter of what to log.  Can print, speak, play, speak|play, all, and stop\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
         $msg .= "  var: abc xyz => abc is variable, hash or reference, xyz element in hash or hash reference to show\n";
         $msg .= "  logon: xyz  => logon with password xyz\n";
         $msg .= "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only sent using current IM program\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
@@ -250,6 +253,75 @@ sub im_message {
                $msg = "Message send to $1";
             }
         }
+
+        elsif ($text =~ /^cmd:(.+)/) {
+            my $cmdstring=$1;
+            my $flag=0;
+                                # Strip leading/trailing whitespace
+            $cmdstring=~s/^\s+//;
+            $cmdstring=~s/\s+$//;
+            my @command=split(/ /,$cmdstring);
+                                # check each of the following object classes for matching object name
+            for my $objectclass('X10_Item','X10_Appliance','Serial_Item','Group') {
+                for my $name(&list_objects_by_type($objectclass)) {
+                                # compare lowercase to make case-insensitive
+                    if (lc($name) eq lc('$'.$command[0])) {
+                                # found a valid object name! get a ref to the object
+                        my $object=&get_object_by_name($name);
+                                # Check if the requested state is valid...
+                        foreach my $validstate ($object->get_states()) {
+                            if ($command[1] eq $validstate) {
+                                # valid object name, valid state request
+                                # so do it!
+                                $flag=1;
+                                set $object $command[1];
+                                $msg = $command[0]." set to ".$command[1]."\n";
+                                # break out since we're done
+                                last;
+                            }
+                        }
+                        if (!$flag) {
+                               # oops...invalid state requested, let them know
+                            $msg=$command[1]." is not a valid state for ".$command[0]."\n";
+                                # set the flag so we'll stop searching because
+                                # we already matched the object name
+                            $flag=1;
+                        }
+                                # break out of the loop since we matched an object name
+                        last;
+                    }
+                }
+                last if $flag;
+            }
+            if (!$flag) {
+                $msg = "object ".$command[0]." not found!\n";
+            }
+        }
+        elsif ($text =~ /^findcmd:(.+)/) {
+            $msg="Matching commands: \n";
+            my $cmdstring=$1;
+                                # Strip leading/trailing whitespace
+            $cmdstring=~s/^\s+//;
+            $cmdstring=~s/\s+$//;
+                                # check each of the following object classes for matching object name
+            for my $objectclass('X10_Item','X10_Appliance','Serial_Item','Group') {
+                for my $name(&list_objects_by_type($objectclass)) {
+                                # compare lowercase to make case-insensitive
+                    if ($name=~m/$cmdstring/i) {
+                                # strip off the leading '$' character
+                        $msg.=substr($name,1)."\n";
+                    }
+                }
+            }
+            if (!$msg) {
+                $msg="No matches found.\n";
+            }
+        }
+        elsif ($text =~ /^speak:(.+)/) {
+            my $speechtext=$1;
+            speak $speechtext;
+        }
+
         elsif (&process_external_command($text, 1, 'im', "im pgm=$pgm to=$from")) {
         }
         else {

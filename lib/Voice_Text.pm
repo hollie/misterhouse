@@ -842,7 +842,7 @@ sub force_pronounce {
 1;
 
 #
-# $Log$
+# $Log: Voice_Text.pm,v $
 # Revision 1.55  2005/10/02 17:24:47  winter
 # *** empty log message ***
 #

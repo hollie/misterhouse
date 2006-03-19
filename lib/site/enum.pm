@@ -296,7 +296,7 @@ ever use this feature...?
 
 =head1 HISTORY
 
-  $Log$
+  $Log: enum.pm,v $
   Revision 1.1  2000/02/19 00:09:22  winter
   -add site libs
 

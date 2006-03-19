@@ -175,7 +175,7 @@ sub resize_img{
 }   
 
 #
-# $Log$
+# $Log: image_resize,v $
 # Revision 1.8  2002/12/02 04:49:15  winter
 # - 2.74 release
 #

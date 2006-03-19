@@ -314,7 +314,7 @@ sub make_name_list {
 }
 
 #
-# $Log$
+# $Log: get_email,v $
 # Revision 1.37  2004/11/22 22:57:17  winter
 # *** empty log message ***
 #

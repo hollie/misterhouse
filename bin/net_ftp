@@ -52,7 +52,7 @@ use vars '%config_parms';
 &net_ftp(%parms);
 
 #
-# $Log$
+# $Log: net_ftp,v $
 # Revision 1.3  2002/05/28 13:07:47  winter
 # - 2.68 release
 #

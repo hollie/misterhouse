@@ -2,7 +2,76 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    - Brian McKissick created code/common/power_Xantrex.pl for communicating
+    with a Xantrex GT3.0 grid-tied photovoltaic power inverter, allowing for
+    home automation monitoring of generated solar power.
+
+    - Ricardo Arroyo sent in code and web files he has modified to speak in
+    Spanish, or to use Spainish web pages. Copied to mh/code/public/Ricardo
+
+    - A interview about the open source aspect of MisterHouse can be found
+    at http://www.cocoontech.com/index.php?showtopic=3428 and a summary of
+    that interview is at http://www.itbusinessedge.com/item/?ci=11747
+
+    - Jim Morrissey sent in mh/code/public/power_french_edf.zip, code and
+    web pages he wrote to manage the different power rates that the French
+    national electricity (EDF) provides.
+
+    - Michael Easton created web/newclock ( http://localhost:8080/newclock
+    ). Enable code/common/clock_map.pl to keep world maps updated.
+
+    - David Mark added mh.ini option html_wav_format=client which will try
+    to detect the best option for various browsers when playing mh TTS.
+
+    - Gaetan Lord and Jocelyn Brouillard created lib/DSC5401.pm,
+    code/examples/DSC5401.pl, and web/bin/DSC5401_*.pl for supporting the
+    DSC5401.
+
+    - Matthew Williams migrated the MisterHouse sourceforge repository from
+    CVS to subversion.
+
+    - Gaetan Lord and Matthew Williams added virtual_keyboard.pl to allow
+    for a virtual keyboard within a web page, and updated
+    web/bin/shopping_list.pl to use it.
+
     Bug Fixes and Other Changes:
+
+    - Included mh/data/infrared/devicelib (missing from 2.101 release).
+
+    - Neil Cherry updated mh.ini tv parms to use zip_code, rather than
+    hardcoded values.
+
+    - Allow for any $var substitution in .ini files, rather than just
+    $config__parm vars.
+
+    - Benjamin Griffith updated code/public/rrd_graph_web.pl to fix $timenow
+    and to print better error errata.
+
+    - David Mark changed the mh exit_pgm restart, so web based 'restart
+    misterhouse' works better.
+
+    - Mike Pieper added support for EIB access via eibd.
+
+    - Tim Sailer noticed a 2.100 update to common/tv_info.pl broke it on
+    *nix systems.
+
+    - Chris Barrett and Neil Cherry updated some pointers to our nifty new
+    wiki: http://misterhouse.wikispaces.com
+
+    - David Norwood sent in more mh/lib/site/XML modules so
+    rss_subscriber.pl works without requiring local perl modules to be
+    installed.
+
+    - Rick Steeves suggested we add favorite_tv_shows mh.ini parm, in place
+    of hard coded channels in common/tv_info.pl
+
+    - Steve Hammer and John Liss noticed the Wish::send call in
+    lib/Serial_Item.pm was wrong.
+
+    - David Mark fixed a quoting problem in code/common/news_ap_breaking.pl.
+
+    - Brent DeShazer added time_date_stamp format 22 and he added cmd,
+    findcmd, and speak to internet_im.pl
 
   Version 2.101 posted on 01/29/2006
     Version 2.101 can be downloaded from here:
@@ -699,10 +768,10 @@ Mister House Announcement List
     - Axel Brown updated common/internet_im.pl to to queue temporarily
     undeliverable IMs for all the supported IM protocols.
 
-    - Rick Steeven created code/public/internet_internet_usgs.pl for
-    monitoring the water level of any river or lake in the continental US
-    that is monitored by the USGS. Whenever that level passes a certain
-    point MH will send notification.
+    - Rick Steeve created code/public/internet_usgs.pl for monitoring the
+    water level of any river or lake in the continental US that is monitored
+    by the USGS. Whenever that level passes a certain point MH will send
+    notification.
 
     - Created lib/Servo_Item.pm to supports servo motors via the $40 Mini
     SSC II serial servo control board, available from http://seetron.com .

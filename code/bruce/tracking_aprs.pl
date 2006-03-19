@@ -1,6 +1,6 @@
 # Category=Vehicles
 
-#@ Code for tracking cars with GPS sensors and aprs enabled ham radios.  
+#@ Code for tracking cars with GPS sensors and aprs enabled ham radios.
 #@ Example hardware is listed <a href=http://www.gpstracker.com>here</a>
 
 =begin comment
@@ -17,10 +17,19 @@ An example of my tracking log can be found here:
 
  http://misterhouse.net:8080/aprs
 
-You need a ham radio licence which you can get after passing 
+You need a ham radio licence which you can get after passing
 a test (pretty easy if you have an engineering or technical
 background).  They give the test 1->4 times a year in the bigger cities.
 
+
+mh.in parms:
+
+tracking_dir=/misterhouse/web/aprs      @ Where to put the tracking data
+tracking_callsign=                      @ Ham Callsign
+tracking_speakflag=0                    #  0 = No Speaking
+                                        #  1 = Speak GPS Reports Only
+                                        #  2 = Speak WX Reports Only
+                                        #  3 = All Speaking
 
 =cut
 
@@ -133,7 +142,7 @@ if (my $APRSString = said $tnc_output) {
     print_log "TRACK: $APRSString" if $config_parms{tracking_printflag} eq 'all';
 
                                 # Decode the Callsign and different parts from the Packet
-#TRACK: KC0EQV>APRS:!4404.87N/09230.26W> 
+#TRACK: KC0EQV>APRS:!4404.87N/09230.26W>
 #TRACK: KC0EQV>APRS:$GPRMC,210314,A,4404.8861,N,09230.2205,W,000.0,206.4,161099,001.2,E*6A
 #TRACK: KC0FOW-9>GPSLK:$GPRMC,195439,A,4403.907,N,09230.074,W,000.0,258.3,161099,001.2,E*68
 #TRACK: N0EST-9>GPSMV:$GPRMC,203921,A,4400.2593,N,09228.6660,W,0.000,0.0,161099,1.5,E*67
@@ -153,7 +162,7 @@ if (my $APRSString = said $tnc_output) {
 
     my ($GPSTime, $GPSLatitude, $GPSLongitude, $GPSSpeed, $GPSCourse) = (split(',', $data))[1, 3, 5, 7, 8];
 
-                                # Ignore data that does not have a position and 
+                                # Ignore data that does not have a position and
                                 # Ignore data if that callsign recently sent data (usually duplicate)
     if ($GPSLatitude and
         ($Time - $callsign_data{$callsign}{time}) > 30 and
@@ -161,28 +170,28 @@ if (my $APRSString = said $tnc_output) {
 
         $GPSSpeed  = 0 unless $GPSSpeed;  # Change from '' to 0
         $GPSCourse = 0 unless $GPSCourse; # Change from '' to 0
-        
+
         $callsign_data{$callsign}{time} = $Time;
-        
+
                                 # Convert from minutes-seconds
         $GPSLatitude  = (substr($GPSLatitude, 0, 2)  + (substr($GPSLatitude, 2, 8) / 60));
         $GPSLongitude = (substr($GPSLongitude, 0, 3) + (substr($GPSLongitude, 3, 8) / 60));
-        
+
                                 # convert the GPS Speed to MPH
         $GPSSpeed = round (($GPSSpeed * 1.853248) / 1.609344);
 
                                 # aprs longitude is not negative
         my $GPSDistance = &great_circle_distance($GPSLatitude, $GPSLongitude, $config_parms{latitude}, abs $config_parms{longitude});
-        
+
                                 # Skip if the car has not moved since last time or its been a while (unless distant internet data)
         if (($Debug{'aprs'}) or
             (abs($callsign_data{$callsign}{distance} - $GPSDistance) > .1) or
             (($Time - $callsign_data{$callsign}{time_logged}) > 1800 and $GPSDistance < 500)) {
-                
+
             $callsign_data{$callsign}{distance} = $GPSDistance;
             $callsign_data{$callsign}{time_logged} = $Time;
 
-       
+
                                 # Calculate bearing from the Position file
             my ($GPSCompPlace, $GPSCompDist, $GPSCompCourse );
             $GPSCompDist = 99999;
@@ -196,12 +205,12 @@ if (my $APRSString = said $tnc_output) {
                                 # Calculate distance station is away from pos file
                 my $GPSTempCompDist = &great_circle_distance($GPSLatitude, $GPSLongitude, $GPSTempCompLat, $GPSTempCompLong);
 
-                
+
 #               print "tracking db $GPSTempCompPlace, $GPSTempCompLat, $GPSTempCompLong dist=$GPSTempCompDist.\n";
                 if ($GPSTempCompDist < $GPSCompDist) {
                     $GPSCompPlace = $GPSTempCompPlace;
                     $GPSCompDist = $GPSTempCompDist;
-                    
+
                                 # Calculate direction
                     $GPSCompCourse = int(atan2($GPSTempCompLong-$GPSLongitude, $GPSLatitude-$GPSTempCompLat) * 180 / 3.14159265);
                     $GPSCompCourse += 360 if $GPSCompCourse < 0;
@@ -219,18 +228,18 @@ if (my $APRSString = said $tnc_output) {
             $GPSCourse = convert_direction $GPSCourse; # Convert from degrees to NSEW.
 
             my $callsign2 = ($gps_names{$callsign}{name}) ? $gps_names{$callsign}{name} : $callsign;
-        
+
             my ($msg1, $msg2, $msg3);
             $GPSCompDist = round $GPSCompDist, 0;
             $msg2 = ($GPSCompDist < 1) ? " near $GPSCompPlace" : &plural($GPSCompDist, 'mile') . " $GPSCompCourse of $GPSCompPlace";
             if ($GPSSpeed) {
                 $msg1 = sprintf('%-10s is traveling %10s at %2d mph ', $callsign2, $GPSCourse, $GPSSpeed );
-            }                
+            }
             else {
 #               $msg1 = sprintf('%10s is parked %24s', $callsign2);
                 $msg1 = sprintf('%-10s is parked    %10s          ', $callsign2);
                 $msg2 =~ s/ near / at   /;
-            }                
+            }
             $msg3 = $msg1 . $msg2;
 
             if (($callsign2 =~ /$config_parms{tracking_printflag}/i) or
@@ -238,10 +247,10 @@ if (my $APRSString = said $tnc_output) {
                 ($config_parms{tracking_printflag} eq 'all' or $config_parms{tracking_printflag} eq 'GPS')) {
                 print_log $msg3;
             }
-        
+
             my $track_flag = ($gps_names{$callsign}{group} eq $config_parms{tracking_speakflag}) or
                              ($callsign2 =~ /$config_parms{tracking_speakflag}/i);
-                
+
             if ($track_flag or $config_parms{tracking_speakflag} eq 'all' or $config_parms{tracking_speakflag} eq 'GPS') {
                 speak "rooms=all voice=male3 " . $msg3;
                 $msg3 = ucfirst $msg3;
@@ -258,12 +267,12 @@ if (my $APRSString = said $tnc_output) {
 
 #               $html .= qq|<td><a href="http://www.mapblast.com/myblast/map.mb?CT=$y\%3A$x\%3A10000">$msg2</a></td>\n|;
 #               $html .= qq|<td><a href="http://www.vicinity.com/gif?&CT=$y\%3A$x\%3A10000&FAM=myblast&W=600&H=350">$msg2</a></td>\n|;
-                my $msg_map = "On $Date_Now $msg1 $msg2"; 
+                my $msg_map = "On $Date_Now $msg1 $msg2";
                 $msg_map =~ s/ /%20/g;
                 $html .= qq|<td><a href="/bin/display_map.pl?$x&$y&$msg_map">$msg2</a></td>\n|;
 
                 $html .= qq[<td><INPUT name=aprs_location_name type='text' SIZE=10 onChange=submit>\n];
-                $x = -$x;       # For logging form data in .pos 
+                $x = -$x;       # For logging form data in .pos
                 $html .= qq[<INPUT name=aprs_location_loc type='hidden' value='$y,$x'></td></tr></FORM>\n\n];
 
 #               $html  = qq[<li>$Date_Now $Time_Now:   $msg1 <a href=\"http://www.mapblast.com/myblast/map.mb?];
@@ -286,7 +295,7 @@ if (my $APRSString = said $tnc_output) {
             if ($track_flag) {
                                 # Save last know location
                 $msg3 =~ s/ is / was /;
-                $Save{'aprs_whereis_' . lc $callsign2} = 'On ' . &time_date_stamp(15) . ' at ' . 
+                $Save{'aprs_whereis_' . lc $callsign2} = 'On ' . &time_date_stamp(15) . ' at ' .
                     &time_date_stamp(5) . ', ' . $msg3;
                 $Save{'aprs_whereis2_' . lc $callsign2} = sprintf "%2d:%02d %2d", $Hour, $Minute, .5 + $GPSDistance;
 
@@ -347,7 +356,7 @@ if (expired $timer_tracking_email or said $v_send_tracking) {
 }
 
 
-                                # Allow for finding vehicles via aprs->internet gateways 
+                                # Allow for finding vehicles via aprs->internet gateways
 $aprs_whereis3   = new Voice_Cmd "Find [$gps_tracked]";
 $aprs_whereis3m1 = new Voice_Cmd "Start [$gps_tracked] aprs monitor"; # Only turn on during road trips
 $aprs_whereis3m2 = new Voice_Cmd "Stop [$gps_tracked] aprs monitor"; # Only turn on during road trips
@@ -388,7 +397,7 @@ if ($New_Day) {
     unlink "$config_parms{tracking_dir}/today.html";
     unlink "$config_parms{tracking_dir}/today.txt";
 }
- 
+
 if ($New_Week) {
     file_cat "$config_parms{tracking_dir}/week1.html", "$config_parms{tracking_dir}/old/${Year_Month_Now}.html", 'top';
     file_cat "$config_parms{tracking_dir}/week1.txt",  "$config_parms{tracking_dir}/old/${Year_Month_Now}.txt",  'top';
@@ -405,7 +414,7 @@ if ($New_Month) {
     display 'debug: check aprs/old/index.html for new entry', 0;
 }
 
- 
+
 $v_show_tracking = new Voice_Cmd '{Show,Display} {the, } car log';
 $v_show_tracking-> set_info('Display the web page that shows where our cars have been');
 
@@ -427,14 +436,14 @@ if ($state = state_now $aprs_location_name) {
     &reload_aprs_data;          # So the above update takes effect
 }
 
-# Example format 
+# Example format
 #Cannon City,                44.33484,   93.21883
 
 
                                 # This is called from the lcd/wap menu code ... keep the output short
 
-#Tue 04/17/01 18:53:27 The car    is traveling       east at 37 mph  near Mayo Clinic 
-#Tue 04/17/01 18:47:24 The car    is traveling      south at 55 mph  near Best Buy 
+#Tue 04/17/01 18:53:27 The car    is traveling       east at 37 mph  near Mayo Clinic
+#Tue 04/17/01 18:47:24 The car    is traveling      south at 55 mph  near Best Buy
 sub menu_vehicle_log {
     my ($name) = @_;
     my (@data, $count);
@@ -449,5 +458,3 @@ sub menu_vehicle_log {
     }
     return &menu_format_list($Menus{response_format}, @data);
 }
-
-    

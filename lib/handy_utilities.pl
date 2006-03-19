@@ -511,9 +511,16 @@ sub main::read_mh_opts {
     package main;   # So the evals work ok with main vars
     for my $parm (keys %$ref_parms) {
         my $value = $$ref_parms{$parm};
+
                                 # Just do config parms ... this function is called by lots
                                 # of programs (e.g. get_url), so other mh vars are not always there.
-        if ($value and $value =~ /\$config_parms/) {
+                                # Also do:  $Version, $Pgm_Path, $Pgm_Name, $Pgm_Root, and %Info
+                                # Avoid doing this to all .ini records, since some have built in $vars,
+                                # like this example:  irrigation_watering_day_alg=((($Mday % 2) == 1) || ($Mday == 31))
+
+        if ($value and $value =~ /(\$config_parms|\$Version|\$Pgm_|\$Info)/) {
+#       if ($value and $value =~ /\$config_parms/) {
+#       if ($value) {
                                 # Do this, since %config_parms may be a 'my' var, which can not
                                 # be change directly outside of the main program.
             $value =~ s/\$config_parms/\$\$ref_parms/g;
@@ -989,6 +996,7 @@ sub main::time_date_stamp {
 # 19:  Sun, 06 Nov 1994 08:49:37 GMT  (RFC 822 format, needed by web servers)
 # 20:  YYYYMMDDHHMMSS
 # 21:  12:52 Sun 25 (For short time/date displays)
+# 22:  Sun, Dec 25 1:52 PM
 
     my($style, $time_or_file) = @_;
     my $time;
@@ -1081,8 +1089,10 @@ sub main::time_date_stamp {
                                                       $year_full, $mon, $mday, $hour, $min, $sec) }
     elsif ($style == 21) {$time_date_stamp = sprintf("%2d:%02d $day $mday",
                                $hour, $min) }
+    elsif ($style == 22) {$time_date_stamp = sprintf("%s, %s %2d %2d:%02d%s",
+                               $day, $month, $mday, $hour, $min, $ampm) }
     else {
-	$time_date_stamp = "time_date_stamp format=$style not recognized";
+        $time_date_stamp = "time_date_stamp format=$style not recognized";
     }
 
     return wantarray ? ($time_date_stamp, $sec, $min, $hour, $ampm, $day_long, $mon, $mday, $year) : $time_date_stamp;
@@ -1285,7 +1295,7 @@ sub main::write_mh_opts {
 1;
 
 #
-# $Log$
+# $Log: handy_utilities.pl,v $
 # Revision 1.79  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #

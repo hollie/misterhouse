@@ -3,7 +3,7 @@
 #@ Lists various items.  Standard items are listed in items.mht
 
 # my ($temp, $state, $ref);
-   
+
 # Various X10 items
 
 $all_lights_on_shop  = new Serial_Item('XHI');
@@ -13,9 +13,11 @@ $all_lights_on_family= new Serial_Item('XMI');
 $all_lights_on_nick  = new Serial_Item('XNI');
 $all_lights_on_living= new Serial_Item('XOI');
 $all_lights_on_bed   = new Serial_Item('XPI');
-      
-$garage_movement_light= new Serial_Item('XI1'); 
-$garage_movement      = new Serial_Item('XI2');   # Do not respond to XIJ (on), so do not use X10_Item
+
+#$garage_movement_light= new Serial_Item('XI1');
+#$garage_movement      = new Serial_Item('XI2');   # Do not respond to XIJ (on), so do not use X10_Item
+$garage_movement_light= new Serial_Item('XJ1');
+$garage_movement      = new Serial_Item('XJ2');   # Do not respond to XIJ (on), so do not use X10_Item
 $garage_movement     -> set_icon('motion');
 
 # These are the dark/light signals that the motions sensors send ... ignore them
@@ -51,7 +53,7 @@ $display_calls       = new Serial_Item('XOF');
 
 $test_3              = new  Serial_Item('XO3');
 $test_16             = new  Serial_Item('XOG');
-  
+
 # Analog items
 #$analog_request_a    = new  Serial_Item('AES', 'reset');
 $analog_request_a    = new  Serial_Item('AES', 'request');
@@ -136,7 +138,7 @@ $garage_door_button -> add             ('DALH', OFF);
 #$pa_study           -> add             ('DBLA', OFF);
 #$pa_family           = new  Serial_Item('DBHB', ON);
 #$pa_family          -> add             ('DBLB', OFF);
-#$pa_shop             = new  Serial_Item('DBHC', ON); 
+#$pa_shop             = new  Serial_Item('DBHC', ON);
 #$pa_shop            -> add             ('DBLC', OFF);
 #$pa_radio            = new  Serial_Item('DBHD', ON);
 #$pa_radio           -> add             ('DBLD', OFF);
@@ -153,8 +155,8 @@ $mh_toggle_mode = new  Serial_Item('XPG', 'toggle');
 tie_event $mh_toggle_mode "run_voice_cmd 'Toggle the house mode'";
 
 
-# This is an example of how to create a Voice_Cmd 
-# control for all X10 items. 
+# This is an example of how to create a Voice_Cmd
+# control for all X10 items.
 
 my $list_x10_items = join ',', &list_objects_by_type('X10_Item');
 $list_x10_on  = new Voice_Cmd "X10 Turn on  [$list_x10_items]";
@@ -162,4 +164,3 @@ $list_x10_off = new Voice_Cmd "X10 Turn off [$list_x10_items]";
 
 eval "$state->set(ON)"  if $state = state_now $list_x10_on;
 eval "$state->set(OFF)" if $state = state_now $list_x10_off;
-

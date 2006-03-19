@@ -56,7 +56,7 @@ if ( said $v_Now eq "Now" ) {
    print_log "Now Playing ".Xmms_Control("get_playlist_title");
 }
 
-#$Log$
+#$Log: Xmms_jukebox.pl,v $
 #Revision 1.3  2004/02/01 19:24:20  winter
 # - 2.87 release
 #

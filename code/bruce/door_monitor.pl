@@ -1,4 +1,4 @@
-# Category=none
+# Category=Other
 
 #@ Monitors door and movement sensors
 
@@ -9,22 +9,24 @@ if($state = state_now $garage_door) {
                          # Ignore mh startup noise and add a bit of hysteresis
     unless ($state eq 'init' or ($Time - $garage_door_time) < 7) {
         set $timer_garage_door 300;
-        play('rooms' => 'all', 'file' => "garage_door_" . $state . "*.wav");
+#       play('rooms' => 'all', 'file' => "garage_door_" . $state . "*.wav");
+#        speak "rooms=all mode=unmute Garage door just $state";
+        speak "mode=unmute Garage door just $state";
         print_msg "Garage door $state";
     }
     $garage_door_time = $Time;
 }
 
 # Note:  testing on state $item seems to reset it!! use $item->{state} instead :(
-if ((time_cron('0,5,10,15,30,45 22,23 * * *') and 
+if ((time_cron('0,5,10,15,30,45 22,23 * * *') and
     (OPENED eq ($garage_door->{state})) and
     inactive $timer_garage_door)) {
-#    &speak(mode => 'unmuted', text => "The garage door has been left opened.  I am now closing it.");
+    &speak(mode => 'unmuted', text => "The garage door has been left opened.");
 #    set $garage_door_button ON;
 #    set $garage_door_button OFF;
 }
 
-$garage_door_v = new Voice_Cmd '[open,close,change] {the} garage door';
+$garage_door_v = new Voice_Cmd '[open,close,change] garage door';
 if ($temp = state_now $garage_door_v) {
     $state = state $garage_door;
     print_log "Garage door is $state.  Request=$temp\n";
@@ -48,12 +50,14 @@ if ($state = state_now $front_door  and $state ne 'init') {
     set $timer_front_door ($state eq 'opened') ? 30 : 0;
 #    play(mode => 'unmuted', 'rooms' => 'all', volume => 10, 'file' => "front_door_" . $state . ".wav");
     print_log "front_door_" . $state . ".wav";
-    print_msg "Front door $state";
+    print_msg "Front door $state" if $state eq 'opened' and inactive $timer_front_door;
 #   play(mode => 'unmuted', 'rooms' => 'all', 'file' => "front_door_" . $state . "_Zach1.wav");
 }
 
 if (expired $timer_front_door and state $front_door eq OPENED) {
-    speak(mode => 'unmuted', text => 'The front door has been left open');
+# Don't speak if it is warm out, unless we are asleep, so we can air out house with door open
+    speak(mode => 'unmuted', text => 'The front door has been left open') if
+      $Weather{TempOutdoor} < 50 or $Save{sleeping_parents};
     set $timer_front_door 120;
 }
 
@@ -73,28 +77,38 @@ if (expired $timer_back_door and state $back_door eq OPENED) {
 #layit("rooms=all garage_entry_door_$state.wav") if $state = state_now $garage_entry_door;
 #layit("rooms=all entry_door_$state.wav") if $state = state_now $entry_door;
 
-$timer_garage_movement = new  Timer();
-if (state_now $garage_movement) {
-#    set $garage_light ON;
+$timer_garage_movement  = new  Timer();
+$timer_garage_movement2 = new  Timer();
+if (state_now $garage_door or
+    state_now $garage_entry_door or
+    state_now $garage_movement or
+#   state_now $webcam_garage or   ... this causes and endless cycle
+    state_now $entry_door or
+    state_now $front_door) {
+    set $garage_light ON if $Dark;
     if (inactive $timer_garage_movement) {
         play('rooms' => 'all', 'file' => "garage_movement*.wav");
 #       speak("Something is in the garage.");
     }
-    set $timer_garage_movement 1200;
-    set $timer_garage_door 1200;
-}
-if (expired $timer_garage_movement) {
-#    set $garage_light OFF;
+    set $timer_garage_movement  60*10;
+    set $timer_garage_movement2 60*30;
+    set $timer_garage_door      60*10;
 }
 
-if (state_now $garage_door or
-    state_now $garage_entry_door or
-    state_now $entry_door or
-    state_now $front_door) {
-    set $timer_garage_movement 1200;
-    set $timer_garage_door 300;
-#   set $timer_stair_movement 150;
+set $timer_garage_movement2 60*30 if state_now $webcam_garage;
+
+
+if (new_hour 2 and inactive $timer_garage_movement2) {
+    set $garage_lights OFF;
 }
+
+if (expired $timer_garage_movement) {
+    set $garage_light OFF;
+    print_log "Garage timer expired: light=$$garage_light{state} lights=$$garage_lights{state}";
+#    set $garage_light  OFF if $garage_light  ne 'OFF';
+#    set $garage_lights OFF if $garage_lights ne 'OFF';
+}
+
 
                                 # Check the movement sensors
 
@@ -112,7 +126,7 @@ unless ($Save{sleeping_parents}) {
 #       play 'movement1';       # Defined in event_sounds.pl
         set $timer_bathroom_movement 5;
     }
-} 
+}
 
 #if (state_now $sensor_bathroom eq 'motion') {
 #    set $bathroom_light ON;

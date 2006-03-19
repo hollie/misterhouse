@@ -634,7 +634,7 @@ sub disablevocab {
 1;
 
 #
-# $Log$
+# $Log: Voice_Cmd.pm,v $
 # Revision 1.47  2004/07/18 22:16:37  winter
 # *** empty log message ***
 #

@@ -194,7 +194,7 @@ sub rf_process_powerline {
 #------------------------------------------------------------------------------
 
 #
-# $Log$
+# $Log: X10_RF_powerline.pm,v $
 # Revision 1.1  2004/03/23 02:27:09  winter
 # *** empty log message ***
 #

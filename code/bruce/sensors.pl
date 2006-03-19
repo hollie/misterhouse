@@ -8,6 +8,15 @@
 set $analog_request_a 'request'  if $New_Second and $Second == 20;
 &analog_read($temp) if $temp = state_now $analog_results;
 
+#$temp_zack           = new  Serial_Item('AE1');
+#$temp_living         = new  Serial_Item('AE2');
+#$temp_outside        = new  Serial_Item('AE3');
+#$temp_nick           = new  Serial_Item('AE4');
+#$humidity_inside     = new  Serial_Item('AE5');
+#$humidity_outside    = new  Serial_Item('AE6');
+#$sun_sensor          = new  Serial_Item('AE7');
+#$light_sensor        = new  Serial_Item('AE8');
+
 # Make an ECS like log entry every 5 minutes
 my %analog;
 #if (time_cron('0,5,10,15,20,25,30,35,40,45,50,55 * * * *')) {
@@ -15,12 +24,17 @@ if (time_cron '* * * * *' and defined state $temp_outside) {
     $analog{humidity_inside} = round((57/81) * 100 * (state $humidity_inside / 5000), 1);
     $analog{humidity_outside}= round((48/53) * 100 * (state $humidity_outside / 5000), 1);
     $analog{sun_sensor}      = round((100/60)* 100 * (state $sun_sensor / 5000), 0);
-    $Weather{sun_sensor} = $analog{sun_sensor}; # Used in weather_monitor.pl
     $analog{temp_outside}= convert_k2f(state $temp_outside/10);
 #   $analog{temp_bed}=     convert_k2f(state $temp_bed/10);
     $analog{temp_living}=  convert_k2f(state $temp_living/10);
     $analog{temp_nick}=    convert_k2f(state $temp_nick/10);
     $analog{temp_zack}=    convert_k2f(state $temp_zack/10);
+    $Weather{sun_sensor} = $analog{sun_sensor}; # Used in weather_monitor.pl
+#   $Weather{TempSpare1} = $analog{sun_sensor}; # Used in weather_rrd_graph.pl
+#   $Weather{TempSpare1} = $analog{temp_living}; # Used in weather_rrd_graph.pl
+    $Weather{TempSpare1} = $analog{temp_outside}; # Used in weather_rrd_graph.pl
+    $Weather{TempSpare2} = $analog{temp_nick}; # Used in weather_rrd_graph.pl
+    $Weather{TempSpare3} = $analog{temp_zack}; # Used in weather_rrd_graph.pl
 #    print_log "sun=$analog{sun_sensor} temp_in=$analog{temp_living} temp_out=$analog{temp_outside}";
 #    logit("e:/logs/DATAHI.log", "Humidity Downstairs $analog{humidity_inside}");
 #    logit("e:/logs/DATAHO.log", "Humidity Outside    $analog{humidity_outside}");
@@ -45,7 +59,7 @@ sub analog_read {
 				# We can only deal with 8 bit speakings ... single bit readings do not say which bit is which
     if (@temp == 8) {
         my $bit;
-        for $bit (1 .. 8) { 
+        for $bit (1 .. 8) {
             my $data = shift @temp;
 
             my $analog_port_bit = "$analog_port$bit";
@@ -73,4 +87,3 @@ sub analog_read {
         }
     }
 }
- 

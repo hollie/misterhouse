@@ -246,6 +246,9 @@ DESCRIPTION
     http://www.hwg-telekom.de , www.madomotique.com, www.letsautomate.com,
     and www.laser.com .
 
+    Europeans can also get iButton and Weeder boards from
+    http://www.homechip.co.uk
+
     Australians can get gear from www.digihouse.com.au , www.eon3.com ,
     www.dse.com.au , and www.tecsol.com.au .
 
@@ -3459,7 +3462,7 @@ DESCRIPTION
                           file    => '../web/graphics/goofy.gif');
 
                                 # Use run to launch a background process
-            run 'send_mail -subject "test" -text "Test background send_mail"';
+            run 'send_email -subject "test" -text "Test background send_email"';
 
     net_mail_count
         Returns the number of email message on the specified account.
@@ -3833,6 +3836,26 @@ DESCRIPTION
 
             If local_file is specified, data is stored there,
             otherwise it is echoed to STDOUT.
+
+            Options are:
+
+             -quiet: no output on stdout
+
+             -cookies 'cookiestr': Uses the specified cookie string for the request.
+              The format of 'cookiestr' should be like this: 'name1=val1; name2=val2'.
+
+             -cookie_file_in  'file':  Like the -cookies option, but string is sent via a file.
+
+             -cookie_file_out 'file':  Generates a cookies string from the resulting web request.
+
+             -userid 'userid'    :  Use these 2 parms if your web page is protected by
+
+             -password 'password':  'basic credentials' (i.e. you get a browser popup).
+
+             -post 'poststr': Makes this a post request with the specified name/value pairs
+              as the form data, such as: 'name1=val1&name2=val2'
+
+             -header 'header_file': HTTP headers from the server are stored in this file
 
           Examples:
             get_url http://marketing.cbs.com/lateshow/topten/ $f_top10_html;

@@ -1,14 +1,14 @@
 # Category = Weather
 
-#@ Retrieves current weather conditions and forecasts using 
-# "http://weather.noaa.gov/cgi-bin/mgetmetar.pl?cccc=[METARCODE]", where
-# [METARCODE] stands for the international local METAR (Meteorological Aviation Routine Weather Report) station ID.
-# see "http://weather.noaa.gov" to look up your local METAR Code.
+#@ Retrieves current weather conditions and forecasts using
+#@ "http://weather.noaa.gov/cgi-bin/mgetmetar.pl?cccc=[METARCODE]", where
+#@ [METARCODE] stands for the international local METAR (Meteorological Aviation Routine Weather Report) station ID.
+#@ see "http://weather.noaa.gov" to look up your local METAR Code.
 
-# As of now, this script works with an absolute path pointing to "c:/wetter.txt" and one METAR code: "EDDH". 
-# You should substitute them with your path/data or put it into variables (which is better, of course).
-# There is also much more data in a METAR report than the piece of information i found most interesting to extract.
-# Now start looking for the sunshine ^-^:
+#@ As of now, this script works with an absolute path pointing to "c:/wetter.txt" and one METAR code: "EDDH".
+#@ You should substitute them with your path/data or put it into variables (which is better, of course).
+#@ There is also much more data in a METAR report than the piece of information i found most interesting to extract.
+#@ Now start looking for the sunshine ^-^:
 
 
 # Get the current weather data from the internet via METAR Code
@@ -37,7 +37,7 @@ $v_show_internet_weather_data-> set_info('Display previously downloaded weather 
 $v_show_internet_weather_data-> set_authority('anyone');
 
 if (said $v_show_internet_weather_data or time_cron '12 8,12,16,20 * * *') {
-    
+
     my ($metar, $i);
 
     #METAR report in file
@@ -49,7 +49,7 @@ if (said $v_show_internet_weather_data or time_cron '12 8,12,16,20 * * *') {
             }
 	  }
     }
-	    
+
     my ($wind_dir, $wind_vel, $gusts, $visible, $clouds, $cloud_data, $temp, $pressure, $TEMPO, $NOSIG, $BECMG, $CAVOK);
     my $general;
     my $weather_remark_rain = new File_Item("$config_parms{data_dir}/remarks/bath_day.txt");
@@ -58,7 +58,7 @@ if (said $v_show_internet_weather_data or time_cron '12 8,12,16,20 * * *') {
     my $weather_thought_belowzero = read_random $weather_remark_belowzero;
 
     $wind_dir = "$1" if $metar =~ /Z\s(\d\d\d)\d\d\KT/;
-    $wind_vel = "$1" if $metar =~ /Z\s\d\d\d(\d\d)KT/; 
+    $wind_vel = "$1" if $metar =~ /Z\s\d\d\d(\d\d)KT/;
     $wind_vel = "$1" if $metar =~ /Z\s\d\d\d(\d\d)G/;
     $gusts    = "and gusts with $1" if $metar =~ /G(\d\d)KT/;
     $visible  = "$1" if $metar =~ /KT\s(\d\d\d\d)/;
@@ -75,11 +75,11 @@ if (said $v_show_internet_weather_data or time_cron '12 8,12,16,20 * * *') {
     $BECMG	  = "is a weather change ahead" if $metar =~ /BECMG/;
     $CAVOK    = "is no better weather than this" if $metar =~ /CAVOK/;
 
-    speak($weather_thought_rain) if $metar =~ /RA/ or $metar =~ /DZ/; 
-    speak($weather_thought_belowzero) if $temp <= 0; 
+    speak($weather_thought_rain) if $metar =~ /RA/ or $metar =~ /DZ/;
+    speak($weather_thought_belowzero) if $temp <= 0;
 
 
-    #change wind true degree to compass direction:    
+    #change wind true degree to compass direction:
     if(($wind_dir > 337.5) || ($wind_dir <= 22.5)){
        $wind_dir = "North" ;
     }
@@ -105,9 +105,9 @@ if (said $v_show_internet_weather_data or time_cron '12 8,12,16,20 * * *') {
        $wind_dir = "North West" ;
     }
 
-    #change wind velocity into km/h:    
-    $wind_vel *= 1.85;  
-     
+    #change wind velocity into km/h:
+    $wind_vel *= 1.85;
+
     #4types of cloudy sky:
     $cloud_data = "$1" if $clouds =~ /SKC(\d\d\d)/ or $clouds =~ /CLR/ or $clouds =~ /NSC/;
     $cloud_data = "$1" if $clouds =~ /FEW(\d\d\d)/;
@@ -115,7 +115,7 @@ if (said $v_show_internet_weather_data or time_cron '12 8,12,16,20 * * *') {
     $cloud_data = "$1" if $clouds =~ /BKN(\d\d\d)/;
     $cloud_data = "$1" if $clouds =~ /OVC(\d\d\d)/;
 
-    #001 = 100ft and change feet to meters:    
+    #001 = 100ft and change feet to meters:
     $cloud_data *= 30.48;
 
     #4types of cloudy sky:
@@ -141,24 +141,21 @@ if (said $v_show_internet_weather_data or time_cron '12 8,12,16,20 * * *') {
     else{
        $area = "low";
     }
-    
+
     #4 different types of major forcasts:
     my $forc;
     if($TEMPO ne ""){$forc = $TEMPO};
     if($NOSIG ne ""){$forc = $NOSIG};
     if($BECMG ne ""){$forc = $BECMG};
-    if($CAVOK ne ""){$forc = $CAVOK};   
+    if($CAVOK ne ""){$forc = $CAVOK};
 
     my $cast;
-    $cast = "Wind comes from $wind_dir with $wind_vel kilometers per hour $gusts. 
-    $visible $clouds. Temperature is $temp degree, while pressure is $area with $pressure hecto pascal. 
-    $general. Forecast tells that there $forc."; 
+    $cast = "Wind comes from $wind_dir with $wind_vel kilometers per hour $gusts.
+    $visible $clouds. Temperature is $temp degree, while pressure is $area with $pressure hecto pascal.
+    $general. Forecast tells that there $forc.";
 
             # Use eval in case this object is not defined
-    eval '$v_mp3_control -> set("pause~20~play");  
+    eval '$v_mp3_control -> set("pause~20~play");
 
     speak "$cast";
 }
-
-
-

@@ -709,7 +709,7 @@ sub user_data {
 }
 
 #
-# $Log$
+# $Log: Generic_Item.pm,v $
 # Revision 1.42  2005/05/22 18:13:06  winter
 # *** empty log message ***
 #

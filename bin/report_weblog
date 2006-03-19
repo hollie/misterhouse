@@ -306,7 +306,7 @@ sub mail_report {
 
 }
 #
-# $Log$
+# $Log: report_weblog,v $
 # Revision 1.12  2003/11/23 20:25:51  winter
 #  - 2.84 release
 #

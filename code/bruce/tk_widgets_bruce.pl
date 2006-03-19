@@ -14,16 +14,16 @@ if ($Reload) {
     if ($MW) {
         $MW->bind('<F1>' => \&read_code);
         $MW->bind('<F2>' => \&toggle_pause);
-        $MW->bind('<F3>' => \&sig_handler); 
-        $MW->bind('<F4>' => \&toggle_debug); 
-        $MW->bind('<F5>' => \&toggle_log); 
+        $MW->bind('<F3>' => \&sig_handler);
+        $MW->bind('<F4>' => \&toggle_debug);
+        $MW->bind('<F5>' => \&toggle_log);
     }
 
     &tk_mbutton('Help', \&help);
 
     &tk_button('Reload (F1)', \&read_code, 'Pause (F2)', \&toggle_pause, ' Exit (F3) ', \&sig_handler,
                'Debug (F4)', \&toggle_debug, 'Log (F5)', \&toggle_log);
- 
+
     &tk_label(\$Tk_objects{label_time});
     &tk_label(\$Tk_objects{label_uptime_cpu});
     &tk_label(\$Tk_objects{label_uptime_mh});
@@ -72,8 +72,20 @@ if ($Reload) {
 #    &tk_radiobutton('VR Mode',  \$tk_vr_mode, ['awake', 'asleep', 'off'], ['Awake', 'Asleep', 'Off']) if $Run_Members{viavoice_control};
 
 # Category=HVAC
-#   &tk_entry      ('Heat Temp', \$Save{heat_temp})                       if $Run_Members{weather_monitor};
-    &tk_radiobutton('Heat Temp', \$Save{heat_temp}, [60, 64, 66, 68, 70]) if $Run_Members{weather_monitor};
+   &tk_entry      ('Heat Temp', \$Save{heat_temp})                       if $Run_Members{weather_monitor};
+#   &tk_radiobutton('Heat Temp', \$Save{heat_temp}, [66, 68, 69, 70, 71]) if $Run_Members{weather_monitor};
+    my $tk_heat_cool = $Tk_objects{grid}->
+#     Scale(-label        => 'Heat',
+      Scale(-width        => '10',
+            -length       => '500',
+            -from         => '60',
+            -to           => '75',
+            -showvalue    => '1',
+            -tickinterval => '1',
+            -orient       => 'horizontal',
+            -variable     => \$Save{heat_temp} );
+    $tk_heat_cool->grid(qw/-columnspan 5 -sticky w/);
+
 
 # Category=Internet
     &tk_radiobutton('Ping Test', \$Save{ping_test_flag}, [1,0], ['On', 'Off']) if $Run_Members{internet_connect_check};
@@ -95,4 +107,3 @@ if ($Reload) {
 
 # Debug
 &tk_entry      ('Disable (1->14)', \$Disable, 'Run Command', $run_command);
-

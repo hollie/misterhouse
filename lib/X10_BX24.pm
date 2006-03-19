@@ -535,7 +535,7 @@ sub check_for_data {
 
 1;
 
-#$Log$
+#$Log: X10_BX24.pm,v $
 #Revision 1.3  2004/02/01 19:24:35  winter
 # - 2.87 release
 #

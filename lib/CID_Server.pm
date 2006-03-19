@@ -148,7 +148,7 @@ sub setstate_cid
 }
 
 #
-# $Log$
+# $Log: CID_Server.pm,v $
 # Revision 1.4  2004/06/06 21:38:44  winter
 # *** empty log message ***
 #

@@ -137,7 +137,7 @@ sub CantOpenDir {
     return $HTTP;
 }
 
-#$Log$
+#$Log: MP3_WebXmmsPlaylist.pl,v $
 #Revision 1.3  2004/02/01 19:24:37  winter
 # - 2.87 release
 #

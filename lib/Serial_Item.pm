@@ -540,7 +540,7 @@ sub send_x10_data {
     elsif ($interface eq 'wish') {
                                 # wish wants individual codes without X
         &main::print_log("Using wish to send: $serial_data");
-        &Wish::send(substr($serial_data, 1));
+        &X10_Wish::send(substr($serial_data, 1));
     }
     elsif ($interface eq 'iplcs') {
 	# ncpuxa wants individual codes with X
@@ -619,7 +619,7 @@ sub set_interface {
 
 
 #
-# $Log$
+# $Log: Serial_Item.pm,v $
 # Revision 1.75  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #

@@ -87,7 +87,7 @@ sub default_setstate
 }
 
 #
-# $Log$
+# $Log: WakeOnLan.pm,v $
 # Revision 1.3  2004/02/01 19:24:35  winter
 #  - 2.87 release
 #

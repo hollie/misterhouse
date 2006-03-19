@@ -587,7 +587,7 @@ sub phone_list2 {
 }
 
 #
-# $Log$
+# $Log: display_callers,v $
 # Revision 1.22  2003/11/23 20:25:50  winter
 #  - 2.84 release
 #

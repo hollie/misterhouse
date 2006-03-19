@@ -506,7 +506,7 @@ sub ampm_to_hour24 {
 }
 
 #
-# $Log$
+# $Log: get_tv_info,v $
 # Revision 1.28  2002/09/22 01:33:22  winter
 # - 2.71 release
 #

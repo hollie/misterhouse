@@ -184,7 +184,7 @@ sub PlaylistCtrl {
 
 }
 
-#$Log$
+#$Log: MP3_WebXmmsCtrl.pl,v $
 #Revision 1.3  2004/02/01 19:24:37  winter
 # - 2.87 release
 #
@@ -200,7 +200,7 @@ sub PlaylistCtrl {
 #more change in the display (time etc.)
 #create a shuffle simulation tyo workaround the lack of on/off shuffle
 #
-#$Log$
+#$Log: MP3_WebXmmsCtrl.pl,v $
 #Revision 1.3  2004/02/01 19:24:37  winter
 # - 2.87 release
 #

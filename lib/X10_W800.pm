@@ -167,7 +167,7 @@ sub check_for_data {
 # Data format info on here:  http://www.wgldesigns.com/dataformat.txt
 
 #
-# $Log$
+# $Log: X10_W800.pm,v $
 # Revision 1.6  2004/11/22 22:57:26  winter
 # *** empty log message ***
 #

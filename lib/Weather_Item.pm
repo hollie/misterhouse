@@ -66,7 +66,7 @@ sub default_setstate {
 
 
 #
-# $Log$
+# $Log: Weather_Item.pm,v $
 # Revision 1.6  2003/02/08 05:29:24  winter
 #  - 2.78 release
 #

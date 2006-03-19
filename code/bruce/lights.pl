@@ -3,7 +3,7 @@
 #@ Controls various lights.
 
 my $light_states = 'on,brighten,dim,off,-10,+10,-30,-50,-80,+30,+50,+80,status';
-  
+
 $v_christmas_lights = new  Voice_Cmd("Christmas Lights [$light_states]");
 if ($state = $v_christmas_lights->{said}) {
     set $christmas_lights_bed $state;
@@ -12,18 +12,20 @@ if ($state = $v_christmas_lights->{said}) {
 }
 
 # if (time_cron '30 06 * 11,12,1 1-5' or
-#     time_cron '00 18 * 11,12,1 *') {
+#if (time_cron '00 18 * 12,1 *') {
+if (time_now "$Time_Sunset + 1:00") {
+#if (time_cron '00 18 * 12,1 *') {
 #     set $christmas_lights_bed ON;
 #     set $christmas_lights_nick ON;
-#     set $christmas_lights ON;
-# }
+     set $christmas_lights ON;
+ }
 
-# if (time_cron '30 08 * 11,12,1 1-5' or
-#     time_cron '30 22 * 11,12,1 *') {
+ if (time_cron '30 08 * 11,12,1 1-5' or
+     time_cron '30 22 * 11,12,1 *') {
 #     set $christmas_lights_bed OFF;
 #     set $christmas_lights_nick OFF;
-#     set $christmas_lights OFF;
-# }
+     set $christmas_lights OFF;
+ }
 
 $v_backyard_light = new  Voice_Cmd("Backyard Light [$light_states]");
 set $backyard_light $state if $state = $v_backyard_light->{said};
@@ -50,11 +52,19 @@ $v_garage_lights = new  Voice_Cmd("Garage lights [$light_states]");
 set $garage_lights $state if $state = $v_garage_lights->{said};
 set $garage_lights OFF if time_cron('01 01,03 * * * ');
 
+# For testing
+$garage_light_relay = new X10_Item 'I2';
+set $garage_lights $state if $state = state_now $garage_light_relay;
+
+
 # $v_pedestal_light = new  Voice_Cmd("Pedestal light [$light_states]");
 #set $pedestal_light $state if $state = $v_pedestal_light->{said};
 
  $v_living_light = new  Voice_Cmd("Living room light [$light_states]");
 set $living_light $state if $state = $v_living_light->{said};
+
+ $v_living_fan_light = new  Voice_Cmd("Living room fan light [$light_states]");
+set $living_fan_light $state if $state = $v_living_fan_light->{said};
 
 $v_camera_light = new  Voice_Cmd("Camera light [$light_states]");
 set $camera_light $state if $state = $v_camera_light->{said};
@@ -84,11 +94,11 @@ if (($nick_reading_light->{state_now} eq ON or $all_lights_on_nick->{state_now})
     set $nick_reading_light OFF;
 }
 
-if (time_now "$Time_Sunset + 1:00") {
-    speak("I just turned the backyard light on at $Time_Now");
-    print "I just turned the backyard light on at $Time_Now, sunset=$Time_Sunset\n";
-    set $backyard_light ON;
-}
+#if (time_now "$Time_Sunset + 1:00") {
+#    speak("I just turned the backyard light on at $Time_Now");
+#    print "I just turned the backyard light on at $Time_Now, sunset=$Time_Sunset\n";
+#    set $backyard_light ON;
+#}
 
 #if (time_now "$Time_Sunset + 0:30") {
 #    speak("I just turned the pedestal light on at $Time_Now");
@@ -141,4 +151,3 @@ set $bathroom_light $state if $state = $v_bathroom_light_all->{said};
 #$v_internet_light = new  Voice_Cmd "Internet Light [$light_states]";
 #$v_internet_light ->tie_items($internet_light);
 #$v_internet_light ->set_authority('anyone');
-

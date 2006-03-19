@@ -1,4 +1,4 @@
-# Category=TV
+# Category=Entertainment
 
 #@ This code will download TV schedules from the Internet and
 #@ optionally create events to remind you or your vcr to watch shows

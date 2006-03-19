@@ -101,7 +101,7 @@ sub rf_process_digimax210 {
 #------------------------------------------------------------------------------
 
 #
-# $Log$
+# $Log: X10_RF_digimax.pm,v $
 # Revision 1.2  2006/01/29 20:30:17  winter
 # *** empty log message ***
 #
