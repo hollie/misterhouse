@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2006-02-14 22:12:56 winter>
+#  Last change Time-stamp: <2006-03-19 17:49:42 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -34,6 +34,7 @@ BEGIN {
     $Info{Perl_compiled} = "PAR $PAR::VERSION" if $PAR::VERSION;       # If built with PAR
 
     ($Version) = q$Revision$ =~ /: (\S+)/; # Auto-updated by CVS
+    $Version = "mh 1.101 R$Version";
     $Version .= " (compiler: $Info{Perl_compiled})" if $Info{Perl_compiled};
 
             # $0=path to mh/bin, $^X=path to perl, unless perl2exe compiled mh.exe
@@ -6095,6 +6096,7 @@ sub x10_dim_level_decode {
 __END__
 
 
+# $Date$
 #
 # $Log: mh,v $
 # Revision 2.101  2006/01/29 20:23:40  winter
