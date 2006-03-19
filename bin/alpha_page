@@ -170,7 +170,7 @@ sub send_page {
 }
 
 #
-# $Log$
+# $Log: alpha_page,v $
 # Revision 1.4  2005/10/02 17:24:45  winter
 # *** empty log message ***
 #
