@@ -1,5 +1,5 @@
 # Shopping List
-# Version 1.66
+# Version 1.67
 # Matthew Williams
 #
 # $Revision$
@@ -50,6 +50,11 @@
 # shopping list.  If blank, will default to net_mail_account_address
 #
 # Revision History:
+#
+# Version 1.67: Matthew Williams
+# - added html_page to all return statements so that correct HTTP headers
+#   would be added.  (Safari in particular was sensitive to lack of headers).
+#   Thanks to Howard Plato for discovering and helping to work out this bug.
 #
 # Version 1.66: Matthew Williams
 # - added call to insert_keyboard within add_item (virtual_keyboard.pl
@@ -163,7 +168,8 @@ if ($shoppinglistdebug ) {
 
 sub shoppingListError {
 	my ($message)=@_;
-	return qq[
+	return html_page(undef,qq[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
 <title>$prettyName Error</title>
@@ -173,7 +179,7 @@ sub shoppingListError {
 <h3>$message</h3>
 </body>
 </html>
-];
+]);
 }
 
 $param{'action'}='list' unless defined($param{'action'});
@@ -201,7 +207,7 @@ if ($param{'action'} eq 'add item') {
 		$html.='';
 		$html.= &insert_keyboard({target => 'item', autocap => 'yes'});
 		$html.=qq[</body></html>\n];
-		return $html;
+		return html_page(undef,$html);
 	}
 	open (OLDLIST,$file) || return shoppingListError("$file: $!");
 	my $duplicate=0;
@@ -263,7 +269,7 @@ if ($param{'action'} eq 'add item') {
 	$html.=qq[<p><input type="submit" name="action" value="add item">\n];
 	$html.=qq[<input type="submit" name="action" value="list"></p>\n];
 	$html.=qq[</body></html>];
-	return $html;
+	return html_page(undef,$html);
 }
 
 if (($param{'action'} eq 'update list') or ($param{'action'} eq 'clear all') or ($param{'action'} eq 'remove items')) {
