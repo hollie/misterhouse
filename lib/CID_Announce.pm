@@ -1,4 +1,8 @@
 use strict;
+
+# $Revision$
+# $Date$
+
 =begin comment
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -210,6 +214,7 @@ sub parse_format
 		$category = $p_telephony->category();
 #   		$format1  = "$first $middle $last";
     		$format1  = $name;
+    		$format1  = $snumber if $name =~ 'UNKNOWN CALLER';
     		$format1  = "Unknown" if $type eq 'unknown' and !$snumber;
     		$format1  = $snumber unless $format1 =~ /\S/;
     		if ($areacodes[0] ne $areacode) {
