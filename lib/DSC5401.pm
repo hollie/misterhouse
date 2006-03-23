@@ -1,5 +1,4 @@
-#$Id:$
-#
+# $Id$
 # $Revision$
 # $Date$
 
@@ -370,6 +369,7 @@ sub CheckCmd {
          $self->{partition_now_msg}    = "Partition $PartName in exit delay";
          $self->{partition_now_status} = "exit delay";
          $self->{partition_now}        = "$PartNum";
+         $self->{partition_mode}       = "Exit-Delay";
       }
       elsif ( $cmd == 657 ) {    # Entry Delay in Progress
          my $PartName = my $PartNum = $data;
