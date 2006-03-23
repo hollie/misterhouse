@@ -10,12 +10,18 @@
 #@
 #@ Earthquake_Magnitudes = 99999 5.5 3000 3.5 100 0
 #@
+#@ If you prefer kilometers to miles, set Earthquake_Units to metric
+#@ e.g. Earthquake_Units=metric
+#@ 
 #@ You can also set a variable to limit the number of quakes to display.
 #@ To show only the two most recent quakes, regardless of magnitude, set
 #@ the following variables in your ini file:
 #@
 #@ Earthquake_Magnitudes = 99999 0
 #@ Earthquake_Count = 2
+
+# $Revision$
+# $Date$
 
 =begin comment
 
@@ -74,6 +80,16 @@ my %Magnitude_thresholds = (
 
 if ($config_parms{Earthquake_Magnitudes}) {
   %Magnitude_thresholds = split ' ', $config_parms{Earthquake_Magnitudes};
+}
+
+my $Earthquake_Units=$config_parms{Earthquake_Units};
+$Earthquake_Units='imperial' unless $Earthquake_Units;
+
+my $Earthquake_Unit_Name='';
+if ($Earthquake_Units eq 'metric') {
+	$Earthquake_Unit_Name='kilometers';
+} else {
+	$Earthquake_Unit_Name='miles';
 }
 
 # Maximum number of quakes to show
@@ -176,6 +192,8 @@ if (done_now $p_earthquakes) {
     }
     set $p_earthquakes_image "get_url $image " . $f_earthquakes_gif->name;
     start $p_earthquakes_image if $image;
+    speak ($speech) if $speech ne '';
+    $speech='';
   }
 }
 
@@ -192,7 +210,10 @@ sub calc_distance {
     $lon2 /= $c;
     $d = 2*Math::Trig::asin(sqrt((sin(($lat1-$lat2)/2))**2 + 	cos($lat1)*cos($lat2)*(sin(($lon1-$lon2)/2))**2));
 
-    return $d*(.5*7915.6*.86838);  # convert to miles and return
+	if ($Earthquake_Units eq 'metric') {
+		return $d*6378; # convert to kilometers and return
+	}
+    return $d*(.5*7915.6);  # convert to miles and return
 }
 
 sub calc_age {
@@ -240,7 +261,7 @@ sub parse_quake {
           $image = 'http://earthquake.usgs.gov/recenteqsww/Maps/10/' . $long_reso * round(($qlong < 0 ? 360 + $qlong : $qlong)/$long_reso) . '_' . 5 * round($qlatd/5) . '.gif';
 	  $qloca = lc($qloca);
 	  $qloca =~ s/\b(\w)/uc($1)/eg;
-          $speech .= &calc_age("$qdate $qtime") . "a magnitude $qmagn earthquake occurred $distance miles away near $qloca. ";
+      $speech .= &calc_age("$qdate $qtime") . "a magnitude $qmagn earthquake occurred $distance $Earthquake_Unit_Name away near $qloca. ";
           return 1;
         }
       }
