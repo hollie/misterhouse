@@ -22,7 +22,7 @@ function MM_swapImage() { //v3.0
 }
 //-->
 </script></head>
-<body bgcolor="#ffffff" onload="MM_preloadImages('images/house2.gif','images/news2.gif','images/modes2.gif','images/lights2.gif','images/outside2.gif','images/security2.gif','images/phone2.gif','images/entertain2.gif','images/speak2.gif','images/pictures2.gif','images/calendar2.gif','images/statistics2.gif','images/ShoppingList2.gif')">
+<body bgcolor="#ffffff" onload="MM_preloadImages('images/house2.gif','images/news2.gif','images/modes2.gif','images/lights2.gif','images/outside2.gif','images/security2.gif','images/phone2.gif','images/entertain2.gif','images/speak2.gif','images/pictures2.gif','images/calendar2.gif','images/statistics2.gif','images/shoppinglist2.gif')">
 <base target="main">
 <center>
 <table align="center" width="95%" border="0" cellspacing="0" cellpadding="0">
