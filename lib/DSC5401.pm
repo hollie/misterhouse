@@ -336,7 +336,7 @@ sub CheckCmd {
          set $self "$ModeTxt[$Mode]";
          $self->{partition_now_cmd}        = $cmd;
          $self->{partition_now_msg}        = "Partition $PartName armed $ModeTxt[$Mode] by user $self->{user_name}";
-         $self->{partition_now_status}     = "armed $ModeTxt[$Mode]";
+         $self->{partition_now_status}     = "$ModeTxt[$Mode]";
          $self->{partition_now}            = "$PartNum";
          $self->{partition_now_mode}       = "$ModeTxt[$Mode]";
          $self->{partition_mode}{$PartNum} = "$ModeTxt[$Mode]";
@@ -369,7 +369,7 @@ sub CheckCmd {
          $self->{partition_now_msg}    = "Partition $PartName in exit delay";
          $self->{partition_now_status} = "exit delay";
          $self->{partition_now}        = "$PartNum";
-         $self->{partition_mode}       = "Exit-Delay";
+         $self->{partition_mode}{$PartNum} = "exit delay";
       }
       elsif ( $cmd == 657 ) {    # Entry Delay in Progress
          my $PartName = my $PartNum = $data;
