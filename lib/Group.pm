@@ -1,3 +1,6 @@
+# $Revision$
+# $Date$
+
 use strict;
 
 package Group;
@@ -398,18 +401,39 @@ sub set_group_items {
 
 
 sub list {
-    my ($self) = @_;
-    print "Group list: self=$self members=@{$$self{members}}\n" if $main::Debug{group};
-    my @returnList;
+    my ($self, $memberList, $groupList) = @_;
+
+    # Not sure if we need to initialize these array refs, but it seems like
+    # a good practice to me.
+    if (!defined($memberList)) {
+    	$memberList=[];
+	}
+    if (!defined($groupList)) {
+    	$groupList=[];
+	}
+	# record that we've started looking at ourselves
+	push (@$groupList,$self);
     foreach my $member (@{$$self{members}}) {
     	if (ref($member) eq 'Group') {
-    		push (@returnList, $member->list());
+    		# if we've already looked at this group, then we don't need or want to look at it again (avoids infinite loops)
+    		if (grep {$_ == $member} @$groupList) {
+    			&::print_log( "Warning: detected group loop!  parent: ".$self->get_object_name.", child: ".$member->get_object_name);
+    			next;
+			}
+			push (@$groupList, $member);
+			# recursive call, passing along the members that we know about already
+			# and the groups that we have looked at
+    		$member->list($memberList,$groupList);
 		} else {
-			push (@returnList, $member);
+    		# if the item is already in the list, then we don't need to add it again!
+	    	if (grep {$_ == $member} @$memberList) {
+    			&::print_log ("Warning: detected duplicate member!  group: ".$self->get_object_name.",  member: ".$member->get_object_name);
+	    		next;
+			}
+			push (@$memberList, $member);
 		}
 	}
-    #return sort @{$$self{members}};  # Hmmm, to sort or not to sort.
-    return sort @returnList;  # Hmmm, to sort or not to sort.
+    return sort @$memberList;  # Hmmm, to sort or not to sort.
 }
 
 
