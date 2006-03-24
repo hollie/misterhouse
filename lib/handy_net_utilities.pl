@@ -808,7 +808,7 @@ sub oscar::cb_connectionchanged {
 sub oscar::get_net {
   my ($oscar)=@_;
 
-  if ($oscar->screenname() eq lc $main::config_parms{'net_aim_name'}) {
+  if (lc $oscar->screenname() eq lc $main::config_parms{'net_aim_name'}) {
      return 'aim';
   } else {
     return 'icq';
