@@ -1471,4 +1471,5 @@ Tue 02/21/06 17:19:35 city=Hafnarfjrur state=Iceland name=
 Thu 02/23/06 04:59:44 city=Fayetteville state=NC name=
 Sun 02/26/06 06:03:24 city=MIRA state=ITALY name=Giampaolo Michieletto
 Thu 03/09/06 15:38:56 city=memphis state=tn name=
-Fri 03/17/06 10:47:02 city=Stockholm state=Sweden name=Gran Hellstrm
+Sun 03/19/06 21:19:40 city=Saratoga state=CA name=RCM
+Wed 03/22/06 19:01:09 city=Tulsa state=OK name=

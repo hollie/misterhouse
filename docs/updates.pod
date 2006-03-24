@@ -39,10 +39,14 @@ will try to detect the best option for various browsers when playing mh TTS.
 
 - Gaetan Lord and Jocelyn Brouillard created lib/DSC5401.pm, code/examples/DSC5401.pl, and web/bin/DSC5401_*.pl for supporting the DSC5401.
 
-- Matthew Williams migrated the MisterHouse sourceforge repository from CVS to subversion.
-
-- Gaetan Lord and Matthew Williams added virtual_keyboard.pl to allow for a virtual keyboard within a web page,
+- Gaetan Lord and Matthew Williams added code/common/virtual_keyboard.pl to allow for a virtual keyboard within a web page,
 and updated web/bin/shopping_list.pl to use it.
+
+- Matthew Williams migrated the MisterHouse sourceforge repository from CVS to SVN (SubVersioN).
+This is much nicer than CVS and we now have ALL files in the standard distros checked in.
+You can continue to send updates to me directly, or feel free to send them in via SVN.
+Windows users can use touroiseSVN, which integrates into explorer:  http://tortoisesvn.sourceforge.net/
+Right click on explorer and do an SVN check out from here: https://svn.sourceforge.net/svnroot/misterhouse/trunk
 
 
 
@@ -74,6 +78,16 @@ B<Bug Fixes and Other Changes:>
 
 - Brent DeShazer added time_date_stamp format 22 and he added cmd, findcmd, and speak to internet_im.pl
 
+- Matthew Williams updated code/public/weather_metar.pl to add hooks when new forecasts are retrieved
+and added new SummaryLong key to Weather Hash.
+
+- Matthew Williams updated common/internet_earthquakes.pl to allow for km, and fixed bug to us statutory miles instead of nautical miles.
+
+- Matthew Williams updated lib/CID_Announce.pm to handle case when name is sent as "UNKNOWN CALLER"
+
+- Matthew Williams updated lib/DSC5401.pm to add new partition_mode "Exit-Delay".
+
+- Matthew Williams updated lib/Group.pm to allow for nested groupe and Voice_Text.pm to speak numbers > 4 digits seperately. 
 
 
 =head2 Version 2.101 posted on 01/29/2006

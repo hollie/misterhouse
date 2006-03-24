@@ -93,6 +93,10 @@ sub speak_text {
 
     return if lc $parms{voice} eq 'none';
 
+    while ($parms{text} =~ /^(.*?)(\d{2,})(.*?)$/) {
+    	$parms{text}=$1.&num_to_text($2).$3;
+	}
+
     if ($parms{address}) {
         my @address = split ',', $parms{address};
         delete $parms{address};
@@ -836,6 +840,67 @@ sub force_pronounce {
     }
     print "output phrase is '$phrase'\n" if $main::Debug{voice};
     return $phrase;
+}
+
+sub num_to_text {
+    my ($num)=@_;
+
+    &main::print_log("converting $num to text");
+
+    my @divisions=qw/trillion billion million thousand/;
+    my @digits=qw/zero one two three four five six seven eight nine ten/;
+    my @teens=qw/ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen/;
+    my @tens=qw/ten twenty thirty forty fifty sixty seventy eighty ninety/;
+    my $divisor=10 ** (3*($#divisions+1));
+
+    sub num_to_text_999 {
+        my ($num)=@_;
+        my $result='';
+
+        if ($num >= 100) {
+            $result.=' '.$digits[$num / 100].' hundred';
+            $num %= 100;
+        }
+        if ($num >= 10) {
+            if ($num < 20) {
+                $result.=' '.$teens[$num-10];
+            } else {
+                $result.=' '.$tens[$num / 10 -1];
+                if ($num % 10 > 0) {
+                    $result.='-'.$digits[$num % 10];
+                }
+            }
+        } else {
+            $result .= ' '.$digits[$num];
+        }
+        return $result;
+    }
+
+    if ($num==0) {
+        return $digits[0];
+    }
+
+    my $result='';
+    if ($num < 0) {
+        $result.='negative';
+        $num *= -1;
+    }
+
+    for (@divisions) {
+        if ($num >= $divisor) {
+            my $dividend=$num / $divisor;
+            if ($dividend > 1000) {
+                return 'too big';
+            }
+            $result .= &num_to_text_999($dividend);
+            $result .= " $_";
+        }
+        $num %= $divisor;
+        $divisor/=1000;
+    }
+    $result .= num_to_text_999($num);
+    $result =~ s/^ +//;
+    return $result;
 }
 
 

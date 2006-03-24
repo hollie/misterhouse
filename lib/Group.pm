@@ -400,7 +400,16 @@ sub set_group_items {
 sub list {
     my ($self) = @_;
     print "Group list: self=$self members=@{$$self{members}}\n" if $main::Debug{group};
-    return sort @{$$self{members}};
+    my @returnList;
+    foreach my $member (@{$$self{members}}) {
+    	if (ref($member) eq 'Group') {
+    		push (@returnList, $member->list());
+		} else {
+			push (@returnList, $member);
+		}
+	}
+    #return sort @{$$self{members}};  # Hmmm, to sort or not to sort.
+    return sort @returnList;  # Hmmm, to sort or not to sort.
 }
 
 
