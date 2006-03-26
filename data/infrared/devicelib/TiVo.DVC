@@ -1,0 +1,38 @@
+Manufacturer=Philips
+Model=TiVO
+Device=Personal TV
+Protocol=Tivo
+
+[Key Codes]
+00           =49,12
+01           =40,13
+02           =41,13
+03           =42,13
+04           =43,13
+05           =44,13
+06           =45,13
+07           =46,13
+08           =47,13
+09           =48,12
+Clear        =50,12
+Jump         =51,12
+Record       =32,13
+Play         =33,13
+Pause        =35,13 
+Slow         =37,13
+ScanLT       =34,13
+ScanRT       =36,13
+StepLT       =38,13
+StepRT       =39,13
+CurUP        =20,14
+CurRT        =21,14
+CurDN        =22,14
+CurLT        =23,14
+Select       =25,14
+ThumbsDN     =24,14
+ThumbsUP     =26,14
+ChnUP        =30,14
+ChnDN        =31,14
+TVGD         =17,14
+TiVo         =00,15
+

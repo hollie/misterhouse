@@ -1,0 +1,10 @@
+Manufacturer=Sony
+Device=Tuner
+Model=ST-SA5ES
+Protocol=Sony12
+Device code=15
+
+[Key Codes]
+AM/FM Toggle    =    ;13
+POWER ON        =    ;46
+POWER OFF       =    ;47

@@ -87,7 +87,10 @@ and added new SummaryLong key to Weather Hash.
 
 - Matthew Williams updated lib/DSC5401.pm to add new partition_mode "Exit-Delay".
 
-- Matthew Williams updated lib/Group.pm to allow for nested groupe and Voice_Text.pm to speak numbers > 4 digits seperately. 
+- Matthew Williams updated lib/Group.pm to allow for nested groupe and Voice_Text.pm to speak numbers > 4 digits seperately.
+
+- Rick Steeves added a print_log call to X10_RF.pm, so you will see errata like: XM6MJ: Porch_Light on
+
 
 
 =head2 Version 2.101 posted on 01/29/2006

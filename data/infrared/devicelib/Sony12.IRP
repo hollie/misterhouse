@@ -1,0 +1,8 @@
+Name=Sony 12 Bit Protocol
+Protocol=Sony12
+Frequency=40000
+Time Base=600
+One=2,-1
+Zero=1,-1
+Form=[4 -1],f:7,d:5,[^45000]
+Repeat=2

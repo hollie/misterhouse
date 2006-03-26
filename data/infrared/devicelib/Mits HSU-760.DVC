@@ -1,0 +1,22 @@
+Manufacturer=Mitsubishi
+Model=VCRHSU-760PD
+Device=VHS VCR
+Protocol=Mitsubishi
+Repeat=1
+Device Code=168
+
+[Key Codes]
+PowerON =          192
+PowerOFF =         181
+Eject =            201
+Stop =             235
+Play =             251
+Pause =            227
+Prev =             193
+ScanR =            211
+ScanF =            219
+Display =          216
+
+
+
+

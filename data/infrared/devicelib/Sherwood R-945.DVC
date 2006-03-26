@@ -1,0 +1,42 @@
+Manufacturer=Sherwood
+Model=R-945
+Device=A/V Receiver
+Protocol=Sherwood
+Device Code=17795
+
+[Key Codes]
+
+Phono             =;2
+Tuner             =;3
+Subwoofer up      =;4
+Tape 1            =;6
+DVD               =;7
+Aux/TV            =;10
+CD Player         =;11
+Power Toggle      =;17
+Scan presets      =;19
+Subwoofer down    =;23
+AM                =;24
+AM preset 6       =;25
+OSD               =;32
+Input sel         =;33
+Mute Toggle       =;67
+Volume Up         =;71
+Volume Down       =;75
+Test Tones        =;80
+Center Up         =;81
+Sleep 10min       =;82
+Rear Up           =;83
+Center Down       =;85
+VCR 1             =;86
+Rear Down         =;87
+Dim LCD cycle     =;89
+LD Player         =;91
+Surround mode     =;92
+Tape 2m toggle    =;93
+Delay Time Center =;95
+
+
+
+
+

@@ -1,0 +1,14 @@
+Manufacturer=XANTECH
+Device=Switcher
+Model=RS41AV
+Remote=PRE
+Format=Xantech
+Device Code=2/0
+
+[Key Codes]
+Input1         =00
+Input2         =05
+Input3         =06
+Input4         =07
+
+

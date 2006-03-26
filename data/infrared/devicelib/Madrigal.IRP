@@ -1,0 +1,8 @@
+Name=Madrigal Protocol
+Protocol=MADRIGAL
+Frequency=40000
+Time Base=250
+One=+1,-7
+Zero=+1,-4
+Form=0:3,[1 -10],d:5,f:6,[1 -468]
+

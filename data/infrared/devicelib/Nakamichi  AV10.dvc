@@ -1,0 +1,15 @@
+Manufacturer=Nakamichi
+Device=Receiver
+Model=AV10
+Protocol=Nakamichi
+Device Code=23938
+
+[Key Codes]
+DVD Input     =  0
+DSS Input     =  1
+Power On      =  4
+Power Off     =  4
+VCR Input     =  7
+Tuner Input   =  8
+OSD           = 30
+Dolby Digital = 64

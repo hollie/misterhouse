@@ -1,0 +1,35 @@
+Manufacturer=RCA
+Device=Sat Receiver
+Model=DSSDRD203RW
+Protocol=RCA
+Device code=7  ' MSB first
+
+[Key Codes]
+CLEAR               =06
+MENU                =08
+GUIDE               =26
+PREV CH             =39
+CHN-                =44
+CHN+                =45
+VOL-                =46
+VOL+                =47
+00                  =48
+01                  =49
+02                  =50
+03                  =51
+04                  =52
+05                  =53
+06                  =54
+07                  =55
+08                  =56
+09                  =57
+Power On            =58
+Power Off           =59
+OFF                 =59
+SELECT              =60
+INFO                =60
+CUR UP              =97
+CUR DN              =98
+CUR LT              =100
+CUR RT              =101
+FAV                 =145

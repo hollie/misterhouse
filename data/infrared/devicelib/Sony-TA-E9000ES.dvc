@@ -1,0 +1,23 @@
+Manufacturer=Sony
+Device=A/V PRE PRO
+Model=TA-E9000ES
+Protocol=Sony20
+Device Code=2138
+
+01          =;0
+02          =;1
+03          =;2
+04          =;3
+05          =;4
+06          =;5
+07          =;6
+08          =;7
+09          =;8
+00          =;9
+ENTER       =;11
+Power ON    =;46
+Power Off   =;47
+Cursor RT   =;51
+Cursor LT   =;52
+Cursor UP   =;116
+Cursor DN   =;117

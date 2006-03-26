@@ -1,0 +1,11 @@
+Name=Panasonic Protocol
+Protocol=Panasonic
+Frequency=38000
+Modulation=PWM
+Time Base=440
+First Bit=LSB
+One=1,-3
+Zero=1,-1
+Define=C as 0
+Define=G as (d^c^f)&0xff 
+form=[8 -4],a:8,b:8,D:8,c:8,f:8,g:8,[1 -172]

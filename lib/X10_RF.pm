@@ -174,6 +174,8 @@ sub rf_set_RF_Item {
 	if ($id eq $item_id or (defined $class_id and $id eq $class_id)) {
 	    $object->set($state);
 	    $matched = 1;
+        my ($stripped_name) = $name =~ /\$(.+)/;
+        &::print_log ("$item_id: $stripped_name $state");
 	}
     }
     unless ($matched) {
@@ -198,4 +200,3 @@ sub rf_set_RF_Item {
 # vim: sw=4
 
 1;
-

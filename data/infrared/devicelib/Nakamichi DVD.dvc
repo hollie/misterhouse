@@ -1,0 +1,35 @@
+Manufacturer=Nakamichi
+Device=DVD
+Model=Unknown
+Protocol=Nakamichi
+Device Code=41564
+
+[Key Codes]
+Stop         =16
+Step-Rev     =02
+Scan-Rev     =15
+Play         =06
+Scan-Fwd     =19
+Step-Fwd     =01
+Back         =00
+Pause        =03
+Forward      =09
+Menu         =80
+Setup        =29
+Audio        =00
+Search       =11
+Title        =79
+Return       =78
+Cursor-Up    =92
+Cursor-Dn    =88
+Cursor-Lt    =89
+Cursor-Rt    =88
+Okay         =75
+
+
+
+
+
+
+
+

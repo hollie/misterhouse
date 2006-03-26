@@ -1,0 +1,4627 @@
+# Strip Groups
+group andrews
+	desc Andrew's Favorite Strips
+	include userfriendly dilbert foxtrot
+	include pennyarcade joyoftech thefifthwave monty bc
+	include wizardofid garfield adamathome
+end
+
+group michael
+	desc Michael's Favorite Strips
+	include foxtrot boondocks doonesbury zits dilbert babyblues
+	include monty bc blondie calvinandhobbes funkywinkerbean
+	include zippythecolorpinhead peanuts adamathome forbetter bizarro
+	include userfriendly geech shoe wizardofid
+end
+
+group gloucestertimes
+	desc Gloucester Daily Times Strips
+	include garfield broomhilda bc wizardofid roseisrose
+	include dilbert cathy sallyforth monty grimmy peanuts
+	include forbetter foxtrot offthemark
+end
+
+group bgsunday
+	desc Boston Globe Sunday Comics
+	include dilbert doonesbury garfield getfuzzy adamathome grimmy forbetter
+	include foxtrot jumpstart zits zippythecolorpinhead curtis
+	include rhymeswithorange boondocks nonsequitur stonesoup roseisrose monty
+	include arlonjanis askshagg
+end
+
+# Class definitions
+class ucomics-srch
+	homepage http://www.ucomics.com/$strip/view$1.htm
+	type search
+	searchpattern <img.+?src=".+?(/$1/(\d+)/$1(\d+).+?)"
+	baseurl http://images.ucomics.com/comics
+	provides latest
+end
+
+class ucomics-gen
+    homepage http://www.ucomics.com/$strip/view$1.phtml
+	type generate
+	imageurl http://images.ucomics.com/comics/$1/%Y/$1%y%m%d.gif
+	provides any
+
+end
+
+class unitedmedia-srch-comics
+	homepage http://www.unitedmedia.com/comics/$strip/index.html
+	type search
+	searchpage http://www.unitedmedia.com/comics/$strip/archive/$strip-%Y%m%d.html
+	searchpattern <img.+?src="(/comics/$strip/archive/images/$strip.+?)"
+	baseurl http://www.unitedmedia.com
+	provides any
+end
+
+class unitedmedia-srch-comics-lag
+	homepage http://www.unitedmedia.com/comics/$strip/index.html
+	type search
+	searchpattern <img.+?src="(/comics/$strip/archive/images/$strip.+?)"
+	baseurl http://www.unitedmedia.com
+	provides latest
+end
+
+class unitedmedia-srch-creators
+	homepage http://www.unitedmedia.com/creators/$strip/index.html
+	type search
+	searchpattern <img.+?src="?(/creators/$strip/archive/images/.+?\.(gif|jpg))"?
+	baseurl http://www.unitedmedia.com
+	provides latest
+end
+
+class unitedmedia-srch-wash
+	homepage http://www.unitedmedia.com/wash/$strip/index.html
+	type search
+	searchpattern (/wash/$strip/archive/images/(.*?)\.(gif|jpg))
+	baseurl http://www.unitedmedia.com
+	provides latest
+end
+
+class unitedmedia-srch-editoons
+	homepage http://www.unitedmedia.com/editoons/$1/index.html
+	type search
+	searchpattern <img src="(/editoons/$1/archive/images/$1\d+\..+?)"
+	baseurl http://www.unitedmedia.com
+	provides latest
+end
+
+class sfgate-gen-zippy
+	homepage http://www.sfgate.com/cgi-bin/article.cgi?file=/comics/$1.dtl
+	type generate
+	imageurl http://pst.rbma.com/content/$3
+	provides latest
+	prefetch $homepage
+end
+
+class sfgate-gen-zippycolor
+	homepage http://www.sfgate.com/cgi-bin/article.cgi?file=/comics/$1.dtl
+	type generate
+	imageurl http://pst.rbma.com/content/$2
+	provides latest
+end
+
+class sfgate-gen
+	homepage http://www.sfgate.com/cgi-bin/article.cgi?file=/comics/$1.dtl
+	type generate
+	imageurl http://pst.rbma.com/content/$1
+	provides latest
+	prefetch $homepage
+end
+
+class sfgate-srch
+	homepage http://www.sfgate.com/cgi-bin/article.cgi?file=/comics/$1.dtl
+	type search
+	searchpattern <img.+?src=".+?(/comics/graphics/$2/.+?\..+?)"
+	baseurl http://www.sfgate.com
+	provides latest
+end
+
+class sfgate-columnists
+	homepage http://www.sfgate.com/columnists/$1/
+	type search
+	provides latest
+	searchpattern <IMG.+?SRC="(http://www.sfgate.com/chronicle/pictures/\d+/\d+/\d+/.+?-farley.gif)"
+end
+
+class comicspage-strips-gen
+        # $1 - more or less the real name
+        # $2 - 3-letter abbreviation of $1
+        referer http://www.comicspage.com/$1/index.html
+        homepage http://www.comicspage.com/$1/index.html
+        type generate
+        imageurl http://www.tmsfeatures.com/tmsfeatures/servlet/com.featureserv.util.Download?file=%Y%m%dcs$2-<code:"s" if %w==0><code:"a" if %w!=0>-p.jpg&code=cs$2
+        provides any
+end
+
+class comicspage-panels-gen
+	# $1 - more or less the real name
+	# $2 - 3-letter abbreviation of $1
+	homepage http://www.comicspage.com/$1/index.html
+	#type search
+	#searchpage http://www.comicspage.com/$1/main.html
+	#searchpattern <img.+?src="(http://www.comicspage.com/daily/cp$2/\d+cp$2((-\w)?)\..+?)"
+	type generate
+	imageurl http://www.tmsfeatures.com/tmsfeatures/servlet/com.featureserv.util.Download?file=%Y%m%dcp$2-<code:"s" if %w==0><code:"a" if %w!=0>-p.jpg&code=cp$2
+	#provides latest
+	provides any
+end
+
+class comicspage-editorial-gen
+	# $1 - more or less the real name
+	# $2 - 3-letter abbreviation of $1
+	homepage http://www.comicspage.com/$1/index.html
+	#type search
+	#searchpage http://www.comicspage.com/$1/main.html
+	#searchpattern <img.+?src="(http://www.comicspage.com/daily/ed$2/\d+ed$2((-\w)?)\..+?)"
+	#provides latest
+	type generate
+	imageurl http://www.tmsfeatures.com/tmsfeatures/servlet/com.featureserv.util.Download?file=%Y%m%ded$2-a-p.jpg&code=ed$2
+	provides any
+end
+
+class mercurycenter
+        # $1 - number of strip (unique to Mercury Center?)
+        # $2 - name of strip spaces=_?
+        homepage http://cgi.mercurycenter.com/cgi-bin/comics/show.cgi?ID=$1&DATE=TODAY
+        type generate
+        imageurl http://cgi.mercurycenter.com/premium/comics/%m_%d/$2.gif
+        provides any
+end
+
+class sev-comics
+        homepage http://www.sev.com.au/toonzone/$strip.asp
+        type generate
+        imageurl http://www.sev.com.au/toonzone/$strip.jpg
+        provides latest
+end
+
+class washpost-creators
+        homepage http://featurepage.creators.com/washpost.html?name=$1
+        type generate
+	prefetch $homepage
+        imageurl http://www.creators.com/<code:use POSIX;my$o=0;while(strftime("\%"."w",localtime($time_today-86400*$o))!=0){$o++}my$d=strftime("\%"."m"."\%"."d",localtime($time_today-86400*$o));"$d">/$1/$1%m%dg.gif
+        provides any
+end
+
+class washpost-king
+        homepage http://www.washingtonpost.com/wp-srv/style/comics/king.htm?$1
+        prefetch $homepage
+        imageurl http://est.rbma.com/content/$1
+        type generate
+        provides latest
+end
+
+class washpost-uclick
+	homepage http://www2.uclick.com/client/wpc/$1/
+	type search
+	searchpattern <IMG.+?SRC="(http://images.ucomics.com/comics/$1/\d+/$1\d+.gif)">
+	provides latest
+end
+
+class slate-cagle
+	homepage http://cagle.slate.msn.com/politicalcartoons/PCcartoons/$1.asp
+	type search
+	searchpattern <IMG.+?SRC=.+?(/comics/updating/$2\.(gif|jpg))"
+	baseurl http://cagle.slate.msn.com
+	provides latest
+end
+
+# Non-standard strips
+
+# should be possible to generate?
+# sometimes multi-image - need a new way to handle this
+strip avalonhigh
+	name Avalon High
+	homepage http://www.avalonhigh.com/
+	type search
+	searchpattern <IMG.+?SRC="(/?comics/avalon\d{8}.*?\.gif)"
+	baseurl $homepage
+	provides latest
+end
+
+strip drfun
+	name Doctor Fun
+	homepage http://www.ibiblio.org/Dave/Dr-Fun/html/
+	type generate
+	imageurl http://www.ibiblio.org/Dave/Dr-Fun/latest.jpg
+	provides latest
+end
+
+strip goats
+	name Goats
+	homepage http://www.goats.com/
+	type search
+	searchpattern <IMG.+?SRC="(/comix/\d+/goats\d+.gif)"
+	baseurl http://www.goats.com/
+	provides latest
+end
+
+strip jokesonyou
+	name The Joke's on You
+	homepage http://www.thefunnypages.com/
+	type search
+	searchpattern <img.+src="(http://www.thefunnypages.com/archives/.+?\.gif)"
+	#updated daily or not? - check - seems to be, but check weekend
+	provides latest
+end
+
+strip innies
+	name Innies and Outies
+	homepage http://www.inniesandoutties.com/
+	type generate
+	#updated M/W/F - no sense searching
+	imageurl http://www.inniesandoutties.com/images/front.jpg
+	provides latest
+end
+
+strip joyoftech
+	name The Joy of Tech
+	homepage http://www.joyoftech.com/joyoftech/
+	type search
+	searchpattern <IMG.+?src="(joyimages/\d+\.(gif|jpg))\"
+	baseurl http://www.joyoftech.com/joyoftech/
+	provides latest
+end
+
+strip megatokyo
+	name MegaTokyo
+	homepage http://www.megatokyo.com/
+	type search
+	searchpattern <IMG.+?SRC="(/?strips/\d+\..+?)"
+	baseurl http://www.megatokyo.com/
+	provides latest
+
+end
+
+strip mostlybusiness
+	name Mostly Business
+	homepage http://www.tedgoff.com/
+	type generate
+	#fix to use more precise addr - maybe not possible?
+	imageurl http://www.tedgoff.com/mb/images/today.gif
+	provides latest
+end
+
+# website gone (?) 2002-05-24
+#strip notquiteright
+#	name Not Quite Right
+#	homepage http://www.notquiteright.com/
+#	type generate
+#	imageurl http://www.notquiteright.com/wow/todaystoon.gif
+#	provides latest
+#end
+
+strip pennyarcade
+	name Penny Arcade
+	homepage http://www.penny-arcade.com/
+	type search
+	searchpage http://www.penny-arcade.com/view.php3
+	searchpattern <img.+?src="(images/\d{4}/\d{8}l\..{3})"
+	#searchpattern <IMG.+?src="(images/200.+?\.gif)"></TD>
+	baseurl http://www.penny-arcade.com/
+	provides latest
+end
+
+strip plif
+      name Parking Lot is Full
+      homepage http://www.plif.com
+      type generate
+      imageurl http://www.plif.com/thisweek.gif
+      provides latest
+end
+
+# gone? 2002-04-02
+#strip punc
+#	name Punc & Mark
+#	homepage http://byteus.com/pm/
+#	type search
+#	searchpage http://artiztik.com/cgi-bin/pmviewer.cgi?list=pm&config=pm.cfg&slide=999&style=pm
+#	searchpattern <img.+?src=(/pm/strips/.+?\.jpg)
+#	baseurl http://artiztik.com/
+#	provides latest
+#end
+
+strip pvp
+	name Player vs. Player
+	homepage http://www.pvponline.com/
+	type generate
+	imageurl http://www.pvponline.com/archive/%Y/pvp%Y%m%d.gif
+	provides any
+end
+
+strip pvpcurrent
+	name Player vs. Player - Current
+	homepage http://www.pvponline.com/
+	type search
+	searchpattern <img SRC="(archive/%Y/pvp%Y\d{4}\.gif)">
+	baseurl $homepage
+	provides latest
+end
+
+strip redmeat
+	name Redmeat
+	homepage http://www.redmeat.com/redmeat/current/
+	type generate
+	imageurl http://www.redmeat.com/redmeat/current/index-1.gif
+	provides latest
+end
+
+
+strip rudypark
+	name Rudy Park
+	homepage http://www.rudypark.com/
+	type generate
+	imageurl http://www.rudypark.com/comics/rudy%Y%m%d.gif
+	provides latest
+end
+
+strip sinfest
+	name Sinfest
+	homepage http://sinfest.net
+	type generate
+	imageurl http://sinfest.net/comics/sf%Y%m%d.gif
+	provides any
+end
+
+strip sluggy
+	name Sluggy Freelance
+	homepage http://www.sluggy.com/
+	type search
+	searchpage http://www.sluggy.com/daily.php?date=%y%m%d
+	searchpattern <img.+?src="?(http://pics.sluggy.com/comics/%y%m%d.+?\.(gif|jpg))
+	provides any
+end
+
+# only updated M-F, but no better way to handle it
+strip squinkers
+	name Squinkers
+	homepage http://www.squinkers.com/
+	type generate
+	imageurl http://www.squinkers.com/sqkrs/Images/today.gif
+	provides latest
+end
+
+strip superosity
+	name Superosity
+	homepage http://www.superosity.com/
+	type generate
+	imageurl http://www.superosity.com/comics/sup%Y%m%d.gif
+	provides any
+end
+
+#every day except sunday
+strip theweedpatch
+	name The WeedPatch
+	homepage http://www.jpjennings.com/toons/
+	type generate
+	imageurl http://www.jpjennings.com/toons/%m%d%Y.gif
+	provides any
+end
+
+strip userfriendly
+	name User Friendly
+	homepage http://www.userfriendly.org/static/
+	type search
+	searchpage http://ars.userfriendly.org/cartoons/?id=%Y%m%d&mode=classic
+	searchpattern <img.+?src="(http://www.userfriendly.org/cartoons/archives/%y.+?/uf.+?\.gif)"
+	provides any
+end
+
+# done
+#strip exploitnow
+#	name Exploitation Now
+#	homepage http://www.exploitationnow.com/
+#	type search
+#	searchpattern <IMG.+?SRC="(/comics/rb\d+\..+?)"
+#	baseurl $homepage
+#	provides latest
+#end
+
+#nothing new since april 2002 - ruled dead
+#strip coolcat
+#	name Cool Cat Studio
+#	homepage http://www.coolcatstudio.com/
+#	type search
+#	searchpattern <IMG.+?SRC="(/comics/ccs\d+\..+?)"
+#	baseurl http://www.coolcatstudio.com/
+#	provides latest
+#end
+
+strip classm
+	name The Class Menagerie
+	homepage http://www.theclassm.com/
+	type search
+	searchpattern <IMG.+?SRC="(/comics/cmc\d+\..+?)"
+	baseurl http://www.theclassm.com/
+	provides latest
+end
+
+strip bruno
+	name The Bruno Daily Times
+	homepage http://www.brunostrip.com/bruno.html
+	type generate
+	imageurl http://www.brunostrip.com/%Ypics/%Y%m%d.gif
+	provides any
+end
+
+strip nukees
+	name Nukees
+	homepage http://www.nukees.com
+	type search
+	searchpattern <IMG.+?SRC="(/comics/\d+\..+?)"
+	baseurl http://www.nukees.com/
+	provides latest
+end
+
+strip joeaverage
+	name Joe Average
+	homepage http://www.joeaverage.org
+	type search
+	searchpattern <IMG.+?SRC="(/comics/\d+\..+?)"
+	baseurl http://www.joeaverage.org/
+	provides latest
+end
+
+# seems to be gone: 10/26/01
+#strip hotzp
+#	name Bad Boys of Computer Science
+#	homepage http://hotzp.com/badboys/
+#	type generate
+#	imageurl http://hotzp.com/badboys/new.jpg
+#	provides latest
+#end
+
+strip angst
+	name Angst Technology
+	homepage http://www.inktank.com/AT/
+	type generate
+	imageurl http://www.inktank.com/images/AT/cartoons/%m-%d-%y.gif
+	provides any
+end
+
+# superceded by kscarborough's
+#strip zapiro
+#	name Zapiro
+#	homepage http://www.mg.co.za/mg/zapiro/
+#	type generate
+#	imageurl http://www.chico.mweb.co.za/images/zapiro/%y-<code:lc(strftime("\%b", @localtime_today))>%d.gif
+#	provides any
+#end
+
+strip clanofthecats
+	name Clan of the cats
+	homepage http://www.clanofthecats.com/
+	#type generate
+	#imageurl http://www.clanofthecats.com/comics/%Y%m%da.gif
+	#provides any
+	type search
+	searchpage http://www.clanofthecats.com/d/%Y%m%d.html
+	searchpattern <img.+?SRC="/(comics/%Y%m%d.+?)"
+	baseurl $homepage
+	provides any
+end
+
+strip gpf
+	name General Protection Fault
+	homepage http://www.gpf-comics.com/
+	type search
+	searchpattern <IMG.+?SRC="(/comics/gpf\d+.+?\..+?)"
+	baseurl http://www.gpf-comics.com
+	provides latest
+end
+
+#note: doesn't work perfectly - some strips are broken up into multiple images
+# this is not yet supported, but could be done
+strip crfh
+	name College Roomies from Hell
+	homepage http://www.crfh.net
+	type generate
+	imageurl http://www.crfh.net/comics/crfh%Y%m%d.jpg
+	provides any
+end
+
+#generatable?
+strip striptease
+	name Strip Tease Comic
+	homepage http://www.stripteasecomic.com/
+	type search
+	searchpattern <img.+?src="(/?strips\d+/\d+\..+?)"
+	baseurl $homepage
+	provides latest
+end
+
+strip dorktower
+	name Dork Tower
+	homepage http://www.dorktower.com/
+	type search
+	searchpattern <img.+?src="(/?images/comics/.+?\..+?)"
+	baseurl http://www.gamespy.com/comics/dorktower/
+	provides latest
+end
+
+strip jerkcity
+	name Jerkcity
+	homepage http://www.jerkcity.com/
+  	type generate
+	imageurl http://www.jerkcity.com/today.gif
+	provides latest
+end
+
+strip kevinandkell
+	name Kevin and Kell
+	homepage http://www.kevinandkell.com/
+	type generate
+	imageurl http://www.kevinandkell.com/%Y/strips/kk%Y%m%d.gif
+	provides any
+end
+
+strip freefall
+	name Freefall
+	homepage http://www.purrsia.com/freefall/
+	type generate
+	imageurl $homepage<code:use POSIX;my $w=strftime("\%"."u",localtime($time_today));my $s=517+3*floor(($time_today-995839200)/604800);$s++if$w\>2;$s++if$w\>4;my$c=int(($s+99)/100);"ff${c}00/fv00$s.gif">
+	provides any
+end
+
+strip 8bit
+	name 8-Bit Theater
+	homepage http://www.nuklearpower.com/latest.php
+	type search
+	searchpattern <img.+?src="(http://www.nuklearpower.com/comics/\d+\..+?)">
+	provides latest
+end
+
+strip apodbig
+	name Astronomy Picture of the Day (big image)
+	homepage http://antwrp.gsfc.nasa.gov/apod/
+	type search
+	searchpattern <a.+?href="(image/\d{4}/.+?\.(jpg|gif))"
+	baseurl $homepage
+	provides latest
+end
+
+strip apod
+	name Astronomy Picture of the Day
+	homepage http://antwrp.gsfc.nasa.gov/apod/
+	type search
+	searchpattern <img.+?SRC="(image/\d{4}/.+?\..+?)"
+	baseurl $homepage
+	provides latest
+end
+
+
+strip pgs
+	name Pathetic Geek Stories
+	homepage http://www.theonionavclub.com/
+	type search
+	#searchpattern <a.+?HREF="/avclub\d+/pgs(\d+).html"
+	#imageurl http://graphics.theonion.com/avpics_$match/pgs_$match.gif
+
+	#window.open('/comics.php?img_article_id=1192','pgs'
+        #http://www.theonionavclub.com/images/229/image_article1192.jpg
+	searchpattern issue_id=(\d+).+?window.open\('/comics.php\?img_article_id=(\d+)','pgs'
+	imageurl http://www.theonionavclub.com/images/$match_1/image_article$match_2.jpg
+
+	provides latest
+end
+
+# seems to be '....a.gif' now.
+strip adventurers
+	name Adventurers!
+	homepage http://www.adventurers-comic.com/
+	type generate
+	imageurl http://www.adventurers-comic.com/comics/adventurers%Y%m%da.gif
+	provides any
+end
+
+# discontinued 2002-05-24
+# may be updated to download old strips
+#strip basement
+#	name Basement Studios
+#	homepage http://www.basement-studios.com/
+#	type generate
+#	imageurl http://www.basement-studios.com/archive/images/%m%d%y.gif
+#	provides any
+#end
+
+strip btaf
+	name Bob, The Angry Flower
+	homepage http://angryflower.com/
+	type search
+	searchpage http://angryflower.com/archive.html
+	searchpattern <a href="(.+?.gif)"
+	provides latest
+	baseurl http://angryflower.com/
+end
+
+strip boasas
+	name Boy on a Stick and Slither
+	homepage http://www.boasas.com/
+	type search
+	searchpattern <img.+?src="(boasas/\d+\..+?)"
+	provides latest
+	baseurl http://www.boasas.com/
+end
+
+strip brunothebandit
+	name Bruno the Bandit
+	homepage http://www.brunothebandit.com
+	type generate
+	imageurl http://www.brunothebandit.com/comics/%Y%m%da.GIF
+	provides any
+end
+
+strip brunothebanditcurrent
+	name Bruno the Bandit - Current
+	homepage http://www.brunothebandit.com
+	type search
+	searchpattern <IMG ALT="comic" BORDER=0 SRC="(/comics/%Y\d{4}[a-z]{0,1}\.GIF)"
+	baseurl $homepage
+	provides latest
+end
+
+strip dieselsweeties
+	name Diesel Sweeties
+	homepage http://www.dieselsweeties.com/gif.php
+	type search
+	searchpattern <img.+?src="(http://images.clango.org/strips/sw\d+\..+?)"
+	#<img src="http://images.clango.org/strips/sw625.gif" border="0" alt="newest cartoon">
+	provides latest
+end
+
+strip fuzzylogic
+	name Fuzzy Logic
+	homepage http://www.bbspot.com/comics/fuzzy_logic/index.html
+	type generate
+	imageurl http://www.bbspot.com/Images/comics/fuzzy_logic/%Y/%Y%m%d.jpg
+	provides any
+end
+
+strip littlegamers
+	name Little Gamers
+	homepage http://www.little-gamers.com/
+	#type generate
+	#imageurl http://www.little-gamers.com/comics/%Y%m%d.gif
+	#provides any
+	type search
+	searchpattern <img.+?src='/(index.php\?do_command=show_strip&strip_id=\d+.+?)'
+	baseurl $homepage
+	provides latest
+	#img src='/index.php?do_command=show_strip&strip_id=540&auth=89345-28462-18353-19853-12612' border=0>
+end
+
+# tuesdays, thursdays, sundays
+strip machall
+	name Mac Hall
+	homepage http://www.MacHall.com/
+	type search
+	searchpattern <img.+?src='(/index.php\?do_command=show_strip\&strip_id=\d+\&auth=.+?)'
+	baseurl $homepage
+	provides latest
+end
+
+# not daily
+strip mrchuckshow
+	name Mr. Chuck Show
+	homepage http://www.mrchuckshow.com/
+	type generate
+	imageurl http://www.mrchuckshow.com/strips/mcs%Y%m%db.png
+	provides any
+end
+
+strip pentasmal
+	name Pentasmal
+	homepage http://www.pentasmal.com/
+	type generate
+	imageurl http://www.pentasmal.com/comics/%Y%m%d.png
+	provides any
+end
+
+strip rpgworld
+	name RPG World
+	homepage http://www.rpgworldcomic.com/
+	#type generate
+	#imageurl http://www.rpgworldcomic.com/comics/%Y%m%d.jpg
+	#provides any
+	type search
+	searchpattern <IMG.+?SRC="(/comics/.+?\..+?)"
+	provides latest
+	baseurl $homepage
+end
+
+# Ubersoft - multi-strip
+strip ubersoft1
+	name Ubersoft-1
+	homepage http://www.ubersoft.net/
+	type generate
+	imageurl http://www.ubersoft.net/comics/hd%Y%m%da.png
+	provides any
+end
+
+strip ubersoft2
+	name Ubersoft-2
+	homepage http://www.ubersoft.net/
+	type generate
+	imageurl http://www.ubersoft.net/comics/hd%Y%m%dc.png
+	provides any
+end
+
+strip ubersoft3
+	name Ubersoft-3
+	homepage http://www.ubersoft.net/
+	type generate
+	imageurl http://www.ubersoft.net/comics/hd%Y%m%de.png
+	provides any
+end
+
+strip ubersoft4
+	name Ubersoft-4
+	homepage http://www.ubersoft.net/
+	type generate
+	imageurl http://www.ubersoft.net/comics/hd%Y%m%dg.png
+	provides any
+end
+
+strip spazlabs
+	name Spaz Labs
+	homepage http://www.stonebrokestudios.com
+	type generate
+	imageurl http://www.stonebrokestudios.com/archives/spaz/%y%m%dspaz.gif
+	provides any
+end
+
+strip glasbergen
+	name Randy Glasbergen
+	homepage http://www.glasbergen.com
+	type generate
+	imageurl http://www.glasbergen.com/images/toon.gif
+	provides latest
+end
+
+strip spiderman
+	name Spider Man
+	homepage http://www.kingfeatures.com/features/comics/spidermn/about.htm
+	type search
+	searchpage http://www.kingfeatures.com/features/comics/spidermn/aboutMaina.php
+	searchpattern <img.+?src='(http://est.rbma.com/content/Spiderman\?date=\d{8})'
+	provides latest
+	prefetch http://www.kingfeatures.com/images/clear.gif
+end
+
+# can be made into a class
+strip tuma
+	name Kevin Tuma Cartoon
+	homepage http://www.cnsnews.com/cartoon/Tuma.asp
+	type search
+	searchpage http://www.cnsnews.com/cartoon/tuma.asp
+	searchpattern <img.+?src="/cartoon/(tumaimages/\d+/\w+\..+?)"
+	baseurl http://www.cnsnews.com/cartoon/
+	provides latest
+end
+
+strip nowak
+	name Paul Nowak Cartoon
+	homepage http://www.cnsnews.com/cartoon/nowak.asp
+	type search
+	searchpattern <img.+?src=".+?(Nowakimages/%Y/\w+\..+?)"
+	#<img border="0" src="/cartoon/nowakimages/2003/rightwing.jpg"></td>
+	baseurl http://www.cnsnews.com/cartoon/
+	provides latest
+end
+
+
+
+strip lang
+	name Bob Lang Cartoon
+	homepage http://www.cnsnews.com/cartoon/lang.asp
+	type search
+	searchpage http://www.cnsnews.com/cartoon/Lang.asp
+	searchpattern <img.+?src="/?(cartoon/langimages/\d+/.+?\..+?)"
+	#<img border="0" src="/cartoon/langimages/2003/lastdays.jpg"></td>
+	baseurl http://www.cnsnews.com/
+	provides latest
+end
+
+strip shelton
+	name Barry Shelton Cartoon
+	homepage http://www.cnsnews.com/cartoon/shelton.asp
+	type search
+	searchpattern <img.+?border="0".+?src="(Sheltonimages/%Y/.+?\..+?)"
+	baseurl http://www.cnsnews.com/cartoon/
+	provides latest
+end
+
+strip elflifeadult
+	name Elf Life: R Rated
+	homepage http://www.elflife.com/adults.html
+	type generate
+	imageurl http://www.elflife.com/current/%Y%m%dm.gif
+	provides any
+end
+
+strip funnyfarm
+	name Funny Farm
+	homepage http://www.funnyfarmcomics.com/
+	type search
+	searchpage http://www.funnyfarmcomics.com/d/%Y%m%d.html
+	searchpattern <IMG.+?SRC="(/comics/%Y%m%da\..+?)"
+	baseurl $homepage
+	provides any
+end
+
+strip elflife
+	name Elf Life
+	homepage http://www.elflife.com/
+	type generate
+	imageurl http://www.elflife.com/comics/%Y%m%dm.gif
+	provides any
+end
+
+strip ozyandmillie
+	name Ozy and Millie
+	homepage http://www.ozyandmillie.org/
+	type generate
+	imageurl http://www.ozyandmillie.org/comics/om%Y%m%d.gif
+	provides any
+end
+
+strip suburbanjungle
+	name Suburban Jungle
+	homepage http://www.suburbanjungle.com/
+	type search
+	searchpage http://suburbanjungle.com/d/%Y%m%d.html
+	searchpattern <img.+?SRC="(/comics/sj%Y%m%d\..+?)"
+	baseurl http://www.suburbanjungle.com
+	provides any
+end
+
+strip acidreflux
+	name Acid Reflux
+	homepage http://www.acidrefluxcomic.com/
+	type search
+	baseurl http://www.acidrefluxcomic.com/
+	searchpattern <img.+?src="(archive/c\d+\..+?)"
+	provides latest
+end
+
+strip whenigrowup
+	name When I Grow Up
+	homepage http://www.whenigrowup.net/
+	type generate
+	imageurl http://www.whenigrowup.net/comics/wigu%Y%m%d.png
+	provides any
+end
+
+strip walky
+	name It's Walky
+	homepage http://www.itswalky.com/
+	baseurl $homepage
+	type search
+	searchpattern <img.+?SRC="/(comics/.+?)"
+	baseurl $homepage
+	provides latest
+end
+
+strip jackiesfridge
+	name Jackie's Fridge
+	type generate
+	homepage http://jackiesfridge.keenspace.com/
+	imageurl http://jackiesfridge.keenspace.com/comics/jf%Y%m%da.jpg
+	provides any
+end
+
+strip schlockmercenary
+	name Schlock Mercenary
+	type generate
+	homepage http://www.schlockmercenary.com/
+	imageurl http://www.schlockmercenary.com/comics/schlock%Y%m%d.png
+	provides any
+end
+
+# finished
+#strip unicornjelly
+#	name Unicorn Jelly
+#	type search
+#	homepage http://unicornjelly.com/
+#	searchpattern <IMG.+?SRC="(images\/uni\d+\..+?)"
+#	baseurl $homepage
+#	provides latest
+#end
+
+strip downtoearth
+	name Down To Earth
+	homepage http://downtoearth.ncbuy.com
+	type generate
+	imageurl http://downtoearth.ncbuy.com/img/syndicate/nav1_dte_today.gif
+	provides latest
+end
+
+# website gone (?) 2002-05-24
+#strip wandering
+#	name Wandering Ones
+#	homepage http://www.wanderingones.com/
+#	type generate
+#	imageurl http://www.wanderingones.com/comics/wan%Y%m%d.gif
+#	provides any
+#end
+
+strip rvfun
+	name Reverend Fun
+	homepage http://rev-fun.gospelcom.net/
+	type generate
+	#imageurl http://rev-fun.gospelcom.net/%Y/%m/%Y%m%d.gif
+	imageurl http://rev-fun.gospelcom.net/add_toon_info.php?date=%Y%m%d
+	provides any
+end
+
+# no longer updated 2002-05-24
+strip greytown
+        name Living in Greytown
+        homepage http://www.livingingreytown.com/
+        type generate
+        imageurl $homepage/comics/grey%Y%m%d.jpg
+        provides any
+end
+
+strip slowwave
+        name Slow Wave
+        homepage http://www.slowwave.com/
+        type generate
+        imageurl $homepage/img.cgi?thisweek.gif
+        provides latest
+end
+
+# formerly "The Thin H Line". NC-17. Vertical format.
+strip sexylosers
+	name Sexy Losers
+	homepage http://sexylosers.keenspace.com/
+	type search
+	#searchpattern <IMG.+?SRC.*?=.*?"(http://sexylosers\.(keenspace\.)?com/)?(images/sl\d+\.jpg)"
+	#searchpattern <IMG.+?SRC="http://sexylosers=com/(images/sl\d+\.jpg)"
+	#searchpattern <table.+?width.*?=.*?325.+?<img.+?src.*?=.*?"(http://sexylosers.keenspace.com/images/.+?)"
+	searchpattern <A.+?HREF="http://sexylosers.keenspace.com/(\d+).html"
+	imageurl http://sexylosers.keenspace.com/comics/sl$match_1.jpg
+	provides latest
+end
+
+# weekly
+strip youdamnkid
+        name You Damn Kid
+        homepage http://www.youdamnkid.com/
+        type search
+        baseurl $homepage
+        provides latest
+        searchpattern <IMG.+?SRC="/(comics/ydk\d+\.gif)"
+end
+
+# weekly, moving daily soon?
+strip houndshome
+        name Hound's Home
+        homepage http://www.houndshome.com/
+        type search
+        baseurl $homepage
+        provides latest
+        searchpattern <IMG.+?SRC="/(comics/hh.+?)"
+end
+
+strip cutewendy
+        name CuteWendy
+        homepage http://www.wendycomic.com/
+        type generate
+        imageurl http://www.wendycomic.com/comics/wendy%Y%m%d.gif
+        provides any
+end
+
+# sporadic
+strip lifesorad
+        name Life's So Rad
+        homepage http://www.radcomics.com/
+        type search
+        baseurl $homepage
+        provides latest
+        searchpattern <IMG.+?SRC="/(comics/\d+.+?)"
+end
+
+# formerly known as otakufeh. NC-17.
+strip bigones
+        name Big Ones
+        homepage http://otakufeh.keenspace.com/
+        type generate
+        provides any
+        imageurl $homepage/comics/big%Y%m%d.gif
+end
+
+strip offthemark
+	name Off the Mark
+	homepage http://www.offthemark.com/
+	type search
+	provides latest
+	searchpage $homepage/daily.asp
+	searchpattern <img.+?src="(http://www.offthemark.com/rotate/\d+.gif)"
+end
+
+strip asif
+	name As If
+	homepage http://www.asifcomic.com/
+	type search
+	searchpage http://www.asifcomic.com/current.html
+	searchpattern <img.+?src=".*?_left\.jpg".+?><img.+?src="(\d+\..{3})".+?alt="Comic
+	baseurl $homepage
+	provides latest
+end
+
+strip nipandtuck
+	name Nip 'N Tuck
+	homepage http://nipandtuck.keenspace.com
+	type search
+	searchpattern SRC=".+?(/comics/nt(\d{8})\.gif)"
+	baseurl $homepage
+	provides latest
+end
+
+strip lemontree
+	name Under The Lemon Tree
+	homepage http://utlt.keenspace.com
+	type search
+	searchpattern <IMG.+?SRC=".+?(/comics/.+?\d{8}\..+?)"
+	#<IMG ALT="comic" BORDER=0 SRC="http://utlt.keenspace.com/comics/bn20030824.gif" HEIGHT="360" WIDTH="994">
+	baseurl $homepage
+	provides latest
+end
+
+strip winter
+	name Winter
+	homepage http://www.wintercomic.com/
+	type search
+	#searchpattern img src='(pages/page(\d+)\.gif)'
+	searchpattern <img.+?src='(/index.php\?do_command=show_strip&.+?)'
+	baseurl $homepage
+	provides latest
+end
+
+#strip pcnpixel
+#	name PC and Pixel
+#	homepage http://www.pccomix.com/PCandPixel/
+#	type search
+#	searchpage http://www.pccomix.com/PCandPixel/pc_dailystrip/PCdaily.html
+#	searchpattern <p><img SRC="pc(\w+).gif".+?WIDTH=
+#	matchpart 1
+#	imageurl http://www.pccomix.com/PCandPixel/pc_dailystrip/pc$match.gif
+#	provides latest
+#end
+
+#discontinued may 2002
+#strip bobbins
+#	name Bobbins
+#	homepage http://www.bobbins.org/
+#	type search
+#	searchpage http://bobbins.org/d/%Y%m%d.html
+#	searchpattern <img.+?SRC="(/comics/%Y%m%d\..+?)"
+#	baseurl http://www.bobbins.org
+#	provides any
+#end
+
+strip brainbuzz
+	name Brainbuzz
+	homepage http://cramsession.brainbuzz.com/lists/cartoon/
+	type generate
+	imageurl http://i.brainbuzz.com/CS/Lists/Cartoon/%y%m%d.gif
+	#every day except saturday, sunday
+	provides any
+end
+
+#they win... for now (8394022423 levels of frames and i don't feel like building a full-blown web browser right now)
+strip swamp
+	name Swamp
+	homepage http://www.swamp.com.au
+	type search
+	searchpage http://s1.emcs.com.au/SwampStrips/Strips/Strip.asp?Date=<code:strftime("%-d-%b-%Y", @localtime_today)
+	searchpattern <img.+?src="(http://s1.emcs.com.au/swampstrips/Strips_Images/\d+\..+?)"
+	provides any
+end
+
+strip thenorm
+	name The Norm
+	homepage http://www.thenorm.com/
+	type generate
+	imageurl http://www.thenorm.com/arch/%y%m%d.gif
+	provides any
+end
+
+strip somethingpositive
+	name Something Positive
+	homepage http://www.somethingpositive.net/
+	type generate
+	imageurl http://www.somethingpositive.net/arch/sp%m%d%Y.gif
+	provides latest
+end
+
+strip melonpool
+	name Melonpool
+	homepage http://www.melonpool.com/
+	type generate
+	imageurl http://www.melonpool.com/comics/MM%Y%m%d.gif
+	provides any
+end
+
+strip flem
+        name FLEM!
+        homepage http://www.flemcomics.com/
+        type generate
+        imageurl http://flem.dhs.org/new.jpg
+        provides latest
+end
+
+#replaced
+# Updated Mon - Fri
+#strip reallife
+#        name Real Life
+#        homepage http://www.reallifecomics.com/
+#        type generate
+#        imageurl http://www.reallifecomics.com/comics/%Y%m%da.jpg
+#        provides any
+#end
+
+# Updated Mon - Sat
+strip sheldon
+        name Sheldon
+        useclass unitedmedia-srch-comics
+end
+
+# Updated Mon
+strip weakendwarriors
+        name Weak-end Warriors
+        homepage http://www.inktank.com/WW/
+        type generate
+        imageurl http://www.inktank.com/images/WW/cartoons/%m-%d-%y.gif
+        provides any
+end
+
+strip alice
+	name Alice!
+	homepage http://www.alicecomics.com/today.html
+	type search
+	searchpattern <IMG.+?SRC="(/comics/alice.+?\..+?)"
+	baseurl http://www.alicecomics.com/
+	provides latest
+end
+
+strip theshadows
+	name The Shadows
+	homepage http://www.alicecomics.com/shadows.html
+	type search
+	searchpattern <IMG.+?SRC="(/shadcomics/shad.+?\..+?)"
+	baseurl http://www.alicecomics.com/
+	provides latest
+end
+
+strip lcd
+	name Lowest Common Denominator
+	homepage http://lcd.keenspace.com
+	type search
+	searchpattern <IMG.+?SRC=".+?(/comics/(lcd|soph).+?\..+?)"
+	#<IMG ALT="" BORDER=0 SRC="http://lcd.keenspace.com/comics/soph20030810.png" WIDTH="732" HEIGHT="262">
+	baseurl http://lcd.keenspace.com
+	provides latest
+end
+
+# could easily generate
+strip devilspanties
+	name The Devil's Panties
+	homepage http://thedevilspanties.keenspace.com
+	type search
+	searchpattern <IMG.+?SRC="(http://thedevilspanties.keenspace.com/comics/.+?\..+?)"
+	#baseurl http://thedevilspanties.keenspace.com
+	provides latest
+end
+
+
+strip fatjesus
+	name Fat Jesus
+	homepage http://www.fat-jesus.com
+	type search
+	searchpattern <IMG.+?SRC="(/comics/fatjesus.+?)"
+	baseurl http://fatjesus.keenspace.com
+	provides latest
+end
+
+strip sexandviolence
+	name Sex and Violence
+	homepage http://www.mrbang.net
+	type search
+	searchpattern <IMG.+?SRC="(/comics/.+?\..+?)"
+	baseurl http://www.mrbang.net
+	provides latest
+end
+
+strip fans
+	name Fans!
+	homepage http://faans.com
+	type search
+	searchpattern <IMG.+?SRC="(http://faans.com/images/.+?\..+?)"
+	#<IMG SRC="http://faans.com/images/mad1.gif" WIDTH=650 HEIGHT=300>
+	provides latest
+end
+
+strip spooner
+        name Spooner
+        homepage http://www.hookedoncomics.com/
+        type generate
+        imageurl http://www.hookedoncomics.com/comics/Sp%Y%m%d.gif
+        provides any
+end
+
+strip underpower
+        name Under Power
+        artist Jorge "Vaz" Rivas and David "vanishing" Trischuk
+        homepage http://underpower.non-essential.com/
+        type generate
+        imageurl http://underpower.non-essential.com/comics/%Y%m%d.jpg
+        provides any
+end
+
+strip nekobox
+        name Nekobox
+        artist Jorge "Vaz" Rivas and David "vanishing" Trischuk
+        homepage http://www.nekobox.org
+        type generate
+        imageurl http://www.nekobox.org/comic/%Y-%m-%d.jpg
+        provides any
+end
+
+strip perscheid
+	name Perscheids Abgruende
+	artist Martin Perscheid -> www.martin-perscheid.de
+	homepage http://portale.web.de/Boulevard/Comics/Perscheid/
+	type search
+	searchpattern <img.+?src="[h]*[t]*[t]*[p]*[:]*//(img.web.de/c/00.+?)"
+	provides latest
+end
+
+strip harmbengen
+	name Harm Bengen's Alltagsskizzen
+	artist Harm Bergen -> www.harmbengen.de
+	homepage http://portale.web.de/Boulevard/Comics/Bengen/
+	type search
+	searchpattern <img.+?src="[h]*[t]*[t]*[p]*[:]*//(img.web.de/c/00.+?)"
+	provides latest
+end
+
+strip weyershausenwelt
+	name Weyershausen - Wunderbare Welt
+	artist Karsten Weyershausen -> www.weyershausen.de
+	homepage http://portale.web.de/Boulevard/Comics/Weyershausen/
+	type search
+	searchpattern <img.+?src="[h]*[t]*[t]*[p]*[:]*//(img.web.de/c/00.+?)"
+	provides latest
+end
+
+strip quirit
+	name Quirit - alltaegliches auf den Punkt gebracht
+	artist Quirit -> www.quirit.com
+	homepage http://portale.web.de/Boulevard/Comics/Quirit/
+	type search
+	searchpattern <img.+?src="[h]*[t]*[t]*[p]*[:]*//(img.web.de/c/00.+?)"
+	provides latest
+end
+
+
+strip touche
+        name Touche
+        artist Tom
+        homepage http://www.drive-in-cartoons.de/touche/
+        type search
+        searchpage http://www.drive-in-cartoons.de/touche/hauptteil.php
+        searchpattern <img.+?src='(.+?)'
+        baseurl http://www.drive-in-cartoons.de/touche/
+        provides latest
+end
+
+strip achewood
+	name Achewood
+	artist Chris Onstad
+	homepage http://www.achewood.com
+	type generate
+	imageurl $homepage/i/%m%d%Y.gif
+	provides any
+end
+
+# ucomics.com strips
+strip adamathome
+	name Adam@home
+	useclass ucomics-gen
+	$1 ad
+end
+
+strip baldo
+	name Baldo
+	useclass ucomics-gen
+	$1 ba
+end
+
+strip bizarro
+	name Bizarro
+	useclass ucomics-gen
+	$1 bz
+end
+
+strip thebigpicture
+	name The Big Picture
+	useclass ucomics-gen
+	$1 bi
+end
+
+strip boondocks
+	name The Boondocks
+	useclass ucomics-gen
+	$1 bo
+end
+
+strip calvinandhobbes
+	name Calvin and Hobbes
+	useclass ucomics-srch
+	$1 ch
+end
+
+strip cathy
+	name Cathy
+	useclass ucomics-gen
+	$1 ca
+end
+
+strip closetohome
+	name Close to Home
+	useclass ucomics-gen
+	$1 cl
+end
+
+strip cornered
+	name Cornered
+	useclass ucomics-gen
+	$1 co
+end
+
+strip crankshaft
+	name Crankshaft
+	useclass ucomics-gen
+	$1 cs
+end
+
+strip doonesbury
+	name Doonesbury
+	useclass ucomics-gen
+	$1 db
+end
+
+strip thefifthwave
+	name The 5th Wave
+	useclass ucomics-srch
+	$1 fw
+end
+
+strip bensargent
+	name Ben Sargent
+	useclass ucomics-srch
+	$1 bs
+end
+
+strip patoliphant
+	name Pat Oliphant
+	useclass ucomics-srch
+	$1 po
+end
+
+strip foxtrot
+	name FoxTrot
+	useclass ucomics-gen
+	$1 ft
+end
+
+strip thefuscobrothers
+	name The Fusco Brothers
+	useclass ucomics-gen
+	$1 fu
+end
+
+strip garfield
+	name Garfield
+	useclass ucomics-gen
+	$1 ga
+end
+
+strip heartofthecity
+	name Heart of the City
+	useclass ucomics-gen
+	$1 hc
+end
+
+strip inthebleachers
+	name In the Bleachers
+	useclass ucomics-gen
+	$1 bl
+end
+
+strip james
+	name James
+	useclass ucomics-gen
+	$1 jm
+end
+
+strip mrpotatohead
+        name Mr. Potato Head
+        useclass ucomics-gen
+        $1 mrp
+end
+
+strip nonsequitur
+	name Non Sequitur
+	useclass ucomics-gen
+	$1 nq
+end
+
+strip oddlyenough
+	name Oddly Enough
+	useclass ucomics-gen
+	$1 oe
+end
+
+strip overboard
+	name Overboard
+	useclass ucomics-gen
+	$1 ob
+end
+
+strip reallifeadventures
+	name Real Life Adventures
+	useclass ucomics-gen
+	$1 rl
+end
+
+strip reynoldsunwrapped
+	name Reynolds Unwrapped
+	useclass ucomics-gen
+	$1 rw
+end
+
+strip stonesoup
+	name Stone Soup
+	useclass ucomics-gen
+	$1 ss
+end
+
+strip tankmcnamara
+	name Tank McNamara
+	useclass ucomics-gen
+	$1 tm
+end
+
+strip tomthedancingbug
+	name Tom the Dancing Bug
+	useclass ucomics-srch
+	$1 td
+end
+
+strip ziggy
+	name Ziggy
+	useclass ucomics-gen
+	$1 zi
+end
+
+strip theduplex
+        name The Duplex
+        useclass ucomics-gen
+        $1 dp
+end
+
+strip psmueller
+	name P. S. Mueller
+	useclass ucomics-gen
+	$1 psm
+end
+
+strip misterboffo
+	name Mister Boffo
+	useclass ucomics-gen
+	$1 mb
+end
+
+# unitedmedia.com strips
+strip alleyoop
+	name Alley Oop
+	useclass unitedmedia-srch-comics
+end
+
+strip arlonjanis
+	name Arlo & Janis
+	useclass unitedmedia-srch-comics
+end
+
+strip betty
+	name Betty
+	useclass unitedmedia-srch-comics
+end
+
+strip bignate
+	name Big Nate
+	useclass unitedmedia-srch-comics
+end
+
+strip bornloser
+	name The Born Loser
+	useclass unitedmedia-srch-comics
+end
+
+strip buckets
+	name The Buckets
+	useclass unitedmedia-srch-comics
+end
+
+strip bullsnbears
+	name Bull$ 'N' Bear$
+	useclass unitedmedia-srch-comics
+end
+
+strip cheapthrills
+	name Cheap Thrills
+	useclass unitedmedia-srch-wash
+end
+
+strip chickweed
+	name 9 Chickweed Lane
+	useclass unitedmedia-srch-comics
+end
+
+strip committed
+	name Committed
+	useclass unitedmedia-srch-comics
+end
+
+strip drabble
+	name Drabble
+	useclass unitedmedia-srch-comics
+end
+
+#strip dilbert
+#       name Dilbert
+#       useclass unitedmedia-srch-comics
+#end
+
+strip dilbert
+        name Dilbert
+        artist Scott Adams
+        homepage http://www.dilbert.com/comics/dilbert/
+        baseurl $homepage
+        type search
+        searchpattern <IMG SRC="(/comics/dilbert/archive/images/.+?\.gif)"
+        provides latest
+end
+
+strip fatcats
+	name Fat Cats
+	useclass unitedmedia-srch-comics-lag
+end
+
+strip ferdnand
+	name Ferd'nand
+	useclass unitedmedia-srch-comics
+end
+
+strip forbetter
+	name For Better or For Worse
+	useclass unitedmedia-srch-comics
+end
+
+strip franknernest
+	name Frank & Ernest
+	useclass unitedmedia-srch-comics
+end
+
+strip frazz
+        name Frazz
+        useclass unitedmedia-srch-comics
+end
+
+#discontinued at unitedmedia
+#can't use the class - dates are 66 years ago
+#strip freckles
+#	name Freckles and His Friends
+#	homepage http://www.unitedmedia.com/comics/freckles/index.html
+#	type search
+#	searchpattern <IMG.+?SRC="(/comics/freckles/archive/images/freckles.+?\..+?)"
+#	baseurl http://www.unitedmedia.com
+#	provides latest
+#end
+
+strip geech
+	name Geech
+	useclass unitedmedia-srch-comics
+end
+
+strip getfuzzy
+	name Get Fuzzy
+	useclass unitedmedia-srch-comics
+end
+
+strip gingermeggs
+	name Ginger Meggs
+	useclass unitedmedia-srch-comics
+end
+
+strip graffiti
+	name Graffiti
+	useclass unitedmedia-srch-comics
+end
+
+strip grandave
+	name Grand Avenue
+	useclass unitedmedia-srch-comics
+end
+
+strip grizzwells
+	name The Grizzwells
+	useclass unitedmedia-srch-comics
+end
+
+strip hedge
+	name Over the Hedge
+	useclass unitedmedia-srch-comics
+end
+
+strip herman
+	name Herman
+	useclass unitedmedia-srch-comics
+end
+
+strip janesworld
+        name Jane's World
+        useclass unitedmedia-srch-comics
+end
+
+strip jumpstart
+	name Jump Start
+	useclass unitedmedia-srch-comics
+end
+
+strip kitncarlyle
+	name Kit 'N' Carlyle
+	useclass unitedmedia-srch-comics
+end
+
+#can't use the class - dates are 53 years ago
+strip lilabner
+	name Li'l Abner
+	homepage http://www.unitedmedia.com/comics/lilabner/index.html
+	type search
+	searchpattern <img.+?src="(/comics/lilabner/archive/images/lilabner.+?\..+?)"
+	baseurl http://www.unitedmedia.com
+	provides latest
+end
+
+strip luann
+	name Luann
+	useclass unitedmedia-srch-comics
+end
+
+strip lupo
+	name Lupo Alberto
+	useclass unitedmedia-srch-comics
+end
+
+strip marmaduke
+	name Marmaduke
+	useclass unitedmedia-srch-comics
+end
+
+strip meatloaf
+	name Meatloaf Night
+	useclass unitedmedia-srch-comics
+end
+
+strip meg
+	name Meg!
+	useclass unitedmedia-srch-comics-lag
+end
+
+# lags ~1 week
+strip motley
+	name Motley
+	useclass unitedmedia-srch-comics-lag
+end
+
+strip nancy
+	name Nancy
+	useclass unitedmedia-srch-comics
+end
+
+strip peanuts
+	name Peanuts
+	useclass unitedmedia-srch-comics
+end
+
+strip pearls
+	name Pearls Before Swine
+	useclass unitedmedia-srch-comics
+end
+
+strip pibgorn
+	name Pibgorn
+	useclass unitedmedia-srch-comics
+end
+
+strip pickles
+	name Pickles
+	useclass unitedmedia-srch-wash
+end
+
+strip potluck
+	name Potluck Parish
+	useclass unitedmedia-srch-comics
+end
+
+strip raisingduncan
+	name Raising Duncan
+	useclass unitedmedia-srch-comics
+end
+
+#discontinued at um
+#strip randolphitch
+#	name Randolph Itch 2 a.m.
+#	useclass unitedmedia-srch-comics
+#end
+
+strip reality
+	name Reality Check
+	useclass unitedmedia-srch-comics
+end
+
+strip redandrover
+	name Red and Rover
+	useclass unitedmedia-srch-wash
+end
+
+strip ripleys
+	name Ripley's Believe It or Not!
+	useclass unitedmedia-srch-comics
+end
+
+strip monty
+	name Monty
+	useclass unitedmedia-srch-comics
+end
+
+strip roseisrose
+	name Rose Is Rose
+	useclass unitedmedia-srch-comics
+end
+
+strip shirleynson
+	name Shirley And Son
+	useclass unitedmedia-srch-comics
+end
+
+strip soup2nutz
+	name Soup To Nutz
+	useclass unitedmedia-srch-comics
+end
+
+
+# only once-weekly
+strip stockcartoons
+	name StockcarToons
+	useclass unitedmedia-srch-comics
+	#searchpage http://www.unitedmedia.com/comics/stockcartoons/archive/stockcartoons-<code:strftime("\%Y\%m\%d", localtime($time_today - 604800))>.html
+	searchpage $homepage
+	provides latest
+end
+
+strip tarzan
+	name Tarzan
+	useclass unitedmedia-srch-comics
+end
+
+strip thatslife
+	name That's Life
+	useclass unitedmedia-srch-wash
+end
+
+strip topofworld
+	name Top of the World!
+	useclass unitedmedia-srch-comics-lag
+end
+
+# done!
+#strip usplay
+#	name The US of Play
+#	useclass unitedmedia-srch-comics
+#end
+
+# also done!
+#strip warped
+#	name Warped
+#	useclass unitedmedia-srch-comics
+#end
+
+strip workingdaze
+	name Working Daze
+	useclass unitedmedia-srch-comics
+end
+
+strip pcnpixel
+	name PC and Pixel
+	useclass unitedmedia-srch-wash
+	provides latest
+end
+
+strip billday
+	name Bill Day
+	useclass unitedmedia-srch-editoons
+	$1 day
+end
+
+strip billschorr
+	name Bill Schorr
+	useclass unitedmedia-srch-editoons
+	$1 schorr
+end
+
+strip claybennett
+	name Clay Bennett
+	useclass unitedmedia-srch-editoons
+	$1 bennett
+end
+
+strip drewlitton
+	name Drew Litton
+	useclass unitedmedia-srch-editoons
+	$1 litton
+end
+
+strip edstein
+	name Ed Stein
+	useclass unitedmedia-srch-editoons
+	$1 stein
+end
+
+strip ettahulme
+	name Etta Hulme
+	useclass unitedmedia-srch-editoons
+	$1 hulme
+end
+
+strip henrypayne
+	name Henry Payne
+	useclass unitedmedia-srch-editoons
+	$1 payne
+end
+
+strip jeffstahler
+	name Jeff Stahler
+	useclass unitedmedia-srch-editoons
+	$1 stahler
+end
+
+strip jerryholbert
+	name Jerry Holbert
+	useclass unitedmedia-srch-editoons
+	$1 holbert
+end
+
+strip jimberry
+	name Jim Berry
+	useclass unitedmedia-srch-editoons
+	$1 berry
+end
+
+strip mikesmith
+	name Mike Smith
+	useclass unitedmedia-srch-editoons
+	$1 smith
+end
+
+strip robrogers
+	name Rob Rogers
+	useclass unitedmedia-srch-editoons
+	$1 rogers
+end
+
+#strip robertariail
+#	name Robert Ariail
+#	useclass unitedmedia-srch-editoons
+#	$1 ariail
+#end
+
+strip stevebenson
+	name Steve Benson
+	useclass unitedmedia-srch-editoons
+	$1 benson
+end
+
+# sfgate strips
+strip babyblues
+	name Baby Blues
+	useclass sfgate-gen
+	$1 Baby_Blues
+end
+
+strip beetlebailey
+	name Beetle Bailey
+	useclass sfgate-gen
+	$1 Beetle_Bailey
+end
+
+strip blondie
+	name Blondie
+	useclass sfgate-gen
+	$1 $name
+end
+
+strip crock
+	name Crock
+	useclass sfgate-gen
+	$1 $name
+end
+
+strip curtis
+	name Curtis
+	useclass sfgate-gen
+	$1 $name
+end
+
+strip dennisthemenace
+	name Dennis the Menace
+	useclass sfgate-gen
+	$1 Dennis_The_Menace
+end
+
+#non-standard
+strip farley
+	name Farley
+        homepage http://www.sfgate.com/columnists/farley/
+        type search
+        provides latest
+        searchpattern <IMG.+?SRC="(http://www.sfgate.com/chronicle/pictures/\d+/\d+/\d+/.+?-farley.gif)"
+end
+
+strip fastrack
+	name On The Fast Track
+	useclass sfgate-gen
+	$1 Fast_Track
+end
+
+strip funkywinkerbean
+	name Funky Winkerbean
+	useclass sfgate-gen
+	$1 Funky_Winkerbean
+end
+
+strip hagarthehorrible
+	name Hagar the Horrible
+	useclass sfgate-gen
+	$1 Hagar_The_Horrible
+end
+
+strip ineedhelp
+	name I Need Help
+	useclass sfgate-gen
+	$1 Hagar_The_Horrible
+end
+
+strip mallardfillmore
+	name Mallard Fillmore
+	useclass sfgate-gen
+	$1 Mallard_Fillmore
+end
+
+strip mutts
+	name Mutts
+	useclass sfgate-gen
+	$1 $name
+end
+
+strip newbreed
+	name New Breed
+	useclass sfgate-gen
+	$1 New_Breed
+end
+
+strip thephantom
+	name The Phantom
+	useclass sfgate-gen
+	$1 Phantom
+end
+
+strip piranhaclub
+	name Piranha Club
+	useclass sfgate-gen
+	$1 Piranha
+end
+
+strip popeye
+	name Popeye
+	useclass sfgate-gen
+	$1 $name
+end
+
+strip rhymeswithorange
+	name Rhymes with Orange
+	useclass sfgate-gen
+	$1 Rhymes_with_Orange
+end
+
+strip sallyforth
+	name Sally Forth
+	useclass sfgate-gen
+	$1 Sally_Forth
+end
+
+strip safehavn
+	name Safe Havens
+	useclass sfgate-gen
+	$1 Safe_Havens
+end
+
+#strip shermanslagoon
+#	name Sherman's Lagoon
+#	useclass sfgate-gen
+#	$1 Shermans_Lagoon
+#end
+
+strip sixchix
+	name Six Chix
+	useclass sfgate-gen
+	$1 6Chix
+end
+
+#strip willynethel
+#	name Willy 'n' Ethel
+#	useclass sfgate-gen
+#	$1 Willy_n_Ethel
+#end
+
+strip zippythecolorpinhead
+	name Zippy the Pinhead (in color)
+	useclass sfgate-gen-zippycolor
+	$1 Zippy_the_Pinhead_Color
+	$2 Zippy_the_Pinhead
+end
+
+#strip zippythepinhead
+#	name Zippy the Pinhead
+#	useclass sfgate-gen
+#	$1 Zippy_the_Pinhead
+#	$2 zippy
+#end
+
+strip zippythepinhead
+	name Zippy the Pinhead
+	useclass sfgate-gen-zippy
+	$1 Zippy_the_Pinhead
+	$3 Zippy_BW
+	$2 zippy
+end
+
+
+strip zits
+	name Zits
+	useclass sfgate-gen
+	$1 $name
+end
+
+#comicspage.com strips
+strip animal
+	name Animal Crackers
+	useclass comicspage-strips-gen
+	$1 animal
+	$2 ack
+end
+
+strip annie
+	name Annie
+	useclass comicspage-strips-gen
+	$1 annie
+	$2 ann
+end
+
+strip bound
+	name Bound and Gagged
+	useclass comicspage-strips-gen
+	$1 bound
+	$2 bgg
+end
+
+strip brenda
+	name Brenda Starr
+	useclass comicspage-strips-gen
+	$1 brenda
+	$2 bsr
+end
+
+strip broomhilda
+	name Broom Hilda
+	useclass comicspage-strips-gen
+	$1 broomhilda
+	$2 bhl
+end
+
+strip cats
+	name Cats with Hands
+	useclass comicspage-strips-gen
+	$1 cats
+	$2 cwh
+end
+
+strip dicktracy
+	name Dick Tracy
+	useclass comicspage-strips-gen
+	$1 dicktracy
+	$2 dty
+end
+
+strip doodles
+	name Doodles
+	useclass comicspage-strips-gen
+	$1 profdoodles
+	$2 dod
+end
+
+strip fred
+	name Fred Basset
+	useclass comicspage-strips-gen
+	$1 fred
+	$2 fbt
+end
+
+strip gasolinealley
+	name Gasoline Alley
+	useclass comicspage-strips-gen
+	$1 gasolinealley
+	$2 gas
+end
+
+strip gilthorp
+	name Gil Thorp
+	useclass comicspage-strips-gen
+	$1 gilthorp
+	$2 gtp
+end
+
+strip helen
+	name Helen, Sweetheart of the Internet
+	useclass comicspage-strips-gen
+	$1 helen
+	$2 hln
+end
+
+strip kudzu
+	name Kudzu
+	useclass comicspage-strips-gen
+	$1 kudzu
+	$2 kdz
+end
+
+strip lewis
+	name Lewis
+	useclass comicspage-strips-gen
+	$1 lewis
+	$2 lew
+end
+
+strip lola
+	name Lola
+	useclass comicspage-strips-gen
+	$1 lola
+	$2 lol
+end
+
+strip looseparts
+	name Loose Parts
+	useclass comicspage-strips-gen
+	$1 looseparts2
+	$2 lsp
+end
+
+strip meehan
+	name Meehan Streak
+	useclass comicspage-strips-gen
+	$1 meehan
+	$2 mst
+end
+
+strip middletons
+	name The Middletons
+	useclass comicspage-strips-gen
+	$1 middletons
+	$2 mid
+end
+
+#strip misterboffo
+#	name Mister Boffo
+#	useclass comicspage-strips-gen
+#	$1 misterboffo
+#	#2 bfo
+#end
+
+strip mixedmedia
+	name Mixed Media
+	useclass comicspage-strips-gen
+	$1 mixedmedia
+	$2 mix
+end
+
+strip monkeyhouse
+	name Monkeyhouse
+	useclass comicspage-strips-gen
+	$1 monkeyhouse
+	$2 mhs
+end
+
+#no longer carried by comicspage
+#strip grimmy
+#	name Mother Goose and Grimm
+#	useclass comicspage-strips-gen
+#	$1 grimmy
+#	$2 mgg
+#end
+
+strip shoe
+	name Shoe
+	useclass comicspage-strips-gen
+	$1 shoe
+	$2 sho
+end
+
+strip sylvia
+	name Sylvia
+	useclass comicspage-strips-gen
+	$1 sylvia
+	$2 syl
+end
+
+strip willynethel
+	name Willy 'n' Ethel
+	useclass comicspage-strips-gen
+	$1 willynethel
+	$2 wil
+end
+
+
+strip 9to5
+	name 9 to 5
+	useclass comicspage-panels-gen
+	$1 9to5
+	$2 ntf
+end
+
+strip bottomliners
+	name Bottom Liners
+	useclass comicspage-panels-gen
+	$1 bottomliners
+	$2 bls
+end
+
+strip computoon
+	name Compu-toon
+	useclass comicspage-panels-gen
+	$1 computoon
+	$2 cpt
+end
+
+#strip looseparts
+#	name Loose Parts
+#	useclass comicspage-panels-gen
+#	$1 looseparts
+#	$2 lsp
+#end
+
+strip loveis
+	name Love Is...
+	useclass comicspage-panels-gen
+	$1 loveis
+	$2 lis
+end
+
+strip pluggers
+	name Pluggers
+	useclass comicspage-panels-gen
+	$1 pluggers
+	$2 plg
+end
+
+strip quigmans
+	name The Quiqmans
+	useclass comicspage-panels-gen
+	$1 quigmans
+	$2 qgm
+end
+
+# gone? 2002-05-24
+strip thatsjake
+	name That's Jake
+	useclass comicspage-panels-gen
+	$1 thatsjake
+	$2 tjk
+end
+
+strip conrad
+	name Paul Conrad
+	useclass comicspage-editorial-gen
+	$1 conrad
+	$2 con
+end
+
+strip danziger
+	name Jeff Danziger
+	useclass comicspage-editorial-gen
+	$1 danziger
+	$2 dan
+end
+
+strip davies
+	name Matt Davies
+	useclass comicspage-editorial-gen
+	$1 davies
+	$2 dav
+end
+
+strip handelsman
+	name Walt Handelsman
+	useclass comicspage-editorial-gen
+	$1 handelsman
+	$2 han
+end
+
+strip horsey
+	name David Horsey
+	useclass comicspage-editorial-gen
+	$1 horsey
+	$2 hor
+end
+
+strip jones
+	name Taylor Jones
+	useclass comicspage-editorial-gen
+	$1 jones
+	$2 jon
+end
+
+strip locher
+	name Dick Locher
+	useclass comicspage-editorial-gen
+	$1 locher
+	$2 dik
+end
+
+strip lowe
+	name Chan Lowe
+	useclass comicspage-editorial-gen
+	$1 lowe
+	$2 low
+end
+
+strip marlette
+	name Doug Marlette
+	useclass comicspage-editorial-gen
+	$1 marlette
+	$2 mar
+end
+
+# superceded by kscarborough's
+#strip ohman
+#	name Jack Ohman
+#	useclass comicspage-editorial-gen
+#	$1 ohman
+#	$2 ohm
+#end
+
+strip peters
+	name Mike Peters
+	useclass comicspage-editorial-gen
+	$1 peters
+	$2 pet
+end
+
+strip sack
+	name Steve Sack
+	useclass comicspage-editorial-gen
+	$1 sack
+	$2 sak
+end
+
+strip sheneman
+	name Drew Sheneman
+	useclass comicspage-editorial-gen
+	$1 sheneman
+	$2 she
+end
+
+
+strip stayskal
+	name Wayne Stayskal
+	useclass comicspage-editorial-gen
+	$1 stayskal
+	$2 sty
+end
+
+
+# superceded by kscarborough's
+#strip summers
+#	name Dana Summers
+#	useclass comicspage-editorial-gen
+#	$1 summers
+#	$2 sum
+#end
+
+strip telnaes
+	name Ann Telnaes
+	useclass comicspage-editorial-gen
+	$1 telnaes
+	$2 tel
+end
+
+strip wasserman
+	name Dan Wasserman
+	useclass comicspage-editorial-gen
+	$1 wasserman
+	$2 was
+end
+
+strip wrightd
+	name Dick Wright
+	useclass comicspage-editorial-gen
+	$1 wrightd
+	$2 dwr
+end
+
+strip wright
+	name Don Wright
+	useclass comicspage-editorial-gen
+	$1 wright
+	$2 wrt
+end
+
+strip captainribman
+	name Captain RibMan
+	homepage http://www.comicspage.com/ribman/index.html
+	type search
+	searchpage http://www.supercomics.com/strips/new.html
+	searchpattern <img.+?src="(.+?)".+?ALT="Captain RibMan"
+	baseurl http://www.supercomics.com/strips/
+	provides latest
+end
+
+#mercury center strips
+strip bfriends
+	name Between Friends
+	useclass mercurycenter
+	$1 14
+	$2 bfriends
+end
+
+
+# sev.com.au strips
+strip sevtrek
+        name Sev Trek
+        useclass sev-comics
+end
+
+strip fotr
+        name Fraud of the Rings
+        useclass sev-comics
+end
+
+strip sevgate
+        name Sevgate SEV1
+        useclass sev-comics
+end
+
+strip bluffy
+        name Bluffy the Vampedup Stunner
+        useclass sev-comics
+end
+
+strip sevfiles
+        name The Sev Files
+        useclass sev-comics
+end
+
+strip sevwars
+        name Sev Wars
+        useclass sev-comics
+end
+
+strip sevylon5
+        name Sevylon 5
+        useclass sev-comics
+end
+
+# doesn't fit class
+strip sevscifi
+        name Sev Sci-Fi TV
+        homepage http://www.sev.com.au/toonzone/
+        type generate
+        imageurl http://www.sev.com.au/toonzone/scifitv.jpg
+        provides latest
+end
+
+#washpost strips
+strip andycapp
+        name Andy Capp
+        useclass washpost-creators
+        $1 cap
+end
+
+strip wizardofid
+        name Wizard of Id
+        useclass washpost-creators
+        $1 wiz
+end
+
+strip bc
+        name BC
+        useclass washpost-creators
+        $1 bc
+end
+
+strip marvin
+        name Marvin
+        useclass washpost-king
+        $1 $name
+end
+
+#creators.com strips
+strip agnes
+	name Agnes
+	homepage http://www.creators.com/comics_show.cfm?comicname=agn
+	type search
+	searchpattern <img.+?alt="Agnes".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip archie
+	name Archie
+	homepage http://www.creators.com/comics_show.cfm?comicname=arc
+	type search
+	searchpattern <img.+?alt="Archie".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip askshagg
+	name Ask Shagg
+	homepage http://www.creators.com/comics_show.cfm?comicname=shg
+	type search
+	searchpattern <img.+?alt="Ask Shagg".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip ballardstreet
+	name Ballard Street
+	homepage http://www.creators.com/comics_show.cfm?comicname=bs
+	type search
+	searchpattern <img.+?alt="Ballard Street".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip bachelorparty
+	name Bachelor Party
+	homepage http://www.creators.com/comics_show.cfm?comicname=bch
+	type search
+	searchpattern <img.+?alt="Bachelor Party".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip charlie
+	name Charlie
+	homepage http://www.creators.com/comics_show.cfm?comicname=cha
+	type search
+	searchpattern <img.+?alt="Charlie".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+# available at pay site mycomicspage.com
+#strip drawingacrowd
+#	name Drawing a Crowd
+#	homepage http://www.creators.com/comics_show.cfm?comicname=dac
+#	type search
+#	searchpattern <img.+?alt="Drawing a Crowd".+?src="(.+?)"
+#	baseurl http://www.creators.com/
+#	provides latest
+#end
+
+strip flightdeck
+	name Flight Deck
+	homepage http://www.creators.com/comics_show.cfm?comicname=fli
+	type search
+	searchpattern <img.+?alt="Flight Deck".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip flofriends
+	name Flo & Friends
+	homepage http://www.creators.com/comics_show.cfm?comicname=flo
+	type search
+	searchpattern <img.+?alt="Flo & Friends".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip forheavenssake
+	name For Heaven's Sake
+	homepage http://www.creators.com/comics_show.cfm?comicname=hev
+	type search
+	searchpattern <img.+?alt="For Heavens Sake".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip heathcliff
+	name Heathcliff
+	homepage http://www.creators.com/comics_show.cfm?comicname=hth
+	type search
+	searchpattern <img.+?alt="Heathcliff".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip herbandjamaal
+	name Herb and Jamaal
+	homepage http://www.creators.com/comics_show.cfm?comicname=hrb
+	type search
+	searchpattern <img.+?alt="Herb and Jamal".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip libertymeadows
+	name Liberty Meadows
+	homepage http://www.creators.com/comics_show.cfm?comicname=lib
+	type search
+	searchpattern <img.+?alt="Liberty Meadows".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip momma
+	name Momma
+	homepage http://www.creators.com/comics_show.cfm?comicname=mom
+	type search
+	searchpattern <img.+?alt="Momma".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip mrhousewife
+	name Mr. Housewife
+	homepage http://www.creators.com/comics_show.cfm?comicname=mrh
+	type search
+	searchpattern <img.+?alt="Mr. Housewife".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip naturalselection
+	name Natural Selection
+	homepage http://www.creators.com/comics_show.cfm?comicname=nat
+	type search
+	searchpattern <img.+?alt="Natural Selection".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip onebighappy
+	name One Big Happy
+	homepage http://www.creators.com/comics_show.cfm?comicname=obh
+	type search
+	searchpattern <img.+?alt="One Big Happy".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip theothercoast
+	name The Other Coast
+	homepage http://www.creators.com/comics_show.cfm?comicname=oc
+	type search
+	searchpattern <img.+?alt="The Other Coast".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip rubes
+	name Rubes
+	homepage http://www.creators.com/comics_show.cfm?comicname=rub
+	type search
+	searchpattern <img.+?alt="Rubes".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip rugrats
+	name Rugrats
+	homepage http://www.creators.com/comics_show.cfm?comicname=rug
+	type search
+	searchpattern <img.+?alt="Rugrats".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip speedbump
+	name Speed Bump
+	homepage http://www.creators.com/comics_show.cfm?comicname=bmp
+	type search
+	searchpattern <img.+?alt="Speed Bump".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip strangebrew
+	name Strange Brew
+	homepage http://www.creators.com/comics_show.cfm?comicname=brw
+	type search
+	searchpattern <img.+?alt="Strange Brew".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip weepals
+	name Wee Pals
+	homepage http://www.creators.com/comics_show.cfm?comicname=wee
+	type search
+	searchpattern <img.+?alt="Wee Pals".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+#strip chuckasay
+#	name Chuck Asay
+#	homepage http://www.creators.com/editorial_show.cfm?comicname=ca
+#	type search
+#	searchpattern <img.+?alt="Chuck Asay".+?src="(.+?)"
+#	baseurl http://www.creators.com/
+#	provides latest
+#end
+
+#strip chipbok
+#	name Chip Bok
+#	homepage http://www.creators.com/editorial_show.cfm?comicname=cb
+#	type search
+#	searchpattern <img.+?alt="Chip Bok".+?src="(.+?)"
+#	baseurl http://www.creators.com/
+#	provides latest
+#end
+
+#strip kencatalino
+#	name Ken Catalino
+#	homepage http://www.creators.com/editorial_show.cfm?comicname=kn
+#	type search
+#	searchpattern <img.+?alt="Ken Catalino".+?src="(.+?)"
+#	baseurl http://www.creators.com/
+#	provides latest
+#end
+
+#strip johndeering
+#	name John Deering
+#	homepage http://www.creators.com/editorial_show.cfm?comicname=jd
+#	type search
+#	searchpattern <img.+?alt="John Deering".+?src="(.+?)"
+#	baseurl http://www.creators.com/
+#	provides latest
+#end
+
+strip bobgorrell
+	name Bob Gorrell
+	homepage http://www.creators.com/editorial_show.cfm?comicname=bg
+	type search
+	searchpattern <img.+?alt="Bob Gorrell".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip clayjones
+	name Clay Jones
+	homepage http://www.creators.com/editorial_show.cfm?comicname=cj
+	type search
+	searchpattern <img.+?alt="Clay Jones".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip mikeluckovich
+	name Mike Luckovich
+	homepage http://www.creators.com/editorial_show.cfm?comicname=lk
+	type search
+	searchpattern <img.+?alt="Mike Luckovich".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip jimmymargulies
+	name Jimmy Margulies
+	homepage http://www.creators.com/editorial_show.cfm?comicname=jm
+	type search
+	searchpattern <img.+?alt="Jimmy Margulies".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip dwanepowell
+	name Dwane Powell
+	homepage http://www.creators.com/editorial_show.cfm?comicname=dp
+	type search
+	searchpattern <img.+?alt="Dwane Powell".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip paulszep
+	name Paul Szep
+	homepage http://www.creators.com/editorial_show.cfm?comicname=ps
+	type search
+	searchpattern <img.+?alt="Paul Szep".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip geoffreymoss
+	name Geoffrey Moss
+	homepage http://www.creators.com/editorial_show.cfm?comicname=gm
+	type search
+	searchpattern <img.+?alt="Mossprints".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip juliasuits
+	name Julia Suits
+	homepage http://www.creators.com/editorial_show.cfm?comicname=su
+	type search
+	searchpattern <img.+?alt="Suits".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+strip garyvarvel
+	name Gary Varvel
+	homepage http://www.creators.com/editorial_show.cfm?comicname=gv
+	type search
+	searchpattern <img.+?alt="Varvel".+?src="(.+?)"
+	baseurl http://www.creators.com/
+	provides latest
+end
+
+#additional non-standard strips
+strip dtte
+	name Death to the Extremist
+	homepage http://www.zole.org/extremist/
+	type search
+	searchpage http://www.zole.org/extremist/
+	searchpattern <img.+?src="comics/(.+?)"
+	baseurl http://www.zole.org/extremist/comics/
+	provides latest
+end
+
+strip jack
+	name Jack
+	artist David Hopkins
+	homepage http://jack.keenspace.com
+	type generate
+	imageurl $homepage/comics/Jack%Y%m%d.jpg
+	provides any
+end
+
+strip errantstory
+	name Errant Story
+	artist Michael Poe
+	homepage http://www.errantstory.com
+	type search
+	searchpattern <IMG.+?SRC="(/comics/es.+?)"
+	baseurl $homepage
+	provides latest
+end
+
+strip catandgirl
+        name Cat and Girl
+        artist Dorothy Gambrell
+        homepage http://www.catandgirl.com/
+        type search
+        searchpattern <img.+?src="(archive/cg.+?\.gif)"
+        baseurl http://www.catandgirl.com/
+        provides latest
+end
+
+strip scarygoround
+      name Scary Go Round
+      artist John Allison
+      homepage http://scarygoround.com/
+      type search
+      searchpattern <img src="(strips/\d+.+?)"
+      baseurl $homepage
+      provides latest
+end
+
+strip erniepook
+      name Ernie Pook's Comeek
+      artist Lynda Barry
+      homepage http://www.marlysmagazine.com/
+      type search
+      searchpage http://www.marlysmagazine.com/main.html
+      searchpattern <img.+?src='(strips/comeek..\.gif)'
+      baseurl $homepage
+      provides latest
+end
+
+strip erniepookbig
+      name Ernie Pook's Comeek (big image)
+      artist Lynda Barry
+      homepage http://www.marlysmagazine.com/
+      type search
+      searchpage http://www.marlysmagazine.com/main.html
+      searchpattern <a.+?href='(strips/bigcomeek..\.gif)'
+      baseurl $homepage
+      provides latest
+end
+
+strip raeside
+      name Adrian Raeside
+      homepage http://www.raesidecartoon.com/
+      type generate
+      imageurl http://www.raesidecartoon.com/images/today.gif
+      provides latest
+end
+
+strip chappatte
+      name Patrick Chappatte
+      homepage http://www.globecartoon.com/
+      type generate
+      imageurl http://www.globecartoon.com/Images/week.gif
+      provides latest
+end
+
+strip cranandlerma
+      name Cran and Lerma
+      artist Nik Scott
+      homepage http://toons.net/
+      type generate
+      imageurl http://toons.net/toon.gif
+      provides latest
+end
+
+strip curiousmoments
+      name Curious Moments
+      artist Nik Scott
+      homepage http://toons.net/
+      type generate
+      imageurl http://www.toons.net/cur.gif
+      provides latest
+end
+
+strip wolvertoon
+      name The Wolvertoon
+      artist Monte Wolverton
+      homepage http://www.pacificnet.net/toons/
+      type generate
+      imageurl http://www.pacificnet.net/toons/wolvertoon.gif
+      provides latest
+end
+
+strip toles
+	name Tom Toles
+	useclass washpost-uclick
+	$1 tt
+end
+
+strip auth
+	name Tony Auth
+	useclass washpost-uclick
+	$1 ta
+end
+
+strip carlson
+	name Stuart Carlson
+	useclass washpost-uclick
+	$1 sc
+end
+
+strip deore
+	name Bill Deore
+	useclass washpost-uclick
+	$1 bd
+end
+
+strip oliphant
+	Name Pat Oliphant
+	useclass washpost-uclick
+	$1 po
+end
+
+strip rall
+	name Ted Rall
+	useclass washpost-uclick
+	$1 tr
+end
+
+#strip sargent
+#	name Ben Sargent
+#	useclass washpost-uclick
+#	$1 bs
+#end
+
+#cagle strips
+strip topsyturvey
+	name Topsy Turvey
+	artist Peter Kuper
+	useclass slate-cagle
+	$1 kuper
+	$2 kuper
+end
+
+strip toomuchcoffeeman
+	name Too Much Coffee Man
+	artist Shannon Wheeler
+	useclass slate-cagle
+	$1 wheeler
+	$2 wheeler
+end
+
+strip alcarez
+	name Lalo Alcarez
+	useclass slate-cagle
+	$1 lalo
+	$2 lalo
+end
+
+strip andersonk
+	name Kirk Anderson
+	useclass slate-cagle
+	$1 anderson
+	$2 kirk
+end
+
+strip andersonn
+	name Nick Anderson
+	useclass slate-cagle
+	$1 andersonNICK
+	$2 nick
+end
+
+strip asay
+	name Chuck Asay
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip ariail
+	name Robert Ariail
+	useclass slate-cagle
+	# Yes, they misspell his name in the URL
+	$1 arial
+	$2 arial
+end
+
+strip babin
+	name Rex Babin
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip bateman
+	name Scott Bateman
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip beattie
+	name Bruce Beattie
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip bish
+	name Randy Bish
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip bok
+	name Chip Bok
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip breen
+	name Steve Breen
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip britt
+	name Chris Britt
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip brookins
+	name Gary Brookins
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip brown
+	name Jonathan Brown
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip cagle
+	name Daryl Cagle
+	useclass slate-cagle
+	$1 $strip
+	$2 cagle00
+end
+
+strip casciari
+	name James Casciari
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip catalino
+	name Ken Catalino
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip catrow
+	name David Catrow
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+#strip cole
+#	name John Cole
+#	useclass slate-cagle
+#	$1 $strip
+#	#$2 $strip
+#	$2 coletoon
+#end
+
+#non-template
+strip cole
+	name John Cole
+	homepage http://cagle.slate.msn.com/politicalcartoons/PCcartoons/cole.asp
+	type generate
+	provides latest
+	imageurl http://www.heraldsun.com/images/photos/live/coletoon.jpg
+end
+
+strip crowe
+	name J.D. Crowe
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip curry
+	name Tom Curry
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip day
+	name Jim Day
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip deering
+	name John Deering
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip duffy
+	name Brian Duffy
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip englehart
+	name Bob Englehart
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+#strip gorrell
+#	name Bob Gorrell
+#	useclass slate-cagle
+#	$1 $strip
+#	$2 $strip
+#end
+
+strip greenberg
+	name Steve Greenberg
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip harville
+	name Vic Harville
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip heller
+	name Joe Heller
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip jacobson
+	name David Jacobson
+	useclass slate-cagle
+	$1 davidjacobson
+	$2 davidjacobson
+end
+
+#strip jonesc
+#	name Clay Jones
+#	useclass slate-cagle
+#	$1 jones
+#	$2 jones
+#end
+
+strip kallaugher
+	name Kevin Kallaugher
+	useclass slate-cagle
+	$1 $strip
+	$2 kal
+end
+
+strip keefe
+	name Mike Keefe
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip koterba
+	name Jeff Koterba
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip lane
+	name Mike Lane
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip macgregor
+	name Doug MacGregor
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip markstein
+	name Gary Markstein
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip matson
+	name R.J. Matson
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip mccloskey
+	name Jim McCloskey
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip mckee
+	name Rick McKee
+	useclass slate-cagle
+	$1 $strip
+	# I have no idea where they get "wells" from.
+	$2 wells
+end
+
+strip menees
+	name Tim Menees
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip morin
+	name Jim Morin
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip ohman
+	name Jack Ohman
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip parker
+	name Jeff Parker
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip plante
+	name Bruce Plante
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+#redundant - see dwanepowell entry
+#strip powell
+#	name Dwane Powell
+#	useclass slate-cagle
+#	$1 $strip
+#	$2 $strip
+#end
+
+strip priggee
+	name Milt Priggee
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip ramirez
+	name Mike Ramirez
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip ramsey
+	name Marshall Ramsey
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip reddick
+	name David Reddick
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip ritter
+	name Mike Ritter
+	useclass slate-cagle
+	$1 $strip
+	$2 ritter00
+end
+
+strip sherffius
+	name John Sherffius
+	useclass slate-cagle
+	$1 $strip
+	$2 sherffius21
+end
+
+strip siers
+	name Kevin Siers
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip stantis
+	name Scott Stantis
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip summers
+	name Dana Summers
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip streeter
+	name Mark Streeter
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip thompson
+	name Mike Thompson
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip trever
+	name John Trever
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip trinidad
+	name Corky Trinidad
+	useclass slate-cagle
+	$1 corky
+	$2 corky
+end
+
+#strip varvel
+#	name Gary Varvel
+#	useclass slate-cagle
+#	$1 $strip
+#	$2 $strip
+#end
+
+strip walters
+	name Kirk Walters
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip wilkinson
+	name Signe Wilkinson
+	useclass slate-cagle
+	$1 signe
+	$2 signe
+end
+
+strip wrightl
+	name Larry Wright
+	useclass slate-cagle
+	$1 wright
+	$2 wright
+end
+
+strip bizwit
+	name Bizwit
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip troubletown
+	name Troubletown
+	artist Lloyd Dangle
+	useclass slate-cagle
+	$1 dangle
+	$2 dangle
+end
+
+strip grondahl
+	name Cal Grondahl
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip huffaker
+	name Sandy Huffaker
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip randompropaganda
+	name Random Propaganda
+	artist Ryan Inzana
+	useclass slate-cagle
+	$1 inzana
+	$2 inzana
+end
+
+strip swill
+	name Swill
+	artist Peter Kohlsaat
+	useclass slate-cagle
+	$1 kohlsaat
+	$2 kohlsaat
+end
+
+strip cartoonfix
+	name Cartoonfix
+	artist John Kurtz
+	useclass slate-cagle
+	$1 kurtz
+	$2 kurtz
+end
+
+strip incontempt
+	name In Contempt
+	artist Kevin Moore
+	useclass slate-cagle
+	$1 moore
+	$2 moore
+end
+
+strip noexit
+	name No Exit
+	artist Andy Singer
+	useclass slate-cagle
+	$1 singer
+	$2 singer
+end
+
+strip slowpoke
+	name Slowpoke
+	artist Jen Sorenson
+	useclass slate-cagle
+	$1 sorenson
+	$2 sorenson
+end
+
+strip snibbe
+	name Kurt Snibbe
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip spencer
+	name John Spencer
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip wallace
+	name Russ Wallace
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip linttrap
+	name Lint Trap
+	artist Matt Wuerker
+	useclass slate-cagle
+	$1 wuerker
+	$2 wuerker
+end
+
+strip aislin
+	name Aislin
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip bado
+	name Bado
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip cardow
+	name Cameron Cardow
+	useclass slate-cagle
+	$1 cam
+	$2 cam
+end
+
+strip corrigan
+	name Patrick Corrigan
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip clement
+	name Gary Clement
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip cummings
+	name Dale Cummings
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip deadder
+	name Michael DeAdder
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip dolighan
+	name Tim Dolighan
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip donato
+	name Andy Donato
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip gable
+	name Brian Gable
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip graston
+	name Michael Graston
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip mackay
+	name Graeme MacKay
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip mackinnon
+	name Bruce MacKinnon
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip moudakis
+	name Theo Moudakis
+	useclass slate-cagle
+	$1 $strip
+	$2 mou
+end
+
+strip peterson
+	name Roy Peterson
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip rodewalt
+	name Vance Rodewalt
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip ammer
+	name Wolfgang Ammer
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip anjornooz
+	name Sepideh Anjornooz
+	useclass slate-cagle
+	$1 sepideh
+	$2 sepideh
+end
+
+strip esquivel
+	name Arcadio Esquivel
+	useclass slate-cagle
+	$1 arcadio
+	$2 arcadio
+end
+
+strip ares
+	name Ares
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip mitropoulos
+	name Bas Mitropoulos
+	useclass slate-cagle
+	$1 bas
+	$2 bas
+end
+
+strip behrendt
+	name Fritz Behrendt
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip bertrams
+	name Joep Bertrams
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip boligan
+	name Angel Boligan
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip boyle
+	name Francis Boyle
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip cajas
+	name Pancho Cajas
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip carlucho
+	name Carlucho
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip cherepanov
+	name Yuri Cherepanov
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip coco
+	name Coco
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip corax
+	name Corax
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip deangelis
+	name Marco DeAngelis
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip doloricon
+	name Doloricon
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip drybones
+	name Dry Bones
+	artist Yaakov Kirschen
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip emmerson
+	name Rod Emmerson
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip evans
+	name Malcolm Evans
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip gado
+	name Gado
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip garrincha
+	name Garrincha
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip gomaa
+	name Gomaa
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip graff
+	name Finn Graff
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip hachfeld
+	name Rainer Hachfeld
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip hajjaj
+	name Emad Hajjaj
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip hansson
+	name Riber Hansson
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip hervi
+	name Hervi
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip kazanevsky
+	name Vladmir Kazanevsky
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip heng
+	name Heng Kim Song
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip olle
+	name Olle
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip keshav
+	name Keshav
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip christo
+	name Christo
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip kowsar
+	name Nik Kowsar
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip langer
+	name Langer
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip leahy
+	name Sean Leahy
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip moir
+	name Alan Moir
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip medi
+	name Medi
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip molina
+	name Pedro Molina
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip miel
+	name Deng Coy Miel
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip alimov
+	name Murat Alimov
+	useclass slate-cagle
+	$1 murat
+	$2 murat
+end
+
+strip paresh
+	name Paresh
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip nicholson
+	name Peter Nicholson
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip ofarrell
+	name Vince O'Farrell
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip obi
+	name Obi
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip palomo
+	name Palomo
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip pancho
+	name Pancho
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip peel
+	name Peel
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip pismestrovic
+	name Petar Pismestrovic
+	useclass slate-cagle
+	$1 petar
+	$2 petar
+end
+
+strip plantu
+	name Jean Plantu
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip persitoons
+	name Persitoons
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip ricardo
+	name Ricaro
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip ronnen
+	name Meir Ronnen
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip rowe
+	name David Rowe
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip sakurai
+	name Heiko Sakurai
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip schopf
+	name Oliver Schopf
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip schot
+	name Bas van der Schot
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip serguei
+	name Serguei
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip slane
+	name Chris Slane
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip kim
+	name Kim Gyung Soo
+	useclass slate-cagle
+	$1 soo
+	$2 soo
+end
+
+strip stavro
+	name Stavro
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip tayo
+	name Tayo
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip tom
+	name Tom
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip touka
+	name Touka
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip turner
+	name Martyn Turner
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip wonsoo
+	name Wonsoo Li
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip zapiro
+	name Zapiro
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip zeev
+	name Ze'ev
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip zetterling
+	name Leif Zetterling
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+strip zudin
+	name Alexandr Zudin
+	useclass slate-cagle
+	$1 $strip
+	$2 $strip
+end
+
+
+# azcentral strips
+class azcentral-srch
+	homepage http://www.azcentral.com/ent/comics/$strip.html
+	type search
+	searchpattern <img.+?SRC="(http://mst.rbma.com/content/$1)"
+	prefetch $homepage
+	provides latest
+end
+
+strip apt3g
+	name Apartment 3-G
+	useclass azcentral-srch
+	$1 Apartment_3-G
+end
+
+strip barneygoogle
+	name Barney Google
+	useclass azcentral-srch
+	$1 Barney_Google
+end
+
+strip betterhalf
+	name Better Half
+	useclass azcentral-srch
+	$1 Better_Half
+end
+
+strip buckles
+	name Buckles
+	useclass azcentral-srch
+	$1 Buckles
+end
+
+strip dinetteset
+	name Dinette Set
+	useclass azcentral-srch
+	$1 Dinette_Set
+end
+
+strip grinandbearit
+	name Grin and Bear It
+	useclass azcentral-srch
+	$1 Grin_and_Bear_It
+end
+
+strip hiandlois
+	name Hi and Lois
+	useclass azcentral-srch
+	$1 Hi_and_Lois
+end
+
+strip judgeparker
+	name Judge Parker
+	useclass azcentral-srch
+	$1 Judge_Parker
+end
+
+strip lockhorns
+	name Lockhorns
+	useclass azcentral-srch
+	$1 Lockhorns
+end
+
+strip marktrail
+	name Mark Trail
+	useclass azcentral-srch
+	$1 Mark_Trail
+end
+
+strip maryworth
+	name Mary Worth
+	useclass azcentral-srch
+	$1 Mary_Worth
+end
+
+strip pardonmyplanet
+	name Pardon My Planet
+	useclass azcentral-srch
+	$1 Pardon_My_Planet
+end
+
+strip redeye
+	name Redeye
+	useclass azcentral-srch
+	$1 Redeye
+end
+
+strip rexmorgan
+	name Rex Morgan, MD
+	useclass azcentral-srch
+	$1 Rex_Morgan
+end
+
+strip steveroper
+	name Steve Roper
+	useclass azcentral-srch
+	$1 Steve_Roper
+end
+
+strip theylldoiteverytime
+	name They'll Do It Every Time
+	useclass azcentral-srch
+	$1 TDIE
+end
+
+strip tiger
+	name Tiger
+	useclass azcentral-srch
+	$1 Tiger
+end
+
+strip tinasgroove
+	name Tina's Groove
+	useclass azcentral-srch
+	$1 Tinas_Groove
+end
+
+strip tumbleweeds
+	name Tumbleweeds
+	useclass azcentral-srch
+	$1 Tumbleweeds
+end
+
+strip edgecity
+	name Edge City
+	useclass sfgate-gen
+	$1 Edge_City
+end
+
+
+
+# more non-standard
+strip fleem
+	name fleem
+	homepage http://flem.keenspace.com/
+	type generate
+	imageurl http://flem.keenspace.com/comics/%Y%m%d.jpg
+	provides any
+end
+
+strip queenofwands
+	name Queen of Wands
+	homepage http://www.queenofwands.net/
+	type generate
+	imageurl http://www.queenofwands.net/comics/%Y%m%d.gif
+	provides any
+end
+
+strip wigu
+	name WIGU
+	artist Jeffrey Rowland
+	homepage http://www.wigu.com/
+	type generate
+	imageurl http://www.wigu.com/strips/%Y%m%d.png
+	provides any
+end
+
+strip overdue
+	name Overdue
+	artist Bill Barnes and Gene Ambaum
+	homepage http://www.overduemedia.com/
+	type generate
+	imageurl http://www.overduemedia.com/strips/%Y%m%d.gif
+	provides latest
+end
+
+strip nichtlustig
+	name Nicht Lustig
+	homepage http://www.nichtlustig.de/
+	type generate
+	imageurl http://www.nichtlustig.de/comics/full/%y%m%d.jpg
+	provides any
+end
+
+strip hackles
+	name Hackles
+	homepage http://hackles.org
+	type generate
+	imageurl http://hackles.org/latest/cartoon.png
+	provides latest
+end
+
+strip aford
+	name Aford Turtle
+	homepage http://www.afordturtle.com
+	type generate
+	imageurl http://www.afordturtle.com.cnchost.com/comicstrips/neweststrip.gif
+	provides latest
+end
+
+strip dragontails
+	name Dragon Tails
+	artist Tim Dawson
+	homepage http://www.dragon-tails.com/
+	type search
+	searchpattern SRC="(comics/.+?\..+?)"
+	provides latest
+	baseurl $homepage
+end
+
+strip shermanslagoon
+	name Sherman's Lagoon
+	artist Jim Toomey
+	homepage http://www.slagoon.com
+	type generate
+	imageurl $homepage/dailies/SL%y.%m.%d.gif
+	provides latest
+end
+
+strip dicebox
+	name Dicebox
+	homepage http://www.girlamatic.com/series.php?name=dicebox
+	type search
+	searchpattern <img src=(http://www.girlamatic.com/jmlee/\w+?\.jpg)
+	provides latest
+end
+
+strip nothingnice
+	name Nothing Nice to Say
+	homepage http://www.nothingnice.com/
+	type generate
+	imageurl http://www.nothingnice.com/strips/%y/%m-%d-%y.gif
+	provides any
+end
+
+strip ctrlaltdel
+	name Ctrl+Alt+Del
+	artist Tim Buckley
+	homepage http://www.ctrlaltdel-online.com/
+	type generate
+	imageurl http://www.ctrlaltdel-online.com/images/comics/%Y%m%d.jpg
+	provides any
+end
+
+strip tasteslikegravel
+	name Tastes Like Gravel
+	artist Todd Oliver
+	homepage http://www.tasteslikegravel.com/
+	type generate
+	imageurl http://www.tasteslikegravel.com/strips/%Y%m%d.png
+	provides any
+end
+
+strip instantclassic
+	name Instant Classic
+	artist Brian Carroll
+	homepage http://www.briworld.com
+	type generate
+	imageurl http://www.briworld.com/ICimages/IC%Y%m%d.jpg
+	provides any
+end
+
+strip geeksalad
+	name Geek Salad
+	artist Warwick Rendell
+	homepage http://www.geeksalad.net/
+	type generate
+	imageurl http://www.geeksalad.net/strips/%Y%m%d.png
+	provides any
+end
+
+strip reallife
+	name Real Life Comics
+	artist Greg Dean
+	homepage http://www.reallifecomics.com/
+	type search
+	searchpattern src=.(/index.php.*?00000-00000-11111-00000-00000)
+	baseurl http://www.reallifecomics.com/
+	provides latest
+end
+
+strip comet7
+	name Comet 7
+	artist David Tekiela
+	homepage http://www.comet7.moreevolved.com/index.htm
+	type search
+	searchpattern (strips/c7_\d*\.gif)
+	baseurl http://www.comet7.moreevolved.com/
+	provides latest
+end
+
+strip moviepunks
+	name Movie Punks
+	artist Carrington Vanston
+	homepage http://www.moviepunks.com/
+	type search
+	searchpattern (http://www.moviepunks.com/comics/\d*\.png)
+	provides latest
+end
+
+strip building12
+	name Building 12
+	artist Chris Hazelton
+	homepage http://www.building12.net/
+	type search
+	searchpattern (http://www.building12.net/issue\d/page\d*.jpg)
+	provides latest
+end
+
+strip sarahanddavid
+	name Sarah And David
+	artist Alex Aberle
+	homepage http://www.sara-and-david.com/comic.php?comic=latest
+	type search
+	searchpattern (comics/\d*\.jpg)
+	baseurl http://www.sara-and-david.com/
+	provides latest
+end
+
+strip haiopeis
+	name Haiopeis
+	homepage http://www.drive-in-cartoons.de/haiopeis/hauptteil.php
+	type search
+	searchpattern <img src=http://www.drive-in-cartoons.de/albums/haiopeis/(\S+.png)
+	baseurl http://www.drive-in-cartoons.de/albums/haiopeis/
+	provides latest
+end
+
+
+strip grimmy
+    name Mother Goose and Grimm
+    homepage http://www.grimmy.com/comics.php
+    type generate
+    imageurl http://www.grimmy.com/images/MGG_Archive/MGG_%Y/MGG%m%d.gif
+    provides any
+end
+
+strip biloynano
+	name Tira ecol de Bilo y Nano
+	homepage http://tira.escomposlinux.org/
+	type generate
+	imageurl http://tira.escomposlinux.org/tira.png
+	provides latest
+end
+
+strip gallegoyrey
+	name Gallego Y Rey
+	homepage http://www.elmundo.es/diario/opinion/humor.html
+	type generate
+	imageurl http://estaticos.elmundo.es/diario/Library/chiste1.gif
+	provides latest
+end
+
+strip ricardomundo
+	name Ricardo (El Mundo)
+	homepage http://www.elmundo.es/diario/opinion/humor2.html
+	type generate
+	imageurl http://estaticos.elmundo.es/diario/Library/%dchiste2.gif
+	provides latest
+end
+
+strip idigoras
+	name Idigoras
+	homepage http://www.diariosur.es/edicion/actualidad/vinnetas/idigoras.gif
+	type generate
+	imageurl http://www.diariosur.es/edicion/actualidad/vinnetas/idigoras.gif
+	provides latest
+end
+
+strip zulet
+	name Zulet
+	homepage http://www.diariosur.es/edicion/actualidad/vinnetas/zulet.gif
+	type generate
+	imageurl http://www.diariosur.es/edicion/actualidad/vinnetas/zulet.gif
+	provides latest
+end
+
+strip elgar
+	name Elgar
+	homepage http://www.diariosur.es/edicion/actualidad/vinnetas/elgar.gif
+	type generate
+	imageurl http://www.diariosur.es/edicion/actualidad/vinnetas/elgar.gif
+	provides latest
+end
+
+strip pachideportes
+	name Pachi
+	homepage http://www.diariosur.es/edicion/actualidad/vinnetas/pachideportes.gif
+	type generate
+	imageurl http://www.diariosur.es/edicion/actualidad/vinnetas/pachideportes.gif
+	provides latest
+end
+
+strip biloynanoenglish
+	name Tira ecol de Bilo y Nano (english)
+	homepage http://comic.escomposlinux.org/
+	type generate
+	imageurl http://comic.escomposlinux.org/strip.png
+	provides latest
+end
+
+
+strip amores
+	name Amor es...
+	useclass comicspage-panels-gen
+	$1 amores
+	$2 amr
+end

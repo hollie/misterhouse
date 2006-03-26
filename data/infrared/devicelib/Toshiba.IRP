@@ -1,0 +1,7 @@
+Name=Toshiba Standard Protocol
+Protocol=Toshiba
+Frequency=38381
+Time Base=575
+One=1,-3
+Zero=1,-1
+Form=[16 -8],d:8,-d:8,f:8,-f:8,[1 -70 16 -4 1 -8]

@@ -1,0 +1,8 @@
+Name=Xantech RC68 Protocol
+Protocol=Xantech
+Frequency=40000
+Time Base=500
+One=1,-3
+Zero=1,-1
+Form=[17 -8],d:8,~d:8,f:8,~f:8,[1 -64]
+

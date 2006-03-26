@@ -1,0 +1,122 @@
+# The top-level structure is a 'define'.  This defines either a building-block --
+# a 'struct' which can get pulled into the various SNACs -- or a SNAC.  SNACs have
+# family and subtype, and optionally a channel.
+#
+# 'ref' is like #include.  There are some basic structures, like userinfo, which appear
+# inside multiple SNACs.
+#
+# Then there are the data types:
+#	Numeric types: byte (8-bit), word (16-bit), dword (32-bit).
+#	Raw character data: data
+#		This can have a 'length prefix' attached to it.
+#		The length prefix is a numeric type.  The value of the length prefix
+#		is the number of bytes of character data.  The existence of this
+#		length prefix is why it might be useful for data to have sub-data.
+# Data types can have 'counts'.  A count of -1 represents an infinite count.
+# Counted data is passed around as a listref.  For instance, a capabilities block
+# is a series of 16-byte values, so by attaching count=-1 to that data item,
+# you can pass in a listref with the individual capabilities.  There is also
+# fixed-length character data, specified via the length attribute on the data element.
+# Data can be null-terminated and padded.  The value for the pad attribute specifies
+# the octet value to use for padding.
+#
+# Things that have, or can have, length prefixes, take an optional 'default_generate'
+# attribute.  If set to yes, this will give them a default value of "present but empty".
+#
+# Note that if you have counted character data, you will get a listref of hashrefs.
+# For instance:
+#	<data count="-1">
+#		<word name="foo" />
+#		<word name="bar" />
+#	</data>
+# Will give you:
+#	[
+#		{ foo => 1, bar => 2 },
+#		{ foo => 1, bar => 4 },
+#	]
+#
+# You can also have tlvchains and TLVs...
+#
+# If you attach a name to a TLV, as opposed to elements within that TLV,
+# presence of that name in the data hash will correspond with presence of
+# that TLV in the TLV chain, without regard to the value of said TLV.
+#
+#
+# family=0 is a global fallback SNAC family.  That is:
+#	<define family="0" subtype="1" />
+# will get picked up on for all SNACs of subtype 1 where there is no define for
+# that specific family.
+
+<!ELEMENT oscar (define)+>
+
+<!ELEMENT define (ref|byte|word|dword|data|tlvchain)+>
+<!ATTLIST define
+	name ID #REQUIRED
+	channel CDATA #IMPLIED
+	family CDATA #IMPLIED
+	subtype CDATA #IMPLIED
+	flags1 CDATA #IMPLIED
+	flags2 CDATA #IMPLIED
+>
+
+<!ELEMENT ref (EMPTY)>
+<!ATTLIST ref
+	name IDREF #REQUIRED
+>
+
+<!ELEMENT byte (#PCDATA)>
+<!ATTLIST byte
+	name CDATA #IMPLIED
+	count CDATA #IMPLIED
+>
+<!ELEMENT word (#PCDATA)>
+<!ATTLIST word
+	name CDATA #IMPLIED
+	order (network|vax) #DEFAULT network
+	count CDATA #IMPLIED
+>
+<!ELEMENT dword (#PCDATA)>
+<!ATTLIST dword
+	name CDATA #IMPLIED
+	order (network|vax) #DEFAULT network
+	count CDATA #IMPLIED
+>
+<!ELEMENT data (ref|byte|word|dword|data|tlvchain)+>
+<!ATTLIST data
+	name CDATA #IMPLIED
+	prefix_order (network|vax) #DEFAULT network
+	length_prefix (byte|word|dword) #IMPLIED
+	length CDATA #IMPLIED
+	count CDATA #IMPLIED
+	default_generate (yes|no) #DEFAULT no
+	null_terminated (yes|no) #DEFAULT no
+	pad CDATA #IMPLIED
+>
+
+<!ELEMENT tlvchain (tlv*)>
+<!ATTLIST tlvchain
+	subtyped (yes|no) #DEFAULT no <!-- A 'subtyped' TLV is type/subtype/length/value, where subtype and length are both bytes.  It's used in extended status. -->
+	count_prefix (byte|word|dword) #IMPLIED
+	length_prefix (byte|word|dword) #IMPLIED
+	prefix_order (network|vax) #DEFAULT network
+	length CDATA #IMPLIED
+	default_generate (yes|no) #DEFAULT no
+>
+
+<!ELEMENT tlv (ref|byte|word|dword|data|tlvchain)+>
+<!ATTLIST tlv
+	type CDATA #REQUIRED
+	subtype CDATA #IMPLIED <!-- For subtyped TLVs -->
+
+	default_generate (yes|no) #DEFAULT no
+	<!--
+	     If the TLV has a name, that key being present in the data will
+	     correspond to the existance of that TLV, without regard to its value
+	-->
+	name CDATA #IMPLIED
+	<!--
+	    If the TLV has a count, it will get listified.
+	    Behavior of TLVs which have a count but not a name is undefined.
+	-->
+	count CDATA #IMPLIED
+>

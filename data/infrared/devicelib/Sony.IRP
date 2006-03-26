@@ -1,0 +1,8 @@
+Name=Sony General Protocol
+Protocol=Sony
+Frequency=40000
+Time Base=600
+One=2,-1
+Zero=1,-1
+Form=[1 -1],f:7,d:n,[^45000]
+

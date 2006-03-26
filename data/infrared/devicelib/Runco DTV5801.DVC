@@ -1,0 +1,31 @@
+Manufacturer=Runco
+Device=RPTV
+Model=DTV-5801
+Protocol=NEC256A
+Repeat=1
+Device Code=64
+
+[Key Codes]
+
+0         =0
+1         =1
+2         =2
+3         =3
+4         =4
+5         =5
+6         =6
+7         =7
+8         =8
+9         =9
+100       =10
+Reset     =12
+Source    =15
+Power     =18
+RCL/Enter =23
+CursorRT  =25
+CursorLT  =29
+Pic Size  =84
+Exit      =88
+Menu      =128
+CursorUP  =130
+CursorDN  =131

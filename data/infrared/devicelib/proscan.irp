@@ -1,0 +1,9 @@
+Name=Proscan Protocol
+Protocol=Proscan
+Frequency=57500
+Time Base=500
+First Bit=MSB
+One=1,-4
+Zero=1,-2
+Form=[8 -8],d:7,f:5,-d:7,-f:5,[1 -19]
+

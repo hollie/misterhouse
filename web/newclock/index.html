@@ -1,0 +1,217 @@
+<HEAD>
+<TITLE>CME House</TITLE>
+<meta HTTP-EQUIV='Refresh' CONTENT='3600;URL=index.html'>
+
+<SCRIPT LANGUAGE="JavaScript">
+<!-- The JavaScript Source!! http://javascript.internet.com -->
+
+<!-- Begin   function extract(h,m,s,type) {
+
+var dn;
+c1 = new Image(); c1.src = "numbers2/c1.gif";
+c2 = new Image(); c2.src = "numbers2/c2.gif";
+c3 = new Image(); c3.src = "numbers2/c3.gif";
+c4 = new Image(); c4.src = "numbers2/c4.gif";
+c5 = new Image(); c5.src = "numbers2/c5.gif";
+c6 = new Image(); c6.src = "numbers2/c6.gif";
+c7 = new Image(); c7.src = "numbers2/c7.gif";
+c8 = new Image(); c8.src = "numbers2/c8.gif";
+c9 = new Image(); c9.src = "numbers2/c9.gif";
+c0 = new Image(); c0.src = "numbers2/c0.gif";
+cb = new Image(); cb.src = "numbers2/cb.gif";
+cam = new Image(); cam.src = "numbers2/cam.gif";
+cpm = new Image(); cpm.src = "numbers2/cpm.gif";
+function extract(h,m,s,type) {
+if (!document.images) return;
+if (h <= 9) {
+document.images.a.src = cb.src;
+document.images.b.src = eval("c"+h+".src");
+}
+else {
+document.images.a.src = eval("c"+Math.floor(h/10)+".src");
+document.images.b.src = eval("c"+(h%10)+".src");
+}
+if (m <= 9) {
+document.images.d.src = c0.src;
+document.images.e.src = eval("c"+m+".src");
+}
+else {
+document.images.d.src = eval("c"+Math.floor(m/10)+".src");
+document.images.e.src = eval("c"+(m%10)+".src");
+}
+if (s <= 9) {
+document.g.src = c0.src;
+document.images.h.src = eval("c"+s+".src");
+}
+else {
+document.images.g.src = eval("c"+Math.floor(s/10)+".src");
+document.images.h.src = eval("c"+(s%10)+".src");
+}
+if (dn == "AM") document.j.src = cam.src;
+else document.images.j.src = cpm.src;
+}
+function show3() {
+if (!document.images)
+return;
+var Digital = new Date();
+var hours = Digital.getHours();
+var minutes = Digital.getMinutes();
+var seconds = Digital.getSeconds();
+dn = "AM";
+if ((hours >= 12) && (minutes >= 1) || (hours >= 13)) {
+dn = "PM";
+hours = hours-12;
+}
+if (hours == 0)
+hours = 12;
+extract(hours, minutes, seconds, dn);
+setTimeout("show3()", 1000);
+}
+//  End -->
+</script>
+</HEAD>
+
+<BODY onLoad="show3()" bgcolor="#FFFFFF">
+
+<center><table width="550" border=0>
+<tr><td>
+<! -------------------- Mr. House Logo ------------------------>
+<a href="/" target="_parent"><img src="img/logo.gif" height=45 width=120 border="0"></a>
+</td></tr>
+<tr><td>
+<table width="550" border=0><tr>
+<td>
+<! -------------------- Alarm Clock Button .pl ---------------->
+
+<a href='index.pl'  target='_top'><img src="img/a_on.gif" height=30 width=80 border="0"</a></td>
+<td>
+<! -------------------- Clock ---------------------------------->
+<center>
+<img height=80 src="numbers2/cb.gif" width=50 name=a>
+<img height=80 src="numbers2/cb.gif" width=50 name=b>
+<img height=60 src="numbers2/colon.gif" width=34 name=c>
+<img height=80 src="numbers2/cb.gif" width=50 name=d>
+<img height=80 src="numbers2/cb.gif" width=50 name=e>
+<img height=60 src="numbers2/colon.gif" width=30 name=f>
+<img height=45 src="numbers2/cb.gif" width=30 name=g>
+<img height=45 src="numbers2/cb.gif" width=30 name=h>
+<img height=45 src="numbers2/cam.gif" width=30 name=j>
+</center>
+</td>
+</tr></table>
+</td></tr>
+<tr><td><hr></hr></td></tr>
+<tr><td><img src='numbers/text.gif' border=0></td></tr>
+<tr><td>
+
+<table width="500" border=0>
+<tr><td width="70" > 
+<script language=javascript>
+<!-----------------------------------MONTH --------------------->
+nctDay= new Date();
+var month = nctDay.getMonth()+1;
+
+var numberofimagesm = 12;
+imagesm = new Array(numberofimagesm+1);
+imagesm[1] = "<img src='numbers/m1.gif' height=45 width=60>";
+imagesm[2] = "<img src='numbers/m2.gif' height=45 width=60>";
+imagesm[3] = "<img src='numbers/m3.gif' height=45 width=60>";
+imagesm[4] = "<img src='numbers/m4.gif' height=45 width=60>";
+imagesm[5] = "<img src='numbers/m5.gif' height=45 width=60>";
+imagesm[6] = "<img src='numbers/m6.gif' height=45 width=60>";
+imagesm[7] = "<img src='numbers/m7.gif' height=45 width=60>";
+imagesm[8] = "<img src='numbers/m8.gif' height=45 width=60>";
+imagesm[9] = "<img src='numbers/m9.gif' height=45 width=60>";
+imagesm[10] = "<img src='numbers/m10.gif' height=45 width=60>";
+imagesm[11] = "<img src='numbers/m11.gif' height=45 width=60>";
+imagesm[12] = "<img src='numbers/m12.gif' height=45 width=60>";
+document.write(imagesm[month]);
+//-->
+</script>
+</td>
+
+<td width="70" > 
+<script language=javascript>
+<!-----------------------------------DATE------------------------>
+
+var curdate = new Date()
+var mday = curdate.getDate()
+
+var dateimages = 31;
+images = new Array(dateimages+1);
+images[1] = "<img src='numbers/date/1.gif' height=45 width=60>";
+images[2] = "<img src='numbers/date/2.gif' height=45 width=60>";
+images[3] = "<img src='numbers/date/3.gif' height=45 width=60>";
+images[4] = "<img src='numbers/date/4.gif' height=45 width=60>";
+images[5] = "<img src='numbers/date/5.gif' height=45 width=60>";
+images[6] = "<img src='numbers/date/6.gif' height=45 width=60>";
+images[7] = "<img src='numbers/date/7.gif' height=45 width=60>";
+images[8] = "<img src='numbers/date/8.gif' height=45 width=60>";
+images[9] = "<img src='numbers/date/9.gif' height=45 width=60>";
+images[10] = "<img src='numbers/date/10.gif' height=45 width=60>";
+images[11] = "<img src='numbers/date/11.gif' height=45 width=60>";
+images[12] = "<img src='numbers/date/12.gif' height=45 width=60>";
+images[13] = "<img src='numbers/date/13.gif' height=45 width=60>";
+images[14] = "<img src='numbers/date/14.gif' height=45 width=60>";
+images[15] = "<img src='numbers/date/15.gif' height=45 width=60>";
+images[16] = "<img src='numbers/date/16.gif' height=45 width=60>";
+images[17] = "<img src='numbers/date/17.gif' height=45 width=60>";
+images[18] = "<img src='numbers/date/18.gif' height=45 width=60>";
+images[19] = "<img src='numbers/date/19.gif' height=45 width=60>";
+images[20] = "<img src='numbers/date/20.gif' height=45 width=60>";
+images[21] = "<img src='numbers/date/21.gif' height=45 width=60>";
+images[22] = "<img src='numbers/date/22.gif' height=45 width=60>";
+images[23] = "<img src='numbers/date/23.gif' height=45 width=60>";
+images[24] = "<img src='numbers/date/24.gif' height=45 width=60>";
+images[25] = "<img src='numbers/date/25.gif' height=45 width=60>";
+images[26] = "<img src='numbers/date/26.gif' height=45 width=60>";
+images[27] = "<img src='numbers/date/27.gif' height=45 width=60>";
+images[28] = "<img src='numbers/date/28.gif' height=45 width=60>";
+images[29] = "<img src='numbers/date/29.gif' height=45 width=60>";
+images[30] = "<img src='numbers/date/30.gif' height=45 width=60>";
+images[31] = "<img src='numbers/date/31.gif' height=45 width=60>";
+document.write(images[mday]);
+//-->
+</script>
+</td>
+
+<td width="70" >   
+<script language=javascript>
+<!-----------------------------------WEEK------------------------->
+nctday=new Date();
+day=nctday.getDay();
+
+var numberofimages = 7;
+images = new Array(numberofimages+1);
+images[0] = "<img src='numbers/w0.gif' height=45 width=60>";
+images[1] = "<img src='numbers/w1.gif' height=45 width=60>";
+images[2] = "<img src='numbers/w2.gif' height=45 width=60>";
+images[3] = "<img src='numbers/w3.gif' height=45 width=60>";
+images[4] = "<img src='numbers/w4.gif' height=45 width=60>";
+images[5] = "<img src='numbers/w5.gif' height=45 width=60>";
+images[6] = "<img src='numbers/w6.gif' height=45 width=60>";
+document.write(images[day]);
+//-->
+</script> 
+
+<!------------------Insert Temperature ( numbers/date/temp.gif saved by URL_get_weather.pl in code dir------------>
+
+</td>
+<td width="70" > <img src='numbers/date/temp.gif' height=45 width=60><img src='numbers2/celc.gif' height=35 width=40>
+</td></tr></table>
+</td></tr>
+<tr><td>
+<table width="100%" border=0>
+
+<!-----------------------------------Insert Calendar.js------------>
+
+<tr><td width="40%"><SCRIPT SRC="calendar.js"></SCRIPT></td><td>
+
+<!----------Insert Earth Map (Updated every hour each month (So as not to tax earth server) ------>
+<!----------See "http://www.fourmilab.ch/earthview" for more information about earth viewer ------>
+
+<center><a href='/'  target='_top'> <img src='./maps/earth.jpg' width='250' height='120' border=0></a>
+</td></tr></table>
+</td></tr></table>
+</BODY>
+</HTML>

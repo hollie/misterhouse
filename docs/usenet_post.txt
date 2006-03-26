@@ -1,0 +1,103 @@
+All messages from thread 
+Message 1 in thread 
+From: Bruce Winter (brucewinter@home.net)
+Subject: MisterHouse open source HA program 
+ 
+  
+View this article only 
+Newsgroups: comp.home.automation
+Date: 1999/04/01 
+ 
+
+Hi all,
+
+I am the author of a free, perl based HomeAutomation (HA) program called
+mysterious (mh).  I've been using/extending for about a year or so, but it
+has just recently become stable enough that I feel comfortable posting this
+announcement.
+
+Perl is a free, powerful, interpreted language that is available on many
+different operating systems.  By extending perl with various HA related
+objects and methods, mh can use the perl language for its event language.
+Since it is written in perl, it can in theory run on any OS that runs perl.
+I've run it on Windows 95, 98, NT, linux, and AIX.
+
+On the windows platform, mh can use free MS  TTS and VR engines.  On linux,
+it can use the Festival TTS engine.
+
+On the downside, it is a bit of a memory hog, using between 10 and 20 mb,
+depending on if you enable the Tk gui interface and how many events you
+have.  On my house computer, for example, I have about 3k lines of code in
+40 different event files.  This uses 20 mb and about 30% of a 100 mhz
+Pentium cpu, set at 10 passes per second.
+
+On the upside, since it is an extension of a powerful programming language,
+you can fairly easily program complex events.  Here are a few of the tasks I
+have running:
+
+- Control of south facing window curtains.  By monitoring sunlight and
+temperatures, mh can maximize passive solar heat gain.
+
+- Internet data retrieval and processing.  Monitors URLs, sends and monitors
+email, announcing who has what mail.  Other example data is weather info and
+TV programming.
+
+- Controls a relay enabled PA speaker system, so it can speak to one room or
+all rooms in the house.
+
+- For those with radio receivers, it can tracks HAM radio GPS enable cars,
+announcing speed and position.  Also gathers weather data from HAM/packet
+weather stations.
+
+You can control events with voice, a web interface, a Tk widget GUI
+interface, from a command line, via tcpip sockets, time of day, and/or
+serial port data.  It currently has code to interface with the CM11, various
+weeder PIC kits, wx200 weather station, and various other serial devices.
+
+Programming mh is not as easy to program as some of the other fine HA
+programs out there, and it requires a 32 Meg 100 mhz Pentium or bigger, so
+it is not for everyone.  But it is free and open sourced, so if it doesn't
+do what you want it to do, you can change it or ask for a change from any
+the other mh users.  Currently there are about 50 people on the mailing
+list.
+
+ You can download it and or view the mailing list archives from any of the
+following:
+
+  http://members.home.net/winters/house/programs/index.html
+  http://www.geocities.com/ResearchTriangle/Lab/5514/index.html
+  http://misterhouse.webjump.com/index.html
+
+
+Bruce Winter
+Message 2 in thread 
+From: Bruce Winter (brucewinter@home.net)
+Subject: Re: MisterHouse open source HA program 
+ 
+  
+View this article only 
+Newsgroups: comp.home.automation
+Date: 1999/04/02 
+ 
+
+blush ... my spell checker went out of control.  I ment to say:
+
+    "program called MisterHouse"
+
+instead of:
+
+    "program called mysterious"
+
+One other note: you can take a peek at the web interface at
+
+http://winter.tzo.com:8080
+
+This is MisterHouse running on my house computer, connected to the net via a
+cable modem.
+
+Bruce
+
+> I am the author of a free, perl based HomeAutomation (HA) program called
+> mysterious (mh).  I've been using/extending for about a year or so, but it
+> has just recently become stable enough that I feel comfortable posting this
+> announcement.
