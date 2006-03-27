@@ -1,110 +1,313 @@
+# Authority: anyone
+#
 # Virtual Keyboard
-# Matthew Williams
+# Originally by Matthew Williams
+# Contributions:
+# -  Gaeton Lord (original idea)
+# -  David Mark (substantial increase in functionality & browser compatibility)
 #
 # $Revision$
 # $Date$
 #
-#@ This code should be activated if you want a 
-#@ virtual keyboard included within certain web pages
+#@ This code should be activated by MisterHouse if you want a 
+#@ virtual keyboard included within a web page
 #@
 #@ To include a keyboard, you need to run insert_keyboard(%options).
+#@
+#@ To include default style info, run insert_keyboard_style.
 #
 # The currently valid options are:
-#   target: id of the textbox you want to type in.
+#   form: name of the form containing the textbox (required)
+#   target: name of the textbox you want to type in (required)
 #   autocap: if defined, then the first letter of each word will be capitalized
+#   numerickeypad: includes numeric keypad if defined
+#   hidebutton: includes hide button (requires implementing a hideKeyboard method in client script)
 #
 # For example, to insert a keyboard that manipulates the textbox with the
-# id of 'mytextbox' and that autocapitalizes the first letter of each word:
-#   &insert_keyboard({target=>'mytextbox',autocap=>'yes'});
+# id of 'mytextbox' in the form named 'myform' and that autocapitalizes
+# the first letter of each word:
+#   &insert_keyboard({target=>'mytextbox',autocap=>'yes',form=>'myform'});
 # 
-# Based on an idea suggested by Gaetan Lord
-#
+# div.keyboard table.keyboard_container {border:outset 2px}
+# div.keyboard table {border:inset 2px}
+# div.keyboard td {text-align:center}
+# div.keyboard input.spacebar {width:50%;font-size:smaller}
+# div.keyboard td input {font-size:smaller}
+# div.keyboard td input.small {padding-left:4px;padding-right:4px;width:2em}
+
+sub insert_keyboard_style {
+	return qq[
+<style type="text/css">
+div.keyboard td {
+	text-align: center;
+}
+
+div.keyboard input { 
+	width: 2em;
+}
+
+div.keyboard input.special {
+	width: auto;
+	font-style: italic;
+	font-size: 0.75em;
+}
+
+div.keyboard input.spacebar {
+	width:20em; 
+}
+</style>
+];
+}
 
 sub insert_keyboard {
 	my ($options)=@_;	# pass a hash reference of options
 
 	if (ref($options) ne 'HASH') {
-		return 'VKB Usage Error!!  You must pass a hash reference.';
+		return 'virtual_keyboard: You must pass a hash reference.';
 	}
 
+	my $form=$$options{form};
 	my $target=$$options{target};
 	my $autocap=$$options{autocap};
+	my $hide_button=$$options{hide_button};
+	my $numeric_keypad=$$options{numeric_keypad};
 
-	if ($target eq '') {
-		return 'VKB Usage Error!!  You must specify a target.';
+	if (!$form) {
+		return 'virtual_keyboard: You must specify a form.';
 	}
 
-	my @rows=qw/ ~!@#$%^&*()_+ `1234567890-= qwertyuiop[]\{}| asdfghjkl;':" zxcvbnm,.\/<>?/;
+	if (!$target) {
+		return 'virtual_keyboard: You must specify a target.';
+	}
 
-	my $result=qq[<div id="virtual_keyboard_$target">\n];
+	my @rows=qw/`1234567890-= qwertyuiop[]\ asdfghjkl;' zxcvbnm,.\//;
 
-	$result.=qq[<hr /><table>\n];
+	my $result=qq[<div class="keyboard">
+<br/>
+<form name="keyboard" action="">
+<table class="container">
+<tr><td>
+<table class="main">];
 
+	my $row = 0;
 	for (@rows) {
-		$result .= "<tr>\n";
+		$result .= '<tr><td>';
 		my @chars=split(//,$_);
+		my $column = 0;
 		for (@chars) {
-			my $value=$_;
-			my $jchar=$_;
-			$jchar="\\'" if $jchar eq "'";
+			my $value=$_;						
+
 			$value='&quot;' if $value eq '"';
-			$jchar='&quot;' if $jchar eq '"';
-			$result .= qq[<td><input type="button" onclick="insert_char_$target('$jchar')" value="$value"></td>\n];
+			$value='&amp;' if $value eq '&';
+
+			if ($row == 1 && $column == 0) {
+				$result .= qq[<input class="special" type="button" onclick="keyboard_next_control()" value="Tab">];
+			}
+			
+			if ($row == 2 && $column == 0) {
+				$result .= qq[<input class="special" type="button" value="Caps" onclick="keyboard_caps_pressed(this)">];
+			}
+
+			if ($row == 3 && $column == 0) {
+				$result .= qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
+			}
+
+			$result .= qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
+			$column++;
 		}
-		$result .= "</tr>\n";
+
+		if ($row == 0) {
+			$result .= qq[<input class="special" type="button" onclick="keyboard_delete_char()" value="Backspace">];
+		}
+
+		if ($row == 2) {
+			$result .= qq[<input class="special" type="button" onclick="keyboard_form.submit()" value="Enter">];
+		}
+
+		if ($row == 3) {
+			$result .= qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
+		}
+		$row++;
+		$result .= "</td></tr>";
 	}
+
 	$result.=qq[<tr>
-<td colspan="2"><input type="button" onclick="shift_pressed_$target(' ')" value="Shift" id="shift_key_$target"></td>
-<td colspan="2"><input type="button" onclick="insert_char_$target(' ')" value="Space"></td>
-<td colspan="3"><input type="button" onclick="delete_char_$target()" value="Backspace"></td>
-<td colspan="3"><input type="button" onclick="delete_all_$target()" value="Clear"></td></tr>
-];
-	$result.=qq[</table><hr />
+<td><input class="special" type="button" onclick="keyboard_delete_all()" value="Clear">
+<input class="spacebar special" type="button" onclick="keyboard_insert_char(' ')" value="Space">];
+
+	if ($hide_button) {
+		$result .= qq[<input name="hide" value="Hide" type="button" onclick="hideKeyboard()">];
+	}
+
+	$result .= '</td></tr></table></td>';
+
+	if ($numeric_keypad) {
+	
+		@rows=qw/123 456 789 0/;
+
+		$result .= '<td><table class="numeric">';
+
+		$row = 0;
+		for (@rows) {
+			my $column = 0;
+			$result .= '<tr><td>';
+			my @chars=split(//,$_);
+			for (@chars) {
+				my $value=$_;						
+				$result .= qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
+				$column++;
+			}
+			if ($row == 3 ) {
+				$result .= qq[<input class="keyboard" type="button" onclick="keyboard_delete_all()" value="Clear">];
+			}
+
+			$result .= '</td></tr>';				
+			$row++;		
+		}
+		$result .= '</table></td>';
+	}
+
+	$result.=qq[</tr></table></form>
 <script language="javascript" type="text/javascript">
 <!--
 
-var textbox_$target=document.getElementById('$target');
-var shift_currently_pressed_$target=false;
-var shift_key_$target=document.getElementById('shift_key_$target');
+var keyboard_form=document.$form;
+var keyboard_textbox=keyboard_form.$target;
+var keyboard_shift_currently_pressed=false;
+var keyboard_caps_currently_pressed=false;
 
-function insert_char_$target(letter) {
-	if (shift_currently_pressed_$target) {
-		letter=letter.toUpperCase();
-		shift_currently_pressed_$target=false;
-		shift_key_$target.value='Shift';
+var shiftedNumbers = ')!@#\$%^&*(';
+var shiftedSymbols = '_+{}|:"<>?';
+var unshiftedSymbols = "-=[]\\\\;',./";
+
+// Call this before showing to use one keyboard for multiple inputs
+// Pass form object and input object from client script (these will be used in lieu of server-supplied named args)
+
+function keyboard_set_target(f,t) {	
+	keyboard_textbox = t;
+	keyboard_form = f;
+}
+
+function keyboard_next_control() {
+	var e = keyboard_form.elements;	
+	var i=0;
+
+	for (i=0; i < e.length && e[i].name &&
+		e[i].name != keyboard_textbox.name; i++) {
+	}
+
+	// we couldn't find current textbox, so do nothing
+	if (i == e.length) {
+		return;
+	}
+
+	var j=i;
+	do {
+		if (!keyboard_shift_currently_pressed) {
+			j++;
+			if (j >= e.length) {
+				j=0;
+			}
+		} else {
+			j--;
+			if (j < 0) {
+				j=e.length-1;
+			}
+		}
+		if (e[j].type=="text") {
+			break;
+		}
+	}
+	while (i != j);
+	if (i != j) {
+		keyboard_textbox=e[j];
+		e[j].focus();
+	}
+	if (keyboard_shift_currently_pressed) {
+		keyboard_shift_currently_pressed=false;
+		keyboard_update_buttons();
+	}
+}
+
+function keyboard_insert_char(letter) {
+	if (keyboard_shift_currently_pressed) {
+		keyboard_shift_currently_pressed = false;
+		keyboard_update_buttons();
 	}
 ];
-	if ($autocap ne '') {
+	if ($autocap) {
 		$result.=qq[
-	if (textbox_$target.value.length == 0) {
+	if (keyboard_textbox.value.length == 0) {
 		letter=letter.toUpperCase();
 	} else {
-		if (textbox_$target.value.substring(textbox_$target.value.length-1,textbox_$target.value.length) == ' ') {
+		if (keyboard_textbox.value.substring(keyboard_textbox.value.length-1,keyboard_textbox.value.length) == ' ') {
 			letter=letter.toUpperCase();
 		}
 	}
 		];
 	}
 	$result.=qq[
-	textbox_$target.value=textbox_$target.value+letter;
+	keyboard_textbox.value=keyboard_textbox.value + letter;
 }
 
-function delete_char_$target() {
-	if (textbox_$target.value.length > 0) {
-		textbox_$target.value=textbox_$target.value.substring(0,textbox_$target.value.length-1);
+function keyboard_delete_char() {
+	if (keyboard_textbox.value.length > 0) {
+		keyboard_textbox.value=keyboard_textbox.value.substring(0,keyboard_textbox.value.length-1);
 	}
 }
 
-function delete_all_$target() {
-	textbox_$target.value='';
+function keyboard_delete_all() {
+	keyboard_textbox.value='';
 }
 
-function shift_pressed_$target() {
-	shift_currently_pressed_$target=!shift_currently_pressed_$target;
-	if (shift_currently_pressed_$target == true) {
-		shift_key_$target.value='SHIFT';
-	} else {
-		shift_key_$target.value='Shift';
+function keyboard_caps_pressed(e) {
+	keyboard_caps_currently_pressed=!keyboard_caps_currently_pressed;	
+	keyboard_update_buttons();
+}
+
+function keyboard_shift_pressed(e) {
+	keyboard_shift_currently_pressed=!keyboard_shift_currently_pressed;
+	keyboard_update_buttons();
+}
+
+function keyboard_update_buttons() {
+	var buttons = document.forms["keyboard"].elements;
+	if (buttons) {
+		if (keyboard_shift_currently_pressed || keyboard_caps_currently_pressed) {
+			for (var i = 0; i < buttons.length; i++) {
+				if (buttons[i].value.length == 1 && buttons[i].value >= 'a' && buttons[i].value <= 'z') {
+					buttons[i].value = buttons[i].value.toUpperCase();
+				}
+			}
+		} else {
+			for (var i = 0; i < buttons.length; i++) {
+				if (buttons[i].value.length == 1 && buttons[i].value >= 'A' && buttons[i].value <= 'Z') {
+					buttons[i].value = buttons[i].value.toLowerCase();
+				}
+			}
+		}
+
+		if (keyboard_shift_currently_pressed) {
+			for (var i = 0; i < buttons.length; i++) {
+				if (buttons[i].value >= '0' && buttons[i].value <= '9') {
+					buttons[i].value = shiftedNumbers.substring(buttons[i].value.charCodeAt(0) - 48, buttons[i].value.charCodeAt(0) - 47);
+				} else {
+					if (unshiftedSymbols.lastIndexOf(buttons[i].value) != -1) {
+						buttons[i].value = shiftedSymbols.substring(unshiftedSymbols.lastIndexOf(buttons[i].value), unshiftedSymbols.lastIndexOf(buttons[i].value) + 1);
+					}
+				}
+			}
+		} else {
+			for (var i = 0; i < buttons.length; i++) {
+				if (shiftedNumbers.lastIndexOf(buttons[i].value) != -1) {
+					buttons[i].value = shiftedNumbers.lastIndexOf(buttons[i].value);
+				} else {
+					if (shiftedSymbols.lastIndexOf(buttons[i].value) != -1) {	
+						buttons[i].value = unshiftedSymbols.substring(shiftedSymbols.lastIndexOf(buttons[i].value), shiftedSymbols.lastIndexOf(buttons[i].value) + 1);
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -114,4 +317,3 @@ function shift_pressed_$target() {
 ];
 	return $result;
 }
-

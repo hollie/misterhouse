@@ -153,9 +153,12 @@ h4 { font-family: helvetica;
     margin:0;
     margin-top: 10px;}
 </style>
+];
+$html .= &insert_keyboard_style;
+$html.=qq[
 </head>
 <body>
-<form name="main" action="/bin/shopping_list.pl" method="post">
+<form name="main" id="main" action="/bin/shopping_list.pl" method="post">
 <input type="hidden" name="listName" value="$listName">
 ];
 
@@ -205,7 +208,7 @@ if ($param{'action'} eq 'add item') {
 		$html.=qq[<input type="submit" name="action" value="cancel"></p>\n];
 		$html.=qq[</form>\n];
 		$html.='';
-		$html.= &insert_keyboard({target => 'item', autocap => 'yes'});
+		$html.= &insert_keyboard({form => 'main', target => 'item', autocap => 'yes'});
 		$html.=qq[</body></html>\n];
 		return html_page(undef,$html);
 	}
