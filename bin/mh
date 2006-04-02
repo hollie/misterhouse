@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2006-03-28 19:26:44 winter>
+#  Last change Time-stamp: <2006-04-02 17:58:02 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -4820,7 +4820,7 @@ sub set_global_vars {
 }
 
 sub serial_port_create {
-    my ($name, $port, $baudrate, $handshake, $datatype, $prefix) = @_;
+    my ($name, $port, $baudrate, $handshake, $datatype, $prefix, $parity) = @_;
 
     $port = '\\\\.\\' . $port if $Info{OS_name} =~ /(NT|XP)/ and $port =~ /^com\d{2}\z/i;
 
