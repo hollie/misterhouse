@@ -152,6 +152,30 @@ sub ring_count
 	return $$self{m_RingCount};
 }
 
+#Duration ( HH:MM:SS format )
+sub call_duration
+{
+	my ($self,$p_duration) = @_;
+	$$self{m_CallDuration}=$p_duration if defined $p_duration;
+	return $$self{m_CallDuration};
+}
+
+#Extension ( string - could be in numeric format )
+sub extension
+{
+	my ($self,$p_extension) = @_;
+	$$self{m_Extension}=$p_extension if defined $p_extension;
+	return $$self{m_Extension};
+}
+
+#Call Type (POTS, VOIP )
+sub call_type
+{
+	my ($self,$p_callType) = @_;
+	$$self{m_CallType}=$p_callType if defined $p_callType;
+	return $$self{m_CallType};
+}
+
 #Send or received tone
 sub dtmf
 {

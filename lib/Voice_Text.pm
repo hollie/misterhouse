@@ -842,39 +842,17 @@ sub force_pronounce {
     return $phrase;
 }
 
+my @divisions = qw/trillion billion million thousand/;
+my @digits    = qw/zero one two three four five six seven eight nine ten/;
+my @teens     = qw/ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen/;
+my @tens      = qw/ten twenty thirty forty fifty sixty seventy eighty ninety/;
+
 sub num_to_text {
     my ($num)=@_;
 
-    &main::print_log("converting $num to text");
+    &main::print_log("converting $num to text") if $main::Debug{voice};
 
-    my @divisions=qw/trillion billion million thousand/;
-    my @digits=qw/zero one two three four five six seven eight nine ten/;
-    my @teens=qw/ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen/;
-    my @tens=qw/ten twenty thirty forty fifty sixty seventy eighty ninety/;
     my $divisor=10 ** (3*($#divisions+1));
-
-    sub num_to_text_999 {
-        my ($num)=@_;
-        my $result='';
-
-        if ($num >= 100) {
-            $result.=' '.$digits[$num / 100].' hundred';
-            $num %= 100;
-        }
-        if ($num >= 10) {
-            if ($num < 20) {
-                $result.=' '.$teens[$num-10];
-            } else {
-                $result.=' '.$tens[$num / 10 -1];
-                if ($num % 10 > 0) {
-                    $result.='-'.$digits[$num % 10];
-                }
-            }
-        } else {
-            $result .= ' '.$digits[$num];
-        }
-        return $result;
-    }
 
     if ($num==0) {
         return $digits[0];
@@ -900,6 +878,29 @@ sub num_to_text {
     }
     $result .= num_to_text_999($num);
     $result =~ s/^ +//;
+    return $result;
+}
+
+sub num_to_text_999 {
+    my ($num)=@_;
+    my $result='';
+
+    if ($num >= 100) {
+        $result.=' '.$digits[$num / 100].' hundred';
+        $num %= 100;
+    }
+    if ($num >= 10) {
+        if ($num < 20) {
+            $result.=' '.$teens[$num-10];
+        } else {
+            $result.=' '.$tens[$num / 10 -1];
+            if ($num % 10 > 0) {
+                $result.='-'.$digits[$num % 10];
+            }
+        }
+    } else {
+        $result .= ' '.$digits[$num];
+    }
     return $result;
 }
 

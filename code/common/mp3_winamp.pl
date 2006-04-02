@@ -87,15 +87,26 @@ sub mp3_control {
             print_log "Winamp (httpq $host) set to $command: $temp" if $Debug{winamp};
         }
         elsif($command =~ /shuffle/i) {
-		$temp .= filter_cr get "$url/shuffle_status?p=$config_parms{mp3_program_password}";
-		if ($temp) {
-			get "$url/shuffle?p=$config_parms{mp3_program_password}&a=0";
-			print_log "Winamp (httpq $host) Shuffle set OFF" if $Debug{winamp};
-		}
-		else {
-			get "$url/shuffle?p=$config_parms{mp3_program_password}&a=1";
-			print_log "Winamp (httpq $host) Shuffle set ON" if $Debug{winamp};
-		}
+            $temp .= filter_cr get "$url/shuffle_status?p=$config_parms{mp3_program_password}";
+            if ($temp) {
+                get "$url/shuffle?p=$config_parms{mp3_program_password}&a=0";
+                print_log "Winamp (httpq $host) Shuffle set OFF" if $Debug{winamp};
+            }
+            else {
+                get "$url/shuffle?p=$config_parms{mp3_program_password}&a=1";
+                print_log "Winamp (httpq $host) Shuffle set ON" if $Debug{winamp};
+            }
+        }
+        elsif($command =~ /repeat/i) {
+            $temp .= filter_cr get "$url/repeat_status?p=$config_parms{mp3_program_password}";
+            if ($temp) {
+                get "$url/repeat?p=$config_parms{mp3_program_password}&a=0";
+                print "Winamp (httpq $host) Repeat set OFF" if $Debug{winamp};
+            }
+            else {
+                get "$url/repeat?p=$config_parms{mp3_program_password}&a=1";
+                print "Winamp (httpq $host) Repeat set ON" if $Debug{winamp};
+            }
         }
         else {
             $temp = filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
@@ -391,4 +402,14 @@ sub mp3_player_running {
     else {
         return 1;  # Not sure what other methods we have to check here
     }
+}
+
+sub mp3_radio_play {
+    my $file = shift;
+    return 0 if ($file eq '');
+    my $host = shift || $mp3_host;
+    return 0 unless &mp3_running($host);
+    $file =~ s/&&/&/g;
+    run qq[$config_parms{mp3_program} "$file"];
+    print "mp3 radio play: $file" if $Debug{winamp};
 }

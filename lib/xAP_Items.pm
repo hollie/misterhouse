@@ -180,17 +180,22 @@ sub open_port {
     if ($send_listen eq 'send') {
         my $dest_address;
 #       $dest_address = inet_ntoa(INADDR_BROADCAST);
-        $dest_address = '255.255.255.255';
+        $dest_address = $::config_parms{'ipaddress_xap_broadcast'} if $port_name =~ /^xap/i;
+        $dest_address = $::config_parms{'ipaddress_xpl_broadcast'} if $port_name =~ /^xpl/i;
+        $dest_address = '255.255.255.255' unless $dest_address;
         $dest_address = 'localhost' if $local;
         $sock = new IO::Socket::INET->new(PeerPort => $port, Proto => 'udp',
                                           PeerAddr => $dest_address, Broadcast => 1);
     }
     else {
         my $listen_address;
+        $listen_address = $::config_parms{'ipaddress_xap'} if $port_name =~ /^xap/i;
+        $listen_address = $::config_parms{'ipaddress_xpl'} if $port_name =~ /^xpl/i;
         if ($main::OS_win) {
-           $listen_address = $::Info{IPAddress_local};
+            $listen_address = $::Info{IPAddress_local} unless $listen_address;
         } else {
-           $listen_address = '0.0.0.0';
+           # can't get *nix to bind to a specific address; defaults to kernel assigned default IP
+            $listen_address = '0.0.0.0';# unless $listen_address;
         }
         $listen_address = 'localhost' if $local;
         $sock = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp',
@@ -218,8 +223,6 @@ sub open_port {
 
 
 sub check_for_data {
-    my $ip_address = $::Info{IPAddress_local};
-
 
     if ($xap_hub_listen && (my $xap_hub_data = said $xap_hub_listen)) {
 	&_process_incoming_xap_hub_data($xap_hub_data);
@@ -287,7 +290,9 @@ sub parse_data {
 
 sub _process_incoming_xpl_hub_data {
    my ($data) = @_;
-   my $ip_address = $::Info{IPAddress_local};
+   my $ip_address = $::config_parms{'ipaddress_xpl'};
+   $ip_address = $::Info{IPAddress_local} unless $ip_address;
+
 
    undef $xpl_data;
    $xpl_data = &parse_data($data);
@@ -348,7 +353,8 @@ sub _process_incoming_xpl_hub_data {
 
 sub _process_incoming_xap_hub_data {
    my ($data) = @_;
-   my $ip_address = $::Info{IPAddress_local};
+   my $ip_address = $::config_parms{'ipaddress_xap'};
+   $ip_address = $::Info{IPAddress_local} unless $ip_address;
 
    undef $xap_data;
    $xap_data = &parse_data($data);
@@ -399,7 +405,6 @@ sub _process_incoming_xap_hub_data {
 
 sub _process_incoming_xpl_data {
    my ($data) = @_;
-   my $ip_address = $::Info{IPAddress_local};
 
    undef $xpl_data;
    $xpl_data = &parse_data($data);
@@ -516,8 +521,6 @@ sub _process_incoming_xpl_data {
 
 sub _process_incoming_xap_data {
     my ($data, $device_name) = @_;
-    my $ip_address = $::Info{IPAddress_local};
-#    my $is_real_device = ($device_name eq XAP_REAL_DEVICE_NAME);
 	undef $xap_data;
         $xap_data = &parse_data($data);
 
@@ -866,7 +869,11 @@ sub sendXapWithHeaderVars {
        }
        print "db5 xap msg: $msg" if $main::Debug{xap} and $main::Debug{xap} == 5;
        if ($xap_send) {
-          $xap_send->set($msg);
+                                # check to see if the socket is still valid
+           if (!($::Socket_Ports{'xap_send'}{socka})) {
+               &xAP::_handleStaleXapSockets();
+           }
+           $xap_send->set($msg) if $::Socket_Ports{'xap_send'}{socka};
        }
    } else {
       print "WARNING! xAP is disabled and you are trying to send xAP data!! (xAP::sendXapWIthHeaderVars())\n";
@@ -894,7 +901,11 @@ sub sendXpl {
        }
        print "db5 xpl msg: $msg" if $main::Debug{xpl} and $main::Debug{xpl} == 5;
        if ($xpl_send) {
-	  $xpl_send->set($msg);
+                                # check to see if the socket is still valid
+           if (!($::Socket_Ports{'xpl_send'}{socka})) {
+               &xAP::_handleStaleXplSockets();
+           }
+           $xpl_send->set($msg) if $::Socket_Ports{'xpl_send'}{socka};
        }
    } else {
       print "WARNING! xAP is disabled and you are trying to send xPL data!! (xAP::sendXpl())\n";
@@ -904,12 +915,16 @@ sub sendXpl {
 sub send_xpl_heartbeat {
     my ($protocol) = @_;
     my $port = $::Socket_Ports{xpl_listen}{port};
-    my $ip_address = $::Info{IPAddress_local};
+    my $ip_address = $::config_parms{'xpl_address'};
+    $ip_address = $::Info{IPAddress_local} unless $ip_address;
+
     my $msg;
     if ($xpl_send) {
        $msg  = "xpl-stat\n{\nhop=1\nsource=" . &xAP::get_xpl_mh_source_info() . "\ntarget=*\n}\n";
        $msg .= "hbeat.app\n{\ninterval=$xpl_hbeat_interval\nport=$port\nremote-ip=$ip_address\n}\n";
-       $xpl_send->set($msg);
+                          # check to see if all of the sockets are still valid
+       &xAP::_handleStaleXplSockets();
+       $xpl_send->set($msg) if $::Socket_Ports{'xpl_send'}{socka};
        print "db6 $protocol heartbeat: $msg.\n" if $main::Debug{xpl} and $main::Debug{xpl} == 6;
     } else {
        print "Error in xAP_Item::send_heartbeat.  xPL send socket not available.\n";
@@ -930,8 +945,84 @@ sub send_xap_heartbeat {
       $msg .= "class=xap-hbeat.$hbeat_type\n";
       $msg .= "source=" . &xAP::get_xap_mh_source_info($base_ref) . "\n";
       $msg .= "interval=$xap_hbeat_interval_in_secs\nport=$port\npid=$$\n}\n";
-      $xap_send->set($msg);
+                          # check to see if all of the sockets are still valid
+      &xAP::_handleStaleXapSockets();
+      $xap_send->set($msg) if $::Socket_Ports{'xap_send'}{socka};
       print "db6 xap heartbeat: $msg.\n" if $main::Debug{xap} and $main::Debug{xap} == 6;
+   }
+}
+
+sub _handleStaleXapSockets {
+
+   # check main sending socket
+   my $port_name = 'xap_send';
+   if (!($::Socket_Ports{$port_name}{socka})) {
+      if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'send', $port_name, 0, 1)) {
+         print "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
+      } else {
+         print "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
+      }
+   }
+   # check each primary listening socket
+   for my $virtual_device_name (keys %{xap_virtual_devices}) {
+      $port_name = "xap_listen_$virtual_device_name";
+      if (!($::Socket_Ports{$port_name}{socka})) {
+         if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'listen', $port_name, 0, 1)) {
+            print "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
+         } else {
+            print "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
+         }
+      }
+   }
+
+   # check the hub listening socket if hub mode is enabled
+   if (!($::config_parms{xap_nohub})) {
+      $port_name = 'xap_hub_listen';
+      if (!($::Socket_Ports{$port_name}{socka})) {
+         if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'listen', $port_name, 0, 1)) {
+            print "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
+         } else {
+            print "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
+         }
+      }
+      # no need to check each hub "responder" socket as it is automatically reopened on receipt
+      # of client's heartbeat
+   }
+}
+
+sub _handleStaleXplSockets {
+
+   # check main sending socket
+   my $port_name = 'xpl_send';
+   if (!($::Socket_Ports{$port_name}{socka})) {
+      if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'send', $port_name, 0, 1)) {
+         print "Notice. xPL socket ($port_name) had been closed and has been reopened\n";
+      } else {
+         print "WARNING! xPL socket ($port_name) had been closed and can not be reopened\n";
+      }
+   }
+   # check main listening socket
+   my $port_name = 'xpl_listen';
+   if (!($::Socket_Ports{$port_name}{socka})) {
+      if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'listen', $port_name, 0, 1)) {
+         print "Notice. xPL socket ($port_name) had been closed and has been reopened\n";
+      } else {
+         print "WARNING! xPL socket ($port_name) had been closed and can not be reopened\n";
+      }
+   }
+
+   # check the hub listening socket if hub mode is enabled
+   if (!($::config_parms{xpl_nohub})) {
+      $port_name = 'xpl_hub_listen';
+      if (!($::Socket_Ports{$port_name}{socka})) {
+         if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'listen', $port_name, 0, 1)) {
+            print "Notice. xPL socket ($port_name) had been closed and has been reopened\n";
+         } else {
+            print "WARNING! xPL socket ($port_name) had been closed and can not be reopened\n";
+         }
+      }
+      # no need to check each hub "responder" socket as it is automatically reopened on receipt
+      # of client's heartbeat
    }
 }
 

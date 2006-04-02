@@ -1,5 +1,17 @@
 =begin comment
 
+
+--------------------------
+
+Note:  This code is has been retired in favor of X10_W800.pm.
+It may work ok, but most people have better luck with the X10_W800 module.
+
+
+--------------------------
+
+
+
+
 X10_W800RF.pm
 
 Written by Ross Towbin
@@ -49,7 +61,7 @@ For 'security' devices or for the RF TV Remote (UR51A)
 		that may  represent "Normal", "Alert", or "panic"
 
 	The "R" prefix can be changed to something else, see "$NonX10Prefix.
-	
+
 	The SecurityID can be retrieved by using the rf32.exe program that came with
 	the W800RF. Start rf32.exe, then cause the device to send it's code (some
 	devices have a "test" button) The SecurityID will be the third byte displayed.
@@ -115,14 +127,14 @@ Data is received as a binary stream.  It is converted it to HEX to make it
 	easier to display.
 
    Byte 1      Byte 2      Byte 3     Byte 4
-  n1   n2     n1   n2     n1   n2     n1   n2  
+  n1   n2     n1   n2     n1   n2     n1   n2
  0000.0000 - 0000.0000 : 0000.0000 - 0000.0000
  abcd.efgh - (see note): qrst.uvwx - ijkL.mnop
 
  Notes (1) using upper case "L" to distinguish it from "1" (one)
 	 (2) for 'normal' X10, Byte 2 is the complement of Byte 1 AND Byte 4
 		is the complemnt of Byte 3
- 
+
  bit(s)	: Description
  -----	: --------------------------------------------------------------
  abc		: 000     	almost always this is the code for 'normal' X10
@@ -174,7 +186,7 @@ s	: bit 3 of UNIT
 		although the UNIT isn't passed in
 		this is clear when the UNIT is 1-8
 		and set when the UNIT is 9-16
-		
+
 defg	: Function
  	000 : All Units Off
 	001 : unknown
@@ -200,7 +212,7 @@ defg	: Function
 g	unknown (set to 0)
 	This is probably the "high bit" for the remaining
 	functions listed above.
-	
+
 qrt	unknown (set to 0)
 
 (2) "SECURITY" DEVICE
@@ -233,7 +245,7 @@ abcdefgh	: device "function" (status) of device
 		example #1 : (DW534) and (30002) (see a few lines below) have the
 			same pattern (of course, that's because they're internally
 			the same transmitter, just designed with a different sensor)
-		
+
 		example #2 : (SH624) function [ARM AWAY (min)] is the same as
 				 (KF574) function [ARM]
 
@@ -257,7 +269,7 @@ abcdefgh	: device "function" (status) of device
 			0110.0000 (60h)	KF574 : Arm Away
 			0110.0001 (61h)	KF574 : Disarm
 			0110.0010 (62h)	KF574 : Lights On
-			0110.0011 (63h)	KF574 : Lights Off		
+			0110.0011 (63h)	KF574 : Lights Off
 
 		SH624 Large Security Remote
 			0111.0000 (70h)	SH624 : Arm Home (min)
@@ -344,7 +356,7 @@ my %security_codes = qw(00 Sensor:OpenMax     01 Sensor:ClosedMax 20 Sensor:Open
 				60 System:ArmAwayMin  61 System:Disarm    62 Control:LightsOn
 				63 Control:LightsOff  64 System:Panic     70 System:ArmHomeMin);
 
-# UR51A Function codes:  
+# UR51A Function codes:
 #  - OK and Ent are same, PC and Subtitle are same,
 #  - Chan buttons and Skip buttons are same
 my %tv_codes = qw(0F Power	2B PC		6B Title	5C Display	4A Enter	1B Return
@@ -365,7 +377,7 @@ $prev_data = $prev_time = $prev_done = 0;
 sub check_for_data {
 	my ($self) = @_;
 
-	# used to hold 'progress text', useful for debugging 
+	# used to hold 'progress text', useful for debugging
 	my ($outputtext) = "W800RF";
 
 	&main::check_for_generic_serial_data('W800RF');
@@ -722,9 +734,9 @@ sub check_for_data {
 #		"X", but with "R" instead.
 #
 #	4. There seems to be a problem with DIM/BRIGHT.
-#		
+#
 #	5. Some users have experienced a duplication of transmitted codes. Two suggestions
-#	   have been made: 
+#	   have been made:
 #		a) per "Scott Reston" <scott@therestons.com> 2003-June-04, increase
 #		   x10_multireceive_delay (in mh.ini / mh.private.ini) to 5000
 #		b) per "Bill Young" <spamhole@cox.net> 2003-June-07,
@@ -736,7 +748,7 @@ sub check_for_data {
 # 2003-June-18 - Updates bsaed on user feedback
 #
 #	1. Some users have experienced a duplication of transmissions.
-#		I incorporated the comments from (Bill Young <spamhole@cox.net> 
+#		I incorporated the comments from (Bill Young <spamhole@cox.net>
 #		Sat, 07 Jun 2003 09:40:10 -0700).
 #
 #	2. from (Robert Mann <mh@easyway.com> 8 Jun 2003 15:53:58 -0700)

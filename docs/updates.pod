@@ -20,14 +20,24 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 B<New Features:>
 
+B<Bug Fixes and Other Changes:>
+
+
+
+=head2 Version 2.102 posted on 04/02/2006
+
+Version 2.102 can be downloaded from here:
+
+  http://misterhouse.sf.net/download.html
+
+
+B<New Features:>
+
 - Brian McKissick created code/common/power_Xantrex.pl for communicating with a
 Xantrex GT3.0 grid-tied photovoltaic power inverter, allowing for home automation monitoring of generated solar power.
 
 - Ricardo Arroyo sent in code and web files he has modified to speak in Spanish,
 or to use Spainish web pages.  Copied to mh/code/public/Ricardo
-
-- A interview about the open source aspect of MisterHouse can be found at http://www.cocoontech.com/index.php?showtopic=3428
-and a summary of that interview is at http://www.itbusinessedge.com/item/?ci=11747
 
 - Jim Morrissey sent in mh/code/public/power_french_edf.zip, code and web pages he wrote to manage the different
 power rates that the French national electricity (EDF) provides.
@@ -39,8 +49,17 @@ will try to detect the best option for various browsers when playing mh TTS.
 
 - Gaetan Lord and Jocelyn Brouillard created lib/DSC5401.pm, code/examples/DSC5401.pl, and web/bin/DSC5401_*.pl for supporting the DSC5401.
 
-- Gaetan Lord and Matthew Williams added code/common/virtual_keyboard.pl to allow for a virtual keyboard within a web page,
+- Gaetan Lord, Matthew Williams, and David Mark added code/common/virtual_keyboard.pl to allow for a virtual keyboard within a web page,
 and updated web/bin/shopping_list.pl to use it.
+
+- Gaetan Lord created web/bin/listmanager.pl, based on shopping_list.pl, but more generic and targeted for use on a PDA.
+
+- Gregg Liming updated code/common/asterisk_gregg.pl which uses Telephony_xAP and and netcallerid objects to perform CID, output logging,
+MWI display and on-/off-hook processing (e.g, mute music on call pick-up or start).
+He also updated lib/Telephony_xAP.pm, lib/CID_Log.pm, CID_Lookup.pm, and phone_logs.pl.
+
+- A interview about the open source aspect of MisterHouse can be found at http://www.cocoontech.com/index.php?showtopic=3428
+and a summary of that interview is at http://www.itbusinessedge.com/item/?ci=11747
 
 - Matthew Williams migrated the MisterHouse sourceforge repository from CVS to SVN (SubVersioN).
 This is much nicer than CVS and we now have ALL files in the standard distros checked in.
@@ -48,6 +67,8 @@ You can continue to send updates to me directly, or feel free to send them in vi
 Windows users can use touroiseSVN, which integrates into explorer:  http://tortoisesvn.sourceforge.net/
 Right click on explorer and do an SVN check out from here: https://svn.sourceforge.net/svnroot/misterhouse/trunk
 
+- If you want to track changes to the mh wiki, you can subscribe to a RSS or ATOM feed via 
+this page: http://misterhouse.wikispaces.com/space/notify
 
 
 B<Bug Fixes and Other Changes:>
@@ -91,6 +112,27 @@ and added new SummaryLong key to Weather Hash.
 
 - Rick Steeves added a print_log call to X10_RF.pm, so you will see errata like: XM6MJ: Porch_Light on
 
+- David Mark updated the web .wav generator to minimized the problem of multiple web
+browsers talking at the same time by using a semi-random .wav file name.
+
+- David Mark added a webmute=2 option, which disables both local and remote speech.
+
+- David Mark added subs &quote_attribute, &escape, &unescape, and &html_encode to lib/http_server.pl
+
+- David Mark implemented the repeat command and the &mp3_radio_play sub in code/common/mp3_winamp.pl.
+
+- David Norwood updated mh/lib/site/ControlX10/CM11.pm  to fix
+write retries which has been broken the past few releases.
+He also-wrote the send subroutine without goto's, so it should be clearer and easier to maintain.
+
+- David Mark fixed write_mh_opts to look for mh/bin/mh.private.ini, not mh/mh.private.ini, if mh_parms is not set.
+
+- Gregg Liming xAP/xPL code processing to not drop sockets due to EINTR (system interrupt) calls.
+He also added ability to override default broadcast on xAP/xPL data transmitions to ones defined by
+ipaddress_xap_broadcast and ipaddress_xpl_broadcast (useful in multi-NIC/VLAN environments).
+
+- Rick Steeves added RF_Item to web/bin/floorplan.pl
+
 
 
 =head2 Version 2.101 posted on 01/29/2006
@@ -115,7 +157,7 @@ B<New Features:>
 He also created code/common/iplcs.pl to enable, and code/public/iplc.* to test.  Code is Alpha level.
 More info on Insteon here: http://www.linuxha.com/athome/common/iplcd
 
-- StÈphane Kattoor created code/common/ical.pl to allow for control of mh items from any ICal application
+- StÅÈphane Kattoor created code/common/ical.pl to allow for control of mh items from any ICal application
 (e.g. Mozilla, Outlook, or iCal for Mac).   More iCal info here: http://en.wikipedia.org/wiki/ICalendar .
 
 - Matthew Williams added buddy icon capability for AOL/ICQ and added a new callback to notify mh when the AOL/ICQ connection is lost.
@@ -211,6 +253,8 @@ allow for timer-driven reading of dimmer state, and added dimmer and drive (EIS 
 - Steve Goldman updated web/bin/weather_rrd_update.pl to make it compatable with rrd 1.2
 
 - Rick Steeves fixed some bugs in code/common/*weather* code.
+
+- David Mark updated the respond function to eliminate dual read/show commands.
 
 
 =head2 Version 2.100 posted on 10/02/2005
@@ -368,7 +412,7 @@ and polling is now reported in the logs.
 
 - David Satterfield created code/common/voicemail_vocp.pl to interface to the Linux vocp system: http://www.vocpsystem.com
 
-- Marcus M¸ller created a xAP driver for his 2-way, multi-zone capable IRTrans interface, available for 99 Euro from http://www.irtrans.com/
+- Marcus MÅ¸ller created a xAP driver for his 2-way, multi-zone capable IRTrans interface, available for 99 Euro from http://www.irtrans.com/
 
 - David Norwood created code/common/rss_subscriber.pl for downloading files in rss feeds (e.g. podcasts and torrent files for TV shows).
 
@@ -474,7 +518,7 @@ some systems (switched -x file test to -f).
 
 - Jason Sharpee patched lib/X10_Items.pm to assume a ON to a non-presetable item means 100% light level.
 
-- JacÚ Botha found a problem with code_unselect on windows not deselecting code on Windows due to a case sensitve issue.
+- JacÅÚ Botha found a problem with code_unselect on windows not deselecting code on Windows due to a case sensitve issue.
 
 - Pete Flaherty updated code/common/audrey_control2.pl to use get_url instead of get to avoid mh pauses.
 

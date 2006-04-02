@@ -169,17 +169,16 @@ sub rf_set_RF_Item {
 
     my $matched;
     for my $name (&main::list_objects_by_type('RF_Item')) {
-	my $object = &main::get_object_by_name($name);
-	my $id     = $object->{rf_id};
-	if ($id eq $item_id or (defined $class_id and $id eq $class_id)) {
-	    $object->set($state);
-	    $matched = 1;
-        my ($stripped_name) = $name =~ /\$(.+)/;
-        &::print_log ("$item_id: $stripped_name $state");
-	}
+        my $object = &main::get_object_by_name($name);
+        my $id     = $object->{rf_id};
+        if ($id eq $item_id or (defined $class_id and $id eq $class_id)) {
+            $object->set($state);
+            $matched = 1;
+            &::print_log ("$item_id: " . substr($name, 2) . " $state");
+        }
     }
     unless ($matched) {
-	&::print_log("${uc_module}: ${desc}: $no_match_text (state = $state)");
+        &::print_log("${uc_module}: ${desc}: $no_match_text (state = $state)");
     }
 }
 

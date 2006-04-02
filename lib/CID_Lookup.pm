@@ -94,6 +94,8 @@ sub add
 		$p_telephony->tie_items($self,"dialed");
 		$p_telephony->tie_items($self,"RING");
 		$p_telephony->tie_items($self,"ring");
+		$p_telephony->tie_items($self,"CALLCOMPLETE");
+		$p_telephony->tie_items($self,"callcomplete");
 	}
 }
 
@@ -103,7 +105,7 @@ sub set
 	my ($self,$p_state,$p_setby) = @_;
 #	&::print_log("CID state:$p_state:");
 	$p_state=lc $p_state;
-	if ($p_state =~ /^(CID|DIALED)/i)
+	if ($p_state =~ /^(CID|DIALED|CALLCOMPLETE)/i)
 	{
 		#reset values
 		$self->cid_name($p_setby->cid_name());
@@ -128,6 +130,9 @@ sub set
 		$self->lookup_info($::config_parms{caller_id_file});
 		$self->lookup_areacode($::config_parms{area_code_file},$::config_parms{state_file});
 		$self->parse_name($p_setby);
+		$self->call_duration($p_setby->call_duration()) if $p_setby->isa('Telephony_Item');
+		$self->call_type($p_setby->call_type()) if $p_setby->isa('Telephony_Item');
+		$self->extension($p_setby->extension()) if $p_setby->isa('Telephony_Item');
 	#	$self->
 	}
 	elsif($p_state =~ /^ring/i)

@@ -1232,7 +1232,7 @@ sub main::write_mh_opts {
 
     unless ($parm_file) {
         ($parm_file) = split ',', $ENV{mh_parms} if $ENV{mh_parms};
-        $parm_file = "$pgm_root/mh.private.ini" unless $parm_file;
+        $parm_file = "$pgm_root/bin/mh.private.ini" unless $parm_file;
     }
                                 # If debug == 0 (instead of undef) this is disabled
     print "Reading config_file $parm_file\n" unless defined $debug and $debug == 0;

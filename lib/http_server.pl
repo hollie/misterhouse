@@ -966,35 +966,45 @@ sub html_last_response {
 sub http_speak_to_wav_start {
     my ($tts_text, $voice, $compression) = @_;
 
-                                # Try to To minimized the problem of 2 web browsers
+                                # Try to To minimized the problem of multiple web browsers
                                 # talking at the same time by using a semi-random .wav file name
-    my $wav_file = "cache/http_server.$Second.wav";
+    my $wav_file = "cache/http_server." . int(($Second * rand) * 10000) . ".wav";
 
-                                # Skip if on the local box
+                                # Skip if on the local box or empty text (why is empty text passed at all?)
+
+# webmute = undef => refers to the ini parameter.
+# webmute = 0     => makes it speak in the browser.
+# webmute = 1     => makes responses speak remotely
+# webmute = 2     => stops all generation of WAV files and remote speech and returns the last response as text (same as webmute=1, except no speech.)
+
     my $webmute;
+                                # This defaults to local speech
     $webmute = 1 if ($Socket_Ports{http}{client_ip_address} eq '127.0.0.1') or !$tts_text;
     if (defined $Cookies{webmute}) {
-        $webmute = 1 if $Cookies{webmute};
+        $webmute = $Cookies{webmute};
     }
     else {
         $webmute = 1 if $config_parms{webmute};
     }
-    $webmute = 1 if $config_parms{webmute} eq 'always';
-    return 0 if $webmute;
+
+    # 'always' overrides cookie unless it is display mode (2), which is inherently muted
+    $webmute = 1 if $config_parms{webmute} eq 'always' && $webmute != 2;
+    return 0 if $webmute == 1;
 
     $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
     ($compression = (&is_local_address()) ? 'low' : 'high') unless $compression;
-    &Voice_Text::speak_text(voice => $voice, to_file => "$config_parms{data_dir}/$wav_file",
-                            text => $tts_text, compression => $compression, async => 1);
+    &Voice_Text::speak_text(voice => $voice, to_file => "$config_parms{html_dir}/$wav_file",
+                            text => $tts_text, compression => $compression, async => 1) unless $webmute;
 
                    # Some browsers (e.g. Audrey) do not echo port in Host data
     my $ref = "http://$Http{Host}";
-#   $ref .= ":$config_parms{http_port}" if $config_parms{http_port} and $ref !~ /$config_parms{http_port}$/;
+#   $ref .= ":$config_parms{http_port}" if $config_parms{http_port} and $ref !~/$config_parms{http_port}$/;
     $ref .= ":$config_parms{http_port}" if $config_parms{http_port} and $ref !~ /\:/;
     $ref .= "/$wav_file";
 
-    return $ref;
+   return $ref;
 }
+
 
 sub http_speak_to_wav_finish {
     my ($tts_text, $wav_file) = @_;
@@ -1192,6 +1202,14 @@ sub html_print_log {
     return "$h_response\n", $main::config_parms{'html_style_print' . $Http{format}};
 }
 
+sub html_encode {
+    ($_)=@_;
+    s/\&/\&amp;/g;
+    s/\x22/\&quot;/g;
+    s/>/\&gt;/g;
+    s/</\&lt;/g;
+    $_;
+}
 
 sub html_error_log {
 
@@ -2556,6 +2574,27 @@ sub print_socket2 {
         print $socket substr $html, $pos, 1000;
         $pos += 1000;
     }
+}
+
+
+# - These 3 subs from David Mark
+
+sub quote_attribute {
+    ($_)=@_;
+    '"' . html_encode($_) . '"';
+}
+
+sub escape {
+    ($_)=@_;
+    s/([^a-zA-Z0-9_\-.])/uc sprintf("%%%02x",ord($1))/eg;
+    $_;
+}
+
+sub unescape {
+    ($_)=@_;
+    tr/+/ /;
+    s/%(..)/pack("c",hex($1))/ge;
+    $_;
 }
 
                                 # Use this

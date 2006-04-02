@@ -172,7 +172,7 @@ sub web_fp_item #render all items based on type
 		}
 	} elsif ($p_obj->isa('Group')) {
 		$l_text=web_fp_filter_name($p_obj->{object_name});
-	} elsif ($p_obj->isa('Motion_Item')) {
+	} elsif ($p_obj->isa('Motion_Item') || $p_obj->isa('X10_Sensor') ) {
 		$l_state='motion';
 		if (lc($p_obj->state) eq 'motion') {
 			$l_image='fp-motion-on.gif';
@@ -191,6 +191,20 @@ sub web_fp_item #render all items based on type
 			$l_image='fp-door-closed.png';
 		   $l_state='open';
 		}
+        } elsif ($p_obj->isa('RF_Item')) {
+                # Not setting $l_state because MH can't transmit it to Security.
+                if (lc($p_obj->state) =~ /^arm/) {
+                        $l_image='fp-alarm-armed.gif';
+                } elsif  (lc($p_obj->state) eq  'disarm') {
+                        $l_image='fp-alarm-disable.gif';
+                } elsif  (lc($p_obj->state) eq  'panic') {
+                        $l_image='fp-alarm-panic.gif';
+                } elsif  (lc($p_obj->state) eq  'alert') {
+                        $l_image='fp-door-open.png';
+                } elsif  (lc($p_obj->state) =~  /^normal/) {
+                        $l_image='fp-door-closed.png';
+                } else { $l_image='x.gif';
+                } 
 	} elsif ($p_obj->isa('Photocell_Item')) {
 		if ($p_obj->state eq 'dark') {
 			$l_image='fp-dark-on.gif';

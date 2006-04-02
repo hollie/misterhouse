@@ -27,9 +27,9 @@ Mister House Announcement List
     code/examples/DSC5401.pl, and web/bin/DSC5401_*.pl for supporting the
     DSC5401.
 
-    - Gaetan Lord and Matthew Williams added code/common/virtual_keyboard.pl
-    to allow for a virtual keyboard within a web page, and updated
-    web/bin/shopping_list.pl to use it.
+    - Gaetan Lord, Matthew Williams, and David Mark added
+    code/common/virtual_keyboard.pl to allow for a virtual keyboard within a
+    web page, and updated web/bin/shopping_list.pl to use it.
 
     - Matthew Williams migrated the MisterHouse sourceforge repository from
     CVS to SVN (SubVersioN). This is much nicer than CVS and we now have ALL
@@ -39,6 +39,15 @@ Mister House Announcement List
     http://tortoisesvn.sourceforge.net/ Right click on explorer and do an
     SVN check out from here:
     https://svn.sourceforge.net/svnroot/misterhouse/trunk
+
+    - Gaetan Lord created web/bin/listmanager.pl, based on shopping_list.pl,
+    but more generic and targeted for use on a PDA.
+
+    - Gregg Liming create code/common/telephony.pl which uses Telephony_xAP
+    and and netcallerid objects to perform CID, output logging, MWI display
+    and on-/off-hook processing (e.g, mute music on call pick-up or start).
+    He also updated lib/Telephony_xAP.pm, lib/CID_Log.pm, CID_Lookup.pm, and
+    phone_logs.pl.
 
     Bug Fixes and Other Changes:
 
@@ -98,6 +107,35 @@ Mister House Announcement List
     - Rick Steeves added a print_log call to X10_RF.pm, so you will see
     errata like: XM6MJ: Porch_Light on
 
+    - David Mark updated the web .wav generator to minimized the problem of
+    multiple web browsers talking at the same time by using a semi-random
+    .wav file name.
+
+    - David Mark added a webmute=2 option, which disables both local and
+    remote speech.
+
+    - David Mark added subs &quote_attribute, &escape, &unescape, and
+    &html_encode to lib/http_server.pl
+
+    - David Mark implemented the repeat command and the &mp3_radio_play sub
+    in code/common/mp3_winamp.pl.
+
+    - David Norwood updated mh/lib/site/ControlX10/CM11.pm to fix write
+    retries which has been broken the past few releases. He also-wrote the
+    send subroutine without goto's, so it should be clearer and easier to
+    maintain.
+
+    - David Mark fixed write_mh_opts to look for mh/bin/mh.private.ini, not
+    mh/mh.private.ini, if mh_parms is not set.
+
+    - Gregg Liming xAP/xPL code processing to not drop sockets due to EINTR
+    (system interrupt) calls. He also added ability to override default
+    broadcast on xAP/xPL data transmitions to ones defined by
+    ipaddress_xap_broadcast and ipaddress_xpl_broadcast (useful in
+    multi-NIC/VLAN environments).
+
+    - Rick Steeves added RF_Item to web/bin/floorplan.pl
+
   Version 2.101 posted on 01/29/2006
     Version 2.101 can be downloaded from here:
 
@@ -122,7 +160,7 @@ Mister House Announcement List
     to enable, and code/public/iplc.* to test. Code is Alpha level. More
     info on Insteon here: http://www.linuxha.com/athome/common/iplcd
 
-    - StÈphane Kattoor created code/common/ical.pl to allow for control of
+    - StÅÈphane Kattoor created code/common/ical.pl to allow for control of
     mh items from any ICal application (e.g. Mozilla, Outlook, or iCal for
     Mac). More iCal info here: http://en.wikipedia.org/wiki/ICalendar .
 
@@ -452,7 +490,7 @@ Mister House Announcement List
     - David Satterfield created code/common/voicemail_vocp.pl to interface
     to the Linux vocp system: http://www.vocpsystem.com
 
-    - Marcus M¸ller created a xAP driver for his 2-way, multi-zone capable
+    - Marcus MÅ¸ller created a xAP driver for his 2-way, multi-zone capable
     IRTrans interface, available for 99 Euro from http://www.irtrans.com/
 
     - David Norwood created code/common/rss_subscriber.pl for downloading
@@ -589,7 +627,7 @@ Mister House Announcement List
     - Jason Sharpee patched lib/X10_Items.pm to assume a ON to a
     non-presetable item means 100% light level.
 
-    - JacÚ Botha found a problem with code_unselect on windows not
+    - JacÅÚ Botha found a problem with code_unselect on windows not
     deselecting code on Windows due to a case sensitve issue.
 
     - Pete Flaherty updated code/common/audrey_control2.pl to use get_url

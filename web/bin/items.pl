@@ -60,7 +60,7 @@ function openparmhelp(parm1){
                         'X10 SwitchLinc (X10SL)', 'X10 Garage Door (X10G)', 'X10 Irrigation (X10S)',
                         'X10 RCS (X10T)',  'X10 Motion Sensor (X10MS)',
                         'EIB Switch (EIB1)', 'EIB Switch Group (EIB1G)', 'EIB Dimmer (EIB2)', 'EIB Value (EIB5)', 'EIB Drive (EIB7)',
-                        qw(SERIAL VOICE IBUTTON  GENERIC COMPOOL MP3PLAYER AUDIOTRON WEATHER SG485LCD SG485RCSTHRM STARGATEDIN STARGATEVAR STARGATEFLAG STARGATERELAY STARGATETHERM STARGATEPHONE XANTECH));
+                        qw(SERIAL VOICE IBUTTON  GENERIC COMPOOL MP3PLAYER AUDIOTRON WEATHER SG485LCD SG485RCSTHRM STARGATEDIN STARGATEVAR STARGATEFLAG STARGATERELAY STARGATETHERM STARGATEPHONE XANTECH RF));
 
 #form action='/bin/items.pl?add' method=post>
     $html .= qq|<tr>

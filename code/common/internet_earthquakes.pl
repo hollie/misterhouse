@@ -12,7 +12,7 @@
 #@
 #@ If you prefer kilometers to miles, set Earthquake_Units to metric
 #@ e.g. Earthquake_Units=metric
-#@ 
+#@
 #@ You can also set a variable to limit the number of quakes to display.
 #@ To show only the two most recent quakes, regardless of magnitude, set
 #@ the following variables in your ini file:

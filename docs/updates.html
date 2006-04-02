@@ -145,13 +145,17 @@ power rates that the French national electricity (EDF) provides.</p>
 <p>- David Mark added mh.ini option html_wav_format=client which
 will try to detect the best option for various browsers when playing mh TTS.</p>
 <p>- Gaetan Lord and Jocelyn Brouillard created lib/DSC5401.pm, code/examples/DSC5401.pl, and web/bin/DSC5401_*.pl for supporting the DSC5401.</p>
-<p>- Gaetan Lord and Matthew Williams added code/common/virtual_keyboard.pl to allow for a virtual keyboard within a web page,
+<p>- Gaetan Lord, Matthew Williams, and David Mark added code/common/virtual_keyboard.pl to allow for a virtual keyboard within a web page,
 and updated web/bin/shopping_list.pl to use it.</p>
 <p>- Matthew Williams migrated the MisterHouse sourceforge repository from CVS to SVN (SubVersioN).
 This is much nicer than CVS and we now have ALL files in the standard distros checked in.
 You can continue to send updates to me directly, or feel free to send them in via SVN.
 Windows users can use touroiseSVN, which integrates into explorer:  <a href="http://tortoisesvn.sourceforge.net/">http://tortoisesvn.sourceforge.net/</a>
 Right click on explorer and do an SVN check out from here: <a href="https://svn.sourceforge.net/svnroot/misterhouse/trunk">https://svn.sourceforge.net/svnroot/misterhouse/trunk</a></p>
+<p>- Gaetan Lord created web/bin/listmanager.pl, based on shopping_list.pl, but more generic and targeted for use on a PDA.</p>
+<p>- Gregg Liming create code/common/telephony.pl which uses Telephony_xAP and and netcallerid objects to perform CID, output logging,
+MWI display and on-/off-hook processing (e.g, mute music on call pick-up or start).
+He also updated lib/Telephony_xAP.pm, lib/CID_Log.pm, CID_Lookup.pm, and phone_logs.pl.</p>
 <p><strong>Bug Fixes and Other Changes:</strong></p>
 <p>- Included mh/data/infrared/devicelib (missing from 2.101 release).</p>
 <p>- Neil Cherry updated mh.ini tv parms to use zip_code, rather than hardcoded values.</p>
@@ -173,6 +177,19 @@ and added new SummaryLong key to Weather Hash.</p>
 <p>- Matthew Williams updated lib/DSC5401.pm to add new partition_mode ``Exit-Delay''.</p>
 <p>- Matthew Williams updated lib/Group.pm to allow for nested groupe and Voice_Text.pm to speak numbers &gt; 4 digits seperately.</p>
 <p>- Rick Steeves added a print_log call to X10_RF.pm, so you will see errata like: XM6MJ: Porch_Light on</p>
+<p>- David Mark updated the web .wav generator to minimized the problem of multiple web
+browsers talking at the same time by using a semi-random .wav file name.</p>
+<p>- David Mark added a webmute=2 option, which disables both local and remote speech.</p>
+<p>- David Mark added subs &amp;quote_attribute, &amp;escape, &amp;unescape, and &amp;html_encode to lib/http_server.pl</p>
+<p>- David Mark implemented the repeat command and the &amp;mp3_radio_play sub in code/common/mp3_winamp.pl.</p>
+<p>- David Norwood updated mh/lib/site/ControlX10/CM11.pm  to fix
+write retries which has been broken the past few releases.
+He also-wrote the send subroutine without goto's, so it should be clearer and easier to maintain.</p>
+<p>- David Mark fixed write_mh_opts to look for mh/bin/mh.private.ini, not mh/mh.private.ini, if mh_parms is not set.</p>
+<p>- Gregg Liming xAP/xPL code processing to not drop sockets due to EINTR (system interrupt) calls.
+He also added ability to override default broadcast on xAP/xPL data transmitions to ones defined by
+ipaddress_xap_broadcast and ipaddress_xpl_broadcast (useful in multi-NIC/VLAN environments).</p>
+<p>- Rick Steeves added RF_Item to web/bin/floorplan.pl</p>
 <p>
 </p>
 <h2><a name="version_2_101_posted_on_01_29_2006">Version 2.101 posted on 01/29/2006</a></h2>
@@ -187,7 +204,7 @@ and added new SummaryLong key to Weather Hash.</p>
 <p>- Neil Cherry created mh/lib/iplcs.pm and X10_iplcs.pm for Linux support of Smarthome's Insteon interface.
 He also created code/common/iplcs.pl to enable, and code/public/iplc.* to test.  Code is Alpha level.
 More info on Insteon here: <a href="http://www.linuxha.com/athome/common/iplcd">http://www.linuxha.com/athome/common/iplcd</a></p>
-<p>- StÈphane Kattoor created code/common/ical.pl to allow for control of mh items from any ICal application
+<p>- StÅÈphane Kattoor created code/common/ical.pl to allow for control of mh items from any ICal application
 (e.g. Mozilla, Outlook, or iCal for Mac).   More iCal info here: <a href="http://en.wikipedia.org/wiki/ICalendar">http://en.wikipedia.org/wiki/ICalendar</a> .</p>
 <p>- Matthew Williams added buddy icon capability for AOL/ICQ and added a new callback to notify mh when the AOL/ICQ connection is lost.</p>
 <p>- David Norwood created code/common/weather_tides.pl based on idea by Joey French.
@@ -336,7 +353,7 @@ tweaked various timeouts and added some additional logic to the send function to
 added support for the extended ack (LM14's send these when their states change) and extended preset dim commands,
 and polling is now reported in the logs.</p>
 <p>- David Satterfield created code/common/voicemail_vocp.pl to interface to the Linux vocp system: <a href="http://www.vocpsystem.com">http://www.vocpsystem.com</a></p>
-<p>- Marcus M¸ller created a xAP driver for his 2-way, multi-zone capable IRTrans interface, available for 99 Euro from <a href="http://www.irtrans.com/">http://www.irtrans.com/</a></p>
+<p>- Marcus MÅ¸ller created a xAP driver for his 2-way, multi-zone capable IRTrans interface, available for 99 Euro from <a href="http://www.irtrans.com/">http://www.irtrans.com/</a></p>
 <p>- David Norwood created code/common/rss_subscriber.pl for downloading files in rss feeds (e.g. podcasts and torrent files for TV shows).</p>
 <p>- Updated common/phone_minutes.pl to work with Cingular (in addition to Sprint and Tmobile).</p>
 <p>- Added mh.ini options xap/xpl_enable_items to enable mh to echo mh item state changes to xap/xpl.
@@ -397,7 +414,7 @@ some systems (switched -x file test to -f).</p>
 <p>- Jason Sharpee added a mos_precip_change (rain prediction) funciton to code/public/weather_mos_forecast.pl.</p>
 <p>- Jason Sharpee patched set_by problem he noticed with tied_item objects.</p>
 <p>- Jason Sharpee patched lib/X10_Items.pm to assume a ON to a non-presetable item means 100% light level.</p>
-<p>- JacÚ Botha found a problem with code_unselect on windows not deselecting code on Windows due to a case sensitve issue.</p>
+<p>- JacÅÚ Botha found a problem with code_unselect on windows not deselecting code on Windows due to a case sensitve issue.</p>
 <p>- Pete Flaherty updated code/common/audrey_control2.pl to use get_url instead of get to avoid mh pauses.</p>
 <p>- Jason Sharpee re-wrote lib/Base_Item.pm and Light_Item.pm to add features, fix bugs, and clean up the code.</p>
 <p>- Bradley Erickson notice that lib/HomeBase.pm did not work with X10 house code M.</p>

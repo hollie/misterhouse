@@ -1474,3 +1474,5 @@ Thu 03/09/06 15:38:56 city=memphis state=tn name=
 Sun 03/19/06 21:19:40 city=Saratoga state=CA name=RCM
 Wed 03/22/06 19:01:09 city=Tulsa state=OK name=
 Fri 03/24/06 09:55:10 city=Nice state=France name=
+Sun 03/26/06 19:39:13 city=CRANBERRY TWP state=PA name=Paul
+Fri 03/31/06 07:17:29 city=Charleston state=SC name=James Armstrong

@@ -175,7 +175,7 @@ sub read_phone_logs2 {
 
             $ph_ext = "000" unless $ph_ext;		#need a default if non existant
 
-            $ph_name = "Not_Available" if ( $ph_ext == "000" );
+            $ph_name = "Not_Available" if ( $ph_ext eq "000" );
             $ph_name = $name2 unless $ph_name ;	#and the name is really the elapsed time
 
 #	my $num_len = length($number);

@@ -105,7 +105,7 @@ sub log
 	my ($l_number, $l_name, $l_address);
 
 	$l_number = $p_telephony->cid_number();
-	if ($p_telephony->isa('CID_Lookup'))
+	if ($p_telephony->isa('CID_Lookup') and ($tempsource eq 'in')) # outgoing log doesn't want formatted
 	{
 		$l_number = $p_telephony->formated_number() if $p_telephony->formated_number() ne '';
 	}
@@ -114,8 +114,19 @@ sub log
 
 	#Log to text file
 	if (lc $tempsource eq 'out') {
-		&::logit("$::config_parms{data_dir}/phone/logs/phone.$::Year_Month_Now.log",  
-		"O$l_number name=$l_name line=$l_address type=$tempsource");
+#		&::logit("$::config_parms{data_dir}/phone/logs/phone.$::Year_Month_Now.log",  
+#		"O$l_number name=$l_name line=$l_address type=$tempsource");
+		my $duration = '00:00:00';
+		my $extension = 'unknown';
+		my $call_type = 'POTS';
+		if ($p_telephony && $p_telephony->isa('Telephony_Item')) {
+			$extension = $p_telephony->extension() if $p_telephony->extension();
+			$duration = $p_telephony->call_duration() if $p_telephony->call_duration();
+			$call_type = $p_telephony->call_type() if $p_telephony->call_type();
+		} 
+		my $log_line = "O$l_number name=$duration ext=$extension line=$l_address type=$call_type";	
+print "LOG LINE: $log_line\n";
+		&::logit("$::config_parms{data_dir}/phone/logs/phone.$::Year_Month_Now.log", $log_line); 
 	} else {
 		&::logit("$::config_parms{data_dir}/phone/logs/callerid.$::Year_Month_Now.log",  
 		"$l_number name=$l_name line=$l_address type=$tempsource");

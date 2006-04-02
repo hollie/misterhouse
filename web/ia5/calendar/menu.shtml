@@ -21,6 +21,9 @@
 <a href='<!--#include var="$config_parms{web_href_shopping}" -->'>
  <img src="images/shoppinglist.gif" alt='Shopping List' border="0"></a><br>
 
+<a href='<!--#include var="$config_parms{web_href_list_manager}" -->'>
+ <img src="images/ListManager.gif" alt='List Manager' border="0"></a><br>
+
 <!-- <a href="/misc/alarms.shtml"><img src="images/alarms.gif" alt='Alarms' border="0"></a><br> -->
 <a href="/bin/triggers.pl"><img src="images/alarms.gif" alt='Alarms' border="0"></a><br>
 

@@ -25,7 +25,7 @@ $EXPORT_TAGS{ALL} = \@EXPORT_OK;
 
 #### Package variable declarations ####
 
-($VERSION) = q$Revision$ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge
+($VERSION) = q$Revision$ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge, then reset again with move to SVN
 $DEBUG = 0;
 my $Last_Dcode;
 
@@ -330,86 +330,84 @@ sub send {
         $DEBUG = ($main::Debug{x10} >= 1) ? 1 : 0;
     }
 
-
-
-
     my ($data_snd, $checksum) = &format_data($house_code);
     return unless $data_snd;
 
-    my $retry_cnt = 0;
-  RETRY:
-    print "CM11 send: ", unpack('H*', $data_snd), "\n" if $DEBUG;
+    my ($data_rcv, $retry_cnt, $data_d);
+    until ($data_rcv or ++$retry_cnt > 4) {
+        print "CM11 send: ", unpack('H*', $data_snd), " try: $retry_cnt\n" if $DEBUG;
+        print "Bad cm11 data send transmission\n" unless length($data_snd) == $serial_port->write($data_snd);
 
-    print "Bad cm11 data send transmission\n" unless length($data_snd) == $serial_port->write($data_snd);
+                                # Note: Skip the power fail check if the checksum is the power fail flag (0xa5)
+        $data_rcv = &read($serial_port, 0, ($checksum == 0xa5));
+        next unless $data_rcv;
 
-                                # Note: Skip the power fail check, because we the
-                                # checksum might be the power fail flag (0xa5)
-
-   my $data_rcv;
-   goto RETRY unless $data_rcv = &read($serial_port, 0, ($checksum == 0xa5)) or $retry_cnt++ < 32;
-
-
-
-
-
-#   return unless $data_rcv = &read($serial_port, 0, 1);
-    print "cm11 send failed" unless $retry_cnt < 32;
-    return unless $retry_cnt < 32;
-    my $data_d = unpack('C', $data_rcv);
-
+        $data_d = unpack('C', $data_rcv);
                                 # Unrelated incoming data ... process and re-start
                                 # Note:  Some checksums will be 0x5a or 0xa5 ... skip this test if so
+        if ((($data_d == 0x5a) and ($checksum != 0x5a)) or (($data_d == 0xa5) and ($checksum != 0xa5))) {
+            print "Data received while xmiting data ... will receive and retry CS1:$data_d CS2:$checksum\n";
+            $BACKLOG .= &receive_buffer($serial_port);
+            $data_rcv = '';
+            next;
+        }
 
-    if ((($data_d == 0x5a) and ($checksum != 0x5a)) or (($data_d == 0xa5) and ($checksum != 0xa5))) {
-        print "Data received while xmiting data ... will receive and retry CS1:$data_d CS2:$checksum\n";
-        $BACKLOG .= &receive_buffer($serial_port);
-        goto RETRY if $retry_cnt++ < 32;
+        if (($data_d == 0x55) and ($checksum != 0x55)) {
+            print "Done signal received while xmiting data ... will retry CS1:$data_d CS2:$checksum\n";
+            $data_rcv = '';
+            next;
+        }
+
+        if (($checksum != $data_d)) {
+            if ($data_d) {
+                print "Bad checksum in cm11 send: cs1=$checksum cs2=$data_d.  Will retry\n";
+                $data_rcv = '';
+                next;
+            }
+            else {
+                print "No response from cm11.  Please send an X10 signal...\n";
+                #setClock($serial_port);
+		    return;
+	      }
+        }
     }
 
-
-    if (($data_d == 0x55) and ($checksum != 0x55)) {
-        print "Done signal received while xmiting data ... will retry CS1:$data_d CS2:$checksum\n";
-	goto RETRY if $retry_cnt++ < 32;
-    }
-
-
-
-
-    if (($checksum != $data_d)) {
-	if ($data_d) {
-        	print "Bad checksum in cm11 send: cs1=$checksum cs2=$data_d.  Will retry\n";
-        	goto RETRY if $retry_cnt++ < 3;
-	}
-	else {
-		print "No response from cm11.  Please send an X10 signal...\n";
-		#setClock($serial_port);
-		return;
-	}
+    if ($retry_cnt > 4) {
+        print "cm11 send failed\n";
+        return;
     }
 
     print "CM11 ack\n" if $DEBUG;
-    my $pc_ok    = pack('C', 0x00);
-    print "Bad cm11 acknowledge send transmission\n" unless 1 == $serial_port->write($pc_ok);
+
+    my $pc_ok = pack('C', 0x00);
     $retry_cnt = 0;
-RETRY2:
-    $data_rcv = &read($serial_port);
-    goto RETRY2 unless $data_rcv or $retry_cnt++ < 32;
-    $data_d = unpack('C', $data_rcv);
+    $data_rcv = '';
+    until ($data_rcv or ++$retry_cnt > 4) {
+        print "CM11 send pc_ok, try: $retry_cnt\n" if $DEBUG;
+        print "Bad cm11 acknowledge send transmission\n" unless 1 == $serial_port->write($pc_ok);
+        $data_rcv = &read($serial_port);
+        next unless $data_rcv;
 
-    if ($data_d == 0x55) {
-        print "CM11 done\n" if $DEBUG;
+        $data_d = unpack('C', $data_rcv);
+        if ($data_d == 0x55) {
+            print "CM11 done\n" if $DEBUG;
+        }
+                                # Unrelated incoming data ... process
+        elsif ((($data_d == 0x5a) and ($checksum != 0x5a)) or (($data_d == 0xa5) and ($checksum != 0xa5))) {
+            print "Data received while xmiting data #2 ... will receive and retry CS1:$data_d CS2:$checksum\n";
+            $BACKLOG .= &receive_buffer($serial_port);
+            $data_rcv = '';
+            next;
+        }
     }
-    # Unrelated incoming data ... process
-    elsif ((($data_d == 0x5a) and ($checksum != 0x5a)) or (($data_d == 0xa5) and ($checksum != 0xa5))) {
-        print "Data received while xmiting data #2 ... will receive and retry CS1:$data_d CS2:$checksum\n";
-        $BACKLOG .= &receive_buffer($serial_port);
-        goto RETRY2 if $retry_cnt++ < 32;
+
+    if ($retry_cnt > 4) {
+        print "cm11 send pc_ok failed\n";
+        return;
     }
 
-	print "Backlog:$BACKLOG\n" if $DEBUG;
-
-	return $data_d;
-
+    print "Backlog:$BACKLOG\n" if $DEBUG;
+    return $data_d;
 }
 
 sub read {
@@ -417,6 +415,7 @@ sub read {
     my $data;
                                 # Note ... for dim commands > 30, this will time out after 30*50=1.5 seconds
                                 # No harm done, but we would rather not wait :)
+    #my $tries = ($no_block) ? 1 : 30;    # from release 2.99
     my $tries = ($no_block) ? 1 : 100;
 
     if (exists $main::Debug{x10}) {
@@ -452,6 +451,7 @@ sub read {
         }
 
         if ($tries) {
+            #select undef, undef, undef, 50 / 1000;    # from release 2.99
             select undef, undef, undef, 40 / 1000;
         }
     }
