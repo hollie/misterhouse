@@ -275,13 +275,15 @@ if (state_now $usb_uirt_function_rename) {
 
 if (state_now $usb_uirt_function_import) {
 	my $device = $current_device;
+	my $repeat = state $usb_uirt_function_repeat;
+	$repeat = 1 unless $repeat =~ /^\d+$/;
 	my $func = state $usb_uirt_function_list;
 	my $function;
 	$function = $functions[$func] if $func =~ /\d+/;
 	$function = uc state $usb_uirt_function_text if state $usb_uirt_function_text;
 	$current_function = $function if $function;
 	print_log "Importing device $device function $function pronto $usb_uirt_function_pcode";
-	USB_UIRT::set_ir_code($device, $function, '', state $usb_uirt_function_repeat, $usb_uirt_function_pcode);
+	USB_UIRT::set_ir_code($device, $function, '', $repeat, $usb_uirt_function_pcode);
 }
 
 if (state_now $usb_uirt_function_new) {

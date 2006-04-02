@@ -1459,7 +1459,6 @@ Wed 02/01/06 00:14:33 city=Patterson state=Ca name=Pat
 Thu 02/02/06 12:12:14 city=Mandan state=ND name=
 Sun 02/05/06 11:14:29 city=Buenos Aires state=AR name=Bruno
 Tue 02/07/06 08:31:17 city=legnano state=italy name=
-Tue 02/07/06 08:31:43 city=milan state=italy name=
 Tue 02/07/06 08:39:21 city=milan state=italy name=
 Wed 02/08/06 17:14:40 city=Cacem state=Portugal name=Pedro Nogueira
 Sat 02/11/06 14:49:33 city=carp state=on name=jason
@@ -1476,3 +1475,4 @@ Wed 03/22/06 19:01:09 city=Tulsa state=OK name=
 Fri 03/24/06 09:55:10 city=Nice state=France name=
 Sun 03/26/06 19:39:13 city=CRANBERRY TWP state=PA name=Paul
 Fri 03/31/06 07:17:29 city=Charleston state=SC name=James Armstrong
+Sun 04/02/06 00:17:08 city=Colver state=Pa name=Dickie

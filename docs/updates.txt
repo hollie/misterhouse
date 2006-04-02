@@ -2,16 +2,21 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    Bug Fixes and Other Changes:
+
+  Version 2.102 posted on 04/02/2006
+    Version 2.102 can be downloaded from here:
+
+      http://misterhouse.sf.net/download.html
+
+    New Features:
+
     - Brian McKissick created code/common/power_Xantrex.pl for communicating
     with a Xantrex GT3.0 grid-tied photovoltaic power inverter, allowing for
     home automation monitoring of generated solar power.
 
     - Ricardo Arroyo sent in code and web files he has modified to speak in
     Spanish, or to use Spainish web pages. Copied to mh/code/public/Ricardo
-
-    - A interview about the open source aspect of MisterHouse can be found
-    at http://www.cocoontech.com/index.php?showtopic=3428 and a summary of
-    that interview is at http://www.itbusinessedge.com/item/?ci=11747
 
     - Jim Morrissey sent in mh/code/public/power_french_edf.zip, code and
     web pages he wrote to manage the different power rates that the French
@@ -31,6 +36,23 @@ Mister House Announcement List
     code/common/virtual_keyboard.pl to allow for a virtual keyboard within a
     web page, and updated web/bin/shopping_list.pl to use it.
 
+    - Gaetan Lord created web/bin/listmanager.pl, based on shopping_list.pl,
+    but more generic and targeted for use on a PDA.
+
+    - Gregg Liming updated code/common/asterisk_gregg.pl which uses
+    Telephony_xAP and and netcallerid objects to perform CID, output
+    logging, MWI display and on-/off-hook processing (e.g, mute music on
+    call pick-up or start). He also updated lib/Telephony_xAP.pm,
+    lib/CID_Log.pm, CID_Lookup.pm, and phone_logs.pl.
+
+    - David Norwood created code/common/monitor_versalink.pl which collects
+    and graphs DSL traffic data from a Westell Versalink 327W modem/router
+    used by Verizon.
+
+    - A interview about the open source aspect of MisterHouse can be found
+    at http://www.cocoontech.com/index.php?showtopic=3428 and a summary of
+    that interview is at http://www.itbusinessedge.com/item/?ci=11747
+
     - Matthew Williams migrated the MisterHouse sourceforge repository from
     CVS to SVN (SubVersioN). This is much nicer than CVS and we now have ALL
     files in the standard distros checked in. You can continue to send
@@ -40,14 +62,9 @@ Mister House Announcement List
     SVN check out from here:
     https://svn.sourceforge.net/svnroot/misterhouse/trunk
 
-    - Gaetan Lord created web/bin/listmanager.pl, based on shopping_list.pl,
-    but more generic and targeted for use on a PDA.
-
-    - Gregg Liming create code/common/telephony.pl which uses Telephony_xAP
-    and and netcallerid objects to perform CID, output logging, MWI display
-    and on-/off-hook processing (e.g, mute music on call pick-up or start).
-    He also updated lib/Telephony_xAP.pm, lib/CID_Log.pm, CID_Lookup.pm, and
-    phone_logs.pl.
+    - If you want to track changes to the mh wiki, you can subscribe to a
+    RSS or ATOM feed via this page:
+    http://misterhouse.wikispaces.com/space/notify
 
     Bug Fixes and Other Changes:
 
@@ -135,6 +152,22 @@ Mister House Announcement List
     multi-NIC/VLAN environments).
 
     - Rick Steeves added RF_Item to web/bin/floorplan.pl
+
+    - David Norwood added support to code/common/rss_subscriber.pl for
+    individual download directories for each feed.
+
+    - David Norwood fixed a bug in code/common/stocks.pl introduced two
+    releases ago that caused stock alerts to be announced even if the
+    threshold has not been exceeded.
+
+    - David Norwood modified code/common/USB_UIRT_learning.pl to change the
+    default repeat used for imported codes from 0 to 1.
+
+    - David Norwood updated code/common/internet_earthquakes_cal.pl to
+    include Matthew Williams' statutory vs nautical mile bug fix.
+
+    - Brent DeShazer added a parity option for serial ports, defaulting to
+    none.
 
   Version 2.101 posted on 01/29/2006
     Version 2.101 can be downloaded from here:
@@ -287,6 +320,9 @@ Mister House Announcement List
     compatable with rrd 1.2
 
     - Rick Steeves fixed some bugs in code/common/*weather* code.
+
+    - David Mark updated the respond function to eliminate dual read/show
+    commands.
 
   Version 2.100 posted on 10/02/2005
     Version 2.100 was just uploaded to:

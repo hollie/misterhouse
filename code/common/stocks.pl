@@ -1,4 +1,4 @@
- # Category = Informational
+# Category = Informational
 
 #@ Stock Quote Lookup Module.
 #@ Add the following to your INI file: stocks = IBM MSFT CSCO.
@@ -113,7 +113,21 @@ if (done_now $p_stock_quote) {
         if ($stocks{$stock}{Last} < 1) {
             $stocks{$stock}{Last} =  ($stocks{$stock}{Last} * 100) . " cents"; }
         else {
-            $stocks{$stock}{Last} =  (sprintf("%6.3f",$stocks{$stock}{Last})) . ' dollars';}
+            $stocks{$stock}{Last} =  (sprintf("%6.2f",$stocks{$stock}{Last})) . ' dollars';
+        }
+
+        if (my $t = $stocks{$stock}{Threshold}) {
+            my $p = ($t =~ /%/ ? $t : 0);
+            $p =~ s/%//;
+            $t = 0 if $p;
+            $stocks{$stock}{PChange} =~ s/^0*//;
+            if (($t and $t < abs $stocks{$stock}{Change}) or ($p and $p < $stocks{$stock}{PChange})) {
+                $Save{stock_alert} = "Market alert: " unless $Save{stock_alert};
+                $Save{stock_alert} .= $stocks{$stock}{'Speak Name'} ? $stocks{$stock}{'Speak Name'} : $stocks{$stock}{LName};
+                $Save{stock_alert} .= " has " . ($stocks{$stock}{Change} < 0 ? "fallen" : "risen");
+                $Save{stock_alert} .= " $stocks{$stock}{PChange} percent to $stocks{$stock}{Last}";
+            }
+        }
 
 	#Modify the change to cents as it sounds better.
         $stocks{$stock}{Change} =  ($stocks{$stock}{Change} * 100);
@@ -129,21 +143,6 @@ if (done_now $p_stock_quote) {
 	#Sick of hearing the date for each stock, ripped out to say only once.
         $download_date = $stocks{$stock}{Date};
 
-
-# And this too:
-
-        if (my $t = $stocks{$stock}{Threshold}) {
-            my $p = ($t =~ /%/ ? $t : 0);
-            $p =~ s/%//;
-            $t = 0 if $p;
-            $stocks{$stock}{PChange} =~ s/^0*//;
-            if (($t and $t < abs $stocks{$stock}{Change}) or ($p and $p < $stocks{$stock}{PChange})) {
-                $Save{stock_alert} = "Market alert: " unless $Save{stock_alert};
-                $Save{stock_alert} .= $stocks{$stock}{'Speak Name'} ? $stocks{$stock}{'Speak Name'} : $stocks{$stock}{LName};
-                $Save{stock_alert} .= " has " . ($stocks{$stock}{Change} < 0 ? "fallen" : "risen");
-                $Save{stock_alert} .= " $stocks{$stock}{PChange} percent to $stocks{$stock}{Last}. ";
-            }
-        }
     }
     respond $Save{stock_alert} if $Save{stock_alert};
 

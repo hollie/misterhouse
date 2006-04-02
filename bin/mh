@@ -696,7 +696,8 @@ sub setup {
                             $config_parms{$port_name . "_baudrate"},
                             $config_parms{$port_name . "_handshake"},
                             $config_parms{$port_name . "_datatype"},
-                            $config_parms{$port_name . "_prefix"});
+                            $config_parms{$port_name . "_prefix"},
+                            $config_parms{$port_name . "_parity"});
         $Serial_Ports{$port_name}{process_data} = 1 if $config_parms{$port_name . "_process_data"};
     }
 
@@ -4831,11 +4832,13 @@ sub serial_port_create {
 
     $handshake = 'none' unless $handshake;
     $baudrate  = '1200' unless $baudrate;
+    $parity    = 'none' unless $parity;
 
     $Serial_Ports{$name}{handshake} = $handshake;
     $Serial_Ports{$name}{baudrate}  = $baudrate;
     $Serial_Ports{$name}{port}      = $port;
     $Serial_Ports{$name}{datatype}  = $datatype;
+    $Serial_Ports{$name}{parity}    = $parity;
     $Serial_Ports{$name}{prefix}    = $prefix;
 
     if ($port =~ /proxy/i) {
@@ -4882,7 +4885,7 @@ sub serial_port_open {
 
     $serial_port->databits(8) if $serial_port->can_databits;
     $serial_port->baudrate($Serial_Ports{$name}{baudrate});
-    $serial_port->parity("none");
+    $serial_port->parity($Serial_Ports{$name}{parity});
     $serial_port->stopbits(1);
 #   $serial_port->dtr_active(1);
     $serial_port->handshake($Serial_Ports{$name}{handshake});

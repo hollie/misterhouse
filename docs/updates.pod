@@ -58,6 +58,8 @@ and updated web/bin/shopping_list.pl to use it.
 MWI display and on-/off-hook processing (e.g, mute music on call pick-up or start).
 He also updated lib/Telephony_xAP.pm, lib/CID_Log.pm, CID_Lookup.pm, and phone_logs.pl.
 
+- David Norwood created code/common/monitor_versalink.pl which collects and graphs DSL traffic data from a Westell Versalink 327W modem/router used by Verizon.
+
 - A interview about the open source aspect of MisterHouse can be found at http://www.cocoontech.com/index.php?showtopic=3428
 and a summary of that interview is at http://www.itbusinessedge.com/item/?ci=11747
 
@@ -69,6 +71,7 @@ Right click on explorer and do an SVN check out from here: https://svn.sourcefor
 
 - If you want to track changes to the mh wiki, you can subscribe to a RSS or ATOM feed via 
 this page: http://misterhouse.wikispaces.com/space/notify
+
 
 
 B<Bug Fixes and Other Changes:>
@@ -133,6 +136,15 @@ ipaddress_xap_broadcast and ipaddress_xpl_broadcast (useful in multi-NIC/VLAN en
 
 - Rick Steeves added RF_Item to web/bin/floorplan.pl
 
+- David Norwood added support to code/common/rss_subscriber.pl for individual download directories for each feed.
+
+- David Norwood fixed a bug in code/common/stocks.pl introduced two releases ago that caused stock alerts to be announced even if the threshold has not been exceeded.
+
+- David Norwood modified code/common/USB_UIRT_learning.pl to change the default repeat used for imported codes from 0 to 1.
+
+- David Norwood updated code/common/internet_earthquakes_cal.pl to include Matthew Williams' statutory vs nautical mile bug fix.
+
+- Brent DeShazer added a parity option for serial ports, defaulting to none.
 
 
 =head2 Version 2.101 posted on 01/29/2006

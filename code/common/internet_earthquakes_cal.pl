@@ -158,7 +158,7 @@ sub calc_distance_cal {
     $lon2 /= $c;
     $d = 2*Math::Trig::asin(sqrt((sin(($lat1-$lat2)/2))**2 + 	cos($lat1)*cos($lat2)*(sin(($lon1-$lon2)/2))**2));
 
-    return $d*(.5*7915.6*.86838);  # convert to miles and return
+    return $d*(.5*7915.6);  # convert to miles and return
 }
 
 sub calc_age_cal {

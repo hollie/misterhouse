@@ -16,6 +16,7 @@
 	<ul>
 
 		<li><a href="#changes_in_the_current_test_version">Changes in the current test version</a></li>
+		<li><a href="#version_2_102_posted_on_04_02_2006">Version 2.102 posted on 04/02/2006</a></li>
 		<li><a href="#version_2_101_posted_on_01_29_2006">Version 2.101 posted on 01/29/2006</a></li>
 		<li><a href="#version_2_100_posted_on_10_02_2005">Version 2.100 posted on 10/02/2005</a></li>
 		<li><a href="#version_2_99_posted_on_05_22_2005">Version 2.99 posted on 05/22/2005</a></li>
@@ -133,12 +134,18 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 <a href=http://misterhouse.net/public/misterhouse_src_test.zip>current test release</a>
 (updated nightly) can be found
 <a href=http://misterhouse.net/mh/docs/updates.html>here, in the test release updates file</a>.<p><strong>New Features:</strong></p>
+<p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>
+</p>
+<h2><a name="version_2_102_posted_on_04_02_2006">Version 2.102 posted on 04/02/2006</a></h2>
+<p>Version 2.102 can be downloaded from here:</p>
+<pre>
+  <a href="http://misterhouse.sf.net/download.html">http://misterhouse.sf.net/download.html</a></pre>
+<p><strong>New Features:</strong></p>
 <p>- Brian McKissick created code/common/power_Xantrex.pl for communicating with a
 Xantrex GT3.0 grid-tied photovoltaic power inverter, allowing for home automation monitoring of generated solar power.</p>
 <p>- Ricardo Arroyo sent in code and web files he has modified to speak in Spanish,
 or to use Spainish web pages.  Copied to mh/code/public/Ricardo</p>
-<p>- A interview about the open source aspect of MisterHouse can be found at <a href="http://www.cocoontech.com/index.php?showtopic=3428">http://www.cocoontech.com/index.php?showtopic=3428</a>
-and a summary of that interview is at <a href="http://www.itbusinessedge.com/item/?ci=11747">http://www.itbusinessedge.com/item/?ci=11747</a></p>
 <p>- Jim Morrissey sent in mh/code/public/power_french_edf.zip, code and web pages he wrote to manage the different
 power rates that the French national electricity (EDF) provides.</p>
 <p>- Michael Easton created web/newclock ( <a href="http://localhost:8080/newclock">http://localhost:8080/newclock</a> ).  Enable code/common/clock_map.pl to keep world maps updated.</p>
@@ -147,15 +154,20 @@ will try to detect the best option for various browsers when playing mh TTS.</p>
 <p>- Gaetan Lord and Jocelyn Brouillard created lib/DSC5401.pm, code/examples/DSC5401.pl, and web/bin/DSC5401_*.pl for supporting the DSC5401.</p>
 <p>- Gaetan Lord, Matthew Williams, and David Mark added code/common/virtual_keyboard.pl to allow for a virtual keyboard within a web page,
 and updated web/bin/shopping_list.pl to use it.</p>
+<p>- Gaetan Lord created web/bin/listmanager.pl, based on shopping_list.pl, but more generic and targeted for use on a PDA.</p>
+<p>- Gregg Liming updated code/common/asterisk_gregg.pl which uses Telephony_xAP and and netcallerid objects to perform CID, output logging,
+MWI display and on-/off-hook processing (e.g, mute music on call pick-up or start).
+He also updated lib/Telephony_xAP.pm, lib/CID_Log.pm, CID_Lookup.pm, and phone_logs.pl.</p>
+<p>- David Norwood created code/common/monitor_versalink.pl which collects and graphs DSL traffic data from a Westell Versalink 327W modem/router used by Verizon.</p>
+<p>- A interview about the open source aspect of MisterHouse can be found at <a href="http://www.cocoontech.com/index.php?showtopic=3428">http://www.cocoontech.com/index.php?showtopic=3428</a>
+and a summary of that interview is at <a href="http://www.itbusinessedge.com/item/?ci=11747">http://www.itbusinessedge.com/item/?ci=11747</a></p>
 <p>- Matthew Williams migrated the MisterHouse sourceforge repository from CVS to SVN (SubVersioN).
 This is much nicer than CVS and we now have ALL files in the standard distros checked in.
 You can continue to send updates to me directly, or feel free to send them in via SVN.
 Windows users can use touroiseSVN, which integrates into explorer:  <a href="http://tortoisesvn.sourceforge.net/">http://tortoisesvn.sourceforge.net/</a>
 Right click on explorer and do an SVN check out from here: <a href="https://svn.sourceforge.net/svnroot/misterhouse/trunk">https://svn.sourceforge.net/svnroot/misterhouse/trunk</a></p>
-<p>- Gaetan Lord created web/bin/listmanager.pl, based on shopping_list.pl, but more generic and targeted for use on a PDA.</p>
-<p>- Gregg Liming create code/common/telephony.pl which uses Telephony_xAP and and netcallerid objects to perform CID, output logging,
-MWI display and on-/off-hook processing (e.g, mute music on call pick-up or start).
-He also updated lib/Telephony_xAP.pm, lib/CID_Log.pm, CID_Lookup.pm, and phone_logs.pl.</p>
+<p>- If you want to track changes to the mh wiki, you can subscribe to a RSS or ATOM feed via 
+this page: <a href="http://misterhouse.wikispaces.com/space/notify">http://misterhouse.wikispaces.com/space/notify</a></p>
 <p><strong>Bug Fixes and Other Changes:</strong></p>
 <p>- Included mh/data/infrared/devicelib (missing from 2.101 release).</p>
 <p>- Neil Cherry updated mh.ini tv parms to use zip_code, rather than hardcoded values.</p>
@@ -190,6 +202,11 @@ He also-wrote the send subroutine without goto's, so it should be clearer and ea
 He also added ability to override default broadcast on xAP/xPL data transmitions to ones defined by
 ipaddress_xap_broadcast and ipaddress_xpl_broadcast (useful in multi-NIC/VLAN environments).</p>
 <p>- Rick Steeves added RF_Item to web/bin/floorplan.pl</p>
+<p>- David Norwood added support to code/common/rss_subscriber.pl for individual download directories for each feed.</p>
+<p>- David Norwood fixed a bug in code/common/stocks.pl introduced two releases ago that caused stock alerts to be announced even if the threshold has not been exceeded.</p>
+<p>- David Norwood modified code/common/USB_UIRT_learning.pl to change the default repeat used for imported codes from 0 to 1.</p>
+<p>- David Norwood updated code/common/internet_earthquakes_cal.pl to include Matthew Williams' statutory vs nautical mile bug fix.</p>
+<p>- Brent DeShazer added a parity option for serial ports, defaulting to none.</p>
 <p>
 </p>
 <h2><a name="version_2_101_posted_on_01_29_2006">Version 2.101 posted on 01/29/2006</a></h2>
@@ -258,6 +275,7 @@ The new states generated look like AlertTamperMax or AlertBattLowMax.</p>
 allow for timer-driven reading of dimmer state, and added dimmer and drive (EIS 2 and 7) support in web interface.</p>
 <p>- Steve Goldman updated web/bin/weather_rrd_update.pl to make it compatable with rrd 1.2</p>
 <p>- Rick Steeves fixed some bugs in code/common/*weather* code.</p>
+<p>- David Mark updated the respond function to eliminate dual read/show commands.</p>
 <p>
 </p>
 <h2><a name="version_2_100_posted_on_10_02_2005">Version 2.100 posted on 10/02/2005</a></h2>
