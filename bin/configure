@@ -21,14 +21,19 @@ cd /usr/include
 
 case `uname -a` in
  Linux*)
+   h2ph features.h
+   h2ph termios.h
    h2ph asm/termios.h
    h2ph asm/termbits.h
    h2ph asm/posix_types.h
    h2ph asm/ioctls.h
    h2ph asm/ioctl.h
+   h2ph bits/termios.h
+   h2ph gnu/stubs.h
    h2ph linux/posix_types.h
    h2ph linux/stddefs.h
    h2ph linux/stddef.h
+   h2ph linux/compiler.h
  ;;
  FreeBSD*)
    h2ph sys/termios.h
