@@ -1,4 +1,4 @@
-# $Id: PurePerl.pm,v 1.19 2005/10/24 19:22:12 matt Exp $
+# $Id$
 
 package XML::SAX::PurePerl;
 

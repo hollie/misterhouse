@@ -7,7 +7,7 @@ Net::OSCAR::Connection::Chat -- OSCAR chat connections
 package Net::OSCAR::Connection::Chat;
 
 $VERSION = '1.907';
-$REVISION = '$Revision: 1.4.2.8 $';
+$REVISION = '$Revision$';
 
 use strict;
 use Carp;

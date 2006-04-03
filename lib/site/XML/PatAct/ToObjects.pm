@@ -3,7 +3,7 @@
 # XML::PatAct::ToObjects is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 #
-# $Id: ToObjects.pm,v 1.5 1999/12/22 21:15:00 kmacleod Exp $
+# $Id$
 #
 
 # The original XML::Grove::ToObjects actually generated and compiled a

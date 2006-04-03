@@ -22,7 +22,7 @@ require Exporter;
 Exporter::export_ok_tags('FUNC');
 
 $EXPORT_TAGS{ALL} = \@EXPORT_OK;
-($VERSION) = q$Revision: 0.01 $ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge
+($VERSION) = q$Revision$ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge
 $DEBUG = 0;
 $LOGFILE = "$main::config_parms{data_dir}/logs/TI103.log";
 

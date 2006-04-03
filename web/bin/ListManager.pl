@@ -1,4 +1,4 @@
-#$Id: ListManager.pl,v 1.20 2006/03/25 06:23:14 gaetan Exp gaetan $
+#$Id$
 # This is based on Matthews Williams <mattrwilliams at users.sourceforge.net> original idea.
 use strict;
 use CGI::Carp qw(fatalsToBrowser);
@@ -20,7 +20,7 @@ my $DisplayKeyboard              = 1;     # do we display the keyboard
 my @Category;                             # array containing category name, in file order
                                           # this allow to get printed list in store aisle.
 my $AtShopStatus = "";
-my $Version      = '$Revision: 1.20 $';
+my $Version      = '$Revision$';
 $Version =~ s/\$//g;
 my $NumColumns;
 my $ColumnsWidth;

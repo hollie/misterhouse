@@ -18,7 +18,7 @@
 use strict;
 my($Pgm_Path, $Pgm_Name, $Version);
 BEGIN {
-    ($Version) = q$Revision: 1.28 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
 
     ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;

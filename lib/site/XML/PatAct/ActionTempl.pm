@@ -1,7 +1,7 @@
 # This template file is in the Public Domain.
 # You may do anything you want with this file.
 #
-# $Id: ActionTempl.pm,v 1.2 1999/08/16 16:04:03 kmacleod Exp $
+# $Id$
 #
 
 # replace all occurrences of ACTION with the name of your module!

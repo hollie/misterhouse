@@ -1,4 +1,4 @@
-# $Id: EncodingDetect.pm,v 1.5 2003/09/29 20:20:41 matt Exp $
+# $Id$
 
 package XML::SAX::PurePerl; # NB, not ::EncodingDetect!
 

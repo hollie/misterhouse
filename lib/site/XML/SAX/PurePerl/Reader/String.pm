@@ -1,4 +1,4 @@
-# $Id: String.pm,v 1.5 2003/07/30 13:39:23 matt Exp $
+# $Id$
 
 package XML::SAX::PurePerl::Reader::String;
 

@@ -3,7 +3,7 @@
 # XML::SAX2Perl is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 #
-# $Id: SAX2Perl.pm,v 1.4 2001/07/23 15:47:15 kmacleod Exp $
+# $Id$
 #
 
 use strict;

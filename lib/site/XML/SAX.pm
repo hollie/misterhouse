@@ -1,4 +1,4 @@
-# $Id: SAX.pm,v 1.25 2005/10/24 19:39:45 matt Exp $
+# $Id$
 
 package XML::SAX;
 

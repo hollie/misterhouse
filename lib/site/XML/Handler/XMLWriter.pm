@@ -4,7 +4,7 @@
 # XML::Handler::XMLWriter is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 #
-# $Id: XMLWriter.pm,v 1.2 1999/12/22 21:15:00 kmacleod Exp $
+# $Id$
 #
 
 use strict;

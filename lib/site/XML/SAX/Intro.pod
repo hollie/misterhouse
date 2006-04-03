@@ -402,6 +402,6 @@ issues up.
 
 Matt Sergeant, matt@sergeant.org
 
-$Id: Intro.pod,v 1.3 2002/04/30 07:16:00 matt Exp $
+$Id$
 
 =cut

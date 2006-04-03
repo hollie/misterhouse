@@ -15,7 +15,7 @@
 # ricardo.arroyo@ya.com
 # October 2, 2004
 #
-# $Id: weather_sp.pl,v 1.3 2004/10/02 19:24:20 winter Exp $
+# $Id$
 #
 #
 

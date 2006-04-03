@@ -1,4 +1,4 @@
-# $Id: ErrorHandler.pm,v 1.1.1.1 2004/08/15 14:55:43 btrott Exp $
+# $Id$
 
 package Class::ErrorHandler;
 use strict;

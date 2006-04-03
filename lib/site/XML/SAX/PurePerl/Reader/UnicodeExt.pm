@@ -1,4 +1,4 @@
-# $Id: UnicodeExt.pm,v 1.4 2003/07/30 13:39:23 matt Exp $
+# $Id$
 
 package XML::SAX::PurePerl::Reader;
 use strict;

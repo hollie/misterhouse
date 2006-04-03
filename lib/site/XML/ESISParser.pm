@@ -2,7 +2,7 @@
 # Copyright (C) 1999 Ken MacLeod
 # See the file COPYING for distribution terms.
 #
-# $Id: ESISParser.pm,v 1.9 2000/03/02 20:18:09 kmacleod Exp $
+# $Id$
 #
 
 use strict;
