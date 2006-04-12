@@ -729,8 +729,29 @@ Clive Freedman sent in some useful tips on common coding errors in
 
 =end html
 
+=head2 2.18: What's the difference between 'on', 'ON' and ON?
 
+In MisterHouse, the state of many objects comes down to a question of whether
+they are on or off.  As this is a common situation, it is important to know
+exactly how to ask whether something is on or off.
 
+First, it is important to know that case matters.  PERL is a case sensitive
+language, so 'On' does not equal 'on'.  Second, by default, everytime that
+the state of an item is set, mh converts that state to its lowercase 
+equivalent.  Hence, setting a light 'ON' actually sets it 'on'.  Third, the
+correct operator to check for string equality is eq, not == or =.
+
+Now, MisterHouse adds a little twist to the situation.  As 'on' and 'off' are
+common states, MisterHouse defines the PERL constants ON and OFF.  N.B. that
+there are no dollar signs ($) at the beginning of the constants.  Whenever
+MisterHouse code encounters ON and OFF as bare words (not within strings), they
+are replaced with 'on' and 'off' (both are lowercase).  This means:
+
+if (($state=$myLight->state_now) eq 'ON') # always fails as 'ON' is uppercase
+
+if (($state=$myLight->state_now) eq 'on') # could be true if light just turned on
+
+if (($state=$myLight->state_now) eq ON) # could be true as ON is the same as 'on'
 
 =head1 3: Linux specific questions
 

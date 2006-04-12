@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title>1: MisterHouse operational questions</title>
-<link rev="made" href="mailto:" />
+<link rev="made" href="mailto:root@midas.slackware.lan" />
 </head>
 
 <body style="background-color: white">
@@ -56,6 +56,7 @@
 		<li><a href="#2_15__what_is_the_format_of_misterhouse_x10_codes">2.15: What is the format of MisterHouse X10 codes?</a></li>
 		<li><a href="#2_16__how_are_states_set_for_each_pass_though_the_user_code_loop">2.16: How are states set for each pass though the user code loop?</a></li>
 		<li><a href="#2_17__common_perl_and_mh_coding_errors">2.17: Common Perl and mh coding errors</a></li>
+		<li><a href="#2_18__what_s_the_difference_between__on____on__and_on">2.18: What's the difference between 'on', 'ON' and ON?</a></li>
 	</ul>
 
 	<li><a href="#3__linux_specific_questions">3: Linux specific questions</a></li>
@@ -704,6 +705,25 @@ fire) as well as calls to 'state_now'.</p>
 <h2><a name="2_17__common_perl_and_mh_coding_errors">2.17: Common Perl and mh coding errors</a></h2>
 Clive Freedman sent in some useful tips on common coding errors in
 <a href="faq_damnblast.html">mh/docs/faq_damnblast.html</a><p>
+</p>
+<h2><a name="2_18__what_s_the_difference_between__on____on__and_on">2.18: What's the difference between 'on', 'ON' and ON?</a></h2>
+<p>In MisterHouse, the state of many objects comes down to a question of whether
+they are on or off.  As this is a common situation, it is important to know
+exactly how to ask whether something is on or off.</p>
+<p>First, it is important to know that case matters.  PERL is a case sensitive
+language, so 'On' does not equal 'on'.  Second, by default, everytime that
+the state of an item is set, mh converts that state to its lowercase 
+equivalent.  Hence, setting a light 'ON' actually sets it 'on'.  Third, the
+correct operator to check for string equality is eq, not == or =.</p>
+<p>Now, MisterHouse adds a little twist to the situation.  As 'on' and 'off' are
+common states, MisterHouse defines the PERL constants ON and OFF.  N.B. that
+there are no dollar signs ($) at the beginning of the constants.  Whenever
+MisterHouse code encounters ON and OFF as bare words (not within strings), they
+are replaced with 'on' and 'off' (both are lowercase).  This means:</p>
+<p>if (($state=$myLight-&gt;state_now) eq 'ON') # always fails as 'ON' is uppercase</p>
+<p>if (($state=$myLight-&gt;state_now) eq 'on') # could be true if light just turned on</p>
+<p>if (($state=$myLight-&gt;state_now) eq ON) # could be true as ON is the same as 'on'</p>
+<p>
 </p>
 <hr />
 <h1><a name="3__linux_specific_questions">3: Linux specific questions</a></h1>
