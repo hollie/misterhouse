@@ -278,6 +278,7 @@ sub http_process_request {
                                 # Ascii table: http://www.bbsinc.com/symbol.html
                                 #  - get_req may have h_response with %## chars in it
     $get_req =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+    $get_req =~ s!//!/!g;  # remove double slashes in request
     $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
 
 #   print "http: gr=$get_req ga=$get_arg\n" if $main::Debug{http};
@@ -661,9 +662,11 @@ sub http_get_local_file {
 sub test_for_file {
     my ($socket, $get_req, $get_arg, $no_header, $no_print) = @_;
 
+	$get_req =~ s!//!/!g; # remove double slashes in request
 
     my ($file, $http_dir) = &http_get_local_file($get_req, 1);
     return 0 unless $file;
+
 
                                 # Check for index files in directory
     if (-d $file) {
