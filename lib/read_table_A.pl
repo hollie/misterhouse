@@ -27,15 +27,21 @@ sub read_table_init_A {
 sub read_table_A {
     my ($record) = @_;
 
-    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy);
+    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy, $info);
+
+    return if $record =~ /^#/ or $record =~ /^\s*$/;  # Ignore comment and blank records
+    
+    if ($record =~ /(.+)# *(.+)$/) {       # Take end of line comments in object info
+	$record = $1; 
+	$info   = $2;
+    }
+
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
 
-    if($record =~ /^#/ or $record =~ /^\s*$/) {
-       return;
-    }
+
     # -[ Insteon ]----------------------------------------------------------
-    elsif($type eq "INSTEON") {
+    if($type eq "INSTEON") {
         require 'Insteon_Item.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -432,8 +438,9 @@ sub read_table_A {
 
     if ($object) {
         my $code2 = sprintf "\n\$%-35s =  new %s;\n", $name, $object;
-        $code2 =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
-        $code .= $code2;
+        $code2  =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
+        $code2 .= sprintf("\$%-35s -> set_info('$info');\n", $name) if $info;
+        $code  .= $code2;
     }
 
     $grouplist = '' unless $grouplist; # Avoid -w uninialized errors

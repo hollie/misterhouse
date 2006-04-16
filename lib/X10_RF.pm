@@ -174,7 +174,7 @@ sub rf_set_RF_Item {
         if ($id eq $item_id or (defined $class_id and $id eq $class_id)) {
             $object->set($state);
             $matched = 1;
-            &::print_log ("$item_id: " . substr($name, 2) . " $state");
+            &::print_log ("$item_id: " . substr($name, 1) . " $state");
         }
     }
     unless ($matched) {

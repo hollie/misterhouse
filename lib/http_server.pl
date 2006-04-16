@@ -514,7 +514,8 @@ sub http_process_request {
 
                                 # Can be a scalar or a object
                     $state =~ tr/\"/\'/; # So we can use "" to quote it
-                    my $eval_cmd = qq[($item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item')) ?
+#                   my $eval_cmd = qq[($item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item')) ?
+                    my $eval_cmd = qq[($item and ref($item) ne 'SCALAR' and $item->can('set')) ?
                                       ($item->set("$state", "web [$client_ip_address]")) : ($item = "$state")];
                     print "SET eval: $eval_cmd\n" if $main::Debug{http};
                     eval $eval_cmd;
@@ -2609,6 +2610,55 @@ sub referer {
     $r = $1 . $r unless $r =~ /^http/;
     return $r;
 }
+
+sub recompose_uri {
+	my $request;
+	my $querystring;
+	my $encoded_request = '';
+	my $encoded_querystring = '';
+	($_) = @_;
+
+	$request = $_;
+
+	if (/(.*?)\?(.*)/) {
+		$request = $1;
+		$querystring = $2
+	}
+
+
+
+	my @atoms = split '/', $request;
+
+	foreach (@atoms) {
+		$encoded_request .= '/' if $encoded_request;
+		$encoded_request .= (/:/)?$_:escape($_);
+
+	}
+
+	if ($querystring) {
+		my $name;
+		my $value;
+		my @params = split '&', $querystring;
+		foreach (@params) {
+			if (($name,$value) = /(.*?)\=(.*)/) {
+
+				$encoded_querystring .= '&amp;' if $encoded_querystring;
+				$encoded_querystring .= escape($name) . '=' . escape($value);
+			}
+			else {
+				$encoded_querystring .= '&amp;' if $encoded_querystring;
+				$encoded_querystring .= escape($_);
+
+			}
+
+		}
+		return $encoded_request . '?' . $encoded_querystring;
+	}
+	else {
+		$encoded_request;
+	}
+}
+
 
 sub vars_save {
     my @table_items;

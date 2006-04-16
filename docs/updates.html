@@ -134,7 +134,22 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 <a href=http://misterhouse.net/public/misterhouse_src_test.zip>current test release</a>
 (updated nightly) can be found
 <a href=http://misterhouse.net/mh/docs/updates.html>here, in the test release updates file</a>.<p><strong>New Features:</strong></p>
+<p>- Updated code/common/internet_mail.pl to allow for reading of local mail files.  
+For example, if using Thunderbird, install Thunderbird 'Tb autosave extention' from <a href="http://www.supportware.net/mozilla/#ext13">http://www.supportware.net/mozilla/#ext13</a> 
+then set the mh.ini parm net_mail_save_dir to point to the save directory.
+This has the advantage over get_email of ignoring spam that you have filtered out of your inbox.</p>
 <p><strong>Bug Fixes and Other Changes:</strong></p>
+<p>- David Mark updated code/common/event_sounds.pl to allow for an optional mh.ini event_sounds_file</p>
+<p>- David Mark added &amp;recompose_uri to unencoded URI's from XML parsers and re-encodes them for output in tag attributes.</p>
+<p>- David Mark updated code/common/news_ap_breaking.pl from 'read/show' to 'what is'.</p>
+<p>- Chris Barrett fixed a 2.102 X10_RF.pm bug that truncated the first character X10 code in the log errata.</p>
+<p>- Chris Barrett updated common/mh_release.pl to work with the new 2.102 version name, which includes the SVN Rddd version.</p>
+<p>- Chris Barrett fixed a case sensitiviy bug in lib/X10_RF_security.pm .</p>
+<p>- Added a check on text lenght in &amp;speak, and will display instead if too long.</p>
+<p>- Allow for end of line comments ( ... # comment) in .mht files.</p>
+<p>- Brent DeShazer found a bug when trying to set Timer objects from with web SET commands.</p>
+<p>- Chris Barrett fixed a potential security hole by removing double slashes in HTTP requests.</p>
+<p>- Matthew Williams added FAQ item 2.18 to explain the differences between 'on', 'ON' and ON.</p>
 <p>
 </p>
 <h2><a name="version_2_102_posted_on_04_02_2006">Version 2.102 posted on 04/02/2006</a></h2>

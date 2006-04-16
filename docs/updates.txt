@@ -2,7 +2,45 @@ Mister House Announcement List
   Changes in the current test version
     New Features:
 
+    - Updated code/common/internet_mail.pl to allow for reading of local
+    mail files. For example, if using Thunderbird, install Thunderbird 'Tb
+    autosave extention' from http://www.supportware.net/mozilla/#ext13 then
+    set the mh.ini parm net_mail_save_dir to point to the save directory.
+    This has the advantage over get_email of ignoring spam that you have
+    filtered out of your inbox.
+
     Bug Fixes and Other Changes:
+
+    - David Mark updated code/common/event_sounds.pl to allow for an
+    optional mh.ini event_sounds_file
+
+    - David Mark added &recompose_uri to unencoded URI's from XML parsers
+    and re-encodes them for output in tag attributes.
+
+    - David Mark updated code/common/news_ap_breaking.pl from 'read/show' to
+    'what is'.
+
+    - Chris Barrett fixed a 2.102 X10_RF.pm bug that truncated the first
+    character X10 code in the log errata.
+
+    - Chris Barrett updated common/mh_release.pl to work with the new 2.102
+    version name, which includes the SVN Rddd version.
+
+    - Chris Barrett fixed a case sensitiviy bug in lib/X10_RF_security.pm .
+
+    - Added a check on text lenght in &speak, and will display instead if
+    too long.
+
+    - Allow for end of line comments ( ... # comment) in .mht files.
+
+    - Brent DeShazer found a bug when trying to set Timer objects from with
+    web SET commands.
+
+    - Chris Barrett fixed a potential security hole by removing double
+    slashes in HTTP requests.
+
+    - Matthew Williams added FAQ item 2.18 to explain the differences
+    between 'on', 'ON' and ON.
 
   Version 2.102 posted on 04/02/2006
     Version 2.102 can be downloaded from here:

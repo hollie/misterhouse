@@ -40,6 +40,23 @@ if ($Reload) {
     add_sound timer2       => 'sound_nature/gonge.wav',    volume => 40,  rooms => 'all_and_out', time => 3 ;
 }
 
+# Allow for an optional file
+
+if ($config_parms{event_sounds_file} and 
+    ($New_Minute and file_changed($config_parms{event_sounds_file}) or $Reload)) {
+    print "Reading event sounds data ($Date_Now $Time_Now): $config_parms{event_sounds_file}.\n";
+#    @Sounds = ();
+    open(SOUNDSDATA, $config_parms{event_sounds_file});
+    while(<SOUNDSDATA>) {
+        unless (/^#/ or /^\s+$/ or !$_) {	    
+            print " - $_";
+            chomp $_;
+	    eval "add_sound " . $_;
+        }
+    }
+    close(SOUNDSDATA);
+}
+
 $sound_list_v     = new Voice_Cmd '[List,List all,Stop listing] event sounds';
 $sound_list_timer = new Timer;
 

@@ -5230,6 +5230,13 @@ sub speak {
 
     print "Voice_Text: speak @_\n" if $Debug{voice};
 
+				# Avoid speaking long text
+    if ((length $phrase > 1000) or
+        (($phrase =~ tr/\n/\n/) > 4)) {
+        &display(@_);
+	return;
+    }
+
     my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression app);
                                 # Not all TTS engines have all these options ... this is a superset
 #   print "Warning, speak control not recognized: key=$key value=$value\n"

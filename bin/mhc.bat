@@ -4,7 +4,7 @@
 echo Compiling ...
 @rem echo off
 
-cd \misterhouse\mh\bin
+cd \mh\bin
 
 set myM=
 set myM=%myM% -M Win32::OLE  -M Win32::Process -M Win32::PerfLib  -M File::DosGlob
@@ -26,7 +26,7 @@ set myL=%myL% -l c:/perl/perl/bin/ssleay32.dll -l c:/perl/perl/bin/libeay32.dll
 @rem set PATH=c:\perl\perl\bin;%PATH%
 
 del mhc.errata
-call pp.bat -v 3 -i \misterhouse\compile\favicon.ico -L mhc.errata %myM% %myL% -o mhen.exe  mh
+call pp.bat -v 3 -i \compile\favicon.ico -L mhc.errata %myM% %myL% -o mhen.exe  mh
 
 echo done
 house speak done with compile

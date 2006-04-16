@@ -1002,7 +1002,7 @@ sub _handleStaleXplSockets {
       }
    }
    # check main listening socket
-   my $port_name = 'xpl_listen';
+   $port_name = 'xpl_listen';
    if (!($::Socket_Ports{$port_name}{socka})) {
       if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'listen', $port_name, 0, 1)) {
          print "Notice. xPL socket ($port_name) had been closed and has been reopened\n";

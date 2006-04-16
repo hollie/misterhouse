@@ -82,9 +82,16 @@ $v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a s
 $v_recent_email-> set_info('Download and summarize new email headers');
 if (said $v_recent_email or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
                              new_minute $config_parms{net_mail_scan_interval} and &net_connect_check)) {
-    set $p_get_email 'get_email -quiet';
-    set $p_get_email 'get_email -debug' if $Debug{email};
-    start $p_get_email;
+
+    if ($config_parms{net_mail_save_dir}) {
+	&net_mail_scan_dir($config_parms{net_mail_save_dir});
+	start $p_get_email 'do_nothing'; # Does nothing ;)  Mimic get_email call, where done_now will still work
+    }
+    else {
+	set $p_get_email 'get_email -quiet';
+	set $p_get_email 'get_email -debug' if $Debug{email};
+	start $p_get_email;
+    }
 }
 
 $email_flag = new Generic_Item;

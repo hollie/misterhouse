@@ -205,7 +205,7 @@ if ($state = state_now $robot_dance) {
     }
     else {
         speak 'app=robot no_animate=1 Time to dance!';
-        set $robot_song "mplay32.exe  /play /close c:/misterhouse/sounds/ymca.mid";
+        set $robot_song "mplay32.exe  /play /close m:/sounds/ymca.mid";
         start $robot_song;
         @robot_sequence_cmds = qw(DanceDemo BackwardStep Burp BackwardStep High5 Demo2 BackwardStep);
         set $robot_timer1 2;

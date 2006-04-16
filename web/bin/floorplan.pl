@@ -199,7 +199,7 @@ sub web_fp_item #render all items based on type
                         $l_image='fp-alarm-disable.gif';
                 } elsif  (lc($p_obj->state) eq  'panic') {
                         $l_image='fp-alarm-panic.gif';
-                } elsif  (lc($p_obj->state) eq  'alert') {
+                } elsif  (lc($p_obj->state) eq  /^alert/) {
                         $l_image='fp-door-open.png';
                 } elsif  (lc($p_obj->state) =~  /^normal/) {
                         $l_image='fp-door-closed.png';

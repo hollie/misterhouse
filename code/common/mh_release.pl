@@ -50,7 +50,9 @@ if (done_now $p_mhdl_page) {
 if ($New_Minute and
     (time_cron '4 16,20 * * * ')) {
     if (defined $Save{mhdl_maj} and defined $Save{mhdl_min}) {
-	my ($maj,$min) = split(/\./,$Version);
+# mh 2.102 R419
+#       my ($maj,$min) = split(/\./,$Version);
+        my ($maj,$min) = $Version =~ /(\d*)\.(\d*)/;
 	if (($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min))) {
 	    speak "A newer version of Mister House was made available for download on " . $Save{mhdl_date}
 	}

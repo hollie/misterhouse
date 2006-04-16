@@ -1476,3 +1476,8 @@ Fri 03/24/06 09:55:10 city=Nice state=France name=
 Sun 03/26/06 19:39:13 city=CRANBERRY TWP state=PA name=Paul
 Fri 03/31/06 07:17:29 city=Charleston state=SC name=James Armstrong
 Sun 04/02/06 00:17:08 city=Colver state=Pa name=Dickie
+Mon 04/03/06 10:58:39 city=Florianpolis-SC state=Brazil name=Guilherme Angeloni
+Mon 04/03/06 13:04:13 city=Trois-Rivieres state=QC name=Christian
+Mon 04/03/06 22:23:05 city=Portland state=OR name=
+Tue 04/04/06 21:25:55 city=Burlington state=Ontario name=
+Thu 04/06/06 08:26:30 city=Celje state=Slovenia name=Iztok alamon

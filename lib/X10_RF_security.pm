@@ -35,8 +35,8 @@ my %scodes = qw(00 Sensor:AlertMax        01 Sensor:NormalMax
 		64 System:Panic
 		70 System:ArmHomeMin
 		80 Sensor:AlertBattLowMax 81 Sensor:NormalBattLowMax
-		A0 Sensor:AlertBattLowMin A1 Sensor:NormalBattLowMin
-		C0 System:Panic
+                a0 Sensor:AlertBattLowMin a1 Sensor:NormalBattLowMin
+                c0 System:Panic
 	       );
 
 #------------------------------------------------------------------------------
@@ -81,7 +81,8 @@ sub rf_process_security {
     $device_id = $nbytes[2];
 
     # See if this is a command that we recognize.
-    my $scode = $scodes{unpack("H2", chr($cmd))};
+#   my $scode = $scodes{   unpack("H2", chr($cmd))};
+    my $scode = $scodes{lc(unpack("H2", chr($cmd)))};
     unless (defined $scode) {
 	&::print_log(sprintf   "%s: unimplemented security cmd device_id "
 			     . "= 0x%02x, cmd = 0x%02x (%s %s %s %s)",

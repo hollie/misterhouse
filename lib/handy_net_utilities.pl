@@ -1354,16 +1354,8 @@ sub main::net_mail_summary {
         $date_received = $date unless $date_received;
 
                                 # Process 'from' into speakable name
-        ($from_name) = $from =~ /\((.+)\)/;
-        ($from_name) = $from =~ / *(.+?) *</ unless $from_name;
-        ($from_name) = $from =~ / *(\S+) *@/ unless $from_name;
-        $from_name = $from unless $from_name; # Sometimes @ is carried onto next record
-        $from_name =~ tr/_/ /;
-#       $from_name =~ tr/"//;
-        $from_name =~ s/\"//g;  # "first last"
-        $from_name = "$2 $1" if $from_name =~ /(\S+), +(\S+)/; # last, first
-#       $from_name =~ s/ (\S)\. / $1 /;  # Drop the "." after middle initial abreviation.
-                                         # Spammers blank this out, so no point in warning about it
+	$from_name = &main::net_mail_extract_name($from);
+
 #       print "Warning, net_mail_summary: No From name found: from=$from, header=$header\n" unless $from_name;
 
         my $age_msg = int((time -  str2time($date_received)) / 60);
@@ -1428,6 +1420,70 @@ sub main::net_mail_delete {
     }
     $pop->quit;                 # Need to logoff to delete
 }
+
+
+				# Read mail from local dir ... might be a perl module for this, but looks pretty simple.
+sub main::net_mail_scan_dir {
+    my ($dir) = @_;
+    print "db Reading mail from $dir\n" if $main::Debug{email};
+    my (%summary, %cnts, $cnt);
+    my %file_paths = &main::file_read_dir($dir);
+    for my $file (values %file_paths) {
+	next unless $file =~ /\.eml$/;
+	my ($from, $from_name, $to, $to_name, $subject, $body, $body_flag);
+	for (&main::file_read($file)) {
+	    $to      = $1 if /^Delivered-To: (.+)$/ and !$to;
+	    $to      = $1 if /^To: (.+)$/           and !$to;
+	    $from    = $1 if /^From: (.+)$/         and !$from;
+	    $subject = $1 if /^Subject: +(.+)$/     and !$subject;
+	    $body_flag = 1 if /^ *$/;
+	    $body .= $_ if $body_flag;
+	    $cnt++;
+	}
+#	unlink $file;
+	$body =~ s/\n/ /g;
+	$body  =~ s/Content-Disposition: attachment.+?filename=(.+?)^.+/Attachment deleted: $1/gsm;
+	$to_name   = &main::net_mail_extract_name($to);
+	$from_name = &main::net_mail_extract_name($from);
+	print "From: $from -> $from_name To: $to -> $to_name Subject: $subject file:$file\n" if $main::Debug{email};
+
+	($from_name, $to_name) = &main::get_email_rule($from_name, $to_name, $subject, $from, $body) if exists &main::get_email_rule;
+	next unless $from_name;
+
+	$summary{$to_name}{$from_name}++;
+	$cnts{$to_name}++;
+	&main::logit("$main::config_parms{data_dir}/get_email.scan",
+		     "Msg: $cnt From:$from  To:$to  Subject:$subject  Body:$body");
+    }
+    my ($summary1, $summary2);
+    for my $to (sort keys %summary) {
+	my @from = sort keys %{$summary{$to}};
+	$summary1 .= sprintf("%s:%d ", uc substr($to, 0, 1), $cnts{$to});
+	$summary2 .= $to . ' has ' . &main::plural($cnts{$to}, 'new message') . ' from ' . &main::speakify_list(@from) . '. ';
+    }
+    
+    &main::file_write("$main::config_parms{data_dir}/get_email.flag", $summary1);
+    &main::file_write("$main::config_parms{data_dir}/get_email.txt",  $summary2);
+#   &main::file_write("$main::config_parms{data_dir}/get_email2.txt", $summary3);
+#   &main::file_write("$main::config_parms{data_dir}/get_email.data", $email_file_data)
+
+}
+
+
+sub main::net_mail_extract_name {
+    my ($from) = @_;
+    my $name;
+    ($name) = $from =~ /\((.+)\)/;
+    ($name) = $from =~ / *(.+?) *</ unless $name;
+    ($name) = $from =~ / *(\S+) *@/ unless $name;
+    $name = $from unless $name;
+    $name =~ tr/_/ /;
+    $name =~ s/\"//g;  # "first last"
+    $name = "$2 $1" if $name =~ /(\S+), +(\S+)/; # last, first
+#   $name =~ s/ (\S)\. / $1 /;  # Drop the "." after middle initial abreviation.
+    return $name;
+}
+
 
 sub main::net_ping {
     my ($host, $protocol) = @_;
