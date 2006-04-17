@@ -7,7 +7,7 @@ use strict;
 
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
-use vars qw(%Http %Cookies %Included_HTML);
+use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV);
 $Authorized = 0;
 
 my($leave_socket_open_passes, $leave_socket_open_action);
@@ -269,6 +269,32 @@ sub http_process_request {
     logit "$config_parms{data_dir}/logs/server_http.$Year_Month_Now.log",  "$Socket_Ports{http}{client_ip_address} $get_req $get_arg"
        unless $config_parms{no_log} =~ /http_local/ and &is_local_address();
 
+	#
+	# Split out the arguments into a hash and make them available so they're
+	# available to our shtml and pl files directly from the %HTTP_ARGV hash
+	#
+	# URL is something like
+	# http://your.misterhouse.server/dir/page?var1=val1&var2=val2
+	# so $get_arg should contain:  var1=val1&var2=val2
+	#
+
+	# Clear any previous arguments
+	%HTTP_ARGV=();
+	if ($get_arg) {
+		# Split the pairs apart first
+		# $pairs[0]="var1=val1", $pairs[1]="var2=val2", etc
+		my @pairs=split(/&/,$get_arg);
+
+		# Now split each individual pair and store in the hash
+		foreach my $pair (@pairs) {
+			my ($name, $value) = $pair =~ /(.*?)=(.*)/;
+		    $value =~ tr/\+/ /;       # translate + back to spaces
+    		$value =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
+			# Store in hash
+			$HTTP_ARGV{$name} = $value;
+		}
+	}
+
     $get_arg =~ tr/\+/ /;       # translate + back to spaces (e.g. code search tk widget)
                                 # Real + will be in %## form (e.g. /SET;&html_list(X10_Item)?$test_house2?%2B15)
 
@@ -277,16 +303,16 @@ sub http_process_request {
                                 # translate from %## back to real characters
                                 # Ascii table: http://www.bbsinc.com/symbol.html
                                 #  - get_req may have h_response with %## chars in it
-    $get_req =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+    $get_req =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
     $get_req =~ s!//!/!g;  # remove double slashes in request
-    $get_arg =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+    $get_arg =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
 
 #   print "http: gr=$get_req ga=$get_arg\n" if $main::Debug{http};
 
-                                # Store so that include files have access to parent args
+	# Store so that include files have access to parent args
     $ENV{HTTP_QUERY_STRING}  = $get_arg;
 
-                                # Prompt for password (SET_PASSWORD) and allow for UNSET_PASSWORD
+	# Prompt for password (SET_PASSWORD) and allow for UNSET_PASSWORD
     if ($get_req =~ /SET_PASSWORD$/) {
         if ($config_parms{password_menu} eq 'html') {
             if ($get_req =~ /^\/UNSET_PASSWORD$/) {
