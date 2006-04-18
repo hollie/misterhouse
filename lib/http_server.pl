@@ -22,6 +22,7 @@ my %mime_types = (
                   'vxml'  => 'text/html',
                   'xml'   => 'text/xml',
                   'xsl'   => 'text/xml',
+                  'sxml'  => 'text/xml',
                   'txt'   => 'text/plain',
 #                 'htc'   => 'text/plain',
                   'css'   => 'text/css',
@@ -1341,7 +1342,7 @@ sub html_file {
 
                                 # Allow for 'server side include' directives
                                 #  <!--#include file="whatever"-->
-    if ($file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/) {
+    if ($file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/ or $file =~ /\.sxml?$/) {
         print "Processing server side include file: $file\n" if $main::Debug{http};
         $html = &mime_header($file, 0) unless $no_header;
         while (my $r = <HTML>) {
