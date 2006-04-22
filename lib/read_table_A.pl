@@ -404,6 +404,7 @@ sub read_table_A {
 #                $address =~ s/^(\S)H(\S)$/$1L$2/ if $pa_type eq 'wdio';
 #                $address =~ s/^D(\S)H(\S)$/D$1L$2/ if $pa_type eq 'wdio_old';
                 $code .= sprintf "\$%-35s -> add ('%s','off');\n",$name,$address;
+                $code .= sprintf("\$%-35s -> set_info('$info');\n", $name) if $info;
 
                 $object = '';
             } elsif (lc $pa_type eq 'x10') {
