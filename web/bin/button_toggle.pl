@@ -4,7 +4,7 @@
 
 # Authority: anyone
 
-my ($object) = @ARGV;
+my ($object,$referer) = @ARGV;
 
 my $state = eval "state \$$object";
 print "button_toggle.pl error: $@" if $@;
@@ -22,6 +22,9 @@ else {
 }
 
 print "button_toggle.pl:  o=$object s=$state i=$image\n" if $main::Debug{button};
-
-return "<a href='/SET;referer?$object=toggle'>$image</a>";
+if ($referer) {
+	return "<a href='/SET;referer${referer}?$object=toggle'>$image</a>";
+} else {
+	return "<a href='/SET;referer?$object=toggle'>$image</a>";
+}
 
