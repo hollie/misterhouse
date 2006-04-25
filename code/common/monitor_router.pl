@@ -123,7 +123,7 @@ if (my $packet = said $router) {
 #       if ($time_since_last_visit > 6) {
         if ($time_since_last_visit > 600) {
 #           my ($name, $name_short) = net_domain_name $ip_src;
-            print_log "Web hit from ip=$ip_src";
+            print_log "Web hit port=$port_out ip=$ip_src -> $ip_dst";
             play 'router_new'; # Defined in event_sounds.pl
             net_domain_name_start 'router', $ip_src; # Resolve from ip address to domain name ... in the background
         }

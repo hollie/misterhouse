@@ -2755,6 +2755,8 @@ DESCRIPTION
 
                nolog   => 1       Does not log the spoken text to the speech log.
 
+               length  => nnn     Text > nnn characters will be truncated before speaking.
+
                app     => 'xyz'   This uses the speak parms defined in the xyz section of
                                   the mh.ini speak_app parm.  This allows us to use custom
                                   speak parms with generic, common code.

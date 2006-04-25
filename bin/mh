@@ -5230,14 +5230,8 @@ sub speak {
 
     print "Voice_Text: speak @_\n" if $Debug{voice};
 
-				# Avoid speaking long text
-    if ((length $phrase > 1000) or
-        (($phrase =~ tr/\n/\n/) > 4)) {
-        &display(@_);
-	return;
-    }
 
-    my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression app);
+    my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression app length);
                                 # Not all TTS engines have all these options ... this is a superset
 #   print "Warning, speak control not recognized: key=$key value=$value\n"
 #            unless grep $key eq $_, @speak_parms;
@@ -5263,6 +5257,12 @@ sub speak {
     if ($phrase =~ /\.wav$/) {
         &play('file' => $phrase, 'rooms' => $rooms);
         return;
+    }
+
+				# Avoid speaking long text
+    if ($parms{length} and length $phrase > $parms{length}) {
+        &display(@_);           # Display full text
+	$phrase = substr($phrase, 0, $parms{length}) . '.  Speech truncated.'
     }
 
     $display_time = 120 if !$display_time and $phrase !~ /\n/ and -f $phrase;

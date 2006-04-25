@@ -122,31 +122,27 @@ sub set
       $p_state = 'closed';
    }
 
+  if ($p_state ne $self->{state}) {  #added this if clause
    if ($p_state eq 'open') {
       if ($$self{'alarm_action'}) {
-#         $$self{m_timerAlarm}->set($$self{'alarm_time'}, $$self{'alarm_action'});
-	$$self{m_timerAlarm}->set($$self{'alarm_time'},$self);
+         $$self{m_timerAlarm}->set($$self{'alarm_time'}, $$self{'alarm_action'});
       }
-      $$self{m_timerCheck}->set($$self{'inactivity_time'}, $self); 
+      $$self{m_timerCheck}->set($$self{'inactivity_time'}, $self);
       $$self{last_open} = $::Time;
-   } elsif ($p_setby eq $$self{m_timerAlarm}) { # Alarm timer (needs to loop)
-	package main;
-	eval $$self{'alarm_action'};
-	package Door_Item;
-	$$self{m_timerAlarm}->set($$self{'alarm_time'},$self); #continuous
    } elsif ($p_setby eq $$self{m_timerCheck}) { # Check timer expired
       if ($$self{'inactivity_action'}) {
          package main;
          eval $$self{'inactivity_action'};
          package Motion_Item;
       } else {
-         &::print_log("$$self{object_name}->Has not received motion in 24hrs");
+         &::print_log("$$self{object_name} has not reported in 24 hours.");
       }
       $p_state = 'check';
    } elsif ($p_state eq 'closed') {
       $$self{m_timerAlarm}->stop();
       $$self{last_closed} = $::Time;
    }
+  }
 
    $self->SUPER::set($p_state,$p_setby);
 }

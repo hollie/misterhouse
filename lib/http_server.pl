@@ -2612,7 +2612,8 @@ sub print_socket2 {
 
 sub quote_attribute {
     ($_)=@_;
-    '"' . html_encode($_) . '"';
+    s/\x22/\&quot;/g;
+    '"' . $_ . '"';
 }
 
 sub escape {
