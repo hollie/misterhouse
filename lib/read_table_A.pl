@@ -31,7 +31,7 @@ sub read_table_A {
 
     return if $record =~ /^#/ or $record =~ /^\s*$/;  # Ignore comment and blank records
     
-    if ($record =~ /(.+)# *(.+)$/) {       # Take end of line comments in object info
+    if ($record =~ /(.+)#\s*(.+)$/) {       # Take end of line comments in object info
 	$record = $1; 
 	$info   = $2;
     }
@@ -404,7 +404,7 @@ sub read_table_A {
 #                $address =~ s/^(\S)H(\S)$/$1L$2/ if $pa_type eq 'wdio';
 #                $address =~ s/^D(\S)H(\S)$/D$1L$2/ if $pa_type eq 'wdio_old';
                 $code .= sprintf "\$%-35s -> add ('%s','off');\n",$name,$address;
-                $code .= sprintf("\$%-35s -> set_info('$info');\n", $name) if $info;
+                $code .= sprintf("\$%-35s -> set_info(q~$info~);\n", $name) if $info;
 
                 $object = '';
             } elsif (lc $pa_type eq 'x10') {
@@ -440,7 +440,7 @@ sub read_table_A {
     if ($object) {
         my $code2 = sprintf "\n\$%-35s =  new %s;\n", $name, $object;
         $code2  =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
-        $code2 .= sprintf("\$%-35s -> set_info('$info');\n", $name) if $info;
+        $code2 .= sprintf("\$%-35s -> set_info(q~$info~);\n", $name) if $info;
         $code  .= $code2;
     }
 
