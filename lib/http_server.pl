@@ -542,7 +542,7 @@ sub http_process_request {
                                 # Can be a scalar or a object
                     $state =~ tr/\"/\'/; # So we can use "" to quote it
 #                   my $eval_cmd = qq[($item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item')) ?
-                    my $eval_cmd = qq[($item and ref($item) ne 'SCALAR' and $item->can('set')) ?
+                    my $eval_cmd = qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('set')) ?
                                       ($item->set("$state", "web [$client_ip_address]")) : ($item = "$state")];
                     print "SET eval: $eval_cmd\n" if $main::Debug{http};
                     eval $eval_cmd;
