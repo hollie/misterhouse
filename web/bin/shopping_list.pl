@@ -1,5 +1,5 @@
 # Shopping List
-# Version 1.67
+# Version 1.68
 # Matthew Williams
 #
 # $Revision$
@@ -50,6 +50,9 @@
 # shopping list.  If blank, will default to net_mail_account_address
 #
 # Revision History:
+#
+# Version 1.68: Matthew Williams
+# - added filter to list name to restrict file location to data directory
 #
 # Version 1.67: Matthew Williams
 # - added html_page to all return statements so that correct HTTP headers
@@ -115,6 +118,7 @@ foreach my $param (@ARGV) {
 }
 
 my $listName=$param{listName};
+$listName =~ s![:/\\\.]!!g; # don't allow illegal characters in filename
 $listName='shopping' unless $listName;
 
 my $prettyName=ucfirst($listName).' List';
