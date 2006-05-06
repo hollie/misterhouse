@@ -91,28 +91,37 @@ sub display {
     &read_text($self);
 
                                 # Reuse existing window if present
+
     my $reuse_flag;
     if ($$self{window_name} and $Windows{$$self{window_name}}) {
         $$self{MW} = $Windows{$$self{window_name}}{mw}; 
         $$self{loop} = 0;
         $reuse_flag++;
+
+        my $t1 = $Windows{$$self{window_name}}{t1};
+
+	eval ("\$t1->insert(('0.0', ''))"); # try out a blank insert first
+	$reuse_flag = 0 if $@;              # errored, so cannot reuse window (closed by system menu or close button, rather than tk quit button)
     }
-                                # New window from main tk 
-    elsif ($main::MW) { 
-        $$self{MW} = $main::MW->Toplevel; 
-        $$self{loop} = 0;
-        $Windows{$$self{window_name}}{mw} = $$self{MW} if $$self{window_name};
-    } 
+    
+    if (!$reuse_flag) {     # Not reusing extant window
+                            # New window from main tk 
+	    if ($main::MW) { 
+        	$$self{MW} = $main::MW->Toplevel; 
+	        $$self{loop} = 0;
+        	$Windows{$$self{window_name}}{mw} = $$self{MW} if $$self{window_name};
+	    } 
                                 # Stand alone use (not from mh tk window)
-    else { 
-        $$self{MW} = MainWindow->new;  
-        $$self{loop} = 1;
-    } 
+	    else { 
+	        $$self{MW} = MainWindow->new;  
+        	$$self{loop} = 1;
+	    } 
+    }
 
     if (lc $$self{font} eq 'biggest') {
         $$self{geometry} = '+0+0';
         my $w = $$self{MW}->screenwidth;
-                                # Heurstic numbers (e.g. screen=1280 -> font=25)
+                                # Heuristic numbers (e.g. screen=1280 -> font=25)
         my $l = length $$self{text};
 #       my $fsize = int($w / 50);
         my $fsize = int($w / ($l / 18));
@@ -127,12 +136,12 @@ sub display {
         $$self{MW}->title($$self{title});
 
         my $f1 = $$self{MW}->Frame->pack; 
-        my $b1 = $f1->Button(qw/-text Quit(ESC) -command/ => sub{$self->destroy})->pack(-side => 'left'); 
+        my $b1 = $f1->Button(qw/-text Quit(ESC) -command/ => sub{$self->destroy})->pack(-side => 'left') if $$self{time}; 
            $l  = $f1->Label(-relief       => 'sunken', -width        => 5,
-                            -textvariable => \$$self{time})->pack(-side => 'left'); 
+                            -textvariable => \$$self{time})->pack(-side => 'left') if $$self{time};
 
         my $b2 = $f1->Button(qw/-text Pause(F1) 
-                             -command/ => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1})->pack(-side => 'left'); 
+                             -command/ => sub {$$self{auto_quit} = ($$self{auto_quit}) ? 0:1})->pack(-side => 'left') if $$self{time}; 
     }
 
     if ($$self{type} and $$self{type} eq 'photo') {
@@ -154,22 +163,29 @@ sub display {
 
                                 # Valid fonts can be listed with xlsfonts 
         my $t1;
+        #my $inserted;
 
         if ($reuse_flag) {
             $t1 = $Windows{$$self{window_name}}{t1};
             if ($$self{append} eq 'bottom') {
                                 # If we put at end, tk does not auto-scroll :(
-                $t1->insert(('end', $$self{text})); 
+				# So is this option used at all?
+                eval ("\$t1->insert(('end', " . $$self{text} . "))"); 
             }
-            elsif ($$self{append}) {
-                $t1->insert(('0.0', $$self{text})); 
+            elsif ($$self{append}) { # top
+                eval ("\$t1->insert(('0.0', '" . $$self{text} . "'))");
+
             }
-            else {
-                $t1->delete(('0.0', 'end')); 
-                $t1->insert(('0.0', $$self{text})); 
+            else { # replace
+                eval("\$t1->delete(('0.0', 'end'))"); 
+                eval("\$t1->insert(('0.0', " . $$self{text}. "))"); 
             }
+	    $t1->focus;
+       	    #$inserted = !$@;	    
         }
-        else {
+        #if (!$inserted) {
+	else {	
+
             $t1 = $$self{MW}->Scrolled('Text', -setgrid => 'true',  
                                           -width => $$self{width}, -height => $$self{height}, 
                                           -font => $$self{font},
@@ -190,7 +206,7 @@ sub display {
 #                                 $b->configure(-text => "Quit (or ESC) auto-quit in $$self{time} seconds (F1 to toggle auto-quit)");; 
 #                                   $$self{MW}->withdraw if $$self{time} % 2;   ... test to hide and unhide a window
 #                                     $$self{MW}->deiconify unless $$self{time} % 2;
-                                  }); 
+                                  }) if $$self{time}; 
     
     $$self{MW}->bind('<q>'         => sub{$self->destroy});
     $$self{MW}->bind('<Escape>'    => sub{$self->destroy});
