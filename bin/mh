@@ -5220,6 +5220,21 @@ sub respond_object_set {
     print "respond object_set eval error: name=$parms{name}, arg1=$parms{arg1}, error=$@\n" if $@;
 }
 
+
+sub respond_in_kind {
+	my $object = shift;
+	my ($text) = @_;
+	my %parms = &parse_func_parms(@_);
+
+	if ($object->{set_by} and $object->{set_by} !~ /usercode/i and $object->{set_by} !~ /unknown/i and $object->{set_by} !~ /^time$/i) { #command run externally
+		respond $text;
+	}
+	else { #command run internally (by code, trigger, etc.)
+		respond "target=log $parms{text}";
+	}	
+}
+
+
 sub speak {
     my ($rooms, $display_time, $play);
 
