@@ -28,9 +28,17 @@ This has the advantage over get_email of ignoring spam that you have filtered ou
 
 B<Bug Fixes and Other Changes:>
 
+- David Mark fixed tk window display bug related to recycled windows.
 
+<<<<<<< .mine
+- David Mark added respond_in_kind wrapper for respond function.
+=======
 - David Mark updated code/common/event_sounds.pl to allow for an optional mh.ini event_sounds_file
+>>>>>>> .r438
 
+<<<<<<< .mine
+
+=======
 - David Mark added &recompose_uri to unencoded URI's from XML parsers and re-encodes them for output in tag attributes. 
 
 - David Mark updated code/common/news_ap_breaking.pl from 'read/show' to 'what is'.
@@ -53,6 +61,7 @@ B<Bug Fixes and Other Changes:>
 
 
 
+>>>>>>> .r438
 =head2 Version 2.102 posted on 04/02/2006
 
 Version 2.102 can be downloaded from here:
