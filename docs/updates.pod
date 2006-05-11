@@ -28,6 +28,8 @@ This has the advantage over get_email of ignoring spam that you have filtered ou
 
 B<Bug Fixes and Other Changes:>
 
+- David Mark added respond_in_kind function
+
 - David Mark fixed tk window display bug related to recycled windows.
 
 - David Mark updated code/common/event_sounds.pl to allow for an optional mh.ini event_sounds_file
