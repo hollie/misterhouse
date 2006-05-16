@@ -351,9 +351,9 @@ sub display {
     my $log3 = &phone_list($fbl, 'dbm'); 
 
     $fbr->Label(-text => 'List of log files')->pack;  
-    my $fbr2  = $fbr->Frame->pack(qw/expand no -fill x/); 
-    $fbr2->Label(-text => 'Incoming files')->pack(qw/expand yes -fill x -side left/); 
-    $fbr2->Label(-text => 'Outgoing files')->pack(qw/expand yes -fill x -side left/); 
+    my $fbr2  = $fbr->Frame->pack(qw/-expand no -fill x/); 
+    $fbr2->Label(-text => 'Incoming files')->pack(qw/-expand yes -fill x -side left/); 
+    $fbr2->Label(-text => 'Outgoing files')->pack(qw/-expand yes -fill x -side left/); 
 
     my($files1, $files2); 
     $files1 = $fbr->Scrolled(qw/Listbox -selectmode extended -width -1 -height 10 -setgrid 1 -scrollbars e -bg cyan/);  
