@@ -47,6 +47,15 @@ class ucomics-gen
 
 end
 
+class ucomics-flashdrm
+    homepage http://www.ucomics.com/$strip/
+    type flashdrm
+    searchpattern comicViewerUc.+?k=(.+?)"
+    drmurl http://poncho.ucomics.com/xml/xmldrm/
+    imageurl http://poncho.ucomics.com/view/$drmkey/$match_1
+    provides latest
+end
+
 class unitedmedia-srch-comics
 	homepage http://www.unitedmedia.com/comics/$strip/
 	type search
@@ -1189,7 +1198,7 @@ end
 
 strip calvinandhobbes
 	name Calvin and Hobbes
-	useclass ucomics-srch
+	useclass ucomics-flashdrm
 	$1 ch
 end
 

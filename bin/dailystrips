@@ -8,8 +8,10 @@
 # Author:           Andrew Medico <amedico@amedico.dhs.org>
 # Created:          23 Nov 2000, 23:33 EST
 # Last Modified:    24 Aug 2003, 16:55 
-# Current Revision: 1.0.28
+# Current Revision: 1.0.28-patched
 #
+# This copy of dailystrips has been patched by Matthew Williams
+# to bypass the United Comics Flash based DRM scheme.
 
 
 # Set up
@@ -937,6 +939,54 @@ sub get_strip {
 		
 	} elsif ($defs{$strip}{'type'} eq "generate") {
 		$addr = $defs{$strip}{'baseurl'} . $defs{$strip}{'imageurl'};
+	} elsif ($defs{$strip}{'type'} eq "flashdrm") {
+		$page = &http_get($defs{$strip}{'searchpage'});
+
+		if ($page =~ /^ERROR/) {
+			if ($options{'verbose'}) {
+				warn "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
+			}
+			
+			$addr = "unavail-server";
+		} else {
+			$page =~ /$defs{$strip}{'searchpattern'}/si;
+			my @regexmatch;
+			for (1..9) {
+				$regexmatch[$_] = ${$_};
+				#warn "regex match #$_: ${$_}\n";	
+			}
+
+			unless ($regexmatch[1]) {
+				warn "didn't match\n";
+				if ($options{'verbose'}) {
+					warn "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
+				}
+				
+				$addr = "unavail-nomatch";
+			} else {
+				$page = &http_get($defs{$strip}{'drmurl'});
+				if ($page =~ /^ERROR/) {
+					warn "Error: $strip: can't download drmurl\n";
+					$addr = "unavail-server";
+				} else {
+					my ($drmkey) = $page =~ m!<key>(.+)</key>!s;
+					if ($drmkey eq '') {
+						warn "Error: $strip: unable to locate drmkey\n";
+					} else {
+						my $match = ${$defs{$strip}{'matchpart'}};
+
+						if ($defs{$strip}{'imageurl'}) {
+							$addr = $defs{$strip}{'imageurl'};
+							$addr =~ s/\$match_(\d)/$regexmatch[$1]/ge;
+							$addr =~ s/\$match/$match/ge;
+							$addr =~ s/\$drmkey/$drmkey/ge;
+						} else {
+							warn "Error: $strip: You must supply an imageurl\n";
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	unless ($addr =~ /^(http:\/\/|unavail)/io) { $addr = "http://" . $addr }
@@ -1016,7 +1066,7 @@ sub get_defs {
 					my $using_class = $defs{$strip}{'useclass'};
 					
 					# import vars from class
-					for (qw(homepage searchpage searchpattern baseurl imageurl urlsuffix referer prefetch artist)) {
+					for (qw(homepage searchpage searchpattern baseurl imageurl urlsuffix referer prefetch artist drmurl)) {
 						if ($classes{$using_class}{$_} and !$defs{$strip}{$_}) {
 							my $classvar = $classes{$using_class}{$_};
 							$classvar =~ s/(\$[0-9])/$defs{$strip}{$1}/g;
@@ -1132,7 +1182,7 @@ sub get_defs {
 			}
 			elsif (/^type\s+(.+)$/i)
 			{
-				unless ($1 =~ /^(search|generate)$/io) {
+				unless ($1 =~ /^(search|generate|flashdrm)$/io) {
 					die "Error: invalid type at $defs_file line $line\n";
 				}
 				
@@ -1185,6 +1235,10 @@ sub get_defs {
 			elsif (/^artist\s+(.+)$/i)
 			{
 				$classes{$class}{'artist'} = $1;
+			}
+			elsif (/^drmurl\s+(.+)$/i)
+			{
+				$classes{$class}{'drmurl'} = $1;
 			}
 			elsif (/^(.+)\s+?/)
 			{
