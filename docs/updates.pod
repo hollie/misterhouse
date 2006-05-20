@@ -28,6 +28,14 @@ This has the advantage over get_email of ignoring spam that you have filtered ou
 
 B<Bug Fixes and Other Changes:>
 
+- David Mark updated mh_release.pl to use respond_in_kind function and trigger
+
+- David Mark fixed display app parameter bug
+
+- David Mark fixed bug in respond_log which sent parameters to the print log
+
+- David Mark updated serial_port_create and serial_port_open to handle start and stop bit variations
+
 - David Mark fixed tk response in set_password
 
 - David Mark added respond_in_kind function
@@ -69,6 +77,10 @@ Version 2.102 can be downloaded from here:
 
 
 B<New Features:>
+
+- David Mark added several new options to display_alpha.pl
+
+- David Mark updated display_alpha.pm to work with older Beta Brite signs
 
 - Brian McKissick created code/common/power_Xantrex.pl for communicating with a
 Xantrex GT3.0 grid-tied photovoltaic power inverter, allowing for home automation monitoring of generated solar power.
