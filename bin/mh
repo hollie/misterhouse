@@ -2184,26 +2184,20 @@ sub convert_direction {
 }
 
 sub display {
-    my @parms = @_;
+    my %parms = &parse_func_parms(@_);
 
-                                # Allow for either positional or key=value form
-#   my %parms = @parms unless @parms %2;  # Wierd bug with this?  %parms is rember from previous call!
-    my %parms;
-    %parms = @parms unless @parms %2;
-
-    unless (defined $parms{text}) {
+    unless (defined $parms{text} and $parms{text} ne '') {
         ($parms{text}, $parms{time}, $parms{title}, $parms{font},
-         $parms{window_name}, $parms{append}) = @parms;
+         $parms{window_name}, $parms{append}) = @_;
     }
-
-    %parms = &parse_func_parms(%parms);  # Allow for key=value embeded in the text
-    &set_app_parms(\%parms, 'display');     # Set parms according to an optional app parm
+    else {
+	&set_app_parms(\%parms, 'display');     # Set parms according to an optional app parm
+    }
 
 #   print "db display t=$parms{text} d=$parms{device} p=@parms\n";
 
     my $text = $parms{text};
     return unless $text;        # No data
-
 
                                 # If it is a file, read it
     if ($text =~ /^\S+$/ and -e $text) {
@@ -4820,15 +4814,22 @@ sub set_global_vars {
 }
 
 sub serial_port_create {
-    my ($name, $port, $baudrate, $handshake, $datatype, $prefix, $parity) = @_;
+    my ($name, $port, $baudrate, $handshake, $datatype, $prefix, $parity, $databits, $stopbits) = @_;
+
+	# *** This fixes COM ports on Win2K platforms, so INI documentation about this is unneeded.
 
     $port = '\\\\.\\' . $port if $Info{OS_name} =~ /(NT|XP)/ and $port =~ /^com\d{2}\z/i;
+
+
+    my $pretty_name = $name;
+    $pretty_name =~ s/_/\x20/g;
 
     unless ($name and $port) {
         print "\n\nError, serial port data missing: name=$name port=$port\n\n";
         return;
     }
-    printf " - creating %-15s object on port %s\n", $name, $port;
+
+    printf " - creating %s port on %s\n", $pretty_name, $port;
 
     $handshake = 'none' unless $handshake;
     $baudrate  = '1200' unless $baudrate;
@@ -4846,15 +4847,19 @@ sub serial_port_create {
         return;
     }
 
-    &serial_port_open($name);
+    &serial_port_open($name, $databits, $stopbits);
 #   &serial_port_open($name)  || delete $Serial_Ports{$name};
 }
 
 sub serial_port_open {
-    my ($name) = @_;
+    my ($name, $databits, $stopbits) = @_;
 
     my $serial_port;
     my $port = $Serial_Ports{$name}{port};
+
+    $databits = 8 unless $databits;
+    $stopbits = 1 unless $stopbits;
+
 
     delete $Serial_Ports{$name}{object}; # Delete previous object, if any
 
@@ -4883,10 +4888,10 @@ sub serial_port_open {
     $serial_port->error_msg(1);     # use built-in error messages
     $serial_port->user_msg(0);
 
-    $serial_port->databits(8) if $serial_port->can_databits;
+    $serial_port->databits($databits) if $serial_port->can_databits;
     $serial_port->baudrate($Serial_Ports{$name}{baudrate});
     $serial_port->parity($Serial_Ports{$name}{parity});
-    $serial_port->stopbits(1);
+    $serial_port->stopbits($stopbits);
 #   $serial_port->dtr_active(1);
     $serial_port->handshake($Serial_Ports{$name}{handshake});
 #   $serial_port->read_buf_max(4096);
@@ -5175,7 +5180,8 @@ sub respond_im {
     &print_log(@_);
 }
 sub respond_log {
-    &print_log(@_);
+    my %parms = &parse_func_parms(@_); # parse out parameters before dumping to log
+    &print_log($parms{text});
 }
 sub respond_speak {
     &speak(@_);
@@ -5223,16 +5229,47 @@ sub respond_object_set {
 
 sub respond_in_kind {
 	my $object = shift;
+	my $target;
 	my ($text) = @_;
 	my %parms = &parse_func_parms(@_);
+	my $set_by = $object->{set_by};
 
-	if ($object->{set_by} and $object->{set_by} !~ /usercode/i and $object->{set_by} !~ /unknown/i and $object->{set_by} !~ /^time$/i) { #command run externally
-		respond $text;
+	$parms{connected} = 1 if !defined($parms{connected});
+
+	if (($set_by and $set_by !~ /usercode/i and $set_by !~ /unknown/i and $set_by !~ /^time$/i) or $parms{important}) {		
+		if (!$parms{connected}) {
+			# don't override these if explicitly passed
+			# mute remote web responses (convert all Web to speech)
+			$target = ($parms{target})?$parms{target}:$set_by;
+			$target = 'speak' if !$target; # parameter and set_by could be undefined
+			my $mode;
+			if ($target =~ /^web/i) {
+				my $address = $target =~ /\[(.*)\]/;
+
+				# *** TODO:Set room from IP if local
+				$target = 'speak';
+				$mode = 'mute' if (!&is_local_address($address) and !$parms{mode});	
+			}
+
+
+			$target = 'unknown' if ($target =~ /usercode/i); # just in case, probably not needed (there is something tacked onto usercode as I recall)
+
+
+			my $extra = "target=$target";
+			$extra .= " mode=$mode" if $mode;
+			$extra .= ' ';
+			respond "$extra$text";
+		}
+		else {
+			$target = 'web' if $target =~ /^web/i;
+			respond((($parms{target})?'':"target=$set_by ") . $text);
+		}
 	}
 	else { #command run internally (by code, trigger, etc.)
-		respond "target=log $parms{text}";
+		respond "target=log $parms{text}";		
 	}	
 }
+
 
 
 sub speak {
