@@ -18,26 +18,77 @@
 
 =cut
 
+# noloop=start
 my $mhdl_url = "http://www.misterhouse.net/download.html";
 my $mhdl_file = "$config_parms{data_dir}/web/mh_download.html";
-
 $p_mhdl_page = new Process_Item("get_url -quiet \"$mhdl_url\" \"$mhdl_file\"");
-$v_mhdl_page = new Voice_Cmd("check misterhouse version",0);
+# noloop=stop
 
-# Do this at midnight
-if (said $v_mhdl_page or
-    ($New_Minute and time_cron('0 0 * * *'))) {
+$v_mhdl_page = new Voice_Cmd("Check Misterhouse version");
+$v_mhdl_page->set_info("Check if Misterhouse version is current");
+
+$v_version = new Voice_Cmd("What version are you", 0);
+$v_version->set_info("Responds with current version information");
+
+sub parse_version {
+	my ($maj,$min) = $Version =~ /(\d)\.(\d*)/;
+	my ($rev) = $Version =~ /R(\d*)/;
+	return ($maj, $min, $rev);	
+}
+
+sub calc_age {
+#Get the time sent in. This is UTC
+    my $time = shift;
+    #*** This is a hack (same as earthquakes)
+    #*** Surely PERL can turn a date string into a time hash!
+    my ($qmnth, $qdate, $qyear) = $time =~ m!(\S+)/(\S+)/(\S+)!;
+
+    my $diff = (time - timelocal(0,0,0,$qdate,$qmnth-1,$qyear));
+
+    my $days_ago = int($diff/(60*60*24));
+    return 'today' if !$days_ago;
+    return 'yesterday' if $days_ago == 1;
+    return 'the day before yesterday' if $days_ago == 2;
+    return "$days_ago days ago" if $days_ago < 7;
+    my $weeks = int($days_ago / 7);
+    my $days = $days_ago % 7;
+    return "$weeks week" . (($weeks == 1)?'':'s') . ((!$days)?'':(" and $days day" . (($days == 1)?'':'s'))) . " ago";
+}
+
+if (said $v_version) {
+
+	my ($maj,$min,$revision) = &parse_version();
+	$revision = "unknown" unless $revision;
+
+	if (($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min))) {
+        	respond "app=control I am version $maj.$min (revision $revision) and $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date}) . '.';
+	}
+	else {
+        	respond "app=control I am version $maj.$min (revision $revision), released " . &calc_age($Save{mhdl_date}) . '.';
+	}
+}
+
+if (said $v_mhdl_page) {
+
+    my $msg;
 
     if (&net_connect_check) {
-	print_log "Retrieving MH download page";
+	$msg = "Checking version";
+	print_log "Retrieving download page";
 	start $p_mhdl_page;
-    } else {
-	respond "Sorry, you must be online to get version info";
     }
+    else {
+	$msg = "app=control Unable to check version while disconnected from the Internet";
+    }
+    
+    respond_in_kind $v_mhdl_page, "app=control $msg";
+
 }
+
 
 if (done_now $p_mhdl_page) {
     my @html = file_head($mhdl_file,16);
+    print_log "Download page retrieved";
     foreach(@html) {
 	next unless /^<p>Version (\d+)\.(\d+) released on (.*):/i;
 	$Save{mhdl_maj} = $1;
@@ -45,16 +96,41 @@ if (done_now $p_mhdl_page) {
 	$Save{mhdl_date} = $3;
 	last;
     }
+
+
+   if (defined $Save{mhdl_maj} and defined $Save{mhdl_min}) {
+	my ($maj,$min,$revision) = &parse_version();
+	$revision = "unknown" unless $revision;
+	if (($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min))) {
+	    respond_in_kind $v_mhdl_page, "important=1 connected=0 app=control I am version $maj.$min (revision $revision) and version $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date} . '.')
+	}
+	else {
+		# Voice command is only code to start this process, so check its set_by
+		respond_in_kind $v_mhdl_page, "connected=0 app=control Version $Save{mhdl_maj}.$Save{mhdl_min} is current.";
+	}
+   }
+
+
+	
+
 }
 
-if ($New_Minute and
-    (time_cron '4 16,20 * * * ')) {
-    if (defined $Save{mhdl_maj} and defined $Save{mhdl_min}) {
-# mh 2.102 R419
-#       my ($maj,$min) = split(/\./,$Version);
-        my ($maj,$min) = $Version =~ /(\d*)\.(\d*)/;
-	if (($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min))) {
-	    speak "A newer version of Mister House was made available for download on " . $Save{mhdl_date}
-	}
+# create trigger to download version info at 6PM (or on dial-up connect)
+
+if ($Reload and $Run_Members{'trigger_code'}) {
+    if ($Run_Members{'internet_dialup'}) {
+        eval qq(
+            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Check Misterhouse version'", 'NoExpire', 'get MH version')
+              unless &trigger_get('get MH version');
+        );
+    }
+    else {
+	
+        eval qq(
+            &trigger_set("time_cron '0 18 * * *' and net_connect_check", "run_voice_cmd 'Check Misterhouse version'", 'NoExpire', 'get MH version')
+              unless &trigger_get('get MH version');
+        );
     }
 }
+
+
