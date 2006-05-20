@@ -7,9 +7,10 @@ menu.pl
 mh_control.pl
 mh_sound.pl
 mhsend_server.pl
-monitor_memory.pl
+mh_release.pl
 organizer.pl
 tk_eye.pl
 tk_frames.pl
 tk_widgets.pl
 trigger_code.pl
+eliza_server.pl
