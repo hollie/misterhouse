@@ -1,14 +1,11 @@
 # Category = Weather
 #
-# Ignore the next two lines if you are not me.
-# I am now internally using an SVN repository.
-#
 # $Revision$
 # $Date$
 #
 #@ Weather METAR parser
 #@ 
-#@ V 1.62
+#@ V 1.63
 #@
 #@ To get the closest station name in Canada, go to 
 #@ http://www.flightplanning.navcanada.ca and choose METAR/TAF
@@ -22,6 +19,10 @@
 #@
 #
 # by Matthew Williams
+#
+# V 1.63
+# - Added ability to read from automated stations (AUTO tag)
+# - Added ability to understand COR (alternate correction tag)
 #
 # V 1.62
 # - Added ability to add hooks that are called when new forecasts are retrieved.
@@ -108,7 +109,7 @@ if (done_now $p_weather_metar_page or $Reload) {
   my $apparenttemp='none';
   # apparenttemp is either windchill or humidex
 
-  while ($html =~ m#((METAR) |(SPECI) )?$station \d{6}Z (CCA )?\d{3}\d{2}(G\d{2})?KT .+?\n#g) {
+  while ($html =~ m#((METAR) |(SPECI) )?$station \d{6}Z (AUTO )?(COR )?(CCA )?\d{3}\d{2}(G\d{2})?KT .+?\n#g) {
     $last_report=$&;
     chop $last_report;
     $weather='';
@@ -128,6 +129,7 @@ if (done_now $p_weather_metar_page or $Reload) {
       if ($element eq 'SKC' or $element eq 'CLR') { $clouds = 'sky clear '; };
       if ($element eq 'METAR' or $element eq 'SPECI') { next; };
       if ($element eq 'CCA') { next; }; # correction
+      if ($element eq 'AUTO') { next; }; # automated station
       if ($element =~ m#^FEW# ) { $clouds = 'few clouds '; };
       if ($element =~ m#^SCT# ) { $clouds = 'scattered clouds '; };
       if ($element =~ m#^BKN# ) { $clouds = 'broken clouds '; };
