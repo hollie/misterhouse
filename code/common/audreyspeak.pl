@@ -71,6 +71,18 @@ You must make certain modifications to your Audrey, as follows:
    speak (rooms=> "Kitchen", mode=> "unmuted", text=> "hello in the kitchen");
    speak (rooms=> "all", mode=> "unmuted", text=> "hello everywhere");
 
+- If speak/play events appear to be delayed to your audrey units, you might
+  need to play with the "sound_fork" configuration variable in mh.private.ini
+  to allow sound to play on the main server while the sound is sent to the
+  audrey.
+
+- By default, ALL speak and play events will be pushed to ALL audrey's
+  regardless of the value in the speak/play "rooms" parameter.  If you
+  want the audrey's to honor the rooms parameter, then you must define
+  the audrey_use_rooms parameter in my.private.ini
+
+  audrey_use_rooms=1
+
 =cut
 
 #Tell MH to call our routine each time something is spoken
@@ -90,21 +102,16 @@ if ($New_Second && ($audreyRdIndex != $audreyWrIndex)) {
     my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
 #   my $MHWeb = hostname() . ":" . $config_parms{http_port};
     my $speakFile = "/speakToAudrey$audreyRdIndex.wav";
+    my $rooms = @speakRooms[$audreyRdIndex];
     for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-        $audrey =~ /(\S+)\-(\S+)/;
-        my $room = $1;
-        my $ip = $2;
-        my $rooms = @speakRooms[$audreyRdIndex];
-        for my $index (@$rooms) {
-          lc $index;
-          lc $room;
-          if ($index eq $room) {
-            run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb$speakFile /dev/null";
-          }
-        }
+      $audrey =~ /(\S+)\-(\S+)/;
+      my $room = lc $1;
+      my $ip = $2;
+      if ( grep(/$room/, @$rooms) ) {
+        run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb$speakFile /dev/null";
+      }
     }
-    $audreyRdIndex++;
-    $audreyRdIndex = 0 if ($audreyRdIndex >= $audreyMaxIndex);
+    $audreyRdIndex = ($audreyRdIndex + 1) % $audreyMaxIndex;
 }
 
 #MH just said something. Generate the same thing to our file (which is monitored above)
@@ -112,37 +119,37 @@ sub speak_to_Audrey {
     my %parms = @_;
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
     my @rooms = split ',', lc $parms{rooms};
-    if (lc $parms{rooms} =~ /all/) {
+
+    # determine which if any audreys to speak to; we honor the rooms paramter 
+    # whenever audrey_use_rooms is defined, otherwise, we send to all audreys
+    if (!exists $config_parms{audrey_use_rooms} || grep(/all/, @rooms) ) {
       @rooms = ();
       for my $audrey (split ',', $config_parms{Audrey_IPs}) {
         $audrey =~ /(\S+)\-(\S+)/;
-        my $room = $1;
+        my $room = lc $1;
         my $ip = $2;
         push @rooms, $room;
       }
     } else {
       my @audreyRooms = ();
-      for my $speakRoom (@rooms) {
-        for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-          $audrey =~ /(\S+)\-(\S+)/;
-          my $room = $1;
-          my $ip = $2;
-          if ($speakRoom eq $room) {
-            push @audreyRooms, $room;
-          }
+      for my $audrey (split ',', $config_parms{Audrey_IPs}) {
+        $audrey =~ /(\S+)\-(\S+)/;
+        my $room = lc $1;
+        my $ip = $2;
+        if ( grep(/$room/, @rooms) ) {
+          push @audreyRooms, $room;
         }
       }
       @rooms = @audreyRooms;
     }
+    return if (!@rooms);
 
+    # okay, process the speech and add to the process array
     $parms{"to_file"} = $config_parms{html_dir} . "/speakToAudrey" . $audreyWrIndex . ".wav";
-    @speakRooms[$audreyWrIndex] = \@rooms;
     $parms{rooms} = @rooms;
-    if (@rooms > 0) {
-      &Voice_Text::speak_text(%parms);
-      $audreyWrIndex++;
-      $audreyWrIndex = 0 if ($audreyWrIndex >= $audreyMaxIndex);
-    }
+    @speakRooms[$audreyWrIndex] = \@rooms;
+    &Voice_Text::speak_text(%parms);
+    $audreyWrIndex = ($audreyWrIndex + 1) % $audreyMaxIndex;
 }
 
 #Tell MH to call our routine each time a wav file is played
@@ -152,10 +159,35 @@ sub speak_to_Audrey {
 sub play_to_audrey {
     my %parms = @_;
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
+
+    # determine which if any audreys to speak to; we honor the rooms paramter 
+    # whenever audrey_use_rooms is defined, otherwise, we send to all audreys
     my @rooms = split ',', lc $parms{rooms};
+    if (!exists $config_parms{audrey_use_rooms} || grep(/all/, @rooms) ) {
+      @rooms = ();
+      for my $audrey (split ',', $config_parms{Audrey_IPs}) {
+        $audrey =~ /(\S+)\-(\S+)/;
+        my $room = lc $1;
+        my $ip = $2;
+        push @rooms, $room;
+      }
+    } else {
+      my @audreyRooms = ();
+      for my $audrey (split ',', $config_parms{Audrey_IPs}) {
+        $audrey =~ /(\S+)\-(\S+)/;
+        my $room = lc $1;
+        my $ip = $2;
+        if ( grep(/$room/, @rooms) ) {
+          push @audreyRooms, $room;
+        }
+      }
+      @rooms = @audreyRooms;
+    }
+    return if (!@rooms);
+
+    # okay, process each file and add to the process array
     my @files = split(/[, ]/, $parms{file});
     for my $file (@files) {
-
       if (-e $file) {
       }
                           # Use from common dir only if it is not in the user sound_dir
@@ -180,38 +212,11 @@ sub play_to_audrey {
               $file = $files_to_pick[0];
           }
       }
-      # if we can't find the file, skip it, otherwise we will end up
-      # playing an old file copied into one of the speakToAudrey.* files
-      next if ! -e $file;
+      next if (! -e $file);
 
-      if (lc $parms{rooms} =~ /all/) {
-        @rooms = ();
-        for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-          $audrey =~ /(\S+)\-(\S+)/;
-          my $room = $1;
-          my $ip = $2;
-          push @rooms, $room;
-        }
-      } else {
-        my @audreyRooms = ();
-        for my $speakRoom (@rooms) {
-          for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-            $audrey =~ /(\S+)\-(\S+)/;
-            my $room = $1;
-            my $ip = $2;
-            if ($speakRoom eq $room) {
-              push @audreyRooms, $room;
-            }
-          }
-        }
-        @rooms = @audreyRooms;
-      }
-      if (@rooms > 0) {
-        my $speakFile = $config_parms{html_dir} . "/speakToAudrey" . $audreyWrIndex . ".wav";
-        @speakRooms[$audreyWrIndex] = \@rooms;
-        copy $file, $speakFile;
-        $audreyWrIndex++;
-        $audreyWrIndex = 0 if ($audreyWrIndex >= $audreyMaxIndex);
-      }
+      my $speakFile = $config_parms{html_dir} . "/speakToAudrey" . $audreyWrIndex . ".wav";
+      @speakRooms[$audreyWrIndex] = \@rooms;
+      copy $file, $speakFile;
+      $audreyWrIndex = ($audreyWrIndex + 1) % $audreyMaxIndex;
     }
 }
