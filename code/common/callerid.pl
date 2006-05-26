@@ -32,8 +32,12 @@ use Telephony_Item;
 
                                 # Use this for each of your cid hardware interfaces
 $cid_interface1 = new Telephony_Interface($config_parms{callerid_name},  $config_parms{callerid_port},  $config_parms{callerid_type});
-if (defined($config_parms{callerid2_name})) {
+$cid_item       = new CID_Lookup($cid_interface1);
+
+if ($Startup and defined($config_parms{callerid2_name})) {
+    print_log("Creating and adding 2nd Caller ID interface");
 	$cid_interface2 = new Telephony_Interface($config_parms{callerid2_name}, $config_parms{callerid2_port}, $config_parms{callerid2_type});
+	$cid_item      -> add           ($cid_interface2);
 }
 
 #$PhoneKillerPort = new  Telephony_Item($config_parms{callerid_port});
@@ -41,12 +45,7 @@ if (defined($config_parms{callerid2_name})) {
 # Examples of other interfaces
 #cid_interface3 = new Telephony_Identifier('Identifier', $config_parms{identifier_port});
 $PhoneKillTimer = new Timer;
-                                # These objects will enable cid lookup, logging, and announcing
-$cid_item       = new CID_Lookup($cid_interface1);
-if (defined($cid_interface2)) {
-	$cid_item      -> add           ($cid_interface2);
-}
-
+                                # These objects will enable cid logging and announcing
 $cid_log        = new CID_Log($cid_item);    # Enables logging
 $cid_server     = new CID_Server($cid_item); # Enables YAC, Acid, and xAP/xPL callerid clients
 
