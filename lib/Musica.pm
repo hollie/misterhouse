@@ -1,3 +1,6 @@
+# $Date$
+# $Revision$
+
 =begin comment
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -153,6 +156,7 @@ Controlling either all zones or one zone:
 
    set_source(identifier): Changes zone or zones to specified source.  The
    parameter can be a number 1-4, the letter 'E' for the local expansion port,
+   and the letter 'F' for the integrated FM tuner.
    the label assigned to a specific source (such as 'MP3'), or a source object.
    Examples:
       $zone1_obj->set_source(1);
@@ -185,6 +189,10 @@ Controlling either all zones or one zone:
 
    amber_backlight(): Set backlight to the color amber.
 
+   white_backlight(): Set backlight to the color white (instead of green when applicable).
+
+   blue_backlight(): Set backlight to the color blue (instead of amber when applicable).
+
    set_backlight_brightness(level): Sets backlight level to a value between
       0 and 8 where 0 is off and 8 is full brightness.  Can also be specified
       with a percentage where '0%' is off and '100%' is full brightness.
@@ -210,6 +218,12 @@ Controlling either all zones or one zone:
       be changed.
 
    unlock_menu(): Unlocks the menu.
+
+   set_preset_label(number, label): Sets FM preset 1-8 to specified numeric
+   or text label.  Label must be one listed in %source_name_to_number_30419.
+
+   set_preset_frequency(number, freq): Sets FM preset 1-8 to specified frequency,
+   where 8950 is 89.5, for example.
 
 Controlling the Musica system object:
    The following functions allow you to make changes to the Musica system
@@ -275,6 +289,7 @@ Retrieving data from the Musica zone object:
    get_loudness(): Returns 1 if on, 0 if off.
    get_mute(): Returns 1 if on, 0 if off.
    get_blcolor(): Returns 'green' or 'amber' to indicate backlight color.
+      ('green' == 'white' and 'amber' == 'blue' on applicable keypads)
    get_brightness(): Returns backlight brightness from 0 to 8 where 0 means
       that the backlight is currently off.
    get_audioport(): Returns 1 if the audioport is connected.
@@ -308,8 +323,10 @@ Monitoring the Musica zone objects:
    loudness_off: Loudness was disabled in the zone
    mute_on: This zone was muted.
    mute_off: This zone was unmuted.
-   color_amber: The backlight color in this zone was changed to amber.
-   color_green: The backlight color in this zone was changed to green.
+   color_amber: The backlight color in this zone was changed to amber 
+      (or blue on applicable keypads).
+   color_green: The backlight color in this zone was changed to green
+      (or white on applicable keypads).
    backlight_on: The backlight was turned on (not given when the backlight
       comes on when the zone is turned on).
    backlight_off: The backlight was turned off.
@@ -561,8 +578,20 @@ use vars qw( %source_name_to_number @source_number_to_name
    'NPR'      => 37,
    'DSS'      => 38,
    'M SERVER' => 39,
+   'M-SERVER' => 39,
    'DISH'     => 40,
-   ''         => 41
+   ''         => 41,
+   'EXTAUDIO' => 42,
+   'MASTER'   => 43,
+   'BEDROOM'  => 44,
+   'KITCHEN'  => 45,
+   'DINING'   => 46,
+   'LIVING'   => 47,
+   'FAMILY'   => 48,
+   'GREAT'    => 49,
+   'STUDY'    => 50,
+   'OUTSIDE'  => 51,
+   'ROOM'  => 52,
 );
 
 @source_number_to_name = (
@@ -719,7 +748,7 @@ my %commands_to_keys = (
 );
 
 # The version of this Misterhouse object
-use constant OBJECT_VERSION => '1.1';
+use constant OBJECT_VERSION => '2.0';
 # Maximum number of zones and sources in the system
 use constant MAX_ZONES => 6;
 use constant MAX_SOURCES => 4;
@@ -731,6 +760,13 @@ use constant IGNORE_AFTER_ON => 15;
 use constant IGNORE_BUTTON_PRESSED_AFTER_HELD => 2;
 # How long to wait for a zone to turn on
 use constant MAX_ZONE_ON_DELAY => 10;
+
+# How to handle sources... with 5602 system, each zone seems to have its own
+# source labels which it sends at startup.
+# Set this to 1 to send out the source label when a zone selects a source
+use constant SOURCE_SEND_LABELS => 1;
+# Set this to 1 to ignore source label changes from keypads
+use constant SOURCE_IGNORE_LABLES => 1;
 
 my %Musica_Systems;
 
@@ -748,10 +784,18 @@ sub _check_for_data {
             $Musica_Systems{$port_name}{'object'}->{'waiting_for_zone'} = 0;
             if (($Musica_Systems{$port_name}{'object'}->{'resend_count'} < 3) or ($Musica_Systems{$port_name}{'object'}->{'queue'}->[0] =~ /^StatVer/)) {
                $Musica_Systems{$port_name}{'object'}->{'resend_count'}++;
-               $Musica_Systems{$port_name}{'object'}->_report_error("Going to re-send command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . ']');
+               $Musica_Systems{$port_name}{'object'}->_report_error("Going to re-send command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . "] ($Musica_Systems{$port_name}{'object'}->{'resend_count'} times)");
+               $Musica_Systems{$port_name}{'object'}->_send_next_cmd();
+            } elsif ($Musica_Systems{$port_name}{'object'}->{'resend_count'} == 3) {
+               $Musica_Systems{$port_name}{'object'}->{'resend_count'}++;
+               $Musica_Systems{$port_name}{'object'}->_report_error("Resetting serial connection to re-send command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . "] ($Musica_Systems{$port_name}{'object'}->{'resend_count'} times)");
+               &::serial_port_reopen($port_name);
+            } elsif ($Musica_Systems{$port_name}{'object'}->{'resend_count'} < 6) {
+               $Musica_Systems{$port_name}{'object'}->{'resend_count'}++;
+               $Musica_Systems{$port_name}{'object'}->_report_error("Going to re-send command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . "] ($Musica_Systems{$port_name}{'object'}->{'resend_count'} times)");
                $Musica_Systems{$port_name}{'object'}->_send_next_cmd();
             } else {
-               $Musica_Systems{$port_name}{'object'}->_report_error("Re-sent command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . '] too many times, dropping');
+               $Musica_Systems{$port_name}{'object'}->_critical_error("Re-sent command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . '] too many times, dropping');
                $Musica_Systems{$port_name}{'object'}->_found_response();
             }
             $Musica_Systems{$port_name}{'last_data_received'} = $::Time;
@@ -761,9 +805,23 @@ sub _check_for_data {
          if ($Musica_Systems{$port_name}{'object'}->{'zones'}[$i]) {
             if ($Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'just_turned_on'}) {
                if (($Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'on_time'} + MAX_ZONE_ON_DELAY) <= $::Time) {
-                  $Musica_Systems{$port_name}{'object'}->_report_error("Turning zone $i on again since it did not turn on before");
-                  $Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'on_time'} = $::Time;
-                  $Musica_Systems{$port_name}{'object'}->_queue_cmd("ChangeSrc/$i/$Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'just_turned_on'}");
+                  if ($Musica_Systems{$port_name}{'object'}->{'on_repeat_count'} < 3) {
+                     $Musica_Systems{$port_name}{'object'}->{'on_repeat_count'}++;
+                     $Musica_Systems{$port_name}{'object'}->_report_error("Turning zone $i on again since it did not turn on before");
+                     $Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'on_time'} = $::Time;
+                     $Musica_Systems{$port_name}{'object'}->_queue_cmd("ChangeSrc/$i/$Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'just_turned_on'}");
+                  } elsif ($Musica_Systems{$port_name}{'object'}->{'on_repeat_count'} == 3) {
+                     $Musica_Systems{$port_name}{'object'}->{'on_repeat_count'}++;
+                     $Musica_Systems{$port_name}{'object'}->_report_error("Resetting serial connection to turn zone $i on again since it did not turn on before");
+                     &::serial_port_reopen($port_name);
+                  } elsif ($Musica_Systems{$port_name}{'object'}->{'on_repeat_count'} < 6) {
+                     $Musica_Systems{$port_name}{'object'}->{'on_repeat_count'}++;
+                     $Musica_Systems{$port_name}{'object'}->_report_error("Turning zone $i on again since it did not turn on before");
+                     $Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'on_time'} = $::Time;
+                     $Musica_Systems{$port_name}{'object'}->_queue_cmd("ChangeSrc/$i/$Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'just_turned_on'}");
+                  } else {
+                     $Musica_Systems{$port_name}{'object'}->_critical_error("Turning zone $i on again since it did not turn on before");
+                  }
                }
             }
          }
@@ -775,6 +833,18 @@ sub _check_for_data {
       $main::Serial_Ports{$port_name}{'data_record'}='';
       $Musica_Systems{$port_name}{'last_data_received'} = $::Time;
    }
+}
+
+sub reset {
+   my ($self) = @_;
+   $$self{'queue'} = ();
+   foreach (@{$$self{'zones'}}) {
+      $_->{'just_turned_on'} = 0;
+   }
+   $self->_queue_cmd('EventData/0/1');
+   $self->_queue_cmd('EventSrc/1');
+   $self->_queue_cmd('EventStore/0/1');
+   $self->_queue_cmd('StatVer/0');
 }
 
 sub new {
@@ -803,23 +873,42 @@ sub new {
 
 sub _store_zone_source {
    my ($self, $zone, $source, $set_by) = @_;
+   &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source)") if $main::Debug{musica};
    if ($$self{'zones'}[$zone] and ($source ne 'X')) {
       my $currsrc = $$self{'zones'}[$zone]->{'source'};
+      &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source): $currsrc") if $main::Debug{musica};
       unless ($currsrc eq $source) {
          $$self{'timerOff'}->stop() if $$self{'timerOff'};
          if ($currsrc eq '0') {
             # Currently off
             $$self{'zones'}[$zone]->set_receive('zone_on', $set_by);
+            &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source): Zone just turned on") if $main::Debug{musica};
+            if (($source eq '1') or ($source eq '2') or ($source eq '3') or ($source eq '4')) {
+               # 5602 keypads don't seem to get the source labels unless they are on, so
+               # make sure to set the labels whenever a source is selected
+               if (SOURCE_SEND_LABELS) {
+                  $$self{'sources'}[$source]->set_label($$self{'sources'}[$source]->get_label());
+               }
+            }
          } else {
             if ($source eq '0') {
                if (defined $currsrc) {
+                  &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source): Zone just turned off") if $main::Debug{musica};
                   $$self{'zones'}[$zone]->set_receive('zone_off', $set_by);
                   if ($$self{'timerOff'}) {
                      $$self{'timerOff'}->set(0);
                   }
                }
             } else {
+               &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source): Zone source changed") if $main::Debug{musica};
                $$self{'zones'}[$zone]->set_receive('source_changed', $set_by);
+               if (($source eq '1') or ($source eq '2') or ($source eq '3') or ($source eq '4')) {
+                  # 5602 keypads don't seem to get the source labels unless they are on, so
+                  # make sure to set the labels whenever a source is selected
+                  if (SOURCE_SEND_LABELS) {
+                     $$self{'sources'}[$source]->set_label($$self{'sources'}[$source]->get_label());
+                  }
+               }
             }
          }
          $$self{'zones'}[$zone]->{'source'} = $source;
@@ -864,13 +953,15 @@ sub _see_if_zone_just_turned_on {
    return 0 unless $$self{'zones'}[$zone];
    return 0 unless defined($$self{'zones'}[$zone]->{'source'});
    my $currsrc = $$self{'zones'}[$zone]->{'source'};
-   &::print_log("$self->{'port_name'}: Zone $zone exists and source is defined (currsrc=$currsrc, new_source=$new_source)") if $main::Debug{musica};
+   &::print_log("$self->{'port_name'}: Zone $zone exists and source is defined (currsrc=$currsrc, new_source=$new_source), just_turned_on=" . $$self{'zones'}[$zone]->{'just_turned_on'}) if $main::Debug{musica};
    if (($currsrc eq '0') and ($new_source ne '0')) {
       # Currently off
       unless ($$self{'zones'}[$zone]->{'just_turned_on'}) {
          $$self{'zones'}[$zone]->{'on_time'} = $::Time;
+         &::print_log("$self->{'port_name'}: setting just_turned_on=$new_source (zone $zone)") if $main::Debug{musica};
          $$self{'zones'}[$zone]->{'just_turned_on'} = $new_source;
          $$self{'zones'}[$zone]->{'just_turned_on_by'} = $set_by;
+         $$self{'on_repeat_count'} = 0;
          &::print_log("$self->{'port_name'}: Recording that zone $zone was just turned on") if $main::Debug{musica};
       }
       return 1;
@@ -891,6 +982,9 @@ sub _parse_data {
    my ($cmd, $value) = ($data =~ m=^([^/]+)/(.*)$=);
    unless ($data =~ /\//) {
       $cmd = $data;
+   }
+   if ($cmd eq 'State') {
+      $cmd = 'Chang';
    }
    my $compare = $$self{'queue'}->[0];
    $compare =~ s/\/.*$//;
@@ -1029,25 +1123,27 @@ sub _parse_data {
          $$self{'sources'}[$source]->{'label'} = $label;
       }
    } elsif ($cmd eq 'EventStore') {
-      my ($zone, @sources) = split /\//, $value;
-      my $changed = 0;
-      for (my $i = 1; $i <= MAX_SOURCES; $i++) {
-         if ($$self{'sources'}[$i]) {
-            unless ($$self{'sources'}[$i]->{'label'} eq $sources[$i-1]) {
-               if ($$self{'sources'}[$i]->{'label'}) {
-                  $changed = $i;
-                  $$self{'sources'}[$i]->{'label'} = $sources[$i-1];
-                  if ($$self{'zones'}[$zone]) {
-                     $$self{'sources'}[$i]->set_receive('label_changed', $$self{'zones'}[$zone]);
-                  } else {
-                     $$self{'sources'}[$i]->set_receive('label_changed', undef);
+      unless (SOURCE_IGNORE_LABLES) {
+         my ($zone, @sources) = split /\//, $value;
+         my $changed = 0;
+         for (my $i = 1; $i <= MAX_SOURCES; $i++) {
+            if ($$self{'sources'}[$i]) {
+               unless ($$self{'sources'}[$i]->{'label'} eq $sources[$i-1]) {
+                  if ($$self{'sources'}[$i]->{'label'}) {
+                     $changed = $i;
+                     $$self{'sources'}[$i]->{'label'} = $sources[$i-1];
+                     if ($$self{'zones'}[$zone]) {
+                        $$self{'sources'}[$i]->set_receive('label_changed', $$self{'zones'}[$zone]);
+                     } else {
+                        $$self{'sources'}[$i]->set_receive('label_changed', undef);
+                     }
                   }
                }
             }
          }
-      }
-      if ($$self{'zones'}[$zone]) {
-         $$self{'zones'}[$zone]->set_receive('changed_label_source_' . $changed, 'keypad') if $changed;
+         if ($$self{'zones'}[$zone]) {
+            $$self{'zones'}[$zone]->set_receive('changed_label_source_' . $changed, 'keypad') if $changed;
+         }
       }
    } elsif ($cmd eq 'EventSrc') {
       my (@sources) = split /\//, $value;
@@ -1232,6 +1328,7 @@ sub _send_next_cmd {
          &::print_log("$self->{'port_name'}: checking command '$cmd' '$zone' '$value'") if $main::Debug{musica};
          if ($$self{'zones'}[$zone]) {
             # Check to make sure the zone still isn't turning on
+            &::print_log("$self->{'port_name'}: just_turned_on=$$self{'zones'}[$zone]->{'just_turned_on'} (zone $zone)") if $main::Debug{musica};
             if ($$self{'zones'}[$zone]->{'just_turned_on'}) {
                my $moved = '';
                # See if we can find a command for another zone meanwhile
@@ -1332,6 +1429,14 @@ sub _print_log {
    }
 }
 
+sub _critical_error {
+   my ($self, $error) = @_;
+   $self->_report_error($error);
+   if ($self->{'critical_error_function'}) {
+      $self->{'critical_error_function'}->($error);
+   }
+}
+
 sub _report_error {
    my ($self, $error, $zone) = @_;
    if ((not $zone) or ($zone == 0)) {
@@ -1420,6 +1525,11 @@ sub get_zone_obj {
 ################################################################################
 # Begin public system-wide Musica functions
 ################################################################################
+
+sub set_critical_error_function {
+   my ($self, $ptr) = @_;
+   $self->{'critical_error_function'} = $ptr;
+}
 
 sub get_musica_obj {
    my ($self) = @_;
@@ -1526,7 +1636,7 @@ sub set_source {
          }
       }
    }
-   unless ($source eq 'E') {
+   unless (($source eq 'E') or ($source eq 'F')) {
       unless (($source > 0) and ($source <= Musica::MAX_SOURCES)) {
          $self->_report_error("set_source(): Invalid source identifier: $source");
          return;
@@ -1593,7 +1703,17 @@ sub green_backlight {
    $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/0");
 }
 
+sub white_backlight {
+   my ($self) = @_;
+   $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/0");
+}
+
 sub amber_backlight {
+   my ($self) = @_;
+   $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/1");
+}
+
+sub blue_backlight {
    my ($self) = @_;
    $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/1");
 }
@@ -1659,6 +1779,26 @@ sub unlock_menu {
    $self->_queue_cmd("ExeLock/$$self{'zone'}/0");
 }
 
+sub set_preset_label {
+   my ($self, $number, $label) = @_;
+   my $label = uc($label);
+   my $labelnum = 0;
+   if ($label =~ /^\d+$/) {
+      $labelnum = $label;
+   } else {
+      # Look up label unless a number is already provided
+      if ($Musica::source_name_to_number{$label}) {
+         $labelnum = $Musica::source_name_to_number{$label};
+      }
+   }
+   $self->_queue_cmd("Chang/41/$$self{'zone'}/$number/$labelnum");
+}
+
+sub set_preset_frequency {
+   my ($self, $number, $freq) = @_;
+   $self->_queue_cmd("Chang/4A/$$self{'zone'}/$number/$freq");
+}
+
 ################################################################################
 # End public system-wide Musica functions
 ################################################################################
@@ -1720,7 +1860,7 @@ sub set {
       $self->mute();
    } elsif ($state eq 'unmute') {
       $self->unmute();
-   } elsif (($state eq 'E') or (($state =~ /^\d+$/) and ($state >= 1) and ($state <= 4))) {
+   } elsif (($state eq 'E') or ($state eq 'F') or (($state =~ /^\d+$/) and ($state >= 1) and ($state <= 4))) {
       &::print_log("$$self{'object_name'}: got state $state, changing source") if $main::Debug{musica};
       $self->set_source($state);
    } else {
