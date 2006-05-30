@@ -1,3 +1,5 @@
+# $Date$
+# $Revision$
 
 =begin comment
 
@@ -53,7 +55,6 @@ $html_calls
 #list is created now lets try to edit the list
     $html .= qq|<tr>
 <form action='/bin/set_func.pl' method=post><td>
-<input type=submit value='Add'>
 <input name='func' value="rej_call_item_add"  type='hidden'>
 <input name='resp' value="/bin/phone_list.pl" type='hidden'>
 
@@ -61,7 +62,8 @@ $html_calls
 <input type=input name=Name     size=10 value='John Doe'>
 <input type=input name=SoundFile    size=10 value='*'>
 $form_type
-<td></form><tr>
+<input type=submit value='Add'>
+</td></form></tr>
 | if $Authorized eq 'admin';
 
     $html .= "</body></html>";
