@@ -1,5 +1,8 @@
 # Category=Phone
 
+# $Date$
+# $Revision$
+
 use Telephony_Interface;
 use CID_Lookup;
 use CID_Log;
@@ -37,7 +40,7 @@ $cid_item       = new CID_Lookup($cid_interface1);
 if ($Startup and defined($config_parms{callerid2_name})) {
     print_log("Creating and adding 2nd Caller ID interface");
 	$cid_interface2 = new Telephony_Interface($config_parms{callerid2_name}, $config_parms{callerid2_port}, $config_parms{callerid2_type});
-	$cid_item      -> add           ($cid_interface2);
+	{ $cid_item      -> add           ($cid_interface2); } # the brace brackets keep mh from pulling this line out of the loop
 }
 
 #$PhoneKillerPort = new  Telephony_Item($config_parms{callerid_port});
