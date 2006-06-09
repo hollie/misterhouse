@@ -7,7 +7,7 @@ use strict;
 
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
-use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV);
+use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST);
 $Authorized = 0;
 
 my($leave_socket_open_passes, $leave_socket_open_action);
@@ -306,6 +306,9 @@ sub http_process_request {
                                 #  - get_req may have h_response with %## chars in it
     $get_req =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
     $get_req =~ s!//!/!g;  # remove double slashes in request
+
+    $HTTP_REQUEST=$get_req; # copy get_req to globally (i.e. in scripts) accessible variable
+
     $get_arg =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
 
 #   print "http: gr=$get_req ga=$get_arg\n" if $main::Debug{http};
@@ -1412,7 +1415,7 @@ sub shtml_include {
 
                                 # Example:  <li>Version: <!--#include var="$Version"--> ...
 #   if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=[\"\']([^\"\']+)[\"\'] *--\>(.*)/) {
-    if (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
+    while (my ($prefix, $directive, $data, $suffix) = $r =~ /(.*?)\<\!--+ *\#include +(\S+)=\"([^\"]+)\" *--\>(.*)/) {
         print "Http include: $directive=$data\n" if $main::Debug{http};
         $html .= $prefix;
                                 # tellme vxml does not like comments in the middle of things :(
@@ -1451,11 +1454,9 @@ sub shtml_include {
         else {
             print "http include directive not recognized:  $directive = $data\n";
         }
-        $html .= $suffix;
-    }
-    else {
-        $html .= $r;
-    }
+        $r = $suffix;
+   }
+    $html.=$r;
     return $html;
 }
 

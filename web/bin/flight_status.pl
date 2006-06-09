@@ -14,7 +14,7 @@
 # e.g. Air Canada flight 123 will result in AC123 being added to the end of the URL.
 
 my $statusURL='';
-my $scriptLocation='/bin/flight_status.pl';
+my $scriptLocation=$HTTP_REQUEST;
 
 if ($HTTP_ARGV{airline} ne '' and $HTTP_ARGV{airline} ne 'none') {
 	$statusURL=$config_parms{flight_status_url};
@@ -25,15 +25,9 @@ if ($HTTP_ARGV{airline} ne '' and $HTTP_ARGV{airline} ne 'none') {
 
 my $html='';
 
-$html .= qq[<html>
-<head>
-<title>Flight Status</title>
-];
-$html .= &insert_keyboard_style;
-$html .= qq[</head>
-<body>
-<h1>Flight Status</h1>
-];
+if ($HTTP_ARGV{airline} eq 'none') {
+	$html.='<p><h3>You forgot to select an airline!</h3></p>';
+}
 
 if ($statusURL ne '') {
 	$html .= qq[<p><h3>Airline: $HTTP_ARGV{airline}.  Flight Number: $HTTP_ARGV{flight}.</h3></p>
@@ -41,7 +35,7 @@ if ($statusURL ne '') {
 <p><a href="$scriptLocation">Request the status of another flight</a></p>];
 
 } else {
-	$html.=qq[<form method="post" id="main" name="main" action="$scriptLocation">
+	$html.=qq[<form method="post" id="main" name="main">
 <p><select name="airline">
 <option value="none">Please select an airline ...</option>
 <option value="TZ" >ATA Airlines - TZ</option>
@@ -147,16 +141,12 @@ if ($statusURL ne '') {
 <option value="MF" >Xiamen Airlines - MF</option>
 <option value="Z4" >Zoom Airlines - Z4</option>
 </select></p>
-<p>Flight Number <input type="text" id="flight" name="flight"></p>
-<p><input type="submit" value="Ok"></p>
+<p>Flight Number: <input type="text" id="flight" name="flight">
+<input type="submit" value="Ok"></p>
 </form>
 <hr />
 ];
 $html .= &insert_keyboard({form => 'main', target => 'flight', numeric_keypad => 'yes'});
 }
 
-$html .= qq[ </body>
-</html>
-];
-
-return html_page(undef,$html);
+return $html;
