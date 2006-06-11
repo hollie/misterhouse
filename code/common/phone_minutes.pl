@@ -1,8 +1,10 @@
 # Category = Phone
 
-#@ Use this code file to monitor your phone minutes (currently Sprint and T-Mobile only).
+#@ Use this code file to monitor your phone minutes (currently Cingular, Cingular Go Phone, Sprint 
+#@ and T-Mobile only).
 #@ Set cell_phone_number (or cell_phone_username for tmobile) and cell_phone_password mh.ini parms.
-#@ Set cell_phone_provider to tmobile if using T-Mobile, defaults to sprint.
+#@ Set cell_phone_provider to tmobile if using T-Mobile, to cingular for Cingular,
+#@ to gophone for Cingular Go Phone, defaults to sprint.
 #@ If not running the compiled mhe, you also must install the Crypt::SSLeay Perl module.
 
 $p_phone_minutes =  new Process_Item;
@@ -22,15 +24,12 @@ if ($state = said $v_tmobile_balance) {
 
 
 if ($state = said $v_phone_minutes) {
-    if ($state eq 'Read') {
-        my $msg = "target=speak You have $Save{phone_minutes_left} phone minutes left.";
+    if ($state eq 'Read' or $state eq 'Show') {
+        my $msg = "You have $Save{phone_minutes_left}";
+        $msg .= " minutes" unless $Save{phone_minutes_left} =~ /\$/;
+        $msg .= " left on your cellphone account.";
         $msg .= " $Save{phone_minutes_left_day} per day for the next $Save{phone_minutes_days} days" if $Save{phone_minutes_left_day};
-        respond $msg;
-    }
-    elsif ($state eq 'Show') {
-        my $msg = "You have $Save{phone_minutes_left} phone minutes left.";
-        $msg .= " $Save{phone_minutes_left_day} per day for the next $Save{phone_minutes_days} days" if $Save{phone_minutes_left_day};
-        respond $msg;
+        respond ((($state eq 'Read')?'target=speak ':'') . $msg);
     }
     elsif ($state eq 'Check' and &net_connect_check) {
         my ($cmd1, $cmd2);
@@ -52,6 +51,17 @@ if ($state = said $v_phone_minutes) {
                                 # Not sure why -post doesn't work here?
 #           $cmd2    = qq[get_url "https://www.myaccount.cingular.com/DispatcherServlet" -post "$post_data&name=/WAServletsLogin" ];
             $cmd2    = qq[get_url "https://www.myaccount.cingular.com/DispatcherServlet?$post_data&name=/WAServletsLogin" ];
+            $cmd2   .= qq[-cookie_file_in "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes2.html"];
+        }
+        elsif (lc $config_parms{cell_phone_provider} eq 'gophone') {
+            my $post_data = "org.apache.struts.taglib.html.TOKEN=7a21a593735a8f718df04360f161225f";
+            $post_data   .= "&msisdn=$config_parms{cell_phone_number}";
+            $post_data   .= "&passcode=$config_parms{cell_phone_password}";
+            $cmd1    = qq[get_url "https://www.paygonline.com/websc/Logon.do" ];
+            $cmd1   .= qq[-post "$post_data&name=LogonForm" ];
+            $cmd1   .= qq[-cookie_file_out "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes1.html" ];
+ print_log $cmd1;
+           $cmd2    = qq[get_url "https://www.paygonline.com/websc/AccountDetails.do" ];
             $cmd2   .= qq[-cookie_file_in "$config_parms{data_dir}/web/phone_minutes.cookies" "$config_parms{data_dir}/web/phone_minutes2.html"];
         }
                                 # Default to sprint
@@ -97,6 +107,17 @@ if (done_now $p_phone_minutes or said $v_phone_minutes eq 'Debug') {
             $Save{phone_minutes_date} = $Time_Date;
             print_log "Phone minutes: plan=$Save{phone_minutes_plan} used=$Save{phone_minutes_used} left=$Save{phone_minutes_left}";
         }
+    }
+    elsif (lc $config_parms{cell_phone_provider} eq 'gophone') {
+        my $html = file_read "$config_parms{data_dir}/web/phone_minutes2.html";
+        my $te = new HTML::TableExtract(depth => 0, count => 0);
+        $te->parse($html);
+        my @cell = $te->rows;
+        $Save{phone_minutes_left} = $cell[0][1];
+        $Save{phone_minutes_date_end} = $cell[4][1];
+        $Save{phone_minutes_days} = round((str2time($Save{phone_minutes_date_end}) - time) / (24*3600), 1);
+        $Save{phone_minutes_date} = $Time_Date;
+        print_log "Phone minutes: left=$Save{phone_minutes_left} date_end=$Save{phone_minutes_date_end} days=$Save{phone_minutes_days} per_day=$Save{phone_minutes_left_day}";
     }
     elsif (lc $config_parms{cell_phone_provider} eq 'cingular') {
         my $html = file_read "$config_parms{data_dir}/web/phone_minutes2.html";
