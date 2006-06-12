@@ -1,3 +1,6 @@
+# $Date$
+# $Revision$
+
 use strict;
 
 package Socket_Item;
@@ -131,7 +134,7 @@ sub said_next {
     my $datatype  = $main::Socket_Ports{$port_name}{datatype};
     my $break     = $main::Socket_Ports{$port_name}{break};
                  # Assume break on \n unless we specify datatype or break char
-    unless ($data or $break) {
+    unless ($datatype eq 'raw' or $break) {
         $data = <$sock>;
         chomp $data;
     }
