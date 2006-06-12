@@ -1,0 +1,26 @@
+#event sounds
+#one per line
+
+alarm=>'nature/gonge.wav',    volume => 100, mode=>'unmuted', nolog=>1
+movement1    => 'nature/02.wav',       volume => 10
+movement2    => 'nature/02.wav',       volume => 100
+unauthorized => 'bark.wav',       volume => 100
+3            => 'nature/65.wav',       volume => 20
+4            => 'nature/avairy.wav',   volume => 20
+barcode_scan => 'sound_beep1.wav',     volume => 70
+mh_problem   => 'nature/bird1.wav',    volume => 20
+mh_pause     => 'none',                      volume => 20
+7            => 'nature/bird2.wav',    volume => 20
+wap          => 'nature/bird3.wav',    volume => 100
+tell_me      => 'nature/birds.wav',    volume => 20
+10           => 'nature/chirp.wav',    volume => 20
+router_hit   => 'nature/frog.wav',     volume =>  2
+12           => 'nature/frog3.wav',    volume => 20
+13           => 'nature/h4560sh.wav',  volume => 20
+14           => 'nature/kirtland.wav', volume => 20
+router_new   => 'nature/loon.wav',     volume => 20
+16           => 'nature/octap95.wav',  volume => 20
+17           => 'nature/parakeet.wav', volume => 20
+18           => 'nature/ribbit.wav',   volume => 10
+19           => 'nature/wren.wav',     volume => 20
+timer        => 'nature/gonge.wav',    volume => 100 
