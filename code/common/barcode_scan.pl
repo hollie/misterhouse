@@ -8,7 +8,7 @@
 #   - If scanning paperbacks, check the inside cover for the ISBN EAN code,
 #     not the back-of-the-book UPC code
 #
-# Heres is the program flow:
+# Here is the program flow:
 #
 # - mh/web/barcode_scan.shtml has a form that calls SET on the Generic_Item $barcode_scan variable
 #
@@ -26,11 +26,11 @@ $barcode_mode   = new Generic_Item;
 $barcode_mode  -> set_states('web', 'add inventory', 'delete inventory', 'query inventory', 'clear inventory');
 $barcode_mode  -> set_authority('anyone');
 
-$v_barcode_mode = new Voice_Cmd('Change barcode scan to [web,add inventory,delete inventory,query inventory,clear inventory] mode');
+$v_barcode_mode = new Voice_Cmd('Change barcode scan to [entry,add inventory,delete inventory,query inventory,clear inventory] mode');
 $v_barcode_mode-> set_info('Controls what you want to do with barcode scans.  Web will create urls, inventory updates a database');
 $v_barcode_mode-> set_authority('anyone');
 $v_barcode_mode-> tie_items($barcode_mode);
-$v_barcode_mode-> tie_event('print_log "Scanner set to $state mode"');
+$v_barcode_mode-> tie_event('respond "app=scanner Scanner set to $state mode"');
 
 
 $barcode_scan   = new Generic_Item;
@@ -43,24 +43,35 @@ $barcode_scan  -> set_casesensitive;    # Barcode information is case-sensitive
 $MW->bind('<Key-F10>', sub {$Tk_objects{entry}{$barcode_scan}->focus()}) if $MW and $Reload;
 
 if ($state = state_now $barcode_scan) {
-#   play volume => 20, file => 'sound_nature/bird.wav';
-    play 'barcode_scan';        # Defined in event_sounds.pl
-    $state = '.' . $state unless $state =~ /^\./; # Tk entry drops the leading '.' ???
+    play 'barcode_scan';        # See event_sounds.pl
+    $state = '.' . $state unless $state =~ /^\./ or length($state) < 20; # Tk entry drops the leading '.' ???
 
     my ($scanner_sn, $type, $code) =  barcode_decode($state);
 
     $state =~ s/^\..+?\./\./;   # Drop the scanner Serial Number data from the logs
     ${$$barcode_scan{state_log}}[0] = "$Time_Date $state";
     my $mode = state $barcode_mode;
-    print_log "Barcode scan: mode=$mode data=$state";
+    print_log "Barcode scan: $mode $state";
 #   $$barcode_scan{state} = $state;
-    set $barcode_scan '';       # Reset tk field
+
+# *** Does not clear on tk console!
+
+    set $barcode_scan '';       # Reset widget
+    $Info{barcode_data} = undef;
 
                                 # If a book, find the ISBN
     if ($type =~ /^IB/) {
-        my $isbn = substr $code, 3, 9;
-        $isbn = $isbn . &ISBN_checksum($isbn);
+        my $isbn;
+
+	  if (length($code) == 10) {
+	     $isbn = $code;
+        }
+        else {
+           $isbn = substr $code, 3, 9;
+           $isbn = $isbn . &ISBN_checksum($isbn);
+        }
         print_log "Barcode data: $type $code $isbn";
+        $Info{barcode_data} = $isbn;
         set $barcode_data "$type $code $isbn"; # Feed back upc and isbn
     }
     else {
@@ -99,20 +110,38 @@ if ($state = state_now $barcode_scan) {
 	    $cc = 10 - ($cc % 10);
 #           print_log "UPE CheckDigit=($cc)";
 	    $code .= $cc;
+
+#  $Save{barcode_data} = $code;
+
 	} # only if missing the CheckDigit
-	print_log "Barcode data: $type $code";
+	  $Info{barcode_data} = $code unless $Info{barcode_data};
+	  print_log "Barcode data: $type $code";
         set $barcode_data "$type $code"; # This is what get used elsewhere (e.g. barcode_web.pl)
     }
 }
 
                                 # A bit of perl magic
 sub barcode_decode {
+    if (length($_[0]) > 20) {
     return map { 
         tr/a-zA-Z0-9+-/ -_/; 
         $_ = unpack 'u', chr(32 + length() * 3 / 4) . $_; 
         s/\0+$//; 
         $_ ^= "C" x length; 
     } $_[0] =~ /\.([^.]+)/g;
+    }
+    else {
+	 my $type;
+       if (length($_[0]) == 8) {
+		 return (undef, 'UPE', $_[0]);
+	 }
+       elsif (length($_[0]) == 10) {
+		 return (undef, 'IB', $_[0]);
+       }
+	 else {
+		 return (undef, 'UPC', $_[0]);
+       }
+    }
 }
 
                                 # Algorithm detailed at http://www.bisg.org/algorithms.html
