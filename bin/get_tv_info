@@ -87,8 +87,8 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
     $Pgm_Name -channels "4,6,12" -times "7 pm"
     $Pgm_Name -dates "7/4-7/11" -keys "star trek, er ,dilbert"
     $Pgm_Name -dates +14 -keys computer             
-    $Pgm_Name -time "17-23"
-    $Pgm_Name -time "17-23 -keyfile 'tv_mylist.list' "
+    $Pgm_Name -times "17-23"
+    $Pgm_Name -times "17-23" -keyfile 'tv_mylist.list'
 
   Shows which have already started are excluded unless you search without specifying -times or you search for -times 'all'.
 
@@ -120,7 +120,7 @@ sub find_match {
         for my $time_start (@times) {
             for my $channel_number (@channels) {
                 my $db_key = join($;, $channel_number, $pgm_date, $time_start);
-                print "key=$db_key.\n" if $parms{debug};
+#                print "key=$db_key.\n" if $parms{debug};
 #               print "key=$db_key.  data=$DBM{$db_key}.\n" if $channel_number == 8 and $time_start eq '18:30';
                 if (my $db_data = $DBM{$db_key}) {
                 	print "db_data=$db_data\n" if $parms{debug};
@@ -172,14 +172,35 @@ sub find_match {
 
 
                                 # Check if show has ended
-                                # First, convert times to 30 hour clock (6 am to 6am instead of midnight to midnight)
-                    $min_now = $min_now + 24 * 60 if ($min_now < 6 * 60);
-                    $min_end = $min_end + 24 * 60 if ($min_end < 6 * 60);
-                    $min_begin = $min_begin + 24 * 60 if ($min_begin < 6 * 60);
+                                # First, convert times (6am to 6am instead of midnight to midnight)
 
-                    my $show_ended = 1 if ($min_end < $min_begin or $min_end < $min_now);
+			# *** This early am stuff does not work as expected here!
+
+                    #$min_end = $min_end + 24 * 60 if ($min_end < 6 * 60);
+                    #$min_start = $min_start + 24 * 60 if ($min_start < 6 * 60);
+
+		    my $show_ended;
+
+
+
+		    if ($min_start > 24 * 60) { #show starts after midnight, adjust current min so we compare apples and apples
+			$min_now = $min_now + 24 * 60;
+		    }
+                    $show_ended = 1 if ($min_end < $min_start or $min_end < $min_now);	
+
+#		print "ENDED: $show_ended $min_start $min_end $min_now" if $match_key;
+
+
+			# *** This logic is all tangled.  If -times all then you include shows that have already started (?)  That is nuts because of the default times this script uses (6-10PM).  So what would you pass this thing if you want to see all shows of interest on today that haven't started yet?!  This seems like the default behavior, not 6-10PM.
+
+			# *** commented out check for 'all' because the default is BS
+			# *** change default to 6am to midnight, add early hours if indicated to make a 24 hour period (does not come close to working as is.  Looks at current day, not the next!)
+
+
+print "$show_ended $pgm_name" if $match_key;
+
                     unless 	(@lengths and !$match_length or
-                             ($show_ended and !$parms{all}) or
+                             ($show_ended) or
                              @keys    and !$match_key) {
                         my $channel_name = $DBM2{$channel_number};
                         if ($parms{debug}) {
@@ -213,7 +234,11 @@ sub find_match {
                         $vcr_link =~ s/://g;
                         $pgm_name =~ s/\*+//g; # Change **show name** => show name
                         $pgm_name =~ s/[\\\$\^]//g;  # Remove regular expression chars introduced above
-                        my $temp = "\n$match_cnt.  $pgm_name.  $channel_name Channel $channel_number.  ";
+
+#	print "\n\n**$min_now**********$min_start***#################*********************\n\n";
+
+
+                        my $temp = ("\n$match_cnt.  $pgm_name.  $channel_name Channel $channel_number" . (($min_now > $min_start)?' (in progress.) ':'. '));
 
                         my $print_date = $pgm_date;
 
@@ -335,6 +360,9 @@ sub setup {
         my $early_stop = $hours * 60 + &hour_to_min(&ampm_to_hour24($early_start));
         $early_stop = &min_to_hour($early_stop);
         $parms{early_am} = "$early_start-$early_stop";
+
+	print  "$early_start-$early_stop";
+
     }
     if (my ($channel_start, $adder) = $parms{channels} =~ /(\S*)\+(\S+)/) {
         $channel_start = 1 unless defined $channel_start;
