@@ -55,19 +55,29 @@ If on Linux (or the above does not work on Windows) try:
 
 =cut
 
-$v_im_test = new  Voice_Cmd 'Send a [AOL,ICQ,MSN,jabber] test message';
+
+$v_im_test = new  Voice_Cmd 'Send [AOL,ICQ,MSN,jabber] test message';
 $v_im_test-> set_info('Send a test message to the default AOL, ICQ, MSN, or jabber address');
 
 if ($state = said $v_im_test) {
-    my $msg = "MisterHouse uptime: $Tk_objects{label_uptime_cpu}";
+    my $msg = "MisterHouse has been up for $Tk_objects{label_uptime_cpu}";
+ #   respond "app=aol Sending test message to AOL...";
     net_im_send(text => $msg, pgm => $state);
 }
 
 $v_im_signon = new Voice_Cmd 'Connect to [AOL,ICQ,MSN,jabber]';
 $v_im_signon-> set_info('Disconnect, then re-Connect to the specified im servers');
 if ($state = said $v_im_signon) {
-    &net_im_signoff($state);
+    if ($state eq 'AOL' and $oscar::aim_connected) {
+	    &net_im_signoff($state);
+	    print "****TEST****Disconnecting...\n";
+    }
+    elsif ($state eq 'ICQ' and $oscar::icq_connected) {
+	    &net_im_signoff($state);
+    }
+
     &net_im_signon(undef, undef, $state);
+
 }
 
 $v_im_signoff = new Voice_Cmd 'Disconnect from [AOL,ICQ,MSN,jabber]';
@@ -76,16 +86,16 @@ if ($state = said $v_im_signoff) {
     &net_im_signoff($state);
 }
 
-
 $v_im_logdata1 = new  Voice_Cmd 'Start sending log data to [AOL,ICQ,MSN,jabber]';
-$v_im_logdata1-> set_info('Start sending mh print_log and speak data to the default im address');
+$v_im_logdata1-> set_info('Start sending print log entries and speech to the default IM user');
 $v_im_logdata2 = new  Voice_Cmd  'Stop sending log data to [AOL,ICQ,MSN,jabber]';
+$v_im_logdata2-> set_info('Stop sending print log entries and speech to the default IM user');
 
 $log_to_im_list{"$state default"} = 'all' if $state = said $v_im_logdata1;
 delete $log_to_im_list{"$state default"}  if $state = said $v_im_logdata2;
 
 
-                                # Reload hooks and mh.ini parms on reload
+                                # Reload hooks and INI parameters on reload
 my %im_data;
 if ($Reload) {
     &AOLim_Message_add_hook  (\&im_message);
@@ -107,6 +117,8 @@ if ($Reload) {
     }
 
     &Log_add_hook(\&im_log);
+
+    # Configured users are allowed to have authority without logging in
 
     for my $user (split /[,]+/, $config_parms{password_allow_im}) {
         $user =~ s/^ +//; $user =~ s/ +$//;  # Drop leading/trailing blanks
@@ -131,10 +143,10 @@ sub im_log {
 
 sub im_status {
     my ($user, $status, $status_old, $pgm) = @_;
-    my $msg = "";
+    my $msg = '';
     $msg = "changed from $status_old to $status" if $status ne $status_old;
     $msg = "is now $status" unless $status_old;
-    print_log "IM: pgm=$pgm status $user $msg" if $msg ne "";
+    print_log "$pgm IM: $user $msg" if $msg ne "";
     &net_im_process_queue($pgm,$user) if $status eq "on" and $config_parms{net_queue_im};
 }
 
@@ -155,7 +167,8 @@ sub im_message {
     my $msg;
     if ($text =~ /^(login|logon): *(\S*)$/i) {
         if ($im_data{password_allow}{$from}) {
-            $msg = 'You have global access, and don\'t need to login!';
+		# *** What about the three different levels?
+            $msg = "You have $im_data{password_allow}{$from} access, so there is no need to login!";
         }
         else {
             if (my $user = password_check $2) {
@@ -170,7 +183,7 @@ sub im_message {
         }
     }
     elsif ($text =~ /^(logout|logoff)$/) {
-        if ($im_data{password_allow}{$from}) {$msg = 'You have global access, and can\'t logout!';}
+        if ($im_data{password_allow}{$from}) {$msg = 'You are not logged in.';}
         if ($im_data{password_allow_temp}{$from}) {
             $im_data{password_allow_temp}{$from}=0;
             $msg = 'You have been logged out';
@@ -199,15 +212,16 @@ sub im_message {
     }
     elsif ($text =~ /^help/) {
         $msg  = "Type any of the following:\n";
-        $msg .= "  find:  xyz  => finds voice commands that match xyz\n";
-        $msg .= "  findcmd:  xyz  => finds objects that match xyz\n";
+        $msg .= "  find item:  xyz  => finds objects that match xyz\n";
+        $msg .= "  find:  xyz  => finds commands that match xyz\n";
         $msg .= "  speak:  xyz  => speaks text xyz\n";
-        $msg .= "  cmd: xyz state => set object xyz to state\n";
-        $msg .= "  log: xyz  => xyz is a filter of what to log.  Can print, speak, play, speak|play, all, and stop\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
-        $msg .= "  var: abc xyz => abc is variable, hash or reference, xyz element in hash or hash reference to show\n";
+        $msg .= "  display:  xyz  => speaks text xyz\n";
+        $msg .= "  set: xyz state => set object xyz to state\n";
+        $msg .= "  log: xyz  => xyz is a filter of what to log. (print, speak, play, speak|play, all, and stop)\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
+        $msg .= "  var: abc xyz => abc is a variable, hash or reference, xyz element in hash or hash reference to show\n";
         $msg .= "  logon: xyz  => logon with password xyz\n";
-        $msg .= "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only sent using current IM program\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
-        $msg .= "  any valid MisterHouse voice command(e.g. What time is it)\n";
+        $msg .= "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only send using current IM program\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
+        $msg .= "  any valid MisterHouse command(e.g. What time is it)\n";
     }
     elsif ($authority eq 'anyone' or $im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from}) {
         if ($authority eq 'admin' and $im_data{password_allow_temp}{$from} ne 'admin') {
@@ -242,7 +256,7 @@ sub im_message {
             else {
                 $log_to_im_list{"$pgm $from"} = lc $1;
             }
-            print_log "IM: logging $1 to $pgm for $from";
+            print_log "$pgm IM: logging $1 for $from";
         }
         elsif ($text =~ /^send (.+):(.+)$/i) {
             if ($2 eq '') {
@@ -250,11 +264,11 @@ sub im_message {
             }
             else {
                &net_im_send(pgm => $pgm, to => $1, text => $2);
-               $msg = "Message send to $1";
+               $msg = "Message sent to $1";
             }
         }
 
-        elsif ($text =~ /^cmd:(.+)/) {
+        elsif ($text =~ /^set:(.+)/) {
             my $cmdstring=$1;
             my $flag=0;
                                 # Strip leading/trailing whitespace
@@ -297,7 +311,7 @@ sub im_message {
                 $msg = "object ".$command[0]." not found!\n";
             }
         }
-        elsif ($text =~ /^findcmd:(.+)/) {
+        elsif ($text =~ /^find\x20item:(.+)/) {
             $msg="Matching commands: \n";
             my $cmdstring=$1;
                                 # Strip leading/trailing whitespace
@@ -319,24 +333,36 @@ sub im_message {
         }
         elsif ($text =~ /^speak:(.+)/) {
             my $speechtext=$1;
-            speak $speechtext;
+            speak "app=im $speechtext";
+	    $msg = "I said: $speechtext";
         }
-
-        elsif (&process_external_command($text, 1, 'im', "im pgm=$pgm to=$from")) {
+        elsif ($text =~ /^alphadisplay:(.+)/) {
+            my $displaytext=$1;
+            display "app=im device=alpha $displaytext";
+	    $msg = "I displayed: $displaytext";
+        }
+        elsif ($text =~ /^display:(.+)/) {
+            my $displaytext=$1;
+            display "app=im $displaytext";
+	    $msg = "I displayed: $displaytext";
+        }
+	# *** Need to convert unmatched command to a find...
+	# RespondTarget is deprecated, use set_by to respond to the correct program/user
+        elsif (&process_external_command($text, 1, "im [$pgm,$from]", "im pgm=$pgm to=$from")) {
         }
         else {
-            $msg = "Command not found";
+            $msg = "I don't understand.  Type 'help' to get started...";
         }
     }
     else {
-        $msg = "Unauthorized access for command";
+        $msg = "You are not authorized to run this command!";
     }
 
-    print_log "IM: pgm=$pgm, to=$from, text=$text, response=$msg";
-    &net_im_send(pgm => $pgm, to => $from, text => $msg);
+    print_log "$pgm IM: $from: $text" . (($msg)?" ($msg)":'');
 
-#   my $time = sprintf("%02d:%02d:%02d", $Hour, $Minute, $Second);
-#   display text => "$from ($time:$main::Second): $text\n", time => 0, title => $pgm, window_name => $pgm, append => 'bottom';
+    # respond if there is an immediate response (commands respond on their own)
+
+    &net_im_send(pgm => $pgm, to => $from, text => $msg) if $msg;
 
 }
 
@@ -344,6 +370,8 @@ sub im_logoff {
     my ($pgm, $screenname) = @_;
     if ($im_data{password_allow_temp}{$screenname}) {
         $im_data{password_allow_temp}{$screenname}=0;
-        &net_im_send(pgm => $pgm, to => $screenname, text => 'You have been logged out. Type login, to login again.');
+        &net_im_send(pgm => $pgm, to => $screenname, text => 'Your session has expired and you have been logged out.');
     }
 }
+
+
