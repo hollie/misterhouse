@@ -127,7 +127,7 @@ sub set_volume2 {
         chomp $volume_previous;
         my $r = system eval qq("$config_parms{volume_set_cmd}");
     }
-    elsif ($Info{Volume_Control} eq 'Win32::Sound' and !$config_parms{skip_volume}            ) {
+    elsif ($Info{Volume_Control} eq 'Win32::Sound' and !$config_parms{sound_volume_skip}            ) {
 	# *** nothing here to store previous volume!!! Will leave at this volume until next sound
         $volume = int 255 * $volume / 100;   # (0->100 =>  0->255)
         $volume = $volume + ($volume << 16); # Hack to fix a bug in Win32::Sound::Volume
