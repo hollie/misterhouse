@@ -621,7 +621,7 @@ sub main::net_im_signon {
         return &main::net_jabber_signon($name, $password);
     }
     elsif (lc $pgm eq 'icq') {
-	    return &main::net_icq_signon($name, $password, $port);
+        return &main::net_icq_signon($name, $password, $port);
     }
     return &main::net_aol_signon($name, $password, $port);
 }
@@ -630,7 +630,7 @@ sub main::net_aol_signon {
     my ($name, $password, $pgm, $port) = @_;
 
     # Already signed on?
-    unless ($aim_connection) {
+    unless ($aim_connection and $oscar::aim_connected) {
         $aim_connection = main::get_oscar_connection("AIM",$name,$password);
     }
     return $aim_connection;
@@ -640,7 +640,7 @@ sub main::net_icq_signon {
     my ($name, $password, $pgm, $port) = @_;
 
     # Already signed on?
-    unless ($icq_connection) {
+    unless ($icq_connection and $oscar::icq_connected) {
         $icq_connection = main::get_oscar_connection("ICQ",$name,$password)
     }
     return $icq_connection;
@@ -653,15 +653,26 @@ sub main::get_oscar_connection {
 
     $name     = $main::config_parms{'net_' . $lnet . '_name'}      unless $name;
     $password = $main::config_parms{'net_' . $lnet . '_password'}  unless $password;
+
+    if (!$name) {
+	    warn "$network user name (net_" . $lnet . "_name) is not configured";
+    }
+
+    if (!$password) {
+	    warn "$network password (net_" . $lnet . "_password) is not configured";
+    }
+
+    return unless $name and $password;
+
     print "Logging onto $network with name=$name ... \n";
 
     eval 'use Net::OSCAR';
     if ($@) {
-        print "Net::OSCAR eval error: $@\n";
+        print "Net::OSCAR use error: $@\n";
         return;
     }
 
-    $im_connection = Net::OSCAR->new(capabilities => [qw(buddy_icons extended_status)]);
+    $im_connection = Net::OSCAR->new(capabilities => [qw(typing_status extended_status buddy_icons file_transfer buddy_list_transfer)]);
     $im_connection -> set_callback_im_in(\&oscar::cb_imin);
     $im_connection -> set_callback_buddy_in(\&oscar::cb_buddyin);
     $im_connection -> set_callback_buddy_out(\&oscar::cb_buddyout);
@@ -669,8 +680,15 @@ sub main::get_oscar_connection {
     $im_connection -> set_callback_signon_done(\&oscar::cb_signondone);
     $im_connection -> set_callback_connection_changed(\&oscar::cb_connectionchanged);
     $im_connection -> set_callback_buddy_icon_uploaded(\&oscar::cb_buddyiconuploaded);
+    $im_connection -> set_callback_buddy_icon_downloaded(\&oscar::cb_buddyicondownloaded);
     $im_connection -> set_callback_buddylist_ok(\&oscar::cb_buddylistok);
+    $im_connection -> set_callback_buddylist_changed(\&oscar::cb_buddylistchanged);
     $im_connection -> set_callback_buddylist_error(\&oscar::cb_buddylisterror);
+    $im_connection->  set_callback_typing_status(\&oscar::typing_status);
+    $im_connection->  set_callback_extended_status(\&oscar::extended_status);
+
+
+$im_connection->loglevel(5);
 
     unless (defined($im_connection->signon (screenname => $name,
 					    password =>$password))) {
@@ -697,14 +715,16 @@ sub main::net_im_signoff {
         &main::net_jabber_signoff;
     }
     elsif (lc $pgm eq 'icq') {
-        print "disconnecting from icq\n";
+        print "Disconnecting from ICQ\n";
+	$icq_connection->signoff();
         undef $icq_connection;
         &main::MainLoop_post_drop_hook( \&icq::process, 1);
     }
     else {
-        print "disconnecting from aol im\n";
+        print "Disconnecting from AOL\n";
+	$aim_connection->signoff();
         undef $aim_connection;
-        &main::MainLoop_post_drop_hook( \&aolim::process, 1 );
+        &main::MainLoop_post_drop_hook( \&oscar::process_aim, 1 );
     }
 }
 
@@ -712,6 +732,32 @@ sub main::net_im_signoff {
 # without worrying about conflicts
 my %buddies_status;
 # IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hiho</FONT></BODY></HTML>
+
+sub oscar::typing_status {
+	my ($oscar, $who, $status) = @_;
+	print "We received typing status $status from $who.\n";
+}
+
+sub oscar::extended_status {
+	my ($oscar, $status) = @_;
+	print "Our extended status is $status.\n" if $status;
+}
+
+
+sub oscar::buddylist_changed {
+	my ($oscar, @changes) = @_;
+
+	print "Buddylist was changed:\n";
+	foreach (@changes) {
+		printf("\t%s: %s %s\n",
+			$_->{action},
+			$_->{type},
+			($_->{type} == 1) ? ($_->{group} . "/" . $_->{buddy}) : $_->{group}
+		);
+	}
+}
+
+
 
 sub oscar::cb_error {
 my ($oscar, $connection, $error, $description, $fatal)=@_;
@@ -736,15 +782,24 @@ sub oscar::cb_buddyiconuploaded {
 
   my $net=oscar::get_net($oscar);
 
-  print "Set buddy icon for $net\n";
+  print(uc($net) . " buddy icon set\n");
 }
+
+sub oscar::cb_buddyicondownloaded {
+  my ($oscar)=@_;
+
+  my $net=oscar::get_net($oscar);
+
+  print(uc($net) . " buddy icon read\n");
+}
+
 
 sub oscar::cb_buddylistok {
   my ($oscar)=@_;
 
   my $net=oscar::get_net($oscar);
 
-  print "Buddy list set ok for $net\n";
+  print(uc($net) . " buddy list set\n");
 }
 
 sub oscar::cb_buddylisterror {
@@ -752,7 +807,7 @@ sub oscar::cb_buddylisterror {
 
   my $net=oscar::get_net($oscar);
 
-  print "Buddy list error for $net: $what\n";
+  print(uc($net) . " buddy list error: $what\n");
 }
 
 
@@ -762,7 +817,7 @@ sub oscar::cb_signondone {
   my $net=oscar::get_net($oscar);
   my $buddies  = $main::config_parms{'net_' . $net . '_buddies'};
 
-  print "Successfully signed onto $net\n";
+  &::print_log("Signed on to " . uc($net));
   if ($net eq 'aim') {
     $oscar::aim_connected=1;
   } else {
@@ -770,14 +825,19 @@ sub oscar::cb_signondone {
   }
 
   for (split /,/, $buddies) {
-      print "Adding $net buddy $_\n";
+      print("Adding " . uc($net) . " buddy $_\n");
       $oscar -> add_buddy("friends", $_);
   }
   my $iconfile=$main::config_parms{"net_${net}_buddy_icon"};
   if (-r $iconfile) {
     my $icon=&main::file_read($iconfile);
-    $oscar -> set_icon($icon) if $icon;
+    print("Setting " . uc($net) . " buddy icon: $iconfile...\n");
+    $oscar -> set_icon($icon) if $icon and $main::config_parms{"net_${net}_class"} ne 'free';
   }
+
+#   $oscar -> set_visibility(1);
+
+  print("Sending " . uc($net) . " buddy list...\n");
   $oscar -> commit_buddylist();
 }
 
@@ -785,7 +845,7 @@ sub oscar::cb_connectionchanged {
   my ($oscar,$connection,$status)=@_;
 
   my $net=oscar::get_net($oscar);
-  print "Connection status for $net is now $status\n";
+  print(uc($net) . " connection: $status\n");
 
   # For some reason, we get a status=deleted when first logging onto
   # OSCAR.  We only react to 'deleted' if we have previously been connected
@@ -866,7 +926,7 @@ sub oscar::process {
   }
 
   # not sure how to check if connection is still up
-  $connection->do_one_loop();
+  $connection->do_one_loop() if defined $connection;
 }
 
 sub main::net_im_process_queue {
@@ -942,6 +1002,10 @@ sub main::net_im_do_send {
     $from     = $parms{from};
     $password = $parms{password};
     $to       = $parms{to};
+
+	# *** Better decision here on missing pgm!
+	#  Which is configured?  If both, is name numeric?
+	# *** Store pgm in set_by too!  And send with to param when responding in kind to IM users
 
     if ($pgm eq 'icq') {
         $from     = $main::config_parms{net_icq_name}      unless $from;
@@ -1079,7 +1143,7 @@ sub main::net_mail_send {
     $port    = 25 unless $port;
     $from    = $main::config_parms{"net_mail_${account}_address"} unless $from;
     $to      = $main::config_parms{"net_mail_${account}_address"} unless $to;
-    $subject = "Email from Mister House"                          unless $subject;
+    $subject = "Email from Misterhouse"                          unless $subject;
 #    $baseref = 'localhost'                                        unless $baseref;
 
     my $timeout = $main::config_parms{"net_mail_${account}_server_send_timeout"};
@@ -1354,8 +1418,16 @@ sub main::net_mail_summary {
         $date_received = $date unless $date_received;
 
                                 # Process 'from' into speakable name
-	$from_name = &main::net_mail_extract_name($from);
-
+        ($from_name) = $from =~ /\((.+)\)/;
+        ($from_name) = $from =~ / *(.+?) *</ unless $from_name;
+        ($from_name) = $from =~ / *(\S+) *@/ unless $from_name;
+        $from_name = $from unless $from_name; # Sometimes @ is carried onto next record
+        $from_name =~ tr/_/ /;
+#       $from_name =~ tr/"//;
+        $from_name =~ s/\"//g;  # "first last"
+        $from_name = "$2 $1" if $from_name =~ /(\S+), +(\S+)/; # last, first
+#       $from_name =~ s/ (\S)\. / $1 /;  # Drop the "." after middle initial abreviation.
+                                         # Spammers blank this out, so no point in warning about it
 #       print "Warning, net_mail_summary: No From name found: from=$from, header=$header\n" unless $from_name;
 
         my $age_msg = int((time -  str2time($date_received)) / 60);
@@ -1420,70 +1492,6 @@ sub main::net_mail_delete {
     }
     $pop->quit;                 # Need to logoff to delete
 }
-
-
-				# Read mail from local dir ... might be a perl module for this, but looks pretty simple.
-sub main::net_mail_scan_dir {
-    my ($dir) = @_;
-    print "db Reading mail from $dir\n" if $main::Debug{email};
-    my (%summary, %cnts, $cnt);
-    my %file_paths = &main::file_read_dir($dir);
-    for my $file (values %file_paths) {
-	next unless $file =~ /\.eml$/;
-	my ($from, $from_name, $to, $to_name, $subject, $body, $body_flag);
-	for (&main::file_read($file)) {
-	    $to      = $1 if /^Delivered-To: (.+)$/ and !$to;
-	    $to      = $1 if /^To: (.+)$/           and !$to;
-	    $from    = $1 if /^From: (.+)$/         and !$from;
-	    $subject = $1 if /^Subject: +(.+)$/     and !$subject;
-	    $body_flag = 1 if /^ *$/;
-	    $body .= $_ if $body_flag;
-	    $cnt++;
-	}
-#	unlink $file;
-	$body =~ s/\n/ /g;
-	$body  =~ s/Content-Disposition: attachment.+?filename=(.+?)^.+/Attachment deleted: $1/gsm;
-	$to_name   = &main::net_mail_extract_name($to);
-	$from_name = &main::net_mail_extract_name($from);
-	print "From: $from -> $from_name To: $to -> $to_name Subject: $subject file:$file\n" if $main::Debug{email};
-
-	($from_name, $to_name) = &main::get_email_rule($from_name, $to_name, $subject, $from, $body) if exists &main::get_email_rule;
-	next unless $from_name;
-
-	$summary{$to_name}{$from_name}++;
-	$cnts{$to_name}++;
-	&main::logit("$main::config_parms{data_dir}/get_email.scan",
-		     "Msg: $cnt From:$from  To:$to  Subject:$subject  Body:$body");
-    }
-    my ($summary1, $summary2);
-    for my $to (sort keys %summary) {
-	my @from = sort keys %{$summary{$to}};
-	$summary1 .= sprintf("%s:%d ", uc substr($to, 0, 1), $cnts{$to});
-	$summary2 .= $to . ' has ' . &main::plural($cnts{$to}, 'new message') . ' from ' . &main::speakify_list(@from) . '. ';
-    }
-    
-    &main::file_write("$main::config_parms{data_dir}/get_email.flag", $summary1);
-    &main::file_write("$main::config_parms{data_dir}/get_email.txt",  $summary2);
-#   &main::file_write("$main::config_parms{data_dir}/get_email2.txt", $summary3);
-#   &main::file_write("$main::config_parms{data_dir}/get_email.data", $email_file_data)
-
-}
-
-
-sub main::net_mail_extract_name {
-    my ($from) = @_;
-    my $name;
-    ($name) = $from =~ /\((.+)\)/;
-    ($name) = $from =~ / *(.+?) *</ unless $name;
-    ($name) = $from =~ / *(\S+) *@/ unless $name;
-    $name = $from unless $name;
-    $name =~ tr/_/ /;
-    $name =~ s/\"//g;  # "first last"
-    $name = "$2 $1" if $name =~ /(\S+), +(\S+)/; # last, first
-#   $name =~ s/ (\S)\. / $1 /;  # Drop the "." after middle initial abreviation.
-    return $name;
-}
-
 
 sub main::net_ping {
     my ($host, $protocol) = @_;

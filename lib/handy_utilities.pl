@@ -192,7 +192,7 @@ sub main::file_cat {
     }
 }
 
-                                # This drops carrage returns and line feeds
+                                # This drops carriage returns and line feeds
 sub main::filter_cr {
     my ($data) = @_;
     $data =~ s/[\n\r]//g;
@@ -203,10 +203,19 @@ sub main::filter_cr {
                                 # Used by &run and Process_Item ... must find pgm source for Win32::process
 sub main::find_pgm_path {
     my($pgm) = @_;
-                                # Windows programs with blanks in the name are a problem :(
-                                # Can not distinguish a program blank from an argument blank!
-    my ($pgm_path, $pgm_args) = $pgm =~ /^(\S+) ?(.*)/;
-#   print "db pgm_path=$pgm_path\n";
+
+    my ($pgm_path, $pgm_args);
+
+    if ($pgm =~ /^\x22(.+?)\x22/) {
+	    $pgm_path = $1;
+	    ($pgm_args) = $pgm =~ /^\x22.+?\x22 ?(.*)/;
+    }
+    else {
+	    ($pgm_path, $pgm_args) = $pgm =~ /^(\S+) ?(.*)/;
+    }
+
+
+    print "db Finding program path=$pgm_path\n" if $::Debug{misc};
 
     unless($pgm_path = &main::which($pgm_path)) {
         print "Warning, new Process:  Can not find path to pgm=$pgm, pgm_path=$pgm_path arg=$pgm_args\n";
@@ -787,7 +796,7 @@ sub main::run_kill_processes {
 
                                 # If you want more control (e.g. detect when done), use Process_Item.pm
 sub main::run {
-    my($mode, $pgm, $no_log) = @_;
+    my($mode, $pgm, $no_log, $no_check) = @_;
                 # Mode is optional ... yuck ... optional parms should be last!
     unless ($mode eq 'inline') {
         $no_log = $pgm;
@@ -796,15 +805,13 @@ sub main::run {
 
 
     if ($main::OS_win) {
-
-                                # Dang, Process::Create needs full path name ... use our handy perl which function
         my($pgm_path, $pgm_args) = &main::find_pgm_path($pgm);
 
         unless ($pgm_path) {
-            print "Run error, program not found: $pgm\n";
+            warn "Program not found: $pgm";
             return;
         }
-        print "Running: pgm=$pgm_path args=$pgm_args\n" unless $main::config_parms{no_log} =~ /run/ or $no_log;
+        print "Running: $pgm_path args=$pgm_args\n" unless $main::config_parms{no_log} =~ /run/ or $no_log;
 
         my ($cflag, $process);
 
@@ -815,7 +822,10 @@ sub main::run {
 #       $cflag = NORMAL_PRIORITY_CLASS;
         $cflag = 0;             # Avoid uninit warnings
 
-        my $pid = Win32::Process::Create($process, $pgm_path, "$pgm_path $pgm_args", 0, $cflag, '.') or
+	my $pgm_path2 = $pgm_path;
+	$pgm_path2 = "\"$pgm_path2\"" if $pgm_path2 =~ /\x20/;
+
+        my $pid = Win32::Process::Create($process, $pgm_path, "$pgm_path2 $pgm_args", 0, $cflag, '.') or
             print "Warning, run error: pgm_path=$pgm_path\n  -   pgm=$pgm   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
         push(@Processes, [$process, $pgm]);
 
@@ -823,8 +833,8 @@ sub main::run {
         return $process;
     }
     else {
-                                # This will look for pgms in mh/bin, even if that is
-                                # not not in the path
+                                # This will look for pgms in mh/bin, even if it is
+                                # not in the path
         my($pgm_path, $pgm_args) = &main::find_pgm_path($pgm);
         $pgm = "$pgm_path $pgm_args";
         $pgm .= " &" unless $mode eq 'inline';
