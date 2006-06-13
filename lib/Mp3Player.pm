@@ -1,17 +1,14 @@
 #!/usr/bin/perl                                                                                 
 #
 #
-# This uses only:
-#  - httpq  (a winamp plugin, available at: http://karv.dyn.dhs.org/winamp or http://gulf.uvic.ca/~karvanit/winamp/)
-#
-# This just turns the player on,off,pause, etc.  Mp3Control.pm controls 
-# starting the mp3 player with a list of songs or a playlist
 #
 # 
 #    bsobel@vipmail.com'
 #    August 15, 2000
 #
-#
+#    Hacked by David Mark to bypass duplicate Winamp code and provide an object-based
+#    interface for all MP3 players.  Code for the different players should be moved into
+#    this object eventually (no need for four mutually exclusive common code modules.)
 
 use strict;
 
@@ -29,8 +26,7 @@ sub new
 
     push(@mp3player_object_list,$self);
 
-    # See http://gulf.uvic.ca/~karvanit/winamp/commands.html
-    push(@{$$self{states}}, 'play', 'pause', 'stop', 'next', 'prev', 'shuffle', 'repeat', 'randomsong', 'volumeup', 'volumedown');
+    push(@{$$self{states}}, 'play', 'pause', 'stop', 'next song', 'previous song', 'shuffle', 'repeat', 'random song', 'volume up', 'volume down', 'clear list');
 
     return $self;
 }
@@ -38,20 +34,25 @@ sub new
 sub default_setstate
 {
     my ($self, $state) = @_;
-    print "Mp3Control set called: " . $self->{address} . " to " . $state . "\n";
-    winamp_control($state,$self->{address});
+    print "Mp3Player set called: " . $self->{address} . " to " . $state . "\n" if $::Debug{mp3};
+    mp3_player_control($state,$self->{address});
     return;
 }
 
-sub winamp_control 
+sub mp3_player_control 
 {
     my ($command, $host) = @_;
 
+    eval "&::mp3_control('$command', '$host')";
+
+    warn "mp3_control:$@\n" if $@;
+
+    return;
+
     $host = 'localhost' unless $host;
-    ::print_log "Setting $host winamp to $command";
 
                                 # Start winamp, if it is not already running (windows localhost only)
-    &::sendkeys_find_window('winamp', $::config_parms{mp3_program}) if $::OS_win and $host eq 'localhost';
+    &::sendkeys_find_window('winamp ', $::config_parms{mp3_program}) if $::OS_win and $host eq 'localhost';
 
     my $temp;
     my $url = "http://$host:$::config_parms{mp3_program_port}";
@@ -70,7 +71,6 @@ sub winamp_control
     {
         my ($file) = $command =~ /playlist:(.+)/i;
 
-        ::print_log "Winamp playlist file=$file";
         ::print_log ::filter_cr ::get "$url/DELETE?p=$::config_parms{mp3_program_password}";
         ::print_log ::filter_cr ::get "$url/PLAYFILE?p=$::config_parms{mp3_program_password}&a=$file";
         ::print_log ::filter_cr ::get "$url/PLAY?p=$::config_parms{mp3_program_password}";
@@ -83,13 +83,11 @@ sub winamp_control
         {
             $temp .= ::filter_cr ::get "$url/$command?p=$::config_parms{mp3_program_password}";
         }
-        ::print_log "Winamp (httpq) set to $command: $temp";
     }
     else 
     {
-        ::print_log "$url/$command?p=$::config_parms{mp3_program_password}";
+#        ::print_log "$url/$command?p=$::config_parms{mp3_program_password}";
         $temp = ::filter_cr ::get "$url/$command?p=$::config_parms{mp3_program_password}";
-        ::print_log "Winamp set to $command: $temp";
     }
 }
 
