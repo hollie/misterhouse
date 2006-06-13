@@ -31,7 +31,7 @@
 #@   Your Winamp Player will be ready to stream from slimserver
 #@
 #@ The only Drawbacks: The play,Prev,Next commands on the remote player 
-#@ must be issued using the misterhouse mp3 web interfase, 
+#@ must be issued using the misterhouse mp3 web interface, 
 #@ the response to a command takes as much as 8 seconds and can't control volume.
 #@ The Pros: It is a rather simple (even wireless) unexpensive and effective way to distribute
 #@  your mp3 jukebox music to several PCs.
@@ -58,6 +58,12 @@
 
 =cut
 
+
+use Mp3Player;
+
+$jukebox = new Mp3Player;
+
+
 sub mp3_play {
 	my $file = shift;
 	my $host = $config_parms{slimserver_host};
@@ -79,7 +85,7 @@ sub mp3_queue {
 	$client_ip=$Socket_Ports{http}{client_ip_address} unless $client_ip;
 	print_log "Player IP address queueing slimserver " . $client_ip;
 	print_log "mp3 queue: $file";
-	$file =~ s./.%2f.g;
+	$file = &escape($file);
 	my $url = "http://$host/status.txt?p0=playlist&p1=add&p2=$file&player=$client_ip";
 	get $url;
 }
@@ -98,7 +104,7 @@ sub mp3_clear {
 
 sub mp3_get_playlist {
 # This doesn't work yet
-    return ["not implemented"];
+    return 0;
 }
 
 sub mp3_get_playlist_pos {
@@ -107,34 +113,33 @@ sub mp3_get_playlist_pos {
 }
 
 # noloop=start      This directive allows this code to be run on startup/reload
-
-my $mp3_states = "Play,Stop,Pause," .
-		"Next Song,Previous Song,Volume up, Volume down";
-my %slim_commands = ('Play' => 'play', 'Stop' => 'stop',
-		'Pause' => 'pause', 'Next Song' => 'jump_fwd',
-		'Previous Song' => 'jump_rew', 'Volume up' => 'volume_up',
-		'Volume down' => 'volume_down');
-
+my $mp3_states = "Play,Stop,Pause,Next Song,Previous Song,Volume up, Volume down";
+my %slim_commands = ('play' => 'play', 'stop' => 'stop',
+		'pause' => 'pause', 'next song' => 'jump_fwd',
+		'previous song' => 'jump_rew', 'volume up' => 'volume_up',
+		'volume down' => 'volume_down');
+$v_slimserver_control = new Voice_Cmd("Set the house mp3 player to [$mp3_states]");
 # noloop=stop
 
-sub slimpserver_control {
+sub mp3_control {
 	my $command = shift;
-	$command = $slim_commands{$command} if $slim_commands{$command};
+	$command = $slim_commands{lc($command)} if $slim_commands{lc($command)};
+
+	# *** Need clear list and encode filename
+
 	my $host = $config_parms{slimserver_host};
 	$host = 'localhost:9000' unless $host;
 	my $client_ip=$config_parms{slimserver_player};
 	$client_ip=$Socket_Ports{http}{client_ip_address} unless $client_ip;
-	print_log "Player IP address controling slimserver " . $client_ip;
-	print_log "Setting $host slimserver to $command";
+#	print_log "Player IP address controlling slimserver " . $client_ip;
+#	print_log "Setting $host slimserver to $command";
 	my $url = "http://$host";
 	$url .= "/status.txt?p0=button&p1=$command&player=$client_ip";
         print "slimserver request: $url\n" if $Debug{'slimserver'};
 	get $url;
 }
 
-
-$v_slimserver_control = new Voice_Cmd("Set the house mp3 player to [$mp3_states]");
-
 if ($state = said $v_slimserver_control) {
-       slimpserver_control($state);
+       respond "app=mp3 $state";
+       mp3_control($state);
 }
