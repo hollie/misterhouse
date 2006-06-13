@@ -3,7 +3,7 @@
 #@
 #@ This script controls the <a href='http://www.winamp.com'>Winamp MP3 player</a> for Windows. It
 #@ handles operation of the mp3 player. Enable mp3.pl to manage the MP3 database.
-#@ This script requires version 2.0 of the <a> href='http://www.kostaa.com/winamp/'>httpq plug-in</a>
+#@ This script requires version 2.0 of the <a href='http://www.kostaa.com/winamp/'>httpq plug-in</a>
 #@ or wactrl, by david_kindred@iname.com  (windows only, included in mh/bin dir).
 #@ Greater functionality/control is achieved with httpq.
 #@
@@ -16,7 +16,7 @@
 #  Major update to align functions with David's common mp3 code and xmms
 #  Supports a target host or defaults to localhost (Seems to work, but really untested)
 
-# V1.02 28 Feb 2004 David Noorwood,
+# V1.02 28 Feb 2004 David Norwood,
 #	  Update to add mp playing
 
 # V1.03  1 Mar 2004 Pete Flaherty,
@@ -27,21 +27,27 @@
 # V1.04 15 July 2004 Pete Flaherty
 #	  Added mp3_playlist_delete to remove entries from current list
 
+use Mp3Player;
+
 # noloop=start      This directive allows this code to be run on startup/reload
+$jukebox = new Mp3Player;
+
 my (%winamp_commands, $mp3_states);
 if ($config_parms{mp3_program_control} eq 'wactrl') {
     $mp3_states = "Play,Stop,Pause,Restart,Rewind,Forward," .
                   "Next Song,Previous Song,Volume up,Volume down,ontop";
-    %winamp_commands = ('Restart' => 'start', 'Rewind' => 'rew5s', 'Forward' => 'ffwd5s',
-                        'Next Song' => 'nextsong', 'Previous Song' => 'prevsong',
-                        'Volume up' => 'volup', 'Volume down' => 'voldown');
+    %winamp_commands = ('restart' => 'start', 'rewind' => 'rew5s', 'Forward' => 'ffwd5s',
+                        'next song' => 'nextsong', 'previous song' => 'prevsong',
+                        'volume up' => 'volup', 'volume down' => 'voldown');
 }
 else {
-    $mp3_states = "Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat,Restart,Shoutcast Connect,Add Song,Clear List";
-    %winamp_commands = ('Next Song' => 'next', 'Previous Song' => 'prev',
-                        'Toggle Shuffle' => 'shuffle', 'Toggle Repeat' => 'repeat',
-                        'Volume Up' => 'volumeup', 'Volume Down' => 'volumedown', 'Shoutcast Connect' => 'shoutcast_connect',
-                        'Clear List' => 'delete' );
+
+	#Shuffle on/off
+
+    $mp3_states = "Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat,Shoutcast Connect,Clear List";
+    %winamp_commands = ('next song' => 'next', 'previous song' => 'prev',
+                        'toggle shuffle' => 'shuffle', 'toggle repeat' => 'repeat',
+                        'volume up' => 'volumeup', 'volume down' => 'volumedown', 'shoutcast connect' => 'shoutcast_connect', 'clear list' => 'delete');
 }
 my $mp3_host = 'localhost';
 $mp3_host = $config_parms{mp3_program_host} if $config_parms{mp3_program_host};
@@ -49,26 +55,29 @@ $mp3_host = $config_parms{mp3_program_host} if $config_parms{mp3_program_host};
 
 # Add Player Commands
 $v_mp3_control1 = new  Voice_Cmd("Set the house mp3 player to [$mp3_states]");
-&mp3_control($state, $mp3_host)  if $state = said $v_mp3_control1;
+$v_mp3_control2 = new  Voice_Cmd("Set music to [$mp3_states]");
+&mp3_control($state, $mp3_host)  if $state = said $v_mp3_control1 or $state = said $v_mp3_control2;
 
 # House player process
-$p_winamp_house = new Process_Item "$config_parms{mp3_program}";
+$p_winamp_house = new Process_Item "\"$config_parms{mp3_program}\"";
 
 # Primary Control function
 sub mp3_control {
     my ($command, $host, $arg1) = @_;
 
+	print "-------------$command---------------\n";
+
                                 # This translates from speakable commands to program commands
-    $command = $winamp_commands{$command} if $winamp_commands{$command};
+    $command = $winamp_commands{lc($command)} if $winamp_commands{lc($command)};
 
     $host = $mp3_host unless $host;
-    print_log "Setting $host winamp to $command" if $Debug{winamp};
+    print "Setting $host winamp to $command\n";
 
     return 0 unless &mp3_running($host);
 
     if (&is_httpq) {
         my $url = "http://$host:$config_parms{mp3_program_port}";
-        if($command eq 'Random Song'){
+        if($command =~ /random song/i){
             my $mp3_num_tracks = get "$url/getlistlength?p=$config_parms{mp3_program_password}";
             my $song = int(rand($mp3_num_tracks));
             my $mp3_song_name  = get "$url/getplaylisttitle?p=$config_parms{mp3_program_password}&a=$song";
@@ -77,7 +86,7 @@ sub mp3_control {
             get "$url/stop?p=$config_parms{mp3_program_password}";
             get "$url/setplaylistpos?p=$config_parms{mp3_program_password}&a=$song";
             get "$url/play?p=$config_parms{mp3_program_password}";
-        }
+        }	
         elsif($command =~ /volume/i){
            $temp = '';
             # 10 passes is about 20 percent
@@ -90,11 +99,11 @@ sub mp3_control {
             $temp .= filter_cr get "$url/shuffle_status?p=$config_parms{mp3_program_password}";
             if ($temp) {
                 get "$url/shuffle?p=$config_parms{mp3_program_password}&a=0";
-                print_log "Winamp (httpq $host) Shuffle set OFF" if $Debug{winamp};
+                print "Winamp (httpq $host) Shuffle set OFF\n" if $Debug{winamp};
             }
             else {
                 get "$url/shuffle?p=$config_parms{mp3_program_password}&a=1";
-                print_log "Winamp (httpq $host) Shuffle set ON" if $Debug{winamp};
+                print "Winamp (httpq $host) Shuffle set ON\n" if $Debug{winamp};
             }
         }
         elsif($command =~ /repeat/i) {
@@ -110,7 +119,7 @@ sub mp3_control {
         }
         else {
             $temp = filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
-            print_log "Winamp (httpq $host) set to $command: $temp" if $Debug{winamp};
+            print "Winamp (httpq $host) set to $command: $temp\n" ;
         }
         return $temp;
     }
@@ -120,7 +129,7 @@ sub mp3_control {
         my $i = 1;
         $i = 25 if $command =~ /^vol/;
         for (1 .. $i) {
-            run "$config_parms{mp3_program_control} $command";
+            run "\"$config_parms{mp3_program_control}\" $command";
         }
     }
 }
@@ -142,14 +151,14 @@ sub mp3_play {
         	$file =~ s/\,/%2C/g;
 		my $url = "http://$host:$config_parms{mp3_program_port}";
 		my $temp = filter_cr get "$url/delete?p=$config_parms{mp3_program_password}";
-		print_log "winamp debug $url/playfile?p=$config_parms{mp3_program_password}&a=$file";
+		print "winamp debug $url/playfile?p=$config_parms{mp3_program_password}&a=$file\n"  if $Debug{winamp};
         $temp = filter_cr get "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
 		$temp = filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
-		print_log "Winamp (httpq $host) song/list $file added: $temp" if $Debug{winamp};
+		print "Winamp (httpq $host) song/list $file added: $temp\n" if $Debug{winamp};
 	}
 	else {
 		run qq[$config_parms{mp3_program} "$file"];
-		print_log "mp3 play: $file" if $Debug{winamp};
+		print "mp3 play: $file" if $Debug{winamp};
 	}
 }
 
@@ -173,7 +182,7 @@ sub mp3_queue {
 		print_log "Winamp (httpq $host) song/list $file added: $temp" if $Debug{winamp};
 	}
 	else {
-		run qq[$config_parms{mp3_program} /ADD "$file"];  ##/ # For gVim syntax
+		run qq["$config_parms{mp3_program}" /ADD "$file"];  ##/ # For gVim syntax
 		print_log "mp3 queue: $file" if $Debug{winamp};
 	}
 }
@@ -231,6 +240,8 @@ sub mp3_get_playlist_pos {
 }
 
         # set current song to position
+
+# *** Bogus!  See main box
 sub mp3_set_playlist_pos {
 	my $pos = shift;
 	return 0 if ($pos eq '');
@@ -269,7 +280,7 @@ sub mp3_playlist_delete {
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 set playlist pos: Unsupported" if $Debug{winamp};
+		print_log "mp3 playlist delete: Unsupported" if $Debug{winamp};
 	}
 }
 
@@ -378,10 +389,17 @@ sub mp3_playing {
         # try to start winamp if not running and return the status of the player
 sub mp3_running {
 	my $host = shift || $mp3_host;
+
+# *** Tangled up BS
+# Play should just shell if local!
+
+
+	print "HOST:$host\n";
+
                                 # Start winamp, if it is not already running (windows localhost only)
-	if ($OS_win && $host eq 'localhost' && done $p_winamp_house && ! &sendkeys_find_window('Winamp', $config_parms{mp3_program})) {
-		start $p_winamp_house;
-		select undef, undef, undef, .4;
+	if ($OS_win && ($host eq 'localhost') && done $p_winamp_house && ! &sendkeys_find_window('Winamp ', $config_parms{mp3_program}, 10000)) {
+#		start $p_winamp_house;
+		select undef, undef, undef, 10;
 		print_log "Starting WinAmp";
 	}
 	if (&is_httpq) {
@@ -410,6 +428,6 @@ sub mp3_radio_play {
     my $host = shift || $mp3_host;
     return 0 unless &mp3_running($host);
     $file =~ s/&&/&/g;
-    run qq[$config_parms{mp3_program} "$file"];
+    run qq["$config_parms{mp3_program}" "$file"];
     print "mp3 radio play: $file" if $Debug{winamp};
 }
