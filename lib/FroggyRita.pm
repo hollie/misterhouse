@@ -6,7 +6,7 @@ Module to interface with the little froggy named Rita from the company FroggyHom
 
 This device shaped like a frog, will gather interior temperature, pressure and humidity.
 The company is based in Europe (France), but do ship in North America, at least
-they did ship in my little town in Canada
+they did ship to my little town in Canada
 
 To see more information about it, please visit http://www.froggyhome.com
 
@@ -15,16 +15,15 @@ to write the module, especially Philippe Monceyron.
 
 =head1 FACTS 
 
-This device use serial port and operate at 300 bauds, the module
-will provide new measurement every minute.  It can't produce at a faster rate.
-
-Here's info from their website
+This device use serial port and operates at 300 baud, the module
+will provide a new measurement every minute.  It cannot produce at a faster rate.
+From their site:
 
 Rita is very nice, but she is very hard working and full of fight, imagine,
 every 6.5 seconds she measures the absolute pressure, air humidity and air
 temperature, that 8 times one after the other and finally calculates the
-average and (ouf ! ! !) waits for the request of your PC to transmit the
-result, after what she restarts for 8 measurements of the 3 data.
+average and waits for the request of your PC to transmit the
+result, after that she restarts for 8 measurements of the 3 data.
 
 It took about 2 minutes after mh is started to get the 1st data. the first minute
 initialize the devices, and then we need 1 more minute to get the data
@@ -32,15 +31,15 @@ initialize the devices, and then we need 1 more minute to get the data
 It is very easy to use. Just define 2 parameters in mh.ini.
 See the examples on how to gather data
 
-The device will return 4 value, from a call to GetData
+The device will return 4 values, from a call to GetData:
 
-Temperature, pressure, humidity and time.
-The time value is the time when the data was retrieve from the frog not the
+Temperature, pressure, humidity and time
+
+NOTE: The time value is the time when the data was retrieved from the frog, not the
 time you ask the data.
 
 To get a good accuracy on pressure, you have to provide an altitude parameter.
-This will need to be fine tune, to get a value similar to where you live.
-Note, the value is in meter, so 1 feet is about .3048 meter.
+NOTE: altitude parameter is in meters.
 
 =head1 .INI PARAMETERS
 
@@ -49,133 +48,206 @@ Note, the value is in meter, so 1 feet is about .3048 meter.
 
 =head1 EXAMPLES
 
- # Category = Froggy
- $v_Froggy = new FroggyRita;
- my ( $RitaTemp, $RitaPres, $RitaHum, $RitaTime );
-
- # get data every 5 minutes
- if ( new_minute 5 ) {
-     my ( $RitaTemp, $RitaPres, $RitaHum, $RitaTime ) = $v_Froggy->GetData;
- }
+ See froggy_rita.pl in code/common
 
 =cut
 use strict;
 
 package FroggyRita;
+use Timer;
 use POSIX;
+
+# *** Need config parms for delay and fahrenheit/celsius (?)
+
 
 @FroggyRita::ISA = ('Generic_Item');
 
-# variable definition
 my $FroggyFD;    # port file descriptor
-my ( $Word1, $Word2, $Word3, $Word4 );
-my ( $C1, $C2, $C3, $C4, $C5, $C6 );
-my ( $NbBits, $Rs, $Rp );
-my ( $Temp, $Pres, $Hum, $TimeStamp );
+my ($Word1, $Word2, $Word3, $Word4);
+my ($C1, $C2, $C3, $C4, $C5, $C6);
+my ($NbBits, $Rs, $Rp);
+my ($Temp, $Pres, $Hum, $TimeStamp);
 my $HaveIdent = 0;
 my $BadData;
-my $Wait4Reply = 15;    #waiting time before fetching data on port after sending a command
 
-# The only call from user space to get data
+# old syntax (use deprecated)
+
 sub GetData {
-   return ( $Temp, $Pres, $Hum, $TimeStamp );
+	return ($Temp, $Hum, $Pres, $TimeStamp);
 }
 
-sub AskData {
+sub temperature {
+	return $Temp;
+}
 
-   # ask Froggy for new data (identication/sensor) every minute we send a command
+sub humidity {
+	return $Hum;
+}
+
+sub pressure {
+	return $Pres;
+}
+
+sub time_stamp {
+	return $TimeStamp;
+}
+
+
+
+sub AskData {
+   # ask Froggy for new data (identication/sensor)
    # G0047Z  Identification
    # G0046Z  data
-   if ($main::New_Minute) {
-      if ( $HaveIdent and $BadData < 3 ) {
-         &main::print_log("FroggyRita.pm send G0146Z") if $main::Debug{froggyrita};
+
+      my $self = shift;
+
+      if ($HaveIdent and $BadData < 3) {
+         print "FroggyRita.pm send G0146Z\n" if $main::Debug{froggyrita};
          $main::Serial_Ports{$FroggyFD}{object}->write("G0146Z");
       }
       else {
-         &main::print_log("FroggyRita.pm send G0047Z") if $main::Debug{froggyrita};
-         &main::print_log("FroggyRita.pm reinit froggy device  with G0047Z") if ( $BadData >= 3 );
-         $BadData = 0;
+         print "FroggyRita.pm send G0047Z\n" if $main::Debug{froggyrita};
+         print "FroggyRita.pm reinitialize froggy device with G0047Z\n" if ( $BadData >= 3 );
+         $BadData = 0 if ( $BadData >= 3 );
          $main::Serial_Ports{$FroggyFD}{object}->write("G0047Z");
       }
+      if ($$self{timer}) {	
+	print "FROG TIMER EXISTS: $$self{timer}";
+	$$self{timer}->stop();
+	delete $$self{timer};
+      }
+      $$self{timer} = new Timer();
+      $$self{timer}->set(15, $self);
+      
+}
 
-   }
 
-   # every minute and $Wait4Reply seconds, we read the answer back from froggy
-   if ( $main::Second == $Wait4Reply & $main::New_Second ) {
+
+sub default_setstate {
+	my ($self, $state, $test, $set_by, $respond) = @_;
+	
+	if ($state eq 'status') {
+#		&Generic_Item::set_states_for_next_pass($self, $state, $set_by);
+		&AskData($self);
+#     	        $self->SUPER::set('status', $set_by);	 		
+	}
+	elsif ($state eq 'off') { # timer
+#	elsif ($$self{timer} and $set_by eq $$self{timer}) {
+		&Ribbit($self);
+		return -1;
+	}	
+
+
+}
+
+sub set2 {
+    my ($self, $state, $set_by) = @_;
+
+	if ($state eq 'status') {
+#		&Generic_Item::set_states_for_next_pass($self, $state, $set_by);
+		&AskData($self);
+#     	        $self->SUPER::set('status', $set_by);	 
+		return -1;
+	}
+	elsif ($$self{timer} and $set_by eq $$self{timer}) {
+		&Ribbit($self);
+	}	
+}
+
+sub Ribbit {
+    my $self = shift;
+
       $::Serial_Ports{$FroggyFD}{data} = "";
       &::check_for_generic_serial_data($FroggyFD) if $::Serial_Ports{$FroggyFD}{object};
       my $Data = $::Serial_Ports{$FroggyFD}{data};
 
       if ( $Data =~ /^G.*Z/ ) {
-         &main::print_log("FroggyRita.pm data received from device [$Data]") if $main::Debug{froggyrita};
+         print "FroggyRita.pm data received from device [$Data]\n" if $main::Debug{froggyrita};
 
          if ($HaveIdent) {    # deal with "01" command
-            CalcData($Data);
+            &CalcData($self, $Data);
          }
          else {    # deal with "00" command (identification)
-            CheckIdentification($Data);
+            &CheckIdentification($Data);
             &::logit( "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "Device $FroggyFD Initialized" ) if ($HaveIdent);
             &::logit( "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "Device $FroggyFD Reinitialized (bad data)" ) if ( $BadData > 0 );
+   	    $self->SUPER::set('identify', 'serial');
          }
 
       }
       else {
-
-         # bad data can occurs if we get data between 0 and 60 seconds after start
          my $timestamp = $main::Time_Date;
          $BadData++;
-         &main::print_log( "FroggyRita.pm $timestamp : Invalid data received from Froggy [$Data] count=$BadData" ) if ( ( $Main::Time_Startup_time + 60 ) < time() );
-         &::logit( "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "$timestamp : Invalid data received from Froggy device [$Data]" );
+         print "FroggyRita.pm $timestamp : Invalid data received from Froggy [$Data] count=$BadData\n" if (($Main::Time_Startup_time + 60) < time() and $Data);
+         &::logit( "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "$timestamp : Invalid data received from Froggy device [$Data]") if $Data;
       }
-   }
 
 }
 
 # initialize port
 sub serial_startup {
    my ($instance) = @_;
+
+	# *** Move to new method and make configurable by name (FroggyRita2, 3, etc.)
+	# *** See callerID
+
    $FroggyFD = $instance;
    my $port = $::config_parms{ $FroggyFD . "_serial_port" };
-   my $speed = 300;
-   if ( &::serial_port_create( $FroggyFD, $port, $speed, 'none', 'raw' ) ) {
-      init( $::Serial_Ports{$FroggyFD}{object} );
-      &main::print_log("FroggyRita.pm initialized $FroggyFD on port $port at $speed baud") if $main::Debug{froggyrita};
-      &::logit( "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "Initializing $FroggyFD on port $port at $speed baud" );
-      &::MainLoop_pre_add_hook( \&FroggyRita::AskData, 1 );
+
+	print "FROG STARTUP: $FroggyFD $port";
+
+   if (&::serial_port_create( $FroggyFD, $port, 300, 'none', 'raw' ) and 0) {
+      init($::Serial_Ports{$FroggyFD}{object});
+      print "FroggyRita.pm initialized $FroggyFD on port $port at 300 baud\n" if $main::Debug{froggyrita};
+      &::logit("$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "Initializing $FroggyFD on port $port at 300 baud");
+#      &::MainLoop_pre_add_hook(\&FroggyRita::FrogLoop, 1);
    }
 }
 
 sub new {
-   my ($class) = @_;
+   my $name;
+   my ($class, $port) = @_;
+
+	# $self->get_object_name() How to get name here???  If not, FroggyRita[n]
+
+   $name = "FroggyRita" unless $name;
+   $port = $::config_parms{ $name . "_serial_port" } unless $port;
+   if (&::serial_port_create($FroggyFD, $port, 300, 'none', 'raw')) {
+      init($::Serial_Ports{$FroggyFD}{object});
+      print "FroggyRita.pm initialized FroggyRita on port $port at 300 baud\n" if $main::Debug{froggyrita};
+      &::logit("$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "Initializing FroggyRita on port $port at 300 baud");
+   }
+
    my $self = {};
    $$self{state} = '';
    bless $self, $class;
+   push(@{$$self{states}}, 'status');
    return $self;
 }
 
-# if we receive data from sensor, we calculate the value
 sub CalcData {
-
    my ( $D1, $D2, $DT );
    my ($Hmeasure);
+   my $self = shift;
    my $Data = shift;
-   &main::print_log("FroggyRita.pm CalcData Entering [$Data]") if $main::Debug{froggyrita};
+   print "FroggyRita.pm CalcData Entering [$Data]\n" if $main::Debug{froggyrita};
 
    # validate identity string
    if ( CheckSum($Data) != 0 ) {
-      &main::print_log( "FroggyRita.pm: checksum incorrect, probably invalid FroggyRita Data [$Data]" );
+      print "FroggyRita.pm: checksum incorrect, invalid FroggyRita Data [$Data]\n" if $main::Debug{froggyrita};
       return;
    }
 
    my $SensorStatus = substr( $Data, 3, 2 );
    if ( $SensorStatus ne "00" ) {
-      &main::print_log("FroggyRita.pm: CalcData Error code sensor 0");
+      print "FroggyRita.pm: CalcData Error code sensor 0";
       return;
    }
    $SensorStatus = substr( $Data, 13, 2 );
 
+
    if ( $SensorStatus ne "00" ) {
-      &main::print_log("FroggyRita.pm: CalcData Error code sensor 1");
+      print "FroggyRita.pm: CalcData Error code sensor 1";
       return;
    }
 
@@ -186,6 +258,7 @@ sub CalcData {
    $Hmeasure = Hex2Dec( substr( $Data, 15, 4 ) );
 
    my $UT1 = 8 * $C5 + 20224;
+
    if ( $D2 >= $UT1 ) {
       $DT   = $D2 - $UT1;
       $Temp = ( 200 + $DT * ( $C6 + 50 ) / 1024 ) / 10;
@@ -194,7 +267,9 @@ sub CalcData {
       $DT   = ( $D2 - $UT1 ) - ( ( ( $D2 - $UT1 ) / 128 ) * ( ( $D2 - $UT1 ) / 128 ) ) / 4;
       $Temp = ( 200 + $DT * ( $C6 + 50 ) / 1024 + $DT / 256 ) / 10;
    }
+
    $Temp = sprintf( "%.2f", $Temp );
+
 
    my $Off  = $C2 * 4 + ( ( $C4 - 512 ) * $DT ) / 4096;
    my $Sens = $C1 + ( $C3 * $DT ) / 1024 + 24576;
@@ -216,11 +291,17 @@ sub CalcData {
    }
    elsif ( $Hmeasure > 507 ) {
       $Hum = 100;
+
    }
    else {
+
+
       my $Imped = ( $Rs / 1000 ) / ( ( ( 2**$NbBits ) / $Hmeasure ) - 1 - ( $Rs / $Rp ) );
+
       my $A     = 1.0;
+
       my $B     = log10($Imped);
+
       my $C     = $B**2;
       my $D     = $B**3;
       my $T2    = $Temp**2;
@@ -229,6 +310,7 @@ sub CalcData {
       my ( $B1, $B2, $B3, $B4 );
       my ( $C1, $C2, $C3, $C4 );
       my ( $D1, $D2, $D3, $D4 );
+
       $A1 = 1.154564e2;
       $A2 = -2.557588e1;
       $A3 = 4.595314e-1;
@@ -251,32 +333,29 @@ sub CalcData {
       $Hum += $T2 * $A * $C1 + $T2 * $B * $C2 + $T2 * $C * $C3 + $T2 * $D * $C4;
       $Hum += $T3 * $A * $D1 + $T3 * $B * $D2 + $T3 * $C * $D3 + $T3 * $D * $D4;
 
+
       if ( $Hum > 100.0 ) { $Hum = 100.0 }
       if ( $Hum < 0.0 ) { $Hum = 0.0 }
 
    }
    $Hum = sprintf( "%.2f", $Hum );
-   $TimeStamp = Now();
-   &main::print_log("FroggyRita.pm CalcData T:$Temp\tP:$Pres\tH:$Hum\tC:$TimeStamp") if $main::Debug{froggyrita};
-}
 
-sub Now {
+	$TimeStamp = $main::Time_Date;
 
-   #my $Time=`date "+%m/%d/%Y %H:%M:%S"`;
-   my $Time = `date "+%Y-%m-%d %H:%M:%S"`;
-   chomp $Time;
-   return $Time;
+   	    $self->SUPER::set("$Temp degrees $Hum", 'serial');
+
+   print "FroggyRita.pm CalcData T:$Temp\tP:$Pres\tH:$Hum\tC:$TimeStamp\n" if $main::Debug{froggyrita};
 }
 
 # we need to identify the device, in order to calculate sensor value later
 sub CheckIdentification {
 
    my $Identity = shift;
-   &main::print_log("FroggyRita.pm CheckIdentification Entering") if $main::Debug{froggyrita};
+   print "FroggyRita.pm CheckIdentification Entering" if $main::Debug{froggyrita};
 
    # validate identity string
    if ( CheckSum($Identity) != 0 ) {
-      &main::print_log( "FroggyRita.pm: Checksum incorrect, probably invalid identification [$Identity]" );
+      print "FroggyRita.pm: Checksum incorrect, invalid identification [$Identity]\n";
       return;
    }
 
@@ -291,7 +370,7 @@ sub CheckIdentification {
    $Rp     = Hex2Dec( substr( $Identity, 54, 6 ) );
 
    GenCxData();
-   &main::print_log("FroggyRita.pm CheckIdentification we have an identification") if $main::Debug{froggyrita};
+   print "FroggyRita.pm CheckIdentification we have an identification\n" if $main::Debug{froggyrita};
    $HaveIdent = 1;
 }
 
@@ -312,20 +391,17 @@ sub init {
    $serial_port->datatype('raw');
    $serial_port->dtr_active(0);
    $serial_port->rts_active(1);
-   select( undef, undef, undef, .100 );    # Sleep a bit
-
 }
 
-# every thing coming and sent to froggy 
-# is checksummed
 sub CheckSum {
 
    # we receive the whole string
    # we return 0 if checksum is OK
+
    my $Str = shift @_;
 
-   return 1 if !$Str =~ /G/;
-   return 2 if !$Str =~ /Z/;
+   return 1 if $Str !~ /G/;
+   return 2 if $Str !~ /Z/;
 
    my $Data     = substr( $Str, 1,  -3 );    # start from second to 3rd last ..Z
    my $CkSumStr = substr( $Str, -3, 2 );     # start from second to 3rd last ..Z
@@ -342,7 +418,7 @@ sub CheckSum {
    }
    return 4 if uc( unpack( "H2", $CkSum ) ) ne $CkSumStr;
 
-   &main::print_log("FroggyRita.pm Checksum OK") if $main::Debug{froggyrita};
+   print "FroggyRita.pm Checksum OK\n" if $main::Debug{froggyrita};
    return 0;
 
 }
