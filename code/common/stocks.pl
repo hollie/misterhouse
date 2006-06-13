@@ -31,31 +31,42 @@ my @stock_keys = ('SName', 'LName', 'Last', 'Date', 'Time', 'Change', 'PChange',
                   'Day Range', '52-Week Range', 'EPS', 'P/E Ratio', 'Div Pay Date',
                   'Div/Share', 'Div Yield', 'Mkt Cap', 'Exchange');
 
-$v_stock_quote = new Voice_Cmd '[Get, Read, Show] stock quotes', 'Ok';
-$v_stock_quote-> set_info("Gets stock info from yahoo for these stocks: $config_parms{stocks}");
+#***Split these up for security (read is only anyone can do)
+$v_stock_quote = new Voice_Cmd '[Get,Read,Check,Mail,SMS] stock quotes', 0;
+$v_stock_quote-> set_info("Gets stock market info from yahoo for these stocks: $config_parms{stocks}");
 $v_stock_quote-> set_authority('anyone');
 $f_stock_quote = new File_Item "$config_parms{data_dir}/web/stocks.html";
 $p_stock_quote = new Process_Item("get_url $stock_url " . $f_stock_quote->name);
 
-
 $state = said $v_stock_quote;
 
-if ($state eq 'Get') {
-
+if ($state eq 'Read') {
+    respond "app=stocks $Save{stock_results}";
+}
+elsif ($state) {
     unless (&net_connect_check) {
         respond "Sorry, I can't update stock information, you are not logged onto the net";
         return;
     }
-    print_log "Getting stock quotes for @stock_symbols";
+
+    my $stocks;
+    for (@stock_symbols) {
+	$stocks .= ', ' if $stocks;
+	if ($stocks{$_}{'Speak Name'}) {
+		$stocks .= $stocks{$_}{'Speak Name'};
+	}
+	else {
+		$stocks .= $_;
+	}
+    }
+
+    $v_stock_quote->respond("app=stocks Retrieving stock quotes for $stocks");
     unlink $f_stock_quote->name;
     start $p_stock_quote;
 
 }
-elsif ($state eq 'Read' or $state eq 'Show') {
 
-    respond ((($state eq 'Read')?'target=speak ':'') . $Save{stock_results});
 
-}
 
 
 if ($Reload) {
@@ -71,10 +82,12 @@ if ($Reload) {
             $stocks{$stock}{Threshold} = $thresh;
         }
     }
+
     foreach (split ' ', $config_parms{stocks_names}) {
         my ($stock, $name) = split ':', $_;
         $stocks{$stock}{'Speak Name'} = $name;
         $stocks{$stock}{'Speak Name'} =~ s/_/ /g;
+
     }
 }
 
@@ -101,12 +114,10 @@ if (done_now $p_stock_quote) {
         $stocks{$stock}{Date} =~ s|\/\d{4}||; # Drop the year ... should be obvious :)
 
 
-	#this stuff was removed in last update, breaking my Web interface's ticker! :(
-	#It's not the best formatted data, needs an update for a nicer looking ticker...
-
         $Save{stock_data1}  = "Quotes: $stocks{$stock}{Date} $stocks{$stock}{Time} " unless $results;
         $Save{stock_data2}  = 'Change:' unless $results;
         $Save{stock_data1} .= sprintf("%s:%.2f ", $stocks{$stock}{SName}, $stocks{$stock}{Last});
+
         $Save{stock_data2} .= sprintf("%s:%+.2f/%s ", $stocks{$stock}{SName}, $stocks{$stock}{Change}, $stocks{$stock}{PChange});
 
 	#Some stocks are below a dollar, modify the display for dollars and cents.
@@ -131,30 +142,59 @@ if (done_now $p_stock_quote) {
 
 	#Modify the change to cents as it sounds better.
         $stocks{$stock}{Change} =  ($stocks{$stock}{Change} * 100);
-        $stocks{$stock}{Change2} = "down " . sprintf("%2.1f cents",$stocks{$stock}{Change}) if $stocks{$stock}{Change} < 0;
-        $stocks{$stock}{Change2} = "up " . sprintf("%2.1f cents",$stocks{$stock}{Change}) if $stocks{$stock}{Change} > 0;
+        $stocks{$stock}{Change2} = "down " . sprintf("%2.f cents",$stocks{$stock}{Change}) if $stocks{$stock}{Change} < 0;
+        $stocks{$stock}{Change2} = "up " . sprintf("%2.f cents",$stocks{$stock}{Change}) if $stocks{$stock}{Change} > 0;
         $stocks{$stock}{Change2} = "unchanged "  if $stocks{$stock}{Change} eq 0;
 
 	#Bring the elemets of the array into a sentence combined with  the above modifiers.
-        $results .= sprintf("%15s at %s was %s, %s or %2.1f%%.\n",
-                            $stocks{$stock}{SName},$stocks{$stock}{Time},
+        $results .= sprintf("%15s at %s was %s, %s or %2.f%%.\n",
+                            (($stocks{$stock}{'Speak Name'})?$stocks{$stock}{'Speak Name'}:$stocks{$stock}{SName}),$stocks{$stock}{Time},
                             $stocks{$stock}{Last}, $stocks{$stock}{Change2}, $stocks{$stock}{PChange});
 
 	#Sick of hearing the date for each stock, ripped out to say only once.
         $download_date = $stocks{$stock}{Date};
 
     }
-    respond $Save{stock_alert} if $Save{stock_alert};
+    if ($Save{stock_alert}) {
+	$v_stock_quote->respond("app=stocks connected=0 important=1 $Save{stock_alert}");
+    }
+    else {
 
-# And this:
+    	#Lets make the date sound half decent. - I'm sure there is an easier way but I come from a C background!
+	$position = rindex($download_date, "/");
+	$month = substr($download_date ,0, $position);
+	$day = substr($download_date , $position + 1);
+	$Save{stock_results} = 'On ' . $months[$month-1] . ' ' . $day . ",\n " . $results;
 
-  #Lets make the date sound half decent. - I'am sure there is an easier way but I come from a C background!
-    $position = rindex($download_date, "/");
-    $month = substr($download_date ,0, $position);
-    $day = substr($download_date , $position + 1);
-    $Save{stock_results} = 'On ' . $months[$month-1] . ' ' . $day . ",\n " . $results;
+	if ($v_stock_quote->{state} eq 'Check') {
+	        $v_stock_quote->respond("app=stocks connected=0 $Save{stock_results}.");
+	}
+	elsif ($v_stock_quote->{state} eq 'Mail') {
 
-    print_log "Stock quotes retrieved"
+	    my $to = $config_parms{stocks_sendto} || "";
+	    $v_stock_quote->respond("app=stocks connected=0 image=mail Sending stock quotes to " . (($to)?$to:$config_parms{net_mail_send_account}) . '.');
+	    &net_mail_send(subject => "Stock quotes", to => $to, text => $Save{stock_results});
+
+
+	}
+	elsif ($v_stock_quote->{state} eq 'SMS') {
+
+
+	    my $to = $config_parms{cell_phone};
+	    if ($to) {
+		    $v_stock_quote->respond("connected=0 image=mail Sending stock quotes to cell phone.");
+			# *** Try to respond via email or SMS and warn if they return false
+		    &net_mail_send(subject => "Stock quotes", to => $to, text => $Save{stock_results});
+	    }
+	    else {
+		    $v_stock_quote->respond("connected=0 app=error Mobile phone email address not found!");
+	    }
+
+	}
+	else {
+	        $v_stock_quote->respond("app=stocks connected=0 Stock quotes retrieved.");
+	}
+    }
 }
 
 
@@ -174,7 +214,7 @@ if ($Reload and $Run_Members{'trigger_code'}) {
 # Added back the stock alerts.
 
 # 24 April 05, Tony Hall
-# Changed code as nothing was being displayed - Yahoo have added an extra field.
+# Changed code as nothing was being displayed - Yahoo has added an extra field.
 # Tested for both types of coding ie IBM and 'ibm.us'.
 # Now works across world exchanges ie Australia.! i.e 'cuo.ax'. May need some mod to sound better for Pounds (UK).
 # Displays Short Name  rather than Long Name, i.e extra field has been added to @stock_key.
