@@ -6,27 +6,28 @@ my $f_get_new_dvds = "$config_parms{data_dir}/web/new_dvds.html";
 my $f_top_dvds = "$config_parms{data_dir}/web/top_dvds.html";
 my $f_this_weeks_dvds = "$config_parms{data_dir}/web/this_weeks_dvds.html";
 my @dvd_sections = ('Top DVDs', 'This Week\'s New DVDs', 'Last Week\'s New DVDs', 'Next Week\'s New DVDs');
-$v_get_new_dvds = new Voice_Cmd 'Get DVD Info';
-$v_get_new_dvds ->set_info('Get DVD information from the Internet');
-$v_show_new_dvds = new Voice_Cmd 'Show [' . (join ',', @dvd_sections) . ']';
-$v_show_new_dvds ->set_info('Display DVD information');
+$v_get_new_dvds = new Voice_Cmd '[Get,Check] DVD Info';
+$v_get_new_dvds ->set_info('Gets DVD information from the Internet');
 $v_read_new_dvds = new Voice_Cmd 'Read [' . (join ',', @dvd_sections) . ']';
-$v_read_new_dvds ->set_info('Read DVD information');
+$v_read_new_dvds ->set_info('Reads DVD information');
+# *** Set authority to anyone for the last one!
 
 $p_get_new_dvds = new Process_Item "get_url http://www.videoeta.com/dvd.html $f_get_new_dvds";
 
-if (my $state = said $v_show_new_dvds) {
-	respond "$state\n\n$Save{$state}\n";
-}
-
 if (my $state = said $v_read_new_dvds) {
-	respond "target=speak $state\n\n$Save{$state}\n";
+	if ($Save{$state}) {
+		respond "app=movies $state\n\n$Save{$state}";
+	}
+	else {
+		respond "app=movies DVD information is unavailable at the moment.";
+	}
 }
 
 if (my $state = said $v_get_new_dvds) {
     unlink $f_get_new_dvds;
     $p_get_new_dvds -> start;
     $p_get_new_dvds -> {DVDsection} = $state;
+    $v_get_new_dvds -> respond("app=movies Retrieving DVD releases...");
 }
 
 if (done_now $p_get_new_dvds) {
@@ -61,13 +62,42 @@ if (done_now $p_get_new_dvds) {
 
     file_write ($f_this_weeks_dvds,$this_week_html);
     file_write ($f_top_dvds,$top_dvds_html);
-    print_log "DVD data retrieved";
+    if ($v_get_new_dvds->{state} eq 'Check') {
+	my $msg;
+
+	for (@dvd_sections) {
+        	$msg .= "$_: $Save{$_}" if $Save{$_};
+	}
+
+        $v_get_new_dvds->respond("app=movies $msg");
+    }
+    else {
+        $v_get_new_dvds->respond("app=movies DVD data retrieved");
+    }
 }
 
 
-#Get the list once per week (should be in Internet_logon?)
+# Triggers to get data and report new releases
 
-run_voice_cmd "Get DVD Info", undef, 'time', 0, undef if time_now '4 pm' and $Day eq 'Mon' and &net_connect_check;
+if ($Reload and $Run_Members{'trigger_code'}) { 
+    if ($Run_Members{'internet_dialup'}) { 
+        eval qq(
+            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get DVD Info'", 'NoExpire', 'get dvd info') 
+              unless &trigger_get('get dvd info');
+        );
+    }
+    else {
 
-# Display the list once per week.  Respond to email, im, and display (perhaps should be in user code?)
-run_voice_cmd "Show This Week's New DVDs", undef, 'time', 0, "email,im,display subject='New DVDs'" if time_now '5 pm' and $Day eq 'Mon' and &net_connect_check;
+        eval qq(
+           &trigger_set("time_now '4 pm' and time_cron('* * * * 1') and &net_connect_check", "run_voice_cmd 'Get DVD Info'", 'NoExpire', 'get dvd info') 
+              unless &trigger_get('get dvd info');
+        );
+	
+    }
+
+    eval qq(
+        &trigger_set("time_now '5 pm' and time_cron('* * * * 1') and &net_connect_check", qq|run_voice_cmd "Read This Week's New DVDs"|, 'NoExpire', 'read dvd releases') 
+        unless &trigger_get('read dvd releases');
+    );
+
+}     
