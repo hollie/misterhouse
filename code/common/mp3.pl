@@ -34,7 +34,9 @@ if (done_now $p_mp3_build_list) {
 }
 
                                 # Search the mp3 database
-#&tk_entry('MP3 Search', \$Save{mp3_search}, 'MP3 Genre', \$Save{mp3_Genre});
+&tk_entry('MP3 Search', \$Save{mp3_search});
+&tk_entry('MP3 Genre', \$Save{mp3_Genre});
+
 if ($Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'}){
     undef $Tk_results{'MP3 Search'};
     undef $Tk_results{'MP3 Genre'};
@@ -100,11 +102,11 @@ sub mp3_playlists {
 
                                 # Re-tie to the database, in case it has changed.
     eval 'untie %mp3_dbm';      # eval in cause db_file is not installed
-    print_log "Now Tieing to $mp3_file";
+    print_log "Tieing to music database: $mp3_file" if $Startup;
     my $tie_code = qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
     eval $tie_code;
     if ($@) {
-        print_log "\n\nError in tieing to $mp3_file:\n  $@";
+        warn "Error in tieing to $mp3_file:\n  $@";
         $mp3_dbm{empty} = 'empty';
     }
 
@@ -116,60 +118,67 @@ sub mp3_playlists {
 #       my $name = ucfirst lc $1;
         my $name = $1;
         unless ($mp3files{$name}) {
-                                # mp3names is only used for voice cmd, so exclude il chs
+                                # mp3names is only used for voice cmd, so exclude illegal characters
             $mp3names .= $name . ',' unless $name =~ /[\[\]\,\|]/;
             $mp3files{$name} = $file;
         }
     }
-    return 'none_found' unless $mp3names;
+    return 'none_found' unless $mp3names; # ???
     chop $mp3names;         # Drop last ,
-    print "mp3 playlists: $mp3names \n";
+    print "Music playlists: $mp3names \n" if $Startup;
     return $mp3names, %mp3files;
 }
 
 $v_mp3_playlist1 = new Voice_Cmd("Set house mp3 player to playlist [$mp3names]");
-#set_icon $v_mp3_playlist1 'playlist';
+#set_icon $v_mp3_playlist1 'playlist'; # ???
 
 if ($state = said $v_mp3_playlist1) {
     my $host = 'localhost';
     my $file = $mp3files{$state};
-    print_log "MP3 playlist changed to: $state file=$file";
+    print_log "Music playlist changed to: $state file=$file";
+    $Save{NowPlayingPlaylist} = $state;
     &mp3_play($file);
 }
 
 $v_play_clear_music = new Voice_Cmd("Clear mp3 playlist");
-if ($state = said $v_play_clear_music) {
+if (said $v_play_clear_music) {
     &mp3_clear();
 }
 
 # The following returns the current song being played
-$v_what_playing = new Voice_Cmd('[What track is,Show track] playing now');
-if ($state = said $v_what_playing) {
+$v_what_playing = new Voice_Cmd('[What track is,Show track] playing now', 0);
+if (said $v_what_playing) {
 #   my $mp3playing = ${&mp3_get_playlist()}[&mp3_get_playlist_pos()];
     my $mp3playing = '';
     my $pos = &mp3_get_playlist_pos();
     if ($pos >= 0) {
 	$mp3playing = ${&mp3_get_playlist()}[$pos];
     } else {
-	$mp3playing = &mp3_get_curr_song();
+	$mp3playing = &mp3_get_curr_song(); # Where is this function?  Does not appear to exist anywhere (!)
     }
-    $mp3playing = (($state eq 'What track is')?'target=speak ':'') . $mp3playing;
     respond $mp3playing;
 }
 
 
 	# This can be slow if player is down, so don't do it too often
 	# Should get this dynamically.  No sense in bogging down every 15 seconds
-#if (new_second 15) {
-#   my $ref = &mp3_get_playlist();
-##  $Save{NowPlaying} = ${$ref}[&mp3_get_playlist_pos()] if $ref;
-#   my $pos = &mp3_get_playlist_pos();
-#   if ($pos >= 0) {
-#      $Save{NowPlaying} = ${$ref}[$pos] if $ref;
-#   } else {
-#      $Save{NowPlaying} = &mp3_get_curr_song();
-#   }
-#}
+	# Bogging down is fixed for Winamp, freq is configurable
+
+# *** Add config for monitoring freq (move to mp3_winamp?)
+
+if (new_second 5 and &mp3_player_running()) {
+   $Save{mp3_mode} = &mp3_playing();
+   my $ref = &mp3_get_playlist();
+#  $Save{NowPlaying} = ${$ref}[&mp3_get_playlist_pos()] if $ref;
+   if ($ref) {
+      my $pos = &mp3_get_playlist_pos();
+      if ($pos >= 0) {
+         $Save{NowPlaying} = ${$ref}[$pos] if $ref;	 
+      } else {
+         $Save{NowPlaying} = &mp3_get_curr_song();
+      }
+   }
+}
 
 sub mp3_find_all {
     my ($mp3_tag) = @_;
