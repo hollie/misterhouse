@@ -72,6 +72,9 @@ Note that the rooms parameter is removed from the last line.  This sequence will
 Also note that display_alpha is not called directly as it would bypass app parameter processing
 
 * Use standard 16 color bitmaps and realize that a one-to-one mapping is impossible, at least not on an eight color (nine counting black) Beta Brite.  Most models are 7 x 80 pixels.
+NOTE: Known issue (at least on older signs) - 2 bitmaps in a sequence will not display the second (1, 3, 4, 5+ in a sequence works fine)
+      This is not a Misterhouse issue as it shows up at the command prompt with a stand-alone script.
+      Also note that each bitmap file counts once, regardless of how many times it is referenced in the sequence (each file is sent to the sign once.)
 
 More examples can be found in mh/code/bruce/display_alpha.pl
 
@@ -223,6 +226,9 @@ sub image {
 
 	($height, $width) = &image_dimensions($image);
 
+	print "Address: $address height: $height width: $width\n" if $::Debug{display_alpha};
+
+
 	return(uc(sprintf("%02x",$height) . sprintf("%02x",$width)) . $image);
 
 }
@@ -288,6 +294,7 @@ sub message {
 	$result .= "\x12" if $fontsize eq 'wide';
 	$result .= $speeds{$speed} if $speed and $speeds{$speed};
 	if ($image) {	
+		print "Embedding image: $image\n" if $::Debug{display_alpha};
 		$result .= "\x14" . $image if $imageposition eq 'left';
 	}
 	$result .= $message;
@@ -330,7 +337,7 @@ sub main::display_alpha {
 
 	if ($image and $image !~ /\r/) { #invalid Beta Brite DOT
 		if (-e "$::config_parms{data_dir}/alpha/images/$image.bmp") { # look for Windows Bitmap (Todo: add XBM support)
-		    if ($bitmaps{$image} and !&::file_changed("$::config_parms{data_dir}/alpha/images/$image.bmp")) { #cached
+		    if (!&::file_changed("$::config_parms{data_dir}/alpha/images/$image.bmp") and $bitmaps{$image}) { #cached
 			$image = $bitmaps{$image};
 	  	    }
 		    else {
@@ -368,7 +375,7 @@ sub main::display_alpha {
 		else {
 			push @images, $image;
 			push @image_names, $image_name;
-			$image_address = 32 + $#images;
+			$image_address = 65 + $#images;
 			$image_addresses{$image_name} = $image_address;
 		}
 		$message_parms{image} = chr($image_address);
@@ -425,16 +432,19 @@ sub send_sequence {
 		&send(&set_message_memory(message=> $_, address=>chr($address++)), $room);
 		$address++ if $address == 48;
 	}
-	$address = 32;
+	$address = 65;
 	for (@images) {
+		print "Setting image: $address\n" if $::Debug{display_alpha};
+
 		&send(&set_image_memory(image=> $_, address=>chr($address++)), $room);
 	}
 	&send($FINISH, $room);
 
 	# Send images and messages
 
-	$address = 32;
+	$address = 65;
 	for (@images) {
+		print "Sending image: $address\n" if $::Debug{display_alpha};
 		&send($INIT, $room);
 		&send(&image_header(chr($address)), $room);
 		&send(&image(image =>$_, address=>$address++), $room);
@@ -547,7 +557,6 @@ sub GetBMPInfo ($) {
 
     print "Bits per pixel: $bitsperpixel\n" if $::Debug{display_alpha};
 
-
     my $compressed = ord(BMPRead($fh, 1));
     $compressed += 256 * ord(BMPRead($fh, 1));
     $compressed += 256 * ord(BMPRead($fh, 1));
@@ -562,7 +571,6 @@ sub GetBMPInfo ($) {
     $data_size += 256 * ord(BMPRead($fh, 1));
     $data_size += 256 * ord(BMPRead($fh, 1));
 
-
     unless ($data_size) {
        	$data_size = $size - $offset; #file size minus header size equals data size
     }
@@ -571,7 +579,6 @@ sub GetBMPInfo ($) {
 
     BMPRead($fh, 4); # skip pels
     BMPRead($fh, 4); # skip pels
-
 
     my $colors = ord(BMPRead($fh, 1));
     $colors += 256 * ord(BMPRead($fh, 1));
