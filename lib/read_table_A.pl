@@ -27,21 +27,15 @@ sub read_table_init_A {
 sub read_table_A {
     my ($record) = @_;
 
-    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy, $info);
-
-    return if $record =~ /^#/ or $record =~ /^\s*$/;  # Ignore comment and blank records
-    
-    if ($record =~ /(.+)#\s*(.+)$/) {       # Take end of line comments in object info
-	$record = $1; 
-	$info   = $2;
-    }
-
+    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy);
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
 
-
+    if($record =~ /^#/ or $record =~ /^\s*$/) {
+       return;
+    }
     # -[ Insteon ]----------------------------------------------------------
-    if($type eq "INSTEON") {
+    elsif($type eq "INSTEON") {
         require 'Insteon_Item.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -72,6 +66,12 @@ sub read_table_A {
         $object = "Insteon_Lamp('$address', $other)";
     }
     # ----------------------------------------------------------------------
+    elsif($type eq 'FROG') {
+        require 'FroggyRita.pm';
+	($address, $name, $grouplist, @other) = @item_info;
+	$other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "FroggyRita('$address', $other)";
+    }
     elsif($type eq "X10A") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -404,7 +404,6 @@ sub read_table_A {
 #                $address =~ s/^(\S)H(\S)$/$1L$2/ if $pa_type eq 'wdio';
 #                $address =~ s/^D(\S)H(\S)$/D$1L$2/ if $pa_type eq 'wdio_old';
                 $code .= sprintf "\$%-35s -> add ('%s','off');\n",$name,$address;
-                $code .= sprintf("\$%-35s -> set_info(q~$info~);\n", $name) if $info;
 
                 $object = '';
             } elsif (lc $pa_type eq 'x10') {
@@ -439,9 +438,8 @@ sub read_table_A {
 
     if ($object) {
         my $code2 = sprintf "\n\$%-35s =  new %s;\n", $name, $object;
-        $code2  =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
-        $code2 .= sprintf("\$%-35s -> set_info(q~$info~);\n", $name) if $info;
-        $code  .= $code2;
+        $code2 =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
+        $code .= $code2;
     }
 
     $grouplist = '' unless $grouplist; # Avoid -w uninialized errors
