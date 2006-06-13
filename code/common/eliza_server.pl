@@ -25,13 +25,14 @@ $eliza_voice  -> set_authority('anyone');
 $eliza_card   -> set_authority('anyone');
 $eliza_wavcomp-> set_authority('anyone');
 
-&tk_entry('Eliza Message', $eliza_data, 'Eliza Rule', $eliza_rule);
+&tk_entry('Eliza Message', $eliza_data);
+&tk_entry('Eliza Rule', $eliza_rule);
 
 use Eliza;
 my ($eliza);
 undef $eliza if $eliza and state_changed $eliza_rule;
 
-$eliza_deep_thoughts = new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
+$f_eliza_deep_thoughts = new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
 
 if (defined($state = state_now $eliza_data)) {
     my $msg = $state;
@@ -45,13 +46,13 @@ if (defined($state = state_now $eliza_data)) {
     my $voice   = state $eliza_voice;
     my $card    = state $eliza_card;
     my $wavcomp = state $eliza_wavcomp;
-    if ($rule eq 'none') {
+    if ($rule eq 'none' or !$rule) {
 #	$msg = "$name_short says: $msg";
 #       $msg = &Voice_Text::set_voice($voice, "$name_short says: $msg");
     }
     elsif ($rule =~ 'thought') {
-        my $response = read_current $eliza_deep_thoughts;
-        $response    = read_next    $eliza_deep_thoughts if $rule eq 'thought2';
+        my $response = read_current $f_eliza_deep_thoughts;
+        $response    = read_next    $f_eliza_deep_thoughts if $rule eq 'thought2';
 #       $response = "$name_short says: $msg.  $name says: $response" if $msg;
         $response = "You said $msg.  $voice says: $response" if $msg;
         $msg = $response;
