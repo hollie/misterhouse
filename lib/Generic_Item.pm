@@ -10,12 +10,10 @@ sub STORE {
     my $oldValue = $_[0][0]{$_[1]};
     $_[0][0]{$_[1]} = $_[2];
 
-				# Call property_changed if old and new are different
-				# Hmmm, maybe call any time data is stored, even if the data is the same.
-				# This way X10_Item can react correctly to things like 2 consecutive dim commands
-#   if((defined($oldValue) != defined($_[2])) or (defined $oldValue and $oldValue ne $_[2])) {
+                # Call property_changed if old and new are different
+    if((defined($oldValue) != defined($_[2])) or (defined $oldValue and $oldValue ne $_[2])) {
         $_[0][1]->property_changed($_[1],$_[2], $oldValue);
-#   }
+    }
 }
 
 
@@ -95,7 +93,10 @@ sub set_process {
         }
         &main::print_log("Toggling $self->{object_name} from $state_current to $state");
     }
-    $respond = $main::Respond_Target unless $respond;
+
+	#  Respond_Target is write-only from here (and its use for speech chimes and lazy automated targeting is deprecated)
+	#  Undefined respond target is explicitly allowed (and uses Respond_Target anyway!)
+#    $respond = $main::Respond_Target unless $respond;
 
                                 # Handle overloaded state processing
     unless ($self->{states_nosubstate}) {
@@ -242,14 +243,122 @@ sub state {
     return $self->{state};
 }
 
+# NOTE: No need to pass target parameter(s) to this method! (Targeting is automatic.)
+# TODO: pass hash instead of string
+
+sub respond {
+	my $object = shift;
+	my $target;
+	my ($text) = @_;
+	my %parms = &::parse_func_parms($text);
+	my $set_by = $object->{set_by};
+	my ($to, $pgm); # latter for IM only
+	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /^time$/i);
+
+	$parms{connected} = 1 if !defined($parms{connected});
+
+	if (!defined($parms{target})) { # no target passed and we need one!
+		# Aquire target
+
+		$target = $object->{target};
+		if (!$target) { # Typically no target is defined (use response chain)
+			# *** Need to loop until set_by is undefined or scalar
+			# Currently checks previous link in the response chain
+
+			if (ref $set_by and $set_by->can('get_set_by')) { # set by other object		
+				my $object = $set_by->get_set_by();
+				$target = ($object->{target})?$object->{target}:$object->{set_by};
+			}
+			else {
+				$target = $set_by;						
+			}
+		}
+		# clean up target
+		
+		$target = undef if $target =~ /usercode/i;
+		$target = 'web' if $target =~ /^web/i;# remove extraneous data (from IM/Email/Web set)
+		$target = 'im' if $target =~ /^im/i;
+		$target = 'email' if $target =~ /^email/i;
+	}
+	# get user info
+
+	if ($set_by =~ /^im/i) {
+		my ($im_pgm,$address) = $set_by =~ /\[(.+?),(.+)\]/;
+
+		$to = $address if !$parms{to};
+		$pgm = $im_pgm if !$parms{pgm};
+	}
+	elsif ($set_by =~ /^email/i) {
+		my $address = $set_by =~ /\[(.+)\]/;
+		$to = $address if !$parms{to};
+	}
+
+	# important messages are never diverted to log (even if automated)
+	# ex. new mh version available
+
+
+
+
+	if (!$automation or $parms{important}) {
+		my $extra;
+		if (!$parms{connected}) {
+			# don't override these if explicitly passed
+			# mute remote web responses (convert all Web to speech)
+			my $mode;			
+
+			if ($set_by =~ /^web/i) {
+				my ($address) = $set_by =~ /\[(.+)\]/;
+				# *** TODO:Set room from IP if local
+				$target = 'speak';
+				$mode = 'mute' if (!&is_local_address($address) and !$parms{mode});	
+			}
+			$extra .= "mode=$mode " if $mode;         #Used to mute remote Web speech
+		}
+
+		# Send dicrete chime parameters if none specified (we know what to do, no need to rely on global respond target.)
+
+		$extra .= "target=$target " if $target;
+
+		if (!$parms{no_chime} and !$parms{force_chime}) {
+			$extra .= ($automation)?'force_chime=1 ':'no_chime=1 ';
+		}
+
+		$extra .= "to=$to " if $to;               #Email/IM user
+		$extra .= "pgm=$pgm " if $pgm;            #IM program (AOL,ICQ,MSN,Jabber)
+
+		&main::respond("$extra$text");
+	}
+	else { #command run internally (by code, trigger, etc.}
+		&main::respond("target=log $parms{text}");		
+	}	
+}
+
+
+
 sub said {
-                                # Set global Respond_Target var, so user code doesn't have to bother
-    $main::Respond_Target = $_[0]->{target};
+                                # Set (evil)global Respond_Target var, so (lazy) user code doesn't have to pay attention (bad practice and should be phased out!)
+    if ($_[0]->{target}) {
+	    $main::Respond_Target = $_[0]->{target};
+    }
+    else {
+	    $main::Respond_Target = $_[0]->{set_by};
+    }
+
+#	print "Said RESPOND TARGET:::$main::Respond_Target\n" if $main::Respond_Target;
+
     return $_[0]->{said};
 }
 
 sub state_now {
-    $main::Respond_Target = $_[0]->{target};
+    if ($_[0]->{target}) {
+	    $main::Respond_Target = $_[0]->{target};
+    }
+    else {
+	    $main::Respond_Target = $_[0]->{set_by};
+    }
+
+#	print "Statenow RESPOND TARGET:::$main::Respond_Target\n" if $main::Respond_Target;
+
     return $_[0]->{state_now};
 }
 sub state_changed {
@@ -500,14 +609,18 @@ sub set_state_log {
     $set_by = &main::get_calling_sub() unless $set_by;
     $set_by = $main::Set_By if !$set_by and $main::Set_By;
 
-    $target = $set_by unless defined $target;
+	# We do not want to step on target with set_by
+	# If target is missing (allowed), response method figures it out
+	# Deprecated $Respond_Target var changed to work the same way
+
+#    $target = $set_by unless defined $target;
 
                                 # Set the state_log ... log non-blank states
                                 # Avoid -w unintialized variable errors
     $state  = '' unless defined $state;
     $set_by = '' unless defined $set_by;
     $target = '' unless defined $target;
-    unshift(@{$$self{state_log}}, "$main::Time_Date $state set_by=$set_by target=$target")
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state set_by=$set_by" . (($target)?"target=$target":''))
       if $state or (ref $self) eq 'Voice_Cmd';
     pop @{$$self{state_log}} if $$self{state_log} and @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
