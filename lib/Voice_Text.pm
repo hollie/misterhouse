@@ -93,7 +93,7 @@ sub speak_text {
 
     return if lc $parms{voice} eq 'none';
 
-    while ($parms{text} =~ /^(.*?)(\d{3,})(.*?)$/) {
+    while ($parms{text} =~ /^(.*?)(\d{2,})(.*?)$/) {
     	$parms{text}=$1.&num_to_text($2).$3;
 	}
 
@@ -170,6 +170,7 @@ sub speak_text {
 
 
                                 # Allow for pause,resume,stop,ff,rew.  Also allow mode to set rate
+				# *** Why?  Older versions?
     if (my $mode = $parms{mode}) {
         if ($mode eq 'fast' or $mode eq 'normal' or $mode eq 'slow' or $mode =~ /^[\+\-]?\d+$/) {
             $parms{rate} = $mode;
@@ -184,8 +185,12 @@ sub speak_text {
     print "Voice_Text volume=$parms{volume}, mh_volume=$mh_volume\n" if $main::Debug{voice};
     if ($parms{volume} =~ /(\d+)\%$/) {
         $parms{volume} = int($mh_volume * $1 / 100);
-        print "Voice_Text new volume=$parms{volume}\n" if $main::Debug{voice};
     }
+    else {
+        $parms{volume} = $mh_volume unless $parms{volume};
+    }
+    print "Voice_Text new volume=$parms{volume}\n" if $main::Debug{voice};
+
     $parms{volume} = 100 if $parms{volume} and $parms{volume} > 100;
 
                                 # These mess up -text "text" calls and not useful when speaking?
@@ -439,8 +444,7 @@ sub speak_text {
         }
     }
     elsif ($vtxt_card) {
-        print "Voice_Text.pm ms_tts: v=$VTxt_version comp=$parms{compression} async=$parms{async} to_file=$parms{to_file} VTxt=$vtxt_card text=$parms{'text'}\n"
-          if $main::Debug{voice};
+        print "Voice_Text.pm ms_tts: v=$VTxt_version comp=$parms{compression} async=$parms{async} to_file=$parms{to_file} VTxt=$vtxt_card text=$parms{'text'}\n" if $main::Debug{voice};
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
             if ($parms{to_file}) {

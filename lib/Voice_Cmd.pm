@@ -11,6 +11,13 @@ my ($last_cmd_time, $last_cmd_num, $last_cmd_num_confirm, $last_cmd_flag, $noise
 
 my $confirm_timer = &Timer::new();
 
+my $waiting_for_command_num;
+
+sub wait_for_command {
+	$_ = shift;
+	$waiting_for_command_num = (($_)?$cmd_num_by_text{lc($_)}:undef);
+}
+
 sub init {
 
     if ($main::config_parms{voice_cmd} =~ /ms/i and $main::OS_win) {
@@ -18,7 +25,7 @@ sub init {
         $Win32::OLE::Warn = 1;   # Warn if ole fails
 #       $Win32::OLE::Warn = 3;   # Die  if ole fails
         $Vcmd_ms  = &create_voice_command_object;
-        $Vmenu_ms = &create_voice_command_menu_object('application' => 'House Menu', 'state' => 'Main State') if $Vcmd_ms;
+        $Vmenu_ms = &create_voice_command_menu_object('application' => 'Misterhouse', 'state' => 'Main State') if $Vcmd_ms;
     }
     if ($main::config_parms{voice_cmd} =~ /viavoice/i) {
         my $port = "$main::config_parms{viavoice_host}:$main::config_parms{viavoice_port}";
@@ -44,6 +51,8 @@ sub init {
 
 }
 
+
+
 sub reset {
     if ($Vcmd_viavoice) {
                                 # Allow for new phrases to be added
@@ -55,7 +64,7 @@ sub reset {
     else {
         undef %cmd_num_by_text;
         undef %cmd_by_num;
-        &remove_voice_cmds;     # Must reload here, or cmd_by_num gets messed up
+        &remove_voice_cmds unless $main::Startup;     # Must reload here, or cmd_by_num gets messed up (unless it is startup in which case it is empty)
     }
 }
 
@@ -120,12 +129,12 @@ sub create_voice_command_object {
 
     $Vcmd_ms->Register("Local PC");
     if (Win32::OLE->LastError()) {
-        print "\n\nError, could not Register ms Speech VR object\n";
+        print "\n\nError, could not Register MS Speech VR object\n";
         delete $main::config_parms{voice_cmd}; # Disable for future reloads 
         return;
     }
 
-    print "Awakeing speech command.  Currently it is at ", $Vcmd_ms->{Awake}, "\n" if $main::Debug{voice};
+    print "Awakening speech command.  Currently it is at ", $Vcmd_ms->{Awake}, "\n" if $main::Debug{voice};
     $Vcmd_ms->{Awake} = 1;
     return $Vcmd_ms;
 }
@@ -174,6 +183,12 @@ sub check_for_voice_cmd {
 
     if ($Vcmd_ms) {
         $number = $Vcmd_ms->CommandSpoken;
+	
+
+	#$self->{text_by_state}{$state} = $cmd;
+
+#	$cmd_heard = undef;
+	
     }
 #   if ($Vcmd_viavoice and my $text = said $Vcmd_viavoice) {
     if ($Vcmd_viavoice and my $text = said $Vcmd_viavoice) {
@@ -207,7 +222,7 @@ sub check_for_voice_cmd {
                     &main::speak("Command aborted");
                 }
                 else {
-                    &main::speak("Error in the confirm vocabulary.  Tell Bruce.");
+                    &main::speak("Error in the confirm vocabulary. Contact support.");
                 }
                 $last_cmd_num_confirm = 0;
                 &Timer::unset($confirm_timer);
@@ -240,16 +255,37 @@ sub check_for_voice_cmd {
 
                                 # Set states, if a command was triggered
     $last_cmd_flag = 0;
-    if ($number) {
+
+    if ($number and (!$waiting_for_command_num or $waiting_for_command_num eq $number)) {
+	$waiting_for_command_num = undef;
         $ref = $cmd_by_num{$number};
         $said  = $cmd_state_by_num{$number};
         $cmd = $ref->{text};
-        $cmd = 'unknown command' unless $cmd;
-        print "Voice cmd num=$number ref=$ref said=$said cmd=$cmd\n" if $main::Debug{voice};
+
+	if ($said == -1) {
+		$cmd =~ s/\[.*\]//;	
+		$said = 1;
+	}
+	else {
+		$cmd =~ s/\[.*\]/$said/;	
+	}
+	$cmd = lc($cmd); # get ready to pack into recognition response
+
         $said  = 1 if !defined $said; # Some Voice_Cmds have blank saids.  But allow for 0 state
 
                                 # This could be set for either the current or next pass ... next pass is easier
-        &Generic_Item::set_states_for_next_pass($ref, $said, 'vr');
+
+	if ($main::Disabled_Commands{lc($cmd)}) {
+		&main::respond('Command is disabled.');
+	}
+	else {
+	        &Generic_Item::set_states_for_next_pass($ref, $said, 'vr') if $cmd;
+	}
+
+	if ($cmd) {
+        print "Voice cmd num=$number ref=$ref said=$said cmd=$cmd\n" if $main::Debug{voice};
+
+
 #       $ref->{said}  = $said;
 #       $ref->{state} = $said;
 
@@ -263,15 +299,25 @@ sub check_for_voice_cmd {
         $response = $main::config_parms{voice_cmd_response} unless defined $response;
         if (defined $response) {
                                 # Allow for something like: 'Ok, I turned it %STATE%'
-            $response =~ s/%STATE%/$said/g;
-            $response =~ s/%HEARD%/$cmd_heard/g;
-                                # Allow for something like: 'Ok, I turned it $v_indoor_fountain->{said}'
-            package main;       # Avoid having to prefix vars with main::
-            eval "\$response  = qq[$response]";
-            package Voice_Cmd;
-            &main::speak($response) if $response;
-        }
 
+	    $cmd_heard = $cmd unless $cmd_heard; # did nothing before except "Ok, "
+
+		
+
+
+            $response =~ s/%STATE%/$said/g if $said != 1;
+            $response =~ s/%HEARD%/$cmd_heard/g;
+
+                                # Allow for something like: 'Ok, I turned it $v_indoor_fountain->{said}'
+#            package main;       # Avoid having to prefix vars with main::
+#            eval "\$response  = qq[$response]";
+#            package Voice_Cmd;
+            &main::speak(no_chime=>1, text=>$response) if $response;
+        }
+	}
+	else {
+		&main::speak('no_chime=1 Voice command not found. Please restart Misterhouse and try again.');
+	}
 
     }
 }
@@ -281,34 +327,41 @@ sub check_for_voice_cmd {
 sub set {
     my ($self, $state, $set_by, $no_log, $respond) = @_;
     $set_by = 'unknown' unless $set_by;
-    if ($$self{disabled}) {
+
+    my $cmd = $self->{text_by_state}{$state};
+
+#   if ($$self{disabled}) { *** Does not work properly (disables all states)
+    if ($main::Disabled_Commands{lc($cmd)}) { # ***
         &main::print_log("Disabled command not run: $self->{text_by_state}{$state}");
         return;
     }
     return if &main::check_for_tied_filters($self, $state);
-    $respond = $main::Respond_Target unless $respond; # Pass default target along
+	# Cannot do this!  Respond_Target is shared by everything and its brother!
+	# if app passes explicit targets, then they are passed along and eventually responded to
+	# otherwise set_by is used
+
+#    $respond = $main::Respond_Target unless $respond; # Pass default target along
     &Generic_Item::set_states_for_next_pass($self, $state, $set_by, $respond);
     &main::print_log("Running: $self->{text_by_state}{$state}") unless $no_log;
     print "db1 set voice cmd $self to $state set_by=$set_by r=$respond\n" if $main::Debug{voice};
 }
 
 sub remove_voice_cmds {
-
     if ($Vmenu_ms) {
         $Vmenu_ms->{Active} = 0;
         my ($vitems_removed, $number);
         $vitems_removed = 0;
-        print "Removing MS voice items ... ";
+        print "Removing MS voice items... ";
         foreach $number (keys %cmd_by_num) {
             $Vmenu_ms->Remove($number);
             $vitems_removed++;
             delete $cmd_by_num{$number};
         }
         $cmd_num = 0;	# Reset cmd num counter
-        print "$vitems_removed voice command were removed\n";
+        print "$vitems_removed voice commands were removed\n" if $vitems_removed;
     }
     if ($Vcmd_viavoice) {
-        print "Undefineing the misterhouse viavoice vocabulary ... ";
+        print "Undefining the Misterhouse ViaVoice vocabulary ... ";
         &mic('off');
         $Vcmd_viavoice->set("undefinevocab");
         select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
@@ -356,7 +409,7 @@ sub voice_items {
         next unless $vocab eq $vocab_cmd;
 #       my $filename  = $ref->{filename};
         my $category  = $ref->{category};
-        $category = '' unless $category; # Avoid unint warning
+        $category = '' unless $category; # Avoid uninitialized warning
         push(@cmd_list2, "$category: $cmd");
     }
     return sort {uc $a cmp uc $b} @cmd_list2;
@@ -368,6 +421,7 @@ sub new {
     $vocab = 'mh' unless $vocab; # default
 
                                 # Avoid ? ... they are a pain in html and vxml
+				# *** This needs to go--?'s can be encoded by http_server!
     $text =~ s/\?//g;
 
     my $self = {text => $text, response => $response, confirm => $confirm, vocab => $vocab, state => ''};
@@ -404,7 +458,7 @@ sub _register {
         $i++;
     }
 
-                                # Itterate over all [] () groups
+                                # Iterate over all [] () groups
     $index_last = $i - 1;
     $index1 = $index2 = 0;
     $i = 0;
@@ -421,7 +475,7 @@ sub _register {
                                 # These commands have no real states ... there is no enumeration
                                 #  - avoid saving the whole name as state.  Too much for state_log displays
                                 # Leave state=0 alone!
-        $state = 1 if !defined $state or $state eq '' or $state eq $text;
+        $state = -1 if !defined $state or $state eq '' or $state eq $text;
 
         my $cmd_num = &_register2($self, $cmd, $vocab, $description);
         $self->{text_by_state}{$state} = $cmd;
@@ -511,7 +565,7 @@ sub _register2 {
     if ($Vcmd_viavoice and $Vcmd_viavoice->active) {
         if ($vocab eq '' or $vocab eq 'mh') {
             $Vcmd_viavoice->set($text_vr);
-                                # We need beter handshaking here ... not a delay!
+                                # We need better handshaking here ... not a delay!
             select undef, undef, undef, .0002; # Need this for now to avoid viavoice_server 'no data' error
 #           select undef, undef, undef, .0001; # Need this for now to avoid viavoice_server 'no data' error
         }
@@ -521,6 +575,9 @@ sub _register2 {
     }
 
     $cmd_num_by_text{$text} = $cmd_num;
+
+	print "\n\n\n$cmd_num:$text\n\n\n" if $text =~ /listen/i;
+
     $cmd_text_by_num{$cmd_num} = $text;
     $cmd_by_num{$cmd_num} = $self;
 
@@ -578,7 +635,7 @@ sub mic {
 
 #   &main::print_log("Mike $state");
     unless ($state eq 'on' or $state eq 'off') {
-        &main::print_log("Error, Voice_Cmd::mic must be set to on or off: $state");
+        warn "Error, Voice_Cmd::mic must be set to on or off: $state";
         return;
     }
     select undef, undef, undef, .1; # Need this for now to avoid viavoice_server 'no data' error
