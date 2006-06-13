@@ -13,41 +13,44 @@
 # 12/28/2005 added back the "announce forecast" feature and made it a trigger 
 
 
-$weather_forecast = new File_Item "$config_parms{data_dir}/web/weather_forecast.txt";
-set_watch $weather_forecast if $Reload;
+$f_weather_forecast_chance_of_rain = new File_Item "$config_parms{data_dir}/web/weather_forecast.txt";
+set_watch $f_weather_forecast_chance_of_rain if $Reload;
 
-$v_get_chance_of_rain = new Voice_Cmd 'Get the chance of rain or snow';
+$v_get_chance_of_rain = new Voice_Cmd 'Get the chance of rain or snow', 0;
 $v_get_chance_of_rain-> set_info('Gets chance of rain or snow from the Internet');
 
 
-$v_chance_of_rain = new Voice_Cmd '[Read,Show] the forecasted chance of rain or snow';
+$v_chance_of_rain = new Voice_Cmd 'Read the forecasted chance of rain or snow', 0;
 $v_chance_of_rain-> set_info('Reports on chance of rain or snow from the Internet');
 $v_chance_of_rain-> set_authority('anyone');
 
-if ($state = said $v_chance_of_rain) {
-	$Weather{chance_of_rain} = 'The weather forecast has not been received' unless $Weather{chance_of_rain};
-	if ($state eq 'Read') {
-		if ($Respond_Target eq 'time' or $Respond_Target eq 'unknown') {
-			respond 'target=speak Notice: ' . $Weather{chance_of_rain} 
-			  if $Weather{chance_of_rain} =~ /chance/;
+$v_chance_of_rain2 = new Voice_Cmd 'When will it [rain,snow]', 0;
+$v_chance_of_rain2-> set_info('Reports on chance of rain or snow from the Internet');
+$v_chance_of_rain2-> set_authority('anyone');
+
+
+if (said $v_chance_of_rain or $state = said $v_chance_of_rain2) {
+	if ($Weather{chance_of_rain}) {
+		my $response = $Weather{chance_of_rain};	
+		my $set_by = ($state)?$v_chance_of_rain2->{set_by}:$v_chance_of_rain->{set_by};
+		if ($set_by eq 'time' or $set_by eq 'unknown' or !$set_by) {
+			$response = 'Notice, ' . lcfirst($response);
 		}
-		else {
-			respond 'target=speak ' . $Weather{chance_of_rain};
-		}
+		respond $response;
 	}
-	else {		
-		respond $Weather{chance_of_rain};	
+	else {
+		respond 'The weather forecast has not yet arrived';
 	}
 }
 
-if (said $v_get_chance_of_rain or changed $weather_forecast) {
-	set_watch $weather_forecast;
+if (said $v_get_chance_of_rain or changed $f_weather_forecast_chance_of_rain or $Reload) {
+	set_watch $f_weather_forecast_chance_of_rain;
 
 	my (%forecasts);
 	my @days = ("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday");
 
-	if ((stat($weather_forecast->name))[7] < 100) {
-		$Weather{chance_of_rain} = 'Incomplete weather forecast received';
+	if ((stat($f_weather_forecast_chance_of_rain->name))[7] < 100) {
+		$Weather{chance_of_rain} = undef;
 		return;
 	}
 	foreach my $key (keys %Weather) {
@@ -67,9 +70,12 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 =cut
 
 	my $current_day;
-	foreach my $line (read_all $weather_forecast) {
+	foreach my $line (read_all $f_weather_forecast_chance_of_rain) {
 		next if $line =~ /^as of/i;
-		next if $line =~ /^warning:/i;
+		if ($line =~ /^warning:(.*)/i) {
+			$Weather{warning} = $1;
+			next;
+		}
 		if (my ($day, $forecast) = $line =~ /^([\w ]+): (.+)/) {
 			$forecasts{$day} = $forecast;
 			$Weather{"Forecast Days"} .= $day . '|';
@@ -103,6 +109,8 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 		$Weather{"Forecast $day"} = $forecasts{$day};
 		next unless $chance;
 		last unless $days_to_read--;
+		$day = lc($day);
+		$day = ucfirst($day) if $day !~ /tomorrow/i and $day !~ /tonight/i and $day !~ /overnight/i and $day !~ /today/i and $day !~ /afternoon/;
 		$text .= " a $chance percent chance of $precip $day,";
 	}
 	unless ($text) { 
