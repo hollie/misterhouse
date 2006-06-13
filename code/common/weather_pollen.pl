@@ -16,24 +16,20 @@
 #info from:
 #http://www.pollen.com/forecast.asp?PostalCode=64119
 
-$f_pollen_forecast = new File_Item("$config_parms{data_dir}/web/pollen_forecast.html");
 
-$v_get_pollen_forecast = new Voice_Cmd('Get Pollen Forecast');
+$v_get_pollen_forecast = new Voice_Cmd('[Get,Check] pollen forecast');
+# *** set info
 
-if ($state = said $v_get_pollen_forecast) {
-	print_log "Getting Pollen forecast";
-	run "get_url http://www.pollen.com/forecast.asp?postalcode=$config_parms{zip_code} $config_parms{data_dir}/web/pollen_forecast.html";
-}
+$v_read_pollen_forecast = new Voice_Cmd('Read pollen forecast');
 
-if (time_cron('0 5 * * *')) {
-	print_log "Getting Pollen forecast";
-	run_voice_cmd "Get Pollen Forecast";
-}
+$p_pollen_forecast = new Process_Item("get_url http://www.pollen.com/forecast.asp?postalcode=$config_parms{zip_code} $config_parms{data_dir}/web/pollen_forecast.html");
 
-if (($New_Second and file_changed($f_pollen_forecast->name)) or $Reload){
-	print_log "Parsing pollen forecast";
+&parse_pollen_forecast if $Reload;
+
+sub parse_pollen_forecast {
+
 	my $count1;
-	open(FILE,$f_pollen_forecast->name);
+	open(FILE,"$config_parms{data_dir}/web/pollen_forecast.html");
 	while (<FILE>) {
 		if (/Predominant pollen:\s+(.+)\.<\/A>/i) {
 			$main::Weather{TodayPollenType}=$1;
@@ -44,10 +40,51 @@ if (($New_Second and file_changed($f_pollen_forecast->name)) or $Reload){
 
 	}
 	close(FILE);
+
 }
 
-$v_read_pollen_forecast = new Voice_Cmd('Read Pollen Forecast');
 
-if ($state = said $v_read_pollen_forecast) {
-	speak "Today's pollen count is $main::Weather{TodayPollenCount}. The predominant pollen is $main::Weather{TodayPollenType}";
+if ($state = said $v_get_pollen_forecast) {
+	$v_get_pollen_forecast->respond("app=pollen Retrieving pollen forecast...");
+	start $p_pollen_forecast;
 }
+
+if (done_now $p_pollen_forecast){
+	&parse_pollen_forecast();
+	if ($v_get_pollen_forecast->{state} eq 'Check') {
+		$v_get_pollen_forecast->respond("app=pollen Today's pollen count is $main::Weather{TodayPollenCount}. The predominant pollens are " . lc($main::Weather{TodayPollenType}));
+	}
+	else {
+		$v_get_pollen_forecast->respond("app=pollen Pollen forecast retrieved");
+	}
+
+
+}
+
+if (said $v_read_pollen_forecast) {
+	if ($Weather{TodayPollenCount}) {
+		$v_read_pollen_forecast->respond("app=pollen Today's pollen count is $main::Weather{TodayPollenCount}. The predominant pollens are " . lc($main::Weather{TodayPollenType}));
+	}
+	else {
+		$v_read_pollen_forecast->respond("app=pollen I do not know the pollen count at the moment.");
+	}
+}
+
+# create trigger to download pollen forecast
+
+if ($Reload and $Run_Members{'trigger_code'}) { 
+    if ($Run_Members{'internet_dialup'}) { 
+        eval qq(
+            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get pollen forecast'", 'NoExpire', 'get pollen forecast') 
+              unless &trigger_get('get pollen forecast');
+        );
+    }
+    else {
+        eval qq(
+            &trigger_set("time_cron '0 5 * * *' and net_connect_check", "run_voice_cmd 'Get Pollen forecast'", 'NoExpire', 'get pollen forecast') 
+              unless &trigger_get('get pollen forecast');
+        );
+    }
+}     
+
+
