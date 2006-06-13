@@ -2,10 +2,12 @@
 
 #@ Core MisterHouse commands e.g. reload code, list x10 items.
 
-$v_reload_code = new  Voice_Cmd("{Reload,re load} code");
-$v_reload_code2= new  Voice_Cmd("Force {Reload,re load} code");
-$v_reload_code -> set_info('Load new mh.ini, icon, and/or code changes');
-$v_reload_code2-> set_info('Force a code reload, if if code has not changed');
+$v_listen = new  Voice_Cmd("[Start,Stop] listening",0);
+
+$v_reload_code = new  Voice_Cmd("[Reload,re load] code");
+$v_reload_code2= new  Voice_Cmd("Force [Reload,re load] code");
+$v_reload_code -> set_info('Load mh.ini, icon, and/or code changes');
+$v_reload_code2-> set_info('Force a code reload of all modules');
 
 push(@Nextpass_Actions, \&read_code)        if state_now $v_reload_code;
 push(@Nextpass_Actions, \&read_code_forced) if state_now $v_reload_code2;
@@ -16,6 +18,21 @@ push(@Nextpass_Actions, \&read_code_forced) if state_now $v_reload_code2;
 #   read_code();
 #   $Run_Members{mh_control} = 2; # Reset, so the mh_temp.user_code decrement works
 #}
+
+if ($state = said $v_listen) {
+	if ($state eq 'Start') {
+		if ($v_listen->{set_by} =~ '^vr') {
+			&Voice_Cmd::wait_for_command(0);
+		}
+		respond 'app=control I am listening.';
+	}
+	else {
+		&Voice_Cmd::wait_for_command('Start listening');	
+		respond 'app=control I am not listening.';
+	}
+}
+
+
 
 $v_read_tables = new Voice_Cmd 'Read table files';
 read_table_files if said $v_read_tables;
@@ -69,12 +86,19 @@ if ((said $v_http_control eq 'Check')) {
 
 
 $v_restart_mh = new Voice_Cmd 'Restart Mister House';
-$v_restart_mh-> set_info('Restart mh.  This will only work if you are start mh with mh/bin/mhl');
+$v_restart_mh-> set_info('Restarts Misterhouse.  This will only work if you are start with mh/bin/mhl') if !$OS_win;
+$v_restart_mh-> set_info('Restarts Misterhouse.') if $OS_win;
+
 &exit_pgm(1) if said $v_restart_mh;
 
 # This will be abend.  Allow for no msg on first time use where this flag is not set yet.
-if ($Startup and $Save{mh_exit} and $Save{mh_exit} ne 'normal') {
-    display "MisterHouse auto restarted: $Save{mh_exit}", 0;
+if ($Startup and $Save{mh_exit} and $Save{mh_exit} ne 'normal' and $Save{mh_exit} ne 'restart') {
+    # May not be "auto" at all.  Often it is just ran manually after the last abend.
+
+    my $exit_condition = $Save{mh_exit};
+    $exit_condition = 'unexpectedly!' if $exit_condition eq 'abend';
+
+    display "MisterHouse restarted $exit_condition", 0;
 }
 
 $v_reboot = new  Voice_Cmd '[Reboot,Shut Down] the computer';
@@ -102,8 +126,9 @@ if ($state = said $v_reboot and $OS_win) {
     elsif ($Info{OS_name} eq 'XP') {
         my $machine = $ENV{COMPUTERNAME};
         respond "The computer $machine will reboot in 1 minute.";
-        my $reboot = ($state eq 'Reboot') ? '-r' : '-s';
-        run "SHUTDOWN -f -t 60 $reboot";
+        my $reboot = ($state =~ /^reboot$/i) ? '-r' : '-s';
+        run "SHUTDOWN $reboot -f -t 60";
+	# *** Need 60 second timer to exit program!
     }
     else {
         run 'rundll32.exe shell32.dll,SHExitWindowsEx 6 ';
@@ -130,21 +155,31 @@ $v_reboot_abort = new  Voice_Cmd("Abort the reboot");
 if (said $v_reboot_abort and $OS_win) {
     if ($Info{OS_name} eq 'XP') {
         run "SHUTDOWN -a";
-        respond "OK, the reboot has been aborted.";
+        respond "app=pc The reboot has been aborted.";
     }
     else {
         my $machine = $ENV{COMPUTERNAME};
         Win32::AbortSystemShutdown($machine);
-        respond "OK, the reboot has been aborted.";
+        respond "app=pc The reboot has been aborted.";
     }
 }
 
-$v_debug = new  Voice_Cmd("Set debug to [X10,serial,http,misc,startup,socket,password,user_code,off]");
-$v_debug-> set_info('Controls what kind of debug is printed to the console');
+#*** Should read these in noloop block ala "list debug options"
+
+$v_debug = new  Voice_Cmd("Set debug to [" . (($config_parms{debug_options})?$config_parms{debug_options}:"X10,serial,http,misc,startup,socket,password,user_code") . ']');
+$v_debug-> set_info('Controls what kind of debugging information is logged');
 if ($state = said $v_debug) {
-    $config_parms{debug} = $state;
-    $config_parms{debug} = 0 if $state eq 'off';
-    respond "Debug has been turned $state";
+    if ($state eq 'off') {
+#	$config_parms{debug} = 0 if $state eq 'off';
+	
+	respond "Off is no longer a valid debug option.";
+    }
+    else {
+#    	$config_parms{debug} = $state;
+	$Debug{$state} = 1;
+	$state =~ s/_/\x20/g;
+    	respond "Debugging turned on for $state";
+    }
 }
 
 $v_mode = new  Voice_Cmd("Put house in [normal,mute,offline] mode");
@@ -166,7 +201,7 @@ if (said $v_mode_toggle) {
     else {
         $Save{mode} = 'mute';
     }
-                                # mode => force cause speech even in mute or offline mode
+                                # mode => unmuted cause speech even in mute or offline mode
     &respond(mode => 'unmuted', app => 'notice', text => "Now in $Save{mode} mode");
 }
 
@@ -177,10 +212,21 @@ if (said $v_mode_toggle) {
 $search_code_string = new Generic_Item; # Set from web menu mh/web/ia5/house/search.shtml
 
 if ($temp = state_now $search_code_string) {
-    print "Searching for code $temp";
+    print "Searching for code $temp\n";
     my ($results, $count, %files);
     $count = 0;
     $temp =~ s/ /.+/;           # Let 'reload code' match 'reload xyz code'
+
+
+	    # quotemeta function?
+	    $temp =~ s/\//\\\//g;
+	    $temp =~ s/\\/\\\\/g;
+	    $temp =~ s/\(/\\\(/g;
+	    $temp =~ s/\)/\\\)/g;
+	    $temp =~ s/\$/\\\$/;
+	    $temp =~ s/\*/\\\*/g;
+
+
     for my $file (sort keys %User_Code) {
         my $n = 0;
         for (@{$User_Code{$file}}) {
@@ -205,7 +251,7 @@ display join "\n", &Voice_Cmd::voice_items if said $v_list_voice_cmds;
 
 
                                 # Create a list by X10 Addresses
-$v_list_x10_items = new Voice_Cmd 'List {X 10,X10} items';
+$v_list_x10_items = new Voice_Cmd 'List {X 10,X10} items', 0;
 $v_list_x10_items-> set_info('Generates a report fo all X10 items, sorted by device code');
 if (said $v_list_x10_items) {
     print_log "Listing X10 items";
@@ -219,7 +265,8 @@ if (said $v_list_x10_items) {
                             substr($object->{x10_id}, 1), $object->{filename}, $object->{object_name}, $object->{state});
     }
 #   display $results, 60, 'X10 Items', 'fixed';
-    respond text => $results, time => 60, title => 'X10 Items', font => 'fixed';
+    respond text => $results, time => 60, title => 'X10 Items', font => 'fixed' if $results;
+    respond 'No items found' if !$results;
 }
 
                                 # Create a list by Serial States
@@ -248,7 +295,7 @@ if (said $v_list_serial_items) {
     respond text => $results, time => 60, title => 'Serial Items', font => 'fixed';
 }
 
-
+ 
                                # Find a list of debug options code for $Debug{xyz}
 $v_list_debug_options  = new Voice_Cmd 'List debug options';
 $v_list_debug_options -> set_info('Generates a list of the various -debug options you can use to get debug errata');
@@ -267,7 +314,7 @@ if (said $v_list_debug_options) {
         }
     }
 
-    print "reading user code\n";
+    print "Reading user code\n";
     for (@Sub_Code) {
        $debug_options{$1}++ if /Debug\{['"]?(\S+?)['"]?\}/;
     }
@@ -302,17 +349,19 @@ if ($Keyboard) {
         push @Nextpass_Actions, \&read_code;
     }
     elsif ($Keyboard eq 'F2') {
-        print "Key F2 pressed.  Toggle pause mode.\n";
+        print "Key F2 pressed.  Toggling pause mode.\n";
         &toggle_pause;          # Leaving pause mode is still done in mh code
     }
     elsif ($Keyboard eq 'F3') {
-        print "Key F3 pressed.  Exiting\n";
+        print "Key F3 pressed.  Exiting.\n";
         &exit_pgm;
     }
     elsif ($Keyboard eq 'F4') {
+        print "Key F4 pressed.  Toggling debug.\n"; # defunct
         &toggle_debug;
     }
     elsif ($Keyboard eq 'F5') {
+        print "Key F3 pressed.  Toggling console logging.\n";
         &toggle_log;
     }
     elsif ($Keyboard) {
@@ -358,6 +407,7 @@ $v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message,What did you sa
 if (said $v_repeat_last_spoken) {
     ($temp = $Speak_Log[0]) =~ s/^.+?: //s;
     ($temp = $temp) =~ s/^I said //s; # In case we run this more than once in a row
+	$temp = lcfirst($temp);
       respond "I said $temp";
 }
 
@@ -436,11 +486,15 @@ respond "Hi to authorized $test_command_yo2->{set_by}, $test_command_yo2->{targe
 
 
 # Set up core MisterHouse modes like  mode_mh (normal/mute/offline), mode_vacation (on/off),
-# mode_scurity (armed/unarmed), mode_sleep (awake/sleeping parents/sleeping kids).
-# These modes can be controled via the web ia5 modes menu.
+# mode_security (armed/unarmed), mode_sleep (awake/sleeping parents/sleeping kids).
+# These modes can be controlled via the modes menu.
 
 $mode_mh        = new Generic_Item;
 $mode_mh       -> set_states('normal', 'mute', 'offline');
+
+
+
+
 
 $mode_security  = new Generic_Item;
 $mode_security -> set_states('armed', 'unarmed');
@@ -455,9 +509,13 @@ $mode_sleeping -> set_states('nobody', 'parents', 'kids', 'all');
                          # Grandfather in the $Save{mode} versions
 if ($state = state_now $mode_mh) {
     $Save{mode} = $state;
-    &respond(mode => 'unmuted', app => 'notice', text => "Changed to $Save{mode} mode");
+    &respond(mode => 'unmuted', app => 'control', text => "Changed to $Save{mode} mode");
 }
 if ($state = state_now $mode_sleeping) {
     $Save{sleeping_parents} = ($state eq 'parents' or $state eq 'all') ? 1 : 0;
     $Save{sleeping_kids}    = ($state eq 'kids'    or $state eq 'all') ? 1 : 0;
 }
+
+
+
+
