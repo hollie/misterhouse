@@ -5635,7 +5635,7 @@ sub time_random_offset {
 }
 
 sub time_random {
-    return unless $New_Minute;  # Only on minute boundarys
+    return unless $New_Minute;  # Only on minute boundaries
     my ($time_cron, $time_freq) = @_;
     my $flag = &time_cron($time_cron);
     return 0 unless $flag;
@@ -5647,7 +5647,7 @@ sub time_random {
 }
 
 sub help_about {
-	display ($config_parms{title})?$config_parms{title}:"Misterhouse" .  "\n$Version PID: $$";
+	display((($config_parms{title})?$config_parms{title}:"Misterhouse") . "\n$Version PID: $$");
 }
 
 sub tk_setup_windows {
@@ -5657,7 +5657,7 @@ sub tk_setup_windows {
     $MW->withdraw;              # Hide the window until we are all set up
 				# doesn't quite work on XP :(
 
-                                # Guard against accidental MH exits (without this we would get "Failed to AUTOLOAD Tk..." errors
+                                # Guard against accidental MH exits (without this we would get "Failed to AUTOLOAD Tk..." errors)
     #$MW->protocol('WM_DELETE_WINDOW', sub { &display("To exit, use the File->Exit pulldown\n", 5)} 
     $MW->protocol('WM_DELETE_WINDOW', sub { &exit_pgm() } );
 
