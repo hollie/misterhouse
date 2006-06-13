@@ -73,7 +73,7 @@ if (said $v_mhdl_page) {
     my $msg;
 
     if (&net_connect_check) {
-	$msg = "Checking version";
+	$msg = 'Checking version...';
 	print_log "Retrieving download page";
 	start $p_mhdl_page;
     }
@@ -81,8 +81,7 @@ if (said $v_mhdl_page) {
 	$msg = "app=control Unable to check version while disconnected from the Internet";
     }
     
-    respond_in_kind $v_mhdl_page, "app=control $msg";
-
+    $v_mhdl_page->respond("app=control $msg");
 }
 
 
@@ -102,11 +101,11 @@ if (done_now $p_mhdl_page) {
 	my ($maj,$min,$revision) = &parse_version();
 	$revision = "unknown" unless $revision;
 	if (($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min))) {
-	    respond_in_kind $v_mhdl_page, "important=1 connected=0 app=control I am version $maj.$min (revision $revision) and version $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date} . '.')
+	    $v_mhdl_page->respond("important=1 connected=0 app=control I am version $maj.$min (revision $revision) and version $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date} . '.'));
 	}
 	else {
 		# Voice command is only code to start this process, so check its set_by
-		respond_in_kind $v_mhdl_page, "connected=0 app=control Version $Save{mhdl_maj}.$Save{mhdl_min} is current.";
+		$v_mhdl_page->respond("connected=0 app=control Version $Save{mhdl_maj}.$Save{mhdl_min} is current.");
 	}
    }
 
