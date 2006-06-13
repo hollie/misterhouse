@@ -5,7 +5,7 @@
 #  File:
 #      mh
 #  Description:
-#      A perl script that does home control functions
+#      A PERL script that does home control functions
 #  Author:
 #      Bruce Winter bruce@misterhouse.net
 #  Latest version:
@@ -40,6 +40,11 @@ BEGIN {
             # $0=path to mh/bin, $^X=path to perl, unless perl2exe compiled mh.exe
     ($Pgm_Path, $Pgm_Name) = $0  =~ /^(.*)[\\\/]([^.]+)/;
     ($Pgm_Path, $Pgm_Name) = $^X =~ /^(.*)[\\\/]([^.]+)/ if $Info{Perl_compiled};
+
+		my $shortened = ($config_parms{program_files_abbreviation})?$config_parms{$config_parms{program_files_abbreviation}}:'progra~1';
+
+		$Pgm_Path =~ s/program files/$shortened/i;
+
                                # $0=mh if we run from mh/bin
     unless ($Pgm_Path) {
         ($Pgm_Name) = $0 =~ /([^.]+)/i;
@@ -270,7 +275,7 @@ BEGIN {
         my $debug = 1 if $config_parms_startup{debug} and $config_parms_startup{debug} eq 'startup';
         $debug = 1 if $Debug{parms};
         my @files = &main::read_mh_opts(\%config_parms, '.', $debug);
-        print "Read parm files: @files\n";
+        print "Read parameter files: @files\n";
 
                                 # Read in speak parms per application
         &main::read_parm_hash(\%{$app_parms{speak}},   $main::config_parms{speak_apps_default});
@@ -304,7 +309,7 @@ BEGIN {
                     }
                     else {
                         $Debug{$debug} = 1;
-                        print "Debug for $debug set on\n";
+                        print "Debugging for $debug turned on\n";
                     }
                 }
             }
@@ -366,7 +371,7 @@ BEGIN {
 
                                 # Must use 'my_use' (evals) so unix doesn't croak on missing modules
 
-                                # Not sure what we gain/loose with ole lite
+                                # Not sure what we gain/lose with ole lite
 #           &my_use("Win32::DUN");          # Interface to rasdial
 #           use Win32::API 0.01;            # Used in DriveInfo, SerialPort, etc
             &my_use("Win32::DriveInfo");    # For disk space free/total
@@ -463,6 +468,7 @@ BEGIN {
             else {
                 &my_use("Display");
             }
+	    eval "use Tk::ToolBar";
         }
 
                                 # Allow for Round Robin database logs
@@ -676,7 +682,10 @@ sub setup {
 #       $break = "[\r\n]+" unless $break;
 #       eval qq[\$break = "$break"];
 
-        printf " - creating %-15s on %3s %s %5s %s\n", $port_name, $proto, $address, $port, $datatype;
+	my $pretty_port_name = $port_name;
+	$pretty_port_name =~ s/_/\x20/g; # a slight improvement
+
+        printf " - creating %-15s on %3s %s %5s %s\n", $pretty_port_name, $proto, $address, $port, $datatype;
 
         $Socket_Ports{$port_name}{port}     = $port;
         $Socket_Ports{$port_name}{protocol} = lc $proto;
@@ -981,7 +990,9 @@ sub setup {
     @log = &file_tail($speak_log, $config_parms{max_log_entries});
     chomp @log;
     @Speak_Log = reverse @log;
-    unshift @Speak_Log, "$Time_Date ---------- Restart ---------- ";
+#    unshift @Speak_Log, "$Time_Date ---------- Restart ---------- ";
+
+    speak('app=system System restarted');
 
     @log = &file_tail($error_log, $config_parms{max_log_entries});
     chomp @log;
@@ -1011,7 +1022,8 @@ sub setup {
     print "External command file (xcmd_file): $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
 
     $config_parms{html_dir} = $config_parms{html_root} if $config_parms{html_root}; # Grandfather in the old name for this parm
-    print "HTML file     : $config_parms{html_dir}/$config_parms{html_file}\n";
+
+    print "HTML file     : $config_parms{html_dir}$config_parms{html_file}\n";
     print "\nError, HTML file not found: $config_parms{html_dir}/$config_parms{html_file}\n\n" unless -e "$config_parms{html_dir}/$config_parms{html_file}";
 
     @Requested_Files = @ARGV;
@@ -1235,6 +1247,41 @@ sub check_for_action {
     if ($MW) {
         &tk_setup_cascade_menus if $Reload;
         &tk_setup_geometry      if $Reread;
+
+	if ($Reload) {
+	# Ditto for modules!
+		
+	    $Tk_objects{menu_modules} = $Tk_objects{menu_bar}->Menubutton(-text => 'Modules', -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0) unless $Tk_objects{menu_modules};
+	    $Tk_objects{menu_modules}->menu->delete(0, 'end'); # Delete old menus
+
+	    my $i;
+
+            for (keys %Run_Members) {
+			$Tk_objects{menu_modules}->checkbutton(-label => $_, -variable => \$Run_Members{$_});
+#			last if $i++ > 20; # *** config for this
+	    }
+
+	    $Tk_objects{menu_help} = $Tk_objects{menu_bar}->
+        	Menubutton(-text => 'Help', 
+                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
+
+
+# Do the help menu here so it shows up last
+
+
+	    $Tk_objects{menu_help}->command(-label => 'Contents', -underline => 0, -command => \&help);
+	    $Tk_objects{menu_help}->command(-label => 'FAQ', -underline => 0, -command => \&help);
+	    $Tk_objects{menu_help}->command(-label => 'Examples', -underline => 0, -command => \&help);
+	    $Tk_objects{menu_help}->command(-label => 'User Documentation', -underline => 0, -command => \&help);
+
+	    $Tk_objects{menu_help}->separator;
+
+	    $Tk_objects{menu_help}->command(-label => 'About', -underline => 0, -command => \&help_about);
+
+	}
+
+
+
     }
 
 
@@ -1518,7 +1565,8 @@ sub check_for_nextpass_actions {
 sub toggle_debug {
     $config_parms{debug} = ($config_parms{debug}) ? 0 : 1;
     my $state = ($config_parms{debug}) ? 'on' : 'off';
-    print "Key F4 pressed.  Debug turned $state.\n";
+    print "Debugging for $state turned on.\n" unless $state eq 'off';
+    print "Debugging turned off.\n" unless $state ne 'off';
 }
 sub toggle_log {
     $config_parms{log} = ($config_parms{log}) ? 0 : 1;
@@ -1526,9 +1574,8 @@ sub toggle_log {
     if ($config_parms{log}) {
         $state = 'on';
         $logfile = $config_parms{log_file};
-        $logfile = '$config_parms{data_dir}/mh_log.txt' unless $logfile;
-        print     "Key F5 pressed.  Output will be logged into $logfile\n";
-        &print_log("Key F5 pressed.  Output will be logged into $logfile");
+        $logfile = "$config_parms{data_dir}/mh_log.txt" unless $logfile;
+        print     "Output will be logged to $logfile\n";
         open(OLDOUT, ">&STDOUT"); # Copy old handle
         open(OLDERR, ">&STDERR"); # Copy old handle
         open STDOUT, ">>$logfile" or print "\nError, could not open logfile $logfile: $!\n";
@@ -1537,14 +1584,14 @@ sub toggle_log {
     }
     else {
         $state = 'off';
-        print "Key F5 pressed.  Output will no longer be logged to $logfile\n";
+        print "Output will no longer be logged to $logfile\n";
         close STDOUT;
         open(STDERR, ">&OLDERR");
         open(STDOUT, ">&OLDOUT");
         close OLDOUT;
         close OLDERR;
         print     "STDOUT has been restored\n";
-        &print_log("STDOUT has been restored");
+        &print_log("Logging turned off");
     }
 }
 sub toggle_pause {
@@ -1983,10 +2030,12 @@ sub check_for_tied_events {
             if (my $log_msg = $$object1{tied_events}{$event}{$state_key}) {
                 &print_log($log_msg) unless $log_msg eq '1';
                 print "Event link: eval event=$event\n" if $Debug{events};
-                my $state = $state1; # So eval can substitue $state
+                my $state = $state1; # So eval can substitute $state
                 my $object=$object1;
-                $Set_By = $object1->{object_name};        # Checked in Generic_Item set method
-                $Respond_Target = $object1->get_target(); # Pass target along
+                $Set_By = $object1->{set_by};        # Checked in Generic_Item set method
+
+                $Respond_Target = $object1->get_target() if defined $object1->get_target(); # Pass target along (IF it exists, else we overwrite good value!)
+		$Respond_Target = $Set_By unless $Respond_Target; # Just for legacy code (speak chimes)
                 eval $event;
                 $Set_By = '';
                 print "tie_events eval error: $@" if $@;
@@ -2199,8 +2248,9 @@ sub display {
     my $text = $parms{text};
     return unless $text;        # No data
 
-                                # If it is a file, read it
-    if ($text =~ /^\S+$/ and -e $text) {
+
+                                # If it is a TXT file, read it
+    if ($text =~ /^\S+\.txt$/ and -e $text) {
         open IN, $text or print "Error in sub display, could not open file $text:$!\n";
         local $/ = undef;       # Slurp the whole file at once
         $text = <IN>;
@@ -2233,8 +2283,7 @@ sub display {
         new Display(%parms) unless ($leave_socket_open_passes and !defined $parms{time});
     }
     else {
-#       &print_log(@parms);
-        print "display call with -tk 0.  Text=@parms\n";
+        print "Display call with -tk 0.  Text=@_\n";
     }
 
 }
@@ -2252,7 +2301,7 @@ sub display_log_last {
 }
 
 sub eval_user_code_load {
-    &print_log("Evaluating user code");
+    &print_log((($Startup)?'E':'Ree') . "valuating user code");
 
                                 # Certain errors (e.g. 'Global symbol $xyz requires ...') do not
                                 # show up in $@, but we can trap them with the WARN signal.
@@ -2364,8 +2413,11 @@ sub eval_user_code_loop {
             my $error = "Error found in user code file: $config_parms{data_dir}/mh_temp.user_code\n\n";
             $error .= &eval_user_code_error($@, $user_code);
             print $error;
+
+	    # *** what is the logic of this line?  Display if tk disabled?
+
             &display($error, 0) unless $config_parms{tk};
-            &speak("Error found in user code.  Check the error log.") unless $config_parms{no_speak_errors} =~ /error/i;
+            &speak("app=error Error found in user code.  Check the error log.") unless $config_parms{no_speak_errors} =~ /error/i;
 
                                 # Log these errors for review
             print ERRORLOG (&time_date_stamp(1), $Time)[0], ":\n  $error\n";
@@ -2422,7 +2474,14 @@ sub eval_with_timer {
 sub exit_pgm {
     my ($restart) = @_;
     $Save{mh_exit} = ($restart) ? 'restart' : 'normal';
-    print "Exiting program: $Save{mh_exit}\n";
+    if ($restart) {
+	print "Restarting\n";
+    }
+    else {
+	print "Exiting\n";
+    }
+
+
     if ($main::Info{OS_name}=~ /darwin/i) {  # Should go into Voice::Text?
       Dispose_Speech_Channel();
     }
@@ -3300,7 +3359,7 @@ sub play {
                 else {
                     print_log ("executing sound file") if $Debug{play};
                     exec qq[$sound_program $file];
-                    die "cant exec sound_program: $sound_program";
+                    die "can't exec sound_program: $sound_program";
                     exit(0);
                 }
                 print_log ("$file has played") if $Debug{play};
@@ -3365,18 +3424,19 @@ sub print_log {
     }
     &Log_hooks('print_log', $data);   # Created by &add_hooks
 
-    $data = "$Time_Date $data";
+
 
     if ($Tk_objects{log_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
                                 # move to the bottom, messing up any manual scrolling
-        $Tk_objects{log_window}->insert('0.0', $data . "\n");
+        $Tk_objects{log_window}->insert('0.0', "$Time_Date $data\n");
 #       $Tk_objects{log_window}->insert('end', "$Time_Date $data\n");
 #       $Tk_objects{log_window}->yview('moveto', 30);
     }
     else {
         print $data . "\n";
     }
+    $data = "$Time_Date $data";
     unshift (@Print_Log, $data);
     pop @Print_Log if @Print_Log > $config_parms{max_log_entries};
 
@@ -3453,7 +3513,7 @@ sub print_speaklog {
         $Tk_objects{speak_window}->insert('0.0', "$Time_Date $data\n");
     }
     else {
-        print "$data\n" unless $config_parms{no_log} =~ /speak/;
+        print "$data\n" unless $config_parms{no_log} =~ /speak/ or $Startup; # On startup no print needed as it is just the "System Restarted" message (or an error with its own debug info)
     }
     print SPEAKLOG "$Time_Date $data\n";
 }
@@ -3474,7 +3534,7 @@ sub process_external_command {
     print "Running external command: cmd=$cmd set_by=$set_by respond=$respond_target\n" unless $config_parms{no_log} =~ /xcmd/;
 
     if (&run_voice_cmd(lc($cmd), undef, $set_by, 0, $respond_target)) {
-        print_log "Running cmd:$cmd" unless $config_parms{no_log} =~ /xcmd/;
+        print_log "Ran $set_by command: $cmd" unless $config_parms{no_log} =~ /xcmd/;
     }
                                 # Limit syntax to protect from dangerous hacks
     elsif ($cmd =~ /^set +(\$[\_a-z0-9]+) * [\'\" \_a-z0-9]+ *$/i and eval "ref $1") {
@@ -3484,8 +3544,9 @@ sub process_external_command {
     }
     elsif ($cmd =~ /^speaki?t? (.+)/i) {
                                  # So speak hooks can react right (e.g. common/speak_chime.pl)
+				 # *** They don't always get the right target
         $Respond_Target = $respond_target;
-        $Respond_Target = $set_by unless defined $Respond_Target;
+        $Respond_Target = $set_by unless defined $Respond_Target; # target and set_by no longer fused
         speak($1);
     }
     elsif ($cmd =~ /^display (.+)/i) {
@@ -3512,7 +3573,7 @@ sub process_external_command {
 #       print "serial results: ", $Serial_Ports{weeder}{object}->write($cmd . "\r"), ".\n" if $Serial_Ports{weeder}{object};
 #   }
     else {
-        print_log "Warning, xcmd not recognized:$cmd.\n" if $warning_flag;
+        print_log "Warning, command from $set_by not recognized:$cmd." if $warning_flag;
         return 0;
     }
     return 1;
@@ -3892,7 +3953,7 @@ sub read_code {
 
     $Reread = 1;
 
-    print_log "Re-reading $ENV{mh_parms} and mh.ini";
+    print_log ((($Startup)?'R':'Re-r') . "eading " . (($ENV{mh_parms})?$ENV{mh_parms}:'mh.private.ini') . " and mh.ini");
 
     read_parms unless $Startup; # Re-read .ini parms, in case they changed
 
@@ -3929,7 +3990,7 @@ sub read_code {
 
 #   print "           files: @files_read\n";
     my $count = @files_read;
-    print_log "Reading $count code files";
+    print_log((($Startup)?'R':'Re-r') . "eading $count code files");
     die "\n\nError, no code files found in Code_Dirs: @Code_Dirs\n\n" unless @files_read;
 
 
@@ -3981,7 +4042,12 @@ sub read_code {
         delete $file_code_times{$file_path};
         $files_deleted++;
     }
-    &print_log("   $files_deleted files deleted, " . (@files_changed2+0) . " files changed: @files_changed2") unless $Startup;
+    my $msg;
+    $msg = "   $files_deleted file" . (($files_deleted == 1)?'':'s') . ' deleted, ' . ($#files_changed2 + 1) . ' file' . (($#files_changed2 == 0)?'':'s') . ' changed';
+
+    $msg .= ": @files_changed2" if $#files_changed != -1;
+
+    &print_log($msg) unless $Startup;
     &read_user_code(@files_changed) if @files_changed or $files_deleted or $reload_mode eq 'forced';
 #   speak(@files_changed+0 . " files were read.");
 
@@ -4387,7 +4453,7 @@ sub store_object_data {
     push @{$object_names_by_type{$type}},        $object;
 
                                # Now generate code for on-they-fly stored data
-                               # because we don't get object reference till code is evaled
+                               # because we don't get object reference till code is evaluated
     $code  = qq[\$objects_by_object_name{'$object'} = $object;\n];
     $code .= $object . qq[->{category} = "$webname";\n];
     $code .= $object . qq[->{filename} = "$member_name";\n];
@@ -4440,7 +4506,7 @@ sub run_after_delay {
     my ($delay, $code_ref) = @_;
     my $timer = new Timer;
     set $timer $delay, $code_ref;
-                                # Data Dumpper will not dump anonymous subroutines
+                                # Data Dumper will not dump anonymous subroutines
 #   push @{$Persistent{timers}}, $timer;
 }
 
@@ -4467,30 +4533,33 @@ sub run_voice_cmd {
 
 
 sub sendkeys_find_window {
-    my ($title, $program) = @_;
+    my ($title, $program, $timeout) = @_;
     return unless $OS_win;
+
+    $timeout = 2000 unless defined $timeout;
                                 # Use this if we need to disable Setupsup ?
     if (0) {
-        print_log "Starting $program";
+        print "Starting $program\n" if $Debug{misc};
         run $program;
-        print     "Waiting for $title\n";
-        select undef, undef, undef, 0.5; # Give it a chance to get going
+        print "Waiting for $title...\n" if $Debug{misc};
+        select undef, undef, undef, .5; # Give it a chance to get going
     }
     else {
         my $window;
-        unless (&WaitForAnyWindow($title, \$window, 100, 200)) {
-            print_log "Starting $program";
+        unless (&WaitForAnyWindow($title, \$window, 100, 200) or !$program) {
+            print "Starting $program\n" if $Debug{misc};
+	    $program = "\"$program\"" if $program =~ /\x20/;
             run $program;
-            print     "Waiting for $title\n";
-            &WaitForAnyWindow($title, \$window, 2000, 200); # Wait for 2 seconds
-            select undef, undef, undef, 0.5; # Give it a chance to get going
+            print "Waiting for $title...\n" if $Debug{misc};
+            &WaitForAnyWindow($title, \$window, $timeout, 200); # Wait for 2 seconds
+            select undef, undef, undef, .5; # Give it a chance to get going
         }
         if ($window) {
-            print_log "Found window $title: $window";
+            print "Found window $title: $window\n" if $Debug{misc};
             return $window;
         }
         else {
-            print_log "Sorry, could not find or start $title for $program";
+            print "Timed out waiting for $title window for $program\n" if $Debug{misc};
         }
     }
 }
@@ -4529,7 +4598,7 @@ sub set_global_vars {
             if (-e ($Sounds{'mh_pause'}) ) {
                 &play(file => 'mh_pause', volume => $volume); # Defined in event_sounds.pl
             }
-            print_log "mh paused for $DelayOccured seconds (volume=$volume)";
+            print_log "Paused for $DelayOccured seconds";
         }
         logit "$config_parms{data_dir}/logs/mh_pause.$Year_Month_Now.log",  "mh paused for $DelayOccured seconds";
         if ($DelayOccured > $config_parms{time_catchup_skip} and $config_parms{no_log} =~ /pause/) {
@@ -4780,8 +4849,8 @@ sub set_global_vars {
         }
         $Info{cpu_used} = 100 if $Info{cpu_used} > 100;
 
-        $Tk_objects{label_time} = 'Date: ' . &time_date_stamp(14, $Time);
-        substr($Tk_objects{label_time}, 19, 0) = '  Time: ';
+        $Tk_objects{label_time} = &time_date_stamp(14, $Time);
+#        substr($Tk_objects{label_time}, 19, 0) = '  Time: ';
 
         $Time_Uptime_Seconds = $Time - $Time_Startup_time;
         my $uptime_days;
@@ -4791,14 +4860,14 @@ sub set_global_vars {
             &speak("Please restart misterhouse.  Uptime is $uptime_days days.") if $New_Hour and $Hour > 9 and $Hour < 22;
         }
 
-        $Tk_objects{label_uptime_cpu} = sprintf("Uptime Computer: %s",
+        $Tk_objects{label_uptime_cpu} = sprintf("%s",
                                                 &time_diff($Time_Boot_time, $Time, undef, 'numeric'));
 #                                               &time_diff($Time_Boot_time, ($loop_tickcount1)/1000, undef, 'numeric'));
-        $Tk_objects{label_uptime_mh}  = sprintf("Uptime Program:  %s",
+        $Tk_objects{label_uptime_mh}  = sprintf("%s",
                                                 &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
-        $Tk_objects{label_cpu_used}    = sprintf("Cpu Used: %5.1f%%", $Info{cpu_used});
-        $Tk_objects{label_cpu_used}   .= sprintf("   Loops/Sec: %4d", $Info{loop_speed});
-        $Tk_objects{label_memory_used} = sprintf("Memory Used (virtual/real): %4.1f/%4.1f Meg",
+        $Tk_objects{label_cpu_used}    = sprintf("%5.1f%%", $Info{cpu_used});
+        $Tk_objects{label_cpu_used}   .= sprintf("%4d", $Info{loop_speed});
+        $Tk_objects{label_memory_used} = sprintf("%4.1f/%4.1f MB",
                                                  $Info{memory_virtual}, $Info{memory_real}) if $Info{memory_virtual};
                                 # This is grandfathered for old Tk menus
         $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d", $Info{loop_speed});
@@ -4959,7 +5028,7 @@ sub set_moon_data {
 }
 
 sub sig_handler {
-    print "Exit flag set in sig_handler\n";
+    print "Exit flag set in sig_handler\n" if $Debug{exit};
     $exit_flag = 1;
 }
 sub sig_handler_pipe {
@@ -5130,21 +5199,21 @@ sub respond {
 #    my $p = join ',', %parms; print "db2 p=$p.\n";
 
                                 # Call respond_xyz function
-    $target = 'default' if $target !~ /\S/ or $target eq 'unknown' or $target eq 'UserCode';
+    $target = 'default' if $target !~ /\S/ or $target =~ /unknown/i or $target =~ /UserCode/i;
 
     print "respond target=$target lr=$Last_Response RT=$Respond_Target lso=$leave_socket_open_passes lsa=leave_socket_open_action a=@_\n"
         if $Debug{respond};
 
     $leave_socket_open_passes = 1 if $leave_socket_open_passes > 0;
 
-                                # If a file, read the contents
-    $parms{text} = &file_read($parms{text}) if $parms{text} =~ /^\S+$/ and -e $parms{text};
+                                # If a file, read the contents (ONLY A TEXT FILE, COULD NOT SAY "Play" BEFORE!)
+    $parms{text} = &file_read($parms{text}) if $parms{text} =~ /^\S+\.txt$/ and -e $parms{text};
 
                                 # Allow for a , delimited list of targets
     for my $target1 (split ',', $target) {
         my $ref = eval '\&' . "respond_$target1";
         if ($@) {
-            print_log "Error in respond: respond=$target1 error=$@";
+            warn "Error in respond: respond=$target1 error=$@";
         }
         else {
             $ref->(%parms);
@@ -5152,35 +5221,30 @@ sub respond {
     }
 }
                                         # Called to tell web server to wait for respond results
+
+					# *** Okay, so why is $Respond_Target checked?
+					# *** One of the last meaningful (?) references to this var
+
 sub respond_wait {
     $leave_socket_open_passes = 200 if $Respond_Target =~ /^web/;
 }
 
 sub respond_default {
-    my %parms = @_;
-                          # If long or > 2 linefeeds, then display, otherwise speak
-#    my $text = $parms{text};
-#    if ((length $text > 300) or
-#        (($text =~ tr/\n/\n/) > 2)) {
-#        &display(@_);
-#    }
-#    else {
-        &speak(@_);
-#    }
+    &speak(@_);
 }
 sub respond_display {
     &display(@_);
 }
 sub respond_email {
     &net_mail_send(@_);
-    &print_log(@_);
+#    &print_log(@_);
 }
 sub respond_im {
     &net_im_send(@_);
-    &print_log(@_);
+#    &print_log(@_);
 }
 sub respond_log {
-    my %parms = &parse_func_parms(@_); # parse out parameters before dumping to log
+    my %parms = &parse_func_parms(@_);
     &print_log($parms{text});
 }
 sub respond_speak {
@@ -5193,7 +5257,12 @@ sub respond_rf {
     &respond_default(@_);
 }
 sub respond_tk {
-    &display(@_);
+    if ($config_parms{console_speech}) {
+        &speak(@_);
+    }
+    else {
+        &display(@_);
+    }
 }
 sub respond_vr {
     &respond_default(@_);
@@ -5227,50 +5296,6 @@ sub respond_object_set {
 }
 
 
-sub respond_in_kind {
-	my $object = shift;
-	my $target;
-	my ($text) = @_;
-	my %parms = &parse_func_parms(@_);
-	my $set_by = $object->{set_by};
-
-	$parms{connected} = 1 if !defined($parms{connected});
-
-	if (($set_by and $set_by !~ /usercode/i and $set_by !~ /unknown/i and $set_by !~ /^time$/i) or $parms{important}) {		
-		if (!$parms{connected}) {
-			# don't override these if explicitly passed
-			# mute remote web responses (convert all Web to speech)
-			$target = ($parms{target})?$parms{target}:$set_by;
-			$target = 'speak' if !$target; # parameter and set_by could be undefined
-			my $mode;
-			if ($target =~ /^web/i) {
-				my $address = $target =~ /\[(.*)\]/;
-
-				# *** TODO:Set room from IP if local
-				$target = 'speak';
-				$mode = 'mute' if (!&is_local_address($address) and !$parms{mode});	
-			}
-
-
-			$target = 'unknown' if ($target =~ /usercode/i); # just in case, probably not needed (there is something tacked onto usercode as I recall)
-
-
-			my $extra = "target=$target";
-			$extra .= " mode=$mode" if $mode;
-			$extra .= ' ';
-			respond "$extra$text";
-		}
-		else {
-			$target = 'web' if $target =~ /^web/i;
-			respond((($parms{target})?'':"target=$set_by ") . $text);
-		}
-	}
-	else { #command run internally (by code, trigger, etc.)
-		respond "target=log $parms{text}";		
-	}	
-}
-
-
 
 sub speak {
     my ($rooms, $display_time, $play);
@@ -5279,6 +5304,7 @@ sub speak {
     &set_app_parms(\%parms, 'speak');     # Set parms according to an optional app parm
 
     my $phrase = $parms{text};
+
 
     print "Voice_Text: speak @_\n" if $Debug{voice};
 
@@ -5300,6 +5326,7 @@ sub speak {
     $display_time = $parms{display} if $parms{display};
     $play         = $parms{play}    if $parms{play};
 
+
                                 # Allow for defaults to be specified in parmfile
     for my $parm (@speak_parms) {
         my $value = $config_parms{"speak_$parm"};
@@ -5316,12 +5343,13 @@ sub speak {
         &display(@_);           # Display full text
 	$phrase = substr($phrase, 0, $parms{length}) . '.  Speech truncated.'
     }
-
-    $display_time = 120 if !$display_time and $phrase !~ /\n/ and -f $phrase;
-    &display($phrase, $display_time) if $display_time;
+    else { # Not truncuated, but it is a text file, so display it too (?)
+	    $display_time = 120 if !$display_time and $phrase !~ /\n/ and -f $phrase and ($phrase =~ /\.txt$/);
+	    &display($phrase, $display_time) if $display_time;
+    }
 
                                 # If we are dealing with a file, slurp it up into one string
-    if ($phrase !~ /\n/ and (-f $phrase or $phrase =~ /\.txt$/)) {
+    if ($phrase !~ /\n/ and ($phrase =~ /\.txt$/)) {
         my $file = $phrase;
         $phrase = '';
         open(TEXT, $file) or print "Error, could not open file to speak $file: $!\n";
@@ -5333,8 +5361,10 @@ sub speak {
 
     my $mode = $parms{mode} || $Save{mode};
 
+
     if (!$parms{nolog}) {
-        my $speaklog = $mode . ": ";
+        my $speaklog = '';
+        $speaklog = $mode . ": " if $mode;
         $speaklog = "card=$parms{card}: " if $parms{card};
         $speaklog = "to_file: "           if $parms{to_file};
         $speaklog .= "(" . basename($play) . ") " if $play;     # put sound in () to show the sound played.
@@ -5347,6 +5377,7 @@ sub speak {
                                 # Check if we want to speak web requested data
                                 # If Respond_Target is set, let &respond_web handle it?
                                 # If room or address, then let it go there rather then the web
+
     if ($leave_socket_open_passes and
         !($parms{room} or $parms{address})) {
         $leave_socket_open_passes = 1;
@@ -5370,6 +5401,8 @@ sub speak {
         }
 #       $parms{card} = 3;  # Redirect only to alternet card?
     }
+
+
 
     &Log_hooks('speak', $phrase, %parms);   # Created by &add_hooks
 
@@ -5613,54 +5646,112 @@ sub time_random {
     return (int(rand $time_freq) == 0) ? 1 : 0;
 }
 
+sub help_about {
+	display ($config_parms{title})?$config_parms{title}:"Misterhouse" .  "\n$Version PID: $$";
+}
 
 sub tk_setup_windows {
                                 # See perl/bin/widget.bat for lots of examples
     print "Setting up tk window\n";
     $MW = MainWindow->new;
-    $MW->withdraw;              # Hide the window until we are all setup
+    $MW->withdraw;              # Hide the window until we are all set up
+				# doesn't quite work on XP :(
 
-                                # Guard gains accidental MH exits (without this we would get "Failed to AUTOLOAD Tk..." errors
-    $MW->protocol('WM_DELETE_WINDOW', sub { &display("To exit, use the File->Exit pulldown\n", 5) } );
+                                # Guard against accidental MH exits (without this we would get "Failed to AUTOLOAD Tk..." errors
+    #$MW->protocol('WM_DELETE_WINDOW', sub { &display("To exit, use the File->Exit pulldown\n", 5)} 
+    $MW->protocol('WM_DELETE_WINDOW', sub { &exit_pgm() } );
 
                                 # Keep startup value so we resize only if it has changed since startup,
                                 # and we don't mess with manual changes.
     $config_parms{tk_geometry_startup} = $config_parms{tk_geometry};
 
-    $MW->iconname('Mr. House'); # Does nothing??
-#   $MW->iconbitmap('c:\\utils\\4dos\\4dos.ico');
+    $MW->iconname('Misterhouse'); # Loads tk icon resource
+    $MW->iconbitmap($Pgm_Root . '\web\favicon.ico');
 #   $MW->optionAdd('*font' => 'systemfixed');
     $MW->optionAdd('*font' => $config_parms{tk_font_menus}) if $config_parms{tk_font_menus};
 
                                 # This doesn't work :(
-    $MW->bind('Alt-Key-r'   => \&read_code);
-    $MW->bind('Alt-Key-x'   => \&sig_handler);
+    $MW->bind('Alt-Key-R'   => \&read_code);
+    $MW->bind('Alt-Key-X'   => \&sig_handler);
 
-    $MW->title("$config_parms{title} $Version  PID: $$");
+    $MW->title(($config_parms{title})?$config_parms{title}:"Misterhouse $Version PID: $$");
 
                                 # Create menu bar and buttons
     $Tk_objects{menu_bar} = $MW->Frame->pack(-anchor => 'w', -side => 'top', -expand => 0, -fill => 'x');
 
     $Tk_objects{menu_file} = $Tk_objects{menu_bar}->
-        Menubutton(-text => 'File', -relief => 'raised',
+        Menubutton(-text => 'File', 
                    -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
+
+
+
+
+
+
+
 
     $Tk_objects{menu_commands} = $Tk_objects{menu_bar}->
-        Menubutton(-text => 'Commands', -relief => 'raised',
+        Menubutton(-text => 'Commands', 
                    -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
     $Tk_objects{menu_items} = $Tk_objects{menu_bar}->
-        Menubutton(-text => 'Items', -relief => 'raised',
+        Menubutton(-text => 'Items',
                    -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0) if $config_parms{tk_items};
-    $Tk_objects{menu_groups} = $Tk_objects{menu_bar}->
-        Menubutton(-text => 'Groups', -relief => 'raised',
+
+
+
+    $Tk_objects{menu_speech} = $Tk_objects{menu_bar}->
+        Menubutton(-text => 'Speech', 
                    -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
 
-    $Tk_objects{menu_file}->command(-label => 'Reload', -accelerator => 'Alt+r', -underline => 0, -command => \&read_code);
-    $Tk_objects{menu_file}->command(-label => 'Exit',   -accelerator => 'Alt+x', -underline => 1, -command => \&sig_handler);
+    $Tk_objects{menu_speech}->checkbutton(-label => 'Console Speech',  -variable => \$config_parms{console_speech});
+
+    $Tk_objects{menu_speech}->separator;
+
+    $Tk_objects{menu_speech}->command(-label => 'Echo');
+
+
+
+
+    $Tk_objects{menu_file}->command(-label => 'Restart', -underline => 0, -command => sub {exit_pgm(999)});
+
+    $Tk_objects{menu_file}->command(-label => 'Reload', -accelerator => 'F1', -underline => 0, -command => \&read_code);
+    $Tk_objects{menu_file}->command(-label => 'Pause', -accelerator => 'F2', -underline => 0, -command => \&toggle_pause);
+    $Tk_objects{menu_file}->command(-label => 'Log', -accelerator => 'F5', -underline => 0, -command => \&toggle_log);
     $Tk_objects{menu_file}->separator();
-    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Normal',  -variable => \$Save{mode}, -value => 'normal');
-    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, -value => 'mute');
-    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, -value => 'offline');
+
+
+
+
+    $Tk_objects{menu_file_debug} = $Tk_objects{menu_file}->menu->Menu;
+
+    &tk_cascade_entry('Debug', $Tk_objects{menu_file}, $Tk_objects{menu_file_debug});
+
+	#Loop through debug options (should build dynamically like "list debug options"
+
+
+
+
+
+	my @debug_options = split ',', $config_parms{debug_options};
+
+
+	for (sort @debug_options) {
+		#my $cmd = "sub {\$config_parms{debug} = $_}";
+		$Tk_objects{menu_file_debug}->checkbutton(-label => ucfirst($_), -underline => 0, -variable => \$Debug{$_}, -command => sub {$config_parms{debug} = undef}) if $_ !~ /^off$/i;		
+	}
+
+
+
+
+    $Tk_objects{menu_file}->separator();
+    $Tk_objects{menu_file}->command(-label => 'Exit',   -accelerator => 'F3', -underline => 1, -command => \&sig_handler);
+
+# *** Is an object toggle "shortcut" on the main tb now (doesn't really belong on file menu.)
+
+#    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Normal',  -variable => \$Save{mode}, -value => 'normal');
+#    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, -value => 'mute');
+#    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, -value => 'offline');
+
 
 }
 
@@ -5670,7 +5761,7 @@ sub tk_setup_geometry {
     if ($config_parms{tk_geometry} and
         ($Startup or
          $config_parms{tk_geometry} ne $config_parms{tk_geometry_startup})) {
-        print "Setting tk geometry to $config_parms{tk_geometry}\n";
+        print "Setting geometry to $config_parms{tk_geometry}\n";
         $MW->geometry($config_parms{tk_geometry});
         $config_parms{tk_geometry_startup} = $config_parms{tk_geometry};
     }
@@ -5680,7 +5771,10 @@ sub tk_setup_cascade_menus {
 
     if ($config_parms{tk_commands}) {
 
-        print "Creating Tk Command menu\n";
+
+
+
+        print "Creating Command menu\n";
         $Tk_objects{menu_commands}->menu->delete(0, 'end'); # Delete old menus
 
         for my $category (&list_code_webnames('Voice_Cmd')) {
@@ -5709,7 +5803,7 @@ sub tk_setup_cascade_menus {
 #                    add('command', -label => 'state_log', command => sub{display join("\n", state_log $object)});
 
                 my $filename = $object->{filename};
-                                # Drop the {a,b,c} enumeragion (pick the first one)
+                                # Drop the {a,b,c} enumeration (pick the first one)
                 $text = $1 . $2 . $3 if $text =~ /^(.*)\{(.*),.*\}(.*)/;
 
                 if (my ($prefix, $states, $suffix) = $text =~ /^(.*)\[(.+?)\](.*)$/) {
@@ -5730,7 +5824,7 @@ sub tk_setup_cascade_menus {
     }
 
     if ($config_parms{tk_items}) {
-        print "Creating Tk Items menu\n";
+        print "Creating Items menu\n";
 
                                 # Create/Reset Item cascade menu
         $Tk_objects{menu_items}->menu->delete(0, 'end'); # Delete old menus
@@ -5765,7 +5859,9 @@ sub tk_setup_cascade_menus {
 
                                 # We must delete old ones first, otherwise we get a memory leak!
                                 #  - this one does not help!  Still leaks about .3 mb per reload with 40 or so items :(
-#               $Tk_objects{menu_items_by_object}{$object}->delete(0, 'end')if $Tk_objects{menu_items_by_object}{$object};
+		# *** How is this one special?
+
+               $Tk_objects{menu_items_by_object}{$object}->delete(0, 'end') if $Tk_objects{menu_items_by_object}{$object};
 
                                 # Only list items with NON-BLANK states
                 if (my $menu = &tk_object_states($object, 'menu_items')) {
@@ -5781,7 +5877,18 @@ sub tk_setup_cascade_menus {
 
                                 # Create/Reset Group cascade menu
     if ($config_parms{tk_groups}) {
-        print "Creating Tk Groups menu\n";
+        print "Creating Groups menu\n";
+
+
+	# Don't create if no groups!
+
+	my @list = &list_objects_by_type('Group');
+
+	if ($#list != -1) {
+
+	    $Tk_objects{menu_groups} = $Tk_objects{menu_bar}-> Menubutton(-text => 'Groups',
+                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0) unless $Tk_objects{menu_groups};
+
 
         $Tk_objects{menu_groups}->menu->delete(0, 'end'); # Delete old menus
 
@@ -5810,6 +5917,7 @@ sub tk_setup_cascade_menus {
         }
     }
 
+}
 # Check for leaking memory on $Reload, where we re-build menus
 #   my $mem = `ps -F \"%z\" -p $$ | tail -1`;
 #   chomp $mem;
@@ -5837,7 +5945,7 @@ sub tk_object_states {
     $menu -> add('command', -label => 'state_log', -command => sub{display join("\n", state_log $object)});
     for my $state (@states) {
         next if $state =~ /^[+-]\d+$/ and $state % 20;
-        $menu -> add('command', -label => $state, -command => sub{set $object $state});
+        $menu -> add('command', -label => $state, -command => sub{set $object $state, 'tk'});
     }
     return $menu;
 }
@@ -5909,15 +6017,15 @@ sub tk_checkbutton {
 
 sub tk_command_list {
     my ($parent) = @_;
-    my $list = $parent->Scrolled("Listbox", -scrollbars => "se", -bg => 'lightblue');
+    my $list = $parent->Scrolled("Listbox", -scrollbars => "se");
 
                                 # These 2 commands give a 'can not find delegate.pl' msg on tk 8.020 (ok on 8.015).
 #   $list->Label(text => "Command or Search String")->pack(-side => 'top', -fill => 'x');
 #   $Tk_objects{command} = $list->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'top', -fill => 'both');
 
     my $f = $parent->Frame->pack(-side => 'top', -fill => 'x');
-    $f->Label(-text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
-    $Tk_objects{command} = $f->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'left', -fill => 'x');
+#    $f->Label(-text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
+    $Tk_objects{command} = $f->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'left', -fill => 'x', -expand => 1);
 
     $list->insert(0, &list_voice_cmds_match($config_parms{tk_startup_cmd})); # Init with all commands
 
@@ -5988,24 +6096,25 @@ sub tk_label {
                                 # Allow web widgets, even with -no_tk
     push(@Tk_widgets, [$Category, 'label', @_]);
 
-    return unless $MW and $Tk_objects{grid};
+    return unless $MW and $Tk_objects{fb};
     my @data = @_;
     my @widgets;
     for my $pvar (@data) {
         $Tk_objects{label}{$pvar}->destroy if $Tk_objects{label}{$pvar} and Exists($Tk_objects{label}{$pvar});
                                 # Note: Use a fixed font, so label size does not change with changing letters.
-        $Tk_objects{label}{$pvar} = $Tk_objects{grid}->
+        $Tk_objects{label}{$pvar} = $Tk_objects{fb2}->
             Label(-relief => 'sunken', -textvariable => $pvar, -justify => 'left',
-                  -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font_fixed});
+                  -anchor => 'w', -font => $config_parms{tk_font_fixed});
 #           Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w', -font => $font1);
         push(@widgets, $Tk_objects{label}{$pvar});
     }
-    if (@widgets > 1) {
-        $widgets[0]->grid(@widgets[1..$#widgets], -sticky => 'w');
-    }
-    else {
-        $widgets[0]->grid(qw/-columnspan 5 -sticky w/);
-    }
+#    if (@widgets > 1) {
+#       $widgets[0]->pack(qw/-side bottom -padx 5 -anchor n/);
+#    }
+#    else {
+#        $widgets[0]->grid(qw/-sticky w/);
+        $widgets[0]->pack(qw/-side left -padx 5 -anchor n/);
+#    }
 }
 
                                 # Label for the menubar
@@ -6109,12 +6218,16 @@ sub write_user_code {
                                 # Note:  I don't think this is useful, as user code loop has not been run yet to add any hooks!
     &Reload_post_hooks();       #        Except, it IS useful when called from module code on startup.
 
-    print "Activate the voice commands\n";
+    print "Activating voice commands\n";
     &Voice_Cmd::activate;
-    &Voice_Cmd::mic('on');
+
+    if ($config_parms{listen} ne '0') { # default listens, 0 starts up not listening
+	    print "Turning on microphone\n";
+	    &Voice_Cmd::mic('on');
+    }
 
 
-                                # Now set usage_name in each object, so they know what they are called.
+                               # Now set usage_name in each object, so they know what they are called.
 #   my $var;
 #   for $var (keys %main::) {
 #       no strict 'refs';
