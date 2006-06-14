@@ -26,7 +26,7 @@ set myL=%myL% -l c:/perl/perl/bin/ssleay32.dll -l c:/perl/perl/bin/libeay32.dll
 @rem set PATH=c:\perl\perl\bin;%PATH%
 
 del mhc.errata
-call pp.bat -v 3 -i \compile\favicon.ico -L mhc.errata %myM% %myL% -o mhen.exe  mh
+call pp.bat -v 3 -i \compile\mh.ico -L mhc.errata %myM% %myL% -o mhen.exe  mh
 
 echo done
 house speak done with compile

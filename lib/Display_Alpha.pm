@@ -105,7 +105,7 @@ sub startup {
         print "Opening Display_Alpha port: pr=$port_room port=$port room=$room\n" if $::Debug{display_alpha};
         push @room_names, $room;	
 	
-	if ($type eq 'old') {
+	if ($type and $type eq 'old') {
 	    &::serial_port_create("Display_Alpha_$room", $port, 9600, undef, undef, undef, "even", 7, 2);
 	}
 	else {
@@ -336,14 +336,16 @@ sub main::display_alpha {
         my $image_name = $image; #save name for cache key
 
 	if ($image and $image !~ /\r/) { #invalid Beta Brite DOT
-		if (-e "$::config_parms{data_dir}/alpha/images/$image.bmp") { # look for Windows Bitmap (Todo: add XBM support)
-		    if (!&::file_changed("$::config_parms{data_dir}/alpha/images/$image.bmp") and $bitmaps{$image}) { #cached
+#	    my $image_file = "$::config_parms{data_dir}/alpha/images/$image.bmp";
+	    my $image_file = $::Pgm_Root . "/data/alpha/images/$image.bmp";
+		if (-e $image_file) { # look for Windows Bitmap (Todo: add XBM support)
+		    if (!&::file_changed($image_file) and $bitmaps{$image}) { #cached
 			$image = $bitmaps{$image};
 	  	    }
 		    else {
-		        my %info = &GetBMPInfo("$::config_parms{data_dir}/alpha/images/$image.bmp");
-		        my @picture = @{%info->{picture}};
-		        my @color_table = @{%info->{color_table}};
+		        my %info = &GetBMPInfo($image_file);
+		        my @picture = @{$info{picture}};
+		        my @color_table = @{$info{color_table}};
     		        $image = '';
 	                print "\n" if $::Debug{display_alpha};
 		        for my $i (0 .. $#picture) {

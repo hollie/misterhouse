@@ -108,12 +108,23 @@ sub update_clock {
     my $display;
     my $freq = 15; # status update every fifteen minutes by default
 
-    $freq = $config_parms{Display_Alpha_clock_update_freq} if $config_parms{Display_Alpha_clock_update_freq};
+#  $Weather{TempIndoor} = 72;
+#  $Weather{TempOutdoor} = 52;
 
+    $freq = $config_parms{Display_Alpha_clock_update_freq} if $config_parms{Display_Alpha_clock_update_freq};
 
 
 #   my $display = &time_date_stamp(21);  # 12:52 Sun 25
     $display = &time_date_stamp(8);   # 12:52
+  if ($config_parms{Display_Alpha_clock_format} == 1) {
+    $display = &time_date_stamp(8);   # 12:52
+    $display .= ' ' . int($Weather{TempIndoor}) . ' ' . int($Weather{TempOutdoor});
+    $display .= ' ' . substr($Day, 0, 1) . $Mday;
+#   $display .= ' ' . substr($Day, 0, 3);
+    $display .= ' ' . $Save{display_text} if $Save{display_text} and ($Time - $Save{display_time}) < 400;
+#   display device => 'alpha', color => 'amber', text => $display, mode => 'wipeout';
+  }
+  else {
     $display .= ' ' . substr($Day, 0, 2) . " " . $Mday;
 
     if (defined $Weather{TempIndoor} and defined $Weather{TempOutdoor}) {
@@ -125,18 +136,7 @@ sub update_clock {
        	$display .= ($temp_flag)?(" \x1c7\x1a5" . int($Weather{TempIndoor} + .5)):(" \x1c$color\x1a5" . int($Weather{TempOutdoor} + .5));	
 	$temp_flag = !$temp_flag;
     }
-    else {
-
-	    if (defined $Weather{TempIndoor}) { # Can fit one temperature
-        	$display .= " \x1c7\x1a5" . int($Weather{TempIndoor} + .5); # '\x1c7' is inline code for color 7
-	    }
-	    elsif (defined $Weather{TempOutdoor}) {
-		my $color = '4';
-		$color = '2' if $Weather{TempOutdoor} < 80;
-        	$display .= " \x1c$color\x1a5" . int($Weather{TempOutdoor} + .5);
-	    }
-
-    }
+   } 
 
 #   $display .= ' ' . substr($Day, 0, 3);
     $display .= ' ' . $Save{display_text} if $Save{display_text} and ($Time - $Save{display_time}) < 400;
@@ -468,7 +468,7 @@ if (&can_interrupt('email') and $Save{email_flag} and ($email_flag != $Save{emai
 }
 
 
-if (&can_interrupt('news') and $Save{news_ap_headline} and ($news_headline ne $Save{news_ap_headline})) {
+if (&can_interrupt('news') and $Save{news_ap_headline} and ($news_headline != $Save{news_ap_headline})) {
 
 	$news_headline = $Save{news_ap_headline} unless defined $news_headline;
 

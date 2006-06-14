@@ -102,9 +102,9 @@ $PressureChange = new Weather_Item 'BaromDelta';
 
 #noloop=start
 my $outdoor_comfort_min = $config_parms{outdoor_comfort_min};
-my $outdoor_comfort_min = 70 unless $config_parms{outdoor_comfort_min};
+   $outdoor_comfort_min = 70 unless $config_parms{outdoor_comfort_min};
 my $outdoor_comfort_max = $config_parms{outdoor_comfort_max};
-my $outdoor_comfort_max = 75 unless $config_parms{outdoor_comfort_max};
+   $outdoor_comfort_max = 75 unless $config_parms{outdoor_comfort_max};
 #noloop=stop
 
 

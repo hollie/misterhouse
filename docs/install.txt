@@ -656,9 +656,9 @@ Coding your own events
      mkdir c:\misterhouse\data
      mkdir c:\misterhouse\sounds
 
-     copy  c:\misterhouse\mh\code\test\trivia.pl c:\misterhouse\code
-     copy  c:\misterhouse\mh\bin\mh.example.ini  c:\misterhouse\mh.private.ini
-     xcopy c:\misterhouse\mh\data                c:\misterhouse\data /s
+     copy  c:\misterhouse\mh\code\common\trivia.pl c:\misterhouse\code
+     copy  c:\misterhouse\mh\bin\mh.example.ini    c:\misterhouse\mh.private.ini
+     xcopy c:\misterhouse\mh\data                  c:\misterhouse\data /s
 
      edit  c:\misterhouse\mh.private.ini
 

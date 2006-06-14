@@ -289,10 +289,12 @@ sub http_process_request {
 		# Now split each individual pair and store in the hash
 		foreach my $pair (@pairs) {
 			my ($name, $value) = $pair =~ /(.*?)=(.*)/;
-		    $value =~ tr/\+/ /;       # translate + back to spaces
-    		$value =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
-			# Store in hash
-			$HTTP_ARGV{$name} = $value;
+            if ($value) {
+                $value =~ tr/\+/ /;       # translate + back to spaces
+                $value =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
+                                # Store in hash
+                $HTTP_ARGV{$name} = $value;
+            }
 		}
 	}
 

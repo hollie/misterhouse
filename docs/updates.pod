@@ -68,6 +68,8 @@ B<Bug Fixes and Other Changes:>
 
 - Added a speak length mh.ini parm, to allow for truncating long text before speaking.  Default is set with mh.ini entry of speak_length=500
 
+- Axel Brown spoted a bug where the play sound_fork parm was ignored on non-winows boxes.
+
 
 =head2 Version 2.102 posted on 04/02/2006
 
