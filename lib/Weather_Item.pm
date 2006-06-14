@@ -65,7 +65,7 @@ sub new {
    }
 
 
-    my $self = {type => $type, list => @members};
+    my $self = {type => $type, list => \@members};
     bless $self, $class;
     push @weather_item_list, $self;
     return $self;         
@@ -81,9 +81,7 @@ sub state {
 
     # check that all members are defined
 
-    my @members = $self->{list};
-
-    for (@members) { # short-circuit evaluation if any member is undefined
+    for (@{$self->{list}}) { # short-circuit evaluation if any member is undefined
 	$valid = 0 if !defined $main::Weather{$_};
     }
 
