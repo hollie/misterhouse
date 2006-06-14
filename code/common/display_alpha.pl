@@ -468,7 +468,7 @@ if (&can_interrupt('email') and $Save{email_flag} and ($email_flag != $Save{emai
 }
 
 
-if (&can_interrupt('news') and $Save{news_ap_headline} and ($news_headline != $Save{news_ap_headline})) {
+if (&can_interrupt('news') and $Save{news_ap_headline} and ($news_headline ne $Save{news_ap_headline})) {
 
 	$news_headline = $Save{news_ap_headline} unless defined $news_headline;
 
