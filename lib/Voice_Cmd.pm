@@ -264,14 +264,14 @@ sub check_for_voice_cmd {
 
 	if ($said eq 'reserved') {
 		$cmd =~ s/\[.*\]//;	
-		$said = 1;
+		$said = '1';
 	}
 	else {
 		$cmd =~ s/\[.*\]/$said/;	
 	}
 	$cmd = lc($cmd); # get ready to pack into recognition response
 
-        $said  = 1 if !defined $said; # Some Voice_Cmds have blank saids.  But allow for 0 state
+        $said  = '1' if !defined $said; # Some Voice_Cmds have blank saids.  But allow for 0 state
 
                                 # This could be set for either the current or next pass ... next pass is easier
 
@@ -305,7 +305,7 @@ sub check_for_voice_cmd {
 		
 
 
-            $response =~ s/%STATE%/$said/g if $said != 1;
+            $response =~ s/%STATE%/$said/g if $said ne '1';
             $response =~ s/%HEARD%/$cmd_heard/g;
 
                                 # Allow for something like: 'Ok, I turned it $v_indoor_fountain->{said}'
