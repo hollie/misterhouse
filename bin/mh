@@ -1263,7 +1263,7 @@ sub check_for_action {
 
 	    $Tk_objects{menu_help} = $Tk_objects{menu_bar}->
         	Menubutton(-text => 'Help', 
-                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
+                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0) unless $Tk_objects{menu_help};
 
 
 # Do the help menu here so it shows up last
