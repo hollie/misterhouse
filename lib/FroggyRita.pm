@@ -68,7 +68,7 @@ my ($C1, $C2, $C3, $C4, $C5, $C6);
 my ($NbBits, $Rs, $Rp);
 my ($Temp, $Pres, $Hum, $TimeStamp);
 my $HaveIdent = 0;
-my $BadData;
+my $BadData = 0;
 
 # old syntax (use deprecated)
 
@@ -112,7 +112,7 @@ sub AskData {
          $main::Serial_Ports{$FroggyFD}{object}->write("G0047Z");
       }
       if ($$self{timer}) {	
-	print "FROG TIMER EXISTS: $$self{timer}";
+	print "Frog timer: $$self{timer}" if $main::Debug{froggyrita};
 	$$self{timer}->stop();
 	delete $$self{timer};
       }
@@ -194,7 +194,7 @@ sub serial_startup {
    $FroggyFD = $instance;
    my $port = $::config_parms{ $FroggyFD . "_serial_port" };
 
-	print "FROG STARTUP: $FroggyFD $port";
+	print "Frog startup: $FroggyFD $port" if $main::Debug{froggyrita};
 
    if (&::serial_port_create( $FroggyFD, $port, 300, 'none', 'raw' ) and 0) {
       init($::Serial_Ports{$FroggyFD}{object});
