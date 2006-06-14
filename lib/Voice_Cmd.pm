@@ -262,7 +262,7 @@ sub check_for_voice_cmd {
         $said  = $cmd_state_by_num{$number};
         $cmd = $ref->{text};
 
-	if ($said == -1) {
+	if ($said eq 'reserved') {
 		$cmd =~ s/\[.*\]//;	
 		$said = 1;
 	}
@@ -475,7 +475,7 @@ sub _register {
                                 # These commands have no real states ... there is no enumeration
                                 #  - avoid saving the whole name as state.  Too much for state_log displays
                                 # Leave state=0 alone!
-        $state = -1 if !defined $state or $state eq '' or $state eq $text;
+        $state = 'reserved' if !defined $state or $state eq '' or $state eq $text;
 
         my $cmd_num = &_register2($self, $cmd, $vocab, $description);
         $self->{text_by_state}{$state} = $cmd;
