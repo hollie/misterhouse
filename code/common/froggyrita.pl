@@ -19,8 +19,8 @@ if (said $v_froggy_indoor_check) {
 
 if (said $v_froggy_indoor_temperature) {
 	
-		if (defined $Froggy->temperature()) {
-			respond "app=frog It is " . (int(((($Froggy->temperature() * 9) / 5 + 32) * 100))/100) . " degrees fahrenheit indoors.";
+		if (defined $Weather{TempIndoor}) {
+			respond "app=frog It is $Weather{TempIndoor} degrees fahrenheit indoors.";
 		}
 		else {
 			respond "app=frog I don't know the temperature at the moment. Try again in a few minutes...";
@@ -49,7 +49,7 @@ if (my $state = state_now $Froggy) {
 		}
 		$command_waiting = undef;
 	}
-	$Weather{TempIndoor} = ($Froggy->temperature() * 9) / 5 + 32 if defined $Froggy->temperature();
+	$Weather{TempIndoor} = int((($Froggy->temperature() * 900) / 5 + 50))/100 + 32 if defined $Froggy->temperature();
         $Weather{HumidIndoor} = $Froggy->humidity() if defined $Froggy->humidity();
 }
 
