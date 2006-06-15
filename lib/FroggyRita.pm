@@ -57,8 +57,6 @@ package FroggyRita;
 use Timer;
 use POSIX;
 
-# *** Need config parms for delay and fahrenheit/celsius (?)
-
 
 @FroggyRita::ISA = ('Generic_Item');
 
@@ -188,29 +186,22 @@ sub Ribbit {
 sub serial_startup {
    my ($instance) = @_;
 
-	# *** Move to new method and make configurable by name (FroggyRita2, 3, etc.)
-	# *** See callerID
-
    $FroggyFD = $instance;
-   my $port = $::config_parms{ $FroggyFD . "_serial_port" };
-
-	print "Frog startup: $FroggyFD $port" if $main::Debug{froggyrita};
-
-   if (&::serial_port_create( $FroggyFD, $port, 300, 'none', 'raw' ) and 0) {
-      init($::Serial_Ports{$FroggyFD}{object});
-      print "FroggyRita.pm initialized $FroggyFD on port $port at 300 baud\n" if $main::Debug{froggyrita};
-      &::logit("$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "Initializing $FroggyFD on port $port at 300 baud");
-#      &::MainLoop_pre_add_hook(\&FroggyRita::FrogLoop, 1);
-   }
+   
 }
+
+my $frog_count = 0; #noloop
 
 sub new {
    my $name;
    my ($class, $port) = @_;
 
-	# $self->get_object_name() How to get name here???  If not, FroggyRita[n]
 
    $name = "FroggyRita" unless $name;
+   $name .= $frog_count if $frog_count;
+
+   $frog_count++;
+
    $port = $::config_parms{ $name . "_serial_port" } unless $port;
    if (&::serial_port_create($FroggyFD, $port, 300, 'none', 'raw')) {
       init($::Serial_Ports{$FroggyFD}{object});
