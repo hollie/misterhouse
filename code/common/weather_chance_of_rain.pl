@@ -30,20 +30,28 @@ $v_chance_of_rain2-> set_authority('anyone');
 
 
 if (said $v_chance_of_rain or $state = said $v_chance_of_rain2) {
+	my $response = $Weather{chance_of_rain};	
 	if ($Weather{chance_of_rain}) {
-		my $response = $Weather{chance_of_rain};	
 		my $set_by = ($state)?$v_chance_of_rain2->{set_by}:$v_chance_of_rain->{set_by};
 		if ($set_by eq 'time' or $set_by eq 'unknown' or !$set_by) {
 			$response = 'Notice, ' . lcfirst($response);
 		}
-		respond $response;
 	}
 	else {
-		respond 'The weather forecast has not yet arrived';
+		$response = 'The weather forecast has not yet arrived.';
+	}
+	if ($state) {
+		$v_chance_of_rain2->respond("app=rain $response");
+	}
+	else {
+		$v_chance_of_rain->respond("app=rain $response");
 	}
 }
 
 if (said $v_get_chance_of_rain or changed $f_weather_forecast_chance_of_rain or $Reload) {
+
+$v_get_chance_of_rain->respond("app=rain Reading weather forecast...") if said $v_get_chance_of_rain;
+
 	set_watch $f_weather_forecast_chance_of_rain;
 
 	my (%forecasts);
@@ -124,6 +132,7 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 	$text =~ s/a 8/an 8/g;
 	$text =~ s/,([^,]+)$/ and$1/;
 	$Weather{chance_of_rain} = $text;
+	$v_get_chance_of_rain->respond("app=rain Precipitation forecast prepared.") if said $v_get_chance_of_rain;
 }
 
 
