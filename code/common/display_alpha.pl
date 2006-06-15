@@ -532,6 +532,7 @@ if ($mh_volume->{state} ne $da_data{volume}) {
 	# only show when it changes
 
    	&display("device=alpha app=volume image=$vol_image Volume: $sl_vol") if defined $da_data{volume};
+       	&set_display_timer(5, undef);
 	$da_data{volume} = $sl_vol if defined $sl_vol;
 }
 
