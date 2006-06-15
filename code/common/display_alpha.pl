@@ -19,6 +19,10 @@ $display_alpha_timer = new Timer;
 # Works with apps that set $Save{NowPlaying}
 # Optionally set $Save{mp3_mode} to display player mode (mp3_winamp does this currently)
 
+
+use vars '$mh_volume';  #(From status line Web script) In case mh_sound is not running ( *** Should use eval to trap errors here, rather than declaring the var)
+
+
 # noloop=start
 my $now_playing; #last displayed song title
 my $player_mode; #last reported mode
@@ -99,6 +103,13 @@ sub can_interrupt { # apps can interrupt their own messages only
 	return ((inactive $display_alpha_timer) or $_ eq $timer_set_by);	
 }
 
+# 15 detents (0-9,A-E)
+
+sub volume_image {
+	my $volume = shift;
+	return 'volum' . lc(sprintf("%01x", int($volume / 7))) if defined $volume;
+}
+
 
 # called every minute by trigger (disable for custom clock/status app)
 
@@ -108,23 +119,12 @@ sub update_clock {
     my $display;
     my $freq = 15; # status update every fifteen minutes by default
 
-#  $Weather{TempIndoor} = 72;
-#  $Weather{TempOutdoor} = 52;
-
     $freq = $config_parms{Display_Alpha_clock_update_freq} if $config_parms{Display_Alpha_clock_update_freq};
+
 
 
 #   my $display = &time_date_stamp(21);  # 12:52 Sun 25
     $display = &time_date_stamp(8);   # 12:52
-  if ($config_parms{Display_Alpha_clock_format} == 1) {
-    $display = &time_date_stamp(8);   # 12:52
-    $display .= ' ' . int($Weather{TempIndoor}) . ' ' . int($Weather{TempOutdoor});
-    $display .= ' ' . substr($Day, 0, 1) . $Mday;
-#   $display .= ' ' . substr($Day, 0, 3);
-    $display .= ' ' . $Save{display_text} if $Save{display_text} and ($Time - $Save{display_time}) < 400;
-#   display device => 'alpha', color => 'amber', text => $display, mode => 'wipeout';
-  }
-  else {
     $display .= ' ' . substr($Day, 0, 2) . " " . $Mday;
 
     if (defined $Weather{TempIndoor} and defined $Weather{TempOutdoor}) {
@@ -136,7 +136,18 @@ sub update_clock {
        	$display .= ($temp_flag)?(" \x1c7\x1a5" . int($Weather{TempIndoor} + .5)):(" \x1c$color\x1a5" . int($Weather{TempOutdoor} + .5));	
 	$temp_flag = !$temp_flag;
     }
-   } 
+    else {
+
+	    if (defined $Weather{TempIndoor}) { # Can fit one temperature
+        	$display .= " \x1c7\x1a5" . int($Weather{TempIndoor} + .5); # '\x1c7' is inline code for color 7
+	    }
+	    elsif (defined $Weather{TempOutdoor}) {
+		my $color = '4';
+		$color = '2' if $Weather{TempOutdoor} < 80;
+        	$display .= " \x1c$color\x1a5" . int($Weather{TempOutdoor} + .5);
+	    }
+
+    }
 
 #   $display .= ' ' . substr($Day, 0, 3);
     $display .= ' ' . $Save{display_text} if $Save{display_text} and ($Time - $Save{display_time}) < 400;
@@ -194,10 +205,11 @@ sub update_clock {
 		}
 		elsif ($parm eq 'volume') {
 
-			use vars '$mh_volume';  #(From status line Web script) In case mh_sound is not running ( *** Should use eval to trap errors here, rather than declaring the var)
 		        if ($mh_volume) {
 		        	my $sl_vol = state $mh_volume;
-         			&display("wait=1 device=alpha app=volume Volume: $sl_vol") if $sl_vol;
+				my $vol_image = &volume_image($sl_vol);
+
+         			&display("wait=1 device=alpha app=volume image=$vol_image Volume: $sl_vol") if defined $sl_vol;
 		        }
 
 
@@ -429,7 +441,7 @@ if ($Startup) {
 
 # check for new song (this really belongs in a second trigger)
 
-if (&can_interrupt('music') and $Save{NowPlaying} and ($now_playing ne $Save{NowPlaying} or $player_mode ne $Save{mp3_mode})) {
+if (&can_interrupt('music') and $Save{NowPlaying} and ($now_playing ne $Save{NowPlaying} or $player_mode != $Save{mp3_mode})) {
 	if ($Save{mp3_mode} == 1) { #playing
 		my $playing = $Save{NowPlaying};
 		my ($artist,$song) = $playing =~ /(.*) - (.*)/;
@@ -450,6 +462,13 @@ if (&can_interrupt('music') and $Save{NowPlaying} and ($now_playing ne $Save{Now
 
 
 my %da_data;  # noloop
+
+#my $email_flag;
+#my $news_headline;
+#my $weather_warning;
+#my $barcode;
+#my $volume;
+
 
 if (&can_interrupt('email') and $Save{email_flag} and ($da_data{email_flag} ne $Save{email_flag})) {
 
@@ -477,9 +496,10 @@ if (&can_interrupt('email') and $Save{email_flag} and ($da_data{email_flag} ne $
 
 if (&can_interrupt('news') and $Save{news_ap_headline} and ($da_data{news_headline} ne $Save{news_ap_headline})) {
 
-	$da_data{news_headline} = $Save{news_ap_headline} unless defined $da_data{news_headline};
 
-	if ($da_data{news_headline} ne $Save{news_ap_headline}) {	#News flash!
+	# Only show when it changes (not on reload of module.)
+
+	if (defined $da_data{news_headline}) {	#News flash!
 		&display(device=>'alpha', app=>'news', text=> $Save{news_ap_headline});
         	&set_display_timer(30, 'news');
 	}
@@ -503,5 +523,19 @@ if ($Info{barcode_data} and ($da_data{barcode} ne $Info{barcode_data})) {
        	&set_display_timer(5, 'barcode');
 
 }
+
+# if ($state = state_now $mh_volume) { # *** Oops tk slider widget not setting state
+if ($mh_volume->{state} ne $da_data{volume}) {
+       	my $sl_vol = state $mh_volume;
+	my $vol_image = &volume_image($sl_vol);
+
+	# only show when it changes
+
+   	&display("device=alpha app=volume image=$vol_image Volume: $sl_vol") if defined $da_data{volume};
+	$da_data{volume} = $sl_vol if defined $sl_vol;
+}
+
+
+
 
 
