@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2006-06-14 21:20:31 winter>
+#  Last change Time-stamp: <2006-04-02 17:58:02 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -992,6 +992,8 @@ sub setup {
     @Speak_Log = reverse @log;
 #    unshift @Speak_Log, "$Time_Date ---------- Restart ---------- ";
 
+    speak('app=system System restarted');
+
     @log = &file_tail($error_log, $config_parms{max_log_entries});
     chomp @log;
     @Error_Log = reverse @log;
@@ -1016,8 +1018,6 @@ sub setup {
     print PRINTLOG (join "\n", reverse @Print_Log), "\n";
     print SPEAKLOG (join "\n", reverse @Speak_Log), "\n";
     print ERRORLOG (join "\n", reverse @Error_Log), "\n";
-
-    speak('app=system System restarted');
 
     print "External command file (xcmd_file): $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
 
@@ -1250,7 +1250,7 @@ sub check_for_action {
 
 	if ($Reload) {
 	# Ditto for modules!
-
+		
 	    $Tk_objects{menu_modules} = $Tk_objects{menu_bar}->Menubutton(-text => 'Modules', -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0) unless $Tk_objects{menu_modules};
 	    $Tk_objects{menu_modules}->menu->delete(0, 'end'); # Delete old menus
 
@@ -1261,22 +1261,27 @@ sub check_for_action {
 #			last if $i++ > 20; # *** config for this
 	    }
 
+
+unless ($Tk_objects{menu_help}) {
+
 	    $Tk_objects{menu_help} = $Tk_objects{menu_bar}->
-        	Menubutton(-text => 'Help',
-                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0) unless $Tk_objects{menu_help};
+        	Menubutton(-text => 'Help', 
+                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
 
 
 # Do the help menu here so it shows up last
 
 
 	    $Tk_objects{menu_help}->command(-label => 'Contents', -underline => 0, -command => \&help);
-	    $Tk_objects{menu_help}->command(-label => 'FAQ', -underline => 0, -command => \&help);
-	    $Tk_objects{menu_help}->command(-label => 'Examples', -underline => 0, -command => \&help);
-	    $Tk_objects{menu_help}->command(-label => 'User Documentation', -underline => 0, -command => \&help);
+	    $Tk_objects{menu_help}->command(-label => 'FAQ', -underline => 0, -command => sub { &help('faq') });
+	    $Tk_objects{menu_help}->command(-label => 'Examples', -underline => 0, -command => sub { &help('examples')});
+	    $Tk_objects{menu_help}->command(-label => 'User Documentation', -underline => 0, -command => sub { &help('wiki')});
+	    $Tk_objects{menu_help}->command(-label => 'Neighborhood', -underline => 0, -command => sub { &help('neighborhood')});
 
 	    $Tk_objects{menu_help}->separator;
 
 	    $Tk_objects{menu_help}->command(-label => 'About', -underline => 0, -command => \&help_about);
+	}
 
 	}
 
@@ -2616,7 +2621,22 @@ sub get_object_by_name {
 }
 
 sub help {
-    &browser("$Pgm_Path/../docs/index.html");
+    my $topic = shift;
+    if ($topic eq 'neighborhood') {
+	&browser("http://www.frappr.com/misterhouse");
+    }
+    elsif ($topic eq 'wiki') {
+	&browser("http://misterhouse.wikispaces.com");
+    }
+    elsif ($topic eq 'faq') {
+	&browser("$Pgm_Path/../docs/faq.html");
+    }
+    elsif ($topic eq 'examples') {
+	&browser("$Pgm_Path/../docs/examples.html");
+    }
+    else {
+        &browser("$Pgm_Path/../docs/index.html");
+    }
 }
 
 sub is_local_address {
@@ -5658,7 +5678,7 @@ sub tk_setup_windows {
 				# doesn't quite work on XP :(
 
                                 # Guard against accidental MH exits (without this we would get "Failed to AUTOLOAD Tk..." errors)
-    #$MW->protocol('WM_DELETE_WINDOW', sub { &display("To exit, use the File->Exit pulldown\n", 5)}
+    #$MW->protocol('WM_DELETE_WINDOW', sub { &display("To exit, use the File->Exit pulldown\n", 5)} 
     $MW->protocol('WM_DELETE_WINDOW', sub { &exit_pgm() } );
 
                                 # Keep startup value so we resize only if it has changed since startup,
@@ -5666,10 +5686,7 @@ sub tk_setup_windows {
     $config_parms{tk_geometry_startup} = $config_parms{tk_geometry};
 
     $MW->iconname('Misterhouse'); # Loads tk icon resource
-                                                                        # Older build gives 'bitmap not defined' error
-
-    $MW->iconbitmap($Pgm_Root . '\web\favicon.ico') unless $^O eq 'MSWin32' and &Win32::BuildNumber < 810;
-
+    $MW->iconbitmap($Pgm_Root . '\web\favicon.ico');
 #   $MW->optionAdd('*font' => 'systemfixed');
     $MW->optionAdd('*font' => $config_parms{tk_font_menus}) if $config_parms{tk_font_menus};
 
@@ -5683,7 +5700,7 @@ sub tk_setup_windows {
     $Tk_objects{menu_bar} = $MW->Frame->pack(-anchor => 'w', -side => 'top', -expand => 0, -fill => 'x');
 
     $Tk_objects{menu_file} = $Tk_objects{menu_bar}->
-        Menubutton(-text => 'File',
+        Menubutton(-text => 'File', 
                    -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
 
 
@@ -5694,7 +5711,7 @@ sub tk_setup_windows {
 
 
     $Tk_objects{menu_commands} = $Tk_objects{menu_bar}->
-        Menubutton(-text => 'Commands',
+        Menubutton(-text => 'Commands', 
                    -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
     $Tk_objects{menu_items} = $Tk_objects{menu_bar}->
         Menubutton(-text => 'Items',
@@ -5703,7 +5720,7 @@ sub tk_setup_windows {
 
 
     $Tk_objects{menu_speech} = $Tk_objects{menu_bar}->
-        Menubutton(-text => 'Speech',
+        Menubutton(-text => 'Speech', 
                    -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
 
     $Tk_objects{menu_speech}->checkbutton(-label => 'Console Speech',  -variable => \$config_parms{console_speech});
@@ -5740,7 +5757,7 @@ sub tk_setup_windows {
 
 	for (sort @debug_options) {
 		#my $cmd = "sub {\$config_parms{debug} = $_}";
-		$Tk_objects{menu_file_debug}->checkbutton(-label => ucfirst($_), -underline => 0, -variable => \$Debug{$_}, -command => sub {$config_parms{debug} = undef}) if $_ !~ /^off$/i;
+		$Tk_objects{menu_file_debug}->checkbutton(-label => ucfirst($_), -underline => 0, -variable => \$Debug{$_}, -command => sub {$config_parms{debug} = undef}) if $_ !~ /^off$/i;		
 	}
 
 
