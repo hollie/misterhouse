@@ -429,7 +429,7 @@ if ($Startup) {
 
 # check for new song (this really belongs in a second trigger)
 
-if (&can_interrupt('music') and $Save{NowPlaying} and ($now_playing ne $Save{NowPlaying} or $player_mode != $Save{mp3_mode})) {
+if (&can_interrupt('music') and $Save{NowPlaying} and ($now_playing ne $Save{NowPlaying} or $player_mode ne $Save{mp3_mode})) {
 	if ($Save{mp3_mode} == 1) { #playing
 		my $playing = $Save{NowPlaying};
 		my ($artist,$song) = $playing =~ /(.*) - (.*)/;
@@ -448,51 +448,58 @@ if (&can_interrupt('music') and $Save{NowPlaying} and ($now_playing ne $Save{Now
 	$player_mode = $Save{mp3_mode};
 }
 
-#noloop=start
-my $email_flag;
-my $news_headline;
-my $weather_warning;
-my $barcode;
-#noloop=stop
 
-if (&can_interrupt('email') and $Save{email_flag} and ($email_flag != $Save{email_flag})) {
+my %da_data;  # noloop
 
-	$email_flag = $Save{email_flag} unless defined $email_flag;
+if (&can_interrupt('email') and $Save{email_flag} and ($da_data{email_flag} ne $Save{email_flag})) {
 
-	if ($email_flag < $Save{email_flag}) {	#You have mail!
-		&display(device=>'alpha', app=>'email', text=> ($Save{email_flag} - $email_flag) . ' new email messages');
-        	&set_display_timer(12, 'email'); #show new email count for 12 seconds
+	$da_data{email_flag} = $Save{email_flag} unless defined $da_data{email_flag};
+	my $email_msg;
+
+	if ($da_data{email_flag} =~ /^[ \d]+$/) {
+	    if ($da_data{email_flag} < $Save{email_flag}) {	#You have mail!
+		$email_msg = 'You have ' . ($Save{email_flag} - $da_data{email_flag}) . ' new email messages';
+	    }
+	}
+	else {			# Allow for non-numeric email flags
+	    if ($da_data{email_flag} and $da_data{email_flag} ne $Save{email_flag}) {
+		$email_msg = $da_data{email_flag};
+	    }
+	}
+	if ($email_msg) {
+	    &display(device=>'alpha', app=>'email', text=> $email_msg);
+	    &set_display_timer(12, 'email'); #show new email count for 12 seconds
 	}
 
-	$email_flag = $Save{email_flag};
+	$da_data{email_flag} = $Save{email_flag};
 }
 
 
-if (&can_interrupt('news') and $Save{news_ap_headline} and ($news_headline != $Save{news_ap_headline})) {
+if (&can_interrupt('news') and $Save{news_ap_headline} and ($da_data{news_headline} ne $Save{news_ap_headline})) {
 
-	$news_headline = $Save{news_ap_headline} unless defined $news_headline;
+	$da_data{news_headline} = $Save{news_ap_headline} unless defined $da_data{news_headline};
 
-	if ($news_headline ne $Save{news_ap_headline}) {	#News flash!
+	if ($da_data{news_headline} ne $Save{news_ap_headline}) {	#News flash!
 		&display(device=>'alpha', app=>'news', text=> $Save{news_ap_headline});
         	&set_display_timer(30, 'news');
 	}
 
-	$news_headline = $Save{news_ap_headline};
+	$da_data{news_headline} = $Save{news_ap_headline};
 }
 
-if ($Weather{warning} and ($weather_warning ne $Weather{warning})) {
+if ($Weather{warning} and ($da_data{weather_warning} ne $Weather{warning})) {
 
-	if ($weather_warning ne $Weather{warning} and $Weather{warning} !~ /updated/i and $Weather{warning} !~ /adjusted/i and $Weather{warning} !~ /removed/i) {
+	if ($da_data{weather_warning} ne $Weather{warning} and $Weather{warning} !~ /updated/i and $Weather{warning} !~ /adjusted/i and $Weather{warning} !~ /removed/i) {
 		&display(device=>'alpha', app=>'weather', color=>'red', image=>'warning', text=> "WARNING: $Weather{warning}");
         	&set_display_timer(60, 'weather');
 	}
 
-	$weather_warning = $Weather{warning};
+	$da_data{weather_warning} = $Weather{warning};
 }
 
-if ($Info{barcode_data} and ($barcode ne $Info{barcode_data})) {
-	$barcode = $Info{barcode_data};
-	&display(device=>'alpha', app=>'scanner', text=>$barcode);
+if ($Info{barcode_data} and ($da_data{barcode} ne $Info{barcode_data})) {
+	$da_data{barcode} = $Info{barcode_data};
+	&display(device=>'alpha', app=>'scanner', text=>$da_data{barcode});
        	&set_display_timer(5, 'barcode');
 
 }
