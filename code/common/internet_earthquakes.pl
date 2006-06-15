@@ -108,7 +108,7 @@ my $speech;
 $p_earthquakes_image = new Process_Item;
 $p_earthquakes = new Process_Item("get_url ftp://hazards.cr.usgs.gov/cnss/quake " . $f_earthquakes_txt->name);
 
-$v_earthquakes =  new  Voice_Cmd('[Get,Show,Read,Clear] recent earthquakes');
+$v_earthquakes =  new  Voice_Cmd('[Get,Read,Clear] recent earthquakes');
 $v_earthquakes -> set_info('Display recent earthquake information');
 $v_earthquakes -> set_authority('anyone');
 
@@ -117,36 +117,17 @@ $state = said $v_earthquakes;
 if ( $state eq 'Get' ) {
   unlink $f_earthquakes_txt->name;
   if (&net_connect_check) {
-    print_log "Checking for recent earthquakes ...";
+    $v_earthquakes->respond("app=earthquakes Checking for recent earthquakes...");
 
     # Use start instead of run so we can detect when it is done
     start $p_earthquakes;
   }
 }
-
-if ( $state  eq 'Show' ) {
-  my $quake;
-  my $num = 0;
-  $speech = '';
-  foreach (split /\t/, $Save{quakes}) {
-    $quake = $_;
-    last unless $num < $Earthquake_Count;
-    $num += parse_quake($quake);
-  }
-  if ($speech) {
-     respond $speech;
-  }
-  else {
-     respond 'No recent earthquakes to report.';
-  }
-}
-
-if ( $state eq 'Clear' ) {
-  print_log "Clearing recent earthquakes ...";
+elsif ( $state eq 'Clear' ) {
+  $v_earthquakes->respond("app=earthquakes Clearing recent earthquakes ...");
   $Save{quakes} = "";
 }
-
-if ( $state eq 'Read' ) {
+elsif ( $state eq 'Read' ) {
   my $quake;
   my $num = 0;
   $speech = '';
@@ -156,14 +137,16 @@ if ( $state eq 'Read' ) {
     $num += parse_quake($quake);
   }
   if ($speech) {
-     respond "target=speak $speech";
+     $v_earthquakes->respond("app=earthquakes $speech");
   }
   else {
-     respond 'target=speak No recent earthquakes to report.';
+     $v_earthquakes->respond('app=earthquakes No recent earthquakes to report.');
   }
 }
 
 if (done_now $p_earthquakes) {
+
+  $v_earthquakes->respond("connected=0 Earthquake data retrieved");
   my $new_quakes = "";
   my ($quake, $search);
   my $num = 0;
@@ -192,7 +175,7 @@ if (done_now $p_earthquakes) {
     }
     set $p_earthquakes_image "get_url $image " . $f_earthquakes_gif->name;
     start $p_earthquakes_image if $image;
-    speak ($speech) if $speech ne '';
+    $v_earthquakes->respond("app=earthquakes connected=0 important=1 $speech") if $speech ne '';
     $speech='';
   }
 }
@@ -216,13 +199,16 @@ sub calc_distance {
     return $d*(.5*7915.6);  # convert to miles and return
 }
 
-sub calc_age {
+sub calc_earthquake_age {
     #Get the time sent in. This is UTC
     my $time = shift;
     #Split it up
     my ($qyear, $qmnth, $qdate, $qhour, $qminu, $qseco) = $time =~ m!(\S+)/(\S+)/(\S+)\s+(\S+):(\S+):(\S+)!;
     #Merge it
     my $qtime = timegm($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear);
+
+	print ("UTC:" . $qtime . "\n");
+
     #Split it again - these are now local time, not UTC
     ($qseco,$qminu,$qhour,$qdate,$qmnth,$qyear) = localtime($qtime);
     $qmnth += 1;
@@ -243,7 +229,7 @@ sub calc_age {
     else {$hour = $qhour - 12 . " PM"}
     return "Yesterday at $hour " if ($qtime > $midnight - 60*60*24);
     my $days_ago = int($diff/(60*60*24) + .5);
-    return  "$days_ago day" . (($days_ago > 1)?'s':'') . " ago at $hour ";
+    return  "$days_ago day" . (($days_ago > 1)?'s':'') . " ago at $hour";
 }
 
 # 03/12/30 15:32:35 34.20N 139.13E 33.0 4.4M B NEAR S. COAST OF HONSHU, JAPAN
@@ -261,7 +247,8 @@ sub parse_quake {
           $image = 'http://earthquake.usgs.gov/recenteqsww/Maps/10/' . $long_reso * round(($qlong < 0 ? 360 + $qlong : $qlong)/$long_reso) . '_' . 5 * round($qlatd/5) . '.gif';
 	  $qloca = lc($qloca);
 	  $qloca =~ s/\b(\w)/uc($1)/eg;
-      $speech .= &calc_age("$qdate $qtime") . "a magnitude $qmagn earthquake occurred $distance $Earthquake_Unit_Name away near $qloca. ";
+
+          $speech .= &calc_earthquake_age("$qdate $qtime") . " a magnitude $qmagn earthquake occurred $distance $Earthquake_Unit_Name away " . (($qloca =~ /^near/i)?'':'near ') . "$qloca. ";
           return 1;
         }
       }
