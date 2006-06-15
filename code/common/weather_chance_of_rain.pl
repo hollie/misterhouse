@@ -78,6 +78,9 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 =cut
 
 	my $current_day;
+	my $current_chance; #current chance
+	my $current_precip; #snow or rain
+
 	foreach my $line (read_all $f_weather_forecast_chance_of_rain) {
 		next if $line =~ /^as of/i;
 		if ($line =~ /^warning:(.*)/i) {
@@ -92,8 +95,6 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 		if (my ($forecast) = $line =~ /^\s*( \S.+)/) {
 			$forecasts{$current_day} .= $forecast;
 		}
-		#print "$line\n";
-		#print "$current_day : $forecasts{$current_day}\n";
 	}
 	$Weather{"Forecast Days"} =~ s/\|$//;
 	my $text = '';
@@ -114,6 +115,10 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 		$chance = 80 if $chance > 100;
 		my $precip = ($forecasts{$day} =~ / snow/) ? 'snow' : 'rain';
 		$Weather{"Chance of $precip $day"} = $chance;
+		unless (defined $current_chance) {
+			$current_chance = $chance;
+			$current_precip = $precip;
+		}
 		$Weather{"Forecast $day"} = $forecasts{$day};
 		next unless $chance;
 		last unless $days_to_read--;
@@ -125,6 +130,12 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 		$Weather{chance_of_rain} = 'There is no rain or snow in the forecast.';
 		return;
 	}
+	$Weather{"ChanceOfRainPercent"} = undef;
+	$Weather{"ChanceOfSnowPercent"} = undef;
+	$Weather{"ChanceOf" . ucfirst($current_precip) . "Percent"} = $current_chance if defined $current_chance;
+
+
+
 	my $tomorrow = $days[($Wday + 1) % 7];
 	$text =~ s/$tomorrow/tomorrow/g;
 	$text = 'There is' . $text;
