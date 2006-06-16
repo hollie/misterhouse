@@ -2,63 +2,46 @@
 
 #@ Retrieves David Letterman's Top 10 List.
 
-# An example on how to get and process html from the net ... Lettermans top 10 list
+# An example on how to get and process html from the net
 
+#noloop=start
 my $f_top10_list = "$config_parms{data_dir}/web/top10_list.txt";
 my $f_top10_html = "$config_parms{data_dir}/web/top10_list.html";
+#noloop=stop
 
-#$f_top10_html2 = new File_Item($f_top10_html); # Needed if we use run instead of process_item
-
-#p_top10_list = new Process_Item("get_url http://marketing.cbs.com/lateshow/topten/ $f_top10_html");
-#p_top10_list = new Process_Item("get_url http://marketing.cbs.com/network/tvshows/mini/lateshow/index.shtml $f_top10_html");
-#p_top10_list = new Process_Item("get_url http://marketing.cbs.com/latenight/lateshow/# $f_top10_html");
-#p_top10_list = new Process_Item("get_url http://www.cbs.com/latenight/lateshow/# $f_top10_html");
 $p_top10_list = new Process_Item("get_url http://www.cbs.com/latenight/lateshow/top_ten/ $f_top10_html");
 
-$v_top10_list  = new  Voice_Cmd('[Get,Read,Show] the top 10 list');
-$v_top10_list -> set_info("This is David Lettermans famoust Top 10 List"); 
+# *** Split these up for security (allow anyone to read)
 
-                                # Allow for an open access action
-#$v_top10_list2 = new  Voice_Cmd('{Display,What is} the top 10 list');
-#***Display redundant?  Why is this command here anyway?
-#$v_top10_list2 = new  Voice_Cmd('What is the top 10 list');
-#$v_top10_list2-> set_info("This is David Lettermans famoust Top 10 List"); 
-#$v_top10_list2-> set_authority('anyone');
-#$v_top10_list2-> tie_items($v_top10_list, 1, 'Show');
+$v_top10_list  = new  Voice_Cmd('[Get,Read,Check] the top 10 list');
+$v_top10_list -> set_info("This is David Letterman's famous Top 10 List"); 
 
-if ($state = said $v_top10_list) {
-	speak    app => 'top10', text => $f_top10_list, display => 0 if $state eq 'Read';
-	respond  app => 'top10', text => $f_top10_list if $state eq 'Show';
+
+if ('Read' eq said $v_top10_list) {
+	my $text = file_read $f_top10_list;
+	$v_top10_list->respond("app=top10 $text");
 }
+else {
 
+	my $state = said $v_top10_list;
 
-if ($state eq 'Get') {
-                                # Do this only if we the file has not already been updated today and it is not empty
-#    if (-s $f_top10_html > 10 and
-#        time_date_stamp(6, $f_top10_html) eq time_date_stamp(6)) {
-#        print_log "Top 10 list is current";
-#       set $v_top10_list 'Show';
-#       start $p_top10_list 'do_nothing';  # Fire the process with no-op, so we can still run the parsing code for debug
-#    }
-#    else {
+if ($state eq 'Get' or $state eq 'Check') {                        
         if (&net_connect_check) {
-            print_log "Retrieving top 10 list from the Internet...";
-            # Use start instead of run so we can detect when it is done
+            $v_top10_list->respond("app=top10 Retrieving Top 10 list from the Internet...");
             start $p_top10_list;
         }
         else {
-            respond "Sorry, you must be logged onto the net";
+            $v_top10_list->respond("app=top10 Cannot retrieve Top 10 list while disconnected from the Internet.");
         }
-#    }            
-#   print_log " top10 get set_by=$v_top10_list->{target} target=$v_top10_list->{target}";
-#   $leave_socket_open_passes = 200 if $Respond_Target =~ /^web/; # Tell web browser to wait for respond
-#   &respond_wait;  # Tell web browser to wait for respond
+}
+
 }
 
 if (done_now $p_top10_list) {
     my $html = file_read $f_top10_html;
 
 #   my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
+
     my $text = &html_to_text($html);
 
                                 # Delete &nbsb
@@ -87,8 +70,29 @@ if (done_now $p_top10_list) {
 
     file_write($f_top10_list, $text);
 
-    print_log "Top 10 list retrieved."
-
-    #set $v_top10_list 'Show';
+    if ($v_top10_list->{state} eq 'Check') {
+	$v_top10_list->respond("app=top10 connected=0 important=1 $text");
+    }
+    else {
+        $v_top10_list->respond("app=top10 connected=0 Top 10 list retrieved.");
+    }
 }
+
+
+if ($Reload and $Run_Members{'trigger_code'}) { 
+    if ($Run_Members{'internet_dialup'}) { 
+        eval qq(
+            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get the Top 10 List'", 'NoExpire', 'get top 10 list') 
+              unless &trigger_get('get top 10 list');
+        );
+    }
+    else {
+        eval qq(
+            &trigger_set("time_cron '30 6 * * *' and net_connect_check", "run_voice_cmd 'Get the Top 10 List'", 'NoExpire', 'get top 10 list') 
+              unless &trigger_get('get top 10 list');
+        );
+    }
+}     
+
+
 
