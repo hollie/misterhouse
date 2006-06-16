@@ -5,6 +5,8 @@
 
 $f_tv_file = new File_Item("$config_parms{data_dir}/tv_info1.txt");
 
+$p_tv_info = new Process_Item(qq[get_tv_info -times all -keys "$config_parms{favorite_tv_shows}" -keyfile $config_parms{favorite_tv_shows_file} -title_only -early_am 0+6 -outfile2 $config_parms{data_dir}/web/tv_info3.txt]);
+
 $v_tv_results = new Voice_Cmd('What are the tv search results', 0);
 $v_tv_movies1 = new Voice_Cmd("What TV movies are on channel [$config_parms{favorite_tv_channels}] tonight", 0);
 $v_tv_movies2 = new Voice_Cmd('What TV movies are on at [6pm,7pm,8pm,9pm] tonight', 0);
@@ -42,12 +44,33 @@ if (my $state = said $v_tv_shows2) {
 
 
     set_watch $f_tv_file "$state favorites today";
-}  					# *** trigger! *** use process items, not file items
-elsif (time_cron('1 * * * *') or $Reload) { #Refresh favorite shows today at one after each hour (so as to prune ended shows from the Web page)
-    print_log "Searching for favorite shows on today";
-    run qq[get_tv_info -times all -keys "$config_parms{favorite_tv_shows}" -keyfile $config_parms{favorite_tv_shows_file} -title_only -early_am 0+6 -outfile2 $config_parms{data_dir}/web/tv_info3.txt];
+}  					# *** trigger
+elsif (time_cron('47 * * * *') or $Reload) { #Refresh favorite shows today at one after each hour (so as to prune ended shows from the Web page)
+    print_log "Searching for TV shows of interest on today";
+    #run qq[get_tv_info -times all -keys "$config_parms{favorite_tv_shows}" -keyfile $config_parms{favorite_tv_shows_file} -title_only -early_am 0+6 -outfile2 $config_parms{data_dir}/web/tv_info3.txt];
 
-	# set "watch" (use process instead) and set $Info{tv_favorites} or whatever
+    start $p_tv_info;
+}
+
+if (done_now $p_tv_info) {
+        my $summary = file_read "$config_parms{data_dir}/web/tv_info3.txt";	
+        my ($show_count) = $summary =~ /Found (\d+)/;
+
+	if (defined $show_count) {
+		if ($show_count) {
+		    my $msg = "There";
+		    $msg .= ($show_count > 1) ? " are " : " is ";
+		    $msg .= ($show_count . (($show_count == 1)?' show':' shows') . ' of interest');
+    		    $Save{tv_favorites} = "$msg on today.";    
+		    print_log $Save{tv_favorites};
+		}	
+		else {
+    		    $Save{tv_favorites} = undef; # nothing of interest on today
+		}
+	}
+	else {
+		warn "Problem retrieving tv info: $summary";
+	}
 }
 
 
@@ -78,11 +101,6 @@ if ($Tk_results{'TV Search'} or $Tk_results{'TV Dates'}) {
 
 
 if (($state = changed $f_tv_file) or (my $state2 = said $v_tv_results)) {
-    my $f_tv_info2 = "$config_parms{data_dir}/tv_info2.txt";
-
-	# *** This is BS.  The read_head logic doesn't always work!
-
-#    my $summary = read_head $f_tv_file 6;
     my $summary = read_all $f_tv_file;
     my ($show_count) = $summary =~ /Found (\d+)/;
 
@@ -123,7 +141,6 @@ if (($state = changed $f_tv_file) or (my $state2 = said $v_tv_results)) {
     if ($state =~ 'favorites today') {
         if ($show_count > 0) {
            	respond "app=tv $msg on today.\n$list";
-		$Save{tv_favorites} = "$msg on today.";
         }
         else {
                 respond "app=tv There are no shows of interest on today";
