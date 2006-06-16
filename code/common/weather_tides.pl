@@ -7,12 +7,12 @@
 # 12/04/05 created by David Norwood based on idea by Joey French 
 
 
-my $tide_site = 'Charleston, South Carolina'; 
-my $f_tides = "$config_parms{data_dir}/web/tides.html";
+my $tide_site = 'Charleston, South Carolina'; #noloop
+my $f_tides = "$config_parms{data_dir}/web/tides.html";  #noloop
 $v_get_tides = new Voice_Cmd 'Get tide info';
-$v_get_tides ->set_info('Get tide information from the Internet');
+$v_get_tides ->set_info('Get tide information from the Internet');  #noloop
 $v_read_tides = new Voice_Cmd 'When is the next [High Tide,Low Tide,Moonrise,Moonset]';
-$v_read_tides ->set_info('Show tide, moonrise and moonset information from the Internet');
+$v_read_tides ->set_info('Show tide, moonrise and moonset information from the Internet');  #noloop
 $p_get_tides = new Process_Item;
 
 if ($Reload) { 
