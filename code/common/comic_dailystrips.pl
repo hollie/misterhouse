@@ -20,7 +20,7 @@ $v_dailystrip_update-> set_info("Runs the dailystrip program to retrieve comics 
 if ($state = said $v_dailystrip_update) {
     my $comics_dir = &html_alias('/comics');
     if ($state eq 'Update') {
-        v_dailystrip_update->respond("app=comics Retrieving daily comic strips...");
+        $v_dailystrip_update->respond("app=comics Retrieving daily comic strips...");
         my $cmd = "mh -run dailystrips ";
         $cmd .= "--defs $config_parms{html_dir}/comics/dailystrips/strips.def ";
         $cmd .= "--local --basedir $comics_dir --save --nostale ";
@@ -31,7 +31,7 @@ if ($state = said $v_dailystrip_update) {
         run $cmd;
     }
     else {
-        v_dailystrip_update->respond("app=comics Cleaning out old comic strips...");
+        $v_dailystrip_update->respond("app=comics Cleaning out old comic strips...");
         run "mh -run dailystrips-clean --dir $comics_dir 14";
     }
 }
@@ -39,7 +39,7 @@ if ($state = said $v_dailystrip_update) {
 $v_dailystrips_email = new Voice_Cmd 'Email daily comics';
 
 if (said $v_dailystrips_email) {
-    v_dailystrip_update->respond("app=comics image=email Mailing daily comic strips...");
+    $v_dailystrip_email->respond("app=comics image=email Mailing daily comic strips...");
     my $comics_dir = &html_alias('/comics');
     my $to = $config_parms{comics_sendto} || "";
     my $baseref = $config_parms{comics_baseref} ||
