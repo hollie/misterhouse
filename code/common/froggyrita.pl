@@ -39,9 +39,14 @@ if (my $state = said $v_froggy_indoor_humidity) {
 }
 
 if (my $state = state_now $Froggy) {
+	my $temperature = $Froggy->temperature();
+
+	$temperature = ($config_parms{default_temp} =~ /^celsius$/i)?(int($temperature * 100 + .5)/100):int((($temperature * 180) + 3200) + .5)/100;
+
+
 	if ($command_waiting and $state ne 'status') {
-		if (defined $Froggy->temperature()) {
-			$command_waiting->respond('app=frog connected=0 Indoor temperature is ' . (int(((($Froggy->temperature() * 9) / 5 + 32) * 100))/100) . ' degrees fahrenheit. Humidity is ' . $Froggy->humidity() . '%');			
+		if (defined $temperature) {
+			$command_waiting->respond('app=frog connected=0 Indoor temperature is ' . $temperature . ' degrees fahrenheit. Humidity is ' . $Froggy->humidity() . '%');			
 		}
 		else {
 			$command_waiting->respond('app=frog connected=0 I do not know at the moment. Try again in a few minutes...');	
@@ -49,7 +54,7 @@ if (my $state = state_now $Froggy) {
 		}
 		$command_waiting = undef;
 	}
-	$Weather{TempIndoor} = int((($Froggy->temperature() * 900) / 5 + 50))/100 + 32 if defined $Froggy->temperature();
+	$Weather{TempIndoor} = $temperature if defined $temperature;
         $Weather{HumidIndoor} = $Froggy->humidity() if defined $Froggy->humidity();
 }
 
