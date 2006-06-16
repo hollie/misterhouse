@@ -39,7 +39,7 @@ if ($state = said $v_dailystrip_update) {
 $v_dailystrips_email = new Voice_Cmd 'Email daily comics';
 
 if (said $v_dailystrips_email) {
-    $v_dailystrip_email->respond("app=comics image=email Mailing daily comic strips...");
+    $v_dailystrips_email->respond("app=comics image=email Mailing daily comic strips...");
     my $comics_dir = &html_alias('/comics');
     my $to = $config_parms{comics_sendto} || "";
     my $baseref = $config_parms{comics_baseref} ||
