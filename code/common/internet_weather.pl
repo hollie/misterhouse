@@ -151,6 +151,7 @@ if (done_now $p_weather_forecast) {
             $Weather{WindDirection} = $Weather{WindDirectionI};
             $Weather{WindChill}     = $Weather{WindChillI};
 	    $Weather{DewPoint}      = $Weather{DewInternet};
+	    $Weather{BaromDelta}    = $Weather{BaromInternetDelta};
 
 
 	    # Who needs a sun sensor?
