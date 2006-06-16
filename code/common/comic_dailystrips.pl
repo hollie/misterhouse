@@ -9,44 +9,46 @@
 #@ A full list of available comics is located
 #@ in mh/web/comics/dailystrips/strips.def
 
-$dailystrip_update = new Voice_Cmd '[Update,Clean] the daily comic strips';
-$dailystrip_update-> set_info("Runs the dailystrip program to retrieve comics specified in mh.ini parm comics: $config_parms{comics}");
-$dailystrip_update-> set_icon("goofy");
+$v_dailystrip_update = new Voice_Cmd '[Update,Clean] the daily comic strips';
+$v_dailystrip_update-> set_info("Runs the dailystrip program to retrieve comics specified in mh.ini parm comics: $config_parms{comics}");
 
-if ($state = said $dailystrip_update) {
+# *** We need to get the corners and FP icons, etc. out of the graphics root!
+# *** set_icon short-circuits the matching logic with no recourse
+
+#$v_dailystrip_update-> set_icon("goofy");
+
+if ($state = said $v_dailystrip_update) {
     my $comics_dir = &html_alias('/comics');
     if ($state eq 'Update') {
+        v_dailystrip_update->respond("app=comics Retrieving daily comic strips...");
         my $cmd = "mh -run dailystrips ";
         $cmd .= "--defs $config_parms{html_dir}/comics/dailystrips/strips.def ";
         $cmd .= "--local --basedir $comics_dir --save --nostale ";
 #       $cmd .= "--titles MisterHouse --stripnav ";
         $cmd .= "--proxy $config_parms{proxy} " if $config_parms{proxy};
         $cmd .= $config_parms{comics};
-        print_log "Running $cmd";
+        print "Running $cmd";
         run $cmd;
     }
     else {
+        v_dailystrip_update->respond("app=comics Cleaning out old comic strips...");
         run "mh -run dailystrips-clean --dir $comics_dir 14";
     }
 }
 
-#run_voice_cmd 'Update the daily comic strips' if time_now '4 am';
-#run_voice_cmd  'Clean the daily comic strips' if time_now '5 am';
+$v_dailystrips_email = new Voice_Cmd 'Email daily comics';
 
-
-$dailystrips_email = new Voice_Cmd 'Email daily comics';
-
-if (said $dailystrips_email) {
+if (said $v_dailystrips_email) {
+    v_dailystrip_update->respond("app=comics image=email Mailing daily comic strips...");
     my $comics_dir = &html_alias('/comics');
     my $to = $config_parms{comics_sendto} || "";
     my $baseref = $config_parms{comics_baseref} ||
                   "$config_parms{http_server}:$config_parms{http_port}/comics/";
-    print_log "Sending daily comics email to $to from $comics_dir, base $baseref";
+    print_log "Sending daily comics email to $to from $comics_dir";
     &net_mail_send(subject => "Daily Comics for $Date_Now",
                    to => "$to",
                    baseref => "$baseref",
                    file => "$comics_dir/index.html", mime  => 'html_inline');
-#                  file => "$comics_dir/index.html", mime  => 'html');
 }
 
 
