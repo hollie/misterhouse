@@ -1,36 +1,33 @@
 #Category=News
 
-#@ Gets Motivational Quote of the day
+#@ Gets motivational quotes for the day
 
-my $f_mquote_otd = "$config_parms{data_dir}/web/mquote_otd.txt";
-my $f_mquote_otd_html = "$config_parms{data_dir}/web/mquote_otd.html";
-my $f_mquote_otd_html_pruned = "$config_parms{data_dir}/web/mquote_otd_pruned.html";
+#noloop=start
+my $mquote_otd = "$config_parms{data_dir}/web/mquote_otd.txt";
+my $mquote_otd_html = "$config_parms{data_dir}/web/mquote_otd.html";
+my $mquote_otd_html_pruned = "$config_parms{data_dir}/web/mquote_otd_pruned.html";
+#noloop=stop
 
-$p_mquote_otd = new Process_Item("get_url http://tqpage.com/mqotd.php3 $f_mquote_otd_html");
-$v_mquote_otd = new  Voice_Cmd('[Get,Read,Show] Motivational Quote of the day');
+$p_mquote_otd = new Process_Item("get_url http://tqpage.com/mqotd.php3 $mquote_otd_html");
+$v_mquote_otd = new  Voice_Cmd('[Get,Read,Check] Motivational Quotes of the day');
 $v_mquote_otd ->set_authority('anyone');
 
-if (my $state = said $v_mquote_otd) {
-	if ($state eq 'Read') {
-		respond('target=speak ' . $f_mquote_otd);
-	}
-	elsif ($state eq 'Show') {
-		display($f_mquote_otd);
-	}
+if ('Read' eq said $v_mquote_otd) {
+    respond("app=motivation $mquote_otd");
 }
 
-if (said $v_mquote_otd eq 'Get' and &net_connect_check) {
-    print_log "Retrieving motivational quotes from the Internet...";
+if ((said $v_mquote_otd eq 'Get' or said $v_mquote_otd eq 'Check') and &net_connect_check) {
+    $v_mquote_otd->respond("app=motivation Retrieving motivational quotes from the Internet...");
     start $p_mquote_otd;
 }
 
 if (done_now $p_mquote_otd) {
     my $html;
-    $html = file_read $f_mquote_otd_html;
-    my $text = "Motivational Quotes of the day: \n\n";
+    $html = file_read $mquote_otd_html;
+    my $text = "Motivational Quotes for Today: \n\n";
     my $html_pruned = '<ol>';
 
-    for (file_read "$f_mquote_otd_html") {
+    for (file_read "$mquote_otd_html") {
 
 
         while (m!/quote/([^"]*?)">([^<]*?)</a>!ig) {
@@ -41,7 +38,30 @@ if (done_now $p_mquote_otd) {
         }
     }
     $html_pruned .= '</ol>';
-    file_write($f_mquote_otd, $text);
-    file_write($f_mquote_otd_html_pruned, $html_pruned);
-    print_log 'Motivational quotes retrieved.';
+    file_write($mquote_otd, $text);
+    file_write($mquote_otd_html_pruned, $html_pruned);
+    if ($v_mquote_otd->{state} eq 'Get') {
+        $v_mquote_otd->respond('app=motivation connected=0 Motivational quotes retrieved.');
+    }
+    else {
+        $v_mquote_otd->respond('app=motivation connected=0 $text');
+    }
 }
+
+
+if ($Reload and $Run_Members{'trigger_code'}) { 
+    if ($Run_Members{'internet_dialup'}) { 
+        eval qq(
+            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get  Motivational Quotes of the day'", 'NoExpire', 'get motivational quotes') 
+              unless &trigger_get('get motivational quotes');
+        );
+    }
+    else {
+        eval qq(
+            &trigger_set("time_cron '30 6 * * *' and net_connect_check", "run_voice_cmd 'Get Motivational Quotes of the day'", 'NoExpire', 'get motivational quotes') 
+              unless &trigger_get('get motivational quotes');
+        );
+    }
+}     
+
+
