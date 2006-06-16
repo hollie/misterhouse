@@ -25,7 +25,7 @@ if ((new_minute 10 and ($Weather{'Next High Tide'} eq '' or $Weather{'Next Low T
   $Weather{'Next Moonrise'} eq '' or $Weather{'Next Moonset'} eq '')) or 
   my $state = said $v_get_tides) {
 	unlink $f_tides;
-	$v_get_tides->respond("app=tides Retrieving tide information...");
+	$v_get_tides->respond("app=tides Retrieving tide information...") if $state;
 
 	$p_get_tides -> start;
 }
