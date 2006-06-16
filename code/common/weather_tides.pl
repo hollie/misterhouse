@@ -21,13 +21,29 @@ if ($Reload) {
 	set $p_get_tides "get_url http://tbone.biol.sc.edu/tide/tideshow.cgi?site=$tide_site $f_tides"
 }
 
-if ((new_minute 10 and ($Weather{'Next High Tide'} eq '' or $Weather{'Next Low Tide'} eq '' or
-  $Weather{'Next Moonrise'} eq '' or $Weather{'Next Moonset'} eq '')) or 
-  my $state = said $v_get_tides) {
-	unlink $f_tides;
-	$v_get_tides->respond("app=tides Retrieving tide information...") if $state;
+if (my $state = said $v_get_tides) {
 
-	$p_get_tides -> start;
+if ($Weather{'Next High Tide'} eq '' or $Weather{'Next Low Tide'} eq '' or
+  $Weather{'Next Moonrise'} eq '' or $Weather{'Next Moonset'} eq '') {
+
+	unlink $f_tides;
+	$v_get_tides->respond("app=tides Retrieving tide information...");
+
+	$p_get_tides->start;
+  }
+  else {
+	$v_get_tides->respond("app=tides Tide info is current.");	
+  }
+}
+
+# user trigger
+
+if ($Reload and $Run_Members{'trigger_code'}) { 
+	eval qq(
+		&trigger_set("new_minute 10", 
+		  "run_voice_cmd 'Get tide info'", 'NoExpire', 'get tide info') 
+		  unless &trigger_get('get tide info');
+	);
 }
 
 if (time_now $Weather{'Next High Tide'}) {
@@ -64,7 +80,7 @@ if (my $state = said $v_read_tides) {
 	$time_str = time_to_ampm $time_str;
 	$text .= "The next $state is at $time_str.";
 	$text = "The next $state time has not been retrieved." unless $Weather{"Next $state"};
-	respond "app=tides $text";
+	$v_read_tides->respond("app=tides $text");
 }
 
 
