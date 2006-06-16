@@ -41,11 +41,11 @@ $p_stock_quote = new Process_Item("get_url $stock_url " . $f_stock_quote->name);
 $state = said $v_stock_quote;
 
 if ($state eq 'Read') {
-    respond "app=stocks $Save{stock_results}";
+    $v_stock_quote->respond("app=stocks $Save{stock_results}");
 }
 elsif ($state) {
     unless (&net_connect_check) {
-        respond "Sorry, I can't update stock information, you are not logged onto the net";
+        $v_stock_quote->respond("app=stocks Cannot update stock information when disconnected from the Internet.");
         return;
     }
 
@@ -159,8 +159,6 @@ if (done_now $p_stock_quote) {
 	$v_stock_quote->respond("app=stocks connected=0 important=1 $Save{stock_alert}");
     }
     else {
-
-    	#Lets make the date sound half decent. - I'm sure there is an easier way but I come from a C background!
 	$position = rindex($download_date, "/");
 	$month = substr($download_date ,0, $position);
 	$day = substr($download_date , $position + 1);
