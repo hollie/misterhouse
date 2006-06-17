@@ -36,6 +36,13 @@ use vars '$mh_volume';  # In case we don't have mh_sound (see below)
 
 
 if ($Reload and $MW) {
+
+    &tk_label(\$Tk_objects{label_time});
+    &tk_label(\$Tk_objects{label_uptime_cpu});
+    &tk_label(\$Tk_objects{label_uptime_mh});
+    &tk_label(\$Tk_objects{label_cpu_used});
+    &tk_label(\$Tk_objects{label_memory_used}) unless $Info{OS_name} =~ /Win/; # Works for NT/2k
+
     #$Tk_objects{sliders}{frame}->destroy if $Tk_objects{sliders}{frame};
     #$Tk_objects{sliders}{frame} = $MW -> Frame -> pack(qw/-side bottom -fill both -expand 1/);
     $Tk_objects{sliders}{sleep}  = &tk_scalebar(\$Loop_Sleep_Time, 0, 'Sleep', 0, 200);
@@ -113,7 +120,9 @@ sub tk_scalebar_object {
 
  #   &tk_radiobutton('Mode',  \$Save{mode}, ['normal', 'mute', 'offline'], ['Normal', 'Mute', 'Offline']);
 
+#   &tk_entry('Code Search', $search_code_string,    'Debug flag', \$config_parms{debug});
     &tk_entry('Code Search', $search_code_string);
+    &tk_entry('Debug flag', \$config_parms{debug});
 
 
 #   &tk_radiobutton('VR Mode',  \$tk_vr_mode, ['awake', 'asleep', 'off'], ['Awake', 'Asleep', 'Off']) if $Run_Members{viavoice_control};

@@ -2,8 +2,8 @@ use strict;
 
 package Weather_Item;
 
-# $w_x = new Weather_Item(TempIndoor);     # returns value (eg 72)
-# $w_x = new Weather_Item('TempIndoor > 99') # returns evaluated expression if defined else return value undefined
+# $w_x = new Weather_Item(TempIndoor);         # returns e.g. 68/82/etc
+# $w_x = new Weather_Item('TempIndoor > 99')   # returns evaluated expression if defined else return value undefined
 
 @Weather_Item::ISA = ('Generic_Item');
 my @weather_item_list;
@@ -12,14 +12,12 @@ sub Init {
     &::MainLoop_pre_add_hook(  \&Weather_Item::check_weather, 1 );
 }
 
-# *** Trigger
-
 sub check_weather {
     if($::New_Msecond_250)
     {
         for my $self (@weather_item_list) {
             my $state = $self->state; # Gets current state
-            if (!defined $self->{state} or $self->{state} ne $state) {
+            if (defined $state and (!defined $self->{state} or $self->{state} ne $state)) {
                 &Generic_Item::set_states_for_next_pass($self,  $state);
             }
         }
@@ -42,23 +40,20 @@ sub new {
       $type =~ s/(partly cloudy|partly sunny|mostly cloudy|mostly sunny|clear|cloudy)/"'" . ucfirst(lc($1)) . "'"/egi;	 				# normalize condition strings
       $type =~ s/ = '/ eq '/gi; 			# quote condition strings
 
-      $type =~ s/[^<>]=/==/g;				# double equal signs (no assignments allowed)
+      $type =~ s/[^<>=]= /== /g;			# double equal signs (no assignments allowed)
 	# *** test with super syntax as well as module function calls
 
       $type =~ s/&[^0-9 \W]+:{0,}[^0-9 \W]+\(.*\)//g;	# no function calls either (for safety)
       $type =~ s/(state|item_transform|check_weather)//gi; # short-circuit methods (hack)
 
-      eval $type;					# validate
-      if ($@) {
-         warn "Weather_Item:$type did not evaluate (" . $@ . ')';	# error in expression
-      }
-      else { 						# validated, create item
 	# Save weather hash keys in member list (to be checked for existence in state sub before expression is evaluated)
 
-	    while ($type =~ /\$::Weather{(.*?)}/g) {		
-		push @members, $1 if !grep $1 eq $_, @members;	
-	    }
+      while ($type =~ /\$::Weather{(.*?)}/g) {		
+	  push @members, $1 if !grep $1 eq $_, @members;	
       }
+
+      print "Weather_Item test: $type vars=@members\n" if $::Debug{weather};
+
    }
    else {
       warn 'Empty expression is not allowed.';
@@ -85,9 +80,10 @@ sub state {
 	$valid = 0 if !defined $main::Weather{$_};
     }
 
-    # evaluate expression if so
+    my $results = eval $self->{type} if $valid;
+    print "Weather_Item eval error: object=$self->{object_name} test=$self->{type} error=$@" if $@;
 
-    return eval $self->{type} if $valid;
+    return $results;
 }
 
 sub default_setstate {

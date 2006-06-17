@@ -25,6 +25,7 @@ $eliza_voice  -> set_authority('anyone');
 $eliza_card   -> set_authority('anyone');
 $eliza_wavcomp-> set_authority('anyone');
 
+#&tk_entry('Eliza Message', $eliza_data, 'Eliza Rule', $eliza_rule);
 &tk_entry('Eliza Message', $eliza_data);
 &tk_entry('Eliza Rule', $eliza_rule);
 

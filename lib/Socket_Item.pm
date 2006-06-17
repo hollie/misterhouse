@@ -62,7 +62,7 @@ sub start {
     my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
     if ($port) {
         print "Socket Item connecting to $host on port $port\n" if $main::Debug{socket};
-        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host, 
+        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host,
                                                  PeerPort => $port, Proto => $host_proto)) {
 # Timeout => 0,  # Does not help with 2 second pauses on unavailable  addresses :(
             $main::Socket_Ports{$port_name}{sock}  = $sock;
@@ -85,7 +85,7 @@ sub stop {
     my ($self) = @_;
     my $port_name = $self->{port_name};
     &main::socket_close($port_name);
-} 
+}
 
 sub is_available {
     my ($self) = @_;
@@ -112,7 +112,7 @@ sub inactive_now {
 
 sub said {
     my $port_name = $_[0]->{port_name};
-    
+
     my $data;
     my $datatype  = $main::Socket_Ports{$port_name}{datatype};
     if ($datatype and $datatype eq 'raw') {
@@ -139,14 +139,14 @@ sub said_next {
         chomp $data;
     }
     else {
-        recv($sock, $data, 1500, 0); 
+        recv($sock, $data, 1500, 0);
     }
     return $data;
 }
 
 sub handle {
     my $port_name = $_[0]->{port_name};
-    return $main::Socket_Ports{$port_name}{socka}; 
+    return $main::Socket_Ports{$port_name}{socka};
 }
 
 sub set_echo {
@@ -230,7 +230,7 @@ sub set {
         print $sock $socket_data;
     }
 
-}    
+}
 
 sub set_expect {
     my ($self, @set_expect_cmds) = @_;

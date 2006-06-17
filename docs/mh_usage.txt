@@ -1481,3 +1481,5 @@ Mon 04/03/06 13:04:13 city=Trois-Rivieres state=QC name=Christian
 Mon 04/03/06 22:23:05 city=Portland state=OR name=
 Tue 04/04/06 21:25:55 city=Burlington state=Ontario name=
 Thu 04/06/06 08:26:30 city=Celje state=Slovenia name=Iztok alamon
+Mon 04/17/06 18:51:41 city=Paraparaumu state=NZ name=Ryan D
+Tue 04/18/06 17:01:44 city=Vestavia Hills state=AL name=Greg

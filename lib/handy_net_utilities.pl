@@ -672,7 +672,9 @@ sub main::get_oscar_connection {
         return;
     }
 
-    $im_connection = Net::OSCAR->new(capabilities => [qw(typing_status extended_status buddy_icons file_transfer buddy_list_transfer)]);
+# I got not buddies?   'invalid capability' on buddy_list_transfer
+#   $im_connection = Net::OSCAR->new(capabilities => [qw(typing_status extended_status buddy_icons file_transfer buddy_list_transfer)]);
+    $im_connection = Net::OSCAR->new(capabilities => [qw(typing_status extended_status buddy_icons file_transfer                    )]);
     $im_connection -> set_callback_im_in(\&oscar::cb_imin);
     $im_connection -> set_callback_buddy_in(\&oscar::cb_buddyin);
     $im_connection -> set_callback_buddy_out(\&oscar::cb_buddyout);
@@ -682,7 +684,7 @@ sub main::get_oscar_connection {
     $im_connection -> set_callback_buddy_icon_uploaded(\&oscar::cb_buddyiconuploaded);
     $im_connection -> set_callback_buddy_icon_downloaded(\&oscar::cb_buddyicondownloaded);
     $im_connection -> set_callback_buddylist_ok(\&oscar::cb_buddylistok);
-    $im_connection -> set_callback_buddylist_changed(\&oscar::cb_buddylistchanged);
+#   $im_connection -> set_callback_buddylist_changed(\&oscar::cb_buddylistchanged);
     $im_connection -> set_callback_buddylist_error(\&oscar::cb_buddylisterror);
     $im_connection->  set_callback_typing_status(\&oscar::typing_status);
     $im_connection->  set_callback_extended_status(\&oscar::extended_status);

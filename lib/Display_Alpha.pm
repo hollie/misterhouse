@@ -291,7 +291,7 @@ sub message {
 	my $result = $positions{$position} . (($special)?("\x6E" . $special_modes{$mode}):$modes{$mode});
 	$result .= "\x1c" . $colors{$color} if $color and $colors{$color};
 	$result .= "\x1a" . $fonts{$font} if $font and $fonts{$font};
-	$result .= "\x12" if $fontsize eq 'wide';
+	$result .= "\x12" if $fontsize and $fontsize eq 'wide';
 	$result .= $speeds{$speed} if $speed and $speeds{$speed};
 	if ($image) {	
 		print "Embedding image: $image\n" if $::Debug{display_alpha};
@@ -389,7 +389,7 @@ sub main::display_alpha {
 	# rooms=all or allandout, etc. used by some speak apps make no sense in display mapping scheme
 	# room = port name and the default is to send to all rooms
 
-	$rooms = undef if $rooms =~ /^all/i;
+	$rooms = undef if $rooms and $rooms =~ /^all/i;
 
 	@rooms = split ',', $rooms if $rooms;
 

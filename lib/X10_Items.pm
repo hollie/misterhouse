@@ -65,7 +65,7 @@ sub new {
             $self-> add ($id . $hc . 'STATUS', 'status');
             $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
 
-            if ($self->{type} =~ /(preset3)/i) {
+            if ($self->{type} and $self->{type} =~ /(preset3)/i) {
                 my @preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
 
                 # 0% is MPRESET_DIM1
@@ -116,25 +116,25 @@ sub set {
 
     my ($presetable, $resume);
     $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
-    ($resume) = $self->{type} =~ /resume=(\d+)/i;
+    (($resume) = $self->{type} =~ /resume=(\d+)/i) if $self->{type};
 #   print "db ps=$presetable t=$self->{type}\n";
 
                                 # If we are currently in a dim state, then make an 'on' really a 100%
-                                # doesn't an 'on' set a dumb module to 100% faster than this? dnorwood2 
+                                # doesn't an 'on' set a dumb module to 100% faster than this? dnorwood2
     if (!$presetable and $state eq 'on' and $self->state() =~ /^[-+]?\d+/) {
 #        $state = "100%";
     }
 
-                                # Make sure we do the right thing if light was off 
+                                # Make sure we do the right thing if light was off
     if (($self->state() eq 'off' or $self->state() eq 'double off' or $self->state() eq 'triple off')
       and ($state =~ /^\d+\%$/ or $state =~ /^[-+]?\d+$/ or $state =~ /^[-+]\d+\%$/)) {
         $self->{level} = $resume if defined $resume;
         $self->{level} = 100 unless defined $self->{level};
-                                # doesn't a dim or brighten set a dumb module to 100% anyway? dnorwood2 
+                                # doesn't a dim or brighten set a dumb module to 100% anyway? dnorwood2
         $self->set(ON) unless $presetable;      # First turn it on, then go to specified level
     }
 
-                                # Convert +-dd% to +-dd by multiplying it by the current level 
+                                # Convert +-dd% to +-dd by multiplying it by the current level
     if ($state =~ /^([-+]\d+)\%$/) {
         my $change = $1;
         my $level_now = $self->{level};
@@ -160,17 +160,17 @@ sub set {
 
     $state = "+$state" if $state =~ /^\d+$/; # In case someone trys a state of 30 instead of +30.
 
-                                # Convert relative dims to direct dims for supported devices 
+                                # Convert relative dims to direct dims for supported devices
     if ($presetable and $state =~ /^([\+\-]?)(\d+)$/) {
         my $level = $$self{level};
         $level = 100 unless defined $level; # bright and dim from on or off will start at 100%
         $level += $state;
         $level =   0 if $level <   0;
         $level = 100 if $level > 100;
-        $state = $level . '%'; 
+        $state = $level . '%';
     }
 
-                                # Send the command 
+                                # Send the command
     $self->SUPER::set($state, $set_by);
 
                                 # Some presetable devices, like the Leviton 6381, will remain addressed
@@ -195,19 +195,19 @@ sub set_receive {
     $self->SUPER::set_receive($state, $set_by);
 }
 
-                                # Try to keep track of X10 brightness level 
+                                # Try to keep track of X10 brightness level
 sub set_x10_level {
     my ($self, $state) = @_;
     my $level;
     $level = $$self{level};
     my ($presetable, $resume);
     $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
-    ($resume) = $self->{type} =~ /resume\=(\d+)/i;
+    (($resume) = $self->{type} =~ /resume\=(\d+)/i) if $self->{type};
     return unless defined $state;
 
-                                # handle relative changes 
+                                # handle relative changes
     if ($state =~ /^([\+\-]?)(\d+)$/ or $state eq 'dim' or $state eq 'brighten') {
-                                # use resume=dd in type field if the module has set level 
+                                # use resume=dd in type field if the module has set level
         $level = $resume if defined $resume and !defined $level;
         $level = 100 unless defined $level; # bright and dim from on or off will start at 100%
         if ($state eq 'dim') {
@@ -217,21 +217,21 @@ sub set_x10_level {
         }
         elsif ($state eq 'brighten') {
             $state = 5;
-            $state = 2 if $self->{type} =~ /(lm14|preset)/i;
-            $state = 3 if $self->{type} =~ /preset3/i;
+            $state = 2 if $self->{type} and $self->{type} =~ /(lm14|preset)/i;
+            $state = 3 if $self->{type} and $self->{type} =~ /preset3/i;
         }
         $level += $state;
         $level =   0 if $level <   0;
         $level = 100 if $level > 100;
     }
-                                # handle direct changes 
+                                # handle direct changes
     elsif ($state =~ /^(\d+)\%$/) {
 
         $level = $1;
     }
     elsif ($state eq 'on' ) {
-                                # use resume=dd in type field if the module has set level 
-        $level = $resume if defined $resume; 
+                                # use resume=dd in type field if the module has set level
+        $level = $resume if defined $resume;
         $level = 100 unless $presetable;
         $level = 100 unless defined $level; # Only if we used to be off.
     }
@@ -247,7 +247,7 @@ sub set_x10_level {
     $$self{level} = $level;
 }
 
-                                # This returns the type variable 
+                                # This returns the type variable
 sub type {
     return $_[0]->{type};
 }
@@ -824,7 +824,7 @@ sub new {
     $type .= ' ' if $type;
     $type .= 'preset3';
     my $self = &X10_Item::new($class, $id, $interface, $type);
-    my $id = $self->{x10_id};
+    $id = $self->{x10_id};
 
     $self-> add ('XOGNGMGPGMG', 'clear');
     $self-> add ('XOGPGNGMGMG', 'setramprate');
