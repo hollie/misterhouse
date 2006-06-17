@@ -992,8 +992,6 @@ sub setup {
     @Speak_Log = reverse @log;
 #    unshift @Speak_Log, "$Time_Date ---------- Restart ---------- ";
 
-    speak('app=system System restarted');
-
     @log = &file_tail($error_log, $config_parms{max_log_entries});
     chomp @log;
     @Error_Log = reverse @log;
@@ -1018,6 +1016,8 @@ sub setup {
     print PRINTLOG (join "\n", reverse @Print_Log), "\n";
     print SPEAKLOG (join "\n", reverse @Speak_Log), "\n";
     print ERRORLOG (join "\n", reverse @Error_Log), "\n";
+
+    speak('app=system System restarted');
 
     print "External command file (xcmd_file): $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
 
@@ -4870,6 +4870,7 @@ sub set_global_vars {
         $Info{cpu_used} = 100 if $Info{cpu_used} > 100;
 
         $Tk_objects{label_time} = &time_date_stamp(14, $Time);
+
 #        substr($Tk_objects{label_time}, 19, 0) = '  Time: ';
 
         $Time_Uptime_Seconds = $Time - $Time_Startup_time;
@@ -4880,14 +4881,13 @@ sub set_global_vars {
             &speak("Please restart misterhouse.  Uptime is $uptime_days days.") if $New_Hour and $Hour > 9 and $Hour < 22;
         }
 
-        $Tk_objects{label_uptime_cpu} = sprintf("%s",
+        $Tk_objects{label_uptime_cpu} = sprintf("cpu: %s",
                                                 &time_diff($Time_Boot_time, $Time, undef, 'numeric'));
 #                                               &time_diff($Time_Boot_time, ($loop_tickcount1)/1000, undef, 'numeric'));
-        $Tk_objects{label_uptime_mh}  = sprintf("%s",
+        $Tk_objects{label_uptime_mh}  = sprintf(" mh: %s",
                                                 &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
-        $Tk_objects{label_cpu_used}    = sprintf("%5.1f%%", $Info{cpu_used});
-        $Tk_objects{label_cpu_used}   .= sprintf("%4d", $Info{loop_speed});
-        $Tk_objects{label_memory_used} = sprintf("%4.1f/%4.1f MB",
+        $Tk_objects{label_cpu_used}    = sprintf("Cpu/Loops: %4.1f%% /%4d", $Info{cpu_used}, $Info{loop_speed});
+        $Tk_objects{label_memory_used} = sprintf("Memory: %4.1f / %4.1f MB",
                                                  $Info{memory_virtual}, $Info{memory_real}) if $Info{memory_virtual};
                                 # This is grandfathered for old Tk menus
         $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d", $Info{loop_speed});
@@ -5695,7 +5695,7 @@ sub tk_setup_windows {
     $MW->bind('Alt-Key-R'   => \&read_code);
     $MW->bind('Alt-Key-X'   => \&sig_handler);
 
-    $MW->title(($config_parms{title})?$config_parms{title}:"Misterhouse $Version PID: $$");
+    $MW->title(($config_parms{title}) ? eval "'$config_parms{title}'" : "Misterhouse $Version PID: $$");
 
                                 # Create menu bar and buttons
     $Tk_objects{menu_bar} = $MW->Frame->pack(-anchor => 'w', -side => 'top', -expand => 0, -fill => 'x');
@@ -5753,7 +5753,7 @@ sub tk_setup_windows {
 
 
 
-	my @debug_options = split ',', $config_parms{debug_options};
+        my @debug_options = split ',', $config_parms{debug_options} if $config_parms{debug_options};
 
 
 	for (sort @debug_options) {
@@ -6268,7 +6268,7 @@ sub write_user_code {
     print "Activating voice commands\n";
     &Voice_Cmd::activate;
 
-    if ($config_parms{listen} ne '0') { # default listens, 0 starts up not listening
+    if ($config_parms{listen} and $config_parms{listen} ne '0') { # default listens, 0 starts up not listening
 	    print "Turning on microphone\n";
 	    &Voice_Cmd::mic('on');
     }
