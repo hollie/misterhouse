@@ -351,8 +351,27 @@ sub im_message {
         elsif (&process_external_command($text, 1, "im [$pgm,$from]", "im pgm=$pgm to=$from")) {
         }
         else {
-            $msg = "I don't understand.  Type 'help' to get started...";
-        }
+
+		use vars '$eliza_rule'; # in case eliza_server common code module is not loaded
+
+		my $rule;
+
+
+
+		$rule = $config_parms{im_chatbot};
+
+		if (!$rule and ref $eliza_rule) {
+			$rule = $eliza_rule->{state};
+		}
+
+		if ($rule and $rule ne 'none') { # allow short-circuit of chatbot via config parm or widget
+	        	my $eliza = new Chatbot::Eliza "Eliza", "../data/eliza/$rule.txt";
+        		$msg = $eliza->transform($msg);
+		}
+		else {
+			$msg = "I don't understand.  Type 'help' to get started...";
+		}
+      }
     }
     else {
         $msg = "You are not authorized to run this command!";
