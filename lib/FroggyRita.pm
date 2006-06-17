@@ -99,6 +99,13 @@ sub AskData {
 
       my $self = shift;
 
+      if ($$self{timer}) {	
+	print "Frog timer: $$self{timer}" if $main::Debug{froggyrita};
+	$$self{timer}->stop();
+	delete $$self{timer};
+      }
+      else {
+
       if ($HaveIdent and $BadData < 3) {
          print "FroggyRita.pm send G0146Z\n" if $main::Debug{froggyrita};
          $main::Serial_Ports{$FroggyFD}{object}->write("G0146Z");
@@ -109,15 +116,18 @@ sub AskData {
          $BadData = 0 if ( $BadData >= 3 );
          $main::Serial_Ports{$FroggyFD}{object}->write("G0047Z");
       }
-      if ($$self{timer}) {	
-	print "Frog timer: $$self{timer}" if $main::Debug{froggyrita};
-	$$self{timer}->stop();
-	delete $$self{timer};
-      }
+
+
       $$self{timer} = new Timer();
       $$self{timer}->set(15, $self);
+
+
+      }
       
 }
+
+
+
 
 
 
@@ -126,17 +136,21 @@ sub default_setstate {
 	
 	if ($state eq 'status') {
 #		&Generic_Item::set_states_for_next_pass($self, $state, $set_by);
-		&AskData($self);
+		&AskData($self); #progress (?)
 #     	        $self->SUPER::set('status', $set_by);	 		
 	}
 	elsif ($state eq 'off') { # timer
-#	elsif ($$self{timer} and $set_by eq $$self{timer}) {
 		&Ribbit($self);
 		return -1;
 	}	
 
 
 }
+
+
+
+
+
 
 sub set2 {
     my ($self, $state, $set_by) = @_;
@@ -182,25 +196,21 @@ sub Ribbit {
 
 }
 
+
 # initialize port
 sub serial_startup {
    my ($instance) = @_;
 
    $FroggyFD = $instance;
-   
+
 }
 
-my $frog_count = 0; #noloop
-
 sub new {
-   my $name;
-   my ($class, $port) = @_;
+   my ($class, $port, $name) = @_;
 
 
    $name = "FroggyRita" unless $name;
-   $name .= $frog_count if $frog_count;
 
-   $frog_count++;
 
    $port = $::config_parms{ $name . "_serial_port" } unless $port;
    if (&::serial_port_create($FroggyFD, $port, 300, 'none', 'raw')) {
@@ -231,7 +241,7 @@ sub CalcData {
 
    my $SensorStatus = substr( $Data, 3, 2 );
    if ( $SensorStatus ne "00" ) {
-      print "FroggyRita.pm: CalcData Error code sensor 0";
+      print "FroggyRita.pm: CalcData Error code sensor 0\n";
       return;
    }
    $SensorStatus = substr( $Data, 13, 2 );
