@@ -366,7 +366,7 @@ sub im_message {
 
 		if ($rule and $rule ne 'none') { # allow short-circuit of chatbot via config parm or widget
 	        	my $eliza = new Chatbot::Eliza "Eliza", "../data/eliza/$rule.txt";
-        		$msg = $eliza->transform($msg);
+        		$msg = $eliza->transform($text);
 		}
 		else {
 			$msg = "I don't understand.  Type 'help' to get started...";
