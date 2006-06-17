@@ -247,6 +247,10 @@ sub mp3_playing {
     return $remote->is_playing();
 }
 
+sub mp3_player_running {
+    return $remote->is_running();
+}
+
 sub mp3_running {
     # have we defined mp3_program
     my $mp3_program = $main::config_parms{mp3_program};
