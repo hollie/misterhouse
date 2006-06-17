@@ -58,8 +58,16 @@ if (my $state = state_now $Froggy) {
         $Weather{HumidIndoor} = $Froggy->humidity() if defined $Froggy->humidity();
 }
 
+sub get_froggy_status {
+	set $Froggy 'status', 'time';
+}
+
  # trigger
 
-if (new_minute) {
-	set $Froggy 'status', 'time';    
+if ($Reload and $Run_Members{'trigger_code'}) { 
+	eval qq(
+		&trigger_set("new_minute 5", 
+		  "&get_froggy_status()", 'NoExpire', 'get frog status') 
+		  unless &trigger_get('get frog status');
+	);
 }
