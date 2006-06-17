@@ -706,7 +706,7 @@ sub prov_count {
 #======================================================================
 sub processRawFile
 {
-   my ( $day_time, $hour, $down, $rawFile, $outfile, $dow, $month, $day, $year ) = @_;
+   my ( $day_time, $hour, $down, $rawFile, $outfile, $dow, $month, $day, $year, $tomorrow_month, $tomorrow_day ) = @_;
    print "Processing $rawFile to $outfile\n" if ($parms{debug});
 
    #------------------------------------------------------------
@@ -1116,6 +1116,15 @@ eof
 	                 my $time_start = &min_to_hour($min_start);
 	                 my $time_end   = &min_to_hour($min_end);
 	                 my $pgm_date = "$month/$day";
+
+	                 # tweak parameters if show actually starts tomorrow
+	                 if ($min_start >= (24*60)) {
+	                 	$pgm_date="$tomorrow_month/$tomorrow_day";
+	                 	$time_start=&min_to_hour($min_start - 24*60);
+	                 	$time_end=&min_to_hour($min_end - 24*60);
+	                 }
+	                 print "found program start $time_start pgm_date $pgm_date\n";
+
 	                 print "db $pgm_name, $min_pgm, $min_start, $min_end, $time_start, $time_end, $pgm_date\n" if $parms{debug};
 
 	                                # Insert the mh VCR link
@@ -1312,7 +1321,9 @@ sub fetchLoop
       #------------------------------------------------------------
       # Calculate the date/time of this day
       #------------------------------------------------------------
-      my @day_data = days_from_now( time, $count );
+      my $time_now=time;
+      my @day_data = days_from_now( $time_now, $count );
+      my ($tomorrow_month, $tomorrow_day) = (days_from_now($time_now, $count+1))[3,2];
       my ($dow, $down, $day, $month, $year) = split(' ', "@day_data");
       my $startDay = ${month}."/".${day}."/".${year};
 
@@ -1352,7 +1363,7 @@ sub fetchLoop
          #------------------------------------------------------------
          # Process this file for insertion into the DB
          #------------------------------------------------------------
-             processRawFile( time, $startHour, $down, $rawFile, $outfile, $dow, $month, $day, $year );
+             processRawFile( time, $startHour, $down, $rawFile, $outfile, $dow, $month, $day, $year , $tomorrow_month, $tomorrow_day);
 
          #------------------------------------------------------------
          # Delete the raw file, unless we're told to keep it.
