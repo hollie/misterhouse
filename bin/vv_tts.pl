@@ -5,10 +5,12 @@
 #
 # File: vv_tts.pl
 #     
-# Description: Perl wrapper script for Misterhouse and ViaVoiceTTS
-# Author: Dave Lounsberry, dbl@dittos.yi.org
+# Description: Perl wrapper script for Misterhouse and ViaVoiceTTS 
+# Author: Dave Lounsberry, dbl@dittos.yi.org 
 # Change log:
 #
+# $Date$
+# $Revision$
 #-----------------------------------------------------------------------
 
 use strict;
@@ -21,8 +23,7 @@ BEGIN {
     ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
     $Pgm_Root = "$Pgm_Path/..";
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # Use BEGIN eval to keep perl2exe happy
-}
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # Use BEGIN eval to keep perl2exe happy }
 
 
 use Getopt::Long;
@@ -43,6 +44,7 @@ $Pgm_Name (version $Version) perl wrapper for TTS
 
       -h                    => This help text
       -help                 => This help text
+      -debug                => Turn on some debugging messages
       -text "xxx"           => text to speak
       -engine xxx           => backend TTS engine (viavoice | festival | theta)
       -playcmd xxx          => full path to play command
@@ -57,7 +59,7 @@ $Pgm_Name (version $Version) perl wrapper for TTS
       -prescript xxx	    => full path to script to run BEFORE playing and speaking
       -postscript xxx	    => full path to script to run AFTER playing and speaking
       -nomixer              => do not use built in mixer support
-      -to_files xxx         => output sound to xxx file
+      -to_file xxx          => output sound to xxx file
       -pa_control           => turn on pa control
       -xcmd_file xxx        => full path to misterhouse command file
       -rooms                => speak to rooms (needs voice_cmd)
@@ -82,6 +84,7 @@ if ($parms{engine} eq 'viavoice') {
 	eval "use ViaVoiceTTS";
 	if ($@) {
 		printf ("\n%s: ViaVoiceTTS not installed, exiting.\n\n",$Pgm_Name);
+		exit;
 	} else {
 		package ViaVoiceTTS;
 	}
@@ -199,30 +202,43 @@ sub speak_text() {
 			}
 		}
 		printf ("%s: text = $parms{text}\n",$Pgm_Name) if $parms{debug};
-	
-		if ($parms{to_file}) {
-		    unlink $parms{to_file};
-		    my $h=eciNew() or die "ViaVoice: Unable to connect";
-		    eciSetOutputFilename($h, $parms{to_file}) or warn "ViaVoice: Unable to set output file: $parms{to_file}";
-		    eciAddText($h, $parms{text}) or warn "ViaVoice Unable to add text";
-		    eciSynthesize($h) or warn "ViaVoice Unable to synthesize text";
-		    while (eciSpeaking($h)){};
-		    eciDelete($h);
-		}
-		else {
-		    if ($parms{engine} =~ /viavoice/i) {
-			printf ("%s: running viavoice tts engine\n",$Pgm_Name) if $parms{debug};
-		        $parms{text} = "`v" . $parms{voice} . " " . $parms{text} if $parms{voice}; # Does not work with to_file??
-		    	ViaVoiceTTS::eciSpeakText($parms{text},1);
-		    } elsif ($parms{engine} =~ /festival/i) {
-			printf ("%s: running festival tts engine\n",$Pgm_Name) if $parms{debug};
-			open(FEST, "| festival --tts");
-			print FEST qq[$parms{text}];
-			close(FEST);
-		    } elsif ($parms{engine} =~ /theta/i) {
-			printf ("%s: running theta tts engine\n",$Pgm_Name) if $parms{debug};
-			system("theta \'$parms{text}\'");
-		    }
+		printf ("%s: to_file = $parms{to_file}\n",$Pgm_Name) if $parms{to_file} && $parms{debug};
+
+		if ($parms{engine} =~ /viavoice/i) {
+			if ($parms{to_file}) {
+				unlink $parms{to_file};
+				my $h=eciNew() or die "ViaVoice: Unable to connect";
+				eciSetOutputFilename($h, $parms{to_file}) or warn "ViaVoice: Unable to set output file: $parms{to_file}";
+				eciAddText($h, $parms{text}) or warn "ViaVoice Unable to add text";
+				eciSynthesize($h) or warn "ViaVoice Unable to synthesize text";
+				while (eciSpeaking($h)){};
+				eciDelete($h);
+			} else {
+				printf ("%s: running viavoice tts engine\n",$Pgm_Name) if $parms{debug};
+				$parms{text} = "`v" . $parms{voice} . " " . $parms{text} if $parms{voice}; # Does not work with to_file??
+				ViaVoiceTTS::eciSpeakText($parms{text},1);
+			}
+		} elsif ($parms{engine} =~ /festival/i) {
+			if ($parms{to_file}) {
+				unlink $parms{to_file};
+				printf ("%s: running festival tts engine\n",$Pgm_Name) if $parms{debug};
+				open(FEST, "| festival_client --ttw --output $parms{to_file}");
+				print FEST qq[$parms{text}];
+				close(FEST);
+			} else {
+				printf ("%s: running festival tts engine\n",$Pgm_Name) if $parms{debug};
+				open(FEST, "| festival --tts");
+				print FEST qq[$parms{text}];
+				close(FEST);
+			}
+		} elsif ($parms{engine} =~ /theta/i) {
+			if ($parms{to_file}) {
+				unlink $parms{to_file};
+				# I'm not sure what needs to go here
+			} else {
+				printf ("%s: running theta tts engine\n",$Pgm_Name) if $parms{debug};
+				system("theta \'$parms{text}\'");
+			}
 		}
 	}
 	return;
