@@ -125,28 +125,36 @@ sub update_clock {
 
 #   my $display = &time_date_stamp(21);  # 12:52 Sun 25
     $display = &time_date_stamp(8);   # 12:52
-    $display .= ' ' . substr($Day, 0, 2) . " " . $Mday;
 
-    if (defined $Weather{TempIndoor} and defined $Weather{TempOutdoor}) {
-	# *** truncuate to integer or it won't fit!
-	my $color = '4';
-	$color = '7' if $Weather{TempOutdoor} < 80;
-	$color = '2' if $Weather{TempOutdoor} < 60;
-
-       	$display .= ($temp_flag)?(" \x1c7\x1a5" . int($Weather{TempIndoor} + .5)):(" \x1c$color\x1a5" . int($Weather{TempOutdoor} + .5));	
-	$temp_flag = !$temp_flag;
+				# Allow for older format, displaying indoor/outdoor at the same time
+    if ($config_parms{Display_Alpha_clock_format} == 1) {
+	$display = &time_date_stamp(8);   # 12:52
+	$display .= ' ' . int($Weather{TempIndoor}) . ' ' . int($Weather{TempOutdoor});
+	$display .= ' ' . substr($Day, 0, 1) . $Mday;
+	$display .= ' ' . $Save{display_text} if $Save{display_text} and ($Time - $Save{display_time}) < 400;
     }
     else {
+	$display .= ' ' . substr($Day, 0, 2) . " " . $Mday;
 
+	if (defined $Weather{TempIndoor} and defined $Weather{TempOutdoor}) {
+				# *** truncuate to integer or it won't fit!
+	    my $color = '4';
+	    $color = '7' if $Weather{TempOutdoor} < 80;
+	    $color = '2' if $Weather{TempOutdoor} < 60;
+
+	    $display .= ($temp_flag)?(" \x1c7\x1a5" . int($Weather{TempIndoor} + .5)):(" \x1c$color\x1a5" . int($Weather{TempOutdoor} + .5));	
+	    $temp_flag = !$temp_flag;
+	}
+	else {
 	    if (defined $Weather{TempIndoor}) { # Can fit one temperature
-        	$display .= " \x1c7\x1a5" . int($Weather{TempIndoor} + .5); # '\x1c7' is inline code for color 7
+		$display .= " \x1c7\x1a5" . int($Weather{TempIndoor} + .5); # '\x1c7' is inline code for color 7
 	    }
 	    elsif (defined $Weather{TempOutdoor}) {
 		my $color = '4';
 		$color = '2' if $Weather{TempOutdoor} < 80;
-        	$display .= " \x1c$color\x1a5" . int($Weather{TempOutdoor} + .5);
+		$display .= " \x1c$color\x1a5" . int($Weather{TempOutdoor} + .5);
 	    }
-
+	}
     }
 
 #   $display .= ' ' . substr($Day, 0, 3);
