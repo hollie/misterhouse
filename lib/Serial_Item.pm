@@ -409,11 +409,11 @@ sub send_x10_data {
     print "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n" if $main::Debug{x10};
 
     if ($interface eq 'cm11') {
+                                # CM11 wants individual codes without X
         print "db1 CM11: Sending x10 data: $serial_data\n" if $main::Debug{cm11};
 
 				# Standard 1-cm11 code
 	if (!$main::config_parms{cm11_bak_port}) {
-                                # cm11 wants individual codes without X
 	    &ControlX10::CM11::send($main::Serial_Ports{cm11}{object},
 				    substr($serial_data, 1));
 	}
@@ -444,16 +444,17 @@ sub send_x10_data {
 
 
     elsif ($interface eq 'ti103') {
+                                # TI103 wants individual codes without X
         print "db1 TI103: Sending x10 data: $serial_data\n" if $main::Debug{ti103};
         &ControlX10::TI103::send($main::Serial_Ports{ti103}{object}, substr($serial_data, 1));
     }
 
     elsif ($interface eq 'bx24') {
+                                # BX24 wants individual codes without X
         &X10_BX24::SendX10($serial_data);
     }
 
-    elsif ($interface eq 'lynx10plc')
-    {
+    elsif ($interface eq 'lynx10plc') {
                                 # marrick PLC wants XA1AK
         &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},
                              "X" . substr($x10_save_unit, 1) .
@@ -507,8 +508,7 @@ sub send_x10_data {
         &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
     }
     elsif ($interface eq 'weeder') {
-                                # Weeder table does not match what we defined in CM11,CM17,X10_Items.pm
-                                #  - Dim -> L, Bright -> M,  AllOn -> I, AllOff -> H
+                                # Weeder wants XA1AK or XA1ALALAL
         my ($device, $house, $command) = $serial_data =~ /^X(\S\S)(\S)(\S+)/;
 
                                 # Allow for +-xx%
@@ -517,6 +517,8 @@ sub send_x10_data {
             $dim_amount = int(10 * abs($command) / 100); # about 10 levels to 100%
             $command = ($command > 0) ? 'L' : 'M';
         }
+                                # Weeder table does not match what we defined in CM11,CM17,X10_Items.pm
+                                #  - Dim -> L, Bright -> M,  AllOn -> I, AllOff -> H
         if ($command eq 'M') {
             $command =  'L' . (($house . 'L') x $dim_amount);
         }
@@ -543,12 +545,12 @@ sub send_x10_data {
         &X10_Wish::send(substr($serial_data, 1));
     }
     elsif ($interface eq 'iplcs') {
-	# ncpuxa wants individual codes with X
+                                # ncpuxa wants individual codes with X
         &main::print_log("Using iplcs to send: $serial_data");
         &iplcs::send($main::Serial_Ports{iplcs}{object}, $serial_data);
     }
     elsif ($interface eq 'iplcu') {
-	# ncpuxa wants individual codes with X
+                                # ncpuxa wants individual codes with X
         &main::print_log("Using iplcu to send: $serial_data");
         &iplcs::send($main::config_parms{iplcu_port}, $serial_data);
     }

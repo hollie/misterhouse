@@ -1745,7 +1745,9 @@ sub html_find_icon_image {
         $name =~ s/^\$//;       # remove $ at front of objects
         $name =~ s/^v_//;       # remove v_ in voice commands
                                 # Hard to track exact time state, so just use 1 icon for any dim
-        $state = 'dim' if $type eq 'x10_item' and ($state =~ /^[+-]?\d+$/ or $state =~ /\d+\%/);
+        $state = 'dim' if ($type eq 'x10_item' or $type eq 'x10_switchlinc') and ($state =~ /^[+-]?\d+$/ or $state =~ /\d+\%/);
+        $state = 'on' if ($type eq 'x10_item' or $type eq 'x10_switchlinc') and ($state eq 'double on' or $state eq 'triple on');
+        $state = 'off' if ($type eq 'x10_item' or $type eq 'x10_switchlinc') and ($state eq 'double off' or $state eq 'triple off');
                                 # Use on/off icons for conditional Weather_Items
         $state = ($state) ? 'on' : 'off' if $type eq 'weather_item' and ($object->{comparison});
                                 # Allow for set_icon to set the icon directly
@@ -2343,8 +2345,9 @@ sub html_item_state {
         $html .= qq[<SELECT name="select_state" onChange="form.submit()">\n];
         $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
         for my $state (@states) {
+            my $state_url = &escape($state);
             my $state_short = substr $state, 0, 15;
-            $html .= qq[<option value="$state">$state_short\n];
+            $html .= qq[<option value="$state_url">$state_short\n];
 #           $html .= qq[<a href='SET;&html_list($object_type)?$object_name?$state'>$state</a> ];
         }
         $html .= qq[</SELECT>\n];
@@ -2378,11 +2381,11 @@ sub html_item_state {
     unless ($use_select) {
         for my $state (@states) {
             next unless $state;
+            my $state_url = &escape($state);
             my $state_short = substr $state, 0, 15;
                                 # Some browsers (e.g. Audrey) do not have full url in Referer :(
             my $referer = ($Http{Referer} =~ /html$/) ? 'referer' : "&html_list($object_type)";
-            $html .= qq[ <a href='SET;$referer?$object_name=$state'>$state_short</a>];
-        }
+            $html .= qq[ <a href='SET;$referer?$object_name=$state_url'>$state_short</a>];        }
     }
 
     $html .= qq[</b></td>];

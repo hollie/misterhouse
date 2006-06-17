@@ -102,7 +102,8 @@ $form_type
 
                                 # Define fields by type
     my %headers = ( X10A    => [qw(Address Name Groups Interface)],
-                    X10I    => [qw(Address Name Groups Interface X10_Type)],
+                    X10I    => [qw(Address Name Groups Interface Options)],
+                    X10SL   => [qw(Address Name Groups Interface Options)],
                     X10MS   => [qw(Address Name Groups Type)],
                     GENERIC => [qw(Name Groups)],
                     SERIAL  => [qw(String Name Groups State Port)],

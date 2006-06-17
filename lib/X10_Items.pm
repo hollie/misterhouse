@@ -47,46 +47,9 @@ sub new {
         if (length($id) == 2) {
             $self-> add ($id . 'O', 'on');
             $self-> add ($id . 'P', 'off');
-            $self-> add ($id . '+5',  '+5');
-            $self-> add ($id . '+10', '+10');
-            $self-> add ($id . '+15', '+15');
-            $self-> add ($id . '+20', '+20');
-            $self-> add ($id . '+25', '+25');
-            $self-> add ($id . '+30', '+30');
-            $self-> add ($id . '+35', '+35');
-            $self-> add ($id . '+40', '+40');
-            $self-> add ($id . '+45', '+45');
-            $self-> add ($id . '+50', '+50');
-            $self-> add ($id . '+55', '+55');
-            $self-> add ($id . '+60', '+60');
-            $self-> add ($id . '+65', '+65');
-            $self-> add ($id . '+70', '+70');
-            $self-> add ($id . '+75', '+75');
-            $self-> add ($id . '+80', '+80');
-            $self-> add ($id . '+85', '+85');
-            $self-> add ($id . '+90', '+90');
-            $self-> add ($id . '+95', '+95');
-            $self-> add ($id . '+100', '+100');
-            $self-> add ($id . '-5',  '-5');
-            $self-> add ($id . '-10', '-10');
-            $self-> add ($id . '-15', '-15');
-            $self-> add ($id . '-20', '-20');
-            $self-> add ($id . '-25', '-25');
-            $self-> add ($id . '-30', '-30');
-            $self-> add ($id . '-35', '-35');
-            $self-> add ($id . '-40', '-40');
-            $self-> add ($id . '-45', '-45');
-            $self-> add ($id . '-50', '-50');
-            $self-> add ($id . '-55', '-55');
-            $self-> add ($id . '-60', '-60');
-            $self-> add ($id . '-65', '-65');
-            $self-> add ($id . '-70', '-70');
-            $self-> add ($id . '-75', '-75');
-            $self-> add ($id . '-80', '-80');
-            $self-> add ($id . '-85', '-85');
-            $self-> add ($id . '-90', '-90');
-            $self-> add ($id . '-95', '-95');
-            $self-> add ($id . '-100', '-100');
+            $self-> add ($id . 'L', 'brighten');
+            $self-> add ($id . 'M', 'dim');
+            $self-> add ($id . 'STATUS', 'status');
         }
                                 # Setup unit-command  codes:  e.g. XA1AJ, XA1AK, XA1+20
                                 # Note: The 0%->100% states are handled directly in Serial_Item.pm
@@ -97,54 +60,29 @@ sub new {
             $self-> add ($id . $hc . 'K' . $hc . 'K', 'double off');
             $self-> add ($id . $hc . 'J' . $hc . 'J' . $hc . 'J',  'triple on');
             $self-> add ($id . $hc . 'K' . $hc . 'K' . $hc . 'K',  'triple off');
-            $self-> add ($id . $hc . '+35', 'brighten');
-            $self-> add ($id . $hc . '-35', 'dim');
-#            $self-> add ($id . $hc . 'L', 'brighten');
-#            $self-> add ($id . $hc . 'M', 'dim');
-            $self-> add ($id . $hc . '+5',  '+5');
-            $self-> add ($id . $hc . '+10', '+10');
-            $self-> add ($id . $hc . '+15', '+15');
-            $self-> add ($id . $hc . '+20', '+20');
-            $self-> add ($id . $hc . '+25', '+25');
-            $self-> add ($id . $hc . '+30', '+30');
-            $self-> add ($id . $hc . '+35', '+35');
-            $self-> add ($id . $hc . '+40', '+40');
-            $self-> add ($id . $hc . '+45', '+45');
-            $self-> add ($id . $hc . '+50', '+50');
-            $self-> add ($id . $hc . '+55', '+55');
-            $self-> add ($id . $hc . '+60', '+60');
-            $self-> add ($id . $hc . '+65', '+65');
-            $self-> add ($id . $hc . '+70', '+70');
-            $self-> add ($id . $hc . '+75', '+75');
-            $self-> add ($id . $hc . '+80', '+80');
-            $self-> add ($id . $hc . '+85', '+85');
-            $self-> add ($id . $hc . '+90', '+90');
-            $self-> add ($id . $hc . '+95', '+95');
-            $self-> add ($id . $hc . '+100', '+100');
-            $self-> add ($id . $hc . '-5',  '-5');
-            $self-> add ($id . $hc . '-10', '-10');
-            $self-> add ($id . $hc . '-15', '-15');
-            $self-> add ($id . $hc . '-20', '-20');
-            $self-> add ($id . $hc . '-25', '-25');
-            $self-> add ($id . $hc . '-30', '-30');
-            $self-> add ($id . $hc . '-35', '-35');
-            $self-> add ($id . $hc . '-40', '-40');
-            $self-> add ($id . $hc . '-45', '-45');
-            $self-> add ($id . $hc . '-50', '-50');
-            $self-> add ($id . $hc . '-55', '-55');
-            $self-> add ($id . $hc . '-60', '-60');
-            $self-> add ($id . $hc . '-65', '-65');
-            $self-> add ($id . $hc . '-70', '-70');
-            $self-> add ($id . $hc . '-75', '-75');
-            $self-> add ($id . $hc . '-80', '-80');
-            $self-> add ($id . $hc . '-85', '-85');
-            $self-> add ($id . $hc . '-90', '-90');
-            $self-> add ($id . $hc . '-95', '-95');
-            $self-> add ($id . $hc . '-100', '-100');
-
+            $self-> add ($id . $hc . 'L', 'brighten');
+            $self-> add ($id . $hc . 'M', 'dim');
             $self-> add ($id . $hc . 'STATUS', 'status');
             $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
 
+            if ($self->{type} =~ /(preset3)/i) {
+                my @preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
+
+                # 0% is MPRESET_DIM1
+                $self-> add( $id . $preset_dim_levels[0] . 'PRESET_DIM1', "0%" );
+
+                # 100% is JPRESET_DIM2
+                $self-> add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "100%" );
+
+                # 30 levels, 1% to 99%
+                for (my $percent=1; $percent<=99; $percent++) {
+                    my $index = int(($percent - 1) * 30 / 99) + 1;
+                    my $state2  = $id . ( ($index < 16 ) ?
+                      $preset_dim_levels[$index] . 'PRESET_DIM1' :
+                      $preset_dim_levels[$index - 16] . 'PRESET_DIM2');
+                    $self-> add( $state2, $percent . "%" );
+                }
+            }
         }
     }
 
@@ -176,45 +114,76 @@ sub set {
         &main::print_log("Toggling X10_Item object $self->{object_name} from $$self{state} to $state");
     }
 
-                                # Allow for dd% light levels on older devices by monitoring current level
-    my $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
+    my ($presetable, $resume);
+    $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
+    ($resume) = $self->{type} =~ /resume=(\d+)/i;
 #   print "db ps=$presetable t=$self->{type}\n";
 
                                 # If we are currently in a dim state, then make an 'on' really a 100%
+                                # doesn't an 'on' set a dumb module to 100% faster than this? dnorwood2 
     if (!$presetable and $state eq 'on' and $self->state() =~ /^[-+]?\d+/) {
-        $state = "100%";
+#        $state = "100%";
     }
 
+                                # Make sure we do the right thing if light was off 
+    if (($self->state() eq 'off' or $self->state() eq 'double off' or $self->state() eq 'triple off')
+      and ($state =~ /^\d+\%$/ or $state =~ /^[-+]?\d+$/ or $state =~ /^[-+]\d+\%$/)) {
+        $self->{level} = $resume if defined $resume;
+        $self->{level} = 100 unless defined $self->{level};
+                                # doesn't a dim or brighten set a dumb module to 100% anyway? dnorwood2 
+        $self->set(ON) unless $presetable;      # First turn it on, then go to specified level
+    }
+
+                                # Convert +-dd% to +-dd by multiplying it by the current level 
+    if ($state =~ /^([-+]\d+)\%$/) {
+        my $change = $1;
+        my $level_now = $self->{level};
+        $level_now = 100 unless defined $level_now;
+        my $level_diff = int ($level_now * ($change / 100));
+                                # Round of to nearest 5 for dumb modules, since Serial Item rounds by 5
+        $level_diff = 5 * int $level_diff/5 unless $presetable;
+        &main::print_log("Changing light by $level_diff ($level_now * $change%)") if $main::config_parms{x10_errata} >= 3;
+        $state = $level_diff;
+    }
+
+                                # Allow for dd% light levels on older devices by monitoring current level
     if (!$presetable and $state =~ /^(\d+)\%/) {
         my $level = $1;
         my $level_now = $self->{level};
-        unless (defined $level_now) {
-#           print "dbx setting to on before dim\n";
-            $self->set(ON);      # First turn it on, then go to specified level
-            $level_now = 100;
-        }
+        $level_now = 100 unless defined $level_now;
         my $level_diff = $level - $level_now;
-                                # Round of to nearest 5, since cm11 only does by 5
+                                # Round of to nearest 5 for dumb modules, since Serial Item rounds by 5
         $level_diff = 5 * int $level_diff/5;
         &main::print_log("Changing light by $level_diff ($level - $level_now)") if $main::config_parms{x10_errata} >= 3;
         $state = $level_diff;
     }
 
     $state = "+$state" if $state =~ /^\d+$/; # In case someone trys a state of 30 instead of +30.
-#   &set_x10_level($self, $state);
+
+                                # Convert relative dims to direct dims for supported devices 
+    if ($presetable and $state =~ /^([\+\-]?)(\d+)$/) {
+        my $level = $$self{level};
+        $level = 100 unless defined $level; # bright and dim from on or off will start at 100%
+        $level += $state;
+        $level =   0 if $level <   0;
+        $level = 100 if $level > 100;
+        $state = $level . '%'; 
+    }
+
+                                # Send the command 
     $self->SUPER::set($state, $set_by);
 
-                                # Some presetable devices, like the 6381, will remain addressed
+                                # Some presetable devices, like the Leviton 6381, will remain addressed
                                 # after a preset command and will accept subsequent unrelated
                                 # commands unless they are set to ON.
-    if ($self->{type} =~ /preset2/i and $state =~ /^(\d+)\%/) {
-#	    &Serial_Item::send_x10_data($self->{interface}, 'X' . $self->{x10_id}) ;
+    if ($self->{type} =~ /preset2/i and $state =~ /^\d+\%$/) {
         &Serial_Item::send_x10_data($self->{interface},       $self->{x10_id}) ;
         &Serial_Item::send_x10_data($self->{interface}, 'X' . substr($self->{x10_id},1,1) . 'J') ;
     }
 
                                 # Set objects that match House Code commands
-    if (length($self->{x10_id}) == 2) {
+                                # we don't want to do this for all on or off
+    if (length($self->{x10_id}) == 2 and ($state ne 'on' and $state ne 'off')) {
         my $hc = substr $self->{x10_id}, 1; # Drop the X prefix
         &set_by_housecode($hc, $state);
     }
@@ -226,34 +195,61 @@ sub set_receive {
     $self->SUPER::set_receive($state, $set_by);
 }
 
-                                # Try to keep track of X10 brightness level of older, dumb one-way, X10 modules
+                                # Try to keep track of X10 brightness level 
 sub set_x10_level {
     my ($self, $state) = @_;
     my $level;
     $level = $$self{level};
-
+    my ($presetable, $resume);
+    $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
+    ($resume) = $self->{type} =~ /resume\=(\d+)/i;
     return unless defined $state;
 
-    $state = '+35' if $state =~ /bright/i;   # From CM11.pm
-    $state = '-35' if $state =~ /dim/i;
-
-    if ($state =~ /^([\+\-]?)(\d+)$/) {
+                                # handle relative changes 
+    if ($state =~ /^([\+\-]?)(\d+)$/ or $state eq 'dim' or $state eq 'brighten') {
+                                # use resume=dd in type field if the module has set level 
+        $level = $resume if defined $resume and !defined $level;
         $level = 100 unless defined $level; # bright and dim from on or off will start at 100%
+        if ($state eq 'dim') {
+            $state = -5;
+            $state = -2 if $self->{type} =~ /(lm14|preset)/i;
+            $state = -3 if $self->{type} =~ /preset3/i;
+        }
+        elsif ($state eq 'brighten') {
+            $state = 5;
+            $state = 2 if $self->{type} =~ /(lm14|preset)/i;
+            $state = 3 if $self->{type} =~ /preset3/i;
+        }
         $level += $state;
         $level =   0 if $level <   0;
         $level = 100 if $level > 100;
     }
+                                # handle direct changes 
     elsif ($state =~ /^(\d+)\%$/) {
+
         $level = $1;
     }
-    else {
-        $level = 100   if $state eq 'on' and !defined $level; # Only if we used to be off.
-                                # Dimming from off starts at 100%, unless it is presetable
-        $level = undef if $state eq 'off' and
-          !($self->{type} and $self->{type} =~ /(lm14|preset)/i);
+    elsif ($state eq 'on' ) {
+                                # use resume=dd in type field if the module has set level 
+        $level = $resume if defined $resume; 
+        $level = 100 unless $presetable;
+        $level = 100 unless defined $level; # Only if we used to be off.
     }
+                                # Dimming from off starts at 100%, unless it is presetable
+    elsif ($state eq 'off' or $state eq 'double off' or $state eq 'triple off ') {
+        $level = undef unless $presetable;
+    }
+    elsif ($state eq 'double on' or $state eq 'triple on') {
+        $level = 100;
+    }
+
 #   print "db setting level for $self $$self{object_name} state=$state level=$level\n";
     $$self{level} = $level;
+}
+
+                                # This returns the type variable 
+sub type {
+    return $_[0]->{type};
 }
 
                                 # This returns current brightness level ... see above
@@ -266,7 +262,7 @@ sub state_level {
     my $state = $_[0]->{state};
     my $level = $_[0]->{level};
     if (!defined $state or !($state eq 'on' or $state eq 'off')) {
-        if (defined $level and $level =~ /^[\+\-\d\%]+$/) {
+        if (defined $level and $level =~ /^\d+$/) {
             $state = 'dim';
             $state = 'off' if $level ==   0;
             $state = 'on'  if $level == 100;
@@ -823,10 +819,11 @@ $Office_Light_Torch->set("disablex10transmit");
 
 =cut
 
-@preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
-
 sub new {
-    my $self = &X10_Item::new(@_);
+    my ($class, $id, $interface, $type) = @_;
+    $type .= ' ' if $type;
+    $type .= 'preset3';
+    my $self = &X10_Item::new($class, $id, $interface, $type);
     my $id = $self->{x10_id};
 
     $self-> add ('XOGNGMGPGMG', 'clear');
@@ -837,25 +834,6 @@ sub new {
     $self-> add ('XNGOGPGMG',   'setsceneramprate');
     $self-> add ('XMGNGPGOGPG', 'disablex10transmit');
     $self-> add ('XOGMGNGPGPG', 'enablex10transmit');
-
-
-    # 0% is MPRESET_DIM1
-    $self-> add( $id . $preset_dim_levels[0] . 'PRESET_DIM1', "0%" );
-
-    # 100% is JPRESET_DIM2
-    $self-> add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "100%" );
-
-    # 30 levels, 1% to 99%
-    for (my $percent=1; $percent<=99; $percent++)
-    {
-      my $index = int(($percent - 1) * 30 / 99) + 1;
-      my $state2  = $id . ( ($index < 16 ) ?
-                  $preset_dim_levels[$index] . 'PRESET_DIM1' :
-                  $preset_dim_levels[$index - 16] . 'PRESET_DIM2');
-      $self-> add( $state2, $percent . "%" );
-    }
-
-    $self->{type}='preset';
 
     return $self;
 }

@@ -252,7 +252,7 @@ Actions can be triggered in milliseconds,
 without having to wait for the 500+ millisecond time it takes
 to transmit data over the powerline.   More info in mh/code/common/x10_rf_relay.pl .
 
-This new RF->X10 interface now supports all housecodes (older ones only support once housecode each):
+This new RF->X10 interface now supports all house codes (older ones only support one house code each):
 http://www.letsautomate.com/10680.cfm?CFID=67097&CFTOKEN=4528584
 
 Another supported X10 interface is the Marrick Lynx10-PLC controller: http://www.marrickltd.com
@@ -1593,30 +1593,104 @@ and mh/code/public/weather_com.pl
 
 =item X10_Item
 
-Same as Serial_Item, except the 'X' prefix is prepended, to indicate an X10 command,  and it has pre-defined states
-'on', 'off'. 'brighten', 'dim', and '+5'->'+95 and '-5'->'-95'.  The +-## states increase/decrease brightness by
-## percent.
+This item is for controling X10 lamp modules and light switches.  It is derived from Serial_Item 
+and the strings it sends are like Serial Items, except an 'X' prefix is prepended to indicate an 
+X10 command.  The X strings are converted by one of the various X10 interfaces into the appropriate 
+commands for that interface.   
 
-You can specify a 2nd argument, if you are using more than one X10 interface and you want to
-control an X10_Item with a specific interface.  For example, if you want to control the
-local module on a RF Transceiver, you can tell mh to use the RF CM17 interface, like this:
+  Methods:
 
-    $test_light = new X10_Item('A1', 'CM17');
+     new('house code[unit number]' [, 'interface'|undef [, 'option flags']])
 
-Note that the X10 device code is numbered 1->9,A->G.  For example device 16 in house code P would be PG.
+        'house code[unit number]'  The first argument is required and is either a house 
+                        code by itself or a house code and unit number.
+                        Note that the X10 unit code is numbered either 1->16 or 1->9,A->G.  
+                        For example device 16 in house code P could be P16 or PG
 
-If a single character is use (e.g. X10_Item 'D'), then 'on' and 'off' states are translated to
-ALL_ON and ALL_OFF commands for that house code.  For example:
+        'interface'     Optional, specifies which X10 interface to use 
+
+        'option flags'  Optional, specifies one or more module options (see below) 
+
+     state        : Returns the last state that was received or sent
+
+     state_now    : Returns the state that was received or sent in the current pass
+
+     level        : Returns the current brightness level of the item, 0->100
+
+     set_receive  : Update the state and level when X10 commands are received 
+
+     set_x10_level: Recalculates state whenever state is changed
+
+     set('state') : Sets the item to the specified state
+
+        'on'
+
+        'off'
+
+        'toggle'     - toggles between on and off 
+
+        'brighten'
+
+        'dim'
+
+        '+##'        - increase brightness by ## points 
+
+        '-##'        - decrease brightness by ## points 
+
+        '##%'        - set brightness to ## percent 
+
+        '+##%'       - increase brightness by ## percent 
+
+        '-##%'       - decrease brightness by ## percent 
+
+        'double on'  - on some modules this sets full brightness at ramp rate
+
+        'double off' - on some modules this sets 0 brightness immediately 
+
+        'triple on'  - same as double on, but immediate 
+
+        'triple off' - same as double off 
+
+        'status'     - requests status from a two-way capable module 
+
+        'manual'     - sends house code and unit number without a command 
+ 
+        '&P##', 'PRESET_DIM1', 'PRESET_DIM2', 'ALL_LIGHTS_OFF', 'HAIL_REQUEST', 
+        'HAIL_ACK', 'EXTENDED_CODE', 'EXTENDED_DATA', 'STATUS_ON', 'STATUS_OFF', 'Z##'
+                     - these states are rarely used and provided for special cases 
+
+Note: not all states are supported by all lamp modules and X10 interfaces. 
+
+X10 items can be created in the items.mht in the following manner:
+
+   X10I, A1, Test_light, Bedroom, cm11, preset resume=80
+
+If a single character is used (e.g. X10_Item 'D'), commands apply to all X10_Items with that house code.   
+The 'on' and 'off' states are translated to ALL_ON and ALL_OFF commands for that house code.  
+For example:
 
    $v_test_lights = new Voice_Cmd 'All lights [on,off]';
    $test_lights   = new X10_Item 'O';
    set $test_lights $state if $state = said $v_test_lights;
 
-Since this item is inherits from Generic_Item,
-you can use the set_with_timer method.  For example,
-this event will turn on a on a warning light to 20% for 5 seconds:
+The toggle and various brightness commands can be sent to a house code only item.   
+The command will be sent to each X10_Item defined with the same house code.  This might 
+produce undesired results, particularly when changing brightness levels.  See the Group item for 
+a better way to do that.  
 
-   set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
+If you are using more than one X10 interface and you want to control an X10_Item with a specific 
+interface, use the optional interface argument.  For example, if you want to control the
+local module on a RF Transceiver, you can tell mh to use the RF CM17 interface, like this:
+
+    $test_light = new X10_Item('A1', 'CM17');
+
+The various brightness commands (60%, +20, -50%) all work even on dumb modules that only support 
+on, off, dim, and brighten.  X10_Item keeps track of changes it makes to the brightness level
+and converts any absolute brightness settings into relative changes.
+Since these dumb modules typically don't have two-way capability, the item will be out of sync 
+if changes are made locally at the switch.   
+Also, if the module was off, it will first be turned to full on, since the
+older modules can not be dimmed from an off state.
 
 After doing one or more bright/dim/on/off commands, you can query the current brightness level
 of a device with the level method.  For example:
@@ -1626,36 +1700,41 @@ of a device with the level method.  For example:
       print_log "Pedestal light state=$state, level=$level"
    }
 
-If you have one of the newer (more expensive) LM14A/PLM21 2 way X10 pro lamp modules, you can
-tell mh to send an extended X10 codes that let them be set directly to a specific brightness level
-using a Preset Dim extended code.
-The 64 extened X10 Preset Dim codes can used most easily by using the '##%' state.
-Note this differs from the +-# states described above, which increase/decrease brightness
-relative to the current state.  The ##% state goes directly to that level, independent of the
-existing state.
+It is much better to use one the newer (more expensive) direct dim and two-way capable modules,
+such as the X10 LM14A lamp module.  The X10_Item supports both the newer extended data dim commands 
+used by the LM14 and Leviton switches (64 brightness levels), and the older preset dim commands used 
+by PCS and Switchlinc switches (32 brightness levels).   
 
-If you have a LM14 lamp module (or any other module that supports Preset Dims),
-you can use the ##% preset dim states.  Set the 3rd X10_Item parm to 'preset' or 'LM14' to specify
-you are using a module that supports preset dims.  For example:
+Set the 3rd X10_Item parm to specify the option flags that correspond to your lamp module or switch. 
+Valid flags are: 
 
-  $test_light2 = new X10_Item('O7', undef, 'preset');
+   'lm14'        - for X10 LM14, uses extended data dim commands, remembers dim level when off 
+   'preset'      - same as lm14 
+   'preset2'     - same as lm14 and preset, except send on after direct dims, required by some Leviton switches 
+   'preset3'     - same as lm14 and preset, except uses older preset dim commands, for Switchlinc and PCS 
+   'resume=##'   - module resumes from off at ## percent 
+   'transmitter' - special case, see X10_Transmitter 
+
+Option flags are case insensitive.  Separate multiple option flags with a space. 
+
+For example:
+
+  $test_light2 = new X10_Item('O7', undef, 'preset resume=81');
   $v_test_light2 = new Voice_Cmd("Set test light to [on,off,bright,dim,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%]");
   set $test_light2 $state if $state = said $v_test_light2;
 
-You can also use them directly, using &P## (## = 1->64) as shown in this example:
+If the newer extended data dim commands are to be used, then the brightness level is converted into a &P##
+command and passed to the X10 interface.  You can also use them directly, using &P## (## = 1->64) as shown in this example:
 
   $test_light1 = new X10_Item('O7', 'CM11', 'LM14');
   $v_test_light1 = new Voice_Cmd("Set test light to [on,off,bright,dim,&P3,&P10,&P30,&P40,&P50,&P60]");
   set $test_light1 $state if $state = said $v_test_light1;
 
-The older X10 modules can only be brightened/dimed relative to their current state.
-If you specify a specific brightness level with ##% (e.g. 10% or 90%) when using an older
-X10 module, mh will use what it thinks the current brightness level is to come up with a +-##
-bright/dim command.  If the module was off, it will first be turned to full on, since the
-older modules can not be dimmed from an off state.
+Note: not all of the X10 interfaces support this command.  
 
-There is another set of Preset Dim commands that are used by some modules (e.g. the RCS TX15 thermostate).
-These 32 non-extended Preset Dim codes can be coded directly, using the following table:
+The older direct dim method used the two Preset Dim X10 commands. 
+The 32 brightness levels are sent by combining a house code with one of the two Preset Dim commands, 
+using the following table:
 
   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15   PRESET_DIM1
   M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
@@ -1663,12 +1742,14 @@ These 32 non-extended Preset Dim codes can be coded directly, using the followin
   16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31  PRESET_DIM2
   M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
 
-For example:
+Note: not all of the X10 interfaces support this command.  
 
-  $TX10 = new Serial_Item('XM4' . 'E' . 'PRESET_DIM1', 'Increase temp');  #preset  8='E'
-  $TX10 -> add           ('XM4' . 'F' . 'PRESET_DIM1', 'Decrease temp');  #preset  9='F'
-  $TX10 -> add           ('XM4' . 'O' . 'PRESET_DIM2', 'Preset on');      #preset 18='O'
-  $TX10 -> add           ('XM4' . 'P' . 'PRESET_DIM2', 'Preset off');     #preset 19='P'
+Since this item is inherits from Generic_Item,
+you can use the set_with_timer method.  For example,
+this event will turn on a on a warning light to 20% for 5 seconds:
+
+   set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
+
 
 =item X10_Appliance
 
@@ -1689,6 +1770,21 @@ listed here: http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920H
 
 For the Switchlinc controllers:
 
+Inherts all the functionality from X10_Item and adds the following states: 
+
+   'clear'
+   'setramprate'
+   'setonlevel'
+   'addscenemembership'
+   'deletescenemembership'
+   'setsceneramprate'
+   'disablex10transmit'
+   'enablex10transmit'
+
+See the <a href="http://www.smarthome.com/manuals/2380_web.pdf>Switchlinc 2380 manual</a> for more information.   
+
+For example: 
+
      # Just picked this device to use to send the clear
   $Office_Light_Torch->set("clear");
      # Send a command to each group member to make it listen
@@ -1696,6 +1792,8 @@ For the Switchlinc controllers:
      # Just picked this device item to send the command
   $Office_Light_Torch->set("disablex10transmit");
 
+Also sets the 'preset3' X10_Item option which causes the older Preset Dim commands to be used for 
+setting the brightness level directly.   
 
 =item X10_Ote;
 
@@ -2831,8 +2929,6 @@ Passes specified text to the TTS program.  There are 2 modes of calling it:
        mode    => 'unmuted' Forces speech, even in mute and offline mode
 
        nolog   => 1       Does not log the spoken text to the speech log.
-
-       length  => nnn     Text > nnn characters will be truncated before speaking.
 
        app     => 'xyz'   This uses the speak parms defined in the xyz section of
                           the mh.ini speak_app parm.  This allows us to use custom
