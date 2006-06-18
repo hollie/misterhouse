@@ -117,11 +117,7 @@ if (done_now $p_weather_forecast) {
         else {
             $Weather{WindI}  = $1 if $conditions =~ /wind\s+was\s+(.+?)\./;
 
-	print "\n\n\nWIND: $Weather{WindI}\n";
-
             ($Weather{WindDirectionI}, $Weather{WindSpeedI}) = $Weather{WindI} =~ /(.+?)\s+at\s+(.+?)\s+mph/i;
-
-	print "\n\n\nWIND: $Weather{WindSpeedI}\n";
 
 	    ($Weather{WindSpeedI}) = $Weather{WindI} =~ /wind\s+was\s+at\s+(.+?)\s+mph/ if !defined $Weather{WindDirectionI};        }
 
