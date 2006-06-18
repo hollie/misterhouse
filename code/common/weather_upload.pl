@@ -22,6 +22,8 @@
   wunderground_password  = xyz
   wunderground_frequency = 10
 
+  NOTE: last parameter is optional and defaults to 10
+
  Place this file in your code directory, and you are ready to go.
 
 # 01/12/05 Dominique Benoliel
@@ -35,22 +37,39 @@
 
 $p_weather_update = new Process_Item;
 $v_weather_update = new Voice_Cmd '[Show results from,Run] wunderground.com upload';
-my $f_weather_update_html = "$config_parms{data_dir}/web/wu-result.html";
+my $weather_update_html_path = "$config_parms{data_dir}/web/wu-result.html"; #noloop
 
-$state = said $v_weather_update;
-display($f_weather_update_html) if $state eq 'Show results from';
 
-$config_parms{wunderground_frequency} = 10 unless $config_parms{wunderground_frequency};
-if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
+# Create trigger
+
+if ($Reload and $Run_Members{'trigger_code'}) {
+	my $command = "new_minute " . (($config_parms{wunderground_frequency})?$config_parms{wunderground_frequency}:10);
+
+	eval qq(
+            &trigger_set("$command", "run_voice_cmd('Run wunderground.com upload')", 'NoExpire', 'upload weather') 
+              unless &trigger_get('upload weather');
+        );
+}
+
+# Events
+
+display($weather_update_html_path) if said $v_weather_update eq 'Show results from';
+
+if (said $v_weather_update eq 'Run') {
+
+    $v_weather_update->respond('app=wunderground Uploading weather data...');
 
     my $stationid = $config_parms{wunderground_stationid};
     my $passwd    = $config_parms{wunderground_password};
     my $clouds='';
     my $weather_conditions='';
 
+
+
+
     # Make some conversions if necessary
-    my $weather_tempoutdoor = $config_parms{weather_uom_temp} eq 'C' ? convert_c2f($Weather{TempOutdoor}):$Weather{TempOutdoor};
-    my $weather_dewoutdoor = $config_parms{weather_uom_temp} eq 'C' ? convert_c2f($Weather{DewOutdoor}):$Weather{DewOutdoor};
+    my $weather_tempoutdoor = $config_parms{default_temp} =~ /^celsius$/i ? convert_c2f($Weather{TempOutdoor}):$Weather{TempOutdoor};
+    my $weather_dewoutdoor = $config_parms{default_temp} =~ /^celsius$/i ? convert_c2f($Weather{DewOutdoor}):$Weather{DewOutdoor};
     my $weather_barom = $config_parms{weather_uom_baro} eq 'mb' ? convert_mb2in($Weather{Barom}):$Weather{Barom};
     my $weather_baromsea = $config_parms{weather_uom_baro} eq 'mb' ? convert_mb2in($Weather{BaromSea}):$Weather{BaromSea};
 
@@ -96,6 +115,7 @@ if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
 
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =  gmtime();
     my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec;
+    $utc = &escape($utc);
 
     my $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&PASSWORD=%s&dateutc=%s&winddir=%s&windspeedmph=%d&windgustmph=%d&tempf=%.1f&rainin=%.2f&baromin=%.2f&dewptf=%.2f&humidity=%s&weather=%s&clouds=%s&softwaretype=%s&action=updateraw',
 	$stationid, $passwd, $utc,
@@ -114,19 +134,17 @@ if (new_minute $config_parms{wunderground_frequency} or $state eq 'Run') {
     	$clouds,
 	'Misterhouse';
 
-    $url =~ s/ /\%20/g;
-#   print "wunderground: sun=$Weather{sun_sensor} $url\n";  # do not print this to print_log, as it has the password in it
-    set $p_weather_update qq|get_url -quiet "$url" $f_weather_update_html|;
+   print "wunderground: sun=$Weather{sun_sensor} $url\n";  # do not print this to print_log, as it has the password in it
+    set $p_weather_update qq|get_url -quiet "$url" $weather_update_html_path|;
     start $p_weather_update;
 }
 
+# *** Need to parse the response to look for errors
 
-# No need to convert ... results are a simple text file?
-#if (done_now $p_weather_update) {
-#    my $html = file_read $f_weather_update_html;
-#    $text = HTML::FormatText->new(leftmargin => 0, rightmargin => 150)->format(HTML::TreeBuilder->new()->parse($html));
-#    file_write($f_weather_update_page, $text);
-#}
+if (done_now $p_weather_update) {
+	$v_weather_update->respond('app=wunderground connected=0 Weather upload completed.');
+
+}
 
 # -------------------
 #
