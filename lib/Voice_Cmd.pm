@@ -576,8 +576,6 @@ sub _register2 {
 
     $cmd_num_by_text{$text} = $cmd_num;
 
-	print "\n\n\n$cmd_num:$text\n\n\n" if $text =~ /listen/i;
-
     $cmd_text_by_num{$cmd_num} = $text;
     $cmd_by_num{$cmd_num} = $self;
 
