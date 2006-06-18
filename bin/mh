@@ -3454,7 +3454,7 @@ sub print_log {
 #       $Tk_objects{log_window}->yview('moveto', 30);
     }
     else {
-        print $data . "\n";
+        print "$Time_Date $data\n";
     }
     $data = "$Time_Date $data";
     unshift (@Print_Log, $data);
