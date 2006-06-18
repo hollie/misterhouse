@@ -5,7 +5,7 @@
 #
 #@ Weather METAR parser
 #@ 
-#@ V 1.63
+#@ Revision: $Revision$ 
 #@
 #@ To get the closest station name in Canada, go to 
 #@ http://www.flightplanning.navcanada.ca and choose METAR/TAF
@@ -19,42 +19,6 @@
 #@
 #
 # by Matthew Williams
-#
-# V 1.63
-# - Added ability to read from automated stations (AUTO tag)
-# - Added ability to understand COR (alternate correction tag)
-#
-# V 1.62
-# - Added ability to add hooks that are called when new forecasts are retrieved.
-# - Added new SummaryLong key to Weather Hash
-#
-# V 1.61
-# - Fixed typo that corrupted Weather{TempOutdoor}
-#
-# V 1.6
-# - Added imperial units
-#
-# V 1.5
-# - fixed a typo.  I hate typos.  I really should test this thing more before
-#   I send out updates. :-)
-#
-# V 1.4
-# - based on Michael Brown's suggestion, the Weather hash now contains
-#   values that are nicely rounded.
-#
-# V 1.3
-# - fixed code to handle RMK without a space after it
-# - allowed for CCA (correction)
-#
-# V 1.2
-# - accounted for change in NavCanada format
-# 
-# V 1.1
-# - added relative humidity calculation based on dewpoint
-# - added humidex calculation
-#
-# V 1.0
-# - initial release
 
 # noloop=start
 my $station=uc($config_parms{weather_metar_station});
@@ -83,6 +47,9 @@ $v_get_metar_weather = new Voice_Cmd('get metar weather');
 
 if (($New_Minute and $Minute==5) or said $v_get_metar_weather) {
   start $p_weather_metar_page;
+  if (said $v_get_metar_weather) {
+  	$v_get_metar_weather->respond('Updating weather information from latest METAR');
+  }
 }
 
 # useful for debugging
@@ -94,7 +61,7 @@ if (said $v_show_weather) {
   foreach $metric (keys(%Weather)) {
     $response.= "Weather $metric is $Weather{$metric}\n";
   }
-  respond($response);
+  $v_show_weather->respond($response);
 }
 
 if (done_now $p_weather_metar_page or $Reload) {
