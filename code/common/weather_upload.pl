@@ -106,11 +106,26 @@ if (said $v_weather_update eq 'Run') {
     else {
         $clouds = 'CLR' if $Weather{Conditions} eq 'Clear';
         $clouds = 'OVC' if $Weather{Conditions} eq 'Cloudy';
+	$clouds = 'SCT' if $Weather{Conditions} eq 'Partly Cloudy';
+	$clouds = 'SKC' if $Weather{Conditions} eq 'Sunny';
+		# MI = Shallow clouds
+	$weather_conditions = "MI" if $Weather{Conditions} eq 'Sunny';
+		# BC = Patches clouds
+	$weather_conditions = "BC" if $Weather{Conditions} eq 'Partly Cloudy';
+		# PR = Partial clouds
+	$weather_conditions = "PR" if $Weather{Conditions} eq 'Cloudy';
+		# RA = Rain
+	$weather_conditions = "RA" if $Weather{Raining};
+
+
+
         # wx200 stores in millibars, 968 stores in Hg
         unless ($weather_barom = $Weather{BaromSea_hg}) {
 	    $weather_barom = $Weather{BaromSea};
 	    $weather_barom  *= 0.029529987508 if $weather_barom > 100;  # hg should be around 29.
 	}
+	# for (default) Internet weather, frog, etc.
+	$weather_barom = $Weather{Barom} if !$weather_barom;
     }
 
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =  gmtime();
