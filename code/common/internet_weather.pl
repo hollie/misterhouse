@@ -116,9 +116,14 @@ if (done_now $p_weather_forecast) {
         }
         else {
             $Weather{WindI}  = $1 if $conditions =~ /wind\s+was\s+(.+?)\./;
-            ($Weather{WindDirectionI}, $Weather{WindSpeedI}) = $conditions =~ /wind\s+was\s+(\S+)\s+at\s+(.+?)\s+mph\./;
-	    ($Weather{WindSpeedI}) = $conditions =~ /wind\s+was\s+at\s+(.+?)\s+mph\./ if !defined $Weather{WindDirectionI};
-        }
+
+	print "\n\n\nWIND: $Weather{WindI}\n";
+
+            ($Weather{WindDirectionI}, $Weather{WindSpeedI}) = $Weather{WindI} =~ /(.+?)\s+at\s+(.+?)\s+mph/i;
+
+	print "\n\n\nWIND: $Weather{WindSpeedI}\n";
+
+	    ($Weather{WindSpeedI}) = $Weather{WindI} =~ /wind\s+was\s+at\s+(.+?)\s+mph/ if !defined $Weather{WindDirectionI};        }
 
         $Weather{WindChillI} = int(($Weather{WindSpeedI} > 3 and $Weather{TempInternet} <= 50)? 35.74 + .6215 * $Weather{TempInternet}- 35.75 * $Weather{WindSpeedI}**.16 + .4275 * $Weather{TempInternet} * $Weather{WindSpeedI}**.16:$Weather{TempInternet});
 
