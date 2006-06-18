@@ -3,10 +3,13 @@
 #@ Monitors for memory leaks 
 
 # Monitor memory usage (unix and NT/2K only. 
-# Win95/98 have no way to monitor memory :(
+# Win95/98 has no way to monitor memory :(
 
+
+#noloop=start
 my $memory_leak_log = "$config_parms{data_dir}/logs/monitor_memory_leak.log";
 logit $memory_leak_log, "-- Restarted --.  Perl version:  $Info{Perl_version}" if $Startup;
+#noloop=stop
 
                                 # Ignore startup memory stats
 if ($Time_Uptime_Seconds > 600) {
@@ -45,37 +48,37 @@ $t_memory_check = new Timer;
 
 my (@memory_leak_members, $memory_leak_index, $memory_leak_member);
 if ('Start' eq said $v_memory_check) {
-    respond 'Ok, starting memory check';
+    $v_memory_check->respond('app=memory Starting memory check...');
     @memory_leak_members = grep !/(monitor_memory)|(tk_)/, sort keys %Run_Members;
-    print_log "These members will be tested: @memory_leak_members";
+    print "These members will be tested: @memory_leak_members\n" if $Debug{memory};
     $memory_leak_index = 0;
     set $t_memory_check 1;      # Set to start next pass
 }
 
 if ('Stop' eq said $v_memory_check) {
-    respond 'Memory leak check has been stopped';
+    $v_memory_check->respond('Memory leak check has been stopped.');
     unset $t_memory_check;
 }
 
 if (expired $t_memory_check) {
-    print_log "Memory leak timer expired";
+    print "Memory leak timer expired\n" if $Debug{memory};
     if ($memory_leak_member) {
         $Run_Members{$memory_leak_member} = 1;
-        print_log "Memory leak test: re-enabled $memory_leak_member";
+        print "Memory leak test: re-enabled $memory_leak_member\n" if $Debug{memory};
         $memory_leak_index++;
         my $memory_diff = round $Info{memory_virtual} - $Info{memory_virtual_test}, 2;
-        print_log "Memory leak amount: $memory_diff";
+        print "Memory leak amount: $memory_diff\n" if $Debug{memory};
         logit "$config_parms{data_dir}/logs/monitor_memory.log", "Leaked $memory_diff MB with $memory_leak_member disabled";
     }
     if ($memory_leak_member = $memory_leak_members[$memory_leak_index]) {
         $Run_Members{$memory_leak_member} = 0;
-        print_log "Memory leak test: disabled $memory_leak_member";
+        print "Memory leak test: disabled $memory_leak_member\n" if $Debug{memory};
         set $t_memory_check 20*60;
 #       set $t_memory_check 5;
         $Info{memory_virtual_test} = $Info{memory_virtual};
     }
     else {
-        speak "Memory leak test finished";
+        $v_memory_check->respond("app=memory connected=0 Memory leak test finished");
     }
 }
     
