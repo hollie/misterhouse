@@ -83,8 +83,6 @@ if ($speed_benchmark_count and (new_second 5 or said $v_speed_benchmark)) {
         }
     }
 
-	print $log;
-
     file_write "$config_parms{data_dir}/logs/benchmark.log", $log;
-    display text => $log, time => 0, font => 'fixed', window_name => 'benchmarks';
+    display text => $log, time => 0, font => 'fixed', window_name => 'benchmarks', append=> 'top';
 }
