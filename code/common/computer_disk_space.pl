@@ -1,30 +1,31 @@
 # Category = Misc
 
 #@ Show available disk space on Windows computers
+#@ Does nothing on Linux at the moment
 
 # noloop=start
-my $disk_drives = '';
-$disk_drives = join(',', Win32::DriveInfo::DrivesInUse()) if $Reload and $OS_win;
-$v_disk_space = new Voice_Cmd("How much disk space is available on [$disk_drives]");
-$v_disk_space-> set_info('This currently only works on Windows');
+if ($OS_win) {
+	my $disk_drives = '';
+	$disk_drives = join(',', Win32::DriveInfo::DrivesInUse());
+	$v_disk_space = new Voice_Cmd("How much disk space is available on [$disk_drives]");
+	$v_disk_space-> set_info('This works only on Windows platforms');
+	$v_disk_space2 = new Voice_Cmd("Show disk space");
+	$v_disk_space2-> set_info('Shows disk space on all drives');
+}
 # noloop=stop
 
 if ($state = said $v_disk_space) {
-    my ($total, $free) = (Win32::DriveInfo::DriveSpace($state))[5,6] if $OS_win;
-    speak sprintf("There is %d out of %d megabytes of space available on drive $state",
-		  $free/10**6, $total/10**6);
+    my ($total, $free) = (Win32::DriveInfo::DriveSpace($state))[5,6];
+    $v_disk_space->respond(sprintf("app=pc There is %d out of %d megabytes of space available on drive $state", $free/10**6, $total/10**6));
 }
 
-$v_disk_space2 = new Voice_Cmd("Show disk space", 'Ok');
-$v_disk_space2-> set_info('Shows disk space onall drives (Windows only)');
-
 if (said $v_disk_space2) {
+    $v_disk_space2->respond("app=pc Checking disk space...");
 				# Include remote drives on other computers
     my $report = "Disk drive space (free / total megabytes) sorted by drive:\n";
     my (%total_by_drive, %free_by_drive);
-    if ($OS_win) {
-        for my $drive (Win32::DriveInfo::DrivesInUse(),
-                       '\\\warp\c') {
+
+        for my $drive (Win32::DriveInfo::DrivesInUse()) {
             next if $drive eq 'A';
             my ($total, $free) = (Win32::DriveInfo::DriveSpace($drive))[5,6];
             $total /= 10**6;
@@ -38,9 +39,6 @@ if (said $v_disk_space2) {
             $report .= sprintf("%14s: %6.1f / %6.1f\n", $drive, $free_by_drive{$drive}, $total_by_drive{$drive});
         }
         display $report, 30, 'Disk use report', 'fixed';
-        speak "Here is the report on disk space";
-    }
-    else {
-        speak "Sorry, function not available on unix yet";
-    }
+        $v_disk_space2->respond("app=pc Here is the report on disk space.");
+
 }
