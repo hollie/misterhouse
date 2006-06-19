@@ -277,7 +277,7 @@ sub update_clock {
 		}
 		elsif ($parm eq 'weather') {
 			# *** Need to record/check time stamp on warning
-			&display(wait=>1, device=>'alpha', app=>'weather', mode=>'auto', image=>'warning', color=>'red', text=> "WARNING: $Weather{warning}") if $Weather{warning} and $Weather{warning} !~ /adjusted/i and $Weather{warning} !~ /updated/i and $Weather{warning} !~ /removed/i;
+			&display(wait=>1, device=>'alpha', app=>'weather', mode=>'auto', image=>'warning', color=>'red', text=> "WARNING: $Weather{Warning}") if $Weather{Warning} and $Weather{Warning} !~ /adjusted/i and $Weather{Warning} !~ /updated/i and $Weather{Warning} !~ /removed/i;
 			&display("wait=1 device=alpha app=weather $Weather{Summary_Short}") if $Weather{Summary_Short};
 			&display("wait=1 device=alpha app=weather $Weather{chance_of_rain}") if $Weather{chance_of_rain};
 		}
@@ -515,14 +515,14 @@ if (&can_interrupt('news') and $Save{news_ap_headline} and ($da_data{news_headli
 	$da_data{news_headline} = $Save{news_ap_headline};
 }
 
-if ($Weather{warning} and ($da_data{weather_warning} ne $Weather{warning})) {
+if ($Weather{Warning} and ($da_data{weather_warning} ne $Weather{Warning})) {
 
-	if ($da_data{weather_warning} ne $Weather{warning} and $Weather{warning} !~ /updated/i and $Weather{warning} !~ /adjusted/i and $Weather{warning} !~ /removed/i) {
-		&display(device=>'alpha', app=>'weather', color=>'red', image=>'warning', text=> "WARNING: $Weather{warning}");
+	if ($da_data{weather_warning} ne $Weather{Warning} and $Weather{Warning} !~ /updated/i and $Weather{Warning} !~ /adjusted/i and $Weather{Warning} !~ /removed/i) {
+		&display(device=>'alpha', app=>'weather', color=>'red', image=>'warning', text=> "WARNING: $Weather{Warning}");
         	&set_display_timer(60, 'weather');
 	}
 
-	$da_data{weather_warning} = $Weather{warning};
+	$da_data{weather_warning} = $Weather{Warning};
 }
 
 if ($Info{barcode_data} and ($da_data{barcode} ne $Info{barcode_data})) {
