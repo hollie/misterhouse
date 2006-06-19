@@ -7,21 +7,43 @@
 use lib "$Pgm_Root/web/organizer";
 use vsDB;
 
-$organizer_cal  = new File_Item "$config_parms{organizer_dir}/calendar.tab";
-$organizer_todo = new File_Item "$config_parms{organizer_dir}/tasks.tab";
-set_watch $organizer_cal  if $Reload;
-set_watch $organizer_todo if $Reload;
+#noloop=start
 
-$organizer_check = new Voice_Cmd 'Check for new calendar events';
-$organizer_check ->set_info('Creates MisterHouse events based on organizer calendar events');
+$f_organizer_cal  = new File_Item "$config_parms{organizer_dir}/calendar.tab";
+$f_organizer_todo = new File_Item "$config_parms{organizer_dir}/tasks.tab";
 
-if (said $organizer_check or ($New_Minute and changed $organizer_cal)) {
-    print_log 'Reading updated organizer calendar file';
-    set_watch $organizer_cal;  # Reset so changed function works
-    my ($objDB) = new vsDB(file => $organizer_cal->name, delimiter => '\t');
+set_watch $f_organizer_cal;
+set_watch $f_organizer_todo;
+
+
+$v_organizer_check = new Voice_Cmd 'Check for new calendar events';
+$v_organizer_check ->set_info('Creates MisterHouse events based on organizer calendar events');
+
+#noloop=stop
+
+if ($New_Minute) {
+	if (changed $f_organizer_cal) {
+		print_log 'Reading updated organizer calendar file';
+		&check_calendar;
+	}
+	if (changed $f_organizer_todo) {	
+		print_log 'Reading updated organizer todo file';
+		&check_todo_list;
+	}
+}
+
+if (said $v_organizer_check) {	
+	&check_calendar();
+	&check_todo_list();
+	$v_organizer_check->respond("app=calendar Schedule is now up to date.");
+}
+
+sub check_calendar {
+    set_watch $f_organizer_cal;  # Reset watch
+    my ($objDB) = new vsDB(file => $f_organizer_cal->name, delimiter => '\t');
     print $objDB->LastError unless $objDB->Open;
     my $mycode = "$Code_Dirs[0]/organizer_events.pl";
-    open(MYCODE, ">$mycode") or print_log "Error in open on $mycode: $!\n";
+    open(MYCODE, ">$mycode") or print "Error in open on $mycode: $!\n";
     while (!$objDB->EOF) {
         my $date  = $objDB->FieldValue('DATE');
         my $time  = $objDB->FieldValue('TIME');
@@ -33,21 +55,20 @@ if (said $organizer_check or ($New_Minute and changed $organizer_cal)) {
         my $time_date = "$date/$date[0] $time";
         next if time_greater_than($time_date);  # Skip past events
         print MYCODE "if (time_now '$time_date - 00:15') {speak q~Calendar notice.  In 15 minutes, $event~};\n";
-        print MYCODE "if (time_now '$time_date') {speak q~Calendar notice at $time: $event~};\n";
+        print MYCODE "if (time_now '$time_date') {speak q~app=calendar Calendar notice at $time: $event~};\n";
     }
     close MYCODE;
     $objDB->Close;
-    display $mycode, 10, 'Organizer Calendar events', 'fixed';
+    #display $mycode, 10, 'Organizer Calendar events', 'fixed' if $mycode;
     do_user_file $mycode;
 }
 
-if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
-    print_log 'Reading updated organizer todo file';
-    set_watch $organizer_todo;  # Reset so changed function works
-    my ($objDB) = new vsDB(file => $organizer_todo->name, delimiter => '\t');
+sub check_todo_list {
+    set_watch $f_organizer_todo;  # Reset watch
+    my ($objDB) = new vsDB(file => $f_organizer_todo->name, delimiter => '\t');
     print $objDB->LastError unless $objDB->Open;
     my $mycode = "$Code_Dirs[0]/organizer_tasks.pl";
-    open(MYCODE, ">$mycode") or print_log "Error in open on $mycode: $!\n";
+    open(MYCODE, ">$mycode") or print "Error in open on $mycode: $!\n";
     print MYCODE "\n#@ Auto-generated from code/common/organizer.pl\n\n";
     my %emails;
     &read_parm_hash(\%emails,  $main::config_parms{organizer_email});
@@ -62,7 +83,11 @@ if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
         $objDB->MoveNext;
 	next unless $name or $subject;
         next if lc $complete eq 'yes';
-        next unless time_less_than("$date + 23:59");  # Skip past and invalid events
+
+	# *** This line was crashing mh on first run!
+	# *** It is a Y2K bug!  Welcome task's year is '99'.
+
+        next unless eval qq|time_less_than("$date + 23:59")|;  # Skip past and invalid events
         
         my $email = "net_mail_send to => '$emails{lc $name}', subject => q~$subject~, text => q~$notes~; " 
           if $emails{lc $name};
@@ -79,7 +104,7 @@ if (said $organizer_check or ($New_Minute and changed $organizer_todo)) {
     }
     close MYCODE;
     $objDB->Close;
-    display $mycode, 10, 'Organizer Tasks events', 'fixed';
-    do_user_file $mycode;
+    #display $mycode, 10, 'Organizer Tasks events', 'fixed' if $mycode;
+    do_user_file $mycode;	
 }
 
