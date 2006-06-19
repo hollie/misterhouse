@@ -1,51 +1,61 @@
 
 # Category = Entertainment
 
-#@ This module enables trivia questions and answers.
+#@ This module has trivia questions and answers.
 
 
 my $f_trivia_question = "$config_parms{data_dir}/trivia_question.txt";
-my $f_trivia_answer   = "$config_parms{data_dir}/trivia_answer.txt";
+my $f_trivia_answer = "$config_parms{data_dir}/trivia_answer.txt";
 
-$v_trivia_next1    = new  Voice_Cmd('What is the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question');
-$v_trivia_next2    = new  Voice_Cmd('Display the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question');
-$v_trivia_answer   = new  Voice_Cmd('[What is,Display] the trivia answer');
+$v_trivia_next    = new Voice_Cmd('What is the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question');
+$v_trivia_answer   = new Voice_Cmd('What is the trivia answer');
 
-$v_trivia_next2   -> set_authority('anyone');
+$v_trivia_next   -> set_authority('anyone');
 $v_trivia_answer  -> set_authority('anyone');
 
 my $cat;
-if (($cat = said $v_trivia_next1 or $cat = said $v_trivia_next2) and $cat =~ /next / or
-    time_cron '0 6 * * * ') {
+
+# Create trigger
+
+
+if ($Reload and $Run_Members{'trigger_code'}) {
+	eval qq(
+            &trigger_set("time_cron '0 6 * * * '", "&trivia_next", 'NoExpire', 'refresh trivia') 
+              unless &trigger_get('refresh trivia');
+        );
+}
+
+
+sub uninstall_trivia {
+	&trigger_delete('refresh trivia')
+}
+
+
+#    
+
+&trivia_next($cat) if $cat = said $v_trivia_next and $cat =~ /next /;
+
+$v_trivia_next->respond("app=trivia $f_trivia_question") if said $v_trivia_next;
+$v_trivia_answer->respond("app=trivia $f_trivia_answer") if said $v_trivia_answer;
+
+sub trivia_next {
+    my $cat = shift;
     $cat =~ s/next //;
+#   $cat = 'Science' unless $cat;
 #   $cat = 'Mixed'  unless $cat;
     $cat = 'Random' unless $cat;
+    $cat = ucfirst $cat;
     if ($cat eq 'Random') {
         my @cats = qw(Science Entertainment Mixed Sports);
         $cat = $cats[int((@cats) * rand)];
     }
 
-#   @ARGV = ($cat);		# Pass catagory to the 'do'ed program
-#   do "$Pgm_Path/trivia";      # Use do so we can run from compiled mh, without perl installed
-    &trivia_next($cat);
-    print_log "Trivia question has been refreshed";
-}
+# *** Should change to user data folder once first-run data copy is in place
+# *** Should check user data folder first, then data folder
 
-respond "target=speak " . $f_trivia_question if said $v_trivia_next1;
-respond "target=speak " . $f_trivia_answer   if said $v_trivia_answer eq 'What is';
+    my $data_dir = "$Pgm_Root/data/trivia";
 
-respond $f_trivia_question if said $v_trivia_next2;
-respond $f_trivia_answer   if said $v_trivia_answer eq 'Display';
-
-
-sub trivia_next {
-    my $cat = shift;
-    $cat = 'Science' unless $cat;
-    $cat = ucfirst $cat;
-
-    my $data_dir = "$Pgm_Path/../data/trivia";
-
-                                # Keep track of where the current question number
+                                # Keep track of the current question number
     my $qn = $Save{"trivia.$cat.cnt"};
     $qn++;
     $qn = 0 if $qn >= 500;
@@ -54,8 +64,7 @@ sub trivia_next {
 
     my $offset = 0 + 153*($qn-1);
 
-    open (INDATA,   "$Pgm_Path/../data/trivia/$cat.dat") or die "Error, could not open trivia file $Pgm_Path/../data/$cat.dat:$!\n";
-#   open (INDATA,   "$config_parms{data_dir}/trivia/$cat.dat") or die "Error, could not open trivia file $config_parms{data_dir}/trivia/$cat.dat:$!\n";
+    open (INDATA,   "$Pgm_Root/data/trivia/$cat.dat") or die "Error, could not open trivia file $Pgm_Path/../data/$cat.dat:$!\n";
     open (QUESTION, ">$f_trivia_question");
     open (ANSWER,   ">$f_trivia_answer");
 
@@ -79,13 +88,13 @@ sub trivia_next {
     $a[4] = &trivia_trim(substr($r, 132, 20)) . ".";
     my $an= substr($r, 152, 1);
     
-    print  QUESTION "Todays $cat Trivia Question.
+    print  QUESTION "Today's $cat trivia question:
  $q
   1: $a[1]
   2: $a[2]
   3: $a[3]
   4: $a[4]
-One more time.  The Trivia Question is:
+One more time.
  $q
   1: $a[1]
   2: $a[2]
