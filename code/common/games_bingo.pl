@@ -45,7 +45,7 @@ if (said $v_bingo_control) {
         set $t_bingo_timer 2;
     }
     else {
-        $v_bingo_control->respond("app=bingo Housey housey! Bingo!! Bingo!!");
+        $v_bingo_control->respond("app=bingo mode=fireworks Housey housey! Bingo!! Bingo!!");
         stop $t_bingo_timer;
     }
 }
