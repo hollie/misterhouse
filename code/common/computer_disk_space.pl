@@ -11,10 +11,50 @@ if ($OS_win) {
 	$v_disk_space-> set_info('This works only on Windows platforms');
 	$v_disk_space2 = new Voice_Cmd("Show disk space");
 	$v_disk_space2-> set_info('Shows disk space on all drives');
+	$v_disk_space3 = new Voice_Cmd("Check disk space");
+	$v_disk_space3-> set_info('Check disk space requirements');
 }
 # noloop=stop
 
-if ($state = said $v_disk_space) {
+# Create trigger to check disk space requirements periodically
+
+if ($Reload and $Run_Members{'trigger_code'}) {
+	eval qq(
+            &trigger_set("time_cron '0 18 * * 6'", "run_voice_cmd('Check disk space')", 'NoExpire', 'check disk space')
+              unless &trigger_get('check disk space');
+        );
+}
+
+if (said $v_disk_space3) {
+	my $drive;
+
+	if ($Pgm_Path =~ /^([A-Z]):/i) { # Need check for network shares (\\machine\share)
+
+		my $msg = '';
+		my $important = 0;
+
+		$drive = $1;
+		my ($total, $free) = (Win32::DriveInfo::DriveSpace($drive))[5,6];
+
+		$free = int($free / 10**6);
+
+		if ($free < 1000) {
+			$msg = ' That is cutting it close. Time to empty the recycle bin and clear temporary Internet files.';
+			$important = 1;
+		}
+		
+		$v_disk_space3->respond("app=pc important=$important I am installed on drive $drive. There are $free megabytes free.$msg");
+	}
+	else {
+		$v_disk_space3->respond("app=pc I cannot determine the drive space requirements");
+	}
+
+
+}
+
+
+if (said $v_disk_space) {
+    my $state = $v_disk_space->{state};
     my ($total, $free) = (Win32::DriveInfo::DriveSpace($state))[5,6];
     $v_disk_space->respond(sprintf("app=pc There is %d out of %d megabytes of space available on drive $state", $free/10**6, $total/10**6));
 }
