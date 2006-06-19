@@ -119,9 +119,7 @@ if (done_now $p_weather_forecast) {
 
             ($Weather{WindDirectionI}, $Weather{WindSpeedI}) = $Weather{WindI} =~ /(.+?)\s+at\s+(.+?)\s+mph/i;
 
-	    ($Weather{WindSpeedI}) = $Weather{WindI} =~ /at\s+(.+?)\s+mph/ if !defined $Weather{WindDirectionI};    
-
-		print "TEST WIND: $Weather{WindSpeedI} $Weather{WindI} \n";
+	    ($Weather{WindSpeedI}) = $Weather{WindI} =~ /at\s+(.+?)\s+mph/ if !defined $Weather{WindDirectionI};
     }
 
         $Weather{WindChillI} = int(($Weather{WindSpeedI} > 3 and $Weather{TempInternet} <= 50)? 35.74 + .6215 * $Weather{TempInternet}- 35.75 * $Weather{WindSpeedI}**.16 + .4275 * $Weather{TempInternet} * $Weather{WindSpeedI}**.16:$Weather{TempInternet});
@@ -161,7 +159,7 @@ if (done_now $p_weather_forecast) {
 
 	    # Who needs a sun sensor?
 
-	    if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny|foggy)/i) {
+	    if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny|foggy|light rain|heavy rain|light snow|heavy snow)/i) {
 			$Weather{Conditions} = ucfirst(lc($1));
 	    }
 
