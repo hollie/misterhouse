@@ -4,26 +4,26 @@
 #@ Plays the game of Bingo by speaking a set of bingo numbers at a timed interval.
 #@ Use with a 75 number deck (B 1->15, I 16->30, etc).
 
-$bingo_timer   = new Timer;
-$bingo_control = new Voice_Cmd '[Start,Pause,Resume,Status] bingo';
-$bingo_time    = new Voice_Cmd 'Set bingo time to [2,5,10,15,20]';
+$t_bingo_timer = new Timer;
+$v_bingo_control = new Voice_Cmd '[Start,Pause,Resume,Status,] Bingo';
+$v_bingo_time = new Voice_Cmd 'Set bingo time to [2,5,10,15,20]';
 
-if ($state = state_now $bingo_time) {
-    speak "app=bingo Ok, bingo timer set to $state seconds";
+use vars qw(@bingo_card $bingo_count); # *** Is this really the best way to persist?
+
+if (state_now $v_bingo_time) {
+    respond("app=bingo Bingo timer set to " . $v_bingo_time->{state} . " seconds.");
     $config_parms{bingo_time} = $state;
 }
 
-use vars qw(@bingo_card $bingo_count); # Avoid 'my' so we keep data between reloads
-
-if ($state = said $bingo_control) {
-    if ($state eq 'Start') {
-        speak "app=bingo Get ready to Bingo!";
+if (said $v_bingo_control) {
+    if ($v_bingo_control->{state} eq 'Start') {
+        $v_bingo_control->respond("app=bingo Get ready to Bingo!");
                                 # Randomize the card
         @bingo_card = ();
         my $number = 1;
         for my $letter (qw(B I N G O)) {
             for (1 .. 15) {
-                push @bingo_card, "$letter$number";
+                push @bingo_card, "$letter $number";
                 $number++;
             }
         }
@@ -31,37 +31,44 @@ if ($state = said $bingo_control) {
         $bingo_count = 0;
         print "Randomized list: @bingo_card\n" if $Debug{bingo};
         $config_parms{bingo_time} = 15 unless $config_parms{bingo_time};
-        set $bingo_timer 2;
+        set $t_bingo_timer 2;
     }
-    elsif ($state eq 'Pause') {
-        speak "app=bingo Ok, break time";
-        stop $bingo_timer;
+    elsif ($v_bingo_control->{state} eq 'Pause') {
+        $v_bingo_control->respond("app=bingo Bed time for Bingo!");
+        stop $t_bingo_timer;
+    }
+    elsif ($v_bingo_control->{state} eq 'Status') {
         &display_bingo_status;
     }
-    elsif ($state eq 'Status') {
-        &display_bingo_status;
+    elsif ($v_bingo_control->{state} eq 'Pause') {
+        $v_bingo_control->respond("app=bingo Resuming the game...");
+        set $t_bingo_timer 2;
     }
-    elsif ($state eq 'Resume') {
-        speak "app=bingo Resuming the game";
-        set $bingo_timer 2;
+    else {
+        $v_bingo_control->respond("app=bingo Housey housey! Bingo!! Bingo!!");
+        stop $t_bingo_timer;
     }
 }
 
-if (expired $bingo_timer) {
+if (expired $t_bingo_timer) {
     if ($bingo_count >= 75) {
-        speak "app=bingo Bingo game is over";
-        stop $bingo_timer;
+        $v_bingo_control->respond("app=bingo connected=0 Bingo game is over.");
+        stop $t_bingo_timer;
     }
     else {
-        speak app => 'bingo', text => $bingo_card[++$bingo_count - 1];
-        set $bingo_timer $config_parms{bingo_time};
-                                # Display the last few calls
-        &display_bingo_status;
+	$v_bingo_control->respond("app=bingo $bingo_card[++$bingo_count - 1]");
+        set $t_bingo_timer $config_parms{bingo_time};
+        &display_bingo;
     }
+}
+
+sub display_bingo {
+    display app => 'bingo', text => "$bingo_count. @bingo_card[$bingo_count - 1] ", window_name => 'Bingo', append => 'top';
 }
 
 sub display_bingo_status {
     my $i = $bingo_count-3; $i = 0 if $i < 0;
     my @previous = @bingo_card[$i .. $bingo_count-1];
-    display app => 'bingo', text => "$bingo_count @previous";
+    display app => 'bingo', text => "@previous";
 }
+
