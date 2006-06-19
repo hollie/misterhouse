@@ -86,7 +86,7 @@ if (said $v_weather_update eq 'Run') {
 		# SKC = Sky Clear
 	$clouds = 'SKC' if $Weather{WxTendency} eq 'Sunny';
 		# SCT = Scattered
-	$clouds = 'SCT' if $Weather{WxTendency} eq 'Partly Cloudy';
+	$clouds = 'SCT' if $Weather{WxTendency} eq 'Partly cloudy';
 		# BKN = Broken
 	$clouds = 'BKN' if $Weather{WxTendency} eq 'Cloudy';
 		# OVC = Overcast
@@ -95,7 +95,7 @@ if (said $v_weather_update eq 'Run') {
 		# MI = Shallow clouds
 	$weather_conditions = "MI" if $Weather{WxTendency} eq 'Sunny';
 		# BC = Patches clouds
-	$weather_conditions = "BC" if $Weather{WxTendency} eq 'Partly Cloudy';
+	$weather_conditions = "BC" if $Weather{WxTendency} eq 'Partly cloudy';
 		# PR = Partial clouds
 	$weather_conditions = "PR" if $Weather{WxTendency} eq 'Cloudy';
 		# RA = Rain
@@ -106,16 +106,16 @@ if (said $v_weather_update eq 'Run') {
     else {
         $clouds = 'CLR' if $Weather{Conditions} eq 'Clear';
         $clouds = 'OVC' if $Weather{Conditions} eq 'Cloudy';
-	$clouds = 'SCT' if $Weather{Conditions} eq 'Partly Cloudy';
+	$clouds = 'SCT' if $Weather{Conditions} eq 'Partly cloudy' or $Weather{Conditions} eq 'Partly sunny';
 	$clouds = 'SKC' if $Weather{Conditions} eq 'Sunny';
 		# MI = Shallow clouds
-	$weather_conditions = "MI" if $Weather{Conditions} eq 'Sunny';
+	$weather_conditions = "MI" if $Weather{Conditions} eq 'Partly sunny';
 		# BC = Patches clouds
-	$weather_conditions = "BC" if $Weather{Conditions} eq 'Partly Cloudy';
+	$weather_conditions = "BC" if $Weather{Conditions} eq 'Partly cloudy';
 		# PR = Partial clouds
 	$weather_conditions = "PR" if $Weather{Conditions} eq 'Cloudy';
 		# RA = Rain
-	$weather_conditions = "RA" if $Weather{Raining};
+	$weather_conditions = "RA" if $Weather{Raining} or $Weather{Conditions} eq 'Light rain';
 
 
 
