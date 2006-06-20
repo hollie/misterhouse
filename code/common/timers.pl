@@ -9,7 +9,8 @@
                                 # Create Tk/Web widgets
 $timer_time = new Generic_Item;
 $timer_text = new Generic_Item;
-&tk_entry('Timer amount' => $timer_time, 'Timer Text' => $timer_text);
+&tk_entry('Timer amount' => $timer_time);
+&tk_entry('Timer Text' => $timer_text);
 
                                 # Create timers
                                 #  - only set timer when time changes ... the web interface
@@ -42,7 +43,7 @@ if (state_now $timer_time) {
 
 sub expired_timer {
     my ($time, $text) = @_;
-    play volume => 50, file => 'timer';               # Set in event_sounds.pl
+    play app => 'timer', file => 'timer';               # Set in event_sounds.pl
     my $text2;
     if ($text) {
         $text2 = "Time to $text";
@@ -50,17 +51,18 @@ sub expired_timer {
     else {
         $text2 = 'Timer expired';
     }
-    speak "app=timer volume=100 Notice: $text2.  The $time $text timer just expired";
-    play volume => 50, file => 'timer';               # Set in event_sounds.pl
+    speak "app=timer Notice: $text2. The $time $text timer just expired";
+    play app => 'timer', file => 'timer';               # Set in event_sounds.pl
 }
 
 
                                 # Allow for limited voice command timers
 $v_minute_timer = new  Voice_Cmd('Set a timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,25,30,45,60,90,120] minutes');
 $v_minute_timer-> set_info('Set a minute timer.  Time remaining will be periodically announced');
-if ($state =  said $v_minute_timer) {
-    speak "app=timer A timer has been set for $state minutes";
-    set $timer_time "$state minuts";
+if (said $v_minute_timer) {
+    my $state = $v_minute_timer->{state};
+    $v_minute_timer->respond("app=timer A timer has been set for $state minutes.");
+    set $timer_time "$state minutes";
 #   set $timer_text 'minite';
 }
 
@@ -84,12 +86,12 @@ if ($state = said $v_list_timers) {
             if ($timer->{text}) {
                 speak "app=timer $timer->{text} in " . &plural($time_left, $timer->{unit}) ;
             } else {
-                speak "app=timer " . &plural($time_left, $timer->{unit}) . " left on the timer" ;
+                speak "app=timer " . &plural($time_left, $timer->{unit}) . " left on the timer." ;
             }
         }
     }
     else {
-        speak 'app=timer There are no active timers';
+        speak 'app=timer There are no active timers.';
     }
 }
 
@@ -117,7 +119,7 @@ if ($New_Second) {
             if ($timer->{text}) {
                 speak "app=timer pitch=$pitch $timer->{text} in " . &plural($time_left, $timer->{unit}) ;
             } else {
-                speak "app=timer pitch=$pitch " . &plural($time_left, $timer->{unit}) . " left on the timer" ;
+                speak "app=timer pitch=$pitch " . &plural($time_left, $timer->{unit}) . " left on the timer." ;
             }
         }
     }
@@ -130,5 +132,5 @@ if ($state = said $v_timer_cancel) {
         unset $timer;
     }
     undef @{$Persistent{timers}};
- 	speak "All timers have been canceled";
+    $v_timer_cancel->respond("app=timer All timers have been canceled.");
 }
