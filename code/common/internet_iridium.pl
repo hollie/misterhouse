@@ -20,51 +20,71 @@ Note: Correct long. and time_zone parms for those of us in the
 
 =cut
 
-$iridium_check = new Voice_Cmd '[get,list,browse] iridium flares';
-$iridium_check ->set_info('Lists times and locations flares from iridium satellites');
+$v_iridium_check = new Voice_Cmd '[Get,List,Browse] iridium flares';
+$v_iridium_check ->set_info('Lists times and locations flares from iridium satellites');
 
-run_voice_cmd 'get iridium flares' if $New_Week;
+
+# Create trigger
+
+if ($Reload and $Run_Members{'trigger_code'}) {
+	my $command = '\$New_Week';
+	eval qq(
+            &trigger_set("$command", "run_voice_cmd('Get iridium flares')", 'NoExpire', 'get iridium info') 
+              unless &trigger_get('get iridium info');
+        );
+}
+
+sub uninstall_internet_iridium {
+	&trigger_delete('get iridium info');
+}
 
                                 # Their web site uses dorky Time Zone strings,
                                 # so use UCT (GMT+0) and translate.
 my $iridium_check_e = "$Code_Dirs[0]/iridium_check_events.pl";
 my $iridium_check_f = "$config_parms{data_dir}/web/iridium.html";
 my $iridium_check_u = "http://www.heavens-above.com/iridium.asp?" .
-                      "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&" .
-                      "loc=$config_parms{city}";
-$iridium_check_p = new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
-#$iridium_check_p = new Process_Item "get_url '$iridium_check_u' '$iridium_check_f'";
+"lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&" .
+"loc=$config_parms{city}";
+$p_iridium_check = new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
 
-$state = said $iridium_check;
-start   $iridium_check_p if $state eq 'get';
-browser $iridium_check_f if $state eq 'browse';
 
-if (done_now $iridium_check_p or $state eq 'list') {
+sub respond_iridium {
+	my $connected = shift;
+	my $display = &list_iridium();
+	if ($display) {
+		$v_iridium_check->respond("app=iridium connected=$connected Listing iridium data.");	
+		display $display, 0, 'Iridium list', 'fixed';
+	}
+	else {
+		$v_iridium_check->respond("app=iridium connected=$connected Nothing to report.");
+	}
+}
+
+sub list_iridium {
     my ($display, $time, $sec, $time_sec);
     my $html = file_read $iridium_check_f;
                                 # Add a base href, so we can click on links
     $html =~ s|</head>|\n<BASE href='http://www.heavens-above.com/'>|i;
     file_write $iridium_check_f, $html;
 
-#   my $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($html));
     my $text = &html_to_text($html);
 
     open(MYCODE, ">$iridium_check_e") or print_log "Error in writing to $iridium_check_e";
     print MYCODE "\n#@ Auto-generated from code/common/internet_iridium.pl\n\n";
-    print MYCODE "\n\$iridium_timer = new Timer;\n\n";
+    print MYCODE "\n\$t_iridium_timer = new Timer;\n\n";
 
     print MYCODE <<'eof';
-        if ($New_Second and my $time_left = int seconds_remaining $iridium_timer) {
+        if ($New_Second and my $time_left = int seconds_remaining $t_iridium_timer) {
           my %iridium_timer_intervals = map {$_, 1} (15,30,90);
           if ($iridium_timer_intervals{$time_left}) {
              my $pitch = int 10*(1 - $time_left/60);
              $pitch = '';	# Skip this idea ... not all TTS engines do pitch that well
-             speak "app=timer pitch=$pitch $time_left seconds till flash";
+             speak "app=iridium pitch=$pitch $time_left seconds till flash";
 
           }
        }
-       if (expired $iridium_timer) {
-          speak "app=timer pitch=10 Iridium flash now occuring";
+       if (expired $t_iridium_timer) {
+          speak "app=iridium pitch=10 Iridium flash now occuring";
           play 'timer2';              # Set in event_sounds.pl
        }
 
@@ -90,10 +110,10 @@ eof
                                 # Create a seperate code file with a time_now for each event
             print MYCODE<<eof;
             if (\$Dark and time_now '$time - 0:02' and $a[3] <= \$config_parms{iridium_brightness}) {
-                set \$iridium_timer 120 + $sec;
+                set \$t_iridium_timer 120 + $sec;
                 my \$msg = "Notice: $a[9] satellite $a[10] will have a magnitude $a[3] flare in 2 minutes ";
                 \$msg .= "at an altitude of $a[4], azimuth of $a[5].";
-                speak "app=timer \$msg";
+                speak "app=iridium \$msg";
                 display "Flare will occur at: $time_sec.  \\n" . \$msg, 600;
             }
 eof
@@ -101,12 +121,56 @@ eof
         }
     }
     close MYCODE;
-    display $display, 0, 'Iridium list', 'fixed';
-#   display $iridium_check_e;
     do_user_file $iridium_check_e; # This will enable the above MYCODE
+    return $display;	
 }
 
+if (said $v_iridium_check) {
+	my $state = $v_iridium_check->{state};
+	my $state2 = $state;
+	$state2 = 'Browsing' if $state2 eq 'Browse';
+	$state2 = 'Getting' if $state2 eq 'Get';
+	start   $p_iridium_check if $state eq 'Get';
+	if ($state eq 'Browse') {
+		if (-e $iridium_check_f) {
+			browser $iridium_check_f;
+		}
+		else {
+			$state2 = 'I do not have any iridium data.';
+		}
+	}
+
+	if ($state eq 'List') {
+		&respond_iridium(1);
+	}
+	else {
+		$v_iridium_check->respond("app=iridium $state2" . ' iridium report...');	
+	}
+
+}
+
+
+&respond_iridium(0) if done_now $p_iridium_check;
+	
+
                                 # This timer will be triggered by the timer set in the above MYCODE
+
+$t_iridium_timer = new Timer;
+my %iridium_timer_intervals = map {$_, 1} (15,30,90);
+if ($New_Second and my $time_left = int seconds_remaining $t_iridium_timer) {
+    if ($iridium_timer_intervals{$time_left}) {
+        my $pitch = int 10*(1 - $time_left/60);
+        speak "app=iridium pitch=$pitch $time_left seconds till flash...";
+    }
+}
+if (expired $t_iridium_timer) {
+    speak "app=iridium pitch=10 Iridium flash now occuring!";
+    play 'timer2';              # Set in event_sounds.pl
+}
+
+
+
+
 
 =begin example
 
