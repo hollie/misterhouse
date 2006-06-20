@@ -48,7 +48,7 @@ $p_rss_file_download = new Process_Item;
 $v_rss_file_feed =  new  Voice_Cmd('Get RSS subscribed files');
 $v_rss_file_feed -> set_authority('anyone');
 
-if ($Reload) {
+#noloop=start
 	$regexps_reject = $config_parms{rss_file_regexps_reject} if $config_parms{rss_file_regexps_reject};
 	$v_rss_file_feed->set_icon('nostat.gif');
 print "db $config_parms{rss_file_feeds} \n" if $config_parms{rss_file_feeds};
@@ -56,7 +56,7 @@ print "db $config_parms{rss_file_feeds} \n" if $config_parms{rss_file_feeds};
 	$rss_feeds =~ s/^\s*//;
 	@feeds = split /\s*,\s*/, $rss_feeds;
 	$Included_HTML{'Media'} .= '<!--#include code="&rss_update_html"-->' . "\n\n\n";
-}
+#noloop=stop
 
 if (state_now $v_rss_file_feed) {
 	my ($i, @cmds);
@@ -67,6 +67,8 @@ if (state_now $v_rss_file_feed) {
 		unlink "$config_parms{data_dir}/rss_feed_$i.xml";
 	}
 	set $p_rss_file_feed @cmds;
+	$v_rss_file_feed->respond('app=syndicate Retrieving syndicated feeds...');
+
 	start $p_rss_file_feed;
 }
 
@@ -77,6 +79,7 @@ if (done_now $p_rss_file_feed) {
 		my ($link, $regex, $dir) = split /\s+/, $feed;
 		&rss_file_process($link, "$config_parms{data_dir}/rss_feed_$i.xml", $regex, $dir);
 	}
+	$v_rss_file_feed->respond('app=syndicate connected=0 Feed processing completed.');
 }
 
 my (@rss_file_download_queue, $current_file);
@@ -84,7 +87,7 @@ if (done_now $p_rss_file_download) {
 	dbm_write($rss_dbm_file, $current_file, time) if -f "$current_file" and not -z "$current_file";
 }
 
-if (done $p_rss_file_download and @rss_file_download_queue) { 
+if (@rss_file_download_queue and done $p_rss_file_download) { 
 	my $args = shift @rss_file_download_queue;
 	($current_file) = $args =~ /^.* \'(.*?)'$/;
 	set $p_rss_file_download 'get_url ' . $args; 
@@ -158,10 +161,16 @@ sub rss_file_process {
 				$link =~ s|newtorrents.info/\?id|newtorrents.info/down.php?id|;
 				# hack to fix seedler's links 
 				$link =~ s|seedler.org/en/html/info/|seedler.org/download.x?id=|;
+<<<<<<< .mine
+
+				# *** Use &escape for encoding URI's
+
+=======
 				# hack to fix isohunt's links 
 				$link =~ s|isohunt.com/btDetails.php.*id=|isohunt.com/dl.php?id=|;
 				# hack to fix mininova's links 
 				$link =~ s|mininova.org/tor/|mininova.org/get/|;
+>>>>>>> .r587
 				$link =~ s/ /+/g;
 				$link =~ s/\'/%27/g;
 				my $file = "$title.torrent";
