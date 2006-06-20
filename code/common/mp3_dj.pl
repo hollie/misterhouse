@@ -34,12 +34,10 @@ sub voice_over {
 	my ( $mpmin,  $mpsec ) = split ( /:/,$mpelapse );
 	$mpelapse = ( $mpmin * 60 ) + $mpsec ;
 
-	print "VO-----------------$last_track-$now_playing-$mpelapse-----------------------------------\n";
+	print "DJ Voice over: $last_track-$now_playing-$mpelapse\n" if $Debug{dj};
 
 
 	if ($now_playing ne $last_track and &mp3_playing() and $mpelapse < 7) {
-
-	print "VO2------------------------------------------------------\n";
 
 		$now_playing_formatted = format_track($now_playing);
 
@@ -121,7 +119,7 @@ if (rand(10) > 5) {
 					$speech .= " Now it's " . $artist;
 				}
 				if (rand(10) > 5) { 
-					$speech .= ' on W D A V E';
+					$speech .= ' on W M H';
 					$speech .= '.  Keep it right here.' if (rand(10) > 6) ;
 				}
 			}
@@ -166,8 +164,6 @@ sub dj {
 
 
 	if ($mptime - $mpelapse > 5) {
-		print "SETTING DJ TIMER------------------------------------------------------";
-		print "STOP DJ TIMER------------------------------------------------------" if !inactive $timer_voice_over;
 		$timer_voice_over->stop() unless inactive $timer_voice_over;
 		set $timer_voice_over $mptime - $mpelapse + 1, "voice_over(" . '"' . "$last_track" . '")';	
 	}
@@ -218,8 +214,11 @@ sub dj_speech_hook {
 }
 
 if (state_now $mh_speakers eq OFF) {	
+
+	# *** Need isspeaking check here (for speeches with chimes, volume is raised after sound file ends, not the speech!)
+
 	if ($speech_lowered_volume) {
-	for my $i (1..$speech_lowered_volume) {
+		for my $i (1..$speech_lowered_volume) {
 
 &mp3_control('volume up');
 &mp3_control('volume up');
@@ -227,10 +226,8 @@ if (state_now $mh_speakers eq OFF) {
 &mp3_control('volume up');
 &mp3_control('volume up');
 
-
-
-	}	
-	} # for
+		}	
+	}
 	$speech_lowered_volume = 0;
 }
 
