@@ -35,7 +35,7 @@ sub ping_test {
 	
 }
                                 # Check more often if it is down, to cut down on traffic
-if ($Save{ping_test_flag} and (new_minute($Save{ping_test_results} eq 'up' ? 10 : 2) or $Startup)) {
+if ($Save{ping_test_flag} and (new_minute($Save{ping_test_results} eq 'up' ? 10 : 2))) {
 	&ping_test();    
 }
 
