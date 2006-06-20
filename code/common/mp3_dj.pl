@@ -2,7 +2,7 @@
 
 #@
 #@ Jukebox DJ-tested with Winamp/httpq, but should work with all that can respond with now playing info (including elapsed time of course!)  Also lowers and restores player volume during speech.
-#@ Requires: mp3.pl and a player module (ex. mp3_winamp)
+#@ Requires: mp3 and a player module (ex. mp3_winamp)
 
 #noloop=start
 my $trivia_question_asked = 1;
@@ -34,7 +34,7 @@ sub voice_over {
 	my ( $mpmin,  $mpsec ) = split ( /:/,$mpelapse );
 	$mpelapse = ( $mpmin * 60 ) + $mpsec ;
 
-	print "DJ Voice over: $last_track-$now_playing-$mpelapse\n" if $Debug{dj};
+	print "DJ Voice over: $last_track-$now_playing-$mpelapse\n"; # if $Debug{dj};
 
 
 	if ($now_playing ne $last_track and &mp3_playing() and $mpelapse < 7) {
@@ -93,9 +93,9 @@ if (rand(10) > 5) {
 					$conditions = read_all $f_weather_conditions;
 
 
-					$speech = "It is $Time_Now. ";	
+					$speech = "It is $Time_Now";	
 					$speech .= $conditions if (rand(10) > 6);
-					$speech .= " In the stock market " . $Save{stock_results} if (rand(10) > 8);
+					$speech .= ". In the stock market " . $Save{stock_results} if (rand(10) > 8);
 				}
 				else {
 
@@ -113,10 +113,10 @@ if (rand(10) > 5) {
 				my ($previous_artist) = $last_track =~ /(.+)\s+-\s+(.+)/;
 				my ($artist,$title) = $now_playing =~ /(.+)\s+-\s+(.+)/;			
 				if ($artist eq $previous_artist) {
-					$speech .= " Now here's another by " . $artist;
+					$speech .= ". Now here's another by " . $artist;
 				}
 				else {
-					$speech .= " Now it's " . $artist;
+					$speech .= ". Now it's " . $artist . '.';
 				}
 				if (rand(10) > 5) { 
 					$speech .= ' on W M H';
@@ -145,7 +145,6 @@ sub dj_now_playing {
 }
 
 sub dj {
-
    my $mptimestr = &mp3_get_output_timestr();
 
    my $last_track = &dj_now_playing();
@@ -179,7 +178,7 @@ sub format_track {
 	}
 } 
 
-&dj() if (new_minute (($config_parms{dj_freq})?$config_parms{dj_freq}:10) or $Reload) and $dj_flag;
+&dj() if (new_minute (($config_parms{dj_freq})?$config_parms{dj_freq}:7) or $Reload) and $dj_flag;
 
 # *** This is stupid (should use a time stamp for last time question asked!)
 
