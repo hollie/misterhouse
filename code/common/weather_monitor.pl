@@ -103,9 +103,9 @@ $PressureChange = new Weather_Item 'BaromDelta';
 
 #noloop=start
 my $outdoor_comfort_min = $config_parms{outdoor_comfort_min};
-   $outdoor_comfort_min = 70 unless $config_parms{outdoor_comfort_min};
+my $outdoor_comfort_min = 70 unless $config_parms{outdoor_comfort_min};
 my $outdoor_comfort_max = $config_parms{outdoor_comfort_max};
-   $outdoor_comfort_max = 75 unless $config_parms{outdoor_comfort_max};
+my $outdoor_comfort_max = 75 unless $config_parms{outdoor_comfort_max};
 #noloop=stop
 
 #$Extreme = new Weather_Item 'TempOutdoor > HeatWarningPoint or TempOutdoor < 20';
@@ -171,7 +171,7 @@ if ($state = said $v_what_temp) {
     if (defined $Weather{TempOutdoor} and $Weather{TempOutdoor} ne 'unknown') {
         my $temp     = round($Weather{TempOutdoor});
         my $temp_in  = round($Weather{TempIndoor});
-        my $windchill= round($Weather{WindChill});
+        my $windchill= round($Weather{WindChill}) if defined $Weather{WindChill};
         my $humidity = round($Weather{HumidOutdoor});
         my $humidity_in = round($Weather{HumidIndoor});
 	my $is_raining = $Weather{IsRaining};
@@ -186,12 +186,18 @@ if ($state = said $v_what_temp) {
         if ($humidity > 80 and $temp > 70) {
             $remark =  read_next $f_remark_on_humidity;
         }
-        if ($windchill < 0) {
-            $remark =  read_next $f_remark_on_temp_below_0;
-        }
-        if ($windchill < 20) {
-            $remark =  read_next $f_remark_on_temp_below_20;
-        }
+
+print_log $windchill;
+
+
+	if (defined $windchill) {
+	        if ($windchill < 0) {
+        	    $remark =  read_next $f_remark_on_temp_below_0;
+	        }
+	        if ($windchill < 20) {
+        	    $remark =  read_next $f_remark_on_temp_below_20;
+	        }
+	}
 
         my $temp_out = " $temp degrees ";
         if ($temp < 50 and $windchill < $temp) {
