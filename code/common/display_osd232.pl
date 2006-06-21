@@ -2,13 +2,21 @@
 # Category = MisterHouse
 
 #@ Displays data on Intuitive Circuits OSD-232 video overlay interface,
-#@ so you can overlay text onto your TV screen.
+#@ Overlays text on a TV or monitor
 
 use Display_osd232;
 
-my $osd=new Display_osd232(PORT=>"/dev/osd232",SPEED=>"4800",FLIPRATE=>10);
+#noloop=start
 
-if ($Startup) {
+my $port = $config_parms{osd232_port};
+my $osd;
+
+$osd = new Display_osd232(PORT=>"$port",SPEED=>"4800",FLIPRATE=>10) if $port;
+
+if ($osd) {
+
+&init_osd232();
+
 my $weatherpage=new Display_osd232page(PAGENAME=>"Weather",FLIPRATE=>20);
 $weatherpage->addline("temptext",TEXT=>"Temp:",X=>1,Y=>1,TEXTCOLOR=>osdCLRyellow);
 $weatherpage->addline("temp",TEXT=>"78",X=>8,Y=>1,TEXTCOLOR=>osdCLRwhite);
@@ -50,47 +58,67 @@ $osd->addpage($securitypage->pageref());
 $osd->addpage($phonepage->pageref());
 $osd->addpage($miscpage->pageref());
 
+
+
+
 }
 
-$v_osd_clear = new  Voice_Cmd('Clear the OSD232','');
+#noloop=stop
+
+$v_osd_clear = new Voice_Cmd('Clear the OSD232', 0);
 if (said $v_osd_clear) {
+	$v_osd_clear->respond('app=osd Clearing display.');
 	$osd->clearscreen();
 }
 
-$v_osd_weather = new  Voice_Cmd('Display the OSD232 weather page','');
+$v_osd_weather = new Voice_Cmd('Display the OSD232 weather page', 0);
 if (said $v_osd_weather) {
+	$v_osd_weather->respond('app=osd Displaying weather.');
 	$osd->showpage("Weather");
 }
 
-$v_osd_security = new  Voice_Cmd('Display the OSD232 security page','');
+$v_osd_security = new Voice_Cmd('Display the OSD232 security page', 0);
 if (said $v_osd_security) {
+	$v_osd_security->respond('app=osd Displaying security.');
 	$osd->showpage("Security");
 }
 
-$v_osd_phones = new  Voice_Cmd('Display the OSD232 phones page','');
+$v_osd_phones = new Voice_Cmd('Display the OSD232 phones page', 0);
 if (said $v_osd_phones) {
+	$v_osd_phones->respond('app=osd Displaying phones.');
 	$osd->showpage("Phones");
 }
 
-$v_osd_misc = new  Voice_Cmd('Display the OSD232 misc page','');
+$v_osd_misc = new Voice_Cmd('Display the OSD232 misc page', 0);
 if (said $v_osd_misc) {
+	$v_osd_misc->respond('app=osd Displaying miscellaneous.');
 	$osd->showpage("Misc");
 }
 
-$v_osd_flip = new  Voice_Cmd('Flip to next OSD232 page','');
+$v_osd_flip = new Voice_Cmd('Flip to next OSD232 page', 0);
 if (said $v_osd_flip) {
+	$v_osd_flip->respond('app=osd Next page.');
 	$osd->flippage();
 }
 
-if ($osd->{fliptimer}->expired()) {
-	$osd->flippage();
+if ($osd and $osd->{fliptimer}) {
+	$osd->flippage() if $osd->{fliptimer}->expired();
 }
 
-$v_osd_init = new  Voice_Cmd('Initialize the OSD232','');
-if (said $v_osd_init or $Startup) {
+sub init_osd232 {
 	print_log "Initializing osd232";
 	$osd->reset();
 	$osd->showpage("Weather");
 	print_log "osd232 initialization complete";
 	$osd->startflipping();
 }
+
+
+$v_osd_init = new Voice_Cmd('Initialize the OSD232', 0);
+
+if (said $v_osd_init) {
+	$v_osd_init->respond('app=osd Initializing display.');
+	&init_osd232();
+}
+
+
