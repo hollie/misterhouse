@@ -204,7 +204,7 @@ sub dj_speech_hook {
 
 	print "-----------------------------------mode_mh: $mode_mh->{state}";
 
-		if (&mp3_playing() and !$speech_lowered_volume and !$parms{to_file} and $mode ne 'mute' and $mode_mh->{state} ne 'mute' and $mode_mh->{state} ne 'offline') {
+		if (&mp3_playing() and !$speech_lowered_volume and !$parms{to_file} and $mode ne 'mute' and (($mode_mh->{state} ne 'mute' and $mode_mh->{state} ne 'offline') or $mode eq 'unmuted')) {
 			$speech_lowered_volume = 1;
 
 &mp3_control('volume down');
