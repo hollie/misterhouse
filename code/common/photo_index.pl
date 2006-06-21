@@ -24,13 +24,37 @@ your browser screen (e.g. 640x480 for Audrey).
     
 =cut
 
-use vars '@photos';             # This will be persistent across passes and code reloads
+#noloop=start
 
+use vars '@photos'; # This will be persistent across code reloads
   
-$photo_reindex = new Voice_Cmd 'Reindex the photo album [,name,date,random]';
-$photo_reindex->set_info("Re-creates a photo index for all the photos under $config_parms{photo_dirs} that match $config_parms{photo_filter}");
+$v_photo_reindex = new Voice_Cmd 'Reindex the photo album [,name,date,random]';
+$v_photo_reindex->set_info("Re-creates a photo index for all the photos under $config_parms{photo_dirs} that match $config_parms{photo_filter}");
 
-&photo_index($temp) if $temp = said $photo_reindex;
+                                # Resize new photos using image_resize
+$v_photo_resize = new Voice_Cmd 'Resize new photo album pictures';
+$v_photo_resize ->set_info("Re-sizes any new photos in the photo album directories");
+$p_photo_resize = new Process_Item 'd:/pictures/resize_images.bat';
+
+my @subdirs; 
+$photo_subdir = new Generic_Item;
+set_casesensitive $photo_subdir; 
+
+                                # Add form to Entertainment page 
+# The include will take too long if there are lots of files/dirs, so use a link instead
+#$Included_HTML{Entertainment} .= '<!--#include code="&photo_html"-->' . "\n" if $Reload;
+$Included_HTML{Entertainment} .= '<br><a href="SUB;photo_html" target=control>Pick a photo subdirectory to index</a>' . "\n";
+
+#noloop=stop
+                                # Search for photos from console
+&tk_entry('Photo Search', \$Save{photo_search}) if $Reload;
+
+
+
+if (said $v_photo_reindex) {
+	$v_photo_reindex->respond('app=photos Indexing photos...');
+	&photo_index($v_photo_reindex->{state});
+}
 
 sub photo_index {
     my ($sequence) = @_;
@@ -74,13 +98,9 @@ sub photo_dir {
     close DIR;
 }
 
-
-                                # Search for strings in user code
-#&tk_entry('Photo Search', \$Save{photo_search});
-
-if (my $string = quotemeta $Tk_results{'Photo Search'}) {
+if (my $string = quotemeta $Tk_results{'Photo Search'}) { # *** This is very odd (?)
     undef $Tk_results{'Photo Search'};
-    print "Searching for photos that match $string";
+    print_log "Searching for photos that match $string";
     my @match = grep /$string/i, @photos;
     my $count = @match;
     my $results = "Found $count matches";
@@ -89,12 +109,12 @@ if (my $string = quotemeta $Tk_results{'Photo Search'}) {
     display $results, 60, 'Photo Search Results', 'fixed' if @match;
 }
 
-                                # Resize new photos using image_resize
-$photo_resize  = new Voice_Cmd 'Resize new photo album pictures';
-$photo_resize  ->set_info("Re-sizes any new photos in the photo album directories");
-$photo_resizep = new Process_Item 'd:/pictures/resize_images.bat';
-start $photo_resizep if said $photo_resize;
-speak 'Photo resizing done' if done_now $photo_resizep;
+if (said $v_photo_resize) {
+	$v_photo_resize->respond('app=photos Resizing photos...');
+	start $p_photo_resize;
+}
+
+$v_photo_resize->respond('app=photos connected=0 Photo resizing done') if done_now $p_photo_resize;
 
 # My resize_images.bat file has entries like this:
 #   call image_resize -r 0 -p sm2 --size 800x600 -d school
@@ -103,9 +123,6 @@ speak 'Photo resizing done' if done_now $photo_resizep;
 
 
                                 # Add a small form to the Entertainment category page to pick a subdirectory to index 
-my @subdirs; 
-$photo_subdir = new Generic_Item;
-set_casesensitive $photo_subdir if $Reload; 
 
 sub photo_html {
     my $dir = '/photos';
@@ -143,12 +160,6 @@ sub photo_subdirs {
     }
     close DIR;
 }
-
-                                # Add form to Entertainment page 
-# The include will take too long if there are lots of files/dirs, so use a link instead
-#$Included_HTML{Entertainment} .= '<!--#include code="&photo_html"-->' . "\n" if $Reload;
-$Included_HTML{Entertainment} .= '<br><a href="SUB;photo_html" target=control>Pick a photo subdirectory to index</a>' . "\n" if $Reload;
-
 
  
 
