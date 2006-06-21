@@ -153,10 +153,7 @@ if (said $v_iridium_check) {
 &respond_iridium(0) if done_now $p_iridium_check;
 	
 
-                                # This timer will be triggered by the timer set in the above MYCODE
-
-$t_iridium_timer = new Timer;
-
+                      
 
 
 
