@@ -137,7 +137,7 @@ if ($p_get_email->{done_now}) {
 	# *** Change to respond once logic is untangled (needs trigger)
 	# *** As of now, there is no telling what called this.
 
-    speak "app=email $text";
+    speak "app=email $text" if $text;
 
 }
                                 # Delete file after the done_now pass (gives other code
