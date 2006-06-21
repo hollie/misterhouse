@@ -32,6 +32,8 @@ Special Thanks to:
 =cut
 
 use PAobj;
+
+#noloop=start
 my $pa_port	= $config_parms{pa_port};
 my $pa_delay	= $config_parms{pa_delay};
 my $pa_type	= $config_parms{pa_type};
@@ -40,42 +42,39 @@ $pa_port	= 'weeder'	unless $pa_port;
 $pa_delay	= 0.5		unless $pa_delay;
 $pa_type	= 'wdio'	unless $pa_type;
 $pa_timer	= 60		unless $pa_timer;
-
-#Make 'default' group if it wasn't created in a .MHT file first
-# No, in order to allow for a real default, we must require a real default.
-#$pa_default = new Group unless &::get_object_by_name("pa_default");
-
+$pactrl = new PAobj($pa_type,$pa_port);
+$pactrl->set_delay($pa_delay);
+$pactrl->init();
 $v_pa_test = new Voice_Cmd('test pa');
-if ($state = said $v_pa_test) {
+$v_pa_speakers = new Voice_Cmd('speakers [on,off]');
+$v_pa_speakers-> set_info('Turn all the PA speakers on/off');
+#noloop=stop
+
+# Hooks to flag which rooms to turn on based on "rooms=" parm in speak command 
+&Speak_pre_add_hook(\&pa_control_stub) if $Reload;
+&Play_pre_add_hook (\&pa_control_stub) if $Reload;
+
+if (said $v_pa_test) {
+    my $state = $v_pa_test->{state};
+    $v_pa_test->respond('app=pa Testing PA...');
     #speak "nolog=1 rooms=all mode=unmuted volume=100 Hello. This is a PA system test.";
     speak "nolog=1 rooms=downstairs mode=unmuted volume=100 Hi!";
 }
 
-$v_pa_speakers = new  Voice_Cmd('speakers [on,off]');
-$v_pa_speakers-> set_info('Turn all the PA speakers on/off');
-
 # turn all speakers on/off
-if ($state = said $v_pa_speakers) {
+if (said $v_pa_speakers) {
+    my $state = $v_pa_speakers->{state};
+    $v_pa_speakers->respond("app=pa Turning speakers $state...");
     $state = ($state eq 'on') ? ON : OFF;
     $pactrl->set('allspeakers',$state,'unmuted');
 }
-
-$pactrl = new PAobj($pa_type,$pa_port);
-$pactrl->set_delay($pa_delay);
-
-$pactrl->init() if $Startup or $Reload;
-#set $mh_speakers OFF if $Startup;
-
-# Stuff to flag which rooms to turn on based on "rooms=" parm in speak command 
-&Speak_pre_add_hook(\&pa_control_stub) if $Reload;
-&Play_pre_add_hook (\&pa_control_stub) if $Reload;
 
 sub pa_control_stub {
     my (%parms) = @_;
     my @pazones;
     my $mode = $parms{mode};
     unless ($mode) {
-        if (defined $mode_mh) {
+        if (defined $mode_mh) { # *** Outdated (?)
             $mode = state $mode_mh;
         } else {
             $mode = $Save{mode};
@@ -84,10 +83,9 @@ sub pa_control_stub {
     return if $mode eq 'mute' or $mode eq 'offline';
 
     my $rooms = $parms{rooms};
-    #print "pa_stub db: rooms=$rooms, mode=$mode\n";
-
+    print "pa_stub db: rooms=$rooms, mode=$mode\n" if $Debug{pa};
     my $results = $pactrl->set($rooms,ON,$mode);
-    #print "PA set results: $results\n";
+    print "PA set results: $results\n" if $Debug{pa};
     set $pa_speaker_timer $pa_timer if $results;
 }
 
