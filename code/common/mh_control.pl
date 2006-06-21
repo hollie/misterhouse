@@ -182,15 +182,16 @@ if ($state = said $v_debug) {
     }
 }
 
-$v_mode = new  Voice_Cmd("Put house in [normal,mute,offline] mode");
+$v_mode = new Voice_Cmd("Put house in [normal,mute,offline] mode");
 $v_mode-> set_info('mute mode disables all speech and sound.  offline disables all serial control');
 if ($state = said $v_mode) {
-    $Save{mode} = $state;
-    respond "The house is now in $state mode.";
-    print_log "The house is now in $state mode.";
+     $Save{mode} = $state;
+     set $mode_mh $state, $v_mode;
+
+    $v_mode->respond("Setting house to $state mode.");
 }
 
-$v_mode_toggle = new  Voice_Cmd("Toggle the house mode");
+$v_mode_toggle = new Voice_Cmd("Toggle the house mode");
 if (said $v_mode_toggle) {
     if ($Save{mode} eq 'mute') {
         $Save{mode} = 'offline';
@@ -201,8 +202,10 @@ if (said $v_mode_toggle) {
     else {
         $Save{mode} = 'mute';
     }
+     set $mode_mh $Save{mode}, $v_mode_toggle;
+
                                 # mode => unmuted cause speech even in mute or offline mode
-    &respond(mode => 'unmuted', app => 'notice', text => "Now in $Save{mode} mode");
+    $v_mode_toggle->respond("mode=unmuted app=control Now in $Save{mode} mode");
 }
 
 
