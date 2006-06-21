@@ -65,9 +65,10 @@ $Irritating   = new Weather_Item "Pollen > $weather_pollen_threshold";
 $Conditions   = new Weather_Item 'Conditions';
 $Warning      = new Weather_Item 'Warning'; # Set in chance of rain and by other weather items
 $SunSensor    = new Weather_Item 'sun_sensor';
-$ChanceOfRain = new Weather_Item 'chance_of_rain_percent';
-$ChanceOfSnow = new Weather_Item 'chance_of_snow_percent';
+$ChanceOfRain = new Weather_Item 'ChanceOfRainPercent';
+$ChanceOfSnow = new Weather_Item 'ChanceOfSnowPercent';
 $Raining = new Weather_Item 'IsRaining';
+$Snowing = new Weather_Item 'IsSnowing';
 $FreezingRain = new Weather_Item 'IsRaining and TempOutdoor < FreezePoint';
 $IceStorm = new Weather_Item 'IsRaining and TempOutdoor < FreezePoint and WindGustSpeed > 15';
 
@@ -107,16 +108,11 @@ my $outdoor_comfort_max = $config_parms{outdoor_comfort_max};
    $outdoor_comfort_max = 75 unless $config_parms{outdoor_comfort_max};
 #noloop=stop
 
-
-# Examples.  Someone weather-oriented should come up with some real forecasting expressions...
-# Possibility: snowstorm (chance_of_snow, high humidity, high winds, under freezing, low pressure and falling)  Something like that.
-
-
-$Extreme = new Weather_Item 'TempOutdoor > HeatWarningPoint or TempOutdoor < 20';
-$Comfortable = new Weather_Item "TempOutdoor >= $outdoor_comfort_min and TempOutdoor <= $outdoor_comfort_max";
-$Uncomfortable = new Weather_Item "TempOutdoor < $outdoor_comfort_min or TempOutdoor > $outdoor_comfort_max";
-$Intolerable = new Weather_Item "TempOutdoor > HeatWarningPoint and HumidOutdoor > 70 and Pollen > $weather_pollen_threshold";
-$Scorching = new Weather_Item 'TempOutdoor > HeatWarningPoint and HumidOutdoor < 50';
+#$Extreme = new Weather_Item 'TempOutdoor > HeatWarningPoint or TempOutdoor < 20';
+#$Comfortable = new Weather_Item "TempOutdoor >= $outdoor_comfort_min and TempOutdoor <= $outdoor_comfort_max";
+#$Uncomfortable = new Weather_Item "TempOutdoor < $outdoor_comfort_min or TempOutdoor > $outdoor_comfort_max";
+#$Intolerable = new Weather_Item 'TempOutdoor > HeatWarningPoint and HumidOutdoor > 70 and ' . #Pollen > $weather_pollen_threshold";
+#$Scorching = new Weather_Item 'TempOutdoor > HeatWarningPoint and HumidOutdoor < 50';
 $Dry = new Weather_Item 'HumidOutdoor < 60';
 $Arid = new Weather_Item 'HumidOutdoor < 40';
 
@@ -129,6 +125,7 @@ $SwimmingWeather = new Weather_Item 'WindGustSpeed < 10 and TempOutdoor > 80';
 $RunningWeather = new Weather_Item 'TempOutdoor > 45 and TempOutdoor < 60 and WindGustSpeed < 10';
 
 
+#   rainstorm, snowstorm (chance_of_snow, high humidity, high winds, under freezing, low pressure and falling), portending
 
 $ColdInside =  new Weather_Item "TempIndoor < $weather_temp_indoor_minimum";
 $HotInside =  new Weather_Item "TempIndoor > $weather_temp_indoor_maximum";
@@ -149,7 +146,7 @@ sub monitor_sun {
     }
 }
 
-                                # Add tk weather widgets
+                                # Add tk weather widgets ... put these in tk_widgets.pl
 &tk_label(\$Weather{TempIndoor});
 &tk_label(\$Weather{HumidIndoor});
 &tk_label(\$Weather{TempOutdoor});
@@ -166,8 +163,8 @@ $f_remark_on_humidity      = new File_Item("$config_parms{data_dir}/remarks/list
 $f_remark_on_temp_below_0  = new File_Item("$config_parms{data_dir}/remarks/list_temp_below_0.txt");
 $f_remark_on_temp_below_20 = new File_Item("$config_parms{data_dir}/remarks/list_temp_below_20.txt");
 
-$v_what_temp = new Voice_Cmd('What is the [,inside,outside] temperature');
-$v_what_temp-> set_info('Returns the humidity, temperature, and windchill, as measured by our weather station') if $Reload;
+$v_what_temp = new  Voice_Cmd('What is the [,inside,outside] temperature');
+$v_what_temp-> set_info('Returns the humidity, temperature, and windchill, as measured by our weather station');
 $v_what_temp-> set_authority('anyone');
 
 if ($state = said $v_what_temp) {
