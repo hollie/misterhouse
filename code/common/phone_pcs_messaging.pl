@@ -39,9 +39,12 @@ sub send_pcs_phone {
   $pcsserviceparm="phone_pcs_${parms{who}}_service";
   $pcsnumber=$config_parms{$pcsnumberparm};
   $pcsservice=$config_parms{$pcsserviceparm};
-  if ($parms{msg} eq '') {print "PCS ERROR: Cannot send a blank message!";return;}
-  if ($pcsnumber eq '') {print "PCS ERROR: Number not found for '$parms{who}'";return;}
-  if ($pcsservice eq '') {print "PCS ERROR: Service not found for '$parms{who}'";return;}
+
+  $addr = $config_parms{cell_phone} if $config_parms{cell_phone};
+
+  if ($parms{msg} eq '' and !$addr) {print "PCS ERROR: Cannot send a blank message!";return;}
+  if ($pcsnumber eq '' and !$addr) {print "PCS ERROR: Number not found for '$parms{who}'";return;}
+  if ($pcsservice eq '' and !$addr) {print "PCS ERROR: Service not found for '$parms{who}'";return;}
   print "PCS: who=$parms{who}, msg=$parms{msg}" if $Debug{pcs};
   $addr="$pcsnumber\@messaging.sprintpcs.com"     if lc $pcsservice eq 'sprint';
   $addr="$pcsnumber\@vtext.com"                   if lc $pcsservice eq 'verizon';
