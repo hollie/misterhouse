@@ -161,6 +161,8 @@ if (done_now $p_weather_forecast) {
 
 	    if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny|foggy|light rain|heavy rain|light snow|heavy snow)/i) {
 			$Weather{Conditions} = ucfirst(lc($1));
+			$Weather{IsRaining} = ($Weather{Conditions} =~ /rain/i);
+			$Weather{IsSnowing} = ($Weather{Conditions} =~ /snow/i);
 	    }
 
 
