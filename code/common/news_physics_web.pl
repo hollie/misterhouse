@@ -11,11 +11,11 @@ $p_physics_web = new Process_Item("get_url http://physicsweb.org/archive/news $f
 $v_physics_web = new  Voice_Cmd('[Get,Read] physics web');
 $v_physics_web ->set_authority('anyone');
 
-respond($f_physics_web) if said $v_physics_web eq 'Read';
+$v_physics_web->respond($f_physics_web) if said $v_physics_web eq 'Read';
 
 if (said $v_physics_web eq 'Get') {    
         if (&net_connect_check) {
-            $v_physics_web->respond("Retrieving Physics Web News Stories from the net ...");
+            $v_physics_web->respond("Retrieving Physics Web News Stories from the Internet...");
             # Use start instead of run so we can detect when it is done
             start $p_physics_web;
         }        
