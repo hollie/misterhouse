@@ -12,9 +12,40 @@
                                 # Example on how to send an email command
                                 # - This string can be in either the subject or the body of the email
                                 #      Subject line is:  command:x y z  code:xyz
-$v_send_email_test = new  Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10,11]', 'Ok, will do');
+
+
+#noloop=start
+$v_send_email_test = new Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10,11]');
 $v_send_email_test-> set_info('Send commands to test remote email commands');
-if ($state = said $v_send_email_test) {
+
+$v_cell_phone_test = new Voice_Cmd 'Send test e mail to the cell phone';
+$v_cell_phone_test-> set_info("Send a test message to the cell phone");
+
+$p_get_email = new Process_Item;
+
+$v_recent_email = new Voice_Cmd('[Check for,List new] e mail');
+$v_recent_email-> set_info('Download and summarize new email headers');
+
+                                # List or read unread email
+$v_unread_email = new Voice_Cmd('[List,Read] unread e mail');
+$v_unread_email-> set_info('Summarize unread email headers and optionally call Outlook to read the mail');
+
+my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
+
+#$email_flag = new Generic_Item;
+
+#tk_mlabel($email_flag, 'email flag');   ... this quit working in 2.88.  Tk does not like the Generic_Item Tie update
+
+# *** This belongs in noloop block else it calls this sub every time!
+# *** tk subs return if not $Reload, which is a crutch (and obscure.)
+
+&tk_mlabel(\$Save{email_flag}, 'email flag');
+
+
+#noloop=stop
+
+if (said $v_send_email_test) {
+    my $state = $v_send_email_test->{state};
     if (&net_connect_check) {
                                 # Use to => 'user@xyz.com', or default to your own address (from net_mail_account_address in mh.ini)
         &net_mail_send(subject => "test 1", text => "Test email 1 sent at $Time_Date",
@@ -30,7 +61,7 @@ if ($state = said $v_send_email_test) {
                        text => "command:get this weeks new dvds  \ncode:$config_parms{net_mail_command_code}") if $state == 3;
 
                                 # Send attachements of different types
-                                #  - Note mime parm is optional if file ends with that extention
+                                #  - Note mime parm is optional if file ends with that extension
         &net_mail_send(subject => 'test an html attachement',
                        baseref => "localhost:$config_parms{http_port}",
                        file    => '../web/mh4/widgets.html', mime  => 'html') if $state == 4;
@@ -56,53 +87,38 @@ if ($state = said $v_send_email_test) {
 
         run 'send_mail -subject "test" -text "Test background send_mail"' if $state == 11;
 
-        speak "Test message has been sent";
+        $v_send_email_test->respond("app=email Test message has been sent.");
     }
     else {
-        speak "Sorry, you are not currently logged on to the internet, so I can not send mail";
+        $v_send_email_test->respond("I am not logged on to the internet, so I can not send mail.");
     }
 }
 
-
-$cell_phone_test = new Voice_Cmd 'Send test e mail to the cell phone';
-$cell_phone_test-> set_info("Send a test message to the cell phone");
-
-if (said $cell_phone_test) {
-    speak "Test email sent to cell phone";
+if (said $v_cell_phone_test) {
     net_mail_send to => $config_parms{cell_phone},
       subject => 'MisterHouse test',
       text    => "I sent this at $Time_Now";
+    $v_cell_phone_test->respond("app=email Test email sent to cell phone");
 }
 
                                 # Check for recent email since last received by mail program
                                 # Do it with a get_email process, so mh will not pause
-#&tk_radiobutton('Check email', \$Save{email_check}, ['no', 'yes']);
-$p_get_email = new Process_Item;
-$v_recent_email = new  Voice_Cmd('{Check for,List new} e mail', 'Ok, hang on a second and I will check for new email');
-$v_recent_email-> set_info('Download and summarize new email headers');
-if (said $v_recent_email or ($Save{email_check} ne 'no' and !$Save{sleeping_parents} and
-                             new_minute $config_parms{net_mail_scan_interval} and &net_connect_check)) {
 
-    if ($config_parms{net_mail_save_dir}) {
-	&net_mail_scan_dir($config_parms{net_mail_save_dir});
-	start $p_get_email 'do_nothing'; # Does nothing ;)  Mimic get_email call, where done_now will still work
-    }
-    else {
-	set $p_get_email 'get_email -quiet';
-	set $p_get_email 'get_email -debug' if $Debug{email};
-	start $p_get_email;
-    }
+#&tk_radiobutton('Check email', \$Save{email_check}, ['no', 'yes']);
+
+# *** Should be a trigger instead of config parm (does anyone really use this module anyway?)
+
+if (said $v_recent_email or ($Save{email_check} ne 'no' and new_minute $config_parms{net_mail_scan_interval} and &net_connect_check)) {
+    $v_recent_email->respond('Checking email...') if said $v_recent_email;
+    set $p_get_email 'get_email -quiet';
+    set $p_get_email 'get_email -debug' if $Debug{email};
+    start $p_get_email;
 }
 
-$email_flag = new Generic_Item;
-
-#tk_mlabel($email_flag, 'email flag');   ... this quit working in 2.88.  Tk does not liek the Generic_Item Tie update
-&tk_mlabel(\$Save{email_flag}, 'email flag');
-
-my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
 if ($p_get_email->{done_now}) {
+    my $text;
     my $data = file_read "$config_parms{data_dir}/get_email.flag";
-    set $email_flag  $data;
+#    set $email_flag $data; # *** Missing?
     $Save{email_flag} = $data;  # Used in web/bin/status_line.pl
 
                                 # Turn on an 'new mail indicator'
@@ -111,25 +127,30 @@ if ($p_get_email->{done_now}) {
 
                                 # Once an hour, summarize all email, otherwise just new mail
     if ($Minute < 10) {
-        &speak_unread_mail;
+        $text = &unread_mail();
     }
     else {
-        &speak_new_mail;
+        $text = &new_mail();
     }
     &scan_subjects($get_email_scan_file);
+
+	# *** Change to respond once logic is untangled (needs trigger)
+	# *** As of now, there is no telling what called this.
+
+    speak "app=email $text";
+
 }
                                 # Delete file after the done_now pass (gives other code
-                                # like news_email_breaking.pl a changes to scan it)
+                                # like news_email_breaking.pl a chance to scan it)
 elsif ($p_get_email->{done} and -e $get_email_scan_file) {
     unlink $get_email_scan_file;
 }
 
-                                # List or read unread email
-$v_unread_email = new  Voice_Cmd('[List,Read] unread e mail');
-$v_unread_email-> set_info('Summarize unread email headers and optionally call Outlook to read the mail');
 if ($state = said $v_unread_email) {
-    &speak_unread_mail unless $Save{email_check} eq 'no';
     if ($state eq 'Read') {
+	$v_unread_email->respond("app=email Loading email client...");
+	# *** Look up path in registry!  This is clearly Windows-only too...
+
         if (my $window = &sendkeys_find_window('Outlook', 'C:\Program Files\Microsoft Office\Office\OUTLOOK.EXE')) {
 #       if (my $window = &sendkeys_find_window('Outlook', 'D:\msOffice\Office\OUTLOOK.EXE')) {
 #           my $keys = '\\alt+\\tss\\alt-\\';  # For Outlook Express
@@ -137,18 +158,22 @@ if ($state = said $v_unread_email) {
             &SendKeys($window, $keys, 1, 500);
         }
     }
+    else {
+	my $text = unread_mail();
+	$v_unread_email->respond("app=email $text");
+    }
 }
 
-sub speak_new_mail {
+sub new_mail {
     my $text = file_read "$config_parms{data_dir}/get_email.txt";
     chomp $text;
-    speak "app=email $text" if $text;
+    return $text;
 }
 
-sub speak_unread_mail {
+sub unread_mail {
     my $text = file_read "$config_parms{data_dir}/get_email2.txt";
     chomp $text;
-    speak "app=email $text" if $text;
+    return $text;
 }
 
                                 # Allow for email send commands, IF the secret command code matches
@@ -175,7 +200,7 @@ sub scan_subjects {
                  }
                  else {
                                   # The mh respond_email function will mail back the results
-                     if (&process_external_command($command, 1, 'email', "email to='$from' subject='Results for: $command'")) {
+                     if (&process_external_command($command, 1, "email [$from]", "email to='$from' subject='Results for: $command'")) {
 #                    if (run_voice_cmd $command) {
                          speak "Running email command: $command";
                          $results = "Command was run: $command";
@@ -188,7 +213,7 @@ sub scan_subjects {
             }
             else {
                 speak "An unauthorized email command received: $command";
-                $results = "Command not authorized: $command  code:$code";
+                $results = "Command not authorized: $command code:$code";
             }
             logit("$config_parms{data_dir}/logs/email_command.log", "From:$from  " . $results);
             &net_mail_send(to => $from, subject => $results);
