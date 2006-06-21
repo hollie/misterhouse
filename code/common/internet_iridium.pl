@@ -156,17 +156,6 @@ if (said $v_iridium_check) {
                                 # This timer will be triggered by the timer set in the above MYCODE
 
 $t_iridium_timer = new Timer;
-my %iridium_timer_intervals = map {$_, 1} (15,30,90);
-if ($New_Second and my $time_left = int seconds_remaining $t_iridium_timer) {
-    if ($iridium_timer_intervals{$time_left}) {
-        my $pitch = int 10*(1 - $time_left/60);
-        speak "app=iridium pitch=$pitch $time_left seconds till flash...";
-    }
-}
-if (expired $t_iridium_timer) {
-    speak "app=iridium pitch=10 Iridium flash now occuring!";
-    play 'timer2';              # Set in event_sounds.pl
-}
 
 
 
