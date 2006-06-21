@@ -90,9 +90,12 @@ if ($Reload) {
 #set $telnet_server "The time is $Time_Now" if $New_Minute and active $telnet_server;
 
 
-$telnet_client_set = new Voice_Cmd 'Run telnet set test [1,2,3,4,5]';
+$v_telnet_client_set = new Voice_Cmd 'Run telnet set test [1,2,3,4,5]';
 
-if ($state = said $telnet_client_set) {
+if (said $v_telnet_client_set) {
+    my $state = $v_telnet_client_set->{state};
+    $v_telnet_client_set->respond("Running telnet test $state...");
+	
     set $telnet_server "Test telnet set $state"              if $state == 1;
     set $telnet_server "Test telnet set $state", 'all'       if $state == 2;
     set $telnet_server "Test telnet set $state", 0           if $state == 3;
