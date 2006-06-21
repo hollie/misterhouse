@@ -4,14 +4,11 @@
 
 use X::Osd ':all';
 
+#noloop=start
 my $osd = X::Osd->new(1);
+$Xosd_text = new Generic_Item;
+$Xosd_state = new Generic_Item;
 
-
-
-$Xosd_text                =  new Generic_Item ;
-$Xosd_state                =  new Generic_Item ;
-
-if ($Startup) {
 #	$osd->set_font("-*-helvetica-medium-r-normal-*-*-360-*-*-p-*-*-*");
      	$osd->set_colour("Yellow");
       	$osd->set_timeout(30);
@@ -24,7 +21,7 @@ if ($Startup) {
       	$osd->set_horizontal_offset(0);
       	$osd->set_vertical_offset(100);
       	$osd->set_shadow_offset(2);
-};
+#noloop=stop
 
 if ($state = said $Xosd_text) {
 	  $osd->string(0,$state);
@@ -45,17 +42,12 @@ sub display_osd {
 }
 
 
-$v_xosd = new  Voice_Cmd("Test xosd");
+$v_xosd = new Voice_Cmd("Test xosd");
 
-
-if ($state = said $v_xosd) {
+if (said $v_xosd) {
+	$v_xosd->respond('app=osd Testing on-screen display...');
 	&display_osd("This is a test");
 }
-
-
-
-
-
 
 #$osd->set_font("-*-helvetica-medium-r-normal-*-*-360-*-*-p-*-*-*");  
 #     $osd->set_colour("Yellow");
