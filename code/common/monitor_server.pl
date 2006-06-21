@@ -10,6 +10,10 @@ $http_server = new  Socket_Item(undef, undef, 'http');
 
 my (%server_clients);
 
+$v_client_hits = new  Voice_Cmd('Read the web server stats');
+$v_client_hits-> set_info('Summarize how many people have visted the mh server in the last hour and day');
+
+
 
 if (my $data = said $http_server) {
 
@@ -82,21 +86,49 @@ if ($New_Hour) {
     $Save{web_clients_hour} = 0;
 }
 
-$v_client_hits = new  Voice_Cmd('Read the web server stats');
-$v_client_hits-> set_info('Summarize how many people have visted the mh server in the last hour and day');
-if (said $v_client_hits or
-    (time_cron '58 19 * * * ' and $Save{web_hits_day} > 0)) {
-    speak "rooms=all The MisterHouse server had $Save{web_hits_day} web hits from $Save{web_clients_day} clients since midnight";
-}
-if (said $v_client_hits or 
-    !$Save{sleeping_parents} and time_cron '59 * * * * ' and 
-    $Save{web_hits_hour} > 0) {
-    my $msg = "$Save{web_hits_hour} web hits from $Save{web_clients_hour} clients in the last hour";
-    if ($config_parms{internet_speak_flag} eq 'all') {
-        speak "rooms=all $msg";
+# *** Create triggers (at least for the daily update.)
+
+&speak(&web_hits()) if time_cron '58 19 * * * ' and $Save{web_hits_day} > 0;
+&speak(&hourly_web_hits()) if time_cron '59 * * * * ' and $Save{web_hits_hour} > 0;
+
+sub hourly_web_hits {
+    my $msg;
+    if ($Save{web_hits_hour}) {
+     	$msg = "$Save{web_hits_hour} web hits from $Save{web_clients_hour} clients in the last hour.";
     }
     else {
-        print_log $msg;
+     	$msg = "Nothing to report for the hour.";
     }
+	# *** Mute the webserver app if you don't want to hear it.
+
+#    if ($config_parms{internet_speak_flag} eq 'all') {
+#	 speak $msg;
+#    }
+#    else {
+#        print_log $msg;
+#    }
+
+     return $msg;
+
+
 }
+
+sub web_hits {
+    my $msg;
+    if ($Save{web_hits_day}) {
+    	$msg = "The MisterHouse server had $Save{web_hits_day} web hits from $Save{web_clients_day} clients since midnight.";
+    }
+    else {
+	$msg = "Nothing to report for today."
+    }
+    return $msg;
+}
+
+
+if (said $v_client_hits) {
+	my $msg = &hourly_web_hits();
+	$msg .= ' ' . &web_hits();
+	$v_client_hits->respond("app=webserver $msg");
+}
+
 
