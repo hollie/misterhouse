@@ -13,8 +13,8 @@ if ($Reload) {
         $command =~ s/^\$//;
         $command =~ tr/_/ /;
         my $object_name_v = $object_name . '_v';
-        my $states = 'on,off';
-        $states = 'on,off,brighten,dim,20%,40%,60%,80%,100%,-35,+35,-50%,+50%' unless $object->isa('X10_Appliance');
+        my $states = 'on,off,status';
+        $states = $config_parms{x10_menu_states} unless $object->isa('X10_Appliance');
         $object_string .= "use vars '${object_name}_v';\n";
         $object_string .= "$object_name_v  = new Voice_Cmd '$command [$states]';\n";
         $object_string .= "$object_name_v -> tie_items($object_name);\n\n";
