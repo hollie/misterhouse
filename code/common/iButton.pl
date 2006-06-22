@@ -2,6 +2,8 @@
 
 #@ Adds basic iButton support. See ibutton.pl for configuration info.
 
+# $Date$
+# $Revision$
 
 =begin comment
 
@@ -13,7 +15,7 @@
    iButton_serial_port   = COM1
    iButton_2_serial_port = COM2   # If you have more than one ibutton port
    iButton_3_serial_port = COM2   # If you have more than one ibutton port
-   default_temp = Celsius         # If you want to change degress unit from F to C
+   weather_uom_temp = C         # If you want to change degress unit from F to C
 
  You can buy iButton stuff here:
     http://www.iButton.com/index.html

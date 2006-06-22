@@ -2191,7 +2191,6 @@ sub convert_k2f {       # Convert degrees Kelvin to Farenheight
 sub convert_c2f {       # Convert degrees Celsius to Farenheight
     sprintf("%3.1f", 32 + (9/5)*($_[0]));
 }
-
 sub convert_f2c {       # Convert degrees fahrenheit to celsius
      sprintf("%3.1f", (5/9)*($_[0] - 32));
 }
@@ -2215,6 +2214,30 @@ sub convert_mps2mph {   # convert meters per second to miles per hour
 }
 sub convert_mph2mps {   # convert miles per hour to meters per second
     sprintf("%5.2f", $_[0] / 2.23693632);
+}
+sub convert_mps2kph {   # convert meters per second to kilometers per hour
+    sprintf("%5.2f", $_[0] * 3.6);
+}
+sub convert_kph2mps {   # convert kilometers per hour to meters per second
+    sprintf("%5.2f", $_[0] / 3.6);
+}
+sub convert_nm2mile { # convert nautical miles (knots) to miles (per hour)
+	sprintf("%5.2f", $_[0] * 1.150779448);
+}
+sub convert_mile2nm { # convert miles (per hour) to nautical miles (knots)
+	sprintf("%5.2f", $_[0] / 1.150779448);
+}
+sub convert_nm2km { # convert nautical miles (knots) to kilometers (per hour)
+	sprintf("%5.2f", $_[0] * 1.85198849217);
+}
+sub convert_km2nm { # convert kilometers (per hour) to nautical miles (knots)
+	sprintf("%5.2f", $_[0] / 1.85198849217);
+}
+sub convert_knots2mps { # convert knots to meters per second
+	sprintf("%5.2f", $_[0] * 6.66715857181);
+}
+sub convert_mps2knots { # convert meters per second to knots
+	sprintf("%5.2f", $_[0] / 6.66715857181);
 }
 sub convert_mm2in { # convert millimeters (per hour) to inches (per hour)
      sprintf("%5.2f", $_[0] * 0.0393700787402);

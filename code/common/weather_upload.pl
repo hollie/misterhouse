@@ -4,6 +4,9 @@
 #@ Upload data from your local weather station to wunderground.com.
 #@ See code for info on wunderground_* mh.ini parms
 
+# $Date$
+# $Revision$
+
 =begin comment
 
  weather_upload.pl by David Norwood, dnorwood2@yahoo.com
@@ -68,10 +71,16 @@ if (said $v_weather_update eq 'Run') {
 
 
     # Make some conversions if necessary
-    my $weather_tempoutdoor = $config_parms{default_temp} =~ /^celsius$/i ? convert_c2f($Weather{TempOutdoor}):$Weather{TempOutdoor};
-    my $weather_dewoutdoor = $config_parms{default_temp} =~ /^celsius$/i ? convert_c2f($Weather{DewOutdoor}):$Weather{DewOutdoor};
-    my $weather_barom = $config_parms{weather_uom_baro} eq 'mb' ? convert_mb2in($Weather{Barom}):$Weather{Barom};
-    my $weather_baromsea = $config_parms{weather_uom_baro} eq 'mb' ? convert_mb2in($Weather{BaromSea}):$Weather{BaromSea};
+    my $weather_tempoutdoor = $config_parms{weather_uom_temp} eq 'C' ? convert_c2f($Weather{TempOutdoor}):$Weather{TempOutdoor};
+    my $weather_dewoutdoor = $config_parms{weather_uom_temp} eq 'C' ? convert_c2f($Weather{DewOutdoor}):$Weather{DewOutdoor};
+    my $weather_baromsea = $Weather{BaromSea};
+    if ($Weather{BaromSea} eq '') {
+    	$weather_baromsea=$Weather{Barom};
+    	print_log ("weather_upload warning: using non sea-level pressure");
+    }
+    if ($config_parms{weather_uom_baro} eq 'mb') {
+    	$weather_baromsea=convert_mb2in($weather_baromsea);
+	}
 
     my $weather_windgustspeed = $config_parms{weather_uom_wind} eq 'kph' ? convert_km2mile($Weather{WindGustSpeed}):$Weather{WindGustSpeed};
     my $weather_windavgspeed = $config_parms{weather_uom_wind} eq 'kph' ? convert_km2mile($Weather{WindAvgSpeed}):$Weather{WindAvgSpeed};
@@ -81,52 +90,41 @@ if (said $v_weather_update eq 'Run') {
 
     my $weather_rainrate = $config_parms{weather_uom_rainrate} eq 'mm/hr' ? convert_mm2in($Weather{RainRate}):$Weather{RainRate};
 
-    if ($config_parms{serial_wmr968_module} eq "Weather_wmr968") {
+    if ($config_parms{serial_wmr968_module}) { 
+      if ($config_parms{serial_wmr968_module} eq "Weather_wmr968") {
 	        # ---- CLOUDS ----
 		# SKC = Sky Clear
-	$clouds = 'SKC' if $Weather{WxTendency} eq 'Sunny';
-		# SCT = Scattered
-	$clouds = 'SCT' if $Weather{WxTendency} eq 'Partly cloudy';
+  		$clouds = 'SKC' if $Weather{WxTendency} eq 'Sunny';
+  		# SCT = Scattered
+  		$clouds = 'SCT' if $Weather{WxTendency} eq 'Partly Cloudy';
 		# BKN = Broken
-	$clouds = 'BKN' if $Weather{WxTendency} eq 'Cloudy';
+		$clouds = 'BKN' if $Weather{WxTendency} eq 'Cloudy';
 		# OVC = Overcast
-	$clouds = 'OVC' if $Weather{WxTendency} eq 'Rain';
+		$clouds = 'OVC' if $Weather{WxTendency} eq 'Rain';
 		# ----CONDITIONS WEATHERS ----
 		# MI = Shallow clouds
-	$weather_conditions = "MI" if $Weather{WxTendency} eq 'Sunny';
+		$weather_conditions = "MI" if $Weather{WxTendency} eq 'Sunny';
 		# BC = Patches clouds
-	$weather_conditions = "BC" if $Weather{WxTendency} eq 'Partly cloudy';
+		$weather_conditions = "BC" if $Weather{WxTendency} eq 'Partly Cloudy';
 		# PR = Partial clouds
-	$weather_conditions = "PR" if $Weather{WxTendency} eq 'Cloudy';
+		$weather_conditions = "PR" if $Weather{WxTendency} eq 'Cloudy';
 		# RA = Rain
-	$weather_conditions = "RA" if $Weather{WxTendency} eq 'Rain';
-		# ---- BAROM ----
-	$weather_barom = $weather_baromsea;
-    }
-    else {
+		$weather_conditions = "RA" if $Weather{WxTendency} eq 'Rain';
+
+    	} else { # not a WMR968, assume it's a wx200
         $clouds = 'CLR' if $Weather{Conditions} eq 'Clear';
         $clouds = 'OVC' if $Weather{Conditions} eq 'Cloudy';
-	$clouds = 'SCT' if $Weather{Conditions} eq 'Partly cloudy' or $Weather{Conditions} eq 'Partly sunny';
-	$clouds = 'SKC' if $Weather{Conditions} eq 'Sunny';
+ 		$clouds = 'SCT' if $Weather{Conditions} eq 'Partly Cloudy' or $Weather{Conditions} eq 'Partly sunny'; $clouds = 'SKC' if $Weather{Conditions} eq 'Sunny';
 		# MI = Shallow clouds
-	$weather_conditions = "MI" if $Weather{Conditions} eq 'Partly sunny';
+		$weather_conditions = "MI" if $Weather{Conditions} eq 'Partly Sunny';
 		# BC = Patches clouds
-	$weather_conditions = "BC" if $Weather{Conditions} eq 'Partly cloudy';
+		$weather_conditions = "BC" if $Weather{Conditions} eq 'Partly Cloudy';
 		# PR = Partial clouds
-	$weather_conditions = "PR" if $Weather{Conditions} eq 'Cloudy';
+		$weather_conditions = "PR" if $Weather{Conditions} eq 'Cloudy';
 		# RA = Rain
-	$weather_conditions = "RA" if $Weather{Raining} or $Weather{Conditions} eq 'Light rain';
-
-
-
-        # wx200 stores in millibars, 968 stores in Hg
-        unless ($weather_barom = $Weather{BaromSea_hg}) {
-	    $weather_barom = $Weather{BaromSea};
-	    $weather_barom  *= 0.029529987508 if $weather_barom > 100;  # hg should be around 29.
+		$weather_conditions = "RA" if $Weather{Raining} or $Weather{Condition} eq 'Light rain';
+	  }
 	}
-	# for (default) Internet weather, frog, etc.
-	$weather_barom = $Weather{Barom} if !$weather_barom;
-    }
 
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =  gmtime();
     my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec;
@@ -142,7 +140,7 @@ if (said $v_weather_update eq 'Run') {
 # To set your sea level pressure, add one millibar to your station pressure for every 10 meters of altitude.
 #   - lets do this in Weather_wx200.pm instead, as other devices are smarter :)
 #	($Weather{Barom} + $altitude/10) * 0.029529987508, # convert millibars to inches Hg
-	$weather_barom,
+	$weather_baromsea,
 	$weather_dewoutdoor,
 	$Weather{HumidOutdoor},
 	$weather_conditions,

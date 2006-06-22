@@ -1,3 +1,6 @@
+# $Date$
+# $Revision$
+
 use strict;
 
 # This uses the iButton perl modules from: http://www.lothar.com/tech/iButtons/
@@ -224,8 +227,8 @@ sub read_temp {
     return wantarray ? () : undef if !defined $temp;
 
     my $temp_c = sprintf("%3.2f", $temp);
-    my $temp_f = sprintf("%3.2f", $temp*9/5 +32);
-    my $temp_def = ($main::config_parms{default_temp} eq 'Celsius') ? $temp_c : $temp_f;
+    my $temp_f = sprintf("%3.2f", convert_c2f($temp));
+    my $temp_def = ($main::config_parms{weather_uom_temp} eq 'C') ? $temp_c : $temp_f;
 
     set_receive $self $temp_def;
 
@@ -365,8 +368,8 @@ sub read_temp {
     return if !defined $temp;
 
     my $temp_c = sprintf("%3.2f", $temp);
-    my $temp_f = sprintf("%3.2f", $temp*9/5 +32);
-    my $temp_def = ($main::config_parms{default_temp} eq 'Celsius') ? $temp_c : $temp_f;
+    my $temp_f = sprintf("%3.2f", convert_c2f($temp));
+    my $temp_def = ($main::config_parms{weather_uom_temp} eq 'C') ? $temp_c : $temp_f;
 
     $this->set_receive( $temp_def );
 

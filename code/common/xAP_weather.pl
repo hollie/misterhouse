@@ -1,5 +1,7 @@
-
 # Category = xAP
+
+# $Date$
+# $Revision$
 
 #@ This code will monitor the xAP weather client from <a href=http://www.mi4.biz>mi4.biz</a>
 #@ and stores the weather in the Weather hash.  Set mh.ini parm weather_source=station_name
@@ -25,7 +27,7 @@ if ($state = state_now $xAP_weather) {
 
                            # Optionally set standard Weather keys (used in web status line)
     if (lc $config_parms{weather_source} eq $source) {
-        if ($config_parms{default_temp} eq 'Celsius') {
+        if ($config_parms{weather_uom_temp} eq 'C') {
             $Weather{TempOutdoor}   = $xAP_weather->{'weather.report'}{tempc};
             $Weather{DewOutdoor}    = $xAP_weather->{'weather.report'}{dewc};
             $Weather{WindAvgSpeed}  = $xAP_weather->{'weather.report'}{windk};

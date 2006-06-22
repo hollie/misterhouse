@@ -33,6 +33,7 @@ $WindGust -> tie_event('print_log "Wind gust at $state"');
 =cut
 
 use Weather_Item;
+use Weather_Common;
 
 my $weather_wind_gust_threshold=$config_parms{weather_wind_gust_threshold}; # noloop
 $weather_wind_gust_threshold=12 unless $weather_wind_gust_threshold;  # noloop
@@ -48,7 +49,10 @@ $weather_humid_indoor_maximum = 50 unless $weather_humid_indoor_maximum; #noloop
 $weather_humid_indoor_minimum = 30 unless $weather_humid_indoor_minimum; #noloop
 
 $TempOutdoor  = new Weather_Item 'TempOutdoor';
+$TempOutdoorA = new Weather_Item 'TempOutdoorApparent';
 $TempIndoor   = new Weather_Item 'TempIndoor';
+$DewIndoor    = new Weather_Item 'DewIndoor';
+$DewOutoor    = new Weather_Item 'DewOutdoor';
 $HumidOutdoor = new Weather_Item 'HumidOutdoor';
 $HumidIndoor  = new Weather_Item 'HumidIndoor';
 $WindChill    = new Weather_Item 'WindChill';
@@ -65,6 +69,7 @@ $Irritating   = new Weather_Item "Pollen > $weather_pollen_threshold";
 $Conditions   = new Weather_Item 'Conditions';
 $Warning      = new Weather_Item 'Warning'; # Set in chance of rain and by other weather items
 $SunSensor    = new Weather_Item 'sun_sensor';
+$PressureChange = new Weather_Item 'BaromDelta';
 $ChanceOfRain = new Weather_Item 'ChanceOfRainPercent';
 $ChanceOfSnow = new Weather_Item 'ChanceOfSnowPercent';
 $Raining = new Weather_Item 'IsRaining';
@@ -78,41 +83,66 @@ $FreezingIndoor = new Weather_Item 'TempIndoor <= FreezePoint';
 # *** Need to track temperature rate of change
 
 $WindChill = new Weather_Item 'WindChill';
-$DewPoint = new Weather_Item 'DewPoint';
-$Dew = new Weather_Item 'TempOutdoor - DewPoint < 5';
-$Frost = new Weather_Item 'TempOutdoor - DewPoint < 5 and DewPoint < FreezePoint';
-$Frostbite = new Weather_Item 'WindChill < 20';
+$DewOutdoor = new Weather_Item 'DewOutdoor';
+$Dew = new Weather_Item 'HumidOutdoor > 70';
+$Frost = new Weather_Item 'HumidOutoor > 70 and TempOutdoor < FreezePoint';
+$Frostbite = new Weather_Item 'WindChill < FrostbitePoint';
 
 #noloop=start
+
+my $default_outdoor_comfort_min=70;
+my $default_outdoor_comfort_max=75;
+my $default_heat_warning_point=90;
+my $default_cold_warning_point=20;
 
 # Set for quick reference in expressions
+$Weather{FreezePoint} = 32;
+$Weather{FrostbitePoint} = 20; # in fahrenheit
 
-$Weather{FreezePoint} = ($config_parms{default_temp} eq 'Celsius')?0:32;
+if ($config_parms{weather_uom_temp} eq 'C') {
+	grep {$_=convert_f2c($_)} (
+		$default_outdoor_comfort_min,
+		$default_outdoor_comfort_max,
+		$default_heat_warning_point,
+		$default_cold_warning_point,
+		$Weather{FreezePoint},
+		$Weather{FrostbitePoint},
+	);
+}
+
 
 $Weather{HeatWarningPoint} = $config_parms{heat_warning_point}; # danger point for outdoor temp
-$Weather{HeatWarningPoint} = ($config_parms{default_temp} eq 'Celsius')?32:90 unless defined $Weather{HeatWarningPoint};
+$Weather{HeatWarningPoint} = $default_heat_warning_point unless defined $Weather{HeatWarningPoint};
+$Weather{ColdWarningPoint} = $config_parms{cold_warning_point}; # danger point for outdoor temp
+$Weather{ColdWarningPoint} = $default_cold_warning_point unless defined $Weather{ColdWarningPoint};
 
-#noloop=stop
-
-# config parms for outdoorcomfortmin, outdoorcomfortmax
-
-# *** Sunstroke and heatstroke (hot and wet and sunny cause)
-# comfortable, uncomfortable, intolerable
-
-$PressureChange = new Weather_Item 'BaromDelta';
-
-#noloop=start
 my $outdoor_comfort_min = $config_parms{outdoor_comfort_min};
-my $outdoor_comfort_min = 70 unless $config_parms{outdoor_comfort_min};
+$outdoor_comfort_min = $default_outdoor_comfort_min unless $config_parms{outdoor_comfort_min};
 my $outdoor_comfort_max = $config_parms{outdoor_comfort_max};
-my $outdoor_comfort_max = 75 unless $config_parms{outdoor_comfort_max};
+$outdoor_comfort_max = $default_outdoor_comfort_max unless $config_parms{outdoor_comfort_max};
+
+my $rain_units='inches';
+$rain_units='millimeters' if $config_parms{weather_uom_rain} eq 'mm';
+my $rainrate_units='inches per hour';
+$rainrate_units='millimeters per hour' if $config_parms{weather_uom_rain} eq 'mm/hr';
+
+my $wind_units='miles per hour';
+$wind_units='kilometers per hour' if $config_parms{weather_uom_wind} eq 'kph';
+$wind_units='meters per second' if $config_parms{weather_uom_wind} eq 'm/s';
+
 #noloop=stop
 
-#$Extreme = new Weather_Item 'TempOutdoor > HeatWarningPoint or TempOutdoor < 20';
-#$Comfortable = new Weather_Item "TempOutdoor >= $outdoor_comfort_min and TempOutdoor <= $outdoor_comfort_max";
-#$Uncomfortable = new Weather_Item "TempOutdoor < $outdoor_comfort_min or TempOutdoor > $outdoor_comfort_max";
-#$Intolerable = new Weather_Item 'TempOutdoor > HeatWarningPoint and HumidOutdoor > 70 and ' . #Pollen > $weather_pollen_threshold";
-#$Scorching = new Weather_Item 'TempOutdoor > HeatWarningPoint and HumidOutdoor < 50';
+
+# Examples.  Someone weather-oriented should come up with some real forecasting expressions...
+# Possibility: snowstorm (chance_of_snow, high humidity, high winds, under freezing, low pressure and falling)  Something like that.
+
+
+$Extreme = new Weather_Item 'TempOutdoorApparent > HeatWarningPoint or TempOutdoorApparent < ColdWarningPoint';
+$Comfortable = new Weather_Item "TempOutdoorApparent >= $outdoor_comfort_min and TempOutdoorApparent <= $outdoor_comfort_max";
+$Uncomfortable = new Weather_Item "TempOutdoorApparent < $outdoor_comfort_min or TempOutdoorApparent > $outdoor_comfort_max";
+$Intolerable = new Weather_Item "TempOutdoorApparent > HeatWarningPoint and HumidOutdoor > 70 and Pollen > $weather_pollen_threshold";
+$Scorching = new Weather_Item 'TempOutdoor > HeatWarningPoint and HumidOutdoor < 50';
+
 $Dry = new Weather_Item 'HumidOutdoor < 60';
 $Arid = new Weather_Item 'HumidOutdoor < 40';
 
@@ -150,6 +180,7 @@ sub monitor_sun {
 &tk_label(\$Weather{TempIndoor});
 &tk_label(\$Weather{HumidIndoor});
 &tk_label(\$Weather{TempOutdoor});
+&tk_label(\$Weather{TempOutdoorApparent});
 &tk_label(\$Weather{HumidOutdoor});
 &tk_label(\$Weather{WindAvgSpeed});
 &tk_label(\$Weather{Conditions});
@@ -170,7 +201,9 @@ $v_what_temp-> set_authority('anyone');
 if ($state = said $v_what_temp) {
     if (defined $Weather{TempOutdoor} and $Weather{TempOutdoor} ne 'unknown') {
         my $temp     = round($Weather{TempOutdoor});
+        my $apparent = round($Weather{TempOutdoorApparent});
         my $temp_in  = round($Weather{TempIndoor});
+        my $windchill = round($Weather{WindChill});
         my $windchill= round($Weather{WindChill}) if defined $Weather{WindChill};
         my $humidity = round($Weather{HumidOutdoor});
         my $humidity_in = round($Weather{HumidIndoor});
@@ -183,28 +216,22 @@ if ($state = said $v_what_temp) {
 #	$remark = "Watch out for freezing rain." if $FreezingRain->{state};
 	$remark = "Frostbite warning." if $Frostbite->{state};
 
-        if ($humidity > 80 and $temp > 70) {
+        if ($humidity > 80 and $temp > $config_parms{weather_uom_temp} eq 'F' ? 70 : 20) {
             $remark =  read_next $f_remark_on_humidity;
         }
-
-print_log $windchill;
-
-
-	if (defined $windchill) {
-	        if ($windchill < 0) {
-        	    $remark =  read_next $f_remark_on_temp_below_0;
+		if (defined $windchill) {
+	        if ($windchill < $config_parms{weather_uom_temp} eq 'F' ? 0 : -17) {
+	            $remark =  read_next $f_remark_on_temp_below_0;
 	        }
-	        if ($windchill < 20) {
-        	    $remark =  read_next $f_remark_on_temp_below_20;
+	        if ($windchill < $config_parms{weather_uom_temp} eq 'F' ? 20 : -6) {
+	            $remark =  read_next $f_remark_on_temp_below_20;
 	        }
-	}
+		}
 
         my $temp_out = " $temp degrees ";
-        if ($temp < 50 and $windchill < $temp) {
-            $temp_out .= " $windchill degree windchill outside";
-        }
-        else {
-            $temp_out .= " $humidity percent outside";
+
+        if ($apparent != $temp) {
+            $temp_out .= " and feels like $apparent degrees";
         }
 
         if ($state eq 'inside') {
@@ -237,7 +264,7 @@ if (said $v_what_wind) {
 
 
         $temp  .= "The wind is gusting at " .
-            round($Weather{WindGustSpeed}) . " MPH from the " . convert_direction($Weather{WindGustDir});
+            round($Weather{WindGustSpeed}) . " from the " . convert_direction($Weather{WindGustDir});
         $temp .= ".  Average speed is " .
             round($Weather{WindAvgSpeed}) . " from the " . convert_direction($Weather{WindAvgDir});
     }
@@ -278,7 +305,7 @@ if (my $period = said $v_what_rain) {
     }
     else {
         if ($rain) {
-            $temp  .= "We have had $rain inches of rain ";
+            $temp  .= "We have had $rain $rain_units of rain ";
         }
         else {
             $temp .= "No rain has fallen ";
@@ -332,8 +359,8 @@ if (expired $timer_wind_gust2) {
 	5 + $timer_wind_gust->{speed} < $speed) {
         $timer_wind_gust->{speed} = $speed;
         set $timer_wind_gust 20*60;
-        respond "app=weather image=warning color=red Weather alert, the wind is gusting to " . round($speed) . " miles per hour";
-        $Weather{Warning} = 'High winds gusting to ' . round($speed) . 'miles per hour';
+        respond "app=weather image=warning color=red Weather alert, the wind is gusting to " . round($speed) . " $wind_units";
+        $Weather{Warning} = 'High winds gusting to ' . round($speed) . " $wind_units"
     }
     $Save{WindGustMax} = $speed if $Save{WindGustMax} < $speed; # Save a daily max
 }
@@ -352,14 +379,14 @@ if (expired $israining_timer) {
     $Weather{IsRaining} = 0 ;
     my $minutes = int(60 - minutes_remaining $rain_report_timer);
     my $rain = rain_since($Time - 60 * $minutes) if $minutes;
-    speak "It rained $rain inches in the past $minutes minutes" if $rain;
+    speak "It rained $rain $rain_units in the past $minutes minutes" if $rain;
     set $rain_report_timer 0;
 }
 
 $rain_report_timer = new Timer;
 if (expired $rain_report_timer and $Weather{IsRaining}) {
     my $rain = rain_since($Time - 60 * 60);
-    speak "It has rained $rain inches in the past hour" if $rain;
+    speak "It has rained $rain $rain_units in the past hour" if $rain;
     set $rain_report_timer 60 * 60 if $Weather{IsRaining};
 }
 

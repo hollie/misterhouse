@@ -41,7 +41,7 @@ if (my $state = said $v_froggy_indoor_humidity) {
 if (my $state = state_now $Froggy) {
 	my $temperature = $Froggy->temperature();
 
-	$temperature = ($config_parms{default_temp} =~ /^celsius$/i)?(int($temperature * 100 + .5)/100):int((($temperature * 180) + 3200) + .5)/100 if defined $temperature;
+	$temperature = ($config_parms{weather_uom_temp} eq 'C' ? (int($temperature * 100 + .5)/100):int((($temperature * 180) + 3200) + .5)/100 if defined $temperature;
 
 
 	if ($command_waiting and $state ne 'status') {
