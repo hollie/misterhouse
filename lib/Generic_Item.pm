@@ -281,7 +281,7 @@ sub respond {
 
 		# Used to break multiple targets if first is Web, IM or email
 
-		if ($target !~ /\[/) { # Make sure this needs cleaning
+		if ($target =~ /\[/) { # Make sure this needs cleaning
 
 			$target = 'web' if $target =~ /^web/i;# remove extraneous data (from IM/Email/Web set)
 			$target = 'im' if $target =~ /^im/i;
