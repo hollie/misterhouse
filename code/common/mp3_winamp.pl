@@ -336,6 +336,9 @@ sub mp3_get_output_timestr {
 
 		        my $tPos = $songPos / 1000;                     #Posintion in miliseconds
             		my $tLen = $songLen ;                           #Length of song in seconds
+
+			if ($tLen) { # divide by zero error otherwise!
+
 	                my $tPct = int ( ( $tPos / $tLen ) *100) ;       # what ist the % played
 
 		        my $tMin = int( $tPos / 60 );                   #Make outputs in mm:ss format
@@ -349,6 +352,7 @@ sub mp3_get_output_timestr {
 			$songLen = "$tMin:$tSec";                       # this should be the Total time in MM:SS format
 
 			return "$songPos/$songLen ($tPct%)";
+			}
 #		}
 #		else {
 #			my $tPos = get "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=0";
