@@ -36,8 +36,8 @@ use PAobj;
 $xapctrl = new PAobj('xap','xap');
 $xplctrl = new PAobj('xpl','xpl');
 
-$xapctrl->init() if $Startup or $Reload;
-$xplctrl->init() if $Startup or $Reload;
+$xapctrl->init() if $Reload;
+$xplctrl->init() if $Reload;
 
 # Stuff to flag which rooms to turn on based on "rooms=" parm in speak command
 &Speak_pre_add_hook(\&pa_control_stub) if $Reload;
@@ -96,8 +96,11 @@ Groups:      "all" and "default" are required. "all" should not include speaker 
              rooms= parm. If no rooms are specified, all zones in the "default" group will be
              used.
 
-Class Name: The name of the serial port that you use for communcating to the IO device.
-             The default is "weeder". Note that this can be changed with an INI parm.
+Class Name: The name of the serial port that you use for communicating with the IO device.
+             The default is "weeder". Note that this default can be changed with an INI parm.
+
+		# *** What INI parm?
+
 
 Protocol:    either "xap" or "xpl"--depending upon which protocol is used by the target device
 
