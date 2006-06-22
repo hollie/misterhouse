@@ -345,49 +345,75 @@ if ( $data = said $jandy ) {
 }
 
 #POOL
-$v_pool_pump_set = new Voice_Cmd("Turn the pool pump [ON,OFF]");
-if ($state = said $v_pool_pump_set) {
+$v_pool_pump_set = new Voice_Cmd("Turn the pool pump [on,off]");
+if (said $v_pool_pump_set) {
+  my $state = $v_pool_pump_set->{state};
+
+  $v_pool_pump_set->respond("app=pool Turning pool pump $state.");
+
+  $state = uc($state);
+
   set $jandy "#PUMP=$state";
   $PUMPmode = 'set';
 }
 
 $v_pool_pump_chk = new Voice_Cmd("Check the pool pump status");
-if ($state = said $v_pool_pump_chk) {
+if (said $v_pool_pump_chk) {
+  my $state = $v_pool_pump_chk->{state};
+
+  $v_pool_pump_chk->respond("app=pool Checking pool pump status.");
+
   set $jandy "#PUMP?";
   $PUMPmode = 'check';
 }
 
-$v_pool_heat_set = new Voice_Cmd("Turn the pool heater [ON,OFF]");
-if ($state = said $v_pool_heat_set) {
+$v_pool_heat_set = new Voice_Cmd("Turn the pool heater [on,off]");
+if (said $v_pool_heat_set) {
+  my $state = $v_pool_heat_set->{state};
+
+  $v_pool_heat_set->respond("app=pool Turning pool heater $state.");
+
+  $state = uc($state);
+
   set $jandy "#POOLHT=$state";
   $POOLHTmode = 'set';
 }
 
 $v_pool_heat_chk = new Voice_Cmd("Check the pool heater status");
-if ($state = said $v_pool_heat_chk) {
+if (said $v_pool_heat_chk) {
+  $v_pool_heat_chk->respond("app=pool Checking pool heater status.");
+
   set $jandy "#POOLHT?";
   $POOLHTmode = 'check';
 }
 
 $v_pool_temp = new Voice_Cmd("Check the pool temperature");
-if ($state = said $v_pool_temp) {
+if (said $v_pool_temp) {
+  $v_pool_temp->respond("app=pool Checking pool temperature.");
+
   set $jandy "#POOLTMP?";
 }
 
 $v_pool_sp_up = new Voice_Cmd("Increase the pool setpoint");
-if ($state = said $v_pool_sp_up) {
+if (said $v_pool_sp_up) {
+  $v_pool_sp_up->respond("app=pool Increasing pool setpoint.");
+
   set $jandy "#POOLSP+";
   $POOLSPmode = 'set';
 }
 
 $v_pool_sp_dn = new Voice_Cmd("Decrease the pool setpoint");
-if ($state = said $v_pool_sp_dn) {
+if (said $v_pool_sp_dn) {
+  $v_pool_sp_dn->respond("app=pool Decreasing pool setpoint.");
+
   set $jandy "#POOLSP-";
   $POOLSPmode = 'set';
 }
 
 $v_pool_sp = new Voice_Cmd("Check the pool setpoint");
-if ($state = said $v_pool_sp) {
+if (said $v_pool_sp) {
+  $v_pool_sp->respond("app=pool Checking pool setpoint.");
+
   set $jandy "#POOLSP?";
   $POOLSPmode = 'check';
 }
@@ -395,145 +421,197 @@ if ($state = said $v_pool_sp) {
 #SPA
 
 $v_spa_ready = new Voice_Cmd("spa");
-if ($state = said $v_spa_ready) {
-  run_after_delay 2, "run_voice_cmd 'Turn the spa ON'";
-  run_after_delay 4, "run_voice_cmd 'Turn the spa heater ON'";
+if (said $v_spa_ready) {
+  $v_spa_ready->respond("app=spa Turning on spa and spa heater...");
+  run_after_delay 2, "set \$jandy '#SPA=ON'";
+  run_after_delay 4, "set \$jandy '#SPAHT=ON'";
   $SpaReady = 'true';
 }
 
 
-$v_spa_pump_set = new Voice_Cmd("Turn the spa [ON,OFF]");
-if ($state = said $v_spa_pump_set) {
+$v_spa_pump_set = new Voice_Cmd("Turn the spa [on,off]");
+if (said $v_spa_pump_set) {
+  my $state = $v_spa_pump_set->{state};
+  $v_spa_pump_set->respond("app=spa Turning spa $state.");
+
+  $state = uc($state);
   set $jandy "#SPA=$state";
   $SPAmode = 'set';
 }
 
 $v_spa_pump_chk = new Voice_Cmd("Check the spa status");
-if ($state = said $v_spa_pump_chk) {
+if (said $v_spa_pump_chk) {
+  $v_spa_pump_chk->respond("app=spa Checking spa status.");
   set $jandy "#SPA?";
   $SPAmode = 'check';
 }
 
-$v_spa_heat_set = new Voice_Cmd("Turn the spa heater [ON,OFF]");
-if ($state = said $v_spa_heat_set) {
+$v_spa_heat_set = new Voice_Cmd("Turn the spa heater [on,off]");
+if (said $v_spa_heat_set) {
+  my $state = $v_spa_heat_set->{state};  
+  $v_spa_heat_set->respond("app=spa Turning spa heater $state.");
+  $state = uc($state);
   set $jandy "#SPAHT=$state";
   $SPAHTmode = 'set';
 }
 
 $v_spa_heat_chk = new Voice_Cmd("Check the spa heater status");
-if ($state = said $v_spa_heat_chk) {
+if (said $v_spa_heat_chk) {
+  $v_spa_heat_chk->respond("app=spa Checking spa heater status.");
   set $jandy "#SPAHT?";
   $SPAHTmode = 'check';
 }
 
 $v_spa_temp = new Voice_Cmd("Check the spa temperature");
-if ($state = said $v_spa_temp) {
+if (said $v_spa_temp) {
+  $v_spa_temp->respond("app=spa Checking spa temperature.");
   set $jandy "#SPATMP?";
 }
 
 $v_spa_sp_up = new Voice_Cmd("Increase the spa setpoint");
-if ($state = said $v_spa_sp_up) {
+if (said $v_spa_sp_up) {
+  $v_spa_sp_up->respond("app=spa Increasing spa setpoint.");
   set $jandy "#SPASP+";
   $SPASPmode = 'set';
 }
 
 $v_spa_sp_dn = new Voice_Cmd("Decrease the spa setpoint");
-if ($state = said $v_spa_sp_dn) {
+if (said $v_spa_sp_dn) {
+  $v_spa_sp_dn->respond("app=spa Decreasing spa setpoint.");
   set $jandy "#SPASP-";
   $SPASPmode = 'set';
 }
 
 $v_spa_sp = new Voice_Cmd("Check the spa setpoint");
-if ($state = said $v_spa_sp) {
+if (said $v_spa_sp) {
+  $v_spa_sp->respond("app=spa Checking spa setpoint.");
   set $jandy "#SPASP?";
   $SPASPmode = 'check';
 }
 
 #OTHER
-$v_pool_cleaner_set = new Voice_Cmd("Turn the pool cleaner [ON,OFF]");
-if ($state = said $v_pool_cleaner_set) {
+$v_pool_cleaner_set = new Voice_Cmd("Turn the pool cleaner [on,off]");
+if (said $v_pool_cleaner_set) {
+  my $state = $v_pool_cleaner_set->{state};
+  $v_pool_cleaner_set->respond("app=pool Turning pool cleaner $state.");
+  $state = uc($state);
   set $jandy "#CLEANR=$state";
   $CLEANRmode = 'set';
 }
 
 $v_pool_cleaner_chk = new Voice_Cmd("Check the pool cleaner");
-if ($state = said $v_pool_cleaner_chk) {
+if (said $v_pool_cleaner_chk) {
+  $v_pool_cleaner_chk->respond("app=pool Checking pool cleaner.");
   set $jandy "#CLEANR?";
   $CLEANRmode = 'check';
 }
 
 #This bombs out as I have the cleaner instead - have it check and do this instead
-$v_pool_AUX1_set = new Voice_Cmd("Turn the $AUX1 [ON,OFF]");
-if ($state = said $v_pool_AUX1_set) {
+$v_pool_AUX1_set = new Voice_Cmd("Turn the $AUX1 [on,off]");
+if (said $v_pool_AUX1_set) {
+  my $state = $v_pool_AUX1_set->{state};
+  $v_pool_AUX1_set->respond("app=pool Turning $AUX1 $state.");
+  $state = uc($state);
   set $jandy "#AUX1=$state";
   $AUX1mode = 'set';
 }
 
 $v_pool_AUX1_chk = new Voice_Cmd("Check the $AUX1 status");
-if ($state = said $v_pool_AUX1_chk) {
+if (said $v_pool_AUX1_chk) {
   if ($Cleaner eq '1') {
-    speak "Your system doesn't use AUX 1 - Use Cleaner instead";
+    $v_pool_AUX1_chk->respond("app=pool Your system doesn't use AUX 1 - Use Cleaner instead.");
   } else {
+    $v_pool_AUX1_chk->respond("app=pool Checking $AUX1 status.");
     set $jandy "#AUX1?";
     $AUX1mode = 'check';
   }
 }
 
-$v_pool_AUX2_set = new Voice_Cmd("Turn the $AUX2 [ON,OFF]");
-if ($state = said $v_pool_AUX2_set) {
+$v_pool_AUX2_set = new Voice_Cmd("Turn the $AUX2 [on,off]");
+if (said $v_pool_AUX2_set) {
+  my $state = $v_pool_AUX2_set->{state};
+  $v_pool_AUX2_set->respond("app=pool Turning $AUX2 $state.");
+  $state = uc($state);
   set $jandy "#AUX2=$state";
   $AUX2mode = 'set';
 }
 
 $v_pool_AUX2_chk = new Voice_Cmd("Check the $AUX2 status");
-if ($state = said $v_pool_AUX2_chk) {
+if (said $v_pool_AUX2_chk) {
+  $v_pool_AUX2_chk->respond("app=pool Checking $AUX2 status.");
   set $jandy "#AUX2?";
   $AUX2mode = 'check';
 }
 
-$v_pool_AUX3_set = new Voice_Cmd("Turn the $AUX3 [ON,OFF]");
-if ($state = said $v_pool_AUX3_set) {
+$v_pool_AUX3_set = new Voice_Cmd("Turn the $AUX3 [on,off]");
+if (said $v_pool_AUX3_set) {
+  my $state = $v_pool_AUX3_set->{state};
+  $v_pool_AUX3_set->respond("app=pool Turning $AUX3 $state.");
+  $state = uc($state);
   set $jandy "#AUX3=$state";
   $AUX3mode = 'set';
 }
 
 $v_pool_AUX3_chk = new Voice_Cmd("Check the $AUX3 status");
-if ($state = said $v_pool_AUX3_chk) {
+if (said $v_pool_AUX3_chk) {
+  $v_pool_AUX3_chk->respond("app=pool Checking $AUX3 status.");
   set $jandy "#AUX3?";
   $AUX3mode = 'check';
 }
 
 $v_air_temp = new Voice_Cmd("Check the air temperature");
-if ($state = said $v_air_temp) { set $jandy "#AIRTMP?"; }
+if (said $v_air_temp) {
+  $v_air_temp->respond("app=pool Checking air temperature.");
+  set $jandy "#AIRTMP?"; 
+}
 
 #MISC
 
 $v_pool_mode_chk = new Voice_Cmd("Check the pool mode");
-if ($state = said $v_pool_mode_chk) { set $jandy "#OPMODE?"; }
+if (said $v_pool_mode_chk) {
+  $v_pool_mode_chk->respond('app=pool Checking pool mode.');
+  set $jandy "#OPMODE?";
+}
 
 $v_pool_diag = new Voice_Cmd("Run the pool diagnostics");
-if ($state = said $v_pool_diag) { set $jandy "#DIAG"; }
+if (said $v_pool_diag) {
+  $v_pool_diag->respond('app=pool Running pool diagnostics.');
+  set $jandy "#DIAG";
+}
 
 $v_pool_options = new Voice_Cmd("Get the Power Center options");
-if ($state = said $v_pool_options) { set $jandy "#OPTIONS?"; }
+if (said $v_pool_options) {
+  $v_pool_options->respond('app=pool Getting pool Power Center options.');
+  set $jandy "#OPTIONS?";
+}
 
-$v_pool_leds = new Voice_Cmd("Get the L E D Status");
-if ($state = said $v_pool_leds) { set $jandy "#LEDS?"; }
+$v_pool_leds = new Voice_Cmd("Get the L E D status");
+if (said $v_pool_leds) {
+  $v_pool_leds->respond('app=pool Getting pool L E D status.');
+  set $jandy "#LEDS?";
+}
 
 $v_pool_vers = new Voice_Cmd("Get the pool version");
-if ($state = said $v_pool_vers) { set $jandy "#VERS?"; }
+if (said $v_pool_vers) {
+  $v_pool_vers->respond('app=pool Getting pool version.');
+  set $jandy "#VERS?";
+}
 
 $v_pool_model = new Voice_Cmd("Get the Jandy RS model");
-if ($state = said $v_pool_model) { set $jandy "#MODEL?"; }
+if (said $v_pool_model) {
+  $v_pool_model->respond('app=pool Getting pool model.');
+  set $jandy "#MODEL?";
+}
 
-$v_reset = new Voice_Cmd("Reset the Jandy RS Serial Adapter");
-if ($state = said $v_reset) {
+$v_jandy_reset = new Voice_Cmd("Reset the Jandy RS Serial Adapter");
+if (said $v_jandy_reset) {
+  $v_jandy_reset->respond("app=pool Resetting the Jandy RS Serial Adapter");
   set $jandy "#RST";
-  speak "Resetting the Jandy RS Serial Adapter";
 }
 
 $v_pool_battery = new Voice_Cmd("Check the pool battery");
-if ($state = said $v_pool_battery) {
+if (said $v_pool_battery) {
+  $v_pool_battery->respond("app=pool Checking pool battery.");
   set $jandy "#VBAT?";
   $VBATmode = 'check';
 }
