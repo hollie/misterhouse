@@ -16,10 +16,11 @@ $timer_voice_over = new Timer;
 $v_dj = new Voice_Cmd('[Start,Stop] the DJ');
 $v_dj->set_info('Starts or stops the virtual disc jockey');
 
-
-$dj_flag = 1 if (said $v_dj eq 'Start');
-$dj_flag = 0 if (said $v_dj eq 'Stop');
-
+if (said $v_dj) {
+	my $state = $v_dj->{state};
+	$v_dj->respond("app=dj $state" . 'ing the disc jockey...');
+	$dj_flag = ($state eq 'Start');
+}
 
 sub voice_over {
 	return if !$dj_flag;
@@ -34,7 +35,7 @@ sub voice_over {
 	my ( $mpmin,  $mpsec ) = split ( /:/,$mpelapse );
 	$mpelapse = ( $mpmin * 60 ) + $mpsec ;
 
-	print "DJ Voice over: $last_track-$now_playing-$mpelapse\n"; # if $Debug{dj};
+	print "DJ Voice over: $last_track-$now_playing-$mpelapse\n" if $Debug{dj};
 
 
 	if ($now_playing ne $last_track and &mp3_playing() and $mpelapse < 7) {
@@ -49,12 +50,12 @@ sub voice_over {
 				$trivia_question_asked = 1;
 			}
 			elsif ($trivia_question_asked and not $trivia_question_answered) {
-				my $f_trivia_answer   = new File_Item("$config_parms{data_dir}/trivia_answer.txt");
+				my $f_trivia_answer = new File_Item("$config_parms{data_dir}/trivia_answer.txt");
 				my $trivia_answer =  read_all $f_trivia_answer;
 				$speech = "And now the answer to today's trivia question. $trivia_answer";
 				$trivia_question_answered = 1;
 			}
-			elsif (rand(10) > 6) {				
+			elsif (rand(10) > 8) { # *** was 6
 				if (rand(10) > 4) {
 					if (time_greater_than("12:00 AM") and time_less_than("12:00 PM")) {
 						$speech = "Good morning.";
@@ -66,10 +67,10 @@ sub voice_over {
 						$speech = "Good evening.";
 					}
 					if (rand(10) > 4 and $speech) {
-						$speech = " Hey " . $speech;
+						$speech = " Hey " . lcfirst($speech);
 					}
-					$speech .= " The outdoor temperature is " . $Weather{TempOutdoor} . ' ' if (defined $Weather{TempOutdoor});
-					$speech .= "inside it is " . $Weather{TempIndoor} . " degrees fahrenheit. " if ($Weather{TempIndoor});
+					$speech .= " The outdoor temperature is " . $Weather{TempOutdoor} . '. ' if (defined $Weather{TempOutdoor});
+					$speech .= "inside it is " . $Weather{TempIndoor} . " degrees. " if ($Weather{TempIndoor});
 					$speech .= " " . $Weather{chance_of_rain} if ($Weather{chance_of_rain} and rand(10) > 4);
 					$speech .= " There is mail in the mailbox." if ($Save{mail_delivered} eq "1" and $Save{mail_retrieved} eq "");
 
@@ -79,33 +80,34 @@ sub voice_over {
 				}
 				$speech .= " Now here's " . $now_playing_formatted;
 if (rand(10) > 5) { 
-				$speech .= ' on W M H--the voice of Misterhouse';
-				$speech .= '.  Keep it right here.' if (rand(10) > 6) ;
+				$speech .= ' on W M H--the voice of Misterhouse.';
+				$speech .= ' Keep it right here.' if (rand(10) > 6) ;
 			}
 			}
 			else {
-				if (rand(10) > 4) {
+				if (rand(10) > 8) { # *** Was 4
 					$speech = "That was " . format_track($last_track);
 				}
 				elsif (rand(10) > 7) {
 
 				        my $conditions;
-					$conditions = read_all $f_weather_conditions;
-
+					$conditions = $Weather{Summary_Short};
 
 					$speech = "It is $Time_Now";	
-					$speech .= $conditions if (rand(10) > 6);
+					$speech .= ". $conditions" if (rand(10) > 6);
 					$speech .= ". In the stock market " . $Save{stock_results} if (rand(10) > 8);
 				}
 				else {
 
-				        my $conditions;
-					$conditions = $Save{weather_forecast};
+					my @forecast_days;
+				        my $forecast;
+					@forecast_days = split /\|/, $Weather{"Forecast Days"};
 
+					$forecast = $Weather{"Forecast " . (($forecast_days[0] =~ /warning/)?1:0)};
 
 					$speech = "How are you? It is $Time_Now";	
-					$speech .= " and time for the weather forecast. " . $conditions if (rand(10) > 6);
-					$speech .= " In the stock market " . $Save{stock_results} if (rand(10) > 8);
+					$speech .= " and time for the weather forecast. " . $forecast if ($forecast and rand(10) > 6);
+					$speech .= " In the stock market " . $Save{stock_results} if (rand(10) > 8 and $Save{stock_results});
 
 
 
@@ -116,11 +118,14 @@ if (rand(10) > 5) {
 					$speech .= ". Now here's another by " . $artist;
 				}
 				else {
-					$speech .= ". Now it's " . $artist . '.';
+					$speech .= ". Now it's " . $artist;
 				}
 				if (rand(10) > 5) { 
-					$speech .= ' on W M H';
-					$speech .= '.  Keep it right here.' if (rand(10) > 6) ;
+					$speech .= ' on W M H.';
+					$speech .= '  Keep it right here.' if (rand(10) > 6) ;
+				}
+				else {
+					$speech .= '. Stay tuned.';
 				}
 			}
 			
@@ -199,10 +204,6 @@ sub dj_speech_hook {
 
 
     #lower volume if speech won't be muted
-		# *** Should just combine params above
-
-
-	print "-----------------------------------mode_mh: $mode_mh->{state}";
 
 		if (&mp3_playing() and !$speech_lowered_volume and !$parms{to_file} and $mode ne 'mute' and (($mode_mh->{state} ne 'mute' and $mode_mh->{state} ne 'offline') or $mode eq 'unmuted')) {
 			$speech_lowered_volume = 1;
