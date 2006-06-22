@@ -1,6 +1,6 @@
 # Category = MisterHouse
 
-#@ Adds the 'enable/disable xyz code file' commands
+#@ Adds the 'enable/disable xyz code file' commands and persists disabled module list
 
                                 # Allow for turning on/off code members
 
