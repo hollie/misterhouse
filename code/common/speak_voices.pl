@@ -14,23 +14,24 @@ Nice demonstration of reading and writing wav files though :)
 
 =cut
 
-$voices_speak_many = new Voice_Cmd 'Test speech with many voices [1,2,3]';
+$v_voices_speak_many = new Voice_Cmd 'Test speech with many voices [1,2,3]';
 
 $f_deep_thoughts = new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
-$house_tagline   = new File_Item("$config_parms{data_dir}/remarks/1100tags.txt");
+$f_house_tagline = new File_Item("$config_parms{data_dir}/remarks/1100tags.txt");
 
-if ($state = said $voices_speak_many) {
+if (said $v_voices_speak_many) {
+	my $state = $v_voices_speak_many->{state};
 
                                 # This works with XML enabled TTS engines (MSV5 and linux naturalvoices)
     if ($state == 1) {
         speak  voice=> 'all', display => 30, text => read_next $f_deep_thoughts;
     }
     elsif ($state == 2) {
-        speak voice => 'all', text => read_next $house_tagline;
+        speak voice => 'all', text => read_next $f_house_tagline;
     }
                                 # This should work with all engines
     elsif ($state == 3) {
-        my $tagline = read_next $house_tagline;
+        my $tagline = read_next $f_house_tagline;
         print_log "Speaking $tagline";
         my_use "Audio::Wav";  # Used to read and write wav files
         my $wav = new Audio::Wav;
