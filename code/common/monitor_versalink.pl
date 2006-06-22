@@ -27,15 +27,23 @@ if ($Reload) {
 	$Included_HTML{'Internet'} .= qq(<h3>Versalink Throughput<p><img src='/data/versalink.png?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
 }
 
+# *** Might cause unexplained pauses every minute and nobody will know what it is! :)
+# *** Should be configurable
+
 if (new_minute) {
 	unlink $f_versalink;
 	$p_get_versalink -> start;
 }
 
-if (my $state = said $v_read_versalink) {
+# *** A blank response?
+
+if (said $v_read_versalink) {
+	my $state = $v_read_versalink->{state};
 	my $text; 
-	respond $text; 
+	$v_read_versalink->respond("app=network $text"); 
 }
+
+# *** The dreaded TE object. What does this data look like when stripped of tags?
 
 my $kbx = (8 / 60) / 1024;
 if (done_now $p_get_versalink) {
@@ -53,6 +61,9 @@ if (done_now $p_get_versalink) {
 	&update_versalink_rrd($Time, $versalink_in, $versalink_out);
 	print_log "Internet download bit rate: " . round($versalink_download * $kbx, 2) . 
 	  " Kbps  upload: " . round($versalink_upload * $kbx, 2) . " Kbps" if $debug;
+
+	# *** Create graph should also be a trigger
+
 	&graph_versalink_rrd() unless $Minute % 5;
 }
 
@@ -76,6 +87,7 @@ if (done_now $p_get_versalink) {
    }
 =cut
 
+# Create database
 
 sub create_versalink_rrd {
 	my $err;
@@ -92,6 +104,8 @@ sub create_versalink_rrd {
 	  'RRA:MAX:0.5:2:801',
 }
 
+# Update database
+
 sub update_versalink_rrd {
 	my $err;
 	my ($time, @data) = @_;
@@ -102,6 +116,8 @@ sub update_versalink_rrd {
 	return if $err = RRDs::error and $err =~ /min.*one second step/;
 	warn "$err\n" if $err;
 }
+
+# Create graph PNG image
 
 sub graph_versalink_rrd {
 	my $ago = $Time - 3600;
