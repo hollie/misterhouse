@@ -80,14 +80,17 @@ sub voice_over {
 				}
 
 				$speech .= "Now here's " . $now_playing_formatted;
-if (rand(10) > 5) { 
+			if (rand(10) > 5) { 
 				$speech .= ' on W M H--the voice of Misterhouse.';
 				if (rand(10) > 6) {
 					$speech .= ' Keep it right here.';
 				}
 				else {
-					$speech .= ' Misterhouse... Rocks!';
+					$speech .= " I like this one.";
 				}
+			}
+			else {
+				$speech .= '. Misterhouse... Rocks!';
 			}
 			}
 			else {
@@ -125,12 +128,12 @@ if (rand(10) > 5) {
 				else {
 					$speech .= ". Now it's " . $artist;
 				}
-				if (rand(10) > 5) { 
+				if (rand(10) > 4) { 
 					$speech .= ' on W M H.';
-					$speech .= '  Keep it right here.' if (rand(10) > 6) ;
+					$speech .= ' Keep it right here.' if (rand(10) > 6) ;
 				}
 				else {
-					$speech .= '. Stay tuned.';
+					$speech .= '. Stay tuned...';
 				}
 			}
 			
