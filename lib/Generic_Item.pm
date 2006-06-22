@@ -274,11 +274,19 @@ sub respond {
 			}
 		}
 		# clean up target
+
 		
-		$target = undef if $target =~ /usercode/i;
-		$target = 'web' if $target =~ /^web/i;# remove extraneous data (from IM/Email/Web set)
-		$target = 'im' if $target =~ /^im/i;
-		$target = 'email' if $target =~ /^email/i;
+		
+		$target = undef if $target =~ /^usercode/i or $target =~ /^time/i;
+
+		# Used to break multiple targets if first is Web, IM or email
+
+		if ($target !~ /\[/) { # Make sure this needs cleaning
+
+			$target = 'web' if $target =~ /^web/i;# remove extraneous data (from IM/Email/Web set)
+			$target = 'im' if $target =~ /^im/i;
+			$target = 'email' if $target =~ /^email/i;
+		}
 	}
 	# get user info
 
