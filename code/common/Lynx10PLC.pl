@@ -18,7 +18,7 @@
 
 #@ Output X10 statistics from the Lynx10PLC controller
 
-if ($::Startup)
+if ($Startup)
 {
     print "***** Lynx10PLC Device Information ******\n";
 	Lynx10PLC::readDeviceInfo();
