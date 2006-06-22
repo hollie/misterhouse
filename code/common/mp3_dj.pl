@@ -55,37 +55,43 @@ sub voice_over {
 				$speech = "And now the answer to today's trivia question. $trivia_answer";
 				$trivia_question_answered = 1;
 			}
-			elsif (rand(10) > 8) { # *** was 6
+			elsif (rand(10) > 7) {
 				if (rand(10) > 4) {
 					if (time_greater_than("12:00 AM") and time_less_than("12:00 PM")) {
-						$speech = "Good morning.";
+						$speech = "Good morning. ";
 					}
 					elsif (time_greater_than("5:30 AM") and time_less_than("06:00 PM")) {
-						$speech = "Good afternoon.";
+						$speech = "Good afternoon. ";
 					}
 					elsif (time_greater_than("6:00 PM") and time_less_than("11:59 PM")) {
-						$speech = "Good evening.";
+						$speech = "Good evening. ";
 					}
 					if (rand(10) > 4 and $speech) {
-						$speech = " Hey " . lcfirst($speech);
+						$speech = " Hey, " . lcfirst($speech);
 					}
-					$speech .= " The outdoor temperature is " . $Weather{TempOutdoor} . '. ' if (defined $Weather{TempOutdoor});
+					$speech .= "The outdoor temperature is " . $Weather{TempOutdoor} . '. ' if (defined $Weather{TempOutdoor});
 					$speech .= "inside it is " . $Weather{TempIndoor} . " degrees. " if ($Weather{TempIndoor});
-					$speech .= " " . $Weather{chance_of_rain} if ($Weather{chance_of_rain} and rand(10) > 4);
-					$speech .= " There is mail in the mailbox." if ($Save{mail_delivered} eq "1" and $Save{mail_retrieved} eq "");
+					$speech .= $Weather{chance_of_rain} . ' ' if ($Weather{chance_of_rain} and rand(10) > 4);
+					$speech .= "There is mail in the mailbox. " if ($Save{mail_delivered} eq "1" and $Save{mail_retrieved} eq "");
 
-					$speech .= " Tonight is a full moon." if ($Moon{phase} eq 'Full');
+					$speech .= "Tonight is a full moon. " if ($Moon{phase} eq 'Full');
 
 			
 				}
-				$speech .= " Now here's " . $now_playing_formatted;
+
+				$speech .= "Now here's " . $now_playing_formatted;
 if (rand(10) > 5) { 
 				$speech .= ' on W M H--the voice of Misterhouse.';
-				$speech .= ' Keep it right here.' if (rand(10) > 6) ;
+				if (rand(10) > 6) {
+					$speech .= ' Keep it right here.';
+				}
+				else {
+					$speech .= ' Misterhouse... Rocks!';
+				}
 			}
 			}
 			else {
-				if (rand(10) > 8) { # *** Was 4
+				if (rand(10) > 4) {
 					$speech = "That was " . format_track($last_track);
 				}
 				elsif (rand(10) > 7) {
@@ -94,8 +100,8 @@ if (rand(10) > 5) {
 					$conditions = $Weather{Summary_Short};
 
 					$speech = "It is $Time_Now";	
-					$speech .= ". $conditions" if (rand(10) > 6);
-					$speech .= ". In the stock market " . $Save{stock_results} if (rand(10) > 8);
+					$speech .= ". $conditions" if (rand(10) > 6 and $conditions);
+					$speech .= ". In the stock market " . $Save{stock_results} if (rand(10) > 8 and $Save{stock_results});
 				}
 				else {
 
@@ -103,12 +109,11 @@ if (rand(10) > 5) {
 				        my $forecast;
 					@forecast_days = split /\|/, $Weather{"Forecast Days"};
 
-					$forecast = $Weather{"Forecast " . (($forecast_days[0] =~ /warning/)?1:0)};
+					my $forecast_day = $forecast_days[($forecast_days[0] =~ /warning/)?1:0];
+					$forecast = $Weather{"Forecast $forecast_day"};
 
 					$speech = "How are you? It is $Time_Now";	
 					$speech .= " and time for the weather forecast. " . $forecast if ($forecast and rand(10) > 6);
-					$speech .= " In the stock market " . $Save{stock_results} if (rand(10) > 8 and $Save{stock_results});
-
 
 
 				}
