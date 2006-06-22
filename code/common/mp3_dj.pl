@@ -39,8 +39,34 @@ sub voice_over {
 
 
 	if ($now_playing ne $last_track and &mp3_playing() and $mpelapse < 7) {
-
+		my ($voice, $pitch);
+		my $time_slot;
 		$now_playing_formatted = format_track($now_playing);
+
+				if (time_greater_than("12:00 AM") and time_less_than("6:00 AM")) {
+					$time_slot = 'early morning';
+
+					$voice = 'male';
+				}
+				if (time_greater_than("6:00 AM") and time_less_than("12:00 PM")) {
+					$time_slot = 'morning';
+					$voice = 'random'; # Morning zoo
+				}
+				elsif (time_greater_than("5:30 AM") and time_less_than("06:00 PM")) {
+					$time_slot = 'afternoon';
+					$voice = 'female';
+				}
+				elsif (time_greater_than("6:00 PM") and time_less_than("11:59 PM")) {
+					$time_slot = 'evening';
+					$voice = 'female';
+				}
+
+		$voice = $config_parms{"dj_voice_$time_slot"} if $config_parms{"dj_voice_$time_slot"};
+		
+
+
+
+
 
 		if ($now_playing_formatted) {
 			if (not $trivia_question_asked) {
@@ -57,14 +83,18 @@ sub voice_over {
 			}
 			elsif (rand(10) > 7) {
 				if (rand(10) > 4) {
-					if (time_greater_than("12:00 AM") and time_less_than("12:00 PM")) {
+					if ($time_slot eq 'morning') {
+						play(app => 'goofy', file => "fun/*.wav");
 						$speech = "Good morning. ";
 					}
-					elsif (time_greater_than("5:30 AM") and time_less_than("06:00 PM")) {
+					elsif ($time_slot eq 'afternoon') {
 						$speech = "Good afternoon. ";
 					}
-					elsif (time_greater_than("6:00 PM") and time_less_than("11:59 PM")) {
+					elsif ($time_slot eq 'evening') {
 						$speech = "Good evening. ";
+					}
+					else {
+						$speech = "Still up?  So are we! ";
 					}
 					if (rand(10) > 4 and $speech) {
 						$speech = " Hey, " . lcfirst($speech);
@@ -74,6 +104,12 @@ sub voice_over {
 					$speech .= $Weather{chance_of_rain} . ' ' if ($Weather{chance_of_rain} and rand(10) > 4);
 					$speech .= "There is mail in the mailbox. " if ($Save{mail_delivered} eq "1" and $Save{mail_retrieved} eq "");
 
+				        if (defined $Weather{ChanceOfRainPercent} and $Weather{ChanceOfRainPercent} > 60) {
+						$speech .= "Looks like rain. "; 
+					}
+					else {
+						$speech .= "It is raining. " if defined $Weather{IsRaining} and $Weather{IsRaining};
+					}
 					$speech .= "Tonight is a full moon. " if ($Moon{phase} eq 'Full');
 
 			
@@ -137,7 +173,7 @@ sub voice_over {
 				}
 			}
 			
-			speak 'app=dj no_chime=1 ' . $speech;
+			&speak("app=dj no_chime=1 voice=$voice " . ((defined $pitch)?" pitch=$pitch":'') . $speech);
 		}
 	}
 }
