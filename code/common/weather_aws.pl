@@ -66,25 +66,15 @@
 
 use HTML::TableExtract;
 
-
+# noloop=start
 my $AWS_ID = $config_parms{aws_id};
 my $f_awsweather_html = "$config_parms{data_dir}/web/$AWS_ID.html";
 my $prev_timestamp;
-
-# noloop=start
 #y $AWSWeatherURL="http://aws.com/full.asp?id=$AWS_ID";
 my $AWSWeatherURL="http://www.aws.com/AWS/full.asp?id=$AWS_ID";
-# noloop=stop
-
+$v_get_aws_weather = new Voice_Cmd('Get AWS weather data');
 $p_awsweather_page = new Process_Item("get_url -quiet \"$AWSWeatherURL\" \"$f_awsweather_html\"");
-
-
-# These values aren't provided by this code, but leaving them undefined causes 
-# problems with logging. Leave them commented out if you have external code to 
-# fill them with usefull data.
-#$Weather{TempIndoor}  = 0.00; 
-#$Weather{HumidIndoor} = 0.00; 
-
+# noloop=stop
 
 sub convert_simple_direction {
  my ($dir) = @_;
@@ -120,23 +110,33 @@ sub convert_to_degrees {
   return $temp;
 }
 
-$v_get_aws_weather = new  Voice_Cmd('Get AWS weather data');
+# *** Conditions?, IsRaining?, etc.
 
-# Do this every five minutes
-if (($New_Minute and !($Minute % 5)) or said $v_get_aws_weather) {
+# Create trigger
 
+if ($Reload and $Run_Members{'trigger_code'}) {
+	eval qq(
+            &trigger_set("new_minute 5", "run_voice_cmd('Get AWS weather data')", 'NoExpire', 'get aws weather') 
+              unless &trigger_get('get aws weather');
+        );
+}
+
+# Events
+
+if (said $v_get_aws_weather) {
    if (&net_connect_check) {
-       print_log "Retrieving $AWS_ID weather...";
+       $v_get_aws_weather->respond("app=weather Retrieving $AWS_ID weather...");
        # Use start instead of run so we can detect when it is done
        start $p_awsweather_page;
    }
    else {
-       speak "Sorry, you must be logged onto the net to get weather data.";
+       $v_get_aws_weather->respond("I must be connected to the Internet to get weather data.");
    }
 }
 
 # This would be far more efficient if AWS allowed access to 
 # their SQL db. Might be time for a little reverse engineering...
+# *** More like a little XML... (if they have it, otherwise forget them.)
 if (done_now $p_awsweather_page) {
 
   my $html = file_read $f_awsweather_html;
@@ -146,11 +146,9 @@ if (done_now $p_awsweather_page) {
   my $te = new HTML::TableExtract( depth => 2, count => 1, subtables => 1);
 
   $te->parse($html);
-
   my @cell = $te->rows;
 
-
-  # Timestamp of last sucessfull data retrieval from internet node
+  # Timestamp of last sucessful data retrieval from internet node
   $cell[0][0] =~ m/\s+(\d+)\/(\d+)\/(\d+) - (\d+):(\d+):(\d+) (\w+)/;
   my $timestamp = "$1$2$3$4$5$6$7";
   return unless $timestamp and $timestamp ne $prev_timestamp;
@@ -207,6 +205,9 @@ if (done_now $p_awsweather_page) {
   #print "Current rain: ", join(".", $1, $2), "\n";
   $Weather{RainTotal} = join(".", $1, $2) unless $config_parms{aws_ignore_rain};
 
+	# *** Set IsRaining here
+
+
   # Don't know how to parse this until it rains and we get some data.
   #$cell[4][2] =~ m/\s+(\d+).(\d+)\s+\"\/h\s+at\s+(\d+):(\d+)(\D+)/
   #print "Rain max of ", join("." $1, $2), " at ", join(":", $2, $3), $4, "\n" unless $config_parms{aws_ignore_rain};
@@ -227,10 +228,13 @@ if (done_now $p_awsweather_page) {
   #$cell[5][3] =~ m/\s+(\d+).(\d+)/;
   #print "Pressure hourly increase/decrease: ", join(".", $1, $2), "\n";
 
+  # *** Set rising/falling
 
   $cell[6][1] =~ m/\s+(\d+).(\d+)/;
   #print "Current light: ", join(".", $1, $2), "\%\n";
   $Weather{sun_sensor} = join(".", $1, $2);
+
+  # *** Set conditions
 
   #$cell[6][2] =~ m/\s+(\d+).(\d+) at\s+(\d+):(\d+)(\D+)\n\s+(\d+).(\d+) at\s+(\d+):(\d+)(\D+)\n/;
   #print "Max light: ", join(".", $1, $2), "\% at ", "$3:$4 $5\n";
@@ -258,6 +262,9 @@ if (done_now $p_awsweather_page) {
 
   # Update the summary info for the web page
 # $Weather{Summary_Short}= sprintf("%4.1f/%2d/%2d %3d%% %3d%%", 
+
+
+# *** When stored by Inet weather it is in English and does not have the indoor temp!
   $Weather{Summary_Short}= sprintf("%3.1f/%3d/%3d %3d%% %3d%%", 
                                     $Weather{TempIndoor}, 
                                     $Weather{TempOutdoor}, 
@@ -266,5 +273,7 @@ if (done_now $p_awsweather_page) {
                                     $Weather{HumidOutdoor});
   $Weather{Wind} = " $Weather{WindAvgSpeed}/$Weather{WindGustSpeed} " .
                       convert_simple_direction($Weather{WindAvgDir});
+
+  $v_get_aws_weather->respond('app=weather connected=0 Weather data retrieved.');
 
 }
