@@ -5242,7 +5242,7 @@ sub respond {
 #    my $p = join ',', %parms; print "db2 p=$p.\n";
 
                                 # Call respond_xyz function
-    $target = 'default' if $target !~ /\S/ or $target =~ /unknown/i or $target =~ /UserCode/i;
+    $target = 'default' if $target !~ /\S/ or $target =~ /unknown/i or $target =~ /UserCode/i or $target =~ /time/i;
 
     print "respond target=$target lr=$Last_Response RT=$Respond_Target lso=$leave_socket_open_passes lsa=leave_socket_open_action a=@_\n"
         if $Debug{respond};
