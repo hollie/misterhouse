@@ -91,8 +91,7 @@ $v_snapstream_localdb =  new Voice_Cmd 'search local snapstream db';
 $v_snapstream_localdb -> set_authority('anyone');
 $v_snapstream_localdb -> set_info('search the local snapstream database');
 
-# still search at 28 and 58 every hour, but allow for Voice_Cmd trigger as well
-if ((time_cron('58,28 * * * *')) or said $v_snapstream_localdb) {
+sub snapstream_import {
 
 	# funky bit #1: snapstream's data is offset by +4 hours from eastern... *blink*
 	# what needs to be done:
@@ -165,17 +164,17 @@ if ((time_cron('58,28 * * * *')) or said $v_snapstream_localdb) {
 	$Sql .= "))) AND EPISODE_TABLE.startdatetime=$snapstreamdate";
 
 	# this is a bit much, depending on how many shows you have :)
-	# print "\t SQL statement:\n\n\t$Sql\n\n" if $Debug{snapstream} ;
+	# print "BTV:\t SQL statement:\n\n\t$Sql\n\n" if $Debug{snapstream} ;
 
 	# party time
-	print "\texecuting query\n" if $Debug{snapstream} ;
+	print "BTV:\texecuting query\n" if $Debug{snapstream} ;
 	if ( $db->Sql($Sql) ) {
 	    $Message = $db->Error();
 	    print STDERR "\nERROR:  $Message\n";
 	    exit;
 	}
 
-	print "\texecution complete. looking for shows\n" if $Debug{snapstream} ;
+	print "BTV:\texecution complete. looking for shows\n" if $Debug{snapstream} ;
 	# loop and process each row in the result set for the SELECT
 	while ($db->FetchRow()) {
 		%HashRow = $db->DataHash();
@@ -193,7 +192,7 @@ if ((time_cron('58,28 * * * *')) or said $v_snapstream_localdb) {
 	}
 
 	# watch the file for changes
-	set_watch $f_tv_file 'favorites now';
+	set_watch $f_tv_file 'favorites now'; # *** Unreliable in tv_info
 
 	# write out new shows to the file (if any)
 	open (OUT1, ">$config_parms{data_dir}/tv_info_btv.txt") or die "Error, could not open output file\n";
@@ -202,18 +201,38 @@ if ((time_cron('58,28 * * * *')) or said $v_snapstream_localdb) {
 	print OUT1 "$msg" ;
 	close OUT1;
 
-	print "db access completed. found $rowcnt matches.\n" if $Debug{snapstream};
+	print "BTV: db access completed. found $rowcnt matches.\n" if $Debug{snapstream};
 
 	# close database and we're done
 	$db->Close() || die Win32::ODBC::Error();
 
+
+
+
+
+
+}
+
+
+
+# Updates a file, which is monitored below ( *** unfortunate as processes are more reliable.)
+
+&snapstream_import() if time_cron('58,28 * * * *');
+
+# Events
+
+if (said $v_snapstream_localdb) {
+	$v_snapstream_localdb->respond('Searching for TV shows of interest...');
+	&snapstream_import();
 }
 
 # check if the file changed, then act accordingly
-# swiped shamelessly from common\tv_info.pl - added print if debug for testing
+# swiped shamelessly (and unfortunately) from common\tv_info.pl - added print if debug for testing
+# *** Needs exact same updates as tv_info!  Some already fixed in tv_info.
 
-if ($state = changed $f_tv_file) {
-	print "\ntv_info_btv state changed\n" if $Debug{snapstream} ;
+if (changed $f_tv_file) {
+	my $state = changed $f_tv_file;
+	print "BTV:\ntv_info_btv state changed\n" if $Debug{snapstream} ;
 	# TODO: deal with $f_tv_info2 the same way that common\tv_info.pl does
 	my $f_tv_info2 = "$config_parms{data_dir}/tv_info_btv2.txt";
 
@@ -241,10 +260,10 @@ if ($state = changed $f_tv_file) {
 	$msg .= plural($show_count, 'favorite show');
 	if ($state eq 'favorites today') {
 	if ($show_count > 0) {
-	    respond "$msg on today. @data";
+	    respond "app=tv $msg on today. @data";
 	}
 	else {
-	    respond "There are no favorite shows on today";
+	    respond "app=tv There are no favorite shows on today";
 	}
 	}
 	elsif ($state eq 'favorites now') {
@@ -252,7 +271,7 @@ if ($state = changed $f_tv_file) {
 	}
 	else {
 	chomp $summary;         # Drop the cr
-	respond "$summary @data ";
+	respond "app=tv $summary @data ";
 	}
 	display $f_tv_info2 if $show_count;
 }
