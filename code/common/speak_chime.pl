@@ -17,15 +17,16 @@
 &Speak_pre_add_hook(\&speak_chime) if $Reload;
 
 sub speak_chime {
-    my %parms = @_;
+    my %parms = &parse_func_parms(@_);
     my $chime;
                                 # Only chime on time-based events, not
                                 # interactive events like tk/web/email/IM/vr triggered
     print "db speak_chime respond=$Respond_Target app=$parms{app} t=$parms{text}\n" if $main::Debug{chime};
 
     if (!$parms{force_chime}) {
-	    return if $parms{app} eq 'router';
+	    #return if $parms{app} eq 'router'; # *** Set router app to no_chime in mh.ini
 	    return if $parms{nolog};
+	    return if $parms{mode} eq 'mute';
 	    return if $parms{no_chime};
     }
 
