@@ -13,7 +13,7 @@ use DVDPlayer;
 #***Don't even create these objects if no WinDVD (look for above by default)  Do nothing on Linux
 $dvd_player = new DVDPlayer();
 $dvd_marquee = new Generic_Item;
-&tk_entry('DVD', $dvd_marquee);
+#&tk_entry('DVD', $dvd_marquee);
 #noloop=start
 my %dvd_states = (play=>'play',stop=>'stop',pause=>'pause',rewind=>'rewind','fast forward'=>'fast forward',step=>'step','skip forward'=>'skip forward','instant replay'=>'instant replay','root menu'=>'root menu','title menu'=>'title menu','volume up'=>'vol +','volume down'=>'vol -',mute=>'mute',unzoom=>'unzoom',pan=>'pan',angle=>'angle',subtitle=>'subtitle','previous chapter'=>'previous chapter','next chapter'=>'next chapter','eject'=>'eject','brightness up'=>'brightness up','brightness down'=>'brightness down',on=>'on',off=>'off','full screen'=>'full screen');
 my $dvd_states;
@@ -37,6 +37,7 @@ sub refresh_marquee {
 &refresh_marquee() if $Reload;
 
 if (done_now $p_dvd) {
+
 	my $dir = read_all $f_dvd;
 
 	my ($title) = $dir =~ /volume in drive.*is (\S*)/i;
@@ -44,7 +45,7 @@ if (done_now $p_dvd) {
 	$title =~ s/_/\x20/g;
 	$title = ucfirst(lc($title));
 
-	$dvd_marquee->{state} = $title;
+	set $dvd_marquee $title;
 	unlink $f_dvd->{name};
 }
 
@@ -72,5 +73,6 @@ sub dvd_control {
 }
 sub dvd_movie {
     my ($movie) = @_;
+    set $dvd_marquee $movie;
     set $dvd_player "play \"$movie\"";
 }
