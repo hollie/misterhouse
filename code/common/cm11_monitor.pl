@@ -9,10 +9,10 @@
 
 $timer_x10_inactivity = new Timer();
 
-#noloop=start
-Serial_data_add_hook(\&cm11_unstick_hook); 
-set $timer_x10_inactivity 1800, \&cm11_unstick;
-#noloop=stop
+if ($Reload) {
+	Serial_data_add_hook(\&cm11_unstick_hook);
+	set $timer_x10_inactivity 1800, \&cm11_unstick;
+}
 
 sub cm11_unstick_hook {
     my $state = shift; 
@@ -24,7 +24,7 @@ sub cm11_unstick_hook {
 }
 
 sub cm11_unstick {
-    speak "app=system Restarting automation controller after inactivity";
+    speak "app=system Restarting automation controller after inactivity.";
     run_voice_cmd "stop the Cm11 port";
     run_voice_cmd "start the Cm11 port";    
     set $timer_x10_inactivity 1800, \&cm11_unstick;
