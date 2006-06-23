@@ -672,8 +672,7 @@ for $celgtime (@$tabgtime) {
 ^
 . ($config_parms{weather_uom_temp} eq 'C' ? "\"HRULE:0#$colorzero\",":"\"HRULE:32#$colorzero\",")
 . qq^
-"AREA:fmaxtemp#$colortemp:Outdoor temperature",
-"AREA:fmintemp#$colortemp",
+"LINE2:fvar#$colortemp:Outdoor temperature",
 "GPRINT:fmintemp:MIN:Min  \\\\: %5.1lf",
 "GPRINT:fmaxtemp:MAX:Max  \\\\: %5.1lf",
 "GPRINT:fvar:AVERAGE:Avg \\\\: %5.1lf",
