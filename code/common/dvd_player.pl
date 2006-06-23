@@ -59,7 +59,7 @@ if ($state = said $v_dvd_attractions) {
 	&respond("app=movie mode=rotates $config_parms{dvd_favorites}" . (($dvd_marquee->{state})?" plus $dvd_marquee->{state}":''));
 }
 if ($state = said $v_dvd_control) {
-	&refresh_marquee()
+	&refresh_marquee() if $state eq 'play';
 	&respond("app=dvd " . ucfirst($state));
 	&dvd_control($state);
 }
