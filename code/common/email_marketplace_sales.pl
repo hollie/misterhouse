@@ -15,7 +15,7 @@ if (done_now $p_get_email and -e $get_email_scan_file) {
     for my $line (file_read $get_email_scan_file) {
 	print "marketplace: mail =$line\n" if $Debug{email};
         my ($msg, $from, $to, $subject, $body) = $line =~ /Msg: (\d+) From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
-        if ($subject =~ /^Sold, Ship Now (\d{5}) (.*)/i or $subject =~ /^Sold -- Ship Now (\d{5}) (.*)/i) {
+        if ($subject =~ /^Sold, Ship Now\. (\d{5}) (.*)/i or $subject =~ /^Sold -- Ship Now! (\d{5}) (.*)/i) {
             speak "app=cashier $2 just sold on Amazon.";
 	    set $cash_register $2;
 	    print "marketplace: Found Amazon email: $subject\n" if $Debug{email};
