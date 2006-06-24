@@ -69,78 +69,176 @@ print "My list of Audreys $listNM \n";
 # print "My list of Audreys $listNM \n";
 
 
-#Definee the Voice commands for all the functions
+# Voice commands for Audrey functions
 
-$v_audrey_mail_led_on     = new Voice_Cmd("Set [". $listNM . "] Audrey mail light on");
-$v_audrey_mail_led_off    = new Voice_Cmd("Set [". $listNM . "] Audrey mail light off");
-$v_audrey_mail_led_blink  = new Voice_Cmd("Set [". $listNM . "] Audrey mail light blink");
+$v_audrey_mail_led_on = new Voice_Cmd("Set [". $listNM . "] Audrey mail light on");
+$v_audrey_mail_led_off = new Voice_Cmd("Set [". $listNM . "] Audrey mail light off");
+$v_audrey_mail_led_blink = new Voice_Cmd("Set [". $listNM . "] Audrey mail light blink");
 
-$v_audrey_top_led_on     = new Voice_Cmd("Set [". $listNM . "] Audrey top light on");
-$v_audrey_top_led_off    = new Voice_Cmd("Set [". $listNM . "] Audrey top light off");
-$v_audrey_top_led_blink  = new Voice_Cmd("Set [". $listNM . "] Audrey top light blink");
+$v_audrey_top_led_on = new Voice_Cmd("Set [". $listNM . "] Audrey top light on");
+$v_audrey_top_led_off = new Voice_Cmd("Set [". $listNM . "] Audrey top light off");
+$v_audrey_top_led_blink = new Voice_Cmd("Set [". $listNM . "] Audrey top light blink");
 
-$v_audrey_both_leds_on     = new Voice_Cmd("Set [". $listNM . "] Audrey both lights on");
-$v_audrey_both_leds_off    = new Voice_Cmd("Set [". $listNM . "] Audrey both lights off");
-$v_audrey_both_leds_blink  = new Voice_Cmd("Set [". $listNM . "] Audrey both lights blink");
+$v_audrey_both_leds_on = new Voice_Cmd("Set [". $listNM . "] Audrey both lights on");
+$v_audrey_both_leds_off = new Voice_Cmd("Set [". $listNM . "] Audrey both lights off");
+$v_audrey_both_leds_blink = new Voice_Cmd("Set [". $listNM . "] Audrey both lights blink");
 
 
 $v_audrey_screen_on  = new Voice_Cmd("Set [". $listNM . "] Audrey screen on");
 $v_audrey_screen_off = new Voice_Cmd("Set [". $listNM . "] Audrey screen off");
 
-$v_audrey_photos     = new Voice_Cmd("Set [". $listNM . "] Audrey to photo screen");
+$v_audrey_photos = new Voice_Cmd("Set [". $listNM . "] Audrey to photo screen");
 
-$v_audrey_wav        = new Voice_Cmd("Set [". $listNM . "] Audrey to a wav file");
+$v_audrey_wav = new Voice_Cmd("Set [". $listNM . "] Audrey to a wav file");
 
-$v_audrey_tagline    = new Voice_Cmd("Read tag line to [". $listNM . "] Audrey");
+$v_audrey_tagline = new Voice_Cmd("Read tag line to [". $listNM . "] Audrey");
 
-$v_audrey_music_on  = new Voice_Cmd("Set [". $listNM . "] Audrey music on");
+$v_audrey_music_on = new Voice_Cmd("Set [". $listNM . "] Audrey music on");
 $v_audrey_music_off = new Voice_Cmd("Set [". $listNM . "] Audrey music off");
 
-$v_audrey_volume_0    = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 0");
-$v_audrey_volume_20   = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 20");
-$v_audrey_volume_50   = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 50");
-$v_audrey_volume_75   = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 75");
-$v_audrey_volume_100  = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 100");
+$v_audrey_volume_0 = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 0");
+$v_audrey_volume_20 = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 20");
+$v_audrey_volume_50 = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 50");
+$v_audrey_volume_75 = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 75");
+$v_audrey_volume_100 = new Voice_Cmd("Set [". $listNM . "] Audrey Volume to 100");
 
 $v_audrey_reboot  = new Voice_Cmd("Reboot [". $listNM . "] Audrey");
 
+if (said $v_audrey_top_led_on) {
+	my $state = $v_audrey_top_led_on->{state};
+	$v_audrey_top_led_on->respond("Turning $state Audrey top light on.");
+	&audrey('top_led', 'on', $state);
+}
 
-# Run the function variables for the voice commands above
+if (said $v_audrey_top_led_off) {
+	my $state = $v_audrey_top_led_off->{state};
+	$v_audrey_top_led_off->respond("Turning $state Audrey top light off.");
+	&audrey('top_led', 'off', $state);
+}
 
-&audrey('top_led', 'on',     $state) if $state = said $v_audrey_top_led_on;
-&audrey('top_led', 'off',    $state) if $state = said $v_audrey_top_led_off;
-&audrey('top_led', 'blink',  $state) if $state = said $v_audrey_top_led_blink;
-&audrey('mail_led', 'on',     $state) if $state = said $v_audrey_mail_led_on;
-&audrey('mail_led', 'off',    $state) if $state = said $v_audrey_mail_led_off;
-&audrey('mail_led', 'blink',  $state) if $state = said $v_audrey_mail_led_blink;
-&audrey('both_leds', 'on',     $state) if $state = said $v_audrey_both_leds_on;
-&audrey('both_leds', 'off',    $state) if $state = said $v_audrey_both_leds_off;
-&audrey('both_leds', 'blink',  $state) if $state = said $v_audrey_both_leds_blink;
+if (said $v_audrey_top_led_blink) {
+	my $state = $v_audrey_top_led_blink->{state};
+	$v_audrey_top_led_blink->respond("Blinking $state Audrey top light.");
+	&audrey('top_led', 'blink', $state);
+}
 
-&audrey('music', 'Play',    $state) if $state = said $v_audrey_music_on;
-&audrey('music', 'Stop',    $state) if $state = said $v_audrey_music_off;
+if (said $v_audrey_mail_led_on) {
+	my $state = $v_audrey_mail_led_on->{state};
+	$v_audrey_top_led_on->respond("Turning $state Audrey mail light on.");
+	&audrey('mail_led', 'on', $state);
+}
 
-&audrey('volume', '0',	$state) if $state = said $v_audrey_volume_0;
-&audrey('volume', '20',	$state) if $state = said $v_audrey_volume_20;
-&audrey('volume', '50',	$state) if $state = said $v_audrey_volume_50;
-&audrey('volume', '75',	$state) if $state = said $v_audrey_volume_75;
-&audrey('volume', '100',$state) if $state = said $v_audrey_volume_100;
+if (said $v_audrey_mail_led_off) {
+	my $state = $v_audrey_mail_led_off->{state};
+	$v_audrey_mail_led_off->respond("Turning $state Audrey mail light off.");
+	&audrey('mail_led', 'off', $state);
+}
 
-&audrey('reboot', undef ,$state) if $state = said $v_audrey_reboot;
-
-&audrey('screen', 'on',  $state) if $state = said $v_audrey_screen_on;
-&audrey('screen', 'off', $state) if $state = said $v_audrey_screen_off;
-
-&audrey('photos', undef, $state) if $state = said $v_audrey_photos;
+if (said $v_audrey_mail_led_blink) {
+	my $state = $v_audrey_mail_led_blink->{state};
+	$v_audrey_mail_led_blink->respond("Blinking $state Audrey mail light.");
+	&audrey('mail_led', 'blink', $state);
+}
 
 
-if ($state = said $v_audrey_wav) {
+if (said $v_audrey_both_leds_on) {
+	my $state = $v_audrey_both_leds_on->{state};
+	$v_audrey_both_leds_on->respond("Turning $state Audrey lights on.");
+	&audrey('both_leds', 'on', $state);
+}
+
+if (said $v_audrey_both_leds_off) {
+	my $state = $v_audrey_both_leds_off->{state};
+	$v_audrey_both_leds_off->respond("Turning $state Audrey lights off.");
+	&audrey('both_leds', 'off', $state);
+}
+
+if (said $v_audrey_both_leds_blink) {
+	my $state = $v_audrey_both_leds_blink->{state};
+	$v_audrey_both_leds_blink->respond("Blinking $state Audrey lights.");
+	&audrey('both_leds', 'blink', $state)
+}
+
+if (said $v_audrey_music_on) {
+	my $state = $v_audrey_music_on->{state};
+	$v_audrey_music_on->respond("Turning $state Audrey music on.");
+	&audrey('music', 'Play', $state)
+}
+
+if (said $v_audrey_music_off) {
+	my $state = $v_audrey_music_off->{state};
+	$v_audrey_music_off->respond("Turning $state Audrey music off.");
+	&audrey('music', 'Stop', $state)
+}
+
+if (said $v_audrey_volume_0) {
+	my $state = $v_audrey_volume_0->{state};
+	$v_audrey_volume_0->respond("Setting $state Audrey volume to 0.");
+	&audrey('volume', '0', $state)
+}
+
+if (said $v_audrey_volume_20) {
+	my $state = $v_audrey_volume_20->{state};
+	$v_audrey_volume_20->respond("Setting $state Audrey volume to 20.");
+	&audrey('volume', '20', $state)
+}
+
+if (said $v_audrey_volume_50) {
+	my $state = $v_audrey_volume_50->{state};
+	$v_audrey_volume_50->respond("Setting $state Audrey volume to 50.");
+	&audrey('volume', '50', $state)
+}
+
+if (said $v_audrey_volume_75) {
+	my $state = $v_audrey_volume_75->{state};
+	$v_audrey_volume_75->respond("Setting $state Audrey volume to 75.");
+	&audrey('volume', '75', $state)
+}
+
+if (said $v_audrey_volume_100) {
+	my $state = $v_audrey_volume_100->{state};
+	$v_audrey_volume_100->respond("Setting $state Audrey volume to 100.");
+	&audrey('volume', '100', $state)
+}
+
+if (said $v_audrey_reboot) {
+	my $state = $v_audrey_reboot->{state};
+	$v_audrey_reboot->respond("Rebooting $state Audrey.");
+	&audrey('reboot', undef, $state)
+}
+
+
+
+if (said $v_audrey_screen_on) {
+	my $state = $v_audrey_screen_on->{state};
+	$v_audrey_screen_on->respond("Turning $state Audrey screen on.");
+	&audrey('screen', 'on', $state)
+}
+
+if (said $v_audrey_screen_off) {
+	my $state = $v_audrey_screen_off->{state};
+	$v_audrey_screen_off->respond("Turning $state Audrey screen off.");
+	&audrey('screen', 'off', $state)
+}
+
+if (said $v_audrey_photos) {
+	my $state = $v_audrey_photos->{state};
+	$v_audrey_photos->respond("Showing photos on $state Audrey.");
+	&audrey('photos', undef, $state)
+}
+
+
+if (said $v_audrey_wav) {
+    my $state = $v_audrey_wav->{state};
+    $v_audrey_wav->respond("Playing sound on $state Audrey.");
     play address => &audrey_ip($state), file => '../sounds/hello_from_bruce.wav';
 #   get "http://$state/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{Machine}:$config_parms{http_port}/sounds/hello_from_bruce.wav";
 }
 
-if ($state = said $v_audrey_tagline) {
-    speak address => &audrey_ip($state), text => (read_next $house_tagline);
+if (said $v_audrey_tagline) {
+	my $state = $v_audrey_tagline->{state};
+	speak address => &audrey_ip($state), text => (read_next $house_tagline);
+	$v_audrey_tagline->respond("Reading house tag line on $state Audrey.");
 }
 
 # if ($state = said $v_audrey_music_on) {
@@ -221,12 +319,11 @@ sub audrey {
     for my $address (split ',', &audrey_ip($list)) {
       if ( substr($address,0,1) ne ' ' ) {
 	# some verbosity to the console about what were doing
-	print "Setting Audrey $mode to $astate for $address!\n";
+	print "Setting Audrey $mode to $astate for $address!\n" if $Debug{audrey};
 	$address =~ s/\s*$//; #remove trailing whitespace if there
         my $audrey_cmd = "";
 
 	if ($mode eq 'top_led') {
-            print_log "$address Audrey top led set to $astate";
             $state = 0 if $astate eq 'off';
             $state = 2 if $astate eq 'blink';
             $state = 1 if $astate eq 'on';
@@ -235,7 +332,6 @@ sub audrey {
         }
 
         if ($mode eq 'mail_led') {
-            print_log "$address Audrey mail led set to $astate";
             $state = 0 if $astate eq 'off';
             $state = 2 if $astate eq 'blink';
             $state = 1 if $astate eq 'on';
@@ -244,7 +340,6 @@ sub audrey {
         }
 
         if ($mode eq 'both_leds') {
-            print_log "$address Audrey both leds set to $astate";
             $state = 0 if $astate eq 'off';
             $state = 2 if $astate eq 'blink';
             $state = 1 if $astate eq 'on';
@@ -252,32 +347,27 @@ sub audrey {
             $audrey_cmd = "'http://$address/led.shtml?t$state m$state'";
         }
         elsif ($mode eq 'screen') {
-            print_log "$address Audrey screen set to $astate";
             $state = 0 if $astate eq 'off';
             $state = 1 if $astate eq 'on';
             #$get "http://$address/screen.shtml?$state";
             $audrey_cmd = "http://$address/screen.shtml?$state";
         }
         elsif ($mode eq 'photos') {
-            print_log "$address Audrey to photo screen";
             #get "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
             $audrey_cmd = "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
         }
 	elsif ($mode eq 'music') {
-            print_log "$address Audrey Music set to $astate";
             $state = 0 if $astate eq 'Stop';
             $state = 1 if $astate eq 'Play';
             #get "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
             $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
         }
 	elsif ($mode eq 'volume') {
-            print_log "$address Audrey volume set to $astate";
             $state = $astate;
             #get "http://$address/cgi-bin/volume?$astate";
             $audrey_cmd = "http://$address/cgi-bin/volume?$astate";
         }
 	elsif ($mode eq 'reboot') {
-            print_log "$address. Audrey $astate";
             $state = $astate;
             #get "http://$address/reboot.shtml";
             $audrey_cmd = "http://$address/reboot.shtml";
@@ -289,7 +379,7 @@ sub audrey {
 }
 
                         # Periodically ping Audrey to see if she is responding
-$audrey_power_Kitchen = new X10_Appliance 'B2';
+#$audrey_power_Kitchen = new X10_Appliance 'B2';
 # $audrey_power_Piano   = new X10_Appliance 'C2';
 # $audrey_power_Bedroom = new X10_Appliance 'C3';
 #if (new_minute 10) {
