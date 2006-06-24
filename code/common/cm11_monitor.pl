@@ -77,7 +77,7 @@ sub cm11_control {
         if (&main::serial_port_open('cm17')) {
             print "Sending X10 signal via CM17\n" if $Debug{cm11};
 
-ControlX10::CM17::send($config_parms{'cm11_tickle_address'}?$config_parms{'cm11_tickle_address'}:'A1');
+ControlX10::CM17::send(($config_parms{'cm11_tickle_address'}?$config_parms{'cm11_tickle_address'}:'A1') . 'L'); # send a brighten command to the dummy tickle address
 
         }
     }
