@@ -196,13 +196,13 @@ sub monitor_sun {
 }
 
                                 # Add tk weather widgets ... put these in tk_widgets.pl
-&tk_label(\$Weather{TempIndoor});
-&tk_label(\$Weather{HumidIndoor});
-&tk_label(\$Weather{TempOutdoor});
-&tk_label(\$Weather{TempOutdoorApparent});
-&tk_label(\$Weather{HumidOutdoor});
-&tk_label(\$Weather{WindAvgSpeed});
-&tk_label(\$Weather{Conditions});
+#&tk_label(\$Weather{TempIndoor});
+#&tk_label(\$Weather{HumidIndoor});
+#&tk_label(\$Weather{TempOutdoor});
+#&tk_label(\$Weather{TempOutdoorApparent});
+#&tk_label(\$Weather{HumidOutdoor});
+#&tk_label(\$Weather{WindAvgSpeed});
+#&tk_label(\$Weather{Conditions});
 
 #&tk_label(\$Weather{Summary});
 #&tk_label(\$Weather{SummaryWind});
@@ -222,8 +222,7 @@ if ($state = said $v_what_temp) {
         my $temp     = round($Weather{TempOutdoor});
         my $apparent = round($Weather{TempOutdoorApparent});
         my $temp_in  = round($Weather{TempIndoor});
-        my $windchill = round($Weather{WindChill});
-        my $windchill= round($Weather{WindChill}) if defined $Weather{WindChill};
+        my $windchill = round($Weather{WindChill}) if defined $Weather{WindChill};
         my $humidity = round($Weather{HumidOutdoor});
         my $humidity_in = round($Weather{HumidIndoor});
 	my $is_raining = $Weather{IsRaining};

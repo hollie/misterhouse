@@ -23,11 +23,11 @@ Requires:
         PAobj.pm from the lib directory
         pa.mht, or other mht file listing all of your PA zones. See end of file for ezample
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - MH
 	Jason Sharpee - Example Perl Modules to "steal",learn from. :)
         Ross Towbin - Providing me with code snippets for "setting weeder with more than 8 ports"
-		
+
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
 
@@ -44,13 +44,14 @@ $pa_type	= 'wdio'	unless $pa_type;
 $pa_timer	= 60		unless $pa_timer;
 $pactrl = new PAobj($pa_type,$pa_port);
 $pactrl->set_delay($pa_delay);
-$pactrl->init();
 $v_pa_test = new Voice_Cmd('test pa');
 $v_pa_speakers = new Voice_Cmd('speakers [on,off]');
 $v_pa_speakers-> set_info('Turn all the PA speakers on/off');
 #noloop=stop
 
-# Hooks to flag which rooms to turn on based on "rooms=" parm in speak command 
+$pactrl->init() if $Startup or $Reload;
+
+# Hooks to flag which rooms to turn on based on "rooms=" parm in speak command
 &Speak_pre_add_hook(\&pa_control_stub) if $Reload;
 &Play_pre_add_hook (\&pa_control_stub) if $Reload;
 
