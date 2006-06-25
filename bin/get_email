@@ -98,6 +98,8 @@ sub setup {
 
 sub check_accounts {
 
+    my $msg_inbox_total;
+
     unlink("$config_parms{data_dir}/email/summary.html");
     my ($email_file_data, $summary);
 
@@ -123,14 +125,16 @@ sub check_accounts {
         if (defined $msgcnt and $msgcnt < $msgcnt_prev) {
             delete $email_prev{$account};
             unlink("$config_parms{data_dir}/email/latest.html");
+
+
             $msgcnt = 0;
         }
         elsif ($msgcnt > $msgcnt_prev) {
-
-#           print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
+   	    $msg_inbox_total = $msgcnt;
+            print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
 
             my $msgptr = &net_mail_summary(account => $account,
-                                           first => $msgcnt_prev+1, last => $msgcnt,
+                                           first => 1, last => $msgcnt,
                                            age   => $config_parms{net_mail_scan_age},
                                            debug => $config_parms{debug});
 
@@ -138,10 +142,10 @@ sub check_accounts {
                                 # reset this to only report new msgs, not total msgs
             if ($config_parms{net_mail_scan_age}) {
                 $msgcnt = ($$msgptr{from_name}) ? @{$$msgptr{from_name}} : 0;
-            }
+            }         
 
             if ($$msgptr{from_name}) {
-                my @list = @{$$msgptr{from_name}};
+      my @list = @{$$msgptr{from_name}};
 
                                 # Use a rule to modify name of sender
                                 # Changing $name will modify @list ($name is an implicit alias).
@@ -162,7 +166,7 @@ sub check_accounts {
                     $from .= ", $sender" if $sender;
 
                                 # Delete attachements
-                                # I think the g in gsm will do this without the while loop
+                                # The g in gsm will do this without the while loop
 
 #                   print "dbx get_email body=$body.\n";
 
@@ -256,7 +260,7 @@ sub check_accounts {
             logit("$config_parms{data_dir}/email/latest.html", $msg_latest, 0);
         }
 
-        $msgcnt_flag .= sprintf("%3d", $msgcnt);
+        $msgcnt_flag .= sprintf("%3d", ($config_parms{net_mail_scan_age})?$msg_inbox_total:$msgcnt);
 
         my $temp = &make_name_list($account, @{$email_prev{$account}});
         $results_unread  .= $temp;
