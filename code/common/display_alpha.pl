@@ -125,13 +125,16 @@ sub update_clock {
 
 #   my $display = &time_date_stamp(21);  # 12:52 Sun 25
     $display = &time_date_stamp(8);   # 12:52
+    my $font = 'small';
 
 				# Allow for older format, displaying indoor/outdoor at the same time
     if ($config_parms{Display_Alpha_clock_format} == 1) {
 	$display = &time_date_stamp(8);   # 12:52
 	$display .= ' ' . int($Weather{TempIndoor}) . ' ' . int($Weather{TempOutdoor});
+#	$display .= ' ' . int($Weather{HumidOutdoor}) if defined $Weather{HumidOutdoor};
 	$display .= ' ' . substr($Day, 0, 1) . $Mday;
 	$display .= ' ' . $Save{display_text} if $Save{display_text} and ($Time - $Save{display_time}) < 400;
+	$font = 'large';
     }
     else {
 	$display .= ' ' . substr($Day, 0, 2) . " " . $Mday;
@@ -306,7 +309,7 @@ sub update_clock {
 	}
         set_display_timer 60, undef;	# *** Need heuristic here (60 may not be appropriate!)
   }
-  display device => 'alpha', text => $display, app => 'clock';
+    display device => 'alpha', text => $display, app => 'clock', font => $font;
  }
 }
 
@@ -332,6 +335,8 @@ if ($state = state_now $xap_monitor_display_alpha) {
         $Weather{WindGustSpeed} = $$p{'weather.report'}{windgustsm};
         $Weather{TempOutdoor}   = $$p{'weather.report'}{tempf};
         $Weather{TempIndoor}    = $$p{'weather.report'}{tempindoorf};
+        $Weather{HumidOutdoor}  = $$p{'weather.report'}{humidf};
+        $Weather{HumidIndoor}   = $$p{'weather.report'}{humidindoorf};
         $Weather{DewOutdoor}    = $$p{'weather.report'}{dewf};
         $Weather{Barom}         = $$p{'weather.report'}{airpressure};
     }
@@ -430,10 +435,8 @@ if ($state = said $display_alpha_test3) {
 
 # Trigger to update clock
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	eval qq(
-		&trigger_set('new_minute', '\&update_clock', 'NoExpire', 'update alpha clock') unless &trigger_get('update alpha clock');
-	);
+if ($Reload) {
+    &trigger_set('new_minute', '&update_clock', 'NoExpire', 'update alpha clock') unless &trigger_get('update alpha clock');
 }
 
 # The bookend for this is in display_alpha.pm (one should be moved)

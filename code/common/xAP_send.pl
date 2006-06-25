@@ -7,10 +7,11 @@
 if (new_minute 1) {
 # Scheme from: From: http://www.xapautomation.org/modules.php?name=Sections&op=viewarticle&artid=2
     &xAP::send('xAP', 'weather.report', 'weather.report' => {
-          UTC => "$Hour:$Minute",               DATE => scalar &time_date_stamp(19),
-        WindM => $Weather{WindAvgSpeed},    WindDirC => $Weather{AvgDir}, WindGustsM => $Weather{WindGustSpeed},
-        TempF => $Weather{TempOutdoor},  TempIndoorF => $Weather{TempIndoor},
-         DewF => $Weather{DewOutdoor},   AirPressure => $Weather{Barom}
+          UTC  => "$Hour:$Minute",                DATE => scalar &time_date_stamp(19),
+        WindM  => $Weather{WindAvgSpeed},     WindDirC => $Weather{AvgDir}, WindGustsM => $Weather{WindGustSpeed},
+        TempF  => $Weather{TempOutdoor},   TempIndoorF => $Weather{TempIndoor},
+        HumidF => $Weather{HumidOutdoor},  HumidIndoor => $Weather{HumidIndoor},
+         DewF  => $Weather{DewOutdoor},    AirPressure => $Weather{Barom}
     } );
 }
 

@@ -63,12 +63,11 @@ if (expired $t_bingo_timer) {
 }
 
 sub display_bingo {
-    display app => 'bingo', text => "$bingo_count. @bingo_card[$bingo_count - 1] ", window_name => 'Bingo', append => 'top';
+    display app => 'bingo', text => "$bingo_count. $bingo_card[$bingo_count - 1] ", window_name => 'Bingo', append => 'top';
 }
 
 sub display_bingo_status {
     my $i = $bingo_count-3; $i = 0 if $i < 0;
-    my @previous = @bingo_card[$i .. $bingo_count-1];
+    my @previous = $bingo_card[$i .. $bingo_count-1];
     display app => 'bingo', text => "@previous";
 }
-
