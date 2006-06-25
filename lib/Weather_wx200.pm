@@ -19,7 +19,7 @@ use Weather_Common;
   serial_wx200_module    = Weather_wx200
   serial_wx200_skip      =  # Use to ignore bad sensor data.  e.g. TempOutdoor,HumidOutdoor,WindChill
   altitude = 1000 # In feet, used to find sea level barometric pressure
- 
+
  Default temperature scale used is Fahrenheit. To change to Celsius, add the following mh.ini parm
   default_temp=Celsius
 
@@ -45,7 +45,7 @@ sub update_wx200_weather {
     my $remainder = &read_wx200($data, \%main::Weather, $debug);
     set_data $wx200_port $remainder if $remainder;
     &weather_updated;
-}                             
+}
 
 # Category=Weather
 
@@ -53,7 +53,7 @@ sub update_wx200_weather {
                                 # Lots of good info on the WX200 from:  http://wx200.planetfall.com/
 
                                 # Set up array of data types, including group index,
-                                # group name, length of data, and relevant subroutine 
+                                # group name, length of data, and relevant subroutine
 my %wx_datatype = (0x8f => ['humid', 35, \&wx_humid],
                    0x9f => ['temp',  34, \&wx_temp],
                    0xaf => ['barom', 31, \&wx_baro],
@@ -61,7 +61,7 @@ my %wx_datatype = (0x8f => ['humid', 35, \&wx_humid],
                    0xcf => ['wind',  27, \&wx_wind],
                    0xff => ['time',  5,  \&wx_time]);    # wx200d only?
 
-        
+
 sub read_wx200 {
     my ($data, $wptr, $debug) = @_;
 
@@ -75,7 +75,7 @@ sub read_wx200 {
         unless ($dtp) {
             my $length = @data;
             printf("Bad weather data.  group=%x length=$length\n", $group);
-            return; 
+            return;
         }
                                 # If we don't have enough data, return what is left for next pass
         if ($$dtp[1] > @data) {
@@ -120,7 +120,7 @@ sub wx_temp {
     $$wptr{TempIndoor}  = &wx_temp2(@data[1..2])   unless $skip{TempIndoor};
     $$wptr{TempOutdoor} = &wx_temp2(@data[16..17]) unless $skip{TempOutdoor};
     if ($main::config_parms{weather_uom_temp} eq 'F') {
-    	grep {$$wptr{$_}=convert_c2f($$wptr{$_}) unless $skip{$_};} qw(
+    	grep {$$wptr{$_}=&::convert_c2f($$wptr{$_}) unless $skip{$_};} qw(
     		TempIndoor
     		TempOutdoor
 		);
@@ -150,14 +150,14 @@ sub wx_baro {
     unless ($skip{BaromSea}) {
         $$wptr{BaromSea} = sprintf('%x%02x%02x', 0x0f & $data[5], $data[4], $data[3]);
         substr($$wptr{BaromSea}, -1, 0) = '.';
-        if ($wptr{BaromSea} == $wptr{Barom}) {
-       	    $$wptr{BaromSea} = convert_local_barom_to_sea_mb($$wpr{Barom});
+        if ($$wptr{BaromSea} == $$wptr{Barom}) {
+       	    $$wptr{BaromSea} = &::convert_local_barom_to_sea_mb($$wptr{Barom});
         }
     }
 
     if ($main::config_parms{weather_uom_baro} eq 'in') {
-    	$$wptr{Barom} = convert_mb2in ($$wptr{Barom});
-    	$$wptr{BaromSea} = convert_mb2in ($$wptr{BaromSea});
+    	$$wptr{Barom} = &::convert_mb2in ($$wptr{Barom});
+    	$$wptr{BaromSea} = &::convert_mb2in ($$wptr{BaromSea});
 	}
 
     $data[18] = 0x00 if $data[18] == 0xee; # Returns 0xee (238) in sub zero weather
@@ -165,14 +165,11 @@ sub wx_baro {
     $$wptr{DewIndoor}  =  sprintf('%x', $data[7])  unless $skip{DewIndoor};
     $$wptr{DewOutdoor} =  sprintf('%x', $data[18]) unless $skip{DewOutdoor};
     if ($main::config_parms{weather_uom_temp} eq 'F') {
-    	grep {$$wptr{$_}=convert_c2f($$wptr{$_}) unless $skip{$_};} qw(
+    	grep {$$wptr{$_}=&::convert_c2f($$wptr{$_}) unless $skip{$_};} qw(
     		DewIndoor
     		DewOutdoor
 		);
 	}
-
-    if ($main::config_parms{weather_uom_temp} eq 'F') {
-
     print "baro = $$wptr{Barom}, $$wptr{BaromSea} dew=$$wptr{DewIndoor}, $$wptr{DewOutdoor}\n"  if $debug;
 #   $wx_counts{baro}++;
 }
@@ -192,7 +189,7 @@ sub wx_rain {
     $$wptr{RainTotal}= sprintf('%x%02x',        $data[6], $data[5]) unless $skip{RainTotal};
 
     if ($main::config_parms{weather_uom_rain} eq 'in') {
-    	grep {$$wptr{$_}=convert_mm2in($$wptr{$_}) unless skip{$_};} qw(
+    	grep {$$wptr{$_}=&::convert_mm2in($$wptr{$_}) unless $skip{$_};} qw(
     		RainRate
     		RainYest
     		RainTotal
@@ -234,18 +231,18 @@ sub wx_wind {
 #    }
 
     if ($main::config_parms{weather_uom_wind} eq 'mph') {
-    	grep {$$wptr{$_}=convert_mps2mph($$wptr{$_}) unless skip{$_};} qw(
+    	grep {$$wptr{$_}=&::convert_mps2mph($$wptr{$_}) unless $skip{$_};} qw(
     		WindAvgSpeed
     		WindGustSpeed
 		);
 	}
     if ($main::config_parms{weather_uom_wind} eq 'kph') {
-    	grep {$$wptr{$_}=convert_mps2kph($$wptr{$_}) unless skip{$_};} qw(
+    	grep {$$wptr{$_}=&::convert_mps2kph($$wptr{$_}) unless $skip{$_};} qw(
     		WindAvgSpeed
     		WindGustSpeed
 		);
 	}
-    print "wind = $$wptr{WindGustSpeed}, $$wptr{WindAvgSpeed}, $$wptr{WindGustDir}, $$wptr{WindAvgDir}\n" 
+    print "wind = $$wptr{WindGustSpeed}, $$wptr{WindAvgSpeed}, $$wptr{WindGustDir}, $$wptr{WindAvgDir}\n"
         if $debug;
 #   print "wind=@data\n";
 #   $wx_counts{wind}++;

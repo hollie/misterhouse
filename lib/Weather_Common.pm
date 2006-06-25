@@ -45,12 +45,12 @@ sub weather_updated {
 	my $windSpeed=$$w{WindAvgSpeed};
 
 	# need wind speed in km/h for formulas to work
-	if (defined $windSpeed) {	
+	if (defined $windSpeed) {
 		if ($main::config_parms{weather_uom_wind} eq 'mph') {
-			$windSpeed=convert_mile2km($windSpeed);
+			$windSpeed=&::convert_mile2km($windSpeed);
 		}
 		if ($main::config_parms{weather_uom_wind} eq 'mps') {
-			$windSpeed=convert_mps2kph($windSpeed);
+			$windSpeed=&::convert_mps2kph($windSpeed);
 		}
 	} else {
 		$windSpeed='unknown';
@@ -78,7 +78,7 @@ sub weather_updated {
 
 	# need temp and dewpoint in Celsius for formulas to work
 	if ($main::config_parms{weather_uom_temp} eq 'F') {
-		grep {$_=convert_f2c($_) if defined $_} ($temp,$dewpoint);
+		grep {$_=&::convert_f2c($_) if defined $_} ($temp,$dewpoint);
 	}
 
 	my $pressureText='unknown';
@@ -91,7 +91,7 @@ sub weather_updated {
 		if ($windSpeed >= 5 and $windSpeed <= 100 and $temp >= -50 and $temp <= 5) {
 			my $windchill=13.12+0.6215*$temp-11.37*($windSpeed**0.16)+0.3965*$temp*($windSpeed**0.16);
 			if ($main::config_parms{config_uom_temp} eq 'F') {
-				$windchill=convert_c2f($windchill);
+				$windchill=&::convert_c2f($windchill);
 			}
 			$windchill=sprintf('%.1f',$windchill);
 			$$w{WindChill}=$windchill;
@@ -112,7 +112,7 @@ sub weather_updated {
 		# humidex is at least 25 degrees (standard rules)
 		if (($temp >= 20) && ($humidex >= 25)) {
 			if ($main::config_parms{weather_uom_temp} eq 'F') {
-				$humidex=convert_c2f($humidex);
+				$humidex=&::convert_c2f($humidex);
 			}
 			$humidex=sprintf('%.1f',$humidex);
 			$$w{Humidex}=$humidex;
@@ -136,7 +136,7 @@ sub weather_updated {
 		if ($apparentTemp != $$w{TempOutdoor}) {
 			$apparentTempText=" ($apparentTemp)";
 		}
-	} 
+	}
 
 	my $windDirName='unknown';
 	my $windDirNameLong='unknown';
@@ -350,7 +350,7 @@ sub populate_internet_weather {
 	my @keys;
 
 	if ($weatherKeys ne '') {
-		@keys=split(/\s+/,$weatherKeys);	
+		@keys=split(/\s+/,$weatherKeys);
 	} else {
 		if ($main::config_parms{weather_internet_elements} eq 'all' or $main::config_parms{weather_internet_elements} eq '') {
 			@keys=qw (
