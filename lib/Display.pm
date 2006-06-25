@@ -176,11 +176,13 @@ sub display {
                 eval ("\$t1->insert(('0.0', '" . $$self{text} . "'))");
 
             }
-            else { # replace
-                eval("\$t1->delete(('0.0', 'end'))"); 
-                eval("\$t1->insert(('0.0', " . $$self{text}. "))"); 
+            else { # replace  ... why eval?  Messes up common/benchmarks.pl no-append windows
+#               eval("\$t1->delete(('0.0', 'end'))"); 
+#               eval("\$t1->insert(('0.0', " . $$self{text}. "))"); 
+                $t1->delete(('0.0', 'end')); 
+                $t1->insert(('0.0', $$self{text})); 
             }
-	    $t1->focus;
+#	    $t1->focus;  # Should be an option?  For common/benchmarks.pl windows, we do not want constant focus
        	    #$inserted = !$@;	    
         }
         #if (!$inserted) {
