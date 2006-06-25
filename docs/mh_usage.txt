@@ -1483,3 +1483,17 @@ Tue 04/04/06 21:25:55 city=Burlington state=Ontario name=
 Thu 04/06/06 08:26:30 city=Celje state=Slovenia name=Iztok alamon
 Mon 04/17/06 18:51:41 city=Paraparaumu state=NZ name=Ryan D
 Tue 04/18/06 17:01:44 city=Vestavia Hills state=AL name=Greg
+Fri 04/28/06 15:17:17 city=Fort Worth state=TX name=
+Mon 05/01/06 23:41:32 city=Mayaguez state=PR name=Eric Sanchez
+Thu 05/04/06 08:00:49 city=Mevo-Horon state=Israel name=Yossi Haddad
+Thu 05/04/06 08:00:59 city=Mevo-Horon state=Israel name=Yossi Haddad
+Wed 05/10/06 08:53:36 city=Maastricht state=Netherlands name=
+Tue 05/16/06 10:18:21 city=Brisbane state=AUSTRALIA name=blue
+Wed 05/17/06 20:06:47 city=coquitlam state=canada name=
+Mon 05/22/06 05:36:15 city=tokyo state=japan name=
+Tue 05/23/06 10:15:08 city=Buford state=GA name=Troy
+Sat 05/27/06 13:02:42 city=Amsterdam state=The Netherlands name=simjoc
+Thu 06/01/06 12:32:43 city=wichita state=ks name=justme
+Thu 06/01/06 12:33:16 city=wichita state=ks name=just me
+Sat 06/03/06 08:28:37 city=San Giorgio Del Sannio (Bn) state=Italy name=SapiensHawk
+Wed 06/21/06 15:52:27 city=Johannesburg state=South Africa name=Terry
