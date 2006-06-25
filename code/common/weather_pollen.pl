@@ -1,14 +1,14 @@
 #Category=Weather
 
-#@ This module gets the pollen forecast from www.pollen.com and puts the pollen 
+#@ This module gets the pollen forecast from www.pollen.com and puts the pollen
 #@ type and pollen count into the %Weather hash.
 #@
 #@ Uses mh.ini parameter zip_code
 
-# get pollen count forecast from www.pollen.com and put it and the pollen 
+# get pollen count forecast from www.pollen.com and put it and the pollen
 # type into the %Weather hash.
 # Technically there is a 4 day forecast, but I have seen it vary so widely
-# from day 2 and what day 1 will say tomorrow that I don't count on it for 
+# from day 2 and what day 1 will say tomorrow that I don't count on it for
 # more than the current day.
 #
 #uses mh.ini parameter zip_code=
@@ -72,19 +72,13 @@ if (said $v_read_pollen_forecast) {
 
 # create trigger to download pollen forecast
 
-if ($Reload and $Run_Members{'trigger_code'}) { 
-    if ($Run_Members{'internet_dialup'}) { 
-        eval qq(
-            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get pollen forecast'", 'NoExpire', 'get pollen forecast') 
-              unless &trigger_get('get pollen forecast');
-        );
+if ($Reload) {
+    if ($Run_Members{'internet_dialup'}) {
+        &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get pollen forecast'", 'NoExpire', 'get pollen forecast')
+          unless &trigger_get('get pollen forecast');
     }
     else {
-        eval qq(
-            &trigger_set("time_cron '0 5 * * *' and net_connect_check", "run_voice_cmd 'Get Pollen forecast'", 'NoExpire', 'get pollen forecast') 
-              unless &trigger_get('get pollen forecast');
-        );
+        &trigger_set("time_cron '0 5 * * *' and net_connect_check", "run_voice_cmd 'Get Pollen forecast'", 'NoExpire', 'get pollen forecast')
+          unless &trigger_get('get pollen forecast');
     }
-}     
-
-
+}

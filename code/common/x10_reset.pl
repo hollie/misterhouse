@@ -8,13 +8,10 @@ $v_reset_x10_states ->set_info('Used to restore the state of X10 devices after a
 
 # Create trigger to reset all X10 items on power restore
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	my $command = 'state_now \$Power_Supply =~ /restored/i';
-
-	eval qq(
-            &trigger_set("$command", "run_voice_cmd('Restore all X10 items')", 'NoExpire', 'restore x10 items') 
-              unless &trigger_get('restore x10 items');
-        );
+if ($Reload) {
+	my $command = 'state_now $Power_Supply =~ /restored/i';
+    &trigger_set($command, "run_voice_cmd('Restore all X10 items')", 'NoExpire', 'restore x10 items')
+      unless &trigger_get('restore x10 items');
 }
 
 # Events

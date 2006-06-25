@@ -79,25 +79,17 @@ if (done_now $p_get_new_dvds) {
 
 # Triggers to get data and report new releases
 
-if ($Reload and $Run_Members{'trigger_code'}) { 
-    if ($Run_Members{'internet_dialup'}) { 
-        eval qq(
-            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get DVD Info'", 'NoExpire', 'get dvd info') 
-              unless &trigger_get('get dvd info');
-        );
+if ($Reload) {
+    if ($Run_Members{'internet_dialup'}) {
+        &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get DVD Info'", 'NoExpire', 'get dvd info')
+          unless &trigger_get('get dvd info');
     }
     else {
-
-        eval qq(
-           &trigger_set("time_now '4 pm' and time_cron('* * * * 1') and &net_connect_check", "run_voice_cmd 'Get DVD Info'", 'NoExpire', 'get dvd info') 
-              unless &trigger_get('get dvd info');
-        );
-	
+        &trigger_set("time_now '4 pm' and time_cron('* * * * 1') and &net_connect_check", "run_voice_cmd 'Get DVD Info'", 'NoExpire', 'get dvd info')
+          unless &trigger_get('get dvd info');
     }
 
-    eval qq(
-        &trigger_set("time_now '5 pm' and time_cron('* * * * 1') and &net_connect_check", qq|run_voice_cmd "Read This Week's New DVDs"|, 'NoExpire', 'read dvd releases') 
-        unless &trigger_get('read dvd releases');
-    );
+    &trigger_set("time_now '5 pm' and time_cron('* * * * 1') and &net_connect_check", qq|run_voice_cmd "Read This Week's New DVDs"|, 'NoExpire', 'read dvd releases')
+      unless &trigger_get('read dvd releases');
 
-}     
+}

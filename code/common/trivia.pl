@@ -18,11 +18,9 @@ my $cat;
 # Create trigger
 
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	eval qq(
-            &trigger_set("time_cron '0 6 * * * '", "&trivia_next", 'NoExpire', 'refresh trivia') 
-              unless &trigger_get('refresh trivia');
-        );
+if ($Reload) {
+    &trigger_set("time_cron '0 6 * * * '", "&trivia_next", 'NoExpire', 'refresh trivia')
+      unless &trigger_get('refresh trivia');
 }
 
 
@@ -31,7 +29,7 @@ sub uninstall_trivia {
 }
 
 
-#    
+#
 
 &trivia_next($cat) if $cat = said $v_trivia_next and $cat =~ /next /;
 
@@ -87,7 +85,7 @@ sub trivia_next {
     $a[3] = &trivia_trim(substr($r, 112, 20)) . ".";
     $a[4] = &trivia_trim(substr($r, 132, 20)) . ".";
     my $an= substr($r, 152, 1);
-    
+
     print  QUESTION "Today's $cat trivia question:
  $q
   1: $a[1]
@@ -121,4 +119,3 @@ sub trivia_trim {
     @a = split(" ", $string);
     return join(" ",@a);
 }
-

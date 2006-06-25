@@ -14,7 +14,7 @@ $p_top10_list = new Process_Item("get_url http://www.cbs.com/latenight/lateshow/
 # *** Split these up for security (allow anyone to read)
 
 $v_top10_list  = new  Voice_Cmd('[Get,Read,Check] the top 10 list');
-$v_top10_list -> set_info("This is David Letterman's famous Top 10 List"); 
+$v_top10_list -> set_info("This is David Letterman's famous Top 10 List");
 
 
 if ('Read' eq said $v_top10_list) {
@@ -25,7 +25,7 @@ else {
 
 	my $state = said $v_top10_list;
 
-if ($state eq 'Get' or $state eq 'Check') {                        
+if ($state eq 'Get' or $state eq 'Check') {
         if (&net_connect_check) {
             $v_top10_list->respond("app=top10 Retrieving Top 10 list from the Internet...");
             start $p_top10_list;
@@ -79,20 +79,13 @@ if (done_now $p_top10_list) {
 }
 
 
-if ($Reload and $Run_Members{'trigger_code'}) { 
-    if ($Run_Members{'internet_dialup'}) { 
-        eval qq(
-            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get the Top 10 List'", 'NoExpire', 'get top 10 list') 
-              unless &trigger_get('get top 10 list');
-        );
+if ($Reload) {
+    if ($Run_Members{'internet_dialup'}) {
+        &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get the Top 10 List'", 'NoExpire', 'get top 10 list')
+          unless &trigger_get('get top 10 list');
     }
     else {
-        eval qq(
-            &trigger_set("time_cron '30 6 * * *' and net_connect_check", "run_voice_cmd 'Get the Top 10 List'", 'NoExpire', 'get top 10 list') 
-              unless &trigger_get('get top 10 list');
-        );
+        &trigger_set("time_cron '30 6 * * *' and net_connect_check", "run_voice_cmd 'Get the Top 10 List'", 'NoExpire', 'get top 10 list')
+          unless &trigger_get('get top 10 list');
     }
-}     
-
-
-
+}

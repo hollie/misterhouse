@@ -1,6 +1,6 @@
 # Category = Phone
 
-#@ Use this code file to monitor your phone minutes (currently Cingular, Cingular Go Phone, Sprint 
+#@ Use this code file to monitor your phone minutes (currently Cingular, Cingular Go Phone, Sprint
 #@ and T-Mobile only).
 #@ Set cell_phone_number (or cell_phone_username for tmobile) and cell_phone_password mh.ini parms.
 #@ Set cell_phone_provider to tmobile if using T-Mobile, to cingular for Cingular,
@@ -156,9 +156,7 @@ if (done_now $p_phone_minutes or said $v_phone_minutes eq 'Debug') {
 
 # lets allow the user to control via triggers
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-    eval qq(
-        &trigger_set("time_now '7 pm'", "run_voice_cmd 'Read phone minutes'", 'NoExpire', 'Read phone minutes')
-          unless &trigger_get('Read phone minutes');
-    );
+if ($Reload) {
+    &trigger_set("time_now '7 pm'", "run_voice_cmd 'Read phone minutes'", 'NoExpire', 'Read phone minutes')
+      unless &trigger_get('Read phone minutes');
 }

@@ -6,10 +6,8 @@
 
 # Create trigger
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	eval qq(
-            &trigger_set("time_cron('57 9,16 * * 0,6') or time_cron('17 6,17 * * 1-5')", "run_voice_cmd('Get internet data')", 'NoExpire', 'get internet data') unless &trigger_get('get internet data');
-        );
+if ($Reload) {
+    &trigger_set("time_cron('57 9,16 * * 0,6') or time_cron('17 6,17 * * 1-5')", "run_voice_cmd('Get internet data')", 'NoExpire', 'get internet data') unless &trigger_get('get internet data');
 }
 
 sub uninstall_internet_logon {
@@ -25,7 +23,7 @@ sub uninstall_internet_logon {
 		$v_logoff_net = new  Voice_Cmd('Log off the Internet');
 	}
 
-	
+
 #       $Flags{internet_data_cmds}{'Send ip address to the web page'}++;     # From internet_ip_update
 #       $Flags{internet_data_cmds}{'Send ip address to the web servers'}++;  # From internet_ip_update
 
@@ -76,7 +74,7 @@ if (said $v_logon_to_net) {
 
         run qq[rasdial "$config_parms{net_connect_entry}" $config_parms{net_connect_name} $config_parms{net_connect_password}];
     }
-} 
+}
 
 if (said $v_logoff_net) {
     if (net_connect_check) {
@@ -87,5 +85,4 @@ if (said $v_logoff_net) {
     else {
         $v_logoff_net->respond("app=network I am not logged on.");
     }
-} 
-
+}

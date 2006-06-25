@@ -18,11 +18,9 @@ if ($OS_win) {
 
 # Create trigger to check disk space requirements periodically
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	eval qq(
-            &trigger_set("time_cron '0 18 * * 6'", "run_voice_cmd('Check disk space')", 'NoExpire', 'check disk space')
-              unless &trigger_get('check disk space');
-        );
+if ($Reload) {
+    &trigger_set("time_cron '0 18 * * 6'", "run_voice_cmd('Check disk space')", 'NoExpire', 'check disk space')
+      unless &trigger_get('check disk space');
 }
 
 if (said $v_disk_space3) {
@@ -42,7 +40,7 @@ if (said $v_disk_space3) {
 			$msg = ' That is cutting it close. Time to empty the recycle bin and clear temporary Internet files.';
 			$important = 1;
 		}
-		
+
 		$v_disk_space3->respond("app=pc important=$important I am installed on drive $drive. There are $free megabytes free.$msg");
 	}
 	else {

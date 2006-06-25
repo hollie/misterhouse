@@ -24,11 +24,9 @@ $f_april_fools = new File_Item("$config_parms{data_dir}/remarks/april_fools.txt"
 
 # Create trigger to play the annoying South Park sounds (needs updating)
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	eval qq(
-            &trigger_set("time_random('* 18-22 * * 1-5', 240) or time_random('*  8-22 * * 0,6', 240)", "run_voice_cmd('Play a fun sound file')", 'NoExpire', 'play fun sound')
-              unless &trigger_get('play fun sound');
-        );
+if ($Reload){
+    &trigger_set("time_random('* 18-22 * * 1-5', 240) or time_random('*  8-22 * * 0,6', 240)", "run_voice_cmd('Play a fun sound file')", 'NoExpire', 'play fun sound')
+      unless &trigger_get('play fun sound');
 }
 
 sub uninstall_goofy {
@@ -65,4 +63,3 @@ if (time_random('* 18-22 * * 1-5', 240) or
     print_log "Speaking a goofy remark from " . name $f_april_fools;
     speak ("app=goofy " . read_next $f_april_fools);
 }
-

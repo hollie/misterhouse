@@ -9,7 +9,7 @@
 #@ symbol like this: stocks_thresholds = IBM:5 MSFT:5% CSCO:15%.
 #@ You can map stock symbols into more pronounceable words using the
 #@ stocks_names parameter like this: stocks_names = CSCO:Cisco_Systems.
-#@ To modify when this script is run (or to disable it), go to the 
+#@ To modify when this script is run (or to disable it), go to the
 #@ <a href=/bin/triggers.pl> triggers page </a>
 #@ and modify the 'get stocks' trigger.
 
@@ -196,17 +196,15 @@ if (done_now $p_stock_quote) {
 }
 
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-    eval qq(
-        &trigger_set("time_cron '5 9-17 * * 1-5' and net_connect_check", 
-          "run_voice_cmd 'Get stock quotes'", 'NoExpire', 'get stocks')
-          unless &trigger_get('get stocks');
-    );
+if ($Reload) {
+    &trigger_set("time_cron '5 9-17 * * 1-5' and net_connect_check",
+                 "run_voice_cmd 'Get stock quotes'", 'NoExpire', 'get stocks')
+      unless &trigger_get('get stocks');
 }
 
 
 # 27 Dec 05, David Norwood
-# Someone else also added back the stock alerts in the last release.  I removed the duplicate code. 
+# Someone else also added back the stock alerts in the last release.  I removed the duplicate code.
 
 # 29 Aug 05, David Norwood
 # Added back the stock alerts.

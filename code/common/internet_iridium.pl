@@ -26,12 +26,9 @@ $v_iridium_check ->set_info('Lists times and locations flares from iridium satel
 
 # Create trigger
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	my $command = '\$New_Week';
-	eval qq(
-            &trigger_set("$command", "run_voice_cmd('Get iridium flares')", 'NoExpire', 'get iridium info') 
-              unless &trigger_get('get iridium info');
-        );
+if ($Reload) {
+    &trigger_set('$New_Week', "run_voice_cmd('Get iridium flares')", 'NoExpire', 'get iridium info')
+      unless &trigger_get('get iridium info');
 }
 
 sub uninstall_internet_iridium {
@@ -52,7 +49,7 @@ sub respond_iridium {
 	my $connected = shift;
 	my $display = &list_iridium();
 	if ($display) {
-		$v_iridium_check->respond("app=iridium connected=$connected Listing iridium data.");	
+		$v_iridium_check->respond("app=iridium connected=$connected Listing iridium data.");
 		display $display, 0, 'Iridium list', 'fixed';
 	}
 	else {
@@ -122,7 +119,7 @@ eof
     }
     close MYCODE;
     do_user_file $iridium_check_e; # This will enable the above MYCODE
-    return $display;	
+    return $display;
 }
 
 if (said $v_iridium_check) {
@@ -144,16 +141,16 @@ if (said $v_iridium_check) {
 		&respond_iridium(1);
 	}
 	else {
-		$v_iridium_check->respond("app=iridium $state2" . ' iridium report...');	
+		$v_iridium_check->respond("app=iridium $state2" . ' iridium report...');
 	}
 
 }
 
 
 &respond_iridium(0) if done_now $p_iridium_check;
-	
 
-                      
+
+
 
 
 

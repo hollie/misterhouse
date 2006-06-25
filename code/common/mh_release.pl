@@ -33,7 +33,7 @@ $v_version->set_info("Responds with current version information");
 sub parse_version {
 	my ($maj,$min) = $Version =~ /(\d)\.(\d*)/;
 	my ($rev) = $Version =~ /R(\d*)/;
-	return ($maj, $min, $rev);	
+	return ($maj, $min, $rev);
 }
 
 sub calc_age {
@@ -80,7 +80,7 @@ if (said $v_mhdl_page) {
     else {
 	$msg = "app=control Unable to check version while disconnected from the Internet";
     }
-    
+
     $v_mhdl_page->respond("app=control $msg");
 }
 
@@ -110,26 +110,19 @@ if (done_now $p_mhdl_page) {
    }
 
 
-	
+
 
 }
 
 # create trigger to download version info at 6PM (or on dial-up connect)
 
-if ($Reload and $Run_Members{'trigger_code'}) {
+if ($Reload) {
     if ($Run_Members{'internet_dialup'}) {
-        eval qq(
-            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Check Misterhouse version'", 'NoExpire', 'get MH version')
-              unless &trigger_get('get MH version');
-        );
+        &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Check Misterhouse version'", 'NoExpire', 'get MH version')
+          unless &trigger_get('get MH version');
     }
     else {
-	
-        eval qq(
-            &trigger_set("time_cron '0 18 * * *' and net_connect_check", "run_voice_cmd 'Check Misterhouse version'", 'NoExpire', 'get MH version')
-              unless &trigger_get('get MH version');
-        );
+        &trigger_set("time_cron '0 18 * * *' and net_connect_check", "run_voice_cmd 'Check Misterhouse version'", 'NoExpire', 'get MH version')
+          unless &trigger_get('get MH version');
     }
 }
-
-

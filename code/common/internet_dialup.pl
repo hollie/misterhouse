@@ -25,7 +25,7 @@ if (said  $v_logon_to_net) {
         run qq[rasdial "$config_parms{net_connect_entry}" $config_parms{net_connect_name} $config_parms{net_connect_password}];
         set $net_connect 'connected';
     }
-} 
+}
 
 $v_logoff_net = new  Voice_Cmd('Log off the net');
 set_icon $v_logoff_net 'logon';
@@ -38,11 +38,9 @@ if (said  $v_logoff_net) {
     else {
         speak "You are not logged on";
     }
-} 
+}
 
-if ($Reload and $Run_Members{'trigger_code'}) { 
-    eval qq(
-        &trigger_set("time_cron('58 9,16 * * 0,6') or time_cron('15 6,17 * * 1-5')", "run_voice_cmd 'dial the net'", 'NoExpire', 'dial the net') 
-          unless &trigger_get('dial the net');
-    );
+if ($Reload) {
+    &trigger_set("time_cron('58 9,16 * * 0,6') or time_cron('15 6,17 * * 1-5')", "run_voice_cmd 'dial the net'", 'NoExpire', 'dial the net')
+      unless &trigger_get('dial the net');
 }

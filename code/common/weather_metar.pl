@@ -4,10 +4,10 @@
 # $Date$
 #
 #@ Weather METAR parser
-#@ 
-#@ Revision: $Revision$ 
 #@
-#@ To get the closest station name in Canada, go to 
+#@ Revision: $Revision$
+#@
+#@ To get the closest station name in Canada, go to
 #@ http://www.flightplanning.navcanada.ca and choose METAR/TAF
 #@
 #@ For non-Canadian locations, do a web search for ICAO
@@ -43,7 +43,7 @@ $v_get_metar_weather = new Voice_Cmd('get metar weather');
 
 # noloop=stop
 
-if ($Reload and $Run_Members{'trigger_code'}) {
+if ($Reload) {
 	# the last parameter '1' is required to overwrite any previous definition
 	&trigger_set('$New_Minute and $Minute == 5', '$p_weather_metar_page->start', 'NoExpire', 'Update weather information via METAR',1);
 }
@@ -59,7 +59,7 @@ if (done_now $p_weather_metar_page or $Reload) {
 
 	# NavCanada changed their format to break reports into multiple lines
 	$html =~ s/\n<br>\n//g;
-	my %metar; 
+	my %metar;
 	my $last_report;
 	my ($pressure, $weather, $clouds, $winddirname, $windspeedtext);
 	my ($metricpressure,$pressuretext, $apparenttemp, $dewpoint);
@@ -73,7 +73,7 @@ if (done_now $p_weather_metar_page or $Reload) {
 		$clouds='';
 
 		print_log "Parsing METAR report: $last_report";
-	
+
 		($metar{WindAvgDir},$metar{WindAvgSpeed},$metar{WindGustSpeed})=$last_report =~ m#(\d{3})(\d{2})(G\d{2})?KT#; # speeds in knots
 		if ($last_report =~ m#(M?\d{2})/(M?\d{2})#) { ($metar{TempOutdoor},$metar{DewOutdoor})=($1,$2);	}; # temperatures are in Celsius
 		if ($last_report =~ m#A(\d{4})#) { $metar{BaromSea}=convert_in2mb($1/100) }; # pressure in inches of mercury, converted to mb
@@ -91,7 +91,7 @@ if (done_now $p_weather_metar_page or $Reload) {
 			if ($element =~ m#^SCT# ) { $clouds = 'scattered clouds'; };
 			if ($element =~ m#^BKN# ) { $clouds = 'broken clouds'; };
 			if ($element =~ m#^OVC# ) { $clouds = 'overcast'; };
-		
+
 			if ($element =~ m#\d#) { next; }; # precipitation has no digits
 			$element =~ /^\+/ && do { $weather.='heavy ' };
 			$element =~ /^\-/ && do { $weather.='light ' };
@@ -132,7 +132,7 @@ if (done_now $p_weather_metar_page or $Reload) {
 			}
 		}
 	}
-	
+
 	$weather =~ s/ $//; # remove trailing space
 
 	$metar{Conditions}=$weather;

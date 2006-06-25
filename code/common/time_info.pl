@@ -43,30 +43,22 @@ $f_full_moon = new File_Item("$config_parms{data_dir}/remarks/full_moon.txt");
 
 # Create triggers
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	my $command = 'time_now \$Time_Sunset and \$Moon{phase} =~ /^full/i';
-	eval qq(
-            &trigger_set("$command", "&announce_full_moon()", 'NoExpire', 'announce full moon') 
-              unless &trigger_get('announce full moon');
-        );
+if ($Reload) {
+	my $command = 'time_now $Time_Sunset and $Moon{phase} =~ /^full/i';
+    &trigger_set($command, "&announce_full_moon()", 'NoExpire', 'announce full moon')
+      unless &trigger_get('announce full moon');
 
-	$command = "time_cron '30 9,12,19 * * *' and " . '\$Holiday';
-	eval qq(
-            &trigger_set("$command", 'speak "app=holiday force_chime=1 Today is \$Holiday"', 'NoExpire', 'announce holiday') 
-              unless &trigger_get('announce holiday');
-        );
+	$command = "time_cron '30 9,12,19 * * *' and " . '$Holiday';
+    &trigger_set($command, 'speak "app=holiday force_chime=1 Today is $Holiday"', 'NoExpire', 'announce holiday')
+      unless &trigger_get('announce holiday');
 
-	$command = 'time_now \$Time_Sunrise';
-	eval qq(
-            &trigger_set("$command", 'speak "force_chime=1 app=sunrise Notice, the sun is now rising at \$Time_Sunrise"', 'NoExpire', 'announce sunrise') 
-              unless &trigger_get('announce sunrise');
-        );
+	$command = 'time_now $Time_Sunrise';
+    &trigger_set($command, 'speak "force_chime=1 app=sunrise Notice, the sun is now rising at $Time_Sunrise"', 'NoExpire', 'announce sunrise')
+      unless &trigger_get('announce sunrise');
 
-	$command = 'time_now \$Time_Sunset';
-	eval qq(
-            &trigger_set("$command", 'speak "force_chime=1 app=sunset Notice, the sun is now setting at \$Time_Sunset"', 'NoExpire', 'announce sunset') 
-              unless &trigger_get('announce sunset');
-        );
+	$command = 'time_now $Time_Sunset';
+    &trigger_set($command, 'speak "force_chime=1 app=sunset Notice, the sun is now setting at $Time_Sunset"', 'NoExpire', 'announce sunset')
+      unless &trigger_get('announce sunset');
 }
 
 # events (tied to voice commands)
@@ -79,17 +71,17 @@ sub announce_time {
     $time =~ s/:/\x20/;  # ???  Says "colon."
     $msg = "It is $time on $Date_Now_Speakable.";
     $msg .= ". It is $Holiday." if $Holiday;
-    $object->respond("app=time $msg");	
+    $object->respond("app=time $msg");
 }
 
 sub announce_sun {
     my $state = shift;
     if ($state eq 'set') {
-	$v_sun_set->respond("app=sunset Sunset today is at $Time_Sunset.");		
+	$v_sun_set->respond("app=sunset Sunset today is at $Time_Sunset.");
     }
     else {
 	$v_sun_set->respond("app=sunrise Sunrise today is at $Time_Sunrise.");
-    }	
+    }
 }
 
 sub announce_moon {
@@ -106,7 +98,7 @@ sub announce_previous_moon {
 sub announce_next_moon {
     my $state = shift;
     my $days = &time_diff($Moon{"time_$state"}, $Time);
-    $v_moon_info1->respond(qq[The next $state moon is in $days, on $Moon{$state}]);	
+    $v_moon_info1->respond(qq[The next $state moon is in $days, on $Moon{$state}]);
 }
 
 sub announce_full_moon {
@@ -120,5 +112,5 @@ sub uninstall_time_info {
 	&trigger_delete('announce sunrise');
 	&trigger_delete('announce sunset');
 	&trigger_delete('announce full moon');
-	&trigger_delete('announce holiday');	
+	&trigger_delete('announce holiday');
 }

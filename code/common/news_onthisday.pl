@@ -18,7 +18,7 @@ if ((said $v_onthisday eq 'Get') or (said $v_onthisday eq 'Check')) {
             start $p_onthisday;
         }
 	else {
-            $v_onthisday->respond("Cannot retrieve daily calendar facts when disconnected from the Internet.");	
+            $v_onthisday->respond("Cannot retrieve daily calendar facts when disconnected from the Internet.");
 	}
 }
 
@@ -66,20 +66,13 @@ if (done_now $p_onthisday) {
 
 
 
-if ($Reload and $Run_Members{'trigger_code'}) { 
-    if ($Run_Members{'internet_dialup'}) { 
-        eval qq(
-            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get on this day'", 'NoExpire', 'get calendar facts') 
-              unless &trigger_get('get calendar facts');
-        );
+if ($Reload) {
+    if ($Run_Members{'internet_dialup'}) {
+        &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get on this day'", 'NoExpire', 'get calendar facts')
+          unless &trigger_get('get calendar facts');
     }
     else {
-        eval qq(
-            &trigger_set("time_cron '30 6 * * *' and net_connect_check", "run_voice_cmd 'Get on this day'", 'NoExpire', 'get calendar facts') 
-              unless &trigger_get('get calendar facts');
-        );
+        &trigger_set("time_cron '30 6 * * *' and net_connect_check", "run_voice_cmd 'Get on this day'", 'NoExpire', 'get calendar facts')
+          unless &trigger_get('get calendar facts');
     }
-}     
-
-
-
+}

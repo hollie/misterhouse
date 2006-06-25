@@ -54,13 +54,9 @@ if (said $v_dailystrips_email) {
 
 # lets allow the user to control via triggers
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-    eval qq(
-        &trigger_set("time_now '4 am' and net_connect_check", "run_voice_cmd 'Update the daily comic strips'", 'NoExpire', 'update comics')
-          unless &trigger_get('update comics');
-    );
-    eval qq(
-        &trigger_set("time_now '5 am' and net_connect_check", "run_voice_cmd 'Clean the daily comic strips'", 'NoExpire', 'clean comics')
-          unless &trigger_get('clean comics');
-    );
+if ($Reload) {
+    &trigger_set("time_now '4 am' and net_connect_check", "run_voice_cmd 'Update the daily comic strips'", 'NoExpire', 'update comics')
+      unless &trigger_get('update comics');
+    &trigger_set("time_now '5 am' and net_connect_check", "run_voice_cmd 'Clean the daily comic strips'", 'NoExpire', 'clean comics')
+      unless &trigger_get('clean comics');
 }

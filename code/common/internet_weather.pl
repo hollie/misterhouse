@@ -128,7 +128,7 @@ if (done_now $p_weather_forecast) {
 		$w{DewOutdoor}=convert_humidity_to_dewpoint($w{HumidOutdoor},convert_f2c($w{TempOutdoor})); # DewOutdoor is in Celsius at this point
 
 		# Who needs a sun sensor?
-	
+
 		if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny|foggy|light rain|heavy rain|light snow|heavy snow)/i) {
 			$w{Conditions} = ucfirst(lc($1));
 			$w{IsRaining} = ($Weather{Conditions} =~ /rain/i);
@@ -207,21 +207,15 @@ if (done_now $p_weather_forecast) {
 
 # triggers
 
-if ($Reload and $Run_Members{'trigger_code'}) {
+if ($Reload) {
 
-    if ($Run_Members{'internet_dialup'}) { 
-        eval qq(
-            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get internet weather data'", 'NoExpire', 'get internet weather') 
-              unless &trigger_get('get internet weather');
-        );
+    if ($Run_Members{'internet_dialup'}) {
+        &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get internet weather data'", 'NoExpire', 'get internet weather')
+          unless &trigger_get('get internet weather');
     }
     else {
-
-    eval qq(
-        &trigger_set(("time_cron('5 * * * *') or $Startup) and net_connect_check",
-          "run_voice_cmd 'Get internet weather data'", 'NoExpire', 'get internet weather')
+        &trigger_set("time_cron('5 * * * *') and &net_connect_check",
+                     "run_voice_cmd 'Get internet weather data'", 'NoExpire', 'get internet weather')
           unless &trigger_get('get internet weather');
-    );
-
     }
 }

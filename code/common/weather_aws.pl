@@ -8,10 +8,10 @@
 #@
 #@ Check <a href="http://www.instaweather.com">http://www.instaweather.com</a>
 #@ for the nearest site's station id
-#@ then add the id to the aws_id config parameter in your mh.ini or 
+#@ then add the id to the aws_id config parameter in your mh.ini or
 #@ mh.private.ini:<br><br>
-#@ 
-#@ aws_id = TMISC 
+#@
+#@ aws_id = TMISC
 #@ <br><br>
 #@ The URL containing the ID of the TMISC AWS station is shown for example:
 #@ <a href="http://www.aws.com/aws_2001/asp/obsForecast.asp?id=TMISC&obs=full">
@@ -27,36 +27,36 @@
 
  Most AWS sites are k-12 schools and non profit organizations like museums.
  Most sites upload their data in real time to AWS whenever a request is
- made via a remote site. Be warned some sites only update their sensor data 
+ made via a remote site. Be warned some sites only update their sensor data
  when their internet connection is up (usually during the school day).
 
  If you need real-time data, you should check the 'staleness' of the
- timestamp on the returned data from your selected site to make sure it's 
+ timestamp on the returned data from your selected site to make sure it's
  current and is being updated when you need the data.
 
 
  Revision History
- 
+
  Version 1.3      January 23, 2003
- Bug fixes from Martin Dolphin (with help from Bruce) to support negative 
- temperature, windchill and dewpoint values. Updated weather summary for 
+ Bug fixes from Martin Dolphin (with help from Bruce) to support negative
+ temperature, windchill and dewpoint values. Updated weather summary for
  status line.
 
  Version 1.2      October 26, 2002
- General code cleanup and compatability enhacements. Support for status_line.pl, 
+ General code cleanup and compatability enhacements. Support for status_line.pl,
  seamless support for Bruce's weather_monitor.pl and weather_log.pl.
 
  Version 1.1b     October 1, 2002
- Added convert_direction_br as temporary workaround for weather_monitor.pl 
+ Added convert_direction_br as temporary workaround for weather_monitor.pl
  wind direction problem.
 
  Version 1.1      April 13, 2002
  Updated table depth per Ron Wright's suggestion.
 
  Version 1.0      December 13, 2000
- Complete re-write supporting MH 2.36's Weather_Item, and 
+ Complete re-write supporting MH 2.36's Weather_Item, and
  Bruce's weather_log.pl, and weather_monitor.pl.
- Added hooks to use as library. 
+ Added hooks to use as library.
 
  Version 0.2      September 20, 2000
  Updated $AWSWeatherURL to reflect change on AWS's web site.
@@ -80,21 +80,19 @@ $v_get_aws_weather = new Voice_Cmd('Get AWS weather data');
 $p_awsweather_page = new Process_Item("get_url -quiet \"$AWSWeatherURL\" \"$f_awsweather_html\"");
 # noloop=stop
 
-# These values aren't provided by this code, but leaving them undefined causes 
-# problems with logging. Leave them commented out if you have external code to 
+# These values aren't provided by this code, but leaving them undefined causes
+# problems with logging. Leave them commented out if you have external code to
 # fill them with usefull data.
-#$Weather{TempIndoor}  = 0.00; 
-#$Weather{HumidIndoor} = 0.00; 
+#$Weather{TempIndoor}  = 0.00;
+#$Weather{HumidIndoor} = 0.00;
 
 # *** Conditions?, IsRaining?, etc.
 
 # Create trigger
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	eval qq(
-            &trigger_set("new_minute 5", "run_voice_cmd('Get AWS weather data')", 'NoExpire', 'get aws weather') 
-              unless &trigger_get('get aws weather');
-        );
+if ($Reload) {
+    &trigger_set("new_minute 5", "run_voice_cmd('Get AWS weather data')", 'NoExpire', 'get aws weather')
+      unless &trigger_get('get aws weather');
 }
 
 # Events
@@ -110,13 +108,13 @@ if (said $v_get_aws_weather) {
    }
 }
 
-# This would be far more efficient if AWS allowed access to 
+# This would be far more efficient if AWS allowed access to
 # their SQL db. Might be time for a little reverse engineering...
 # *** More like a little XML... (if they have it, otherwise forget them.)
 if (done_now $p_awsweather_page) {
 
   my $html = file_read $f_awsweather_html;
-  return unless $html; 
+  return unless $html;
 
   # hash used to temporarily store weather info before selective load into %Weather
   my %w=();
@@ -190,7 +188,7 @@ if (done_now $p_awsweather_page) {
   # Don't know how to parse this until it rains and we get some data.
   #$cell[4][2] =~ m/\s+(\d+).(\d+)\s+\"\/h\s+at\s+(\d+):(\d+)(\D+)/
   #print "Rain max of ", join("." $1, $2), " at ", join(":", $2, $3), $4, "\n" unless $config_parms{aws_ignore_rain};
-  
+
 
   $cell[4][3] =~ m/\s+(\d+).(\d+)/;
   #print "Rain hourly increase/decrease: ", join(".", $1, $2), "\n";

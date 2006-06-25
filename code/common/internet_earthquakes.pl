@@ -258,9 +258,7 @@ sub parse_quake {
 
 # lets allow the user to control via triggers
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-    eval qq(
-        &trigger_set('\$New_Hour and net_connect_check', "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes')
-          unless &trigger_get('get earthquakes');
-    );
+if ($Reload) {
+    &trigger_set('$New_Hour and net_connect_check', "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes')
+      unless &trigger_get('get earthquakes');
 }

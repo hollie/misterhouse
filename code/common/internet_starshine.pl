@@ -2,7 +2,7 @@
 
 #@ This module announces when a visible pass of the starshine
 #@ satellite is about to occur.
-#@ 
+#@
 #@ You must have valid latitude, longitude, and time_zone values set
 #@ in your mh.private.ini file.
 
@@ -13,14 +13,14 @@ internet_starshine.pl
  1.0 Original version by Tim Doyle <tim@greenscourt.com>
      using internet_iridium.pl as an example - 11/11/2001
 
-The Starshine 3 project designed to encourage students around the world to participate in 
-an actual space mission. The spacecraft is like a large disco ball with many small mirrors 
-which glint in the sunlight as the spacecraft rotates and make it visible to observers on the ground. 
+The Starshine 3 project designed to encourage students around the world to participate in
+an actual space mission. The spacecraft is like a large disco ball with many small mirrors
+which glint in the sunlight as the spacecraft rotates and make it visible to observers on the ground.
 
-This code will announce when one of the visible passes is about to 
+This code will announce when one of the visible passes is about to
 occur, using the lat, long, and time_zone mh.ini parms.
 
-Note: Correct long. and time_zone parms for those of us in the 
+Note: Correct long. and time_zone parms for those of us in the
       Western Hemisphere will be negative numbers.
 
 =cut
@@ -30,12 +30,9 @@ $v_starshine_check ->set_info('Lists times and locations of visible starshine 3 
 
 # Create trigger
 
-if ($Reload and $Run_Members{'trigger_code'}) {
-	my $command = '\$New_Week';
-	eval qq(
-            &trigger_set("$command", "run_voice_cmd('Get starshine flares')", 'NoExpire', 'get starshine info') 
-              unless &trigger_get('get starshine info');
-        );
+if ($Reload) {
+    &trigger_set('$New_Week', "run_voice_cmd('Get starshine flares')", 'NoExpire', 'get starshine info')
+      unless &trigger_get('get starshine info');
 }
 
 sub uninstall_internet_starshine {
@@ -47,7 +44,7 @@ sub uninstall_internet_starshine {
                                 # so use UCT (GMT+0) and translate.
 my $starshine_check_e = "$Code_Dirs[0]/starshine_check_events.pl";
 my $f_starshine_check = "$config_parms{data_dir}/web/starshine.html";
-my $starshine_check_u = "http://www.heavens-above.com/PassSummary.asp?" . 
+my $starshine_check_u = "http://www.heavens-above.com/PassSummary.asp?" .
 "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&satid=26929";
 $p_starshine_check = new Process_Item qq[get_url "$starshine_check_u" "$f_starshine_check"];
 
@@ -55,7 +52,7 @@ sub respond_starshine {
 	my $connected = shift;
 	my $display = &list_starshine();
 	if ($display) {
-		$v_starshine_check->respond("app=starshine connected=$connected Listing starshine data.");	
+		$v_starshine_check->respond("app=starshine connected=$connected Listing starshine data.");
 		display $display, 0, 'Starshine list', 'fixed';
 	}
 	else {
@@ -100,8 +97,8 @@ eof
         }
     }
     close MYCODE;
-    return $display; 
-    
+    return $display;
+
     do_user_file $starshine_check_e; # This will enable the code file written above (MYCODE)
 }
 
@@ -137,4 +134,3 @@ if (expired $t_starshine_timer) {
     speak "app=starshine pitch=10 Starshine flash now occuring!";
     play 'timer2';              # Set in event_sounds.pl
 }
-

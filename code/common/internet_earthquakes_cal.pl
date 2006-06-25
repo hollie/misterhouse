@@ -6,26 +6,26 @@
 =begin comment
 
 internet_quakes_cal.pl
- 1.5 Added a process to automatically download an image showing where the 
+ 1.5 Added a process to automatically download an image showing where the
      latest quake was - David Norwood - 1/14/2004
- 1.4 Fixed a bug that kept it from reporting big quakes 
+ 1.4 Fixed a bug that kept it from reporting big quakes
      by David Norwood - 8/10/2001
  1.3 Adapted internet_quakes.pl for California specific data,
-     switched back to get_url, added relative time/date reporting 
+     switched back to get_url, added relative time/date reporting
      by David Norwood - 8/4/2001
- 1.2 Switched from get_url to get_finger, periodic updates, and 
-     %Save variable to remember old earthquakes so only new ones 
+ 1.2 Switched from get_url to get_finger, periodic updates, and
+     %Save variable to remember old earthquakes so only new ones
      are announced by David Norwood - 2/28/2001
  1.1 Distance thresholds by David Norwood <judapeno@gte.net>
      and other modifications by Tim Doyle - 2/18/2001
  1.0 Original version by Tim Doyle <tim@greenscourt.com>
      using news_yahoo.pl as an example - 2/15/2001
 
-This script checks the USGS California and Nevada earthquake list via the 
+This script checks the USGS California and Nevada earthquake list via the
 web and reads those that were at least the minimum magnitude(s) specified.
 
 When quakes are read, the date/time and location information are converted
-to relative units (i.e. 3 hours ago, yesterday at 5pm, 53 miles away) and 
+to relative units (i.e. 3 hours ago, yesterday at 5pm, 53 miles away) and
 and those that don't meet magnitude thresholds are omitted.
 
 If you want to customize your magnitude thresholds, set a variable
@@ -45,7 +45,7 @@ longitude .ini variable to be negative.
 
 =cut
 
-# Add earthquake image to Informational category web page 
+# Add earthquake image to Informational category web page
 if ($Reload) {
     $Included_HTML{'Informational'} .= qq(<h3>Latest California Earthquake<p><img src='/data/web/earthquakes_cal.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
 }
@@ -71,7 +71,7 @@ if ($config_parms{Earthquake_Count}) {
 $f_earthquakes_cal_html = new File_Item("$config_parms{data_dir}/web/earthquakes_cal.html");
 $f_earthquakes_cal_gif  = new File_Item("$config_parms{data_dir}/web/earthquakes_cal.gif");
 
-my $image; 
+my $image;
 $p_earthquakes_image_cal = new Process_Item;
 $p_earthquakes_cal = new Process_Item("get_url http://quake.wr.usgs.gov/recenteqs/Quakes/quakes0.htm " . $f_earthquakes_cal_html->name);
 
@@ -203,12 +203,7 @@ sub speak_quake_cal {
 
 # lets allow the user to control via triggers
 
-if ($Reload and $Run_Members{'trigger_code'}) { 
-    eval qq(
-        &trigger_set('\$New_Hour and net_connect_check', "run_voice_cmd 'Get recent California earthquakes'", 'NoExpire', 'get cal earthquakes') 
-          unless &trigger_get('get cal earthquakes');
-    );
+if ($Reload) {
+    &trigger_set('$New_Hour and net_connect_check', "run_voice_cmd 'Get recent California earthquakes'", 'NoExpire', 'get cal earthquakes')
+      unless &trigger_get('get cal earthquakes');
 }
-
-
-

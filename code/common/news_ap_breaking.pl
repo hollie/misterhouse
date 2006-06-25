@@ -20,7 +20,7 @@ sub get_ap_news {
     my $response;
 
     if (&net_connect_check) {
-      $response = "Retrieving news from the AP...";     
+      $response = "Retrieving news from the AP...";
       start $p_ap_news;
     }
     else {
@@ -32,11 +32,11 @@ sub get_ap_news {
     if ($v_get_ap_news->{set_by} and $v_get_ap_news->{set_by} !~ /usercode/i  and $v_get_ap_news->{set_by} !~ /unknown/i) {
 #	print $v_get_ap_news->{set_by} . " = SetBy";
       respond $response;
-    }    
+    }
     else {
       print_log $response;
     }
-	
+
 }
 
 tie_event $v_get_ap_news "get_ap_news()";
@@ -53,14 +53,14 @@ if (done_now $p_ap_news) {
     $html = "<ul>";
 
  # print the title and link of each RSS item
- 
+
   my $description;
- 
+
   foreach my $item (@{$rss->{'items'}}) {
     #Get what we need for the straight text version
     $text .= "Headline: $item->{'title'}\n";
     $text .= "$item->{'description'}\n\n";
- 
+
     $description = $item->{'description'};
     $description = &html_encode($description);
     #Get and format the html version
@@ -82,20 +82,13 @@ if ($state = said $v_ap_news) {
 
 # create trigger to download breaking news at five after each hour
 
-if ($Reload and $Run_Members{'trigger_code'}) { 
-    if ($Run_Members{'internet_dialup'}) { 
-        eval qq(
-            &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get AP Breaking News'", 'NoExpire', 'get AP news') 
-              unless &trigger_get('get AP news');
-        );
+if ($Reload) {
+    if ($Run_Members{'internet_dialup'}) {
+        &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get AP Breaking News'", 'NoExpire', 'get AP news')
+          unless &trigger_get('get AP news');
     }
     else {
-        eval qq(
-            &trigger_set("time_cron '5 * * * *' and net_connect_check", "run_voice_cmd 'Get AP Breaking News'", 'NoExpire', 'get AP news') 
-              unless &trigger_get('get AP news');
-        );
+        &trigger_set("time_cron '5 * * * *' and net_connect_check", "run_voice_cmd 'Get AP Breaking News'", 'NoExpire', 'get AP news')
+          unless &trigger_get('get AP news');
     }
-}     
-
-
-
+}

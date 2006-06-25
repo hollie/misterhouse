@@ -45,13 +45,11 @@ my $weather_update_html_path = "$config_parms{data_dir}/web/wu-result.html"; #no
 
 # Create trigger
 
-if ($Reload and $Run_Members{'trigger_code'}) {
+if ($Reload) {
 	my $command = "new_minute " . (($config_parms{wunderground_frequency})?$config_parms{wunderground_frequency}:10);
 
-	eval qq(
-            &trigger_set("$command", "run_voice_cmd('Run wunderground.com upload')", 'NoExpire', 'upload weather') 
-              unless &trigger_get('upload weather');
-        );
+    &trigger_set($command, "run_voice_cmd('Run wunderground.com upload')", 'NoExpire', 'upload weather')
+      unless &trigger_get('upload weather');
 }
 
 # Events
