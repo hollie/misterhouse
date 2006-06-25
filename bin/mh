@@ -606,6 +606,7 @@ sub setup {
     require 'http_server.pl';
     require 'xml_server.pl';
     require 'menu_code.pl';
+    require 'trigger_code.pl';
 
     if ($OS_win) {
         no strict 'subs';   # For non-win OS
