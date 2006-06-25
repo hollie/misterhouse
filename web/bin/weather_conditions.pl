@@ -14,22 +14,10 @@ Cache-Control: no-cache
 
 ];
 
-if ($Weather{SummaryLong}) { 
-	$weather.=$Weather{SummaryLong};
+if ($Weather{Summary_Long}) { 
+	$weather.=$Weather{Summary_Long};
 } else {
-	$weather.='Temperature: '.$Weather{TempOutdoor}.'&deg;';
-	$weather.='  Humidity: '.$Weather{HumidOutdoor}.'%';
-	$weather.='  Wind: ';
-	if ($Weather{WindAvgSpeed}==0) {
-		$weather.='No Wind';
-	} else {
-		my $windDirName=qw{ N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW }[(($Weather{WindAvgDir}+11.25)/22.5)%16];
-		$weather.=$windDirName.' at '.$Weather{WindAvgSpeed};
-		if ($Weather{WindGustSpeed} > $Weather{WindAvgSpeed}) {
-			$weather.=' gusting to '.$Weather{WindAvgSpeed};
-		}
-	}
-	$weather.='  Air Pressure: '.$Weather{Barom};
+	$weather = 'unknown - enable a weather module';
 }
 
 return $weather;

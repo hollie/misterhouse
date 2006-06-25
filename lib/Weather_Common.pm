@@ -1,13 +1,13 @@
+# Weather_Common package
 # $Date$
 # $Revision$
-
-# Weather_Common package
 #
 # This packages should be included by all weather modules and libraries.
 # It provides a standard method to update common %Weather elements and
 # to add hooks whenever weather changes are detected
 #
-# Clients should call weather_updated whenever they have finished updating %Weather
+# Internet clients should use &populate_internet_weather to tranfer their data into %Weather
+# All clients should call &weather_updated whenever they have finished updating %Weather
 
 package Weather_Common;
 
@@ -22,8 +22,14 @@ BEGIN {
 		weather_add_hook
 		convert_local_barom_to_sea_mb
 		convert_local_barom_to_sea_in
+		convert_local_barom_to_sea
 		convert_sea_barom_to_local_mb
 		convert_sea_barom_to_local_in
+		convert_sea_barom_to_local
+		convert_humidity_to_dewpoint
+		convert_wind_dir_text_to_num
+		convert_wind_dir_abbr_to_num
+		convert_wind_dir_abbr_to_text
 		populate_internet_weather
 		);
 }
@@ -56,7 +62,6 @@ sub weather_updated {
 	if (defined $$w{TempOutdoor}) {
 		$apparentTemp=$$w{TempOutdoor};
 		$temperatureText=sprintf('%.1f&deg;%s',$$w{TempOutdoor}, $main::config_parms{weather_uom_temp});
-
 	}
 	$$w{WindChill}=$apparentTemp;
 	$$w{Humidex}=$apparentTemp;
@@ -134,36 +139,46 @@ sub weather_updated {
 	} 
 
 	my $windDirName='unknown';
+	my $windDirNameLong='unknown';
+	my $windDirection=$$w{WindAvgDir};
+	$windDirection=$$w{WindGustDir} if !defined $windDirection;
 
-	if (defined $$w{WindGustDir} and !defined $$w{WindAvgDir}) {
-		$$w{WindAvgDir} = $$w{WindGustDir};
-	}
-	if (defined $$w{WindAvgDir}) {
-		$windDirName=qw{ N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW }[(($$w{WindAvgDir}+11.25)/22.5)%16];
+	if (defined $windDirection) {
+		$windDirName=convert_wind_dir_to_abbr($windDirection);
+		$windDirNameLong=convert_wind_dir_to_text($windDirection);
 	}
 
 	my $shortWindText='unknown';
 	my $longWindText='unknown';
+
 	if (defined $$w{WindAvgSpeed}) {
-		if (!defined($$w{WindGustSpeed}) and $$w{WindAvgSpeed} == 0) {
+		if ($$w{WindAvgSpeed} < 1) {
 			$shortWindText='no wind';
 			$longWindText='no wind';
 		} else {
 			$shortWindText=sprintf('%s %.0f %s',$windDirName,$$w{WindAvgSpeed},$main::config_parms{weather_uom_wind});
 
-			$longWindText=sprintf('%s at %.0f %s',$windDirName,$$w{WindAvgSpeed},$main::config_parms{weather_uom_wind});
+			$longWindText=sprintf('%s at %.0f %s',$windDirNameLong,$$w{WindAvgSpeed},$main::config_parms{weather_uom_wind});
 		}
 
 		if (defined $$w{WindGustSpeed} and $$w{WindGustSpeed} > $$w{WindAvgSpeed}) {
-			if ($$w{WindGustSpeed} == 0) {
+			if ($$w{WindGustSpeed} < 1) {
 				$shortWindText='no wind';
 				$longWindText='no wind';
 			} else {
 				$shortWindText=sprintf('%s %.0f (%.0f) %s',$windDirName,$$w{WindAvgSpeed}, $$w{WindGustSpeed},$main::config_parms{weather_uom_wind});
-				$longWindText.=sprintf(' gusting to %.0f %s',$$w{WindGustSpeed},$main::config_parms{weather_uom_wind});
+				if ($$w{WindAvgSpeed} >= 1) {
+					$longWindText.=sprintf(' gusting to %.0f %s',$$w{WindGustSpeed},$main::config_parms{weather_uom_wind});
+				} else {
+					$longWindText=sprintf('%s gusts of %.0f %s',$windDirNameLong,$$w{WindGustSpeed},$main::config_parms{weather_uom_wind});
+				}
 			}
 		}
 	}
+	if ($shortWindText eq 'no wind') {
+		$windDirNameLong='no wind';
+	}
+	$$w{WindDirection}=$windDirNameLong;
 
 	my $clouds='unknown';
 	$clouds=$$w{Clouds} if defined $$w{Clouds};
@@ -174,14 +189,18 @@ sub weather_updated {
 
 	$$w{Summary_Short}=sprintf('%s%s %s', $temperatureText, $apparentTempText, $humidityText);
 	$$w{Summary}=$$w{Summary_Short}." $pressureText $clouds $conditions";
-	$$w{SummaryLong}="Temperature: $temperatureText";
+	$$w{Summary_Long}="Temperature: $temperatureText";
 	if ($apparentTempText ne '') {
-		$$w{SummaryLong}.='  Apparent Temperature: '.$$w{TempOutdoorApparent}.'&deg'.$main::config_parms{weather_uom_temp};
+		$$w{Summary_Long}.='  Apparent Temperature: '.$$w{TempOutdoorApparent}.'&deg;'.$main::config_parms{weather_uom_temp};
 	}
-	$$w{SummaryLong}.="  Humidity: $humidityText";
-	$$w{SummaryLong}.="  Wind: $longWindText";
-	$$w{SummaryLong}.="  Sky: $clouds";
-	$$w{SummaryLong}.="  Conditions: $conditions";
+	$$w{Summary_Long}.="  Humidity: $humidityText";
+	$$w{Summary_Long}.="  Wind: $longWindText";
+	$$w{Summary_Long}.="  Sky: $clouds";
+	if ($conditions eq '') {
+		$$w{Summary_Long}.='  Conditions: nothing to report';
+	} else {
+		$$w{Summary_Long}.="  Conditions: $conditions";
+	}
 
 	foreach my $subref (@weather_hooks) {
 		&$subref();
@@ -208,12 +227,116 @@ sub convert_local_barom_to_sea_in {
 	return sprintf('%.2f',$_[0] + $main::config_parms{altitude}/1000);
 }
 
+sub convert_local_barom_to_sea {
+	return $main::config_parms{weather_uom_baro} eq 'mb' ? convert_local_barom_to_sea_mb($_[0]) : convert_local_barom_to_sea_in($_[0]);
+}
+
 sub convert_sea_barom_to_local_mb {
 	return sprintf('%.1f',$_[0] - $main::config_parms{altitude}/24.24);
 }
 
 sub convert_sea_barom_to_local_in {
 	return sprintf('%.2f',$_[0] - $main::config_parms{altitude}/1000);
+}
+
+sub convert_sea_barom_to_local {
+	return $main::config_parms{weather_uom_baro} eq 'mb' ? convert_sea_barom_to_local_mb($_[0]) : convert_sea_barom_to_local_in($_[0]);
+}
+
+# converts humidity + temp (Celsius) to dewpoint (Celsius)
+sub convert_humidity_to_dewpoint {
+	my ($humidity,$temp_celsius)=@_;
+
+	my $dew_point = 1 - $humidity / 100;
+	$dew_point = (14.55 + .114 * $temp_celsius) * $dew_point + ((2.5 + .007 * $temp_celsius) * $dew_point ** 3)  + ((15.9 + .117 * $temp_celsius) * $dew_point ** 14);
+	$dew_point = $temp_celsius - $dew_point;
+	return sprintf('%.1f',$dew_point);
+}
+
+sub convert_wind_dir_text_to_num {
+	my ($wind)=@_;
+
+	$wind=lc($wind);
+
+	if ($wind eq 'north') {
+		$wind=0;
+	} elsif ($wind eq 'northeast') {
+		$wind=45;
+	} elsif ($wind eq 'east') {
+		$wind=90;
+	} elsif ($wind eq 'southeast') {
+		$wind=135;
+	} elsif ($wind eq 'south') {
+		$wind=180;
+	} elsif ($wind eq 'southwest') {
+		$wind=225;
+	} elsif ($wind eq 'west') {
+		$wind=270;
+	} elsif ($wind eq 'northwest') {
+		$wind=315;
+	} else {
+		$wind=undef;
+	}
+	return $wind;
+}
+
+sub convert_wind_dir_abbr_to_num {
+	my ($dir)=@_;
+
+	return 0 if $dir eq 'N';
+	return 23 if $dir eq 'NNE';
+	return 45 if $dir eq 'NE';
+	return 68 if $dir eq 'ENE';
+	return 90 if $dir eq 'E';
+	return 113 if $dir eq 'ESE';
+	return 135 if $dir eq 'SE';
+	return 158 if $dir eq 'SSE';
+	return 180 if $dir eq 'S';
+	return 203 if $dir eq 'SSW';
+	return 225 if $dir eq 'SW';
+	return 248 if $dir eq 'WSW';
+	return 270 if $dir eq 'W';
+	return 293 if $dir eq 'WNW';
+	return 315 if $dir eq 'NW';
+	return 338 if $dir eq 'NNW';
+	return undef;
+}
+
+sub convert_wind_dir_to_abbr {
+	my ($dir)=@_;
+	return 'unknown' if $dir !~ /^[\d \.]+$/;
+
+	if ($dir >= 0 and $dir <= 359) {
+		return qw{ N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW }[(($dir+11.25)/22.5)%16];
+	}
+	return 'unknown';
+}
+
+sub convert_wind_dir_to_text {
+	my ($dir)=@_;
+	return 'unknown' if $dir !~ /^[\d \.]+$/;
+
+	if ($dir >= 0 and $dir <= 359) {
+		return (
+			'North',
+			'North Northeast',
+			'Northeast',
+			'East Northeast',
+			'East',
+			'East Southeast',
+			'Southeast',
+			'South Southeast',
+			'South',
+			'South Southwest',
+			'Southwest',
+			'West Southwest',
+			'West',
+			'West Northwest',
+			'Northwest',
+			'North Northwest' )[(($dir+11.25)/22.5)%16];
+	}
+	return 'unknown';
+
 }
 
 # This should be called by external sources of weather like those
@@ -237,21 +360,25 @@ sub populate_internet_weather {
 				WindAvgSpeed
 				WindGustDir
 				WindGustSpeed
+				WindGustTime
 				Clouds
 				Conditions
 				Barom
 				BaromSea
+				HumidOutdoorMeasured
+				HumidOutdoor
+				IsRaining
+				IsSnowing
 			);
 		} else {
 			@keys=split(/\s+/,$main::config_parms{weather_internet_elements});
 		}
 	}
 	foreach my $key (@keys) {
-		if ($$weatherHashRef{$key} ne '') {
+		if (defined $$weatherHashRef{$key}) {
 			$main::Weather{$key}=$$weatherHashRef{$key};
 		}
 	}
 }
-
 
 1;

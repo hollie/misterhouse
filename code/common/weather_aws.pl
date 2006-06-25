@@ -1,5 +1,8 @@
 # Category=Weather
 
+# $Date$
+# $Revision$
+
 #@ This code will retrieve and parse data from an AWS weather station via
 #@ their website.
 #@
@@ -63,52 +66,25 @@
 
 =cut
 
-
 use HTML::TableExtract;
+use Weather_Common;
 
 # noloop=start
 my $AWS_ID = $config_parms{aws_id};
+$AWS_ID='TMISC' unless $AWS_ID;
 my $f_awsweather_html = "$config_parms{data_dir}/web/$AWS_ID.html";
 my $prev_timestamp;
-#y $AWSWeatherURL="http://aws.com/full.asp?id=$AWS_ID";
+#my $AWSWeatherURL="http://aws.com/full.asp?id=$AWS_ID";
 my $AWSWeatherURL="http://www.aws.com/AWS/full.asp?id=$AWS_ID";
 $v_get_aws_weather = new Voice_Cmd('Get AWS weather data');
 $p_awsweather_page = new Process_Item("get_url -quiet \"$AWSWeatherURL\" \"$f_awsweather_html\"");
 # noloop=stop
 
-sub convert_simple_direction {
- my ($dir) = @_;
-    return 'NA' if $dir !~ /^[\d \.]+$/;
-    return 'N'  if $dir <  30 or $dir >= 330;
-    return 'NE' if $dir <  60;
-    return 'E'  if $dir < 120;
-    return 'SE' if $dir < 150;
-    return 'S'  if $dir < 210;
-    return 'SW' if $dir < 240;
-    return 'W'  if $dir < 300;
-    return 'NW' if $dir < 330;
-    return 'NA';
-}
-
-sub convert_to_degrees {
-  my ($temp) = @_;
-  $temp =~ s/NE/45/g;
-  $temp =~ s/NNE/23/g;
-  $temp =~ s/NNW/338/g;
-  $temp =~ s/SE/135/g;
-  $temp =~ s/SW/225/g;
-  $temp =~ s/NW/315/g;
-  $temp =~ s/SSE/158/g;
-  $temp =~ s/SSW/203/g;
-  $temp =~ s/WNW/293/g;
-  $temp =~ s/ESE/113/g;
-  $temp =~ s/ENE/68/g;
-  $temp =~ s/S/180/g;
-  $temp =~ s/W/270/g;
-  $temp =~ s/E/90/g;
-  $temp =~ s/N/0/g;
-  return $temp;
-}
+# These values aren't provided by this code, but leaving them undefined causes 
+# problems with logging. Leave them commented out if you have external code to 
+# fill them with usefull data.
+#$Weather{TempIndoor}  = 0.00; 
+#$Weather{HumidIndoor} = 0.00; 
 
 # *** Conditions?, IsRaining?, etc.
 
@@ -142,7 +118,9 @@ if (done_now $p_awsweather_page) {
   my $html = file_read $f_awsweather_html;
   return unless $html; 
 
-#  my $te = new HTML::TableExtract( depth => 1, count => 1, subtables => 1);
+  # hash used to temporarily store weather info before selective load into %Weather
+  my %w=();
+
   my $te = new HTML::TableExtract( depth => 2, count => 1, subtables => 1);
 
   $te->parse($html);
@@ -157,7 +135,7 @@ if (done_now $p_awsweather_page) {
 
   $cell[1][1] =~ m/\s+(-?\d+).(\d+)/;
   #print "Current temperature: ", join(".", $1, $2), "°F\n";
-  $Weather{TempOutdoor} = join(".", $1, $2);
+  $w{TempOutdoor} = join(".", $1, $2);
 
   #$cell[1][2] =~ m/\s+(\d+).(\d+) at\s+(\d+):(\d+)(\D+)\n\s+(\d+).(\d+) at\s+(\d+):(\d+)(\D+)\n/;
   #print "Min temp: ", join(".", $1, $2), "°F at ", "$3:$4 $5\n";
@@ -170,7 +148,8 @@ if (done_now $p_awsweather_page) {
 
   $cell[2][1] =~ m/\s+(\d+).(\d+)/;
   #print "Current humidity: ", join(".", $1, $2), "\n";
-  $Weather{HumidOutdoor} = join(".", $1, $2);
+  $w{HumidOutdoor} = join(".", $1, $2);
+  $w{HumidOutdoorMeasured}=1; # tell Weather_Common that we directly measured humidity
 
   #$cell[2][2] =~ m/\s+(\d+).(\d+) at\s+(\d+):(\d+)(\D+)\n\s+(\d+).(\d+) at\s+(\d+):(\d+)(\D+)\n/;
   #print "Min humidity: ", join(".", $1, $2), "\% at ", "$3:$4 $5\n";
@@ -183,27 +162,27 @@ if (done_now $p_awsweather_page) {
 
   $cell[3][1] =~ m/(\w+) at\s+(\d+).(\d+)/;
   #print "Current wind direction: $1, Speed: ", join(".", $2, $3), "\n";
-  #$Weather{WindAvgDir} = $1;
+  #$w{WindAvgDir} = $1;
   my $newdirection = $1;
-  $Weather{WindAvgSpeed} = join(".", $2, $3);
-  $Weather{WindAvgDir} = convert_to_degrees($newdirection);
+  $w{WindAvgSpeed} = join(".", $2, $3);
+  $w{WindAvgDir} = convert_wind_dir_abbr_to_num($newdirection);
 
   $cell[3][2] =~ m/\s+(\w+)\s+(\d+).(\d+) at\s+(\d+):(\d+)(\D+)\n/;
   #print "Max wind direction: $1, Speed: ", join(".", $2, $3), " at $4:$5 $6\n";
   my $newgustdir = $1;
   my $newgusttime = "$4:$5 $6";
-  if ($Weather{WindGustTime} ne $newgusttime) {
-    $Weather{WindGustSpeed} = join(".", $2, $3);
-    $Weather{WindGustDir} = convert_to_degrees($newgustdir);
-    $Weather{WindGustTime} = $newgusttime;
+  if ($w{WindGustTime} ne $newgusttime) {
+    $w{WindGustSpeed} = join(".", $2, $3);
+    $w{WindGustDir} = convert_wind_dir_abbr_to_num($newgustdir);
+    $w{WindGustTime} = $newgusttime;
   }
   else {
-    $Weather{WindGustSpeed} = 0 if $Weather{WindGustSpeed};
+    $w{WindGustSpeed} = 0 if $w{WindGustSpeed};
   }
 
   $cell[4][1] =~ m/\s+(\d+).(\d+)/;
   #print "Current rain: ", join(".", $1, $2), "\n";
-  $Weather{RainTotal} = join(".", $1, $2) unless $config_parms{aws_ignore_rain};
+  $w{RainTotal} = join(".", $1, $2) unless $config_parms{aws_ignore_rain};
 
 	# *** Set IsRaining here
 
@@ -215,11 +194,12 @@ if (done_now $p_awsweather_page) {
 
   $cell[4][3] =~ m/\s+(\d+).(\d+)/;
   #print "Rain hourly increase/decrease: ", join(".", $1, $2), "\n";
-  $Weather{RainRate} = join(".", $1, $2) unless $config_parms{aws_ignore_rain};
+  $w{RainRate} = join(".", $1, $2) unless $config_parms{aws_ignore_rain};
 
   $cell[5][1] =~ m/\s+(\d+).(\d+)/;
   #print "Current pressure: ", join(".", $1, $2), "in Hg\n";
-  $Weather{Barom} = join(".", $1, $2);
+  $w{BaromSea} = join(".", $1, $2);
+  $w{Barom}=convert_sea_barom_to_local_in($w{BaromSea});
 
   #$cell[5][2] =~ m/\s+(\d+).(\d+) at\s+(\d+):(\d+)(\D+)\n\s+(\d+).(\d+) at\s+(\d+):(\d+)(\D+)\n/;
   #print "Max pressure: ", join(".", $1, $2), "in Hg at ", "$3:$4 $5\n";
@@ -232,7 +212,7 @@ if (done_now $p_awsweather_page) {
 
   $cell[6][1] =~ m/\s+(\d+).(\d+)/;
   #print "Current light: ", join(".", $1, $2), "\%\n";
-  $Weather{sun_sensor} = join(".", $1, $2);
+  $w{sun_sensor} = join(".", $1, $2);
 
   # *** Set conditions
 
@@ -247,33 +227,47 @@ if (done_now $p_awsweather_page) {
   $cell[7][0] =~ m/(-?\d+).(\d+) /;
   # heat index/wind chill
   #print "Heat index: ", join(".", $1, $2), "°F\n";
-  $Weather{WindChill} = join(".", $1, $2);
+
+  # wind chill is now calculated by Weather_Common using a modern formula
+  #$w{WindChill} = join(".", $1, $2);
 
   #$cell[7][1] =~ m/\s\w+ \w+\s+(\d+).(\d+) /;
   #print "Monthly rain: ", join(".", $1, $2), "in\n";
 
   $cell[7][2] =~ m/\s\w+ \w+\s+(-?\d+).(\d+) /;
   #print "Dew point: ", join(".", $1, $2), "°F\n";
-  $Weather{DewOutdoor} = join(".", $1, $2);
+  $w{DewOutdoor} = join(".", $1, $2);
 
   #$cell[7][3] =~ m/\s\w+ \w+\s+(\d+).(\d+) /;
   #print "Wet bulb: ", join(".", $1, $2), "°F\n";
 
+  if ($config_parms{weather_uom_temp} eq 'C') {
+  	grep {$w{$_}=convert_f2c($w{$_});} qw(
+  	  TempOutdoor
+  	  DewOutdoor
+  	);
+  }
+  if ($config_parms{weather_uom_baro} eq 'mb') {
+  	grep {$w{$_}=convert_in2mb($w{$_});} qw(
+  	  Barom
+  	  BaromSea
+  	);
+  }
+  if ($config_parms{weather_uom_wind} eq 'kph') {
+  	grep {$w{$_}=convert_mile2km($w{$_});} qw(
+  	  WindGustSpeed
+  	  WindAvgSpeed
+  	);
+  }
+  if ($config_parms{weather_uom_wind} eq 'm/s') {
+  	grep {$w{$_}=convert_mph2mps($w{$_});} qw(
+  	  WindGustSpeed
+  	  WindAvgSpeed
+  	);
+  }
 
-  # Update the summary info for the web page
-# $Weather{Summary_Short}= sprintf("%4.1f/%2d/%2d %3d%% %3d%%", 
-
-
-# *** When stored by Inet weather it is in English and does not have the indoor temp!
-  $Weather{Summary_Short}= sprintf("%3.1f/%3d/%3d %3d%% %3d%%", 
-                                    $Weather{TempIndoor}, 
-                                    $Weather{TempOutdoor}, 
-                                    $Weather{WindChill},
-                                    $Weather{HumidIndoor}, 
-                                    $Weather{HumidOutdoor});
-  $Weather{Wind} = " $Weather{WindAvgSpeed}/$Weather{WindGustSpeed} " .
-                      convert_simple_direction($Weather{WindAvgDir});
-
+  &populate_internet_weather(\%w);
+  &weather_updated;
   $v_get_aws_weather->respond('app=weather connected=0 Weather data retrieved.');
 
 }

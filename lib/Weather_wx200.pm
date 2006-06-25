@@ -1,6 +1,11 @@
+# $Date$
+# $Revision$
+
 use strict;
 
 package Weather_wx200;
+
+use Weather_Common;
 
 =begin comment
 
@@ -39,7 +44,7 @@ sub update_wx200_weather {
     my $debug = 1 if $main::Debug{weather};
     my $remainder = &read_wx200($data, \%main::Weather, $debug);
     set_data $wx200_port $remainder if $remainder;
-
+    &weather_updated;
 }                             
 
 # Category=Weather
@@ -114,17 +119,13 @@ sub wx_temp {
     my ($wptr, $debug, @data) = @_;
     $$wptr{TempIndoor}  = &wx_temp2(@data[1..2])   unless $skip{TempIndoor};
     $$wptr{TempOutdoor} = &wx_temp2(@data[16..17]) unless $skip{TempOutdoor};
+    if ($main::config_parms{weather_uom_temp} eq 'F') {
+    	grep {$$wptr{$_}=convert_c2f($$wptr{$_}) unless $skip{$_};} qw(
+    		TempIndoor
+    		TempOutdoor
+		);
+	}
     print "temp = $$wptr{TempIndoor}, $$wptr{TempOutdoor}\n"  if $debug;
-
-    if ($$wptr{WindChill} and $$wptr{HumidIndoor}) {
-        $$wptr{Summary_Short} = sprintf("%4.1f/%2d/%2d %3d%% %3d%%",
-                                        $$wptr{TempIndoor}, $$wptr{TempOutdoor}, $$wptr{WindChill},
-                                        $$wptr{HumidIndoor}, $$wptr{HumidOutdoor});
-        $$wptr{Summary} = sprintf("In/out/chill: %4.1f/%2d/%2d Humid:%3d%% %3d%%",
-                                  $$wptr{TempIndoor}, $$wptr{TempOutdoor}, $$wptr{WindChill},
-                                  $$wptr{HumidIndoor}, $$wptr{HumidOutdoor});
-    }
-
 #   $wx_counts{temp}++;
 }
 #9F. 1	DD	all	Temp	Indoor: 'bc' of 0<ab.c<50 degrees C @ 0.1
@@ -139,28 +140,39 @@ sub wx_temp2 {
     my $temp   =  sprintf('%x%02x', 0x07 & $n2, $n1);
     substr($temp, 2, 0) = '.';
     $temp *= -1 if 0x08 & $n2;
-    #$temp = &main::convert_c2f($temp);
-    $temp = ($main::config_parms{default_temp} eq 'Celsius') ? $temp : &main::convert_c2f($temp); 
     return $temp;
 }
 
 sub wx_baro {
     my ($wptr, $debug, @data) = @_;
     $$wptr{Barom} = sprintf('%x%02x', $data[2], $data[1]) unless  $skip{Barom};
-                                # This number is the same on my unit, so lets compensate 
-                                #  - add 1 mill-bars per 10 meters (altitude is in feet)
+
     unless ($skip{BaromSea}) {
         $$wptr{BaromSea} = sprintf('%x%02x%02x', 0x0f & $data[5], $data[4], $data[3]);
         substr($$wptr{BaromSea}, -1, 0) = '.';
-        if ($main::config_parms{altitude}) {
-            $$wptr{BaromSea} = $$wptr{Barom} + $main::config_parms{altitude}/(10 * 3.28);
+        if ($wptr{BaromSea} == $wptr{Barom}) {
+       	    $$wptr{BaromSea} = convert_local_barom_to_sea_mb($$wpr{Barom});
         }
     }
 
+    if ($main::config_parms{weather_uom_baro} eq 'in') {
+    	$$wptr{Barom} = convert_mb2in ($$wptr{Barom});
+    	$$wptr{BaromSea} = convert_mb2in ($$wptr{BaromSea});
+	}
+
     $data[18] = 0x00 if $data[18] == 0xee; # Returns 0xee (238) in sub zero weather
 
-    $$wptr{DewIndoor}  =  &main::convert_c2f(sprintf('%x', $data[7]))  unless $skip{DewIndoor};
-    $$wptr{DewOutdoor} =  &main::convert_c2f(sprintf('%x', $data[18])) unless $skip{DewOutdoor};
+    $$wptr{DewIndoor}  =  sprintf('%x', $data[7])  unless $skip{DewIndoor};
+    $$wptr{DewOutdoor} =  sprintf('%x', $data[18]) unless $skip{DewOutdoor};
+    if ($main::config_parms{weather_uom_temp} eq 'F') {
+    	grep {$$wptr{$_}=convert_c2f($$wptr{$_}) unless $skip{$_};} qw(
+    		DewIndoor
+    		DewOutdoor
+		);
+	}
+
+    if ($main::config_parms{weather_uom_temp} eq 'F') {
+
     print "baro = $$wptr{Barom}, $$wptr{BaromSea} dew=$$wptr{DewIndoor}, $$wptr{DewOutdoor}\n"  if $debug;
 #   $wx_counts{baro}++;
 }
@@ -178,9 +190,14 @@ sub wx_rain {
     $$wptr{RainRate} = sprintf('%x%02x', 0x0f & $data[2], $data[1]) unless $skip{RainRate};
     $$wptr{RainYest} = sprintf('%x%02x',        $data[4], $data[3]) unless $skip{RainYest};
     $$wptr{RainTotal}= sprintf('%x%02x',        $data[6], $data[5]) unless $skip{RainTotal};
-    $$wptr{RainRate} = sprintf('%3.1f', $$wptr{RainRate} / 25.4)    unless $skip{RainRate};
-    $$wptr{RainYest} = sprintf('%3.1f', $$wptr{RainYest} / 25.4)    unless $skip{RainYest};
-    $$wptr{RainTotal}= sprintf('%3.1f', $$wptr{RainTotal}/ 25.4)    unless $skip{RainTotal};
+
+    if ($main::config_parms{weather_uom_rain} eq 'in') {
+    	grep {$$wptr{$_}=convert_mm2in($$wptr{$_}) unless skip{$_};} qw(
+    		RainRate
+    		RainYest
+    		RainTotal
+		);
+	}
     print "rain = $$wptr{RainRate}, $$wptr{RainYest}, $$wptr{RainTotal}\n"  if $debug;
 
     $$wptr{SummaryRain} = sprintf("Rain Recent/Total: %3.1f / %4.1f  Barom: %4d",
@@ -200,32 +217,35 @@ sub wx_rain {
 
 sub wx_wind {
     my ($wptr, $debug, @data) = @_;
-                                # Convert from meters/sec to miles/hour  = 1609.3 / 3600
     unless ($skip{WindGustSpeed}) {
         $$wptr{WindGustSpeed} = sprintf('%x%02x', 0x0f & $data[2], $data[1]);
         substr($$wptr{WindGustSpeed}, -1, 0) = '.';
-        $$wptr{WindGustSpeed} = sprintf('%3d', $$wptr{WindGustSpeed} * 2.237);
         $$wptr{WindGustDir}   = sprintf('%x%01x', $data[3], $data[2] >> 4);
     }
     unless ($skip{WindAvgSpeed}) {
         $$wptr{WindAvgSpeed}  = sprintf('%x%02x', 0x0f & $data[5], $data[4]);
         substr($$wptr{WindAvgSpeed}, -1, 0)  = '.';
-        $$wptr{WindAvgSpeed}  = sprintf('%3d', $$wptr{WindAvgSpeed}  * 2.237);
         $$wptr{WindAvgDir}    = sprintf('%x%01x', $data[6], $data[5] >> 4);
     }
+# 	This is calculated by Weather_Common using a more modern formula
+#    unless ($skip{WindChill}) {
+#        $$wptr{WindChill} = sprintf('%x', $data[16]);
+#        $$wptr{WindChill} *= -1 if 0x20 & $data[21];
+#    }
 
-    unless ($skip{WindChill}) {
-        $$wptr{WindChill} = sprintf('%x', $data[16]);
-        $$wptr{WindChill} *= -1 if 0x20 & $data[21];
-        #$$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill});
-        $$wptr{WindChill} =($main::config_parms{default_temp} eq 'Celsius') ? $$wptr{WindChill} : &main::convert_c2f($$wptr{WindChill}); 
-    }
-
-    $$wptr{Wind} = sprintf("%3d /%3d from the %s",
-                           $$wptr{WindAvgSpeed}, $$wptr{WindGustSpeed}, &main::convert_direction($$wptr{WindAvgDir}));
-    $$wptr{SummaryWind} = "Wind avg/gust:$$wptr{Wind}";
-
-    print "wind = $$wptr{WindGustSpeed}, $$wptr{WindAvgSpeed}, $$wptr{WindGustDir}, $$wptr{WindAvgDir} chill=$$wptr{WindChill}\n" 
+    if ($main::config_parms{weather_uom_wind} eq 'mph') {
+    	grep {$$wptr{$_}=convert_mps2mph($$wptr{$_}) unless skip{$_};} qw(
+    		WindAvgSpeed
+    		WindGustSpeed
+		);
+	}
+    if ($main::config_parms{weather_uom_wind} eq 'kph') {
+    	grep {$$wptr{$_}=convert_mps2kph($$wptr{$_}) unless skip{$_};} qw(
+    		WindAvgSpeed
+    		WindGustSpeed
+		);
+	}
+    print "wind = $$wptr{WindGustSpeed}, $$wptr{WindAvgSpeed}, $$wptr{WindGustDir}, $$wptr{WindAvgDir}\n" 
         if $debug;
 #   print "wind=@data\n";
 #   $wx_counts{wind}++;

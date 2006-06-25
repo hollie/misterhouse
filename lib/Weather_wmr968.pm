@@ -303,6 +303,7 @@ sub wx_wind {
 		$$wptr{WindGustSpeed}=sprintf('%.0f',&main::convert_mps2mph($$wptr{WindGustSpeed})) if $main::config_parms{weather_uom_wind} eq 'mph';
         $$wptr{WindGustDir}=sprintf('%u', 0x0f & $data[5])*100 + sprintf('%u', (0xf0 & $data[4])>>4)*10
 	 	 		+ sprintf('%u', 0x0f & $data[4]);
+	 	$$wptr{WindAvgDir}=$$wptr{WindGustDir};
     }
     unless ($skip{WindAvgSpeed}) {
         $$wptr{WindAvgSpeed}=sprintf('%u', 0x0f & $data[8])*10 + sprintf('%u', (0xf0 & $data[7])>>4)

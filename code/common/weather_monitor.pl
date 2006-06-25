@@ -35,18 +35,83 @@ $WindGust -> tie_event('print_log "Wind gust at $state"');
 use Weather_Item;
 use Weather_Common;
 
-my $weather_wind_gust_threshold=$config_parms{weather_wind_gust_threshold}; # noloop
-$weather_wind_gust_threshold=12 unless $weather_wind_gust_threshold;  # noloop
+# noloop=start
+
+# do not override these variable here!!
+# instead, define your own values in mh{.private}.ini
+
+my $default_outdoor_comfort_min=70;
+my $default_outdoor_comfort_max=75;
+my $default_heat_warning_point=90;
+my $default_cold_warning_point=20;
+my $default_temp_indoor_maximum=80;
+my $default_temp_indoor_minimum=60;
+my $default_weather_pollen_threshold=12;
+my $default_wind_gust_threshold=20;
+my $default_humid_indoor_maximum=50;
+my $default_humid_indoor_minimum=30;
+
+# Set for quick reference in expressions
+$Weather{FreezePoint} = 32;
+$Weather{FrostbitePoint} = 20; # in fahrenheit
+
+if ($config_parms{weather_uom_temp} eq 'C') {
+	grep {$_=convert_f2c($_)} (
+		$default_outdoor_comfort_min,
+		$default_outdoor_comfort_max,
+		$default_heat_warning_point,
+		$default_cold_warning_point,
+		$default_temp_indoor_maximum,
+		$default_temp_indoor_minimum,
+		$Weather{FreezePoint},
+		$Weather{FrostbitePoint}
+	);
+}
+
+if ($config_parms{weather_uom_wind} eq 'kph') {
+	grep {$_=convert_mile2km($_)} (
+		$default_wind_gust_threshold
+	);
+}
+
+if ($config_parms{weather_uom_wind} eq 'm/s') {
+	grep {$_=convert_mph2mps($_)} (
+		$default_wind_gust_threshold
+	);
+}
+
+
+$Weather{HeatWarningPoint} = $config_parms{heat_warning_point}; # danger point for outdoor temp
+$Weather{HeatWarningPoint} = $default_heat_warning_point unless defined $Weather{HeatWarningPoint};
+$Weather{ColdWarningPoint} = $config_parms{cold_warning_point}; # danger point for outdoor temp
+$Weather{ColdWarningPoint} = $default_cold_warning_point unless defined $Weather{ColdWarningPoint};
+
+my $outdoor_comfort_min = $config_parms{outdoor_comfort_min};
+$outdoor_comfort_min = $default_outdoor_comfort_min unless $config_parms{outdoor_comfort_min};
+my $outdoor_comfort_max = $config_parms{outdoor_comfort_max};
+$outdoor_comfort_max = $default_outdoor_comfort_max unless $config_parms{outdoor_comfort_max};
+
+my $rain_units='inches';
+$rain_units='millimeters' if $config_parms{weather_uom_rain} eq 'mm';
+my $rainrate_units='inches per hour';
+$rainrate_units='millimeters per hour' if $config_parms{weather_uom_rain} eq 'mm/hr';
+
+my $wind_units='miles per hour';
+$wind_units='kilometers per hour' if $config_parms{weather_uom_wind} eq 'kph';
+$wind_units='meters per second' if $config_parms{weather_uom_wind} eq 'm/s';
+
+my $weather_wind_gust_threshold=$config_parms{weather_wind_gust_threshold};
+$weather_wind_gust_threshold=$default_wind_gust_threshold unless $weather_wind_gust_threshold;
 my $weather_pollen_threshold=$config_parms{weather_pollen_threshold}; # noloop
-$weather_pollen_threshold=12 unless $weather_pollen_threshold;  # noloop
-my $weather_temp_indoor_maximum=$config_parms{weather_temp_indoor_max}; # noloop
-my $weather_temp_indoor_minimum=$config_parms{weather_temp_indoor_min}; # noloop
-$weather_temp_indoor_maximum = 80 unless $weather_temp_indoor_maximum; #noloop
-$weather_temp_indoor_minimum = 60 unless $weather_temp_indoor_minimum; #noloop
-my $weather_humid_indoor_maximum = $config_parms{weather_humid_indoor_max}; # noloop
-my $weather_humid_indoor_minimum = $config_parms{weather_humid_indoor_min}; # noloop
-$weather_humid_indoor_maximum = 50 unless $weather_humid_indoor_maximum; #noloop
-$weather_humid_indoor_minimum = 30 unless $weather_humid_indoor_minimum; #noloop
+$weather_pollen_threshold=$default_weather_pollen_threshold unless $weather_pollen_threshold;
+my $weather_temp_indoor_maximum=$config_parms{weather_temp_indoor_max};
+my $weather_temp_indoor_minimum=$config_parms{weather_temp_indoor_min};
+$weather_temp_indoor_maximum = $default_temp_indoor_maximum unless $weather_temp_indoor_maximum;
+$weather_temp_indoor_minimum = $default_temp_indoor_minimum unless $weather_temp_indoor_minimum;
+my $weather_humid_indoor_maximum = $config_parms{weather_humid_indoor_max};
+my $weather_humid_indoor_minimum = $config_parms{weather_humid_indoor_min};
+$weather_humid_indoor_maximum = $default_humid_indoor_maximum unless $weather_humid_indoor_maximum;
+$weather_humid_indoor_minimum = $default_humid_indoor_minimum unless $weather_humid_indoor_minimum;
 
 $TempOutdoor  = new Weather_Item 'TempOutdoor';
 $TempOutdoorA = new Weather_Item 'TempOutdoorApparent';
@@ -76,59 +141,13 @@ $Raining = new Weather_Item 'IsRaining';
 $Snowing = new Weather_Item 'IsSnowing';
 $FreezingRain = new Weather_Item 'IsRaining and TempOutdoor < FreezePoint';
 $IceStorm = new Weather_Item 'IsRaining and TempOutdoor < FreezePoint and WindGustSpeed > 15';
-
 $Freezing = new Weather_Item 'TempOutdoor <= FreezePoint';
 $FreezingIndoor = new Weather_Item 'TempIndoor <= FreezePoint';
-
-# *** Need to track temperature rate of change
-
 $WindChill = new Weather_Item 'WindChill';
 $DewOutdoor = new Weather_Item 'DewOutdoor';
 $Dew = new Weather_Item 'HumidOutdoor > 70';
 $Frost = new Weather_Item 'HumidOutoor > 70 and TempOutdoor < FreezePoint';
 $Frostbite = new Weather_Item 'WindChill < FrostbitePoint';
-
-#noloop=start
-
-my $default_outdoor_comfort_min=70;
-my $default_outdoor_comfort_max=75;
-my $default_heat_warning_point=90;
-my $default_cold_warning_point=20;
-
-# Set for quick reference in expressions
-$Weather{FreezePoint} = 32;
-$Weather{FrostbitePoint} = 20; # in fahrenheit
-
-if ($config_parms{weather_uom_temp} eq 'C') {
-	grep {$_=convert_f2c($_)} (
-		$default_outdoor_comfort_min,
-		$default_outdoor_comfort_max,
-		$default_heat_warning_point,
-		$default_cold_warning_point,
-		$Weather{FreezePoint},
-		$Weather{FrostbitePoint},
-	);
-}
-
-
-$Weather{HeatWarningPoint} = $config_parms{heat_warning_point}; # danger point for outdoor temp
-$Weather{HeatWarningPoint} = $default_heat_warning_point unless defined $Weather{HeatWarningPoint};
-$Weather{ColdWarningPoint} = $config_parms{cold_warning_point}; # danger point for outdoor temp
-$Weather{ColdWarningPoint} = $default_cold_warning_point unless defined $Weather{ColdWarningPoint};
-
-my $outdoor_comfort_min = $config_parms{outdoor_comfort_min};
-$outdoor_comfort_min = $default_outdoor_comfort_min unless $config_parms{outdoor_comfort_min};
-my $outdoor_comfort_max = $config_parms{outdoor_comfort_max};
-$outdoor_comfort_max = $default_outdoor_comfort_max unless $config_parms{outdoor_comfort_max};
-
-my $rain_units='inches';
-$rain_units='millimeters' if $config_parms{weather_uom_rain} eq 'mm';
-my $rainrate_units='inches per hour';
-$rainrate_units='millimeters per hour' if $config_parms{weather_uom_rain} eq 'mm/hr';
-
-my $wind_units='miles per hour';
-$wind_units='kilometers per hour' if $config_parms{weather_uom_wind} eq 'kph';
-$wind_units='meters per second' if $config_parms{weather_uom_wind} eq 'm/s';
 
 #noloop=stop
 

@@ -15,7 +15,7 @@
 #@
 #@ Place name of country (Canada or "other") in mh.ini as weather_metar_country
 #@ Place name of nearest station in mh.ini as weather_metar_station
-#@
+#@ Use weather_uom_* configs to choose units
 #
 # by Matthew Williams
 
@@ -43,23 +43,14 @@ $v_get_metar_weather = new Voice_Cmd('get metar weather');
 
 # noloop=stop
 
-if (($New_Minute and $Minute==5) or said $v_get_metar_weather) {
-	start $p_weather_metar_page;
-	if (said $v_get_metar_weather) {
-		$v_get_metar_weather->respond('Updating weather information from latest METAR');
-	}
+if ($Reload and $Run_Members{'trigger_code'}) {
+	# the last parameter '1' is required to overwrite any previous definition
+	&trigger_set('$New_Minute and $Minute == 5', '$p_weather_metar_page->start', 'NoExpire', 'Update weather information via METAR',1);
 }
 
-# useful for debugging
-$v_show_weather=new Voice_Cmd('show weather');
-
-if (said $v_show_weather) {
-	my $metric;
-	my $response='';
-	foreach $metric (keys(%Weather)) {
-		$response.= "Weather $metric is $Weather{$metric}\n";
-	}
-	$v_show_weather->respond($response);
+if (said $v_get_metar_weather) {
+	start $p_weather_metar_page;
+	$v_get_metar_weather->respond('Updating weather information from latest METAR');
 }
 
 if (done_now $p_weather_metar_page or $Reload) {
@@ -143,7 +134,6 @@ if (done_now $p_weather_metar_page or $Reload) {
 	}
 	
 	$weather =~ s/ $//; # remove trailing space
-	$weather = 'average' if $weather eq '';
 
 	$metar{Conditions}=$weather;
 	$metar{Clouds}=$clouds;
@@ -199,3 +189,18 @@ if (done_now $p_weather_metar_page or $Reload) {
 	&weather_updated;
 }
 
+# useful for debugging
+$v_show_weather=new Voice_Cmd('show weather');
+
+if (said $v_show_weather) {
+	my $metric;
+	my $response='';
+	foreach $metric (sort(keys(%Weather))) {
+		$response.= "Weather $metric is $Weather{$metric}\n";
+	}
+	$v_show_weather->respond($response);
+}
+
+sub uninstall_weather_metar {
+	&trigger_delete('Update weather information via METAR');
+}
