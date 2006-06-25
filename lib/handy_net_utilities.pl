@@ -1438,7 +1438,7 @@ sub main::net_mail_summary {
         print "msgnum=$msgnum  age=$age_msg date=$date_received from=$from sender=$sender to=$to subject=$subject\n" if $parms{debug} or $main::Debug{net};
 
 #       print "db m=$msgnum mf=$parms{first} a=$age_msg a=$parms{age} d=$date_received from=$from \n";
-        last if $age_msg > $parms{age};
+	if ($age_msg <= $parms{age}) {
 
         push(@{$msgdata{date}},      $date);
         push(@{$msgdata{received}},  $date_received);
@@ -1452,6 +1452,8 @@ sub main::net_mail_summary {
         push(@{$msgdata{header}},    $header);
         push(@{$msgdata{body}},      $body);
         push(@{$msgdata{number}},    $msgnum);
+
+	}
         last if --$msgnum < $parms{first};
     }
 
