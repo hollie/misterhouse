@@ -2,7 +2,7 @@
 
 #@ Various benchmarking functions.
 
-# If you want to run different benchmark with stuff turned off, 
+# If you want to run different benchmark with stuff turned off,
 # you can set parameters with at startup.  For example:
 #    mh -voice_cmd 0 -voice_text 0 -weeder_port none
 
@@ -84,5 +84,6 @@ if ($speed_benchmark_count and (new_second 5 or said $v_speed_benchmark)) {
     }
 
     file_write "$config_parms{data_dir}/logs/benchmark.log", $log;
-    display text => $log, time => 0, font => 'fixed', window_name => 'benchmarks', append=> 'top';
+#   display text => $log, time => 0, font => 'fixed', window_name => 'benchmarks', append=> 'top';
+    display text => $log, time => 0, font => 'fixed', window_name => 'benchmarks';
 }
