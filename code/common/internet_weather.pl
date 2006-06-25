@@ -1,5 +1,8 @@
 # Category = Weather
 
+# $Date$
+# $Revision$
+
 #@ Retrieves current weather conditions and forecasts using bin/get_weather (US only).
 #@ You will need to set the city, zone, and state parms in your ini file.
 #@ To verify your city, click <a href="http://iwin.nws.noaa.gov/iwin/iwdspg1.html">here</a>,
@@ -12,7 +15,9 @@
 #@ <a href="/bin/triggers.pl"> triggers page </a>
 #@ and modify the 'get internet weather' trigger.
 
-                                # Get the forecast and current weather data from the Internet
+use Weather_Common;
+
+# Get the forecast and current weather data from the Internet
 $v_get_internet_weather_data = new  Voice_Cmd('[Get,Check,Mail,SMS] Internet weather data');
 $v_get_internet_weather_data-> set_info("Retrieves weather conditions and forecasts for $config_parms{city}, $config_parms{state}");
 
@@ -26,7 +31,7 @@ $v_show_internet_weather_conditions-> set_info('Read previously downloaded weath
 $v_show_internet_weather_forecast-> set_authority('anyone');
 
 
-                                # These files get set by the get_weather program
+# These files get set by the get_weather program
 
 #noloop=start
 my $weather_forecast_path = "$config_parms{data_dir}/web/weather_forecast.txt";
@@ -47,7 +52,6 @@ sub normalize_conditions {
 	return $conditions;
 }
 
-
 if (said $v_get_internet_weather_data) {
     if (&net_connect_check) {
         my $city = $config_parms{city};
@@ -55,9 +59,8 @@ if (said $v_get_internet_weather_data) {
         set $p_weather_forecast qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}"|;
         start $p_weather_forecast;
         $v_get_internet_weather_data->respond("app=weather Weather data requested for $city, $config_parms{state}" . (($config_parms{zone})?" Zone $config_parms{zone}":''));
-    }
-    else {
-	$v_get_internet_weather_data->respond("app=weather You must be connected to the Internet get weather data");
+    } else {
+		$v_get_internet_weather_data->respond("app=weather You must be connected to the Internet get weather data");
     }
 }
 
@@ -67,8 +70,7 @@ if (my $state = said $v_show_internet_weather_forecast) {
 
 	if (length($forecast) < 50) {
 		respond "app=weather Last weather forecast received was incomplete."
-	}
-	else {
+	} else {
 		respond "app=weather $forecast";
 	}
 }
@@ -76,7 +78,7 @@ if (my $state = said $v_show_internet_weather_forecast) {
 if (my $state = said $v_show_internet_weather_conditions) {
 	my $conditions;
 
-    	$conditions = read_all $f_weather_conditions;
+	$conditions = read_all $f_weather_conditions;
 	$conditions = normalize_conditions($conditions);
 
 	respond "app=weather $conditions";
@@ -96,123 +98,89 @@ if (done_now $p_weather_forecast) {
 
     if ($conditions =~ /No data available/) {
         $v_get_internet_weather_data->respond("Weather conditions are unavailable at this time.");
-    }
-    else {
+    } else {
+    	# hash used to locally store weather conditions before selectively
+    	# transferring them to %Weather
+    	my %w=();
 
-	$conditions = normalize_conditions($conditions);
+		$conditions = normalize_conditions($conditions);
 
-        $Weather{TempInternet}  = $1 if $conditions =~ /(\d+) degrees/i;
-        $Weather{HumidInternet} = $1 if $conditions =~ /(\d+)\%/;
-        $Weather{BaromInternet} = $1 if $conditions =~ /([\d\.]+) in./;
-        $Weather{BaromInternetDelta} = $1 if $conditions =~ /(rising|falling|steady)/;
-        $Weather{WindGustSpeedI} = undef;
-        $Weather{WindGustSpeedI} = $1 if $conditions =~ /gusts\s+up\s+to\s+(\d+)\s+mph/;
+	    $w{TempOutdoor}  = $1 if $conditions =~ /(\d+) degrees/i;
+	    if ($conditions =~ /(\d+)\%/) {
+		    $w{HumidOutdoor} = $1;
+		    $w{HumidOutdoorMeasured}=1; # tell Weather_Common that we directly measured humidity
+		}
+	    $w{BaromSea} = $1 if $conditions =~ /([\d\.]+) in./;
+	    $w{BaromDelta} = $1 if $conditions =~ /(rising|falling|steady)/;
 
+		if ($conditions =~ /calm/i) {
+			$w{WindAvgSpeed} = 0;
+			$w{WindAvgDir} = undef;
+		} else {
+			if ($conditions =~ /wind\s+was\s+(.+?)\./) {
+				my $windText=$1;
+				($w{WindAvgDir}, $w{WindAvgSpeed}) = $windText =~ /(.+?)\s+at\s+(.+?)\s+mph/i;
+		    	($w{WindAvgSpeed}) = $windText =~ /at\s+(.+?)\s+mph/ if !defined $w{WindAvgDir};
+			}
+		}
+		$w{WindGustSpeed}=$w{WindAvgSpeed};
+	    $w{WindGustSpeed} = $1 if $conditions =~ /gusts\s+up\s+to\s+(\d+)\s+mph/;
+		$w{DewOutdoor}=convert_humidity_to_dewpoint($w{HumidOutdoor},convert_f2c($w{TempOutdoor})); # DewOutdoor is in Celsius at this point
 
-        if ($conditions =~ /calm/i) {
-            $Weather{WindI}  = "calm";
-            $Weather{WindSpeedI}  = 0;
-            $Weather{WindDirectionI} = undef;
-        }
-        else {
-            $Weather{WindI}  = $1 if $conditions =~ /wind\s+was\s+(.+?)\./;
+		# Who needs a sun sensor?
+	
+		if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny|foggy|light rain|heavy rain|light snow|heavy snow)/i) {
+			$w{Conditions} = ucfirst(lc($1));
+			$w{IsRaining} = ($Weather{Conditions} =~ /rain/i);
+			$w{IsSnowing} = ($Weather{Conditions} =~ /snow/i);
+		}
 
-            ($Weather{WindDirectionI}, $Weather{WindSpeedI}) = $Weather{WindI} =~ /(.+?)\s+at\s+(.+?)\s+mph/i;
+		$w{WindAvgDir}=convert_wind_dir_text_to_num($w{WindAvgDir});
 
-	    ($Weather{WindSpeedI}) = $Weather{WindI} =~ /at\s+(.+?)\s+mph/ if !defined $Weather{WindDirectionI};
-    }
+		if ($config_parms{weather_uom_wind} eq 'kph') {
+			grep {$w{$_}=convert_mile2km($w{$_});} qw(
+				WindAvgSpeed
+				WindGustSpeed
+			);
+		}
+		if ($config_parms{weather_uom_wind} eq 'm/s') {
+			grep {$w{$_}=convert_mph2mps($w{$_});} qw(
+				WindAvgSpeed
+				WindGustSpeed
+			);
+		}
+		if ($config_parms{weather_uom_temp} eq 'C') {
+			grep {$w{$_}=convert_f2c($w{$_});} qw(
+				TempOutdoor
+			);
+		}
+		if ($config_parms{weather_uom_temp} eq 'F') {
+			grep {$w{$_}=convert_c2f($w{$_});} qw(
+				DewOutdoor
+			);
+		}
+		if ($config_parms{weather_uom_baro} eq 'mb') {
+			grep {$w{$_}=convert_in2mb($w{$_});} qw(
+				BaromSea
+			);
+		}
 
-        $Weather{WindChillI} = int(($Weather{WindSpeedI} > 3 and $Weather{TempInternet} <= 50)? 35.74 + .6215 * $Weather{TempInternet}- 35.75 * $Weather{WindSpeedI}**.16 + .4275 * $Weather{TempInternet} * $Weather{WindSpeedI}**.16:$Weather{TempInternet});
+		&populate_internet_weather(\%w);
+		&weather_updated;
 
-        if ($Weather{WindChillI} = int($Weather{TempInternet})) {
-            $Weather{WindChillI} = undef;
-        }
+	}
 
-
-	my $temp_celsius;
-	my $dew_point;
-
-        $dew_point = 1 - $Weather{HumidInternet} / 100;
-	$temp_celsius = (5/9) * ($Weather{TempInternet} - 32);
-	$dew_point = (14.55 + .114 * $temp_celsius) * $dew_point + ((2.5 + .007 * $temp_celsius) * $dew_point ** 3)  + ((15.9 + .117 * $temp_celsius) * $dew_point ** 14);
-	$dew_point = $temp_celsius - $dew_point;
-	#Convert to fahrenheit and round to two decimal places
-	$Weather{DewInternet} = (int(((9/5) * $dew_point + 32) * 100) + 5)/100;
-
-
-
-                                # Allow for writing to standard weather vars if no local weather station
-        if ($config_parms{weather_use_internet}) {
-	    $Weather{Summary_Short} = $conditions;
-            $Weather{TempOutdoor}   = $Weather{TempInternet};
-            $Weather{HumidOutdoor}  = $Weather{HumidInternet};
-	    $Weather{DewOutdoor}    = $Weather{DewInternet};
-            $Weather{Barom}         = $Weather{BaromInternet};
-            $Weather{WindGustSpeed} = $Weather{WindGustSpeedI};
-            $Weather{Wind}          = $Weather{WindI};
-            $Weather{WindSpeed}     = $Weather{WindSpeedI};
-            $Weather{WindDirection} = $Weather{WindDirectionI};
-            $Weather{WindChill}     = $Weather{WindChillI};
-	    $Weather{DewPoint}      = $Weather{DewInternet};
-	    $Weather{BaromDelta}    = $Weather{BaromInternetDelta};
-
-
-	    # Who needs a sun sensor?
-
-	    if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny|foggy|light rain|heavy rain|light snow|heavy snow)/i) {
-			$Weather{Conditions} = ucfirst(lc($1));
-			$Weather{IsRaining} = ($Weather{Conditions} =~ /rain/i);
-			$Weather{IsSnowing} = ($Weather{Conditions} =~ /snow/i);
-	    }
-
-
-            #For RRD and weather monitor
-
-	      if (lc($Weather{WindDirection}) eq 'north') {
-                  $Weather{WindGustDir} = 0;
-	      }
-              elsif (lc($Weather{WindDirection}) eq 'northeast') {
-		  $Weather{WindGustDir} = 45;
-              } 
-              elsif (lc($Weather{WindDirection}) eq 'east') {
-		  $Weather{WindGustDir} = 90;
-              } 
-              elsif (lc($Weather{WindDirection}) eq 'southeast') {
-                  $Weather{WindGustDir} = 135;
-              } 
-              elsif (lc($Weather{WindDirection}) eq 'south') {
-                  $Weather{WindGustDir} = 180;
-              } 
-              elsif (lc($Weather{WindDirection}) eq 'southwest') {
-                  $Weather{WindGustDir} = 225;
-              } 
-              elsif (lc($Weather{WindDirection}) eq 'west') {
-                  $Weather{WindGustDir} = 270;
-              } 
-              elsif (lc($Weather{WindDirection}) eq 'northwest') {
-                  $Weather{WindGustDir} = 315;
-              }
-	      else {
-                  $Weather{WindGustDir} = undef;
-              }
-
-            $Weather{WindAvgDir}=$Weather{WindGustDir};
-            $Weather{WindAvgSpeed}=$Weather{WindSpeedI};
-	    # so weather items do not have to check gust AND avg speed (gust defaults to avg)
-            $Weather{WindGustSpeed}=$Weather{WindSpeedI} unless $Weather{WindGustSpeed};
-
-        }
 	if ($v_get_internet_weather_data->{state} eq 'Check') {
-		my $msg;
-	        if (int($Weather{WindSpeedI}) > 20 or int($Weather{WindGustSpeedI}) > 30) {
-        	    $msg = "Warning: High winds! ";
+	my $msg;
+	if (int($Weather{WindSpeedI}) > 20 or int($Weather{WindGustSpeedI}) > 30) {
+		$msg = "Warning: High winds! ";
 	        }
-	        $msg .= "Outdoor temperature is $Weather{TempInternet} degrees fahrenheit. ";
-        	$msg .= "Wind is $Weather{WindI}. ";
-	        $msg .= "Wind chill is $Weather{WindChillI}. " if $Weather{WindChillI};
-	        $msg .= "Dew point is $Weather{DewInternet}. " if $Weather{DewInternet};
-        	$msg .= "Humidity is $Weather{HumidInternet}%. ";
-	        $msg .= "Pressure is $Weather{BaromInternet} and $Weather{BaromInternetDelta}.";
+	        $msg .= "Outdoor temperature is $Weather{TempOutdoor} degrees. ";
+        	$msg .= "Wind is $Weather{Wind}. ";
+	        $msg .= "Wind chill is $Weather{WindChill}. " if $Weather{WindChill};
+	        $msg .= "Dew point is $Weather{DewOutdoor}. " if $Weather{DewOutdoor};
+        	$msg .= "Humidity is $Weather{HumidOutdoor}%. ";
+	        $msg .= "Pressure is $Weather{BaromSea} and $Weather{BaromSea}.";
 		$v_get_internet_weather_data->respond("connected=0 $msg");
 	}
 	elsif ($v_get_internet_weather_data->{state} eq 'Mail') {
@@ -221,24 +189,19 @@ if (done_now $p_weather_forecast) {
 	    &net_mail_send(subject => "Internet weather conditions", to => $to, file => $weather_conditions_path);
 	    &net_mail_send(subject => "Internet weather forecast", to => $to, file => $weather_forecast_path);
 
-	}
-	elsif ($v_get_internet_weather_data->{state} eq 'SMS') {
+	} elsif ($v_get_internet_weather_data->{state} eq 'SMS') {
 	    my $to = $config_parms{cell_phone};
 	    if ($to) {
 		    $v_get_internet_weather_data->respond("connected=0 app=weather image=mail Sending Internet weather data to mobile phone.");
 		    &net_mail_send(subject => "Internet weather conditions", to => $to, file => $weather_conditions_path);
 		    &net_mail_send(subject => "Internet weather forecast", to => $to, file => $weather_forecast_path);
-	    }
-	    else {
+	    } else {
 		    $v_get_internet_weather_data->respond("connected=0 app=error Mobile phone email address not found!");
 	    }
-	}
-
-	else {
+	} else {
 		$v_get_internet_weather_data->respond('app=weather connected=0 Weather data retrieved.');
 	}
 
-	}
 }
 
 
