@@ -1,20 +1,27 @@
 # Authority: anyone
 #
+# $Revision$
+# $Date$
+#
+# http_utils.pl
+# 
+# This is where non HTTP server related stuff should be placed when you
+# want to add functionality to the misterhouse web experience
+#
+#
+
+# Start of Virtual Keyboard section
+#
 # Virtual Keyboard
 # Originally by Matthew Williams
 # Contributions:
 # -  Gaeton Lord (original idea)
 # -  David Mark (substantial increase in functionality & browser compatibility)
 #
-# $Revision$
-# $Date$
 #
-#@ This code should be activated by MisterHouse if you want a 
-#@ virtual keyboard included within a web page
-#@
-#@ To include a keyboard, you need to run insert_keyboard(%options).
-#@
-#@ To include default style info, run insert_keyboard_style.
+# To include a keyboard, you need to run insert_keyboard(%options).
+#
+# To include default style info, run insert_keyboard_style.
 #
 # The currently valid options are:
 #   form: name of the form containing the textbox (required)
@@ -317,3 +324,8 @@ function keyboard_update_buttons() {
 ];
 	return $result;
 }
+
+# end of Virtual Keyboard section
+
+# don't delete the next line!  Required files need to return 1
+1;
