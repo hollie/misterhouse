@@ -29,7 +29,27 @@
 
 use Mp3Player;
 
+use Win32::TieRegistry 0.20 (Delimiter=>"/", ArrayValues=>0);
+
+
+
+
+
+
 # noloop=start      This directive allows this code to be run on startup/reload
+
+use vars '$Registry';
+
+my $winamp_path;
+
+if ($OS_win) { # Not really needed as this is a Windows-only module
+	$winamp_path = $Registry->{'Classes/Applications/Winamp.exe/shell/open/command//'};
+	$winamp_path = $1 if $winamp_path =~ /"(.*?)"/;
+	print "Found local Winamp: $winamp_path\n" if $Debug{winamp};
+}
+
+
+
 $jukebox = new Mp3Player;
 
 my (%winamp_commands, $mp3_states);
@@ -54,18 +74,20 @@ $mp3_host = $config_parms{mp3_program_host} if $config_parms{mp3_program_host};
 # noloop=stop
 
 # Add Player Commands
-$v_mp3_control1 = new  Voice_Cmd("Set the house mp3 player to [$mp3_states]");
-$v_mp3_control2 = new  Voice_Cmd("Set music to [$mp3_states]");
+$v_mp3_control1 = new Voice_Cmd("Set the house mp3 player to [$mp3_states]");
+$v_mp3_control2 = new Voice_Cmd("Set music to [$mp3_states]");
 &mp3_control($state, $mp3_host)  if $state = said $v_mp3_control1 or $state = said $v_mp3_control2;
 
-# House player process
+# House player process (not used, sendkeys takes care of starting winamp)
 $p_winamp_house = new Process_Item "\"$config_parms{mp3_program}\"";
+
+
+
+
 
 # Primary Control function
 sub mp3_control {
     my ($command, $host, $arg1) = @_;
-
-	print "-------------$command---------------\n";
 
                                 # This translates from speakable commands to program commands
     $command = $winamp_commands{lc($command)} if $winamp_commands{lc($command)};
@@ -85,7 +107,8 @@ sub mp3_control {
             print_log "Now Playing $mp3_song_name" if $Debug{winamp};
             get "$url/stop?p=$config_parms{mp3_program_password}";
             get "$url/setplaylistpos?p=$config_parms{mp3_program_password}&a=$song";
-            get "$url/play?p=$config_parms{mp3_program_password}";
+            $temp = filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
+	    return $temp;
         }	
         elsif($command =~ /volume/i){
            $temp = '';
@@ -144,11 +167,12 @@ sub mp3_play {
 	$file =~ s/\//\\/g;
 	if (&is_httpq) {
 		# Escape name ala http
-            $file =~ s/ /%20/g;
-        	$file =~ s/\#/%23/g;
-        	$file =~ s/\&/%26/g;
-        	$file =~ s/\'/%27/g;
-        	$file =~ s/\,/%2C/g;
+                #$file =~ s/ /%20/g;
+        	#$file =~ s/\#/%23/g;
+        	#$file =~ s/\&/%26/g;
+        	#$file =~ s/\'/%27/g;
+        	#$file =~ s/\,/%2C/g;
+		$file = &escape($file);
 		my $url = "http://$host:$config_parms{mp3_program_port}";
 		my $temp = filter_cr get "$url/delete?p=$config_parms{mp3_program_password}";
 		print "winamp debug $url/playfile?p=$config_parms{mp3_program_password}&a=$file\n"  if $Debug{winamp};
@@ -172,11 +196,12 @@ sub mp3_queue {
 	$file =~ s/\//\\/g;
 	if (&is_httpq) {
 		# Escape name ala http
-            $file =~ s/ /%20/g;
-        	$file =~ s/\#/%23/g;
-        	$file =~ s/\&/%26/g;
-        	$file =~ s/\'/%27/g;
-        	$file =~ s/\,/%2C/g;
+                #$file =~ s/ /%20/g;
+        	#$file =~ s/\#/%23/g;
+        	#$file =~ s/\&/%26/g;
+        	#$file =~ s/\'/%27/g;
+        	#$file =~ s/\,/%2C/g;
+		$file = escape($file);
 		my $url = "http://$host:$config_parms{mp3_program_port}";
 		my $temp = filter_cr get "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
 		print_log "Winamp (httpq $host) song/list $file added: $temp" if $Debug{winamp};
@@ -187,7 +212,8 @@ sub mp3_queue {
 	}
 }
 
-# Just for ease
+# For concise code (which is still lacking in this module!)
+
 sub is_httpq {
 	return $config_parms{mp3_program_control} eq 'httpq' ? 1 : 0 ;
 }
@@ -336,9 +362,7 @@ sub mp3_get_output_timestr {
 
 		        my $tPos = $songPos / 1000;                     #Posintion in miliseconds
             		my $tLen = $songLen ;                           #Length of song in seconds
-
-			if ($tLen) { # divide by zero error otherwise!
-
+			if ($tLen) {
 	                my $tPct = int ( ( $tPos / $tLen ) *100) ;       # what ist the % played
 
 		        my $tMin = int( $tPos / 60 );                   #Make outputs in mm:ss format
@@ -401,7 +425,7 @@ sub mp3_running {
 	print "HOST:$host\n";
 
                                 # Start winamp, if it is not already running (windows localhost only)
-	if ($OS_win && ($host eq 'localhost') && done $p_winamp_house && ! &sendkeys_find_window('Winamp ', $config_parms{mp3_program}, 10000)) {
+	if ($OS_win && ($host eq 'localhost') && done $p_winamp_house && ! &sendkeys_find_window('Winamp ', ($config_parms{mp3_program})?$config_parms{mp3_program}:$winamp_path, 5000)) {
 #		start $p_winamp_house;
 		select undef, undef, undef, 10;
 		print_log "Starting WinAmp";
@@ -430,8 +454,10 @@ sub mp3_radio_play {
     my $file = shift;
     return 0 if ($file eq '');
     my $host = shift || $mp3_host;
+    return 0 if $host ne 'localhost'; # Can only launch URI's locally for some reason (httpq plugin problem?)
     return 0 unless &mp3_running($host);
     $file =~ s/&&/&/g;
     run qq["$config_parms{mp3_program}" "$file"];
     print "mp3 radio play: $file" if $Debug{winamp};
+    return 1;
 }
