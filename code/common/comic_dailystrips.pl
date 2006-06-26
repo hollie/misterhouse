@@ -24,6 +24,7 @@ if ($state = said $v_dailystrip_update) {
         my $cmd = "mh -run dailystrips ";
         $cmd .= "--defs $config_parms{html_dir}/comics/dailystrips/strips.def ";
         $cmd .= "--local --basedir $comics_dir --save --nostale ";
+        $cmd .= "--nospaces ";
 #       $cmd .= "--titles MisterHouse --stripnav ";
         $cmd .= "--proxy $config_parms{proxy} " if $config_parms{proxy};
         $cmd .= $config_parms{comics};
