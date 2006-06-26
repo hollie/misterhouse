@@ -2084,7 +2084,95 @@ for $celgtime (@$tabgtime) {
   }
 }
 
+sub analyze_rrd_rain {
+	my $RRD = "$config_parms{weather_data_rrd}";
 
+	&print_log('analyze_rrd_rain: updating $Weather{RainLast{x}hours}');
+
+	my @hours=(1,2,6,12,18,24,48,72,168);
+	my $resolution=18*60;  # using 18 minute datapoints - don't change this unless you know what you're doing
+
+	# set default values
+	foreach my $hour(@hours) {
+		$Weather{"RainLast${hour}hours"} = 'unknown';
+	}
+
+	my $endtime=int(time/$resolution)*$resolution;
+
+	my ($start, $step, $names, $data)=RRDs::fetch(
+		$RRD,
+		'AVERAGE',
+		'-r',$resolution,
+		'-e',$endtime,
+		'-s','e-168hours'
+	);
+
+	my $RRDerror=RRDs::error;
+
+	if ($RRDerror) {
+		print_log "weather_rrd_update: having trouble fetching data for rain: $RRDerror";
+		return;
+	}
+
+	# print "start was ".scalar localtime($start)." and step was $step\n"; # for debugging
+
+	my $rainIndex;
+	for ($rainIndex=0; $rainIndex < $#{$names}; $rainIndex++) {
+		last if $$names[$rainIndex] eq 'rain';
+	}
+
+	if ($rainIndex >= $#{$names}) {
+		&print_log ("weather_rrd_update: can't find rain data");
+		return;
+	}
+
+	# the next bunch of lines gives me a headache ... pointer to an array of pointers?  Who thought that was a good idea?
+	my $numSamples=$#{$data};
+	#print "numSamples is $numSamples\n"; # for debugging
+	my $latestRain=${$$data[$numSamples]}[$rainIndex];
+	my $lastRain=0;
+	foreach my $hour (@hours) {
+		# RRD data is stored in interesting ways every x minutes
+		# x was defined to be 18 minutes for data going back a week
+		# therefore we need to convert "hours" into y 18 minute intervals
+		# This means that we could be off by up to 9 minutes, oh well.
+		my $sampleIndex=$numSamples-int(($hour*60)/18+0.5);
+		# print "sampleIndex is $sampleIndex at hour $hour\n"; # for debugging
+
+		# stop processing if we didn't get enough data
+		last if ($sampleIndex < 0);
+
+		my $rainAtSampleTime=${$$data[$sampleIndex]}[$rainIndex];
+		# print "total rain at hour $hour is $rainAtSampleTime\n"; # for debugging
+		my $rainAmount=$latestRain-$rainAtSampleTime;
+
+		# if a RainTotal reset to 0 occurs, then rainAmount will be < 0
+		next if ($rainAmount < 0); 
+
+		$Weather{"RainLast${hour}hours"}=$rainAmount;
+		if ($config_parms{weather_uom_rain} eq 'mm') {
+			$Weather{"RainLast${hour}hours"}=convert_in2mm($Weather{"RainLast${hour}hours"});
+		}
+		# print "hour $hour is $rainAmount ".$Weather{"RainLast${hour}hours"}."\n"; # for debugging
+	}
+
+	# check to make sure that the data looks right
+	for (my $i=0; $i < ($#hours-1); $i++) {
+		my $iPlus1=$i+1;
+		# don't check if either value is unknown
+		next if $Weather{"RainLast${i}hours"} eq 'unknown';
+		next if $Weather{"RainLast${iPlus1}hours"} eq 'unknown';
+
+		# if the total rain in the last period of time is lower than the
+		# next large period of time, then check the next period
+		next if ($Weather{"RainLast${i}hours"} <= $Weather{"RainLast${iPlus1}hours"});
+		# a quirk in the data has caused a smaller period to have a larger
+		# value than the next larger period
+		# fix it by copying the smaller amount onto the larger amount
+		$Weather{"RainLast${iPlus1}hours"}=$Weather{"RainLast${i}hours"};
+	}
+	&print_log('analyze_rrd_rain: complete');
+}
 
 # Allow for sending graphs via email
 
