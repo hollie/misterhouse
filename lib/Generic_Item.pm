@@ -252,10 +252,15 @@ sub respond {
 	my ($text) = @_;
 	my %parms = &::parse_func_parms($text);
 	my $set_by = $object->{set_by};
+
 	my ($to, $pgm); # latter for IM only
-	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /^time$/i);
+
 
 	$parms{connected} = 1 if !defined($parms{connected});
+
+# Must check state for next pass if set_by is missing (fill in if matches!)
+
+
 
 	if (!defined($parms{target})) { # no target passed and we need one!
 		# Aquire target
@@ -265,9 +270,18 @@ sub respond {
 			# *** Need to loop until set_by is undefined or scalar
 			# Currently checks previous link in the response chain
 
+
+			# Check next pass set_by???
+
 			if (ref $set_by and $set_by->can('get_set_by')) { # set by other object		
-				my $object = $set_by->get_set_by();
-				$target = ($object->{target})?$object->{target}:$object->{set_by};
+
+				
+				#$target = ($object->{target})?$object->{target}:$set_by->get_set_by();
+
+				$target = $set_by->get_set_by();
+
+
+
 			}
 			else {
 				$target = $set_by;						
@@ -277,7 +291,7 @@ sub respond {
 
 		
 		
-		$target = undef if $target =~ /^usercode/i or $target =~ /^time/i;
+		$target = undef if $target =~ /^usercode/i or $target =~ /time/i; # tie_time too!
 
 		# Used to break multiple targets if first is Web, IM or email
 
@@ -288,6 +302,11 @@ sub respond {
 			$target = 'email' if $target =~ /^email/i;
 		}
 	}
+
+
+	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /^time$/i);
+
+
 	# get user info
 
 	if ($set_by =~ /^im/i) {
@@ -344,15 +363,15 @@ sub respond {
 
 
 sub said {
-                                # Set (evil)global Respond_Target var, so (lazy) user code doesn't have to pay attention (bad practice and should be phased out!)
+                                # Set (evil) global Respond_Target var, so (lazy) user code doesn't have to pay attention (bad practice and should be phased out!)
     if ($_[0]->{target}) {
 	    $main::Respond_Target = $_[0]->{target};
     }
     else {
-	    $main::Respond_Target = $_[0]->{set_by};
+	    unless (ref $_[0]->{set_by}) { #*** Right here is where it passes 'time'
+	  	  $main::Respond_Target = $_[0]->{set_by};
+	    }
     }
-
-#	print "Said RESPOND TARGET:::$main::Respond_Target\n" if $main::Respond_Target;
 
     return $_[0]->{said};
 }
@@ -361,11 +380,11 @@ sub state_now {
     if ($_[0]->{target}) {
 	    $main::Respond_Target = $_[0]->{target};
     }
-    else {
-	    $main::Respond_Target = $_[0]->{set_by};
+    else { # *** Right here (and above) is where it passes 'time' and other nonsense as target
+	    unless (ref $_[0]->{set_by}) {
+		    $main::Respond_Target = $_[0]->{set_by};
+	    }
     }
-
-#	print "Statenow RESPOND TARGET:::$main::Respond_Target\n" if $main::Respond_Target;
 
     return $_[0]->{state_now};
 }
@@ -605,13 +624,16 @@ sub set_states_for_next_pass {
 
 sub set_state_log {
     my ($self, $state, $set_by, $target) = @_;
+    my $set_by_name; # Must preserve set_by objects!
 
                                 # Used in get_idle_time
     $self->{set_time} = $main::Time;
 
                                 # If set by another object, find/use object name
     my $set_by_type = ref($set_by);
-    $set_by = $set_by->{object_name} if $set_by_type and $set_by_type ne 'SCALAR';
+    $set_by_name = $set_by->{object_name} if $set_by_type and $set_by_type ne 'SCALAR';
+    $set_by_name = $set_by unless $set_by_name;
+
 
                                 # Else set to Usercode [calling code file]
     $set_by = &main::get_calling_sub() unless $set_by;
@@ -626,9 +648,9 @@ sub set_state_log {
                                 # Set the state_log ... log non-blank states
                                 # Avoid -w unintialized variable errors
     $state  = '' unless defined $state;
-    $set_by = '' unless defined $set_by;
+    $set_by_name = '' unless defined $set_by_name;
     $target = '' unless defined $target;
-    unshift(@{$$self{state_log}}, "$main::Time_Date $state set_by=$set_by" . (($target)?"target=$target":''))
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state set_by=$set_by_name" . (($target)?"target=$target":''))
       if $state or (ref $self) eq 'Voice_Cmd';
     pop @{$$self{state_log}} if $$self{state_log} and @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
 
@@ -659,9 +681,17 @@ sub reset_states {
         push @items_with_more_states, $ref if @{$ref->{state_next_pass}};
 
         my $set_by = shift @{$ref->{setby_next_pass}};
+
         my $target = shift @{$ref->{target_next_pass}};
 
         &reset_states2($ref, $state, $set_by, $target);
+
+	$ref->set_by($set_by);
+
+	if (ref $set_by) {
+			print "TRIED TO SET: $ref->{set_by}\n";
+	}
+
     }
     @states_from_previous_pass = @items_with_more_states;
 }
@@ -687,7 +717,9 @@ sub reset_states2 {
     }
                                 # Set/fire tied objects/events
                                 #  - do it in main, so eval works ok
+
     &main::check_for_tied_events($ref);
+
 
                                 # Send out to xAP/xPL.  Avoid loops on mirrored mh systems by checking $set_by.
     my ($send_xap, $send_xpl);
