@@ -278,6 +278,11 @@ sub respond {
 				
 				#$target = ($object->{target})?$object->{target}:$set_by->get_set_by();
 
+
+				# *** Need to finish this looping thing!
+
+				# *** This could still be a ref
+
 				$target = $set_by->get_set_by();
 
 
@@ -287,13 +292,9 @@ sub respond {
 				$target = $set_by;						
 			}
 		}
-		# clean up target
-
-		
+		# clean up target		
 		
 		$target = undef if $target =~ /^usercode/i or $target =~ /time/i; # tie_time too!
-
-		# Used to break multiple targets if first is Web, IM or email
 
 		if ($target =~ /\[/) { # Make sure this needs cleaning
 
@@ -686,11 +687,7 @@ sub reset_states {
 
         &reset_states2($ref, $state, $set_by, $target);
 
-	$ref->set_by($set_by);
-
-	if (ref $set_by) {
-			print "TRIED TO SET: $ref->{set_by}\n";
-	}
+#	$ref->set_by($set_by);
 
     }
     @states_from_previous_pass = @items_with_more_states;
