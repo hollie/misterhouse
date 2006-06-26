@@ -129,10 +129,13 @@ if (done_now $p_weather_forecast) {
 
 		# Who needs a sun sensor?
 
-		if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny|foggy|light rain|heavy rain|light snow|heavy snow)/i) {
-			$w{Conditions} = ucfirst(lc($1));
+		if ($conditions =~ /conditions were (foggy|light rain|heavy rain|light snow|heavy snow)/i) {
+			$w{Conditions} = lc($1);
 			$w{IsRaining} = ($Weather{Conditions} =~ /rain/i);
 			$w{IsSnowing} = ($Weather{Conditions} =~ /snow/i);
+		}
+		if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny) {
+			$w{Clouds} = lc($1);
 		}
 
 		$w{WindAvgDir}=convert_wind_dir_text_to_num($w{WindAvgDir});
@@ -164,10 +167,8 @@ if (done_now $p_weather_forecast) {
 				BaromSea
 			);
 		}
-
 		&populate_internet_weather(\%w);
 		&weather_updated;
-
 	}
 
 	if ($v_get_internet_weather_data->{state} eq 'Check') {

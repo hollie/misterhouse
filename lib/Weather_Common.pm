@@ -365,6 +365,7 @@ sub populate_internet_weather {
 				Conditions
 				Barom
 				BaromSea
+				BaromDelta
 				HumidOutdoorMeasured
 				HumidOutdoor
 				IsRaining

@@ -5,7 +5,7 @@
 #
 #@ Weather METAR parser
 #@
-#@ Revision: $Revision$
+#@ $Revision$
 #@
 #@ To get the closest station name in Canada, go to
 #@ http://www.flightplanning.navcanada.ca and choose METAR/TAF
@@ -44,8 +44,8 @@ $v_get_metar_weather = new Voice_Cmd('get metar weather');
 # noloop=stop
 
 if ($Reload) {
-	# the last parameter '1' is required to overwrite any previous definition
-	&trigger_set('$New_Minute and $Minute == 5', '$p_weather_metar_page->start', 'NoExpire', 'Update weather information via METAR',1);
+	&trigger_set('$New_Minute and $Minute == 5', '$p_weather_metar_page->start', 'NoExpire', 'Update weather information via METAR')
+		unless &trigger_get('Update weather information via METAR');
 }
 
 if (said $v_get_metar_weather) {
@@ -71,6 +71,9 @@ if (done_now $p_weather_metar_page or $Reload) {
 		chop $last_report;
 		$weather='';
 		$clouds='';
+		my $notCurrent=0;
+		$metar{IsRaining}=0;
+		$metar{IsSnowing}=0;
 
 		print_log "Parsing METAR report: $last_report";
 
@@ -102,15 +105,15 @@ if (done_now $p_weather_metar_page or $Reload) {
 				if ($1 eq 'BC') { $weather .= 'patches of ' };
 				if ($1 eq 'DR') { $weather .= 'low drifting ' };
 				if ($1 eq 'BL') { $weather .= 'blowing ' };
-				if ($1 eq 'SH') { $weather .= 'showers ' };
+				if ($1 eq 'SH') { $weather .= 'showers ' }; # could be snow or rain
 				if ($1 eq 'TS') { $weather .= 'thunderstorm ' };
 				if ($1 eq 'FZ') { $weather .= 'freezing ' };
 				if ($1 eq 'DZ') { $weather .= 'drizzle ' };
-				if ($1 eq 'RA') { $weather .= 'rain ' };
-				if ($1 eq 'SN') { $weather .= 'snow ' };
-				if ($1 eq 'SG') { $weather .= 'snow grains ' };
-				if ($1 eq 'IC') { $weather .= 'ice crystals ' };
-				if ($1 eq 'PL') { $weather .= 'ice pellets ' };
+				if ($1 eq 'RA') { $weather .= 'rain '; $metar{IsRaining}=1 unless $notCurrent; };
+				if ($1 eq 'SN') { $weather .= 'snow '; $metar{IsSnowing}=1 unless $notCurrent; };
+				if ($1 eq 'SG') { $weather .= 'snow grains '; $metar{IsSnowing}=1 unless $notCurrent; };
+				if ($1 eq 'IC') { $weather .= 'ice crystals '; $metar{IsSnowing}=1 unless $notCurrent; };
+				if ($1 eq 'PL') { $weather .= 'ice pellets '; $metar{IsSnowing}=1 unless $notCurrent; };
 				if ($1 eq 'GR') { $weather .= 'hail ' };
 				if ($1 eq 'GS') { $weather .= 'small hail ' };
 				if ($1 eq 'UP') { $weather .= 'unknown precipitation ' };
@@ -127,8 +130,9 @@ if (done_now $p_weather_metar_page or $Reload) {
 				if ($1 eq 'FC') { $weather .= 'funnel cloud ' };
 				if ($1 eq 'SS') { $weather .= 'sandstorm ' };
 				if ($1 eq 'DS') { $weather .= 'duststorm ' };
-				if ($1 eq 'VC') { $weather .= 'distant ' };
-				if ($1 eq 'RE') { $weather .= 'recent ' };
+				$notCurrent=0;
+				if ($1 eq 'VC') { $weather .= 'distant '; $notCurrent=1; };
+				if ($1 eq 'RE') { $weather .= 'recent '; $notCurrent=1; };
 			}
 		}
 	}
