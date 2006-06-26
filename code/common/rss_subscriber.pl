@@ -135,6 +135,7 @@ sub rss_file_process {
 				foreach my $enc (XML::RAI::Enclosure->load($item)) {
 					$link = $enc->url;
 					($file) = $link =~ /.*\/(.+?)$/;
+					$file =~ s/\.mp3\?(.+)/$1.mp3/;
 					print_log "$file currently downloading" if $current_file eq "$torrent_dir/$file";
 					print_log "$file already downloaded" if read_dbm($rss_dbm_file, "$torrent_dir/$file");
 					print_log "$file already queued" if grep {$_ eq "'$link' '$torrent_dir/$file'"} @rss_file_download_queue;
@@ -161,22 +162,18 @@ sub rss_file_process {
 				$link =~ s|newtorrents.info/\?id|newtorrents.info/down.php?id|;
 				# hack to fix seedler's links
 				$link =~ s|seedler.org/en/html/info/|seedler.org/download.x?id=|;
-<<<<<<< .mine
-
-				# *** Use &escape for encoding URI's
-
-=======
 				# hack to fix isohunt's links
 				$link =~ s|isohunt.com/btDetails.php.*id=|isohunt.com/dl.php?id=|;
 				# hack to fix mininova's links
 				$link =~ s|mininova.org/tor/|mininova.org/get/|;
->>>>>>> .r587
+				# hack to fix some bad links, can't use &escape because most are already escaped
 				$link =~ s/ /+/g;
 				$link =~ s/\'/%27/g;
 				my $file = "$title.torrent";
 				# Remove or escape problematic filename characters
 				$file =~ s/ *\[.*?\] *//g;
 				$file =~ s/\// - /g;
+				$file =~ s/\?//g;
 				$file =~ s/\(/\[/g;
 				$file =~ s/\)/\]/g;
 				$file =~ s/'//g;
