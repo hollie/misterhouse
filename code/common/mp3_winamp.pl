@@ -93,7 +93,7 @@ sub mp3_control {
     $command = $winamp_commands{lc($command)} if $winamp_commands{lc($command)};
 
     $host = $mp3_host unless $host;
-    print "Setting $host winamp to $command\n";
+    print "Setting $host winamp to $command\n" if $::Debug{winamp};
 
     return 0 unless &mp3_running($host);
 
@@ -104,7 +104,7 @@ sub mp3_control {
             my $song = int(rand($mp3_num_tracks));
             my $mp3_song_name  = get "$url/getplaylisttitle?p=$config_parms{mp3_program_password}&a=$song";
             $mp3_song_name =~ s/[\n\r]//g;
-            print_log "Now Playing $mp3_song_name" if $Debug{winamp};
+            print "Now Playing $mp3_song_name\n" if $Debug{winamp};
             get "$url/stop?p=$config_parms{mp3_program_password}";
             get "$url/setplaylistpos?p=$config_parms{mp3_program_password}&a=$song";
             $temp = filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
@@ -116,7 +116,7 @@ sub mp3_control {
             for my $pass (1 .. 5) {
                 $temp .= filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
             }
-            print_log "Winamp (httpq $host) set to $command: $temp" if $Debug{winamp};
+            print "Winamp (httpq $host) set to $command: $temp\n" if $Debug{winamp};
         }
         elsif($command =~ /shuffle/i) {
             $temp .= filter_cr get "$url/shuffle_status?p=$config_parms{mp3_program_password}";
@@ -133,21 +133,21 @@ sub mp3_control {
             $temp .= filter_cr get "$url/repeat_status?p=$config_parms{mp3_program_password}";
             if ($temp) {
                 get "$url/repeat?p=$config_parms{mp3_program_password}&a=0";
-                print "Winamp (httpq $host) Repeat set OFF" if $Debug{winamp};
+                print "Winamp (httpq $host) Repeat set OFF\n" if $Debug{winamp};
             }
             else {
                 get "$url/repeat?p=$config_parms{mp3_program_password}&a=1";
-                print "Winamp (httpq $host) Repeat set ON" if $Debug{winamp};
+                print "Winamp (httpq $host) Repeat set ON\n" if $Debug{winamp};
             }
         }
         else {
             $temp = filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
-            print "Winamp (httpq $host) set to $command: $temp\n" ;
+            print "Winamp (httpq $host) set to $command: $temp\n";
         }
         return $temp;
     }
     else {
-        print_log "Winamp (watrl) set to $command" if $Debug{winamp};
+        print "Winamp (watrl) set to $command\n" if $Debug{winamp};
                                 # Volume only goes by 1.5%, so run it a bunch
         my $i = 1;
         $i = 25 if $command =~ /^vol/;
@@ -163,6 +163,7 @@ sub mp3_play {
 	return 0 if ($file eq '');
 	my $host = shift || $mp3_host;
 	return 0 unless &mp3_running($host);
+
 	$file =~ s/&&/&/g;
 	$file =~ s/\//\\/g;
 	if (&is_httpq) {
@@ -182,7 +183,7 @@ sub mp3_play {
 	}
 	else {
 		run qq[$config_parms{mp3_program} "$file"];
-		print "mp3 play: $file" if $Debug{winamp};
+		print "mp3 play: $file\n" if $Debug{winamp};
 	}
 }
 
@@ -204,11 +205,11 @@ sub mp3_queue {
 		$file = escape($file);
 		my $url = "http://$host:$config_parms{mp3_program_port}";
 		my $temp = filter_cr get "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
-		print_log "Winamp (httpq $host) song/list $file added: $temp" if $Debug{winamp};
+		print "Winamp (httpq $host) song/list $file added: $temp\n" if $Debug{winamp};
 	}
 	else {
 		run qq["$config_parms{mp3_program}" /ADD "$file"];  ##/ # For gVim syntax
-		print_log "mp3 queue: $file" if $Debug{winamp};
+		print "mp3 queue: $file\n" if $Debug{winamp};
 	}
 }
 
@@ -223,15 +224,15 @@ sub mp3_clear {
 	my $host = shift;
 	if (&is_httpq) {
 		if (&mp3_control('Clear List', $host) ) {
-			print_log "mp3 clear: success" if $Debug{winamp};
+			print "mp3 clear: success\n" if $Debug{winamp};
 		}
 		else {
-			print_log "mp3 clear: failed" if $Debug{winamp};
+			print "mp3 clear: failed\n" if $Debug{winamp};
 		}
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 clear: Unsupported" if $Debug{winamp};
+		print "mp3 clear: Unsupported\n" if $Debug{winamp};
 	}
 }
 
@@ -247,7 +248,7 @@ sub mp3_get_playlist {
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 get playlist: Unsupported" if $Debug{winamp};
+		print "mp3 get playlist: Unsupported\n" if $Debug{winamp};
 	}
 
 }
@@ -261,7 +262,7 @@ sub mp3_get_playlist_pos {
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 get playlist pos: Unsupported" if $Debug{winamp};
+		print "mp3 get playlist pos: Unsupported\n" if $Debug{winamp};
 	}
 }
 
@@ -274,12 +275,12 @@ sub mp3_set_playlist_pos {
 	my $host = shift || $mp3_host;
 	if (&is_httpq) {
 		my $url = "http://$host:$config_parms{mp3_program_port}/setplaylistpos?p=$config_parms{mp3_program_password}&a=$pos";
-		print_log $url;
+		print "Winamp URI:$url\n" if $Debug{winamp};
 		return get "$url";
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 set playlist pos: Unsupported" if $Debug{winamp};
+		print "mp3 set playlist pos: Unsupported\n" if $Debug{winamp};
 	}
 }
 
@@ -301,12 +302,12 @@ sub mp3_playlist_delete {
 	my $host = shift || $mp3_host;
 	if (&is_httpq) {
 		my $url = "http://$host:$config_parms{mp3_program_port}/deletepos?p=$config_parms{mp3_program_password}&a=$pos";
-		print_log $url;
+		print "Winamp URI: $url\n" if $Debug{winamp};
 		return get "$url";
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 playlist delete: Unsupported" if $Debug{winamp};
+		print "mp3 playlist delete: Unsupported\n" if $Debug{winamp};
 	}
 }
 
@@ -321,14 +322,14 @@ sub mp3_get_playlist_files {
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 get playlist files: Unsupported" if $Debug{winamp};
+		print "mp3 get playlist files: Unsupported\n" if $Debug{winamp};
 	}
 }
 
         # return the time from the song in the playlist position
 sub mp3_get_playlist_timestr {
     # don't know how to do this
-	print_log "mp3 get playlist timestr: Unsupported" if $Debug{winamp};
+	print "mp3 get playlist timestr: Unsupported\n" if $Debug{winamp};
 }
 
         # return the title of the current song
@@ -340,14 +341,14 @@ sub mp3_get_playlist_title {
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 get playlist title: Unsupported" if $Debug{winamp};
+		print "mp3 get playlist title: Unsupported\n" if $Debug{winamp};
 	}
 }
 
         # return the current volume
 sub mp3_get_volume {
     # don't know how to do this
-	print_log "mp3 get volume: Unsupported" if $Debug{winamp};
+	print "mp3 get volume: Unsupported\n" if $Debug{winamp};
 }
 
         # return the elapsed/total time of current song
@@ -385,7 +386,7 @@ sub mp3_get_output_timestr {
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 get output timestr: Unsupported" if $Debug{winamp};
+		print "mp3 get output timestr: Unsupported\n" if $Debug{winamp};
 	}
 }
 
@@ -398,7 +399,7 @@ sub mp3_get_playlist_length {
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 get playlist length: Unsupported" if $Debug{winamp};
+		print "mp3 get playlist length: Unsupported\n" if $Debug{winamp};
 	}
 }
 
@@ -410,7 +411,7 @@ sub mp3_playing {
 	}
 	else {
     # don't know how to do this
-		print_log "mp3 playing: Unsupported" if $Debug{winamp};
+		print "mp3 playing: Unsupported\n" if $Debug{winamp};
 	}
 }
 
@@ -419,10 +420,8 @@ sub mp3_running {
 	my $host = shift || $mp3_host;
 
 # *** Tangled up BS
-# Play should just shell if local!
+# Play should just shell with file parameter if local!
 
-
-	print "HOST:$host\n";
 
                                 # Start winamp, if it is not already running (windows localhost only)
 	if ($OS_win && ($host eq 'localhost') && done $p_winamp_house && ! &sendkeys_find_window('Winamp ', ($config_parms{mp3_program})?$config_parms{mp3_program}:$winamp_path, 5000)) {
@@ -458,6 +457,6 @@ sub mp3_radio_play {
     return 0 unless &mp3_running($host);
     $file =~ s/&&/&/g;
     run qq["$config_parms{mp3_program}" "$file"];
-    print "mp3 radio play: $file" if $Debug{winamp};
+    print "mp3 radio play: $file\n" if $Debug{winamp};
     return 1;
 }
