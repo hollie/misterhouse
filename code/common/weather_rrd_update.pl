@@ -2103,14 +2103,14 @@ for $celgtime (@$tabgtime) {
 sub analyze_rrd_rain {
 	my $RRD = "$config_parms{weather_data_rrd}";
 
-	&print_log('analyze_rrd_rain: updating $Weather{RainLast{x}hours}');
+	&print_log('analyze_rrd_rain: updating $Weather{RainLast{x}Hours}');
 
 	my @hours=(1,2,6,12,18,24,48,72,168);
 	my $resolution=18*60;  # using 18 minute datapoints - don't change this unless you know what you're doing
 
 	# set default values
-	foreach my $hour(@hours) {
-		$Weather{"RainLast${hour}hours"} = 'unknown';
+	foreach my $hour (@hours) {
+		$Weather{"RainLast${hour}Hours"} = 'unknown';
 	}
 
 	my $endtime=int(time/$resolution)*$resolution;
@@ -2165,27 +2165,29 @@ sub analyze_rrd_rain {
 		# if a RainTotal reset to 0 occurs, then rainAmount will be < 0
 		next if ($rainAmount < 0); 
 
-		$Weather{"RainLast${hour}hours"}=$rainAmount;
 		if ($config_parms{weather_uom_rain} eq 'mm') {
-			$Weather{"RainLast${hour}hours"}=convert_in2mm($Weather{"RainLast${hour}hours"});
+			$rainAmount=convert_in2mm($rainAmount);
 		}
-		# print "hour $hour is $rainAmount ".$Weather{"RainLast${hour}hours"}."\n"; # for debugging
+		$Weather{"RainLast${hour}Hours"}=$rainAmount;
+		# print "hour $hour is $rainAmount ".$Weather{"RainLast${hour}Hours"}."\n"; # for debugging
 	}
 
 	# check to make sure that the data looks right
 	for (my $i=0; $i < ($#hours-1); $i++) {
-		my $iPlus1=$i+1;
+		my $shorter=Weather{"RainLast".$hours[$i]."Hours"};
+		my $longer=Weather{"RainLast".$hours[$i+1]."Hours"};
+
 		# don't check if either value is unknown
-		next if $Weather{"RainLast${i}hours"} eq 'unknown';
-		next if $Weather{"RainLast${iPlus1}hours"} eq 'unknown';
+		next if $Weather{"RainLast${shorter}Hours"} eq 'unknown';
+		next if $Weather{"RainLast${longer}Hours"} eq 'unknown';
 
 		# if the total rain in the last period of time is lower than the
-		# next large period of time, then check the next period
-		next if ($Weather{"RainLast${i}hours"} <= $Weather{"RainLast${iPlus1}hours"});
+		# next larger period of time, then check the next period
+		next if ($Weather{"RainLast${shorter}Hours"} <= $Weather{"RainLast${longer}Hours"});
 		# a quirk in the data has caused a smaller period to have a larger
 		# value than the next larger period
 		# fix it by copying the smaller amount onto the larger amount
-		$Weather{"RainLast${iPlus1}hours"}=$Weather{"RainLast${i}hours"};
+		$Weather{"RainLast${shorter}Hours"}=$Weather{"RainLast${longer}Hours"};
 	}
 	&print_log('analyze_rrd_rain: complete');
 }
