@@ -6137,7 +6137,7 @@ sub tk_entry {
 
 }
 
-sub tk_label_new {
+sub tk_label {
     return unless $Reload;
 
                                 # Allow web widgets, even with -no_tk
@@ -6164,7 +6164,7 @@ sub tk_label_new {
 #    }
 }
 
-sub tk_label {
+sub tk_label_old {
     return unless $Reload;
 
                                 # Allow web widgets, even with -no_tk
