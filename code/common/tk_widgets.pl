@@ -37,7 +37,7 @@ use vars '$mh_volume';  # In case we don't have mh_sound (see below)
 
 if ($Reload and $MW) {
 
-    &tk_label(\$Tk_objects{label_time});
+    &tk_label(\$Tk_objects{label_time}) if defined $config_parms{tk_clock} and $config_parms{tk_clock};
     &tk_label(\$Tk_objects{label_uptime_cpu});
     &tk_label(\$Tk_objects{label_uptime_mh});
     &tk_label(\$Tk_objects{label_cpu_used});
