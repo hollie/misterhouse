@@ -2018,7 +2018,9 @@ sub check_for_tied_events {
                                  $object1->{set_by} eq $$object2{object_name} ) ) {
 #                           $object2->{set_by} = $object1->{object_name};
 #                           $object2->{set_by} = $object1;
+		            my $Set_By = $object1->{set_by};
                             $Respond_Target = $object1->get_target(); # Pass target along
+			    $Respond_Target = $Set_By unless $Respond_Target or ref $Set_By; # Just for legacy code (speak chimes)
                             $object2->set($state2, $object1);
                         }
                     }
@@ -2038,10 +2040,10 @@ sub check_for_tied_events {
                 print "Event link: eval event=$event\n" if $Debug{events};
                 my $state = $state1; # So eval can substitute $state
                 my $object=$object1;
-                $Set_By = $object1->{set_by};        # Checked in Generic_Item set method
+                $Set_By = $object1->{set_by};        # Checked in Generic_Item set method (not usually at this time)
 
                 $Respond_Target = $object1->get_target() if defined $object1->get_target(); # Pass target along (IF it exists, else we overwrite good value!)
-		$Respond_Target = $Set_By unless $Respond_Target; # Just for legacy code (speak chimes)
+		$Respond_Target = $Set_By unless $Respond_Target or ref $Set_By; # Just for legacy code (speak chimes)
                 eval $event;
                 $Set_By = '';
                 print "tie_events eval error: $@" if $@;
@@ -3590,7 +3592,7 @@ sub process_external_command {
                                  # So speak hooks can react right (e.g. common/speak_chime.pl)
 				 # *** They don't always get the right target
         $Respond_Target = $respond_target;
-        $Respond_Target = $set_by unless defined $Respond_Target; # target and set_by no longer fused
+        $Respond_Target = $set_by unless defined($Respond_Target) or ref $set_by; # target and set_by no longer fused
         speak($1);
     }
     elsif ($cmd =~ /^display (.+)/i) {
@@ -5243,7 +5245,7 @@ sub respond {
 #    my $p = join ',', %parms; print "db2 p=$p.\n";
 
                                 # Call respond_xyz function
-    $target = 'default' if $target !~ /\S/ or $target =~ /unknown/i or $target =~ /UserCode/i or $target =~ /time/i;
+    $target = 'default' if $target !~ /\S/ or $target =~ /unknown/i or $target =~ /UserCode/i or $target =~ /time/i; # includes tie_time
 
     print "respond target=$target lr=$Last_Response RT=$Respond_Target lso=$leave_socket_open_passes lsa=leave_socket_open_action a=@_\n"
         if $Debug{respond};
