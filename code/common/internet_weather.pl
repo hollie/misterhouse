@@ -134,7 +134,7 @@ if (done_now $p_weather_forecast) {
 			$w{IsRaining} = ($Weather{Conditions} =~ /rain/i);
 			$w{IsSnowing} = ($Weather{Conditions} =~ /snow/i);
 		}
-		if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny) {
+		if ($conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny)/) {
 			$w{Clouds} = lc($1);
 		}
 
