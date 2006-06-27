@@ -664,6 +664,8 @@ for $celgtime (@$tabgtime) {
 .($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxintemp=maxintemp,32,-,5,9,/,*\"," : "\"CDEF:fmaxintemp=maxintemp\",")
 ."\"DEF:intemp=$rrd_dir:intemp:AVERAGE\","
 .($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fintemp=intemp,32,-,5,9,/,*\"," : "\"CDEF:fintemp=intemp\",")
+."\"DEF:indew=$rrd_dir:indew:AVERAGE\","
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:findew=indew,32,-,5,9,/,*\"," : "\"CDEF:findew=indew\",")
 . qq^
 "CDEF:fdeltachill=fvar,fminchill,-",
 "CDEF:wipeout=var,UN,INF,UNKN,IF",
@@ -743,7 +745,7 @@ sub create_rrdgraph_tempin {
     my %sensor_names = @_;
 
     # Sensors list for this graph
-    my @list_sensors_graph = ('intemp', 'tempspare1', 'tempspare2', 'tempspare3', 'tempspare4', 'tempspare5', 'tempspare6', 'tempspare7', 'tempspare8', 'tempspare9', 'tempspare10');
+    my @list_sensors_graph = ('intemp', 'indew', 'tempspare1', 'tempspare2', 'tempspare3', 'tempspare4', 'tempspare5', 'tempspare6', 'tempspare7', 'tempspare8', 'tempspare9', 'tempspare10');
 
     # Calcul max lenght of sensor name
     my $max=0;
@@ -833,6 +835,13 @@ for $celgtime (@$tabgtime) {
 ."\"DEF:intemp=$rrd_dir:intemp:AVERAGE\","
 .($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fintemp=intemp,32,-,5,9,/,*\"," : "\"CDEF:fintemp=intemp\",")
 
+."\"DEF:minindew=$rrd_dir:indew:MIN\","
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminindew=minindew,32,-,5,9,/,*\"," : "\"CDEF:fminindew=minindew\",")
+."\"DEF:maxindew=$rrd_dir:indew:MAX\","
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxindew=maxindew,32,-,5,9,/,*\"," : "\"CDEF:fmaxindew=maxindew\",")
+."\"DEF:indew=$rrd_dir:indew:AVERAGE\","
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:findew=indew,32,-,5,9,/,*\"," : "\"CDEF:findew=indew\",")
+
 ."\"DEF:mintempspare1=$rrd_dir:tempspare1:MIN\","
 .($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmintempspare1=mintempspare1,32,-,5,9,/,*\"," : "\"CDEF:fmintempspare1=mintempspare1\",")
 ."\"DEF:maxtempspare1=$rrd_dir:tempspare1:MAX\","
@@ -917,6 +926,13 @@ for $celgtime (@$tabgtime) {
 	."\"GPRINT:fmaxintemp:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:fintemp:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:fintemp:LAST:Last \\\\: %5.1lf\\\\n\","
+	:'')
+. ($sensor_names{indew} ?
+	"\"LINE2:findew#ff9900:" . sprintf("%-${max}s",$sensor_names{indew}) . "\","
+	."\"GPRINT:fminindew:MIN:Min \\\\: %5.1lf\","
+	."\"GPRINT:fmaxindew:MAX:Max \\\\: %5.1lf\","
+	."\"GPRINT:findew:AVERAGE:Avg \\\\: %5.1lf\","
+	."\"GPRINT:findew:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare1} ?
 	"\"LINE2:ftempspare1#FF0000:" . sprintf("%-${max}s",$sensor_names{tempspare1}) . "\","
