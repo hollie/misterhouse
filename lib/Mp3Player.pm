@@ -18,8 +18,8 @@ sub new
 
     bless $self, $class;
 
-    push(@mp3player_object_list,$self);
-    push(@{$$self{states}}, 'play', 'pause', 'stop', 'next song', 'previous song', 'shuffle', 'repeat', 'volume up', 'volume down', 'queue', 'clear list', 'random song');
+    push(@mp3player_object_list, $self);
+    push(@{$$self{states}}, 'play', 'pause', 'stop', 'next song', 'previous song', 'shuffle', 'repeat', 'volume up', 'volume down', 'clear list', 'random song');
 
     return $self;
 }
@@ -37,7 +37,13 @@ sub default_setstate
 	# 0 = failure goes to -1 for mh fail code;
 	# 1 = success goes to 0, which mh sees as a success. (?)
 
-    return mp3_player_control($state,$self->{address}) - 1;
+    return mp3_player_control($state, $self->{address}) - 1;
+}
+
+sub play {
+	my $self = shift;
+	print "\n\n\nPlaying: @_[0]\n\n\n";
+	return &mp3_player_control("play \"@_[0]\"", $self->{address});
 }
 
 sub mp3_player_control 
@@ -45,17 +51,14 @@ sub mp3_player_control
     my ($command, $host) = @_;
     my $result;
 
-    if ($command =~ /^play:(.+)$/i) {
-	eval "\$result = &::mp3_play($1)";
+    if ($command =~ /^play "(.+)"$/i) {
+	eval "\$result = &::mp3_play(qq|$1|, '$host')";
     }
-    elsif ($command =~ /^playlist:(.+)$/i) {
-	eval "\$result = &::mp3_playlist($1)";
+    elsif ($command =~ /^station "(.+)"$/i) {
+	eval "\$result = &::mp3_radio_play(qq|$1|, '$host')";
     }
-    elsif ($command =~ /^station:(.+)$/i) {
-	eval "\$result = &::mp3_radio_play($1)";
-    }
-    elsif ($command =~ /^queue:(.+)$/i) {
-	eval "\$result = &::mp3_queue($1)";
+    elsif ($command =~ /^queue "(.+)"$/i) {
+	eval "\$result = &::mp3_queue(qq|$1|, '$host')";
     }
     elsif ($command eq 'clear list') {
 	eval "\$result = &::mp3_clear()";
