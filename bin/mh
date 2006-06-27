@@ -4907,13 +4907,13 @@ sub set_global_vars {
             &speak("Please restart misterhouse.  Uptime is $uptime_days days.") if $New_Hour and $Hour > 9 and $Hour < 22;
         }
 
-        $Tk_objects{label_uptime_cpu} = sprintf("cpu: %s",
+        $Tk_objects{label_uptime_cpu} = sprintf("CPU %s",
                                                 &time_diff($Time_Boot_time, $Time, undef, 'numeric'));
 #                                               &time_diff($Time_Boot_time, ($loop_tickcount1)/1000, undef, 'numeric'));
-        $Tk_objects{label_uptime_mh}  = sprintf(" mh: %s",
+        $Tk_objects{label_uptime_mh}  = sprintf("MH %s",
                                                 &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
-        $Tk_objects{label_cpu_used}    = sprintf("Cpu/Loops: %4.1f%% /%4d", $Info{cpu_used}, $Info{loop_speed});
-        $Tk_objects{label_memory_used} = sprintf("Memory: %4.1f / %4.1f MB",
+        $Tk_objects{label_cpu_used}    = sprintf("CPU/Loops: %4.1f%%/%4d", $Info{cpu_used}, $Info{loop_speed});
+        $Tk_objects{label_memory_used} = sprintf("MB %4.1f/%4.1f",
                                                  $Info{memory_virtual}, $Info{memory_real}) if $Info{memory_virtual};
                                 # This is grandfathered for old Tk menus
         $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d", $Info{loop_speed});
