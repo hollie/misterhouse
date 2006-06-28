@@ -4912,7 +4912,7 @@ sub set_global_vars {
 #                                               &time_diff($Time_Boot_time, ($loop_tickcount1)/1000, undef, 'numeric'));
         $Tk_objects{label_uptime_mh}  = sprintf("MH %s",
                                                 &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
-        $Tk_objects{label_cpu_used}    = sprintf("CPU/Loops: %4.1f%%/%4d", $Info{cpu_used}, $Info{loop_speed});
+        $Tk_objects{label_cpu_used}    = sprintf("CPU/Loops %5.1f%%/%4d", $Info{cpu_used}, $Info{loop_speed});
         $Tk_objects{label_memory_used} = sprintf("MB %4.1f/%4.1f",
                                                  $Info{memory_virtual}, $Info{memory_real}) if $Info{memory_virtual};
                                 # This is grandfathered for old Tk menus
@@ -6137,22 +6137,27 @@ sub tk_entry {
 
 }
 
-sub tk_label {
+# One at a time now, first param is status bar frame number (1 = original, 2=sb, 3=sb row 2)
+
+sub tk_label_new {
     return unless $Reload;
+    my $frame_number = shift;
+    my @data = @_;
+    my @widgets;
+
 
                                 # Allow web widgets, even with -no_tk
     push(@Tk_widgets, [$Category, 'label', @_]);
 
-    return unless $MW and $Tk_objects{fb};
-    my @data = @_;
-    my @widgets;
+    return unless $MW and $Tk_objects{"fb$frame_number"};
     for my $pvar (@data) {
         $Tk_objects{label}{$pvar}->destroy if $Tk_objects{label}{$pvar} and Exists($Tk_objects{label}{$pvar});
                                 # Note: Use a fixed font, so label size does not change with changing letters.
-        $Tk_objects{label}{$pvar} = $Tk_objects{fb2}->
-            Label(-relief => 'sunken', -textvariable => $pvar, -justify => 'left',
-                  -anchor => 'w', -font => $config_parms{tk_font_fixed});
+        $Tk_objects{label}{$pvar} = $Tk_objects{"fb$frame_number"}->
+            Label(-relief => 'sunken', -textvariable => $pvar, -justify => 'center',
+                   -font => $config_parms{tk_font_fixed});
 #           Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w', -font => $font1);
+
         push(@widgets, $Tk_objects{label}{$pvar});
     }
 #    if (@widgets > 1) {
@@ -6164,7 +6169,7 @@ sub tk_label {
 #    }
 }
 
-sub tk_label_old {
+sub tk_label {
     return unless $Reload;
 
                                 # Allow web widgets, even with -no_tk
