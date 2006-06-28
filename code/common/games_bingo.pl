@@ -69,5 +69,10 @@ sub display_bingo {
 sub display_bingo_status {
     my $i = $bingo_count-3; $i = 0 if $i < 0;
     my @previous = $bingo_card[$i .. $bingo_count-1];
-    display app => 'bingo', text => "@previous";
+    if ($#previous != -1) {
+    	display app => 'bingo', text => "@previous";
+    }
+    else {
+        display  app => 'bingo', text => "No game in progress.";
+    }
 }
