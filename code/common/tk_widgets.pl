@@ -122,7 +122,9 @@ sub tk_scalebar_object {
 
 #   &tk_entry('Code Search', $search_code_string,    'Debug flag', \$config_parms{debug});
     &tk_entry('Code Search', $search_code_string);
-    &tk_entry('Debug flag', \$config_parms{debug});
+
+	# There is a menu for this, so most won't want this (File | Debug)
+    &tk_entry('Debug flag', \$config_parms{debug}) if defined $config_parms{debug_widget} and $config_parms{debug_widget};
 
 
 #   &tk_radiobutton('VR Mode',  \$tk_vr_mode, ['awake', 'asleep', 'off'], ['Awake', 'Asleep', 'Off']) if $Run_Members{viavoice_control};
