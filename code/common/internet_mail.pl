@@ -36,10 +36,11 @@ my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
 
 #tk_mlabel($email_flag, 'email flag');   ... this quit working in 2.88.  Tk does not like the Generic_Item Tie update
 
-# *** This belongs in noloop block else it calls this sub every time!
+# This belongs in noloop block else it calls this sub every time!
 # *** tk subs return if not $Reload, which is a crutch (and obscure.)
 
-&tk_mlabel(\$Save{email_flag}, 'email flag');
+&tk_label_new(3,\$Save{email_flag}, 'email flag');
+
 
 
 #noloop=stop
