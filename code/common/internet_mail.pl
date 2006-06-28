@@ -39,7 +39,7 @@ my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
 # This belongs in noloop block else it calls this sub every time!
 # *** tk subs return if not $Reload, which is a crutch (and obscure.)
 
-&tk_label_new(3,\$Save{email_flag}, 'email flag');
+&tk_label_new(3, \$Save{email_flag});
 
 
 
