@@ -30,7 +30,8 @@ if ($MW and $Reload) {
                                 # Create top and bottom frames
         $Tk_objects{ft}   = $MW->Frame->pack(qw/-side top -fill both -expand 1/); 
         $Tk_objects{fb}   = $MW->Frame->pack(qw/-side top -fill both -expand 1/); 
-        $Tk_objects{fb2}   = $MW->Frame->pack(qw/-side top -fill both -expand 1/); 
+        $Tk_objects{fb2}   = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/); 
+        $Tk_objects{fb3}   = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/); 
 
 
 

@@ -37,11 +37,11 @@ use vars '$mh_volume';  # In case we don't have mh_sound (see below)
 
 if ($Reload and $MW) {
 
-    &tk_label(\$Tk_objects{label_time}) if defined $config_parms{tk_clock} and $config_parms{tk_clock};
-    &tk_label(\$Tk_objects{label_uptime_cpu});
-    &tk_label(\$Tk_objects{label_uptime_mh});
-    &tk_label(\$Tk_objects{label_cpu_used});
-    &tk_label(\$Tk_objects{label_memory_used}) unless $Info{OS_name} =~ /Win/; # Works for NT/2k
+    &tk_label_new(2, \$Tk_objects{label_time}) if defined $config_parms{tk_clock} and $config_parms{tk_clock};
+    &tk_label_new(2, \$Tk_objects{label_uptime_cpu});
+    &tk_label_new(2, \$Tk_objects{label_uptime_mh});
+    &tk_label_new(2, \$Tk_objects{label_cpu_used});
+    &tk_label_new(2, \$Tk_objects{label_memory_used}) unless $Info{OS_name} =~ /Win/; # Works for NT/2k
 
     #$Tk_objects{sliders}{frame}->destroy if $Tk_objects{sliders}{frame};
     #$Tk_objects{sliders}{frame} = $MW -> Frame -> pack(qw/-side bottom -fill both -expand 1/);
