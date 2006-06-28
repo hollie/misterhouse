@@ -14,7 +14,13 @@ my $daily_sales = 0;
 my $weekly_sales = 0;
 my $monthly_sales = 0;
 &load_sales();
+&tk_label_new(3,\$Save{marketplace_sales_day});
+&tk_label_new(3,\$Save{marketplace_sales_week});
+&tk_label_new(3,\$Save{marketplace_sales_month});
 #noloop=stop
+
+
+
 
 
 if (said $v_email_sales) {
