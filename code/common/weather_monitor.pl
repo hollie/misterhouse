@@ -195,19 +195,13 @@ sub monitor_sun {
     }
 }
 
-                                # Add tk weather widgets ... put these in tk_widgets.pl
-#&tk_label(\$Weather{TempIndoor});
-#&tk_label(\$Weather{HumidIndoor});
-#&tk_label(\$Weather{TempOutdoor});
-#&tk_label(\$Weather{TempOutdoorApparent});
-#&tk_label(\$Weather{HumidOutdoor});
-#&tk_label(\$Weather{WindAvgSpeed});
-#&tk_label(\$Weather{Conditions});
-
-#&tk_label(\$Weather{Summary});
-#&tk_label(\$Weather{SummaryWind});
-#&tk_label(\$Weather{SummaryRain});
-
+                                # Add tk weather widgets
+&tk_label_new(3,\$Weather{TempIndoor});
+&tk_label_new(3,\$Weather{HumidIndoor});
+&tk_label_new(3,\$Weather{TempOutdoor});
+&tk_label_new(3,\$Weather{HumidOutdoor});
+&tk_label_new(3,\$Weather{WindAvgSpeed});
+&tk_label_new(3,\$Weather{Conditions});
                                 # Set up pointers to random weather comments
 $f_remark_on_humidity      = new File_Item("$config_parms{data_dir}/remarks/list_humid.txt");
 $f_remark_on_temp_below_0  = new File_Item("$config_parms{data_dir}/remarks/list_temp_below_0.txt");
