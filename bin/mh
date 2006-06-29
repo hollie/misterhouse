@@ -1269,7 +1269,7 @@ sub check_for_action {
 
 	$Tk_objects{menu_modules}->command(-label => 'Add or Remove Modules...', -command => \&add_remove_modules);
 	
-
+	$Tk_objects{menu_modules}->separator();
 	    my $i;
 
             for (sort keys %Run_Members) {
@@ -1311,6 +1311,20 @@ sub check_for_action {
 	%button = ('text' => 'Pause', 'image' => 'playpause22', 'command' => \&toggle_pause);
 
 	tk_toolbar_add_button($tb, \%button);
+
+
+	if ($Run_Members{'internet_mail'}) { # ugly (20-line email scan belongs in lib or in here)
+
+		$tb->separator();
+		
+		# Calling voice command for this is absurd of course (see above)
+
+		my %button = ('text' => 'Check email', 'image' => 'mailget22', 'command' => sub { run_voice_cmd('check for e mail', 0, 'tk')}); # *** Goofy vc name too
+
+		tk_toolbar_add_button($tb, \%button);
+	}
+
+
 
 
 	    if ($Run_Members{'internet_dialup'}) {
