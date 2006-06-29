@@ -338,7 +338,7 @@ sub respond {
 				my ($address) = $set_by =~ /\[(.+)\]/;
 				# *** TODO:Set room from IP if local
 				$target = 'speak';
-				$mode = 'mute' if (!&is_local_address($address) and !$parms{mode});	
+				$mode = 'mute' if (!&main::is_local_address($address) and !$parms{mode});	
 			}
 			$extra .= "mode=$mode " if $mode;         #Used to mute remote Web speech
 		}
