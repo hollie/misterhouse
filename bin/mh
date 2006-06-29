@@ -469,6 +469,8 @@ BEGIN {
                 &my_use("Display");
             }
 	    eval "use Tk::ToolBar";
+	    eval "use Tk::Balloon"; # for new status bar labels
+
         }
 
                                 # Allow for Round Robin database logs
@@ -1257,13 +1259,62 @@ sub check_for_action {
 
 	    my $i;
 
-            for (keys %Run_Members) {
+            for (sort keys %Run_Members) {
 			$Tk_objects{menu_modules}->checkbutton(-label => $_, -variable => \$Run_Members{$_});
-#			last if $i++ > 20; # *** config for this
+			last if $i++ > (defined $config_parms{tk_module_menu_max})?$config_parms{tk_module_menu_max}:50;
 	    }
 
+	    my $tb = $Tk_objects{toolbar};
 
-unless ($Tk_objects{menu_help}) {
+	    if ($Run_Members{'internet_dialup'}) {
+
+		$tb->separator();
+		
+		my %button = ('text' => 'Connect to Internet', 'image' => 'connectyes22', 'command' => \&ras_connect);
+
+		tk_toolbar_add_button($tb, \%button);
+		my %button = ('text' => 'Disconnect from Internet', 'image' => 'connectno22', 'command' => \&ras_disconnect);
+
+		tk_toolbar_add_button($tb, \%button);
+
+
+
+	    }
+
+	    if ($Run_Members{'mp3_winamp'} or $Run_Members{'mp3_slimserver'} or $Run_Members{'mp3_xmms'} or $Run_Members{'mp3_alsaplayer'}) { # all must create jukebox object!
+		use vars '$jukebox'; # *** should just call subs!
+		$tb->separator();
+
+		my %button = ('text' => 'Previous song', 'image' => 'playstart22', 'command' => sub {set $jukebox 'previous song', 'tk'});
+
+		tk_toolbar_add_button($tb, \%button);
+		
+		my %button = ('text' => 'Play', 'image' => 'nav1rightarrow22', 'command' => sub {set $jukebox 'play','tk'});
+
+		tk_toolbar_add_button($tb, \%button);
+		my %button = ('text' => 'Pause', 'image' => 'playpause22', 'command' => sub {set $jukebox 'pause', 'tk'});
+
+		tk_toolbar_add_button($tb, \%button);
+
+		my %button = ('text' => 'Stop', 'image' => 'playstop22', 'command' => sub {set $jukebox 'stop', 'tk'});
+
+		tk_toolbar_add_button($tb, \%button);
+
+		my %button = ('text' => 'Next song', 'image' => 'playend22', 'command' => sub {set $jukebox 'next song', 'tk'});
+
+		tk_toolbar_add_button($tb, \%button);
+
+	    }	 
+
+
+	$tb->separator();	
+
+	my %button = ('text' => 'Help', 'image' => 'acthelp22', 'command' => \&help);
+
+	tk_toolbar_add_button($tb, \%button);
+
+
+	unless ($Tk_objects{menu_help}) {
 
 	    $Tk_objects{menu_help} = $Tk_objects{menu_bar}->
         	Menubutton(-text => 'Help',
@@ -3580,7 +3631,7 @@ sub process_external_command {
     print "Running external command: cmd=$cmd set_by=$set_by respond=$respond_target\n" unless $config_parms{no_log} =~ /xcmd/;
 
     if (&run_voice_cmd(lc($cmd), undef, $set_by, 0, $respond_target)) {
-        print_log "Ran $set_by command: $cmd" unless $config_parms{no_log} =~ /xcmd/;
+        print_log "Ran $set_by command: $cmd" unless $config_parms{no_log} =~ /xcmd/ or $set_by eq 'tk'; # tk is not appropriate here (command listbox doesn't call this.)
     }
                                 # Limit syntax to protect from dangerous hacks
     elsif ($cmd =~ /^set +(\$[\_a-z0-9]+) * [\'\" \_a-z0-9]+ *$/i and eval "ref $1") {
@@ -5762,6 +5813,7 @@ sub tk_setup_windows {
     $Tk_objects{menu_file}->command(-label => 'Restart', -underline => 0, -command => sub {exit_pgm(999)});
 
     $Tk_objects{menu_file}->command(-label => 'Reload', -accelerator => 'F1', -underline => 0, -command => \&read_code);
+    $Tk_objects{menu_file}->command(-label => 'Reload All', -underline => 0, -command => \&read_code_forced);
     $Tk_objects{menu_file}->command(-label => 'Pause', -accelerator => 'F2', -underline => 0, -command => \&toggle_pause);
     $Tk_objects{menu_file}->command(-label => 'Log', -accelerator => 'F5', -underline => 0, -command => \&toggle_log);
     $Tk_objects{menu_file}->separator();
@@ -5799,8 +5851,183 @@ sub tk_setup_windows {
 #    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, -value => 'mute');
 #    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, -value => 'offline');
 
+	my $tb_align = ($config_parms{tk_toolbar_align})?$config_parms{tk_toolbar_align}:'top';
+	# *** Should validate before passing to tk lib
+
+	
+	$Tk_objects{toolbar} = $MW->ToolBar('-movable', 1, '-side', "$tb_align",
+                                 '-indicatorcolor', 'blue');
+
+	my $tb = $Tk_objects{toolbar};
+
+
+	#my @commands = ('navhome22','playpause22', 'playstop22', 'nav1rightarrow22', 'actundo22', 'actreload22', 'actrun22', 'actlock22', 'actunlock22', 'connectno22', 'connectyes22', 'connecting22');
+
+	my %button = ('text' => 'Toggle house mode', 'image' => 'navhome22', 'command' => \&toggle_house_mode);
+
+	tk_toolbar_add_button($tb, \%button);
+
+	%button = ('text' => 'Toggle security mode', 'image' => 'actlock22', 'command' => \&toggle_security_mode);
+
+	tk_toolbar_add_button($tb, \%button);
+
+	%button = ('text' => 'Undo the last action', 'image' => 'actundo22', 'command' => \&undo_last_action);
+
+	tk_toolbar_add_button($tb, \%button);
+
+	%button = ('text' => 'Reload code', 'image' => 'actreload22', 'command' => \&read_code);
+
+	tk_toolbar_add_button($tb, \%button);
+
+	%button = ('text' => 'Pause', 'image' => 'playpause22', 'command' => \&toggle_pause);
+
+	tk_toolbar_add_button($tb, \%button);
 
 }
+
+sub toggle_house_mode {
+	use vars '$mode_mh'; # When would this object not exist?  Should be declared in here?
+
+	if (ref $mode_mh) {
+
+		my $state = $mode_mh->{state};
+
+		if ($state eq 'offline') {
+			$state = 'normal'
+		}
+		elsif ($state eq 'mute') {
+			$state = 'offline';
+		}
+		else {
+			$state = 'mute';		
+		}
+
+		set $mode_mh $state, 'tk';
+	}
+}
+
+sub toggle_security_mode {
+	use vars '$mode_security'; # When would this object not exist?  Should be declared in here?
+
+	if (ref $mode_security) {
+
+		my $state = $mode_security->{state};
+
+		if ($state eq 'armed') {
+			$state = 'unarmed'
+		}
+		else {
+			$state = 'armed';
+		}
+
+		set $mode_security $state, 'tk';
+	}
+}
+
+sub ras_connect {
+
+	if (defined $config_parms{net_connect_entry} and $config_parms{net_connect_entry}) {
+        	print_log "Dialing the internet with $config_parms{net_connect_entry}";
+
+		# *** This is awful (good thing most won't use it!)
+
+		run qq[rasdial "$config_parms{net_connect_entry}" $config_parms{net_connect_name} $config_parms{net_connect_password}];
+		return 1; # Worked as best we can tell at the moment.
+	}
+	else {
+		warn 'Dial-up networking is not configured (net_connect_entry)';
+	}
+}
+
+sub ras_disconnect {
+       	print_log "Disconnecting from the Internet";
+	run qq[rasdial /disconnect];
+	return 1; # whatever
+}
+
+
+
+sub undo_last_action {
+    my $msg;
+    my $undid = 0;
+    my $set_by = shift;
+    $set_by = 'tk' unless $set_by;
+
+    my $target = $set_by;
+    if ($target =~ /(.*?) +\[/) { # clean up converted set_by
+	$target = $1;		  # Not used normally as tk is default and objects are usually passed
+    }
+
+
+    my @refs = &Generic_Item::recently_changed;
+
+    if ($#refs != -1) {
+	
+
+    while (my $ref = shift @refs) {
+
+		# *** Need config parm to filter these
+
+	my $ref_set_by = $ref->{set_by};
+
+		# *** Only looking one level up at the moment (same as Generic_Item)
+
+	if (ref $ref_set_by and $ref_set_by->can('get_set_by')) {
+		$ref_set_by = $ref_set_by->get_set_by();
+	}
+
+	my $ref_type = ref $ref;
+#	my $ref_set_by_type = ref $ref_set_by;
+
+	my $automation = (!$ref_set_by or $ref_set_by =~ /usercode/i or $ref_set_by =~ /unknown/i or $ref_set_by =~ /time/i or $ref_set_by =~ /^xap$/i); # includes tie_time
+
+        if (($ref->isa('X10_Item') or $ref->isa('Serial_Item') or $ref->isa('Voice_Cmd') or $ref->isa('IR_Item') or $ref->isa('Generic_Item')) and !$automation) {
+            my $name = &pretty_object_name($ref->{object_name});
+	    if ($name !~ /undo/i) { 		# Don't undo the undo voice command!
+   		    $msg = "Changing $name from $ref->{state} back to $ref->{state_prev}.";
+
+		    if (ref $set_by and $set_by->can('respond')) {
+		            $set_by->respond("app=control $msg");
+		    }
+                    else { # called by tk
+
+			# No said or state_now called prior, so no RT, so no_chime=1
+			respond "target=$target no_chime=1 app=control $msg";
+				
+		    }
+        	    set $ref $ref->{state_prev}, $set_by;
+		    $undid = 1;
+	            last;
+	    }
+        }
+    }
+	
+    }
+
+respond "target=$target app=control no_chime=1 No recent actions can be undone." unless $undid;
+
+
+}
+
+
+sub tk_toolbar_add_button {
+	my ($tb, $p_button) = @_;
+
+	my $text = $p_button->{text};
+	my $tip = $p_button->{tip};
+	my $image = $p_button->{image};
+	my $command = $p_button->{command};
+
+	$tip = $text unless $tip;
+
+
+        $tb->ToolButton  (-text  => $text,
+                          -tip   => $tip,
+			  -image => $image,
+                          -command => $command
+			 );
+}
+
 
 sub tk_setup_geometry {
                                 # Allow geometry resizing on reload, but only if it has changed,
