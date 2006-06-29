@@ -1174,15 +1174,24 @@ sub add_sound {
     }
 }
 
+sub add_remove_modules {
+	# *** For now jump to Web interface (should be a dialog!)
+	&browser("http://localhost:$config_parms{http_port}/bin/code_select.pl");
+}
+
+
 sub browser {
     my ($file) = @_;
-                                # Don't need this ... run look at search path
+                                # Don't need this ... run looks at search path
 #    unless (-f $config_parms{browser} or lc($config_parms{browser}) eq 'explorer') {
 #        &print_log("Could not find html browser file: $config_parms{browser}");
 #        return;
 #    }
                                 # Translate unix/perl / to dos \
     $file =~ s|/|\\|g if $OS_win and $file !~ /^http/i;
+
+	# *** Should shellexecute in Windows!
+
 
     run qq[$config_parms{browser} "$file"];
 }
@@ -1257,6 +1266,9 @@ sub check_for_action {
 
 	    $Tk_objects{menu_modules} = $Tk_objects{menu_bar}->Menubutton(-text => 'Modules', -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0) unless $Tk_objects{menu_modules};
 	    $Tk_objects{menu_modules}->menu->delete(0, 'end'); # Delete old menus
+
+	$Tk_objects{menu_modules}->command(-label => 'Add or Remove Modules...', -command => \&add_remove_modules);
+	
 
 	    my $i;
 
