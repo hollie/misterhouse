@@ -305,7 +305,7 @@ sub respond {
 	}
 
 
-	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /^time$/i);
+	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /time/i);
 
 
 	# get user info
