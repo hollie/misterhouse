@@ -200,7 +200,7 @@ sub monitor_sun {
 &tk_label_new(3,\$Weather{HumidIndoor});
 &tk_label_new(3,\$Weather{TempOutdoor});
 &tk_label_new(3,\$Weather{HumidOutdoor});
-&tk_label_new(3,\$Weather{WindAvgSpeed});
+&tk_label_new(3,\$Weather{Wind});
 &tk_label_new(3,\$Weather{Conditions});
 &tk_label_new(3,\$Weather{BaromDelta});
                                 # Set up pointers to random weather comments
