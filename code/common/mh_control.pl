@@ -24,11 +24,11 @@ if ($state = said $v_listen) {
 		if ($v_listen->{set_by} =~ '^vr') {
 			&Voice_Cmd::wait_for_command(0);
 		}
-		respond 'app=control I am listening.';
+		$v_listen->respond('app=control I am listening.');
 	}
 	else {
 		&Voice_Cmd::wait_for_command('Start listening');	
-		respond 'app=control I am not listening.';
+		$v_listen->respond('app=control I am not listening.');
 	}
 }
 
@@ -459,21 +459,11 @@ if ($temp = state_now $search_command_string) {
     respond $results;
 }
 
-$undo_last_change = new Voice_Cmd 'Undo the last action';
-$undo_last_change-> set_info('Changes the most recently changed item back to its previous state');
+$v_undo_last_change = new Voice_Cmd 'Undo the last action';
+$v_undo_last_change-> set_info('Changes the most recently changed item back to its previous state');
 
-                                # Not sure how to limit this to relevent items ... start with X10_Items
-if (said $undo_last_change) {
-    my @refs = &Generic_Item::recently_changed;
-    while (my $ref = shift @refs) {
-#       print "db testing $ref->{object_name}\n";
-        if ($ref->isa('X10_Item')) {
-            my $name = &pretty_object_name($ref->{object_name});
-            respond "Changeing $name from $ref->{state} back to $ref->{state_prev}";
-            set $ref $ref->{state_prev};
-            last;
-        }
-    }
+if (said $v_undo_last_change) {
+	&undo_last_action($v_undo_last_change);
 }
 
                                 # Add a short command for testing
@@ -515,11 +505,20 @@ if (state_now $mode_mh) {
     $Save{mode} = $state;
     $mode_mh->respond("mode=unmuted app=control Changed to $Save{mode} mode");
 }
+
 if (state_now $mode_sleeping) {
     my $state = $mode_sleeping->{state};
     $Save{sleeping_parents} = ($state eq 'parents' or $state eq 'all') ? 1 : 0;
     $Save{sleeping_kids}    = ($state eq 'kids'    or $state eq 'all') ? 1 : 0;
+    $state = ucfirst($state);
+    $mode_sleeping->respond("mode=unmuted app=control $state are sleeping.");
 }
+
+if (state_now $mode_security) {
+    my $state = $mode_security->{state};
+    $mode_security->respond("mode=unmuted app=control Security $state.");
+}
+
 
 
 
