@@ -9,11 +9,17 @@
                                 # Re-create tk widgets on startup or if this file has changed on code reload
 if ($MW and $Reload) {
 
-                                # If this file has not changed, only re-create the tk widget grid
+                                # If this file has not changed, only re-create the tk widget grids
     if (!$Startup and !file_change("$config_parms{code_dir_common}/tk_frames.pl")) {
         print "Deleting old grid framework\n";
         $Tk_objects{grid}->destroy;
+        $Tk_objects{fb2}->destroy;
+        $Tk_objects{fb3}->destroy;
+
         $Tk_objects{grid} = $Tk_objects{ft}->Frame->pack(qw/-side right -anchor n/); 
+        $Tk_objects{fb2}   = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/); 
+        $Tk_objects{fb3}   = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/); 
+
     }
 
                                 # This file changed, so re-create all frames
@@ -24,6 +30,8 @@ if ($MW and $Reload) {
             print "Deleting old tk frames\n";
             $Tk_objects{ft}->destroy;
             $Tk_objects{fb}->destroy;
+            $Tk_objects{fb2}->destroy;
+            $Tk_objects{fb3}->destroy;
         }
         print "Creating Frames\n";
 
