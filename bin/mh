@@ -469,6 +469,7 @@ BEGIN {
                 &my_use("Display");
             }
 	    eval "use Tk::ToolBar";
+	    eval "use Tk::Tree";
 	    eval "use Tk::Balloon"; # for new status bar labels
 
         }
@@ -2152,7 +2153,7 @@ sub check_for_tied_filters {
                 print "Multiple states split into state=$currentstate remainder=$remainingstate\n" if $Debug{state};
                 $state = $remainingstate;
 
-            # Check for states with a embeded set_with_timer directive
+            # Check for states with a embedded set_with_timer directive
                 return 1 if check_for_embedded_commands($self, $currentstate, $remainingstate);
 
             # Set the object to the currentstate, we will then loop and repeat
@@ -6294,7 +6295,9 @@ sub tk_checkbutton {
 
 sub tk_command_list {
     my ($parent) = @_;
-    my $list = $parent->Scrolled("Listbox", -scrollbars => "se");
+    my $list = $parent->Scrolled( qw/Tree -separator : -exportselection 1 -scrollbars osoe / );
+
+
 
                                 # These 2 commands give a 'can not find delegate.pl' msg on tk 8.020 (ok on 8.015).
 #   $list->Label(text => "Command or Search String")->pack(-side => 'top', -fill => 'x');
@@ -6304,22 +6307,52 @@ sub tk_command_list {
 #    $f->Label(-text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
     $Tk_objects{command} = $f->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'left', -fill => 'x', -expand => 1);
 
-    $list->insert(0, &list_voice_cmds_match($config_parms{tk_startup_cmd})); # Init with all commands
+    #$list->insert(0, &list_voice_cmds_match($config_parms{tk_startup_cmd})); # Init with all commands *** Need to persist the last command search!
 
-    $list->bind('<Double-1>' => sub{
-        $list->selectionClear(0, 'end');
-        my ($file, $cmd) = $_[0]->get('active') =~ /(.+)\: *(.+)/;
-        &run_voice_cmd($cmd, undef, 'tk');
-    });
+	my @cmds = &list_voice_cmds_match($config_parms{tk_startup_cmd});
+
+	my $last_cat = '';
+
+	for (@cmds) {
+		my $cat = (split( /:/, $_ ))[0]; 
+		if ($last_cat ne $cat) {
+		    	$list->add( $cat, -text => $cat, -image => $list->Getimage("folder"));		
+			$last_cat = $cat;
+		}
+		my $text = (split( /:/, $_ ))[-1]; 
+	    	$list->add( $_, -text => $text, -image => $list->Getimage("file"));	
+	}
+
+
+	$list->configure( -command => sub { my $cmd="@_"; $cmd =~ s/^(.*?): //; &process_external_command($cmd, 0, 'tk') } );
+
+	$list->autosetmode();
+
+    #$list->bind('<Double-1>' => sub{
+    #   $list->selectionClear(0, 'end');
+    #    my ($file, $cmd) = $_[0]->get('active') =~ /(.+)\: *(.+)/;
+    #    &run_voice_cmd($cmd, undef, 'tk');
+    #});
 
     $Tk_objects{command}->bind('<Return>', sub {
         my $cmd = $Tk_objects{command}->get;
         unless (&process_external_command($cmd, 0, 'tk')) {
                                 # No exact match ... create a list of commands that kind of match
-            $list->delete(0, 'end');
+            $list->delete('all');
             my @cmds = &list_voice_cmds_match($cmd);
-            print_log "No matching commands found for string=$cmd" unless @cmds;
-            $list->insert(0, @cmds);
+            print_log "No matching commands found for $cmd" unless @cmds;
+
+	for (@cmds) {
+		my $cat = (split( /:/, $_ ))[0]; 
+		if ($last_cat ne $cat) {
+		    	$list->add( $cat, -text => $cat, -image => $list->Getimage("folder"));		
+			$last_cat = $cat;
+		}
+		my $text = (split( /:/, $_ ))[-1]; 
+	    	$list->add( $_, -text => $text, -image => $list->Getimage("file"));	
+	}
+
+	$list->autosetmode();
         }
     });
     return $list;
