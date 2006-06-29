@@ -1,9 +1,11 @@
-
 use strict;
 
 # Monitors trigger code, used by code like tv_grid and the web alarm page,
 # that specifies events that trigger actions.  View, add, modify, or
 # delete triggers with http://localhost:8080/bin/triggers.pl
+
+# $Date$
+# $Revision$
 
 use vars '%triggers';           # use vars so we can use in the web server
 
@@ -18,7 +20,6 @@ my $script_file  = "$::Code_Dirs[0]/triggers.mhp";
 sub triggers_loop {
     $prev_triggers = &file_read($trigger_file) if $Reload and -e $trigger_file;
     $prev_script   = &file_read($script_file)  if $Reload and -e $script_file;
-    &triggers_read      if $Startup;
     &triggers_save      if new_minute 5;
     &trigger_write_code if $trigger_write_code_flag;
 }
