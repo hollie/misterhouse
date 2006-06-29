@@ -1285,7 +1285,7 @@ sub check_for_action {
 	$Tk_objects{toolbar}->destroy() if $Tk_objects{toolbar};
 	
 	$Tk_objects{toolbar} = $MW->ToolBar('-movable', 1, '-side', "$tb_align",
-                                 '-indicatorcolor', 'blue');
+                                 '-indicatorcolor', 'blue', '-sticky', 'nsew');
 
 	my $tb = $Tk_objects{toolbar};
 
