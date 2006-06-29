@@ -1266,9 +1266,40 @@ sub check_for_action {
 	    }
 
 
-	unless ($Tk_objects{toolbar_help_button}) { # just do this once (need to delete and rebuild)
+#	unless ($Tk_objects{toolbar_help_button}) { # just do this once (need to delete and rebuild)
 
-	    my $tb = $Tk_objects{toolbar};
+	my $tb_align = ($config_parms{tk_toolbar_align})?$config_parms{tk_toolbar_align}:'top';
+	# *** Should validate before passing to tk lib
+	$Tk_objects{toolbar}->destroy() if $Tk_objects{toolbar};
+	
+	$Tk_objects{toolbar} = $MW->ToolBar('-movable', 1, '-side', "$tb_align",
+                                 '-indicatorcolor', 'blue');
+
+	my $tb = $Tk_objects{toolbar};
+
+
+	#my @commands = ('navhome22','playpause22', 'playstop22', 'nav1rightarrow22', 'actundo22', 'actreload22', 'actrun22', 'actlock22', 'actunlock22', 'connectno22', 'connectyes22', 'connecting22');
+
+	my %button = ('text' => 'Toggle house mode', 'image' => 'navhome22', 'command' => \&toggle_house_mode);
+
+	tk_toolbar_add_button($tb, \%button);
+
+	%button = ('text' => 'Toggle security mode', 'image' => 'actlock22', 'command' => \&toggle_security_mode);
+
+	tk_toolbar_add_button($tb, \%button);
+
+	%button = ('text' => 'Undo the last action', 'image' => 'actundo22', 'command' => \&undo_last_action);
+
+	tk_toolbar_add_button($tb, \%button);
+
+	%button = ('text' => 'Reload code', 'image' => 'actreload22', 'command' => \&read_code);
+
+	tk_toolbar_add_button($tb, \%button);
+
+	%button = ('text' => 'Pause', 'image' => 'playpause22', 'command' => \&toggle_pause);
+
+	tk_toolbar_add_button($tb, \%button);
+
 
 	    if ($Run_Members{'internet_dialup'}) {
 
@@ -1316,7 +1347,7 @@ sub check_for_action {
 	my %button = ('text' => 'Help', 'image' => 'acthelp22', 'command' => \&help);
 
 	$Tk_objects{toolbar_help_button} = tk_toolbar_add_button($tb, \%button);
-    }
+#    }
 
 	unless ($Tk_objects{menu_help}) {
 
@@ -5855,37 +5886,6 @@ sub tk_setup_windows {
 #    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, -value => 'mute');
 #    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, -value => 'offline');
 
-	my $tb_align = ($config_parms{tk_toolbar_align})?$config_parms{tk_toolbar_align}:'top';
-	# *** Should validate before passing to tk lib
-
-	
-	$Tk_objects{toolbar} = $MW->ToolBar('-movable', 1, '-side', "$tb_align",
-                                 '-indicatorcolor', 'blue');
-
-	my $tb = $Tk_objects{toolbar};
-
-
-	#my @commands = ('navhome22','playpause22', 'playstop22', 'nav1rightarrow22', 'actundo22', 'actreload22', 'actrun22', 'actlock22', 'actunlock22', 'connectno22', 'connectyes22', 'connecting22');
-
-	my %button = ('text' => 'Toggle house mode', 'image' => 'navhome22', 'command' => \&toggle_house_mode);
-
-	tk_toolbar_add_button($tb, \%button);
-
-	%button = ('text' => 'Toggle security mode', 'image' => 'actlock22', 'command' => \&toggle_security_mode);
-
-	tk_toolbar_add_button($tb, \%button);
-
-	%button = ('text' => 'Undo the last action', 'image' => 'actundo22', 'command' => \&undo_last_action);
-
-	tk_toolbar_add_button($tb, \%button);
-
-	%button = ('text' => 'Reload code', 'image' => 'actreload22', 'command' => \&read_code);
-
-	tk_toolbar_add_button($tb, \%button);
-
-	%button = ('text' => 'Pause', 'image' => 'playpause22', 'command' => \&toggle_pause);
-
-	tk_toolbar_add_button($tb, \%button);
 
 }
 
@@ -6323,6 +6323,8 @@ sub tk_command_list {
 	    	$list->add( $_, -text => $text, -image => $list->Getimage("file"));	
 	}
 
+
+		# *** Check if leaf node!
 
 	$list->configure( -command => sub { my $cmd="@_"; $cmd =~ s/^(.*?): //; &process_external_command($cmd, 0, 'tk') } );
 
