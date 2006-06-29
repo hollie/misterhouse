@@ -1261,9 +1261,8 @@ sub check_for_action {
 
             for (sort keys %Run_Members) {
 			$Tk_objects{menu_modules}->checkbutton(-label => $_, -variable => \$Run_Members{$_});
-			last if $i++ > (defined $config_parms{tk_module_menu_max})?$config_parms{tk_module_menu_max}:50;
+			last if $i++ > ((defined $config_parms{tk_module_menu_max} and $config_parms{tk_module_menu_max})?$config_parms{tk_module_menu_max}:50);
 	    }
-
 
 
 	unless ($Tk_objects{toolbar_help_button}) { # just do this once (need to delete and rebuild)
