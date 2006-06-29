@@ -202,6 +202,7 @@ sub monitor_sun {
 &tk_label_new(3,\$Weather{HumidOutdoor});
 &tk_label_new(3,\$Weather{WindAvgSpeed});
 &tk_label_new(3,\$Weather{Conditions});
+&tk_label_new(3,\$Weather{BaromDelta});
                                 # Set up pointers to random weather comments
 $f_remark_on_humidity      = new File_Item("$config_parms{data_dir}/remarks/list_humid.txt");
 $f_remark_on_temp_below_0  = new File_Item("$config_parms{data_dir}/remarks/list_temp_below_0.txt");
