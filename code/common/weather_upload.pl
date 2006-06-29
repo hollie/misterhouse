@@ -69,25 +69,50 @@ if (said $v_weather_update eq 'Run') {
 	$weather_winddir=$Weather{WindGustDir} unless $weather_winddir;
 
     # Make some conversions if necessary
-    my $weather_tempoutdoor = $config_parms{weather_uom_temp} eq 'C' ? convert_c2f($Weather{TempOutdoor}):$Weather{TempOutdoor};
-    my $weather_dewoutdoor = $config_parms{weather_uom_temp} eq 'C' ? convert_c2f($Weather{DewOutdoor}):$Weather{DewOutdoor};
+    my $weather_tempoutdoor=$Weather{TempOutdoor};
+    my $weather_dewoutdoor=$Weather{DewOutdoor};
+
+    if ($config_parms{weather_uom_temp} eq 'C') {
+    	grep {$_=convert_c2f($_) if defined $_;} (
+    		$weather_tempoutdoor,
+    		$weather_dewoutdoor
+		);
+	}
+
     my $weather_baromsea = $Weather{BaromSea};
-    if (not defined $weather_baromsea or $weather_baromsea eq '') {
-    	$weather_baromsea=convert_local_barom_to_sea($Weather{Barom});
-    	print_log ("weather_upload warning: using non sea-level pressure");
+    if (not defined $weather_baromsea) {
+    	if (defined $Weather{Barom}) {
+	    	$weather_baromsea=convert_local_barom_to_sea($Weather{Barom});
+	    	print_log ("weather_upload warning: using non sea-level pressure");
+		} else {
+			print_log ("weather_upload warning: no pressure reading available");
+		}
     }
 
-    if ($config_parms{weather_uom_baro} eq 'mb') {
+    if (defined $weather_baromsea and $config_parms{weather_uom_baro} eq 'mb') {
     	$weather_baromsea=convert_mb2in($weather_baromsea);
 	}
 
-    my $weather_windgustspeed = $config_parms{weather_uom_wind} eq 'kph' ? convert_km2mile($Weather{WindGustSpeed}):$Weather{WindGustSpeed};
-    my $weather_windavgspeed = $config_parms{weather_uom_wind} eq 'kph' ? convert_km2mile($Weather{WindAvgSpeed}):$Weather{WindAvgSpeed};
+    my $weather_windgustspeed = $Weather{WindGustSpeed};
+    my $weather_windavgspeed = $Weather{WindAvgSpeed};
 
-    $weather_windgustspeed = convert_mps2mph($Weather{WindGustSpeed}) if $config_parms{weather_uom_wind} eq 'm/s';
-    $weather_windavgspeed = convert_mps2mph($Weather{WindAvgSpeed}) if $config_parms{weather_uom_wind} eq 'm/s';
+    if ($config_parms{weather_uom_wind} eq 'kph') {
+    	grep {$_=convert_km2mile($_) if defined $_;} (
+    		$weather_windgustspeed,
+    		$weather_windavgspeed
+		);
+	}
+    if ($config_parms{weather_uom_wind} eq 'm/s') {
+    	grep {$_=convert_mps2mph($_) if defined $_;} (
+    		$weather_windgustspeed,
+    		$weather_windavgspeed
+		);
+	}
 
-    my $weather_rainrate = $config_parms{weather_uom_rainrate} eq 'mm/hr' ? convert_mm2in($Weather{RainRate}):$Weather{RainRate};
+	my $weather_rainrate=$Weather{RainRate};
+	if (defined $weather_rainrate and $config_parms{weather_uom_rainrate} eq 'mm/hr') {
+		$weather_rainrate=convert_mm2in($weather_rainrate);
+	}
 
 	# note, the WxTendency -> current conditions stuff was removed
 	# as WxTendency is a forecast of weather 24-48 hours in advance,
@@ -102,11 +127,13 @@ if (said $v_weather_update eq 'Run') {
 
 	if ($Weather{Conditions} =~ /rain/i or $Weather{Raining}) {
 		$weather_conditions='RA';
-		if ($weather_rainrate >= 1) { # 1+ inches per hour sounds heavy
-			$weather_conditions='+RA';
-		}
-		if ($weather_rainrate <= 0.1) { # 0.1- inches per hour sounds light
-			$weather_conditions='-RA';
+		if (defined $weather_rainrate) {
+			if ($weather_rainrate >= 1) { # 1+ inches per hour sounds heavy
+				$weather_conditions='+RA';
+			}
+			if ($weather_rainrate <= 0.1) { # 0.1- inches per hour sounds light
+				$weather_conditions='-RA';
+			}
 		}
 	}
 	$weather_conditions='SN' if $Weather{Conditions} =~ /snow/i;
@@ -129,8 +156,8 @@ if (said $v_weather_update eq 'Run') {
     my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec;
     $utc = &escape($utc);
 
-    my $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&PASSWORD=%s&dateutc=%s&softwaretype=Misterhouse&action=updateraw',
-	$stationid, $passwd, $utc;
+    my $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&dateutc=%s&softwaretype=Misterhouse&action=updateraw',
+	$stationid, $utc;
 
 	$url .= "&winddir=$weather_winddir" if defined $weather_winddir;
 	$url .= "&windspeedmph=$weather_windavgspeed" if defined $weather_windavgspeed;
@@ -140,10 +167,12 @@ if (said $v_weather_update eq 'Run') {
 	$url .= "&baromin=$weather_baromsea" if defined $weather_baromsea;
 	$url .= "&dewptf=$weather_dewoutdoor" if defined $weather_dewoutdoor;
 	$url .= "&humidity=$Weather{HumidOutdoor}" if defined $Weather{HumidOutdoor};
-	$url .= "&weather=$weather_conditions" if defined $weather_conditions;
+	$url .= "&weather=$weather_conditions";
 	$url .= "&clouds=$weather_clouds" if $weather_clouds ne '';
 
-	print "wunderground: sun=$Weather{sun_sensor} $url\n"; # do not print this to print_log, as it has the password in it
+	print_log ("wunderground: $url") if $Debug{weather}; 
+
+	$url .= "&PASSWORD=${passwd}";
 
     set $p_weather_update qq|get_url -quiet "$url" $weather_update_html_path|;
     start $p_weather_update;

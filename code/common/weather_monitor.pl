@@ -448,4 +448,5 @@ sub uninstall_weather_monitor {
 if ($Reload) {
 	&trigger_set('new_minute(10)', 'eval "&analyze_rrd_rain"', 'NoExpire', 'update rain totals from RRD database') 
 		unless &trigger_get('update rain totals from RRD database');
+	eval '&analyze_rrd_rain';
 }

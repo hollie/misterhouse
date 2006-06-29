@@ -56,34 +56,27 @@ sub weather_updated {
 		$windSpeed='unknown';
 	}
 
-	# assume for now that windchill and humidex are negligible
 	my $apparentTemp='unknown';
 	my $temperatureText='unknown';
-	if (defined $$w{TempOutdoor}) {
-		$apparentTemp=$$w{TempOutdoor};
-		$temperatureText=sprintf('%.1f&deg;%s',$$w{TempOutdoor}, $main::config_parms{weather_uom_temp});
-	}
-	$$w{WindChill}=$apparentTemp;
-	$$w{Humidex}=$apparentTemp;
-	$$w{ApparentTemp}=$apparentTemp;
+	my $temp='unknown';
 
-	my $temp=$apparentTemp;
-	my $dewpoint=$$w{DewOutdoor};
-	if (!defined $dewpoint) {
-		$dewpoint = $$w{DewIndoor};
-		if (!defined $dewpoint) {
-			$dewpoint='unknown';
-		}
+	if (defined $$w{TempOutdoor}) {
+		$temp=$$w{TempOutdoor};
+		$temperatureText=sprintf('%.1f&deg;%s',$$w{TempOutdoor}, $main::config_parms{weather_uom_temp});
+		# assume for now that windchill and humidex are negligible
+		$$w{WindChill}=$$w{TempOutdoor};
+		$$w{Humidex}=$$w{TempOutdoor};
+		$$w{ApparentTemp}=$$w{TempOutdoor};
+		$apparentTemp=$$w{TempOutdoor};
 	}
+
+	my $dewpoint=$$w{DewOutdoor};
+	$dewpoint=$$w{DewIndoor} unless defined $dewpoint;
+	$dewpoint='unknown' unless defined $dewpoint;
 
 	# need temp and dewpoint in Celsius for formulas to work
 	if ($main::config_parms{weather_uom_temp} eq 'F') {
-		grep {$_=&::convert_f2c($_) if defined $_} ($temp,$dewpoint);
-	}
-
-	my $pressureText='unknown';
-	if (defined $$w{BaromSea}) {
-		$pressureText=sprintf("%s %s",$$w{BaromSea},$main::config_parms{weather_uom_baro});
+		grep {$_=&::convert_f2c($_) if $_ ne 'unknown' } ($temp,$dewpoint);
 	}
 
 	if ($windSpeed ne 'unknown' and $temp ne 'unknown') {
@@ -125,10 +118,6 @@ sub weather_updated {
 		$humidityText=sprintf('%.0f%%',$$w{HumidOutdoor});
 	}
 
-	if ($apparentTemp ne 'unknown') {
-		$$w{OutdoorApparent}=sprintf('%.1f',$apparentTemp);
-	}
-
 	my $apparentTempText='';
 
 	if ($apparentTemp ne 'unknown') {
@@ -136,12 +125,19 @@ sub weather_updated {
 		if ($apparentTemp != $$w{TempOutdoor}) {
 			$apparentTempText=" ($apparentTemp)";
 		}
+	} else {
+		$$w{TempOutdoorApparerent}='unknown';
+	}
+
+	my $pressureText='unknown';
+	if (defined($$w{BaromSea})) {
+		$pressureText=sprintf("%s %s",$$w{BaromSea},$main::config_parms{weather_uom_baro});
 	}
 
 	my $windDirName='unknown';
 	my $windDirNameLong='unknown';
 	my $windDirection=$$w{WindAvgDir};
-	$windDirection=$$w{WindGustDir} if !defined $windDirection;
+	$windDirection=$$w{WindGustDir} if not defined $windDirection;
 
 	if (defined $windDirection) {
 		$windDirName=convert_wind_dir_to_abbr($windDirection);
@@ -220,11 +216,15 @@ sub weather_add_hook {
 # 1 mb for each 8*3.28 feet = 24.24 feet
 
 sub convert_local_barom_to_sea_mb {
-	return sprintf('%.1f',$_[0] + $main::config_parms{altitude}/24.24);
+	return sprintf('%.1f',$_[0] + $main::config_parms{altitude}/24.24)
+		if (defined $main::config_parms{altitude});
+	return $_[0];
 }
 
 sub convert_local_barom_to_sea_in {
-	return sprintf('%.2f',$_[0] + $main::config_parms{altitude}/1000);
+	return sprintf('%.2f',$_[0] + $main::config_parms{altitude}/1000)
+		if (defined $main::config_parms{altitude});
+	return $_[0];
 }
 
 sub convert_local_barom_to_sea {
@@ -316,6 +316,8 @@ sub convert_wind_dir_to_text {
 	my ($dir)=@_;
 	return 'unknown' if $dir !~ /^[\d \.]+$/;
 
+	$dir=0 if $dir==360;
+
 	if ($dir >= 0 and $dir <= 359) {
 		return (
 			'North',
@@ -352,7 +354,7 @@ sub populate_internet_weather {
 	if ($weatherKeys ne '') {
 		@keys=split(/\s+/,$weatherKeys);
 	} else {
-		if ($main::config_parms{weather_internet_elements} eq 'all' or $main::config_parms{weather_internet_elements} eq '') {
+		if ($main::config_parms{weather_internet_elements} eq 'all' or not defined $main::config_parms{weather_internet_elements}) {
 			@keys=qw (
 				TempOutdoor
 				DewOutdoor
@@ -375,6 +377,18 @@ sub populate_internet_weather {
 			@keys=split(/\s+/,$main::config_parms{weather_internet_elements});
 		}
 	}
+
+	# Some weather stations can't measure dewpoint/humidity below a 
+	# certain temperature.  They will set DewOutdoorUnder if this is the case.
+	# So, let's automatically add HumidOutdoor and DewOutdoor to the list of
+	# keys if this happens.
+
+	if ($main::Weather{DewOutdoorUnder}) {
+		print_log ("Weather_Common: forcing use of internet for outdoor humidity and dewpoint as temperature is too low");
+		$main::Weather{HumidOutdoorMeasured}=0; # because our measurement is bad
+		push (@keys,qw(HumidOutdoor DewOutdoor));
+	}
+
 	foreach my $key (@keys) {
 		if (defined $$weatherHashRef{$key}) {
 			$main::Weather{$key}=$$weatherHashRef{$key};
