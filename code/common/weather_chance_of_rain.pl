@@ -41,10 +41,10 @@ if (said $v_chance_of_rain or $state = said $v_chance_of_rain2) {
 		$response = 'The weather forecast has not yet arrived.';
 	}
 	if ($state) {
-		$v_chance_of_rain2->respond("app=rain $response");
+		$v_chance_of_rain2->respond("app=rain important=1 $response");
 	}
 	else {
-		$v_chance_of_rain->respond("app=rain $response");
+		$v_chance_of_rain->respond("app=rain important=1 $response");
 	}
 }
 
