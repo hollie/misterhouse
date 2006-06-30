@@ -125,6 +125,7 @@ if (done_now $p_weather_forecast) {
 		}
 		$w{WindGustSpeed}=$w{WindAvgSpeed};
 	    $w{WindGustSpeed} = $1 if $conditions =~ /gusts\s+up\s+to\s+(\d+)\s+mph/;
+	    $w{WindGustDir}=$w{WindAvgDir};
 		$w{DewOutdoor}=convert_humidity_to_dewpoint($w{HumidOutdoor},convert_f2c($w{TempOutdoor})); # DewOutdoor is in Celsius at this point
 
 		# Who needs a sun sensor?

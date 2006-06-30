@@ -123,7 +123,7 @@ sub process{
 		$data=pack('C*',@data);
 		if (length($data) < 17) { # we need 17 bytes left to proceed
 			&::print_log("daviswm2: not enough bytes left to process") if $::Debug{Weather};
-			return $data;
+			return $headerByte.$data; # need to return the header byte as well
 		}
 		($indoor_temp,     
 		$outdoor_temp,    
@@ -206,7 +206,9 @@ sub process{
 	$$wptr{DewIndoor}=$indoor_dewpoint;
 	$$wptr{DewOutdoor}=$outdoor_dewpoint; 
 	$$wptr{WindAvgSpeed}=$wind_speed;
+	$$wptr{WindGustSpeed}=$wind_speed;
 	$$wptr{WindAvgDir}=$wind_direction;
+	$$wptr{WindGustDir}=$wind_direction;
 	$$wptr{Barom}=$barometer;
 	$$wptr{BaromSea}=$barometer_sea;
 	$$wptr{HumidIndoor}=$indoor_humidity;
