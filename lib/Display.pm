@@ -163,10 +163,18 @@ sub display {
 #       $$self{font} = 'Courier* 10 bold' unless $$self{font};
 #       $$self{font} = 'system'           unless $$self{font};
 #       $$self{font} = 'systemfixed'      if     $$self{font} eq 'fixed';
-        $$self{font} = 'Times 10 bold'   unless $$self{font};
-        $$self{font} = 'Courier 10 bold'  if    $$self{font} eq 'fixed';
 
-                                # Valid fonts can be listed with xlsfonts 
+	$$self{font} = $main::config_parms{tk_display_font} if defined($main::config_parms{tk_display_font}) and $main::config_parms{tk_display_font};
+
+	if ($main::OS_win) {
+	        $$self{font} = 'arial'   unless $$self{font};
+	}
+	else {
+	        $$self{font} = 'Times 10'   unless $$self{font};
+	}
+        $$self{font} = 'Courier 10'  if    $$self{font} eq 'fixed';
+
+                                # Valid fonts can be listed with xlsfonts (need to!)  See font dialog...
         my $t1;
         #my $inserted;
 
