@@ -6403,7 +6403,7 @@ sub tk_entry {
 
         $Tk_objects{entry}{$label} = $Tk_objects{grid}->
 #            Label(-text => $label, -anchor => 'w',  -bg => 'white');
-            Label(-relief => 'groove', -text => $label, -anchor => 'w');
+            Label(-text => $label, -anchor => 'w');
 #           Label(-relief => 'groove', -text => $label, -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font});
 
         if (ref $pvar ne 'SCALAR' and $pvar->can('set')) {
