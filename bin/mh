@@ -5024,8 +5024,8 @@ sub set_global_vars {
 #                                               &time_diff($Time_Boot_time, ($loop_tickcount1)/1000, undef, 'numeric'));
         $Tk_objects{label_uptime_mh}  = sprintf("MH %s",
                                                 &time_diff($Time_Startup_time, $Time, undef, 'numeric'));
-        $Tk_objects{label_cpu_used}    = sprintf("CPU/Loops %5.1f%%/%4d", $Info{cpu_used}, $Info{loop_speed});
-        $Tk_objects{label_memory_used} = sprintf("MB %4.1f/%4.1f",
+        $Tk_objects{label_cpu_used}    = sprintf("CPU %3.1f%% Loops %3d", $Info{cpu_used}, $Info{loop_speed});
+        $Tk_objects{label_memory_used} = sprintf("MB %3.1f/%3.1f",
                                                  $Info{memory_virtual}, $Info{memory_real}) if $Info{memory_virtual};
                                 # This is grandfathered for old Tk menus
         $Tk_objects{label_cpu_loops}  = sprintf("Loops Per Second: %4d", $Info{loop_speed});
