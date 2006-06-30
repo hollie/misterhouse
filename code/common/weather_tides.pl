@@ -1,47 +1,31 @@
 # Category = Weather
 
-#@ This script collects information about ocean tides, moonrise and moonset from the
+#@ This script collects information about ocean tides, moonrise and moonset from the 
 #@ <a href=http://tbone.biol.sc.edu/tide>University of Southern Carolina Tide Predictor<a>.
-#@ Set the weather_tide_site ini parameter to the tide site closest to you.
+#@ Set the weather_tide_site ini parameter to the tide site closest to you. 
 
-# 12/04/05 created by David Norwood based on idea by Joey French
+# 12/04/05 created by David Norwood based on idea by Joey French 
 
 
-my $tide_site = 'Charleston, South Carolina'; #noloop
-my $f_tides = "$config_parms{data_dir}/web/tides.html";  #noloop
-$v_get_tides = new Voice_Cmd 'Get tide info';
-$v_get_tides ->set_info('Get tide information from the Internet');  #noloop
-$v_read_tides = new Voice_Cmd 'When is the next [High Tide,Low Tide,Moonrise,Moonset]';
-$v_read_tides ->set_info('Show tide, moonrise and moonset information from the Internet');  #noloop
-$p_get_tides = new Process_Item;
-
-if ($Reload) {
-	$tide_site = $config_parms{'weather_tide_site'} if $config_parms{'weather_tide_site'};
+#noloop=start
+	my $tide_site = 'Charleston, South Carolina'; 
+	my $f_tides = "$config_parms{data_dir}/web/tides.html";
+	$v_get_tides = new Voice_Cmd 'Get tide info';
+	$v_get_tides ->set_info('Get tide information from the Internet');
+	$v_read_tides = new Voice_Cmd 'When is the next [High Tide,Low Tide,Moonrise,Moonset]?';
+	$v_read_tides ->set_info('Show tide, moonrise and moonset information from the Internet');
+	$p_get_tides = new Process_Item;
+	$tide_site = $config_parms{'weather_tide_site'} if $config_parms{'weather_tide_site'}; 
 	$tide_site = &escape($tide_site);
-	set $p_get_tides "get_url http://tbone.biol.sc.edu/tide/tideshow.cgi?site=$tide_site $f_tides"
-}
+	set $p_get_tides "get_url http://tbone.biol.sc.edu/tide/tideshow.cgi?site=$tide_site $f_tides";
+	trigger_delete "get tide info";
+#noloop=stop
 
-if (my $state = said $v_get_tides) {
-
-if ($Weather{'Next High Tide'} eq '' or $Weather{'Next Low Tide'} eq '' or
-  $Weather{'Next Moonrise'} eq '' or $Weather{'Next Moonset'} eq '') {
-
+if ((new_minute 10 and ($Weather{'Next High Tide'} eq '' or $Weather{'Next Low Tide'} eq '' or
+  $Weather{'Next Moonrise'} eq '' or $Weather{'Next Moonset'} eq '')) or said $v_get_tides) {
+	$v_get_tides->respond("app=tides Retrieving tide information for $tide_site...") if said $v_get_tides;
 	unlink $f_tides;
-	$v_get_tides->respond("app=tides Retrieving tide information...");
-
-	$p_get_tides->start;
-  }
-  else {
-	$v_get_tides->respond("app=tides Tide info is current.");
-  }
-}
-
-# user trigger
-
-if ($Reload) {
-    &trigger_set("new_minute 10",
-                 "run_voice_cmd 'Get tide info'", 'NoExpire', 'get tide info')
-      unless &trigger_get('get tide info');
+	$p_get_tides -> start;
 }
 
 if (time_now $Weather{'Next High Tide'}) {
@@ -74,17 +58,17 @@ if (time_now $Weather{'Next Moonset'}) {
 
 if (my $state = said $v_read_tides) {
 	my (undef, $time_str) = split ' ', $Weather{"Next $state"};
-	my $text;
+	my $text; 
 	$time_str = time_to_ampm $time_str;
 	$text .= "The next $state is at $time_str.";
 	$text = "The next $state time has not been retrieved." unless $Weather{"Next $state"};
-	$v_read_tides->respond("app=tides $text");
+	respond $text; 
 }
 
 
 
 
-=begin comment
+=begin comment 
 
 2006-01-03  04:01 EST  -0.60 feet  Low Tide
 2006-01-03  07:22 EST   Sunrise
@@ -105,14 +89,10 @@ if (my $state = said $v_read_tides) {
 
 =cut
 
-
-# *** voice command tangled with time (can't respond at the moment.)
-# *** same as TV (need two processes.)
-
 if (done_now $p_get_tides) {
 	my ($nexth, $nextl, $nextr, $nexts);
 	for my $html (file_read $f_tides, '') {
-		if (my ($year, $mnth, $date, $hour, $minu, $size, $units, $event) = $html =~
+		if (my ($year, $mnth, $date, $hour, $minu, $size, $units, $event) = $html =~ 
 		  /^(\d\d\d\d)-(\d\d)-(\d\d)  (\d\d):(\d\d) \w\w\w\s+(-?\d+\.\d+ (feet|meters))?\s+?(Low Tide|High Tide|Sunrise|Sunset|Moonrise|Moonset)$/) {
 			my $timediff = timelocal(0, $minu, $hour, $date, $mnth-1, $year-1900) - $Time;
 			my $time_str = "$mnth/$date $hour:$minu";
@@ -130,3 +110,5 @@ if (done_now $p_get_tides) {
 	print_log "Previous High Tide: $Weather{'Previous High Tide'} Next High Tide: $Weather{'Next High Tide'} Previous Low Tide: $Weather{'Previous Low Tide'} Next Low Tide: $Weather{'Next Low Tide'}";
 	print_log "Previous Moonrise: $Weather{'Previous Moonrise'} Next Moonrise: $Weather{'Next Moonrise'} Previous Moonset: $Weather{'Previous Moonset'} Next Moonset: $Weather{'Next Moonset'}";
 }
+
+
