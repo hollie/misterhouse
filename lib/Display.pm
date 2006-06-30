@@ -120,7 +120,7 @@ sub display {
     }
     else {
 
-	$$self{append} = 'top' unless $$self{append};
+#	$$self{append} = 'top' unless $$self{append};
     }
 
     if (lc $$self{font} eq 'biggest') {
@@ -182,8 +182,8 @@ sub display {
 
             }
             else { # replace
-                eval("\$t1->delete(('0.0', 'end'))"); 
-                eval("\$t1->insert(('0.0', " . $$self{text}. "))"); 
+                $t1->delete(('0.0', 'end')); 
+                $t1->insert(('0.0', $$self{text})); 
             }
 	    $t1->focus;
        	    #$inserted = !$@;	    
