@@ -106,6 +106,7 @@ sub display {
     
     if (!$reuse_flag) {     # Not reusing extant window
                             # New window from main tk 
+	   
 	    if ($main::MW) { 
         	$$self{MW} = $main::MW->Toplevel; 
 	        $$self{loop} = 0;
@@ -116,6 +117,10 @@ sub display {
 	        $$self{MW} = MainWindow->new;  
         	$$self{loop} = 1;
 	    } 
+    }
+    else {
+
+	$$self{append} = 'top' unless $$self{append};
     }
 
     if (lc $$self{font} eq 'biggest') {
@@ -176,13 +181,11 @@ sub display {
                 eval ("\$t1->insert(('0.0', '" . $$self{text} . "'))");
 
             }
-            else { # replace  ... why eval?  Messes up common/benchmarks.pl no-append windows
-#               eval("\$t1->delete(('0.0', 'end'))"); 
-#               eval("\$t1->insert(('0.0', " . $$self{text}. "))"); 
-                $t1->delete(('0.0', 'end')); 
-                $t1->insert(('0.0', $$self{text})); 
+            else { # replace
+                eval("\$t1->delete(('0.0', 'end'))"); 
+                eval("\$t1->insert(('0.0', " . $$self{text}. "))"); 
             }
-#	    $t1->focus;  # Should be an option?  For common/benchmarks.pl windows, we do not want constant focus
+	    $t1->focus;
        	    #$inserted = !$@;	    
         }
         #if (!$inserted) {
@@ -208,7 +211,7 @@ sub display {
 #                                 $b->configure(-text => "Quit (or ESC) auto-quit in $$self{time} seconds (F1 to toggle auto-quit)");; 
 #                                   $$self{MW}->withdraw if $$self{time} % 2;   ... test to hide and unhide a window
 #                                     $$self{MW}->deiconify unless $$self{time} % 2;
-                                  }) if $$self{time}; 
+                                  }) if $$self{time} and !$reuse_flag; 
     
     $$self{MW}->bind('<q>'         => sub{$self->destroy});
     $$self{MW}->bind('<Escape>'    => sub{$self->destroy});
