@@ -503,7 +503,7 @@ $mode_sleeping -> set_states('nobody', 'parents', 'kids', 'all');
 if (state_now $mode_mh) {
     my $state = $mode_mh->{state};
     $Save{mode} = $state;
-    $mode_mh->respond("mode=unmuted app=control Changed to $Save{mode} mode");
+    $mode_mh->respond("mode=unmuted app=control Changed to $Save{mode} mode.");
 }
 
 if (state_now $mode_sleeping) {
