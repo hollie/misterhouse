@@ -2425,7 +2425,7 @@ sub display {
 
                                 # Unless this was called from the web, display it with tk
     if ($config_parms{tk}) {
-        $parms{title} = $Time_Now              unless $parms{title}; # Default Title
+        $parms{title} = ucfirst($parms{app}) || $Time_Now unless $parms{title}; # Default Title
         $parms{font}  = $config_parms{tk_font} unless $parms{font};
                                 # Do not display if from web, unless display time is requested
         new Display(%parms) unless ($leave_socket_open_passes and !defined $parms{time});
