@@ -1,22 +1,34 @@
 # Category = MisterHouse
 
-#@ Adds an 'program active eye' to the tk interface
-
-# Position=3                    Load after tk_widget.pl, so we just to the left of the Help button
+#@ Adds a 'program active eye' to the tk interface
 
 my $eye_pos = 0;
 my $eye_dir = 1;
 
 if ($eye_dir) {
-    $eye_dir = 0 if ++$eye_pos >= 5;
+    $eye_dir = 0 if ++$eye_pos > 65;
 }
 else {
     $eye_dir = 1 if --$eye_pos == 0;
 }
 
-$Tk_objects{eye} = '      ';
-substr($Tk_objects{eye}, $eye_pos, 1) = '=';
-&tk_mlabel(\$Tk_objects{eye});
+$Tk_objects{eye_photo}->configure(-file => "$Pgm_Path/images/eye/eye" . ($eye_pos + 1) . ".jpg");
+
+#$Tk_objects{eye} = '      ';
+#substr($Tk_objects{eye}, $eye_pos, 1) = '=';
+
+# *** Configurable for old style (different threshold for textbox movement)
+# *** Bind to click -> goes to mh Web site
+
+#noloop=start
+$Tk_objects{eye}->destroy() if defined($Tk_objects{eye});
+$Tk_objects{eye_photo}->delete() if defined($Tk_objects{eye_photo});
+$Tk_objects{eye_photo} = $Tk_objects{menu_bar}->Photo(-file => "$Pgm_Path/../docs/mh_logo.gif");
+$Tk_objects{eye} = $Tk_objects{menu_bar}->Label(-height => 16, -width => 16, -image => $Tk_objects{eye_photo}, -relief => 'sunken')->pack(qw/-side right -anchor e/);
+#&tk_mlabel(\$Tk_objects{eye});
+#noloop=stop
+
+
 
 
 
