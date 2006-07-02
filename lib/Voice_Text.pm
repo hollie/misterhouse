@@ -93,7 +93,7 @@ sub speak_text {
 
     return if lc $parms{voice} eq 'none';
 
-    while ($parms{text} =~ /^(.*?)(\d{2,})(.*?)$/) {
+    while ($parms{text} =~ /^(.*?)(\d{3,})(.*?)$/) {
     	$parms{text}=$1.&num_to_text($2).$3;
 	}
 
