@@ -146,7 +146,7 @@ if (done_now $p_weather_metar_page or $Reload) {
 	$metar{WindGustSpeed} =~ s/^G//g;
 
 	# remove leading zeros
-	grep {$metar{$_} =~ s/^0//} qw(WindAvgSpeed, WindGustSpeed);
+	grep {$metar{$_} =~ s/^0//} qw(WindAvgSpeed WindGustSpeed);
 
 	if ($metar{WindGustSpeed} eq '') {
 		$metar{WindGustSpeed}=$metar{WindAvgSpeed};
@@ -162,24 +162,24 @@ if (done_now $p_weather_metar_page or $Reload) {
 	$metar{DewOutdoor} =~ s/^(-?)0/$1/;
 
 	if ($config_parms{weather_uom_temp} eq 'F') {
-		grep {$metar{$_}=convert_c2f($metar{$_})} qw(TempOutdoor, DewOutdoor);
+		grep {$metar{$_}=convert_c2f($metar{$_})} qw(TempOutdoor DewOutdoor);
 	}
 	if ($config_parms{weather_uom_wind} eq 'mph') {
-		grep {$metar{$_}=convert_nm2mile($metar{$_})} qw(WindAvgSpeed,WindGustSpeed);
+		grep {$metar{$_}=convert_nm2mile($metar{$_})} qw(WindAvgSpeed WindGustSpeed);
 	}
 	if ($config_parms{weather_uom_wind} eq 'm/s') {
-		grep {$metar{$_}=convert_knots2mps($metar{$_})} qw(WindAvgSpeed,WindGustSpeed);
+		grep {$metar{$_}=convert_knots2mps($metar{$_})} qw(WindAvgSpeed WindGustSpeed);
 	}
 	if ($config_parms{weather_uom_wind} eq 'kph') {
-		grep {$metar{$_}=convert_nm2km($metar{$_})} qw(WindAvgSpeed,WindGustSpeed);
+		grep {$metar{$_}=convert_nm2km($metar{$_})} qw(WindAvgSpeed WindGustSpeed);
 	}
 
 	$metar{Barom}=convert_sea_barom_to_local_mb($metar{BaromSea});
 
 	if ($config_parms{weather_uom_baro} eq 'in') {
-		grep {$metar{$_}=convert_mb2in($metar{$_})} qw(Barom, BaromSea);
+		grep {$metar{$_}=convert_mb2in($metar{$_})} qw(Barom BaromSea);
 	} else {
-		grep {$metar{$_}=sprintf("%.1f",$metar{$_})} qw(Barom, BaromSea);
+		grep {$metar{$_}=sprintf("%.1f",$metar{$_})} qw(Barom BaromSea);
 	}
 
 	grep {$metar{$_}=sprintf('%.0f',$metar{$_})} qw(
