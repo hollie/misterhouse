@@ -35,9 +35,9 @@ if ($country eq 'canada') {
 	$url="http://weather.noaa.gov/cgi-bin/mgetmetar.pl?Submit=SUBMIT&cccc=".$station;
 }
 
-my $file=$config_parms{data_dir}.'/web/weather_metar.html';
+my $weather_metar_file=$config_parms{data_dir}.'/web/weather_metar.html';
 
-$p_weather_metar_page= new Process_Item(qq{get_url -quiet "$url" "$file"});
+$p_weather_metar_page= new Process_Item(qq{get_url -quiet "$url" "$weather_metar_file"});
 
 $v_get_metar_weather = new Voice_Cmd('get metar weather');
 
@@ -54,19 +54,24 @@ if (said $v_get_metar_weather) {
 }
 
 if (done_now $p_weather_metar_page or $Reload) {
-	my $html=file_read $file;
+	&process_metar;
+}
+
+sub process_metar {
+	my $html=file_read $weather_metar_file;
 	return unless $html;
 
 	# NavCanada changed their format to break reports into multiple lines
 	$html =~ s/\n<br>\n//g;
 	my %metar;
-	my $last_report;
+	my $last_report='none';
 	my ($pressure, $weather, $clouds, $winddirname, $windspeedtext);
 	my ($metricpressure,$pressuretext, $apparenttemp, $dewpoint);
 	my $apparenttemp='none';
+
 	# apparenttemp is either windchill or humidex
 
-	while ($html =~ m#((METAR) |(SPECI) )?$station \d{6}Z (AUTO )?(COR )?(CCA )?\d{3}\d{2}(G\d{2})?KT .+?\n#g) {
+	while ($html =~ m#((METAR) |(SPECI) )?$station \d{6}Z (AUTO )?(COR )?(CCA )?(\d{3}|VRB)\d{2}(G\d{2})?KT .+?\n#g) {
 		$last_report=$&;
 		chop $last_report;
 		$weather='';
@@ -77,7 +82,7 @@ if (done_now $p_weather_metar_page or $Reload) {
 
 		print_log "Parsing METAR report: $last_report";
 
-		($metar{WindAvgDir},$metar{WindAvgSpeed},$metar{WindGustSpeed})=$last_report =~ m#(\d{3})(\d{2})(G\d{2})?KT#; # speeds in knots
+		($metar{WindAvgDir},$metar{WindAvgSpeed},$metar{WindGustSpeed})=$last_report =~ m#(\d{3}|VRB)(\d{2})(G\d{2})?KT#; # speeds in knots
 		if ($last_report =~ m#(M?\d{2})/(M?\d{2})#) { ($metar{TempOutdoor},$metar{DewOutdoor})=($1,$2);	}; # temperatures are in Celsius
 		if ($last_report =~ m#A(\d{4})#) { $metar{BaromSea}=convert_in2mb($1/100) }; # pressure in inches of mercury, converted to mb
 		if ($last_report =~ m#Q(\d{4})#) { $metar{BaromSea}=$1; };	# pressure in hPa (mb)
@@ -137,6 +142,11 @@ if (done_now $p_weather_metar_page or $Reload) {
 		}
 	}
 
+	if ($last_report eq 'none') { # didn't find a report
+		&print_log ("weather_metar: couldn't find a valid METAR report.  Retrieved data can be found in ${weather_metar_file}.");
+		return;
+	}
+
 	$weather =~ s/ $//; # remove trailing space
 
 	$metar{Conditions}=$weather;
@@ -150,6 +160,9 @@ if (done_now $p_weather_metar_page or $Reload) {
 
 	if ($metar{WindGustSpeed} eq '') {
 		$metar{WindGustSpeed}=$metar{WindAvgSpeed};
+	}
+	if ($metar{WindAvgDir} eq 'VRB') { # variable winds
+		$metar{WindAvgDir} = 0; # North is as good direction as any
 	}
 	$metar{WindGustDir}=$metar{WindAvgDir};
 	# change M to minus sign
@@ -188,6 +201,12 @@ if (done_now $p_weather_metar_page or $Reload) {
 		WindAvgSpeed
 		WindGustSpeed
 	);
+
+	if ($Debug{weather}) {
+		foreach my $key (sort(keys(%metar))) {
+			&print_log("weather_metar: $key is ".$metar{$key});
+		}
+	}
 
 	&populate_internet_weather(\%metar);
 	&weather_updated;
