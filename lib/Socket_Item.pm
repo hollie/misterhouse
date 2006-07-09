@@ -19,7 +19,7 @@ sub socket_item_by_id {
 }
 
 sub new {
-    my ($class, $id, $state, $host_port, $port_name, $host_proto, $datatype, $break) = @_;
+    my ($class, $id, $state, $host_port, $port_name, $host_proto, $datatype, $break, $broadcast) = @_;
 
 #    print "dbx1 creating socket on port $host_port name=$port_name\n";
     my $self = {state => ''};
@@ -33,6 +33,7 @@ sub new {
     $main::Socket_Ports{$port_name}{host_port} = $host_port if $host_port;
     $main::Socket_Ports{$port_name}{datatype}  = $datatype  if $datatype;
     $main::Socket_Ports{$port_name}{break}     = $break     if $break;
+    $$self{broadcast} = $broadcast if $broadcast;
     &add($self, $id, $state);
     bless $self, $class;
     $self->state_overload('off'); # By default, do not process ~;: strings as substate/multistate
@@ -58,12 +59,17 @@ sub start {
     my $port_name  = $self->{port_name};
     my $host_port  = $self->{host_port};
     my $host_proto = $self->{host_protocol};
+    my $broadcast = $self->{broadcast};
     $host_proto = 'tcp' unless $host_proto;
+    $broadcast = 0 unless $broadcast;
     my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
     if ($port) {
         print "Socket Item connecting to $host on port $port\n" if $main::Debug{socket};
         if (my $sock = new IO::Socket::INET->new(PeerAddr => $host,
-                                                 PeerPort => $port, Proto => $host_proto)) {
+                                                 PeerPort => $port, 
+                                                 Proto => $host_proto,
+                                                 Broadcast => $broadcast
+                                                 )) {
 # Timeout => 0,  # Does not help with 2 second pauses on unavailable  addresses :(
             $main::Socket_Ports{$port_name}{sock}  = $sock;
             $main::Socket_Ports{$port_name}{socka} = $sock;
