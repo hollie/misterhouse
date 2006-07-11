@@ -1,7 +1,7 @@
 # Category = Internet
 
 #@ This script collects and graphs DSL traffic data from a Westell Versalink 327W modem/router used by Verizon.   
-#@ Once this script is activated, <a href='/data/versalink.png?<!--#include code="int(100000*rand)"-->'>
+#@ Once this script is activated, <a href='sub;?graph_versalink_rrd()'>
 #@ this graph </a> will show your DSL traffic.   
 
 # 02/22/06 created by David Norwood 
@@ -24,7 +24,7 @@ if ($Reload) {
 	$versalink_url = "http://$versalink_host/atmstat.htm";
 	set $p_get_versalink "get_url -quiet $versalink_url $f_versalink";
 	&create_versalink_rrd($Time) unless -e $RRD;
-	$Included_HTML{'Internet'} .= qq(<h3>Versalink Throughput<p><img src='/data/versalink.png?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
+	$Included_HTML{'Internet'} .= qq(<h3>Versalink Throughput<p><img src='sub;?graph_versalink_rrd()'><p>\n\n\n);
 }
 
 # *** Might cause unexplained pauses every minute and nobody will know what it is! :)
@@ -61,10 +61,6 @@ if (done_now $p_get_versalink) {
 	&update_versalink_rrd($Time, $versalink_in, $versalink_out);
 	print_log "Internet download bit rate: " . round($versalink_download * $kbx, 2) . 
 	  " Kbps  upload: " . round($versalink_upload * $kbx, 2) . " Kbps" if $debug;
-
-	# *** Create graph should also be a trigger
-
-	&graph_versalink_rrd() unless $Minute % 5;
 }
 
 
@@ -121,7 +117,7 @@ sub update_versalink_rrd {
 
 sub graph_versalink_rrd {
 	my $ago = $Time - 3600;
-	RRDs::graph("$config_parms{data_dir}/versalink.png",
+	my ($graph, $x, $y) = RRDs::graph("$config_parms{data_dir}/versalink.png",
 	  "--start=$ago", "--end=$Time",
 	  "--vertical-label=kb/s",
 	  "DEF:inbytes=$RRD:inbytes:AVERAGE",
@@ -131,4 +127,5 @@ sub graph_versalink_rrd {
 	  "CDEF:realoutbytes=outbytes,8,*,1000,/",
 	  "LINE2:realoutbytes#00FF00:Out traffic",
 	);
+	return file_read "$config_parms{data_dir}/versalink.png";
 }
