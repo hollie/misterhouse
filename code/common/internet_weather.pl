@@ -157,7 +157,6 @@ if (done_now $p_weather_data or done_now $p_weather_conditions) {
 		}
 		$w{WindGustSpeed}=$w{WindAvgSpeed};
 	    $w{WindGustSpeed} = $1 if $conditions =~ /gusts\s+up\s+to\s+(\d+)\s+mph/;
-	    $w{WindGustDir}=$w{WindAvgDir};
 		$w{DewOutdoor}=convert_humidity_to_dewpoint($w{HumidOutdoor},convert_f2c($w{TempOutdoor})); # DewOutdoor is in Celsius at this point
 
 		# Who needs a sun sensor?
@@ -172,6 +171,7 @@ if (done_now $p_weather_data or done_now $p_weather_conditions) {
 		}
 
 		$w{WindAvgDir}=convert_wind_dir_text_to_num($w{WindAvgDir});
+		$w{WindGustDir}=$w{WindAvgDir};
 
 		if ($config_parms{weather_uom_wind} eq 'kph') {
 			grep {$w{$_}=convert_mile2km($w{$_});} qw(
@@ -200,6 +200,13 @@ if (done_now $p_weather_data or done_now $p_weather_conditions) {
 				BaromSea
 			);
 		}
+
+		if ($Debug{weather}) {
+			foreach my $key (keys(%w)) {
+				&print_log ("weather_internet: $key is $w{$key}");
+			}
+		}
+
 		&populate_internet_weather(\%w);
 		&weather_updated;
 	}
