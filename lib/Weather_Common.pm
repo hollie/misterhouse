@@ -66,7 +66,7 @@ sub weather_updated {
 		# assume for now that windchill and humidex are negligible
 		$$w{WindChill}=$$w{TempOutdoor};
 		$$w{Humidex}=$$w{TempOutdoor};
-		$$w{ApparentTemp}=$$w{TempOutdoor};
+		$$w{TempOutdoorApparent}=$$w{TempOutdoor};
 		$apparentTemp=$$w{TempOutdoor};
 	}
 
@@ -126,7 +126,7 @@ sub weather_updated {
 			$apparentTempText=" ($apparentTemp)";
 		}
 	} else {
-		$$w{TempOutdoorApparerent}='unknown';
+		$$w{TempOutdoorApparent}='unknown';
 	}
 
 	my $pressureText='unknown';
@@ -166,7 +166,7 @@ sub weather_updated {
 				if ($$w{WindAvgSpeed} >= 1) {
 					$longWindText.=sprintf(' gusting to %.0f %s',$$w{WindGustSpeed},$main::config_parms{weather_uom_wind});
 				} else {
-					$longWindText=sprintf('%s gusts of %.0f %s',$windDirNameLong,$$w{WindGustSpeed},$main::config_parms{weather_uom_wind});
+					$longWindText=sprintf('%serly gusts of %.0f %s',$windDirNameLong,$$w{WindGustSpeed},$main::config_parms{weather_uom_wind});
 				}
 			}
 		}
