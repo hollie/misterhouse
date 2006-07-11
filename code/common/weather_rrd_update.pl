@@ -143,12 +143,37 @@ if ($Reread) {
     $config_parms{weather_graph_dir} = "$config_parms{data_dir}/rrd" unless $config_parms{weather_graph_dir};
     $config_parms{weather_graph_footer} = 'Last updated $Time_Date, Dominique Benoliel, www.domotix.net' unless $config_parms{weather_graph_footer};
     mkdir $config_parms{weather_graph_dir} unless -d $config_parms{weather_graph_dir};
-    $config_parms{weather_graph_sensor_names} = "temp => Temperature outdoor, humid => Humidity outdoor, dew => Temperature dewpoint outdoor, press => Pressure outdoor, dir => Wind direction, avgdir => Wind average direction, speed => Wind speed, avgspeed => Wind average speed, chill => Temperature windchill, rate => Rain rate, rain => Rain total, intemp => Temperature indoor, inhumid => Humidity indoor, indew => Temperature dewpoint indoor, tempspare1 => Temperature extra sensor 1, humidspare1 => Humidity extra sensor 1, dewspare1 => Temperature dewpoint extra sensor 1, tempspare2 => Temperature extra sensor 2, humidspare2 => Humidity extra sensor 2, dewspare2 => Temperature dewpoint extra sensor 2, tempspare3 => Temperature extra sensor 3, humidspare3 => Humidity extra sensor 3, dewspare3 => Temperature dewpoint extra sensor 3, tempspare4 => Temperature extra sensor 4, humidspare4 => Humidity extra sensor 4, tempspare5 => Temperature extra sensor 5, humidspare5 => Humidity extra sensor 5, tempspare6 => Temperature extra sensor 6, humidspare6 => Humidity extra sensor 6, tempspare7 => Temperature extra sensor 7, humidspare7 => Humidity extra sensor 7, tempspare8 => Temperature extra sensor 8, humidspare8 => Humidity extra sensor 8, tempspare9 => Temperature extra sensor 9, humidspare9 => Humidity extra sensor 9, tempspare10 => Temperature extra sensor 10, humidspare10 => Humidity extra sensor 10 " unless $config_parms{weather_graph_sensor_names};
+    $config_parms{weather_graph_sensor_names} = "temp => Temperature outdoor, humid => Humidity outdoor, dew => Temperature dewpoint outdoor, press => Pressure outdoor, dir => Wind direction, avgdir => Wind average direction, speed => Wind speed, avgspeed => Wind average speed, apparent => Apparent temperature, rate => Rain rate, rain => Rain total, intemp => Temperature indoor, inhumid => Humidity indoor, indew => Temperature dewpoint indoor, tempspare1 => Temperature extra sensor 1, humidspare1 => Humidity extra sensor 1, dewspare1 => Temperature dewpoint extra sensor 1, tempspare2 => Temperature extra sensor 2, humidspare2 => Humidity extra sensor 2, dewspare2 => Temperature dewpoint extra sensor 2, tempspare3 => Temperature extra sensor 3, humidspare3 => Humidity extra sensor 3, dewspare3 => Temperature dewpoint extra sensor 3, tempspare4 => Temperature extra sensor 4, humidspare4 => Humidity extra sensor 4, tempspare5 => Temperature extra sensor 5, humidspare5 => Humidity extra sensor 5, tempspare6 => Temperature extra sensor 6, humidspare6 => Humidity extra sensor 6, tempspare7 => Temperature extra sensor 7, humidspare7 => Humidity extra sensor 7, tempspare8 => Temperature extra sensor 8, humidspare8 => Humidity extra sensor 8, tempspare9 => Temperature extra sensor 9, humidspare9 => Humidity extra sensor 9, tempspare10 => Temperature extra sensor 10, humidspare10 => Humidity extra sensor 10 " unless $config_parms{weather_graph_sensor_names};
     $config_parms{altitude}=0 unless $config_parms{altitude};
     $config_parms{ratio_sea_baro} = 10 unless $config_parms{ratio_sea_baro};
     $config_parms{weather_graph_format} = "PNG" unless $config_parms{weather_graph_format};
     tr/a-z/A-Z/ for $config_parms{weather_graph_format};
+    &weather_rrd_rename_chill_to_apparent;
    }
+
+sub weather_rrd_rename_chill_to_apparent {
+	my $rrd=$config_parms{weather_data_rrd};
+	# get info from rrd
+	my $hashPtr=RRDs::info($rrd);
+
+	my $error=RRDs::error;
+
+	if ($error) {
+		print_log ("weather_rrd: can't get info on $rrd");
+		return;
+	}
+
+	# if we still have a chill type
+	if (defined $$hashPtr{'ds[chill].type'}) {
+		RRDs::tune($rrd,'--data-source-rename','chill:apparent');
+		$error=RRDs::error;
+		if ($error) {
+			&print_log ("weather_rrd: can't rename chill to apparent: $error");
+		} else {
+			&print_log ("weather_rrd: successfully renamed chill to apparent");
+		}
+	}
+}
 
 # Debug mode
 my $debug = 1 if $main::Debug{weather_graph};
@@ -168,7 +193,7 @@ if ($New_Minute) {
     my $rrd_WindAvgDir = defined $Weather{WindAvgDir} ? $Weather{WindAvgDir} : 'U';
     my $rrd_WindGustSpeed = defined $Weather{WindGustSpeed} ? $Weather{WindGustSpeed} : 'U';
     my $rrd_WindAvgSpeed = defined $Weather{WindAvgSpeed} ? $Weather{WindAvgSpeed} : 'U';
-    my $rrd_WindChill = defined $Weather{WindChill} ? $Weather{WindChill} : 'U';
+    my $rrd_ApparentTemp = defined $Weather{TempOutdoorApparent} ? $Weather{TempOutdoorApparent} : 'U';
     my $rrd_RainRate = defined $Weather{RainRate} ? $Weather{RainRate} : 'U';
     my $rrd_RainTotal = defined $Weather{RainTotal} ? $Weather{RainTotal} : 'U';
     my $rrd_TempIndoor = defined $Weather{TempIndoor} ? $Weather{TempIndoor} : 'U';
@@ -211,7 +236,7 @@ if ($New_Minute) {
         $rrd_TempSpare1, $rrd_TempSpare2, $rrd_TempSpare3, $rrd_TempSpare4,
         $rrd_TempSpare5, $rrd_TempSpare6, $rrd_TempSpare7, $rrd_TempSpare8,
         $rrd_TempSpare9, $rrd_TempSpare10, $rrd_DewOutdoor, $rrd_DewIndoor,
-        $rrd_DewSpare1, $rrd_DewSpare2, $rrd_DewSpare3, $rrd_WindChill);
+        $rrd_DewSpare1, $rrd_DewSpare2, $rrd_DewSpare3, $rrd_ApparentTemp);
     }
 
     if ($config_parms{weather_uom_baro} eq 'mb') {
@@ -236,7 +261,7 @@ if ($New_Minute) {
 
     @d = ($rrd_TempOutdoor, $rrd_HumidOutdoor, $rrd_DewOutdoor, $rrd_Barom,
 	  $rrd_WindGustDir, $rrd_WindAvgDir, $rrd_WindGustSpeed, $rrd_WindAvgSpeed,
-	  $rrd_WindChill, $rrd_RainRate, $rrd_RainTotal, $rrd_TempIndoor,
+	  $rrd_ApparentTemp, $rrd_RainRate, $rrd_RainTotal, $rrd_TempIndoor,
 	  $rrd_HumidIndoor, $rrd_DewIndoor, $rrd_TempSpare1, $rrd_HumidSpare1,
     	  $rrd_DewSpare1, $rrd_TempSpare2, $rrd_HumidSpare2, $rrd_DewSpare2,
     	  $rrd_TempSpare3, $rrd_HumidSpare3, $rrd_DewSpare3,
@@ -258,7 +283,12 @@ if ($New_Minute) {
 # Create the graphs
 $p_weather_graph = new Process_Item "&create_rrdgraph_all";
 $tell_generate_graph = new Voice_Cmd "Generate weather graphs";
+
 if (new_minute $config_parms{weather_graph_frequency} or said $tell_generate_graph) {
+
+	if (said $tell_generate_graph) {
+		$tell_generate_graph->respond('Updating weather graphs');
+	}
 
 	my $RRD = "$config_parms{weather_data_rrd}";
 	$RRD_LAST = RRDs::last $RRD;
@@ -288,7 +318,7 @@ sub create_rrd {
     "DS:avgdir:GAUGE:$RRD_HEARTBEAT:0:360",
     "DS:speed:GAUGE:$RRD_HEARTBEAT:0:100",
     "DS:avgspeed:GAUGE:$RRD_HEARTBEAT:0:100",
-    "DS:chill:GAUGE:$RRD_HEARTBEAT:-150:150",
+    "DS:apparent:GAUGE:$RRD_HEARTBEAT:-150:150",
     "DS:rate:GAUGE:$RRD_HEARTBEAT:0:999",
     "DS:rain:GAUGE:$RRD_HEARTBEAT:0:9999",
     "DS:intemp:GAUGE:$RRD_HEARTBEAT:-150:150",
@@ -436,7 +466,7 @@ sub update_csv {
 	  'Epoch','Year','Month','Day','Hour','Minute','Seconde',
 	  'Outdoor Temp', 'Outdoor Humidity', 'Temperature dewpoint',
 	  'Pression', 'Direction wind', 'Direction average wind',
-	  'Wind Speed', 'Average wind speed', 'Temperature windchill',
+	  'Wind Speed', 'Average wind speed', 'Apparent Temperature',
 	  'Rain rate', 'Total rain', 'Temperature indoor',
 	  'Humidity indoor', 'Dewpoint indoor', 'Temperature module 1',
     	  'Humidity module 1', 'Dewpoint module 1', 'Temperature module 2',
@@ -557,7 +587,7 @@ sub create_rrdgraph_tempout {
     my $colortempin = '990099';	# indoor RGB color or 0 for no indoor lines
     my $colorzero = '000000';	# color of zero line
     my $colordew = '00ff00';	# color of dew point
-    my $colorwchill = '3300FF';	# color of wind chill
+    my $colorapparent = '3300FF';	# color of apparent temperature
     my $colorwhite = 'ffffff';	# color white
     my $str_graph;
     my $rrd_graph_dir;
@@ -652,12 +682,12 @@ for $celgtime (@$tabgtime) {
 .($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxdew=maxdew,32,-,5,9,/,*\"," : "\"CDEF:fmaxdew=maxdew\",")
 ."\"DEF:dew=$rrd_dir:dew:AVERAGE\","
 .($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fdew=dew,32,-,5,9,/,*\"," : "\"CDEF:fdew=dew\",")
-."\"DEF:chill=$rrd_dir:chill:AVERAGE\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fchill=chill,32,-,5,9,/,*\"," : "\"CDEF:fchill=chill\",")
-."\"DEF:minchill=$rrd_dir:chill:MIN\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminchill=minchill,32,-,5,9,/,*\"," : "\"CDEF:fminchill=minchill\",")
-."\"DEF:maxchill=$rrd_dir:chill:MAX\","
-.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxchill=maxchill,32,-,5,9,/,*\"," : "\"CDEF:fmaxchill=maxchill\",")
+."\"DEF:apparent=$rrd_dir:apparent:AVERAGE\","
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fapparent=apparent,32,-,5,9,/,*\"," : "\"CDEF:fapparent=apparent\",")
+."\"DEF:minapparent=$rrd_dir:apparent:MIN\","
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminapparent=minapparent,32,-,5,9,/,*\"," : "\"CDEF:fminapparent=minapparent\",")
+."\"DEF:maxapparent=$rrd_dir:apparent:MAX\","
+.($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fmaxapparent=maxapparent,32,-,5,9,/,*\"," : "\"CDEF:fmaxapparent=maxapparent\",")
 ."\"DEF:minintemp=$rrd_dir:intemp:MIN\","
 .($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:fminintemp=minintemp,32,-,5,9,/,*\"," : "\"CDEF:fminintemp=minintemp\",")
 ."\"DEF:maxintemp=$rrd_dir:intemp:MAX\","
@@ -667,27 +697,25 @@ for $celgtime (@$tabgtime) {
 ."\"DEF:indew=$rrd_dir:indew:AVERAGE\","
 .($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:findew=indew,32,-,5,9,/,*\"," : "\"CDEF:findew=indew\",")
 . qq^
-"CDEF:fdeltachill=fvar,fminchill,-",
 "CDEF:wipeout=var,UN,INF,UNKN,IF",
 "CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
 ^
 . ($config_parms{weather_uom_temp} eq 'C' ? "\"HRULE:0#$colorzero\",":"\"HRULE:32#$colorzero\",")
 . qq^
-"LINE2:fvar#$colortemp:Outdoor temperature",
+"LINE2:fvar#$colortemp:Outdoor temperature ",
 "GPRINT:fmintemp:MIN:Min  \\\\: %5.1lf",
 "GPRINT:fmaxtemp:MAX:Max  \\\\: %5.1lf",
 "GPRINT:fvar:AVERAGE:Avg \\\\: %5.1lf",
 "GPRINT:fvar:LAST:Last    \\\\: %5.1lf\\\\n",
 
-"AREA:fminchill#$colorwhite",
-"STACK:fdeltachill#$colorwchill:Wind Chill         ",
-"GPRINT:fminchill:MIN:Min  \\\\: %5.1lf",
-"GPRINT:fmaxchill:MAX:Max  \\\\: %5.1lf",
-"GPRINT:fchill:AVERAGE:Avg \\\\: %5.1lf",
-"GPRINT:fchill:LAST:Last    \\\\: %5.1lf\\\\n",
+"LINE2:fapparent#$colorapparent:Apparent Temperature",
+"GPRINT:fminapparent:MIN:Min  \\\\: %5.1lf",
+"GPRINT:fmaxapparent:MAX:Max  \\\\: %5.1lf",
+"GPRINT:fapparent:AVERAGE:Avg \\\\: %5.1lf",
+"GPRINT:fapparent:LAST:Last    \\\\: %5.1lf\\\\n",
 
-"LINE2:fdew#$colordew:Dew Point          ",
+"LINE2:fdew#$colordew:Dew Point           ",
 "GPRINT:fmindew:MIN:Min  \\\\: %5.1lf",
 "GPRINT:fmaxdew:MAX:Max  \\\\: %5.1lf",
 "GPRINT:fdew:AVERAGE:Avg \\\\: %5.1lf",
