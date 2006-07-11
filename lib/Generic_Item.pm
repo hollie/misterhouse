@@ -10,10 +10,12 @@ sub STORE {
     my $oldValue = $_[0][0]{$_[1]};
     $_[0][0]{$_[1]} = $_[2];
 
-                # Call property_changed if old and new are different
-    if((defined($oldValue) != defined($_[2])) or (defined $oldValue and $oldValue ne $_[2])) {
+				# Call property_changed if old and new are different
+				# Hmmm, maybe call any time data is stored, even if the data is the same.
+				# This way X10_Item can react correctly to things like 2 consecutive dim commands
+#   if((defined($oldValue) != defined($_[2])) or (defined $oldValue and $oldValue ne $_[2])) {
         $_[0][1]->property_changed($_[1],$_[2], $oldValue);
-    }
+#   }
 }
 
 
