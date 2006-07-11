@@ -12,14 +12,23 @@
 #@ hit the Back button and click on "Zone Forecast".  Zone names precede each
 #@ forecast and each is followed by a hyphen.
 #@ To modify when this script is run (or to disable it), go to the
-#@ <a href="/bin/triggers.pl"> triggers page </a>
-#@ and modify the 'get internet weather' trigger.
+#@ <a href="/bin/triggers.pl"> triggers page </a> and modify the 
+#@ 'get internet weather conditions' and 'get internet weather forecast' triggers.
 
 use Weather_Common;
 
-# Get the forecast and current weather data from the Internet
+#noloop=start
+# Get both the current weather data and forecast from the Internet
 $v_get_internet_weather_data = new  Voice_Cmd('[Get,Check,Mail,SMS] Internet weather data');
-$v_get_internet_weather_data-> set_info("Retrieves weather conditions and forecasts for $config_parms{city}, $config_parms{state}");
+$v_get_internet_weather_data-> set_info("Retrieves weather conditions and forecasts for $config_parms{city}, $config_parms{state}, $config_parms{zone}");
+
+# Get the current weather data from the Internet
+$v_get_internet_weather_conditions = new  Voice_Cmd('Get the Internet weather conditions');
+$v_get_internet_weather_conditions-> set_info("Retrieves current weather conditions for $config_parms{city}, $config_parms{state}, $config_parms{zone}");
+
+# Get the weather forecast from the Internet
+$v_get_internet_weather_forecast = new  Voice_Cmd('Get the Internet weather forecast');
+$v_get_internet_weather_forecast-> set_info("Retrieves weather forecasts for $config_parms{city}, $config_parms{state}, $config_parms{zone}");
 
 
 $v_show_internet_weather_forecast = new  Voice_Cmd('[Read Internet,What is the] weather forecast', 0);
@@ -30,16 +39,21 @@ $v_show_internet_weather_conditions = new  Voice_Cmd('[Read Internet,What are th
 $v_show_internet_weather_conditions-> set_info('Read previously downloaded weather conditions');
 $v_show_internet_weather_forecast-> set_authority('anyone');
 
-
 # These files get set by the get_weather program
 
-#noloop=start
 my $weather_forecast_path = "$config_parms{data_dir}/web/weather_forecast.txt";
 my $weather_conditions_path = "$config_parms{data_dir}/web/weather_conditions.txt";
 $f_weather_conditions = new File_Item($weather_conditions_path);
 $f_weather_forecast = new File_Item($weather_forecast_path);
+my $city = $config_parms{city};
+$city = $config_parms{nws_city} if defined $config_parms{nws_city};
+$p_weather_data = new Process_Item 
+  qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}"|;
+$p_weather_conditions = new Process_Item 
+  qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}" -data conditions|;
+$p_weather_forecast = new Process_Item 
+  qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}" -data forecast|;
 #noloop=stop
-$p_weather_forecast = new Process_Item;
 
 sub normalize_conditions {
 	my $conditions = shift;
@@ -54,13 +68,28 @@ sub normalize_conditions {
 
 if (said $v_get_internet_weather_data) {
     if (&net_connect_check) {
-        my $city = $config_parms{city};
-        $city = $config_parms{nws_city} if defined $config_parms{nws_city};
-        set $p_weather_forecast qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}"|;
-        start $p_weather_forecast;
+        start $p_weather_data;
         $v_get_internet_weather_data->respond("app=weather Weather data requested for $city, $config_parms{state}" . (($config_parms{zone})?" Zone $config_parms{zone}":''));
     } else {
 		$v_get_internet_weather_data->respond("app=weather You must be connected to the Internet get weather data");
+    }
+}
+
+if (said $v_get_internet_weather_conditions) {
+    if (&net_connect_check) {
+        start $p_weather_conditions;
+        $v_get_internet_weather_conditions->respond("app=weather Weather conditions requested for $city, $config_parms{state}" . (($config_parms{zone})?" Zone $config_parms{zone}":''));
+    } else {
+		$v_get_internet_weather_conditions->respond("app=weather You must be connected to the Internet get weather data");
+    }
+}
+
+if (said $v_get_internet_weather_forecast) {
+    if (&net_connect_check) {
+        start $p_weather_forecast;
+        $v_get_internet_weather_forecast->respond("app=weather Weather forecast requested for $city, $config_parms{state}" . (($config_parms{zone})?" Zone $config_parms{zone}":''));
+    } else {
+		$v_get_internet_weather_forecast->respond("app=weather You must be connected to the Internet get weather data");
     }
 }
 
@@ -84,8 +113,11 @@ if (my $state = said $v_show_internet_weather_conditions) {
 	respond "app=weather $conditions";
 }
 
-
 if (done_now $p_weather_forecast) {
+	$v_get_internet_weather_forecast->respond('app=weather connected=0 Weather forecast retrieved.');
+}
+
+if (done_now $p_weather_data or done_now $p_weather_conditions) {
 
         # Parse data.  Here is an example:
         # At 6:00 AM, Rochester, MN conditions were  at  55 degrees , wind was south at
@@ -171,53 +203,55 @@ if (done_now $p_weather_forecast) {
 		&populate_internet_weather(\%w);
 		&weather_updated;
 	}
+	if (done_now $p_weather_data) {
+		$v_get_internet_weather_data->respond('app=weather connected=0 Weather data retrieved.');
+	} else {
+		$v_get_internet_weather_conditions->respond('app=weather connected=0 Weather conditions retrieved.');
+	}
+}
 
+if (done_now $p_weather_data) {
 	if ($v_get_internet_weather_data->{state} eq 'Check') {
-	my $msg;
-	if (int($Weather{WindSpeedI}) > 20 or int($Weather{WindGustSpeedI}) > 30) {
-		$msg = "Warning: High winds! ";
-	        }
-	        $msg .= "Outdoor temperature is $Weather{TempOutdoor} degrees. ";
-        	$msg .= "Wind is $Weather{Wind}. ";
-	        $msg .= "Wind chill is $Weather{WindChill}. " if $Weather{WindChill};
-	        $msg .= "Dew point is $Weather{DewOutdoor}. " if $Weather{DewOutdoor};
-        	$msg .= "Humidity is $Weather{HumidOutdoor}%. ";
-	        $msg .= "Pressure is $Weather{BaromSea} and $Weather{BaromSea}.";
+		my $msg;
+		if (int($Weather{WindSpeedI}) > 20 or int($Weather{WindGustSpeedI}) > 30) {
+			$msg = "Warning: High winds! ";
+		}
+		$msg .= "Outdoor temperature is $Weather{TempOutdoor} degrees. ";
+		$msg .= "Wind is $Weather{Wind}. ";
+		$msg .= "Wind chill is $Weather{WindChill}. " if $Weather{WindChill};
+		$msg .= "Dew point is $Weather{DewOutdoor}. " if $Weather{DewOutdoor};
+		$msg .= "Humidity is $Weather{HumidOutdoor}%. ";
+		$msg .= "Pressure is $Weather{BaromSea} and $Weather{BaromSea}.";
 		$v_get_internet_weather_data->respond("connected=0 $msg");
 	}
 	elsif ($v_get_internet_weather_data->{state} eq 'Mail') {
-	    my $to = $config_parms{weather_sendto} || '';
-	    $v_get_internet_weather_data->respond("connected=0 app=weather image=mail Sending Internet weather data to " . (($to)?$to:$config_parms{net_mail_send_account}) . '.');
-	    &net_mail_send(subject => "Internet weather conditions", to => $to, file => $weather_conditions_path);
-	    &net_mail_send(subject => "Internet weather forecast", to => $to, file => $weather_forecast_path);
-
-	} elsif ($v_get_internet_weather_data->{state} eq 'SMS') {
-	    my $to = $config_parms{cell_phone};
-	    if ($to) {
-		    $v_get_internet_weather_data->respond("connected=0 app=weather image=mail Sending Internet weather data to mobile phone.");
-		    &net_mail_send(subject => "Internet weather conditions", to => $to, file => $weather_conditions_path);
-		    &net_mail_send(subject => "Internet weather forecast", to => $to, file => $weather_forecast_path);
-	    } else {
-		    $v_get_internet_weather_data->respond("connected=0 app=error Mobile phone email address not found!");
-	    }
-	} else {
-		$v_get_internet_weather_data->respond('app=weather connected=0 Weather data retrieved.');
+		my $to = $config_parms{weather_sendto} || '';
+		$v_get_internet_weather_data->respond("connected=0 app=weather image=mail Sending Internet weather data to " . (($to)?$to:$config_parms{net_mail_send_account}) . '.');
+		&net_mail_send(subject => "Internet weather conditions", to => $to, file => $weather_conditions_path);
+		&net_mail_send(subject => "Internet weather forecast", to => $to, file => $weather_forecast_path);
+	} 
+	elsif ($v_get_internet_weather_data->{state} eq 'SMS') {
+		my $to = $config_parms{cell_phone};
+		if ($to) {
+			$v_get_internet_weather_data->respond("connected=0 app=weather image=mail Sending Internet weather data to mobile phone.");
+			&net_mail_send(subject => "Internet weather conditions", to => $to, file => $weather_conditions_path);
+			&net_mail_send(subject => "Internet weather forecast", to => $to, file => $weather_forecast_path);
+		} 
+		else {
+			$v_get_internet_weather_data->respond("connected=0 app=error Mobile phone email address not found!");
+		}
 	}
-
 }
 
 
 # triggers
 
 if ($Reload) {
-
-    if ($Run_Members{'internet_dialup'}) {
-        &trigger_set("state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get internet weather data'", 'NoExpire', 'get internet weather')
-          unless &trigger_get('get internet weather');
-    }
-    else {
-        &trigger_set("time_cron('5 * * * *') and &net_connect_check",
-                     "run_voice_cmd 'Get internet weather data'", 'NoExpire', 'get internet weather')
-          unless &trigger_get('get internet weather');
-    }
+	&trigger_delete('get internet weather');
+	&trigger_set("time_cron('5,20,35,50 * * * *') and &net_connect_check",
+	  "run_voice_cmd 'Get the Internet weather conditions'", 'NoExpire', 'get internet conditions')
+	  unless &trigger_get('get internet conditions');
+	&trigger_set("time_cron('7 6,9,12,15,18,21 * * *') and &net_connect_check",
+	  "run_voice_cmd 'Get the Internet weather forecast'", 'NoExpire', 'get internet forecast')
+	  unless &trigger_get('get internet forecast');
 }
