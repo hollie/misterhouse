@@ -690,7 +690,7 @@ sub main::get_oscar_connection {
     $im_connection->  set_callback_extended_status(\&oscar::extended_status);
 
 
-$im_connection->loglevel(5);
+#$im_connection->loglevel(5);
 
     unless (defined($im_connection->signon (screenname => $name,
 					    password =>$password))) {
@@ -737,7 +737,7 @@ my %buddies_status;
 
 sub oscar::typing_status {
 	my ($oscar, $who, $status) = @_;
-	print "We received typing status $status from $who.\n";
+	# print "We received typing status $status from $who.\n";
 }
 
 sub oscar::extended_status {
