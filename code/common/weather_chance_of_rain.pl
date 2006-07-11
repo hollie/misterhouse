@@ -34,7 +34,7 @@ if (said $v_chance_of_rain or $state = said $v_chance_of_rain2) {
 	if ($Weather{chance_of_rain}) {
 		my $set_by = ($state)?$v_chance_of_rain2->{set_by}:$v_chance_of_rain->{set_by};
 		if ($set_by eq 'time' or $set_by eq 'unknown' or !$set_by) {
-			$response = 'Notice, ' . lcfirst($response);
+			$response = 'Notice, ' . lcfirst($response) unless !$state and $response =~ /^there is no/i;
 		}
 	}
 	else {
@@ -44,13 +44,13 @@ if (said $v_chance_of_rain or $state = said $v_chance_of_rain2) {
 		$v_chance_of_rain2->respond("app=rain important=1 $response");
 	}
 	else {
-		$v_chance_of_rain->respond("app=rain important=1 $response");
+		$v_chance_of_rain->respond("app=rain important=1 $response") unless $response =~ /^there is no/i;
 	}
 }
 
 if (said $v_get_chance_of_rain or ($New_Minute and changed $f_weather_forecast_chance_of_rain) or $Reload) {
 
-$v_get_chance_of_rain->respond("app=rain Reading weather forecast...") if said $v_get_chance_of_rain;
+	$v_get_chance_of_rain->respond("app=rain Reading weather forecast...") if said $v_get_chance_of_rain;
 
 	set_watch $f_weather_forecast_chance_of_rain;
 
