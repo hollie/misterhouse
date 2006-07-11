@@ -166,20 +166,29 @@ if (said $v_reboot_abort and $OS_win) {
 
 #*** Should read these in noloop block ala "list debug options"
 
-$v_debug = new  Voice_Cmd("Set debug to [" . (($config_parms{debug_options})?$config_parms{debug_options}:"X10,serial,http,misc,startup,socket,password,user_code") . ']');
+$v_debug = new Voice_Cmd("Set debug to [" . (($config_parms{debug_options})?$config_parms{debug_options}:"X10,serial,http,misc,startup,socket,password,user_code,weather") . ']');
 $v_debug-> set_info('Controls what kind of debugging information is logged');
 if ($state = said $v_debug) {
-    if ($state eq 'off') {
-#	$config_parms{debug} = 0 if $state eq 'off';
-	
-	respond "Off is no longer a valid debug option.";
-    }
-    else {
-#    	$config_parms{debug} = $state;
+	$config_parms{debug} = $state;
 	$Debug{$state} = 1;
 	$state =~ s/_/\x20/g;
-    	respond "Debugging turned on for $state";
-    }
+	$v_debug->respond ("Debugging turned on for $state");
+}
+
+$v_debug_toggle = new Voice_Cmd("Toggle debug for [" . (($config_parms{debug_options})?$config_parms{debug_options}:"X10,serial,http,misc,startup,socket,password,user_code,weather") . ']');
+$v_debug_toggle-> set_info('Toggles what kind of debugging information is logged');
+if ($state = said $v_debug_toggle) {
+	if ($Debug{$state} == 1) {
+		$Debug{$state} = 0;
+		$config_parms{debug}=0;
+		$state =~ s/_/\x20/g;
+		$v_debug_toggle->respond("Debugging turned off for $state");
+	} else {
+		$Debug{$state} = 1;
+		$config_parms{debug}=$state;
+		$state =~ s/_/\x20/g;
+		$v_debug_toggle->respond("Debugging turned on for $state");
+	}
 }
 
 $v_mode = new Voice_Cmd("Put house in [normal,mute,offline] mode");
