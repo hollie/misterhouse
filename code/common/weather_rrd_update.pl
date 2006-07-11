@@ -1,4 +1,6 @@
 # Category=Weather
+# $Date$
+# $Revision$
 #####################################################################
 #  NOM		: weather_rrd_update.pl
 #  DESCRIPTION 	:
@@ -132,6 +134,103 @@ my $RRD_HEARTBEAT = 300;	# seconds before data becomes *unknown*
 my $RRD_LAZY = 1;		# set to 1 to use --lazy
 my $RRD_LAST;
 
+# noloop=start
+# these need to be in a "use vars" (or "our") so that symbolic references work on them
+# "my" variables are invisble to symbolic references
+use vars qw(
+	$coloraltbg
+	$colorna
+	$colorzero
+	$colorshadea
+	$colorshadeb
+	$colorwhite
+	$colortemp
+	$colortempavg
+	$colordew
+	$colorapparent
+	$colormoydir
+	$colordir
+	$colormoyhumid
+	$colorhumid
+	$colormoypress
+	$colorpress
+	$colormoyspeed
+	$colorspeed
+	$colormoyrain
+	$colorrainmax
+	$colorrain
+	$colordewin
+	$colortempin
+	$colortempspare1
+	$colortempspare2
+	$colortempspare3
+	$colortempspare4
+	$colortempspare5
+	$colortempspare6
+	$colortempspare7
+	$colortempspare8
+	$colortempspare9
+	$colortempspare10
+	$colorhumidin
+	$colorhumidspare1
+	$colorhumidspare2
+	$colorhumidspare3
+	$colorhumidspare4
+	$colorhumidspare5
+	$colorhumidspare6
+	$colorhumidspare7
+	$colorhumidspare8
+	$colorhumidspare9
+	$colorhumidspare10
+);
+
+$coloraltbg = 'EEEEEE';			# alternating (with white) background color
+$colorna = 'C0C0C0';				# color for unknown area or 0 for gaps
+$colorzero = '000000';			# color of zero line
+$colorshadea = '0000CC';			# share color A
+$colorshadeb = '0000CC';			# share color B
+$colorwhite = 'ffffff';			# color white
+$colortemp = '330099';			# outdoor temperature
+$colortempavg = 'ff0000';		# average outdoor temperature
+$colordew = '00ff00';			# outdoor dew point
+$colorapparent = '3300FF';		# apparent temperature
+$colormoydir = 'ff0000';			# average wind direcition
+$colordir = '330099';			# wind direction
+$colormoyhumid = 'ff0000';		# average outdoor humidity
+$colorhumid = '330099';			# outdoor humidity
+$colormoypress = 'ff0000';		# average air pressure
+$colorpress = '330099';			# air pressure
+$colormoyspeed = 'ff0000';		# average wind speed
+$colorspeed = '330099';			# wind speed
+$colormoyrain = 'ff0000';		# average total rain and average rain rate
+$colorrainmax = '000099';		# total rain
+$colorrain = '3300FF';			# color of rain
+$colordewin = 'ff9900:';			# indoor dew point
+$colortempin = '990000';			# indoor temperature
+$colortempspare1 = 'FF0000';		# spare temperature 1
+$colortempspare2 = '990099';		# spare temperature 2
+$colortempspare3 = 'CC0099';		# spare temperature 3
+$colortempspare4 = 'CC33CC';		# spare temperature 4
+$colortempspare5 = 'FF00FF';		# spare temperature 5
+$colortempspare6 = 'FF99CC';		# spare temperature 6
+$colortempspare7 = '99FF00';		# spare temperature 7
+$colortempspare8 = '006600';		# spare temperature 8
+$colortempspare9 = '66FFFF';		# spare temperature 9
+$colortempspare10 = '0000CC';	# spare temperature 10
+$colorhumidin = '990000';		# indoor humidity
+$colorhumidspare1 = 'FF0000';	# spare humidity 1
+$colorhumidspare2 = '990099';	# spare humidity 2
+$colorhumidspare3 = 'CC0099';	# spare humidity 3
+$colorhumidspare4 = 'CC33CC';	# spare humidity 4
+$colorhumidspare5 = 'FF00FF';	# spare humidity 5
+$colorhumidspare6 = 'FF99CC';	# spare humidity 6
+$colorhumidspare7 = '99FF00';	# spare humidity 7
+$colorhumidspare8 = '006600';	# spare humidity 8
+$colorhumidspare9 = '66FFFF';	# spare humidity 9
+$colorhumidspare10 = '0000CC';	# spare humidity 10
+# noloop=stop
+
+    # need to add values for tempspares and humidspares
 #==============================================================================
 # Principal script
 #==============================================================================
@@ -148,6 +247,19 @@ if ($Reread) {
     $config_parms{ratio_sea_baro} = 10 unless $config_parms{ratio_sea_baro};
     $config_parms{weather_graph_format} = "PNG" unless $config_parms{weather_graph_format};
     tr/a-z/A-Z/ for $config_parms{weather_graph_format};
+
+	# allows users to override default colors by setting weather_graph_color_{x} in .ini
+	foreach my $key (keys(%config_parms)) {
+		no strict 'refs'; # we use symbolic references in this block
+		next if $key !~ /^weather_graph_color_(.*)/; # we only want certain keys
+		next if $key =~ /_MHINTERNAL_/; # not internal copies
+		&print_log("weather_rrd: found key $key") if $Debug{weather_graph};
+		my $color=$1;
+		my $command=qq[\${"color$color"}='$config_parms{"weather_graph_color_".$1}';];
+		eval $command;
+		&print_log ("weather_rrd: result for $command is $@") if $Debug{weather_graph};
+	}
+
     &weather_rrd_rename_chill_to_apparent;
    }
 
@@ -580,15 +692,6 @@ sub create_rrdgraph_tempout {
     my $create_graph;
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
-    my $coloraltbg = 'EEEEEE';	# alternating (with white) background color
-    my $colortempavg = 'ff0000';	# color of primary variable average line
-    my $colorna = 'C0C0C0';		# color for unknown area or 0 for gaps
-    my $colortemp = '330099';	# color of primary variable range area
-    my $colortempin = '990099';	# indoor RGB color or 0 for no indoor lines
-    my $colorzero = '000000';	# color of zero line
-    my $colordew = '00ff00';	# color of dew point
-    my $colorapparent = '3300FF';	# color of apparent temperature
-    my $colorwhite = 'ffffff';	# color white
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
@@ -659,8 +762,8 @@ for $celgtime (@$tabgtime) {
 "--imgformat", "$config_parms{weather_graph_format}",
 "--units-exponent", "0",
 "--alt-autoscale",
-"--color","SHADEA#0000CC",
-"--color","SHADEB#0000CC",
+"--color","SHADEA#${colorshadea}",
+"--color","SHADEB#${colorshadeb}",
 ^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
@@ -745,15 +848,6 @@ sub create_rrdgraph_tempin {
     my $create_graph;
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
-    my $coloraltbg = 'EEEEEE';	# alternating (with white) background color
-    my $colortempavg = 'ff0000';	# color of primary variable average line
-    my $colorna = 'C0C0C0';		# color for unknown area or 0 for gaps
-    my $colortemp = '330099';	# color of primary variable range area
-    my $colortempin = '990099';	# indoor RGB color or 0 for no indoor lines
-    my $colorzero = '000000';	# color of zero line
-    my $colordew = '00ff00';	# color of dew point
-    my $colorwchill = '3300FF';	# color of wind chill
-    my $colorwhite = 'ffffff';	# color white
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
@@ -838,8 +932,8 @@ for $celgtime (@$tabgtime) {
 "--imgformat", "$config_parms{weather_graph_format}",
 "--units-exponent", "0",
 "--alt-autoscale",
-"--color","SHADEA#0000CC",
-"--color","SHADEB#0000CC",
+"--color","SHADEA#${colorshadea}",
+"--color","SHADEB#${colorshadeb}",
 ^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
@@ -949,84 +1043,84 @@ for $celgtime (@$tabgtime) {
 . ($config_parms{weather_uom_temp} eq 'C' ? "\"HRULE:0#$colorzero\",":"\"HRULE:32#$colorzero\",")
 
 . ($sensor_names{intemp} ?
-	"\"LINE2:fintemp#990000:" . sprintf("%-${max}s",$sensor_names{intemp}) . "\","
+	"\"LINE2:fintemp#${colortempin}:" . sprintf("%-${max}s",$sensor_names{intemp}) . "\","
 	."\"GPRINT:fminintemp:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxintemp:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:fintemp:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:fintemp:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{indew} ?
-	"\"LINE2:findew#ff9900:" . sprintf("%-${max}s",$sensor_names{indew}) . "\","
+	"\"LINE2:findew#${colordewin}:" . sprintf("%-${max}s",$sensor_names{indew}) . "\","
 	."\"GPRINT:fminindew:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxindew:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:findew:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:findew:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare1} ?
-	"\"LINE2:ftempspare1#FF0000:" . sprintf("%-${max}s",$sensor_names{tempspare1}) . "\","
+	"\"LINE2:ftempspare1#${colortempspare1}:" . sprintf("%-${max}s",$sensor_names{tempspare1}) . "\","
 	."\"GPRINT:fmintempspare1:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare1:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare1:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare1:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare2} ?
-	"\"LINE2:ftempspare2#990099:" . sprintf("%-${max}s",$sensor_names{tempspare2}) . "\","
+	"\"LINE2:ftempspare2#${colortempspare2}:" . sprintf("%-${max}s",$sensor_names{tempspare2}) . "\","
 	."\"GPRINT:fmintempspare2:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare2:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare2:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare2:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare3} ?
-	"\"LINE2:ftempspare3#CC0099:" . sprintf("%-${max}s",$sensor_names{tempspare3}) . "\","
+	"\"LINE2:ftempspare3#${colortempspare3}:" . sprintf("%-${max}s",$sensor_names{tempspare3}) . "\","
 	."\"GPRINT:fmintempspare3:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare3:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare3:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare3:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare4} ?
-	"\"LINE2:ftempspare4#CC33CC:" . sprintf("%-${max}s",$sensor_names{tempspare4}) . "\","
+	"\"LINE2:ftempspare4#${colortempspare4}:" . sprintf("%-${max}s",$sensor_names{tempspare4}) . "\","
 	."\"GPRINT:fmintempspare4:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare4:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare4:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare4:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare5} ?
-	"\"LINE2:ftempspare5#FF00FF:" . sprintf("%-${max}s",$sensor_names{tempspare5}) . "\","
+	"\"LINE2:ftempspare5#${colortempspare5}:" . sprintf("%-${max}s",$sensor_names{tempspare5}) . "\","
 	."\"GPRINT:fmintempspare5:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare5:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare5:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare5:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare6} ?
-	"\"LINE2:ftempspare6#FF99CC:" . sprintf("%-${max}s",$sensor_names{tempspare6}) . "\","
+	"\"LINE2:ftempspare6#${colortempspare6}:" . sprintf("%-${max}s",$sensor_names{tempspare6}) . "\","
 	."\"GPRINT:fmintempspare6:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare6:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare6:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare6:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare7} ?
-	"\"LINE2:ftempspare7#99FF00:" . sprintf("%-${max}s",$sensor_names{tempspare7}) . "\","
+	"\"LINE2:ftempspare7#${colortempspare7}:" . sprintf("%-${max}s",$sensor_names{tempspare7}) . "\","
 	."\"GPRINT:fmintempspare7:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare7:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare7:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare7:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare8} ?
-	"\"LINE2:ftempspare8#006600:" . sprintf("%-${max}s",$sensor_names{tempspare8}) . "\","
+	"\"LINE2:ftempspare8#${colortempspare8}:" . sprintf("%-${max}s",$sensor_names{tempspare8}) . "\","
 	."\"GPRINT:fmintempspare8:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare8:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare8:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare8:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare9} ?
-	"\"LINE2:ftempspare9#66FFFF:" . sprintf("%-${max}s",$sensor_names{tempspare9}) . "\","
+	"\"LINE2:ftempspare9#${colortempspare9}:" . sprintf("%-${max}s",$sensor_names{tempspare9}) . "\","
 	."\"GPRINT:fmintempspare9:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare9:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare9:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare9:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{tempspare10} ?
-	"\"LINE2:ftempspare10#0000CC:" . sprintf("%-${max}s",$sensor_names{tempspare10}) . "\","
+	"\"LINE2:ftempspare10#${colortempspare10}:" . sprintf("%-${max}s",$sensor_names{tempspare10}) . "\","
 	."\"GPRINT:fmintempspare10:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:fmaxtempspare10:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:ftempspare10:AVERAGE:Avg \\\\: %5.1lf\","
@@ -1057,11 +1151,6 @@ sub create_rrdgraph_winddir {
     my $create_graph;
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
-    my $coloraltbg = 'EEEEEE';		# alternating (with white) background color
-    my $colormoydir = 'ff0000';		# color of primary variable average line (red)
-    my $colorna = 'C0C0C0';	# color for unknown area or 0 for gaps (barre noire verticale)
-    my $colordir = '330099';		# color of wind chill
-    my $colorwhite = 'ffffff';		# color white
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
@@ -1134,8 +1223,8 @@ for $celgtime (@$tabgtime) {
 "--alt-autoscale",
 "-l", "0","-u","360",
 "--y-grid" ,"45:1",
-"--color","SHADEA#0000CC",
-"--color","SHADEB#0000CC",
+"--color","SHADEA#${colorshadea}",
+"--color","SHADEB#${colorshadeb}",
 ^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
@@ -1190,11 +1279,6 @@ sub create_rrdgraph_humout {
     my $create_graph;
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
-    my $coloraltbg = 'EEEEEE';		# alternating (with white) background color
-    my $colormoyhumid = 'ff0000';		# color of primary variable average line (red)
-    my $colorna = 'C0C0C0';	# color for unknown area or 0 for gaps (barre noire verticale)
-    my $colorhumid = '330099';		# color of wind chill
-    my $colorwhite = 'ffffff';		# color white
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
@@ -1265,8 +1349,8 @@ for $celgtime (@$tabgtime) {
 "--width", "$width",
 "--imgformat", "$config_parms{weather_graph_format}",
 "--alt-autoscale",
-"--color","SHADEA#0000CC",
-"--color","SHADEB#0000CC",
+"--color","SHADEA#${colorshadea}",
+"--color","SHADEB#${colorshadeb}",
 "--lower-limit","0",
 "--upper-limit","100",
 "--y-grid", "5:2",
@@ -1319,12 +1403,6 @@ sub create_rrdgraph_humin {
     my $create_graph;
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
-    my $coloraltbg = 'EEEEEE';	# alternating (with white) background color
-    my $colormoyhumid = 'ff0000';		# color of primary variable average line (red)
-    my $colorna = 'C0C0C0';		# color for unknown area or 0 for gaps
-    my $colorhumid = '330099';		# color of wind chill
-    my $colorzero = '000000';	# color of zero line
-    my $colorwhite = 'ffffff';	# color white
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
@@ -1410,8 +1488,8 @@ for $celgtime (@$tabgtime) {
 "--imgformat", "$config_parms{weather_graph_format}",
 "--units-exponent", "0",
 "--alt-autoscale",
-"--color","SHADEA#0000CC",
-"--color","SHADEB#0000CC",
+"--color","SHADEA#${colorshadea}",
+"--color","SHADEB#${colorshadeb}",
 "--lower-limit","0",
 "--upper-limit","100",
 "--y-grid", "5:2",
@@ -1474,77 +1552,77 @@ for $celgtime (@$tabgtime) {
 ^
 
 . ($sensor_names{inhumid} ?
-	"\"LINE2:fvar#990000:" . sprintf("%-${max}s",$sensor_names{inhumid}) . "\","
+	"\"LINE2:fvar#${colorhumidin}:" . sprintf("%-${max}s",$sensor_names{inhumid}) . "\","
 	."\"GPRINT:mininhumid:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxinhumid:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:fvar:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:fvar:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare1} ?
-	"\"LINE2:humidspare1#FF0000:" . sprintf("%-${max}s",$sensor_names{humidspare1}) . "\","
+	"\"LINE2:humidspare1#${colorhumidspare1}:" . sprintf("%-${max}s",$sensor_names{humidspare1}) . "\","
 	."\"GPRINT:minhumidspare1:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare1:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare1:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare1:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare2} ?
-	"\"LINE2:humidspare2#990099:" . sprintf("%-${max}s",$sensor_names{humidspare2}) . "\","
+	"\"LINE2:humidspare2#${colorhumidspare2}:" . sprintf("%-${max}s",$sensor_names{humidspare2}) . "\","
 	."\"GPRINT:minhumidspare2:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare2:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare2:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare2:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare3} ?
-	"\"LINE2:humidspare3#CC0099:" . sprintf("%-${max}s",$sensor_names{humidspare3}) . "\","
+	"\"LINE2:humidspare3#${colorhumidspare3}:" . sprintf("%-${max}s",$sensor_names{humidspare3}) . "\","
 	."\"GPRINT:minhumidspare3:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare3:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare3:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare3:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare4} ?
-	"\"LINE2:humidspare4#CC33CC:" . sprintf("%-${max}s",$sensor_names{humidspare4}) . "\","
+	"\"LINE2:humidspare4#${colorhumidspare4}:" . sprintf("%-${max}s",$sensor_names{humidspare4}) . "\","
 	."\"GPRINT:minhumidspare4:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare4:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare4:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare4:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare5} ?
-	"\"LINE2:humidspare5#FF00FF:" . sprintf("%-${max}s",$sensor_names{humidspare5}) . "\","
+	"\"LINE2:humidspare5#${colorhumidspare5}:" . sprintf("%-${max}s",$sensor_names{humidspare5}) . "\","
 	."\"GPRINT:minhumidspare5:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare5:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare5:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare5:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare6} ?
-	"\"LINE2:humidspare6#FF99CC:" . sprintf("%-${max}s",$sensor_names{humidspare6}) . "\","
+	"\"LINE2:humidspare6#${colorhumidspare6}:" . sprintf("%-${max}s",$sensor_names{humidspare6}) . "\","
 	."\"GPRINT:minhumidspare6:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare6:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare6:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare6:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare7} ?
-	"\"LINE2:humidspare7#99FF00:" . sprintf("%-${max}s",$sensor_names{humidspare7}) . "\","
+	"\"LINE2:humidspare7#${colorhumidspare7}:" . sprintf("%-${max}s",$sensor_names{humidspare7}) . "\","
 	."\"GPRINT:minhumidspare7:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare7:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare7:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare7:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare8} ?
-	"\"LINE2:humidspare8#006600:" . sprintf("%-${max}s",$sensor_names{humidspare8}) . "\","
+	"\"LINE2:humidspare8#${colorhumidspare8}:" . sprintf("%-${max}s",$sensor_names{humidspare8}) . "\","
 	."\"GPRINT:minhumidspare8:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare8:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare8:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare8:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare9} ?
-	"\"LINE2:humidspare9#66FFFF:" . sprintf("%-${max}s",$sensor_names{humidspare9}) . "\","
+	"\"LINE2:humidspare9#${colorhumidspare9}:" . sprintf("%-${max}s",$sensor_names{humidspare9}) . "\","
 	."\"GPRINT:minhumidspare9:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare9:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare9:AVERAGE:Avg \\\\: %5.1lf\","
 	."\"GPRINT:humidspare9:LAST:Last \\\\: %5.1lf\\\\n\","
 	:'')
 . ($sensor_names{humidspare10} ?
-	"\"LINE2:humidspare10#0000CC:" . sprintf("%-${max}s",$sensor_names{humidspare10}) . "\","
+	"\"LINE2:humidspare10#${colorhumidspare10}:" . sprintf("%-${max}s",$sensor_names{humidspare10}) . "\","
 	."\"GPRINT:minhumidspare10:MIN:Min \\\\: %5.1lf\","
 	."\"GPRINT:maxhumidspare10:MAX:Max \\\\: %5.1lf\","
 	."\"GPRINT:humidspare10:AVERAGE:Avg \\\\: %5.1lf\","
@@ -1575,13 +1653,6 @@ sub create_rrdgraph_press {
     my $create_graph;
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
-    my $coloraltbg = 'EEEEEE';		# alternating (with white) background color
-    my $colormoypress = 'ff0000';		# color of primary variable average line (red)
-    my $colormoyseapress = 'FFCC00';		# color of primary variable average line (red)
-    my $colorna = 'C0C0C0';	# color for unknown area or 0 for gaps (barre noire verticale)
-    my $colorpress = '330099';		# color of wind chill
-    my $colorwhite = 'FFFFFF';		# color white
-    my $colorzero = '000000';	# color of zero line
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
@@ -1653,8 +1724,8 @@ for $celgtime (@$tabgtime) {
 "--imgformat", "$config_parms{weather_graph_format}",
 "--units-exponent", "0",
 "--alt-autoscale",
-"--color","SHADEA#0000CC",
-"--color","SHADEB#0000CC",
+"--color","SHADEA#${colorshadea}",
+"--color","SHADEB#${colorshadeb}",
 ^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
@@ -1725,12 +1796,6 @@ sub create_rrdgraph_windspeed {
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
 
-    my $coloraltbg = 'EEEEEE';		# alternating (with white) background color
-    my $colormoyspeed = 'ff0000';		# color of primary variable average line (red)
-    my $colorna = 'C0C0C0';	# color for unknown area or 0 for gaps (barre noire verticale)
-    my $colorspeed = '330099';		# color of wind chill
-    my $colorwhite = 'FFFFFF';		# color white
-    my $colorzero = '000000';	# color of zero line
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
@@ -1801,8 +1866,8 @@ for $celgtime (@$tabgtime) {
 "--imgformat", "$config_parms{weather_graph_format}",
 "--units-exponent", "0",
 "--alt-autoscale",
-"--color","SHADEA#0000CC",
-"--color","SHADEB#0000CC",
+"--color","SHADEA#${colorshadea}",
+"--color","SHADEB#${colorshadeb}",
 ^
 . "\"--start\"," . "\"$time1\","
 . "\"--end\"," . "\"$time2\","
@@ -1859,13 +1924,6 @@ sub create_rrdgraph_raintotal {
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
 
-    my $coloraltbg = 'EEEEEE';		# alternating (with white) background color
-    my $colormoyrain = 'ff0000';		# color of primary variable average line (red)
-    my $colorna = 'C0C0C0';	# color for unknown area or 0 for gaps (barre noire verticale)
-    my $colorrainmax = '000099';
-    my $colorrain = '3300FF';
-    my $colorwhite = 'FFFFFF';		# color white
-    my $colorzero = '000000';	# color of zero line
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
@@ -1935,8 +1993,8 @@ for $celgtime (@$tabgtime) {
 "--width", "$width",
 "--imgformat", "$config_parms{weather_graph_format}",
 "--units-exponent", "0",
-"--color","SHADEA#0000CC",
-"--color","SHADEB#0000CC",
+"--color","SHADEA#${colorshadea}",
+"--color","SHADEB#${colorshadeb}",
 ^
 #"--alt-autoscale",
 . "\"--start\"," . "\"$time1\","
@@ -1997,13 +2055,6 @@ sub create_rrdgraph_rainrate {
     my $height = 250;		# graph drawing area --height in pixels
     my $width = 600;		# graph drawing area --width in pixels
 
-    my $coloraltbg = 'EEEEEE';		# alternating (with white) background color
-    my $colormoyrain = 'ff0000';		# color of primary variable average line (red)
-    my $colorna = 'C0C0C0';	# color for unknown area or 0 for gaps (barre noire verticale)
-    my $colorrainmax = '000099';
-    my $colorrain = '3300FF';
-    my $colorwhite = 'FFFFFF';		# color white
-    my $colorzero = '000000';	# color of zero line
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
@@ -2078,8 +2129,8 @@ for $celgtime (@$tabgtime) {
 "--units-exponent", "0",
 "--alt-autoscale",
 "-l", "0",
-"--color","SHADEA#0000CC",
-"--color","SHADEB#0000CC",
+"--color","SHADEA#${colorshadea}",
+"--color","SHADEB#${colorshadeb}",
 ^
 #"--alt-autoscale",
 ."\"--alt-y-grid\","
