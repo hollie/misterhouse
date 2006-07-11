@@ -116,6 +116,15 @@ sub inactive_now {
     return $main::Socket_Ports{$port_name}{inactive_this_pass};
 }
 
+sub connected {
+	my $socket=&active;
+
+	if (!$socket) {
+		return 0;
+	}
+	return $socket->connected;
+}
+
 sub said {
     my $port_name = $_[0]->{port_name};
 
