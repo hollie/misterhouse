@@ -328,7 +328,7 @@ sub CheckCmd {
       }
       elsif ( $cmd == 652 ) {    # Partition Armed
          my $PartNum = my $PartName = substr( $data, 0, 1 );
-         my $Mode = ( length($data) == 2 ) ? substr( $data, 1, 1 ) : 5;
+         my $Mode = ( length($data) == 2 ) ? substr( $data, 1, 1 ) : 4;
          my @ModeTxt = ( "armed away", "armed stay", "armed Zero-Entry-Away", "armed Zero-Entry-Stay", "armed" );
          $PartName = $main::config_parms{"DSC_5401_part_${PartName}"} if exists $main::config_parms{"DSC_5401_part_${PartName}"};
          &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
