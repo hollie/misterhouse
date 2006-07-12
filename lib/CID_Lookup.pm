@@ -76,6 +76,18 @@ sub new
 
 	bless $self,$class;
 
+	$self->restore_data(qw(
+		m_CIDName
+		m_CIDNumber
+		m_CIDType
+		m_Address
+		m_RingCount
+		m_CallDuration
+		m_Extension
+		m_CallType
+		set_time
+	));
+
 #	&::print_log("CID $self: Tel $p_telephony");
 	$self->add($p_telephony) if defined $p_telephony;
 #	$m_datafile='/usr/local/mh/data/phone/phone.cid.list'; #default
