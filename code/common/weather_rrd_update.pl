@@ -205,7 +205,7 @@ $colorspeed = '330099';			# wind speed
 $colormoyrain = 'ff0000';		# average total rain and average rain rate
 $colorrainmax = '000099';		# total rain
 $colorrain = '3300FF';			# color of rain
-$colordewin = 'ff9900:';			# indoor dew point
+$colordewin = 'ff9900';			# indoor dew point
 $colortempin = '990000';			# indoor temperature
 $colortempspare1 = 'FF0000';		# spare temperature 1
 $colortempspare2 = '990099';		# spare temperature 2
@@ -1035,7 +1035,6 @@ for $celgtime (@$tabgtime) {
 .($config_parms{weather_uom_temp} eq 'C' ? "\"CDEF:ftempspare10=tempspare10,32,-,5,9,/,*\"," : "\"CDEF:ftempspare10=tempspare10\",")
 
 . qq^
-#"CDEF:fdeltachill=fvar,fminchill,-",
 "CDEF:wipeout=var,UN,INF,UNKN,IF",
 "CDEF:wipeout2=var,UN,NEGINF,UNKN,IF",
 "AREA:background#$coloraltbg",
