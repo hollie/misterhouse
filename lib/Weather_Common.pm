@@ -187,7 +187,7 @@ sub weather_updated {
 	$$w{Summary}=$$w{Summary_Short}." $pressureText $clouds $conditions";
 	$$w{Summary_Long}="Temperature: $temperatureText";
 	if ($apparentTempText ne '') {
-		$$w{Summary_Long}.='  Apparent Temperature: '.defined $$w{TempOutdoorApparent} ? $$w{TempOutdoorApparent}.'&deg;'.$main::config_parms{weather_uom_temp} : 'unknown' ;
+		$$w{Summary_Long}.='  Apparent Temperature: '.$$w{TempOutdoorApparent}.'&deg;'.$main::config_parms{weather_uom_temp} ;
 	}
 	$$w{Summary_Long}.="  Humidity: $humidityText";
 	$$w{Summary_Long}.="  Wind: $longWindText";
