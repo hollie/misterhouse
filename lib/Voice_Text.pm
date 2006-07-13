@@ -93,10 +93,6 @@ sub speak_text {
 
     return if lc $parms{voice} eq 'none';
 
-    while ($parms{text} =~ /^(.*?)(\d{3,})(.*?)$/) {
-    	$parms{text}=$1.&num_to_text($2).$3;
-	}
-
     if ($parms{address}) {
         my @address = split ',', $parms{address};
         delete $parms{address};
@@ -201,9 +197,6 @@ sub speak_text {
     $parms{text} = &set_voice($parms{voice},   $parms{text}, $speak_engine, $vtxt_card) if $parms{voice};
     $parms{text} = &set_volume($parms{volume}, $parms{text}, $vtxt_card) if $parms{volume};
     $parms{text} = &set_pitch($parms{pitch},   $parms{text}) if $parms{pitch};
-
-    $parms{text} = force_pronounce($parms{text}) if %pronouncable;
-
 
                                 # Drop XML speech tags unless supported
     $parms{text} =~ s/<\/?voice.*?>//g unless ($VTxt_version and $VTxt_version eq 'msv5') or $speak_engine =~ /naturalvoice/i;
@@ -832,8 +825,15 @@ sub set_voice {
 
 
 sub force_pronounce {
-    my($phrase) = @_;
+    my ($phrase) = @_;
+
     print "input  phrase is '$phrase'\n" if $main::Debug{voice};
+
+	# convert long numbers to their text equivalent
+    while ($phrase =~ /^(.*?)(\d{3,})(.*?)$/) {
+    	$phrase=$1.&num_to_text($2).$3;
+	}
+
     for my $word (keys %pronouncable) {
                                 # Allow for regexs
         if ($word =~ /^regex/) {
@@ -842,6 +842,7 @@ sub force_pronounce {
             $phrase =~ s/\b$word\b/$pronouncable{$word}/gi;
         }
     }
+
     print "output phrase is '$phrase'\n" if $main::Debug{voice};
     return $phrase;
 }

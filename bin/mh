@@ -4530,6 +4530,7 @@ sub read_user_code {
             if ($object or
                 $record =~ / # *noloop *$/i or        # noloop record comment
                 $record =~ /^my[\s\(]/ or             # Global 'my'
+                $record =~ /^our[\s\(]/ or            # Global 'our'
                 $record =~ /^use +vars\s/ or          # Global 'use vars'
                 $record =~  /^\s*hidden\s/ or         # These only needs to be done on code load
                 $record =~ /->\s*hidden/   or
@@ -5585,7 +5586,8 @@ sub speak {
 #        print_log "Data is unspeakable!  non_ascii=$count_non_ascii, phrase=", substr($phrase, 0, 40), " ...\n";
 #        return;
 #    }
-    $parms{text} = $phrase;
+
+	$parms{text} = &Voice_Text::force_pronounce($phrase);
 
     &Speak_parms_hooks(\%parms); # Created by &add_hooks
     return if $parms{no_speak};  # In case hook decided not to speak
