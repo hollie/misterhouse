@@ -295,46 +295,89 @@ $RRD_LAZY = 0 if $debug;
 
 # Update RRD database every 1 minute
 if ($New_Minute) {
-    my $rrd_TempOutdoor = (defined $Weather{TempOutdoor}) ? $Weather{TempOutdoor} : $Weather{TempInternet};
-    $rrd_TempOutdoor = 'U' unless defined $rrd_TempOutdoor;
+   my ($rrd_TempOutdoor,
+		$rrd_HumidOutdoor,
+		$rrd_DewOutdoor,
+		$rrd_Barom,
+		$rrd_WindGustDir,
+		$rrd_WindAvgDir,
+		$rrd_WindGustSpeed,
+		$rrd_WindAvgSpeed,
+		$rrd_TempOutdoorApparent,
+		$rrd_RainRate,
+		$rrd_RainTotal,
+		$rrd_TempIndoor,
+		$rrd_HumidIndoor,
+		$rrd_DewIndoor,
+		$rrd_TempSpare1,
+		$rrd_HumidSpare1,
+		$rrd_DewSpare1,
+		$rrd_TempSpare2,
+		$rrd_HumidSpare2,
+		$rrd_DewSpare2,
+		$rrd_TempSpare3,
+		$rrd_HumidSpare3,
+		$rrd_DewSpare3,
+		$rrd_TempSpare4,
+		$rrd_HumidSpare4,
+		$rrd_TempSpare5,
+		$rrd_HumidSpare5,
+		$rrd_TempSpare6,
+		$rrd_HumidSpare6,
+		$rrd_TempSpare7,
+		$rrd_HumidSpare7,
+		$rrd_TempSpare8,
+		$rrd_HumidSpare8,
+		$rrd_TempSpare9,
+		$rrd_HumidSpare9,
+		$rrd_TempSpare10,
+		$rrd_HumidSpare10
+	);
+    my @rrd_sensors=qw(
+    	TempOutdoor
+		HumidOutdoor
+		DewOutdoor
+		Barom
+		WindGustDir
+		WindAvgDir
+		WindGustSpeed
+		WindAvgSpeed
+		TempOutdoorApparent
+		RainRate
+		RainTotal
+		TempIndoor
+		HumidIndoor
+		DewIndoor
+		TempSpare1
+		HumidSpare1
+		DewSpare1
+		TempSpare2
+		HumidSpare2
+		DewSpare2
+		TempSpare3
+		HumidSpare3
+		DewSpare3
+		TempSpare4
+		HumidSpare4
+		TempSpare5
+		HumidSpare5
+		TempSpare6
+		HumidSpare6
+		TempSpare7
+		HumidSpare7
+		TempSpare8
+		HumidSpare8
+		TempSpare9
+		HumidSpare9
+		TempSpare10
+		HumidSpare10
+    );
 
-    my $rrd_HumidOutdoor = defined $Weather{HumidOutdoor} ? $Weather{HumidOutdoor} : 'U';
-    my $rrd_DewOutdoor = defined $Weather{DewOutdoor} ? $Weather{DewOutdoor} : 'U';
-    my $rrd_Barom = defined $Weather{Barom} ? $Weather{Barom} : 'U';
-    my $rrd_WindGustDir = defined $Weather{WindGustDir} ? $Weather{WindGustDir} : 'U';
-    my $rrd_WindAvgDir = defined $Weather{WindAvgDir} ? $Weather{WindAvgDir} : 'U';
-    my $rrd_WindGustSpeed = defined $Weather{WindGustSpeed} ? $Weather{WindGustSpeed} : 'U';
-    my $rrd_WindAvgSpeed = defined $Weather{WindAvgSpeed} ? $Weather{WindAvgSpeed} : 'U';
-    my $rrd_ApparentTemp = defined $Weather{TempOutdoorApparent} ? $Weather{TempOutdoorApparent} : 'U';
-    my $rrd_RainRate = defined $Weather{RainRate} ? $Weather{RainRate} : 'U';
-    my $rrd_RainTotal = defined $Weather{RainTotal} ? $Weather{RainTotal} : 'U';
-    my $rrd_TempIndoor = defined $Weather{TempIndoor} ? $Weather{TempIndoor} : 'U';
-    my $rrd_HumidIndoor = defined $Weather{HumidIndoor} ? $Weather{HumidIndoor} : 'U';
-    my $rrd_DewIndoor = defined $Weather{DewIndoor} ? $Weather{DewIndoor} : 'U';
-    my $rrd_TempSpare1 = defined $Weather{TempSpare1} ? $Weather{TempSpare1} : 'U';
-    my $rrd_HumidSpare1 = defined $Weather{HumidSpare1} ? $Weather{HumidSpare1} : 'U';
-    my $rrd_DewSpare1 = defined $Weather{DewSpare1} ? $Weather{DewSpare1} : 'U';
-    my $rrd_TempSpare2 = defined $Weather{TempSpare2} ? $Weather{TempSpare2} : 'U';
-    my $rrd_HumidSpare2 = defined $Weather{HumidSpare2} ? $Weather{HumidSpare2} : 'U';
-    my $rrd_DewSpare2 = defined $Weather{DewSpare2} ? $Weather{DewSpare2} : 'U';
-    my $rrd_TempSpare3 = defined $Weather{TempSpare3} ? $Weather{TempSpare3} : 'U';
-    my $rrd_HumidSpare3 = defined $Weather{HumidSpare3} ? $Weather{HumidSpare3} : 'U';
-    my $rrd_DewSpare3 = defined $Weather{DewSpare3} ? $Weather{DewSpare3} : 'U';
-
-    my $rrd_TempSpare4 = defined $Weather{TempSpare4} ? $Weather{TempSpare4} : 'U';
-    my $rrd_HumidSpare4 = defined $Weather{HumidSpare4} ? $Weather{HumidSpare4} : 'U';
-    my $rrd_TempSpare5 = defined $Weather{TempSpare5} ? $Weather{TempSpare5} : 'U';
-    my $rrd_HumidSpare5 = defined $Weather{HumidSpare5} ? $Weather{HumidSpare5} : 'U';
-    my $rrd_TempSpare6 = defined $Weather{TempSpare6} ? $Weather{TempSpare6} : 'U';
-    my $rrd_HumidSpare6 = defined $Weather{HumidSpare6} ? $Weather{HumidSpare6} : 'U';
-    my $rrd_TempSpare7 = defined $Weather{TempSpare7} ? $Weather{TempSpare7} : 'U';
-    my $rrd_HumidSpare7 = defined $Weather{HumidSpare7} ? $Weather{HumidSpare7} : 'U';
-    my $rrd_TempSpare8 = defined $Weather{TempSpare8} ? $Weather{TempSpare8} : 'U';
-    my $rrd_HumidSpare8 = defined $Weather{HumidSpare8} ? $Weather{HumidSpare8} : 'U';
-    my $rrd_TempSpare9 = defined $Weather{TempSpare9} ? $Weather{TempSpare9} : 'U';
-    my $rrd_HumidSpare9 = defined $Weather{HumidSpare9} ? $Weather{HumidSpare9} : 'U';
-    my $rrd_TempSpare10 = defined $Weather{TempSpare10} ? $Weather{TempSpare10} : 'U';
-    my $rrd_HumidSpare10 = defined $Weather{HumidSpare10} ? $Weather{HumidSpare10} : 'U';
+    foreach my $sensor (@rrd_sensors) {
+    	# this command says that only use the sensor if it is defined and composed of digits and decimal points
+    	my $command='$rrd_'.$sensor.' = (defined $Weather{'.$sensor.'} and $Weather{'.$sensor.'} =~ /^[\d\.]*$/) ? $Weather{'.$sensor.'} : "U";';
+    	eval $command;
+    }
 
     my $RRD = "$config_parms{weather_data_rrd}";
 
@@ -348,7 +391,7 @@ if ($New_Minute) {
         $rrd_TempSpare1, $rrd_TempSpare2, $rrd_TempSpare3, $rrd_TempSpare4,
         $rrd_TempSpare5, $rrd_TempSpare6, $rrd_TempSpare7, $rrd_TempSpare8,
         $rrd_TempSpare9, $rrd_TempSpare10, $rrd_DewOutdoor, $rrd_DewIndoor,
-        $rrd_DewSpare1, $rrd_DewSpare2, $rrd_DewSpare3, $rrd_ApparentTemp);
+        $rrd_DewSpare1, $rrd_DewSpare2, $rrd_DewSpare3, $rrd_TempOutdoorApparent);
     }
 
     if ($config_parms{weather_uom_baro} eq 'mb') {
@@ -373,7 +416,7 @@ if ($New_Minute) {
 
     @d = ($rrd_TempOutdoor, $rrd_HumidOutdoor, $rrd_DewOutdoor, $rrd_Barom,
 	  $rrd_WindGustDir, $rrd_WindAvgDir, $rrd_WindGustSpeed, $rrd_WindAvgSpeed,
-	  $rrd_ApparentTemp, $rrd_RainRate, $rrd_RainTotal, $rrd_TempIndoor,
+	  $rrd_TempOutdoorApparent, $rrd_RainRate, $rrd_RainTotal, $rrd_TempIndoor,
 	  $rrd_HumidIndoor, $rrd_DewIndoor, $rrd_TempSpare1, $rrd_HumidSpare1,
     	  $rrd_DewSpare1, $rrd_TempSpare2, $rrd_HumidSpare2, $rrd_DewSpare2,
     	  $rrd_TempSpare3, $rrd_HumidSpare3, $rrd_DewSpare3,
