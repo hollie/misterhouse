@@ -54,13 +54,14 @@ sub new {
    foreach (@LogType) {
       if ( !exists $::config_parms{$_} ) {
          $main::config_parms{$_} = 1;
-         &::print_log("Parameter DSC_5401_time_log not defined in mh.private.ini, enabling by default");
+         &::print_log("Parameter $_ not defined in mh.private.ini, enabling by default");
       }
    }
 
    &main::print_log("Starting DSC 5401 computer interface module");
    $Self = $self;
-   cmd( $self, '001' );
+   cmd( $self, 'StatusReport' ); # request an initial status report
+   cmd( $self, 'VerboseArmingControl', $::config_parms{DSC_5401_verbose_arming}) if defined $::config_parms{DSC_5401_verbose_arming}; # enable/disable verbose arming if configured
    return $self;
 }
 
