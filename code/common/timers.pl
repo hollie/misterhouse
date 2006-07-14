@@ -1,5 +1,8 @@
 # Category= Time
 
+# $Date$
+# $Revision$
+
 #@ This modules provides basic timer functionality. After
 #@ activation, you can set various timers.
 
@@ -9,7 +12,7 @@
                                 # Create Tk/Web widgets
 $timer_time = new Generic_Item;
 $timer_text = new Generic_Item;
-&tk_entry('Timer amount' => $timer_time);
+&tk_entry('Timer Amount' => $timer_time);
 &tk_entry('Timer Text' => $timer_text);
 
                                 # Create timers

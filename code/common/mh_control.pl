@@ -1,5 +1,8 @@
 # Category = MisterHouse
 
+# $Date$
+# $Revision$
+
 #@ Core MisterHouse commands e.g. reload code, list x10 items.
 
 $v_listen = new  Voice_Cmd("[Start,Stop] listening",0);
@@ -507,7 +510,6 @@ $mode_occupied -> set_states('home', 'work', 'vacation');
 $mode_sleeping  = new Generic_Item;
 $mode_sleeping -> set_states('nobody', 'parents', 'kids', 'all');
 
-
                          # Grandfather in the $Save{mode} versions
 if (state_now $mode_mh) {
     my $state = $mode_mh->{state};
@@ -525,10 +527,17 @@ if (state_now $mode_sleeping) {
 
 if (state_now $mode_security) {
     my $state = $mode_security->{state};
+    $Save{security} = $state;
     $mode_security->respond("mode=unmuted app=control Security $state.");
 }
 
+if ($Reload) {
+	my $tk = &tk_label_new(3, \$Save{mode});
+	$tk->bind('<Double-1>' => \&toggle_house_mode) if $MW;
 
+	my $tk = &tk_label_new(3, \$Save{security});
+	$tk->bind('<Double-1>' => \&toggle_security_mode) if $MW;
+}
 
 
 

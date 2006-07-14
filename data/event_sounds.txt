@@ -1,5 +1,7 @@
 #event sounds
 #one per line
+# $Date$
+# $Revision$
 
 alarm=>'sound_nature/gonge.wav',    volume => 100, mode=>'unmuted', nolog=>1
 movement1    => 'sound_nature/02.wav',       volume => 10
@@ -27,3 +29,5 @@ timer        => 'sound_nature/gonge.wav',    volume => 100, rooms => 'all', time
 announcement => 'announcement.wav',   volume => 100, nolog=>1
 chat      => 'sound_nature/loon.wav', volume => 100, nolog => 1
 frog => 'sound_nature/frog.wav', nolog => 1
+cash_register => 'cash_register.wav', nolog => 1
+about => 'sound_nature/loon.wav', nolog => 1

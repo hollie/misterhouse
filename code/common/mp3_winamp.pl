@@ -1,5 +1,8 @@
 # Category=Music
 
+# $Date$
+# $Revision$
+
 #@
 #@ This script controls the <a href='http://www.winamp.com'>Winamp MP3 player</a> for Windows. It
 #@ handles operation of the mp3 player. Enable mp3.pl to manage the MP3 database.
@@ -30,11 +33,6 @@
 use Mp3Player;
 
 use Win32::TieRegistry 0.20 (Delimiter=>"/", ArrayValues=>0);
-
-
-
-
-
 
 # noloop=start      This directive allows this code to be run on startup/reload
 
@@ -142,7 +140,7 @@ sub mp3_control {
         }
         else {
             $temp = filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
-            print "Winamp (httpq $host) set to $command: $temp\n";
+            print "Winamp (httpq $host) set to $command: $temp\n" if $Debug{winamp};
         }
         return $temp;
     }
@@ -180,10 +178,12 @@ sub mp3_play {
         $temp = filter_cr get "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
 		$temp = filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
 		print "Winamp (httpq $host) song/list $file added: $temp\n" if $Debug{winamp};
+		return ($temp =~ /1/);
 	}
 	else {
 		run qq[$config_parms{mp3_program} "$file"];
 		print "mp3 play: $file\n" if $Debug{winamp};
+		return 1;
 	}
 }
 

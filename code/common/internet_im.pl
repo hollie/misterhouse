@@ -1,5 +1,8 @@
 # Category=Internet
 
+# $Date$
+# $Revision
+#
 #@ This module allows MisterHouse to connect to AOL Instant Messenger,
 #@ MSN Messenger (currently broken due to a MS change in protocols), and/or Jabber.
 #@ Once connected, you can type any normal mh commands.  You can also type
@@ -393,4 +396,46 @@ sub im_logoff {
     }
 }
 
+sub im_message_window_closing {
+	
+}
+
+sub im_message_window_saving {
+	my $p_win = shift;
+
+	my $msg = $$p_win{t1}->get('0.0', 'end');
+	chomp $msg; # stupid tk entry widget appends a CR
+
+	if ($msg) {
+		&net_im_send(text => $msg, to => undef);
+		return 0;	
+	}
+	else {
+		display('app=im time=0 Enter a message to send.');
+		return 1;	
+	}
+}
+
+# *** Change OK to Send and add "pgm" and "to" fields
+
+sub open_im_message_window {
+	my %parms = @_;
+	$parms{title} = "Send IM";
+	$parms{app} = "im";
+	$parms{text} = "Hi!";
+	$parms{window_name} = "message";
+	$parms{buttons} = 2;
+	$parms{help} = 'Enter a message to send to the default IM account.';
+	my $w_window = &load_child_window(%parms);
+	if (defined $w_window) {
+		unless ($w_window->{activated}) {
+			$w_window->activate();
+			$w_window->{t1}->focus();
+		}
+		return $w_window;	
+	}
+}
+
+
+&register_custom_window('im', 'message', 1) if $Reload;
 

@@ -260,54 +260,14 @@ sub respond {
 
 	$parms{connected} = 1 if !defined($parms{connected});
 
-# Must check state for next pass if set_by is missing (fill in if matches!)
-
-
-
 	if (!defined($parms{target})) { # no target passed and we need one!
 		# Aquire target
 
-		$target = $object->{target};
-		if (!$target) { # Typically no target is defined (use response chain)
-			# *** Need to loop until set_by is undefined or scalar
-			# Currently checks previous link in the response chain
-
-
-			# Check next pass set_by???
-
-			if (ref $set_by and $set_by->can('get_set_by')) { # set by other object		
-
-				
-				#$target = ($object->{target})?$object->{target}:$set_by->get_set_by();
-
-
-				# *** Need to finish this looping thing!
-
-				# *** This could still be a ref
-
-				$target = $set_by->get_set_by();
-
-
-
-			}
-			else {
-				$target = $set_by;						
-			}
-		}
-		# clean up target		
-		
-		$target = undef if $target =~ /^usercode/i or $target =~ /time/i; # tie_time too!
-
-		if ($target =~ /\[/) { # Make sure this needs cleaning
-
-			$target = 'web' if $target =~ /^web/i;# remove extraneous data (from IM/Email/Web set)
-			$target = 'im' if $target =~ /^im/i;
-			$target = 'email' if $target =~ /^email/i;
-		}
+		$target = ($object->{target})?$object->{target}:&main::set_by_to_target($object->{set_by});
 	}
 
 
-	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /time/i);
+	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /time/i or $set_by eq 'status');
 
 
 	# get user info
@@ -353,6 +313,8 @@ sub respond {
 			$extra .= ($automation)?'force_chime=1 ':'no_chime=1 ';
 		}
 
+		# should do subject too (all of this can be accomplished with a weird target syntax too)  Better to leave the target empty (as it is in 99% of responses) unless the target needs to be something other than the default (which unravels set_by.)  Ex. tack on an email (or IM) target to an alarm response.
+
 		$extra .= "to=$to " if $to;               #Email/IM user
 		$extra .= "pgm=$pgm " if $pgm;            #IM program (AOL,ICQ,MSN,Jabber)
 
@@ -363,32 +325,25 @@ sub respond {
 	}	
 }
 
-
-
 sub said {
                                 # Set (evil) global Respond_Target var, so (lazy) user code doesn't have to pay attention (bad practice and should be phased out!)
-    if ($_[0]->{target}) {
+    if ($_[0]->{target}) { # This needs to be phased out (who needs a global respond target?)
 	    $main::Respond_Target = $_[0]->{target};
     }
     else {
-	    unless (ref $_[0]->{set_by}) { #*** Right here is where it passes 'time'
-	  	  $main::Respond_Target = $_[0]->{set_by};
-	    }
+	    $main::Respond_Target = $_[0]->{legacy_target};
     }
 
     return $_[0]->{said};
 }
 
-sub state_now {
+sub state_now { # This needs to be phased out (who needs a global respond target?)
     if ($_[0]->{target}) {
 	    $main::Respond_Target = $_[0]->{target};
     }
-    else { # *** Right here (and above) is where it passes 'time' and other nonsense as target
-	    unless (ref $_[0]->{set_by}) {
-		    $main::Respond_Target = $_[0]->{set_by};
-	    }
+    else {
+	    $main::Respond_Target = $_[0]->{legacy_target};
     }
-
     return $_[0]->{state_now};
 }
 sub state_changed {
@@ -704,6 +659,7 @@ sub reset_states2 {
     $ref->{state_now}     = $state;
     $ref->{set_by}        = $set_by;
     $ref->{target}        = $target;
+    $ref->{legacy_target} = &main::set_by_to_target($set_by) unless $ref->{target}; # just for old code and will be phased out along with old respond calls (done for speed in said and state_now methods)
     if (( defined $state and !defined $ref->{state_prev}) or
         (!defined $state and  defined $ref->{state_prev}) or
         ( defined $state and  defined $ref->{state_prev} and $state ne $ref->{state_prev})) {

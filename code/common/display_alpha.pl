@@ -1,5 +1,7 @@
 
 # Category = MisterHouse
+# $Date$
+# $Revision$
 
 #@ Display a clock and status information on and echoes speech to AlphaNet Alphanumeric LED signs.  For example, the the Alpha 213C
 #@ (aka Beta Brite, 2" x 24", 14 character, available at Sam's Club around $150),
@@ -202,7 +204,7 @@ sub update_clock {
 		        else {
          			&display("wait=1 device=alpha app=security Security unarmed");
 		        }
-			if ($mode_sleeping->{state} eq 'nobody') {
+			if ($mode_sleeping->{state} ne 'nobody') {
          			&display("wait=1 device=alpha color=red mode=flash app=security " . ucfirst($mode_sleeping->{state}) . " are asleep");
         		}
 		}
@@ -474,13 +476,6 @@ if (&can_interrupt('music') and $Save{NowPlaying} and ($now_playing ne $Save{Now
 
 my %da_data;  # noloop
 
-#my $email_flag;
-#my $news_headline;
-#my $weather_warning;
-#my $barcode;
-#my $volume;
-
-
 if (&can_interrupt('email') and $Save{email_flag} and ($da_data{email_flag} ne $Save{email_flag})) {
 
 	$da_data{email_flag} = $Save{email_flag} unless defined $da_data{email_flag};
@@ -488,7 +483,7 @@ if (&can_interrupt('email') and $Save{email_flag} and ($da_data{email_flag} ne $
 
 	if ($da_data{email_flag} =~ /^[ \d]+$/) {
 	    if ($da_data{email_flag} < $Save{email_flag}) {	#You have mail!
-		$email_msg = 'You have ' . ($Save{email_flag} - $da_data{email_flag}) . ' new email messages';
+		$email_msg = 'You have ' . ($Save{email_flag}) . ' email message' . (($Save{email_flag} > 1)?'s':'');
 	    }
 	}
 	else {			# Allow for non-numeric email flags
@@ -535,16 +530,14 @@ if ($Info{barcode_data} and ($da_data{barcode} ne $Info{barcode_data})) {
 
 }
 
-# if ($state = state_now $mh_volume) { # *** Oops tk slider widget not setting state
-if ($mh_volume->{state} ne $da_data{volume}) {
+if ($state = state_now $mh_volume) { # *** Oops tk slider widget not setting state
        	my $sl_vol = state $mh_volume;
 	my $vol_image = &volume_image($sl_vol);
 
 	# only show when it changes
 
-   	&display("device=alpha app=volume image=$vol_image Volume: $sl_vol") if defined $da_data{volume};
+   	&display("device=alpha app=volume image=$vol_image Volume: $sl_vol");
        	&set_display_timer(5, undef);
-	$da_data{volume} = $sl_vol if defined $sl_vol;
 }
 
 

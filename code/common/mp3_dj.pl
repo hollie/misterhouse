@@ -1,5 +1,8 @@
 # Category=Music
 
+# $Date$
+# $Revision$
+
 #@
 #@ Jukebox DJ-tested with Winamp/httpq, but should work with all that can respond with now playing info (including elapsed time of course!)  Also lowers and restores player volume during speech.
 #@ Requires: mp3 and a player module (ex. mp3_winamp)
@@ -84,7 +87,7 @@ sub voice_over {
 			elsif (rand(10) > 7) {
 				if (rand(10) > 4) {
 					if ($time_slot eq 'morning') {
-						play(app => 'goofy', file => "fun/*.wav");
+						play(app => 'dj', file => "fun/*.wav");
 						$speech = "Good morning. ";
 					}
 					elsif ($time_slot eq 'afternoon') {
@@ -100,7 +103,7 @@ sub voice_over {
 						$speech = " Hey, " . lcfirst($speech);
 					}
 					$speech .= "The outdoor temperature is " . $Weather{TempOutdoor} . '. ' if (defined $Weather{TempOutdoor});
-					$speech .= "inside it is " . $Weather{TempIndoor} . " degrees. " if ($Weather{TempIndoor});
+					$speech .= "Inside it is " . $Weather{TempIndoor} . " degrees. " if ($Weather{TempIndoor});
 					$speech .= $Weather{chance_of_rain} . ' ' if ($Weather{chance_of_rain} and rand(10) > 4);
 					$speech .= "There is mail in the mailbox. " if ($Save{mail_delivered} eq "1" and $Save{mail_retrieved} eq "");
 
@@ -116,18 +119,18 @@ sub voice_over {
 				}
 
 				$speech .= "Now here's " . $now_playing_formatted;
-			if (rand(10) > 5) { 
-				$speech .= ' on W M H--the voice of Misterhouse.';
-				if (rand(10) > 6) {
-					$speech .= ' Keep it right here.';
+				if (rand(10) > 5) { 
+					$speech .= ' on W M H--the voice of Misterhouse.';
+					if (rand(10) > 6) {
+						$speech .= ' Keep it right here.';
+					}
+					else {
+						$speech .= " I like this one.";
+					}
 				}
 				else {
-					$speech .= " I like this one.";
+					$speech .= '. Misterhouse... Rocks!';
 				}
-			}
-			else {
-				$speech .= '. Misterhouse... Rocks!';
-			}
 			}
 			else {
 				if (rand(10) > 4) {
@@ -164,7 +167,7 @@ sub voice_over {
 				else {
 					$speech .= ". Now it's " . $artist;
 				}
-				if (rand(10) > 4) { 
+				if (rand(10) > 3) { 
 					$speech .= ' on W M H.';
 					$speech .= ' Keep it right here.' if (rand(10) > 6) ;
 				}
@@ -243,9 +246,6 @@ sub dj_speech_hook {
 
     my $mode = $parms{mode};
     my $app = $parms{app};
-	
-	print "$mode_mh->{state}";
-
 
     #lower volume if speech won't be muted
 

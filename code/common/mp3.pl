@@ -1,9 +1,16 @@
 # Category=Music
 
+# $Date$
+# $Revision$
+
 #@ This is the core mp3 script.  It is used by the <a href='/misc/mp3.html'>MP3 Jukebox web interface</a>
-#@ to manage songs and playlists.  Also enable either mp3_winamp.pl or mp3_xmms.pl to control your mp3 player.
+#@ to manage songs and playlists.  Also enable either mp3_winamp.pl, mp3_slimserver, mp3_alsaplayer or mp3_xmms.pl to control your mp3 player.
 #@ Set mp3_dir to a comma separated list of directories where you keep mp3 or playlist (m3u, pls) files.
+
+
                                 # Build the mp3 database
+
+# *** A good argument to rename this section to music (MP3 is hardly appropriate at this time.)
 $v_mp3_build_list = new Voice_Cmd '[Build,Load] the {mp3,m p 3} database', '';
 $v_mp3_build_list-> set_info("Builds/loads an mp3 database for these directories: $config_parms{mp3_dir}");
 
@@ -15,6 +22,15 @@ $p_mp3_build_list = new Process_Item;
 my $mp3_file = "$config_parms{data_dir}/mp3.dbm";
 my ($mp3names, %mp3files) = &mp3_playlists;
 # noloop=stop
+
+if ($MW and $Reload) {
+	&tk_label_new(4, \$Save{NowPlaying});
+
+	$Tk_objects{mp3_progress} = $Tk_objects{fb4}->ProgressBar(-from => 0, -to => 100, -value => 0, -width => 20, -blocks => 100)->pack(qw/-side left -padx 2/);
+
+	&configure_element('progress', \$Tk_objects{mp3_progress});
+
+}
 
 ($mp3names, %mp3files) = &mp3_playlists if 'Load' eq said $v_mp3_build_list;
 
@@ -159,26 +175,76 @@ if (said $v_what_playing) {
     respond $mp3playing;
 }
 
-
-	# This can be slow if player is down, so don't do it too often
-	# Should get this dynamically.  No sense in bogging down every 15 seconds
-	# Bogging down is fixed for Winamp, freq is configurable
-
 # *** Add config for monitoring freq (move to mp3_winamp?)
 
-if (new_second 5 and &mp3_player_running()) {
-   $Save{mp3_mode} = &mp3_playing();
-   my $ref = &mp3_get_playlist();
-#  $Save{NowPlaying} = ${$ref}[&mp3_get_playlist_pos()] if $ref;
-   if ($ref) {
-      my $pos = &mp3_get_playlist_pos();
-      if ($pos >= 0) {
-         $Save{NowPlaying} = ${$ref}[$pos] if $ref;	 
-      } else {
-         $Save{NowPlaying} = &mp3_get_curr_song();
-      }
-   }
+my $old_percent;
+my $elapsed_seconds;
+my $total_seconds;
+
+# *** Once per second check saved mode and if playing, bump cached elapsed time and update pb if needed
+
+sub set_tk_progress {
+	my $percent = shift;
+	$Tk_objects{mp3_progress}->configure(-value => $percent)
 }
+
+
+if (new_second and &mp3_player_running()) {
+ 
+   if (new_second 5) {
+   	$Save{mp3_mode} = &mp3_playing();
+   	my $ref = &mp3_get_playlist();
+	#  $Save{NowPlaying} = ${$ref}[&mp3_get_playlist_pos()] if $ref;
+   	if ($ref) {
+      		my $pos = &mp3_get_playlist_pos();
+      		if ($pos >= 0) {
+         		$Save{NowPlaying} = ${$ref}[$pos] if $ref;	 
+      		} else {
+         		$Save{NowPlaying} = &mp3_get_curr_song();
+      		}
+   	}
+
+	# *** Set progress to 0 if stopped
+	
+	# check ONLY if playing and tk window exists
+
+	if ($MW and $Save{mp3_mode} == 1) {
+		my $mptimestr = &mp3_get_output_timestr();
+      
+		if ($mptimestr =~ /\// and $mptimestr =~ /:/) {
+	   		my ( $mpelapse, $mprest ) = split ( /\//,$mptimestr );
+			my ( $mpmin,  $mpsec ) = split ( /:/,$mpelapse );
+			$mpelapse = ( $mpmin * 60 ) + $mpsec ;
+			( $mpmin,  $mpsec ) = split ( /:/,$mprest );
+			$mprest = ( $mpmin * 60 ) + $mpsec ;
+			my $percent = 0;
+			$percent = int(($mpelapse * 100) / $mprest) if $mprest;
+			if (defined $old_percent and $percent != $old_percent) {
+				&set_tk_progress($percent) if ref $Tk_objects{mp3_progress};
+			}
+			$old_percent = $percent;
+			$elapsed_seconds = $mpelapse;
+			$total_seconds = $mprest;
+			
+		}
+	}
+    } # new second 5
+    else {
+	if ($MW and $Save{mp3_mode} == 1) {
+		my $new_percent = 0;
+		$elapsed_seconds++;
+
+		# *** Save and tack on difference of timestamp and now (instead of adding a second each time.)
+
+		$new_percent = int(($elapsed_seconds * 100) / $total_seconds) if $total_seconds;
+		if (defined $old_percent and $new_percent != $old_percent) {
+			&set_tk_progress($new_percent) if ref $Tk_objects{mp3_progress};
+		}	
+		$old_percent = $new_percent;
+	}	 
+    }
+
+} # new second and mp3 player is running
 
 sub mp3_find_all {
     my ($mp3_tag) = @_;

@@ -1,5 +1,8 @@
 # Category=Internet
 
+# $Date$
+# $Revision$
+
 #@ This code will periodically scan and announce when you
 #@ receive new email. This code also has some test examples for sending email.
 
@@ -7,7 +10,7 @@
 #@ You can customize the parms to have other accounts besides the _account_1_ settings.
 #@ For example you can replace the '_account_1_' string with '_my_home_email_'.
 #@ It's a nice way to get MH to announce 'my home email has 3 new messages from ...'
-#@ rather than the gerneric 'account 1 has 3 new messages from ...'
+#@ rather than the generic 'account 1 has 3 new messages from ...'
 
                                 # Example on how to send an email command
                                 # - This string can be in either the subject or the body of the email
@@ -37,13 +40,12 @@ my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
 #tk_mlabel($email_flag, 'email flag');   ... this quit working in 2.88.  Tk does not like the Generic_Item Tie update
 
 # This belongs in noloop block else it calls this sub every time!
-# *** tk subs return if not $Reload, which is a crutch (and obscure.)
-
-&tk_label_new(3, \$Save{email_flag});
-
+# tk subs return if not $Reload, which is a crutch (and obscure.)
 
 
 #noloop=stop
+
+&tk_label_new(3, \$Save{email_flag});
 
 if (said $v_send_email_test) {
     my $state = $v_send_email_test->{state};
@@ -91,7 +93,7 @@ if (said $v_send_email_test) {
         $v_send_email_test->respond("app=email Test message has been sent.");
     }
     else {
-        $v_send_email_test->respond("I am not logged on to the internet, so I can not send mail.");
+        $v_send_email_test->respond("app=email I am not logged on to the internet, so I can not send mail.");
     }
 }
 
@@ -107,7 +109,7 @@ if (said $v_cell_phone_test) {
 
 #&tk_radiobutton('Check email', \$Save{email_check}, ['no', 'yes']);
 
-# *** Should be a trigger instead of config parm (does anyone really use this module anyway?)
+# *** Should be a trigger instead of config parm
 
 if (said $v_recent_email or ($Save{email_check} ne 'no' and new_minute $config_parms{net_mail_scan_interval} and &net_connect_check)) {
     $v_recent_email->respond('Checking email...') if said $v_recent_email;
@@ -222,3 +224,49 @@ sub scan_subjects {
     }
 #   unlink $file;
 }
+
+sub email_message_window_closing {
+	
+}
+
+sub email_message_window_saving {
+	my $p_win = shift;
+
+	my $msg = $$p_win{t1}->get('0.0', 'end');
+	my $re = $$p_win{re}->get;
+	chomp $msg; # stupid tk entry widget appends a CR
+
+	if ($msg) {
+		&net_mail_send(text => $msg, subject => $re, to => undef);	
+		return 0;	
+	}
+	else {
+		display('app=email time=0 Enter a message to send.');
+		return 1;	
+	}
+}
+
+# *** Change OK to Send and add "To" field
+
+sub open_email_message_window {
+	my %parms = @_;
+	$parms{title} = "Send Message";
+	$parms{app} = "email";
+	$parms{text} = "Dear,";
+	$parms{window_name} = "message";
+	$parms{buttons} = 2;
+	$parms{help} = 'Enter a message to send to the default email account.';
+	my $w_window = &load_child_window(%parms);
+	if (defined $w_window) {
+		unless ($w_window->{activated}) {
+			$w_window->{MW}{top_frame}->Label(-text => 'Re:')->pack(qw/-side left/);	
+			$w_window->{re} = $w_window->{MW}{top_frame}->Entry()->pack(qw/-expand yes -fill both -side left/);
+			$w_window->activate();
+			$w_window->{re}->focus();
+		}
+		return $w_window;	
+	}
+}
+
+#&register_echo('email');
+&register_custom_window('email', 'message', 1) if $Reload;

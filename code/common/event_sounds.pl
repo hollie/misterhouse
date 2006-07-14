@@ -12,48 +12,20 @@
 #    play 'movement1' if state_now $movement_sensor;
 #
 
-
-if ($Reload) {
-    add_sound movement1    => 'sound_nature/02.wav',       volume => 10;
-    add_sound movement2    => 'sound_nature/02.wav',       volume => 100;
-    add_sound unauthorized => 'sound_nature/31.wav',       volume => 20;
-    add_sound 3            => 'sound_nature/65.wav',       volume => 20;
-    add_sound 4            => 'sound_nature/avairy.wav',   volume => 20;
-    add_sound barcode_scan => 'sound_nature/bird.wav',     volume => 20;
-    add_sound mh_problem   => 'sound_nature/bird1.wav',    volume => 20;
-#   add_sound mh_pause     => 'sound_nature/bird1.wav',    volume => 20;
-    add_sound mh_pause     => 'none',                      volume => 20;
-    add_sound 7            => 'sound_nature/bird2.wav',    volume => 20;
-    add_sound wap          => 'sound_nature/bird3.wav',    volume => 20;
-    add_sound tell_me      => 'sound_nature/birds.wav',    volume => 20;
-    add_sound 10           => 'sound_nature/chirp.wav',    volume => 20;
-    add_sound router_hit   => 'sound_nature/frog.wav',     volume =>  2;
-    add_sound 12           => 'sound_nature/frog3.wav',    volume => 20;
-    add_sound 13           => 'sound_nature/h4560sh.wav',  volume => 20;
-    add_sound 14           => 'sound_nature/kirtland.wav', volume => 20;
-    add_sound router_new   => 'sound_nature/loon.wav',     volume => 20;
-    add_sound 16           => 'sound_nature/octap95.wav',  volume => 20;
-    add_sound 17           => 'sound_nature/parakeet.wav', volume => 20;
-    add_sound 18           => 'sound_nature/ribbit.wav',   volume => 10;
-    add_sound 19           => 'sound_nature/wren.wav',     volume => 20;
-    add_sound timer        => 'sound_nature/gonge.wav',    volume => 100, rooms => 'all', time => 3 ;
-    add_sound timer2       => 'sound_nature/gonge.wav',    volume => 40,  rooms => 'all_and_out', time => 3 ;
-}
-
-# Allow for an optional file
-
+# Read in sound configuration via event_sounds_file
 if ($config_parms{event_sounds_file} and 
-    ($New_Minute and file_changed($config_parms{event_sounds_file}) or $Reload)) {
-    print "Reading event sounds data ($Date_Now $Time_Now): $config_parms{event_sounds_file}.\n";
-#    @Sounds = ();
-    open(SOUNDSDATA, $config_parms{event_sounds_file});
-    while(<SOUNDSDATA>) {
-        unless (/^#/ or /^\s+$/ or !$_) {	    
-            print " - $_";
-            chomp $_;
-	    eval "add_sound " . $_;
-        }
-    }
+		($New_Minute and file_changed($config_parms{event_sounds_file}) or $Reload)) {
+	&print_log ("Reading event sounds data from $config_parms{event_sounds_file}");
+
+	open(SOUNDSDATA, $config_parms{event_sounds_file});
+	while(<SOUNDSDATA>) {
+		unless (/^#/ or /^\s+$/ or !$_) {
+			print " - $_";
+			chomp $_;
+			eval "add_sound " . $_;
+		}
+	}
+	&print_log ("Finished reading event sounds data");
     close(SOUNDSDATA);
 }
 

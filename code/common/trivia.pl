@@ -1,5 +1,7 @@
-
 # Category = Entertainment
+
+# $Date$
+# $Revision$
 
 #@ This module has trivia questions and answers.
 
@@ -19,17 +21,15 @@ my $cat;
 
 
 if ($Reload) {
-    &trigger_set("time_cron '0 6 * * * '", "&trivia_next", 'NoExpire', 'refresh trivia')
-      unless &trigger_get('refresh trivia');
+	&trigger_set("time_cron '0 6 * * * '", "&trivia_next()", 'NoExpire', 'refresh trivia') 
+		unless &trigger_get('refresh trivia');
 }
 
 
 sub uninstall_trivia {
 	&trigger_delete('refresh trivia')
 }
-
-
-#
+   
 
 &trivia_next($cat) if $cat = said $v_trivia_next and $cat =~ /next /;
 
@@ -85,7 +85,7 @@ sub trivia_next {
     $a[3] = &trivia_trim(substr($r, 112, 20)) . ".";
     $a[4] = &trivia_trim(substr($r, 132, 20)) . ".";
     my $an= substr($r, 152, 1);
-
+    
     print  QUESTION "Today's $cat trivia question:
  $q
   1: $a[1]

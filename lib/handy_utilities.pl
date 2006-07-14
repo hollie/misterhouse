@@ -10,6 +10,9 @@
 #  Change log:
 #    11/03/96  Created.
 #
+# $Date$
+# $Revision$
+#
 #---------------------------------------------------------------------------
 
 #print "Creating handy utility functions ...";
@@ -1244,8 +1247,8 @@ sub main::write_mh_opts {
         ($parm_file) = split ',', $ENV{mh_parms} if $ENV{mh_parms};
         $parm_file = "$pgm_root/bin/mh.private.ini" unless $parm_file;
     }
-                                # If debug == 0 (instead of undef) this is disabled
-    print "Reading config_file $parm_file\n" unless defined $debug and $debug == 0;
+
+    print "Reading config_file $parm_file\n" unless $debug == 0;
     open (INI_PARMS, "$parm_file") or print "\nError, could not read config file: $parm_file\n";
 
     my ($key, @parms, @done, $in_multiline);

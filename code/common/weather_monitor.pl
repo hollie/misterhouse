@@ -1,5 +1,8 @@
 # Category=Weather
 
+# $Date$
+# $Revision$
+
 #@ Monitors data collected by various weather stations.
 
 =begin comment
@@ -195,14 +198,36 @@ sub monitor_sun {
     }
 }
 
-                                # Add tk weather widgets
-&tk_label_new(3,\$Weather{TempIndoor});
-&tk_label_new(3,\$Weather{HumidIndoor});
-&tk_label_new(3,\$Weather{TempOutdoor});
-&tk_label_new(3,\$Weather{HumidOutdoor});
-&tk_label_new(3,\$Weather{Wind});
-&tk_label_new(3,\$Weather{Conditions});
-&tk_label_new(3,\$Weather{BaromDelta});
+                                # Add tk weather widgets 
+
+if ($Reload) {
+
+	my $tk;
+
+	$tk = &tk_label_new(3,\$Weather{TempIndoor});
+	$tk->bind('<Double-1>' => sub { &display_weather_graph('tempin') }) if $MW;
+
+	$tk = &tk_label_new(3,\$Weather{HumidIndoor});
+	$tk->bind('<Double-1>' => sub { &display_weather_graph('humidin') }) if $MW;
+
+	$tk = &tk_label_new(3,\$Weather{TempOutdoor});
+	$tk->bind('<Double-1>' => sub { &display_weather_graph('tempout') }) if $MW;
+
+	$tk = &tk_label_new(3,\$Weather{HumidOutdoor});
+	$tk->bind('<Double-1>' => sub { &display_weather_graph('humidout') }) if $MW;
+
+	$tk = &tk_label_new(3,\$Weather{Wind});
+	$tk->bind('<Double-1>' => sub { &display_weather_graph('windspeed') }) if $MW;
+
+	$tk = &tk_label_new(3,\$Weather{Conditions});
+	$tk->bind('<Double-1>' => sub { &display_weather_conditions() }) if $MW;
+
+	$tk = &tk_label_new(3,\$Weather{BaromDelta});
+	$tk->bind('<Double-1>' => sub { &display_weather_graph('press') }) if $MW;
+
+
+}
+
                                 # Set up pointers to random weather comments
 $f_remark_on_humidity      = new File_Item("$config_parms{data_dir}/remarks/list_humid.txt");
 $f_remark_on_temp_below_0  = new File_Item("$config_parms{data_dir}/remarks/list_temp_below_0.txt");
@@ -372,8 +397,8 @@ if (expired $timer_wind_gust2) {
 	5 + $timer_wind_gust->{speed} < $speed) {
         $timer_wind_gust->{speed} = $speed;
         set $timer_wind_gust 20*60;
-        respond "app=weather image=warning color=red Weather alert, the wind is gusting to " . round($speed) . " $wind_units";
-        $Weather{Warning} = 'High winds gusting to ' . round($speed) . " $wind_units"
+        respond "app=weather image=warning color=red Weather alert, the wind is gusting to " . round($speed);
+        $Weather{Warning} = 'High winds gusting to ' . round($speed);
     }
     $Save{WindGustMax} = $speed if $Save{WindGustMax} < $speed; # Save a daily max
 }
