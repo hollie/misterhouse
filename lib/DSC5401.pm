@@ -62,6 +62,9 @@ sub new {
    $Self = $self;
    cmd( $self, 'StatusReport' ); # request an initial status report
    cmd( $self, 'VerboseArmingControl', $::config_parms{DSC_5401_verbose_arming}) if defined $::config_parms{DSC_5401_verbose_arming}; # enable/disable verbose arming if configured
+   select(undef, undef, undef, 0.250); # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
+   cmd( $self, 'TimeBroadcastControl', $::config_parms{DSC_5401_time_log}) if defined $::config_parms{DSC_5401_time_log}; # enable/disable time broadcasts if configured
+   cmd( $self, 'TemperatureBroadcastControl', $::config_parms{DSC_5401_temp_log}) if defined $::config_parms{DSC_5401_temp_log}; # enable/disable temperature broadcasts if configured
    return $self;
 }
 
@@ -754,10 +757,11 @@ sub ZoneName {
    #my $self = $Self;
    my @Name = ["none"];
 
-   for ( 1 .. 32 ) {
-      my $ConfigNumber = ( $_ < 10 ) ? '00' : '0';
-      $Name[$_] = $::config_parms{"DSC_5401_zone_${ConfigNumber}${_}"} if exists $::config_parms{"DSC_5401_zone_${ConfigNumber}${_}"};
-   }
+	foreach my $key (keys(%::config_parms)) {
+		next if $key =~ /_MHINTERNAL_/;
+		next if $key !~ /^DSC_5401_zone_(\d+)$/;
+		$Name[int($1)]=$::config_parms{$key};
+	}
    return @Name;
 }
 
