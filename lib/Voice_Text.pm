@@ -1,5 +1,8 @@
-
 package Voice_Text;
+
+# $Date$
+# $Revision$
+
 use strict;
 
 use vars '$VTxt_version';
@@ -91,6 +94,8 @@ sub init {
 sub speak_text {
     my(%parms) = @_;
 
+	# set a default voice, if configured
+    $parms{voice}=$::config_parms{voice_text_default_voice} unless $parms{voice};
     return if lc $parms{voice} eq 'none';
 
     if ($parms{address}) {
@@ -163,6 +168,7 @@ sub speak_text {
     elsif ($speak_engine =~ /(theta|swift)/i) {
         $parms{voice} = $voice_names{lc $parms{voice}} if $voice_names{lc $parms{voice}};
     }
+
 
 
                                 # Allow for pause,resume,stop,ff,rew.  Also allow mode to set rate
@@ -613,7 +619,7 @@ sub read_parms {
     &main::read_parm_hash(\%voice_names, $main::config_parms{voice_names});
     my %temp = reverse %voice_names;
     @voice_names = sort   keys %temp;
-    print "Voice names: @voice_names\n";
+    print "Voice names: ".join(', ',@voice_names)."\n";
 
     my $pronouncable_list_file = $main::config_parms{pronouncable_list_file};
     if ($pronouncable_list_file and ($::Startup or main::file_change($pronouncable_list_file))) {
