@@ -1065,12 +1065,13 @@ sub set_by_to_target {
 	
 	$set_by = undef if (!$set_by or $set_by =~ /time/i or $set_by =~ /^unknown/i or $set_by =~ /^usercode/i or $set_by eq 'status');
 
-
 	# *** WTF?!  This got called over and over by something (couldn't have been in while loop because it wasn't locked up)
 	# *** Check if timer object (?)
 
 	while (ref $set_by and $set_by->can('get_set_by')) {
-		$set_by = $set_by->get_set_by();
+		my $predecessor=$set_by->get_set_by();
+		last if $predecessor == $set_by;
+		$set_by = $predecessor;
 	}
 	$set_by = undef if ref $set_by;
 	return $set_by;
@@ -1080,6 +1081,8 @@ sub set_by_to_target {
 
 sub register_custom_window {
 	my ($app, $window, $dialog, $menu, $title) = @_;
+
+	return if !$config_parms{tk};
 
 	$menu = 1 unless defined $menu; # default is to provide an activation menu
 
