@@ -1,5 +1,8 @@
 # Category = MisterHouse
 
+# $Date$
+# $Revision$
+
 #@ This module allows you to access MisterHouse via telnet. You'll 
 #@ need to set the server_telnet_port in your mh.private.ini file.
 #@ If you set server_telnet_port to 23 (the standard telnet port), 
@@ -119,7 +122,18 @@ if (defined($datapart = said $telnet_server)) {
     
     if ($datapart =~ /\r\n?$/i) {
         my $msg = '';
+        # print ("command was ".join(' ',unpack('C*',$telnet_flags{$client}{data}))."\n");
         $telnet_flags{$client}{data} =~ s/ *\r\n?$//;
+
+        # remove telnet command strings
+        # These are used by a telnet client to negotiate certain parameters
+        # It would be best to interpret them and respond in kind
+        # but it is simpler to just ignore them :-)
+
+        $telnet_flags{$client}{data} =~ s/\xff\xfa.+?\xf0//g; 
+        $telnet_flags{$client}{data} =~ s/\xff(\xfb|\xfc|\xfd|\xfe).//g;
+
+        # print ("command is now ".join(' ',unpack('C*',$telnet_flags{$client}{data}))."\n");
         
         if ($telnet_flags{$client}{auth} eq 'set_password') {
             print_log "Telnet: password data: $telnet_flags{$client}{data}";
