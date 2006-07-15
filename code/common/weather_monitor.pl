@@ -200,7 +200,7 @@ sub monitor_sun {
 
                                 # Add tk weather widgets 
 
-if ($Reload) {
+if ($Reload and $config_parms{tk}) {
 
 	my $tk;
 
