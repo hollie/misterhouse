@@ -154,7 +154,7 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 
 # lets allow the user to control via triggers
 
-if ($Reload and $Run_Members{'trigger_code'}) { 
+if ($Reload) { 
 	eval qq(
 		&trigger_set("time_cron '5 8,11,16,19 * * *'", 
 		  "run_voice_cmd 'Read the forecasted chance of rain or snow'", 'NoExpire', 'read chance of rain') 

@@ -1,5 +1,8 @@
 # Category = Informational
 
+# $Date$
+# $Revision$
+
 #@ This module checks the Spanish Geographic Institute earthquake
 #@ Information Center to get the most recent earthquakes that have 
 #@ occurred and presents those that were at least the minimum 
@@ -247,7 +250,7 @@ sub speak_quake {
 
 ## lets allow the user to control via triggers
 #
-#if ($Reload and $Run_Members{'trigger_code'}) { 
+#if ($Reload) { 
 #    eval qq(
 #        &trigger_set('\$New_Hour and net_connect_check', "run_voice_cmd 'Lee terremotos recientes'", 'NoExpire', 'get earthquakes') 
 #          unless &trigger_get('get earthquakes');
