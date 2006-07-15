@@ -35,7 +35,7 @@ if ($Reload) {
     $ofa_html = &ofa_html; 
 } 
 
-$uirt2_test = new Voice_Cmd( "uirt2 debug [version,raw,uir,struct,gpio,replay,learn]");
+$uirt2_test = new Voice_Cmd( "uirt2 debug [version,raw,uir,struct,gpio,replay,learn,dump codes]");
 
 if (my $state = said $uirt2_test) {
     UIRT2::get_version() if $state eq 'version';
@@ -45,6 +45,7 @@ if (my $state = said $uirt2_test) {
     UIRT2::get_gpiocaps() if $state eq 'gpio';
     UIRT2::send_ir_code('tv', 'volume down') if $state eq 'replay';
     UIRT2::learn_code('tv', 'volume down') if $state eq 'learn';
+    dump_codes() if $state eq 'dump codes';
 }
 
 sub uirt2_update_html {
@@ -145,7 +146,7 @@ sub uirt2_update_html {
       </td></tr>
       <tr><td colspan=4>
       Pronto Code<br>
-      <textarea name=$uirt2_function_pcode Rows=8 COLS=100 wrap="hard">' . $pronto . '</textarea>  
+      <textarea name=$uirt2_function_pcode Rows=8 COLS=84 wrap="hard">' . $pronto . '</textarea>  
       <input type=submit value="Import" name=$uirt2_function_import><br>
       You can find Pronto codes at <a target="_BLANK" href="http://www.remotecentral.com">Remote Central</a> and
       at <a target="_BLANK" href="http://ir.premisesystems.com/">Premise Systems</a>.<p>
@@ -385,3 +386,12 @@ sub send_ofa_key {
 	UIRT2::transmit_pronto($pronto, $repeat);
 }
 
+sub dump_codes {
+	$current_device = $devices[state $uirt2_device_list] if @devices;
+	print "Manufacturer=\nModel=$current_device\n\n[Key Codes]\n\n";
+	my @functions = UIRT2::list_functions($current_device) if $current_device ne '';
+	foreach (sort @functions) {
+		my ($pronto) = UIRT2::raw_to_pronto(UIRT2::struct_to_raw(UIRT2::get_ir_code($current_device, $_)));
+		print "$_ = $pronto\n\n";
+	}
+}

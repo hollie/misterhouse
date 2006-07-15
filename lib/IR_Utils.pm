@@ -110,24 +110,27 @@ sub read_dvc_file {
 	my (%parms, %prontos, $in_keys);
 	while (<DVC>) {
 		chomp; 
+		s/\r//gs;
 		$in_keys = 1 if /\[Key Codes\]/;
 		if ($in_keys) {
 			if (my ($key, $pronto) = /(.+?)\s*=\s*(0000 .+)/) {
 				$key = uc $key; 
 				$prontos{$key} = $pronto; 
 			}  
-			elsif (my ($key, $device_code, $function_code) = /(.+?)\s*=\s*(.+?)\s*[,;]\s*(.+)/) {
+			elsif (my ($key, $device_code, $function_code) = /(.+?)\s*=\s*(\d+)\s*[,;]\s*(\d+)\s*$/) {
 				$key = uc $key; 
-				$prontos{$key} = &IR_Utils::generate_pronto($parms{protocol}, $device_code, $function_code);
+				($prontos{$key}) = &IR_Utils::generate_pronto($parms{protocol}, $device_code, $function_code);
 			}  
-			elsif (my ($key, $function_code) = /(.+?)\s*=\s*[,;]?\s*(.+)/) {
+			elsif (my ($key, $function_code) = /(.+?)\s*=\s*[,;]?\s*(\d+)\s*$/) {
 				$key = uc $key; 
-				$prontos{$key} = &IR_Utils::generate_pronto($parms{protocol}, $parms{device code}, $function_code);
+				($prontos{$key}) = &IR_Utils::generate_pronto($parms{protocol}, $parms{'device code'}, $function_code);
+				#print "k $prontos{$key}, p $parms{protocol}, d $parms{'device code'}, f $function_code\n";
 			}  
 		}
 		else {
 			if (my ($key, $value) = /(.+)\s*=\s*(.+)\s*/) {
-				$key = lc $key; 
+				$key = lc $key;
+				$value = "Sony" if $value eq "Sony12"; 
 				$parms{$key} = $value; 
 			} 
 		}  
@@ -169,7 +172,7 @@ sub generate_pronto {
 	my $tmp = shift; 
 	my %protocol = %{ $protocols{$tmp} };
 	%protocol = %{ $protocol_names{$tmp} } unless %protocol;
-	print "Can't find protocol $tmp" unless %protocol; 
+	print "Can't find protocol $tmp\n" unless %protocol; 
 	$vars{D} = shift; 
 	$vars{F} = shift; 
 	my $modulation = $protocol{'Modulation'};

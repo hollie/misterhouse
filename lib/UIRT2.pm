@@ -266,7 +266,31 @@ sub get_reponse {
     return 0 if $main::Serial_Ports{UIRT2}{object} eq 'proxy';
 	select undef, undef, undef, .05;
 	my ($count, $ret) = $main::Serial_Ports{UIRT2}{object}->read($length);
+	my @bytes = unpack 'C*', $ret;
+	my $checksum = 0;
+	foreach (@bytes[0..$#bytes - 1]) {
+		$checksum += $_;
+	}
+	$checksum = ~$checksum;
+	$checksum++;
+	$checksum &= 0xff;
+	my $code = $bytes[$#bytes];
 	print "UIRT2 expected $length byte response, only got $count \n" unless $count == $length; 
+	if (($count > 1 and $code == $checksum) or $code == 0x20 or $code == 0x21) {
+		print "UIRT2 transmission successful\n";
+	}
+	elsif ($code == 0x80) {
+		print "UIRT2 transmission failed, checksum error\n";
+	}
+	elsif ($code == 0x81) {
+		print "UIRT2 transmission failed, command timeout\n";
+	}
+	elsif ($code == 0x82) {
+		print "UIRT2 transmission failed, command error\n";
+	}
+	else {
+		printf("UIRT2 transmission failed, returned 0x%X\n", $code);
+	}
 	return $ret;
 }
 
@@ -405,6 +429,7 @@ sub struct_to_raw {
 sub pronto_to_raw {
 	my $pronto = shift; 
 	my $repeat = shift;
+	$pronto =~ s/\s+/ /gs;
 	$pronto =~ s/[^0-9a-fA-F]//gs;
 	my @bytes = unpack 'n*', pack 'H*', $pronto;
 	my $kind = shift @bytes;
@@ -524,6 +549,12 @@ sub set_ir_code {
 	$db->sync; 
 }
 	
+sub get_ir_string {
+	my $device = uc shift;
+	my $function = uc shift;
+	return $DBM{"$device$;$function"};
+}
+
 sub get_ir_code {
 	my $device = uc shift; 
 	my $function = uc shift; 
