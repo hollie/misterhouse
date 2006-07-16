@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2006-06-17 12:02:46 winter>
+#  Last change Time-stamp: <2006-07-16 16:04:57 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -654,6 +654,10 @@ sub setup {
     mkdir ("$config_parms{html_dir}/tv", 0777)           unless -d "$config_parms{html_dir}/tv";
     mkdir ("$config_parms{html_dir}/tv/clicktv", 0777)   unless -d "$config_parms{html_dir}/tv/clicktv";
 
+    $Time_Date = &time_date_stamp($config_parms{time_format_log} , $Time);  # Needed by print_log
+
+    &open_logs;
+
 #   print "parms=", join(":", %config_parms), "\n";
     if ($config_parms{voice_cmd}) {
         &Voice_Cmd::init;
@@ -662,10 +666,10 @@ sub setup {
         &Voice_Text::init;
     }
 
-    # This was taken from lib/trigger_code.pl so that libraries involved with serial ports   
-    # and sockets could create new triggers.  See lib/Weather_daviswm2.pm for an example of   
-    # why this is a good idea.   
-    &triggers_read; 
+    # This was taken from lib/trigger_code.pl so that libraries involved with serial ports
+    # and sockets could create new triggers.  See lib/Weather_daviswm2.pm for an example of
+    # why this is a good idea.
+    &triggers_read;
 
                                 # Find all defined socket and serial ports
     for my $parm (sort keys %config_parms) {
@@ -678,7 +682,7 @@ sub setup {
 #   print "Server         ports defined: @Server_Ports\n" if @Server_Ports;
 #   print "Generic serial ports defined: @Generic_Serial_Ports\n" if @Generic_Serial_Ports;
 #   print "Creating socket server ports: @Server_Ports\n" if @Server_Ports;
-    print "Creating socket and serial objects\n";
+#   print "Creating socket and serial objects\n";
     for my $port_name (@Server_Ports) {
         my $port     = $config_parms{$port_name . "_port"};
         my $proto    = $config_parms{$port_name . "_protocol"};
@@ -945,8 +949,6 @@ sub setup {
 
     ($Second, $Minute, $Hour, $Mday, $Month, $Year) = localtime $Time; # Needed in my_str2time;
 
-    $Time_Date = &time_date_stamp($config_parms{time_format_log} , $Time);  # Needed by print_log
-
     $Month++;
 
     &persistent_restore();      # Populate %Save
@@ -981,7 +983,7 @@ sub setup {
     $Save{mode}   = 'normal' unless $Save{mode};
 
     if ($config_parms{pid_file}) {
-        print "Process id $$ written to $config_parms{pid_file}\n";
+        print " - process id $$ written to $config_parms{pid_file}\n";
         &file_write($config_parms{pid_file}, $$);
     }
 
@@ -989,7 +991,34 @@ sub setup {
         &tk_setup_windows;
     }
 
-    print "Reading previous log files\n";
+    speak('app=system System restarted');
+
+    print " - external command file (xcmd_file): $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
+
+    $config_parms{html_dir} = $config_parms{html_root} if $config_parms{html_root}; # Grandfather in the old name for this parm
+
+    print " - HTML file     : $config_parms{html_dir}$config_parms{html_file}\n";
+    print "\nError, HTML file not found: $config_parms{html_dir}/$config_parms{html_file}\n\n" unless -e "$config_parms{html_dir}/$config_parms{html_file}";
+
+    @Requested_Files = @ARGV;
+
+    &password_read(1);  ## force initial read
+
+                                # Perl 5.004+ will self-randomize
+#   srand(time() ^ ($$ + ($$ << 15)) ); # Set the random number seed, used in time_random;
+
+    $config_parms{max_log_entries} = 50 unless defined $config_parms{max_log_entries};
+    $config_parms{max_state_log_entries} = 10 unless defined $config_parms{max_state_log_entries};
+    $config_parms{time_format_log} = 12 unless $config_parms{time_format_log};
+
+    print "Done with setup\n\n";
+
+}
+
+# Called from generic item *** and undo sub
+
+sub open_logs {
+    print " - reading previous log files\n";
 
                                 # Setup and Read in previous logs
     my $print_log = "$config_parms{data_dir}/logs/print.log";
@@ -1013,7 +1042,7 @@ sub setup {
     unshift @Error_Log, "$Time_Date ---------- Restart ---------- ";
 
 
-    print "Archiving previous $config_parms{data_dir}/logs/*.log files .";
+    print " - archiving previous $config_parms{data_dir}/logs/*.log files .";
 
                # These files will get archived by mh/code/common/mh_control.pl
     file_cat $error_log, $error_log . ".old";  print ".";
@@ -1031,38 +1060,13 @@ sub setup {
     print PRINTLOG (join "\n", reverse @Print_Log), "\n";
     print SPEAKLOG (join "\n", reverse @Speak_Log), "\n";
     print ERRORLOG (join "\n", reverse @Error_Log), "\n";
-
-    speak('app=system System restarted');
-
-    print "External command file (xcmd_file): $config_parms{xcmd_file}\n" if $config_parms{xcmd_file};
-
-    $config_parms{html_dir} = $config_parms{html_root} if $config_parms{html_root}; # Grandfather in the old name for this parm
-
-    print "HTML file     : $config_parms{html_dir}$config_parms{html_file}\n";
-    print "\nError, HTML file not found: $config_parms{html_dir}/$config_parms{html_file}\n\n" unless -e "$config_parms{html_dir}/$config_parms{html_file}";
-
-    @Requested_Files = @ARGV;
-
-    &password_read(1);  ## force initial read
-
-                                # Perl 5.004+ will self-randomize
-#   srand(time() ^ ($$ + ($$ << 15)) ); # Set the random number seed, used in time_random;
-
-    $config_parms{max_log_entries} = 50 unless defined $config_parms{max_log_entries};
-    $config_parms{max_state_log_entries} = 10 unless defined $config_parms{max_state_log_entries};
-    $config_parms{time_format_log} = 12 unless $config_parms{time_format_log};
-
-    print "Done with setup\n\n";
-
 }
-
-# Called from generic item *** and undo sub
 
 sub set_by_to_target {
 	my $set_by = shift;
 
-	$set_by = $1 if ($set_by =~ /(.*?) \[/); #web, email, im (and xap coming soon)
-	
+	$set_by = $1 if ($set_by and $set_by =~ /(.*?) \[/); #web, email, im (and xap coming soon)
+
 	$set_by = undef if (!$set_by or $set_by =~ /time/i or $set_by =~ /^unknown/i or $set_by =~ /^usercode/i or $set_by eq 'status');
 
 	# *** WTF?!  This got called over and over by something (couldn't have been in while loop because it wasn't locked up)
@@ -1134,13 +1138,13 @@ sub load_child_window {
 	$parms2{font} = $font;
 
 	my $win = new Display(%parms2);
-	
+
 	if ($win and defined $buttons and !$win->{activated}) { # 1 = Close, 2 = OK/Cancel, 3=OK/Cancel/Apply
 		$win->{MW}{bottom_frame}->configure(-borderwidth => 4);
 		if ($help) {
 			my $tk;
 			my $fb = $win->{MW}{bottom_frame};
-			my $sub = eval "sub { &display('app=help window_name=topic time=0 $help')}";	
+			my $sub = eval "sub { &display('app=help window_name=topic time=0 $help')}";
 			$tk = $fb->Button(-text => 'Help', -command => $sub);
 			$tk->pack(-side => 'right');
 			&configure_element('button', \$tk);
@@ -1173,7 +1177,7 @@ sub load_child_window {
 			$sub = eval "sub { &$parms{app}_$parms{window_name}_window_saving() }";
 			$tk = $win->{MW}{bottom_frame}->Button(-text => 'Apply', -command => $sub)->pack(-side => 'right')
 			&configure_element('button', \$tk);
-			
+
 		}
 	}
 
@@ -1430,7 +1434,7 @@ sub check_for_action {
 
 
 	$Tk_objects{menu_modules}->command(-label => 'Add or Remove Modules...', -command => \&add_remove_modules);
-	
+
 	$Tk_objects{menu_modules}->separator();
 	    my $i;
 
@@ -1446,7 +1450,7 @@ sub check_for_action {
 	print "Creating Toolbar\n";
 
 	$Tk_objects{toolbar}->destroy() if $Tk_objects{toolbar};
-	
+
 	$Tk_objects{toolbar} = $MW->ToolBar('-movable', 1, '-side', "$tb_align",
                                  '-indicatorcolor', 'blue', '-sticky', 'nsew');
 
@@ -1484,7 +1488,7 @@ sub check_for_action {
 
 		my $sep = $tb->separator();
 		#&configure_element('button', \$sep);
-		
+
 		# Calling voice command for this is absurd of course (see above)
 
 		my %button = ('text' => 'Check email', 'image' => 'mailget22', 'command' => sub { run_voice_cmd('check for e mail', 0, 'tk')}); # *** Goofy vc name too
@@ -1504,11 +1508,11 @@ sub check_for_action {
 
 		my $sep = $tb->separator();
 		#&configure_element('button', \$sep);
-		
+
 		my %button = ('text' => 'Connect to Internet', 'image' => 'connectyes22', 'command' => \&ras_connect);
 
 		tk_toolbar_add_button($tb, \%button);
-		my %button = ('text' => 'Disconnect from Internet', 'image' => 'connectno22', 'command' => \&ras_disconnect);
+		%button = ('text' => 'Disconnect from Internet', 'image' => 'connectno22', 'command' => \&ras_disconnect);
 
 		tk_toolbar_add_button($tb, \%button);
 
@@ -1525,39 +1529,39 @@ sub check_for_action {
 		my %button = ('text' => 'Previous song', 'image' => 'playstart22', 'command' => sub {set $jukebox 'previous song', 'tk'});
 
 		tk_toolbar_add_button($tb, \%button);
-		
-		my %button = ('text' => 'Play', 'image' => 'nav1rightarrow22', 'command' => sub {set $jukebox 'play','tk'});
+
+		%button = ('text' => 'Play', 'image' => 'nav1rightarrow22', 'command' => sub {set $jukebox 'play','tk'});
 
 		tk_toolbar_add_button($tb, \%button);
-		my %button = ('text' => 'Pause', 'image' => 'playpause22', 'command' => sub {set $jukebox 'pause', 'tk'});
-
-		tk_toolbar_add_button($tb, \%button);
-
-		my %button = ('text' => 'Stop', 'image' => 'playstop22', 'command' => sub {set $jukebox 'stop', 'tk'});
+		%button = ('text' => 'Pause', 'image' => 'playpause22', 'command' => sub {set $jukebox 'pause', 'tk'});
 
 		tk_toolbar_add_button($tb, \%button);
 
-		my %button = ('text' => 'Next song', 'image' => 'playend22', 'command' => sub {set $jukebox 'next song', 'tk'});
+		%button = ('text' => 'Stop', 'image' => 'playstop22', 'command' => sub {set $jukebox 'stop', 'tk'});
 
 		tk_toolbar_add_button($tb, \%button);
 
-		my %button = ('text' => 'Volume up', 'image' => 'nav1uparrow22', 'command' => sub {set $jukebox 'volume up','tk'});
+		%button = ('text' => 'Next song', 'image' => 'playend22', 'command' => sub {set $jukebox 'next song', 'tk'});
 
 		tk_toolbar_add_button($tb, \%button);
 
-		my %button = ('text' => 'Volume down', 'image' => 'nav1downarrow22', 'command' => sub {set $jukebox 'volume down','tk'});
+		%button = ('text' => 'Volume up', 'image' => 'nav1uparrow22', 'command' => sub {set $jukebox 'volume up','tk'});
+
+		tk_toolbar_add_button($tb, \%button);
+
+		%button = ('text' => 'Volume down', 'image' => 'nav1downarrow22', 'command' => sub {set $jukebox 'volume down','tk'});
 
 		tk_toolbar_add_button($tb, \%button);
 
 
 
 
-	    }	 
+	    }
 
 
-	$tb->separator();	
+	$tb->separator();
 
-	my %button = ('text' => 'Help', 'image' => 'acthelp22', 'command' => \&help);
+	%button = ('text' => 'Help', 'image' => 'acthelp22', 'command' => \&help);
 
 	$Tk_objects{toolbar_help_button} = tk_toolbar_add_button($tb, \%button);
 
@@ -2625,7 +2629,7 @@ sub display {
 #        $parms{font}  = $config_parms{tk_font} unless $parms{font};
                                 # Do not display if from web, unless display time is requested
 	my $return_object;
-	
+
 
 
 	if (defined($parms{window_name}) and $custom_child_windows{"$parms{app} $parms{window_name}"}) {
@@ -3784,7 +3788,6 @@ sub play {
 sub print_log {
 #   my ($data) = @_;
     my $data = "@_";
-
     my $logfile;
     if ($data =~ /^log=(\S+) /i) {
         $logfile = "$config_parms{data_dir}/$1";
@@ -3802,7 +3805,7 @@ sub print_log {
 #       $Tk_objects{log_window}->yview('moveto', 30);
     }
     else {
-	if (!$config_parms{tk_console_timestamps} and $MW) { 
+	if (!$config_parms{tk_console_timestamps} and $MW) {
 	        print "$data\n";
 	}
 	else {
@@ -5240,7 +5243,7 @@ sub set_global_vars {
 	}
 	else {
 		$cpu_used = sprintf("%3.1f%%", $cpu_used);
-	}	
+	}
         $Tk_objects{label_cpu_used}    = "CPU $cpu_used" . (($config_parms{tk_loop_speed})?sprintf(" Loops %3d", $Info{loop_speed}):'');
         $Tk_objects{label_memory_used} = sprintf("MB %3.1f/%3.1f",
                                                  $Info{memory_virtual}, $Info{memory_real}) if $Info{memory_virtual};
@@ -6059,7 +6062,7 @@ sub help_about {
 
 sub tk_setup_windows {
                                 # See perl/bin/widget.bat for lots of examples
-    print "Setting up main window\n";
+    print " - setting up main window\n";
     $MW = MainWindow->new;
     $MW->withdraw;              # Hide the window until we are all set up
 				# doesn't quite work on XP :(
@@ -6106,33 +6109,34 @@ sub tk_setup_windows {
 
 	if ($config_parms{tk_schemes}) {
 	    $Tk_objects{menu_view_schemes} = $Tk_objects{menu_view}->menu->Menu;
-    &tk_cascade_entry('Schemes', $Tk_objects{menu_view}, $Tk_objects{menu_view_schemes});
+        &tk_cascade_entry('Schemes', $Tk_objects{menu_view}, $Tk_objects{menu_view_schemes});
 
-    	    &configure_element('window', \$Tk_objects{menu_view_schemes});
+        &configure_element('window', \$Tk_objects{menu_view_schemes});
 
 	    my @scheme_options;
-            @scheme_options = split ',', $config_parms{tk_schemes};
+        @scheme_options = split ',', $config_parms{tk_schemes};
 	    my $sub;
 
 	    for (sort @scheme_options) {
-		$sub = "sub {\$Invalidate_Window = 1; my \%opts = (tk_scheme => '$_'); print 'SCHEME = $_';  &write_mh_opts(\\%opts); &read_code_forced()}";
-		$sub = eval $sub;
-		$Tk_objects{menu_view_schemes}->radiobutton(-label => ucfirst($_), -underline => 0, -variable => \$config_parms{tk_scheme}, -value =>$_, -command => $sub);
+	        $sub = "sub {\$Invalidate_Window = 1; my \%opts = (tk_scheme => '$_'); print 'SCHEME = $_\n';  &write_mh_opts(\\%opts,0,1); &read_code_forced()}";
+            $sub = eval $sub;
+            print "Error in tk_scheme eval: error=$@\n" if $@;
+            $Tk_objects{menu_view_schemes}->radiobutton(-label => ucfirst($_), -underline => 0, -variable => \$config_parms{tk_scheme}, -value =>$_, -command => $sub);
 	    }
 
-	    $Tk_objects{menu_view}->separator();	    
+	    $Tk_objects{menu_view}->separator();
 
 	}
 
 
 
-if ($config_parms{tk_commands}) {
-    $Tk_objects{menu_commands} = $Tk_objects{menu_bar}->
-        Menubutton(-text => 'Commands',
-                   -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
+    if ($config_parms{tk_commands}) {
+        $Tk_objects{menu_commands} = $Tk_objects{menu_bar}->
+            Menubutton(-text => 'Commands',
+                       -borderwidth => 2, -underline => 0)->pack(-side => 'left', -padx => 0);
 
-    &configure_element('window', \$Tk_objects{menu_commands});
-}
+        &configure_element('window', \$Tk_objects{menu_commands});
+    }
 
     $Tk_objects{menu_items} = $Tk_objects{menu_bar}->
         Menubutton(-text => 'Items',
@@ -6164,7 +6168,7 @@ if ($config_parms{tk_commands}) {
 
 
     &tk_cascade_entry('Set Password', $Tk_objects{menu_tools}, $Tk_objects{menu_tools_set_password});
-	
+
     $Tk_objects{menu_tools_set_password}->command(-label => 'Guest', -underline => 0, -command => sub { &set_password('guest')});
     $Tk_objects{menu_tools_set_password}->command(-label => 'Family', -underline => 0, -command => sub { &set_password('family')});
     $Tk_objects{menu_tools_set_password}->command(-label => 'Administrator', -underline => 0, -command => sub { &set_password('admin')});
@@ -6246,7 +6250,7 @@ sub toggle_house_mode {
 			$state = 'offline';
 		}
 		else {
-			$state = 'mute';		
+			$state = 'mute';
 		}
 
 		set $mode_mh $state, 'tk';
@@ -6304,7 +6308,7 @@ sub undo_last_action {
 
     my @refs = &Generic_Item::recently_changed;
     if ($#refs != -1) {
-	
+
     while (my $ref = shift @refs) {
 
 		# *** Need config parm to filter these
@@ -6331,7 +6335,7 @@ sub undo_last_action {
 
 			# No said or state_now called prior, so no RT, so no_chime=1
 			respond "target=$target no_chime=1 app=control $msg";
-				
+
 		    }
         	    set $ref $ref->{state_prev}, $set_by;
 		    $undid = 1;
@@ -6339,7 +6343,7 @@ sub undo_last_action {
 	    }
         }
     }
-	
+
     }
 
 respond "target=$target app=control no_chime=1 No recent actions can be undone." unless $undid;
@@ -6470,7 +6474,7 @@ sub tk_setup_cascade_menus {
 
             $Tk_objects{menu_items_by_type}{$object_type} = $Tk_objects{menu_items}->menu->Menu;
 
-   	    &configure_element('window', \$Tk_objects{menu_items_by_type}{$object_type})
+    	    &configure_element('window', \$Tk_objects{menu_items_by_type}{$object_type});
             &tk_cascade_entry($object_type, $Tk_objects{menu_items}, $Tk_objects{menu_items_by_type}{$object_type});
 
                                 # Sort by filename first, then object name
@@ -6524,7 +6528,7 @@ sub tk_setup_cascade_menus {
 
             $Tk_objects{menu_groups_by_group}{$group} = $Tk_objects{menu_groups}->menu->Menu;
 
-   	    &configure_element('window', \$Tk_objects{menu_groups_by_group}{$group})
+            &configure_element('window', \$Tk_objects{menu_groups_by_group}{$group});
 
             &tk_cascade_entry($group_name, $Tk_objects{menu_groups}, $Tk_objects{menu_groups_by_group}{$group});
 
@@ -6669,7 +6673,7 @@ sub tk_command_list {
 
 	# *** Need execute_tk_command sub (looks at textbox)
 
-    $Tk_objects{command}->configure( -command => sub { print "testing browseentry @_"; } );	
+    $Tk_objects{command}->configure( -command => sub { print "testing browseentry @_"; } );
 
 	my $entry = $Tk_objects{command}->Subwidget('entry');
 	&configure_element('edit', \$entry);
@@ -6689,13 +6693,13 @@ sub tk_command_list {
 	my $last_cat = '';
 
 	for (@cmds) {
-		my $cat = (split( /:/, $_ ))[0]; 
+		my $cat = (split( /:/, $_ ))[0];
 		if ($last_cat ne $cat) {
-		    	$list->add( $cat, -text => $cat, -image => $list->Getimage("folder"));		
+		    	$list->add( $cat, -text => $cat, -image => $list->Getimage("folder"));
 			$last_cat = $cat;
 		}
-		my $text = (split( /:/, $_ ))[-1]; 
-	    	$list->add( $_, -text => $text, -image => $list->Getimage("file"));	
+		my $text = (split( /:/, $_ ))[-1];
+	    	$list->add( $_, -text => $text, -image => $list->Getimage("file"));
 	}
 
 
@@ -6722,18 +6726,18 @@ sub tk_command_list {
             print_log "No matching commands found for $cmd" unless @cmds;
 
 	for (@cmds) {
-		my $cat = (split( /:/, $_ ))[0]; 
+		my $cat = (split( /:/, $_ ))[0];
 		if ($last_cat ne $cat) {
-		    	$list->add( $cat, -text => $cat, -image => $list->Getimage("folder"));		
+		    	$list->add( $cat, -text => $cat, -image => $list->Getimage("folder"));
 			$last_cat = $cat;
 		}
-		my $text = (split( /:/, $_ ))[-1]; 
-	    	$list->add( $_, -text => $text, -image => $list->Getimage("file"));	
+		my $text = (split( /:/, $_ ))[-1];
+	    	$list->add( $_, -text => $text, -image => $list->Getimage("file"));
 	}
 
 	$list->autosetmode();
         }
-	$Tk_objects{command}->insert('end', $cmd); # add to MRU (*** check if there already, move to top)	
+	$Tk_objects{command}->insert('end', $cmd); # add to MRU (*** check if there already, move to top)
     });
     return $list;
 }
@@ -6758,7 +6762,7 @@ sub tk_scalebar {
             -length       => '80',
             -showvalue    => '1',
             -borderwidth    => '0',
-            -relief        => 'sunken', 
+            -relief        => 'sunken',
             -orient       => 'horizontal',
             -variable     => \$$pvar->{state},
 	    -command      => sub { $Tk_results{$label} = $$pvar->{state}; $$pvar->set($$pvar->{state}, 'tk') });
@@ -6776,7 +6780,7 @@ sub tk_scalebar {
             -length       => '80',
             -showvalue    => '1',
             -borderwidth    => '0',
-            -relief        => 'sunken', 
+            -relief        => 'sunken',
             -orient       => 'horizontal',
             -variable     => \$$pvar );
 
@@ -6855,7 +6859,7 @@ sub tk_label_new {
     return unless $MW and $Tk_objects{"fb$frame_number"};
     for my $pvar (@data) {
         $Tk_objects{label}{$pvar}->destroy if $Tk_objects{label}{$pvar} and Exists($Tk_objects{label}{$pvar});
-                 
+
         $Tk_objects{label}{$pvar} = $Tk_objects{"fb$frame_number"}->
             Label(-relief => 'sunken', -textvariable => $pvar, -justify => 'center');
 
@@ -6917,9 +6921,14 @@ sub configure_element {
 	my $relief;
 	my $border_width;
 
+    unless ($$p_element) {
+        print "configure_element error: type=$type\n";
+        return;
+    }
+
 	if (defined $$p_element) {
 
-		$font = &get_scheme_parameter($type, 'font');	
+		$font = &get_scheme_parameter($type, 'font');
 		$color = &get_scheme_parameter($type, 'color');
 		$colors = &get_scheme_parameter($type, 'colors'); #for multi-color progress bars
 		$bgcolor = &get_scheme_parameter($type, 'bgcolor');
@@ -6930,7 +6939,8 @@ sub configure_element {
 			$$p_element->optionAdd('*font' => $font) if $font;
 		}
 		elsif ($type ne 'toolbar' and $type ne 'progress') {
-			$$p_element->configure(-font => $font) if $font;
+# Get this error:  Can't set -font to `Times 10 bold' for Tk::Frame=HASH(0x73b0928): unknown option "-font" at C:/Perl/site/lib/Tk/Configure.pm line 46.
+#			$$p_element->configure(-font => $font) if $font;
 		}
 		if ($type eq 'progress') {
 			$$p_element->configure(-colors => [0, $color]) if $color;
