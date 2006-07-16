@@ -3802,7 +3802,7 @@ sub print_log {
 #       $Tk_objects{log_window}->yview('moveto', 30);
     }
     else {
-	if ($MW) { # date stamp looks out of place
+	if (!$config_parms{tk_console_timestamps} and $MW) { 
 	        print "$data\n";
 	}
 	else {
