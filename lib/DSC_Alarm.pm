@@ -58,7 +58,7 @@ sub serial_startup
 
     my $port     = $::config_parms{$instance . "_serial_port"};
     my $speed    = $::config_parms{$instance . "_baudrate"};
-    if (&::serial_port_create($instance, $port, $speed, 'dtr')) 
+    if (&::serial_port_create($instance, $port, $speed, 'dtr'))
     {
         # The create call will not succeed for proxies, so we don't enter this case for proxy configsk
         init($::Serial_Ports{$instance}{object});
@@ -82,52 +82,58 @@ sub serial_startup
     }
 }
 
-sub init 
+sub init
 {
     my ($serial_port) = @_;
 
-    $serial_port->error_msg(0);  
+    $serial_port->error_msg(0);
 
-    $serial_port->parity_enable(1);		
+    $serial_port->parity_enable(1);
     $serial_port->databits(8);
     $serial_port->parity("none");
     $serial_port->stopbits(1);
 
-    $serial_port->dtr_active(1);		
-    $serial_port->rts_active(0);		
+    $serial_port->dtr_active(1);
+    $serial_port->rts_active(0);
     select (undef, undef, undef, .100); 	# Sleep a bit
 }
 
-sub reload_reset 
+sub reload_reset
 {
     undef %DSC_Alarm_Objects;
 }
 
-sub check_for_data 
+sub check_for_data
 {
-    for my $port_name (@DSC_Alarm_Ports) 
+    for my $port_name (@DSC_Alarm_Ports)
     {
-        if (my $data = $main::Serial_Ports{$port_name}{data_record}) 
+        if (my $data = $main::Serial_Ports{$port_name}{data_record})
         {
             $main::Serial_Ports{$port_name}{data_record} = undef;
             &::logit("$::config_parms{data_dir}/logs/$port_name.$::Year_Month_Now.log", "$data");
             ::print_log "DSC_Alarm port $port_name data = $data, $::Loop_Count\n" if $main::Debug{dsc};
             #print "DSC_Alarm port $port_name data = $data, $::Loop_Count\n";
 
-            if ($DSC_Alarm_Objects{$port_name}) 
+            if ($DSC_Alarm_Objects{$port_name})
             {
                 my @object_refs = @{$DSC_Alarm_Objects{$port_name}};
-                while (my $self = pop @object_refs) 
+                while (my $self = pop @object_refs)
                 {
-                    $self->{user} = $2   if $data =~ /^.*User (|Code)\s+(\d+).*/;
-                    set $self "Armed"    if $data =~ /^.*System\s+Armed in (.*) Mode/;    
-                    $self->{mode} = $1;
+                    if ($data =~ /^.*System\s+Armed in (.*) Mode/)
+                    {
+                      set $self "Armed";
+                      $self->{mode} = $1;
+                    }
                     set $self "Disarmed" if $data =~ /^.*System\s+Opening.*/;
-                    set $self "Alarm"    if $data =~ /^.*System\s+Alarm Zone\s+(\d+).*/;
-                    $self->{zone} = $1;
+                    if ($data =~ /^.*System\s+Alarm Zone\s+(\d+).*/)
+                    {
+                      set $self "Alarm";
+                      $self->{zone} = $1;
+                    }
+                    $self->{user} = $2   if $data =~ /^.*User (|Code)\s+(\d+).*/;
                 }
-            } 
-            else 
+            }
+            else
             {
                 ::print_log "DSC_Alarm.pm Warning: Data received on port $port_name, but no user script objects defined\n";
                 my $warn_once = new DSC_Alarm($port_name);  # Create dummy object to avoid repetitious log messages.
@@ -153,7 +159,7 @@ sub new {
 
     push @{$DSC_Alarm_Objects{$port_name}}, $self;
     ::print_log "DSC_Alarm.pm Warning: Over 50 DSC Alarm user script objects defined on $port_name\n" if 50 < scalar @{$DSC_Alarm_Objects{$port_name}};
-    restore_data $self ('user', 'zone', 'mode'); 
+    restore_data $self ('user', 'zone', 'mode');
 
     return $self;
 }
