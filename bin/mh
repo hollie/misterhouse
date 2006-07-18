@@ -2134,7 +2134,7 @@ sub check_for_socket_data {
         if ($Socket_Ports{$port_name}{clients}) {
             my $client_number = 0;
             for my $ptr (@{$Socket_Ports{$port_name}{clients}}) {
-                my ($socka, $client_ip_address, $data) = @{$ptr};
+                my ($socka, $client_ip_address, $client_port, $data) = @{$ptr};
                 next unless $socka;
                 if (my $nfound = &socket_has_data($socka)) {
                                 # Set default to active socket
@@ -2142,6 +2142,7 @@ sub check_for_socket_data {
                     $Socket_Ports{$port_name}{client_number}     = $client_number;
                     $Socket_Ports{$port_name}{data}              = $data;
                     $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
+                    $Socket_Ports{$port_name}{client_port}       = $client_port;
                     print "socket: $port_name nfound=$nfound client=$client_number" if $Debug{$port_name};
                     $server_active = 1;
                     last;
@@ -2159,13 +2160,14 @@ sub check_for_socket_data {
                 $new_sock->autoflush(1); # Not sure if this does anything?
                                                # Log the address of the client
                 my $peer = $new_sock->peername;
-                my ($port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
+                my ($client_port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
                 my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
                 $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
+                $Socket_Ports{$port_name}{client_port} = $client_port;
                 $Socket_Ports{$port_name}{socka} = $new_sock;
                 $Socket_Ports{$port_name}{active_this_pass_flag} = 1;
 
-                push @{$Socket_Ports{$port_name}{clients}}, [$new_sock, $client_ip_address, undef];
+                push @{$Socket_Ports{$port_name}{clients}}, [$new_sock, $client_ip_address, $client_port, undef];
                 delete $Socket_Ports{$port_name}{data}; # Delete data from previous session
                 $Socket_Ports{$port_name}{client_number} = @{$Socket_Ports{$port_name}{clients}} - 1;
 
@@ -2282,7 +2284,7 @@ sub check_for_socket_data {
         }
                                 # Store away Client data
         my $client_number = $Socket_Ports{$port_name}{client_number};
-        $Socket_Ports{$port_name}{clients}[$client_number][2] = $Socket_Ports{$port_name}{data} if defined $client_number;
+        $Socket_Ports{$port_name}{clients}[$client_number][3] = $Socket_Ports{$port_name}{data} if defined $client_number;
 
                                 # 10/99 Comment out \r\n print ... what needed this?? Messed up viavoice server
 #       print $sock "\r\n";

@@ -116,13 +116,60 @@ sub inactive_now {
     return $main::Socket_Ports{$port_name}{inactive_this_pass};
 }
 
+# checks the active socket and returns the far end point if connected, undef if not
+# note that the far end is returned as "ipaddress:port"
+# useful for confirming whether a client socket is still "alive"
 sub connected {
-	my $socket=&active;
+	my $self=shift;
+	my $socket=$self->active;
 
 	if (!$socket) {
 		return 0;
 	}
-	return $socket->connected;
+
+	my $peerAddress=$socket->connected;
+
+	if (defined ($peerAddress)) {
+		my ($port, $iaddr) = &Socket::sockaddr_in($peerAddress);
+		$peerAddress=&Socket::inet_ntoa($iaddr).":$port";
+	}
+	return $peerAddress;
+}
+
+# returns the ipaddress:port that sent the latest received data
+sub peer {
+	my $self=shift;
+
+    my $host_proto = $self->{host_protocol};
+    $host_proto = 'tcp' unless $host_proto;
+    my $port_name=$self->{port_name};
+    my $sock=$::Socket_Ports{$port_name}{socka};
+
+    if (!$sock) {
+    	return undef;
+	}
+
+    if ($host_proto eq 'tcp') {
+    	# if we are a server, then return the IP address of the latest client
+    	# to send data
+    	if ($self->{server}) {
+    		my $port=
+    		return $::Socket_Ports{$port_name}{client_ip_address}.':'.
+    			$::Socket_Ports{$port_name}{client_port};
+		}
+		# we are a client, ask the socket to return the IP address of our peer
+		return $sock->peerhost.':'.$sock->peerport;;
+    } else {
+    	# if we are a server, then return the IP address of the latest client
+    	# to send data
+    	if ($self->{server}) {
+    		return &Socket::inet_ntoa($::Socket_Ports{$port_name}{from_ip}).':'.
+    			$::Socket_Ports{$port_name}{from_port};
+		}
+		# we are a client, ask the socket to return the IP address of our peer
+		return $sock->peerhost.':'.$sock->peerport;;
+	}
+	return "That's unpossible";
 }
 
 sub said {
@@ -212,8 +259,8 @@ sub set {
             }
             else {
                 for my $ptr (@{$main::Socket_Ports{$port_name}{clients}}) {
-                    my ($socka, $client_ip_address, $data) = @{$ptr};
-                    print "Testing socket client ip address: $client_ip_address\n" if $main::Debug{socket};
+                    my ($socka, $client_ip_address, $client_port, $data) = @{$ptr};
+                    print "Testing socket client ip address: $client_ip_address:$client_port\n" if $main::Debug{socket};
                     push @sockets, $socka if $socka and $client_ip_address =~ /$ip_address/ or
                       $ip_address eq 'all' or $ip_address eq $socka;
                 }
