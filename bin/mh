@@ -277,6 +277,21 @@ BEGIN {
         $debug = 1 if $Debug{parms};
         my @files = &main::read_mh_opts(\%config_parms, '.', $debug);
         print "Read parameter files: @files\n";
+        if ($config_parms{code_dir} eq "$Pgm_Root/code/test") {
+        	print "\n".'*' x 80 . "\n";
+        	print "Warning, you should create your own code directory outside of the main\n";
+        	print "distribution directory and point code_dir to it.  Otherwise, you may lose\n";
+        	print "your customizations on upgrades.\n";
+        	print '*' x 80 . "\n\n";
+       	}
+        if ($config_parms{data_dir} eq "$Pgm_Root/data") {
+        	print "\n".'*' x 80 . "\n";
+        	print "Warning, you should create your own data directory outside of the main\n";
+        	print "distribution directory and point data_dir to it.  Otherwise, you may lose\n";
+        	print "your customizations on upgrades.  The best way to accomplish this is to copy\n";
+        	print "the entire contents of the standard data directory into a new directory.\n";
+        	print '*' x 80 . "\n\n";
+       	}
 
                                 # Read in speak parms per application
         &main::read_parm_hash(\%{$app_parms{speak}},   $main::config_parms{speak_apps_default});
