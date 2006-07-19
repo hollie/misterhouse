@@ -1,3 +1,6 @@
+# $Date$
+# $Revision$
+
 package Hardware::iButton::Connection;
 
 use strict;
@@ -319,6 +322,9 @@ sub openPort {
 	
 	$this->{ SERIALPORT } = $s;
 	$this->DS2480Detect();
+        
+        # Search out and store device objects for any on-lan microlan couplers(1-wire hubs)
+        $this->DS2409Detect();
     }
     return $this->{ SERIALPORT };
 }
@@ -368,7 +374,51 @@ sub purge_all {
     return undef if !$this->connected();
     $this->{ SERIALPORT }->purge_all;
 }
+   
+
+# Search/map any DS2409 microlan couplers attached to a port
+# 
+#---------------------------------------------------------------------------
+sub DS2409Detect {
+    my $this = shift;
+
+    print "Searching for DS2409 Microlan Couplers\n   ";
+    $this->{'DS2409Current'} = -1; # -1= NONE, All Off    
+    $this->{'DS2409State'} = 'OFF';
+    $this->{'DS2409Count'} = 0;
+
+    my @devices = $this->scan('1f');
+    my $CouplerCount=0;
+    for my $ib (@devices) {
+       print $ib->model."  ";
+       $ib->set_coupler('OFF');
+       my $TmpStr = join('','DS2409_',$CouplerCount);
+       $this->{$TmpStr} = $ib;
+       $CouplerCount++;
+    }
+
+    if ($CouplerCount == 0) { return(0); }
+
+    print $CouplerCount, " devices found\n";
+    $this->{'DS2409Count'} = $CouplerCount;
+
+    # Turn all couplers off
+    my $i;
+    for($i=0;$i<$this->{'DS2409Count'};$i++) {
+       my $TmpStr = join('','DS2409_',$i);
+    }
+   
+    $this->{'DS2409State'} = 'OFF';
+    $this->{'DS2409Current'} = 'DS2409_0';
     
+    my @foo = $this->scan();
+
+return $CouplerCount;
+}
+
+
+
+
 
 #---------------------------------------------------------------------------
 # Attempt to resyc and detect a DS2480
@@ -746,6 +796,10 @@ sub owNext {
 	$this->{ "LastDiscrepancy" } = 0;
 	$this->{ "LastDevice" } = 0;
 	$this->{ "LastFamilyDiscrepancy" } = 0;
+        if ($this->{ 'DS2409Count' } > 0) {
+            $this->{'DS2409Current'}='DS2409_0';
+            $this->{'DS2409State'}='OFF';
+        }
 	return undef;
     }
 
@@ -843,14 +897,56 @@ sub owNext {
 		return undef;
 	    }
 	    else {
+             
 	      # successful search
 		# check for lastone
 		if (($tmp_last_desc == $this->{ "LastDiscrepancy" }) || ($tmp_last_desc == 0xFF)) {
-		    $this->{ "LastDevice" } = 1;
+                     if ($this->{ 'DS2409Count' } > 0) {
+                     my $CurrentDS = $this->{'DS2409Current'};
+                     #print "Current=$CurrentDS ";
+                     #print "State=",$this->{'DS2409State'}," ";
+                     #print "\n";
+                     
+                       if ($this->{ 'DS2409State' } eq 'MAIN') {
+                         $this->{ $CurrentDS }->set_coupler('AUX');
+                         $this->{ 'DS2409State' } = 'AUX';
+                       }
+                       elsif ( $this->{'DS2409State'} eq 'AUX') {
+                         $this->{$CurrentDS }->set_coupler('OFF');
+                         $this->{'DS2409State'} = 'OFF';
+
+                         my $LastDS2409 = join('','DS2409_',$this->{'DS2409Count'}-1);
+
+                         if ($LastDS2409 eq $this->{ 'DS2409Current' }) {
+                            $this->{'DS2409Current'}='DS2409_0'; 
+		            $this->{ "LastDevice" } = 1;
+                            print "LastDevice\n";
+                         } else {
+                            # Step to next device
+                            my $myDevNum = substr($this->{'DS2409Current'},7,1);
+                            $myDevNum++;
+                            $this->{'DS2409Current'}=join('','DS2409_',$myDevNum);
+                            $this->{'DS2409State'}='MAIN';
+                            $this->{ $this->{'DS2409Current'} }->set_coupler('MAIN');
+                         }
+                       }
+                       elsif ($this->{'DS2409State'} eq 'OFF') {
+                          $this->{'DS2409State'} = 'MAIN';
+                       }
+
+                     } else { $this->{ "LastDevice" } = 1; }
 		}
 
 		# copy the SerialNum to the buffer
 		$this->{ "SerialNum" } = $tmpSerial;
+                #print "DEV $tmpSerial $this->{'DS2409State'} $this->{'DS2409Current'} ";
+                my $cacheentry = join ('',$this->{'DS2409Current'},'-',$this->{'DS2409State'});
+                my $tmp = unpack('H*',$tmpSerial);
+                $tmp .= 'CE';
+                if (substr($tmp,0,2) eq '1f') { $cacheentry = ''; }
+                if ($this->{'DS2409State'} eq 'OFF') { $cacheentry=''; }
+                $this->{$tmp}=$cacheentry;
+               
          
 		# set the count
 		$this->{ "LastDiscrepancy" } = $tmp_last_desc;
@@ -946,19 +1042,25 @@ sub FindDevices {
 	$this->{ "SerialNum" } = chr( $ARGS{ FAMILY } ) . ("\x00" x 7 );
 	$this->{ "LastDiscrepancy" } = 64;
 	$this->{ "LastDevice" } = 0;
+        $this->{ 'DS2409Current' } = 'DS2409_0';
+        $this->{ 'DS2409State' } = 'OFF';
     }
     else {
 	$this->{ "SerialNum" } = "\x00" x 8;
 	$this->{ "LastDiscrepancy" } = 0;
 	$this->{ "LastDevice" } = 0;
 	$this->{ "LastFamilyDiscrepancy" } = 0;
+        $this->{ 'DS2409Current' } = 'DS2409_0';
+        $this->{ 'DS2409State' } = 'OFF';
     }
 
     my @devices;
     # loop to find all of the devices up to MAXDEVICES
     while ( my $serial = $this->owNext( %ARGS ) ) {
 	my @serial = unpack( "C*", $serial );
+        #if ($serial[0] != 0x1f) {
 	push @devices, [ @serial ] if !defined $ARGS{ FAMILY } || $serial[0] == $ARGS{ FAMILY };
+        #}
     }
     return @devices;
 }
@@ -1045,24 +1147,33 @@ sub select {
     my $serial = pack( "b*", shift );
     my $send;
 
-    # reset the 1-wire 
-    if ($this->reset()) {
-	# create a buffer to use with block function      
-	# match Serial Number command 0x55 
-	$send .= "\x55";
+      if ($this->{'DS2409Count'} > 0) {
+         my $cacheIndex = unpack("H*",$serial);
+            $cacheIndex .= 'CE';
+         if ($this->{$cacheIndex} ne '') {
+         my $coupler;
+         my $state;
+         ($coupler,$state) = split('-',$this->{$cacheIndex});
+         #Aprint "<< ".$this->{$cacheIndex}.">>";
+         $this->{$coupler}->set_coupler($state);
+         }
+      }
+          
+        # reset the 1-wire 
+        if ($this->reset()) {
+	    # create a buffer to use with block function      
+	    # match Serial Number command 0x55 
+	    $send .= "\x55";
 
-	# Serial Number
-	$send .= $serial;
+	    # Serial Number
+	    $send .= $serial;
+	    # send/recieve the transfer buffer   
+	    my $result = $this->owBlock( $send );
+            if ($result eq $send) { return(1); }
+        }
 
-	# send/recieve the transfer buffer   
-	my $result = $this->owBlock( $send );
-	return $result && $result eq $send ? 1 : 0;
-    }
-
-    # reset or match echo failed
-    return 0;
+    return(0);
 }
-
 sub crc {
     my($crc, @newbytes) = @_;
     
@@ -1099,7 +1210,7 @@ sub scan {
 
     my @raw_ids = $self->FindDevices( %ARGS );
 
-    print "ibutton Connection.pm scan: fc=$family_code s=$serial id=@raw_ids\n" if $self->{ DEBUG };
+    print "ibutton Connection.pm scan: fc=$family_code s=$serial id=@raw_ids\n"  if $self->{ DEBUG };
 
     foreach my $i (@raw_ids) {
 	my $j;
@@ -1114,9 +1225,18 @@ sub scan {
 	$raw_id = unpack('b8', $family) . scalar(reverse(unpack('B48', $serial)));
 	$raw_id .= unpack('b8', $crc);
 	# $raw_id is a 64 character string of "0" and "1"
-	my $button = Hardware::iButton::Device->new($self, $raw_id);
-	#print "id: ",$button->id(),"\n";
-	push(@buttons, $button);
+        #if ((hex(unpack('h2',$family)) ne 0xf1) || ($family_code eq '1f'))
+        #Search for a matching raw ID
+        my $Duplicated = 0;
+        for my $compid (@buttons) {
+           if ($compid->raw_id() eq $raw_id) { $Duplicated=1; }
+        }
+        if ($Duplicated == 0)
+        {
+	    my $button = Hardware::iButton::Device->new($self, $raw_id);
+    #        print $button->serial()." ".$button->{'connection'}->{'DS2409Current'}." ".$button->{'connection'}->{'DS2409State'}." ";
+	    push(@buttons, $button);
+        }
     }
 
     return @buttons;
@@ -1176,8 +1296,24 @@ sub id_on_wire {
 	    last;
 	}
     }
-
+    
     return $foundID;
 }
+
+sub get_coupler {
+    my $self = shift;
+    my $id = uc(shift);
+    print "miID $id ";
+
+    my $send = "\x55";
+       $send .= $id;
+
+    # send/recieve the transfer buffer   
+    my $result = $self->owBlock( $send );
+    if ($result eq $send) {print "HIT"; return(1); }
+    print "NOPE";
+    return(0);
+}
+
 
 1;

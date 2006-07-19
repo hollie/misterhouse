@@ -1,5 +1,8 @@
+# $Date$
+# $Revision$
+
 package Hardware::iButton::Device;
-		  
+
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 		  
@@ -145,20 +148,22 @@ use vars qw(%models);
 		    'mintime' => 0,
 		    'maxtime' => .9,
 		   },
-		 "1f" => {	
-			 'model' => 'DS2409',
-		    'memsize' => 0,
-		    'memtype' => "??",
-		    'specialfuncs' => "One-Wire Net Coupler",
-		    'class' => 'Hardware::iButton::Device::DS2409',			 
-		 },	 
-     "20" => {			# Brian Rudy
+	   "28" => {
+		    'model' => 'DS18B20',
+		    'memsize' => 16/8, # yes, really. two bytes.
+		    'memtype' => "EEPROM",
+		    'specialfuncs' => "thermometer",
+		    'class' => 'Hardware::iButton::Device::DS18B20',
+		    'mintime' => 0,
+		    'maxtime' => .9,
+		   },
+           "20" => {			# Brian Rudy
                     'model' => 'DS2450',
                     'memsize' => 4*8/8, # 4 pages of 8 bytes.   
                     'memtype' => "??",
                     'specialfuncs' => "ADC",
                     'class' => 'Hardware::iButton::Device::DS2450'
-     },
+                   },
 	   "21" => {			# STOLL
 		    'model' => 'DS1921',
 		    'memsize' => 2048/8, # yes, really. 2K bytes.
@@ -184,16 +189,6 @@ use vars qw(%models);
 		    'specialfuncs' => "Humidity",
 		    'class' => 'Hardware::iButton::Device::DS2438',
 		   },
-	   "28" => {
-		    'model' => 'DS18B20',
-		    'memsize' => 16/8, # yes, really. two bytes.
-		    'memtype' => "EEPROM",
-		    'specialfuncs' => "thermometer",
-		    'class' => 'Hardware::iButton::Device::DS1822',
-		    'mintime' => 0,
-		    'maxtime' => .9,
-		   },
-
  	  "29" => {
 		    'model' => 'DS2408',
 		    'memsize' => 1024/8, 
@@ -203,8 +198,6 @@ use vars qw(%models);
 		    'mintime' => 0,
 		    'maxtime' => .9,
 		   },
-
-
 	   "14" => {
 		    'model' => 'DS1971',
 		    'memsize' => 256/8,
@@ -232,6 +225,13 @@ use vars qw(%models);
 		    'specialfuncs' => "cryptoRSA",
 		    'class' => 'Hardware::iButton::Device::DS1957B',
 		   },
+           "1f" => {                    #JFM
+                    'model' => 'DS2409',
+                    'memsize' => 0,
+                    'memtype' => 'none',
+                    'specialfuncs' => "Microlan Coupler",
+                    'class' => 'Hardware::iButton::Device::DS2409',
+                   },
 	  );
 
 
@@ -253,6 +253,8 @@ sub new {
     $self->{'crc'} = unpack("H2",pack("b8",substr($raw_id,56,8)));
     $self->{'id'} = join("",
 			 $self->{'family'},$self->{'serial'},$self->{'crc'});
+    $self->{'coupler'}='';
+    $self->{'branch'}='';
 
     # check CRC
     my $crc = Hardware::iButton::Connection::crc(0, split(//, pack("b*", 
@@ -370,6 +372,7 @@ sub memtype {
 sub specialfuncs {
     return $_[0]->{'specialfuncs'};
 }
+
 
 		  
 # common actions that all buttons can do
@@ -772,7 +775,7 @@ sub read_temperature {
 
     my $c = $self->{'connection'};
     return if !$c->id_on_wire( $self->id() );
-
+    print "Reading Temperature ";
     for ( 0..1 ) {
 	my $data = $self->read_temperature_scratchpad( $_ );
 	if ( $data ) {
@@ -802,14 +805,14 @@ sub read_temperature_18B20 {
     my($self) = @_;
     my $temp;
     my $c = $self->{'connection'};
-    return if !$c->id_on_wire( $self->id() );
+    #return if !$c->id_on_wire( $self->id() );
 
     for ( 0..1 ) {
 	my $data = $self->read_temperature_scratchpad( $_ );
 	if ( $data ) 
 	{
 	 my @data = unpack( "C*", $data );
-	#print "18B20: Data1 $data[1] Data2 $data[2]\n";
+#	print "18B20: Data1 $data[1] Data2 $data[2]\n";
 	my $sign = $data[2] > 128 ? 0 : 1;
 
 		if ($sign)   #Positive Number				
@@ -832,7 +835,7 @@ sub read_temperature_18B20 {
 	$self->update_temperature_time( 1 );
 	}
 
-	return $temp;
+	return ($temp);
 	}
 	elsif ( !$_ ) {
 	    $self->update_temperature_time( 0 );
@@ -845,11 +848,12 @@ sub read_temperature_18B20 {
 
 
 sub read_temperature_hires {
-    my($self) = @_;
-
+    my $self = shift;
+    #my($self) = @_;
+   
     my $c = $self->{'connection'};
-    return if !$c->id_on_wire( $self->id() );
 
+    #return if !$c->id_on_wire( $self->id() );
     for ( 0..1 ) {
 	my $data = $self->read_temperature_scratchpad( $_ );
 	if ( $data ) {
@@ -878,6 +882,7 @@ sub read_temperature_hires {
 		
 	    return $tmp;
 	}
+        
     }
 
     return undef;
@@ -1127,6 +1132,9 @@ sub Get_Vsens_2438{
     }
 }
 
+
+
+
 package Hardware::iButton::Device::DS1957B;
 # this is a crypto button.
 use Hardware::iButton::Connection;
@@ -1138,6 +1146,13 @@ use vars qw(@ISA);
 @ISA = qw(Hardware::iButton::Device);
 
 
+package Hardware::iButton::Device::DS18B20;
+use Hardware::iButton::Connection;
+# this is the thermometer button.
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device Hardware::iButton::Device::DS1920 );
 ############## stoll ###############################
 
 
@@ -1169,69 +1184,6 @@ Useful conversions: C<$f = $c*9/5 + 32>,   C<$c = ($f-32)*5/9> .
 sub read_temperature_hires {
     my $this = shift;
     return $this->read_temperature_18B20( @_ );
-}
-
-package Hardware::iButton::Device::DS2409;
-use Hardware::iButton::Connection;
-use strict;
-use vars qw(@ISA);
-
-@ISA = qw(Hardware::iButton::Device);
-
-sub all_lines_off{
-	my $this = shift;
-  my $serial = pack( "b*", $this->raw_id() );
-	my $c = $this -> {'connection'};
-	my $send;
-	if ($this->reset()) {
-		$send .= "\x55"; #issue "match ROM" command
-		$send .= $serial;
-		$send .= "\x66"; #issue "all lines off" command
-		my $result = $c->owBlock( $send );
-    # now get the last byte of the unpacked result
-    my $rv = unpack("b*",$result);
-    $rv = substr($rv,length($rv)-8,8);
-		# this should be 0x66 (binary 01100110)
-		return ($rv eq '01100110');
-	}
-	return -1;
-}
-sub smart_on_main{
-	my $this = shift;
-  my $serial = pack( "b*", $this->raw_id() );
-	my $c = $this -> {'connection'};
-	my $send;
-	if ($this->reset()) {
-		$send .= "\x55"; #issue "match ROM" command
-		$send .= $serial;
-		$send .= "\xCC"; #issue "smart-on main" command
-		$send .= "\xFF" x 3; #reset stimulus
-		my $result = $c->owBlock( $send );
-#		return unpack("b*",$result);
-		my $rv = unpack("b*",$result);
-    $rv = substr($rv,length($rv)-8,8); #last byte
-		# this should be something other than 0xff (binary 11111111)
-		return ($rv ne '11111111');
-	}
-	return -1;
-}
-sub direct_on_main{
-	my $this = shift;
-  my $serial = pack( "b*", $this->raw_id() );
-	my $c = $this -> {'connection'};
-	my $send;
-	if ($this->reset()) {
-		$send .= "\x55"; #issue "match ROM" command
-		$send .= $serial;
-		$send .= "\xA5"; #issue "direct-on main" command
-		my $result = $c->owBlock( $send );
-    # now get the last byte of the unpacked result
-    my $rv = unpack("b*",$result);
-    $rv = substr($rv,length($rv)-8,8);
-		# this should be 0xA5 (binary 10100101)
-		return ($rv eq '10100101');
-	}
-	return -1;
 }
 
 
@@ -2279,6 +2231,61 @@ sub get_firmware_version_string {
 }
 
 
+# this is the DS2490 Microlan Coupler (Used in many 1-wire hubs)
+package Hardware::iButton::Device::DS2409;
+use Hardware::iButton::Connection;
+use strict;
+use vars qw(@ISA);
+
+@ISA = qw(Hardware::iButton::Device);
+
+#----------------------------------------------------------------------
+ 
+sub set_coupler {
+    my ($this, $Hubmode) = @_;
+    #my $this = shift;
+    my $serial = pack( "b*", $this->raw_id() );
+    my $c = $this->{'connection'};
+    my $CmdByte;
+    return undef if !$c->connected();
+
+    if ($c->{'2409Internal'} eq $this) {
+        if ($c->{'2409IntBranch'} eq $Hubmode) { return undef; }
+    }
+    $c->{'2409Internal'} = $this;
+    $c->{'2409IntBranch'} = $Hubmode;
+
+    my $channel = $this->{channel};
+    $channel = 'A' unless $channel;
+    #print "Setting Coupler $this  $Hubmode\n";
+    
+    if ($Hubmode eq 'OFF') { $CmdByte="\x66"; }
+    if ($Hubmode eq 'MAIN') { $CmdByte="\xA5"; }
+    if ($Hubmode eq 'AUX') { $CmdByte="\x33"; }
+
+
+    if($this->reset()) {    
+    my $send = "\x55";
+       $send .= $serial;
+       $send .= $CmdByte;
+	
+        my $result = $c->owBlock( $send );
+#print "Sent:  ".unpack("h*",$send)."\n";
+#print "Result:".unpack("h*",$result)."\n";
+        if ( $result ) {
+            
+        }
+    }
+
+    my $send .= "\x55";
+       $send .= $serial;
+       $send .= "\x5A";
+        
+    my $result = $c->owBlock( $send );
+    return undef;
+}
+
+#----------------------------------------------------------------------
 
 # Autoload methods go after =cut, and are processed by the autosplit program.
 
