@@ -21,22 +21,22 @@ use X10_RF;
 
 # Map of security codes to class:function identifiers.
 my %scodes = qw(00 Sensor:AlertMax        01 Sensor:NormalMax
-		02 Sensor:AlertTamperMax  03 Sensor:NormalTamperMax
-		20 Sensor:AlertMin        21 Sensor:NormalMin
-		22 Sensor:AlertTamperMin  23 Sensor:NormalTamperMin
-		30 Sensor:Alert           31 Sensor:Normal
-		32 Sensor:AlertTamper     33 Sensor:NormalTamper
-		40 System:ArmAwayMax      41 System:Disarm
-		42 Control:LightsOn       43 Control:LightsOff
+		02 Sensor:AlertTamperMax    03 Sensor:NormalTamperMax
+		20 Sensor:AlertMin          21 Sensor:NormalMin
+		22 Sensor:AlertTamperMin    23 Sensor:NormalTamperMin
+		30 Sensor:Alert             31 Sensor:Normal
+		32 Sensor:AlertTamper       33 Sensor:NormalTamper
+		40 System:ArmAwayMax        41 System:Disarm
+		42 Control:SecurityLightsOn 43 Control:SecurityLightsOff
 		44 System:Panic
-		50 System:ArmHomeMax      60 System:ArmAwayMin
+		50 System:ArmHomeMax        60 System:ArmAwayMin
 		61 System:Disarm
-		62 Control:LightsOn       63 Control:LightsOff
+		62 Control:LightsOn         63 Control:LightsOff
 		64 System:Panic
 		70 System:ArmHomeMin
-		80 Sensor:AlertBattLowMax 81 Sensor:NormalBattLowMax
-                a0 Sensor:AlertBattLowMin a1 Sensor:NormalBattLowMin
-                c0 System:Panic
+		80 Sensor:AlertBattLowMax   81 Sensor:NormalBattLowMax
+        a0 Sensor:AlertBattLowMin   a1 Sensor:NormalBattLowMin
+        c0 System:Panic
 	       );
 
 #------------------------------------------------------------------------------
