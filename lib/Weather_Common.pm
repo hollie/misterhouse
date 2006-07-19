@@ -109,7 +109,32 @@ sub weather_updated {
 			}
 			$humidex=sprintf('%.1f',$humidex);
 			$$w{Humidex}=$humidex;
-			$apparentTemp=$humidex;
+			$apparentTemp=$humidex unless $::config_parms{weather_use_heatindex};
+		}
+
+		my $tempF=&::convert_c2f($temp); # heat index works with fahrenheit temperatures
+		my $humidity=$$w{HumidOutdoor}; # heat index uses humidity in %
+
+		# the heat index formula is only valid when Temp >= 80 deg F and Humidity >= 40%
+		if ($tempF >= 80 and $humidity >= 40) {
+			# This formula taken from Wikipedia entry on Heat Index
+			my $heatIndex = -42.379;
+			$heatIndex += 2.04901523 * $tempF;
+			$heatIndex += 10.1433127 * $humidity;
+			$heatIndex += -0.22475541 * $tempF * $humidity;
+			$heatIndex += -6.83783 * (10 ** (-3)) * ($tempF ** 2);
+			$heatIndex += -5.481717 * (10 ** (-2)) * ($humidity ** 2);
+			$heatIndex += 1.22874 * (10 ** (-3)) * ($tempF ** 2) * $humidity;
+			$heatIndex += 8.5282 * (10 ** (-4)) * $tempF * ($humidity ** 2);
+			$heatIndex += -1.99 * (10 ** (-6)) * ($tempF ** 2) * ($humidity ** 2);
+			if ($main::config_parms{weather_uom_temp} eq 'C') {
+				$heatIndex=&::convert_f2c($heatIndex);
+			}
+			$heatIndex=sprintf('%.1f',$heatIndex);
+			$$w{HeatIndex}=$heatIndex;
+			$apparentTemp=$heatIndex if $::config_parms{weather_use_heatindex};
+		} else {
+			$$w{HeatIndex}=$$w{TempOutdoor};
 		}
 	}
 
