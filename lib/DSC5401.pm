@@ -50,7 +50,7 @@ sub new {
    DefineCmdMsg();
    DefineErrorCode();
 
-   my @LogType = qw(DSC_5401_time_log DSC_5401_ring_log DSC_5401_temp_log DSC_5401_part_log DSC_5401_zone_log);
+   my @LogType = qw(DSC_5401_ring_log DSC_5401_part_log DSC_5401_zone_log);
    foreach (@LogType) {
       if ( !exists $::config_parms{$_} ) {
          $main::config_parms{$_} = 1;
