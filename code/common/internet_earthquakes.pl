@@ -207,7 +207,7 @@ sub calc_earthquake_age {
     #Merge it
     my $qtime = timegm($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear);
 
-	print ("UTC:" . $qtime . "\n");
+	# print ("UTC:" . $qtime . "\n");
 
     #Split it again - these are now local time, not UTC
     ($qseco,$qminu,$qhour,$qdate,$qmnth,$qyear) = localtime($qtime);
