@@ -130,7 +130,7 @@ if (defined($datapart = said $telnet_server)) {
         # It would be best to interpret them and respond in kind
         # but it is simpler to just ignore them :-)
 
-        $telnet_flags{$client}{data} =~ s/\xff\xfa.+?\xf0//g; 
+        $telnet_flags{$client}{data} =~ s/\xff\xfa.+?\xff\xf0//g; 
         $telnet_flags{$client}{data} =~ s/\xff(\xfb|\xfc|\xfd|\xfe).//g;
 
         # print ("command is now ".join(' ',unpack('C*',$telnet_flags{$client}{data}))."\n");
@@ -204,7 +204,7 @@ if (defined($datapart = said $telnet_server)) {
             elsif (lc($telnet_flags{$client}{data}) eq 'hi') {
                 set $telnet_server 'hi';
             }
-            elsif (lc($telnet_flags{$client}{data}) eq 'exit' || lc($telnet_flags{$client}{data}) eq 'bye') {
+            elsif (lc($telnet_flags{$client}{data}) eq 'exit' || lc($telnet_flags{$client}{data}) eq 'bye' || $telnet_flags{$client}{data} eq "\x04") {
                 if ($telnet_flags{$client}{auth} eq $telnet_flags{$client}{auth_orig}) {
                     set $telnet_server 'bye';
                     sleep 1;
