@@ -122,7 +122,7 @@ $RRD =~ s/:/\\\\\:/g; # so that Windows filenames (with colons) are escaped prop
 
 $ratio_sea_baro = 0 if $ratio_sea_baro eq '';
 
-#&create_rrdgraph_all;
+&create_rrdgraph_all;
 
 # RRD 1.2+ can't generate GIFs!
 # Some browsers require them, so if weather_convert_png_to_gif is defined
