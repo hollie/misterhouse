@@ -1,6 +1,10 @@
 #####################################################################
 #  NOM		: weather_graph.pl
 #  DESCRIPTION 	: 
+#
+# $Date$
+# $Revision
+#
 =begin comment
 #@ Generate html page for weather graphs
 #@
@@ -34,6 +38,12 @@ $config_parms{weather_graph_format} = "PNG" unless $config_parms{weather_graph_f
 tr/a-z/A-Z/ for $config_parms{weather_graph_format};
 	
 my $rrd_format = $config_parms{weather_graph_format} ;
+
+# audrey can't handle PNGs, so force them to be GIFs
+# mh/bin/weather_rrd_update_graphs handles making the GIF copies if
+# weather_convert_png_to_gif is defined in mh.ini
+
+$rrd_format='gif' if $Http{'User-Agent'} eq 'Audrey';
 tr/A-Z/a-z/ for $rrd_format ;
 
 # lookup code for periods (code, description)

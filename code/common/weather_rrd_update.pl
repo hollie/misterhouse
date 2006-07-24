@@ -194,6 +194,10 @@ if ($Reread) {
     $config_parms{ratio_sea_baro} = 8 unless $config_parms{ratio_sea_baro};
     $config_parms{weather_graph_format} = "PNG" unless $config_parms{weather_graph_format};
 
+	if($RRDs::VERSION >= 1.2 and lc($config_parms{weather_graph_format} eq 'gif')) {
+    	&print_log("weather_rrd: WARNING, RRD version 1.2+ does not support GIFs");
+	}
+
     &weather_rrd_rename_chill_to_apparent;
    }
 
@@ -373,6 +377,7 @@ sub update_graphs {
 \$weather_graph_period_skip = "$config_parms{weather_graph_period_skip}";
 \$altitude = "$config_parms{altitude}";
 \$ratio_sea_baro = "$config_parms{ratio_sea_baro}";
+\$weather_convert_png_to_gif = "$config_parms{weather_convert_png_to_gif}";
 !;
 
 	foreach my $key (keys(%config_parms)) {

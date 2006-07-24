@@ -14,6 +14,7 @@
 
 use strict;
 use RRDs;
+use File::Spec;
 
 our $debug=0;  # note that this produces LOTS of debug info
 
@@ -104,6 +105,7 @@ our $weather_uom_temp;
 our $weather_uom_rain;
 our $weather_uom_rainrate;
 our $weather_uom_baro;
+our $weather_convert_png_to_gif;
 
 my $error=&readDataTransferFile($rrdDataTransferFile);
 
@@ -120,7 +122,13 @@ $RRD =~ s/:/\\\\\:/g; # so that Windows filenames (with colons) are escaped prop
 
 $ratio_sea_baro = 0 if $ratio_sea_baro eq '';
 
-&create_rrdgraph_all;
+#&create_rrdgraph_all;
+
+# RRD 1.2+ can't generate GIFs!
+# Some browsers require them, so if weather_convert_png_to_gif is defined
+# we convert them using an external utility
+
+&convert_pngs_to_gifs($rrd_graph_dir,$weather_convert_png_to_gif) if $weather_convert_png_to_gif;
 
 exit;
 
@@ -170,11 +178,11 @@ sub get_weather_footer1 {
 }
 
 sub get_weather_footer2 {
+  my $footer2=$weather_graph_footer;
   if ( $RRDs::VERSION >= 1.2 ) {
-    return $weather_graph_footer =~ s/:/\\\\:/g;
-  } else {
-    return $weather_graph_footer;
+    $footer2 =~ s/:/\\\\:/g;
   }
+  return $footer2;
 }
 #==============================================================================
 # Convert step size in seconds to string format
@@ -1646,3 +1654,28 @@ for $celgtime (@$tabgtime) {
   }
 }
 
+sub convert_pngs_to_gifs {
+	my ($dir,$convert)=@_;
+
+	return unless $convert;
+
+	opendir (GRAPHS,$dir) || return "can't open $dir: $!";
+
+	while (my $filename=readdir(GRAPHS)) {
+		next unless $filename =~ /(.*)\.png$/;
+		my $needConversion=0;
+		my $pngFilename=File::Spec->catfile($rrd_graph_dir,$filename);
+		my $gifFilename=File::Spec->catfile($rrd_graph_dir,$1.'.gif');
+		if (not -e $gifFilename) {
+			$needConversion=1;
+		} else {
+			my $pngTime=(stat($pngFilename))[9];
+			my $gifTime=(stat($gifFilename))[9];
+			$needConversion=1 if $pngTime > $gifTime;
+		}
+		next if not $needConversion;
+		print  "$convert $pngFilename $gifFilename\n" if $debug;
+		system ($convert,$pngFilename,$gifFilename);
+	}
+	closedir (GRAPHS);
+}

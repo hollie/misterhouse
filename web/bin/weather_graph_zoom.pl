@@ -1,4 +1,8 @@
 #!/local/bin/perl
+#
+# $Date$
+# $Revision$
+#
 #####################################################################
 #  NOM		: weather_graph_zoom.pl
 #  DESCRIPTION 	:
@@ -23,6 +27,7 @@ use Time::localtime;
 use CGI;
 use RRDs;
 use Time::Local;
+use File::Spec;
 
 my $cgi = new CGI;
 #==============================================================================
@@ -32,6 +37,24 @@ my $cgi = new CGI;
 
 # Debug mode
 my $debug = 1 if $main::Debug{weather_graph};
+
+my $rrd_format=$config_parms{weather_rrd_format};
+$rrd_format='png' unless $rrd_format; # default format is PNG
+
+$rrd_format='gif' if $Http{'User-Agent'} eq 'Audrey'; # Audreys can't handle PNGs
+
+tr/A-Z/a-z/ for $rrd_format;
+
+my $native_rrd_format=$rrd_format; # rrdtool will generate this format
+
+if($RRDs::VERSION >= 1.2 and $rrd_format eq 'gif') {
+	if ($config_parms{weather_convert_png_to_gif}) {
+		$native_rrd_format='png';
+	} else {
+		&print_log ('weather_graph_zoom: you need to define weather_convert_png_to_gif in order for me to create GIFs with rrdtool version 1.2+');
+		$rrd_format='png';
+	}
+}
 
 print $cgi->header;
 print $cgi->start_html;
@@ -116,11 +139,6 @@ sub graph_error {
 # Print zoom graph
 #==============================================================================
 sub print_graph {
-  $config_parms{weather_graph_format} = "PNG" unless $config_parms{weather_graph_format};
-  tr/a-z/A-Z/ for $config_parms{weather_graph_format};
-  my $rrd_format = $config_parms{weather_graph_format};
-  tr/A-Z/a-z/ for $rrd_format;
-
   print $cgi->start_center;
   print $cgi->start_table({-width=>"591", -border=>"0", -cellpading=>"0", -cellspacing=>"0"});
   print $cgi->start_Tr;
@@ -340,8 +358,6 @@ sub create_rrdgraph_zoom {
     my $str_graph;
     my $rrd_graph_dir;
     my $rrd_dir;
-    my $rrd_format = $config_parms{weather_graph_format};
-    tr/A-Z/a-z/ for $rrd_format;
 
     my $err;
     my ($start,$step,$names,$array);
@@ -454,11 +470,11 @@ sub create_rrdgraph_zoom {
   ($strminvar2=$strminvar)=~s/mindata/mindata2/g;
   ($strmaxvar2=$strmaxvar)=~s/maxdata/maxdata2/g;
 
-  $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_zoom.$rrd_format",
+  $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_zoom.$native_rrd_format",
 "--title", "Environmental data : $titrerrd",
 "--height","$gheight",
 "--width", "$gwidth",
-"--imgformat", "$config_parms{weather_graph_format}",
+"--imgformat", "^ . uc($native_rrd_format) . qq^",
 "--alt-autoscale",
 "--interlaced",
 "--step","120",
@@ -509,4 +525,14 @@ sub create_rrdgraph_zoom {
   eval $str_graph;
   my $err=RRDs::error;
   die "ERROR : function RRDs::graph : $err\n" if $err;
+  if ($rrd_format ne $native_rrd_format) {
+	if ($rrd_format eq 'gif' and $native_rrd_format eq 'png') {
+      my $pngFilename=File::Spec->catfile($rrd_graph_dir,"weather_zoom.png");
+      my $gifFilename=File::Spec->catfile($rrd_graph_dir,"weather_zoom.gif");
+
+  	  system ($config_parms{weather_convert_png_to_gif},$pngFilename,$gifFilename);
+  	} else {
+  	  &print_log("weather_graph_zoom: sorry, don't know how to convert from $native_rrd_format to $rrd_format");
+    }
+  }
 }
