@@ -201,10 +201,19 @@ sub monitor_sun {
                                 # Add tk weather widgets 
 
 if ($Reload and $config_parms{tk}) {
+	&weather_monitor_create_tk_labels;
+}
 
+sub weather_monitor_create_tk_labels {
 	my $tk;
 
 	$tk = &tk_label_new(3,\$Weather{TempIndoor});
+	if (not defined $tk) {
+		# On some installations, tk_label_new fails and returned undef.  To prevent this from
+		# causing a semi-fatal error, we stop trying to create more labels.
+		&print_log("weather_monitor: unable to create tk label");
+		return;
+	}
 	$tk->bind('<Double-1>' => sub { &display_weather_graph('tempin') }) if $MW;
 
 	$tk = &tk_label_new(3,\$Weather{HumidIndoor});
