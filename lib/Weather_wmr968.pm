@@ -177,7 +177,7 @@ sub read_wmr968 {
 	# Control only the lower byte (lower 8 bits of the sum)
         $checksum2 &= 0xff;
         if ($checksum1 != $checksum2) {
-            print "     Warning, bad wx200 type=$$dtp[0] checksum: cs1=$checksum1 cs2=$checksum2\n";
+            print "     Warning, bad wmr968 type=$$dtp[0] checksum: cs1=$checksum1 cs2=$checksum2\n";
             print "     data2 is @data2\ndata is @data\ngroup is $group\n\n";
             next;
         }
