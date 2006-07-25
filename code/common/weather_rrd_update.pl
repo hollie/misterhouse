@@ -628,7 +628,7 @@ sub analyze_rrd_rain {
 	my $RRDerror=RRDs::error;
 
 	if ($RRDerror) {
-		print_log "weather_rrd_update: having trouble fetching data for rain: $RRDerror";
+		&print_log ("weather_rrd_update: having trouble fetching data for rain: $RRDerror");
 		return;
 	}
 
@@ -643,11 +643,18 @@ sub analyze_rrd_rain {
 		&print_log ("weather_rrd_update: can't find rain data");
 		return;
 	}
+	# print "rainIndex=$rainIndex\n"; # for debugging
 
 	# the next bunch of lines gives me a headache ... pointer to an array of pointers?  Who thought that was a good idea?
-	my $numSamples=$#{$data};
-	#print "numSamples is $numSamples\n"; # for debugging
-	my $latestRain=${$$data[$numSamples]}[$rainIndex];
+	my $lastSample=$#{$data};
+	# print "lastSample is $lastSample\n"; # for debugging
+	my $latestRain=${$$data[$lastSample]}[$rainIndex];
+
+	# some versions of RRD return an empty data set in the last sample
+	# so grab the last but one sample if this is the case
+	$latestRain=${$$data[$lastSample-1]}[$rainIndex] if $latestRain eq '';
+
+	# print "latest rain is $latestRain\n"; # for debugging
 	my $lastRain=0;
 	foreach my $hour (@hours) {
 		# RRD data is stored in interesting ways every x minutes
@@ -666,6 +673,7 @@ sub analyze_rrd_rain {
 
 		# if a RainTotal reset to 0 occurs, then rainAmount will be < 0
 		next if ($rainAmount < 0); 
+		# print "rainAmount=$rainAmount\n"; # for debugging
 
 		if ($config_parms{weather_uom_rain} eq 'mm') {
 			$rainAmount=convert_in2mm($rainAmount);
@@ -676,8 +684,8 @@ sub analyze_rrd_rain {
 
 	# check to make sure that the data looks right
 	for (my $i=0; $i < ($#hours-1); $i++) {
-		my $shorter=Weather{"RainLast".$hours[$i]."Hours"};
-		my $longer=Weather{"RainLast".$hours[$i+1]."Hours"};
+		my $shorter=$Weather{"RainLast".$hours[$i]."Hours"};
+		my $longer=$Weather{"RainLast".$hours[$i+1]."Hours"};
 
 		# don't check if either value is unknown
 		next if $Weather{"RainLast${shorter}Hours"} eq 'unknown';
