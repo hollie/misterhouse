@@ -717,3 +717,13 @@ if ($state = said $weather_graph_email) {
 #		   baseref => "$config_parms{http_server}:$config_parms{http_port}/ia5/outside/",
 #		   file => "../web/ia5/outside/weather_index.shtml", mime  => 'html');
 }
+
+sub uninstall_weather_rrd_update {
+	&trigger_delete('update rain totals from RRD database');
+}
+
+if ($Reload) {
+	&trigger_set('new_minute(10)', '&analyze_rrd_rain', 'NoExpire', 'update rain totals from RRD database') 
+		unless &trigger_get('update rain totals from RRD database');
+	&analyze_rrd_rain;
+}

@@ -474,13 +474,3 @@ sub rain_since {
     $amount = round $amount, 2;  # Round to nearest 1/100
     return $amount;
 }
-
-sub uninstall_weather_monitor {
-	&trigger_delete('update rain totals from RRD database');
-}
-
-if ($Reload) {
-	&trigger_set('new_minute(10)', 'eval "&analyze_rrd_rain"', 'NoExpire', 'update rain totals from RRD database') 
-		unless &trigger_get('update rain totals from RRD database');
-	eval '&analyze_rrd_rain';
-}
