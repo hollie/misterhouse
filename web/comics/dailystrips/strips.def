@@ -38,14 +38,14 @@ class gocomics-srch
         homepage http://www.gocomics.com/$strip/
         type search
         searchpattern <img.+?src=".+?(/$1/(\d+)/$1(\d+).+?)"
-        baseurl http://images.gocomics.com/comics
+        baseurl http://images.ucomics.com/comics
         provides latest
 end
 
 class gocomics-gen
 	homepage http://www.gocomics.com/$strip/
 	type generate
-	imageurl http://images.gocomics.com/comics/$1/%Y/$1%y%m%d.gif
+	imageurl http://images.ucomics.com/comics/$1/%Y/$1%y%m%d.gif
 	provides any
 
 end
