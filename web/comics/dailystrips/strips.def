@@ -1,4 +1,7 @@
 # Strip Groups
+# $Date$
+# $Revision$
+
 group andrews
 	desc Andrew's Favorite Strips
 	include userfriendly dilbert foxtrot
@@ -31,24 +34,24 @@ end
 
 
 # Class definitions
-class ucomics-srch
-        homepage http://www.ucomics.com/$strip/
+class gocomics-srch
+        homepage http://www.gocomics.com/$strip/
         type search
         searchpattern <img.+?src=".+?(/$1/(\d+)/$1(\d+).+?)"
-        baseurl http://images.ucomics.com/comics
+        baseurl http://images.gocomics.com/comics
         provides latest
 end
 
-class ucomics-gen
-	homepage http://www.ucomics.com/$strip/
+class gocomics-gen
+	homepage http://www.gocomics.com/$strip/
 	type generate
-	imageurl http://images.ucomics.com/comics/$1/%Y/$1%y%m%d.gif
+	imageurl http://images.gocomics.com/comics/$1/%Y/$1%y%m%d.gif
 	provides any
 
 end
 
-class ucomics-flashdrm
-    homepage http://www.ucomics.com/$strip/
+class gocomics-flashdrm
+    homepage http://www.gocomics.com/$strip/
     type flashdrm
     searchpattern comicViewerUc.+?k=(.+?)"
     drmurl http://poncho.ucomics.com/xml/xmldrm/
@@ -198,7 +201,7 @@ end
 class washpost-uclick
 	homepage http://www2.uclick.com/client/wpc/$1/
 	type search
-	searchpattern <IMG.+?SRC="(http://images\.ucomics\.com/comics/$1/\d+/$1\d+.gif)">
+	searchpattern <IMG.+?SRC="(http://images\.gocomics\.com/comics/$1/\d+/$1\d+.gif)">
 	provides latest
 end
 
@@ -1171,197 +1174,197 @@ strip achewood
 	provides any
 end
 
-# ucomics.com strips
+# gocomics.com strips
 strip adamathome
 	name Adam@home
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 ad
 end
 
 strip baldo
 	name Baldo
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 ba
 end
 
 strip thebigpicture
 	name The Big Picture
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 bi
 end
 
 strip boondocks
 	name The Boondocks
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 bo
 end
 
 strip calvinandhobbes
 	name Calvin and Hobbes
-	useclass ucomics-flashdrm
+	useclass gocomics-flashdrm
 	$1 ch
 end
 
 strip cathy
 	name Cathy
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 ca
 end
 
 strip closetohome
 	name Close to Home
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 cl
 end
 
 strip cornered
 	name Cornered
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 co
 end
 
 strip doonesbury
 	name Doonesbury
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 db
 end
 
 strip thefifthwave
 	name The 5th Wave
-	useclass ucomics-srch
+	useclass gocomics-srch
 	$1 fw
 end
 
 strip bensargent
 	name Ben Sargent
-	useclass ucomics-srch
+	useclass gocomics-srch
 	$1 bs
 end
 
 strip patoliphant
 	name Pat Oliphant
-	useclass ucomics-srch
+	useclass gocomics-srch
 	$1 po
 end
 
 strip foxtrot
 	name FoxTrot
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 ft
 end
 
 strip thefuscobrothers
 	name The Fusco Brothers
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 fu
 end
 
 strip garfield
 	name Garfield
-	useclass ucomics-gen
+	useclass gocomics-flashdrm
 	$1 ga
 end
 
 strip heartofthecity
 	name Heart of the City
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 hc
 end
 
 strip inthebleachers
 	name In the Bleachers
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 bl
 end
 
 strip james
 	name James
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 jm
 end
 
 strip mrpotatohead
         name Mr. Potato Head
-        useclass ucomics-gen
+        useclass gocomics-gen
         $1 mrp
 end
 
 strip nonsequitur
 	name Non Sequitur
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 nq
 end
 
 strip oddlyenough
 	name Oddly Enough
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 oe
 end
 
 strip overboard
 	name Overboard
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 ob
 end
 
 strip reallifeadventures
 	name Real Life Adventures
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 rl
 end
 
 strip reynoldsunwrapped
 	name Reynolds Unwrapped
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 rw
 end
 
 strip stonesoup
 	name Stone Soup
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 ss
 end
 
 strip tankmcnamara
 	name Tank McNamara
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 tm
 end
 
 strip tomthedancingbug
 	name Tom the Dancing Bug
-	useclass ucomics-srch
+	useclass gocomics-srch
 	$1 td
 end
 
 strip ziggy
 	name Ziggy
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 zi
 end
 
 strip theduplex
         name The Duplex
-        useclass ucomics-gen
+        useclass gocomics-gen
         $1 dp
 end
 
 strip psmueller
 	name P. S. Mueller
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 psm
 end
 
 strip misterboffo
 	name Mister Boffo
-	useclass ucomics-gen
+	useclass gocomics-gen
 	$1 mb
 end
 
 strip bottomliners
 	name Bottom Liners
 	artist	Eric and Bill Teitelbaum
-        useclass ucomics-gen
+        useclass gocomics-gen
         $1 tmbot
 end
 
