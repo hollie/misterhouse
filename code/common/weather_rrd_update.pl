@@ -661,7 +661,7 @@ sub analyze_rrd_rain {
 		# x was defined to be 18 minutes for data going back a week
 		# therefore we need to convert "hours" into y 18 minute intervals
 		# This means that we could be off by up to 9 minutes, oh well.
-		my $sampleIndex=$numSamples-int(($hour*60)/18+0.5);
+		my $sampleIndex=$lastSample-int(($hour*60)/18+0.5);
 		# print "sampleIndex is $sampleIndex at hour $hour\n"; # for debugging
 
 		# stop processing if we didn't get enough data
