@@ -310,7 +310,7 @@ sub wx_wind {
 	 	 		+ sprintf('%u', 0x0f & $data[7])*0.1;
 		$$wptr{WindAvgSpeed}=sprintf('%.0f',&main::convert_mps2kph($$wptr{WindAvgSpeed})) if $main::config_parms{weather_uom_wind} eq 'kph';
 		$$wptr{WindAvgSpeed}=sprintf('%.0f',&main::convert_mps2mph($$wptr{WindAvgSpeed})) if $main::config_parms{weather_uom_wind} eq 'mph';
-		$$wptr{WindGustSpeed}=sprintf('%.0f',$$wptr{WindGustSpeed});
+		$$wptr{WindAvgSpeed}=sprintf('%.0f',$$wptr{WindAvgSpeed});
     }
     unless ($skip{WindChill}) {
     # currently commented out as generally accepted windchill formula has changed since product was released
@@ -330,9 +330,9 @@ sub wx_wind {
     print "       WindGustSpeed   ($$wptr{WindGustSpeed} $main::config_parms{weather_uom_wind})\n" if $debug;
     print "       WindGustDir     ($$wptr{WindGustDir})\n" if $debug;
     print "       WindAvgSpeed    ($$wptr{WindAvgSpeed} $main::config_parms{weather_uom_wind})\n" if $debug;
-    print "       WindChill       ($$wptr{WindChill_ws} C) ($$wptr{WindChill})\n" if $debug;
-    print "       WindChillNoData ($$wptr{WindChillNoData})\n" if $debug;
-    print "       WindChillOver   ($$wptr{WindChillOver})\n" if $debug;
+#    print "       WindChill       ($$wptr{WindChill_ws} C) ($$wptr{WindChill})\n" if $debug;
+#    print "       WindChillNoData ($$wptr{WindChillNoData})\n" if $debug;
+#    print "       WindChillOver   ($$wptr{WindChillOver})\n" if $debug;
 }
 #=============================================================================
 # DECODE DATA TYPE CLOCK
