@@ -152,6 +152,27 @@ $Dew = new Weather_Item 'HumidOutdoor > 70';
 $Frost = new Weather_Item 'HumidOutoor > 70 and TempOutdoor < FreezePoint';
 $Frostbite = new Weather_Item 'WindChill < FrostbitePoint';
 
+# These Weather sensors actually report the current battery status of remote sensing units
+$BatIndoor = new Weather_Item 'BatIndoor';
+$BatMain = new Weather_Item 'BatMain';
+$BatOutdoor = new Weather_Item 'BatOutdoor';
+$BatRain = new Weather_Item 'BatRain';
+$BatWind = new Weather_Item 'BatWind';
+$BatSpare1 = new Weather_Item 'BatSpare1';
+$BatSpare2 = new Weather_Item 'BatSpare2';
+$BatSpare3 = new Weather_Item 'BatSpare3';
+
+# When the battery level changes to low (0), we call the battery_warning function
+# We don't need to check them at startup as the level will go from unknown (undef) to low (0) 
+$BatIndoor->tie_event('&battery_warning("Indoor")',0);
+$BatMain->tie_event('&battery_warning("Main")',0);
+$BatOutdoor->tie_event('&battery_warning("Outdoor")',0);
+$BatRain->tie_event('&battery_warning("Rain")',0);
+$BatWind->tie_event('&battery_warning("Wind")',0);
+$BatSpare1->tie_event('&battery_warning("Spare 1")',0);
+$BatSpare2->tie_event('&battery_warning("Spare 2")',0);
+$BatSpare3->tie_event('&battery_warning("Spare 3")',0);
+
 #noloop=stop
 
 
@@ -473,4 +494,20 @@ sub rain_since {
     eval "untie %rain_dbm";
     $amount = round $amount, 2;  # Round to nearest 1/100
     return $amount;
+}
+
+sub battery_warning {
+	my ($unit)=@_;
+
+	$unit=lc($unit);
+
+	my $message="Warning, the battery in the $unit weather unit is low";
+
+	&print_log($message);
+
+	&speak (
+		mode => 'unmuted',
+		app => 'notice',
+		text => $message
+	);
 }
