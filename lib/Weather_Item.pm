@@ -24,6 +24,9 @@ sub check_weather {
     }
 }
 
+sub clear_weather_item_list {
+	undef @weather_item_list;
+}
 
 sub item_transform($) {
     $_ = shift;

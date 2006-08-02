@@ -2855,6 +2855,10 @@ sub eval_user_code_reset {
                                 # Since we created new objects, lets de-reference all the old ones
     &Timer::delete_old_timers;
     &Generic_Item::delete_old_tied_times;
+     # Weather_Item.pm keeps an array containing all Weather objects
+     # It must be cleared on resets, otherwise old copies of Weather objects are kept around
+     # This is a memory leak and can cause multiple tied_{object/events} 
+    &Weather_Item::clear_weather_item_list;
 }
 
 sub eval_with_timer {
