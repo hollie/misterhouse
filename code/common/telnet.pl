@@ -13,8 +13,8 @@
 
 # set the banners
 
-$config_parms{telnet_welcome_banner} = "Welcome to Mister House Socket Port 1" unless $config_parms{telnet_welcome_banner}; # noloop
-$config_parms{telnet_exit_banner} = "Bye for now.  Y'all come back now, ya hear!  Type exit to exit." unless $config_parms{telnet_exit_banner}; # noloop
+$config_parms{telnet_welcome_banner} = "Welcome to Mister House Socket Port 1!  Type exit/quit/bye/ctrl-D to exit." unless $config_parms{telnet_welcome_banner}; # noloop
+$config_parms{telnet_exit_banner} = "Bye for now.  Y'all come back now, ya hear!" unless $config_parms{telnet_exit_banner}; # noloop
 
                 # Examples on how to read and write data to a tcp socket port
 $telnet_server = new  Socket_Item($config_parms{telnet_welcome_banner}."\n\r", 'Welcome1', 'server_telnet');
@@ -204,7 +204,7 @@ if (defined($datapart = said $telnet_server)) {
             elsif (lc($telnet_flags{$client}{data}) eq 'hi') {
                 set $telnet_server 'hi';
             }
-            elsif (lc($telnet_flags{$client}{data}) eq 'exit' || lc($telnet_flags{$client}{data}) eq 'bye' || $telnet_flags{$client}{data} eq "\x04") {
+            elsif (lc($telnet_flags{$client}{data}) eq 'exit' || lc($telnet_flags{$client}{data}) eq 'bye' || lc($telnet_flags{$client}{data}) eq 'quit' || $telnet_flags{$client}{data} eq "\x04") {
                 if ($telnet_flags{$client}{auth} eq $telnet_flags{$client}{auth_orig}) {
                     set $telnet_server 'bye';
                     sleep 1;
