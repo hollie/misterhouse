@@ -331,22 +331,19 @@ EOF
     }
 
     sub set_debug_data {
+    	undef %Debug;
         if (defined $config_parms{debug}) {
-            if (!defined $Debug{debug_previous} or $config_parms{debug} ne $Debug{debug_previous}) {
-                undef %Debug;
-                $Debug{debug_previous} = $config_parms{debug};
                                    # Allow for multiple debugs like serial;x10
-                for my $debug (split ';', lc $config_parms{debug}) {
+            for my $debug (split ';', lc $config_parms{debug}) {
                                    # Allow for debug level like: x10:4
-                    next unless $debug;
-                    if ($debug =~ /(.+):(.+)/) {
-                        $Debug{$1} = $2;
-                        print "Debug for $1 set to $2\n";
-                    }
-                    else {
-                        $Debug{$debug} = 1;
-                        print "Debugging for $debug turned on\n";
-                    }
+                next unless $debug;
+                if ($debug =~ /(.+):(.+)/) {
+                    $Debug{$1} = $2;
+                    print "Debug for $1 set to $2\n";
+                }
+                else {
+                    $Debug{$debug} = 1;
+                    print "Debugging for $debug turned on\n";
                 }
             }
         }
@@ -5296,8 +5293,6 @@ sub set_global_vars {
     # Save object states every 5 minutes, in case mh is aborted without a proper shutdown
 #   &object_states_save if $New_Minute and !($Minute % 5); $Time_Increment
     &object_states_save if $New_Minute and !($Time_Start_time or $Time_Stop_time); # Skip if in accelerated mode
-
-    &set_debug_data;                        # Populate %Debug if debug changed
 
 }
 

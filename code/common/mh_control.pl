@@ -167,31 +167,56 @@ if (said $v_reboot_abort and $OS_win) {
     }
 }
 
-#*** Should read these in noloop block ala "list debug options"
-
-$v_debug = new Voice_Cmd("Set debug to [" . (($config_parms{debug_options})?$config_parms{debug_options}:"X10,serial,http,misc,startup,socket,password,user_code,weather") . ']');
-$v_debug-> set_info('Controls what kind of debugging information is logged');
+$v_debug = new Voice_Cmd("Set debug for [" . (($config_parms{debug_options})?$config_parms{debug_options}:"X10,serial,http,misc,startup,socket,password,user_code,weather") . ',none]');
+$v_debug-> set_info('Adds the given module to the current set of debug flags');
 if ($state = said $v_debug) {
-	$config_parms{debug} = $state;
-	$Debug{$state} = 1;
-	$state =~ s/_/\x20/g;
-	$v_debug->respond ("Debugging turned on for $state");
+	if ($state eq 'none') {
+		$config_parms{debug}='';
+		undef %Debug;
+		$v_debug->respond ("Debugging completely turned off");
+	} else {
+		$Debug{$state} = 1;
+		&update_config_parms_debug;
+		$state =~ s/_/\x20/g;
+		$v_debug->respond ("Debugging turned on for $state");
+	}
 }
 
 $v_debug_toggle = new Voice_Cmd("Toggle debug for [" . (($config_parms{debug_options})?$config_parms{debug_options}:"X10,serial,http,misc,startup,socket,password,user_code,weather") . ']');
 $v_debug_toggle-> set_info('Toggles what kind of debugging information is logged');
+
 if ($state = said $v_debug_toggle) {
-	if ($Debug{$state} == 1) {
+	if ($Debug{$state}) {
 		$Debug{$state} = 0;
-		$config_parms{debug}=0;
+		&update_config_parms_debug;
 		$state =~ s/_/\x20/g;
 		$v_debug_toggle->respond("Debugging turned off for $state");
 	} else {
 		$Debug{$state} = 1;
-		$config_parms{debug}=$state;
+		&update_config_parms_debug;
 		$state =~ s/_/\x20/g;
 		$v_debug_toggle->respond("Debugging turned on for $state");
 	}
+}
+
+$v_show_debug = new Voice_Cmd('Show debug');
+$v_show_debug->set_info('Shows the currently active debug flags');
+
+if ($state = said $v_show_debug) {
+	&update_config_parms_debug;
+	if ($config_parms{debug} eq '') {
+		$v_show_debug->respond('There are no active debug flags');
+	} else {
+		$v_show_debug->respond('The currently active debug flags are '.$config_parms{debug});
+	}
+}
+
+sub update_config_parms_debug {
+	my @currentDebugs=();
+	foreach my $key (keys(%Debug)) {
+		push (@currentDebugs,$key.':'.$Debug{$key}) if $Debug{$key};
+	}
+	$config_parms{debug}=join(';',@currentDebugs);
 }
 
 $v_mode = new Voice_Cmd("Put house in [normal,mute,offline] mode");
