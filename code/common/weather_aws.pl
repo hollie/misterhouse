@@ -12,6 +12,11 @@
 #@ mh.private.ini:<br><br>
 #@
 #@ aws_id = TMISC
+#@ aws_id = STATION1,STATION2,STATION3
+#@
+#@ As you can see, you can specify multiple stations.  The first station will
+#@ always be tried first.  If data is not available, the remaining stations
+#@ will be tried in order until we find good data.
 #@ <br><br>
 #@ The URL containing the ID of the TMISC AWS station is shown for example:
 #@ <a href="http://www.aws.com/aws_2001/asp/obsForecast.asp?id=TMISC&obs=full">
@@ -70,14 +75,19 @@ use HTML::TableExtract;
 use Weather_Common;
 
 # noloop=start
-my $AWS_ID = $config_parms{aws_id};
-$AWS_ID='TMISC' unless $AWS_ID;
-my $f_awsweather_html = "$config_parms{data_dir}/web/$AWS_ID.html";
+my $aws_ids=$config_parms{aws_id};
+$aws_ids='TMISC' unless $aws_ids;
+$aws_ids=~s/\s//g;
+my @AWS_IDs = split(/,/,$aws_ids);
+$p_awsweather_page = new Process_Item;
+my $AWS_ID_index=0;
+&set_aws_index($AWS_ID_index);
+
 my $prev_timestamp;
-#my $AWSWeatherURL="http://aws.com/full.asp?id=$AWS_ID";
-my $AWSWeatherURL="http://www.aws.com/AWS/full.asp?id=$AWS_ID";
+my $AWSWeatherURL="http://www.aws.com/AWS/full.asp?id=";
 $v_get_aws_weather = new Voice_Cmd('Get AWS weather data');
-$p_awsweather_page = new Process_Item("get_url -quiet \"$AWSWeatherURL\" \"$f_awsweather_html\"");
+my $f_awsweather_html;
+
 # noloop=stop
 
 # These values aren't provided by this code, but leaving them undefined causes
@@ -97,13 +107,26 @@ if ($Reload) {
 
 # Events
 
+sub set_aws_index {
+	($AWS_ID_index)=@_;
+
+	if ($AWS_ID_index > $#AWS_IDs) {
+		$AWS_ID_index = 0;
+	}
+	my $aws_id=$AWS_IDs[$AWS_ID_index];
+	$f_awsweather_html = "$config_parms{data_dir}/web/${aws_id}.html";
+	$p_awsweather_page->set(qq!get_url -quiet "${AWSWeatherURL}${aws_id}" "$f_awsweather_html"!);
+	return $AWS_ID_index;
+}
+
 if (said $v_get_aws_weather) {
    if (&net_connect_check) {
-       $v_get_aws_weather->respond("app=weather Retrieving $AWS_ID weather...");
+       $v_get_aws_weather->respond("app=weather Retrieving AWS weather...");
+       # always start at the 1st station
+       &set_aws_index(0);
        # Use start instead of run so we can detect when it is done
        start $p_awsweather_page;
-   }
-   else {
+   } else {
        $v_get_aws_weather->respond("I must be connected to the Internet to get weather data.");
    }
 }
@@ -115,6 +138,17 @@ if (done_now $p_awsweather_page) {
 
   my $html = file_read $f_awsweather_html;
   return unless $html;
+
+  if ($html =~ 'Temporarily Unavailable') {
+  	&print_log("weather_aws: info not available for station ".$AWS_IDs[$AWS_ID_index]);
+  	if (&set_aws_index($AWS_ID_index+1)) {
+  		&print_log("weather_aws: moving forward to next station: ".$AWS_IDs[$AWS_ID_index]);
+  		$p_awsweather_page->start;
+  	} else {
+  		&print_log("weather_aws: no more stations to use");
+	}
+	return;
+  }
 
   # hash used to temporarily store weather info before selective load into %Weather
   my %w=();
@@ -266,6 +300,12 @@ if (done_now $p_awsweather_page) {
 
   &populate_internet_weather(\%w);
   &weather_updated;
+  if ($Debug{weather}) {
+  	foreach my $key (sort(keys(%w))) {
+  		&print_log("weather_aws: $key is ".$w{$key});
+    }
+  }
+  &print_log("weather_aws: finished retrieving weather for station $AWS_IDs[$AWS_ID_index]");
   $v_get_aws_weather->respond('app=weather connected=0 Weather data retrieved.');
 
 }
