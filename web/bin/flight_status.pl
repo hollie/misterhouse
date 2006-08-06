@@ -32,7 +32,8 @@ if ($HTTP_ARGV{airline} eq 'none') {
 if ($statusURL ne '') {
 	$html .= qq[<p><h3>Airline: $HTTP_ARGV{airline}.  Flight Number: $HTTP_ARGV{flight}.</h3></p>
 <p><img src="$statusURL"></p>
-<p><a href="$scriptLocation">Request the status of another flight</a></p>];
+<p><a href="$scriptLocation">Request the status of another flight</a></p>
+<p><a href="$scriptLocation?airline=$HTTP_ARGV{airline}&flight=$HTTP_ARGV{flight}">Refresh this flight status page</a></p>];
 
 } else {
 	$html.=qq[<form method="post" id="main" name="main">
