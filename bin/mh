@@ -558,6 +558,8 @@ sub setup {
     use Net::FTP;               # For uploading stuff
     use Text::Wrap;
 
+	use Lingua::Num2Word;              # converts numbers to text for multiple languages
+
                                 # These Text modules are used in &phrase_match
     use Text::PhraseDistance qw(pdistance);
                                 # This fancy distance function allows for non-exact word matching,
