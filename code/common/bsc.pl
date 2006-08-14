@@ -37,7 +37,7 @@ my $bsc_info_interval = $::config_parms{bsc_info_interval};
 $bsc_info_interval = 10 if !$bsc_info_interval; # send out BSC info messages every 10 minutes
 
 my $bsc_prefer_abstract = $::config_parms{bsc_prefer_abstract};
-$bsc_prefer_abstract = 1 if !$bsc_prefer_abstract; # support x10 devices in favor of abstract ones
+$bsc_prefer_abstract = 0 unless $bsc_prefer_abstract; # support x10 devices in favor of abstract ones
 
 if ($::Startup) {
    $bsc_x10_device = new BSCMH_Item(BSCMH_Item::DEVICE_TYPE_X10);
