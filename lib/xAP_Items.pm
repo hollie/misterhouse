@@ -853,7 +853,7 @@ sub sendXapWithHeaderVars {
           $msg .= "source=" . &xAP::get_xap_mh_source_info() . "\n";
        }
        $msg .= "class=" . $headerVars{'class'} . "\n";
-       if (exists($headerVars{'target'})) {
+       if (exists($headerVars{'target'}) && ($headerVars{'target'} ne '*')) {
           $msg .= "target=" . $headerVars{'target'} . "\n";
        }
        $msg .= "}\n";
