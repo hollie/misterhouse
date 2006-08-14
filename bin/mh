@@ -506,7 +506,7 @@ EOF
 	    eval "use Tk::ProgressBar";
 	    eval "use Tk::Tree";
 	    eval "use Tk::Balloon"; # for new status bar labels
-
+		eval "use Tk::PNG"; 
         }
 
                                 # Allow for Round Robin database logs
@@ -6114,7 +6114,11 @@ sub tk_setup_windows {
 
     $MW->iconname('Misterhouse'); # Loads tk icon resource
                                                                         # Older build gives 'bitmap not defined' error
-    $MW->iconbitmap($Pgm_Root . '\web\favicon.ico') unless $^O eq 'MSWin32' and &Win32::BuildNumber < 810;
+    # $MW->iconbitmap($Pgm_Root . '/web/favicon.ico') unless $^O eq 'MSWin32' and &Win32::BuildNumber < 810;
+    my $icon_image = $MW->Photo(
+    	-file => "${Pgm_Root}/web/favicon.png",
+    	-format => 'png');
+    $MW->Icon(-image => $icon_image);
 #   $MW->optionAdd('*font' => 'systemfixed');
 #   $MW->optionAdd('*font' => $config_parms{tk_font_menus}) if $config_parms{tk_font_menus};
     &configure_element('window', \$MW);
