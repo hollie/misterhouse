@@ -12,5 +12,4 @@ organizer.pl
 tk_eye.pl
 tk_frames.pl
 tk_widgets.pl
-trigger_code.pl
 eliza_server.pl
