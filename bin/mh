@@ -1106,11 +1106,18 @@ sub set_by_to_target {
 	# *** WTF?!  This got called over and over by something (couldn't have been in while loop because it wasn't locked up)
 	# *** Check if timer object (?)
 
+	my @objectList=();
 	while (ref $set_by and $set_by->can('get_set_by')) {
+		if (grep ($set_by->{object_name},@objectList)) {
+		&print_log ("BUG! set_by loop detected with these objects: ".
+			join (', ',@objectList));
+		last;
+		}
+		push(@objectList,$set_by->{object_name});
 		my $predecessor=$set_by->get_set_by();
-		last if $predecessor == $set_by;
 		$set_by = $predecessor;
 	}
+
 	$set_by = undef if ref $set_by;
 	return $set_by;
 }
