@@ -745,16 +745,26 @@ sub get_mh_device_info {
 sub get_xap_mh_source_info {
    my ($instance) = @_;
    $instance = XAP_REAL_DEVICE_NAME if !($instance);
-   my $device = lc($::config_parms{title});
-   $instance =~ tr/ /_/;
-   $device   =~ tr/ /_/;
+   $instance = &get_ok_name_part($instance);
+   my $device = $::config_parms{title};
+   $device = ($device =~ /misterhouse(.*)pid/i) ? 'misterhouse' : $device;
+   $device = &xAP::get_ok_name_part($device);
    return &get_mh_vendor_info() . '.' . &get_mh_device_info() . '.' . $device . '.' . $instance;
 }
 
 sub get_xpl_mh_source_info {
-   my $instance = lc($::config_parms{title});
-   $instance =~ tr/ /_/;
+   my $instance = $::config_parms{title};
+   $instance = ($instance =~ /misterhouse(.*)pid/i) ? 'misterhouse' : $instance;
+   $instance = &xAP::get_ok_name_part($instance);
    return &get_mh_vendor_info() . '-' . &get_mh_device_info() . '.' . $instance;
+}
+
+sub get_ok_name_part {
+    my ($in_name) = @_;
+    my $out_name = lc $in_name;
+    $out_name =~ tr/ /_/;
+    $out_name =~ s/[^a-z0-9\-_]//g;
+    return $out_name;
 }
 
 sub is_target {
