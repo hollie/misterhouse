@@ -1108,13 +1108,14 @@ sub set_by_to_target {
 
 	my @objectList=();
 	while (ref $set_by and $set_by->can('get_set_by')) {
-		if (grep ($set_by->{object_name},@objectList)) {
-		&print_log ("BUG! set_by loop detected with these objects: ".
-			join (', ',@objectList));
-		last;
+		if (grep($set_by->{object_name} eq $_, @objectList)) {
+			&print_log ("BUG! set_by loop detected with these objects: ".
+				join (', ',@objectList));
+			last;
 		}
-		push(@objectList,$set_by->{object_name});
+		push(@objectList, $set_by->{object_name});
 		my $predecessor=$set_by->get_set_by();
+		last if $predecessor == $set_by; # comment this line out to detect self-setting objects
 		$set_by = $predecessor;
 	}
 
