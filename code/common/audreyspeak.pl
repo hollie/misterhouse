@@ -1,5 +1,8 @@
 # Category = Audrey
 
+# $Date$
+# $Revision$
+
 #@ This module allows MisterHouse to capture and send all speech and played
 #@ wav files to an Audrey internet appliance. See the detailed instructions
 #@ in the script for Audrey set-up information.
@@ -88,21 +91,21 @@ You must make certain modifications to your Audrey, as follows:
 #Tell MH to call our routine each time something is spoken
 &Speak_pre_add_hook(\&speak_to_Audrey) if $Reload;
 
-my ($audreyWrIndex, $audreyRdIndex, $audreyMaxIndex, @speakRooms);
+my ($audreyIndex, $audreyMaxIndex, @speakRooms);
 
 if ($Startup or $Reload) {
-  $audreyWrIndex = 0;
-  $audreyRdIndex = 0;
+  $audreyIndex = 0;
   $audreyMaxIndex = 10;
 }
 
-#Check our play file. If it has changed, tell each Audrey to come and get it!
-if ($New_Second && ($audreyRdIndex != $audreyWrIndex)) {
-#   my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
+sub file_ready_for_audrey {
+	my ($audreyIndex)=@_;
+
+	&print_log("audrey file $audreyIndex is ready");
+
     my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
-#   my $MHWeb = hostname() . ":" . $config_parms{http_port};
-    my $speakFile = "/speakToAudrey$audreyRdIndex.wav";
-    my $rooms = @speakRooms[$audreyRdIndex];
+    my $speakFile = "/speakToAudrey${audreyIndex}.wav";
+    my $rooms = @speakRooms[$audreyIndex];
     for my $audrey (split ',', $config_parms{Audrey_IPs}) {
       $audrey =~ /(\S+)\-(\S+)/;
       my $room = lc $1;
@@ -111,7 +114,6 @@ if ($New_Second && ($audreyRdIndex != $audreyWrIndex)) {
         run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb$speakFile /dev/null";
       }
     }
-    $audreyRdIndex = ($audreyRdIndex + 1) % $audreyMaxIndex;
 }
 
 #MH just said something. Generate the same thing to our file (which is monitored above)
@@ -145,11 +147,14 @@ sub speak_to_Audrey {
     return if (!@rooms);
 
     # okay, process the speech and add to the process array
-    $parms{"to_file"} = $config_parms{html_dir} . "/speakToAudrey" . $audreyWrIndex . ".wav";
+    $parms{"to_file"} = $config_parms{html_dir} . "/speakToAudrey" . $audreyIndex . ".wav";
     $parms{rooms} = @rooms;
-    @speakRooms[$audreyWrIndex] = \@rooms;
+    $parms{audreyIndex}=$audreyIndex;
+    $parms{async}=1;
+    @speakRooms[$audreyIndex] = \@rooms;
+    &print_log("generating audrey file $audreyIndex (via TTS)");
     &Voice_Text::speak_text(%parms);
-    $audreyWrIndex = ($audreyWrIndex + 1) % $audreyMaxIndex;
+    $audreyIndex = ($audreyIndex + 1) % $audreyMaxIndex;
 }
 
 #Tell MH to call our routine each time a wav file is played
@@ -214,9 +219,12 @@ sub play_to_audrey {
       }
       next if (! -e $file);
 
-      my $speakFile = $config_parms{html_dir} . "/speakToAudrey" . $audreyWrIndex . ".wav";
-      @speakRooms[$audreyWrIndex] = \@rooms;
+      my $speakFile = $config_parms{html_dir} . "/speakToAudrey" . $audreyIndex . ".wav";
+      @speakRooms[$audreyIndex] = \@rooms;
+
+	&print_log("generating audrey file $audreyIndex (from .wav file)");
       copy $file, $speakFile;
-      $audreyWrIndex = ($audreyWrIndex + 1) % $audreyMaxIndex;
+      &file_ready_for_audrey($audreyIndex);
+      $audreyIndex = ($audreyIndex + 1) % $audreyMaxIndex;
     }
 }

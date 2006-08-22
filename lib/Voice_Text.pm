@@ -97,6 +97,7 @@ sub speak_text {
 	# set a default voice, if configured
     $parms{voice}=$::config_parms{voice_text_default_voice} unless $parms{voice};
     return if lc $parms{voice} eq 'none';
+    return if !$parms{to_file} and $::config_parms{disable_local_sound};
 
     if ($parms{address}) {
         my @address = split ',', $parms{address};
@@ -238,24 +239,53 @@ sub speak_text {
                 $parms{text} =~ s/<\/?speaker.*?>//ig; # Server does not do sable
                 print "Voice_text TTS:  Festival saving to file via server: $parms{to_file}\n" if $main::Debug{voice};
                 set $VTxt_festival $parms{text};
-                unless ($parms{async}) {
-                                          # Wait for server to respond that it is done
-                    my $sock = $main::Socket_Ports{festival}{sock};
-                    my $i;
-                    while ($i++ < 100) {
-                        print '-';
-                        select undef, undef, undef, .1;
-                        if (my $nfound = &main::socket_has_data($sock)) {
-                            last;
-                        }
-                    }
+
+                my $fork=1 if $parms{async};
+
+                if ($fork) {
+            	    my $pid = fork;
+
+					# we are the parent
+                    if ($fork and $pid) {
+                    	return; # nothing else to do, the child is looking after the rest of the work
+					}
                 }
-            }
+                # Wait for server to respond that it is done
+                my $sock = $main::Socket_Ports{festival}{sock};
+                my $i;
+                while ($i++ < 100) {
+                    print '-';
+                    select undef, undef, undef, .1;
+                       if (my $nfound = &main::socket_has_data($sock)) {
+                           last;
+                       }
+                }
+                if (defined $parms{audreyIndex}) {
+                    &::file_ready_for_audrey($parms{audreyIndex});
+   				}
+			    if ($fork) {
+				    exit; # nothing left for the child to do
+			    }
+           }
             else {
                 my $file = "$main::config_parms{data_dir}/mh_temp.festival.txt";
                 &main::file_write($file, $parms{text});
                 print "Voice_text TTS: Festival saving to file: $file\n" if $main::Debug{voice};
+                my $fork = $parms{async};
+                if ($fork) {
+                	my $pid = fork;
+                	# we are the parnet
+                	if ($fork and $pid) {
+                		return; # the child will look after the real work
+					}
+				}
                 system("$main::config_parms{voice_text_festival} -b $file");
+                if (defined $parms{audreyIndex}) {
+                    &::file_ready_for_audrey($parms{audreyIndex});
+   				}
+			    if ($fork) {
+				    exit; # nothing left for the child to do
+			    }
             }
             select undef, undef, undef, .2; # Need this ?
         }
@@ -281,16 +311,41 @@ sub speak_text {
             my $file = "$main::config_parms{data_dir}/mh_temp.festival.$random.sable";
             &main::file_write($file, $text);
             print "Voice_text TTS: $main::config_parms{voice_text_festival} --tts $file\n" if $main::Debug{voice};
-#            system("($main::config_parms{voice_text_festival} --tts $file ; ) &");
+            my $fork = $parms{async};
+            if ($fork) {
+             	my $pid = fork;
+               	# we are the parnet
+               	if ($fork and $pid) {
+               		return; # the child will look after the real work
+				}
+			}
             system("($main::config_parms{voice_text_festival} --tts $file ; rm $file) &");
-#            system("($main::config_parms{voice_text_festival} --tts $file ; cat $file) &");
+            if (defined $parms{audreyIndex}) {
+                 &::file_ready_for_audrey($parms{audreyIndex});
+   			}
+			if ($fork) {
+			    exit; # nothing left for the child to do
+			}
         }
         else {
             my $text = $parms{text};
 	       # Remove <tags> like </this> as we don't want them read
             $text =~ s/<[^>]*>//g;
             print "Data sent to festival: $text\n" if $main::Debug{voice};
+            # not sure if we will ever do a fork here as an asynchronous TTS that's not to 
+            # a file doesn't sound likely.  For completeness, though, it's here.
+            my $fork = $parms{async};
+            if ($fork) {
+             	my $pid = fork;
+               	# we are the parnet
+               	if ($fork and $pid) {
+               		return; # the child will look after the real work
+				}
+			}
             set $VTxt_festival qq[(SayText "$text")];
+			if ($fork) {
+			    exit; # nothing left for the child to do
+			}
         }
     }
     elsif ($speak_pgm) {
@@ -422,6 +477,7 @@ sub speak_text {
             }
 
             print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg\n" if $main::Debug{voice};
+            print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg ai=$parms{audreyIndex}\n";
 
             if ($speak_pgm_use_stdin) {
                 open  VOICE, "| $speak_pgm $speak_pgm_arg";
@@ -430,8 +486,15 @@ sub speak_text {
                 exit 0 if $fork;
             }
             elsif ($fork) {
-                exec qq[$speak_pgm $speak_pgm_arg];
-                die 'cant exec $speak_pgm';
+                system qq[$speak_pgm $speak_pgm_arg];
+                # if ($? == -1) {
+               # 	print "can't execute $speak_pgm $speak_pgm_arg: rc is $? and  $!\n";
+               # 	exit;
+			#	}
+                if (defined $parms{audreyIndex}) {
+                	&::file_ready_for_audrey($parms{audreyIndex});
+				}
+				exit;
 #                system qq[$speak_pgm $speak_pgm_arg];
 #                &main::copy("$main::config_parms{wine_path_temp}/mh_voice_text.wav", $parms{to_file})
 #                  if $parms{to_file} and $speak_engine =~ /naturalvoicewine/i;
@@ -439,6 +502,9 @@ sub speak_text {
             }
             else {
                 system qq[$speak_pgm $speak_pgm_arg];
+                if (defined $parms{audreyIndex}) {
+                	&::file_ready_for_audrey($parms{audreyIndex});
+				}
             }
         }
     }
