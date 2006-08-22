@@ -31,6 +31,8 @@ Note: You must enable this module by setting the following parameters in mh{.pri
 =cut
 our $loopCommand = join "", "LOOP", chr(255), chr(255), chr(13);
 our $DavisWMII_port;
+our $lastRainReading = undef;
+our $lastRainReadingTime = undef;
 
 sub startup{ 
 	my ($instance)=@_;
@@ -112,7 +114,8 @@ sub process{
 		$outdoor_humidity,
 		$total_rain,      
 		$not_used,        
-		$crc16);
+		$crc16,
+		$rain_rate);
 		
 	# go through data until we have found a header  
 	&::print_log ("daviswm2: looking for header") if $::Debug{Weather};
@@ -167,6 +170,21 @@ sub process{
 	my $indoor_dewpoint=&::convert_humidity_to_dewpoint($indoor_humidity,&::convert_f2c($indoor_temp));
 	my $outdoor_dewpoint=&::convert_humidity_to_dewpoint($outdoor_humidity,&::convert_f2c($outdoor_temp));
 	
+	$rain_rate=undef;
+	if (defined ($lastRainReadingTime)) {
+		$rain_rate=($total_rain-$lastRainReading); # delta in inches
+		my $time_delta=(time - $lastRainReading);
+		if ($time_delta != 0) {
+			$rain_rate/=$time_delta; # rate in inches per second
+			$rain_rate *= 3600; # rate in inches per hour
+			if ($rain_rate < 0) { # if total rain was reset to zero, this could happen
+				$rain_rate=0; 
+			}
+		}
+	}
+	$lastRainReadingTime=time;
+	$lastRainReading=$total_rain;
+	
 	if ($main::config_parms{weather_uom_temp} eq 'C') {
 		grep {$_=&::convert_f2c($_);} (
 			$indoor_temp,
@@ -189,6 +207,14 @@ sub process{
 		grep {$_=&::convert_in2mm($_);} (
 			$total_rain
 		);
+	}
+	if ($main::config_parms{weather_uom_rain} eq 'mm/hr') {
+		grep {$_=&::convert_in2mm($_);} (
+			$rain_rate
+		);
+		$rain_rate=sprintf('%.0f',$rain_rate); # round to nearest mm/hr
+	} else {
+		$rain_rate=sprintf('%.2f',$rain_rate); # round to nearest 0.01 in/hr
 	}
 	if ($main::config_parms{weather_uom_wind} eq 'kph') {
 		grep {$_=&::convert_mile2km($_);} (
@@ -214,6 +240,7 @@ sub process{
 	$$wptr{HumidIndoor}=$indoor_humidity;
 	$$wptr{HumidOutdoor}=$outdoor_humidity;
 	$$wptr{RainTotal}=$total_rain;
+	$$wptr{RainRate}=$rain_rate;
 	
 	if ($::Debug{Weather}) {
 		foreach my $key qw(
@@ -228,6 +255,7 @@ sub process{
 			HumidIndoor
 			HumidOutdoor
 			RainTotal
+			RainRate
 			) {
 			&::print_log ("daviswm2: $key ".$$wptr{$key});
 		}
