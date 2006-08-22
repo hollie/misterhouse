@@ -831,13 +831,15 @@ sub set_voice {
 
 
 sub force_pronounce {
-    my ($phrase) = @_;
+    my ($phrase, $parmsRef) = @_;
 
     print "input  phrase is '$phrase'\n" if $main::Debug{voice};
 
-	# convert long numbers to their text equivalent
-    while ($phrase =~ /^(.*?)(\d{3,})(.*?)$/) {
-    	$phrase=$1.&num_to_text($2).$3;
+	if (not $$parmsRef{raw_numbers}) {
+		# convert long numbers to their text equivalent
+		while ($phrase =~ /^(.*?)(\d{3,})(.*?)$/) {
+			$phrase=$1.&num_to_text($2).$3;
+		}
 	}
 
     for my $word (keys %pronouncable) {
@@ -864,7 +866,6 @@ sub num_to_text {
 
 	$text="num to text error" unless $text;
 
-	print "num_to_text $language $num $text\n";
 	return $text;
 }
 

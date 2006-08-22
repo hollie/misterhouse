@@ -5845,7 +5845,10 @@ sub speak {
 #        return;
 #    }
 
-	$parms{text} = &Voice_Text::force_pronounce($phrase);
+	# raw_text is a copy of the text before we process it to be
+	# more suitable for TTS
+	$parms{raw_text}=$parms{text};
+	$parms{text} = &Voice_Text::force_pronounce($phrase, \%parms);
 
     &Speak_parms_hooks(\%parms); # Created by &add_hooks
     return if $parms{no_speak};  # In case hook decided not to speak

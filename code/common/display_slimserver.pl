@@ -18,8 +18,11 @@ $slimdisplay->tie_event('slimserver_display((text=>$state))') if $Reload;
 
 sub slimserver_display {
     my (%parms) = @_;
-                                # Drop extra blanks and newlines
-    return unless $parms{text};
+
+    # use, in order, raw_text and then text.  If no text to display, return
+    my $text=$parms{raw_text};
+    $text = $parms{text} unless $text;
+    return unless $text;
 
     return if $parms{nolog}; # Do not display if we are not logging
 
@@ -27,19 +30,19 @@ sub slimserver_display {
     $duration=30 unless $duration;
     $duration=$parms{duration} if $parms{duration};
 
-    $parms{text} =~ s/[\n\r ]+/ /gm;
+	# Drop extra blanks and newlines
+    $text =~ s/[\n\r ]+/ /gm;
 
-    print "slimserver request: $config_parms{slimserver_protocol} $parms{text}\n" if $Debug{'slimserver'};
+    print "slimserver request: $config_parms{slimserver_protocol} $text\n" if $Debug{'slimserver'};
 
 				# This requires SlimServer Connector from: http://www.xapframework.net
 				# This program also enables IR -> xAP data, even for non-slim IR data!
     if ($config_parms{slimserver_protocol} eq 'xAP') {
         &xAP::send('xAP', 'xAP-OSD.Display', 'Display.SliMP3' =>
-                   {Line1 => $parms{text}, Line2 => ' ', Duration => $duration, Size => 'Double', Brightness => 'Brightest'});
+                   {Line1 => $text, Line2 => ' ', Duration => $duration, Size => 'Double', Brightness => 'Brightest'});
     }
     elsif (lc($config_parms{slimserver_protocol}) eq 'xpl') { 
       $config_parms{slimserver_players} = $config_parms{slimserver_player} unless $config_parms{slimserver_players};
-      my $text=$parms{text};
       $text="\\n$text" if $text !~ /\n/;
       for my $player (split ',', $config_parms{slimserver_players}) {
 	$player =~ s/^\s*(.*)\s*$/$1/;
@@ -50,7 +53,7 @@ sub slimserver_display {
 				# Allow for player and/or players parm.  No Big or Brightest option here :(
         $config_parms{slimserver_players} = $config_parms{slimserver_player} unless $config_parms{slimserver_players};
         for my $player (split ',', $config_parms{slimserver_players}) {
-            my $request = "http://$config_parms{slimserver_server}/status.txt?p0=display&p1=MisterHouse Message:&p2=$parms{text}&p3=${duration}&player=$player";
+            my $request = "http://$config_parms{slimserver_server}/status.txt?p0=display&p1=MisterHouse Message:&p2=${text}&p3=${duration}&player=${player}";
             get $request;
         }
     }
