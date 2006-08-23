@@ -1,0 +1,75 @@
+<definitions 
+	xmlns="http://schemas.xmlsoap.org/wsdl/" 
+	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" 
+	xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" 
+	xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+	xmlns:s="http://www.w3.org/2001/XMLSchema" 
+	xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" 
+	xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" 
+	xmlns:tns="urn:/mhsoap" 
+	targetNamespace="urn:/mhsoap">
+
+	<!-- message block begins -->
+	<message name="ListObjectTypesRequest">
+		<part name="" type="s:string"/>
+	</message>
+	<message name="ListObjectTypesResponse">
+		<part name="return" type="s:string"/>
+	</message>
+	<message name="ListObjectsByTypeRequest">
+		<part name="object_type" type="s:string"/>
+	</message>
+	<message name="ListObjectsByTypeResponse">
+		<part name="return" type="s:string"/>
+	</message>
+
+	<!-- port block begins -->
+	<portType name="mhsoapServiceSoap">
+		
+		<!-- operation block begins -->;
+		<operation name="ListObjectTypes">
+			<input message="tns:ListObjectTypesRequest"/>
+			<output message="tns:ListObjectTypesResponse"/>
+		</operation>
+
+		<!-- operation block begins -->;
+		<operation name="ListObjectsByType">
+			<input message="tns:ListObjectsByTypeRequest"/>
+			<output message="tns:ListObjectsByTypeResponse"/>
+		</operation>
+	</portType>
+
+	<!-- binding block begins -->
+	<binding name="mhsoapServiceSoap" type="tns:mhsoapServiceSoap">
+		<soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+		
+		<!-- operation block begins -->
+		<operation name="ListObjectTypes">
+			<soap:operation soapAction="urn:ListObjectTypes"/>
+			<input>
+				<soap:body use="encoded" namespace="urn:xmethods" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="urn:xmethods" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</output>
+		</operation>
+
+		<!-- operation block begins -->
+		<operation name="ListObjectsByType">
+			<soap:operation soapAction="urn:ListObjectsByType"/>
+			<input>
+				<soap:body use="encoded" namespace="urn:xmethods" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="urn:xmethods" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</output>
+		</operation>
+	</binding>
+
+	<!-- service block begins -->
+	<service name="mhsoap">
+		<port name="mhsoapService" binding="tns:mhsoapServiceSoap">
+			<soap:address location="http://misterhouse:8080/bin/soapcgi.pl"/><!-- http://localhost/my-service-name.php -->
+		</port>
+	</service>
+</definitions>

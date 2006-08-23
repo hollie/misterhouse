@@ -1,0 +1,100 @@
+<HTML>
+<HEAD>
+	
+	<script type="text/javascript">
+		var isIE = false;
+
+		function runTest(){
+			var oXmlHttp;  
+			var resultdisplay = document.getElementById('result');
+
+			try{
+				// Opera 8.0+, Firefox, Safari
+				oXmlHttp = new XMLHttpRequest();
+			} catch (e){
+				// Internet Explorer Browsers
+			try{
+				oXmlHttp = new ActiveXObject("Msxml2.XMLHTTP");
+				isIE = true;
+			} catch (e) {
+				try{
+					oXmlHttp = new ActiveXObject("Microsoft.XMLHTTP");
+					isIE = true;
+				} catch (e){
+					// Something went wrong
+					alert("Your browser doesn't support XMLHttpRequest!");
+					return false;
+					}
+				}
+			}
+			
+			oXmlHttp.open("POST","/bin/soapcgi.pl",	false);	
+			oXmlHttp.setRequestHeader("Content-Type", "text/xml");
+			
+			var soaphdr = 'urn:mhsoap/' + document.getElementById('call').value;
+			oXmlHttp.setRequestHeader("SOAPAction", soaphdr);
+
+			var xmlToSend = buildXML();
+			// document.getElementById('soapinput').innerText = xmlToSend;
+			setTextAreaText(document.getElementById('soapinput'), xmlToSend);
+			oXmlHttp.send(xmlToSend);
+
+			if (oXmlHttp.status == 200) {
+				setTextAreaText(document.getElementById('soapoutput'), oXmlHttp.responseText);
+				resultdisplay.innerHTML = "Request completed successfully";
+				
+			}else {
+				resultdisplay.innerHTML = "Error Occurred " + oXmlHttp.status + " - " + oXmlHttp.statusText ;
+				setTextAreaText(document.getElementById('soapoutput'), oXmlHttp.responseText);
+			}
+		}
+
+		function buildXML(){
+			var func = document.getElementById('call').value;
+			var params = document.getElementById('params').value.split(';');
+
+			var myXML = ' <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">';
+			myXML += '<Body><' + func + ' xmlns="urn:mhsoap">';
+
+			
+			for (var i=0; i < params.length; i++) {
+				myXML += '<param' + i.toString() + '>' + params[i] + '</param' + i.toString() + '>';
+			}
+			myXML += '</' + func + '></Body></Envelope>';
+
+			return myXML;
+		}
+
+		// need this since IE uses innerText and others use innerHTML
+		function setTextAreaText(oElem, sTxt){
+			if (isIE) {
+				oElem.innerText = sTxt;
+			}else{
+				oElem.innerHTML = sTxt;
+			}
+		}	
+
+
+	</script>
+	
+</HEAD>
+<BODY >
+	<table>
+	<tr>
+		<td>Function to call: </td><td><input width=50 id=call /></td></tr>
+	<tr>
+		<td>Parameters :</td><td> <input width=50 id=params /> </td></tr>
+	<tr>
+		<td><input type="button" value="Run Test" onclick="runTest()"/> </td><td></td></tr>
+	<tr>
+		<td>XML Sent</td><td><textarea id="soapinput" rows=5 cols=80></textarea></td></tr>
+	<tr>
+		<td>XML Returned:</td><td><textarea id="soapoutput" rows=20 cols=80></textarea></td></tr>
+	</table>
+	<p>
+	Results:
+	<br>
+	<div id="result">
+	</div>
+</BODY>
+</HTML>

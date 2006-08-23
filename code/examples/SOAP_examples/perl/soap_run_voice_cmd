@@ -1,0 +1,22 @@
+#! /usr/bin/perl -w
+
+use strict;
+use SOAP::Lite;
+
+my $endpoint = 'http://misterhouse:8080/bin/soapcgi.pl';
+
+my $vcmd = $ARGV[0];
+
+print "Running $vcmd\n";
+
+my $soap = SOAP::Lite->uri('urn:mhsoap')->proxy($endpoint);
+
+my $som = $soap->RunVoiceCommand($vcmd);
+
+if ($som->fault) {
+	die "$0: Operation failed: " . $som->faultstring;
+}
+
+exit;
+
+
