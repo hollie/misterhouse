@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<definitions name="mhsoap"
+	xmlns="http://schemas.xmlsoap.org/wsdl/" 
+	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" 
+	xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" 
+	xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+	xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" 
+	xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" 
+	xmlns:tns="urn:mhsoap" 
+	xmlns:xsd1="urn:mhsoap/schema"
+	targetNamespace="urn:mhsoap">
+
+	<!-- types block begins -->
+	<types>
+      <schema xmlns="http://www.w3.org/2001/XMLSchema"
+         targetNamespace="urn:mhsoap/schema"
+         xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+         xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">
+ 
+         <complexType name="ArrayOfString">
+            <complexContent>
+               <restriction base="soapenc:Array">
+                  <attribute ref="soapenc:arrayType" wsdl:arrayType="string[]"/>
+               </restriction>
+            </complexContent>
+         </complexType>         
+      </schema>
+   </types>
+   
+	<!-- message block begins -->
+	<message name="ListObjectTypesRequest">
+	</message>
+	<message name="ListObjectTypesResponse">
+		<part name="return" type="xsd1:ArrayOfString"/>
+	</message>
+	<message name="ListObjectsByTypeRequest">
+		<part name="object_type" type="xsd:string"/>
+	</message>
+	<message name="ListObjectsByTypeResponse">
+		<part name="return" type="xsd1:ArrayOfString"/>
+	</message>
+	<message name="SetItemStateRequest">
+		<part name="ItemToSet" type="xsd:string"/>
+		<part name="State" type="xsd:string"/>
+	</message>
+	<message name="SetItemStateResponse">
+		<part name="return" type="xsd:int"/>
+		<part name="State" type="xsd:string"/>
+	</message>
+	<message name="GetItemStateRequest">
+		<part name="ItemToGet" type="xsd:string"/>
+	</message>
+	<message name="GetItemStateResponse">
+		<part name="return" type="xsd:string"/>
+	</message>
+	<message name="RunVoiceCommandRequest">
+		<part name="Voice_Cmd" type="xsd:string"/>
+	</message>
+	<message name="RunVoiceCommandResponse">
+		<part name="return" type="xsd:string"/>
+	</message>
+	
+	<!-- port block begins -->
+	<portType name="mhsoapServiceSoap">
+		
+		<!-- operation block begins -->;
+		<operation name="ListObjectTypes">
+			<input message="tns:ListObjectTypesRequest"/>
+			<output message="tns:ListObjectTypesResponse"/>
+		</operation>
+
+		<!-- operation block begins -->;
+		<operation name="ListObjectsByType">
+			<input message="tns:ListObjectsByTypeRequest"/>
+			<output message="tns:ListObjectsByTypeResponse"/>
+		</operation>
+		
+		<operation name="SetItemState">
+			<input message="tns:SetItemStateRequest"/>
+			<output message="tns:SetItemStateResponse"/>
+		</operation>
+		
+		<operation name="GetItemState">
+			<input message="tns:GetItemStateRequest"/>
+			<output message="tns:GetItemStateResponse"/>
+		</operation>
+		
+		<operation name="RunVoiceCommand">
+			<input message="tns:RunVoiceCommandRequest"/>
+			<output message="tns:RunVoiceCommandResponse"/>
+		</operation>
+		
+	</portType>
+
+	<!-- binding block begins -->
+	<binding name="mhsoapServiceSoap" type="tns:mhsoapServiceSoap">
+		<soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+		
+		<!-- operation block begins -->
+		<operation name="ListObjectTypes">
+			<soap:operation soapAction="urn:mhsoap/ListObjectTypes"/>
+			<input>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</output>
+		</operation>
+
+		<!-- operation block begins -->
+		<operation name="ListObjectsByType">
+			<soap:operation soapAction="urn:mhsoap/ListObjectsByType"/>
+			<input>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</output>
+		</operation>
+		
+		<!-- operation block begins -->
+		<operation name="SetItemState">
+			<soap:operation soapAction="urn:mhsoap/SetItemState"/>
+			<input>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</output>
+		</operation>
+		
+		<!-- operation block begins -->
+		<operation name="GetItemState">
+			<soap:operation soapAction="urn:mhsoap/GetItemState"/>
+			<input>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</output>
+		</operation>
+		
+		<!-- operation block begins -->
+		<operation name="RunVoiceCommand">
+			<soap:operation soapAction="urn:mhsoap/RunVoiceCommand"/>
+			<input>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</output>
+		</operation>
+	</binding>
+
+	<!-- service block begins -->
+	<service name="mhsoap">
+		<port name="mhsoapService" binding="tns:mhsoapServiceSoap">
+			<soap:address location="http://misterhouse:8080/bin/soapcgi.pl"/><!-- http://localhost/my-service-name.php -->
+		</port>
+	</service>
+</definitions>
