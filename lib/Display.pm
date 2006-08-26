@@ -1,6 +1,9 @@
 # This is a perl TK version ... replaces winbatch display.wbt version
 # perl TK faq is at: http://www.perl.com/CPAN-local/doc/FAQs/tk/ptkFAQ.html 
 
+# $Date$
+# $Revision$
+
 package Display;
 use strict;
 
@@ -19,7 +22,7 @@ sub new {
     $parms{title} = 'Display Text' unless $parms{title};
     my $self = {%parms};
     bless $self, $class;
-    &display($self);
+    $self-> display();
     return $self;
 }
 
@@ -163,7 +166,11 @@ sub display {
     unless ($reuse_flag) {
         $$self{MW}->withdraw;       # Hide until we are resized
         $$self{MW}->title($$self{title});
-	$$self{MW}->iconbitmap($main::Pgm_Root . '\web\favicon.ico') unless $^O eq 'MSWin32' and &Win32::BuildNumber < 810;
+        my $icon_image = $MW->Photo(
+                                    -file => "${Pgm_Root}/web/favicon.png",
+                                    -format => 'png');
+        $MW->Icon(-image => $icon_image);
+	#$$self{MW}->iconbitmap($main::Pgm_Root . '/web/favicon.ico') unless $^O eq 'MSWin32' and &Win32::BuildNumber < 810;
 
         my $f1 = $$self{MW}->Frame->pack(); 
 
@@ -409,83 +416,3 @@ while (1) {
     my $i; 
     print "a=$tk_activity", $i++, "\n"; 
 }
-
-#
-# $Log: Display.pm,v $
-# Revision 1.25  2003/11/23 20:26:01  winter
-#  - 2.84 release
-#
-# Revision 1.24  2002/12/24 03:05:08  winter
-# - 2.75 release
-#
-# Revision 1.23  2002/05/28 13:07:51  winter
-# - 2.68 release
-#
-# Revision 1.22  2002/03/31 18:50:36  winter
-# - 2.66 release
-#
-# Revision 1.21  2001/12/16 21:48:41  winter
-# - 2.62 release
-#
-# Revision 1.20  2001/09/23 19:28:11  winter
-# - 2.59 release
-#
-# Revision 1.19  2001/05/28 21:14:38  winter
-# - 2.52 release
-#
-# Revision 1.18  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 1.17  2001/01/20 17:47:50  winter
-# - 2.41 release
-#
-# Revision 1.16  2000/08/19 01:22:36  winter
-# - 2.27 release
-#
-# Revision 1.15  2000/05/06 17:22:16  winter
-# - change default fonts
-#
-# Revision 1.14  2000/05/06 16:34:32  winter
-# - 2.15 release
-#
-# Revision 1.13  2000/01/27 13:38:47  winter
-# - update version number
-#
-# Revision 1.12  1999/07/05 22:31:55  winter
-# - refine the width and heigth calculations
-#
-# Revision 1.11  1999/05/30 21:09:10  winter
-# - change default width from 100 to 80
-#
-# Revision 1.10  1999/03/28 00:32:33  winter
-# - hide window on create, then unhide at the end
-#
-# Revision 1.9  1999/02/08 00:29:16  winter
-# - do a eval use lib, so we can call from mh.exe
-#
-# Revision 1.8  1999/02/04 14:36:41  winter
-# - take out debug
-#
-# Revision 1.7  1999/01/30 19:57:05  winter
-# - change default width from 120 to 100
-#
-# Revision 1.6  1999/01/23 16:29:47  winter
-# - no change
-#
-# Revision 1.5  1999/01/23 16:27:18  winter
-# - only use TK (not the other TKs).  Tabbify.
-#
-# Revision 1.4  1999/01/07 01:58:04  winter
-# - do not force focus
-#
-# Revision 1.3  1998/12/10 14:35:20  winter
-# - do all kinds of stuff to force focus
-#
-# Revision 1.2  1998/12/07 14:34:28  winter
-# - fix height/width calculation.  Fix global grab.
-#
-# Revision 1.1  1998/11/15 22:05:46  winter
-# - add to CVS
-#
-#
-#
