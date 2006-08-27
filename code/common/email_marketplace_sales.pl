@@ -10,6 +10,7 @@
 #@ Requires internet_mail.pl
 
 #noloop=start
+
 $cash_register = new Generic_Item;
 $v_email_marketplace = new Voice_Cmd 'Process email sales';
 $v_email_sales = new Voice_Cmd 'How many sales [today,this week,this month]';
