@@ -132,6 +132,11 @@ sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
 
+    # prevent reciprocal sets that can occur because of this method's state
+    # propogation
+    return if (ref $p_setby and $p_setby->can('get_set_by') and 
+        $p_setby->{set_by} eq $self);
+
    #&::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 
     if ((defined $main::DBI) && $::config_parms{events_table}) {
@@ -141,6 +146,11 @@ sub set
 			$main::DBI->prepare("insert into Events (Object,ObjectType,State,Setby) values ('$$self{object_name}','" . ref($self). "','$p_state','" . $p_setby . "');")->execute();
     		}
 	}
+
+	# ensure the setting object is associated w/ the current object before
+	#  iterating over the children.  At a minimum, main::set_by_to_target
+	#  requires current "set_by" to properly navigate the set_by "chain"
+	$self->{set_by} = $p_setby;
 
 	# Propogate states to all member items
 	if ( defined $$self{m_objects} ) {
@@ -152,7 +162,12 @@ sub set
 					( ! $obj->can('writable') ) ) { #check for "settable" objects
                &::print_log($self->get_object_name() . "::set($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
 #					$obj->set($p_state,$p_setby,$p_response);
-					$obj->set($p_state,$self,$p_response);
+					# don't attempt to set sensors
+					if (UNIVERSAL::isa($obj, 'X10_Sensor')) {
+						$obj->set_receive($p_state, $self, $p_response);
+					} else {
+					        $obj->set($p_state,$self,$p_response);
+					}
 				}
 			}
 		}

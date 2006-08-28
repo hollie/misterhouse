@@ -178,6 +178,10 @@ sub set
 
 	### Manual shutoff ###
 	return if defined($self->manual());
+
+	### prevent reciprocal sets ###
+	return if (ref $p_setby and $p_setby->can('get_set_by') and $p_setby->{set_by} eq $self);
+
 	
 ######### EVENTS
 	#Determine what type of event this is ON/OFF
@@ -417,7 +421,7 @@ sub is_on_event
 	my ($self,$p_state,$p_setby) = @_;
 	my $l_qualified=0;
 
-	if (defined $p_setby) {
+	if (defined $p_setby and ref $p_setby) {
 	    #Criteria Qualifying to turn the light on
 	    
 	    if ( $p_setby->isa('Motion_Item') ) {
