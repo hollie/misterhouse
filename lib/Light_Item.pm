@@ -220,7 +220,7 @@ sub set
 		} else {
 			if ($l_event_state ne $l_handler_state) { #If a handler modified the state, then use it instead
 				$l_final_state = $l_handler_state;
-			} elsif ($p_state=~/^[+-]?\d?\d\%?/) {
+			} elsif ($p_state=~/^[+-]?\d?\d\%?/ or $p_state=~/^[+]100%?/) {
 				#Someone wants a pre-set dim or dimmed state
 				$l_final_state = $p_state;
 			} else {
