@@ -53,11 +53,12 @@ sub new
    my $self={};
    bless $self, $class;
 
-   $$self{m_xap} = new xAP_Item($p_source_name);
+   $$self{m_xap} = new xAP_Item('xAPBSC.*', $p_source_name);
    $$self{m_xap}->target_address($p_target_name) if $p_target_name;
-   $$self{m_xap}->class_name('xAPBSC.*');
+#   $$self{m_xap}->class_name('xAPBSC.*');
    $self->_initialize();
-   my $code = &main::store_object_data($$self{m_xap},'xAP_Item','xAP_Item','BSC.pm');
+   my $friendly_name = "bsc_$p_source_name";
+   my $code = &main::store_object_data($$self{m_xap},'xAP_Item',$friendly_name,$friendly_name);
    eval($code);
    $$self{m_xap}->tie_items($self);
 
@@ -73,6 +74,37 @@ sub _initialize
    $$self{device_state} = ();
 }
 
+# bsc_state is a very bad name and only exists to prevent overriding
+# mh's state member.  bsc_state maps to a BSC state
+
+sub bsc_state {
+   my ($self, $p_state) = @_;
+   $$self{bsc_state} = $p_state if $p_state;
+   if ($$self{bsc_state}) {
+      return $$self{bsc_state};
+   } else {
+      return '?';
+   }
+}
+
+sub level {
+   my ($self, $p_level) = @_;
+   $$self{level} = $p_level if defined $p_level;
+   return $$self{level};
+}
+
+sub text {
+   my ($self, $p_text) = @_;
+   $$self{text} = $p_text if defined $p_text;
+   return $$self{text};
+}
+
+sub display_text {
+   my ($self, $p_display_text) = @_;
+   $$self{display_text} = $p_display_text if defined $p_display_text;
+   return $$self{display_text};
+}
+
 sub set
 {
    my ($self, $p_state, $p_setby, $p_respond) = @_;
@@ -84,17 +116,17 @@ sub set
          $$self{device_target} = $$self{m_xap}{target_address};
          my ($xap_subaddress) = $$self{m_xap}{target_address} =~ /.+\:(.+)/;
          $$self{device_subaddress_target} = $xap_subaddress;
-
-         if (lc $$self{m_xap}->class_name()  eq 'xapbsc.cmd') {
+         $sender_class = $$p_setby{'xap-header'}{class};
+         if (lc $sender_class eq 'xapbsc.cmd') {
             # handle command
             $state = $self->cmd_callback($p_setby);
-         } elsif (lc $$self{m_xap}->class_name() eq 'xapbsc.query') {
+         } elsif (lc $sender_class eq 'xapbsc.query') {
             # handle query
             $state = $self->query_callback($$p_setby{'xap-header'}{target}, $$p_setby{'xap-header'}{source});
-         } elsif (lc $$self{m_xap}->class_name() eq 'xapbsc.event') {
+         } elsif (lc $sender_class eq 'xapbsc.event') {
             # handle event
             $state = $self->event_callback($p_setby);
-         } elsif (lc $$self{m_xap}->class_name() eq 'xapbsc.info') {
+         } elsif (lc $sender_class eq 'xapbsc.info') {
             # handle info
             $state = $self->info_callback($p_setby);
          }
@@ -103,7 +135,7 @@ sub set
       }
    }
    # Always pass along the state to base class
-   $self->SUPER::set($state,$p_setby, $p_respond);
+   $self->SUPER::set($state,$p_setby, $p_respond) unless $state eq 'unknown';
 
    return;
 }
@@ -142,22 +174,46 @@ sub query_callback {
 
 sub event_callback {
    my ($self, $p_xap) = @_;
-      next unless ($section_name =~ /^(input|output)\.state\.\d*/);
-      print "db BSC_Item->event_callback: Process section:$section_name\n" if $main::Debug{bsc};
-      for my $field_name (keys %{$p_xap{$section_name}}) {
-         my ($id,$state,$level,$text);
-         if (lc $field_name eq 'id') {
-            $id = $$p_xap{$section_name}{$field_name};
-         } elsif (lc $field_name eq 'state') {
-            $state = $$p_xap{$section_name}{$field_name};
-         }
-      }
-   return 'event';
+   my $state = 'unknown';
+   # clear out any old data
+   $$self{bsc_state} = undef;
+   $$self{level} = undef;
+   $$self{text} = undef;
+   $$self{display_text} = undef;
+   for my $section_name (keys %{$p_xap}) {
+      next unless ($section_name =~ /^(input|output)\.state/);
+      print "db BSC_Item->event_callback: Process section:$section_name"
+              . " from " . $$p_xap{'xap-header'}{source} . "\n" if $main::Debug{bsc};
+      $self->bsc_state($$p_xap{$section_name}{state});
+      $self->level($$p_xap{$section_name}{level});
+      $self->text($$p_xap{$section_name}{text});
+      $self->display_text($$p_xap{$section_name}{display_text});
+      $state = 'event';
+      $last;
+   };
+   return $state;
 }
 
 sub info_callback {
    my ($self, $p_xap) = @_;
-   return 'info';
+    my $state = 'unknown';
+   # clear out any old data
+   $$self{bsc_state} = undef;
+   $$self{level} = undef;
+   $$self{text} = undef;
+   $$self{display_text} = undef;
+   for my $section_name (keys %{$p_xap}) {
+      next unless ($section_name =~ /^(input|output)\.state/);
+      print "db BSC_Item->info_callback: Process section:$section_name" 
+             . " from " . $$p_xap{'xap-header'}{source} . "\n" if $main::Debug{bsc};
+      $self->bsc_state($$p_xap{$section_name}{state});
+      $self->level($$p_xap{$section_name}{level});
+      $self->text($$p_xap{$section_name}{text});
+      $self->display_text($$p_xap{$section_name}{display_text});
+      $state = 'info';
+      $last;
+   };
+   return $state;
 }
 
 sub pending_device_state {
