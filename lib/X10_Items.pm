@@ -849,6 +849,13 @@ sub new {
     $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  . substr($id, 1) 
         . substr($id, 1, 1) . 'J' . 'OGMGNGPGPG','enable transmit');
 
+    # WARNING!! any Switchlinc, Appliancelinc, Lamplinc, Keypadlinc, Relaylinc that are plugged in
+    # or active will receive the following commands and also be locked out (per Smarthome docs)
+    $self-> add ('XMGOGPGNGPG', 'disable programming');
+    $self-> add ('XNGMGOGPGPG', 'enable programming');
+
+
+
     return $self;
 }
 
@@ -872,6 +879,21 @@ package X10_Lamplinc;
 sub new {
     my ($class, $id, $interface, $type) = @_;
     my $self = &X10_Switchlinc::new($class, $id, $interface, $type);
+  
+    return $self;
+}
+
+
+package X10_Relaylinc;
+
+@X10_Relaylinc::ISA = ('X10_Item');
+
+sub new {
+    my ($class, $id, $interface, $type) = @_;
+    my $self = &X10_Switchlinc::new($class, $id, $interface, $type);
+ 
+    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'PGOGMGNGOG',   'lamp mode');
+    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'PGNGOGMGOG',   'appliance mode');
   
     return $self;
 }
