@@ -97,6 +97,21 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other);
         $object = "X10_Switchlinc('$address', $other)";
     }
+    elsif($type eq "X10AL") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other);
+        $object = "X10_Appliancelinc('$address', $other)";
+    }
+    elsif($type eq "X10KL") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other);
+        $object = "X10_Keypadlinc('$address', $other)";
+    }
+    elsif($type eq "X10LL") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other);
+        $object = "X10_Lamplinc('$address', $other)";
+    }
     elsif($type eq "X10G") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -430,7 +445,66 @@ sub read_table_A {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = $type . "_Item('$address', $other)";
-
+    }
+    elsif($type eq "ZM_ZONE") {
+        my $monitor_name;
+        ($address, $name, $monitor_name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if( ! $packages{ZoneMinder_xAP}++ ) {   # first time for this object type?
+            $code .= "use ZoneMinder_xAP;\n";
+        }
+        $code .= sprintf "\n\$%-35s = new ZM_ZoneItem('%s');\n", $name, $address;
+        if ($objects{$monitor_name}) {
+           $code .= sprintf "\$%-35s -> add(\$%s);\n", $monitor_name, $name;
+        }
+        $object = '';
+    } 
+    elsif($type eq "ZM_MONITOR") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "ZM_MonitorItem('$address',$other)";
+        }
+        else{
+            $object = "ZM_MonitorItem('$address')";
+        }
+        if( ! $packages{ZoneMinder_xAP}++ ) {   # first time for this object type?
+            $code .= "use ZoneMinder_xAP;\n";
+        }
+    } 
+    elsif($type eq "X10_SCENE") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "X10SL_Scene('$address',$other)";
+        }
+        else{
+            $object = "X10SL_Scene('$address')";
+        }
+        if( ! $packages{X10_Scene}++ ) {   # first time for this object type?
+            $code .= "use X10_Scene;\n";
+        }
+    } 
+    elsif($type eq "X10_SCENE_MEMBER") {
+        my ($scene_name, $on_level, $ramp_rate);
+        ($name, $scene_name, $on_level, $ramp_rate) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if( ! $packages{X10_Scene}++ ) {   # first time for this object type?
+            $code .= "use X10_Scene;\n";
+        }
+        if (($objects{$scene_name}) and ($objects{$name})) {
+           if ($on_level) {
+              if ($ramp_rate) {
+                 $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n", 
+                            $scene_name, $name, $on_level, $ramp_rate;
+              } else {
+                 $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_name, $name, $on_level;
+              }
+           } else {
+              $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_name, $name;
+           }
+        }
+        $object = '';
     } else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
