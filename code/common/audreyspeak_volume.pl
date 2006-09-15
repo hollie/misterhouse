@@ -69,6 +69,7 @@ sub Audrey_volume_adjust {
     my ($parms) = @_;
     my $volume = $$parms{volume};
     return if !$volume or ($Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $$parms{mode} !~ /unmute/i);
+    $volume =~ s/%//g; # Audrey doesn't like percent signs in the volume setting.  It should be a raw number from 0 to 100.
 #   my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
 #   my $MHWeb = hostname() . ":" . $config_parms{http_port};
     my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
