@@ -802,7 +802,6 @@ sub zone_delay
 
 
 
-
 package X10_Switchlinc;
 
 @X10_Switchlinc::ISA = ('X10_Item');
@@ -810,7 +809,7 @@ package X10_Switchlinc;
 =begin comment
 
  # Example usage
-                                # Just picked this device to use to send the clear
+                                # Just picked this device to use to send the clear 
 $Office_Light_Torch->set("clear");
                                 # Send a command to each group member to make it listen
 $SwitchlincDisable->set("off");
@@ -826,6 +825,8 @@ sub new {
     my $self = &X10_Item::new($class, $id, $interface, $type);
     $id = $self->{x10_id};
 
+    # This state group must be run separately in a sequence.  This makes using them more manual
+    # then the state group listed below
     $self-> add ('XOGNGMGPGMG', 'clear');
     $self-> add ('XOGPGNGMGMG', 'setramprate');
     $self-> add ('XPGNGMGOGMG', 'setonlevel');
@@ -834,6 +835,95 @@ sub new {
     $self-> add ('XNGOGPGMG',   'setsceneramprate');
     $self-> add ('XMGNGPGOGPG', 'disablex10transmit');
     $self-> add ('XOGMGNGPGPG', 'enablex10transmit');
+
+    # The following states are used by X10_Scene and avoid the set sequencing required by the above states
+    # As a result, they are likely more safe and should be used in preference
+    $self-> add (('XOGNGMGPGMG' . substr($id, 1) . 'OGPGNGMGMG'), 'set ramp rate');
+    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . 'PGNGMGOGMG', 'set on level');
+#    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'MGNGOGPG',   'add to scene');
+    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . 'MGNGOGPG',   'add to scene');
+    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'OGPGMGNG',   'remove from scene');
+    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . 'NGOGPGMG',   'set scene ramp rate');
+    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  . substr($id, 1) 
+        . substr($id, 1, 1) . 'J' . 'MGNGPGOGPG','disable transmit');
+    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  . substr($id, 1) 
+        . substr($id, 1, 1) . 'J' . 'OGMGNGPGPG','enable transmit');
+
+    return $self;
+}
+
+
+package X10_Keypadlinc;
+
+@X10_Keypadlinc::ISA = ('X10_Item');
+
+sub new {
+    my ($class, $id, $interface, $type) = @_;
+    my $self = &X10_Switchlinc::new($class, $id, $interface, $type);
+  
+    return $self;
+}
+
+
+package X10_Lamplinc;
+
+@X10_Lamplinc::ISA = ('X10_Item');
+
+sub new {
+    my ($class, $id, $interface, $type) = @_;
+    my $self = &X10_Switchlinc::new($class, $id, $interface, $type);
+  
+    return $self;
+}
+
+
+package X10_Appliancelinc;
+
+@X10_Appliancelinc::ISA = ('X10_Item');
+
+=begin comment
+
+=cut
+
+@preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
+
+sub new {
+    my ($class, $id, $interface) = @_;
+    my $self = {};
+    $$self{state} = '';
+    bless $self, $class;
+    my $hc = substr($id, 0, 1);
+    push @{$appliances_by_house_code{$hc}}, $self;
+                                # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
+    if ($id =~ /^\S1(\d)$/) {
+        $id = $hc . substr 'ABCDEFG', $1, 1;
+    }
+    $id = "X$id";
+    $self->{x10_id} = $id;
+
+    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'MGNGOGPG',   'add to scene');
+    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'OGPGMGNG',   'remove from scene');
+    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  
+       . substr($id, 1) . substr($id, 1, 1) . 'J' . 'MGNGPGOGPG','disable transmit');
+    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  
+       . substr($id, 1) . substr($id, 1, 1) . 'J' . 'OGMGNGPGPG','enable transmit');
+
+
+    $self-> add ($id . $hc . 'J', 'on');
+    $self-> add ($id . $hc . 'K', 'off');
+    $self-> add ($id , 'manual');
+    $self-> add ($id . $hc . 'STATUS', 'status');
+
+
+    #1-way (receive only for these two)
+    # off is MPRESET_DIM1
+    $self-> add( $id . $preset_dim_levels[0] . 'PRESET_DIM1', "status_off" );
+
+    # on is JPRESET_DIM2
+    $self-> add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "status_on" );
+
+
+    $self->set_interface($interface);
 
     return $self;
 }
@@ -1108,6 +1198,146 @@ sub dark {
     return  $_[0]->{dark};
 }
 
+
+
+package X10_Scenemaster;
+
+@X10_Scenemaster::ISA = ('X10_Item');
+
+
+@preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
+
+sub new {
+    my $self = &X10_Item::new(@_);
+    my $id = $self->{x10_id};
+    my ($house_code) = $id =~ /^X(.)/;
+
+    $self-> add ($id . $id . $id . $id. $id . $id . $id . $id . $house_code . 'O', 'attention');
+    # 0% is MPRESET_DIM1
+    $self-> add( $id . $preset_dim_levels[0] . 'PRESET_DIM1', "0%" );
+    # 100% is JPRESET_DIM2
+    $self-> add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "100%" );
+
+    # 30 levels, 1% to 99%
+    for (my $percent=1; $percent<=99; $percent++) {
+      my $index = int(($percent - 1) * 30 / 99) + 1;
+      my $state2  = $id . ( ($index < 16 ) ?
+                  $preset_dim_levels[$index] . 'PRESET_DIM1' :
+                  $preset_dim_levels[$index - 16] . 'PRESET_DIM2');
+      $self-> add( $state2, $percent . "%" );
+    }
+
+
+    $self->{type}='preset';
+
+    return $self;
+}
+
+
+
+package X10_Scenemaster_Controller;
+
+@X10_Scenemaster_Controller::ISA = ('X10_Item');
+
+
+sub new {
+    my $self = &X10_Item::new(@_);
+    my $id = $self->{x10_id};
+
+
+    $self-> add ($id . '1', '1');
+    $self-> add ($id . '2', '2');
+    $self-> add ($id . '3', '3');
+    $self-> add ($id . '4', '4');
+    $self-> add ($id . '5', '5');
+    $self-> add ($id . '6', '6');
+    $self-> add ($id . '7', '7');
+    $self-> add ($id . '8', '8');
+    $self-> add ($id . '9', '9');
+    $self-> add ($id . 'A', '10');
+    $self-> add ($id . 'B', '11');
+    $self-> add ($id . 'C', '12');
+    $self-> add ($id . 'D', '13');
+    $self-> add ($id . 'E', '14');
+    $self-> add ($id . 'F', '15');
+    $self-> add ($id . 'G', '16');
+    $self-> add ($id . 'O', 'Enter');
+    $self-> add ($id . 'P', 'Esc');
+    $self-> add ($id . 'O' . $id . 'O' . $id . 'O', 'Programming Complete');
+
+    $self->{no_log} = 1;
+
+    return $self;
+}
+
+
+package X10_Scenemaster_Advanced_Controller;
+
+@X10_Scenemaster_Advanced_Controller::ISA = ('X10_Item');
+
+=begin comment
+
+Per house code.
+
+=cut
+
+
+sub new {
+    my $self = &X10_Item::new(@_);
+    my $id = $self->{x10_id};
+
+
+    $self-> add ($id . '1', 'soft start');
+    $self-> add ($id . '2', 'all lights on');
+    $self-> add ($id . '3', 'all lights off');
+    $self-> add ($id . '4', 'all units off');
+    $self-> add ($id . '5', 'universal all lights on');
+    $self-> add ($id . '6', 'universal all lights off');
+    $self-> add ($id . '7', 'universal all units off');
+    $self-> add ($id . '8', 'master scene enabled');
+    $self-> add ($id . '9', 'receive level');
+    $self-> add ($id . 'A', 'remote access');
+    $self-> add ($id . 'B', 'dimming setting');
+
+
+    $self->{no_log} = 1;
+    return $self;
+}
+
+
+package X10_Camera;
+
+@X10_Camera::ISA = ('X10_Appliance');
+
+sub new {
+    my $self = &X10_Appliance::new(@_);
+    my $id = $self->{x10_id};
+    my $house_code = substr($id, 1, 1);
+    my $unit_code;
+    my $unit_codes = '123456789ABCDEFG';
+   	if ($id =~ /[A-P](\d\d)/i) {
+		if ($1 <= 16 and $1 > 0) {
+			$unit_code = substr($unit_codes, $1 - 1, 1);
+			$id = $house_code . $unit_code;
+		}
+		else {
+			warn 'Invalid unit code';
+		}
+	}
+	else {
+		$unit_code = substr($id, 2, 1);
+	}
+
+	my $unit_code_index = ($unit_code =~ /\d/)?$unit_code:ord($unit_code) - 55;
+	my $offset = (int(($unit_code_index - 1) / 4) * 4) + 1; # start of camera group
+
+	for (0..3) {
+		my $i = substr($unit_codes, $_ + $offset - 1, 1);
+		$self->add($house_code . $i . $house_code . 'J', 'off') if $i ne $unit_code;
+	}
+}
+
+
 return 1;
 
 
@@ -1265,3 +1495,4 @@ return 1;
 # Revision 1.1  1999/11/07 00:36:56  winter
 # - moved out of Serial_Item.pm
 #
+
