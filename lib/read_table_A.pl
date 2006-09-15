@@ -112,6 +112,11 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other);
         $object = "X10_Lamplinc('$address', $other)";
     }
+    elsif($type eq "X10RL") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other);
+        $object = "X10_Relaylinc('$address', $other)";
+    }
     elsif($type eq "X10G") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
