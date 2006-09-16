@@ -205,13 +205,14 @@ sub new {
       $monitor_name = lc $monitor_name; # convert to lowercase to be consistent w/ xAP
       my $xap_address = "zm.zoneminder.$ZoneMinder_xAP::device_name:$monitor_name";
       my $xap_item = new xAP_Item('VMI.*', $xap_address);
-      my $friendly_name = "xap-zm-$monitor_name";
+      my $friendly_name = "xap_zm_$monitor_name";
       &main::store_object_data($xap_item, 'xAP_Item', $friendly_name, $friendly_name);
       $$self{xap_item} = $xap_item;
       $$self{xap_item}->tie_items($self);
       $$self{monitor_name} = $monitor_name;
       $$self{m_light_blanking_duration} = 5; # defaults to 5 seconds to allow minor delay plus ramp
       $$self{m_light_blanking_timer} = new Timer();
+      $self->restore_data('m_id');
       $self->add(@p_objects);
    } else {
       &::print_log("You must supply a monitor name when creating a new ZM_MonitorItem\n");
@@ -224,7 +225,7 @@ sub add_item {
    my ($self, $p_object) = @_;
    if ($p_object->isa('ZM_ZoneItem')) {
       push @{$$self{m_zones}}, $p_object;
-   } elsif ($p_object->isa('Light_Item')) {
+   } elsif ($p_object->isa('Light_Item') or $p_object->isa('Photocell_Item')) {
       &::print_log("Adding " . $p_object->{object_name} . " to " . $self->name . " for use in suspend/resume motion analysis");
    } else {
      &::print_log("WARNING!! objects of type " . ref($p_object) . " cannot be added to ZM_MonitorItems!");
@@ -359,7 +360,16 @@ sub set {
    } elsif ($p_setby->isa('ZM_ZoneItem') && $self->is_member($p_setby)) {
       $state = $p_setby->state;
    } elsif ($p_setby->isa('Light_Item')) {
-      if ($self->light_blanking_duration) {
+      my $photo_continue = 1;
+      # check to see if any Photocell_Items exist; if so and they are light then 
+      # don't perform any blanking operation
+      for my $photocell (my @photocells = $self->find_members('Photocell_Item')) {
+         if ($photocell->state eq 'light') {
+            $photo_continue = 0;
+            last;
+         }
+      }
+      if ($photo_continue && $self->light_blanking_duration) {
          $$self{m_light_blanking_timer}->set($self->light_blanking_duration, $self);
          $self->suspend_motion_analysis();
       }
