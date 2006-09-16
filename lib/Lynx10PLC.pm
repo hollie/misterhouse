@@ -55,6 +55,9 @@ Revision History
 						 to be combined together if they come in seperate, but within the specified
 						 time of each other.
 
+ Version 1.7 5/18/2006 - Added support to handle individual commands instead of requiring pairs. This
+                         allows the module to support the "group" capability similar to the CM11.
+
 =head1 .INI PARAMETERS
 
 Use these mh.ini parameters to enable the code:
@@ -85,7 +88,7 @@ use strict;
 
 package Lynx10PLC;
 require 5.000;
-my $VERSION = "1.6";
+my $VERSION = "1.7";
 my $ID      = "Lynx10PLC.pm";
 
 ########################################################################
@@ -222,11 +225,13 @@ my @table_dcodes2 = qw(6 14 2 10 1 9 5 13 7 15 3 11 0 8 4 12);
 my ($_netid, $_nodeid, $_seqnum, $_payld, $_paysz, $_chksum, $_paycmd);
 my ($_cmds, %Lynx10PLC);
 my ($_queuedCmds, $_queuedCmdsTime, $multiDelay);
+my ($_queuedAddr, $_queuedAddrTime);
 my ($logger);
 
 my $serial_port;
 
 my $error_detected;
+$_queuedAddr = undef;
 
 sub get_param
 {
@@ -395,6 +400,14 @@ sub check_for_data
 		&main::process_serial_data("X" . $_queuedCmds);
 	    $_queuedCmds = undef;
     }
+
+	# Force sending UNIT ADDRESS if timeout exceeded
+	if ($_queuedAddr && ((&main::get_tickcount - $_queuedAddrTime) >= 300))
+	{
+		print "Force sending command\n";	
+		my $payld = &cmd2payld("XAFORCEADDR", undef);
+		&send(NETID_X10, $payld) if $payld;
+	}
 }
 
 #################################################################
@@ -427,10 +440,9 @@ sub send_plc
 		return;
 	}
 
-	debugPrint ("--> $cmd") if $main::Debug{lynx10plc};
+	debugPrint ("******> $cmd") if $main::Debug{lynx10plc};
 
 	return unless my $payld = &cmd2payld($cmd, $module_type);
-
 	&send(NETID_X10, $payld);
 }
 
@@ -456,93 +468,114 @@ sub cmd2payld
 	my $dim_intervals = ($module_type =~ /(lm14|preset)/i) ? 64 : 20;
 
 	# Incoming string looks like this:  XA1AK
-	my ($house, $device, $code) = $cmd =~ /X(\S)(\S)(\S*)/;
+	my ($house, $code) = $cmd =~ /X(\S)(\S*)/;
 
 	my $hc = $table_hcodes2{$house};
-	my $uc = $table_ucodes2{$device};
+	my $uc = undef;
 
 	my $payld = undef;
 
+	# Save hc if not queued yet
+	$_queuedAddr = pack('C1', $hc) unless $_queuedAddr;
+
 	# Command "K" is X10_OFF
-	if ($code =~ /^\Sk/i)
+	if ($code =~ /^k/i)
 	{
-		$payld = pack('C4', X10_OFF, $hc, $uc, X10_EOL);
+		$payld = pack('C1', X10_OFF) . $_queuedAddr . pack('C1', X10_EOL);
 	}
 
 	# Command "J" is X10_ON
-	elsif ($code =~ /^\Sj/i)
+	elsif ($code =~ /^j/i)
 	{
-		$payld = pack('C4', X10_ON,  $hc, $uc, X10_EOL);
+		$payld = pack('C1', X10_ON) . $_queuedAddr . pack('C1', X10_EOL);
 	}
 
 	# Command "L" is X10_BRIGHT
-	elsif ($code =~ /^\Sl/i)
+	elsif ($code =~ /^l/i)
 	{
-		$payld = pack('C5', X10_BRIGHT,  $hc, $uc, X10_EOL, 6);
+		$payld = pack('C1', X10_BRIGHT) . $_queuedAddr . 
+			pack('C2', X10_EOL, 6);
 	}
 
 	# Command "M" is X10_DIM
-	elsif ($code =~ /^\Sm/i)
+	elsif ($code =~ /^m/i)
 	{
-		$payld = pack('C5', X10_DIM,  $hc, $uc, X10_EOL, 6);
+		$payld = pack('C1', X10_DIM) . $_queuedAddr . 	
+			pack('C2', X10_EOL, 6);
 	}
 
 
 	# Command "&P#" is X10_EXTENDED_CODE_1
 	elsif (my($extended_data) = $code =~ /&P(\d+)/)
 	{
-		if (($extended_data > 0) && ($extended_data <= 64))
+  	        if (($extended_data > 0) && ($extended_data <= 64))
 		{
 			--$extended_data;
-			$payld = pack('C6', X10_EXTENDED_CODE_1, $hc, $uc, X10_EOL, $extended_data, X10_EXTENDED_CODE_1);
+			$payld = pack('C1', X10_EXTENDED_CODE_1) . $_queuedAddr . 
+				pack('C3', X10_EOL, $extended_data, X10_EXTENDED_CODE_1);
 		}
 	}
 
 	# Command "-#" is X10_DIM
-	elsif ($code =~ /^\S-(\d+)$/)
+	elsif ($code =~ /^-(\d+)$/)
 	{
 		my $dim = int(($1 / 100) * $dim_intervals);
-		$payld = pack('C5', X10_DIM, $hc, $uc, X10_EOL, $dim) if $dim;
+		$payld = pack('C1', X10_DIM) . $_queuedAddr . 
+			pack('C2', X10_EOL, $dim) if $dim;
 	}
 
 	# Command "+#" is X10_BRIGHT
-	elsif ($code =~ /^\S\+(\d+)$/)
+	elsif ($code =~ /^\+(\d+)$/)
 	{
 		my $dim = int(($1 / 100) * $dim_intervals);
-		$payld = pack('C5', X10_BRIGHT, $hc, $uc, X10_EOL, $dim) if $dim;
+		$payld = pack('C1', X10_BRIGHT) . $_queuedAddr .
+			pack('C2', X10_EOL, $dim) if $dim;
 	}
 
 	# Command STATUS
-	elsif ($code =~ /^\SSTATUS$/)
+	elsif ($code =~ /^STATUS$/)
 	{
-		$payld = pack('C4', X10_STATUS_REQUEST, $hc, $uc, X10_EOL);
-		$Lynx10PLC{STATUS_REQUEST} = "$house$device";
+		$payld = pack('C1', X10_STATUS_REQUEST) . $_queuedAddr .
+			 pack('C1', X10_EOL);
+		#+++ $Lynx10PLC{STATUS_REQUEST} = "$house";
+		$Lynx10PLC{STATUS_REQUEST} = $Lynx10PLC{UNIT_ADDRESS};
 	}
 	# Preset Dim
-	elsif (my ($dcode,$dim) = $code =~ /(\S)PRESET_DIM(\d)$/)
+	elsif (my ($dim) = $code =~ /PRESET_DIM(\d)$/)
 	{
-		my $dim_level = $preset_dim_levels2{$dcode} + ($dim-1)*16;;
-		$payld = pack('C5', X10_DIM_PRESET,$hc, $uc, X10_EOL, $dim_level);
+		my $dim_level = $preset_dim_levels2{$house} + ($dim-1)*16;;
+		$payld = pack('C1', X10_DIM_PRESET) . $_queuedAddr . 
+			pack('C2', X10_EOL, $dim_level);
 	}
-	# just have house code and unit, no code
-	elsif (!$code)
+	# Command X10_ALL_LIGHTS_ON
+	elsif ($code =~ /^o/i) 
 	{
-		$payld = pack('C4', X10_UNITADDRESS, $hc, $uc, X10_EOL);
+		$payld = pack('C1', X10_ALLLIGHTSON) . $_queuedAddr .
+			pack('C1', X10_EOL);
 	}
-                                # Command X10_ALL_LIGHTS_ON
-    elsif ($code =~ /^\So/i) {
-                            #Correct form for house code only commands? (uc=0)
-        $payld = pack('C5', X10_ALLLIGHTSON,  $hc, 0, X10_EOL, 6);
+	# Command X10_ALL_OFF
+	elsif ($code =~ /^p/i)
+	{
+		$payld = pack('C1', X10_ALLUNITSOFF) . $_queuedAddr .
+			pack('C1', X10_EOL);
+	}
+	elsif ($code =~ /^FORCEADDR/i)
+	{
+		$payld = pack('C1', X10_UNITADDRESS) . $_queuedAddr .
+			pack('C1', X10_EOL);
     }
-                                # Command X10_ALL_OFF
-    elsif ($code =~ /^\Sp/i) {
-                            # Correct form for house codeonly commands? (uc=0)
-        $payld = pack('C5', X10_ALLUNITSOFF,  $hc, 0, X10_EOL, 6);
-    }
+	# just have house code and unit, no code.  
+	else
+	{
+		$_queuedAddr .= pack('C1', $table_ucodes2{$code});
+		$_queuedAddrTime = &main::get_tickcount;
+		$Lynx10PLC{UNIT_ADDRESS} = "$house$code";
+	}
 
-	debugPrint ("cmd2payld: cmd=$cmd, hc=$hc, uc=$uc, payld=" . unpack('H*', $payld))
+	debugPrint ("cmd2payld: cmd=$cmd, payld=" . unpack('H*', $payld))
 		 if $main::Debug{lynx10plc} && $payld;
 	&::logit("$::config_parms{data_dir}/logs/x10.log", "out: $cmd, payld=" . unpack('H*', $payld), "12") if $payld;
+	$_queuedAddr = undef if $payld;
 	return $payld;
 }
 
@@ -581,8 +614,6 @@ sub processPkt_LYNXNET
 	return unless $_netid == NETID_LYNXNET;
 	my $msg = "";
 
-	my @data = unpack('C*', $_payld);
-
 	if ($_paycmd == LNCMD_MFGANDMODEL)
 	{
 		$msg = "Mfg=" . unpack('H*', substr($_payld,1,2)) .
@@ -599,17 +630,6 @@ sub processPkt_LYNXNET
 		$msg = "Firmware Rev=" . unpack('H*', substr($_payld,1,2))
 			if $_paysz == 3;
 	}
-    elsif ($_paycmd == X10_ALLUNITSOFF) {
-        $_cmds .= "X" . $table_hcodes{$data[1]} .
-          $table_ucodes{ALL_OFF} if ($_paysz >= 2);
-    }
-    elsif ($_paycmd == X10_ALLLIGHTSON)
-      {
-          $_cmds .= "X" . $table_hcodes{$data[1]} .
-            $table_ucodes{ALL_LIGHTS_ON} if ($_paysz >= 2);
-      }
-
-
 	debugPrint ("LynxNet $msg") if $msg;
 }
 
@@ -625,8 +645,12 @@ sub processPkt_X10
 
 	if ($_paycmd == X10_UNITADDRESS)
 	{
-		$_cmds = $table_hcodes{$data[1]} .
-			$table_ucodes{$data[2]} if ($_paysz >= 3);
+		if ($_paysz >= 3)
+		{
+			$_cmds = $table_hcodes{$data[1]} . $table_ucodes{$data[2]};
+			$Lynx10PLC{UNITADDRESS} = $_cmds;
+			$Lynx10PLC{STATUS_REQUEST} = "";
+		}
 	}
 	elsif ($_paycmd == X10_OFF)
 	{
@@ -737,7 +761,7 @@ sub processPkt_X10
 		{
 			my $hc = unpack('C', substr($_payld,1,1));
 			$hc = $table_hcodes{$hc};
-			$_cmds = $hc . "STATUS_OFF";
+			$_cmds = $Lynx10PLC{STATUS_REQUEST} . $hc . "STATUS_OFF";
 #+++			$_cmds = $Lynx10PLC{STATUS_REQUEST} . "STATUS_OFF"
 #			if $Lynx10PLC{STATUS_REQUEST} =~ /^$hc/;
 		}
@@ -748,7 +772,7 @@ sub processPkt_X10
 		{
 			my $hc = unpack('C', substr($_payld,1,1));
 			$hc = $table_hcodes{$hc};
-			$_cmds = $hc . "STATUS_ON"
+			$_cmds = $Lynx10PLC{STATUS_REQUEST} . $hc . "STATUS_ON"
 #			$_cmds = $Lynx10PLC{STATUS_REQUEST} . "STATUS_ON"
 #			if $Lynx10PLC{STATUS_REQUEST} =~ /^$hc/;
 		}
@@ -782,12 +806,26 @@ sub processPkt_X10
 			}
 		}
 	}
+	elsif ($_paycmd == X10_ALLUNITSOFF)
+	{
+		$_cmds .= "X" . $table_hcodes{$data[1]} .
+			$table_ucodes{ALL_OFF} if ($_paysz >= 2);
+	}
+	elsif ($_paycmd == X10_ALLLIGHTSON)
+	{
+		$_cmds .= "X" . $table_hcodes{$data[1]} .
+			$table_ucodes{ALL_LIGHTS_ON} if ($_paysz >= 2);
+	}
 	elsif ($main::Debug{lynx10plc})
 	{
 		printf "LynxNet X10 unhandled command: %02X\n",$_paycmd;
 	}
 
 	debugPrint ($msg) if $msg;
+
+	# Sleep for a 1/2 second if a collision detected
+    select (undef, undef, undef, 0.500) if $msg =~ /Collision/;;
+
 	debugPrint ("Lynx10PLC::processPkt_X10: _cmds= " . $_cmds)
 		if $main::Debug{lynx10plc} && $_cmds;
 
@@ -972,6 +1010,8 @@ sub read
 
 				my $msg = "RD pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" .
 					unpack('H*',$pkt) . ", payld=" . unpack('H*',$_payld) . $status;
+				$msg .= "(" . PayCmdName($_paycmd) . ")" if $_paycmd and $_payld;
+				print "$msg\n" if $main::Debug{serial}; 
 				system ("$logger \"$msg\"") if $logger;
                 #debugPrint ($msg) if $main::Debug{lynx10plc};
 
@@ -1023,6 +1063,8 @@ sub send
 
 	my $msg = "WR pkt: len=" . sprintf("%2d", length($pkt)) . ", data=" . unpack('H*',$pkt) .
 		", payld=" . unpack('H*',$payld);
+	$msg .= "(" . PayCmdName($_paycmd) . ")" if $_paycmd;
+	print "$msg\n" if $main::Debug{serial}; 
 	system("$logger \"$msg\"") if $logger;
 
 	# write packet to serial interface
