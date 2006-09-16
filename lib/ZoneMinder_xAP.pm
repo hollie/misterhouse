@@ -56,13 +56,13 @@ Usage:
 
      Declaration:
 
-	$my_monitor = new ZM_MonitorItem('driveway'); # driveway is the name of the 
-	                                              # zoneminder monitor
+	ZM_MONITOR, driveway, my_monitor, Outside|Driveway; 
+        # driveway is the name of the zoneminder monitor 
 
-	Zones are associated with a monitor using the add method:
-
-	$my_monitor->add($zone_near);
-	$my_monitor->add($zone_far);
+	# associate zones
+        ZM_ZONE, near, zone_near, my_monitor
+        ZM_ZONE, far, zone_far, my_monitor 
+        # "near" and "far" are zoneminder zones for the driveway monitor
 
 	Also, zones can be "wrapped" by Motion_Items so that they can participate
 	in presence/occupancy logic:
@@ -70,6 +70,12 @@ Usage:
 	my $near_motion_item = new MotionItem($zone_near);
 	my $near_presence_item = new Presence_Item($near_motion_item);
 
+        If a Light_Item is added to the monitor, then motion analysis can be automatically
+        suspended for x seconds when the Light_Item is turned on or off.  If one or more
+        Photocell_Item's are added, then prevent Light_Item blanking if at least one of the 
+        Photocells' state is "light" (since the Light_Item's turning on and/or off would
+        no longer impact motion analysis).
+ 
      Properties:
 
 	id - integer; the value assigned to the monitor by zoneminder
