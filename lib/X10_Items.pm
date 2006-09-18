@@ -1,7 +1,12 @@
+# $Date$
+# $Revision$
 
 package X10_Item;
 
 #use strict;
+
+use X10_Interface;
+use Serial_Item;
 
 my (%items_by_house_code, %appliances_by_house_code, $sensorinit);
 
@@ -14,7 +19,7 @@ sub reset {
     $sensorinit = 0;
 }
 
-@X10_Item::ISA = ('Serial_Item');
+@X10_Item::ISA = ('X10_Interface');
 
 sub new {
     my ($class, $id, $interface, $type) = @_;
@@ -28,6 +33,8 @@ sub new {
 #   print "\n\nWarning: duplicate ID codes on different X10_Item objects: id=$id\n\n" if $serial_item_by_id{$id};
 
     $self->{type} = $type;
+
+    $self->set_interface($interface);
 
     restore_data $self ('level'); # Save brightness level between restarts
 
@@ -45,34 +52,34 @@ sub new {
                                 # Setup house only codes:     e.g. XAO, XAP, XA+20
                                 #  - allow for all bright/dim commands so we can detect incoming signals
         if (length($id) == 2) {
-            $self-> add ($id . 'O', 'on');
-            $self-> add ($id . 'P', 'off');
-            $self-> add ($id . 'L', 'brighten');
-            $self-> add ($id . 'M', 'dim');
-            $self-> add ($id . 'STATUS', 'status');
+            $self->add ($id . 'O', 'on');
+            $self->add ($id . 'P', 'off');
+            $self->add ($id . 'L', 'brighten');
+            $self->add ($id . 'M', 'dim');
+            $self->add ($id . 'STATUS', 'status');
         }
                                 # Setup unit-command  codes:  e.g. XA1AJ, XA1AK, XA1+20
                                 # Note: The 0%->100% states are handled directly in Serial_Item.pm
         else {
-            $self-> add ($id . $hc . 'J', 'on');
-            $self-> add ($id . $hc . 'K', 'off');
-            $self-> add ($id . $hc . 'J' . $hc . 'J', 'double on');
-            $self-> add ($id . $hc . 'K' . $hc . 'K', 'double off');
-            $self-> add ($id . $hc . 'J' . $hc . 'J' . $hc . 'J',  'triple on');
-            $self-> add ($id . $hc . 'K' . $hc . 'K' . $hc . 'K',  'triple off');
-            $self-> add ($id . $hc . 'L', 'brighten');
-            $self-> add ($id . $hc . 'M', 'dim');
-            $self-> add ($id . $hc . 'STATUS', 'status');
-            $self-> add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
+            $self->add ($id . $hc . 'J', 'on');
+            $self->add ($id . $hc . 'K', 'off');
+            $self->add ($id . $hc . 'J' . $hc . 'J', 'double on');
+            $self->add ($id . $hc . 'K' . $hc . 'K', 'double off');
+            $self->add ($id . $hc . 'J' . $hc . 'J' . $hc . 'J',  'triple on');
+            $self->add ($id . $hc . 'K' . $hc . 'K' . $hc . 'K',  'triple off');
+            $self->add ($id . $hc . 'L', 'brighten');
+            $self->add ($id . $hc . 'M', 'dim');
+            $self->add ($id . $hc . 'STATUS', 'status');
+            $self->add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
 
             if ($self->{type} and $self->{type} =~ /(preset3)/i) {
                 my @preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
 
                 # 0% is MPRESET_DIM1
-                $self-> add( $id . $preset_dim_levels[0] . 'PRESET_DIM1', "0%" );
+                $self->add( $id . $preset_dim_levels[0] . 'PRESET_DIM1', "0%" );
 
                 # 100% is JPRESET_DIM2
-                $self-> add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "100%" );
+                $self->add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "100%" );
 
                 # 30 levels, 1% to 99%
                 for (my $percent=1; $percent<=99; $percent++) {
@@ -80,17 +87,47 @@ sub new {
                     my $state2  = $id . ( ($index < 16 ) ?
                       $preset_dim_levels[$index] . 'PRESET_DIM1' :
                       $preset_dim_levels[$index - 16] . 'PRESET_DIM2');
-                    $self-> add( $state2, $percent . "%" );
+                    $self->add( $state2, $percent . "%" );
                 }
             }
         }
     }
 
-    $self->set_interface($interface);
-
     return $self;
 }
 
+sub add {
+	my ($self, $id, $state)=@_;
+
+	$self->{interface}->add($id, $state);
+	push (@{$self->{states}},$state);
+}
+
+sub set_interface {
+	my ($self, $interface) = @_;
+
+	# if an interface is specified, then we need to search through the
+	# possible interface modules until we find one that will work with it
+    if ($interface) {
+    	if (X10_Interface->supports($interface)) {
+    		#print "x10 interface supplied and supported by X10_Interface\n";
+    		$self->{interface}=new X10_Interface(undef,undef,$interface);
+		} else {
+    		#print "x10 interface supplied and supported by Serial_Item\n";
+			$self->{interface}=new Serial_Item(undef,undef,$interface);
+		}
+	} else {
+		if (X10_Interface->lookup_interface){
+    		#print "x10 interface not supplied, supported by X10_Interface\n";
+			$self->{interface}=new X10_Interface;
+		} else {
+    		#print "x10 interface not supplied, supported by Serial_Item\n";
+			$self->{interface}=new Serial_Item;
+		}
+
+	}
+	$self->{interface}->set_interface($interface);
+}
 
 sub property_changed {
     my ($self, $property, $new_value, $old_value) = @_;
@@ -172,13 +209,14 @@ sub set {
 
                                 # Send the command
     $self->SUPER::set($state, $set_by);
+    $self->{interface}->set($state, $set_by);
 
                                 # Some presetable devices, like the Leviton 6381, will remain addressed
                                 # after a preset command and will accept subsequent unrelated
                                 # commands unless they are set to ON.
     if ($self->{type} =~ /preset2/i and $state =~ /^\d+\%$/) {
-        &Serial_Item::send_x10_data($self->{interface},       $self->{x10_id}) ;
-        &Serial_Item::send_x10_data($self->{interface}, 'X' . substr($self->{x10_id},1,1) . 'J') ;
+        $self->{interface}->send_x10_data($self->{interface},       $self->{x10_id}) ;
+        &self->{interface}->send_x10_data($self->{interface}, 'X' . substr($self->{x10_id},1,1) . 'J') ;
     }
 
                                 # Set objects that match House Code commands
@@ -192,7 +230,7 @@ sub set {
 sub set_receive {
     my ($self, $state, $set_by) = @_;
     &set_x10_level($self, $state);
-    $self->SUPER::set_receive($state, $set_by);
+    $self->{interface}->set_receive($state, $set_by);
 }
 
                                 # Try to keep track of X10 brightness level
@@ -310,6 +348,8 @@ sub new {
 
     bless $self, $class;
 
+	$self->set_interface($interface);
+
 #   print "\n\nWarning: duplicate ID codes on different X10_Appliance objects: id=$id\n\n" if $serial_item_by_id{$id};
 
     my $hc = substr($id, 0, 1);
@@ -326,7 +366,6 @@ sub new {
     $self-> add ($id , 'manual');
     $self-> add ($id . $hc . 'STATUS', 'status');
 
-    $self->set_interface($interface);
 
     return $self;
 }
@@ -357,6 +396,8 @@ sub new {
     $$self{state} = '';
 
     bless $self, $class;
+
+    $self->set_interface($interface);
 
     print "\n\nWarning: X10_Garage_Door object should not specify unit code; ignored\n\n" if length($id) > 1;
     my $hc = substr($id, 0, 1);
@@ -546,8 +587,6 @@ sub new {
     $self-> add ($id . '07461d',   '1113COO');
     $self-> add ($id . '07471d',   '1113OOO');
 
-    $self->set_interface($interface);
-
     return $self;
 }
 
@@ -558,7 +597,8 @@ package X10_IrrigationController;
 #  listed here: http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027
 
 
-@X10_IrrigationController::ISA = ('Serial_Item');
+#@X10_IrrigationController::ISA = ('Serial_Item');
+@X10_IrrigationController::ISA = ('X10_Item');
 @X10_IrrigationController::Inherit::ISA = @ISA;
 
 sub new {
@@ -568,6 +608,8 @@ sub new {
     $$self{state} = '';
 
     bless $self, $class;
+
+    $self->set_interface($interface);
 
     my $hc = substr($id, 0, 1);
     $self->{x10_hc} = $hc;
@@ -607,8 +649,6 @@ sub new {
     $self-> add ("X" . $hc . "E" . $hc . 'K', '14-off');
     $self-> add ("X" . $hc . "F" . $hc . 'K', '15-off');
     $self-> add ("X" . $hc . "G" . $hc . 'K', '16-off');
-
-    $self->set_interface($interface);
 
     $self->{zone_runtimes} = [10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
     $self->{zone_runcount} = 0;
@@ -983,6 +1023,7 @@ sub new
   my $self = {};
   $$self{state} = '';
   bless $self, $class;
+  $self->set_interface($interface);
 #  print "\n\nWarning: duplicate ID codes on different TempLinc objects: id=$id\n\n" if $serial_item_by_id{$id};
   my $hc = substr($id, 0, 1);
   push @{$TempLinc_by_house_code{$hc}}, $self;
@@ -1021,7 +1062,6 @@ sub new
     $i++;
   }
 
-  $self->set_interface($interface);
   return $self;
 }
 
@@ -1033,6 +1073,7 @@ sub new {
     my $self = {};
     $$self{state} = '';
     bless $self, $class;
+    $self->set_interface($interface);
     my $hc = substr($id, 0, 1);
     push @{$ote_by_house_code{$hc}}, $self;
     $id = "X$id";
@@ -1053,7 +1094,6 @@ sub new {
     $self-> add ($id . $hc . 'N', 'C-1');
     $self-> add ($id . $hc . 'L', 'JN');
     $self-> add ($id , 'manual');
-    $self->set_interface($interface);
     return $self;
 }
 
@@ -1100,7 +1140,8 @@ sub new {
 
 package X10_Sensor;
 
-@X10_Sensor::ISA = ('Serial_Item');
+#@X10_Sensor::ISA = ('Serial_Item');
+@X10_Sensor::ISA = ('X10_Item');
 
 sub init {
     &::print_log("Calling Serial_match_add_hook");
@@ -1117,13 +1158,13 @@ sub new {
     $$self{state} = '';
     bless $self, $class;
 
+    $self->set_interface();
+
     &X10_Sensor::init() unless $sensorinit;
 
     &X10_Sensor::add($self, $id, $name, $type);
 
     restore_data $self ('dark'); # Save dark flag between restarts
-
-    $self->set_interface();
 
     return $self;
 }
@@ -1177,12 +1218,16 @@ sub add {
         $id2 = '1' if $id2 eq 'H';
     }
     if ($motion_detector == 1) {
-    	&Serial_Item::add($self, "X$hc${id1}${hc}J", 'motion');
-    	&Serial_Item::add($self, "X$hc${id1}${hc}K", 'still');
+    	#&Serial_Item::add($self, "X$hc${id1}${hc}J", 'motion');
+    	#&Serial_Item::add($self, "X$hc${id1}${hc}K", 'still');
+    	&X10_Item::add($self, "X$hc${id1}${hc}J", 'motion');
+    	&X10_Item::add($self, "X$hc${id1}${hc}K", 'still');
     }
     if ($brightness_detector) {
-        &Serial_Item::add($self, "X$hc${id2}${hc}K", 'light');
-        &Serial_Item::add($self, "X$hc${id2}${hc}J", 'dark');
+        #&Serial_Item::add($self, "X$hc${id2}${hc}K", 'light');
+        #&Serial_Item::add($self, "X$hc${id2}${hc}J", 'dark');
+        &X10_Item::add($self, "X$hc${id2}${hc}K", 'light');
+        &X10_Item::add($self, "X$hc${id2}${hc}J", 'dark');
     }
     return;
 }
@@ -1361,160 +1406,3 @@ sub new {
 
 
 return 1;
-
-
-# $Log: X10_Items.pm,v $
-# Revision 1.51  2006/01/29 20:30:17  winter
-# *** empty log message ***
-#
-# Revision 1.50  2005/10/02 17:24:47  winter
-# *** empty log message ***
-#
-# Revision 1.49  2005/05/22 18:13:06  winter
-# *** empty log message ***
-#
-# Revision 1.48  2005/03/20 19:02:01  winter
-# *** empty log message ***
-#
-# Revision 1.47  2005/01/23 23:21:45  winter
-# *** empty log message ***
-#
-# Revision 1.46  2004/11/22 22:57:26  winter
-# *** empty log message ***
-#
-# Revision 1.45  2004/07/18 22:16:37  winter
-# *** empty log message ***
-#
-# Revision 1.44  2004/06/06 21:38:44  winter
-# *** empty log message ***
-#
-# Revision 1.43  2004/05/02 22:22:17  winter
-# *** empty log message ***
-#
-# Revision 1.42  2004/03/23 01:58:08  winter
-# *** empty log message ***
-#
-# Revision 1.41  2004/02/01 19:24:35  winter
-#  - 2.87 release
-#
-# Revision 1.40  2003/11/23 20:26:01  winter
-#  - 2.84 release
-#
-# Revision 1.39  2003/07/06 17:55:11  winter
-#  - 2.82 release
-#
-# Revision 1.38  2003/04/20 21:44:08  winter
-#  - 2.80 release
-#
-# Revision 1.37  2003/03/09 19:34:41  winter
-#  - 2.79 release
-#
-# Revision 1.36  2003/02/08 05:29:24  winter
-#  - 2.78 release
-#
-# Revision 1.35  2003/01/12 20:39:21  winter
-#  - 2.76 release
-#
-# Revision 1.34  2002/12/02 04:55:20  winter
-# - 2.74 release
-#
-# Revision 1.33  2002/11/10 01:59:57  winter
-# - 2.73 release
-#
-# Revision 1.32  2002/10/13 02:07:59  winter
-#  - 2.72 release
-#
-# Revision 1.31  2002/09/22 01:33:24  winter
-# - 2.71 release
-#
-# Revision 1.30  2002/08/22 13:45:50  winter
-# - 2.70 release
-#
-# Revision 1.29  2002/08/22 04:33:20  winter
-# - 2.70 release
-#
-# Revision 1.28  2002/07/01 22:25:28  winter
-# - 2.69 release
-#
-# Revision 1.27  2002/05/28 13:07:51  winter
-# - 2.68 release
-#
-# Revision 1.26  2002/03/31 18:50:40  winter
-# - 2.66 release
-#
-# Revision 1.25  2002/03/02 02:36:51  winter
-# - 2.65 release
-#
-# Revision 1.24  2002/01/19 21:11:12  winter
-# - 2.63 release
-#
-# Revision 1.23  2001/12/16 21:48:41  winter
-# - 2.62 release
-#
-# Revision 1.22  2001/11/18 22:51:43  winter
-# - 2.61 release
-#
-# Revision 1.21  2001/10/21 01:22:32  winter
-# - 2.60 release
-#
-# Revision 1.20  2001/06/27 03:45:14  winter
-# - 2.54 release
-#
-# Revision 1.19  2001/05/28 21:14:38  winter
-# - 2.52 release
-#
-# Revision 1.18  2001/03/24 18:08:38  winter
-# - 2.47 release
-#
-# Revision 1.17  2001/02/24 23:26:40  winter
-# - 2.45 release
-#
-# Revision 1.16  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 1.15  2001/01/20 17:47:50  winter
-# - 2.41 release
-#
-# Revision 1.14  2000/12/21 18:54:15  winter
-# - 2.38 release
-#
-# Revision 1.13  2000/11/12 21:02:38  winter
-# - 2.34 release
-#
-# Revision 1.12  2000/10/22 16:48:29  winter
-# - 2.32 release
-#
-# Revision 1.11  2000/10/01 23:29:40  winter
-# - 2.29 release
-#
-# Revision 1.10  2000/08/19 01:25:08  winter
-# - 2.27 release
-#
-# Revision 1.9  2000/06/24 22:10:55  winter
-# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
-#
-# Revision 1.8  2000/05/27 16:40:10  winter
-# - 2.20 release
-#
-# Revision 1.7  2000/02/20 04:47:55  winter
-# -2.01 release
-#
-# Revision 1.6  2000/01/27 13:45:00  winter
-# - add Garage_Door
-#
-# Revision 1.5  2000/01/13 13:40:35  winter
-# - added Garage_Door
-#
-# Revision 1.4  2000/01/02 23:44:56  winter
-# - add 'none' state
-#
-# Revision 1.3  1999/11/21 02:55:40  winter
-# - fix set_with_timer bug
-#
-# Revision 1.2  1999/11/08 02:21:40  winter
-# - add set_with_timer method
-#
-# Revision 1.1  1999/11/07 00:36:56  winter
-# - moved out of Serial_Item.pm
-#
-

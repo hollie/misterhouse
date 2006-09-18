@@ -97,7 +97,7 @@ my %custom_child_windows; #subs by window_name, display sub checks and calls sub
 my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
 my (%object_names_by_file, %object_names_by_type, %object_names_by_webname, $pause_mode);
-my (@Server_Ports, , %Local_Addresses, @Local_Addresses, %Passwords, @Password_Allow_Clients);
+my (@Server_Ports, @Generic_Devices, %Local_Addresses, @Local_Addresses, %Passwords, @Password_Allow_Clients);
 my (%proxy_servers, %app_parms);
 my ($CON_IN, $CON_OUT);
 
@@ -106,6 +106,7 @@ my($state, $temp);              # Some generic useful vars
 use vars '%Tk_objects', '%Tk_results', '@Tk_widgets', '@Object_Types'; # So we can use in http_server
 use vars '$MW';                 # So that programs that we 'do' can use the top window
 use vars '%Serial_Ports';       # So we can get at it from the Serial_Item package.
+use vars '%Generic_Devices';
 use vars '%Socket_Ports';
 use vars '%Save', '%Flags';
 use vars '%Persistent';         # Uses Dumper for dynamic objects e.g. timers.pl
@@ -591,6 +592,7 @@ sub setup {
     use Timer;                  # This needs to be first, as it is used in Voice_Cmd (and elsewhere?)
     use File_Item;
     use Generic_Item;
+    use Device_Item;
     use Group;
     use IR_Item;
     use RF_Item;
@@ -712,6 +714,7 @@ sub setup {
         push(@Server_Ports, $1)         if $parm =~ /(http)_port/;
         push(@Server_Ports, $1)         if $parm =~ /^(server\S+)_port/;
         push(@Generic_Serial_Ports, $1) if $parm =~ /^(serial\S+)_port/;
+        push(@Generic_Devices, $1)      if $parm =~ /^(.+?)_device$/;
     }
 #   print "Server         ports defined: @Server_Ports\n" if @Server_Ports;
 #   print "Generic serial ports defined: @Generic_Serial_Ports\n" if @Generic_Serial_Ports;
@@ -758,6 +761,9 @@ sub setup {
                             $config_parms{$port_name . "_prefix"},
                             $config_parms{$port_name . "_parity"});
         $Serial_Ports{$port_name}{process_data} = 1 if $config_parms{$port_name . "_process_data"};
+    }
+    foreach my $device_name (@Generic_Devices) {
+    	&generic_device_create($device_name);
     }
 
                                 # Grandfather in old ibutton parms
@@ -1243,7 +1249,7 @@ my (%hook_pointers, %hook_locations);
 sub add_hook_code {
 
     my @hook_locations = qw( MainLoop_pre MainLoop_post
-                             Serial_data  Serial_match Serial_Item::send_x10_data
+                             Serial_data  Serial_match X10_Interface::send_x10_data
                              State_change iButton_receive
                              Play_pre Play_post Play_parms Speak_pre Speak_post Speak_parms
                              Jabber_Message Jabber_IQ Jabber_Presence
@@ -1434,16 +1440,17 @@ sub check_for_action {
     &check_for_serial_data           unless $Disable == 8;
     &check_for_socket_data_http      unless $Disable == 9;
     &check_for_socket_data           unless $Disable == 10;
-    &check_for_tied_times            unless $Disable == 11 and !$New_Minute;
-    &Timer::check_for_timer_actions  unless $Disable == 12;
-    &check_for_external_command_file unless $Disable == 13;
+    &check_for_generic_device_data   unless $Disable == 11;
+    &check_for_tied_times            unless $Disable == 12 and !$New_Minute;
+    &Timer::check_for_timer_actions  unless $Disable == 13;
+    &check_for_external_command_file unless $Disable == 14;
 
     my $tic1 = &get_tickcount;
     $Benchmark_Members{' OTHER'} += $tic1 - $loop_tickcount1 if $Benchmark_Members{on_off_flag};
 
                                 # Use eval to catch minor errors without abending
                                 #  - about 10% slower (170 -> 150)
-    &MainLoop_pre_hooks()            unless $Disable == 14; # Created by &add_hooks
+    &MainLoop_pre_hooks()            unless $Disable == 15; # Created by &add_hooks
 
                                 # Safegard from sleeping too much
     my $max_sleep = 500;
@@ -1451,8 +1458,8 @@ sub check_for_action {
     $Loop_Sleep_Time = $max_sleep if $max_sleep < $Loop_Sleep_Time;
 
 #   &loop_code;
-    &eval_user_code_loop             unless $Disable == 15;
-    &MainLoop_post_hooks()           unless $Disable == 16;  # Created by &add_hooks
+    &eval_user_code_loop             unless $Disable == 16;
+    &MainLoop_post_hooks()           unless $Disable == 17;  # Created by &add_hooks
 
                                 # Substract out time spent sleeping
     my $tic2 = &get_tickcount - $loop_sleep_total;
@@ -2853,7 +2860,7 @@ sub eval_user_code_error {
 
 sub eval_user_code_reset {
     &Socket_Item::reset;        # So we can check for duplicate items
-    &Serial_Item::reset;        # So we can check for duplicate items
+    &Device_Item::reset;        # So we can check for duplicate items
     &Voice_Cmd::reset;          # So we can check for duplicate voice commands.
     &X10_Item::reset;           # Reset some list arrays
     &EIB_Item::reset;           # Reset some list arrays
@@ -3972,7 +3979,7 @@ sub process_external_command {
     }
                                 # Allow for simulated serial data
 #   elsif ($cmd =~ /[A-Z0-9]+$/ and &process_serial_data($cmd)) {
-    elsif ($cmd =~ /[A-Z0-9]+$/ and my @refs = &Serial_Item::serial_items_by_id($cmd)) {
+    elsif ($cmd =~ /[A-Z0-9]+$/ and my @refs = &Device_Item::items_by_id($cmd)) {
         for my $ref (@refs) {
             if (my $state = $$ref{state_by_id}{$cmd}) {
 #               set_receive $ref $state;
@@ -4027,7 +4034,7 @@ sub process_serial_data {
             my ($house, $device, $house2, $level) = $event_data1 =~ /(\S)(\S)(\S)POLL/;
 
             my $event_data = 'X' . $house . $device;
-            if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
+            if (my @refs = &Device_Item::items_by_id($event_data)) {
                 for my $ref (@refs) {
                     if ($ref->{x10_id}) {
                         &print_log($ref->{x10_id} . $house . "POLL: " . substr($ref->{object_name},1) . " polled");
@@ -4048,7 +4055,7 @@ sub process_serial_data {
 
                                                               #set level here;
             my $event_data = 'X' . $house . $device;
-            if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
+            if (my @refs = &Device_Item::items_by_id($event_data)) {
                 for my $ref (@refs) {
                     if ($ref->{x10_id}) {
                 #   print "FROM LEVEL:" . $ref->{level} . "\n";
@@ -4071,7 +4078,7 @@ sub process_serial_data {
             $state = 'J' if $state eq 'ON';
             $state = 'K' if $state eq 'OFF';
             my $event_data = 'X' . $house . $device . $house . $state;
-            if (my @refs = &Serial_Item::serial_items_by_id($event_data)) {
+            if (my @refs = &Device_Item::items_by_id($event_data)) {
                 for my $ref (@refs) {
                     if ($state = $$ref{state_by_id}{$event_data}) {
 #                       $ref->{state} = $state;
@@ -4119,7 +4126,7 @@ sub process_serial_data {
     }
 
                                 # Look for a direct match
-    if (@refs = &Serial_Item::serial_items_by_id($event_data)) {
+    if (@refs = &Device_Item::items_by_id($event_data)) {
         $matched = 1;
         for $ref (@refs) {
 #           print "db et=$event_type ed=$event_data o=$ref->{object_name}\n";
@@ -4135,7 +4142,7 @@ sub process_serial_data {
         }
     }
                                 # Check for string type items (e.g. caller ID or analog data)
-    elsif ($event_type ne 'X' and @refs = &Serial_Item::serial_items_by_id($event_type)) {
+    elsif ($event_type ne 'X' and @refs = &Device_Item::items_by_id($event_type)) {
         $matched = 1;
         for $ref (@refs) {
 #           print "db et=$event_type ed=$event_data o=$ref->{object_name}\n";
@@ -4231,7 +4238,7 @@ sub process_serial_data {
             my $event_data2 = 'X' . $prev_x10_event . substr($event_data, 1);
             print_log "X10: Merged string data=$event_data2" if $Debug{x10} or $config_parms{x10_errata} >= 3;
                                 # See if it matches as one string
-            if (&Serial_Item::serial_items_by_id($event_data2)) {
+            if (&Device_Item::items_by_id($event_data2)) {
                 print_log "X10: Event found for merged data=$event_data2" if $config_parms{x10_errata} >= 3;
                 push(@serial_data_buffer, $event_data2);
                 return 1;
@@ -4314,7 +4321,7 @@ sub process_x10_chunks {
                                 # Look for 4 character match
                                 #  - also match raw bright/dim commands (XaBcd is a match if B=L or M)
         if ($event_data_chunk = 'X' . substr($event_data, $pos, 4) and
-            (&Serial_Item::serial_items_by_id($event_data_chunk)) or
+            (&Device_Item::items_by_id($event_data_chunk)) or
             ($event_data_chunk =~ /^X\S[ML]\S\S/)) {
 #           (substr($event_data, $pos) =~ /^\S[ML]/)) {
             print "  Found match: $event_data_chunk\n" if $Debug{x10};
@@ -4330,7 +4337,7 @@ sub process_x10_chunks {
         }
                                 # Look for 2 character match
         elsif ($event_data_chunk = 'X' . substr($event_data, $pos, 2) and
-               &Serial_Item::serial_items_by_id($event_data_chunk)) {
+               &Device_Item::items_by_id($event_data_chunk)) {
             print "  Found match: $event_data_chunk\n" if $Debug{x10};
             push(@serial_data_buffer, $event_data_chunk);
             $flag_found = 1;
@@ -4338,7 +4345,7 @@ sub process_x10_chunks {
         }
                                 # Look for a 8 character match, like for a Stanley garage door transmitters
         elsif ($event_data_chunk = 'X' . substr($event_data, $pos, 8) and
-               &Serial_Item::serial_items_by_id($event_data_chunk)) {
+               &Device_Item::items_by_id($event_data_chunk)) {
             print "  Found match: $event_data_chunk\n" if $Debug{x10};
             push(@serial_data_buffer, $event_data_chunk);
             $flag_found = 1;
@@ -5304,6 +5311,93 @@ sub set_global_vars {
 #   &object_states_save if $New_Minute and !($Minute % 5); $Time_Increment
     &object_states_save if $New_Minute and !($Time_Start_time or $Time_Stop_time); # Skip if in accelerated mode
 
+}
+
+sub generic_device_create {
+	my ($name)=@_;
+
+
+	my $location = $config_parms{$name.'_device'};
+	my $datatype = $config_parms{$name.'_device_datatype'};
+	my $break  = $config_parms{$name.'_device_break'};
+	my $mode  = $config_parms{$name.'_device_mode'};
+
+	unless ($location) {
+		&print_log("can't create generic device $name without a location");
+		return;
+	}
+
+	print(" - creating generic device $name on $location\n");
+
+	$datatype = 'raw' unless $datatype;
+	$break = "\r\n" unless $break;
+	$mode = "rw" unless $mode;
+
+	$Generic_Devices{$name}{location} = $location;
+	$Generic_Devices{$name}{datatype} = $datatype;
+	$Generic_Devices{$name}{break} = $break;
+	$Generic_Devices{$name}{readable} = ($mode =~ /r/);
+	$Generic_Devices{$name}{writeable} = ($mode =~ /w/);
+
+	&generic_device_open($name);
+}
+
+sub generic_device_open {
+	my ($name)=@_;
+
+	my $flags= O_NONBLOCK;
+
+	if ($Generic_Devices{$name}{readonly}) {
+		$flags |= O_RDONLY;
+	} else {
+		$flags |= O_RDWR;
+	}
+
+	my $handle=new IO::File($Generic_Devices{$name}{location}, $flags);
+
+	if (!defined $handle) {
+		&print_log("Can't open generic device $name: ".$Generic_Devices{$name}{location}.": $!");
+		return;
+	}
+
+	$Generic_Devices{$name}{handle}=$handle;
+}
+
+sub check_for_generic_device_data {
+	return unless %Generic_Devices;
+
+	foreach my $name (keys(%Generic_Devices)) {
+		next unless $Generic_Devices{$name}{handle};
+		next unless $Generic_Devices{$name}{readable};
+		my $rin='';
+		vec($rin,$Generic_Devices{$name}{handle}->fileno,1)=1;
+		my $numFound=select($rin,undef,undef,0);
+		if ($numFound) {
+			read_from_generic_device($name);
+		}
+	}
+}
+
+sub read_from_generic_device {
+	my ($name)=@_;
+
+	my $buffer;
+
+	while ($Generic_Devices{$name}{handle}->sysread($buffer,1024)) {
+		# &print_log("read ".length($buffer)." bytes from generic device $name");
+		# &print_log("buffer is $buffer");
+		$Generic_Devices{$name}{data} .= $buffer;
+	}
+	if ($! and $! != 11) { # error 11 is "resource temporarily unavailable", we ignore it
+		&print_log("Error reading from $name: $! ",int($!));
+	}
+	if ($Generic_Devices{$name}{datatype} ne 'raw') {
+		my $break = $Generic_Devices{$name}{break};
+		if (my ($record, $remainder) = $Generic_Devices{$name}{data} =~ /(.+?)$break(.*)/s) {
+			$Generic_Devices{$name}{data_record}=$record;
+			$Generic_Devices{$name}{data}=$remainder;
+		}
+	}
 }
 
 sub serial_port_create {

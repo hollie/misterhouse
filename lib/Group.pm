@@ -368,7 +368,8 @@ sub can_combine {
 sub set_group_item {
 	my $ref = shift;
 	my $state = shift;
-	print $ref->{object_name} . " has states\n" if $ref->{states};
+	print "Desired state is $state\n";
+	print $ref->{object_name} . " has states ".join(', ',@{$ref->{states}})."\n" if $ref->{states};
 	print "$ref->{object_name}:$state\n" if item_state_exists($ref, $state);
 	$ref->set($state) if item_state_exists($ref, $state);
 }
