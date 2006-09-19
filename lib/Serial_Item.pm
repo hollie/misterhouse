@@ -7,6 +7,8 @@ package Serial_Item;
 
 use X10_Interface;
 
+our $mainHash=\%::Serial_Ports;
+
 @Serial_Item::ISA = ('X10_Interface');
 my @supported_interfaces=qw!cm11 BX24 Homevision HomeBase Stargate HouseLinc
 	Marrick cm17 Lynx10PLC weeder wish iplcs!;
@@ -15,7 +17,7 @@ sub new {
 	my ($class, $id, $state, $device_name) = @_;
 	my $self = X10_Interface->new($id, $state, $device_name);
 	bless ($self, $class);
-	$self->{mainHash}=\%::Serial_Ports;
+	$self->{mainHash}=$mainHash;
 	$self->set_standard_config;
 	$self->set_interface($device_name) if $id and $id =~ /^X/;
 	$self->state_overload('off'); # By default, do not process ~;: strings as substate/multistate

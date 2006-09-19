@@ -10,6 +10,7 @@ use Generic_Item;
 
 @Device_Item::ISA=('Generic_Item');
 my @supported_interfaces=();
+our $mainHash=\%::Generic_Devices;
 
 my %items_by_id;
 
@@ -42,7 +43,7 @@ sub new {
 	$self->{readable}=1;
 	$self->{writeable}=1;
 
-	$self->{mainHash}=\%::Generic_Devices;
+	$self->{mainHash}=$mainHash;
 	$self->set_standard_config;
 
 	$self->add($id, $state);
@@ -226,8 +227,17 @@ sub lookup_interface {
 		return lc $interface;
 	}
 
+	my $mainHash=undef;
+	# $self can either be an object reference or an object class name (string)
+	if (ref $self) {
+		$mainHash=$self->{mainHash};
+	} else {
+		eval "\$mainHash=\$${self}::mainHash";
+		warn $@ if $@;
+	}
+
 	foreach my $possibleInterface (@{$self->get_supported_interfaces}) {
-		if ($self->{mainHash}{$possibleInterface}{object}) {
+		if ($mainHash->{$possibleInterface}{object}) {
 			return lc $possibleInterface;
 		}
 	}

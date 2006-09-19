@@ -34,7 +34,7 @@ sub new {
 
     $self->{type} = $type;
 
-    $self->set_interface($interface);
+    $self->set_interface($interface, $id);
 
     restore_data $self ('level'); # Save brightness level between restarts
 
@@ -104,27 +104,30 @@ sub add {
 }
 
 sub set_interface {
-	my ($self, $interface) = @_;
+	my ($self, $interface, $id) = @_;
 
 	# if an interface is specified, then we need to search through the
 	# possible interface modules until we find one that will work with it
     if ($interface) {
     	if (X10_Interface->supports($interface)) {
-    		#print "x10 interface supplied and supported by X10_Interface\n";
+    		print "for id $id, x10 interface supplied ($interface) and supported by X10_Interface\n";
     		$self->{interface}=new X10_Interface(undef,undef,$interface);
-		} else {
-    		#print "x10 interface supplied and supported by Serial_Item\n";
+		} elsif (Serial_Item->supports($interface)) {
+    		print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n";
 			$self->{interface}=new Serial_Item(undef,undef,$interface);
+		} else {
+			die "for id $id, x10 interface supplied ($interface) but not supported by mh";
 		}
 	} else {
-		if (X10_Interface->lookup_interface){
-    		#print "x10 interface not supplied, supported by X10_Interface\n";
+		if ($interface=X10_Interface->lookup_interface){
+    		print "for id $id, x10 interface not supplied, supported by X10_Interface $interface\n";
 			$self->{interface}=new X10_Interface;
-		} else {
-    		#print "x10 interface not supplied, supported by Serial_Item\n";
+		} elsif ($interface=Serial_Item->lookup_interface) {
+    		print "for id $id, x10 interface not supplied, supported by Serial_Item $interface\n";
 			$self->{interface}=new Serial_Item;
+		} else {
+			die "can't find an interface to support id $id";
 		}
-
 	}
 	$self->{interface}->set_interface($interface);
 }
@@ -348,7 +351,7 @@ sub new {
 
     bless $self, $class;
 
-	$self->set_interface($interface);
+	$self->set_interface($interface,$id);
 
 #   print "\n\nWarning: duplicate ID codes on different X10_Appliance objects: id=$id\n\n" if $serial_item_by_id{$id};
 
@@ -397,7 +400,7 @@ sub new {
 
     bless $self, $class;
 
-    $self->set_interface($interface);
+    $self->set_interface($interface,$id);
 
     print "\n\nWarning: X10_Garage_Door object should not specify unit code; ignored\n\n" if length($id) > 1;
     my $hc = substr($id, 0, 1);
@@ -609,7 +612,7 @@ sub new {
 
     bless $self, $class;
 
-    $self->set_interface($interface);
+    $self->set_interface($interface,$id);
 
     my $hc = substr($id, 0, 1);
     $self->{x10_hc} = $hc;
@@ -985,7 +988,7 @@ sub new {
     $self-> add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "status_on" );
 
 
-    $self->set_interface($interface);
+    $self->set_interface($interface,$id);
 
     return $self;
 }
@@ -1023,7 +1026,7 @@ sub new
   my $self = {};
   $$self{state} = '';
   bless $self, $class;
-  $self->set_interface($interface);
+  $self->set_interface($interface,$id);
 #  print "\n\nWarning: duplicate ID codes on different TempLinc objects: id=$id\n\n" if $serial_item_by_id{$id};
   my $hc = substr($id, 0, 1);
   push @{$TempLinc_by_house_code{$hc}}, $self;
@@ -1073,7 +1076,7 @@ sub new {
     my $self = {};
     $$self{state} = '';
     bless $self, $class;
-    $self->set_interface($interface);
+    $self->set_interface($interface,$id);
     my $hc = substr($id, 0, 1);
     push @{$ote_by_house_code{$hc}}, $self;
     $id = "X$id";
@@ -1158,7 +1161,7 @@ sub new {
     $$self{state} = '';
     bless $self, $class;
 
-    $self->set_interface();
+    $self->set_interface(undef,$id);
 
     &X10_Sensor::init() unless $sensorinit;
 
