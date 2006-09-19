@@ -266,7 +266,7 @@ sub respond {
 		$target = ($object->{target})?$object->{target}:&main::set_by_to_target($object->{set_by});
 	}
 
-
+        $set_by = &main::set_by_to_target($set_by, 1);
 	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /time/i or $set_by eq 'status');
 
 
@@ -282,6 +282,11 @@ sub respond {
 		my $address = $set_by =~ /\[(.+)\]/;
 		$to = $address if !$parms{to};
 	}
+	elsif ($set_by =~ /^xap/i) {
+		my $address = $set_by =~ /\[(.+)\]/;
+		$to = $address if !$parms{to};
+	}
+
 
 	# important messages are never diverted to log (even if automated)
 	# ex. new mh version available
@@ -682,11 +687,11 @@ sub reset_states2 {
     $send_xap = 0 if defined $$ref{xap_enable} and $$ref{xap_enable} == 0;
     $send_xpl = 1 if $main::config_parms{xpl_enable_items} or $$ref{xpl_enable};
     $send_xpl = 0 if defined $$ref{xpl_enable} and $$ref{xpl_enable} == 0;
-    if ($send_xap and $set_by ne 'xAP') {
+    if ($send_xap and $set_by !~ /^xap/i) {
         &xAP::send('xAP', 'mhouse.item', 'mhouse.item' =>
                    {name => $$ref{object_name}, state => $state, state_prev => $$ref{state_prev}, set_by => $set_by, mh_target => $target});
     }
-    if ($send_xpl and $set_by ne 'xPL') {
+    if ($send_xpl and $set_by !~ /^xpl/i) {
         &xAP::sendXpl('mhouse.item', 'xpl-stat', 'mhouse.item' =>
                    {name => $$ref{object_name}, state => $state, state_prev => $$ref{state_prev}, set_by => $set_by, mh_target => $target});
     }
