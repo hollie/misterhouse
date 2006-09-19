@@ -169,6 +169,139 @@ sub init_xap_virtual_device {
 
 }
 
+sub main::display_xpl
+{
+   my (%args) = @_;
+   my $schema = lc ${args}{schema};
+   $schema = 'osd.basic' unless $schema;
+   if ($schema eq 'osd.basic') {
+      &main::display_xpl_osd_basic(%args);
+   } else {
+      &main::print_log("Display support for the schema, $schema, does not yet exist");
+   }
+}
+
+sub main::display_xpl_osd_basic
+{
+   my (%args) = @_;
+   my ($text, $duration, $address);
+   $text = $args{raw_text};
+   $text = $args{text} unless $text;
+   $duration = $args{duration};
+   $duration = $args{display} unless $duration; # this apparently is the original param?
+   $duration = 10 unless $duration; # default to 10 sec display
+   $address = $args{to};
+   $address = $args{address} unless $address;
+   $address = '*' unless $address;
+   &xAP::send('xPL', $address, 'osd.basic' => { command => 'write', delay => $duration, text => $text });
+}
+
+sub main::display_xap
+{
+   my (%args) = @_;
+    my $schema = lc ${args}{schema};
+   $schema = 'message.display' unless $schema;
+   if ($schema eq 'message.display') {
+      &main::display_xap_message_display(%args);
+   } else {
+      &main::print_log("Display support for the schema, $schema, does not yet exist");
+   }
+
+}
+
+sub main::display_xap_message_display
+{
+   my (%args) = @_;
+   my ($priority, $duration, $address);
+   my ($text_block, @xap_data);
+   if (exists($args{line1})) {
+      $text_block->{line1} = $args{line1};
+   } else {
+      $text_block->{line1} = ($args{raw_text}) ? $args{raw_text} : $args{text};
+   }
+   $text_block->{line2} = $args{line2} if $args{line2};
+   $duration = $args{duration};
+   $duration = $args{display} unless $duration; # this apparently is the original param?
+   $duration = 10 unless $duration; # default to 10 sec display
+   $text_block->{duration} = $duration;
+   $priority = $args{priority};
+   $priority = 9 unless $priority;
+   $text_block->{priority} = $priority;
+   push @xap_data, 'display.text', $text_block;
+
+   if ($text_block->{pic_url} or $text_block->{pic_refresh} or $text_block->{link_url}) {
+      my $web_block;
+      $web_block->{pic} = $text_block->{pic_url} if $text_block->{pic_url};
+      $web_block->{refresh} = $text_block->{pic_refresh} if $text_block->{pic_refresh};
+      $web_block->{url} = $text_block->{link_url} if $text_block->{link_url};
+      push @xap_data, 'display.web', $web_block;
+   }
+
+   $address = $args{to};
+   $address = $args{address} unless $address;
+   $address = '*' unless $address;
+   &xAP::sendXap($address, 'message.display', @xap_data);
+}
+
+sub main::display_xap_osd_display_tivo
+{
+   my (%args) = @_;
+   my ($priority, $mapped_priority, $duration, $address);
+   my ($text_block, @xap_data);
+   $text_block->{text} = ($args{raw_text}) ? $args{raw_text} : $args{text};
+   $duration = $args{duration};
+   $duration = $args{display} unless $duration; # this apparently is the original param?
+   $duration = 10 unless $duration; # default to 10 sec display
+   $text_block->{duration} = $duration;
+   $priority = $args{priority};
+   $priority = 9 unless $priority;
+   if ($priority < 4) {
+      $mapped_priority = 'High';
+   } elsif ($priority > 6) {
+      $mapped_priority = 'Low';
+   } else {
+      $mapped_priority = 'Medium';
+   }
+   $text_block->{priority} = $mapped_priority;
+   $text_block->{row} = $args{row} if exists($args{row});
+   $text_block->{column} = $args{column} if exists($args{column});
+   $text_block->{foreground} = $args{foreground} if exists($args{foreground});
+   $text_block->{background} = $args{background} if exists($args{background});
+
+   push @xap_data, 'display.tivo', $text_block;
+
+   $address = $args{to};
+   $address = $args{address} unless $address;
+   $address = '*' unless $address;
+   &xAP::sendXap($address, 'xap-osd.display', @xap_data);
+}
+
+sub main::display_xap_osd_display_slimp3
+{
+   my (%args) = @_;
+   my ($priority, $duration, $address);
+   my ($text_block, @xap_data);
+   if (exists($args{line1})) {
+      $text_block->{line1} = $args{line1};
+   } else {
+      $text_block->{line1} = ($args{raw_text}) ? $args{raw_text} : $args{text};
+   }
+   $text_block->{line2} = $args{line2} if $args{line2};
+   $duration = $args{duration};
+   $duration = $args{display} unless $duration; # this apparently is the original param?
+   $duration = 10 unless $duration; # default to 10 sec display
+   $text_block->{duration} = $duration;
+   $text_block->{align1} = $args{align1} if exists($args{align1});
+   $text_block->{align2} = $args{align2} if exists($args{align2});
+   push @xap_data, 'display.slimp3', $text_block;
+
+   $address = $args{to};
+   $address = $args{address} unless $address;
+   $address = '*' unless $address;
+   &xAP::sendXap($address, 'xap-osd.display', @xap_data);
+}
+
+
 sub open_port {
     my ($port, $send_listen, $port_name, $local, $verbose) = @_;
 
@@ -511,7 +644,9 @@ sub _process_incoming_xpl_data {
 # Can not use Generic_Item set method, as state_next_path only carries state, not all other $section data, to the next pass
 #              $o -> SUPER::set($state_value, 'xPL') if defined $state_value;
                if (defined $state_value and $state_value ne '') {
-		  $o -> SUPER::set_now($state_value, 'xPL');
+                  my $set_by_name = 'xPL';
+                  $set_by_name .= " [$source]" if ($::config_parms{'xap_use_to_target'});
+		  $o -> SUPER::set_now($state_value, $set_by_name);
 		  $o -> state_now_msg_type( "$msg_type" );
 	       }
            }
@@ -553,7 +688,6 @@ sub _process_incoming_xap_data {
                print "db3 xap test  o=$name s=$source os=$$o{source} c=$class oc=$$o{class} \n" if $main::Debug{xap} and $main::Debug{xap} == 3;
                my $regex_source = &wildcard_2_regex($$o{source});
                next unless $source  =~ /$regex_source/i;
-
                # is current xap object a virtual device?
                my $objectIsVirtual = 0;
                # if so, is the source also from a virtual device?
@@ -626,7 +760,9 @@ sub _process_incoming_xap_data {
 #	       $$o{state} = $$o{state_now} = $$o{said} == $state_value if defined $state_value;
 # Can not use Generic_Item set method, as state_next_path only carries state, not all other $section data, to the next pass
 #              $o -> SUPER::set($state_value, 'xAP') if defined $state_value;
-               $o -> SUPER::set_now($state_value, 'xAP') if $o->allow_empty_state()
+               my $set_by_name = 'xAP';
+               $set_by_name .= " [$source]" if ($::config_parms{'xap_use_to_target'});
+               $o -> SUPER::set_now($state_value, $set_by_name) if $o->allow_empty_state()
                        or (defined $state_value and $state_value ne '');
            }
 	}
@@ -1225,7 +1361,7 @@ sub default_setstate {
     my ($self, $state, $substate, $set_by) = @_;
 
                                 # Send data, unless we are processing incoming data
-    return if $set_by eq 'xAP';
+    return if $set_by =~ /^xap/i;
 
     my ($section, $key) = $$self{state_monitor} =~ /(.+) : (.+)/;
     $$self{$section}{$key} = $state;
@@ -1337,7 +1473,7 @@ sub default_setstate {
     my ($self, $state, $substate, $set_by) = @_;
 
                                 # Send data, unless we are processing incoming data
-    return if $set_by eq 'xPL';
+    return if $set_by =~ /^xpl/i;
 
     my ($section, $key) = $$self{state_monitor} =~ /(.+) : (.+)/;
     $$self{$section}{$key} = $state;
