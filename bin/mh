@@ -1103,9 +1103,9 @@ sub open_logs {
 }
 
 sub set_by_to_target {
-	my $set_by = shift;
-
-	$set_by = $1 if ($set_by and $set_by =~ /(.*?) \[/); #web, email, im (and xap coming soon)
+	my ($set_by, $no_strip) = @_;
+	
+        $no_strip = 0 unless $no_strip;
 
 	$set_by = undef if (!$set_by or $set_by =~ /time/i or $set_by =~ /^unknown/i or $set_by =~ /^usercode/i or $set_by eq 'status');
 
@@ -1125,7 +1125,10 @@ sub set_by_to_target {
 		$set_by = $predecessor;
 	}
 
-	$set_by = undef if ref $set_by;
+	if (!($no_strip)) {
+		$set_by = $1 if ($set_by and $set_by =~ /(.*?) \[/); #web, email, im (and xap coming soon)
+		$set_by = undef if ref $set_by;
+	}
 	return $set_by;
 }
 
@@ -2652,12 +2655,17 @@ sub display {
 
                                 # Allow for display_device functions (e.g. lib/Display_Alpha.pm display_alpha)
     if ($parms{device}) {
-        my $func = "display_$parms{device}";
-        if ($main::{$func}) {
-            no strict 'refs';
-            &$func(%parms);
-            return;
+        my (@display_devices) = split(/[,;|]/, $parms{device});
+        for my $device (@display_devices) {
+            my $func = "display_$parms{device}";
+            if ($main::{$func}) {
+                no strict 'refs';
+                &$func(%parms);
+                return;
+            }
         }
+    } elsif ($parms{display_rooms}) {
+        &route_display_rooms(%parms);
     }
 
                                 # Assume we were waiting for this and reset http server counter. Speak has precedence. (?)
@@ -5825,7 +5833,7 @@ sub speak {
     print "Voice_Text: speak @_\n" if $Debug{voice};
 
 
-    my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression app length);
+    my @speak_parms = qw(engine address room rooms mode display play volume time voice pitch card to_file compression app length echo display_rooms);
                                 # Not all TTS engines have all these options ... this is a superset
 #   print "Warning, speak control not recognized: key=$key value=$value\n"
 #            unless grep $key eq $_, @speak_parms;
@@ -5944,6 +5952,30 @@ sub speak {
 	$parms{raw_text}=$parms{text};
 	$parms{text} = &Voice_Text::force_pronounce($phrase, \%parms);
 
+    # Allow for a comma delimited list of echo (devices)
+    if ($parms{echo}) {
+       my (@echo_conduits) = split(/[,;|]/,$parms{echo});
+       for my $echo_conduit (@echo_conduits) {
+            $echo_conduit = lc $echo_conduit;
+            if ($echo_conduit eq 'im') {
+                &net_im_send(%parms);
+            } elsif ($echo_conduit eq 'email') {
+                &net_mail_send(%parms);
+            } elsif ($echo_conduit eq 'sms') {
+                &net_mail_send(%parms);
+            } elsif (!(exists($parms{display_rooms}))) {
+                my $func = "display_$echo_conduit";
+                if ($main::{$func}) {
+                    no strict 'refs';
+                    &$func(%parms);
+                }
+            }
+       }
+       if (exists($parms{display_rooms})) {
+          &main::route_display_rooms(%parms);
+       }
+    }
+
     &Speak_parms_hooks(\%parms); # Created by &add_hooks
     return if $parms{no_speak};  # In case hook decided not to speak
 
@@ -5987,6 +6019,56 @@ sub speak {
 
     &Speak_post_hooks(%parms);   # Created by &add_hooks
 
+}
+
+sub route_display_rooms {
+    my (%parms) = @_;
+    my (%targets, %display_rooms, %display_groups);
+    &main::read_parm_hash(\%display_rooms, $main::config_parms{'display_rooms'});
+    &main::read_parm_hash(\%display_groups, $main::config_parms{'display_groups'});
+    for my $room (split(/[,;|]/,$parms{display_rooms})) {
+       if (exists($display_groups{$room})) {
+          # then expand the group
+           my %groups = &parse_func_parms($display_groups{$room});
+           for my $group_room (keys %groups) {
+             if (!(exists($targets{$group_room}))) { # prevent duplicates on expansion
+                my %room_parms = &parse_func_parms($display_rooms{$group_room});
+                $targets{$group_room}{device} = $room_parms{device};
+                $targets{$group_room}{address} = $room_parms{address} if $room_parms{address};
+                $targets{$group_room}{schema} = $room_parms{schema} if $room_parms{schema};
+             }
+          }
+       } elsif ($room eq 'all') {
+          # then expand into all rooms
+          for my $all_room (keys %display_rooms) {
+             if (!(exists($targets{$all_room}))) { # prevent duplicates on expansion
+                my %room_parms = &parse_func_parms($display_rooms{$all_room});
+                $targets{$all_room}{device} = $room_parms{device};
+                $targets{$all_room}{address} = $room_parms{address} if $room_parms{address};
+                $targets{$all_room}{schema} = $room_parms{schema} if $room_parms{schema};
+             }
+          }
+       } else {
+          if (!(exists($targets{$room}))) { # prevent duplicates on expansion
+             my %room_parms = &parse_func_parms($display_rooms{$room});
+             $targets{$room}{device} = $room_parms{device};
+             $targets{$room}{address} = $room_parms{address} if $room_parms{address};
+             $targets{$room}{schema} = $room_parms{schema} if $room_parms{schema};
+          }
+       }
+    }
+    # iterate over the targets and invoke the applicable function
+    for my $target_room (keys %targets) {
+       if ($targets{$target_room}{device} eq 'xap' or $targets{$target_room}{device} eq 'xpl') {
+          my $func = "display_$targets{$target_room}{device}";
+          $parms{address} = $targets{$target_room}{address};
+          $parms{schema} = $targets{$target_room}{schema};
+          if ($main::{$func}) {
+              no strict 'refs';
+              &$func(%parms);
+          }
+       } 
+    }
 }
 
 sub speak_log_last {
