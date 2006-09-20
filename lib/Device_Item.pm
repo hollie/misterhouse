@@ -56,14 +56,17 @@ sub set_standard_config {
 
 	my $device_name=$self->{device_name};
 
+	# if we don't have a device name, then nothing to look for in the mainHash
 	if (!defined($device_name)) {
 		return;
 	}
 
+	# return if we don't have any settings available in the main hash
 	if (!defined($self->{mainHash}->{$device_name})) {
 		return;
 	}
 
+	# copy settings locally from the main hash
 	grep ({$self->{$_}=$self->{mainHash}->{$device_name}{$_} if defined($self->{mainHash}->{$device_name}{$_})} qw(readable writeable prefix datatype break));
 }
 
@@ -223,20 +226,31 @@ sub set_interface {
 sub lookup_interface {
 	my ($self, $interface)=@_;
 
+	# if an interface is specified, just use it
+	# note: we could check to make sure that the interface is actually supported
+	#       by the current library at this point.  Not sure how to handle it if
+	#       it isn't supported.
 	if ($interface and $interface ne '') {
 		return lc $interface;
 	}
 
 	my $mainHash=undef;
+	my $supported_interfaces;
 	# $self can either be an object reference or an object class name (string)
 	if (ref $self) {
 		$mainHash=$self->{mainHash};
+		$supported_interfaces=$self->get_supported_interfaces;
 	} else {
 		eval "\$mainHash=\$${self}::mainHash";
 		warn $@ if $@;
+		eval "\$supported_interfaces=\\\@${self}::supported_interfaces";
+		warn $@ if $@;
 	}
 
-	foreach my $possibleInterface (@{$self->get_supported_interfaces}) {
+	# go through each interface supported by the current library
+	foreach my $possibleInterface (@$supported_interfaces) {
+		# if there is an interface object associated with this interface
+		# then the interace does exist and is usable, so use it
 		if ($mainHash->{$possibleInterface}{object}) {
 			return lc $possibleInterface;
 		}
@@ -247,10 +261,20 @@ sub lookup_interface {
 
 sub get_supported_interfaces {
 	my ($self)=@_;
-	return \@supported_interfaces;
+
+	# if we are called via an object, then get the class name through ref
+	my $className=ref $self;
+	# if we are called via a class name, then $self is the class name
+	$className=$self unless $className;
+
+	my $supported_interfaces;
+	eval "\$supported_interfaces=\\\@${className}::supported_interfaces";
+	warn $@ if $@;
+
+	return $supported_interfaces;
 }
 
-sub supports{
+sub supports {
 	my ($self,$interface)=@_;
 
 	if (grep ({lc $interface eq lc $_ } @$self->get_supported_interfaces) > 0) {

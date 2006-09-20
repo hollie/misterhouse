@@ -99,36 +99,45 @@ sub new {
 sub add {
 	my ($self, $id, $state)=@_;
 
+	#print "X10Items->add called with self $self, id $id and state $state\n";
+	#print "self not defined\n" if not defined $self;
+	#print "interface not defined\n" if $self and not defined $self->{interface};
+
 	$self->{interface}->add($id, $state);
 	push (@{$self->{states}},$state);
 }
 
 sub set_interface {
 	my ($self, $interface, $id) = @_;
+	my $localDebug=1;
 
 	# if an interface is specified, then we need to search through the
 	# possible interface modules until we find one that will work with it
     if ($interface) {
     	if (X10_Interface->supports($interface)) {
-    		print "for id $id, x10 interface supplied ($interface) and supported by X10_Interface\n";
+    		print "for id $id, x10 interface supplied ($interface) and supported by X10_Interface\n" if $localDebug;
     		$self->{interface}=new X10_Interface(undef,undef,$interface);
 		} elsif (Serial_Item->supports($interface)) {
-    		print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n";
+    		print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n" if $localDebug;
 			$self->{interface}=new Serial_Item(undef,undef,$interface);
 		} else {
 			die "for id $id, x10 interface supplied ($interface) but not supported by mh";
 		}
 	} else {
+	# an interface wasn't specified, we'll use the first one that we find
 		if ($interface=X10_Interface->lookup_interface){
-    		print "for id $id, x10 interface not supplied, supported by X10_Interface $interface\n";
-			$self->{interface}=new X10_Interface;
+    		print "for id $id, x10 interface not supplied, supported by X10_Interface $interface\n" if $localDebug;
+			$self->{interface}=new X10_Interface(undef,undef,$interface);
 		} elsif ($interface=Serial_Item->lookup_interface) {
-    		print "for id $id, x10 interface not supplied, supported by Serial_Item $interface\n";
-			$self->{interface}=new Serial_Item;
+    		print "for id $id, x10 interface not supplied, supported by Serial_Item $interface\n" if $localDebug;
+			$self->{interface}=new Serial_Item(undef,undef,$interface);
 		} else {
 			die "can't find an interface to support id $id";
 		}
 	}
+	# tell our "generic" interface object the name of the actual interface to use
+	# we could also call set_interface without an interface name but it would
+	# just repeat the same search that we just did
 	$self->{interface}->set_interface($interface);
 }
 
@@ -341,7 +350,6 @@ sub set_by_housecode {
 
 package X10_Appliance;
 
-#@X10_Appliance::ISA = ("Serial_Item");
 @X10_Appliance::ISA = ('X10_Item');
 
 sub new {
@@ -600,7 +608,6 @@ package X10_IrrigationController;
 #  listed here: http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027
 
 
-#@X10_IrrigationController::ISA = ('Serial_Item');
 @X10_IrrigationController::ISA = ('X10_Item');
 @X10_IrrigationController::Inherit::ISA = @ISA;
 
@@ -957,6 +964,7 @@ sub new {
     my $self = {};
     $$self{state} = '';
     bless $self, $class;
+    $self->set_interface($interface,$id);
     my $hc = substr($id, 0, 1);
     push @{$appliances_by_house_code{$hc}}, $self;
                                 # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
@@ -986,9 +994,6 @@ sub new {
 
     # on is JPRESET_DIM2
     $self-> add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "status_on" );
-
-
-    $self->set_interface($interface,$id);
 
     return $self;
 }
@@ -1143,7 +1148,6 @@ sub new {
 
 package X10_Sensor;
 
-#@X10_Sensor::ISA = ('Serial_Item');
 @X10_Sensor::ISA = ('X10_Item');
 
 sub init {
@@ -1156,7 +1160,7 @@ sub init {
                                 # set yet on startup :(
 sub new {
     my ($class, $id, $name, $type) = @_;
-    my $self = &Serial_Item::new('Serial_Item');
+    my $self = &X10_Item->new();
 
     $$self{state} = '';
     bless $self, $class;

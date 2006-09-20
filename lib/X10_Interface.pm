@@ -8,10 +8,10 @@ package X10_Interface;
 
 use Device_Item;
 
-my @supported_interfaces=();
+our @supported_interfaces=();
 
 my @X10_Interface_Names=qw!cm11 bx24 homevision homebase stargate houselinc
-	marrick ncpuxa cm17 lynx10plc weeder wish iplcs!;
+	marrick ncpuxa cm17 lynx10plc weeder wish iplcs w800!;
 
 @X10_Interface::ISA=('Device_Item');
 
@@ -28,7 +28,7 @@ sub check_for_x10_interface {
 
 	return if not defined $self->{interface};
 
-	if (grep ({$self->{interface} eq $_;} @X10_Interface_Names) > 0) {
+	if (grep ({lc($self->{interface}) eq lc($_);} @X10_Interface_Names) > 0) {
 		my $interface=$self->{interface};
 		$self->{X10Interface}=1;
 	}
@@ -42,6 +42,7 @@ sub processData {
 	#print "processData device_name is ".$self->{device_name}."\n";
 	#print "processData X10Interface is ".$self->{X10Interface}."\n";
 
+	# if we aren't an X10 Interface, just do a raw write of the data
 	if (!$self->{X10Interface}) {
 		$self->write_data($data);
 		return;
@@ -111,6 +112,7 @@ sub processData {
 	} # while looking for chunks
 }
 
+# Note: this method is overriden by Serial_Item::send_x10_data
 sub send_x10_data {
 	my ($self, $interface, $data, $module_type)=@_;
 

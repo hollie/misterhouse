@@ -10,7 +10,7 @@ use X10_Interface;
 our $mainHash=\%::Serial_Ports;
 
 @Serial_Item::ISA = ('X10_Interface');
-my @supported_interfaces=qw!cm11 BX24 Homevision HomeBase Stargate HouseLinc
+our @supported_interfaces=qw!cm11 BX24 Homevision HomeBase Stargate HouseLinc
 	Marrick cm17 Lynx10PLC weeder wish iplcs!;
 
 sub new {
