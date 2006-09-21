@@ -139,6 +139,9 @@ sub set_interface {
 	# we could also call set_interface without an interface name but it would
 	# just repeat the same search that we just did
 	$self->{interface}->set_interface($interface);
+	# set a placeholder object name for our contained interface class
+	# this is to provide a more friendly log message when X10 data is received
+	$self->{interface}->{object_name}=' '.ref($self->{interface}).' for '.ref($self);
 }
 
 sub property_changed {
@@ -242,6 +245,7 @@ sub set {
 sub set_receive {
     my ($self, $state, $set_by) = @_;
     &set_x10_level($self, $state);
+    $self->SUPER::set_receive($state, $set_by);
     $self->{interface}->set_receive($state, $set_by);
 }
 

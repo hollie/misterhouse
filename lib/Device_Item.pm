@@ -277,7 +277,7 @@ sub get_supported_interfaces {
 sub supports {
 	my ($self,$interface)=@_;
 
-	if (grep ({lc $interface eq lc $_ } @$self->get_supported_interfaces) > 0) {
+	if (grep ({lc $interface eq lc $_ } @{$self->get_supported_interfaces}) > 0) {
 		return 1;
 	}
 	return 0;
