@@ -1415,5 +1415,50 @@ sub new {
 	}
 }
 
+# This supports the 6 button remotes that have two 'on' buttons and two off
+# buttons and a dim and brighten button.  The "$id" parameter should be set to
+# the X10 code of the top left button, which on my version of the remote is
+# labelled "On 1".
+#
+# E.g. $remote=new X10_6ButtonRemote('N11');
+#
+# valid states are '1-on', '1-off', '2-on', '2-off', 'brighten' and 'dim'
+
+package X10_6ButtonRemote;
+
+@X10_6ButtonRemote::ISA=('X10_Item');
+
+sub new {
+    my ($class, $id, $interface, $type) = @_;
+
+    if ($id eq '') {
+    	warn 'X10_6ButtonRemote You need to specify the X10 code of the first button e.g. H12';
+    }
+
+    my $self = X10_Item->new(undef,$interface,$type);
+    bless $self,$class;
+
+    my ($hc,$unit)= $id =~ /^([A-P])(\d+)/;
+
+    if ($unit < 1 or $unit > 16) {
+    	warn 'Invalid unit code $id';
+	}
+
+	my $unitcodes='123456789ABCDEFG';
+
+	my $unitcode=substr($unitcodes,$unit-1,1);
+
+    $self->add('X'.$hc.$unitcode.$hc.'J','1-on');
+    $self->add('X'.$hc.$unitcode.$hc.'K','1-off');
+    $self->add('X'.$hc.$unitcode.$hc.'+10','brighten');
+    $self->add('X'.$hc.$unitcode.$hc.'-10','dim');
+    $unit++;
+	my $unitcode=substr($unitcodes,$unit-1,1);
+    $self->add('X'.$hc.$unitcode.$hc.'J','2-on');
+    $self->add('X'.$hc.$unitcode.$hc.'K','2-off');
+    $self->add('X'.$hc.$unitcode.$hc.'+10','brighten');
+    $self->add('X'.$hc.$unitcode.$hc.'-10','dim');
+    return $self;
+}
 
 return 1;
