@@ -104,7 +104,7 @@ sub add {
 	#print "interface not defined\n" if $self and not defined $self->{interface};
 
 	$self->{interface}->add($id, $state);
-	push (@{$self->{states}},$state);
+	$self->SUPER::add($id, $state); 
 }
 
 sub set_interface {
@@ -1160,7 +1160,7 @@ sub init {
                                 # set yet on startup :(
 sub new {
     my ($class, $id, $name, $type) = @_;
-    my $self = &X10_Item->new();
+    my $self = X10_Item->new();
 
     $$self{state} = '';
     bless $self, $class;
