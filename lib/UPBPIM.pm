@@ -121,7 +121,7 @@ sub check_for_data {
 }
 
 sub new {
-   my ($class, $port_name) = @_;
+   my ($class, $port_name,$network_id,$network_password,$module_id) = @_;
    $port_name = 'UPBPIM' if !$port_name;
 
    my $self = {};
@@ -135,13 +135,26 @@ sub new {
 #   $UPBPIM_Data{$port_name}{'send_count'} = 0;
 #   push(@{$$self{states}}, 'on', 'off');
 #   $self->_poll();
+
+#we just turned on the device, lets wait a bit
 	$self->set_dtr(1);
-	$self->updateRegisters();
+   select(undef,undef,undef,0.15);
+	
+	$self->set_message_mode();
+	$self->set_network_id($network_id) if defined $network_id;
+	$self->set_network_password($network_password) if defined $network_password;
+	$self->set_module_id($module_id) if defined $module_id;
+	$self->update_registers();
    return $self;
 }
 
-
-sub updateRegisters
+sub set_message_mode
+{
+	my ($self) = @_;
+	return $self->_send_cmd("\x1770028E\x0D");
+	
+}
+sub update_registers
 {
 	my ($self, $start, $end) = @_;
 	my $cmd;
@@ -152,24 +165,97 @@ sub updateRegisters
 	return $self->_send_cmd("\x12" . $cmd . "\x0D");
 }
 
-sub get_firwareVersion
+sub get_register
+{
+	my ($self, $start,$end) = @_;
+	$start=0 if !defined $start;
+	$end=1 if !defined $end;
+
+	my $response;
+	for (my $index=$start;$index<$start+$end;$index++)
+	{
+		$response.=sprintf("%02X",@{$$self{'registers'}}->[$index]);		
+	}
+	return $response;
+}
+
+sub get_firware_version
+{
+	my ($self) = @_;
+	return $self->get_register(10) . $self->get_register(11);
+}
+
+sub send_upb_cmd
 {
 	my ($self, $cmd) = @_;
-	my $hiByte;
-	my $lowByte;
-	$hiByte = sprintf("%02X",@{$$self{'registers'}}->[10]);
-	$lowByte = sprintf("%02X",@{$$self{'registers'}}->[11]);
-#	print "REG:@{@$self{'registers'}}";
-	return $hiByte . $lowByte;
+	$cmd.= get_checksumHex($cmd);
+	return $self->_send_cmd("\x14" . $cmd . "\x0D");
 }
+
+
+sub set_register
+{
+	my ($self, $start, $val) = @_;
+	my $cmd;
+	return if !defined $start;
+
+	$cmd= sprintf("%02X%02X",$start,$val);
+	$cmd.= get_checksumHex($cmd);
+	return $self->_send_cmd("\x17" . $cmd . "\x0D");
+}
+
+sub set_network_id
+{
+	my ($self, $val) = @_;
+	return if !defined $val;
+	$self->set_register(0,$val);	
+}
+
+sub get_network_id
+{
+	my ($self) = @_;
+
+	return $self->get_register(0);	
+}
+
+sub set_module_id
+{
+	my ($self, $val) = @_;
+	return if !defined $val;
+	$self->set_register(1,$val);	
+}
+
+sub get_module_id
+{
+	my ($self) = @_;
+
+	return $self->get_register(1);	
+}
+
+sub set_network_password
+{
+	my ($self, $val) = @_;
+	return if !defined $val;
+	$self->set_register(2,$val);	
+}
+
+sub get_network_password
+{
+	my ($self) = @_;
+
+	return $self->get_register(2) . $self->get_register(3);	
+}
+
 
 sub _send_cmd {
 	my ($self, $cmd) = @_;
 	my $instance = $$self{port_name};
 	print "$::Time_Date: UPBPIM: Executing command $cmd\n" unless $main::config_parms{no_log} =~/UPBPIM/;
 	my $data = $cmd;
+print "PN:$instance:";
 	$main::Serial_Ports{$instance}{object}->write($data);
-#   select(undef,undef,undef,0.15);
+### Dont overrun the controller.. Its easy, so lets wait a bit
+   select(undef,undef,undef,0.15);
    $$self{'last_change'} = $main::Time;
 #	$self->_poll();
 }
@@ -214,6 +300,10 @@ sub _parse_data {
 					@{$$self{'registers'}} = @Registers;
 				}
 			}
+			#UPB Incoming Message 
+			elsif (uc(substr($data,1,1)) eq 'U') {
+			}				
+
 		}
 	}
 }
