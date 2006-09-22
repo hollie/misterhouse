@@ -234,9 +234,14 @@ sub set_weeder
         }
     }
     return 0 unless $command;
+#    $weeder_command = "X0\\r$weeder_command";
     print "sending $weeder_command to the weeder card(s)\n" if $main::Debug{pa};
     $weeder_command =~ s/\\r/\r/g;
-    &Serial_Item::send_serial_data($$self{pa_port}, $weeder_command) if $main::Serial_Ports{$$self{pa_port}}{object};
+   
+    unless(&main::proxy_send('pa', 'send_serial_data',$weeder_command)) { 
+       $main::Serial_Ports{$$self{pa_port}}{object}->write($weeder_command) if $main::Serial_Ports{$$self{pa_port}}{object};
+    }
+#    &Serial_Item::send_serial_data($$self{pa_port}, $weeder_command) if $main::Serial_Ports{$$self{pa_port}}{object};
     return 1;
 }
 
@@ -255,7 +260,8 @@ sub get_weeder_string
     for $bit ('A' .. $pa_weeder_max_port{$card}) {
         $id = $card . 'L' . $bit;
         $id = "D$id" if $$self{pa_type} eq 'wdio_old';
-        my $ref = &Serial_Item::serial_item_by_id($id);
+#        my $ref = &Serial_Item::serial_item_by_id($id);
+        my $ref = &Device_Item::item_by_id($id);
         if ($ref) {
             $state = $ref->{state};
         }
