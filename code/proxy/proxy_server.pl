@@ -47,10 +47,11 @@ if ($state = said $proxy_server) {
     print "Proxy data received from mh: client=$client, interface=$interface function=$function data=@data.\n" if $Debug{'proxy'};
 
     if ($function eq 'send_serial_data') {
-        &Serial_Item::send_serial_data($interface, $data[0]);
+         &Serial_Item::send_serial_data($interface, $data[0]);
     }
     elsif ($function eq 'send_x10_data') {
-        &Serial_Item::send_x10_data($interface, $data[0]);
+        &Serial_Item::send_x10_data(undef, $interface, $data[0]);
+
 
         # $proxy_x10_send is a Generic_Item on the host MH used to let
         # the host know when we are done sending data to an X10 interface.
