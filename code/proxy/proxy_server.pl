@@ -47,7 +47,9 @@ if ($state = said $proxy_server) {
     print "Proxy data received from mh: client=$client, interface=$interface function=$function data=@data.\n" if $Debug{'proxy'};
 
     if ($function eq 'send_serial_data') {
-         &Serial_Item::send_serial_data($interface, $data[0]);
+        # send_serial_data no longer exists; try sending raw [GL - 10/06]
+#         &Serial_Item::send_serial_data($interface, $data[0]);
+        $main::Serial_Items{$interface}{object}->write($data[0]) if $main::Serial_Items{$interface}{object};
     }
     elsif ($function eq 'send_x10_data') {
         &Serial_Item::send_x10_data(undef, $interface, $data[0]);
