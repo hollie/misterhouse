@@ -141,9 +141,11 @@ sub set_interface {
 	# just repeat the same search that we just did
 	$self->{interface}->set_interface($interface);
 
-	# set a placeholder object name for our contained interface class
-	# this is to provide a more friendly log message when X10 data is received
-	$self->{interface}->{object_name}=' '.ref($self->{interface}).' for '.ref($self);
+	# Set a placeholder object name for our contained interface class
+	# This is to provide a more friendly log message when X10 data is received
+	# It starts with a '#' so that we can identify these contained objects in
+	# code/common/mh_control.pl and suppress them if desired.
+	$self->{interface}->{object_name}='#'.ref($self->{interface}).' for '.ref($self);
 }
 
 sub property_changed {
