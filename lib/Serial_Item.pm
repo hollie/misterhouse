@@ -82,7 +82,11 @@ sub set_rts {
 sub write_data {
 	my ($self, $serial_data) = @_;
 
-	my $port_name=$self->{device_name};
+	&send_serial_data($self->{device_name}, $serial_data);
+}
+
+sub send_serial_data {
+	my ($port_name, $serial_data)=@_;
 
     return if &main::proxy_send($port_name, 'send_serial_data', $serial_data);
 
@@ -102,6 +106,12 @@ sub write_data {
         &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $serial_data);
     }
     else {
+		my $datatype  = $main::Serial_Ports{$port_name}{datatype};
+		my $prefix    = $main::Serial_Ports{$port_name}{prefix};
+
+		$serial_data = $prefix . $serial_data if $prefix and $prefix ne '';
+		$serial_data .= "\r" unless $datatype and $datatype eq 'raw';
+
         my $results = $main::Serial_Ports{$port_name}{object}->write($serial_data);
 
 #      &main::print_log("serial port=$port_name out=$serial_data results=$results") if $main::Debug{serial};
@@ -110,12 +120,21 @@ sub write_data {
 }
 
 my $x10_save_unit;
+
 sub send_x10_data {
-    my ($self, $interface, $serial_data, $module_type) = @_;
+	# This function can either be called as a class method or a library function
+	# If being called as a member function, then pull the object ref off the 
+	# argument list.
+	my $self=undef;
+	if (ref($_[0])) {
+		$self=shift @_;
+	}
+    my ($interface, $serial_data, $module_type) = @_;
     my ($isfunc);
 
                                 # Use proxy mh if present (avoids mh pauses for slow X10 xmits)
     return if &main::proxy_send($interface, 'send_x10_data', $serial_data, $module_type);
+# This function can either be called as a class method or a library function
 
     if ($serial_data =~ /^X[A-P][1-9A-G]$/) {
         $isfunc = 0;
