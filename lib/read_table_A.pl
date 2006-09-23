@@ -68,7 +68,6 @@ sub read_table_A {
     # ----------------------------------------------------------------------
     # -[ UPB ]----------------------------------------------------------
     elsif($type eq "UPBPIM") {
-		print "PIZZZZZZZZZZZZZZZZZZZA";
         require 'UPBPIM.pm';
         ($name, $network, $password,$address,$grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
