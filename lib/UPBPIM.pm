@@ -125,7 +125,7 @@ sub check_for_data {
 }
 
 sub new {
-   my ($class, $port_name,$network_id,$network_password,$module_id) = @_;
+   my ($class, $port_name,$network_id,$network_password,$device_id) = @_;
    $port_name = 'UPBPIM' if !$port_name;
 
    my $self = {};
@@ -145,9 +145,9 @@ sub new {
    select(undef,undef,undef,0.15);
 	
 	$self->set_message_mode();
-	$self->set_network_id($network_id) if defined $network_id;
-	$self->set_network_password($network_password) if defined $network_password;
-	$self->set_module_id($module_id) if defined $module_id;
+	$self->network_id($network_id) if defined $network_id;
+	$self->network_password($network_password) if defined $network_password;
+	$self->device_id($device_id) if defined $device_id;
 	$self->update_registers();
    return $self;
 }
@@ -183,7 +183,7 @@ sub get_register
 	return $response;
 }
 
-sub get_firware_version
+sub get_firwmare_version
 {
 	my ($self) = @_;
 	return $self->get_register(10) . $self->get_register(11);
@@ -208,48 +208,26 @@ sub set_register
 	return $self->_send_cmd("\x17" . $cmd . "\x0D");
 }
 
-sub set_network_id
+sub network_id
 {
 	my ($self, $val) = @_;
-	return if !defined $val;
-	$self->set_register(0,$val);	
-}
-
-sub get_network_id
-{
-	my ($self) = @_;
-
+	$self->set_register(0,$val) if defined $val;
 	return $self->get_register(0);	
 }
 
-sub set_module_id
+sub device_id
 {
 	my ($self, $val) = @_;
-	return if !defined $val;
-	$self->set_register(1,$val);	
-}
-
-sub get_module_id
-{
-	my ($self) = @_;
-
+	$self->set_register(1,$val) if defined $val;
 	return $self->get_register(1);	
 }
 
-sub set_network_password
+sub network_password
 {
 	my ($self, $val) = @_;
-	return if !defined $val;
-	$self->set_register(2,$val);	
+	$self->set_register(2,$val) if defined $val;
+	return $self->get_register(2);	
 }
-
-sub get_network_password
-{
-	my ($self) = @_;
-
-	return $self->get_register(2) . $self->get_register(3);	
-}
-
 
 sub _send_cmd {
 	my ($self, $cmd) = @_;
@@ -312,4 +290,149 @@ sub _parse_data {
 	}
 }
 
+sub add
+{
+	my ($self,@p_objects) = @_;
+
+	my @l_objects;
+
+	for my $l_object (@p_objects) {
+		if ($l_object->isa('Group_Item') ) {
+			@l_objects = $$l_object{members};
+			for my $obj (@l_objects) {
+				$self->add($obj);
+			}
+		} else {
+		    $self->add_item($l_object);
+		}
+	}
+}
+
+sub add_item
+{
+    my ($self,$p_object) = @_;
+
+#    $p_object->tie_items($self);
+    push @{$$self{objects}}, $p_object;
+}
+
+sub remove_all_items {
+   my ($self) = @_;
+
+   if (ref $$self{objects}) {
+      foreach (@{$$self{objects}}) {
+ #        $_->untie_items($self);
+      }
+   }
+   delete $self->{objects};
+}
+
+sub add_item_if_not_present {
+   my ($self, $p_object) = @_;
+
+   if (ref $$self{objects}) {
+      foreach (@{$$self{objects}}) {
+         if ($_ eq $p_object) {
+            return 0;
+         }
+      }
+   }
+   $self->add_item($p_object);
+   return 1;
+}
+
+sub remove_item {
+   my ($self, $p_object) = @_;
+
+   if (ref $$self{objects}) {
+      for (my $i = 0; $i < scalar(@{$$self{objects}}); $i++) {
+         if ($$self{objects}->[$i] eq $p_object) {
+            splice @{$$self{objects}}, $i, 1;
+ #           $p_object->untie_items($self);
+            return 1;
+         }
+      }
+   }
+   return 0;
+}
+
+
+sub set
+{
+	my ($self,$p_state,$p_setby,$p_response) = @_;
+	$self->send_upb_cmd($p_state);
+
+}
+## WIP
+sub sset
+{
+	my ($self,$p_state,$p_setby,$p_response) = @_;
+
+=begin
+    # prevent reciprocal sets that can occur because of this method's state
+    # propogation
+	return if (ref $p_setby and $p_setby->can('get_set_by') and 
+        $p_setby->{set_by} eq $self);
+=cut
+  	&::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+
+	# ensure the setting object is associated w/ the current object before
+	#  iterating over the children.  At a minimum, main::set_by_to_target
+	#  requires current "set_by" to properly navigate the set_by "chain"
+	$self->{set_by} = $p_setby;
+
+=begin
+	# Propogate states to all member items
+	if ( defined $$self{objects} ) {
+		my @l_objects = @{$$self{objects}};
+		for my $obj (@l_objects) {
+			if ( $obj ne $p_setby and $obj ne $self ) { # Dont loop
+#               &::print_log($self->get_object_name() . "::set($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
+			        $obj->set($p_state,$self,$p_response);
+				}
+			}
+		}
+	}
+=cut
+	
+	$self->SUPER::set($p_state,$p_setby,$p_response);
+	## if we called ourselves, then dont send the command out on the bus
+	return if (ref $p_setby and $p_setby->can('get_set_by') and 
+        $p_setby->{set_by} eq $self);
+	$self->send_upb_cmd($p_state);
+}
+
+sub is_member {
+    my ($self, $p_object) = @_;
+
+    my @l_objects = @{$$self{objects}};
+    for my $l_object (@l_objects) {
+	if ($l_object eq $p_object) {
+	    return 1;
+	}
+    }
+    return 0;
+}
+
+sub find_members {
+	my ($self,$p_type) = @_;
+
+	my @l_found;
+	my @l_objects = @{$$self{objects}};
+	for my $l_object (@l_objects) {
+		if ($l_object->isa($p_type)) {
+			push @l_found, $l_object;
+		}
+	}
+	return @l_found;
+}
+
+=begin
+sub default_getstate
+{
+	my ($self,$p_state) = @_;
+	return $$self{m_obj}->state();
+}
+=cut
 1;
+
