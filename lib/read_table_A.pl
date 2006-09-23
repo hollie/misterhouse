@@ -27,7 +27,7 @@ sub read_table_init_A {
 sub read_table_A {
     my ($record) = @_;
 
-    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy);
+    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy,$network,$password);
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
 
@@ -64,6 +64,21 @@ sub read_table_A {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon_Lamp('$address', $other)";
+    }
+    # ----------------------------------------------------------------------
+    # -[ UPB ]----------------------------------------------------------
+    elsif($type eq "UPBPIM") {
+		print "PIZZZZZZZZZZZZZZZZZZZA";
+        require 'UPBPIM.pm';
+        ($name, $network, $password,$address,$grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "UPBPIM('UPBPIM', $network,$password,$address)";
+    }
+    elsif($type eq "UPBD") {
+        require 'UPB_Device.pm';
+        ($name, $object, $network, $address,$grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "UPB_Device(\$$object, $network,$address)";
     }
     # ----------------------------------------------------------------------
     elsif($type eq 'FROG') {
