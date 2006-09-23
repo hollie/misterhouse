@@ -31,19 +31,23 @@ Usage:
 
 	UPBPIM_serial_port=/dev/ttyS4
 	UPBPIM_baudrate=4800
-	UPBPIM_network=
-	UPBPIM_moduleid=
-	UPBPIM_password=
+	UPBPIM_network=49
+	UPBPIM_moduleid=30
+	UPBPIM_password=34554
 
 
     Example initialization:
 
-	use UPBPIM;
-	$myPIM = new UPBPIM();
+		$myPIM = new UPBPIM("UPBPIM",<networkid>,<networkpassword>,<pimmoduleid>);
 
+		#Turn Light Module ID #0x66 On
+		$myPIM->send_upb_cmd("09004466FF236400");
+		#Turn Light Module ID #0x66 Off
+		$myPIM->send_upb_cmd("09004466FF230000");
+		#Turn Light Module ID #0x66 to 50% dim
+		$myPIM->send_upb_cmd("09004466FF233200");
+	
 Notes:
-    - This code does not yet support sending messages and is very incomplete 
-	  code so far.  The only working method of the class is get_firmwareVersion()
     - However this code does establish communication sucessfully with the PIM,
       and adding functionality at this point will be somewhat trivial. 
       ( The exhausting hardware / serial part for me is seemingly over ;) )
