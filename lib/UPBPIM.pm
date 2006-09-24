@@ -284,6 +284,7 @@ sub _parse_data {
 			}
 			#UPB Incoming Message 
 			elsif (uc(substr($data,1,1)) eq 'U') {
+				$self->delegate(substr($data,2,length($data)));
 			}				
 
 		}
@@ -361,8 +362,38 @@ sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
 	$self->send_upb_cmd($p_state);
-
 }
+
+sub delegate
+{
+	my ($self,$p_data) = @_;
+	my $network=unpack("C",pack("H*",substr($p_data,4,2)));
+	my $destination=unpack("C",pack("H*",substr($p_data,6,2)));
+	my $isLink = 8 & unpack("C",pack("H*",substr($p_data,0,1)));
+	for my $obj (@{$$self{objects}})
+	{
+		#Match on UPB objects only
+		if ($obj->isa("UPB_Device") or $obj->isa("UPB_Link"))
+		{
+			#networks match
+			if ($network == 0 or $obj->network_id() == $network)
+			{
+				if ($destination == 0 or $obj->device_id() == $destination)
+				{
+					#if UPB_Device
+					if ($obj->isa("UPB_Device") and $isLink == 0 )
+					{
+						$obj->set($p_data,$self);
+					} elsif ($obj->isa("UPB_Link") and $isLink == 1)
+					{
+						$obj->set($p_data,$self);
+					}
+				}
+			}
+		}
+	}
+}
+
 ## WIP
 sub sset
 {
