@@ -29,12 +29,12 @@ sub init {
     if (($main::config_parms{voice_text} =~ /festival/i or $engine and $engine eq 'festival') and
         $main::config_parms{festival_host}) {
         my $festival_address = "$main::config_parms{festival_host}:$main::config_parms{festival_port}";
-        print "Creating festival TTS socket on $festival_address\n";
+        print " - creating festival TTS socket on $festival_address\n";
         $VTxt_festival = new  Socket_Item(undef, undef, $festival_address, 'festival', 'tcp', 'raw');
     }
 
     if ($main::config_parms{voice_text} =~ /ms/i and $main::OS_win) {
-        print "Creating MS TTS object for voice_text=$main::config_parms{voice_text} ...\n";
+        print " - creating MS TTS object for voice_text=$main::config_parms{voice_text} ...\n";
 
                                 # Test and default to the new SDK 5 SAPI
         $VTxt_version = lc $main::config_parms{voice_text};
@@ -58,7 +58,7 @@ sub init {
                         }
                         next unless $flag;
                     }
-                    print " - Sound card $i: $des\n";
+                    print " - sound card $i: $des\n";
                     $VTxt[$i] = Win32::OLE->new('Sapi.SpVoice');
                     $VTxt[$i] ->{AudioOutput} = $object;
                                 # Pick the default card, if specified
@@ -86,7 +86,7 @@ sub init {
             $VTxt[0]->Register("Local PC", "perl voice_text.pm");
 #           $VTxt[0]->{Enabled} = 1;
         }
-        print " - Engine used:  $VTxt_version\n";
+        print " - engine used:  $VTxt_version\n";
     }
 
 }

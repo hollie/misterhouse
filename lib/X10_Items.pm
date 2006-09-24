@@ -104,13 +104,13 @@ sub add {
 	#print "interface not defined\n" if $self and not defined $self->{interface};
 
 	$self->{interface}->add($id, $state);
-	$self->SUPER::add($id, $state); 
+	$self->SUPER::add($id, $state);
 }
 
 # this sets the interface through which we will send X10 data when asked to do so
 sub set_interface {
 	my ($self, $interface, $id) = @_;
-	my $localDebug=1;
+	my $localDebug=0;
 
 	# if an interface is specified, then we need to search through the
 	# possible interface modules until we find one that will work with it
@@ -867,7 +867,7 @@ package X10_Switchlinc;
 =begin comment
 
  # Example usage
-                                # Just picked this device to use to send the clear 
+                                # Just picked this device to use to send the clear
 $Office_Light_Torch->set("clear");
                                 # Send a command to each group member to make it listen
 $SwitchlincDisable->set("off");
@@ -902,9 +902,9 @@ sub new {
     $self-> add ('XOGNGMGPGMG' . substr($id, 1) . 'MGNGOGPG',   'add to scene');
     $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'OGPGMGNG',   'remove from scene');
     $self-> add ('XOGNGMGPGMG' . substr($id, 1) . 'NGOGPGMG',   'set scene ramp rate');
-    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  . substr($id, 1) 
+    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  . substr($id, 1)
         . substr($id, 1, 1) . 'J' . 'MGNGPGOGPG','disable transmit');
-    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  . substr($id, 1) 
+    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  . substr($id, 1)
         . substr($id, 1, 1) . 'J' . 'OGMGNGPGPG','enable transmit');
 
     # WARNING!! any Switchlinc, Appliancelinc, Lamplinc, Keypadlinc, Relaylinc that are plugged in
@@ -925,7 +925,7 @@ package X10_Keypadlinc;
 sub new {
     my ($class, $id, $interface, $type) = @_;
     my $self = &X10_Switchlinc::new($class, $id, $interface, $type);
-  
+
     return $self;
 }
 
@@ -937,7 +937,7 @@ package X10_Lamplinc;
 sub new {
     my ($class, $id, $interface, $type) = @_;
     my $self = &X10_Switchlinc::new($class, $id, $interface, $type);
-  
+
     return $self;
 }
 
@@ -949,10 +949,10 @@ package X10_Relaylinc;
 sub new {
     my ($class, $id, $interface, $type) = @_;
     my $self = &X10_Switchlinc::new($class, $id, $interface, $type);
- 
+
     $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'PGOGMGNGOG',   'lamp mode');
     $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'PGNGOGMGOG',   'appliance mode');
-  
+
     return $self;
 }
 
@@ -984,9 +984,9 @@ sub new {
 
     $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'MGNGOGPG',   'add to scene');
     $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'OGPGMGNG',   'remove from scene');
-    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  
+    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'
        . substr($id, 1) . substr($id, 1, 1) . 'J' . 'MGNGPGOGPG','disable transmit');
-    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'  
+    $self-> add ('X' . substr($id, 1) . substr($id, 1, 1) . 'K' . 'OGNGMGPGMG'
        . substr($id, 1) . substr($id, 1, 1) . 'J' . 'OGMGNGPGPG','enable transmit');
 
 
@@ -1457,7 +1457,7 @@ sub new {
     $self->add('X'.$hc.$unitcode.$hc.'+10','brighten');
     $self->add('X'.$hc.$unitcode.$hc.'-10','dim');
     $unit++;
-	my $unitcode=substr($unitcodes,$unit-1,1);
+	$unitcode=substr($unitcodes,$unit-1,1);
     $self->add('X'.$hc.$unitcode.$hc.'J','2-on');
     $self->add('X'.$hc.$unitcode.$hc.'K','2-off');
     $self->add('X'.$hc.$unitcode.$hc.'+10','brighten');

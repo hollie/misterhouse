@@ -54,7 +54,7 @@ sub triggers_read {
             $i++;
         }
     }
-    print_log "Read $i trigger entries";
+    print " - read $i trigger entries\n";
 }
 
                                 # Write trigger code

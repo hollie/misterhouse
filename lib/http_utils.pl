@@ -4,7 +4,7 @@
 # $Date$
 #
 # http_utils.pl
-# 
+#
 # This is where non HTTP server related stuff should be placed when you
 # want to add functionality to the misterhouse web experience
 #
@@ -34,7 +34,7 @@
 # id of 'mytextbox' in the form named 'myform' and that autocapitalizes
 # the first letter of each word:
 #   &insert_keyboard({target=>'mytextbox',autocap=>'yes',form=>'myform'});
-# 
+#
 # div.keyboard table.keyboard_container {border:outset 2px}
 # div.keyboard table {border:inset 2px}
 # div.keyboard td {text-align:center}
@@ -49,7 +49,7 @@ div.keyboard td {
 	text-align: center;
 }
 
-div.keyboard input { 
+div.keyboard input {
 	width: 2em;
 }
 
@@ -60,7 +60,7 @@ div.keyboard input.special {
 }
 
 div.keyboard input.spacebar {
-	width:20em; 
+	width:20em;
 }
 </style>
 ];
@@ -87,7 +87,8 @@ sub insert_keyboard {
 		return 'virtual_keyboard: You must specify a target.';
 	}
 
-	my @rows=qw/`1234567890-= qwertyuiop[]\ asdfghjkl;' zxcvbnm,.\//;
+#	my @rows=qw/`1234567890-= qwertyuiop[]\ asdfghjkl;' zxcvbnm,.\//;  # This gives warnings with use diagnostics
+	my @rows=("`1234567890-=", "qwertyuiop[]\\", "asdfghjkl;'", "zxcvbnm,.\/");
 
 	my $result=qq[<div class="keyboard">
 <br/>
@@ -102,7 +103,7 @@ sub insert_keyboard {
 		my @chars=split(//,$_);
 		my $column = 0;
 		for (@chars) {
-			my $value=$_;						
+			my $value=$_;
 
 			$value='&quot;' if $value eq '"';
 			$value='&amp;' if $value eq '&';
@@ -110,7 +111,7 @@ sub insert_keyboard {
 			if ($row == 1 && $column == 0) {
 				$result .= qq[<input class="special" type="button" onclick="keyboard_next_control()" value="Tab">];
 			}
-			
+
 			if ($row == 2 && $column == 0) {
 				$result .= qq[<input class="special" type="button" value="Caps" onclick="keyboard_caps_pressed(this)">];
 			}
@@ -149,7 +150,7 @@ sub insert_keyboard {
 	$result .= '</td></tr></table></td>';
 
 	if ($numeric_keypad) {
-	
+
 		@rows=qw/123 456 789 0/;
 
 		$result .= '<td><table class="numeric">';
@@ -160,7 +161,7 @@ sub insert_keyboard {
 			$result .= '<tr><td>';
 			my @chars=split(//,$_);
 			for (@chars) {
-				my $value=$_;						
+				my $value=$_;
 				$result .= qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
 				$column++;
 			}
@@ -168,8 +169,8 @@ sub insert_keyboard {
 				$result .= qq[<input class="keyboard" type="button" onclick="keyboard_delete_all()" value="Clear">];
 			}
 
-			$result .= '</td></tr>';				
-			$row++;		
+			$result .= '</td></tr>';
+			$row++;
 		}
 		$result .= '</table></td>';
 	}
@@ -190,13 +191,13 @@ var unshiftedSymbols = "-=[]\\\\;',./";
 // Call this before showing to use one keyboard for multiple inputs
 // Pass form object and input object from client script (these will be used in lieu of server-supplied named args)
 
-function keyboard_set_target(f,t) {	
+function keyboard_set_target(f,t) {
 	keyboard_textbox = t;
 	keyboard_form = f;
 }
 
 function keyboard_next_control() {
-	var e = keyboard_form.elements;	
+	var e = keyboard_form.elements;
 	var i=0;
 
 	for (i=0; i < e.length && e[i].name &&
@@ -268,7 +269,7 @@ function keyboard_delete_all() {
 }
 
 function keyboard_caps_pressed(e) {
-	keyboard_caps_currently_pressed=!keyboard_caps_currently_pressed;	
+	keyboard_caps_currently_pressed=!keyboard_caps_currently_pressed;
 	keyboard_update_buttons();
 }
 
@@ -309,7 +310,7 @@ function keyboard_update_buttons() {
 				if (shiftedNumbers.lastIndexOf(buttons[i].value) != -1) {
 					buttons[i].value = shiftedNumbers.lastIndexOf(buttons[i].value);
 				} else {
-					if (shiftedSymbols.lastIndexOf(buttons[i].value) != -1) {	
+					if (shiftedSymbols.lastIndexOf(buttons[i].value) != -1) {
 						buttons[i].value = unshiftedSymbols.substring(shiftedSymbols.lastIndexOf(buttons[i].value), shiftedSymbols.lastIndexOf(buttons[i].value) + 1);
 					}
 				}

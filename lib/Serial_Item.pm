@@ -27,7 +27,7 @@ sub new {
 
 sub do_start {
 	my ($self) = @_;
-	
+
 	return &::serial_port_open($self->{device_name});
 }
 
@@ -123,7 +123,7 @@ my $x10_save_unit;
 
 sub send_x10_data {
 	# This function can either be called as a class method or a library function
-	# If being called as a member function, then pull the object ref off the 
+	# If being called as a member function, then pull the object ref off the
 	# argument list.
 	my $self=undef;
 	if (ref($_[0])) {
@@ -194,8 +194,7 @@ sub send_x10_data {
     elsif ($interface eq 'lynx10plc') {
                                 # marrick PLC wants XA1AK
         &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},
-                             "X" . substr($x10_save_unit, 1) .
-                             substr($serial_data, 1), $module_type) if $isfunc;
+                             $serial_data, $module_type);
     }
     elsif ($interface eq 'cm17') {
                                 # cm17 wants A1K, not XA1AK

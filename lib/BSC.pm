@@ -197,7 +197,7 @@ sub event_callback {
          $bsc_state = $bsc_text;
       }
       $state = $bsc_state;
-      $last;
+      last;
    };
    return $state;
 }
@@ -212,7 +212,7 @@ sub info_callback {
    $$self{display_text} = undef;
    for my $section_name (keys %{$p_xap}) {
       next unless ($section_name =~ /^(input|output)\.state/);
-      print "db BSC_Item->info_callback: Process section:$section_name" 
+      print "db BSC_Item->info_callback: Process section:$section_name"
              . " from " . $$p_xap{'xap-header'}{source} . "\n" if $main::Debug{bsc};
       my $bsc_level = $$p_xap{$section_name}{level};
       my $bsc_state = $$p_xap{$section_name}{state};
@@ -228,7 +228,7 @@ sub info_callback {
          $bsc_state = $bsc_text;
       }
       $state = $bsc_state;
-      $last;
+      last;
    };
    return $state;
 }

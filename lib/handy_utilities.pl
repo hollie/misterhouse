@@ -62,7 +62,7 @@ sub main::batch {
 sub main::file_backup {
     my ($file, $mode) = @_;
                                 # Back it up if it is older than a few minutes old
-    if ($mode eq 'force' or ($main::Time - (stat $file)[9]) > 60*10) {
+    if (($mode and $mode eq 'force') or ($main::Time - (stat $file)[9]) > 60*10) {
         print  "Backing up file: $file to $file.backup\n";
         unlink "$file.backup4" if -e "$file.backup4";
         rename "$file.backup3", "$file.backup4" if -e "$file.backup4";

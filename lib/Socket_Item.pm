@@ -64,9 +64,13 @@ sub start {
     $broadcast = 0 unless $broadcast;
     my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
     if ($port) {
+        if ($main::Socket_Ports{$port_name}{sock}) {
+            &::print_log("Socket already opened for $port_name");
+            return $main::Socket_Ports{$port_name}{sock};
+        }
         print "Socket Item connecting to $host on port $port\n" if $main::Debug{socket};
         if (my $sock = new IO::Socket::INET->new(PeerAddr => $host,
-                                                 PeerPort => $port, 
+                                                 PeerPort => $port,
                                                  Proto => $host_proto,
                                                  Broadcast => $broadcast
                                                  )) {
