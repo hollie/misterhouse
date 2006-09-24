@@ -58,8 +58,7 @@ sub new
 #   $$self{m_xap}->class_name('xAPBSC.*');
    $self->_initialize();
    my $friendly_name = "bsc_$p_source_name";
-   my $code = &main::store_object_data($$self{m_xap},'xAP_Item',$friendly_name,$friendly_name);
-   eval($code);
+   &main::store_object_data($$self{m_xap},'xAP_Item',$friendly_name,$friendly_name);
    $$self{m_xap}->tie_items($self);
 
    return $self;
@@ -184,11 +183,20 @@ sub event_callback {
       next unless ($section_name =~ /^(input|output)\.state/);
       print "db BSC_Item->event_callback: Process section:$section_name"
               . " from " . $$p_xap{'xap-header'}{source} . "\n" if $main::Debug{bsc};
-      $self->bsc_state($$p_xap{$section_name}{state});
-      $self->level($$p_xap{$section_name}{level});
-      $self->text($$p_xap{$section_name}{text});
+      my $bsc_level = $$p_xap{$section_name}{level};
+      my $bsc_state = $$p_xap{$section_name}{state};
+      my $bsc_text = $$p_xap{$section_name}{text};
+      $self->bsc_state($bsc_state);
+      $self->level($bsc_level);
+      $self->text($bsc_text);
       $self->display_text($$p_xap{$section_name}{display_text});
-      $state = 'event';
+      # determine state
+      if ($bsc_level) {
+         $bsc_state = $bsc_level;
+      } elsif($bsc_text) {
+         $bsc_state = $bsc_text;
+      }
+      $state = $bsc_state;
       $last;
    };
    return $state;
@@ -206,11 +214,20 @@ sub info_callback {
       next unless ($section_name =~ /^(input|output)\.state/);
       print "db BSC_Item->info_callback: Process section:$section_name" 
              . " from " . $$p_xap{'xap-header'}{source} . "\n" if $main::Debug{bsc};
-      $self->bsc_state($$p_xap{$section_name}{state});
-      $self->level($$p_xap{$section_name}{level});
-      $self->text($$p_xap{$section_name}{text});
+      my $bsc_level = $$p_xap{$section_name}{level};
+      my $bsc_state = $$p_xap{$section_name}{state};
+      my $bsc_text = $$p_xap{$section_name}{text};
+      $self->bsc_state($bsc_state);
+      $self->level($bsc_level);
+      $self->text($bsc_text);
       $self->display_text($$p_xap{$section_name}{display_text});
-      $state = 'info';
+      # determine state
+      if ($bsc_level) {
+         $bsc_state = $bsc_level;
+      } elsif($bsc_text) {
+         $bsc_state = $bsc_text;
+      }
+      $state = $bsc_state;
       $last;
    };
    return $state;
