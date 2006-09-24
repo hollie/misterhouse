@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#  Last change Time-stamp: <2006-07-16 16:04:57 winter>
+#  Last change Time-stamp: <2006-09-24 15:13:32 winter>
 #---------------------------------------------------------------------------
 #  File:
 #      mh
@@ -332,19 +332,22 @@ EOF
     }
 
     sub set_debug_data {
-    	undef %Debug;
         if (defined $config_parms{debug}) {
+            if (!defined $Debug{debug_previous} or $config_parms{debug} ne $Debug{debug_previous}) {
+                undef %Debug;
+                $Debug{debug_previous} = $config_parms{debug};
                                    # Allow for multiple debugs like serial;x10
-            for my $debug (split ';', lc $config_parms{debug}) {
+                for my $debug (split ';', lc $config_parms{debug}) {
                                    # Allow for debug level like: x10:4
-                next unless $debug;
-                if ($debug =~ /(.+):(.+)/) {
-                    $Debug{$1} = $2;
-                    print "Debug for $1 set to $2\n";
-                }
-                else {
-                    $Debug{$debug} = 1;
-                    print "Debugging for $debug turned on\n";
+                    next unless $debug;
+                    if ($debug =~ /(.+):(.+)/) {
+                        $Debug{$1} = $2;
+                        print "Debug for $1 set to $2\n";
+                    }
+                    else {
+                        $Debug{$debug} = 1;
+                        print "Debugging for $debug turned on\n";
+                    }
                 }
             }
         }
@@ -507,7 +510,7 @@ EOF
 	    eval "use Tk::ProgressBar";
 	    eval "use Tk::Tree";
 	    eval "use Tk::Balloon"; # for new status bar labels
-		eval "use Tk::PNG"; 
+		eval "use Tk::PNG";
         }
 
                                 # Allow for Round Robin database logs
@@ -1104,7 +1107,7 @@ sub open_logs {
 
 sub set_by_to_target {
 	my ($set_by, $no_strip) = @_;
-	
+
         $no_strip = 0 unless $no_strip;
 
 	$set_by = undef if (!$set_by or $set_by =~ /time/i or $set_by =~ /^unknown/i or $set_by =~ /^usercode/i or $set_by eq 'status');
@@ -1121,7 +1124,7 @@ sub set_by_to_target {
 		}
 		push(@objectList, $set_by->{object_name});
 		my $predecessor=$set_by->get_set_by();
-		last if $predecessor == $set_by; # comment this line out to detect self-setting objects
+		last if $predecessor eq $set_by; # comment this line out to detect self-setting objects
 		$set_by = $predecessor;
 	}
 
@@ -2879,7 +2882,7 @@ sub eval_user_code_reset {
     &Generic_Item::delete_old_tied_times;
      # Weather_Item.pm keeps an array containing all Weather objects
      # It must be cleared on resets, otherwise old copies of Weather objects are kept around
-     # This is a memory leak and can cause multiple tied_{object/events} 
+     # This is a memory leak and can cause multiple tied_{object/events}
     &Weather_Item::clear_weather_item_list;
 }
 
@@ -4907,6 +4910,7 @@ sub read_user_code_loopcode {
         "        display('Multiple eval errors in $member_name.  Code was disabled', 0);" .
         "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
         "   my \$benchmark_tickcount = &get_tickcount if \$Benchmark_Members{on_off_flag};\n" .
+#       " print \"db rl=\$Reload m=$member_name\n\" if \$Reload;\n" .
         $code .
         "   \$Benchmark_Members{'$member_name'} += &get_tickcount - \$benchmark_tickcount if \$benchmark_tickcount and \$Benchmark_Members{on_off_flag};\n" .
         "\n} # End of $member_name");
@@ -5318,6 +5322,8 @@ sub set_global_vars {
     # Save object states every 5 minutes, in case mh is aborted without a proper shutdown
 #   &object_states_save if $New_Minute and !($Minute % 5); $Time_Increment
     &object_states_save if $New_Minute and !($Time_Start_time or $Time_Stop_time); # Skip if in accelerated mode
+
+    &set_debug_data if $New_Second;         # Populate %Debug if debug changed
 
 }
 
@@ -6067,7 +6073,7 @@ sub route_display_rooms {
               no strict 'refs';
               &$func(%parms);
           }
-       } 
+       }
     }
 }
 
@@ -6303,8 +6309,8 @@ sub tk_setup_windows {
                                                                         # Older build gives 'bitmap not defined' error
     # $MW->iconbitmap($Pgm_Root . '/web/favicon.ico') unless $^O eq 'MSWin32' and &Win32::BuildNumber < 810;
     my $icon_image = $MW->Photo(
-    	-file => "${Pgm_Root}/web/favicon.png",
-    	-format => 'png');
+    	-file => "${Pgm_Root}/web/favicon.gif",
+    	-format => 'gif');
     $MW->Icon(-image => $icon_image);
 #   $MW->optionAdd('*font' => 'systemfixed');
 #   $MW->optionAdd('*font' => $config_parms{tk_font_menus}) if $config_parms{tk_font_menus};
@@ -7150,6 +7156,11 @@ sub configure_element {
 	my $relief;
 	my $border_width;
 
+#   print "db t=$type pe=$p_element\n";
+# Error here with radiobutton?
+#db t=frame pe=Tk::Radiobutton=HASH(0x774993c)
+#Error found in user code file: c:/misterhouse/data_test/mh_temp.user_code
+#09/09/06 14:01:44: Not a SCALAR reference at mhtest line 6979.
     unless ($$p_element) {
         print "configure_element error: type=$type\n";
         return;
