@@ -491,6 +491,19 @@ sub read_table_A {
             $code .= "use ZoneMinder_xAP;\n";
         }
     } 
+    elsif($type eq "BSC") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "BSC_Item('$address',$other)";
+        }
+        else{
+            $object = "BSC_Item('$address')";
+        }
+        if( ! $packages{BSC}++ ) {   # first time for this object type?
+            $code .= "use BSC;\n";
+        }
+    } 
     elsif($type eq "X10_SCENE") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
