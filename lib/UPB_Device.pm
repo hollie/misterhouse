@@ -33,6 +33,7 @@ package UPB_Device;
 @UPB_Device::ISA = ('Generic_Item');
 
 my %message_types = ( 	
+#UPB Core Command Set
 						null => 0x00,
 						write_enable => 0x01,
 						write_protect => 0x02,
@@ -49,6 +50,7 @@ my %message_types = (
 						device_signature => 0x0F,
 						get_register => 0x10,
 						set_register => 0x11,
+#UPB Code Device Command Set
 						activate_link => 0x20,
 						deactivate_link => 0x21,
 						goto => 0x22,
@@ -58,7 +60,10 @@ my %message_types = (
 						indicate => 0x26,
 						toggle => 0x27,
 						report => 0x30,
-						store => 0x31						
+						store => 0x31,					
+#UPB Core Reports
+						device_state_report =>0x86,
+						device_status_report =>0x87
  );
 
 sub new
@@ -120,42 +125,107 @@ sub set
 
    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 
-	$$self{interface}->set($self->_xlate($p_state));
+	if ($p_setby eq $self->interface())
+	{
+		$p_state = $self->_xlate_upb_mh($p_state);
+	} else {
+		$$self{interface}->set($self->_xlate_mh_upb($p_state));
+	}
 	$self->SUPER::set($p_state,$p_setby,$p_response);
 }
 
-sub _xlate
+sub _xlate_upb_mh
+{
+	my ($self,$p_state) = @_;
+
+	my $msgid=substr($p_state,10,2);
+	print "RRRRRR";
+	for my $key (keys %message_types){
+		if ($message_types{$key} == $msgid)
+		{
+			&::print_log("FOUND: $key");
+		}
+	}
+
+	return $p_state;
+}
+
+sub _xlate_mh_upb
 {
 	my ($self,$p_state) = @_;
 	my $cmd;
+	my @args;
+	my $msg;
+	my $level;
+	my $rate;
+
+	#msg id
+	$msg=$p_state;
+	$msg=~ s/\:.*$//;
+	if (uc($msg) eq 'ON')
+	{	
+		$msg = "goto";
+		$level=100;
+		$rate=$self->rate();
+	} elsif (uc($msg) eq 'OFF')
+	{	
+		$msg = "goto";
+		$level = 0;
+		$rate = $self->rate();
+	} elsif ($msg=~/^[1]?[0-9]?[0-9]/)
+	{	
+		$msg= "goto";
+		$level = $msg=~/^([1]?[0-9]?[0-9])/;
+		$rate = $self->rate();
+	}
+
+=begin
+	#Fuzzy logic find message
+	for my $key (keys %message_types)
+	{
+		if ($key=~/$msg/i)
+		{
+			$msg = $message_types{$key};
+			last;
+		}
+	}
+=cut
+	$msg = $message_types{$msg};
 
 	#control word
-	$cmd="0900";
+	$cmd="0970";
 	#network id;
 	$cmd.= sprintf("%02X",$self->network_id());
 	#destination;
 	$cmd.= sprintf("%02X",$self->device_id());
 	#source
-	$cmd.= sprintf("%02X",$self->interface()->device_id());
-	#msg id
-	if (uc($p_state) eq 'ON')
+	$cmd.=$self->interface()->device_id();
+
+	#get specified args
+	if ($p_state=~/\:/)
+	{
+		my @targs;
+		@targs = split(':',$p_state);
+		@targs = shift(@targs);
+		@args=@targs;
+	} 
+	#Format the specific message
+	elsif ($msg == $message_types{goto})
 	{	
-		$cmd.= sprintf("%02X",$message_types{goto});
-		$cmd.= sprintf("%02X",100);
-		$cmd.= sprintf("%02X",$self->rate());
-	} elsif (uc($p_state) eq 'OFF')
-	{	
-		$cmd.= sprintf("%02X",$message_types{goto});
-		$cmd.= sprintf("%02X",0);
-		$cmd.= sprintf("%02X",$self->rate());
-	} elsif ($p_state=~/^[1]?[0-9]?[0-9]/)
-	{	
-		$cmd.= sprintf("%02X",$message_types{goto});
-		$cmd.= sprintf("%02X",$p_state=~/^([1]?[0-9]?[0-9])/);
-		$cmd.= sprintf("%02X",$self->rate());
+		$args[0]=$level;
+		$args[1]=$rate;		
 	}
-	
+
+	##Finish off the command
+	$cmd.= sprintf("%02X",$msg);
+	for my $arg (@args)
+	{
+		$cmd.= sprintf("%02X",$arg);
+	}
+
+	#set length
+	substr($cmd,1,1,sprintf("%X",(length($cmd)/2)+1));	
+
 	return $cmd;
 }
-
 1;
