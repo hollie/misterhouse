@@ -18,7 +18,7 @@ my (%groups, %objects, %packages);
 
 sub read_table_init_A {
                                 # reset known groups
-	print_log "Initialized read_table_A.pl";
+	&::print_log("Initialized read_table_A.pl");
 	%groups=();
 	%objects=();
 	%packages=();
@@ -411,7 +411,7 @@ sub read_table_A {
 
 #       if ($config_parms{pa_type} ne $pa_type) {
         if(1==0) {
-            print "ERROR! INI parm \"pa_type\"=$config_parms{pa_type}, but PA item $name is a type of $pa_type. Skipping PA zone.\n - r=$record\n";
+            print "ERROR! INI parm \"pa_type\"=$main::config_parms{pa_type}, but PA item $name is a type of $pa_type. Skipping PA zone.\n - r=$record\n";
             return;
         } else {
 #           $name = "pa_$name";
@@ -491,6 +491,33 @@ sub read_table_A {
             $code .= "use ZoneMinder_xAP;\n";
         }
     } 
+    elsif($type eq "ANALOG_SENSOR") {
+        my $owx_name;
+        my $sensor_type;
+        ($address, $name, $owx_name, $grouplist, $sensor_type) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if( ! $packages{OneWire_xAP}++ ) {   # first time for this object type?
+            $code .= "use OneWire_xAP;\n";
+        }
+        $code .= sprintf "\n\$%-35s = new AnalogSensor_Item('%s', '%s');\n", $name, $address, $sensor_type;
+        if ($objects{$owx_name}) {
+           $code .= sprintf "\$%-35s -> add(\$%s);\n", $owx_name, $name;
+        }
+        $object = '';
+    } 
+    elsif($type eq "OWX") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "OneWire_xAP('$address', $other)";
+        }
+        else{
+            $object = "OneWire_xAP('$address')";
+        }
+        if( ! $packages{OneWire_xAP}++ ) {   # first time for this object type?
+            $code .= "use OneWire_xAP;\n";
+        }
+    } 
     elsif($type eq "BSC") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -559,7 +586,7 @@ sub read_table_A {
         }
 
         if ($name eq $group) {
-            print_log "mht object and group name are the same: $name  Bad idea!";
+            &::print_log("mht object and group name are the same: $name  Bad idea!");
         } else {
                                 # Allow for floorplan data:  Bedroom(5,15)|Lights
             if ($group =~ /(\S+)\((\S+?)\)/) {
