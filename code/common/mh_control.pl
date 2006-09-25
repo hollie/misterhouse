@@ -30,7 +30,7 @@ if ($state = said $v_listen) {
 		$v_listen->respond('app=control I am listening.');
 	}
 	else {
-		&Voice_Cmd::wait_for_command('Start listening');	
+		&Voice_Cmd::wait_for_command('Start listening');
 		$v_listen->respond('app=control I am not listening.');
 	}
 }
@@ -335,7 +335,7 @@ if (said $v_list_serial_items) {
     respond text => $results, time => 60, title => 'Serial Items', font => 'fixed';
 }
 
- 
+
                                # Find a list of debug options code for $Debug{xyz}
 $v_list_debug_options  = new Voice_Cmd 'List debug options';
 $v_list_debug_options -> set_info('Generates a list of the various -debug options you can use to get debug errata');
@@ -563,9 +563,6 @@ if ($Reload) {
 	my $tk = &tk_label_new(3, \$Save{mode});
 	$tk->bind('<Double-1>' => \&toggle_house_mode) if $MW;
 
-	my $tk = &tk_label_new(3, \$Save{security});
+	$tk = &tk_label_new(3, \$Save{security});
 	$tk->bind('<Double-1>' => \&toggle_security_mode) if $MW;
 }
-
-
-

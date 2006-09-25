@@ -32,7 +32,7 @@
 
 use Mp3Player;
 
-use Win32::TieRegistry 0.20 (Delimiter=>"/", ArrayValues=>0);
+# use Win32::TieRegistry 0.20 (Delimiter=>"/", ArrayValues=>0);
 
 # noloop=start      This directive allows this code to be run on startup/reload
 
@@ -107,7 +107,7 @@ sub mp3_control {
             get "$url/setplaylistpos?p=$config_parms{mp3_program_password}&a=$song";
             $temp = filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
 	    return $temp;
-        }	
+        }
         elsif($command =~ /volume/i){
            $temp = '';
             # 10 passes is about 20 percent
