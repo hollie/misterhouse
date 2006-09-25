@@ -5171,9 +5171,11 @@ strip oots
 	name Order of the Stick
 	homepage http://www.giantitp.com/cgi-bin/GiantITP/ootscript
 	artist Rich Burlew
-	type search
-	searchpattern <IMG src="\.\./\.\./(oots/oots\d+\..+?)">
-	baseurl http://www.giantitp.com/
+	baseurl http://www.giantitp.com
+	searchpage http://www.giantitp.com/cgi-bin/GiantITP/ootscript
+    	type search2pages
+	searchpattern <A href="(/comics/oots\d\d\d\d\.html)">
+	searchpattern2 <IMG src="(/comics/images/.+?)">
 	provides latest
 end
 

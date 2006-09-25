@@ -987,6 +987,49 @@ sub get_strip {
 				}
 			}
 		}
+	} elsif ($defs{$strip}{'type'} eq "search2pages") {
+		# Search pattern for when it takes two pages to get to the image file
+		# Pull down the first page
+		$page = &http_get($defs{$strip}{'searchpage'});
+		if ($page =~ /^ERROR/) {
+			if ($options{'verbose'}) {
+				warn "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
+			}
+			$addr = "unavail-server";
+		} else { # And dig through it for the URL for the second page
+			$page =~ /$defs{$strip}{'searchpattern'}/si;
+			my @regexmatch;
+			for (1..9) { $regexmatch[$_] = ${$_}; 
+			}
+			unless ($regexmatch[1]) {
+				warn "didn't match\n";
+				if ($options{'verbose'}) {
+					warn "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
+				}	
+				$addr = "unavail-nomatch";
+			} else {
+				# Now go to the second page, and dig through it for the image URL
+				$addr = $defs{$strip}{'baseurl'} . $regexmatch[1];
+				$page = &http_get($addr);
+				if ($page =~ /^ERROR/) {
+					warn "Error: $strip: can't download 2nd page\n";
+					$addr = "unavail-server";
+				} else {
+					# find the information in the second page
+					my ($searchkey) = $page =~ /$defs{$strip}{'searchpattern2'}/;
+					if ($searchkey eq '') {
+						warn "Error: $strip: unable to locate searchkey2\n";
+					} else {
+						# and build the image url from it and the base.
+						if ($defs{$strip}{'baseurl'}) {
+							$addr = $defs{$strip}{'baseurl'} . $searchkey;
+						} else {
+							warn "Error: $strip: You must supply a baseurl\n";
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	unless ($addr =~ /^(http:\/\/|unavail)/io) { $addr = "http://" . $addr }
@@ -1263,7 +1306,7 @@ sub get_defs {
 			}
 			elsif (/^type\s+(.+)$/i)
 			{
-				unless ($1 =~ /^(search|generate)$/i) {
+				unless ($1 =~ /^(search|generate|flashdrm|search2pages)$/i) {
 					die "Error: invalid 'type' at $defs_file line $line\n";
 				}
 				
@@ -1276,6 +1319,10 @@ sub get_defs {
 			elsif (/^searchpattern\s+(.+)$/i)
 			{
 				$defs{$strip}{'searchpattern'} = $1;
+			}
+			elsif (/^searchpattern2\s+(.+)$/i)
+			{
+				$defs{$strip}{'searchpattern2'} = $1;
 			}
 			elsif (/^matchpart\s+(.+)$/i)
 			{
