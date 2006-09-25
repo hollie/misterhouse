@@ -127,24 +127,54 @@ sub set
 
 	if ($p_setby eq $self->interface())
 	{
-		$p_state = $self->_xlate_upb_mh($p_state);
+	    my $network=unpack("C",pack("H*",substr($p_state,4,2)));
+   		my $destination=unpack("C",pack("H*",substr($p_state,6,2)));
+   		my $source=unpack("C",pack("H*",substr($p_state,8,2)));
+		my $msg=unpack("C",pack("H*",substr($p_state,10,2)));
+		my $l_state = $p_state;
+		$p_state = undef;
+		if ($network == $self->network_id() or $network==0) 
+		{
+			if ( $destination==$self->device_id() or $destination==0 or $source == $self->device_id() )
+			{
+				if (!($source != $self->device_id() and $msg >= 0x80)) 
+				{
+					$p_state = $self->_xlate_upb_mh($l_state);
+				}
+			}
+		}
 	} else {
 		$$self{interface}->set($self->_xlate_mh_upb($p_state));
 	}
-	$self->SUPER::set($p_state,$p_setby,$p_response);
+	$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 }
 
 sub _xlate_upb_mh
 {
 	my ($self,$p_state) = @_;
 
-	my $msgid=substr($p_state,10,2);
+	my $network = unpack("C",pack("H*",substr($p_state,4,2)));
+   	my $destination = unpack("C",pack("H*",substr($p_state,6,2)));
+   	my $source = unpack("C",pack("H*",substr($p_state,8,2)));
+	my $msgid = unpack("C",pack("H*",substr($p_state,10,2)));
+	my @args = unpack("C*",pack("H2",substr($p_state,12,length($p_state)-12)));
+	my $msg=undef;
 	print "RRRRRR";
 	for my $key (keys %message_types){
 		if ($message_types{$key} == $msgid)
 		{
 			&::print_log("FOUND: $key");
+			$msg=$key;
+			last;
 		}
+	}
+	if ($message_types{device_state_report} == $msgid and
+		$source = $self->device_id()) 
+	{
+		for my $arg (@args)
+		{
+			
+		}			
 	}
 
 	return $p_state;
@@ -162,6 +192,7 @@ sub _xlate_mh_upb
 	#msg id
 	$msg=$p_state;
 	$msg=~ s/\:.*$//;
+#	&::print_log("XLATE:$msg:$p_state:");
 	if (uc($msg) eq 'ON')
 	{	
 		$msg = "goto";
@@ -172,10 +203,10 @@ sub _xlate_mh_upb
 		$msg = "goto";
 		$level = 0;
 		$rate = $self->rate();
-	} elsif ($msg=~/^[1]?[0-9]?[0-9]/)
+	} elsif ($msg=~/^([1]?[0-9]?[0-9])/)
 	{	
 		$msg= "goto";
-		$level = $msg=~/^([1]?[0-9]?[0-9])/;
+		$level = $1;
 		$rate = $self->rate();
 	}
 
@@ -220,6 +251,8 @@ sub _xlate_mh_upb
 	$cmd.= sprintf("%02X",$msg);
 	for my $arg (@args)
 	{
+#		&::print_log("XLATE3:$arg:@args:");
+
 		$cmd.= sprintf("%02X",$arg);
 	}
 
