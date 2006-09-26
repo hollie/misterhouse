@@ -301,4 +301,11 @@ sub get_supported_interfaces {
 	return \@supported_interfaces;
 }
 
+sub serial_items_by_id {
+	return &Device_Item::items_by_id(@_);
+}
+sub serial_item_by_id {
+	return &Device_Item::item_by_id(@_);
+}
+
 1;
