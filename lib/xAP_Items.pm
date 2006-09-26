@@ -62,15 +62,6 @@ sub startup {
 	$xap_send   = new Socket_Item(undef, undef, 'xap_send');
 	# and send the heartbeat
 
-
-        # Find and use the first open port
-#    	my $port_listen;
-#    	for my $p (49152 .. 65535) {
-#            $port_listen = $p;
-#            last if &open_port($port_listen, 'listen', 'xap_listen', 1, 1);
-#    	}
-#	$xap_listen = new Socket_Item(undef, undef, 'xap_listen');
-
 	# initialize the hub (listen) port
         if ($::config_parms{xap_nohub}) {
 	   $xap_hub_listen = undef;
@@ -78,10 +69,6 @@ sub startup {
 	   if (&open_port($port, 'listen', 'xap_hub_listen', 0, 1)) {
 	      $xap_hub_listen = new Socket_Item(undef, undef, 'xap_hub_listen');
 	      print " - mh in xAP Hub mode\n";
-              # now set up the hub port that will send to mh
-#	      $hub_ports{$port_listen} = &get_xap_mh_source_info();
-#             my $port_name = "xap_send_$port_listen";
-#              &open_port($port_listen, 'send', $port_name, 1, 1);
 	   } else {
               print " - mh automatically switching out of xAP Hub mode.  Another application is binding to the hub port ($port)\n";
            }
@@ -316,21 +303,34 @@ sub open_port {
         $dest_address = $::config_parms{'ipaddress_xap_broadcast'} if $port_name =~ /^xap/i;
         $dest_address = $::config_parms{'ipaddress_xpl_broadcast'} if $port_name =~ /^xpl/i;
         $dest_address = '255.255.255.255' unless $dest_address;
-        $dest_address = 'localhost' if $local;
+	if ($local) {
+		if ($port_name =~ /^xpl/i) {
+			$dest_address = $::config_parms{'ipaddress_xpl'};
+        		$dest_address = $::config_parms{'xpl_address'} unless $dest_address;
+		        $dest_address = $::Info{IPAddress_local} unless $dest_address;
+ 		} else {
+        		$dest_address = 'localhost';
+		}
+	}
         $sock = new IO::Socket::INET->new(PeerPort => $port, Proto => 'udp',
                                           PeerAddr => $dest_address, Broadcast => 1);
     }
     else {
         my $listen_address;
-        $listen_address = $::config_parms{'ipaddress_xap'} if $port_name =~ /^xap/i;
-        $listen_address = $::config_parms{'ipaddress_xpl'} if $port_name =~ /^xpl/i;
+	if ($port_name =~ /^xap/i) {
+	        $listen_address = $::config_parms{'ipaddress_xap'}; 
+	} elsif ($port_name =~ /^xpl/i) {
+        	$listen_address = $::config_parms{'ipaddress_xpl'};
+        	$listen_address = $::config_parms{'xpl_address'} unless $listen_address;
+	        $listen_address = $::Info{IPAddress_local} unless $listen_address;
+ 	}
         if ($main::OS_win) {
             $listen_address = $::Info{IPAddress_local} unless $listen_address;
         } else {
            # can't get *nix to bind to a specific address; defaults to kernel assigned default IP
-            $listen_address = '0.0.0.0';# unless $listen_address;
+            $listen_address = '0.0.0.0';
         }
-        $listen_address = 'localhost' if $local;
+        $listen_address = 'localhost' if $local and $port_name =~ /^xap/i;
         $sock = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp',
                                           LocalAddr => $listen_address, Broadcast => 1);
 #                                          LocalAddr => '0.0.0.0', Broadcast => 1);
@@ -1008,7 +1008,7 @@ sub sendXapWithHeaderVars {
           $msg .= "$section\n{\n";
           my $ptr = shift @data;
           my %parms = %$ptr;
-          for my $key (sort keys %parms) {
+          for my $key (keys %parms) {
              $msg .= "$key=$parms{$key}\n";
           }
           $msg .= "}\n";
@@ -1041,7 +1041,14 @@ sub sendXpl {
 	  my $ptr = shift @data;
 	  my %parms = %$ptr;
 	  for my $key (sort keys %parms) {
-	     $msg .= "$key=$parms{$key}\n";
+             # order is important for many xPL clients
+             # allow a sort key delimitted by ## to drive the order
+             my ($subkey1,$subkey2) = $key =~ /^(\S+)##(.*)/;
+             if (defined $subkey1 and defined $subkey2) {
+                $msg .= "$subkey2=$parms{$key}\n";
+             } else {
+	        $msg .= "$key=$parms{$key}\n";
+             }
 	  }
 	  $msg .= "}\n";
        }
