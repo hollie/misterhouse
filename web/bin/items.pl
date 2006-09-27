@@ -58,7 +58,7 @@ function openparmhelp(parm1){
       &html_form_select('type', 0, 'X10 Light (X10I)',
                         'X10 Appliance (X10A)', 'X10 Light (X10I)', 'X10 Ote (X10O)',
                         'X10 SwitchLinc (X10SL)', 'X10 Garage Door (X10G)', 'X10 Irrigation (X10S)',
-                        'X10 RCS (X10T)',  'X10 Motion Sensor (X10MS)',
+                        'X10 RCS (X10T)',  'X10 Motion Sensor (X10MS)', 'X10 6 Button Remote (X106BUTTON)',
                         'EIB Switch (EIB1)', 'EIB Switch Group (EIB1G)', 'EIB Dimmer (EIB2)', 'EIB Value (EIB5)', 'EIB Drive (EIB7)',
                         qw(SERIAL VOICE IBUTTON  GENERIC COMPOOL MP3PLAYER AUDIOTRON WEATHER SG485LCD SG485RCSTHRM STARGATEDIN STARGATEVAR STARGATEFLAG STARGATERELAY STARGATETHERM STARGATEPHONE XANTECH RF));
 
@@ -105,6 +105,7 @@ $form_type
                     X10I    => [qw(Address Name Groups Interface Options)],
                     X10SL   => [qw(Address Name Groups Interface Options)],
                     X10MS   => [qw(Address Name Groups Type)],
+                    X106BUTTON => [qw(Address Name)],
                     GENERIC => [qw(Name Groups)],
                     SERIAL  => [qw(String Name Groups State Port)],
                     IBUTTON => [qw(ID Name Port Channel)],

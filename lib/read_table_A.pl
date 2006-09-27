@@ -131,6 +131,10 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other);
         $object = "X10_Relaylinc('$address', $other)";
     }
+    elsif($type eq "X106BUTTON") {
+        ($address, $name) = @item_info;
+        $object = "X10_6ButtonRemote('$address')";
+    }
     elsif($type eq "X10G") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
