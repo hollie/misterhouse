@@ -17,7 +17,7 @@ package RCS_Item;
 
 sub new {
     my ($class, $id, $interface) = @_;
-    my $self = {};
+    my $self=Serial_Item->new($id, undef, $interface);
 
     $$self{members} = [()];
     $$self{members_by_type}{members} = [()];

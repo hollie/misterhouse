@@ -57,9 +57,7 @@ BEGIN {
 	# Are we running from within a subversion repository?
 	my $entries='../.svn/entries';
 	my $revision=undef;
-	print "looking for entries\n";
 	if (-r $entries) {
-		print "found entries\n";
 		open (ENTRIES, $entries);
 		my $line1=<ENTRIES>;
 		# $entries can be either XML (svn < 1.4) or just text (svn >= 1.4)

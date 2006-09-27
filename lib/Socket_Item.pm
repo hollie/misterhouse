@@ -91,6 +91,7 @@ sub start {
     }
     return 0;
 }
+
 sub stop {
     my ($self) = @_;
     my $port_name = $self->{port_name};
