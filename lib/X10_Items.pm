@@ -48,6 +48,7 @@ sub new {
         }
         $id = "X$id";
         $self->{x10_id} = $id;
+        $self->{interface}->{x10_id}=$id;
 
                                 # Setup house only codes:     e.g. XAO, XAP, XA+20
                                 #  - allow for all bright/dim commands so we can detect incoming signals
@@ -379,6 +380,7 @@ sub new {
     }
     $id = "X$id";
     $self->{x10_id} = $id;
+    $self->{interface}->{x10_id} = $id;
 
     $self-> add ($id . $hc . 'J', 'on');
     $self-> add ($id . $hc . 'K', 'off');
@@ -423,6 +425,7 @@ sub new {
     $id = "X$hc" . 'Z';
 #   print "\n\nWarning: duplicate ID codes on different X10_Garage_Door objects: id=$id\n\n" if $serial_item_by_id{$id};
     $self->{x10_id} = $id;
+    $self->{interface}->{x10_id} = $id;
 
 # Returned state is "bbbdccc"
 # "bbb" is 1=door enrolled, 0=enrolled, indexed by door # (i.e. 123)
@@ -981,6 +984,7 @@ sub new {
     }
     $id = "X$id";
     $self->{x10_id} = $id;
+    $self->{interface}->{x10_id} = $id;
 
     $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'MGNGOGPG',   'add to scene');
     $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'OGPGMGNG',   'remove from scene');
@@ -1045,6 +1049,7 @@ sub new
   push @{$TempLinc_by_house_code{$hc}}, $self;
   $id = "X$id";
   $self->{x10_id} = $id;
+  $self->{interface}->{x10_id} = $id;
 
   # request temperature is standalone outside the loop
   # manually added a unit code here as it would not work with out one, Serial_Item expects this
@@ -1094,6 +1099,7 @@ sub new {
     push @{$ote_by_house_code{$hc}}, $self;
     $id = "X$id";
     $self->{x10_id} = $id;
+    $self->{interface}->{x10_id} = $id;
     $self-> add ($id . $hc . 'J', 'eco');
     $self-> add ($id . $hc . 'K', 'normal');
     $self-> add ($id . $hc . 'J' . $hc . '+5', 'plus');
@@ -1168,12 +1174,10 @@ sub init {
                                 # set yet on startup :(
 sub new {
     my ($class, $id, $name, $type) = @_;
-    my $self = X10_Item->new();
+    my $self = X10_Item->new($id);
 
     $$self{state} = '';
     bless $self, $class;
-
-    $self->set_interface(undef,$id);
 
     &X10_Sensor::init() unless $sensorinit;
 
