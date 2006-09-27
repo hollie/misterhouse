@@ -216,11 +216,11 @@ sub main::display_xap_message_display
    $text_block->{priority} = $priority;
    push @xap_data, 'display.text', $text_block;
 
-   if ($text_block->{pic_url} or $text_block->{pic_refresh} or $text_block->{link_url}) {
+   if ($args{pic_url} or $args{pic_refresh} or $args{link_url}) {
       my $web_block;
-      $web_block->{pic} = $text_block->{pic_url} if $text_block->{pic_url};
-      $web_block->{refresh} = $text_block->{pic_refresh} if $text_block->{pic_refresh};
-      $web_block->{url} = $text_block->{link_url} if $text_block->{link_url};
+      $web_block->{pic} = $args{pic_url} if $args{pic_url};
+      $web_block->{refresh} = $args{pic_refresh} if $args{pic_refresh};
+      $web_block->{url} = $args{link_url} if $args{link_url};
       push @xap_data, 'display.web', $web_block;
    }
 
