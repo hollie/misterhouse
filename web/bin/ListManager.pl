@@ -401,6 +401,7 @@ if ( exists $param{'DisplayPreferences'} ) {
       $Config{$k} = $param{$k};
    }
    $Config{'DisplayKeyboardPDA'}    = 0 if !exists $param{'DisplayKeyboardPDA'};
+   $Config{'AddToListDefault'}    = 0 if !exists $param{'AddToListDefault'};
    $Config{'DisplayKeyboardNormal'} = 0 if !exists $param{'DisplayKeyboardNormal'};
    $Config{'DisplayStatus'}         = 0 if !exists $param{'DisplayStatus'};
    $Config{'PrintHtmlPipe'}         = 0 if !exists $param{'PrintHtmlPipe'};
@@ -751,8 +752,9 @@ function CheckForm()  {
 
    # the submit button
    my $AddMultiple = ( exists $param{'DisplayCreateItem_AddMultiple'} ) ? 'checked' : '';
+   my $AddToListDefault = ( $Config{'AddToListDefault'} == 1  ) ? 'checked' : '';
    $html .= qq[
-      <p>Add new item to selected: <input type="checkbox" name="DisplayCreateItem_CurrentList"></p>
+      <p>Add item to selected: <input type="checkbox" name="DisplayCreateItem_CurrentList" $AddToListDefault></p>
       <p>Add multiple: <input type="checkbox" name="DisplayCreateItem_AddMultiple" $AddMultiple></p>
       <p>
       <input type="submit" name="DisplayCreateItem_Add_Item" value="Add Item" onClick="return CheckForm()">
@@ -1158,8 +1160,8 @@ Note: Category and Item name can only have letter, number or space
 
 - I<Optional: Add new item to selected>
 
-           Unchecked (default)--Simply adds the item to your list of items
-           Checked -- Adds the item to the list as well as your shopping list
+           Checked (Default)-- Adds the item to the list as well as your shopping list
+           Unchecked --Simply adds the item to your list of items
 
 =item
 
@@ -1348,8 +1350,11 @@ sub DisplayPreferences {
    my $CheckedNormal = ( $Config{'DisplayKeyboardNormal'} == 1 ) ? 'checked' : '';
    my $CheckedPipe   = ( $Config{'PrintPipe'} == 1 )             ? 'checked' : '';
    my $StatusChecked = ( $Config{'DisplayStatus'} == 1 )         ? 'checked' : '';
+   my $CheckedAddToListDefault = ( $Config{'AddToListDefault'} == 1 )         ? 'checked' : '';
    $html .= qq[<left>\n];
    $html .= qq[<h3>Please select your preferences</h3>\n];
+
+   $html .= qq[<p>Add to List when Creating Item Selected by default: <input type="checkbox" name="AddToListDefault" $CheckedAddToListDefault></p>\n];
    $html .= qq[<p>Display keyboard in PDA mode: <input type="checkbox" name="DisplayKeyboardPDA" $CheckedPDA></p>\n];
    $html .= qq[<p>Display keyboard in Normal mode: <input type="checkbox" name="DisplayKeyboardNormal" $CheckedNormal></p>\n];
    $html .= qq[<p>Columns in PDA mode:<input type="text" name="NumColumnsPDA" size=2 align="center" value="$Config{'NumColumnsPDA'}"></p>\n];
@@ -1996,6 +2001,7 @@ sub ReadConfig {
 sub ReadDefault {
    $Config{'CurrentList'}           = "$DefaultList";
    $Config{'DisplayKeyboardPDA'}    = 1;
+   $Config{'AddToListDefault'}    = 1;
    $Config{'DisplayKeyboardNormal'} = 1;
    $Config{'DisplayMode'}           = 'normal';
    $Config{'DisplayStatus'}         = 1;
@@ -2009,6 +2015,7 @@ sub ConfigDefault {
    return <<EndOfConfig
 CurrentList=$DefaultList
 DisplayKeyboardPDA=1
+AddToListDefault=1
 DisplayKeyboardNormal=1
 DisplayMode=normal
 DisplayStatus=1
