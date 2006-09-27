@@ -218,6 +218,8 @@ sub new {
       $$self{monitor_name} = $monitor_name;
       $$self{m_light_blanking_duration} = 5; # defaults to 5 seconds to allow minor delay plus ramp
       $$self{m_light_blanking_timer} = new Timer();
+      $$self{m_auto_off_duration} = 120; # automatically set to idle if no track reports
+      $$self{m_auto_off_timer} = new Timer();
       $self->restore_data('m_id');
       $self->add(@p_objects);
    } else {
@@ -306,10 +308,10 @@ sub set {
          $self->record_mode($$p_setby{'monitor'}{'recordmode'});
          $self->monitor_state($$p_setby{'monitor'}{'state'});
          $self->monitor_mode($$p_setby{'monitor'}{'mode'});
-         &::print_log("ZM_MonitorItem::(" . $self->name . ") [" . $self->id . "]" .
+         print "ZM_MonitorItem::(" . $self->name . ") [" . $self->id . "]" .
                      " external_trigger:" . $self->external_trigger . ", record_mode:" . $self->record_mode .
                      ", monitor_state:" . $self->monitor_state . ", monitor_mode:" . $self->monitor_mode
-                    ) if $main::Debug{zone_minder};
+                     . "\n" if $main::Debug{zone_minder};
 
       } elsif ($xap_class eq 'vmi.alarmevent') {
             if ($$p_setby{'alarm'}{cause} eq 'Motion') {
@@ -328,17 +330,20 @@ sub set {
                   $zone_data{duration} = $$p_setby{'alarm'}{duration};
                   $zone_data{totalscore} = $$p_setby{'alarm'}{totalscore};
                   $zone_data{avgscore} = $$p_setby{'alarm'}{avgscore};
+                  $state = 'idle';
+		  $$self{m_auto_off_timer}->unset();
                } else {
                   $self->position_count(0);
                   $self->position_x(0);
                   $self->position_y(0);
+                  $state = 'alarm';
                }
                if (@zone_names) {
                for my $zone_name (@zone_names) {
                   if (@zones) {
                     for my $zone (@zones) {
       	                if ($zone_name eq $zone->name) {
-                           $zone->set_alarm_event($id, %zone_data);
+                           $zone->set_alarm_event($id, $self, %zone_data);
                         }
                      }
                   }
@@ -358,10 +363,11 @@ sub set {
          $self->position_x($$p_setby{'telemetry'}{'positionx'});
          $self->position_y($$p_setby{'telemetry'}{'positiony'});
          $self->position_count($self->position_count + 1);
-         &::print_log("ZM_MonitorItem::(" . $self->name . ") [" . $self->id . "]" .
+         $$self{m_auto_off_timer}->set($$self{m_auto_off_duration}, $self);
+         print "ZM_MonitorItem::(" . $self->name . ") [" . $self->id . "]" .
                      " pos_x:" . $self->position_x . ", pos_y:" . $self->position_y .
                      ", count:" . $self->position_count
-                    ) if $main::Debug{zone_minder};
+                     . "\n" if $main::Debug{zone_minder};
       }
    } elsif ($p_setby->isa('ZM_ZoneItem') && $self->is_member($p_setby)) {
       $state = $p_setby->state;
@@ -382,6 +388,11 @@ sub set {
    } elsif ($p_setby == $$self{m_light_blanking_timer}) {
       $$self{m_light_blanking_timer}->stop();
       $self->resume_motion_analysis();
+   } elsif ($p_setby eq $$self{m_auto_off_timer}) {
+      $state = 'idle';
+      for my $zone (@{$$self{m_zones}}) {
+         $zone->set('still', $self);
+      }
    } else {
       $state = 'unknown';
    }
@@ -555,11 +566,10 @@ sub motion_timer_time {
 
 sub set {
    my ($self, $p_state, $p_setby, $p_respond) = @_;
-   my $final_state = undef;
 
-   if ($p_setby eq $self) {
-      $final_state = $p_state;
-   } elsif ($p_setby eq $$self{m_delayMotionTimer}) {
+   my $final_state = $p_state;
+
+   if ($p_setby eq $$self{m_delayMotionTimer}) {
       $final_state = 'motion';
    } elsif ($p_setby eq $$self{m_delayStillTimer}) {
       $final_state = 'still';
@@ -571,15 +581,17 @@ sub set {
 }
 
 sub set_alarm_event {
-   my ($self, $alarm_id, %zone_data) = @_;
+   my ($self, $alarm_id, $p_setby, %zone_data) = @_;
    if ($zone_data{state} eq 'on') {
       if ($$self{m_delayMotionTimerTime}) {
          $$self{m_delayMotionTimer}->set($$self{m_delayMotionTimerTime}, $self);
-         &::print_log("zm_ZoneItem($$self{name}):: [$alarm_id] started motion w/ delay: $$self{m_delayMotionTimerTime}") if $main::Debug{zone_minder};
+         print "zm_ZoneItem(" . $self->name . "):: [$alarm_id] started motion w/ delay: $$self{m_delayMotionTimerTime}\n" 
+             if $main::Debug{zone_minder};
       } else {
          $$self{m_delayStillTimer}->unset(); # cancel the still timer
-         &::print_log("zm_ZoneItem($$self{name}):: [$alarm_id] started motion w/o delay") if $main::Debug{zone_minder};
-         $self->set('motion', $self); # be consistent w/ Motion_Item
+         print "zm_ZoneItem(" . $self->name . "):: [$alarm_id] started motion w/o delay\n"
+             if $main::Debug{zone_minder};
+         $self->set('motion', $p_setby); # be consistent w/ Motion_Item
       }
    } else {
       $self->frames($zone_data{frames});
@@ -590,18 +602,18 @@ sub set_alarm_event {
       $self->avgscore($zone_data{avgscore});
       if ($$self{m_delayStillTimerTime}) {
          $$self{m_delayStillTimer}->set($$self{m_delayStillTimerTime}, $self);
-         &::print_log("zm_ZoneItem(" . $self->name . "):: [$alarm_id] stopped w/ delay: $$self{m_delayStillTimerTime}; "
+         print "zm_ZoneItem(" . $self->name . "):: [$alarm_id] stopped w/ delay: $$self{m_delayStillTimerTime}; "
                      . "maxscore:$zone_data{maxscore}, frames:$zone_data{frames}, alarmframes:$zone_data{alarmframes}, "
-                     . "duration:$zone_data{duration}, totalscore:$zone_data{totalscore}, avgscore:$zone_data{avgscore}"
-                     ) if $main::Debug{zone_minder};
+                     . "duration:$zone_data{duration}, totalscore:$zone_data{totalscore}, avgscore:$zone_data{avgscore}\n"
+                     if $main::Debug{zone_minder};
  
       } else {
          $$self{m_delayMotionTimer}->unset(); # cancel the startup timer
-         &::print_log("zm_ZoneItem(" . $self->name . "):: [$alarm_id] stopped w/o delay; "
+         print "zm_ZoneItem(" . $self->name . "):: [$alarm_id] stopped w/o delay; "
                      . "maxscore:$zone_data{maxscore}, frames:$zone_data{frames}, alarmframes:$zone_data{alarmframes}, "
-                     . "duration:$zone_data{duration}, totalscore:$zone_data{totalscore}, avgscore:$zone_data{avgscore}"
-                     ) if $main::Debug{zone_minder};
-         $self->set('still', $self); # be consistent w/ Motion_Item
+                     . "duration:$zone_data{duration}, totalscore:$zone_data{totalscore}, avgscore:$zone_data{avgscore}\n"
+                     if $main::Debug{zone_minder};
+         $self->set('still', $p_setby); # be consistent w/ Motion_Item
       }
    }
 }
