@@ -166,10 +166,10 @@ sub display {
     unless ($reuse_flag) {
         $$self{MW}->withdraw;       # Hide until we are resized
         $$self{MW}->title($$self{title});
-        my $icon_image = $MW->Photo(
-                                    -file => "${Pgm_Root}/web/favicon.png",
+        my $icon_image = $::MW->Photo(
+                                    -file => "$::{Pgm_Root}/web/favicon.png",
                                     -format => 'png');
-        $MW->Icon(-image => $icon_image);
+        $::MW->Icon(-image => $icon_image);
 	#$$self{MW}->iconbitmap($main::Pgm_Root . '/web/favicon.ico') unless $^O eq 'MSWin32' and &Win32::BuildNumber < 810;
 
         my $f1 = $$self{MW}->Frame->pack(); 
