@@ -45,7 +45,7 @@ if ($state = $xap_command_external->state_now()) {
 					text=>$$xap_command_external{'command.external'}{ackmsg} );
 		} else {
 	# assume that the user wanted the ackmsg spoken if no targets are defined
-			speak "$$xap_command_external{'command.external'}{ackmsg}";
+			&::respond("$$xap_command_external{'command.external'}{ackmsg}");
 		}
 	}
 	$explicitTargets = undef;
@@ -58,9 +58,11 @@ if ($state = $xap_command_external->state_now()) {
 sub respond_xap
 {
 	my (%parms) = @_;
-        &xAP::send('xAP',
+        my $target = $parms{to};
+        $target = '*' unless $target; # not good form as target='*' will get stripped out; but ...
+        &xAP::sendXap($target,
 		"command.response",
-		'command.response' => {response => $parms{text}, error => 0});
+		'command.response' => {response => $parms{text}, app => $parms{app}, mode => $parms{mode}, error => 0});
 }
 
 $xap_command_voice = new xAP_Item('command.voice');
@@ -79,7 +81,12 @@ if (state_now $xap_mhouse_item) {
         my $target = $$xap_mhouse_item{'mhouse.item'}{mh_target};
                                 # Use set_by xAP to avoid a loop on mirrored mh systems.
                                 # Generic_Item set checks for this when sending data out to xAP.
-        set $item $state, 'xAP';
-        print "xAP item mirrored: name=$name, state=$state, set_by=$set_by target=$target\n" if $Debug{xap_item};
+	# actually, the new scheme embeds the xAP source so that it is possible to properly 
+	# "respond" (deliberately xAP-target vice blind broadcast)
+	my $source = $$xap_mhouse_item{'xap-header'}{source};
+	$source = '*' unless $source; # revert to blind broadcast if not resolvable
+        $item->set($state, "xAP [$source]");
+        print "xAP item mirrored: name=$name, state=$state, set_by=$set_by "
+		. "target=$target source=$source\n" if $Debug{xap_item};
     }
 }
