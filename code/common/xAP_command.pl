@@ -12,7 +12,11 @@
 #        Just let me know when you do so I can update my client
 
 $xap_command_external = new xAP_Item('command.external');
+
 if ($state = $xap_command_external->state_now()) {
+    my $xap_target = $$xap_command_external{'xap-header'}{target};
+    # make sure that we only respon if targeted specifically or the command was a broadcast
+    if (!($xap_target) || ($xap_target eq &xAP::get_xap_mh_source_info())) {
 	my $response;
 	my $targets;
 	my $explicitTargets;
@@ -29,7 +33,7 @@ if ($state = $xap_command_external->state_now()) {
 		$targets);
 				# Special error response.  Normal response handled by respond_xap
 	if ($response ne 1) {
-	        my $target = '*'; #$parms{to};
+	        my $target = $$xap_command_external{'xap-header'}{'source'}; 
         	$target = '*' unless $target; # not good form as target='*' will get stripped out; but ...
         	&xAP::sendXap($target,
 			"command.response",
@@ -51,9 +55,10 @@ if ($state = $xap_command_external->state_now()) {
 		}
 	}
 	$explicitTargets = undef;
-        # very important! - must clear out the attribs for command.external as certain xap message components
-	# 	are optional and won't clear out old data otherwise
-	undef $$xap_command_external{'command.external'};
+   }
+   # very important! - must clear out the attribs for command.external as certain xap message components
+   # 	are optional and won't clear out old data otherwise
+   undef $$xap_command_external{'command.external'};
 }
 
 # This gets invoked by Respond, when target=xap
@@ -65,6 +70,27 @@ sub respond_xap
         &xAP::sendXap($target,
 		"command.response",
 		'command.response' => {response => $parms{text}, app => $parms{app}, mode => $parms{mode}, error => 0});
+}
+
+$xap_command_response = new xAP_Item('command.response');
+
+if ($state = $xap_command_response->state_now()) {
+    my $xap_target = $$xap_command_response{'xap-header'}{target};
+    # make sure that we only respon if targeted specifically
+    if (!($xap_target) || ($xap_target eq &xAP::get_xap_mh_source_info())) {
+	my $response = $$xap_command_response{'command.response'}{response};
+	my $app = $$xap_command_response{'command.response'}{app};
+        $app = ($app) ? "app=$app" : '';
+	my $mode = $$xap_command_response{'command.response'}{mode};
+        $mode = ($mode) ? "mode=$mode" : '';
+	my $error = $$xap_command_response{'command.response'}{error};
+
+	if ($error) {
+           &::print_log("An command response error was received from " . $$xap_command_response{'xap-header'}{source});
+        } elsif($response) {
+           &::speak("$app $mode $response");
+        }
+    }
 }
 
 $xap_command_voice = new xAP_Item('command.voice');
