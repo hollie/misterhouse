@@ -174,6 +174,7 @@ sub main::display_xpl_osd_basic
    my ($text, $duration, $address);
    $text = $args{raw_text};
    $text = $args{text} unless $text;
+   $text =~ s/[\n\r ]+/ /gm; # strip out new lines and extra space
    $duration = $args{duration};
    $duration = $args{display} unless $duration; # this apparently is the original param?
    $duration = 10 unless $duration; # default to 10 sec display
@@ -200,12 +201,15 @@ sub main::display_xap_message_display
 {
    my (%args) = @_;
    my ($priority, $duration, $address);
-   my ($text_block, @xap_data);
+   my ($text, $text_block, @xap_data);
    if (exists($args{line1})) {
-      $text_block->{line1} = $args{line1};
+      $text = $args{line1};
    } else {
-      $text_block->{line1} = ($args{raw_text}) ? $args{raw_text} : $args{text};
+      $text = ($args{raw_text}) ? $args{raw_text} : $args{text};
    }
+   $text =~ s/[\n\r ]+/ /gm; # strip out new lines and extra space
+   $text =~ s/^\\n//m; # strip out leading new line
+   $text_block->{line1} = $text;
    $text_block->{line2} = $args{line2} if $args{line2};
    $duration = $args{duration};
    $duration = $args{display} unless $duration; # this apparently is the original param?
@@ -235,7 +239,9 @@ sub main::display_xap_osd_display_tivo
    my (%args) = @_;
    my ($priority, $mapped_priority, $duration, $address);
    my ($text_block, @xap_data);
-   $text_block->{text} = ($args{raw_text}) ? $args{raw_text} : $args{text};
+   my $text = ($args{raw_text}) ? $args{raw_text} : $args{text};
+   $text =~ s/[\n\r ]+/ /gm; # strip out new lines and extra space
+   $text_block->{text} = 
    $duration = $args{duration};
    $duration = $args{display} unless $duration; # this apparently is the original param?
    $duration = 10 unless $duration; # default to 10 sec display
@@ -267,12 +273,15 @@ sub main::display_xap_osd_display_slimp3
 {
    my (%args) = @_;
    my ($priority, $duration, $address);
-   my ($text_block, @xap_data);
+   my ($text, $text_block, @xap_data);
    if (exists($args{line1})) {
-      $text_block->{line1} = $args{line1};
+      $text = $args{line1};
    } else {
-      $text_block->{line1} = ($args{raw_text}) ? $args{raw_text} : $args{text};
+      $text = ($args{raw_text}) ? $args{raw_text} : $args{text};
    }
+   $text =~ s/[\n\r ]+/ /gm; # strip out new lines and extra space
+   $text =~ s/^\\n//m; # strip out leading new line
+   $text_block->{line1} = $text;
    $text_block->{line2} = $args{line2} if $args{line2};
    $duration = $args{duration};
    $duration = $args{display} unless $duration; # this apparently is the original param?
