@@ -200,7 +200,7 @@ sub main::display_xap
 sub main::display_xap_message_display
 {
    my (%args) = @_;
-   my ($priority, $duration, $address);
+   my ($mapped_priority, $priority, $duration, $address);
    my ($text, $text_block, @xap_data);
    if (exists($args{line1})) {
       $text = $args{line1};
@@ -217,7 +217,14 @@ sub main::display_xap_message_display
    $text_block->{duration} = $duration;
    $priority = $args{priority};
    $priority = 9 unless $priority;
-   $text_block->{priority} = $priority;
+   if (lc $priority eq 'high') {
+      $mapped_priority = 1;
+   } elsif (lc $priority eq 'medium') {
+      $mapped_priority = 5;
+   } else {
+      $mapped_priority = 9;
+   }
+   $text_block->{priority} = $mapped_priority;
    push @xap_data, 'display.text', $text_block;
 
    if ($args{pic_url} or $args{pic_refresh} or $args{link_url}) {
@@ -247,15 +254,8 @@ sub main::display_xap_osd_display_tivo
    $duration = 10 unless $duration; # default to 10 sec display
    $text_block->{duration} = $duration;
    $priority = $args{priority};
-   $priority = 9 unless $priority;
-   if ($priority < 4) {
-      $mapped_priority = 'High';
-   } elsif ($priority > 6) {
-      $mapped_priority = 'Low';
-   } else {
-      $mapped_priority = 'Medium';
-   }
-   $text_block->{priority} = $mapped_priority;
+   $priority = 'low' unless $priority;
+   $text_block->{priority} = $priority;
    $text_block->{row} = $args{row} if exists($args{row});
    $text_block->{column} = $args{column} if exists($args{column});
    $text_block->{foreground} = $args{foreground} if exists($args{foreground});
@@ -891,14 +891,16 @@ sub get_xap_mh_source_info {
    my ($instance) = @_;
    $instance = XAP_REAL_DEVICE_NAME if !($instance);
    $instance = &get_ok_name_part($instance);
-   my $device = $::config_parms{title};
+   my $device = $::config_parms{xap_title};
+   $device = $::config_parms{title} unless $device;
    $device = ($device =~ /misterhouse(.*)pid/i) ? 'misterhouse' : $device;
    $device = &xAP::get_ok_name_part($device);
    return &get_mh_vendor_info() . '.' . &get_mh_device_info() . '.' . $device . '.' . $instance;
 }
 
 sub get_xpl_mh_source_info {
-   my $instance = $::config_parms{title};
+   my $instance = $::config_parms{xpl_title};
+   $instance = $::config_parms{title} unless $instance;
    $instance = ($instance =~ /misterhouse(.*)pid/i) ? 'misterhouse' : $instance;
    $instance = &xAP::get_ok_name_part($instance);
    return &get_mh_vendor_info() . '-' . &get_mh_device_info() . '.' . $instance;
