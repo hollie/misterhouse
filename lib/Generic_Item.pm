@@ -269,7 +269,6 @@ sub respond {
         $set_by = &main::set_by_to_target($set_by, 1);
 	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /time/i or $set_by eq 'status');
 
-
 	# get user info
 
 	if ($set_by =~ /^im/i) {
@@ -279,14 +278,13 @@ sub respond {
 		$pgm = $im_pgm if !$parms{pgm};
 	}
 	elsif ($set_by =~ /^email/i) {
-		my $address = $set_by =~ /\[(.+)\]/;
+		my ($address) = $set_by =~ /\[(.+)\]/;
 		$to = $address if !$parms{to};
 	}
 	elsif ($set_by =~ /^xap/i) {
-		my $address = $set_by =~ /\[(.+)\]/;
+		my ($address) = $set_by =~ /\[(.+)\]/;
 		$to = $address if !$parms{to};
 	}
-
 
 	# important messages are never diverted to log (even if automated)
 	# ex. new mh version available
