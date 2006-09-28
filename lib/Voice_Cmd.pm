@@ -345,7 +345,9 @@ sub set {
         my $xap_target = $$self{xap_target};
         my $xap_mh_prefix = &xAP::get_mh_vendor_info() . '.' . &xAP::get_mh_device_info();
 	# prepend the xAP prefix if it doesn't have it
-        $xap_target = "$xap_mh_prefix.$xap_target" unless ($xap_target =~ /$xap_mh_prefix/i);
+        if ($xap_target !~ /^$xap_mh_prefix/i) {
+        	$xap_target = $xap_mh_prefix . "." . $xap_target . &xAP::XAP_REAL_DEVICE_NAME;
+	}
         &xAP::sendXap($$self{xap_target},
            'command.external',
            'command.external' => { 'command' => $self->{text_by_state}{$state},
