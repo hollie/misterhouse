@@ -341,9 +341,21 @@ sub set {
 	# otherwise set_by is used
 
 #    $respond = $main::Respond_Target unless $respond; # Pass default target along
-    &Generic_Item::set_states_for_next_pass($self, $state, $set_by, $respond);
-    &main::print_log("Running: $self->{text_by_state}{$state}") unless $no_log;
-    print "db1 set voice cmd $self to $state set_by=$set_by r=$respond\n" if $main::Debug{voice};
+    if ($$self{xap_target}) {
+        my $xap_target = $$self{xap_target};
+        my $xap_mh_prefix = &xAP::get_mh_vendor_info() . '.' . &xAP::get_mh_device_info();
+	# prepend the xAP prefix if it doesn't have it
+        $xap_target = "$xap_mh_prefix.$xap_target" unless ($xap_target =~ /$xap_mh_prefix/i);
+        &xAP::sendXap($$self{xap_target},
+           'command.external',
+           'command.external' => { 'command' => $self->{text_by_state}{$state},
+           'targets' => $respond });
+        &main::print_log("Sending: $self->{text_by_state}{$state}") unless $no_log;
+    } else {
+        &Generic_Item::set_states_for_next_pass($self, $state, $set_by, $respond);
+        &main::print_log("Running: $self->{text_by_state}{$state}") unless $no_log;
+        print "db1 set voice cmd $self to $state set_by=$set_by r=$respond\n" if $main::Debug{voice};
+    }
 }
 
 sub remove_voice_cmds {
