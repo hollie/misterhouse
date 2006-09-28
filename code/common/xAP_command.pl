@@ -29,7 +29,7 @@ if ($state = $xap_command_external->state_now()) {
 		$targets);
 				# Special error response.  Normal response handled by respond_xap
 	if ($response ne 1) {
-	        my $target = $parms{to};
+	        my $target = '*'; #$parms{to};
         	$target = '*' unless $target; # not good form as target='*' will get stripped out; but ...
         	&xAP::sendXap($target,
 			"command.response",
