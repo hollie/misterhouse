@@ -175,6 +175,7 @@ sub main::display_xpl_osd_basic
    $text = $args{raw_text};
    $text = $args{text} unless $text;
    $text =~ s/[\n\r ]+/ /gm; # strip out new lines and extra space
+   $text =~ s/\n/\\n/gm; # escape new lines
    $duration = $args{duration};
    $duration = $args{display} unless $duration; # this apparently is the original param?
    $duration = 10 unless $duration; # default to 10 sec display
