@@ -182,6 +182,10 @@ sub main::display_xpl_osd_basic
    $address = $args{to};
    $address = $args{address} unless $address;
    $address = '*' unless $address;
+   # auto pre-pend text w/ a newline if it target a squeezebox and doesn't already have one
+   if ($address =~ /^slimdev-slimserv/i) {
+      $text = "\\n$text" unless $text =~ /^\\n\S+/i;
+   }
    &xAP::send('xPL', $address, 'osd.basic' => { command => 'write', delay => $duration, text => $text });
 }
 
