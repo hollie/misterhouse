@@ -654,7 +654,7 @@ sub _process_incoming_xpl_data {
 #              $o -> SUPER::set($state_value, 'xPL') if defined $state_value;
                if (defined $state_value and $state_value ne '') {
                   my $set_by_name = 'xPL';
-                  $set_by_name .= " [$source]" if ($::config_parms{'xap_use_to_target'});
+                  $set_by_name .= " [$source]"; # no longer needed: if ($::config_parms{'xap_use_to_target'});
 		  $o -> SUPER::set_now($state_value, $set_by_name);
 		  $o -> state_now_msg_type( "$msg_type" );
 	       }
@@ -770,7 +770,7 @@ sub _process_incoming_xap_data {
 # Can not use Generic_Item set method, as state_next_path only carries state, not all other $section data, to the next pass
 #              $o -> SUPER::set($state_value, 'xAP') if defined $state_value;
                my $set_by_name = 'xAP';
-               $set_by_name .= " [$source]" if ($::config_parms{'xap_use_to_target'});
+               $set_by_name .= " [$source]"; # no longer needed: if ($::config_parms{'xap_use_to_target'});
                $o -> SUPER::set_now($state_value, $set_by_name) if $o->allow_empty_state()
                        or (defined $state_value and $state_value ne '');
            }
