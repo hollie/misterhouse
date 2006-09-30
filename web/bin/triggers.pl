@@ -91,7 +91,7 @@ $form_code
         $html .= &html_form_input_set_func('trigger_rename', '/bin/triggers.pl', $name, $name);
 
 #       $html .= "<td><a href=/bin/set_var.pl?\$triggers{'$name2'}{trigger}&/bin/triggers.pl>$trigger</a></td>\n";
-        $html .= &html_form_input_set_var("\$triggers{'$name'}{trigger}", '/bin/triggers.pl', $trigger);
+        $html .= &html_form_input_set_var(qq(\$triggers{'$name'}{trigger}), '/bin/triggers.pl', $trigger);
 
         $code = substr($code, 0, 30) . '...' if length($code) > 30;
         $html .= "<td><a href=/bin/set_var.pl?\$triggers{'$name2'}{code}&/bin/triggers.pl>$code</a></td>\n";
