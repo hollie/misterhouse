@@ -559,10 +559,10 @@ if (state_now $mode_security) {
     $mode_security->respond("mode=unmuted app=control Security $state.");
 }
 
-if ($Reload) {
-	my $tk = &tk_label_new(3, \$Save{mode});
-	$tk->bind('<Double-1>' => \&toggle_house_mode) if $MW;
+#if ($Reload) {
+#	my $tk = &tk_label_new(3, \$Save{mode});
+#	$tk->bind('<Double-1>' => \&toggle_house_mode) if $MW;
 
-	$tk = &tk_label_new(3, \$Save{security});
-	$tk->bind('<Double-1>' => \&toggle_security_mode) if $MW;
-}
+#	$tk = &tk_label_new(3, \$Save{security});
+#	$tk->bind('<Double-1>' => \&toggle_security_mode) if $MW;
+#}

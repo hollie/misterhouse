@@ -26,9 +26,10 @@ my ($mp3names, %mp3files) = &mp3_playlists;
 if ($MW and $Reload) {
 	&tk_label_new(4, \$Save{NowPlaying});
 
-	$Tk_objects{mp3_progress} = $Tk_objects{fb4}->ProgressBar(-from => 0, -to => 100, -value => 0, -width => 20, -blocks => 100)->pack(qw/-side left -padx 2/);
-
-	&configure_element('progress', \$Tk_objects{mp3_progress});
+    if ($Tk_objects{fb4}) {
+        $Tk_objects{mp3_progress} = $Tk_objects{fb4}->ProgressBar(-from => 0, -to => 100, -value => 0, -width => 20, -blocks => 100)->pack(qw/-side left -padx 2/);
+        &configure_element('progress', \$Tk_objects{mp3_progress});
+    }
 
 }
 
@@ -190,7 +191,7 @@ sub set_tk_progress {
 
 
 if (new_second and &mp3_player_running()) {
- 
+
    if (new_second 5) {
    	$Save{mp3_mode} = &mp3_playing();
    	my $ref = &mp3_get_playlist();
@@ -198,19 +199,19 @@ if (new_second and &mp3_player_running()) {
    	if ($ref) {
       		my $pos = &mp3_get_playlist_pos();
       		if ($pos >= 0) {
-         		$Save{NowPlaying} = ${$ref}[$pos] if $ref;	 
+         		$Save{NowPlaying} = ${$ref}[$pos] if $ref;
       		} else {
          		$Save{NowPlaying} = &mp3_get_curr_song();
       		}
    	}
 
 	# *** Set progress to 0 if stopped
-	
+
 	# check ONLY if playing and tk window exists
 
 	if ($MW and $Save{mp3_mode} == 1) {
 		my $mptimestr = &mp3_get_output_timestr();
-      
+
 		if ($mptimestr =~ /\// and $mptimestr =~ /:/) {
 	   		my ( $mpelapse, $mprest ) = split ( /\//,$mptimestr );
 			my ( $mpmin,  $mpsec ) = split ( /:/,$mpelapse );
@@ -225,7 +226,7 @@ if (new_second and &mp3_player_running()) {
 			$old_percent = $percent;
 			$elapsed_seconds = $mpelapse;
 			$total_seconds = $mprest;
-			
+
 		}
 	}
     } # new second 5
@@ -239,9 +240,9 @@ if (new_second and &mp3_player_running()) {
 		$new_percent = int(($elapsed_seconds * 100) / $total_seconds) if $total_seconds;
 		if (defined $old_percent and $new_percent != $old_percent) {
 			&set_tk_progress($new_percent) if ref $Tk_objects{mp3_progress};
-		}	
+		}
 		$old_percent = $new_percent;
-	}	 
+	}
     }
 
 } # new second and mp3 player is running

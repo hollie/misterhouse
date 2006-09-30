@@ -32,9 +32,11 @@ $Tk_objects{sliders}{volume} = &tk_scalebar(\$mh_volume, 0, 'Volume') if $MW and
 	if ($MW and $Reload) {
 		my $volume_temp = 0;
 		$volume_temp = $mh_volume->{state} if defined $mh_volume->{state};
-		$Tk_objects{volume_status} = $Tk_objects{fb4}->ProgressBar(-from => 0, -to => 100, -value => $volume_temp, -width => 20, -blocks => 12)->pack(qw/-side left -padx 2/);
-		&configure_element('progress', \$Tk_objects{volume_status}, 1);
-		
+        if ($Tk_objects{fb4}) {
+            $Tk_objects{volume_status} = $Tk_objects{fb4}->ProgressBar(-from => 0, -to => 100, -value => $volume_temp, -width => 20, -blocks => 12)->pack(qw/-side left -padx 2/);
+            &configure_element('progress', \$Tk_objects{volume_status}, 1);
+        }
+
 	}
 
 
@@ -101,7 +103,7 @@ if ($state = said $test_speech_flags) {
     respond "engine=festival $Pgm_Root/docs/festival_speech_example.sable" if $state eq 'sable';
 }
 
-$Tk_objects{volume_status}->configure(-value => $mh_volume->{state}) if (state_now $mh_volume);
+$Tk_objects{volume_status}->configure(-value => $mh_volume->{state}) if $Tk_objects{volume_status} and (state_now $mh_volume);
 
 sub set_volume3 {
     my $state = shift;
@@ -117,7 +119,7 @@ sub set_volume3 {
         print_log "Setting mixer volume to $state";
         set_volume2($state);
     }
-    $Tk_objects{volume_status}->configure(-value => $state);	
+    $Tk_objects{volume_status}->configure(-value => $state) if $Tk_objects{volume_status};
 
 }
 
@@ -157,7 +159,7 @@ sub set_volume {
     if ($parms{time} or ($parms{text} and $Voice_Text::VTxt_version ne 'msv5')) {
         print_log "Setting mixer volume to $volume";
 	$volume = 100 if $volume > 100;
- 
+
         $volume_previous = set_volume2($volume);
 
     }
