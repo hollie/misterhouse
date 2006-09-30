@@ -116,7 +116,9 @@ sub update_versalink_rrd {
 # Create graph PNG image
 
 sub graph_versalink_rrd {
-	my $ago = $Time - 3600;
+	my $seconds = shift; 
+	$seconds = 3600 unless $seconds; 
+	my $ago = $Time - $seconds;
 	my ($graph, $x, $y) = RRDs::graph("$config_parms{data_dir}/versalink.png",
 	  "--start=$ago", "--end=$Time",
 	  "--vertical-label=kb/s",
