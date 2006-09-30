@@ -85,8 +85,8 @@ sub set {
 
 	for my $source ($self->find_members('BSC_Item')) {
 		if ($source eq $p_setby) {
-			&::print_log("text=" . $source->text . 
-				" level=" . $source->level);
+			print "text=" . $source->text . 
+				" level=" . $source->level . "\n" if $::Debug{onewire};
 			my $device = $$self{source_map}{$source};
                         # TO-DO: support other sensors types than just humid and temp
 			if ($device->type eq 'humid') {
@@ -277,7 +277,6 @@ sub measurement {
 		if (scalar(@measurement_records) > $$self{m_max_records}) {
 			pop @measurement_records;
 		}
-		print "number of measurement records: " . scalar(@measurement_records) . "\n";
 # not sure the following is needed to prevent leaks
 #		$$self{m_measurement_records} = undef;
 		$$self{m_measurement_records} = [ @measurement_records ];
