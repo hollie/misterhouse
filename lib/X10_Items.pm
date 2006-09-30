@@ -7,6 +7,7 @@ package X10_Item;
 
 use X10_Interface;
 use Serial_Item;
+use Dummy_Interface;
 
 my (%items_by_house_code, %appliances_by_house_code, $sensorinit);
 
@@ -123,7 +124,9 @@ sub set_interface {
     		print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n" if $localDebug;
 			$self->{interface}=new Serial_Item(undef,undef,$interface);
 		} else {
-			die "for id $id, x10 interface supplied ($interface) but not supported by mh";
+			# we can't find a real interface, so use a Dummy_Interface
+			print "warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
+			$self->{interface}=new Dummy_Interface(undef, undef, $interface);
 		}
 	} else {
 	# an interface wasn't specified, we'll use the first one that we find
@@ -134,7 +137,9 @@ sub set_interface {
     		print "for id $id, x10 interface not supplied, supported by Serial_Item $interface\n" if $localDebug;
 			$self->{interface}=new Serial_Item(undef,undef,$interface);
 		} else {
-			die "can't find an interface to support id $id";
+			# we can't find a real interface, so use a Dummy_Interface
+			print "warning, using dummy interface for id $id\n" if $localDebug;
+			$self->{interface}=new Dummy_Interface;
 		}
 	}
 	# tell our "generic" interface object the name of the actual interface to use
