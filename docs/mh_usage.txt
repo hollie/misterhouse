@@ -1497,3 +1497,33 @@ Thu 06/01/06 12:32:43 city=wichita state=ks name=justme
 Thu 06/01/06 12:33:16 city=wichita state=ks name=just me
 Sat 06/03/06 08:28:37 city=San Giorgio Del Sannio (Bn) state=Italy name=SapiensHawk
 Wed 06/21/06 15:52:27 city=Johannesburg state=South Africa name=Terry
+Fri 06/30/06 13:07:05 city=Charlesstown state=NH name=Ken
+Fri 06/30/06 21:40:39 city= ewa beach state=hi name=
+Tue 07/04/06 14:21:01 city=vancouver state=bc name=
+Thu 07/06/06 00:44:02 city=cambridge state=ma name=
+Fri 07/07/06 15:09:15 city=Gaysville state=VT name=
+Fri 07/07/06 18:48:13 city=Lima state=Peru name=Diego Garcia
+Fri 07/07/06 18:48:24 city=Lima state=Peru name=Diego Garcia
+Mon 07/17/06 03:45:45 city=Jyvskyl state=Finland name=Toni Leino
+Tue 07/18/06 05:51:22 city=Rock Hill state=SC name=Jason Helrigle
+Tue 07/18/06 05:51:27 city=Rock Hill state=SC name=Jason Helrigle
+Thu 07/20/06 20:22:55 city=South Brunswick state=NJ name=H J C
+Fri 07/21/06 00:31:13 city=Athens state=Greece name=Gianni Veloce
+Fri 07/21/06 15:30:47 city=Rockford state=IL name=Steve
+Sat 07/29/06 23:30:13 city=Tewksbury state=MA name=David Satterfield
+Fri 08/04/06 08:38:02 city=oakland state=nj name=
+Mon 08/07/06 06:37:03 city=Fort Lauderdale state=FL name=Jeremiah
+Wed 08/09/06 21:45:36 city=Cali state=Colombia name=Domovida
+Sat 08/12/06 04:18:58 city=Boise City state=OK name=
+Tue 08/22/06 16:08:33 city=Suresnes state=FRANCE name=legus
+Thu 08/24/06 11:46:58 city=Pelham state=Al name=Terry Roussell
+Fri 08/25/06 12:32:08 city=Vantaa state=Finland name=C.O.W
+Mon 08/28/06 18:18:51 city=walton state=ny name=Edward J Mc Ginley
+Wed 08/30/06 12:54:07 city=Taunton state=England name=Richard King
+Mon 09/04/06 12:33:43 city=Melb state=Australia name=
+Tue 09/19/06 11:12:07 city=Helsinki state=Finland name=
+Fri 09/22/06 13:33:10 city=knoxville state=tn name=
+Mon 09/25/06 17:24:55 city=Sarasota state=FL name=
+Tue 09/26/06 17:18:50 city=lyon state=France name=Stef
+Tue 09/26/06 22:30:19 city=chesterton state=in name=
+Wed 09/27/06 12:59:22 city=Sugar Land state=TX name=Chris

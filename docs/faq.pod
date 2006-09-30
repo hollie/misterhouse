@@ -737,7 +737,7 @@ exactly how to ask whether something is on or off.
 
 First, it is important to know that case matters.  PERL is a case sensitive
 language, so 'On' does not equal 'on'.  Second, by default, everytime that
-the state of an item is set, mh converts that state to its lowercase 
+the state of an item is set, mh converts that state to its lowercase
 equivalent.  Hence, setting a light 'ON' actually sets it 'on'.  Third, the
 correct operator to check for string equality is eq, not == or =.
 
@@ -1501,11 +1501,10 @@ Here is a rough timeline of MisterHouse development:
 
 =head2 6.2: Who is that Bruce guy anyway?
 
-Bruce (Winter) is the the main author of MisterHouse.
+Bruce was the the original author of MisterHouse, but can no longer
+claim much authorship credit as it is now truly a group effort with many contributors.
 He has a day job with IBM in Rochester, Minnesota, designing integrated circuits.
-He got started with Home Automation as one of the first ECS users in '86.
-He loves getting slaughtered by his twin boys in Quake death matches, hiking
-in his boyhood state of Montana, and playing a digital piano.
+Lots of stuff of interest only to family and aliens at http://brucewinter.net
 
 =head2 6.3: Why open source?
 

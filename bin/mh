@@ -7185,11 +7185,6 @@ sub configure_element {
 	my $relief;
 	my $border_width;
 
-#   print "db t=$type pe=$p_element\n";
-# Error here with radiobutton?
-#db t=frame pe=Tk::Radiobutton=HASH(0x774993c)
-#Error found in user code file: c:/misterhouse/data_test/mh_temp.user_code
-#09/09/06 14:01:44: Not a SCALAR reference at mhtest line 6979.
     unless ($$p_element) {
         print "configure_element error: type=$type\n";
         return;
@@ -7318,11 +7313,12 @@ sub tk_radiobutton {
             $widget = $Tk_objects{grid}->Radiobutton(-text => $text,  -variable => $pvar, -value => $value);
         }
         push(@widgets, $widget);
-        &configure_element('frame', $widget);
+#       &configure_element('frame', $widget);
     }
-    $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(-text => $label);
-    &configure_element('frame', $Tk_objects{radiobutton}{$pvar});
-    $Tk_objects{radiobutton}{$pvar}->grid(@widgets, -sticky => 'w');
+    $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(-text => $label)->grid(@widgets, -sticky => 'w');
+#   $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(-text => $label);
+#   &configure_element('frame', $Tk_objects{radiobutton}{$pvar});
+#   $Tk_objects{radiobutton}{$pvar}->grid(@widgets, -sticky => 'w');
 }
 
                                 # This sub sleeps, and times how long it slept
