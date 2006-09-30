@@ -1283,6 +1283,7 @@ sub html_form_input_set_func {
 
 sub html_form_input_set_var {
     my ($var, $resp, $default) = @_;
+    $default = HTML::Entities::encode($default);
     my $html .= qq|<form action='/bin/set_var.pl' method=post><td>\n|;
     $html .= qq|<input name='var'   value="$var"   type='hidden'>\n|;
     $html .= qq|<input name='resp'  value="$resp"  type='hidden'>\n|;
