@@ -20,10 +20,10 @@ sub new {
 	$self->{instanceId}=$nextInstanceId;
 	$nextInstanceId++;
 
-	# let users know why we exist
-	$self->firstWarning; 
+	# let users know why we exist ... too verbose?
+#	$self->firstWarning;
 
-	$self->warning("being created for id $id, state $state and interface $interface");
+	$self->warning("Dummy interface for id=$id, state=$state and interface=$interface.");
 	return $self;
 }
 
@@ -37,7 +37,7 @@ sub warning {
 	my ($self,$message)=@_;
 
 	$message='Dummy_Item #'.$self->instanceId.": $message";
-	warn $message;
+	print "$message\n";
 }
 
 sub instanceId {
@@ -55,7 +55,7 @@ sub set {
 sub add {
 	my ($self, $id, $state)=@_;
 
-	$self->warning("trying to add id $id state $state");
+#	$self->warning("trying to add id $id state $state"); ... too verbose with undefined X10 items ... many states!
 	$self->SUPER::add($id, $state);
 }
 
@@ -98,7 +98,7 @@ sub start {
 sub set_interface {
 	my ($self, $interface)=@_;
 
-	$self->warning("trying to set interface $interface");
+	$self->warning("trying to set interface $interface") if $interface;
 }
 
 sub lookup_interface {

@@ -1,4 +1,4 @@
-#!/usr/bin/perl                                                                                 
+#!/usr/bin/perl
 #
 #    Provides an object-based interface for all MP3 players.
 #    Code for the different players should be moved into this object eventually
@@ -11,7 +11,7 @@ package Mp3Player;
 
 my @mp3player_object_list;
 
-sub new 
+sub new
 {
     my ($class, $address) = @_;
     my $self = {address => $address};
@@ -42,11 +42,11 @@ sub default_setstate
 
 sub play {
 	my $self = shift;
-	print "\n\n\nPlaying: @_[0]\n\n\n";
-	return &mp3_player_control("play \"@_[0]\"", $self->{address});
+	print "\n\n\nPlaying: $_[0]\n\n\n";
+	return &mp3_player_control("play \"$_[0]\"", $self->{address});
 }
 
-sub mp3_player_control 
+sub mp3_player_control
 {
     my ($command, $host) = @_;
     my $result;
@@ -81,5 +81,3 @@ sub mp3_player_control
 }
 
 1;
-
-

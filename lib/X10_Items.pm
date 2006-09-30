@@ -126,7 +126,7 @@ sub set_interface {
 		} else {
 			# we can't find a real interface, so use a Dummy_Interface
 			print "warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
-			$self->{interface}=new Dummy_Interface(undef, undef, $interface);
+			$self->{interface}=new Dummy_Interface($id, undef, $interface);
 		}
 	} else {
 	# an interface wasn't specified, we'll use the first one that we find
@@ -139,7 +139,7 @@ sub set_interface {
 		} else {
 			# we can't find a real interface, so use a Dummy_Interface
 			print "warning, using dummy interface for id $id\n" if $localDebug;
-			$self->{interface}=new Dummy_Interface;
+			$self->{interface}=new Dummy_Interface($id);
 		}
 	}
 	# tell our "generic" interface object the name of the actual interface to use
