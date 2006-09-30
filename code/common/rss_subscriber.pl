@@ -21,6 +21,7 @@
 # 12/23/05 fixed a bug parsing the feed list (dnorwood2@yahoo.com)
 # 02/19/06 added support for individual directories for each feed (dnorwood2@yahoo.com)
 # 06/09/06 added feed summary web page, other minor changes (dnorwood2@yahoo.com)
+# 07/22/06 feeds are now processed in the background on *nix, so Misterhouse doesn't pause (dnorwood2@yahoo.com)
 
 use XML::RAI;
 use XML::RAI::Enclosure;
@@ -38,20 +39,19 @@ my $rss_feeds = '
 #	http://www.torrentportal.com/rssfeed.php?cat=3,
 #	http://isohunt.com/js/rss.php?ihq=bullshit+&op=and&iht=,
 
-my @feeds;
-my $regexps = 'family.guy,daily.show';
-my $regexps_reject='spanish,french,perditos,season';
-my $rss_dbm_file ="$config_parms{data_dir}/rss_file_downloads.dbm";
-
-$p_rss_file_feed = new Process_Item;
-$p_rss_file_download = new Process_Item;
-$v_rss_file_feed =  new  Voice_Cmd('Get RSS subscribed files');
-$v_rss_file_feed -> set_authority('anyone');
-
 #noloop=start
+	my @feeds;
+	my $regexps = 'family.guy,daily.show';
+	my $regexps_reject='spanish,french,perditos,season';
+	my $rss_dbm_file ="$config_parms{data_dir}/rss_file_downloads.dbm";
+
+	$p_rss_file_feed = new Process_Item;
+	$p_rss_file_download = new Process_Item;
+	$v_rss_file_feed =  new  Voice_Cmd('Get RSS subscribed files');
+	$v_rss_file_feed -> set_authority('anyone');
+
 	$regexps_reject = $config_parms{rss_file_regexps_reject} if $config_parms{rss_file_regexps_reject};
 	$v_rss_file_feed->set_icon('nostat.gif');
-print "db $config_parms{rss_file_feeds} \n" if $config_parms{rss_file_feeds};
 	$rss_feeds = $config_parms{rss_file_feeds} if $config_parms{rss_file_feeds};
 	$rss_feeds =~ s/^\s*//;
 	@feeds = split /\s*,\s*/, $rss_feeds;
@@ -72,14 +72,10 @@ if (state_now $v_rss_file_feed) {
 	start $p_rss_file_feed;
 }
 
+$p_rss_file_process_all = new Process_Item "&rss_file_process_all";
 if (done_now $p_rss_file_feed) {
-	my $i;
-	foreach my $feed (@feeds) {
-		$i++;
-		my ($link, $regex, $dir) = split /\s+/, $feed;
-		&rss_file_process($link, "$config_parms{data_dir}/rss_feed_$i.xml", $regex, $dir);
-	}
-	$v_rss_file_feed->respond('app=syndicate connected=0 Feed processing completed.');
+	&rss_file_process_all;
+#	$OS_win ? &rss_file_process_all : start $p_rss_file_process_all;
 }
 
 my (@rss_file_download_queue, $current_file);
@@ -95,6 +91,15 @@ if (@rss_file_download_queue and done $p_rss_file_download) {
 	print_log "getting $current_file";
 }
 
+sub rss_file_process_all {
+	my $i;
+	foreach my $feed (@feeds) {
+		$i++;
+		my ($link, $regex, $dir) = split /\s+/, $feed;
+		&rss_file_process($link, "$config_parms{data_dir}/rss_feed_$i.xml", $regex, $dir);
+	}
+	$v_rss_file_feed->respond('app=syndicate connected=0 Feed processing completed.');
+}
 
 sub rss_file_process {
 	my $url = shift;
@@ -124,6 +129,8 @@ sub rss_file_process {
 	print_log($@), return unless eval '$feed = XML::RAI->parse($tmp)';
 	my $count = $feed->item_count();
 	print_log "Loaded $count item(s) from RSS feed $xml";
+	my ($db, %DBM);
+	$db = tie (%DBM,  'DB_File', $rss_dbm_file) or print "\nError, can not open dbm file $rss_dbm_file: $!";
 	foreach my $item ( @{$feed->items} ) {
 		my $title = $item->title;
 		my $issued = $item->issued;
@@ -137,9 +144,9 @@ sub rss_file_process {
 					($file) = $link =~ /.*\/(.+?)$/;
 					$file =~ s/\.mp3\?(.+)/$1.mp3/;
 					print_log "$file currently downloading" if $current_file eq "$torrent_dir/$file";
-					print_log "$file already downloaded" if read_dbm($rss_dbm_file, "$torrent_dir/$file");
+					print_log "$file already downloaded" if $DBM{"$torrent_dir/$file"};
 					print_log "$file already queued" if grep {$_ eq "'$link' '$torrent_dir/$file'"} @rss_file_download_queue;
-					unless ($current_file eq "$torrent_dir/$file" or read_dbm($rss_dbm_file, "$torrent_dir/$file") or grep {$_ eq "'$link' '$torrent_dir/$file'"} @rss_file_download_queue) {
+					unless ($current_file eq "$torrent_dir/$file" or $DBM{"$torrent_dir/$file"} or grep {$_ eq "'$link' '$torrent_dir/$file'"} @rss_file_download_queue) {
 						push @rss_file_download_queue, "'$link' '$torrent_dir/$file'";
 						print_log "queued $file";
 					}
@@ -154,6 +161,7 @@ sub rss_file_process {
 			if ($title =~ /$regexp/xi and not &check_regexps_reject($title)) {
 				# hack to fix isohunt's links
 				$link =~ s|rss.isohunt.com/btDetails.php\?ihq=.*\&id=|isohunt.com/download.php?mode=bt&id=|;
+				$link =~ s|isohunt.com/torrent_details|isohunt.com/download|;
 				# hack to fix torrentportal's links
 				$link =~ s|torrentportal.com/details/|torrentportal.com/download/|;
 				# hack to fix torrentspy's links
@@ -182,9 +190,9 @@ sub rss_file_process {
 				$file =~ s/\://g;
 				$file =~ s/\?//g;
 				print_log "$file currently downloading" if $current_file eq "$torrent_dir/$file";
-				print_log "$file already downloaded" if read_dbm($rss_dbm_file, "$torrent_dir/$file");
+				print_log "$file already downloaded" if $DBM{"$torrent_dir/$file"};
 				print_log "$file already queued" if grep {$_ eq "'$link' '$torrent_dir/$file'"} @rss_file_download_queue;
-				unless ($current_file eq "$torrent_dir/$file" or read_dbm($rss_dbm_file, "$torrent_dir/$file") or grep {$_ eq "'$link' '$torrent_dir/$file'"} @rss_file_download_queue) {
+				unless ($current_file eq "$torrent_dir/$file" or $DBM{"$torrent_dir/$file"} or grep {$_ eq "'$link' '$torrent_dir/$file'"} @rss_file_download_queue) {
 					push @rss_file_download_queue, "'$link' '$torrent_dir/$file'";
 					print_log "queued $file";
 				}
@@ -192,6 +200,7 @@ sub rss_file_process {
 		}
 	}
 	@{$list->{data}} = ( @itemslist );
+	untie $db;
 }
 
 sub check_regexps_reject {
