@@ -94,7 +94,7 @@ sub set
 
 	if ($p_state eq 'on') {
 		$l_state = 'dark';
-	} elsif ($p_state eq 'off' and $p_setby eq $$self{m_timerCheck} ) {
+	} elsif ($p_state eq 'off' and $p_setby eq $$self{m_timerCheck} and $$self{m_blnCheck}==1 ) {
       if ($$self{'inactivity_action'}) {
          package main;
          eval $$self{'inactivity_action'};
@@ -111,7 +111,7 @@ sub set
 	if ($$self{m_blnCheck}) {
 		$$self{m_timerCheck}->set(24*60*60,$self);
 	}
-	$self->SUPER::set($l_state,$p_setby,$p_response);
+	$self->SUPER::set($l_state,$p_setby,$p_response) if defined $l_state;
 
 }
 
