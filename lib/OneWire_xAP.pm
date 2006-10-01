@@ -91,12 +91,12 @@ sub set {
                         # TO-DO: support other sensors types than just humid and temp
 			if ($device->type eq 'humid') {
 			# parse the data from the level member stripping % char
-				my ($humid, $humid_scale) = $source->level =~ /^(\d*\.?\d*)\s*(\S*)/;
+				my ($humid, $humid_scale) = $source->level =~ /^(-?\d*\.?\d*)\s*(\S*)/;
 				$device->measurement($humid);
 			} elsif ($device->type eq 'temp') {
 			# parse the data from the text member using the last char for scale
                         # TO-DO: perform conversion if temp_scale is not what device wants
-				my ($temp, $temp_scale) = $source->text =~ /^(\d*\.?\d*)\s*(\S*)/;
+				my ($temp, $temp_scale) = $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
 				$device->measurement($temp);
 			}
 			last; # we're done as only one setby
