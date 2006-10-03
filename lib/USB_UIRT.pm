@@ -161,6 +161,7 @@ sub startup {
 		&main::check_for_generic_serial_data('USB_UIRT');
 		my $data = $main::Serial_Ports{USB_UIRT}{data};
 		$main::Serial_Ports{USB_UIRT}{data} = '';
+#		get_gpiocaps(); 
 	}
 	get_version();
 	set_config($main::config_parms{usb_uirt_config}) if defined $main::config_parms{usb_uirt_config};
@@ -430,10 +431,17 @@ sub set_modeuir {
 	get_response(1);
 }
 
+sub get_gpiocaps {
+	usb_uirt_send(0x30, 0x01);
+	my $ret = get_response(6);
+	printf "USB-UIRT GPIO Capabilities: # Slots %d, A Mask %d, B Mask %d, C Mask %d, D Mask %d\n", unpack 'C5', $ret;
+	return unpack 'C5', $ret;
+}
+
 sub get_response {
 	my $length = shift;
 	$length = 1 unless $length; 
-	select undef, undef, undef, .05;
+	select undef, undef, undef, .01;
 	my ($count, $ret) = $main::Serial_Ports{USB_UIRT}{object}->read($length);
 	my @bytes = unpack 'C*', $ret;
 	my $checksum = 0;
@@ -483,12 +491,27 @@ sub transmit_raw {
 		}
 	}
 	else {
+		my $first = 1;
 		my ($code1, $code2) = split ' ', $code;  
 		foreach my $code ($code1, $code2) {
 			next unless $code; 
 			my @bytes = unpack('C*', pack 'H*', $code);
 			splice @bytes, 4, 0, $#bytes - 3;
 			usb_uirt_send(0x36, $#bytes + 2, @bytes);
+			if ($code1 and $code2) {
+				my $frequency = shift @bytes & 0x7f; 
+				my $units = $frequency / 2500000;
+				shift @bytes; 
+				my $inter = ((shift @bytes) * 256 + shift @bytes) * .050;
+				my $delay = $inter; 
+				while (my $byte = shift @bytes) {
+					$delay += $units * (($byte & 0x80) ? ($byte & 0x7f) << 8 | shift @bytes : $byte);
+				}
+				$delay -= .01 if $delay > .01;
+#print "db delay $delay inter $inter units $units frequency $frequency \n";
+				select undef, undef, undef, $delay;
+				$code1 = '';
+			}
 			get_response(1);
 		}
 	}

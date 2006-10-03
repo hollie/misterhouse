@@ -85,6 +85,7 @@ sub startup {
 	my $data = $main::Serial_Ports{UIRT2}{data};
 	$main::Serial_Ports{UIRT2}{data} = '';
 	get_version();
+	get_gpiocfgs();  
 }
 
 sub check_for_data {
@@ -233,7 +234,7 @@ sub process_raw {
 
 sub get_version {
 	uirt2_send(0x23);
-	my $ret = get_reponse(3);
+	my $ret = get_response(3);
 	printf "UIRT2 Protocol Version %d.%d\n", (unpack 'C*', $ret)[0,1];
 }
 
@@ -241,29 +242,45 @@ sub set_moderaw {
 	$learning = 1;
 	@learned = ();
 	uirt2_send(0x21);
-	my $ret = get_reponse(1);
+	my $ret = get_response(1);
 }
 
 sub set_modeuir {
 	$learning = 0;
 	uirt2_send(0x20);
-	my $ret = get_reponse(1);
+	my $ret = get_response(1);
 }
 
 sub set_modestruct {
 	$learning = 0;
 	uirt2_send(0x22);
-	my $ret = get_reponse(1);
+	my $ret = get_response(1);
 }
 
 sub get_gpiocaps {
 	uirt2_send(0x30, 0x01);
-	my $ret = get_reponse(6);
+	my $ret = get_response(6);
+	printf "UIRT2 GPIO Capabilities: # Slots %d, A Mask 0x%02x, B Mask 0x%02x, C Mask 0x%02x, D Mask 0x%02x\n", unpack 'C5', $ret;
+	return unpack 'C5', $ret;
 }
 
-sub get_reponse {
+sub get_gpiocfgs {
+	foreach (0 .. (get_gpiocaps())[0] - 1) {
+		get_gpiocfg($_);
+	}
+}
+
+sub get_gpiocfg {
+	uirt2_send(0x31, 0x02, $_);
+	my $ret = get_response(9);
+	my $uir = uc unpack 'H*', pack 'C*', unpack 'C6', $ret;
+	printf "UIRT2 GPIO Configuration for Slot %d: UIR String %s, Action 0x%02x, Duration %d\n", $_, $uir, unpack 'x6C2', $ret;
+	return $uir, unpack 'x6C2', $ret;
+}
+
+sub get_response {
 	my $length = shift; 
-    return 0 if $main::Serial_Ports{UIRT2}{object} eq 'proxy';
+	return 0 if $main::Serial_Ports{UIRT2}{object} eq 'proxy';
 	select undef, undef, undef, .05;
 	my ($count, $ret) = $main::Serial_Ports{UIRT2}{object}->read($length);
 	my @bytes = unpack 'C*', $ret;
@@ -277,7 +294,7 @@ sub get_reponse {
 	my $code = $bytes[$#bytes];
 	print "UIRT2 expected $length byte response, only got $count \n" unless $count == $length; 
 	if (($count > 1 and $code == $checksum) or $code == 0x20 or $code == 0x21) {
-		print "UIRT2 transmission successful\n";
+		print "UIRT2 transmission successful\n" if $main::Debug{UIRT2};
 	}
 	elsif ($code == 0x80) {
 		print "UIRT2 transmission failed, checksum error\n";
@@ -300,14 +317,14 @@ sub transmit_raw {
 #	my $t = 0.10;
 #	foreach (@bytes) {$t += $_} 
 	uirt2_send(0x36, $#bytes + 2, @bytes);
-	my $ret = get_reponse(1);
+	my $ret = get_response(1);
 }
 
 sub transmit_struct { 
  	my @bytes = unpack('C*', pack 'H*', shift);
 	$transmit_timeout = &main::get_tickcount + 500;
 	uirt2_send(@bytes);
-	my $ret = get_reponse(1);
+	my $ret = get_response(1);
 }
 
 sub transmit_pronto {
@@ -345,7 +362,7 @@ sub uirt2_send {
 	push @bytes, $checksum;
 	$hex .= sprintf '%02x', $checksum;
 	print "UIRT2 sending $hex\n" if $main::Debug{UIRT2};
-    return if &main::proxy_send('UIRT2', 'uirt2_send', @bytes);
+	return if &main::proxy_send('UIRT2', 'uirt2_send', @bytes);
 	$main::Serial_Ports{UIRT2}{object}->write(pack 'C*', @bytes); 
 }
 

@@ -35,11 +35,12 @@ if ($Reload) {
     $ofa_html = &ofa_html; 
 } 
 
-$usb_uirt_test = new Voice_Cmd( "usb_uirt debug [version,raw,uir,get config,learn,dump codes]");
+$usb_uirt_test = new Voice_Cmd( "usb_uirt debug [version,raw,oldraw,uir,get config,learn,dump codes]");
 
 if (my $state = said $usb_uirt_test) {
     USB_UIRT::get_version() if $state eq 'version';
     USB_UIRT::set_moderaw() if $state eq 'raw';
+    USB_UIRT::set_modeoldraw() if $state eq 'oldraw';
     USB_UIRT::set_modeuir() if $state eq 'uir';
     USB_UIRT::get_config() if $state eq 'get config';
     USB_UIRT::learn_code('test device', 'test function') if $state eq 'learn';
