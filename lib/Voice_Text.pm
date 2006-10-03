@@ -48,6 +48,7 @@ sub init {
                 for my $i (1 .. $count) {
                     my $object = $outputs->Item($i-1);
                     my $des    = $object->GetDescription;
+                    print " - sound card $i: $des\n";
                     if ($main::config_parms{voice_text_cards}) {
                         my $flag = 0;
                         for my $card (split ',', $main::config_parms{voice_text_cards}) {
@@ -58,11 +59,10 @@ sub init {
                         }
                         next unless $flag;
                     }
-                    print " - sound card $i: $des\n";
                     $VTxt[$i] = Win32::OLE->new('Sapi.SpVoice');
                     $VTxt[$i] ->{AudioOutput} = $object;
                                 # Pick the default card, if specified
-                    $VTxt[0] = $VTxt[$i] if $des =~ /$main::config_parms{voice_text_card}/i;
+                    $VTxt[0] = $VTxt[$i] if $des =~ /$main::config_parms{voice_text_card}/i or !$VTxt[0];
                 }
                 $VTxt[0] = $VTxt[1] unless $VTxt[0]; # Default to the first card if specified one not found
 
@@ -185,7 +185,7 @@ sub speak_text {
 
                                 # Allow for a percentage volume number - Steve Switzer 1/19/2003
     my $mh_volume = state $main::mh_volume if $main::mh_volume;
-    print "Voice_Text volume=$parms{volume}, mh_volume=$mh_volume\n" if $main::Debug{voice};
+    print "Voice_Text volume=$parms{volume}, mh_volume=$mh_volume vc=$vtxt_card\n" if $main::Debug{voice};
     if ($parms{volume} =~ /(\d+)\%$/) {
         $parms{volume} = int($mh_volume * $1 / 100);
     }
@@ -332,7 +332,7 @@ sub speak_text {
 	       # Remove <tags> like </this> as we don't want them read
             $text =~ s/<[^>]*>//g;
             print "Data sent to festival: $text\n" if $main::Debug{voice};
-            # not sure if we will ever do a fork here as an asynchronous TTS that's not to 
+            # not sure if we will ever do a fork here as an asynchronous TTS that's not to
             # a file doesn't sound likely.  For completeness, though, it's here.
             my $fork = $parms{async};
             if ($fork) {
