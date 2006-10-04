@@ -618,3 +618,4 @@ sub set_alarm_event {
    }
 }
 
+1;
