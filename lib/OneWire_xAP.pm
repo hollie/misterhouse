@@ -31,10 +31,17 @@ Usage:
 
      Declaration:
 
+        If declaring via .mht:
+        OWX,  house,   house_owx
+
+        Where 'house' is the xap instance name and 'house_owx' is the object
+
 	# declare the oxc "conduit" object
         $oxc = new OneWire_xAP;
 
 	# create one or more AnalogSensor_Items that will be attached to the OneWire_xAP
+        # See additional comments in AnalogSensor_Items for .mht based declaration
+
 	$indoor_temp = new AnalogSensor_Item('indoor-t', 'temp');
 	# 'indoor-t' is the device name, 'temp' is the sensor type
 	$indoor_humid = new AnalogSensor_Item('indoor-h', 'humid');
@@ -91,8 +98,18 @@ sub set {
                         # TO-DO: support other sensors types than just humid and temp
 			if ($device->type eq 'humid') {
 			# parse the data from the level member stripping % char
-				my ($humid, $humid_scale) = $source->level =~ /^(-?\d*\.?\d*)\s*(\S*)/;
-				$device->measurement($humid);
+                           if ($source->level) {
+                              if ($source->level =~ /\d+\/\d+/) {
+                                 my ($humid1, $range) = $source->level =~ /^(\d+)\/(\d+)/;
+                                 $device->measurement(100*($humid1/$range));
+                              } else {
+			         my ($humid, $humid_scale) = $source->level =~ /^(-?\d*\.?\d*)\s*(\S*)/;
+			         $device->measurement($humid);
+                              }
+                           } elsif ($source->text) {
+			      my ($humid, $humid_scale) = $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
+			      $device->measurement($humid);
+                           }
 			} elsif ($device->type eq 'temp') {
 			# parse the data from the text member using the last char for scale
                         # TO-DO: perform conversion if temp_scale is not what device wants
@@ -124,12 +141,20 @@ Usage:
 
      Declaration:
 
-	$indoor_temp = new AnalogSensor_Item('indoor-t', 'temp');
+        If declaring via .mht:
+       
+        ANALOG_SENSOR, indoor-t, indoor_temp, house_owx, Sensors, temp, hot_alarm=85, cold_alarm=62
 
-	'indoor-t' is an identifier for the sensor that some other software will
+ 	'indoor-t' is an identifier for the sensor that some other software will
         require to associate sensor data to this item.  'temp' is the sensor
         type.  Currently, only 'temp' and 'humid' are supported.  Additional
-        types will be added in the future.
+        types will be added in the future. house_owx is the one-wire "conduit" that
+        populates AnalogSensor_Items.  Sensors is a group.  The tag=value data
+        following "temp" are tokens.  More info on use of tokens is described below.
+
+        Alternatively, if declaring via code:
+
+	$indoor_temp = new AnalogSensor_Item('indoor-t', 'temp');
 
      Operations:
 
@@ -152,6 +177,14 @@ Usage:
 		a negative number to apply a negative offset.  This is useful to
 		compensate for linear temperature shifts.
 
+        token(tag,value) - adds "value" as a "token" to be evaluated during state
+                and/or event condition checks.  A token is referenced in a condition
+                using the syntax: $token_<tag> where <tag> is tag.  See 
+                tie_state_condition example below.
+
+	remove_token(tag) - removes the token from use. IMPORTANT: do not remove
+                a token before first removing all conditions that depend on it.
+
 	tie_state_condition(condition,state) - registers a condition and state value
 		to be evaluated each measurement update.  If condition is true and
 		the current item's state value is not "state", then the state value
@@ -160,8 +193,11 @@ Usage:
 		condition that "wins" is used; no mechanism exists to determine
 		the order of condition evaluation.
 
-		$indoor_temp->tie_state_condition('$measurement > 81 and $meaurement < 84',hot);
-		$indoor_temp->tie_state_condition('$measurement > 85',dangerhot);
+		$indoor_temp->tie_state_condition('$measurement > 81 and $measurement < 84',hot);
+
+                # use tokens to that the condition isn't "hardwired" to a constant
+                $indoor_temp->token('danger_sp',85);
+		$indoor_temp->tie_state_condition('$measurement > $token_danger_sp',dangerhot);
 
 		In the above example, the state is changed to hot if it is not already hot AND
 		the mesaurement is between 81 and 84. Similarly, the state is change to 
@@ -215,7 +251,7 @@ use Time::HiRes qw(gettimeofday);
 
 sub new {
 
-	my ($class, $p_id, $p_type) = @_;
+	my ($class, $p_id, $p_type, @p_tokens) = @_;
 	my $self={};
 	bless $self, $class;
 	$self->id($p_id);
@@ -223,7 +259,14 @@ sub new {
 	# maintain measurement member as it is like state
 	$self->restore_data('m_measurement','m_timestamp','m_time_since_previous','m_measurement_change');
 	$$self{m_max_records} = 10;
-
+        for my $token (@p_tokens) {
+           my ($tag, $value) = split(/=/,$token);
+           if (defined($tag) and defined($value)) {
+              print "[AnalogSensor_Item] Adding analog sensor token: $tag "
+                  . "having value: $value\n" if $main::Debug{onewire};
+              $self->token($tag, $value);
+           }
+        }
 	return $self;
 }
 
@@ -321,6 +364,21 @@ sub apply_offset {
 	return $$self{m_offset};
 }
 
+sub token {
+   my ($self, $p_token, $p_val) = @_;
+   if ($p_token) {
+      $$self{tokens}{$p_token} = $p_val if defined $p_val;
+      return $$self{tokens}{$p_token} if $$self{tokens};
+   }
+}
+
+sub remove_token {
+   my ($self, $p_token) = @_;
+   if ($p_token) {
+      delete $$self{tokens}{$p_token} if exists $$self{tokens}{$p_token};
+   }
+}
+
 sub tie_state_condition {
    my ($self, $condition, $state_key) = @_;
    return unless defined $state_key;
@@ -339,6 +397,12 @@ sub untie_state_condition {
 
 sub check_tied_state_conditions {
    my ($self) = @_;
+   # construct the tokens
+   my $token_string = "";
+   for my $token (keys %{$$self{tokens}}) {
+      $token_string .= 'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
+   }
+   print "[AnalogSensor] token_string: $token_string\n" if ($token_string) && $main::Debug{onewire};
    for my $condition (keys %{$$self{tied_state_conditions}}) {
       next if (defined $self->state && $$self{tied_state_conditions}{$condition} eq $self->state); 
       # expose vars for evaluating the condition
@@ -347,7 +411,7 @@ sub check_tied_state_conditions {
       my $time_since_previous = $self->{m_time_since_previous};
       my $recent_change_rate = $self->get_average_change_rate(3);
       my $state = $self->state;
-      my $result = eval($condition);
+      my $result = ($token_string) ? eval($token_string . ' ' . $condition) : eval($condition);
       if ($@) {
          &::print_log("Problem encountered when evaluating " . $self->{object_name}
             . " condition: $condition");
@@ -377,6 +441,12 @@ sub untie_event_condition {
 
 sub check_tied_event_conditions {
    my ($self) = @_;
+    # construct the tokens
+   my $token_string = "";
+   for my $token (keys %{$$self{tokens}}) {
+      $token_string .= 'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
+   }
+   print "[AnalogSensor] token_string: $token_string\n" if ($token_string) && $main::Debug{onewire};
    for my $condition (keys %{$$self{tied_event_conditions}}) {
       next if (defined $self->state && $$self{tied_event_conditions}{$condition} eq $self->state); 
       # expose vars for evaluating the condition
@@ -385,7 +455,7 @@ sub check_tied_event_conditions {
       my $time_since_previous = $self->{m_time_since_previous};
       my $recent_change_rate = $self->get_average_change_rate(3);
       my $state = $self->state;
-      my $result = eval($condition);
+      my $result = ($token_string) ? eval($token_string . ' ' . $condition) : eval($condition);
       if ($@) {
          &::print_log("Problem encountered when evaluating " . $self->{object_name}
             . " condition: $condition");
@@ -401,3 +471,4 @@ sub check_tied_event_conditions {
    }
 }
 
+1;
