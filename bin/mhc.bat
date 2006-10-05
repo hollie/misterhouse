@@ -11,7 +11,7 @@ set myM=%myM% -M Win32::OLE  -M Win32::Process -M Win32::PerfLib  -M File::DosGl
 set myM=%myM% -M DB_File -M DBI -M DBD::mysql -M DBD::Sponge -M Math::Trig -M Net::Ping -M Digest::HMAC_MD5
 set myM=%myM% -M Tk::Text -M Tk::Menubutton -M Tk::Radiobutton -M Tk::JPEG -M Tk::CursorControl -M Tk::Checkbutton
 set myM=%myM% -M Net:::Jabber::Protocol -M XML::Stream::Node -M Net::Jabber -M Net::Jabber::Client -M CGI
-set myM=%myM% -M Time::localtime -M XML::RSS -M XML::Parser -M Crypt::SSLeay -M IPC::Open2
+set myM=%myM% -M Time::localtime -M XML::RSS -M XML::Parser -M Crypt::SSLeay -M IPC::Open2 -M Encode
 
 @rem set myM=%myM% -M Audio::Mixer  -M Term::ReadKey -M Text::PhraseDistance
 

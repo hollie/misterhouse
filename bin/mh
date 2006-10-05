@@ -591,7 +591,8 @@ sub setup {
     use Net::FTP;               # For uploading stuff
     use Text::Wrap;
 
-	use Lingua::Num2Word;              # converts numbers to text for multiple languages
+	eval "use Lingua::Num2Word"; # converts numbers to text for multiple languages
+    print "Eval error on Error in use: $@\n" if $@;
 
                                 # These Text modules are used in &phrase_match
     use Text::PhraseDistance qw(pdistance);
