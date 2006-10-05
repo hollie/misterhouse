@@ -1265,7 +1265,9 @@ sub main::net_mail_send {
         $mime_message = $message->as_string;
     }
 
-    use Net::SMTP_auth;
+    eval "use Net::SMTP_auth"; # Not on all installs, so eval to avoid errors
+    print "NET::SMTP_auth eval error: $@\n" if $@;
+
     use Net::SMTP;
     use Authen::SASL;
 

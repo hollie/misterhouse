@@ -27,7 +27,7 @@ Authors:
 
 use strict;
 use Fcntl;
-use bytes;
+eval "use bytes";  # Not on all installs, so eval to avoid errors
 
 package EIB_Device;
 
