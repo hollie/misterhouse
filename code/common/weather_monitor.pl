@@ -447,14 +447,14 @@ if (expired $israining_timer) {
     $Weather{IsRaining} = 0 ;
     my $minutes = int(60 - minutes_remaining $rain_report_timer);
     my $rain = rain_since($Time - 60 * $minutes) if $minutes;
-    speak "It rained $rain $rain_units in the past $minutes minutes" if $rain;
+    &speak (app => 'weather', text => "It rained $rain $rain_units in the past $minutes minutes") if $rain;
     set $rain_report_timer 0;
 }
 
 $rain_report_timer = new Timer;
 if (expired $rain_report_timer and $Weather{IsRaining}) {
     my $rain = rain_since($Time - 60 * 60);
-    speak "It has rained $rain $rain_units in the past hour" if $rain;
+    speak (app => 'weather', text => "It has rained $rain $rain_units in the past hour") if $rain;
     set $rain_report_timer 60 * 60 if $Weather{IsRaining};
 }
 
@@ -465,7 +465,7 @@ if (my $rain = state_now $RainTotal) {
     $Weather{RainRecent} = $rain - $raintotal_prev if $rain > $raintotal_prev;
 #   print "db r=$rain p=$raintotal_prev w=$Weather{RainRecent} f=$firstrain\n";
     if ($Weather{RainRecent} > 0) {
-        respond "Notice, it just started raining" unless $firstrain;
+        respond "app=weather Notice, it just started raining" unless $firstrain;
         dbm_write $rain_file, $Time, $Weather{RainRecent};
 #       logit "$config_parms{data_dir}/rain.dbm", "$Time_Now $Weather{RainRecent}"
         set $israining_timer 20 * 60;
