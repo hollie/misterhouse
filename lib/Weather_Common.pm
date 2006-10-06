@@ -409,7 +409,7 @@ sub populate_internet_weather {
 	# keys if this happens.
 
 	if ($main::Weather{DewOutdoorUnder}) {
-		print_log ("Weather_Common: forcing use of internet for outdoor humidity and dewpoint as temperature is too low");
+		&::print_log ("Weather_Common: forcing use of internet for outdoor humidity and dewpoint as dewpoint is too low");
 		$main::Weather{HumidOutdoorMeasured}=0; # because our measurement is bad
 		push (@keys,qw(HumidOutdoor DewOutdoor));
 	}
