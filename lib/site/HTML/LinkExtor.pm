@@ -25,7 +25,7 @@ parser by calling the $p->parse() or $p->parse_file() methods.
 
 require HTML::Parser;
 @ISA = qw(HTML::Parser);
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 
 use strict;
 use vars qw(%LINK_ELEMENT);

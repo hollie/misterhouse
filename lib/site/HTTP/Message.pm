@@ -32,7 +32,7 @@ require HTTP::Headers;
 require Carp;
 use strict;
 use vars qw($VERSION $AUTOLOAD);
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 
 $HTTP::URI_CLASS ||= $ENV{PERL_HTTP_URI_CLASS} || "URI";
 eval "require $HTTP::URI_CLASS"; die $@ if $@;

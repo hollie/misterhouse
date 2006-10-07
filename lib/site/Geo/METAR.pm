@@ -121,7 +121,7 @@ use Carp;
 ### Globals/Constants
 
 my $revision = '$Revision$';
-   $revision =~ m/(\d+\.\d+)/;
+   $revision =~ m/: (\d+)/;
    $revision = $1;
    $VERSION  = $revision;
 my $debug       = 0;

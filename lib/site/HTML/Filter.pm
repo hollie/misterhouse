@@ -3,7 +3,7 @@ package HTML::Filter;
 require HTML::Parser;
 @ISA=qw(HTML::Parser);
 
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 
 sub declaration { $_[0]->output("<!$_[1]>")     }
 sub comment     { $_[0]->output("<!--$_[1]-->") }

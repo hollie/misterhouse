@@ -4,7 +4,8 @@ no strict 'refs';  # Let's just make this very clear right off
 
 use Carp;
 use vars qw($VERSION);
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf '%d.%03d'.'%02d' x ($#r-1), @r};
+($VERSION) = q$Revision$ =~ /: (\d+)/;
+
 
 my $Ident = '[^\W_0-9]\w*';
 

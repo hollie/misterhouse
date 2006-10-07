@@ -157,7 +157,8 @@ use vars qw($VERSION $QUIET $PARANOID $VANILLA);
 # GLOBALS, EXTERNAL/CONFIGURATION...
 
 # The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = substr q$Revision$, 10;
+($VERSION) = q$Revision$ =~ /: (\d+)/;
+
 
 # Don't warn me about dangerous activities:
 $QUIET = undef;

@@ -113,7 +113,7 @@ use vars qw(@ISA $VERSION);
 require HTML::Formatter;
 @ISA = qw(HTML::Formatter);
 
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 
 use vars qw(%PaperSizes %FontFamilies @FontSizes %param $DEBUG);
 

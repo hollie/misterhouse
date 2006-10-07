@@ -114,7 +114,7 @@ $WARN           = 0;
 
 require HTML::TreeBuilder;
 
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 
 
 sub parse_html ($;$)

@@ -49,7 +49,8 @@ use Carp;
 use UNIVERSAL qw(can);
 
 use vars qw($VERSION);
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
+
 
 sub new
 {

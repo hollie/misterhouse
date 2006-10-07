@@ -30,7 +30,11 @@ require Exporter;
 	process_city_hourly
 );
 
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
+my $revision = '$Revision$';
+   $revision =~ m/: (\d+)/;
+   $revision = $1;
+   $VERSION  = $revision;
+
 my $URL_BASE = 'http://iwin.nws.noaa.gov/iwin/';
 
 use vars '$proxy_from_env';

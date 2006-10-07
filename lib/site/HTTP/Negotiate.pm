@@ -3,7 +3,7 @@
 
 package HTTP::Negotiate;
 
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 sub Version { $VERSION; }
 
 require 5.002;

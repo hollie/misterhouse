@@ -69,7 +69,7 @@ require HTML::Element;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 
 use vars qw(@TAGS);
 @TAGS = qw(html

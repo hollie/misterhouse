@@ -81,7 +81,7 @@ use vars qw(@ISA $VERSION
 require HTML::Element;
 require HTML::Parser;
 @ISA = qw(HTML::Element HTML::Parser);
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 
 # Elements that should only be present in the header
 %isHeadElement = map { $_ => 1 } qw(title base link meta isindex script);

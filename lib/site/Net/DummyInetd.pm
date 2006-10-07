@@ -14,7 +14,8 @@ use strict;
 use vars qw($VERSION);
 use Carp;
 
-$VERSION = do { my @r=(q$Revision$=~/\d+/g); sprintf "%d."."%02d"x$#r,@r};
+($VERSION) = q$Revision$ =~ /: (\d+)/;
+
 
 
 sub _process

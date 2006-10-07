@@ -175,7 +175,8 @@ use HTTP::Status;
 push(@EXPORT, @HTTP::Status::EXPORT);
 
 
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
+
 $FULL_LWP++ if grep {lc($_) eq "http_proxy"} keys %ENV;
 
 

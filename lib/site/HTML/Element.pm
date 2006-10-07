@@ -44,7 +44,7 @@ use vars qw($VERSION
 	    %emptyElement %optionalEndTag %linkElements %boolean_attr
            );
 
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 sub Version { $VERSION; }
 
 # Elements that does not have corresponding end tags (i.e. are empty)

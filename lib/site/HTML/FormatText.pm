@@ -61,7 +61,7 @@ require "../lib/site/HTML/Formatter.pm";
 
 @ISA = qw(HTML::Formatter);
 
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+($VERSION) = q$Revision$ =~ /: (\d+)/;
 
 
 sub default_values
