@@ -11,22 +11,74 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 =head2 Changes in the current test version
 
 =begin html
-<p>The latest changelog for the
-<a href=http://misterhouse.net/public/misterhouse_src_test.zip>current test release</a>
-(updated nightly) can be found
-<a href=http://misterhouse.net/mh/docs/updates.html>here, in the test release updates file</a>.
+<p>The latest changelog for current test release
+(avalable via the <a href=https://svn.sourceforge.net/svnroot/misterhouse/trunk>SVN repository</a>
+or a <a href=http://misterhouse.net/public/misterhouse_src_test.zip>nightly compiled zip file</a>
+can be found in <a href=http://svn.sourceforge.net/viewvc/misterhouse/trunk/?view=log>the SVN change log</a>
+with highlights listed in <a href=http://misterhouse.net/mh/docs/updates.html>the release notes</a>.
+
 
 =end html
 
 B<New Features:>
 
-- Updated code/common/internet_mail.pl to allow for reading of local mail files.  
-For example, if using Thunderbird, install Thunderbird 'Tb autosave extention' from http://www.supportware.net/mozilla/#ext13 
+B<Bug Fixes and Other Changes:>
+
+
+=head2 Version 2.103 posted on 10/07/2006
+
+Version 2.103 can be downloaded from here:
+
+  http://misterhouse.sf.net/download.html
+
+
+B<New Features:>
+
+- David Mark made lots of updates to the tk gui.
+
+- Matthew Williams created lib/Device_Item.pm and lib/X10_Interface.pm and modified X10_Items and Serial_Item so we have a more consistent set of classes.
+
+- Gregg Liming made various xAP and xPL updates including OneWire_xAP and AnalogSensor_Item support, proper xAP targetting on responds,
+BSC_Item, and auto-detect devices targeting slimdev-slimserv.
+
+- Jason Sharpee added suport for UPB PIM and Devices as: UPBPIM <name>,<network>,<password>,<address>.  UPBD <name>,<UPBPIM>,<network>,<address>
+
+- Gregg Liming and David Mark added lib/X10_Scene.pm to provide a convenient mechanism for defining, managing and enrolling/unenrolling lighing scenes.  Current support is limited to Switchlinc family of lights.
+
+- Gregg Liming added support for ZoneMinder (http:www.zoneminder.com ).
+
+- Mike Wiebke added SOAP server capability and several client examples
+
+- Matthew Williams modified audreyspeak.pl to generate TTS files asynchronously.
+
+- Matthew Williams added support for standard CPAN Lingua modules to convert numbers to text.
+
+- Matthew Williams added lib/Weather_Common.pm and updated most of the weather interface modules to provide
+standard routines to update weather related variables.
+Among other things, this allows a local weather station to be supplemented with data from the internet (e.g. METAR)
+
+- Matthew Williams added support for Davis Weather Monitor II and
+updated Weather_Items.pm to monitor battery levels on the WMR968 group of weather stations.
+
+- John Murphy added support of DS2409 based 1-wire hubs.
+
+- David Norwood updated the rrd graphic code so that graphs are now created on-the-fly instead of every five minutes, less likely to cause pauses.
+
+- Matthew Williams split weather_rrd graph functionality out of code/common/weather_rrd_update.pl into bin/weather_rrd_update_graphs.
+This allows Windows boxes to update their graphs in a forked process, removing the long pauses that can be associated with updating the rrd graphs.
+
+- Updated code/common/internet_mail.pl to allow for reading of local mail files.
+For example, if using Thunderbird, install Thunderbird 'Tb autosave extention' from http://www.supportware.net/mozilla/#ext13
 then set the mh.ini parm net_mail_save_dir to point to the save directory.
 This has the advantage over get_email of ignoring spam that you have filtered out of your inbox.
 
 
+
 B<Bug Fixes and Other Changes:>
+
+- Matthew Williams made about 1 billion changes, a bit too numerous to list.  Check the svn log for the complete list.
+
+- David Mark also made many changes, some (but not all) are listed in the svn log listing.
 
 - David Mark added several new options to display_alpha.pl
 
@@ -48,7 +100,7 @@ B<Bug Fixes and Other Changes:>
 
 - David Mark updated code/common/event_sounds.pl to allow for an optional mh.ini event_sounds_file
 
-- David Mark added &recompose_uri to unencoded URI's from XML parsers and re-encodes them for output in tag attributes. 
+- David Mark added &recompose_uri to unencoded URI's from XML parsers and re-encodes them for output in tag attributes.
 
 - David Mark updated code/common/news_ap_breaking.pl from 'read/show' to 'what is'.
 
@@ -73,6 +125,28 @@ B<Bug Fixes and Other Changes:>
 - Added a speak length mh.ini parm, to allow for truncating long text before speaking.  Default is set with mh.ini entry of speak_length=500
 
 - Axel Brown spoted a bug where the play sound_fork parm was ignored on non-winows boxes.
+
+- David Norwood improved pronto support, RSS processing, trigger actions, and usb-uirt support.
+
+- Dan Patellis updated lib/Marrick.pm to accept more X10 commands, including PRESET_DIMs.
+
+- Rick Steeves patched dailystrips to support 2 page retrieval support.
+
+- Joe Blecher added support in Lynx10PLC.pm to handle individual commands instead of requiring pairs. This allows "group" capability similar to the CM11
+
+- Chris Barrett fixed 4 bugs in vv_tts.pl
+
+- David Norwood added +-##% states to X10_Item, and made many improvements related to dimming.
+
+- Chris Kodadek and Matthew Williams put in a fix for said_next in Socket_Item.pm for cases where $datatype is 'raw' (i.e. a raw socket).
+
+- Kirk Bauer updated Musica.pm.
+
+- Troy Carpenter updated internet_weather.pl to add -nws_data forecast to limit it to just forecast data
+
+- Troy Carpenter added a new volume control module for Audreys.
+
+- Jim Duda updated audreyspeak which has more intelligent handling of "rooms".
 
 
 =head2 Version 2.102 posted on 04/02/2006
@@ -120,7 +194,7 @@ You can continue to send updates to me directly, or feel free to send them in vi
 Windows users can use touroiseSVN, which integrates into explorer:  http://tortoisesvn.sourceforge.net/
 Right click on explorer and do an SVN check out from here: https://svn.sourceforge.net/svnroot/misterhouse/trunk
 
-- If you want to track changes to the mh wiki, you can subscribe to a RSS or ATOM feed via 
+- If you want to track changes to the mh wiki, you can subscribe to a RSS or ATOM feed via
 this page: http://misterhouse.wikispaces.com/space/notify
 
 
