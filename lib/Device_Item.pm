@@ -80,7 +80,7 @@ sub said {
 	my $key='data_record';
 	my $mainHash=$self->{mainHash};
 
-	$key = 'data' if $self->{datatype} eq 'raw';
+	$key = 'data' if $self->{datatype} and $self->{datatype} eq 'raw';
 	$data = $mainHash->{$device_name}{$key};
 
 	$mainHash->{$device_name}{$key} = undef;

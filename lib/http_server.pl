@@ -423,7 +423,7 @@ sub http_process_request {
 
         print "http: RUN a=$Authorized,$authority get_arg=$get_arg response=$h_response\n" if $main::Debug{http};
 
-        if ($Authorized or $authority eq 'anyone') {
+        if ($Authorized or ($authority and $authority eq 'anyone')) {
                                 # Allow for RUN;&func  (response function like &dir_sort, with no action)
             if (!$get_arg) {
                 &html_response($socket, $h_response);
