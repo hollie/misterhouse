@@ -32,17 +32,17 @@
 
 use Mp3Player;
 
-# use Win32::TieRegistry 0.20 (Delimiter=>"/", ArrayValues=>0);
 
 # noloop=start      This directive allows this code to be run on startup/reload
 
+eval 'use Win32::TieRegistry 0.20 (Delimiter=>"/", ArrayValues=>0)';
 use vars '$Registry';
 
 my $winamp_path;
 
 if ($OS_win) { # Not really needed as this is a Windows-only module
 	$winamp_path = $Registry->{'Classes/Applications/Winamp.exe/shell/open/command//'};
-	$winamp_path = $1 if $winamp_path =~ /"(.*?)"/;
+	$winamp_path = $1 if $winamp_path and $winamp_path =~ /"(.*?)"/;
 	print "Found local Winamp: $winamp_path\n" if $Debug{winamp};
 }
 
