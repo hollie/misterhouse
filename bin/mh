@@ -3563,7 +3563,7 @@ sub password_read {
 
 sub authority_check {
     my ($user_required) = @_;
-    return 1 if  $user_required eq 'anyone';
+    return 1 if defined($user_required) and $user_required eq 'anyone';
     return 0 if !$Authorized;
     return 1 if !$user_required;
     return 1 if  $Authorized eq 'admin';    # Allow any command for admin

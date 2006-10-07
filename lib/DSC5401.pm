@@ -732,19 +732,19 @@ sub DefineErrorCode {
       "010"   => "Keybus Transmit Buffer Overrun",
       "011"   => "Keybus Transmit Time Timeout",
       "012"   => "Keybus Transmit Mode Timeout",
-      "013"   => "Keybus TRansmit Keystring Timeout",
-      "014"   => "Keybus Not Fonctionning",
+      "013"   => "Keybus Transmit Keystring Timeout",
+      "014"   => "Keybus Not Functioning",
       "015"   => "Keybus Busy (attempting arm or disarm)",
-      "016"   => "Keybus Busy - Lockout ( too many disarm)",
-      "017"   => "Keybus Busy - Insntallers Mode",
+      "016"   => "Keybus Busy - Lockout (too many disarms)",
+      "017"   => "Keybus Busy - Installers Mode",
       "020"   => "API Command Syntax Error",
       "021"   => "API Command Partition Error (partition out of bound)",
       "022"   => "API Command Not Supported",
       "023"   => "API System Not Armed",
       "024"   => "API System Not Ready To Arm",
-      "025"   => "API Command Invalid Length" .
-        "026" => "API User Code not Required",
-      "027" => "API Invalid Characters in Command"
+      "025"   => "API Command Invalid Length", 
+      "026"   => "API User Code not Required",
+      "027"   => "API Invalid Characters in Command"
    );
 
    return;

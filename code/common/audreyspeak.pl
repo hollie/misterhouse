@@ -105,7 +105,7 @@ sub file_ready_for_audrey {
 
     my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
     my $speakFile = "/speakToAudrey${audreyIndex}.wav";
-    my $rooms = @speakRooms[$audreyIndex];
+    my $rooms = $speakRooms[$audreyIndex];
     for my $audrey (split ',', $config_parms{Audrey_IPs}) {
       $audrey =~ /(\S+)\-(\S+)/;
       my $room = lc $1;
@@ -151,7 +151,7 @@ sub speak_to_Audrey {
     $parms{rooms} = @rooms;
     $parms{audreyIndex}=$audreyIndex;
     $parms{async}=1;
-    @speakRooms[$audreyIndex] = \@rooms;
+    $speakRooms[$audreyIndex] = \@rooms;
     &print_log("generating audrey file $audreyIndex (via TTS)");
     &Voice_Text::speak_text(%parms);
     $audreyIndex = ($audreyIndex + 1) % $audreyMaxIndex;
@@ -220,7 +220,7 @@ sub play_to_audrey {
       next if (! -e $file);
 
       my $speakFile = $config_parms{html_dir} . "/speakToAudrey" . $audreyIndex . ".wav";
-      @speakRooms[$audreyIndex] = \@rooms;
+      $speakRooms[$audreyIndex] = \@rooms;
 
 	&print_log("generating audrey file $audreyIndex (from .wav file)");
       copy $file, $speakFile;

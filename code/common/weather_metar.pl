@@ -67,7 +67,7 @@ sub process_metar {
 	my $last_report='none';
 	my ($pressure, $weather, $clouds, $winddirname, $windspeedtext);
 	my ($metricpressure,$pressuretext, $apparenttemp, $dewpoint);
-	my $apparenttemp='none';
+	$apparenttemp='none';
 
 	# apparenttemp is either windchill or humidex
 

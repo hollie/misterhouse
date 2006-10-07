@@ -477,8 +477,10 @@ unless ($skip{HumidOutdoor}) {
       $$wptr{HumidOutdoorMeasured}=1;
 }
 unless ($skip{DewOutdoor}) {
+	if (!$$wptr{DewOutdoorUnder})  {
       $$wptr{DewOutdoor}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10;
 	$$wptr{DewOutdoor} = &main::convert_c2f($$wptr{DewOutdoor_ws}) if $main::config_parms{weather_uom_temp} eq 'F';
+	}
 }
 print "** THERMO-HYGROMETER : $main::Time_Date\n" if $debug;
 print "       BatOutdoor       ($$wptr{BatOutdoor})\n" if $debug;

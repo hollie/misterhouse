@@ -283,7 +283,7 @@ if ($New_Minute) {
     &create_rrd($time) unless -e $RRD;
 
     if ($config_parms{weather_uom_temp} eq 'C') {
-      grep { $_=convert_c2f($_) } ($rrd_TempOutdoor, $rrd_TempIndoor,
+      grep { $_=convert_c2f($_) unless $_ eq 'U' } ($rrd_TempOutdoor, $rrd_TempIndoor,
         $rrd_TempSpare1, $rrd_TempSpare2, $rrd_TempSpare3, $rrd_TempSpare4,
         $rrd_TempSpare5, $rrd_TempSpare6, $rrd_TempSpare7, $rrd_TempSpare8,
         $rrd_TempSpare9, $rrd_TempSpare10, $rrd_DewOutdoor, $rrd_DewIndoor,
@@ -291,23 +291,23 @@ if ($New_Minute) {
     }
 
     if ($config_parms{weather_uom_baro} eq 'mb') {
-      grep { $_=convert_mb2in($_) } ($rrd_Barom);
+      grep { $_=convert_mb2in($_) unless $_ eq 'U'} ($rrd_Barom);
     }
 
     if ($config_parms{weather_uom_wind} eq 'kph') {
-      grep { $_=convert_km2mile($_) } ($rrd_WindGustSpeed, $rrd_WindAvgSpeed);
+      grep { $_=convert_km2mile($_) unless $_ eq 'U'} ($rrd_WindGustSpeed, $rrd_WindAvgSpeed);
     }
 
     if ($config_parms{weather_uom_wind} eq 'm/s') {
-      grep { $_=convert_mps2mph($_) } ($rrd_WindGustSpeed, $rrd_WindAvgSpeed);
+      grep { $_=convert_mps2mph($_) unless $_ eq 'U'} ($rrd_WindGustSpeed, $rrd_WindAvgSpeed);
     }
 
     if ($config_parms{weather_uom_rain} eq 'mm') {
-      grep { $_=convert_mm2in($_)} ($rrd_RainTotal);
+      grep { $_=convert_mm2in($_) unless $_ eq 'U'} ($rrd_RainTotal);
     }
 
     if ($config_parms{weather_uom_rainrate} eq 'mm/hr') {
-      grep { $_=convert_mm2in($_)  } ($rrd_RainRate);
+      grep { $_=convert_mm2in($_) unless $_ eq 'U'} ($rrd_RainRate);
     }
 
     @d = ($rrd_TempOutdoor, $rrd_HumidOutdoor, $rrd_DewOutdoor, $rrd_Barom,
