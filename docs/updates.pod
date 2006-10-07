@@ -13,7 +13,7 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 =begin html
 <p>The latest changelog for current test release
 (avalable via the <a href=https://svn.sourceforge.net/svnroot/misterhouse/trunk>SVN repository</a>
-or a <a href=http://misterhouse.net/public/misterhouse_src_test.zip>nightly compiled zip file</a>
+or a <a href=http://misterhouse.net/public/misterhouse_src_test.zip>nightly compiled zip file</a> )
 can be found in <a href=http://svn.sourceforge.net/viewvc/misterhouse/trunk/?view=log>the SVN change log</a>
 with highlights listed in <a href=http://misterhouse.net/mh/docs/updates.html>the release notes</a>.
 
@@ -45,7 +45,7 @@ BSC_Item, and auto-detect devices targeting slimdev-slimserv.
 
 - Gregg Liming and David Mark added lib/X10_Scene.pm to provide a convenient mechanism for defining, managing and enrolling/unenrolling lighing scenes.  Current support is limited to Switchlinc family of lights.
 
-- Gregg Liming added support for ZoneMinder (http:www.zoneminder.com ).
+- Gregg Liming added support for ZoneMinder ( http://www.zoneminder.com ).
 
 - Mike Wiebke added SOAP server capability and several client examples
 
