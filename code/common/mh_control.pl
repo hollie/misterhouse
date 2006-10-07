@@ -214,6 +214,7 @@ if ($state = said $v_show_debug) {
 sub update_config_parms_debug {
 	my @currentDebugs=();
 	foreach my $key (keys(%Debug)) {
+		next if $key eq 'debug_previous';
 		push (@currentDebugs,$key.':'.$Debug{$key}) if $Debug{$key};
 	}
 	$config_parms{debug}=join(';',@currentDebugs);
