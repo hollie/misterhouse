@@ -77,7 +77,7 @@ BEGIN {
 		close (ENTRIES);
     }
 
-	$Version = "mh 2.102";
+	$Version = "mh 2.103";
 	if ($revision) {
 		$Version.=" R${revision}";
 	}
@@ -1136,33 +1136,33 @@ sub open_logs {
 }
 
 sub set_by_to_target {
-	my ($set_by, $no_strip) = @_;
+    my ($set_by, $no_strip) = @_;
 
-        $no_strip = 0 unless $no_strip;
+    $no_strip = 0 unless $no_strip;
 
-	$set_by = undef if (!$set_by or $set_by =~ /time/i or $set_by =~ /^unknown/i or $set_by =~ /^usercode/i or $set_by eq 'status');
+    $set_by = undef if (!$set_by or $set_by =~ /time/i or $set_by =~ /^unknown/i or $set_by =~ /^usercode/i or $set_by eq 'status');
 
-	# *** WTF?!  This got called over and over by something (couldn't have been in while loop because it wasn't locked up)
-	# *** Check if timer object (?)
+    # *** WTF?!  This got called over and over by something (couldn't have been in while loop because it wasn't locked up)
+    # *** Check if timer object (?)
 
-	my @objectList=();
-	while (ref $set_by and $set_by->can('get_set_by')) {
-		if (grep($set_by->{object_name} eq $_, @objectList)) {
-			&print_log ("BUG! set_by loop detected with these objects: ".
-				join (', ',@objectList));
-			last;
-		}
-		push(@objectList, $set_by->{object_name});
-		my $predecessor=$set_by->get_set_by();
-		last if $predecessor eq $set_by; # comment this line out to detect self-setting objects
-		$set_by = $predecessor;
-	}
+    my @objectList=();
+    while (ref $set_by and $set_by->can('get_set_by')) {
+        if (grep($set_by->{object_name} eq $_, @objectList)) {
+            &print_log ("BUG! set_by loop detected with these objects: ".
+                join (', ',@objectList));
+            last;
+        }
+        push(@objectList, $set_by->{object_name});
+        my $predecessor=$set_by->get_set_by();
+        last if $predecessor and $predecessor eq $set_by; # comment this line out to detect self-setting objects
+        $set_by = $predecessor;
+    }
 
-	if (!($no_strip)) {
-		$set_by = $1 if ($set_by and $set_by =~ /(.*?) \[/); #web, email, im (and xap coming soon)
-		$set_by = undef if ref $set_by;
-	}
-	return $set_by;
+    if (!($no_strip)) {
+        $set_by = $1 if ($set_by and $set_by =~ /(.*?) \[/); #web, email, im (and xap coming soon)
+        $set_by = undef if ref $set_by;
+    }
+    return $set_by;
 }
 
 # Custom windows go at bottom of view menu, dialogs on tools
